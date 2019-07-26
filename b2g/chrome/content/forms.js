@@ -71,6 +71,7 @@ let FormAssistant = {
       return;
 
     if (this.focusedElement) {
+      this.focusedElement.removeEventListener('click', this);
       this.focusedElement.removeEventListener('mousedown', this);
       this.focusedElement.removeEventListener('mouseup', this);
       if (!element) {
@@ -79,6 +80,7 @@ let FormAssistant = {
     }
 
     if (element) {
+      element.addEventListener('click', this);
       element.addEventListener('mousedown', this);
       element.addEventListener('mouseup', this);
     }
@@ -95,9 +97,10 @@ let FormAssistant = {
         if (this.isTextInputElement(target) && this.isIMEDisabled())
           return;
 
+        
+        
         if (target && this.isFocusableElement(target)) {
           this.setFocusedElement(target);
-          this.showKeyboard(target);
         }
         break;
 
@@ -123,6 +126,14 @@ let FormAssistant = {
             this.focusedElement.selectionEnd !== this.selectionEnd) {
           this.sendKeyboardState(this.focusedElement);
         }
+        break;
+
+      case 'click':
+        
+        
+        
+        
+        this.showKeyboard();
         break;
 
       case "resize":
