@@ -235,7 +235,7 @@ JSObject::finalize(js::FreeOp *fop)
     js::Probes::finalizeObject(this);
 
 #ifdef DEBUG
-    if (!IsBackgroundFinalized(getAllocKind())) {
+    if (!IsBackgroundFinalized(tenuredGetAllocKind())) {
         
         fop->runtime()->assertValidThread();
     }
