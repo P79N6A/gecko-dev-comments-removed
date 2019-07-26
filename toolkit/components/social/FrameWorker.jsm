@@ -127,12 +127,16 @@ WorkerHandle.prototype = {
       return;
     }
     delete workerCache[url];
+    
+    for (let [portid, port] of this._worker.ports) {
+      port.close();
+    }
+    this._worker.ports.clear();
+    this._worker.ports = null;
     this._worker.browserPromise.then(browser => {
       browser.parentNode.removeChild(browser);
     });
     
-    this._worker.ports.clear();
-    this._worker.ports = null;
     this._worker.browserPromise = null;
     this._worker = null;
   }
