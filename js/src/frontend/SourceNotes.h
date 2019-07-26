@@ -66,14 +66,16 @@ enum SrcNoteType {
 
     SRC_CATCH       = 16,       
 
+    SRC_TRY         = 17,       
+
+
     
-    SRC_LAST_GETTABLE = SRC_CATCH,
+    SRC_LAST_GETTABLE = SRC_TRY,
 
-    SRC_COLSPAN     = 17,       
-    SRC_NEWLINE     = 18,       
-    SRC_SETLINE     = 19,       
+    SRC_COLSPAN     = 18,       
+    SRC_NEWLINE     = 19,       
+    SRC_SETLINE     = 20,       
 
-    SRC_UNUSED20    = 20,
     SRC_UNUSED21    = 21,
     SRC_UNUSED22    = 22,
     SRC_UNUSED23    = 23,

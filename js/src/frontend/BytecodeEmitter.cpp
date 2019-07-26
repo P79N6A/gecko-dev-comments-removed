@@ -3714,7 +3714,6 @@ MOZ_NEVER_INLINE static bool
 EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     StmtInfoBCE stmtInfo(cx);
-    ptrdiff_t catchJump = -1;
 
     
 
@@ -3739,7 +3738,8 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     int depth = bce->stackDepth;
 
     
-    if (Emit1(cx, bce, JSOP_TRY) < 0)
+    ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_TRY);
+    if (noteIndex < 0 || Emit1(cx, bce, JSOP_TRY) < 0)
         return false;
     ptrdiff_t tryStart = bce->offset();
     if (!EmitTree(cx, bce, pn->pn_kid1))
@@ -3755,8 +3755,13 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
+    if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, bce->offset() - tryStart + JSOP_TRY_LENGTH))
+        return false;
+
+    
     if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
         return false;
+    ptrdiff_t catchJump = -1;
     if (EmitBackPatchOp(cx, bce, &catchJump) < 0)
         return false;
 
@@ -6406,11 +6411,12 @@ const JSSrcNoteSpec js_SrcNoteSpec[] = {
 
  {"catch",          0},
 
+ {"try",            1},
+
  {"colspan",        1},
  {"newline",        0},
  {"setline",        1},
 
- {"unused20",       0},
  {"unused21",       0},
  {"unused22",       0},
  {"unused23",       0},
