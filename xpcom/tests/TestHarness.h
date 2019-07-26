@@ -164,8 +164,10 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
       }
 
       
+      
+      
       nsCOMPtr<nsIFile> profD;
-      nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR,
+      nsresult rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR,
                                            getter_AddRefs(profD));
       NS_ENSURE_SUCCESS(rv, nullptr);
 
