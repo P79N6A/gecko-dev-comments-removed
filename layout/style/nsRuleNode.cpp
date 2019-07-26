@@ -3679,7 +3679,13 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
 
   
   
-  if (fontSize > 0) {
+  
+  
+  
+  
+  
+  
+  if (fontSize > 0 && aFont->mAllowZoom) {
     nscoord minFontSize = aPresContext->MinFontSize(aFont->mLanguage);
     if (minFontSize < 0) {
       minFontSize = 0;
