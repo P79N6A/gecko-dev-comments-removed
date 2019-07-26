@@ -354,12 +354,6 @@ class IonBuilder : public MIRGenerator
     bool jsop_iterend();
 
     
-    
-    bool discardCallArgs(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
-    bool discardCall(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
-    bool inlineNativeCall(JSFunction *target, uint32 argc, bool constructing);
-
-    
 
     enum InliningStatus
     {
@@ -367,6 +361,10 @@ class IonBuilder : public MIRGenerator
         InliningStatus_NotInlined,
         InliningStatus_Inlined
     };
+
+    bool discardCallArgs(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
+    bool discardCall(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
+    InliningStatus inlineNativeCall(JSFunction *target, uint32 argc, bool constructing);
 
     bool jsop_call_inline(JSFunction *callee, uint32 argc, IonBuilder &inlineBuilder);
     bool inlineScriptedCall(JSFunction *target, uint32 argc);
