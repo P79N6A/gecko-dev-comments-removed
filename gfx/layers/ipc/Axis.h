@@ -75,6 +75,7 @@ public:
 
 
 
+
   float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
 
   
@@ -88,9 +89,23 @@ public:
 
 
 
+  float PanDistance(float aPos);
+
+  
+
+
+
 
 
   bool FlingApplyFrictionOrCancel(const TimeDuration& aDelta);
+
+  
+
+
+
+  bool Scrollable();
+
+  void SetScrollingDisabled(bool aDisabled) { mScrollingDisabled = aDisabled; }
 
   
 
@@ -184,6 +199,7 @@ protected:
   
   
   int32_t mAcceleration;
+  bool mScrollingDisabled;     
   AsyncPanZoomController* mAsyncPanZoomController;
   nsTArray<float> mVelocityQueue;
 };

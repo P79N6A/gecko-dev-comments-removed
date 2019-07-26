@@ -484,7 +484,11 @@ private:
     NOTHING,        
     FLING,          
     TOUCHING,       
-    PANNING,        
+
+    PANNING,           
+    PANNING_LOCKED_X,  
+    PANNING_LOCKED_Y,  
+
     PINCHING,       
     ANIMATING_ZOOM, 
     WAITING_LISTENERS, 
@@ -492,12 +496,22 @@ private:
 
   };
 
+  enum AxisLockMode {
+    FREE,     
+    STANDARD, 
+    STICKY,   
+  };
+
+  static AxisLockMode GetAxisLockMode();
+
   
 
 
 
 
   void SetState(PanZoomState aState);
+
+  bool IsPanningState(PanZoomState mState);
 
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
