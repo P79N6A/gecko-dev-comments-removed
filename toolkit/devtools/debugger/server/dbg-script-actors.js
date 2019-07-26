@@ -1053,6 +1053,9 @@ ThreadActor.prototype = {
 
   _addScript: function TA__addScript(aScript) {
     
+    if (!aScript.url)
+      return false;
+    
     if (aScript.url.indexOf("chrome://") == 0) {
       return false;
     }

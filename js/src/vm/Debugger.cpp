@@ -2126,16 +2126,15 @@ class Debugger::ScriptQuery {
   public:
     
     ScriptQuery(JSContext *cx, Debugger *dbg):
-        cx(cx), debugger(dbg), compartments(cx), url(cx), innermostForGlobal(cx) {}
+        cx(cx), debugger(dbg), compartments(cx), url(cx), innermostForCompartment(cx) {}
 
     
 
 
 
     bool init() {
-        if (!globals.init() ||
-            !compartments.init() ||
-            !innermostForGlobal.init())
+        if (!compartments.init() ||
+            !innermostForCompartment.init())
         {
             js_ReportOutOfMemory(cx);
             return false;
@@ -2247,29 +2246,7 @@ class Debugger::ScriptQuery {
         for (CompartmentSet::Range r = compartments.all(); !r.empty(); r.popFront()) {
             for (gc::CellIter i(r.front(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
                 RawScript script = i.get<JSScript>();
-                if (script->compileAndGo && !script->isForEval()) {
-                    if (!consider(script, &script->global(), vector))
-                        return false;
-                }
-            }
-        }
-
-        
-
-
-
-        for (ScriptFrameIter fri(cx); !fri.done(); ++fri) {
-            if (fri.isEvalFrame()) {
-                RawScript script = fri.script();
-
-                
-
-
-
-                JS_ASSERT(script->isForEval());
-
-                GlobalObject *global = &fri.interpFrame()->global();
-                if (!consider(script, global, vector))
+                if (!consider(script, vector))
                     return false;
             }
         }
@@ -2281,7 +2258,9 @@ class Debugger::ScriptQuery {
 
 
         if (innermost) {
-            for (GlobalToScriptMap::Range r = innermostForGlobal.all(); !r.empty(); r.popFront()) {
+            for (CompartmentToScriptMap::Range r = innermostForCompartment.all();
+                 !r.empty();
+                 r.popFront()) {
                 if (!vector->append(r.front().value)) {
                     js_ReportOutOfMemory(cx);
                     return false;
@@ -2298,9 +2277,6 @@ class Debugger::ScriptQuery {
 
     
     Debugger *debugger;
-
-    
-    GlobalObjectSet globals;
 
     typedef HashSet<JSCompartment *, DefaultHasher<JSCompartment *>, RuntimeAllocPolicy>
         CompartmentSet;
@@ -2323,20 +2299,20 @@ class Debugger::ScriptQuery {
     
     bool innermost;
 
-    typedef HashMap<GlobalObject *, JSScript *, DefaultHasher<GlobalObject *>, RuntimeAllocPolicy>
-        GlobalToScriptMap;
+    typedef HashMap<JSCompartment *, JSScript *, DefaultHasher<JSCompartment *>, RuntimeAllocPolicy>
+        CompartmentToScriptMap;
 
     
 
 
 
 
-    GlobalToScriptMap innermostForGlobal;
+    CompartmentToScriptMap innermostForCompartment;
 
     
     bool matchSingleGlobal(GlobalObject *global) {
-        JS_ASSERT(globals.count() == 0);
-        if (!globals.put(global)) {
+        JS_ASSERT(compartments.count() == 0);
+        if (!compartments.put(global->compartment())) {
             js_ReportOutOfMemory(cx);
             return false;
         }
@@ -2348,10 +2324,10 @@ class Debugger::ScriptQuery {
 
 
     bool matchAllDebuggeeGlobals() {
-        JS_ASSERT(globals.count() == 0);
+        JS_ASSERT(compartments.count() == 0);
         
         for (GlobalObjectSet::Range r = debugger->debuggees.all(); !r.empty(); r.popFront()) {
-            if (!globals.put(r.front())) {
+            if (!compartments.put(r.front()->compartment())) {
                 js_ReportOutOfMemory(cx);
                 return false;
             }
@@ -2364,17 +2340,6 @@ class Debugger::ScriptQuery {
 
 
     bool prepareQuery() {
-        
-
-
-
-        for (GlobalObjectSet::Range r = globals.all(); !r.empty(); r.popFront()) {
-            if (!compartments.put(r.front()->compartment())) {
-                js_ReportOutOfMemory(cx);
-                return false;
-            }
-        }
-
         
         if (url.isString()) {
             if (!urlCString.encode(cx, url.toString()))
@@ -2389,8 +2354,9 @@ class Debugger::ScriptQuery {
 
 
 
-    bool consider(JSScript *script, GlobalObject *global, AutoScriptVector *vector) {
-        if (!globals.has(global))
+    bool consider(JSScript *script, AutoScriptVector *vector) {
+        JSCompartment *compartment = script->compartment();
+        if (!compartments.has(compartment))
             return true;
         if (urlCString.ptr()) {
             if (!script->filename || strcmp(script->filename, urlCString.ptr()) != 0)
@@ -2400,7 +2366,6 @@ class Debugger::ScriptQuery {
             if (line < script->lineno || script->lineno + js_GetScriptLineExtent(script) < line)
                 return true;
         }
-
         if (innermost) {
             
 
@@ -2414,7 +2379,7 @@ class Debugger::ScriptQuery {
 
 
 
-            GlobalToScriptMap::AddPtr p = innermostForGlobal.lookupForAdd(global);
+            CompartmentToScriptMap::AddPtr p = innermostForCompartment.lookupForAdd(compartment);
             if (p) {
                 
                 JSScript *incumbent = p->value;
@@ -2425,7 +2390,7 @@ class Debugger::ScriptQuery {
 
 
 
-                if (!innermostForGlobal.add(p, global, script)) {
+                if (!innermostForCompartment.add(p, compartment, script)) {
                     js_ReportOutOfMemory(cx);
                     return false;
                 }
