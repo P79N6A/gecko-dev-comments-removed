@@ -11,6 +11,7 @@ const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 const NEW_SOURCE_IGNORED_URLS = ["debugger eval code", "self-hosted", "XStringBundle"];
 const NEW_SOURCE_DISPLAY_DELAY = 200; 
 const FETCH_SOURCE_RESPONSE_DELAY = 200; 
+const FETCH_EVENT_LISTENERS_DELAY = 200; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
 const CALL_STACK_PAGE_SIZE = 25; 
 
@@ -46,6 +47,10 @@ const EVENTS = {
   
   CONDITIONAL_BREAKPOINT_POPUP_SHOWING: "Debugger:ConditionalBreakpointPopupShowing",
   CONDITIONAL_BREAKPOINT_POPUP_HIDING: "Debugger:ConditionalBreakpointPopupHiding",
+
+  
+  EVENT_LISTENERS_FETCHED: "Debugger:EventListenersFetched",
+  EVENT_BREAKPOINTS_UPDATED: "Debugger:EventBreakpointsUpdated",
 
   
   FILE_SEARCH_MATCH_FOUND: "Debugger:FileSearch:MatchFound",
@@ -277,6 +282,10 @@ let DebuggerController = {
         
         DebuggerController.Parser.clearCache();
         SourceUtils.clearCache();
+
+        
+        clearNamedTimeout("event-breakpoints-update");
+        clearNamedTimeout("event-listeners-fetch");
         break;
       }
       case "navigate": {
@@ -1070,6 +1079,11 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
+    if (DebuggerView.instrumentsPaneTab == "events-tab") {
+      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
+    }
+
+    
     window.emit(EVENTS.NEW_SOURCE);
   },
 
@@ -1109,6 +1123,11 @@ SourceScripts.prototype = {
     
     DebuggerController.Breakpoints.updateEditorBreakpoints();
     DebuggerController.Breakpoints.updatePaneBreakpoints();
+
+    
+    if (DebuggerView.instrumentsPaneTab == "events-tab") {
+      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
+    }
 
     
     window.emit(EVENTS.SOURCES_ADDED);
@@ -1305,6 +1324,82 @@ SourceScripts.prototype = {
 
 
 
+function EventListeners() {
+  this._onEventListeners = this._onEventListeners.bind(this);
+}
+
+EventListeners.prototype = {
+  
+
+
+
+  activeEventNames: [],
+
+  
+
+
+
+
+  scheduleEventBreakpointsUpdate: function() {
+    
+    
+    setNamedTimeout("event-breakpoints-update", 0, () => {
+      this.activeEventNames = DebuggerView.EventListeners.getCheckedEvents();
+      gThreadClient.pauseOnDOMEvents(this.activeEventNames);
+
+      
+      window.emit(EVENTS.EVENT_BREAKPOINTS_UPDATED);
+    });
+  },
+
+  
+
+
+  scheduleEventListenersFetch: function() {
+    let getListeners = aCallback => gThreadClient.eventListeners(aResponse => {
+      this._onEventListeners(aResponse);
+
+      
+      
+      window.emit(EVENTS.EVENT_LISTENERS_FETCHED);
+      aCallback && aCallback();
+    });
+
+    
+    
+    setNamedTimeout("event-listeners-fetch", FETCH_EVENT_LISTENERS_DELAY, () => {
+      if (gThreadClient.state != "paused") {
+        gThreadClient.interrupt(() => getListeners(() => gThreadClient.resume()));
+      } else {
+        getListeners();
+      }
+    });
+  },
+
+  
+
+
+  _onEventListeners: function(aResponse) {
+    if (aResponse.error) {
+      let msg = "Error getting event listeners: " + aResponse.message;
+      Cu.reportError(msg);
+      dumpn(msg);
+      return;
+    }
+
+    
+    for (let listener of aResponse.listeners) {
+      DebuggerView.EventListeners.addListener(listener, { staged: true });
+    }
+
+    
+    DebuggerView.EventListeners.commit();
+  }
+};
+
+
+
+
 function Breakpoints() {
   this._onEditorBreakpointChange = this._onEditorBreakpointChange.bind(this);
   this._onEditorBreakpointAdd = this._onEditorBreakpointAdd.bind(this);
@@ -1314,8 +1409,6 @@ function Breakpoints() {
 }
 
 Breakpoints.prototype = {
-  get activeThread() DebuggerController.activeThread,
-
   
 
 
@@ -1492,7 +1585,7 @@ Breakpoints.prototype = {
     this._added.set(identifier, deferred.promise);
 
     
-    this.activeThread.setBreakpoint(aLocation, (aResponse, aBreakpointClient) => {
+    gThreadClient.setBreakpoint(aLocation, (aResponse, aBreakpointClient) => {
       
       
       if (aResponse.actualLocation) {
@@ -1787,6 +1880,7 @@ DebuggerController.ThreadState = new ThreadState();
 DebuggerController.StackFrames = new StackFrames();
 DebuggerController.SourceScripts = new SourceScripts();
 DebuggerController.Breakpoints = new Breakpoints();
+DebuggerController.Breakpoints.DOM = new EventListeners();
 
 
 

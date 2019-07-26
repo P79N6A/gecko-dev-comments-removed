@@ -64,6 +64,7 @@ let DebuggerView = {
     this.StackFrames.initialize();
     this.Sources.initialize();
     this.WatchExpressions.initialize();
+    this.EventListeners.initialize();
     this.GlobalSearch.initialize();
     this._initializeVariablesView();
     this._initializeEditor(deferred.resolve);
@@ -94,6 +95,7 @@ let DebuggerView = {
     this.StackFrames.destroy();
     this.Sources.destroy();
     this.WatchExpressions.destroy();
+    this.EventListeners.destroy();
     this.GlobalSearch.destroy();
     this._destroyPanes();
     this._destroyEditor(deferred.resolve);
@@ -111,6 +113,9 @@ let DebuggerView = {
     this._instrumentsPane = document.getElementById("instruments-pane");
     this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
 
+    this._onTabSelect = this._onInstrumentsPaneTabSelect.bind(this);
+    this._instrumentsPane.tabpanels.addEventListener("select", this._onTabSelect);
+
     this._collapsePaneString = L10N.getStr("collapsePanes");
     this._expandPaneString = L10N.getStr("expandPanes");
 
@@ -127,6 +132,8 @@ let DebuggerView = {
 
     Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
     Prefs.instrumentsWidth = this._instrumentsPane.getAttribute("width");
+
+    this._instrumentsPane.tabpanels.removeEventListener("select", this._onTabSelect);
 
     this._sourcesPane = null;
     this._instrumentsPane = null;
@@ -410,13 +417,22 @@ let DebuggerView = {
 
 
 
+  get instrumentsPaneTab()
+    this._instrumentsPane.selectedTab.id,
+
+  
 
 
 
 
 
 
-  toggleInstrumentsPane: function(aFlags) {
+
+
+
+
+
+  toggleInstrumentsPane: function(aFlags, aTabIndex) {
     let pane = this._instrumentsPane;
     let button = this._instrumentsPaneToggleButton;
 
@@ -428,6 +444,10 @@ let DebuggerView = {
     } else {
       button.setAttribute("pane-collapsed", "");
       button.setAttribute("tooltiptext", this._expandPaneString);
+    }
+
+    if (aTabIndex !== undefined) {
+      pane.selectedIndex = aTabIndex;
     }
   },
 
@@ -443,7 +463,16 @@ let DebuggerView = {
       animated: true,
       delayed: true,
       callback: aCallback
-    });
+    }, 0);
+  },
+
+  
+
+
+  _onInstrumentsPaneTabSelect: function() {
+    if (this._instrumentsPane.selectedTab.id == "events-tab") {
+      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
+    }
   },
 
   
@@ -460,6 +489,7 @@ let DebuggerView = {
     this.StackFrames.empty();
     this.Sources.empty();
     this.Variables.empty();
+    this.EventListeners.empty();
 
     if (this.editor) {
       this.editor.setMode(SourceEditor.MODES.TEXT);
@@ -482,6 +512,7 @@ let DebuggerView = {
   Sources: null,
   Variables: null,
   WatchExpressions: null,
+  EventListeners: null,
   editor: null,
   _editorSource: {},
   _loadingText: "",

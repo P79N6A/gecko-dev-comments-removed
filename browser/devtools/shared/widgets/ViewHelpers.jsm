@@ -1271,6 +1271,7 @@ this.WidgetMethods = {
 
 
   getItemForPredicate: function(aPredicate, aOwner = this) {
+    
     for (let [element, item] of aOwner._itemsByElement) {
       let match;
       if (aPredicate(item) && !element.hidden) {
@@ -1280,6 +1281,13 @@ this.WidgetMethods = {
       }
       if (match) {
         return match;
+      }
+    }
+    
+    
+    for (let { item } of this._stagedItems) {
+      if (aPredicate(item)) {
+        return item;
       }
     }
     return null;
@@ -1347,6 +1355,14 @@ this.WidgetMethods = {
 
   get values() {
     return this.items.map(e => e._value);
+  },
+
+  
+
+
+
+  get attachments() {
+    return this.items.map(e => e.attachment);
   },
 
   
