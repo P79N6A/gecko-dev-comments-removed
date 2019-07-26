@@ -158,9 +158,6 @@
 #define NS_THEME_SCROLLBAR_THUMB_VERTICAL                  89
 
 
-#define NS_THEME_SCROLLBAR_NON_DISAPPEARING                90
-
-
 #define NS_THEME_TEXTFIELD                                 95
 
 
@@ -251,6 +248,7 @@
 
 
 #define NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR                   224
+#define NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON                 226
 
 
 #define NS_THEME_WIN_BORDERLESS_GLASS                      229
