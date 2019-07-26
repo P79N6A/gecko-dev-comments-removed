@@ -1830,8 +1830,9 @@ Navigator::HasTimeSupport(JSContext* , JSObject* aGlobal)
 
 #ifdef MOZ_MEDIA_NAVIGATOR
 
-bool Navigator::HasUserMediaSupport(JSContext* ,
-                                    JSObject* )
+bool
+Navigator::HasUserMediaSupport(JSContext* ,
+                               JSObject* )
 {
   
   return Preferences::GetBool("media.navigator.enabled", false) ||
@@ -1840,21 +1841,27 @@ bool Navigator::HasUserMediaSupport(JSContext* ,
 #endif 
 
 
-bool Navigator::HasPushNotificationsSupport(JSContext* ,
-                                            JSObject* aGlobal)
+bool
+Navigator::HasPushNotificationsSupport(JSContext* ,
+                                       JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && Preferences::GetBool("services.push.enabled", false) && CheckPermission(win, "push");
+  return Preferences::GetBool("services.push.enabled", false) &&
+         win && CheckPermission(win, "push");
 }
 
 
-bool Navigator::HasInputMethodSupport(JSContext* ,
-                                      JSObject* aGlobal)
+bool
+Navigator::HasInputMethodSupport(JSContext* ,
+                                 JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return Preferences::GetBool("dom.mozInputMethod.testing", false) ||
-         (Preferences::GetBool("dom.mozInputMethod.enabled", false) &&
-          win && CheckPermission(win, "input"));
+  if (Preferences::GetBool("dom.mozInputMethod.testing", false)) {
+    return true;
+  }
+
+  return Preferences::GetBool("dom.mozInputMethod.enabled", false) &&
+         win && CheckPermission(win, "input");
 }
 
 
