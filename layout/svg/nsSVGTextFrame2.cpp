@@ -3573,6 +3573,11 @@ nsSVGTextFrame2::ReflowSVG()
   mRect =
     nsLayoutUtils::RoundGfxRectToAppRect(r, presContext->AppUnitsPerCSSPixel());
 
+  
+  
+  
+  mRect.Inflate(presContext->AppUnitsPerDevPixel());
+
 
   if (mState & NS_FRAME_FIRST_REFLOW) {
     
