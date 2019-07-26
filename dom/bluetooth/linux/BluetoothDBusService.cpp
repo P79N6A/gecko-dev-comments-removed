@@ -1264,6 +1264,16 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
       signalName = NS_LITERAL_STRING("PairedStatusChanged");
       signalPath = NS_LITERAL_STRING(LOCAL_AGENT_PATH);
       v.get_ArrayOfBluetoothNamedValue()[0].name() = NS_LITERAL_STRING("paired");
+    } else {
+     
+
+
+
+
+
+
+
+      return DBUS_HANDLER_RESULT_HANDLED;
     }
   } else if (dbus_message_is_signal(aMsg, DBUS_MANAGER_IFACE, "AdapterAdded")) {
     const char* str;
