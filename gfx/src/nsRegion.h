@@ -199,7 +199,7 @@ public:
 
   void SimpleSubtract (const nsRegion& aRegion);
 
-  nsCString ToString();
+  nsCString ToString() const;
 
   
 
@@ -464,7 +464,7 @@ public:
     mImpl.SimpleSubtract (aRegion.mImpl);
   }
 
-  nsCString ToString() { return mImpl.ToString(); }
+  nsCString ToString() const { return mImpl.ToString(); }
 
 private:
   nsRegion mImpl;
