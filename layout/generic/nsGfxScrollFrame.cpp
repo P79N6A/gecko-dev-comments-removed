@@ -3715,11 +3715,9 @@ nsGfxScrollFrameInner::UpdateOverflow()
     
     mOuter->PresContext()->PresShell()->FrameNeedsReflow(
       mOuter, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+    return false;  
   }
-
-  
-  
-  return false;
+  return mOuter->nsContainerFrame::UpdateOverflow();
 }
 
 void
