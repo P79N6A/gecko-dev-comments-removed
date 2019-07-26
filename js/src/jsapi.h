@@ -9,9 +9,11 @@
 #ifndef jsapi_h
 #define jsapi_h
 
+#include "mozilla/Compiler.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RangedPtr.h"
+#include "mozilla/TypeTraits.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -2626,6 +2628,35 @@ struct JSPropertySpec {
     JSPropertyOpWrapper         getter;
     JSStrictPropertyOpWrapper   setter;
 };
+
+namespace JS {
+namespace detail {
+
+
+inline int CheckIsNative(JSNative native);
+
+} 
+} 
+
+#define JS_CAST_NATIVE_TO(v, To) \
+  (static_cast<void>(sizeof(JS::detail::CheckIsNative(v))), \
+   reinterpret_cast<To>(v))
+
+
+
+
+
+
+
+#define JS_PSG(name, getter, flags) \
+    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS, \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(getter, JSPropertyOp)), \
+     JSOP_NULLWRAPPER}
+#define JS_PSGS(name, getter, setter, flags) \
+    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS, \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(getter, JSPropertyOp)), \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(setter, JSStrictPropertyOp))}
+#define JS_PS_END {0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER}
 
 
 
