@@ -43,13 +43,6 @@ public:
     
 
 
-
-
-    static guint GuessGDKKeyval(uint32_t aDOMKeyCode);
-
-    
-
-
     enum Modifier {
         NOT_MODIFIER       = 0x0000,
         CAPS_LOCK          = 0x0001,
