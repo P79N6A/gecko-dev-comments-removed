@@ -1040,6 +1040,49 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
   return JSVAL_NULL;
 }
 
+bool
+nsXMLHttpRequest::IsDeniedCrossSiteRequest()
+{
+  if ((mState & XML_HTTP_REQUEST_USE_XSITE_AC) && mChannel) {
+    nsresult rv;
+    mChannel->GetStatus(&rv);
+    if (NS_FAILED(rv)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+void
+nsXMLHttpRequest::GetResponseURL(nsAString& aUrl)
+{
+  aUrl.Truncate();
+
+  uint16_t readyState;
+  GetReadyState(&readyState);
+  if ((readyState == UNSENT || readyState == OPENED) || !mChannel) {
+    return;
+  }
+
+  
+  
+  if (IsDeniedCrossSiteRequest()) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> responseUrl;
+  mChannel->GetURI(getter_AddRefs(responseUrl));
+
+  if (!responseUrl) {
+    return;
+  }
+
+  nsAutoCString temp;
+  responseUrl->GetSpec(temp);
+  CopyUTF8toUTF16(temp, aUrl);
+}
+
 
 NS_IMETHODIMP
 nsXMLHttpRequest::GetStatus(uint32_t *aStatus)
@@ -1051,16 +1094,10 @@ nsXMLHttpRequest::GetStatus(uint32_t *aStatus)
 uint32_t
 nsXMLHttpRequest::Status()
 {
-  if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
-    
-    
-    if (mChannel) {
-      nsresult status;
-      mChannel->GetStatus(&status);
-      if (NS_FAILED(status)) {
-        return 0;
-      }
-    }
+  
+  
+  if (IsDeniedCrossSiteRequest()) {
+    return 0;
   }
 
   uint16_t readyState;
@@ -1119,16 +1156,10 @@ nsXMLHttpRequest::GetStatusText(nsCString& aStatusText)
     return;
   }
 
-  if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
-    
-    
-    if (mChannel) {
-      nsresult status;
-      mChannel->GetStatus(&status);
-      if (NS_FAILED(status)) {
-        return;
-      }
-    }
+  
+  
+  if (IsDeniedCrossSiteRequest()) {
+    return;
   }
 
   httpChannel->GetResponseStatusText(aStatusText);
