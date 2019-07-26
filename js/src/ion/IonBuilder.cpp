@@ -267,6 +267,9 @@ IonBuilder::build()
     IonSpew(IonSpew_Scripts, "Analyzing script %s:%d (%p) (usecount=%d) (maxloopcount=%d)",
             script->filename, script->lineno, (void *) script, (int) script->getUseCount(), (int) script->getMaxLoopCount());
 
+    if (!graph().addScript(script))
+        return false;
+
     if (!initParameters())
         return false;
 
@@ -388,6 +391,9 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
 {
     IonSpew(IonSpew_Scripts, "Inlining script %s:%d (%p)",
             script->filename, script->lineno, (void *)script);
+
+    if (!graph().addScript(script))
+        return false;
 
     callerBuilder_ = callerBuilder;
     callerResumePoint_ = callerResumePoint;
@@ -4667,7 +4673,7 @@ IonBuilder::jsop_getgname(HandlePropertyName name)
     
     
     if (!propertyTypes && shape->configurable()) {
-        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty(), Bailout_Invalidate);
         current->add(guard);
     }
 
@@ -4720,7 +4726,7 @@ IonBuilder::jsop_setgname(HandlePropertyName name)
     
     
     if (!propertyTypes) {
-        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty(), Bailout_Invalidate);
         current->add(guard);
     }
 
@@ -5470,7 +5476,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::StackTypeSet *types, Handle
     
     MInstruction *wrapper = MConstant::New(ObjectValue(*foundProto));
     current->add(wrapper);
-    MGuardShape *guard = MGuardShape::New(wrapper, foundProto->lastProperty());
+    MGuardShape *guard = MGuardShape::New(wrapper, foundProto->lastProperty(), Bailout_Invalidate);
     current->add(guard);
 
     
@@ -5898,7 +5904,7 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
             
             
             
-            MGuardShape *guard = MGuardShape::New(obj, objShape);
+            MGuardShape *guard = MGuardShape::New(obj, objShape, Bailout_CachedShapeGuard);
             current->add(guard);
 
             spew("Inlining monomorphic GETPROP");
@@ -6020,7 +6026,7 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
             
             
             
-            MGuardShape *guard = MGuardShape::New(obj, objShape);
+            MGuardShape *guard = MGuardShape::New(obj, objShape, Bailout_CachedShapeGuard);
             current->add(guard);
 
             Shape *shape = objShape->search(cx, NameToId(name));
