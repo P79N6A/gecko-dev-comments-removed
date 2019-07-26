@@ -140,6 +140,12 @@
   -moz-column-gap: inherit;
   -moz-column-rule: inherit;
   
+  
+  align-items: inherit;
+  flex-direction: inherit;
+  
+  justify-content: inherit;
+  
 
   position: static !important;
   float: none !important;
