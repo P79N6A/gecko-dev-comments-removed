@@ -22,6 +22,7 @@ var SelectionHandler = {
   _activeType: 0, 
   _draggingHandles: false, 
   _ignoreCompositionChanges: false, 
+  _prevHandlePositions: [], 
 
   
   _prevTargetElementHasText: null,
@@ -62,6 +63,7 @@ var SelectionHandler = {
     Services.obs.addObserver(this, "TextSelection:Position", false);
     Services.obs.addObserver(this, "TextSelection:End", false);
     Services.obs.addObserver(this, "TextSelection:Action", false);
+    Services.obs.addObserver(this, "TextSelection:LayerReflow", false);
 
     BrowserApp.deck.addEventListener("pagehide", this, false);
     BrowserApp.deck.addEventListener("blur", this, true);
@@ -76,6 +78,7 @@ var SelectionHandler = {
     Services.obs.removeObserver(this, "TextSelection:Position");
     Services.obs.removeObserver(this, "TextSelection:End");
     Services.obs.removeObserver(this, "TextSelection:Action");
+    Services.obs.removeObserver(this, "TextSelection:LayerReflow");
 
     BrowserApp.deck.removeEventListener("pagehide", this, false);
     BrowserApp.deck.removeEventListener("blur", this, true);
@@ -84,6 +87,18 @@ var SelectionHandler = {
 
   observe: function sh_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
+      
+      
+      case "TextSelection:LayerReflow": {
+        if (this._activeType == this.TYPE_SELECTION) {
+          this._updateCacheForSelection();
+        }
+        if (this._activeType != this.TYPE_NONE) {
+          this._positionHandlesOnChange();
+        }
+        break;
+      }
+
       
       case "TextSelection:UpdateCaretPos":
         
@@ -128,6 +143,8 @@ var SelectionHandler = {
           this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
 
         } else if (this._activeType == this.TYPE_CURSOR) {
+          this._startDraggingHandles();
+
           
           this._ignoreCompositionChanges = true;
 
@@ -169,6 +186,7 @@ var SelectionHandler = {
         } else if (this._activeType == this.TYPE_CURSOR) {
           
           this._ignoreCompositionChanges = false;
+          this._stopDraggingHandles();
           this._positionHandles();
 
         } else {
@@ -210,7 +228,7 @@ var SelectionHandler = {
     switch (aEvent.type) {
       case "scroll":
         
-        this._positionHandles();
+        this._positionHandlesOnChange();
         break;
 
       case "pagehide":
@@ -942,6 +960,7 @@ var SelectionHandler = {
     this._isRTL = false;
     this._cache = null;
     this._ignoreCompositionChanges = false;
+    this._prevHandlePositions = [];
     this._prevTargetElementHasText = null;
 
     this._activeType = this.TYPE_NONE;
@@ -1049,6 +1068,32 @@ var SelectionHandler = {
 
   
   
+  _positionHandlesOnChange: function() {
+    
+    let samePositions = function(aPrev, aCurr) {
+      if (aPrev.length != aCurr.length) {
+        return false;
+      }
+      for (let i = 0; i < aPrev.length; i++) {
+        if (aPrev[i].left != aCurr[i].left ||
+            aPrev[i].top != aCurr[i].top ||
+            aPrev[i].hidden != aCurr[i].hidden) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    let positions = this._getHandlePositions(this._getScrollPos());
+    if (!samePositions(this._prevHandlePositions, positions)) {
+      this._positionHandles(positions);
+    }
+  },
+
+  
+  
+  
+  
   _positionHandles: function sh_positionHandles(positions) {
     if (!positions) {
       positions = this._getHandlePositions(this._getScrollPos());
@@ -1058,6 +1103,7 @@ var SelectionHandler = {
       positions: positions,
       rtl: this._isRTL
     });
+    this._prevHandlePositions = positions;
 
     
     let currTargetElementHasText = (this._targetElement.textLength > 0);
