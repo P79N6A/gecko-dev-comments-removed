@@ -173,14 +173,14 @@ public class TwoLinePageRow extends LinearLayout
             if (b != null) {
                 Bitmap bitmap = BitmapUtils.decodeByteArray(b);
                 if (bitmap != null) {
-                    favicon = Favicons.getInstance().scaleImage(bitmap);
+                    favicon = Favicons.scaleImage(bitmap);
                 }
             }
 
             setFaviconWithUrl(favicon, url);
         } else {
             
-            setFaviconWithUrl(Favicons.getInstance().getFaviconFromMemCache(url), url);
+            setFaviconWithUrl(Favicons.getFaviconFromMemCache(url), url);
         }
 
         

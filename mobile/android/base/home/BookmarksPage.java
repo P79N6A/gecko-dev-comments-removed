@@ -598,7 +598,7 @@ public class BookmarksPage extends HomeFragment {
                     if (bitmap != null) {
                         
                         
-                        thumbnails.put(url, new Thumbnail(Favicons.getInstance().scaleImage(bitmap), false));
+                        thumbnails.put(url, new Thumbnail(Favicons.scaleImage(bitmap), false));
                     }
                 }
             }

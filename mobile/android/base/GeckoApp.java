@@ -484,7 +484,7 @@ abstract public class GeckoApp
         (new UiAsyncTask<Void, Void, String>(ThreadUtils.getBackgroundHandler()) {
             @Override
             public String doInBackground(Void... params) {
-                return Favicons.getInstance().getFaviconUrlForPageUrl(url);
+                return Favicons.getFaviconUrlForPageUrl(url);
             }
 
             @Override
@@ -1193,7 +1193,7 @@ abstract public class GeckoApp
         ThreadUtils.setUiThread(Thread.currentThread(), new Handler());
 
         Tabs.getInstance().attachToContext(this);
-        Favicons.getInstance().attachToContext(this);
+        Favicons.attachToContext(this);
 
         
         
@@ -2073,6 +2073,8 @@ abstract public class GeckoApp
                 }
             });
         }
+
+        Favicons.close();
 
         super.onDestroy();
 
