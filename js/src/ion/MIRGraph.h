@@ -101,6 +101,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MDefinition *peek(int32_t depth);
 
     MDefinition *scopeChain();
+    MDefinition *argumentsObject();
 
     
     bool increaseSlots(size_t num);
@@ -136,6 +137,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void pushLocal(uint32_t local);
     void pushSlot(uint32_t slot);
     void setScopeChain(MDefinition *ins);
+    void setArgumentsObject(MDefinition *ins);
 
     
     MDefinition *pop();

@@ -18,7 +18,8 @@ namespace ion {
 template <class Op>
 inline void
 SnapshotIterator::readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Value *thisv,
-                                unsigned start, unsigned formalEnd, unsigned iterEnd)
+                                unsigned start, unsigned formalEnd, unsigned iterEnd,
+                                RawScript script)
 {
     if (scopeChain)
         *scopeChain = read();
@@ -28,6 +29,10 @@ SnapshotIterator::readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Va
     if (thisv)
         *thisv = read();
     else
+        skip();
+
+    
+    if (script->argumentsHasVarBinding())
         skip();
 
     unsigned i = 0;
@@ -103,26 +108,28 @@ InlineFrameIteratorMaybeGC<allowGC>::forEachCanonicalActualArg(
         
         unsigned formal_end = (end < nformal) ? end : nformal;
         SnapshotIterator s(si_);
-        s.readFrameArgs(op, NULL, NULL, NULL, start, nformal, formal_end);
+        s.readFrameArgs(op, NULL, NULL, NULL, start, nformal, formal_end, script());
 
         
         
         InlineFrameIteratorMaybeGC it(cx, this);
-        SnapshotIterator parent_s((++it).snapshotIterator());
+        ++it;
+        unsigned argsObjAdj = it.script()->argumentsHasVarBinding() ? 1 : 0;
+        SnapshotIterator parent_s(it.snapshotIterator());
 
         
         
-        JS_ASSERT(parent_s.slots() >= nactual + 2);
-        unsigned skip = parent_s.slots() - nactual - 2;
+        JS_ASSERT(parent_s.slots() >= nactual + 2 + argsObjAdj);
+        unsigned skip = parent_s.slots() - nactual - 2 - argsObjAdj;
         for (unsigned j = 0; j < skip; j++)
             parent_s.skip();
 
         
-        parent_s.readFrameArgs(op, NULL, NULL, NULL, nformal, nactual, end);
+        parent_s.readFrameArgs(op, NULL, NULL, NULL, nformal, nactual, end, it.script());
     } else {
         SnapshotIterator s(si_);
         Value *argv = frame_->actualArgs();
-        s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end);
+        s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end, script());
     }
 }
  
