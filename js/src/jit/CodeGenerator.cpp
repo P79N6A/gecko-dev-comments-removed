@@ -5918,6 +5918,20 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
     if (sps_.enabled())
         ionScript->setHasSPSInstrumentation();
 
+    
+    
+    if (HasIonScript(script, executionMode)) {
+        JS_ASSERT(GetIonScript(script, executionMode)->isRecompiling());
+        
+        
+        if (!Invalidate(cx, script, SequentialExecution,
+                         false,  false))
+        {
+            js_free(ionScript);
+            return false;
+        }
+    }
+
     SetIonScript(script, executionMode, ionScript);
 
     

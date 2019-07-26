@@ -200,6 +200,9 @@ struct IonScript
     bool hasSPSInstrumentation_;
 
     
+    bool recompiling_;
+
+    
     
     uint32_t runtimeData_;
     uint32_t runtimeSize_;
@@ -528,6 +531,18 @@ struct IonScript
     }
     void resetOsrPcMismatchCounter() {
         osrPcMismatchCounter_ = 0;
+    }
+
+    void setRecompiling() {
+        recompiling_ = true;
+    }
+
+    bool isRecompiling() const {
+        return recompiling_;
+    }
+
+    void clearRecompiling() {
+        recompiling_ = false;
     }
 
     static void writeBarrierPre(Zone *zone, IonScript *ionScript);
