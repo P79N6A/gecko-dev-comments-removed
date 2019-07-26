@@ -383,6 +383,15 @@ public:
 
 
 
+
+
+  NS_IMETHOD AttachNativeKeyEvent(nsKeyEvent& aKeyEvent);
+
+  
+
+
+
+
   NSInteger GetWindowLevel();
 
   
