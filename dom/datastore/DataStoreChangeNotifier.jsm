@@ -12,6 +12,9 @@ function debug(s) {
   
 }
 
+
+
+Cu.import('resource://gre/modules/DataStoreServiceInternal.jsm');
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
