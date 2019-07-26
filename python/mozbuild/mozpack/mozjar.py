@@ -376,7 +376,7 @@ class JarReader(object):
             entry = JarCdirEntry(self._data[offset:])
             offset += entry.size
             
-            host = entry['creator_version'] >> 16
+            host = entry['creator_version'] >> 8
             
             
             
@@ -564,7 +564,7 @@ class JarWriter(object):
         self._data.write(end.serialize())
         self._data.close()
 
-    def add(self, name, data, compress=None):
+    def add(self, name, data, compress=None, mode=None):
         '''
         Add a new member to the jar archive, with the given name and the given
         data.
@@ -574,6 +574,8 @@ class JarWriter(object):
         When the data should be compressed (True or None with self.compress ==
         True), it is only really compressed if the compressed size is smaller
         than the uncompressed size.
+        The mode option gives the unix permissions that should be stored
+        for the jar entry.
         The given data may be a buffer, a file-like instance, a Deflater or a
         JarFileReader instance. The latter two allow to avoid uncompressing
         data to recompress it.
@@ -597,9 +599,12 @@ class JarWriter(object):
                                      type(data))
         
         entry = JarCdirEntry()
-        
-        
         entry['creator_version'] = 20
+        if mode is not None:
+            
+            
+            entry['creator_version'] |= 3 << 8
+            entry['external_attr'] = (mode & 0xFFFF) << 16L
         if deflater.compressed:
             entry['min_version'] = 20  
             entry['general_flag'] = 2  
