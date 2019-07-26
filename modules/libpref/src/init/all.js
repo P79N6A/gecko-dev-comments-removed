@@ -1725,10 +1725,6 @@ pref("prefs.converted-to-utf8",false);
 
 
 
-
-
-
-
 pref("bidi.direction", 1);
 
 
