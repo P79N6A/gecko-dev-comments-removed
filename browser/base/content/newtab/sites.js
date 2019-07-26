@@ -81,7 +81,6 @@ Site.prototype = {
   
 
 
-
   block: function Site_block() {
     if (!gBlockedLinks.isBlocked(this._link)) {
       gUndoDialog.show(this);

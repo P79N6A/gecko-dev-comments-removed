@@ -13,31 +13,28 @@ let gUpdater = {
 
 
 
-
-  updateGrid: function Updater_updateGrid(aCallback) {
+  updateGrid: function Updater_updateGrid() {
     let links = gLinks.getLinks().slice(0, gGrid.cells.length);
 
     
     let sites = this._findRemainingSites(links);
 
-    let self = this;
-
     
-    this._removeLegacySites(sites, function () {
+    this._removeLegacySites(sites).then(() => {
       
       
-      self._freezeSitePositions(sites);
+      this._freezeSitePositions(sites);
 
       
       
       
-      self._moveSiteNodes(sites);
+      this._moveSiteNodes(sites);
 
       
       
-      self._rearrangeSites(sites, function () {
+      this._rearrangeSites(sites).then(() => {
         
-        self._fillEmptyCells(links, aCallback);
+        this._fillEmptyCells(links);
 
         
         gAllPages.update(gPage);
@@ -113,10 +110,8 @@ let gUpdater = {
 
 
 
-
-  _rearrangeSites: function Updater_rearrangeSites(aSites, aCallback) {
-    let options = {callback: aCallback, unfreeze: true};
-    gTransformation.rearrangeSites(aSites, options);
+  _rearrangeSites: function (aSites) {
+    return gTransformation.rearrangeSites(aSites, {unfreeze: true});
   },
 
   
@@ -124,63 +119,47 @@ let gUpdater = {
 
 
 
+  _removeLegacySites: function (aSites) {
+    let remainingSites = new Set(aSites);
 
-  _removeLegacySites: function Updater_removeLegacySites(aSites, aCallback) {
-    let batch = [];
+    function promises() {
+      for (let site of gGrid.sites) {
+        
+        if (site && !remainingSites.has(site)) {
+          
+          let remove = site.node.remove.bind(site.node);
+          yield gTransformation.hideSite(site).then(remove);
+        }
+      }
+    }
+
+    return Promise.every([p for (p of promises())]);
+  },
+
+  
+
+
+
+  _fillEmptyCells: function (aLinks) {
+    let {cells, sites} = gGrid;
+    let index = 0;
 
     
-    gGrid.sites.forEach(function (aSite) {
-      
-      if (!aSite || aSites.indexOf(aSite) != -1)
-        return;
-
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
-
-      
-      gTransformation.hideSite(aSite, function () {
-        let node = aSite.node;
+    for (let site of sites) {
+      if (!site && aLinks[index]) {
+        
+        site = gGrid.createSite(aLinks[index], cells[index]);
 
         
-        node.parentNode.removeChild(node);
-        deferred.resolve();
-      });
-    });
+        site.node.style.opacity = 0;
 
-    let wait = Promise.promised(aCallback);
-    wait.apply(null, batch);
-  },
+        
+        
+        window.getComputedStyle(site.node).opacity;
+        gTransformation.showSite(site);
+      }
 
-  
-
-
-
-
-  _fillEmptyCells: function Updater_fillEmptyCells(aLinks, aCallback) {
-    let {cells, sites} = gGrid;
-    let batch = [];
-
-    
-    sites.forEach(function (aSite, aIndex) {
-      if (aSite || !aLinks[aIndex])
-        return;
-
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
-
-      
-      let site = gGrid.createSite(aLinks[aIndex], cells[aIndex]);
-
-      
-      site.node.style.opacity = 0;
-
-      
-      
-      window.getComputedStyle(site.node).opacity;
-      gTransformation.showSite(site, function () deferred.resolve());
-    });
-
-    let wait = Promise.promised(aCallback);
-    wait.apply(null, batch);
+      index++;
+    }
   }
 };
