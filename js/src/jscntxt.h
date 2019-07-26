@@ -106,10 +106,9 @@ TraceCycleDetectionSet(JSTracer *trc, ObjectSet &set);
 
 struct AutoResolving;
 class DtoaCache;
-class ForkJoinSlice;
+class ForkJoinContext;
 class RegExpCompartment;
 class RegExpStatics;
-class ForkJoinSlice;
 
 namespace frontend { struct CompileError; }
 
@@ -213,8 +212,8 @@ struct ThreadSafeContext : ContextFriendFields,
         return maybeExclusiveContext();
     }
 
-    bool isForkJoinSlice() const;
-    ForkJoinSlice *asForkJoinSlice();
+    bool isForkJoinContext() const;
+    ForkJoinContext *asForkJoinContext();
 
     
 #ifdef JSGC_GENERATIONAL

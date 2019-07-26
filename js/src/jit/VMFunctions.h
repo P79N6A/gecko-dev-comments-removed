@@ -15,7 +15,7 @@
 namespace js {
 
 class DeclEnvObject;
-class ForkJoinSlice;
+class ForkJoinContext;
 
 namespace jit {
 
@@ -386,7 +386,7 @@ template <> struct MatchContext<JSContext *> {
 template <> struct MatchContext<ExclusiveContext *> {
     static const ExecutionMode execMode = SequentialExecution;
 };
-template <> struct MatchContext<ForkJoinSlice *> {
+template <> struct MatchContext<ForkJoinContext *> {
     static const ExecutionMode execMode = ParallelExecution;
 };
 template <> struct MatchContext<ThreadSafeContext *> {

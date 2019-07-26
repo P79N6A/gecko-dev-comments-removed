@@ -130,7 +130,7 @@ MIRGraph::unmarkBlocks()
 }
 
 MDefinition *
-MIRGraph::forkJoinSlice()
+MIRGraph::forkJoinContext()
 {
     
     
@@ -148,16 +148,16 @@ MIRGraph::forkJoinSlice()
 
     MInstruction *start = nullptr;
     for (MInstructionIterator ins(entry->begin()); ins != entry->end(); ins++) {
-        if (ins->isForkJoinSlice())
+        if (ins->isForkJoinContext())
             return *ins;
         else if (ins->isStart())
             start = *ins;
     }
     JS_ASSERT(start);
 
-    MForkJoinSlice *slice = MForkJoinSlice::New(alloc());
-    entry->insertAfter(start, slice);
-    return slice;
+    MForkJoinContext *cx = MForkJoinContext::New(alloc());
+    entry->insertAfter(start, cx);
+    return cx;
 }
 
 MBasicBlock *

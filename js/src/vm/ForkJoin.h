@@ -217,7 +217,7 @@ class ForkJoinActivation : public Activation
     ~ForkJoinActivation();
 };
 
-class ForkJoinSlice;
+class ForkJoinContext;
 
 bool ForkJoin(JSContext *cx, CallArgs &args);
 
@@ -298,7 +298,7 @@ struct ParallelBailoutRecord {
 
 struct ForkJoinShared;
 
-class ForkJoinSlice : public ThreadSafeContext
+class ForkJoinContext : public ThreadSafeContext
 {
   public:
     
@@ -336,9 +336,9 @@ class ForkJoinSlice : public ThreadSafeContext
     uint8_t *targetRegionStart;
     uint8_t *targetRegionEnd;
 
-    ForkJoinSlice(PerThreadData *perThreadData, uint16_t sliceId, uint32_t workerId,
-                  Allocator *allocator, ForkJoinShared *shared,
-                  ParallelBailoutRecord *bailoutRecord);
+    ForkJoinContext(PerThreadData *perThreadData, uint16_t sliceId, uint32_t workerId,
+                    Allocator *allocator, ForkJoinShared *shared,
+                    ParallelBailoutRecord *bailoutRecord);
 
     
     bool isMainThread() const;
@@ -385,25 +385,25 @@ class ForkJoinSlice : public ThreadSafeContext
     JSRuntime *runtime();
 
     
-    JSContext *acquireContext();
-    void releaseContext();
-    bool hasAcquiredContext() const;
+    JSContext *acquireJSContext();
+    void releaseJSContext();
+    bool hasAcquiredJSContext() const;
 
     
-    static inline ForkJoinSlice *current();
+    static inline ForkJoinContext *current();
 
     
     static bool initialize();
 
   private:
-    friend class AutoSetForkJoinSlice;
+    friend class AutoSetForkJoinContext;
 
     
-    static mozilla::ThreadLocal<ForkJoinSlice*> tlsForkJoinSlice;
+    static mozilla::ThreadLocal<ForkJoinContext*> tlsForkJoinContext;
 
     ForkJoinShared *const shared;
 
-    bool acquiredContext_;
+    bool acquiredJSContext_;
 
     
     
@@ -422,28 +422,28 @@ class ForkJoinSlice : public ThreadSafeContext
 class LockedJSContext
 {
 #if defined(JS_THREADSAFE) && defined(JS_ION)
-    ForkJoinSlice *slice_;
+    ForkJoinContext *cx_;
 #endif
-    JSContext *cx_;
+    JSContext *jscx_;
 
   public:
-    LockedJSContext(ForkJoinSlice *slice)
+    LockedJSContext(ForkJoinContext *cx)
 #if defined(JS_THREADSAFE) && defined(JS_ION)
-      : slice_(slice),
-        cx_(slice->acquireContext())
+      : cx_(cx),
+        jscx_(cx->acquireJSContext())
 #else
-      : cx_(nullptr)
+      : jscx_(nullptr)
 #endif
     { }
 
     ~LockedJSContext() {
 #if defined(JS_THREADSAFE) && defined(JS_ION)
-        slice_->releaseContext();
+        cx_->releaseJSContext();
 #endif
     }
 
-    operator JSContext *() { return cx_; }
-    JSContext *operator->() { return cx_; }
+    operator JSContext *() { return jscx_; }
+    JSContext *operator->() { return jscx_; }
 };
 
 bool InExclusiveParallelSection();
@@ -516,10 +516,10 @@ static inline void SpewBailoutIR(IonLIRTraceData *data) { }
 } 
 } 
 
- inline js::ForkJoinSlice *
-js::ForkJoinSlice::current()
+ inline js::ForkJoinContext *
+js::ForkJoinContext::current()
 {
-    return tlsForkJoinSlice.get();
+    return tlsForkJoinContext.get();
 }
 
 namespace js {
@@ -527,7 +527,7 @@ namespace js {
 static inline bool
 InParallelSection()
 {
-    return ForkJoinSlice::current() != nullptr;
+    return ForkJoinContext::current() != nullptr;
 }
 
 } 

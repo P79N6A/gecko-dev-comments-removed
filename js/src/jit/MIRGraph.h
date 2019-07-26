@@ -672,7 +672,7 @@ class MIRGraph
     
     
     
-    MDefinition *forkJoinSlice();
+    MDefinition *forkJoinContext();
 
     void dump(FILE *fp);
     void dump();

@@ -44,7 +44,7 @@ typedef bool
 
 
 typedef bool
-(* JSParallelNative)(js::ForkJoinSlice *slice, unsigned argc, JS::Value *vp);
+(* JSParallelNative)(js::ForkJoinContext *cx, unsigned argc, JS::Value *vp);
 
 
 
@@ -63,7 +63,7 @@ JSNativeThreadSafeWrapper(JSContext *cx, unsigned argc, JS::Value *vp);
 
 template <JSThreadSafeNative threadSafeNative>
 inline bool
-JSParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, JS::Value *vp);
+JSParallelNativeThreadSafeWrapper(js::ForkJoinContext *cx, unsigned argc, JS::Value *vp);
 
 
 
