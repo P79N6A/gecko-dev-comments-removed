@@ -83,6 +83,9 @@ class DesktopNotificationCenter;
 class SmsManager;
 class MobileMessageManager;
 class MozIdleObserver;
+#ifdef MOZ_GAMEPAD
+class Gamepad;
+#endif 
 
 namespace icc {
 #ifdef MOZ_B2G_RIL
@@ -313,6 +316,18 @@ public:
   nsIDOMMozVoicemail* GetMozVoicemail(ErrorResult& aRv);
   nsIDOMMozIccManager* GetMozIccManager(ErrorResult& aRv);
 #endif 
+#ifdef MOZ_GAMEPAD
+  void GetGamepads(nsTArray<nsRefPtr<Gamepad> >& aGamepads, ErrorResult& aRv);
+#endif 
+#ifdef MOZ_B2G_BT
+  nsIDOMBluetoothManager* GetMozBluetooth(ErrorResult& aRv);
+#endif 
+#ifdef MOZ_TIME_MANAGER
+  time::TimeManager* GetMozTime(ErrorResult& aRv);
+#endif 
+#ifdef MOZ_AUDIO_CHANNEL_MANAGER
+  system::AudioChannelManager* GetMozAudioChannelManager(ErrorResult& aRv);
+#endif 
 
 
   
@@ -342,6 +357,13 @@ public:
   static bool HasIccManagerSupport(JSContext* ,
                                    JSObject* aGlobal);
 #endif 
+#ifdef MOZ_B2G_BT
+  static bool HasBluetoothSupport(JSContext* , JSObject* aGlobal);
+#endif 
+#ifdef MOZ_TIME_MANAGER
+  static bool HasTimeSupport(JSContext* , JSObject* aGlobal);
+#endif 
+
   nsPIDOMWindow* GetParentObject() const
   {
     return GetWindow();
