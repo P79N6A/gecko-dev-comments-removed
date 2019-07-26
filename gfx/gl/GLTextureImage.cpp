@@ -533,7 +533,7 @@ TiledTextureImage::EndUpdate()
         subregion.MoveBy(-xPos, -yPos); 
         
         gfx::DrawTarget* drawTarget = mImages[i]->BeginUpdate(subregion);
-        MOZ_ASSERT(drawTarget->GetType() == BackendType::CAIRO,
+        MOZ_ASSERT(drawTarget->GetBackendType() == BackendType::CAIRO,
                    "updateSnapshot should not have been converted to data");
         gfxUtils::ClipToRegion(drawTarget, subregion);
         Size size(updateData->GetSize().width,
