@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+<html>
+  <head>
+    <style>
+    .multicol {
+      height: 10px;
+      width: 100px;
+      -moz-column-width: 20px;
+      -moz-column-fill: auto;
+      border: 2px solid orange;
+    }
+    .flexContainer {
+      display: flex;
+      flex-direction: row;
+      background: teal;
+      /* border-width is 0 by default; some sub-testcases will increase it. */
+      border: 0 dashed black;
+    }
+    </style>
+  </head>
+  <body>
+    
+    
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 10px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        margin-top: 2px;"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 11px"></div>
+    </div>
+
+    
+    
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        border-top-width: 2px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        padding-top: 2px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        border-top-width: 1px;
+                                        padding-top: 1px"></div>
+    </div>
+
+    
+    
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        border-bottom-width: 2px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        padding-bottom: 2px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        border-bottom-width: 1px;
+                                        padding-bottom: 1px"></div>
+    </div>
+
+    
+    
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        border-top-width: 1px;
+                                        border-bottom-width: 1px"></div>
+    </div>
+
+    
+    <div class="multicol">
+      <div class="flexContainer" style="height: 9px;
+                                        padding-top: 1px;
+                                        padding-bottom: 1px"></div>
+    </div>
+
+  </body>
+</html>
