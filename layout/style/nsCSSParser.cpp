@@ -12405,8 +12405,10 @@ CSSParserImpl::ParseTextOverflow(nsCSSValue& aValue)
 bool
 CSSParserImpl::ParseTouchAction(nsCSSValue& aValue)
 {
-  if (!ParseVariant(aValue, VARIANT_HK | VARIANT_NONE | VARIANT_AUTO,
-                    nsCSSProps::kTouchActionKTable)) {
+  
+  
+
+  if (!ParseVariant(aValue, VARIANT_HK, nsCSSProps::kTouchActionKTable)) {
     return false;
   }
 
@@ -12423,6 +12425,13 @@ CSSParserImpl::ParseTouchAction(nsCSSValue& aValue)
 
     
     if (nextIntValue & intValue) {
+      return false;
+    }
+
+    
+    if ((intValue | nextIntValue) & (NS_STYLE_TOUCH_ACTION_NONE |
+                                     NS_STYLE_TOUCH_ACTION_AUTO |
+                                     NS_STYLE_TOUCH_ACTION_MANIPULATION)) {
       return false;
     }
 
