@@ -194,43 +194,46 @@ public class TopSitesView extends GridView {
     }
 
     public void loadTopSites() {
-        final ContentResolver resolver = mContext.getContentResolver();
-        final Cursor oldCursor = (mTopSitesAdapter != null) ? mTopSitesAdapter.getCursor() : null;
-
-        new UiAsyncTask<Void, Void, Cursor>(ThreadUtils.getBackgroundHandler()) {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
-            protected Cursor doInBackground(Void... params) {
-                return BrowserDB.getTopSites(resolver, mNumberOfTopSites);
+            public void run() {
+                final ContentResolver resolver = mContext.getContentResolver();
+
+                
+                final Cursor oldCursor = (mTopSitesAdapter != null) ? mTopSitesAdapter.getCursor() : null;
+                final Cursor newCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
+
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mTopSitesAdapter == null) {
+                            mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
+                                                                         R.layout.abouthome_topsite_item,
+                                                                         newCursor,
+                                                                         new String[] { URLColumns.TITLE },
+                                                                         new int[] { R.id.title });
+
+                            setAdapter(mTopSitesAdapter);
+                        } else {
+                            mTopSitesAdapter.changeCursor(newCursor);
+                        }
+
+                        if (mTopSitesAdapter.getCount() > 0)
+                            loadTopSitesThumbnails(resolver);
+
+                        
+                        if (oldCursor != null && !oldCursor.isClosed())
+                            oldCursor.close();
+
+                        
+                        
+                        
+                        if (mLoadCompleteListener != null)
+                            mLoadCompleteListener.onAboutHomeLoadComplete();
+                    }
+                });
             }
-
-            @Override
-            protected void onPostExecute(Cursor newCursor) {
-                if (mTopSitesAdapter == null) {
-                    mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
-                                                                 R.layout.abouthome_topsite_item,
-                                                                 newCursor,
-                                                                 new String[] { URLColumns.TITLE },
-                                                                 new int[] { R.id.title });
-
-                    setAdapter(mTopSitesAdapter);
-                } else {
-                    mTopSitesAdapter.changeCursor(newCursor);
-                }
-
-                if (mTopSitesAdapter.getCount() > 0)
-                    loadTopSitesThumbnails(resolver);
-
-                
-                if (oldCursor != null && !oldCursor.isClosed())
-                    oldCursor.close();
-
-                
-                
-                
-                if (mLoadCompleteListener != null)
-                    mLoadCompleteListener.onAboutHomeLoadComplete();
-            }
-        }.execute();
+        });
     }
 
     @Override
@@ -328,23 +331,18 @@ public class TopSitesView extends GridView {
     }
 
     private void loadTopSitesThumbnails(final ContentResolver cr) {
+        final List<String> urls = getTopSitesUrls();
+        if (urls.size() == 0)
+            return;
+
         (new UiAsyncTask<Void, Void, Map<String, Bitmap> >(ThreadUtils.getBackgroundHandler()) {
             @Override
             public Map<String, Bitmap> doInBackground(Void... params) {
-                final List<String> urls = getTopSitesUrls();
-                if (urls.size() == 0) {
-                    return null;
-                }
-
                 return getThumbnailsFromCursor(BrowserDB.getThumbnailsForUrls(cr, urls));
             }
 
             @Override
             public void onPostExecute(Map<String, Bitmap> thumbnails) {
-                if (thumbnails == null) {
-                    return;
-                }
-
                 
                 
                 
