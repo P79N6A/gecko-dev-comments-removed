@@ -108,24 +108,29 @@ DataReportingService.prototype = Object.freeze({
 
       case "profile-after-change":
         this._os.removeObserver(this, "profile-after-change");
-        this._os.addObserver(this, "sessionstore-windows-restored", true);
 
-        this._prefs = new Preferences(HEALTHREPORT_BRANCH);
+        try {
+          this._prefs = new Preferences(HEALTHREPORT_BRANCH);
 
-        
-        
-        
-        
-        
-        if (this._prefs.get("service.enabled", true)) {
-          this.sessionRecorder = new SessionRecorder(SESSIONS_BRANCH);
-          this.sessionRecorder.onStartup();
+          
+          
+          
+          
+          
+          if (this._prefs.get("service.enabled", true)) {
+            this.sessionRecorder = new SessionRecorder(SESSIONS_BRANCH);
+            this.sessionRecorder.onStartup();
+          }
+
+          
+          let policyPrefs = new Preferences(POLICY_BRANCH);
+          this.policy = new DataReportingPolicy(policyPrefs, this._prefs, this);
+
+          this._os.addObserver(this, "sessionstore-windows-restored", true);
+        } catch (ex) {
+          Cu.reportError("Exception when initializing data reporting service: " +
+                         CommonUtils.exceptionStr(ex));
         }
-
-        
-        let policyPrefs = new Preferences(POLICY_BRANCH);
-        this.policy = new DataReportingPolicy(policyPrefs, this._prefs, this);
-
         break;
 
       case "sessionstore-windows-restored":
@@ -187,7 +192,9 @@ DataReportingService.prototype = Object.freeze({
           this.timer.cancel();
         }
 
-        this.policy.stopPolling();
+        if (this.policy) {
+          this.policy.stopPolling();
+        }
         break;
     }
   },
@@ -220,6 +227,11 @@ DataReportingService.prototype = Object.freeze({
   },
 
   _loadHealthReporter: function () {
+    
+    if (!this.policy) {
+      throw new Error("this.policy not set.");
+    }
+
     let ns = {};
     
 
