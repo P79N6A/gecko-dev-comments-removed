@@ -499,6 +499,13 @@ XPC_WN_CannotModifyPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id
 }
 
 static JSBool
+XPC_WN_CantDeletePropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id,
+                              JSBool *succeeded)
+{
+    return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
+}
+
+static JSBool
 XPC_WN_CannotModifyStrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
                                       JSMutableHandleValue vp)
 {
@@ -759,7 +766,7 @@ XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
 
     
     XPC_WN_OnlyIWrite_AddPropertyStub, 
-    XPC_WN_CannotModifyPropertyStub,   
+    XPC_WN_CantDeletePropertyStub,     
     JS_PropertyStub,                   
     XPC_WN_OnlyIWrite_SetPropertyStub, 
 
@@ -843,6 +850,21 @@ XPC_WN_MaybeResolvingStrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHan
     return XPC_WN_MaybeResolvingPropertyStub(cx, obj, id, vp);
 }
 
+static JSBool
+XPC_WN_MaybeResolvingDeletePropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool *succeeded)
+{
+    MORPH_SLIM_WRAPPER(cx, obj);
+    XPCCallContext ccx(JS_CALLER, cx, obj);
+    XPCWrappedNative* wrapper = ccx.GetWrapper();
+    THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
+
+    if (ccx.GetResolvingWrapper() == wrapper) {
+        *succeeded = true;
+        return true;
+    }
+    return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
+}
+
 
 #define PRE_HELPER_STUB_NO_SLIM                                               \
     XPCWrappedNative* wrapper =                                               \
@@ -891,10 +913,10 @@ XPC_WN_Helper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id,
 
 static JSBool
 XPC_WN_Helper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                          JSMutableHandleValue vp)
+                          JSBool *succeeded)
 {
     PRE_HELPER_STUB
-    DelProperty(wrapper, cx, obj, id, vp.address(), &retval);
+    DelProperty(wrapper, cx, obj, id, &retval);
     POST_HELPER_STUB
 }
 
@@ -1311,15 +1333,15 @@ XPCNativeScriptableShared::PopulateJSClass()
         addProperty = XPC_WN_CannotModifyPropertyStub;
     mJSClass.base.addProperty = addProperty;
 
-    JSPropertyOp delProperty;
+    JSDeletePropertyOp delProperty;
     if (mFlags.WantDelProperty())
         delProperty = XPC_WN_Helper_DelProperty;
     else if (mFlags.UseJSStubForDelProperty())
-        delProperty = JS_PropertyStub;
+        delProperty = JS_DeletePropertyStub;
     else if (mFlags.AllowPropModsDuringResolve())
-        delProperty = XPC_WN_MaybeResolvingPropertyStub;
+        delProperty = XPC_WN_MaybeResolvingDeletePropertyStub;
     else
-        delProperty = XPC_WN_CannotModifyPropertyStub;
+        delProperty = XPC_WN_CantDeletePropertyStub;
     mJSClass.base.delProperty = delProperty;
 
     if (mFlags.WantGetProperty())
@@ -1610,7 +1632,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
 
     
     JS_PropertyStub,                
-    JS_PropertyStub,                
+    JS_DeletePropertyStub,          
     JS_PropertyStub,                
     JS_StrictPropertyStub,          
     XPC_WN_Shared_Proto_Enumerate,  
@@ -1635,7 +1657,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
 
     
     JS_PropertyStub,                
-    JS_PropertyStub,                
+    JS_DeletePropertyStub,          
     JS_PropertyStub,                
     JS_StrictPropertyStub,          
     XPC_WN_Shared_Proto_Enumerate,  
@@ -1724,7 +1746,7 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
 
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
-     XPC_WN_CannotModifyPropertyStub,          
+    XPC_WN_CantDeletePropertyStub,             
     JS_PropertyStub,                           
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
@@ -1749,7 +1771,7 @@ js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
 
     
     XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
-    XPC_WN_CannotModifyPropertyStub,           
+    XPC_WN_CantDeletePropertyStub,             
     JS_PropertyStub,                           
     XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
     XPC_WN_Shared_Proto_Enumerate,             
@@ -1830,7 +1852,7 @@ js::Class XPC_WN_Tearoff_JSClass = {
     WRAPPER_SLOTS,                             
 
     XPC_WN_OnlyIWrite_AddPropertyStub,         
-    XPC_WN_CannotModifyPropertyStub,           
+    XPC_WN_CantDeletePropertyStub,             
     JS_PropertyStub,                           
     XPC_WN_OnlyIWrite_SetPropertyStub,         
     XPC_WN_TearOff_Enumerate,                  

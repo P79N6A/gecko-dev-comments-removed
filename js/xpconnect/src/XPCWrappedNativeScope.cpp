@@ -301,7 +301,7 @@ js::Class XPC_WN_NoHelper_Proto_JSClass = {
 
     
     JS_PropertyStub,                
-    JS_PropertyStub,                
+    JS_DeletePropertyStub,          
     JS_PropertyStub,                
     JS_StrictPropertyStub,          
     JS_EnumerateStub,               
