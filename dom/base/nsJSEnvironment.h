@@ -29,15 +29,6 @@ template <class> class Maybe;
 
 #define NS_GC_DELAY                 4000 // ms
 
-namespace mozilla {
-namespace dom {
-
-void TraceOuterWindows(JSTracer *aTracer);
-void TraverseOuterWindows(nsCycleCollectionNoteRootCallback& aCb);
-
-} 
-} 
-
 class nsJSContext : public nsIScriptContext
 {
 public:
@@ -163,12 +154,14 @@ protected:
   
   
   void ReportPendingException();
+
 private:
   void DestroyJSContext();
 
   nsrefcnt GetCCRefcnt();
 
   JSContext *mContext;
+  JS::Heap<JSObject*> mWindowProxy;
 
   bool mIsInitialized;
   bool mScriptsEnabled;
@@ -183,10 +176,6 @@ private:
 
   nsJSContext *mNext;
   nsJSContext **mPrev;
-
-  
-  friend void mozilla::dom::TraceOuterWindows(JSTracer *aTracer);
-  friend void mozilla::dom::TraverseOuterWindows(nsCycleCollectionNoteRootCallback& aCb);
 
   
   
