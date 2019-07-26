@@ -643,17 +643,19 @@ JSCompartment::updateForDebugMode(FreeOp *fop)
     else if (hasScriptsOnStack())
         return;
 
-    
-
-
-
     for (gc::CellIter i(this, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->debugMode != enabled) {
-            mjit::ReleaseScriptCode(fop, script);
-            script->clearAnalysis();
-            script->debugMode = enabled;
-        }
+        mjit::ReleaseScriptCode(fop, script);
+        script->debugMode = enabled;
+    }
+
+    
+    
+    
+    
+    if (!rt->gcRunning) {
+        PrepareCompartmentForGC(this);
+        GC(rt, GC_NORMAL, gcreason::DEBUG_MODE_GC);
     }
 #endif
 }

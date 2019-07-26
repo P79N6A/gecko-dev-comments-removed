@@ -1,44 +1,44 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Josh Aas <josh@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "base/basictypes.h"
 
-
+/* This must occur *after* layers/PLayers.h to avoid typedefs conflicts. */
 #include "mozilla/Util.h"
 
 #include "prtypes.h"
@@ -88,7 +88,7 @@
 #include "nsCocoaFeatures.h"
 #endif
 
-
+// needed for nppdf plugin
 #ifdef MOZ_WIDGET_GTK2
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
@@ -138,7 +138,7 @@ using mozilla::plugins::PluginModuleParent;
 using namespace mozilla;
 using namespace mozilla::plugins::parent;
 
-
+// We should make this const...
 static NPNetscapeFuncs sBrowserFuncs = {
   sizeof(sBrowserFuncs),
   (NP_VERSION_MAJOR << 8) + NP_VERSION_MINOR,
@@ -194,8 +194,8 @@ static NPNetscapeFuncs sBrowserFuncs = {
   _unscheduletimer,
   _popupcontextmenu,
   _convertpoint,
-  NULL, 
-  NULL, 
+  NULL, // handleevent, unimplemented
+  NULL, // unfocusinstance, unimplemented
   _urlredirectresponse,
   _initasyncsurface,
   _finalizeasyncsurface,
@@ -205,7 +205,7 @@ static NPNetscapeFuncs sBrowserFuncs = {
 static Mutex *sPluginThreadAsyncCallLock = nsnull;
 static PRCList sPendingAsyncCalls = PR_INIT_STATIC_CLIST(&sPendingAsyncCalls);
 
-
+// POST/GET stream type
 enum eNPPStreamTypeInternal {
   eNPPStreamTypeInternal_Get,
   eNPPStreamTypeInternal_Post
@@ -213,10 +213,10 @@ enum eNPPStreamTypeInternal {
 
 static NS_DEFINE_IID(kMemoryCID, NS_MEMORY_CID);
 
-
-
-
-
+// This function sends a notification using the observer service to any object
+// registered to listen to the "experimental-notify-plugin-call" subject.
+// Each "experimental-notify-plugin-call" notification carries with it the run
+// time value in milliseconds that the call took to execute.
 void NS_NotifyPluginCall(PRIntervalTime startTime) 
 {
   PRIntervalTime endTime = PR_IntervalNow() - startTime;
@@ -280,7 +280,7 @@ static PRInt32 OSXVersion()
   if (gOSXVersion == 0x0) {
     OSErr err = ::Gestalt(gestaltSystemVersion, (SInt32*)&gOSXVersion);
     if (err != noErr) {
-      
+      // This should probably be changed when our minimum version changes
       NS_ERROR("Couldn't determine OS X version, assuming 10.5");
       gOSXVersion = 0x00001050;
     }
@@ -288,8 +288,8 @@ static PRInt32 OSXVersion()
   return gOSXVersion;
 }
 
-
-
+// Detects machines with Intel GMA9xx GPUs.
+// kCGLRendererIDMatchingMask and kCGLRendererIntel900ID are only defined in the 10.6 SDK.
 #define CGLRendererIDMatchingMask 0x00FE7F00
 #define CGLRendererIntel900ID 0x00024000
 static bool GMA9XXGraphics()
@@ -325,17 +325,17 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   }
 
 #if defined(XP_MACOSX) && defined(__i386__)
-  
+  // Only allow on Mac OS X 10.6 or higher.
   if (OSXVersion() < 0x00001060) {
     return false;
   }
-  
-  
-  
-  
+  // Blacklist Flash 10.0 or lower since it may try to negotiate Carbon/Quickdraw
+  // which are not supported out of process. Also blacklist Flash 10.1 if this
+  // machine has an Intel GMA9XX GPU because Flash will negotiate Quickdraw graphics.
+  // Never blacklist Flash >= 10.2.
   if (aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
-    
-    
+    // If the first '.' is before position 2 or the version 
+    // starts with 10.0 then we are dealing with Flash 10 or less.
     if (aPluginTag->mVersion.FindChar('.') < 2) {
       return false;
     }
@@ -357,10 +357,10 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     return false;
   }
 
-  
-  
-  
-  
+  // Get per-library whitelist/blacklist pref string
+  // "dom.ipc.plugins.enabled.filename.dll" and fall back to the default value
+  // of "dom.ipc.plugins.enabled"
+  // The "filename.dll" part can contain shell wildcard pattern
 
   nsCAutoString prefFile(aPluginTag->mFullPath.get());
   PRInt32 slashPos = prefFile.RFindCharInSet("/\\");
@@ -381,8 +381,8 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   nsCAutoString prefGroupKey("dom.ipc.plugins.enabled.");
 #endif
 
-  
-  
+  // Java plugins include a number of different file names,
+  // so use the mime type (mIsJavaPlugin) and a special pref.
   if (aPluginTag->mIsJavaPlugin &&
       !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
     return false;
@@ -399,7 +399,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   if (NS_SUCCEEDED(rv) && prefCount > 0) {
     PRUint32 prefixLength = prefGroupKey.Length();
     for (PRUint32 currentPref = 0; currentPref < prefCount; currentPref++) {
-      
+      // Get the mask
       const char* maskStart = prefNames[currentPref] + prefixLength;
       bool match = false;
 
@@ -408,7 +408,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
          continue;
       }
       else if(valid == NON_SXP) {
-        
+        // mask is not a shell pattern, compare it as normal string
         match = (strcmp(prefFile.get(), maskStart) == 0);
       }
       else {
@@ -455,7 +455,7 @@ GetNewPluginLibrary(nsPluginTag *aPluginTag)
   return new PluginPRLibrary(aPluginTag->mFullPath.get(), aPluginTag->mLibrary);
 }
 
-
+// Creates an nsNPAPIPlugin object. One nsNPAPIPlugin object exists per plugin (not instance).
 nsresult
 nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
 {
@@ -489,22 +489,22 @@ nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
   NPError pluginCallError;
   nsresult rv;
 
-
+// Exchange NPAPI entry points.
 #if defined(XP_WIN) || defined(XP_OS2)
-  
+  // NP_GetEntryPoints must be called before NP_Initialize on Windows.
   rv = pluginLib->NP_GetEntryPoints(&plugin->mPluginFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
   }
 
-  
+  // NP_Initialize must be called after NP_GetEntryPoints on Windows.
   rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
   }
 #elif defined(XP_MACOSX)
-  
-  
+  // NP_Initialize must be called before NP_GetEntryPoints on Mac OS X.
+  // We need to match WebKit's behavior.
   rv = pluginLib->NP_Initialize(&sBrowserFuncs, &pluginCallError);
   if (rv != NS_OK || pluginCallError != NPERR_NO_ERROR) {
     return NS_ERROR_FAILURE;
@@ -573,8 +573,8 @@ nsNPAPIPlugin::RetainStream(NPStream *pstream, nsISupports **aRetainedPeer)
   return NS_OK;
 }
 
-
-
+// Create a new NPP GET or POST (given in the type argument) url
+// stream that may have a notify callback
 NPError
 MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
                           eNPPStreamTypeInternal type,
@@ -598,11 +598,11 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
   }
 
   nsCOMPtr<nsIPluginStreamListener> listener;
-  
-  
-  
-  
-  
+  // Set aCallNotify here to false.  If pluginHost->GetURL or PostURL fail,
+  // the listener's destructor will do the notification while we are about to
+  // return a failure code.
+  // Call SetCallNotify(true) below after we are sure we cannot return a failure 
+  // code.
   if (!target) {
     inst->NewStreamListener(relativeURL, notifyData,
                             getter_AddRefs(listener));
@@ -630,7 +630,7 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
   }
 
   if (listener) {
-    
+    // SetCallNotify(bDoNotify) here, see comment above.
     static_cast<nsNPAPIPluginStreamListener*>(listener.get())->SetCallNotify(bDoNotify);
   }
 
@@ -645,8 +645,8 @@ namespace {
 
 static char *gNPPException;
 
-
-
+// A little helper class used to wrap up plugin manager streams (that is,
+// streams from the plugin to the browser).
 class nsNPAPIStreamWrapper : nsISupports
 {
 public:
@@ -768,7 +768,7 @@ InHeap(HANDLE hHeap, LPVOID lpMem)
 }
 #endif
 
-} 
+} /* anonymous namespace */
 
 NS_IMPL_ISUPPORTS1(nsNPAPIStreamWrapper, nsISupports)
 
@@ -816,7 +816,7 @@ nsPluginThreadRunnable::nsPluginThreadRunnable(NPP instance,
   : mInstance(instance), mFunc(func), mUserData(userData)
 {
   if (!sPluginThreadAsyncCallLock) {
-    
+    // Failed to create lock, not much we can do here then...
     mFunc = nsnull;
 
     return;
@@ -829,7 +829,7 @@ nsPluginThreadRunnable::nsPluginThreadRunnable(NPP instance,
 
     nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
     if (!inst || !inst->IsRunning()) {
-      
+      // The plugin was stopped, ignore this async call.
       mFunc = nsnull;
 
       return;
@@ -939,9 +939,9 @@ PopException()
   }
 }
 
-
-
-
+//
+// Static callbacks that get routed back through the new C++ API
+//
 
 namespace mozilla {
 namespace plugins {
@@ -961,8 +961,8 @@ _geturl(NPP npp, const char* relativeURL, const char* target)
 
   PluginDestructionGuard guard(npp);
 
-  
-  
+  // Block Adobe Acrobat from loading URLs that are not http:, https:,
+  // or ftp: URLs if the given target is null.
   if (!target && relativeURL &&
       (strncmp(relativeURL, "http:", 5) != 0) &&
       (strncmp(relativeURL, "https:", 6) != 0) &&
@@ -1092,7 +1092,7 @@ _write(NPP npp, NPStream *pstream, int32_t len, void *buffer)
                  ("NPN_Write: npp=%p, url=%s, len=%d, buffer=%s\n", (void*)npp,
                   pstream->url, len, (char*)buffer));
 
-  
+  // negative return indicates failure to the plugin
   if (!npp)
     return -1;
 
@@ -1135,17 +1135,17 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
   nsCOMPtr<nsIPluginStreamListener> listener =
     do_QueryInterface((nsISupports *)pstream->ndata);
 
-  
-  
+  // DestroyStream can kill two kinds of streams: NPP derived and NPN derived.
+  // check to see if they're trying to kill a NPP stream
   if (listener) {
-    
+    // Tell the stream listner that the stream is now gone.
     listener->OnStopBinding(nsnull, NS_BINDING_ABORTED);
 
-    
-    
-    
-    
-    
+    // FIXME: http://bugzilla.mozilla.org/show_bug.cgi?id=240131
+    //
+    // Is it ok to leave pstream->ndata set here, and who releases it
+    // (or is it even properly ref counted)? And who closes the stream
+    // etc?
   } else {
     nsNPAPIStreamWrapper* wrapper = (nsNPAPIStreamWrapper *)pstream->ndata;
     NS_ASSERTION(wrapper, "null wrapper");
@@ -1153,8 +1153,8 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
     if (!wrapper)
       return NPERR_INVALID_PARAM;
 
-    
-    
+    // This will release the wrapped nsIOutputStream.
+    // pstream should always be a subobject of wrapper.  See bug 548441.
     NS_ASSERTION((char*)wrapper <= (char*)pstream && 
                  ((char*)pstream) + sizeof(*pstream)
                      <= ((char*)wrapper) + sizeof(*wrapper),
@@ -1290,9 +1290,9 @@ _getwindowobject(NPP npp)
   JSContext *cx = GetJSContextFromNPP(npp);
   NS_ENSURE_TRUE(cx, nsnull);
 
-  
-  
-  
+  // Using ::JS_GetGlobalObject(cx) is ok here since the window we
+  // want to return here is the outer window, *not* the inner (since
+  // we don't know what the plugin will do with it).
   return nsJSObjWrapper::GetNewOrUsed(npp, cx, ::JS_GetGlobalObject(cx));
 }
 
@@ -1349,10 +1349,10 @@ _getstringidentifier(const NPUTF8* name)
   if (!stack)
     return NULL;
 
-  JSContext *cx = nsnull;
-  stack->GetSafeJSContext(&cx);
-  if (!cx)
+  JSContext* cx = stack->GetSafeJSContext();
+  if (!cx) {
     return NULL;
+  }
 
   JSAutoRequest ar(cx);
   return doGetIdentifier(cx, name);
@@ -1370,10 +1370,10 @@ _getstringidentifiers(const NPUTF8** names, int32_t nameCount,
   if (!stack)
     return;
 
-  JSContext *cx = nsnull;
-  stack->GetSafeJSContext(&cx);
-  if (!cx)
+  JSContext* cx = stack->GetSafeJSContext();
+  if (!cx) {
     return;
+  }
 
   JSAutoRequest ar(cx);
 
@@ -1604,18 +1604,18 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
   NS_ABORT_IF_FALSE(obj,
     "JS_ObjectToInnerObject should never return null with non-null input.");
 
-  
+  // Root obj and the rval (below).
   jsval vec[] = { OBJECT_TO_JSVAL(obj), JSVAL_NULL };
   JS::AutoArrayRooter tvr(cx, ArrayLength(vec), vec);
   jsval *rval = &vec[1];
 
   if (result) {
-    
+    // Initialize the out param to void
     VOID_TO_NPVARIANT(*result);
   }
 
   if (!script || !script->UTF8Length || !script->UTF8Characters) {
-    
+    // Nothing to evaluate.
 
     return true;
   }
@@ -1635,13 +1635,13 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
     uri->GetSpec(specStr);
     spec = specStr.get();
   } else {
-    
-    
-    
-    
-    
-    
-    
+    // No URI in a principal means it's the system principal. If the
+    // document URI is a chrome:// URI, pass that in as the URI of the
+    // script, else pass in null for the filename as there's no way to
+    // know where this document really came from. Passing in null here
+    // also means that the script gets treated by XPConnect as if it
+    // needs additional protection, which is what we want for unknown
+    // chrome code anyways.
 
     uri = doc->GetDocumentURI();
     bool isChrome = false;
@@ -1686,12 +1686,12 @@ _getproperty(NPP npp, NPObject* npobj, NPIdentifier property,
   if (!npobj->_class->getProperty(npobj, property, result))
     return false;
 
-  
-  
-  
-  
-  
-  
+  // If a Java plugin tries to get the document.URL or document.documentURI
+  // property from us, don't pass back a value that Java won't be able to
+  // understand -- one that will make the URL(String) constructor throw a
+  // MalformedURL exception.  Passing such a value causes Java Plugin2 to
+  // crash (to throw a RuntimeException in Plugin2Manager.getDocumentBase()).
+  // Also don't pass back a value that Java is likely to mishandle.
 
   nsNPAPIPluginInstance* inst = (nsNPAPIPluginInstance*) npp->ndata;
   if (!inst)
@@ -1750,13 +1750,13 @@ _getproperty(NPP npp, NPObject* npobj, NPIdentifier property,
   if (javaCompatible)
     return true;
 
-  
-  
-  
-  
+  // If Java won't be able to interpret the original value of document.URL or
+  // document.documentURI, or is likely to mishandle it, pass back something
+  // that Java will understand but won't be able to use to access the network,
+  // and for which same-origin checks will always fail.
 
   if (inst->mFakeURL.IsVoid()) {
-    
+    // Abort (do an error return) if NS_MakeRandomInvalidURLString() fails.
     if (NS_FAILED(NS_MakeRandomInvalidURLString(inst->mFakeURL))) {
       _releasevariantvalue(result);
       return false;
@@ -1967,8 +1967,8 @@ _setexception(NPObject* npobj, const NPUTF8 *message)
   if (!message) return;
 
   if (gNPPException) {
-    
-    
+    // If a plugin throws multiple exceptions, we'll only report the
+    // last one for now.
     free(gNPPException);
   }
 
@@ -1997,17 +1997,17 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *) npp->ndata;
       bool windowless = false;
       inst->IsWindowless(&windowless);
-      
-      
-      
-      
-      
-      
-      
+      // The documentation on the types for many variables in NP(N|P)_GetValue
+      // is vague.  Often boolean values are NPBool (1 byte), but
+      // https://developer.mozilla.org/en/XEmbed_Extension_for_Mozilla_Plugins
+      // treats NPPVpluginNeedsXEmbed as PRBool (int), and
+      // on x86/32-bit, flash stores to this using |movl 0x1,&needsXEmbed|.
+      // thus we can't use NPBool for needsXEmbed, or the three bytes above
+      // it on the stack would get clobbered. so protect with the larger bool.
       int needsXEmbed = 0;
       if (!windowless) {
         res = inst->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needsXEmbed);
-        
+        // If the call returned an error code make sure we still use our default value.
         if (NS_FAILED(res)) {
           needsXEmbed = 0;
         }
@@ -2018,14 +2018,14 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       }
     }
 #ifdef MOZ_WIDGET_GTK2
-    
-    
-    
+    // adobe nppdf calls XtGetApplicationNameAndClass(display,
+    // &instance, &class) we have to init Xt toolkit before get
+    // XtDisplay just call gtk_xtbin_new(w,0) once
     static GtkWidget *gtkXtBinHolder = 0;
     if (!gtkXtBinHolder) {
       gtkXtBinHolder = gtk_xtbin_new(gdk_get_default_root_window(),0);
-      
-      
+      // it crashes on destroy, let it leak
+      // gtk_widget_destroy(gtkXtBinHolder);
     }
     (*(Display **)result) =  GTK_XTBIN(gtkXtBinHolder)->xtdisplay;
     return NPERR_NO_ERROR;
@@ -2090,7 +2090,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 #endif
 
 #ifdef MOZ_WIDGET_QT
-    
+    /* Fake toolkit so flash plugin works */
     *((NPNToolkitType*)result) = NPNVGtk2;
 #endif
     if (*(NPNToolkitType*)result)
@@ -2103,8 +2103,8 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 #ifdef MOZ_WIDGET_GTK2
     *(NPBool*)result = true;
 #elif defined(MOZ_WIDGET_QT)
-    
-    
+    // Desktop Flash fail to initialize if browser does not support NPNVSupportsXEmbedBool
+    // even when wmode!=windowed, lets return fake support
     fprintf(stderr, "Fake support for XEmbed plugins in Qt port\n");
     *(NPBool*)result = true;
 #else
@@ -2423,16 +2423,16 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
 #endif
 
-  
+  // we no longer hand out any XPCOM objects
   case NPNVDOMElement:
-    
+    // fall through
   case NPNVDOMWindow:
-    
+    // fall through
   case NPNVserviceManager:
-    
-    
+    // old XPCOM objects, no longer supported, but null out the out
+    // param to avoid crashing plugins that still try to use this.
     *(nsISupports**)result = nsnull;
-    
+    // fall through
   default:
     NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_getvalue unhandled get value: %d\n", variable));
     return NPERR_GENERIC_ERROR;
@@ -2463,15 +2463,15 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
 
   switch (variable) {
 
-    
-    
-    
+    // we should keep backward compatibility with NPAPI where the
+    // actual pointer value is checked rather than its content
+    // when passing booleans
     case NPPVpluginWindowBool: {
 #ifdef XP_MACOSX
-      
-      
-      
-      
+      // This setting doesn't apply to OS X (only to Windows and Unix/Linux).
+      // See https://developer.mozilla.org/En/NPN_SetValue#section_5.  Return
+      // NPERR_NO_ERROR here to conform to other browsers' behavior on OS X
+      // (e.g. Safari and Opera).
       return NPERR_NO_ERROR;
 #else
       NPBool bWindowless = (result == nsnull);
@@ -2513,7 +2513,7 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
     }
 
 #ifndef MOZ_WIDGET_ANDROID
-    
+    // On android, their 'drawing model' uses the same constant!
     case NPPVpluginDrawingModel: {
       if (inst) {
         inst->SetDrawingModel((NPDrawingModel)NS_PTR_TO_INT32(result));
@@ -2591,8 +2591,8 @@ _requestread(NPStream *pstream, NPByteRange *rangeList)
   return NS_OK;
 }
 
-
-void* NP_CALLBACK 
+// Deprecated, only stubbed out
+void* NP_CALLBACK /* OJI type: JRIEnv* */
 _getJavaEnv()
 {
   NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_GetJavaEnv\n"));
@@ -2632,8 +2632,8 @@ _memalloc (uint32_t size)
   return nsMemory::Alloc(size);
 }
 
-
-void* NP_CALLBACK 
+// Deprecated, only stubbed out
+void* NP_CALLBACK /* OJI type: jref */
 _getJavaPeer(NPP npp)
 {
   NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_GetJavaPeer: npp=%p\n", (void*)npp));
@@ -2717,7 +2717,7 @@ _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
       if (!cookieService)
         return NPERR_GENERIC_ERROR;
 
-      
+      // Make an nsURI from the url argument
       nsCOMPtr<nsIURI> uri;
       if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), nsDependentCString(url)))) {
         return NPERR_GENERIC_ERROR;
@@ -2734,7 +2734,7 @@ _getvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
 
     break;
   default:
-    
+    // Fall through and return an error...
     ;
   }
 
@@ -2787,9 +2787,9 @@ _setvalueforurl(NPP instance, NPNURLVariable variable, const char *url,
 
     break;
   case NPNURLVProxy:
-    
+    // We don't support setting proxy values, fall through...
   default:
-    
+    // Fall through and return an error...
     ;
   }
 
@@ -2924,6 +2924,6 @@ _urlredirectresponse(NPP instance, void* notifyData, NPBool allow)
   inst->URLRedirectResponse(notifyData, allow);
 }
 
-} 
-} 
-} 
+} /* namespace parent */
+} /* namespace plugins */
+} /* namespace mozilla */

@@ -1319,6 +1319,7 @@ struct nsStyleText {
   PRUint8 mTextAlignLast;               
   PRUint8 mTextTransform;               
   PRUint8 mWhiteSpace;                  
+  PRUint8 mWordBreak;                   
   PRUint8 mWordWrap;                    
   PRUint8 mHyphens;                     
   PRUint8 mTextSizeAdjust;              

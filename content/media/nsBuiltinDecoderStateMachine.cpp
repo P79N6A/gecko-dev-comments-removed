@@ -1146,50 +1146,56 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       mAudioEndTime = playedUsecs.value();
     }
   }
-  if (mReader->mAudioQueue.AtEndOfStream() &&
-      mState != DECODER_STATE_SHUTDOWN &&
-      !mStopAudioThread)
   {
-    
-    
-    bool seeking = false;
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    if (mReader->mAudioQueue.AtEndOfStream() &&
+        mState != DECODER_STATE_SHUTDOWN &&
+        !mStopAudioThread)
     {
-      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      PRInt64 unplayedFrames = audioDuration % minWriteFrames;
-      if (minWriteFrames > 1 && unplayedFrames > 0) {
-        
-        
-        
-        
-        
-        
-        PRInt64 framesToWrite = minWriteFrames - unplayedFrames;
-        if (framesToWrite < PR_UINT32_MAX / channels) {
-          
-          
-          WriteSilence(mAudioStream, framesToWrite);
-        }
-      }
-
-      PRInt64 oldPosition = -1;
-      PRInt64 position = GetMediaTime();
-      while (oldPosition != position &&
-             mAudioEndTime - position > 0 &&
-             mState != DECODER_STATE_SEEKING &&
-             mState != DECODER_STATE_SHUTDOWN)
-      {
-        const PRInt64 DRAIN_BLOCK_USECS = 100000;
-        Wait(NS_MIN(mAudioEndTime - position, DRAIN_BLOCK_USECS));
-        oldPosition = position;
-        position = GetMediaTime();
-      }
-      seeking = mState == DECODER_STATE_SEEKING;
-    }
-
-    if (!seeking && !mAudioStream->IsPaused()) {
-      mAudioStream->Drain();
       
-      mEventManager.Drain(mAudioEndTime);
+      
+      bool seeking = false;
+      {
+        PRInt64 unplayedFrames = audioDuration % minWriteFrames;
+        if (minWriteFrames > 1 && unplayedFrames > 0) {
+          
+          
+          
+          
+          
+          
+          PRInt64 framesToWrite = minWriteFrames - unplayedFrames;
+          if (framesToWrite < PR_UINT32_MAX / channels) {
+            
+            
+            ReentrantMonitorAutoExit exit(mDecoder->GetReentrantMonitor());
+            WriteSilence(mAudioStream, framesToWrite);
+          }
+        }
+
+        PRInt64 oldPosition = -1;
+        PRInt64 position = GetMediaTime();
+        while (oldPosition != position &&
+               mAudioEndTime - position > 0 &&
+               mState != DECODER_STATE_SEEKING &&
+               mState != DECODER_STATE_SHUTDOWN)
+        {
+          const PRInt64 DRAIN_BLOCK_USECS = 100000;
+          Wait(NS_MIN(mAudioEndTime - position, DRAIN_BLOCK_USECS));
+          oldPosition = position;
+          position = GetMediaTime();
+        }
+        seeking = mState == DECODER_STATE_SEEKING;
+      }
+
+      if (!seeking && !mAudioStream->IsPaused()) {
+        {
+          ReentrantMonitorAutoExit exit(mDecoder->GetReentrantMonitor());
+          mAudioStream->Drain();
+        }
+        
+        mEventManager.Drain(mAudioEndTime);
+      }
     }
   }
   LOG(PR_LOG_DEBUG, ("%p Reached audio stream end.", mDecoder.get()));

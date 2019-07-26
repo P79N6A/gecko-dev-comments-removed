@@ -1025,27 +1025,31 @@ let gGestureSupport = {
     switch (aEvent.type) {
       case "MozSwipeGesture":
         aEvent.preventDefault();
-        return this.onSwipe(aEvent);
+        this.onSwipe(aEvent);
+        break;
       case "MozMagnifyGestureStart":
         aEvent.preventDefault();
 #ifdef XP_WIN
-        return this._setupGesture(aEvent, "pinch", def(25, 0), "out", "in");
+        this._setupGesture(aEvent, "pinch", def(25, 0), "out", "in");
 #else
-        return this._setupGesture(aEvent, "pinch", def(150, 1), "out", "in");
+        this._setupGesture(aEvent, "pinch", def(150, 1), "out", "in");
 #endif
+        break;
       case "MozRotateGestureStart":
         aEvent.preventDefault();
-        return this._setupGesture(aEvent, "twist", def(25, 0), "right", "left");
+        this._setupGesture(aEvent, "twist", def(25, 0), "right", "left");
+        break;
       case "MozMagnifyGestureUpdate":
       case "MozRotateGestureUpdate":
         aEvent.preventDefault();
-        return this._doUpdate(aEvent);
+        this._doUpdate(aEvent);
+        break;
       case "MozTapGesture":
         aEvent.preventDefault();
-        return this._doAction(aEvent, ["tap"]);
-      case "MozPressTapGesture":
+        this._doAction(aEvent, ["tap"]);
+        break;
       
-      return;
+
     }
   },
 
@@ -1131,8 +1135,6 @@ let gGestureSupport = {
 
 
 
-
-
   _doAction: function GS__doAction(aEvent, aGesture) {
     
     
@@ -1169,9 +1171,8 @@ let gGestureSupport = {
         goDoCommand(command);
       }
 
-      return command;
+      break;
     }
-    return null;
   },
 
   
@@ -1192,10 +1193,12 @@ let gGestureSupport = {
 
   onSwipe: function GS_onSwipe(aEvent) {
     
-    ["UP", "RIGHT", "DOWN", "LEFT"].forEach(function (dir) {
-      if (aEvent.direction == aEvent["DIRECTION_" + dir])
-        return this._doAction(aEvent, ["swipe", dir.toLowerCase()]);
-    }, this);
+    for (let dir of ["UP", "RIGHT", "DOWN", "LEFT"]) {
+      if (aEvent.direction == aEvent["DIRECTION_" + dir]) {
+        this._doAction(aEvent, ["swipe", dir.toLowerCase()]);
+        break;
+      }
+    }
   },
 
   
@@ -5202,9 +5205,12 @@ var TabsProgressListener = {
     
     if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
       
-      aBrowser._clickToPlayDoorhangerShown = false;
-      aBrowser._clickToPlayPluginsActivated = false;
-
+      
+      if (aRequest) {
+        
+        aBrowser._clickToPlayDoorhangerShown = false;
+        aBrowser._clickToPlayPluginsActivated = false;
+      }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
   },
@@ -8199,30 +8205,19 @@ var gIdentityHandler = {
 
 
   setIdentityMessages : function(newMode) {
-    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
-      var iData = this.getIdentityData();
+    let icon_label = "";
+    let tooltip = "";
+    let icon_country_label = "";
+    let icon_labels_dir = "ltr";
+
+    switch (newMode) {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED: {
+      let iData = this.getIdentityData();
 
       
       
-      
-      
-      
-      
-      var icon_label = "";
-      var icon_country_label = "";
-      var icon_labels_dir = "ltr";
-      switch (gPrefService.getIntPref("browser.identity.ssl_domain_display")) {
-        case 2 : 
-          icon_label = this._lastLocation.hostname;
-          break;
-        case 1 : 
-          icon_label = this.getEffectiveHost();
-      }
-
-      
-      
-      var tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
-                                                        [iData.caOrg]);
+      tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
+                                                    [iData.caOrg]);
 
       
       
@@ -8237,15 +8232,16 @@ var gIdentityHandler = {
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
-    }
-    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      break; }
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
-      iData = this.getIdentityData();
+      let iData = this.getIdentityData();
       tooltip = gNavigatorBundle.getFormattedString("identity.identified.verifier",
                                                     [iData.caOrg]);
       icon_label = iData.subjectOrg;
       if (iData.country)
         icon_country_label = "(" + iData.country + ")";
+
       
       
       
@@ -8254,18 +8250,11 @@ var gIdentityHandler = {
       
       icon_labels_dir = /^[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(icon_label) ?
                         "rtl" : "ltr";
-    }
-    else if (newMode == this.IDENTITY_MODE_CHROMEUI) {
-      icon_label = "";
-      tooltip = "";
-      icon_country_label = "";
-      icon_labels_dir = "ltr";
-    }
-    else {
+      break; }
+    case this.IDENTITY_MODE_CHROMEUI:
+      break;
+    default:
       tooltip = gNavigatorBundle.getString("identity.unknown.tooltip");
-      icon_label = "";
-      icon_country_label = "";
-      icon_labels_dir = "ltr";
     }
 
     
@@ -8295,19 +8284,20 @@ var gIdentityHandler = {
     this._identityPopupEncLabel.textContent = this._encryptionLabel[newMode];
 
     
-    var supplemental = "";
-    var verifier = "";
+    let supplemental = "";
+    let verifier = "";
+    let host = "";
+    let owner = "";
 
-    if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
-      var iData = this.getIdentityData();
-      var host = this.getEffectiveHost();
-      var owner = gNavigatorBundle.getString("identity.ownerUnknown2");
+    switch (newMode) {
+    case this.IDENTITY_MODE_DOMAIN_VERIFIED:
+      host = this.getEffectiveHost();
+      owner = gNavigatorBundle.getString("identity.ownerUnknown2");
       verifier = this._identityBox.tooltipText;
-      supplemental = "";
-    }
-    else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
+      break;
+    case this.IDENTITY_MODE_IDENTIFIED: {
       
-      iData = this.getIdentityData();
+      let iData = this.getIdentityData();
       host = this.getEffectiveHost();
       owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
@@ -8322,11 +8312,7 @@ var gIdentityHandler = {
         supplemental += iData.state;
       else if (iData.country) 
         supplemental += iData.country;
-    }
-    else {
-      
-      host = "";
-      owner = "";
+      break; }
     }
 
     

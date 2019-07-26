@@ -380,6 +380,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mBorderStyle          = eBorderStyle_default;
   mPopupType            = ePopupTypeAny;
   mOldSizeMode          = nsSizeMode_Normal;
+  mLastSizeMode         = nsSizeMode_Normal;
   mLastPoint.x          = 0;
   mLastPoint.y          = 0;
   mLastSize.width       = 0;
@@ -1568,6 +1569,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
     return NS_OK;
 
   
+  mLastSizeMode = mSizeMode;
   rv = nsBaseWidget::SetSizeMode(aMode);
   if (NS_SUCCEEDED(rv) && mIsVisible) {
     int mode;
@@ -1607,7 +1609,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
     }
     
     
-    if (mode == SW_RESTORE || mode == SW_MAXIMIZE || mode == SW_SHOW)
+    if (mode == SW_MAXIMIZE || mode == SW_SHOW)
       DispatchFocusToTopLevelWindow(NS_ACTIVATE);
   }
   return rv;
@@ -5908,6 +5910,12 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
     InitEvent(event);
 
     result = DispatchWindowEvent(&event);
+
+    
+    
+    
+    if (mLastSizeMode != nsSizeMode_Normal && mSizeMode == nsSizeMode_Normal)
+      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
 
     
     if (mSizeMode == nsSizeMode_Minimized)

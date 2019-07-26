@@ -879,7 +879,7 @@ bool nsOpusState::DecodeHeader(ogg_packet* aPacket)
 
 PRInt64 nsOpusState::Time(PRInt64 granulepos)
 {
-  if (granulepos < 0)
+  if (!mActive || granulepos < 0)
     return -1;
 
   

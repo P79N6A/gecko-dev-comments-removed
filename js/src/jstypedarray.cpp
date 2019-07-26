@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil -*- */
+/* vim: set ts=40 sw=4 et tw=99: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla WebGL impl
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <string.h>
 
@@ -75,11 +75,11 @@ using namespace js;
 using namespace js::gc;
 using namespace js::types;
 
-
-
-
-
-
+/*
+ * Allocate array buffers with the maximum number of fixed slots marked as
+ * reserved, so that the fixed slots may be used for the buffer's contents.
+ * The last fixed slot is kept for the object's private data.
+ */
 static const uint8_t ARRAYBUFFER_RESERVED_SLOTS = JSObject::MAX_FIXED_SLOTS - 1;
 
 static bool
@@ -109,11 +109,11 @@ ValueIsLength(JSContext *cx, const Value &v, uint32_t *len)
     return false;
 }
 
-
-
-
-
-
+/*
+ * Convert |v| to an array index for an array of length |length| per
+ * the Typed Array Specification section 7.0, |subarray|. If successful,
+ * the output value is in the range [0, length).
+ */
 static bool
 ToClampedIndex(JSContext *cx, const Value &v, int32_t length, int32_t *out)
 {
@@ -129,17 +129,17 @@ ToClampedIndex(JSContext *cx, const Value &v, int32_t length, int32_t *out)
     return true;
 }
 
+/*
+ * ArrayBuffer
+ *
+ * This class holds the underlying raw buffer that the TypedArray classes
+ * access.  It can be created explicitly and passed to a TypedArray, or
+ * can be created implicitly by constructing a TypedArray with a size.
+ */
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * Walks up the prototype chain to find the actual ArrayBuffer data, if any.
+ */
 static ArrayBufferObject *
 getArrayBuffer(JSObject *obj)
 {
@@ -174,7 +174,7 @@ ArrayBufferObject::fun_slice(JSContext *cx, unsigned argc, Value *vp)
 
     ArrayBufferObject &arrayBuffer = obj->asArrayBuffer();
 
-    
+    // these are the default values
     int32_t length = int32_t(arrayBuffer.byteLength());
     int32_t begin = 0, end = length;
 
@@ -198,9 +198,9 @@ ArrayBufferObject::fun_slice(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-
-
-
+/*
+ * new ArrayBuffer(byteLength)
+ */
 JSBool
 ArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -209,11 +209,11 @@ ArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     if (nbytes < 0) {
-        
-
-
-
-
+        /*
+         * We're just not going to support arrays that are bigger than what will fit
+         * as an integer value; if someone actually ever complains (validly), then we
+         * can fix.
+         */
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_ARRAY_LENGTH);
         return false;
     }
@@ -228,11 +228,11 @@ ArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
 bool
 ArrayBufferObject::allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents)
 {
-    
-
-
-
-
+    /*
+     * ArrayBufferObjects delegate added properties to another JSObject, so
+     * their internal layout can use the object's fixed slots for storage.
+     * Set up the object to look like an array with an elements header.
+     */
     JS_ASSERT(isArrayBuffer() && !hasDynamicSlots() && !hasDynamicElements());
 
     size_t usableSlots = ARRAYBUFFER_RESERVED_SLOTS - ObjectElements::VALUES_PER_HEADER;
@@ -254,11 +254,11 @@ ArrayBufferObject::allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents
 
     ObjectElements *header = getElementsHeader();
 
-    
-
-
-
-
+    /*
+     * Note that |bytes| may not be a multiple of |sizeof(Value)|, so
+     * |capacity * sizeof(Value)| may underestimate the size by up to
+     * |sizeof(Value) - 1| bytes.
+     */
     header->capacity = size / sizeof(Value);
     header->initializedLength = 0;
     header->length = size;
@@ -301,10 +301,10 @@ ArrayBufferObject::create(JSContext *cx, uint32_t nbytes, uint8_t *contents)
         return NULL;
     obj->setLastPropertyInfallible(empty);
 
-    
-
-
-
+    /*
+     * The first 8 bytes hold the length.
+     * The rest of it is a flat data store for the array buffer.
+     */
     if (!obj->asArrayBuffer().allocateSlots(cx, nbytes, contents))
         return NULL;
 
@@ -329,10 +329,10 @@ ArrayBufferObject::createSlice(JSContext *cx, ArrayBufferObject &arrayBuffer,
 void
 ArrayBufferObject::obj_trace(JSTracer *trc, JSObject *obj)
 {
-    
-
-
-
+    /*
+     * If this object changes, it will get marked via the private data barrier,
+     * so it's safe to leave it Unbarriered.
+     */
     JSObject *delegate = static_cast<JSObject*>(obj->getPrivate());
     if (delegate) {
         MarkObjectUnbarriered(trc, &delegate, "arraybuffer.delegate");
@@ -361,11 +361,11 @@ ArrayBufferObject::obj_lookupGeneric(JSContext *cx, JSObject *obj_, jsid id_,
 
     JSBool delegateResult = delegate->lookupGeneric(cx, id, objp, propp);
 
-    
-
-
-
-
+    /* If false, there was an error, so propagate it.
+     * Otherwise, if propp is non-null, the property
+     * was found. Otherwise it was not
+     * found so look in the prototype chain.
+     */
     if (!delegateResult)
         return false;
 
@@ -389,7 +389,7 @@ JSBool
 ArrayBufferObject::obj_lookupProperty(JSContext *cx, JSObject *obj, PropertyName *name,
                                       JSObject **objp, JSProperty **propp)
 {
-    return obj_lookupGeneric(cx, obj, ATOM_TO_JSID(name), objp, propp);
+    return obj_lookupGeneric(cx, obj, NameToId(name), objp, propp);
 }
 
 JSBool
@@ -402,12 +402,12 @@ ArrayBufferObject::obj_lookupElement(JSContext *cx, JSObject *obj_, uint32_t ind
     if (!delegate)
         return false;
 
-    
-
-
-
-
-
+    /*
+     * If false, there was an error, so propagate it.
+     * Otherwise, if propp is non-null, the property
+     * was found. Otherwise it was not
+     * found so look in the prototype chain.
+     */
     if (!delegate->lookupElement(cx, index, objp, propp))
         return false;
 
@@ -454,7 +454,7 @@ ArrayBufferObject::obj_defineProperty(JSContext *cx, JSObject *obj,
                                       PropertyName *name, const Value *v,
                                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
 {
-    return obj_defineGeneric(cx, obj, ATOM_TO_JSID(name), v, getter, setter, attrs);
+    return obj_defineGeneric(cx, obj, NameToId(name), v, getter, setter, attrs);
 }
 
 JSBool
@@ -520,7 +520,7 @@ ArrayBufferObject::obj_getProperty(JSContext *cx, JSObject *obj_,
     RootedVarObject delegate(cx, DelegateObject(cx, obj));
     if (!delegate)
         return false;
-    return js_GetProperty(cx, delegate, receiver, ATOM_TO_JSID(name), vp);
+    return js_GetProperty(cx, delegate, receiver, NameToId(name), vp);
 }
 
 JSBool
@@ -568,24 +568,24 @@ ArrayBufferObject::obj_setGeneric(JSContext *cx, JSObject *obj_, jsid id_, Value
         return false;
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.protoAtom)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // setting __proto__ = null
+        // effectively removes the prototype chain.
+        // any attempt to set __proto__ on native
+        // objects after setting them to null makes
+        // __proto__ just a plain property.
+        // the following code simulates this behaviour on arrays.
+        //
+        // we first attempt to set the prototype on
+        // the delegate which is a native object
+        // so that existing code handles the case
+        // of treating it as special or plain.
+        // if the delegate's prototype has now changed
+        // then we change our prototype too.
+        //
+        // otherwise __proto__ was a plain property
+        // and we don't modify our prototype chain
+        // since obj_getProperty will fetch it as a plain
+        // property from the delegate.
 
         RootedVarObject oldDelegateProto(cx, delegate->getProto());
 
@@ -593,15 +593,15 @@ ArrayBufferObject::obj_setGeneric(JSContext *cx, JSObject *obj_, jsid id_, Value
             return false;
 
         if (delegate->getProto() != oldDelegateProto) {
-            
-            
+            // actual __proto__ was set and not a plain property called
+            // __proto__
             if (!obj->isExtensible()) {
                 obj->reportNotExtensible(cx);
                 return false;
             }
             if (!SetProto(cx, obj, RootedVarObject(cx, vp->toObjectOrNull()), true)) {
-                
-                
+                // this can be caused for example by setting x.__proto__ = x
+                // restore delegate prototype chain
                 SetProto(cx, delegate, oldDelegateProto, true);
                 return false;
             }
@@ -616,7 +616,7 @@ JSBool
 ArrayBufferObject::obj_setProperty(JSContext *cx, JSObject *obj,
                                    PropertyName *name, Value *vp, JSBool strict)
 {
-    return obj_setGeneric(cx, obj, ATOM_TO_JSID(name), vp, strict);
+    return obj_setGeneric(cx, obj, NameToId(name), vp, strict);
 }
 
 JSBool
@@ -661,7 +661,7 @@ JSBool
 ArrayBufferObject::obj_getPropertyAttributes(JSContext *cx, JSObject *obj,
                                              PropertyName *name, unsigned *attrsp)
 {
-    return obj_getGenericAttributes(cx, obj, ATOM_TO_JSID(name), attrsp);
+    return obj_getGenericAttributes(cx, obj, NameToId(name), attrsp);
 }
 
 JSBool
@@ -706,7 +706,7 @@ JSBool
 ArrayBufferObject::obj_setPropertyAttributes(JSContext *cx, JSObject *obj,
                                              PropertyName *name, unsigned *attrsp)
 {
-    return obj_setGenericAttributes(cx, obj, ATOM_TO_JSID(name), attrsp);
+    return obj_setGenericAttributes(cx, obj, NameToId(name), attrsp);
 }
 
 JSBool
@@ -785,13 +785,13 @@ ArrayBufferObject::obj_typeOf(JSContext *cx, JSObject *obj)
     return JSTYPE_OBJECT;
 }
 
-
-
-
-
-
-
-
+/*
+ * TypedArray
+ *
+ * The non-templated base class for the specific typed implementations.
+ * This class holds all the member variables that are used by
+ * the subclasses.
+ */
 
 static JSObject *
 getTypedArray(JSObject *obj)
@@ -824,10 +824,10 @@ js::IsDataView(JSObject* obj)
     return obj->isDataView();
 }
 
-
-
-
-
+/*
+ * For now (until slots directly hold data)
+ * slots data element points to the JSObject representing the ArrayBuffer.
+ */
 JSBool
 TypedArray::prop_getBuffer(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
@@ -907,7 +907,7 @@ JSBool
 TypedArray::obj_lookupProperty(JSContext *cx, JSObject *obj, PropertyName *name,
                                JSObject **objp, JSProperty **propp)
 {
-    return obj_lookupGeneric(cx, obj, ATOM_TO_JSID(name), objp, propp);
+    return obj_lookupGeneric(cx, obj, NameToId(name), objp, propp);
 }
 
 JSBool
@@ -995,24 +995,24 @@ TypedArray::obj_setSpecialAttributes(JSContext *cx, JSObject *obj, SpecialId sid
     return false;
 }
 
- int
+/* static */ int
 TypedArray::lengthOffset()
 {
     return JSObject::getFixedSlotOffset(FIELD_LENGTH);
 }
 
- int
+/* static */ int
 TypedArray::dataOffset()
 {
     return JSObject::getPrivateDataOffset(NUM_FIXED_SLOTS);
 }
 
-
+/* Helper clamped uint8_t type */
 
 uint32_t JS_FASTCALL
 js::ClampDoubleToUint8(const double x)
 {
-    
+    // Not < so that NaN coerces to 0
     if (!(x >= 0))
         return 0;
 
@@ -1022,20 +1022,20 @@ js::ClampDoubleToUint8(const double x)
     double toTruncate = x + 0.5;
     uint8_t y = uint8_t(toTruncate);
 
-    
-
-
-
-
+    /*
+     * now val is rounded to nearest, ties rounded up.  We want
+     * rounded to nearest ties to even, so check whether we had a
+     * tie.
+     */
     if (y == toTruncate) {
-        
-
-
-
-
-
-
-
+        /*
+         * It was a tie (since adding 0.5 gave us the exact integer
+         * we want).  Since we rounded up, we either already have an
+         * even number or we have an odd number but the number we
+         * want is one less.  So just unconditionally masking out the
+         * ones bit should do the trick to get us the value we
+         * want.
+         */
         return (y & ~1);
     }
 
@@ -1177,11 +1177,11 @@ class TypedArrayTemplate
     static JSBool
     obj_getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver, uint32_t index, Value *vp, bool *present)
     {
-        
+        // Fast-path the common case of index < length
         JSObject *tarray = getTypedArray(obj);
 
         if (index < getLength(tarray)) {
-            
+            // this inline function is specialized for each type
             copyIndexToValue(cx, tarray, index, vp);
             *present = true;
             return true;
@@ -1214,7 +1214,7 @@ class TypedArrayTemplate
                 *d = double(vp->toBoolean());
             }
         } else {
-            
+            // non-primitive assignments become NaN or 0 (for float/int arrays)
             *d = js_NaN;
         }
 
@@ -1236,11 +1236,11 @@ class TypedArrayTemplate
         if (!toDoubleForTypedArray(cx, vp, &d))
             return false;
 
-        
-        
-        
+        // If the array is an integer array, we only handle up to
+        // 32-bit ints from this point on.  if we want to handle
+        // 64-bit ints, we'll need some changes.
 
-        
+        // Assign based on characteristics of the destination type
         if (ArrayTypeIsFloatingPoint()) {
             setIndex(tarray, index, NativeType(d));
         } else if (ArrayTypeIsUnsigned()) {
@@ -1248,8 +1248,8 @@ class TypedArrayTemplate
             uint32_t n = ToUint32(d);
             setIndex(tarray, index, NativeType(n));
         } else if (ArrayTypeID() == TypedArray::TYPE_UINT8_CLAMPED) {
-            
-            
+            // The uint8_clamped type has a special rounding converter
+            // for doubles.
             setIndex(tarray, index, NativeType(d));
         } else {
             JS_ASSERT(sizeof(NativeType) <= 4);
@@ -1272,13 +1272,13 @@ class TypedArrayTemplate
         }
 
         uint32_t index;
-        
+        // We can't just chain to js_SetPropertyHelper, because we're not a normal object.
         if (!isArrayIndex(cx, tarray, id, &index)) {
-            
-            
-            
-            
-            
+            // Silent ignore is better than an exception here, because
+            // at some point we may want to support other properties on
+            // these objects.  This is especially true when these arrays
+            // are used to implement HTML Canvas 2D's PixelArray objects,
+            // which used to be plain old arrays.
             vp->setUndefined();
             return true;
         }
@@ -1289,7 +1289,7 @@ class TypedArrayTemplate
     static JSBool
     obj_setProperty(JSContext *cx, JSObject *obj, PropertyName *name, Value *vp, JSBool strict)
     {
-        return obj_setGeneric(cx, obj, ATOM_TO_JSID(name), vp, strict);
+        return obj_setGeneric(cx, obj, NameToId(name), vp, strict);
     }
 
     static JSBool
@@ -1299,11 +1299,11 @@ class TypedArrayTemplate
         JS_ASSERT(tarray);
 
         if (index >= getLength(tarray)) {
-            
-            
-            
-            
-            
+            // Silent ignore is better than an exception here, because
+            // at some point we may want to support other properties on
+            // these objects.  This is especially true when these arrays
+            // are used to implement HTML Canvas 2D's PixelArray objects,
+            // which used to be plain old arrays.
             vp->setUndefined();
             return true;
         }
@@ -1332,7 +1332,7 @@ class TypedArrayTemplate
     obj_defineProperty(JSContext *cx, JSObject *obj, PropertyName *name, const Value *v,
                        PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
     {
-        return obj_defineGeneric(cx, obj, ATOM_TO_JSID(name), v, getter, setter, attrs);
+        return obj_defineGeneric(cx, obj, NameToId(name), v, getter, setter, attrs);
     }
 
     static JSBool
@@ -1391,11 +1391,11 @@ class TypedArrayTemplate
         JSObject *tarray = getTypedArray(obj);
         JS_ASSERT(tarray);
 
-        
-
-
-
-
+        /*
+         * Iteration is "length" (if JSENUMERATE_INIT_ALL), then [0, length).
+         * *statep is JSVAL_TRUE if enumerating "length" and
+         * JSVAL_TO_INT(index) when enumerating index.
+         */
         switch (enum_op) {
           case JSENUMERATE_INIT_ALL:
             statep->setBoolean(true);
@@ -1411,7 +1411,7 @@ class TypedArrayTemplate
 
           case JSENUMERATE_NEXT:
             if (statep->isTrue()) {
-                *idp = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
+                *idp = NameToId(cx->runtime->atomState.lengthAtom);
                 statep->setInt32(0);
             } else {
                 uint32_t index = statep->toInt32();
@@ -1451,10 +1451,10 @@ class TypedArrayTemplate
         JS_ASSERT(obj->getAllocKind() == gc::FINALIZE_OBJECT8);
 #endif
 
-        
-
-
-
+        /*
+         * Specialize the type of the object on the current scripted location,
+         * and mark the type as definitely a typed array.
+         */
         JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(protoClass());
         types::TypeObject *type = types::GetTypeCallerInitObject(cx, key);
         if (!type)
@@ -1467,11 +1467,11 @@ class TypedArrayTemplate
         JS_ASSERT(bufobj->isArrayBuffer());
         ArrayBufferObject &buffer = bufobj->asArrayBuffer();
 
-        
-
-
-
-
+        /*
+         * N.B. The base of the array's data is stored in the object's
+         * private data rather than a slot, to avoid alignment restrictions
+         * on private Values.
+         */
         obj->setPrivate(buffer.dataPointer() + byteOffset);
 
         obj->setSlot(FIELD_LENGTH, Int32Value(len));
@@ -1499,16 +1499,16 @@ class TypedArrayTemplate
         return obj;
     }
 
-    
-
-
-
-
-
+    /*
+     * new [Type]Array(length)
+     * new [Type]Array(otherTypedArray)
+     * new [Type]Array(JSArray)
+     * new [Type]Array(ArrayBuffer, [optional] byteOffset, [optional] length)
+     */
     static JSBool
     class_constructor(JSContext *cx, unsigned argc, Value *vp)
     {
-        
+        /* N.B. this is a constructor for protoClass, not fastClass! */
         JSObject *obj = create(cx, argc, JS_ARGV(cx, vp));
         if (!obj)
             return false;
@@ -1519,9 +1519,9 @@ class TypedArrayTemplate
     static JSObject *
     create(JSContext *cx, unsigned argc, Value *argv)
     {
-        
+        /* N.B. there may not be an argv[-2]/argv[-1]. */
 
-        
+        /* () or (number) */
         uint32_t len = 0;
         if (argc == 0 || ValueIsLength(cx, argv[0], &len)) {
             RootedVarObject bufobj(cx, createBufferWithSizeAndCount(cx, len));
@@ -1531,7 +1531,7 @@ class TypedArrayTemplate
             return createTypedArray(cx, bufobj, 0, len);
         }
 
-        
+        /* (not an object) */
         if (!argv[0].isObject()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_TYPED_ARRAY_BAD_ARGS);
@@ -1540,7 +1540,7 @@ class TypedArrayTemplate
 
         RootedVarObject dataObj(cx, &argv[0].toObject());
 
-        
+        /* (typedArray) */
         if (dataObj->isTypedArray()) {
             JSObject *otherTypedArray = getTypedArray(dataObj);
             JS_ASSERT(otherTypedArray);
@@ -1556,7 +1556,7 @@ class TypedArrayTemplate
             return obj;
         }
 
-        
+        /* (obj, byteOffset, length). */
         int32_t byteOffset = -1;
         int32_t length = -1;
 
@@ -1580,11 +1580,11 @@ class TypedArrayTemplate
             }
         }
 
-        
+        /* (obj, byteOffset, length) */
         return createTypedArrayWithOffsetLength(cx, dataObj, byteOffset, length);
     }
 
-    
+    /* subarray(start[, end]) */
     static JSBool
     fun_subarray(JSContext *cx, unsigned argc, Value *vp)
     {
@@ -1599,7 +1599,7 @@ class TypedArrayTemplate
         if (!tarray)
             return true;
 
-        
+        // these are the default values
         int32_t begin = 0, end = getLength(tarray);
         int32_t length = int32_t(getLength(tarray));
 
@@ -1623,7 +1623,7 @@ class TypedArrayTemplate
         return true;
     }
 
-    
+    /* set(array[, offset]) */
     static JSBool
     fun_set(JSContext *cx, unsigned argc, Value *vp)
     {
@@ -1638,7 +1638,7 @@ class TypedArrayTemplate
         if (!tarray)
             return true;
 
-        
+        // first arg must be either a typed array or a JS array
         if (args.length() == 0 || !args[0].isObject()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
@@ -1650,7 +1650,7 @@ class TypedArrayTemplate
                 return false;
 
             if (offset < 0 || uint32_t(offset) > getLength(tarray)) {
-                
+                // the given offset is bogus
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_INDEX, "2");
                 return false;
             }
@@ -1677,7 +1677,7 @@ class TypedArrayTemplate
             if (!js_GetLengthProperty(cx, src, &len))
                 return false;
 
-            
+            // avoid overflow; we know that offset <= length
             if (len > getLength(tarray) - offset) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_ARRAY_LENGTH);
                 return false;
@@ -1702,7 +1702,7 @@ class TypedArrayTemplate
 
         if (boffset > buffer.byteLength() || boffset % sizeof(NativeType) != 0) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
-            return NULL; 
+            return NULL; // invalid byteOffset
         }
 
         uint32_t len;
@@ -1710,22 +1710,22 @@ class TypedArrayTemplate
             len = (buffer.byteLength() - boffset) / sizeof(NativeType);
             if (len * sizeof(NativeType) != buffer.byteLength() - boffset) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
-                return NULL; 
+                return NULL; // given byte array doesn't map exactly to sizeof(NativeType) * N
             }
         } else {
             len = uint32_t(lengthInt);
         }
 
-        
+        // Go slowly and check for overflow.
         uint32_t arrayByteLength = len * sizeof(NativeType);
         if (len >= INT32_MAX / sizeof(NativeType) || boffset >= INT32_MAX - arrayByteLength) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
-            return NULL; 
+            return NULL; // overflow when calculating boffset + len * sizeof(NativeType)
         }
 
         if (arrayByteLength + boffset > buffer.byteLength()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
-            return NULL; 
+            return NULL; // boffset + len is too big for the arraybuffer
         }
 
         return createTypedArray(cx, bufobj, boffset, len);
@@ -1748,9 +1748,9 @@ class TypedArrayTemplate
         return obj;
     }
 
-    
-
-
+    /*
+     * Note: the offset and length arguments are ignored if an array is passed in.
+     */
     static JSObject *
     createTypedArrayWithOffsetLength(JSContext *cx, HandleObject other,
                                      int32_t byteOffsetInt, int32_t lengthInt)
@@ -1758,14 +1758,14 @@ class TypedArrayTemplate
         JS_ASSERT(!other->isTypedArray());
 
         if (other->isArrayBuffer()) {
-            
+            /* Handle creation from an ArrayBuffer not ArrayBuffer.prototype. */
             return createTypedArrayWithBuffer(cx, other, byteOffsetInt, lengthInt);
         }
 
-        
-
-
-
+        /*
+         * Otherwise create a new typed array and copy len properties from
+         * the object.
+         */
         return createTypedArrayFromArray(cx, other);
     }
 
@@ -1826,10 +1826,10 @@ class TypedArrayTemplate
         if (v.isDouble())
             return nativeFromDouble(v.toDouble());
 
-        
-
-
-
+        /*
+         * The condition guarantees that holes and undefined values
+         * are treated identically.
+         */
         if (v.isPrimitive() && !v.isMagic() && !v.isUndefined()) {
             double dval;
             JS_ALWAYS_TRUE(ToNumber(cx, v, &dval));
@@ -1858,10 +1858,10 @@ class TypedArrayTemplate
 
             const Value *src = ar->getDenseArrayElements();
 
-            
-
-
-
+            /*
+             * It is valid to skip the hole check here because nativeFromValue
+             * treats a hole as undefined.
+             */
             for (unsigned i = 0; i < len; ++i)
                 *dest++ = nativeFromValue(cx, *src++);
         } else {
@@ -1966,8 +1966,8 @@ class TypedArrayTemplate
             return true;
         }
 
-        
-        
+        // We have to make a copy of the source array here, since
+        // there's overlap, and we have to convert types.
         void *srcbuf = cx->malloc_(getByteLength(tarray));
         if (!srcbuf)
             return false;
@@ -2107,8 +2107,8 @@ class Uint8ClampedArray : public TypedArrayTemplate<uint8_clamped> {
     static JSFunctionSpec jsfuncs[];
 };
 
-
-
+// this default implementation is only valid for integer types
+// less than 32-bits in size.
 template<typename NativeType>
 void
 TypedArrayTemplate<NativeType>::copyIndexToValue(JSContext *cx, JSObject *tarray, uint32_t index, Value *vp)
@@ -2118,7 +2118,7 @@ TypedArrayTemplate<NativeType>::copyIndexToValue(JSContext *cx, JSObject *tarray
     vp->setInt32(getIndex(tarray, index));
 }
 
-
+// and we need to specialize for 32-bit integers and floats
 template<>
 void
 TypedArrayTemplate<int32_t>::copyIndexToValue(JSContext *cx, JSObject *tarray, uint32_t index, Value *vp)
@@ -2142,16 +2142,16 @@ TypedArrayTemplate<float>::copyIndexToValue(JSContext *cx, JSObject *tarray, uin
     float val = getIndex(tarray, index);
     double dval = val;
 
-    
-
-
-
-
-
-
-
-
-
+    /*
+     * Doubles in typed arrays could be typed-punned arrays of integers. This
+     * could allow user code to break the engine-wide invariant that only
+     * canonical nans are stored into jsvals, which means user code could
+     * confuse the engine into interpreting a double-typed jsval as an
+     * object-typed jsval.
+     *
+     * This could be removed for platforms/compilers known to convert a 32-bit
+     * non-canonical nan to a 64-bit canonical nan.
+     */
     vp->setDouble(JS_CANONICALIZE_NAN(dval));
 }
 
@@ -2161,13 +2161,13 @@ TypedArrayTemplate<double>::copyIndexToValue(JSContext *cx, JSObject *tarray, ui
 {
     double val = getIndex(tarray, index);
 
-    
-
-
-
-
-
-
+    /*
+     * Doubles in typed arrays could be typed-punned arrays of integers. This
+     * could allow user code to break the engine-wide invariant that only
+     * canonical nans are stored into jsvals, which means user code could
+     * confuse the engine into interpreting a double-typed jsval as an
+     * object-typed jsval.
+     */
     vp->setDouble(JS_CANONICALIZE_NAN(val));
 }
 
@@ -2218,7 +2218,7 @@ DataViewObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
         }
     }
 
-    
+    /* The sum of these cannot overflow a uint32_t */
     JS_ASSERT(byteOffset <= INT32_MAX);
     JS_ASSERT(byteLength <= INT32_MAX);
 
@@ -2383,9 +2383,9 @@ WebIDLCast(JSContext *cx, const Value &value, NativeType *out)
     int32_t temp;
     if (!ToInt32(cx, value, &temp))
         return false;
-    
-    
-    
+    // Technically, the behavior of assigning an out of range value to a signed
+    // variable is undefined. In practice, compilers seem to do what we want
+    // without issuing any warnings.
     *out = static_cast<NativeType>(temp);
     return true;
 }
@@ -2439,7 +2439,7 @@ NonGenericProtoSearchingMethodGuard(JSContext *cx, CallArgs args, Native native,
         JSObject *obj = thisv.toObjectOrNull();
         while (obj) {
             if (obj->getClass() == clasp) {
-                *ok = true;  
+                *ok = true;  /* quell gcc overwarning */
                 return obj;
             }
             obj = obj->getProto();
@@ -2716,23 +2716,23 @@ DataViewObject::fun_setFloat64(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+/***
+ *** JS impl
+ ***/
 
-
-
-
-
-
-
+/*
+ * ArrayBufferObject (base)
+ */
 
 Class ArrayBufferObject::protoClass = {
     "ArrayBufferPrototype",
     JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_RESERVED_SLOTS(ARRAYBUFFER_RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_ArrayBuffer),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub
@@ -2745,18 +2745,18 @@ Class js::ArrayBufferClass = {
     Class::NON_NATIVE |
     JSCLASS_HAS_RESERVED_SLOTS(ARRAYBUFFER_RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_ArrayBuffer),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
+    NULL,           /* finalize    */
+    NULL,           /* checkAccess */
+    NULL,           /* call        */
+    NULL,           /* construct   */
+    NULL,           /* hasInstance */
     ArrayBufferObject::obj_trace,
     JS_NULL_CLASS_EXT,
     {
@@ -2790,8 +2790,8 @@ Class js::ArrayBufferClass = {
         ArrayBufferObject::obj_deleteSpecial,
         ArrayBufferObject::obj_enumerate,
         ArrayBufferObject::obj_typeOf,
-        NULL,       
-        NULL,       
+        NULL,       /* thisObject      */
+        NULL,       /* clear           */
     }
 };
 
@@ -2807,9 +2807,9 @@ JSFunctionSpec ArrayBufferObject::jsfuncs[] = {
     JS_FS_END
 };
 
-
-
-
+/*
+ * shared TypedArray
+ */
 
 JSPropertySpec TypedArray::jsprops[] = {
     { js_length_str,
@@ -2827,9 +2827,9 @@ JSPropertySpec TypedArray::jsprops[] = {
     {0,0,0,0,0}
 };
 
-
-
-
+/*
+ * TypedArray boilerplate
+ */
 
 #define IMPL_TYPED_ARRAY_STATICS(_typedArray)                                  \
 JSFunctionSpec _typedArray::jsfuncs[] = {                                      \
@@ -2854,7 +2854,7 @@ NewArrayWithBuffer(JSContext *cx, HandleObject arrayBuffer, int32_t byteoffset, 
 {
     if (!arrayBuffer->isArrayBuffer()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TYPED_ARRAY_BAD_ARGS);
-        return NULL; 
+        return NULL; // must be arrayBuffer
     }
 
     return TypedArrayTemplate<ElementType>::createTypedArrayWithBuffer(cx, arrayBuffer,
@@ -3054,7 +3054,7 @@ InitArrayBufferClass(JSContext *cx, Handle<GlobalObject*> global)
 
     RootedVarFunction ctor(cx);
     ctor = global->createConstructor(cx, ArrayBufferObject::class_constructor,
-                                     CLASS_ATOM(cx, ArrayBuffer), 1);
+                                     CLASS_NAME(cx, ArrayBuffer), 1);
     if (!ctor)
         return NULL;
 
@@ -3076,19 +3076,19 @@ Class js::DataViewClass = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(DataViewObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
+    NULL,           /* finalize    */
+    NULL,           /* checkAccess */
+    NULL,           /* call        */
+    NULL,           /* construct   */
+    NULL,           /* hasInstance */
+    NULL,           /* trace */
     JS_NULL_CLASS_EXT,
     JS_NULL_OBJECT_OPS
 };
@@ -3141,7 +3141,7 @@ DataViewObject::initClass(JSContext *cx, GlobalObject *global)
 
     JSFunction *ctor =
         global->createConstructor(cx, DataViewObject::class_constructor,
-                                  CLASS_ATOM(cx, DataView), 3);
+                                  CLASS_NAME(cx, DataView), 3);
     if (!ctor)
         return NULL;
 
@@ -3164,7 +3164,7 @@ js_InitTypedArrayClasses(JSContext *cx, JSObject *obj)
 
     RootedVar<GlobalObject*> global(cx, &obj->asGlobal());
 
-    
+    /* Idempotency required: we initialize several things, possibly lazily. */
     JSObject *stop;
     if (!js_GetClassObject(cx, global, JSProto_ArrayBuffer, &stop))
         return NULL;
@@ -3188,7 +3188,7 @@ js_InitTypedArrayClasses(JSContext *cx, JSObject *obj)
     return InitArrayBufferClass(cx, global);
 }
 
-
+/* JS Friend API */
 
 JS_FRIEND_API(JSBool)
 JS_IsArrayBufferObject(JSObject *obj, JSContext *cx)

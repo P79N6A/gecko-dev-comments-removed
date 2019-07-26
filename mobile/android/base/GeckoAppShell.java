@@ -2157,13 +2157,13 @@ public class GeckoAppShell
         
         sGeckoHandler.post(new Runnable() {
             public void run() {
-                throw new RuntimeException();
+                throw new AssertionError();
             }
         });
         
         try {
             Looper.loop();
-        } catch(Exception ex) {}
+        } catch(Throwable ex) {}
     }
 
     static class AsyncResultHandler extends GeckoApp.FilePickerResultHandler {

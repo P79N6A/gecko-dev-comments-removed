@@ -67,11 +67,34 @@ JSID_FROM_BITS(size_t bits)
     return id;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static JS_ALWAYS_INLINE jsid
-ATOM_TO_JSID(JSAtom *atom)
+NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
 {
     JS_ASSERT(((size_t)atom & 0x7) == 0);
-    return JSID_FROM_BITS((size_t)atom);
+    jsid id = JSID_FROM_BITS((size_t)atom);
+    JS_ASSERT(id == INTERNED_STRING_TO_JSID(NULL, (JSString*)atom));
+    return id;
 }
 
 
@@ -84,7 +107,7 @@ JSID_IS_ATOM(jsid id)
 static JS_ALWAYS_INLINE JSBool
 JSID_IS_ATOM(jsid id, JSAtom *atom)
 {
-    return JSID_BITS(id) == JSID_BITS(ATOM_TO_JSID(atom));
+    return id == JSID_FROM_BITS((size_t)atom);
 }
 
 static JS_ALWAYS_INLINE JSAtom *
@@ -92,9 +115,6 @@ JSID_TO_ATOM(jsid id)
 {
     return (JSAtom *)JSID_TO_STRING(id);
 }
-
-extern jsid
-js_CheckForStringIndex(jsid id);
 
 JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
 JS_STATIC_ASSERT(sizeof(jsid) == JS_BYTES_PER_WORD);
@@ -104,7 +124,6 @@ namespace js {
 static JS_ALWAYS_INLINE JSHashNumber
 HashId(jsid id)
 {
-    JS_ASSERT(js_CheckForStringIndex(id) == id);
     JSHashNumber n =
 #if JS_BYTES_PER_WORD == 4
         JSHashNumber(JSID_BITS(id));
@@ -140,11 +159,9 @@ struct DefaultHasher<jsid>
 {
     typedef jsid Lookup;
     static HashNumber hash(const Lookup &l) {
-        JS_ASSERT(l == js_CheckForStringIndex(l));
         return HashNumber(JSID_BITS(l));
     }
     static bool match(const jsid &id, const Lookup &l) {
-        JS_ASSERT(l == js_CheckForStringIndex(l));
         return id == l;
     }
 };
@@ -291,38 +308,7 @@ struct JSAtomState
 #undef DEFINE_PROTOTYPE_ATOM
 #undef DEFINE_KEYWORD_ATOM
 
-    
-    struct {
-        js::PropertyName *XMLListAtom;
-        js::PropertyName *decodeURIAtom;
-        js::PropertyName *decodeURIComponentAtom;
-        js::PropertyName *defineGetterAtom;
-        js::PropertyName *defineSetterAtom;
-        js::PropertyName *encodeURIAtom;
-        js::PropertyName *encodeURIComponentAtom;
-        js::PropertyName *escapeAtom;
-        js::PropertyName *hasOwnPropertyAtom;
-        js::PropertyName *isFiniteAtom;
-        js::PropertyName *isNaNAtom;
-        js::PropertyName *isPrototypeOfAtom;
-        js::PropertyName *isXMLNameAtom;
-        js::PropertyName *lookupGetterAtom;
-        js::PropertyName *lookupSetterAtom;
-        js::PropertyName *parseFloatAtom;
-        js::PropertyName *parseIntAtom;
-        js::PropertyName *propertyIsEnumerableAtom;
-        js::PropertyName *unescapeAtom;
-        js::PropertyName *unevalAtom;
-        js::PropertyName *unwatchAtom;
-        js::PropertyName *watchAtom;
-    } lazy;
-
     static const size_t commonAtomsOffset;
-    static const size_t lazyAtomsOffset;
-
-    void clearLazyAtoms() {
-        memset(&lazy, 0, sizeof(lazy));
-    }
 
     void junkAtoms() {
 #ifdef DEBUG
@@ -349,10 +335,10 @@ AtomIsInterned(JSContext *cx, JSAtom *atom);
     ((offsetof(JSAtomState, typeAtoms[type]) - JSAtomState::commonAtomsOffset)\
      / sizeof(JSAtom*))
 
-#define ATOM_OFFSET(name)       offsetof(JSAtomState, name##Atom)
-#define OFFSET_TO_ATOM(rt,off)  (*(JSAtom **)((char*)&(rt)->atomState + (off)))
-#define CLASS_ATOM_OFFSET(name) offsetof(JSAtomState, classAtoms[JSProto_##name])
-#define CLASS_ATOM(cx,name)     ((cx)->runtime->atomState.classAtoms[JSProto_##name])
+#define NAME_OFFSET(name)       offsetof(JSAtomState, name##Atom)
+#define OFFSET_TO_NAME(rt,off)  (*(js::PropertyName **)((char*)&(rt)->atomState + (off)))
+#define CLASS_NAME_OFFSET(name) offsetof(JSAtomState, classAtoms[JSProto_##name])
+#define CLASS_NAME(cx,name)     ((cx)->runtime->atomState.classAtoms[JSProto_##name])
 
 extern const char *const js_common_atom_names[];
 extern const size_t      js_common_atom_count;
@@ -460,17 +446,18 @@ js_DumpAtoms(JSContext *cx, FILE *fp);
 inline bool
 js_ValueToAtom(JSContext *cx, const js::Value &v, JSAtom **atomp);
 
-inline bool
-js_ValueToStringId(JSContext *cx, const js::Value &v, jsid *idp);
-
-inline bool
-js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
-                         jsid *idp);
-inline bool
-js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
-                         jsid *idp, js::Value *vp);
-
 namespace js {
+
+bool
+InternNonIntElementId(JSContext *cx, JSObject *obj, const Value &idval,
+                      jsid *idp, Value *vp);
+
+inline bool
+InternNonIntElementId(JSContext *cx, JSObject *obj, const Value &idval, jsid *idp)
+{
+    Value dummy;
+    return InternNonIntElementId(cx, obj, idval, idp, &dummy);
+}
 
 
 

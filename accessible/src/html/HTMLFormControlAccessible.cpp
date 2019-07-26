@@ -63,6 +63,9 @@
 #include "nsIServiceManager.h"
 #include "nsITextControlFrame.h"
 
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 using namespace mozilla::a11y;
 
 
@@ -496,7 +499,7 @@ HTMLTextFieldAccessible::NativeState()
 
   
   
-  if (mParent && gIsFormFillEnabled) {
+  if (mParent && Preferences::GetBool("browser.formfill.enable")) {
     
     
     
@@ -704,7 +707,7 @@ HTMLGroupboxAccessible::RelationByType(PRUint32 aType)
   Relation rel = nsHyperTextAccessibleWrap::RelationByType(aType);
     
   if (aType == nsIAccessibleRelation::RELATION_LABELLED_BY)
-    rel.AppendTarget(GetLegend());
+    rel.AppendTarget(mDoc, GetLegend());
 
   return rel;
 }
@@ -790,7 +793,7 @@ HTMLFigureAccessible::RelationByType(PRUint32 aType)
 {
   Relation rel = nsHyperTextAccessibleWrap::RelationByType(aType);
   if (aType == nsIAccessibleRelation::RELATION_LABELLED_BY)
-    rel.AppendTarget(Caption());
+    rel.AppendTarget(mDoc, Caption());
 
   return rel;
 }

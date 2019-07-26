@@ -1,43 +1,43 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * May 28, 2008.
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Andreas Gal <gal@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <string.h>
 #include "jsapi.h"
@@ -125,7 +125,7 @@ WeakMapBase::restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector)
     }
 }
 
-} 
+} /* namespace js */
 
 typedef WeakMap<HeapPtrObject, HeapValue> ObjectValueMap;
 
@@ -146,11 +146,11 @@ GetKeyArg(JSContext *cx, CallArgs &args)
     }
     JSObject &key = vp->toObject();
 
-    
-    
-    
-    
-    
+    // If the key is from another compartment, and we store the wrapper as the key
+    // the wrapper might be GC-ed since it is not strong referenced (Bug 673468).
+    // To avoid this we always use the unwrapped object as the key instead of its
+    // security wrapper. This also means that if the keys are ever exposed they must
+    // be re-wrapped (see: JS_NondeterministicGetWeakMapKeys).
     return JS_UnwrapObject(&key);
 }
 
@@ -285,7 +285,7 @@ WeakMap_set(JSContext *cx, unsigned argc, Value *vp)
     if (!map->put(key, value))
         goto out_of_memory;
 
-    
+    // Preserve wrapped native keys to prevent wrapper optimization.
     if (key->getClass()->ext.isWrappedNative) {
         if (!cx->runtime->preserveWrapperCallback ||
             !cx->runtime->preserveWrapperCallback(cx, key)) {
@@ -315,7 +315,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret)
     if (map) {
         for (ObjectValueMap::Range r = map->nondeterministicAll(); !r.empty(); r.popFront()) {
             JSObject *key = r.front().key;
-            
+            // Re-wrapping the key (see comment of GetKeyArg)
             if (!JS_WrapObject(cx, &key))
                 return false;
 
@@ -364,18 +364,18 @@ Class js::WeakMapClass = {
     "WeakMap",
     JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_CACHED_PROTO(JSProto_WeakMap),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
     WeakMap_finalize,
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    NULL,                    
+    NULL,                    /* checkAccess */
+    NULL,                    /* call        */
+    NULL,                    /* construct   */
+    NULL,                    /* xdrObject   */
     WeakMap_mark
 };
 
@@ -400,7 +400,7 @@ js_InitWeakMapClass(JSContext *cx, JSObject *obj)
 
     RootedVarFunction ctor(cx);
     ctor = global->createConstructor(cx, WeakMap_construct,
-                                     CLASS_ATOM(cx, WeakMap), 0);
+                                     CLASS_NAME(cx, WeakMap), 0);
     if (!ctor)
         return NULL;
 

@@ -47,7 +47,8 @@ nsLineBreaker::nsLineBreaker()
   : mCurrentWordLangGroup(nsnull),
     mCurrentWordContainsMixedLang(false),
     mCurrentWordContainsComplexChar(false),
-    mAfterBreakableSpace(false), mBreakHere(false)
+    mAfterBreakableSpace(false), mBreakHere(false),
+    mWordBreak(nsILineBreaker::kWordBreak_Normal)
 {
 }
 
@@ -97,12 +98,16 @@ nsLineBreaker::FlushCurrentWord()
 
   if (!mCurrentWordContainsComplexChar) {
     
+    
     memset(breakState.Elements(),
-           gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE,
+           mWordBreak == nsILineBreaker::kWordBreak_BreakAll ?
+             gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NORMAL :
+             gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE,
            length*sizeof(PRUint8));
   } else {
     nsContentUtils::LineBreaker()->
-      GetJISx4051Breaks(mCurrentWord.Elements(), length, breakState.Elements());
+      GetJISx4051Breaks(mCurrentWord.Elements(), length, mWordBreak,
+                        breakState.Elements());
   }
 
   bool autoHyphenate = mCurrentWordLangGroup &&
@@ -250,7 +255,8 @@ nsLineBreaker::AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 
 
     if (aSink) {
       breakState[offset] =
-        mBreakHere || (mAfterBreakableSpace && !isBreakableSpace) ?
+        mBreakHere || (mAfterBreakableSpace && !isBreakableSpace) ||
+        (mWordBreak == nsILineBreaker::kWordBreak_BreakAll)  ?
           gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NORMAL :
           gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
     }
@@ -266,6 +272,7 @@ nsLineBreaker::AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 
             PRUint8 currentStart = breakState[wordStart];
             nsContentUtils::LineBreaker()->
               GetJISx4051Breaks(aText + wordStart, offset - wordStart,
+                                mWordBreak,
                                 breakState.Elements() + wordStart);
             breakState[wordStart] = currentStart;
           }
@@ -411,8 +418,11 @@ nsLineBreaker::AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aL
     bool isBreakableSpace = isSpace && !(aFlags & BREAK_SUPPRESS_INSIDE);
 
     if (aSink) {
+      
+      
       breakState[offset] =
-        mBreakHere || (mAfterBreakableSpace && !isBreakableSpace) ?
+        mBreakHere || (mAfterBreakableSpace && !isBreakableSpace) ||
+        (mWordBreak == nsILineBreaker::kWordBreak_BreakAll) ?
           gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NORMAL :
           gfxTextRun::CompressedGlyph::FLAG_BREAK_TYPE_NONE;
     }
@@ -427,6 +437,7 @@ nsLineBreaker::AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aL
           PRUint8 currentStart = breakState[wordStart];
           nsContentUtils::LineBreaker()->
             GetJISx4051Breaks(aText + wordStart, offset - wordStart,
+                              mWordBreak,
                               breakState.Elements() + wordStart);
           breakState[wordStart] = currentStart;
         }

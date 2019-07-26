@@ -132,12 +132,14 @@ struct Statistics {
           : reason(reason), resetReason(NULL), start(start)
         {
             PodArrayZero(phaseTimes);
+            PodArrayZero(phaseFaults);
         }
 
         gcreason::Reason reason;
         const char *resetReason;
         int64_t start, end;
         int64_t phaseTimes[PHASE_LIMIT];
+        size_t phaseFaults[PHASE_LIMIT];
 
         int64_t duration() const { return end - start; }
     };
@@ -145,10 +147,12 @@ struct Statistics {
     Vector<SliceData, 8, SystemAllocPolicy> slices;
 
     
-    int64_t phaseStarts[PHASE_LIMIT];
+    int64_t phaseStartTimes[PHASE_LIMIT];
+    size_t phaseStartFaults[PHASE_LIMIT];
 
     
     int64_t phaseTimes[PHASE_LIMIT];
+    size_t phaseFaults[PHASE_LIMIT];
 
     
     int64_t phaseTotals[PHASE_LIMIT];

@@ -142,7 +142,7 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(target);
 
   
-  if (element && !htmlEditor->IsNodeInActiveEditor(element)) {
+  if (element && !htmlEditor->IsDescendantOfEditorRoot(element)) {
     return NS_OK;
   }
 

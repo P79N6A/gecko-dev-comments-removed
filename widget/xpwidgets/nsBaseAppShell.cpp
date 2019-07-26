@@ -70,7 +70,7 @@ nsBaseAppShell::nsBaseAppShell()
 
 nsBaseAppShell::~nsBaseAppShell()
 {
-  NS_ASSERTION(mSyncSections.Count() == 0, "Must have run all sync sections");
+  NS_ASSERTION(mSyncSections.IsEmpty(), "Must have run all sync sections");
 }
 
 nsresult
@@ -151,7 +151,7 @@ nsBaseAppShell::DoProcessMoreGeckoEvents()
 
 
 bool
-nsBaseAppShell::DoProcessNextNativeEvent(bool mayWait)
+nsBaseAppShell::DoProcessNextNativeEvent(bool mayWait, PRUint32 recursionDepth)
 {
   
   
@@ -168,7 +168,14 @@ nsBaseAppShell::DoProcessNextNativeEvent(bool mayWait)
   mEventloopNestingState = eEventloopXPCOM;
 
   ++mEventloopNestingLevel;
+
   bool result = ProcessNextNativeEvent(mayWait);
+
+  
+  
+  
+  RunSyncSections(false, recursionDepth);
+
   --mEventloopNestingLevel;
 
   mEventloopNestingState = prevVal;
@@ -303,13 +310,13 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
     bool keepGoing;
     do {
       mLastNativeEventTime = now;
-      keepGoing = DoProcessNextNativeEvent(false);
+      keepGoing = DoProcessNextNativeEvent(false, recursionDepth);
     } while (keepGoing && ((now = PR_IntervalNow()) - start) < limit);
   } else {
     
     if (start - mLastNativeEventTime > limit) {
       mLastNativeEventTime = start;
-      DoProcessNextNativeEvent(false);
+      DoProcessNextNativeEvent(false, recursionDepth);
     }
   }
 
@@ -321,7 +328,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
       mayWait = false;
 
     mLastNativeEventTime = PR_IntervalNow();
-    if (!DoProcessNextNativeEvent(mayWait) || !mayWait)
+    if (!DoProcessNextNativeEvent(mayWait, recursionDepth) || !mayWait)
       break;
   }
 
@@ -330,33 +337,99 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   
   
   
-  if (needEvent && !mExiting && !NS_HasPendingEvents(thr)) {  
-    if (!mDummyEvent)
-      mDummyEvent = new nsRunnable();
-    thr->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL);
+  if (needEvent && !mExiting && !NS_HasPendingEvents(thr)) {
+    DispatchDummyEvent(thr);
   }
 
   
-  RunSyncSections();
+  RunSyncSections(true, recursionDepth);
 
   return NS_OK;
 }
 
-void
-nsBaseAppShell::RunSyncSections()
+bool
+nsBaseAppShell::DispatchDummyEvent(nsIThread* aTarget)
 {
-  if (mSyncSections.Count() == 0) {
-    return;
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  if (!mDummyEvent)
+    mDummyEvent = new nsRunnable();
+
+  return NS_SUCCEEDED(aTarget->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL));
+}
+
+void
+nsBaseAppShell::RunSyncSectionsInternal(bool aStable,
+                                        PRUint32 aThreadRecursionLevel)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(!mSyncSections.IsEmpty(), "Nothing to do!");
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsTArray<SyncSection> pendingSyncSections;
+
+  for (PRUint32 i = 0; i < mSyncSections.Length(); i++) {
+    SyncSection& section = mSyncSections[i];
+    if ((aStable && section.mStable) ||
+        (!section.mStable &&
+         section.mEventloopNestingLevel == mEventloopNestingLevel &&
+         section.mThreadRecursionLevel == aThreadRecursionLevel)) {
+      section.mRunnable->Run();
+    }
+    else {
+      
+      SyncSection* pending = pendingSyncSections.AppendElement();
+      section.Forget(pending);
+    }
   }
+
+  mSyncSections.SwapElements(pendingSyncSections);
+}
+
+void
+nsBaseAppShell::ScheduleSyncSection(nsIRunnable* aRunnable, bool aStable)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
+  nsIThread* thread = NS_GetCurrentThread();
+
+  
+  SyncSection* section = mSyncSections.AppendElement();
+  section->mStable = aStable;
+  section->mRunnable = aRunnable;
+
   
   
   
   
-  
-  for (PRInt32 i = 0; i < mSyncSections.Count(); i++) {
-    mSyncSections[i]->Run();
+  if (!aStable) {
+    section->mEventloopNestingLevel = mEventloopNestingLevel;
+
+    nsCOMPtr<nsIThreadInternal> threadInternal = do_QueryInterface(thread);
+    NS_ASSERTION(threadInternal, "This should never fail!");
+
+    PRUint32 recursionLevel;
+    if (NS_FAILED(threadInternal->GetRecursionDepth(&recursionLevel))) {
+      NS_ERROR("This should never fail!");
+    }
+
+    
+    
+    section->mThreadRecursionLevel = recursionLevel ? recursionLevel - 1 : 0;
   }
-  mSyncSections.Clear();
+
+  
+  if (!NS_HasPendingEvents(thread) && !DispatchDummyEvent(thread)) {
+    RunSyncSections(true, 0);
+  }
 }
 
 
@@ -365,7 +438,7 @@ nsBaseAppShell::AfterProcessNextEvent(nsIThreadInternal *thr,
                                       PRUint32 recursionDepth)
 {
   
-  RunSyncSections();
+  RunSyncSections(true, recursionDepth);
   return NS_OK;
 }
 
@@ -381,20 +454,13 @@ nsBaseAppShell::Observe(nsISupports *subject, const char *topic,
 NS_IMETHODIMP
 nsBaseAppShell::RunInStableState(nsIRunnable* aRunnable)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  
-  
-  mSyncSections.AppendObject(aRunnable);
-
-  
-  nsIThread* thread = NS_GetCurrentThread(); 
-  if (!NS_HasPendingEvents(thread) &&
-       NS_FAILED(thread->Dispatch(new nsRunnable(), NS_DISPATCH_NORMAL)))
-  {
-    
-    
-    RunSyncSections();
-  }
+  ScheduleSyncSection(aRunnable, true);
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsBaseAppShell::RunBeforeNextEvent(nsIRunnable* aRunnable)
+{
+  ScheduleSyncSection(aRunnable, false);
+  return NS_OK;
+}

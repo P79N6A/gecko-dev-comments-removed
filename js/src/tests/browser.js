@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 var gPageCompleted;
 var GLOBAL = this + '';
 
@@ -130,7 +130,7 @@ window.onerror = function (msg, page, line)
 
   if (document.location.href.indexOf('-n.js') != -1)
   {
-    
+    // negative test
     testcase.passed = true;
   }
 
@@ -158,7 +158,7 @@ function jsdgc()
 {
   try
   {
-    
+    // Thanks to dveditz
     netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     var jsdIDebuggerService = Components.interfaces.jsdIDebuggerService;
     var service = Components.classes['@mozilla.org/js/jsd/debugger-service;1'].
@@ -177,8 +177,8 @@ function quit()
 
 function options(aOptionName)
 {
-  
-  
+  // return value of options() is a comma delimited list
+  // of the previously set values
 
   var value = '';
   for (var optionName in options.currvalues)
@@ -194,17 +194,17 @@ function options(aOptionName)
     netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     if (!(aOptionName in Components.utils))
     {
-      
-      
-      
+      // This test is trying to flip an unsupported option, so it's
+      // likely no longer testing what it was supposed to.  Fail it
+      // hard.
       throw "Unsupported JSContext option '"+ aOptionName +"'";
     }
 
     if (options.currvalues.hasOwnProperty(aOptionName))
-      
+      // option is set, toggle it to unset
       delete options.currvalues[aOptionName];
     else
-      
+      // option is not set, toggle it to set
       options.currvalues[aOptionName] = true;
 
     Components.utils[aOptionName] =
@@ -216,7 +216,7 @@ function options(aOptionName)
 
 function optionsInit() {
 
-  
+  // hash containing the set options.
   options.currvalues = {
     strict:     true,
     werror:     true,
@@ -225,15 +225,15 @@ function optionsInit() {
     relimit:    true,
     methodjit:  true,
     methodjit_always: true,
-    ion:        true
+    strict_mode: true
   };
 
-  
-  
+  // record initial values to support resetting
+  // options to their initial values
   options.initvalues = {};
 
-  
-  
+  // record values in a stack to support pushing
+  // and popping options
   options.stackvalues = [];
 
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
@@ -277,7 +277,7 @@ function jsTestDriverBrowserInit()
 
   if (document.location.search.indexOf('?') != 0)
   {
-    
+    // not called with a query string
     return;
   }
 
@@ -295,7 +295,7 @@ function jsTestDriverBrowserInit()
       properties[propertycaptures[1]] = decodeURIComponent(propertycaptures[2]);
       if (propertycaptures[1] == 'language')
       {
-        
+        // language=(type|language);mimetype
         properties.mimetype = fields[ifield+1];
       }
     }
@@ -314,14 +314,14 @@ function jsTestDriverBrowserInit()
 
   if (!properties.version && navigator.userAgent.indexOf('Gecko/') != -1)
   {
-    
-    
-    
-    
-    
-    
-    
-    
+    // If the version is not specified, and the browser is Gecko,
+    // use the default version corresponding to the shell's version(0).
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=522760#c11
+    // Otherwise adjust the version to match the suite version for 1.7,
+    // and later due to the use of let, yield, etc.
+    //
+    // Note that js1_8, js1_8_1, and js1_8_5 are treated identically in
+    // the browser.
     if (properties.test.match(/^js1_7/))
     {
       properties.version = '1.7';
@@ -332,8 +332,8 @@ function jsTestDriverBrowserInit()
     }
   }
 
-  
-  
+  // default to language=type;text/javascript. required for
+  // reftest style manifests.
   if (!properties.language)
   {
     properties.language = 'type';
@@ -347,14 +347,14 @@ function jsTestDriverBrowserInit()
     gczeal(Number(properties.gczeal));
   }
 
-  
-
-
-
-
-
-
-
+  /*
+   * since the default setting of jit changed from false to true
+   * in http://hg.mozilla.org/tracemonkey/rev/685e00e68be9
+   * bisections which depend upon jit settings can be thrown off.
+   * default jit(false) when not running jsreftests to make bisections 
+   * depending upon jit settings consistent over time. This is not needed 
+   * in shell tests as the default jit setting has not changed there.
+   */
 
   if (properties.jit  || !document.location.href.match(/jsreftest.html/))
     jit(properties.jit);
@@ -363,7 +363,7 @@ function jsTestDriverBrowserInit()
 
   if (testpathparts.length < 3)
   {
-    
+    // must have at least suitepath/subsuite/testcase.js
     return;
   }
   var suitepath = testpathparts.slice(0,testpathparts.length-2).join('/');
@@ -372,8 +372,8 @@ function jsTestDriverBrowserInit()
 
   document.write('<title>' + suitepath + '/' + subsuite + '/' + test + '<\/title>');
 
-  
-  
+  // XXX bc - the first document.written script is ignored if the protocol
+  // is file:. insert an empty script tag, to work around it.
   document.write('<script></script>');
 
   outputscripttag(suitepath + '/shell.js', properties);
@@ -395,7 +395,7 @@ function outputscripttag(src, properties, e4x)
 
   if (e4x)
   {
-    
+    // e4x requires type=mimetype;e4x=1
     properties.language = 'type';
   }
 
@@ -439,13 +439,13 @@ var JSTest = {
 
 function jsTestDriverEnd()
 {
-  
-  
-  
-  
-  
-  
-  
+  // gDelayTestDriverEnd is used to
+  // delay collection of the test result and
+  // signal to Spider so that tests can continue
+  // to run after page load has fired. They are
+  // responsible for setting gDelayTestDriverEnd = true
+  // then when completed, setting gDelayTestDriverEnd = false
+  // then calling jsTestDriverEnd()
 
   if (gDelayTestDriverEnd)
   {
@@ -478,17 +478,17 @@ function jsTestDriverEnd()
       gTestcases[i].dump();
     }
 
-    
+    // tell reftest the test is complete.
     document.documentElement.className = '';
-    
+    // tell Spider page is complete
     gPageCompleted = true;
   }
 }
 
-
+//var dlog = (function (s) { print('debug: ' + s); });
 var dlog = (function (s) {});
 
-
+// dialog closer from http://bclary.com/projects/spider/spider/chrome/content/spider/dialog-closer.js
 
 var gDialogCloser;
 var gDialogCloserObserver;
@@ -547,8 +547,8 @@ function unregisterDialogCloser()
   dlog('unregisterDialogCloser: stop');
 }
 
-
-
+// use an array to handle the case where multiple dialogs
+// appear at one time
 var gDialogCloserSubjects = [];
 
 function dialogCloser_observe(subject, topic, data)
@@ -574,7 +574,7 @@ function dialogCloser_observe(subject, topic, data)
   if (subject instanceof ChromeWindow && topic == 'domwindowopened' )
   {
     gDialogCloserSubjects.push(subject);
-    
+    // timeout of 0 needed when running under reftest framework.
     subject.setTimeout(closeDialog, 0);
   }
   dlog('dialogCloser_observe: subjects pending: ' + gDialogCloserSubjects.length);
@@ -600,7 +600,7 @@ function closeDialog()
     }
     else
     {
-      
+      // alerts inside of reftest framework are not XULDocument dialogs.
       dlog('closeDialog: close chrome dialog?');
       subject.close();
     }

@@ -201,6 +201,12 @@ public:
 
   nsresult Reset(bool* aTrailingBreak);
 
+  
+
+
+
+  void SetWordBreak(PRUint8 aMode) { mWordBreak = aMode; }
+
 private:
   
   
@@ -243,6 +249,8 @@ private:
   
   
   bool                        mBreakHere;
+  
+  PRUint8                     mWordBreak;
 };
 
 #endif 

@@ -261,9 +261,6 @@ TypeOfValue(JSContext *cx, const Value &v);
 extern JSBool
 HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
 
-extern bool
-ValueToId(JSContext *cx, const Value &v, jsid *idp);
-
 
 
 

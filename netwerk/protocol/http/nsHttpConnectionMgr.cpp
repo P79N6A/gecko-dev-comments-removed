@@ -1193,7 +1193,6 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     bool doRestrict = ent->mConnInfo->UsingSSL() &&
         gHttpHandler->IsSpdyEnabled() &&
-        !ent->mConnInfo->UsingHttpProxy() &&
         (!ent->mTestedSpdy || ent->mUsingSpdy) &&
         (ent->mHalfOpens.Length() || ent->mActiveConns.Length());
 
@@ -2273,6 +2272,13 @@ nsHttpConnectionMgr::OnMsgSpeculativeConnect(PRInt32, void *param)
     nsConnectionEntry *ent =
         GetOrCreateConnectionEntry(trans->ConnectionInfo());
 
+    
+    
+    
+    nsConnectionEntry *preferredEntry = GetSpdyPreferredEnt(ent);
+    if (preferredEntry)
+        ent = preferredEntry;
+
     if (!ent->mIdleConns.Length() && !RestrictConnections(ent) &&
         !AtActiveConnectionLimit(ent, trans->Caps())) {
         CreateTransport(ent, trans, trans->Caps(), true);
@@ -2692,6 +2698,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     if (trans != mSocketTransport)
         return NS_OK;
 
+    
     
     
     

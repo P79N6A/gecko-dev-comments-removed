@@ -123,6 +123,8 @@ public:
   virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
 #endif
 
+  virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
+
   
   virtual already_AddRefed<nsIEditor> GetEditor() const;
 
@@ -384,7 +386,6 @@ protected:
   virtual void CacheChildren();
 
   
-    virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
     virtual nsresult AddEventListeners();
     virtual nsresult RemoveEventListeners();
 

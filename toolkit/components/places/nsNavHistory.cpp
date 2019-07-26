@@ -2721,29 +2721,6 @@ nsNavHistory::AddPageWithDetails(nsIURI *aURI, const PRUnichar *aTitle,
 
 
 
-NS_IMETHODIMP
-nsNavHistory::GetCount(PRUint32 *aCount)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG_POINTER(aCount);
-
-  bool hasEntries = false;
-  nsresult rv = GetHasHistoryEntries(&hasEntries);
-  if (hasEntries)
-    *aCount = 1;
-  else
-    *aCount = 0;
-  return rv;
-}
-
-
-
-
-
-
-
-
-
 
 nsresult
 nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
@@ -3211,21 +3188,6 @@ nsNavHistory::RemoveAllPages()
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "failed to fix invalid frecencies");
 
   return NS_OK;
-}
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::HidePage(nsIURI *aURI)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 

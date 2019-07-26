@@ -143,7 +143,6 @@ public:
 
   NS_IMETHOD    GetEditor(nsIEditor **aEditor);
   NS_IMETHOD    GetTextLength(PRInt32* aTextLength);
-  NS_IMETHOD    CheckFireOnChange();
   NS_IMETHOD    SetSelectionStart(PRInt32 aSelectionStart);
   NS_IMETHOD    SetSelectionEnd(PRInt32 aSelectionEnd);
   NS_IMETHOD    SetSelectionRange(PRInt32 aSelectionStart,
@@ -193,18 +192,6 @@ public:
 public: 
   void SetValueChanged(bool aValueChanged);
   
-  nsresult InitFocusedValue();
-
-  void SetFireChangeEventState(bool aNewState)
-  {
-    mFireChangeEventState = aNewState;
-  }
-
-  bool GetFireChangeEventState() const
-  {
-    return mFireChangeEventState;
-  }    
-
   
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
@@ -212,16 +199,9 @@ public:
   NS_STACK_CLASS class ValueSetter {
   public:
     ValueSetter(nsTextControlFrame* aFrame,
-                nsIEditor* aEditor,
-                bool aHasFocusValue)
+                nsIEditor* aEditor)
       : mFrame(aFrame)
       , mEditor(aEditor)
-      
-      
-      
-      
-      
-      , mFocusValueInit(!mFrame->mFireChangeEventState && aHasFocusValue)
       , mCanceled(false)
     {
       MOZ_ASSERT(aFrame);
@@ -244,17 +224,11 @@ public:
       if (mCanceled) {
         return;
       }
-
-      if (mFocusValueInit) {
-        
-        mFrame->InitFocusedValue();
-      }
     }
 
   private:
     nsTextControlFrame* mFrame;
     nsCOMPtr<nsIEditor> mEditor;
-    bool mFocusValueInit;
     bool mOuterTransaction;
     bool mCanceled;
   };
@@ -416,9 +390,6 @@ private:
   bool mUseEditor;
   bool mIsProcessing;
   
-  
-  bool mFireChangeEventState;
-  
   bool mUsePlaceholder;
 
 #ifdef DEBUG
@@ -426,7 +397,6 @@ private:
   friend class EditorInitializerEntryTracker;
 #endif
 
-  nsString mFocusedValue;
   nsRevocableEventPtr<ScrollOnFocusEvent> mScrollEvent;
 };
 

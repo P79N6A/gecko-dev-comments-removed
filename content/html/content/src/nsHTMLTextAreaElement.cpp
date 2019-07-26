@@ -259,6 +259,10 @@ protected:
   bool                     mCanShowInvalidUI;
   
   bool                     mCanShowValidUI;
+  
+  void FireChangeEventIfNeeded();
+  
+  nsString mFocusedValue;
 
   
   nsTextEditorState mState;
@@ -589,7 +593,9 @@ nsHTMLTextAreaElement::SetValueInternal(const nsAString& aValue,
 NS_IMETHODIMP 
 nsHTMLTextAreaElement::SetValue(const nsAString& aValue)
 {
-  return SetValueInternal(aValue, false);
+  SetValueInternal(aValue, false);
+  GetValueInternal(mFocusedValue, true);
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -733,16 +739,28 @@ nsHTMLTextAreaElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 
   
   if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
-    nsIFrame* primaryFrame = GetPrimaryFrame();
-    if (primaryFrame) {
-      nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
-      if (textFrame) {
-        textFrame->CheckFireOnChange();
-      }
-    }
+    FireChangeEventIfNeeded();
   }
 
   return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
+}
+
+void
+nsHTMLTextAreaElement::FireChangeEventIfNeeded()
+{
+  nsString value;
+  GetValueInternal(value, true);
+
+  if (mFocusedValue.Equals(value)) {
+    return;
+  }
+
+  
+  mFocusedValue = value;
+  nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
+                                       static_cast<nsIContent*>(this),
+                                       NS_LITERAL_STRING("change"), true, 
+                                       false);
 }
 
 nsresult
@@ -757,6 +775,7 @@ nsHTMLTextAreaElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
       
       
+      GetValueInternal(mFocusedValue, true);
       mCanShowInvalidUI = !IsValid() && ShouldShowValidityUI();
 
       

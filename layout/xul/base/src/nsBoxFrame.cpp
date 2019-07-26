@@ -518,13 +518,18 @@ nsBoxFrame::GetInitialDirection(bool& aIsNormal)
   
   
   
-  static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::reverse, &nsGkAtoms::ltr, &nsGkAtoms::rtl, nsnull};
-  PRInt32 index = GetContent()->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::dir,
-      strings, eCaseMatters);
-  if (index >= 0) {
-    bool values[] = {!aIsNormal, true, false};
-    aIsNormal = values[index];
+  if (IsHorizontal()) {
+    static nsIContent::AttrValuesArray strings[] =
+      {&nsGkAtoms::reverse, &nsGkAtoms::ltr, &nsGkAtoms::rtl, nsnull};
+    PRInt32 index = GetContent()->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::dir,
+        strings, eCaseMatters);
+    if (index >= 0) {
+      bool values[] = {!aIsNormal, true, false};
+      aIsNormal = values[index];
+    }
+  } else if (GetContent()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
+                                       nsGkAtoms::reverse, eCaseMatters)) {
+    aIsNormal = !aIsNormal;
   }
 }
 

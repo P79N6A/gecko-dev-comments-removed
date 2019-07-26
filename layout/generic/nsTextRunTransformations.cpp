@@ -599,11 +599,18 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   };
   RunCaseState runCase = kUpperOrCaseless;
 
-  PRUint32 i;
-  for (i = 0; i <= length; ++i) {
+  
+  
+  
+  
+  
+  
+  for (PRUint32 i = 0; i <= length; ++i) {
     RunCaseState chCase = kUpperOrCaseless;
-    nsStyleContext* styleContext = styles[i];
+    
+    
     if (i < length) {
+      nsStyleContext* styleContext = styles[i];
       
       
       if (!inner->IsClusterStart(i)) {
@@ -634,6 +641,11 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
       }
     }
 
+    
+    
+    
+    
+    
     if ((i == length || runCase != chCase) && runStart < i) {
       nsAutoPtr<nsTransformedTextRun> transformedChild;
       nsAutoPtr<gfxTextRun> cachedChild;
@@ -681,7 +693,7 @@ nsFontVariantTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
 
     if (i < length) {
       runCase = chCase;
-      styleArray.AppendElement(styleContext);
+      styleArray.AppendElement(styles[i]);
       canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
     }
   }

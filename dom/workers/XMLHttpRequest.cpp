@@ -1,7 +1,7 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "XMLHttpRequest.h"
 
@@ -32,70 +32,71 @@
 USING_WORKERS_NAMESPACE
 
 using mozilla::dom::workers::exceptions::ThrowDOMExceptionForNSResult;
+using mozilla::ErrorResult;
 
-// XXX Need to figure this out...
+
 #define UNCATCHABLE_EXCEPTION NS_ERROR_OUT_OF_MEMORY
 
-/**
- *  XMLHttpRequest in workers
- *
- *  XHR in workers is implemented by proxying calls/events/etc between the
- *  worker thread and an nsXMLHttpRequest on the main thread.  The glue
- *  object here is the Proxy, which lives on both threads.  All other objects
- *  live on either the main thread (the nsXMLHttpRequest) or the worker thread
- *  (the worker and XHR private objects).
- *
- *  The main thread XHR is always operated in async mode, even for sync XHR
- *  in workers.  Calls made on the worker thread are proxied to the main thread
- *  synchronously (meaning the worker thread is blocked until the call
- *  returns).  Each proxied call spins up a sync queue, which captures any
- *  synchronously dispatched events and ensures that they run synchronously
- *  on the worker as well.  Asynchronously dispatched events are posted to the
- *  worker thread to run asynchronously.  Some of the XHR state is mirrored on
- *  the worker thread to avoid needing a cross-thread call on every property
- *  access.
- *
- *  The XHR private is stored in the private slot of the XHR JSObject on the
- *  worker thread.  It is destroyed when that JSObject is GCd.  The private
- *  roots its JSObject while network activity is in progress.  It also
- *  adds itself as a feature to the worker to give itself a chance to clean up
- *  if the worker goes away during an XHR call.  It is important that the
- *  rooting and feature registration (collectively called pinning) happens at
- *  the proper times.  If we pin for too long we can cause memory leaks or even
- *  shutdown hangs.  If we don't pin for long enough we introduce a GC hazard.
- *
- *  The XHR is pinned from the time Send is called to roughly the time loadend
- *  is received.  There are some complications involved with Abort and XHR
- *  reuse.  We maintain a counter on the main thread of how many times Send was
- *  called on this XHR, and we decrement the counter every time we receive a
- *  loadend event.  When the counter reaches zero we dispatch a runnable to the
- *  worker thread to unpin the XHR.  We only decrement the counter if the 
- *  dispatch was successful, because the worker may no longer be accepting
- *  regular runnables.  In the event that we reach Proxy::Teardown and there
- *  the outstanding Send count is still non-zero, we dispatch a control
- *  runnable which is guaranteed to run.
- *
- *  NB: Some of this could probably be simplified now that we have the
- *  inner/outer channel ids.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 BEGIN_WORKERS_NAMESPACE
 
 class Proxy : public nsIDOMEventListener
 {
 public:
-  // Read on multiple threads.
+  
   WorkerPrivate* mWorkerPrivate;
   XMLHttpRequest* mXMLHttpRequestPrivate;
 
-  // Only touched on the main thread.
+  
   nsRefPtr<nsXMLHttpRequest> mXHR;
   nsCOMPtr<nsIXMLHttpRequestUpload> mXHRUpload;
   PRUint32 mInnerEventStreamId;
   PRUint32 mInnerChannelId;
   PRUint32 mOutstandingSendCount;
 
-  // Only touched on the worker thread.
+  
   PRUint32 mOuterEventStreamId;
   PRUint32 mOuterChannelId;
   PRUint64 mLastLoaded;
@@ -108,7 +109,7 @@ public:
   bool mSeenLoadStart;
   bool mSeenUploadLoadStart;
 
-  // Only touched on the main thread.
+  
   PRUint32 mSyncQueueKey;
   PRUint32 mSyncEventResponseSyncQueueKey;
   bool mUploadEventListenersAttached;
@@ -261,7 +262,7 @@ JS_STATIC_ASSERT(STRING_LAST_XHR >= STRING_LAST_EVENTTARGET);
 JS_STATIC_ASSERT(STRING_LAST_XHR == STRING_COUNT - 1);
 
 const char* const sEventStrings[] = {
-  // nsIXMLHttpRequestEventTarget event types, supported by both XHR and Upload.
+  
   "abort",
   "error",
   "load",
@@ -269,7 +270,7 @@ const char* const sEventStrings[] = {
   "progress",
   "timeout",
 
-  // nsIXMLHttpRequest event types, supported only by XHR.
+  
   "readystatechange",
   "loadend",
 };
@@ -416,7 +417,7 @@ class LoadStartDetectionRunnable : public nsIRunnable,
     WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     {
       if (mChannelId != mProxy->mOuterChannelId) {
-        // Threads raced, this event is now obsolete.
+        
         return true;
       }
 
@@ -581,7 +582,7 @@ public:
           mResponse = response;
         }
         else {
-          // Anything subject to GC must be cloned.
+          
           JSStructuredCloneCallbacks* callbacks =
             aWorkerPrivate->IsChromeWorker() ?
             ChromeWorkerStructuredCloneCallbacks(true) :
@@ -613,12 +614,12 @@ public:
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
     if (mEventStreamId != mProxy->mOuterEventStreamId) {
-      // Threads raced, this event is now obsolete.
+      
       return true;
     }
 
     if (!mProxy->mXMLHttpRequestPrivate) {
-      // Object was finalized, bail.
+      
       return true;
     }
 
@@ -641,19 +642,19 @@ public:
     else if (mType.EqualsASCII(sEventStrings[STRING_abort])) {
       if ((mUploadEvent && !mProxy->mSeenUploadLoadStart) ||
           (!mUploadEvent && !mProxy->mSeenLoadStart)) {
-        // We've already dispatched premature abort events.
+        
         return true;
       }
     }
     else if (mType.EqualsASCII(sEventStrings[STRING_readystatechange])) {
       if (mReadyState == 4 && !mUploadEvent && !mProxy->mSeenLoadStart) {
-        // We've already dispatched premature abort events.
+        
         return true;
       }
     }
 
     if (mProgressEvent) {
-      // Cache these for premature abort events.
+      
       if (mUploadEvent) {
         mProxy->mLastUploadLengthComputable = mLengthComputable;
         mProxy->mLastUploadLoaded = mLoaded;
@@ -745,8 +746,8 @@ public:
       JS_ReportPendingException(aCx);
     }
 
-    // After firing the event set mResponse to JSVAL_NULL for chunked response
-    // types.
+    
+    
     if (StringBeginsWith(mResponseType, NS_LITERAL_STRING("moz-chunked-"))) {
       xhr->NullResponseText();
     }
@@ -1265,7 +1266,7 @@ private:
   XMLHttpRequest* mXMLHttpRequestPrivate;
 };
 
-} // anonymous namespace
+} 
 
 void
 Proxy::Teardown()
@@ -1275,8 +1276,8 @@ Proxy::Teardown()
   if (mXHR) {
     Reset();
 
-    // NB: We are intentionally dropping events coming from xhr.abort on the
-    // floor.
+    
+    
     AddRemoveEventListeners(false, false);
     mXHR->Abort();
 
@@ -1445,9 +1446,9 @@ XMLHttpRequest::_Finalize(JSFreeOp* aFop)
   XMLHttpRequestEventTarget::_Finalize(aFop);
 }
 
-// static
+
 XMLHttpRequest*
-XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, nsresult& aRv)
+XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, ErrorResult& aRv)
 {
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(workerPrivate);
@@ -1455,7 +1456,7 @@ XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, nsresult& aRv)
   nsRefPtr<XMLHttpRequest> xhr = new XMLHttpRequest(aCx, workerPrivate);
 
   if (!Wrap(aCx, aGlobal, xhr)) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return NULL;
   }
 
@@ -1466,13 +1467,13 @@ XMLHttpRequest::_Constructor(JSContext* aCx, JSObject* aGlobal, nsresult& aRv)
 void
 XMLHttpRequest::ReleaseProxy(ReleaseType aType)
 {
-  // Can't assert that we're on the worker thread here because mWorkerPrivate
-  // may be gone.
+  
+  
 
   if (mProxy) {
     if (aType == XHRIsGoingAway) {
-      // We're in a GC finalizer, so we can't do a sync call here (and we don't
-      // need to).
+      
+      
       nsRefPtr<AsyncTeardownRunnable> runnable =
         new AsyncTeardownRunnable(mProxy);
       mProxy = nsnull;
@@ -1481,14 +1482,14 @@ XMLHttpRequest::ReleaseProxy(ReleaseType aType)
         NS_ERROR("Failed to dispatch teardown runnable!");
       }
     } else {
-      // This isn't necessary if the worker is going away or the XHR is going
-      // away.
+      
+      
       if (aType == Default) {
-        // Don't let any more events run.
+        
         mProxy->mOuterEventStreamId++;
       }
 
-      // We need to make a sync call here.
+      
       nsRefPtr<SyncTeardownRunnable> runnable =
         new SyncTeardownRunnable(mWorkerPrivate, mProxy);
       mProxy = nsnull;
@@ -1501,7 +1502,7 @@ XMLHttpRequest::ReleaseProxy(ReleaseType aType)
 }
 
 void
-XMLHttpRequest::MaybePin(nsresult& aRv)
+XMLHttpRequest::MaybePin(ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -1512,13 +1513,13 @@ XMLHttpRequest::MaybePin(nsresult& aRv)
   JSContext* cx = GetJSContext();
 
   if (!JS_AddNamedObjectRoot(cx, &mJSObject, "XMLHttpRequest mJSObject")) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
   if (!mWorkerPrivate->AddFeature(cx, this)) {
     JS_RemoveObjectRoot(cx, &mJSObject);
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -1526,7 +1527,7 @@ XMLHttpRequest::MaybePin(nsresult& aRv)
 }
 
 void
-XMLHttpRequest::MaybeDispatchPrematureAbortEvents(nsresult& aRv)
+XMLHttpRequest::MaybeDispatchPrematureAbortEvents(ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(mProxy);
@@ -1540,12 +1541,12 @@ XMLHttpRequest::MaybeDispatchPrematureAbortEvents(nsresult& aRv)
     MOZ_ASSERT(target);
 
     DispatchPrematureAbortEvent(target, STRING_abort, true, aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
 
     DispatchPrematureAbortEvent(target, STRING_loadend, true, aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
 
@@ -1557,17 +1558,17 @@ XMLHttpRequest::MaybeDispatchPrematureAbortEvents(nsresult& aRv)
     MOZ_ASSERT(target);
 
     DispatchPrematureAbortEvent(target, STRING_readystatechange, false, aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
 
     DispatchPrematureAbortEvent(target, STRING_abort, false, aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
 
     DispatchPrematureAbortEvent(target, STRING_loadend, false, aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
 
@@ -1578,7 +1579,8 @@ XMLHttpRequest::MaybeDispatchPrematureAbortEvents(nsresult& aRv)
 void
 XMLHttpRequest::DispatchPrematureAbortEvent(JSObject* aTarget,
                                             uint8_t aEventType,
-                                            bool aUploadTarget, nsresult& aRv)
+                                            bool aUploadTarget,
+                                            ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(mProxy);
@@ -1589,7 +1591,7 @@ XMLHttpRequest::DispatchPrematureAbortEvent(JSObject* aTarget,
 
   JSString* type = JS_NewStringCopyZ(cx, sEventStrings[aEventType]);
   if (!type) {
-    aRv = NS_ERROR_OUT_OF_MEMORY;
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
@@ -1611,13 +1613,13 @@ XMLHttpRequest::DispatchPrematureAbortEvent(JSObject* aTarget,
   }
 
   if (!event) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
   bool dummy;
   if (!events::DispatchEventToTarget(cx, aTarget, event, &dummy)) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
@@ -1642,14 +1644,14 @@ void
 XMLHttpRequest::SendInternal(const nsAString& aStringBody,
                              JSAutoStructuredCloneBuffer& aBody,
                              nsTArray<nsCOMPtr<nsISupports> >& aClonedObjects,
-                             nsresult& aRv)
+                             ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   bool hasUploadListeners = mUpload ? mUpload->HasListeners() : false;
 
   MaybePin(aRv);
-  if (NS_FAILED(aRv)) {
+  if (aRv.Failed()) {
     return;
   }
 
@@ -1673,13 +1675,13 @@ XMLHttpRequest::SendInternal(const nsAString& aStringBody,
 
   autoUnpin.Clear();
 
-  // The event loop was spun above, make sure we aren't canceled already.
+  
   if (mCanceled) {
     return;
   }
 
   if (mProxy->mIsSyncXHR && !mWorkerPrivate->RunSyncLoop(cx, syncQueueKey)) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
@@ -1701,18 +1703,18 @@ XMLHttpRequest::Notify(JSContext* aCx, Status aStatus)
 void
 XMLHttpRequest::Open(const nsAString& aMethod, const nsAString& aUrl,
                      bool aAsync, const nsAString& aUser,
-                     const nsAString& aPassword, nsresult& aRv)
+                     const nsAString& aPassword, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (mProxy) {
     MaybeDispatchPrematureAbortEvents(aRv);
-    if (NS_FAILED(aRv)) {
+    if (aRv.Failed()) {
       return;
     }
   }
@@ -1729,7 +1731,7 @@ XMLHttpRequest::Open(const nsAString& aMethod, const nsAString& aUrl,
 
   if (!runnable->Dispatch(GetJSContext())) {
     ReleaseProxy();
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -1738,17 +1740,17 @@ XMLHttpRequest::Open(const nsAString& aMethod, const nsAString& aUrl,
 
 void
 XMLHttpRequest::SetRequestHeader(const nsAString& aHeader,
-                                 const nsAString& aValue, nsresult& aRv)
+                                 const nsAString& aValue, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
@@ -1757,105 +1759,105 @@ XMLHttpRequest::SetRequestHeader(const nsAString& aHeader,
                                  NS_ConvertUTF16toUTF8(aHeader),
                                  NS_ConvertUTF16toUTF8(aValue));
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
-XMLHttpRequest::SetTimeout(uint32_t aTimeout, nsresult& aRv)
+XMLHttpRequest::SetTimeout(uint32_t aTimeout, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   mTimeout = aTimeout;
 
   if (!mProxy) {
-    // Open may not have been called yet, in which case we'll handle the
-    // timeout in OpenRunnable.
+    
+    
     return;
   }
 
   nsRefPtr<SetTimeoutRunnable> runnable =
     new SetTimeoutRunnable(mWorkerPrivate, mProxy, aTimeout);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
-XMLHttpRequest::SetWithCredentials(bool aWithCredentials, nsresult& aRv)
+XMLHttpRequest::SetWithCredentials(bool aWithCredentials, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   mWithCredentials = aWithCredentials;
 
   if (!mProxy) {
-    // Open may not have been called yet, in which case we'll handle the
-    // credentials in OpenRunnable.
+    
+    
     return;
   }
 
   nsRefPtr<SetWithCredentialsRunnable> runnable =
     new SetWithCredentialsRunnable(mWorkerPrivate, mProxy, aWithCredentials);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
-XMLHttpRequest::SetMultipart(bool aMultipart, nsresult& aRv)
+XMLHttpRequest::SetMultipart(bool aMultipart, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   mMultipart = aMultipart;
 
   if (!mProxy) {
-    // Open may not have been called yet, in which case we'll handle the
-    // multipart in OpenRunnable.
+    
+    
     return;
   }
 
   nsRefPtr<SetMultipartRunnable> runnable =
     new SetMultipartRunnable(mWorkerPrivate, mProxy, aMultipart);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
 XMLHttpRequest::SetMozBackgroundRequest(bool aBackgroundRequest,
-                                        nsresult& aRv)
+                                        ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   mBackgroundRequest = aBackgroundRequest;
 
   if (!mProxy) {
-    // Open may not have been called yet, in which case we'll handle the
-    // background request in OpenRunnable.
+    
+    
     return;
   }
 
@@ -1863,18 +1865,18 @@ XMLHttpRequest::SetMozBackgroundRequest(bool aBackgroundRequest,
     new SetBackgroundRequestRunnable(mWorkerPrivate, mProxy,
                                      aBackgroundRequest);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 XMLHttpRequestUpload*
-XMLHttpRequest::GetUpload(nsresult& aRv)
+XMLHttpRequest::GetUpload(ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return NULL;
   }
 
@@ -1883,7 +1885,7 @@ XMLHttpRequest::GetUpload(nsresult& aRv)
       XMLHttpRequestUpload::Create(GetJSContext(), this);
 
     if (!upload) {
-      aRv = NS_ERROR_FAILURE;
+      aRv.Throw(NS_ERROR_FAILURE);
       return NULL;
     }
 
@@ -1894,21 +1896,21 @@ XMLHttpRequest::GetUpload(nsresult& aRv)
 }
 
 void
-XMLHttpRequest::Send(nsresult& aRv)
+XMLHttpRequest::Send(ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
-  // Nothing to clone.
+  
   JSAutoStructuredCloneBuffer buffer;
   nsTArray<nsCOMPtr<nsISupports> > clonedObjects;
 
@@ -1916,21 +1918,21 @@ XMLHttpRequest::Send(nsresult& aRv)
 }
 
 void
-XMLHttpRequest::Send(const nsAString& aBody, nsresult& aRv)
+XMLHttpRequest::Send(const nsAString& aBody, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
-  // Nothing to clone.
+  
   JSAutoStructuredCloneBuffer buffer;
   nsTArray<nsCOMPtr<nsISupports> > clonedObjects;
 
@@ -1938,18 +1940,18 @@ XMLHttpRequest::Send(const nsAString& aBody, nsresult& aRv)
 }
 
 void
-XMLHttpRequest::Send(JSObject* aBody, nsresult& aRv)
+XMLHttpRequest::Send(JSObject* aBody, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(aBody);
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
@@ -1962,7 +1964,7 @@ XMLHttpRequest::Send(JSObject* aBody, nsresult& aRv)
   else {
     JSString* bodyStr = JS_ValueToString(cx, OBJECT_TO_JSVAL(aBody));
     if (!bodyStr) {
-      aRv = NS_ERROR_OUT_OF_MEMORY;
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return;
     }
     valToClone = STRING_TO_JSVAL(bodyStr);
@@ -1977,7 +1979,7 @@ XMLHttpRequest::Send(JSObject* aBody, nsresult& aRv)
 
   JSAutoStructuredCloneBuffer buffer;
   if (!buffer.write(cx, valToClone, callbacks, &clonedObjects)) {
-    aRv = NS_ERROR_DOM_DATA_CLONE_ERR;
+    aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     return;
   }
 
@@ -1985,20 +1987,20 @@ XMLHttpRequest::Send(JSObject* aBody, nsresult& aRv)
 }
 
 void
-XMLHttpRequest::SendAsBinary(const nsAString& aBody, nsresult& aRv)
+XMLHttpRequest::SendAsBinary(const nsAString& aBody, ErrorResult& aRv)
 {
   NS_NOTYETIMPLEMENTED("Implement me!");
-  aRv = NS_ERROR_NOT_IMPLEMENTED;
+  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
+  return;
 }
 
 void
-XMLHttpRequest::Abort(nsresult& aRv)
+XMLHttpRequest::Abort(ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
-    return;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
   }
 
   if (!mProxy) {
@@ -2006,7 +2008,7 @@ XMLHttpRequest::Abort(nsresult& aRv)
   }
 
   MaybeDispatchPrematureAbortEvents(aRv);
-  if (NS_FAILED(aRv)) {
+  if (aRv.Failed()) {
     return;
   }
 
@@ -2014,24 +2016,24 @@ XMLHttpRequest::Abort(nsresult& aRv)
 
   nsRefPtr<AbortRunnable> runnable = new AbortRunnable(mWorkerPrivate, mProxy);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
 XMLHttpRequest::GetResponseHeader(const nsAString& aHeader,
-                                  nsAString& aResponseHeader, nsresult& aRv)
+                                  nsAString& aResponseHeader, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
@@ -2040,7 +2042,7 @@ XMLHttpRequest::GetResponseHeader(const nsAString& aHeader,
     new GetResponseHeaderRunnable(mWorkerPrivate, mProxy,
                                   NS_ConvertUTF16toUTF8(aHeader), value);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -2049,17 +2051,17 @@ XMLHttpRequest::GetResponseHeader(const nsAString& aHeader,
 
 void
 XMLHttpRequest::GetAllResponseHeaders(nsAString& aResponseHeaders,
-                                      nsresult& aRv)
+                                      ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
@@ -2067,7 +2069,7 @@ XMLHttpRequest::GetAllResponseHeaders(nsAString& aResponseHeaders,
   nsRefPtr<GetAllResponseHeadersRunnable> runnable =
     new GetAllResponseHeadersRunnable(mWorkerPrivate, mProxy, responseHeaders);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -2075,51 +2077,51 @@ XMLHttpRequest::GetAllResponseHeaders(nsAString& aResponseHeaders,
 }
 
 void
-XMLHttpRequest::OverrideMimeType(const nsAString& aMimeType, nsresult& aRv)
+XMLHttpRequest::OverrideMimeType(const nsAString& aMimeType, ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
-  // We're supposed to throw if the state is not OPENED or HEADERS_RECEIVED. We
-  // can detect OPENED really easily but we can't detect HEADERS_RECEIVED in a
-  // non-racy way until the XHR state machine actually runs on this thread
-  // (bug 671047). For now we're going to let this work only if the Send()
-  // method has not been called.
+  
+  
+  
+  
+  
   if (!mProxy || SendInProgress()) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
   nsRefPtr<OverrideMimeTypeRunnable> runnable =
     new OverrideMimeTypeRunnable(mWorkerPrivate, mProxy, aMimeType);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 }
 
 void
 XMLHttpRequest::SetResponseType(XMLHttpRequestResponseType aResponseType,
-                                nsresult& aRv)
+                                ErrorResult& aRv)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mCanceled) {
-    aRv = UNCATCHABLE_EXCEPTION;
+    aRv.Throw(UNCATCHABLE_EXCEPTION);
     return;
   }
 
   if (!mProxy || SendInProgress()) {
-    aRv = NS_ERROR_DOM_INVALID_STATE_ERR;
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
-  // "document" is fine for the main thread but not for a worker. Short-circuit
-  // that here.
+  
+  
   if (aResponseType == XMLHttpRequestResponseTypeValues::document) {
     return;
   }
@@ -2130,7 +2132,7 @@ XMLHttpRequest::SetResponseType(XMLHttpRequestResponseType aResponseType,
   nsRefPtr<SetResponseTypeRunnable> runnable =
     new SetResponseTypeRunnable(mWorkerPrivate, mProxy, responseType);
   if (!runnable->Dispatch(GetJSContext())) {
-    aRv = NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
@@ -2141,7 +2143,7 @@ XMLHttpRequest::SetResponseType(XMLHttpRequestResponseType aResponseType,
 }
 
 jsval
-XMLHttpRequest::GetResponse(nsresult& aRv)
+XMLHttpRequest::GetResponse(ErrorResult& aRv)
 {
   if (NS_SUCCEEDED(mStateData.mResponseTextResult) &&
       JSVAL_IS_VOID(mStateData.mResponse)) {
@@ -2152,7 +2154,7 @@ XMLHttpRequest::GetResponse(nsresult& aRv)
       JS_NewUCStringCopyN(GetJSContext(), mStateData.mResponseText.get(),
                           mStateData.mResponseText.Length());
     if (!str) {
-      aRv = NS_ERROR_OUT_OF_MEMORY;
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return JSVAL_VOID;
     }
 
@@ -2164,7 +2166,7 @@ XMLHttpRequest::GetResponse(nsresult& aRv)
 }
 
 void
-XMLHttpRequest::GetResponseText(nsAString& aResponseText, nsresult& aRv)
+XMLHttpRequest::GetResponseText(nsAString& aResponseText, ErrorResult& aRv)
 {
   aRv = mStateData.mResponseTextResult;
   aResponseText = mStateData.mResponseText;
