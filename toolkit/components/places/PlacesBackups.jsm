@@ -549,7 +549,7 @@ this.PlacesBackups = {
             
             
             let original = itemsMap.get(id);
-            for (prop in bookmark) {
+            for (let prop of Object.getOwnPropertyNames(bookmark)) {
               original[prop] = bookmark[prop];
             }
             bookmark = original;
