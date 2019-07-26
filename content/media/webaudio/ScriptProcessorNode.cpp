@@ -112,14 +112,23 @@ public:
       
       
       
+      
+      
+      
+      
       float latency = (now - mLastEventTime).ToSeconds();
       float bufferDuration = aBufferSize / mSampleRate;
       mLatency += latency - bufferDuration;
       mLastEventTime = now;
-      if (mLatency > MAX_LATENCY_S || (mDroppingBuffers && mLatency > 0.0)) {
+      if (mLatency > MAX_LATENCY_S ||
+          (mDroppingBuffers && mLatency > 0.0 &&
+           abs(latency - bufferDuration) < bufferDuration)) {
         mDroppingBuffers = true;
         return;
       } else {
+        if (mDroppingBuffers) {
+          mLatency = 0;
+        }
         mDroppingBuffers = false;
       }
     }
