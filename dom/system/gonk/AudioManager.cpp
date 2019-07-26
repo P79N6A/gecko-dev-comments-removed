@@ -52,7 +52,7 @@ static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
   15,  
 };
 
-static int sHeadsetState = SWITCH_STATE_OFF;
+static int sHeadsetState;
 static int kBtSampleRate = 8000;
 
 class RecoverTask : public nsRunnable
