@@ -435,8 +435,6 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
                    HandleValue value, bool setterIsStrict)
 {
     MOZ_ASSERT(id == NameToId(cx->names().length));
-    MOZ_ASSERT(attrs & JSPROP_PERMANENT);
-    MOZ_ASSERT(!(attrs & JSPROP_ENUMERATE));
 
     
 
@@ -444,6 +442,21 @@ js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id, unsigne
     uint32_t newLen;
     if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
         return false;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE)) {
+        if (!setterIsStrict)
+            return true;
+        return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
+    }
 
     
     bool lengthIsWritable = arr->lengthIsWritable();
