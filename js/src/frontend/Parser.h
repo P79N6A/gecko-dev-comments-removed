@@ -403,7 +403,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
 
     
     Node standaloneFunctionBody(HandleFunction fun, const AutoNameVector &formals,
-                                HandleScript script, bool strict, bool *becameStrict);
+                                bool strict, bool *becameStrict);
 
     
     
