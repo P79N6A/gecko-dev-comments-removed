@@ -174,7 +174,7 @@ function loadCallgraph(file)
 
     
     while (worklist.length) {
-        name = worklist.pop();
+        name = worklist.shift();
         assert(name in gcFunctions);
         if (!(name in callerGraph))
             continue;
