@@ -55,7 +55,8 @@ int nr_stun_build_req_no_auth(nr_stun_client_stun_binding_request_params *params
 
 
 typedef struct nr_stun_client_stun_keepalive_params_ {
-#ifdef WIN32  
+#if defined(WIN32) || defined(__clang__)
+    
     int dummy;
 #endif
 } nr_stun_client_stun_keepalive_params;
