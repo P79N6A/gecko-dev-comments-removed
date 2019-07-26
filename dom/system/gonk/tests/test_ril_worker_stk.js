@@ -92,16 +92,16 @@ add_test(function test_stk_terminal_response() {
 
   buf.sendParcel = function () {
     
-    do_check_eq(this.readUint32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_TERMINAL_RESPONSE);
 
     
-    this.readUint32();
+    this.readInt32();
 
     
     
     
     
-    do_check_eq(this.readUint32(), 44);
+    do_check_eq(this.readInt32(), 44);
 
     
     do_check_eq(pduHelper.readHexOctet(), COMPREHENSIONTLV_TAG_COMMAND_DETAILS |
@@ -748,16 +748,16 @@ add_test(function test_stk_event_download_location_status() {
 
   buf.sendParcel = function () {
     
-    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
 
     
-    this.readUint32();
+    this.readInt32();
 
     
     
     
     
-    do_check_eq(this.readUint32(), 42);
+    do_check_eq(this.readInt32(), 42);
 
     
     do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
@@ -830,15 +830,15 @@ add_test(function test_stk_event_download_language_selection() {
 
   buf.sendParcel = function () {
     
-    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
 
     
-    this.readUint32();
+    this.readInt32();
 
     
     
     
-    do_check_eq(this.readUint32(), 26);
+    do_check_eq(this.readInt32(), 26);
 
     
     do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
@@ -888,13 +888,13 @@ add_test(function test_stk_event_download_user_activity() {
 
   buf.sendParcel = function () {
     
-    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
 
     
-    this.readUint32();
+    this.readInt32();
 
     
-    do_check_eq(this.readUint32(), 18);
+    do_check_eq(this.readInt32(), 18);
 
     
     do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
@@ -936,13 +936,13 @@ add_test(function test_stk_event_download_idle_screen_available() {
 
   buf.sendParcel = function () {
     
-    do_check_eq(this.readUint32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
+    do_check_eq(this.readInt32(), REQUEST_STK_SEND_ENVELOPE_COMMAND);
 
     
-    this.readUint32();
+    this.readInt32();
 
     
-    do_check_eq(this.readUint32(), 18);
+    do_check_eq(this.readInt32(), 18);
 
     
     do_check_eq(pduHelper.readHexOctet(), BER_EVENT_DOWNLOAD_TAG);
