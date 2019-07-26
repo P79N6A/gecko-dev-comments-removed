@@ -107,7 +107,9 @@ let CommandUtils = {
           button.setAttribute("tooltiptext", command.description);
         }
 
+        let buttonWasClickedAtLeastOnce = false;
         button.addEventListener("click", function() {
+          buttonWasClickedAtLeastOnce = true;
           requisition.update(buttonSpec.typed);
           
             requisition.exec();
@@ -134,9 +136,27 @@ let CommandUtils = {
           };
           command.state.onChange(target, onChange);
           onChange(null, target.tab);
-          document.defaultView.addEventListener("unload", function() {
+          let cleanUp = function () {
+            document.defaultView.removeEventListener("unload", cleanUp, false);
+            target.off("close", cleanUp);
+
             command.state.offChange(target, onChange);
-          }, false);
+
+            
+            
+            
+            
+            
+            if (buttonWasClickedAtLeastOnce &&
+                command.state.isChecked(target)) {
+              
+              requisition.update(buttonSpec.typed);
+              requisition.exec();
+              buttonWasClickedAtLeastOnce = false;
+            }
+          };
+          document.defaultView.addEventListener("unload", cleanUp, false);
+          target.on("close", cleanUp);
         }
       }
     });
