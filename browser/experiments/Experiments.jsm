@@ -98,6 +98,10 @@ let gPolicyCounter = 0;
 let gExperimentsCounter = 0;
 let gExperimentEntryCounter = 0;
 
+
+
+let gActiveInstallURLs = new Set();
+
 let gLogger;
 let gLogDumping = false;
 
@@ -359,7 +363,7 @@ Experiments.Experiments.prototype = {
     AsyncShutdown.profileBeforeChange.addBlocker("Experiments.jsm shutdown",
       this.uninit.bind(this));
 
-    AddonManager.addAddonListener(this);
+    this._startWatchingAddons();
 
     this._loadTask = Task.spawn(this._loadFromCache.bind(this));
     this._loadTask.then(
@@ -380,7 +384,7 @@ Experiments.Experiments.prototype = {
 
   uninit: function () {
     if (!this._shutdown) {
-      AddonManager.removeAddonListener(this);
+      this._stopWatchingAddons();
 
       gPrefs.ignore(PREF_LOGGING, configureLogging);
       gPrefs.ignore(PREF_MANIFEST_URI, this.updateManifest, this);
@@ -398,6 +402,16 @@ Experiments.Experiments.prototype = {
       return this._mainTask;
     }
     return Promise.resolve();
+  },
+
+  _startWatchingAddons: function () {
+    AddonManager.addAddonListener(this);
+    AddonManager.addInstallListener(this);
+  },
+
+  _stopWatchingAddons: function () {
+    AddonManager.removeInstallListener(this);
+    AddonManager.removeAddonListener(this);
   },
 
   
@@ -644,6 +658,42 @@ Experiments.Experiments.prototype = {
     this.disableExperiment();
   },
 
+  onInstallStarted: function (install) {
+    if (install.addon.type != "experiment") {
+      return;
+    }
+
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (this._trackedAddonIds.has(install.addon.id)) {
+      this._log.info("onInstallStarted allowing install because add-on ID " +
+                     "tracked by us.");
+      return;
+    }
+
+    if (gActiveInstallURLs.has(install.sourceURI.spec)) {
+      this._log.info("onInstallStarted allowing install because install " +
+                     "tracked by us.");
+      return;
+    }
+
+    this._log.warn("onInstallStarted cancelling install of unknown " +
+                   "experiment add-on: " + install.addon.id);
+    return false;
+  },
+
   
 
   _getExperimentByAddonId: function (addonId) {
@@ -854,6 +904,17 @@ Experiments.Experiments.prototype = {
   
 
 
+  get _trackedAddonIds() {
+    if (!this._experiments) {
+      return new Set();
+    }
+
+    return new Set([e._addonId for ([,e] of this._experiments) if (e._addonId)]);
+  },
+
+  
+
+
 
   _evaluateExperiments: function*() {
     this._log.trace("_evaluateExperiments");
@@ -875,7 +936,7 @@ Experiments.Experiments.prototype = {
     
     
     let installedExperiments = yield installedExperimentAddons();
-    let expectedAddonIds = new Set([e._addonId for ([,e] of this._experiments)]);
+    let expectedAddonIds = this._trackedAddonIds;
     let unknownAddons = [a for (a of installedExperiments) if (!expectedAddonIds.has(a.id))];
     if (unknownAddons.length) {
       this._log.warn("_evaluateExperiments() - unknown add-ons in AddonManager: " +
@@ -1402,11 +1463,14 @@ Experiments.ExperimentEntry.prototype = {
 
     let install = yield addonInstallForURL(this._manifestData.xpiURL,
                                            this._manifestData.xpiHash);
+    gActiveInstallURLs.add(install.sourceURI.spec);
+
     let failureHandler = (install, handler) => {
       let message = "AddonInstall " + handler + " for " + this.id + ", state=" +
                    (install.state || "?") + ", error=" + install.error;
       this._log.error("_installAddon() - " + message);
       this._failedStart = true;
+      gActiveInstallURLs.delete(install.sourceURI.spec);
 
       TelemetryLog.log(TELEMETRY_LOG.ACTIVATION_KEY,
                       [TELEMETRY_LOG.ACTIVATION.INSTALL_FAILURE, this.id]);
@@ -1446,6 +1510,8 @@ Experiments.ExperimentEntry.prototype = {
 
       onInstallEnded: install => {
         this._log.trace("_installAddon() - install ended for " + this.id);
+        gActiveInstallURLs.delete(install.sourceURI.spec);
+
         this._lastChangedDate = this._policy.now();
         this._startDate = this._policy.now();
         this._enabled = true;

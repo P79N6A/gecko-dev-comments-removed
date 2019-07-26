@@ -5,6 +5,7 @@
 let gManagerWindow;
 let gCategoryUtilities;
 let gInstalledAddons = [];
+let gContext = this;
 
 function test() {
   waitForExplicitFinish();
@@ -13,6 +14,14 @@ function test() {
     gManagerWindow = win;
     gCategoryUtilities = new CategoryUtilities(win);
 
+    
+    
+    
+    
+    if ("@mozilla.org/browser/experiments-service;1" in Components.classes) {
+      Components.utils.import("resource:///modules/experiments/Experiments.jsm", gContext);
+      gContext.Experiments.instance()._stopWatchingAddons();
+    }
     run_next_test();
   });
 }
@@ -22,7 +31,13 @@ function end_test() {
     addon.uninstall();
   }
 
-  close_manager(gManagerWindow, finish);
+  close_manager(gManagerWindow, () => {
+    if ("@mozilla.org/browser/experiments-service;1" in Components.classes) {
+      gContext.Experiments.instance()._startWatchingAddons();
+    }
+
+    finish();
+  });
 }
 
 
