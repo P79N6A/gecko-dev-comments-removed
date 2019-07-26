@@ -3223,15 +3223,26 @@ SameZoneAs(JSObject *obj)
 struct JS_PUBLIC_API(CompartmentOptions) {
     ZoneSpecifier zoneSpec;
     JSVersion version;
+    bool invisibleToDebugger;
 
     explicit CompartmentOptions() : zoneSpec(JS::FreshZone)
                                   , version(JSVERSION_UNKNOWN)
+                                  , invisibleToDebugger(false)
     {}
 
     CompartmentOptions &setZone(ZoneSpecifier spec) { zoneSpec = spec; return *this; }
     CompartmentOptions &setVersion(JSVersion version_) {
         JS_ASSERT(version_ != JSVERSION_UNKNOWN);
         version = version_;
+        return *this;
+    }
+
+    
+    
+    
+    
+    CompartmentOptions &setInvisibleToDebugger(bool invisible) {
+        invisibleToDebugger = invisible;
         return *this;
     }
 };
