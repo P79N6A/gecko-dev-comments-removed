@@ -32,20 +32,13 @@ enum BailoutKind
     Bailout_ArgumentCheck,
 
     
-    
-    Bailout_TypeBarrier,
-
-    
-    Bailout_Monitor,
-
-    
     Bailout_BoundsCheck,
 
     
     Bailout_ShapeGuard,
 
     
-    Bailout_CachedShapeGuard
+    Bailout_BaselineInfo
 };
 
 #ifdef DEBUG
@@ -57,16 +50,12 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_Normal";
       case Bailout_ArgumentCheck:
         return "Bailout_ArgumentCheck";
-      case Bailout_TypeBarrier:
-        return "Bailout_TypeBarrier";
-      case Bailout_Monitor:
-        return "Bailout_Monitor";
       case Bailout_BoundsCheck:
         return "Bailout_BoundsCheck";
       case Bailout_ShapeGuard:
         return "Bailout_ShapeGuard";
-      case Bailout_CachedShapeGuard:
-        return "Bailout_CachedShapeGuard";
+      case Bailout_BaselineInfo:
+        return "Bailout_BaselineInfo";
       default:
         MOZ_ASSUME_UNREACHABLE("Invalid BailoutKind");
     }

@@ -719,23 +719,6 @@ AddClearDefiniteFunctionUsesInScript(JSContext *cx, TypeObject *type,
                                      JSScript *script, JSScript *calleeScript);
 
 
-
-
-
-
-
-struct TypeResult
-{
-    uint32_t offset;
-    Type type;
-    TypeResult *next;
-
-    TypeResult(uint32_t offset, Type type)
-        : offset(offset), type(type), next(NULL)
-    {}
-};
-
-
 inline bool isInlinableCall(jsbytecode *pc);
 
 
@@ -1160,9 +1143,6 @@ class TypeScript
 
   public:
     
-    TypeResult *dynamicList;
-
-    
 
 
 
@@ -1186,19 +1166,6 @@ class TypeScript
     
     static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc,
                                          JSProtoKey kind);
-
-    
-
-
-
-    static inline void MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc);
-    static inline void MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc);
-    static inline void MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-    static inline void GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc);
-    static inline void MonitorOverflow(JSContext *cx);
-    static inline void MonitorString(JSContext *cx);
-    static inline void MonitorUnknown(JSContext *cx);
 
     
 

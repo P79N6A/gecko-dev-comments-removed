@@ -500,17 +500,6 @@ GetTypeCallerInitObject(JSContext *cx, JSProtoKey key)
 
 void MarkIteratorUnknownSlow(JSContext *cx);
 
-
-
-
-
-inline void
-MarkIteratorUnknown(JSContext *cx)
-{
-    if (cx->typeInferenceEnabled())
-        MarkIteratorUnknownSlow(cx);
-}
-
 void TypeMonitorCallSlow(JSContext *cx, JSObject *callee, const CallArgs &args,
                          bool constructing);
 
@@ -839,65 +828,10 @@ TypeScript::Monitor(JSContext *cx, JSScript *script, jsbytecode *pc, const js::V
 }
 
  inline void
-TypeScript::MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    if (cx->typeInferenceEnabled())
-        TypeDynamicResult(cx, script, pc, Type::DoubleType());
-}
-
- inline void
-TypeScript::MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    if (cx->typeInferenceEnabled())
-        TypeDynamicResult(cx, script, pc, Type::StringType());
-}
-
- inline void
-TypeScript::MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    if (cx->typeInferenceEnabled())
-        TypeDynamicResult(cx, script, pc, Type::UnknownType());
-}
-
- inline void
-TypeScript::GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc)
-{
-    *script = cx->currentScript(pc);
-}
-
- inline void
-TypeScript::MonitorOverflow(JSContext *cx)
-{
-    RootedScript script(cx);
-    jsbytecode *pc;
-    GetPcScript(cx, script.address(), &pc);
-    MonitorOverflow(cx, script, pc);
-}
-
- inline void
-TypeScript::MonitorString(JSContext *cx)
-{
-    RootedScript script(cx);
-    jsbytecode *pc;
-    GetPcScript(cx, script.address(), &pc);
-    MonitorString(cx, script, pc);
-}
-
- inline void
-TypeScript::MonitorUnknown(JSContext *cx)
-{
-    RootedScript script(cx);
-    jsbytecode *pc;
-    GetPcScript(cx, script.address(), &pc);
-    MonitorUnknown(cx, script, pc);
-}
-
- inline void
 TypeScript::Monitor(JSContext *cx, const js::Value &rval)
 {
-    RootedScript script(cx);
     jsbytecode *pc;
-    GetPcScript(cx, script.address(), &pc);
+    RootedScript script(cx, cx->currentScript(&pc));
     Monitor(cx, script, pc, rval);
 }
 
@@ -1576,20 +1510,6 @@ TypeNewScript::writeBarrierPre(TypeNewScript *newScript)
         MarkShape(zone->barrierTracer(), &newScript->shape, "write barrier");
     }
 #endif
-}
-
-inline bool
-IterationValuesMustBeStrings(JSScript *script)
-{
-    
-    
-    types::TypeResult *result = script->types->dynamicList;
-    while (result) {
-        if (result->offset == UINT32_MAX)
-            return false;
-        result = result->next;
-    }
-    return true;
 }
 
 } } 

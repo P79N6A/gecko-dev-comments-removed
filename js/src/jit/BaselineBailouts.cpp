@@ -1375,22 +1375,15 @@ HandleShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScript in
 }
 
 static bool
-HandleCachedShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScript innerScript)
+HandleBaselineInfoBailout(JSContext *cx, JSScript *outerScript, JSScript *innerScript)
 {
-    IonSpew(IonSpew_Bailouts, "Cached shape guard failure %s:%d, inlined into %s:%d",
+    IonSpew(IonSpew_Bailouts, "Baseline info failure %s:%d, inlined into %s:%d",
             innerScript->filename(), innerScript->lineno,
             outerScript->filename(), outerScript->lineno);
 
     JS_ASSERT(!outerScript->ionScript()->invalidated());
 
-    outerScript->failedShapeGuard = true;
-
-    
-    
-    
-
-    IonSpew(IonSpew_BaselineBailouts, "Invalidating due to cached shape guard failure");
-
+    IonSpew(IonSpew_BaselineBailouts, "Invalidating due to invalid baseline info");
     return Invalidate(cx, outerScript);
 }
 
@@ -1487,10 +1480,6 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
         
         break;
       case Bailout_ArgumentCheck:
-      case Bailout_TypeBarrier:
-      case Bailout_Monitor:
-        
-        
         
         break;
       case Bailout_BoundsCheck:
@@ -1501,8 +1490,8 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
         if (!HandleShapeGuardFailure(cx, outerScript, innerScript))
             return false;
         break;
-      case Bailout_CachedShapeGuard:
-        if (!HandleCachedShapeGuardFailure(cx, outerScript, innerScript))
+      case Bailout_BaselineInfo:
+        if (!HandleBaselineInfoBailout(cx, outerScript, innerScript))
             return false;
         break;
       default:
