@@ -542,8 +542,8 @@ const DownloadsView = {
 
     
     
-    this.downloadsHistory.collapsed = hiddenCount > 0;
-    DownloadsSummary.visible = this.downloadsHistory.collapsed;
+    
+    DownloadsSummary.active = hiddenCount > 0;
   },
 
   
@@ -1451,31 +1451,29 @@ const DownloadsSummary = {
 
 
 
-  set visible(aVisible)
+  set active(aActive)
   {
-    if (aVisible == this._visible || !this._summaryNode) {
-      return this._visible;
+    if (aActive == this._active || !this._summaryNode) {
+      return this._active;
     }
-    if (aVisible) {
+    if (aActive) {
       DownloadsCommon.getSummary(DownloadsView.kItemCountLimit)
                      .addView(this);
     } else {
       DownloadsCommon.getSummary(DownloadsView.kItemCountLimit)
                      .removeView(this);
+      DownloadsFooter.showingSummary = false;
     }
-    this._summaryNode.collapsed = !aVisible;
-    return this._visible = aVisible;
+
+    return this._active = aActive;
   },
 
   
 
 
-  get visible()
-  {
-    return this._visible;
-  },
+  get active() this._active,
 
-  _visible: false,
+  _active: false,
 
   
 
@@ -1490,6 +1488,8 @@ const DownloadsSummary = {
     } else {
       this._summaryNode.removeAttribute("inprogress");
     }
+    
+    return DownloadsFooter.showingSummary = aShowingProgress;
   },
 
   
@@ -1667,5 +1667,34 @@ const DownloadsFooter = {
       DownloadsView.richListBox.selectedIndex =
         (DownloadsView.richListBox.itemCount - 1);
     }
+  },
+
+  
+
+
+
+  set showingSummary(aValue)
+  {
+    if (this._footerNode) {
+      if (aValue) {
+        this._footerNode.setAttribute("showingsummary", "true");
+      } else {
+        this._footerNode.removeAttribute("showingsummary");
+      }
+    }
+    return aValue;
+  },
+
+  
+
+
+  get _footerNode()
+  {
+    let node = document.getElementById("downloadsFooter");
+    if (!node) {
+      return null;
+    }
+    delete this._footerNode;
+    return this._footerNode = node;
   }
 };
