@@ -197,8 +197,18 @@ FilePicker.prototype = {
   _sendMessage: function() {
     let msg = {
       type: "FilePicker:Show",
-      guid: this.guid
+      guid: this.guid,
     };
+
+    
+    
+    
+    let win = Services.wm.getMostRecentWindow('navigator:browser');
+    let tab = win.BrowserApp.getTabForWindow(this._domWin.top)
+    if (tab) {
+      msg.tabId = tab.id;
+    }
+
     if (!this._extensionsFilter && !this._mimeTypeFilter) {
       
       msg.mode = "mimeType";
