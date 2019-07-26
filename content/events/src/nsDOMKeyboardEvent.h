@@ -76,10 +76,6 @@ public:
                        aCtrlKey, aAltKey, aShiftKey,aMetaKey,
                        aKeyCode, aCharCode);
   }
-
-protected:
-  
-  virtual nsresult Which(uint32_t* aWhich);
 };
 
 

@@ -134,15 +134,6 @@ nsDOMKeyboardEvent::KeyCode()
   return 0;
 }
 
-
-nsresult
-nsDOMKeyboardEvent::Which(uint32_t* aWhich)
-{
-  NS_ENSURE_ARG_POINTER(aWhich);
-  *aWhich = Which();
-  return NS_OK;
-}
-
 uint32_t
 nsDOMKeyboardEvent::Which()
 {

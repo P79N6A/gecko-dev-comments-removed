@@ -40,9 +40,7 @@ public:
   
   virtual uint32_t Which() MOZ_OVERRIDE
   {
-    uint32_t w = 0;
-    Which(&w);
-    return w;
+    return Button() + 1;
   }
 
   int32_t ScreenX();
@@ -123,9 +121,6 @@ public:
   }
 
 protected:
-  
-  virtual nsresult Which(uint32_t* aWhich);
-
   nsresult InitMouseEvent(const nsAString& aType,
                           bool aCanBubble,
                           bool aCancelable,
