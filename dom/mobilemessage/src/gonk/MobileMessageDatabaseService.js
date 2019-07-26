@@ -24,7 +24,7 @@ const DISABLE_MMS_GROUPING_FOR_RECEIVING = true;
 
 
 const DB_NAME = "sms";
-const DB_VERSION = 13;
+const DB_VERSION = 14;
 const MESSAGE_STORE_NAME = "sms";
 const THREAD_STORE_NAME = "thread";
 const PARTICIPANT_STORE_NAME = "participant";
@@ -222,6 +222,10 @@ MobileMessageDatabaseService.prototype = {
             self.upgradeSchema12(event.target.transaction, next);
             break;
           case 13:
+            if (DEBUG) debug("Upgrade to version 14. Fix the wrong participants.");
+            self.upgradeSchema13(event.target.transaction, next);
+            break;
+          case 14:
             
             if (DEBUG) debug("Upgrade finished.");
             break;
@@ -835,6 +839,233 @@ MobileMessageDatabaseService.prototype = {
     };
   },
 
+  
+
+
+  upgradeSchema13: function upgradeSchema13(transaction, next) {
+    let participantStore = transaction.objectStore(PARTICIPANT_STORE_NAME);
+    let threadStore = transaction.objectStore(THREAD_STORE_NAME);
+    let messageStore = transaction.objectStore(MESSAGE_STORE_NAME);
+    let self = this;
+
+    let isInvalid = function (participantRecord) {
+      let entries = [];
+      for (let addr of participantRecord.addresses) {
+        entries.push({
+          normalized: addr,
+          parsed: PhoneNumberUtils.parseWithMCC(addr, null)
+        })
+      }
+      for (let ix = 0 ; ix < entries.length - 1; ix++) {
+        let entry1 = entries[ix];
+        for (let iy = ix + 1 ; iy < entries.length; iy ++) {
+          let entry2 = entries[iy];
+          if (!self.matchPhoneNumbers(entry1.normalized, entry1.parsed,
+                                      entry2.normalized, entry2.parsed)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    let invalidParticipantIds = [];
+    participantStore.openCursor().onsuccess = function(event) {
+      let cursor = event.target.result;
+      if (cursor) {
+        let participantRecord = cursor.value;
+        
+        if (isInvalid(participantRecord)) {
+          invalidParticipantIds.push(participantRecord.id);
+          cursor.delete();
+        }
+        cursor.continue();
+        return;
+      }
+
+      
+      if (!invalidParticipantIds.length) {
+        next();
+      }
+
+      
+      let wrongThreads = [];
+      threadStore.openCursor().onsuccess = function(event) {
+        let threadCursor = event.target.result;
+        if (threadCursor) {
+          let threadRecord = threadCursor.value;
+          let participantIds = threadRecord.participantIds;
+          let foundInvalid = false;
+          for (let invalidParticipantId of invalidParticipantIds) {
+            if (participantIds.indexOf(invalidParticipantId) != -1) {
+              foundInvalid = true;
+              break;
+            }
+          }
+          if (foundInvalid) {
+            wrongThreads.push(threadRecord.id);
+            threadCursor.delete();
+          }
+          threadCursor.continue();
+          return;
+        }
+
+        if (!wrongThreads.length) {
+          next();
+          return;
+        }
+        
+        (function createUpdateThreadAndParticipant(ix) {
+          let threadId = wrongThreads[ix];
+          let range = IDBKeyRange.bound([threadId, 0], [threadId, ""]);
+          messageStore.index("threadId").openCursor(range).onsuccess = function(event) {
+            let messageCursor = event.target.result;
+            if (!messageCursor) {
+              ix++;
+              if (ix === wrongThreads.length) {
+                next();
+                return;
+              }
+              createUpdateThreadAndParticipant(ix);
+              return;
+            }
+
+            let messageRecord = messageCursor.value;
+            let timestamp = messageRecord.timestamp;
+            let threadParticipants = [];
+            
+            if (messageRecord.delivery === DELIVERY_RECEIVED ||
+                messageRecord.delivery === DELIVERY_NOT_DOWNLOADED) {
+              threadParticipants.push(messageRecord.sender);
+              if (messageRecord.type == "mms") {
+                this.fillReceivedMmsThreadParticipants(messageRecord, threadParticipants);
+              }
+            }
+            
+            
+            
+            
+            else if (messageRecord.delivery === DELIVERY_SENT ||
+                messageRecord.delivery === DELIVERY_ERROR) {
+              if (messageRecord.type == "sms") {
+                threadParticipants = [messageRecord.receiver];
+              } else if (messageRecord.type == "mms") {
+                threadParticipants = messageRecord.receivers;
+              }
+            }
+            self.findThreadRecordByParticipants(threadStore, participantStore,
+                                                threadParticipants, true,
+                                                function (threadRecord,
+                                                          participantIds) {
+              if (!participantIds) {
+                debug("participantIds is empty!");
+                return;
+              }
+
+              let timestamp = messageRecord.timestamp;
+              
+              messageRecord.participantIdsIndex = [];
+              for each (let id in participantIds) {
+                messageRecord.participantIdsIndex.push([id, timestamp]);
+              }
+              if (threadRecord) {
+                let needsUpdate = false;
+
+                if (threadRecord.lastTimestamp <= timestamp) {
+                  threadRecord.lastTimestamp = timestamp;
+                  threadRecord.subject = messageRecord.body;
+                  threadRecord.lastMessageId = messageRecord.id;
+                  threadRecord.lastMessageType = messageRecord.type;
+                  needsUpdate = true;
+                }
+
+                if (!messageRecord.read) {
+                  threadRecord.unreadCount++;
+                  needsUpdate = true;
+                }
+
+                if (needsUpdate) {
+                  threadStore.put(threadRecord);
+                }
+                messageRecord.threadId = threadRecord.id;
+                messageRecord.threadIdIndex = [threadRecord.id, timestamp];
+                messageCursor.update(messageRecord);
+                messageCursor.continue();
+                return;
+              }
+
+              let threadRecord = {
+                participantIds: participantIds,
+                participantAddresses: threadParticipants,
+                lastMessageId: messageRecord.id,
+                lastTimestamp: timestamp,
+                subject: messageRecord.body,
+                unreadCount: messageRecord.read ? 0 : 1,
+                lastMessageType: messageRecord.type
+              };
+              threadStore.add(threadRecord).onsuccess = function (event) {
+                let threadId = event.target.result;
+                
+                messageRecord.threadId = threadId;
+                messageRecord.threadIdIndex = [threadId, timestamp];
+                messageCursor.update(messageRecord);
+                messageCursor.continue();
+              };
+            });
+          };
+        })(0);
+      };
+    };
+  },
+
+  matchParsedPhoneNumbers: function matchParsedPhoneNumbers(addr1, parsedAddr1,
+                                                            addr2, parsedAddr2) {
+    if ((parsedAddr1.internationalNumber &&
+         parsedAddr1.internationalNumber === parsedAddr2.internationalNumber) ||
+        (parsedAddr1.nationalNumber &&
+         parsedAddr1.nationalNumber === parsedAddr2.nationalNumber)) {
+      return true;
+    }
+
+    if (parsedAddr1.countryName != parsedAddr2.countryName) {
+      return false;
+    }
+
+    let ssPref = "dom.phonenumber.substringmatching." + parsedAddr1.countryName;
+    if (Services.prefs.getPrefType(ssPref) != Ci.nsIPrefBranch.PREF_INT) {
+      return false;
+    }
+
+    let val = Services.prefs.getIntPref(ssPref);
+    return addr1.length > val &&
+           addr2.length > val &&
+           addr1.slice(-val) === addr2.slice(-val);
+  },
+
+  matchPhoneNumbers: function matchPhoneNumbers(addr1, parsedAddr1, addr2, parsedAddr2) {
+    if (parsedAddr1 && parsedAddr2) {
+      return this.matchParsedPhoneNumbers(addr1, parsedAddr1, addr2, parsedAddr2);
+    }
+
+    if (parsedAddr1) {
+      parsedAddr2 = PhoneNumberUtils.parseWithCountryName(addr2, parsedAddr1.countryName);
+      if (parsedAddr2) {
+        return this.matchParsedPhoneNumbers(addr1, parsedAddr1, addr2, parsedAddr2);
+      }
+
+      return false;
+    }
+
+    if (parsedAddr2) {
+      parsedAddr1 = PhoneNumberUtils.parseWithCountryName(addr1, parsedAddr2.countryName);
+      if (parsedAddr1) {
+        return this.matchParsedPhoneNumbers(addr1, parsedAddr1, addr2, parsedAddr2);
+      }
+    }
+
+    return false;
+  },
+
   createDomMessageFromRecord: function createDomMessageFromRecord(aMessageRecord) {
     if (DEBUG) {
       debug("createDomMessageFromRecord: " + JSON.stringify(aMessageRecord));
@@ -984,31 +1215,13 @@ MobileMessageDatabaseService.prototype = {
 
         let participantRecord = cursor.value;
         for (let storedAddress of participantRecord.addresses) {
-          let match = false;
-          if (parsedAddress) {
-            
-            
-            
-            
-            if (storedAddress.endsWith(parsedAddress.nationalNumber)) {
-              match = true;
-            }
-          } else {
-            
-            
-            
-            let parsedStoredAddress =
-              PhoneNumberUtils.parseWithMCC(storedAddress, null);
-            if (parsedStoredAddress
-                && normalizedAddress.endsWith(parsedStoredAddress.nationalNumber)) {
-              match = true;
-            }
-          }
+          let parsedStoredAddress = PhoneNumberUtils.parseWithMCC(storedAddress, null);
+          let match = this.matchPhoneNumbers(normalizedAddress, parsedAddress,
+                                             storedAddress, parsedStoredAddress);
           if (!match) {
             
             continue;
           }
-
           
           if (aCreate) {
             
@@ -1017,6 +1230,7 @@ MobileMessageDatabaseService.prototype = {
               participantRecord.addresses.concat(allPossibleAddresses);
             cursor.update(participantRecord);
           }
+
           if (DEBUG) {
             debug("findParticipantRecordByAddress: match "
                   + JSON.stringify(cursor.value));
@@ -1385,6 +1599,44 @@ MobileMessageDatabaseService.prototype = {
     });
   },
 
+  fillReceivedMmsThreadParticipants: function fillReceivedMmsThreadParticipants(aMessage, threadParticipants) {
+    let receivers = aMessage.receivers;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (DISABLE_MMS_GROUPING_FOR_RECEIVING || receivers.length < 2) {
+      return;
+    }
+    let isSuccess = false;
+    let slicedReceivers = receivers.slice();
+    if (aMessage.msisdn) {
+      let found = slicedReceivers.indexOf(aMessage.msisdn);
+      if (found !== -1) {
+        isSuccess = true;
+        slicedReceivers.splice(found, 1);
+      }
+    }
+
+    if (!isSuccess) {
+      
+      
+      
+      if (DEBUG) debug("Error! Cannot strip out user's own phone number!");
+    }
+
+    threadParticipants = threadParticipants.concat(slicedReceivers);
+  },
+
   
 
 
@@ -1404,42 +1656,8 @@ MobileMessageDatabaseService.prototype = {
       return;
     }
     let threadParticipants = [aMessage.sender];
-    if (aMessage.type == "mms" && !DISABLE_MMS_GROUPING_FOR_RECEIVING) {
-      let receivers = aMessage.receivers;
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (receivers.length >= 2) {
-        let isSuccess = false;
-        let slicedReceivers = receivers.slice();
-        if (aMessage.phoneNumber) {
-          let found = slicedReceivers.indexOf(aMessage.phoneNumber);
-          if (found !== -1) {
-            isSuccess = true;
-            slicedReceivers.splice(found, 1);
-          }
-        }
-
-        if (!isSuccess) {
-          
-          
-          
-          
-          if (DEBUG) debug("Error! Cannot strip out user's own phone number!");
-        }
-
-        threadParticipants = threadParticipants.concat(slicedReceivers);
-      }
+    if (aMessage.type == "mms") {
+      this.fillReceivedMmsThreadParticipants(aMessage, threadParticipants);
     }
 
     let timestamp = aMessage.timestamp;

@@ -345,6 +345,36 @@ checkFuncs.push(checkThread.bind(null, ["thread 14-1", "thread 14-2",
                                  "thread 14-3", 0, ["5555211014"]));
 
 
+
+
+tasks.push(sendMessage.bind(null, "5555211015", "thread 15-1"));
+checkFuncs.push(checkThread.bind(null, ["thread 15-1"],
+                                 "thread 15-1", 0, ["5555211015"]));
+
+
+
+
+tasks.push(sendMessage.bind(null, "555211015", "thread 16-1"));
+checkFuncs.push(checkThread.bind(null, ["thread 16-1"],
+                                 "thread 16-1", 0, ["555211015"]));
+
+
+
+
+tasks.push(sendMessage.bind(null, "+5511555211017", "thread 17-1"));
+tasks.push(sendMessage.bind(null, "555211017",      "thread 17-2"));
+checkFuncs.push(checkThread.bind(null, ["thread 17-1", "thread 17-2"],
+                                 "thread 17-2", 0, ["+5511555211017"]));
+
+
+
+
+tasks.push(sendMessage.bind(null, "555211018",      "thread 18-1"));
+tasks.push(sendMessage.bind(null, "+5511555211018", "thread 18-2"));
+checkFuncs.push(checkThread.bind(null, ["thread 18-1", "thread 18-2"],
+                                 "thread 18-2", 0, ["555211018"]));
+
+
 tasks.push(getAllThreads.bind(null, function (threads) {
   is(threads.length, checkFuncs.length, "number of threads got");
 
