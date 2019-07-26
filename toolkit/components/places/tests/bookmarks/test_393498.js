@@ -4,114 +4,99 @@
 
 
 
-try {
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].getService(Ci.nsINavBookmarksService);
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
-  do_throw("Could not get services\n");
-}
+let observer = {
+  __proto__: NavBookmarkObserver.prototype,
 
-
-var observer = {
-  onBeginUpdateBatch: function() {},
-  onEndUpdateBatch: function() {},
-  onItemAdded: function(id, folder, index, itemType, uri) {
+  onItemAdded: function (id, folder, index) {
     this._itemAddedId = id;
     this._itemAddedParent = folder;
     this._itemAddedIndex = index;
   },
-  onItemRemoved: function() {},
-  _itemChangedProperty: null,
-  onItemChanged: function(id, property, isAnnotationProperty, value,
-                          lastModified, itemType) {
+  onItemChanged: function (id, property, isAnnotationProperty, value) {
     this._itemChangedId = id;
     this._itemChangedProperty = property;
     this._itemChanged_isAnnotationProperty = isAnnotationProperty;
     this._itemChangedValue = value;
-  },
-  onItemVisited: function() {},
-  onItemMoved: function() {},
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsINavBookmarkObserver) ||
-        iid.equals(Ci.nsISupports)) {
-      return this;
-    }
-    throw Cr.NS_ERROR_NO_INTERFACE;
   }
 };
-bmsvc.addObserver(observer, false);
+PlacesUtils.bookmarks.addObserver(observer, false);
 
+do_register_cleanup(function () {
+  PlacesUtils.bookmarks.removeObserver(observer);
+});
 
 function run_test() {
-  var testFolder = bmsvc.createFolder(bmsvc.placesRoot, "test Folder",
-                                      bmsvc.DEFAULT_INDEX);
-  var bookmarkId = bmsvc.insertBookmark(testFolder, uri("http://google.com/"),
-                                   bmsvc.DEFAULT_INDEX, "");
-  do_check_true(observer.itemChangedProperty == null);
+  
+  
+  
+  const PAST_PRTIME = (Date.now() - 86400000) * 1000;
 
   
+  let testFolder = PlacesUtils.bookmarks.createFolder(
+    PlacesUtils.placesRootId, "test Folder",
+    PlacesUtils.bookmarks.DEFAULT_INDEX);
+  let bookmarkId = PlacesUtils.bookmarks.insertBookmark(
+    testFolder, uri("http://google.com/"),
+    PlacesUtils.bookmarks.DEFAULT_INDEX, "");
+
   
-  var newDate = (Date.now() - 10) * 1000;
-  bmsvc.setItemDateAdded(bookmarkId, newDate);
+  do_check_true(observer.itemChangedProperty === undefined);
+
   
+  PlacesUtils.bookmarks.setItemDateAdded(bookmarkId, PAST_PRTIME);
   do_check_eq(observer._itemChangedProperty, "dateAdded");
-  do_check_eq(observer._itemChangedValue, newDate);
-  
-  var dateAdded = bmsvc.getItemDateAdded(bookmarkId);
-  do_check_eq(dateAdded, newDate);
+  do_check_eq(observer._itemChangedValue, PAST_PRTIME);
+  let dateAdded = PlacesUtils.bookmarks.getItemDateAdded(bookmarkId);
+  do_check_eq(dateAdded, PAST_PRTIME);
 
   
-  var lastModified = bmsvc.getItemLastModified(bookmarkId);
-  do_check_eq(lastModified, dateAdded);
+  do_check_eq(PlacesUtils.bookmarks.getItemLastModified(bookmarkId), dateAdded);
 
-  bmsvc.setItemLastModified(bookmarkId, newDate);
   
+  PlacesUtils.bookmarks.setItemLastModified(bookmarkId, PAST_PRTIME);
   do_check_eq(observer._itemChangedProperty, "lastModified");
-  do_check_eq(observer._itemChangedValue, newDate);
-  
-  do_check_eq(bmsvc.getItemLastModified(bookmarkId), newDate);
+  do_check_eq(observer._itemChangedValue, PAST_PRTIME);
+  do_check_eq(PlacesUtils.bookmarks.getItemLastModified(bookmarkId),
+              PAST_PRTIME);
 
   
-  bmsvc.setItemTitle(bookmarkId, "Google");
+  PlacesUtils.bookmarks.setItemTitle(bookmarkId, "Google");
+
+  
   do_check_eq(observer._itemChangedId, bookmarkId);
   do_check_eq(observer._itemChangedProperty, "title");
   do_check_eq(observer._itemChangedValue, "Google");
 
   
-  do_check_true(bmsvc.getItemLastModified(bookmarkId) > newDate);
+  is_time_ordered(PAST_PRTIME,
+                  PlacesUtils.bookmarks.getItemLastModified(bookmarkId));
 
   
-  var query = histsvc.getNewQuery();
-  query.setFolders([testFolder], 1);
-  var result = histsvc.executeQuery(query, histsvc.getNewQueryOptions());
-  var rootNode = result.root;
-  rootNode.containerOpen = true;
-  do_check_eq(rootNode.childCount, 1);
-  var childNode = rootNode.getChild(0);
+  let root = PlacesUtils.getFolderContents(testFolder).root;
+  do_check_eq(root.childCount, 1);
+  let childNode = root.getChild(0);
 
   
-  do_check_eq(bmsvc.getItemDateAdded(bookmarkId), childNode.dateAdded);
-  do_check_eq(bmsvc.getItemLastModified(bookmarkId), childNode.lastModified);
+  do_check_eq(PlacesUtils.bookmarks.getItemDateAdded(bookmarkId),
+              childNode.dateAdded);
+  do_check_eq(PlacesUtils.bookmarks.getItemLastModified(bookmarkId),
+              childNode.lastModified);
 
   
-  
-  
-  var pastDate = (Date.now() - 10) * 1000;
-  bmsvc.setItemLastModified(bookmarkId, pastDate);
-  
-  var oldLastModified = bmsvc.getItemLastModified(bookmarkId);
-  bmsvc.setItemTitle(bookmarkId, "Google");
-  
-  is_time_ordered(oldLastModified, childNode.lastModified);
-  
-  do_check_eq(bmsvc.getItemLastModified(bookmarkId), childNode.lastModified);
+  PlacesUtils.bookmarks.setItemLastModified(bookmarkId, PAST_PRTIME);
+  PlacesUtils.bookmarks.setItemTitle(bookmarkId, "Google");
 
   
-  newDate = Date.now() * 1000;
-  bmsvc.setItemDateAdded(bookmarkId, newDate);
-  do_check_eq(childNode.dateAdded, newDate);
-  bmsvc.setItemLastModified(bookmarkId, newDate);
-  do_check_eq(childNode.lastModified, newDate);
+  is_time_ordered(PAST_PRTIME, childNode.lastModified);
+  
+  do_check_eq(PlacesUtils.bookmarks.getItemLastModified(bookmarkId),
+              childNode.lastModified);
 
-  rootNode.containerOpen = false;
+  
+  PlacesUtils.bookmarks.setItemDateAdded(bookmarkId, PAST_PRTIME);
+  do_check_eq(childNode.dateAdded, PAST_PRTIME);
+  PlacesUtils.bookmarks.setItemLastModified(bookmarkId, PAST_PRTIME);
+  do_check_eq(childNode.lastModified, PAST_PRTIME);
+
+  root.containerOpen = false;
 }
