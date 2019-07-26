@@ -306,8 +306,10 @@ WalkStackMain64(struct WalkStackData* data)
     
     memset(&context, 0, sizeof(CONTEXT));
     context.ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext(myThread, &context) && data->walkCallingThread) {
-        PrintError("GetThreadContext");
+    if (!GetThreadContext(myThread, &context)) {
+        if (data->walkCallingThread) {
+            PrintError("GetThreadContext");
+        }
         return;
     }
 
