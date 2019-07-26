@@ -69,25 +69,8 @@ let Agent = {
   
 
 
-
-  read: function () {
-    for (let path of [this.path, this.backupPath]) {
-      try {
-        let durationMs = Date.now();
-        let bytes = File.read(path);
-        durationMs = Date.now() - durationMs;
-
-        return {
-          result: Decoder.decode(bytes),
-          telemetry: {FX_SESSION_RESTORE_READ_FILE_MS: durationMs,
-                      FX_SESSION_RESTORE_FILE_SIZE_BYTES: bytes.byteLength}
-        };
-      } catch (ex if isNoSuchFileEx(ex)) {
-        
-      }
-    }
-    
-    return {result: ""};
+  init: function () {
+    return {result: true};
   },
 
   
