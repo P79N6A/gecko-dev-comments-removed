@@ -3473,9 +3473,13 @@ let RIL = {
       }
 
       if (!updatedDataCall) {
-        currentDataCall.state = GECKO_NETWORK_STATE_DISCONNECTED;
-        currentDataCall.rilMessageType = "datacallstatechange";
-        this.sendDOMMessage(currentDataCall);
+        
+        
+        if (!newDataCallOptions) {
+          currentDataCall.state = GECKO_NETWORK_STATE_DISCONNECTED;
+          currentDataCall.rilMessageType = "datacallstatechange";
+          this.sendDOMMessage(currentDataCall);
+        }
         continue;
       }
 
