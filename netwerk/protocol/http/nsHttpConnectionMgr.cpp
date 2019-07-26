@@ -687,8 +687,7 @@ nsHttpConnectionMgr::GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry)
              "with %s connections. rv=%x isJoined=%d",
              preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host(),
              rv, isJoined));
-        mozilla::Telemetry::Accumulate(mozilla::Telemetry::SPDY_NPN_JOIN,
-                                       false);
+        Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, false);
         return nullptr;
     }
 
@@ -698,7 +697,7 @@ nsHttpConnectionMgr::GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry)
          "so %s will be coalesced with %s",
          preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host(),
          aOriginalEntry->mConnInfo->Host(), preferred->mConnInfo->Host()));
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SPDY_NPN_JOIN, true);
+    Telemetry::Accumulate(Telemetry::SPDY_NPN_JOIN, true);
     return preferred;
 }
 
@@ -1348,11 +1347,11 @@ nsHttpConnectionMgr::AddToShortestPipeline(nsConnectionEntry *ent,
         if (trans->UsesPipelining())
             AccumulateTimeDelta(
                 Telemetry::TRANSACTION_WAIT_TIME_HTTP_PIPELINES,
-                trans->GetPendingTime(), mozilla::TimeStamp::Now());
+                trans->GetPendingTime(), TimeStamp::Now());
         else
             AccumulateTimeDelta(
                 Telemetry::TRANSACTION_WAIT_TIME_HTTP,
-                trans->GetPendingTime(), mozilla::TimeStamp::Now());
+                trans->GetPendingTime(), TimeStamp::Now());
         trans->SetPendingTime(false);
     }
     return true;
@@ -1556,7 +1555,7 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
         NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "SPDY Cannot Fail Dispatch");
         if (NS_SUCCEEDED(rv) && !trans->GetPendingTime().IsNull()) {
             AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_SPDY,
-                trans->GetPendingTime(), mozilla::TimeStamp::Now());
+                trans->GetPendingTime(), TimeStamp::Now());
             trans->SetPendingTime(false);
         }
         return rv;
@@ -1574,10 +1573,10 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     if (NS_SUCCEEDED(rv) && !trans->GetPendingTime().IsNull()) {
         if (trans->UsesPipelining())
             AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_HTTP_PIPELINES,
-                trans->GetPendingTime(), mozilla::TimeStamp::Now());
+                trans->GetPendingTime(), TimeStamp::Now());
         else
             AccumulateTimeDelta(Telemetry::TRANSACTION_WAIT_TIME_HTTP,
-                trans->GetPendingTime(), mozilla::TimeStamp::Now());
+                trans->GetPendingTime(), TimeStamp::Now());
         trans->SetPendingTime(false);
     }
     return rv;
@@ -2492,7 +2491,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::SetupPrimaryStreams()
 
     nsresult rv;
 
-    mPrimarySynStarted = mozilla::TimeStamp::Now();
+    mPrimarySynStarted = TimeStamp::Now();
     rv = SetupStreams(getter_AddRefs(mSocketTransport),
                       getter_AddRefs(mStreamIn),
                       getter_AddRefs(mStreamOut),
@@ -2512,7 +2511,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::SetupPrimaryStreams()
 nsresult
 nsHttpConnectionMgr::nsHalfOpenSocket::SetupBackupStreams()
 {
-    mBackupSynStarted = mozilla::TimeStamp::Now();
+    mBackupSynStarted = TimeStamp::Now();
     nsresult rv = SetupStreams(getter_AddRefs(mBackupTransport),
                                getter_AddRefs(mBackupStreamIn),
                                getter_AddRefs(mBackupStreamOut),
@@ -2598,7 +2597,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
 }
 
 double
-nsHttpConnectionMgr::nsHalfOpenSocket::Duration(mozilla::TimeStamp epoch)
+nsHttpConnectionMgr::nsHalfOpenSocket::Duration(TimeStamp epoch)
 {
     if (mPrimarySynStarted.IsNull())
         return 0;
@@ -2647,8 +2646,7 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
     mTransaction->GetSecurityCallbacks(getter_AddRefs(callbacks),
                                        getter_AddRefs(callbackTarget));
     if (out == mStreamOut) {
-        mozilla::TimeDuration rtt = 
-            mozilla::TimeStamp::Now() - mPrimarySynStarted;
+        TimeDuration rtt = TimeStamp::Now() - mPrimarySynStarted;
         rv = conn->Init(mEnt->mConnInfo,
                         gHttpHandler->ConnMgr()->mMaxRequestDelay,
                         mSocketTransport, mStreamIn, mStreamOut,
@@ -2661,9 +2659,7 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
         mSocketTransport = nullptr;
     }
     else {
-        mozilla::TimeDuration rtt = 
-            mozilla::TimeStamp::Now() - mBackupSynStarted;
-        
+        TimeDuration rtt = TimeStamp::Now() - mBackupSynStarted;
         rv = conn->Init(mEnt->mConnInfo,
                         gHttpHandler->ConnMgr()->mMaxRequestDelay,
                         mBackupTransport, mBackupStreamIn, mBackupStreamOut,
@@ -2957,7 +2953,7 @@ nsConnectionEntry::OnPipelineFeedbackInfo(
         }
 
         if (mLastCreditTime.IsNull())
-            mLastCreditTime = mozilla::TimeStamp::Now();
+            mLastCreditTime = TimeStamp::Now();
 
         
         
@@ -3068,8 +3064,8 @@ nsHttpConnectionMgr::nsConnectionEntry::CreditPenalty()
     
     
 
-    mozilla::TimeStamp now = mozilla::TimeStamp::Now();
-    mozilla::TimeDuration elapsedTime = now - mLastCreditTime;
+    TimeStamp now = TimeStamp::Now();
+    TimeDuration elapsedTime = now - mLastCreditTime;
     uint32_t creditsEarned =
         static_cast<uint32_t>(elapsedTime.ToSeconds()) >> 4;
     
@@ -3087,8 +3083,7 @@ nsHttpConnectionMgr::nsConnectionEntry::CreditPenalty()
         }
 
         
-        mLastCreditTime +=
-            mozilla::TimeDuration::FromSeconds(creditsEarned << 4);
+        mLastCreditTime += TimeDuration::FromSeconds(creditsEarned << 4);
     }
     else {
         failed = true;                         
@@ -3097,7 +3092,7 @@ nsHttpConnectionMgr::nsConnectionEntry::CreditPenalty()
     
     
     if (!failed)
-        mLastCreditTime = mozilla::TimeStamp();    
+        mLastCreditTime = TimeStamp();    
 
     if (mPipelineState == PS_RED && !mPipeliningPenalty)
     {
