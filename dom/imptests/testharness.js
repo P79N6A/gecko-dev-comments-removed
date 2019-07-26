@@ -343,6 +343,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 (function ()
 {
     var debug = false;
@@ -389,9 +402,8 @@
     function next_default_name()
     {
         
-        var prefix = document.getElementsByTagName("title").length > 0 ?
-                         document.getElementsByTagName("title")[0].firstChild.data :
-                         "Untitled";
+        var title = document.getElementsByTagName("title")[0];
+        var prefix = (title && title.firstChild && title.firstChild.data) || "Untitled";
         var suffix = name_counter > 0 ? " " + name_counter : "";
         name_counter++;
         return prefix + suffix;
@@ -451,8 +463,8 @@
                     test(function()
                          {
                              func.apply(this, x.slice(1));
-                         }, 
-                         name, 
+                         },
+                         name,
                          Array.isArray(properties) ? properties[i] : properties);
                 });
     }
@@ -484,11 +496,22 @@
     
 
 
-    function format_value(val)
+    function format_value(val, seen)
     {
+	if (!seen) {
+	    seen = [];
+        }
+        if (typeof val === "object" && val !== null)
+        {
+            if (seen.indexOf(val) >= 0)
+            {
+                return "[...]";
+            }
+	    seen.push(val);
+        }
         if (Array.isArray(val))
         {
-            return "[" + val.map(format_value).join(", ") + "]";
+            return "[" + val.map(function(x) {return format_value(x, seen)}).join(", ") + "]";
         }
 
         switch (typeof val)
@@ -748,6 +771,74 @@
     };
     expose(assert_approx_equals, "assert_approx_equals");
 
+    function assert_less_than(actual, expected, description)
+    {
+        
+
+
+        assert(typeof actual === "number",
+               "assert_less_than", description,
+               "expected a number but got a ${type_actual}",
+               {type_actual:typeof actual});
+
+        assert(actual < expected,
+               "assert_less_than", description,
+               "expected a number less than ${expected} but got ${actual}",
+               {expected:expected, actual:actual});
+    };
+    expose(assert_less_than, "assert_less_than");
+
+    function assert_greater_than(actual, expected, description)
+    {
+        
+
+
+        assert(typeof actual === "number",
+               "assert_greater_than", description,
+               "expected a number but got a ${type_actual}",
+               {type_actual:typeof actual});
+
+        assert(actual > expected,
+               "assert_greater_than", description,
+               "expected a number greater than ${expected} but got ${actual}",
+               {expected:expected, actual:actual});
+    };
+    expose(assert_greater_than, "assert_greater_than");
+
+    function assert_less_than_equal(actual, expected, description)
+    {
+        
+
+
+        assert(typeof actual === "number",
+               "assert_less_than_equal", description,
+               "expected a number but got a ${type_actual}",
+               {type_actual:typeof actual});
+
+        assert(actual <= expected,
+               "assert_less_than", description,
+               "expected a number less than or equal to ${expected} but got ${actual}",
+               {expected:expected, actual:actual});
+    };
+    expose(assert_less_than_equal, "assert_less_than_equal");
+
+    function assert_greater_than_equal(actual, expected, description)
+    {
+        
+
+
+        assert(typeof actual === "number",
+               "assert_greater_than_equal", description,
+               "expected a number but got a ${type_actual}",
+               {type_actual:typeof actual});
+
+        assert(actual >= expected,
+               "assert_greater_than_equal", description,
+               "expected a number greater than or equal to ${expected} but got ${actual}",
+               {expected:expected, actual:actual});
+    };
+    expose(assert_greater_than_equal, "assert_greater_than_equal");
+
     function assert_regexp_match(actual, expected, description) {
         
 
@@ -955,12 +1046,12 @@
     }
     expose(assert_unreached, "assert_unreached");
 
-    function assert_any(assert_func, actual, expected_array) 
+    function assert_any(assert_func, actual, expected_array)
     {
         var args = [].slice.call(arguments, 3)
         var errors = []
         var passed = false;
-        forEach(expected_array, 
+        forEach(expected_array,
                 function(expected)
                 {
                     try {
@@ -1041,7 +1132,7 @@
 
         try
         {
-            func.apply(this_obj, Array.prototype.slice.call(arguments, 2));
+            return func.apply(this_obj, Array.prototype.slice.call(arguments, 2));
         }
         catch(e)
         {
@@ -1185,6 +1276,8 @@
         this.wait_for_finish = false;
         this.processing_callbacks = false;
 
+        this.allow_uncaught_exception = false;
+
         this.timeout_length = settings.timeout;
         this.timeout_id = null;
 
@@ -1205,6 +1298,8 @@
                          this_obj.complete();
                      }
                  });
+
+        this.set_timeout();
     }
 
     Tests.prototype.setup = function(func, properties)
@@ -1218,24 +1313,28 @@
             this.phase = this.phases.SETUP;
         }
 
+        this.properties = properties;
+
         for (var p in properties)
         {
             if (properties.hasOwnProperty(p))
             {
-                this.properties[p] = properties[p];
+                var value = properties[p]
+                if (p == "timeout")
+                {
+                    this.timeout_length = value;
+                }
+                else if (p == "allow_uncaught_exception") {
+                    this.allow_uncaught_exception = value;
+                }
+                else if (p == "explicit_done" && value)
+                {
+                    this.wait_for_finish = true;
+                }
+                else if (p == "explicit_timeout" && value) {
+                    this.timeout_length = null;
+                }
             }
-        }
-
-        if (properties.timeout)
-        {
-            this.timeout_length = properties.timeout;
-        }
-        if (properties.explicit_done)
-        {
-            this.wait_for_finish = true;
-        }
-        if (properties.explicit_timeout) {
-            this.timeout_length = null;
         }
 
         if (func)
@@ -1449,6 +1548,15 @@
 
     var tests = new Tests();
 
+    window.onerror = function(msg) {
+        if (!tests.allow_uncaught_exception)
+        {
+            tests.status.status = tests.status.ERROR;
+            tests.status.message = msg;
+            tests.complete();
+        }
+    }
+
     function timeout() {
         if (tests.timeout_length === null)
         {
@@ -1602,6 +1710,11 @@
             }
         }
 
+        var status_text_harness = {};
+        status_text_harness[harness_status.OK] = "OK";
+        status_text_harness[harness_status.ERROR] = "Error";
+        status_text_harness[harness_status.TIMEOUT] = "Timeout";
+
         var status_text = {};
         status_text[Test.prototype.PASS] = "Pass";
         status_text[Test.prototype.FAIL] = "Fail";
@@ -1626,6 +1739,34 @@
 
         var summary_template = ["section", {"id":"summary"},
                                 ["h2", {}, "Summary"],
+                                function(vars)
+                                {
+                                    if (harness_status.status === harness_status.OK)
+                                    {
+                                        return null;
+                                    }
+                                    else
+                                    {
+                                        var status = status_text_harness[harness_status.status];
+                                        var rv = [["p", {"class":status_class(status)}]];
+
+                                        if (harness_status.status === harness_status.ERROR)
+                                        {
+                                            rv[0].push("Harness encountered an error:");
+                                            rv.push(["pre", {}, harness_status.message]);
+                                        }
+                                        else if (harness_status.status === harness_status.TIMEOUT)
+                                        {
+                                            rv[0].push("Harness timed out.");
+                                        }
+                                        else
+                                        {
+                                            rv[0].push("Harness got an unexpected status.");
+                                        }
+
+                                        return rv;
+                                    }
+                                },
                                 ["p", {}, "Found ${num_tests} tests"],
                                 function(vars) {
                                     var rv = [["div", {}]];
@@ -1691,7 +1832,7 @@
             }
             return false;
         }
-        
+
         function get_assertion(test)
         {
             if (test.properties.hasOwnProperty("assert")) {
@@ -1702,7 +1843,7 @@
             }
             return '';
         }
-        
+
         log.appendChild(document.createElementNS(xhtml_ns, "section"));
         var assertions = has_assertions();
         var html = "<h2>Details</h2><table id='results' " + (assertions ? "class='assertions'" : "" ) + ">"
