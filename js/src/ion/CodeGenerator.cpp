@@ -265,7 +265,7 @@ CodeGenerator::visitLambda(LLambda *lir)
     masm.store32(Imm32(u.word), Address(output, offsetof(JSFunction, nargs)));
     masm.storePtr(ImmGCPtr(fun->script()), Address(output, JSFunction::offsetOfNativeOrScript()));
     masm.storePtr(scopeChain, Address(output, JSFunction::offsetOfEnvironment()));
-    masm.storePtr(ImmGCPtr(fun->displayAtom()), Address(output, JSFunction::offsetOfAtom()));
+    masm.storePtr(ImmGCPtr(fun->atom), Address(output, offsetof(JSFunction, atom)));
 
     masm.bind(ool->rejoin());
     return true;
@@ -1455,7 +1455,7 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
 {
     Register obj = ToRegister(lir->output());
 
-    typedef JSObject *(*pf)(JSContext *, HandleShape, HandleTypeObject, HeapSlot *, HandleObject);
+    typedef JSObject *(*pf)(JSContext *, HandleShape, HandleTypeObject, HeapSlot *);
     static const VMFunction NewCallObjectInfo = FunctionInfo<pf>(NewCallObject);
 
     JSObject *templateObj = lir->mir()->templateObj();
@@ -1467,15 +1467,13 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
         ool = oolCallVM(NewCallObjectInfo, lir,
                         (ArgList(), ImmGCPtr(templateObj->lastProperty()),
                                     ImmGCPtr(templateObj->type()),
-                                    ToRegister(lir->slots()),
-                                    ImmGCPtr(global)),
+                                    ToRegister(lir->slots())),
                         StoreRegisterTo(obj));
     } else {
         ool = oolCallVM(NewCallObjectInfo, lir,
                         (ArgList(), ImmGCPtr(templateObj->lastProperty()),
                                     ImmGCPtr(templateObj->type()),
-                                    ImmWord((void *)NULL),
-                                    ImmGCPtr(global)),
+                                    ImmWord((void *)NULL)),
                         StoreRegisterTo(obj));
     }
     if (!ool)
@@ -3951,7 +3949,7 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
     masm.passABIArg(ObjectReg);
     masm.passABIArg(PrivateReg);
     masm.passABIArg(ValueReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ins->mir()->fun()));
+    masm.callWithABI((void *)ins->mir()->fun());
 
     if (ins->mir()->isInfallible()) {
         masm.loadValue(Address(StackPointer, IonDOMExitFrameLayout::offsetOfResult()),
@@ -4017,7 +4015,7 @@ CodeGenerator::visitSetDOMProperty(LSetDOMProperty *ins)
     masm.passABIArg(ObjectReg);
     masm.passABIArg(PrivateReg);
     masm.passABIArg(ValueReg);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ins->mir()->fun()));
+    masm.callWithABI((void *)ins->mir()->fun());
 
     Label success, exception;
     masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);

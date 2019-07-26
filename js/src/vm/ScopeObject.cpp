@@ -138,19 +138,15 @@ js::ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc)
 
 
 CallObject *
-CallObject::create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots,
-                   HandleObject global)
+CallObject::create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots)
 {
     gc::AllocKind kind = gc::GetGCObjectKind(shape->numFixedSlots());
     JS_ASSERT(CanBeFinalizedInBackground(kind, &CallClass));
     kind = gc::GetBackgroundAllocKind(kind);
 
-    RootedObject obj(cx, JSObject::create(cx, kind, shape, type, slots));
+    JSObject *obj = JSObject::create(cx, kind, shape, type, slots);
     if (!obj)
         return NULL;
-
-    JS_ASSERT(obj->isDelegate());
-
     return &obj->asCall();
 }
 
@@ -159,9 +155,8 @@ CallObject::create(JSContext *cx, HandleShape shape, HandleTypeObject type, Heap
 
 
 
-
 CallObject *
-CallObject::create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleFunction callee)
+CallObject::createTemplateObject(JSContext *cx, JSScript *script)
 {
     RootedShape shape(cx, script->bindings.callObjShape());
 
@@ -173,23 +168,37 @@ CallObject::create(JSContext *cx, JSScript *script, HandleObject enclosing, Hand
     if (!PreallocateObjectDynamicSlots(cx, shape, &slots))
         return NULL;
 
-    RootedObject global(cx, &enclosing->global());
-    RootedObject obj(cx, CallObject::create(cx, shape, type, slots, global));
-    if (!obj)
+    CallObject *callobj = CallObject::create(cx, shape, type, slots);
+    if (!callobj) {
+        cx->free_(slots);
+        return NULL;
+    }
+
+    return callobj;
+}
+
+
+
+
+
+
+
+CallObject *
+CallObject::create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleFunction callee)
+{
+    CallObject *callobj = CallObject::createTemplateObject(cx, script);
+    if (!callobj)
         return NULL;
 
-    JS_ASSERT(enclosing->global() == obj->global());
-
-    obj->asScope().setEnclosingScope(enclosing);
-    obj->initFixedSlot(CALLEE_SLOT, ObjectOrNullValue(callee));
-    return &obj->asCall();
+    callobj->asScope().setEnclosingScope(enclosing);
+    callobj->initFixedSlot(CALLEE_SLOT, ObjectOrNullValue(callee));
+    return callobj;
 }
 
 CallObject *
 CallObject::createForFunction(JSContext *cx, StackFrame *fp)
 {
     JS_ASSERT(fp->isNonEvalFunctionFrame());
-    assertSameCompartment(cx, fp);
 
     RootedObject scopeChain(cx, fp->scopeChain());
 
@@ -256,8 +265,6 @@ Class js::DeclEnvClass = {
 DeclEnvObject *
 DeclEnvObject::create(JSContext *cx, StackFrame *fp)
 {
-    assertSameCompartment(cx, fp);
-
     RootedTypeObject type(cx, cx->compartment->getEmptyType(cx));
     if (!type)
         return NULL;
@@ -274,7 +281,7 @@ DeclEnvObject::create(JSContext *cx, StackFrame *fp)
         return NULL;
 
     obj->asScope().setEnclosingScope(fp->scopeChain());
-    Rooted<jsid> id(cx, AtomToId(fp->fun()->atom()));
+    Rooted<jsid> id(cx, AtomToId(fp->fun()->atom));
     RootedValue value(cx, ObjectValue(fp->callee()));
     if (!DefineNativeProperty(cx, obj, id, value, NULL, NULL,
                               JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY,
@@ -563,6 +570,7 @@ Class js::WithClass = {
         with_Enumerate,
         with_TypeOf,
         with_ThisObject,
+        NULL,             
     }
 };
 
@@ -571,8 +579,6 @@ Class js::WithClass = {
 ClonedBlockObject *
 ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject *> block, StackFrame *fp)
 {
-    assertSameCompartment(cx, fp);
-
     RootedTypeObject type(cx, block->getNewType(cx));
     if (!type)
         return NULL;
@@ -871,7 +877,6 @@ ScopeIter::ScopeIter(StackFrame *fp, JSContext *cx
     cur_(cx, fp->scopeChain()),
     block_(cx, fp->maybeBlockChain())
 {
-    assertSameCompartment(cx, fp);
     settle();
     JS_GUARD_OBJECT_NOTIFIER_INIT;
 }
@@ -1612,7 +1617,6 @@ DebugScopes::addDebugScope(JSContext *cx, ScopeObject &scope, DebugScopeObject &
         js_ReportOutOfMemory(cx);
         return false;
     }
-    HashTableWriteBarrierPost(debugScope.compartment(), &proxiedScopes, &scope);
     return true;
 }
 
@@ -1652,7 +1656,6 @@ void
 DebugScopes::onPopCall(StackFrame *fp, JSContext *cx)
 {
     JS_ASSERT(!fp->isYielding());
-    assertSameCompartment(cx, fp);
 
     DebugScopeObject *debugScope = NULL;
 
@@ -1726,8 +1729,6 @@ DebugScopes::onPopCall(StackFrame *fp, JSContext *cx)
 void
 DebugScopes::onPopBlock(JSContext *cx, StackFrame *fp)
 {
-    assertSameCompartment(cx, fp);
-
     StaticBlockObject &staticBlock = *fp->maybeBlockChain();
     if (staticBlock.needsClone()) {
         ClonedBlockObject &clone = fp->scopeChain()->asClonedBlock();
@@ -1793,10 +1794,6 @@ DebugScopes::onGeneratorFrameChange(StackFrame *from, StackFrame *to, JSContext 
 void
 DebugScopes::onCompartmentLeaveDebugMode(JSCompartment *c)
 {
-    for (ObjectWeakMap::Enum e(proxiedScopes); !e.empty(); e.popFront()) {
-        if (e.front().key->compartment() == c)
-            e.removeFront();
-    }
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
         if (e.front().key.fp()->compartment() == c)
             e.removeFront();
@@ -1825,7 +1822,7 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
     for (AllFramesIter i(cx->runtime->stackSpace); !i.done(); ++i) {
         StackFrame *fp = i.fp();
-        if (fp->scopeChain()->compartment() != cx->compartment)
+        if (fp->isDummyFrame() || fp->scopeChain()->compartment() != cx->compartment)
             continue;
 
         for (ScopeIter si(fp, cx); !si.done(); ++si) {

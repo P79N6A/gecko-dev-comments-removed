@@ -186,8 +186,10 @@ class CallObject : public ScopeObject
   public:
     
     static CallObject *
-    create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots,
-           HandleObject enclosing);
+    create(JSContext *cx, HandleShape shape, HandleTypeObject type, HeapSlot *slots);
+
+    static CallObject *
+    createTemplateObject(JSContext *cx, JSScript *script);
 
     static const uint32_t RESERVED_SLOTS = 2;
 
@@ -538,7 +540,7 @@ class DebugScopes
     JSRuntime *rt;
 
     
-    typedef WeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
+    typedef WeakMap<HeapPtrObject, HeapPtrObject> ObjectWeakMap;
     ObjectWeakMap proxiedScopes;
 
     
