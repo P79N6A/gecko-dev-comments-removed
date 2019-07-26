@@ -222,9 +222,13 @@ public:
 
 
   virtual nsresult
-  GetServiceChannel(const nsAString& aObjectPath,
+  GetServiceChannel(const nsAString& aDeviceAddress,
                     const nsAString& aServiceUuid,
                     BluetoothProfileManagerBase* aManager) = 0;
+
+  virtual bool
+  UpdateSdpRecords(const nsAString& aDeviceAddress,
+                   BluetoothProfileManagerBase* aManager) = 0;
 
   virtual bool
   SetPinCodeInternal(const nsAString& aDeviceAddress, const nsAString& aPinCode,
