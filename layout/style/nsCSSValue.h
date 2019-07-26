@@ -139,13 +139,14 @@ enum nsCSSUnit {
   eCSSUnit_Auto         = 1,      
   eCSSUnit_Inherit      = 2,      
   eCSSUnit_Initial      = 3,      
-  eCSSUnit_None         = 4,      
-  eCSSUnit_Normal       = 5,      
-  eCSSUnit_System_Font  = 6,      
-  eCSSUnit_All          = 7,      
-  eCSSUnit_Dummy        = 8,      
+  eCSSUnit_Unset        = 4,      
+  eCSSUnit_None         = 5,      
+  eCSSUnit_Normal       = 6,      
+  eCSSUnit_System_Font  = 7,      
+  eCSSUnit_All          = 8,      
+  eCSSUnit_Dummy        = 9,      
                                   
-  eCSSUnit_DummyInherit = 9,      
+  eCSSUnit_DummyInherit = 10,     
                                   
 
   eCSSUnit_String       = 11,     
@@ -492,6 +493,7 @@ public:
   void SetAutoValue();
   void SetInheritValue();
   void SetInitialValue();
+  void SetUnsetValue();
   void SetNoneValue();
   void SetAllValue();
   void SetNormalValue();
