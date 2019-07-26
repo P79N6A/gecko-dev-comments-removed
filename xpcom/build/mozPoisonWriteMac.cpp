@@ -175,14 +175,9 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
     if (IsIPCWrite(fd, buf))
         return;
 
-    {
-        DebugFDAutoLock lockedScope;
-
-        
-        std::vector<int> &Vec = getDebugFDs();
-        if (std::find(Vec.begin(), Vec.end(), fd) != Vec.end())
-            return;
-    }
+    
+    if (IsDebugFD(fd))
+        return;
 
     
     

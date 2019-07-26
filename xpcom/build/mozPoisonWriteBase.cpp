@@ -30,7 +30,43 @@
 #endif
 using namespace mozilla;
 
-namespace mozilla {
+namespace {
+struct DebugFDAutoLockTraits {
+  typedef PRLock *type;
+  const static type empty() {
+    return nullptr;
+  }
+  const static void release(type aL) {
+    PR_Unlock(aL);
+  }
+};
+
+class DebugFDAutoLock : public Scoped<DebugFDAutoLockTraits> {
+  static PRLock *Lock;
+public:
+  static void Clear();
+  static PRLock *getDebugFDsLock() {
+    
+    
+    
+    
+    
+    
+    static bool Initialized = false;
+    if (!Initialized) {
+      Lock = PR_NewLock();
+      Initialized = true;
+    }
+
+    
+    
+    return Lock;
+  }
+
+  DebugFDAutoLock() : Scoped<DebugFDAutoLockTraits>(getDebugFDsLock()) {
+    PR_Lock(get());
+  }
+};
 
 PRLock *DebugFDAutoLock::Lock;
 void DebugFDAutoLock::Clear() {
@@ -46,22 +82,6 @@ std::vector<int>& getDebugFDs() {
   
   static std::vector<int> *DebugFDs = new std::vector<int>();
   return *DebugFDs;
-}
-
-void InitWritePoisoning()
-{
-  
-  DebugFDAutoLock::getDebugFDsLock();
-
-  nsCOMPtr<nsIFile> mozFile;
-  NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
-  if (mozFile) {
-    nsAutoCString nativePath;
-    nsresult rv = mozFile->GetNativePath(nativePath);
-    if (NS_SUCCEEDED(rv)) {
-      sProfileDirectory = PL_strdup(nativePath.get());
-    }
-  }
 }
 
 
@@ -105,6 +125,40 @@ static void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
     std::vector<uintptr_t> *stack =
         static_cast<std::vector<uintptr_t>*>(aClosure);
     stack->push_back(reinterpret_cast<uintptr_t>(aPC));
+}
+
+
+enum PoisonState {
+  POISON_UNINITIALIZED = 0,
+  POISON_ON,
+  POISON_OFF
+};
+
+
+
+
+
+
+
+PoisonState sPoisoningState = POISON_UNINITIALIZED;
+}
+
+namespace mozilla {
+
+void InitWritePoisoning()
+{
+  
+  DebugFDAutoLock::getDebugFDsLock();
+
+  nsCOMPtr<nsIFile> mozFile;
+  NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
+  if (mozFile) {
+    nsAutoCString nativePath;
+    nsresult rv = mozFile->GetNativePath(nativePath);
+    if (NS_SUCCEEDED(rv)) {
+      sProfileDirectory = PL_strdup(nativePath.get());
+    }
+  }
 }
 
 bool ValidWriteAssert(bool ok)
@@ -207,20 +261,6 @@ bool ValidWriteAssert(bool ok)
     return false;
 }
 
-enum PoisonState {
-  POISON_UNINITIALIZED = 0,
-  POISON_ON,
-  POISON_OFF
-};
-
-
-
-
-
-
-
-PoisonState sPoisoningState = POISON_UNINITIALIZED;
-
 void DisableWritePoisoning() {
   if (sPoisoningState != POISON_ON)
     return;
@@ -245,6 +285,13 @@ void EnableWritePoisoning() {
 bool PoisonWriteEnabled()
 {
   return sPoisoningState == POISON_ON;
+}
+
+bool IsDebugFD(int fd) {
+  DebugFDAutoLock lockedScope;
+
+  std::vector<int> &Vec = getDebugFDs();
+  return std::find(Vec.begin(), Vec.end(), fd) != Vec.end();
 }
 
 } 
