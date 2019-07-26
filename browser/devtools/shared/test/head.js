@@ -8,6 +8,12 @@ let console = (function() {
   return tempScope.console;
 })();
 
+let TargetFactory = (function() {
+  let tempScope = {};
+  Components.utils.import("resource:///modules/devtools/Target.jsm", tempScope);
+  return tempScope.TargetFactory;
+})();
+
 
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
 Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);

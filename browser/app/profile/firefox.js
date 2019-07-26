@@ -1011,10 +1011,15 @@ pref("devtools.gcli.allowSet", false);
 pref("devtools.commands.dir", "");
 
 
+pref("devtools.toolbox.footer.height", 250);
+pref("devtools.toolbox.sidebar.width", 500);
+pref("devtools.toolbox.host", "bottom");
+pref("devtools.toolbox.selectedTool", "webconsole");
+pref("devtools.toolbox.toolbarSpec", '["tilt toggle","scratchpad","resize toggle"]');
+pref("devtools.toolbox.sideEnabled", false);
+
+
 pref("devtools.inspector.enabled", true);
-pref("devtools.inspector.htmlHeight", 112);
-pref("devtools.inspector.htmlPanelOpen", false);
-pref("devtools.inspector.sidebarOpen", false);
 pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
 
@@ -1047,15 +1052,9 @@ pref("devtools.debugger.ui.variables-non-enum-visible", true);
 pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
-pref("devtools.styleinspector.enabled", true);
-
-
 pref("devtools.tilt.enabled", true);
 pref("devtools.tilt.intro_transition", true);
 pref("devtools.tilt.outro_transition", true);
-
-
-pref("devtools.ruleview.enabled", true);
 
 
 pref("devtools.scratchpad.enabled", true);
@@ -1080,17 +1079,6 @@ pref("devtools.gcli.eagerHelper", 2);
 
 
 pref("devtools.gcli.allowSet", false);
-
-
-
-
-pref("devtools.hud.height", 0);
-
-
-
-
-
-pref("devtools.webconsole.position", "below");
 
 
 pref("devtools.webconsole.filter.network", true);

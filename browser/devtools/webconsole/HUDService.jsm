@@ -13,6 +13,10 @@ const Cu = Components.utils;
 const CONSOLEAPI_CLASS_ID = "{b49c18f8-3379-4fc0-8c90-d7772c1a9ff3}";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "TargetFactory",
+                                  "resource:///modules/devtools/Target.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
@@ -44,35 +48,12 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 
-const ANIMATE_OUT = 0;
-const ANIMATE_IN = 1;
-
-
-const MINIMUM_CONSOLE_HEIGHT = 150;
-
-
-
-const MINIMUM_PAGE_HEIGHT = 50;
-
-
-const DEFAULT_CONSOLE_HEIGHT = 0.33;
-
-
-const UI_IFRAME_URL = "chrome://browser/content/devtools/webconsole.xul";
-
-
-
 
 function HUD_SERVICE()
 {
   
   
-  this.onTabClose = this.onTabClose.bind(this);
-  this.onTabSelect = this.onTabSelect.bind(this);
   this.onWindowUnload = this.onWindowUnload.bind(this);
-
-  
-  this.lastConsoleHeight = Services.prefs.getIntPref("devtools.hud.height");
 
   
 
@@ -118,12 +99,8 @@ HUD_SERVICE.prototype =
 
 
 
-
-
-
-
-  activateHUDForContext:
-  function HS_activateHUDForContext(aTab, aAnimated, aOptions)
+  activateHUDForContext: function HS_activateHUDForContext(aTab, aIframe,
+                                                           aTarget)
   {
     let hudId = "hud_" + aTab.linkedPanel;
     if (hudId in this.hudReferences) {
@@ -135,18 +112,10 @@ HUD_SERVICE.prototype =
     let window = aTab.ownerDocument.defaultView;
     let gBrowser = window.gBrowser;
 
-    gBrowser.tabContainer.addEventListener("TabClose", this.onTabClose, false);
-    gBrowser.tabContainer.addEventListener("TabSelect", this.onTabSelect, false);
     window.addEventListener("unload", this.onWindowUnload, false);
 
-    let hud = new WebConsole(aTab, aOptions);
+    let hud = new WebConsole(aTab, aIframe, aTarget);
     this.hudReferences[hudId] = hud;
-
-    if (!aAnimated || hud.consolePanel) {
-      this.disableAnimation(hudId);
-    }
-
-    HeadsUpDisplayUICommands.refreshCommand();
 
     return hud;
   },
@@ -158,17 +127,11 @@ HUD_SERVICE.prototype =
 
 
 
-
-
-  deactivateHUDForContext: function HS_deactivateHUDForContext(aTab, aAnimated)
+  deactivateHUDForContext: function HS_deactivateHUDForContext(aTab)
   {
     let hudId = "hud_" + aTab.linkedPanel;
     if (!(hudId in this.hudReferences)) {
       return;
-    }
-
-    if (!aAnimated) {
-      this.storeHeight(hudId);
     }
 
     let hud = this.getHudReferenceById(hudId);
@@ -194,16 +157,12 @@ HUD_SERVICE.prototype =
 
       let gBrowser = window.gBrowser;
       let tabContainer = gBrowser.tabContainer;
-      tabContainer.removeEventListener("TabClose", this.onTabClose, false);
-      tabContainer.removeEventListener("TabSelect", this.onTabSelect, false);
 
       this.suspend();
     }
 
     let contentWindow = aTab.linkedBrowser.contentWindow;
     contentWindow.focus();
-
-    HeadsUpDisplayUICommands.refreshCommand();
   },
 
   
@@ -255,7 +214,7 @@ HUD_SERVICE.prototype =
   shutdown: function HS_shutdown()
   {
     for (let hud of this.hudReferences) {
-      this.deactivateHUDForContext(hud.tab, false);
+      this.deactivateHUDForContext(hud.tab);
     }
   },
 
@@ -336,28 +295,6 @@ HUD_SERVICE.prototype =
 
 
 
-  onTabClose: function HS_onTabClose(aEvent)
-  {
-    this.deactivateHUDForContext(aEvent.target, false);
-  },
-
-  
-
-
-
-
-
-  onTabSelect: function HS_onTabSelect(aEvent)
-  {
-    HeadsUpDisplayUICommands.refreshCommand();
-  },
-
-  
-
-
-
-
-
 
 
   onWindowUnload: function HS_onWindowUnload(aEvent)
@@ -369,123 +306,10 @@ HUD_SERVICE.prototype =
     let gBrowser = window.gBrowser;
     let tabContainer = gBrowser.tabContainer;
 
-    tabContainer.removeEventListener("TabClose", this.onTabClose, false);
-    tabContainer.removeEventListener("TabSelect", this.onTabSelect, false);
-
     let tab = tabContainer.firstChild;
     while (tab != null) {
-      this.deactivateHUDForContext(tab, false);
+      this.deactivateHUDForContext(tab);
       tab = tab.nextSibling;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  animate: function HS_animate(aHUDId, aDirection, aCallback)
-  {
-    let hudBox = this.getHudReferenceById(aHUDId).iframe;
-    if (!hudBox.hasAttribute("animated")) {
-      if (aCallback) {
-        aCallback();
-      }
-      return;
-    }
-
-    switch (aDirection) {
-      case ANIMATE_OUT:
-        hudBox.style.height = 0;
-        break;
-      case ANIMATE_IN:
-        this.resetHeight(aHUDId);
-        break;
-    }
-
-    if (aCallback) {
-      hudBox.addEventListener("transitionend", aCallback, false);
-    }
-  },
-
-  
-
-
-
-
-
-
-  disableAnimation: function HS_disableAnimation(aHUDId)
-  {
-    let hudBox = HUDService.hudReferences[aHUDId].iframe;
-    if (hudBox.hasAttribute("animated")) {
-      hudBox.removeAttribute("animated");
-      this.resetHeight(aHUDId);
-    }
-  },
-
-  
-
-
-
-
-  resetHeight: function HS_resetHeight(aHUDId)
-  {
-    let HUD = this.hudReferences[aHUDId];
-    let innerHeight = HUD.tab.linkedBrowser.clientHeight;
-    let chromeWindow = HUD.chromeWindow;
-    if (!HUD.consolePanel) {
-      let splitterStyle = chromeWindow.getComputedStyle(HUD.splitter, null);
-      innerHeight += parseInt(splitterStyle.height) +
-                     parseInt(splitterStyle.borderTopWidth) +
-                     parseInt(splitterStyle.borderBottomWidth) +
-                     parseInt(splitterStyle.marginTop) +
-                     parseInt(splitterStyle.marginBottom);
-    }
-
-    let boxStyle = chromeWindow.getComputedStyle(HUD.iframe, null);
-    innerHeight += parseInt(boxStyle.height) +
-                   parseInt(boxStyle.borderTopWidth) +
-                   parseInt(boxStyle.borderBottomWidth);
-
-    let height = this.lastConsoleHeight > 0 ? this.lastConsoleHeight :
-      Math.ceil(innerHeight * DEFAULT_CONSOLE_HEIGHT);
-
-    if ((innerHeight - height) < MINIMUM_PAGE_HEIGHT) {
-      height = innerHeight - MINIMUM_PAGE_HEIGHT;
-    }
-
-    if (isNaN(height) || height < MINIMUM_CONSOLE_HEIGHT) {
-      height = MINIMUM_CONSOLE_HEIGHT;
-    }
-
-    HUD.iframe.style.height = height + "px";
-  },
-
-  
-
-
-
-
-
-  storeHeight: function HS_storeHeight(aHUDId)
-  {
-    let hudBox = this.hudReferences[aHUDId].iframe;
-    let window = hudBox.ownerDocument.defaultView;
-    let style = window.getComputedStyle(hudBox, null);
-    let height = parseInt(style.height);
-    height += parseInt(style.borderTopWidth);
-    height += parseInt(style.borderBottomWidth);
-    this.lastConsoleHeight = height;
-
-    let pref = Services.prefs.getIntPref("devtools.hud.height");
-    if (pref > -1) {
-      Services.prefs.setIntPref("devtools.hud.height", height);
     }
   },
 };
@@ -503,18 +327,33 @@ HUD_SERVICE.prototype =
 
 
 
-function WebConsole(aTab, aOptions = {})
+
+
+function WebConsole(aTab, aIframe, aTarget)
 {
   this.tab = aTab;
+  if (this.tab == null) {
+    throw new Error('Missing tab');
+  }
+
+  this.iframe = aIframe;
+  if (this.iframe == null) {
+    console.trace();
+    throw new Error('Missing iframe');
+  }
+
   this.chromeDocument = this.tab.ownerDocument;
   this.chromeWindow = this.chromeDocument.defaultView;
   this.hudId = "hud_" + this.tab.linkedPanel;
 
-  this.remoteHost = aOptions.host;
-  this.remotePort = aOptions.port;
+  this.target = aTarget;
 
   this._onIframeLoad = this._onIframeLoad.bind(this);
-  this._initUI();
+
+  this.iframe.className = "web-console-frame";
+  this.iframe.addEventListener("load", this._onIframeLoad, true);
+
+  this.positionConsole();
 }
 
 WebConsole.prototype = {
@@ -534,12 +373,6 @@ WebConsole.prototype = {
 
 
   get lastFinishedRequestCallback() HUDService.lastFinishedRequestCallback,
-
-  
-
-
-
-  consolePanel: null,
 
   
 
@@ -565,170 +398,12 @@ WebConsole.prototype = {
 
 
 
-  _initUI: function WC__initUI()
-  {
-    this.splitter = this.chromeDocument.createElement("splitter");
-    this.splitter.className = "devtools-horizontal-splitter";
-
-    this.iframe = this.chromeDocument.createElement("iframe");
-    this.iframe.setAttribute("id", this.hudId);
-    this.iframe.className = "web-console-frame";
-    this.iframe.setAttribute("animated", "true");
-    this.iframe.setAttribute("tooltip", "aHTMLTooltip");
-    this.iframe.style.height = 0;
-    this.iframe.addEventListener("load", this._onIframeLoad, true);
-    this.iframe.setAttribute("src", UI_IFRAME_URL);
-
-    let position = Services.prefs.getCharPref("devtools.webconsole.position");
-    this.positionConsole(position);
-  },
-
-  
-
-
-
   _onIframeLoad: function WC__onIframeLoad()
   {
     this.iframe.removeEventListener("load", this._onIframeLoad, true);
 
-    let position = Services.prefs.getCharPref("devtools.webconsole.position");
-
     this.iframeWindow = this.iframe.contentWindow.wrappedJSObject;
-    this.ui = new this.iframeWindow.WebConsoleFrame(this, position);
-  },
-
-  
-
-
-
-
-  _createOwnWindowPanel: function WC__createOwnWindowPanel()
-  {
-    if (this.consolePanel) {
-      return;
-    }
-
-    let width = 0;
-    try {
-      width = Services.prefs.getIntPref("devtools.webconsole.width");
-    }
-    catch (ex) {}
-
-    if (width < 1) {
-      width = this.iframe.clientWidth || this.chromeWindow.innerWidth;
-    }
-
-    let height = this.iframe.clientHeight;
-
-    let top = 0;
-    try {
-      top = Services.prefs.getIntPref("devtools.webconsole.top");
-    }
-    catch (ex) {}
-
-    let left = 0;
-    try {
-      left = Services.prefs.getIntPref("devtools.webconsole.left");
-    }
-    catch (ex) {}
-
-    let panel = this.chromeDocument.createElementNS(XUL_NS, "panel");
-
-    let config = { id: "console_window_" + this.hudId,
-                   label: this.getPanelTitle(),
-                   titlebar: "normal",
-                   noautohide: "true",
-                   norestorefocus: "true",
-                   close: "true",
-                   flex: "1",
-                   hudId: this.hudId,
-                   width: width,
-                   position: "overlap",
-                   top: top,
-                   left: left,
-                 };
-
-    for (let attr in config) {
-      panel.setAttribute(attr, config[attr]);
-    }
-
-    panel.classList.add("web-console-panel");
-
-    let onPopupShown = (function HUD_onPopupShown() {
-      panel.removeEventListener("popupshown", onPopupShown, false);
-
-      
-
-      let height = panel.clientHeight;
-
-      this.iframe.style.height = "auto";
-      this.iframe.flex = 1;
-
-      panel.setAttribute("height", height);
-    }).bind(this);
-
-    panel.addEventListener("popupshown", onPopupShown,false);
-
-    let onPopupHidden = (function HUD_onPopupHidden(aEvent) {
-      if (aEvent.target != panel) {
-        return;
-      }
-
-      panel.removeEventListener("popuphidden", onPopupHidden, false);
-
-      let width = 0;
-      try {
-        width = Services.prefs.getIntPref("devtools.webconsole.width");
-      }
-      catch (ex) { }
-
-      if (width > 0) {
-        Services.prefs.setIntPref("devtools.webconsole.width", panel.clientWidth);
-      }
-
-      
-      if (this.consoleWindowUnregisterOnHide) {
-        HUDService.deactivateHUDForContext(this.tab, false);
-      }
-    }).bind(this);
-
-    panel.addEventListener("popuphidden", onPopupHidden, false);
-
-    let lastIndex = -1;
-
-    if (this.outputNode && this.outputNode.getIndexOfFirstVisibleRow) {
-      lastIndex = this.outputNode.getIndexOfFirstVisibleRow() +
-                  this.outputNode.getNumberOfVisibleRows() - 1;
-    }
-
-    if (this.splitter.parentNode) {
-      this.splitter.parentNode.removeChild(this.splitter);
-    }
-
-    this._beforePositionConsole("window", lastIndex);
-
-    panel.appendChild(this.iframe);
-
-    let space = this.chromeDocument.createElement("spacer");
-    space.flex = 1;
-
-    let bottomBox = this.chromeDocument.createElement("hbox");
-
-    let resizer = this.chromeDocument.createElement("resizer");
-    resizer.setAttribute("dir", "bottomend");
-    resizer.setAttribute("element", config.id);
-
-    bottomBox.appendChild(space);
-    bottomBox.appendChild(resizer);
-
-    panel.appendChild(bottomBox);
-
-    this.mainPopupSet.appendChild(panel);
-
-    panel.openPopup(null, "overlay", left, top, false, false);
-
-    this.consolePanel = panel;
-    this.consoleWindowUnregisterOnHide = true;
+    this.ui = new this.iframeWindow.WebConsoleFrame(this);
   },
 
   
@@ -743,44 +418,13 @@ WebConsole.prototype = {
     return l10n.getFormatStr("webConsoleWindowTitleAndURL", [url]);
   },
 
-  positions: {
-    above: 0, 
-    below: 2,
-    window: null
-  },
-
   consoleWindowUnregisterOnHide: true,
 
   
 
 
-
-
-
-  positionConsole: function WC_positionConsole(aPosition)
+  positionConsole: function WC_positionConsole()
   {
-    if (!(aPosition in this.positions)) {
-      throw new Error("Incorrect argument: " + aPosition +
-        ". Cannot position Web Console");
-    }
-
-    if (aPosition == "window") {
-      this._createOwnWindowPanel();
-      return;
-    }
-
-    let height = this.iframe.clientHeight;
-
-    
-    let nodeIdx = this.positions[aPosition];
-    let nBox = this.chromeDocument.getElementById(this.tab.linkedPanel);
-    let node = nBox.childNodes[nodeIdx];
-
-    
-    if (node == this.iframe) {
-      return;
-    }
-
     let lastIndex = -1;
 
     if (this.outputNode && this.outputNode.getIndexOfFirstVisibleRow) {
@@ -788,32 +432,7 @@ WebConsole.prototype = {
                   this.outputNode.getNumberOfVisibleRows() - 1;
     }
 
-    
-    if (this.splitter.parentNode) {
-      this.splitter.parentNode.removeChild(this.splitter);
-    }
-
-    this._beforePositionConsole(aPosition, lastIndex);
-
-    if (aPosition == "below") {
-      nBox.appendChild(this.splitter);
-      nBox.appendChild(this.iframe);
-    }
-    else {
-      nBox.insertBefore(this.splitter, node);
-      nBox.insertBefore(this.iframe, this.splitter);
-    }
-
-    if (this.consolePanel) {
-      
-      this.consoleWindowUnregisterOnHide = false;
-      this.consolePanel.hidePopup();
-      this.consolePanel.parentNode.removeChild(this.consolePanel);
-      this.consolePanel = null;   
-      this.iframe.removeAttribute("flex");
-      this.iframe.removeAttribute("height");
-      this.iframe.style.height = height + "px";
-    }
+    this._beforePositionConsole(lastIndex);
   },
 
   
@@ -823,10 +442,8 @@ WebConsole.prototype = {
 
 
 
-
-
   _beforePositionConsole:
-  function WC__beforePositionConsole(aPosition, aLastIndex)
+  function WC__beforePositionConsole(aLastIndex)
   {
     if (!this.ui) {
       return;
@@ -835,14 +452,11 @@ WebConsole.prototype = {
     let onLoad = function() {
       this.iframe.removeEventListener("load", onLoad, true);
       this.iframeWindow = this.iframe.contentWindow.wrappedJSObject;
-      this.ui.positionConsole(aPosition, this.iframeWindow);
+      this.ui.positionConsole(this.iframeWindow);
 
       if (aLastIndex > -1 && aLastIndex < this.outputNode.getRowCount()) {
         this.outputNode.ensureIndexIsVisible(aLastIndex);
       }
-
-      this._currentUIPosition = aPosition;
-      Services.prefs.setCharPref("devtools.webconsole.position", aPosition);
     }.bind(this);
 
     this.iframe.addEventListener("load", onLoad, true);
@@ -861,36 +475,10 @@ WebConsole.prototype = {
   
 
 
-  onCloseButton: function WC_onCloseButton()
-  {
-    HUDService.animate(this.hudId, ANIMATE_OUT, function() {
-      HUDService.deactivateHUDForContext(this.tab, true);
-    }.bind(this));
-  },
-
-  
-
-
 
   _onClearButton: function WC__onClearButton()
   {
     this.chromeWindow.DeveloperToolbar.resetErrorsCount(this.tab);
-  },
-
-  
-
-
-
-
-
-
-
-
-  onLocationChange: function WC_onLocationChange(aURI, aTitle)
-  {
-    if (this.consolePanel) {
-      this.consolePanel.label = this.getPanelTitle();
-    }
   },
 
   
@@ -945,14 +533,14 @@ WebConsole.prototype = {
     let styleSheets = this.tab.linkedBrowser.contentWindow.document.styleSheets;
     for each (let style in styleSheets) {
       if (style.href == aSourceURL) {
-        let SEM = this.chromeWindow.StyleEditor.StyleEditorManager;
-        let win = SEM.getEditorForWindow(this.chromeWindow.content.window);
-        if (win) {
-          SEM.selectEditor(win, style, aSourceLine);
-        }
-        else {
-          this.chromeWindow.StyleEditor.openChrome(style, aSourceLine);
-        }
+        let target = TargetFactory.forTab(this.tab);
+        let gDevTools = this.chromeWindow.gDevTools;
+        let toolbox = gDevTools.getToolboxForTarget(target);
+        toolbox.once("styleeditor-selected",
+          function _onStyleEditorReady(aEvent, aPanel) {
+            aPanel.selectStyleSheet(style, aSourceLine);
+          });
+        toolbox.selectTool("styleeditor");
         return;
       }
     }
@@ -977,9 +565,7 @@ WebConsole.prototype = {
     let popupset = this.mainPopupSet;
     let panels = popupset.querySelectorAll("panel[hudId=" + this.hudId + "]");
     for (let panel of panels) {
-      if (panel != this.consolePanel) {
-        panel.hidePopup();
-      }
+      panel.hidePopup();
     }
 
     let onDestroy = function WC_onDestroyUI() {
@@ -993,10 +579,6 @@ WebConsole.prototype = {
 
       if (this.iframe.parentNode) {
         this.iframe.parentNode.removeChild(this.iframe);
-      }
-
-      if (this.splitter.parentNode) {
-        this.splitter.parentNode.removeChild(this.splitter);
       }
 
       aOnDestroy && aOnDestroy();
@@ -1016,53 +598,11 @@ WebConsole.prototype = {
 
 
 var HeadsUpDisplayUICommands = {
-  refreshCommand: function UIC_refreshCommand() {
-    var window = HUDService.currentContext();
-    if (!window) {
-      return;
-    }
-
-    let command = window.document.getElementById("Tools:WebConsole");
-    if (this.getOpenHUD() != null) {
-      command.setAttribute("checked", true);
-    } else {
-      command.setAttribute("checked", false);
-    }
-  },
-
   toggleHUD: function UIC_toggleHUD(aOptions)
   {
     var window = HUDService.currentContext();
-    var gBrowser = window.gBrowser;
-    var linkedBrowser = gBrowser.selectedTab.linkedBrowser;
-    var tabId = gBrowser.getNotificationBox(linkedBrowser).getAttribute("id");
-    var hudId = "hud_" + tabId;
-    var ownerDocument = gBrowser.selectedTab.ownerDocument;
-    var hud = ownerDocument.getElementById(hudId);
-    var hudRef = HUDService.hudReferences[hudId];
-
-    if (hudRef && hud) {
-      if (hudRef.consolePanel) {
-        hudRef.consolePanel.hidePopup();
-      }
-      else {
-        HUDService.storeHeight(hudId);
-
-        HUDService.animate(hudId, ANIMATE_OUT, function() {
-          
-          
-          
-          
-          if (ownerDocument.getElementById(hudId)) {
-            HUDService.deactivateHUDForContext(gBrowser.selectedTab, true);
-          }
-        });
-      }
-    }
-    else {
-      HUDService.activateHUDForContext(gBrowser.selectedTab, true, aOptions);
-      HUDService.animate(hudId, ANIMATE_IN);
-    }
+    let target = TargetFactory.forTab(window.gBrowser.selectedTab);
+    gDevTools.toggleToolboxForTarget(target, "webconsole");
   },
 
   toggleRemoteHUD: function UIC_toggleRemoteHUD()
@@ -1144,8 +684,5 @@ var WebConsoleObserver = {
   },
 };
 
-
-XPCOMUtils.defineLazyGetter(this, "HUDService", function () {
-  return new HUD_SERVICE();
-});
+const HUDService = new HUD_SERVICE();
 

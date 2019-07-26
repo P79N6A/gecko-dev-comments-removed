@@ -51,6 +51,8 @@ const TILT_CRAFTER = "resource:///modules/devtools/TiltWorkerCrafter.js";
 const TILT_PICKER = "resource:///modules/devtools/TiltWorkerPicker.js";
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
+Cu.import("resource:///modules/devtools/Target.jsm");
 Cu.import("resource:///modules/devtools/TiltGL.jsm");
 Cu.import("resource:///modules/devtools/TiltMath.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
@@ -98,6 +100,8 @@ this.TiltVisualizer = function TiltVisualizer(aProperties)
     aProperties.onError || null,
     aProperties.onLoad || null);
 
+  this.bindToInspector(aProperties.tab);
+
   
 
 
@@ -132,6 +136,8 @@ TiltVisualizer.prototype = {
 
   cleanup: function TV_cleanup()
   {
+    this.unbindInspector();
+
     if (this.controller) {
       TiltUtils.destroyObject(this.controller);
     }
@@ -144,7 +150,124 @@ TiltVisualizer.prototype = {
     TiltUtils.destroyObject(this);
     TiltUtils.clearCache();
     TiltUtils.gc(chromeWindow);
-  }
+  },
+
+  
+
+
+  bindToInspector: function TV_bindToInspector(aTab)
+  {
+    this._browserTab = aTab;
+
+    this.onNewNodeFromInspector = this.onNewNodeFromInspector.bind(this);
+    this.onNewNodeFromTilt = this.onNewNodeFromTilt.bind(this);
+    this.onInspectorReady = this.onInspectorReady.bind(this);
+    this.onToolboxDestroyed = this.onToolboxDestroyed.bind(this);
+
+    gDevTools.on("inspector-ready", this.onInspectorReady);
+    gDevTools.on("toolbox-destroyed", this.onToolboxDestroyed);
+
+    Services.obs.addObserver(this.onNewNodeFromTilt,
+                             this.presenter.NOTIFICATIONS.HIGHLIGHTING,
+                             false);
+    Services.obs.addObserver(this.onNewNodeFromTilt,
+                             this.presenter.NOTIFICATIONS.UNHIGHLIGHTING,
+                             false);
+
+    let target = TargetFactory.forTab(aTab);
+    let inspector = gDevTools.getPanelForTarget("inspector", target);
+    if (inspector) {
+      this.inspector = inspector;
+      this.inspector.selection.on("new-node", this.onNewNodeFromInspector);
+      this.inspector.selection.on("detached", this.onNewNodeFromInspector);
+      this.onNewNodeFromInspector();
+    }
+  },
+
+  
+
+
+  unbindInspector: function TV_unbindInspector()
+  {
+    this._browserTab = null;
+
+    if (this.inspector) {
+      this.inspector.selection.off("new-node", this.onNewNodeFromInspector);
+      this.inspector.selection.off("detached", this.onNewNodeFromInspector);
+      this.inspector = null;
+    }
+
+    gDevTools.off("inspector-ready", this.onInspectorReady);
+    gDevTools.off("toolbox-destroyed", this.onToolboxDestroyed);
+
+    Services.obs.removeObserver(this.onNewNodeFromTilt,
+                                this.presenter.NOTIFICATIONS.HIGHLIGHTING);
+    Services.obs.removeObserver(this.onNewNodeFromTilt,
+                                this.presenter.NOTIFICATIONS.UNHIGHLIGHTING);
+  },
+
+  
+
+
+  onInspectorReady: function TV_onInspectorReady(event, toolbox, panel)
+  {
+    if (toolbox.target.tab === this._browserTab) {
+      this.inspector = panel;
+      this.inspector.selection.on("new-node", this.onNewNodeFromInspector);
+      this.inspector.selection.on("detached", this.onNewNodeFromInspector);
+      this.onNewNodeFromTilt();
+    }
+  },
+
+  
+
+
+  onToolboxDestroyed: function TV_onToolboxDestroyed(event, tab)
+  {
+    if (tab === this._browserTab &&
+        this.inspector) {
+      if (this.inspector.selection) {
+        this.inspector.selection.off("new-node", this.onNewNodeFromInspector);
+        this.inspector.selection.off("detached", this.onNewNodeFromInspector);
+      }
+      this.inspector = null;
+    }
+  },
+
+  
+
+
+  onNewNodeFromInspector: function TV_onNewNodeFromInspector()
+  {
+    if (this.inspector &&
+        this.inspector.selection.reason != "tilt") {
+      let selection = this.inspector.selection;
+      let canHighlightNode = selection.isNode() &&
+                              selection.isConnected() &&
+                              selection.isElementNode();
+      if (canHighlightNode) {
+        this.presenter.highlightNode(selection.node);
+      } else {
+        this.presenter.highlightNodeFor(-1);
+      }
+    }
+  },
+
+  
+
+
+  onNewNodeFromTilt: function TV_onNewNodeFromTilt()
+  {
+    if (!this.inspector) {
+      return;
+    }
+    let nodeIndex = this.presenter._currentSelection;
+    if (nodeIndex < 0) {
+      this.inspector.selection.setNode(null, "tilt");
+    }
+    let node = this.presenter._traverseData.nodes[nodeIndex];
+    this.inspector.selection.setNode(node, "tilt");
+  },
 };
 
 
@@ -231,7 +354,6 @@ TiltVisualizer.Presenter = function TV_Presenter(
 
 
   this._currentSelection = -1; 
-  this._initialSelection = false; 
   this._initialMeshConfiguration = false; 
 
   
@@ -267,7 +389,6 @@ TiltVisualizer.Presenter.prototype = {
   _setup: function TVP__setup()
   {
     let renderer = this._renderer;
-    let inspector = this.chromeWindow.InspectorUI;
 
     
     if (!renderer || !renderer.context) {
@@ -283,9 +404,7 @@ TiltVisualizer.Presenter.prototype = {
     });
 
     
-    if (inspector.highlighter) {
-      this.transforms.zoom = inspector.highlighter.zoom;
-    }
+    this.transforms.zoom = this._getPageZoom();
 
     
     TiltUtils.bindObjectFunc(this, "^_on");
@@ -295,6 +414,17 @@ TiltVisualizer.Presenter.prototype = {
     this._setupMeshData();
     this._setupEventListeners();
     this.canvas.focus();
+  },
+
+  
+
+
+
+  _getPageZoom: function TVP__getPageZoom() {
+    return this.contentWindow
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindowUtils)
+      .fullZoom;
   },
 
   
@@ -554,16 +684,6 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    if (!this._initialSelection) {
-      this._initialSelection = true;
-      this.highlightNode(this.chromeWindow.InspectorUI.selection);
-
-      if (this._currentSelection === 0) { 
-        this._highlight.disabled = true;
-      }
-    }
-
-    
     if (!this._initialMeshConfiguration) {
       this._initialMeshConfiguration = true;
 
@@ -635,7 +755,7 @@ TiltVisualizer.Presenter.prototype = {
 
   _onResize: function TVP_onResize(e)
   {
-    let zoom = this.chromeWindow.InspectorUI.highlighter.zoom;
+    let zoom = this._getPageZoom();
     let width = e.target.innerWidth * zoom;
     let height = e.target.innerHeight * zoom;
 
@@ -738,7 +858,6 @@ TiltVisualizer.Presenter.prototype = {
 
     let highlight = this._highlight;
     let info = this._traverseData.info[aNodeIndex];
-    let node = this._traverseData.nodes[aNodeIndex];
     let style = TiltVisualizerStyle.nodes;
 
     highlight.disabled = false;
@@ -758,10 +877,6 @@ TiltVisualizer.Presenter.prototype = {
     vec3.set([x,     y + h, z * STACK_THICKNESS], highlight.v3);
 
     this._currentSelection = aNodeIndex;
-
-    this.chromeWindow.InspectorUI.inspectNode(node,
-      this.contentWindow.innerHeight < y ||
-      this.contentWindow.pageYOffset > 0);
 
     
     
@@ -846,7 +961,7 @@ TiltVisualizer.Presenter.prototype = {
       }
     }, false);
 
-    let zoom = this.chromeWindow.InspectorUI.highlighter.zoom;
+    let zoom = this._getPageZoom();
     let width = this._renderer.width * zoom;
     let height = this._renderer.height * zoom;
     x *= zoom;
@@ -1283,9 +1398,11 @@ TiltVisualizer.Controller.prototype = {
 
   _onKeyPress: function TVC__onKeyPress(e)
   {
-    let tilt = this.presenter.chromeWindow.Tilt;
-
     if (e.keyCode === e.DOM_VK_ESCAPE) {
+      let mod = {};
+      Cu.import("resource:///modules/devtools/Tilt.jsm", mod);
+      let tilt =
+        mod.TiltManager.getTiltForBrowser(this.presenter.chromeWindow);
       e.preventDefault();
       e.stopPropagation();
       tilt.destroy(tilt.currentWindowId, true);
@@ -1304,7 +1421,7 @@ TiltVisualizer.Controller.prototype = {
 
   _onResize: function TVC__onResize(e)
   {
-    let zoom = this.presenter.chromeWindow.InspectorUI.highlighter.zoom;
+    let zoom = this.presenter._getPageZoom();
     let width = e.target.innerWidth * zoom;
     let height = e.target.innerHeight * zoom;
 

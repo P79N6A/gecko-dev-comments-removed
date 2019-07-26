@@ -39,7 +39,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-this.MarkupView = function MarkupView(aInspector, aFrame)
+this.MarkupView = function MarkupView(aInspector, aFrame, aControllerWindow)
 {
   this._inspector = aInspector;
   this._frame = aFrame;
@@ -47,15 +47,15 @@ this.MarkupView = function MarkupView(aInspector, aFrame)
   this._elt = this.doc.querySelector("#root");
 
   this.undo = new UndoStack();
-  this.undo.installController(this._frame.ownerDocument.defaultView);
+  this.undo.installController(aControllerWindow);
 
   this._containers = new WeakMap();
 
   this._observer = new this.doc.defaultView.MutationObserver(this._mutationObserver.bind(this));
 
-  this._boundSelect = this._onSelect.bind(this);
-  this._inspector.on("select", this._boundSelect);
-  this._onSelect();
+  this._boundOnNewSelection = this._onNewSelection.bind(this);
+  this._inspector.selection.on("new-node", this._boundOnNewSelection);
+  this._onNewSelection();
 
   this._boundKeyDown = this._onKeyDown.bind(this);
   this._frame.addEventListener("keydown", this._boundKeyDown, false);
@@ -68,13 +68,6 @@ this.MarkupView = function MarkupView(aInspector, aFrame)
 
 MarkupView.prototype = {
   _selectedContainer: null,
-
-  
-
-
-  get selected() {
-    return this._selectedContainer ? this._selectedContainer.node : null;
-  },
 
   template: function MT_template(aName, aDest, aOptions)
   {
@@ -96,12 +89,14 @@ MarkupView.prototype = {
   
 
 
-  _onSelect: function MT__onSelect()
+  _onNewSelection: function MT__onNewSelection()
   {
-    if (this._inspector.selection) {
-      this.showNode(this._inspector.selection, true);
+    if (this._inspector.selection.isNode()) {
+      this.showNode(this._inspector.selection.node, true);
+      this.markNodeAsSelected(this._inspector.selection.node);
+    } else {
+      this.unmarkSelectedNode();
     }
-    this.selectNode(this._inspector.selection);
   },
 
   
@@ -255,12 +250,11 @@ MarkupView.prototype = {
 
     let node = aContainer.node;
     this.showNode(node, false);
-    this.selectNode(node);
 
-    if (this._inspector._IUI.highlighter.isNodeHighlightable(node)) {
-      this._inspector._IUI.select(node, true, false, "treepanel");
-      this._inspector._IUI.highlighter.highlight(node);
-    }
+    this._inspector.selection.setNode(node, "treepanel");
+    
+    
+    this._inspector.selection.emit("new-node");
 
     if (!aIgnoreFocus) {
       aContainer.focus();
@@ -413,7 +407,7 @@ MarkupView.prototype = {
   
 
 
-  selectNode: function MT_selectNode(aNode)
+  markNodeAsSelected: function MT_markNodeAsSelected(aNode)
   {
     let container = this._containers.get(aNode);
     if (this._selectedContainer === container) {
@@ -427,9 +421,18 @@ MarkupView.prototype = {
       this._selectedContainer.selected = true;
     }
 
-    this._selectedContainer.focus();
-
     return true;
+  },
+
+  
+
+
+  unmarkSelectedNode: function MT_unmarkSelectedNode()
+  {
+    if (this._selectedContainer) {
+      this._selectedContainer.selected = false;
+      this._selectedContainer = null;
+    }
   },
 
   
@@ -490,8 +493,8 @@ MarkupView.prototype = {
     this._frame.removeEventListener("keydown", this._boundKeyDown, true);
     delete this._boundKeyDown;
 
-    this._inspector.off("select", this._boundSelect);
-    delete this._boundSelect;
+    this._inspector.selection.off("new-node", this._boundOnNewSelection);
+    delete this._boundOnNewSelection;
 
     delete this._elt;
 
@@ -947,9 +950,9 @@ ElementEditor.prototype = {
         start: function EE_editAttribute_start(aEditor, aEvent) {
           
           
-          if (aEvent.target === name) {
+          if (aEvent && aEvent.target === name) {
             aEditor.input.setSelectionRange(0, name.textContent.length);
-          } else if (aEvent.target === val) {
+          } else if (aEvent && aEvent.target === val) {
             let length = val.textContent.length;
             let editorLength = aEditor.input.value.length;
             let start = editorLength - (length + 1);

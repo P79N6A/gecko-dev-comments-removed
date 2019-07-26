@@ -48,7 +48,21 @@ Cu.import("resource:///modules/devtools/TiltGL.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 Cu.import("resource:///modules/devtools/TiltVisualizer.jsm");
 
-this.EXPORTED_SYMBOLS = ["Tilt"];
+this.EXPORTED_SYMBOLS = ["TiltManager"];
+
+this.TiltManager = {
+  _instances: new WeakMap(),
+  getTiltForBrowser: function(aChromeWindow)
+  {
+    if (this._instances.has(aChromeWindow)) {
+      return this._instances.get(aChromeWindow);
+    } else {
+      let tilt = new Tilt(aChromeWindow);
+      this._instances.set(aChromeWindow, tilt);
+      return tilt;
+    }
+  },
+}
 
 
 
@@ -72,6 +86,8 @@ this.Tilt = function Tilt(aWindow)
 
 
   this.NOTIFICATIONS = TILT_NOTIFICATIONS;
+
+  this.setup();
 }
 
 Tilt.prototype = {
@@ -79,9 +95,16 @@ Tilt.prototype = {
   
 
 
-  initialize: function T_initialize()
+  initializeForCurrentTab: function T_initializeForCurrentTab()
   {
+    let contentWindow = this.chromeWindow.gBrowser.selectedBrowser.contentWindow;
     let id = this.currentWindowId;
+    let self = this;
+
+    contentWindow.addEventListener("beforeunload", function onUnload() {
+      contentWindow.removeEventListener("beforeunload", onUnload, false);
+      self.destroy(id, true);
+    }, false);
 
     
     if (this.visualizers[id]) {
@@ -94,7 +117,8 @@ Tilt.prototype = {
       chromeWindow: this.chromeWindow,
       contentWindow: this.chromeWindow.gBrowser.selectedBrowser.contentWindow,
       parentNode: this.chromeWindow.gBrowser.selectedBrowser.parentNode,
-      notifications: this.NOTIFICATIONS
+      notifications: this.NOTIFICATIONS,
+      tab: this.chromeWindow.gBrowser.selectedTab
     });
 
     
@@ -165,42 +189,6 @@ Tilt.prototype = {
   
 
 
-
-  _whenInitializing: function T__whenInitializing()
-  {
-    this._whenShown();
-  },
-
-  
-
-
-
-  _whenDestroyed: function T__whenDestroyed()
-  {
-    this._whenHidden();
-  },
-
-  
-
-
-
-  _whenShown: function T__whenShown()
-  {
-    this.tiltButton.checked = true;
-  },
-
-  
-
-
-
-  _whenHidden: function T__whenHidden()
-  {
-    this.tiltButton.checked = false;
-  },
-
-  
-
-
   _onTabSelect: function T__onTabSelect()
   {
     if (this.currentInstance) {
@@ -213,77 +201,13 @@ Tilt.prototype = {
   
 
 
-
-
-
-
-  update: function T_update(aNode) {
-    if (this.currentInstance) {
-      this.currentInstance.presenter.highlightNode(aNode, "moveIntoView");
-    }
-  },
-
-  
-
-
-
   setup: function T_setup()
   {
-    if (this._setupFinished) {
-      return;
-    }
-
     
     TiltVisualizer.Prefs.load();
 
-    
-    this.tiltButton.hidden = !this.enabled;
-
-    
-    Services.obs.addObserver(
-      this._whenInitializing.bind(this), TILT_NOTIFICATIONS.INITIALIZING, false);
-    Services.obs.addObserver(
-      this._whenDestroyed.bind(this), TILT_NOTIFICATIONS.DESTROYED, false);
-    Services.obs.addObserver(
-      this._whenShown.bind(this), TILT_NOTIFICATIONS.SHOWN, false);
-    Services.obs.addObserver(
-      this._whenHidden.bind(this), TILT_NOTIFICATIONS.HIDDEN, false);
-
-    Services.obs.addObserver(function(aSubject, aTopic, aWinId) {
-      this.destroy(aWinId); }.bind(this),
-      this.chromeWindow.InspectorUI.INSPECTOR_NOTIFICATIONS.DESTROYED, false);
-
-    this.chromeWindow.gBrowser.tabContainer.addEventListener("TabSelect",
-      this._onTabSelect.bind(this), false);
-
-
-    
-    let onOpened = function() {
-      if (this.inspector && this.highlighter && this.currentInstance) {
-        this.inspector.stopInspecting();
-        this.inspectButton.disabled = true;
-        this.highlighter.hide();
-      }
-    }.bind(this);
-
-    let onClosed = function() {
-      if (this.inspector && this.highlighter) {
-        this.inspectButton.disabled = false;
-        this.highlighter.show();
-      }
-    }.bind(this);
-
-    Services.obs.addObserver(onOpened,
-      this.chromeWindow.InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED, false);
-    Services.obs.addObserver(onClosed,
-      this.chromeWindow.InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
-    Services.obs.addObserver(onOpened,
-      TILT_NOTIFICATIONS.INITIALIZING, false);
-    Services.obs.addObserver(onClosed,
-      TILT_NOTIFICATIONS.DESTROYED, false);
-
-
-    this._setupFinished = true;
+    this.chromeWindow.gBrowser.tabContainer.addEventListener(
+      "TabSelect", this._onTabSelect.bind(this), false);
   },
 
   
@@ -311,35 +235,4 @@ Tilt.prototype = {
   {
     return this.visualizers[this.currentWindowId];
   },
-
-  
-
-
-  get inspector()
-  {
-    return this.chromeWindow.InspectorUI;
-  },
-
-  
-
-
-  get highlighter()
-  {
-    return this.inspector.highlighter;
-  },
-
-  
-
-
-  get tiltButton()
-  {
-    return this.chromeWindow.document.getElementById("inspector-3D-button");
-  },
-
-  
-
-
-  get inspectButton() {
-    return this.chromeWindow.document.getElementById("inspector-inspect-toolbutton");
-  }
 };
