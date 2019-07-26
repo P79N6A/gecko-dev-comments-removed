@@ -532,6 +532,16 @@ function openTroubleshootingPage()
 
 
 
+
+function openHealthReport()
+{
+  openUILinkIn("about:healthreport", "tab");
+}
+
+
+
+
+
 function openFeedbackPage()
 {
   openUILinkIn("http://input.mozilla.com/feedback", "tab");
