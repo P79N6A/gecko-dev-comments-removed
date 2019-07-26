@@ -46,33 +46,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsPoint
-  GetOffsetToUserSpace(nsIFrame* aFrame);
-
-  
-
-
-
   static nsSize
   GetContinuationUnionSize(nsIFrame* aNonSVGFrame);
 

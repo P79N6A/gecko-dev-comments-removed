@@ -154,8 +154,10 @@ nsSVGIntegrationUtils::UsingEffectsForFrame(const nsIFrame* aFrame)
   return (style->HasFilters() || style->mClipPath || style->mMask);
 }
 
- nsPoint
-nsSVGIntegrationUtils::GetOffsetToUserSpace(nsIFrame* aFrame)
+
+
+static nsPoint
+GetOffsetToBoundingBox(nsIFrame* aFrame)
 {
   if ((aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
     
@@ -208,7 +210,7 @@ nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame)
     nsLayoutUtils::FirstContinuationOrIBSplitSibling(aNonSVGFrame);
   
   nsRect r = GetPreEffectsVisualOverflowUnion(firstFrame, nullptr, nsRect(),
-                                              GetOffsetToUserSpace(firstFrame));
+                                              GetOffsetToBoundingBox(firstFrame));
   return nsLayoutUtils::RectToGfxRect(r,
            aNonSVGFrame->PresContext()->AppUnitsPerCSSPixel());
 }
@@ -262,7 +264,7 @@ nsRect
   }
 
   
-  nsPoint firstFrameToUserSpace = GetOffsetToUserSpace(firstFrame);
+  nsPoint firstFrameToBoundingBox = GetOffsetToBoundingBox(firstFrame);
   
   
   
@@ -270,7 +272,7 @@ nsRect
     nsLayoutUtils::RectToGfxRect(
       GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
                                        aPreEffectsOverflowRect,
-                                       firstFrameToUserSpace),
+                                       firstFrameToBoundingBox),
       aFrame->PresContext()->AppUnitsPerCSSPixel());
   overrideBBox.RoundOut();
 
@@ -278,7 +280,7 @@ nsRect
     nsFilterInstance::GetPostFilterBounds(firstFrame, &overrideBBox);
 
   
-  return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
+  return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToBoundingBox);
 }
 
 nsIntRect
@@ -311,17 +313,17 @@ nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(nsIFrame* aFrame,
   }
 
   
-  nsPoint toUserSpace =
-    aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
+  nsPoint toBoundingBox =
+    aFrame->GetOffsetTo(firstFrame) + GetOffsetToBoundingBox(firstFrame);
   
   
-  toUserSpace -= aToReferenceFrame;
-  nsRect preEffectsRect = aInvalidRect.ToAppUnits(appUnitsPerDevPixel) + toUserSpace;
+  toBoundingBox -= aToReferenceFrame;
+  nsRect preEffectsRect = aInvalidRect.ToAppUnits(appUnitsPerDevPixel) + toBoundingBox;
 
   
   
   nsRect result = nsFilterInstance::GetPostFilterDirtyArea(firstFrame,
-    preEffectsRect) - toUserSpace;
+    preEffectsRect) - toBoundingBox;
   
   return result.ToOutsidePixels(appUnitsPerDevPixel);
 }
@@ -341,7 +343,7 @@ nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(nsIFrame* aFrame,
   
   
   nsPoint toUserSpace =
-    aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
+    aFrame->GetOffsetTo(firstFrame) + GetOffsetToBoundingBox(firstFrame);
   nsRect postEffectsRect = aDirtyRect + toUserSpace;
 
   
@@ -357,10 +359,11 @@ nsSVGIntegrationUtils::HitTestFrameForEffects(nsIFrame* aFrame, const nsPoint& a
   
   nsPoint toUserSpace;
   if (aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    
     toUserSpace = aFrame->GetPosition();
   } else {
     toUserSpace =
-      aFrame->GetOffsetTo(firstFrame) + GetOffsetToUserSpace(firstFrame);
+      aFrame->GetOffsetTo(firstFrame) + GetOffsetToBoundingBox(firstFrame);
   }
   nsPoint pt = aPt + toUserSpace;
   return nsSVGUtils::HitTestClip(firstFrame, pt);
@@ -460,7 +463,7 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
   gfxContext* gfx = aCtx->ThebesContext();
   gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);
 
-  nsPoint firstFrameOffset = GetOffsetToUserSpace(firstFrame);
+  nsPoint firstFrameOffset = GetOffsetToBoundingBox(firstFrame);
   nsPoint offset = aBuilder->ToReferenceFrame(firstFrame) - firstFrameOffset;
   nsPoint offsetWithoutSVGGeomFramePos;
   if (firstFrame->IsFrameOfType(nsIFrame::eSVG)) {
@@ -620,7 +623,7 @@ PaintFrameCallback::operator()(gfxContext* aContext,
   
   
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
-  nsPoint offset = nsSVGIntegrationUtils::GetOffsetToUserSpace(mFrame);
+  nsPoint offset = GetOffsetToBoundingBox(mFrame);
   gfxPoint devPxOffset = gfxPoint(offset.x, offset.y) / appUnitsPerDevPixel;
   aContext->Multiply(gfxMatrix().Translate(devPxOffset));
 
