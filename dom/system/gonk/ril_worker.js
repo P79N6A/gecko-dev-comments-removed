@@ -6759,10 +6759,23 @@ GsmPDUHelperObject.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+
   bcdChars: "0123456789*#,;",
-  semiOctetToBcdChar: function(semiOctet) {
+  semiOctetToBcdChar: function(semiOctet, supressException) {
     if (semiOctet >= 14) {
-      throw new RangeError();
+      if (supressException) {
+        return "";
+      } else {
+        throw new RangeError();
+      }
     }
 
     return this.bcdChars.charAt(semiOctet);
@@ -6805,7 +6818,10 @@ GsmPDUHelperObject.prototype = {
 
 
 
-  readSwappedNibbleBcdString: function(pairs) {
+
+
+
+  readSwappedNibbleBcdString: function(pairs, supressException) {
     let str = "";
     for (let i = 0; i < pairs; i++) {
       let nibbleH = this.readHexNibble();
@@ -6814,9 +6830,9 @@ GsmPDUHelperObject.prototype = {
         break;
       }
 
-      str += this.semiOctetToBcdChar(nibbleL);
+      str += this.semiOctetToBcdChar(nibbleL, supressException);
       if (nibbleH != 0x0F) {
-        str += this.semiOctetToBcdChar(nibbleH);
+        str += this.semiOctetToBcdChar(nibbleH, supressException);
       }
     }
 
@@ -11946,7 +11962,13 @@ ICCRecordHelperObject.prototype = {
       let strLen = Buf.readInt32();
       let octetLen = strLen / 2;
       RIL.iccInfo.iccid =
-        this.context.GsmPDUHelper.readSwappedNibbleBcdString(octetLen);
+        this.context.GsmPDUHelper.readSwappedNibbleBcdString(octetLen, true);
+      
+      let unReadBuffer = this.context.Buf.getReadAvailable() -
+                         this.context.Buf.PDU_HEX_OCTET_SIZE;
+      if (unReadBuffer > 0) {
+        this.context.Buf.seekIncoming(unReadBuffer);
+      }
       Buf.readStringDelimiter(strLen);
 
       if (DEBUG) this.context.debug("ICCID: " + RIL.iccInfo.iccid);
