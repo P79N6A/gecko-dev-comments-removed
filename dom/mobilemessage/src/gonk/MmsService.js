@@ -248,6 +248,23 @@ MmsConnection.prototype = {
 
     this.connected = this.radioInterface.getDataCallStateByType("mms") ==
       Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
+    
+    
+    
+    
+    if (this.connected) {
+      let networkManager =
+        Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
+      let activeNetwork = networkManager.active;
+      if (activeNetwork.serviceId != this.serviceId) {
+        return;
+      }
+
+      let rilNetwork = activeNetwork.QueryInterface(Ci.nsIRilNetworkInterface);
+      
+      
+      this.setApnSetting(rilNetwork);
+    }
   },
 
   
