@@ -20,5 +20,4 @@ function testElement() {
   assertEq(p2[0], undefined);
 }
 
-
-
+testElement();

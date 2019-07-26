@@ -2100,16 +2100,7 @@ ion::Invalidate(types::TypeCompartment &types, FreeOp *fop,
 
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (resetUses && executionMode != ParallelExecution)
+        if (resetUses)
             script->resetUseCount();
     }
 }

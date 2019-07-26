@@ -10,5 +10,4 @@ function buildWithHoles() {
   assertEq(Object.keys(p).join(","), Object.keys(b).join(","));
 }
 
-
-
+buildWithHoles();
