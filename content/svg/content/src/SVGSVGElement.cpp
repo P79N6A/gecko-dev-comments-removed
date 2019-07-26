@@ -805,14 +805,11 @@ SVGSVGElement::WillBeOutermostSVG(nsIContent* aParent,
 void
 SVGSVGElement::InvalidateTransformNotifyFrame()
 {
-  nsIFrame* frame = GetPrimaryFrame();
-  if (frame) {
-    nsISVGSVGFrame* svgframe = do_QueryFrame(frame);
-    
-    if (svgframe) {
-      svgframe->NotifyViewportOrTransformChanged(
-                  nsISVGChildFrame::TRANSFORM_CHANGED);
-    }
+  nsISVGSVGFrame* svgframe = do_QueryFrame(GetPrimaryFrame());
+  
+  if (svgframe) {
+    svgframe->NotifyViewportOrTransformChanged(
+                nsISVGChildFrame::TRANSFORM_CHANGED);
   }
 }
 
