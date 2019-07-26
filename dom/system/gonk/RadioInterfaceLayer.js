@@ -820,6 +820,12 @@ RadioInterfaceLayer.prototype = {
       return;
     }
 
+    if (this.dataNetworkInterface.state == RIL.GECKO_NETWORK_STATE_CONNECTING ||
+        this.dataNetworkInterface.state == RIL.GECKO_NETWORK_STATE_DISCONNECTING) {
+      debug("Nothing to do during connecting/disconnecting in progress.");
+      return;
+    }
+
     if (!this.dataCallSettings["enabled"] && this.dataNetworkInterface.connected) {
       debug("Data call settings: disconnect data call.");
       this.dataNetworkInterface.disconnect();
@@ -2109,6 +2115,13 @@ RILNetworkInterface.prototype = {
     }
 
     this.state = datacall.state;
+
+    
+    
+    
+    if (this == this.mRIL.dataNetworkInterface) {
+      this.mRIL.updateRILNetworkInterface();
+    }
 
     if (this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
        this.registeredAsNetworkInterface) {
