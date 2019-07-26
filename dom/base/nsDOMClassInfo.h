@@ -303,6 +303,31 @@ public:
 };
 
 
+class nsEventSH : public nsDOMGenericSH
+{
+protected:
+  nsEventSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
+  {
+  }
+
+  virtual ~nsEventSH()
+  {
+  }
+public:
+  NS_IMETHOD PreCreate(nsISupports* aNativeObj, JSContext* aCx,
+                       JSObject* aGlobalObj, JSObject** aParentObj);
+  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative* aWrapper, JSContext* aCx,
+                         JSObject* aObj, jsid Id, jsval* aVp, bool* aRetval);
+
+  virtual void PreserveWrapper(nsISupports *aNative);
+
+  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
+  {
+    return new nsEventSH(aData);
+  }
+};
+
+
 
 class nsWindowSH : public nsDOMGenericSH
 {

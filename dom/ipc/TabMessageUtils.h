@@ -19,6 +19,7 @@ namespace mozilla {
 namespace dom {
 struct RemoteDOMEvent
 {
+  
   nsCOMPtr<nsIDOMEvent> mEvent;
 };
 

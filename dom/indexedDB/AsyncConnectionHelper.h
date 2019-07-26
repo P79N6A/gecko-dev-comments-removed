@@ -178,7 +178,8 @@ protected:
 
 
 
-  virtual already_AddRefed<nsDOMEvent> CreateSuccessEvent();
+  virtual already_AddRefed<nsIDOMEvent> CreateSuccessEvent(
+    mozilla::dom::EventTarget* aOwner);
 
   
 

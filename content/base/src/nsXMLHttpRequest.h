@@ -446,7 +446,7 @@ public:
 
   
   
-  static nsresult CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent);
+  nsresult CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent);
   void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              bool aLengthComputable,

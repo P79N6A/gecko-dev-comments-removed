@@ -2078,8 +2078,8 @@ nsPresContext::FireDOMPaintEvent(nsInvalidateRequestList* aList)
   if (!ourWindow)
     return;
 
-  nsCOMPtr<nsIDOMEventTarget> dispatchTarget = do_QueryInterface(ourWindow);
-  nsCOMPtr<nsIDOMEventTarget> eventTarget = dispatchTarget;
+  nsCOMPtr<EventTarget> dispatchTarget = do_QueryInterface(ourWindow);
+  nsCOMPtr<EventTarget> eventTarget = dispatchTarget;
   if (!IsChrome() && !mSendAfterPaintToContent) {
     
     
@@ -2096,7 +2096,7 @@ nsPresContext::FireDOMPaintEvent(nsInvalidateRequestList* aList)
   
   
   
-  NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), this, nullptr,
+  NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), eventTarget, this, nullptr,
                             NS_AFTERPAINT, aList);
   if (!event) {
     return;

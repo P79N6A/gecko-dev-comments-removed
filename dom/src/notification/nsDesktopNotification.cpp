@@ -151,7 +151,7 @@ nsDOMDesktopNotification::DispatchNotificationEvent(const nsString& aName)
   }
 
   nsCOMPtr<nsIDOMEvent> event;
-  nsresult rv = NS_NewDOMEvent(getter_AddRefs(event), nullptr, nullptr);
+  nsresult rv = NS_NewDOMEvent(getter_AddRefs(event), this, nullptr, nullptr);
   if (NS_SUCCEEDED(rv)) {
     
     rv = event->InitEvent(aName, false, false);
