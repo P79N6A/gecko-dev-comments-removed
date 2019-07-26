@@ -553,9 +553,6 @@ public:
   }
 
   
-  int32_t           CocoaPointsToDevPixels(CGFloat aPts) {
-    return nsCocoaUtils::CocoaPointsToDevPixels(aPts, BackingScaleFactor());
-  }
   nsIntPoint        CocoaPointsToDevPixels(const NSPoint& aPt) {
     return nsCocoaUtils::CocoaPointsToDevPixels(aPt, BackingScaleFactor());
   }
