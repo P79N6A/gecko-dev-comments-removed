@@ -138,7 +138,7 @@ private:
 
   bool mIPCOpen;
   bool mKeptAlive;            
-  ChannelEventQueue mEventQ;
+  nsRefPtr<ChannelEventQueue> mEventQ;
 
   
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
@@ -172,9 +172,6 @@ private:
                       const nsHttpResponseHead& responseHead);
   void Redirect3Complete();
   void DeleteSelf();
-
-  
-  void CompleteResume();
 
   friend class AssociateApplicationCacheEvent;
   friend class StartRequestEvent;

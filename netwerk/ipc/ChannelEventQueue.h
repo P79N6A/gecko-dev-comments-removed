@@ -10,6 +10,7 @@
 
 #include <nsTArray.h>
 #include <nsAutoPtr.h>
+#include <nsThreadUtils.h>
 
 class nsISupports;
 
@@ -35,10 +36,13 @@ class AutoEventEnqueuerBase;
 
 class ChannelEventQueue
 {
+  NS_INLINE_DECL_REFCOUNTING(ChannelEventQueue)
+
  public:
   ChannelEventQueue(nsISupports *owner)
-    : mForced(false)
+    : mSuspendCount(0)
     , mSuspended(false)
+    , mForced(false)
     , mFlushing(false)
     , mOwner(owner) {}
 
@@ -63,22 +67,21 @@ class ChannelEventQueue
   
   
   
-  
-  
-  
-  
-  
   inline void Suspend();
+  
+  
   inline void Resume();
 
  private:
   inline void MaybeFlushQueue();
   void FlushQueue();
+  inline void CompleteResume();
 
   nsTArray<nsAutoPtr<ChannelEvent> > mEventQueue;
 
+  uint32_t mSuspendCount;
+  bool     mSuspended;
   bool mForced;
-  bool mSuspended;
   bool mFlushing;
 
   
@@ -120,20 +123,37 @@ ChannelEventQueue::EndForcedQueueing()
 inline void
 ChannelEventQueue::Suspend()
 {
-  NS_ABORT_IF_FALSE(!mSuspended,
-                    "ChannelEventQueue::Suspend called recursively");
-
   mSuspended = true;
+  mSuspendCount++;
+}
+
+inline void
+ChannelEventQueue::CompleteResume()
+{
+  
+  if (!mSuspendCount) {
+    
+    
+    
+    mSuspended = false;
+    MaybeFlushQueue();
+  }
 }
 
 inline void
 ChannelEventQueue::Resume()
 {
-  NS_ABORT_IF_FALSE(mSuspended,
-                    "ChannelEventQueue::Resume called when not suspended!");
+  
+  MOZ_ASSERT(mSuspendCount > 0);
+  if (mSuspendCount <= 0) {
+    return;
+  }
 
-  mSuspended = false;
-  MaybeFlushQueue();
+  if (!--mSuspendCount) {
+    nsRefPtr<nsRunnableMethod<ChannelEventQueue> > event =
+      NS_NewRunnableMethod(this, &ChannelEventQueue::CompleteResume);
+    NS_DispatchToCurrentThread(event);
+  }
 }
 
 inline void
@@ -151,14 +171,14 @@ ChannelEventQueue::MaybeFlushQueue()
 class AutoEventEnqueuer
 {
  public:
-  AutoEventEnqueuer(ChannelEventQueue &queue) : mEventQueue(queue) {
-    mEventQueue.StartForcedQueueing();
+  AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
+    mEventQueue->StartForcedQueueing();
   }
   ~AutoEventEnqueuer() {
-    mEventQueue.EndForcedQueueing();
+    mEventQueue->EndForcedQueueing();
   }
  private:
-  ChannelEventQueue &mEventQueue;
+  ChannelEventQueue* mEventQueue;
 };
 
 }
