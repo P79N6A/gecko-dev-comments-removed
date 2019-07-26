@@ -475,7 +475,7 @@ class JavaPanZoomController
 
         case TOUCHING:
             
-            if (mTarget.isFullScreen() || panDistance(event) < PAN_THRESHOLD) {
+            if ((mTarget.isFullScreen() && !mSubscroller.scrolling()) || panDistance(event) < PAN_THRESHOLD) {
                 return false;
             }
             cancelTouch();
