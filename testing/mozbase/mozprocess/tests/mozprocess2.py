@@ -14,6 +14,11 @@ from mozprocess import processhandler
 
 here = os.path.dirname(os.path.abspath(__file__))
 
+
+
+
+
+
 def make_proclaunch(aDir):
     """
         Makes the proclaunch executable.
@@ -24,8 +29,8 @@ def make_proclaunch(aDir):
     """
     
     
-    p = subprocess.call(["make", "-C", "iniparser"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=aDir)
-    p = subprocess.call(["make"],stdout=subprocess.PIPE, stderr=subprocess.PIPE ,cwd=aDir)
+    p = subprocess.call(["make", "-C", "iniparser"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=aDir)
+    p = subprocess.call(["make"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=aDir)
     if sys.platform == "win32":
         exepath = os.path.join(aDir, "proclaunch.exe")
     else:
@@ -34,16 +39,12 @@ def make_proclaunch(aDir):
 
 def check_for_process(processName):
     """
-        Use to determine if process of the given name is still running.
+        Use to determine if process is still running.
 
         Returns:
         detected -- True if process is detected to exist, False otherwise
         output -- if process exists, stdout of the process, '' otherwise
     """
-    
-    
-    
-    
     output = ''
     if sys.platform == "win32":
         
@@ -69,41 +70,22 @@ def check_for_process(processName):
 
     return detected, output
 
+class ProcTest2(unittest.TestCase):
 
-class ProcTest(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.proclaunch = make_proclaunch(here)
+        
+        
+        self.proclaunch = make_proclaunch(here)
+        unittest.TestCase.__init__(self, *args, **kwargs)
 
-    @classmethod
-    def tearDownClass(cls):
-        files = [('proclaunch',),
-                 ('proclaunch.exe',),
-                 ('iniparser', 'dictionary.o'),
-                 ('iniparser', 'iniparser.lib'),
-                 ('iniparser', 'iniparser.o'),
-                 ('iniparser', 'libiniparser.a'),
-                 ('iniparser', 'libiniparser.so.0'),
-                 ]
-        files = [os.path.join(here, *path) for path in files]
-        errors = []
-        for path in files:
-            if os.path.exists(path):
-                try:
-                    os.remove(path)
-                except OSError as e:
-                    errors.append(str(e))
-        if errors:
-            raise OSError("Error(s) encountered tearing down %s.%s:\n%s" % (cls.__module__, cls.__name__, '\n'.join(errors)))
-        del cls.proclaunch
-
-    def test_process_normal_finish(self):
-        """Process is started, runs to completion while we wait for it"""
-
-        p = processhandler.ProcessHandler([self.proclaunch, "process_normal_finish.ini"],
+    def test_process_waitnotimeout(self):
+        """ Process is started, runs to completion before our wait times out
+        """
+        p = processhandler.ProcessHandler([self.proclaunch,
+                                          "process_waittimeout_10s.ini"],
                                           cwd=here)
-        p.run()
+        p.run(timeout=30)
         p.wait()
 
         detected, output = check_for_process(self.proclaunch)
@@ -113,7 +95,8 @@ class ProcTest(unittest.TestCase):
                               p.didTimeout)
 
     def test_process_wait(self):
-        """Process is started runs to completion while we wait indefinitely"""
+        """ Process is started runs to completion while we wait indefinitely
+        """
 
         p = processhandler.ProcessHandler([self.proclaunch,
                                           "process_waittimeout_10s.ini"],
@@ -126,23 +109,6 @@ class ProcTest(unittest.TestCase):
                               output,
                               p.proc.returncode,
                               p.didTimeout)
-
-    def test_process_timeout(self):
-        """ Process is started, runs but we time out waiting on it
-            to complete
-        """
-        p = processhandler.ProcessHandler([self.proclaunch, "process_waittimeout.ini"],
-                                          cwd=here)
-        p.run(timeout=10)
-        p.wait()
-
-        detected, output = check_for_process(self.proclaunch)
-        self.determine_status(detected,
-                              output,
-                              p.proc.returncode,
-                              p.didTimeout,
-                              False,
-                              ['returncode', 'didtimeout'])
 
     def test_process_waittimeout(self):
         """
@@ -162,36 +128,7 @@ class ProcTest(unittest.TestCase):
                               p.proc.returncode,
                               p.didTimeout,
                               True,
-                              ())
-
-    def test_process_waitnotimeout(self):
-        """ Process is started, runs to completion before our wait times out
-        """
-        p = processhandler.ProcessHandler([self.proclaunch,
-                                          "process_waittimeout_10s.ini"],
-                                          cwd=here)
-        p.run(timeout=30)
-        p.wait()
-
-        detected, output = check_for_process(self.proclaunch)
-        self.determine_status(detected,
-                              output,
-                              p.proc.returncode,
-                              p.didTimeout)
-
-    def test_process_kill(self):
-        """Process is started, we kill it"""
-
-        p = processhandler.ProcessHandler([self.proclaunch, "process_normal_finish.ini"],
-                                          cwd=here)
-        p.run()
-        p.kill()
-
-        detected, output = check_for_process(self.proclaunch)
-        self.determine_status(detected,
-                              output,
-                              p.proc.returncode,
-                              p.didTimeout)
+                              [])
 
     def test_process_output_twice(self):
         """
@@ -211,15 +148,16 @@ class ProcTest(unittest.TestCase):
                               p.proc.returncode,
                               p.didTimeout,
                               False,
-                              ())
+                              [])
+
 
     def determine_status(self,
                          detected=False,
-                         output='',
-                         returncode=0,
-                         didtimeout=False,
+                         output = '',
+                         returncode = 0,
+                         didtimeout = False,
                          isalive=False,
-                         expectedfail=()):
+                         expectedfail=[]):
         """
         Use to determine if the situation has failed.
         Parameters:

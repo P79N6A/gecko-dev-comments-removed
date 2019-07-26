@@ -3,39 +3,29 @@
 
 
 import StringIO
-import re
 import threading
 
 from Zeroconf import Zeroconf, ServiceBrowser
 from devicemanager import ZeroconfListener, NetworkTools
 from devicemanagerADB import DeviceManagerADB
 from devicemanagerSUT import DeviceManagerSUT
-from devicemanager import DMError
 
 class DroidMixin(object):
     """Mixin to extend DeviceManager with Android-specific functionality"""
-
-    def _getExtraAmStartArgs(self):
-        return []
 
     def launchApplication(self, appName, activityName, intent, url=None,
                           extras=None):
         """
         Launches an Android application
-
-        :param appName: Name of application (e.g. `com.android.chrome`)
-        :param activityName: Name of activity to launch (e.g. `.Main`)
-        :param intent: Intent to launch application with
-        :param url: URL to open
-        :param extras: Dictionary of extra arguments to launch application with
+        returns:
+        success: True
+        failure: False
         """
         
         if self.processExist(appName):
-            raise DMError("Only one instance of an application may be running "
-                          "at once")
+            return False
 
-        acmd = [ "am", "start" ] + self._getExtraAmStartArgs() + \
-            ["-W", "-n", "%s/%s" % (appName, activityName)]
+        acmd = [ "am", "start", "-W", "-n", "%s/%s" % (appName, activityName)]
 
         if intent:
             acmd.extend(["-a", intent])
@@ -58,22 +48,21 @@ class DroidMixin(object):
         
         shellOutput = StringIO.StringIO()
         if self.shell(acmd, shellOutput) == 0:
-            return
+            return True
 
-        shellOutput.seek(0)
-        raise DMError("Unable to launch application (shell output: '%s')" % shellOutput.read())
+        return False
 
     def launchFennec(self, appName, intent="android.intent.action.VIEW",
-                     mozEnv=None, extraArgs=None, url=None):
+                                      mozEnv=None, extraArgs=None, url=None):
         """
         Convenience method to launch Fennec on Android with various debugging
         arguments
-
-        :param appName: Name of fennec application (e.g. `org.mozilla.fennec`)
-        :param intent: Intent to launch application with
-        :param mozEnv: Mozilla specific environment to pass into application
-        :param extraArgs: Extra arguments to be parsed by fennec
-        :param url: URL to open
+        WARNING: FIXME: This would go better in mozrunner. Please do not
+        use this method if you are not comfortable with it going away sometime
+        in the near future
+        returns:
+        success: True
+        failure: False
         """
         extras = {}
 
@@ -88,34 +77,14 @@ class DroidMixin(object):
         if extraArgs:
             extras['args'] = " ".join(extraArgs)
 
-        self.launchApplication(appName, ".App", intent, url=url, extras=extras)
+        return self.launchApplication(appName, ".App", intent, url=url,
+                                                                    extras=extras)
 
 class DroidADB(DeviceManagerADB, DroidMixin):
     pass
 
 class DroidSUT(DeviceManagerSUT, DroidMixin):
-
-    def _getExtraAmStartArgs(self):
-        
-        
-        
-        
-        if not hasattr(self, 'userSerial'):
-            infoDict = self.getInfo(directive="sutuserinfo")
-            if infoDict.get('sutuserinfo') and \
-                    len(infoDict['sutuserinfo']) > 0:
-               userSerialString = infoDict['sutuserinfo'][0]
-               
-               m = re.match('User Serial:([0-9]+)', userSerialString)
-               if m:
-                   self.userSerial = m.group(1)
-               else:
-                   self.userSerial = None
-
-        if self.userSerial is not None:
-            return [ "--user", self.userSerial ]
-
-        return []
+    pass
 
 def DroidConnectByHWID(hwid, timeout=30, **kwargs):
     """Try to connect to the given device by waiting for it to show up using mDNS with the given timeout."""
