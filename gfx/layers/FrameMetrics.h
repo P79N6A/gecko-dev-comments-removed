@@ -186,7 +186,30 @@ public:
 
   
   
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
   gfxSize mResolution;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  gfxSize mZoom;
 
   
   

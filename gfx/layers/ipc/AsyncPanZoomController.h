@@ -392,6 +392,14 @@ protected:
 
   void TimeoutTouchListeners();
 
+  
+
+
+
+
+
+  void SetZoomAndResolution(float aScale);
+
 private:
   enum PanZoomState {
     NOTHING,        
