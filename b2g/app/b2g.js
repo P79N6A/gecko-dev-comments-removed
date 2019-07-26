@@ -847,13 +847,9 @@ pref("b2g.adb.timeout-hours", 12);
 
 pref("dom.mozInputMethod.enabled", true);
 
-#ifdef MOZ_WIDGET_GONK
 
 
 pref("devtools.debugger.unix-domain-socket", "/data/local/debugger-socket");
-#else
-pref("devtools.debugger.remote-port", 6000);
-#endif
 
 
 
