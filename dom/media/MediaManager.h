@@ -125,7 +125,10 @@ public:
     if (mStream && !mRemoved) {
       MM_LOG(("Listener removed on purpose, mFinished = %d", (int) mFinished));
       mRemoved = true; 
-      mStream->RemoveListener(this);
+      
+      if (!mStream->IsDestroyed()) {
+        mStream->RemoveListener(this);
+      }
     }
   }
 
