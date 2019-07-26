@@ -106,11 +106,25 @@ ImageHost::Composite(EffectChain& aEffectChain,
   gfx::Rect pictureRect(0, 0,
                         mPictureRect.width,
                         mPictureRect.height);
-  
-  
-  
   BigImageIterator* it = source->AsBigImageIterator();
   if (it) {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(it->GetTileCount() == 1 || !source->GetNextSibling(),
+               "Can't handle multi-plane BigImages");
+
     it->BeginBigImageIteration();
     do {
       nsIntRect tileRect = it->GetTileRect();

@@ -251,6 +251,9 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
       (mTexImage->GetSize() != size && !aSrcOffset) ||
       mTexImage->GetContentType() != gfx::ContentForFormat(aSurface->GetFormat())) {
     if (mFlags & TextureFlags::DISALLOW_BIGIMAGE) {
+      
+      
+      
       mTexImage = CreateBasicTextureImage(mGL, size,
                                           gfx::ContentForFormat(aSurface->GetFormat()),
                                           WrapMode(mGL, mFlags),
