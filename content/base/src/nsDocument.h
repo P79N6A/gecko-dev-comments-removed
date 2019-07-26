@@ -640,12 +640,6 @@ public:
     return mChannel;
   }
 
-  
-
-
-
-
-  virtual nsIScriptGlobalObject* GetScriptGlobalObject() const MOZ_OVERRIDE;
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject) MOZ_OVERRIDE;
 
   virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject) MOZ_OVERRIDE;

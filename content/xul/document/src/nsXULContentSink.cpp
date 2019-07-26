@@ -945,9 +945,9 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
   
   if (langID != nsIProgrammingLanguage::UNKNOWN) {
-      nsIScriptGlobalObject* globalObject = nullptr; 
+      nsCOMPtr<nsIScriptGlobalObject> globalObject;
       if (doc)
-          globalObject = doc->GetScriptGlobalObject();
+          globalObject = do_QueryInterface(doc->GetWindow());
       nsRefPtr<nsXULPrototypeScript> script =
           new nsXULPrototypeScript(aLineNumber, version);
       if (! script)

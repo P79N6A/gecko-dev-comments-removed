@@ -4078,28 +4078,6 @@ nsDocument::FirstAdditionalAuthorSheet()
   return mAdditionalSheets[eAuthorSheet].SafeObjectAt(0);
 }
 
-nsIScriptGlobalObject*
-nsDocument::GetScriptGlobalObject() const
-{
-   
-   
-   
-
-   
-   
-   
-   if (mRemovedFromDocShell) {
-     nsCOMPtr<nsIInterfaceRequestor> requestor =
-       do_QueryReferent(mDocumentContainer);
-     if (requestor) {
-       nsCOMPtr<nsIScriptGlobalObject> globalObject = do_GetInterface(requestor);
-       return globalObject;
-     }
-   }
-
-   return mScriptGlobalObject;
-}
-
 nsIGlobalObject*
 nsDocument::GetScopeObject() const
 {
@@ -4270,14 +4248,25 @@ nsPIDOMWindow *
 nsDocument::GetWindowInternal() const
 {
   MOZ_ASSERT(!mWindow, "This should not be called when mWindow is not null!");
-
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(GetScriptGlobalObject()));
-
-  if (!win) {
-    return nullptr;
+  
+  
+  nsCOMPtr<nsPIDOMWindow> win;
+  if (mRemovedFromDocShell) {
+    nsCOMPtr<nsIInterfaceRequestor> requestor =
+      do_QueryReferent(mDocumentContainer);
+    if (requestor) {
+      
+      win = do_GetInterface(requestor);
+    }
+  } else {
+    win = do_QueryInterface(mScriptGlobalObject);
+    if (win) {
+      
+      win = win->GetOuterWindow();
+    }
   }
 
-  return win->GetOuterWindow();
+  return win;
 }
 
 nsScriptLoader*
@@ -7111,7 +7100,7 @@ nsDocument::IsScriptEnabled()
   nsCOMPtr<nsIScriptSecurityManager> sm(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
   NS_ENSURE_TRUE(sm, false);
 
-  nsIScriptGlobalObject* globalObject = GetScriptGlobalObject();
+  nsCOMPtr<nsIScriptGlobalObject> globalObject = do_QueryInterface(GetWindow());
   NS_ENSURE_TRUE(globalObject, false);
 
   nsIScriptContext *scriptContext = globalObject->GetContext();
@@ -8123,7 +8112,7 @@ nsDocument::MutationEventDispatched(nsINode* aTarget)
     }
 
     nsCOMPtr<nsPIDOMWindow> window;
-    window = do_QueryInterface(GetScriptGlobalObject());
+    window = do_QueryInterface(GetWindow());
     if (window &&
         !window->HasMutationListeners(NS_EVENT_BITS_MUTATION_SUBTREEMODIFIED)) {
       mSubtreeModifiedTargets.Clear();
@@ -11275,7 +11264,7 @@ nsIDocument::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
     return nullptr;
   }
 
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(GetScriptGlobalObject());
+  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(GetInnerWindow());
   if (!win) {
     
     return obj;

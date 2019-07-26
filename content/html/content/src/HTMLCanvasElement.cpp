@@ -889,10 +889,11 @@ HTMLCanvasElement::InvalidateCanvasContent(const gfx::Rect* damageRect)
 
 
 
-  nsIScriptGlobalObject *scope = OwnerDoc()->GetScriptGlobalObject();
-  if (scope) {
-    JSObject *obj = scope->GetGlobalJSObject();
-    if (obj) {
+  nsCOMPtr<nsIGlobalObject> global =
+    do_QueryInterface(OwnerDoc()->GetInnerWindow());
+
+  if (global) {
+    if (JSObject *obj = global->GetGlobalJSObject()) {
       js::NotifyAnimationActivity(obj);
     }
   }

@@ -273,7 +273,7 @@ nsScriptLoader::StartLoad(nsScriptLoadRequest *aRequest, const nsAString &aType,
 
   nsCOMPtr<nsILoadGroup> loadGroup = mDocument->GetDocumentLoadGroup();
 
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mDocument->GetScriptGlobalObject()));
+  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mDocument->GetWindow()));
   if (!window) {
     return NS_ERROR_NULL_POINTER;
   }
@@ -430,7 +430,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   
   
   
-  nsIScriptGlobalObject *globalObject = mDocument->GetScriptGlobalObject();
+  nsCOMPtr<nsIScriptGlobalObject> globalObject =
+    do_QueryInterface(mDocument->GetWindow());
   if (!globalObject) {
     return false;
   }

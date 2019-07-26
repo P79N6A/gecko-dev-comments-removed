@@ -2776,7 +2776,7 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   
-  if (!mView || !GetContent()->GetCurrentDoc()->GetScriptGlobalObject())
+  if (!mView || !GetContent()->GetCurrentDoc()->GetWindow())
     return;
 
   aLists.Content()->AppendNewToTop(new (aBuilder)

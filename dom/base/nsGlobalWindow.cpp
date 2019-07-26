@@ -8074,11 +8074,7 @@ nsGlobalWindow::GetPrivateParent()
     if (!doc)
       return nullptr;             
 
-    nsIScriptGlobalObject *globalObject = doc->GetScriptGlobalObject();
-    if (!globalObject)
-      return nullptr;             
-
-    parent = do_QueryInterface(globalObject);
+    return doc->GetWindow();
   }
 
   if (parent) {
