@@ -101,6 +101,8 @@ class nsPIDOMWindow;
 class nsIDocumentLoaderFactory;
 class nsIDOMHTMLInputElement;
 
+class nsViewportInfo;
+
 namespace mozilla {
 
 class Selection;
@@ -128,40 +130,6 @@ enum EventNameType {
 
   EventNameType_HTMLXUL = 0x0003,
   EventNameType_All = 0xFFFF
-};
-
-
-
-
-
-struct ViewportInfo
-{
-    
-    
-    double defaultZoom;
-
-    
-    double minZoom;
-
-    
-    double maxZoom;
-
-    
-    
-    uint32_t width;
-
-    
-    
-    uint32_t height;
-
-    
-    
-    
-    
-    bool autoSize;
-
-    
-    bool allowZoom;
 };
 
 struct EventNameMapping
@@ -1549,16 +1517,9 @@ public:
 
 
 
-  static ViewportInfo GetViewportInfo(nsIDocument* aDocument,
-                                      uint32_t aDisplayWidth,
-                                      uint32_t aDisplayHeight);
-
-  
-
-
-
-
-  static void ConstrainViewportValues(ViewportInfo& aViewInfo);
+  static nsViewportInfo GetViewportInfo(nsIDocument* aDocument,
+                                        uint32_t aDisplayWidth,
+                                        uint32_t aDisplayHeight);
 
   
 

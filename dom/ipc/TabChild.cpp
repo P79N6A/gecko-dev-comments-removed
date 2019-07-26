@@ -75,6 +75,7 @@
 #include "PuppetWidget.h"
 #include "StructuredCloneUtils.h"
 #include "xpcpublic.h"
+#include "nsViewportInfo.h"
 
 #define BROWSER_ELEMENT_CHILD_SCRIPT \
     NS_LITERAL_STRING("chrome://global/content/BrowserElementChild.js")
@@ -374,16 +375,16 @@ TabChild::HandlePossibleViewportChange()
 
   nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
 
-  ViewportInfo viewportInfo =
+  nsViewportInfo viewportInfo =
     nsContentUtils::GetViewportInfo(document, mInnerSize.width, mInnerSize.height);
-  SendUpdateZoomConstraints(viewportInfo.allowZoom,
-                            viewportInfo.minZoom,
-                            viewportInfo.maxZoom);
+  SendUpdateZoomConstraints(viewportInfo.IsZoomAllowed(),
+                            viewportInfo.GetMinZoom(),
+                            viewportInfo.GetMaxZoom());
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
-  float viewportW = viewportInfo.width;
-  float viewportH = viewportInfo.height;
+  float viewportW = viewportInfo.GetWidth();
+  float viewportH = viewportInfo.GetHeight();
 
   
   
@@ -397,8 +398,8 @@ TabChild::HandlePossibleViewportChange()
   
   
   float oldBrowserWidth = mOldViewportWidth;
-  mLastMetrics.mViewport.width = viewportInfo.width;
-  mLastMetrics.mViewport.height = viewportInfo.height;
+  mLastMetrics.mViewport.width = viewportW;
+  mLastMetrics.mViewport.height = viewportH;
   if (!oldBrowserWidth) {
     oldBrowserWidth = kDefaultViewportSize.width;
   }
@@ -445,7 +446,8 @@ TabChild::HandlePossibleViewportChange()
   NS_ENSURE_TRUE_VOID(pageWidth); 
 
   minScale = mInnerSize.width / pageWidth;
-  minScale = clamped((double)minScale, viewportInfo.minZoom, viewportInfo.maxZoom);
+  minScale = clamped((double)minScale, viewportInfo.GetMinZoom(),
+                     viewportInfo.GetMaxZoom());
   NS_ENSURE_TRUE_VOID(minScale); 
 
   viewportH = NS_MAX(viewportH, screenH / minScale);
@@ -484,15 +486,17 @@ TabChild::HandlePossibleViewportChange()
     
     
     
-    if (viewportInfo.defaultZoom < 0.01f) {
-      viewportInfo.defaultZoom = intrinsicScale.width;
+    if (viewportInfo.GetDefaultZoom() < 0.01f) {
+      viewportInfo.SetDefaultZoom(intrinsicScale.width);
     }
-    MOZ_ASSERT(viewportInfo.minZoom <= viewportInfo.defaultZoom &&
-               viewportInfo.defaultZoom <= viewportInfo.maxZoom);
+
+    double defaultZoom = viewportInfo.GetDefaultZoom();
+    MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
+               defaultZoom <= viewportInfo.GetMaxZoom());
     
     
-    metrics.mZoom = gfxSize(viewportInfo.defaultZoom / intrinsicScale.width,
-                            viewportInfo.defaultZoom / intrinsicScale.height);
+    metrics.mZoom = gfxSize(defaultZoom / intrinsicScale.width,
+                            defaultZoom / intrinsicScale.height);
   }
 
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
