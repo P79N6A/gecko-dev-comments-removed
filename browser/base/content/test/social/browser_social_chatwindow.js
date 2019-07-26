@@ -2,17 +2,71 @@
 
 
 
+let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
+
+let manifests = [
+  {
+    name: "provider@example.com",
+    origin: "https://example.com",
+    sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html?example.com",
+    workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
+    iconURL: "chrome://branding/content/icon48.png"
+  },
+  {
+    name: "provider@test1",
+    origin: "https://test1.example.com",
+    sidebarURL: "https://test1.example.com/browser/browser/base/content/test/social/social_sidebar.html?test1",
+    workerURL: "https://test1.example.com/browser/browser/base/content/test/social/social_worker.js",
+    iconURL: "chrome://branding/content/icon48.png"
+  },
+  {
+    name: "provider@test2",
+    origin: "https://test2.example.com",
+    sidebarURL: "https://test2.example.com/browser/browser/base/content/test/social/social_sidebar.html?test2",
+    workerURL: "https://test2.example.com/browser/browser/base/content/test/social/social_worker.js",
+    iconURL: "chrome://branding/content/icon48.png"
+  }
+];
+
+let chatId = 0;
+function openChat(provider, callback) {
+  let chatUrl = provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
+  let port = provider.getWorkerPort();
+  port.onmessage = function(e) {
+    if (e.data.topic == "got-chatbox-message") {
+      port.close();
+      callback();
+    }
+  }
+  let url = chatUrl + "?" + (chatId++);
+  port.postMessage({topic: "test-init"});
+  port.postMessage({topic: "test-worker-chat", data: url});
+  gURLsNotRemembered.push(url);
+}
+
+function waitPrefChange(cb) {
+  Services.prefs.addObserver("social.enabled", function prefObserver(subject, topic, data) {
+    Services.prefs.removeObserver("social.enabled", prefObserver);
+    executeSoon(cb);
+  }, false);
+}
+
+function setWorkerMode(multiple, cb) {
+  waitPrefChange(function() {
+    if (multiple)
+      Services.prefs.setBoolPref("social.allowMultipleWorkers", true);
+    else
+      Services.prefs.clearUserPref("social.allowMultipleWorkers");
+    waitPrefChange(cb);
+    Social.enabled = true;
+  });
+  Social.enabled = false;
+}
+
 function test() {
   requestLongerTimeout(2); 
   waitForExplicitFinish();
 
-  let manifest = { 
-    name: "provider 1",
-    origin: "https://example.com",
-    sidebarURL: "https://example.com/browser/browser/base/content/test/social/social_sidebar.html",
-    workerURL: "https://example.com/browser/browser/base/content/test/social/social_worker.js",
-    iconURL: "https://example.com/browser/browser/base/content/test/moz.png"
-  };
   let oldwidth = window.outerWidth; 
   let oldleft = window.screenX;
   window.moveTo(0, window.screenY)
@@ -21,7 +75,7 @@ function test() {
     ok(chats.children.length == 0, "no chatty children left behind");
     cb();
   };
-  runSocialTestWithProvider(manifest, function (finishcb) {
+  runSocialTestWithProvider(manifests, function (finishcb) {
     runSocialTests(tests, undefined, postSubTest, function() {
       window.moveTo(oldleft, window.screenY)
       window.resizeTo(oldwidth, window.outerHeight);
@@ -147,7 +201,7 @@ var tests = {
     maybeOpenAnother();
   },
   testWorkerChatWindow: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
     let chats = document.getElementById("pinnedchats");
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
@@ -384,7 +438,7 @@ var tests = {
 
   testSecondTopLevelWindow: function(next) {
     
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     let secondWindow;
     port.onmessage = function(e) {
@@ -407,23 +461,9 @@ var tests = {
   testChatWindowChooser: function(next) {
     
     
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
-    let chatId = 1;
-    let port = Social.provider.getWorkerPort();
-    port.postMessage({topic: "test-init"});
-
-    function openChat(callback) {
-      port.onmessage = function(e) {
-        if (e.data.topic == "got-chatbox-message")
-          callback();
-      }
-      let url = chatUrl + "?" + (chatId++);
-      port.postMessage({topic: "test-worker-chat", data: url});
-    }
-
     
     ok(!window.SocialChatBar.hasChats, "first window should start with no chats");
-    openChat(function() {
+    openChat(Social.provider, function() {
       ok(window.SocialChatBar.hasChats, "first window has the chat");
       
       
@@ -431,27 +471,55 @@ var tests = {
       secondWindow.addEventListener("load", function loadListener() {
         secondWindow.removeEventListener("load", loadListener);
         ok(!secondWindow.SocialChatBar.hasChats, "second window has no chats");
-        openChat(function() {
+        openChat(Social.provider, function() {
           ok(secondWindow.SocialChatBar.hasChats, "second window now has chats");
           is(window.SocialChatBar.chatbar.childElementCount, 1, "first window still has 1 chat");
           window.SocialChatBar.chatbar.removeAll();
           
-          openChat(function() {
+          openChat(Social.provider, function() {
             ok(!window.SocialChatBar.hasChats, "first window has no chats");
             ok(secondWindow.SocialChatBar.hasChats, "second window has a chat");
             secondWindow.close();
-            port.close();
             next();
           });
         });
       })
     });
   },
+  testMultipleProviderChat: function(next) {
+    
+    setWorkerMode(true, function() {
+      
+      openChat(Social.providers[0], function() {
+        openChat(Social.providers[1], function() {
+          openChat(Social.providers[2], function() {
+            let chats = document.getElementById("pinnedchats");
+            waitForCondition(function() chats.children.length == Social.providers.length,
+              function() {
+                ok(true, "one chat window per provider opened");
+                
+                let provider = Social.providers[0];
+                let port = provider.getWorkerPort();
+                port.postMessage({topic: "test-logout"});
+                waitForCondition(function() chats.children.length == Social.providers.length - 1,
+                  function() {
+                    port.close();
+                    chats.removeAll();
+                    ok(!chats.selectedChat, "chats are all closed");
+                    setWorkerMode(false, next);
+                  },
+                  "chat window didn't close");
+              }, "chat windows did not open");
+          });
+        });
+      });
+    });
+  },
 
   
   
   testCloseOnLogout: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    const chatUrl = Social.provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
     let opened = false;
