@@ -16,6 +16,10 @@ gfxAlphaBoxBlur::gfxAlphaBoxBlur()
 
 gfxAlphaBoxBlur::~gfxAlphaBoxBlur()
 {
+  
+  
+  mContext = nullptr;
+  mImageSurface = nullptr;
   delete mBlur;
 }
 
