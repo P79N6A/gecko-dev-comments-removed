@@ -21,8 +21,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 XPCOMUtils.defineLazyGetter(this, "DB_PATH", function() {
   return OS.Path.join(OS.Constants.Path.profileDir, "home.sqlite");
@@ -54,6 +53,9 @@ const SQL = {
       "filter TEXT," +
       "created INTEGER" +
     ")",
+
+  dropItemsTable:
+    "DROP TABLE items",
 
   insertItem:
     "INSERT INTO items (dataset_id, url, title, description, image_url, filter, created) " +
@@ -184,6 +186,33 @@ var gDatabaseEnsured = false;
 
 
 
+function createDatabase(db) {
+  return Task.spawn(function create_database_task() {
+    yield db.execute(SQL.createItemsTable);
+  });
+}
+
+
+
+
+function upgradeDatabase(db, oldVersion, newVersion) {
+  return Task.spawn(function upgrade_database_task() {
+    for (let v = oldVersion + 1; v <= newVersion; v++) {
+      switch(v) {
+        case 2:
+          
+          
+          yield db.execute(SQL.dropItemsTable);
+          yield db.execute(SQL.createItemsTable);
+          break;
+      }
+    }
+  });
+}
+
+
+
+
 
 
 
@@ -198,13 +227,17 @@ function getDatabaseConnection() {
 
     try {
       
+      let dbVersion = parseInt(yield db.getSchemaVersion());
+
       
-      let dbVersion = yield db.getSchemaVersion();
-      if (parseInt(dbVersion) < SCHEMA_VERSION) {
-        
-        yield db.execute(SQL.createItemsTable);
-        yield db.setSchemaVersion(SCHEMA_VERSION);
+      
+      if (dbVersion === 0) {
+        yield createDatabase(db);
+      } else if (dbVersion < SCHEMA_VERSION) {
+        yield upgradeDatabase(db, dbVersion, SCHEMA_VERSION);
       }
+
+      yield db.setSchemaVersion(SCHEMA_VERSION);
     } catch(e) {
       
       yield db.close();
