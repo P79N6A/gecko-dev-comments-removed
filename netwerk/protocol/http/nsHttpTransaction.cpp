@@ -1035,6 +1035,24 @@ nsHttpTransaction::PipelinePosition()
     return mPipelinePosition;
 }
 
+bool 
+nsAHttpTransaction::ResponseTimeoutEnabled() const
+{
+    return false;
+}
+
+PRIntervalTime 
+nsAHttpTransaction::ResponseTimeout()
+{
+    return gHttpHandler->ResponseTimeout();
+}
+
+bool
+nsHttpTransaction::ResponseTimeoutEnabled() const
+{
+    return mResponseTimeoutEnabled;
+}
+
 
 
 

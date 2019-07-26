@@ -35,7 +35,12 @@ public:
   nsHttpConnectionInfo *ConnectionInfo() { return mConnectionInfo; }
 
   
-  bool IsNullTransaction() { return true; }
+  bool IsNullTransaction() MOZ_OVERRIDE MOZ_FINAL { return true; }
+  bool ResponseTimeoutEnabled() const MOZ_OVERRIDE MOZ_FINAL {return true; }
+  PRIntervalTime ResponseTimeout() MOZ_OVERRIDE MOZ_FINAL
+  {
+    return PR_SecondsToInterval(15);
+  }
 
 private:
 
