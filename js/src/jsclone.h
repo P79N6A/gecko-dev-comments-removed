@@ -91,7 +91,7 @@ struct SCInput {
     uint64_t *end;
 };
 
-}
+} 
 
 struct JSStructuredCloneReader {
   public:
@@ -196,7 +196,7 @@ struct JSStructuredCloneWriter {
     void *closure;
 
     
-    js::RootedValue transferable;
+    JS::RootedValue transferable;
     js::AutoObjectHashSet transferableObjects;
 
     friend JSBool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
