@@ -1691,6 +1691,10 @@ bool nsGfxScrollFrameInner::ShouldClampScrollPosition() const
 
 bool nsGfxScrollFrameInner::IsAlwaysActive() const
 {
+  if (nsDisplayItem::ForceActiveLayers()) {
+    return true;
+  }
+
   
   
   

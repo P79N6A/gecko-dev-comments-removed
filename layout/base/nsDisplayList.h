@@ -899,6 +899,15 @@ public:
 
 
 
+  static bool ForceActiveLayers();
+
+  
+
+
+
+
+
+
 
 
 

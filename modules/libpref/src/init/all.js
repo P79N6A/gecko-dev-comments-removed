@@ -3702,6 +3702,9 @@ pref("layers.prefer-d3d9", false);
 #endif
 
 
+pref("layers.force-active", false);
+
+
 pref("geo.enabled", true);
 
 
