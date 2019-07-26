@@ -167,30 +167,30 @@ public:
 
 
 
-  virtual bool Rollup(uint32_t aCount, nsIContent** aLastRolledUp);
-  virtual void NotifyGeometryChange();
+  virtual bool Rollup(uint32_t aCount, nsIContent** aLastRolledUp) MOZ_OVERRIDE;
+  virtual void NotifyGeometryChange() MOZ_OVERRIDE;
 
   
 
 
 
-  virtual bool ShouldRollupOnMouseWheelEvent()
+  virtual bool ShouldRollupOnMouseWheelEvent() MOZ_OVERRIDE
     { return true; }
 
-  virtual bool ShouldConsumeOnMouseWheelEvent()
+  virtual bool ShouldConsumeOnMouseWheelEvent() MOZ_OVERRIDE
     { return false; }
 
   
 
 
 
-  virtual bool ShouldRollupOnMouseActivate()
+  virtual bool ShouldRollupOnMouseActivate() MOZ_OVERRIDE
     { return false; }
 
-  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain)
+  virtual uint32_t GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) MOZ_OVERRIDE
     { return 0; }
 
-  virtual nsIWidget* GetRollupWidget();
+  virtual nsIWidget* GetRollupWidget() MOZ_OVERRIDE;
 
   
   NS_IMETHOD SaveState(nsPresState** aState) MOZ_OVERRIDE;

@@ -6,6 +6,7 @@
 #ifndef __NS_SVGFILTERFRAME_H__
 #define __NS_SVGFILTERFRAME_H__
 
+#include "mozilla/Attributes.h"
 #include "nsFrame.h"
 #include "nsQueryFrame.h"
 #include "nsRect.h"
@@ -53,7 +54,7 @@ public:
 
   NS_IMETHOD AttributeChanged(int32_t         aNameSpaceID,
                               nsIAtom*        aAttribute,
-                              int32_t         aModType);
+                              int32_t         aModType) MOZ_OVERRIDE;
 
   
 
@@ -107,7 +108,7 @@ public:
 
 
 
-  virtual nsIAtom* GetType() const;
+  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
 private:
   

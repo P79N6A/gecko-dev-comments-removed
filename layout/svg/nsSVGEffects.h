@@ -124,7 +124,7 @@ protected:
   public:
     SourceReference(nsSVGIDRenderingObserver* aContainer) : mContainer(aContainer) {}
   protected:
-    virtual void ElementChanged(Element* aFrom, Element* aTo) {
+    virtual void ElementChanged(Element* aFrom, Element* aTo) MOZ_OVERRIDE {
       mContainer->StopListening();
       nsReferencedElement::ElementChanged(aFrom, aTo);
       mContainer->StartListening();
@@ -134,7 +134,7 @@ protected:
 
 
 
-    virtual bool IsPersistent() { return true; }
+    virtual bool IsPersistent() MOZ_OVERRIDE { return true; }
   private:
     nsSVGIDRenderingObserver* mContainer;
   };
