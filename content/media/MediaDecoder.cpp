@@ -23,6 +23,10 @@
 #include <cstdlib> 
 #include <cmath> 
 
+#ifdef MOZ_WMF
+#include "WMFDecoder.h"
+#endif
+
 using namespace mozilla::layers;
 using namespace mozilla::dom;
 
@@ -1638,6 +1642,14 @@ bool
 MediaDecoder::IsDASHEnabled()
 {
   return Preferences::GetBool("media.dash.enabled");
+}
+#endif
+
+#ifdef MOZ_WMF
+bool
+MediaDecoder::IsWMFEnabled()
+{
+  return WMFDecoder::IsEnabled();
 }
 #endif
 
