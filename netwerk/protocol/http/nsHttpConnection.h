@@ -59,8 +59,8 @@ public:
     
     nsresult Init(nsHttpConnectionInfo *info, uint16_t maxHangTime,
                   nsISocketTransport *, nsIAsyncInputStream *,
-                  nsIAsyncOutputStream *, nsIInterfaceRequestor *,
-                  PRIntervalTime);
+                  nsIAsyncOutputStream *, bool connectedTransport,
+                  nsIInterfaceRequestor *, PRIntervalTime);
 
     
     
@@ -250,6 +250,7 @@ private:
 
     PRIntervalTime                  mRtt;
 
+    bool                            mConnectedTransport;
     bool                            mKeepAlive;
     bool                            mKeepAliveMask;
     bool                            mDontReuse;

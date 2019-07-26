@@ -458,7 +458,12 @@ private:
         nsCOMPtr<nsIAsyncOutputStream> mBackupStreamOut;
         nsCOMPtr<nsIAsyncInputStream>  mBackupStreamIn;
 
+        
+        
         bool                           mHasConnected;
+
+        bool                           mPrimaryConnectedOK;
+        bool                           mBackupConnectedOK;
     };
     friend class nsHalfOpenSocket;
 
