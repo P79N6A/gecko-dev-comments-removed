@@ -134,11 +134,11 @@ public:
 
 
 
-  nsresult ParseMediaList(const nsSubstring& aBuffer,
-                          nsIURI*            aURL,
-                          uint32_t           aLineNumber,
-                          nsMediaList*       aMediaList,
-                          bool               aHTMLMode);
+  void ParseMediaList(const nsSubstring& aBuffer,
+                      nsIURI*            aURL,
+                      uint32_t           aLineNumber,
+                      nsMediaList*       aMediaList,
+                      bool               aHTMLMode);
 
   
 
