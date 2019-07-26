@@ -7,9 +7,9 @@
 
 
 
-#include "MediaPipelineFilter.h"
-
 #include "logging.h"
+
+#include "MediaPipelineFilter.h"
 
 #include "webrtc/modules/interface/module_common_types.h"
 
