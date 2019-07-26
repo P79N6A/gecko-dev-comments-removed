@@ -45,6 +45,16 @@ const TEST_FILE_NAME_1 = "test-backgroundfilesaver-1.txt";
 const TEST_FILE_NAME_2 = "test-backgroundfilesaver-2.txt";
 const TEST_FILE_NAME_3 = "test-backgroundfilesaver-3.txt";
 
+
+const EXPECTED_HASHES = {
+  
+  40 : "f37176b690e8744ee990a206c086cba54d1502aa2456c3b0c84ef6345d72a192",
+  
+  80 : "780c0e91f50bb7ec922cc11e16859e6d5df283c0d9470f61772e3d79f41eeb58",
+  
+  16777216 : "03a0db69a30140f307587ee746a539247c181bafd85b85c8516a3533c7d9ea1d"
+};
+
 const gTextDecoder = new TextDecoder();
 
 
@@ -65,6 +75,21 @@ function getTempFile(aLeafName) {
     }
   });
   return file;
+}
+
+
+
+
+
+
+
+
+function toHex(str) {
+  var hex = '';
+  for (var i = 0; i < str.length; i++) {
+    hex += ('0' + str.charCodeAt(i).toString(16)).slice(-2);
+  }
+  return hex;
 }
 
 
@@ -298,6 +323,7 @@ add_task(function test_combinations()
     let saver = useStreamListener
                 ? new BackgroundFileSaverStreamListener()
                 : new BackgroundFileSaverOutputStream();
+    saver.enableSha256();
     let completionPromise = promiseSaverComplete(saver, onTargetChange);
 
     
@@ -340,9 +366,10 @@ add_task(function test_combinations()
     if (!cancelAtSomePoint) {
       
       do_check_true(currentFile.exists());
-      if (!cancelAtSomePoint) {
-        yield promiseVerifyContents(currentFile, testData + testData);
-      }
+      expectedContents = testData + testData;
+      yield promiseVerifyContents(currentFile, expectedContents);
+      do_check_eq(EXPECTED_HASHES[expectedContents.length],
+                  toHex(saver.sha256Hash));
       currentFile.remove(false);
 
       
@@ -379,6 +406,7 @@ add_task(function test_setTarget_after_close_stream()
   
   for (let i = 0; i < 2; i++) {
     let saver = new BackgroundFileSaverOutputStream();
+    saver.enableSha256();
     let completionPromise = promiseSaverComplete(saver);
   
     
@@ -394,6 +422,8 @@ add_task(function test_setTarget_after_close_stream()
   
     
     yield promiseVerifyContents(destFile, TEST_DATA_SHORT);
+    do_check_eq(EXPECTED_HASHES[TEST_DATA_SHORT.length],
+                toHex(saver.sha256Hash));
   }
 
   
@@ -436,6 +466,29 @@ add_task(function test_finish_only()
   let completionPromise = promiseSaverComplete(saver, onTargetChange);
   saver.finish(Cr.NS_OK);
   yield completionPromise;
+});
+
+add_task(function test_invalid_hash()
+{
+  let saver = new BackgroundFileSaverStreamListener();
+  
+  try {
+    let hash = saver.sha256Hash;
+    throw "Shouldn't be able to get hash if hashing not enabled";
+  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) { }
+  
+  saver.enableSha256();
+  let destFile = getTempFile(TEST_FILE_NAME_1);
+  saver.setTarget(destFile, false);
+  
+  
+  
+  
+  saver.finish(Cr.NS_ERROR_FAILURE);
+  try {
+    let hash = saver.sha256Hash;
+    throw "Shouldn't be able to get hash if save did not succeed";
+  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) { }
 });
 
 add_task(function test_teardown()

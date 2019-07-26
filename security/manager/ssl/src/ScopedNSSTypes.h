@@ -147,6 +147,9 @@ MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPK11Context,
 
 
 
+
+
+
 class Digest
 {
 public:
