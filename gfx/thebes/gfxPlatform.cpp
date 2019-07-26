@@ -81,8 +81,6 @@
 
 #include "nsIGfxInfo.h"
 
-#include "gfxColorManagement.h"
-
 using namespace mozilla;
 using namespace mozilla::layers;
 
@@ -90,6 +88,21 @@ gfxPlatform *gPlatform = nullptr;
 static bool gEverInitialized = false;
 
 static Mutex* gGfxPlatformPrefsLock = nullptr;
+
+
+static qcms_profile *gCMSOutputProfile = nullptr;
+static qcms_profile *gCMSsRGBProfile = nullptr;
+
+static qcms_transform *gCMSRGBTransform = nullptr;
+static qcms_transform *gCMSInverseRGBTransform = nullptr;
+static qcms_transform *gCMSRGBATransform = nullptr;
+
+static bool gCMSInitialized = false;
+static eCMSMode gCMSMode = eCMSMode_Off;
+static int gCMSIntent = -2;
+
+static void ShutdownCMS();
+static void MigratePrefs();
 
 static bool sDrawFrameCounter = false;
 
@@ -104,6 +117,30 @@ static PRLogModuleInfo *sTextrunLog = nullptr;
 static PRLogModuleInfo *sTextrunuiLog = nullptr;
 static PRLogModuleInfo *sCmapDataLog = nullptr;
 #endif
+
+
+
+class SRGBOverrideObserver MOZ_FINAL : public nsIObserver,
+                                       public nsSupportsWeakReference
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+};
+
+NS_IMPL_ISUPPORTS2(SRGBOverrideObserver, nsIObserver, nsISupportsWeakReference)
+
+NS_IMETHODIMP
+SRGBOverrideObserver::Observe(nsISupports *aSubject,
+                              const char *aTopic,
+                              const PRUnichar *someData)
+{
+    NS_ASSERTION(NS_strcmp(someData,
+                   NS_LITERAL_STRING("gfx.color_mangement.force_srgb").get()),
+                 "Restarting CMS on wrong pref!");
+    ShutdownCMS();
+    return NS_OK;
+}
 
 #define GFX_DOWNLOADABLE_FONTS_ENABLED "gfx.downloadable_fonts.enabled"
 
@@ -361,7 +398,11 @@ gfxPlatform::Init()
     }
 
     
-    gfxColorManagement::InstanceNC().Initialize(GetPlatform()->GetPlatformCMSOutputProfile());
+    MigratePrefs();
+
+    
+    gPlatform->mSRGBOverrideObserver = new SRGBOverrideObserver();
+    Preferences::AddWeakObserver(gPlatform->mSRGBOverrideObserver, "gfx.color_management.force_srgb");
 
     gPlatform->mFontPrefsObserver = new FontPrefsObserver();
     Preferences::AddStrongObservers(gPlatform->mFontPrefsObserver, kObservedPrefs);
@@ -393,6 +434,8 @@ gfxPlatform::Init()
     mozilla::Preferences::AddBoolVarCache(&sDrawFrameCounter,
                                           "layers.frame-counter",
                                           false);
+
+    CreateCMSOutputProfile();
 }
 
 void
@@ -408,11 +451,16 @@ gfxPlatform::Shutdown()
 #endif
 
     
-    gfxColorManagement::Destroy();
+    ShutdownCMS();
 
     
     
     if (gPlatform) {
+        
+        NS_ASSERTION(gPlatform->mSRGBOverrideObserver, "mSRGBOverrideObserver has alreay gone");
+        Preferences::RemoveObserver(gPlatform->mSRGBOverrideObserver, "gfx.color_management.force_srgb");
+        gPlatform->mSRGBOverrideObserver = nullptr;
+
         NS_ASSERTION(gPlatform->mFontPrefsObserver, "mFontPrefsObserver has alreay gone");
         Preferences::RemoveObservers(gPlatform->mFontPrefsObserver, kObservedPrefs);
         gPlatform->mFontPrefsObserver = nullptr;
@@ -1438,10 +1486,253 @@ gfxPlatform::OffMainThreadCompositingEnabled()
     CompositorChild::ChildProcessHasCompositor();
 }
 
+eCMSMode
+gfxPlatform::GetCMSMode()
+{
+    if (gCMSInitialized == false) {
+        gCMSInitialized = true;
+        nsresult rv;
+
+        int32_t mode;
+        rv = Preferences::GetInt("gfx.color_management.mode", &mode);
+        if (NS_SUCCEEDED(rv) && (mode >= 0) && (mode < eCMSMode_AllCount)) {
+            gCMSMode = static_cast<eCMSMode>(mode);
+        }
+
+        bool enableV4;
+        rv = Preferences::GetBool("gfx.color_management.enablev4", &enableV4);
+        if (NS_SUCCEEDED(rv) && enableV4) {
+            qcms_enable_iccv4();
+        }
+    }
+    return gCMSMode;
+}
+
+int
+gfxPlatform::GetRenderingIntent()
+{
+    if (gCMSIntent == -2) {
+
+        
+        int32_t pIntent;
+        if (NS_SUCCEEDED(Preferences::GetInt("gfx.color_management.rendering_intent", &pIntent))) {
+            
+            if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
+                gCMSIntent = pIntent;
+            }
+            
+            else {
+                gCMSIntent = -1;
+            }
+        }
+        
+        else {
+            gCMSIntent = QCMS_INTENT_DEFAULT;
+        }
+    }
+    return gCMSIntent;
+}
+
+void
+gfxPlatform::TransformPixel(const gfxRGBA& in, gfxRGBA& out, qcms_transform *transform)
+{
+
+    if (transform) {
+        
+#ifdef IS_LITTLE_ENDIAN
+        
+        uint32_t packed = in.Packed(gfxRGBA::PACKED_ABGR);
+        qcms_transform_data(transform,
+                       (uint8_t *)&packed, (uint8_t *)&packed,
+                       1);
+        out.~gfxRGBA();
+        new (&out) gfxRGBA(packed, gfxRGBA::PACKED_ABGR);
+#else
+        
+        uint32_t packed = in.Packed(gfxRGBA::PACKED_ARGB);
+        
+        qcms_transform_data(transform,
+                       (uint8_t *)&packed + 1, (uint8_t *)&packed + 1,
+                       1);
+        out.~gfxRGBA();
+        new (&out) gfxRGBA(packed, gfxRGBA::PACKED_ARGB);
+#endif
+    }
+
+    else if (&out != &in)
+        out = in;
+}
+
 qcms_profile *
 gfxPlatform::GetPlatformCMSOutputProfile()
 {
     return nullptr;
+}
+
+void
+gfxPlatform::CreateCMSOutputProfile()
+{
+    if (!gCMSOutputProfile) {
+        
+
+
+
+
+
+
+        if (Preferences::GetBool("gfx.color_management.force_srgb", false)) {
+            gCMSOutputProfile = GetCMSsRGBProfile();
+        }
+
+        if (!gCMSOutputProfile) {
+            nsAdoptingCString fname = Preferences::GetCString("gfx.color_management.display_profile");
+            if (!fname.IsEmpty()) {
+                gCMSOutputProfile = qcms_profile_from_path(fname);
+            }
+        }
+
+        if (!gCMSOutputProfile) {
+            gCMSOutputProfile =
+                gfxPlatform::GetPlatform()->GetPlatformCMSOutputProfile();
+        }
+
+        
+
+        if (gCMSOutputProfile && qcms_profile_is_bogus(gCMSOutputProfile)) {
+            NS_ASSERTION(gCMSOutputProfile != GetCMSsRGBProfile(),
+                         "Builtin sRGB profile tagged as bogus!!!");
+            qcms_profile_release(gCMSOutputProfile);
+            gCMSOutputProfile = nullptr;
+        }
+
+        if (!gCMSOutputProfile) {
+            gCMSOutputProfile = GetCMSsRGBProfile();
+        }
+        
+
+        qcms_profile_precache_output_transform(gCMSOutputProfile);
+    }
+}
+
+qcms_profile *
+gfxPlatform::GetCMSOutputProfile()
+{
+    return gCMSOutputProfile;
+}
+
+qcms_profile *
+gfxPlatform::GetCMSsRGBProfile()
+{
+    if (!gCMSsRGBProfile) {
+
+        
+        gCMSsRGBProfile = qcms_profile_sRGB();
+    }
+    return gCMSsRGBProfile;
+}
+
+qcms_transform *
+gfxPlatform::GetCMSRGBTransform()
+{
+    if (!gCMSRGBTransform) {
+        qcms_profile *inProfile, *outProfile;
+        outProfile = GetCMSOutputProfile();
+        inProfile = GetCMSsRGBProfile();
+
+        if (!inProfile || !outProfile)
+            return nullptr;
+
+        gCMSRGBTransform = qcms_transform_create(inProfile, QCMS_DATA_RGB_8,
+                                              outProfile, QCMS_DATA_RGB_8,
+                                             QCMS_INTENT_PERCEPTUAL);
+    }
+
+    return gCMSRGBTransform;
+}
+
+qcms_transform *
+gfxPlatform::GetCMSInverseRGBTransform()
+{
+    if (!gCMSInverseRGBTransform) {
+        qcms_profile *inProfile, *outProfile;
+        inProfile = GetCMSOutputProfile();
+        outProfile = GetCMSsRGBProfile();
+
+        if (!inProfile || !outProfile)
+            return nullptr;
+
+        gCMSInverseRGBTransform = qcms_transform_create(inProfile, QCMS_DATA_RGB_8,
+                                                     outProfile, QCMS_DATA_RGB_8,
+                                                     QCMS_INTENT_PERCEPTUAL);
+    }
+
+    return gCMSInverseRGBTransform;
+}
+
+qcms_transform *
+gfxPlatform::GetCMSRGBATransform()
+{
+    if (!gCMSRGBATransform) {
+        qcms_profile *inProfile, *outProfile;
+        outProfile = GetCMSOutputProfile();
+        inProfile = GetCMSsRGBProfile();
+
+        if (!inProfile || !outProfile)
+            return nullptr;
+
+        gCMSRGBATransform = qcms_transform_create(inProfile, QCMS_DATA_RGBA_8,
+                                               outProfile, QCMS_DATA_RGBA_8,
+                                               QCMS_INTENT_PERCEPTUAL);
+    }
+
+    return gCMSRGBATransform;
+}
+
+
+static void ShutdownCMS()
+{
+
+    if (gCMSRGBTransform) {
+        qcms_transform_release(gCMSRGBTransform);
+        gCMSRGBTransform = nullptr;
+    }
+    if (gCMSInverseRGBTransform) {
+        qcms_transform_release(gCMSInverseRGBTransform);
+        gCMSInverseRGBTransform = nullptr;
+    }
+    if (gCMSRGBATransform) {
+        qcms_transform_release(gCMSRGBATransform);
+        gCMSRGBATransform = nullptr;
+    }
+    if (gCMSOutputProfile) {
+        qcms_profile_release(gCMSOutputProfile);
+
+        
+        if (gCMSsRGBProfile == gCMSOutputProfile)
+            gCMSsRGBProfile = nullptr;
+        gCMSOutputProfile = nullptr;
+    }
+    if (gCMSsRGBProfile) {
+        qcms_profile_release(gCMSsRGBProfile);
+        gCMSsRGBProfile = nullptr;
+    }
+
+    
+    gCMSIntent = -2;
+    gCMSMode = eCMSMode_Off;
+    gCMSInitialized = false;
+}
+
+static void MigratePrefs()
+{
+    
+
+    if (Preferences::HasUserValue("gfx.color_management.enabled")) {
+        if (Preferences::GetBool("gfx.color_management.enabled", false)) {
+            Preferences::SetInt("gfx.color_management.mode", static_cast<int32_t>(eCMSMode_All));
+        }
+        Preferences::ClearUser("gfx.color_management.enabled");
+    }
 }
 
 
