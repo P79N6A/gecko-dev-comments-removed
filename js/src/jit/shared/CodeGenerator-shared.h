@@ -170,16 +170,17 @@ class CodeGeneratorShared : public LInstructionVisitor
         
         JS_ASSERT(slot >= 0 && slot <= int32_t(graph.argumentSlotCount()));
         int32_t offset = masm.framePushed() -
-                       (graph.localSlotCount() * STACK_SLOT_SIZE) -
+                       graph.paddedLocalSlotsSize() -
                        (slot * sizeof(Value));
-        
-        
-        
-        
-        
 
-        offset &= ~7;
+        
+        
+        
+        
+        
+        
         JS_ASSERT(offset >= 0);
+        JS_ASSERT(offset % sizeof(Value) == 0);
         return offset;
     }
 
