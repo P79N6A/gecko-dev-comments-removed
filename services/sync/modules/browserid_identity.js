@@ -14,6 +14,26 @@ Cu.import("resource://services-common/tokenserverclient.js");
 Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://gre/modules/Promise.jsm");
+
+
+for (let symbol of ["BulkKeyBundle"]) {
+  XPCOMUtils.defineLazyModuleGetter(this, symbol,
+                                    "resource://services-sync/keys.js",
+                                    symbol);
+}
+
+function deriveKeyBundle(kB) {
+  let out = CryptoUtils.hkdf(kB, undefined,
+                             "identity.mozilla.com/picl/v1/oldsync", 2*32);
+  let bundle = new BulkKeyBundle();
+  
+  bundle.keyPair = [out.slice(0, 32), out.slice(32, 64)];
+  return bundle;
+}
+
 
 
 
@@ -24,7 +44,7 @@ Cu.import("resource://services-sync/util.js");
 this.BrowserIDManager = function BrowserIDManager(fxaService, tokenServerClient) {
   this._fxaService = fxaService;
   this._tokenServerClient = tokenServerClient;
-  this._log = Log.repository.getLogger("Sync.Identity");
+  this._log = Log.repository.getLogger("Sync.BrowserIDManager");
   this._log.Level = Log.Level[Svc.Prefs.get("log.logger.identity")];
 
 };
@@ -36,18 +56,7 @@ this.BrowserIDManager.prototype = {
   _tokenServerClient: null,
   
   _token: null,
-
-  _clearUserState: function() {
-    this.account = null;
-    this._token = null;
-  },
-
-  
-
-
-  _normalizeAccountValue: function(value) {
-    return value.toLowerCase();
-  },
+  _account: null,
 
   
 
@@ -56,10 +65,115 @@ this.BrowserIDManager.prototype = {
     return Date.now();
   },
 
+  clusterURL: null,
+
+  get account() {
+    return this._account;
+  },
+
   
 
 
 
+
+
+
+
+
+
+
+
+  set account(value) {
+    throw "account setter should be not used in BrowserIDManager";
+  },
+
+  
+
+
+
+
+  get basicPassword() {
+    this._log.error("basicPassword getter should be not used in BrowserIDManager");
+    return null;
+  },
+
+  
+
+
+
+
+  set basicPassword(value) {
+    if (!value) {
+      return;
+    }
+    throw "basicPassword setter should be not used with non-null value in BrowserIDManager";
+  },
+
+  
+
+
+
+
+
+
+
+
+  get syncKey() {
+    if (this.syncKeyBundle) {
+      
+      
+      
+      
+      
+      
+      return "99999999999999999999999999";
+    }
+    else {
+      return null;
+    }
+  },
+
+  set syncKey(value) {
+    if (!value) {
+      this._log.info("Sync Key has no value. Deleting.");
+      this._syncKey = null;
+      this._syncKeyBundle = null;
+      this._syncKeyUpdated = true;
+      return;
+    }
+  },
+
+  get syncKeyBundle() {
+    return this._syncKeyBundle;
+  },
+
+  
+
+
+
+
+
+  get currentAuthState() {
+    
+    
+    
+    if (!this.username) {
+      return LOGIN_FAILED_NO_USERNAME;
+    }
+
+    if (!this.syncKey) {
+      return LOGIN_FAILED_NO_PASSPHRASE;
+    }
+
+    
+    if (!this.syncKeyBundle) {
+      return LOGIN_FAILED_INVALID_PASSPHRASE;
+    }
+
+    return STATUS_OK;
+  },
+
+  
 
 
 
@@ -75,7 +189,7 @@ this.BrowserIDManager.prototype = {
       return false;
     }
     
-    if (this._normalizeAccountValue(signedInUser.email) !== this.account) {
+    if (signedInUser.email !== this.account) {
       return false;
     }
     return true;
@@ -87,7 +201,7 @@ this.BrowserIDManager.prototype = {
 
 
   _getSignedInUser: function() {
-    let userBlob;
+    let userData;
     let cb = Async.makeSpinningCallback();
 
     this._fxaService.getSignedInUser().then(function (result) {
@@ -98,34 +212,130 @@ this.BrowserIDManager.prototype = {
     });
 
     try {
-      userBlob = cb.wait();
+      userData = cb.wait();
     } catch (err) {
-      this._log.info("FxAccounts.getSignedInUser() failed with: " + err);
+      this._log.error("FxAccounts.getSignedInUser() failed with: " + err);
       return null;
     }
-    return userBlob;
+    return userData;
   },
 
- _fetchTokenForUser: function(user) {
-    let token;
+  
+  
+  
+  initWithLoggedInUser: function() {
+    
+    return this._fxaService.getSignedInUser()
+      .then(userData => {
+        if (!userData) {
+          this._log.warn("initWithLoggedInUser found no logged in user");
+          throw new Error("initWithLoggedInUser found no logged in user");
+        }
+        
+        this._account = userData.email;
+        
+        return this._refreshTokenForLoggedInUser();
+      })
+      .then(token => {
+        this._token = token;
+        
+        
+        
+        
+        this.username = this._token.uid.toString();
+
+        return this._fxaService.getKeys();
+      })
+      .then(userData => {
+        
+        let kB = Utils.hexToBytes(userData.kB);
+        this._syncKeyBundle = deriveKeyBundle(kB);
+
+        
+        
+        
+        let clusterURI = Services.io.newURI(this._token.endpoint, null, null);
+        clusterURI.path = "/";
+        this.clusterURL = clusterURI.spec;
+        this._log.info("initWithLoggedUser has username " + this.username + ", endpoint is " + this.clusterURL);
+      });
+  },
+
+  
+  
+  _refreshTokenForLoggedInUser: function() {
+    return this._fxaService.getSignedInUser().then(function (userData) {
+      if (!userData || userData.email !== this.account) {
+        
+        
+        
+        this._log.error("Currently logged in FxA user differs from what was locally noted. TODO: do proper error handling.");
+        return null;
+      }
+      return this._fetchTokenForUser(userData);
+    }.bind(this));
+  },
+
+  _refreshTokenForLoggedInUserSync: function() {
     let cb = Async.makeSpinningCallback();
-    let tokenServerURI = Svc.Prefs.get("services.sync.tokenServerURI");
+
+    this._refreshTokenForLoggedInUser().then(function (token) {
+      cb(null, token);
+    },
+    function (err) {
+      cb(err);
+    });
 
     try {
-      this._tokenServerClient.getTokenFromBrowserIDAssertion(
-        tokenServerURI, user.assertion, cb);
-      token = cb.wait();
+      return cb.wait();
     } catch (err) {
-      this._log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err.api_endpoint);
+      this._log.info("refreshTokenForLoggedInUserSync: " + err.message);
       return null;
     }
-
-    token.expiration = this._now() + (token.duration * 1000);
-    return token;
   },
 
-  getResourceAuthenticator: function() {
+  
+  _fetchTokenForUser: function(userData) {
+    let tokenServerURI = Svc.Prefs.get("tokenServerURI");
+    let log = this._log;
+    let client = this._tokenServerClient;
+    log.info("Fetching Sync token from: " + tokenServerURI);
+
+    function getToken(tokenServerURI, assertion) {
+      let deferred = Promise.defer();
+      let cb = function (err, token) {
+        if (err) {
+          log.info("TokenServerClient.getTokenFromBrowserIDAssertion() failed with: " + err.message);
+          return deferred.reject(err);
+        } else {
+          return deferred.resolve(token);
+        }
+      };
+      client.getTokenFromBrowserIDAssertion(tokenServerURI, assertion, cb);
+      return deferred.promise;
+    }
+
+    let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
+    
+    
+    return this._fxaService.whenVerified(userData)
+      .then(() => this._fxaService.getAssertion(audience))
+      .then(assertion => getToken(tokenServerURI, assertion))
+      .then(token => {
+        token.expiration = this._now() + (token.duration * 1000);
+        return token;
+      });
+  },
+
+  getResourceAuthenticator: function () {
     return this._getAuthenticationHeader.bind(this);
+  },
+
+  
+
+
+  getRESTRequestAuthenticator: function() {
+    return this._addAuthenticationHeader.bind(this);
   },
 
   
@@ -134,29 +344,20 @@ this.BrowserIDManager.prototype = {
 
   _getAuthenticationHeader: function(httpObject, method) {
     if (!this.hasValidToken()) {
-      this._clearUserState();
-      let user = this._getSignedInUser();
-      if (!user) {
-        return null;
-      }
-      this._token = this._fetchTokenForUser(user);
+      
+      this._token = this._refreshTokenForLoggedInUserSync();
       if (!this._token) {
         return null;
       }
-      this.account = this._normalizeAccountValue(user.email);
     }
     let credentials = {algorithm: "sha256",
-                       id: this.username,
-                       key: this._token,
+                       id: this._token.id,
+                       key: this._token.key,
                       };
     method = method || httpObject.method;
     let headerValue = CryptoUtils.computeHAWK(httpObject.uri, method,
                                               {credentials: credentials});
     return {headers: {authorization: headerValue.field}};
-  },
-
-  getRequestAuthenticator: function() {
-    return this._addAuthenticationHeader.bind(this);
   },
 
   _addAuthenticationHeader: function(request, method) {

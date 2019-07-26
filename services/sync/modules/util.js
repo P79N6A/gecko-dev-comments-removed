@@ -38,6 +38,7 @@ this.Utils = {
   safeAtoB: CommonUtils.safeAtoB,
   byteArrayToString: CommonUtils.byteArrayToString,
   bytesAsHex: CommonUtils.bytesAsHex,
+  hexToBytes: CommonUtils.hexToBytes,
   encodeBase32: CommonUtils.encodeBase32,
   decodeBase32: CommonUtils.decodeBase32,
 
@@ -101,7 +102,7 @@ this.Utils = {
       }
     };
   },
-  
+
   isLockException: function isLockException(ex) {
     return ex && ex.indexOf && ex.indexOf("Could not acquire lock.") == 0;
   },
@@ -524,7 +525,7 @@ this.Utils = {
     
     return pp;
   },
-  
+
   normalizeAccount: function normalizeAccount(acc) {
     return acc.trim();
   },
@@ -567,7 +568,7 @@ this.Utils = {
 
     if (status == slots.SLOT_NOT_LOGGED_IN)
       return true;
-    
+
     
     return true;
   },
@@ -586,7 +587,7 @@ this.Utils = {
     } catch(e) {}
     return false;
   },
-  
+
   
 
 
