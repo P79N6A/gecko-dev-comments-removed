@@ -13,6 +13,7 @@
 
 #include "gc/Marking.h"
 
+#include "vm/ParallelDo.h"
 #include "vm/ForkJoin.h"
 #include "vm/ThreadPool.h"
 
@@ -170,7 +171,47 @@ intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() >= 2);
+    JS_ASSERT(args[0].isObject() && args[0].toObject().isFunction());
+    JS_ASSERT(args[1].isObject());
+
+    RootedFunction fun(cx, args[0].toObject().toFunction());
+    RootedScript funScript(cx, fun->nonLazyScript());
+    RootedObject flags(cx, &args[1].toObject());
+
+    RootedId id(cx);
+    RootedValue propv(cx);
+
+    id = AtomToId(Atomize(cx, "cloneAtCallsite", strlen("cloneAtCallsite")));
+    if (!JSObject::getGeneric(cx, flags, flags, id, &propv))
+        return false;
+    if (ToBoolean(propv))
+        funScript->shouldCloneAtCallsite = true;
+
+    return true;
+}
+
 #ifdef DEBUG
+
+
+
 JSBool
 js::intrinsic_Dump(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -183,10 +224,25 @@ js::intrinsic_Dump(JSContext *cx, unsigned argc, Value *vp)
 }
 #endif
 
+
+
+
+
+static JSBool
+intrinsic_ParallelSlices(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().setInt32(ForkJoinSlices(cx));
+    return true;
+}
+
+
+
+
+
 JSBool
 js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 {
-    
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
@@ -223,23 +279,22 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
     return false;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 JSBool
 js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     CallArgs args = CallArgsFromVp(argc, vp);
 
     if ((args.length() % 3) != 0) {
@@ -280,6 +335,49 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+
+
+
+
+
+
+
+
+static JSBool
+intrinsic_ParallelTestsShouldPass(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+#if defined(JS_THREADSAFE) && defined(JS_ION)
+    args.rval().setBoolean(ion::IsEnabled(cx) &&
+                           !ion::js_IonOptions.eagerCompilation);
+#else
+    args.rval().setBoolean(false);
+#endif
+    return true;
+}
+
+
+
+
+
+JSBool
+js::intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+#ifdef JS_THREADSAFE
+    args.rval().setBoolean(cx->runtime->parallelWarmup ||
+                           InParallelSection());
+#else
+    args.rval().setBoolean(true);
+#endif
+    return true;
+}
+
+
+
+
+
 static JSBool
 intrinsic_RuntimeDefaultLocale(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -305,12 +403,16 @@ JSFunctionSpec intrinsic_functions[] = {
     JS_FN("IsCallable",           intrinsic_IsCallable,           1,0),
     JS_FN("ThrowError",           intrinsic_ThrowError,           4,0),
     JS_FN("AssertionFailed",      intrinsic_AssertionFailed,      1,0),
+    JS_FN("SetScriptHints",       intrinsic_SetScriptHints,       2,0),
     JS_FN("MakeConstructible",    intrinsic_MakeConstructible,    1,0),
     JS_FN("DecompileArg",         intrinsic_DecompileArg,         2,0),
     JS_FN("RuntimeDefaultLocale", intrinsic_RuntimeDefaultLocale, 0,0),
 
-    JS_FN("NewDenseArray",        intrinsic_NewDenseArray,           1,0),
+    JS_FN("ParallelSlices",       intrinsic_ParallelSlices,       0,0),
+    JS_FN("NewDenseArray",        intrinsic_NewDenseArray,        1,0),
     JS_FN("UnsafeSetElement",     intrinsic_UnsafeSetElement,     3,0),
+    JS_FN("ShouldForceSequential", intrinsic_ShouldForceSequential, 0,0),
+    JS_FN("ParallelTestsShouldPass", intrinsic_ParallelTestsShouldPass, 0,0),
 
 #ifdef DEBUG
     JS_FN("Dump",                 intrinsic_Dump,                 1,0),
