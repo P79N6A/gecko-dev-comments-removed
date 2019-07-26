@@ -1189,20 +1189,18 @@ var gBrowserInit = {
 
       
       
-      let brightnessThreshold = 125;
-      let colorThreshold = 500;
-      let bY = windowFrameColor[0] * .299 +
-               windowFrameColor[1] * .587 +
-               windowFrameColor[2] * .114;
-      let fY = 0; 
-      let brightnessDifference = Math.abs(bY - fY);
-      
-      let colorDifference = windowFrameColor[0] + windowFrameColor[1] + windowFrameColor[2];
-
-      
-      
-      
-      if (brightnessDifference < brightnessThreshold && colorDifference < colorThreshold) {
+      windowFrameColor = windowFrameColor.map((color) => {
+        if (color <= 10) {
+          return color / 255 / 12.92;
+        }
+        return Math.pow(((color / 255) + 0.055) / 1.055, 2.4);
+      });
+      let backgroundLuminance = windowFrameColor[0] * 0.2126 +
+                                windowFrameColor[1] * 0.7152 +
+                                windowFrameColor[2] * 0.0722;
+      let foregroundLuminance = 0; 
+      let contrastRatio = (backgroundLuminance + 0.05) / (foregroundLuminance + 0.05);
+      if (contrastRatio < 3) {
         document.documentElement.setAttribute("darkwindowframe", "true");
       }
     }
