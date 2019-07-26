@@ -2034,14 +2034,22 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
 
 
-  if (useBlendMode && !resultList.IsEmpty()) {
-    resultList.AppendNewToTop(
-        new (aBuilder) nsDisplayMixBlendMode(aBuilder, this, &resultList));
-  }
-  
+
+
+
   if (aBuilder->ContainsBlendMode()) {
       resultList.AppendNewToTop(
         new (aBuilder) nsDisplayBlendContainer(aBuilder, this, &resultList));
+  }
+
+  
+
+
+
+
+  if (useBlendMode && !resultList.IsEmpty()) {
+    resultList.AppendNewToTop(
+        new (aBuilder) nsDisplayMixBlendMode(aBuilder, this, &resultList));
   }
 
   CreateOwnLayerIfNeeded(aBuilder, &resultList);
