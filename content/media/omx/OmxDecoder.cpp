@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 #include "base/basictypes.h"
+#include <cutils/properties.h>
 #include <stagefright/DataSource.h>
 #include <stagefright/MediaExtractor.h>
 #include <stagefright/MetaData.h>
@@ -232,21 +233,51 @@ bool OmxDecoder::Init() {
   if (videoTrackIndex != -1 && (videoTrack = extractor->getTrack(videoTrackIndex)) != nullptr) {
     int flags = 0; 
 
+    
     if (mozilla::Preferences::GetBool("media.omx.prefer_software_codecs", false)) {
       flags |= kPreferSoftwareCodecs;
     }
 
-    videoSource = OMXCodec::Create(GetOMX(),
-                                   videoTrack->getFormat(),
-                                   false, 
-                                   videoTrack,
-                                   nullptr,
-                                   flags,
-                                   mNativeWindow);
-    if (videoSource == nullptr) {
-      NS_WARNING("Couldn't create OMX video source");
-      return false;
-    }
+    do {
+      videoSource = OMXCodec::Create(GetOMX(),
+                                     videoTrack->getFormat(),
+                                     false, 
+                                     videoTrack,
+                                     nullptr,
+                                     flags,
+                                     mNativeWindow);
+      if (videoSource == nullptr) {
+        NS_WARNING("Couldn't create OMX video source");
+        return false;
+      }
+
+      if (flags & kSoftwareCodecsOnly) {
+        break;
+      }
+
+      
+      
+      
+      int32_t maxWidth, maxHeight;
+      char propValue[PROPERTY_VALUE_MAX];
+      property_get("ro.moz.omx.hw.max_width", propValue, "-1");
+      maxWidth = atoi(propValue);
+      property_get("ro.moz.omx.hw.max_height", propValue, "-1");
+      maxHeight = atoi(propValue);
+
+      int32_t width = -1, height = -1;
+      if (maxWidth > 0 && maxHeight > 0 &&
+          !(videoSource->getFormat()->findInt32(kKeyWidth, &width) &&
+            videoSource->getFormat()->findInt32(kKeyHeight, &height) &&
+            width * height <= maxWidth * maxHeight)) {
+        printf_stderr("Failed to get video size, or it was too large for HW decoder (<w=%d, h=%d> but <maxW=%d, maxH=%d>)",
+                      width, height, maxWidth, maxHeight);
+        videoSource.clear();
+        flags |= kSoftwareCodecsOnly;
+        continue;
+      }
+      break;
+    } while(true);
 
     if (videoSource->start() != OK) {
       NS_WARNING("Couldn't start OMX video source");
