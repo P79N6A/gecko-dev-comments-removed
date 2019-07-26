@@ -1310,6 +1310,8 @@ struct nsStyleText {
 
   uint8_t mTextAlign;                   
   uint8_t mTextAlignLast;               
+  bool mTextAlignTrue : 1;              
+  bool mTextAlignLastTrue : 1;          
   uint8_t mTextTransform;               
   uint8_t mWhiteSpace;                  
   uint8_t mWordBreak;                   

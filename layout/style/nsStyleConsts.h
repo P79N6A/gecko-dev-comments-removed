@@ -661,6 +661,7 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 
 #define NS_STYLE_TEXT_ALIGN_MOZ_CENTER_OR_INHERIT 11
+#define NS_STYLE_TEXT_ALIGN_TRUE                  12
 
 
 
@@ -710,15 +711,15 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 
 
-#define NS_STYLE_VERTICAL_ALIGN_BASELINE             12
-#define NS_STYLE_VERTICAL_ALIGN_SUB                  13
-#define NS_STYLE_VERTICAL_ALIGN_SUPER                14
-#define NS_STYLE_VERTICAL_ALIGN_TOP                  15
-#define NS_STYLE_VERTICAL_ALIGN_TEXT_TOP             16
-#define NS_STYLE_VERTICAL_ALIGN_MIDDLE               17
-#define NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM          18
-#define NS_STYLE_VERTICAL_ALIGN_BOTTOM               19
-#define NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE 20
+#define NS_STYLE_VERTICAL_ALIGN_BASELINE             13
+#define NS_STYLE_VERTICAL_ALIGN_SUB                  14
+#define NS_STYLE_VERTICAL_ALIGN_SUPER                15
+#define NS_STYLE_VERTICAL_ALIGN_TOP                  16
+#define NS_STYLE_VERTICAL_ALIGN_TEXT_TOP             17
+#define NS_STYLE_VERTICAL_ALIGN_MIDDLE               18
+#define NS_STYLE_VERTICAL_ALIGN_TEXT_BOTTOM          19
+#define NS_STYLE_VERTICAL_ALIGN_BOTTOM               20
+#define NS_STYLE_VERTICAL_ALIGN_MIDDLE_WITH_BASELINE 21
 
 
 #define NS_STYLE_VISIBILITY_HIDDEN              0
