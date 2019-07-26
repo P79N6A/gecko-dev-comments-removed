@@ -724,14 +724,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     if (hasFlags) {
         
         
-        for (size_t i = 0; i < mFileURIWhitelist.Length(); ++i) {
-            if (SecurityCompareURIs(mFileURIWhitelist[i], sourceURI)) {
-                return NS_OK;
-            }
-        }
-
-        
-        
         
         bool sourceIsChrome;
         rv = NS_URIChainHasFlags(sourceURI,
@@ -1150,7 +1142,6 @@ const char sFileOriginPolicyPrefName[] =
 static const char* kObservedPrefs[] = {
   sJSEnabledPrefName,
   sFileOriginPolicyPrefName,
-  "capability.policy.",
   nullptr
 };
 
@@ -1269,31 +1260,6 @@ nsScriptSecurityManager::SystemPrincipalSingletonConstructor()
     return static_cast<nsSystemPrincipal*>(sysprin);
 }
 
-struct IsWhitespace {
-    static bool Test(char aChar) { return NS_IsAsciiWhitespace(aChar); };
-};
-struct IsWhitespaceOrComma {
-    static bool Test(char aChar) { return aChar == ',' || NS_IsAsciiWhitespace(aChar); };
-};
-
-template <typename Predicate>
-uint32_t SkipPast(const nsCString& str, uint32_t base)
-{
-    while (base < str.Length() && Predicate::Test(str[base])) {
-        ++base;
-    }
-    return base;
-}
-
-template <typename Predicate>
-uint32_t SkipUntil(const nsCString& str, uint32_t base)
-{
-    while (base < str.Length() && !Predicate::Test(str[base])) {
-        ++base;
-    }
-    return base;
-}
-
 inline void
 nsScriptSecurityManager::ScriptSecurityPrefChanged()
 {
@@ -1302,65 +1268,6 @@ nsScriptSecurityManager::ScriptSecurityPrefChanged()
         Preferences::GetBool(sJSEnabledPrefName, mIsJavaScriptEnabled);
     sStrictFileOriginPolicy =
         Preferences::GetBool(sFileOriginPolicyPrefName, false);
-
-    
-    
-    
-    
-    
-
-    mFileURIWhitelist.Clear();
-    auto policies = mozilla::Preferences::GetCString("capability.policy.policynames");
-    for (uint32_t base = SkipPast<IsWhitespaceOrComma>(policies, 0), bound = 0;
-         base < policies.Length();
-         base = SkipPast<IsWhitespaceOrComma>(policies, bound))
-    {
-        
-        bound = SkipUntil<IsWhitespaceOrComma>(policies, base);
-        auto policyName = Substring(policies, base, bound - base);
-
-        
-        nsCString checkLoadURIPrefName = NS_LITERAL_CSTRING("capability.policy.") +
-                                         policyName +
-                                         NS_LITERAL_CSTRING(".checkloaduri.enabled");
-        if (!Preferences::GetString(checkLoadURIPrefName.get()).LowerCaseEqualsLiteral("allaccess")) {
-            continue;
-        }
-
-        
-        nsCString domainPrefName = NS_LITERAL_CSTRING("capability.policy.") +
-                                   policyName +
-                                   NS_LITERAL_CSTRING(".sites");
-        auto siteList = Preferences::GetCString(domainPrefName.get());
-        AddSitesToFileURIWhitelist(siteList);
-    }
-}
-
-void
-nsScriptSecurityManager::AddSitesToFileURIWhitelist(const nsCString& aSiteList)
-{
-    for (uint32_t base = SkipPast<IsWhitespace>(aSiteList, 0), bound = 0;
-         base < aSiteList.Length();
-         base = SkipPast<IsWhitespace>(aSiteList, bound))
-    {
-        
-        bound = SkipUntil<IsWhitespace>(aSiteList, base);
-        auto site = Substring(aSiteList, base, bound - base);
-
-        
-        nsCOMPtr<nsIURI> uri;
-        nsresult rv = NS_NewURI(getter_AddRefs(uri), site, nullptr, nullptr, sIOService);
-        if (NS_SUCCEEDED(rv)) {
-            mFileURIWhitelist.AppendElement(uri);
-        } else {
-            nsCOMPtr<nsIConsoleService> console(do_GetService("@mozilla.org/consoleservice;1"));
-            if (console) {
-                nsAutoString msg = NS_LITERAL_STRING("Unable to to add site to file:// URI whitelist: ") +
-                                   NS_ConvertASCIItoUTF16(site);
-                console->LogStringMessage(msg.get());
-            }
-        }
-    }
 }
 
 nsresult
