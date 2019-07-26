@@ -70,6 +70,7 @@ public:
     v = expandoAndGeneration->expando;
     return v.isUndefined() ? nullptr : &v.toObject();
   }
+  
   static JSObject* GetAndClearExpandoObject(JSObject* obj);
   static JSObject* EnsureExpandoObject(JSContext* cx,
                                        JS::Handle<JSObject*> obj);
