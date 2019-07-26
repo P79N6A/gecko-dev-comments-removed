@@ -68,8 +68,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
       ElementAnimation* anim = mAnimations[animIdx];
 
-      if (anim->mProperties.IsEmpty() ||
-          anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
+      if (anim->mProperties.IsEmpty()) {
         continue;
       }
 
@@ -113,8 +112,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     for (uint32_t animIdx = mAnimations.Length(); animIdx-- != 0; ) {
       ElementAnimation* anim = mAnimations[animIdx];
 
-      if (anim->mProperties.IsEmpty() ||
-          anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
+      if (anim->mProperties.IsEmpty()) {
         
         continue;
       }
@@ -219,12 +217,7 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     ElementAnimation* anim = mAnimations[animIdx];
 
     
-    
-    
-    
-    
-    if (anim->mProperties.IsEmpty() ||
-        anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
+    if (anim->mProperties.IsEmpty()) {
       
       continue;
     }
