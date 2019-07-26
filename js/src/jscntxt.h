@@ -900,9 +900,6 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                hadOutOfMemory;
 
     
-
-
-
     mozilla::LinkedList<js::Debugger> debuggerList;
 
     
@@ -1572,7 +1569,6 @@ struct JSContext : js::ContextFriendFields,
 
     inline bool typeInferenceEnabled() const;
 
-    
     void updateJITEnabled();
 
 #ifdef MOZ_TRACE_JSCALLS
