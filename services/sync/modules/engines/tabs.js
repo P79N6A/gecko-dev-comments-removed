@@ -100,28 +100,12 @@ TabStore.prototype = {
     return id == this.engine.service.clientsEngine.localID;
   },
 
-  
-
-
-
-
-  tabLastUsed: function tabLastUsed(tab) {
-    
-    
-    let weaveLastUsed = tab.extData && tab.extData.weaveLastUsed;
-    if (!weaveLastUsed) {
-      return 0;
-    }
-    return parseInt(weaveLastUsed, 10) || 0;
-  },
-
   getAllTabs: function getAllTabs(filter) {
     let filteredUrls = new RegExp(Svc.Prefs.get("engine.tabs.filteredUrls"), "i");
 
     let allTabs = [];
 
     let currentState = JSON.parse(Svc.Session.getBrowserState());
-    let tabLastUsed = this.tabLastUsed;
     currentState.windows.forEach(function (window) {
       if (window.isPrivate) {
         return;
@@ -145,7 +129,7 @@ TabStore.prototype = {
           title: entry.title || "",
           urlHistory: [entry.url],
           icon: tab.attributes && tab.attributes.image || "",
-          lastUsed: tabLastUsed(tab)
+          lastUsed: Math.floor((tab.lastAccessed || 0) / 1000)
         });
       });
     });
@@ -330,19 +314,9 @@ TabTracker.prototype = {
     this.modified = true;
 
     
-    let chance = .1;
-
     
-    if (event.type != "pageshow") {
-      chance = 1;
-
-      
-      Svc.Session.setTabValue(event.originalTarget, "weaveLastUsed",
-                              Math.floor(Date.now() / 1000));
-    }
-
     
-    if (Math.random() < chance)
+    if (event.type != "pageshow" || Math.random() < .1)
       this.score += SCORE_INCREMENT_SMALL;
   },
 }
