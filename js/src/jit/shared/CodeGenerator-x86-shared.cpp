@@ -928,6 +928,7 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
     
     JS_ASSERT(output == eax || output == edx);
     JS_ASSERT(lhs != eax && lhs != edx);
+    bool isDiv = (output == edx);
 
     
     
@@ -942,12 +943,11 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
     
     
     
-    masm.movl(lhs, eax);
-    masm.movl(Imm32(rmc.multiplier), edx);
-    masm.imull(edx);
+    masm.movl(Imm32(rmc.multiplier), eax);
+    masm.imull(lhs);
     if (rmc.multiplier < 0)
         masm.addl(lhs, edx);
-    masm.sarl(Imm32(rmc.shift_amount), edx);
+    masm.sarl(Imm32(rmc.shiftAmount), edx);
 
     
     
@@ -961,13 +961,13 @@ CodeGeneratorX86Shared::visitDivOrModConstantI(LDivOrModConstantI *ins) {
     if (d < 0)
         masm.negl(edx);
 
-    if (output == eax) {
+    if (!isDiv) {
         masm.imull(Imm32(-d), edx, eax);
         masm.addl(lhs, eax);
     }
 
     if (!ins->mir()->isTruncated()) {
-        if (output == edx) {
+        if (isDiv) {
             
             
             masm.imull(Imm32(d), edx, eax);
