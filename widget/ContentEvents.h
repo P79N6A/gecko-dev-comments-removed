@@ -23,55 +23,6 @@ namespace mozilla {
 
 
 
-class InternalScriptErrorEvent : public WidgetEvent
-{
-public:
-  virtual InternalScriptErrorEvent* AsScriptErrorEvent() MOZ_OVERRIDE
-  {
-    return this;
-  }
-
-  InternalScriptErrorEvent(bool aIsTrusted, uint32_t aMessage) :
-    WidgetEvent(aIsTrusted, aMessage, NS_SCRIPT_ERROR_EVENT),
-    lineNr(0), errorMsg(nullptr), fileName(nullptr)
-  {
-  }
-
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(eventStructType == NS_SCRIPT_ERROR_EVENT,
-               "Duplicate() must be overridden by sub class");
-    InternalScriptErrorEvent* result =
-      new InternalScriptErrorEvent(false, message);
-    result->AssignScriptErrorEventData(*this, true);
-    result->mFlags = mFlags;
-    return result;
-  }
-
-
-  int32_t           lineNr;
-  const char16_t*  errorMsg;
-  const char16_t*  fileName;
-
-  
-  void AssignScriptErrorEventData(const InternalScriptErrorEvent& aEvent,
-                                  bool aCopyTargets)
-  {
-    AssignEventData(aEvent, aCopyTargets);
-
-    lineNr = aEvent.lineNr;
-
-    
-    
-    errorMsg = nullptr;
-    fileName = nullptr;
-  }
-};
-
-
-
-
-
 class InternalScrollPortEvent : public WidgetGUIEvent
 {
 public:
