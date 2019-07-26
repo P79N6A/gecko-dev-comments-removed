@@ -4,9 +4,9 @@
 
 
 
-"use strict";
-
 dump("###################################### forms.js loaded\n");
+
+"use strict";
 
 let Ci = Components.interfaces;
 let Cc = Components.classes;
@@ -37,29 +37,9 @@ let FormAssistant = {
   },
 
   isKeyboardOpened: false,
-  focusedElement : null,
-  selectionStart: 0,
-  selectionEnd: 0,
-
-  setFocusedElement: function fa_setFocusedElement(element) {
-    if (element === this.focusedElement)
-      return;
-
-    if (this.focusedElement) {
-      this.focusedElement.removeEventListener('mousedown', this);
-      this.focusedElement.removeEventListener('mouseup', this);
-    }
-
-    if (element) {
-      element.addEventListener('mousedown', this);
-      element.addEventListener('mouseup', this);
-    }
-
-    this.focusedElement = element;
-  },
-
+  previousTarget : null,
   handleEvent: function fa_handleEvent(evt) {
-    let focusedElement = this.focusedElement;
+    let previousTarget = this.previousTarget;
     let target = evt.target;
 
     switch (evt.type) {
@@ -77,47 +57,28 @@ let FormAssistant = {
           image: true
         };
     
-        if (target instanceof HTMLSelectElement) { 
+        if (evt.target instanceof HTMLSelectElement) { 
           content.setTimeout(function showIMEForSelect() {
-            sendAsyncMessage("Forms:Input", getJSON(target));
+            sendAsyncMessage("Forms:Input", getJSON(evt.target));
           });
-          this.setFocusedElement(target);
-        } else if (target instanceof HTMLOptionElement &&
-                   target.parentNode instanceof HTMLSelectElement) {
-          target = target.parentNode;
+          this.previousTarget = evt.target;
+        } else if (evt.target instanceof HTMLOptionElement &&
+                   evt.target.parentNode instanceof HTMLSelectElement) {
           content.setTimeout(function showIMEForSelect() {
-            sendAsyncMessage("Forms:Input", getJSON(target));
+            sendAsyncMessage("Forms:Input", getJSON(evt.target.parentNode));
           });
-          this.setFocusedElement(target);
         } else if ((target instanceof HTMLInputElement && !ignore[target.type]) ||
                     target instanceof HTMLTextAreaElement) {
-          this.isKeyboardOpened = this.tryShowIme(target);
-          this.setFocusedElement(target);
+          this.isKeyboardOpened = this.tryShowIme(evt.target);
+          this.previousTarget = evt.target;
         }
         break;
 
       case "blur":
-        if (this.focusedElement) {
+        if (this.previousTarget) {
           sendAsyncMessage("Forms:Input", { "type": "blur" });
-          this.setFocusedElement(null);
-        }
-        break;
-
-      case 'mousedown':
-        
-        
-        this.selectionStart = this.focusedElement.selectionStart;
-        this.selectionEnd = this.focusedElement.selectionEnd;
-        break;
-
-      case 'mouseup':
-        
-        
-        
-        
-        if (this.focusedElement.selectionStart !== this.selectionStart ||
-            this.focusedElement.selectionEnd !== this.selectionEnd) {
-          this.tryShowIme(this.focusedElement);
+          this.isKeyboardOpened = false;
+          this.previousTarget = null;
         }
         break;
 
@@ -125,8 +86,9 @@ let FormAssistant = {
         if (!this.isKeyboardOpened)
           return;
 
-        if (this.focusedElement) {
-          this.focusedElement.scrollIntoView(false);
+        let focusedElement = this.previousTarget;
+        if (focusedElement) {
+          focusedElement.scrollIntoView(false);
         }
         break;
 
@@ -144,7 +106,7 @@ let FormAssistant = {
   },
 
   receiveMessage: function fa_receiveMessage(msg) {
-    let target = this.focusedElement;
+    let target = this.previousTarget;
     if (!target) {
       return;
     }
@@ -197,10 +159,10 @@ let FormAssistant = {
           let target = Services.fm.focusedElement;
 
           if (!target || !this.tryShowIme(target)) {
-            this.setFocusedElement(null);
+            this.previousTarget = null;
             return;
           } else {
-            this.setFocusedElement(target);
+            this.previousTarget = target;
           }
         } else if (!shouldOpen && isOpen) {
           sendAsyncMessage("Forms:Input", { "type": "blur" });
@@ -212,7 +174,6 @@ let FormAssistant = {
         Services.obs.removeObserver(this, "ime-enabled-state-changed", false);
         Services.obs.removeObserver(this, "xpcom-shutdown");
         removeMessageListener("Forms:Select:Choice", this);
-        removeMessageListener("Forms:Input:Value", this);
         break;
     }
   },
@@ -258,21 +219,10 @@ function getJSON(element) {
     }
   }
 
-  
-  
-  
-  let inputmode = element.inputmode || element.getAttribute('inputmode');
-  if (inputmode) {
-    inputmode = inputmode.toLowerCase();
-  }
-
   return {
     "type": type.toLowerCase(),
     "choices": getListForElement(element),
-    "value": element.value,
-    "inputmode": inputmode,
-    "selectionStart": element.selectionStart,
-    "selectionEnd": element.selectionEnd
+    "value": element.value
   };
 }
 
