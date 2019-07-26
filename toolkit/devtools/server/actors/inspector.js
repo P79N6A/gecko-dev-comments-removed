@@ -778,64 +778,6 @@ let traversalMethod = {
 
 
 
-
-
-
-
-
-
-
-
-var ProgressListener = Class({
-  extends: Unknown,
-  interfaces: ["nsIWebProgressListener", "nsISupportsWeakReference"],
-
-  initialize: function(tabActor) {
-    Unknown.prototype.initialize.call(this);
-    this.webProgress = tabActor.webProgress;
-    this.webProgress.addProgressListener(
-      this, Ci.nsIWebProgress.NOTIFY_ALL
-    );
-  },
-
-  destroy: function() {
-    try {
-      this.webProgress.removeProgressListener(this);
-    } catch(ex) {
-      
-    }
-    this.webProgress = null;
-  },
-
-  onStateChange: makeInfallible(function stateChange(progress, request, flags, status) {
-    if (!this.webProgress) {
-      console.warn("got an onStateChange after destruction");
-      return;
-    }
-
-    let isWindow = flags & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
-    let isDocument = flags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
-    if (!(isWindow || isDocument)) {
-      return;
-    }
-
-    if (isDocument && (flags & Ci.nsIWebProgressListener.STATE_START)) {
-      events.emit(this, "windowchange-start", progress.DOMWindow);
-    }
-    if (isWindow && (flags & Ci.nsIWebProgressListener.STATE_STOP)) {
-      events.emit(this, "windowchange-stop", progress.DOMWindow);
-    }
-  }),
-
-  onProgressChange: function() {},
-  onSecurityChange: function() {},
-  onStatusChange: function() {},
-  onLocationChange: function() {},
-});
-
-
-
-
 var WalkerActor = protocol.ActorClass({
   typeName: "domwalker",
 
@@ -889,10 +831,8 @@ var WalkerActor = protocol.ActorClass({
     this.onFrameLoad = this.onFrameLoad.bind(this);
     this.onFrameUnload = this.onFrameUnload.bind(this);
 
-    this.progressListener = ProgressListener(tabActor);
-
-    events.on(this.progressListener, "windowchange-start", this.onFrameUnload);
-    events.on(this.progressListener, "windowchange-stop", this.onFrameLoad);
+    events.on(tabActor, "will-navigate", this.onFrameUnload);
+    events.on(tabActor, "navigate", this.onFrameLoad);
 
     
     
@@ -915,7 +855,6 @@ var WalkerActor = protocol.ActorClass({
     this._hoveredNode = null;
     this.clearPseudoClassLocks();
     this._activePseudoClassLocks = null;
-    this.progressListener.destroy();
     this.rootDoc = null;
     events.emit(this, "destroyed");
     protocol.Actor.prototype.destroy.call(this);
@@ -1966,10 +1905,8 @@ var WalkerActor = protocol.ActorClass({
     }
   },
 
-  onFrameLoad: function(window) {
-    let frame = this.layoutHelpers.getFrameElement(window);
-    let isTopLevel = this.layoutHelpers.isTopLevelWindow(window);
-    if (!frame && !this.rootDoc && isTopLevel) {
+  onFrameLoad: function({ window, isTopLevel }) {
+    if (!this.rootDoc && isTopLevel) {
       this.rootDoc = window.document;
       this.rootNode = this.document();
       this.queueMutation({
@@ -1977,6 +1914,7 @@ var WalkerActor = protocol.ActorClass({
         target: this.rootNode.form()
       });
     }
+    let frame = this.layoutHelpers.getFrameElement(window);
     let frameActor = this._refMap.get(frame);
     if (!frameActor) {
       return;
@@ -2008,7 +1946,7 @@ var WalkerActor = protocol.ActorClass({
     return false;
   },
 
-  onFrameUnload: function(window) {
+  onFrameUnload: function({ window }) {
     
     
     

@@ -13,6 +13,13 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/
 
 
 
+XPCOMUtils.defineLazyGetter(this, "events", () => {
+  return devtools.require("sdk/event/core");
+});
+
+
+
+
 
 
 
@@ -485,15 +492,13 @@ BrowserTabList.prototype.onCloseWindow = DevToolsUtils.makeInfallible(function(a
 
 
 
-function TabActor(aConnection, aChromeEventHandler)
+function TabActor(aConnection)
 {
   this.conn = aConnection;
-  this._chromeEventHandler = aChromeEventHandler;
   this._tabActorPool = null;
   
   this._extraActors = {};
-
-  this._onWindowCreated = this.onWindowCreated.bind(this);
+  this._exited = false;
 
   this.traits = { reconfigure: true };
 }
@@ -504,7 +509,7 @@ function TabActor(aConnection, aChromeEventHandler)
 TabActor.prototype = {
   traits: null,
 
-  get exited() { return !this._chromeEventHandler; },
+  get exited() { return this._exited; },
   get attached() { return !!this._attached; },
 
   _tabPool: null,
@@ -522,7 +527,10 @@ TabActor.prototype = {
 
 
   get chromeEventHandler() {
-    return this._chromeEventHandler;
+    
+    return this.docShell.chromeEventHandler ||
+           this.docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIContentFrameMessageManager);
   },
 
   
@@ -631,7 +639,7 @@ TabActor.prototype = {
   disconnect: function BTA_disconnect() {
     this._detach();
     this._extraActors = null;
-    this._chromeEventHandler = null;
+    this._exited = true;
   },
 
   
@@ -647,7 +655,7 @@ TabActor.prototype = {
                        type: "tabDetached" });
     }
 
-    this._chromeEventHandler = null;
+    this._exited = true;
   },
 
   
@@ -670,10 +678,8 @@ TabActor.prototype = {
     
     this._pushContext();
 
-    
-    this.chromeEventHandler.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
-    this.chromeEventHandler.addEventListener("pageshow", this._onWindowCreated, true);
     this._progressListener = new DebuggerProgressListener(this);
+    this._progressListener.watch(this.docShell);
 
     this._attached = true;
   },
@@ -715,10 +721,12 @@ TabActor.prototype = {
       return false;
     }
 
-    this._progressListener.destroy();
-
-    this.chromeEventHandler.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
-    this.chromeEventHandler.removeEventListener("pageshow", this._onWindowCreated, true);
+    
+    
+    if (this.docShell) {
+      this._progressListener.unwatch(this.docShell);
+    }
+    this._progressListener = null;
 
     this._popContext();
 
@@ -909,28 +917,116 @@ TabActor.prototype = {
 
 
 
-  onWindowCreated:
-  DevToolsUtils.makeInfallible(function BTA_onWindowCreated(evt) {
+  _windowReady: function (window) {
+    let isTopLevel = window == this.window;
+    dumpn("window-ready: " + window.location + " isTopLevel:" + isTopLevel);
+
+    events.emit(this, "window-ready", {
+      window: window,
+      isTopLevel: isTopLevel
+    });
+
     
-    
-    if (!this._attached || (evt.type == "pageshow" && !evt.persisted)) {
-      return;
-    }
-    if (evt.target === this.contentDocument) {
-      this.threadActor.clearDebuggees();
-      if (this.threadActor.dbg) {
-        this.threadActor.dbg.enabled = true;
-        this.threadActor.global = evt.target.defaultView;
-        this.threadActor.maybePauseOnExceptions();
+    let threadActor = this.threadActor;
+    if (isTopLevel) {
+      threadActor.clearDebuggees();
+      if (threadActor.dbg) {
+        threadActor.dbg.enabled = true;
+        threadActor.global = window;
+        threadActor.maybePauseOnExceptions();
       }
     }
 
     
     
-    if (this.threadActor.attached) {
-      this.threadActor.findGlobals();
+    if (threadActor.attached) {
+      threadActor.findGlobals();
     }
-  }, "TabActor.prototype.onWindowCreated"),
+  },
+
+  
+
+
+
+  _willNavigate: function (window, newURI, request) {
+    let isTopLevel = window == this.window;
+
+    
+    
+    
+    
+    
+    events.emit(this, "will-navigate", {
+      window: window,
+      isTopLevel: isTopLevel,
+      newURI: newURI,
+      request: request
+    });
+
+
+    
+    
+    if (!isTopLevel) {
+      return;
+    }
+
+    
+    
+    let threadActor = this.threadActor;
+    if (request && threadActor.state == "paused") {
+      request.suspend();
+      threadActor.onResume();
+      threadActor.dbg.enabled = false;
+      this._pendingNavigation = request;
+    }
+    threadActor.disableAllBreakpoints();
+
+    this.conn.send({
+      from: this.actorID,
+      type: "tabNavigated",
+      url: newURI,
+      nativeConsoleAPI: true,
+      state: "start"
+    });
+  },
+
+  
+
+
+
+  _navigate: function (window) {
+    let isTopLevel = window == this.window;
+
+    
+    
+    
+    
+    events.emit(this, "navigate", {
+      window: window,
+      isTopLevel: isTopLevel
+    });
+
+    
+    
+    if (!isTopLevel) {
+      return;
+    }
+
+    
+    let threadActor = this.threadActor;
+    if (threadActor.state == "running") {
+      threadActor.dbg.enabled = true;
+    }
+
+    this.conn.send({
+      from: this.actorID,
+      type: "tabNavigated",
+      url: this.url,
+      title: this.title,
+      nativeConsoleAPI: this.hasNativeConsoleAPI(this.window),
+      state: "stop"
+    });
+  },
 
   
 
@@ -999,12 +1095,15 @@ Object.defineProperty(BrowserTabActor.prototype, "messageManager", {
 
 Object.defineProperty(BrowserTabActor.prototype, "title", {
   get: function() {
-    let title = this.contentDocument.contentTitle;
+    let title = this.contentDocument.title || this._browser.contentTitle;
     
     
     
     if (!title && this._tabbrowser) {
-      title = this._tabbrowser._getTabForContentWindow(this.window).label;
+      let tab = this._tabbrowser._getTabForContentWindow(this.window);
+      if (tab) {
+        title = tab.label;
+      }
     }
     return title;
   },
@@ -1254,9 +1353,7 @@ BrowserAddonActor.prototype.requestTypes = {
 
 function DebuggerProgressListener(aTabActor) {
   this._tabActor = aTabActor;
-  this._tabActor.webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_ALL);
-  let EventEmitter = devtools.require("devtools/toolkit/event-emitter");
-  EventEmitter.decorate(this);
+  this._onWindowCreated = this.onWindowCreated.bind(this);
 }
 
 DebuggerProgressListener.prototype = {
@@ -1266,70 +1363,76 @@ DebuggerProgressListener.prototype = {
     Ci.nsISupports,
   ]),
 
-  onStateChange:
-  DevToolsUtils.makeInfallible(function DPL_onStateChange(aProgress, aRequest, aFlag, aStatus) {
-    let isStart = aFlag & Ci.nsIWebProgressListener.STATE_START;
-    let isStop = aFlag & Ci.nsIWebProgressListener.STATE_STOP;
-    let isDocument = aFlag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
-    let isNetwork = aFlag & Ci.nsIWebProgressListener.STATE_IS_NETWORK;
-    let isRequest = aFlag & Ci.nsIWebProgressListener.STATE_IS_REQUEST;
-    let isWindow = aFlag & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+  watch: function DPL_watch(docShell) {
+    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIWebProgress);
+    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATUS |
+                                          Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
+                                          Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
 
     
-    if (!isWindow || !isNetwork ||
-        aProgress.DOMWindow != this._tabActor.window) {
+    let chromeEventHandler = docShell.chromeEventHandler ||
+                             docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIContentFrameMessageManager);
+
+    
+    chromeEventHandler.addEventListener("DOMWindowCreated",
+                                        this._onWindowCreated, true);
+    chromeEventHandler.addEventListener("pageshow",
+                                        this._onWindowCreated, true);
+  },
+
+  unwatch: function DPL_unwatch(docShell) {
+    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                              .getInterface(Ci.nsIWebProgress);
+    webProgress.removeProgressListener(this);
+
+    
+    let chromeEventHandler = docShell.chromeEventHandler ||
+                             docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIContentFrameMessageManager);
+    chromeEventHandler.removeEventListener("DOMWindowCreated",
+                                           this._onWindowCreated, true);
+    chromeEventHandler.removeEventListener("pageshow",
+                                           this._onWindowCreated, true);
+  },
+
+  onWindowCreated:
+  DevToolsUtils.makeInfallible(function DPL_onWindowCreated(evt) {
+    
+    if (!this._tabActor.attached) {
       return;
     }
 
-    if (isStart && aRequest instanceof Ci.nsIChannel) {
-      
-      if (this._tabActor.threadActor.state == "paused") {
-        aRequest.suspend();
-        this._tabActor.threadActor.onResume();
-        this._tabActor.threadActor.dbg.enabled = false;
-        this._tabActor._pendingNavigation = aRequest;
-      }
-
-      let packet = {
-        from: this._tabActor.actorID,
-        type: "tabNavigated",
-        url: aRequest.URI.spec,
-        nativeConsoleAPI: true,
-        state: "start"
-      };
-      this._tabActor.threadActor.disableAllBreakpoints();
-      this._tabActor.conn.send(packet);
-      this.emit("will-navigate", packet);
-    } else if (isStop) {
-      if (this._tabActor.threadActor.state == "running") {
-        this._tabActor.threadActor.dbg.enabled = true;
-      }
-
-      let window = this._tabActor.window;
-      let packet = {
-        from: this._tabActor.actorID,
-        type: "tabNavigated",
-        url: this._tabActor.url,
-        title: this._tabActor.title,
-        nativeConsoleAPI: this._tabActor.hasNativeConsoleAPI(window),
-        state: "stop"
-      };
-      this._tabActor.conn.send(packet);
-      this.emit("navigate", packet);
-    }
-  }, "DebuggerProgressListener.prototype.onStateChange"),
-
-  
-
-
-  destroy: function DPL_destroy() {
-    try {
-      this._tabActor.webProgress.removeProgressListener(this);
-    } catch (ex) {
-      
+    
+    
+    if (evt.type == "pageshow" && !evt.persisted) {
+      return;
     }
 
-    this._tabActor._progressListener = null;
-    this._tabActor = null;
-  }
+    let window = evt.target.defaultView;
+    this._tabActor._windowReady(window);
+  }, "DebuggerProgressListener.prototype.onWindowCreated"),
+
+  onStateChange:
+  DevToolsUtils.makeInfallible(function DPL_onStateChange(aProgress, aRequest, aFlag, aStatus) {
+    
+    if (!this._tabActor.attached) {
+      return;
+    }
+
+    let isStart = aFlag & Ci.nsIWebProgressListener.STATE_START;
+    let isStop = aFlag & Ci.nsIWebProgressListener.STATE_STOP;
+    let isDocument = aFlag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
+    let isWindow = aFlag & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+
+    let window = aProgress.DOMWindow;
+    if (isDocument && isStart) {
+      let newURI = aRequest instanceof Ci.nsIChannel ? aRequest.URI.spec : null;
+      this._tabActor._willNavigate(window, newURI, aRequest);
+    }
+    if (isWindow && isStop) {
+      this._tabActor._navigate(window);
+    }
+  }, "DebuggerProgressListener.prototype.onStateChange")
 };
