@@ -1,13 +1,13 @@
-
-
-
-
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoThread;
-import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
+import org.mozilla.gecko.mozglue.GeneratableAndroidBridgeTarget;
 import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 
@@ -48,26 +48,26 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
     }
 
     public boolean onMotionEvent(MotionEvent event) {
-        
+        // FIXME implement this
         return false;
     }
 
     public boolean onKeyEvent(KeyEvent event) {
-        
+        // FIXME implement this
         return false;
     }
 
     public PointF getVelocityVector() {
-        
+        // FIXME implement this
         return new PointF(0, 0);
     }
 
     public void pageRectUpdated() {
-        
+        // no-op in APZC, I think
     }
 
     public void abortPanning() {
-        
+        // no-op in APZC, I think
     }
 
     public native void abortAnimation();
@@ -83,12 +83,12 @@ class NativePanZoomController implements PanZoomController, GeckoEventListener {
     public native void setOverScrollMode(int overscrollMode);
     public native int getOverScrollMode();
 
-    @WrapElementForJNI(allowMultithread = true, stubName = "RequestContentRepaintWrapper")
+    @GeneratableAndroidBridgeTarget(allowMultithread = true, stubName = "RequestContentRepaintWrapper")
     private void requestContentRepaint(float x, float y, float width, float height, float resolution) {
         mTarget.forceRedraw(new DisplayPortMetrics(x, y, x + width, y + height, resolution));
     }
 
-    @WrapElementForJNI(allowMultithread = true, stubName = "PostDelayedCallbackWrapper")
+    @GeneratableAndroidBridgeTarget(allowMultithread = true, stubName = "PostDelayedCallbackWrapper")
     private void postDelayedCallback(long delay) {
         mTarget.postDelayed(mCallbackRunnable, delay);
     }
