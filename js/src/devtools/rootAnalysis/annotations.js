@@ -73,6 +73,7 @@ var ignoreCallees = {
     "icu_50::UObject.__deleting_dtor" : true, 
     "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
     "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, 
+    "nsIThreadManager.GetIsMainThread" : true,
 };
 
 function fieldCallCannotGC(csu, fullfield)
@@ -138,6 +139,7 @@ var ignoreFunctions = {
     "PR_ErrorInstallTable" : true,
     "PR_SetThreadPrivate" : true,
     "JSObject* js::GetWeakmapKeyDelegate(JSObject*)" : true, 
+    "uint8 NS_IsMainThread()" : true,
 
     
     
