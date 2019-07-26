@@ -138,21 +138,14 @@ struct AlignedArray
   T *mPtr;
 };
 
-
-
-
-
-
-
-
-
 template<int alignment>
 int32_t GetAlignedStride(int32_t aStride)
 {
-  MOZ_ASSERT(aStride > 0 && (aStride & (aStride-1)) == 0,
-             "This implementation currently require power-of-two");
-  const int32_t mask = alignment - 1;
-  return (aStride + mask) & ~mask;
+  if (aStride % alignment) {
+    return aStride + (alignment - (aStride % alignment));
+  }
+
+  return aStride;
 }
 
 }
