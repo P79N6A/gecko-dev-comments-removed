@@ -29,8 +29,8 @@ struct VideoCaptureCapabilityWindows: public VideoCaptureCapability
         directShowCapabilityIndex = 0;
         supportFrameRateControl = false;
     }
-
 };
+
 class DeviceInfoDS: public DeviceInfoImpl
 {
 public:
@@ -97,8 +97,9 @@ protected:
 
 private:
     ICreateDevEnum* _dsDevEnum;
+    IEnumMoniker* _dsMonikerDevEnum;
     bool _CoUninitializeIsRequired;
-
+    std::vector<VideoCaptureCapabilityWindows> _captureCapabilitiesWindows;
 };
 }  
 }  

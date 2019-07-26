@@ -63,7 +63,7 @@ class FrameList
     : public std::map<uint32_t, VCMFrameBuffer*, TimestampLessThan> {
  public:
   void InsertFrame(VCMFrameBuffer* frame);
-  VCMFrameBuffer* FindFrame(uint16_t seq_num, uint32_t timestamp) const;
+  VCMFrameBuffer* FindFrame(uint32_t timestamp) const;
   VCMFrameBuffer* PopFrame(uint32_t timestamp);
   VCMFrameBuffer* Front() const;
   VCMFrameBuffer* Back() const;
@@ -100,8 +100,7 @@ class VCMJitterBuffer {
 
   
   
-  void FrameStatistics(uint32_t* received_delta_frames,
-                       uint32_t* received_key_frames) const;
+  std::map<FrameType, uint32_t> FrameStatistics() const;
 
   
   
@@ -298,7 +297,7 @@ class VCMJitterBuffer {
 
   
   
-  unsigned int receive_statistics_[4];
+  std::map<FrameType, uint32_t> receive_statistics_;
   
   unsigned int incoming_frame_rate_;
   unsigned int incoming_frame_count_;

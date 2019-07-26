@@ -53,7 +53,7 @@ class ComfortNoise {
   
   
   
-  int Generate(size_t requested_length, AudioMultiVector<int16_t>* output);
+  int Generate(size_t requested_length, AudioMultiVector* output);
 
   
   

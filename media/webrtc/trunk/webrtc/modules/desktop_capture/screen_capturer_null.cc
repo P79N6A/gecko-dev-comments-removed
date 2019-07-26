@@ -13,20 +13,8 @@
 namespace webrtc {
 
 
-ScreenCapturer* ScreenCapturer::Create() {
+ScreenCapturer* ScreenCapturer::Create(const DesktopCaptureOptions& options) {
   return NULL;
 }
-
-#if defined(OS_LINUX)
-
-ScreenCapturer* ScreenCapturer::CreateWithXDamage(bool use_x_damage) {
-  return NULL;
-}
-#elif defined(OS_WIN)
-
-ScreenCapturer* ScreenCapturer::CreateWithDisableAero(bool disable_aero) {
-  return NULL;
-}
-#endif  
 
 }  

@@ -21,27 +21,29 @@
 
 #include "structs.h"
 
+#define NUM_AR_RC_QUANT_BAUNDARY 12
 
 
-extern const uint16_t WebRtcIsac_kQArRc1Cdf[12];
+
+extern const uint16_t WebRtcIsac_kQArRc1Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const uint16_t WebRtcIsac_kQArRc2Cdf[12];
+extern const uint16_t WebRtcIsac_kQArRc2Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const uint16_t WebRtcIsac_kQArRc3Cdf[12];
+extern const uint16_t WebRtcIsac_kQArRc3Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const uint16_t WebRtcIsac_kQArRc4Cdf[12];
+extern const uint16_t WebRtcIsac_kQArRc4Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const uint16_t WebRtcIsac_kQArRc5Cdf[12];
+extern const uint16_t WebRtcIsac_kQArRc5Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const uint16_t WebRtcIsac_kQArRc6Cdf[12];
+extern const uint16_t WebRtcIsac_kQArRc6Cdf[NUM_AR_RC_QUANT_BAUNDARY];
 
 
-extern const int16_t WebRtcIsac_kQArBoundaryLevels[12];
+extern const int16_t WebRtcIsac_kQArBoundaryLevels[NUM_AR_RC_QUANT_BAUNDARY];
 
 
 extern const uint16_t WebRtcIsac_kQArRcInitIndex[AR_ORDER];

@@ -31,7 +31,7 @@ int WebRtcNetEQ_RTPPayloadInfo(int16_t* pw16_Datagram, int i_DatagramLen,
         return RTP_TOO_SHORT_PACKET;
     }
 
-#ifdef WEBRTC_BIG_ENDIAN
+#ifdef WEBRTC_ARCH_BIG_ENDIAN
     i_IPver = (((uint16_t) (pw16_Datagram[0] & 0xC000)) >> 14); 
     i_P = (((uint16_t) (pw16_Datagram[0] & 0x2000)) >> 13); 
     i_X = (((uint16_t) (pw16_Datagram[0] & 0x1000)) >> 12); 
@@ -126,7 +126,7 @@ int WebRtcNetEQ_RedundancySplit(RTPPacket_t* RTPheader[], int i_MaximumPayloads,
     int i_discardedBlockLength = 0;
     int singlePayload = 0;
 
-#ifdef WEBRTC_BIG_ENDIAN
+#ifdef WEBRTC_ARCH_BIG_ENDIAN
     if ((pw16_data[0] & 0x8000) == 0)
     {
         

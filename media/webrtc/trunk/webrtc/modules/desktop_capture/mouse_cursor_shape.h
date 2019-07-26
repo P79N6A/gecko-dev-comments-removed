@@ -18,6 +18,8 @@
 namespace webrtc {
 
 
+
+
 struct MouseCursorShape {
   
   DesktopSize size;

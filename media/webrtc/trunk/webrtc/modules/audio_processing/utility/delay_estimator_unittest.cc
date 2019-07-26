@@ -26,6 +26,9 @@ enum { kLookahead = 10 };
 
 enum { kSequenceLength = 400 };
 
+const int kEnable[] = { 0, 1 };
+const size_t kSizeEnable = sizeof(kEnable) / sizeof(*kEnable);
+
 class DelayEstimatorTest : public ::testing::Test {
  protected:
   DelayEstimatorTest();
@@ -38,7 +41,8 @@ class DelayEstimatorTest : public ::testing::Test {
   void RunBinarySpectra(BinaryDelayEstimator* binary1,
                         BinaryDelayEstimator* binary2,
                         int near_offset, int lookahead_offset, int far_offset);
-  void RunBinarySpectraTest(int near_offset, int lookahead_offset);
+  void RunBinarySpectraTest(int near_offset, int lookahead_offset,
+                            int ref_robust_validation, int robust_validation);
 
   void* handle_;
   DelayEstimator* self_;
@@ -143,6 +147,8 @@ void DelayEstimatorTest::RunBinarySpectra(BinaryDelayEstimator* binary1,
                                           int near_offset,
                                           int lookahead_offset,
                                           int far_offset) {
+  int different_validations = binary1->robust_validation_enabled ^
+      binary2->robust_validation_enabled;
   WebRtc_InitBinaryDelayEstimatorFarend(binary_farend_);
   WebRtc_InitBinaryDelayEstimator(binary1);
   WebRtc_InitBinaryDelayEstimator(binary2);
@@ -167,8 +173,19 @@ void DelayEstimatorTest::RunBinarySpectra(BinaryDelayEstimator* binary1,
     if ((delay_1 != -2) && (delay_2 != -2)) {
       EXPECT_EQ(delay_1, delay_2 - lookahead_offset - near_offset);
     }
+    
+    
+    
     if ((near_offset == 0) && (lookahead_offset == 0)) {
-      EXPECT_EQ(delay_1, delay_2);
+      if  (!different_validations) {
+        EXPECT_EQ(delay_1, delay_2);
+      } else {
+        if (binary1->robust_validation_enabled) {
+          EXPECT_GE(delay_1, delay_2);
+        } else {
+          EXPECT_GE(delay_2, delay_1);
+        }
+      }
     }
   }
   
@@ -179,7 +196,9 @@ void DelayEstimatorTest::RunBinarySpectra(BinaryDelayEstimator* binary1,
 }
 
 void DelayEstimatorTest::RunBinarySpectraTest(int near_offset,
-                                              int lookahead_offset) {
+                                              int lookahead_offset,
+                                              int ref_robust_validation,
+                                              int robust_validation) {
   BinaryDelayEstimator* binary2 =
       WebRtc_CreateBinaryDelayEstimator(binary_farend_,
                                         kLookahead + lookahead_offset);
@@ -187,6 +206,8 @@ void DelayEstimatorTest::RunBinarySpectraTest(int near_offset,
   
   
   
+  binary_->robust_validation_enabled = ref_robust_validation;
+  binary2->robust_validation_enabled = robust_validation;
   for (int offset = -kLookahead;
       offset < kMaxDelay - lookahead_offset - near_offset;
       offset++) {
@@ -194,6 +215,7 @@ void DelayEstimatorTest::RunBinarySpectraTest(int near_offset,
   }
   WebRtc_FreeBinaryDelayEstimator(binary2);
   binary2 = NULL;
+  binary_->robust_validation_enabled = 0;  
 }
 
 TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
@@ -249,6 +271,25 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
   
   
   
+  EXPECT_EQ(-1, WebRtc_set_allowed_offset(NULL, 0));
+  EXPECT_EQ(-1, WebRtc_set_allowed_offset(handle_, -1));
+
+  EXPECT_EQ(-1, WebRtc_get_allowed_offset(NULL));
+
+  
+  
+  
+  EXPECT_EQ(-1, WebRtc_enable_robust_validation(NULL, kEnable[0]));
+  EXPECT_EQ(-1, WebRtc_enable_robust_validation(handle_, -1));
+  EXPECT_EQ(-1, WebRtc_enable_robust_validation(handle_, 2));
+
+  
+  
+  EXPECT_EQ(-1, WebRtc_is_robust_validation_enabled(NULL));
+
+  
+  
+  
   
   EXPECT_EQ(-1, WebRtc_DelayEstimatorProcessFloat(NULL, near_f_,
                                                   spectrum_size_));
@@ -281,6 +322,30 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfWrapper) {
 
   
   WebRtc_FreeDelayEstimator(handle);
+}
+
+TEST_F(DelayEstimatorTest, VerifyAllowedOffset) {
+  
+  EXPECT_EQ(0, WebRtc_get_allowed_offset(handle_));
+  for (int i = 1; i >= 0; i--) {
+    EXPECT_EQ(0, WebRtc_set_allowed_offset(handle_, i));
+    EXPECT_EQ(i, WebRtc_get_allowed_offset(handle_));
+    Init();
+    
+    EXPECT_EQ(i, WebRtc_get_allowed_offset(handle_));
+  }
+}
+
+TEST_F(DelayEstimatorTest, VerifyEnableRobustValidation) {
+  
+  EXPECT_EQ(0, WebRtc_is_robust_validation_enabled(handle_));
+  for (size_t i = 0; i < kSizeEnable; ++i) {
+    EXPECT_EQ(0, WebRtc_enable_robust_validation(handle_, kEnable[i]));
+    EXPECT_EQ(kEnable[i], WebRtc_is_robust_validation_enabled(handle_));
+    Init();
+    
+    EXPECT_EQ(kEnable[i], WebRtc_is_robust_validation_enabled(handle_));
+  }
 }
 
 TEST_F(DelayEstimatorTest, InitializedSpectrumAfterProcess) {
@@ -379,9 +444,6 @@ TEST_F(DelayEstimatorTest, CorrectErrorReturnsOfBinaryEstimator) {
   binary_handle = binary_;
   binary_handle = WebRtc_CreateBinaryDelayEstimator(binary_farend_, -1);
   EXPECT_TRUE(binary_handle == NULL);
-  binary_handle = binary_;
-  binary_handle = WebRtc_CreateBinaryDelayEstimator(0, 0);
-  EXPECT_TRUE(binary_handle == NULL);
 }
 
 TEST_F(DelayEstimatorTest, MeanEstimatorFix) {
@@ -410,26 +472,57 @@ TEST_F(DelayEstimatorTest, ExactDelayEstimateMultipleNearSameSpectrum) {
   
   
   
+  
+  
+  
 
-  RunBinarySpectraTest(0, 0);
+  for (size_t i = 0; i < kSizeEnable; ++i) {
+    for (size_t j = 0; j < kSizeEnable; ++j) {
+      RunBinarySpectraTest(0, 0, kEnable[i], kEnable[j]);
+    }
+  }
 }
 
 TEST_F(DelayEstimatorTest, ExactDelayEstimateMultipleNearDifferentSpectrum) {
   
   
   
+  
+  
+  
 
   const int kNearOffset = 1;
-  RunBinarySpectraTest(kNearOffset, 0);
+  for (size_t i = 0; i < kSizeEnable; ++i) {
+    for (size_t j = 0; j < kSizeEnable; ++j) {
+      RunBinarySpectraTest(kNearOffset, 0, kEnable[i], kEnable[j]);
+    }
+  }
 }
 
 TEST_F(DelayEstimatorTest, ExactDelayEstimateMultipleNearDifferentLookahead) {
   
   
   
+  
+  
+  
 
   const int kLookaheadOffset = 1;
-  RunBinarySpectraTest(0, kLookaheadOffset);
+  for (size_t i = 0; i < kSizeEnable; ++i) {
+    for (size_t j = 0; j < kSizeEnable; ++j) {
+      RunBinarySpectraTest(0, kLookaheadOffset, kEnable[i], kEnable[j]);
+    }
+  }
+}
+
+TEST_F(DelayEstimatorTest, AllowedOffsetNoImpactWhenRobustValidationDisabled) {
+  
+  
+  
+
+  binary_->allowed_offset = 10;
+  RunBinarySpectraTest(0, 0, 0, 0);
+  binary_->allowed_offset = 0;  
 }
 
 }  

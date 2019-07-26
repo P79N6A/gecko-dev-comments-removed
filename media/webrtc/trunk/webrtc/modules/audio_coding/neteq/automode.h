@@ -80,6 +80,8 @@ typedef struct
 
     uint16_t lastSeqNo; 
     uint32_t lastTimeStamp; 
+    int firstPacketReceived; 
+
     int32_t sampleMemory; 
 
     int16_t prevTimeScale; 

@@ -57,12 +57,12 @@ class TestBitrateObserver: public BitrateObserver {
 
 class BitrateControllerTest : public ::testing::Test {
  protected:
-  BitrateControllerTest() {
-  }
+  BitrateControllerTest() : enforce_min_bitrate_(true) {}
   ~BitrateControllerTest() {}
 
   virtual void SetUp() {
-    controller_ = BitrateController::CreateBitrateController();
+    controller_ =
+        BitrateController::CreateBitrateController(enforce_min_bitrate_);
     bandwidth_observer_ = controller_->CreateRtcpBandwidthObserver();
   }
 
@@ -70,6 +70,7 @@ class BitrateControllerTest : public ::testing::Test {
     delete bandwidth_observer_;
     delete controller_;
   }
+  bool enforce_min_bitrate_;
   BitrateController* controller_;
   RtcpBandwidthObserver* bandwidth_observer_;
 };
@@ -413,4 +414,87 @@ TEST_F(BitrateControllerTest, TwoBitrateObserversOneRtcpObserver) {
   EXPECT_EQ(200000u, bitrate_observer_2.last_bitrate_);  
   controller_->RemoveBitrateObserver(&bitrate_observer_1);
   controller_->RemoveBitrateObserver(&bitrate_observer_2);
+}
+
+class BitrateControllerTestNoEnforceMin : public BitrateControllerTest {
+ protected:
+  BitrateControllerTestNoEnforceMin() : BitrateControllerTest() {
+    enforce_min_bitrate_ = false;
+  }
+};
+
+
+
+TEST_F(BitrateControllerTestNoEnforceMin, OneBitrateObserver) {
+  TestBitrateObserver bitrate_observer_1;
+  controller_->SetBitrateObserver(&bitrate_observer_1, 200000, 100000, 400000);
+
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(150000);
+  EXPECT_EQ(150000u, bitrate_observer_1.last_bitrate_);
+
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(1000);
+  EXPECT_EQ(1000u, bitrate_observer_1.last_bitrate_);
+
+  controller_->RemoveBitrateObserver(&bitrate_observer_1);
+}
+
+TEST_F(BitrateControllerTestNoEnforceMin, ThreeBitrateObservers) {
+  TestBitrateObserver bitrate_observer_1;
+  TestBitrateObserver bitrate_observer_2;
+  TestBitrateObserver bitrate_observer_3;
+  
+  
+  
+  controller_->SetBitrateObserver(&bitrate_observer_1, 700000, 100000, 400000);
+  controller_->SetBitrateObserver(&bitrate_observer_2, 200000, 200000, 400000);
+  controller_->SetBitrateObserver(&bitrate_observer_3, 200000, 300000, 400000);
+
+  
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(690000);
+  
+  
+  EXPECT_EQ(130000u, bitrate_observer_1.last_bitrate_);
+  EXPECT_EQ(230000u, bitrate_observer_2.last_bitrate_);
+  EXPECT_EQ(330000u, bitrate_observer_3.last_bitrate_);
+
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(500000);
+  
+  
+  EXPECT_EQ(100000u, bitrate_observer_1.last_bitrate_);  
+  EXPECT_EQ(200000u, bitrate_observer_2.last_bitrate_);  
+  EXPECT_EQ(200000u, bitrate_observer_3.last_bitrate_);  
+
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(1000);
+  
+  EXPECT_EQ(1000u, bitrate_observer_1.last_bitrate_);
+  EXPECT_EQ(0u, bitrate_observer_2.last_bitrate_);
+  EXPECT_EQ(0u, bitrate_observer_3.last_bitrate_);
+
+  controller_->RemoveBitrateObserver(&bitrate_observer_1);
+  controller_->RemoveBitrateObserver(&bitrate_observer_2);
+  controller_->RemoveBitrateObserver(&bitrate_observer_3);
+}
+
+TEST_F(BitrateControllerTest, ThreeBitrateObserversLowRembEnforceMin) {
+  TestBitrateObserver bitrate_observer_1;
+  TestBitrateObserver bitrate_observer_2;
+  TestBitrateObserver bitrate_observer_3;
+  controller_->SetBitrateObserver(&bitrate_observer_1, 200000, 100000, 300000);
+  controller_->SetBitrateObserver(&bitrate_observer_2, 200000, 200000, 300000);
+  controller_->SetBitrateObserver(&bitrate_observer_3, 200000, 300000, 300000);
+
+  
+  bandwidth_observer_->OnReceivedEstimatedBitrate(1000);
+  EXPECT_EQ(100000u, bitrate_observer_1.last_bitrate_);  
+  EXPECT_EQ(200000u, bitrate_observer_2.last_bitrate_);  
+  EXPECT_EQ(300000u, bitrate_observer_3.last_bitrate_);  
+
+  controller_->RemoveBitrateObserver(&bitrate_observer_1);
+  controller_->RemoveBitrateObserver(&bitrate_observer_2);
+  controller_->RemoveBitrateObserver(&bitrate_observer_3);
 }

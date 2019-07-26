@@ -8,17 +8,19 @@
 
 
 
-#ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TEST_STEREO_H_
-#define WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TEST_STEREO_H_
+#ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TESTSTEREO_H_
+#define WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_TESTSTEREO_H_
 
 #include <math.h>
 
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
-#include "ACMTest.h"
-#include "Channel.h"
-#include "PCMFile.h"
+#include "webrtc/modules/audio_coding/main/test/ACMTest.h"
+#include "webrtc/modules/audio_coding/main/test/Channel.h"
+#include "webrtc/modules/audio_coding/main/test/PCMFile.h"
 
 namespace webrtc {
+
+class Config;
 
 enum StereoMonoMode {
   kNotSet,
@@ -60,7 +62,7 @@ class TestPackStereo : public AudioPacketizationCallback {
 
 class TestStereo : public ACMTest {
  public:
-  TestStereo(int test_mode);
+  TestStereo(int test_mode, const Config& config);
   ~TestStereo();
 
   void Perform();

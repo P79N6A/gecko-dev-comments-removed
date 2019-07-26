@@ -19,6 +19,9 @@
 
 namespace webrtc {
 
+const char kLegacyAcmVersion[] = "acm1";
+const char kExperimentalAcmVersion[] = "acm2";
+
 
 AudioCodingModule* AudioCodingModule::Create(int id) {
   return new acm1::AudioCodingModuleImpl(id, Clock::GetRealTimeClock());
@@ -30,13 +33,13 @@ AudioCodingModule* AudioCodingModule::Create(int id, Clock* clock) {
 
 
 int AudioCodingModule::NumberOfCodecs() {
-  return ACMCodecDB::kNumCodecs;
+  return acm2::ACMCodecDB::kNumCodecs;
 }
 
 
 int AudioCodingModule::Codec(int list_id, CodecInst* codec) {
   
-  return ACMCodecDB::Codec(list_id, codec);
+  return acm2::ACMCodecDB::Codec(list_id, codec);
 }
 
 
@@ -47,7 +50,8 @@ int AudioCodingModule::Codec(const char* payload_name,
   int codec_id;
 
   
-  codec_id = ACMCodecDB::CodecId(payload_name, sampling_freq_hz, channels);
+  codec_id = acm2::ACMCodecDB::CodecId(
+      payload_name, sampling_freq_hz, channels);
   if (codec_id < 0) {
     
     
@@ -60,7 +64,7 @@ int AudioCodingModule::Codec(const char* payload_name,
   }
 
   
-  ACMCodecDB::Codec(codec_id, codec);
+  acm2::ACMCodecDB::Codec(codec_id, codec);
 
   
   
@@ -73,14 +77,14 @@ int AudioCodingModule::Codec(const char* payload_name,
 int AudioCodingModule::Codec(const char* payload_name,
                              int sampling_freq_hz,
                              int channels) {
-  return ACMCodecDB::CodecId(payload_name, sampling_freq_hz, channels);
+  return acm2::ACMCodecDB::CodecId(payload_name, sampling_freq_hz, channels);
 }
 
 
 bool AudioCodingModule::IsCodecValid(const CodecInst& codec) {
   int mirror_id;
 
-  int codec_number = ACMCodecDB::CodecNumber(codec, &mirror_id);
+  int codec_number = acm2::ACMCodecDB::CodecNumber(codec, &mirror_id);
 
   if (codec_number < 0) {
     WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, -1,
@@ -97,7 +101,7 @@ AudioCodingModule* AudioCodingModuleFactory::Create(int id) const {
 }
 
 AudioCodingModule* NewAudioCodingModuleFactory::Create(int id) const {
-  return new AudioCodingModuleImpl(id);
+  return new acm2::AudioCodingModuleImpl(id);
 }
 
 }  

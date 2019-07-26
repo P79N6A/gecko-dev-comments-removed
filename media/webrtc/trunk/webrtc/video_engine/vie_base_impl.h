@@ -33,8 +33,14 @@ class ViEBaseImpl
   virtual int SetVoiceEngine(VoiceEngine* voice_engine);
   virtual int RegisterCpuOveruseObserver(int channel,
                                          CpuOveruseObserver* observer);
-  virtual void SetLoadManager(CPULoadStateCallbackInvoker* aLoadManager);
+  virtual int CpuOveruseMeasures(int channel,
+                                 int* capture_jitter_ms,
+                                 int* avg_encode_time_ms,
+                                 int* encode_usage_percent,
+                                 int* capture_queue_delay_ms_per_s);
   virtual int CreateChannel(int& video_channel);  
+  virtual int CreateChannel(int& video_channel,  
+                            const Config* config);
   virtual int CreateChannel(int& video_channel,  
                             int original_channel);
   virtual int CreateReceiveChannel(int& video_channel,  

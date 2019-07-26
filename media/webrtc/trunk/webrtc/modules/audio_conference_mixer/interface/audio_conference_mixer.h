@@ -57,7 +57,7 @@ public:
 
     
     virtual int32_t SetMixabilityStatus(MixerParticipant& participant,
-                                        const bool mixable) = 0;
+                                        bool mixable) = 0;
     
     virtual int32_t MixabilityStatus(MixerParticipant& participant,
                                      bool& mixable) = 0;

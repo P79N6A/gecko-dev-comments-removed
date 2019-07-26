@@ -43,13 +43,18 @@ class PacedSender : public Module {
     
     
     
-    virtual bool TimeToSendPacket(uint32_t ssrc, uint16_t sequence_number,
-                                  int64_t capture_time_ms) = 0;
+    virtual bool TimeToSendPacket(uint32_t ssrc,
+                                  uint16_t sequence_number,
+                                  int64_t capture_time_ms,
+                                  bool retransmission) = 0;
     
     virtual int TimeToSendPadding(int bytes) = 0;
    protected:
     virtual ~Callback() {}
   };
+
+  static const int kDefaultMaxQueueLengthMs = 2000;
+
   PacedSender(Callback* callback, int target_bitrate_kbps,
               float pace_multiplier);
 
@@ -80,7 +85,12 @@ class PacedSender : public Module {
                           uint32_t ssrc,
                           uint16_t sequence_number,
                           int64_t capture_time_ms,
-                          int bytes);
+                          int bytes,
+                          bool retransmission);
+
+  
+  
+  virtual void set_max_queue_length_ms(int max_queue_length_ms);
 
   
   virtual int QueueInMs() const;
@@ -98,8 +108,9 @@ class PacedSender : public Module {
   bool ShouldSendNextPacket(paced_sender::PacketList** packet_list);
 
   
-  void GetNextPacketFromList(paced_sender::PacketList* packets,
-      uint32_t* ssrc, uint16_t* sequence_number, int64_t* capture_time_ms);
+  paced_sender::Packet GetNextPacketFromList(paced_sender::PacketList* packets);
+
+  bool SendPacketFromList(paced_sender::PacketList* packet_list);
 
   
   void UpdateBytesPerInterval(uint32_t delta_time_in_ms);
@@ -111,6 +122,7 @@ class PacedSender : public Module {
   const float pace_multiplier_;
   bool enabled_;
   bool paused_;
+  int max_queue_length_ms_;
   scoped_ptr<CriticalSectionWrapper> critsect_;
   
   

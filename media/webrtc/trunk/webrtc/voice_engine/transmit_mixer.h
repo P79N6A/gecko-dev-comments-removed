@@ -13,6 +13,7 @@
 
 #include "webrtc/common_audio/resampler/include/push_resampler.h"
 #include "webrtc/common_types.h"
+#include "webrtc/modules/audio_processing/typing_detection.h"
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/utility/interface/file_player.h"
 #include "webrtc/modules/utility/interface/file_recorder.h"
@@ -70,6 +71,7 @@ public:
     
     void EncodeAndSend(const int voe_channels[], int number_of_voe_channels);
 
+    
     uint32_t CaptureLevel() const;
 
     int32_t StopSend();
@@ -182,10 +184,11 @@ private:
     int32_t MixOrReplaceAudioWithFile(
         int mixingFrequency);
 
-    void ProcessAudio(int delay_ms, int clock_drift, int current_mic_level);
+    void ProcessAudio(int delay_ms, int clock_drift, int current_mic_level,
+                      bool key_pressed);
 
 #ifdef WEBRTC_VOICE_ENGINE_TYPING_DETECTION
-    int TypingDetection(bool keyPressed);
+    void TypingDetection(bool keyPressed);
 #endif
 
     
@@ -214,19 +217,9 @@ private:
     CriticalSectionWrapper& _callbackCritSect;
 
 #ifdef WEBRTC_VOICE_ENGINE_TYPING_DETECTION
-    int32_t _timeActive;
-    int32_t _timeSinceLastTyping;
-    int32_t _penaltyCounter;
+    webrtc::TypingDetection _typingDetection;
     bool _typingNoiseWarningPending;
     bool _typingNoiseDetected;
-
-    
-    int _timeWindow; 
-    int _costPerTyping; 
-    int _reportingThreshold; 
-    int _penaltyDecay; 
-    int _typeEventDelay; 
-
 #endif
     bool _saturationWarning;
 
@@ -245,4 +238,4 @@ private:
 
 }  
 
-#endif 
+#endif  

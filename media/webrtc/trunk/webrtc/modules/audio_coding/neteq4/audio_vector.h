@@ -13,21 +13,27 @@
 
 #include <string.h>  
 
-#include <vector>
-
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
-template <typename T>
 class AudioVector {
  public:
   
-  AudioVector() {}
+  AudioVector()
+      : array_(new int16_t[kDefaultInitialSize]),
+        first_free_ix_(0),
+        capacity_(kDefaultInitialSize) {}
 
   
   explicit AudioVector(size_t initial_size)
-      : vector_(initial_size, 0) {}
+      : array_(new int16_t[initial_size]),
+        first_free_ix_(initial_size),
+        capacity_(initial_size) {
+    memset(array_.get(), 0, initial_size * sizeof(int16_t));
+  }
 
   virtual ~AudioVector() {}
 
@@ -37,21 +43,21 @@ class AudioVector {
   
   
   
-  virtual void CopyFrom(AudioVector<T>* copy_to) const;
+  virtual void CopyFrom(AudioVector* copy_to) const;
 
   
   
-  virtual void PushFront(const AudioVector<T>& prepend_this);
+  virtual void PushFront(const AudioVector& prepend_this);
 
   
   
-  virtual void PushFront(const T* prepend_this, size_t length);
+  virtual void PushFront(const int16_t* prepend_this, size_t length);
 
   
-  virtual void PushBack(const AudioVector<T>& append_this);
+  virtual void PushBack(const AudioVector& append_this);
 
   
-  virtual void PushBack(const T* append_this, size_t length);
+  virtual void PushBack(const int16_t* append_this, size_t length);
 
   
   virtual void PopFront(size_t length);
@@ -67,7 +73,8 @@ class AudioVector {
   
   
   
-  virtual void InsertAt(const T* insert_this, size_t length, size_t position);
+  virtual void InsertAt(const int16_t* insert_this, size_t length,
+                        size_t position);
 
   
   virtual void InsertZerosAt(size_t length, size_t position);
@@ -77,27 +84,34 @@ class AudioVector {
   
   
   
-  virtual void OverwriteAt(const T* insert_this,
+  virtual void OverwriteAt(const int16_t* insert_this,
                            size_t length,
                            size_t position);
 
   
   
   
-  virtual void CrossFade(const AudioVector<T>& append_this, size_t fade_length);
+  virtual void CrossFade(const AudioVector& append_this, size_t fade_length);
 
   
-  virtual size_t Size() const { return vector_.size(); }
+  virtual size_t Size() const { return first_free_ix_; }
 
   
-  virtual bool Empty() const { return vector_.empty(); }
+  virtual bool Empty() const { return (first_free_ix_ == 0); }
 
   
-  const T& operator[](size_t index) const;
-  T& operator[](size_t index);
+  const int16_t& operator[](size_t index) const;
+  int16_t& operator[](size_t index);
 
  private:
-  std::vector<T> vector_;
+  static const size_t kDefaultInitialSize = 10;
+
+  void Reserve(size_t n);
+
+  scoped_ptr<int16_t[]> array_;
+  size_t first_free_ix_;  
+                          
+  size_t capacity_;  
 
   DISALLOW_COPY_AND_ASSIGN(AudioVector);
 };

@@ -38,7 +38,7 @@ void BackgroundNoise::Reset() {
   
 }
 
-void BackgroundNoise::Update(const AudioMultiVector<int16_t>& input,
+void BackgroundNoise::Update(const AudioMultiVector& input,
                              const PostDecodeVad& vad) {
   if (vad.running() && vad.active_speech()) {
     

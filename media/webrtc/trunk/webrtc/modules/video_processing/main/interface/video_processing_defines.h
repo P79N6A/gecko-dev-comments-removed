@@ -29,15 +29,13 @@ namespace webrtc {
 #define VPM_UNINITIALIZED       -5
 #define VPM_UNIMPLEMENTED       -6
 
-enum VideoFrameResampling
-{
-  
-    kNoRescaling,         
-    kFastRescaling,       
-    kBiLinear,            
-    kBox,                 
+enum VideoFrameResampling {
+  kNoRescaling,         
+  kFastRescaling,       
+  kBiLinear,            
+  kBox,                 
 };
 
 }  
 
-#endif
+#endif  

@@ -10,7 +10,6 @@
 
 
 
-
 #ifndef WEBRTC_VIDEO_ENGINE_VIE_SENDER_H_
 #define WEBRTC_VIDEO_ENGINE_VIE_SENDER_H_
 
@@ -33,10 +32,6 @@ class ViESender: public Transport {
   ~ViESender();
 
   
-  int RegisterExternalEncryption(Encryption* encryption);
-  int DeregisterExternalEncryption();
-
-  
   int RegisterSendTransport(Transport* transport);
   int DeregisterSendTransport();
 
@@ -53,8 +48,6 @@ class ViESender: public Transport {
 
   scoped_ptr<CriticalSectionWrapper> critsect_;
 
-  Encryption* external_encryption_;
-  uint8_t* encryption_buffer_;
   Transport* transport_;
   RtpDump* rtp_dump_;
 };

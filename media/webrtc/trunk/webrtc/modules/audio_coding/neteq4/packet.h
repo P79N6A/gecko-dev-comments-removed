@@ -25,15 +25,19 @@ struct Packet {
   int payload_length;
   bool primary;  
   int waiting_time;
+  bool sync_packet;
 
   
   Packet()
       : payload(NULL),
         payload_length(0),
         primary(true),
-        waiting_time(0) {
+        waiting_time(0),
+        sync_packet(false) {
   }
 
+  
+  
   
   
   
@@ -42,7 +46,8 @@ struct Packet {
   bool operator==(const Packet& rhs) const {
     return (this->header.timestamp == rhs.header.timestamp &&
         this->header.sequenceNumber == rhs.header.sequenceNumber &&
-        this->primary == rhs.primary);
+        this->primary == rhs.primary &&
+        this->sync_packet == rhs.sync_packet);
   }
   bool operator!=(const Packet& rhs) const { return !operator==(rhs); }
   bool operator<(const Packet& rhs) const {
@@ -51,6 +56,18 @@ struct Packet {
         
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        if (rhs.sync_packet)
+          return true;
+        if (this->sync_packet)
+          return false;
         return (this->primary && !rhs.primary);
       }
       return (static_cast<uint16_t>(rhs.header.sequenceNumber

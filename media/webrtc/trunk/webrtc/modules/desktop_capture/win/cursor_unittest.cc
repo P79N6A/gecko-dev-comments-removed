@@ -9,7 +9,9 @@
 
 
 #include "testing/gmock/include/gmock/gmock.h"
+#include "webrtc/modules/desktop_capture/desktop_frame.h"
 #include "webrtc/modules/desktop_capture/desktop_geometry.h"
+#include "webrtc/modules/desktop_capture/mouse_cursor.h"
 #include "webrtc/modules/desktop_capture/win/cursor.h"
 #include "webrtc/modules/desktop_capture/win/cursor_unittest_resources.h"
 #include "webrtc/modules/desktop_capture/win/scoped_gdi_object.h"
@@ -32,8 +34,8 @@ bool ConvertToMouseShapeAndCompare(unsigned left, unsigned right) {
 
   
   HDC dc = GetDC(NULL);
-  scoped_ptr<MouseCursorShape> mouse_shape(
-      CreateMouseCursorShapeFromCursor(dc, cursor));
+  scoped_ptr<MouseCursor> mouse_shape(
+      CreateMouseCursorFromHCursor(dc, cursor));
   ReleaseDC(NULL, dc);
 
   EXPECT_TRUE(mouse_shape.get());
@@ -56,7 +58,7 @@ bool ConvertToMouseShapeAndCompare(unsigned left, unsigned right) {
 
   int width = bitmap_info.bmWidth;
   int height = bitmap_info.bmHeight;
-  EXPECT_TRUE(DesktopSize(width, height).equals(mouse_shape->size));
+  EXPECT_TRUE(DesktopSize(width, height).equals(mouse_shape->image()->size()));
 
   
   int size = width * height;
@@ -64,13 +66,13 @@ bool ConvertToMouseShapeAndCompare(unsigned left, unsigned right) {
   EXPECT_TRUE(GetBitmapBits(scoped_color, size * sizeof(uint32_t), data.get()));
 
   
-  return memcmp(data.get(), mouse_shape->data.data(),
+  return memcmp(data.get(), mouse_shape->image()->data(),
                 size * sizeof(uint32_t)) == 0;
 }
 
 }  
 
-TEST(MouseCursorShapeTest, MatchCursors) {
+TEST(MouseCursorTest, MatchCursors) {
   EXPECT_TRUE(ConvertToMouseShapeAndCompare(IDD_CURSOR1_24BPP,
                                             IDD_CURSOR1_32BPP));
 

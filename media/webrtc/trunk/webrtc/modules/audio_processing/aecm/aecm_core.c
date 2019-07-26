@@ -18,7 +18,7 @@
 #include "webrtc/modules/audio_processing/aecm/include/echo_control_mobile.h"
 #include "webrtc/modules/audio_processing/utility/delay_estimator_wrapper.h"
 #include "webrtc/modules/audio_processing/utility/ring_buffer.h"
-#include "webrtc/system_wrappers/interface/compile_assert.h"
+#include "webrtc/system_wrappers/interface/compile_assert_c.h"
 #include "webrtc/system_wrappers/interface/cpu_features_wrapper.h"
 #include "webrtc/typedefs.h"
 
@@ -27,63 +27,7 @@ FILE *dfile;
 FILE *testfile;
 #endif
 
-
-#if defined(WEBRTC_DETECT_ARM_NEON) || defined(WEBRTC_ARCH_ARM_NEON)
-
-extern const ALIGN8_BEG int16_t WebRtcAecm_kSqrtHanning[] ALIGN8_END;
-#else
-static const ALIGN8_BEG int16_t WebRtcAecm_kSqrtHanning[] ALIGN8_END = {
-  0, 399, 798, 1196, 1594, 1990, 2386, 2780, 3172,
-  3562, 3951, 4337, 4720, 5101, 5478, 5853, 6224,
-  6591, 6954, 7313, 7668, 8019, 8364, 8705, 9040,
-  9370, 9695, 10013, 10326, 10633, 10933, 11227, 11514,
-  11795, 12068, 12335, 12594, 12845, 13089, 13325, 13553,
-  13773, 13985, 14189, 14384, 14571, 14749, 14918, 15079,
-  15231, 15373, 15506, 15631, 15746, 15851, 15947, 16034,
-  16111, 16179, 16237, 16286, 16325, 16354, 16373, 16384
-};
-#endif
-
-
-static const uint16_t kAlpha1 = 32584;
-
-static const uint16_t kBeta1 = 4249;
-
-static const uint16_t kAlpha2 = 30879;
-
-static const uint16_t kBeta2 = 11072;
-
-static const uint16_t kAlpha3 = 26951;
-
-static const uint16_t kBeta3 = 18927;
-
-
-static const int16_t kChannelStored8kHz[PART_LEN1] = {
-    2040,   1815,   1590,   1498,   1405,   1395,   1385,   1418,
-    1451,   1506,   1562,   1644,   1726,   1804,   1882,   1918,
-    1953,   1982,   2010,   2025,   2040,   2034,   2027,   2021,
-    2014,   1997,   1980,   1925,   1869,   1800,   1732,   1683,
-    1635,   1604,   1572,   1545,   1517,   1481,   1444,   1405,
-    1367,   1331,   1294,   1270,   1245,   1239,   1233,   1247,
-    1260,   1282,   1303,   1338,   1373,   1407,   1441,   1470,
-    1499,   1524,   1549,   1565,   1582,   1601,   1621,   1649,
-    1676
-};
-
-
-static const int16_t kChannelStored16kHz[PART_LEN1] = {
-    2040,   1590,   1405,   1385,   1451,   1562,   1726,   1882,
-    1953,   2010,   2040,   2027,   2014,   1980,   1869,   1732,
-    1635,   1572,   1517,   1444,   1367,   1294,   1245,   1233,
-    1260,   1303,   1373,   1441,   1499,   1549,   1582,   1621,
-    1676,   1741,   1802,   1861,   1921,   1983,   2040,   2102,
-    2170,   2265,   2375,   2515,   2651,   2781,   2922,   3075,
-    3253,   3471,   3738,   3976,   4151,   4258,   4308,   4288,
-    4270,   4253,   4237,   4179,   4086,   3947,   3757,   3484,
-    3153
-};
-
-static const int16_t kCosTable[] = {
+const int16_t WebRtcAecm_kCosTable[] = {
     8192,  8190,  8187,  8180,  8172,  8160,  8147,  8130,  8112,
     8091,  8067,  8041,  8012,  7982,  7948,  7912,  7874,  7834,
     7791,  7745,  7697,  7647,  7595,  7540,  7483,  7424,  7362,
@@ -126,7 +70,7 @@ static const int16_t kCosTable[] = {
     8091,  8112,  8130,  8147,  8160,  8172,  8180,  8187,  8190
 };
 
-static const int16_t kSinTable[] = {
+const int16_t WebRtcAecm_kSinTable[] = {
        0,    142,    285,    428,    571,    713,    856,    998,
     1140,   1281,   1422,   1563,   1703,   1842,   1981,   2120,
     2258,   2395,   2531,   2667,   2801,   2935,   3068,   3200,
@@ -174,27 +118,43 @@ static const int16_t kSinTable[] = {
    -1140,   -998,   -856,   -713,   -571,   -428,   -285,   -142
 };
 
-static const int16_t kNoiseEstQDomain = 15;
-static const int16_t kNoiseEstIncCount = 5;
 
-static void ComfortNoise(AecmCore_t* aecm,
-                         const uint16_t* dfa,
-                         complex16_t* out,
-                         const int16_t* lambda);
-
-static int16_t CalcSuppressionGain(AecmCore_t * const aecm);
-
-
-
-
-
+static const int16_t kChannelStored8kHz[PART_LEN1] = {
+    2040,   1815,   1590,   1498,   1405,   1395,   1385,   1418,
+    1451,   1506,   1562,   1644,   1726,   1804,   1882,   1918,
+    1953,   1982,   2010,   2025,   2040,   2034,   2027,   2021,
+    2014,   1997,   1980,   1925,   1869,   1800,   1732,   1683,
+    1635,   1604,   1572,   1545,   1517,   1481,   1444,   1405,
+    1367,   1331,   1294,   1270,   1245,   1239,   1233,   1247,
+    1260,   1282,   1303,   1338,   1373,   1407,   1441,   1470,
+    1499,   1524,   1549,   1565,   1582,   1601,   1621,   1649,
+    1676
+};
 
 
+static const int16_t kChannelStored16kHz[PART_LEN1] = {
+    2040,   1590,   1405,   1385,   1451,   1562,   1726,   1882,
+    1953,   2010,   2040,   2027,   2014,   1980,   1869,   1732,
+    1635,   1572,   1517,   1444,   1367,   1294,   1245,   1233,
+    1260,   1303,   1373,   1441,   1499,   1549,   1582,   1621,
+    1676,   1741,   1802,   1861,   1921,   1983,   2040,   2102,
+    2170,   2265,   2375,   2515,   2651,   2781,   2922,   3075,
+    3253,   3471,   3738,   3976,   4151,   4258,   4308,   4288,
+    4270,   4253,   4237,   4179,   4086,   3947,   3757,   3484,
+    3153
+};
 
 
-static void UpdateFarHistory(AecmCore_t* self,
-                             uint16_t* far_spectrum,
-                             int far_q) {
+
+
+
+
+
+
+
+void WebRtcAecm_UpdateFarHistory(AecmCore_t* self,
+                                 uint16_t* far_spectrum,
+                                 int far_q) {
   
   self->far_history_pos++;
   if (self->far_history_pos >= MAX_DELAY) {
@@ -225,7 +185,9 @@ static void UpdateFarHistory(AecmCore_t* self,
 
 
 
-static const uint16_t* AlignedFarend(AecmCore_t* self, int* far_q, int delay) {
+const uint16_t* WebRtcAecm_AlignedFarend(AecmCore_t* self,
+                                         int* far_q,
+                                         int delay) {
   int buffer_position = 0;
   assert(self != NULL);
   buffer_position = self->far_history_pos - delay;
@@ -304,6 +266,9 @@ int WebRtcAecm_CreateCore(AecmCore_t **aecmInst)
       aecm = NULL;
       return -1;
     }
+    
+    
+    WebRtc_enable_robust_validation(aecm->delay_estimator, 0);
 
     aecm->real_fft = WebRtcSpl_CreateRealFFT(PART_LEN_SHIFT);
     if (aecm->real_fft == NULL) {
@@ -347,85 +312,6 @@ void WebRtcAecm_InitEchoPathCore(AecmCore_t* aecm, const int16_t* echo_path)
     aecm->mseStoredOld = 1000;
     aecm->mseThreshold = WEBRTC_SPL_WORD32_MAX;
     aecm->mseChannelCount = 0;
-}
-
-static void WindowAndFFT(AecmCore_t* aecm,
-                          int16_t* fft,
-                          const int16_t* time_signal,
-                          complex16_t* freq_signal,
-                          int time_signal_scaling) {
-  int i = 0;
-
-  
-  for (i = 0; i < PART_LEN; i++) {
-    
-    
-    fft[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(
-        (time_signal[i] << time_signal_scaling),
-        WebRtcAecm_kSqrtHanning[i],
-        14);
-    fft[PART_LEN + i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(
-        (time_signal[i + PART_LEN] << time_signal_scaling),
-        WebRtcAecm_kSqrtHanning[PART_LEN - i],
-        14);
-  }
-
-  
-  
-  WebRtcSpl_RealForwardFFT(aecm->real_fft, fft, (int16_t*)freq_signal);
-  for (i = 0; i < PART_LEN; i++) {
-    freq_signal[i].imag = -freq_signal[i].imag;
-  }
-}
-
-static void InverseFFTAndWindow(AecmCore_t* aecm,
-                                int16_t* fft,
-                                complex16_t* efw,
-                                int16_t* output,
-                                const int16_t* nearendClean)
-{
-    int i, j, outCFFT;
-    int32_t tmp32no1;
-    
-    
-    int16_t* ifft_out = (int16_t*)efw;
-
-    
-    for (i = 1, j = 2; i < PART_LEN; i += 1, j += 2) {
-      fft[j] = efw[i].real;
-      fft[j + 1] = -efw[i].imag;
-    }
-    fft[0] = efw[0].real;
-    fft[1] = -efw[0].imag;
-
-    fft[PART_LEN2] = efw[PART_LEN].real;
-    fft[PART_LEN2 + 1] = -efw[PART_LEN].imag;
-
-    
-    outCFFT = WebRtcSpl_RealInverseFFT(aecm->real_fft, fft, ifft_out);
-    for (i = 0; i < PART_LEN; i++) {
-      ifft_out[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(
-          ifft_out[i], WebRtcAecm_kSqrtHanning[i], 14);
-      tmp32no1 = WEBRTC_SPL_SHIFT_W32((int32_t)ifft_out[i],
-                                      outCFFT - aecm->dfaCleanQDomain);
-      output[i] = (int16_t)WEBRTC_SPL_SAT(WEBRTC_SPL_WORD16_MAX,
-          tmp32no1 + aecm->outBuf[i], WEBRTC_SPL_WORD16_MIN);
-
-      tmp32no1 = WEBRTC_SPL_MUL_16_16_RSFT(ifft_out[PART_LEN + i],
-          WebRtcAecm_kSqrtHanning[PART_LEN - i], 14);
-      tmp32no1 = WEBRTC_SPL_SHIFT_W32(tmp32no1,
-          outCFFT - aecm->dfaCleanQDomain);
-      aecm->outBuf[i] = (int16_t)WEBRTC_SPL_SAT(
-          WEBRTC_SPL_WORD16_MAX, tmp32no1, WEBRTC_SPL_WORD16_MIN);
-    }
-
-    
-    memcpy(aecm->xBuf, aecm->xBuf + PART_LEN, sizeof(int16_t) * PART_LEN);
-    memcpy(aecm->dBufNoisy, aecm->dBufNoisy + PART_LEN, sizeof(int16_t) * PART_LEN);
-    if (nearendClean != NULL)
-    {
-        memcpy(aecm->dBufClean, aecm->dBufClean + PART_LEN, sizeof(int16_t) * PART_LEN);
-    }
 }
 
 static void CalcLinearEnergiesC(AecmCore_t* aecm,
@@ -504,6 +390,18 @@ static void WebRtcAecm_InitNeon(void)
   WebRtcAecm_StoreAdaptiveChannel = WebRtcAecm_StoreAdaptiveChannelNeon;
   WebRtcAecm_ResetAdaptiveChannel = WebRtcAecm_ResetAdaptiveChannelNeon;
   WebRtcAecm_CalcLinearEnergies = WebRtcAecm_CalcLinearEnergiesNeon;
+}
+#endif
+
+
+#if defined(MIPS32_LE)
+static void WebRtcAecm_InitMips(void)
+{
+#if defined(MIPS_DSP_R1_LE)
+  WebRtcAecm_StoreAdaptiveChannel = WebRtcAecm_StoreAdaptiveChannel_mips;
+  WebRtcAecm_ResetAdaptiveChannel = WebRtcAecm_ResetAdaptiveChannel_mips;
+#endif
+  WebRtcAecm_CalcLinearEnergies = WebRtcAecm_CalcLinearEnergies_mips;
 }
 #endif
 
@@ -644,6 +542,9 @@ int WebRtcAecm_InitCore(AecmCore_t * const aecm, int samplingFreq)
     WebRtcAecm_InitNeon();
 #endif
 
+#if defined(MIPS32_LE)
+    WebRtcAecm_InitMips();
+#endif
     return 0;
 }
 
@@ -1263,7 +1164,7 @@ void WebRtcAecm_UpdateChannel(AecmCore_t * aecm,
 
 
 
-static int16_t CalcSuppressionGain(AecmCore_t * const aecm)
+int16_t WebRtcAecm_CalcSuppressionGain(AecmCore_t * const aecm)
 {
     int32_t tmp32no1;
 
@@ -1330,639 +1231,6 @@ static int16_t CalcSuppressionGain(AecmCore_t * const aecm)
     
 
     return aecm->supGain;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static int TimeToFrequencyDomain(AecmCore_t* aecm,
-                                 const int16_t* time_signal,
-                                 complex16_t* freq_signal,
-                                 uint16_t* freq_signal_abs,
-                                 uint32_t* freq_signal_sum_abs)
-{
-    int i = 0;
-    int time_signal_scaling = 0;
-
-    int32_t tmp32no1 = 0;
-    int32_t tmp32no2 = 0;
-
-    
-    int16_t fft_buf[PART_LEN4 + 16];
-    int16_t *fft = (int16_t *) (((uintptr_t) fft_buf + 31) & ~31);
-
-    int16_t tmp16no1;
-#ifndef WEBRTC_ARCH_ARM_V7
-    int16_t tmp16no2;
-#endif
-#ifdef AECM_WITH_ABS_APPROX
-    int16_t max_value = 0;
-    int16_t min_value = 0;
-    uint16_t alpha = 0;
-    uint16_t beta = 0;
-#endif
-
-#ifdef AECM_DYNAMIC_Q
-    tmp16no1 = WebRtcSpl_MaxAbsValueW16(time_signal, PART_LEN2);
-    time_signal_scaling = WebRtcSpl_NormW16(tmp16no1);
-#endif
-
-    WindowAndFFT(aecm, fft, time_signal, freq_signal, time_signal_scaling);
-
-    
-    freq_signal[0].imag = 0;
-    freq_signal[PART_LEN].imag = 0;
-    freq_signal_abs[0] = (uint16_t)WEBRTC_SPL_ABS_W16(
-        freq_signal[0].real);
-    freq_signal_abs[PART_LEN] = (uint16_t)WEBRTC_SPL_ABS_W16(
-        freq_signal[PART_LEN].real);
-    (*freq_signal_sum_abs) = (uint32_t)(freq_signal_abs[0]) +
-        (uint32_t)(freq_signal_abs[PART_LEN]);
-
-    for (i = 1; i < PART_LEN; i++)
-    {
-        if (freq_signal[i].real == 0)
-        {
-            freq_signal_abs[i] = (uint16_t)WEBRTC_SPL_ABS_W16(
-                freq_signal[i].imag);
-        }
-        else if (freq_signal[i].imag == 0)
-        {
-            freq_signal_abs[i] = (uint16_t)WEBRTC_SPL_ABS_W16(
-                freq_signal[i].real);
-        }
-        else
-        {
-            
-            
-            
-            
-            
-
-#ifdef AECM_WITH_ABS_APPROX
-            tmp16no1 = WEBRTC_SPL_ABS_W16(freq_signal[i].real);
-            tmp16no2 = WEBRTC_SPL_ABS_W16(freq_signal[i].imag);
-
-            if(tmp16no1 > tmp16no2)
-            {
-                max_value = tmp16no1;
-                min_value = tmp16no2;
-            } else
-            {
-                max_value = tmp16no2;
-                min_value = tmp16no1;
-            }
-
-            
-            if ((max_value >> 2) > min_value)
-            {
-                alpha = kAlpha1;
-                beta = kBeta1;
-            } else if ((max_value >> 1) > min_value)
-            {
-                alpha = kAlpha2;
-                beta = kBeta2;
-            } else
-            {
-                alpha = kAlpha3;
-                beta = kBeta3;
-            }
-            tmp16no1 = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(max_value,
-                                                                alpha,
-                                                                15);
-            tmp16no2 = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(min_value,
-                                                                beta,
-                                                                15);
-            freq_signal_abs[i] = (uint16_t)tmp16no1 +
-                (uint16_t)tmp16no2;
-#else
-#ifdef WEBRTC_ARCH_ARM_V7
-            __asm __volatile(
-              "smulbb %[tmp32no1], %[real], %[real]\n\t"
-              "smlabb %[tmp32no2], %[imag], %[imag], %[tmp32no1]\n\t"
-              :[tmp32no1]"+r"(tmp32no1),
-               [tmp32no2]"=r"(tmp32no2)
-              :[real]"r"(freq_signal[i].real),
-               [imag]"r"(freq_signal[i].imag)
-            );
-#else
-            tmp16no1 = WEBRTC_SPL_ABS_W16(freq_signal[i].real);
-            tmp16no2 = WEBRTC_SPL_ABS_W16(freq_signal[i].imag);
-            tmp32no1 = WEBRTC_SPL_MUL_16_16(tmp16no1, tmp16no1);
-            tmp32no2 = WEBRTC_SPL_MUL_16_16(tmp16no2, tmp16no2);
-            tmp32no2 = WEBRTC_SPL_ADD_SAT_W32(tmp32no1, tmp32no2);
-#endif 
-            tmp32no1 = WebRtcSpl_SqrtFloor(tmp32no2);
-
-            freq_signal_abs[i] = (uint16_t)tmp32no1;
-#endif 
-        }
-        (*freq_signal_sum_abs) += (uint32_t)freq_signal_abs[i];
-    }
-
-    return time_signal_scaling;
-}
-
-int WebRtcAecm_ProcessBlock(AecmCore_t * aecm,
-                            const int16_t * farend,
-                            const int16_t * nearendNoisy,
-                            const int16_t * nearendClean,
-                            int16_t * output)
-{
-    int i;
-
-    uint32_t xfaSum;
-    uint32_t dfaNoisySum;
-    uint32_t dfaCleanSum;
-    uint32_t echoEst32Gained;
-    uint32_t tmpU32;
-
-    int32_t tmp32no1;
-
-    uint16_t xfa[PART_LEN1];
-    uint16_t dfaNoisy[PART_LEN1];
-    uint16_t dfaClean[PART_LEN1];
-    uint16_t* ptrDfaClean = dfaClean;
-    const uint16_t* far_spectrum_ptr = NULL;
-
-    
-    
-    int16_t fft_buf[PART_LEN4 + 2 + 16]; 
-    int32_t echoEst32_buf[PART_LEN1 + 8];
-    int32_t dfw_buf[PART_LEN2 + 8];
-    int32_t efw_buf[PART_LEN2 + 8];
-
-    int16_t* fft = (int16_t*) (((uintptr_t) fft_buf + 31) & ~ 31);
-    int32_t* echoEst32 = (int32_t*) (((uintptr_t) echoEst32_buf + 31) & ~ 31);
-    complex16_t* dfw = (complex16_t*) (((uintptr_t) dfw_buf + 31) & ~ 31);
-    complex16_t* efw = (complex16_t*) (((uintptr_t) efw_buf + 31) & ~ 31);
-
-    int16_t hnl[PART_LEN1];
-    int16_t numPosCoef = 0;
-    int16_t nlpGain = ONE_Q14;
-    int delay;
-    int16_t tmp16no1;
-    int16_t tmp16no2;
-    int16_t mu;
-    int16_t supGain;
-    int16_t zeros32, zeros16;
-    int16_t zerosDBufNoisy, zerosDBufClean, zerosXBuf;
-    int far_q;
-    int16_t resolutionDiff, qDomainDiff;
-
-    const int kMinPrefBand = 4;
-    const int kMaxPrefBand = 24;
-    int32_t avgHnl32 = 0;
-
-    
-    
-    
-    
-
-    if (aecm->startupState < 2)
-    {
-        aecm->startupState = (aecm->totCount >= CONV_LEN) + (aecm->totCount >= CONV_LEN2);
-    }
-    
-
-    
-    memcpy(aecm->xBuf + PART_LEN, farend, sizeof(int16_t) * PART_LEN);
-    memcpy(aecm->dBufNoisy + PART_LEN, nearendNoisy, sizeof(int16_t) * PART_LEN);
-    if (nearendClean != NULL)
-    {
-        memcpy(aecm->dBufClean + PART_LEN, nearendClean, sizeof(int16_t) * PART_LEN);
-    }
-
-    
-    far_q = TimeToFrequencyDomain(aecm,
-                                  aecm->xBuf,
-                                  dfw,
-                                  xfa,
-                                  &xfaSum);
-
-    
-    zerosDBufNoisy = TimeToFrequencyDomain(aecm,
-                                           aecm->dBufNoisy,
-                                           dfw,
-                                           dfaNoisy,
-                                           &dfaNoisySum);
-    aecm->dfaNoisyQDomainOld = aecm->dfaNoisyQDomain;
-    aecm->dfaNoisyQDomain = (int16_t)zerosDBufNoisy;
-
-
-    if (nearendClean == NULL)
-    {
-        ptrDfaClean = dfaNoisy;
-        aecm->dfaCleanQDomainOld = aecm->dfaNoisyQDomainOld;
-        aecm->dfaCleanQDomain = aecm->dfaNoisyQDomain;
-        dfaCleanSum = dfaNoisySum;
-    } else
-    {
-        
-        zerosDBufClean = TimeToFrequencyDomain(aecm,
-                                               aecm->dBufClean,
-                                               dfw,
-                                               dfaClean,
-                                               &dfaCleanSum);
-        aecm->dfaCleanQDomainOld = aecm->dfaCleanQDomain;
-        aecm->dfaCleanQDomain = (int16_t)zerosDBufClean;
-    }
-
-    
-    
-    UpdateFarHistory(aecm, xfa, far_q);
-    if (WebRtc_AddFarSpectrumFix(aecm->delay_estimator_farend, xfa, PART_LEN1,
-                                 far_q) == -1) {
-      return -1;
-    }
-    delay = WebRtc_DelayEstimatorProcessFix(aecm->delay_estimator,
-                                            dfaNoisy,
-                                            PART_LEN1,
-                                            zerosDBufNoisy);
-    if (delay == -1)
-    {
-        return -1;
-    }
-    else if (delay == -2)
-    {
-        
-        
-        delay = 0;
-    }
-
-    if (aecm->fixedDelay >= 0)
-    {
-        
-        delay = aecm->fixedDelay;
-    }
-
-    
-    far_spectrum_ptr = AlignedFarend(aecm, &far_q, delay);
-    zerosXBuf = (int16_t) far_q;
-    if (far_spectrum_ptr == NULL)
-    {
-        return -1;
-    }
-
-    
-    WebRtcAecm_CalcEnergies(aecm,
-                            far_spectrum_ptr,
-                            zerosXBuf,
-                            dfaNoisySum,
-                            echoEst32);
-
-    
-    mu = WebRtcAecm_CalcStepSize(aecm);
-
-    
-    aecm->totCount++;
-
-    
-    
-    WebRtcAecm_UpdateChannel(aecm, far_spectrum_ptr, zerosXBuf, dfaNoisy, mu, echoEst32);
-    supGain = CalcSuppressionGain(aecm);
-
-
-    
-    for (i = 0; i < PART_LEN1; i++)
-    {
-        
-        
-        tmp32no1 = echoEst32[i] - aecm->echoFilt[i];
-        aecm->echoFilt[i] += WEBRTC_SPL_RSHIFT_W32(WEBRTC_SPL_MUL_32_16(tmp32no1, 50), 8);
-
-        zeros32 = WebRtcSpl_NormW32(aecm->echoFilt[i]) + 1;
-        zeros16 = WebRtcSpl_NormW16(supGain) + 1;
-        if (zeros32 + zeros16 > 16)
-        {
-            
-            
-            echoEst32Gained = WEBRTC_SPL_UMUL_32_16((uint32_t)aecm->echoFilt[i],
-                                                    (uint16_t)supGain);
-            resolutionDiff = 14 - RESOLUTION_CHANNEL16 - RESOLUTION_SUPGAIN;
-            resolutionDiff += (aecm->dfaCleanQDomain - zerosXBuf);
-        } else
-        {
-            tmp16no1 = 17 - zeros32 - zeros16;
-            resolutionDiff = 14 + tmp16no1 - RESOLUTION_CHANNEL16 - RESOLUTION_SUPGAIN;
-            resolutionDiff += (aecm->dfaCleanQDomain - zerosXBuf);
-            if (zeros32 > tmp16no1)
-            {
-                echoEst32Gained = WEBRTC_SPL_UMUL_32_16((uint32_t)aecm->echoFilt[i],
-                        (uint16_t)WEBRTC_SPL_RSHIFT_W16(supGain,
-                                tmp16no1)); 
-            } else
-            {
-                
-                echoEst32Gained = WEBRTC_SPL_UMUL_32_16(
-                        (uint32_t)WEBRTC_SPL_RSHIFT_W32(aecm->echoFilt[i], tmp16no1),
-                        (uint16_t)supGain);
-            }
-        }
-
-        zeros16 = WebRtcSpl_NormW16(aecm->nearFilt[i]);
-        if ((zeros16 < (aecm->dfaCleanQDomain - aecm->dfaCleanQDomainOld))
-                & (aecm->nearFilt[i]))
-        {
-            tmp16no1 = WEBRTC_SPL_SHIFT_W16(aecm->nearFilt[i], zeros16);
-            qDomainDiff = zeros16 - aecm->dfaCleanQDomain + aecm->dfaCleanQDomainOld;
-        } else
-        {
-            tmp16no1 = WEBRTC_SPL_SHIFT_W16(aecm->nearFilt[i],
-                                            aecm->dfaCleanQDomain - aecm->dfaCleanQDomainOld);
-            qDomainDiff = 0;
-        }
-        tmp16no2 = WEBRTC_SPL_SHIFT_W16(ptrDfaClean[i], qDomainDiff);
-        tmp32no1 = (int32_t)(tmp16no2 - tmp16no1);
-        tmp16no2 = (int16_t)WEBRTC_SPL_RSHIFT_W32(tmp32no1, 4);
-        tmp16no2 += tmp16no1;
-        zeros16 = WebRtcSpl_NormW16(tmp16no2);
-        if ((tmp16no2) & (-qDomainDiff > zeros16))
-        {
-            aecm->nearFilt[i] = WEBRTC_SPL_WORD16_MAX;
-        } else
-        {
-            aecm->nearFilt[i] = WEBRTC_SPL_SHIFT_W16(tmp16no2, -qDomainDiff);
-        }
-
-        
-        if (echoEst32Gained == 0)
-        {
-            hnl[i] = ONE_Q14;
-        } else if (aecm->nearFilt[i] == 0)
-        {
-            hnl[i] = 0;
-        } else
-        {
-            
-            
-            echoEst32Gained += (uint32_t)(aecm->nearFilt[i] >> 1);
-            tmpU32 = WebRtcSpl_DivU32U16(echoEst32Gained, (uint16_t)aecm->nearFilt[i]);
-
-            
-            
-            
-            tmp32no1 = (int32_t)WEBRTC_SPL_SHIFT_W32(tmpU32, resolutionDiff);
-            if (tmp32no1 > ONE_Q14)
-            {
-                hnl[i] = 0;
-            } else if (tmp32no1 < 0)
-            {
-                hnl[i] = ONE_Q14;
-            } else
-            {
-                
-                hnl[i] = ONE_Q14 - (int16_t)tmp32no1;
-                if (hnl[i] < 0)
-                {
-                    hnl[i] = 0;
-                }
-            }
-        }
-        if (hnl[i])
-        {
-            numPosCoef++;
-        }
-    }
-    
-    
-    if (aecm->mult == 2)
-    {
-        
-        
-        for (i = 0; i < PART_LEN1; i++)
-        {
-            hnl[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(hnl[i], hnl[i], 14);
-        }
-
-        for (i = kMinPrefBand; i <= kMaxPrefBand; i++)
-        {
-            avgHnl32 += (int32_t)hnl[i];
-        }
-        assert(kMaxPrefBand - kMinPrefBand + 1 > 0);
-        avgHnl32 /= (kMaxPrefBand - kMinPrefBand + 1);
-
-        for (i = kMaxPrefBand; i < PART_LEN1; i++)
-        {
-            if (hnl[i] > (int16_t)avgHnl32)
-            {
-                hnl[i] = (int16_t)avgHnl32;
-            }
-        }
-    }
-
-    
-    if (aecm->nlpFlag)
-    {
-        for (i = 0; i < PART_LEN1; i++)
-        {
-            
-            if (hnl[i] > NLP_COMP_HIGH)
-            {
-                hnl[i] = ONE_Q14;
-            } else if (hnl[i] < NLP_COMP_LOW)
-            {
-                hnl[i] = 0;
-            }
-
-            
-            if (numPosCoef < 3)
-            {
-                nlpGain = 0;
-            } else
-            {
-                nlpGain = ONE_Q14;
-            }
-
-            
-            if ((hnl[i] == ONE_Q14) && (nlpGain == ONE_Q14))
-            {
-                hnl[i] = ONE_Q14;
-            } else
-            {
-                hnl[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(hnl[i], nlpGain, 14);
-            }
-
-            
-            efw[i].real = (int16_t)(WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(dfw[i].real,
-                                                                            hnl[i], 14));
-            efw[i].imag = (int16_t)(WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(dfw[i].imag,
-                                                                            hnl[i], 14));
-        }
-    }
-    else
-    {
-        
-        for (i = 0; i < PART_LEN1; i++)
-        {
-            efw[i].real = (int16_t)(WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(dfw[i].real,
-                                                                           hnl[i], 14));
-            efw[i].imag = (int16_t)(WEBRTC_SPL_MUL_16_16_RSFT_WITH_ROUND(dfw[i].imag,
-                                                                           hnl[i], 14));
-        }
-    }
-
-    if (aecm->cngMode == AecmTrue)
-    {
-        ComfortNoise(aecm, ptrDfaClean, efw, hnl);
-    }
-
-    InverseFFTAndWindow(aecm, fft, efw, output, nearendClean);
-
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-static void ComfortNoise(AecmCore_t* aecm,
-                         const uint16_t* dfa,
-                         complex16_t* out,
-                         const int16_t* lambda)
-{
-    int16_t i;
-    int16_t tmp16;
-    int32_t tmp32;
-
-    int16_t randW16[PART_LEN];
-    int16_t uReal[PART_LEN1];
-    int16_t uImag[PART_LEN1];
-    int32_t outLShift32;
-    int16_t noiseRShift16[PART_LEN1];
-
-    int16_t shiftFromNearToNoise = kNoiseEstQDomain - aecm->dfaCleanQDomain;
-    int16_t minTrackShift;
-
-    assert(shiftFromNearToNoise >= 0);
-    assert(shiftFromNearToNoise < 16);
-
-    if (aecm->noiseEstCtr < 100)
-    {
-        
-        aecm->noiseEstCtr++;
-        minTrackShift = 6;
-    } else
-    {
-        minTrackShift = 9;
-    }
-
-    
-    for (i = 0; i < PART_LEN1; i++)
-    {
-
-        
-        tmp32 = (int32_t)dfa[i];
-        outLShift32 = WEBRTC_SPL_LSHIFT_W32(tmp32, shiftFromNearToNoise);
-
-        if (outLShift32 < aecm->noiseEst[i])
-        {
-            
-            aecm->noiseEstTooLowCtr[i] = 0;
-            
-            if (aecm->noiseEst[i] < (1 << minTrackShift))
-            {
-                
-                
-                
-                aecm->noiseEstTooHighCtr[i]++;
-                if (aecm->noiseEstTooHighCtr[i] >= kNoiseEstIncCount)
-                {
-                    aecm->noiseEst[i]--;
-                    aecm->noiseEstTooHighCtr[i] = 0; 
-                }
-            }
-            else
-            {
-                aecm->noiseEst[i] -= ((aecm->noiseEst[i] - outLShift32) >> minTrackShift);
-            }
-        } else
-        {
-            
-            aecm->noiseEstTooHighCtr[i] = 0;
-            
-            if ((aecm->noiseEst[i] >> 19) > 0)
-            {
-                
-                
-                
-                aecm->noiseEst[i] >>= 11;
-                aecm->noiseEst[i] *= 2049;
-            }
-            else if ((aecm->noiseEst[i] >> 11) > 0)
-            {
-                
-                aecm->noiseEst[i] *= 2049;
-                aecm->noiseEst[i] >>= 11;
-            }
-            else
-            {
-                
-                
-                aecm->noiseEstTooLowCtr[i]++;
-                if (aecm->noiseEstTooLowCtr[i] >= kNoiseEstIncCount)
-                {
-                    aecm->noiseEst[i] += (aecm->noiseEst[i] >> 9) + 1;
-                    aecm->noiseEstTooLowCtr[i] = 0; 
-                }
-            }
-        }
-    }
-
-    for (i = 0; i < PART_LEN1; i++)
-    {
-        tmp32 = WEBRTC_SPL_RSHIFT_W32(aecm->noiseEst[i], shiftFromNearToNoise);
-        if (tmp32 > 32767)
-        {
-            tmp32 = 32767;
-            aecm->noiseEst[i] = WEBRTC_SPL_LSHIFT_W32(tmp32, shiftFromNearToNoise);
-        }
-        noiseRShift16[i] = (int16_t)tmp32;
-
-        tmp16 = ONE_Q14 - lambda[i];
-        noiseRShift16[i]
-                = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(tmp16, noiseRShift16[i], 14);
-    }
-
-    
-    WebRtcSpl_RandUArray(randW16, PART_LEN, &aecm->seed);
-
-    
-    uReal[0] = 0; 
-    uImag[0] = 0;
-    for (i = 1; i < PART_LEN1; i++)
-    {
-        
-        tmp16 = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(359, randW16[i - 1], 15);
-
-        
-        uReal[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(noiseRShift16[i],
-                kCosTable[tmp16], 13);
-        uImag[i] = (int16_t)WEBRTC_SPL_MUL_16_16_RSFT(-noiseRShift16[i],
-                kSinTable[tmp16], 13);
-    }
-    uImag[PART_LEN] = 0;
-
-    for (i = 0; i < PART_LEN1; i++)
-    {
-        out[i].real = WEBRTC_SPL_ADD_SAT_W16(out[i].real, uReal[i]);
-        out[i].imag = WEBRTC_SPL_ADD_SAT_W16(out[i].imag, uImag[i]);
-    }
 }
 
 void WebRtcAecm_BufferFarFrame(AecmCore_t* const aecm,

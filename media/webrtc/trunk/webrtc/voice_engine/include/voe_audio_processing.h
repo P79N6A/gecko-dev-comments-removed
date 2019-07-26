@@ -35,6 +35,8 @@
 #ifndef WEBRTC_VOICE_ENGINE_VOE_AUDIO_PROCESSING_H
 #define WEBRTC_VOICE_ENGINE_VOE_AUDIO_PROCESSING_H
 
+#include <stdio.h>
+
 #include "webrtc/common_types.h"
 
 namespace webrtc {
@@ -190,6 +192,10 @@ public:
     
     
     virtual int StartDebugRecording(const char* fileNameUTF8) = 0;
+
+    
+    
+    virtual int StartDebugRecording(FILE* file_handle) = 0;
 
     
     virtual int StopDebugRecording() = 0;

@@ -27,6 +27,7 @@
 namespace webrtc {
 
 class VideoEngine;
+struct ReceiveBandwidthEstimatorStats;
 
 
 enum ViERTCPMode {
@@ -90,8 +91,6 @@ class WEBRTC_DLLEXPORT ViERTCPObserver {
  protected:
   virtual ~ViERTCPObserver() {}
 };
-
-struct SenderInfo;
 
 class WEBRTC_DLLEXPORT ViERTP_RTCP {
  public:
@@ -172,16 +171,6 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   virtual int GetRemoteRTCPCName(
       const int video_channel,
       char rtcp_cname[KMaxRTCPCNameLength]) const = 0;
-
-  virtual int GetRemoteRTCPReceiverInfo(const int video_channel,
-                                        uint32_t& NTPHigh,
-                                        uint32_t& NTPLow,
-                                        uint32_t& receivedPacketCount,
-                                        uint64_t& receivedOctetCount,
-                                        uint32_t* jitter,
-                                        uint16_t* fractionLost,
-                                        uint32_t* cumulativeLost,
-                                        int32_t* rttMs) const = 0;
 
   
   virtual int SendApplicationDefinedRTCPPacket(
@@ -269,38 +258,107 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   
   
   
+  virtual int SetRtcpXrRrtrStatus(int video_channel, bool enable) { return -1; }
+
+  
+  
+  
   virtual int SetTransmissionSmoothingStatus(int video_channel,
                                              bool enable) = 0;
 
   
   
-  virtual int GetReceivedRTCPStatistics(
-      const int video_channel,
-      unsigned short& fraction_lost,
-      unsigned int& cumulative_lost,
-      unsigned int& extended_max,
-      unsigned int& jitter,
-      int& rtt_ms) const = 0;
+  virtual int GetReceiveChannelRtcpStatistics(const int video_channel,
+                                              RtcpStatistics& basic_stats,
+                                              int& rtt_ms) const = 0;
 
   
   
+  virtual int GetSendChannelRtcpStatistics(const int video_channel,
+                                           RtcpStatistics& basic_stats,
+                                           int& rtt_ms) const = 0;
+
+  
+  
+  virtual int GetReceivedRTCPStatistics(const int video_channel,
+                                unsigned short& fraction_lost,
+                                unsigned int& cumulative_lost,
+                                unsigned int& extended_max,
+                                unsigned int& jitter,
+                                int& rtt_ms) const {
+    RtcpStatistics stats;
+    int ret_code = GetReceiveChannelRtcpStatistics(video_channel,
+                                             stats,
+                                             rtt_ms);
+    fraction_lost = stats.fraction_lost;
+    cumulative_lost = stats.cumulative_lost;
+    extended_max = stats.extended_max_sequence_number;
+    jitter = stats.jitter;
+    return ret_code;
+  }
   virtual int GetSentRTCPStatistics(const int video_channel,
-                                    unsigned short& fraction_lost,
-                                    unsigned int& cumulative_lost,
-                                    unsigned int& extended_max,
-                                    unsigned int& jitter,
-                                    int& rtt_ms) const = 0;
+                            unsigned short& fraction_lost,
+                            unsigned int& cumulative_lost,
+                            unsigned int& extended_max,
+                            unsigned int& jitter,
+                            int& rtt_ms) const {
+    RtcpStatistics stats;
+    int ret_code = GetSendChannelRtcpStatistics(video_channel,
+                                                stats,
+                                                rtt_ms);
+    fraction_lost = stats.fraction_lost;
+    cumulative_lost = stats.cumulative_lost;
+    extended_max = stats.extended_max_sequence_number;
+    jitter = stats.jitter;
+    return ret_code;
+  }
 
+
+  virtual int RegisterSendChannelRtcpStatisticsCallback(
+      int video_channel, RtcpStatisticsCallback* callback) = 0;
+
+  virtual int DeregisterSendChannelRtcpStatisticsCallback(
+      int video_channel, RtcpStatisticsCallback* callback) = 0;
+
+  virtual int RegisterReceiveChannelRtcpStatisticsCallback(
+      int video_channel, RtcpStatisticsCallback* callback) = 0;
+
+  virtual int DeregisterReceiveChannelRtcpStatisticsCallback(
+      int video_channel, RtcpStatisticsCallback* callback) = 0;
+
+  
+  virtual int GetRtpStatistics(const int video_channel,
+                               StreamDataCounters& sent,
+                               StreamDataCounters& received) const = 0;
+
+  
   
   virtual int GetRTPStatistics(const int video_channel,
-                               unsigned int& bytes_sent,
-                               unsigned int& packets_sent,
-                               unsigned int& bytes_received,
-                               unsigned int& packets_received) const = 0;
+                       unsigned int& bytes_sent,
+                       unsigned int& packets_sent,
+                       unsigned int& bytes_received,
+                       unsigned int& packets_received) const {
+    StreamDataCounters sent;
+    StreamDataCounters received;
+    int ret_code = GetRtpStatistics(video_channel, sent, received);
+    bytes_sent = sent.bytes;
+    packets_sent = sent.packets;
+    bytes_received = received.bytes;
+    packets_received = received.packets;
+    return ret_code;
+  }
 
-  
-  virtual int GetRemoteRTCPSenderInfo(const int video_channel,
-                                      SenderInfo* sender_info) const = 0;
+  virtual int RegisterSendChannelRtpStatisticsCallback(
+      int video_channel, StreamDataCountersCallback* callback) = 0;
+
+  virtual int DeregisterSendChannelRtpStatisticsCallback(
+      int video_channel, StreamDataCountersCallback* callback) = 0;
+
+  virtual int RegisterReceiveChannelRtpStatisticsCallback(
+      int video_channel, StreamDataCountersCallback* callback) = 0;
+
+  virtual int DeregisterReceiveChannelRtpStatisticsCallback(
+      int video_channel, StreamDataCountersCallback* callback) = 0;
 
   
   
@@ -309,6 +367,15 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
                                 unsigned int& video_bitrate_sent,
                                 unsigned int& fec_bitrate_sent,
                                 unsigned int& nackBitrateSent) const = 0;
+
+  
+  virtual int RegisterSendBitrateObserver(
+      int video_channel,
+      BitrateStatisticsObserver* observer) = 0;
+
+  virtual int DeregisterSendBitrateObserver(
+      int video_channel,
+      BitrateStatisticsObserver* observer) = 0;
 
   
   
@@ -322,6 +389,13 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   virtual int GetEstimatedReceiveBandwidth(
       const int video_channel,
       unsigned int* estimated_bandwidth) const = 0;
+
+  
+  
+  
+  virtual int GetReceiveBandwidthEstimatorStats(
+      const int video_channel,
+      ReceiveBandwidthEstimatorStats* output) const { return -1; }
 
   
   
@@ -350,8 +424,15 @@ class WEBRTC_DLLEXPORT ViERTP_RTCP {
   
   virtual int DeregisterRTCPObserver(const int video_channel) = 0;
 
+  
+  virtual int RegisterSendFrameCountObserver(
+      int video_channel, FrameCountObserver* observer) = 0;
+
+  
+  virtual int DeregisterSendFrameCountObserver(
+      int video_channel, FrameCountObserver* observer) = 0;
+
  protected:
-  ViERTP_RTCP() {}
   virtual ~ViERTP_RTCP() {}
 };
 

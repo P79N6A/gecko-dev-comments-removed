@@ -21,6 +21,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 
 enum {
   kMaxPLCParamsCNG = WEBRTC_CNG_MAX_LPC_ORDER,
@@ -123,7 +125,10 @@ int32_t ACMGenericCodec::Add10MsDataSafe(const uint32_t timestamp,
     if ((in_audio_ix_write_ >= length_smpl * audio_channel) &&
         (in_timestamp_ix_write_ > 0)) {
       in_audio_ix_write_ -= length_smpl * audio_channel;
+      assert(in_timestamp_ix_write_ >= 0);
+
       in_timestamp_ix_write_--;
+      assert(in_audio_ix_write_ >= 0);
       WEBRTC_TRACE(webrtc::kTraceDebug, webrtc::kTraceAudioCoding, unique_id_,
                    "Adding 10ms with previous timestamp, overwriting the "
                    "previous 10ms");
@@ -160,8 +165,11 @@ int32_t ACMGenericCodec::Add10MsDataSafe(const uint32_t timestamp,
     memmove(in_timestamp_, in_timestamp_ + missed_10ms_blocks,
             (in_timestamp_ix_write_ - missed_10ms_blocks) * sizeof(uint32_t));
     in_timestamp_ix_write_ -= missed_10ms_blocks;
+    assert(in_timestamp_ix_write_ >= 0);
+
     in_timestamp_[in_timestamp_ix_write_] = timestamp;
     in_timestamp_ix_write_++;
+    assert(in_timestamp_ix_write_ < TIMESTAMP_BUFFER_SIZE_W32);
 
     
     in_audio_ix_write_ = AUDIO_BUFFER_SIZE_W16;
@@ -173,12 +181,11 @@ int32_t ACMGenericCodec::Add10MsDataSafe(const uint32_t timestamp,
   memcpy(in_audio_ + in_audio_ix_write_, data,
          length_smpl * audio_channel * sizeof(int16_t));
   in_audio_ix_write_ += length_smpl * audio_channel;
-
   assert(in_timestamp_ix_write_ < TIMESTAMP_BUFFER_SIZE_W32);
-  assert(in_timestamp_ix_write_ >= 0);
 
   in_timestamp_[in_timestamp_ix_write_] = timestamp;
   in_timestamp_ix_write_++;
+  assert(in_timestamp_ix_write_ < TIMESTAMP_BUFFER_SIZE_W32);
   return 0;
 }
 
@@ -313,11 +320,7 @@ int16_t ACMGenericCodec::Encode(uint8_t* bitstream,
             
             break;
           }
-
-          
-          
-          
-          done = in_audio_ix_read_ >= frame_len_smpl_;
+          done = in_audio_ix_read_ >= frame_len_smpl_ * num_channels_;
         }
       }
       if (status >= 0) {
@@ -345,6 +348,7 @@ int16_t ACMGenericCodec::Encode(uint8_t* bitstream,
             (in_timestamp_ix_write_ - num_10ms_blocks) * sizeof(int32_t));
   }
   in_timestamp_ix_write_ -= num_10ms_blocks;
+  assert(in_timestamp_ix_write_ >= 0);
 
   
   
@@ -448,11 +452,8 @@ int16_t ACMGenericCodec::InitEncoderSafe(WebRtcACMCodecParams* codec_params,
   int mirrorID;
   int codec_number = ACMCodecDB::CodecNumber(codec_params->codec_inst,
                                              &mirrorID);
-  if (codec_number < 0) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioCoding, unique_id_,
-                 "InitEncoderSafe: error, codec number negative");
-    return -1;
-  }
+  assert(codec_number >= 0);
+
   
   if ((codec_id_ >= 0) && (codec_id_ != codec_number) &&
       (codec_id_ != mirrorID)) {
@@ -481,7 +482,7 @@ int16_t ACMGenericCodec::InitEncoderSafe(WebRtcACMCodecParams* codec_params,
       encoder_exist_ = true;
     }
   }
-  frame_len_smpl_ = (codec_params->codec_inst).pacsize;
+  frame_len_smpl_ = codec_params->codec_inst.pacsize;
   num_channels_ = codec_params->codec_inst.channels;
   status = InternalInitEncoder(codec_params);
   if (status < 0) {
@@ -491,23 +492,24 @@ int16_t ACMGenericCodec::InitEncoderSafe(WebRtcACMCodecParams* codec_params,
     return -1;
   } else {
     
+    
     memcpy(&encoder_params_, codec_params, sizeof(WebRtcACMCodecParams));
     encoder_initialized_ = true;
     if (in_audio_ == NULL) {
       in_audio_ = new int16_t[AUDIO_BUFFER_SIZE_W16];
-      if (in_audio_ == NULL) {
-        return -1;
-      }
-      memset(in_audio_, 0, AUDIO_BUFFER_SIZE_W16 * sizeof(int16_t));
     }
     if (in_timestamp_ == NULL) {
       in_timestamp_ = new uint32_t[TIMESTAMP_BUFFER_SIZE_W32];
-      if (in_timestamp_ == NULL) {
-        return -1;
-      }
-      memset(in_timestamp_, 0, sizeof(uint32_t) * TIMESTAMP_BUFFER_SIZE_W32);
     }
   }
+
+  
+  memset(in_audio_, 0, sizeof(*in_audio_) * AUDIO_BUFFER_SIZE_W16);
+  memset(in_timestamp_, 0, sizeof(*in_timestamp_) * TIMESTAMP_BUFFER_SIZE_W32);
+  in_audio_ix_write_ = 0;
+  in_audio_ix_read_ = 0;
+  in_timestamp_ix_write_ = 0;
+
   return SetVADSafe(&codec_params->enable_dtx, &codec_params->enable_vad,
                     &codec_params->vad_mode);
 }
@@ -1001,5 +1003,7 @@ int16_t ACMGenericCodec::REDPayloadISAC(const int32_t ,
                "Error: REDPayloadISAC is an iSAC specific function");
   return -1;
 }
+
+}  
 
 }  

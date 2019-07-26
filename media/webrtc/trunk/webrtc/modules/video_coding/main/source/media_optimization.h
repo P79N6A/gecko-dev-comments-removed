@@ -29,34 +29,28 @@ class VCMContentMetricsProcessing;
 
 namespace media_optimization {
 
-enum {
-  kBitrateMaxFrameSamples = 60
-};
-enum {
-  kBitrateAverageWinMs = 1000
-};
-
-struct EncodedFrameSample {
-  EncodedFrameSample(int size_bytes,
-                     uint32_t timestamp,
-                     int64_t time_complete_ms)
-      : size_bytes(size_bytes),
-        timestamp(timestamp),
-        time_complete_ms(time_complete_ms) {}
-
-  uint32_t size_bytes;
-  uint32_t timestamp;
-  int64_t time_complete_ms;
-};
 
 class MediaOptimization {
  public:
   MediaOptimization(int32_t id, Clock* clock);
-  ~MediaOptimization(void);
+  ~MediaOptimization();
 
   
-  int32_t Reset();
+  
+  void Reset();
 
+  
+  void SetEncodingData(VideoCodecType send_codec_type,
+                       int32_t max_bit_rate,
+                       uint32_t frame_rate,
+                       uint32_t bit_rate,
+                       uint16_t width,
+                       uint16_t height,
+                       int num_temporal_layers,
+                       int32_t mtu);
+
+  
+  
   
   
   
@@ -65,95 +59,70 @@ class MediaOptimization {
   
   uint32_t SetTargetRates(uint32_t target_bitrate,
                           uint8_t fraction_lost,
-                          uint32_t round_trip_time_ms);
+                          uint32_t round_trip_time_ms,
+                          VCMProtectionCallback* protection_callback,
+                          VCMQMSettingsCallback* qmsettings_callback);
 
-  
-  int32_t SetEncodingData(VideoCodecType send_codec_type,
-                          int32_t max_bit_rate,
-                          uint32_t frame_rate,
-                          uint32_t bit_rate,
-                          uint16_t width,
-                          uint16_t height,
-                          int num_temporal_layers);
-
-  
   void EnableProtectionMethod(bool enable, VCMProtectionMethodEnum method);
+  void EnableQM(bool enable);
+  void EnableFrameDropper(bool enable);
 
   
-  bool IsProtectionMethodEnabled(VCMProtectionMethodEnum method);
-
   
-  uint32_t InputFrameRate();
-
   
-  uint32_t SentFrameRate();
+  void SuspendBelowMinBitrate(int threshold_bps, int window_bps);
+  bool IsVideoSuspended() const;
 
-  
-  uint32_t SentBitRate();
+  bool DropFrame();
+
+  void UpdateContentData(const VideoContentMetrics* content_metrics);
 
   
   int32_t UpdateWithEncodedData(int encoded_length,
                                 uint32_t timestamp,
                                 FrameType encoded_frame_type);
 
-  
-  void SetCPULoadState(CPULoadState state);
-
-  
-  
-  int32_t RegisterProtectionCallback(
-      VCMProtectionCallback* protection_callback);
-
-  
-  int32_t RegisterVideoQMCallback(VCMQMSettingsCallback* video_qmsettings);
-
-  void EnableFrameDropper(bool enable);
-
-  bool DropFrame();
-
-  
-  int32_t SentFrameCount(VCMFrameCount* frame_count) const;
-
-  
-  void UpdateIncomingFrameRate();
-
-  
-  void UpdateContentData(const VideoContentMetrics* content_metrics);
-
-  
-  int32_t SelectQuality();
-
-  
-  int32_t max_bit_rate() const { return max_bit_rate_; }
-  void set_max_payload_size(int32_t mtu) { max_payload_size_ = mtu; }
+  uint32_t InputFrameRate();
+  uint32_t SentFrameRate();
+  uint32_t SentBitRate();
+  VCMFrameCount SentFrameCount();
 
  private:
-  typedef std::list<EncodedFrameSample> FrameSampleList;
   enum {
     kFrameCountHistorySize = 90
   };
   enum {
     kFrameHistoryWinMs = 2000
   };
+  enum {
+    kBitrateAverageWinMs = 1000
+  };
 
-  
-  int UpdateProtectionCallback(VCMProtectionMethod* selected_method,
-                               uint32_t* total_video_rate_bps,
-                               uint32_t* nack_overhead_rate_bps,
-                               uint32_t* fec_overhead_rate_bps);
+  struct EncodedFrameSample;
+  typedef std::list<EncodedFrameSample> FrameSampleList;
 
+  void UpdateIncomingFrameRate();
   void PurgeOldFrameSamples(int64_t now_ms);
   void UpdateSentBitrate(int64_t now_ms);
   void UpdateSentFramerate();
 
   
+  int32_t SelectQuality(VCMQMSettingsCallback* qmsettings_callback);
+
   
-  bool QMUpdate(VCMResolutionScale* qm);
+  
+  bool QMUpdate(VCMResolutionScale* qm,
+                VCMQMSettingsCallback* qmsettings_callback);
 
   
   bool CheckStatusForQMchange();
 
   void ProcessIncomingFrameRate(int64_t now);
+
+  
+  
+  
+  void CheckSuspendConditions();
 
   int32_t id_;
   Clock* clock_;
@@ -168,12 +137,10 @@ class MediaOptimization {
   uint32_t send_statistics_[4];
   uint32_t send_statistics_zero_encode_;
   int32_t max_payload_size_;
-  uint32_t target_bit_rate_;
+  int target_bit_rate_;
   float incoming_frame_rate_;
   int64_t incoming_frame_times_[kFrameCountHistorySize];
   bool enable_qm_;
-  VCMProtectionCallback* video_protection_callback_;
-  VCMQMSettingsCallback* video_qmsettings_callback_;
   std::list<EncodedFrameSample> encoded_frame_samples_;
   uint32_t avg_sent_bit_rate_bps_;
   uint32_t avg_sent_framerate_;
@@ -184,10 +151,12 @@ class MediaOptimization {
   int64_t last_qm_update_time_;
   int64_t last_change_time_;  
   int num_layers_;
-  CPULoadState loadstate_;
-};  
-
+  bool suspension_enabled_;
+  bool video_suspended_;
+  int suspension_threshold_bps_;
+  int suspension_window_bps_;
+};
 }  
 }  
 
-#endif  
+#endif

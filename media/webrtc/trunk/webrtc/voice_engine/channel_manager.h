@@ -93,7 +93,12 @@ class ChannelManager {
   };
 
   
+  
+  
+  
+  
   ChannelOwner CreateChannel();
+  ChannelOwner CreateChannel(const Config& external_config);
 
   
   
@@ -106,6 +111,9 @@ class ChannelManager {
   size_t NumOfChannels() const;
 
  private:
+  
+  ChannelOwner CreateChannelInternal(const Config& config);
+
   uint32_t instance_id_;
 
   Atomic32 last_channel_id_;

@@ -16,6 +16,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 class InitialDelayManager {
  public:
   enum PacketType {
@@ -109,6 +111,8 @@ class InitialDelayManager {
   
   const int late_packet_threshold_;
 };
+
+}  
 
 }  
 

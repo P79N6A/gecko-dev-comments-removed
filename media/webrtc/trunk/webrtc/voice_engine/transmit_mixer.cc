@@ -47,17 +47,19 @@ TransmitMixer::OnPeriodicProcess()
         if (_voiceEngineObserverPtr)
         {
             if (_typingNoiseDetected) {
-              WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId, -1),
-                           "TransmitMixer::OnPeriodicProcess() => "
-                           "CallbackOnError(VE_TYPING_NOISE_WARNING)");
-              _voiceEngineObserverPtr->CallbackOnError(-1,
-                                                       VE_TYPING_NOISE_WARNING);
+                WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId, -1),
+                             "TransmitMixer::OnPeriodicProcess() => "
+                             "CallbackOnError(VE_TYPING_NOISE_WARNING)");
+                _voiceEngineObserverPtr->CallbackOnError(
+                    -1,
+                    VE_TYPING_NOISE_WARNING);
             } else {
-              WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId, -1),
-                           "TransmitMixer::OnPeriodicProcess() => "
-                           "CallbackOnError(VE_TYPING_NOISE_OFF_WARNING)");
-              _voiceEngineObserverPtr->CallbackOnError(
-                  -1, VE_TYPING_NOISE_OFF_WARNING);
+                WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId, -1),
+                             "TransmitMixer::OnPeriodicProcess() => "
+                             "CallbackOnError(VE_TYPING_NOISE_OFF_WARNING)");
+                _voiceEngineObserverPtr->CallbackOnError(
+                    -1,
+                    VE_TYPING_NOISE_OFF_WARNING);
             }
         }
         _typingNoiseWarningPending = false;
@@ -194,16 +196,8 @@ TransmitMixer::TransmitMixer(uint32_t instanceId) :
     _critSect(*CriticalSectionWrapper::CreateCriticalSection()),
     _callbackCritSect(*CriticalSectionWrapper::CreateCriticalSection()),
 #ifdef WEBRTC_VOICE_ENGINE_TYPING_DETECTION
-    _timeActive(0),
-    _timeSinceLastTyping(0),
-    _penaltyCounter(0),
     _typingNoiseWarningPending(false),
     _typingNoiseDetected(false),
-    _timeWindow(10), 
-    _costPerTyping(100), 
-    _reportingThreshold(300), 
-    _penaltyDecay(1), 
-    _typeEventDelay(2), 
 #endif
     _saturationWarning(false),
     _instanceId(instanceId),
@@ -368,7 +362,7 @@ TransmitMixer::PrepareDemux(const void* audioSamples,
     }
 
     
-    ProcessAudio(totalDelayMS, clockDrift, currentMicLevel);
+    ProcessAudio(totalDelayMS, clockDrift, currentMicLevel, keyPressed);
 
     if (swap_stereo_channels_ && stereo_codec_)
       
@@ -494,7 +488,6 @@ void TransmitMixer::EncodeAndSend(const int voe_channels[],
 
 uint32_t TransmitMixer::CaptureLevel() const
 {
-    CriticalSectionScoped cs(&_critSect);
     return _captureLevel;
 }
 
@@ -1182,8 +1175,6 @@ bool TransmitMixer::IsRecordingMic()
 }
 
 
-
-
 int TransmitMixer::GenerateAudioFrame(const int16_t audio[],
                                       int samples_per_channel,
                                       int num_channels,
@@ -1318,25 +1309,18 @@ int32_t TransmitMixer::MixOrReplaceAudioWithFile(
 }
 
 void TransmitMixer::ProcessAudio(int delay_ms, int clock_drift,
-                                 int current_mic_level) {
-  if (audioproc_->set_num_channels(_audioFrame.num_channels_,
-                                   _audioFrame.num_channels_) != 0) {
-    LOG_FERR2(LS_ERROR, set_num_channels, _audioFrame.num_channels_,
-              _audioFrame.num_channels_);
-  }
-
-  if (audioproc_->set_sample_rate_hz(_audioFrame.sample_rate_hz_) != 0) {
-    LOG_FERR1(LS_ERROR, set_sample_rate_hz, _audioFrame.sample_rate_hz_);
-  }
-
+                                 int current_mic_level, bool key_pressed) {
   if (audioproc_->set_stream_delay_ms(delay_ms) != 0) {
     
-    LOG_FERR1(LS_WARNING, set_stream_delay_ms, delay_ms);
+    
+    
+    LOG_FERR1(LS_VERBOSE, set_stream_delay_ms, delay_ms);
   }
 
   GainControl* agc = audioproc_->gain_control();
   if (agc->set_stream_analog_level(current_mic_level) != 0) {
     LOG_FERR1(LS_ERROR, set_stream_analog_level, current_mic_level);
+    assert(false);
   }
 
   EchoCancellation* aec = audioproc_->echo_cancellation();
@@ -1344,70 +1328,42 @@ void TransmitMixer::ProcessAudio(int delay_ms, int clock_drift,
     aec->set_stream_drift_samples(clock_drift);
   }
 
+  audioproc_->set_stream_key_pressed(key_pressed);
+
   int err = audioproc_->ProcessStream(&_audioFrame);
   if (err != 0) {
     LOG(LS_ERROR) << "ProcessStream() error: " << err;
+    assert(false);
   }
-
-  CriticalSectionScoped cs(&_critSect);
 
   
   _captureLevel = agc->stream_analog_level();
 
+  CriticalSectionScoped cs(&_critSect);
   
   _saturationWarning |= agc->stream_is_saturated();
 }
 
 #ifdef WEBRTC_VOICE_ENGINE_TYPING_DETECTION
-int TransmitMixer::TypingDetection(bool keyPressed)
+void TransmitMixer::TypingDetection(bool keyPressed)
 {
+  
+  if (_audioFrame.vad_activity_ == AudioFrame::kVadUnknown) {
+    return;
+  }
 
-    
-    if (_audioFrame.vad_activity_ == AudioFrame::kVadUnknown)
-    {
-        return (0);
-    }
-
-    if (_audioFrame.vad_activity_ == AudioFrame::kVadActive)
-        _timeActive++;
-    else
-        _timeActive = 0;
-
-    
-    if (keyPressed)
-    {
-      _timeSinceLastTyping = 0;
-    }
-    else
-    {
-      ++_timeSinceLastTyping;
-    }
-
-    if ((_timeSinceLastTyping < _typeEventDelay)
-        && (_audioFrame.vad_activity_ == AudioFrame::kVadActive)
-        && (_timeActive < _timeWindow))
-    {
-        _penaltyCounter += _costPerTyping;
-        if (_penaltyCounter > _reportingThreshold)
-        {
-            
-            _typingNoiseWarningPending = true;
-            _typingNoiseDetected = true;
-        }
-    }
-
+  bool vadActive = _audioFrame.vad_activity_ == AudioFrame::kVadActive;
+  if (_typingDetection.Process(keyPressed, vadActive)) {
+    _typingNoiseWarningPending = true;
+    _typingNoiseDetected = true;
+  } else {
     
     
     if (!_typingNoiseWarningPending && _typingNoiseDetected) {
-      
       _typingNoiseWarningPending = true;
       _typingNoiseDetected = false;
     }
-
-    if (_penaltyCounter > 0)
-        _penaltyCounter-=_penaltyDecay;
-
-    return (0);
+  }
 }
 #endif
 
@@ -1420,12 +1376,10 @@ int TransmitMixer::GetMixingFrequency()
 #ifdef WEBRTC_VOICE_ENGINE_TYPING_DETECTION
 int TransmitMixer::TimeSinceLastTyping(int &seconds)
 {
-  
-  
-
-  
-  seconds = (_timeSinceLastTyping + 50) / 100;
-  return(0);
+    
+    
+    seconds = _typingDetection.TimeSinceLastDetectionInSeconds();
+    return 0;
 }
 #endif
 
@@ -1436,19 +1390,13 @@ int TransmitMixer::SetTypingDetectionParameters(int timeWindow,
                                                 int penaltyDecay,
                                                 int typeEventDelay)
 {
-  if(timeWindow != 0)
-    _timeWindow = timeWindow;
-  if(costPerTyping != 0)
-    _costPerTyping = costPerTyping;
-  if(reportingThreshold != 0)
-    _reportingThreshold = reportingThreshold;
-  if(penaltyDecay != 0)
-    _penaltyDecay = penaltyDecay;
-  if(typeEventDelay != 0)
-    _typeEventDelay = typeEventDelay;
-
-
-  return(0);
+    _typingDetection.SetParameters(timeWindow,
+                                   costPerTyping,
+                                   reportingThreshold,
+                                   penaltyDecay,
+                                   typeEventDelay,
+                                   0);
+    return 0;
 }
 #endif
 

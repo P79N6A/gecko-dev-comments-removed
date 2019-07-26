@@ -29,6 +29,17 @@ extern FILE *delay_fid2;
 #endif 
 
 
+int WebRtcNetEQ_IsNewerSequenceNumber(uint16_t sequence_number,
+                                      uint16_t prev_sequence_number) {
+  return sequence_number != prev_sequence_number &&
+         ((uint16_t) (sequence_number - prev_sequence_number)) < 0x8000;
+}
+
+int WebRtcNetEQ_IsNewerTimestamp(uint32_t timestamp, uint32_t prev_timestamp) {
+  return timestamp != prev_timestamp &&
+         ((uint32_t) (timestamp - prev_timestamp)) < 0x80000000;
+}
+
 int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
                                     uint16_t seqNumber, uint32_t timeStamp,
                                     int32_t fsHz, int mdCodec, int streamingMode)
@@ -55,7 +66,8 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
     
 
     
-    if ((timeStamp <= inst->lastTimeStamp) || (seqNumber <= inst->lastSeqNo))
+    if (!WebRtcNetEQ_IsNewerTimestamp(timeStamp, inst->lastTimeStamp) ||
+        !WebRtcNetEQ_IsNewerSequenceNumber(seqNumber, inst->lastSeqNo))
     {
         
         packetLenSamp = inst->packetSpeechLenSamp; 
@@ -68,7 +80,7 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
     }
 
     
-    if (packetLenSamp > 0)
+    if (inst->firstPacketReceived && packetLenSamp > 0)
     { 
 
         
@@ -113,19 +125,19 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
         } 
 
         
-        if (seqNumber > inst->lastSeqNo + 1)
+        if (WebRtcNetEQ_IsNewerSequenceNumber(seqNumber, inst->lastSeqNo + 1))
         {
             
 
 
 
             timeIat -= WEBRTC_SPL_MIN(timeIat,
-                (uint32_t) (seqNumber - inst->lastSeqNo - 1));
+                (uint16_t) (seqNumber - (uint16_t) (inst->lastSeqNo + 1)));
         }
-        else if (seqNumber < inst->lastSeqNo)
+        else if (!WebRtcNetEQ_IsNewerSequenceNumber(seqNumber, inst->lastSeqNo))
         {
             
-            timeIat += (uint32_t) (inst->lastSeqNo + 1 - seqNumber);
+            timeIat += (uint16_t) (inst->lastSeqNo + 1 - seqNumber);
         }
 
         
@@ -315,6 +327,8 @@ int WebRtcNetEQ_UpdateIatStatistics(AutomodeInst_t *inst, int maxBufLen,
     inst->lastSeqNo = seqNumber; 
 
     inst->lastTimeStamp = timeStamp; 
+
+    inst->firstPacketReceived = 1;
 
     return retval;
 }

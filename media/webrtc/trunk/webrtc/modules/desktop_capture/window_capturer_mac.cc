@@ -41,29 +41,6 @@ bool CFStringRefToUtf8(const CFStringRef string, std::string* str_utf8) {
   return true;
 }
 
-
-class CFDataDesktopFrame : public DesktopFrame {
- public:
-  
-  
-  
-  
-  
-  
-  
-  CFDataDesktopFrame(DesktopSize size, int stride, CFDataRef cf_data)
-      : DesktopFrame(size, stride,
-                     const_cast<uint8_t*>(CFDataGetBytePtr(cf_data)), NULL),
-        cf_data_(cf_data) {
-  }
-  virtual ~CFDataDesktopFrame() {
-    CFRelease(cf_data_);
-  }
-
- private:
-  CFDataRef cf_data_;
-};
-
 class WindowCapturerMac : public WindowCapturer {
  public:
   WindowCapturerMac();
@@ -185,9 +162,18 @@ void WindowCapturerMac::Capture(const DesktopRegion& region) {
   int width = CGImageGetWidth(window_image);
   int height = CGImageGetHeight(window_image);
   CGDataProviderRef provider = CGImageGetDataProvider(window_image);
-  DesktopFrame* frame = new CFDataDesktopFrame(
-      DesktopSize(width, height), CGImageGetBytesPerRow(window_image),
-      CGDataProviderCopyData(provider));
+  CFDataRef cf_data = CGDataProviderCopyData(provider);
+  DesktopFrame* frame = new BasicDesktopFrame(
+      DesktopSize(width, height));
+
+  int src_stride = CGImageGetBytesPerRow(window_image);
+  const uint8_t* src_data = CFDataGetBytePtr(cf_data);
+  for (int y = 0; y < height; ++y) {
+    memcpy(frame->data() + frame->stride() * y, src_data + src_stride * y,
+           DesktopFrame::kBytesPerPixel * width);
+  }
+
+  CFRelease(cf_data);
   CFRelease(window_image);
 
   callback_->OnCaptureCompleted(frame);
@@ -196,7 +182,7 @@ void WindowCapturerMac::Capture(const DesktopRegion& region) {
 }  
 
 
-WindowCapturer* WindowCapturer::Create() {
+WindowCapturer* WindowCapturer::Create(const DesktopCaptureOptions& options) {
   return new WindowCapturerMac();
 }
 

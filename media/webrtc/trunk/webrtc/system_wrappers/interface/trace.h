@@ -19,13 +19,14 @@
 #include "webrtc/common_types.h"
 #include "webrtc/typedefs.h"
 
-#if !defined(WEBRTC_LOGGING)
-#define WEBRTC_TRACE (true) ? (void)0 : Trace::Add
+namespace webrtc {
+
+#if defined(WEBRTC_RESTRICT_LOGGING)
+
+#define WEBRTC_TRACE true ? (void) 0 : Trace::Add
 #else
 #define WEBRTC_TRACE Trace::Add
 #endif
-
-namespace webrtc {
 
 class Trace {
  public:

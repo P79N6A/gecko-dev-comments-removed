@@ -68,8 +68,16 @@ double CalculateMetrics(VideoAnalysisMetricsType video_metrics_type,
 void PrintAnalysisResults(const std::string& label, ResultsContainer* results);
 
 
+void PrintAnalysisResults(FILE* output, const std::string& label,
+                          ResultsContainer* results);
+
+
 
 void PrintMaxRepeatedAndSkippedFrames(const std::string& label,
+                                      const std::string& stats_file_name);
+
+
+void PrintMaxRepeatedAndSkippedFrames(FILE* output, const std::string& label,
                                       const std::string& stats_file_name);
 
 

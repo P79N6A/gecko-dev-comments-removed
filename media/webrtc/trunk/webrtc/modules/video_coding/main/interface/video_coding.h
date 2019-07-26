@@ -21,6 +21,7 @@ namespace webrtc
 {
 
 class Clock;
+class EncodedImageCallback;
 class VideoEncoder;
 class VideoDecoder;
 struct CodecSpecificInfo;
@@ -385,6 +386,18 @@ public:
     
     
     
+    virtual int32_t RegisterDecoderTimingCallback(
+        VCMDecoderTimingCallback* decoderTiming) = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     virtual int32_t RegisterFrameTypeCallback(
                                   VCMFrameTypeCallback* frameTypeCallback) = 0;
@@ -575,13 +588,24 @@ public:
     virtual int SetMinReceiverDelay(int desired_delay_ms) = 0;
 
     
-    virtual void SetCPULoadState(CPULoadState state) = 0;
-
-    
     virtual int StartDebugRecording(const char* file_name_utf8) = 0;
 
     
     virtual int StopDebugRecording() = 0;
+
+    
+    
+    
+    virtual void SuspendBelowMinBitrate() = 0;
+
+    
+    
+    virtual bool VideoSuspended() const = 0;
+
+    virtual void RegisterPreDecodeImageCallback(
+        EncodedImageCallback* observer) = 0;
+    virtual void RegisterPostEncodeImageCallback(
+        EncodedImageCallback* post_encode_callback) = 0;
 };
 
 }  

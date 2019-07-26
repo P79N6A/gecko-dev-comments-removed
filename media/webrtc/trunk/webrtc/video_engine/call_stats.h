@@ -19,9 +19,9 @@
 
 namespace webrtc {
 
-class CriticalSectionWrapper;
-class RtcpRttObserver;
 class CallStatsObserver;
+class CriticalSectionWrapper;
+class RtcpRttStats;
 
 
 class CallStats : public Module {
@@ -37,7 +37,7 @@ class CallStats : public Module {
 
   
   
-  RtcpRttObserver* rtcp_rtt_observer() const;
+  RtcpRttStats* rtcp_rtt_stats() const;
 
   
   void RegisterStatsObserver(CallStatsObserver* observer);
@@ -45,6 +45,8 @@ class CallStats : public Module {
 
  protected:
   void OnRttUpdate(uint32_t rtt);
+
+  uint32_t last_processed_rtt_ms() const;
 
  private:
   
@@ -58,9 +60,11 @@ class CallStats : public Module {
   
   scoped_ptr<CriticalSectionWrapper> crit_;
   
-  scoped_ptr<RtcpRttObserver> rtcp_rtt_observer_;
+  scoped_ptr<RtcpRttStats> rtcp_rtt_stats_;
   
   int64_t last_process_time_;
+  
+  uint32_t last_processed_rtt_ms_;
 
   
   std::list<RttTime> reports_;

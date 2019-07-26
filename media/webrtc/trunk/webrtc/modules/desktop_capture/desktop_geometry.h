@@ -35,6 +35,13 @@ class DesktopVector {
     y_ = y;
   }
 
+  DesktopVector add(const DesktopVector& other) const {
+    return DesktopVector(x() + other.x(), y() + other.y());
+  }
+  DesktopVector subtract(const DesktopVector& other) const {
+    return DesktopVector(x() - other.x(), y() - other.y());
+  }
+
  private:
   int32_t x_;
   int32_t y_;
@@ -84,6 +91,10 @@ class DesktopRect {
                               int32_t right, int32_t bottom) {
     return DesktopRect(left, top, right, bottom);
   }
+  static DesktopRect MakeOriginSize(const DesktopVector& origin,
+                                    const DesktopSize& size) {
+    return MakeXYWH(origin.x(), origin.y(), size.width(), size.height());
+  }
 
   DesktopRect() : left_(0), top_(0), right_(0), bottom_(0) {}
 
@@ -94,6 +105,9 @@ class DesktopRect {
   int32_t width() const { return right_ - left_; }
   int32_t height() const { return bottom_ - top_; }
 
+  DesktopVector top_left() const { return DesktopVector(left_, top_); }
+  DesktopSize size() const { return DesktopSize(width(), height()); }
+
   bool is_empty() const { return left_ >= right_ || top_ >= bottom_; }
 
   bool equals(const DesktopRect& other) const {
@@ -102,10 +116,17 @@ class DesktopRect {
   }
 
   
+  bool Contains(const DesktopVector& point) const;
+
+  
+  bool ContainsRect(const DesktopRect& rect) const;
+
+  
   void IntersectWith(const DesktopRect& rect);
 
   
   void Translate(int32_t dx, int32_t dy);
+  void Translate(DesktopVector d) { Translate(d.x(), d.y()); };
 
  private:
   DesktopRect(int32_t left, int32_t top, int32_t right, int32_t bottom)

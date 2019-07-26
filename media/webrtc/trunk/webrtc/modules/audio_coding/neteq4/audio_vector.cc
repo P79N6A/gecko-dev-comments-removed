@@ -18,122 +18,109 @@
 
 namespace webrtc {
 
-template<typename T>
-void AudioVector<T>::Clear() {
-  vector_.clear();
+void AudioVector::Clear() {
+  first_free_ix_ = 0;
 }
 
-template<typename T>
-void AudioVector<T>::CopyFrom(AudioVector<T>* copy_to) const {
+void AudioVector::CopyFrom(AudioVector* copy_to) const {
   if (copy_to) {
-    copy_to->vector_.assign(vector_.begin(), vector_.end());
+    copy_to->Reserve(Size());
+    assert(copy_to->capacity_ >= Size());
+    memcpy(copy_to->array_.get(), array_.get(), Size() * sizeof(int16_t));
+    copy_to->first_free_ix_ = first_free_ix_;
   }
 }
 
-template<typename T>
-void AudioVector<T>::PushFront(const AudioVector<T>& prepend_this) {
-  vector_.insert(vector_.begin(), prepend_this.vector_.begin(),
-                 prepend_this.vector_.end());
+void AudioVector::PushFront(const AudioVector& prepend_this) {
+  size_t insert_length = prepend_this.Size();
+  Reserve(Size() + insert_length);
+  memmove(&array_[insert_length], &array_[0], Size() * sizeof(int16_t));
+  memcpy(&array_[0], &prepend_this.array_[0], insert_length * sizeof(int16_t));
+  first_free_ix_ += insert_length;
 }
 
-template<typename T>
-void AudioVector<T>::PushFront(const T* prepend_this, size_t length) {
+void AudioVector::PushFront(const int16_t* prepend_this, size_t length) {
   
   InsertAt(prepend_this, length, 0);
 }
 
-template<typename T>
-void AudioVector<T>::PushBack(const AudioVector<T>& append_this) {
-  vector_.reserve(vector_.size() + append_this.Size());
-  for (size_t i = 0; i < append_this.Size(); ++i) {
-    vector_.push_back(append_this[i]);
-  }
+void AudioVector::PushBack(const AudioVector& append_this) {
+  PushBack(append_this.array_.get(), append_this.Size());
 }
 
-template<typename T>
-void AudioVector<T>::PushBack(const T* append_this, size_t length) {
-  vector_.reserve(vector_.size() + length);
-  for (size_t i = 0; i < length; ++i) {
-    vector_.push_back(append_this[i]);
-  }
+void AudioVector::PushBack(const int16_t* append_this, size_t length) {
+  Reserve(Size() + length);
+  memcpy(&array_[first_free_ix_], append_this, length * sizeof(int16_t));
+  first_free_ix_ += length;
 }
 
-template<typename T>
-void AudioVector<T>::PopFront(size_t length) {
-  if (length >= vector_.size()) {
+void AudioVector::PopFront(size_t length) {
+  if (length >= Size()) {
     
-    vector_.clear();
+    Clear();
   } else {
-    typename std::vector<T>::iterator end_range = vector_.begin();
-    end_range += length;
-    
-    
-    vector_.erase(vector_.begin(), end_range);
+    size_t remaining_samples = Size() - length;
+    memmove(&array_[0], &array_[length], remaining_samples * sizeof(int16_t));
+    first_free_ix_ -= length;
   }
 }
 
-template<typename T>
-void AudioVector<T>::PopBack(size_t length) {
+void AudioVector::PopBack(size_t length) {
   
-  size_t new_size = vector_.size() - std::min(length, vector_.size());
-  vector_.resize(new_size);
+  length = std::min(length, Size());
+  first_free_ix_ -= length;
 }
 
-template<typename T>
-void AudioVector<T>::Extend(size_t extra_length) {
-  vector_.insert(vector_.end(), extra_length, 0);
+void AudioVector::Extend(size_t extra_length) {
+  Reserve(Size() + extra_length);
+  memset(&array_[first_free_ix_], 0, extra_length * sizeof(int16_t));
+  first_free_ix_ += extra_length;
 }
 
-template<typename T>
-void AudioVector<T>::InsertAt(const T* insert_this,
+void AudioVector::InsertAt(const int16_t* insert_this,
+                           size_t length,
+                           size_t position) {
+  Reserve(Size() + length);
+  
+  
+  position = std::min(Size(), position);
+  int16_t* insert_position_ptr = &array_[position];
+  size_t samples_to_move = Size() - position;
+  memmove(insert_position_ptr + length, insert_position_ptr,
+          samples_to_move * sizeof(int16_t));
+  memcpy(insert_position_ptr, insert_this, length * sizeof(int16_t));
+  first_free_ix_ += length;
+}
+
+void AudioVector::InsertZerosAt(size_t length,
+                                size_t position) {
+  Reserve(Size() + length);
+  
+  
+  position = std::min(capacity_, position);
+  int16_t* insert_position_ptr = &array_[position];
+  size_t samples_to_move = Size() - position;
+  memmove(insert_position_ptr + length, insert_position_ptr,
+          samples_to_move * sizeof(int16_t));
+  memset(insert_position_ptr, 0, length * sizeof(int16_t));
+  first_free_ix_ += length;
+}
+
+void AudioVector::OverwriteAt(const int16_t* insert_this,
                               size_t length,
                               size_t position) {
-  typename std::vector<T>::iterator insert_position = vector_.begin();
   
-  
-  position = std::min(vector_.size(), position);
-  insert_position += position;
-  
-  
-  vector_.insert(insert_position, length, 0);
-  
-  for (size_t i = 0; i < length; ++i) {
-    vector_[position + i] = insert_this[i];
+  position = std::min(Size(), position);
+  Reserve(position + length);
+  memcpy(&array_[position], insert_this, length * sizeof(int16_t));
+  if (position + length > Size()) {
+    
+    first_free_ix_ += position + length - Size();
   }
 }
 
-template<typename T>
-void AudioVector<T>::InsertZerosAt(size_t length,
-                                   size_t position) {
-  typename std::vector<T>::iterator insert_position = vector_.begin();
-  
-  
-  position = std::min(vector_.size(), position);
-  insert_position += position;
-  
-  
-  vector_.insert(insert_position, length, 0);
-}
-
-template<typename T>
-void AudioVector<T>::OverwriteAt(const T* insert_this,
-                                 size_t length,
-                                 size_t position) {
-  
-  position = std::min(vector_.size(), position);
-  
-  
-  if (position + length > vector_.size()) {
-    Extend(position + length - vector_.size());
-  }
-  for (size_t i = 0; i < length; ++i) {
-    vector_[position + i] = insert_this[i];
-  }
-}
-
-template<typename T>
-void AudioVector<T>::CrossFade(const AudioVector<T>& append_this,
-                               size_t fade_length) {
+void AudioVector::CrossFade(const AudioVector& append_this,
+                            size_t fade_length) {
   
   assert(fade_length <= Size());
   assert(fade_length <= append_this.Size());
@@ -148,7 +135,7 @@ void AudioVector<T>::CrossFade(const AudioVector<T>& append_this,
   int alpha = 16384;
   for (size_t i = 0; i < fade_length; ++i) {
     alpha -= alpha_step;
-    vector_[position + i] = (alpha * vector_[position + i] +
+    array_[position + i] = (alpha * array_[position + i] +
         (16384 - alpha) * append_this[i] + 8192) >> 14;
   }
   assert(alpha >= 0);  
@@ -158,49 +145,21 @@ void AudioVector<T>::CrossFade(const AudioVector<T>& append_this,
     PushBack(&append_this[fade_length], samples_to_push_back);
 }
 
+const int16_t& AudioVector::operator[](size_t index) const {
+  return array_[index];
+}
 
+int16_t& AudioVector::operator[](size_t index) {
+  return array_[index];
+}
 
-
-template<>
-void AudioVector<double>::CrossFade(const AudioVector<double>& append_this,
-                                    size_t fade_length) {
-  
-  assert(fade_length <= Size());
-  assert(fade_length <= append_this.Size());
-  fade_length = std::min(fade_length, Size());
-  fade_length = std::min(fade_length, append_this.Size());
-  size_t position = Size() - fade_length;
-  
-  
-  
-  
-  int alpha_step = 16384 / (static_cast<int>(fade_length) + 1);
-  int alpha = 16384;
-  for (size_t i = 0; i < fade_length; ++i) {
-    alpha -= alpha_step;
-    vector_[position + i] = (alpha * vector_[position + i] +
-        (16384 - alpha) * append_this[i]) / 16384;
+void AudioVector::Reserve(size_t n) {
+  if (capacity_ < n) {
+    scoped_ptr<int16_t[]> temp_array(new int16_t[n]);
+    memcpy(temp_array.get(), array_.get(), Size() * sizeof(int16_t));
+    array_.swap(temp_array);
+    capacity_ = n;
   }
-  assert(alpha >= 0);  
-  
-  size_t samples_to_push_back = append_this.Size() - fade_length;
-  if (samples_to_push_back > 0)
-    PushBack(&append_this[fade_length], samples_to_push_back);
 }
-
-template<typename T>
-const T& AudioVector<T>::operator[](size_t index) const {
-  return vector_[index];
-}
-
-template<typename T>
-T& AudioVector<T>::operator[](size_t index) {
-  return vector_[index];
-}
-
-
-template class AudioVector<int16_t>;
-template class AudioVector<int32_t>;
-template class AudioVector<double>;
 
 }  

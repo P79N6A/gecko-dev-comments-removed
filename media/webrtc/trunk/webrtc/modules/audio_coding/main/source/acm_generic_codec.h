@@ -27,6 +27,7 @@ namespace webrtc {
 
 
 struct CodecInst;
+struct WebRtcACMCodecParams;
 
 namespace acm1 {
 

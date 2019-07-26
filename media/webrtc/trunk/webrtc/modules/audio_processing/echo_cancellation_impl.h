@@ -15,29 +15,6 @@
 
 namespace webrtc {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct DelayCorrection {
-  DelayCorrection() : enabled(false) {}
-  DelayCorrection(bool enabled) : enabled(enabled) {}
-
-  bool enabled;
-};
-
 class AudioProcessingImpl;
 class AudioBuffer;
 
@@ -57,7 +34,7 @@ class EchoCancellationImpl : public EchoCancellationImplWrapper {
 
   
   virtual int Initialize() OVERRIDE;
-  
+  virtual void SetExtraOptions(const Config& config) OVERRIDE;
 
  private:
   

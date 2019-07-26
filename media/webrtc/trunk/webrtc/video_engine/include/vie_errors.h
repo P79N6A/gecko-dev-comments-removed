@@ -99,12 +99,6 @@ enum ViEErrors {
   kViERtpRtcpUnknownError,               
 
   
-  kViEEncryptionInvalidChannelId = 12700,  
-  kViEEncryptionInvalidSrtpParameter,      
-  kViEEncryptionSrtpNotSupported,          
-  kViEEncryptionUnknownError,              
-
-  
   kViEImageProcessInvalidChannelId  = 12800,  
   kViEImageProcessInvalidCaptureId,          
   kViEImageProcessFilterExists,              

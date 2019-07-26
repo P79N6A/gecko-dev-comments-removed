@@ -1449,13 +1449,18 @@ void WebRtcIsac_EncodeRc(int16_t* RCQ15, Bitstr* streamdata) {
   
   for (k = 0; k < AR_ORDER; k++) {
     index[k] = WebRtcIsac_kQArRcInitIndex[k];
-
+    
+    
+    
+    
     if (RCQ15[k] > WebRtcIsac_kQArBoundaryLevels[index[k]]) {
-      while (RCQ15[k] > WebRtcIsac_kQArBoundaryLevels[index[k] + 1]) {
+      while (index[k] + 1 < NUM_AR_RC_QUANT_BAUNDARY &&
+        RCQ15[k] > WebRtcIsac_kQArBoundaryLevels[index[k] + 1]) {
         index[k]++;
       }
     } else {
-      while (RCQ15[k] < WebRtcIsac_kQArBoundaryLevels[--index[k]]) ;
+      while (index[k] > 0 &&
+        RCQ15[k] < WebRtcIsac_kQArBoundaryLevels[--index[k]]) ;
     }
     RCQ15[k] = *(WebRtcIsac_kQArRcLevelsPtr[k] + index[k]);
   }

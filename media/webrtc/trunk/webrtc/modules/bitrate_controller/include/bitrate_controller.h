@@ -43,7 +43,12 @@ class BitrateController {
 
 
  public:
-  static BitrateController* CreateBitrateController();
+  
+  
+  
+  
+  
+  static BitrateController* CreateBitrateController(bool enforce_min_bitrate);
   virtual ~BitrateController() {}
 
   virtual RtcpBandwidthObserver* CreateRtcpBandwidthObserver() = 0;
@@ -65,6 +70,9 @@ class BitrateController {
                                   const uint32_t max_bitrate) = 0;
 
   virtual void RemoveBitrateObserver(BitrateObserver* observer) = 0;
+
+  
+  virtual void EnforceMinBitrate(bool enforce_min_bitrate) = 0;
 };
 }  
 #endif  

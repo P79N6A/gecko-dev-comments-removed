@@ -21,6 +21,10 @@
 
 #include "webrtc/common_types.h"
 
+#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+#include <jni.h>
+#endif
+
 namespace webrtc {
 
 class Config;
@@ -38,6 +42,7 @@ class CpuOveruseObserver {
  protected:
   virtual ~CpuOveruseObserver() {}
 };
+
 
 class WEBRTC_DLLEXPORT VideoEngine {
  public:
@@ -60,10 +65,10 @@ class WEBRTC_DLLEXPORT VideoEngine {
   
   static int SetTraceCallback(TraceCallback* callback);
 
+#if defined(ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
   
-  
-  
-  static int SetAndroidObjects(void* java_vm, void* java_context);
+  static int SetAndroidObjects(JavaVM* java_vm);
+#endif
 
  protected:
   VideoEngine() {}
@@ -117,7 +122,22 @@ class WEBRTC_DLLEXPORT ViEBase {
 
   
   
-  virtual void SetLoadManager(CPULoadStateCallbackInvoker* load_manager) = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int CpuOveruseMeasures(int channel,
+                                 int* capture_jitter_ms,
+                                 int* avg_encode_time_ms,
+                                 int* encode_usage_percent,
+                                 int* capture_queue_delay_ms_per_s) {
+    return -1;
+  }
 
   
   

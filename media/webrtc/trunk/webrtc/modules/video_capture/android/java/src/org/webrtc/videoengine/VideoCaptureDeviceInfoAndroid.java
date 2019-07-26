@@ -17,390 +17,79 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import dalvik.system.DexClassLoader;
-
 import android.content.Context;
-import android.hardware.Camera;
+import android.hardware.Camera.CameraInfo;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
+import android.hardware.Camera;
 import android.util.Log;
 
-import org.mozilla.gecko.mozglue.WebRTCJNITarget;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class VideoCaptureDeviceInfoAndroid {
+  private final static String TAG = "WEBRTC-JC";
 
-    
-    Context context;
+  private static boolean isFrontFacing(CameraInfo info) {
+    return info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT;
+  }
 
-    
-    
-    private final static String TAG = "WEBRTC";
+  private static String deviceUniqueName(int index, CameraInfo info) {
+    return "Camera " + index +", Facing " +
+        (isFrontFacing(info) ? "front" : "back") +
+        ", Orientation "+ info.orientation;
+  }
 
-    
-    @WebRTCJNITarget
-    public class AndroidVideoCaptureDevice {
-        AndroidVideoCaptureDevice() {
-            frontCameraType = FrontFacingCameraType.None;
-            index = 0;
-        }
-
-        public String deviceUniqueName;
-        public CaptureCapabilityAndroid captureCapabilies[];
-        public FrontFacingCameraType frontCameraType;
-
-        
-        
-        public int orientation;
-        
-        public int index;
-    }
-
-    public enum FrontFacingCameraType {
-        None, 
-                GalaxyS, 
-                HTCEvo, 
-                Android23, 
-                }
-
-    String currentDeviceUniqueId;
-    int id;
-    List<AndroidVideoCaptureDevice> deviceList;
-
-    @WebRTCJNITarget
-    public static VideoCaptureDeviceInfoAndroid
-    CreateVideoCaptureDeviceInfoAndroid(int in_id, Context in_context) {
-        Log.d(TAG,
-                String.format(Locale.US, "VideoCaptureDeviceInfoAndroid"));
-
-        VideoCaptureDeviceInfoAndroid self =
-                new VideoCaptureDeviceInfoAndroid(in_id, in_context);
-        if(self != null && self.Init() == 0) {
-            return self;
-        }
-        else {
-            Log.d(TAG, "Failed to create VideoCaptureDeviceInfoAndroid.");
-        }
-        return null;
-    }
-
-    private VideoCaptureDeviceInfoAndroid(int in_id,
-            Context in_context) {
-        id = in_id;
-        context = in_context;
-        deviceList = new ArrayList<AndroidVideoCaptureDevice>();
-    }
-
-    private int Init() {
-        
-        Camera camera = null;
-        if(android.os.Build.VERSION.SDK_INT > 8) {
-            
-            for(int i = 0; i < Camera.getNumberOfCameras(); ++i) {
-                AndroidVideoCaptureDevice newDevice = new AndroidVideoCaptureDevice();
-
-                Camera.CameraInfo info = new Camera.CameraInfo();
-                Camera.getCameraInfo(i, info);
-                newDevice.index = i;
-                newDevice.orientation=info.orientation;
-                if(info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    newDevice.deviceUniqueName =
-                            "Camera " + i +", Facing back, Orientation "+ info.orientation;
-                    Log.d(TAG, "Camera " + i +", Facing back, Orientation "+ info.orientation);
-
-                }
-                else {
-                    newDevice.deviceUniqueName =
-                            "Camera " + i +", Facing front, Orientation "+ info.orientation;
-                    newDevice.frontCameraType = FrontFacingCameraType.Android23;
-                    Log.d(TAG, "Camera " + i +", Facing front, Orientation "+ info.orientation);
-                }
-
-                camera = Camera.open(i);
-                Camera.Parameters parameters = camera.getParameters();
-                AddDeviceInfo(newDevice, parameters);
-                camera.release();
-                camera = null;
-                deviceList.add(newDevice);
-            }
-        }
-        VerifyCapabilities();
-        return 0;
-    }
-
-    
-    private void AddDeviceInfo(AndroidVideoCaptureDevice newDevice,
-            Camera.Parameters parameters) {
-
-        List<Size> sizes = parameters.getSupportedPreviewSizes();
-        List<Integer> frameRates = parameters.getSupportedPreviewFrameRates();
-        int maxFPS = 0;
-        if (frameRates != null) {
-            for(Integer frameRate:frameRates) {
-                if(frameRate > maxFPS) {
-                    maxFPS = frameRate;
-                }
-            }
-        }
-
-        newDevice.captureCapabilies = new CaptureCapabilityAndroid[sizes.size()];
-        for(int i = 0; i < sizes.size(); ++i) {
-            Size s = sizes.get(i);
-            newDevice.captureCapabilies[i] = new CaptureCapabilityAndroid();
-            newDevice.captureCapabilies[i].height = s.height;
-            newDevice.captureCapabilies[i].width = s.width;
-            newDevice.captureCapabilies[i].maxFPS = maxFPS;
-            Log.v(TAG, "VideoCaptureDeviceInfo " + ", maxFPS: " + maxFPS +
-                ", width: " + s.width + ", height: " + s.height);
-        }
-    }
-
-    
-    
-    
-    
-    
-    private void VerifyCapabilities() {
-        
-        if(android.os.Build.DEVICE.equals("GT-I9000") ||
-                android.os.Build.DEVICE.equals("crespo")) {
-            CaptureCapabilityAndroid specificCapability =
-                    new CaptureCapabilityAndroid();
-            specificCapability.width = 352;
-            specificCapability.height = 288;
-            specificCapability.maxFPS = 15;
-            AddDeviceSpecificCapability(specificCapability);
-
-            specificCapability = new CaptureCapabilityAndroid();
-            specificCapability.width = 176;
-            specificCapability.height = 144;
-            specificCapability.maxFPS = 15;
-            AddDeviceSpecificCapability(specificCapability);
-
-            specificCapability = new CaptureCapabilityAndroid();
-            specificCapability.width = 320;
-            specificCapability.height = 240;
-            specificCapability.maxFPS = 15;
-            AddDeviceSpecificCapability(specificCapability);
-        }
-        
-        
-        if(android.os.Build.MANUFACTURER.equals("motorola") &&
-                android.os.Build.DEVICE.equals("umts_sholes")) {
-            for (AndroidVideoCaptureDevice device : deviceList) {
-                for (CaptureCapabilityAndroid capability : device.captureCapabilies) {
-                    capability.maxFPS = 15;
-                }
-            }
-        }
-    }
-
-    private void AddDeviceSpecificCapability(
-        CaptureCapabilityAndroid specificCapability) {
-        for(AndroidVideoCaptureDevice device:deviceList) {
-            boolean foundCapability = false;
-            for(CaptureCapabilityAndroid capability:device.captureCapabilies) {
-                if(capability.width == specificCapability.width &&
-                        capability.height == specificCapability.height) {
-                    foundCapability = true;
-                    break;
-                }
-            }
-            if(foundCapability==false) {
-                CaptureCapabilityAndroid newCaptureCapabilies[]=
-                        new CaptureCapabilityAndroid[device.captureCapabilies.length+1];
-                for(int i = 0; i < device.captureCapabilies.length; ++i) {
-                    newCaptureCapabilies[i+1] = device.captureCapabilies[i];
-                }
-                newCaptureCapabilies[0] = specificCapability;
-                device.captureCapabilies = newCaptureCapabilies;
-            }
-        }
-    }
-
-    
-    @WebRTCJNITarget
-    public int NumberOfDevices() {
-        return deviceList.size();
-    }
-
-    @WebRTCJNITarget
-    public String GetDeviceUniqueName(int deviceNumber) {
-        if(deviceNumber < 0 || deviceNumber >= deviceList.size()) {
-            return null;
-        }
-        return deviceList.get(deviceNumber).deviceUniqueName;
-    }
-
-    @WebRTCJNITarget
-    public CaptureCapabilityAndroid[] GetCapabilityArray (String deviceUniqueId)
-    {
-        for (AndroidVideoCaptureDevice device: deviceList) {
-            if(device.deviceUniqueName.equals(deviceUniqueId)) {
-                return (CaptureCapabilityAndroid[]) device.captureCapabilies;
-            }
-        }
-        return null;
-    }
-
-    
-    
-    @WebRTCJNITarget
-    public int GetOrientation(String deviceUniqueId) {
-        for (AndroidVideoCaptureDevice device: deviceList) {
-            if(device.deviceUniqueName.equals(deviceUniqueId)) {
-                return device.orientation;
-            }
-        }
-        return -1;
-    }
-
-    
-    @WebRTCJNITarget
-    public VideoCaptureAndroid AllocateCamera(int id, long context,
-            String deviceUniqueId) {
+  
+  
+  
+  
+  
+  private static String getDeviceInfo() {
+    try {
+      JSONArray devices = new JSONArray();
+      for (int i = 0; i < Camera.getNumberOfCameras(); ++i) {
+        CameraInfo info = new CameraInfo();
+        Camera.getCameraInfo(i, info);
+        String uniqueName = deviceUniqueName(i, info);
+        JSONObject cameraDict = new JSONObject();
+        devices.put(cameraDict);
+        List<Size> supportedSizes;
+        List<int[]> supportedFpsRanges;
         try {
-            Log.d(TAG, "AllocateCamera " + deviceUniqueId);
-
-            Camera camera = null;
-            int cameraId = 0;
-            AndroidVideoCaptureDevice deviceToUse = null;
-            for (AndroidVideoCaptureDevice device: deviceList) {
-                if(device.deviceUniqueName.equals(deviceUniqueId)) {
-                    
-                    deviceToUse = device;
-                    switch(device.frontCameraType) {
-                        case GalaxyS:
-                            camera = AllocateGalaxySFrontCamera();
-                            break;
-                        case HTCEvo:
-                            camera = AllocateEVOFrontFacingCamera();
-                            break;
-                        default:
-                            
-                            if(android.os.Build.VERSION.SDK_INT>8) {
-                                cameraId = device.index;
-                                camera = Camera.open(device.index);
-                            } else {
-                                camera = Camera.open(); 
-                            }
-                    }
-                }
-            }
-
-            if(camera == null) {
-                return null;
-            }
-            Log.v(TAG, "AllocateCamera - creating VideoCaptureAndroid");
-
-            return new VideoCaptureAndroid(id, context, camera, deviceToUse, cameraId);
-        } catch (NoSuchMethodException e) {
-            Log.e(TAG, "AllocateCamera Failed to open camera", e);
-        } catch (ClassNotFoundException e) {
-            Log.e(TAG, "AllocateCamera Failed to open camera", e);
-        } catch (InvocationTargetException e) {
-            Log.e(TAG, "AllocateCamera Failed to open camera", e);
-        } catch (IllegalAccessException e) {
-            Log.e(TAG, "AllocateCamera Failed to open camera", e);
+          Camera camera = Camera.open(i);
+          Parameters parameters = camera.getParameters();
+          supportedSizes = parameters.getSupportedPreviewSizes();
+          supportedFpsRanges = parameters.getSupportedPreviewFpsRange();
+          camera.release();
+          Log.d(TAG, uniqueName);
+        } catch (RuntimeException e) {
+          Log.e(TAG, "Failed to open " + uniqueName + ", skipping");
+          continue;
         }
-        return null;
-    }
-
-    
-    @WebRTCJNITarget
-    private Camera.Parameters
-    SearchOldFrontFacingCameras(AndroidVideoCaptureDevice newDevice)
-            throws SecurityException, IllegalArgumentException,
-            NoSuchMethodException, ClassNotFoundException,
-            IllegalAccessException, InvocationTargetException {
+        JSONArray sizes = new JSONArray();
+        for (Size supportedSize : supportedSizes) {
+          JSONObject size = new JSONObject();
+          size.put("width", supportedSize.width);
+          size.put("height", supportedSize.height);
+          sizes.put(size);
+        }
         
         
-        Camera camera = Camera.open();
-        Camera.Parameters parameters = camera.getParameters();
-        String cameraId = parameters.get("camera-id");
-        if(cameraId != null && cameraId.equals("1")) {
-            
-            parameters.set("camera-id", 2);
-            camera.setParameters(parameters);
-            parameters = camera.getParameters();
-            newDevice.frontCameraType = FrontFacingCameraType.GalaxyS;
-            newDevice.orientation = 0;
-            camera.release();
-            return parameters;
-        }
-        camera.release();
-
         
-        File file =
-                new File("/system/framework/com.htc.hardware.twinCamDevice.jar");
-        boolean exists = file.exists();
-        if (!exists) {
-            file =
-                    new File("/system/framework/com.sprint.hardware.twinCamDevice.jar");
-            exists = file.exists();
-        }
-        if(exists) {
-            newDevice.frontCameraType = FrontFacingCameraType.HTCEvo;
-            newDevice.orientation = 0;
-            Camera evCamera = AllocateEVOFrontFacingCamera();
-            parameters = evCamera.getParameters();
-            evCamera.release();
-            return parameters;
-        }
-        return null;
+        int[] mfps = supportedFpsRanges.get(supportedFpsRanges.size() - 1);
+        cameraDict.put("name", uniqueName);
+        cameraDict.put("front_facing", isFrontFacing(info))
+            .put("orientation", info.orientation)
+            .put("sizes", sizes)
+            .put("min_mfps", mfps[Parameters.PREVIEW_FPS_MIN_INDEX])
+            .put("max_mfps", mfps[Parameters.PREVIEW_FPS_MAX_INDEX]);
+      }
+      String ret = devices.toString(2);
+      return ret;
+    } catch (JSONException e) {
+      throw new RuntimeException(e);
     }
-
-    
-    
-    private Camera AllocateEVOFrontFacingCamera()
-            throws SecurityException, NoSuchMethodException,
-            ClassNotFoundException, IllegalArgumentException,
-            IllegalAccessException, InvocationTargetException {
-        String classPath = null;
-        File file =
-                new File("/system/framework/com.htc.hardware.twinCamDevice.jar");
-        classPath = "com.htc.hardware.twinCamDevice.FrontFacingCamera";
-        boolean exists = file.exists();
-        if (!exists){
-            file =
-                    new File("/system/framework/com.sprint.hardware.twinCamDevice.jar");
-            classPath = "com.sprint.hardware.twinCamDevice.FrontFacingCamera";
-            exists = file.exists();
-        }
-        if(!exists) {
-            return null;
-        }
-
-        String dexOutputDir = "";
-        if(context != null) {
-            dexOutputDir = context.getFilesDir().getAbsolutePath();
-            File mFilesDir = new File(dexOutputDir, "dexfiles");
-            if(!mFilesDir.exists()){
-                
-                if(!mFilesDir.mkdirs()) {
-                    
-                }
-            }
-        }
-
-        dexOutputDir += "/dexfiles";
-
-        DexClassLoader loader =
-                new DexClassLoader(file.getAbsolutePath(), dexOutputDir,
-                        null, ClassLoader.getSystemClassLoader());
-
-        Method method = loader.loadClass(classPath).getDeclaredMethod(
-            "getFrontFacingCamera", (Class[]) null);
-        Camera camera = (Camera) method.invoke((Object[])null,(Object[]) null);
-        return camera;
-    }
-
-    
-    
-    private Camera AllocateGalaxySFrontCamera() {
-        Camera camera = Camera.open();
-        Camera.Parameters parameters = camera.getParameters();
-        parameters.set("camera-id",2);
-        camera.setParameters(parameters);
-        return camera;
-    }
-
+  }
 }

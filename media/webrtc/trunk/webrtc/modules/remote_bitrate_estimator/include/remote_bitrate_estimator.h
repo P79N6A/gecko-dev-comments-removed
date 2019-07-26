@@ -37,6 +37,27 @@ class RemoteBitrateObserver {
   virtual ~RemoteBitrateObserver() {}
 };
 
+struct ReceiveBandwidthEstimatorStats {
+  ReceiveBandwidthEstimatorStats() : total_propagation_time_delta_ms(0) {}
+
+  
+  
+  
+  
+
+  
+  
+  
+  int total_propagation_time_delta_ms;
+  
+  
+  
+  std::vector<int> recent_propagation_time_delta_ms;
+  
+  
+  std::vector<int64_t> recent_arrival_time_ms;
+};
+
 class RemoteBitrateEstimator : public CallStatsObserver, public Module {
  public:
   virtual ~RemoteBitrateEstimator() {}
@@ -58,6 +79,9 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
   virtual bool LatestEstimate(std::vector<unsigned int>* ssrcs,
                               unsigned int* bitrate_bps) const = 0;
 
+  
+  virtual bool GetStats(ReceiveBandwidthEstimatorStats* output) const = 0;
+
  protected:
   static const int kProcessIntervalMs = 1000;
   static const int kStreamTimeOutMs = 2000;
@@ -69,16 +93,19 @@ struct RemoteBitrateEstimatorFactory {
 
   virtual RemoteBitrateEstimator* Create(
       RemoteBitrateObserver* observer,
-      Clock* clock) const;
+      Clock* clock,
+      uint32_t min_bitrate_bps) const;
 };
 
-struct AbsoluteSendTimeRemoteBitrateEstimatorFactory {
+struct AbsoluteSendTimeRemoteBitrateEstimatorFactory
+    : public RemoteBitrateEstimatorFactory {
   AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
   virtual ~AbsoluteSendTimeRemoteBitrateEstimatorFactory() {}
 
   virtual RemoteBitrateEstimator* Create(
       RemoteBitrateObserver* observer,
-      Clock* clock) const;
+      Clock* clock,
+      uint32_t min_bitrate_bps) const;
 };
 }  
 

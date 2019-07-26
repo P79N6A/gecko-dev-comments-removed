@@ -143,6 +143,10 @@ class VADCallback : public ACMVADCallback {
   uint32_t _numFrameTypes[6];
 };
 
+void UseLegacyAcm(webrtc::Config* config);
+
+void UseNewAcm(webrtc::Config* config);
+
 }  
 
 #endif  

@@ -13,13 +13,12 @@
 
 #include <windows.h>
 
-#include "webrtc/modules/desktop_capture/mouse_cursor_shape.h"
-
 namespace webrtc {
 
+class MouseCursor;
 
-MouseCursorShape* CreateMouseCursorShapeFromCursor(
-    HDC dc, HCURSOR cursor);
+
+MouseCursor* CreateMouseCursorFromHCursor(HDC dc, HCURSOR cursor);
 
 }  
 

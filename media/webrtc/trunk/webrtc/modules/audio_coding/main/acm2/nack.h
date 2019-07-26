@@ -49,6 +49,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 class Nack {
  public:
   
@@ -203,6 +205,8 @@ class Nack {
   
   size_t max_nack_list_size_;
 };
+
+}  
 
 }  
 

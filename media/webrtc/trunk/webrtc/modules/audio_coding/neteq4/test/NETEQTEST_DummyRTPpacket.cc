@@ -29,108 +29,113 @@ int NETEQTEST_DummyRTPpacket::readFromFile(FILE *fp)
 
     uint16_t length, plen;
     uint32_t offset;
+    int packetLen;
 
-    if (fread(&length, 2, 1, fp) == 0)
-    {
-        reset();
-        return -2;
-    }
-    length = ntohs(length);
+    bool readNextPacket = true;
+    while (readNextPacket) {
+        readNextPacket = false;
+        if (fread(&length, 2, 1, fp) == 0)
+        {
+            reset();
+            return -2;
+        }
+        length = ntohs(length);
 
-    if (fread(&plen, 2, 1, fp) == 0)
-    {
-        reset();
-        return -1;
-    }
-    int packetLen = ntohs(plen);
-
-    if (fread(&offset, 4, 1, fp) == 0)
-    {
-        reset();
-        return -1;
-    }
-    
-    uint32_t receiveTime = ntohl(offset);
-
-    
-    length = (uint16_t) (length - _kRDHeaderLen);
-
-    
-    if (_datagram && _memSize < length)
-    {
-        reset();
-    }
-
-    if (!_datagram)
-    {
-        _datagram = new uint8_t[length];
-        _memSize = length;
-    }
-    memset(_datagram, 0, length);
-
-    if (length == 0)
-    {
-        _datagramLen = 0;
-        _rtpParsed = false;
-        return packetLen;
-    }
-
-    
-    if (fread((unsigned short *) _datagram, 1, _kBasicHeaderLen, fp)
-        != (size_t)_kBasicHeaderLen)
-    {
-        reset();
-        return -1;
-    }
-    _receiveTime = receiveTime;
-    _datagramLen = _kBasicHeaderLen;
-
-    
-    webrtc::WebRtcRTPHeader tempRTPinfo;
-    int P, X, CC;
-    parseBasicHeader(&tempRTPinfo, &P, &X, &CC);
-
-    
-    if (X != 0 || CC != 0)
-    {
-        int newLen = _kBasicHeaderLen + CC * 4 + X * 4;
-        assert(_memSize >= newLen);
-
-        
-        size_t readLen = newLen - _kBasicHeaderLen;
-        if (fread((unsigned short *) _datagram + _kBasicHeaderLen, 1, readLen,
-            fp) != readLen)
+        if (fread(&plen, 2, 1, fp) == 0)
         {
             reset();
             return -1;
         }
-        _datagramLen = newLen;
+        packetLen = ntohs(plen);
 
-        if (X != 0)
+        if (fread(&offset, 4, 1, fp) == 0)
         {
-            int totHdrLen = calcHeaderLength(X, CC);
-            assert(_memSize >= totHdrLen);
+            reset();
+            return -1;
+        }
+        
+        uint32_t receiveTime = ntohl(offset);
+
+        
+        length = (uint16_t) (length - _kRDHeaderLen);
+
+        
+        if (_datagram && _memSize < length + 1)
+        {
+            reset();
+        }
+
+        if (!_datagram)
+        {
+            
+            _datagram = new uint8_t[length + 1];
+            _memSize = length + 1;
+        }
+        memset(_datagram, 0, length + 1);
+
+        if (length == 0)
+        {
+            _datagramLen = 0;
+            _rtpParsed = false;
+            return packetLen;
+        }
+
+        
+        if (fread((unsigned short *) _datagram, 1, _kBasicHeaderLen, fp)
+            != (size_t)_kBasicHeaderLen)
+        {
+            reset();
+            return -1;
+        }
+        _receiveTime = receiveTime;
+        _datagramLen = _kBasicHeaderLen;
+
+        
+        webrtc::WebRtcRTPHeader tempRTPinfo;
+        int P, X, CC;
+        parseBasicHeader(&tempRTPinfo, &P, &X, &CC);
+
+        
+        if (X != 0 || CC != 0)
+        {
+            int newLen = _kBasicHeaderLen + CC * 4 + X * 4;
+            assert(_memSize >= newLen);
 
             
-            size_t readLen = totHdrLen - newLen;
-            if (fread((unsigned short *) _datagram + newLen, 1, readLen, fp)
-                != readLen)
+            size_t readLen = newLen - _kBasicHeaderLen;
+            if (fread(&_datagram[_kBasicHeaderLen], 1, readLen, fp) != readLen)
             {
                 reset();
                 return -1;
             }
-            _datagramLen = totHdrLen;
-        }
-    }
-    _datagramLen = length;
+            _datagramLen = newLen;
 
-    if (!_blockList.empty() && _blockList.count(payloadType()) > 0)
-    {
-        
-        return readFromFile(fp);
+            if (X != 0)
+            {
+                int totHdrLen = calcHeaderLength(X, CC);
+                assert(_memSize >= totHdrLen);
+
+                
+                size_t readLen = totHdrLen - newLen;
+                if (fread(&_datagram[newLen], 1, readLen, fp) != readLen)
+                {
+                    reset();
+                    return -1;
+                }
+                _datagramLen = totHdrLen;
+            }
+        }
+        _datagramLen = length;
+
+        if (!_blockList.empty() && _blockList.count(payloadType()) > 0)
+        {
+            readNextPacket = true;
+        }
     }
 
     _rtpParsed = false;
+    assert(_memSize > _datagramLen);
+    _payloadLen = 1;  
     return packetLen;
 
 }
@@ -191,3 +196,9 @@ int NETEQTEST_DummyRTPpacket::writeToFile(FILE *fp)
 
 }
 
+void NETEQTEST_DummyRTPpacket::parseHeader() {
+  NETEQTEST_RTPpacket::parseHeader();
+  
+  assert(_memSize > _datagramLen);
+  _payloadLen = 1;
+}

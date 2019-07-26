@@ -22,10 +22,11 @@ namespace webrtc {
 
 class VideoEngine;
 class VideoRender;
+class VideoRenderCallback;
 
 
 
-class WEBRTC_DLLEXPORT ExternalRenderer {
+class ExternalRenderer {
  public:
   
   
@@ -51,7 +52,7 @@ class WEBRTC_DLLEXPORT ExternalRenderer {
   virtual ~ExternalRenderer() {}
 };
 
-class WEBRTC_DLLEXPORT ViERender {
+class ViERender {
  public:
   
   
@@ -110,6 +111,13 @@ class WEBRTC_DLLEXPORT ViERender {
   virtual int AddRenderer(const int render_id,
                           RawVideoType video_input_format,
                           ExternalRenderer* renderer) = 0;
+
+  
+  
+  
+  virtual int AddRenderCallback(int render_id, VideoRenderCallback* callback) {
+    return 0;
+  }
 
  protected:
   ViERender() {}

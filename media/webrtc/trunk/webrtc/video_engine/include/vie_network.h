@@ -65,7 +65,8 @@ class WEBRTC_DLLEXPORT ViENetwork {
   
   virtual int ReceivedRTPPacket(const int video_channel,
                                 const void* data,
-                                const int length) = 0;
+                                const int length,
+                                const PacketTime& packet_time) = 0;
 
   
   

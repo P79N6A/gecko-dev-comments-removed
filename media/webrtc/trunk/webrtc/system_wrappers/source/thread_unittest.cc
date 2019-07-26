@@ -20,10 +20,6 @@ bool NullRunFunction(void* obj) {
   return true;
 }
 
-
-
-#if !defined(THREAD_SANITIZER)
-
 TEST(ThreadTest, StartStop) {
   ThreadWrapper* thread = ThreadWrapper::CreateThread(&NullRunFunction, NULL);
   unsigned int id = 42;
@@ -53,7 +49,5 @@ TEST(ThreadTest, RunFunctionIsCalled) {
   EXPECT_TRUE(flag);
   delete thread;
 }
-
-#endif 
 
 }  

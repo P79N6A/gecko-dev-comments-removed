@@ -102,6 +102,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 
 
 
@@ -270,7 +272,7 @@ const ACMCodecDB::CodecSettings ACMCodecDB::codec_settings_[] = {
     
     
     
-    {1, {960}, 0, 2, false},
+    {4, {480, 960, 1920, 2880}, 0, 2, false},
 #endif
 #ifdef WEBRTC_CODEC_SPEEX
     {3, {160, 320, 480}, 0, 1, false},
@@ -953,5 +955,7 @@ bool ACMCodecDB::OwnsDecoder(int codec_id) {
   assert(codec_id >= 0 && codec_id < ACMCodecDB::kNumCodecs);
   return ACMCodecDB::codec_settings_[codec_id].owns_decoder;
 }
+
+}  
 
 }  

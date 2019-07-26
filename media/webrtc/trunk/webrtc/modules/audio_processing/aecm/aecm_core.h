@@ -276,6 +276,125 @@ void WebRtcAecm_FetchFarFrame(AecmCore_t * const aecm,
 
 
 
+
+
+
+
+
+
+
+
+
+
+void WebRtcAecm_UpdateFarHistory(AecmCore_t* self,
+                                 uint16_t* far_spectrum,
+                                 int far_q);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const uint16_t* WebRtcAecm_AlignedFarend(AecmCore_t* self,
+                                         int* far_q,
+                                         int delay);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int16_t WebRtcAecm_CalcSuppressionGain(AecmCore_t * const aecm);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void WebRtcAecm_CalcEnergies(AecmCore_t * aecm,
+                             const uint16_t* far_spectrum,
+                             const int16_t far_q,
+                             const uint32_t nearEner,
+                             int32_t * echoEst);
+
+
+
+
+
+
+
+
+
+
+
+
+int16_t WebRtcAecm_CalcStepSize(AecmCore_t * const aecm);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void WebRtcAecm_UpdateChannel(AecmCore_t * aecm,
+                              const uint16_t* far_spectrum,
+                              const int16_t far_q,
+                              const uint16_t * const dfa,
+                              const int16_t mu,
+                              int32_t * echoEst);
+
+extern const int16_t WebRtcAecm_kCosTable[];
+extern const int16_t WebRtcAecm_kSinTable[];
+
+
+
+
+
 typedef void (*CalcLinearEnergies)(
     AecmCore_t* aecm,
     const uint16_t* far_spectrum,
@@ -310,6 +429,22 @@ void WebRtcAecm_StoreAdaptiveChannelNeon(AecmCore_t* aecm,
                                          int32_t* echo_est);
 
 void WebRtcAecm_ResetAdaptiveChannelNeon(AecmCore_t* aecm);
+#endif
+
+#if defined(MIPS32_LE)
+void WebRtcAecm_CalcLinearEnergies_mips(AecmCore_t* aecm,
+                                        const uint16_t* far_spectrum,
+                                        int32_t* echo_est,
+                                        uint32_t* far_energy,
+                                        uint32_t* echo_energy_adapt,
+                                        uint32_t* echo_energy_stored);
+#if defined(MIPS_DSP_R1_LE)
+void WebRtcAecm_StoreAdaptiveChannel_mips(AecmCore_t* aecm,
+                                          const uint16_t* far_spectrum,
+                                          int32_t* echo_est);
+
+void WebRtcAecm_ResetAdaptiveChannel_mips(AecmCore_t* aecm);
+#endif
 #endif
 
 #endif

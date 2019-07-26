@@ -56,7 +56,8 @@ public:
       _audioDeviceLayer = layer;
     }
 
-    uint16_t NumOfSendingChannels();
+    int NumOfSendingChannels();
+    int NumOfPlayingChannels();
 
     
     void SetLastError(int32_t error) const;

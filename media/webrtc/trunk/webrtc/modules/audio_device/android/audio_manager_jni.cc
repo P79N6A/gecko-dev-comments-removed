@@ -12,39 +12,8 @@
 
 #include <assert.h>
 
-#include "AndroidJNIWrapper.h"
+#include "webrtc/modules/utility/interface/helpers_android.h"
 #include "webrtc/system_wrappers/interface/trace.h"
-
-namespace {
-
-class AttachThreadScoped {
- public:
-  explicit AttachThreadScoped(JavaVM* jvm)
-      : attached_(false), jvm_(jvm), env_(NULL) {
-    jint ret_val = jvm->GetEnv(reinterpret_cast<void**>(&env_),
-                               REQUIRED_JNI_VERSION);
-    if (ret_val == JNI_EDETACHED) {
-      
-      ret_val = jvm_->AttachCurrentThread(&env_, NULL);
-      attached_ = ret_val > 0;
-      assert(attached_);
-    }
-  }
-  ~AttachThreadScoped() {
-    if (attached_ && (jvm_->DetachCurrentThread() < 0)) {
-      assert(false);
-    }
-  }
-
-  JNIEnv* env() { return env_; }
-
- private:
-  bool attached_;
-  JavaVM* jvm_;
-  JNIEnv* env_;
-};
-
-}  
 
 namespace webrtc {
 
@@ -84,8 +53,18 @@ void AudioManagerJni::SetAndroidAudioDeviceObjects(void* jvm, void* env,
 
   
   
-  g_audio_manager_class_ = jsjni_GetGlobalClassRef(
-    "org/webrtc/voiceengine/AudioManagerAndroid");
+  
+  
+  
+  
+  jclass javaAmClassLocal = g_jni_env_->FindClass(
+      "org/webrtc/voiceengine/AudioManagerAndroid");
+  assert(javaAmClassLocal);
+
+  
+  
+  g_audio_manager_class_ = reinterpret_cast<jclass>(
+      g_jni_env_->NewGlobalRef(javaAmClassLocal));
   assert(g_audio_manager_class_);
 }
 

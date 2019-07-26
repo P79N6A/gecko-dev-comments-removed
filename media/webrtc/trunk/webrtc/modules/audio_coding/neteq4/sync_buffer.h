@@ -17,10 +17,10 @@
 
 namespace webrtc {
 
-class SyncBuffer : public AudioMultiVector<int16_t> {
+class SyncBuffer : public AudioMultiVector {
  public:
   SyncBuffer(size_t channels, size_t length)
-      : AudioMultiVector<int16_t>(channels, length),
+      : AudioMultiVector(channels, length),
         next_index_(length),
         end_timestamp_(0),
         dtmf_index_(0) {}
@@ -34,7 +34,7 @@ class SyncBuffer : public AudioMultiVector<int16_t> {
   
   
   
-  void PushBack(const AudioMultiVector<int16_t>& append_this);
+  void PushBack(const AudioMultiVector& append_this);
 
   
   
@@ -56,13 +56,13 @@ class SyncBuffer : public AudioMultiVector<int16_t> {
   
   
   
-  virtual void ReplaceAtIndex(const AudioMultiVector<int16_t>& insert_this,
+  virtual void ReplaceAtIndex(const AudioMultiVector& insert_this,
                               size_t length,
                               size_t position);
 
   
   
-  virtual void ReplaceAtIndex(const AudioMultiVector<int16_t>& insert_this,
+  virtual void ReplaceAtIndex(const AudioMultiVector& insert_this,
                               size_t position);
 
   
@@ -78,7 +78,7 @@ class SyncBuffer : public AudioMultiVector<int16_t> {
   
   void Flush();
 
-  const AudioVector<int16_t>& Channel(size_t n) { return *channels_[n]; }
+  const AudioVector& Channel(size_t n) { return *channels_[n]; }
 
   
   size_t next_index() const { return next_index_; }

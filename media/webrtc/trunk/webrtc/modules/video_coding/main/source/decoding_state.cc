@@ -51,14 +51,14 @@ bool VCMDecodingState::IsOldFrame(const VCMFrameBuffer* frame) const {
   assert(frame != NULL);
   if (in_initial_state_)
     return false;
-  return !IsNewerOrSameTimestamp(frame->TimeStamp(), time_stamp_);
+  return !IsNewerTimestamp(frame->TimeStamp(), time_stamp_);
 }
 
 bool VCMDecodingState::IsOldPacket(const VCMPacket* packet) const {
   assert(packet != NULL);
   if (in_initial_state_)
     return false;
-  return !IsNewerOrSameTimestamp(packet->timestamp, time_stamp_);
+  return !IsNewerTimestamp(packet->timestamp, time_stamp_);
 }
 
 void VCMDecodingState::SetState(const VCMFrameBuffer* frame) {
@@ -133,7 +133,12 @@ void VCMDecodingState::UpdateSyncState(const VCMFrameBuffer* frame) {
     
     
     if (UsingPictureId(frame)) {
-      full_sync_ = ContinuousPictureId(frame->PictureId());
+      
+      if (frame->Tl0PicId() - tl0_pic_id_ > 1) {
+        full_sync_ = false;
+      } else {
+        full_sync_ = ContinuousPictureId(frame->PictureId());
+      }
     } else {
       full_sync_ = ContinuousSeqNum(static_cast<uint16_t>(
           frame->GetLowSeqNum()));
@@ -157,20 +162,21 @@ bool VCMDecodingState::ContinuousFrame(const VCMFrameBuffer* frame) const {
   
   if (in_initial_state_)
     return false;
-
-  if (!ContinuousLayer(frame->TemporalId(), frame->Tl0PicId())) {
-    
-    
-    
-    if (!full_sync_ && !frame->LayerSync())
-      return false;
-    else if (UsingPictureId(frame)) {
-      return ContinuousPictureId(frame->PictureId());
-    } else {
-      return ContinuousSeqNum(static_cast<uint16_t>(frame->GetLowSeqNum()));
-    }
+  if (ContinuousLayer(frame->TemporalId(), frame->Tl0PicId()))
+    return true;
+  
+  if (frame->Tl0PicId() != tl0_pic_id_)
+    return false;
+  
+  
+  
+  if (!full_sync_ && !frame->LayerSync())
+    return false;
+  if (UsingPictureId(frame)) {
+    return ContinuousPictureId(frame->PictureId());
+  } else {
+    return ContinuousSeqNum(static_cast<uint16_t>(frame->GetLowSeqNum()));
   }
-  return true;
 }
 
 bool VCMDecodingState::ContinuousPictureId(int picture_id) const {

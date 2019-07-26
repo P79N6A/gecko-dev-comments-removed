@@ -31,6 +31,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 
 
 #if (defined(WEBRTC_CODEC_ISAC) || defined(WEBRTC_CODEC_ISACFX))
@@ -825,5 +827,7 @@ AudioDecoder* ACMISAC::Decoder(int codec_id) {
 }
 
 #endif
+
+}  
 
 }  

@@ -566,7 +566,7 @@ OutputMixer::DoOperationsOnCombinedSignal()
 
     
 
-    APMAnalyzeReverseStream(_audioFrame);
+    APMAnalyzeReverseStream();
 
     
 
@@ -592,13 +592,17 @@ OutputMixer::DoOperationsOnCombinedSignal()
     return 0;
 }
 
-void OutputMixer::APMAnalyzeReverseStream(AudioFrame &audioFrame) {
+
+
+
+
+void OutputMixer::APMAnalyzeReverseStream() {
   
   
   AudioFrame frame;
   frame.num_channels_ = 1;
   frame.sample_rate_hz_ = _audioProcessingModulePtr->sample_rate_hz();
-  if (RemixAndResample(audioFrame, &audioproc_resampler_, &frame) == -1)
+  if (RemixAndResample(_audioFrame, &audioproc_resampler_, &frame) == -1)
     return;
 
   if (_audioProcessingModulePtr->AnalyzeReverseStream(&frame) == -1) {
@@ -606,10 +610,6 @@ void OutputMixer::APMAnalyzeReverseStream(AudioFrame &audioFrame) {
                  "AudioProcessingModule::AnalyzeReverseStream() => error");
   }
 }
-
-
-
-
 
 int
 OutputMixer::InsertInbandDtmfTone()

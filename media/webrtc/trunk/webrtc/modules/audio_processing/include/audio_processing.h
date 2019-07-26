@@ -12,9 +12,9 @@
 #define WEBRTC_MODULES_AUDIO_PROCESSING_INCLUDE_AUDIO_PROCESSING_H_
 
 #include <stddef.h>  
+#include <stdio.h>  
 
 #include "webrtc/common.h"
-#include "webrtc/modules/interface/module.h"
 #include "webrtc/typedefs.h"
 
 struct AecCore;
@@ -47,6 +47,19 @@ class VoiceDetection;
 
 
 
+struct DelayCorrection {
+  DelayCorrection() : enabled(false) {}
+  explicit DelayCorrection(bool enabled) : enabled(enabled) {}
+  bool enabled;
+};
+
+
+
+struct ExperimentalAgc {
+  ExperimentalAgc() : enabled(true) {}
+  explicit ExperimentalAgc(bool enabled) : enabled(enabled) {}
+  bool enabled;
+};
 
 
 
@@ -107,18 +120,33 @@ class VoiceDetection;
 
 
 
-class AudioProcessing : public Module {
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AudioProcessing {
  public:
   
   
   
   
   
+  static AudioProcessing* Create();
+  
+  static AudioProcessing* Create(const Config& config);
+  
   static AudioProcessing* Create(int id);
   virtual ~AudioProcessing() {}
 
-  
-  
   
   
   
@@ -131,11 +159,18 @@ class AudioProcessing : public Module {
   
   virtual void SetExtraOptions(const Config& config) = 0;
 
+  virtual int EnableExperimentalNs(bool enable) = 0;
+  virtual bool experimental_ns_enabled() const = 0;
+
+  
+  
   
   
   virtual int set_sample_rate_hz(int rate) = 0;
   virtual int sample_rate_hz() const = 0;
 
+  
+  
   
   
   
@@ -145,8 +180,17 @@ class AudioProcessing : public Module {
 
   
   
+  
+  
   virtual int set_num_reverse_channels(int channels) = 0;
   virtual int num_reverse_channels() const = 0;
+
+  
+  
+  
+  
+  virtual void set_output_will_be_muted(bool muted) = 0;
+  virtual bool output_will_be_muted() const = 0;
 
   
   
@@ -160,6 +204,7 @@ class AudioProcessing : public Module {
   
   virtual int ProcessStream(AudioFrame* frame) = 0;
 
+  
   
   
   
@@ -194,6 +239,11 @@ class AudioProcessing : public Module {
 
   
   
+  virtual void set_stream_key_pressed(bool key_pressed) = 0;
+  virtual bool stream_key_pressed() const = 0;
+
+  
+  
   
   
   
@@ -206,6 +256,10 @@ class AudioProcessing : public Module {
   
   static const size_t kMaxFilenameSize = 1024;
   virtual int StartDebugRecording(const char filename[kMaxFilenameSize]) = 0;
+
+  
+  
+  virtual int StartDebugRecording(FILE* handle) = 0;
 
   
   
@@ -250,10 +304,6 @@ class AudioProcessing : public Module {
     
     kBadStreamParameterWarning = -13
   };
-
-  
-  virtual int32_t TimeUntilNextProcess() OVERRIDE;
-  virtual int32_t Process() OVERRIDE;
 };
 
 

@@ -35,6 +35,11 @@ class WEBRTC_DLLEXPORT ViEEncoderObserver {
   virtual void OutgoingRate(const int video_channel,
                             const unsigned int framerate,
                             const unsigned int bitrate) = 0;
+
+  
+  
+  virtual void SuspendChange(int video_channel, bool is_suspended) = 0;
+
  protected:
   virtual ~ViEEncoderObserver() {}
 };
@@ -55,6 +60,16 @@ class WEBRTC_DLLEXPORT ViEDecoderObserver {
   virtual void IncomingRate(const int video_channel,
                             const unsigned int framerate,
                             const unsigned int bitrate) = 0;
+
+  
+  
+  virtual void DecoderTiming(int decode_ms,
+                             int max_decode_ms,
+                             int current_delay_ms,
+                             int target_delay_ms,
+                             int jitter_buffer_ms,
+                             int min_playout_delay_ms,
+                             int render_delay_ms) = 0;
 
   
   
@@ -176,6 +191,16 @@ class WEBRTC_DLLEXPORT ViECodec {
                                   const char* file_name_utf8) = 0;
   
   virtual int StopDebugRecording(int video_channel) = 0;
+
+  
+  
+  
+  
+  virtual void SuspendBelowMinBitrate(int video_channel) = 0;
+
+  
+  virtual bool GetSendSideDelay(int video_channel, int* avg_delay_ms,
+                                int* max_delay_ms) const { return false; }
 
  protected:
   ViECodec() {}

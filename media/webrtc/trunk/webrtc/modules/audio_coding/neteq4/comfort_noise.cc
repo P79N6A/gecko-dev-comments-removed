@@ -50,7 +50,7 @@ int ComfortNoise::UpdateParameters(Packet* packet) {
 }
 
 int ComfortNoise::Generate(size_t requested_length,
-                           AudioMultiVector<int16_t>* output) {
+                           AudioMultiVector* output) {
   
   assert(fs_hz_ == 8000 || fs_hz_ == 16000 || fs_hz_ ==  32000 ||
          fs_hz_ == 48000);

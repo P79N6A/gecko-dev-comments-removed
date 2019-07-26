@@ -52,14 +52,6 @@ enum { kViEMaxCodecFramerate = 60 };
 enum { kViEMinCodecBitrate = 30 };
 
 
-enum { kViEMaxSrtpKeyLength = 30 };
-enum { kViEMinSrtpEncryptLength = 16 };
-enum { kViEMaxSrtpEncryptLength = 256 };
-enum { kViEMaxSrtpAuthSh1Length = 20 };
-enum { kViEMaxSrtpTagAuthNullLength = 12 };
-enum { kViEMaxSrtpKeyAuthNullLength = 256 };
-
-
 enum { kViEMaxMtu = 1500 };
 enum { kViESocketThreads = 1 };
 enum { kViENumReceiveSocketBuffers = 500 };

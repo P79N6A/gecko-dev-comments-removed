@@ -102,19 +102,19 @@ class WindowCapturerWin : public WindowCapturer {
   
   
   HWND window_;
-  HDC window_dc_;
 
   
   HMODULE dwmapi_library_;
   DwmIsCompositionEnabledFunc is_composition_enabled_func_;
+
+  DesktopSize previous_size_;
 
   DISALLOW_COPY_AND_ASSIGN(WindowCapturerWin);
 };
 
 WindowCapturerWin::WindowCapturerWin()
     : callback_(NULL),
-      window_(NULL),
-      window_dc_(NULL) {
+      window_(NULL) {
   
   dwmapi_library_ = LoadLibrary(L"dwmapi.dll");
   if (dwmapi_library_) {
@@ -149,17 +149,11 @@ bool WindowCapturerWin::GetWindowList(WindowList* windows) {
 }
 
 bool WindowCapturerWin::SelectWindow(WindowId id) {
-  if (window_dc_)
-    ReleaseDC(window_, window_dc_);
-
-  window_ = reinterpret_cast<HWND>(id);
-  window_dc_ = GetWindowDC(window_);
-  if (!window_dc_) {
-    LOG(LS_WARNING) << "Failed to select window: " << GetLastError();
-    window_ = NULL;
+  HWND window = reinterpret_cast<HWND>(id);
+  if (!IsWindow(window) || !IsWindowVisible(window) || IsIconic(window))
     return false;
-  }
-
+  window_ = window;
+  previous_size_.set(0, 0);
   return true;
 }
 
@@ -171,13 +165,17 @@ void WindowCapturerWin::Start(Callback* callback) {
 }
 
 void WindowCapturerWin::Capture(const DesktopRegion& region) {
-  if (!window_dc_) {
+  if (!window_) {
     LOG(LS_ERROR) << "Window hasn't been selected: " << GetLastError();
     callback_->OnCaptureCompleted(NULL);
     return;
   }
 
-  assert(window_);
+  
+  if (IsIconic(window_) || !IsWindowVisible(window_)) {
+    callback_->OnCaptureCompleted(NULL);
+    return;
+  }
 
   RECT rect;
   if (!GetWindowRect(window_, &rect)) {
@@ -186,16 +184,24 @@ void WindowCapturerWin::Capture(const DesktopRegion& region) {
     return;
   }
 
-  scoped_ptr<DesktopFrameWin> frame(DesktopFrameWin::Create(
-      DesktopSize(rect.right - rect.left, rect.bottom - rect.top),
-      NULL, window_dc_));
-  if (!frame.get()) {
+  HDC window_dc = GetWindowDC(window_);
+  if (!window_dc) {
+    LOG(LS_WARNING) << "Failed to get window DC: " << GetLastError();
     callback_->OnCaptureCompleted(NULL);
     return;
   }
 
-  HDC mem_dc = CreateCompatibleDC(window_dc_);
-  SelectObject(mem_dc, frame->bitmap());
+  scoped_ptr<DesktopFrameWin> frame(DesktopFrameWin::Create(
+      DesktopSize(rect.right - rect.left, rect.bottom - rect.top),
+      NULL, window_dc));
+  if (!frame.get()) {
+    ReleaseDC(window_, window_dc);
+    callback_->OnCaptureCompleted(NULL);
+    return;
+  }
+
+  HDC mem_dc = CreateCompatibleDC(window_dc);
+  HGDIOBJ previous_object = SelectObject(mem_dc, frame->bitmap());
   BOOL result = FALSE;
 
   
@@ -203,21 +209,33 @@ void WindowCapturerWin::Capture(const DesktopRegion& region) {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  
-  
-  
-
-  if (!IsAeroEnabled())
+  if (!IsAeroEnabled() ||
+      (!previous_size_.is_empty() && !previous_size_.equals(frame->size()))) {
     result = PrintWindow(window_, mem_dc, 0);
+  }
 
   
   if (!result) {
     result = BitBlt(mem_dc, 0, 0, frame->size().width(), frame->size().height(),
-                    window_dc_, 0, 0, SRCCOPY);
+                    window_dc, 0, 0, SRCCOPY);
   }
 
+  SelectObject(mem_dc, previous_object);
   DeleteDC(mem_dc);
+  ReleaseDC(window_, window_dc);
+
+  previous_size_ = frame->size();
 
   if (!result) {
     LOG(LS_ERROR) << "Both PrintWindow() and BitBlt() failed.";
@@ -230,7 +248,7 @@ void WindowCapturerWin::Capture(const DesktopRegion& region) {
 }  
 
 
-WindowCapturer* WindowCapturer::Create() {
+WindowCapturer* WindowCapturer::Create(const DesktopCaptureOptions& options) {
   return new WindowCapturerWin();
 }
 

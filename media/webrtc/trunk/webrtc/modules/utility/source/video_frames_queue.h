@@ -13,9 +13,10 @@
 
 #ifdef WEBRTC_MODULE_UTILITY_VIDEO
 
+#include <list>
+
 #include "webrtc/common_video/interface/i420_video_frame.h"
 #include "webrtc/engine_configurations.h"
-#include "webrtc/system_wrappers/interface/list_wrapper.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -42,6 +43,7 @@ class VideoFramesQueue {
   int32_t ReturnFrame(I420VideoFrame* ptrOldFrame);
 
  private:
+  typedef std::list<I420VideoFrame*> FrameList;
   
   
   enum {KMaxNumberOfFrames = 300};
@@ -49,13 +51,13 @@ class VideoFramesQueue {
   
   
   
-  ListWrapper    _incomingFrames;
+  FrameList    _incomingFrames;
   
-  ListWrapper    _emptyFrames;
+  FrameList    _emptyFrames;
 
   
   uint32_t _renderDelayMs;
 };
 }  
-#endif
-#endif
+#endif 
+#endif  

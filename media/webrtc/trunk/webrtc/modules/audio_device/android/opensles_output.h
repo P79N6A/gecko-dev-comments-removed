@@ -15,11 +15,9 @@
 #include <SLES/OpenSLES_Android.h>
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 
-#if !defined(WEBRTC_GONK)
 #include "webrtc/modules/audio_device/android/audio_manager_jni.h"
-#endif
 #include "webrtc/modules/audio_device/android/low_latency_event.h"
-#include "webrtc/modules/audio_device/android/opensles_common.h"
+#include "webrtc/modules/audio_device/android/audio_common.h"
 #include "webrtc/modules/audio_device/include/audio_device_defines.h"
 #include "webrtc/modules/audio_device/include/audio_device.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
@@ -35,10 +33,15 @@ class ThreadWrapper;
 
 
 
-class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
+class OpenSlesOutput : public PlayoutDelayProvider {
  public:
   explicit OpenSlesOutput(const int32_t id);
   virtual ~OpenSlesOutput();
+
+  static int32_t SetAndroidAudioDeviceObjects(void* javaVM,
+                                              void* env,
+                                              void* context);
+  static void ClearAndroidAudioDeviceObjects();
 
   
   int32_t Init();
@@ -56,6 +59,9 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
   int32_t SetPlayoutDevice(uint16_t index);
   int32_t SetPlayoutDevice(
       AudioDeviceModule::WindowsDeviceType device) { return 0; }
+
+  
+  int32_t SetPlayoutSampleRate(uint32_t sample_rate_hz) { return 0; }
 
   
   int32_t PlayoutIsAvailable(bool& available);  
@@ -135,7 +141,7 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
     
     
     
-    kNum10MsToBuffer = 4,
+    kNum10MsToBuffer = 6,
   };
 
   bool InitSampleRate();
@@ -183,10 +189,8 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
   
   bool CbThreadImpl();
 
-#if !defined(WEBRTC_GONK)
   
   AudioManagerJni audio_manager_;
-#endif
 
   int id_;
   bool initialized_;
@@ -233,22 +237,6 @@ class OpenSlesOutput : public webrtc_opensl::PlayoutDelayProvider {
 
   
   uint16_t playout_delay_;
-
-  
-  void *opensles_lib_;
-  typedef SLresult (*slCreateEngine_t)(SLObjectItf *,
-                                       SLuint32,
-                                       const SLEngineOption *,
-                                       SLuint32,
-                                       const SLInterfaceID *,
-                                       const SLboolean *);
-  slCreateEngine_t f_slCreateEngine;
-  SLInterfaceID SL_IID_ENGINE_;
-  SLInterfaceID SL_IID_BUFFERQUEUE_;
-  SLInterfaceID SL_IID_ANDROIDCONFIGURATION_;
-  SLInterfaceID SL_IID_PLAY_;
-  SLInterfaceID SL_IID_ANDROIDSIMPLEBUFFERQUEUE_;
-  SLInterfaceID SL_IID_VOLUME_;
 };
 
 }  

@@ -20,6 +20,7 @@
 #include "webrtc/modules/video_coding/main/interface/video_coding.h"
 #include "webrtc/modules/video_processing/main/interface/video_processing.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
+#include "webrtc/system_wrappers/interface/thread_annotations.h"
 #include "webrtc/typedefs.h"
 #include "webrtc/video_engine/include/vie_capture.h"
 #include "webrtc/video_engine/vie_defines.h"
@@ -76,6 +77,8 @@ class ViECapturer
   virtual int IncomingFrameI420(const ViEVideoFrameI420& video_frame,
                                 unsigned long long capture_time = 0);  
 
+  virtual void SwapFrame(I420VideoFrame* frame) OVERRIDE;
+
   
   int32_t Start(
       const CaptureCapability& capture_capability = CaptureCapability());
@@ -103,6 +106,11 @@ class ViECapturer
   const char* CurrentDeviceName() const;
 
   void RegisterCpuOveruseObserver(CpuOveruseObserver* observer);
+
+  void CpuOveruseMeasures(int* capture_jitter_ms,
+                          int* avg_encode_time_ms,
+                          int* encode_usage_percent,
+                          int* capture_queue_delay_ms_per_s) const;
 
  protected:
   ViECapturer(int capture_id,
@@ -155,6 +163,10 @@ class ViECapturer
   const int capture_id_;
 
   
+  scoped_ptr<CriticalSectionWrapper> incoming_frame_cs_;
+  I420VideoFrame incoming_frame_;
+
+  
   ThreadWrapper& capture_thread_;
   EventWrapper& capture_event_;
   EventWrapper& deliver_event_;
@@ -174,11 +186,9 @@ class ViECapturer
 
   
   scoped_ptr<CriticalSectionWrapper> observer_cs_;
-  ViECaptureObserver* observer_;
+  ViECaptureObserver* observer_ GUARDED_BY(observer_cs_.get());
 
   CaptureCapability requested_capability_;
-
-  I420VideoFrame capture_device_image_;
 
   scoped_ptr<OveruseFrameDetector> overuse_detector_;
 };

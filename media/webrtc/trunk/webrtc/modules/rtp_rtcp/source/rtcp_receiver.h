@@ -69,6 +69,8 @@ public:
                 uint32_t *RTCPArrivalTimeFrac,
                 uint32_t *rtcp_timestamp) const;
 
+   bool LastReceivedXrReferenceTimeInfo(RtcpReceiveTimeInfo* info) const;
+
     
     int32_t RTT(uint32_t remoteSSRC,
                 uint16_t* RTT,
@@ -76,19 +78,11 @@ public:
                 uint16_t* minRTT,
                 uint16_t* maxRTT) const;
 
-    uint16_t RTT() const;
-
-    int SetRTT(uint16_t rtt);
-
     int32_t ResetRTT(const uint32_t remoteSSRC);
 
-    int32_t GetReportBlockInfo(uint32_t remoteSSRC,
-                               uint32_t* NTPHigh,
-                               uint32_t* NTPLow,
-                               uint32_t* PacketsReceived,
-                               uint64_t* OctetsReceived) const;
-
     int32_t SenderInfoReceived(RTCPSenderInfo* senderInfo) const;
+
+    bool GetAndResetXrRrRtt(uint16_t* rtt_ms);
 
     
     int32_t StatisticsReceived(
@@ -115,6 +109,9 @@ public:
 
     int32_t UpdateTMMBR();
 
+    void RegisterRtcpStatisticsCallback(RtcpStatisticsCallback* callback);
+    RtcpStatisticsCallback* GetRtcpStatisticsCallback();
+
 protected:
     RTCPHelp::RTCPReportBlockInformation* CreateReportBlockInformation(const uint32_t remoteSSRC);
     RTCPHelp::RTCPReportBlockInformation* GetReportBlockInformation(const uint32_t remoteSSRC) const;
@@ -138,6 +135,21 @@ protected:
     void HandleSDES(RTCPUtility::RTCPParserV2& rtcpParser);
 
     void HandleSDESChunk(RTCPUtility::RTCPParserV2& rtcpParser);
+
+    void HandleXrHeader(RTCPUtility::RTCPParserV2& parser,
+                        RTCPHelp::RTCPPacketInformation& rtcpPacketInformation);
+
+    void HandleXrReceiveReferenceTime(
+        RTCPUtility::RTCPParserV2& parser,
+        RTCPHelp::RTCPPacketInformation& rtcpPacketInformation);
+
+    void HandleXrDlrrReportBlock(
+        RTCPUtility::RTCPParserV2& parser,
+        RTCPHelp::RTCPPacketInformation& rtcpPacketInformation);
+
+    void HandleXrDlrrReportBlockItem(
+        const RTCPUtility::RTCPPacket& packet,
+        RTCPHelp::RTCPPacketInformation& rtcpPacketInformation);
 
     void HandleXRVOIPMetric(RTCPUtility::RTCPParserV2& rtcpParser,
                             RTCPHelp::RTCPPacketInformation& rtcpPacketInformation);
@@ -230,6 +242,14 @@ protected:
   uint32_t _lastReceivedSRNTPfrac;
 
   
+  RtcpReceiveTimeInfo _remoteXRReceiveTimeInfo;
+  
+  uint32_t _lastReceivedXRNTPsecs;
+  uint32_t _lastReceivedXRNTPfrac;
+  
+  uint16_t xr_rr_rtt_ms_;
+
+  
   std::map<uint32_t, RTCPHelp::RTCPReportBlockInformation*>
       _receivedReportBlockMap;
   ReceivedInfoMap _receivedInfoMap;
@@ -245,10 +265,7 @@ protected:
   
   int64_t _lastIncreasedSequenceNumberMs;
 
-  
-  
-  uint16_t _rtt;
-
+  RtcpStatisticsCallback* stats_callback_;
 };
 }  
 #endif 

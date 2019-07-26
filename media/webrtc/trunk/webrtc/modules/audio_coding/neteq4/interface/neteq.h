@@ -15,6 +15,7 @@
 
 #include <vector>
 
+#include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/neteq4/interface/audio_decoder.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/typedefs.h"
@@ -23,14 +24,6 @@ namespace webrtc {
 
 
 struct WebRtcRTPHeader;
-
-
-struct RtcpStatistics {
-  uint16_t fraction_lost;
-  uint32_t cumulative_lost;
-  uint32_t extended_max;
-  uint32_t jitter;
-};
 
 struct NetEqNetworkStatistics {
   uint16_t current_buffer_size_ms;  
@@ -66,9 +59,9 @@ enum NetEqPlayoutMode {
 };
 
 enum NetEqBackgroundNoiseMode {
-  kBgnOn,
-  kBgnFade,
-  kBgnOff
+  kBgnOn,    
+  kBgnFade,  
+  kBgnOff    
 };
 
 
@@ -105,7 +98,8 @@ class NetEq {
     kFrameSplitError,
     kRedundancySplitError,
     kPacketBufferCorruption,
-    kOversizePacket
+    kOversizePacket,
+    kSyncPacketNotAccepted
   };
 
   static const int kMaxNumPacketsInBuffer = 240;  
@@ -126,6 +120,18 @@ class NetEq {
                            const uint8_t* payload,
                            int length_bytes,
                            uint32_t receive_timestamp) = 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
+                               uint32_t receive_timestamp) = 0;
 
   
   
@@ -241,14 +247,13 @@ class NetEq {
 
   
   
-  virtual int DecodedRtpInfo(int* sequence_number, uint32_t* timestamp) = 0;
+  virtual int DecodedRtpInfo(int* sequence_number,
+                             uint32_t* timestamp) const = 0;
 
   
-  virtual int InsertSyncPacket(const WebRtcRTPHeader& rtp_header,
-                               uint32_t receive_timestamp) = 0;
-
   virtual void SetBackgroundNoiseMode(NetEqBackgroundNoiseMode mode) = 0;
 
+  
   virtual NetEqBackgroundNoiseMode BackgroundNoiseMode() const = 0;
 
  protected:

@@ -322,7 +322,7 @@ bool UdpSocketManagerPosixImpl::AddSocket(UdpSocketWrapper* s)
         return false;
     }
     _critSectList->Enter();
-    _addList.PushBack(s);
+    _addList.push_back(s);
     _critSectList->Leave();
     return true;
 }
@@ -333,26 +333,24 @@ bool UdpSocketManagerPosixImpl::RemoveSocket(UdpSocketWrapper* s)
     _critSectList->Enter();
 
     
-    ListItem* addListItem = _addList.First();
-    while(addListItem)
-    {
-        UdpSocketPosix* addSocket = (UdpSocketPosix*)addListItem->GetItem();
+    for (SocketList::iterator iter = _addList.begin();
+         iter != _addList.end(); ++iter) {
+        UdpSocketPosix* addSocket = static_cast<UdpSocketPosix*>(*iter);
         unsigned int addFD = addSocket->GetFd();
         unsigned int removeFD = static_cast<UdpSocketPosix*>(s)->GetFd();
         if(removeFD == addFD)
         {
-            _removeList.PushBack(removeFD);
+            _removeList.push_back(removeFD);
             _critSectList->Leave();
             return true;
         }
-        addListItem = _addList.Next(addListItem);
     }
 
     
     
     if (_socketMap.find(static_cast<UdpSocketPosix*>(s)->GetFd()) !=
         _socketMap.end()) {
-      _removeList.PushBack(static_cast<UdpSocketPosix*>(s)->GetFd());
+      _removeList.push_back(static_cast<UdpSocketPosix*>(s)->GetFd());
       _critSectList->Leave();
       return true;
     }
@@ -364,25 +362,23 @@ void UdpSocketManagerPosixImpl::UpdateSocketMap()
 {
     
     _critSectList->Enter();
-    while(!_removeList.Empty())
-    {
+    for (FdList::iterator iter = _removeList.begin();
+         iter != _removeList.end(); ++iter) {
         UdpSocketPosix* deleteSocket = NULL;
-        SOCKET removeFD = _removeList.First()->GetUnsignedItem();
+        SOCKET removeFD = *iter;
 
         
         
-        ListItem* addListItem = _addList.First();
-        while(addListItem)
-        {
-            UdpSocketPosix* addSocket = (UdpSocketPosix*)addListItem->GetItem();
+        for (SocketList::iterator iter = _addList.begin();
+             iter != _addList.end(); ++iter) {
+            UdpSocketPosix* addSocket = static_cast<UdpSocketPosix*>(*iter);
             SOCKET addFD = addSocket->GetFd();
             if(removeFD == addFD)
             {
                 deleteSocket = addSocket;
-                _addList.Erase(addListItem);
+                _addList.erase(iter);
                 break;
             }
-            addListItem = _addList.Next(addListItem);
         }
 
         
@@ -398,19 +394,18 @@ void UdpSocketManagerPosixImpl::UpdateSocketMap()
             deleteSocket->ReadyForDeletion();
             delete deleteSocket;
         }
-        _removeList.PopFront();
     }
+    _removeList.clear();
 
     
-    while(!_addList.Empty())
-    {
-        UdpSocketPosix* s =
-            static_cast<UdpSocketPosix*>(_addList.First()->GetItem());
+    for (SocketList::iterator iter = _addList.begin();
+         iter != _addList.end(); ++iter) {
+        UdpSocketPosix* s = static_cast<UdpSocketPosix*>(*iter);
         if(s) {
           _socketMap[s->GetFd()] = s;
         }
-        _addList.PopFront();
     }
+    _addList.clear();
     _critSectList->Leave();
 }
 

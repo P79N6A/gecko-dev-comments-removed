@@ -11,7 +11,6 @@
 #include "webrtc/modules/video_coding/main/source/session_info.h"
 
 #include "webrtc/modules/video_coding/main/source/packet.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_format_h264.h"
 
 namespace webrtc {
 
@@ -137,7 +136,7 @@ int VCMSessionInfo::InsertBuffer(uint8_t* frame_buffer,
 
   ShiftSubsequentPackets(packet_it, packet_size);
 
-  const uint8_t startCode[] = {0, 0, 0, 1};
+  const unsigned char startCode[] = {0, 0, 0, 1};
   if (packet.insertStartCode) {
     memcpy(const_cast<uint8_t*>(packet.dataPtr), startCode,
            kH264StartCodeLengthBytes);
@@ -419,71 +418,34 @@ int VCMSessionInfo::InsertPacket(const VCMPacket& packet,
       (*rit).seqNum == packet.seqNum && (*rit).sizeBytes > 0)
     return -2;
 
-  PacketIterator packet_list_it;
-  if (packet.codec == kVideoCodecH264) {
-    RTPVideoHeaderH264 h264 = packet.codecSpecificHeader.codecHeader.H264;
-    uint8_t nal_type = h264.nalu_header & RtpFormatH264::kH264NAL_TypeMask;
-
-    if (packet.isFirstPacket) {
-      if (HaveFirstPacket() == false ||
-          IsNewerSequenceNumber(first_packet_seq_num_, packet.seqNum)) {
-        first_packet_seq_num_ = packet.seqNum;
-        frame_type_ = packet.frameType;
-      }
-    }
-
+  
+  
+  
+  
+  if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
+    
+    frame_type_ = packet.frameType;
+    
+    first_packet_seq_num_ = static_cast<int>(packet.seqNum);
+  } else if (first_packet_seq_num_ != -1 &&
+        !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
+    return -3;
+  } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
     
     
-
-    
-    
-    
-    if ((packet.completeNALU == kNaluComplete || packet.completeNALU == kNaluEnd) &&
-        last_packet_seq_num_ == -1) {
-      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (last_packet_seq_num_ != -1 &&
-      IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      
-      
-      return -3;
-    }
-
-    
-    packet_list_it = packets_.insert(rit.base(), packet);
-  } else {
-    
-    
-    
-    
-    if (packet.isFirstPacket && first_packet_seq_num_ == -1) {
-      
-      frame_type_ = packet.frameType;
-      
-      first_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (first_packet_seq_num_ != -1 &&
-      !IsNewerSequenceNumber(packet.seqNum, first_packet_seq_num_)) {
-      
-      
-      return -3;
-    } else if (frame_type_ == kFrameEmpty && packet.frameType != kFrameEmpty) {
-      
-      
-      frame_type_ = packet.frameType;
-    }
-
-    
-    if (packet.markerBit && last_packet_seq_num_ == -1) {
-      last_packet_seq_num_ = static_cast<int>(packet.seqNum);
-    } else if (last_packet_seq_num_ != -1 &&
-        IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
-      
-      
-      return -3;
-    }
-
-    
-    packet_list_it = packets_.insert(rit.base(), packet);
+    frame_type_ = packet.frameType;
   }
+
+  
+  if (packet.markerBit && last_packet_seq_num_ == -1) {
+    last_packet_seq_num_ = static_cast<int>(packet.seqNum);
+  } else if (last_packet_seq_num_ != -1 &&
+      IsNewerSequenceNumber(packet.seqNum, last_packet_seq_num_)) {
+    return -3;
+  }
+
+  
+  PacketIterator packet_list_it = packets_.insert(rit.base(), packet);
 
   int returnLength = InsertBuffer(frame_buffer, packet_list_it);
   UpdateCompleteSession();

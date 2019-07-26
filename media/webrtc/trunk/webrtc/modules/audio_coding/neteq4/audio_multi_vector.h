@@ -17,10 +17,10 @@
 
 #include "webrtc/modules/audio_coding/neteq4/audio_vector.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
+#include "webrtc/typedefs.h"
 
 namespace webrtc {
 
-template <typename T>
 class AudioMultiVector {
  public:
   
@@ -43,23 +43,23 @@ class AudioMultiVector {
   
   
   
-  virtual void CopyFrom(AudioMultiVector<T>* copy_to) const;
+  virtual void CopyFrom(AudioMultiVector* copy_to) const;
 
   
   
   
   
   
-  virtual void PushBackInterleaved(const T* append_this, size_t length);
+  virtual void PushBackInterleaved(const int16_t* append_this, size_t length);
 
   
   
-  virtual void PushBack(const AudioMultiVector<T>& append_this);
+  virtual void PushBack(const AudioMultiVector& append_this);
 
   
   
   
-  virtual void PushBackFromIndex(const AudioMultiVector<T>& append_this,
+  virtual void PushBackFromIndex(const AudioMultiVector& append_this,
                                  size_t index);
 
   
@@ -75,18 +75,18 @@ class AudioMultiVector {
   
   
   
-  virtual size_t ReadInterleaved(size_t length, T* destination) const;
+  virtual size_t ReadInterleaved(size_t length, int16_t* destination) const;
 
   
   
   virtual size_t ReadInterleavedFromIndex(size_t start_index,
                                           size_t length,
-                                          T* destination) const;
+                                          int16_t* destination) const;
 
   
   
   virtual size_t ReadInterleavedFromEnd(size_t length,
-                                        T* destination) const;
+                                        int16_t* destination) const;
 
   
   
@@ -95,18 +95,18 @@ class AudioMultiVector {
   
   
   
-  virtual void OverwriteAt(const AudioMultiVector<T>& insert_this,
+  virtual void OverwriteAt(const AudioMultiVector& insert_this,
                            size_t length,
                            size_t position);
 
   
   
   
-  virtual void CrossFade(const AudioMultiVector<T>& append_this,
+  virtual void CrossFade(const AudioMultiVector& append_this,
                          size_t fade_length);
 
   
-  virtual size_t Channels() const { return channels_.size(); }
+  virtual size_t Channels() const { return num_channels_; }
 
   
   virtual size_t Size() const;
@@ -119,11 +119,12 @@ class AudioMultiVector {
 
   
   
-  const AudioVector<T>& operator[](size_t index) const;
-  AudioVector<T>& operator[](size_t index);
+  const AudioVector& operator[](size_t index) const;
+  AudioVector& operator[](size_t index);
 
  protected:
-  std::vector<AudioVector<T>*> channels_;
+  std::vector<AudioVector*> channels_;
+  size_t num_channels_;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(AudioMultiVector);

@@ -22,6 +22,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 
 class ACMCodecDB {
  public:
@@ -349,6 +351,8 @@ class ACMCodecDB {
   static const CodecSettings codec_settings_[kMaxNumCodecs];
   static const NetEqDecoder neteq_decoders_[kMaxNumCodecs];
 };
+
+}  
 
 }  
 

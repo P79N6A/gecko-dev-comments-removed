@@ -28,7 +28,7 @@ namespace webrtc {
 class Config;
 class CriticalSectionWrapper;
 class ProcessThread;
-class RtcpRttObserver;
+class RtcpRttStats;
 class ViEChannel;
 class ViEEncoder;
 class VoEVideoSync;
@@ -49,10 +49,9 @@ class ViEChannelManager: private ViEManagerBase {
 
   void SetModuleProcessThread(ProcessThread* module_process_thread);
 
-  void SetLoadManager(CPULoadStateCallbackInvoker* load_manager);
-
   
-  int CreateChannel(int* channel_id);
+  int CreateChannel(int* channel_id,
+                    const Config* config);
 
   
   
@@ -78,10 +77,6 @@ class ViEChannelManager: private ViEManagerBase {
 
   
   
-  bool SetReceiveAbsoluteSendTimeStatus(int channel_id, bool enable, int id);
-
-  
-  
   void UpdateSsrcs(int channel_id, const std::list<unsigned int>& ssrcs);
 
  private:
@@ -91,7 +86,7 @@ class ViEChannelManager: private ViEManagerBase {
                            ViEEncoder* vie_encoder,
                            RtcpBandwidthObserver* bandwidth_observer,
                            RemoteBitrateEstimator* remote_bitrate_estimator,
-                           RtcpRttObserver* rtcp_rtt_observer,
+                           RtcpRttStats* rtcp_rtt_stats,
                            RtcpIntraFrameObserver* intra_frame_observer,
                            bool sender);
 
@@ -137,8 +132,7 @@ class ViEChannelManager: private ViEManagerBase {
 
   VoiceEngine* voice_engine_;
   ProcessThread* module_process_thread_;
-  const Config& config_;
-  CPULoadStateCallbackInvoker* load_manager_;
+  const Config& engine_config_;
 };
 
 class ViEChannelManagerScoped: private ViEManagerScopedBase {

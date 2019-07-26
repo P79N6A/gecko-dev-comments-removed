@@ -201,6 +201,23 @@ typedef void (*AnalysisUpdate)(NsxInst_t* inst,
                                int16_t* new_speech);
 extern AnalysisUpdate WebRtcNsx_AnalysisUpdate;
 
+
+typedef void (*Denormalize) (NsxInst_t* inst, int16_t* in, int factor);
+extern Denormalize WebRtcNsx_Denormalize;
+
+
+typedef void (*NormalizeRealBuffer) (NsxInst_t* inst,
+                                     const int16_t* in,
+                                     int16_t* out);
+extern NormalizeRealBuffer WebRtcNsx_NormalizeRealBuffer;
+
+
+
+void WebRtcNsx_SpeechNoiseProb(NsxInst_t* inst,
+                               uint16_t* nonSpeechProbFinal,
+                               uint32_t* priorLocSnr,
+                               uint32_t* postLocSnr);
+
 #if (defined WEBRTC_DETECT_ARM_NEON) || defined (WEBRTC_ARCH_ARM_NEON)
 
 
@@ -216,6 +233,26 @@ void WebRtcNsx_AnalysisUpdateNeon(NsxInst_t* inst,
                                   int16_t* out,
                                   int16_t* new_speech);
 void WebRtcNsx_PrepareSpectrumNeon(NsxInst_t* inst, int16_t* freq_buff);
+#endif
+
+#if defined(MIPS32_LE)
+
+
+
+void WebRtcNsx_SynthesisUpdate_mips(NsxInst_t* inst,
+                                    int16_t* out_frame,
+                                    int16_t gain_factor);
+void WebRtcNsx_AnalysisUpdate_mips(NsxInst_t* inst,
+                                   int16_t* out,
+                                   int16_t* new_speech);
+void WebRtcNsx_PrepareSpectrum_mips(NsxInst_t* inst, int16_t* freq_buff);
+void WebRtcNsx_NormalizeRealBuffer_mips(NsxInst_t* inst,
+                                        const int16_t* in,
+                                        int16_t* out);
+#if defined(MIPS_DSP_R1_LE)
+void WebRtcNsx_Denormalize_mips(NsxInst_t* inst, int16_t* in, int factor);
+#endif
+
 #endif
 
 #ifdef __cplusplus

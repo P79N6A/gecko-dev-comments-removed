@@ -18,13 +18,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#if defined(__NetBSD__) || defined(__OpenBSD__)
-#include <sys/videoio.h>
-#elif defined(__sun)
-#include <sys/videodev2.h>
-#else
 #include <linux/videodev2.h>
-#endif
 
 #include "webrtc/system_wrappers/interface/ref_count.h"
 #include "webrtc/system_wrappers/interface/trace.h"
@@ -99,10 +93,9 @@ int32_t DeviceInfoLinux::GetDeviceName(
     char device[20];
     int fd = -1;
     bool found = false;
-    int device_index;
-    for (device_index = 0; device_index < 64; device_index++)
+    for (int n = 0; n < 64; n++)
     {
-        sprintf(device, "/dev/video%d", device_index);
+        sprintf(device, "/dev/video%d", n);
         if ((fd = open(device, O_RDONLY)) != -1)
         {
             if (count == deviceNumber) {
@@ -161,15 +154,6 @@ int32_t DeviceInfoLinux::GetDeviceName(
                        "buffer passed is too small");
             return -1;
         }
-    } else {
-        
-        if (snprintf(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length, "fake_%u", device_index) >=
-            deviceUniqueIdUTF8Length)
-        {
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id,
-                       "buffer passed is too small");
-            return -1;
-        }
     }
 
     return 0;
@@ -181,7 +165,6 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
     int fd;
     char device[32];
     bool found = false;
-    int device_index;
 
     const int32_t deviceUniqueIdUTF8Length =
                             (int32_t) strlen((char*) deviceUniqueIdUTF8);
@@ -194,41 +177,40 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
                "CreateCapabilityMap called for device %s", deviceUniqueIdUTF8);
 
     
-    if (sscanf(deviceUniqueIdUTF8,"fake_%d",&device_index) == 1)
+    for (int n = 0; n < 64; ++n)
     {
-        sprintf(device, "/dev/video%d", device_index);
+        sprintf(device, "/dev/video%d", n);
         fd = open(device, O_RDONLY);
-        if (fd != -1) {
-            found = true;
-        }
-    } else {
-        
-        for (int n = 0; n < 64; ++n)
-        {
-            sprintf(device, "/dev/video%d", n);
-            fd = open(device, O_RDONLY);
-            if (fd == -1)
-                continue;
+        if (fd == -1)
+          continue;
 
-            
-            struct v4l2_capability cap;
-            if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0)
+        
+        struct v4l2_capability cap;
+        if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0)
+        {
+            if (cap.bus_info[0] != 0)
             {
-                if (cap.bus_info[0] != 0)
+                if (strncmp((const char*) cap.bus_info,
+                            (const char*) deviceUniqueIdUTF8,
+                            strlen((const char*) deviceUniqueIdUTF8)) == 0) 
                 {
-                    if (strncmp((const char*) cap.bus_info,
-                                (const char*) deviceUniqueIdUTF8,
-                                strlen((const char*) deviceUniqueIdUTF8)) == 0) 
-                    {
-                        found = true;
-                        break; 
-                    }
+                    found = true;
+                    break; 
                 }
-                
             }
-            close(fd); 
+            else 
+            {
+                if (IsDeviceNameMatches((const char*) cap.card,
+                                        (const char*) deviceUniqueIdUTF8))
+                {
+                    found = true;
+                    break;
+                }
+            }
         }
+        close(fd); 
     }
+
     if (!found)
     {
         WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, _id, "no matching device found");
@@ -237,15 +219,9 @@ int32_t DeviceInfoLinux::CreateCapabilityMap(
 
     
     
-    for (std::map<int, VideoCaptureCapability*>::iterator it =
-             _captureCapabilities.begin();
-         it != _captureCapabilities.end();
-         ++it) {
-      delete it->second;
-    }
     _captureCapabilities.clear();
 
-    int size = FillCapabilityMap(fd);
+    int size = FillCapabilities(fd);
     close(fd);
 
     
@@ -271,7 +247,7 @@ bool DeviceInfoLinux::IsDeviceNameMatches(const char* name,
     return false;
 }
 
-int32_t DeviceInfoLinux::FillCapabilityMap(int fd)
+int32_t DeviceInfoLinux::FillCapabilities(int fd)
 {
 
     
@@ -308,39 +284,39 @@ int32_t DeviceInfoLinux::FillCapabilityMap(int fd)
                 if ((video_fmt.fmt.pix.width == size[i][0])
                     && (video_fmt.fmt.pix.height == size[i][1]))
                 {
-                    VideoCaptureCapability *cap = new VideoCaptureCapability();
-                    cap->width = video_fmt.fmt.pix.width;
-                    cap->height = video_fmt.fmt.pix.height;
-                    cap->expectedCaptureDelay = 120;
+                    VideoCaptureCapability cap;
+                    cap.width = video_fmt.fmt.pix.width;
+                    cap.height = video_fmt.fmt.pix.height;
+                    cap.expectedCaptureDelay = 120;
                     if (videoFormats[fmts] == V4L2_PIX_FMT_YUYV)
                     {
-                        cap->rawType = kVideoYUY2;
+                        cap.rawType = kVideoYUY2;
                     }
                     else if (videoFormats[fmts] == V4L2_PIX_FMT_YUV420)
                     {
-                        cap->rawType = kVideoI420;
+                        cap.rawType = kVideoI420;
                     }
                     else if (videoFormats[fmts] == V4L2_PIX_FMT_MJPEG)
                     {
-                        cap->rawType = kVideoMJPEG;
+                        cap.rawType = kVideoMJPEG;
                     }
 
                     
                     
-                    if(cap->width >= 800 && cap->rawType != kVideoMJPEG)
+                    if(cap.width >= 800 && cap.rawType != kVideoMJPEG)
                     {
-                        cap->maxFPS = 15;
+                        cap.maxFPS = 15;
                     }
                     else
                     {
-                        cap->maxFPS = 30;
+                        cap.maxFPS = 30;
                     }
 
-                    _captureCapabilities[index] = cap;
+                    _captureCapabilities.push_back(cap);
                     index++;
                     WEBRTC_TRACE(webrtc::kTraceInfo, webrtc::kTraceVideoCapture, _id,
                                "Camera capability, width:%d height:%d type:%d fps:%d",
-                               cap->width, cap->height, cap->rawType, cap->maxFPS);
+                               cap.width, cap.height, cap.rawType, cap.maxFPS);
                 }
             }
         }

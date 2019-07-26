@@ -14,6 +14,7 @@
 #include <string.h>  
 
 #include "webrtc/modules/audio_coding/neteq4/audio_multi_vector.h"
+#include "webrtc/modules/audio_coding/neteq4/interface/neteq.h"
 #include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
@@ -26,12 +27,6 @@ class PostDecodeVad;
 
 class BackgroundNoise {
  public:
-  enum BackgroundNoiseMode {
-      kBgnOn,    
-      kBgnFade,  
-      kBgnOff    
-  };
-
   
   
   static const int kMaxLpcOrder = 8;  
@@ -43,7 +38,7 @@ class BackgroundNoise {
 
   
   
-  void Update(const AudioMultiVector<int16_t>& sync_buffer,
+  void Update(const AudioMultiVector& sync_buffer,
               const PostDecodeVad& vad);
 
   
@@ -73,7 +68,11 @@ class BackgroundNoise {
 
   
   bool initialized() const { return initialized_; }
-  BackgroundNoiseMode mode() const { return mode_; }
+  NetEqBackgroundNoiseMode mode() const { return mode_; }
+
+  
+  
+  void set_mode(NetEqBackgroundNoiseMode mode) { mode_ = mode; }
 
  private:
   static const int kThresholdIncrement = 229;  
@@ -129,7 +128,7 @@ class BackgroundNoise {
   size_t num_channels_;
   scoped_array<ChannelParameters> channel_parameters_;
   bool initialized_;
-  BackgroundNoiseMode mode_;
+  NetEqBackgroundNoiseMode mode_;
 
   DISALLOW_COPY_AND_ASSIGN(BackgroundNoise);
 };

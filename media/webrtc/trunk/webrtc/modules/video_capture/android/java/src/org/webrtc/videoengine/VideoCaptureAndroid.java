@@ -12,11 +12,7 @@ package org.webrtc.videoengine;
 
 import java.io.IOException;
 import java.util.Locale;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.webrtc.videoengine.CaptureCapabilityAndroid;
-import org.webrtc.videoengine.VideoCaptureDeviceInfoAndroid.AndroidVideoCaptureDevice;
 
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
@@ -26,382 +22,185 @@ import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.util.Log;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
-import android.view.SurfaceView;
-import android.view.TextureView;
-import android.view.TextureView.SurfaceTextureListener;
-import android.view.View;
 
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoAppShell.AppStateListener;
-import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.mozglue.WebRTCJNITarget;
+
+
+
+
+
+
 
 public class VideoCaptureAndroid implements PreviewCallback, Callback {
+  private final static String TAG = "WEBRTC-JC";
 
-    private final static String TAG = "WEBRTC-JC";
+  private Camera camera;  
+  private final int id;
+  private final Camera.CameraInfo info;
+  private final long native_capturer;  
+  private SurfaceHolder localPreview;
+  private SurfaceTexture dummySurfaceTexture;
+  
+  
+  
+  private final int numCaptureBuffers = 3;
 
-    private Camera camera;
-    private int cameraId;
-    private AndroidVideoCaptureDevice currentDevice = null;
-    public ReentrantLock previewBufferLock = new ReentrantLock();
-    
-    private ReentrantLock captureLock = new ReentrantLock();
-    private int PIXEL_FORMAT = ImageFormat.NV21;
-    PixelFormat pixelFormat = new PixelFormat();
-    
-    private boolean isCaptureStarted = false;
-    private boolean isCaptureRunning = false;
-    private boolean isSurfaceReady = false;
-    private SurfaceHolder surfaceHolder = null;
-    private SurfaceTexture surfaceTexture = null;
-    private SurfaceTexture dummySurfaceTexture = null;
+  public VideoCaptureAndroid(int id, long native_capturer) {
+    this.id = id;
+    this.native_capturer = native_capturer;
+    this.info = new Camera.CameraInfo();
+    Camera.getCameraInfo(id, info);
+  }
 
-    private final int numCaptureBuffers = 3;
-    private int expectedFrameSize = 0;
-    private int orientation = 0;
-    private int id = 0;
-    
-    private long context = 0;
-    private SurfaceHolder localPreview = null;
-    
-    private boolean ownsBuffers = false;
+  
+  
+  
+  
+  
+  private synchronized boolean startCapture(
+      int width, int height, int min_mfps, int max_mfps) {
+    Log.d(TAG, "startCapture: " + width + "x" + height + "@" +
+        min_mfps + ":" + max_mfps);
+    Throwable error = null;
+    try {
+      camera = Camera.open(id);
 
-    private int mCaptureWidth = -1;
-    private int mCaptureHeight = -1;
-    private int mCaptureFPS = -1;
-
-    private int mCaptureRotation = 0;
-
-    private AppStateListener mAppStateListener = null;
-
-    public class MySurfaceTextureListener implements TextureView.SurfaceTextureListener {
-        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            Log.d(TAG, "VideoCaptureAndroid::onSurfaceTextureAvailable");
-
-            captureLock.lock();
-            isSurfaceReady = true;
-            surfaceTexture = surface;
-
-            tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
-            captureLock.unlock();
+      localPreview = ViERenderer.GetLocalRenderer();
+      if (localPreview != null) {
+        localPreview.addCallback(this);
+        if (localPreview.getSurface() != null &&
+            localPreview.getSurface().isValid()) {
+          camera.setPreviewDisplay(localPreview);
         }
-
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surface,
-                                                int width, int height) {
-            
-            
-            
-            
-        }
-
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            Log.d(TAG, "VideoCaptureAndroid::onSurfaceTextureDestroyed");
-            isSurfaceReady = false;
-            DetachCamera();
-            return true;
-        }
-
-        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-            
-        }
-    }
-
-    @WebRTCJNITarget
-    public static
-    void DeleteVideoCaptureAndroid(VideoCaptureAndroid captureAndroid) {
-        Log.d(TAG, "DeleteVideoCaptureAndroid");
-
-        GeckoAppShell.getGeckoInterface().removeAppStateListener(captureAndroid.mAppStateListener);
-
-        captureAndroid.StopCapture();
-        if (captureAndroid.camera != null) {
-            captureAndroid.camera.release();
-            captureAndroid.camera = null;
-        }
-        captureAndroid.context = 0;
-
-        View cameraView = GeckoAppShell.getGeckoInterface().getCameraView();
-        if (cameraView instanceof SurfaceView) {
-            ((SurfaceView)cameraView).getHolder().removeCallback(captureAndroid);
-        } else if (cameraView instanceof TextureView) {
-            
-            
-        }
-        ThreadUtils.getUiHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    GeckoAppShell.getGeckoInterface().disableCameraView();
-                } catch (Exception e) {
-                    Log.e(TAG,
-                          "VideoCaptureAndroid disableCameraView exception: " +
-                          e.getLocalizedMessage());
-                }
-           }
-        });
-    }
-
-    public VideoCaptureAndroid(int in_id, long in_context, Camera in_camera,
-                               AndroidVideoCaptureDevice in_device,
-                               int in_cameraId) {
-        id = in_id;
-        context = in_context;
-        camera = in_camera;
-        cameraId = in_cameraId;
-        currentDevice = in_device;
-        mCaptureRotation = GetRotateAmount();
-
+      } else {
+        
+        
+        
+        
+        
         try {
-            View cameraView = GeckoAppShell.getGeckoInterface().getCameraView();
-            if (cameraView instanceof SurfaceView) {
-                ((SurfaceView)cameraView).getHolder().addCallback(this);
-            } else if (cameraView instanceof TextureView) {
-                MySurfaceTextureListener listener = new MySurfaceTextureListener();
-                ((TextureView)cameraView).setSurfaceTextureListener(listener);
-            }
-            ThreadUtils.getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        GeckoAppShell.getGeckoInterface().enableCameraView();
-                    } catch (Exception e) {
-                        Log.e(TAG,
-                              "VideoCaptureAndroid enableCameraView exception: "
-                               + e.getLocalizedMessage());
-                    }
-                }
-            });
-        } catch (Exception ex) {
-            Log.e(TAG, "VideoCaptureAndroid constructor exception: " +
-                  ex.getLocalizedMessage());
+          
+          dummySurfaceTexture = new SurfaceTexture(42);
+          camera.setPreviewTexture(dummySurfaceTexture);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
         }
+      }
 
-        mAppStateListener = new AppStateListener() {
-            @Override
-            public void onPause() {
-                StopCapture();
-                if (camera != null) {
-                    camera.release();
-                   camera = null;
-                }
-            }
-            @Override
-            public void onResume() {
-                try {
-                    if(android.os.Build.VERSION.SDK_INT>8) {
-                        camera = Camera.open(cameraId);
-                    } else {
-                        camera = Camera.open();
-                    }
-                } catch (Exception ex) {
-                    Log.e(TAG, "Error reopening to the camera: " + ex.getMessage());
-                }
-                captureLock.lock();
-                isCaptureStarted = true;
-                tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
-                captureLock.unlock();
-            }
-            @Override
-            public void onOrientationChanged() {
-                mCaptureRotation = GetRotateAmount();
-            }
-        };
+      Camera.Parameters parameters = camera.getParameters();
+      Log.d(TAG, "isVideoStabilizationSupported: " +
+          parameters.isVideoStabilizationSupported());
+      if (parameters.isVideoStabilizationSupported()) {
+        parameters.setVideoStabilization(true);
+      }
+      parameters.setPreviewSize(width, height);
+      parameters.setPreviewFpsRange(min_mfps, max_mfps);
+      int format = ImageFormat.NV21;
+      parameters.setPreviewFormat(format);
+      camera.setParameters(parameters);
+      int bufSize = width * height * ImageFormat.getBitsPerPixel(format) / 8;
+      for (int i = 0; i < numCaptureBuffers; i++) {
+        camera.addCallbackBuffer(new byte[bufSize]);
+      }
+      camera.setPreviewCallbackWithBuffer(this);
+      camera.startPreview();
+      return true;
+    } catch (IOException e) {
+      error = e;
+    } catch (RuntimeException e) {
+      error = e;
+    }
+    Log.e(TAG, "startCapture failed", error);
+    if (camera != null) {
+      stopCapture();
+    }
+    return false;
+  }
 
-        GeckoAppShell.getGeckoInterface().addAppStateListener(mAppStateListener);
+  
+  private synchronized boolean stopCapture() {
+    Log.d(TAG, "stopCapture");
+    if (camera == null) {
+      throw new RuntimeException("Camera is already stopped!");
+    }
+    Throwable error = null;
+    try {
+      camera.stopPreview();
+      camera.setPreviewCallbackWithBuffer(null);
+      if (localPreview != null) {
+        localPreview.removeCallback(this);
+        camera.setPreviewDisplay(null);
+      } else {
+        camera.setPreviewTexture(null);
+      }
+      camera.release();
+      camera = null;
+      return true;
+    } catch (IOException e) {
+      error = e;
+    } catch (RuntimeException e) {
+      error = e;
+    }
+    Log.e(TAG, "Failed to stop camera", error);
+    return false;
+  }
+
+  private native void ProvideCameraFrame(
+      byte[] data, int length, long captureObject);
+
+  public synchronized void onPreviewFrame(byte[] data, Camera camera) {
+    ProvideCameraFrame(data, data.length, native_capturer);
+    camera.addCallbackBuffer(data);
+  }
+
+  
+  
+  
+  private synchronized void setPreviewRotation(int rotation) {
+    Log.v(TAG, "setPreviewRotation:" + rotation);
+
+    if (camera == null) {
+      return;
     }
 
-    public int GetRotateAmount() {
-        int rotation = GeckoAppShell.getGeckoInterface().getActivity().getWindowManager().getDefaultDisplay().getRotation();
-        int degrees = 0;
-        switch (rotation) {
-            case Surface.ROTATION_0: degrees = 0; break;
-            case Surface.ROTATION_90: degrees = 90; break;
-            case Surface.ROTATION_180: degrees = 180; break;
-            case Surface.ROTATION_270: degrees = 270; break;
-        }
-        if(android.os.Build.VERSION.SDK_INT>8) {
-            android.hardware.Camera.CameraInfo info =
-                new android.hardware.Camera.CameraInfo();
-            android.hardware.Camera.getCameraInfo(cameraId, info);
-            int result;
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                result = (info.orientation + degrees) % 360;
-            } else {  
-                result = (info.orientation - degrees + 360) % 360;
-            }
-            return result;
-        } else {
-            
-            
-            int orientation = 90;
-            int result = (orientation - degrees + 360) % 360;
-            return result;
-        }
+    int resultRotation = 0;
+    if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+      
+      
+      resultRotation = ( 360 - rotation ) % 360; 
+    } else {
+      
+      resultRotation = rotation;
     }
+    camera.setDisplayOrientation(resultRotation);
+  }
 
-    private int tryStartCapture(int width, int height, int frameRate) {
-        if (camera == null) {
-            Log.e(TAG, "Camera not initialized %d" + id);
-            return -1;
-        }
+  public synchronized void surfaceChanged(
+      SurfaceHolder holder, int format, int width, int height) {
+    Log.d(TAG, "VideoCaptureAndroid::surfaceChanged ignored: " +
+        format + ": " + width + "x" + height);
+  }
 
-        Log.d(TAG, "tryStartCapture " + width +
-                " height " + height +" frame rate " + frameRate +
-                " isCaptureRunning " + isCaptureRunning +
-                " isSurfaceReady " + isSurfaceReady +
-                " isCaptureStarted " + isCaptureStarted);
-
-        if (isCaptureRunning || !isSurfaceReady || !isCaptureStarted) {
-            return 0;
-        }
-
-        try {
-            if (surfaceHolder != null)
-                camera.setPreviewDisplay(surfaceHolder);
-            if (surfaceTexture != null)
-                camera.setPreviewTexture(surfaceTexture);
-            if (surfaceHolder == null && surfaceTexture == null) {
-                
-                
-                
-                
-                try {
-                    dummySurfaceTexture = new SurfaceTexture(42);
-                    camera.setPreviewTexture(dummySurfaceTexture);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            CaptureCapabilityAndroid currentCapability =
-                    new CaptureCapabilityAndroid();
-            currentCapability.width = width;
-            currentCapability.height = height;
-            currentCapability.maxFPS = frameRate;
-            PixelFormat.getPixelFormatInfo(PIXEL_FORMAT, pixelFormat);
-
-
-            Camera.Parameters parameters = camera.getParameters();
-
-            List<String> focusModeList = parameters.getSupportedFocusModes();
-            if (focusModeList.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-            }
-
-            parameters.setPreviewSize(currentCapability.width,
-                    currentCapability.height);
-            parameters.setPreviewFormat(PIXEL_FORMAT);
-            parameters.setPreviewFrameRate(currentCapability.maxFPS);
-            camera.setParameters(parameters);
-
-            int bufSize = width * height * pixelFormat.bitsPerPixel / 8;
-            byte[] buffer = null;
-            for (int i = 0; i < numCaptureBuffers; i++) {
-                buffer = new byte[bufSize];
-                camera.addCallbackBuffer(buffer);
-            }
-            camera.setPreviewCallbackWithBuffer(this);
-            ownsBuffers = true;
-
-            camera.startPreview();
-            previewBufferLock.lock();
-            expectedFrameSize = bufSize;
-            isCaptureRunning = true;
-            previewBufferLock.unlock();
-
-        }
-        catch (Exception ex) {
-            Log.e(TAG, "Failed to start camera: " + ex.getMessage());
-            return -1;
-        }
-
-        isCaptureRunning = true;
-        return 0;
+  public synchronized void surfaceCreated(SurfaceHolder holder) {
+    Log.d(TAG, "VideoCaptureAndroid::surfaceCreated");
+    try {
+      if (camera != null) {
+        camera.setPreviewDisplay(holder);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
+  }
 
-    @WebRTCJNITarget
-    public int StartCapture(int width, int height, int frameRate) {
-        Log.d(TAG, "StartCapture width " + width +
-                " height " + height +" frame rate " + frameRate);
-        captureLock.lock();
-        isCaptureStarted = true;
-        mCaptureWidth = width;
-        mCaptureHeight = height;
-        mCaptureFPS = frameRate;
-
-        int res = tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
-
-        captureLock.unlock();
-        return res;
+  public synchronized void surfaceDestroyed(SurfaceHolder holder) {
+    Log.d(TAG, "VideoCaptureAndroid::surfaceDestroyed");
+    try {
+      if (camera != null) {
+        camera.setPreviewDisplay(null);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    public int DetachCamera() {
-        try {
-            previewBufferLock.lock();
-            isCaptureRunning = false;
-            previewBufferLock.unlock();
-            if (camera != null) {
-                camera.setPreviewCallbackWithBuffer(null);
-                camera.stopPreview();
-            }
-        } catch (Exception ex) {
-            Log.e(TAG, "Failed to stop camera: " + ex.getMessage());
-            return -1;
-        }
-        return 0;
-    }
-
-    public int StopCapture() {
-        Log.d(TAG, "StopCapture");
-        isCaptureStarted = false;
-        return DetachCamera();
-    }
-
-    native void ProvideCameraFrame(byte[] data, int length, int rotation,
-                                   long captureObject);
-
-    public void onPreviewFrame(byte[] data, Camera camera) {
-        previewBufferLock.lock();
-
-        if (isCaptureRunning) {
-            
-            
-            if (data != null && data.length == expectedFrameSize) {
-                ProvideCameraFrame(data, expectedFrameSize, mCaptureRotation,
-                                   context);
-                if (ownsBuffers) {
-                    
-                    camera.addCallbackBuffer(data);
-                }
-            }
-        }
-        previewBufferLock.unlock();
-    }
-
-    public void surfaceChanged(SurfaceHolder holder,
-                               int format, int width, int height) {
-        Log.d(TAG, "VideoCaptureAndroid::surfaceChanged");
-
-        captureLock.lock();
-        isSurfaceReady = true;
-        surfaceHolder = holder;
-
-        tryStartCapture(mCaptureWidth, mCaptureHeight, mCaptureFPS);
-        captureLock.unlock();
-        return;
-    }
-
-    public void surfaceCreated(SurfaceHolder holder) {
-        Log.d(TAG, "VideoCaptureAndroid::surfaceCreated");
-    }
-
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.d(TAG, "VideoCaptureAndroid::surfaceDestroyed");
-        isSurfaceReady = false;
-        DetachCamera();
-    }
+  }
 }

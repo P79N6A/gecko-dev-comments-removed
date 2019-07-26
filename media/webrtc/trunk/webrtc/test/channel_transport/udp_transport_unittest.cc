@@ -108,18 +108,12 @@ private:
   std::vector<MockUdpSocketWrapper*> sockets_created_;
 };
 
-
-
-#if !defined(THREAD_SANITIZER)
-
 TEST_F(UDPTransportTest, CreateTransport) {
   int32_t id = 0;
   uint8_t threads = 1;
   UdpTransport* transport = UdpTransport::Create(id, threads);
   UdpTransport::Destroy(transport);
 }
-
-#endif 
 
 
 TEST_F(UDPTransportTest, ConstructorDoesNotCreateSocket) {

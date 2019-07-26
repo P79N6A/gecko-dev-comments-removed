@@ -16,27 +16,23 @@
 #include "webrtc/modules/video_capture/device_info_impl.h"
 #include "webrtc/modules/video_capture/video_capture_impl.h"
 
-#define AndroidJavaCaptureDeviceInfoClass "org/webrtc/videoengine/VideoCaptureDeviceInfoAndroid"
-#define AndroidJavaCaptureCapabilityClass "org/webrtc/videoengine/CaptureCapabilityAndroid"
-
 namespace webrtc
 {
 namespace videocapturemodule
 {
 
-
-
-
-
-
-
 class DeviceInfoAndroid : public DeviceInfoImpl {
-
  public:
-  static void SetAndroidCaptureClasses(jclass capabilityClass);
-  DeviceInfoAndroid(const int32_t id);
-  int32_t Init();
+  static void Initialize(JNIEnv* env);
+
+  DeviceInfoAndroid(int32_t id);
   virtual ~DeviceInfoAndroid();
+
+  
+  
+  bool FindCameraIndex(const char* deviceUniqueIdUTF8, size_t* index);
+
+  virtual int32_t Init();
   virtual uint32_t NumberOfDevices();
   virtual int32_t GetDeviceName(
       uint32_t deviceNumber,
@@ -56,12 +52,17 @@ class DeviceInfoAndroid : public DeviceInfoImpl {
       uint32_t ) { return -1; }
   virtual int32_t GetOrientation(const char* deviceUniqueIdUTF8,
                                  VideoCaptureRotation& orientation);
+
+  
+  void GetFpsRange(const char* deviceUniqueIdUTF8,
+                   int* min_mfps,
+                   int* max_mfps);
+
  private:
-  bool IsDeviceNameMatches(const char* name, const char* deviceUniqueIdUTF8);
-  enum {_expectedCaptureDelay = 190};
+  enum { kExpectedCaptureDelay = 190};
 };
 
 }  
 }  
 
-#endif 
+#endif

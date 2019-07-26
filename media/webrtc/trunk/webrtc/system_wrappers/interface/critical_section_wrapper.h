@@ -15,9 +15,10 @@
 
 
 #include "webrtc/common_types.h"
+#include "webrtc/system_wrappers/interface/thread_annotations.h"
 
 namespace webrtc {
-class CriticalSectionWrapper {
+class LOCKABLE CriticalSectionWrapper {
  public:
   
   static CriticalSectionWrapper* CreateCriticalSection();
@@ -26,33 +27,25 @@ class CriticalSectionWrapper {
 
   
   
-  virtual void Enter() = 0;
+  virtual void Enter() EXCLUSIVE_LOCK_FUNCTION() = 0;
 
   
-  virtual void Leave() = 0;
+  virtual void Leave() UNLOCK_FUNCTION() = 0;
 };
 
 
 
-class CriticalSectionScoped {
+class SCOPED_LOCKABLE CriticalSectionScoped {
  public:
   explicit CriticalSectionScoped(CriticalSectionWrapper* critsec)
-    : ptr_crit_sec_(critsec) {
+      EXCLUSIVE_LOCK_FUNCTION(critsec)
+      : ptr_crit_sec_(critsec) {
     ptr_crit_sec_->Enter();
   }
 
-  ~CriticalSectionScoped() {
-    if (ptr_crit_sec_) {
-      Leave();
-    }
-  }
+  ~CriticalSectionScoped() UNLOCK_FUNCTION() { ptr_crit_sec_->Leave(); }
 
  private:
-  void Leave() {
-    ptr_crit_sec_->Leave();
-    ptr_crit_sec_ = 0;
-  }
-
   CriticalSectionWrapper* ptr_crit_sec_;
 };
 

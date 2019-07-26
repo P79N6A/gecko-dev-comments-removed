@@ -67,5 +67,4 @@ void GeneratePacketMasks(int num_media_packets, int num_fec_packets,
 
 }  
 }  
-
-#endif
+#endif  

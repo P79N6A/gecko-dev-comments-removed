@@ -8,8 +8,8 @@
 
 
 
-#ifndef CHANNEL_H
-#define CHANNEL_H
+#ifndef WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_CHANNEL_H_
+#define WEBRTC_MODULES_AUDIO_CODING_MAIN_TEST_CHANNEL_H_
 
 #include <stdio.h>
 
@@ -121,4 +121,4 @@ class Channel : public AudioPacketizationCallback {
 
 }  
 
-#endif
+#endif  

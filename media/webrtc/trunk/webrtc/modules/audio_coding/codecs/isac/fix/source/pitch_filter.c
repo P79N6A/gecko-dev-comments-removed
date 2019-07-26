@@ -8,29 +8,18 @@
 
 
 
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/pitch_estimator.h"
 
-
-
-
-
-
-
-#include "common_audio/signal_processing/include/signal_processing_library.h"
-#include "modules/audio_coding/codecs/isac/fix/source/pitch_estimator.h"
-#include "modules/audio_coding/codecs/isac/fix/source/settings.h"
-#include "modules/audio_coding/codecs/isac/fix/source/structs.h"
-#include "system_wrappers/interface/compile_assert.h"
+#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/settings.h"
+#include "webrtc/modules/audio_coding/codecs/isac/fix/source/structs.h"
+#include "webrtc/system_wrappers/interface/compile_assert_c.h"
 
 
 static const int kSegments = 5;
 
 
 static const int16_t kDivFactor = 6553;
-
-
-static const int16_t kDampFilter[PITCH_DAMPORDER] = {
-  -2294, 8192, 20972, 8192, -2294
-};
 
 
 

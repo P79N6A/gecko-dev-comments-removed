@@ -53,6 +53,13 @@ struct MacDesktopConfiguration {
   static MacDesktopConfiguration GetCurrent(Origin origin);
 
   
+  bool Equals(const MacDesktopConfiguration& other);
+
+  
+  const MacDisplayConfiguration* FindDisplayConfigurationById(
+      CGDirectDisplayID id);
+
+  
   DesktopRect bounds;
 
   

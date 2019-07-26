@@ -42,7 +42,7 @@ public:
         void* ,
         uint32_t ,
         uint32_t ) { return -1;}
-    int32_t FillCapabilityMap(int fd);
+    int32_t FillCapabilities(int fd);
     int32_t Init();
 private:
 

@@ -35,6 +35,10 @@ public:
     
     virtual int GetNetworkStatistics(int channel, NetworkStatistics& stats) = 0;
 
+    
+    virtual int GetDecodingCallStatistics(
+        int channel, AudioDecodingCallStats* stats) const = 0;
+
 protected:
     VoENetEqStats() {}
     virtual ~VoENetEqStats() {}

@@ -40,6 +40,7 @@ namespace webrtc {
 
 class AudioDeviceModule;
 class AudioProcessing;
+class AudioTransport;
 class Config;
 
 const int kVoEDefault = -1;
@@ -84,7 +85,6 @@ public:
     
     static int SetTraceCallback(TraceCallback* callback);
 
-    static int SetAndroidObjects(void* javaVM, void* context);
     static int SetAndroidObjects(void* javaVM, void* env, void* context);
 
 protected:
@@ -134,7 +134,10 @@ public:
     virtual int Terminate() = 0;
 
     
+    
+    
     virtual int CreateChannel() = 0;
+    virtual int CreateChannel(const Config& config) = 0;
 
     
     virtual int DeleteChannel(int channel) = 0;
@@ -180,6 +183,10 @@ public:
 
     
     virtual int GetNetEQPlayoutMode(int channel, NetEqModes& mode) = 0;
+
+    
+    
+    virtual AudioTransport* audio_transport() { return NULL; }
 
 protected:
     VoEBase() {}

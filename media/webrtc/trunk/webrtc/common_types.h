@@ -11,7 +11,6 @@
 #ifndef WEBRTC_COMMON_TYPES_H_
 #define WEBRTC_COMMON_TYPES_H_
 
-#include <stddef.h> 
 #include "webrtc/typedefs.h"
 
 #if defined(_MSC_VER)
@@ -70,27 +69,28 @@ protected:
 
 enum TraceModule
 {
-    kTraceUndefined          = 0,
+    kTraceUndefined              = 0,
     
-    kTraceVoice              = 0x0001,
+    kTraceVoice                  = 0x0001,
     
-    kTraceVideo              = 0x0002,
+    kTraceVideo                  = 0x0002,
     
-    kTraceUtility            = 0x0003,
-    kTraceRtpRtcp            = 0x0004,
-    kTraceTransport          = 0x0005,
-    kTraceSrtp               = 0x0006,
-    kTraceAudioCoding        = 0x0007,
-    kTraceAudioMixerServer   = 0x0008,
-    kTraceAudioMixerClient   = 0x0009,
-    kTraceFile               = 0x000a,
-    kTraceAudioProcessing    = 0x000b,
-    kTraceVideoCoding        = 0x0010,
-    kTraceVideoMixer         = 0x0011,
-    kTraceAudioDevice        = 0x0012,
-    kTraceVideoRenderer      = 0x0014,
-    kTraceVideoCapture       = 0x0015,
-    kTraceVideoPreocessing   = 0x0016
+    kTraceUtility                = 0x0003,
+    kTraceRtpRtcp                = 0x0004,
+    kTraceTransport              = 0x0005,
+    kTraceSrtp                   = 0x0006,
+    kTraceAudioCoding            = 0x0007,
+    kTraceAudioMixerServer       = 0x0008,
+    kTraceAudioMixerClient       = 0x0009,
+    kTraceFile                   = 0x000a,
+    kTraceAudioProcessing        = 0x000b,
+    kTraceVideoCoding            = 0x0010,
+    kTraceVideoMixer             = 0x0011,
+    kTraceAudioDevice            = 0x0012,
+    kTraceVideoRenderer          = 0x0014,
+    kTraceVideoCapture           = 0x0015,
+    kTraceVideoPreocessing       = 0x0016,
+    kTraceRemoteBitrateEstimator = 0x0017,
 };
 
 enum TraceLevel
@@ -139,7 +139,6 @@ enum FileFormats
     kFileFormatPcm32kHzFile   = 9
 };
 
-
 enum ProcessingTypes
 {
     kPlaybackPerChannel = 0,
@@ -147,6 +146,15 @@ enum ProcessingTypes
     kRecordingPerChannel,
     kRecordingAllChannelsMixed,
     kRecordingPreprocessing
+};
+
+enum FrameType
+{
+    kFrameEmpty            = 0,
+    kAudioFrameSpeech      = 1,
+    kAudioFrameCN          = 2,
+    kVideoFrameKey         = 3,    
+    kVideoFrameDelta       = 4,    
 };
 
 
@@ -227,6 +235,82 @@ protected:
 };
 
 
+struct RtcpStatistics {
+  RtcpStatistics()
+    : fraction_lost(0),
+      cumulative_lost(0),
+      extended_max_sequence_number(0),
+      jitter(0) {}
+
+  uint8_t fraction_lost;
+  uint32_t cumulative_lost;
+  uint32_t extended_max_sequence_number;
+  uint32_t jitter;
+};
+
+
+class RtcpStatisticsCallback {
+ public:
+  virtual ~RtcpStatisticsCallback() {}
+
+  virtual void StatisticsUpdated(const RtcpStatistics& statistics,
+                                 uint32_t ssrc) = 0;
+};
+
+
+struct StreamDataCounters {
+  StreamDataCounters()
+   : bytes(0),
+     header_bytes(0),
+     padding_bytes(0),
+     packets(0),
+     retransmitted_packets(0),
+     fec_packets(0) {}
+
+  uint32_t bytes;  
+  uint32_t header_bytes;  
+  uint32_t padding_bytes;  
+  uint32_t packets;  
+  uint32_t retransmitted_packets;  
+  uint32_t fec_packets;  
+};
+
+
+class StreamDataCountersCallback {
+ public:
+  virtual ~StreamDataCountersCallback() {}
+
+  virtual void DataCountersUpdated(const StreamDataCounters& counters,
+                                   uint32_t ssrc) = 0;
+};
+
+
+struct BitrateStatistics {
+  BitrateStatistics() : bitrate_bps(0), packet_rate(0), timestamp_ms(0) {}
+
+  uint32_t bitrate_bps;   
+  uint32_t packet_rate;   
+  uint64_t timestamp_ms;  
+};
+
+
+class BitrateStatisticsObserver {
+ public:
+  virtual ~BitrateStatisticsObserver() {}
+
+  virtual void Notify(const BitrateStatistics& stats, uint32_t ssrc) = 0;
+};
+
+
+class FrameCountObserver {
+ public:
+  virtual ~FrameCountObserver() {}
+  virtual void FrameCountUpdated(FrameType frame_type,
+                                 uint32_t frame_count,
+                                 const unsigned int ssrc) = 0;
+};
+
+
 
 
 
@@ -239,17 +323,6 @@ struct CodecInst
     int pacsize;
     int channels;
     int rate;  
-};
-
-enum FrameType
-{
-    kFrameEmpty            = 0,
-    kAudioFrameSpeech      = 1,
-    kAudioFrameCN          = 2,
-    kVideoFrameKey         = 3,    
-    kVideoFrameDelta       = 4,    
-    kVideoFrameGolden      = 5,    
-    kVideoFrameAltRef      = 6
 };
 
 
@@ -310,6 +383,25 @@ struct NetworkStatistics
     int addedSamples;
 };
 
+
+struct AudioDecodingCallStats {
+  AudioDecodingCallStats()
+      : calls_to_silence_generator(0),
+        calls_to_neteq(0),
+        decoded_normal(0),
+        decoded_plc(0),
+        decoded_cng(0),
+        decoded_plc_cng(0) {}
+
+  int calls_to_silence_generator;  
+                                   
+  int calls_to_neteq;  
+  int decoded_normal;  
+  int decoded_plc;  
+  int decoded_cng;  
+  int decoded_plc_cng;  
+};
+
 typedef struct
 {
     int min;              
@@ -342,7 +434,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression     
+    kNsVeryHighSuppression,     
 };
 
 enum AgcModes                  
@@ -367,7 +459,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm                    
+    kEcAecm,                   
 };
 
 
@@ -419,7 +511,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3
+    kNetEqOff = 3,
 };
 
 enum OnHoldModes            
@@ -433,7 +525,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2
+    kRfc3267FileStorage = 2,
 };
 
 
@@ -507,30 +599,9 @@ struct VideoCodecVP8
 };
 
 
-struct VideoCodecH264
+enum VideoCodecType
 {
-    uint8_t        profile;
-    uint8_t        constraints;
-    uint8_t        level;
-    uint8_t        packetizationMode; 
-    bool           frameDroppingOn;
-    int            keyFrameInterval;
-    
-    const uint8_t* spsData;
-    size_t         spsLen;
-    const uint8_t* ppsData;
-    size_t         ppsLen;
-};
-
-
-struct VideoCodecGeneric
-{
-};
-
-
-enum VideoCodecType {
     kVideoCodecVP8,
-    kVideoCodecH264,
     kVideoCodecI420,
     kVideoCodecRED,
     kVideoCodecULPFEC,
@@ -541,8 +612,6 @@ enum VideoCodecType {
 union VideoCodecUnion
 {
     VideoCodecVP8       VP8;
-    VideoCodecH264      H264;
-    VideoCodecGeneric   Generic;
 };
 
 
@@ -619,23 +688,20 @@ struct OverUseDetectorOptions {
   double initial_threshold;
 };
 
-enum CPULoadState {
-  kLoadRelaxed,
-  kLoadNormal,
-  kLoadStressed
-};
 
-class CPULoadStateObserver {
-public:
-  virtual void onLoadStateChanged(CPULoadState aNewState) = 0;
-  virtual ~CPULoadStateObserver() {};
-};
 
-class CPULoadStateCallbackInvoker {
-public:
-    virtual void AddObserver(CPULoadStateObserver* aObserver) = 0;
-    virtual void RemoveObserver(CPULoadStateObserver* aObserver) = 0;
-    virtual ~CPULoadStateCallbackInvoker() {};
+struct PacketTime {
+  PacketTime() : timestamp(-1), max_error_us(-1) {}
+  PacketTime(int64_t timestamp, int64_t max_error_us)
+      : timestamp(timestamp), max_error_us(max_error_us) {
+  }
+
+  int64_t timestamp;    
+  int64_t max_error_us; 
+                        
+                        
+                        
+                        
 };
 
 }  

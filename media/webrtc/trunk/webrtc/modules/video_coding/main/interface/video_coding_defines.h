@@ -119,6 +119,21 @@ class VCMReceiveStatisticsCallback {
 };
 
 
+class VCMDecoderTimingCallback {
+ public:
+  virtual void OnDecoderTiming(int decode_ms,
+                               int max_decode_ms,
+                               int current_delay_ms,
+                               int target_delay_ms,
+                               int jitter_buffer_ms,
+                               int min_playout_delay_ms,
+                               int render_delay_ms) = 0;
+
+ protected:
+  virtual ~VCMDecoderTimingCallback() {}
+};
+
+
 
 class VCMProtectionCallback {
  public:

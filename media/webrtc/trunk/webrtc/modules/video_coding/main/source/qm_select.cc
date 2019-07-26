@@ -11,9 +11,6 @@
 #include "webrtc/modules/video_coding/main/source/qm_select.h"
 
 #include <math.h>
-#ifdef ANDROID
-#include <android/log.h>
-#endif
 
 #include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/video_coding/main/interface/video_coding_defines.h"
@@ -213,12 +210,6 @@ int VCMQmResolution::Initialize(float bitrate,
                                 uint16_t width,
                                 uint16_t height,
                                 int num_layers) {
-  WEBRTC_TRACE(webrtc::kTraceDebug,
-               webrtc::kTraceVideoCoding,
-               -1,
-               "qm_select.cc:initialize: %f %f %u %u",
-               bitrate, user_framerate, width, height);
-
   if (user_framerate == 0.0f || width == 0 || height == 0) {
     return VCM_PARAMETER_ERROR;
   }
@@ -424,11 +415,6 @@ void VCMQmResolution::ComputeEncoderState() {
       ((avg_rate_mismatch_ > kMaxRateMisMatch) &&
           (avg_rate_mismatch_sgn_ < -kRateOverShoot))) {
     encoder_state_ = kStressedEncoding;
-    WEBRTC_TRACE(webrtc::kTraceDebug,
-                 webrtc::kTraceVideoCoding,
-                 -1,
-                 "ComputeEncoderState==Stressed");
-    return;
   }
   
   
@@ -436,25 +422,10 @@ void VCMQmResolution::ComputeEncoderState() {
   if ((avg_rate_mismatch_ > kMaxRateMisMatch) &&
       (avg_rate_mismatch_sgn_ > kRateUnderShoot)) {
     encoder_state_ = kEasyEncoding;
-    WEBRTC_TRACE(webrtc::kTraceDebug,
-                 webrtc::kTraceVideoCoding,
-                 -1,
-                 "ComputeEncoderState==Easy");
-    return;
   }
-
-  WEBRTC_TRACE(webrtc::kTraceDebug,
-               webrtc::kTraceVideoCoding,
-               -1,
-               "ComputeEncoderState==Stable");
 }
 
 bool VCMQmResolution::GoingUpResolution() {
-  
-  if (loadstate_ == kLoadStressed) {
-    return false;
-  }
-
   
 
   float fac_width = kFactorWidthSpatial[down_action_history_[0].spatial];
@@ -532,20 +503,11 @@ bool VCMQmResolution::GoingDownResolution() {
   float estimated_transition_rate_down =
       GetTransitionRate(1.0f, 1.0f, 1.0f, 1.0f);
   float max_rate = kFrameRateFac[framerate_level_] * kMaxRateQm[image_type_];
-
-  WEBRTC_TRACE(webrtc::kTraceDebug,
-               webrtc::kTraceVideoCoding,
-               -1,
-               "state %d avg_target_rate %f estimated_trans_rate_down %f max %f",
-               loadstate_, avg_target_rate_, estimated_transition_rate_down, max_rate
-               );
-
   
   
   
-  if (loadstate_ == kLoadStressed
-      || (avg_target_rate_ < estimated_transition_rate_down)
-      || (encoder_state_ == kStressedEncoding && avg_target_rate_ < max_rate)) {
+  if ((avg_target_rate_ < estimated_transition_rate_down ) ||
+      (encoder_state_ == kStressedEncoding && avg_target_rate_ < max_rate)) {
     
     
     uint8_t spatial_fact =
@@ -592,22 +554,6 @@ bool VCMQmResolution::GoingDownResolution() {
     
     assert(action_.temporal == kNoChangeTemporal ||
            action_.spatial == kNoChangeSpatial);
-
-    
-    
-    if (loadstate_ == kLoadStressed
-        && action_.temporal == kNoChangeTemporal
-        && action_.spatial == kNoChangeSpatial) {
-      
-      if (avg_incoming_framerate_ >= 40) {
-        action_.temporal = kOneHalfTemporal;
-      } else if (avg_incoming_framerate_ >= 24) {
-        action_.temporal = kTwoThirdsTemporal;
-      } else {
-        
-        action_.spatial = kOneHalfSpatialUniform;
-      }
-    }
 
     
     
@@ -690,8 +636,6 @@ void VCMQmResolution::UpdateDownsamplingState(UpDownAction up_down) {
 void  VCMQmResolution::UpdateCodecResolution() {
   if (action_.spatial != kNoChangeSpatial) {
     qm_->change_resolution_spatial = true;
-    int old_width = qm_->codec_width;
-    int old_height = qm_->codec_height;
     qm_->codec_width = static_cast<uint16_t>(width_ /
                                              qm_->spatial_width_fact + 0.5f);
     qm_->codec_height = static_cast<uint16_t>(height_ /
@@ -703,25 +647,9 @@ void  VCMQmResolution::UpdateCodecResolution() {
     
     assert(qm_->codec_width % 2 == 0);
     assert(qm_->codec_height % 2 == 0);
-    WEBRTC_TRACE(webrtc::kTraceDebug,
-                 webrtc::kTraceVideoCoding,
-                 -1,
-                 "UpdateCodecResolution: [%d %d] %d %d => %d %d",
-                 native_width_, native_height_,
-                 old_width, old_height,
-                 qm_->codec_width, qm_->codec_height
-                 );
-#ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "WebRTC",
-                        "UpdateCodecResolution: [%d %d] %d %d => %d %d",
-                        native_width_, native_height_,
-                        old_width, old_height,
-                        qm_->codec_width, qm_->codec_height);
-#endif
   }
   if (action_.temporal != kNoChangeTemporal) {
     qm_->change_resolution_temporal = true;
-    float old_rate = qm_->frame_rate;
     
     qm_->frame_rate = avg_incoming_framerate_ / qm_->temporal_fact + 0.5f;
     if (down_action_history_[0].temporal == 0) {
@@ -731,22 +659,6 @@ void  VCMQmResolution::UpdateCodecResolution() {
       
       qm_->frame_rate = native_frame_rate_;
     }
-    WEBRTC_TRACE(webrtc::kTraceDebug,
-                 webrtc::kTraceVideoCoding,
-                 -1,
-                 "UpdateCodecResolution: [%f] %f fps => %f fps",
-                 native_frame_rate_,
-                 old_rate,
-                 qm_->frame_rate
-                 );
-#ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "WebRTC",
-                        "UpdateCodecResolution: [%f] %f fps => %f fps",
-                        native_frame_rate_,
-                        old_rate,
-                        qm_->frame_rate);
-#endif
-
   }
 }
 
@@ -991,10 +903,6 @@ void VCMQmResolution::SelectSpatialDirectionMode(float transition_rate) {
   }
 }
 
-void VCMQmResolution::SetCPULoadState(CPULoadState state) {
-  loadstate_ = state;
-}
-
 
 
 VCMQmRobustness::VCMQmRobustness() {
@@ -1048,5 +956,4 @@ bool VCMQmRobustness::SetUepProtection(uint8_t code_rate_delta,
   
   return false;
 }
-
 }  

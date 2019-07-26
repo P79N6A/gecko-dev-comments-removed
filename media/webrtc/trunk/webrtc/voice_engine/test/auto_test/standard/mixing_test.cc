@@ -9,9 +9,9 @@
 
 
 #include <stdio.h>
-
 #include <string>
 
+#include "webrtc/system_wrappers/interface/sleep.h"
 #include "webrtc/test/testsupport/fileutils.h"
 #include "webrtc/voice_engine/test/auto_test/fixtures/after_initialization_fixture.h"
 
@@ -22,15 +22,13 @@ const int16_t kLimiterHeadroom = 29204;
 const int16_t kInt16Max = 0x7fff;
 const int kSampleRateHz = 16000;
 const int kTestDurationMs = 3000;
-const int kSkipOutputMs = 500;
 
 }  
 
 class MixingTest : public AfterInitializationFixture {
  protected:
   MixingTest()
-    : input_filename_(test::OutputPath() + "mixing_test_input.pcm"),
-      output_filename_(test::OutputPath() + "mixing_test_output.pcm") {
+      : output_filename_(test::OutputPath() + "mixing_test_output.pcm") {
   }
   void SetUp() {
     transport_ = new LoopBackTransport(voe_network_);
@@ -53,12 +51,18 @@ class MixingTest : public AfterInitializationFixture {
   void RunMixingTest(int num_remote_streams,
                      int num_local_streams,
                      int num_remote_streams_using_mono,
+                     bool real_audio,
                      int16_t input_value,
                      int16_t max_output_value,
                      int16_t min_output_value) {
     ASSERT_LE(num_remote_streams_using_mono, num_remote_streams);
 
-    GenerateInputFile(input_value);
+    if (real_audio) {
+      input_filename_ = test::ResourcePath("voice_engine/audio_long16", "pcm");
+    } else {
+      input_filename_ = test::OutputPath() + "mixing_test_input.pcm";
+      GenerateInputFile(input_value);
+    }
 
     std::vector<int> local_streams(num_local_streams);
     for (size_t i = 0; i < local_streams.size(); ++i) {
@@ -77,15 +81,20 @@ class MixingTest : public AfterInitializationFixture {
     TEST_LOG("Playing %d remote streams.\n", num_remote_streams);
 
     
+    SleepMs(1000);
+
+    
     EXPECT_EQ(0, voe_file_->StartRecordingPlayout(-1 ,
         output_filename_.c_str()));
-    Sleep(kTestDurationMs);
+    SleepMs(kTestDurationMs);
     EXPECT_EQ(0, voe_file_->StopRecordingPlayout(-1));
 
     StopLocalStreams(local_streams);
     StopRemoteStreams(remote_streams);
 
-    VerifyMixedOutput(max_output_value, min_output_value);
+    if (!real_audio) {
+      VerifyMixedOutput(max_output_value, min_output_value);
+    }
   }
 
  private:
@@ -94,7 +103,7 @@ class MixingTest : public AfterInitializationFixture {
   void GenerateInputFile(int16_t input_value) {
     FILE* input_file = fopen(input_filename_.c_str(), "wb");
     ASSERT_TRUE(input_file != NULL);
-    for (int i = 0; i < kSampleRateHz / 1000 * (kTestDurationMs + 1000); i++) {
+    for (int i = 0; i < kSampleRateHz / 1000 * (kTestDurationMs * 2); i++) {
       ASSERT_EQ(1u, fwrite(&input_value, sizeof(input_value), 1, input_file));
     }
     ASSERT_EQ(0, fclose(input_file));
@@ -105,9 +114,6 @@ class MixingTest : public AfterInitializationFixture {
     FILE* output_file = fopen(output_filename_.c_str(), "rb");
     ASSERT_TRUE(output_file != NULL);
     int16_t output_value = 0;
-    
-    EXPECT_EQ(0, fseek(output_file, sizeof(output_value) *
-                       kSampleRateHz / 1000 * kSkipOutputMs, SEEK_SET));
     int samples_read = 0;
     while (fread(&output_value, sizeof(output_value), 1, output_file) == 1) {
       samples_read++;
@@ -120,8 +126,7 @@ class MixingTest : public AfterInitializationFixture {
     
     
     
-    ASSERT_GE((samples_read * 1000.0) / kSampleRateHz,
-              0.7 * (kTestDurationMs - kSkipOutputMs));
+    ASSERT_GE((samples_read * 1000.0) / kSampleRateHz, 0.5 * kTestDurationMs);
     
     ASSERT_NE(0, feof(output_file));
     ASSERT_EQ(0, fclose(output_file));
@@ -157,6 +162,10 @@ class MixingTest : public AfterInitializationFixture {
     codec_inst.rate = codec_inst.plfreq * sizeof(int16_t) * 8;  
 
     for (int i = 0; i < num_remote_streams_using_mono; ++i) {
+      
+      
+      
+      SleepMs(50);
       StartRemoteStream(streams[i], codec_inst, 1234 + 2 * i);
     }
 
@@ -190,7 +199,7 @@ class MixingTest : public AfterInitializationFixture {
     }
   }
 
-  const std::string input_filename_;
+  std::string input_filename_;
   const std::string output_filename_;
   LoopBackTransport* transport_;
 };
@@ -198,55 +207,63 @@ class MixingTest : public AfterInitializationFixture {
 
 
 
-TEST_F(MixingTest, DISABLED_FourChannelsWithOnlyThreeMixed) {
+TEST_F(MixingTest, MixManyChannelsForStress) {
+  RunMixingTest(10, 0, 10, true, 0, 0, 0);
+}
+
+
+
+
+TEST_F(MixingTest, FourChannelsWithOnlyThreeMixed) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 3;
-  RunMixingTest(4, 0, 4, kInputValue, 1.1 * kExpectedOutput,
+  RunMixingTest(4, 0, 4, false, kInputValue, 1.1 * kExpectedOutput,
                 0.9 * kExpectedOutput);
 }
 
 
 
 
-TEST_F(MixingTest, DISABLED_VerifySaturationProtection) {
+TEST_F(MixingTest, VerifySaturationProtection) {
   const int16_t kInputValue = 20000;
   const int16_t kExpectedOutput = kLimiterHeadroom;
   
   ASSERT_GT(kInputValue * 3, kInt16Max);
   ASSERT_LT(1.1 * kExpectedOutput, kInt16Max);
-  RunMixingTest(3, 0, 3, kInputValue, 1.1 * kExpectedOutput,
+  RunMixingTest(3, 0, 3, false, kInputValue, 1.1 * kExpectedOutput,
                0.9 * kExpectedOutput);
 }
 
-TEST_F(MixingTest, DISABLED_SaturationProtectionHasNoEffectOnOneChannel) {
+TEST_F(MixingTest, SaturationProtectionHasNoEffectOnOneChannel) {
   const int16_t kInputValue = kInt16Max;
   const int16_t kExpectedOutput = kInt16Max;
   
   ASSERT_GT(0.95 * kExpectedOutput, kLimiterHeadroom);
   
-  RunMixingTest(1, 0, 1, kInputValue, kExpectedOutput,
+  RunMixingTest(1, 0, 1, false, kInputValue, kExpectedOutput,
                 0.95 * kExpectedOutput);
 }
 
-TEST_F(MixingTest, DISABLED_VerifyAnonymousAndNormalParticipantMixing) {
+TEST_F(MixingTest, VerifyAnonymousAndNormalParticipantMixing) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 2;
-  RunMixingTest(1, 1, 1, kInputValue, 1.1 * kExpectedOutput,
+  RunMixingTest(1, 1, 1, false, kInputValue, 1.1 * kExpectedOutput,
                 0.9 * kExpectedOutput);
 }
 
-TEST_F(MixingTest, DISABLED_AnonymousParticipantsAreAlwaysMixed) {
+TEST_F(MixingTest, AnonymousParticipantsAreAlwaysMixed) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 4;
-  RunMixingTest(3, 1, 3, kInputValue, 1.1 * kExpectedOutput,
+  RunMixingTest(3, 1, 3, false, kInputValue, 1.1 * kExpectedOutput,
                 0.9 * kExpectedOutput);
 }
 
-TEST_F(MixingTest, DISABLED_VerifyStereoAndMonoMixing) {
+TEST_F(MixingTest, VerifyStereoAndMonoMixing) {
   const int16_t kInputValue = 1000;
   const int16_t kExpectedOutput = kInputValue * 2;
-  RunMixingTest(2, 0, 1, kInputValue, 1.1 * kExpectedOutput,
-                0.9 * kExpectedOutput);
+  RunMixingTest(2, 0, 1, false, kInputValue, 1.1 * kExpectedOutput,
+                
+                0.8 * kExpectedOutput);
 }
 
 }  

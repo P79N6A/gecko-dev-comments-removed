@@ -37,6 +37,8 @@ class DefaultTemporalLayers : public TemporalLayers {
 
   virtual void FrameEncoded(unsigned int size, uint32_t timestamp) {}
 
+  virtual int CurrentLayerId() const;
+
  private:
   enum TemporalReferences {
     

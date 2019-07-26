@@ -17,6 +17,8 @@
 
 namespace webrtc {
 
+namespace acm2 {
+
 #ifndef WEBRTC_CODEC_ILBC
 
 ACMILBC::ACMILBC(int16_t ) : encoder_inst_ptr_(NULL) {}
@@ -137,5 +139,7 @@ int16_t ACMILBC::SetBitRateSafe(const int32_t rate) {
 }
 
 #endif
+
+}  
 
 }  
