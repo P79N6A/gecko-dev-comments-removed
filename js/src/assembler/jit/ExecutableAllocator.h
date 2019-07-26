@@ -121,8 +121,7 @@ public:
     void release(bool willDestroy = false)
     {
         JS_ASSERT(m_refCount != 0);
-        
-        
+        JS_ASSERT_IF(willDestroy, m_refCount == 1);
         if (--m_refCount == 0)
             js_delete(this);
     }
