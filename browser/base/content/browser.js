@@ -2530,8 +2530,7 @@ function getWebNavigation()
 
 function BrowserReloadWithFlags(reloadFlags) {
   let url = gBrowser.currentURI.spec;
-  if (gBrowser._updateBrowserRemoteness(gBrowser.selectedBrowser,
-                                        gBrowser._shouldBrowserBeRemote(url))) {
+  if (gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, url)) {
     
     
     

@@ -2745,6 +2745,12 @@ let SessionStoreInternal = {
         pageStyle: tabData.pageStyle || null
       });
 
+      
+      
+      let activePageData = tabData.entries[activeIndex] || null;
+      let uri = activePageData ? activePageData.url || null : null;
+      tabbrowser.updateBrowserRemoteness(browser, uri);
+
       browser.messageManager.sendAsyncMessage("SessionStore:restoreHistory",
                                               {tabData: tabData, epoch: epoch});
 
