@@ -58,6 +58,9 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
   NS_ENSURE_ARG_POINTER(aInStr);
 
   
+  
+
+  
   if (*aContainer) {
     NS_ABORT_IF_FALSE((*aContainer)->GetType() == imgIContainer::TYPE_RASTER,
                       "wrong type of imgIContainer for decoding into");
@@ -98,7 +101,7 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
   "WriteToRasterImage should consume everything or the image must be in error!");
 
   
-  rv = image->SourceDataComplete();
+  rv = image->OnImageDataComplete(nullptr, nullptr, NS_OK);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

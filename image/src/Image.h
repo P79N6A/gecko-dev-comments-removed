@@ -8,6 +8,8 @@
 
 #include "imgIContainer.h"
 #include "imgStatusTracker.h"
+#include "nsIRequest.h"
+#include "nsIInputStream.h"
 
 namespace mozilla {
 namespace image {
@@ -88,12 +90,46 @@ public:
   uint32_t GetAnimationConsumers() { return mAnimationConsumers; }
 #endif
 
+  
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult OnImageDataAvailable(nsIRequest* aRequest,
+                                        nsISupports* aContext,
+                                        nsIInputStream* aInStr,
+                                        uint64_t aSourceOffset,
+                                        uint32_t aCount) = 0;
+
+  
+
+
+
+
+
+  virtual nsresult OnImageDataComplete(nsIRequest* aRequest,
+                                       nsISupports* aContext,
+                                       nsresult status) = 0;
+
+  
+
+
+
+  virtual nsresult OnNewSourceData() = 0;
+
   void SetInnerWindowID(uint64_t aInnerWindowId) {
     mInnerWindowId = aInnerWindowId;
   }
   uint64_t InnerWindowID() const { return mInnerWindowId; }
 
-  bool HasError() { return mError; }
+  bool HasError()    { return mError; }
+  void SetHasError() { mError = true; }
 
 protected:
   Image(imgStatusTracker* aStatusTracker);
