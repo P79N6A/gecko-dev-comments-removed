@@ -1299,10 +1299,10 @@ MacroAssemblerARM::ma_vpush(VFPRegister r)
 }
 
 
-void
+BufferOffset
 MacroAssemblerARM::ma_b(Label *dest, Assembler::Condition c, bool isPatchable)
 {
-    as_b(dest, c, isPatchable);
+    return as_b(dest, c, isPatchable);
 }
 
 void
@@ -4293,8 +4293,9 @@ CodeOffsetLabel
 MacroAssemblerARMCompat::toggledJump(Label *label)
 {
     
-    CodeOffsetLabel ret(nextOffset().getOffset());
-    ma_b(label, Always, true);
+    
+    BufferOffset b = ma_b(label, Always, true);
+    CodeOffsetLabel ret(b.getOffset());
     return ret;
 }
 
