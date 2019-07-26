@@ -38,6 +38,11 @@ DirectEvalFromIon(JSContext *cx,
 extern bool
 IsBuiltinEvalForScope(JSObject *scopeChain, const Value &v);
 
+class GlobalObject;
+
+extern bool
+IsBuiltinEvalForScope(GlobalObject *global, const Value &v);
+
 
 extern bool
 IsAnyBuiltinEval(JSFunction *fun);

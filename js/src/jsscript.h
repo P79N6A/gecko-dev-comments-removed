@@ -184,11 +184,13 @@ class Bindings
     bool bindingArrayUsingTemporaryStorage() const {
         return bindingArrayAndFlag_ & TEMPORARY_STORAGE_BIT;
     }
+
+  public:
+
     Binding *bindingArray() const {
         return reinterpret_cast<Binding *>(bindingArrayAndFlag_ & ~TEMPORARY_STORAGE_BIT);
     }
 
-  public:
     inline Bindings();
 
     
@@ -224,7 +226,14 @@ class Bindings
     bool bindingIsAliased(unsigned bindingIndex);
 
     
-    bool hasAnyAliasedBindings() const { return callObjShape_ && !callObjShape_->isEmptyShape(); }
+    bool hasAnyAliasedBindings() const {
+        if (!callObjShape_)
+            return false;
+
+        
+        AutoUnprotectCell unprotect(callObjShape_);
+        return !callObjShape_->isEmptyShape();
+    }
 
     void trace(JSTracer *trc);
 };
@@ -428,6 +437,10 @@ class ScriptSourceObject : public JSObject
     static ScriptSourceObject *create(ExclusiveContext *cx, ScriptSource *source);
 
     ScriptSource *source() {
+        
+        AutoUnprotectCell unprotect0(this);
+        AutoUnprotectCell unprotect1(lastProperty());
+        AutoUnprotectCell unprotect2(lastProperty()->base());
         return static_cast<ScriptSource *>(getReservedSlot(SOURCE_SLOT).toPrivate());
     }
 
@@ -469,10 +482,31 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     js::Bindings    bindings;   
 
 
+    bool getHasAnyAliasedBindings() const {
+        js::AutoUnprotectCell unprotect(this);
+        return bindings.hasAnyAliasedBindings();
+    }
+
+    js::Binding *bindingArray() const {
+        js::AutoUnprotectCell unprotect(this);
+        return bindings.bindingArray();
+    }
+
+    unsigned numArgs() const {
+        js::AutoUnprotectCell unprotect(this);
+        return bindings.numArgs();
+    }
+
     
 
   public:
     jsbytecode      *code;      
+
+    jsbytecode *getCode() {
+        js::AutoUnprotectCell unprotect(this);
+        return code;
+    }
+
     uint8_t         *data;      
 
 
@@ -510,19 +544,45 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
   public:
     uint32_t        length;     
 
+    uint32_t getLength() {
+        js::AutoUnprotectCell unprotect(this);
+        return length;
+    }
+
     uint32_t        dataSize;   
 
     uint32_t        lineno;     
+
+    uint32_t getLineno() {
+        js::AutoUnprotectCell unprotect(this);
+        return lineno;
+    }
+
     uint32_t        column;     
 
     uint32_t        mainOffset; 
 
+
+    uint32_t getMainOffset() {
+        js::AutoUnprotectCell unprotect(this);
+        return mainOffset;
+    }
 
     uint32_t        natoms;     
 
     
     uint32_t        sourceStart;
     uint32_t        sourceEnd;
+
+    uint32_t getSourceStart() {
+        js::AutoUnprotectCell unprotect(this);
+        return sourceStart;
+    }
+
+    uint32_t getSourceEnd() {
+        js::AutoUnprotectCell unprotect(this);
+        return sourceEnd;
+    }
 
   private:
     uint32_t        useCount;   
@@ -549,10 +609,26 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     uint16_t        nfixed;     
 
 
+    uint16_t getNfixed() {
+        js::AutoUnprotectCell unprotect(this);
+        return nfixed;
+    }
+
     uint16_t        nTypeSets;  
 
 
+    uint16_t getNumTypeSets() {
+        js::AutoUnprotectCell unprotect(this);
+        return nTypeSets;
+    }
+
     uint16_t        nslots;     
+
+    uint16_t getNslots() {
+        js::AutoUnprotectCell unprotect(this);
+        return nslots;
+    }
+
     uint16_t        staticLevel;
 
     
@@ -584,20 +660,62 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
   public:
     bool            noScriptRval:1; 
 
+
+    bool getNoScriptRval() const {
+        js::AutoUnprotectCell unprotect(this);
+        return noScriptRval;
+    }
+
     bool            savedCallerFun:1; 
     bool            strict:1; 
+
+    bool getStrict() const {
+        js::AutoUnprotectCell unprotect(this);
+        return strict;
+    }
+
     bool            explicitUseStrict:1; 
     bool            compileAndGo:1;   
+
+    bool getCompileAndGo() const {
+        js::AutoUnprotectCell unprotect(this);
+        return compileAndGo;
+    }
+
     bool            selfHosted:1;     
     bool            bindingsAccessedDynamically:1; 
     bool            funHasExtensibleScope:1;       
+
+    bool getFunHasExtensibleScope() const {
+        js::AutoUnprotectCell unprotect(this);
+        return funHasExtensibleScope;
+    }
+
     bool            funNeedsDeclEnvObject:1;       
+
+    bool getFunNeedsDeclEnvObject() const {
+        js::AutoUnprotectCell unprotect(this);
+        return funNeedsDeclEnvObject;
+    }
+
     bool            funHasAnyAliasedFormal:1;      
+
+    bool getFunHasAnyAliasedFormal() const {
+        js::AutoUnprotectCell unprotect(this);
+        return funHasAnyAliasedFormal;
+    }
+
     bool            warnedAboutUndefinedProp:1; 
 
 
     bool            hasSingletons:1;  
     bool            treatAsRunOnce:1; 
+
+    bool getTreatAsRunOnce() const {
+        js::AutoUnprotectCell unprotect(this);
+        return treatAsRunOnce;
+    }
+
     bool            hasRunOnce:1;     
     bool            hasBeenCloned:1;  
     bool            isActiveEval:1;   
@@ -609,24 +727,64 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     
     bool usesArgumentsAndApply:1;
 
+    bool getUsesArgumentsAndApply() const {
+        js::AutoUnprotectCell unprotect(this);
+        return usesArgumentsAndApply;
+    }
+
     
 
 
 
     bool            shouldCloneAtCallsite:1;
+
+    bool getShouldCloneAtCallsite() const {
+        js::AutoUnprotectCell unprotect(this);
+        return shouldCloneAtCallsite;
+    }
+
     bool            isCallsiteClone:1; 
     bool            shouldInline:1;    
+
+    bool getShouldInline() const {
+        js::AutoUnprotectCell unprotect(this);
+        return shouldInline;
+    }
+
     bool            uninlineable:1;    
-#ifdef JS_ION
+
+    bool getUninlineable() const {
+        js::AutoUnprotectCell unprotect(this);
+        return uninlineable;
+    }
+
     bool            failedBoundsCheck:1; 
+
+    bool getFailedBoundsCheck() const {
+        js::AutoUnprotectCell unprotect(this);
+        return failedBoundsCheck;
+    }
+
     bool            failedShapeGuard:1; 
+
+    bool getFailedShapeGuard() const {
+        js::AutoUnprotectCell unprotect(this);
+        return failedShapeGuard;
+    }
+
     bool            hadFrequentBailouts:1;
-#else
-    bool            failedBoundsCheckPad:1;
-    bool            failedShapeGuardPad:1;
-    bool            hadFrequentBailoutsPad:1;
-#endif
+
+    bool getHadFrequentBailouts() const {
+        js::AutoUnprotectCell unprotect(this);
+        return hadFrequentBailouts;
+    }
+
     bool            invalidatedIdempotentCache:1; 
+
+    bool getInvalidatedIdempotentCache() const {
+        js::AutoUnprotectCell unprotect(this);
+        return invalidatedIdempotentCache;
+    }
 
     
     
@@ -678,11 +836,14 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     void setVersion(JSVersion v) { version = v; }
 
     
-    bool argumentsHasVarBinding() const { return argsHasVarBinding_; }
+    bool argumentsHasVarBinding() const {
+        js::AutoUnprotectCell unprotect(this);
+        return argsHasVarBinding_;
+    }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
     void setArgumentsHasVarBinding();
     bool argumentsAliasesFormals() const {
-        return argumentsHasVarBinding() && !strict;
+        return argumentsHasVarBinding() && !getStrict();
     }
 
     js::GeneratorKind generatorKind() const {
@@ -709,7 +870,10 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
     bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
-    bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
+    bool needsArgsObj() const {
+        js::AutoUnprotectCell unprotect(this);
+        JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_;
+    }
     void setNeedsArgsObj(bool needsArgsObj);
     static bool argumentsOptimizationFailed(JSContext *cx, js::HandleScript script);
 
@@ -723,7 +887,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
     bool argsObjAliasesFormals() const {
-        return needsArgsObj() && !strict;
+        return needsArgsObj() && !getStrict();
     }
 
     bool hasAnyIonScript() const {
@@ -734,6 +898,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         return ion && ion != ION_DISABLED_SCRIPT && ion != ION_COMPILING_SCRIPT;
     }
     bool canIonCompile() const {
+        js::AutoUnprotectCellUnderCompilationLock unprotect(this);
         return ion != ION_DISABLED_SCRIPT;
     }
 
@@ -759,6 +924,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     bool hasBaselineScript() const {
+        js::AutoUnprotectCellUnderCompilationLock unprotect(this);
         return baseline && baseline != BASELINE_DISABLED_SCRIPT;
     }
     bool canBaselineCompile() const {
@@ -766,6 +932,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
     js::jit::BaselineScript *baselineScript() const {
         JS_ASSERT(hasBaselineScript());
+        js::AutoUnprotectCellUnderCompilationLock unprotect(this);
         return baseline;
     }
     inline void setBaselineScript(js::jit::BaselineScript *baselineScript);
@@ -777,6 +944,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     bool canParallelIonCompile() const {
+        js::AutoUnprotectCellUnderCompilationLock unprotect(this);
         return parallelIon != ION_DISABLED_SCRIPT;
     }
 
@@ -817,7 +985,10 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
-    JSFunction *function() const { return function_; }
+    JSFunction *function() const {
+        js::AutoUnprotectCell unprotect(this);
+        return function_;
+    }
     inline void setFunction(JSFunction *fun);
 
     JSFunction *originalFunction() const;
@@ -831,7 +1002,10 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     js::ScriptSourceObject *sourceObject() const;
     js::ScriptSource *scriptSource() const { return sourceObject()->source(); }
     JSPrincipals *originPrincipals() const { return scriptSource()->originPrincipals(); }
-    const char *filename() const { return scriptSource()->filename(); }
+    const char *filename() const {
+        js::AutoUnprotectCell unprotect(this);
+        return scriptSource()->filename();
+    }
 
   public:
 
@@ -865,6 +1039,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     
     JSObject *enclosingStaticScope() const {
+        js::AutoUnprotectCell unprotect(this);
         if (isCallsiteClone)
             return nullptr;
         return enclosingScopeOrOriginalFunction_;
@@ -887,7 +1062,11 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     bool makeAnalysis(JSContext *cx);
 
   public:
-    uint32_t getUseCount() const  { return useCount; }
+    uint32_t getUseCount() const {
+        
+        js::AutoUnprotectCell unprotect(this);
+        return useCount;
+    }
     uint32_t incUseCount(uint32_t amount = 1) { return useCount += amount; }
     uint32_t *addressOfUseCount() { return &useCount; }
     static size_t offsetOfUseCount() { return offsetof(JSScript, useCount); }
@@ -917,10 +1096,14 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     uint32_t numNotes();  
 
     
-    jssrcnote *notes() { return (jssrcnote *)(code + length); }
+    jssrcnote *notes() { return (jssrcnote *)(getCode() + getLength()); }
 
-    bool hasArray(ArrayKind kind)           { return (hasArrayBits & (1 << kind)); }
-    void setHasArray(ArrayKind kind)        { hasArrayBits |= (1 << kind); }
+    bool hasArray(ArrayKind kind) {
+        js::AutoUnprotectCell unprotect(this);
+        return (hasArrayBits & (1 << kind));
+    }
+
+    void setHasArray(ArrayKind kind) { hasArrayBits |= (1 << kind); }
     void cloneHasArray(JSScript *script) { hasArrayBits = script->hasArrayBits; }
 
     bool hasConsts()        { return hasArray(CONSTS);      }
@@ -939,21 +1122,25 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     js::ConstArray *consts() {
         JS_ASSERT(hasConsts());
+        js::AutoUnprotectCell unprotect(this);
         return reinterpret_cast<js::ConstArray *>(data + constsOffset());
     }
 
     js::ObjectArray *objects() {
         JS_ASSERT(hasObjects());
+        js::AutoUnprotectCell unprotect(this);
         return reinterpret_cast<js::ObjectArray *>(data + objectsOffset());
     }
 
     js::ObjectArray *regexps() {
         JS_ASSERT(hasRegexps());
+        js::AutoUnprotectCell unprotect(this);
         return reinterpret_cast<js::ObjectArray *>(data + regexpsOffset());
     }
 
     js::TryNoteArray *trynotes() {
         JS_ASSERT(hasTrynotes());
+        js::AutoUnprotectCell unprotect(this);
         return reinterpret_cast<js::TryNoteArray *>(data + trynotesOffset());
     }
 
@@ -965,6 +1152,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     bool hasLoops();
 
     js::HeapPtrAtom &getAtom(size_t index) const {
+        js::AutoUnprotectCell unprotect(this);
         JS_ASSERT(index < natoms);
         return atoms[index];
     }
@@ -984,6 +1172,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
 
     JSObject *getObject(size_t index) {
+        js::AutoUnprotectCell unprotect(this);
         js::ObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
@@ -1316,6 +1505,7 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
     }
 
     bool usesArgumentsAndApply() const {
+        AutoUnprotectCell unprotect(this);
         return usesArgumentsAndApply_;
     }
     void setUsesArgumentsAndApply() {
@@ -1340,9 +1530,11 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
         return sourceObject()->source();
     }
     uint32_t begin() const {
+        AutoUnprotectCell unprotect(this);
         return begin_;
     }
     uint32_t end() const {
+        AutoUnprotectCell unprotect(this);
         return end_;
     }
     uint32_t lineno() const {

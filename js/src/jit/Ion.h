@@ -87,6 +87,12 @@ struct IonOptions
     
     
     
+    bool checkThreadSafety;
+
+    
+    
+    
+    
     
     bool assertGraphConsistency;
 

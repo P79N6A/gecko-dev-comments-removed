@@ -46,6 +46,8 @@
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 
+using mozilla::Maybe;
+
 using namespace js;
 using namespace js::jit;
 
@@ -1275,7 +1277,7 @@ OptimizeMIR(MIRGenerator *mir)
         
         
         JSScript *script = mir->info().script();
-        if (!script || !script->hadFrequentBailouts) {
+        if (!script || !script->getHadFrequentBailouts()) {
             LICM licm(mir, graph);
             if (!licm.analyze())
                 return false;
@@ -1657,6 +1659,15 @@ IonCompile(JSContext *cx, JSScript *script,
     RootedScript builderScript(cx, builder->script());
     IonSpewNewFunction(graph, builderScript);
 
+    Maybe<AutoProtectHeapForCompilation> protect;
+    if (js_IonOptions.checkThreadSafety &&
+        cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL &&
+        !cx->runtime()->profilingScripts &&
+        !cx->runtime()->spsProfiler.enabled())
+    {
+        protect.construct(cx->runtime());
+    }
+
     bool succeeded = builder->build();
     builder->clearForBackEnd();
 
@@ -1691,6 +1702,9 @@ IonCompile(JSContext *cx, JSScript *script,
         IonSpew(IonSpew_Abort, "Failed during back-end compilation.");
         return AbortReason_Disable;
     }
+
+    if (!protect.empty())
+        protect.destroy();
 
     bool success = codegen->link(cx, builder->constraints());
 

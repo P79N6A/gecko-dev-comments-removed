@@ -26,9 +26,9 @@ Bindings::Bindings()
 
 inline
 AliasedFormalIter::AliasedFormalIter(JSScript *script)
-  : begin_(script->bindings.bindingArray()),
+  : begin_(script->bindingArray()),
     p_(begin_),
-    end_(begin_ + (script->funHasAnyAliasedFormal ? script->bindings.numArgs() : 0)),
+    end_(begin_ + (script->getFunHasAnyAliasedFormal() ? script->numArgs() : 0)),
     slot_(CallObject::RESERVED_SLOTS)
 {
     settle();
@@ -98,6 +98,7 @@ JSScript::global() const
 
 
 
+    js::AutoUnprotectCell unprotect(this);
     return *compartment()->maybeGlobal();
 }
 
