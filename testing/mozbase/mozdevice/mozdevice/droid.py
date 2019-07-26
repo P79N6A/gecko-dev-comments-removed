@@ -19,7 +19,7 @@ class DroidMixin(object):
         return []
 
     def launchApplication(self, appName, activityName, intent, url=None,
-                          extras=None):
+                          extras=None, wait=True, failIfRunning=True):
         """
         Launches an Android application
 
@@ -28,14 +28,20 @@ class DroidMixin(object):
         :param intent: Intent to launch application with
         :param url: URL to open
         :param extras: Dictionary of extra arguments to launch application with
+        :param wait: If True, wait for application to start before returning
+        :param failIfRunning: Raise an exception if instance of application is already running
         """
+
         
-        if self.processExist(appName):
+        
+        
+        
+        if failIfRunning and self.processExist(appName):
             raise DMError("Only one instance of an application may be running "
                           "at once")
 
         acmd = [ "am", "start" ] + self._getExtraAmStartArgs() + \
-            ["-W", "-n", "%s/%s" % (appName, activityName)]
+            ["-W" if wait else '', "-n", "%s/%s" % (appName, activityName)]
 
         if intent:
             acmd.extend(["-a", intent])
@@ -64,7 +70,8 @@ class DroidMixin(object):
         raise DMError("Unable to launch application (shell output: '%s')" % shellOutput.read())
 
     def launchFennec(self, appName, intent="android.intent.action.VIEW",
-                     mozEnv=None, extraArgs=None, url=None):
+                     mozEnv=None, extraArgs=None, url=None, wait=True,
+                     failIfRunning=True):
         """
         Convenience method to launch Fennec on Android with various debugging
         arguments
@@ -74,6 +81,8 @@ class DroidMixin(object):
         :param mozEnv: Mozilla specific environment to pass into application
         :param extraArgs: Extra arguments to be parsed by fennec
         :param url: URL to open
+        :param wait: If True, wait for application to start before returning
+        :param failIfRunning: Raise an exception if instance of application is already running
         """
         extras = {}
 
@@ -88,7 +97,8 @@ class DroidMixin(object):
         if extraArgs:
             extras['args'] = " ".join(extraArgs)
 
-        self.launchApplication(appName, ".App", intent, url=url, extras=extras)
+        self.launchApplication(appName, ".App", intent, url=url, extras=extras,
+                               wait=wait, failIfRunning=failIfRunning)
 
 class DroidADB(DeviceManagerADB, DroidMixin):
 
@@ -101,11 +111,11 @@ class DroidADB(DeviceManagerADB, DroidMixin):
         
         m = re.search('mFocusedApp(.+)/', data)
         if m:
-             line = m.group(0)
-             
-             m = re.search('(\S+)/$', line)
-             if m:
-                 package = m.group(1)
+            line = m.group(0)
+            
+            m = re.search('(\S+)/$', line)
+            if m:
+                package = m.group(1)
         return package
 
 class DroidSUT(DeviceManagerSUT, DroidMixin):
