@@ -3,8 +3,8 @@
 
 
 
-#ifndef nsXPathResult_h__
-#define nsXPathResult_h__
+#ifndef mozilla_dom_XPathResult_h
+#define mozilla_dom_XPathResult_h
 
 #include "txExprResult.h"
 #include "nsIDOMXPathResult.h"
@@ -34,21 +34,24 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXPathResult, NS_IXPATHRESULT_IID)
 
+namespace mozilla {
+namespace dom {
 
 
 
-class nsXPathResult MOZ_FINAL : public nsIDOMXPathResult,
-                                public nsStubMutationObserver,
-                                public nsIXPathResult
+
+class XPathResult MOZ_FINAL : public nsIDOMXPathResult,
+                              public nsStubMutationObserver,
+                              public nsIXPathResult
 {
 public:
-    nsXPathResult();
-    nsXPathResult(const nsXPathResult &aResult);
-    ~nsXPathResult();
+    XPathResult();
+    XPathResult(const XPathResult &aResult);
+    ~XPathResult();
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPathResult, nsIDOMXPathResult)
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(XPathResult, nsIDOMXPathResult)
 
     
     NS_DECL_NSIDOMXPATHRESULT
@@ -110,4 +113,7 @@ private:
     nsString mStringResult;
 };
 
-#endif
+} 
+} 
+
+#endif 
