@@ -3,4 +3,4 @@
 
 
 
-pref("datareporting.healthreport.about.reportUrl", "https://fhr.cdn.mozilla.net/%LOCALE%/");
+pref("datareporting.healthreport.about.reportUrl", "https://fhr.cdn.mozilla.net/%LOCALE%/mobile/");
