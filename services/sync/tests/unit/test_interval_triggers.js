@@ -270,7 +270,7 @@ add_identity_test(this, function test_back_triggers_sync() {
 
   
   scheduler.idle = true;
-  scheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
+  scheduler.observe(null, "active", Svc.Prefs.get("scheduler.idleTime"));
   do_check_false(scheduler.idle);
 
   
@@ -291,7 +291,7 @@ add_identity_test(this, function test_back_triggers_sync() {
   });
 
   scheduler.idle = true;
-  scheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
+  scheduler.observe(null, "active", Svc.Prefs.get("scheduler.idleTime"));
   do_check_false(scheduler.idle);
   yield deferred.promise;
 });

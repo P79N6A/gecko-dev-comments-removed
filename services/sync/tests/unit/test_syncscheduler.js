@@ -639,11 +639,11 @@ add_identity_test(this, function test_back_triggersSync() {
   });
 
   
-  scheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
+  scheduler.observe(null, "active", Svc.Prefs.get("scheduler.idleTime"));
   yield deferred.promise;
 });
 
-add_identity_test(this, function test_back_triggersSync_observesBackoff() {
+add_identity_test(this, function test_active_triggersSync_observesBackoff() {
   
   do_check_false(scheduler.idle);
 
@@ -670,7 +670,7 @@ add_identity_test(this, function test_back_triggersSync_observesBackoff() {
   }, IDLE_OBSERVER_BACK_DELAY * 1.5, {}, "timer");
 
   
-  scheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
+  scheduler.observe(null, "active", Svc.Prefs.get("scheduler.idleTime"));
   yield deferred.promise;
 });
 
@@ -691,7 +691,7 @@ add_identity_test(this, function test_back_debouncing() {
   Svc.Obs.add("weave:service:login:start", onLoginStart);
 
   
-  scheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
+  scheduler.observe(null, "active", Svc.Prefs.get("scheduler.idleTime"));
   scheduler.observe(null, "idle", Svc.Prefs.get("scheduler.idleTime"));
 
   let deferred = Promise.defer();
