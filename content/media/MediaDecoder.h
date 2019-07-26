@@ -226,39 +226,6 @@ static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 #undef GetCurrentTime
 #endif
 
-
-
-struct SeekTarget {
-  enum Type {
-    Invalid,
-    PrevSyncPoint,
-    Accurate
-  };
-  SeekTarget()
-    : mTime(-1.0)
-    , mType(SeekTarget::Invalid)
-  {
-  }
-  SeekTarget(int64_t aTimeUsecs, Type aType)
-    : mTime(aTimeUsecs)
-    , mType(aType)
-  {
-  }
-  bool IsValid() const {
-    return mType != SeekTarget::Invalid;
-  }
-  void Reset() {
-    mTime = -1;
-    mType = SeekTarget::Invalid;
-  }
-  
-  int64_t mTime;
-  
-  
-  
-  Type mType;
-};
-
 class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
 {
@@ -343,9 +310,7 @@ public:
   virtual double GetCurrentTime();
 
   
-  
-  
-  virtual nsresult Seek(double aTime, SeekTarget::Type aSeekType);
+  virtual nsresult Seek(double aTime);
 
   
   
@@ -1141,7 +1106,7 @@ protected:
   
   
   
-  SeekTarget mRequestedSeekTarget;
+  double mRequestedSeekTime;
 
   
   
