@@ -267,7 +267,7 @@ public:
     
     
     static nsresult GenerateHostPort(const nsCString& host, int32_t port,
-                                     nsCString& hostLine);
+                                     nsACString& hostLine);
 
     bool GetPipelineAggressive()     { return mPipelineAggressive; }
     void GetMaxPipelineObjectSize(int64_t *outVal)
