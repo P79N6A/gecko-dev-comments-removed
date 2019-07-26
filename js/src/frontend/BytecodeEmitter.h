@@ -93,7 +93,8 @@ struct BytecodeEmitter
     };
     EmitSection prolog, main, *current;
 
-    Parser          *const parser;  
+    
+    Parser<FullParseHandler> *const parser;
 
     HandleScript    evalCaller;     
 
@@ -143,7 +144,7 @@ struct BytecodeEmitter
 
 
 
-    BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
+    BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
                     HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
                     unsigned lineno, bool selfHostingMode = false);
     bool init();

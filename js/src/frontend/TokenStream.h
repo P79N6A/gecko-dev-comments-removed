@@ -379,8 +379,6 @@ enum TokenStreamFlags
     TSF_IN_HTML_COMMENT = 0x2000
 };
 
-struct Parser;
-
 struct CompileError {
     JSContext *cx;
     JSErrorReport report;
@@ -408,13 +406,9 @@ StrictModeFromContext(JSContext *cx)
 
 
 
-
 class StrictModeGetter {
-    Parser *parser;
   public:
-    StrictModeGetter(Parser *p) : parser(p) { }
-
-    bool get() const;
+    virtual bool strictMode() = 0;
 };
 
 class TokenStream
@@ -489,17 +483,18 @@ class TokenStream
     
     
     
-    bool reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned errorNumber,
+    bool reportCompileErrorNumberVA(const TokenPos &pos, unsigned flags, unsigned errorNumber,
                                     va_list args);
-    bool reportStrictModeErrorNumberVA(ParseNode *pn, bool strictMode, unsigned errorNumber,
+    bool reportStrictModeErrorNumberVA(const TokenPos &pos, bool strictMode, unsigned errorNumber,
                                        va_list args);
-    bool reportStrictWarningErrorNumberVA(ParseNode *pn, unsigned errorNumber, va_list args);
+    bool reportStrictWarningErrorNumberVA(const TokenPos &pos, unsigned errorNumber,
+                                          va_list args);
 
   private:
     
     
     bool reportStrictModeError(unsigned errorNumber, ...);
-    bool strictMode() const { return strictModeGetter && strictModeGetter->get(); }
+    bool strictMode() const { return strictModeGetter && strictModeGetter->strictMode(); }
 
     void onError();
     static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
