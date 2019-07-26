@@ -60,7 +60,7 @@ enum BufferCapabilities {
 class SurfaceDescriptor;
 
 
-ipc::SharedMemory::SharedMemoryType OptimalShmemType();
+mozilla::ipc::SharedMemory::SharedMemoryType OptimalShmemType();
 bool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
 bool IsSurfaceDescriptorOwned(const SurfaceDescriptor& aDescriptor);
 bool ReleaseOwnedSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
@@ -84,20 +84,20 @@ ISurfaceAllocator() {}
 
 
   virtual bool AllocShmem(size_t aSize,
-                          ipc::SharedMemory::SharedMemoryType aType,
-                          ipc::Shmem* aShmem) = 0;
+                          mozilla::ipc::SharedMemory::SharedMemoryType aType,
+                          mozilla::ipc::Shmem* aShmem) = 0;
 
   
 
 
 
   virtual bool AllocUnsafeShmem(size_t aSize,
-                                ipc::SharedMemory::SharedMemoryType aType,
-                                ipc::Shmem* aShmem) = 0;
+                                mozilla::ipc::SharedMemory::SharedMemoryType aType,
+                                mozilla::ipc::Shmem* aShmem) = 0;
   
 
 
-  virtual void DeallocShmem(ipc::Shmem& aShmem) = 0;
+  virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem) = 0;
 
   
   virtual bool AllocSharedImageSurface(const gfxIntSize& aSize,
