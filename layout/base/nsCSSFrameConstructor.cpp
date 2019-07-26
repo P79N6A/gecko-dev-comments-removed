@@ -1252,10 +1252,10 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
   NS_ASSERTION(containingBlock,
                "Child list without containing block?");
 
-  if (aChildListID == nsIFrame::kFixedList &&
-      containingBlock->GetStyleDisplay()->HasTransform(containingBlock)) {
+  if (aChildListID == nsIFrame::kFixedList) {
     
-    aChildListID = nsIFrame::kAbsoluteList;
+    
+    aChildListID = containingBlock->GetAbsoluteListID();
   }
 
   
