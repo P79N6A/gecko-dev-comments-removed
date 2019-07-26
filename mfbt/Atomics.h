@@ -318,8 +318,6 @@ namespace detail {
 
 
 
-
-
 template<MemoryOrdering Order> struct Barrier;
 
 
@@ -371,6 +369,12 @@ struct IntrinsicMemoryOps
       Barrier<Order>::afterStore();
     }
     static T exchange(T& ptr, T val) {
+      
+      
+      
+      
+
+      Barrier<Order>::beforeStore();
       return __sync_lock_test_and_set(&ptr, val);
     }
 };
