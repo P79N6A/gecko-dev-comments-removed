@@ -1592,6 +1592,32 @@ GCMarker::stop()
     stack.reset();
 }
 
+bool
+GCMarker::saveGrayRoots(GrayRootVector &vec)
+{
+    if (grayFailed)
+        return false;
+
+    JS_ASSERT(vec.empty());
+    size_t len = grayRoots.length();
+    GrayRoot *buf = grayRoots.extractRawBuffer();
+    if (!buf)
+        return false;
+    vec.replaceRawBuffer(buf, len);
+    return true;
+}
+
+void
+GCMarker::restoreGrayRoots(GrayRootVector &vec)
+{
+    grayRoots.clearAndFree();
+
+    size_t len = vec.length();
+    GrayRoot *buf = vec.extractRawBuffer();
+    JS_ASSERT(buf); 
+    grayRoots.replaceRawBuffer(buf, len);
+}
+
 void
 GCMarker::reset()
 {
@@ -2756,11 +2782,6 @@ MarkGrayReferences(JSRuntime *rt)
 
 #ifdef DEBUG
 static void
-ValidateIncrementalMarking(JSRuntime *rt);
-#endif
-
-#ifdef DEBUG
-static void
 ValidateIncrementalMarking(JSRuntime *rt)
 {
     typedef HashMap<Chunk *, uintptr_t *, GCChunkHasher, SystemAllocPolicy> BitmapMap;
@@ -2783,13 +2804,9 @@ ValidateIncrementalMarking(JSRuntime *rt)
     }
 
     
-    WeakMapVector weakmaps;
-    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        if (!WeakMapBase::saveCompartmentWeakMapList(c, weakmaps))
-            return;
-    }
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
-        WeakMapBase::resetCompartmentWeakMapList(c);
+    GCMarker::GrayRootVector grayRoots;
+    if (!gcmarker->saveGrayRoots(grayRoots))
+        return;
 
     
 
@@ -2811,8 +2828,6 @@ ValidateIncrementalMarking(JSRuntime *rt)
     SliceBudget budget;
     rt->gcIncrementalState = MARK;
     rt->gcMarker.drainMarkStack(budget);
-    MarkWeakReferences(rt, gcstats::PHASE_SWEEP_MARK_WEAK);
-    MarkGrayReferences(rt);
 
     
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
@@ -2847,13 +2862,6 @@ ValidateIncrementalMarking(JSRuntime *rt)
 
                 JS_ASSERT_IF(bitmap->isMarked(cell, BLACK), incBitmap.isMarked(cell, BLACK));
 
-                
-
-
-
-
-                JS_ASSERT_IF(!bitmap->isMarked(cell, GRAY), !incBitmap.isMarked(cell, GRAY));
-
                 thing += Arena::thingSize(kind);
             }
         }
@@ -2862,14 +2870,20 @@ ValidateIncrementalMarking(JSRuntime *rt)
     }
 
     
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
-        WeakMapBase::resetCompartmentWeakMapList(c);
-    WeakMapBase::restoreCompartmentWeakMapLists(weakmaps);
+    gcmarker->restoreGrayRoots(grayRoots);
 
     rt->gcIncrementalState = state;
 }
-
 #endif
+
+static void
+EndMarkPhase(JSRuntime *rt)
+{
+#ifdef DEBUG
+    if (rt->gcIsIncremental && rt->gcValidate)
+        ValidateIncrementalMarking(rt);
+#endif
+}
 
 static void
 DropStringWrappers(JSRuntime *rt)
@@ -3244,11 +3258,6 @@ EndMarkingCompartmentGroup(JSRuntime *rt)
         JS_ASSERT(c->isGCMarkingGray());
         c->setGCState(JSCompartment::Mark);
     }
-
-#ifdef DEBUG
-    if (rt->gcIsIncremental && rt->gcValidate && rt->gcCompartmentGroupIndex == 0)
-        ValidateIncrementalMarking(rt);
-#endif
 
     JS_ASSERT(rt->gcMarker.isDrained());
 }
@@ -3862,6 +3871,8 @@ IncrementalCollectSlice(JSRuntime *rt,
             rt->gcLastMarkSlice = true;
             break;
         }
+
+        EndMarkPhase(rt);
 
         rt->gcIncrementalState = SWEEP;
 
