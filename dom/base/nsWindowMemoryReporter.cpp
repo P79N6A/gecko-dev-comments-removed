@@ -68,10 +68,15 @@ GetWindowURI(nsIDOMWindow *aWindow)
       do_QueryInterface(aWindow);
     NS_ENSURE_TRUE(scriptObjPrincipal, NULL);
 
-    nsIPrincipal *principal = scriptObjPrincipal->GetPrincipal();
-
-    if (principal) {
-      principal->GetURI(getter_AddRefs(uri));
+    
+    
+    
+    
+    if (pWindow->GetOuterWindow()) {
+      nsIPrincipal* principal = scriptObjPrincipal->GetPrincipal();
+      if (principal) {
+        principal->GetURI(getter_AddRefs(uri));
+      }
     }
   }
 
