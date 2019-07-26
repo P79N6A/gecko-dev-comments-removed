@@ -59,6 +59,9 @@ public class HomePager extends ViewPager {
     private LoadState mLoadState;
 
     
+    private OnPanelChangeListener mPanelChangedListener;
+
+    
     
     static final String LIST_TAG_HISTORY = "history";
     static final String LIST_TAG_BOOKMARKS = "bookmarks";
@@ -79,6 +82,18 @@ public class HomePager extends ViewPager {
 
     public interface OnNewTabsListener {
         public void onNewTabs(String[] urls);
+    }
+
+    
+
+
+    public interface OnPanelChangeListener {
+        
+
+
+
+
+        public void onPanelSelected(String panelId);
     }
 
     interface OnTitleClickListener {
@@ -257,6 +272,40 @@ public class HomePager extends ViewPager {
         }
     }
 
+    
+
+
+
+
+
+
+
+    public void showPanel(String panelId) {
+        if (!mVisible) {
+            return;
+        }
+
+        switch (mLoadState) {
+            case LOADING:
+                mInitialPanelId = panelId;
+                break;
+
+            case LOADED:
+                int position = mDefaultPageIndex;
+                if (panelId != null) {
+                    position = ((HomeAdapter) getAdapter()).getItemPosition(panelId);
+                }
+
+                if (position > -1) {
+                    setCurrentItem(position);
+                }
+                break;
+
+            default:
+                
+        }
+    }
+
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -382,6 +431,26 @@ public class HomePager extends ViewPager {
         }
     }
 
+    public void setOnPanelChangeListener(OnPanelChangeListener listener) {
+       mPanelChangedListener = listener;
+    }
+
+    
+
+
+
+
+    private void notifyPanelSelected(int position) {
+        if (mDecor != null) {
+            mDecor.onPageSelected(position);
+        }
+
+        if (mPanelChangedListener != null) {
+            final String panelId = ((HomeAdapter) getAdapter()).getPanelIdAtPosition(position);
+            mPanelChangedListener.onPanelSelected(panelId);
+        }
+    }
+
     private class ConfigLoaderCallbacks implements LoaderCallbacks<HomeConfig.State> {
         @Override
         public Loader<HomeConfig.State> onCreateLoader(int id, Bundle args) {
@@ -403,9 +472,7 @@ public class HomePager extends ViewPager {
     private class PageChangeListener implements ViewPager.OnPageChangeListener {
         @Override
         public void onPageSelected(int position) {
-            if (mDecor != null) {
-                mDecor.onPageSelected(position);
-            }
+            notifyPanelSelected(position);
 
             if (mHomeBanner != null) {
                 mHomeBanner.setActive(position == mDefaultPageIndex);

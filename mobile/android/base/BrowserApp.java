@@ -1543,7 +1543,9 @@ abstract public class BrowserApp extends GeckoApp
         animator.setUseHardwareLayer(false);
 
         mBrowserToolbar.startEditing(url, animator);
-        showHomePagerWithAnimator(animator);
+
+        final String panelId = selectedTab.getMostRecentHomePanel();
+        showHomePagerWithAnimator(panelId, animator);
 
         animator.start();
     }
@@ -1673,8 +1675,13 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         if (isAboutHome(tab)) {
-            final String pageId = AboutPages.getPageIdFromAboutHomeUrl(tab.getURL());
-            showHomePager(pageId);
+            String panelId = AboutPages.getPanelIdFromAboutHomeUrl(tab.getURL());
+            if (panelId == null) {
+                
+                
+                panelId = tab.getMostRecentHomePanel();
+            }
+            showHomePager(panelId);
 
             if (mDynamicToolbar.isEnabled()) {
                 mDynamicToolbar.setVisible(true, VisibilityTransition.ANIMATE);
@@ -1696,18 +1703,14 @@ abstract public class BrowserApp extends GeckoApp
         }
     }
 
-    private void showHomePager(String pageId) {
-        showHomePagerWithAnimator(pageId, null);
+    private void showHomePager(String panelId) {
+        showHomePagerWithAnimator(panelId, null);
     }
 
-    private void showHomePagerWithAnimator(PropertyAnimator animator) {
-        
-        
-        showHomePagerWithAnimator(null, animator);
-    }
-
-    private void showHomePagerWithAnimator(String pageId, PropertyAnimator animator) {
+    private void showHomePagerWithAnimator(String panelId, PropertyAnimator animator) {
         if (isHomePagerVisible()) {
+            
+            mHomePager.showPanel(panelId);
             return;
         }
 
@@ -1723,6 +1726,16 @@ abstract public class BrowserApp extends GeckoApp
         if (mHomePager == null) {
             final ViewStub homePagerStub = (ViewStub) findViewById(R.id.home_pager_stub);
             mHomePager = (HomePager) homePagerStub.inflate();
+
+            mHomePager.setOnPanelChangeListener(new HomePager.OnPanelChangeListener() {
+                @Override
+                public void onPanelSelected(String panelId) {
+                    final Tab currentTab = Tabs.getInstance().getSelectedTab();
+                    if (currentTab != null) {
+                        currentTab.setMostRecentHomePanel(panelId);
+                    }
+                }
+            });
 
             
             if (!getProfile().inGuestMode()) {
@@ -1744,7 +1757,7 @@ abstract public class BrowserApp extends GeckoApp
         mHomePagerContainer.setVisibility(View.VISIBLE);
         mHomePager.load(getSupportLoaderManager(),
                         getSupportFragmentManager(),
-                        pageId, animator);
+                        panelId, animator);
 
         
         hideWebContentOnPropertyAnimationEnd(animator);
