@@ -114,12 +114,22 @@ private:
   nsString mDevicePath;
   nsString mMsisdn;
   nsString mOperatorName;
-  SocketConnectionStatus mPrevSocketStatus;
 
   nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothTelephonyListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+
+  
+  
+  
+  
   nsRefPtr<BluetoothSocket> mSocket;
+
+  
+  
+  
+  nsRefPtr<BluetoothSocket> mHandsfreeSocket;
+  nsRefPtr<BluetoothSocket> mHeadsetSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
