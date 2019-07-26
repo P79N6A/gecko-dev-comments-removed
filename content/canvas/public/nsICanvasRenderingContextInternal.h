@@ -113,9 +113,6 @@ public:
   NS_IMETHOD SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions) { return NS_OK; }
 
   
-  virtual bool GetHitRegionRect(mozilla::dom::Element* aElement, nsRect& aRect) { return false; }
-
-  
   
   
 
