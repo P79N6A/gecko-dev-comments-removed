@@ -489,6 +489,13 @@ gfxPlatformGtk::GetPlatformCMSOutputProfile()
 
     Atom edidAtom, iccAtom;
     Display *dpy = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
+    
+    
+    
+    if (!dpy) {
+        return NULL;
+    }
+
     Window root = gdk_x11_get_default_root_xwindow();
 
     Atom retAtom;
