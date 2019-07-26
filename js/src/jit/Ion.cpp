@@ -515,6 +515,7 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
 static inline void
 FinishAllOffThreadCompilations(JSCompartment *comp)
 {
+#ifdef JS_THREADSAFE
     AutoLockWorkerThreadState lock;
     GlobalWorkerThreadState::IonBuilderVector &finished = WorkerThreadState().ionFinishedList();
 
@@ -525,6 +526,7 @@ FinishAllOffThreadCompilations(JSCompartment *comp)
             WorkerThreadState().remove(finished, &i);
         }
     }
+#endif
 }
 
  void
@@ -1578,6 +1580,7 @@ static const size_t BUILDER_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
 static inline bool
 OffThreadCompilationAvailable(JSContext *cx)
 {
+#ifdef JS_THREADSAFE
     
     
     
@@ -1592,6 +1595,9 @@ OffThreadCompilationAvailable(JSContext *cx)
         && WorkerThreadState().cpuCount > 1
         && cx->runtime()->gcIncrementalState == gc::NO_INCREMENTAL
         && !cx->runtime()->profilingScripts;
+#else
+    return false;
+#endif
 }
 
 static void
@@ -1849,9 +1855,12 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     if (script->length() > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
-        if (cx->runtime()->canUseParallelIonCompilation() &&
-            WorkerThreadState().cpuCount > 1)
-        {
+#ifdef JS_THREADSAFE
+        size_t cpuCount = WorkerThreadState().cpuCount;
+#else
+        size_t cpuCount = 1;
+#endif
+        if (cx->runtime()->canUseParallelIonCompilation() && cpuCount > 1) {
             
             
             
