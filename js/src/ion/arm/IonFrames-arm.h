@@ -157,7 +157,6 @@ class IonOsrFrameLayout : public IonJSFrameLayout
 
 class IonNativeExitFrameLayout;
 class IonOOLNativeGetterExitFrameLayout;
-class IonOOLPropertyOpExitFrameLayout;
 class IonDOMExitFrameLayout;
 
 
@@ -197,9 +196,6 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     inline bool isOOLNativeGetterExit() {
         return footer()->ionCode() == ION_FRAME_OOL_NATIVE_GETTER;
     }
-    inline bool isOOLPropertyOpExit() {
-        return footer()->ionCode() == ION_FRAME_OOL_PROPERTY_OP;
-    }
     inline bool isDomExit() {
         IonCode *code = footer()->ionCode();
         return
@@ -216,10 +212,6 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     inline IonOOLNativeGetterExitFrameLayout *oolNativeGetterExit() {
         JS_ASSERT(isOOLNativeGetterExit());
         return reinterpret_cast<IonOOLNativeGetterExitFrameLayout *>(footer());
-    }
-    inline IonOOLPropertyOpExitFrameLayout *oolPropertyOpExit() {
-        JS_ASSERT(isOOLPropertyOpExit());
-        return reinterpret_cast<IonOOLPropertyOpExitFrameLayout *>(footer());
     }
     inline IonDOMExitFrameLayout *DOMExit() {
         JS_ASSERT(isDomExit());
@@ -283,41 +275,6 @@ class IonOOLNativeGetterExitFrameLayout
     }
     inline uintptr_t argc() const {
         return 0;
-    }
-};
-
-class IonOOLPropertyOpExitFrameLayout
-{
-    IonExitFooterFrame footer_;
-    IonExitFrameLayout exit_;
-
-    
-    JSObject *obj_;
-
-    
-    jsid id_;
-
-    
-    
-    uint32_t vp0_;
-    uint32_t vp1_;
-
-  public:
-    static inline size_t Size() {
-        return sizeof(IonOOLPropertyOpExitFrameLayout);
-    }
-
-    static size_t offsetOfResult() {
-        return offsetof(IonOOLPropertyOpExitFrameLayout, vp0_);
-    }
-    inline Value *vp() {
-        return reinterpret_cast<Value*>(&vp0_);
-    }
-    inline jsid *id() {
-        return &id_;
-    }
-    inline JSObject **obj() {
-        return &obj_;
     }
 };
 
