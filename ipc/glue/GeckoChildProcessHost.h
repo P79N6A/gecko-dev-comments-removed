@@ -96,6 +96,11 @@ public:
   }
 #endif
 
+  
+
+
+
+  void Join();
 
 protected:
   GeckoProcessType mProcessType;

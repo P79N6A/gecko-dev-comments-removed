@@ -71,7 +71,16 @@ ForceQuitWatchdog(void* aParamPtr)
   if (paramPtr->timeoutSecs > 0 && paramPtr->timeoutSecs <= 30) {
     
     
-    sleep(paramPtr->timeoutSecs);
+    TimeStamp deadline =
+      (TimeStamp::Now() + TimeDuration::FromSeconds(paramPtr->timeoutSecs));
+    while (true) {
+      TimeDuration remaining = (deadline - TimeStamp::Now());
+      int sleepSeconds = int(remaining.ToSeconds());
+      if (sleepSeconds <= 0) {
+        break;
+      }
+      sleep(sleepSeconds);
+    }
   }
   hal::ShutdownMode mode = paramPtr->mode;
   delete paramPtr;

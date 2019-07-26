@@ -164,6 +164,10 @@ nsTArray<ContentParent*>* ContentParent::gNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::gPrivateContent;
 
 
+
+static bool sCanLaunchSubprocesses;
+
+
 static uint64_t gContentChildID = 1;
 
 
@@ -256,6 +260,8 @@ ContentParent::StartUp()
         
         MessageLoop::current()->PostIdleTask(FROM_HERE, NewRunnableFunction(FirstIdle));
     }
+
+    sCanLaunchSubprocesses = true;
 }
 
  void
@@ -263,6 +269,55 @@ ContentParent::ShutDown()
 {
     
     
+    sCanLaunchSubprocesses = false;
+}
+
+ void
+ContentParent::JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
+                                     Monitor* aMonitor, bool* aDone)
+{
+    const nsTArray<ContentParent*>& processes = *aProcesses;
+    for (uint32_t i = 0; i < processes.Length(); ++i) {
+        if (GeckoChildProcessHost* process = processes[i]->mSubprocess) {
+            process->Join();
+        }
+    }
+    {
+        MonitorAutoLock lock(*aMonitor);
+        *aDone = true;
+        lock.Notify();
+    }
+    
+}
+
+ void
+ContentParent::JoinAllSubprocesses()
+{
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsAutoTArray<ContentParent*, 8> processes;
+    GetAll(processes);
+    if (processes.IsEmpty()) {
+        printf_stderr("There are no live subprocesses.");
+        return;
+    }
+
+    printf_stderr("Subprocesses are still alive.  Doing emergency join.\n");
+
+    bool done = false;
+    Monitor monitor("mozilla.dom.ContentParent.JoinAllSubprocesses");
+    XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
+                                     NewRunnableFunction(
+                                         &ContentParent::JoinProcessesIOThread,
+                                         &processes, &monitor, &done));
+    {
+        MonitorAutoLock lock(monitor);
+        while (!done) {
+            lock.Wait();
+        }
+    }
+
+    sCanLaunchSubprocesses = false;
 }
 
  ContentParent*
@@ -324,6 +379,10 @@ PrivilegesForApp(mozIApplication* aApp)
  TabParent*
 ContentParent::CreateBrowserOrApp(const TabContext& aContext)
 {
+    if (!sCanLaunchSubprocesses) {
+        return nullptr;
+    }
+
     if (aContext.IsBrowserElement() || !aContext.HasOwnApp()) {
         if (ContentParent* cp = GetNewOrUsed(aContext.IsBrowserElement())) {
             nsRefPtr<TabParent> tp(new TabParent(aContext));

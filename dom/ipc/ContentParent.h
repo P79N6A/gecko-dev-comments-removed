@@ -71,6 +71,13 @@ public:
     static void StartUp();
     
     static void ShutDown();
+    
+
+
+
+
+
+    static void JoinAllSubprocesses();
 
     static ContentParent* GetNewOrUsed(bool aForBrowserElement = false);
 
@@ -135,6 +142,9 @@ private:
     static nsDataHashtable<nsStringHashKey, ContentParent*> *gAppContentParents;
     static nsTArray<ContentParent*>* gNonAppContentParents;
     static nsTArray<ContentParent*>* gPrivateContent;
+
+    static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
+                                      Monitor* aMonitor, bool* aDone);
 
     static void PreallocateAppProcess();
     static void DelayedPreallocateAppProcess();

@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -139,6 +140,12 @@ PowerManagerService::Restart()
   
   
   StartForceQuitWatchdog(eHalShutdownMode_Restart, mWatchdogTimeoutSecs);
+  
+  
+  
+  
+  ContentParent::JoinAllSubprocesses();
+
   
   SyncProfile();
 #ifdef XP_UNIX
