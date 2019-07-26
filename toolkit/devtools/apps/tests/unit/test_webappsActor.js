@@ -112,6 +112,44 @@ add_test(function testCloseApp() {
   });
 });
 
+
+
+
+let red1px =  "data:application/xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAMBAQAY3Y2wAAAAAElFTkSuQmCC";
+let blue1px = "data:application/xml;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12MwZDgHAAFlAQBDpjhLAAAAAElFTkSuQmCC";
+
+add_test(function testGetIcon() {
+  let manifestURL = APP_ORIGIN + "/manifest.webapp";
+  let request = {
+    type: "getIconAsDataURL",
+    manifestURL: manifestURL
+  };
+
+  webappActorRequest(request, function (aResponse) {
+    do_check_false("error" in aResponse);
+
+    
+    do_check_eq(aResponse.url, red1px);
+    run_next_test();
+  });
+});
+
+add_test(function testGetIconWithCustomSize() {
+  let manifestURL = APP_ORIGIN + "/manifest.webapp";
+  let request = {
+    type: "getIconAsDataURL",
+    manifestURL: manifestURL,
+    size: 64
+  };
+
+  webappActorRequest(request, function (aResponse) {
+    do_check_false("error" in aResponse);
+
+    do_check_eq(aResponse.url, blue1px);
+    run_next_test();
+  });
+});
+
 add_test(function testUninstall() {
   let origin = "app://" + gAppId;
   let manifestURL = origin + "/manifest.webapp";
@@ -143,7 +181,6 @@ add_test(function testUninstall() {
     do_check_false("error" in aResponse);
   });
 });
-
 
 function run_test() {
   setup();
