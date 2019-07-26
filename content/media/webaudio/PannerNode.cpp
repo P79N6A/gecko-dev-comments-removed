@@ -8,6 +8,7 @@
 #include "AudioNodeEngine.h"
 #include "AudioNodeStream.h"
 #include "AudioListener.h"
+#include "AudioBufferSourceNode.h"
 
 namespace mozilla {
 namespace dom {
@@ -179,6 +180,7 @@ PannerNode::PannerNode(AudioContext* aContext)
 
 PannerNode::~PannerNode()
 {
+  Context()->UnregisterPannerNode(this);
   DestroyMediaStream();
 }
 
@@ -415,6 +417,96 @@ PannerNodeEngine::ComputeConeGain()
 
   return gain;
 }
+
+float
+PannerNode::ComputeDopplerShift()
+{
+  double dopplerShift = 1.0; 
+
+  AudioListener* listener = Context()->Listener();
+
+  if (listener->DopplerFactor() > 0) {
+    
+    if (!mVelocity.IsZero() || !listener->Velocity().IsZero()) {
+      
+      ThreeDPoint sourceToListener = mPosition - listener->Velocity();
+
+      double sourceListenerMagnitude = sourceToListener.Magnitude();
+
+      double listenerProjection = sourceToListener.DotProduct(listener->Velocity()) / sourceListenerMagnitude;
+      double sourceProjection = sourceToListener.DotProduct(mVelocity) / sourceListenerMagnitude;
+
+      listenerProjection = -listenerProjection;
+      sourceProjection = -sourceProjection;
+
+      double scaledSpeedOfSound = listener->DopplerFactor() / listener->DopplerFactor();
+      listenerProjection = min(listenerProjection, scaledSpeedOfSound);
+      sourceProjection = min(sourceProjection, scaledSpeedOfSound);
+
+      dopplerShift = ((listener->SpeedOfSound() - listener->DopplerFactor() * listenerProjection) / (listener->SpeedOfSound() - listener->DopplerFactor() * sourceProjection));
+
+      WebAudioUtils::FixNaN(dopplerShift); 
+
+      
+      dopplerShift = min(dopplerShift, 16.);
+      dopplerShift = max(dopplerShift, 0.125);
+    }
+  }
+
+  return dopplerShift;
+}
+
+void
+PannerNode::FindConnectedSources()
+{
+  mSources.Clear();
+  std::set<AudioNode*> cycleSet;
+  FindConnectedSources(this, mSources, cycleSet);
+  for (unsigned i = 0; i < mSources.Length(); i++) {
+    mSources[i]->RegisterPannerNode(this);
+  }
+}
+
+void
+PannerNode::FindConnectedSources(AudioNode* aNode,
+                                 nsTArray<AudioBufferSourceNode*>& aSources,
+                                 std::set<AudioNode*>& aNodesSeen)
+{
+  if (!aNode) {
+    return;
+  }
+
+  const nsTArray<InputNode>& inputNodes = aNode->InputNodes();
+
+  for(unsigned i = 0; i < inputNodes.Length(); i++) {
+    
+    if (aNodesSeen.find(inputNodes[i].mInputNode) != aNodesSeen.end()) {
+      return;
+    }
+    aNodesSeen.insert(inputNodes[i].mInputNode);
+    
+    FindConnectedSources(inputNodes[i].mInputNode, aSources, aNodesSeen);
+
+    
+    AudioBufferSourceNode* node = inputNodes[i].mInputNode->AsAudioBufferSourceNode();
+    if (node) {
+      aSources.AppendElement(node);
+    }
+  }
+}
+
+void
+PannerNode::SendDopplerToSourcesIfNeeded()
+{
+  
+  
+  if (!(Context()->Listener()->Velocity().IsZero() && mVelocity.IsZero())) {
+    for(uint32_t i = 0; i < mSources.Length(); i++) {
+      mSources[i]->SendDopplerShiftToStream(ComputeDopplerShift());
+    }
+  }
+}
+
 
 }
 }
