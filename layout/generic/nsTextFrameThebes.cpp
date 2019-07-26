@@ -5,6 +5,8 @@
 
 
 
+#include "nsTextFrame.h"
+
 #include <cmath> 
 #include <cstdlib> 
 
@@ -13,6 +15,7 @@
 #include "mozilla/Likely.h"
 
 #include "nsCOMPtr.h"
+#include "nsBlockFrame.h"
 #include "nsHTMLParts.h"
 #include "nsCRT.h"
 #include "nsSplittableFrame.h"
@@ -44,7 +47,6 @@
 #include "nsFrameManager.h"
 #include "nsTextFrameTextRunCache.h"
 #include "nsExpirationTracker.h"
-#include "nsTextFrame.h"
 #include "nsUnicodeProperties.h"
 #include "nsUnicharUtilCIID.h"
 

@@ -11,7 +11,10 @@
 #include "nsFloatManager.h"
 #include "nsLineBox.h"
 #include "nsFrameList.h"
-#include "nsBlockFrame.h"
+#include "nsHTMLReflowState.h"
+
+class nsBlockFrame;
+class nsOverflowContinuationTracker;
 
   
 #define BRS_UNCONSTRAINEDHEIGHT   0x00000001
@@ -188,11 +191,7 @@ public:
   
   void SetupPushedFloatList();
   
-  void AppendPushedFloat(nsIFrame* aFloatCont) {
-    SetupPushedFloatList();
-    aFloatCont->AddStateBits(NS_FRAME_IS_PUSHED_FLOAT);
-    mPushedFloats->AppendFrame(mBlock, aFloatCont);
-  }
+  void AppendPushedFloat(nsIFrame* aFloatCont);
 
   
   nsOverflowContinuationTracker* mOverflowTracker;
