@@ -204,6 +204,15 @@ function testCompletion(hud) {
        return item.label != "length";
      }), "autocomplete results do contain length");
 
+  
+  input.value = "foo2Obj[0].";
+  input.setSelectionRange(11, 11);
+  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
+  yield undefined;
+
+  newItems = popup.getItems();
+  is(newItems.length, 0, "no items for foo2Obj[0]");
+
   testDriver = null;
   executeSoon(finishTest);
   yield undefined;

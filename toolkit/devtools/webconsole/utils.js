@@ -1043,7 +1043,12 @@ let DebuggerEnvironmentSupport = {
   getProperty: function(aObj, aName)
   {
     
-    let result = aObj.getVariable(aName);
+    let result = undefined;
+    try {
+      result = aObj.getVariable(aName);
+    } catch (ex) {
+      
+    }
     return result === undefined ? null : { value: result };
   },
 };
