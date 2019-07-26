@@ -71,7 +71,11 @@ let HighlighterActor = protocol.ActorClass({
 
 
   _supportsBoxModelHighlighter: function() {
-    return this._tabActor.browser && !!this._tabActor.browser.parentNode;
+    
+    
+    return this._tabActor.browser &&
+           !!this._tabActor.browser.parentNode &&
+           Services.appinfo.ID !== "{aa3c5121-dab2-40e2-81ca-7ea25febc110}";
   },
 
   destroy: function() {
