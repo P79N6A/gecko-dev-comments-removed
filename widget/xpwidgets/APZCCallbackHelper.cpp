@@ -4,6 +4,7 @@
 
 
 #include "APZCCallbackHelper.h"
+#include "gfxPlatform.h" 
 #include "mozilla/Preferences.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
@@ -71,7 +72,7 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
 
   
   
-  if (Preferences::GetBool("layers.force-tiles")) {
+  if (gfxPlatform::GetPrefLayersEnableTiles()) {
     displayPort =
       ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
                                         aFrameMetrics.LayersPixelsPerCSSPixel())

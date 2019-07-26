@@ -726,7 +726,7 @@ pref("layout.imagevisibility.enabled", true);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);
 
-pref("layers.force-tiles", true);
+pref("layers.enable-tiles", true);
 
 
 pref("browser.chrome.dynamictoolbar", true);
