@@ -646,7 +646,7 @@ private:
 
   bool IsStateMachineScheduled() const {
     AssertCurrentThreadInMonitor();
-    return !mTimeout.IsNull() || mRunAgain;
+    return !mTimeout.IsNull();
   }
 
   
@@ -688,8 +688,10 @@ private:
 
   
   
-  
   TimeStamp mTimeout;
+
+  
+  DebugOnly<bool> mInRunningStateMachine;
 
   
   
@@ -922,14 +924,6 @@ private:
 
   
   
-  bool mIsRunning;
-
-  
-  
-  bool mRunAgain;
-
-  
-  
   
   
   
@@ -939,13 +933,6 @@ private:
   
   
   bool mMinimizePreroll;
-
-  
-  
-  
-  
-  
-  bool mDispatchedRunEvent;
 
   
   

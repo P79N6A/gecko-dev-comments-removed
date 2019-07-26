@@ -160,6 +160,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
                                                    bool aRealTime) :
   mDecoder(aDecoder),
   mState(DECODER_STATE_DECODING_METADATA),
+  mInRunningStateMachine(false),
   mSyncPointInMediaStream(-1),
   mSyncPointInDecodedStream(-1),
   mResetPlayStartTime(false),
@@ -191,10 +192,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDispatchedEventToDecode(false),
   mStopAudioThread(true),
   mQuickBuffering(false),
-  mIsRunning(false),
-  mRunAgain(false),
   mMinimizePreroll(false),
-  mDispatchedRunEvent(false),
   mDecodeThreadWaiting(false),
   mRealTime(aRealTime),
   mEventManager(aDecoder),
@@ -2708,40 +2706,26 @@ nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
 
 nsresult MediaDecoderStateMachine::Run()
 {
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
-
-  return CallRunStateMachine();
+  
+  MOZ_ASSERT(false);
+  return NS_ERROR_FAILURE;
 }
 
 nsresult MediaDecoderStateMachine::CallRunStateMachine()
 {
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
-  
-  
-  mRunAgain = false;
-
-  
-  
-  mDispatchedRunEvent = false;
 
   
   if (mAudioCaptured) {
     StopAudioThread();
   }
 
+  MOZ_ASSERT(!mInRunningStateMachine, "State machine cycles must run in sequence!");
   mTimeout = TimeStamp();
-
-  mIsRunning = true;
+  mInRunningStateMachine = true;
   nsresult res = RunStateMachine();
-  mIsRunning = false;
-
-  if (mRunAgain && !mDispatchedRunEvent) {
-    mDispatchedRunEvent = true;
-    return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
-  }
-
+  mInRunningStateMachine = false;
   return res;
 }
 
@@ -2756,16 +2740,7 @@ void MediaDecoderStateMachine::TimeoutExpired()
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   NS_ASSERTION(OnStateMachineThread(), "Must be on state machine thread");
-  if (mIsRunning) {
-    mRunAgain = true;
-  } else if (!mDispatchedRunEvent) {
-    
-    
-    CallRunStateMachine();
-  }
-  
-  
-  
+  CallRunStateMachine();
 }
 
 void MediaDecoderStateMachine::ScheduleStateMachineWithLockAndWakeDecoder() {
@@ -2785,46 +2760,19 @@ nsresult MediaDecoderStateMachine::ScheduleStateMachine(int64_t aUsecs) {
   aUsecs = std::max<int64_t>(aUsecs, 0);
 
   TimeStamp timeout = TimeStamp::Now() + UsecsToDuration(aUsecs);
-  if (!mTimeout.IsNull()) {
-    if (timeout >= mTimeout) {
-      
-      
-      return NS_OK;
-    }
+  if (!mTimeout.IsNull() && timeout >= mTimeout) {
     
     
-    mTimer->Cancel();
+    return NS_OK;
   }
 
   uint32_t ms = static_cast<uint32_t>((aUsecs / USECS_PER_MS) & 0xFFFFFFFF);
-  if (mRealTime && ms > 40)
+  if (mRealTime && ms > 40) {
     ms = 40;
-  if (ms == 0) {
-    if (mIsRunning) {
-      
-      
-      mRunAgain = true;
-      return NS_OK;
-    } else if (!mDispatchedRunEvent) {
-      
-      
-      mDispatchedRunEvent = true;
-      return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
-    }
-    
-    
-    
-    return NS_OK;
   }
-
-  
-  
-  if (mRunAgain) {
-    return NS_OK;
-  }
-
   mTimeout = timeout;
-
+  
+  mTimer->Cancel();
   nsresult rv = mTimer->InitWithFuncCallback(mozilla::TimeoutExpired,
                                              this,
                                              ms,
