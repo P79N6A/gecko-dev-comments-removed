@@ -383,6 +383,12 @@ protected:
 
 
 
+  already_AddRefed<MediaDecoder> CreateDecoder(const nsACString& aMIMEType);
+
+  
+
+
+
 
   nsresult InitializeDecoderAsClone(MediaDecoder* aOriginal);
 
