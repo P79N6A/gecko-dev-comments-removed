@@ -103,10 +103,6 @@ public:
   
 
 
-  virtual void ReplaceWithDisabled() = 0;
-  
-
-
   virtual void Clear() = 0;
 
 protected:
@@ -193,15 +189,6 @@ public:
       mChunks.AppendElement()->SetNull(aDuration);
     }
     mDuration += aDuration;
-  }
-  virtual void ReplaceWithDisabled()
-  {
-    if (GetType() != AUDIO) {
-      MOZ_CRASH("Disabling unknown segment type");
-    }
-    TrackTicks duration = GetDuration();
-    Clear();
-    AppendNullData(duration);
   }
   virtual void Clear()
   {

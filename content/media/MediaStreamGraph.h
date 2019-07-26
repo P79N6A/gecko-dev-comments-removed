@@ -459,7 +459,7 @@ public:
 
   StreamBuffer::Track* EnsureTrack(TrackID aTrack, TrackRate aSampleRate);
 
-  void ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment, MediaSegment* aRawSegment = nullptr);
+  void ApplyTrackDisabling(TrackID aTrackID, MediaSegment* aSegment);
 
   DOMMediaStream* GetWrapper()
   {
@@ -679,11 +679,6 @@ public:
       FinishWithLockHeld();
     }
 
-  
-  void SetTrackEnabledImpl(TrackID aTrackID, bool aEnabled) {
-    MutexAutoLock lock(mMutex);
-    MediaStream::SetTrackEnabledImpl(aTrackID, aEnabled);
-  }
 
   
 
@@ -941,11 +936,6 @@ public:
 
   virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo) = 0;
   void SetAutofinishImpl(bool aAutofinish) { mAutofinish = aAutofinish; }
-
-  
-
-
-  virtual void ForwardTrackEnabled(TrackID aOutputID, bool aEnabled) {};
 
 protected:
   

@@ -115,17 +115,6 @@ public:
     mFilterCallback = aCallback;
   }
 
-  
-  
-  virtual void ForwardTrackEnabled(TrackID aOutputID, bool aEnabled) {
-    for (int32_t i = mTrackMap.Length() - 1; i >= 0; --i) {
-      if (mTrackMap[i].mOutputTrackID == aOutputID) {
-        mTrackMap[i].mInputPort->GetSource()->
-          SetTrackEnabled(mTrackMap[i].mInputTrackID, aEnabled);
-      }
-    }
-  }
-
 protected:
   TrackIDFilterCallback mFilterCallback;
 

@@ -107,14 +107,6 @@ public:
     }
     return &c->mFrame;
   }
-  
-  virtual void ReplaceWithDisabled() MOZ_OVERRIDE {
-    for (ChunkIterator i(*this);
-         !i.IsEnded(); i.Next()) {
-      VideoChunk& chunk = *i;
-      chunk.SetForceBlack(true);
-    }
-  }
 
   
   static Type StaticType() { return VIDEO; }
