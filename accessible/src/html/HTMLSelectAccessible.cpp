@@ -145,7 +145,7 @@ HTMLSelectListAccessible::CacheOptSiblings(nsIContent* aParentContent)
 
       
       nsRefPtr<Accessible> accessible =
-        GetAccService()->GetOrCreateAccessible(childContent, mDoc);
+        GetAccService()->GetOrCreateAccessible(childContent, this);
       if (accessible)
         AppendChild(accessible);
 

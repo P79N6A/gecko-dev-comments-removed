@@ -88,6 +88,24 @@ public:
 
 
 
+class HTMLTableRowAccessible : public AccessibleWrap
+{
+public:
+  HTMLTableRowAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    AccessibleWrap(aContent, aDoc)
+    { mFlags |= eTableRowAccessible | eHTMLTableRowAccessible; }
+  virtual ~HTMLTableRowAccessible() { }
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  virtual a11y::role NativeRole();
+};
+
+
+
+
+
 
 
 

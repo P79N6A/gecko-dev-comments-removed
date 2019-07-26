@@ -172,8 +172,12 @@ public:
   
 
 
-  bool HasARIARole() const
-    { return mRoleMapEntry; }
+  bool HasARIARole() const { return mRoleMapEntry; }
+
+  
+
+
+  nsRoleMapEntry* ARIARoleMap() const { return mRoleMapEntry; }
 
   
 
@@ -695,6 +699,11 @@ public:
   
 
 
+  bool IsOfType(uint32_t aType) const { return mFlags & aType; }
+
+  
+
+
   bool HasNumericValue() const;
 
 protected:
@@ -778,17 +787,21 @@ public:
     eHyperTextAccessible = 1 << 12,
     eHTMLFileInputAccessible = 1 << 13,
     eHTMLListItemAccessible = 1 << 14,
-    eImageAccessible = 1 << 15,
-    eImageMapAccessible = 1 << 16,
-    eListControlAccessible = 1 << 17,
-    eMenuButtonAccessible = 1 << 18,
-    eMenuPopupAccessible = 1 << 19,
-    eProgressAccessible = 1 << 20,
-    eRootAccessible = 1 << 21,
-    eSelectAccessible = 1 << 22,
-    eTextLeafAccessible = 1 << 23,
-    eXULDeckAccessible = 1 << 24,
-    eXULTreeAccessible = 1 << 25
+    eHTMLTableRowAccessible = 1 << 15,
+    eImageAccessible = 1 << 16,
+    eImageMapAccessible = 1 << 17,
+    eListControlAccessible = 1 << 18,
+    eMenuButtonAccessible = 1 << 19,
+    eMenuPopupAccessible = 1 << 20,
+    eProgressAccessible = 1 << 21,
+    eRootAccessible = 1 << 22,
+    eSelectAccessible = 1 << 23,
+    eTableAccessible = 1 << 24,
+    eTableCellAccessible = 1 << 25,
+    eTableRowAccessible = 1 << 26,
+    eTextLeafAccessible = 1 << 27,
+    eXULDeckAccessible = 1 << 28,
+    eXULTreeAccessible = 1 << 29
   };
 
 protected:

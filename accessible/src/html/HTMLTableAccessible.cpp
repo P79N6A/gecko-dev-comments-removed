@@ -325,10 +325,24 @@ HTMLTableHeaderCellAccessible::NativeRole()
 
 
 
+
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLTableRowAccessible, Accessible)
+
+role
+HTMLTableRowAccessible::NativeRole()
+{
+  return roles::ROW;
+}
+
+
+
+
+
 HTMLTableAccessible::
   HTMLTableAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc), xpcAccessibleTable(this)
 {
+  mFlags |= eTableAccessible;
 }
 
 

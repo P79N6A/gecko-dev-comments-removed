@@ -83,7 +83,7 @@ public:
                                                 bool aCanCreate);
   already_AddRefed<Accessible>
     CreateHTMLObjectFrameAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
-                                    DocAccessible* aDoc);
+                                    Accessible* aContext);
 
   
 
@@ -159,7 +159,7 @@ public:
 
 
 
-  Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
+  Accessible* GetOrCreateAccessible(nsINode* aNode, Accessible* aContext,
                                     bool* aIsSubtreeHidden = nullptr);
 
 private:
@@ -192,15 +192,14 @@ private:
 
   already_AddRefed<Accessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 DocAccessible* aDoc,
-                                 bool aIsLegalPartOfHTMLTable);
+                                 Accessible* aContext);
 
   
 
 
   already_AddRefed<Accessible>
     CreateAccessibleByFrameType(nsIFrame* aFrame, nsIContent* aContent,
-                                DocAccessible* aDoc);
+                                Accessible* aContext);
 
   
 
