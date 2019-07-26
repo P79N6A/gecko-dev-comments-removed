@@ -35,15 +35,15 @@ public class FaviconView extends ImageView {
     public void updateImage(Bitmap bitmap, String key) {
         if (bitmap == null) {
             
-            setImageDrawable(null);
+            setImageResource(R.drawable.favicon);
             
-            setBackgroundResource(R.drawable.favicon_bg);
+            setBackgroundResource(0);
         } else if (Favicons.getInstance().isLargeFavicon(bitmap)) {
-            super.setImageBitmap(bitmap);
+            setImageBitmap(bitmap);
             
             setBackgroundResource(0);
         } else {
-            super.setImageBitmap(bitmap);
+            setImageBitmap(bitmap);
             
             int color = Favicons.getInstance().getFaviconColor(bitmap, key);
             color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color));
