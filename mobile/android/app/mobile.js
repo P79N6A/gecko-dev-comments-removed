@@ -560,7 +560,6 @@ pref("dom.webnotifications.enabled", true);
 
 
 pref("browser.chrome.toolbar_tips", false);
-pref("indexedDB.feature.enabled", true);
 pref("dom.indexedDB.warningQuota", 5);
 
 

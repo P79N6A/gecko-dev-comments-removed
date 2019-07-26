@@ -257,7 +257,6 @@ pref("layers.async-pan-zoom.enabled", true);
 pref("notification.feature.enabled", true);
 
 
-pref("indexedDB.feature.enabled", true);
 pref("dom.indexedDB.warningQuota", 5);
 
 
