@@ -272,18 +272,6 @@ class NamedProcessIterator {
 
 
 
-
-struct CommittedKBytes {
-  size_t priv;
-  size_t mapped;
-  size_t image;
-};
-
-
-
-
-
-
 struct FreeMBytes {
   size_t total;
   size_t largest;
@@ -313,9 +301,6 @@ class ProcessMetrics {
   
   
   size_t GetPrivateBytes() const;
-  
-  
-  void GetCommittedKBytes(CommittedKBytes* usage) const;
 
   
   
