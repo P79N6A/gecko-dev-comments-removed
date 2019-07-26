@@ -42,18 +42,7 @@ AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
 {
     nsIPrincipal *aprin = GetCompartmentPrincipal(a);
     nsIPrincipal *bprin = GetCompartmentPrincipal(b);
-
-    
-    
-    
-    if (!aprin || !bprin)
-        return true;
-
-    bool subsumes;
-    nsresult rv = aprin->Subsumes(bprin, &subsumes);
-    NS_ENSURE_SUCCESS(rv, false);
-
-    return subsumes;
+    return aprin->Subsumes(bprin);
 }
 
 bool
@@ -68,15 +57,16 @@ AccessCheck::subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b)
 {
     nsIPrincipal *aprin = GetCompartmentPrincipal(a);
     nsIPrincipal *bprin = GetCompartmentPrincipal(b);
+    return aprin->SubsumesIgnoringDomain(bprin);
+}
 
-    if (!aprin || !bprin)
-        return false;
 
-    bool subsumes;
-    nsresult rv = aprin->SubsumesIgnoringDomain(bprin, &subsumes);
-    NS_ENSURE_SUCCESS(rv, false);
-
-    return subsumes;
+bool
+AccessCheck::subsumesConsideringDomain(JSCompartment *a, JSCompartment *b)
+{
+    nsIPrincipal *aprin = GetCompartmentPrincipal(a);
+    nsIPrincipal *bprin = GetCompartmentPrincipal(b);
+    return aprin->SubsumesConsideringDomain(bprin);
 }
 
 
