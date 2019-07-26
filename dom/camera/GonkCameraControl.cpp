@@ -992,7 +992,7 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
 
   
   uint32_t r = static_cast<uint32_t>(aTakePicture->mRotation);
-  r += mCameraHw->GetSensorOrientation();
+  r += mCameraHw->GetSensorOrientation(GonkCameraHardware::OFFSET_SENSOR_ORIENTATION);
   r %= 360;
   r += 45;
   r /= 90;
@@ -1533,7 +1533,7 @@ nsGonkCameraControl::SetupRecording(int aFd, int aRotation, int64_t aMaxFileSize
 
   
   int r = aRotation;
-  r += mCameraHw->GetSensorOrientation(GonkCameraHardware::RAW_SENSOR_ORIENTATION);
+  r += mCameraHw->GetSensorOrientation();
   r %= 360;
   r += 45;
   r /= 90;

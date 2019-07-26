@@ -169,7 +169,9 @@ GonkCameraHardware::Init()
   mSensorOrientation = mRawSensorOrientation;
 
   
-  
+
+
+
   char propname[PROP_NAME_MAX];
   char prop[PROP_VALUE_MAX];
   int offset = 0;
