@@ -177,38 +177,21 @@ function onUnload()
 
 
 
-function processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport)
+function processMemoryReporters(aIgnoreReporter, aIgnoreReport, aHandleReport)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  let e = gMgr.enumerateReporters();
-  while (e.hasMoreElements()) {
-    let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    let unsafePath = rOrig.path;
-    if (!aIgnoreSingle(unsafePath)) {
-      aHandleReport(rOrig.process, unsafePath, rOrig.kind, rOrig.units,
-                    rOrig.amount, rOrig.description);
+  let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
+                              aAmount, aDescription) {
+    if (!aIgnoreReport(aUnsafePath)) {
+      aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                    aDescription,  undefined);
     }
   }
 
-  let e = gMgr.enumerateMultiReporters();
+  let e = gMgr.enumerateReporters();
   while (e.hasMoreElements()) {
-    let mr = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
-    if (!aIgnoreMulti(mr.name)) {
+    let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+    if (!aIgnoreReporter(mr.name)) {
       
-      let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
-                                  aAmount, aDescription) {
-        aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                      aDescription,  undefined);
-      }
       mr.collectReports(handleReport, null);
     }
   }
@@ -225,13 +208,13 @@ function processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport)
 
 
 
-function processMemoryReportsFromFile(aReports, aIgnoreSingle, aHandleReport)
+function processMemoryReportsFromFile(aReports, aIgnoreReport, aHandleReport)
 {
   
 
   for (let i = 0; i < aReports.length; i++) {
     let r = aReports[i];
-    if (!aIgnoreSingle(r.path)) {
+    if (!aIgnoreReport(r.path)) {
       aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
                     r.description, r._presence);
     }
@@ -591,10 +574,7 @@ function updateAboutMemoryFromReporters()
 
   try {
     
-    let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
-      processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport);
-    }
-    appendAboutMemoryMain(process, gMgr.hasMozMallocUsableSize,
+    appendAboutMemoryMain(processMemoryReporters, gMgr.hasMozMallocUsableSize,
                            false);
 
   } catch (ex) {
@@ -621,8 +601,8 @@ function updateAboutMemoryFromJSONObject(aObj)
                 "missing 'hasMozMallocUsableSize' property");
     assertInput(aObj.reports && aObj.reports instanceof Array,
                 "missing or non-array 'reports' property");
-    let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
-      processMemoryReportsFromFile(aObj.reports, aIgnoreSingle, aHandleReport);
+    let process = function(aIgnoreReporter, aIgnoreReport, aHandleReport) {
+      processMemoryReportsFromFile(aObj.reports, aIgnoreReport, aHandleReport);
     }
     appendAboutMemoryMain(process, aObj.hasMozMallocUsableSize,
                            true);
@@ -982,10 +962,10 @@ function PColl()
 
 
 
-function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
+function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize,
                                aForceShowSmaps)
 {
-  let pcollsByProcess = getPCollsByProcess(aProcess, aForceShowSmaps);
+  let pcollsByProcess = getPCollsByProcess(aProcessReports, aForceShowSmaps);
 
   
   let processes = Object.keys(pcollsByProcess);
@@ -1051,7 +1031,7 @@ function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
 
 
 
-function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
+function getPCollsByProcess(aProcessReports, aForceShowSmaps)
 {
   let pcollsByProcess = {};
 
@@ -1072,23 +1052,21 @@ function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
   
   
   
-  
-  
-  
 
-  function ignoreSingle(aUnsafePath)
+  function ignoreReporter(aName)
+  {
+    return (aName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
+           aName === "compartments" ||
+           aName === "ghost-windows" ||
+           aName === "resident-fast";
+  }
+
+  function ignoreReport(aUnsafePath)
   {
     return (isSmapsPath(aUnsafePath) && !gVerbose.checked && !aForceShowSmaps) ||
            aUnsafePath.startsWith("compartments/") ||
            aUnsafePath.startsWith("ghost-windows/") ||
            aUnsafePath == "resident-fast";
-  }
-
-  function ignoreMulti(aMRName)
-  {
-    return (aMRName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
-            aMRName === "compartments" ||
-            aMRName === "ghost-windows";
   }
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
@@ -1171,7 +1149,7 @@ function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
     }
   }
 
-  aProcessMemoryReports(ignoreSingle, ignoreMulti, handleReport);
+  aProcessReports(ignoreReporter, ignoreReport, handleReport);
 
   return pcollsByProcess;
 }
@@ -2111,14 +2089,14 @@ function getCompartmentsByProcess()
   
   
 
-  function ignoreSingle(aUnsafePath)
+  function ignoreReporter(aName)
   {
-    return !aUnsafePath.startsWith("compartments/");
+    return !(aName == "compartments" || aName == "content-child");
   }
 
-  function ignoreMulti(aMRName)
+  function ignoreReport(aUnsafePath)
   {
-    return aMRName !== "compartments";
+    return !aUnsafePath.startsWith("compartments/");
   }
 
   let compartmentsByProcess = {};
@@ -2169,7 +2147,7 @@ function getCompartmentsByProcess()
     }
   }
 
-  processMemoryReporters(ignoreSingle, ignoreMulti, handleReport);
+  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
 
   return compartmentsByProcess;
 }
@@ -2191,14 +2169,14 @@ GhostWindow.prototype = {
 
 function getGhostWindowsByProcess()
 {
-  function ignoreSingle(aUnsafePath)
+  function ignoreReporter(aName)
   {
-    return !aUnsafePath.startsWith('ghost-windows/')
+    return !(aName == "ghost-windows" || aName == "content-child");
   }
 
-  function ignoreMulti(aName)
+  function ignoreReport(aUnsafePath)
   {
-    return aName !== "ghost-windows";
+    return !aUnsafePath.startsWith('ghost-windows/')
   }
 
   let ghostWindowsByProcess = {};
@@ -2230,7 +2208,7 @@ function getGhostWindowsByProcess()
     }
   }
 
-  processMemoryReporters(ignoreSingle, ignoreMulti, handleReport);
+  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
 
   return ghostWindowsByProcess;
 }
