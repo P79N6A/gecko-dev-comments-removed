@@ -88,6 +88,8 @@ let RILQUIRKS_SIM_APP_STATE_EXTRA_FIELDS = libcutils.property_get("ro.moz.ril.si
 
 let RILQUIRKS_EXTRA_UINT32_2ND_CALL = libcutils.property_get("ro.moz.ril.extra_int_2nd_call", "false") == "true";
 
+let RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = libcutils.property_get("ro.moz.ril.have_query_icc_lock_retry_count", "false") == "true";
+
 
 let PENDING_NETWORK_TYPE = {};
 
@@ -1199,31 +1201,53 @@ let RIL = {
   
 
 
+
+
+
   iccGetCardLockRetryCount: function iccGetCardLockRetryCount(options) {
-    switch (options.lockType) {
-      case "pin":
-      case "puk":
-      case "pin2":
-      case "puk2":
-      case "nck":
-      case "cck":
-      case "spck":
-        options.errorMsg = GECKO_ERROR_REQUEST_NOT_SUPPORTED;
-        options.success = false;
-        this.sendDOMMessage(options);
-        return;
-      default:
-        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
-        options.success = false;
-        this.sendDOMMessage(options);
-        return;
+    var selCode = {
+      pin: ICC_SEL_CODE_SIM_PIN,
+      puk: ICC_SEL_CODE_SIM_PUK,
+      pin2: ICC_SEL_CODE_SIM_PIN2,
+      puk2: ICC_SEL_CODE_SIM_PUK2,
+      nck: ICC_SEL_CODE_PH_NET_PIN,
+      cck: ICC_SEL_CODE_PH_CORP_PIN,
+      spck: ICC_SEL_CODE_PH_SP_PIN
+    };
+
+    if (typeof(selCode[options.lockType]) === 'undefined') {
+      
+      options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+      options.success = false;
+      this.sendDOMMessage(options);
+      return;
     }
 
-    
-    
-    options.retryCount = 0;
-    options.success = true;
-    this.sendDOMMessage(options);
+    if (RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT) {
+      
+      options.selCode = selCode[options.lockType];
+      this.queryICCLockRetryCount(options);
+    } else {
+      
+      options.errorMsg = GECKO_ERROR_REQUEST_NOT_SUPPORTED;
+      options.success = false;
+      this.sendDOMMessage(options);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  queryICCLockRetryCount: function queryICCLockRetryCount(options) {
+    Buf.newParcel(REQUEST_GET_UNLOCK_RETRY_COUNT, options);
+    Buf.writeUint32(1);
+    Buf.writeString(options.selCode);
+    Buf.sendParcel();
   },
 
   
@@ -5376,6 +5400,14 @@ RIL[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, option
   }
   let radioTech = Buf.readUint32List();
   this._processRadioTech(radioTech[0]);
+};
+RIL[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  options.retryCount = length ? Buf.readUint32List()[0] : -1;
+  this.sendDOMMessage(options);
 };
 RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = Buf.readUint32();
