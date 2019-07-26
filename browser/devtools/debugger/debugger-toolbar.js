@@ -30,7 +30,7 @@ ToolbarView.prototype = {
     this._stepInButton = document.getElementById("step-in");
     this._stepOutButton = document.getElementById("step-out");
     this._chromeGlobals = document.getElementById("chrome-globals");
-    this._scripts = document.getElementById("sources");
+    this._sources = document.getElementById("sources");
 
     let resumeKey = LayoutHelpers.prettyKey(document.getElementById("resumeKey"), true);
     let stepOverKey = LayoutHelpers.prettyKey(document.getElementById("stepOverKey"), true);
@@ -276,12 +276,12 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
 
   initialize: function DVCG_initialize() {
     dumpn("Initializing the ChromeGlobalsView");
-    this._container = document.getElementById("chrome-globals");
+    this.node = document.getElementById("chrome-globals");
     this._emptyLabel = L10N.getStr("noGlobalsText");
     this._unavailableLabel = L10N.getStr("noMatchingGlobalsText");
 
-    this._container.addEventListener("select", this._onSelect, false);
-    this._container.addEventListener("click", this._onClick, false);
+    this.node.addEventListener("select", this._onSelect, false);
+    this.node.addEventListener("click", this._onClick, false);
 
     this.empty();
   },
@@ -291,8 +291,8 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
 
   destroy: function DVT_destroy() {
     dumpn("Destroying the ChromeGlobalsView");
-    this._container.removeEventListener("select", this._onSelect, false);
-    this._container.removeEventListener("click", this._onClick, false);
+    this.node.removeEventListener("select", this._onSelect, false);
+    this.node.removeEventListener("click", this._onClick, false);
   },
 
   
@@ -329,12 +329,12 @@ create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
 
   initialize: function DVS_initialize() {
     dumpn("Initializing the SourcesView");
-    this._container = document.getElementById("sources");
+    this.node = document.getElementById("sources");
     this._emptyLabel = L10N.getStr("noScriptsText");
     this._unavailableLabel = L10N.getStr("noMatchingScriptsText");
 
-    this._container.addEventListener("select", this._onSelect, false);
-    this._container.addEventListener("click", this._onClick, false);
+    this.node.addEventListener("select", this._onSelect, false);
+    this.node.addEventListener("click", this._onClick, false);
 
     this.empty();
   },
@@ -344,8 +344,8 @@ create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
 
   destroy: function DVS_destroy() {
     dumpn("Destroying the SourcesView");
-    this._container.removeEventListener("select", this._onSelect, false);
-    this._container.removeEventListener("click", this._onClick, false);
+    this.node.removeEventListener("select", this._onSelect, false);
+    this.node.removeEventListener("click", this._onClick, false);
   },
 
   
@@ -390,21 +390,6 @@ let SourceUtils = {
 
 
 
-
-
-
-
-  getSourceLabel: function SU_getSourceLabel(aUrl) {
-    if (!this._labelsCache.has(aUrl)) {
-      this._labelsCache.set(aUrl, this.trimUrlLength(this.trimUrl(aUrl)));
-    }
-    return this._labelsCache.get(aUrl);
-  },
-
-  
-
-
-
   clearLabelsCache: function SU_clearLabelsCache() {
     this._labelsCache = new Map();
   },
@@ -420,9 +405,49 @@ let SourceUtils = {
 
 
 
-  trimUrlLength: function SU_trimUrlLength(aUrl, aMaxLength = SOURCE_URL_MAX_LENGTH) {
-    if (aUrl.length > aMaxLength) {
-      return aUrl.substring(0, aMaxLength) + L10N.ellipsis;
+
+  getSourceLabel: function SU_getSourceLabel(aUrl, aLength, aSection) {
+    let id = [aUrl, aLength, aSection].join();
+    aLength = aLength || SOURCE_URL_DEFAULT_MAX_LENGTH;
+    aSection = aSection || "end";
+
+    if (this._labelsCache.has(id)) {
+      return this._labelsCache.get(id);
+    }
+    let sourceLabel = this.trimUrlLength(this.trimUrl(aUrl), aLength, aSection);
+    this._labelsCache.set(id, sourceLabel);
+    return sourceLabel;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  trimUrlLength: function SU_trimUrlLength(aUrl, aLength, aSection) {
+    aLength = aLength || SOURCE_URL_DEFAULT_MAX_LENGTH;
+    aSection = aSection || "end";
+
+    if (aUrl.length > aLength) {
+      switch (aSection) {
+        case "start":
+          return L10N.ellipsis + aUrl.slice(-aLength);
+          break;
+        case "center":
+          return aUrl.substr(0, aLength / 2 - 1) + L10N.ellipsis + aUrl.slice(-aLength / 2 + 1);
+          break;
+        case "end":
+          return aUrl.substr(0, aLength) + L10N.ellipsis;
+          break;
+      }
     }
     return aUrl;
   },
@@ -489,7 +514,7 @@ let SourceUtils = {
 
     
     if (aLabel && aLabel.indexOf("?") != 0) {
-      if (DebuggerView.Sources.containsTrimmedValue(aUrl.spec)) {
+      if (DebuggerView.Sources.containsTrimmedValue(aUrl.spec, SourceUtils.trimUrlQuery)) {
         
         
         return aLabel;
@@ -539,6 +564,344 @@ let SourceUtils = {
     
     return aUrl.spec;
   }
+};
+
+
+
+
+function StackFramesView() {
+  dumpn("StackFramesView was instantiated");
+  MenuContainer.call(this);
+  this._createItemView = this._createItemView.bind(this);
+  this._onStackframeRemoved = this._onStackframeRemoved.bind(this);
+  this._onClick = this._onClick.bind(this);
+  this._onScroll = this._onScroll.bind(this);
+  this._afterScroll = this._afterScroll.bind(this);
+  this._selectFrame = this._selectFrame.bind(this);
+}
+
+create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
+  
+
+
+  initialize: function DVSF_initialize() {
+    dumpn("Initializing the StackFramesView");
+
+    let commandset = this._commandset = document.createElement("commandset");
+    let menupopup = this._menupopup = document.createElement("menupopup");
+    commandset.setAttribute("id", "stackframesCommandset");
+    menupopup.setAttribute("id", "stackframesMenupopup");
+
+    document.getElementById("debuggerPopupset").appendChild(menupopup);
+    document.getElementById("debuggerCommands").appendChild(commandset);
+
+    this.node = new BreadcrumbsWidget(document.getElementById("stackframes"));
+    this.decorateWidgetMethods("parentNode");
+    this.node.addEventListener("click", this._onClick, false);
+    this.node.addEventListener("scroll", this._onScroll, true);
+    window.addEventListener("resize", this._onScroll, true);
+
+    this._cache = new Map();
+  },
+
+  
+
+
+  destroy: function DVSF_destroy() {
+    dumpn("Destroying the StackFramesView");
+    this.node.removeEventListener("click", this._onClick, false);
+    this.node.removeEventListener("scroll", this._onScroll, true);
+    window.removeEventListener("resize", this._onScroll, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  addFrame:
+  function DVSF_addFrame(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
+    
+    let stackframeFragment = this._createItemView.apply(this, arguments);
+    let stackframePopup = this._createMenuItem.apply(this, arguments);
+
+    
+    let stackframeItem = this.push(stackframeFragment, {
+      index: FIRST, 
+      relaxed: true, 
+      attachment: {
+        popup: stackframePopup,
+        depth: aDepth
+      }
+    });
+
+    let element = stackframeItem.target;
+    element.id = "stackframe-" + aDepth;
+    element.classList.add("dbg-stackframe");
+    element.setAttribute("tooltiptext", aSourceLocation + ":" + aLineNumber);
+    element.setAttribute("contextmenu", "stackframesMenupopup");
+
+    stackframeItem.finalize = this._onStackframeRemoved;
+    this._cache.set(aDepth, stackframeItem);
+  },
+
+  
+
+
+
+
+
+  highlightFrame: function DVSF_highlightFrame(aDepth) {
+    let cache = this._cache;
+    let selectedItem = this.selectedItem = cache.get(aDepth);
+
+    for (let [, item] of cache) {
+      if (item != selectedItem) {
+        item.attachment.popup.menuitem.removeAttribute("checked");
+      } else {
+        item.attachment.popup.menuitem.setAttribute("checked", "");
+      }
+    }
+  },
+
+  
+
+
+  dirty: false,
+
+  
+
+
+
+
+
+
+
+
+
+  _createItemView:
+  function DVSF__createItemView(aFrameTitle, aSourceLocation, aLineNumber) {
+    let frameTitleNode = document.createElement("label");
+    let frameDetailsNode = document.createElement("label");
+
+    let frameDetails = SourceUtils.getSourceLabel(aSourceLocation,
+      STACK_FRAMES_SOURCE_URL_MAX_LENGTH,
+      STACK_FRAMES_SOURCE_URL_TRIM_SECTION) +
+      SEARCH_LINE_FLAG + aLineNumber;
+
+    frameTitleNode.className = "plain dbg-stackframe-title inspector-breadcrumbs-tag";
+    frameTitleNode.setAttribute("value", aFrameTitle);
+
+    frameDetailsNode.className = "plain dbg-stackframe-details inspector-breadcrumbs-id";
+    frameDetailsNode.setAttribute("value", " " + frameDetails);
+
+    let fragment = document.createDocumentFragment();
+    fragment.appendChild(frameTitleNode);
+    fragment.appendChild(frameDetailsNode);
+
+    return fragment;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _createMenuItem:
+  function DVSF__createMenuItem(aFrameTitle, aSourceLocation, aLineNumber, aDepth) {
+    let menuitem = document.createElement("menuitem");
+    let command = document.createElement("command");
+
+    let frameDescription = SourceUtils.getSourceLabel(aSourceLocation,
+      STACK_FRAMES_POPUP_SOURCE_URL_MAX_LENGTH,
+      STACK_FRAMES_POPUP_SOURCE_URL_TRIM_SECTION) +
+      SEARCH_LINE_FLAG + aLineNumber;
+
+    let prefix = "sf-cMenu-"; 
+    let commandId = prefix + aDepth + "-" + "-command";
+    let menuitemId = prefix + aDepth + "-" + "-menuitem";
+
+    command.id = commandId;
+    command.addEventListener("command", this._selectFrame.bind(this, aDepth), false);
+
+    menuitem.id = menuitemId;
+    menuitem.className = "dbg-stackframe-menuitem";
+    menuitem.setAttribute("type", "checkbox");
+    menuitem.setAttribute("command", commandId);
+    menuitem.setAttribute("tooltiptext", aSourceLocation + ":" + aLineNumber);
+
+    let labelNode = document.createElement("label");
+    labelNode.className = "plain dbg-stackframe-menuitem-title";
+    labelNode.setAttribute("value", aFrameTitle);
+    labelNode.setAttribute("flex", "1");
+
+    let descriptionNode = document.createElement("label");
+    descriptionNode.className = "plain dbg-stackframe-menuitem-details";
+    descriptionNode.setAttribute("value", frameDescription);
+
+    menuitem.appendChild(labelNode);
+    menuitem.appendChild(descriptionNode);
+
+    this._commandset.appendChild(command);
+    this._menupopup.appendChild(menuitem);
+
+    return {
+      command: command,
+      menuitem: menuitem
+    };
+  },
+
+  
+
+
+
+
+
+  _destroyMenuItem: function DVSF__destroyMenuItem(aPopup) {
+    let command = aPopup.command;
+    let menuitem = aPopup.menuitem;
+
+    command.parentNode.removeChild(command);
+    menuitem.parentNode.removeChild(menuitem);
+  },
+
+  
+
+
+  _onStackframeRemoved: function DVSF__onStackframeRemoved(aItem) {
+    this._destroyMenuItem(aItem.attachment.popup);
+  },
+
+  
+
+
+  _onClick: function DVSF__onClick(e) {
+    if (e && e.button != 0) {
+      
+      return;
+    }
+    let item = this.getItemForElement(e.target);
+    if (item) {
+      
+      this._selectFrame(item.attachment.depth);
+    }
+  },
+
+  
+
+
+  _onScroll: function DVSF__onScroll() {
+    
+    if (!this.dirty) {
+      return;
+    }
+    window.clearTimeout(this._scrollTimeout);
+    this._scrollTimeout = window.setTimeout(this._afterScroll, STACK_FRAMES_SCROLL_DELAY);
+  },
+
+  
+
+
+  _afterScroll: function DVSF__afterScroll() {
+    let list = this.node._list;
+    let scrollPosition = list.scrollPosition;
+    let scrollWidth = list.scrollWidth;
+
+    
+    
+    if (scrollPosition - scrollWidth / 10 < 1) {
+      list.ensureElementIsVisible(this.getItemAtIndex(CALL_STACK_PAGE_SIZE - 1).target);
+      this.dirty = false;
+
+      
+      DebuggerController.StackFrames.addMoreFrames();
+    }
+  },
+
+  
+
+
+
+
+
+  _selectFrame: function DVSF__selectFrame(aDepth) {
+    DebuggerController.StackFrames.selectFrame(aDepth);
+  },
+
+  _commandset: null,
+  _menupopup: null,
+  _cache: null,
+  _scrollTimeout: null,
+});
+
+
+
+
+let StackFrameUtils = {
+  
+
+
+
+
+
+
+  getFrameTitle: function SFU_getFrameTitle(aFrame) {
+    if (aFrame.type == "call") {
+      let c = aFrame.callee;
+      return (c.name || c.userDisplayName || c.displayName || "(anonymous)");
+    }
+    return "(" + aFrame.type + ")";
+  },
+
+  
+
+
+
+
+
+
+
+  getScopeLabel: function SFU_getScopeLabel(aEnv) {
+    let name = "";
+
+    
+    if (!aEnv.parent) {
+      name = L10N.getStr("globalScopeLabel");
+    }
+    
+    else {
+      name = aEnv.type.charAt(0).toUpperCase() + aEnv.type.slice(1);
+    }
+
+    let label = L10N.getFormatStr("scopeLabel", [name]);
+    switch (aEnv.type) {
+      case "with":
+      case "object":
+        label += " [" + aEnv.object.class + "]";
+        break;
+      case "function":
+        let f = aEnv.function;
+        label += " [" +
+          (f.name || f.userDisplayName || f.displayName || "(anonymous)") +
+        "]";
+        break;
+    }
+    return label;
+  },
 };
 
 
@@ -1070,11 +1433,11 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
     document.documentElement.appendChild(panel);
 
     this._searchbox = document.getElementById("searchbox");
-    this._container = new StackList(panel);
+    this.node = new StackList(panel);
 
-    this._container.itemFactory = this._createItemView;
-    this._container.itemType = "vbox";
-    this._container.addEventListener("click", this._onClick, false);
+    this.node.itemFactory = this._createItemView;
+    this.node.itemType = "vbox";
+    this.node.addEventListener("click", this._onClick, false);
   },
 
   
@@ -1083,7 +1446,7 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
   destroy: function DVFS_destroy() {
     dumpn("Destroying the FilteredSourcesView");
     document.documentElement.removeChild(this._panel);
-    this._container.removeEventListener("click", this._onClick, false);
+    this.node.removeEventListener("click", this._onClick, false);
   },
 
   
@@ -1092,9 +1455,9 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
 
   set hidden(aFlag) {
     if (aFlag) {
-      this._container._parent.hidePopup();
+      this.node._parent.hidePopup();
     } else {
-      this._container._parent.openPopup(this._searchbox);
+      this.node._parent.openPopup(this._searchbox);
     }
   },
 
@@ -1121,10 +1484,8 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
       let trimmedLabel = SourceUtils.trimUrlLength(item.label);
       let trimmedValue = SourceUtils.trimUrlLength(item.value);
 
-      let locationItem = this.push(trimmedLabel, trimmedValue, {
-        forced: true,
-        relaxed: true,
-        unsorted: true,
+      let locationItem = this.push([trimmedLabel, trimmedValue], {
+        relaxed: true, 
         attachment: {
           fullLabel: item.label,
           fullValue: item.value
@@ -1146,7 +1507,7 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
 
   focusNext: function DVFS_focusNext() {
     let nextIndex = this.selectedIndex + 1;
-    if (nextIndex >= this.totalItems) {
+    if (nextIndex >= this.itemCount) {
       nextIndex = 0;
     }
     this._updateSelection(this.getItemAtIndex(nextIndex));
@@ -1158,7 +1519,7 @@ create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
   focusPrev: function DVFS_focusPrev() {
     let prevIndex = this.selectedIndex - 1;
     if (prevIndex < 0) {
-      prevIndex = this.totalItems - 1;
+      prevIndex = this.itemCount - 1;
     }
     this._updateSelection(this.getItemAtIndex(prevIndex));
   },

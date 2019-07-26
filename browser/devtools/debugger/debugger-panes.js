@@ -8,146 +8,6 @@
 
 
 
-function StackFramesView() {
-  dumpn("StackFramesView was instantiated");
-  MenuContainer.call(this);
-  this._onClick = this._onClick.bind(this);
-  this._onScroll = this._onScroll.bind(this);
-}
-
-create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
-  
-
-
-  initialize: function DVSF_initialize() {
-    dumpn("Initializing the StackFramesView");
-    this._container = new StackList(document.getElementById("stackframes"));
-    this._container.emptyText = L10N.getStr("emptyStackText");
-
-    this._container.addEventListener("click", this._onClick, false);
-    this._container.addEventListener("scroll", this._onScroll, true);
-    window.addEventListener("resize", this._onScroll, true);
-
-    this._cache = new Map();
-  },
-
-  
-
-
-  destroy: function DVSF_destroy() {
-    dumpn("Destroying the StackFramesView");
-    this._container.removeEventListener("click", this._onClick, false);
-    this._container.removeEventListener("scroll", this._onScroll, true);
-    window.removeEventListener("resize", this._onScroll, true);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  addFrame: function DVSF_addFrame(aFrameName, aFrameDetails, aDepth) {
-    
-    DebuggerView.showPanesSoon();
-
-    
-    let stackframeItem = this.push(aFrameName, aFrameDetails, {
-      forced: true,
-      unsorted: true,
-      relaxed: true,
-      attachment: {
-        depth: aDepth
-      }
-    });
-
-    
-    if (!stackframeItem) {
-      return;
-    }
-
-    let element = stackframeItem.target;
-    element.id = "stackframe-" + aDepth;
-    element.className = "dbg-stackframe list-item";
-    element.labelNode.className = "dbg-stackframe-name plain";
-    element.valueNode.className = "dbg-stackframe-details plain";
-
-    this._cache.set(aDepth, stackframeItem);
-  },
-
-  
-
-
-
-
-
-  highlightFrame: function DVSF_highlightFrame(aDepth) {
-    this._container.selectedItem = this._cache.get(aDepth).target;
-  },
-
-  
-
-
-  dirty: false,
-
-  
-
-
-  _onClick: function DVSF__onClick(e) {
-    let item = this.getItemForElement(e.target);
-    if (item) {
-      
-      DebuggerController.StackFrames.selectFrame(item.attachment.depth);
-    }
-  },
-
-  
-
-
-  _onScroll: function DVSF__onScroll() {
-    
-    if (this.dirty) {
-      let list = this._container._list;
-
-      
-      
-      if (list.scrollTop >= (list.scrollHeight - list.clientHeight) * 0.95) {
-        DebuggerController.StackFrames.addMoreFrames();
-        this.dirty = false;
-      }
-    }
-  },
-
-  _cache: null
-});
-
-
-
-
-let StackFrameUtils = {
-  
-
-
-
-
-
-
-  getFrameTitle: function SFU_getFrameTitle(aFrame) {
-    if (aFrame.type == "call") {
-      let c = aFrame.callee;
-      return (c.name || c.userDisplayName || c.displayName || "(anonymous)");
-    }
-    return "(" + aFrame.type + ")";
-  }
-};
-
-
-
-
 function BreakpointsView() {
   dumpn("BreakpointsView was instantiated");
   MenuContainer.call(this);
@@ -172,20 +32,20 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
   initialize: function DVB_initialize() {
     dumpn("Initializing the BreakpointsView");
-    this._container = new StackList(document.getElementById("breakpoints"));
+    this.node = new StackList(document.getElementById("breakpoints"));
     this._commandset = document.getElementById("debuggerCommands");
     this._popupset = document.getElementById("debuggerPopupset");
     this._cmPopup = document.getElementById("sourceEditorContextMenu");
     this._cbPanel = document.getElementById("conditional-breakpoint-panel");
     this._cbTextbox = document.getElementById("conditional-breakpoint-textbox");
 
-    this._container.emptyText = L10N.getStr("emptyBreakpointsText");
-    this._container.itemFactory = this._createItemView;
-    this._container.uniquenessQualifier = 2;
+    this.node.emptyText = L10N.getStr("emptyBreakpointsText");
+    this.node.itemFactory = this._createItemView;
+    this.node.uniquenessQualifier = 2;
 
     window.addEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
     window.addEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
-    this._container.addEventListener("click", this._onBreakpointClick, false);
+    this.node.addEventListener("click", this._onBreakpointClick, false);
     this._cmPopup.addEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
     this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
@@ -202,7 +62,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
     dumpn("Destroying the BreakpointsView");
     window.removeEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
     window.removeEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
-    this._container.removeEventListener("click", this._onBreakpointClick, false);
+    this.node.removeEventListener("click", this._onBreakpointClick, false);
     this._cmPopup.removeEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown, false);
@@ -234,8 +94,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
                                             aActor, aLineInfo, aLineText,
                                             aConditionalFlag, aOpenPopupFlag) {
     
-    let breakpointItem = this.push(aLineInfo.trim(), aLineText.trim(), {
-      forced: true,
+    let breakpointItem = this.push([aLineInfo.trim(), aLineText.trim()], {
       attachment: {
         enabled: true,
         sourceLocation: aSourceLocation,
@@ -407,11 +266,11 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
       }
 
       
-      this._container.selectedItem = breakpointItem.target;
+      this.selectedItem = breakpointItem;
     }
     
     else {
-      this._container.selectedIndex = -1;
+      this.selectedItem = null;
       this._cbPanel.hidePopup();
     }
   },
@@ -462,9 +321,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-
-
-  _createItemView: function DVB__createItemView(aElementNode, aInfo, aText, aAttachment) {
+  _createItemView: function DVB__createItemView(aElementNode, aInfo, aText) {
     let checkbox = document.createElement("checkbox");
     checkbox.setAttribute("checked", "true");
     checkbox.addEventListener("click", this._onCheckboxClick, false);
@@ -551,7 +408,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
       let menuitem = document.createElement("menuitem");
       let command = document.createElement("command");
 
-      let prefix = "bp-cMenu-";
+      let prefix = "bp-cMenu-"; 
       let commandId = prefix + aName + "-" + breakpointId + "-command";
       let menuitemId = prefix + aName + "-" + breakpointId + "-menuitem";
 
@@ -960,13 +817,13 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   initialize: function DVWE_initialize() {
     dumpn("Initializing the WatchExpressionsView");
-    this._container = new StackList(document.getElementById("expressions"));
+    this.node = new StackList(document.getElementById("expressions"));
     this._variables = document.getElementById("variables");
 
-    this._container.setAttribute("context", "debuggerWatchExpressionsContextMenu");
-    this._container.permaText = L10N.getStr("addWatchExpressionText");
-    this._container.itemFactory = this._createItemView;
-    this._container.addEventListener("click", this._onClick, false);
+    this.node.setAttribute("context", "debuggerWatchExpressionsContextMenu");
+    this.node.permaText = L10N.getStr("addWatchExpressionText");
+    this.node.itemFactory = this._createItemView;
+    this.node.addEventListener("click", this._onClick, false);
 
     this._cache = [];
   },
@@ -976,7 +833,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   destroy: function DVWE_destroy() {
     dumpn("Destroying the WatchExpressionsView");
-    this._container.removeEventListener("click", this._onClick, false);
+    this.node.removeEventListener("click", this._onClick, false);
   },
 
   
@@ -990,21 +847,15 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
     DebuggerView.showPanesSoon();
 
     
-    let expressionItem = this.push("", aExpression, {
-      forced: { atIndex: 0 },
-      unsorted: true,
-      relaxed: true,
+    let expressionItem = this.push([, aExpression], {
+      index: FIRST, 
+      relaxed: true, 
       attachment: {
         currentExpression: "",
         initialExpression: aExpression,
         id: this._generateId()
       }
     });
-
-    
-    if (!expressionItem) {
-      return;
-    }
 
     let element = expressionItem.target;
     element.id = "expression-" + expressionItem.attachment.id;
@@ -1254,12 +1105,12 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   initialize: function DVGS_initialize() {
     dumpn("Initializing the GlobalSearchView");
-    this._container = new StackList(document.getElementById("globalsearch"));
+    this.node = new StackList(document.getElementById("globalsearch"));
     this._splitter = document.getElementById("globalsearch-splitter");
 
-    this._container.emptyText = L10N.getStr("noMatchingStringsText");
-    this._container.itemFactory = this._createItemView;
-    this._container.addEventListener("scroll", this._onScroll, false);
+    this.node.emptyText = L10N.getStr("noMatchingStringsText");
+    this.node.itemFactory = this._createItemView;
+    this.node.addEventListener("scroll", this._onScroll, false);
 
     this._cache = new Map();
   },
@@ -1269,21 +1120,21 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   destroy: function DVGS_destroy() {
     dumpn("Destroying the GlobalSearchView");
-    this._container.removeEventListener("scroll", this._onScroll, false);
+    this.node.removeEventListener("scroll", this._onScroll, false);
   },
 
   
 
 
 
-  get hidden() this._container.getAttribute("hidden") == "true",
+  get hidden() this.node.getAttribute("hidden") == "true",
 
   
 
 
 
   set hidden(aFlag) {
-    this._container.setAttribute("hidden", aFlag);
+    this.node.setAttribute("hidden", aFlag);
     this._splitter.setAttribute("hidden", aFlag);
   },
 
@@ -1581,10 +1432,9 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   _createSourceResultsUI:
   function DVGS__createSourceResultsUI(aLocation, aSourceResults, aExpandFlag) {
     
-    let sourceResultsItem = this.push(aLocation, aSourceResults.matchCount, {
-      forced: true,
-      unsorted: true,
-      relaxed: true,
+    let sourceResultsItem = this.push([aLocation, aSourceResults.matchCount], {
+      index: LAST, 
+      relaxed: true, 
       attachment: {
         sourceResults: aSourceResults,
         expandFlag: aExpandFlag
@@ -1680,7 +1530,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
       return;
     }
     let { top, height } = aTarget.getBoundingClientRect();
-    let { clientHeight } = this._container._parent;
+    let { clientHeight } = this.node._parent;
 
     if (top - height <= clientHeight || this._forceExpandResults) {
       sourceResultsItem.instance.expand();
@@ -1695,7 +1545,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   _scrollMatchIntoViewIfNeeded:  function DVGS__scrollMatchIntoViewIfNeeded(aMatch) {
     let { top, height } = aMatch.getBoundingClientRect();
-    let { clientHeight } = this._container._parent;
+    let { clientHeight } = this.node._parent;
 
     let style = window.getComputedStyle(aMatch);
     let topBorderSize = window.parseInt(style.getPropertyValue("border-top-width"));
@@ -1703,10 +1553,10 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
     let marginY = top - (height + topBorderSize + bottomBorderSize) * 2;
     if (marginY <= 0) {
-      this._container._parent.scrollTop += marginY;
+      this.node._parent.scrollTop += marginY;
     }
     if (marginY + height > clientHeight) {
-      this._container._parent.scrollTop += height - (clientHeight - marginY);
+      this.node._parent.scrollTop += height - (clientHeight - marginY);
     }
   },
 
@@ -2104,6 +1954,8 @@ LineResults.getElementAtIndex = function DVGS_getElementAtIndex(aIndex) {
     }
   }
 };
+
+
 
 
 

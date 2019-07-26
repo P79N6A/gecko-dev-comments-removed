@@ -5,8 +5,13 @@
 
 "use strict";
 
-const SOURCE_URL_MAX_LENGTH = 64; 
+const SOURCE_URL_DEFAULT_MAX_LENGTH = 64; 
 const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 1048576; 
+const STACK_FRAMES_SOURCE_URL_MAX_LENGTH = 15; 
+const STACK_FRAMES_SOURCE_URL_TRIM_SECTION = "center";
+const STACK_FRAMES_POPUP_SOURCE_URL_MAX_LENGTH = 32; 
+const STACK_FRAMES_POPUP_SOURCE_URL_TRIM_SECTION = "center";
+const STACK_FRAMES_SCROLL_DELAY = 100; 
 const PANES_APPEARANCE_DELAY = 50; 
 const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000; 
 const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "after_start";
@@ -109,7 +114,7 @@ let DebuggerView = {
   
 
 
-  _destroyWindow: function DV__initializeWindow() {
+  _destroyWindow: function DV__destroyWindow() {
     dumpn("Destroying the DebuggerView window");
 
     if (window._isRemoteDebugger || window._isChromeDebugger) {
@@ -141,7 +146,7 @@ let DebuggerView = {
   
 
 
-  _destroyPanes: function DV__initializePanes() {
+  _destroyPanes: function DV__destroyPanes() {
     dumpn("Destroying the DebuggerView panes");
 
     Prefs.stackframesWidth = this._stackframesAndBreakpoints.getAttribute("width");
@@ -590,23 +595,29 @@ MenuItem.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-function MenuContainer(aContainerNode) {
-  this._container = aContainerNode;
-  this._stagedItems = [];
-  this._itemsByLabel = new Map();
-  this._itemsByValue = new Map();
-  this._itemsByElement = new Map();
-}
+function MenuContainer() {}
+const FIRST = 0;
+const LAST = -1;
 
 MenuContainer.prototype = {
+  
+
+
+
+  set node(aWidget) {
+    this._container = aWidget;
+    this._stagedItems = [];
+    this._itemsByLabel = new Map();
+    this._itemsByValue = new Map();
+    this._itemsByElement = new Map();
+  },
+
+  
+
+
+
+  get node() this._container,
+
   
 
 
@@ -640,25 +651,29 @@ MenuContainer.prototype = {
 
 
 
-  push: function DVMC_push(aLabel, aValue, aOptions = {}) {
-    let item = new MenuItem(
-      aLabel, aValue, aOptions.description, aOptions.attachment);
+
+
+  push: function DVMC_push(aContents, aOptions = {}) {
+    if (aContents instanceof Node || aContents instanceof Element) {
+      aOptions.nsIDOMNode = aContents;
+      aContents = [];
+    }
+
+    let [label, value, description] = aContents;
+    let item = new MenuItem(label, value, description || "", aOptions.attachment);
 
     
-    if (!aOptions.forced) {
+    if (aOptions.staged) {
       this._stagedItems.push({ item: item, options: aOptions });
     }
     
-    else if (aOptions.forced && aOptions.forced.atIndex !== undefined) {
-      return this._insertItemAt(aOptions.forced.atIndex, item, aOptions);
+    else if (!("index" in aOptions)) {
+      return this._insertItemAt(this._findExpectedIndex(label), item, aOptions);
     }
     
-    else if (!aOptions.unsorted) {
-      return this._insertItemAt(this._findExpectedIndex(aLabel), item, aOptions);
-    }
     
     else {
-      return this._appendItem(item, aOptions);
+      return this._insertItemAt(aOptions.index, item, aOptions);
     }
   },
 
@@ -673,13 +688,13 @@ MenuContainer.prototype = {
     let stagedItems = this._stagedItems;
 
     
-    if (!aOptions.unsorted) {
+    if (aOptions.sorted) {
       stagedItems.sort(function(a, b) a.item.label.toLowerCase() >
                                       b.item.label.toLowerCase());
     }
     
     for (let { item, options } of stagedItems) {
-      this._appendItem(item, options);
+      this._insertItemAt(LAST, item, options);
     }
     
     this._stagedItems = [];
@@ -712,6 +727,9 @@ MenuContainer.prototype = {
 
 
   remove: function DVMC__remove(aItem) {
+    if (!aItem) {
+      return;
+    }
     this._container.removeChild(aItem.target);
     this._untangleItem(aItem);
   },
@@ -721,10 +739,10 @@ MenuContainer.prototype = {
 
   empty: function DVMC_empty() {
     this._preferredValue = this.selectedValue;
-    this._container.selectedIndex = -1;
+    this._container.selectedItem = null;
+    this._container.removeAllItems();
     this._container.setAttribute("label", this._emptyLabel);
     this._container.removeAttribute("tooltiptext");
-    this._container.removeAllItems();
 
     for (let [, item] of this._itemsByElement) {
       this._untangleItem(item);
@@ -740,21 +758,32 @@ MenuContainer.prototype = {
 
 
 
-
-
-  toggleContents: function DVMC_toggleContents(aVisibleFlag) {
-    for (let [, item] of this._itemsByElement) {
-      item.target.hidden = !aVisibleFlag;
-    }
+  setUnavailable: function DVMC_setUnavailable() {
+    this._container.setAttribute("label", this._unavailableLabel);
+    this._container.removeAttribute("tooltiptext");
   },
 
   
 
 
 
-  setUnavailable: function DVMC_setUnavailable() {
-    this._container.setAttribute("label", this._unavailableLabel);
-    this._container.removeAttribute("tooltiptext");
+  _emptyLabel: "",
+
+  
+
+
+  _unavailableLabel: "",
+
+  
+
+
+
+
+
+  toggleContents: function DVMC_toggleContents(aVisibleFlag) {
+    for (let [, item] of this._itemsByElement) {
+      item.target.hidden = !aVisibleFlag;
+    }
   },
 
   
@@ -796,9 +825,7 @@ MenuContainer.prototype = {
 
 
 
-  containsTrimmedValue:
-  function DVMC_containsTrimmedValue(aValue,
-                                     aTrim = SourceUtils.trimUrlQuery) {
+  containsTrimmedValue: function DVMC_containsTrimmedValue(aValue, aTrim) {
     let trimmedValue = aTrim(aValue);
 
     for (let [value] of this._itemsByValue) {
@@ -819,7 +846,9 @@ MenuContainer.prototype = {
 
 
 
-  get selectedIndex() this._container.selectedIndex,
+  get selectedIndex()
+    this._container.selectedItem ?
+    this.indexOfItem(this.selectedItem) : -1,
 
   
 
@@ -849,13 +878,15 @@ MenuContainer.prototype = {
 
 
 
-  set selectedIndex(aIndex) this._container.selectedIndex = aIndex,
+  set selectedIndex(aIndex)
+    this._container.selectedItem = this._container.getItemAtIndex(aIndex),
 
   
 
 
 
-  set selectedItem(aItem) this._container.selectedItem = aItem.target,
+  set selectedItem(aItem)
+    this._container.selectedItem = aItem ? aItem.target : null,
 
   
 
@@ -938,6 +969,25 @@ MenuContainer.prototype = {
 
 
 
+
+
+
+
+  indexOfItem: function indexOfItem({target}) {
+    let itemCount = this._itemsByElement.size;
+
+    for (let i = 0; i < itemCount; i++) {
+      if (this._container.getItemAtIndex(i) == target) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
+  
+
+
+
   get labels() {
     let labels = [];
     for (let [label] of this._itemsByLabel) {
@@ -962,9 +1012,7 @@ MenuContainer.prototype = {
 
 
 
-  get totalItems() {
-    return this._itemsByElement.size;
-  },
+  get itemCount() this._itemsByElement.size,
 
   
 
@@ -1038,10 +1086,10 @@ MenuContainer.prototype = {
 
   _findExpectedIndex: function DVMC__findExpectedIndex(aLabel) {
     let container = this._container;
-    let itemCount = container.itemCount;
+    let itemCount = this.itemCount;
 
     for (let i = 0; i < itemCount; i++) {
-      if (this.getItemForElement(container.getItemAtIndex(i)).label > aLabel) {
+      if (this.getItemAtIndex(i).label > aLabel) {
         return i;
       }
     }
@@ -1059,32 +1107,6 @@ MenuContainer.prototype = {
 
 
 
-  _appendItem: function DVMC__appendItem(aItem, aOptions = {}) {
-    if (!aOptions.relaxed && !this.isEligible(aItem)) {
-      return null;
-    }
-
-    this._entangleItem(aItem, this._container.appendItem(
-      aItem.label, aItem.value, "", aOptions.attachment));
-
-    
-    if (aOptions.tooltip) {
-      aItem._target.setAttribute("tooltiptext", aOptions.tooltip);
-    }
-
-    return aItem;
-  },
-
-  
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1093,20 +1115,22 @@ MenuContainer.prototype = {
       return null;
     }
 
-    this._entangleItem(aItem, this._container.insertItemAt(
-      aIndex, aItem.label, aItem.value, "", aOptions.attachment));
+    this._entangleItem(aItem, this._container.insertItemAt(aIndex,
+      aOptions.nsIDOMNode || aItem.label,
+      aItem.value,
+      aItem.description,
+      aOptions.attachment));
 
     
     if (aOptions.tooltip) {
       aItem._target.setAttribute("tooltiptext", aOptions.tooltip);
     }
 
+    
     return aItem;
   },
 
   
-
-
 
 
 
@@ -1120,12 +1144,9 @@ MenuContainer.prototype = {
     this._itemsByElement.set(aElement, aItem);
 
     aItem._target = aElement;
-    return aItem;
   },
 
   
-
-
 
 
 
@@ -1141,7 +1162,25 @@ MenuContainer.prototype = {
     this._itemsByElement.delete(aItem.target);
 
     aItem._target = null;
-    return aItem;
+  },
+
+  
+
+
+
+
+
+
+
+  decorateWidgetMethods: function DVMC_decorateWidgetMethods(aTarget) {
+    let widget = this.node;
+    let targetNode = widget[aTarget];
+
+    widget.getAttribute = targetNode.getAttribute.bind(targetNode);
+    widget.setAttribute = targetNode.setAttribute.bind(targetNode);
+    widget.removeAttribute = targetNode.removeAttribute.bind(targetNode);
+    widget.addEventListener = targetNode.addEventListener.bind(targetNode);
+    widget.removeEventListener = targetNode.removeEventListener.bind(targetNode);
   },
 
   
@@ -1158,10 +1197,11 @@ MenuContainer.prototype = {
   _itemsByLabel: null,
   _itemsByValue: null,
   _itemsByElement: null,
-  _preferredValue: null,
-  _emptyLabel: "",
-  _unavailableLabel: ""
+  _preferredValue: null
 };
+
+
+
 
 
 
@@ -1182,29 +1222,13 @@ function StackList(aAssociatedNode) {
   
   this._list = document.createElement("vbox");
   this._parent.appendChild(this._list);
+
+  
+  
+  MenuContainer.prototype.decorateWidgetMethods.call({ node: this }, "_parent");
 }
 
 StackList.prototype = {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  appendItem:
-  function DVSL_appendItem(aLabel, aValue, aDescription, aAttachment) {
-    return this.insertItemAt(
-      Number.MAX_VALUE, aLabel, aValue, aDescription, aAttachment);
-  },
-
   
 
 
@@ -1227,7 +1251,7 @@ StackList.prototype = {
     let childNodes = list.childNodes;
 
     let element = document.createElement(this.itemType);
-    this._createItemView(element, aLabel, aValue, aAttachment);
+    this.itemFactory(element, aLabel, aValue, aAttachment);
     this._removeEmptyNotice();
 
     return list.insertBefore(element, childNodes[aIndex]);
@@ -1254,7 +1278,10 @@ StackList.prototype = {
   removeChild: function DVSL__removeChild(aChild) {
     this._list.removeChild(aChild);
 
-    if (!this.itemCount) {
+    if (this._selectedItem == aChild) {
+      this._selectedItem = null;
+    }
+    if (!this._list.hasChildNodes()) {
       this._appendEmptyNotice();
     }
   },
@@ -1274,28 +1301,8 @@ StackList.prototype = {
     parent.scrollLeft = 0;
 
     this._selectedItem = null;
-    this._selectedIndex = -1;
     this._appendEmptyNotice();
   },
-
-  
-
-
-
-  get itemCount() this._list.childNodes.length,
-
-  
-
-
-
-  get selectedIndex() this._selectedIndex,
-
-  
-
-
-
-
-  set selectedIndex(aIndex) this.selectedItem = this._list.childNodes[aIndex],
 
   
 
@@ -1312,81 +1319,15 @@ StackList.prototype = {
 
     if (!aChild) {
       this._selectedItem = null;
-      this._selectedIndex = -1;
     }
     for (let node of childNodes) {
       if (node == aChild) {
         node.classList.add("selected");
-        this._selectedIndex = Array.indexOf(childNodes, node);
         this._selectedItem = node;
       } else {
         node.classList.remove("selected");
       }
     }
-  },
-
-  
-
-
-
-
-
-
-
-  getAttribute: function DVSL_setAttribute(aName) {
-    return this._parent.getAttribute(aName);
-  },
-
-  
-
-
-
-
-
-
-
-  setAttribute: function DVSL_setAttribute(aName, aValue) {
-    this._parent.setAttribute(aName, aValue);
-  },
-
-  
-
-
-
-
-
-  removeAttribute: function DVSL_removeAttribute(aName) {
-    this._parent.removeAttribute(aName);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  addEventListener:
-  function DVSL_addEventListener(aName, aCallback, aBubbleFlag) {
-    this._parent.addEventListener(aName, aCallback, aBubbleFlag);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  removeEventListener:
-  function DVSL_removeEventListener(aName, aCallback, aBubbleFlag) {
-    this._parent.removeEventListener(aName, aCallback, aBubbleFlag);
   },
 
   
@@ -1423,34 +1364,13 @@ StackList.prototype = {
 
 
 
-  set itemFactory(aCallback) this._createItemView = aCallback,
-
-  
 
 
 
 
 
 
-
-
-
-  _createItemView: function DVSL__createItemView(aElementNode, aLabel, aValue) {
-    let labelNode = document.createElement("label");
-    let valueNode = document.createElement("label");
-    let spacer = document.createElement("spacer");
-
-    labelNode.setAttribute("value", aLabel);
-    valueNode.setAttribute("value", aValue);
-    spacer.setAttribute("flex", "1");
-
-    aElementNode.appendChild(labelNode);
-    aElementNode.appendChild(spacer);
-    aElementNode.appendChild(valueNode);
-
-    aElementNode.labelNode = labelNode;
-    aElementNode.valueNode = valueNode;
-  },
+  itemFactory: null,
 
   
 
@@ -1498,7 +1418,6 @@ StackList.prototype = {
 
   _parent: null,
   _list: null,
-  _selectedIndex: -1,
   _selectedItem: null,
   _permaTextNode: null,
   _permaTextValue: "",
