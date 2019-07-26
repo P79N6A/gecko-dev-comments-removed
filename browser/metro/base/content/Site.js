@@ -9,7 +9,7 @@
 
 
 function Site(aLink) {
-  if(!aLink.url) {
+  if (!aLink.url) {
     throw Cr.NS_ERROR_INVALID_ARG;
   }
   this._link = aLink;
@@ -64,7 +64,7 @@ Site.prototype = {
       }
     }
     
-    if (aNode.refresh) {
+    if ('refresh' in aNode) {
       
       aNode.refresh();
     } else {
