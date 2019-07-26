@@ -1459,7 +1459,6 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
     static const VMFunction NewCallObjectInfo = FunctionInfo<pf>(NewCallObject);
 
     JSObject *templateObj = lir->mir()->templateObj();
-    JSObject *global = &templateObj->global();
 
     
     OutOfLineCode *ool;
