@@ -2536,7 +2536,7 @@ protected:
 private:
     JS::Heap<JSObject*> mJSObj;
     nsRefPtr<nsXPCWrappedJSClass> mClass;
-    nsXPCWrappedJS* mRoot;
+    nsXPCWrappedJS* mRoot;    
     nsXPCWrappedJS* mNext;
     nsCOMPtr<nsISupports> mOuter;    
 };
