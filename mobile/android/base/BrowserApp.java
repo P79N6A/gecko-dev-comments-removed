@@ -1412,7 +1412,7 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         final String url = mBrowserToolbar.commitEdit();
-        animateHideHomePager();
+        hideHomePager();
         hideBrowserSearch();
 
         
@@ -1492,7 +1492,7 @@ abstract public class BrowserApp extends GeckoApp
         
         
         mHomePager.setVisibility(View.VISIBLE);
-        animateHideHomePager();
+        hideHomePager();
         hideBrowserSearch();
 
         return true;
@@ -1555,15 +1555,7 @@ abstract public class BrowserApp extends GeckoApp
         mHomePager.show(getSupportFragmentManager(), page, animator);
     }
 
-    private void animateHideHomePager() {
-        hideHomePagerWithAnimation(true);
-    }
-
     private void hideHomePager() {
-        hideHomePagerWithAnimation(false);
-    }
-
-    private void hideHomePagerWithAnimation(boolean animate) {
         if (!isHomePagerVisible()) {
             return;
         }
@@ -1573,7 +1565,6 @@ abstract public class BrowserApp extends GeckoApp
             return;
         }
 
-        
         if (mHomePager != null) {
             mHomePager.hide();
         }
