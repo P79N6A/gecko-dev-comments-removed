@@ -214,6 +214,11 @@ exports.winIsAbsolute = winIsAbsolute;
 let normalize = function(path) {
   let stack = [];
 
+  if (!path.startsWith("\\\\")) {
+    
+    path = path.replace(/\//g, "\\");
+  }
+
   
   let root = this.winGetDrive(path);
   if (root) {
@@ -222,9 +227,6 @@ let normalize = function(path) {
 
   
   let absolute = this.winIsAbsolute(path);
-
-  
-  path = path.replace("/", "\\");
 
   
   
