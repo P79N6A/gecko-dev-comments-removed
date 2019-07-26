@@ -35,6 +35,15 @@ function getBoolPref(prefName, def) {
   }
 }
 
+function getIntPref(prefName, def) {
+  try {
+    return Services.prefs.getIntPref(prefName);
+  }
+  catch(err) {
+    return def;
+  }
+}
+
 function exposeAll(obj) {
   
   if (typeof obj !== "object" || !obj)
@@ -236,7 +245,9 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
   
   defineMethod('setVisible', this._setVisible);
   defineMethod('sendMouseEvent', this._sendMouseEvent);
-  if (getBoolPref(TOUCH_EVENTS_ENABLED_PREF, false)) {
+
+  
+  if (getIntPref(TOUCH_EVENTS_ENABLED_PREF, 0) != 0) {
     defineMethod('sendTouchEvent', this._sendTouchEvent);
   }
   defineMethod('goBack', this._goBack);

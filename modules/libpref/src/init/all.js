@@ -3750,8 +3750,9 @@ pref("dom.mozSettings.enabled", false);
 pref("dom.mozPermissionSettings.enabled", false);
 
 
+
 #ifdef XP_WIN
-pref("dom.w3c_touch_events.enabled", true);
+pref("dom.w3c_touch_events.enabled", 2);
 #endif
 
 

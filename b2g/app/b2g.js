@@ -273,7 +273,7 @@ pref("image.mem.min_discard_timeout_ms", 10000);
 pref("image.mem.max_decoded_image_kb", 5120); 
 
 
-pref("dom.w3c_touch_events.enabled", true);
+pref("dom.w3c_touch_events.enabled", 1);
 pref("dom.w3c_touch_events.safetyX", 0); 
 pref("dom.w3c_touch_events.safetyY", 120); 
 
