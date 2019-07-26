@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 
-#include "mozilla/Util.h"
 #include "mozilla/WindowsDllBlocklist.h"
 
 #include "nsXULAppAPI.h"
@@ -33,11 +32,9 @@ main(int argc, char** argv, char** envp)
     InitAutoreleasePool();
 #endif
 
-#ifdef HAVE_SETBUF
     
     
     setbuf(stdout, 0);
-#endif
 
 #ifdef HAS_DLL_BLOCKLIST
     DllBlocklist_Initialize();
