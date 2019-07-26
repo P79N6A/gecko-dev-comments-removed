@@ -4765,6 +4765,46 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
     return result;
   }
 
+  if (nsLayoutUtils::IsPopup(this) &&
+      GetType() == nsGkAtoms::listControlFrame) {
+    nsPresContext* presContext = PresContext();
+    nsIFrame* docRootFrame = presContext->PresShell()->GetRootFrame();
+
+    
+    
+    
+    
+    nsIWidget* widget = GetView()->GetWidget();
+    nsPresContext* rootPresContext = PresContext()->GetRootPresContext();
+    
+    
+    
+    if (widget && rootPresContext) {
+      nsIWidget* toplevel = rootPresContext->GetNearestWidget();
+      if (toplevel) {
+        nsIntRect screenBounds;
+        widget->GetClientBounds(screenBounds);
+        nsIntRect toplevelScreenBounds;
+        toplevel->GetClientBounds(toplevelScreenBounds);
+        nsIntPoint translation = screenBounds.TopLeft() - toplevelScreenBounds.TopLeft();
+
+        gfx3DMatrix transformToTop;
+        transformToTop._41 = translation.x;
+        transformToTop._42 = translation.y;
+
+        *aOutAncestor = docRootFrame;
+        gfx3DMatrix docRootTransformToTop =
+          nsLayoutUtils::GetTransformToAncestor(docRootFrame, nullptr);
+        if (docRootTransformToTop.IsSingular()) {
+          NS_WARNING("Containing document is invisible, we can't compute a valid transform");
+        } else {
+          gfx3DMatrix topToDocRootTransform = docRootTransformToTop.Inverse();
+          return transformToTop*topToDocRootTransform;
+        }
+      }
+    }
+  }
+
   *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
 
   
@@ -4779,7 +4819,9 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
     return gfx3DMatrix();
   
   
-  while (!(*aOutAncestor)->IsTransformed() && *aOutAncestor != aStopAtAncestor) {
+  while (!(*aOutAncestor)->IsTransformed() &&
+         !nsLayoutUtils::IsPopup(*aOutAncestor) &&
+         *aOutAncestor != aStopAtAncestor) {
     
     nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(*aOutAncestor);
     if (!parent)
