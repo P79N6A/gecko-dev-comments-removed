@@ -1005,18 +1005,6 @@ public:
   
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
-
-  static nsIDOMElement* CurrentUpgradeElement()
-  {
-    return sCurrentUpgradeElement;
-  }
-
-  JSObject* GetCustomPrototype(const nsAString& aElementName)
-  {
-    JSObject* prototype = nullptr;
-    mCustomPrototypes.Get(aElementName, &prototype);
-    return prototype;
-  }
 protected:
   friend class nsNodeUtils;
 
@@ -1173,14 +1161,6 @@ protected:
   
   
   nsTArray<nsWeakPtr> mFullScreenStack;
-
-  
-  
-  
-  static nsIDOMElement* sCurrentUpgradeElement;
-
-  
-  nsDataHashtable<nsStringHashKey, JSObject*> mCustomPrototypes;
 
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

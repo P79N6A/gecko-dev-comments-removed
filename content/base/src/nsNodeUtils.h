@@ -159,16 +159,6 @@ public:
   
 
 
-  static nsresult Clone(nsINode *aNode, bool aDeep, nsINode **aResult)
-  {
-    nsCOMArray<nsINode> dummyNodeWithProperties;
-    return CloneAndAdopt(aNode, true, aDeep, nullptr, nullptr, nullptr,
-                         dummyNodeWithProperties, aNode->GetParent(), aResult);
-  }
-
-  
-
-
 
 
 
