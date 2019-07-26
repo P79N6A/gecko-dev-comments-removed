@@ -2251,7 +2251,7 @@ public class GeckoAppShell
         if (GeckoApp.mAppContext != null)
             GeckoApp.mAppContext.notifyCheckUpdateResult(result);
     }
-    
+
     public static boolean unlockProfile() {
         
         GeckoAppShell.killAnyZombies();
@@ -2259,11 +2259,7 @@ public class GeckoAppShell
         
         GeckoProfile profile = GeckoApp.mAppContext.getProfile();
         File lock = profile.getFile(".parentlock");
-        if (lock.exists()) {
-            lock.delete();
-            return true;
-        }
-        return false;
+        return lock.exists() && lock.delete();
     }
 
     public static String getProxyForURI(String spec, String scheme, String host, int port) {
