@@ -381,26 +381,28 @@ nsXULPopupManager::PopupResized(nsIFrame* aFrame, nsIntSize aSize)
   if (!menuPopupFrame)
     return;
 
+  nsView* view = menuPopupFrame->GetView();
+  if (!view)
+    return;
+
+  nsIntRect curDevSize = view->CalcWidgetBounds(eWindowType_popup);
+  
+  if (curDevSize.width == aSize.width && curDevSize.height == aSize.height)
+    return;
+
+  
+  
   nsPresContext* presContext = menuPopupFrame->PresContext();
 
-  nsSize currentSize = menuPopupFrame->GetSize();
-
-  
-  
-  nsIntSize currCSS(nsPresContext::AppUnitsToIntCSSPixels(currentSize.width),
-                    nsPresContext::AppUnitsToIntCSSPixels(currentSize.height));
   nsIntSize newCSS(presContext->DevPixelsToIntCSSPixels(aSize.width),
                    presContext->DevPixelsToIntCSSPixels(aSize.height));
 
-  if (newCSS.width != currCSS.width || newCSS.height != currCSS.height) {
-    
-    nsIContent* popup = menuPopupFrame->GetContent();
-    nsAutoString width, height;
-    width.AppendInt(newCSS.width);
-    height.AppendInt(newCSS.height);
-    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, false);
-    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::height, height, true);
-  }
+  nsIContent* popup = menuPopupFrame->GetContent();
+  nsAutoString width, height;
+  width.AppendInt(newCSS.width);
+  height.AppendInt(newCSS.height);
+  popup->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, false);
+  popup->SetAttr(kNameSpaceID_None, nsGkAtoms::height, height, true);
 }
 
 nsMenuPopupFrame*
