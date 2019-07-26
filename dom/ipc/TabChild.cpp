@@ -98,7 +98,7 @@ using namespace mozilla::widget;
 
 NS_IMPL_ISUPPORTS1(ContentListener, nsIDOMEventListener)
 
-static const nsIntSize kDefaultViewportSize(980, 480);
+static const CSSSize kDefaultViewportSize(980, 480);
 
 static const char CANCEL_DEFAULT_PAN_ZOOM[] = "cancel-default-pan-zoom";
 static const char BROWSER_ZOOM_TO_RECT[] = "browser-zoom-to-rect";
@@ -341,15 +341,13 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        SetCSSViewport(kDefaultViewportSize.width, kDefaultViewportSize.height);
+        SetCSSViewport(kDefaultViewportSize);
 
         
         
         
         mLastMetrics.mZoom = gfxSize(1.0, 1.0);
-        mLastMetrics.mViewport =
-            gfx::Rect(0, 0,
-                      kDefaultViewportSize.width, kDefaultViewportSize.height);
+        mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
         
         mLastMetrics.mCompositionBounds = LayerIntRect::FromUnknownRect(
           gfx::IntRect(0, 0, mInnerSize.width, mInnerSize.height));
@@ -471,13 +469,13 @@ TabChild::OnSecurityChange(nsIWebProgress* aWebProgress,
 }
 
 void
-TabChild::SetCSSViewport(float aWidth, float aHeight)
+TabChild::SetCSSViewport(const CSSSize& aSize)
 {
-  mOldViewportWidth = aWidth;
+  mOldViewportWidth = aSize.width;
 
   if (mContentDocumentIsDisplayed) {
     nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
-    utils->SetCSSViewport(aWidth, aHeight);
+    utils->SetCSSViewport(aSize.width, aSize.height);
   }
 }
 
@@ -502,8 +500,7 @@ TabChild::HandlePossibleViewportChange()
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
-  float viewportW = viewportInfo.GetWidth();
-  float viewportH = viewportInfo.GetHeight();
+  CSSSize viewport(viewportInfo.GetWidth(), viewportInfo.GetHeight());
 
   
   
@@ -517,12 +514,11 @@ TabChild::HandlePossibleViewportChange()
   
   
   float oldBrowserWidth = mOldViewportWidth;
-  mLastMetrics.mViewport.width = viewportW;
-  mLastMetrics.mViewport.height = viewportH;
+  mLastMetrics.mViewport.SizeTo(viewport);
   if (!oldBrowserWidth) {
     oldBrowserWidth = kDefaultViewportSize.width;
   }
-  SetCSSViewport(viewportW, viewportH);
+  SetCSSViewport(viewport);
 
   
   
@@ -553,24 +549,26 @@ TabChild::HandlePossibleViewportChange()
     bodyHeight = bodyDOMElement->ScrollHeight();
   }
 
-  float pageWidth, pageHeight;
+  CSSSize pageSize;
   if (htmlDOMElement || bodyDOMElement) {
-    pageWidth = std::max(htmlWidth, bodyWidth);
-    pageHeight = std::max(htmlHeight, bodyHeight);
+    pageSize = CSSSize(std::max(htmlWidth, bodyWidth),
+                       std::max(htmlHeight, bodyHeight));
   } else {
     
-    pageWidth = viewportW;
-    pageHeight = viewportH;
+    pageSize = viewport;
   }
-  NS_ENSURE_TRUE_VOID(pageWidth); 
+  if (!pageSize.width) {
+    
+    return;
+  }
 
-  minScale = mInnerSize.width / pageWidth;
+  minScale = mInnerSize.width / pageSize.width;
   minScale = clamped((double)minScale, viewportInfo.GetMinZoom(),
                      viewportInfo.GetMaxZoom());
   NS_ENSURE_TRUE_VOID(minScale); 
 
-  viewportH = std::max(viewportH, screenH / minScale);
-  SetCSSViewport(viewportW, viewportH);
+  viewport.height = std::max(viewport.height, screenH / minScale);
+  SetCSSViewport(viewport);
 
   
   
@@ -590,8 +588,8 @@ TabChild::HandlePossibleViewportChange()
   }
 
   FrameMetrics metrics(mLastMetrics);
-  metrics.mViewport = gfx::Rect(0.0f, 0.0f, viewportW, viewportH);
-  metrics.mScrollableRect = CSSRect(0.0f, 0.0f, pageWidth, pageHeight);
+  metrics.mViewport = CSSRect(CSSPoint(), viewport);
+  metrics.mScrollableRect = CSSRect(CSSPoint(), pageSize);
   
   metrics.mCompositionBounds = LayerIntRect::FromUnknownRect(
     gfx::IntRect(0, 0, mInnerSize.width, mInnerSize.height));

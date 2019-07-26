@@ -174,7 +174,7 @@ public:
   
   
   
-  gfx::Rect mViewport;
+  CSSRect mViewport;
 
   
   

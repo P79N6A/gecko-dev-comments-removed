@@ -384,7 +384,7 @@ private:
 
     
     
-    void SetCSSViewport(float aX, float aY);
+    void SetCSSViewport(const CSSSize& aSize);
 
     
     
