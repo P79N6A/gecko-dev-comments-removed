@@ -2,7 +2,7 @@
 
 
 
-Components.utils.import("resource://gre/modules/ClearRecentHistory.jsm");
+Components.utils.import("resource://gre/modules/ForgetAboutSite.jsm");
 
 function test() {
   
@@ -79,7 +79,7 @@ function test() {
   ss.setBrowserState(JSON.stringify(testState));
 
   
-  ClearRecentHistory.removeDataFromDomain("mozilla.org");
+  ForgetAboutSite.removeDataFromDomain("mozilla.org");
 
   let closedWindowData = JSON.parse(ss.getClosedWindowData());
 

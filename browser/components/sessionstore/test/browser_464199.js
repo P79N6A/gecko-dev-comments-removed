@@ -2,7 +2,7 @@
 
 
 
-Components.utils.import("resource://gre/modules/ClearRecentHistory.jsm");
+Components.utils.import("resource://gre/modules/ForgetAboutSite.jsm");
 
 function test() {
   
@@ -58,7 +58,7 @@ function test() {
     is(countByTitle(closedTabs, REMEMBER), remember_count,
        "Everything is set up.");
 
-    ClearRecentHistory.removeDataFromDomain("example.net");
+    ForgetAboutSite.removeDataFromDomain("example.net");
 
     closedTabs = JSON.parse(ss.getClosedTabData(newWin));
     is(closedTabs.length, remember_count,
