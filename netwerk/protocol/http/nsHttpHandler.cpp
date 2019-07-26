@@ -1603,11 +1603,11 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         
         if (mPipeliningOverSSL)
             caps |= NS_HTTP_ALLOW_PIPELINING;
+    }
 
-        if (!IsNeckoChild()) {
-            
-            net_EnsurePSMInit();
-        }
+    if (!IsNeckoChild()) {
+        
+        net_EnsurePSMInit();
     }
 
     rv = httpChannel->Init(uri, caps, proxyInfo, proxyResolveFlags, proxyURI);
