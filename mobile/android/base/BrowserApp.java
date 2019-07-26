@@ -123,6 +123,10 @@ abstract public class BrowserApp extends GeckoApp
 
     private Integer mPrefObserverId;
 
+    
+    
+    private static final String ABOUTHOME_TAG = "abouthome";
+
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         switch(msg) {
@@ -359,12 +363,17 @@ abstract public class BrowserApp extends GeckoApp
         });
 
         
-        
-        
-        
-        
-        mAboutHome = AboutHome.newInstance();
-        mAboutHome.setUserVisibleHint(false);
+        mAboutHome = (AboutHome) getSupportFragmentManager().findFragmentByTag(ABOUTHOME_TAG);
+
+        if (mAboutHome == null) {
+            
+            
+            
+            
+            
+            mAboutHome = AboutHome.newInstance();
+            mAboutHome.setUserVisibleHint(false);
+        }
 
         mBrowserToolbar = new BrowserToolbar(this);
         mBrowserToolbar.from(actionBar);
@@ -1092,7 +1101,7 @@ abstract public class BrowserApp extends GeckoApp
         
         
         getSupportFragmentManager().beginTransaction()
-                .add(R.id.gecko_layout, mAboutHome).commitAllowingStateLoss();
+                .add(R.id.gecko_layout, mAboutHome, ABOUTHOME_TAG).commitAllowingStateLoss();
         mAboutHome.setUserVisibleHint(true);
 
         mBrowserToolbar.setNextFocusDownId(R.id.abouthome_content);
