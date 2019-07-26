@@ -300,6 +300,9 @@ LayerManagerOGL::LayerManagerOGL(nsIWidget *aWidget, int aSurfaceWidth, int aSur
   , mBackBufferSize(-1, -1)
   , mHasBGRA(0)
   , mIsRenderingToEGLSurface(aIsRenderingToEGLSurface)
+#ifdef DEBUG
+  , mMaybeInvalidTree(false)
+#endif
 {
 }
 
@@ -594,12 +597,18 @@ void
 LayerManagerOGL::BeginTransaction()
 {
   mInTransaction = true;
+#ifdef DEBUG
+  mMaybeInvalidTree = false;
+#endif
 }
 
 void
 LayerManagerOGL::BeginTransactionWithTarget(gfxContext *aTarget)
 {
   mInTransaction = true;
+#ifdef DEBUG
+  mMaybeInvalidTree = false;
+#endif
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   MOZ_LAYERS_LOG(("[----- BeginTransaction"));
@@ -617,6 +626,10 @@ LayerManagerOGL::BeginTransactionWithTarget(gfxContext *aTarget)
 bool
 LayerManagerOGL::EndEmptyTransaction(EndTransactionFlags aFlags)
 {
+  
+  
+  
+  MOZ_ASSERT(!mMaybeInvalidTree);
   mInTransaction = false;
 
   if (!mRoot)
@@ -739,6 +752,41 @@ LayerManagerOGL::CreateCanvasLayer()
   return layer.forget();
 }
 
+static LayerOGL*
+ToLayerOGL(Layer* aLayer)
+{
+  return static_cast<LayerOGL*>(aLayer->ImplData());
+}
+
+static void ClearSubtree(Layer* aLayer)
+{
+  ToLayerOGL(aLayer)->CleanupResources();
+  for (Layer* child = aLayer->GetFirstChild(); child;
+       child = child->GetNextSibling()) {
+    ClearSubtree(child);
+  }
+}
+
+void
+LayerManagerOGL::ClearCachedResources(Layer* aSubtree)
+{
+  MOZ_ASSERT(!aSubtree || aSubtree->Manager() == this);
+  Layer* subtree = aSubtree ? aSubtree : mRoot.get();
+  if (!subtree) {
+    return;
+  }
+
+  ClearSubtree(subtree);
+#ifdef DEBUG
+  
+  
+  
+  
+  for(; subtree && subtree != mRoot; subtree = subtree->GetParent());
+  mMaybeInvalidTree = (subtree == mRoot);
+#endif  
+}
+
 LayerOGL*
 LayerManagerOGL::RootLayer() const
 {
@@ -747,7 +795,7 @@ LayerManagerOGL::RootLayer() const
     return nullptr;
   }
 
-  return static_cast<LayerOGL*>(mRoot->ImplData());
+  return ToLayerOGL(mRoot);
 }
 
 bool LayerManagerOGL::sDrawFPS = false;

@@ -145,6 +145,8 @@ public:
   virtual already_AddRefed<gfxASurface>
     CreateOptimalMaskSurface(const gfxIntSize &aSize);
 
+  virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
+
   
 
 
@@ -464,6 +466,13 @@ private:
   void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
   nsAutoPtr<FPSState> mFPS;
+#ifdef DEBUG
+  
+  
+  
+  
+  bool mMaybeInvalidTree;
+#endif
 
   static bool sDrawFPS;
   static bool sFrameCounter;

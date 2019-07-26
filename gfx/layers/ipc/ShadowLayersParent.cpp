@@ -481,6 +481,18 @@ ShadowLayersParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
   return true;
 }
 
+bool
+ShadowLayersParent::RecvClearCachedResources()
+{
+  if (mRoot) {
+    
+    
+    
+    mLayerManager->ClearCachedResources(mRoot);
+  }
+  return true;
+}
+
 PGrallocBufferParent*
 ShadowLayersParent::AllocPGrallocBuffer(const gfxIntSize& aSize,
                                         const gfxContentType& aContent,

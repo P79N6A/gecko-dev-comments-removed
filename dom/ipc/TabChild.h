@@ -292,6 +292,14 @@ public:
 
     bool IsAsyncPanZoomEnabled();
 
+    
+
+
+
+
+    void MakeVisible();
+    void MakeHidden();
+
 protected:
     virtual PRenderFrameChild* AllocPRenderFrame(ScrollingBehavior* aScrolling,
                                                  LayersBackend* aBackend,

@@ -131,6 +131,15 @@ public:
                            void* aCallbackData,
                            ReadbackProcessor* aReadback);
 
+  virtual void ClearCachedResources() MOZ_OVERRIDE
+  {
+    BasicThebesLayer::ClearCachedResources();
+    DestroyBackBuffer();
+    
+    mROFrontBuffer = null_t();
+    mFrontAndBackBufferDiffer = false;
+  }
+
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   {
     aAttrs = ThebesLayerAttributes(GetValidRegion());

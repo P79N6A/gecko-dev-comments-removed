@@ -139,7 +139,7 @@ public:
 #endif 
 
   
-  void ClearCachedResources();
+  virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
 
   void SetTransactionIncomplete() { mTransactionIncomplete = true; }
   bool IsTransactionIncomplete() { return mTransactionIncomplete; }
@@ -270,6 +270,10 @@ public:
   virtual bool HasShadowManagerInternal() const { return HasShadowManager(); }
 
   virtual void SetIsFirstPaint() MOZ_OVERRIDE;
+
+  
+  
+  virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
 
   void SetRepeatTransaction() { mRepeatTransaction = true; }
 

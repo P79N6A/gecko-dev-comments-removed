@@ -433,6 +433,24 @@ public:
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void ClearCachedResources(Layer* aSubtree = nullptr) {}
+
+  
+
+
   virtual void SetIsFirstPaint() {}
 
   
