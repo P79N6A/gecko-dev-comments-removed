@@ -210,7 +210,6 @@ public:
   {
     
     
-    mNode = aTargetNode;
     mParent = mAccessible->Parent();
   }
   virtual ~AccMutationEvent() { }
