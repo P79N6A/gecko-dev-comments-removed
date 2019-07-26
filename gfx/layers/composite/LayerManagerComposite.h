@@ -195,6 +195,22 @@ public:
 
 
 
+  class AutoAddMaskEffect
+  {
+  public:
+    AutoAddMaskEffect(Layer* aMaskLayer,
+                      EffectChain& aEffect,
+                      bool aIs3D = false);
+    ~AutoAddMaskEffect();
+
+  private:
+    CompositableHost* mCompositable;
+  };
+
+  
+
+
+
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat) MOZ_OVERRIDE;
