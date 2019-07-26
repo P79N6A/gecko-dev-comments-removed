@@ -1025,6 +1025,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
     
     if (mPresShell) {
       mPresShell->ScrollToAnchor();
+      mPresShell->LoadComplete();
     }
   }
 

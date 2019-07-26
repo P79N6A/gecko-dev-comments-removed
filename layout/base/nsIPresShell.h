@@ -420,6 +420,11 @@ public:
   
 
 
+  virtual NS_HIDDEN_(void) LoadComplete() = 0;
+
+  
+
+
   virtual NS_HIDDEN_(nsIFrame*) GetRootFrameExternal() const;
   nsIFrame* GetRootFrame() const {
 #ifdef MOZILLA_INTERNAL_API
