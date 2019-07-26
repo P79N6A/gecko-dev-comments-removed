@@ -1609,25 +1609,25 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
 
     
     
+    MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newParent));
+    MOZ_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(newParent)));
+    if (!IS_WN_WRAPPER_OBJECT(newParent))
+        NS_ENSURE_STATE(MorphSlimWrapper(ccx, newParent));
+    XPCWrappedNative *parentWrapper =
+      static_cast<XPCWrappedNative*>(js::GetObjectPrivate(newParent));
+    rv = parentWrapper->RescueOrphans(ccx);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
     
 
-    XPCWrappedNativeScope *betterScope =
-        XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
+    XPCWrappedNativeScope *betterScope = parentWrapper->GetScope();
     if (betterScope == oldScope) {
         
         
         
         
-
-        if (!IS_WN_WRAPPER_OBJECT(newParent)) {
-            
-            
-
-            NS_ENSURE_STATE(MorphSlimWrapper(ccx, newParent));
-        }
-
-        XPCWrappedNative *parentWrapper =
-            XPCWrappedNative::GetWrappedNativeOfJSObject(ccx, newParent);
 
         rv = MoveWrapper(ccx, parentWrapper, newScope, oldScope);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -1641,7 +1641,6 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
         NS_ASSERTION(parentWrapper->GetScope() == newScope,
                      "A _third_ scope? Oh dear...");
 
-        newParent = parentWrapper->GetFlatJSObject();
     } else
         NS_ASSERTION(betterScope == newScope, "Weird scope returned");
 
@@ -1650,7 +1649,7 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
 
     nsRefPtr<XPCWrappedNative> junk;
     rv = XPCWrappedNative::ReparentWrapperIfFound(ccx, oldScope,
-                                                  newScope, newParent,
+                                                  newScope, parentWrapper->GetFlatJSObject(),
                                                   wrapper->GetIdentityObject(),
                                                   getter_AddRefs(junk));
     return rv;
