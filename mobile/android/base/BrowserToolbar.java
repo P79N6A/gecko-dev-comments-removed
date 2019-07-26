@@ -622,7 +622,7 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 
                 mLayout.setSelected(false);
 
-                PropertyAnimator buttonsAnimator = new PropertyAnimator(150);
+                PropertyAnimator buttonsAnimator = new PropertyAnimator(300);
 
                 
                 
