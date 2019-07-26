@@ -172,8 +172,6 @@ pref("content.sink.pending_event_mode", 0);
 pref("content.sink.perf_deflect_count", 1000000);
 pref("content.sink.perf_parse_time", 50000000);
 
-pref("javascript.options.mem.high_water_mark", 32);
-
 
 pref("dom.max_chrome_script_run_time", 0); 
 pref("dom.max_script_run_time", 20);
@@ -523,7 +521,7 @@ pref("javascript.options.mem.gc_high_frequency_heap_growth_min", 101);
 pref("javascript.options.mem.gc_high_frequency_high_limit_mb", 40);
 pref("javascript.options.mem.gc_high_frequency_low_limit_mb", 10);
 pref("javascript.options.mem.gc_low_frequency_heap_growth", 105);
-pref("javascript.options.mem.high_water_mark", 16);
+pref("javascript.options.mem.high_water_mark", 6);
 
 
 pref("ui.showHideScrollbars", 1);
