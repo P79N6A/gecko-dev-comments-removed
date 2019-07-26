@@ -285,8 +285,7 @@ DEBUG_CheckUnwrapSafety(JSObject *obj, js::Wrapper *handler,
         MOZ_ASSERT(!handler->isSafeToUnwrap());
     } else if (AccessCheck::needsSystemOnlyWrapper(obj)) {
         
-        
-        
+        MOZ_ASSERT(handler->isSafeToUnwrap() == nsContentUtils::CanAccessNativeAnon());
     } else {
         
         MOZ_ASSERT(handler->isSafeToUnwrap() == AccessCheck::subsumes(target, origin));
@@ -342,6 +341,9 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                "wrapped object passed to rewrap");
     MOZ_ASSERT(JS_GetClass(obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
     MOZ_ASSERT(!js::IsInnerObject(obj));
+    
+    
+    MOZ_ASSERT(XPCJSRuntime::Get()->GetJSContextStack()->Peek() == cx);
 
     
     JSCompartment *origin = js::GetObjectCompartment(obj);
