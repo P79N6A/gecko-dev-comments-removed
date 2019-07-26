@@ -1997,7 +1997,11 @@ js::array_pop(JSContext *cx, unsigned argc, Value *vp)
     
     
     
-    if (obj->isNative() && obj->getDenseInitializedLength() > index)
+    
+    
+    
+    
+    if (obj->is<ArrayObject>() && obj->getDenseInitializedLength() > index)
         obj->setDenseInitializedLength(index);
 
     
