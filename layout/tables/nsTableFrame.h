@@ -572,8 +572,8 @@ protected:
 
 
 
-
-  void FixupPositionedTableParts(nsPresContext* aPresContext,
+  void FixupPositionedTableParts(nsPresContext*           aPresContext,
+                                 nsHTMLReflowMetrics&     aDesiredSize,
                                  const nsHTMLReflowState& aReflowState);
 
   

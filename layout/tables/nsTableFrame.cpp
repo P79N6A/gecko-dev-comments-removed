@@ -1894,7 +1894,7 @@ nsresult nsTableFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  FixupPositionedTableParts(aPresContext, aReflowState);
+  FixupPositionedTableParts(aPresContext, aDesiredSize, aReflowState);
 
   
   nsRect tableRect(0, 0, aDesiredSize.Width(), aDesiredSize.Height()) ;
@@ -1917,7 +1917,8 @@ nsresult nsTableFrame::Reflow(nsPresContext*           aPresContext,
 }
 
 void
-nsTableFrame::FixupPositionedTableParts(nsPresContext* aPresContext,
+nsTableFrame::FixupPositionedTableParts(nsPresContext*           aPresContext,
+                                        nsHTMLReflowMetrics&     aDesiredSize,
                                         const nsHTMLReflowState& aReflowState)
 {
   auto positionedParts =
@@ -1965,6 +1966,11 @@ nsTableFrame::FixupPositionedTableParts(nsPresContext* aPresContext,
 
   
   overflowTracker.Flush();
+
+  
+  
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+  nsLayoutUtils::UnionChildOverflow(this, aDesiredSize.mOverflowAreas);
 }
 
 bool
