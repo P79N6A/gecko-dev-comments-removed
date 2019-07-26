@@ -120,14 +120,6 @@ public:
 
 
 
-
-#define NS_ARRAY_LENGTH(array_) \
-  (sizeof(array_)/sizeof(array_[0]))
-
-
-
-
-
 namespace mozilla {
   template <class T>
   struct AlignmentTestStruct
