@@ -309,7 +309,7 @@ helpers._actual = {
     var cursor = options.display.inputter.element.selectionStart;
     var statusMarkup = options.display.requisition.getInputStatusMarkup(cursor);
     return statusMarkup.map(function(s) {
-      return Array(s.string.length + 1).join(s.status.toString()[0]);
+      return new Array(s.string.length + 1).join(s.status.toString()[0]);
     }).join('');
   },
 
@@ -322,7 +322,7 @@ helpers._actual = {
   },
 
   status: function(options) {
-    return options.display.requisition.getStatus().toString();
+    return options.display.requisition.status.toString();
   },
 
   predictions: function(options) {
@@ -382,7 +382,7 @@ helpers._createDebugCheck = function(options) {
   var command = requisition.commandAssignment.value;
   var cursor = helpers._actual.cursor(options);
   var input = helpers._actual.input(options);
-  var padding = Array(input.length + 1).join(' ');
+  var padding = new Array(input.length + 1).join(' ');
 
   var hintsPromise = helpers._actual.hints(options);
   var predictionsPromise = helpers._actual.predictions(options);
@@ -440,7 +440,7 @@ helpers._createDebugCheck = function(options) {
 
         output += 'arg: \'' + assignment.arg + '\', ';
         output += 'status: \'' + assignment.getStatus().toString() + '\', ';
-        output += 'message: \'' + assignment.getMessage() + '\'';
+        output += 'message: \'' + assignment.message + '\'';
         output += ' },\n';
       });
 
@@ -532,7 +532,7 @@ var CHUNKER = /([^<]*)(<[A-Z]+>)/;
 
 helpers.setInput = function(options, typed, cursor) {
   checkOptions(options);
-  var inputPromise = undefined;
+  var inputPromise;
   var inputter = options.display.inputter;
   
   
@@ -546,7 +546,7 @@ helpers.setInput = function(options, typed, cursor) {
     
     
     var chunks = typed.split(CHUNKER).filter(function(s) {
-      return s != '';
+      return s !== '';
     });
     chunkLen = chunks.length + 1;
 
@@ -761,11 +761,11 @@ helpers._check = function(options, name, checks) {
 
       if ('message' in check) {
         if (typeof check.message.test === 'function') {
-          assert.ok(check.message.test(assignment.getMessage()),
+          assert.ok(check.message.test(assignment.message),
                     'arg.' + paramName + '.message' + suffix);
         }
         else {
-          assert.is(assignment.getMessage(),
+          assert.is(assignment.message,
                     check.message,
                     'arg.' + paramName + '.message' + suffix);
         }
@@ -787,6 +787,7 @@ helpers._check = function(options, name, checks) {
 
 
 helpers._exec = function(options, name, expected) {
+  var requisition = options.display.requisition;
   if (expected == null) {
     return promise.resolve({});
   }
@@ -796,9 +797,86 @@ helpers._exec = function(options, name, expected) {
     cli.logErrors = false;
   }
 
-  var output;
+  var completed = true;
+
   try {
-    output = options.display.requisition.exec({ hidden: true });
+    return requisition.exec({ hidden: true }).then(function(output) {
+      if ('completed' in expected) {
+        assert.is(completed,
+                  expected.completed,
+                  'output.completed for: ' + name);
+      }
+
+      if ('type' in expected) {
+        assert.is(output.type,
+                  expected.type,
+                  'output.type for: ' + name);
+      }
+
+      if ('error' in expected) {
+        assert.is(output.error,
+                  expected.error,
+                  'output.error for: ' + name);
+      }
+
+      if (!options.window) {
+        assert.ok(false, 'Missing options.window in \'' + name + '\'. ' +
+                         'Are you assming that helpers.audit is synchronous? ' +
+                         'It returns a promise');
+        return { output: output };
+      }
+
+      if (!options.window.document.createElement) {
+        assert.log('skipping output tests (missing doc.createElement) for ' + name);
+        return { output: output };
+      }
+
+      if (!('output' in expected)) {
+        return { output: output };
+      }
+
+      var context = requisition.conversionContext;
+      return output.convert('dom', context).then(function(node) {
+        var actualOutput = node.textContent.trim();
+
+        var doTest = function(match, against) {
+          
+          if (against.match(match) != null) {
+            assert.ok(true, 'html output for \'' + name + '\' ' +
+                            'should match /' + match.source || match + '/');
+          } else {
+            assert.ok(false, 'html output for \'' + name + '\' ' +
+                             'should match /' + match.source || match + '/. ' +
+                             'Actual textContent: "' + against + '"');
+          }
+        };
+
+        if (typeof expected.output === 'string') {
+          assert.is(actualOutput,
+                    expected.output,
+                    'html output for ' + name);
+        }
+        else if (Array.isArray(expected.output)) {
+          expected.output.forEach(function(match) {
+            doTest(match, actualOutput);
+          });
+        }
+        else {
+          doTest(expected.output, actualOutput);
+        }
+
+        if (expected.error) {
+          cli.logErrors = origLogErrors;
+        }
+        return { output: output, text: actualOutput };
+      });
+    }.bind(this)).then(function(data) {
+      if (expected.error) {
+        cli.logErrors = origLogErrors;
+      }
+
+      return data;
+    });
   }
   catch (ex) {
     assert.ok(false, 'Failure executing \'' + name + '\': ' + ex);
@@ -809,88 +887,9 @@ helpers._exec = function(options, name, expected) {
     }
     return promise.resolve({});
   }
-
-  if ('completed' in expected) {
-    assert.is(output.completed,
-              expected.completed,
-              'output.completed false for: ' + name);
+  finally {
+    completed = false;
   }
-
-  if (!options.window) {
-    assert.ok(false, 'Missing options.window in \'' + name + '\'. ' +
-                     'Are you assming that helpers.audit is synchronous? ' +
-                     'It returns a promise');
-    return { output: output };
-  }
-
-  if (!options.window.document.createElement) {
-    assert.log('skipping output tests (missing doc.createElement) for ' + name);
-
-    if (expected.error) {
-      cli.logErrors = origLogErrors;
-    }
-    return promise.resolve({ output: output });
-  }
-
-  if (!('output' in expected)) {
-    if (expected.error) {
-      cli.logErrors = origLogErrors;
-    }
-    return promise.resolve({ output: output });
-  }
-
-  var checkOutput = function() {
-    if ('type' in expected) {
-      assert.is(output.type,
-                expected.type,
-                'output.type for: ' + name);
-    }
-
-    if ('error' in expected) {
-      assert.is(output.error,
-                expected.error,
-                'output.error for: ' + name);
-    }
-
-    var conversionContext = options.display.requisition.conversionContext;
-    var convertPromise = converters.convert(output.data, output.type, 'dom',
-                                            conversionContext);
-    return convertPromise.then(function(node) {
-      var actualOutput = node.textContent.trim();
-
-      var doTest = function(match, against) {
-        if (match.test(against)) {
-          assert.ok(true, 'html output for ' + name + ' should match /' +
-                          match.source + '/');
-        } else {
-          assert.ok(false, 'html output for ' + name + ' should match /' +
-                           match.source +
-                           '/. Actual textContent: "' + against + '"');
-        }
-      };
-
-      if (typeof expected.output === 'string') {
-        assert.is(actualOutput,
-                  expected.output,
-                  'html output for ' + name);
-      }
-      else if (Array.isArray(expected.output)) {
-        expected.output.forEach(function(match) {
-          doTest(match, actualOutput);
-        });
-      }
-      else {
-        doTest(expected.output, actualOutput);
-      }
-
-      if (expected.error) {
-        cli.logErrors = origLogErrors;
-      }
-      return { output: output, text: actualOutput };
-    });
-  };
-
-  return output.promise.then(checkOutput, checkOutput);
 };
 
 
@@ -924,8 +923,8 @@ helpers._post = function(name, action, data) {
 var totalResponseTime = 0;
 var averageOver = 0;
 var maxResponseTime = 0;
-var maxResponseCulprit = undefined;
-var start = undefined;
+var maxResponseCulprit;
+var start;
 
 
 

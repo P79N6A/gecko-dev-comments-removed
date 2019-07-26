@@ -1,25 +1,25 @@
-/*
- * Copyright 2012, Mozilla Foundation and contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -31,16 +31,16 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var assert = require('test/assert');
-// var helpers = require('gclitest/helpers');
+
+
 var javascript = require('gcli/types/javascript');
 var canon = require('gcli/canon');
 
-var tempWindow = undefined;
+var tempWindow;
 
 exports.setup = function(options) {
   tempWindow = javascript.getGlobalObject();
@@ -344,7 +344,7 @@ exports.testDocument = function(options) {
 
 exports.testDonteval = function(options) {
   if (!options.isJsdom) {
-    // jsdom causes an eval here, maybe that's node/v8?
+    
     assert.ok('donteval' in options.window, 'donteval exists');
   }
 
@@ -396,34 +396,34 @@ exports.testDonteval = function(options) {
         }
       }
     },
-    /*
-    // This is a controversial test - technically we can tell that it's an error
-    // because 'donteval.' is a syntax error, however donteval is unsafe so we
-    // are playing safe by bailing out early. It's enough of a corner case that
-    // I don't think it warrants fixing
-    {
-      setup:    '{ donteval.',
-      check: {
-        input:  '{ donteval.',
-        hints:             '',
-        markup: 'VVVVVVVVVVV',
-        cursor: 11,
-        current: 'javascript',
-        status: 'VALID',
-        predictions: [ ],
-        unassigned: [ ],
-        args: {
-          command: { name: '{' },
-          javascript: {
-            value: 'donteval.',
-            arg: '{ donteval.',
-            status: 'VALID',
-            message: ''
-          }
-        }
-      }
-    },
-    */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     {
       setup:    '{ donteval.cant',
       check: {
@@ -472,4 +472,4 @@ exports.testDonteval = function(options) {
 };
 
 
-// });
+

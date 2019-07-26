@@ -39,8 +39,8 @@ var KeyEvent = require('util/util').KeyEvent;
 
 
 
-var latestEvent = undefined;
-var latestData = undefined;
+var latestEvent;
+var latestData;
 
 var outputted = function(ev) {
   latestEvent = ev;

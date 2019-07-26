@@ -37,7 +37,7 @@ function test() {
 
 
 
-var origScratchpad = undefined;
+var origScratchpad;
 
 exports.setup = function(options) {
   origScratchpad = options.display.inputter.scratchpad;

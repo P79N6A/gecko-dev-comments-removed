@@ -38,13 +38,16 @@ function test() {
 
 
 
+var nodetype = require('gcli/types/node');
 
 exports.setup = function(options) {
   mockCommands.setup();
+  nodetype.setDocument(options.window.document);
 };
 
 exports.shutdown = function(options) {
   mockCommands.shutdown();
+  nodetype.unsetDocument();
 };
 
 exports.testNode = function(options) {
