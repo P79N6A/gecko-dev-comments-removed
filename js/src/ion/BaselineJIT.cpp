@@ -9,6 +9,7 @@
 #include "BaselineIC.h"
 #include "BaselineJIT.h"
 #include "CompileInfo.h"
+#include "IonSpewer.h"
 
 using namespace js;
 using namespace js::ion;
@@ -39,12 +40,44 @@ class AutoDestroyAllocator
     }
 };
 
+static bool
+CheckFrame(StackFrame *fp)
+{
+    if (fp->isConstructing()) {
+        IonSpew(IonSpew_Abort, "BASELINE FIXME: constructor frame!");
+        return false;
+    }
+
+    if (fp->isEvalFrame()) {
+        
+        IonSpew(IonSpew_Abort, "BASELINE FIXME: eval frame!");
+        return false;
+    }
+
+    if (fp->isGeneratorFrame()) {
+        IonSpew(IonSpew_Abort, "generator frame");
+        return false;
+    }
+
+    if (fp->isDebuggerFrame()) {
+        IonSpew(IonSpew_Abort, "BASELINE FIXME: debugger frame!");
+        return false;
+    }
+
+    if (fp->annotation()) {
+        IonSpew(IonSpew_Abort, "frame is annotated");
+        return false;
+    }
+
+    return true;
+}
+
 static IonExecStatus
 EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode)
 {
     JS_CHECK_RECURSION(cx, return IonExec_Error);
     JS_ASSERT(ion::IsEnabled(cx));
-    
+    JS_ASSERT(CheckFrame(fp));
 
     EnterIonCode enter = cx->compartment->ionCompartment()->enterJITInfallible();
 
@@ -122,14 +155,11 @@ ion::EnterBaselineMethod(JSContext *cx, StackFrame *fp)
     return EnterBaseline(cx, fp, jitcode);
 }
 
-MethodStatus
-ion::CanEnterBaselineJIT(JSContext *cx, HandleScript script, StackFrame *fp)
+static MethodStatus
+BaselineCompile(JSContext *cx, HandleScript script, StackFrame *fp)
 {
-    if (script->baseline)
+    if (script->hasBaselineScript())
         return Method_Compiled;
-
-    if (!cx->compartment->ensureIonCompartmentExists(cx))
-        return Method_Error;
 
     LifoAlloc *alloc = cx->new_<LifoAlloc>(BUILDER_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     if (!alloc)
@@ -147,7 +177,19 @@ ion::CanEnterBaselineJIT(JSContext *cx, HandleScript script, StackFrame *fp)
     if (!compiler.init())
         return Method_Error;
 
-    MethodStatus status = compiler.compile();
+    return compiler.compile();
+}
+
+MethodStatus
+ion::CanEnterBaselineJIT(JSContext *cx, HandleScript script, StackFrame *fp)
+{
+    if (!CheckFrame(fp))
+        return Method_CantCompile;
+
+    if (!cx->compartment->ensureIonCompartmentExists(cx))
+        return Method_Error;
+
+    MethodStatus status = BaselineCompile(cx, script, fp);
     if (status != Method_Compiled)
         return status;
 
