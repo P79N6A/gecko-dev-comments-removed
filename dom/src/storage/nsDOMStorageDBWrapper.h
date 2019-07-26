@@ -190,9 +190,6 @@ public:
   static nsresult CreateQuotaDBKey(const nsACString& aAsciiDomain,
                                    nsACString& aKey);
 
-  static nsresult GetDomainFromScopeKey(const nsACString& aScope,
-                                        nsACString& aDomain);
-
   
 
 
