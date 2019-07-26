@@ -68,10 +68,6 @@ public:
 
   nsresult Init();
 
-  static nsFaviconService* GetFaviconServiceIfAvailable() {
-    return gFaviconService;
-  }
-
   
 
 
@@ -146,10 +142,6 @@ private:
 
   
   
-  bool mFaviconsExpirationRunning;
-
-  
-  
   
   
   int32_t mOptimizedIconDimension;
@@ -161,14 +153,6 @@ private:
   friend class mozilla::places::AsyncFetchAndSetIconForPage;
   friend class mozilla::places::RemoveIconDataCacheEntry;
   nsTHashtable<UnassociatedIconHashKey> mUnassociatedIcons;
-
-  
-  
-  nsresult GetDefaultFaviconData(nsCString& byteStr);
-
-  
-  
-  nsCString mDefaultFaviconData;
 };
 
 #define FAVICON_ANNOTATION_NAME "favicon"

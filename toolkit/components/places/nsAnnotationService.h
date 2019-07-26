@@ -62,10 +62,6 @@ public:
 
   nsresult Init();
 
-  static nsAnnotationService* GetAnnotationServiceIfAvailable() {
-    return gAnnotationService;
-  }
-
   
 
 
