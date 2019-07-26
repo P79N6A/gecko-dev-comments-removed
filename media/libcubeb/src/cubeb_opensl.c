@@ -278,7 +278,7 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
 
 
 
-  if (rate == 0) {
+  if (*rate == 0) {
     return CUBEB_ERROR;
   }
 
