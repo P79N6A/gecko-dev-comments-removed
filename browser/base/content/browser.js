@@ -6487,6 +6487,7 @@ var gIdentityHandler = {
   IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
   IDENTITY_MODE_UNKNOWN          : "unknownIdentity",  
   IDENTITY_MODE_MIXED_CONTENT    : "unknownIdentity mixedContent",  
+  IDENTITY_MODE_MIXED_ACTIVE_CONTENT    : "unknownIdentity mixedContent mixedActiveContent",  
   IDENTITY_MODE_CHROMEUI         : "chromeUI",         
 
   
@@ -6505,6 +6506,8 @@ var gIdentityHandler = {
     this._encryptionLabel[this.IDENTITY_MODE_UNKNOWN] =
       gNavigatorBundle.getString("identity.unencrypted");
     this._encryptionLabel[this.IDENTITY_MODE_MIXED_CONTENT] =
+      gNavigatorBundle.getString("identity.mixed_content");
+    this._encryptionLabel[this.IDENTITY_MODE_MIXED_ACTIVE_CONTENT] =
       gNavigatorBundle.getString("identity.mixed_content");
     return this._encryptionLabel;
   },
@@ -6638,16 +6641,21 @@ var gIdentityHandler = {
     this._lastLocation = location;
 
     let nsIWebProgressListener = Ci.nsIWebProgressListener;
-    if (location.protocol == "chrome:" || location.protocol == "about:")
+    if (location.protocol == "chrome:" || location.protocol == "about:") {
       this.setMode(this.IDENTITY_MODE_CHROMEUI);
-    else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+    } else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL) {
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
-    else if (state & nsIWebProgressListener.STATE_IS_SECURE)
+    } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
-    else if (state & nsIWebProgressListener.STATE_IS_BROKEN)
-      this.setMode(this.IDENTITY_MODE_MIXED_CONTENT);
-    else
+    } else if (state & nsIWebProgressListener.STATE_IS_BROKEN) {
+      if (gBrowser.docShell.hasMixedActiveContentLoaded) {
+        this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_CONTENT);
+      } else {
+        this.setMode(this.IDENTITY_MODE_MIXED_CONTENT);
+      }
+    } else {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
+    }
   },
 
   
