@@ -159,42 +159,39 @@ var Appbar = {
       }
     }
   },
-
   showContextualActions: function(aVerbs){
     let doc = document;
-
     
     let buttonsMap = new Map();
     for (let verb of aVerbs) {
       let id = verb + "-selected-button";
-      let buttonNode = doc.getElementById(id);
-      if (buttonNode) {
-        buttonsMap.set(id, verb);
-      } else {
-        Util.dumpLn("Appbar.showContextualActions: no button for " + verb);
+      if (!doc.getElementById(id)) {
+        throw new Error("Appbar.showContextualActions: no button for " + verb);
       }
+      buttonsMap.set(id, verb);
     }
 
     
-    let buttons = doc.querySelectorAll("#contextualactions-tray > toolbarbutton");
-
-    for (let btnNode of buttons) {
-      if (buttonsMap.has(btnNode.id)){
-        btnNode.hidden = false;
-      } else {
-        btnNode.hidden = true;
+    let toHide = [],
+        toShow = [];
+    for (let btnNode of this.appbar.querySelectorAll("#contextualactions-tray > toolbarbutton")) {
+      
+      
+      if (buttonsMap.has(btnNode.id)) {
+        if (btnNode.hidden) toShow.push(btnNode);
+      } else if (!btnNode.hidden) {
+        toHide.push(btnNode);
       }
-    };
-
-    if (buttonsMap.size) {
-      
-      
-    } else {
-      
-      
     }
+    return Task.spawn(function() {
+      if (toHide.length) {
+        yield Util.transitionElementVisibility(toHide, false);
+      }
+      if (toShow.length) {
+        yield Util.transitionElementVisibility(toShow, true);
+      }
+    });
   },
-
   _onTileSelectionChanged: function _onTileSelectionChanged(aEvent){
     let activeTileset = aEvent.target;
 

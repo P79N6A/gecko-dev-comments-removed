@@ -136,13 +136,8 @@ function TopSitesView(aGrid, aMaxSites, aUseThumbnails) {
   this._set.controller = this;
   this._topSitesMax = aMaxSites;
   this._useThumbs = aUseThumbnails;
-
-  
-  this._set.addEventListener("context-action", this, false);
-
   
   window.addEventListener('MozAppbarDismissing', this, false);
-
   let history = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
   history.addObserver(this, false);
@@ -230,13 +225,8 @@ TopSitesView.prototype = {
       },0);
     }
   },
-
   handleEvent: function(aEvent) {
     switch (aEvent.type){
-      case "context-action":
-        this.doActionOnSelectedTiles(aEvent.action, aEvent);
-        aEvent.stopPropagation(); 
-        break;
       case "MozAppbarDismissing":
         
         this._lastSelectedSites = null;
