@@ -149,6 +149,7 @@ let gInitialPages = [
   "about:newtab",
   "about:home",
   "about:privatebrowsing",
+  "about:welcomeback",
   "about:sessionrestore"
 ];
 
@@ -6201,6 +6202,11 @@ var gIdentityHandler = {
     return this._identityPopupContentBox =
       document.getElementById("identity-popup-content-box");
   },
+  get _identityPopupChromeLabel () {
+    delete this._identityPopupChromeLabel;
+    return this._identityPopupChromeLabel =
+      document.getElementById("identity-popup-chromeLabel");
+  },
   get _identityPopupContentHost () {
     delete this._identityPopupContentHost;
     return this._identityPopupContentHost =
@@ -6471,6 +6477,8 @@ var gIdentityHandler = {
                         "rtl" : "ltr";
       break; }
     case this.IDENTITY_MODE_CHROMEUI:
+      let brandBundle = document.getElementById("bundle_brand");
+      icon_label = brandBundle.getString("brandShortName");
       break;
     default:
       tooltip = gNavigatorBundle.getString("identity.unknown.tooltip");
@@ -6532,6 +6540,12 @@ var gIdentityHandler = {
       else if (iData.country) 
         supplemental += iData.country;
       break; }
+    case this.IDENTITY_MODE_CHROMEUI: {
+      let brandBundle = document.getElementById("bundle_brand");
+      let brandShortName = brandBundle.getString("brandShortName");
+      this._identityPopupChromeLabel.textContent = gNavigatorBundle.getFormattedString("identity.chrome",
+                                                                                       [brandShortName]);
+      break; }
     }
 
     
@@ -6560,9 +6574,7 @@ var gIdentityHandler = {
     }
 
     
-    
-    if (this._mode == this.IDENTITY_MODE_CHROMEUI ||
-        gURLBar.getAttribute("pageproxystate") != "valid") {
+    if (gURLBar.getAttribute("pageproxystate") != "valid") {
       TelemetryStopwatch.cancel("FX_IDENTITY_POPUP_OPEN_MS");
       return;
     }
