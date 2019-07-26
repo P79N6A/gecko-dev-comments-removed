@@ -100,9 +100,8 @@ window.addEventListener("load", function () {
   
   window.gObserver.observe(document.documentElement, { attributes: true });
   fitToWidth();
+  window.addEventListener("resize", fitToWidth);
 });
-window.addEventListener("resize", fitToWidth);
-
 
 function onSearchSubmit(aEvent)
 {
