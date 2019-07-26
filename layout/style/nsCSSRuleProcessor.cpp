@@ -2287,6 +2287,27 @@ static bool SelectorMatchesTree(Element* aPrevElement,
           
           aTreeMatchContext.PopStyleScopeForSelectorMatching(element);
         }
+
+        
+        
+        
+        
+        if (selector->mOperator == '>' &&
+            element->NodeInfo()->Equals(nsGkAtoms::children,
+                                        kNameSpaceID_XBL)) {
+          Element* styleScope = aTreeMatchContext.mCurrentStyleScope;
+          if (SelectorMatchesTree(element, selector, aTreeMatchContext,
+                                  aLookForRelevantLink)) {
+            
+            
+            return true;
+          }
+          
+          
+          
+          
+          aTreeMatchContext.mCurrentStyleScope = styleScope;
+        }
       }
     }
     if (!element) {
