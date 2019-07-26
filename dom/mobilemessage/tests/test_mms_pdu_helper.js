@@ -412,6 +412,7 @@ add_test(function test_EncodedStringValue_decode() {
 add_test(function test_EncodedStringValue_encode() {
   
   wsp_encode_test(MMS.EncodedStringValue, "Hello", strToCharCodeArray("Hello"));
+
   
   let (entry = MMS.WSP.WSP_WELL_KNOWN_CHARSETS["utf-8"]) {
     
@@ -422,6 +423,16 @@ add_test(function test_EncodedStringValue_encode() {
     conv.charset = entry.converter;
 
     let raw = conv.convertToByteArray(str).concat([0]);
+    wsp_encode_test(MMS.EncodedStringValue, str,
+                    [raw.length + 2, 0x80 | entry.number, 127].concat(raw));
+
+    
+    
+    
+
+    
+    str = "\u00d1\u00fc";
+    raw = conv.convertToByteArray(str).concat([0]);
     wsp_encode_test(MMS.EncodedStringValue, str,
                     [raw.length + 2, 0x80 | entry.number, 127].concat(raw));
   }
