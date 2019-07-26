@@ -491,6 +491,7 @@ MetroInput::OnPointerPressed(UI::Core::ICoreWindow* aSender,
     
     
     mContentConsumingTouch = false;
+    mApzConsumingTouch = false;
     mRecognizerWantsEvents = true;
     mCancelable = true;
     mCanceledIds.Clear();
@@ -1105,6 +1106,8 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
 
 
+
+
   
   
   
@@ -1149,7 +1152,6 @@ MetroInput::DeliverNextQueuedTouchEvent()
         mWidget->ApzContentConsumingTouch();
       } else {
         mWidget->ApzContentIgnoringTouch();
-        DispatchTouchCancel(&transformedEvent);
       }
     }
     
@@ -1162,20 +1164,28 @@ MetroInput::DeliverNextQueuedTouchEvent()
 
   
   
+  
+  DUMP_TOUCH_IDS("APZC(2)", event);
+  status = mWidget->ApzReceiveInputEvent(event);
+
+  
+  
   if (mContentConsumingTouch) {
-    
-    
-    
-    DUMP_TOUCH_IDS("APZC(2)", event);
-    mWidget->ApzReceiveInputEvent(event);
     DUMP_TOUCH_IDS("DOM(3)", event);
     mWidget->DispatchEvent(event, status);
     return;
   }
 
   
-  DUMP_TOUCH_IDS("APZC(3)", event);
-  mWidget->ApzReceiveInputEvent(event);
+  if (!mApzConsumingTouch) {
+    if (status == nsEventStatus_eConsumeNoDefault) {
+      mApzConsumingTouch = true;
+      DispatchTouchCancel(event);
+      return;
+    }
+    DUMP_TOUCH_IDS("DOM(4)", event);
+    mWidget->DispatchEvent(event, status);
+  }
 }
 
 void
