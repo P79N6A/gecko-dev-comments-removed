@@ -16,3 +16,8 @@
   color: #999;
   display: none;
 }
+
+
+.resourceIcon[data-resource^=otherhost_] + .functionName {
+  color: #999;
+}
