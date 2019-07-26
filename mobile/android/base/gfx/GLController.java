@@ -176,7 +176,7 @@ public class GLController {
         
         
         if (mEGLSurface != null && GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
-            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorResumeEvent());
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorCreateEvent(mWidth, mHeight));
         }
     }
 

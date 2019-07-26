@@ -698,7 +698,7 @@ nsWindow::GetLayerManager(PLayersChild*, LayersBackend, LayerManagerPersistence,
 }
 
 void
-nsWindow::CreateLayerManager()
+nsWindow::CreateLayerManager(int aCompositorWidth, int aCompositorHeight)
 {
     if (mLayerManager) {
         return;
@@ -716,11 +716,12 @@ nsWindow::CreateLayerManager()
         if (sLayerManager) {
             return;
         }
-        CreateCompositor();
+        CreateCompositor(aCompositorWidth, aCompositorHeight);
         if (mLayerManager) {
             
             
             SetCompositor(mLayerManager, mCompositorParent, mCompositorChild);
+            sCompositorPaused = false;
             return;
         }
 
@@ -875,6 +876,10 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             }
             break;
 
+        case AndroidGeckoEvent::COMPOSITOR_CREATE:
+            win->CreateLayerManager(ae->Width(), ae->Height());
+            break;
+
         case AndroidGeckoEvent::COMPOSITOR_PAUSE:
             
             
@@ -887,8 +892,6 @@ nsWindow::OnGlobalAndroidEvent(AndroidGeckoEvent *ae)
             break;
 
         case AndroidGeckoEvent::COMPOSITOR_RESUME:
-            win->CreateLayerManager();
-
             
             
             
