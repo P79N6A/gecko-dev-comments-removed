@@ -989,12 +989,12 @@ var gPluginHandler = {
       if (this.isTooSmall(plugin, overlay)) {
         
         
-        overlay.style.visibility = "hidden";
         isShowing = false;
       }
     }
 
     if (isShowing) {
+      overlay.style.visibility = "visible";
       
       
       
