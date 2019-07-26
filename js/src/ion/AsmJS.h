@@ -12,6 +12,14 @@
 # include <mach/mach.h>
 #endif
 
+#include "jstypes.h"
+
+#include "ds/LifoAlloc.h"
+#include "js/CallArgs.h"
+
+struct JSContext;
+struct JSRuntime;
+
 namespace js {
 
 class ScriptSource;
@@ -165,10 +173,10 @@ struct AsmJSParallelTask
 
 #ifdef JS_ION
 extern bool
-IsAsmJSModuleNative(js::Native native);
+IsAsmJSModuleNative(JSNative native);
 #else
 inline bool
-IsAsmJSModuleNative(js::Native native)
+IsAsmJSModuleNative(JSNative native)
 {
     return false;
 }
@@ -179,18 +187,18 @@ IsAsmJSModuleNative(js::Native native)
 
 
 extern JSBool
-IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp);
+IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
 extern JSBool
-IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp);
+IsAsmJSModule(JSContext *cx, unsigned argc, JS::Value *vp);
 
 
 
 extern JSBool
-IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp);
+IsAsmJSFunction(JSContext *cx, unsigned argc, JS::Value *vp);
 
 } 
 
-#endif
+#endif 

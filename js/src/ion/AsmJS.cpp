@@ -4,6 +4,8 @@
 
 
 
+#include "ion/AsmJS.h"
+
 #include "mozilla/Move.h"
 
 #include "jsmath.h"
@@ -15,7 +17,6 @@
 #endif
 
 #include "frontend/Parser.h"
-#include "ion/AsmJS.h"
 #include "ion/AsmJSModule.h"
 #include "ion/PerfSpewer.h"
 #include "ion/CodeGenerator.h"
