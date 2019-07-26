@@ -438,6 +438,10 @@ public:
     nsRect NonRoundedIntersection() const;
 
     
+    
+    nsRect ApplyNonRoundedIntersection(const nsRect& aRect) const;
+
+    
     void RemoveRoundedCorners();
 
     
