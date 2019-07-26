@@ -12,45 +12,69 @@ var uceFault = function (i) {
     return false;
 }
 
-var uceFault_number = eval(uneval(uceFault).replace('uceFault', 'uceFault_number'));
-function ra_number(i) {
+var uceFault_bitnot_number = eval(uneval(uceFault).replace('uceFault', 'uceFault_bitnot_number'));
+function rbitnot_number(i) {
+    var x = ~i;
+    if (uceFault_bitnot_number(i) || uceFault_bitnot_number(i))
+        assertEq(x, -100  );
+    return i;
+}
+
+var uceFault_bitnot_object = eval(uneval(uceFault).replace('uceFault', 'uceFault_bitnot_object'));
+function rbitnot_object(i) {
+    var t = i;
+    var o = { valueOf: function () { return t; } };
+    var x = ~o; 
+    t = 1000;
+    if (uceFault_bitnot_object(i) || uceFault_bitnot_object(i))
+        assertEq(x, -100  );
+    return i;
+}
+
+var uceFault_add_number = eval(uneval(uceFault).replace('uceFault', 'uceFault_add_number'));
+function radd_number(i) {
     var x = 1 + i;
-    if (uceFault_number(i) || uceFault_number(i))
+    if (uceFault_add_number(i) || uceFault_add_number(i))
         assertEq(x, 100  );
     return i;
 }
 
-var uceFault_float = eval(uneval(uceFault).replace('uceFault', 'uceFault_float'));
-function ra_float(i) {
+var uceFault_add_float = eval(uneval(uceFault).replace('uceFault', 'uceFault_add_float'));
+function radd_float(i) {
     var t = Math.fround(1/3);
     var fi = Math.fround(i);
     var x = Math.fround(Math.fround(Math.fround(Math.fround(t + fi) + t) + fi) + t);
-    if (uceFault_float(i) || uceFault_float(i))
+    if (uceFault_add_float(i) || uceFault_add_float(i))
         assertEq(x, 199); 
     return i;
 }
 
-var uceFault_string = eval(uneval(uceFault).replace('uceFault', 'uceFault_string'));
-function ra_string(i) {
+var uceFault_add_string = eval(uneval(uceFault).replace('uceFault', 'uceFault_add_string'));
+function radd_string(i) {
     var x = "s" + i;
-    if (uceFault_string(i) || uceFault_string(i))
+    if (uceFault_add_string(i) || uceFault_add_string(i))
         assertEq(x, "s99");
     return i;
 }
 
-var uceFault_object = eval(uneval(uceFault).replace('uceFault', 'uceFault_object'));
-function ra_object(i) {
-    var x = {} + i;
-    if (uceFault_object(i) || uceFault_object(i))
-        assertEq(x, "[object Object]99");
+var uceFault_add_object = eval(uneval(uceFault).replace('uceFault', 'uceFault_add_object'));
+function radd_object(i) {
+    var t = i;
+    var o = { valueOf: function () { return t; } };
+    var x = o + i; 
+    t = 1000;
+    if (uceFault_add_object(i) || uceFault_add_object(i))
+        assertEq(x, 198);
     return i;
 }
 
 for (i = 0; i < 100; i++) {
-    ra_number(i);
-    ra_float(i);
-    ra_string(i);
-    ra_object(i);
+    rbitnot_number(i);
+    rbitnot_object(i);
+    radd_number(i);
+    radd_float(i);
+    radd_string(i);
+    radd_object(i);
 }
 
 
