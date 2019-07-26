@@ -185,8 +185,7 @@ var Browser = {
       
       let ss = Cc["@mozilla.org/browser/sessionstore;1"]
                .getService(Ci.nsISessionStore);
-      let shouldRestore = ss.shouldRestore()
-                       || (3 == Services.prefs.getIntPref("browser.startup.page"));
+      let shouldRestore = ss.shouldRestore();
       if (shouldRestore) {
         let bringFront = false;
         

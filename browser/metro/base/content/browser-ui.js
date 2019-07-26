@@ -161,11 +161,6 @@ var BrowserUI = {
         Util.dumpLn("Exception in delay load module:", ex.message);
       }
 
-      if (WindowsPrefSync) {
-        
-        WindowsPrefSync.init();
-      }
-
       
       BrowserUI.startupCrashCheck();
 
