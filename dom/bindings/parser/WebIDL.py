@@ -725,6 +725,20 @@ class IDLInterface(IDLObjectWithScope):
     def isCallback(self):
         return self._callback
 
+    def isSingleOperationInterface(self):
+        assert self.isCallback()
+        return (
+            
+            not self.parent and
+            
+            len(self.getConsequentialInterfaces()) == 0 and
+            
+            not any(m.isAttr() for m in self.members) and
+            
+            
+            len(set(m.identifier.name for m in self.members if
+                    m.isMethod() and not m.isStatic())) == 1)
+
     def inheritanceDepth(self):
         depth = 0
         parent = self.parent
