@@ -17,6 +17,9 @@
 
 
 #include "DBusUtils.h"
+#include "DBusThread.h"
+#include "nsThreadUtils.h"
+#include "nsAutoPtr.h"
 #include <cstdio>
 #include <cstring>
 
@@ -53,14 +56,12 @@ typedef struct {
   void *user;
 } dbus_async_call_t;
 
-void dbus_func_args_async_callback(DBusPendingCall *call, void *data) {
-
-  dbus_async_call_t *req = (dbus_async_call_t *)data;
-  DBusMessage *msg;
+void dbus_func_args_async_callback(DBusPendingCall *call, void *data)
+{
+  nsAutoPtr<dbus_async_call_t> req(static_cast<dbus_async_call_t*>(data));
 
   
-
-  msg = dbus_pending_call_steal_reply(call);
+  DBusMessage *msg = dbus_pending_call_steal_reply(call);
 
   if (msg) {
     if (req->user_cb) {
@@ -73,60 +74,90 @@ void dbus_func_args_async_callback(DBusPendingCall *call, void *data) {
   
   dbus_pending_call_cancel(call);
   dbus_pending_call_unref(call);
-  free(req);
 }
+
+class DBusConnectionSendWithReplyTask : public nsRunnable
+{
+public:
+  DBusConnectionSendWithReplyTask(DBusConnection* aConnection,
+                                  DBusMessage* aMessage,
+                                  int aTimeout,
+                                  void (*aCallback)(DBusMessage*, void*),
+                                  void* aData)
+  : mConnection(aConnection),
+    mMessage(aMessage),
+    mTimeout(aTimeout),
+    mCallback(aCallback),
+    mData(aData)
+  { }
+
+  NS_METHOD Run()
+  {
+    
+    nsAutoPtr<dbus_async_call_t> pending(new dbus_async_call_t);
+    NS_ENSURE_TRUE(pending, NS_ERROR_OUT_OF_MEMORY);
+
+    pending->user_cb = mCallback;
+    pending->user = mData;
+
+    DBusPendingCall *call;
+
+    dbus_bool_t success = dbus_connection_send_with_reply(mConnection,
+                                                          mMessage,
+                                                          &call,
+                                                          mTimeout);
+    NS_ENSURE_TRUE(success == TRUE, NS_ERROR_FAILURE);
+
+    success = dbus_pending_call_set_notify(call,
+                                           dbus_func_args_async_callback,
+                                           pending,
+                                           NULL);
+    NS_ENSURE_TRUE(success == TRUE, NS_ERROR_FAILURE);
+
+    pending.forget();
+    dbus_message_unref(mMessage);
+
+    return NS_OK;
+  };
+
+protected:
+  ~DBusConnectionSendWithReplyTask()
+  { }
+
+private:
+  DBusConnection* mConnection;
+  DBusMessage* mMessage;
+  int mTimeout;
+  void (*mCallback)(DBusMessage*, void*);
+  void* mData;
+};
 
 dbus_bool_t dbus_func_send_async(DBusConnection *conn,
                                  DBusMessage *msg,
                                  int timeout_ms,
                                  void (*user_cb)(DBusMessage*,
                                                  void*),
-                                 void *user) {
-  dbus_async_call_t *pending;
-  dbus_bool_t reply = FALSE;
-
-  
-  pending = (dbus_async_call_t *)malloc(sizeof(dbus_async_call_t));
-  DBusPendingCall *call;
-
-  pending->user_cb = user_cb;
-  pending->user = user;
-
-  reply = dbus_connection_send_with_reply(conn, msg,
-                                          &call,
-                                          timeout_ms);
-  
-
-
-
-  if (!reply || !call) {
-    goto done;
+                                 void *user)
+{
+   nsRefPtr<nsIRunnable> t(
+    new DBusConnectionSendWithReplyTask(conn, msg, timeout_ms, user_cb, user));
+  if (!t) {
+    if (msg) {
+      dbus_message_unref(msg);
+    }
+    return FALSE;
   }
 
-  
+  nsresult rv = DispatchToDBusThread(t);
 
-
-
-
-
-
-
-
-
-
-
-  if (dbus_pending_call_get_completed(call)) {
-    dbus_func_args_async_callback(call, pending);
-  } else {
-    dbus_pending_call_set_notify(call,
-                                 dbus_func_args_async_callback,
-                                 pending,
-                                 NULL);
+  if (NS_FAILED(rv)) {
+    if (msg) {
+      dbus_message_unref(msg);
+    }
+    return FALSE;
   }
 
-done:
-  if (msg) dbus_message_unref(msg);
-  return reply;
+  return TRUE;
 }
 
 static dbus_bool_t dbus_func_args_async_valist(DBusConnection *conn,
