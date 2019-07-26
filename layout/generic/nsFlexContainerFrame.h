@@ -80,15 +80,18 @@ protected:
   void SanityCheckAnonymousFlexItems() const;
 #endif 
 
+  FlexItem GenerateFlexItemForChild(nsPresContext* aPresContext,
+                                    nsIFrame* aChildFrame,
+                                    const nsHTMLReflowState& aParentReflowState,
+                                    const FlexboxAxisTracker& aAxisTracker);
 
   
   
   
-  nsresult AppendFlexItemForChild(nsPresContext* aPresContext,
-                                  nsIFrame* aChildFrame,
-                                  const nsHTMLReflowState& aParentReflowState,
-                                  const FlexboxAxisTracker& aAxisTracker,
-                                  nsTArray<FlexItem>& aFlexItems);
+  nsresult ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
+                                           FlexItem& aFlexItem,
+                                           const nsHTMLReflowState& aParentReflowState,
+                                           const FlexboxAxisTracker& aAxisTracker);
 
   
   

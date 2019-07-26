@@ -372,8 +372,9 @@ public:
   
   void SetFlexBaseSizeAndMainSize(nscoord aNewFlexBaseSize)
   {
-    MOZ_ASSERT(!mIsFrozen,
-               "flex base size shouldn't change after we're frozen");
+    MOZ_ASSERT(!mIsFrozen || mFlexBaseSize == NS_INTRINSICSIZE,
+               "flex base size shouldn't change after we're frozen "
+               "(unless we're just resolving an intrinsic size)");
     mFlexBaseSize = aNewFlexBaseSize;
 
     
@@ -670,13 +671,12 @@ nsFlexContainerFrame::IsHorizontal()
   return IsAxisHorizontal(axisTracker.GetMainAxis());
 }
 
-nsresult
-nsFlexContainerFrame::AppendFlexItemForChild(
+FlexItem
+nsFlexContainerFrame::GenerateFlexItemForChild(
   nsPresContext* aPresContext,
   nsIFrame*      aChildFrame,
   const nsHTMLReflowState& aParentReflowState,
-  const FlexboxAxisTracker& aAxisTracker,
-  nsTArray<FlexItem>& aFlexItems)
+  const FlexboxAxisTracker& aAxisTracker)
 {
   
   
@@ -704,72 +704,6 @@ nsFlexContainerFrame::AppendFlexItemForChild(
                                            childRS.mComputedMaxHeight);
   
   MOZ_ASSERT(mainMinSize <= mainMaxSize, "min size is larger than max size");
-
-  
-  
-  
-  
-  
-  bool needToMeasureMaxContentHeight = false;
-  if (!IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-    
-    
-    
-    
-    needToMeasureMaxContentHeight = (NS_AUTOHEIGHT == flexBaseSize);
-
-    if (needToMeasureMaxContentHeight) {
-      
-      
-      
-      nsHTMLReflowState
-        childRSForMeasuringHeight(aPresContext, aParentReflowState,
-                                  aChildFrame,
-                                  nsSize(aParentReflowState.ComputedWidth(),
-                                         NS_UNCONSTRAINEDSIZE),
-                                  -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
-      childRSForMeasuringHeight.mFlags.mIsFlexContainerMeasuringHeight = true;
-      childRSForMeasuringHeight.Init(aPresContext);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (flexGrow != 0.0f || flexShrink != 0.0f) {  
-        childRSForMeasuringHeight.mFlags.mVResize = true;
-      }
-
-      nsHTMLReflowMetrics childDesiredSize;
-      nsReflowStatus childReflowStatus;
-      nsresult rv = ReflowChild(aChildFrame, aPresContext,
-                                childDesiredSize, childRSForMeasuringHeight,
-                                0, 0, NS_FRAME_NO_MOVE_FRAME,
-                                childReflowStatus);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      MOZ_ASSERT(NS_FRAME_IS_COMPLETE(childReflowStatus),
-                 "We gave flex item unconstrained available height, so it "
-                 "should be complete");
-
-      rv = FinishReflowChild(aChildFrame, aPresContext,
-                             &childRSForMeasuringHeight, childDesiredSize,
-                             0, 0, 0);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      nscoord childDesiredHeight = childDesiredSize.height -
-        childRS.mComputedBorderPadding.TopBottom();
-      childDesiredHeight = std::max(0, childDesiredHeight);
-
-      flexBaseSize = childDesiredHeight;
-    }
-  }
 
   
   
@@ -826,26 +760,103 @@ nsFlexContainerFrame::AppendFlexItemForChild(
     }
   }
 
-  aFlexItems.AppendElement(FlexItem(aChildFrame,
-                                    flexGrow, flexShrink, flexBaseSize,
-                                    mainMinSize, mainMaxSize,
-                                    crossMinSize, crossMaxSize,
-                                    childRS.mComputedMargin,
-                                    childRS.mComputedBorderPadding,
-                                    aAxisTracker));
+  
+  FlexItem item(aChildFrame,
+                flexGrow, flexShrink, flexBaseSize,
+                mainMinSize, mainMaxSize,
+                crossMinSize, crossMaxSize,
+                childRS.mComputedMargin,
+                childRS.mComputedBorderPadding,
+                aAxisTracker);
 
   
   
   
   if (isFixedSizeWidget || (flexGrow == 0.0f && flexShrink == 0.0f)) {
-    aFlexItems.LastElement().Freeze();
+    item.Freeze();
+  }
+
+  return item;
+}
+
+nsresult
+nsFlexContainerFrame::
+  ResolveFlexItemMaxContentSizing(nsPresContext* aPresContext,
+                                  FlexItem& aFlexItem,
+                                  const nsHTMLReflowState& aParentReflowState,
+                                  const FlexboxAxisTracker& aAxisTracker)
+{
+  if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
+    
+    
+    return NS_OK;
+  }
+
+  if (NS_AUTOHEIGHT != aFlexItem.GetFlexBaseSize()) {
+    
+    
+    
+    
+    return NS_OK;
   }
 
   
   
-  if (needToMeasureMaxContentHeight) {
-    aFlexItems.LastElement().SetHadMeasuringReflow();
+  
+  
+  
+  
+
+  
+  
+  
+  nsHTMLReflowState
+    childRSForMeasuringHeight(aPresContext, aParentReflowState,
+                              aFlexItem.Frame(),
+                              nsSize(aParentReflowState.ComputedWidth(),
+                                     NS_UNCONSTRAINEDSIZE),
+                              -1, -1, nsHTMLReflowState::CALLER_WILL_INIT);
+  childRSForMeasuringHeight.mFlags.mIsFlexContainerMeasuringHeight = true;
+  childRSForMeasuringHeight.Init(aPresContext);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!aFlexItem.IsFrozen()) {  
+    childRSForMeasuringHeight.mFlags.mVResize = true;
   }
+
+  nsHTMLReflowMetrics childDesiredSize;
+  nsReflowStatus childReflowStatus;
+  nsresult rv = ReflowChild(aFlexItem.Frame(), aPresContext,
+                            childDesiredSize, childRSForMeasuringHeight,
+                            0, 0, NS_FRAME_NO_MOVE_FRAME,
+                            childReflowStatus);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  MOZ_ASSERT(NS_FRAME_IS_COMPLETE(childReflowStatus),
+             "We gave flex item unconstrained available height, so it "
+             "should be complete");
+
+  rv = FinishReflowChild(aFlexItem.Frame(), aPresContext,
+                         &childRSForMeasuringHeight, childDesiredSize,
+                         0, 0, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nscoord childDesiredHeight = childDesiredSize.height -
+    childRSForMeasuringHeight.mComputedBorderPadding.TopBottom();
+  childDesiredHeight = std::max(0, childDesiredHeight);
+
+  aFlexItem.SetFlexBaseSizeAndMainSize(childDesiredHeight);
+  aFlexItem.SetHadMeasuringReflow();
 
   return NS_OK;
 }
@@ -1947,9 +1958,12 @@ nsFlexContainerFrame::GenerateFlexItems(
   
   aFlexItems.SetCapacity(mFrames.GetLength());
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
-    nsresult rv = AppendFlexItemForChild(aPresContext, e.get(),
-                                         aReflowState, aAxisTracker,
-                                         aFlexItems);
+    FlexItem* item = aFlexItems.AppendElement(
+                       GenerateFlexItemForChild(aPresContext, e.get(),
+                                                aReflowState, aAxisTracker));
+
+    nsresult rv = ResolveFlexItemMaxContentSizing(aPresContext, *item,
+                                                  aReflowState, aAxisTracker);
     NS_ENSURE_SUCCESS(rv,rv);
   }
 
