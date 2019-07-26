@@ -271,6 +271,28 @@ WinUtils::GetMessage(LPMSG aMsg, HWND aWnd, UINT aFirstMessage,
 }
 
 
+void
+WinUtils::WaitForMessage()
+{
+  DWORD result = ::MsgWaitForMultipleObjectsEx(0, NULL, INFINITE, QS_ALLINPUT,
+                                               MWMO_INPUTAVAILABLE);
+  NS_WARN_IF_FALSE(result != WAIT_FAILED, "Wait failed");
+
+  
+  
+  
+  
+  if (result == WAIT_OBJECT_0) {
+    MSG msg = {0};
+    DWORD queue_status = ::GetQueueStatus(QS_MOUSE);
+    if (HIWORD(queue_status) & QS_MOUSE &&
+        !PeekMessage(&msg, NULL, WM_MOUSEFIRST, WM_MOUSELAST, PM_NOREMOVE)) {
+      ::WaitMessage();
+    }
+  }
+}
+
+
 bool
 WinUtils::GetRegistryKey(HKEY aRoot,
                          char16ptr_t aKeyName,
