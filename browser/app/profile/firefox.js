@@ -837,6 +837,10 @@ pref("browser.sessionstore.restore_hidden_tabs", false);
 
 pref("browser.sessionstore.restore_pinned_tabs_on_demand", false);
 
+pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
+
+pref("browser.sessionstore.debug", false);
+
 
 pref("accessibility.blockautorefresh", false);
 

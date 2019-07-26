@@ -20,6 +20,13 @@ registerCleanupFunction(function () {
 });
 
 
+Services.prefs.setBoolPref("browser.sessionstore.debug", true);
+registerCleanupFunction(function () {
+  Services.prefs.clearUserPref("browser.sessionstore.debug");
+});
+
+
+
 
 Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler).defaultArgs;
 
