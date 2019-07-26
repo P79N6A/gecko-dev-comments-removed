@@ -204,23 +204,17 @@ this.PageThumbs = {
 
 
 
-
-
   captureIfStale: function PageThumbs_captureIfStale(aUrl) {
-    let deferredResult = Promise.defer();
     let filePath = PageThumbsStorage.getFilePathForURL(aUrl);
-    PageThumbsWorker.post(
-      "isFileRecent",
-      [filePath, MAX_THUMBNAIL_AGE_SECS]
+    PageThumbsWorker.post("isFileRecent", [filePath, MAX_THUMBNAIL_AGE_SECS]
     ).then(result => {
       if (!result.ok) {
         
         
         let BPT = Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", {}).BackgroundPageThumbs;
-        BPT.capture(aUrl, {onDone: deferredResult.resolve});
+        BPT.capture(aUrl);
       }
     });
-    return deferredResult.promise;
   },
 
   
@@ -321,15 +315,12 @@ this.PageThumbs = {
     let channel = aBrowser.docShell.currentDocumentChannel;
     let originalURL = channel.originalURI.spec;
 
-    
-    let wasError = this._isChannelErrorResponse(channel);
-
     TaskUtils.spawn((function task() {
       let isSuccess = true;
       try {
         let blob = yield this.captureToBlob(aBrowser.contentWindow);
         let buffer = yield TaskUtils.readBlob(blob);
-        yield this._store(originalURL, url, buffer, wasError);
+        yield this._store(originalURL, url, buffer);
       } catch (_) {
         isSuccess = false;
       }
@@ -349,25 +340,8 @@ this.PageThumbs = {
 
 
 
-
-
-  _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData, aWasErrorResponse) {
+  _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData) {
     return TaskUtils.spawn(function () {
-      
-      
-      
-      if (aWasErrorResponse) {
-        let result = yield PageThumbsStorage.touchIfExists(aFinalURL);
-        let exists = result.ok;
-        if (exists) {
-          if (aFinalURL != aOriginalURL) {
-             yield PageThumbsStorage.touchIfExists(aOriginalURL);
-          }
-          return;
-        }
-        
-        
-      }
       let telemetryStoreTime = new Date();
       yield PageThumbsStorage.writeData(aFinalURL, aData);
       Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
@@ -489,25 +463,6 @@ this.PageThumbs = {
     return [this._thumbnailWidth, this._thumbnailHeight];
   },
 
-  
-
-
-
-  _isChannelErrorResponse: function(channel) {
-    
-    if (!channel)
-      return true;
-    if (!(channel instanceof Ci.nsIHttpChannel))
-      
-      return false;
-    try {
-      return !channel.requestSucceeded;
-    } catch (_) {
-      
-      return true;
-    }
-  },
-
   _prefEnabled: function PageThumbs_prefEnabled() {
     try {
       return !Services.prefs.getBoolPref("browser.pagethumbnails.capturing_disabled");
@@ -613,17 +568,6 @@ this.PageThumbsStorage = {
 
   wipe: function Storage_wipe() {
     return PageThumbsWorker.post("wipe", [this.path]);
-  },
-
-  
-
-
-
-
-
-
-  touchIfExists: function Storage_touchIfExists(aURL) {
-    return PageThumbsWorker.post("touchIfExists", [this.getFilePathForURL(aURL)]);
   },
 
   _calculateMD5Hash: function Storage_calculateMD5Hash(aValue) {
