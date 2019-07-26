@@ -369,11 +369,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         
         
         
-        HIGHCONTRAST contrastThemeInfo;
-        contrastThemeInfo.cbSize = sizeof(contrastThemeInfo);
-        ::SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &contrastThemeInfo, 0);
-
-        aResult = ((contrastThemeInfo.dwFlags & HCF_HIGHCONTRASTON) != 0);
+        aResult = nsUXThemeData::IsHighContrastOn();
         break;
     case eIntID_ScrollArrowStyle:
         aResult = eScrollArrowStyle_Single;
