@@ -155,6 +155,10 @@ class CircularRowBuffer {
 
 
 template<bool has_alpha>
+
+#if defined(__GNUC__) && MOZ_GCC_VERSION_AT_LEAST(4, 5, 0) && !MOZ_GCC_VERSION_AT_LEAST(4, 6, 0)
+__attribute__((optimize("-O1")))
+#endif
 void ConvolveHorizontally(const unsigned char* src_data,
                           const ConvolutionFilter1D& filter,
                           unsigned char* out_row) {
