@@ -1962,12 +1962,14 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     
     
     if (aLoadingChannel && NS_SUCCEEDED(rv)) {
-      
-      
-      
-      
       if (NS_SUCCEEDED(rv) && MakePluginListener()) {
-        mFinalListener->OnStartRequest(mChannel, nullptr);
+        rv = mFinalListener->OnStartRequest(mChannel, nullptr);
+        if (NS_FAILED(rv)) {
+          
+          CloseChannel();
+          NS_ENSURE_TRUE(mIsLoading, NS_OK);
+          rv = NS_OK;
+        }
       }
     }
   } else if (finalListener) {
