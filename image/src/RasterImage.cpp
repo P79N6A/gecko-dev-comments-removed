@@ -401,6 +401,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   mFinishing(false),
   mInUpdateImageContainer(false),
   mWantFullDecode(false),
+  mPendingError(false),
   mScaleRequest(nullptr)
 {
   
@@ -2823,6 +2824,12 @@ RasterImage::DoError()
     return;
 
   
+  if (!NS_IsMainThread()) {
+    HandleErrorWorker::DispatchIfNeeded(this);
+    return;
+  }
+
+  
   if (mDecoder) {
     MutexAutoLock lock(mDecodingMutex);
     FinishedSomeDecoding(eShutdownIntent_Error);
@@ -2839,6 +2846,30 @@ RasterImage::DoError()
 
   
   LOG_CONTAINER_ERROR;
+}
+
+ void
+RasterImage::HandleErrorWorker::DispatchIfNeeded(RasterImage* aImage)
+{
+  if (!aImage->mPendingError) {
+    aImage->mPendingError = true;
+    nsRefPtr<HandleErrorWorker> worker = new HandleErrorWorker(aImage);
+    NS_DispatchToMainThread(worker);
+  }
+}
+
+RasterImage::HandleErrorWorker::HandleErrorWorker(RasterImage* aImage)
+  : mImage(aImage)
+{
+  MOZ_ASSERT(mImage, "Should have image");
+}
+
+NS_IMETHODIMP
+RasterImage::HandleErrorWorker::Run()
+{
+  mImage->DoError();
+
+  return NS_OK;
 }
 
 
@@ -3188,6 +3219,7 @@ RasterImage::DecodePool::DecodeJob::Run()
   
   else if (mImage->mDecoder &&
            !mImage->mError &&
+           !mImage->mPendingError &&
            !mImage->IsDecodeFinished() &&
            bytesDecoded < mRequest->mBytesToDecode &&
            bytesDecoded > 0) {

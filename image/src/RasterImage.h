@@ -668,6 +668,11 @@ private:
   bool                       mWantFullDecode:1;
 
   
+  
+  
+  bool                       mPendingError:1;
+
+  
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode, bool aIsSynchronous = false);
@@ -701,6 +706,26 @@ private:
 
   
   void DoError();
+
+  class HandleErrorWorker : public nsRunnable
+  {
+  public:
+    
+
+
+
+
+    static void DispatchIfNeeded(RasterImage* aImage);
+
+    NS_IMETHOD Run();
+
+  private:
+    HandleErrorWorker(RasterImage* aImage);
+
+    nsRefPtr<RasterImage> mImage;
+  };
+
+  
   bool CanDiscard();
   bool CanForciblyDiscard();
   bool DiscardingActive();
