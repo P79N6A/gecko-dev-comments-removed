@@ -30,25 +30,13 @@ CopyStackFrameArguments(const AbstractFramePtr frame, HeapValue *dst, unsigned t
 {
     JS_ASSERT_IF(frame.isStackFrame(), !frame.asStackFrame()->runningInIon());
 
-    unsigned numActuals = frame.numActualArgs();
-    unsigned numFormals = frame.callee()->nargs;
-    JS_ASSERT(numActuals <= totalArgs);
-    JS_ASSERT(numFormals <= totalArgs);
-    JS_ASSERT(Max(numActuals, numFormals) == totalArgs);
+    JS_ASSERT(Max(frame.numActualArgs(), frame.numFormalArgs()) == totalArgs);
 
     
-    Value *src = frame.formals();
-    Value *end = src + numFormals;
+    Value *src = frame.argv();
+    Value *end = src + totalArgs;
     while (src != end)
         (dst++)->init(*src++);
-
-    
-    if (numFormals < numActuals) {
-        src = frame.actuals() + numFormals;
-        end = src + (numActuals - numFormals);
-        while (src != end)
-            (dst++)->init(*src++);
-    }
 }
 
  void

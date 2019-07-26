@@ -1939,34 +1939,14 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
     
     int maxArgc = 0;
     Value *maxArgv = NULL;
-    int numActualArgs = 0;
+    unsigned numActualArgs = 0;
     RootedValue thisv(cx);
 
     void *calleeToken;
     if (fp->isFunctionFrame()) {
-        
-        
-        maxArgc = CountArgSlots(fp->script(), fp->fun()) - StartArgSlot(fp->script(), fp->fun());
-        maxArgv = fp->formals() - 1;            
-
-        
-        
-        
         numActualArgs = fp->numActualArgs();
-
-        
-        
-        if (fp->hasOverflowArgs()) {
-            int formalArgc = maxArgc;
-            Value *formalArgv = maxArgv;
-            maxArgc = numActualArgs + 1; 
-            maxArgv = fp->actuals() - 1; 
-
-            
-            
-            
-            memcpy(maxArgv, formalArgv, formalArgc * sizeof(Value));
-        }
+        maxArgc = Max(numActualArgs, fp->numFormalArgs()) + 1; 
+        maxArgv = fp->argv() - 1; 
         calleeToken = CalleeToToken(&fp->callee());
     } else {
         calleeToken = CalleeToToken(fp->script());
