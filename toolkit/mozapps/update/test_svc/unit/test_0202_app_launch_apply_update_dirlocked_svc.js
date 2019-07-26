@@ -171,18 +171,12 @@ function run_test() {
   mar.copyTo(updatesPatchDir, FILE_UPDATE_ARCHIVE);
 
   
+  
   let updaterIni = processDir.clone();
   updaterIni.append(FILE_UPDATER_INI);
-  updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
-  
-  
-  let updaterIniContents = "[Strings]\n" +
-                           "Title=Update Test\n" +
-                           "Info=Application Update XPCShell Test - " +
-                           "test_0200_general.js\n";
-  updaterIni = processDir.clone();
-  updaterIni.append(FILE_UPDATER_INI);
-  writeFile(updaterIni, updaterIniContents);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
+  }
 
   let updateSettingsIni = processDir.clone();
   updateSettingsIni.append(UPDATE_SETTINGS_INI_FILE);
@@ -206,6 +200,14 @@ function run_test() {
 
 function end_test() {
   resetEnvironment();
+
+  let processDir = getAppDir();
+  
+  let updaterIni = processDir.clone();
+  updaterIni.append(FILE_UPDATER_INI_BAK);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI);
+  }
 
   
   let updateTestDir = getUpdateTestDir();

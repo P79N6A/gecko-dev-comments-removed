@@ -168,6 +168,17 @@ function run_test() {
 
   setEnvironment();
 
+  
+  
+
+if (0) {
+  let updaterIni = processDir.clone();
+  updaterIni.append(FILE_UPDATER_INI);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI_BAK);
+  }
+}
+
   let updateSettingsIni = processDir.clone();
   updateSettingsIni.append(UPDATE_SETTINGS_INI_FILE);
   writeFile(updateSettingsIni, UPDATE_SETTINGS_CONTENTS);
@@ -215,6 +226,14 @@ function end_test() {
   }
 
   resetEnvironment();
+
+  let processDir = getAppDir();
+  
+  let updaterIni = processDir.clone();
+  updaterIni.append(FILE_UPDATER_INI_BAK);
+  if (updaterIni.exists()) {
+    updaterIni.moveTo(processDir, FILE_UPDATER_INI);
+  }
 
   
   let updateTestDir = getUpdateTestDir();
