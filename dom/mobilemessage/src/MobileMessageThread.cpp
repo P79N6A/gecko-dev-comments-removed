@@ -28,12 +28,12 @@ NS_IMPL_ADDREF(MobileMessageThread)
 NS_IMPL_RELEASE(MobileMessageThread)
 
  nsresult
-MobileMessageThread::Create(const uint64_t aId,
+MobileMessageThread::Create(uint64_t aId,
                             const JS::Value& aParticipants,
-                            const JS::Value& aTimestamp,
+                            uint64_t aTimestamp,
                             const nsAString& aLastMessageSubject,
                             const nsAString& aBody,
-                            const uint64_t aUnreadCount,
+                            uint64_t aUnreadCount,
                             const nsAString& aLastMessageType,
                             JSContext* aCx,
                             nsIDOMMozMobileMessageThread** aThread)
@@ -77,22 +77,7 @@ MobileMessageThread::Create(const uint64_t aId,
   }
 
   
-  if (aTimestamp.isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, &aTimestamp.toObject());
-    if (!JS_ObjectIsDate(aCx, obj)) {
-      return NS_ERROR_INVALID_ARG;
-    }
-    data.timestamp() = js_DateGetMsecSinceEpoch(obj);
-  } else {
-    if (!aTimestamp.isNumber()) {
-      return NS_ERROR_INVALID_ARG;
-    }
-    double number = aTimestamp.toNumber();
-    if (static_cast<uint64_t>(number) != number) {
-      return NS_ERROR_INVALID_ARG;
-    }
-    data.timestamp() = static_cast<uint64_t>(number);
-  }
+  data.timestamp() = aTimestamp;
 
   
   {
@@ -112,12 +97,12 @@ MobileMessageThread::Create(const uint64_t aId,
   return NS_OK;
 }
 
-MobileMessageThread::MobileMessageThread(const uint64_t aId,
+MobileMessageThread::MobileMessageThread(uint64_t aId,
                                          const nsTArray<nsString>& aParticipants,
-                                         const uint64_t aTimestamp,
+                                         uint64_t aTimestamp,
                                          const nsString& aLastMessageSubject,
                                          const nsString& aBody,
-                                         const uint64_t aUnreadCount,
+                                         uint64_t aUnreadCount,
                                          MessageType aLastMessageType)
   : mData(aId, aParticipants, aTimestamp, aLastMessageSubject, aBody,
           aUnreadCount, aLastMessageType)
