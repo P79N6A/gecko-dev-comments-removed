@@ -221,6 +221,28 @@ struct TITLEBARINFOEX
 };
 #endif
 
+namespace mozilla {
+namespace widget {
+
+struct MSGResult
+{
+  
+  LRESULT& mResult;
+  
+  bool mConsumed;
+
+  MSGResult(LRESULT* aResult = nullptr) :
+    mResult(aResult ? *aResult : mDefaultResult), mConsumed(false)
+  {
+  }
+
+private:
+  LRESULT mDefaultResult;
+};
+
+} 
+} 
+
 
 
 
@@ -236,4 +258,4 @@ struct TITLEBARINFOEX
       NS_ASSERTION(((s) & (WS_CHILD | WS_POPUP)) != (WS_CHILD | WS_POPUP), \
       "WS_POPUP and WS_CHILD are mutually exclusive")
 
-#endif
+#endif 
