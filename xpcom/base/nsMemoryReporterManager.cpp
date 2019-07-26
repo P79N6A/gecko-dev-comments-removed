@@ -1054,9 +1054,30 @@ DMDVCheckAndDump()
         nsCOMPtr<nsIMemoryReporter> r;
         e->GetNext(getter_AddRefs(r));
 
+        int32_t kind;
+        nsresult rv = r->GetKind(&kind);
+        if (NS_FAILED(rv)) {
+            continue;
+        }
+        nsCString path;
+        rv = r->GetPath(path);
+        if (NS_FAILED(rv)) {
+            continue;
+        }
+
         
-        int64_t amount;
-        (void)r->GetAmount(&amount);
+        
+        
+        
+        
+        if (kind == nsIMemoryReporter::KIND_HEAP &&
+            path.Find("explicit") == 0)
+        {
+            
+            
+            int64_t amount;
+            (void)r->GetAmount(&amount);
+        }
     }
 
     
