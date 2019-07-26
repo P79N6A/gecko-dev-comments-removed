@@ -1705,6 +1705,12 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       
       
       
+      
+      
+      
+      
+      
+      mLastDispatchedPaintMetrics = aLayerMetrics;
       nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
       if (controller) {
         controller->AcknowledgeScrollUpdate(aLayerMetrics.mScrollId,
