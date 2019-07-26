@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsJISx4501LineBreaker_h__
-#define nsJISx4501LineBreaker_h__
+#ifndef nsJISx4051LineBreaker_h__
+#define nsJISx4051LineBreaker_h__
 
 
 #include "nsILineBreaker.h"
