@@ -7,7 +7,23 @@ load('annotations.js');
 load('suppressedPoints.js');
 
 var subclasses = {};
+var superclasses = {};
 var classFunctions = {};
+
+function addClassEntry(index, name, other)
+{
+    if (!(name in index)) {
+        index[name] = [other];
+        return;
+    }
+
+    for (var entry of index[name]) {
+        if (entry == other)
+            return;
+    }
+
+    index[name].push(other);
+}
 
 function processCSU(csuName, csu)
 {
@@ -18,15 +34,8 @@ function processCSU(csuName, csu)
             var superclass = field.Field[1].Type.Name;
             var subclass = field.Field[1].FieldCSU.Type.Name;
             assert(subclass == csuName);
-            if (!(superclass in subclasses))
-                subclasses[superclass] = [];
-            var found = false;
-            for (var sub of subclasses[superclass]) {
-                if (sub == subclass)
-                    found = true;
-            }
-            if (!found)
-                subclasses[superclass].push(subclass);
+            addClassEntry(subclasses, superclass, subclass);
+            addClassEntry(superclasses, subclass, superclass);
         }
         if ("Variable" in field) {
             
@@ -41,6 +50,25 @@ function processCSU(csuName, csu)
 
 function findVirtualFunctions(csu, field)
 {
+    var worklist = [csu];
+
+    
+    
+    
+    
+    while (worklist.length) {
+        var csu = worklist.pop();
+        if (csu == "nsISupports") {
+            if (field == "AddRef" || field == "Release")
+                return [];
+            return null;
+        }
+        if (csu in superclasses) {
+            for (var superclass of superclasses[csu])
+                worklist.push(superclass);
+        }
+    }
+
     var functions = [];
     var worklist = [csu];
 
@@ -111,16 +139,19 @@ function processBody(caller, body)
                 var field = callee.Exp[0].Field;
                 var fieldName = field.Name[0];
                 var csuName = field.FieldCSU.Type.Name;
-                if ("FieldInstanceFunction" in field && csuName != "nsISupports") {
+                var functions = null;
+                if ("FieldInstanceFunction" in field)
+                    functions = findVirtualFunctions(csuName, fieldName);
+                if (functions) {
                     
-                    var functions = findVirtualFunctions(csuName, fieldName);
                     for (var name of functions) {
                         if (!(name in seen)) {
                             print("D " + prologue + memo(name));
                             seen[name] = true;
                         }
                     }
-                } else if (csuName != "nsISupports" || fieldName == "QueryInterface") {
+                } else {
+                    
                     
                     print("F " + prologue + "CLASS " + csuName + " FIELD " + fieldName);
                 }
