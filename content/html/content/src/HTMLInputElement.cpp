@@ -2051,7 +2051,7 @@ HTMLInputElement::GetStepBase() const
 }
 
 nsresult
-HTMLInputElement::ApplyStep(int32_t aStep)
+HTMLInputElement::GetValueIfStepped(int32_t aStep, Decimal* aNextStep)
 {
   if (!DoStepDownStepUpApply()) {
     return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -2131,9 +2131,23 @@ HTMLInputElement::ApplyStep(int32_t aStep)
     value = std::min(value, maximum);
   }
 
-  SetValue(value);
+  *aNextStep = value;
 
   return NS_OK;
+}
+
+nsresult
+HTMLInputElement::ApplyStep(int32_t aStep)
+{
+  Decimal nextStep = Decimal::nan(); 
+
+  nsresult rv = GetValueIfStepped(aStep, &nextStep);
+
+  if (NS_SUCCEEDED(rv) && nextStep.isFinite()) {
+    SetValue(nextStep);
+  }
+
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -3347,6 +3361,18 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
           }
         }
       }
+    } else if (aVisitor.mEvent->message == NS_KEY_UP) {
+      WidgetKeyboardEvent* keyEvent = aVisitor.mEvent->AsKeyboardEvent();
+      if ((keyEvent->keyCode == NS_VK_UP || keyEvent->keyCode == NS_VK_DOWN) &&
+          !(keyEvent->IsShift() || keyEvent->IsControl() ||
+            keyEvent->IsAlt() || keyEvent->IsMeta() ||
+            keyEvent->IsAltGraph() || keyEvent->IsFn() ||
+            keyEvent->IsOS())) {
+        
+        
+        
+        FireChangeEventIfNeeded();
+      }
     }
   }
 
@@ -3506,7 +3532,18 @@ HTMLInputElement::StopNumberControlSpinnerSpin()
 void
 HTMLInputElement::StepNumberControlForUserEvent(int32_t aDirection)
 {
-  ApplyStep(aDirection);
+  Decimal newValue = Decimal::nan(); 
+
+  nsresult rv = GetValueIfStepped(aDirection, &newValue);
+
+  if (NS_FAILED(rv) || !newValue.isFinite()) {
+    return; 
+  }
+
+  nsAutoString newVal;
+  ConvertNumberToString(newValue, newVal);
+  SetValueInternal(newVal, true, true);
+
   nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
                                        static_cast<nsIDOMHTMLInputElement*>(this),
                                        NS_LITERAL_STRING("input"), true,
