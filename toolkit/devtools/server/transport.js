@@ -4,16 +4,30 @@
 
 
 
+
+
+(function (factory) { 
+  if (this.module && module.id.indexOf("transport") >= 0) { 
+    factory(require, exports);
+  } else { 
+    if (this.require) {
+      factory(require, this);
+    } else {
+      const Cu = Components.utils;
+      const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+      factory(devtools.require, this);
+    }
+  }
+}).call(this, function (require, exports) {
+
 "use strict";
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
-let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
+const { Cc, Ci, Cr, Cu } = require("chrome");
+const Services = require("Services");
+const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+const { dumpn } = DevToolsUtils;
 
-
-
-
-
-
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
 
@@ -43,7 +57,13 @@ let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 
 
 
-this.DebuggerTransport = function DebuggerTransport(aInput, aOutput)
+
+
+
+
+
+
+function DebuggerTransport(aInput, aOutput)
 {
   this._input = aInput;
   this._output = aOutput;
@@ -98,7 +118,7 @@ DebuggerTransport.prototype = {
     let written = 0;
     try {
       written = aStream.write(this._outgoing, this._outgoing.length);
-    } catch(e if e.result == Components.results.NS_BASE_STREAM_CLOSED) {
+    } catch(e if e.result == Cr.NS_BASE_STREAM_CLOSED) {
       dumpn("Connection closed.");
       this.close();
       return;
@@ -190,7 +210,7 @@ DebuggerTransport.prototype = {
       return true;
     }
 
-    if (wantLogging) {
+    if (dumpn.wantLogging) {
       dumpn("Got: " + JSON.stringify(parsed, null, 2));
     }
     let self = this;
@@ -206,6 +226,7 @@ DebuggerTransport.prototype = {
   }
 }
 
+exports.DebuggerTransport = DebuggerTransport;
 
 
 
@@ -218,7 +239,7 @@ DebuggerTransport.prototype = {
 
 
 
-this.LocalDebuggerTransport = function LocalDebuggerTransport(aOther)
+function LocalDebuggerTransport(aOther)
 {
   this.other = aOther;
   this.hooks = null;
@@ -238,7 +259,7 @@ LocalDebuggerTransport.prototype = {
 
   send: function LDT_send(aPacket) {
     let serial = this._serial.count++;
-    if (wantLogging) {
+    if (dumpn.wantLogging) {
       
       if (aPacket.from) {
         dumpn("Packet " + serial + " sent from " + uneval(aPacket.from));
@@ -251,7 +272,7 @@ LocalDebuggerTransport.prototype = {
     if (other) {
       Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(function() {
         
-        if (wantLogging) {
+        if (dumpn.wantLogging) {
           dumpn("Received packet " + serial + ": " + JSON.stringify(aPacket, null, 2));
         }
         if (other.hooks) {
@@ -276,7 +297,7 @@ LocalDebuggerTransport.prototype = {
       try {
         this.hooks.onClosed();
       } catch(ex) {
-        Components.utils.reportError(ex);
+        Cu.reportError(ex);
       }
       this.hooks = null;
     }
@@ -305,6 +326,8 @@ LocalDebuggerTransport.prototype = {
   }
 };
 
+exports.LocalDebuggerTransport = LocalDebuggerTransport;
+
 
 
 
@@ -320,7 +343,7 @@ LocalDebuggerTransport.prototype = {
 
 
 function ChildDebuggerTransport(aSender, aPrefix) {
-  this._sender = aSender.QueryInterface(Components.interfaces.nsIMessageSender);
+  this._sender = aSender.QueryInterface(Ci.nsIMessageSender);
   this._messageName = "debug:" + aPrefix + ":packet";
 }
 
@@ -351,3 +374,7 @@ ChildDebuggerTransport.prototype = {
     this._sender.sendAsyncMessage(this._messageName, packet);
   }
 };
+
+exports.ChildDebuggerTransport = ChildDebuggerTransport;
+
+});
