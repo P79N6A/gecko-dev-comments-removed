@@ -62,17 +62,17 @@ public:
                              uint32_t aFlags) MOZ_OVERRIDE;
 
   virtual nsresult Reflow(nsPresContext*          aPresContext,
-                    nsHTMLReflowMetrics&     aDesiredSize,
-                    const nsHTMLReflowState& aReflowState,
-                    nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                          nsHTMLReflowMetrics&     aDesiredSize,
+                          const nsHTMLReflowState& aReflowState,
+                          nsReflowStatus&          aStatus) MOZ_OVERRIDE;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   virtual nsresult AttributeChanged(int32_t aNameSpaceID,
-                              nsIAtom* aAttribute,
-                              int32_t aModType) MOZ_OVERRIDE;
+                                    nsIAtom* aAttribute,
+                                    int32_t aModType) MOZ_OVERRIDE;
 
   
   
