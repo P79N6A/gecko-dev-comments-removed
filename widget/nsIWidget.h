@@ -92,8 +92,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xDAEE334D, 0x9031, 0x4928, \
-    { 0x9D, 0xD7, 0x75, 0x2E, 0x8B, 0x6B, 0xF7, 0x0E } }
+  { 0xAD5FEF46, 0x7200, 0x417C, \
+    { 0xA9, 0x1C, 0xAB, 0x30, 0x1C, 0x86, 0xE4, 0x6F } }
 
 
 
@@ -183,6 +183,7 @@ enum nsTopLevelWidgetZPlacement {
 
 
 #define NS_WIDGET_RESUME_PROCESS_OBSERVER_TOPIC "resume_process_notification"
+
 
 
 
@@ -419,6 +420,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::LayerManager LayerManager;
     typedef mozilla::layers::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
+    typedef mozilla::widget::NotificationToIME NotificationToIME;
     typedef mozilla::widget::IMEState IMEState;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
@@ -1489,22 +1491,7 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD ResetInputState()=0;
-
-    
-
-
-
-
-
-
-
-
-
-    
-
-
-    NS_IMETHOD CancelIMEComposition() = 0;
+    NS_IMETHOD NotifyIME(NotificationToIME aNotification) = 0;
 
     
 
@@ -1539,22 +1526,9 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD OnIMEFocusChange(bool aFocus) = 0;
-
-    
-
-
-
-
-
     NS_IMETHOD OnIMETextChange(uint32_t aStart,
                                uint32_t aOldEnd,
                                uint32_t aNewEnd) = 0;
-
-    
-
-
-    NS_IMETHOD OnIMESelectionChange(void) = 0;
 
     
 

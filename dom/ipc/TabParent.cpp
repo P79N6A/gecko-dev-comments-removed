@@ -722,7 +722,7 @@ TabParent::RecvNotifyIMEFocus(const bool& aFocus,
   mIMETabParent = aFocus ? this : nullptr;
   mIMESelectionAnchor = 0;
   mIMESelectionFocus = 0;
-  widget->OnIMEFocusChange(aFocus);
+  widget->NotifyIME(aFocus ? NOTIFY_IME_OF_FOCUS : NOTIFY_IME_OF_BLUR);
 
   if (aFocus) {
     *aPreference = widget->GetIMEUpdatePreference();
@@ -757,7 +757,7 @@ TabParent::RecvNotifyIMESelection(const uint32_t& aSeqno,
   if (aSeqno == mIMESeqno) {
     mIMESelectionAnchor = aAnchor;
     mIMESelectionFocus = aFocus;
-    widget->OnIMESelectionChange();
+    widget->NotifyIME(NOTIFY_IME_OF_SELECTION_CHANGE);
   }
   return true;
 }
@@ -858,6 +858,7 @@ TabParent::SendCompositionEvent(nsCompositionEvent& event)
 
 
 
+
 bool
 TabParent::SendTextEvent(nsTextEvent& event)
 {
@@ -933,11 +934,8 @@ TabParent::RecvEndIMEComposition(const bool& aCancel,
 
   mIMECompositionEnding = true;
 
-  if (aCancel) {
-    widget->CancelIMEComposition();
-  } else {
-    widget->ResetInputState();
-  }
+  widget->NotifyIME(aCancel ? REQUEST_TO_CANCEL_COMPOSITION :
+                              REQUEST_TO_COMMIT_COMPOSITION);
 
   mIMECompositionEnding = false;
   *aComposition = mIMECompositionText;
