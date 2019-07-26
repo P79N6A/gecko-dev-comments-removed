@@ -294,7 +294,7 @@ nsDOMCameraControl::StartRecording(JSContext* aCx,
       
       mAudioChannelAgent->Init(AUDIO_CHANNEL_CONTENT, nullptr);
       
-      bool canPlay;
+      int32_t canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);
     }
   }

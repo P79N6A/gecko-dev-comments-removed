@@ -508,7 +508,7 @@ AudioManager::SetPhoneState(int32_t aState)
     }
 
     
-    bool canPlay;
+    int32_t canPlay;
     mPhoneAudioAgent->StartPlaying(&canPlay);
   }
 
