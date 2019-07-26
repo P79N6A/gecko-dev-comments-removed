@@ -162,6 +162,12 @@ public:
   
   virtual nsresult AllocateFrame();
 
+  
+  
+  void MarkFrameDirty();
+
+  imgFrame* GetCurrentFrame() const { return mCurrentFrame; }
+
 protected:
 
   
