@@ -60,19 +60,40 @@ function TestTabActor(aConnection, aGlobal)
   this._threadActor = new ThreadActor(this, this._global);
   this.conn.addActor(this._threadActor);
   this._attached = false;
+  this._extraActors = {};
 }
 
 TestTabActor.prototype = {
   constructor: TestTabActor,
   actorPrefix: "TestTabActor",
 
+  get contentWindow() {
+    return { wrappedJSObject: this._global };
+  },
+
   grip: function() {
-    return { actor: this.actorID, title: this._global.__name };
+    let response = { actor: this.actorID, title: this._global.__name };
+
+    
+    let actorPool = new ActorPool(this.conn);
+    this._createExtraActors(DebuggerServer.tabActorFactories, actorPool);
+    if (!actorPool.isEmpty()) {
+      this._tabActorPool = actorPool;
+      this.conn.addActorPool(this._tabActorPool);
+    }
+
+    this._appendExtraActors(response);
+
+    return response;
   },
 
   onAttach: function(aRequest) {
     this._attached = true;
-    return { type: "tabAttached", threadActor: this._threadActor.actorID };
+
+    let response = { type: "tabAttached", threadActor: this._threadActor.actorID };
+    this._appendExtraActors(response);
+
+    return response;
   },
 
   onDetach: function(aRequest) {
@@ -81,6 +102,10 @@ TestTabActor.prototype = {
     }
     return { type: "detached" };
   },
+
+  
+  _createExtraActors: CommonCreateExtraActors,
+  _appendExtraActors: CommonAppendExtraActors,
 
   
   addToParentPool: function(aActor) {

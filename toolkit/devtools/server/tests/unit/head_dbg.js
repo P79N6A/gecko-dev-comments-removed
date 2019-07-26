@@ -164,8 +164,19 @@ function attachTestTabAndResume(aClient, aTitle, aCallback) {
 
 function initTestDebuggerServer()
 {
+  DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/root.js");
   DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/script.js");
   DebuggerServer.addActors("resource://test/testactors.js");
+  
+  DebuggerServer.init(function () { return true; });
+}
+
+function initTestTracerServer()
+{
+  DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/root.js");
+  DebuggerServer.addActors("resource://gre/modules/devtools/server/actors/script.js");
+  DebuggerServer.addActors("resource://test/testactors.js");
+  DebuggerServer.registerModule("devtools/server/actors/tracer");
   
   DebuggerServer.init(function () { return true; });
 }
