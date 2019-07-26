@@ -267,8 +267,8 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
         return nullptr;
     }
 
-    if (!process->SetPriorityAndCheckIsAlive(aInitialPriority) ||
-        !process->TransformPreallocatedIntoApp(aAppManifestURL, aPrivs)) {
+    if (!process->TransformPreallocatedIntoApp(aAppManifestURL, aPrivs,
+                                               aInitialPriority)) {
         
         
         process->KillHard();
@@ -492,19 +492,10 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         return nullptr;
     }
 
-    ProcessPriority initialPriority = GetInitialProcessPriority(aFrameElement);
-
     nsRefPtr<ContentParent> p = gAppContentParents->Get(manifestURL);
-    if (p) {
-        
-        
-        
-        if (!p->SetPriorityAndCheckIsAlive(initialPriority)) {
-            p = nullptr;
-        }
-    }
-
     if (!p) {
+        ProcessPriority initialPriority = GetInitialProcessPriority(aFrameElement);
+
         ChildPrivileges privs = PrivilegesForApp(ownApp);
         p = MaybeTakePreallocatedAppProcess(manifestURL, privs,
                                             initialPriority);
@@ -517,27 +508,14 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         gAppContentParents->Put(manifestURL, p);
     }
 
+    p->MaybeTakeCPUWakeLock(aFrameElement);
+
     nsRefPtr<TabParent> tp = new TabParent(aContext);
     tp->SetOwnerElement(aFrameElement);
     PBrowserParent* browser = p->SendPBrowserConstructor(
         tp.forget().get(), 
         aContext.AsIPCTabContext(),
          0);
-
-    
-    
-    
-    
-    
-    nsCOMPtr<Element> frameElement = do_QueryInterface(aFrameElement);
-    if (frameElement) {
-      nsAutoString appType;
-      frameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozapptype, appType);
-      browser->SendSetAppType(appType);
-    }
-
-    p->MaybeTakeCPUWakeLock(aFrameElement);
-
     return static_cast<TabParent*>(browser);
 }
 
@@ -695,14 +673,14 @@ NS_IMPL_ISUPPORTS1(SystemMessageHandledListener,
 } 
 
 void
-ContentParent::SetProcessPriority(ProcessPriority aPriority)
+ContentParent::SetProcessInitialPriority(ProcessPriority aInitialPriority)
 {
     if (!Preferences::GetBool("dom.ipc.processPriorityManager.enabled")) {
         return;
     }
 
-    hal::SetProcessPriority(base::GetProcId(mSubprocess->GetChildProcessHandle()),
-                            aPriority);
+    SetProcessPriority(base::GetProcId(mSubprocess->GetChildProcessHandle()),
+                       aInitialPriority);
 }
 
 void
@@ -730,9 +708,16 @@ ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
 }
 
 bool
-ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
+ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
+                                            ChildPrivileges aPrivs,
+                                            ProcessPriority aInitialPriority)
 {
-    SetProcessPriority(aPriority);
+    MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
+    
+    
+    const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+
+    SetProcessInitialPriority(aInitialPriority);
 
     
     
@@ -740,6 +725,8 @@ ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
     
     
     
+    
+
 #ifndef XP_WIN
     bool exited = false;
     base::DidProcessCrash(&exited, mSubprocess->GetChildProcessHandle());
@@ -747,18 +734,6 @@ ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
         return false;
     }
 #endif
-
-    return true;
-}
-
-bool
-ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
-                                            ChildPrivileges aPrivs)
-{
-    MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
-    
-    
-    const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
 
     return SendSetProcessPrivileges(aPrivs);
 }
@@ -1096,7 +1071,7 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     
     
     
-    SetProcessPriority(aInitialPriority);
+    SetProcessInitialPriority(aInitialPriority);
 
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
 

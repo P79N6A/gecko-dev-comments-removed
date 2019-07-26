@@ -187,7 +187,7 @@ private:
 
     
     
-    void SetProcessPriority(hal::ProcessPriority aInitialPriority);
+    void SetProcessInitialPriority(hal::ProcessPriority aInitialPriority);
 
     
     
@@ -198,14 +198,9 @@ private:
     
     
     
-    
-    bool SetPriorityAndCheckIsAlive(hal::ProcessPriority aPriority);
-
-    
-    
-    
     bool TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
-                                      ChildPrivileges aPrivs);
+                                      ChildPrivileges aPrivs,
+                                      hal::ProcessPriority aInitialPriority);
 
     
 
