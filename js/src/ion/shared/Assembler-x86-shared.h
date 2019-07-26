@@ -101,39 +101,33 @@ class AssemblerX86Shared
     };
 
     enum NaNCond {
-        NaN_HandledByCond,
+        NaN_Unexpected,
         NaN_IsTrue,
         NaN_IsFalse
     };
 
-    
-    
-    
-    
-    
     static inline NaNCond NaNCondFromDoubleCondition(DoubleCondition cond) {
         switch (cond) {
           case DoubleOrdered:
+          case DoubleEqual:
           case DoubleNotEqual:
           case DoubleGreaterThan:
           case DoubleGreaterThanOrEqual:
           case DoubleLessThan:
           case DoubleLessThanOrEqual:
+            return NaN_IsFalse;
           case DoubleUnordered:
           case DoubleEqualOrUnordered:
+          case DoubleNotEqualOrUnordered:
           case DoubleGreaterThanOrUnordered:
           case DoubleGreaterThanOrEqualOrUnordered:
           case DoubleLessThanOrUnordered:
           case DoubleLessThanOrEqualOrUnordered:
-            return NaN_HandledByCond;
-          case DoubleEqual:
-            return NaN_IsFalse;
-          case DoubleNotEqualOrUnordered:
             return NaN_IsTrue;
         }
 
         JS_NOT_REACHED("Unknown double condition");
-        return NaN_HandledByCond;
+        return NaN_Unexpected;
     }
 
     static void staticAsserts() {
@@ -149,9 +143,6 @@ class AssemblerX86Shared
 
     static Condition InvertCondition(Condition cond);
 
-    
-    
-    
     static inline Condition ConditionFromDoubleCondition(DoubleCondition cond) {
         return static_cast<Condition>(cond & ~DoubleConditionBits);
     }
