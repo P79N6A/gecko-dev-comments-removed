@@ -397,6 +397,9 @@ nsFrameMessageManager::LoadFrameScript(const nsAString& aURL,
                                        bool aAllowDelayedLoad,
                                        bool aRunInGlobalScope)
 {
+  
+  aRunInGlobalScope = true;
+
   if (aAllowDelayedLoad) {
     if (IsGlobal() || IsWindowLevel()) {
       
