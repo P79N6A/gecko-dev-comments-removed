@@ -545,7 +545,7 @@ protected:
   
 
 
-  bool IsTargetValid() { return mTarget != sErrorTarget; }
+  bool IsTargetValid() { return mTarget != sErrorTarget && mTarget != nullptr; }
 
   
 
