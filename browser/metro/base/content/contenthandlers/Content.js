@@ -143,7 +143,7 @@ let Content = {
     
     addEventListener("click", this, false);
 
-    docShell.QueryInterface(Ci.nsIDocShellHistory).useGlobalHistory = true;
+    docShell.useGlobalHistory = true;
   },
 
   
