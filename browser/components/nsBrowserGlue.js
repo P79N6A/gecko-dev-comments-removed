@@ -120,11 +120,6 @@ function BrowserGlue() {
       return sanitizerScope.Sanitizer;
     });
 
-  XPCOMUtils.defineLazyServiceGetter(this, "_rdf", "@mozilla.org/rdf/rdf-service;1",
-                                     "nsIRDFService");
-  XPCOMUtils.defineLazyGetter(this, "_dataSource",
-                              function() this._rdf.GetDataSource("rdf:local-store"));
-
   this._init();
 }
 
@@ -1293,8 +1288,19 @@ BrowserGlue.prototype = {
     const UI_VERSION = 14;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
 
+    let wasCustomizedAndOnAustralis = Services.prefs.prefHasUserValue("browser.uiCustomization.state");
+    let currentUIVersion = 0;
+    try {
+      currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
+    } catch(ex) {}
+    if (!wasCustomizedAndOnAustralis && currentUIVersion >= UI_VERSION)
+      return;
+
+    this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+    this._dataSource = this._rdf.GetDataSource("rdf:local-store");
+
     
-    if (Services.prefs.prefHasUserValue("browser.uiCustomization.state")) {
+    if (wasCustomizedAndOnAustralis) {
       
       
       let currentsetResource = this._rdf.GetResource("currentset");
@@ -1312,17 +1318,15 @@ BrowserGlue.prototype = {
       }
       this._setPersist(toolbarResource, currentsetResource, currentset);
       Services.prefs.clearUserPref("browser.uiCustomization.state");
+
+      
+      if (currentUIVersion >= UI_VERSION) {
+        delete this._rdf;
+        delete this._dataSource;
+        return;
+      }
     }
 
-    let currentUIVersion = 0;
-    try {
-      currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
-    } catch(ex) {}
-    if (currentUIVersion >= UI_VERSION) {
-      delete this._rdf;
-      delete this._dataSource;
-      return;
-    }
 
     this._dirty = false;
 
