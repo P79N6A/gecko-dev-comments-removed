@@ -105,9 +105,6 @@
 
 - (void)setUploadingEnabled:(BOOL)enabled;
 
-
-- (void)hasReportToUpload:(void(^)(BOOL))callback;
-
 @end
 
 #endif  

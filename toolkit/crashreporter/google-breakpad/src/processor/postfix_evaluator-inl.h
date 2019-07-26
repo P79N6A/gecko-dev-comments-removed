@@ -184,7 +184,7 @@ bool PostfixEvaluator<ValueType>::EvaluateToken(
                       HexString(value) << ": " << expression;
       return false;
     }
-    if (identifier == ustr__empty() || Index(identifier,0) != '$') {
+    if (identifier == ustr__empty() || index(identifier,0) != '$') {
       BPLOG(ERROR) << "Can't assign " << HexString(value) << " to " <<
                       identifier << ": " << expression;
       return false;
@@ -216,7 +216,7 @@ bool PostfixEvaluator<ValueType>::EvaluateToken(
     if (token_stream >> literal && token_stream.peek() == EOF) {
       PushValue(negative ? (-literal) : literal);
     } else {
-      PushIdentifier(ToUniqueString(token));
+      PushIdentifier(toUniqueString(token));
     }
   }
   return true;
@@ -310,7 +310,7 @@ bool PostfixEvaluator<ValueType>::EvaluateForValue(const Module::Expr& expr,
       if (!found) {
         
         
-        BPLOG(INFO) << "Identifier " << FromUniqueString(expr.ident_)
+        BPLOG(INFO) << "Identifier " << fromUniqueString(expr.ident_)
                     << " not in dictionary (kExprSimple{Mem})";
         return false;
       }
@@ -378,7 +378,7 @@ bool PostfixEvaluator<ValueType>::PopValue(ValueType *value) {
     if (!found) {
       
       
-      BPLOG(INFO) << "Identifier " << FromUniqueString(token)
+      BPLOG(INFO) << "Identifier " << fromUniqueString(token)
                   << " not in dictionary";
       return false;
     }
