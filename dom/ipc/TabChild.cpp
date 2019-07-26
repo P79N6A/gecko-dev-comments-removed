@@ -322,21 +322,25 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
 
     CSSIntPoint scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
 
-    if (viewId == mLastMetrics.mScrollId) {
+    if (viewId == mLastRootMetrics.mScrollId) {
       
       
       
       
       
-      
-      if (RoundedToInt(mLastMetrics.mScrollOffset) == scrollOffset) {
+      if (RoundedToInt(mLastRootMetrics.mScrollOffset) == scrollOffset) {
         return NS_OK;
       }
 
       
       
       
-      mLastMetrics.mScrollOffset = scrollOffset;
+      mLastRootMetrics.mScrollOffset = scrollOffset;
+    } else if (viewId == mLastSubFrameMetrics.mScrollId) {
+      if (RoundedToInt(mLastSubFrameMetrics.mScrollOffset) == scrollOffset) {
+        return NS_OK;
+      }
+      mLastSubFrameMetrics.mScrollOffset = scrollOffset;
     }
 
     SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
@@ -384,21 +388,21 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
-        mLastMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
-        mLastMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
-        mLastMetrics.mZoom = mLastMetrics.CalculateIntrinsicScale();
-        mLastMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
+        mLastRootMetrics.mViewport = CSSRect(CSSPoint(), kDefaultViewportSize);
+        mLastRootMetrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
+        mLastRootMetrics.mZoom = mLastRootMetrics.CalculateIntrinsicScale();
+        mLastRootMetrics.mDevPixelsPerCSSPixel = mWidget->GetDefaultScale();
         
         
-        mLastMetrics.mCumulativeResolution =
-          mLastMetrics.mZoom / mLastMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
+        mLastRootMetrics.mCumulativeResolution =
+          mLastRootMetrics.mZoom / mLastRootMetrics.mDevPixelsPerCSSPixel * ScreenToLayerScale(1);
         
         
-        mLastMetrics.mResolution = mLastMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
-        mLastMetrics.mScrollOffset = CSSPoint(0, 0);
+        mLastRootMetrics.mResolution = mLastRootMetrics.mCumulativeResolution / LayoutDeviceToParentLayerScale(1);
+        mLastRootMetrics.mScrollOffset = CSSPoint(0, 0);
 
-        utils->SetResolution(mLastMetrics.mResolution.scale,
-                             mLastMetrics.mResolution.scale);
+        utils->SetResolution(mLastRootMetrics.mResolution.scale,
+                             mLastRootMetrics.mResolution.scale);
 
         HandlePossibleViewportChange();
       }
@@ -554,7 +558,7 @@ TabChild::HandlePossibleViewportChange()
   }
 
   float oldBrowserWidth = mOldViewportWidth;
-  mLastMetrics.mViewport.SizeTo(viewport);
+  mLastRootMetrics.mViewport.SizeTo(viewport);
   if (!oldBrowserWidth) {
     oldBrowserWidth = kDefaultViewportSize.width;
   }
@@ -600,12 +604,12 @@ TabChild::HandlePossibleViewportChange()
     return;
   }
 
-  float oldScreenWidth = mLastMetrics.mCompositionBounds.width;
+  float oldScreenWidth = mLastRootMetrics.mCompositionBounds.width;
   if (!oldScreenWidth) {
     oldScreenWidth = mInnerSize.width;
   }
 
-  FrameMetrics metrics(mLastMetrics);
+  FrameMetrics metrics(mLastRootMetrics);
   metrics.mViewport = CSSRect(CSSPoint(), viewport);
   metrics.mScrollableRect = CSSRect(CSSPoint(), pageSize);
   metrics.mCompositionBounds = ScreenIntRect(ScreenIntPoint(), mInnerSize);
@@ -1532,6 +1536,7 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     if (content) {
       FrameMetrics newSubFrameMetrics(aFrameMetrics);
       APZCCallbackHelper::UpdateSubFrame(content, newSubFrameMetrics);
+      mLastSubFrameMetrics = newSubFrameMetrics;
       return true;
     }
   }
@@ -1539,7 +1544,7 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
   
   
   
-  return ProcessUpdateFrame(mLastMetrics);
+  return ProcessUpdateFrame(mLastRootMetrics);
 }
 
 bool
@@ -1603,7 +1608,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
 
     DispatchMessageManagerMessage(NS_LITERAL_STRING("Viewport:Change"), data);
 
-    mLastMetrics = newMetrics;
+    mLastRootMetrics = newMetrics;
 
     return true;
 }
