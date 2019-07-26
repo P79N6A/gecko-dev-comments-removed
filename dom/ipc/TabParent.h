@@ -381,8 +381,8 @@ private:
     
     
     
-    void MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
-                                        ScrollableLayerGuid* aOutTargetGuid);
+    nsEventStatus MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
+                                                 ScrollableLayerGuid* aOutTargetGuid);
     
     
     

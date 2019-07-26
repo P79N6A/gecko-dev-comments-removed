@@ -109,8 +109,8 @@ public:
 
 
 
-  void NotifyInputEvent(WidgetInputEvent& aEvent,
-                        ScrollableLayerGuid* aOutTargetGuid);
+  nsEventStatus NotifyInputEvent(WidgetInputEvent& aEvent,
+                                 ScrollableLayerGuid* aOutTargetGuid);
 
   void ZoomToRect(uint32_t aPresShellId, ViewID aViewId, const CSSRect& aRect);
 
