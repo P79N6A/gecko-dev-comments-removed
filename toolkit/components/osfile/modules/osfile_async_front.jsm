@@ -50,7 +50,6 @@ Cu.import("resource://gre/modules/osfile/ospath.jsm", Path);
 
 
 Cu.import("resource://gre/modules/Promise.jsm", this);
-Cu.import("resource://gre/modules/Task.jsm", this);
 
 
 Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
@@ -84,9 +83,6 @@ const EXCEPTION_CONSTRUCTORS = {
   },
   URIError: function(error) {
     return new URIError(error.message, error.fileName, error.lineNumber);
-  },
-  OSError: function(error) {
-    return OS.File.Error.fromMsg(error);
   }
 };
 
@@ -151,23 +147,7 @@ let Scheduler = {
   
 
 
-
-
-  queue: Promise.resolve(),
-
-  
-
-
-
-
-  latestSent: undefined,
-
-  
-
-
-
-
-  latestReceived: undefined,
+  latestPromise: Promise.resolve("OS.File scheduler hasn't been launched yet"),
 
   
 
@@ -188,32 +168,6 @@ let Scheduler = {
     }
     this.resetTimer = setTimeout(File.resetWorker, delay);
   },
-
-  
-
-
-
-
-
-
-
-
-  push: function(code) {
-    let promise = this.queue.then(code);
-    
-    this.queue = promise.then(null, () => undefined);
-    
-    return promise.then(null, null);
-  },
-
-  
-
-
-
-
-
-
-
 
   post: function post(method, ...args) {
     if (this.shutdown) {
@@ -240,33 +194,9 @@ let Scheduler = {
     if (methodArgs) {
       options = methodArgs[methodArgs.length - 1];
     }
-    return this.push(() => Task.spawn(function*() {
-      if (OS.Constants.Sys.DEBUG) {
-        
-        Scheduler.latestReceived = null;
-        Scheduler.latestSent = [method, ...args];
-      }
-      let data;
-      let reply;
-      try {
-        data = yield worker.post(method, ...args);
-        reply = data;
-      } catch (error if error instanceof PromiseWorker.WorkerError) {
-        reply = error;
-        throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
-      } catch (error if error instanceof ErrorEvent) {
-        reply = error;
-        let message = error.message;
-        if (message == "uncaught exception: [object StopIteration]") {
-          throw StopIteration;
-        }
-        throw new Error(message, error.filename, error.lineno);
-      } finally {
-        if (OS.Constants.Sys.DEBUG) {
-          
-          Scheduler.latestSent = null;
-          Scheduler.latestReceived = reply;
-        }
+    let promise = worker.post(method,...args);
+    return this.latestPromise = promise.then(
+      function onSuccess(data) {
         if (firstLaunch) {
           Scheduler._updateTelemetry();
         }
@@ -276,35 +206,65 @@ let Scheduler = {
         if (method != "Meta_reset") {
           Scheduler.restartTimer();
         }
-      }
 
-      
-      if (!options) {
+        
+        if (!options) {
+          return data.ok;
+        }
+        
+        if (typeof options !== "object" ||
+          !("outExecutionDuration" in options)) {
+          return data.ok;
+        }
+        
+        
+        if (!("durationMs" in data)) {
+          return data.ok;
+        }
+        
+        
+        
+        
+        let durationMs = Math.max(0, data.durationMs);
+        
+        if (typeof options.outExecutionDuration == "number") {
+          options.outExecutionDuration += durationMs;
+        } else {
+          options.outExecutionDuration = durationMs;
+        }
         return data.ok;
+      },
+      function onError(error) {
+        if (firstLaunch) {
+          Scheduler._updateTelemetry();
+        }
+
+        
+        
+        if (method != "Meta_reset") {
+          Scheduler.restartTimer();
+        }
+        
+        
+        if (error.data && error.data.exn in EXCEPTION_CONSTRUCTORS) {
+          throw EXCEPTION_CONSTRUCTORS[error.data.exn](error.data);
+        }
+        
+        if (error instanceof PromiseWorker.WorkerError) {
+          throw OS.File.Error.fromMsg(error.data);
+        }
+        
+        if (error instanceof ErrorEvent) {
+          let message = error.message;
+          if (message == "uncaught exception: [object StopIteration]") {
+            throw StopIteration;
+          }
+          throw new Error(message, error.filename, error.lineno);
+        }
+
+        throw error;
       }
-      
-      if (typeof options !== "object" ||
-        !("outExecutionDuration" in options)) {
-        return data.ok;
-      }
-      
-      
-      if (!("durationMs" in data)) {
-        return data.ok;
-      }
-      
-      
-      
-      
-      let durationMs = Math.max(0, data.durationMs);
-      
-      if (typeof options.outExecutionDuration == "number") {
-        options.outExecutionDuration += durationMs;
-      } else {
-        options.outExecutionDuration = durationMs;
-      }
-      return data.ok;
-    }));
+    );
   },
 
   
@@ -1283,18 +1243,8 @@ this.OS.Path = Path;
 
 AsyncShutdown.profileBeforeChange.addBlocker(
   "OS.File: flush I/O queued before profile-before-change",
-  
-  (() => Scheduler.queue),
-  function getDetails() {
-    let result = {
-      launched: Scheduler.launched,
-      shutdown: Scheduler.shutdown,
-      pendingReset: !!Scheduler.resetTimer,
-    };
-    if (OS.Constants.Sys.DEBUG) {
-      result.latestSent = Scheduler.latestSent;
-      result.latestReceived - Scheduler.latestReceived;
-    };
-    return result;
-  }
+  () =>
+    
+    Scheduler.latestPromise.then(null,
+      function onError() { })
 );

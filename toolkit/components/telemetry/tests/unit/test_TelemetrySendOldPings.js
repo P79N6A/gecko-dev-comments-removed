@@ -23,14 +23,13 @@ Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/TelemetryFile.jsm", this);
 Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
-let {OS: {File, Path, Constants}} = Cu.import("resource://gre/modules/osfile.jsm", {});
+Cu.import("resource://gre/modules/osfile.jsm", this);
 
 
 
 
-const ONE_MINUTE_MS = 60 * 1000;
-const EXPIRED_PING_FILE_AGE = TelemetryFile.MAX_PING_FILE_AGE + ONE_MINUTE_MS;
-const OVERDUE_PING_FILE_AGE = TelemetryFile.OVERDUE_PING_FILE_AGE + ONE_MINUTE_MS;
+const EXPIRED_PING_FILE_AGE = TelemetryFile.MAX_PING_FILE_AGE + 1;
+const OVERDUE_PING_FILE_AGE = TelemetryFile.OVERDUE_PING_FILE_AGE + 1;
 
 const PING_SAVE_FOLDER = "saved-telemetry-pings";
 const PING_TIMEOUT_LENGTH = 5000;
@@ -43,7 +42,6 @@ const TOTAL_EXPECTED_PINGS = OVERDUE_PINGS + RECENT_PINGS;
 let gHttpServer = new HttpServer();
 let gCreatedPings = 0;
 let gSeenPings = 0;
-
 
 
 
@@ -73,8 +71,8 @@ function createSavedPings(aNum, aAge) {
       if (aAge) {
         
         
-        let file = getSavePathForPing(ping);
-        yield File.setDates(file, null, age);
+        let file = getSaveFileForPing(ping);
+        file.lastModifiedTime = age;
       }
       gCreatedPings++;
       pings.push(ping);
@@ -89,14 +87,13 @@ function createSavedPings(aNum, aAge) {
 
 
 
-
 function clearPings(aPings) {
-  return Task.spawn(function*() {
-    for (let ping of aPings) {
-      let path = getSavePathForPing(ping);
-      yield File.remove(path);
+  for (let ping of aPings) {
+    let file = getSaveFileForPing(ping);
+    if (file.exists()) {
+      file.remove(false);
     }
-  });
+  }
 }
 
 
@@ -105,8 +102,11 @@ function clearPings(aPings) {
 
 
 
-function getSavePathForPing(aPing) {
-  return Path.join(Constants.Path.profileDir, PING_SAVE_FOLDER, aPing.slug);
+function getSaveFileForPing(aPing) {
+  let file = Services.dirsvc.get("ProfD", Ci.nsILocalFile).clone();
+  file.append(PING_SAVE_FOLDER);
+  file.append(aPing.slug);
+  return file;
 }
 
 
@@ -124,20 +124,17 @@ function assertReceivedPings(aExpectedNum) {
 
 
 
-
 function assertNotSaved(aPings) {
-  return Task.spawn(function*() {
-    let saved = 0;
-    for (let ping of aPings) {
-      let file = getSavePathForPing(ping);
-      if (yield File.exists()) {
-        saved++;
-      }
+  let saved = 0;
+  for (let ping of aPings) {
+    let file = getSaveFileForPing(ping);
+    if (file.exists()) {
+      saved++;
     }
-    if (saved > 0) {
-      do_throw("Found " + saved + " unexpected saved pings.");
-    }
-  });
+  }
+  if (saved > 0) {
+    do_throw("Found " + saved + " unexpected saved pings.");
+  }
 }
 
 
@@ -203,7 +200,7 @@ add_task(function test_expired_pings_are_deleted() {
   let expiredPings = yield createSavedPings(EXPIRED_PINGS, EXPIRED_PING_FILE_AGE);
   yield startTelemetry();
   assertReceivedPings(0);
-  yield assertNotSaved(expiredPings);
+  assertNotSaved(expiredPings);
   yield resetTelemetry();
 });
 
@@ -215,7 +212,7 @@ add_task(function test_recent_pings_not_sent() {
   yield startTelemetry();
   assertReceivedPings(0);
   yield resetTelemetry();
-  yield clearPings(recentPings);
+  clearPings(recentPings);
 });
 
 
@@ -231,9 +228,9 @@ add_task(function test_overdue_pings_trigger_send() {
   yield startTelemetry();
   assertReceivedPings(TOTAL_EXPECTED_PINGS);
 
-  yield assertNotSaved(recentPings);
-  yield assertNotSaved(expiredPings);
-  yield assertNotSaved(overduePings);
+  assertNotSaved(recentPings);
+  assertNotSaved(expiredPings);
+  assertNotSaved(overduePings);
   yield resetTelemetry();
 });
 
