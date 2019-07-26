@@ -932,7 +932,7 @@ DataChannelConnection::SendOpenRequestMessage(const nsACString& label,
     req->channel_type |= 0x80; 
   }
 
-  req->reliability_params = htons((uint16_t)prValue); 
+  req->reliability_param = htonl(prValue);
   req->priority = htons(0); 
   req->label_length = htons(label_len);
   req->protocol_length = htons(proto_len);
@@ -1092,7 +1092,7 @@ DataChannelConnection::HandleOpenRequestMessage(const struct rtcweb_datachannel_
       
       return;
   }
-  prValue = ntohs(req->reliability_params);
+  prValue = ntohl(req->reliability_param);
   flags = (req->channel_type & 0x80) ? DATA_CHANNEL_FLAGS_OUT_OF_ORDER_ALLOWED : 0;
 
   if ((channel = FindChannelByStream(stream))) {
