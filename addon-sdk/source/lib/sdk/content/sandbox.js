@@ -38,12 +38,6 @@ const metadata = require('@loader/options').metadata;
 const permissions = (metadata && metadata['permissions']) || {};
 const EXPANDED_PRINCIPALS = permissions['cross-domain-content'] || [];
 
-const waiveSecurityMembrane = !!permissions['unsafe-content-script'];
-
-const nsIScriptSecurityManager = Ci.nsIScriptSecurityManager;
-const secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
-  getService(Ci.nsIScriptSecurityManager);
-
 const JS_VERSION = '1.8';
 
 const WorkerSandbox = Class({
@@ -114,21 +108,14 @@ const WorkerSandbox = Class({
     
     
     
-    
-    
     let principals = window;
     let wantGlobalProperties = [];
-    let isSystemPrincipal = secMan.isSystemPrincipal(
-      window.document.nodePrincipal);
-    if (!isSystemPrincipal && !requiresAddonGlobal(worker)) {
-      if (EXPANDED_PRINCIPALS.length > 0) {
-        
-        
-        delete proto.XMLHttpRequest;
-        wantGlobalProperties.push('XMLHttpRequest');
-      }
-      if (!waiveSecurityMembrane)
-        principals = EXPANDED_PRINCIPALS.concat(window);
+    if (EXPANDED_PRINCIPALS.length > 0 && !requiresAddonGlobal(worker)) {
+      principals = EXPANDED_PRINCIPALS.concat(window);
+      
+      
+      delete proto.XMLHttpRequest;
+      wantGlobalProperties.push('XMLHttpRequest');
     }
 
     
@@ -142,7 +129,6 @@ const WorkerSandbox = Class({
       sandboxPrototype: proto,
       wantXrays: true,
       wantGlobalProperties: wantGlobalProperties,
-      wantExportHelpers: !waiveSecurityMembrane,
       sameZoneAs: window,
       metadata: {
         SDKContentScript: true,
