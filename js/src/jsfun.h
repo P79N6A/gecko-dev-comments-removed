@@ -122,6 +122,13 @@ class JSFunction : public JSObject
         return flags & SH_WRAPPABLE;
     }
 
+    bool hasJITCode() const {
+        if (!hasScript())
+            return false;
+
+        return nonLazyScript()->hasBaselineScript() || nonLazyScript()->hasIonScript();
+    }
+
     
     
     
