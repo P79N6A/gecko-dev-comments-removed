@@ -191,6 +191,9 @@ class IonActivationIterator
         return top_;
     }
     bool more() const;
+
+    
+    void ionStackRange(uintptr_t *&min, uintptr_t *&end);
 };
 
 class IonJSFrameLayout;

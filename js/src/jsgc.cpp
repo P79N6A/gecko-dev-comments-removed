@@ -1170,18 +1170,14 @@ MarkRangeConservativelyAndSkipIon(JSTracer *trc, JSRuntime *rt, const uintptr_t 
     
     
     for (ion::IonActivationIterator ion(rt); ion.more(); ++ion) {
-        ion::IonFrameIterator frames(ion.top());
-        while (!frames.done())
-            ++frames;
-
-        uintptr_t *ionMin = (uintptr_t *)ion.top();
-        uintptr_t *ionEnd = (uintptr_t *)frames.fp();
+        uintptr_t *ionMin, *ionEnd;
+        ion.ionStackRange(ionMin, ionEnd);
 
         MarkRangeConservatively(trc, i, ionMin);
         i = ionEnd;
     }
 #endif
-    
+
     
     MarkRangeConservatively(trc, i, end);
 }
@@ -2608,7 +2604,7 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
 
     rt->stackSpace.markAndClobber(trc);
     rt->debugScopes->mark(trc);
-	
+
 #ifdef JS_ION
     ion::MarkIonActivations(rt, trc);
 #endif
@@ -5023,6 +5019,31 @@ CheckStackRootsRange(JSTracer *trc, uintptr_t *begin, uintptr_t *end)
 }
 
 static void
+CheckStackRootsRangeAndSkipIon(JSRuntime *rt, JSTracer *trc, uintptr_t *begin, uintptr_t *end)
+{
+    
+
+
+
+
+    uintptr_t *i = begin;
+
+#if JS_STACK_GROWTH_DIRECTION < 0 && defined(JS_ION)
+    for (ion::IonActivationIterator ion(rt); ion.more(); ++ion) {
+        uintptr_t *ionMin, *ionEnd;
+        ion.ionStackRange(ionMin, ionEnd);
+
+        CheckStackRootsRange(trc, i, ionMin);
+        i = ionEnd;
+    }
+#endif
+
+    
+    if (i <= end)
+        CheckStackRootsRange(trc, i, end);
+}
+
+static void
 EmptyMarkCallback(JSTracer *jstrc, void **thingp, JSGCTraceKind kind)
 {}
 
@@ -5111,7 +5132,7 @@ JS::CheckStackRoots(JSContext *cx)
 #endif
 
     JS_ASSERT(stackMin <= stackEnd);
-    CheckStackRootsRange(&checker, stackMin, stackEnd);
+    CheckStackRootsRangeAndSkipIon(rt, &checker, stackMin, stackEnd);
     CheckStackRootsRange(&checker, cgcd->registerSnapshot.words,
                          ArrayEnd(cgcd->registerSnapshot.words));
 }
@@ -5253,7 +5274,7 @@ NextNode(VerifyNode *node)
         return (VerifyNode *)((char *)node + sizeof(VerifyNode) - sizeof(EdgeValue));
     else
         return (VerifyNode *)((char *)node + sizeof(VerifyNode) +
-			      sizeof(EdgeValue)*(node->count - 1));
+                             sizeof(EdgeValue)*(node->count - 1));
 }
 
 static void
@@ -5828,7 +5849,7 @@ PurgeJITCaches(JSCompartment *c)
 
 #ifdef JS_ION
 
-         
+        
         if (script->hasIonScript())
             script->ion->purgeCaches(c);
 
