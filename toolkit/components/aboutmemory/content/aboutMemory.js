@@ -502,20 +502,45 @@ function appendAboutMemoryMain(aBody, aProcess, aHasMozMallocUsableSize)
 
   
   
-  if (treesByProcess[gUnnamedProcessStr]) {
-    appendProcessAboutMemoryElements(aBody, gUnnamedProcessStr,
-                                     treesByProcess[gUnnamedProcessStr],
-                                     degeneratesByProcess[gUnnamedProcessStr],
-                                     heapTotalByProcess[gUnnamedProcessStr],
-                                     aHasMozMallocUsableSize);
-  }
-  for (let process in treesByProcess) {
-    if (process !== gUnnamedProcessStr) {
-      appendProcessAboutMemoryElements(aBody, process, treesByProcess[process],
-                                       degeneratesByProcess[process],
-                                       heapTotalByProcess[process],
-                                       aHasMozMallocUsableSize);
+  
+  let processes = Object.keys(treesByProcess);
+  processes.sort(function(a, b) {
+    assert(a != b, "Elements of Object.keys() should be unique, but " +
+                   "saw duplicate " + a + " elem.");
+
+    if (a == gUnnamedProcessStr) {
+      return -1;
     }
+
+    if (b == gUnnamedProcessStr) {
+      return 1;
+    }
+
+    let nodeA = degeneratesByProcess[a]['resident'];
+    let nodeB = degeneratesByProcess[b]['resident'];
+
+    if (nodeA && nodeB) {
+      return TreeNode.compareAmounts(nodeA, nodeB);
+    }
+
+    if (nodeA) {
+      return -1;
+    }
+
+    if (nodeB) {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  
+  for (let i = 0; i < processes.length; i++) {
+    let process = processes[i];
+    appendProcessAboutMemoryElements(aBody, process, treesByProcess[process],
+                                     degeneratesByProcess[process],
+                                     heapTotalByProcess[process],
+                                     aHasMozMallocUsableSize);
   }
 }
 
