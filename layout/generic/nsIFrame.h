@@ -862,6 +862,12 @@ public:
 
 
   nsIFrame* GetParent() const { return mParent; }
+  
+
+
+
+
+
   virtual void SetParent(nsIFrame* aParent) = 0;
 
   

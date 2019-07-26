@@ -64,6 +64,41 @@ StickyScrollContainer::GetStickyScrollContainerForFrame(nsIFrame* aFrame)
 }
 
 
+void
+StickyScrollContainer::NotifyReparentedFrameAcrossScrollFrameBoundary(nsIFrame* aFrame,
+                                                                      nsIFrame* aOldParent)
+{
+  nsIScrollableFrame* oldScrollFrame =
+    nsLayoutUtils::GetNearestScrollableFrame(aOldParent,
+      nsLayoutUtils::SCROLLABLE_SAME_DOC |
+      nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN);
+  if (!oldScrollFrame) {
+    
+    
+    return;
+  }
+  FrameProperties props = static_cast<nsIFrame*>(do_QueryFrame(oldScrollFrame))->
+    Properties();
+  StickyScrollContainer* oldSSC = static_cast<StickyScrollContainer*>
+    (props.Get(StickyScrollContainerProperty()));
+  if (!oldSSC) {
+    
+    
+    return;
+  }
+
+  auto i = oldSSC->mFrames.Length();
+  while (i-- > 0) {
+    nsIFrame* f = oldSSC->mFrames[i];
+    StickyScrollContainer* newSSC = GetStickyScrollContainerForFrame(f);
+    if (newSSC != oldSSC) {
+      oldSSC->RemoveFrame(f);
+      newSSC->AddFrame(f);
+    }
+  }
+}
+
+
 StickyScrollContainer*
 StickyScrollContainer::GetStickyScrollContainerForScrollFrame(nsIFrame* aFrame)
 {

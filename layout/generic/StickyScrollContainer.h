@@ -37,6 +37,12 @@ public:
 
   static StickyScrollContainer* GetStickyScrollContainerForScrollFrame(nsIFrame* aScrollFrame);
 
+  
+
+
+  static void NotifyReparentedFrameAcrossScrollFrameBoundary(nsIFrame* aFrame,
+                                                             nsIFrame* aOldParent);
+
   void AddFrame(nsIFrame* aFrame) {
     mFrames.AppendElement(aFrame);
   }
