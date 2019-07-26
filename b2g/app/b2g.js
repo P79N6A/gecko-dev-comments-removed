@@ -77,14 +77,10 @@ pref("network.http.pipelining", true);
 pref("network.http.pipelining.ssl", true);
 pref("network.http.proxy.pipelining", true);
 pref("network.http.pipelining.maxrequests" , 6);
-pref("network.http.keep-alive.timeout", 600);
+pref("network.http.keep-alive.timeout", 109);
 pref("network.http.max-connections", 20);
 pref("network.http.max-persistent-connections-per-server", 6);
 pref("network.http.max-persistent-connections-per-proxy", 20);
-
-
-
-pref("network.cookie.cookieBehavior", 0);
 
 
 pref("network.http.spdy.push-allowance", 32768);
