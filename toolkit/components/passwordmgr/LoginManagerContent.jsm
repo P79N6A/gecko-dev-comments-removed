@@ -13,7 +13,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-var gEnabled = false, gDebug = false, gAutofillForms = true , gOverrideAutocompleteAttribute = false; 
+
+var gEnabled, gDebug, gAutofillForms, gStoreWhenAutocompleteOff;
 
 function log(...pieces) {
     function generateLogMessage(args) {
@@ -71,7 +72,7 @@ var observer = {
         gDebug = Services.prefs.getBoolPref("signon.debug");
         gEnabled = Services.prefs.getBoolPref("signon.rememberSignons");
         gAutofillForms = Services.prefs.getBoolPref("signon.autofillForms");
-        gOverrideAutocompleteAttribute = Services.prefs.getBoolPref("signon.overrideAutocomplete");
+        gStoreWhenAutocompleteOff = Services.prefs.getBoolPref("signon.storeWhenAutocompleteOff");
     },
 };
 
@@ -357,9 +358,6 @@ var LoginManagerContent = {
 
 
     _isAutocompleteDisabled :  function (element) {
-        if (gOverrideAutocompleteAttribute)
-            return false; 
-
         if (element && element.hasAttribute("autocomplete") &&
             element.getAttribute("autocomplete").toLowerCase() == "off")
             return true;
@@ -425,10 +423,11 @@ var LoginManagerContent = {
         
         
         
-        if (this._isAutocompleteDisabled(form) ||
-            this._isAutocompleteDisabled(usernameField) ||
-            this._isAutocompleteDisabled(newPasswordField) ||
-            this._isAutocompleteDisabled(oldPasswordField)) {
+        if ((this._isAutocompleteDisabled(form) ||
+             this._isAutocompleteDisabled(usernameField) ||
+             this._isAutocompleteDisabled(newPasswordField) ||
+             this._isAutocompleteDisabled(oldPasswordField)) &&
+            !gStoreWhenAutocompleteOff) {
                 log("(form submission ignored -- autocomplete=off found)");
                 return;
         }

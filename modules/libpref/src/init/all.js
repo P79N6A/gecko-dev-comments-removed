@@ -228,18 +228,16 @@ pref("media.apple.mp3.enabled", true);
 pref("media.navigator.enabled", true);
 pref("media.navigator.video.enabled", true);
 pref("media.navigator.load_adapt", false);
+pref("media.navigator.video.default_width",640);
+pref("media.navigator.video.default_height",480);
 pref("media.navigator.video.default_fps",30);
 pref("media.navigator.video.default_minfps",10);
 #ifdef MOZ_WIDGET_GONK
-pref("media.navigator.video.default_width",320);
-pref("media.navigator.video.default_height",240);
 pref("media.peerconnection.enabled", true);
 pref("media.peerconnection.video.enabled", true);
 pref("media.navigator.video.max_fs", 1200); 
 pref("media.navigator.video.max_fr", 30);
 #else
-pref("media.navigator.video.default_width",640);
-pref("media.navigator.video.default_height",480);
 pref("media.peerconnection.enabled", true);
 pref("media.peerconnection.video.enabled", true);
 pref("media.navigator.video.max_fs", 0); 
@@ -3719,9 +3717,8 @@ pref("print.print_command", "lp -c -s ${MOZ_PRINTER_NAME:+-d\"$MOZ_PRINTER_NAME\
 pref("signon.rememberSignons",              true);
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
+pref("signon.storeWhenAutocompleteOff",     true);
 pref("signon.debug",                        false);
-
-pref("signon.overrideAutocomplete",         false);
 
 
 pref("browser.formfill.debug",            false);
