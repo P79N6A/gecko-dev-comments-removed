@@ -64,7 +64,7 @@ public:
   bool Hold(JSRuntime* aRt) {
     
     if (mRt && aRt != mRt) {
-      js_RemoveRoot(mRt, &mVal);
+      JS_RemoveValueRootRT(mRt, &mVal);
       mRt = nullptr;
     }
 
