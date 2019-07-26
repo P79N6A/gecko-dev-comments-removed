@@ -802,6 +802,43 @@ JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
 
 namespace js {
 
+
+
+
+
+
+
+
+
+
+
+
+class ScopedThreadSafeStringInspector
+{
+  private:
+    JSString *str_;
+    ScopedJSFreePtr<jschar> scopedChars_;
+    const jschar *chars_;
+
+  public:
+    ScopedThreadSafeStringInspector(JSString *str)
+      : str_(str),
+        chars_(NULL)
+    { }
+
+    bool ensureChars(ThreadSafeContext *cx);
+
+    const jschar *chars() {
+        JS_ASSERT(chars_);
+        return chars_;
+    }
+
+    JS::TwoByteChars range() {
+        JS_ASSERT(chars_);
+        return JS::TwoByteChars(chars_, str_->length());
+    }
+};
+
 class StaticStrings
 {
   private:
