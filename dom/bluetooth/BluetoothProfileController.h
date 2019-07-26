@@ -43,6 +43,15 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 #define IS_PERIPHERAL(cod)           (GET_MAJOR_DEVICE_CLASS(cod) == 0x5)
 
+
+#define IS_REMOTE_CONTROL(cod)       ((GET_MINOR_DEVICE_CLASS(cod) & 0xf) == 0x3)
+
+
+#define IS_KEYBOARD(cod)             ((GET_MINOR_DEVICE_CLASS(cod) & 0x10) >> 4)
+
+
+#define IS_POINTING_DEVICE(cod)      ((GET_MINOR_DEVICE_CLASS(cod) & 0x20) >> 5)
+
 class BluetoothProfileManagerBase;
 class BluetoothReplyRunnable;
 typedef void (*BluetoothProfileControllerCallback)();
