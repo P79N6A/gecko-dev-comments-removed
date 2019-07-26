@@ -165,7 +165,7 @@ public:
   void SetWakeLock(bool aLock);
 
   mozilla::gl::GLContext* GLContext();
-  
+
   
   class TextureInfo {
   public:
