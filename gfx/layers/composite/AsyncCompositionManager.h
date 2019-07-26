@@ -27,7 +27,7 @@ class AutoResolveRefLayers;
 
 
 struct ViewTransform {
-  ViewTransform(LayoutDevicePoint aTranslation = LayoutDevicePoint(),
+  ViewTransform(LayerPoint aTranslation = LayerPoint(),
                 LayoutDeviceToScreenScale aScale = LayoutDeviceToScreenScale())
     : mTranslation(aTranslation)
     , mScale(aScale)
@@ -48,7 +48,7 @@ struct ViewTransform {
     return !(*this == rhs);
   }
 
-  LayoutDevicePoint mTranslation;
+  LayerPoint mTranslation;
   LayoutDeviceToScreenScale mScale;
 };
 

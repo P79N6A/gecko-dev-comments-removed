@@ -453,7 +453,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     
     mLayerManager->GetCompositor()->SetScreenRenderOffset(offset);
 
-    gfx3DMatrix transform(aLayer->GetTransform() * gfx3DMatrix(treeTransform));
+    gfx3DMatrix transform(gfx3DMatrix(treeTransform) * aLayer->GetTransform());
     
     
     
@@ -551,20 +551,20 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer, const LayoutDev
   
   
   
-  LayoutDeviceToScreenScale zoomAdjust = userZoom / metrics.mDevPixelsPerCSSPixel;
+  LayerToScreenScale zoomAdjust = userZoom / geckoZoom;
 
-  LayoutDevicePoint geckoScroll(0, 0);
+  LayerIntPoint geckoScroll(0, 0);
   if (metrics.IsScrollable()) {
-    geckoScroll = metrics.mScrollOffset * metrics.mDevPixelsPerCSSPixel;
+    geckoScroll = scrollOffsetLayerPixels;
   }
 
-  LayoutDevicePoint translation = (userScroll / zoomAdjust) - geckoScroll;
+  LayerPoint translation = (userScroll / zoomAdjust) - geckoScroll;
   treeTransform = gfx3DMatrix(ViewTransform(-translation, userZoom / metrics.mDevPixelsPerCSSPixel));
 
   
   
   
-  gfx3DMatrix computedTransform = currentTransform * treeTransform;
+  gfx3DMatrix computedTransform = treeTransform * currentTransform;
   computedTransform.Scale(1.0f/container->GetPreXScale(),
                           1.0f/container->GetPreYScale(),
                           1);
