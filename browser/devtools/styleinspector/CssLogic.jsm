@@ -749,6 +749,24 @@ CssLogic.isContentStylesheet = function CssLogic_isContentStylesheet(aSheet)
 
 
 
+
+
+
+CssLogic.href = function CssLogic_href(aSheet)
+{
+  let href = aSheet.href;
+  if (!href) {
+    href = aSheet.ownerNode.ownerDocument.location;
+  }
+
+  return href;
+};
+
+
+
+
+
+
 CssLogic.shortSource = function CssLogic_shortSource(aSheet)
 {
   
@@ -931,17 +949,13 @@ CssSheet.prototype = {
 
 
 
-
-
   get href()
   {
-    if (!this._href) {
-      this._href = this.domSheet.href;
-      if (!this._href) {
-        this._href = this.domSheet.ownerNode.ownerDocument.location;
-      }
+    if (this._href) {
+      return this._href;
     }
 
+    this._href = CssLogic.href(this.domSheet);
     return this._href;
   },
 

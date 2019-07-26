@@ -24,6 +24,12 @@ const CSS_LINE_RE = /(?:[^;\(]*(?:\([^\)]*?\))?[^;\(]*)*;?/g;
 
 const CSS_PROP_RE = /\s*([^:\s]*)\s*:\s*(.*?)\s*(?:! (important))?;?$/;
 
+
+const CSS_RESOURCE_RE = /url\([\'\"]?(.*?)[\'\"]?\)/;
+
+const IOService = Components.classes["@mozilla.org/network/io-service;1"]
+                  .getService(Components.interfaces.nsIIOService);
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/devtools/CssLogic.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -1321,6 +1327,12 @@ function TextPropertyEditor(aRuleEditor, aProperty)
   this.prop = aProperty;
   this.prop.editor = this;
 
+  let sheet = this.prop.rule.sheet;
+  let href = sheet ? CssLogic.href(sheet) : null;
+  if (href) {
+    this.sheetURI = IOService.newURI(href, null, null);
+  }
+
   this._onEnableClicked = this._onEnableClicked.bind(this);
   this._onExpandClicked = this._onExpandClicked.bind(this);
   this._onStartEditing = this._onStartEditing.bind(this);
@@ -1439,6 +1451,36 @@ TextPropertyEditor.prototype = {
   
 
 
+
+
+  resolveURI: function(relativePath)
+  {
+    if (this.sheetURI) {
+      relativePath = this.sheetURI.resolve(relativePath);
+    }
+    return relativePath;
+  },
+
+  
+
+
+
+  getResourceURI: function()
+  {
+    let val = this.prop.value;
+    let uriMatch = CSS_RESOURCE_RE.exec(val);
+    let uri = null;
+
+    if (uriMatch && uriMatch[1]) {
+      uri = uriMatch[1];
+    }
+
+    return uri;
+  },
+
+  
+
+
   update: function TextPropertyEditor_update()
   {
     if (this.prop.enabled) {
@@ -1464,7 +1506,32 @@ TextPropertyEditor.prototype = {
     if (this.prop.priority) {
       val += " !" + this.prop.priority;
     }
-    this.valueSpan.textContent = val;
+
+    
+    
+    let resourceURI = this.getResourceURI();
+    if (resourceURI) {
+      this.valueSpan.textContent = "";
+
+      appendText(this.valueSpan, val.split(resourceURI)[0]);
+
+      let a = createChild(this.valueSpan, "a",  {
+        target: "_blank",
+        class: "theme-link",
+        textContent: resourceURI,
+        href: this.resolveURI(resourceURI)
+      });
+
+      a.addEventListener("click", function(aEvent) {
+        
+        aEvent.stopPropagation();
+      }, false);
+
+      appendText(this.valueSpan, val.split(resourceURI)[1]);
+    } else {
+      this.valueSpan.textContent = val;
+    }
+
     this.warning.hidden = this._validate();
 
     let store = this.prop.rule.elementStyle.store;
