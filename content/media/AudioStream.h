@@ -9,9 +9,19 @@
 #include "AudioSampleFormat.h"
 #include "AudioChannelCommon.h"
 #include "nsAutoPtr.h"
+#include "nsAutoRef.h"
 #include "nsCOMPtr.h"
 #include "Latency.h"
 #include "mozilla/StaticMutex.h"
+
+#include "cubeb/cubeb.h"
+
+template <>
+class nsAutoRefTraits<cubeb_stream> : public nsPointerRefTraits<cubeb_stream>
+{
+public:
+  static void Release(cubeb_stream* aStream) { cubeb_stream_destroy(aStream); }
+};
 
 namespace soundtouch {
 class SoundTouch;
@@ -23,84 +33,141 @@ class AudioStream;
 
 class AudioClock
 {
-  public:
-    AudioClock(mozilla::AudioStream* aStream);
-    
-    
-    void Init();
-    
-    
-    void UpdateWritePosition(uint32_t aCount);
-    
-    
-    uint64_t GetPosition();
-    
-    
-    uint64_t GetPositionInFrames();
-    
-    
-    void SetPlaybackRate(double aPlaybackRate);
-    
-    
-    double GetPlaybackRate();
-    
-    
-    void SetPreservesPitch(bool aPreservesPitch);
-    
-    
-    bool GetPreservesPitch();
-    
-    int64_t GetWritten();
-  private:
-    
-    
-    AudioStream* mAudioStream;
-    
-    
-    
-    int mOldOutRate;
-    
-    int64_t mBasePosition;
-    
-    int64_t mBaseOffset;
-    
-    
-    int64_t mOldBaseOffset;
-    
-    
-    int64_t mOldBasePosition;
-    
-    int64_t mPlaybackRateChangeOffset;
-    
-    
-    int64_t mPreviousPosition;
-    
-    int64_t mWritten;
-    
-    int mOutRate;
-    
-    int mInRate;
-    
-    bool mPreservesPitch;
-    
-    bool mCompensatingLatency;
+public:
+  AudioClock(AudioStream* aStream);
+  
+  
+  void Init();
+  
+  
+  void UpdateWritePosition(uint32_t aCount);
+  
+  
+  uint64_t GetPosition();
+  
+  
+  uint64_t GetPositionInFrames();
+  
+  
+  void SetPlaybackRate(double aPlaybackRate);
+  
+  
+  double GetPlaybackRate();
+  
+  
+  void SetPreservesPitch(bool aPreservesPitch);
+  
+  
+  bool GetPreservesPitch();
+  
+  int64_t GetWritten();
+private:
+  
+  
+  AudioStream* mAudioStream;
+  
+  
+  
+  int mOldOutRate;
+  
+  int64_t mBasePosition;
+  
+  int64_t mBaseOffset;
+  
+  
+  int64_t mOldBaseOffset;
+  
+  
+  int64_t mOldBasePosition;
+  
+  int64_t mPlaybackRateChangeOffset;
+  
+  
+  int64_t mPreviousPosition;
+  
+  int64_t mWritten;
+  
+  int mOutRate;
+  
+  int mInRate;
+  
+  bool mPreservesPitch;
+  
+  bool mCompensatingLatency;
+};
+
+class CircularByteBuffer
+{
+public:
+  CircularByteBuffer()
+    : mBuffer(nullptr), mCapacity(0), mStart(0), mCount(0)
+  {}
+
+  
+  
+  void SetCapacity(uint32_t aCapacity) {
+    NS_ABORT_IF_FALSE(!mBuffer, "Buffer allocated.");
+    mCapacity = aCapacity;
+    mBuffer = new uint8_t[mCapacity];
+  }
+
+  uint32_t Length() {
+    return mCount;
+  }
+
+  uint32_t Capacity() {
+    return mCapacity;
+  }
+
+  uint32_t Available() {
+    return Capacity() - Length();
+  }
+
+  
+  
+  void AppendElements(const uint8_t* aSrc, uint32_t aLength) {
+    NS_ABORT_IF_FALSE(mBuffer && mCapacity, "Buffer not initialized.");
+    NS_ABORT_IF_FALSE(aLength <= Available(), "Buffer full.");
+
+    uint32_t end = (mStart + mCount) % mCapacity;
+
+    uint32_t toCopy = std::min(mCapacity - end, aLength);
+    memcpy(&mBuffer[end], aSrc, toCopy);
+    memcpy(&mBuffer[0], aSrc + toCopy, aLength - toCopy);
+    mCount += aLength;
+  }
+
+  
+  
+  
+  void PopElements(uint32_t aSize, void** aData1, uint32_t* aSize1,
+                   void** aData2, uint32_t* aSize2) {
+    NS_ABORT_IF_FALSE(mBuffer && mCapacity, "Buffer not initialized.");
+    NS_ABORT_IF_FALSE(aSize <= Length(), "Request too large.");
+
+    *aData1 = &mBuffer[mStart];
+    *aSize1 = std::min(mCapacity - mStart, aSize);
+    *aData2 = &mBuffer[0];
+    *aSize2 = aSize - *aSize1;
+    mCount -= *aSize1 + *aSize2;
+    mStart += *aSize1 + *aSize2;
+    mStart %= mCapacity;
+  }
+
+private:
+  nsAutoArrayPtr<uint8_t> mBuffer;
+  uint32_t mCapacity;
+  uint32_t mStart;
+  uint32_t mCount;
 };
 
 
 
 
 
-class AudioStream
+class AudioStream MOZ_FINAL
 {
 public:
-  enum LatencyRequest {
-    HighLatency,
-    LowLatency
-  };
-  AudioStream();
-
-  virtual ~AudioStream();
-
   
   
   static void InitLibrary();
@@ -110,90 +177,130 @@ public:
   static void ShutdownLibrary();
 
   
-  
-  
-  static AudioStream* AllocateStream();
-
-  
   static int MaxNumberOfChannels();
 
   
   
   static int PreferredSampleRate();
 
-  
-  
-  
-  virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
-                        const dom::AudioChannelType aAudioStreamType,
-                        LatencyRequest aLatencyRequest) = 0;
+  AudioStream();
+  ~AudioStream();
 
-  
-  virtual void Shutdown() = 0;
-
-  
-  
-  
-  
-  
-  virtual nsresult Write(const mozilla::AudioDataValue* aBuf, uint32_t aFrames, TimeStamp *aTime = nullptr) = 0;
-
-  
-  virtual uint32_t Available() = 0;
-
-  
-  
-  virtual void SetVolume(double aVolume) = 0;
-
-  
-  virtual void Drain() = 0;
-
-  
-  virtual void Start() = 0;
-
-  
-  
-  virtual int64_t GetWritten();
-
-  
-  virtual void Pause() = 0;
-
-  
-  virtual void Resume() = 0;
-
-  
-  
-  virtual int64_t GetPosition() = 0;
-
-  
-  
-  virtual int64_t GetPositionInFrames() = 0;
+  enum LatencyRequest {
+    HighLatency,
+    LowLatency
+  };
 
   
   
   
-  virtual int64_t GetPositionInFramesInternal() = 0;
+  nsresult Init(int32_t aNumChannels, int32_t aRate,
+                const dom::AudioChannelType aAudioStreamType,
+                LatencyRequest aLatencyRequest);
 
   
-  virtual bool IsPaused() = 0;
+  void Shutdown();
+
+  
+  
+  
+  
+  
+  nsresult Write(const AudioDataValue* aBuf, uint32_t aFrames, TimeStamp* aTime = nullptr);
+
+  
+  uint32_t Available();
+
+  
+  
+  void SetVolume(double aVolume);
+
+  
+  void Drain();
+
+  
+  void Start();
+
+  
+  
+  int64_t GetWritten();
+
+  
+  void Pause();
+
+  
+  void Resume();
+
+  
+  
+  int64_t GetPosition();
+
+  
+  
+  int64_t GetPositionInFrames();
+
+  
+  
+  
+  int64_t GetPositionInFramesInternal();
+
+  
+  bool IsPaused();
 
   int GetRate() { return mOutRate; }
   int GetChannels() { return mChannels; }
 
   
-  virtual nsresult EnsureTimeStretcherInitialized();
+  nsresult EnsureTimeStretcherInitialized();
   
   
-  virtual nsresult SetPlaybackRate(double aPlaybackRate);
+  nsresult SetPlaybackRate(double aPlaybackRate);
   
-  virtual nsresult SetPreservesPitch(bool aPreservesPitch);
+  nsresult SetPreservesPitch(bool aPreservesPitch);
 
-protected:
+private:
+  static int PrefChanged(const char* aPref, void* aClosure);
+  static double GetVolumeScale();
+  static cubeb* GetCubebContext();
+  static cubeb* GetCubebContextUnlocked();
+  static uint32_t GetCubebLatency();
+  static bool CubebLatencyPrefSet();
+
+  static long DataCallback_S(cubeb_stream*, void* aThis, void* aBuffer, long aFrames)
+  {
+    return static_cast<AudioStream*>(aThis)->DataCallback(aBuffer, aFrames);
+  }
+
+  static void StateCallback_S(cubeb_stream*, void* aThis, cubeb_state aState)
+  {
+    static_cast<AudioStream*>(aThis)->StateCallback(aState);
+  }
+
+  long DataCallback(void* aBuffer, long aFrames);
+  void StateCallback(cubeb_state aState);
+
+  nsresult EnsureTimeStretcherInitializedUnlocked();
+
   
-  static StaticMutex mMutex;
+  long GetUnprocessed(void* aBuffer, long aFrames, int64_t &aTime);
+  long GetTimeStretched(void* aBuffer, long aFrames, int64_t &aTime);
+  long GetUnprocessedWithSilencePadding(void* aBuffer, long aFrames, int64_t &aTime);
+
   
   
-  static uint32_t mPreferredSampleRate;
+  int64_t GetPositionInFramesUnlocked();
+
+  int64_t GetLatencyInFrames();
+  void GetBufferInsertTime(int64_t &aTimeMs);
+
+  void StartUnlocked();
+
+  
+  
+  
+  
+  Monitor mMonitor;
+
   
   int mInRate;
   
@@ -218,7 +325,65 @@ protected:
     int64_t mTimeMs;
     int64_t mFrames;
   };
-  nsAutoTArray<Inserts,8> mInserts;
+  nsAutoTArray<Inserts, 8> mInserts;
+
+  
+  
+  uint64_t mLostFrames;
+
+  
+  FILE* mDumpFile;
+
+  
+  
+  
+  
+  CircularByteBuffer mBuffer;
+
+  
+  double mVolume;
+
+  
+  
+  nsAutoRef<cubeb_stream> mCubebStream;
+
+  uint32_t mBytesPerFrame;
+
+  uint32_t BytesToFrames(uint32_t aBytes) {
+    NS_ASSERTION(aBytes % mBytesPerFrame == 0,
+                 "Byte count not aligned on frames size.");
+    return aBytes / mBytesPerFrame;
+  }
+
+  uint32_t FramesToBytes(uint32_t aFrames) {
+    return aFrames * mBytesPerFrame;
+  }
+
+  enum StreamState {
+    INITIALIZED, 
+    STARTED,     
+    STOPPED,     
+    DRAINING,    
+                 
+                 
+                 
+    DRAINED,     
+    ERRORED      
+  };
+
+  StreamState mState;
+
+  
+  static StaticMutex sMutex;
+  static cubeb* sCubebContext;
+
+  
+  
+  static uint32_t sPreferredSampleRate;
+
+  static double sVolumeScale;
+  static uint32_t sCubebLatency;
+  static bool sCubebLatencyPrefSet;
 };
 
 } 
