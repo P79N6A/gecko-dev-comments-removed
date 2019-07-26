@@ -35,7 +35,6 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   nsPrintPreviewListener(mozilla::dom::EventTarget* aTarget);
-  ~nsPrintPreviewListener();
 
   
   
@@ -43,6 +42,7 @@ public:
   nsresult RemoveListeners();
 
 private:
+  ~nsPrintPreviewListener();
 
   nsCOMPtr<mozilla::dom::EventTarget> mEventTarget;
 

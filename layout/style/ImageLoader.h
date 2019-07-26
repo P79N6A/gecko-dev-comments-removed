@@ -67,6 +67,8 @@ public:
   void DestroyRequest(imgIRequest* aRequest);
 
 private:
+  ~ImageLoader() {}
+
   
   
   

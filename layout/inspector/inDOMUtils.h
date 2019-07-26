@@ -24,9 +24,10 @@ public:
   NS_DECL_INIDOMUTILS
 
   inDOMUtils();
-  virtual ~inDOMUtils();
 
 private:
+  virtual ~inDOMUtils();
+
   
   static nsresult GetRuleNodeForElement(mozilla::dom::Element* aElement,
                                         nsIAtom* aPseudo,
