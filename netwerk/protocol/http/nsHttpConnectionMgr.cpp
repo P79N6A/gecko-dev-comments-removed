@@ -2662,7 +2662,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::SetupPrimaryStreams()
                       getter_AddRefs(mStreamIn),
                       getter_AddRefs(mStreamOut),
                       false);
-    LOG(("nsHalfOpenSocket::SetupPrimaryStreams [this=%p ent=%s rv=%x]",
+    LOG(("nsHalfOpenSocket::SetupPrimaryStream [this=%p ent=%s rv=%x]",
          this, mEnt->mConnInfo->Host(), rv));
     if (NS_FAILED(rv)) {
         if (mStreamOut)
@@ -2811,17 +2811,13 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
     nsCOMPtr<nsIInterfaceRequestor> callbacks;
     mTransaction->GetSecurityCallbacks(getter_AddRefs(callbacks));
     if (out == mStreamOut) {
-        if (static_cast<uint32_t>(mPrimarySynRTT.ToMilliseconds()) <= 125)
-            gHttpHandler->mCacheEffectExperimentFastConn++;
-        else
-            gHttpHandler->mCacheEffectExperimentSlowConn++;
-        
+        TimeDuration rtt = TimeStamp::Now() - mPrimarySynStarted;
         rv = conn->Init(mEnt->mConnInfo,
                         gHttpHandler->ConnMgr()->mMaxRequestDelay,
                         mSocketTransport, mStreamIn, mStreamOut,
                         callbacks,
                         PR_MillisecondsToInterval(
-                          static_cast<uint32_t>(mPrimarySynRTT.ToMilliseconds())));
+                          static_cast<uint32_t>(rtt.ToMilliseconds())));
 
         if (NS_SUCCEEDED(mSocketTransport->GetPeerAddr(&peeraddr)))
             mEnt->RecordIPFamilyPreference(peeraddr.raw.family);
@@ -2931,7 +2927,6 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     if (mTransaction)
         mTransaction->OnTransportStatus(trans, status, progress);
 
-    
     if (trans != mSocketTransport)
         return NS_OK;
 
@@ -2980,21 +2975,14 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
         
         
         
-        if (mEnt) {
-            
-            mPrimarySynStarted = TimeStamp::Now();
-
-            if (!mBackupTransport && !mSynTimer)
-                SetupBackupTimer();
-        }
+        if (mEnt && !mBackupTransport && !mSynTimer)
+            SetupBackupTimer();
         break;
 
     case NS_NET_STATUS_CONNECTED_TO:
         
         
         CancelBackupTimer();
-        if (mEnt && !mPrimarySynStarted.IsNull())
-            mPrimarySynRTT = TimeStamp::Now() - mPrimarySynStarted;
         break;
 
     default:
