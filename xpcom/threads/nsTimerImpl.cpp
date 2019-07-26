@@ -3,14 +3,14 @@
 
 
 
+
 #include "nsTimerImpl.h"
 #include "TimerThread.h"
 #include "nsAutoPtr.h"
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
+#include "plarena.h"
 #include "sampler.h"
-#include NEW_H
-#include "nsFixedSizeAllocator.h"
 
 using mozilla::TimeDuration;
 using mozilla::TimeStamp;
@@ -64,29 +64,42 @@ namespace {
 
 
 
-class TimerEventAllocator : public nsFixedSizeAllocator {
+
+
+
+
+
+
+
+class TimerEventAllocator
+{
+private:
+  struct FreeEntry {
+    FreeEntry* mNext;
+  };
+
+  PLArenaPool mPool;
+  FreeEntry* mFirstFree;
+  mozilla::Monitor mMonitor;
+
 public:
-    TimerEventAllocator() :
+  TimerEventAllocator()
+    : mFirstFree(nullptr),
       mMonitor("TimerEventAllocator")
   {
+    PL_InitArenaPool(&mPool, "TimerEventPool", 4096,  0);
   }
 
-  void* Alloc(size_t aSize)
+  ~TimerEventAllocator()
   {
-    mozilla::MonitorAutoLock lock(mMonitor);
-    return nsFixedSizeAllocator::Alloc(aSize);
-  }
-  void Free(void* aPtr, size_t aSize)
-  {
-    mozilla::MonitorAutoLock lock(mMonitor);
-    nsFixedSizeAllocator::Free(aPtr, aSize);
+    PL_FinishArenaPool(&mPool);
   }
 
-private:
-  mozilla::Monitor mMonitor;
+  void* Alloc(size_t aSize);
+  void Free(void* aPtr);
 };
 
-}
+} 
 
 class nsTimerEvent : public nsRunnable {
 public:
@@ -115,7 +128,7 @@ public:
     return sAllocator->Alloc(size);
   }
   void operator delete(void* p) {
-    sAllocator->Free(p, sizeof(nsTimerEvent));
+    sAllocator->Free(p);
     DeleteAllocatorIfNeeded();
   }
 
@@ -144,6 +157,40 @@ private:
 TimerEventAllocator* nsTimerEvent::sAllocator = nullptr;
 int32_t nsTimerEvent::sAllocatorUsers = 0;
 bool nsTimerEvent::sCanDeleteAllocator = false;
+
+namespace {
+
+void* TimerEventAllocator::Alloc(size_t aSize)
+{
+  MOZ_ASSERT(aSize == sizeof(nsTimerEvent));
+
+  mozilla::MonitorAutoLock lock(mMonitor);
+
+  void* p;
+  if (mFirstFree) {
+    p = mFirstFree;
+    mFirstFree = mFirstFree->mNext;
+  }
+  else {
+    PL_ARENA_ALLOCATE(p, &mPool, aSize);
+    if (!p)
+      return nullptr;
+  }
+
+  return p;
+}
+
+void TimerEventAllocator::Free(void* aPtr)
+{
+  mozilla::MonitorAutoLock lock(mMonitor);
+
+  FreeEntry* entry = reinterpret_cast<FreeEntry*>(aPtr);
+
+  entry->mNext = mFirstFree;
+  mFirstFree = entry;
+}
+
+} 
 
 NS_IMPL_THREADSAFE_QUERY_INTERFACE1(nsTimerImpl, nsITimer)
 NS_IMPL_THREADSAFE_ADDREF(nsTimerImpl)
@@ -547,10 +594,6 @@ void nsTimerImpl::Fire()
 void nsTimerEvent::Init()
 {
   sAllocator = new TimerEventAllocator();
-  static const size_t kBucketSizes[] = {sizeof(nsTimerEvent)};
-  static const int32_t kNumBuckets = mozilla::ArrayLength(kBucketSizes);
-  static const int32_t kInitialPoolSize = 4096;
-  sAllocator->Init("TimerEventPool", kBucketSizes, kNumBuckets, kInitialPoolSize);
 }
 
 void nsTimerEvent::Shutdown()
