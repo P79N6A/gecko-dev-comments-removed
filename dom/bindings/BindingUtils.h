@@ -637,6 +637,41 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
 }
 
 
+
+
+
+template <class T>
+inline bool
+WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx, JSObject* scope,
+                                          nsAutoPtr<T>& value, JS::Value* vp)
+{
+  
+  JSObject* obj;
+  {
+    
+    
+    Maybe<JSAutoCompartment> ac;
+    if (js::IsWrapper(scope)) {
+      scope = js::CheckedUnwrap(scope,  false);
+      if (!scope)
+        return false;
+      ac.construct(cx, scope);
+    }
+
+    bool tookOwnership = false;
+    obj = value->WrapObject(cx, scope, &tookOwnership);
+    if (tookOwnership) {
+      value.forget();
+    }
+  }
+
+  
+  
+  *vp = JS::ObjectValue(*obj);
+  return JS_WrapValue(cx, vp);
+}
+
+
 template <template <typename> class SmartPtr, typename T>
 inline bool
 WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope,
