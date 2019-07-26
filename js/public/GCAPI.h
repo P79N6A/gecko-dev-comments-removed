@@ -313,31 +313,16 @@ WasIncrementalGC(JSRuntime *rt);
 
 
 
-
-
-extern JS_FRIEND_API(void)
-DisableGenerationalGC(JSRuntime *rt);
-
-
-
-
-extern JS_FRIEND_API(void)
-EnableGenerationalGC(JSRuntime *rt);
-
-
 class JS_FRIEND_API(AutoDisableGenerationalGC)
 {
     JSRuntime *runtime;
+#ifdef JS_GC_ZEAL
+    bool restartVerifier;
+#endif
 
   public:
-    AutoDisableGenerationalGC(JSRuntime *rt)
-      : runtime(rt)
-    {
-        DisableGenerationalGC(rt);
-    }
-    ~AutoDisableGenerationalGC() {
-        EnableGenerationalGC(runtime);
-    }
+    AutoDisableGenerationalGC(JSRuntime *rt);
+    ~AutoDisableGenerationalGC();
 };
 
 
