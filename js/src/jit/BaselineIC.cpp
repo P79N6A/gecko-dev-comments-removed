@@ -3304,11 +3304,6 @@ EffectlesslyLookupProperty(JSContext *cx, HandleObject obj, HandlePropertyName n
         checkObj = GetDOMProxyProto(obj);
         if (!checkObj)
             return true;
-    } else if (obj->is<TypedArrayObject>() && obj->getProto()) {
-        
-        
-        
-        checkObj = obj->getProto();
     } else if (!obj->isNative()) {
         return true;
     }
@@ -3328,7 +3323,7 @@ static bool
 IsCacheableProtoChain(JSObject *obj, JSObject *holder, bool isDOMProxy=false)
 {
     JS_ASSERT_IF(isDOMProxy, IsCacheableDOMProxy(obj));
-    JS_ASSERT_IF(!isDOMProxy, obj->isNative() || obj->is<TypedArrayObject>());
+    JS_ASSERT_IF(!isDOMProxy, obj->isNative());
 
     
     
@@ -3894,7 +3889,7 @@ TryAttachGetElemStub(JSContext *cx, JSScript *script, jsbytecode *pc, ICGetElem_
 
     if (obj->isNative()) {
         
-        if (rhs.isInt32() && rhs.toInt32() >= 0) {
+        if (rhs.isInt32() && rhs.toInt32() >= 0 && !obj->is<TypedArrayObject>()) {
             IonSpew(IonSpew_BaselineIC, "  Generating GetElem(Native[Int32] dense) stub");
             ICGetElem_Dense::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
                                                obj->lastProperty(), isCallElem);
@@ -3945,7 +3940,7 @@ TryAttachGetElemStub(JSContext *cx, JSScript *script, jsbytecode *pc, ICGetElem_
     
     
     
-    if (!obj->isNative() && !obj->is<TypedArrayObject>())
+    if (!obj->isNative())
         stub->noteNonNativeAccess();
 
     
@@ -4990,11 +4985,10 @@ DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub,
 
     
     if (obj->isNative() &&
+        !obj->is<TypedArrayObject>() &&
         index.isInt32() && index.toInt32() >= 0 &&
         !rhs.isMagic(JS_ELEMENTS_HOLE))
     {
-        JS_ASSERT(!obj->is<TypedArrayObject>());
-
         bool addingCase;
         size_t protoDepth;
 
@@ -6093,7 +6087,7 @@ TryAttachNativeGetPropStub(JSContext *cx, HandleScript script, jsbytecode *pc,
         return false;
     }
 
-    if (!isDOMProxy && !obj->isNative() && !obj->is<TypedArrayObject>())
+    if (!isDOMProxy && !obj->isNative())
         return true;
 
     bool isCallProp = (JSOp(*pc) == JSOP_CALLPROP);

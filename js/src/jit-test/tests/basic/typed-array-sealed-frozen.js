@@ -1,8 +1,6 @@
 
 
 
-
-
 load(libdir + "asserts.js")
 
 const constructors = [
@@ -20,8 +18,8 @@ const constructors = [
 for (constructor of constructors) {
   print("testing non-empty " + constructor.name);
   let a = new constructor(10);
-  assertEq(Object.isExtensible(a), false);
-  assertEq(Object.isSealed(a), true);
+  assertEq(Object.isExtensible(a), true);
+  assertEq(Object.isSealed(a), false);
   assertEq(Object.isFrozen(a), false);
 
   
@@ -36,9 +34,9 @@ print();
 for (constructor of constructors) {
   print("testing zero-length " + constructor.name);
   let a = new constructor(0);
-  assertEq(Object.isExtensible(a), false);
-  assertEq(Object.isSealed(a), true);
-  assertEq(Object.isFrozen(a), true);
+  assertEq(Object.isExtensible(a), true);
+  assertEq(Object.isSealed(a), false);
+  assertEq(Object.isFrozen(a), false);
 
   
   Object.seal(a);
@@ -51,3 +49,37 @@ for (constructor of constructors) {
 let a = new Uint8Array(1 << 24);
 Object.isSealed(a);
 Object.isFrozen(a);
+
+for (constructor of constructors) {
+  print("testing extensibility " + constructor.name);
+  let a = new constructor(10);
+
+  
+  a.foo = "twelve";
+  assertEq(a.foo, "twelve");
+
+  
+  a[20] = "twelve";
+  assertEq(a[20], undefined);
+
+  
+  a[-10 >>> 0] = "twelve";
+  assertEq(a[-10 >>> 0], undefined);
+
+  
+  a[Math.pow(2, 53)] = "twelve";
+  assertEq(a[Math.pow(2, 53)], "twelve");
+
+  
+  Object.defineProperty(a, 5, {value: 3});
+  assertEq(a[5], 0);
+
+  
+  Object.defineProperty(a, 20, {value: 3});
+  assertEq(a[20], undefined);
+
+  
+  a[3] = 3;
+  delete a[3];
+  assertEq(a[3], 3);
+}

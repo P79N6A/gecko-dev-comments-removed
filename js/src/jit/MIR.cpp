@@ -2933,8 +2933,9 @@ jit::ElementAccessIsDenseNative(MDefinition *obj, MDefinition *id)
     if (!types)
         return false;
 
+    
     const Class *clasp = types->getKnownClass();
-    return clasp && clasp->isNative();
+    return clasp && clasp->isNative() && !IsTypedArrayClass(clasp);
 }
 
 bool

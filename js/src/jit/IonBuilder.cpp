@@ -5922,12 +5922,6 @@ IonBuilder::maybeInsertResume()
 static bool
 ClassHasEffectlessLookup(const Class *clasp, PropertyName *name)
 {
-    if (IsTypedArrayClass(clasp)) {
-        
-        
-        JS_ASSERT(name);
-        return true;
-    }
     return clasp->isNative() && !clasp->ops.lookupGeneric;
 }
 

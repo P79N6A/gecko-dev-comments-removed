@@ -752,6 +752,7 @@ ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cx,
 
 
 
+
 class ObjectElements
 {
   public:
@@ -1457,7 +1458,14 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return &fixedSlots()[2];
     }
 
-    void setFixedElements() { this->elements = fixedElements(); }
+#ifdef DEBUG
+    bool canHaveNonEmptyElements();
+#endif
+
+    void setFixedElements() {
+        JS_ASSERT(canHaveNonEmptyElements());
+        this->elements = fixedElements();
+    }
 
     inline bool hasDynamicElements() const {
         
