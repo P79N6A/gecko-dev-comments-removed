@@ -32,40 +32,11 @@ struct malloc_log_entry {
 };
 
 
-#define malloc_log_stack   7
-
-
 
 struct malloc_map_entry {
   u_long nameLen;
   u_long address;		
 };
-
-
-
-
-extern u_long SetMallocFlags(u_long flags);
-
-
-
-
-
-#define LIBMALLOC_LOG    0x1
-
-
-#define LIBMALLOC_NOFREE 0x2
-
-
-#define LIBMALLOC_CHECK  0x4
-
-
-#define LIBMALLOC_LOG_RC 0x8
-
-
-#define LIBMALLOC_LOG_TRACE 0x10
-
-void __log_addref(void* p, int oldrc, int newrc);
-void __log_release(void* p, int oldrc, int newrc);
 
 #ifdef __cplusplus
 } 
