@@ -198,10 +198,12 @@ NS_IMETHODIMP nsXPCTestParams::TestACString(const nsACString & a, nsACString & b
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestJsval(const jsval & a, jsval & b, jsval *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestJsval(JS::Handle<JS::Value> a,
+                                         JS::MutableHandle<JS::Value> b,
+                                         JS::MutableHandle<JS::Value> _retval)
 {
-    *_retval = b;
-    b = a;
+    _retval.set(b);
+    b.set(a);
     return NS_OK;
 }
 
