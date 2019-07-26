@@ -557,6 +557,7 @@ const Class WithObject::class_ = {
         with_GetGeneric,
         with_GetProperty,
         with_GetElement,
+        nullptr,             
         with_GetSpecial,
         with_SetGeneric,
         with_SetProperty,
@@ -567,8 +568,7 @@ const Class WithObject::class_ = {
         with_DeleteProperty,
         with_DeleteElement,
         with_DeleteSpecial,
-        nullptr, nullptr,    
-        nullptr,             
+        nullptr, nullptr, 
         with_Enumerate,
         with_ThisObject,
     }
