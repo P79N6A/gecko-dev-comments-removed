@@ -141,8 +141,6 @@ struct MaiAtkObjectClass
 
 static guint mai_atk_object_signals [LAST_SIGNAL] = { 0, };
 
-static void MaybeFireNameChange(AtkObject* aAtkObj, const nsString& aNewName);
-
 G_BEGIN_DECLS
 
 static void classInitCB(AtkObjectClass *aClass);
@@ -602,39 +600,14 @@ getNameCB(AtkObject* aAtkObj)
   if (!accWrap)
     return nullptr;
 
-  nsAutoString name;
-  accWrap->Name(name);
+  nsAutoString uniName;
+  accWrap->Name(uniName);
 
-  
-  MaybeFireNameChange(aAtkObj, name);
+  NS_ConvertUTF8toUTF16 objName(aAtkObj->name);
+  if (!uniName.Equals(objName))
+    atk_object_set_name(aAtkObj, NS_ConvertUTF16toUTF8(uniName).get());
 
   return aAtkObj->name;
-}
-
-static void
-MaybeFireNameChange(AtkObject* aAtkObj, const nsString& aNewName)
-{
-  NS_ConvertUTF16toUTF8 newNameUTF8(aNewName);
-  if (newNameUTF8.Equals(aAtkObj->name))
-    return;
-
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  bool notify = !!aAtkObj->name;
-
-  free(aAtkObj->name);
-  aAtkObj->name = strdup(newNameUTF8.get());
-
-  if (notify)
-    g_object_notify(G_OBJECT(aAtkObj), "accessible-name");
 }
 
 const gchar *
@@ -1002,8 +975,9 @@ AccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
       {
         nsAutoString newName;
         accessible->Name(newName);
-
-        MaybeFireNameChange(atkObj, newName);
+        NS_ConvertUTF16toUTF8 utf8Name(newName);
+        if (!atkObj->name || !utf8Name.Equals(atkObj->name))
+          atk_object_set_name(atkObj, utf8Name.get());
 
         break;
       }
