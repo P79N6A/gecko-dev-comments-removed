@@ -80,15 +80,6 @@ ParseContext::~ParseContext()
     JS_ASSERT(*parserPC == this);
     *parserPC = this->parent;
     js_delete(funcStmts);
-    if (queuedStrictModeError) {
-        
-        
-        if (parent && parent->sc->strictModeState == StrictMode::UNKNOWN &&
-            !parent->queuedStrictModeError)
-            parent->queuedStrictModeError = queuedStrictModeError;
-        else
-            js_delete(queuedStrictModeError);
-    }
 }
 
 } 

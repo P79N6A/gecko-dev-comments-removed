@@ -143,27 +143,11 @@ class SharedContext
 
     AnyContextFlags anyCxFlags;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    StrictMode strictModeState;
+    bool strictMode;
 
     
     
-    inline SharedContext(JSContext *cx, bool isFun, StrictMode sms);
+    inline SharedContext(JSContext *cx, bool isFun, bool strict);
 
     inline GlobalSharedContext *asGlobal();
     inline FunctionBox *asFunbox();
@@ -176,7 +160,6 @@ class SharedContext
 
     
     inline bool needStrictChecks();
-    inline bool inStrictMode();
 };
 
 class GlobalSharedContext : public SharedContext
@@ -185,7 +168,7 @@ class GlobalSharedContext : public SharedContext
     const RootedObject scopeChain_; 
 
   public:
-    inline GlobalSharedContext(JSContext *cx, JSObject *scopeChain, StrictMode sms);
+    inline GlobalSharedContext(JSContext *cx, JSObject *scopeChain, bool strict);
 
     JSObject *scopeChain() const { return scopeChain_; }
 };
@@ -204,7 +187,7 @@ class FunctionBox : public ObjectBox, public SharedContext
     FunctionContextFlags funCxFlags;
 
     FunctionBox(JSContext *cx, ObjectBox* traceListHead, JSFunction *fun, ParseContext *pc,
-                StrictMode sms);
+                bool strict);
 
     JSFunction *function() const { return object->toFunction(); }
 
