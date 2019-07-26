@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsnum.h"
 
@@ -57,7 +57,7 @@ FrameSizeClass::ClassLimit()
 uint32_t
 FrameSizeClass::frameSize() const
 {
-    MOZ_ASSUME_NOT_REACHED("x64 does not use frame size classes");
+    MOZ_ASSUME_UNREACHABLE("x64 does not use frame size classes");
 }
 
 bool
@@ -117,7 +117,7 @@ CodeGeneratorX64::visitUnbox(LUnbox *unbox)
             cond = masm.testString(Assembler::NotEqual, value);
             break;
           default:
-            MOZ_ASSUME_NOT_REACHED("Given MIRType cannot be unboxed.");
+            MOZ_ASSUME_UNREACHABLE("Given MIRType cannot be unboxed.");
         }
         if (!bailoutIf(cond, unbox->snapshot()))
             return false;
@@ -137,7 +137,7 @@ CodeGeneratorX64::visitUnbox(LUnbox *unbox)
         masm.unboxString(value, ToRegister(result));
         break;
       default:
-        MOZ_ASSUME_NOT_REACHED("Given MIRType cannot be unboxed.");
+        MOZ_ASSUME_UNREACHABLE("Given MIRType cannot be unboxed.");
     }
 
     return true;
@@ -173,7 +173,7 @@ CodeGeneratorX64::loadUnboxedValue(Operand source, MIRType type, const LDefiniti
         break;
 
       default:
-        MOZ_ASSUME_NOT_REACHED("unexpected type");
+        MOZ_ASSUME_UNREACHABLE("unexpected type");
     }
 }
 
@@ -197,8 +197,8 @@ CodeGeneratorX64::storeUnboxedValue(const LAllocation *value, MIRType valueType,
         return;
     }
 
-    
-    
+    // For known integers and booleans, we can just store the unboxed value if
+    // the slot has the same type.
     if ((valueType == MIRType_Int32 || valueType == MIRType_Boolean) && slotType == valueType) {
         if (value->isConstant()) {
             Value val = *value->toConstant();
@@ -270,12 +270,12 @@ CodeGeneratorX64::visitImplicitThis(LImplicitThis *lir)
 {
     Register callee = ToRegister(lir->callee());
 
-    
-    
+    // The implicit |this| is always |undefined| if the function's environment
+    // is the current global.
     GlobalObject *global = &gen->info().script()->global();
     masm.cmpPtr(Operand(callee, JSFunction::offsetOfEnvironment()), ImmGCPtr(global));
 
-    
+    // TODO: OOL stub path.
     if (!bailoutIf(Assembler::NotEqual, lir->snapshot()))
         return false;
 
@@ -312,13 +312,13 @@ CodeGeneratorX64::visitCompareB(LCompareB *lir)
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
-    
+    // Load boxed boolean in ScratchReg.
     if (rhs->isConstant())
         masm.moveValue(*rhs->toConstant(), ScratchReg);
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchReg);
 
-    
+    // Perform the comparison.
     masm.cmpq(lhs.valueReg(), ScratchReg);
     masm.emitSet(JSOpToCondition(mir->compareType(), mir->jsop()), output);
     return true;
@@ -334,13 +334,13 @@ CodeGeneratorX64::visitCompareBAndBranch(LCompareBAndBranch *lir)
 
     JS_ASSERT(mir->jsop() == JSOP_STRICTEQ || mir->jsop() == JSOP_STRICTNE);
 
-    
+    // Load boxed boolean in ScratchReg.
     if (rhs->isConstant())
         masm.moveValue(*rhs->toConstant(), ScratchReg);
     else
         masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchReg);
 
-    
+    // Perform the comparison.
     masm.cmpq(lhs.valueReg(), ScratchReg);
     emitBranch(JSOpToCondition(mir->compareType(), mir->jsop()), lir->ifTrue(), lir->ifFalse());
     return true;
@@ -386,13 +386,13 @@ CodeGeneratorX64::visitUInt32ToDouble(LUInt32ToDouble *lir)
 bool
 CodeGeneratorX64::visitLoadTypedArrayElementStatic(LLoadTypedArrayElementStatic *ins)
 {
-    MOZ_ASSUME_NOT_REACHED("NYI");
+    MOZ_ASSUME_UNREACHABLE("NYI");
 }
 
 bool
 CodeGeneratorX64::visitStoreTypedArrayElementStatic(LStoreTypedArrayElementStatic *ins)
 {
-    MOZ_ASSUME_NOT_REACHED("NYI");
+    MOZ_ASSUME_UNREACHABLE("NYI");
 }
 
 bool
@@ -421,7 +421,7 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
       case ArrayBufferView::TYPE_INT32:   masm.movl(srcAddr, ToRegister(ins->output())); break;
       case ArrayBufferView::TYPE_UINT32:  masm.movl(srcAddr, ToRegister(ins->output())); break;
       case ArrayBufferView::TYPE_FLOAT64: masm.movsd(srcAddr, ToFloatRegister(ins->output())); break;
-      default: MOZ_ASSUME_NOT_REACHED("unexpected array type");
+      default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
     }
     uint32_t after = masm.size();
     return gen->noteHeapAccess(AsmJSHeapAccess(before, after, vt, ToAnyRegister(ins->output())));
@@ -452,7 +452,7 @@ CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
           case ArrayBufferView::TYPE_UINT16:  masm.movw(Imm32(ToInt32(ins->value())), dstAddr); break;
           case ArrayBufferView::TYPE_INT32:   masm.movl(Imm32(ToInt32(ins->value())), dstAddr); break;
           case ArrayBufferView::TYPE_UINT32:  masm.movl(Imm32(ToInt32(ins->value())), dstAddr); break;
-          default: MOZ_ASSUME_NOT_REACHED("unexpected array type");
+          default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
         }
     } else {
         switch (vt) {
@@ -463,7 +463,7 @@ CodeGeneratorX64::visitAsmJSStoreHeap(LAsmJSStoreHeap *ins)
           case ArrayBufferView::TYPE_INT32:   masm.movl(ToRegister(ins->value()), dstAddr); break;
           case ArrayBufferView::TYPE_UINT32:  masm.movl(ToRegister(ins->value()), dstAddr); break;
           case ArrayBufferView::TYPE_FLOAT64: masm.movsd(ToFloatRegister(ins->value()), dstAddr); break;
-          default: MOZ_ASSUME_NOT_REACHED("unexpected array type");
+          default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
         }
     }
     uint32_t after = masm.size();
@@ -529,7 +529,7 @@ CodeGeneratorX64::visitAsmJSLoadFFIFunc(LAsmJSLoadFFIFunc *ins)
 void
 ParallelGetPropertyIC::initializeAddCacheState(LInstruction *ins, AddCacheState *addState)
 {
-    
+    // Can always use the scratch register on x64.
     JS_ASSERT(ins->isGetPropertyCacheV() || ins->isGetPropertyCacheT());
     addState->dispatchScratch = ScratchReg;
 }
@@ -540,8 +540,8 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
     FloatRegister input = ToFloatRegister(ins->input());
     Register output = ToRegister(ins->output());
 
-    
-    
-    
+    // On x64, branchTruncateDouble uses cvttsd2sq. Unlike the x86
+    // implementation, this should handle most doubles and we can just
+    // call a stub if it fails.
     return emitTruncateDouble(input, output);
 }

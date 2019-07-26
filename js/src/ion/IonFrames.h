@@ -90,7 +90,7 @@ ScriptFromCalleeToken(CalleeToken token)
       case CalleeToken_ParallelFunction:
         return CalleeTokenToParallelFunction(token)->nonLazyScript();
     }
-    MOZ_ASSUME_NOT_REACHED("invalid callee token tag");
+    MOZ_ASSUME_UNREACHABLE("invalid callee token tag");
 }
 
 

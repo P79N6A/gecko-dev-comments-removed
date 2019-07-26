@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jscntxtinlines_h
 #define jscntxtinlines_h
@@ -14,9 +14,9 @@
 #include "jsgc.h"
 #include "jsiter.h"
 
-#include "builtin/Object.h" 
+#include "builtin/Object.h" // For js::obj_construct
 #include "frontend/ParseMaps.h"
-#include "ion/IonFrames.h" 
+#include "ion/IonFrames.h" // For GetPcScript
 #include "vm/Interpreter.h"
 #include "vm/Probes.h"
 #include "vm/RegExpObject.h"
@@ -42,7 +42,7 @@ NewObjectCache::lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryInd
 
     Entry *entry = &entries[*pentry];
 
-    
+    /* N.B. Lookups with the same clasp/key but different kinds map to different entries. */
     return (entry->clasp == clasp && entry->key == key);
 }
 
@@ -84,7 +84,7 @@ NewObjectCache::fill(EntryIndex entry_, Class *clasp, gc::Cell *key, gc::AllocKi
 inline void
 NewObjectCache::fillGlobal(EntryIndex entry, Class *clasp, js::GlobalObject *global, gc::AllocKind kind, JSObject *obj)
 {
-    
+    //JS_ASSERT(global == obj->getGlobal());
     return fill(entry, clasp, global, kind, obj);
 }
 
@@ -108,7 +108,7 @@ NewObjectCache::copyCachedToObject(JSObject *dst, JSObject *src, gc::AllocKind k
 inline JSObject *
 NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::InitialHeap heap)
 {
-    
+    // The new object cache does not account for metadata attached via callbacks.
     JS_ASSERT(!cx->compartment()->objectMetadataCallback);
 
     JS_ASSERT(unsigned(entry_) < mozilla::ArrayLength(entries));
@@ -135,10 +135,10 @@ class CompartmentChecker
       : context(cx), compartment(cx->compartment())
     {}
 
-    
-
-
-
+    /*
+     * Set a breakpoint here (break js::CompartmentChecker::fail) to debug
+     * compartment mismatches.
+     */
     static void fail(JSCompartment *c1, JSCompartment *c2) {
         printf("*** Compartment mismatch %p vs. %p\n", (void *) c1, (void *) c2);
         MOZ_CRASH();
@@ -149,7 +149,7 @@ class CompartmentChecker
         MOZ_CRASH();
     }
 
-    
+    /* Note: should only be used when neither c1 nor c2 may be the default compartment. */
     static void check(JSCompartment *c1, JSCompartment *c2) {
         JS_ASSERT(c1 != c1->rt->atomsCompartment);
         JS_ASSERT(c2 != c2->rt->atomsCompartment);
@@ -230,12 +230,12 @@ class CompartmentChecker
     void check(StackFrame *fp);
     void check(AbstractFramePtr frame);
 };
-#endif 
+#endif /* JS_CRASH_DIAGNOSTICS */
 
-
-
-
-
+/*
+ * Don't perform these checks when called from a finalizer. The checking
+ * depends on other objects not having been swept yet.
+ */
 #define START_ASSERT_SAME_COMPARTMENT()                                       \
     JS_ASSERT(cx->compartment()->zone() == cx->zone());                       \
     if (cx->runtime()->isHeapBusy())                                          \
@@ -354,26 +354,26 @@ CallJSNativeConstructor(JSContext *cx, Native native, const CallArgs &args)
     if (!CallJSNative(cx, native, args))
         return false;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Native constructors must return non-primitive values on success.
+     * Although it is legal, if a constructor returns the callee, there is a
+     * 99.9999% chance it is a bug. If any valid code actually wants the
+     * constructor to return the callee, the assertion can be removed or
+     * (another) conjunct can be added to the antecedent.
+     *
+     * Exceptions:
+     *
+     * - Proxies are exceptions to both rules: they can return primitives and
+     *   they allow content to return the callee.
+     *
+     * - CallOrConstructBoundFunction is an exception as well because we might
+     *   have used bind on a proxy function.
+     *
+     * - new Iterator(x) is user-hookable; it returns x.__iterator__() which
+     *   could be any object.
+     *
+     * - (new Object(Object)) returns the callee.
+     */
     JS_ASSERT_IF(native != FunctionProxyClass.construct &&
                  native != js::CallOrConstructBoundFunction &&
                  native != js::IteratorConstructor &&
@@ -435,7 +435,7 @@ CallSetter(JSContext *cx, HandleObject obj, HandleId id, StrictPropertyOp op, un
     return CallJSPropertyOpSetter(cx, op, obj, nid, strict, vp);
 }
 
-}  
+}  /* namespace js */
 
 inline bool
 JSContext::canSetDefaultVersion() const
@@ -494,12 +494,12 @@ JSContext::setDefaultCompartmentObject(JSObject *obj)
     defaultCompartmentObject_ = obj;
 
     if (!hasEnteredCompartment()) {
-        
-
-
-
-
-
+        /*
+         * If JSAPI callers want to JS_SetGlobalObject while code is running,
+         * they must have entered a compartment (otherwise there will be no
+         * final leaveCompartment call to set the context's compartment back to
+         * defaultCompartmentObject->compartment()).
+         */
         JS_ASSERT(!currentlyRunning());
         setCompartment(obj ? obj->compartment() : NULL);
         if (throwing)
@@ -532,14 +532,14 @@ JSContext::leaveCompartment(JSCompartment *oldCompartment)
 
     compartment()->leave();
 
-    
-
-
-
-
-
-
-
+    /*
+     * Before we entered the current compartment, 'compartment' was
+     * 'oldCompartment', so we might want to simply set it back. However, we
+     * currently have this terrible scheme whereby defaultCompartmentObject_ can
+     * be updated while enterCompartmentDepth_ > 0. In this case, oldCompartment
+     * != defaultCompartmentObject_->compartment and we must ignore
+     * oldCompartment.
+     */
     if (hasEnteredCompartment() || !defaultCompartmentObject_)
         setCompartment(oldCompartment);
     else
@@ -615,9 +615,9 @@ js::ThreadSafeContext::allowGC() const
       case Context_ForkJoin:
         return NoGC;
       default:
-        
-        MOZ_ASSUME_NOT_REACHED("Bad context kind");
+        /* Silence warnings. */
+        MOZ_ASSUME_UNREACHABLE("Bad context kind");
     }
 }
 
-#endif 
+#endif /* jscntxtinlines_h */

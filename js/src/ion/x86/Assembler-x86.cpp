@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ion/x86/Assembler-x86.h"
 #include "gc/Marking.h"
@@ -28,7 +28,7 @@ ABIArgGenerator::next(MIRType type)
         stackOffset_ += sizeof(uint64_t);
         break;
       default:
-        MOZ_ASSUME_NOT_REACHED("Unexpected argument type");
+        MOZ_ASSUME_UNREACHABLE("Unexpected argument type");
     }
     return current_;
 }

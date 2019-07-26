@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ion/x64/Lowering-x64.h"
 
@@ -47,7 +47,7 @@ LIRGeneratorX64::visitBox(MBox *box)
 {
     MDefinition *opd = box->getOperand(0);
 
-    
+    // If the operand is a constant, emit near its uses.
     if (opd->isConstant() && box->canEmitAtUses())
         return emitAtUses(box);
 
@@ -157,7 +157,7 @@ LIRGeneratorX64::visitAsmJSStoreHeap(MAsmJSStoreHeap *ins)
         lir = new LAsmJSStoreHeap(useRegisterAtStart(ins->ptr()),
                                   useRegisterAtStart(ins->value()));
         break;
-      default: MOZ_ASSUME_NOT_REACHED("unexpected array type");
+      default: MOZ_ASSUME_UNREACHABLE("unexpected array type");
     }
 
     return add(lir, ins);
@@ -178,5 +178,5 @@ LIRGeneratorX64::newLGetPropertyCacheT(MGetPropertyCache *ins)
 bool
 LIRGeneratorX64::visitStoreTypedArrayElementStatic(MStoreTypedArrayElementStatic *ins)
 {
-    MOZ_ASSUME_NOT_REACHED("NYI");
+    MOZ_ASSUME_UNREACHABLE("NYI");
 }

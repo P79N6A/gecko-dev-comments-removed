@@ -1,12 +1,12 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * JS debugging API.
+ */
 
 #include "jsdbgapi.h"
 
@@ -105,7 +105,7 @@ js::ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame)
         frame.setReturnValue(rval);
         break;
       default:
-        MOZ_ASSUME_NOT_REACHED("bad Debugger::onEnterFrame JSTrapStatus value");
+        MOZ_ASSUME_UNREACHABLE("bad Debugger::onEnterFrame JSTrapStatus value");
     }
     return status;
 }
@@ -117,7 +117,7 @@ js::ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, bool okArg)
 
     JSBool ok = okArg;
 
-    
+    // We don't add hook data for self-hosted scripts, so we don't need to check for them, here.
     if (void *hookData = frame.maybeHookData()) {
         if (frame.isFramePushedByExecute()) {
             if (JSInterpreterHook hook = cx->runtime()->debugHooks.executeHook)
@@ -139,7 +139,7 @@ js::DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
     if (!cx->runtime()->debugHooks.throwHook && cx->compartment()->getDebuggees().empty())
         return JSTRAP_CONTINUE;
 
-    
+    /* Call debugger throw hook if set. */
     RootedValue rval(cx);
     JSTrapStatus status = Debugger::onExceptionUnwind(cx, &rval);
     if (status == JSTRAP_CONTINUE) {
@@ -167,7 +167,7 @@ js::DebugExceptionUnwind(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
         break;
 
       default:
-        MOZ_ASSUME_NOT_REACHED("Invalid trap status");
+        MOZ_ASSUME_UNREACHABLE("Invalid trap status");
     }
 
     return status;
@@ -179,7 +179,7 @@ JS_SetDebugModeForAllCompartments(JSContext *cx, JSBool debug)
     AutoDebugModeGC dmgc(cx->runtime());
 
     for (CompartmentsIter c(cx->runtime()); !c.done(); c.next()) {
-        
+        // Ignore special compartments (atoms, JSD compartments)
         if (c->principals) {
             if (!c->setDebugModeFromC(cx, !!debug, dmgc))
                 return false;
@@ -199,11 +199,11 @@ static JSBool
 CheckDebugMode(JSContext *cx)
 {
     JSBool debugMode = JS_GetDebugMode(cx);
-    
-
-
-
-
+    /*
+     * :TODO:
+     * This probably should be an assertion, since it's indicative of a severe
+     * API misuse.
+     */
     if (!debugMode) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
@@ -288,7 +288,7 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
@@ -318,10 +318,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
             return false;
     }
 
-    
-
-
-
+    /*
+     * If, by unwrapping and innerizing, we changed the object, check
+     * again to make sure that we're allowed to set a watch point.
+     */
     if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return false;
 
@@ -331,10 +331,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
         return false;
     }
 
-    
-
-
-
+    /*
+     * Use sparse indexes for watched objects, as dense elements can be written
+     * to without checking the watchpoint map.
+     */
     if (!JSObject::sparsifyDenseElements(cx, obj))
         return false;
 
@@ -383,7 +383,7 @@ JS_ClearAllWatchPoints(JSContext *cx)
     return true;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(unsigned)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -476,7 +476,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **memp)
 
     LifoAlloc &lifo = cx->tempLifoAlloc();
 
-    
+    // Store the LifoAlloc::Mark right before the allocation.
     LifoAlloc::Mark mark = lifo.mark();
     void *mem = lifo.alloc(sizeof(LifoAlloc::Mark) + bindings.length() * sizeof(uintptr_t));
     if (!mem) {
@@ -486,7 +486,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **memp)
     *memp = mem;
     *reinterpret_cast<LifoAlloc::Mark*>(mem) = mark;
 
-    
+    // Munge data into the API this method implements.  Avert your eyes!
     uintptr_t *names = reinterpret_cast<uintptr_t*>((char*)mem + sizeof(LifoAlloc::Mark));
     for (size_t i = 0; i < bindings.length(); i++)
         names[i] = reinterpret_cast<uintptr_t>(bindings[i].name());
@@ -546,7 +546,7 @@ JS_GetScriptOriginPrincipals(JSScript *script)
     return script->originPrincipals;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSFunction *)
 JS_GetScriptFunction(JSContext *cx, JSScript *script)
@@ -568,7 +568,7 @@ JS_GetDebugClassName(JSObject *obj)
     return obj->getClass()->name;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script)
@@ -608,7 +608,7 @@ JS_GetScriptIsSelfHosted(JSScript *script)
     return script->selfHosted;
 }
 
-
+/***************************************************************************/
 
 JS_PUBLIC_API(void)
 JS_SetNewScriptHook(JSRuntime *rt, JSNewScriptHook hook, void *callerdata)
@@ -625,9 +625,9 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
     rt->debugHooks.destroyScriptHookData = callerdata;
 }
 
+/***************************************************************************/
 
-
-
+/* This all should be reworked to avoid requiring JSScopeProperty types. */
 
 static JSBool
 GetPropertyDesc(JSContext *cx, JSObject *obj_, HandleShape shape, JSPropertyDesc *pd)
@@ -715,7 +715,7 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj_, JSPropertyDescArray *pda)
     if (!clasp->enumerate(cx, obj))
         return false;
 
-    
+    /* Return an empty pda early if obj has no own properties. */
     if (obj->nativeEmpty()) {
         pda->length = 0;
         pda->array = NULL;
@@ -776,7 +776,7 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
     pda->length = 0;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure)
@@ -826,7 +826,7 @@ JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_FRIEND_API(void)
 js_RevertVersion(JSContext *cx)
@@ -840,7 +840,7 @@ JS_GetGlobalDebugHooks(JSRuntime *rt)
     return &rt->debugHooks;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(void)
 JS_DumpBytecode(JSContext *cx, JSScript *scriptArg)
@@ -887,7 +887,7 @@ DumpBytecodeScriptCallback(JSRuntime *rt, void *data, JSScript *script)
     static_cast<ScriptsToDump *>(data)->append(script);
 }
 
-} 
+} /* anonymous namespace */
 
 JS_PUBLIC_API(void)
 JS_DumpCompartmentBytecode(JSContext *cx)
@@ -1075,7 +1075,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
             thisProps.fetch(&thisVal.toObject());
     }
 
-    
+    // print the frame number and function name
     if (funname) {
         JSAutoByteString funbytes;
         buf = JS_sprintf_append(buf, "%d %s(", num, funbytes.encodeLatin1(cx, funname));
@@ -1087,7 +1087,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
     if (!buf)
         return buf;
 
-    
+    // print the function arguments
     if (showArgs && callObj) {
         uint32_t namedArgCount = 0;
         for (uint32_t i = 0; i < callProps->length; i++) {
@@ -1112,7 +1112,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
             namedArgCount++;
         }
 
-        
+        // print any unnamed trailing args (found in 'arguments' object)
         RootedValue val(cx);
         if (JS_GetProperty(cx, callObj, "arguments", val.address()) && val.isObject()) {
             uint32_t argCount;
@@ -1141,7 +1141,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         }
     }
 
-    
+    // print filename and line number
     buf = JS_sprintf_append(buf, "%s [\"%s\":%d]\n",
                             fun ? ")" : "",
                             filename ? filename : "<unknown>",
@@ -1149,7 +1149,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
     if (!buf)
         return buf;
 
-    
+    // print local variables
     if (showLocals && callProps->array) {
         for (uint32_t i = 0; i < callProps->length; i++) {
             JSPropertyDesc* desc = &callProps->array[i];
@@ -1170,7 +1170,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         }
     }
 
-    
+    // print the value of 'this'
     if (showLocals) {
         if (!thisVal.isUndefined()) {
             JSAutoByteString thisValBytes;
@@ -1187,7 +1187,7 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
         }
     }
 
-    
+    // print the properties of 'this', if it is an object
     if (showThisProps && thisProps->array) {
         for (uint32_t i = 0; i < thisProps->length; i++) {
             JSPropertyDesc* desc = &thisProps->array[i];
@@ -1252,14 +1252,14 @@ JSAbstractFramePtr::callObject(JSContext *cx)
 
     JSObject *o = GetDebugScopeForFrame(cx, frame);
 
-    
-
-
-
-
-
-
-
+    /*
+     * Given that fp is a function frame and GetDebugScopeForFrame always fills
+     * in missing scopes, we can expect to find fp's CallObject on 'o'. Note:
+     *  - GetDebugScopeForFrame wraps every ScopeObject (missing or not) with
+     *    a DebugScopeObject proxy.
+     *  - If fp is an eval-in-function, then fp has no callobj of its own and
+     *    JS_GetFrameCallObject will return the innermost function's callobj.
+     */
     while (o) {
         ScopeObject &scope = o->as<DebugScopeObject>().scope();
         if (scope.is<CallObject>())
@@ -1331,7 +1331,7 @@ JSAbstractFramePtr::evaluateUCInStackFrame(JSContext *cx,
                                            const char *filename, unsigned lineno,
                                            MutableHandleValue rval)
 {
-    
+    /* Protect inlined chars from root analysis poisoning. */
     SkipRoot skipChars(cx, &chars);
 
     if (!CheckDebugMode(cx))

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jsanalyzeinlines_h
 #define jsanalyzeinlines_h
@@ -59,19 +59,19 @@ ScriptAnalysis::getValueTypes(const SSAValue &v)
                 return types::TypeScript::SlotTypes(script_, v.varSlot());
             return undefinedTypeSet;
         } else {
-            
-
-
-
-
-
+            /*
+             * Results of intermediate assignments have the same type as
+             * the first type pushed by the assignment op. Note that this
+             * may not be the exact same value as was pushed, due to
+             * post-inc/dec ops.
+             */
             return pushedTypes(v.varOffset(), 0);
         }
       case SSAValue::PHI:
         return &v.phiNode()->types;
       default:
-        
-        MOZ_ASSUME_NOT_REACHED("Bad SSA value");
+        /* Cannot compute types for empty SSA values. */
+        MOZ_ASSUME_UNREACHABLE("Bad SSA value");
     }
 }
 
@@ -113,7 +113,7 @@ CrossScriptSSA::getValueTypes(const CrossSSAValue &cv)
     return getFrame(cv.frame).script->analysis()->getValueTypes(cv.v);
 }
 
-} 
-} 
+} /* namespace analyze */
+} /* namespace js */
 
-#endif 
+#endif /* jsanalyzeinlines_h */

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef ion_shared_CodeGenerator_shared_inl_h
 #define ion_shared_CodeGenerator_shared_inl_h
@@ -17,7 +17,7 @@ ToInt32(const LAllocation *a)
         return a->toConstant()->toInt32();
     if (a->isConstantIndex())
         return a->toConstantIndex()->index();
-    MOZ_ASSUME_NOT_REACHED("this is not a constant!");
+    MOZ_ASSUME_UNREACHABLE("this is not a constant!");
 }
 static inline double
 ToDouble(const LAllocation *a)
@@ -156,7 +156,7 @@ CodeGeneratorShared::restoreLiveIgnore(LInstruction *ins, RegisterSet ignore)
     masm.PopRegsInMaskIgnore(safepoint->liveRegs(), ignore);
 }
 
-} 
-} 
+} // ion
+} // js
 
-#endif 
+#endif /* ion_shared_CodeGenerator_shared_inl_h */

@@ -1,32 +1,32 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Endian.h"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * This file implements the structured clone algorithm of
+ * http://www.whatwg.org/specs/web-apps/current-work/multipage/common-dom-interfaces.html#safe-passing-of-structured-data
+ *
+ * The implementation differs slightly in that it uses an explicit stack, and
+ * the "memory" maps source objects to sequential integer indexes rather than
+ * directly pointing to destination objects. As a result, the order in which
+ * things are added to the memory must exactly match the order in which they
+ * are placed into 'allObjs', an analogous array of back-referenceable
+ * destination objects constructed while reading.
+ *
+ * For the most part, this is easy: simply add objects to the memory when first
+ * encountering them. But reading in a typed array requires an ArrayBuffer for
+ * construction, so objects cannot just be added to 'allObjs' in the order they
+ * are created. If they were, ArrayBuffers would come before typed arrays when
+ * in fact the typed array was added to 'memory' first.
+ *
+ * So during writing, we add objects to the memory when first encountering
+ * them. When reading a typed array, a placeholder is pushed onto allObjs until
+ * the ArrayBuffer has been read, then it is updated with the actual typed
+ * array object.
+ */
 
 #include "jsclone.h"
 
@@ -47,7 +47,7 @@ using mozilla::LittleEndian;
 using mozilla::NativeEndian;
 
 enum StructuredDataType {
-    
+    /* Structured data types provided by the engine */
     SCTAG_FLOAT_MAX = 0xFFF00000,
     SCTAG_NULL = 0xFFFF0000,
     SCTAG_UNDEFINED,
@@ -112,7 +112,7 @@ js::ReadStructuredClone(JSContext *cx, uint64_t *data, size_t nbytes, Value *vp,
 {
     SCInput in(cx, data, nbytes);
 
-    
+    /* XXX disallow callers from using internal pointers to GC things. */
     SkipRoot skip(cx, &in);
 
     JSStructuredCloneReader r(in, cb, cbClosure);
@@ -184,7 +184,7 @@ bool
 SCInput::read(uint64_t *p)
 {
     if (point == end) {
-        *p = 0;  
+        *p = 0;  /* initialize to shut GCC up */
         return eof();
     }
     *p = LittleEndian::readUint64(point++);
@@ -239,10 +239,10 @@ SCInput::replacePair(uint32_t tag, uint32_t data)
     return replace(PairToUInt64(tag, data));
 }
 
-
-
-
-
+/*
+ * The purpose of this never-inlined function is to avoid a strange g++ build
+ * error on OS X 10.5 (see bug 624080).  :-(
+ */
 static JS_NEVER_INLINE double
 CanonicalizeNan(double d)
 {
@@ -282,10 +282,10 @@ SCInput::readArray(T *p, size_t nelems)
 {
     JS_STATIC_ASSERT(sizeof(uint64_t) % sizeof(T) == 0);
 
-    
-
-
-
+    /*
+     * Fail if nelems is so huge as to make JS_HOWMANY overflow or if nwords is
+     * larger than the remaining data.
+     */
     size_t nwords = JS_HOWMANY(nelems, sizeof(uint64_t) / sizeof(T));
     if (nelems + sizeof(uint64_t) / sizeof(T) - 1 < nelems || nwords > size_t(end - point))
         return eof();
@@ -311,8 +311,8 @@ SCInput::readChars(jschar *p, size_t nchars)
 bool
 SCInput::readPtr(void **p)
 {
-    
-    
+    // On a 32 bit system the void* variable we have to write to is only
+    // 32 bits, so we create a 64 temporary and discard the unused bits.
     uint64_t tmp;
     bool ret = read(&tmp);
     *p = reinterpret_cast<void*>(tmp);
@@ -330,15 +330,15 @@ SCOutput::write(uint64_t u)
 bool
 SCOutput::writePair(uint32_t tag, uint32_t data)
 {
-    
-
-
-
-
-
-
-
-
+    /*
+     * As it happens, the tag word appears after the data word in the output.
+     * This is because exponents occupy the last 2 bytes of doubles on the
+     * little-endian platforms we care most about.
+     *
+     * For example, JSVAL_TRUE is written using writePair(SCTAG_BOOLEAN, 1).
+     * PairToUInt64 produces the number 0xFFFF000200000001.
+     * That is written out as the bytes 01 00 00 00 02 00 FF FF.
+     */
     return write(PairToUInt64(tag, data));
 }
 
@@ -409,7 +409,7 @@ SCOutput::writeArray(const T *p, size_t nelems)
     if (!buf.growByUninitialized(nwords))
         return false;
 
-    buf.back() = 0;  
+    buf.back() = 0;  /* zero-pad to an 8-byte boundary */
 
     T *q = (T *) &buf[start];
     copyAndSwapToLittleEndian(q, p, nelems);
@@ -490,7 +490,7 @@ JSStructuredCloneWriter::parseTransferable()
             return false;
         }
 
-        
+        // No duplicate:
         if (transferableObjects.has(tObj)) {
             reportErrorTransferable();
             return false;
@@ -533,7 +533,7 @@ inline void
 JSStructuredCloneWriter::checkStack()
 {
 #ifdef DEBUG
-    
+    /* To avoid making serialization O(n^2), limit stack-checking at 10. */
     const size_t MAX = 10;
 
     size_t limit = Min(counts.length(), MAX);
@@ -561,8 +561,8 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
     assertSameCompartment(w->context(), v);
     RootedObject obj(w->context(), &v.toObject());
 
-    
-    
+    // If the object is a security wrapper, see if we're allowed to unwrap it.
+    // If we aren't, throw.
     if (obj->isWrapper())
         obj = CheckedUnwrap(obj);
     if (!obj) {
@@ -572,15 +572,15 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
     return w->writeTypedArray(obj);
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * Write out a typed array. Note that post-v1 structured clone buffers do not
+ * perform endianness conversion on stored data, so multibyte typed arrays
+ * cannot be deserialized into a different endianness machine. Endianness
+ * conversion would prevent sharing ArrayBuffers: if you have Int8Array and
+ * Int16Array views of the same ArrayBuffer, should the data bytes be
+ * byte-swapped when writing or not? The Int8Array requires them to not be
+ * swapped; the Int16Array requires that they are.
+ */
 bool
 JSStructuredCloneWriter::writeTypedArray(HandleObject arr)
 {
@@ -590,7 +590,7 @@ JSStructuredCloneWriter::writeTypedArray(HandleObject arr)
     if (!out.write(type))
         return false;
 
-    
+    // Write out the ArrayBuffer tag and contents
     if (!startWrite(TypedArray::bufferValue(arr)))
         return false;
 
@@ -608,7 +608,7 @@ JSStructuredCloneWriter::writeArrayBuffer(HandleObject obj)
 bool
 JSStructuredCloneWriter::startObject(HandleObject obj, bool *backref)
 {
-    
+    /* Handle cycles in the object graph. */
     CloneMemory::AddPtr p = memory.lookupForAdd(obj);
     if ((*backref = p))
         return out.writePair(SCTAG_BACK_REFERENCE_OBJECT, p->value);
@@ -627,10 +627,10 @@ JSStructuredCloneWriter::startObject(HandleObject obj, bool *backref)
 bool
 JSStructuredCloneWriter::traverseObject(HandleObject obj)
 {
-    
-
-
-
+    /*
+     * Get enumerable property ids and put them in reverse order so that they
+     * will come off the stack in forward order.
+     */
     size_t initialLength = ids.length();
     if (!GetPropertyNames(context(), obj, JSITER_OWNONLY, &ids))
         return false;
@@ -638,12 +638,12 @@ JSStructuredCloneWriter::traverseObject(HandleObject obj)
     size_t count = size_t(end - begin);
     Reverse(begin, end);
 
-    
+    /* Push obj and count to the stack. */
     if (!objs.append(ObjectValue(*obj)) || !counts.append(count))
         return false;
     checkStack();
 
-    
+    /* Write the header for obj. */
     return out.writePair(obj->is<ArrayObject>() ? SCTAG_ARRAY_OBJECT : SCTAG_OBJECT_OBJECT, 0);
 }
 
@@ -665,8 +665,8 @@ JSStructuredCloneWriter::startWrite(const Value &v)
     } else if (v.isObject()) {
         RootedObject obj(context(), &v.toObject());
 
-        
-        
+        // The object might be a security wrapper. See if we can clone what's
+        // behind it. If we can, unwrap the object.
         obj = CheckedUnwrap(obj);
         if (!obj) {
             JS_ReportError(context(), "Permission denied to access object");
@@ -705,7 +705,7 @@ JSStructuredCloneWriter::startWrite(const Value &v)
 
         if (callbacks && callbacks->write)
             return callbacks->write(context(), this, obj, closure);
-        
+        /* else fall through */
     }
 
     JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL, JSMSG_SC_UNSUPPORTED_TYPE);
@@ -754,11 +754,11 @@ JSStructuredCloneWriter::write(const Value &v)
             ids.popBack();
             checkStack();
             if (JSID_IS_STRING(id) || JSID_IS_INT(id)) {
-                
-
-
-
-
+                /*
+                 * If obj still has an own property named id, write it out.
+                 * The cost of re-checking could be avoided by using
+                 * NativeIterators.
+                 */
                 RootedObject obj2(context());
                 RootedShape prop(context());
                 if (!HasOwnProperty<CanGC>(context(), obj->getOps()->lookupGeneric, obj, id,
@@ -808,7 +808,7 @@ class Chars {
 
     bool allocate(size_t len) {
         JS_ASSERT(!p);
-        
+        // We're going to null-terminate!
         p = cx->pod_malloc<jschar>(len + 1);
         if (p) {
             p[len] = jschar(0);
@@ -874,13 +874,13 @@ JSStructuredCloneReader::readTypedArray(uint32_t arrayType, uint32_t nelems, Val
         return false;
     }
 
-    
+    // Push a placeholder onto the allObjs list to stand in for the typed array
     uint32_t placeholderIndex = allObjs.length();
     Value dummy = JSVAL_NULL;
     if (!allObjs.append(dummy))
         return false;
 
-    
+    // Read the ArrayBuffer object and its contents (but no properties)
     RootedValue v(context());
     uint32_t byteOffset;
     if (v1Read) {
@@ -927,7 +927,7 @@ JSStructuredCloneReader::readTypedArray(uint32_t arrayType, uint32_t nelems, Val
         obj = JS_NewUint8ClampedArrayWithBuffer(context(), buffer, byteOffset, nelems);
         break;
       default:
-        MOZ_ASSUME_NOT_REACHED("unknown TypedArray type");
+        MOZ_ASSUME_UNREACHABLE("unknown TypedArray type");
     }
 
     if (!obj)
@@ -969,14 +969,14 @@ bytesPerTypedArrayElement(uint32_t arrayType)
       case TypedArray::TYPE_FLOAT64:
         return sizeof(uint64_t);
       default:
-        MOZ_ASSUME_NOT_REACHED("unknown TypedArray type");
+        MOZ_ASSUME_UNREACHABLE("unknown TypedArray type");
     }
 }
 
-
-
-
-
+/*
+ * Read in the data for a structured clone version 1 ArrayBuffer, performing
+ * endianness-conversion while reading.
+ */
 bool
 JSStructuredCloneReader::readV1ArrayBuffer(uint32_t arrayType, uint32_t nelems, Value *vp)
 {
@@ -1005,7 +1005,7 @@ JSStructuredCloneReader::readV1ArrayBuffer(uint32_t arrayType, uint32_t nelems, 
       case TypedArray::TYPE_FLOAT64:
         return in.readArray((uint64_t*) buffer.dataPointer(), nelems);
       default:
-        MOZ_ASSUME_NOT_REACHED("unknown TypedArray type");
+        MOZ_ASSUME_UNREACHABLE("unknown TypedArray type");
     }
 }
 
@@ -1118,14 +1118,14 @@ JSStructuredCloneReader::startRead(Value *vp)
       }
 
       case SCTAG_TRANSFER_MAP_HEADER:
-        
+        // A map header cannot be here but just at the beginning of the buffer.
         JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
                              JSMSG_SC_BAD_SERIALIZED_DATA,
                              "invalid input");
         return false;
 
       case SCTAG_TRANSFER_MAP:
-        
+        // A map cannot be here but just at the beginning of the buffer.
         JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
                              JSMSG_SC_BAD_SERIALIZED_DATA,
                              "invalid input");
@@ -1137,7 +1137,7 @@ JSStructuredCloneReader::startRead(Value *vp)
         break;
 
       case SCTAG_TYPED_ARRAY_OBJECT:
-        
+        // readTypedArray adds the array to allObjs
         uint64_t arrayType;
         if (!in.read(&arrayType))
             return false;
@@ -1154,8 +1154,8 @@ JSStructuredCloneReader::startRead(Value *vp)
         }
 
         if (SCTAG_TYPED_ARRAY_V1_MIN <= tag && tag <= SCTAG_TYPED_ARRAY_V1_MAX) {
-            
-            
+            // A v1-format typed array
+            // readTypedArray adds the array to allObjs
             return readTypedArray(TagToV1ArrayType(tag), data, vp, true);
         }
 
