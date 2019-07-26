@@ -43,6 +43,14 @@ private:
   
   nsresult TryAttach();
 
+  friend class SetSocketOptionRunnable;
+  nsresult SetSocketOption(const PRSocketOptionData& aOpt);
+  nsresult JoinMulticastInternal(const PRNetAddr& aAddr,
+                                 const PRNetAddr& aIface);
+  nsresult LeaveMulticastInternal(const PRNetAddr& aAddr,
+                                  const PRNetAddr& aIface);
+  nsresult SetMulticastInterfaceInternal(const PRNetAddr& aIface);
+
   
   
   mozilla::Mutex                       mLock;
