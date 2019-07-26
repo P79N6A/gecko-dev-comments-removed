@@ -195,10 +195,8 @@ class nsAnimationManager MOZ_FINAL
 public:
   nsAnimationManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
-    , mKeyframesListIsDirty(true)
     , mObservingRefreshDriver(false)
   {
-    mKeyframesRules.Init(16); 
   }
 
   static ElementAnimations* GetAnimationsForCompositor(nsIContent* aContent,
@@ -262,10 +260,6 @@ public:
   nsIStyleRule* CheckAnimationRule(nsStyleContext* aStyleContext,
                                    mozilla::dom::Element* aElement);
 
-  void KeyframesListIsDirty() {
-    mKeyframesListIsDirty = true;
-  }
-
   
 
 
@@ -307,13 +301,8 @@ private:
   nsIStyleRule* GetAnimationRule(mozilla::dom::Element* aElement,
                                  nsCSSPseudoElements::Type aPseudoType);
 
-  nsCSSKeyframesRule* KeyframesRuleFor(const nsSubstring& aName);
-
   
   void DoDispatchEvents();
-
-  bool mKeyframesListIsDirty;
-  nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;
 
   EventArray mPendingEvents;
 

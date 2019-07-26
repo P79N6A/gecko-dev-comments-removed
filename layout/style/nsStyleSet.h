@@ -171,9 +171,8 @@ class nsStyleSet
                              nsTArray<nsFontFaceRuleContainer>& aArray);
 
   
-  
-  bool AppendKeyframesRules(nsPresContext* aPresContext,
-                              nsTArray<nsCSSKeyframesRule*>& aArray);
+  nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
+                                           const nsString& aName);
 
   
   already_AddRefed<gfxFontFeatureValueSet> GetFontFeatureValuesLookup();

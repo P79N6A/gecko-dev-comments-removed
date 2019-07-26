@@ -530,7 +530,6 @@ nsAnimationManager::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   
   
   
-  
 }
 
  size_t
@@ -765,7 +764,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
 
     aDest.mIterationDuration = TimeDuration::FromMilliseconds(aSrc.GetDuration());
 
-    nsCSSKeyframesRule *rule = KeyframesRuleFor(aDest.mName);
+    nsCSSKeyframesRule* rule =
+      mPresContext->StyleSet()->KeyframesRuleForName(mPresContext, aDest.mName);
     if (!rule) {
       
       continue;
@@ -1088,24 +1088,3 @@ nsAnimationManager::DoDispatchEvents()
     }
   }
 }
-
-nsCSSKeyframesRule*
-nsAnimationManager::KeyframesRuleFor(const nsSubstring& aName)
-{
-  if (mKeyframesListIsDirty) {
-    mKeyframesListIsDirty = false;
-
-    nsTArray<nsCSSKeyframesRule*> rules;
-    mPresContext->StyleSet()->AppendKeyframesRules(mPresContext, rules);
-
-    
-    mKeyframesRules.Clear();
-    for (uint32_t i = 0, i_end = rules.Length(); i != i_end; ++i) {
-      nsCSSKeyframesRule *rule = rules[i];
-      mKeyframesRules.Put(rule->GetName(), rule);
-    }
-  }
-
-  return mKeyframesRules.Get(aName);
-}
-

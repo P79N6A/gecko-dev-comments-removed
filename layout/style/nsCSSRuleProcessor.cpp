@@ -944,6 +944,7 @@ struct RuleCascadeData {
     PL_DHashTableInit(&mXULTreeRules, &RuleHash_TagTable_Ops, nullptr,
                       sizeof(RuleHashTagTableEntry), 16);
 #endif
+    mKeyframesRuleTable.Init(16); 
   }
 
   ~RuleCascadeData()
@@ -981,6 +982,8 @@ struct RuleCascadeData {
   nsTArray<nsCSSKeyframesRule*> mKeyframesRules;
   nsTArray<nsCSSFontFeatureValuesRule*> mFontFeatureValuesRules;
   nsTArray<nsCSSPageRule*> mPageRules;
+
+  nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRuleTable;
 
   
   
@@ -2776,21 +2779,17 @@ nsCSSRuleProcessor::AppendFontFaceRules(
   return true;
 }
 
-
-
-bool
-nsCSSRuleProcessor::AppendKeyframesRules(
-                              nsPresContext *aPresContext,
-                              nsTArray<nsCSSKeyframesRule*>& aArray)
+nsCSSKeyframesRule*
+nsCSSRuleProcessor::KeyframesRuleForName(nsPresContext* aPresContext,
+                                         const nsString& aName)
 {
   RuleCascadeData* cascade = GetRuleCascade(aPresContext);
 
   if (cascade) {
-    if (!aArray.AppendElements(cascade->mKeyframesRules))
-      return false;
+    return cascade->mKeyframesRuleTable.Get(aName);
   }
-  
-  return true;
+
+  return nullptr;
 }
 
 
@@ -3299,6 +3298,8 @@ RuleCascadeData*
 nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
 {
   
+
+  
   
   
   
@@ -3372,6 +3373,13 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
           if (!AddRule(cur, newCascade))
             return; 
         }
+      }
+
+      
+      for (nsTArray<nsCSSKeyframesRule*>::size_type i = 0,
+             iEnd = newCascade->mKeyframesRules.Length(); i < iEnd; ++i) {
+        nsCSSKeyframesRule* rule = newCascade->mKeyframesRules[i];
+        newCascade->mKeyframesRuleTable.Put(rule->GetName(), rule);
       }
 
       
