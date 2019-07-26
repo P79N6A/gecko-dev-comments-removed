@@ -3,15 +3,6 @@
 
 
 
-#inspector-inspect-toolbutton {
-  list-style-image: url("chrome://browser/skin/devtools/inspect-button.png");
-  -moz-image-region: rect(0px 16px 16px 0px);
-}
-
-#inspector-inspect-toolbutton[checked=true] {
-  -moz-image-region: rect(0px 32px 16px 16px);
-}
-
 #inspector-searchbox {
   transition-property: max-width, -moz-padding-end, -moz-padding-start;
   transition-duration: 250ms;
