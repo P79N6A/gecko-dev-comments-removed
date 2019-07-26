@@ -732,6 +732,9 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
               
               
               resetDirection = true;
+              nsTextNodeDirectionalityMap::RemoveElementFromMap(
+                directionWasSetByTextNode, parent
+              );
               break;
             }
 
