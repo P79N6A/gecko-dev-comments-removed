@@ -3,6 +3,7 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ForgetAboutSite",
                                   "resource://gre/modules/ForgetAboutSite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
@@ -223,18 +224,10 @@ PlacesController.prototype = {
   doCommand: function PC_doCommand(aCommand) {
     switch (aCommand) {
     case "cmd_undo":
-      if (!PlacesUIUtils.useAsyncTransactions) {
-        PlacesUtils.transactionManager.undoTransaction();
-        return;
-      }
-      PlacesTransactions.undo().then(null, Cu.reportError);
+      PlacesUtils.transactionManager.undoTransaction();
       break;
     case "cmd_redo":
-      if (!PlacesUIUtils.useAsyncTransactions) {
-        PlacesUtils.transactionManager.redoTransaction();
-        return;
-      }
-      PlacesTransactions.redo().then(null, Cu.reportError);
+      PlacesUtils.transactionManager.redoTransaction();
       break;
     case "cmd_cut":
     case "placesCmd_cut":
