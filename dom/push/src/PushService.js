@@ -618,20 +618,10 @@ PushService.prototype = {
     
     if (this._UAID && this._UAID != reply.uaid) {
       debug("got new UAID: all re-register");
-      this._dropRegistrations()
-        .then(
-          function() {
-            
-            
-            this._notifyAllAppsRegister();
-            finishHandshake.bind(this)();
-          }.bind(this),
-          function(error) {
-            debug("Error deleting all registrations. SHOULD NEVER HAPPEN!");
-            this._shutdownWS();
-            return;
-          }.bind(this)
-        );
+
+      this._notifyAllAppsRegister()
+          .then(this._dropRegistrations.bind(this))
+          .then(finishHandshake.bind(this));
 
       return;
     }
@@ -840,11 +830,42 @@ PushService.prototype = {
                             recoverNoSuchChannelID.bind(this));
   },
 
+  
+  
   _notifyAllAppsRegister: function() {
     debug("notifyAllAppsRegister()");
-    let messenger = Cc["@mozilla.org/system-message-internal;1"]
-                      .getService(Ci.nsISystemMessagesInternal);
-    messenger.broadcastMessage('push-register', {});
+    var deferred = Promise.defer();
+
+    
+    function wakeupRegisteredApps(records) {
+      
+      
+      var wakeupTable = {};
+      for (var i = 0; i < records.length; i++) {
+        var record = records[i];
+        if (!(record.manifestURL in wakeupTable))
+          wakeupTable[record.manifestURL] = [];
+
+        wakeupTable[record.manifestURL].push(record.pageURL);
+      }
+
+      let messenger = Cc["@mozilla.org/system-message-internal;1"]
+                        .getService(Ci.nsISystemMessagesInternal);
+
+      for (var manifestURL in wakeupTable) {
+        wakeupTable[manifestURL].forEach(function(pageURL) {
+          messenger.sendMessage('push-register', {},
+                                Services.io.newURI(pageURL, null, null),
+                                Services.io.newURI(manifestURL, null, null));
+        });
+      }
+
+      deferred.resolve();
+    }
+
+    this._db.getAllChannelIDs(wakeupRegisteredApps, deferred.reject);
+
+    return deferred.promise;
   },
 
   _notifyApp: function(aPushRecord) {
