@@ -55,10 +55,14 @@ TabContext::TabContext(const IPCTabContext& aParams)
       
       
       
+      
+      
+      
+      
       if (ipcContext.isBrowserElement()) {
         mIsBrowser = true;
         mOwnAppId = nsIScriptSecurityManager::NO_APP_ID;
-        mContainingAppId = context->OwnAppId();
+        mContainingAppId = context->OwnOrContainingAppId();
       }
       else {
         mIsBrowser = false;
