@@ -35,11 +35,6 @@ class SnapshotReader
     uint32_t slotsRead_;          
     bool resumeAfter_;
 
-#ifdef DEBUG
-    
-    JSScript *script_;
-#endif
-
 #ifdef TRACK_SNAPSHOTS
   private:
     uint32_t pcOpcode_;
