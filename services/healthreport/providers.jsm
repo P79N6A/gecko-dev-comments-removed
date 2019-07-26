@@ -964,11 +964,20 @@ CrashDirectoryService.prototype = Object.freeze({
     let files = {};
 
     return Task.spawn(function iterateDirectory() {
-      if (!(yield OS.File.exists(path))) {
-        throw new Task.Result(files);
-      }
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       let iterator = new OS.File.DirectoryIterator(path);
+
       try {
         while (true) {
           let entry;
