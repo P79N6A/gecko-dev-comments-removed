@@ -53,7 +53,6 @@ AddUniforms(ProgramProfileOGL& aProfile)
 void
 AddCommonArgs(ProgramProfileOGL& aProfile)
 {
-  aProfile.mHasMatrixProj = true;
   aProfile.mAttributes.AppendElement(Argument("aVertexCoord"));
 }
 void
@@ -322,6 +321,8 @@ ShaderProgramOGL::Initialize()
       mGL->fGetAttribLocation(mProgram, mProfile.mAttributes[i].mName);
     NS_ASSERTION(mProfile.mAttributes[i].mLocation >= 0, "Bad attribute location.");
   }
+
+  mProfile.mHasMatrixProj = mProfile.mUniforms[KnownUniform::MatrixProj].mLocation != -1;
 
   return true;
 }

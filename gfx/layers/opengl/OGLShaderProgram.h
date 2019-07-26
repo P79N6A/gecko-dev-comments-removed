@@ -380,12 +380,11 @@ public:
   }
 
   
-  void CheckAndSetProjectionMatrix(const gfx::Matrix4x4& aMatrix)
+  
+  void DelayedSetProjectionMatrix(const gfx::Matrix4x4& aMatrix)
   {
-    if (mProfile.mHasMatrixProj) {
-      mIsProjectionMatrixStale = true;
-      mProjectionMatrix = aMatrix;
-    }
+    mIsProjectionMatrixStale = true;
+    mProjectionMatrix = aMatrix;
   }
 
   void SetProjectionMatrix(const gfx::Matrix4x4& aMatrix) {
