@@ -5,6 +5,7 @@
 
 const { defer } = require('../core/promise');
 const events = require('../system/events');
+const { setImmediate } = require('../timers');
 const { open: openWindow, onFocus, getToplevelWindow,
         isInteractive } = require('./utils');
 
@@ -17,12 +18,16 @@ function close(window) {
   
   
   
+  
+  
+  
+  
   let deferred = defer();
   let toplevelWindow = getToplevelWindow(window);
   events.on("domwindowclosed", function onclose({subject}) {
     if (subject == toplevelWindow) {
       events.off("domwindowclosed", onclose);
-      deferred.resolve(window);
+      setImmediate(function() deferred.resolve(window));
     }
   }, true);
   window.close();
