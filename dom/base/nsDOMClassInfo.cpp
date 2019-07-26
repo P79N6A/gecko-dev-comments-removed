@@ -3255,11 +3255,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   if (sLocation_id == id && isXray) {
-    
-    
-    
-    
-
     nsCOMPtr<nsIDOMLocation> location;
     nsresult rv = win->GetLocation(getter_AddRefs(location));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3354,7 +3349,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  if (!(flags & JSRESOLVE_ASSIGNING) && sDocument_id == id) {
+  if (sDocument_id == id) {
     nsCOMPtr<nsIDocument> document = win->GetDoc();
     JS::Rooted<JS::Value> v(cx);
     nsresult rv = WrapNative(cx, document, document,
