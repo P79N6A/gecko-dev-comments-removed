@@ -1330,12 +1330,10 @@ nsPlaintextEditor::PasteAsQuotation(int32_t aSelectionType)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsITransferable> trans = do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
+  nsCOMPtr<nsITransferable> trans;
+  rv = PrepareTransferable(getter_AddRefs(trans));
   if (NS_SUCCEEDED(rv) && trans)
   {
-    
-    trans->AddDataFlavor(kUnicodeMime);
-
     
     clipboard->GetData(trans, aSelectionType);
 
@@ -1357,7 +1355,8 @@ nsPlaintextEditor::PasteAsQuotation(int32_t aSelectionType)
 #ifdef DEBUG_clipboard
     printf("Got flavor [%s]\n", flav);
 #endif
-    if (0 == nsCRT::strcmp(flav, kUnicodeMime))
+    if (0 == nsCRT::strcmp(flav, kUnicodeMime) ||
+        0 == nsCRT::strcmp(flav, kMozTextInternal))
     {
       nsCOMPtr<nsISupportsString> textDataObj ( do_QueryInterface(genericDataObj) );
       if (textDataObj && len > 0)
