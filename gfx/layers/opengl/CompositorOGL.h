@@ -307,7 +307,6 @@ private:
   
   
   nsTArray<GLuint> mTextures;
-  static bool sDrawFPS;
 
   
 
