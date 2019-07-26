@@ -13,15 +13,16 @@
 
 using namespace mozilla;
 using namespace xpc;
+using namespace JS;
 
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
-                               JSContext* cx    ,
-                               JSObject* obj    ,
-                               JSObject* funobj ,
-                               jsid name        ,
-                               unsigned argc    ,
-                               jsval *argv      ,
-                               jsval *rval      )
+                               JSContext* cx       ,
+                               HandleObject obj    ,
+                               HandleObject funobj ,
+                               HandleId name       ,
+                               unsigned argc       ,
+                               jsval *argv         ,
+                               jsval *rval         )
     :   mState(INIT_FAILED),
         mXPC(nsXPConnect::GetXPConnect()),
         mXPCContext(nullptr),
@@ -29,12 +30,13 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mContextPopRequired(false),
         mDestroyJSContextInDestructor(false),
         mCallerLanguage(callerLanguage),
-        mScopeForNewJSObjects(xpc_GetSafeJSContext()),
-        mFlattenedJSObject(xpc_GetSafeJSContext()),
+        mScopeForNewJSObjects(cx),
+        mFlattenedJSObject(cx),
         mWrapper(nullptr),
         mTearOff(nullptr),
-        mName(xpc_GetSafeJSContext())
+        mName(cx)
 {
+    MOZ_ASSERT(cx);
     Init(callerLanguage, callerLanguage == NATIVE_CALLER, obj, funobj,
          INIT_SHOULD_LOOKUP_WRAPPER, name, argc, argv, rval);
 }
@@ -42,8 +44,8 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                JSContext* cx,
                                JSBool callBeginRequest,
-                               JSObject* obj,
-                               JSObject* flattenedJSObject,
+                               HandleObject obj,
+                               HandleObject flattenedJSObject,
                                XPCWrappedNative* wrapper,
                                XPCWrappedNativeTearOff* tearOff)
     :   mState(INIT_FAILED),
@@ -53,60 +55,57 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mContextPopRequired(false),
         mDestroyJSContextInDestructor(false),
         mCallerLanguage(callerLanguage),
-        mScopeForNewJSObjects(xpc_GetSafeJSContext()),
-        mFlattenedJSObject(xpc_GetSafeJSContext(), flattenedJSObject),
+        mScopeForNewJSObjects(cx),
+        mFlattenedJSObject(cx, flattenedJSObject),
         mWrapper(wrapper),
         mTearOff(tearOff),
-        mName(xpc_GetSafeJSContext())
+        mName(cx)
 {
-    Init(callerLanguage, callBeginRequest, obj, nullptr,
-         WRAPPER_PASSED_TO_CONSTRUCTOR, JSID_VOID, NO_ARGS,
+    MOZ_ASSERT(cx);
+    Init(callerLanguage, callBeginRequest, obj, NullPtr(),
+         WRAPPER_PASSED_TO_CONSTRUCTOR, JSID_VOIDHANDLE, NO_ARGS,
          nullptr, nullptr);
 }
 
 #define IS_TEAROFF_CLASS(clazz) ((clazz) == &XPC_WN_Tearoff_JSClass)
 
+
+
+JSContext *
+XPCCallContext::GetDefaultJSContext()
+{
+    
+    
+    
+    
+    
+    
+    
+
+    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
+    JSContext *topJSContext = stack->Peek();
+
+    return topJSContext ? topJSContext : stack->GetSafeJSContext();
+}
+
 void
 XPCCallContext::Init(XPCContext::LangType callerLanguage,
                      JSBool callBeginRequest,
-                     JSObject* obj,
-                     JSObject* funobj,
+                     HandleObject obj,
+                     HandleObject funobj,
                      WrapperInitOptions wrapperInitOptions,
-                     jsid name,
+                     HandleId name,
                      unsigned argc,
                      jsval *argv,
                      jsval *rval)
 {
+    NS_ASSERTION(mJSContext, "No JSContext supplied to XPCCallContext");
+
     if (!mXPC)
         return;
 
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-
-    if (!stack) {
-        
-        mJSContext = nullptr;
-        return;
-    }
-
     JSContext *topJSContext = stack->Peek();
-
-    if (!mJSContext) {
-        
-        
-        
-        
-        
-        
-        
-
-        if (topJSContext) {
-            mJSContext = topJSContext;
-        } else {
-            mJSContext = stack->GetSafeJSContext();
-            if (!mJSContext)
-                return;
-        }
-    }
 
     if (topJSContext != mJSContext) {
         if (!stack->Push(mJSContext)) {
@@ -204,7 +203,7 @@ XPCCallContext::SetName(jsid name)
     if (mTearOff) {
         mSet = nullptr;
         mInterface = mTearOff->GetInterface();
-        mMember = mInterface->FindMember(name);
+        mMember = mInterface->FindMember(mName);
         mStaticMemberIsLocal = true;
         if (mMember && !mMember->IsConstant())
             mMethodIndex = mMember->GetIndex();
@@ -212,7 +211,7 @@ XPCCallContext::SetName(jsid name)
         mSet = mWrapper ? mWrapper->GetSet() : nullptr;
 
         if (mSet &&
-            mSet->FindMember(name, &mMember, &mInterface,
+            mSet->FindMember(mName, &mMember, &mInterface,
                              mWrapper->HasProto() ?
                              mWrapper->GetProto()->GetSet() :
                              nullptr,
@@ -459,9 +458,8 @@ XPCLazyCallContext::AssertContextIsTopOfStack(JSContext* cx)
 #endif
 
 XPCWrappedNative*
-XPCCallContext::UnwrapThisIfAllowed(JSObject *object, JSObject *fun, unsigned argc)
+XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned argc)
 {
-    JS::Rooted<JSObject *> obj(mJSContext, object);
     
     MOZ_ASSERT(!js::CheckedUnwrap(obj));
     MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
@@ -482,7 +480,7 @@ XPCCallContext::UnwrapThisIfAllowed(JSObject *object, JSObject *fun, unsigned ar
     
     
     MOZ_ASSERT(js::IsWrapper(obj));
-    JSObject *unwrapped = js::UncheckedUnwrap(obj,  false);
+    RootedObject unwrapped(mJSContext, js::UncheckedUnwrap(obj,  false));
     MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, js::Wrapper::wrappedObject(obj)));
 
     
