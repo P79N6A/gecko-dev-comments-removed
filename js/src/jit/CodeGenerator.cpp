@@ -157,89 +157,36 @@ CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
 {
     ValueOperand operand = ToValue(lir, LValueToInt32::Input);
     Register output = ToRegister(lir->output());
+    FloatRegister temp = ToFloatRegister(lir->tempFloat());
 
-    Register tag = masm.splitTagForTest(operand);
-
-    Label done, simple, isInt32, isBool, isString, notDouble;
-    
     MDefinition *input;
     if (lir->mode() == LValueToInt32::NORMAL)
         input = lir->mirNormal()->input();
     else
         input = lir->mirTruncate()->input();
-    masm.branchEqualTypeIfNeeded(MIRType_Int32, input, tag, &isInt32);
-    masm.branchEqualTypeIfNeeded(MIRType_Boolean, input, tag, &isBool);
-    
-    
-    if (lir->mode() == LValueToInt32::TRUNCATE)
-        masm.branchEqualTypeIfNeeded(MIRType_String, input, tag, &isString);
-    masm.branchTestDouble(Assembler::NotEqual, tag, &notDouble);
 
-    
-    
-    FloatRegister temp = ToFloatRegister(lir->tempFloat());
-    masm.unboxDouble(operand, temp);
-
-    Label fails, isDouble;
-    masm.bind(&isDouble);
+    Label fails;
     if (lir->mode() == LValueToInt32::TRUNCATE) {
-        if (!emitTruncateDouble(temp, output))
-            return false;
+        
+        
+        if (input->mightBeType(MIRType_String)) {
+            Register stringReg = ToRegister(lir->temp());
+            OutOfLineCode *ool = oolCallVM(StringToNumberInfo, lir, (ArgList(), stringReg),
+                                           StoreFloatRegisterTo(temp));
+            if (!ool)
+                return false;
+
+            masm.truncateValueToInt32(operand, input, ool->entry(), ool->rejoin(), stringReg,
+                                      temp, output, &fails);
+        } else {
+            masm.truncateValueToInt32(operand, input, temp, output, &fails);
+        }
     } else {
-        masm.convertDoubleToInt32(temp, output, &fails, lir->mirNormal()->canBeNegativeZero());
-    }
-    masm.jump(&done);
-
-    masm.bind(&notDouble);
-
-    if (lir->mode() == LValueToInt32::NORMAL) {
-        
-        
-        masm.branchTestNull(Assembler::NotEqual, tag, &fails);
-    } else {
-        
-        
-        masm.branchEqualTypeIfNeeded(MIRType_Object, input, tag, &fails);
+        masm.convertValueToInt32(operand, input, temp, output, &fails,
+                                 lir->mirNormal()->canBeNegativeZero());
     }
 
-    if (fails.used() && !bailoutFrom(&fails, lir->snapshot()))
-        return false;
-
-    
-    masm.mov(Imm32(0), output);
-    masm.jump(&done);
-
-    
-    
-    if (isString.used()) {
-        masm.bind(&isString);
-        Register str = masm.extractString(operand, ToRegister(lir->temp()));
-        OutOfLineCode *ool = oolCallVM(StringToNumberInfo, lir, (ArgList(), str),
-                                       StoreFloatRegisterTo(temp));
-        if (!ool)
-            return false;
-
-        masm.jump(ool->entry());
-        masm.bind(ool->rejoin());
-        masm.jump(&isDouble);
-    }
-
-    
-    if (isBool.used()) {
-        masm.bind(&isBool);
-        masm.unboxBoolean(operand, output);
-        masm.jump(&done);
-    }
-
-    
-    if (isInt32.used()) {
-        masm.bind(&isInt32);
-        masm.unboxInt32(operand, output);
-    }
-
-    masm.bind(&done);
-
-    return true;
+    return bailoutFrom(&fails, lir->snapshot());
 }
 
 static const double DoubleZero = 0.0;
@@ -6790,46 +6737,24 @@ CodeGenerator::visitClampDToUint8(LClampDToUint8 *lir)
 bool
 CodeGenerator::visitClampVToUint8(LClampVToUint8 *lir)
 {
-    ValueOperand input = ToValue(lir, LClampVToUint8::Input);
+    ValueOperand operand = ToValue(lir, LClampVToUint8::Input);
     FloatRegister tempFloat = ToFloatRegister(lir->tempFloat());
     Register output = ToRegister(lir->output());
+    MDefinition *input = lir->mir()->input();
 
-    Register tag = masm.splitTagForTest(input);
+    Label fails;
+    if (input->mightBeType(MIRType_String)) {
+        OutOfLineCode *ool = oolCallVM(StringToNumberInfo, lir, (ArgList(), output),
+                                       StoreFloatRegisterTo(tempFloat));
+        masm.clampValueToUint8(operand, input, ool->entry(), ool->rejoin(), output,
+                               tempFloat, output, &fails);
 
-    Label done;
-    Label isInt32, isDouble, isBoolean;
-    masm.branchTestInt32(Assembler::Equal, tag, &isInt32);
-    masm.branchTestDouble(Assembler::Equal, tag, &isDouble);
-    masm.branchTestBoolean(Assembler::Equal, tag, &isBoolean);
-
-    
-    Label isZero;
-    masm.branchTestUndefined(Assembler::Equal, tag, &isZero);
-    masm.branchTestNull(Assembler::Equal, tag, &isZero);
-    masm.branchTestObject(Assembler::Equal, tag, &isZero);
-
-    
-    if (!bailout(lir->snapshot()))
+    } else {
+        masm.clampValueToUint8(operand, input, tempFloat, output, &fails);
+    }
+    if (!bailoutFrom(&fails, lir->snapshot()))
         return false;
 
-    masm.bind(&isInt32);
-    masm.unboxInt32(input, output);
-    masm.clampIntToUint8(output, output);
-    masm.jump(&done);
-
-    masm.bind(&isDouble);
-    masm.unboxDouble(input, tempFloat);
-    masm.clampDoubleToUint8(tempFloat, output);
-    masm.jump(&done);
-
-    masm.bind(&isBoolean);
-    masm.unboxBoolean(input, output);
-    masm.jump(&done);
-
-    masm.bind(&isZero);
-    masm.move32(Imm32(0), output);
-
-    masm.bind(&done);
     return true;
 }
 
