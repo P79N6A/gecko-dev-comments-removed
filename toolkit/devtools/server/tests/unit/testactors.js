@@ -1,6 +1,10 @@
 
 
 
+const Cu = Components.utils;
+const devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
+const { ThreadActor } = devtools.require("devtools/server/actors/script");
+
 var gTestGlobals = [];
 DebuggerServer.addTestGlobal = function(aGlobal) {
   gTestGlobals.push(aGlobal);

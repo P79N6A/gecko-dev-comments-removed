@@ -509,12 +509,13 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
     if (stackframeItem) {
       
       let depth = stackframeItem.attachment.depth;
-      DebuggerController.StackFrames.selectFrame(depth);
 
       
       this.suppressSelectionEvents = true;
       this._mirror.selectedItem = e => e.attachment.depth == depth;
       this.suppressSelectionEvents = false;
+
+      DebuggerController.StackFrames.selectFrame(depth);
     }
   },
 
