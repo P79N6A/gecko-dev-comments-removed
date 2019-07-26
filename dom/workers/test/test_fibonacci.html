@@ -4,27 +4,35 @@
 
 <!DOCTYPE HTML>
 <html>
+
+
+
 <head>
-  <title>Test for URLSearchParams object in workers</title>
+  <title>Test for DOM Worker Threads with Fibonacci</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=450452">DOM Worker Threads Fibonacci</a>
 <p id="display"></p>
-<div id="content" style="display: none"></div>
-<pre id="test"></pre>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
 <script class="testbody" type="text/javascript">
 
-  var worker = new Worker("urlSearchParams_worker.js");
+  const seqNum = 5;
+
+  function recursivefib(n) {
+    return n < 2 ? n : recursivefib(n - 1) + recursivefib(n - 2);
+  }
+
+  var worker = new Worker("fibonacci_worker.js");
 
   worker.onmessage = function(event) {
     is(event.target, worker);
-
-    if (event.data.type == 'finish') {
-      SimpleTest.finish();
-    } else if (event.data.type == 'status') {
-      ok(event.data.status, event.data.msg);
-    }
+    is(event.data, recursivefib(seqNum));
+    SimpleTest.finish();
   };
 
   worker.onerror = function(event) {
@@ -33,7 +41,7 @@
     SimpleTest.finish();
   };
 
-  worker.postMessage(true);
+  worker.postMessage(seqNum);
 
   SimpleTest.waitForExplicitFinish();
 
@@ -41,3 +49,4 @@
 </pre>
 </body>
 </html>
+
