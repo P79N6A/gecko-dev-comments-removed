@@ -1,5 +1,6 @@
 
 
+
 this.EXPORTED_SYMBOLS = ["CrashTestUtils"];
 
 this.CrashTestUtils = {
@@ -16,6 +17,7 @@ this.CrashTestUtils = {
   CRASH_RUNTIMEABORT:          2,
   CRASH_OOM:                   3,
   CRASH_MOZ_CRASH:             4,
+  CRASH_ABORT:                 5,
 
   
   
