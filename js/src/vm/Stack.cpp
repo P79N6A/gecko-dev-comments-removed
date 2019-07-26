@@ -1516,9 +1516,6 @@ jit::JitActivation::~JitActivation()
     }
 }
 
-
-
-
 void
 jit::JitActivation::setActive(JSContext *cx, bool active)
 {

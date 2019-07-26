@@ -6024,20 +6024,15 @@ StackArgBytes(const VectorT &argTypes)
     return iter.stackBytesConsumedSoFar();
 }
 
-static unsigned
-StackDecrementForCall(MacroAssembler &masm, unsigned bytesToPush)
-{
-    
-    
-    unsigned alreadyPushed = AlignmentAtPrologue + masm.framePushed();
-    return AlignBytes(alreadyPushed + bytesToPush, StackAlignment) - alreadyPushed;
-}
-
 template <class VectorT>
 static unsigned
 StackDecrementForCall(MacroAssembler &masm, const VectorT &argTypes, unsigned extraBytes = 0)
 {
-    return StackDecrementForCall(masm, StackArgBytes(argTypes) + extraBytes);
+    
+    
+    unsigned argBytes = StackArgBytes(argTypes);
+    unsigned alreadyPushed = AlignmentAtPrologue + masm.framePushed();
+    return AlignBytes(alreadyPushed + extraBytes + argBytes, StackAlignment) - alreadyPushed;
 }
 
 static const unsigned FramePushedAfterSave = NonVolatileRegs.gprs().size() * sizeof(intptr_t) +
@@ -6305,10 +6300,8 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     masm.align(CodeAlignment);
     m.setInterpExitOffset(exitIndex);
     masm.setFramePushed(0);
-#if defined(JS_CODEGEN_ARM)
-    masm.Push(lr);
-#endif
 
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     MIRType typeArray[] = { MIRType_Pointer,   
                             MIRType_Pointer,   
                             MIRType_Int32,     
@@ -6323,7 +6316,7 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     masm.reserveStack(stackDec);
 
     
-    unsigned offsetToCallerStackArgs = AlignmentAtPrologue + masm.framePushed();
+    unsigned offsetToCallerStackArgs = NativeFrameSize + masm.framePushed();
     unsigned offsetToArgv = StackArgBytes(invokeArgTypes);
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg0;
     FillArgumentArray(m, exit.sig().args(), offsetToArgv, offsetToCallerStackArgs, scratch);
@@ -6394,6 +6387,59 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     
     masm.freeStack(stackDec);
     masm.ret();
+#else
+    const unsigned arrayLength = Max<size_t>(1, exit.sig().args().length());
+    const unsigned arraySize = arrayLength * sizeof(Value);
+    const unsigned reserveSize = AlignBytes(arraySize, StackAlignment) +
+        ShadowStackSpace;
+    const unsigned callerArgsOffset = reserveSize + NativeFrameSize + sizeof(int32_t);
+    masm.setFramePushed(0);
+    masm.Push(lr);
+    masm.reserveStack(reserveSize + sizeof(int32_t));
+
+    
+    FillArgumentArray(m, exit.sig().args(), ShadowStackSpace, callerArgsOffset, IntArgReg0);
+
+    
+    Register activation = IntArgReg3;
+    LoadAsmJSActivationIntoRegister(masm, activation);
+
+    LoadJSContextFromActivation(masm, activation, IntArgReg0);
+
+    
+    masm.mov(ImmWord(exitIndex), IntArgReg1);
+
+    
+    masm.mov(ImmWord(exit.sig().args().length()), IntArgReg2);
+
+    
+    Address argv(StackPointer, ShadowStackSpace);
+    masm.lea(Operand(argv), IntArgReg3);
+
+    AssertStackAlignment(masm);
+    switch (exit.sig().retType().which()) {
+      case RetType::Void:
+        masm.call(AsmJSImm_InvokeFromAsmJS_Ignore);
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
+        break;
+      case RetType::Signed:
+        masm.call(AsmJSImm_InvokeFromAsmJS_ToInt32);
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
+        masm.unboxInt32(argv, ReturnReg);
+        break;
+      case RetType::Double:
+        masm.call(AsmJSImm_InvokeFromAsmJS_ToNumber);
+        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
+        masm.loadDouble(argv, ReturnFloatReg);
+        break;
+      case RetType::Float:
+        MOZ_ASSUME_UNREACHABLE("Float32 shouldn't be returned from a FFI");
+        break;
+    }
+
+    masm.freeStack(reserveSize + sizeof(int32_t));
+    masm.ret();
+#endif
 }
 
 static void
@@ -6408,6 +6454,9 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
 
     
     
+    unsigned arraySize = sizeof(Value);
+    unsigned stackDec = StackDecrementForCall(masm, callArgTypes, arraySize);
+    masm.reserveStack(stackDec);
 
     
     unsigned offsetToArgv = StackArgBytes(callArgTypes);
@@ -6455,6 +6504,8 @@ GenerateOOLConvert(ModuleCompiler &m, RetType retType, Label *throwLabel)
       default:
           MOZ_ASSUME_UNREACHABLE("Unsupported convert type");
     }
+
+    masm.freeStack(stackDec);
 }
 
 static void
@@ -6466,57 +6517,29 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     m.setIonExitOffset(exitIndex);
     masm.setFramePushed(0);
 
-#if defined(JS_CODEGEN_X64)
-    masm.Push(HeapReg);
-#elif defined(JS_CODEGEN_ARM)
-    
-    
-    
-    
-    masm.PushRegsInMask(RegisterSet(GeneralRegisterSet((1<<GlobalReg.code()) |
-                                                       (1<<HeapReg.code()) |
-                                                       (1<<lr.code())),
-                                    FloatRegisterSet(uint32_t(0))));
-#endif
-
-    
-    
-    
-    
-    
-    unsigned argBytes = 3 * sizeof(size_t) + (1 + exit.sig().args().length()) * sizeof(Value);
-
-    
-    
-    
-    
-    
-    unsigned offsetToArgs = 0;
+    RegisterSet restoreSet = RegisterSet::Intersect(RegisterSet::All(),
+                                                    RegisterSet::Not(RegisterSet::Volatile()));
 #if defined(JS_CODEGEN_ARM)
-    offsetToArgs += sizeof(size_t);
+    masm.Push(lr);
 #endif
-
-    unsigned stackDecForIonCall = StackDecrementForCall(masm, argBytes + offsetToArgs);
-
-    
-    
-    
-    MIRType typeArray[] = { MIRType_Pointer, MIRType_Pointer }; 
-    MIRTypeVector callArgTypes(m.cx());
-    callArgTypes.infallibleAppend(typeArray, ArrayLength(typeArray));
-    unsigned stackDecForOOLCall = StackDecrementForCall(masm, callArgTypes, sizeof(Value));
+    masm.PushRegsInMask(restoreSet);
 
     
-    unsigned stackDec = Max(stackDecForIonCall, stackDecForOOLCall);
-
-    masm.reserveStack(stackDec);
-    AssertStackAlignment(masm);
+    
 
     
-    size_t argOffset = offsetToArgs;
-    uint32_t descriptor = MakeFrameDescriptor(masm.framePushed(), JitFrame_Entry);
-    masm.storePtr(ImmWord(uintptr_t(descriptor)), Address(StackPointer, argOffset));
-    argOffset += sizeof(size_t);
+    MIRTypeVector emptyVector(m.cx());
+    unsigned argBytes = 3 * sizeof(size_t) + (1 + exit.sig().args().length()) * sizeof(Value);
+    unsigned extraBytes = 0;
+#if defined(JS_CODEGEN_ARM)
+    extraBytes += sizeof(size_t);
+#endif
+    unsigned stackDec = StackDecrementForCall(masm, emptyVector, argBytes + extraBytes);
+    masm.reserveStack(stackDec - extraBytes);
+
+    
+    uint32_t descriptor = MakeFrameDescriptor(masm.framePushed() + extraBytes, JitFrame_Entry);
+    masm.storePtr(ImmWord(uintptr_t(descriptor)), Address(StackPointer, 0));
 
     
     Register callee = ABIArgGenerator::NonArgReturnVolatileReg0;
@@ -6538,26 +6561,24 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     masm.loadPtr(Address(callee, offsetof(AsmJSModule::ExitDatum, fun)), callee);
 
     
-    masm.storePtr(callee, Address(StackPointer, argOffset));
-    argOffset += sizeof(size_t);
+    masm.storePtr(callee, Address(StackPointer, sizeof(size_t)));
 
     
     unsigned argc = exit.sig().args().length();
-    masm.storePtr(ImmWord(uintptr_t(argc)), Address(StackPointer, argOffset));
-    argOffset += sizeof(size_t);
+    masm.storePtr(ImmWord(uintptr_t(argc)), Address(StackPointer, 2 * sizeof(size_t)));
 
     
-    masm.storeValue(UndefinedValue(), Address(StackPointer, argOffset));
-    argOffset += sizeof(Value);
+    masm.storeValue(UndefinedValue(), Address(StackPointer, 3 * sizeof(size_t)));
 
     
+    unsigned offsetToArgs = 3 * sizeof(size_t) + sizeof(Value);
     unsigned offsetToCallerStackArgs = masm.framePushed();
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     offsetToCallerStackArgs += NativeFrameSize;
+#else
+    offsetToCallerStackArgs += ShadowStackSpace;
 #endif
-    FillArgumentArray(m, exit.sig().args(), argOffset, offsetToCallerStackArgs, scratch);
-    argOffset += exit.sig().args().length() * sizeof(Value);
-    JS_ASSERT(argOffset == offsetToArgs + argBytes);
+    FillArgumentArray(m, exit.sig().args(), offsetToArgs, offsetToCallerStackArgs, scratch);
 
     
     Label done, oolConvert;
@@ -6569,94 +6590,36 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     masm.branchIfFunctionHasNoScript(callee, &ionFailed);
 #endif
 
-    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
-    masm.loadBaselineOrIonNoArgCheck(callee, callee, SequentialExecution, maybeDebugBreakpoint);
+    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), scratch);
+    masm.loadBaselineOrIonNoArgCheck(scratch, scratch, SequentialExecution, maybeDebugBreakpoint);
 
-    AssertStackAlignment(masm);
-
-    {
-        
-        
-        
-        
-        JS_ASSERT(callee == AsmJSIonExitRegCallee);
-        Register reg0 = AsmJSIonExitRegE0;
-        Register reg1 = AsmJSIonExitRegE1;
-        Register reg2 = AsmJSIonExitRegE2;
-        Register reg3 = AsmJSIonExitRegE3;
-
-        LoadAsmJSActivationIntoRegister(masm, reg0);
-
-        
-        
-        
-        
-        
-        
-        
-        
-        size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
-                                    PerThreadData::offsetOfActivation();
-        size_t offsetOfIonTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, ionTop);
-        size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
-                                      offsetof(PerThreadData, jitJSContext);
-        masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg3);
-        masm.loadPtr(Address(reg3, JSContext::offsetOfRuntime()), reg0);
-        masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
-        masm.store8(Imm32(1), Address(reg1, JitActivation::offsetOfActiveUint8()));
-        masm.loadPtr(Address(reg0, offsetOfIonTop), reg2);
-        masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevIonTop()));
-        masm.loadPtr(Address(reg0, offsetOfJitJSContext), reg2);
-        masm.storePtr(reg2, Address(reg1, JitActivation::offsetOfPrevJitJSContext()));
-        masm.storePtr(reg3, Address(reg0, offsetOfJitJSContext));
-    }
+    LoadAsmJSActivationIntoRegister(masm, callee);
+    masm.push(scratch);
+    masm.setupUnalignedABICall(1, scratch);
+    masm.passABIArg(callee);
+    masm.callWithABI(AsmJSImm_EnableActivationFromAsmJS);
+    masm.pop(scratch);
 
     
-    AssertStackAlignment(masm);
-#if defined(JS_CODEGEN_ARM)
-    masm.ma_callIonNoPush(callee);
+#if defined(JS_CODEGEN_ARM) && defined(DEBUG)
     
-    
-    masm.subPtr(Imm32(4), sp);
-#else
-    masm.callIon(callee);
+    masm.Push(scratch);
 #endif
     AssertStackAlignment(masm);
+#if defined(JS_CODEGEN_ARM) && defined(DEBUG)
+    masm.freeStack(sizeof(size_t));
+#endif
+    masm.callIon(scratch);
+    masm.freeStack(stackDec - extraBytes);
 
-    {
-        
-        
-        
-        
-        JS_ASSERT(JSReturnReg_Data == AsmJSIonExitRegReturnData);
-        JS_ASSERT(JSReturnReg_Type == AsmJSIonExitRegReturnType);
-        Register reg0 = AsmJSIonExitRegD0;
-        Register reg1 = AsmJSIonExitRegD1;
-        Register reg2 = AsmJSIonExitRegD2;
-
-        LoadAsmJSActivationIntoRegister(masm, reg0);
-
-        
-        
-        
-        
-        
-        
-        
-        size_t offsetOfActivation = offsetof(JSRuntime, mainThread) +
-                                    PerThreadData::offsetOfActivation();
-        size_t offsetOfIonTop = offsetof(JSRuntime, mainThread) + offsetof(PerThreadData, ionTop);
-        size_t offsetOfJitJSContext = offsetof(JSRuntime, mainThread) +
-                                      offsetof(PerThreadData, jitJSContext);
-        masm.loadPtr(Address(reg0, AsmJSActivation::offsetOfContext()), reg0);
-        masm.loadPtr(Address(reg0, JSContext::offsetOfRuntime()), reg0);
-        masm.loadPtr(Address(reg0, offsetOfActivation), reg1);
-        masm.store8(Imm32(0), Address(reg1, JitActivation::offsetOfActiveUint8()));
-        masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevIonTop()), reg2);
-        masm.storePtr(reg2, Address(reg0, offsetOfIonTop));
-        masm.loadPtr(Address(reg1, JitActivation::offsetOfPrevJitJSContext()), reg2);
-        masm.storePtr(reg2, Address(reg0, offsetOfJitJSContext));
-    }
+    masm.push(JSReturnReg_Type);
+    masm.push(JSReturnReg_Data);
+    LoadAsmJSActivationIntoRegister(masm, callee);
+    masm.setupUnalignedABICall(1, scratch);
+    masm.passABIArg(callee);
+    masm.callWithABI(AsmJSImm_DisableActivationFromAsmJS);
+    masm.pop(JSReturnReg_Data);
+    masm.pop(JSReturnReg_Type);
 
 #ifdef DEBUG
     masm.branchTestMagicValue(Assembler::Equal, JSReturnOperand, JS_ION_ERROR, throwLabel);
@@ -6682,20 +6645,8 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     }
 
     masm.bind(&done);
-    masm.freeStack(stackDec);
-#if defined(JS_CODEGEN_ARM)
-    masm.ma_vimm(GenericNaN(), NANReg);
-    masm.PopRegsInMask(RegisterSet(GeneralRegisterSet((1<<GlobalReg.code()) |
-                                                      (1<<HeapReg.code()) |
-                                                      (1<<pc.code())),
-                                   FloatRegisterSet(uint32_t(0))));
-#else
-# if defined(JS_CODEGEN_X64)
-    masm.Pop(HeapReg);
-# endif
+    masm.PopRegsInMask(restoreSet);
     masm.ret();
-#endif
-    JS_ASSERT(masm.framePushed() == 0);
 
     
     if (oolConvert.used()) {
