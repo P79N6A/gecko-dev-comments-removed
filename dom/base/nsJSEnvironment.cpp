@@ -181,7 +181,7 @@ static uint32_t sCCollectedWaitingForGC;
 static uint32_t sLikelyShortLivingObjectsNeedingGC;
 static bool sPostGCEventsToConsole;
 static bool sPostGCEventsToObserver;
-static uint32_t sCCTimerFireCount = 0;
+static int32_t sCCTimerFireCount = 0;
 static uint32_t sMinForgetSkippableTime = UINT32_MAX;
 static uint32_t sMaxForgetSkippableTime = 0;
 static uint32_t sTotalForgetSkippableTime = 0;
@@ -2421,7 +2421,8 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
   
   
   
-  uint32_t numEarlyTimerFires = ccDelay / NS_CC_SKIPPABLE_DELAY - 2;
+  
+  int32_t numEarlyTimerFires = std::max((int32_t)ccDelay / NS_CC_SKIPPABLE_DELAY - 2, 1);
   bool isLateTimerFire = sCCTimerFireCount > numEarlyTimerFires;
   uint32_t suspected = nsCycleCollector_suspectedCount();
   if (isLateTimerFire && ShouldTriggerCC(suspected)) {
