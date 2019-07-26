@@ -2822,10 +2822,13 @@ def infallibleForMember(member, type, descriptorProvider):
                                   memberIsCreator(member))[1]
 
 def typeNeedsCx(type):
-    return (type is not None and
-            (type.isCallback() or type.isAny() or type.isObject() or
-             (type.isUnion() and
-              any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes))))
+    if type is None:
+        return False
+    if type.isSequence() or type.isArray():
+        type = type.inner
+    if type.isUnion():
+        return any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes)
+    return type.isCallback() or type.isAny() or type.isObject()
 
 
 
@@ -2858,7 +2861,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
         
         
         return CGGeneric("JSObject*"), False
-    if returnType.tag() is IDLType.Tags.any:
+    if returnType.isAny():
         return CGGeneric("JS::Value"), False
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("JSObject*"), False
