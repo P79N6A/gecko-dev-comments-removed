@@ -44,8 +44,12 @@ public:
   DASHDecoder();
   ~DASHDecoder();
 
-  
-  MediaDecoder* Clone() { return nullptr; }
+  MediaDecoder* Clone() MOZ_OVERRIDE {
+    if (!IsDASHEnabled()) {
+      return nullptr;
+    }
+    return new DASHDecoder();
+  }
 
   
   
