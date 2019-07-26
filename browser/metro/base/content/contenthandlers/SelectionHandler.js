@@ -32,14 +32,6 @@ dump("### SelectionHandler.js loaded\n");
 
 
 
-
-
-
-
-
-
-
-
 var SelectionHandler = {
   _debugEvents: false,
   _cache: {},
@@ -65,6 +57,10 @@ var SelectionHandler = {
     addMessageListener("Browser:SelectionClear", this);
     addMessageListener("Browser:SelectionCopy", this);
     addMessageListener("Browser:SelectionDebug", this);
+    addMessageListener("Browser:CaretAttach", this);
+    addMessageListener("Browser:CaretUpdate", this);
+    addMessageListener("Browser:CaretPosition", this);
+    addMessageListener("Browser:CaretPositionEnd", this);
   },
 
   shutdown: function shutdown() {
@@ -79,14 +75,17 @@ var SelectionHandler = {
     removeMessageListener("Browser:SelectionClear", this);
     removeMessageListener("Browser:SelectionCopy", this);
     removeMessageListener("Browser:SelectionDebug", this);
-  },
-
-  isActive: function isActive() {
-    return (this._contentWindow != null);
+    removeMessageListener("Browser:CaretAttach", this);
+    removeMessageListener("Browser:CaretUpdate", this);
+    removeMessageListener("Browser:CaretPosition", this);
+    removeMessageListener("Browser:CaretPositionEnd", this);
   },
 
   
 
+
+
+  
 
 
 
@@ -105,7 +104,7 @@ var SelectionHandler = {
   _onSelectionStart: function _onSelectionStart(aX, aY) {
     
     if (!this._initTargetInfo(aX, aY)) {
-      this._onFail("failed to get frame offset");
+      this._onFail("failed to get target information");
       return;
     }
 
@@ -214,6 +213,68 @@ var SelectionHandler = {
     this._updateSelectionUI(true, true);
   },
 
+   
+
+
+
+
+
+
+  _onCaretAttach: function _onCaretAttach(aX, aY) {
+    
+    if (!this._initTargetInfo(aX, aY)) {
+      this._onFail("failed to get target information");
+      return;
+    }
+
+    
+    if (!this._targetIsEditable || !Util.isTextInput(this._targetElement)) {
+      this._onFail("Unexpected, coordiates didn't find a text input element.");
+      return;
+    }
+
+    
+    let selection = this._getSelection();
+    if (!selection || !selection.isCollapsed) {
+      this._onFail("Unexpected, No selection or selection is not collapsed.");
+      return;
+    }
+
+    
+    this._updateSelectionUI(false, false, true);
+  },
+
+   
+
+
+
+
+
+
+  _onCaretPositionUpdate: function _onCaretPositionUpdate(aX, aY) {
+    this._onCaretMove(aX, aY);
+
+    
+    this._updateSelectionUI(false, false, true);
+  },
+
+   
+
+
+
+
+
+  _onCaretMove: function _onCaretMove(aX, aY) {
+    if (!this._targetIsEditable) {
+      this._onFail("Unexpected, caret position isn't supported with non-inputs.");
+      return;
+    }
+    let cp = this._contentWindow.document.caretPositionFromPoint(aX, aY);
+    let input = cp.offsetNode;
+    let offset = cp.offset;
+    input.selectionStart = input.selectionEnd = offset;
+  },
+
   
 
 
@@ -227,10 +288,10 @@ var SelectionHandler = {
       yPos: aMsg.yPos,
     };
 
-    let tapInSelection = (tap.xPos > this._cache.rect.left &&
-                          tap.xPos < this._cache.rect.right) &&
-                         (tap.yPos > this._cache.rect.top &&
-                          tap.yPos < this._cache.rect.bottom);
+    let tapInSelection = (tap.xPos > this._cache.selection.left &&
+                          tap.xPos < this._cache.selection.right) &&
+                         (tap.yPos > this._cache.selection.top &&
+                          tap.yPos < this._cache.selection.bottom);
     
     
     
@@ -334,12 +395,20 @@ var SelectionHandler = {
 
 
 
-  _updateSelectionUI: function _updateSelectionUI(aUpdateStart, aUpdateEnd) {
+
+
+
+
+
+
+
+  _updateSelectionUI: function _updateSelectionUI(aUpdateStart, aUpdateEnd,
+                                                  aUpdateCaret) {
     let selection = this._getSelection();
 
     
-    if (!selection || !selection.toString().trim().length) {
-      this._onFail("no text was present in the current selection");
+    if (!selection) {
+      this._onFail("no selection was present");
       return;
     }
 
@@ -349,6 +418,7 @@ var SelectionHandler = {
 
     this._cache.updateStart = aUpdateStart;
     this._cache.updateEnd = aUpdateEnd;
+    this._cache.updateCaret = aUpdateCaret || false;
 
     
     sendAsyncMessage("Content:SelectionRange", this._cache);
@@ -400,6 +470,8 @@ var SelectionHandler = {
                    this._cache.start.yPos + ")");
        Util.dumpLn("end:", "(" + this._cache.end.xPos + "," +
                    this._cache.end.yPos + ")");
+       Util.dumpLn("caret:", "(" + this._cache.caret.xPos + "," +
+                   this._cache.caret.yPos + ")");
     }
     this._restrictSelectionRectToEditBounds();
   },
@@ -417,19 +489,27 @@ var SelectionHandler = {
       this._cache.start.xPos = bounds.left;
     if (this._cache.end.xPos < bounds.left)
       this._cache.end.xPos = bounds.left;
+    if (this._cache.caret.xPos < bounds.left)
+      this._cache.caret.xPos = bounds.left;
     if (this._cache.start.xPos > bounds.right)
       this._cache.start.xPos = bounds.right;
     if (this._cache.end.xPos > bounds.right)
       this._cache.end.xPos = bounds.right;
+    if (this._cache.caret.xPos > bounds.right)
+      this._cache.caret.xPos = bounds.right;
 
     if (this._cache.start.yPos < bounds.top)
       this._cache.start.yPos = bounds.top;
     if (this._cache.end.yPos < bounds.top)
       this._cache.end.yPos = bounds.top;
+    if (this._cache.caret.yPos < bounds.top)
+      this._cache.caret.yPos = bounds.top;
     if (this._cache.start.yPos > bounds.bottom)
       this._cache.start.yPos = bounds.bottom;
     if (this._cache.end.yPos > bounds.bottom)
       this._cache.end.yPos = bounds.bottom;
+    if (this._cache.caret.yPos > bounds.bottom)
+      this._cache.caret.yPos = bounds.bottom;
   },
 
   
@@ -931,6 +1011,18 @@ var SelectionHandler = {
         this._onSelectionAttach(json.xPos, json.yPos);
       break;
 
+      case "Browser:CaretAttach":
+        this._onCaretAttach(json.xPos, json.yPos);
+      break;
+
+      case "Browser:CaretMove":
+        this._onCaretMove(json.caret.xPos, json.caret.yPos);
+      break;
+
+      case "Browser:CaretUpdate":
+        this._onCaretPositionUpdate(json.caret.xPos, json.caret.yPos);
+      break;
+
       case "Browser:SelectionClose":
         this._onSelectionClose();
         break;
@@ -976,8 +1068,9 @@ var SelectionHandler = {
 
   _extractClientRectFromRange: function _extractClientRectFromRange(aRange) {
     let cache = {
-      start: {}, end: {},
-      rect: { left: 0, top: 0, right: 0, bottom: 0 }
+      start: {}, end: {}, caret: {},
+      selection: { left: 0, top: 0, right: 0, bottom: 0 },
+      element: { left: 0, top: 0, right: 0, bottom: 0 }
     };
 
     
@@ -989,6 +1082,7 @@ var SelectionHandler = {
       if (!startSet && !Util.isEmptyDOMRect(rects[idx])) {
         cache.start.xPos = rects[idx].left + this._contentOffset.x;
         cache.start.yPos = rects[idx].bottom + this._contentOffset.y;
+        cache.caret = cache.start;
         startSet = true;
         if (this. _debugOptions.dumpRanges) Util.dumpLn("start set");
       }
@@ -999,11 +1093,19 @@ var SelectionHandler = {
       }
     }
 
+    
     let r = aRange.getBoundingClientRect();
-    cache.rect.left = r.left + this._contentOffset.x;
-    cache.rect.top = r.top + this._contentOffset.y;
-    cache.rect.right = r.right + this._contentOffset.x;
-    cache.rect.bottom = r.bottom + this._contentOffset.y;
+    cache.selection.left = r.left + this._contentOffset.x;
+    cache.selection.top = r.top + this._contentOffset.y;
+    cache.selection.right = r.right + this._contentOffset.x;
+    cache.selection.bottom = r.bottom + this._contentOffset.y;
+
+    
+    r = this._getTargetClientRect();
+    cache.element.left = r.left + this._contentOffset.x;
+    cache.element.top = r.top + this._contentOffset.y;
+    cache.element.right = r.right + this._contentOffset.x;
+    cache.element.bottom = r.bottom + this._contentOffset.y;
 
     if (!rects.length) {
       Util.dumpLn("no rects in selection range. unexpected.");
@@ -1104,11 +1206,11 @@ var SelectionHandler = {
   },
 
   _getSelection: function _getSelection() {
-    if (this._targetElement instanceof Ci.nsIDOMNSEditableElement)
+    if (this._targetElement instanceof Ci.nsIDOMNSEditableElement) {
       return this._targetElement
                  .QueryInterface(Ci.nsIDOMNSEditableElement)
                  .editor.selection;
-    else if (this._contentWindow)
+    } else if (this._contentWindow)
       return this._contentWindow.getSelection();
     return null;
   },

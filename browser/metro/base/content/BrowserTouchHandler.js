@@ -16,10 +16,11 @@ const BrowserTouchHandler = {
 
     
     messageManager.addMessageListener("Content:ContextMenu", this);
+    messageManager.addMessageListener("Content:SelectionCaret", this);
   },
 
   
-  onContentContextMenu: function onContentContextMenu(aMessage) {
+  _onContentContextMenu: function _onContentContextMenu(aMessage) {
     
     
     
@@ -54,6 +55,16 @@ const BrowserTouchHandler = {
 
 
 
+  _onCaretSelectionStarted: function _onCaretSelectionStarted(aMessage) {
+    SelectionHelperUI.attachToCaret(aMessage.target,
+                                    aMessage.json.xPos,
+                                    aMessage.json.yPos);
+  },
+
+  
+
+
+
   handleEvent: function handleEvent(aEvent) {
     
     if (this._debugEvents)
@@ -73,7 +84,10 @@ const BrowserTouchHandler = {
     switch (aMessage.name) {
       
       case "Content:ContextMenu":
-        this.onContentContextMenu(aMessage);
+        this._onContentContextMenu(aMessage);
+        break;
+      case "Content:SelectionCaret":
+        this._onCaretSelectionStarted(aMessage);
         break;
     }
   },
