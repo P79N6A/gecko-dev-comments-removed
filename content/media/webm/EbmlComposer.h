@@ -47,11 +47,21 @@ public:
                      uint32_t aFlag = 0);
 private:
   
+  void FinishMetadata();
+  
   void FinishCluster();
   
   nsTArray<nsTArray<uint8_t> > mClusterBuffs;
   
   nsTArray<nsTArray<uint8_t> > mClusterCanFlushBuffs;
+
+  
+  enum {
+    FLUSH_NONE = 0,
+    FLUSH_METADATA = 1 << 0,
+    FLUSH_CLUSTER = 1 << 1
+  };
+  uint32_t mFlushState;
   
   uint32_t mClusterHeaderIndex;
   
