@@ -48,8 +48,13 @@ gPrefixedProperties = [
     "column-width"
 ]
 
+
+
+
+
+
+
 gDefaultPreferences = {
-    "css3-conditional": "pref(layout.css.supports-rule.enabled,true)"
 }
 
 gLog = None

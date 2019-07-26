@@ -2616,13 +2616,6 @@ OldBindingConstructorEnabled(const nsGlobalNameStruct *aStruct,
   }
 
   
-  if (aStruct->mDOMClassInfoID == eDOMClassInfo_CSSSupportsRule_id) {
-    if (!CSSSupportsRule::PrefEnabled()) {
-      return false;
-    }
-  }
-
-  
   if (aStruct->mDOMClassInfoID == eDOMClassInfo_CSSFontFeatureValuesRule_id) {
     return nsCSSFontFeatureValuesRule::PrefEnabled();
   }
