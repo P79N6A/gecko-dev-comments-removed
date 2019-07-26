@@ -4,7 +4,7 @@
 
 
 #include <algorithm>
-#include <ostream>
+#include <iostream>
 
 #include "base/string_piece.h"
 
