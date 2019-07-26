@@ -107,8 +107,8 @@ var WebrtcUI = {
           allowedDevices.AppendElement(audioDevices[audioId]);
 
         let videoId = 0;
-        if (inputs && inputs.videoDevice != undefined)
-          videoId = inputs.videoDevice;
+        if (inputs && inputs.videoSource != undefined)
+          videoId = inputs.videoSource;
         if (videoDevices[videoId])
           allowedDevices.AppendElement(videoDevices[videoId]);
 
@@ -198,6 +198,7 @@ var WebrtcUI = {
       
       if (audioDevices.length > 0)
         extraItems = [ Strings.browser.GetStringFromName("getUserMedia.videoSource.none") ];
+      
       this._addDevicesToOptions(videoDevices, "videoSource", options, extraItems);
     }
 
