@@ -437,8 +437,7 @@ public:
     nsCOMPtr<nsIDOMWindow> window =
       do_QueryInterface(tabParent->GetBrowserDOMWindow());
     WindowIdentifier newID(id, window);
-    
-    hal::Vibrate(nsTArray<uint32_t>(pattern), newID);
+    hal::Vibrate(pattern, newID);
     return true;
   }
 
