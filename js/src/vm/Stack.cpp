@@ -98,8 +98,8 @@ StackFrame::initExecuteFrame(UnrootedScript script, StackFrame *prevLink, Abstra
 
 #ifdef JS_ION
     
-    prevBaselineFrame_ = prev.isBaselineFrame() ? prev.asBaselineFrame() : NULL;
-    JS_ASSERT_IF(prevBaselineFrame_, isDebuggerFrame());
+    JS_ASSERT_IF(isDebuggerFrame(), isEvalFrame());
+    prevBaselineFrame_ = (isEvalFrame() && prev.isBaselineFrame()) ? prev.asBaselineFrame() : NULL;
 #endif
 
 #ifdef DEBUG
@@ -1078,6 +1078,7 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
     CallArgsList *evalInFrameCalls = NULL;  
     MaybeExtend extend;
     StackFrame *prevLink;
+    AbstractFramePtr prev = NullFramePtr();
     if (evalInFrame) {
         
         AllFramesIter frameIter(cx->runtime);
@@ -1098,10 +1099,18 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
         JS_ASSERT(iter.abstractFramePtr() == evalInFrame);
         evalInFrameCalls = iter.data_.calls_;
         prevLink = iter.data_.fp_;
+        prev = evalInFrame;
         extend = CANT_EXTEND;
     } else {
         prevLink = maybefp();
         extend = CAN_EXTEND;
+        if (maybefp()) {
+            ScriptFrameIter iter(cx);
+            if (!iter.isIonOptimizedJS()) {
+                
+                prev = iter.abstractFramePtr();
+            }
+        }
     }
 
     unsigned nvars = 2  + VALUES_PER_STACK_FRAME + script->nslots;
@@ -1109,7 +1118,6 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
     if (!firstUnused)
         return false;
 
-    AbstractFramePtr prev = evalInFrame ? evalInFrame : maybefp();
     StackFrame *fp = reinterpret_cast<StackFrame *>(firstUnused + 2);
     fp->initExecuteFrame(script, prevLink, prev, seg_->maybeRegs(), thisv, scopeChain, type);
     fp->initVarsToUndefined();
@@ -1626,6 +1634,11 @@ StackIter::popBaselineDebuggerFrame()
     settleOnNewState();
 
     
+    while (data_.state_ == NATIVE) {
+        popCall();
+        settleOnNewState();
+    }
+
     JS_ASSERT(data_.state_ == ION);
     while (!data_.ionFrames_.isBaselineJS() || data_.ionFrames_.baselineFrame() != prevBaseline)
         popIonFrame();

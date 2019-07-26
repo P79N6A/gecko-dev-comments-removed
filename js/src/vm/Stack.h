@@ -433,6 +433,7 @@ class StackFrame
 
 #ifdef JS_ION
     ion::BaselineFrame  *prevBaselineFrame_; 
+
 #endif
 
     static void staticAsserts() {
@@ -609,10 +610,16 @@ class StackFrame
 
 
     ion::BaselineFrame *prevBaselineFrame() const {
-        JS_ASSERT(isDebuggerFrame());
+        JS_ASSERT(isEvalFrame());
         return prevBaselineFrame_;
     }
 #endif
+
+    AbstractFramePtr evalPrev() const {
+        if (isEvalFrame() && prevBaselineFrame())
+            return prevBaselineFrame();
+        return prev();
+    }
 
     inline void resetGeneratorPrev(JSContext *cx);
 
