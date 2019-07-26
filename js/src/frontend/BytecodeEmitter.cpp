@@ -6740,36 +6740,37 @@ SetSrcNoteOffset(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned index, uns
     return true;
 }
 
-#ifdef DEBUG_notme
-#define DEBUG_srcnotesize
-#endif
 
-#ifdef DEBUG_srcnotesize
-#define NBINS 10
-static uint32_t hist[NBINS];
 
-static void
-DumpSrcNoteSizeHist()
+
+
+
+
+
+
+
+
+ptrdiff_t
+BytecodeEmitter::countFinalSourceNotes()
 {
-    static FILE *fp;
-    int i, n;
-
-    if (!fp) {
-        fp = fopen("/tmp/srcnotes.hist", "w");
-        if (!fp)
-            return;
-        setvbuf(fp, nullptr, _IONBF, 0);
+    ptrdiff_t diff = prologOffset() - prolog.lastNoteOffset;
+    ptrdiff_t cnt = prolog.notes.length() + main.notes.length() + 1;
+    if (prolog.notes.length() && prolog.currentLine != firstLine) {
+        if (diff > SN_DELTA_MASK)
+            cnt += JS_HOWMANY(diff - SN_DELTA_MASK, SN_XDELTA_MASK);
+        cnt += 2 + ((firstLine > SN_3BYTE_OFFSET_MASK) << 1);
+    } else if (diff > 0) {
+        if (main.notes.length()) {
+            jssrcnote *sn = main.notes.begin();
+            diff -= SN_IS_XDELTA(sn)
+                    ? SN_XDELTA_MASK - (*sn & SN_XDELTA_MASK)
+                    : SN_DELTA_MASK - (*sn & SN_DELTA_MASK);
+        }
+        if (diff > 0)
+            cnt += JS_HOWMANY(diff, SN_XDELTA_MASK);
     }
-    fprintf(fp, "SrcNote size histogram:\n");
-    for (i = 0; i < NBINS; i++) {
-        fprintf(fp, "%4u %4u ", JS_BIT(i), hist[i]);
-        for (n = (int) JS_HOWMANY(hist[i], 10); n > 0; --n)
-            fputc('*', fp);
-        fputc('\n', fp);
-    }
-    fputc('\n', fp);
+    return cnt;
 }
-#endif
 
 
 
