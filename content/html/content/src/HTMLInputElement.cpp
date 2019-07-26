@@ -3314,6 +3314,8 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
         nsNumberControlFrame* numberControlFrame =
           do_QueryFrame(GetPrimaryFrame());
         if (numberControlFrame) {
+          bool oldNumberControlSpinTimerSpinsUpValue =
+                 mNumberControlSpinnerSpinsUp;
           switch (numberControlFrame->GetSpinButtonForPointerEvent(
                     aVisitor.mEvent->AsMouseEvent())) {
           case nsNumberControlFrame::eSpinButtonUp:
@@ -3324,6 +3326,14 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
             mNumberControlSpinnerSpinsUp = false;
             stopSpin = false;
             break;
+          }
+          if (mNumberControlSpinnerSpinsUp !=
+                oldNumberControlSpinTimerSpinsUpValue) {
+            nsNumberControlFrame* numberControlFrame =
+              do_QueryFrame(GetPrimaryFrame());
+            if (numberControlFrame) {
+              numberControlFrame->SpinnerStateChanged();
+            }
           }
         }
         if (stopSpin) {
@@ -3345,6 +3355,15 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
           if (numberControlFrame) {
             numberControlFrame->HandleFocusEvent(aVisitor.mEvent);
           }
+        }
+        if (frame->IsThemed()) {
+          
+          
+          
+          
+          
+          
+          frame->InvalidateFrame();
         }
       }
     } else if (aVisitor.mEvent->message == NS_KEY_UP) {
@@ -3497,6 +3516,12 @@ HTMLInputElement::StartNumberControlSpinnerSpin()
   
   
   nsIPresShell::SetCapturingContent(this, CAPTURE_IGNOREALLOWED);
+
+  nsNumberControlFrame* numberControlFrame =
+    do_QueryFrame(GetPrimaryFrame());
+  if (numberControlFrame) {
+    numberControlFrame->SpinnerStateChanged();
+  }
 }
 
 void
@@ -3512,6 +3537,12 @@ HTMLInputElement::StopNumberControlSpinnerSpin()
     mNumberControlSpinnerIsSpinning = false;
 
     FireChangeEventIfNeeded();
+
+    nsNumberControlFrame* numberControlFrame =
+      do_QueryFrame(GetPrimaryFrame());
+    if (numberControlFrame) {
+      numberControlFrame->SpinnerStateChanged();
+    }
   }
 }
 
