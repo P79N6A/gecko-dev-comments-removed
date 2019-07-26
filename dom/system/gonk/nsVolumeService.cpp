@@ -249,7 +249,8 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
                                          -1    ,
                                          true  ,
                                          false ,
-                                         false );
+                                         false ,
+                                         true  );
   vol.forget(aResult);
   return NS_OK;
 }
@@ -382,8 +383,8 @@ nsVolumeService::CreateFakeVolume(const nsAString& name, const nsAString& path)
                                           -1    ,
                                           true  ,
                                           false ,
-                                          false );
-    vol->SetIsFake(true);
+                                          false ,
+                                          true  );
     vol->LogState();
     UpdateVolume(vol.get());
     return NS_OK;

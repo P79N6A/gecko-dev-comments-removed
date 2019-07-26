@@ -30,13 +30,13 @@ public:
   nsVolume(const nsAString& aName, const nsAString& aMountPoint,
            const int32_t& aState, const int32_t& aMountGeneration,
            const bool& aIsMediaPresent, const bool& aIsSharing,
-           const bool& aIsFormatting)
+           const bool& aIsFormatting, const bool& aIsFake)
     : mName(aName),
       mMountPoint(aMountPoint),
       mState(aState),
       mMountGeneration(aMountGeneration),
       mMountLocked(false),
-      mIsFake(false),
+      mIsFake(aIsFake),
       mIsMediaPresent(aIsMediaPresent),
       mIsSharing(aIsSharing),
       mIsFormatting(aIsFormatting)
@@ -82,7 +82,7 @@ public:
   typedef nsTArray<nsRefPtr<nsVolume> > Array;
 
 private:
-  ~nsVolume() {}
+  virtual ~nsVolume() {}  
 
   friend class nsVolumeService; 
   void UpdateMountLock(const nsAString& aMountLockState);
