@@ -193,10 +193,6 @@ SocialProvider.prototype = {
 
   
   
-  port: null,
-
-  
-  
   workerAPI: null,
 
   
@@ -261,11 +257,9 @@ SocialProvider.prototype = {
   _activate: function _activate() {
     
     
-    let workerAPIPort = this._getWorkerPort();
+    let workerAPIPort = this.getWorkerPort();
     if (workerAPIPort)
       this.workerAPI = new WorkerAPI(this, workerAPIPort);
-
-    this.port = this._getWorkerPort();
   },
 
   _terminate: function _terminate() {
@@ -276,7 +270,9 @@ SocialProvider.prototype = {
         Cu.reportError("SocialProvider FrameWorker termination failed: " + e);
       }
     }
-    this.port = null;
+    if (this.workerAPI) {
+      this.workerAPI.terminate();
+    }
     this.workerAPI = null;
   },
 
@@ -288,14 +284,9 @@ SocialProvider.prototype = {
 
 
 
-  _getWorkerPort: function _getWorkerPort(window) {
+  getWorkerPort: function getWorkerPort(window) {
     if (!this.workerURL || !this.enabled)
       return null;
-    try {
-      return getFrameWorkerHandle(this.workerURL, window).port;
-    } catch (ex) {
-      Cu.reportError("SocialProvider: retrieving worker port failed:" + ex);
-      return null;
-    }
+    return getFrameWorkerHandle(this.workerURL, window).port;
   }
 }

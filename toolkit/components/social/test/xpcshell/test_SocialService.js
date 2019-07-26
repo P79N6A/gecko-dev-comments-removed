@@ -5,11 +5,12 @@
 Cu.import("resource://gre/modules/Services.jsm");
 
 function run_test() {
+  
+  
   let manifests = [
     { 
       name: "provider 1",
       origin: "https://example1.com",
-      workerURL: "https://example1.com/worker.js"
     },
     { 
       name: "provider 2",
