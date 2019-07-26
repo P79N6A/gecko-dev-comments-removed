@@ -296,6 +296,7 @@ const PanelUI = {
       tempPanel.setAttribute("id", "customizationui-widget-panel");
       tempPanel.setAttribute("class", "cui-widget-panel");
       tempPanel.setAttribute("level", "top");
+      tempPanel.setAttribute("context", "");
       document.getElementById(CustomizableUI.AREA_NAVBAR).appendChild(tempPanel);
       
       tempPanel.classList.toggle("cui-widget-panelWithFooter",
