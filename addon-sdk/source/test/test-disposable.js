@@ -1,7 +1,6 @@
 
 
 
-
 "use strict";
 
 const { Loader } = require("sdk/test/loader");

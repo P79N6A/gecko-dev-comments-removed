@@ -48,7 +48,6 @@ const { override, load } = loaderModule;
 
 
 function incompatibility(module) {
-
   let { metadata, id } = module;
 
   

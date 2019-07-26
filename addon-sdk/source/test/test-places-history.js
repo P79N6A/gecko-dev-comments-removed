@@ -87,39 +87,42 @@ exports.testSearchURL = function (assert, done) {
   });
 };
 
-exports.testSearchTimeRange = function (assert, done) {
-  let firstTime, secondTime;
-  addVisits([
-    'http://earlyvisit.org', 'http://earlyvisit.org/earlytown.html'
-  ]).then(searchP).then(results => {
-    firstTime = results[0].time;
-    var deferred = defer();
-    setTimeout(function () deferred.resolve(), 1000);
-    return deferred.promise;
-  }).then(() => {
-    return addVisits(['http://newvisit.org', 'http://newvisit.org/whoawhoa.html']);
-  }).then(searchP).then(results => {
-    results.filter(({url, time}) => {
-      if (/newvisit/.test(url)) secondTime = time;
-    });
-    return searchP({ from: firstTime - 1000 });
-  }).then(results => {
-    assert.equal(results.length, 4, 'should return all entries');
-    return searchP({ to: firstTime + 500 });
-  }).then(results => {
-    assert.equal(results.length, 2, 'should return only first entries');
-    results.map(item => {
-      assert.ok(/earlyvisit/.test(item.url), 'correct entry');
-    });
-    return searchP({ from: firstTime + 500 });
-  }).then(results => {
-    assert.equal(results.length, 2, 'should return only last entries');
-    results.map(item => {
-      assert.ok(/newvisit/.test(item.url), 'correct entry');
-    });
-    done();
-  });
-};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 exports.testSearchQuery = function (assert, done) {
   addVisits([
