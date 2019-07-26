@@ -1345,6 +1345,10 @@ abstract public class GeckoApp
     private void initialize() {
         mInitialized = true;
 
+        if (Build.VERSION.SDK_INT >= 11) {
+            
+            onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
+        }
         invalidateOptionsMenu();
 
         Intent intent = getIntent();
