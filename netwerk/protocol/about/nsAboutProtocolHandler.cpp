@@ -130,6 +130,17 @@ nsAboutProtocolHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
     
     nsCOMPtr<nsIAboutModule> aboutMod;
     nsresult rv = NS_GetAboutModule(uri, getter_AddRefs(aboutMod));
+
+    nsAutoCString path;
+    nsresult rv2 = NS_GetAboutModuleName(uri, path);
+    if (NS_SUCCEEDED(rv2) && path.EqualsLiteral("srcdoc")) {
+        
+        
+        
+        
+      rv = NS_ERROR_FACTORY_NOT_REGISTERED;
+    }
+
     if (NS_SUCCEEDED(rv)) {
         
         rv = aboutMod->NewChannel(uri, result);
