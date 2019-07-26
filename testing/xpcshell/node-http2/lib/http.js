@@ -143,6 +143,7 @@ var https = require('https');
 exports.STATUS_CODES = http.STATUS_CODES;
 exports.IncomingMessage = IncomingMessage;
 exports.OutgoingMessage = OutgoingMessage;
+exports.PROTOCOL_VERSION = implementedVersion;
 
 var deprecatedHeaders = [
   'connection',
@@ -156,6 +157,47 @@ var deprecatedHeaders = [
 
 
 var supportedProtocols = [implementedVersion, 'http/1.1', 'http/1.0'];
+
+
+
+var cipherSuites = [
+  'ECDHE-RSA-AES128-GCM-SHA256',
+  'ECDHE-ECDSA-AES128-GCM-SHA256',
+  'ECDHE-RSA-AES256-GCM-SHA384',
+  'ECDHE-ECDSA-AES256-GCM-SHA384',
+  'DHE-RSA-AES128-GCM-SHA256',
+  'DHE-DSS-AES128-GCM-SHA256',
+  'ECDHE-RSA-AES128-SHA256',
+  'ECDHE-ECDSA-AES128-SHA256',
+  'ECDHE-RSA-AES128-SHA',
+  'ECDHE-ECDSA-AES128-SHA',
+  'ECDHE-RSA-AES256-SHA384',
+  'ECDHE-ECDSA-AES256-SHA384',
+  'ECDHE-RSA-AES256-SHA',
+  'ECDHE-ECDSA-AES256-SHA',
+  'DHE-RSA-AES128-SHA256',
+  'DHE-RSA-AES128-SHA',
+  'DHE-DSS-AES128-SHA256',
+  'DHE-RSA-AES256-SHA256',
+  'DHE-DSS-AES256-SHA',
+  'DHE-RSA-AES256-SHA',
+  'kEDH+AESGCM',
+  'AES128-GCM-SHA256',
+  'AES256-GCM-SHA384',
+  'ECDHE-RSA-RC4-SHA',
+  'ECDHE-ECDSA-RC4-SHA',
+  'AES128',
+  'AES256',
+  'RC4-SHA',
+  'HIGH',
+  '!aNULL',
+  '!eNULL',
+  '!EXPORT',
+  '!DES',
+  '!3DES',
+  '!MD5',
+  '!PSK'
+].join(':');
 
 
 
@@ -368,6 +410,8 @@ function Server(options) {
     this._mode = 'tls';
     options.ALPNProtocols = supportedProtocols;
     options.NPNProtocols = supportedProtocols;
+    options.ciphers = options.ciphers || cipherSuites;
+    options.honorCipherOrder = (options.honorCipherOrder != false);
     this._server = https.createServer(options);
     this._originalSocketListeners = this._server.listeners('secureConnection');
     this._server.removeAllListeners('secureConnection');
@@ -633,6 +677,13 @@ OutgoingResponse.prototype.push = function push(options) {
   return new OutgoingResponse(pushStream);
 };
 
+OutgoingResponse.prototype.altsvc = function altsvc(host, port, protocolID, maxAge, origin) {
+    if (origin === undefined) {
+        origin = "";
+    }
+    this.stream.altsvc(host, port, protocolID, maxAge, origin);
+};
+
 
 
 OutgoingResponse.prototype.on = function on(event, listener) {
@@ -739,12 +790,13 @@ Agent.prototype.request = function request(options, callback) {
     options.NPNProtocols = supportedProtocols;
     options.servername = options.host; 
     options.agent = this._httpsAgent;
+    options.ciphers = options.ciphers || cipherSuites;
     var httpsRequest = https.request(options);
 
     httpsRequest.on('socket', function(socket) {
       var negotiatedProtocol = socket.alpnProtocol || socket.npnProtocol;
-      if (negotiatedProtocol !== undefined) {
-        negotiated();
+      if (negotiatedProtocol != null) { 
+        negotiated()
       } else {
         socket.on('secureConnect', negotiated);
       }
