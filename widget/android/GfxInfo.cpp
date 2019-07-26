@@ -382,7 +382,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
-        
         bool isWhitelisted =
           cManufacturer.Equals("htc", nsCaseInsensitiveCStringComparator()) ||
           (cManufacturer.Find("sony", true) != -1) ||
@@ -398,7 +397,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
             cModel.Equals("GT-S7500T", nsCaseInsensitiveCStringComparator()) ||
             cModel.Equals("GT-S7500L", nsCaseInsensitiveCStringComparator()) ||
             cModel.Equals("GT-S6500T", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()) ||
             cHardware.Equals("smdkc110", nsCaseInsensitiveCStringComparator()) ||
             cHardware.Equals("smdkc210", nsCaseInsensitiveCStringComparator()) ||
             cHardware.Equals("herring", nsCaseInsensitiveCStringComparator()) ||
@@ -445,7 +443,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
-        
         bool isWhitelisted =
           cModel.Equals("LT28h", nsCaseInsensitiveCStringComparator()) ||
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator()) ||
@@ -453,8 +450,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
 
         if (cModel.Find("SGH-I717", true) != -1 ||
             cModel.Find("SGH-I727", true) != -1 ||
-            cModel.Find("SGH-I757", true) != -1 ||
-            cModel.Find("SGH-T989", true) != -1)
+            cModel.Find("SGH-I757", true) != -1)
         {
           isWhitelisted = false;
         }
