@@ -698,7 +698,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                 if (newElement.isUndefined()) {
                     
                     bool succeeded;
-                    if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &succeeded))
+                    if (!JSObject::deleteGeneric(cx, obj, id, &succeeded))
                         return false;
                 } else {
                     
@@ -726,7 +726,7 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                 if (newElement.isUndefined()) {
                     
                     bool succeeded;
-                    if (!JSObject::deleteByValue(cx, obj, IdToValue(id), &succeeded))
+                    if (!JSObject::deleteGeneric(cx, obj, id, &succeeded))
                         return false;
                 } else {
                     
