@@ -35,7 +35,7 @@ RUN_TIMEOUT = 1.5 * 60 * 60
 
 
 
-OUTPUT_TIMEOUT = 60 
+OUTPUT_TIMEOUT = 60 * 5 
 
 def follow_file(filename):
     """
