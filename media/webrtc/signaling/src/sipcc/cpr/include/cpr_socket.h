@@ -691,6 +691,29 @@ cprSocket(uint32_t domain,
 
 
 
+
+
+
+
+
+
+cpr_status_e
+cprSocketPair(uint32_t domain,
+              uint32_t type,
+              uint32_t protocol,
+              cpr_socket_t sockets[2]);
+
+
+
+
+
+
+
+
+
+
+
+
 int
 cpr_inet_pton (int af, const char *src, void *dst);
 

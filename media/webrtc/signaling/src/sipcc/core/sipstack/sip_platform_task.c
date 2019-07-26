@@ -40,19 +40,6 @@
 
 #define MAX_SIP_CONNECTIONS (64 - 2)
 
-
-#ifdef __ANDROID__
-
-
-
-#define SIP_IPC_TEMP_BASEPATH "/data/local/tmp"
-#else
-#define SIP_IPC_TEMP_BASEPATH "/tmp"
-#endif
-#define SIP_IPC_TEMP_DIRNAME "SIP-XXXXXXXX"
-#define SIP_MSG_SERV_SUFFIX "/Main"
-#define SIP_MSG_CLNT_SUFFIX "/MsgQ"
-
 #define SIP_PAUSE_WAIT_IPC_LISTEN_READY_TIME   50  /* 50ms. */
 #define SIP_MAX_WAIT_FOR_IPC_LISTEN_READY    1200  /* 50 * 1200 = 1 minutes */
 
@@ -81,9 +68,6 @@ typedef struct sip_int_msg_t_ {
 
 
 static sip_int_msg_t sip_int_msgq_buf[MAX_SIP_MESSAGES] = {{0,0},{0,0}};
-
-static cpr_sockaddr_un_t sip_serv_sock_addr;
-static cpr_sockaddr_un_t sip_clnt_sock_addr;
 
 
 
@@ -158,97 +142,6 @@ sip_platform_task_init (void)
 
 
 
-static char sip_sock_dir[sizeof(sip_serv_sock_addr.sun_path)] = "\0";
-static size_t sip_sock_dir_len = 0;
-static uint32_t sip_get_sock_dir(char *out, uint32_t outlen,
-                                 const char *suffix) {
-    const char *fname = "sip_get_sock_dir";
-    
-    
-    if (!sip_sock_dir_len) {
-        char *tmpdir;
-        tmpdir = getenv("TMPDIR");
-        if (!tmpdir) {
-          tmpdir = SIP_IPC_TEMP_BASEPATH;
-        }
-        sip_sock_dir_len = PR_snprintf(sip_sock_dir, sizeof(sip_sock_dir),
-                                       "%s/%s", tmpdir, SIP_IPC_TEMP_DIRNAME);
-
-        
-        if (!mkdtemp(sip_sock_dir))
-        {
-          CCSIP_DEBUG_ERROR(SIP_F_PREFIX"mkdtemp() returned error"
-                            " errno=%d\n", fname, cpr_errno);
-          sip_sock_dir_len = 0;
-          return -1;
-        }
-    }
-
-    return PR_snprintf(out, outlen, "%s%s", sip_sock_dir, suffix ? suffix : "");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static cpr_socket_t sip_create_IPC_sock (const char *name)
-{
-    const char *fname = "sip_create_IPC_sock";
-    cpr_socket_t sock;
-    cpr_sockaddr_un_t addr;
-
-    
-    sock = cprSocket(AF_LOCAL, SOCK_DGRAM, 0);
-    if (sock == INVALID_SOCKET) {
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"cprSocket() returned error"
-                          " errno=%d\n", fname, cpr_errno);
-        return (INVALID_SOCKET);
-    }
-
-    
-    cpr_set_sockun_addr(&addr, name, getpid());
-
-    
-    unlink(addr.sun_path);
-
-    
-    if (cprBind(sock, (cpr_sockaddr_t *)&addr,
-                cpr_sun_len(addr)) == CPR_FAILURE) {
-        (void) sipSocketClose(sock, FALSE);
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"cprBind() failed"
-                          " errno=%d\n", fname, cpr_errno);
-        return (INVALID_SOCKET);
-    }
-    return (sock);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -264,7 +157,6 @@ void sip_platform_task_msgqwait (void *arg)
     uint8_t       num_messages = 0;
     uint8_t       response = 0;
     boolean       quit_thread = FALSE;
-    char          tempdir[sizeof(sip_serv_sock_addr.sun_path)];
 
     if (msgq == NULL) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"task msgq is null, exiting", fname);
@@ -296,21 +188,6 @@ void sip_platform_task_msgqwait (void *arg)
 
 
     (void) cprAdjustRelativeThreadPriority(SIP_THREAD_RELATIVE_PRIORITY);
-
-    
-
-
-
-    sip_get_sock_dir(tempdir, sizeof(tempdir), SIP_MSG_CLNT_SUFFIX);
-    cpr_set_sockun_addr(&sip_clnt_sock_addr, tempdir, 0);
-
-    sip_ipc_clnt_socket = sip_create_IPC_sock(sip_clnt_sock_addr.sun_path);
-
-    if (sip_ipc_clnt_socket == INVALID_SOCKET) {
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"sip_create_IPC_sock() failed,"
-                          "  exiting\n", fname);
-        return;
-    }
 
     while (quit_thread == FALSE) {
         msg = cprGetMessage(msgq, TRUE, (void **) &syshdr);
@@ -355,10 +232,8 @@ void sip_platform_task_msgqwait (void *arg)
 
 
 
-            if (cprSendTo(sip_ipc_clnt_socket, (void *)&num_messages,
-                          sizeof(num_messages), 0,
-                          (cpr_sockaddr_t *)&sip_serv_sock_addr,
-                          cpr_sun_len(sip_serv_sock_addr)) < 0) {
+            if (cprSend(sip_ipc_clnt_socket, (void *)&num_messages,
+			sizeof(num_messages), 0) < 0) {
                 CCSIP_DEBUG_ERROR(SIP_F_PREFIX"send IPC failed errno=%d", fname, cpr_errno);
             }
 
@@ -366,8 +241,8 @@ void sip_platform_task_msgqwait (void *arg)
             	
 
 
-            	if (cprRecvFrom(sip_ipc_clnt_socket, &response,
-            			sizeof(response), 0, NULL, NULL) < 0) {
+                if (cprRecv(sip_ipc_clnt_socket, &response,
+			    sizeof(response), 0) < 0) {
             		CCSIP_DEBUG_ERROR(SIP_F_PREFIX"read IPC failed:"
             				" errno=%d\n", fname, cpr_errno);
             	}
@@ -376,7 +251,6 @@ void sip_platform_task_msgqwait (void *arg)
         }
     }
     cprCloseSocket(sip_ipc_clnt_socket);
-    unlink(sip_clnt_sock_addr.sun_path); 
 }
 
 
@@ -398,8 +272,8 @@ static void sip_process_int_msg (void)
     phn_syshdr_t  *syshdr;
 
     
-    rcv_len = cprRecvFrom(sip_ipc_serv_socket, &num_messages,
-                          sizeof(num_messages), 0, NULL, NULL);
+    rcv_len = cprRecv(sip_ipc_serv_socket, &num_messages,
+		      sizeof(num_messages), 0);
 
     if (rcv_len < 0) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"read IPC failed:"
@@ -425,20 +299,11 @@ static void sip_process_int_msg (void)
         syshdr = int_msg->syshdr;
         if (msg != NULL && syshdr != NULL) {
             if (syshdr->Cmd == THREAD_UNLOAD) {
-                char stmpdir[sizeof(sip_serv_sock_addr.sun_path)];
-
-                
+	      
 
 
 
                 cprCloseSocket(sip_ipc_serv_socket);
-                unlink(sip_serv_sock_addr.sun_path);
-
-                sip_get_sock_dir(stmpdir, sizeof(stmpdir), NULL);
-                if (rmdir(stmpdir) != 0) {
-                    CCSIP_DEBUG_ERROR(SIP_F_PREFIX"failed to remove temp dir",
-                                      fname);
-                }
             }
             SIPTaskProcessListEvent(syshdr->Cmd, msg, syshdr->Usr.UsrPtr,
                 syshdr->Len);
@@ -455,10 +320,8 @@ static void sip_process_int_msg (void)
     
 
 
-    if (cprSendTo(sip_ipc_serv_socket, (void *)&response,
-                  sizeof(response), 0,
-                  (cpr_sockaddr_t *)&sip_clnt_sock_addr,
-                  cpr_sun_len(sip_clnt_sock_addr)) < 0) {
+    if (cprSend(sip_ipc_serv_socket, (void *)&response,
+		sizeof(response), 0) < 0) {
         CCSIP_DEBUG_ERROR(SIP_F_PREFIX"sending IPC", fname);
     }
 }
@@ -511,21 +374,15 @@ sip_platform_task_loop (void *arg)
 
 
     {
-      char stmpdir[sizeof(sip_serv_sock_addr.sun_path)];
-      sip_get_sock_dir(stmpdir, sizeof(stmpdir), SIP_MSG_SERV_SUFFIX);
-      cpr_set_sockun_addr(&sip_serv_sock_addr, stmpdir, 0);
-    }
-
-    
-
-
-
-    sip_ipc_serv_socket = sip_create_IPC_sock(sip_serv_sock_addr.sun_path);
-
-    if (sip_ipc_serv_socket == INVALID_SOCKET) {
-        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"sip_create_IPC_sock() failed:"
+      cpr_socket_t sockets[2];
+      if (cprSocketPair(AF_LOCAL, SOCK_DGRAM, 0, sockets) == CPR_SUCCESS) {
+	sip_ipc_serv_socket = sockets[0];
+	sip_ipc_clnt_socket = sockets[1];
+      } else {
+        CCSIP_DEBUG_ERROR(SIP_F_PREFIX"socketpair failed:"
                           " errno=%d\n", fname, cpr_errno);
         return;
+      }
     }
 
     
