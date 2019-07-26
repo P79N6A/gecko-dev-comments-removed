@@ -110,6 +110,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
   ["WebrtcUI", ["getUserMedia:request", "recording-device-events"], "chrome://browser/content/WebrtcUI.js"],
 #endif
   ["MemoryObserver", ["memory-pressure", "Memory:Dump"], "chrome://browser/content/MemoryObserver.js"],
+  ["ConsoleAPI", ["console-api-log-event"], "chrome://browser/content/ConsoleAPI.js"],
   ["FindHelper", ["FindInPage:Find", "FindInPage:Prev", "FindInPage:Next", "FindInPage:Closed", "Tab:Selected"], "chrome://browser/content/FindHelper.js"],
   ["PermissionsHelper", ["Permissions:Get", "Permissions:Clear"], "chrome://browser/content/PermissionsHelper.js"],
   ["FeedHandler", ["Feeds:Subscribe"], "chrome://browser/content/FeedHandler.js"],
@@ -485,16 +486,11 @@ var BrowserApp = {
       function(aTarget) {
         let url = NativeWindow.contextmenus._getLinkURL(aTarget);
         ContentAreaUtils.urlSecurityCheck(url, aTarget.ownerDocument.nodePrincipal);
-        let tab = BrowserApp.addTab(url, { selected: false, parentId: BrowserApp.selectedTab.id });
+        BrowserApp.addTab(url, { selected: false, parentId: BrowserApp.selectedTab.id });
 
         let newtabStrings = Strings.browser.GetStringFromName("newtabpopup.opened");
         let label = PluralForm.get(1, newtabStrings).replace("#1", 1);
-        NativeWindow.toast.show(label, "long", {
-          button: {
-            icon: "drawable://select_opened_tab",
-            callback: () => { BrowserApp.selectTab(tab); },
-          }
-        });
+        NativeWindow.toast.show(label, "short");
       });
 
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.openInPrivateTab"),
@@ -502,16 +498,11 @@ var BrowserApp = {
       function(aTarget) {
         let url = NativeWindow.contextmenus._getLinkURL(aTarget);
         ContentAreaUtils.urlSecurityCheck(url, aTarget.ownerDocument.nodePrincipal);
-        let tab = BrowserApp.addTab(url, { selected: false, parentId: BrowserApp.selectedTab.id, isPrivate: true });
+        BrowserApp.addTab(url, { selected: false, parentId: BrowserApp.selectedTab.id, isPrivate: true });
 
         let newtabStrings = Strings.browser.GetStringFromName("newprivatetabpopup.opened");
         let label = PluralForm.get(1, newtabStrings).replace("#1", 1);
-        NativeWindow.toast.show(label, "long", {
-          button: {
-            icon: "drawable://select_opened_tab",
-            callback: () => { BrowserApp.selectTab(tab); },
-          }
-        });
+        NativeWindow.toast.show(label, "short");
       });
 
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.copyLink"),
@@ -1445,19 +1436,11 @@ var BrowserApp = {
 
       case "Tab:Load": {
         let data = JSON.parse(aData);
-        let url = data.url;
-        let flags;
-
-        if (/^[0-9]+$/.test(url)) {
-          
-          url = URIFixup.keywordToURI(url).spec;
-        } else {
-          flags |= Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP |
-                   Ci.nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
-        }
 
         
         
+        let flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP |
+                    Ci.nsIWebNavigation.LOAD_FLAGS_FIXUP_SCHEME_TYPOS;
         if (data.userEntered) {
           flags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_OWNER;
         }
@@ -1474,6 +1457,7 @@ var BrowserApp = {
           desktopMode: (data.desktopMode === true)
         };
 
+        let url = data.url;
         if (data.engine) {
           let engine = Services.search.getEngineByName(data.engine);
           if (engine) {
@@ -1774,20 +1758,12 @@ var NativeWindow = {
 
       if (aOptions && aOptions.button) {
         msg.button = {
+          label: aOptions.button.label,
           id: uuidgen.generateUUID().toString(),
-        };
-
-        
-        if (aOptions.button.label) {
-          msg.button.label = aOptions.button.label;
-        }
-
-        if (aOptions.button.icon) {
           
           
-          msg.button.icon = resolveGeckoURI(aOptions.button.icon);
+          icon: aOptions.button.icon ? resolveGeckoURI(aOptions.button.icon) : null,
         };
-
         this._callbacks[msg.button.id] = aOptions.button.callback;
       }
 
