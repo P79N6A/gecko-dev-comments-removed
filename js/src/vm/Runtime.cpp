@@ -847,7 +847,7 @@ js::CurrentThreadCanAccessZone(Zone *zone)
 void
 JSRuntime::assertCanLock(RuntimeLock which)
 {
-#ifdef JS_THREADSAFE
+#ifdef JS_WORKER_THREADS
     
     
     
