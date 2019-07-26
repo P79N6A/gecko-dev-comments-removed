@@ -171,12 +171,13 @@ class LIRGeneratorShared : public MInstructionVisitorWithDefaults
     
     
     
-    bool assignSnapshot(LInstruction *ins, BailoutKind kind = Bailout_Normal);
+    bool assignSnapshot(LInstruction *ins, BailoutKind kind);
 
     
     
     
-    bool assignSafepoint(LInstruction *ins, MInstruction *mir);
+    bool assignSafepoint(LInstruction *ins, MInstruction *mir,
+                         BailoutKind kind = Bailout_DuringVMCall);
 
   public:
     bool visitConstant(MConstant *ins);
