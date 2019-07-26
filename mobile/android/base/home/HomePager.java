@@ -40,7 +40,6 @@ public class HomePager extends ViewPager {
     private HomeBanner mHomeBanner;
     private int mDefaultPageIndex = -1;
 
-    private final ViewPager.OnPageChangeListener mPageChangeListener;
     private final OnAddPanelListener mAddPanelListener;
 
     private final HomeConfig mConfig;
@@ -124,8 +123,7 @@ public class HomePager extends ViewPager {
         setFocusableInTouchMode(true);
 
         mOriginalBackground = getBackground();
-        mPageChangeListener = new PageChangeListener();
-        setOnPageChangeListener(mPageChangeListener);
+        setOnPageChangeListener(new PageChangeListener());
     }
 
     @Override
@@ -219,8 +217,9 @@ public class HomePager extends ViewPager {
         super.setCurrentItem(item, smoothScroll);
 
         
-        if (getAdapter().getCount() == 1 && mPageChangeListener != null) {
-            mPageChangeListener.onPageSelected(0);
+        
+        if (mHomeBanner != null && getAdapter().getCount() == 1) {
+            mHomeBanner.setActive(true);
         }
     }
 
