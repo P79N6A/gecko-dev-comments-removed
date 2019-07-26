@@ -253,8 +253,6 @@ protected:
   
   virtual void LockFrontBuffer() {}
 
-  bool CreateAndAllocateDeprecatedTextureClient(RefPtr<DeprecatedTextureClient>& aClient);
-
   RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
   RefPtr<DeprecatedTextureClient> mDeprecatedTextureClientOnWhite;
   

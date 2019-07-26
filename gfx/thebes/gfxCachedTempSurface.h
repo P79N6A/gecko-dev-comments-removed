@@ -37,6 +37,7 @@ public:
 
 
 
+
   already_AddRefed<gfxContext> Get(gfxASurface::gfxContentType aContentType,
                                    const gfxRect& aRect,
                                    gfxASurface* aSimilarTo);
@@ -51,7 +52,9 @@ private:
   nsRefPtr<gfxASurface> mSurface;
   gfxIntSize mSize;
   nsExpirationState mExpirationState;
+#ifdef DEBUG
   gfxASurface::gfxSurfaceType mType;
+#endif 
 };
 
 #endif 
