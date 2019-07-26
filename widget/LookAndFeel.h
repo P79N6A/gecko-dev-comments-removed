@@ -141,11 +141,6 @@ public:
     eColorID__moz_mac_menutextselect,
     
     eColorID__moz_mac_disabledtoolbartext,
-
-    
-
-    
-    eColorID__moz_mac_alternateprimaryhighlight,
     
     eColorID__moz_mac_secondaryhighlight,
 
