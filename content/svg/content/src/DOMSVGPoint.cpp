@@ -6,10 +6,12 @@
 #include "DOMSVGPoint.h"
 #include "DOMSVGPointList.h"
 #include "SVGPoint.h"
+#include "SVGAnimatedPointList.h"
 #include "nsSVGElement.h"
 #include "nsError.h"
 #include "nsContentUtils.h" 
 #include "mozilla/dom/SVGMatrix.h"
+#include "mozilla/dom/SVGPointBinding.h"
 
 
 
