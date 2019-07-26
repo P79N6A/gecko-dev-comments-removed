@@ -121,8 +121,8 @@ CustomizeMode.prototype = {
       
       
       let deck = document.getElementById("tab-view-deck");
-      deck.addEventListener("keypress", this);
       deck.addEventListener("mousedown", this);
+      document.addEventListener("keypress", this);
 
       
       
@@ -194,8 +194,8 @@ CustomizeMode.prototype = {
 
     CustomizableUI.removeListener(this);
 
+    this.document.removeEventListener("keypress", this);
     let deck = this.document.getElementById("tab-view-deck");
-    deck.removeEventListener("keypress", this);
     deck.removeEventListener("mousedown", this);
     this.window.PanelUI.menuButton.removeEventListener("mousedown", this);
     this.window.PanelUI.menuButton.open = false;
