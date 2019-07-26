@@ -351,17 +351,6 @@ js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 JSBool
 js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -391,6 +380,7 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
         } else {
             JS_ASSERT(idx < TypedArray::length(arrobj));
             RootedValue tmp(cx, args[elemi]);
+            
             if (!JSObject::setElement(cx, arrobj, arrobj, idx, &tmp, false))
                 return false;
         }
@@ -398,46 +388,6 @@ js::intrinsic_UnsafeSetElement(JSContext *cx, unsigned argc, Value *vp)
 
     args.rval().setUndefined();
     return true;
-}
-
-
-
-
-
-
-
-
-JSBool
-js::intrinsic_UnsafeGetElement(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    const uint32_t arri = 0;
-    const uint32_t idxi = 1;
-
-    JS_ASSERT(args[arri].isObject());
-    JS_ASSERT(args[idxi].isInt32());
-
-    RootedObject arrobj(cx, &args[arri].toObject());
-    uint32_t idx = args[idxi].toInt32();
-
-    JS_ASSERT(args[arri].toObject().isNative());
-    JS_ASSERT(idx < arrobj->getDenseInitializedLength());
-    args.rval().set(arrobj->getDenseElement(idx));
-    return true;
-}
-
-
-
-
-
-
-
-
-JSBool
-js::intrinsic_UnsafeGetImmutableElement(JSContext *cx, unsigned argc, Value *vp)
-{
-    return intrinsic_UnsafeGetElement(cx, argc, vp);
 }
 
 
@@ -518,8 +468,6 @@ const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewParallelArray",     intrinsic_NewParallelArray,     3,0),
     JS_FN("NewDenseArray",        intrinsic_NewDenseArray,        1,0),
     JS_FN("UnsafeSetElement",     intrinsic_UnsafeSetElement,     3,0),
-    JS_FN("UnsafeGetElement",     intrinsic_UnsafeGetElement, 2,0),
-    JS_FN("UnsafeGetImmutableElement", intrinsic_UnsafeGetImmutableElement, 2,0),
     JS_FN("ShouldForceSequential", intrinsic_ShouldForceSequential, 0,0),
     JS_FN("ParallelTestsShouldPass", intrinsic_ParallelTestsShouldPass, 0,0),
 
