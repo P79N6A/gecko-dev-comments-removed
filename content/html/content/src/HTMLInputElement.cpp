@@ -3919,7 +3919,7 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
       
       
       
-      if (!aVisitor.mEvent->mFlags.mDefaultPreventedByContent) {
+      if (!aVisitor.mEvent->mFlags.mDefaultPreventedByContent && IsMutable()) {
         StepNumberControlForUserEvent(keyEvent->keyCode == NS_VK_UP ? 1 : -1);
         aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
       }
@@ -4145,7 +4145,8 @@ HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
               nsNumberControlFrame* numberControlFrame =
                 do_QueryFrame(GetPrimaryFrame());
               if (numberControlFrame) {
-                if (aVisitor.mEvent->message == NS_MOUSE_BUTTON_DOWN) {
+                if (aVisitor.mEvent->message == NS_MOUSE_BUTTON_DOWN && 
+                    IsMutable()) {
                   switch (numberControlFrame->GetSpinButtonForPointerEvent(
                             aVisitor.mEvent->AsMouseEvent())) {
                   case nsNumberControlFrame::eSpinButtonUp:
