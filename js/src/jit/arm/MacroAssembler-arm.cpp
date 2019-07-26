@@ -365,11 +365,11 @@ MacroAssemblerARM::ma_alu(Register src1, Imm32 imm, Register dest,
         
         
         if (op == op_mov) {
-            as_Imm32Pool(dest, imm.value, NULL, c);
+            as_Imm32Pool(dest, imm.value, nullptr, c);
             return;
         } else {
             
-            as_Imm32Pool(ScratchRegister, imm.value, NULL, c);
+            as_Imm32Pool(ScratchRegister, imm.value, nullptr, c);
         }
     }
     as_alu(dest, src1, O2Reg(ScratchRegister), op, sc, c);
@@ -398,8 +398,8 @@ MacroAssemblerARM::ma_nop()
 Instruction *
 NextInst(Instruction *i)
 {
-    if (i == NULL)
-        return NULL;
+    if (i == nullptr)
+        return nullptr;
     return i->next();
 }
 
@@ -426,8 +426,8 @@ MacroAssemblerARM::ma_movPatchable(Imm32 imm_, Register dest, Assembler::Conditi
         as_movt(dest, Imm16(imm >> 16 & 0xffff), c, i);
         break;
       case L_LDR:
-        if(i == NULL)
-            as_Imm32Pool(dest, imm, NULL, c);
+        if(i == nullptr)
+            as_Imm32Pool(dest, imm, nullptr, c);
         else
             as_WritePoolEntry(i, c, imm);
         break;
@@ -1319,11 +1319,11 @@ MacroAssemblerARM::ma_b(void *target, Relocation::Kind reloc, Assembler::Conditi
         as_bx(ScratchRegister, c);
         break;
       case Assembler::B_LDR_BX:
-        as_Imm32Pool(ScratchRegister, trg, NULL, c);
+        as_Imm32Pool(ScratchRegister, trg, nullptr, c);
         as_bx(ScratchRegister, c);
         break;
       case Assembler::B_LDR:
-        as_Imm32Pool(pc, trg, NULL, c);
+        as_Imm32Pool(pc, trg, nullptr, c);
         if (c == Always)
             m_buffer.markGuard();
         break;
@@ -1477,7 +1477,7 @@ MacroAssemblerARM::ma_vimm(double value, FloatRegister dest, Condition cc)
         }
     }
     
-    as_FImm64Pool(dest, value, NULL, cc);
+    as_FImm64Pool(dest, value, nullptr, cc);
 }
 
 static inline uint32_t
@@ -1505,7 +1505,7 @@ MacroAssemblerARM::ma_vimm_f32(float value, FloatRegister dest, Condition cc)
         }
     }
     
-    as_FImm32Pool(vd, value, NULL, cc);
+    as_FImm32Pool(vd, value, nullptr, cc);
 }
 
 void

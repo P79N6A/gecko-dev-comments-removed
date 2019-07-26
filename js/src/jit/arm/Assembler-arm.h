@@ -1313,7 +1313,7 @@ class Assembler
         
         new (int32Pool) Pool (4096, 4, 4, 8, 4, m_buffer.LifoAlloc_, false, true, &pools_[3]);
         for (int i = 0; i < 4; i++) {
-            if (pools_[i].poolData == NULL) {
+            if (pools_[i].poolData == nullptr) {
                 m_buffer.fail_oom();
                 return;
             }
@@ -1359,7 +1359,7 @@ class Assembler
 
     static uintptr_t getPointer(uint8_t *);
     template <class Iter>
-    static const uint32_t * getPtr32Target(Iter *iter, Register *dest = NULL, RelocStyle *rs = NULL);
+    static const uint32_t * getPtr32Target(Iter *iter, Register *dest = nullptr, RelocStyle *rs = nullptr);
 
     bool oom() const;
 
@@ -1405,7 +1405,7 @@ class Assembler
     
     
     
-    BufferOffset writeInst(uint32_t x, uint32_t *dest = NULL);
+    BufferOffset writeInst(uint32_t x, uint32_t *dest = nullptr);
     
     
     static void writeInstStatic(uint32_t x, uint32_t *dest);
@@ -1416,10 +1416,10 @@ class Assembler
     BufferOffset align(int alignment);
     BufferOffset as_nop();
     BufferOffset as_alu(Register dest, Register src1, Operand2 op2,
-                ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = NULL);
+                ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
 
     BufferOffset as_mov(Register dest,
-                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = NULL);
+                Operand2 op2, SetCond_ sc = NoSetCond, Condition c = Always, Instruction *instdest = nullptr);
     BufferOffset as_mvn(Register dest, Operand2 op2,
                 SetCond_ sc = NoSetCond, Condition c = Always);
     
@@ -1457,8 +1457,8 @@ class Assembler
     
     
     
-    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
-    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
+    BufferOffset as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
+    BufferOffset as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = nullptr);
 
     BufferOffset as_genmul(Register d1, Register d2, Register rm, Register rn,
                    MULOp op, SetCond_ sc, Condition c = Always);
@@ -1486,26 +1486,26 @@ class Assembler
     
     
     BufferOffset as_dtr(LoadStore ls, int size, Index mode,
-                Register rt, DTRAddr addr, Condition c = Always, uint32_t *dest = NULL);
+                Register rt, DTRAddr addr, Condition c = Always, uint32_t *dest = nullptr);
     
     
     
     BufferOffset as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
-                   Register rt, EDtrAddr addr, Condition c = Always, uint32_t *dest = NULL);
+                   Register rt, EDtrAddr addr, Condition c = Always, uint32_t *dest = nullptr);
 
     BufferOffset as_dtm(LoadStore ls, Register rn, uint32_t mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
     
     void as_WritePoolEntry(Instruction *addr, Condition c, uint32_t data);
     
-    BufferOffset as_Imm32Pool(Register dest, uint32_t value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
+    BufferOffset as_Imm32Pool(Register dest, uint32_t value, ARMBuffer::PoolEntry *pe = nullptr, Condition c = Always);
     
-    BufferOffset as_BranchPool(uint32_t value, RepatchLabel *label, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
+    BufferOffset as_BranchPool(uint32_t value, RepatchLabel *label, ARMBuffer::PoolEntry *pe = nullptr, Condition c = Always);
 
     
-    BufferOffset as_FImm64Pool(VFPRegister dest, double value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
+    BufferOffset as_FImm64Pool(VFPRegister dest, double value, ARMBuffer::PoolEntry *pe = nullptr, Condition c = Always);
     
-    BufferOffset as_FImm32Pool(VFPRegister dest, float value, ARMBuffer::PoolEntry *pe = NULL, Condition c = Always);
+    BufferOffset as_FImm32Pool(VFPRegister dest, float value, ARMBuffer::PoolEntry *pe = nullptr, Condition c = Always);
 
     
 
@@ -1547,7 +1547,7 @@ class Assembler
         isSingle = 0 << 8
     };
 
-    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t *dest=NULL);
+    BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t *dest=nullptr);
     
     
     BufferOffset as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
@@ -1619,7 +1619,7 @@ class Assembler
     
     BufferOffset as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c = Always ,
-                 uint32_t *dest = NULL);
+                 uint32_t *dest = nullptr);
 
     
     
@@ -1811,7 +1811,7 @@ class Assembler
     static uint32_t alignDoubleArg(uint32_t offset) {
         return (offset+1)&~1;
     }
-    static uint8_t *nextInstruction(uint8_t *instruction, uint32_t *count = NULL);
+    static uint8_t *nextInstruction(uint8_t *instruction, uint32_t *count = nullptr);
     
 
     static void ToggleToJmp(CodeLocationLabel inst_);

@@ -72,11 +72,11 @@ class BaselineCompilerShared
 
     ICEntry *allocateICEntry(ICStub *stub, bool isForOp) {
         if (!stub)
-            return NULL;
+            return nullptr;
 
         
         if (!icEntries_.append(ICEntry((uint32_t) (pc - script->code), isForOp)))
-            return NULL;
+            return nullptr;
         ICEntry &vecEntry = icEntries_[icEntries_.length() - 1];
 
         

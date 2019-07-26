@@ -96,7 +96,7 @@ Assembler::writeRelocation(JmpSrc src, Relocation::Kind reloc)
 void
 Assembler::addPendingJump(JmpSrc src, ImmPtr target, Relocation::Kind reloc)
 {
-    JS_ASSERT(target.value != NULL);
+    JS_ASSERT(target.value != nullptr);
 
     
     
@@ -113,7 +113,7 @@ Assembler::addPatchableJump(JmpSrc src, Relocation::Kind reloc)
     writeRelocation(src, reloc);
 
     size_t index = jumps_.length();
-    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), NULL, reloc));
+    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), nullptr, reloc));
     return index;
 }
 
