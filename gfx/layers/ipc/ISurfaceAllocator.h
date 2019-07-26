@@ -11,6 +11,8 @@
 #include "gfxASurface.h"                
 #include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
+#include "nsIMemoryReporter.h"          
+#include "mozilla/Atomics.h"            
 
 
 
@@ -25,6 +27,8 @@
 
 class gfxASurface;
 class gfxSharedImageSurface;
+class MemoryTextureClient;
+class MemoryTextureHost;
 
 namespace base {
 class Thread;
@@ -131,6 +135,38 @@ protected:
 
 
   ~ISurfaceAllocator() {}
+};
+
+class GfxHeapTexturesReporter MOZ_FINAL : public mozilla::MemoryUniReporter
+{
+public:
+  GfxHeapTexturesReporter()
+    : MemoryUniReporter("explicit/gfx/heap-textures", KIND_HEAP, UNITS_BYTES,
+                        "Heap memory shared between threads by texture clients and hosts.")
+  {
+#ifdef DEBUG
+    
+    
+    static bool hasRun = false;
+    MOZ_ASSERT(!hasRun);
+    hasRun = true;
+#endif
+  }
+
+  static void OnAlloc(void* aPointer)
+  {
+    sAmount += MallocSizeOfOnAlloc(aPointer);
+  }
+
+  static void OnFree(void* aPointer)
+  {
+    sAmount -= MallocSizeOfOnFree(aPointer);
+  }
+
+private:
+  int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+
+  static mozilla::Atomic<int32_t> sAmount;
 };
 
 } 
