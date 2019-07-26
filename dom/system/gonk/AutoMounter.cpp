@@ -453,12 +453,25 @@ AutoMounter::UpdateState()
     Volume::STATE   volState = vol->State();
 
     if (vol->State() == nsIVolume::STATE_MOUNTED) {
-      LOG("UpdateState: Volume %s is %s and %s @ %s gen %d locked %d sharing %c",
+      LOG("UpdateState: Volume %s is %s and %s @ %s gen %d locked %d sharing %s",
           vol->NameStr(), vol->StateStr(),
           vol->MediaPresent() ? "inserted" : "missing",
           vol->MountPoint().get(), vol->MountGeneration(),
           (int)vol->IsMountLocked(),
-          vol->CanBeShared() ? (vol->IsSharingEnabled() ? 'y' : 'n') : 'x');
+          vol->CanBeShared() ? (vol->IsSharingEnabled() ? (vol->IsSharing() ? "en-y" : "en-n") : "dis") : "x");
+      if (vol->IsSharing() && !usbCablePluggedIn) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        vol->SetIsSharing(false);
+      }
     } else {
       LOG("UpdateState: Volume %s is %s and %s", vol->NameStr(), vol->StateStr(),
           vol->MediaPresent() ? "inserted" : "missing");
