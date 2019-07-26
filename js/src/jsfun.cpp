@@ -1590,9 +1590,6 @@ FunctionConstructor(JSContext *cx, unsigned argc, Value *vp, GeneratorKind gener
     size_t length = linear->length();
 
     
-    SkipRoot skip(cx, &chars);
-
-    
 
 
 

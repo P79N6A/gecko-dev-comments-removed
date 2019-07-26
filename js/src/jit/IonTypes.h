@@ -245,10 +245,7 @@ IsNullOrUndefined(MIRType type)
 
 
 
-
-
-
-#  if defined(JS_ION) && !defined(JSGC_ROOT_ANALYSIS)
+#  if defined(JS_ION)
 #    define CHECK_OSIPOINT_REGISTERS 1
 #  endif
 #endif

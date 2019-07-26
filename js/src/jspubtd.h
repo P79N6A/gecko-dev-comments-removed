@@ -20,7 +20,7 @@
 
 #include "js/TypeDecls.h"
 
-#if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING) || defined(JS_DEBUG)
+#if defined(JSGC_USE_EXACT_ROOTING) || defined(JS_DEBUG)
 # define JSGC_TRACK_EXACT_ROOTS
 #endif
 
@@ -269,8 +269,6 @@ class ExclusiveContext;
 
 class Allocator;
 
-class SkipRoot;
-
 enum ThingRootKind
 {
     THING_ROOT_OBJECT,
@@ -343,9 +341,6 @@ struct ContextFriendFields
 #ifdef JSGC_TRACK_EXACT_ROOTS
         mozilla::PodArrayZero(thingGCRooters);
 #endif
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-        skipGCRooters = nullptr;
-#endif
     }
 
     static const ContextFriendFields *get(const JSContext *cx) {
@@ -362,18 +357,6 @@ struct ContextFriendFields
 
 
     JS::Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
-#endif
-
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    
-
-
-
-
-
-
-
-    SkipRoot *skipGCRooters;
 #endif
 
     
@@ -441,18 +424,6 @@ struct PerThreadDataFriendFields
 
 
     JS::Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
-#endif
-
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    
-
-
-
-
-
-
-
-    SkipRoot *skipGCRooters;
 #endif
 
     

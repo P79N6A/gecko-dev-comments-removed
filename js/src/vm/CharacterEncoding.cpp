@@ -333,9 +333,6 @@ typedef bool (*CountAction)(JSContext *, const UTF8Chars, jschar *, size_t *, bo
 static TwoByteCharsZ
 InflateUTF8StringHelper(JSContext *cx, const UTF8Chars src, CountAction countAction, size_t *outlen)
 {
-    
-    MaybeCheckStackRoots(cx);
-
     *outlen = 0;
 
     bool isAscii;

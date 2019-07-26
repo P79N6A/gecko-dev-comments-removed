@@ -2117,7 +2117,6 @@ struct ReplaceData
 {
     ReplaceData(JSContext *cx)
       : str(cx), g(cx), lambda(cx), elembase(cx), repstr(cx),
-        dollarRoot(cx, &dollar), dollarEndRoot(cx, &dollarEnd),
         fig(cx, NullValue()), sb(cx)
     {}
 
@@ -2147,8 +2146,6 @@ struct ReplaceData
     Rooted<JSLinearString*> repstr; 
     const jschar       *dollar;        
     const jschar       *dollarEnd;     
-    SkipRoot           dollarRoot;     
-    SkipRoot           dollarEndRoot;  
     int                leftIndex;      
     JSSubString        dollarStr;      
     bool               calledBack;     

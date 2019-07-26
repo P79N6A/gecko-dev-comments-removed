@@ -188,7 +188,6 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
                         SourceCompressionTask *extraSct )
 {
     RootedString source(cx, source_);
-    SkipRoot skip(cx, &chars);
 
 #if JS_TRACE_LOGGING
         js::AutoTraceLog logger(js::TraceLogging::defaultLogger(),
@@ -507,7 +506,6 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
     
     
-    SkipRoot skip(cx, &chars);
 
     MaybeCallSourceHandler(cx, options, chars, length);
 

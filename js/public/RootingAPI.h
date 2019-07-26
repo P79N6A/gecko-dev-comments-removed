@@ -152,11 +152,6 @@ template <typename T> class PersistentRooted;
 
 JS_FRIEND_API(bool) isGCEnabled();
 
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-extern void
-CheckStackRoots(JSContext *cx);
-#endif
-
 
 
 
@@ -819,15 +814,6 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     Rooted<void*> **stack, *prev;
 #endif
 
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    
-    friend void JS::CheckStackRoots(JSContext*);
-#endif
-
-#ifdef JSGC_ROOT_ANALYSIS
-    bool scanned;
-#endif
-
     
 
 
@@ -867,81 +853,6 @@ class RootedBase<JSObject*>
 
 
 
-class SkipRoot
-{
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-
-    SkipRoot **stack, *prev;
-    const uint8_t *start;
-    const uint8_t *end;
-
-    template <typename CX, typename T>
-    void init(CX *cx, const T *ptr, size_t count) {
-        SkipRoot **head = &cx->skipGCRooters;
-        this->stack = head;
-        this->prev = *stack;
-        *stack = this;
-        this->start = (const uint8_t *) ptr;
-        this->end = this->start + (sizeof(T) * count);
-    }
-
-  public:
-    ~SkipRoot() {
-        MOZ_ASSERT(*stack == this);
-        *stack = prev;
-    }
-
-    SkipRoot *previous() { return prev; }
-
-    bool contains(const uint8_t *v, size_t len) {
-        return v >= start && v + len <= end;
-    }
-
-#else 
-
-    template <typename T>
-    void init(js::ContextFriendFields *cx, const T *ptr, size_t count) {}
-
-  public:
-    ~SkipRoot() {
-        
-        
-    }
-
-#endif 
-
-    template <typename T>
-    SkipRoot(JSContext *cx, const T *ptr, size_t count = 1
-             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
-        init(ContextFriendFields::get(cx), ptr, count);
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    template <typename T>
-    SkipRoot(ContextFriendFields *cx, const T *ptr, size_t count = 1
-             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
-        init(cx, ptr, count);
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    template <typename T>
-    SkipRoot(PerThreadData *pt, const T *ptr, size_t count = 1
-             MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
-        init(PerThreadDataFriendFields::get(pt), ptr, count);
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-
-
-
-
-
 
 
 
@@ -958,15 +869,14 @@ class JS_PUBLIC_API(RootedGeneric)
 {
   public:
     JS::Rooted<GCType> rooter;
-    SkipRoot skip;
 
     RootedGeneric(js::ContextFriendFields *cx)
-        : rooter(cx), skip(cx, rooter.address())
+        : rooter(cx)
     {
     }
 
     RootedGeneric(js::ContextFriendFields *cx, const GCType &initial)
-        : rooter(cx, initial), skip(cx, rooter.address())
+        : rooter(cx, initial)
     {
     }
 
@@ -1286,17 +1196,6 @@ class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> 
 } 
 
 namespace js {
-
-
-
-
-
-inline void MaybeCheckStackRoots(JSContext *cx)
-{
-#if defined(JS_DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    JS::CheckStackRoots(cx);
-#endif
-}
 
 
 class CompilerRootNode

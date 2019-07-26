@@ -2,7 +2,7 @@
 
 
 
-#if !defined(JSGC_ROOT_ANALYSIS) && !defined(JSGC_USE_EXACT_ROOTING)
+#if !defined(JSGC_USE_EXACT_ROOTING)
 
 #include "jsobj.h"
 
