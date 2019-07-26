@@ -1784,7 +1784,7 @@ pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #ifdef XP_WIN
 
 
-pref("dom.ipc.plugins.hangUITimeoutSecs", 5);
+pref("dom.ipc.plugins.hangUITimeoutSecs", 11);
 
 pref("dom.ipc.plugins.hangUIMinDisplaySecs", 10);
 #endif
