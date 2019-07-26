@@ -241,7 +241,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue, nsJSONWriter* wri
   
   
   JSType type = JS_TypeOfValue(cx, val);
-  if (type == JSTYPE_FUNCTION || type == JSTYPE_XML)
+  if (type == JSTYPE_FUNCTION)
     return NS_ERROR_INVALID_ARG;
 
   

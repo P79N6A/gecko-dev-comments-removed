@@ -829,14 +829,6 @@ xpc_qsUnwrapArgImpl(JSContext *cx,
     
 
     
-    
-    
-    if (JS_TypeOfValue(cx, OBJECT_TO_JSVAL(src)) == JSTYPE_XML) {
-        *ppArgRef = nullptr;
-        return NS_ERROR_XPC_BAD_CONVERT_JS;
-    }
-
-    
     nsISupports *iface;
     if (XPCConvert::GetISupportsFromJSObject(src, &iface)) {
         if (!iface || NS_FAILED(iface->QueryInterface(iid, ppArg))) {

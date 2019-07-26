@@ -705,7 +705,6 @@ class StackFrame
 
 
 
-
     void popWith(JSContext *cx);
 
     

@@ -108,9 +108,6 @@ MapAllocToTraceKind(AllocKind kind)
         JSTRACE_SHAPE,      
         JSTRACE_BASE_SHAPE, 
         JSTRACE_TYPE_OBJECT,
-#if JS_HAS_XML_SUPPORT      
-        JSTRACE_XML,
-#endif
         JSTRACE_STRING,     
         JSTRACE_STRING,     
         JSTRACE_STRING,     
@@ -142,9 +139,6 @@ IsNurseryAllocable(AllocKind kind)
         false,     
         false,     
         false,     
-#if JS_HAS_XML_SUPPORT
-        false,     
-#endif
         true,      
         true,      
         false,     
@@ -176,9 +170,6 @@ IsBackgroundFinalized(AllocKind kind)
         false,     
         false,     
         false,     
-#if JS_HAS_XML_SUPPORT
-        false,     
-#endif
         true,      
         true,      
         false,     
@@ -1004,13 +995,6 @@ struct GCMarker : public JSTracer {
         pushTaggedPtr(TypeTag, type);
     }
 
-#if JS_HAS_XML_SUPPORT
-    void pushXML(JSXML *xml) {
-        pushTaggedPtr(XmlTag, xml);
-    }
-
-#endif
-
     void pushIonCode(ion::IonCode *code) {
         pushTaggedPtr(IonCodeTag, code);
     }
@@ -1197,8 +1181,10 @@ const int ZealAllocValue = 2;
 const int ZealFrameGCValue = 3;
 const int ZealVerifierPreValue = 4;
 const int ZealFrameVerifierPreValue = 5;
-const int ZealStackRootingSafeValue = 6;
-const int ZealStackRootingValue = 7;
+
+
+const int ZealStackRootingValue = 6;
+const int ZealStackRootingValue__2 = 7;
 const int ZealIncrementalRootsThenFinish = 8;
 const int ZealIncrementalMarkAllThenFinish = 9;
 const int ZealIncrementalMultipleSlices = 10;

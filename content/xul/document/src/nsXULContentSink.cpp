@@ -11,6 +11,7 @@
 
 
 
+
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "nsXULContentSink.h"
@@ -873,30 +874,14 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           }
 
           if (langID != nsIProgrammingLanguage::UNKNOWN) {
-            
-            nsAutoString versionName;
-            rv = parser.GetParameter("version", versionName);
-
-            if (NS_SUCCEEDED(rv)) {
-              version = nsContentUtils::ParseJavascriptVersion(versionName);
-            } else if (rv != NS_ERROR_INVALID_ARG) {
-              return rv;
-            }
-          }
-          
-          if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
               
-              
-              version = js::VersionSetMoarXML(JSVersion(version), true);
+              nsAutoString versionName;
+              rv = parser.GetParameter("version", versionName);
 
-              nsAutoString value;
-              rv = parser.GetParameter("e4x", value);
-              if (NS_FAILED(rv)) {
-                  if (rv != NS_ERROR_INVALID_ARG)
-                      return rv;
-              } else {
-                  if (value.Length() == 1 && value[0] == '0')
-                    version = js::VersionSetMoarXML(JSVersion(version), false);
+              if (NS_SUCCEEDED(rv)) {
+                  version = nsContentUtils::ParseJavascriptVersion(versionName);
+              } else if (rv != NS_ERROR_INVALID_ARG) {
+                  return rv;
               }
           }
       }
@@ -907,10 +892,6 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           nsAutoString lang(aAttributes[1]);
           if (nsContentUtils::IsJavaScriptLanguage(lang, &version)) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
-
-              
-              
-              version = js::VersionSetMoarXML(JSVersion(version), true);
           }
       }
       aAttributes += 2;
