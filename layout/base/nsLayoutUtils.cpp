@@ -4128,11 +4128,18 @@ nsLayoutUtils::ComputeSizeForDrawing(imgIContainer *aImage,
 {
   aGotWidth  = NS_SUCCEEDED(aImage->GetWidth(&aImageSize.width));
   aGotHeight = NS_SUCCEEDED(aImage->GetHeight(&aImageSize.height));
-  bool gotRatio = NS_SUCCEEDED(aImage->GetIntrinsicRatio(&aIntrinsicRatio));
 
-  if (!(aGotWidth && aGotHeight) && !gotRatio) {
-    
-    
+  if (aGotWidth && aGotHeight) {
+    aIntrinsicRatio = nsSize(aImageSize.width, aImageSize.height);
+    return;
+  }
+
+  
+  
+  
+  if (nsIFrame* rootFrame = aImage->GetRootLayoutFrame()) {
+    aIntrinsicRatio = rootFrame->GetIntrinsicRatio();
+  } else {
     aGotWidth = aGotHeight = true;
     aImageSize = nsIntSize(0, 0);
     aIntrinsicRatio = nsSize(0, 0);
