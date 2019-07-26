@@ -170,7 +170,7 @@ decompose (const hb_ot_shape_normalize_context_t *c, bool shortest, hb_codepoint
 }
 
 
-static inline unsigned int
+static inline bool
 decompose_compatibility (const hb_ot_shape_normalize_context_t *c, hb_codepoint_t u)
 {
   unsigned int len, i;
@@ -190,6 +190,7 @@ decompose_compatibility (const hb_ot_shape_normalize_context_t *c, hb_codepoint_
 
   return len;
 }
+
 
 static inline void
 decompose_current_character (const hb_ot_shape_normalize_context_t *c, bool shortest)
@@ -229,6 +230,7 @@ handle_variation_selector_cluster (const hb_ot_shape_normalize_context_t *c, uns
     buffer->next_glyph ();
   }
 }
+
 
 static inline void
 decompose_multi_char_cluster (const hb_ot_shape_normalize_context_t *c, unsigned int end)
@@ -355,7 +357,8 @@ _hb_ot_shape_normalize (const hb_ot_shape_plan_t *plan,
 
 
 
-	HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&buffer->cur())) &&
+	(mode == HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_FULL ||
+	 HB_UNICODE_GENERAL_CATEGORY_IS_MARK (_hb_glyph_info_get_general_category (&buffer->cur()))) &&
 	
 
 	(starter == buffer->out_len - 1 ||

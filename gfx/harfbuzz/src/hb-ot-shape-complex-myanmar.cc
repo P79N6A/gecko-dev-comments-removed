@@ -36,7 +36,7 @@
 
 
 static const hb_tag_t
-basic_features[] =
+myanmar_features[] =
 {
   
 
@@ -46,10 +46,6 @@ basic_features[] =
   HB_TAG('p','r','e','f'),
   HB_TAG('b','l','w','f'),
   HB_TAG('p','s','t','f'),
-};
-static const hb_tag_t
-other_features[] =
-{
   
 
 
@@ -60,6 +56,25 @@ other_features[] =
   HB_TAG('p','s','t','s'),
   
   HB_TAG('d','i','s','t'),
+};
+
+
+
+
+enum {
+  _RPHF,
+  _PREF,
+  _BLWF,
+  _PSTF,
+
+  _PRES,
+  _ABVS,
+  _BLWS,
+  _PSTS,
+  _DIST,
+
+  MYANMAR_NUM_FEATURES,
+  MYANMAR_BASIC_FEATURES = _PRES 
 };
 
 static void
@@ -83,27 +98,28 @@ collect_features_myanmar (hb_ot_shape_planner_t *plan)
   
   map->add_gsub_pause (setup_syllables);
 
-  map->add_global_bool_feature (HB_TAG('l','o','c','l'));
+  map->add_bool_feature (HB_TAG('l','o','c','l'));
   
 
-  map->add_global_bool_feature (HB_TAG('c','c','m','p'));
+  map->add_bool_feature (HB_TAG('c','c','m','p'));
 
 
+  unsigned int i = 0;
   map->add_gsub_pause (initial_reordering);
-  for (unsigned int i = 0; i < ARRAY_LENGTH (basic_features); i++)
-  {
-    map->add_feature (basic_features[i], 1, F_GLOBAL | F_MANUAL_ZWJ);
+  for (; i < MYANMAR_BASIC_FEATURES; i++) {
+    map->add_bool_feature (myanmar_features[i]);
     map->add_gsub_pause (NULL);
   }
   map->add_gsub_pause (final_reordering);
-  for (unsigned int i = 0; i < ARRAY_LENGTH (other_features); i++)
-    map->add_feature (other_features[i], 1, F_GLOBAL | F_MANUAL_ZWJ);
+  for (; i < MYANMAR_NUM_FEATURES; i++) {
+    map->add_bool_feature (myanmar_features[i]);
+  }
 }
 
 static void
 override_features_myanmar (hb_ot_shape_planner_t *plan)
 {
-  plan->map.add_feature (HB_TAG('l','i','g','a'), 0, F_GLOBAL);
+  plan->map.add_feature (HB_TAG('l','i','g','a'), 0, true);
 
   
 
@@ -114,7 +130,7 @@ override_features_myanmar (hb_ot_shape_planner_t *plan)
 
 
   if (hb_options ().uniscribe_bug_compatible)
-    plan->map.add_feature (HB_TAG('m','a','r','k'), 0, F_GLOBAL);
+    plan->map.add_feature (HB_TAG('m','a','r','k'), 0, true);
 }
 
 

@@ -36,26 +36,6 @@
 HB_BEGIN_DECLS
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef enum {
   HB_MEMORY_MODE_DUPLICATE,
   HB_MEMORY_MODE_READONLY,
@@ -71,12 +51,6 @@ hb_blob_create (const char        *data,
 		hb_memory_mode_t   mode,
 		void              *user_data,
 		hb_destroy_func_t  destroy);
-
-
-
-
-
-
 
 hb_blob_t *
 hb_blob_create_sub_blob (hb_blob_t    *parent,

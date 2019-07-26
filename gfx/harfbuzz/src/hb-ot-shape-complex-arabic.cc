@@ -37,16 +37,17 @@
 
 enum {
   JOINING_TYPE_U		= 0,
-  JOINING_TYPE_L		= 1,
-  JOINING_TYPE_R		= 2,
-  JOINING_TYPE_D		= 3,
+  JOINING_TYPE_R		= 1,
+  JOINING_TYPE_D		= 2,
   JOINING_TYPE_C		= JOINING_TYPE_D,
-  JOINING_GROUP_ALAPH		= 4,
-  JOINING_GROUP_DALATH_RISH	= 5,
-  NUM_STATE_MACHINE_COLS	= 6,
+  JOINING_GROUP_ALAPH		= 3,
+  JOINING_GROUP_DALATH_RISH	= 4,
+  NUM_STATE_MACHINE_COLS	= 5,
 
-  JOINING_TYPE_T = 7,
-  JOINING_TYPE_X = 8  
+  
+
+  JOINING_TYPE_T = 6,
+  JOINING_TYPE_X = 7  
 };
 
 
@@ -80,7 +81,8 @@ static unsigned int get_joining_type (hb_codepoint_t u, hb_unicode_general_categ
   if (unlikely (hb_in_range<hb_codepoint_t> (u, 0xA840, 0xA872)))
   {
       if (unlikely (u == 0xA872))
-	return JOINING_TYPE_L;
+	
+	return JOINING_TYPE_R;
 
       return JOINING_TYPE_D;
   }
@@ -134,25 +136,25 @@ static const struct arabic_state_table_entry {
   
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,ISOL,1}, {NONE,ISOL,6}, },
+  { {NONE,NONE,0}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,ISOL,1}, {NONE,ISOL,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,FIN2,5}, {NONE,ISOL,6}, },
+  { {NONE,NONE,0}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,FIN2,5}, {NONE,ISOL,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {INIT,FINA,1}, {INIT,FINA,3}, {INIT,FINA,4}, {INIT,FINA,6}, },
+  { {NONE,NONE,0}, {INIT,FINA,1}, {INIT,FINA,3}, {INIT,FINA,4}, {INIT,FINA,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {MEDI,FINA,1}, {MEDI,FINA,3}, {MEDI,FINA,4}, {MEDI,FINA,6}, },
+  { {NONE,NONE,0}, {MEDI,FINA,1}, {MEDI,FINA,3}, {MEDI,FINA,4}, {MEDI,FINA,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {MED2,ISOL,1}, {MED2,ISOL,2}, {MED2,FIN2,5}, {MED2,ISOL,6}, },
+  { {NONE,NONE,0}, {MED2,ISOL,1}, {MED2,ISOL,2}, {MED2,FIN2,5}, {MED2,ISOL,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {ISOL,ISOL,1}, {ISOL,ISOL,2}, {ISOL,FIN2,5}, {ISOL,ISOL,6}, },
+  { {NONE,NONE,0}, {ISOL,ISOL,1}, {ISOL,ISOL,2}, {ISOL,FIN2,5}, {ISOL,ISOL,6}, },
 
   
-  { {NONE,NONE,0}, {NONE,ISOL,2}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,FIN3,5}, {NONE,ISOL,6}, }
+  { {NONE,NONE,0}, {NONE,ISOL,1}, {NONE,ISOL,2}, {NONE,FIN3,5}, {NONE,ISOL,6}, }
 };
 
 
@@ -176,25 +178,25 @@ collect_features_arabic (hb_ot_shape_planner_t *plan)
 
 
 
-  map->add_global_bool_feature (HB_TAG('c','c','m','p'));
-  map->add_global_bool_feature (HB_TAG('l','o','c','l'));
+  map->add_bool_feature (HB_TAG('c','c','m','p'));
+  map->add_bool_feature (HB_TAG('l','o','c','l'));
 
   map->add_gsub_pause (NULL);
 
   for (unsigned int i = 0; i < ARABIC_NUM_FEATURES; i++)
-    map->add_feature (arabic_features[i], 1, i < 4 ? F_HAS_FALLBACK : F_NONE); 
+    map->add_bool_feature (arabic_features[i], false, i < 4); 
 
   map->add_gsub_pause (NULL);
 
-  map->add_feature (HB_TAG('r','l','i','g'), 1, F_GLOBAL|F_HAS_FALLBACK);
+  map->add_bool_feature (HB_TAG('r','l','i','g'), true, true);
   map->add_gsub_pause (arabic_fallback_shape);
 
-  map->add_global_bool_feature (HB_TAG('c','a','l','t'));
+  map->add_bool_feature (HB_TAG('c','a','l','t'));
   map->add_gsub_pause (NULL);
 
-  map->add_global_bool_feature (HB_TAG('c','s','w','h'));
-  map->add_global_bool_feature (HB_TAG('d','l','i','g'));
-  map->add_global_bool_feature (HB_TAG('m','s','e','t'));
+  map->add_bool_feature (HB_TAG('c','s','w','h'));
+  map->add_bool_feature (HB_TAG('d','l','i','g'));
+  map->add_bool_feature (HB_TAG('m','s','e','t'));
 }
 
 #include "hb-ot-shape-complex-arabic-fallback.hh"
@@ -352,6 +354,6 @@ const hb_ot_complex_shaper_t _hb_ot_complex_shaper_arabic =
   NULL, 
   NULL, 
   setup_masks_arabic,
-  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_GDEF,
+  HB_OT_SHAPE_ZERO_WIDTH_MARKS_BY_UNICODE,
   true, 
 };
