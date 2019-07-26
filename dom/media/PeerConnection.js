@@ -390,10 +390,6 @@ PeerConnection.prototype = {
   },
 
   setLocalDescription: function(desc, onSuccess, onError) {
-    if (this._onSetLocalDescriptionSuccess) {
-      throw new Error("setLocalDescription already called");
-    }
-
     this._onSetLocalDescriptionSuccess = onSuccess;
     this._onSetLocalDescriptionFailure = onError;
 
@@ -420,10 +416,6 @@ PeerConnection.prototype = {
   },
 
   setRemoteDescription: function(desc, onSuccess, onError) {
-    if (this._onSetRemoteDescriptionSuccess) {
-      throw new Error("setRemoteDescription already called");
-    }
-
     this._onSetRemoteDescriptionSuccess = onSuccess;
     this._onSetRemoteDescriptionFailure = onError;
 
