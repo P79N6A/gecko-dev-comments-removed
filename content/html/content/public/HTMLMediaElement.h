@@ -448,7 +448,7 @@ public:
 
   bool Muted() const
   {
-    return mMuted;
+    return mMuted & MUTED_BY_CONTENT;
   }
 
   
@@ -788,7 +788,7 @@ protected:
   
 
 
-  void SetMutedInternal(bool aMuted);
+  void SetMutedInternal(uint32_t aMuted);
 
   
 
@@ -1009,8 +1009,13 @@ protected:
   
   WakeLockBoolWrapper mPaused;
 
-  
-  bool mMuted;
+  enum MutedReasons {
+    MUTED_BY_CONTENT               = 0x01,
+    MUTED_BY_INVALID_PLAYBACK_RATE = 0x02,
+    MUTED_BY_AUDIO_CHANNEL         = 0x04
+  };
+
+  uint32_t mMuted;
 
   
   bool mAudioCaptured;
@@ -1092,9 +1097,6 @@ protected:
 
   
   AudioChannelType mAudioChannelType;
-
-  
-  bool mChannelSuspended;
 
   
   bool mPlayingThroughTheAudioChannel;
