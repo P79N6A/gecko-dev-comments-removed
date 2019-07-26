@@ -1807,7 +1807,38 @@ GLContext::MarkDestroyed()
     mSymbols.Zero();
 }
 
-#ifdef MOZ_ENABLE_GL_TRACKING
+#ifdef DEBUG
+ void
+GLContext::AssertNotPassingStackBufferToTheGL(const void* ptr)
+{
+  int somethingOnTheStack;
+  const void* someStackPtr = &somethingOnTheStack;
+  const int page_bits = 12;
+  intptr_t page = reinterpret_cast<uintptr_t>(ptr) >> page_bits;
+  intptr_t someStackPage = reinterpret_cast<uintptr_t>(someStackPtr) >> page_bits;
+  uintptr_t pageDistance = std::abs(page - someStackPage);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool isStackAddress = pageDistance <= 1;
+  MOZ_ASSERT(!isStackAddress,
+             "Please don't pass stack arrays to the GL. "
+             "Consider using HeapCopyOfStackArray. "
+             "See bug 1005658.");
+}
+
 void
 GLContext::CreatedProgram(GLContext *aOrigin, GLuint aName)
 {
