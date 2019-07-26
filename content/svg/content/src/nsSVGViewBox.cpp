@@ -163,7 +163,8 @@ nsSVGViewBox::SetBaseValueString(const nsAString& aValue,
   if (NS_FAILED(rv)) {
     return rv;
   }
-  if (viewBox == mBaseVal) {
+  
+  if (mHasBaseVal && viewBox == mBaseVal) {
     return NS_OK;
   }
 
