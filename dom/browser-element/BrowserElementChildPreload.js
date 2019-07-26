@@ -710,6 +710,13 @@ BrowserElementChild.prototype = {
           ", maxHeight=" + maxHeight +
           ", domRequestID=" + domRequestID + ".");
 
+    if (!content) {
+      
+      
+      debug("No content yet!");
+      return;
+    }
+
     let scaleWidth = Math.min(1, maxWidth / content.innerWidth);
     let scaleHeight = Math.min(1, maxHeight / content.innerHeight);
 
