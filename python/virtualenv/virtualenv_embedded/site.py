@@ -585,8 +585,18 @@ def virtual_install_main_packages():
             else:
                 paths.append(lib64_path)
         
-        plat_path = os.path.join(sys.real_prefix, 'lib', 'python'+sys.version[:3],
-                                 'plat-%s' % sys.platform)
+        
+        
+        
+        
+        try:
+            arch = getattr(sys, 'implementation', sys)._multiarch
+        except AttributeError:
+            
+            arch = sys.platform
+        plat_path = os.path.join(sys.real_prefix, 'lib', 
+                                 'python'+sys.version[:3],
+                                 'plat-%s' % arch)
         if os.path.exists(plat_path):
             paths.append(plat_path)
     
