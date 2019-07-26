@@ -1223,6 +1223,9 @@ SetDeterministicGC(JSContext *cx, bool enabled);
 void
 SetValidateGC(JSContext *cx, bool enabled);
 
+void
+SetFullCompartmentChecks(JSContext *cx, bool enabled);
+
 
 void
 FinishBackgroundFinalize(JSRuntime *rt);
