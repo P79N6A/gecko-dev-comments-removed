@@ -162,15 +162,6 @@ SessionStartup.prototype = {
       else
         this._initialState = null; 
 
-      
-      
-      
-      if (this.doRestore() &&
-          (!this._initialState.windows ||
-           !this._initialState.windows.every(function (win)
-             win.tabs.every(function (tab) tab.pinned))))
-        Services.obs.addObserver(this, "domwindowopened", true);
-
       Services.obs.addObserver(this, "sessionstore-windows-restored", true);
 
       if (this._sessionType != Ci.nsISessionStartup.NO_SESSION)
@@ -204,14 +195,6 @@ SessionStartup.prototype = {
       if (this._sessionType != Ci.nsISessionStartup.NO_SESSION)
         Services.obs.removeObserver(this, "browser:purge-session-history");
       break;
-    case "domwindowopened":
-      var window = aSubject;
-      var self = this;
-      window.addEventListener("load", function() {
-        self._onWindowOpened(window);
-        window.removeEventListener("load", arguments.callee, false);
-      }, false);
-      break;
     case "sessionstore-windows-restored":
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
       
@@ -222,43 +205,6 @@ SessionStartup.prototype = {
       
       this._sessionType = Ci.nsISessionStartup.NO_SESSION;
       break;
-    }
-  },
-
-  
-
-
-
-  _onWindowOpened: function sss_onWindowOpened(aWindow) {
-    var wType = aWindow.document.documentElement.getAttribute("windowtype");
-    if (wType != "navigator:browser")
-      return;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    var defaultArgs = Cc["@mozilla.org/browser/clh;1"].
-                      getService(Ci.nsIBrowserHandler).defaultArgs;
-    if (aWindow.arguments && aWindow.arguments[0] &&
-        aWindow.arguments[0] == defaultArgs)
-      aWindow.arguments[0] = null;
-
-    try {
-      Services.obs.removeObserver(this, "domwindowopened");
-    } catch (e) {
-      
-      
     }
   },
 
@@ -280,10 +226,42 @@ SessionStartup.prototype = {
 
 
 
+
+
   doRestore: function sss_doRestore() {
     this._ensureInitialized();
+    return this._willRestore();
+  },
+
+  
+
+
+
+  _willRestore: function () {
     return this._sessionType == Ci.nsISessionStartup.RECOVER_SESSION ||
            this._sessionType == Ci.nsISessionStartup.RESUME_SESSION;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  get willOverrideHomepage() {
+    if (this._initialState && this._willRestore()) {
+      let windows = this._initialState.windows || null;
+      
+      
+      return windows && windows.some(w => w.tabs.some(t => !t.pinned));
+    }
+    return false;
   },
 
   
