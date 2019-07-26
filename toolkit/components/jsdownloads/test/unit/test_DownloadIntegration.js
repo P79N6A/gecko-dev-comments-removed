@@ -59,7 +59,11 @@ add_task(function test_getSystemDownloadsDirectory()
     do_check_true(info.isDir);
     yield OS.File.removeEmptyDir(targetPath);
   }
+
+  let downloadDirBefore = yield DownloadIntegration.getSystemDownloadsDirectory();
   cleanup();
+  let downloadDirAfter = yield DownloadIntegration.getSystemDownloadsDirectory();
+  do_check_false(downloadDirBefore.equals(downloadDirAfter));
 });
 
 

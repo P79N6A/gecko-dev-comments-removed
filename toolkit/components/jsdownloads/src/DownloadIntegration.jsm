@@ -73,7 +73,7 @@ XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
 
 this.DownloadIntegration = {
   
-  testMode: false,
+  _testMode: false,
   dontLoad: false,
   dontCheckParentalControls: false,
   shouldBlockInTest: false,
@@ -87,6 +87,15 @@ this.DownloadIntegration = {
 
 
   _store: null,
+
+  
+
+
+  get testMode() this._testMode,
+  set testMode(mode) {
+    this._downloadsDirectory = null;
+    return (this._testMode = mode);
+  },
 
   
 
