@@ -2,8 +2,8 @@
 
 
 
-#ifndef nsBlobURI_h
-#define nsBlobURI_h
+#ifndef nsHostObjectURI_h
+#define nsHostObjectURI_h
 
 #include "nsCOMPtr.h"
 #include "nsIClassInfo.h"
@@ -12,17 +12,20 @@
 #include "nsIURIWithPrincipal.h"
 #include "nsSimpleURI.h"
 
-class nsBlobURI : public nsSimpleURI,
-                  public nsIURIWithPrincipal
+
+
+
+class nsHostObjectURI : public nsSimpleURI,
+                        public nsIURIWithPrincipal
 {
 public:
-  nsBlobURI(nsIPrincipal* aPrincipal) :
+  nsHostObjectURI(nsIPrincipal* aPrincipal) :
       nsSimpleURI(), mPrincipal(aPrincipal)
   {}
-  virtual ~nsBlobURI() {}
+  virtual ~nsHostObjectURI() {}
 
   
-  nsBlobURI() : nsSimpleURI() {}
+  nsHostObjectURI() : nsSimpleURI() {}
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIURIWITHPRINCIPAL
@@ -38,12 +41,12 @@ public:
 
   
   virtual nsSimpleURI* StartClone(RefHandlingEnum )
-  { return new nsBlobURI(); }
+  { return new nsHostObjectURI(); }
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
-#define NS_BLOBURI_CID \
+#define NS_HOSTOBJECTURI_CID \
 { 0xf5475c51, 0x59a7, 0x4757, \
   { 0xb3, 0xd9, 0xe2, 0x11, 0xa9, 0x41, 0x08, 0x72 } }
 

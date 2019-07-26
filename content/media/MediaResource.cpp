@@ -28,7 +28,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "mozilla/Util.h" 
 #include "nsContentUtils.h"
-#include "nsBlobProtocolHandler.h"
+#include "nsHostObjectProtocolHandler.h"
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gMediaResourceLog;

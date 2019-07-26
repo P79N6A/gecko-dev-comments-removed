@@ -2,24 +2,24 @@
 
 
 
-#include "nsBlobURI.h"
+#include "nsHostObjectURI.h"
 
 #include "nsAutoPtr.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIProgrammingLanguage.h"
 
-static NS_DEFINE_CID(kBLOBURICID, NS_BLOBURI_CID);
+static NS_DEFINE_CID(kHOSTOBJECTURICID, NS_HOSTOBJECTURI_CID);
 
 static NS_DEFINE_CID(kThisSimpleURIImplementationCID,
                      NS_THIS_SIMPLEURI_IMPLEMENTATION_CID);
 
-NS_IMPL_ADDREF_INHERITED(nsBlobURI, nsSimpleURI)
-NS_IMPL_RELEASE_INHERITED(nsBlobURI, nsSimpleURI)
+NS_IMPL_ADDREF_INHERITED(nsHostObjectURI, nsSimpleURI)
+NS_IMPL_RELEASE_INHERITED(nsHostObjectURI, nsSimpleURI)
 
-NS_INTERFACE_MAP_BEGIN(nsBlobURI)
+NS_INTERFACE_MAP_BEGIN(nsHostObjectURI)
   NS_INTERFACE_MAP_ENTRY(nsIURIWithPrincipal)
-  if (aIID.Equals(kBLOBURICID))
+  if (aIID.Equals(kHOSTOBJECTURICID))
     foundInterface = static_cast<nsIURI*>(this);
   else if (aIID.Equals(kThisSimpleURIImplementationCID)) {
     
@@ -34,7 +34,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSimpleURI)
 
 
 NS_IMETHODIMP
-nsBlobURI::GetPrincipal(nsIPrincipal** aPrincipal)
+nsHostObjectURI::GetPrincipal(nsIPrincipal** aPrincipal)
 {
   NS_IF_ADDREF(*aPrincipal = mPrincipal);
 
@@ -42,7 +42,7 @@ nsBlobURI::GetPrincipal(nsIPrincipal** aPrincipal)
 }
 
 NS_IMETHODIMP
-nsBlobURI::GetPrincipalUri(nsIURI** aUri)
+nsHostObjectURI::GetPrincipalUri(nsIURI** aUri)
 {
   if (mPrincipal) {
     mPrincipal->GetURI(aUri);
@@ -57,7 +57,7 @@ nsBlobURI::GetPrincipalUri(nsIURI** aUri)
 
 
 NS_IMETHODIMP
-nsBlobURI::Read(nsIObjectInputStream* aStream)
+nsHostObjectURI::Read(nsIObjectInputStream* aStream)
 {
   nsresult rv = nsSimpleURI::Read(aStream);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -66,7 +66,7 @@ nsBlobURI::Read(nsIObjectInputStream* aStream)
 }
 
 NS_IMETHODIMP
-nsBlobURI::Write(nsIObjectOutputStream* aStream)
+nsHostObjectURI::Write(nsIObjectOutputStream* aStream)
 {
   nsresult rv = nsSimpleURI::Write(aStream);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -78,8 +78,8 @@ nsBlobURI::Write(nsIObjectOutputStream* aStream)
 
 
 nsresult
-nsBlobURI::CloneInternal(nsSimpleURI::RefHandlingEnum aRefHandlingMode,
-                             nsIURI** aClone)
+nsHostObjectURI::CloneInternal(nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+                               nsIURI** aClone)
 {
   nsCOMPtr<nsIURI> simpleClone;
   nsresult rv =
@@ -87,56 +87,56 @@ nsBlobURI::CloneInternal(nsSimpleURI::RefHandlingEnum aRefHandlingMode,
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef DEBUG
-  nsRefPtr<nsBlobURI> uriCheck;
-  rv = simpleClone->QueryInterface(kBLOBURICID, getter_AddRefs(uriCheck));
+  nsRefPtr<nsHostObjectURI> uriCheck;
+  rv = simpleClone->QueryInterface(kHOSTOBJECTURICID, getter_AddRefs(uriCheck));
   NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv) && uriCheck,
 		    "Unexpected!");
 #endif
 
-  nsBlobURI* blobURI = static_cast<nsBlobURI*>(simpleClone.get());
+  nsHostObjectURI* u = static_cast<nsHostObjectURI*>(simpleClone.get());
 
-  blobURI->mPrincipal = mPrincipal;
+  u->mPrincipal = mPrincipal;
 
   simpleClone.forget(aClone);
   return NS_OK;
 }
 
  nsresult
-nsBlobURI::EqualsInternal(nsIURI* aOther,
-                              nsSimpleURI::RefHandlingEnum aRefHandlingMode,
-                              bool* aResult)
+nsHostObjectURI::EqualsInternal(nsIURI* aOther,
+                                nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+                                bool* aResult)
 {
   if (!aOther) {
     *aResult = false;
     return NS_OK;
   }
   
-  nsRefPtr<nsBlobURI> otherBlobUri;
-  aOther->QueryInterface(kBLOBURICID, getter_AddRefs(otherBlobUri));
-  if (!otherBlobUri) {
+  nsRefPtr<nsHostObjectURI> otherUri;
+  aOther->QueryInterface(kHOSTOBJECTURICID, getter_AddRefs(otherUri));
+  if (!otherUri) {
     *aResult = false;
     return NS_OK;
   }
 
   
-  if (!nsSimpleURI::EqualsInternal(otherBlobUri, aRefHandlingMode)) {
+  if (!nsSimpleURI::EqualsInternal(otherUri, aRefHandlingMode)) {
     *aResult = false;
     return NS_OK;
-   }
+  }
 
   
-  if (mPrincipal && otherBlobUri->mPrincipal) {
+  if (mPrincipal && otherUri->mPrincipal) {
     
-    return mPrincipal->Equals(otherBlobUri->mPrincipal, aResult);
+    return mPrincipal->Equals(otherUri->mPrincipal, aResult);
   }
   
-  *aResult = (!mPrincipal && !otherBlobUri->mPrincipal);
+  *aResult = (!mPrincipal && !otherUri->mPrincipal);
   return NS_OK;
 }
 
 
 NS_IMETHODIMP 
-nsBlobURI::GetInterfaces(uint32_t *count, nsIID * **array)
+nsHostObjectURI::GetInterfaces(uint32_t *count, nsIID * **array)
 {
   *count = 0;
   *array = nullptr;
@@ -144,14 +144,14 @@ nsBlobURI::GetInterfaces(uint32_t *count, nsIID * **array)
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetHelperForLanguage(uint32_t language, nsISupports **_retval)
+nsHostObjectURI::GetHelperForLanguage(uint32_t language, nsISupports **_retval)
 {
   *_retval = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetContractID(char * *aContractID)
+nsHostObjectURI::GetContractID(char * *aContractID)
 {
   
   
@@ -160,14 +160,14 @@ nsBlobURI::GetContractID(char * *aContractID)
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetClassDescription(char * *aClassDescription)
+nsHostObjectURI::GetClassDescription(char * *aClassDescription)
 {
   *aClassDescription = nullptr;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetClassID(nsCID * *aClassID)
+nsHostObjectURI::GetClassID(nsCID * *aClassID)
 {
   
   
@@ -178,22 +178,22 @@ nsBlobURI::GetClassID(nsCID * *aClassID)
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetImplementationLanguage(uint32_t *aImplementationLanguage)
+nsHostObjectURI::GetImplementationLanguage(uint32_t *aImplementationLanguage)
 {
   *aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetFlags(uint32_t *aFlags)
+nsHostObjectURI::GetFlags(uint32_t *aFlags)
 {
   *aFlags = nsIClassInfo::MAIN_THREAD_ONLY;
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsBlobURI::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
+nsHostObjectURI::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 {
-  *aClassIDNoAlloc = kBLOBURICID;
+  *aClassIDNoAlloc = kHOSTOBJECTURICID;
   return NS_OK;
 }
