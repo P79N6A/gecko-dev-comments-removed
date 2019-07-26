@@ -487,6 +487,7 @@ function ThreadClient(aClient, aActor) {
   this._frameCache = [];
   this._scriptCache = {};
   this._pauseGrips = {};
+  this._threadGrips = {};
 }
 
 ThreadClient.prototype = {
@@ -866,13 +867,17 @@ ThreadClient.prototype = {
 
 
 
-  longString: function TC_longString(aGrip) {
-    if (aGrip.actor in this._pauseGrips) {
-      return this._pauseGrips[aGrip.actor];
+
+
+
+
+  _longString: function TC__longString(aGrip, aGripCacheName) {
+    if (aGrip.actor in this[aGripCacheName]) {
+      return this[aGripCacheName][aGrip.actor];
     }
 
     let client = new LongStringClient(this._client, aGrip);
-    this._pauseGrips[aGrip.actor] = client;
+    this[aGripCacheName][aGrip.actor] = client;
     return client;
   },
 
@@ -880,11 +885,51 @@ ThreadClient.prototype = {
 
 
 
-  _clearPauseGrips: function TC_clearPauseGrips(aPacket) {
-    for each (let grip in this._pauseGrips) {
+
+
+
+  pauseLongString: function TC_pauseLongString(aGrip) {
+    return this._longString(aGrip, "_pauseGrips");
+  },
+
+  
+
+
+
+
+
+
+  threadLongString: function TC_threadLongString(aGrip) {
+    return this._longString(aGrip, "_threadGrips");
+  },
+
+  
+
+
+
+
+
+  _clearGripClients: function TC_clearGrips(aGripCacheName) {
+    for each (let grip in this[aGripCacheName]) {
       grip.valid = false;
     }
-    this._pauseGrips = {};
+    this[aGripCacheName] = {};
+  },
+
+  
+
+
+
+  _clearPauseGrips: function TC_clearPauseGrips() {
+    this._clearGripClients("_pauseGrips");
+  },
+
+  
+
+
+
+  _clearThreadGrips: function TC_clearPauseGrips() {
+    this._clearGripClients("_threadGrips");
   },
 
   
@@ -895,6 +940,7 @@ ThreadClient.prototype = {
     this._state = ThreadStateTypes[aPacket.type];
     this._clearFrames();
     this._clearPauseGrips();
+    aPacket.type === ThreadStateTypes.detached && this._clearThreadGrips();
     this._client._eventsEnabled && this.notify(aPacket.type, aPacket);
   },
 };

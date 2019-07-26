@@ -787,7 +787,7 @@ ThreadActor.prototype = {
     let type = typeof(aValue);
 
     if (type === "string" && this._stringIsLong(aValue)) {
-      return this.longStringGrip(aValue);
+      return this.longStringGrip(aValue, this._pausePool);
     }
 
     if (type === "boolean" || type === "string" || type === "number") {
@@ -882,23 +882,41 @@ ThreadActor.prototype = {
 
 
 
-  longStringGrip: function TA_longStringGrip(aString) {
-    if (!this._pausePool) {
-      throw new Error("LongString grip requested while not paused.");
+
+
+  longStringGrip: function TA_longStringGrip(aString, aPool) {
+    if (!aPool.longStringActors) {
+      aPool.longStringActors = {};
     }
 
-    if (!this._pausePool.longStringActors) {
-      this._pausePool.longStringActors = {};
-    }
-
-    if (this._pausePool.longStringActors.hasOwnProperty(aString)) {
-      return this._pausePool.longStringActors[aString].grip();
+    if (aPool.longStringActors.hasOwnProperty(aString)) {
+      return aPool.longStringActors[aString].grip();
     }
 
     let actor = new LongStringActor(aString, this);
-    this._pausePool.addActor(actor);
-    this._pausePool.longStringActors[aString] = actor;
+    aPool.addActor(actor);
+    aPool.longStringActors[aString] = actor;
     return actor.grip();
+  },
+
+  
+
+
+
+
+
+  pauseLongStringGrip: function TA_pauseLongStringGrip (aString) {
+    return this.longStringGrip(aString, this._pausePool);
+  },
+
+  
+
+
+
+
+
+  threadLongStringGrip: function TA_pauseLongStringGrip (aString) {
+    return this.longStringGrip(aString, this._threadLifetimePool);
   },
 
   
