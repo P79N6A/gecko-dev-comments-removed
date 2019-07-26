@@ -19,7 +19,9 @@ import android.os.AsyncTask;
 import android.util.AttributeSet;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.CursorAdapter;
@@ -50,6 +52,12 @@ public class BookmarksListView extends HomeListView
     
     private boolean mHasFolderHeader = false;
 
+    
+    private MotionEvent mMotionEvent;
+
+    
+    private int mTouchSlop;
+
     public BookmarksListView(Context context) {
         this(context, null);
     }
@@ -60,6 +68,9 @@ public class BookmarksListView extends HomeListView
 
     public BookmarksListView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+
+        
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 
         
         mFolderView = (BookmarkFolderView) LayoutInflater.from(context).inflate(R.layout.bookmark_folder_row, null);
@@ -101,6 +112,36 @@ public class BookmarksListView extends HomeListView
                 }
             });
         }
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        switch(event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN: {
+                
+                mMotionEvent = MotionEvent.obtain(event);
+                break;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                if ((mMotionEvent != null) &&
+                    (Math.abs(event.getY() - mMotionEvent.getY()) > mTouchSlop)) {
+                    
+                    
+                    onTouchEvent(mMotionEvent);
+                    return true;
+                }
+                break;
+            }
+
+            default: {
+                mMotionEvent = null;
+                break;
+            }
+        }
+
+        
+        return super.onInterceptTouchEvent(event);
     }
 
     @Override
