@@ -17,7 +17,6 @@ function DebuggerPanel(iframeWindow, toolbox) {
   this._view = this.panelWin.DebuggerView;
   this._controller = this.panelWin.DebuggerController;
   this._controller._target = this.target;
-  this._bkp = this._controller.Breakpoints;
 
   this.highlightWhenPaused = this.highlightWhenPaused.bind(this);
   this.unhighlightWhenResumed = this.unhighlightWhenResumed.bind(this);
@@ -60,6 +59,7 @@ DebuggerPanel.prototype = {
   },
 
   
+
   get target() this._toolbox.target,
 
   destroy: function() {
@@ -78,24 +78,17 @@ DebuggerPanel.prototype = {
 
   
 
-  addBreakpoint: function() {
-    this._bkp.addBreakpoint.apply(this._bkp, arguments);
+  addBreakpoint: function(aLocation, aOptions) {
+    return this._controller.Breakpoints.addBreakpoint(aLocation, aOptions);
   },
 
-  removeBreakpoint: function() {
-    this._bkp.removeBreakpoint.apply(this._bkp, arguments);
-  },
-
-  getBreakpoint: function() {
-    return this._bkp.getBreakpoint.apply(this._bkp, arguments);
-  },
-
-  getAllBreakpoints: function() {
-    return this._bkp.store;
+  removeBreakpoint: function(aLocation) {
+    return this._controller.Breakpoints.removeBreakpoint(aLocation);
   },
 
   highlightWhenPaused: function() {
     this._toolbox.highlightTool("jsdebugger");
+
     
     
     this._toolbox.raise();

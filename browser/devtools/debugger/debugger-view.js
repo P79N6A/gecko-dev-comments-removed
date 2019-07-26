@@ -179,7 +179,22 @@ let DebuggerView = {
     this.editor = new SourceEditor();
     this.editor.init(placeholder, config, () => {
       this._loadingText = L10N.getStr("loadingText");
-      this._onEditorLoad();
+      this._onEditorLoad(aCallback);
+    });
+  },
+
+  
+
+
+
+
+
+
+  _onEditorLoad: function(aCallback) {
+    dumpn("Finished loading the DebuggerView editor");
+
+    DebuggerController.Breakpoints.initialize().then(() => {
+      window.dispatchEvent(document, "Debugger:EditorLoaded", this.editor);
       aCallback();
     });
   },
@@ -188,22 +203,16 @@ let DebuggerView = {
 
 
 
-  _onEditorLoad: function() {
-    dumpn("Finished loading the DebuggerView editor");
-
-    DebuggerController.Breakpoints.initialize();
-    window.dispatchEvent(document, "Debugger:EditorLoaded", this.editor);
-  },
-
-  
 
 
 
-  _destroyEditor: function() {
+  _destroyEditor: function(aCallback) {
     dumpn("Destroying the DebuggerView editor");
 
-    DebuggerController.Breakpoints.destroy();
-    window.dispatchEvent(document, "Debugger:EditorUnloaded", this.editor);
+    DebuggerController.Breakpoints.destroy().then(() => {
+      window.dispatchEvent(document, "Debugger:EditorUnloaded", this.editor);
+      aCallback();
+    });
   },
 
   
