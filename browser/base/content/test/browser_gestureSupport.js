@@ -163,7 +163,9 @@ function test_TestEventListeners()
   test_clicks("MozPressTapGesture", 1);
 
   
-  e("MozEdgeUIGesture", 0, 0, 0);
+  e("MozEdgeUIStarted", 0, 0, 0);
+  e("MozEdgeUICanceled", 0, 0, 0);
+  e("MozEdgeUICompleted", 0, 0, 0);
 
   
   let modifier = Components.interfaces.nsIDOMEvent.SHIFT_MASK;
