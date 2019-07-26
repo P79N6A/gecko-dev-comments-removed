@@ -23,7 +23,6 @@
 #include "nsRegion.h"                   
 #include "nsTraceRefcnt.h"              
 #include "nscore.h"                     
-#include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
 class gfxImageSurface;
 class gfxReusableSurfaceWrapper;
@@ -47,9 +46,8 @@ class TextureSourceOGL;
 class TextureSourceD3D9;
 class TextureSourceD3D11;
 class TextureSourceBasic;
-class DataTextureSource;
-class PTextureParent;
 class TextureParent;
+class DataTextureSource;
 
 
 
@@ -259,28 +257,19 @@ private:
 
 
 
-class TextureHost
-  : public AtomicRefCountedWithFinalize<TextureHost>
+class TextureHost : public RefCounted<TextureHost>
 {
-  
-
-
-
-
-
-  void Finalize();
-
-  friend class AtomicRefCountedWithFinalize<TextureHost>;
-
 public:
-  TextureHost(TextureFlags aFlags);
+  TextureHost(uint64_t aID,
+              TextureFlags aFlags);
 
   virtual ~TextureHost();
 
   
 
 
-  static TemporaryRef<TextureHost> Create(const SurfaceDescriptor& aDesc,
+  static TemporaryRef<TextureHost> Create(uint64_t aID,
+                                          const SurfaceDescriptor& aDesc,
                                           ISurfaceAllocator* aDeallocator,
                                           TextureFlags aFlags);
 
@@ -348,9 +337,21 @@ public:
 
 
 
-  virtual void ForgetSharedData() {}
+
+
+  uint64_t GetID() const { return mID; }
 
   virtual gfx::IntSize GetSize() const = 0;
+
+  
+
+
+
+
+
+
+  TextureHost* GetNextSibling() const { return mNextTexture; }
+  void SetNextSibling(TextureHost* aNext) { mNextTexture = aNext; }
 
   
 
@@ -374,27 +375,6 @@ public:
 
 
 
-
-
-
-
-  static PTextureParent* CreateIPDLActor(ISurfaceAllocator* aAllocator);
-  static bool DestroyIPDLActor(PTextureParent* actor);
-
-  
-
-
-  static bool SendDeleteIPDLActor(PTextureParent* actor);
-
-  
-
-
-  static TextureHost* AsTextureHost(PTextureParent* actor);
-
-  
-
-
-
   virtual LayerRenderState GetRenderState()
   {
     
@@ -406,12 +386,14 @@ public:
 
   
   
-  virtual void OnShutdown() {}
+  virtual void OnActorDestroy() {}
 
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
 protected:
+  uint64_t mID;
+  RefPtr<TextureHost> mNextTexture;
   TextureFlags mFlags;
   RefPtr<CompositableBackendSpecificData> mCompositableBackendData;
 };
@@ -432,7 +414,8 @@ protected:
 class BufferTextureHost : public TextureHost
 {
 public:
-  BufferTextureHost(gfx::SurfaceFormat aFormat,
+  BufferTextureHost(uint64_t aID,
+                    gfx::SurfaceFormat aFormat,
                     TextureFlags aFlags);
 
   ~BufferTextureHost();
@@ -487,7 +470,8 @@ protected:
 class ShmemTextureHost : public BufferTextureHost
 {
 public:
-  ShmemTextureHost(const mozilla::ipc::Shmem& aShmem,
+  ShmemTextureHost(uint64_t aID,
+                   const mozilla::ipc::Shmem& aShmem,
                    gfx::SurfaceFormat aFormat,
                    ISurfaceAllocator* aDeallocator,
                    TextureFlags aFlags);
@@ -496,13 +480,11 @@ public:
 
   virtual void DeallocateSharedData() MOZ_OVERRIDE;
 
-  virtual void ForgetSharedData() MOZ_OVERRIDE;
-
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 
   virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
 
-  virtual void OnShutdown() MOZ_OVERRIDE;
+  virtual void OnActorDestroy() MOZ_OVERRIDE;
 
 protected:
   mozilla::ipc::Shmem* mShmem;
@@ -518,15 +500,14 @@ protected:
 class MemoryTextureHost : public BufferTextureHost
 {
 public:
-  MemoryTextureHost(uint8_t* aBuffer,
+  MemoryTextureHost(uint64_t aID,
+                    uint8_t* aBuffer,
                     gfx::SurfaceFormat aFormat,
                     TextureFlags aFlags);
 
   ~MemoryTextureHost();
 
   virtual void DeallocateSharedData() MOZ_OVERRIDE;
-
-  virtual void ForgetSharedData() MOZ_OVERRIDE;
 
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 
@@ -730,7 +711,7 @@ public:
   
   virtual void ForgetBuffer() {}
 
-  void OnShutdown();
+  void OnActorDestroy();
 
 protected:
   
@@ -833,7 +814,8 @@ private:
 
 
 TemporaryRef<TextureHost>
-CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
+CreateBackendIndependentTextureHost(uint64_t aID,
+                                    const SurfaceDescriptor& aDesc,
                                     ISurfaceAllocator* aDeallocator,
                                     TextureFlags aFlags);
 

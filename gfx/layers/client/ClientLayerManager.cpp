@@ -368,6 +368,17 @@ ClientLayerManager::ForwardTransaction()
           ->SetDescriptorFromReply(ots.textureId(), ots.image());
         break;
       }
+      case EditReply::TReplyTextureRemoved: {
+        
+        
+        
+        
+        const ReplyTextureRemoved& rep = reply.get_ReplyTextureRemoved();
+        CompositableClient* compositable
+          = static_cast<CompositableChild*>(rep.compositableChild())->GetCompositableClient();
+        compositable->OnReplyTextureRemoved(rep.textureId());
+        break;
+      }
 
       default:
         NS_RUNTIMEABORT("not reached");

@@ -19,7 +19,6 @@
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/layers/SharedPlanarYCbCrImage.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "mozilla/layers/PTextureChild.h"
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
 #include "ImageContainer.h"             
@@ -38,126 +37,6 @@ using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
-
-
-
-
-
-
-
-
-
-
-
-
-class TextureChild : public PTextureChild
-{
-public:
-  TextureChild()
-  : mForwarder(nullptr)
-  , mTextureData(nullptr)
-  , mTextureClient(nullptr)
-  {
-    MOZ_COUNT_CTOR(TextureChild);
-  }
-
-  ~TextureChild()
-  {
-    MOZ_COUNT_DTOR(TextureChild);
-  }
-
-  bool Recv__delete__() MOZ_OVERRIDE;
-
-  
-
-
-
-
-  void SetTextureData(TextureClientData* aData)
-  {
-    mTextureData = aData;
-  }
-
-  void DeleteTextureData();
-
-  CompositableForwarder* GetForwarder() { return mForwarder; }
-
-  ISurfaceAllocator* GetAllocator() { return mForwarder; }
-
-  void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
-
-private:
-
-  CompositableForwarder* mForwarder;
-  TextureClientData* mTextureData;
-  TextureClient* mTextureClient;
-
-  friend class TextureClient;
-};
-
-void
-TextureChild::DeleteTextureData()
-{
-  if (mTextureData) {
-    mTextureData->DeallocateSharedData(GetAllocator());
-    delete mTextureData;
-    mTextureData = nullptr;
-  }
-}
-
-bool
-TextureChild::Recv__delete__()
-{
-  DeleteTextureData();
-  return true;
-}
-
-void
-TextureChild::ActorDestroy(ActorDestroyReason why)
-{
-  if (mTextureClient) {
-    mTextureClient->mActor = nullptr;
-  }
-}
-
-
-PTextureChild*
-TextureClient::CreateIPDLActor()
-{
-  return new TextureChild();
-}
-
-
-bool
-TextureClient::DestroyIPDLActor(PTextureChild* actor)
-{
-  delete actor;
-  return true;
-}
-
-bool
-TextureClient::InitIPDLActor(CompositableForwarder* aForwarder)
-{
-  MOZ_ASSERT(!mActor);
-  MOZ_ASSERT(aForwarder);
-
-  SurfaceDescriptor desc;
-  if (!ToSurfaceDescriptor(desc)) {
-    return false;
-  }
-
-  mActor = static_cast<TextureChild*>(aForwarder->CreateEmptyTextureChild());
-  mActor->mForwarder = aForwarder;
-  mActor->mTextureClient = this;
-  mShared = true;
-  return mActor->SendInit(desc, GetFlags());
-}
-
-PTextureChild*
-TextureClient::GetIPDLActor()
-{
-  return mActor;
-}
 
 class ShmemTextureClientData : public TextureClientData
 {
@@ -201,7 +80,6 @@ public:
   virtual void DeallocateSharedData(ISurfaceAllocator*)
   {
     delete[] mBuffer;
-    mBuffer = nullptr;
   }
 
 private:
@@ -233,43 +111,14 @@ ShmemTextureClient::DropTextureData()
 }
 
 TextureClient::TextureClient(TextureFlags aFlags)
-  : mActor(nullptr)
+  : mID(0)
   , mFlags(aFlags)
   , mShared(false)
   , mValid(true)
 {}
 
 TextureClient::~TextureClient()
-{
-  
-  
-}
-
-void TextureClient::ForceRemove()
-{
-  if (mValid && mActor) {
-    if (GetFlags() & TEXTURE_DEALLOCATE_CLIENT) {
-      mActor->SetTextureData(DropTextureData());
-      mActor->SendRemoveTextureSync();
-      mActor->DeleteTextureData();
-    } else {
-      mActor->SendRemoveTexture();
-    }
-  }
-  MarkInvalid();
-}
-
-void
-TextureClient::Finalize()
-{
-  if (mActor) {
-    
-    mActor->GetForwarder()->RemoveTexture(this);
-
-    
-    mActor->mTextureClient = nullptr;
-  }
-}
+{}
 
 bool
 TextureClient::ShouldDeallocateInDestructor() const
@@ -388,7 +237,7 @@ MemoryTextureClient::MemoryTextureClient(CompositableClient* aCompositable,
 MemoryTextureClient::~MemoryTextureClient()
 {
   MOZ_COUNT_DTOR(MemoryTextureClient);
-  if (mBuffer && ShouldDeallocateInDestructor()) {
+  if (ShouldDeallocateInDestructor() && mBuffer) {
     
     
     GfxMemoryImageReporter::WillFree(mBuffer);
@@ -563,6 +412,15 @@ DeprecatedTextureClient::~DeprecatedTextureClient()
   MOZ_COUNT_DTOR(DeprecatedTextureClient);
   MOZ_ASSERT(mDescriptor.type() == SurfaceDescriptor::T__None, "Need to release surface!");
 }
+
+void
+DeprecatedTextureClient::OnActorDestroy()
+{
+  if (ISurfaceAllocator::IsShmem(&mDescriptor)) {
+    mDescriptor = SurfaceDescriptor();
+  }
+}
+
 
 DeprecatedTextureClientShmem::DeprecatedTextureClientShmem(CompositableForwarder* aForwarder,
                                        const TextureInfo& aTextureInfo)

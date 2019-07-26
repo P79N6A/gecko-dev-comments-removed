@@ -109,6 +109,12 @@ public:
   }
 
   
+
+
+
+  virtual void OnActorDestroy();
+
+  
   virtual void SetCompositor(Compositor* aCompositor);
 
   
@@ -288,13 +294,23 @@ public:
 
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix) { }
 
-  virtual void UseTextureHost(TextureHost* aTexture);
+  void AddTextureHost(TextureHost* aTexture);
+  virtual void UseTextureHost(TextureHost* aTexture) {}
+  
+  
+  
+  
+  
+  
+  virtual void RemoveTextureHost(TextureHost* aTexture);
+  TextureHost* GetTextureHost(uint64_t aTextureID);
 
 protected:
   TextureInfo mTextureInfo;
   Compositor* mCompositor;
   Layer* mLayer;
   RefPtr<CompositableBackendSpecificData> mBackendData;
+  RefPtr<TextureHost> mFirstTexture;
   bool mAttached;
   bool mKeepAttached;
 };

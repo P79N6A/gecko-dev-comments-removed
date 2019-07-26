@@ -24,7 +24,6 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsISupportsImpl.h"            
-#include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 
 class gfxReusableSurfaceWrapper;
 class gfxASurface;
@@ -40,8 +39,6 @@ class CompositableClient;
 class PlanarYCbCrImage;
 class PlanarYCbCrData;
 class Image;
-class PTextureChild;
-class TextureChild;
 
 
 
@@ -122,6 +119,7 @@ public:
 
 
 
+
 class TextureClientData {
 public:
   virtual void DeallocateSharedData(ISurfaceAllocator* allocator) = 0;
@@ -151,8 +149,7 @@ public:
 
 
 
-class TextureClient
-  : public AtomicRefCountedWithFinalize<TextureClient>
+class TextureClient : public AtomicRefCounted<TextureClient>
 {
 public:
   TextureClient(TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
@@ -187,8 +184,21 @@ public:
 
 
 
-  static PTextureChild* CreateIPDLActor();
-  static bool DestroyIPDLActor(PTextureChild* actor);
+
+
+  void SetID(uint64_t aID)
+  {
+    MOZ_ASSERT(mID == 0 && aID != 0);
+    mID = aID;
+    mShared = true;
+  }
+  void ClearID()
+  {
+    MOZ_ASSERT(mID != 0);
+    mID = 0;
+  }
+
+  uint64_t GetID() const { return mID; }
 
   virtual bool IsAllocated() const = 0;
 
@@ -240,35 +250,8 @@ public:
   void MarkInvalid() { mValid = false; }
 
   
-
-
-
-
-  bool InitIPDLActor(CompositableForwarder* aForwarder);
-
   
-
-
-
-
-
-  PTextureChild* GetIPDLActor();
-
-  
-
-
-  void ForceRemove();
-
-private:
-  
-
-
-
-
-
-  void Finalize();
-
-  friend class AtomicRefCountedWithFinalize<TextureClient>;
+  virtual void OnActorDestroy() {}
 
 protected:
   void AddFlags(TextureFlags  aFlags)
@@ -277,12 +260,10 @@ protected:
     mFlags |= aFlags;
   }
 
-  TextureChild* mActor;
+  uint64_t mID;
   TextureFlags mFlags;
   bool mShared;
   bool mValid;
-
-  friend class TextureChild;
 };
 
 
@@ -379,6 +360,11 @@ public:
   ISurfaceAllocator* GetAllocator() const;
 
   ipc::Shmem& GetShmem() { return mShmem; }
+
+  virtual void OnActorDestroy() MOZ_OVERRIDE
+  {
+    mShmem = ipc::Shmem();
+  }
 
 protected:
   ipc::Shmem mShmem;
@@ -555,6 +541,8 @@ public:
   }
 
   virtual gfxContentType GetContentType() = 0;
+
+  void OnActorDestroy();
 
 protected:
   DeprecatedTextureClient(CompositableForwarder* aForwarder,

@@ -195,12 +195,6 @@ public:
   virtual bool
   DeallocPGrallocBufferChild(PGrallocBufferChild* actor) MOZ_OVERRIDE;
 
-  virtual PTextureChild*
-  AllocPTextureChild() MOZ_OVERRIDE;
-
-  virtual bool
-  DeallocPTextureChild(PTextureChild* actor) MOZ_OVERRIDE;
-
   
 
 
@@ -263,6 +257,19 @@ public:
   
 
 
+  virtual bool AddTexture(CompositableClient* aCompositable,
+                          TextureClient* aClient) MOZ_OVERRIDE;
+
+  
+
+
+  virtual void RemoveTexture(CompositableClient* aCompositable,
+                             uint64_t aTextureID,
+                             TextureFlags aFlags) MOZ_OVERRIDE;
+
+  
+
+
   virtual void UpdatedTexture(CompositableClient* aCompositable,
                               TextureClient* aTexture,
                               nsIntRegion* aRegion) MOZ_OVERRIDE;
@@ -272,8 +279,6 @@ public:
 
   virtual void UseTexture(CompositableClient* aCompositable,
                           TextureClient* aClient) MOZ_OVERRIDE;
-
-  virtual void RemoveTexture(TextureClient* aTexture) MOZ_OVERRIDE;
 
   virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
                                        const SurfaceDescriptorTiles& aTileLayerDescriptor) MOZ_OVERRIDE
@@ -372,8 +377,6 @@ public:
 
 
   virtual void DeallocShmem(mozilla::ipc::Shmem& aShmem);
-
-  virtual PTextureChild* CreateEmptyTextureChild() MOZ_OVERRIDE;
 
 protected:
   ImageBridgeChild();

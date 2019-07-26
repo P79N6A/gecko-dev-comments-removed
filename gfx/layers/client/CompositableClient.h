@@ -135,6 +135,12 @@ public:
   
 
 
+
+  virtual void RemoveTextureClient(TextureClient* aClient);
+
+  
+
+
   virtual void OnTransaction();
 
   
@@ -142,11 +148,47 @@ public:
 
   virtual void OnDetach() {}
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  void OnReplyTextureRemoved(uint64_t aTextureID);
+
+  
+
+
+
+  void FlushTexturesToRemoveCallbacks();
+
+  
+
+
+  virtual void OnActorDestroy() = 0;
+
 protected:
+  
+  uint64_t NextTextureID();
+
+  struct TextureIDAndFlags {
+    TextureIDAndFlags(uint64_t aID, TextureFlags aFlags)
+    : mID(aID), mFlags(aFlags) {}
+    uint64_t mID;
+    TextureFlags mFlags;
+  };
+  
+  nsTArray<TextureIDAndFlags> mTexturesToRemove;
+  std::map<uint64_t, TextureClientData*> mTexturesToRemoveCallbacks;
+  uint64_t mNextTextureID;
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
-
-  friend class CompositableChild;
 };
 
 
@@ -180,11 +222,7 @@ public:
     return mCompositableClient;
   }
 
-  virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
-    if (mCompositableClient) {
-      mCompositableClient->mCompositableChild = nullptr;
-    }
-  }
+  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
   void SetAsyncID(uint64_t aID) { mID = aID; }
   uint64_t GetAsyncID() const

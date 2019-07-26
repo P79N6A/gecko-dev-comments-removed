@@ -32,12 +32,58 @@ ContentHostBase::ContentHostBase(const TextureInfo& aTextureInfo)
 
 ContentHostBase::~ContentHostBase()
 {
+  DestroyTextureHost();
+  DestroyTextureHostOnWhite();
 }
 
 TextureHost*
 ContentHostBase::GetAsTextureHost()
 {
   return mTextureHost;
+}
+
+void
+ContentHostBase::DestroyTextureHost()
+{
+  
+  
+  
+  
+  
+  
+  
+  if (mTextureHost &&
+      mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED &&
+      !GetTextureHost(mTextureHost->GetID())) {
+    MOZ_ASSERT(!(mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_CLIENT));
+    mTextureHost->DeallocateSharedData();
+  }
+  mTextureHost = nullptr;
+}
+
+void
+ContentHostBase::DestroyTextureHostOnWhite()
+{
+  if (mTextureHostOnWhite &&
+      mTextureHostOnWhite->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED &&
+      !GetTextureHost(mTextureHostOnWhite->GetID())) {
+    MOZ_ASSERT(!(mTextureHostOnWhite->GetFlags() & TEXTURE_DEALLOCATE_CLIENT));
+    mTextureHostOnWhite->DeallocateSharedData();
+  }
+  mTextureHostOnWhite = nullptr;
+}
+
+void
+ContentHostBase::RemoveTextureHost(TextureHost* aTexture)
+{
+  if ((aTexture->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED) &&
+      !(mTextureHost && mTextureHost == aTexture) &&
+      !(mTextureHostOnWhite && mTextureHostOnWhite == aTexture)) {
+    MOZ_ASSERT(!(aTexture->GetFlags() & TEXTURE_DEALLOCATE_CLIENT));
+    aTexture->DeallocateSharedData();
+  }
+
+  CompositableHost::RemoveTextureHost(aTexture);
 }
 
 class MOZ_STACK_CLASS AutoLockTextureHost
@@ -240,10 +286,10 @@ void
 ContentHostBase::UseTextureHost(TextureHost* aTexture)
 {
   if (aTexture->GetFlags() & TEXTURE_ON_WHITE) {
-    mTextureHost = nullptr;
+    DestroyTextureHost();
     mTextureHostOnWhite = aTexture;
   } else {
-    mTextureHostOnWhite = nullptr;
+    DestroyTextureHostOnWhite();
     mTextureHost = aTexture;
   }
 }
@@ -289,6 +335,18 @@ ContentHostBase::Dump(FILE* aFile,
 }
 #endif
 
+void
+ContentHostBase::OnActorDestroy()
+{
+  if (mTextureHost) {
+    mTextureHost->OnActorDestroy();
+  }
+  if (mTextureHostOnWhite) {
+    mTextureHostOnWhite->OnActorDestroy();
+  }
+  CompositableHost::OnActorDestroy();
+}
+
 DeprecatedContentHostBase::DeprecatedContentHostBase(const TextureInfo& aTextureInfo)
   : ContentHost(aTextureInfo)
   , mPaintWillResample(false)
@@ -313,6 +371,23 @@ DeprecatedContentHostBase::DestroyFrontHost()
              "We won't be able to destroy our SurfaceDescriptor");
   mDeprecatedTextureHost = nullptr;
   mDeprecatedTextureHostOnWhite = nullptr;
+}
+
+void
+DeprecatedContentHostBase::OnActorDestroy()
+{
+  if (mDeprecatedTextureHost) {
+    mDeprecatedTextureHost->OnActorDestroy();
+  }
+  if (mDeprecatedTextureHostOnWhite) {
+    mDeprecatedTextureHostOnWhite->OnActorDestroy();
+  }
+  if (mNewFrontHost) {
+    mNewFrontHost->OnActorDestroy();
+  }
+  if (mNewFrontHostOnWhite) {
+    mNewFrontHostOnWhite->OnActorDestroy();
+  }
 }
 
 void
@@ -771,6 +846,29 @@ DeprecatedContentHostDoubleBuffered::DestroyTextures()
   }
 
   
+}
+
+void
+DeprecatedContentHostDoubleBuffered::OnActorDestroy()
+{
+  if (mDeprecatedTextureHost) {
+    mDeprecatedTextureHost->OnActorDestroy();
+  }
+  if (mDeprecatedTextureHostOnWhite) {
+    mDeprecatedTextureHostOnWhite->OnActorDestroy();
+  }
+  if (mNewFrontHost) {
+    mNewFrontHost->OnActorDestroy();
+  }
+  if (mNewFrontHostOnWhite) {
+    mNewFrontHostOnWhite->OnActorDestroy();
+  }
+  if (mBackHost) {
+    mBackHost->OnActorDestroy();
+  }
+  if (mBackHostOnWhite) {
+    mBackHostOnWhite->OnActorDestroy();
+  }
 }
 
 void
