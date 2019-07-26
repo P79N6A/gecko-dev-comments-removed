@@ -157,6 +157,15 @@ public:
 
     HDC GetScreenDC() { return mScreenDC; }
 
+    
+
+
+
+
+    double GetDPIScale() {
+        return GetDeviceCaps(mScreenDC, LOGPIXELSY) / 96.0;
+    }
+
     nsresult GetFontList(nsIAtom *aLangGroup,
                          const nsACString& aGenericFamily,
                          nsTArray<nsString>& aListOfFonts);

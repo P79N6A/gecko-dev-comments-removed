@@ -10,6 +10,7 @@
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
 #include "gfxFont.h"
+#include "gfxWindowsPlatform.h"
 #include "WinUtils.h"
 #include "mozilla/Telemetry.h"
 
@@ -556,7 +557,7 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
   }
 
   
-  float pixelScale = 96.0 / GetDeviceCaps(aHDC, LOGPIXELSY);
+  float pixelScale = 1.0f / gfxWindowsPlatform::GetPlatform()->GetDPIScale();
 
   
   

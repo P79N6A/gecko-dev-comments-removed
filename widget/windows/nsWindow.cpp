@@ -958,15 +958,7 @@ float nsWindow::GetDPI()
 
 double nsWindow::GetDefaultScaleInternal()
 {
-  HDC dc = ::GetDC(mWnd);
-  if (!dc)
-    return 1.0;
-
-  
-  
-  double pixelsPerInch = ::GetDeviceCaps(dc, LOGPIXELSY);
-  ::ReleaseDC(mWnd, dc);
-  return pixelsPerInch/96.0;
+  return gfxWindowsPlatform::GetPlatform()->GetDPIScale();
 }
 
 nsWindow* nsWindow::GetParentWindow(bool aIncludeOwner)
