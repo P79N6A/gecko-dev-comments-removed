@@ -41,6 +41,9 @@
 
 #include "nsLayoutUtils.h"
 
+#include "mozilla/Preferences.h"
+static const char *kPrefSrcsetEnabled = "dom.image.srcset.enabled";
+
 NS_IMPL_NS_NEW_HTML_ELEMENT(Image)
 
 namespace mozilla {
@@ -89,6 +92,12 @@ NS_IMPL_URI_ATTR(HTMLImageElement, Src, src)
 NS_IMPL_STRING_ATTR(HTMLImageElement, Srcset, srcset)
 NS_IMPL_STRING_ATTR(HTMLImageElement, UseMap, usemap)
 NS_IMPL_INT_ATTR(HTMLImageElement, Vspace, vspace)
+
+bool
+HTMLImageElement::IsSrcsetEnabled()
+{
+  return Preferences::GetBool(kPrefSrcsetEnabled, false);
+}
 
 void
 HTMLImageElement::GetItemValueText(nsAString& aValue)
@@ -318,23 +327,37 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       nsDependentAtomString(aValue->GetAtomValue()));
   }
 
-  if (aNameSpaceID == kNameSpaceID_None &&
-      aName == nsGkAtoms::src &&
-      !aValue) {
-    CancelImageRequests(aNotify);
-  }
-
   
   
   
-  if (aNotify &&
-      aNameSpaceID == kNameSpaceID_None &&
-      aName == nsGkAtoms::crossorigin) {
+  if (aName == nsGkAtoms::src &&
+      aNameSpaceID == kNameSpaceID_None) {
     
     
-    nsAutoString uri;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri);
-    LoadImage(uri, true, aNotify);
+    if (!aValue) {
+      CancelImageRequests(aNotify);
+    } else if (mResponsiveSelector) {
+      mResponsiveSelector->SetDefaultSource(aValue ? aValue->GetStringValue()
+                                                   : EmptyString());
+      LoadSelectedImage(false, aNotify);
+    }
+  } else if (aName == nsGkAtoms::srcset &&
+             aNameSpaceID == kNameSpaceID_None &&
+             aNotify &&
+             AsContent()->IsInDoc() &&
+             IsSrcsetEnabled()) {
+    
+    UpdateSourceSet(aValue->GetStringValue());
+    LoadSelectedImage(false, aNotify);
+  } else if (aName == nsGkAtoms::crossorigin &&
+             aNameSpaceID == kNameSpaceID_None &&
+             aNotify) {
+    
+    
+    nsCOMPtr<nsIURI> currentURI;
+    if (NS_SUCCEEDED(GetCurrentURI(getter_AddRefs(currentURI))) && currentURI) {
+      LoadImage(currentURI, true, aNotify);
+    }
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName,
@@ -412,7 +435,10 @@ HTMLImageElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   
   
   
-  if (aNotify &&
+  
+  
+  
+  if (aNotify && !mResponsiveSelector &&
       aNameSpaceID == kNameSpaceID_None &&
       aName == nsGkAtoms::src) {
 
@@ -455,11 +481,27 @@ HTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     UpdateFormOwner();
   }
 
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
+  bool haveSrcset = IsSrcsetEnabled() &&
+                    HasAttr(kNameSpaceID_None, nsGkAtoms::srcset);
+  if (haveSrcset || HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
     
     
     ClearBrokenState();
     RemoveStatesSilently(NS_EVENT_STATE_BROKEN);
+
+    
+    
+    if (haveSrcset) {
+      nsAutoString srcset;
+      GetAttr(kNameSpaceID_None, nsGkAtoms::srcset, srcset);
+      UpdateSourceSet(srcset);
+      if (mResponsiveSelector) {
+        nsAutoString src;
+        GetAttr(kNameSpaceID_None, nsGkAtoms::src, src);
+        mResponsiveSelector->SetDefaultSource(src);
+      }
+    }
+
     
     
     
@@ -482,6 +524,8 @@ HTMLImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
       UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
     }
   }
+
+  mResponsiveSelector = nullptr;
 
   nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
@@ -520,10 +564,12 @@ HTMLImageElement::MaybeLoadImage()
   
   
   
-  nsAutoString uri;
-  if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri) &&
-      (NS_FAILED(LoadImage(uri, false, true)) ||
-       !LoadingEnabled())) {
+
+  
+
+  nsresult rv = LoadSelectedImage(false, true);
+
+  if (NS_FAILED(rv) || !LoadingEnabled()) {
     CancelImageRequests(true);
   }
 }
@@ -704,5 +750,66 @@ HTMLImageElement::ClearForm(bool aRemoveFromForm)
   mForm = nullptr;
 }
 
+nsresult
+HTMLImageElement::LoadSelectedImage(bool aForce, bool aNotify)
+{
+  nsresult rv = NS_ERROR_FAILURE;
+
+  if (mResponsiveSelector) {
+    nsCOMPtr<nsIURI> url = mResponsiveSelector->GetSelectedImageURL();
+    if (url) {
+      rv = LoadImage(url, aForce, aNotify);
+    } else {
+      CancelImageRequests(aNotify);
+      rv = NS_OK;
+    }
+  } else {
+    nsAutoString src;
+    if (!GetAttr(kNameSpaceID_None, nsGkAtoms::src, src)) {
+      CancelImageRequests(aNotify);
+      rv = NS_OK;
+    } else {
+      rv = LoadImage(src, aForce, aNotify);
+      if (NS_FAILED(rv)) {
+        CancelImageRequests(aNotify);
+      }
+    }
+  }
+
+  return rv;
+}
+
+void
+HTMLImageElement::DestroyContent()
+{
+  mResponsiveSelector = nullptr;
+}
+
+void
+HTMLImageElement::UpdateSourceSet(const nsAString & aSrcset)
+{
+  MOZ_ASSERT(IsSrcsetEnabled());
+
+  bool haveSrcset = !aSrcset.IsEmpty();
+
+  if (haveSrcset && !mResponsiveSelector) {
+    mResponsiveSelector = new ResponsiveImageSelector(this);
+    mResponsiveSelector->SetCandidatesFromSourceSet(aSrcset);
+
+    
+    nsAutoString src;
+    if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, src) && src.Length()) {
+      mResponsiveSelector->SetDefaultSource(src);
+    }
+
+  } else if (haveSrcset) {
+    mResponsiveSelector->SetCandidatesFromSourceSet(aSrcset);
+  } else if (mResponsiveSelector) {
+    
+    mResponsiveSelector = nullptr;
+  }
+}
+
 } 
 } 
+

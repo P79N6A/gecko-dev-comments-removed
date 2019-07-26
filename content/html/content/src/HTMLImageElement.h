@@ -12,6 +12,7 @@
 #include "nsIDOMHTMLImageElement.h"
 #include "imgRequestProxy.h"
 #include "Units.h"
+#include "mozilla/dom/ResponsiveImageSelector.h"
 
 namespace mozilla {
 class EventChainPreVisitor;
@@ -78,6 +79,8 @@ public:
   nsresult CopyInnerTo(Element* aDest);
 
   void MaybeLoadImage();
+
+  static bool IsSrcsetEnabled();
 
   bool IsMap()
   {
@@ -175,7 +178,16 @@ public:
   void SetForm(nsIDOMHTMLFormElement* aForm);
   void ClearForm(bool aRemoveFromForm);
 
+  virtual void DestroyContent() MOZ_OVERRIDE;
+
 protected:
+  
+  
+  nsresult LoadSelectedImage(bool aForce, bool aNotify);
+
+  
+  void UpdateSourceSet(const nsAString & aSrcset);
+
   CSSIntPoint GetXY();
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
   virtual void SetItemValueText(const nsAString& text) MOZ_OVERRIDE;
@@ -192,6 +204,9 @@ protected:
   
   
   HTMLFormElement* mForm;
+
+  
+  nsRefPtr<ResponsiveImageSelector> mResponsiveSelector;
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
