@@ -78,22 +78,41 @@ class LUInt32ToDouble : public LInstructionHelper<1, 1, 0>
     }
 };
 
-
-
-
-
-
-
-
-
-
-class LDivI : public LBinaryMath<2>
+class LDivI : public LBinaryMath<1>
 {
   public:
     LIR_HEADER(DivI);
 
     LDivI(const LAllocation &lhs, const LAllocation &rhs,
-          const LDefinition &temp1, const LDefinition &temp2) {
+          const LDefinition &temp) {
+        setOperand(0, lhs);
+        setOperand(1, rhs);
+        setTemp(0, temp);
+    }
+
+    MDiv *mir() const {
+        return mir_->toDiv();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class LSoftDivI : public LBinaryMath<2>
+{
+  public:
+    LIR_HEADER(SoftDivI);
+
+    LSoftDivI(const LAllocation &lhs, const LAllocation &rhs,
+              const LDefinition &temp1, const LDefinition &temp2) {
         setOperand(0, lhs);
         setOperand(1, rhs);
         setTemp(0, temp1);

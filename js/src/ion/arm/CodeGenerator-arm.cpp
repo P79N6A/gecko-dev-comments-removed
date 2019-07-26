@@ -491,21 +491,10 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
     return true;
 }
 
-extern "C" {
-    extern int __aeabi_idivmod(int,int);
-    extern int __aeabi_uidivmod(int,int);
-}
-
 bool
-CodeGeneratorARM::visitDivI(LDivI *ins)
+CodeGeneratorARM::divICommon(MDiv *mir, Register lhs, Register rhs, Register output,
+                             LSnapshot *snapshot, Label &done)
 {
-    
-    Register lhs = ToRegister(ins->lhs());
-    Register rhs = ToRegister(ins->rhs());
-    MDiv *mir = ins->mir();
-
-    Label done;
-
     if (mir->canBeNegativeOverflow()) {
         
         
@@ -515,12 +504,12 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
             
             Label skip;
             masm.ma_b(&skip, Assembler::NotEqual);
-            masm.ma_mov(Imm32(INT32_MIN), r0);
+            masm.ma_mov(Imm32(INT32_MIN), output);
             masm.ma_b(&done);
             masm.bind(&skip);
         } else {
             JS_ASSERT(mir->fallible());
-            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            if (!bailoutIf(Assembler::Equal, snapshot))
                 return false;
         }
     }
@@ -545,15 +534,67 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
             
             Label skip;
             masm.ma_b(&skip, Assembler::NotEqual);
-            masm.ma_mov(Imm32(0), r0);
+            masm.ma_mov(Imm32(0), output);
             masm.ma_b(&done);
             masm.bind(&skip);
         } else {
             JS_ASSERT(mir->fallible());
-            if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            if (!bailoutIf(Assembler::Equal, snapshot))
                 return false;
         }
     }
+
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitDivI(LDivI *ins)
+{
+    
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+    Register temp = ToRegister(ins->getTemp(0));
+    Register output = ToRegister(ins->output());
+    MDiv *mir = ins->mir();
+
+    Label done;
+    if (!divICommon(mir, lhs, rhs, output, ins->snapshot(), done))
+        return false;
+
+    if (mir->isTruncated()) {
+        masm.ma_sdiv(lhs, rhs, output);
+    } else {
+        masm.ma_sdiv(lhs, rhs, ScratchRegister);
+        masm.ma_mul(ScratchRegister, rhs, temp);
+        masm.ma_cmp(lhs, temp);
+        if (!bailoutIf(Assembler::NotEqual, ins->snapshot()))
+            return false;
+        masm.ma_mov(ScratchRegister, output);
+    }
+
+    masm.bind(&done);
+
+    return true;
+}
+
+extern "C" {
+    extern int __aeabi_idivmod(int,int);
+    extern int __aeabi_uidivmod(int,int);
+}
+
+bool
+CodeGeneratorARM::visitSoftDivI(LSoftDivI *ins)
+{
+    
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+    Register output = ToRegister(ins->output());
+    MDiv *mir = ins->mir();
+
+    Label done;
+    if (!divICommon(mir, lhs, rhs, output, ins->snapshot(), done))
+        return false;
+
     masm.setupAlignedABICall(2);
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);

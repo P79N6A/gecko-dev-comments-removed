@@ -887,6 +887,13 @@ MacroAssemblerARM::ma_mod_mask(Register src, Register dest, Register hold, int32
 }
 
 
+void
+MacroAssemblerARM::ma_sdiv(Register num, Register div, Register dest, Condition cond)
+{
+    as_sdiv(dest, num, div, cond);
+}
+
+
 
 void
 MacroAssemblerARM::ma_dtr(LoadStore ls, Register rn, Imm32 offset, Register rt,

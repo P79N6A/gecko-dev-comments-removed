@@ -239,6 +239,9 @@ class MacroAssemblerARM : public Assembler
     void ma_mod_mask(Register src, Register dest, Register hold, int32_t shift);
 
     
+    void ma_sdiv(Register num, Register div, Register dest, Condition cond = Always);
+
+    
     
     void ma_dtr(LoadStore ls, Register rn, Imm32 offset, Register rt,
                 Index mode = Offset, Condition cc = Always);
