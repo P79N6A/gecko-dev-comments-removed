@@ -8024,7 +8024,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         } 
       }
 
-      if (inMsg == WM_MOUSEACTIVATE && popupsToRollup == UINT32_MAX) {
+      if (inMsg == WM_MOUSEACTIVATE) {
         
         
         
