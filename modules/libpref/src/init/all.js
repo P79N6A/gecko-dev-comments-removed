@@ -1804,11 +1804,7 @@ pref("layout.css.scope-pseudo.enabled", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.background-blend-mode.enabled", false);
-#else
 pref("layout.css.background-blend-mode.enabled", true);
-#endif
 
 
 pref("layout.css.vertical-text.enabled", false);
