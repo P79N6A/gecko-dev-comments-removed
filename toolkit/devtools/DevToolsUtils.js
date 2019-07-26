@@ -351,3 +351,50 @@ exports.update = function update(aTarget, aNewAttrs) {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+exports.defineLazyGetter = function defineLazyGetter(aObject, aName, aLambda) {
+  Object.defineProperty(aObject, aName, {
+    get: function () {
+      delete aObject[aName];
+      return aObject[aName] = aLambda.apply(aObject);
+    },
+    configurable: true,
+    enumerable: true
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.defineLazyModuleGetter = function defineLazyModuleGetter(aObject, aName,
+                                                                 aResource,
+                                                                 aSymbol)
+{
+  this.defineLazyGetter(aObject, aName, function XPCU_moduleLambda() {
+    var temp = {};
+    Cu.import(aResource, temp);
+    return temp[aSymbol || aName];
+  });
+};
