@@ -4026,6 +4026,12 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     if (name_struct->mChromeOnly && !nsContentUtils::IsCallerChrome())
       return NS_OK;
 
+    
+    
+    nsCOMPtr<nsIDOMWindow> childWin = aWin->GetChildWindow(name);
+    if (childWin)
+      return NS_OK;
+
     nsCOMPtr<nsISupports> native(do_CreateInstance(name_struct->mCID, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
 
