@@ -7,8 +7,15 @@
     define(factory);
   } else if (typeof(require) === 'function') { 
     factory.call(this, require, exports, module);
-  } else if (~String(this).indexOf('BackstagePass')) { 
+  } else if (String(this).indexOf('BackstagePass') >= 0) { 
     this[factory.name] = {};
+    try {
+      this.console = this['Components'].utils
+          .import('resource://gre/modules/devtools/Console.jsm', {}).console;
+    }
+    catch (ex) {
+      
+    }
     factory(function require(uri) {
       var imports = {};
       this['Components'].utils.import(uri, imports);
@@ -16,12 +23,12 @@
     }, this[factory.name], { uri: __URI__, id: id });
     this.EXPORTED_SYMBOLS = [factory.name];
   } else {  
-    var globals = this
+    var globals = this;
     factory(function require(id) {
       return globals[id];
     }, (globals[id] = {}), { uri: document.location.href + '#' + id, id: id });
   }
-}).call(this, 'loader', function Promise(require, exports, module) {
+}).call(this, 'promise/core', function Promise(require, exports, module) {
 
 'use strict';
 
@@ -29,157 +36,211 @@ module.metadata = {
   "stability": "unstable"
 };
 
-function resolution(value) {
-  
 
 
 
-  return { then: function then(resolve) { resolve(value) } }
+
+
+function fulfilled(value) {
+  return { then: function then(fulfill) { fulfill(value); } };
 }
 
-function rejection(reason) {
-  
 
 
 
-  return { then: function then(resolve, reject) { reject(reason) } }
+
+
+function rejected(reason) {
+  return { then: function then(fulfill, reject) { reject(reason); } };
 }
+
+
+
+
 
 function attempt(f) {
-  
-
-
-
-
-  return function effort(options) {
-    try { return f(options) }
-    catch(error) { return rejection(error) }
-  }
+  return function effort(input) {
+    try {
+      return f(input);
+    }
+    catch(error) {
+      if (exports._reportErrors && typeof(console) === 'object') {
+        console.error(error)
+      }
+      return rejected(error)
+    }
+  };
 }
+
+
+
+
 
 function isPromise(value) {
-  
-
-
-
-  return value && typeof(value.then) === 'function'
+  return value && typeof(value.then) === 'function';
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function defer(prototype) {
   
+  
+  var observers = [];
 
+  
+  
+  
+  
+  var result = null;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  var pending = [], result
   prototype = (prototype || prototype === null) ? prototype : Object.prototype
 
   
   var promise = Object.create(prototype, {
-    then: { value: function then(resolve, reject) {
-      
-      var deferred = defer(prototype)
-      
-      resolve = resolve ? attempt(resolve) : resolution
-      reject = reject ? attempt(reject) : rejection
+    then: { value: function then(onFulfill, onError) {
+      var deferred = defer(prototype);
 
       
       
-      function resolved(value) { deferred.resolve(resolve(value)) }
-      function rejected(reason) { deferred.resolve(reject(reason)) }
+      
+      
+      
+      
+      
+      onFulfill = onFulfill ? attempt(onFulfill) : fulfilled;
+      onError = onError ? attempt(onError) : rejected;
 
       
       
-      if (pending) pending.push([ resolved, rejected ])
-      else result.then(resolved, rejected)
+      function resolveDeferred(value) { deferred.resolve(onFulfill(value)); }
+      function rejectDeferred(reason) { deferred.resolve(onError(reason)); }
 
-      return deferred.promise
+      
+      
+      
+      
+      
+      if (observers) {
+        observers.push({ resolve: resolveDeferred, reject: rejectDeferred });
+      }
+      
+      else {
+        result.then(resolveDeferred, rejectDeferred);
+      }
+
+      return deferred.promise;
     }}
   })
 
   var deferred = {
     promise: promise,
+    
+
+
+
+
+
+
     resolve: function resolve(value) {
-      
+      if (!result) {
+        
+        
+        
+        
+        result = isPromise(value) ? value : fulfilled(value);
 
+        
+        
+        
+        
+        
+        
+        while (observers.length) {
+          var observer = observers.shift();
+          result.then(observer.resolve, observer.reject);
+        }
 
-
-      if (pending) {
         
         
-        
-        
-        result = isPromise(value) ? value : resolution(value)
-        
-        while (pending.length) result.then.apply(result, pending.shift())
-        
-        pending = null
+        observers = null;
       }
     },
+    
+
+
+
+
     reject: function reject(reason) {
       
-
-
-
-      deferred.resolve(rejection(reason))
+      
+      
+      
+      
+      
+      
+      
+      
+      deferred.resolve(rejected(reason));
     }
-  }
+  };
 
-  return deferred
+  return deferred;
 }
-exports.defer = defer
+exports.defer = defer;
+
+
+
+
+
 
 function resolve(value, prototype) {
-  
-
-
-
-  var deferred = defer(prototype)
-  deferred.resolve(value)
-  return deferred.promise
+  var deferred = defer(prototype);
+  deferred.resolve(value);
+  return deferred.promise;
 }
-exports.resolve = resolve
+exports.resolve = resolve;
+
+
+
+
+
 
 function reject(reason, prototype) {
-  
-
-
-
-
-  var deferred = defer(prototype)
-  deferred.reject(reason)
-  return deferred.promise
+  var deferred = defer(prototype);
+  deferred.reject(reason);
+  return deferred.promise;
 }
-exports.reject = reject
+exports.reject = reject;
 
 var promised = (function() {
   
@@ -226,6 +287,6 @@ var promised = (function() {
     }
   }
 })()
-exports.promised = promised
+exports.promised = promised;
 
-})
+});

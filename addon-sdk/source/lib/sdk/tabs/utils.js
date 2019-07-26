@@ -8,9 +8,17 @@ module.metadata = {
   'stability': 'unstable'
 };
 
+
+
+
+
+const { Ci } = require('chrome');
 const { defer } = require("../lang/functional");
 const { windows, isBrowser } = require('../window/utils');
-const { Ci } = require('chrome');
+const { isPrivateBrowsingSupported } = require('../self');
+
+
+function getWindows() windows(null, { includePrivate: isPrivateBrowsingSupported });
 
 function activateTab(tab, window) {
   let gBrowser = getTabBrowserForTab(tab);
@@ -48,7 +56,7 @@ exports.getTabContainer = getTabContainer;
 
 function getTabs(window) {
   if (arguments.length === 0) {
-    return windows().filter(isBrowser).reduce(function(tabs, window) {
+    return getWindows().filter(isBrowser).reduce(function(tabs, window) {
       return tabs.concat(getTabs(window))
     }, []);
   }
@@ -63,7 +71,7 @@ function getTabs(window) {
 exports.getTabs = getTabs;
 
 function getActiveTab(window) {
-  return window.gBrowser.selectedTab;
+  return getSelectedTab(window);
 }
 exports.getActiveTab = getActiveTab;
 
@@ -79,7 +87,7 @@ exports.getOwnerWindow = getOwnerWindow;
 
 
 function getWindowHoldingTab(rawTab) {
-  for each (let window in windows()) {
+  for each (let window in getWindows()) {
     
     
     if (!window.BrowserApp)
@@ -105,10 +113,13 @@ function openTab(window, url, options) {
       isPrivate: options.isPrivate || false
     });
   }
-  let tab = window.gBrowser.addTab(url);
-  if (!options.inBackground)
-    activateTab(tab);
-  return tab;
+
+  
+  let newTab = window.gBrowser.addTab(url);
+  if (!options.inBackground) {
+    activateTab(newTab);
+  }
+  return newTab;
 };
 exports.openTab = openTab;
 
@@ -195,6 +206,7 @@ function getAllTabContentWindows() {
 }
 exports.getAllTabContentWindows = getAllTabContentWindows;
 
+
 function getTabForContentWindow(window) {
   
   
@@ -202,9 +214,12 @@ function getTabForContentWindow(window) {
                    .getInterface(Ci.nsIWebNavigation)
                    .QueryInterface(Ci.nsIDocShell)
                    .chromeEventHandler;
+
   
-  if (!browser)
+  if (!browser) {
     return false;
+  }
+
   
   let chromeWindow = browser.ownerDocument.defaultView;
 
@@ -221,14 +236,28 @@ function getTabForContentWindow(window) {
       return chromeWindow.gBrowser.tabs[i];
     return null;
   }
+  
   else if ('BrowserApp' in chromeWindow) {
-    
-    return chromeWindow.BrowserApp.getTabForWindow(window)
+    return getTabForWindow(window);
   }
 
   return null;
 }
 exports.getTabForContentWindow = getTabForContentWindow;
+
+
+function getTabForWindow(window) {
+  for each (let { BrowserApp } in getWindows()) {
+    if (!BrowserApp)
+      continue;
+
+    for each (let tab in BrowserApp.tabs) {
+      if (tab.browser.contentWindow == window.top)
+        return tab;
+    }
+  }
+  return null; 
+}
 
 function getTabURL(tab) {
   if (tab.browser) 
@@ -262,3 +291,20 @@ function getSelectedTab(window) {
   return null;
 }
 exports.getSelectedTab = getSelectedTab;
+
+
+function getTabForBrowser(browser) {
+  for each (let window in getWindows()) {
+    
+    if (!window.BrowserApp)
+      continue;
+
+    for each (let tab in window.BrowserApp.tabs) {
+      if (tab.browser === browser)
+        return tab;
+    }
+  }
+  return null;
+}
+exports.getTabForBrowser = getTabForBrowser;
+

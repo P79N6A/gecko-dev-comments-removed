@@ -153,6 +153,11 @@ function startup(data, reasonCode) {
 
       
       
+      if (fileURI[fileURI.length-1] !== '/')
+        fileURI += '/';
+
+      
+      
       let resourcesURI = ioService.newURI(fileURI, null, null);
       let resName = 'extensions.modules.' + domain + '.commonjs.path' + name;
       resourceHandler.setSubstitution(resName, resourcesURI);

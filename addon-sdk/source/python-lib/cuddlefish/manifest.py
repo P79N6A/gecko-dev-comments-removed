@@ -270,7 +270,6 @@ class ManifestBuilder:
 
         for me in self.get_module_entries():
             
-            
             if me.packageName != "addon-sdk" or bundle_sdk_modules:
                 yield me.js_filename
 
@@ -281,6 +280,7 @@ class ManifestBuilder:
         manifest = {}
         for me in self.get_module_entries():
             path = me.get_path()
+            
             
             
             if me.packageName != "addon-sdk" or bundle_sdk_modules:
@@ -474,18 +474,6 @@ class ManifestBuilder:
         
         
 
-        
-        
-        normalized = reqname
-        if normalized.endswith(".js"):
-            normalized = normalized[:-len(".js")]
-        if normalized.startswith("addon-kit/"):
-            normalized = normalized[len("addon-kit/"):]
-        if normalized.startswith("api-utils/"):
-            normalized = normalized[len("api-utils/"):]
-        if normalized in NEW_LAYOUT_MAPPING:
-          reqname = NEW_LAYOUT_MAPPING[normalized]
-
         if "/" in reqname:
             
             bits = reqname.split("/")
@@ -507,9 +495,32 @@ class ManifestBuilder:
         
         
         from_pkg = from_module.package.name
-        return self._search_packages_for_module(from_pkg,
-                                                lookfor_sections, reqname,
-                                                looked_in)
+        mi = self._search_packages_for_module(from_pkg,
+                                              lookfor_sections, reqname,
+                                              looked_in)
+        if mi:
+            return mi
+
+        
+        
+        
+        normalized = reqname
+        if normalized.endswith(".js"):
+            normalized = normalized[:-len(".js")]
+        if normalized.startswith("addon-kit/"):
+            normalized = normalized[len("addon-kit/"):]
+        if normalized.startswith("api-utils/"):
+            normalized = normalized[len("api-utils/"):]
+        if normalized in NEW_LAYOUT_MAPPING:
+            
+            reqname = NEW_LAYOUT_MAPPING[normalized]
+            from_pkg = from_module.package.name
+            return self._search_packages_for_module(from_pkg,
+                                                    lookfor_sections, reqname,
+                                                    looked_in)
+        else:
+            
+            return None
 
     def _handle_module(self, mi):
         if not mi:
@@ -659,12 +670,13 @@ def scan_requirements_with_grep(fn, lines):
                     iscomment = True
             if iscomment:
                 continue
-            mo = re.search(REQUIRE_RE, clause)
+            mo = re.finditer(REQUIRE_RE, clause)
             if mo:
-                modname = mo.group(1)
-                requires[modname] = {}
-                if modname not in first_location:
-                    first_location[modname] = lineno0+1
+                for mod in mo:
+                    modname = mod.group(1)
+                    requires[modname] = {}
+                    if modname not in first_location:
+                        first_location[modname] = lineno0 + 1
 
     
     wholeshebang = "\n".join(lines)

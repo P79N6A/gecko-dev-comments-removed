@@ -4,7 +4,7 @@
 
 'use strict';
 
-const { Loader } = require('sdk/test/loader');
+const { LoaderWithHookedConsole } = require("sdk/test/loader");
 
 
 const EventEmitter = require('sdk/deprecated/events').EventEmitter.compose({
@@ -256,11 +256,7 @@ exports["test:removing once"] = function(test) {
 exports['test:emitLoop'] = function(test) {
   
   
-  let loader = Loader(module, {
-    console: Object.create(console, {
-      exception: { value: function(e) { }}
-    })
-  });
+  let { loader } = LoaderWithHookedConsole(module);
 
   let EventEmitter = loader.require('sdk/deprecated/events').EventEmitter.compose({
     listeners: function(type) this._listeners(type),

@@ -24,7 +24,6 @@ Object.defineProperties(tabs, {
     }
     
 
-
     let activeWindow = windows.activeWindow;
     let privateState = !!options.isPrivate;
     
@@ -35,7 +34,7 @@ Object.defineProperties(tabs, {
       
       let window = getWindow(privateState);
       if (window) {
-      	window.tabs.open(options);
+        window.tabs.open(options);
       }
       
       else {
@@ -52,9 +51,9 @@ Object.defineProperties(tabs, {
 
 function getWindow(privateState) {
   for each (let window in windows) {
-  	if (privateState === isPrivate(window)) {
-  	  return window;
-  	}
+    if (privateState === isPrivate(window)) {
+      return window;
+    }
   }
   return null;
 }

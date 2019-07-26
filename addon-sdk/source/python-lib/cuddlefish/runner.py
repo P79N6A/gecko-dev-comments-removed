@@ -10,6 +10,7 @@ import atexit
 import shlex
 import subprocess
 import re
+import shutil
 
 import mozrunner
 from cuddlefish.prefs import DEFAULT_COMMON_PREFS
@@ -21,6 +22,9 @@ from cuddlefish.prefs import DEFAULT_FENNEC_PREFS
 CLEANUP_ADB = re.compile(r'^(I|E)/(stdout|stderr|GeckoConsole)\s*\(\s*\d+\):\s*(.*)$')
 
 FILTER_ONLY_CONSOLE_FROM_ADB = re.compile(r'^I/(stdout|stderr)\s*\(\s*\d+\):\s*((info|warning|error|debug): .*)$')
+
+
+PARSEABLE_TEST_NAME = re.compile(r'TEST-START \| ([^\n]+)\n')
 
 
 
@@ -123,13 +127,13 @@ class FennecRunner(mozrunner.Runner):
             self.__real_binary = mozrunner.Runner.find_binary(self)
         return self.__real_binary
 
+FENNEC_REMOTE_PATH = '/mnt/sdcard/jetpack-profile'
 
 class RemoteFennecRunner(mozrunner.Runner):
     profile_class = FennecProfile
 
     names = ['fennec']
 
-    _REMOTE_PATH = '/mnt/sdcard/jetpack-profile'
     _INTENT_PREFIX = 'org.mozilla.'
 
     _adb_path = None
@@ -198,13 +202,13 @@ class RemoteFennecRunner(mozrunner.Runner):
         print "Pushing the addon to your device"
 
         
-        subprocess.call([self._adb_path, "shell", "rm -r " + self._REMOTE_PATH])
-        subprocess.call([self._adb_path, "shell", "mkdir " + self._REMOTE_PATH])
+        subprocess.call([self._adb_path, "shell", "rm -r " + FENNEC_REMOTE_PATH])
+        subprocess.call([self._adb_path, "shell", "mkdir " + FENNEC_REMOTE_PATH])
 
         
         
         localDir = self.profile.profile
-        remoteDir = self._REMOTE_PATH
+        remoteDir = FENNEC_REMOTE_PATH
         for root, dirs, files in os.walk(localDir, followlinks='true'):
             relRoot = os.path.relpath(root, localDir)
             
@@ -236,7 +240,7 @@ class RemoteFennecRunner(mozrunner.Runner):
             "am start " +
                 "-a android.activity.MAIN " +
                 "-n " + self._intent_name + "/" + self._intent_name + ".App " +
-                "--es args \"-profile " + self._REMOTE_PATH + "\""
+                "--es args \"-profile " + FENNEC_REMOTE_PATH + "\""
         ]
 
     def start(self):
@@ -374,9 +378,33 @@ class XulrunnerAppRunner(mozrunner.Runner):
                 self.names = runner.names
         return self.__real_binary
 
+def set_overloaded_modules(env_root, app_type, addon_id, preferences, overloads):
+    
+    desktop_file_scheme = "file://"
+    if not env_root.startswith("/"):
+      desktop_file_scheme = desktop_file_scheme + "/"
+
+    pref_prefix = "extensions.modules." + addon_id + ".path"
+
+    
+    for name, path in overloads.items():
+        if len(name) == 0:
+            prefName = pref_prefix
+        else:
+            prefName = pref_prefix + "." + name
+        if app_type == "fennec-on-device":
+            
+            
+            
+            preferences[prefName] = "file://" + \
+                FENNEC_REMOTE_PATH + "/overloads/" + name
+        else:
+            preferences[prefName] = desktop_file_scheme + \
+                path.replace("\\", "/") + "/"
+
 def run_app(harness_root_dir, manifest_rdf, harness_options,
             app_type, binary=None, profiledir=None, verbose=False,
-            enforce_timeouts=False,
+            parseable=False, enforce_timeouts=False,
             logfile=None, addons=None, args=None, extra_environment={},
             norun=None,
             used_files=None, enable_mobile=False,
@@ -395,22 +423,6 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
 
     cmdargs = []
     preferences = dict(DEFAULT_COMMON_PREFS)
-
-    
-    file_scheme = "file://"
-    
-    if not env_root.startswith("/"):
-      file_scheme = file_scheme + "/"
-    addon_id = harness_options["jetpackID"]
-    pref_prefix = "extensions.modules." + addon_id + ".path"
-    if overload_modules:
-        preferences[pref_prefix] = file_scheme + \
-            os.path.join(env_root, "lib").replace("\\", "/") + "/"
-
-    
-    if is_running_tests:
-        preferences[pref_prefix + ".tests"] = file_scheme + \
-            os.path.join(env_root, "test").replace("\\", "/") + "/"
 
     
     if app_type in ["fennec", "fennec-on-device"] and not enable_mobile:
@@ -534,12 +546,35 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
         addons.append(addon_dir)
 
     
+    overloads = dict()
+    if overload_modules:
+        overloads[""] = os.path.join(env_root, "lib")
+
+    
+    if is_running_tests:
+        overloads["tests"] = os.path.join(env_root, "test")
+
+    set_overloaded_modules(env_root, app_type, harness_options["jetpackID"], \
+                           preferences, overloads)
+
+    
     profile = profile_class(addons=addons,
                             profile=profiledir,
                             preferences=preferences)
 
     
     os.remove(xpi_path)
+
+    
+    
+    
+    
+    
+    if app_type == "fennec-on-device":
+        profile_path = profile.profile
+        for name, path in overloads.items():
+            shutil.copytree(path, \
+                os.path.join(profile_path, "overloads", name))
 
     runner = runner_class(profile=profile,
                           binary=binary,
@@ -672,6 +707,14 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
 
     done = False
     result = None
+    test_name = "unknown"
+
+    def Timeout(message, test_name, parseable):
+        if parseable:
+            sys.stderr.write("TEST-UNEXPECTED-FAIL | %s | %s\n" % (test_name, message))
+            sys.stderr.flush()
+        return Exception(message)
+
     try:
         while not done:
             time.sleep(0.05)
@@ -682,6 +725,10 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
                         last_output_time = time.time()
                         sys.stderr.write(new_chars)
                         sys.stderr.flush()
+                        if is_running_tests and parseable:
+                            match = PARSEABLE_TEST_NAME.search(new_chars)
+                            if match:
+                                test_name = match.group(1)
             if os.path.exists(resultfile):
                 result = open(resultfile).read()
                 if result:
@@ -692,11 +739,11 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
                         sys.stderr.write("'"+result+"'\n")
             if enforce_timeouts:
                 if time.time() - last_output_time > OUTPUT_TIMEOUT:
-                    raise Exception("Test output exceeded timeout (%ds)." %
-                                    OUTPUT_TIMEOUT)
+                    raise Timeout("Test output exceeded timeout (%ds)." %
+                                  OUTPUT_TIMEOUT, test_name, parseable)
                 if time.time() - starttime > RUN_TIMEOUT:
-                    raise Exception("Test run exceeded timeout (%ds)." %
-                                    RUN_TIMEOUT)
+                    raise Timeout("Test run exceeded timeout (%ds)." %
+                                  RUN_TIMEOUT, test_name, parseable)
     except:
         runner.stop()
         raise
