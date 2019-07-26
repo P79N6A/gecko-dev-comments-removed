@@ -71,7 +71,7 @@ JarStore.prototype = {
     let istream = Cc["@mozilla.org/network/file-input-stream;1"]
                         .createInstance(Ci.nsIFileInputStream);
     
-    istream.init(jarFile, 0x01, 0444, 0);
+    istream.init(jarFile, 0x01, parseInt("0444", 8), 0);
     let ch = Cc["@mozilla.org/security/hash;1"]
                    .createInstance(Ci.nsICryptoHash);
     
@@ -112,7 +112,7 @@ JarStore.prototype = {
       jarFile.create( Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
       let stream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
                       createInstance(Ci.nsIFileOutputStream);
-      stream.init(jarFile, 0x04 | 0x08 | 0x20, 0600, 0); 
+      stream.init(jarFile, 0x04 | 0x08 | 0x20, parseInt("0600", 8), 0); 
       stream.write(rawData, rawData.length);
       if (stream instanceof Ci.nsISafeOutputStream) {
         stream.finish();

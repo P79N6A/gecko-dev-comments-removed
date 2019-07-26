@@ -24,6 +24,8 @@ const UPDATE_CHANNEL_PREF = "app.update.channel";
 const LOG_FILE_NAME = "TestPilotErrorLog.log";
 const RANDOM_DEPLOY_PREFIX = "extensions.testpilot.deploymentRandomizer";
 
+Cu.import("resource://testpilot/modules/interface.js");
+
 let TestPilotSetup = {
   didReminderAfterStartup: false,
   startupComplete: false,
@@ -151,30 +153,6 @@ let TestPilotSetup = {
     return this.__obs;
   },
 
-  _isBetaChannel: function TPS__isBetaChannel() {
-    
-    let channel = this._prefs.getValue(UPDATE_CHANNEL_PREF, "");
-    return (channel == "beta") || (channel == "betatest") || (channel == "aurora");
-  },
-
-  _setPrefDefaultsForVersion: function TPS__setPrefDefaultsForVersion() {
-    
-
-
-    let ps = Cc["@mozilla.org/preferences-service;1"]
-                    .getService(Ci.nsIPrefService);
-    let prefBranch = ps.getDefaultBranch("");
-    
-
-    if (this._isBetaChannel()) {
-      prefBranch.setBoolPref(POPUP_SHOW_ON_NEW, true);
-      prefBranch.setIntPref(POPUP_CHECK_INTERVAL, 600000);
-    } else {
-      prefBranch.setBoolPref(POPUP_SHOW_ON_NEW, false);
-      prefBranch.setIntPref(POPUP_CHECK_INTERVAL, 180000);
-    }
-  },
-
   globalStartup: function TPS__doGlobalSetup() {
     
     
@@ -182,7 +160,6 @@ let TestPilotSetup = {
     logger.trace("TestPilotSetup.globalStartup was called.");
 
     try {
-    this._setPrefDefaultsForVersion();
     if (!this._prefs.getValue(RUN_AT_ALL_PREF, true)) {
       logger.trace("Test Pilot globally disabled: Not starting up.");
       return;
@@ -222,7 +199,7 @@ let TestPilotSetup = {
         
 
         if ((self._prefs.getValue(VERSION_PREF, "") == "") &&
-           (!self._interfaceBuilder.channelUsesFeedback())) {
+           (!TestPilotUIBuilder.channelUsesFeedback())) {
             self._prefs.setValue(VERSION_PREF, self.version);
             let browser = self._getFrontBrowserWindow().getBrowser();
             let url = self._prefs.getValue(FIRST_RUN_PREF, "");
@@ -343,16 +320,21 @@ let TestPilotSetup = {
     let doc = window.document;
     let popup = doc.getElementById("pilot-notification-popup");
 
-    let anchor;
-    if (this._isBetaChannel()) {
+    let anchor, xOffset;
+    if (TestPilotUIBuilder.channelUsesFeedback()) {
       
 
 
       anchor = doc.getElementById("feedback-menu-button");
-      popup.setAttribute("class", "tail-up");
+      xOffset = 0;
     } else {
-      anchor = doc.getElementById("pilot-notifications-button");
-      popup.setAttribute("class", "tail-down");
+      anchor = doc.getElementById("tp-notification-popup-icon");
+      anchor.hidden = false;
+      
+
+
+
+      xOffset = 24;
     }
     let textLabel = doc.getElementById("pilot-notification-text");
     let titleLabel = doc.getElementById("pilot-notification-title");
@@ -421,7 +403,6 @@ let TestPilotSetup = {
     
     if (linkText && (linkUrl || task)) {
       link.setAttribute("value", linkText);
-      link.setAttribute("class", "notification-link");
       link.onclick = function(event) {
         if (event.button == 0) {
 	  if (task) {
@@ -444,7 +425,7 @@ let TestPilotSetup = {
     
     popup.hidden = false;
     popup.setAttribute("open", "true");
-    popup.openPopup( anchor, "after_end");
+    popup.openPopup( anchor, "after_end", xOffset, 0);
   },
 
   _openChromeless: function TPS__openChromeless(url) {
@@ -462,6 +443,12 @@ let TestPilotSetup = {
     popup.setAttribute("open", "false");
     popup.removeAttribute("tpisextensionupdate");
     popup.hidePopup();
+
+    if (!TestPilotUIBuilder.channelUsesFeedback()) {
+      
+      let icon = window.document.getElementById("tp-notification-popup-icon");
+      icon.hidden = true;
+    }
     if (onCloseCallback) {
       onCloseCallback();
     }
@@ -487,7 +474,7 @@ let TestPilotSetup = {
 
     
     if (this._prefs.getValue(POPUP_SHOW_ON_FINISH, false)) {
-      for (i = 0; i < this.taskList.length; i++) {
+      for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
         if (task.status == TaskConstants.STATUS_FINISHED) {
           if (!this._prefs.getValue(ALWAYS_SUBMIT_DATA, false)) {
@@ -512,7 +499,7 @@ let TestPilotSetup = {
     
     
     if (this._prefs.getValue(POPUP_SHOW_ON_NEW, false)) {
-      for (i = 0; i < this.taskList.length; i++) {
+      for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
         if (task.status == TaskConstants.STATUS_PENDING ||
             task.status == TaskConstants.STATUS_NEW) {
@@ -538,11 +525,12 @@ let TestPilotSetup = {
 	      task, false,
 	      this._stringBundle.formatStringFromName(
 		"testpilot.notification.newTestPilotSurvey.message",
-		[task.title], 1),
+    
+		[task.summary || task.title],1),
               this._stringBundle.GetStringFromName(
 		"testpilot.notification.newTestPilotSurvey"),
 	      "new-study", false, false,
-	      this._stringBundle.GetStringFromName("testpilot.moreInfo"),
+	      this._stringBundle.GetStringFromName("testpilot.takeSurvey"),
 	      task.defaultUrl);
             task.changeStatus(TaskConstants.STATUS_IN_PROGRESS, true);
             return;
@@ -553,7 +541,7 @@ let TestPilotSetup = {
 
     
     if (this._prefs.getValue(POPUP_SHOW_ON_RESULTS, false)) {
-      for (i = 0; i < this.taskList.length; i++) {
+      for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
         if (task.taskType == TaskConstants.TYPE_RESULTS &&
             task.status == TaskConstants.STATUS_NEW) {
@@ -645,15 +633,17 @@ let TestPilotSetup = {
     }
   },
 
-  _experimentRequirementsAreMet: function TPS__requirementsMet(experiment) {
+  _checkExperimentRequirements: function TPS__requirementsMet(experiment, callback) {
     
+
+
 
 
 
 
     let logger = this._logger;
     try {
-      let minTpVer, minFxVer, expName, runOrNotFunc, randomDeployment;
+      let minTpVer, minFxVer, expName, filterFunc, randomDeployment;
       
 
       let info = experiment.experimentInfo ?
@@ -662,12 +652,13 @@ let TestPilotSetup = {
       if (!info) {
         
         logger.warn("Study lacks minimum metadata to run.");
-        return false;
+        callback(false);
+        return;
       }
       minTpVer = info.minTPVersion;
       minFxVer = info.minFXVersion;
       expName =  info.testName;
-      runOrNotFunc = info.runOrNotFunc;
+      filterFunc = info.filter;
       randomDeployment = info.randomDeployment;
 
       
@@ -685,14 +676,16 @@ let TestPilotSetup = {
 	      "testpilot.notification.extensionUpdate"),
 	    "update-extension", true, false, "", "", true);
 	}
-        return false;
+        callback(false);
+        return;
       }
 
       
       if (minFxVer && this._isNewerThanFirefox(minFxVer)) {
         logger.warn("Not loading " + expName);
         logger.warn("Because it requires Firefox version " + minFxVer);
-        return false;
+        callback(false);
+        return;
       }
 
       
@@ -700,29 +693,37 @@ let TestPilotSetup = {
         
 
 
+
+
         let prefName = RANDOM_DEPLOY_PREFIX + "." + randomDeployment.rolloutCode;
         let myRoll = this._prefs.getValue(prefName, null);
         if (myRoll == null) {
-          myRoll = Math.floor(Math.random()*100);
-          this._prefs.setValue(prefName, myRoll);
+          myRoll = Math.random()*100;
+          this._prefs.setValue(prefName, JSON.stringify(myRoll));
+        } else {
+          myRoll = Number(myRoll);  
         }
         if (myRoll < randomDeployment.minRoll) {
-          return false;
+          callback(false);
+          return;
         }
         if (myRoll > randomDeployment.maxRoll) {
-          return false;
+          callback(false);
+          return;
         }
       }
 
       
 
-      if (runOrNotFunc) {
-        return runOrNotFunc();
+      if (filterFunc) {
+        filterFunc(callback);
+        return;
       }
     } catch (e) {
       logger.warn("Error in requirements check " +  e);
+      callback(false); 
     }
-    return true;
+    callback(true);
   },
 
   checkForTasks: function TPS_checkForTasks(callback) {
@@ -743,65 +744,71 @@ let TestPilotSetup = {
         
         let experiments = self._remoteExperimentLoader.getExperiments();
 
+        let numExperimentsProcessed = 0;
+        let numExperiments = Object.keys(experiments).length;
         for (let filename in experiments) {
-          if (!self._experimentRequirementsAreMet(experiments[filename])) {
-            continue;
-          }
-          try {
-            
-            
-            logger.trace("Attempting to load experiment " + filename);
+          self._checkExperimentRequirements(experiments[filename], function(requirementsMet) {
+            if (requirementsMet) {
+              try {
+                
 
-            let task;
-            
-            if (experiments[filename].surveyInfo != undefined) {
-              let sInfo = experiments[filename].surveyInfo;
-              
-              
-              if (!sInfo.surveyQuestions) {
-                task = new self._taskModule.TestPilotWebSurvey(sInfo);
-              } else {
-                task = new self._taskModule.TestPilotBuiltinSurvey(sInfo);
+                logger.trace("Attempting to load experiment " + filename);
+                let task;
+                
+                if (experiments[filename].surveyInfo != undefined) {
+                  let sInfo = experiments[filename].surveyInfo;
+                  
+                  
+                  if (!sInfo.surveyQuestions) {
+                    task = new self._taskModule.TestPilotWebSurvey(sInfo);
+                  } else {
+                    task = new self._taskModule.TestPilotBuiltinSurvey(sInfo);
+                  }
+                } else {
+                  
+                  let expInfo = experiments[filename].experimentInfo;
+                  let dsInfo = experiments[filename].dataStoreInfo;
+                  let dataStore = new self._dataStoreModule.ExperimentDataStore(
+                    dsInfo.fileName, dsInfo.tableName, dsInfo.columns );
+                  let webContent = experiments[filename].webContent;
+                  task = new self._taskModule.TestPilotExperiment(expInfo,
+                                                                  dataStore,
+                                                                  experiments[filename].handlers,
+                                                                  webContent);
+                }
+                self.addTask(task);
+                logger.info("Loaded task " + filename);
+              } catch (e) {
+                logger.warn("Failed to load task " + filename + ": " + e);
               }
-            } else {
+            } 
+            
+            numExperimentsProcessed ++;
+            if (numExperimentsProcessed == numExperiments) {
               
-              let expInfo = experiments[filename].experimentInfo;
-              let dsInfo = experiments[filename].dataStoreInfo;
-              let dataStore = new self._dataStoreModule.ExperimentDataStore(
-                dsInfo.fileName, dsInfo.tableName, dsInfo.columns );
-              let webContent = experiments[filename].webContent;
-              task = new self._taskModule.TestPilotExperiment(expInfo,
-                                                              dataStore,
-                                                              experiments[filename].handlers,
-                                                              webContent);
-            }
-            self.addTask(task);
-            logger.info("Loaded task " + filename);
-          } catch (e) {
-            logger.warn("Failed to load task " + filename + ": " + e);
-          }
+              let results = self._remoteExperimentLoader.getStudyResults();
+              for (let r in results) {
+                let studyResult = new self._taskModule.TestPilotStudyResults(results[r]);
+                self.addTask(studyResult);
+              }
+
+              
+
+              let legacyStudies = self._remoteExperimentLoader.getLegacyStudies();
+              for (let l in legacyStudies) {
+                let legacyStudy = new self._taskModule.TestPilotLegacyStudy(legacyStudies[l]);
+                self.addTask(legacyStudy);
+              }
+
+              
+              if (callback) {
+                callback();
+              }
+            } 
+          }); 
         } 
-
-        
-        let results = self._remoteExperimentLoader.getStudyResults();
-        for (let r in results) {
-          let studyResult = new self._taskModule.TestPilotStudyResults(results[r]);
-          self.addTask(studyResult);
-        }
-
-        
-
-        let legacyStudies = self._remoteExperimentLoader.getLegacyStudies();
-        for (let l in legacyStudies) {
-          let legacyStudy = new self._taskModule.TestPilotLegacyStudy(legacyStudies[l]);
-          self.addTask(legacyStudy);
-        }
-
-        if (callback) {
-          callback();
-        }
       }
-    );
+    ); 
   },
 
   reloadRemoteExperiments: function TPS_reloadRemoteExperiments(callback) {
