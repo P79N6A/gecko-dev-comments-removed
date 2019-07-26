@@ -38,8 +38,6 @@ ClientThebesLayer::PaintThebes()
   NS_ASSERTION(ClientManager()->InDrawing(),
                "Can only draw in drawing phase");
   
-  mContentClient->PrepareFrame();
-
   uint32_t flags = RotatedContentBuffer::PAINT_CAN_DRAW_ROTATED;
 #ifndef MOZ_WIDGET_ANDROID
   if (ClientManager()->CompositorMightResample()) {
@@ -124,18 +122,6 @@ ClientThebesLayer::RenderLayer()
   mContentClient->BeginPaint();
   PaintThebes();
   mContentClient->EndPaint();
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mContentClient->OnTransaction();
 }
 
 already_AddRefed<ThebesLayer>

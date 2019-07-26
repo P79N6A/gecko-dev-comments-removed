@@ -73,8 +73,6 @@ class ThebesLayer;
 
 
 
-
-
 class ContentClient : public CompositableClient
 {
 public:
@@ -99,8 +97,6 @@ public:
                                                        RotatedContentBuffer::DrawIterator* aIter = nullptr) = 0;
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) = 0;
 
-  virtual void PrepareFrame() {}
-
   
   
   
@@ -108,8 +104,7 @@ public:
 
   
   virtual void BeginPaint() {}
-  virtual void EndPaint() {}
-
+  virtual void EndPaint();
 };
 
 
@@ -333,7 +328,7 @@ public:
 
   virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
 
-  virtual void PrepareFrame() MOZ_OVERRIDE;
+  virtual void BeginPaint() MOZ_OVERRIDE;
 
   virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
 
@@ -439,6 +434,7 @@ public:
     if (IsSurfaceDescriptorValid(mUpdateDescriptorOnWhite)) {
       mForwarder->DestroySharedSurface(&mUpdateDescriptorOnWhite);
     }
+    ContentClientRemote::EndPaint();
   }
 
 private:

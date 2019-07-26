@@ -89,6 +89,23 @@ ContentClient::CreateContentClient(CompositableForwarder* aForwarder)
   return new ContentClientSingleBuffered(aForwarder);
 }
 
+void
+ContentClient::EndPaint()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  OnTransaction();
+}
+
 
 
 ContentClientBasic::ContentClientBasic()
@@ -162,6 +179,7 @@ ContentClientRemoteBuffer::EndPaint()
   if (mTextureClientOnWhite && mTextureClientOnWhite->IsLocked()) {
     mTextureClientOnWhite->Unlock();
   }
+  ContentClientRemote::EndPaint();
 }
 
 bool
@@ -378,8 +396,10 @@ ContentClientDoubleBuffered::SwapBuffers(const nsIntRegion& aFrontUpdatedRegion)
 }
 
 void
-ContentClientDoubleBuffered::PrepareFrame()
+ContentClientDoubleBuffered::BeginPaint()
 {
+  ContentClientRemoteBuffer::BeginPaint();
+
   mIsNewBuffer = false;
 
   if (!mFrontAndBackBufferDiffer) {
