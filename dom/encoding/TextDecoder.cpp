@@ -206,13 +206,6 @@ TextDecoder::GetEncoding(nsAString& aEncoding)
     return;
   }
 
-  
-  
-  if (mEncoding.EqualsLiteral("x-windows-949")) {
-    aEncoding.AssignLiteral("euc-kr");
-    return;
-  }
-
   CopyASCIItoUTF16(mEncoding, aEncoding);
   nsContentUtils::ASCIIToLower(aEncoding);
 }

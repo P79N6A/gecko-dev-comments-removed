@@ -339,7 +339,7 @@ Preferences.prototype = {
             
             
             if (webkitCharset == "x-mac-korean")
-              return "x-windows-949";
+              return "EUC-KR";
 
             
             try {
