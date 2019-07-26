@@ -1004,7 +1004,7 @@ IonBuilder::inlineUnsafePutElements(CallInfo &callInfo)
 
         
         
-        int arrayType;
+        ScalarTypeRepresentation::Type arrayType;
         if ((!ElementAccessIsDenseNative(obj, id) ||
              PropertyWriteNeedsTypeBarrier(cx, current, &obj, NULL,
                                            &elem,  false)) &&
@@ -1035,7 +1035,7 @@ IonBuilder::inlineUnsafePutElements(CallInfo &callInfo)
             continue;
         }
 
-        int arrayType;
+        ScalarTypeRepresentation::Type arrayType;
         if (ElementAccessIsTypedArray(obj, id, &arrayType)) {
             if (!inlineUnsafeSetTypedArrayElement(callInfo, base, arrayType))
                 return InliningStatus_Error;
@@ -1072,7 +1072,7 @@ IonBuilder::inlineUnsafeSetDenseArrayElement(CallInfo &callInfo, uint32_t base)
 bool
 IonBuilder::inlineUnsafeSetTypedArrayElement(CallInfo &callInfo,
                                              uint32_t base,
-                                             int arrayType)
+                                             ScalarTypeRepresentation::Type arrayType)
 {
     
     
