@@ -362,15 +362,6 @@ protected:
   
 
 
-
-
-
-  virtual bool
-  IsEnabledInternal() = 0;
-
-  
-
-
   virtual nsresult
   HandleStartup();
 
