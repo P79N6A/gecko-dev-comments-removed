@@ -335,6 +335,7 @@ class AutoAssertNoAlloc
   public:
     AutoAssertNoAlloc() {}
     AutoAssertNoAlloc(JSRuntime *) {}
+    void disallowAlloc(JSRuntime *rt) {}
 #endif
 };
 

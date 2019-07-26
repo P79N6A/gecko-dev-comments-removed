@@ -13,6 +13,12 @@
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 
+namespace js {
+namespace gc {
+class GCRuntime;
+}
+}
+
 typedef enum JSGCMode {
     
     JSGC_MODE_GLOBAL = 0,
@@ -329,7 +335,7 @@ WasIncrementalGC(JSRuntime *rt);
 
 class JS_FRIEND_API(AutoDisableGenerationalGC)
 {
-    JSRuntime *runtime;
+    js::gc::GCRuntime *gc;
 #if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
     bool restartVerifier;
 #endif
