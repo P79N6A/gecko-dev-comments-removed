@@ -37,7 +37,6 @@
 #endif 
 
 #include "nsQuickSort.h"
-#include "prlong.h"
 
 
 
