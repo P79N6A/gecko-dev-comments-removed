@@ -688,6 +688,49 @@ InplaceEditor.prototype = {
   
 
 
+
+
+
+
+
+
+  _cycleCSSSuggestion:
+  function InplaceEditor_cycleCSSSuggestion(aReverse, aNoSelect)
+  {
+    let {label, preLabel} = this.popup.selectedItem;
+    if (aReverse) {
+      this.popup.selectPreviousItem();
+    } else {
+      this.popup.selectNextItem();
+    }
+    let input = this.input;
+    let pre = "";
+    if (input.selectionStart < input.selectionEnd) {
+      pre = input.value.slice(0, input.selectionStart);
+    }
+    else {
+      pre = input.value.slice(0, input.selectionStart - label.length +
+                                 preLabel.length);
+    }
+    let post = input.value.slice(input.selectionEnd, input.value.length);
+    let item = this.popup.selectedItem;
+    let toComplete = item.label.slice(item.preLabel.length);
+    input.value = pre + toComplete + post;
+    if (!aNoSelect) {
+      input.setSelectionRange(pre.length, pre.length + toComplete.length);
+    }
+    else {
+      input.setSelectionRange(pre.length + toComplete.length,
+                              pre.length + toComplete.length);
+    }
+    this._updateSize();
+    
+    this.emit("after-suggest");
+  },
+
+  
+
+
   _apply: function InplaceEditor_apply(aEvent)
   {
     if (this._applied) {
@@ -754,22 +797,7 @@ InplaceEditor.prototype = {
     } else if (increment && this.popup && this.popup.isOpen) {
       cycling = true;
       prevent = true;
-      if (increment > 0) {
-        this.popup.selectPreviousItem();
-      } else {
-        this.popup.selectNextItem();
-      }
-      let input = this.input;
-      let pre = input.value.slice(0, input.selectionStart);
-      let post = input.value.slice(input.selectionEnd, input.value.length);
-      let item = this.popup.selectedItem;
-      let toComplete = item.label.slice(item.preLabel.length);
-      input.value = pre + toComplete + post;
-      input.setSelectionRange(pre.length, pre.length + toComplete.length);
-      this._updateSize();
-
-      
-      this.emit("after-suggest");
+      this._cycleCSSSuggestion(increment > 0);
       this._doValidation();
     }
 
@@ -806,6 +834,21 @@ InplaceEditor.prototype = {
       this._preventSuggestions = true;
 
       let input = this.input;
+
+      if (aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_TAB &&
+          this.contentType == CONTENT_TYPES.CSS_MIXED) {
+        if (this.popup && input.selectionStart < input.selectionEnd) {
+          aEvent.preventDefault();
+          input.setSelectionRange(input.selectionEnd, input.selectionEnd);
+          this.emit("after-suggest");
+          return;
+        }
+        else if (this.popup && this.popup.isOpen) {
+          aEvent.preventDefault();
+          this._cycleCSSSuggestion(aEvent.shiftKey, true);
+          return;
+        }
+      }
 
       this._apply();
 
