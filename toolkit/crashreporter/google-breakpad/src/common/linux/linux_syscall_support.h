@@ -1,100 +1,100 @@
-/* Copyright (c) 2005-2011, Google Inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- *     * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following disclaimer
- * in the documentation and/or other materials provided with the
- * distribution.
- *     * Neither the name of Google Inc. nor the names of its
- * contributors may be used to endorse or promote products derived from
- * this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * ---
- * Author: Markus Gutschke
- */
 
-/* This file includes Linux-specific support functions common to the
- * coredumper and the thread lister; primarily, this is a collection
- * of direct system calls, and a couple of symbols missing from
- * standard header files.
- * There are a few options that the including file can set to control
- * the behavior of this file:
- *
- * SYS_CPLUSPLUS:
- *   The entire header file will normally be wrapped in 'extern "C" { }",
- *   making it suitable for compilation as both C and C++ source. If you
- *   do not want to do this, you can set the SYS_CPLUSPLUS macro to inhibit
- *   the wrapping. N.B. doing so will suppress inclusion of all prerequisite
- *   system header files, too. It is the caller's responsibility to provide
- *   the necessary definitions.
- *
- * SYS_ERRNO:
- *   All system calls will update "errno" unless overriden by setting the
- *   SYS_ERRNO macro prior to including this file. SYS_ERRNO should be
- *   an l-value.
- *
- * SYS_INLINE:
- *   New symbols will be defined "static inline", unless overridden by
- *   the SYS_INLINE macro.
- *
- * SYS_LINUX_SYSCALL_SUPPORT_H
- *   This macro is used to avoid multiple inclusions of this header file.
- *   If you need to include this file more than once, make sure to
- *   unset SYS_LINUX_SYSCALL_SUPPORT_H before each inclusion.
- *
- * SYS_PREFIX:
- *   New system calls will have a prefix of "sys_" unless overridden by
- *   the SYS_PREFIX macro. Valid values for this macro are [0..9] which
- *   results in prefixes "sys[0..9]_". It is also possible to set this
- *   macro to -1, which avoids all prefixes.
- *
- * SYS_SYSCALL_ENTRYPOINT:
- *   Some applications (such as sandboxes that filter system calls), need
- *   to be able to run custom-code each time a system call is made. If this
- *   macro is defined, it expands to the name of a "common" symbol. If
- *   this symbol is assigned a non-NULL pointer value, it is used as the
- *   address of the system call entrypoint.
- *   A pointer to this symbol can be obtained by calling
- *   get_syscall_entrypoint()
- *
- * This file defines a few internal symbols that all start with "LSS_".
- * Do not access these symbols from outside this file. They are not part
- * of the supported API.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef SYS_LINUX_SYSCALL_SUPPORT_H
 #define SYS_LINUX_SYSCALL_SUPPORT_H
 
-/* We currently only support x86-32, x86-64, ARM, MIPS, and PPC on Linux.
- * Porting to other related platforms should not be difficult.
- */
+
+
+
 #if (defined(__i386__) || defined(__x86_64__) || defined(__ARM_ARCH_3__) ||   \
      defined(__mips__) || defined(__PPC__) || defined(__ARM_EABI__)) \
   && (defined(__linux) || defined(__ANDROID__))
 
 #ifndef SYS_CPLUSPLUS
 #ifdef __cplusplus
-/* Some system header files in older versions of gcc neglect to properly
- * handle being included from C++. As it appears to be harmless to have
- * multiple nested 'extern "C"' blocks, just add another one here.
- */
+
+
+
+
 extern "C" {
 #endif
 
@@ -114,13 +114,13 @@ extern "C" {
 #include <endian.h>
 
 #ifdef __mips__
-/* Include definitions of the ABI currently in use.                          */
+
 #include <sgidefs.h>
 #endif
 #endif
 
-/* The Android NDK's <sys/stat.h> #defines these macros as aliases
- * to their non-64 counterparts. To avoid naming conflict, remove them. */
+
+
 #ifdef __ANDROID__
 # pragma push_macro("stat64")
 # pragma push_macro("fstat64")
@@ -130,36 +130,36 @@ extern "C" {
 # undef lstat64
 #endif
 
-/* As glibc often provides subtly incompatible data structures (and implicit
- * wrapper functions that convert them), we provide our own kernel data
- * structures for use by the system calls.
- * These structures have been developed by using Linux 2.6.23 headers for
- * reference. Note though, we do not care about exact API compatibility
- * with the kernel, and in fact the kernel often does not have a single
- * API that works across architectures. Instead, we try to mimic the glibc
- * API where reasonable, and only guarantee ABI compatibility with the
- * kernel headers.
- * Most notably, here are a few changes that were made to the structures
- * defined by kernel headers:
- *
- * - we only define structures, but not symbolic names for kernel data
- *   types. For the latter, we directly use the native C datatype
- *   (i.e. "unsigned" instead of "mode_t").
- * - in a few cases, it is possible to define identical structures for
- *   both 32bit (e.g. i386) and 64bit (e.g. x86-64) platforms by
- *   standardizing on the 64bit version of the data types. In particular,
- *   this means that we use "unsigned" where the 32bit headers say
- *   "unsigned long".
- * - overall, we try to minimize the number of cases where we need to
- *   conditionally define different structures.
- * - the "struct kernel_sigaction" class of structures have been
- *   modified to more closely mimic glibc's API by introducing an
- *   anonymous union for the function pointer.
- * - a small number of field names had to have an underscore appended to
- *   them, because glibc defines a global macro by the same name.
- */
 
-/* include/linux/dirent.h                                                    */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct kernel_dirent64 {
   unsigned long long d_ino;
   long long          d_off;
@@ -168,7 +168,7 @@ struct kernel_dirent64 {
   char               d_name[256];
 };
 
-/* include/linux/dirent.h                                                    */
+
 struct kernel_dirent {
   long               d_ino;
   long               d_off;
@@ -176,13 +176,13 @@ struct kernel_dirent {
   char               d_name[256];
 };
 
-/* include/linux/uio.h                                                       */
+
 struct kernel_iovec {
   void               *iov_base;
   unsigned long      iov_len;
 };
 
-/* include/linux/socket.h                                                    */
+
 struct kernel_msghdr {
   void               *msg_name;
   int                msg_namelen;
@@ -193,32 +193,32 @@ struct kernel_msghdr {
   unsigned           msg_flags;
 };
 
-/* include/asm-generic/poll.h                                                */
+
 struct kernel_pollfd {
   int                fd;
   short              events;
   short              revents;
 };
 
-/* include/linux/resource.h                                                  */
+
 struct kernel_rlimit {
   unsigned long      rlim_cur;
   unsigned long      rlim_max;
 };
 
-/* include/linux/time.h                                                      */
+
 struct kernel_timespec {
   long               tv_sec;
   long               tv_nsec;
 };
 
-/* include/linux/time.h                                                      */
+
 struct kernel_timeval {
   long               tv_sec;
   long               tv_usec;
 };
 
-/* include/linux/resource.h                                                  */
+
 struct kernel_rusage {
   struct kernel_timeval ru_utime;
   struct kernel_timeval ru_stime;
@@ -242,7 +242,7 @@ struct siginfo;
 #if defined(__i386__) || defined(__ARM_EABI__) || defined(__ARM_ARCH_3__) \
   || defined(__PPC__)
 
-/* include/asm-{arm,i386,mips,ppc}/signal.h                                  */
+
 struct kernel_old_sigaction {
   union {
     void             (*sa_handler_)(int);
@@ -256,28 +256,28 @@ struct kernel_old_sigaction {
   #define kernel_old_sigaction kernel_sigaction
 #endif
 
-/* Some kernel functions (e.g. sigaction() in 2.6.23) require that the
- * exactly match the size of the signal set, even though the API was
- * intended to be extensible. We define our own KERNEL_NSIG to deal with
- * this.
- * Please note that glibc provides signals [1.._NSIG-1], whereas the
- * kernel (and this header) provides the range [1..KERNEL_NSIG]. The
- * actual number of signals is obviously the same, but the constants
- * differ by one.
- */
+
+
+
+
+
+
+
+
+
 #ifdef __mips__
 #define KERNEL_NSIG 128
 #else
 #define KERNEL_NSIG  64
 #endif
 
-/* include/asm-{arm,i386,mips,x86_64}/signal.h                               */
+
 struct kernel_sigset_t {
   unsigned long sig[(KERNEL_NSIG + 8*sizeof(unsigned long) - 1)/
                     (8*sizeof(unsigned long))];
 };
 
-/* include/asm-{arm,i386,mips,x86_64,ppc}/signal.h                           */
+
 struct kernel_sigaction {
 #ifdef __mips__
   unsigned long      sa_flags;
@@ -297,13 +297,13 @@ struct kernel_sigaction {
 #endif
 };
 
-/* include/linux/socket.h                                                    */
+
 struct kernel_sockaddr {
   unsigned short     sa_family;
   char               sa_data[14];
 };
 
-/* include/asm-{arm,i386,mips,ppc}/stat.h                                    */
+
 #ifdef __mips__
 #if _MIPS_SIM == _MIPS_SIM_ABI64
 struct kernel_stat {
@@ -376,14 +376,14 @@ struct kernel_stat64 {
 };
 #endif
 
-/* include/asm-{arm,i386,mips,x86_64,ppc}/stat.h                             */
+
 #if defined(__i386__) || defined(__ARM_ARCH_3__) || defined(__ARM_EABI__)
 struct kernel_stat {
-  /* The kernel headers suggest that st_dev and st_rdev should be 32bit
-   * quantities encoding 12bit major and 20bit minor numbers in an interleaved
-   * format. In reality, we do not see useful data in the top bits. So,
-   * we'll leave the padding in here, until we find a better solution.
-   */
+  
+
+
+
+
   unsigned short     st_dev;
   short              pad1;
   unsigned           st_ino;
@@ -429,13 +429,13 @@ struct kernel_stat {
 #elif defined(__PPC__)
 struct kernel_stat {
   unsigned           st_dev;
-  unsigned long      st_ino;      // ino_t
-  unsigned long      st_mode;     // mode_t
-  unsigned short     st_nlink;    // nlink_t
-  unsigned           st_uid;      // uid_t
-  unsigned           st_gid;      // gid_t
+  unsigned long      st_ino;      
+  unsigned long      st_mode;     
+  unsigned short     st_nlink;    
+  unsigned           st_uid;      
+  unsigned           st_gid;      
   unsigned           st_rdev;
-  long               st_size;     // off_t
+  long               st_size;     
   unsigned long      st_blksize;
   unsigned long      st_blocks;
   unsigned long      st_atime_;
@@ -472,7 +472,7 @@ struct kernel_stat {
 };
 #endif
 
-/* include/asm-{arm,i386,mips,x86_64,ppc}/statfs.h                           */
+
 #ifdef __mips__
 #if _MIPS_SIM != _MIPS_SIM_ABI64
 struct kernel_statfs64 {
@@ -506,7 +506,7 @@ struct kernel_statfs64 {
 };
 #endif
 
-/* include/asm-{arm,i386,mips,x86_64,ppc,generic}/statfs.h                   */
+
 #ifdef __mips__
 struct kernel_statfs {
   long               f_type;
@@ -523,9 +523,9 @@ struct kernel_statfs {
 };
 #else
 struct kernel_statfs {
-  /* x86_64 actually defines all these fields as signed, whereas all other  */
-  /* platforms define them as unsigned. Leaving them at unsigned should not */
-  /* cause any problems.                                                    */
+  
+  
+  
   unsigned long      f_type;
   unsigned long      f_bsize;
   unsigned long      f_blocks;
@@ -541,7 +541,7 @@ struct kernel_statfs {
 #endif
 
 
-/* Definitions missing from the standard header files                        */
+
 #ifndef O_DIRECTORY
 #if defined(__ARM_ARCH_3__) || defined(__ARM_EABI__)
 #define O_DIRECTORY             0040000
@@ -792,7 +792,7 @@ struct kernel_statfs {
 #ifndef __NR_fallocate
 #define __NR_fallocate          324
 #endif
-/* End of i386 definitions                                                   */
+
 #elif defined(__ARM_ARCH_3__) || defined(__ARM_EABI__)
 #ifndef __NR_setresuid
 #define __NR_setresuid          (__NR_SYSCALL_BASE + 164)
@@ -896,7 +896,7 @@ struct kernel_statfs {
 #ifndef __NR_getcpu
 #define __NR_getcpu             (__NR_SYSCALL_BASE + 345)
 #endif
-/* End of ARM 3/EABI definitions                                                */
+
 #elif defined(__x86_64__)
 #ifndef __NR_pread64
 #define __NR_pread64             17
@@ -983,7 +983,7 @@ struct kernel_statfs {
 #ifndef __NR_fallocate
 #define __NR_fallocate          285
 #endif
-/* End of x86-64 definitions                                                 */
+
 #elif defined(__mips__)
 #if _MIPS_SIM == _MIPS_SIM_ABI32
 #ifndef __NR_setresuid
@@ -1084,7 +1084,7 @@ struct kernel_statfs {
 #ifndef __NR_ioprio_get
 #define __NR_ioprio_get         (__NR_Linux + 315)
 #endif
-/* End of MIPS (old 32bit API) definitions */
+
 #elif  _MIPS_SIM == _MIPS_SIM_ABI64
 #ifndef __NR_pread64
 #define __NR_pread64            (__NR_Linux +  16)
@@ -1162,7 +1162,7 @@ struct kernel_statfs {
 #ifndef __NR_ioprio_get
 #define __NR_ioprio_get         (__NR_Linux + 274)
 #endif
-/* End of MIPS (64bit API) definitions */
+
 #else
 #ifndef __NR_setresuid
 #define __NR_setresuid          (__NR_Linux + 115)
@@ -1240,9 +1240,9 @@ struct kernel_statfs {
 #ifndef __NR_ioprio_get
 #define __NR_ioprio_get         (__NR_Linux + 278)
 #endif
-/* End of MIPS (new 32bit API) definitions                                   */
+
 #endif
-/* End of MIPS definitions                                                   */
+
 #elif defined(__PPC__)
 #ifndef __NR_setfsuid
 #define __NR_setfsuid           138
@@ -1352,26 +1352,26 @@ struct kernel_statfs {
 #ifndef __NR_getcpu
 #define __NR_getcpu             302
 #endif
-/* End of powerpc defininitions                                              */
+
 #endif
 
 
-/* After forking, we must make sure to only call system calls.               */
+
 #if defined(__BOUNDED_POINTERS__)
   #error "Need to port invocations of syscalls for bounded ptrs"
 #else
-  /* The core dumper and the thread lister get executed after threads
-   * have been suspended. As a consequence, we cannot call any functions
-   * that acquire locks. Unfortunately, libc wraps most system calls
-   * (e.g. in order to implement pthread_atfork, and to make calls
-   * cancellable), which means we cannot call these functions. Instead,
-   * we have to call syscall() directly.
-   */
+  
+
+
+
+
+
+
   #undef LSS_ERRNO
   #ifdef SYS_ERRNO
-    /* Allow the including file to override the location of errno. This can
-     * be useful when using clone() with the CLONE_VM option.
-     */
+    
+
+
     #define LSS_ERRNO SYS_ERRNO
   #else
     #define LSS_ERRNO errno
@@ -1384,9 +1384,9 @@ struct kernel_statfs {
     #define LSS_INLINE static inline
   #endif
 
-  /* Allow the including file to override the prefix used for all new
-   * system calls. By default, it will be set to "sys_".
-   */
+  
+
+
   #undef LSS_NAME
   #ifndef SYS_PREFIX
     #define LSS_NAME(name) sys_##name
@@ -1417,9 +1417,9 @@ struct kernel_statfs {
   #undef  LSS_RETURN
   #if (defined(__i386__) || defined(__x86_64__) || defined(__ARM_ARCH_3__) \
        || defined(__ARM_EABI__))
-  /* Failing system calls return a negative result in the range of
-   * -1..-4095. These are "errno" values with the sign inverted.
-   */
+  
+
+
   #define LSS_RETURN(type, res)                                               \
     do {                                                                      \
       if ((unsigned long)(res) >= (unsigned long)(-4095)) {                   \
@@ -1429,9 +1429,9 @@ struct kernel_statfs {
       return (type) (res);                                                    \
     } while (0)
   #elif defined(__mips__)
-  /* On MIPS, failing system calls return -1, and set errno in a
-   * separate CPU register.
-   */
+  
+
+
   #define LSS_RETURN(type, res, err)                                          \
     do {                                                                      \
       if (err) {                                                              \
@@ -1442,9 +1442,9 @@ struct kernel_statfs {
       return (type) (res);                                                    \
     } while (0)
   #elif defined(__PPC__)
-  /* On PPC, failing system calls return -1, and set errno in a
-   * separate CPU register. See linux/unistd.h.
-   */
+  
+
+
   #define LSS_RETURN(type, res, err)                                          \
    do {                                                                       \
      if (err & 0x10000000 ) {                                                 \
@@ -1455,14 +1455,14 @@ struct kernel_statfs {
    } while (0)
   #endif
   #if defined(__i386__)
-    /* In PIC mode (e.g. when building shared libraries), gcc for i386
-     * reserves ebx. Unfortunately, most distribution ship with implementations
-     * of _syscallX() which clobber ebx.
-     * Also, most definitions of _syscallX() neglect to mark "memory" as being
-     * clobbered. This causes problems with compilers, that do a better job
-     * at optimizing across __asm__ calls.
-     * So, we just have to redefine all of the _syscallX() macros.
-     */
+    
+
+
+
+
+
+
+
     #undef LSS_ENTRYPOINT
     #ifdef SYS_SYSCALL_ENTRYPOINT
     static inline void (**LSS_NAME(get_syscall_entrypoint)(void))(void) {
@@ -1472,7 +1472,7 @@ struct kernel_statfs {
                    ".globl "SYS_SYSCALL_ENTRYPOINT"\n"
                    ".common "SYS_SYSCALL_ENTRYPOINT",8,8\n"
                    ".previous\n"
-                   /* This logically does 'lea "SYS_SYSCALL_ENTRYPOINT", %0' */
+                   
                    "call 0f\n"
                  "0:pop  %0\n"
                    "add  $_GLOBAL_OFFSET_TABLE_+[.-0b], %0\n"
@@ -1601,41 +1601,41 @@ struct kernel_statfs {
                                    int flags, void *arg, int *parent_tidptr,
                                    void *newtls, int *child_tidptr) {
       long __res;
-      __asm__ __volatile__(/* if (fn == NULL)
-                            *   return -EINVAL;
-                            */
+      __asm__ __volatile__(
+
+
                            "movl   %3,%%ecx\n"
                            "jecxz  1f\n"
 
-                           /* if (child_stack == NULL)
-                            *   return -EINVAL;
-                            */
+                           
+
+
                            "movl   %4,%%ecx\n"
                            "jecxz  1f\n"
 
-                           /* Set up alignment of the child stack:
-                            * child_stack = (child_stack & ~0xF) - 20;
-                            */
+                           
+
+
                            "andl   $-16,%%ecx\n"
                            "subl   $20,%%ecx\n"
 
-                           /* Push "arg" and "fn" onto the stack that will be
-                            * used by the child.
-                            */
+                           
+
+
                            "movl   %6,%%eax\n"
                            "movl   %%eax,4(%%ecx)\n"
                            "movl   %3,%%eax\n"
                            "movl   %%eax,(%%ecx)\n"
 
-                           /* %eax = syscall(%eax = __NR_clone,
-                            *                %ebx = flags,
-                            *                %ecx = child_stack,
-                            *                %edx = parent_tidptr,
-                            *                %esi = newtls,
-                            *                %edi = child_tidptr)
-                            * Also, make sure that %ebx gets preserved as it is
-                            * used in PIC mode.
-                            */
+                           
+
+
+
+
+
+
+
+
                            "movl   %8,%%esi\n"
                            "movl   %7,%%edx\n"
                            "movl   %5,%%eax\n"
@@ -1645,36 +1645,36 @@ struct kernel_statfs {
                            "movl   %2,%%eax\n"
                            LSS_ENTRYPOINT
 
-                           /* In the parent: restore %ebx
-                            * In the child:  move "fn" into %ebx
-                            */
+                           
+
+
                            "popl   %%ebx\n"
 
-                           /* if (%eax != 0)
-                            *   return %eax;
-                            */
+                           
+
+
                            "test   %%eax,%%eax\n"
                            "jnz    1f\n"
 
-                           /* In the child, now. Terminate frame pointer chain.
-                            */
+                           
+
                            "movl   $0,%%ebp\n"
 
-                           /* Call "fn". "arg" is already on the stack.
-                            */
+                           
+
                            "call   *%%ebx\n"
 
-                           /* Call _exit(%ebx). Unfortunately older versions
-                            * of gcc restrict the number of arguments that can
-                            * be passed to asm(). So, we need to hard-code the
-                            * system call number.
-                            */
+                           
+
+
+
+
                            "movl   %%eax,%%ebx\n"
                            "movl   $1,%%eax\n"
                            LSS_ENTRYPOINT
 
-                           /* Return to parent.
-                            */
+                           
+
                          "1:\n"
                            : "=a" (__res)
                            : "0"(-EINVAL), "i"(__NR_clone),
@@ -1714,12 +1714,12 @@ struct kernel_statfs {
     LSS_INLINE _syscall1(int, get_thread_area, void *, u)
 
     LSS_INLINE void (*LSS_NAME(restore_rt)(void))(void) {
-      /* On i386, the kernel does not know how to return from a signal
-       * handler. Instead, it relies on user space to provide a
-       * restorer function that calls the {rt_,}sigreturn() system call.
-       * Unfortunately, we cannot just reference the glibc version of this
-       * function, as glibc goes out of its way to make it inaccessible.
-       */
+      
+
+
+
+
+
       void (*res)(void);
       __asm__ __volatile__("call   2f\n"
                          "0:.align 16\n"
@@ -1732,12 +1732,12 @@ struct kernel_statfs {
       return res;
     }
     LSS_INLINE void (*LSS_NAME(restore)(void))(void) {
-      /* On i386, the kernel does not know how to return from a signal
-       * handler. Instead, it relies on user space to provide a
-       * restorer function that calls the {rt_,}sigreturn() system call.
-       * Unfortunately, we cannot just reference the glibc version of this
-       * function, as glibc goes out of its way to make it inaccessible.
-       */
+      
+
+
+
+
+
       void (*res)(void);
       __asm__ __volatile__("call   2f\n"
                          "0:.align 16\n"
@@ -1751,12 +1751,12 @@ struct kernel_statfs {
       return res;
     }
   #elif defined(__x86_64__)
-    /* There are no known problems with any of the _syscallX() macros
-     * currently shipping for x86_64, but we still need to be able to define
-     * our own version so that we can override the location of the errno
-     * location (e.g. when using the clone() system call with the CLONE_VM
-     * option).
-     */
+    
+
+
+
+
+
     #undef LSS_ENTRYPOINT
     #ifdef SYS_SYSCALL_ENTRYPOINT
     static inline void (**LSS_NAME(get_syscall_entrypoint)(void))(void) {
@@ -1859,64 +1859,64 @@ struct kernel_statfs {
                                    void *newtls, int *child_tidptr) {
       long __res;
       {
-        __asm__ __volatile__(/* if (fn == NULL)
-                              *   return -EINVAL;
-                              */
+        __asm__ __volatile__(
+
+
                              "testq  %4,%4\n"
                              "jz     1f\n"
 
-                             /* if (child_stack == NULL)
-                              *   return -EINVAL;
-                              */
+                             
+
+
                              "testq  %5,%5\n"
                              "jz     1f\n"
 
-                             /* childstack -= 2*sizeof(void *);
-                              */
+                             
+
                              "subq   $16,%5\n"
 
-                             /* Push "arg" and "fn" onto the stack that will be
-                              * used by the child.
-                              */
+                             
+
+
                              "movq   %7,8(%5)\n"
                              "movq   %4,0(%5)\n"
 
-                             /* %rax = syscall(%rax = __NR_clone,
-                              *                %rdi = flags,
-                              *                %rsi = child_stack,
-                              *                %rdx = parent_tidptr,
-                              *                %r8  = new_tls,
-                              *                %r10 = child_tidptr)
-                              */
+                             
+
+
+
+
+
+
                              "movq   %2,%%rax\n"
                              "movq   %9,%%r8\n"
                              "movq   %10,%%r10\n"
                              LSS_ENTRYPOINT
 
-                             /* if (%rax != 0)
-                              *   return;
-                              */
+                             
+
+
                              "testq  %%rax,%%rax\n"
                              "jnz    1f\n"
 
-                             /* In the child. Terminate frame pointer chain.
-                              */
+                             
+
                              "xorq   %%rbp,%%rbp\n"
 
-                             /* Call "fn(arg)".
-                              */
+                             
+
                              "popq   %%rax\n"
                              "popq   %%rdi\n"
                              "call   *%%rax\n"
 
-                             /* Call _exit(%ebx).
-                              */
+                             
+
                              "movq   %%rax,%%rdi\n"
                              "movq   %3,%%rax\n"
                              LSS_ENTRYPOINT
 
-                             /* Return to parent.
-                              */
+                             
+
                            "1:\n"
                              : "=a" (__res)
                              : "0"(-EINVAL), "i"(__NR_clone), "i"(__NR_exit),
@@ -1932,12 +1932,12 @@ struct kernel_statfs {
                          int,  advice)
 
     LSS_INLINE void (*LSS_NAME(restore_rt)(void))(void) {
-      /* On x86-64, the kernel does not know how to return from
-       * a signal handler. Instead, it relies on user space to provide a
-       * restorer function that calls the rt_sigreturn() system call.
-       * Unfortunately, we cannot just reference the glibc version of this
-       * function, as glibc goes out of its way to make it inaccessible.
-       */
+      
+
+
+
+
+
       void (*res)(void);
       __asm__ __volatile__("call   2f\n"
                          "0:.align 16\n"
@@ -1950,11 +1950,11 @@ struct kernel_statfs {
       return res;
     }
   #elif defined(__ARM_ARCH_3__)
-    /* Most definitions of _syscallX() neglect to mark "memory" as being
-     * clobbered. This causes problems with compilers, that do a better job
-     * at optimizing across __asm__ calls.
-     * So, we just have to redefine all of the _syscallX() macros.
-     */
+    
+
+
+
+
     #undef LSS_REG
     #define LSS_REG(r,a) register long __r##r __asm__("r"#r) = (long)a
     #undef  LSS_BODY
@@ -2024,42 +2024,42 @@ struct kernel_statfs {
         register void *__ptid  __asm__("r2") = parent_tidptr;
         register void *__tls   __asm__("r3") = newtls;
         register int  *__ctid  __asm__("r4") = child_tidptr;
-        __asm__ __volatile__(/* if (fn == NULL || child_stack == NULL)
-                              *   return -EINVAL;
-                              */
+        __asm__ __volatile__(
+
+
                              "cmp   %2,#0\n"
                              "cmpne %3,#0\n"
                              "moveq %0,%1\n"
                              "beq   1f\n"
 
-                             /* Push "arg" and "fn" onto the stack that will be
-                              * used by the child.
-                              */
+                             
+
+
                              "str   %5,[%3,#-4]!\n"
                              "str   %2,[%3,#-4]!\n"
 
-                             /* %r0 = syscall(%r0 = flags,
-                              *               %r1 = child_stack,
-                              *               %r2 = parent_tidptr,
-                              *               %r3 = newtls,
-                              *               %r4 = child_tidptr)
-                              */
+                             
+
+
+
+
+
                              __syscall(clone)"\n"
 
-                             /* if (%r0 != 0)
-                              *   return %r0;
-                              */
+                             
+
+
                              "movs  %0,r0\n"
                              "bne   1f\n"
 
-                             /* In the child, now. Call "fn(arg)".
-                              */
+                             
+
                              "ldr   r0,[sp, #4]\n"
                              "mov   lr,pc\n"
                              "ldr   pc,[sp]\n"
 
-                             /* Call _exit(%r0).
-                              */
+                             
+
                              __syscall(exit)"\n"
                            "1:\n"
                              : "=r" (__res)
@@ -2071,11 +2071,11 @@ struct kernel_statfs {
       LSS_RETURN(int, __res);
     }
   #elif defined(__ARM_EABI__)
-    /* Most definitions of _syscallX() neglect to mark "memory" as being
-     * clobbered. This causes problems with compilers, that do a better job
-     * at optimizing across __asm__ calls.
-     * So, we just have to redefine all fo the _syscallX() macros.
-     */
+    
+
+
+
+
     #undef LSS_REG
     #define LSS_REG(r,a) register long __r##r __asm__("r"#r) = (long)a
     #undef  LSS_BODY
@@ -2150,9 +2150,9 @@ struct kernel_statfs {
         register void *__ptid  __asm__("r2") = parent_tidptr;
         register void *__tls   __asm__("r3") = newtls;
         register int  *__ctid  __asm__("r4") = child_tidptr;
-        __asm__ __volatile__(/* if (fn == NULL || child_stack == NULL)
-                              *   return -EINVAL;
-                              */
+        __asm__ __volatile__(
+
+
                              "cmp   %2,#0\n"
                              "it    ne\n"
                              "cmpne %3,#0\n"
@@ -2160,41 +2160,41 @@ struct kernel_statfs {
                              "moveq %0,%1\n"
                              "beq   1f\n"
 
-                             /* Push "arg" and "fn" onto the stack that will be
-                              * used by the child.
-                              */
+                             
+
+
                              "str   %5,[%3,#-4]!\n"
                              "str   %2,[%3,#-4]!\n"
 
-                             /* %r0 = syscall(%r0 = flags,
-                              *               %r1 = child_stack,
-                              *               %r2 = parent_tidptr,
-                              *               %r3 = newtls,
-                              *               %r4 = child_tidptr)
-                              */
+                             
+
+
+
+
+
                              "mov r7, %9\n"
                              "swi 0x0\n"
 
-                             /* if (%r0 != 0)
-                              *   return %r0;
-                              */
+                             
+
+
                              "movs  %0,r0\n"
                              "bne   1f\n"
 
-                             /* In the child, now. Call "fn(arg)".
-                              */
+                             
+
                              "ldr   r0,[sp, #4]\n"
 
-                             /* When compiling for Thumb-2 the "MOV LR,PC" here
-                              * won't work because it loads PC+4 into LR,
-                              * whereas the LDR is a 4-byte instruction.
-                              * This results in the child thread always
-                              * crashing with an "Illegal Instruction" when it
-                              * returned into the middle of the LDR instruction
-                              * The instruction sequence used instead was
-                              * recommended by
-                              * "https://wiki.edubuntu.org/ARM/Thumb2PortingHowto#Quick_Reference".
-                              */
+                             
+
+
+
+
+
+
+
+
+
                            #ifdef __thumb2__
                              "ldr   r7,[sp]\n"
                              "blx   r7\n"
@@ -2203,8 +2203,8 @@ struct kernel_statfs {
                              "ldr   pc,[sp]\n"
                            #endif
 
-                             /* Call _exit(%r0).
-                              */
+                             
+
                              "mov r7, %10\n"
                              "swi 0x0\n"
                            "1:\n"
@@ -2266,9 +2266,9 @@ struct kernel_statfs {
       }
     #undef _syscall5
     #if _MIPS_SIM == _MIPS_SIM_ABI32
-    /* The old 32bit MIPS system call API passes the fifth and sixth argument
-     * on the stack, whereas the new APIs use registers "r8" and "r9".
-     */
+    
+
+
     #define _syscall5(type,name,type1,arg1,type2,arg2,type3,arg3,type4,arg4,  \
                       type5,arg5)                                             \
       type LSS_NAME(name)(type1 arg1, type2 arg2, type3 arg3, type4 arg4,     \
@@ -2303,9 +2303,9 @@ struct kernel_statfs {
     #endif
     #undef _syscall6
     #if _MIPS_SIM == _MIPS_SIM_ABI32
-    /* The old 32bit MIPS system call API passes the fifth and sixth argument
-     * on the stack, whereas the new APIs use registers "r8" and "r9".
-     */
+    
+
+
     #define _syscall6(type,name,type1,arg1,type2,arg2,type3,arg3,type4,arg4,  \
                       type5,arg5,type6,arg6)                                  \
       type LSS_NAME(name)(type1 arg1, type2 arg2, type3 arg3, type4 arg4,     \
@@ -2359,16 +2359,16 @@ struct kernel_statfs {
                              "dsubu $29,16\n"
           #endif
 
-                             /* if (fn == NULL || child_stack == NULL)
-                              *   return -EINVAL;
-                              */
+                             
+
+
                              "li    %0,%2\n"
                              "beqz  %5,1f\n"
                              "beqz  %6,1f\n"
 
-                             /* Push "arg" and "fn" onto the stack that will be
-                              * used by the child.
-                              */
+                             
+
+
           #if _MIPS_SIM == _MIPS_SIM_ABI32 && _MIPS_SZPTR == 32
                              "subu  %6,32\n"
                              "sw    %5,0(%6)\n"
@@ -2383,23 +2383,23 @@ struct kernel_statfs {
                              "sd    %8,8(%6)\n"
           #endif
 
-                             /* $7 = syscall($4 = flags,
-                              *              $5 = child_stack,
-                              *              $6 = parent_tidptr,
-                              *              $7 = newtls,
-                              *              $8 = child_tidptr)
-                              */
+                             
+
+
+
+
+
                              "li    $2,%3\n"
                              "syscall\n"
 
-                             /* if ($7 != 0)
-                              *   return $2;
-                              */
+                             
+
+
                              "bnez  $7,1f\n"
                              "bnez  $2,1f\n"
 
-                             /* In the child, now. Call "fn(arg)".
-                              */
+                             
+
           #if _MIPS_SIM == _MIPS_SIM_ABI32 && _MIPS_SZPTR == 32
                             "lw    $25,0($29)\n"
                             "lw    $4,4($29)\n"
@@ -2412,8 +2412,8 @@ struct kernel_statfs {
           #endif
                             "jalr  $25\n"
 
-                             /* Call _exit($2)
-                              */
+                             
+
                             "move  $4,$2\n"
                             "li    $2,%4\n"
                             "syscall\n"
@@ -2544,10 +2544,10 @@ struct kernel_statfs {
                                                type5 arg5, type6 arg6) {      \
           LSS_BODY(6, type, name, arg1, arg2, arg3, arg4, arg5, arg6);        \
        }
-    /* clone function adapted from glibc 2.3.6 clone.S                       */
-    /* TODO(csilvers): consider wrapping some args up in a struct, like we
-     * do for i386's _syscall6, so we can compile successfully on gcc 2.95
-     */
+    
+    
+
+
     LSS_INLINE int LSS_NAME(clone)(int (*fn)(void *), void *child_stack,
                                    int flags, void *arg, int *parent_tidptr,
                                    void *newtls, int *child_tidptr) {
@@ -2561,49 +2561,49 @@ struct kernel_statfs {
         register void * __newtls                __asm__ ("r6")  = newtls;
         register int * __ctidptr                __asm__ ("r7")  = child_tidptr;
         __asm__ __volatile__(
-            /* check for fn == NULL
-             * and child_stack == NULL
-             */
+            
+
+
             "cmpwi cr0, %6, 0\n\t"
             "cmpwi cr1, %7, 0\n\t"
             "cror cr0*4+eq, cr1*4+eq, cr0*4+eq\n\t"
             "beq- cr0, 1f\n\t"
 
-            /* set up stack frame for child                                  */
+            
             "clrrwi %7, %7, 4\n\t"
             "li 0, 0\n\t"
             "stwu 0, -16(%7)\n\t"
 
-            /* fn, arg, child_stack are saved across the syscall: r28-30     */
+            
             "mr 28, %6\n\t"
             "mr 29, %7\n\t"
             "mr 27, %9\n\t"
 
-            /* syscall                                                       */
+            
             "li 0, %4\n\t"
-            /* flags already in r3
-             * child_stack already in r4
-             * ptidptr already in r5
-             * newtls already in r6
-             * ctidptr already in r7
-             */
+            
+
+
+
+
+
             "sc\n\t"
 
-            /* Test if syscall was successful                                */
+            
             "cmpwi cr1, 3, 0\n\t"
             "crandc cr1*4+eq, cr1*4+eq, cr0*4+so\n\t"
             "bne- cr1, 1f\n\t"
 
-            /* Do the function call                                          */
+            
             "mtctr 28\n\t"
             "mr 3, 27\n\t"
             "bctrl\n\t"
 
-            /* Call _exit(r3)                                                */
+            
             "li 0, %5\n\t"
             "sc\n\t"
 
-            /* Return to parent                                              */
+            
             "1:\n"
             "mfcr %1\n\t"
             "mr %0, 3\n\t"
@@ -2714,7 +2714,7 @@ struct kernel_statfs {
   LSS_INLINE _syscall4(long,    ptrace,          int,         r,
                        pid_t,          p, void *, a, void *, d)
   #if defined(__NR_quotactl)
-    // Defined on x86_64 / i386 only
+    
     LSS_INLINE _syscall4(int,  quotactl,  int,  cmd,  const char *, special,
                          int, id, caddr_t, addr)
   #endif
@@ -2836,11 +2836,11 @@ struct kernel_statfs {
     LSS_INLINE int LSS_NAME(sigaction)(int signum,
                                        const struct kernel_sigaction *act,
                                        struct kernel_sigaction *oldact) {
-      /* On x86_64, the kernel requires us to always set our own
-       * SA_RESTORER in order to be able to return from a signal handler.
-       * This function must have a "magic" signature that the "gdb"
-       * (and maybe the kernel?) can recognize.
-       */
+      
+
+
+
+
       if (act != NULL && !(act->sa_flags & SA_RESTORER)) {
         struct kernel_sigaction a = *act;
         a.sa_flags   |= SA_RESTORER;
@@ -2913,7 +2913,7 @@ struct kernel_statfs {
         if ((rgid == NULL) || (egid == NULL) || (sgid == NULL)) {
           return EFAULT;
         }
-        // Clear the high bits first, since getresgid only sets 16 bits
+        
         *rgid = *egid = *sgid = 0;
         rc = LSS_NAME(getresgid)(rgid, egid, sgid);
       }
@@ -2929,7 +2929,7 @@ struct kernel_statfs {
         if ((ruid == NULL) || (euid == NULL) || (suid == NULL)) {
           return EFAULT;
         }
-        // Clear the high bits first, since getresuid only sets 16 bits
+        
         *ruid = *euid = *suid = 0;
         rc = LSS_NAME(getresuid)(ruid, euid, suid);
       }
@@ -3082,16 +3082,16 @@ struct kernel_statfs {
       if (act != NULL) {
         a             = *act;
         #ifdef __i386__
-        /* On i386, the kernel requires us to always set our own
-         * SA_RESTORER when using realtime signals. Otherwise, it does not
-         * know how to return from a signal handler. This function must have
-         * a "magic" signature that the "gdb" (and maybe the kernel?) can
-         * recognize.
-         * Apparently, a SA_RESTORER is implicitly set by the kernel, when
-         * using non-realtime signals.
-         *
-         * TODO: Test whether ARM needs a restorer
-         */
+        
+
+
+
+
+
+
+
+
+
         if (!(a.sa_flags & SA_RESTORER)) {
           a.sa_flags   |= SA_RESTORER;
           a.sa_restorer = (a.sa_flags & SA_SIGINFO)
@@ -3243,7 +3243,7 @@ struct kernel_statfs {
       LSS_SC_BODY(3, ssize_t, 16, s, msg, flags);
     }
 
-    // TODO(csilvers): why is this ifdef'ed out?
+    
 #if 0
     LSS_INLINE ssize_t LSS_NAME(sendto)(int s, const void *buf, size_t len,
                                         int flags,
@@ -3335,9 +3335,9 @@ struct kernel_statfs {
                          int*,              s,    int,   o)
   #endif
   #if defined(__mips__)
-    /* sys_pipe() on MIPS has non-standard calling conventions, as it returns
-     * both file handles through CPU registers.
-     */
+    
+
+
     LSS_INLINE int LSS_NAME(pipe)(int *p) {
       register unsigned long __v0 __asm__("$2") = __NR_pipe;
       register unsigned long __v1 __asm__("$3");
@@ -3360,7 +3360,7 @@ struct kernel_statfs {
   #else
     LSS_INLINE _syscall1(int,     pipe,           int *, p)
   #endif
-  /* TODO(csilvers): see if ppc can/should support this as well              */
+  
   #if defined(__i386__) || defined(__ARM_ARCH_3__) ||                         \
       defined(__ARM_EABI__) ||                                             \
      (defined(__mips__) && _MIPS_SIM != _MIPS_SIM_ABI64)
@@ -3405,22 +3405,22 @@ struct kernel_statfs {
   }
 
   LSS_INLINE int LSS_NAME(ptrace_detach)(pid_t pid) {
-    /* PTRACE_DETACH can sometimes forget to wake up the tracee and it
-     * then sends job control signals to the real parent, rather than to
-     * the tracer. We reduce the risk of this happening by starting a
-     * whole new time slice, and then quickly sending a SIGCONT signal
-     * right after detaching from the tracee.
-     *
-     * We use tkill to ensure that we only issue a wakeup for the thread being
-     * detached.  Large multi threaded apps can take a long time in the kernel
-     * processing SIGCONT.
-     */
+    
+
+
+
+
+
+
+
+
+
     int rc, err;
     LSS_NAME(sched_yield)();
     rc = LSS_NAME(ptrace)(PTRACE_DETACH, pid, (void *)0, (void *)0);
     err = LSS_ERRNO;
     LSS_NAME(tkill)(pid, SIGCONT);
-    /* Old systems don't have tkill */
+    
     if (LSS_ERRNO == ENOSYS)
       LSS_NAME(kill)(pid, SIGCONT);
     LSS_ERRNO = err;
@@ -3470,10 +3470,10 @@ struct kernel_statfs {
     #define __NR__pwrite64  __NR_pwrite64
     #define __NR__readahead __NR_readahead
     #if defined(__ARM_EABI__)
-      /* On ARM, a 64-bit parameter has to be in an even-odd register pair.
-       * Hence these calls ignore their fourth argument (r3) so that their
-       * fifth and sixth make such a pair (r4,r5).
-       */
+      
+
+
+
       #define LSS_LLARG_PAD 0,
       LSS_INLINE _syscall6(ssize_t, _pread64,        int,         f,
                            void *,         b, size_t, c,
@@ -3495,11 +3495,11 @@ struct kernel_statfs {
       LSS_INLINE _syscall4(int, _readahead,          int,         f,
                            unsigned,       o1, unsigned, o2, size_t, c)
     #endif
-    /* We force 64bit-wide parameters onto the stack, then access each
-     * 32-bit component individually. This guarantees that we build the
-     * correct parameters independent of the native byte-order of the
-     * underlying architecture.
-     */
+    
+
+
+
+
     LSS_INLINE ssize_t LSS_NAME(pread64)(int fd, void *buf, size_t count,
                                          loff_t off) {
       union { loff_t off; unsigned arg[2]; } o = { off };
