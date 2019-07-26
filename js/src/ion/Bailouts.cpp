@@ -595,6 +595,41 @@ ion::ThunkToInterpreter(Value *vp)
     if (JSOp(*pc) == JSOP_LOOPENTRY)
         cx->regs().pc = GetNextPc(pc);
 
+    
+    
+    
+    
+    
+    {
+        br->entryfp()->clearRunningInIon();
+        ScriptFrameIter iter(cx);
+        StackFrame *fp = NULL;
+        Rooted<JSScript*> script(cx, NULL);
+        do {
+            JS_ASSERT(!iter.isIon());
+            fp = iter.fp();
+            script = iter.script();
+            if (script->needsArgsObj()) {
+                
+                
+                
+                JS_ASSERT(!fp->hasArgsObj());
+                ArgumentsObject *argsobj = ArgumentsObject::createExpected(cx, fp);
+                if (!argsobj)
+                    return Interpret_Error;
+                InternalBindingsHandle bindings(script, &script->bindings);
+                const unsigned var = Bindings::argumentsVarIndex(cx, bindings);
+                
+                
+                
+                
+                if (fp->unaliasedLocal(var).isMagic(JS_OPTIMIZED_ARGUMENTS))
+                    fp->unaliasedLocal(var) = ObjectValue(*argsobj);
+            }
+            ++iter;
+        } while (fp != br->entryfp());
+    }
+
     if (activation->entryfp() == br->entryfp()) {
         
         
