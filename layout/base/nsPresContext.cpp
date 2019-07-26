@@ -2617,7 +2617,13 @@ nsRootPresContext::ComputePluginGeometryUpdates(nsIFrame* aFrame,
     aList->ComputeVisibilityForRoot(aBuilder, &region);
   }
 
+#ifdef XP_MACOSX
+  
+  
+  ApplyPluginGeometryUpdates();
+#else
   InitApplyPluginGeometryTimer();
+#endif
 }
 
 static void
