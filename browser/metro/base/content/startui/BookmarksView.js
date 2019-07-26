@@ -302,7 +302,7 @@ BookmarksView.prototype = Util.extend(Object.create(View.prototype), {
       case "TabClose":
         
         
-        StartUI.chromeWin.ContextUI.dismiss();
+        StartUI.chromeWin.ContextUI.dismissContextAppbar();
       break;
     }
   }
