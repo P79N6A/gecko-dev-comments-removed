@@ -56,4 +56,10 @@
 + (void) dispose;
 @end
 
+@interface NSCursor (Undocumented)
+
+
++ (NSCursor*)busyButClickableCursor;
+@end
+
 #endif 
