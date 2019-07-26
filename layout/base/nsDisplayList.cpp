@@ -1244,12 +1244,17 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
 
   nsRect viewport(aBuilder->ToReferenceFrame(aForFrame), aForFrame->GetSize());
 
-  RecordFrameMetrics(aForFrame, rootScrollFrame,
-                     aBuilder->FindReferenceFrameFor(aForFrame),
-                     root, mVisibleRect, viewport,
-                     (usingDisplayport ? &displayport : nullptr),
-                     (usingCriticalDisplayport ? &criticalDisplayport : nullptr),
-                     id, isRoot, containerParameters);
+  
+  
+  
+  if (aBuilder->GetIgnoreScrollFrame() == rootScrollFrame) {
+    RecordFrameMetrics(aForFrame, rootScrollFrame,
+                       aBuilder->FindReferenceFrameFor(aForFrame),
+                       root, mVisibleRect, viewport,
+                       (usingDisplayport ? &displayport : nullptr),
+                       (usingCriticalDisplayport ? &criticalDisplayport : nullptr),
+                       id, isRoot, containerParameters);
+  }
   if (usingDisplayport &&
       !(root->GetContentFlags() & Layer::CONTENT_OPAQUE)) {
     
