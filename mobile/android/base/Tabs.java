@@ -320,7 +320,11 @@ public class Tabs implements GeckoEventListener {
         if (nextTab == null && getPrivate) {
             
             Tab lastTab = mOrder.get(mOrder.size() - 1);
-            nextTab = getPreviousTabFrom(lastTab, false);
+            if (!lastTab.isPrivate()) {
+                nextTab = lastTab;
+            } else {
+                nextTab = getPreviousTabFrom(lastTab, false);
+            }
         }
 
         Tab parent = getTab(tab.getParentId());
