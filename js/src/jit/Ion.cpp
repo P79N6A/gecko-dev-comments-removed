@@ -2803,7 +2803,11 @@ static void
 FinishInvalidationOf(FreeOp *fop, JSScript *script, IonScript *ionScript)
 {
     types::TypeZone &types = script->zone()->types;
-    ionScript->recompileInfo().compilerOutput(types)->invalidate();
+
+    
+    
+    if (types::CompilerOutput *output = ionScript->recompileInfo().compilerOutput(types))
+        output->invalidate();
 
     
     
