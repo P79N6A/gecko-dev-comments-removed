@@ -3327,35 +3327,38 @@ bool
 RasterImage::IsDecodeFinished()
 {
   
+  mDecodingMutex.AssertCurrentThreadOwns();
   NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
-
-  
-  bool decodeFinished = false;
+  MOZ_ASSERT(mDecodeRequest);
 
   
   if (mDecoder->IsSizeDecode()) {
-    if (mHasSize)
-      decodeFinished = true;
+    if (mDecoder->HasSize()) {
+      return true;
+    }
+  } else if (mDecoder->GetDecodeDone()) {
+    return true;
   }
-  else {
-    if (mDecoded)
-      decodeFinished = true;
+  
+  
+  
+  
+  if (mDecoder->NeedsNewFrame() || mDecodeRequest->mAllocatedNewFrame) {
+    return false;
   }
 
   
-  if (mDecoder && mDecoder->NeedsNewFrame())
-    decodeFinished = false;
+  
+  
+  
+  
+  
+  if (mHasSourceData && (mBytesDecoded == mSourceData.Length())) {
+    return true;
+  }
 
   
-  
-  
-  
-  
-  
-  else if (mHasSourceData && (mBytesDecoded == mSourceData.Length()))
-    decodeFinished = true;
-
-  return decodeFinished;
+  return false;
 }
 
 
@@ -3471,8 +3474,7 @@ RasterImage::FinishedSomeDecoding(eShutdownIntent aIntent ,
 
     
     
-    if (image->mDecoder->GetDecodeDone() || image->IsDecodeFinished() ||
-        aIntent != eShutdownIntent_Done) {
+    if (image->IsDecodeFinished() || aIntent != eShutdownIntent_Done) {
       done = true;
 
       
@@ -3683,7 +3685,7 @@ RasterImage::DecodePool::DecodeJob::Run()
   }
 
   
-  if (!mRequest->mAllocatedNewFrame && (!mImage->mDecoder || mImage->IsDecodeFinished())) {
+  if (!mImage->mDecoder || mImage->IsDecodeFinished()) {
     DecodeDoneWorker::NotifyFinishedSomeDecoding(mImage, mRequest);
     return NS_OK;
   }
