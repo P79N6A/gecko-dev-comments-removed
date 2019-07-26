@@ -135,6 +135,47 @@ for (let [constProp, dirKey] of [
 
 let clone = SharedAll.clone;
 
+
+
+
+
+
+
+
+
+
+
+
+function summarizeObject(obj) {
+  if (!obj) {
+    return null;
+  }
+  if (typeof obj == "string") {
+    if (obj.length > 1024) {
+      return {"Long string": obj.length};
+    }
+    return obj;
+  }
+  if (typeof obj == "object") {
+    if (Array.isArray(obj)) {
+      if (obj.length > 32) {
+        return {"Long array": obj.length};
+      }
+      return [summarizeObject(k) for (k of obj)];
+    }
+    if ("byteLength" in obj) {
+      
+      return {"Binary Data": obj.byteLength};
+    }
+    let result = {};
+    for (let k of Object.keys(obj)) {
+      result[k] = summarizeObject(obj[k]);
+    }
+    return result;
+  }
+  return obj;
+}
+
 let worker = null;
 let Scheduler = {
   
@@ -159,17 +200,39 @@ let Scheduler = {
   
 
 
-
-
-  latestSent: undefined,
-
-  
+  Debugging: {
+    
 
 
 
 
+    latestSent: undefined,
 
-  latestReceived: undefined,
+    
+
+
+
+
+
+    latestReceived: undefined,
+
+    
+
+
+
+    messagesSent: 0,
+
+    
+
+
+
+    messagesQueued: 0,
+
+    
+
+
+    messagesReceived: 0,
+  },
 
   
 
@@ -234,6 +297,7 @@ let Scheduler = {
     if (firstLaunch && SharedAll.Config.DEBUG) {
       
       worker.post("SET_DEBUG", [true]);
+      Scheduler.Debugging.messagesSent++;
     }
 
     
@@ -242,41 +306,43 @@ let Scheduler = {
     if (methodArgs) {
       options = methodArgs[methodArgs.length - 1];
     }
+    Scheduler.Debugging.messagesQueued++;
     return this.push(() => Task.spawn(function*() {
-      Scheduler.latestReceived = null;
-      if (OS.Constants.Sys.DEBUG) {
-        
-        Scheduler.latestSent = [Date.now(), method, ...args];
-      } else {
-        Scheduler.latestSent = [Date.now(), method];
-      }
+      
+      
+      Scheduler.Debugging.latestReceived = null;
+      Scheduler.Debugging.latestSent = [Date.now(), method, summarizeObject(methodArgs)];
       let data;
       let reply;
       let isError = false;
       try {
-        data = yield worker.post(method, ...args);
-        reply = data;
-      } catch (error if error instanceof PromiseWorker.WorkerError) {
-        reply = error;
-        isError = true;
-        throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
-      } catch (error if error instanceof ErrorEvent) {
-        reply = error;
-        let message = error.message;
-        if (message == "uncaught exception: [object StopIteration]") {
-          throw StopIteration;
+        try {
+          data = yield worker.post(method, ...args);
+        } finally {
+          Scheduler.Debugging.messagesReceived++;
         }
+        reply = data;
+      } catch (error) {
+        reply = error;
         isError = true;
-        throw new Error(message, error.filename, error.lineno);
+        if (error instanceof PromiseWorker.WorkerError) {
+          throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
+        }
+        if (error instanceof ErrorEvent) {
+          let message = error.message;
+          if (message == "uncaught exception: [object StopIteration]") {
+            isError = false;
+            throw StopIteration;
+          }
+          throw new Error(message, error.filename, error.lineno);
+        }
+        throw ex;
       } finally {
-        Scheduler.latestSent = Scheduler.latestSent.slice(0, 2);
-        if (OS.Constants.Sys.DEBUG) {
-          
-          Scheduler.latestReceived = [Date.now(), reply];
-        } else if (isError) {
-          Scheduler.latestReceived = [Date.now(), reply.message, reply.fileName, reply.lineNumber];
+        Scheduler.Debugging.latestSent = Scheduler.Debugging.latestSent.slice(0, 2);
+        if (isError) {
+          Scheduler.Debugging.latestReceived = [Date.now(), reply.message, reply.fileName, reply.lineNumber];
         } else {
-          Scheduler.latestReceived = [Date.now()];
+          Scheduler.Debugging.latestReceived = [Date.now(), summarizeObject(reply)];
         }
         if (firstLaunch) {
           Scheduler._updateTelemetry();
@@ -739,9 +805,9 @@ File.openUnique = function openUnique(path, options) {
 
 
 
-File.stat = function stat(path, options) {
+File.stat = function stat(path) {
   return Scheduler.post(
-    "stat", [Type.path.toMsg(path), options],
+    "stat", [Type.path.toMsg(path)],
     path).then(File.Info.fromMsg);
 };
 
@@ -847,24 +913,6 @@ File.move = function move(sourcePath, destPath, options) {
   return Scheduler.post("move", [Type.path.toMsg(sourcePath),
     Type.path.toMsg(destPath), options], [sourcePath, destPath]);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-if (!SharedAll.Constants.Win) {
-  File.unixSymLink = function unixSymLink(sourcePath, destPath) {
-    return Scheduler.post("unixSymLink", [Type.path.toMsg(sourcePath),
-      Type.path.toMsg(destPath)], [sourcePath, destPath]);
-  };
-}
 
 
 
@@ -1381,8 +1429,12 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       shutdown: Scheduler.shutdown,
       worker: !!worker,
       pendingReset: !!Scheduler.resetTimer,
-      latestSent: Scheduler.latestSent,
-      latestReceived: Scheduler.latestReceived
+      latestSent: Scheduler.Debugging.latestSent,
+      latestReceived: Scheduler.Debugging.latestReceived,
+      messagesSent: Scheduler.Debugging.messagesSent,
+      messagesReceived: Scheduler.Debugging.messagesReceived,
+      messagesQueued: Scheduler.Debugging.messagesQueued,
+      DEBUG: SharedAll.Config.DEBUG
     };
     
     for (let key of ["latestSent", "latestReceived"]) {
