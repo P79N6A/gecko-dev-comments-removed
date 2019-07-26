@@ -464,6 +464,7 @@ function getJSON(element) {
     switch (typeLowerCase) {
       case "datetime":
       case "datetime-local":
+      case "range":
         type = typeLowerCase;
         break;
     }
