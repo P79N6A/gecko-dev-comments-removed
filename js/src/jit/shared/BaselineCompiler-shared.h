@@ -96,7 +96,9 @@ class BaselineCompilerShared
     }
 
     JSFunction *function() const {
-        return script->function();
+        
+        
+        return script->functionNonDelazifying();
     }
 
     PCMappingSlotInfo getStackTopSlotInfo() {

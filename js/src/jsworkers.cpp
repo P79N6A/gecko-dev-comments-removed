@@ -590,7 +590,7 @@ CallNewScriptHookForAllScripts(JSContext *cx, HandleScript script)
     }
 
     
-    RootedFunction function(cx, script->function());
+    RootedFunction function(cx, script->functionNonDelazifying());
     CallNewScriptHook(cx, script, function);
 }
 

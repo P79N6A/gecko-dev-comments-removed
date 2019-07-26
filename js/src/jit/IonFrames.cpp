@@ -619,7 +619,7 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 JSScript *script = frames.script();
-                probes::ExitScript(cx, script, script->function(), popSPSFrame);
+                probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
                 if (!frames.more())
                     break;
                 ++frames;
@@ -638,7 +638,7 @@ HandleException(ResumeFromException *rfe)
 
             
             JSScript *script = iter.script();
-            probes::ExitScript(cx, script, script->function(),
+            probes::ExitScript(cx, script, script->functionNonDelazifying(),
                                iter.baselineFrame()->hasPushedSPSFrame());
             
             

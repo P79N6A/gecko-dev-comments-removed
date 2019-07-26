@@ -713,7 +713,8 @@ js::ForkJoinOperation::compileForParallelExecution(ExecutionStatus *status)
         
         for (uint32_t i = 0; i < worklist_.length(); i++) {
             script = worklist_[i];
-            fun = script->function();
+            script->ensureNonLazyCanonicalFunction(cx_);
+            fun = script->functionNonDelazifying();
 
             
             

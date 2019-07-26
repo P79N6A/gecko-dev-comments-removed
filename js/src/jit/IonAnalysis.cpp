@@ -216,7 +216,7 @@ IsPhiObservable(MPhi *phi, Observability observe)
 
     uint32_t slot = phi->slot();
     CompileInfo &info = phi->block()->info();
-    JSFunction *fun = info.fun();
+    JSFunction *fun = info.funMaybeLazy();
 
     
     if (fun && slot == info.thisSlot())

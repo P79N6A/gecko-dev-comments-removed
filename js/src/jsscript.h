@@ -1187,11 +1187,22 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
-    JSFunction *function() const {
+
+
+
+
+
+    inline JSFunction *functionDelazifying() const;
+    JSFunction *functionNonDelazifying() const {
         js::AutoThreadSafeAccess ts(this);
         return function_;
     }
     inline void setFunction(JSFunction *fun);
+    
+
+
+
+    inline void ensureNonLazyCanonicalFunction(JSContext *cx);
 
     JSFunction *originalFunction() const;
     void setIsCallsiteClone(JSObject *fun);
@@ -1615,7 +1626,8 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
                               JSVersion version, uint32_t begin, uint32_t end,
                               uint32_t lineno, uint32_t column);
 
-    JSFunction *function() const {
+    inline JSFunction *functionDelazifying(JSContext *cx) const;
+    JSFunction *functionNonDelazifying() const {
         return function_;
     }
 
