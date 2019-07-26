@@ -466,22 +466,28 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   uint32_t flags = nsDisplayOwnLayer::GENERATE_SUBDOC_INVALIDATIONS;
   
   
+  
+  
   if (constructZoomItem) {
+    uint32_t zoomFlags = flags;
+    if (ignoreViewportScrolling && !constructResolutionItem) {
+      zoomFlags |= nsDisplayOwnLayer::GENERATE_SCROLLABLE_LAYER;
+    }
     nsDisplayZoom* zoomItem =
       new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
-                                   subdocAPD, parentAPD,
-                                   flags |
-                                    (constructResolutionItem ?
-                                      0 : nsDisplayOwnLayer::GENERATE_SCROLLABLE_LAYER));
+                                   subdocAPD, parentAPD, zoomFlags);
     childItems.AppendToTop(zoomItem);
     needsOwnLayer = false;
   }
   
   
+  if (ignoreViewportScrolling) {
+    flags |= nsDisplayOwnLayer::GENERATE_SCROLLABLE_LAYER;
+  }
   if (constructResolutionItem) {
     nsDisplayResolution* resolutionItem =
       new (aBuilder) nsDisplayResolution(aBuilder, subdocRootFrame, &childItems,
-        flags | nsDisplayOwnLayer::GENERATE_SCROLLABLE_LAYER);
+                                         flags);
     childItems.AppendToTop(resolutionItem);
     needsOwnLayer = false;
   }
@@ -489,7 +495,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     nsDisplaySubDocument* layerItem = new (aBuilder) nsDisplaySubDocument(
       aBuilder, subdocRootFrame ? subdocRootFrame : this,
-      &childItems, flags | nsDisplayOwnLayer::GENERATE_SCROLLABLE_LAYER);
+      &childItems, flags);
     childItems.AppendToTop(layerItem);
   }
 
