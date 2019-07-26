@@ -56,12 +56,6 @@ public:
 
 
 
-  uint32_t GetPerceivedScrollingDirections() const;
-  
-
-
-
-
 
   virtual nsMargin GetActualScrollbarSizes() const = 0;
   

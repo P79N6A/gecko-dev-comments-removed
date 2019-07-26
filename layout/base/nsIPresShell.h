@@ -568,8 +568,7 @@ public:
   };
   typedef struct ScrollAxis {
     int16_t mWhereToScroll;
-    WhenToScroll mWhenToScroll : 8;
-    bool mOnlyIfPerceivedScrollableDirection : 1;
+    WhenToScroll mWhenToScroll : 16;
   
 
 
@@ -601,16 +600,9 @@ public:
 
 
 
-
-
-
-
     ScrollAxis(int16_t aWhere = SCROLL_MINIMUM,
-               WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE,
-               bool aOnlyIfPerceivedScrollableDirection = true) :
-      mWhereToScroll(aWhere), mWhenToScroll(aWhen),
-      mOnlyIfPerceivedScrollableDirection(aOnlyIfPerceivedScrollableDirection)
-    {}
+               WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE) :
+                 mWhereToScroll(aWhere), mWhenToScroll(aWhen) {}
   } ScrollAxis;
   
 
