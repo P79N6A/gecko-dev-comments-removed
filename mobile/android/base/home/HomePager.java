@@ -6,7 +6,6 @@
 package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.widget.AboutHome;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -95,13 +94,6 @@ public class HomePager extends ViewPager {
 
     public boolean isVisible() {
         return mLoaded;
-    }
-
-    
-
-
-    public void setAboutHomeLastTabsVisibility(boolean visible) {
-        
     }
 
     class TabsAdapter extends FragmentStatePagerAdapter {
