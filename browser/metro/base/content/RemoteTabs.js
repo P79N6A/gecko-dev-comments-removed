@@ -131,9 +131,8 @@ let RemoteTabsPanelView = {
 
   init: function init() {
     
-    let menuEntry = document.getElementById("menuitem-remotetabs");
     let snappedEntry = document.getElementById("snappedRemoteTabsLabel");
-    let uiList = [menuEntry, snappedEntry];
+    let uiList = [snappedEntry];
     this._view = new RemoteTabsView(this._grid, uiList);
   },
 

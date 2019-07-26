@@ -33,7 +33,6 @@ let ConsolePanelView = {
     } catch(ex) {
       
     }
-    this.updateVisibility();
     Services.prefs.addObserver(this._enabledPref, this, false);
   },
 
@@ -68,14 +67,10 @@ let ConsolePanelView = {
     return Services.prefs.getBoolPref(this._enabledPref);
   },
 
-  updateVisibility: function ec_updateVisibility(aVal, aPref) {
-    let button = document.getElementById("menuitem-console");
-    button.hidden = !this.enabled;
-  },
-
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "nsPref:changed")
-      this.updateVisibility();
+    if (aTopic == "nsPref:changed") {
+      
+      }
     else
       this.appendItem(aSubject);
   },
