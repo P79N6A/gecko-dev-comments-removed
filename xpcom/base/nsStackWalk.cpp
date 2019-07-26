@@ -230,7 +230,6 @@ CRITICAL_SECTION gDbgHelpCS;
 }
 
 
-
 void PrintError(const char *prefix)
 {
     LPVOID lpMsgBuf;
