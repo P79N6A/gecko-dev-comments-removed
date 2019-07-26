@@ -46,6 +46,7 @@ class OptionalThebesBuffer;
 class PLayerChild;
 class PLayerTransactionChild;
 class PLayerTransactionParent;
+class LayerTransactionChild;
 class RefLayerComposite;
 class ShadowableLayer;
 class Shmem;
@@ -137,6 +138,7 @@ class ShadowLayerForwarder : public CompositableForwarder
   friend class AutoOpenSurface;
   friend class DeprecatedTextureClientShmem;
   friend class ContentClientIncremental;
+  friend class ClientLayerManager;
 
 public:
   virtual ~ShadowLayerForwarder();
@@ -339,16 +341,13 @@ public:
   
 
 
-  void SetShadowManager(PLayerTransactionChild* aShadowManager)
-  {
-    mShadowManager = aShadowManager;
-  }
+  void SetShadowManager(PLayerTransactionChild* aShadowManager);
 
   
 
 
   bool HasShadowManager() const { return !!mShadowManager; }
-  PLayerTransactionChild* GetShadowManager() const { return mShadowManager.get(); }
+  LayerTransactionChild* GetShadowManager() const { return mShadowManager.get(); }
 
   virtual void WindowOverlayChanged() { mWindowOverlayChanged = true; }
 
@@ -421,7 +420,7 @@ protected:
   void CheckSurfaceDescriptor(const SurfaceDescriptor* aDescriptor) const {}
 #endif
 
-  RefPtr<PLayerTransactionChild> mShadowManager;
+  RefPtr<LayerTransactionChild> mShadowManager;
 
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   

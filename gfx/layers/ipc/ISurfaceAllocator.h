@@ -11,7 +11,7 @@
 #include "gfxTypes.h"
 #include "gfxPoint.h"                   
 #include "mozilla/ipc/SharedMemory.h"   
-#include "mozilla/WeakPtr.h"
+#include "mozilla/RefPtr.h"
 #include "nsIMemoryReporter.h"          
 #include "mozilla/Atomics.h"            
 
@@ -73,10 +73,10 @@ bool ReleaseOwnedSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
 
 
 
-class ISurfaceAllocator : public SupportsWeakPtr<ISurfaceAllocator>
+class ISurfaceAllocator : public AtomicRefCounted<ISurfaceAllocator>
 {
 public:
-ISurfaceAllocator() {}
+  ISurfaceAllocator() {}
 
   
 
@@ -140,7 +140,10 @@ protected:
                                               SurfaceDescriptor* aBuffer);
 
 
-  ~ISurfaceAllocator() {}
+  virtual ~ISurfaceAllocator() {}
+
+  friend class detail::RefCounted<ISurfaceAllocator, detail::AtomicRefCount>;
+  
 };
 
 class GfxMemoryImageReporter MOZ_FINAL : public mozilla::MemoryUniReporter

@@ -23,7 +23,7 @@
 #include "mozilla/layers/LayersMessages.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/LayersTypes.h"  
-#include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/layers/LayerTransactionChild.h"
 #include "ShadowLayerUtils.h"
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/mozalloc.h"           
@@ -983,6 +983,12 @@ void ShadowLayerForwarder::AttachAsyncCompositable(uint64_t aCompositableID,
   mTxn->AddEdit(OpAttachAsyncCompositable(nullptr, Shadow(aLayer),
                                           aCompositableID));
 }
+
+void ShadowLayerForwarder::SetShadowManager(PLayerTransactionChild* aShadowManager)
+{
+  mShadowManager = static_cast<LayerTransactionChild*>(aShadowManager);
+}
+
 
 } 
 } 
