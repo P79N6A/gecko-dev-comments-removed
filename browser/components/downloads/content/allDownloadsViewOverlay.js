@@ -953,27 +953,38 @@ DownloadsPlacesView.prototype = {
       if (!this._richlistbox.firstChild)
         return;
 
-      let rlRect = this._richlistbox.getBoundingClientRect();
-      let fcRect = this._richlistbox.firstChild.getBoundingClientRect();
+      let rlbRect = this._richlistbox.getBoundingClientRect();
+      let winUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      let nodes = winUtils.nodesFromRect(rlbRect.left, rlbRect.top,
+                                         0, rlbRect.width, rlbRect.height, 0,
+                                         true, false);
       
       
       
-      let offset = (fcRect.left - rlRect.left) + 1;
-
-      let firstVisible = document.elementFromPoint(fcRect.left, rlRect.top + offset);
-      if (!firstVisible || firstVisible.localName != "richlistitem")
-        throw new Error("_ensureVisibleElementsAreActive invoked on the wrong view");
-
-      let lastVisible = document.elementFromPoint(fcRect.left, rlRect.bottom - offset);
-      
-      
-      if (!lastVisible || lastVisible.localName != "richlistitem")
-        lastVisible = this._richlistbox.lastChild;
-
-      for (let elt = firstVisible; elt != lastVisible.nextSibling; elt = elt.nextSibling) {
-        if (elt._shell)
-          elt._shell.ensureActive();
+      let firstVisibleNode, lastVisibleNode;
+      for (let node of nodes) {
+        if (node.localName === "richlistitem" && node._shell) {
+          node._shell.ensureActive();
+          
+          firstVisibleNode = node;
+          
+          if (!lastVisibleNode)
+            lastVisibleNode = node;
+        }
       }
+
+      
+      
+      
+      let nodeBelowVisibleArea = lastVisibleNode && lastVisibleNode.nextSibling;
+      if (nodeBelowVisibleArea && nodeBelowVisibleArea._shell)
+        nodeBelowVisibleArea._shell.ensureActive();
+
+      let nodeABoveVisibleArea =
+        firstVisibleNode && firstVisibleNode.previousSibling;
+      if (nodeABoveVisibleArea && nodeABoveVisibleArea._shell)
+        nodeABoveVisibleArea._shell.ensureActive();
     }.bind(this), 10);
   },
 
