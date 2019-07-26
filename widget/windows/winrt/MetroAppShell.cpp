@@ -21,6 +21,7 @@
 #include "nsIPowerManagerService.h"
 #include "mozilla/StaticPtr.h"
 #include <windows.system.display.h>
+#include "nsWinMetroUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -198,7 +199,11 @@ WinLaunchDeferredMetroFirefox()
   if (FAILED(hr))
     return hr;
 
-  hr = executeCommand->SetParameters(L"--metro-restart");
+  if (nsWinMetroUtils::sUpdatePending) {
+    hr = executeCommand->SetParameters(L"--metro-update");
+  } else {
+    hr = executeCommand->SetParameters(L"--metro-restart");
+  }
   if (FAILED(hr))
     return hr;
 
@@ -267,6 +272,8 @@ MetroAppShell::Run(void)
       
       if (restartingInDesktop) {
         WinUtils::Log("Relaunching desktop browser");
+        
+        
         SHELLEXECUTEINFOW sinfo;
         memset(&sinfo, 0, sizeof(SHELLEXECUTEINFOW));
         sinfo.cbSize       = sizeof(SHELLEXECUTEINFOW);
@@ -274,7 +281,8 @@ MetroAppShell::Run(void)
         
         
         sinfo.fMask        = SEE_MASK_FLAG_LOG_USAGE;
-        sinfo.lpFile       = L"http://-desktop";
+        
+        sinfo.lpFile       = L"http://-desktop/";
         sinfo.lpVerb       = L"open";
         sinfo.lpParameters = L"--desktop-restart";
         sinfo.nShow        = SW_SHOWNORMAL;
