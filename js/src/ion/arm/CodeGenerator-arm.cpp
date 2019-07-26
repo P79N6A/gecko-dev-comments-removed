@@ -467,10 +467,12 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
         Assembler::Condition c = Assembler::Overflow;
 
         
-        if (mul->canOverflow())
+        if (mul->canOverflow()) {
             c = masm.ma_check_mul(ToRegister(lhs), ToRegister(rhs), ToRegister(dest), c);
-        else
+        } else {
             masm.ma_mul(ToRegister(lhs), ToRegister(rhs), ToRegister(dest));
+        }
+
 
         
         if (mul->canOverflow() && !bailoutIf(c, ins->snapshot()))
