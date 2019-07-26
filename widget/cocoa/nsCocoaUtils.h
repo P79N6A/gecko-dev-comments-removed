@@ -315,6 +315,18 @@ class nsCocoaUtils
 
   static void GetCommandsFromKeyEvent(NSEvent* aEvent,
                                       nsTArray<KeyBindingsCommand>& aCommands);
+
+  
+
+
+
+  static uint32_t ConvertGeckoNameToMacCharCode(const nsAString& aKeyCodeName);
+
+  
+
+
+
+  static uint32_t ConvertGeckoKeyCodeToMacCharCode(uint32_t aKeyCode);
 };
 
 #endif 
