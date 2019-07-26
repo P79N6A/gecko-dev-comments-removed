@@ -22,12 +22,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
                                    "@mozilla.org/settingsService;1",
                                    "nsISettingsService");
 
-XPCOMUtils.defineLazyGetter(this, "gWifi", function () {
-  return Cc["@mozilla.org/telephony/system-worker-manager;1"]
-           .getService(Ci.nsIInterfaceRequestor)
-           .getInterface(Ci.nsIWifi);
-});
-
 const TOPIC_INTERFACE_STATE_CHANGED  = "network-interface-state-changed";
 const TOPIC_INTERFACE_REGISTERED     = "network-interface-registered";
 const TOPIC_INTERFACE_UNREGISTERED   = "network-interface-unregistered";
@@ -295,7 +289,6 @@ NetworkManager.prototype = {
     let callback = this.controlCallbacks[id];
     if (callback) {
       callback.call(this, response);
-      delete this.controlCallbacks[id];
     }
     debug("NetworkManager received message from worker: " + JSON.stringify(e));
   },
@@ -440,9 +433,10 @@ NetworkManager.prototype = {
       case SETTINGS_USB_ENABLED:
         this.handleUSBTetheringToggle(aResult);
         break;
-      case SETTINGS_WIFI_ENABLED:
-        this.handleWifiTetheringToggle(aResult);
-        break;
+      
+      
+      
+      
       case SETTINGS_WIFI_SSID:
       case SETTINGS_WIFI_SECURITY_TYPE:
       case SETTINGS_WIFI_SECURITY_PASSWORD:
@@ -486,7 +480,7 @@ NetworkManager.prototype = {
 
     if (!enable) {
       this.tetheringSettings[SETTINGS_USB_ENABLED] = false;
-      this.disableTethering(TETHERING_TYPE_USB);
+      this.setUSBFunction(false, USB_FUNCTION_ADB, this.setUSBFunctionResult);
       return;
     }
 
@@ -507,67 +501,7 @@ NetworkManager.prototype = {
       this._tetheringInterface[TETHERING_TYPE_USB].externalInterface = mobile.name;
     }
     this.tetheringSettings[SETTINGS_USB_ENABLED] = true;
-    this.enableTethering(TETHERING_TYPE_USB);
-  },
-
-  handleWifiTetheringToggle: function handleWifiTetheringToggle(enable) {
-    if (this.tetheringSettings[SETTINGS_WIFI_ENABLED] == enable) {
-      return;
-    }
-
-    let mobile = this.getNetworkInterface(Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE);
-    if (!mobile) {
-      let params = {
-        enable: enable,
-        unload: false,
-        resultCode: NETD_COMMAND_ERROR,
-        resultReason: "Mobile interface is not registered"
-      };
-      this.wifiTetheringResultReport(params);
-      debug("Can't enable wifi tethering, MOBILE interface is not registered.");
-      return;
-    }
-    this._tetheringInterface[TETHERING_TYPE_WIFI].externalInterface = mobile.name;
-
-    if (enable) {
-      this.tetheringSettings[SETTINGS_WIFI_ENABLED] = true;
-      this.enableTethering(TETHERING_TYPE_WIFI);
-    } else {
-      this.tetheringSettings[SETTINGS_WIFI_ENABLED] = false;
-      this.disableTethering(TETHERING_TYPE_WIFI);
-    }
-  },
-
-  
-  setWifiTetheringEnabledResult: function setWifiTetheringEnabledResult(result, network) {
-    if (!network || result < 0) {
-      let params = {
-        enable: true,
-        unload: false,
-        resultCode: NETD_COMMAND_ERROR,
-        resultReason: "Can't enable wifi tethering"
-      };
-      debug("WifiWorker reports enable tethering result ..." + params.resultReason);
-      this.wifiTetheringResultReport(params);
-      return;
-    }
-    this._tetheringInterface[TETHERING_TYPE_WIFI].internalInterface = network.name;
-    this.setWifiTethering(true, this._tetheringInterface[TETHERING_TYPE_WIFI]);
-  },
-
-  
-  setWifiTetheringDisabledResult: function setWifiTetheringDisabledResult(result, network) {
-    if (result < 0) {
-      let params = {
-        enable: false,
-        unload: false,
-        resultCode: NETD_COMMAND_ERROR,
-        resultReason: "Can't enable wifi tethering"
-      };
-      debug("WifiWorker reports disable tethering result ..." + params.resultReason);
-      this.wifiTetheringResultReport(params);
-      return;
-    }
+    this.setUSBFunction(true, USB_FUNCTION_RNDIS, this.setUSBFunctionResult);
   },
 
   getWifiTetheringParameters: function getWifiTetheringParameters(enable, tetheringinterface) {
@@ -667,24 +601,69 @@ NetworkManager.prototype = {
     };
   },
 
-  
-  setWifiTethering: function setWifiTethering(enable, tetheringInterface) {
-    let params = this.getWifiTetheringParameters(enable, tetheringInterface);
+  get wifiTetheringEnabled() {
+    return this.tetheringSettings[SETTINGS_WIFI_ENABLED];
+  },
 
-    if (params === null) {
-      params = {
-        enable: enable,
-        resultCode: NETD_COMMAND_ERROR,
-        resultReason: "Invalid parameters"
-      };
-      (enable) ? (params.unload = true) : (params.unload = false);
-      this.wifiTetheringResultReport(params);
+  notifyError: function notifyError(resetSettings, callback, msg) {
+    if (resetSettings) {
+      let settingsLock = gSettingsService.createLock();
+      this.tetheringSettings[SETTINGS_WIFI_ENABLED] = false;
+      settingsLock.set("tethering.wifi.enabled", false, null);
+    }
+
+    debug("setWifiTethering: " + (msg ? msg : "success"));
+
+    if (callback) {
+      callback.wifiTetheringEnabledChange(msg);
+    }
+  },
+
+  
+  setWifiTethering: function setWifiTethering(enable, network, callback) {
+    if (this.tetheringSettings[SETTINGS_WIFI_ENABLED] == enable) {
+      this.notifyError(false, callback, "no change");
       return;
     }
+
+    if (!network) {
+      this.notifyError(true, callback, "invalid network information");
+      return;
+    }
+    this._tetheringInterface[TETHERING_TYPE_WIFI].internalInterface = network.name;
+
+    let mobile = this.getNetworkInterface(Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE);
+    if (!mobile) {
+      this.notifyError(true, callback, "mobile interface is not registered");
+      return;
+    }
+    this._tetheringInterface[TETHERING_TYPE_WIFI].externalInterface = mobile.name;
+
+    let params = this.getWifiTetheringParameters(enable, this._tetheringInterface[TETHERING_TYPE_WIFI]);
+    if (!params) {
+      this.notifyError(true, callback, "invalid parameters");
+      return;
+    }
+
     params.cmd = "setWifiTethering";
     
     params.isAsync = true;
-    this.controlMessage(params, this.wifiTetheringResultReport);
+    this.controlMessage(params, function setWifiTetheringResult(data) {
+      let code = data.resultCode;
+      let reason = data.resultReason;
+      let enable = data.enable;
+      let enableString = enable ? "Enable" : "Disable";
+
+      debug(enableString + " Wifi tethering result: Code " + code + " reason " + reason);
+      
+      this.tetheringSettings[SETTINGS_WIFI_ENABLED] = enable;
+
+      if (isError(code)) {
+        this.notifyError(true, callback, "netd command error");
+      } else {
+        this.notifyError(false, callback, null);
+      }
+    }.bind(this));
   },
 
   
@@ -706,29 +685,6 @@ NetworkManager.prototype = {
     
     params.isAsync = true;
     this.controlMessage(params, this.usbTetheringResultReport);
-  },
-
-  
-  enableTethering: function enableTethering(type) {
-    if (type == TETHERING_TYPE_WIFI) {
-      debug("Notify WifiWorker to help !!!");
-      gWifi.setWifiTethering(true, this.setWifiTetheringEnabledResult.bind(this));
-    } else if (type == TETHERING_TYPE_USB) {
-      debug("Notify USB device manager to help !!!");
-      this.setUSBFunction(true, USB_FUNCTION_RNDIS, this.setUSBFunctionResult);
-    } else {
-      debug("Fatal error !!! Unsupported type.");
-    }
-  },
-
-  disableTethering: function disableTethering(type) {
-    if (type == TETHERING_TYPE_WIFI) {
-      this.setWifiTethering(false, this._tetheringInterface[TETHERING_TYPE_WIFI]);
-    } else if (type == TETHERING_TYPE_USB) {
-      this.setUSBFunction(false, USB_FUNCTION_ADB, this.setUSBFunctionResult);
-    } else {
-      debug("Fatal error !!! Unsupported type.");
-    }
   },
 
   setUSBFunctionResult: function setUSBFunctionResult(data) {
@@ -765,29 +721,6 @@ NetworkManager.prototype = {
     
     params.isAsync = true;
     this.controlMessage(params, callback);
-  },
-
-  wifiTetheringResultReport: function wifiTetheringResultReport(data) {
-    let code = data.resultCode;
-    let reason = data.resultReason;
-    let enable = data.enable;
-    let enableString = enable ? "Enable" : "Disable";
-    let unload = data.unload;
-    let settingsLock = gSettingsService.createLock();
-
-    debug(enableString + " Wifi tethering result: Code " + code + " reason " + reason);
-    
-    
-    
-    if (unload) {
-      gWifi.setWifiTethering(false, this.setWifiTetheringDisabledResult.bind(this));
-    }
-
-    
-    if (isError(code)) {
-      this.tetheringSettings[SETTINGS_WIFI_ENABLED] = false;
-      settingsLock.set("tethering.wifi.enabled", false, null);
-    }
   },
 
   usbTetheringResultReport: function usbTetheringResultReport(data) {

@@ -59,13 +59,6 @@ let gWifiFailChain = [stopSoftAP,
                       stopTethering];
 
 function wifiTetheringFail(params) {
-  let unload = false;
-
-  
-  if (params.enable) {
-    unload = true;
-  }
-  params.unload = unload;
   
   postMessage(params);
 
@@ -78,14 +71,6 @@ function wifiTetheringFail(params) {
 }
 
 function wifiTetheringSuccess(params) {
-  let unload = false;
-
-  
-  if (!params.enable) {
-    unload = true;
-  }
-
-  params.unload = unload;
   
   postMessage(params);
   return true;
