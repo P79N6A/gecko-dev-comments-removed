@@ -1098,8 +1098,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     if (aEvent->mFlags.mIsTrusted) {
       
       
-      nsCompositionEvent *compositionEvent =
-        static_cast<nsCompositionEvent*>(aEvent);
+      WidgetCompositionEvent *compositionEvent =
+        static_cast<WidgetCompositionEvent*>(aEvent);
       nsQueryContentEvent selectedText(true, NS_QUERY_SELECTED_TEXT,
                                        compositionEvent->widget);
       DoQuerySelectedText(&selectedText);
@@ -1110,8 +1110,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
   case NS_COMPOSITION_UPDATE:
   case NS_COMPOSITION_END:
     {
-      nsCompositionEvent *compositionEvent =
-          static_cast<nsCompositionEvent*>(aEvent);
+      WidgetCompositionEvent *compositionEvent =
+          static_cast<WidgetCompositionEvent*>(aEvent);
       if (IsTargetCrossProcess(compositionEvent)) {
         
         if (GetCrossProcessTarget()->SendCompositionEvent(*compositionEvent)) {

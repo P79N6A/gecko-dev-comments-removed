@@ -1081,7 +1081,7 @@ private:
 
 
 
-  void InitCompositionEvent(nsCompositionEvent& aCompositionEvent);
+  void InitCompositionEvent(WidgetCompositionEvent& aCompositionEvent);
 
   
 
