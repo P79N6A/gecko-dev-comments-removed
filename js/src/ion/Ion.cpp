@@ -678,6 +678,9 @@ ion::ToggleBarriers(JSCompartment *comp, bool needs)
     }
 }
 
+namespace js {
+namespace ion {
+
 static bool
 BuildMIR(IonBuilder &builder, MIRGraph &graph)
 {
@@ -987,6 +990,9 @@ Compile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, boo
     
     return script->hasIonScript() ? Method_Compiled : Method_Skipped;
 }
+
+} 
+} 
 
 
 
