@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -32,7 +36,7 @@
 #include "SigProc_FIX.h"
 
 
-opus_int32 silk_lin2log( 
+opus_int32 silk_lin2log(
     const opus_int32            inLin               
 )
 {

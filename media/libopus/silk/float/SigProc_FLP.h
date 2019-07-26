@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifndef SILK_SIGPROC_FLP_H
 #define SILK_SIGPROC_FLP_H
 
@@ -194,9 +198,9 @@ static inline void silk_short2float_array(
 }
 
 
-static inline silk_float silk_log2( double x ) 
-{ 
-    return ( silk_float )( 3.32192809488736 * log10( x ) ); 
+static inline silk_float silk_log2( double x )
+{
+    return ( silk_float )( 3.32192809488736 * log10( x ) );
 }
 
 #ifdef  __cplusplus

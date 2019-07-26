@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifndef SILK_SIGPROC_FIX_H
 #define SILK_SIGPROC_FIX_H
 
@@ -141,7 +145,7 @@ opus_int32 silk_LPC_inverse_pred_gain_Q24(
 
 
 void silk_ana_filt_bank_1(
-    const opus_int16            *in,                 
+    const opus_int16            *in,                
     opus_int32                  *S,                 
     opus_int16                  *outL,              
     opus_int16                  *outH,              
@@ -154,18 +158,18 @@ void silk_ana_filt_bank_1(
 
 
 
-opus_int32 silk_lin2log( 
+opus_int32 silk_lin2log(
     const opus_int32            inLin               
 );
 
 
-opus_int silk_sigm_Q15( 
+opus_int silk_sigm_Q15(
     opus_int                    in_Q5               
 );
 
 
 
-opus_int32 silk_log2lin( 
+opus_int32 silk_log2lin(
     const opus_int32            inLog_Q7            
 );
 

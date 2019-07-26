@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -276,7 +280,7 @@ opus_int silk_encode_frame_FIX(
             for( i = 0; i < psEnc->sCmn.nb_subfr; i++ ) {
                 sEncCtrl.Gains_Q16[ i ] = silk_LSHIFT_SAT32( silk_SMULWB( sEncCtrl.GainsUnq_Q16[ i ], gainMult_Q8 ), 8 );
             }
- 
+
             
             psEnc->sShape.LastGainIndex = sEncCtrl.lastGainIndexPrev;
             silk_gains_quant( psEnc->sCmn.indices.GainsIndices, sEncCtrl.Gains_Q16,

@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -37,7 +41,7 @@ static opus_int16 A_fb1_21 = -24290;
 
 
 void silk_ana_filt_bank_1(
-    const opus_int16            *in,                 
+    const opus_int16            *in,                
     opus_int32                  *S,                 
     opus_int16                  *outL,              
     opus_int16                  *outH,              

@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -265,5 +269,5 @@ void silk_burg_modified(
         }
         *res_nrg = silk_SMLAWW( nrg, silk_SMMUL( FIND_LPC_COND_FAC, C0 ), -tmp1 );                  
         *res_nrg_Q = -rshifts;
-    }   
+    }
 }
