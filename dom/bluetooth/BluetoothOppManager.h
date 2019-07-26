@@ -17,6 +17,7 @@ class nsIInputStream;
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothReplyRunnable;
+class ObexHeaderSet;
 
 class BluetoothOppManager : public mozilla::ipc::UnixSocketConsumer
 {
@@ -33,6 +34,8 @@ public:
   static BluetoothOppManager* Get();
   void ReceiveSocketData(mozilla::ipc::UnixSocketRawData* aMessage)
     MOZ_OVERRIDE;
+  void ClientDataHandler(mozilla::ipc::UnixSocketRawData* aMessage);
+  void ServerDataHandler(mozilla::ipc::UnixSocketRawData* aMessage);
 
   
 
@@ -61,6 +64,8 @@ public:
   void SendDisconnectRequest();
   void SendAbortRequest();
 
+  void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
+  bool ExtractBlobHeaders();
   nsresult HandleShutdown();
 private:
   BluetoothOppManager();
@@ -75,28 +80,81 @@ private:
   void ReplyToDisconnect();
   void ReplyToPut(bool aFinal, bool aContinue);
   void AfterOppConnected();
+  void AfterFirstPut();
   void AfterOppDisconnected();
   virtual void OnConnectSuccess() MOZ_OVERRIDE;
   virtual void OnConnectError() MOZ_OVERRIDE;
   virtual void OnDisconnect() MOZ_OVERRIDE;
 
+  
+
+
+  enum mozilla::ipc::SocketConnectionStatus mSocketStatus;
+
+  
+
+
+
   bool mConnected;
   int mConnectionId;
-  int mLastCommand;
+  nsString mConnectedDeviceAddress;
+
+  
+
+
   uint8_t mRemoteObexVersion;
   uint8_t mRemoteConnectionFlags;
   int mRemoteMaxPacketLength;
-  bool mAbortFlag;
+
+  
+
+
+
+
+
+  int mLastCommand;
+
   int mPacketLeftLength;
   int mBodySegmentLength;
   int mReceivedDataBufferOffset;
-  nsString mConnectedDeviceAddress;
-  bool mPutFinal;
-  bool mWaitingForConfirmationFlag;
   int mUpdateProgressCounter;
+
+  
+
+
+  bool mAbortFlag;
+
+  
+
+
+  bool mNewFileFlag;
+
+  
+
+
+  bool mPutFinalFlag;
+
+  
+
+
+  bool mSendTransferCompleteFlag;
+
+  
+
+
   bool mSuccessFlag;
-  bool mTransferMode;  
-  enum mozilla::ipc::SocketConnectionStatus mSocketStatus;
+
+  
+
+
+
+  bool mTransferMode;
+
+  
+
+
+
+  bool mWaitingForConfirmationFlag;
 
   nsAutoPtr<uint8_t> mBodySegment;
   nsAutoPtr<uint8_t> mReceivedDataBuffer;
