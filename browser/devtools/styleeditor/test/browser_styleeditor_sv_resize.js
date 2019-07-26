@@ -29,13 +29,14 @@ function runTests(aUI)
   is(aUI.editors.length, 2,
      "there is 2 stylesheets initially");
 
-  aUI.editors[0].getSourceEditor().then(function onEditorAttached(aEditor) {
+  aUI.editors[0].getSourceEditor().then(aEditor => {
     executeSoon(function () {
       waitForFocus(function () {
         
         
         let originalSourceEditor = aEditor.sourceEditor;
-        aEditor.sourceEditor.setCaretOffset(4); 
+        let editor = aEditor.sourceEditor;
+        editor.setCursor(editor.getPosition(4)); 
 
         gOriginalWidth = gPanelWindow.outerWidth;
         gOriginalHeight = gPanelWindow.outerHeight;
@@ -44,7 +45,8 @@ function runTests(aUI)
         executeSoon(function () {
           is(aEditor.sourceEditor, originalSourceEditor,
              "the editor still references the same SourceEditor instance");
-          is(aEditor.sourceEditor.getCaretOffset(), 4,
+          let editor = aEditor.sourceEditor;
+          is(editor.getOffset(editor.getCursor()), 4,
              "the caret position has been preserved");
 
           

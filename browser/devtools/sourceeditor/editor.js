@@ -12,6 +12,10 @@ const EXPAND_TAB  = "devtools.editor.expandtab";
 const L10N_BUNDLE = "chrome://browser/locale/devtools/sourceeditor.properties";
 const XUL_NS      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
+
+
+const MAX_VERTICAL_OFFSET = 3;
+
 const promise = require("sdk/core/promise");
 const events  = require("devtools/shared/event-emitter");
 
@@ -34,6 +38,7 @@ const CM_SCRIPTS  = [
   "chrome://browser/content/devtools/codemirror/searchcursor.js",
   "chrome://browser/content/devtools/codemirror/search.js",
   "chrome://browser/content/devtools/codemirror/matchbrackets.js",
+  "chrome://browser/content/devtools/codemirror/closebrackets.js",
   "chrome://browser/content/devtools/codemirror/comment.js",
   "chrome://browser/content/devtools/codemirror/javascript.js",
   "chrome://browser/content/devtools/codemirror/xml.js",
@@ -59,7 +64,6 @@ const CM_IFRAME   =
 const CM_MAPPING = [
   "focus",
   "hasFocus",
-  "setCursor",
   "getCursor",
   "somethingSelected",
   "setSelection",
@@ -77,6 +81,8 @@ const CM_JUMP_DIALOG = [
   L10N.GetStringFromName("gotoLineCmd.promptTitle")
     + " <input type=text style='width: 10em'/>"
 ];
+
+const { cssProperties, cssValues, cssColors } = getCSSKeywords();
 
 const editors = new WeakMap();
 
@@ -191,6 +197,20 @@ Editor.prototype = {
 
       CM_SCRIPTS.forEach((url) =>
         Services.scriptloader.loadSubScript(url, win, "utf8"));
+
+      
+      
+      let cssSpec = win.CodeMirror.resolveMode("text/css");
+      cssSpec.propertyKeywords = cssProperties;
+      cssSpec.colorKeywords = cssColors;
+      cssSpec.valueKeywords = cssValues;
+      win.CodeMirror.defineMIME("text/css", cssSpec);
+
+      let scssSpec = win.CodeMirror.resolveMode("text/x-scss");
+      scssSpec.propertyKeywords = cssProperties;
+      scssSpec.colorKeywords = cssColors;
+      scssSpec.valueKeywords = cssValues;
+      win.CodeMirror.defineMIME("text/x-scss", scssSpec);
 
       
       
@@ -434,6 +454,67 @@ Editor.prototype = {
     });
   },
 
+  
+
+
+  getFirstVisibleLine: function () {
+    let cm = editors.get(this);
+    return cm.lineAtHeight(0, "local");
+  },
+
+  
+
+
+  setFirstVisibleLine: function (line) {
+    let cm = editors.get(this);
+    let { top } = cm.charCoords({line: line, ch: 0}, "local");
+    cm.scrollTo(0, top);
+  },
+
+  
+
+
+
+
+  setCursor: function ({line, ch}, align) {
+    let cm = editors.get(this);
+    this.alignLine(line, align);
+    cm.setCursor({line: line, ch: ch});
+  },
+
+  
+
+
+
+
+  alignLine: function(line, align) {
+    let cm = editors.get(this);
+    let from = cm.lineAtHeight(0, "page");
+    let to = cm.lineAtHeight(cm.getWrapperElement().clientHeight, "page");
+    let linesVisible = to - from;
+    let halfVisible = Math.round(linesVisible/2);
+
+    
+    if (line <= to && line >= from) {
+      return;
+    }
+
+    
+    
+    
+    let offset = Math.min(halfVisible, MAX_VERTICAL_OFFSET);
+
+    let topLine = {
+      "center": Math.max(line - halfVisible, 0),
+      "bottom": Math.max(line - linesVisible + offset, 0),
+      "top": Math.max(line - offset, 0)
+    }[align || "top"] || offset;
+
+    
+    topLine = Math.min(topLine, this.lineCount());
+    this.setFirstVisibleLine(topLine);
+  },
+
   destroy: function () {
     this.container = null;
     this.config = null;
@@ -451,6 +532,44 @@ CM_MAPPING.forEach(function (name) {
     return cm[name].apply(cm, args);
   };
 });
+
+
+
+
+
+
+function getCSSKeywords() {
+  function keySet(array) {
+    var keys = {};
+    for (var i = 0; i < array.length; ++i) {
+      keys[array[i]] = true;
+    }
+    return keys;
+  }
+
+  let domUtils = Cc["@mozilla.org/inspector/dom-utils;1"]
+                   .getService(Ci.inIDOMUtils);
+  let cssProperties = domUtils.getCSSPropertyNames(domUtils.INCLUDE_ALIASES);
+  let cssColors = {};
+  let cssValues = {};
+  cssProperties.forEach(property => {
+    if (property.contains("color")) {
+      domUtils.getCSSValuesForProperty(property).forEach(value => {
+        cssColors[value] = true;
+      });
+    }
+    else {
+      domUtils.getCSSValuesForProperty(property).forEach(value => {
+        cssValues[value] = true;
+      });
+    }
+  });
+  return {
+    cssProperties: keySet(cssProperties),
+    cssValues: cssValues,
+    cssColors: cssColors
+  };
+}
 
 
 
