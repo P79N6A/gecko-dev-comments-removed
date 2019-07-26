@@ -147,7 +147,7 @@ SimpleTiledLayerBuffer::ValidateTile(SimpleTiledLayerTile aTile,
 
   
   if (!doBufferedDrawing) {
-    drawTarget = textureClient->GetAsDrawTarget();
+    drawTarget = textureClient->AsTextureClientDrawTarget()->GetAsDrawTarget();
 
     fullPaint = true;
     drawBounds = nsIntRect(aTileOrigin.x, aTileOrigin.y, GetScaledTileSize().width, GetScaledTileSize().height);

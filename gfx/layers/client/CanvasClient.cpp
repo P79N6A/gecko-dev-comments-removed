@@ -88,7 +88,7 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   {
     
     RefPtr<DrawTarget> target =
-      mBuffer->GetAsDrawTarget();
+      mBuffer->AsTextureClientDrawTarget()->GetAsDrawTarget();
     if (target) {
       aLayer->UpdateTarget(target);
       updated = true;
