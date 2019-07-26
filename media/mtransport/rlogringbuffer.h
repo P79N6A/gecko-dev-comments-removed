@@ -59,6 +59,8 @@
 #include <string>
 #include <vector>
 
+#include "mozilla/Mutex.h"
+
 #include "m_cpp_utils.h"
 
 namespace mozilla {
@@ -110,6 +112,7 @@ class RLogRingBuffer {
     std::deque<std::string> log_messages_;
     
     uint32_t log_limit_;
+    OffTheBooksMutex mutex_;
 
     DISALLOW_COPY_ASSIGN(RLogRingBuffer);
 }; 
