@@ -278,6 +278,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     dumpn("Initializing the RequestsMenuView");
 
     this.node = new SideMenuWidget($("#requests-menu-contents"), false);
+    this._summary = $("#request-menu-network-summary");
+
     this.node.maintainSelectionVisible = false;
     this.node.autoscrollWithAppendedItems = true;
 
@@ -351,6 +353,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     $("#details-pane-toggle").disabled = false;
     $("#requests-menu-empty-notice").hidden = true;
 
+    this.refreshSummary();
     this._cache.set(aId, requestItem);
   },
 
@@ -404,6 +407,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
         this.filterContents(this._onFlash);
         break;
     }
+
+    this.refreshSummary();
   },
 
   
@@ -576,6 +581,32 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
+  refreshSummary: function() {
+    let visibleItems = this.visibleItems;
+    let visibleRequestsCount = visibleItems.length;
+    if (!visibleRequestsCount) {
+      this._summary.setAttribute("value", L10N.getStr("networkMenu.empty"));
+      return;
+    }
+
+    let totalBytes = this._getTotalBytesOfRequests(visibleItems);
+    let totalMillis =
+      this._getNewestRequest(visibleItems).attachment.endedMillis -
+      this._getOldestRequest(visibleItems).attachment.startedMillis;
+
+    
+    let str = PluralForm.get(visibleRequestsCount, L10N.getStr("networkMenu.summary"));
+    this._summary.setAttribute("value", str
+      .replace("#1", visibleRequestsCount)
+      .replace("#2", L10N.numberWithDecimals((totalBytes || 0) / 1024, 2))
+      .replace("#3", L10N.numberWithDecimals((totalMillis || 0) / 1000, 2))
+    );
+  },
+
+  
+
+
+
 
 
 
@@ -691,6 +722,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     
     this.sortContents();
     this.filterContents();
+    this.refreshSummary();
   },
 
   
@@ -1120,6 +1152,50 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
 
 
+
+
+
+  _getTotalBytesOfRequests: function(aItemsArray) {
+    if (!aItemsArray.length) {
+      return 0;
+    }
+    return aItemsArray.reduce((prev, curr) => prev + curr.attachment.contentSize || 0, 0);
+  },
+
+  
+
+
+
+
+
+
+  _getOldestRequest: function(aItemsArray) {
+    if (!aItemsArray.length) {
+      return null;
+    }
+    return aItemsArray.reduce((prev, curr) =>
+      prev.attachment.startedMillis < curr.attachment.startedMillis ? prev : curr);
+  },
+
+  
+
+
+
+
+
+
+  _getNewestRequest: function(aItemsArray) {
+    if (!aItemsArray.length) {
+      return null;
+    }
+    return aItemsArray.reduce((prev, curr) =>
+      prev.attachment.startedMillis > curr.attachment.startedMillis ? prev : curr);
+  },
+
+  
+
+
+
   get _waterfallWidth() {
     if (this._cachedWaterfallWidth == 0) {
       let container = $("#requests-menu-toolbar");
@@ -1132,6 +1208,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   },
 
   _cache: null,
+  _summary: null,
   _canvas: null,
   _ctx: null,
   _cachedWaterfallWidth: 0,

@@ -1219,6 +1219,12 @@ MenuContainer.prototype = {
 
 
 
+  get visibleItemsCount() this.visibleItems.length,
+
+  
+
+
+
   get orderedItems() {
     let items = [];
     let itemCount = this.itemCount;
