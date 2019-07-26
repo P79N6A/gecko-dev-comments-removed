@@ -12,7 +12,7 @@ var actual;
 
 
 var s = "{}";
-for (var i = 0; i < 19; i++)
+for (var i = 0; i < 21; i++)
     s += s;
 
 try {
