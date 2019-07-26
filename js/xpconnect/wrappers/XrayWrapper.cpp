@@ -2314,8 +2314,22 @@ XrayWrapper<Base, Traits>::defineProperty(JSContext *cx, HandleObject wrapper,
     
     
     
-    if (existing_desc.object() == wrapper && existing_desc.isPermanent())
-        return true; 
+    if (existing_desc.object() == wrapper && existing_desc.isPermanent()) {
+        
+        
+        if (existing_desc.hasGetterOrSetterObject() || desc.hasGetterOrSetterObject() ||
+            existing_desc.isEnumerable() != desc.isEnumerable() ||
+            (existing_desc.isReadonly() && !desc.isReadonly()))
+        {
+            
+            
+            return true;
+        }
+        if (existing_desc.isReadonly()) {
+            
+            return true;
+        }
+    }
 
     bool defined = false;
     if (!Traits::singleton.defineProperty(cx, wrapper, id, desc, existing_desc, &defined))
