@@ -2,17 +2,16 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+const EXPORTED_SYMBOLS = ["JPAKEClient", "SendCredentialsController"];
+
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/main.js");
+Cu.import("resource://services-sync/policies.js");
 Cu.import("resource://services-sync/util.js");
-
-const EXPORTED_SYMBOLS = ["JPAKEClient"];
 
 const REQUEST_TIMEOUT         = 60; 
 const KEYEXCHANGE_VERSION     = 3;
@@ -680,4 +679,96 @@ JPAKEClient.prototype = {
                    this);
   }
 
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function SendCredentialsController(jpakeclient) {
+  this._log = Log4Moz.repository.getLogger("Sync.SendCredentialsController");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
+
+  this._log.trace("Loading.");
+  this.jpakeclient = jpakeclient;
+
+  
+  
+  
+  
+  Services.obs.addObserver(this, "weave:service:sync:finish", false);
+  Services.obs.addObserver(this, "weave:service:sync:error",  false);
+  Services.obs.addObserver(this, "weave:service:start-over",  false);
+}
+SendCredentialsController.prototype = {
+
+  unload: function unload() {
+    this._log.trace("Unloading.");
+    try {
+      Services.obs.removeObserver(this, "weave:service:sync:finish");
+      Services.obs.removeObserver(this, "weave:service:sync:error");
+      Services.obs.removeObserver(this, "weave:service:start-over");
+    } catch (ex) {
+      
+    }
+  },
+
+  observe: function observe(subject, topic, data) {
+    switch (topic) {
+      case "weave:service:sync:finish":
+      case "weave:service:sync:error":
+        Utils.nextTick(this.sendCredentials, this);
+        break;
+      case "weave:service:start-over":
+        
+        this.jpakeclient.abort();
+        break;
+    }
+  },
+
+  sendCredentials: function sendCredentials() {
+    this._log.trace("Sending credentials.");
+    let credentials = {account:   Weave.Identity.account,
+                       password:  Weave.Identity.basicPassword,
+                       synckey:   Weave.Identity.syncKey,
+                       serverURL: Weave.Service.serverURL};
+    this.jpakeclient.sendAndComplete(credentials);
+  },
+
+  
+
+  onComplete: function onComplete() {
+    this._log.debug("Exchange was completed successfully!");
+    this.unload();
+
+    
+    
+    SyncScheduler.scheduleNextSync(SyncScheduler.activeInterval);
+  },
+
+  onAbort: function onAbort(error) {
+    
+    
+    this._log.debug("Exchange was aborted with error: " + error);
+    this.unload();
+  },
+
+  
+  displayPIN: function displayPIN() {},
+  onPairingStart: function onPairingStart() {},
+  onPaired: function onPaired() {},
 };
