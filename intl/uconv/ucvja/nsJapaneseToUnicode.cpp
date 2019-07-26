@@ -13,8 +13,6 @@
 
 #include "mozilla/Assertions.h"
 
-static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
-
 #ifdef XP_OS2
   
   
@@ -388,6 +386,8 @@ NS_IMETHODIMP nsISO2022JPToUnicodeV2::Convert(
    const char * aSrc, int32_t * aSrcLen,
      PRUnichar * aDest, int32_t * aDestLen)
 {
+   static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
+
    static const uint16_t fbIdx[128] =
    {
 
