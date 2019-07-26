@@ -3586,8 +3586,14 @@ IonBuilder::jsop_funapply(uint32 argc)
         return makeCall(native, argc, false);
 
     
+    
     types::TypeSet *argObjTypes = oracle->getCallArg(script, argc, 2, pc);
-    if (oracle->isArgumentObject(argObjTypes) != DefinitelyArguments)
+    LazyArgumentsType isArgObj = oracle->isArgumentObject(argObjTypes);
+    if (isArgObj == MaybeArguments)
+        return abort("NYI: Handle fun.apply with MaybeArguments.");
+
+    
+    if (isArgObj != DefinitelyArguments)
         return makeCall(native, argc, false);
 
     
