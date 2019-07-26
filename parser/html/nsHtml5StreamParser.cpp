@@ -1190,16 +1190,24 @@ nsHtml5StreamParser::PreferredForInternalEncodingDecl(nsACString& aEncoding)
     mFeedChardet = false; 
     return false;
   }
+
   
-  
-  
+
   nsAutoCString preferred;
-  
   rv = nsCharsetAlias::GetPreferred(newEncoding, preferred);
   if (NS_FAILED(rv)) {
-    NS_NOTREACHED("Finding the preferred name failed.");
+    
+    
+    
+    mTreeBuilder->MaybeComplainAboutCharset("EncMetaNonRoughSuperset",
+                                            true,
+                                            mTokenizer->getLineNumber());
     return false;
   }
+
+  
+  
+  
   
   if (preferred.LowerCaseEqualsLiteral("utf-16") ||
       preferred.LowerCaseEqualsLiteral("utf-16be") ||
