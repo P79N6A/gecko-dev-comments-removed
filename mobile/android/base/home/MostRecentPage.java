@@ -46,6 +46,12 @@ public class MostRecentPage extends HomeFragment {
     private ListView mList;
 
     
+    private TextView mTitle;
+
+    
+    private View mEmptyView;
+
+    
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
     
@@ -84,8 +90,8 @@ public class MostRecentPage extends HomeFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        final TextView title = (TextView) view.findViewById(R.id.title);
-        title.setText(R.string.home_most_recent_title);
+        mTitle = (TextView) view.findViewById(R.id.title);
+        mTitle.setText(R.string.home_most_recent_title);
 
         mList = (ListView) view.findViewById(R.id.list);
         mList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -97,12 +103,6 @@ public class MostRecentPage extends HomeFragment {
                 mUrlOpenListener.onUrlOpen(url);
             }
         });
-
-        
-        final View emptyView = view.findViewById(R.id.home_empty_view);
-        ((ImageView) emptyView.findViewById(R.id.home_empty_image)).setImageResource(R.drawable.icon_most_recent_empty);
-        ((TextView) emptyView.findViewById(R.id.home_empty_text)).setText(R.string.home_most_recent_empty);
-        mList.setEmptyView(emptyView);
 
         registerForContextMenu(mList);
     }
@@ -145,6 +145,28 @@ public class MostRecentPage extends HomeFragment {
         public Cursor loadCursor() {
             final ContentResolver cr = getContext().getContentResolver();
             return BrowserDB.getRecentHistory(cr, HISTORY_LIMIT);
+        }
+    }
+
+    private void updateUiFromCursor(Cursor c) {
+        if (c != null && c.getCount() > 0) {
+            mTitle.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        
+        mTitle.setVisibility(View.GONE);
+        if (mEmptyView == null) {
+            
+            mEmptyView = getActivity().findViewById(R.id.home_empty_view);
+
+            final ImageView emptyIcon = (ImageView) mEmptyView.findViewById(R.id.home_empty_image);
+            emptyIcon.setImageResource(R.drawable.icon_most_recent_empty);
+
+            final TextView emptyText = (TextView) mEmptyView.findViewById(R.id.home_empty_text);
+            emptyText.setText(R.string.home_most_recent_empty);
+
+            mList.setEmptyView(mEmptyView);
         }
     }
 
@@ -339,6 +361,7 @@ public class MostRecentPage extends HomeFragment {
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
             if (loader.getId() == LOADER_ID_HISTORY) {
                 mAdapter.swapCursor(c);
+                updateUiFromCursor(c);
                 loadFavicons(c);
             } else {
                 super.onLoadFinished(loader, c);
