@@ -2886,14 +2886,17 @@ nsBlockFrame::IsEmpty()
 
 bool
 nsBlockFrame::ShouldApplyBStartMargin(nsBlockReflowState& aState,
-                                   nsLineBox* aLine)
+                                      nsLineBox* aLine,
+                                      nsIFrame* aChildFrame)
 {
   if (aState.GetFlag(BRS_APPLYBSTARTMARGIN)) {
     
     return true;
   }
 
-  if (!aState.IsAdjacentWithTop()) {
+  if (!aState.IsAdjacentWithTop() ||
+      aChildFrame->StyleBorder()->mBoxDecorationBreak ==
+        NS_STYLE_BOX_DECORATION_BREAK_CLONE) {
     
     
     
@@ -2957,9 +2960,10 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   
   
   
-  bool applyBStartMargin =
-    !frame->GetPrevInFlow() && ShouldApplyBStartMargin(aState, aLine);
-
+  bool applyBStartMargin = (frame->StyleBorder()->mBoxDecorationBreak ==
+                              NS_STYLE_BOX_DECORATION_BREAK_CLONE ||
+                            !frame->GetPrevInFlow()) &&
+                           ShouldApplyBStartMargin(aState, aLine, frame);
   if (applyBStartMargin) {
     
     
@@ -3427,7 +3431,7 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
 
   
   
-  if (ShouldApplyBStartMargin(aState, aLine)) {
+  if (ShouldApplyBStartMargin(aState, aLine, aLine->mFirstChild)) {
     aState.mBCoord += aState.mPrevBEndMargin.get();
   }
   nsFlowAreaRect floatAvailableSpace = aState.GetFloatAvailableSpace();
