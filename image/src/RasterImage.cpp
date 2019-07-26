@@ -2793,7 +2793,9 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
     }
 
     
-    else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale)) {
+    
+    else if (!(mScaleResult.status == SCALE_PENDING && mScaleResult.scale == scale) &&
+             mLockCount == 1) {
       
       if (mScaleRequest) {
         mScaleRequest->stopped = true;
