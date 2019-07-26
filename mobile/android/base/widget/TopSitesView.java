@@ -601,6 +601,5 @@ public class TopSitesView extends GridView {
 
     
     public void editSite(String url, final int position) {
-
     }
 }
