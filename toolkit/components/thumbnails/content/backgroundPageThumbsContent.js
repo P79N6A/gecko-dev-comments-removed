@@ -10,6 +10,10 @@ Cu.import("resource://gre/modules/PageThumbs.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+const STATE_LOADING = 1;
+const STATE_CAPTURING = 2;
+const STATE_CANCELED = 3;
+
 const backgroundPageThumbsContent = {
 
   init: function () {
@@ -56,55 +60,103 @@ const backgroundPageThumbsContent = {
   },
 
   _onCapture: function (msg) {
-    this._webNav.loadURI(msg.json.url,
+    this._nextCapture = {
+      id: msg.data.id,
+      url: msg.data.url,
+    };
+    if (this._currentCapture) {
+      if (this._state == STATE_LOADING) {
+        
+        this._state = STATE_CANCELED;
+        this._loadAboutBlank();
+      }
+      
+      
+      return;
+    }
+    this._startNextCapture();
+  },
+
+  _startNextCapture: function () {
+    if (!this._nextCapture)
+      return;
+    this._currentCapture = this._nextCapture;
+    delete this._nextCapture;
+    this._state = STATE_LOADING;
+    this._currentCapture.pageLoadStartDate = new Date();
+    this._webNav.loadURI(this._currentCapture.url,
                          Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
                          null, null, null);
-    
-    
-    this._requestID = msg.json.id;
-    this._requestDate = new Date();
   },
 
   onStateChange: function (webProgress, req, flags, status) {
-    if (!webProgress.isTopLevel ||
-        !(flags & Ci.nsIWebProgressListener.STATE_STOP) ||
-        req.name == "about:blank")
-      return;
+    if (webProgress.isTopLevel &&
+        (flags & Ci.nsIWebProgressListener.STATE_STOP) &&
+        this._currentCapture) {
+      if (req.name == "about:blank") {
+        if (this._state == STATE_CAPTURING) {
+          
+          this._finishCurrentCapture();
+          delete this._currentCapture;
+          this._startNextCapture();
+        }
+        else if (this._state == STATE_CANCELED) {
+          
+          
+          delete this._currentCapture;
+          this._startNextCapture();
+        }
+      }
+      else if (this._state == STATE_LOADING) {
+        
+        this._state = STATE_CAPTURING;
+        this._captureCurrentPage();
+      }
+    }
+  },
 
-    let requestID = this._requestID;
-    let pageLoadTime = new Date() - this._requestDate;
-    delete this._requestID;
+  _captureCurrentPage: function () {
+    let capture = this._currentCapture;
+    capture.finalURL = this._webNav.currentURI.spec;
+    capture.pageLoadTime = new Date() - capture.pageLoadStartDate;
 
     let canvas = PageThumbs._createCanvas(content);
-    let captureDate = new Date();
+    let canvasDrawDate = new Date();
     PageThumbs._captureToCanvas(content, canvas);
-    let captureTime = new Date() - captureDate;
+    capture.canvasDrawTime = new Date() - canvasDrawDate;
 
-    let finalURL = this._webNav.currentURI.spec;
+    canvas.toBlob(blob => {
+      capture.imageBlob = blob;
+      
+      this._loadAboutBlank();
+    });
+  },
+
+  _finishCurrentCapture: function () {
+    let capture = this._currentCapture;
     let fileReader = Cc["@mozilla.org/files/filereader;1"].
                      createInstance(Ci.nsIDOMFileReader);
     fileReader.onloadend = () => {
       sendAsyncMessage("BackgroundPageThumbs:didCapture", {
-        id: requestID,
+        id: capture.id,
         imageData: fileReader.result,
-        finalURL: finalURL,
+        finalURL: capture.finalURL,
         telemetry: {
-          CAPTURE_PAGE_LOAD_TIME_MS: pageLoadTime,
-          CAPTURE_CANVAS_DRAW_TIME_MS: captureTime,
+          CAPTURE_PAGE_LOAD_TIME_MS: capture.pageLoadTime,
+          CAPTURE_CANVAS_DRAW_TIME_MS: capture.canvasDrawTime,
         },
       });
     };
-    canvas.toBlob(blob => fileReader.readAsArrayBuffer(blob));
+    fileReader.readAsArrayBuffer(capture.imageBlob);
+  },
 
-    
-    
-    
-    Services.tm.mainThread.dispatch(() => {
-      if (!("_requestID" in this))
-        this._webNav.loadURI("about:blank",
-                             Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
-                             null, null, null);
-    }, Ci.nsIEventTarget.DISPATCH_NORMAL);
+  
+  
+  
+  _loadAboutBlank: function _loadAboutBlank() {
+    this._webNav.loadURI("about:blank",
+                         Ci.nsIWebNavigation.LOAD_FLAGS_STOP_CONTENT,
+                         null, null, null);
   },
 
   QueryInterface: XPCOMUtils.generateQI([
