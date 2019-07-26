@@ -212,8 +212,8 @@ private:
   
   
   
-  static uint32_t GetTextRunUnitsFactor() { return 64; }
-  
+  static int32_t GetTextRunUnitsFactor() { return 64; }
+
   
 
 
