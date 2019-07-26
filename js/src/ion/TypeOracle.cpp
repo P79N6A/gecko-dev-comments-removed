@@ -355,7 +355,8 @@ TypeInferenceOracle::elementReadIsString(JSScript *script, jsbytecode *pc)
     if (value->getKnownTypeTag() != JSVAL_TYPE_STRING)
         return false;
 
-    if (id->getKnownTypeTag() != JSVAL_TYPE_INT32)
+    JSValueType idType = id->getKnownTypeTag();
+    if (idType != JSVAL_TYPE_INT32 && idType != JSVAL_TYPE_DOUBLE)
         return false;
 
     
