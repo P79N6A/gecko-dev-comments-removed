@@ -20,7 +20,6 @@
 class JSAutoByteString;
 class JSFlatString;
 class JSLinearString;
-class JSStableString;
 
 namespace js {
 
@@ -100,7 +99,7 @@ extern const char js_encodeURIComponent_str[];
 
 
 template <js::AllowGC allowGC>
-extern JSStableString *
+extern JSFlatString *
 js_NewString(js::ThreadSafeContext *cx, jschar *chars, size_t length);
 
 extern JSLinearString *

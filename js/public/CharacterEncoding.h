@@ -126,21 +126,6 @@ class TwoByteChars : public mozilla::Range<jschar>
 
 
 
-
-
-class StableTwoByteChars : public mozilla::Range<jschar>
-{
-    typedef mozilla::Range<jschar> Base;
-
-  public:
-    StableTwoByteChars() : Base() {}
-    StableTwoByteChars(jschar *aChars, size_t aLength) : Base(aChars, aLength) {}
-    StableTwoByteChars(const jschar *aChars, size_t aLength) : Base(const_cast<jschar *>(aChars), aLength) {}
-};
-
-
-
-
 class TwoByteCharsZ : public mozilla::RangedPtr<jschar>
 {
     typedef mozilla::RangedPtr<jschar> Base;
@@ -156,6 +141,25 @@ class TwoByteCharsZ : public mozilla::RangedPtr<jschar>
 
     using Base::operator=;
 };
+
+typedef mozilla::RangedPtr<const jschar> ConstCharPtr;
+
+
+
+
+class ConstTwoByteChars : public mozilla::RangedPtr<const jschar>
+{
+  public:
+    ConstTwoByteChars(const ConstTwoByteChars &s) : ConstCharPtr(s) {}
+    ConstTwoByteChars(const mozilla::RangedPtr<const jschar> &s) : ConstCharPtr(s) {}
+    ConstTwoByteChars(const jschar *s, size_t len) : ConstCharPtr(s, len) {}
+    ConstTwoByteChars(const jschar *pos, const jschar *start, size_t len)
+      : ConstCharPtr(pos, start, len)
+    {}
+
+    using ConstCharPtr::operator=;
+};
+
 
 
 
