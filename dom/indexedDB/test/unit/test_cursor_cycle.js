@@ -22,11 +22,6 @@ function testSteps()
   objectStore.add(Bob);
   yield undefined;
 
-  
-  
-  
-  eval('');
-
   db.transaction("foo", "readwrite").objectStore("foo")
     .index("name").openCursor().onsuccess = function(event) {
     event.target.transaction.oncomplete = continueToNextStep;

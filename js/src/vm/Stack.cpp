@@ -123,9 +123,6 @@ StackFrame::copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
         if (doPostBarrier)
             HeapValue::writeBarrierPost(*dst, dst);
     }
-
-    if (JS_UNLIKELY(cx->compartment()->debugMode()))
-        DebugScopes::onGeneratorFrameChange(otherfp, this, cx);
 }
 
 
@@ -153,27 +150,6 @@ StackFrame::writeBarrierPost()
     }
     if (hasReturnValue())
         HeapValue::writeBarrierPost(rval_, &rval_);
-}
-
-JSGenerator *
-StackFrame::maybeSuspendedGenerator(JSRuntime *rt)
-{
-    
-
-
-
-    if (!isGeneratorFrame() || !isSuspended())
-        return nullptr;
-
-    
-
-
-
-    char *vp = reinterpret_cast<char *>(generatorArgsSnapshotBegin());
-    char *p = vp - offsetof(JSGenerator, stackSnapshot);
-    JSGenerator *gen = reinterpret_cast<JSGenerator *>(p);
-    JS_ASSERT(gen->fp == this);
-    return gen;
 }
 
 bool

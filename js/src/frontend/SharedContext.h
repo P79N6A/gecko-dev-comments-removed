@@ -200,6 +200,8 @@ class SharedContext
     void setBindingsAccessedDynamically() { anyCxFlags.bindingsAccessedDynamically = true; }
     void setHasDebuggerStatement()        { anyCxFlags.hasDebuggerStatement        = true; }
 
+    inline bool allLocalsAliased();
+
     
     bool needStrictChecks() {
         return strict || extraWarnings;
@@ -307,7 +309,8 @@ class FunctionBox : public ObjectBox, public SharedContext
         
         return bindings.hasAnyAliasedBindings() ||
                hasExtensibleScope() ||
-               needsDeclEnvObject();
+               needsDeclEnvObject() ||
+               isGenerator();
     }
 };
 
@@ -317,6 +320,18 @@ SharedContext::asFunctionBox()
     JS_ASSERT(isFunctionBox());
     return static_cast<FunctionBox*>(this);
 }
+
+
+
+
+
+
+inline bool
+SharedContext::allLocalsAliased()
+{
+    return bindingsAccessedDynamically() || (isFunctionBox() && asFunctionBox()->isGenerator());
+}
+
 
 
 
