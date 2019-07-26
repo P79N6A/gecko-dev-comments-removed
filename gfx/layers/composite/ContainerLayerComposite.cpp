@@ -318,6 +318,12 @@ ContainerRender(ContainerT* aContainer,
       
       
       layerToRender->SetLayerComposited(false);
+      if (layerToRender->GetClearFB()) {
+        
+        gfx::Rect aRect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+        compositor->clearFBRect(&aRect);
+        layerToRender->SetClearFB(false);
+      }
     } else {
       layerToRender->RenderLayer(clipRect);
     }
