@@ -1864,8 +1864,9 @@ nsEventStateManager::sClickHoldCallback(nsITimer *aTimer, void* aESM)
 void
 nsEventStateManager::FireContextClick()
 {
-  if (!mGestureDownContent)
+  if (!mGestureDownContent || !mPresContext) {
     return;
+  }
 
 #ifdef XP_MACOSX
   
