@@ -763,6 +763,8 @@ nsIMM32Handler::OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
      aWindow->GetWindowHandle(), mIsComposingOnPlugin ? "TRUE" : "FALSE"));
   mIsComposingOnPlugin = true;
   mComposingWindow = aWindow;
+  nsIMEContext IMEContext(aWindow->GetWindowHandle());
+  SetIMERelatedWindowsPosOnPlugin(aWindow, IMEContext);
   aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_STARTCOMPOSITION, wParam, lParam,
                                  false);
@@ -795,6 +797,8 @@ nsIMM32Handler::OnIMECompositionOnPlugin(nsWindow* aWindow,
   if (IS_COMPOSING_LPARAM(lParam)) {
     mIsComposingOnPlugin = true;
     mComposingWindow = aWindow;
+    nsIMEContext IMEContext(aWindow->GetWindowHandle());
+    SetIMERelatedWindowsPosOnPlugin(aWindow, IMEContext);
   }
   aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_COMPOSITION, wParam, lParam, true);
@@ -813,6 +817,12 @@ nsIMM32Handler::OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
 
   mIsComposingOnPlugin = false;
   mComposingWindow = nullptr;
+
+  if (mNativeCaretIsCreated) {
+    ::DestroyCaret();
+    mNativeCaretIsCreated = false;
+  }
+
   aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_ENDCOMPOSITION, wParam, lParam,
                                  false);
@@ -1928,6 +1938,68 @@ nsIMM32Handler::SetIMERelatedWindowsPos(nsWindow* aWindow,
   }
 
   return true;
+}
+
+void
+nsIMM32Handler::SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
+                                                const nsIMEContext& aIMEContext)
+{
+  WidgetQueryContentEvent editorRectEvent(true, NS_QUERY_EDITOR_RECT, aWindow);
+  aWindow->InitEvent(editorRectEvent);
+  aWindow->DispatchWindowEvent(&editorRectEvent);
+  if (!editorRectEvent.mSucceeded) {
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: SetIMERelatedWindowsPosOnPlugin, "
+       "FAILED (NS_QUERY_EDITOR_RECT)"));
+    return;
+  }
+
+  
+  
+  nsWindow* toplevelWindow = aWindow->GetTopLevelWindow(false);
+  nsIntRect pluginRectInScreen =
+    editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffset();
+  nsIntRect winRectInScreen;
+  aWindow->GetClientBounds(winRectInScreen);
+  
+  winRectInScreen.width--;
+  winRectInScreen.height--;
+  nsIntRect clippedPluginRect;
+  clippedPluginRect.x =
+    std::min(std::max(pluginRectInScreen.x, winRectInScreen.x),
+             winRectInScreen.XMost());
+  clippedPluginRect.y =
+    std::min(std::max(pluginRectInScreen.y, winRectInScreen.y),
+             winRectInScreen.YMost());
+  int32_t xMost = std::min(pluginRectInScreen.XMost(), winRectInScreen.XMost());
+  int32_t yMost = std::min(pluginRectInScreen.YMost(), winRectInScreen.YMost());
+  clippedPluginRect.width = std::max(0, xMost - clippedPluginRect.x);
+  clippedPluginRect.height = std::max(0, yMost - clippedPluginRect.y);
+  clippedPluginRect -= aWindow->WidgetToScreenOffset();
+
+  
+  
+  if (mNativeCaretIsCreated) {
+    ::DestroyCaret();
+  }
+  mNativeCaretIsCreated =
+    ::CreateCaret(aWindow->GetWindowHandle(), nullptr,
+                  clippedPluginRect.width, clippedPluginRect.height);
+  ::SetCaretPos(clippedPluginRect.x, clippedPluginRect.y);
+
+  
+  
+  
+  COMPOSITIONFORM compForm;
+  compForm.dwStyle = CFS_POINT;
+  compForm.ptCurrentPos.x = clippedPluginRect.BottomLeft().x;
+  compForm.ptCurrentPos.y = clippedPluginRect.BottomLeft().y;
+  if (!::ImmSetCompositionWindow(aIMEContext.get(), &compForm)) {
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: SetIMERelatedWindowsPosOnPlugin, "
+       "FAILED to set composition window"));
+    return;
+  }
 }
 
 void
