@@ -4,6 +4,7 @@
 
 
 #include "mozilla/dom/HTMLPreElement.h"
+#include "mozilla/dom/HTMLPreElementBinding.h"
 
 #include "nsAttrValueInlines.h"
 #include "nsGkAtoms.h"
@@ -119,6 +120,12 @@ nsMapRuleToAttributesFunc
 HTMLPreElement::GetAttributeMappingFunction() const
 {
   return &MapAttributesIntoRule;
+}
+
+JSObject*
+HTMLPreElement::WrapNode(JSContext *aCx, JSObject *aScope, bool *aTriedToWrap)
+{
+  return HTMLPreElementBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
 } 
