@@ -599,8 +599,9 @@ nsWindow::Create(nsIWidget *aParent,
 
   
   
-  if (!nsUXThemeData::sTitlebarInfoPopulatedThemed ||
-      !nsUXThemeData::sTitlebarInfoPopulatedAero) {
+  if (mWindowType == eWindowType_toplevel &&
+      (!nsUXThemeData::sTitlebarInfoPopulatedThemed ||
+       !nsUXThemeData::sTitlebarInfoPopulatedAero)) {
     nsUXThemeData::UpdateTitlebarInfo(mWnd);
   }
   return NS_OK;
