@@ -207,11 +207,13 @@ namespace mozilla {
 namespace widget {
 namespace winrt {
 
+MetroInput::InputPrecisionLevel MetroInput::sCurrentInputLevel =
+  MetroInput::InputPrecisionLevel::LEVEL_IMPRECISE;
+
 MetroInput::MetroInput(MetroWidget* aWidget,
                        UI::Core::ICoreWindow* aWindow)
               : mWidget(aWidget),
                 mChromeHitTestCacheForTouch(false),
-                mCurrentInputLevel(LEVEL_IMPRECISE),
                 mWindow(aWindow)
 {
   LogFunction();
@@ -245,6 +247,11 @@ MetroInput::~MetroInput()
 }
 
 
+bool MetroInput::IsInputModeImprecise()
+{
+  return sCurrentInputLevel == LEVEL_IMPRECISE;
+}
+
 
 
 
@@ -256,9 +263,9 @@ MetroInput::UpdateInputLevel(InputPrecisionLevel aInputLevel)
   if (aInputLevel == LEVEL_PRECISE && mTouches.Count() > 0) {
     return;
   }
-  if (mCurrentInputLevel != aInputLevel) {
-    mCurrentInputLevel = aInputLevel;
-    MetroUtils::FireObserver(mCurrentInputLevel == LEVEL_PRECISE ?
+  if (sCurrentInputLevel != aInputLevel) {
+    sCurrentInputLevel = aInputLevel;
+    MetroUtils::FireObserver(sCurrentInputLevel == LEVEL_PRECISE ?
                                "metro_precise_input" : "metro_imprecise_input");
   }
 }
