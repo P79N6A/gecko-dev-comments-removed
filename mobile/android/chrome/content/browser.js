@@ -1248,7 +1248,7 @@ var BrowserApp = {
     if (aOnlyInputElements)
       return null;
 
-    if  (focused instanceof HTMLTextAreaElement || focused.isContentEditable) {
+    if (focused && (focused instanceof HTMLTextAreaElement || focused.isContentEditable)) {
 
       if (focused instanceof HTMLBodyElement) {
         
@@ -5108,7 +5108,6 @@ let HealthReportStatusListener = {
   MILLISECONDS_PER_DAY: 24 * 60 * 60 * 1000,
 
   COPY_FIELDS: [
-    "blocklistState",
     "userDisabled",
     "appDisabled",
     "version",
