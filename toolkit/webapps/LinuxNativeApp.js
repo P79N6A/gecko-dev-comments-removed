@@ -277,6 +277,9 @@ NativeApp.prototype = {
 
     
     let desktopINIfile = getFile(this.desktopINI);
+    if (desktopINIfile.parent && !desktopINIfile.parent.exists()) {
+      desktopINIfile.parent.create(Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+    }
 
     let writer = Cc["@mozilla.org/xpcom/ini-processor-factory;1"].
                  getService(Ci.nsIINIParserFactory).
