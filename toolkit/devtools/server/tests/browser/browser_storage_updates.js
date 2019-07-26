@@ -18,12 +18,6 @@ const beforeReload = {
   sessionStorage: ["http://test1.example.org", "http://sectest1.example.org"],
 };
 
-
-Services.prefs.setBoolPref("devtools.debugger.log", true);
-registerCleanupFunction(function() {
-  Services.prefs.clearUserPref("devtools.debugger.log");
-});
-
 function finishTests(client) {
   
   forceCollections();
