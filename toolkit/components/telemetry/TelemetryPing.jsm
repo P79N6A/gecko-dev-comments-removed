@@ -457,6 +457,14 @@ let Impl = {
       revision: HISTOGRAMS_FILE_VERSION,
       locale: getLocale()
     };
+
+    
+    
+    
+    if(Services.metro && Services.metro.immersive) {
+      ret.appName = "MetroFirefox";
+    }
+
     if (this._previousBuildID) {
       ret.previousBuildID = this._previousBuildID;
     }
