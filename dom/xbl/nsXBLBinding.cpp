@@ -919,7 +919,7 @@ nsXBLBinding::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData)
 
 
 nsresult
-nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
+nsXBLBinding::DoInitJSClass(JSContext *cx,
                             JS::Handle<JSObject*> obj,
                             const nsAFlatCString& aClassName,
                             nsXBLPrototypeBinding* aProtoBinding,
@@ -930,6 +930,13 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
   nsAutoCString className(aClassName);
   nsAutoCString xblKey(aClassName);
 
+  
+  
+  
+  
+  
+  
+  JS::RootedObject global(cx, js::GetGlobalForObjectCrossCompartment(obj));
   JSAutoCompartment ac(cx, global);
 
   JS::Rooted<JSObject*> parent_proto(cx, nullptr);
