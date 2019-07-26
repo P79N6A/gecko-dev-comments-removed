@@ -28,7 +28,9 @@ function test() {
       yield waitForSourceShown(gPanel, TAB_URL);
 
       let reloaded = promise.all([
-        waitForDebuggerEvents(aPanel, gDebugger.EVENTS.NEW_SOURCE),
+        
+        
+        waitForDebuggerEvents(aPanel, gDebugger.EVENTS.NEW_SOURCE, 2),
         waitForDebuggerEvents(aPanel, gDebugger.EVENTS.SOURCES_ADDED),
         waitForDebuggerEvents(aPanel, gDebugger.EVENTS.SOURCE_SHOWN)
       ]);
