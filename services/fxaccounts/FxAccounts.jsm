@@ -130,6 +130,14 @@ InternalMethods.prototype = {
     }
   },
 
+  signOut: function signOut() {
+    this.abortExistingFlow();
+    this.signedInUser = null; 
+    return this.signedInUserStorage.set(null).then(() => {
+      this.notifyObservers("fxaccounts:onlogout");
+    });
+  },
+
   
 
 
@@ -582,11 +590,7 @@ this.FxAccounts.prototype = Object.freeze({
 
 
   signOut: function signOut() {
-    internal.abortExistingFlow();
-    internal.signedInUser = null; 
-    return internal.signedInUserStorage.set(null).then(() => {
-      internal.notifyObservers("fxaccounts:onlogout");
-    });
+    return internal.signOut();
   },
 
   
