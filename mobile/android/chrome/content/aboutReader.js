@@ -352,16 +352,10 @@ AboutReader.prototype = {
         });
       }.bind(this));
     } else {
-      gChromeWin.Reader.removeArticleFromCache(this._article.url , function(success) {
-        dump("Reader:Remove (in reader) success=" + success);
-
-        Services.obs.notifyObservers(null, "Reader:Remove", this._article.url);
-
-        gChromeWin.sendMessageToJava({
-          type: "Reader:Removed",
-          url: this._article.url
-        });
-      }.bind(this));
+      
+      
+      
+      Services.obs.notifyObservers(null, "Reader:Remove", this._article.url);
     }
   },
 
