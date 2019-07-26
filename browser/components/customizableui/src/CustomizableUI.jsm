@@ -386,6 +386,13 @@ let CustomizableUIInternal = {
         gPlacements.set(aName, placements);
       }
       gFuturePlacements.delete(aName);
+      let existingAreaNodes = gBuildAreas.get(aName);
+      if (existingAreaNodes) {
+        for (let areaNode of existingAreaNodes) {
+          this.notifyListeners("onAreaNodeUnregistered", aName, areaNode.customizationTarget,
+                               CustomizableUI.REASON_AREA_UNREGISTERED);
+        }
+      }
       gBuildAreas.delete(aName);
     } finally {
       this.endBatchUpdate(true);
@@ -458,6 +465,7 @@ let CustomizableUIInternal = {
       if (gDirtyAreaCache.has(area)) {
         this.buildArea(area, placements, aToolbar);
       }
+      this.notifyListeners("onAreaNodeRegistered", area, aToolbar.customizationTarget);
       aToolbar.setAttribute("currentset", placements.join(","));
     } finally {
       this.endBatchUpdate();
@@ -699,6 +707,8 @@ let CustomizableUIInternal = {
 
     let placements = gPlacements.get(CustomizableUI.AREA_PANEL);
     this.buildArea(CustomizableUI.AREA_PANEL, placements, aPanelContents);
+    this.notifyListeners("onAreaNodeRegistered", CustomizableUI.AREA_PANEL, aPanelContents);
+
     for (let child of aPanelContents.children) {
       if (child.localName != "toolbarbutton") {
         if (child.localName == "toolbaritem") {
@@ -839,6 +849,8 @@ let CustomizableUIInternal = {
       let areaProperties = gAreas.get(areaId);
       for (let node of areaNodes) {
         if (node.ownerDocument == document) {
+          this.notifyListeners("onAreaNodeUnregistered", areaId, node.customizationTarget,
+                               CustomizableUI.REASON_WINDOW_CLOSED);
           if (areaProperties.has("overflowable")) {
             node.overflowable.uninit();
             node.overflowable = null;
@@ -2505,6 +2517,17 @@ this.CustomizableUI = {
   
 
 
+  get REASON_WINDOW_CLOSED() "window-closed",
+  
+
+
+
+  get REASON_AREA_UNREGISTERED() "area-unregistered",
+
+
+  
+
+
 
 
   windows: {
@@ -2515,6 +2538,15 @@ this.CustomizableUI = {
   },
 
   
+
+
+
+
+
+
+
+
+
 
 
 
