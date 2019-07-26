@@ -136,6 +136,7 @@ var PassThrough = require('stream').PassThrough;
 var Readable = require('stream').Readable;
 var Writable = require('stream').Writable;
 var Endpoint = require('http2-protocol').Endpoint;
+var implementedVersion = require('http2-protocol').ImplementedVersion;
 var http = require('http');
 var https = require('https');
 
@@ -152,10 +153,6 @@ var deprecatedHeaders = [
   'transfer-encoding',
   'upgrade'
 ];
-
-
-
-var implementedVersion = 'HTTP-draft-09/2.0';
 
 
 var supportedProtocols = [implementedVersion, 'http/1.1', 'http/1.0'];
