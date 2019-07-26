@@ -42,12 +42,12 @@ CheckTimes(const CERTCertificate* cert, PRTime time)
 
 Result
 CheckKeyUsage(EndEntityOrCA endEntityOrCA,
-              bool isTrustAnchor,
               const SECItem* encodedKeyUsage,
               KeyUsages requiredKeyUsagesIfPresent,
               PLArenaPool* arena)
 {
   if (!encodedKeyUsage) {
+    
     
     
     
@@ -505,7 +505,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
   
 
   
-  rv = CheckKeyUsage(endEntityOrCA, isTrustAnchor, cert.encodedKeyUsage,
+  rv = CheckKeyUsage(endEntityOrCA, cert.encodedKeyUsage,
                      requiredKeyUsagesIfPresent, arena);
   if (rv != Success) {
     return rv;
