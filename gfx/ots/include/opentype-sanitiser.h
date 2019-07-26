@@ -5,26 +5,6 @@
 #ifndef OPENTYPE_SANITISER_H_
 #define OPENTYPE_SANITISER_H_
 
-#if defined(_WIN32) || defined(__CYGWIN__)
-  #define OTS_DLL_IMPORT __declspec(dllimport)
-  #define OTS_DLL_EXPORT __declspec(dllexport)
-#else
-  #if __GNUC__ >= 4
-    #define OTS_DLL_IMPORT __attribute__((visibility ("default")))
-    #define OTS_DLL_EXPORT __attribute__((visibility ("default")))
-  #endif
-#endif
-
-#ifdef OTS_DLL
-  #ifdef OTS_DLL_EXPORTS
-    #define OTS_API OTS_DLL_EXPORT
-  #else
-    #define OTS_API OTS_DLL_IMPORT
-  #endif
-#else
-  #define OTS_API
-#endif
-
 #if defined(_WIN32)
 #include <stdlib.h>
 typedef signed char int8_t;
@@ -44,7 +24,7 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 #endif
 
-#include <algorithm>  
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -81,9 +61,9 @@ class OTSStream {
     }
 
     if (chksum_buffer_offset_ == 4) {
-      uint32_t chksum;
-      std::memcpy(&chksum, chksum_buffer_, 4);
-      chksum_ += ntohl(chksum);
+      uint32_t tmp;
+      std::memcpy(&tmp, chksum_buffer_, 4);
+      chksum_ += ntohl(tmp);
       chksum_buffer_offset_ = 0;
     }
 
@@ -199,31 +179,50 @@ class OTSStream {
   unsigned chksum_buffer_offset_;
 };
 
-#ifdef MOZ_OTS_REPORT_ERRORS
 
 
 
-typedef bool (*MessageFunc)(void *user_data, const char *format, ...);
+
+
+
+
+
+bool Process(OTSStream *output, const uint8_t *input, size_t length);
+
+
+
+
+#ifdef __GCC__
+#define MSGFUNC_FMT_ATTR __attribute__((format(printf, 2, 3)))
+#else
+#define MSGFUNC_FMT_ATTR
 #endif
+typedef bool (*MessageFunc)(void *user_data, const char *format, ...)  MSGFUNC_FMT_ATTR;
+
+
+void SetMessageCallback(MessageFunc func, void *user_data);
+
+enum TableAction {
+  TABLE_ACTION_DEFAULT,  
+  TABLE_ACTION_SANITIZE, 
+  TABLE_ACTION_PASSTHRU, 
+  TABLE_ACTION_DROP      
+};
 
 
 
+typedef TableAction (*TableActionFunc)(uint32_t tag, void *user_data);
 
 
 
-
-
-
-
-bool OTS_API Process(OTSStream *output, const uint8_t *input, size_t length,
-#ifdef MOZ_OTS_REPORT_ERRORS
-                     MessageFunc message_func, void *user_data,
-#endif
-                     bool preserve_graphite_tables = false);
+void SetTableActionCallback(TableActionFunc func, void *user_data);
 
 
 
 void DisableDebugOutput();
+
+
+void EnableWOFF2();
 
 }  
 

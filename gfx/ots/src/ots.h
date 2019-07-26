@@ -11,8 +11,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 #include "opentype-sanitiser.h"
+
+
+template <typename T, size_t N>
+char (&ArraySizeHelper(T (&array)[N]))[N];
+#define arraysize(array) (sizeof(ArraySizeHelper(array)))
 
 namespace ots {
 
@@ -38,7 +44,6 @@ void Warning(const char *f, int l, const char *format, ...)
 #endif
 #endif
 
-#ifdef MOZ_OTS_REPORT_ERRORS
 
 
 
@@ -46,31 +51,21 @@ void Warning(const char *f, int l, const char *format, ...)
 
 
 
-
-#define OTS_FAILURE_MSG_(otf_,msg_) \
+#define OTS_FAILURE_MSG_(otf_,...) \
   ((otf_)->message_func && \
-    (*(otf_)->message_func)((otf_)->user_data, "%s", msg_) && \
+    (*(otf_)->message_func)((otf_)->user_data, __VA_ARGS__) && \
     false)
 
 
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
   ((otf_)->message_func && \
-    (*(otf_)->message_func)((otf_)->user_data, "table '%4.4s': %s", tag_, msg_) && \
+    (*(otf_)->message_func)((otf_)->user_data, "%4.4s: %s", tag_, msg_) && \
     false)
 
 
 
 
-#define OTS_FAILURE_MSG(msg_) OTS_FAILURE_MSG_TAG_(file, msg_, TABLE_NAME)
-
-#else
-
-
-#define OTS_FAILURE_MSG_(otf_,msg_)          OTS_FAILURE()
-#define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) OTS_FAILURE()
-#define OTS_FAILURE_MSG(msg_)                OTS_FAILURE()
-
-#endif
+#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
 
 
 
@@ -90,8 +85,8 @@ const bool g_transcode_hints = true;
 
 class Buffer {
  public:
-  Buffer(const uint8_t *buffer, size_t len)
-      : buffer_(buffer),
+  Buffer(const uint8_t *buf, size_t len)
+      : buffer_(buf),
         length_(len),
         offset_(0) { }
 
@@ -99,7 +94,7 @@ class Buffer {
     return Read(NULL, n_bytes);
   }
 
-  bool Read(uint8_t *buffer, size_t n_bytes) {
+  bool Read(uint8_t *buf, size_t n_bytes) {
     if (n_bytes > 1024 * 1024 * 1024) {
       return OTS_FAILURE();
     }
@@ -107,8 +102,8 @@ class Buffer {
         (offset_ > length_ - n_bytes)) {
       return OTS_FAILURE();
     }
-    if (buffer) {
-      std::memcpy(buffer, buffer_ + offset_, n_bytes);
+    if (buf) {
+      std::memcpy(buf, buffer_ + offset_, n_bytes);
     }
     offset_ += n_bytes;
     return true;
@@ -192,6 +187,24 @@ class Buffer {
   size_t offset_;
 };
 
+
+
+template<typename T> T Round4(T value) {
+  if (std::numeric_limits<T>::max() - value < 3) {
+    return value;
+  }
+  return (value + 3) & ~3;
+}
+
+template<typename T> T Round2(T value) {
+  if (value == std::numeric_limits<T>::max()) {
+    return value;
+  }
+  return (value + 1) & ~1;
+}
+
+bool IsValidVersionTag(uint32_t tag);
+
 #define FOR_EACH_TABLE_TYPE \
   F(cff, CFF) \
   F(cmap, CMAP) \
@@ -209,6 +222,7 @@ class Buffer {
   F(kern, KERN) \
   F(loca, LOCA) \
   F(ltsh, LTSH) \
+  F(math, MATH) \
   F(maxp, MAXP) \
   F(name, NAME) \
   F(os2, OS2) \
@@ -217,13 +231,7 @@ class Buffer {
   F(vdmx, VDMX) \
   F(vorg, VORG) \
   F(vhea, VHEA) \
-  F(vmtx, VMTX) \
-  F(silf, SILF) \
-  F(sill, SILL) \
-  F(glat, GLAT) \
-  F(gloc, GLOC) \
-  F(feat, FEAT) \
-  F(svg, SVG)
+  F(vmtx, VMTX)
 
 #define F(name, capname) struct OpenType##capname;
 FOR_EACH_TABLE_TYPE
@@ -242,14 +250,8 @@ struct OpenTypeFile {
   uint16_t entry_selector;
   uint16_t range_shift;
 
-#ifdef MOZ_OTS_REPORT_ERRORS
   MessageFunc message_func;
   void        *user_data;
-#endif
-
-  
-  
-  bool preserve_graphite;
 
 #define F(name, capname) OpenType##capname *name;
 FOR_EACH_TABLE_TYPE

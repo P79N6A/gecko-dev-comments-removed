@@ -7,6 +7,8 @@
 
 
 
+#define TABLE_NAME "prep"
+
 namespace ots {
 
 bool ots_prep_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
@@ -16,11 +18,11 @@ bool ots_prep_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   file->prep = prep;
 
   if (length >= 128 * 1024u) {
-    return OTS_FAILURE();  
+    return OTS_FAILURE_MSG("table length %ld > 120K", length);  
   }
 
   if (!table.Skip(length)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Failed to read table of length %ld", length);
   }
 
   prep->data = data;
@@ -37,7 +39,7 @@ bool ots_prep_serialise(OTSStream *out, OpenTypeFile *file) {
   const OpenTypePREP *prep = file->prep;
 
   if (!out->Write(prep->data, prep->length)) {
-    return OTS_FAILURE();
+    return OTS_FAILURE_MSG("Failed to write table length");
   }
 
   return true;

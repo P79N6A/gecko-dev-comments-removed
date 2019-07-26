@@ -38,6 +38,7 @@ bool ExecuteType2CharString(size_t call_depth,
                             bool *out_found_width,
                             size_t *in_out_num_stems);
 
+#ifdef DUMP_T2CHARSTRING
 
 const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
   switch (op) {
@@ -87,6 +88,8 @@ const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
     return "VHCurveTo";
   case ots::kHVCurveTo:
     return "HVCurveTo";
+  case ots::kDotSection:
+    return "DotSection";
   case ots::kAnd:
     return "And";
   case ots::kOr:
@@ -139,6 +142,7 @@ const char *Type2CharStringOperatorToString(ots::Type2CharStringOperator op) {
 
   return "UNKNOWN";
 }
+#endif
 
 
 
@@ -524,6 +528,13 @@ bool ExecuteType2CharStringOperator(int32_t op,
     return successful ? true : OTS_FAILURE();
   }
 
+  case ots::kDotSection:
+    
+    if (stack_size != 0) {
+      return OTS_FAILURE();
+    }
+    return true;
+
   case ots::kAnd:
   case ots::kOr:
   case ots::kEq:
@@ -738,19 +749,21 @@ bool ExecuteType2CharString(size_t call_depth,
       return OTS_FAILURE();
     }
 
+#ifdef DUMP_T2CHARSTRING
     
 
 
 
 
-
-
-
-
-
-
-
-
+      if (!is_operator) {
+        std::fprintf(stderr, "#%d# ", operator_or_operand);
+      } else {
+        std::fprintf(stderr, "#%s#\n",
+           Type2CharStringOperatorToString(
+               ots::Type2CharStringOperator(operator_or_operand))
+           );
+      }
+#endif
 
     if (!is_operator) {
       argument_stack->push(operator_or_operand);
