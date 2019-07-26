@@ -15,6 +15,7 @@ const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devt
 const Editor  = require("devtools/sourceeditor/editor");
 const promise = require("sdk/core/promise");
 const {CssLogic} = require("devtools/styleinspector/css-logic");
+const AutoCompleter = require("devtools/sourceeditor/autocomplete");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -31,6 +32,7 @@ const SAVE_ERROR = "error-save";
 const UPDATE_STYLESHEET_THROTTLE_DELAY = 500;
 
 
+const AUTOCOMPLETION_PREF = "devtools.styleeditor.autocompletion-enabled";
 
 
 
@@ -48,7 +50,11 @@ const UPDATE_STYLESHEET_THROTTLE_DELAY = 500;
 
 
 
-function StyleSheetEditor(styleSheet, win, file, isNew) {
+
+
+
+
+function StyleSheetEditor(styleSheet, win, file, isNew, walker) {
   EventEmitter.decorate(this);
 
   this.styleSheet = styleSheet;
@@ -57,6 +63,7 @@ function StyleSheetEditor(styleSheet, win, file, isNew) {
   this._window = win;
   this._isNew = isNew;
   this.savedFile = file;
+  this.walker = walker;
 
   this.errorMessage = null;
 
@@ -197,6 +204,10 @@ StyleSheetEditor.prototype = {
     let sourceEditor = new Editor(config);
 
     sourceEditor.appendTo(inputElement).then(() => {
+      if (Services.prefs.getBoolPref(AUTOCOMPLETION_PREF)) {
+        sourceEditor.extend(AutoCompleter);
+        sourceEditor.setupAutoCompletion(this.walker);
+      }
       sourceEditor.on("save", () => {
         this.saveToFile();
       });
@@ -396,6 +407,9 @@ StyleSheetEditor.prototype = {
 
 
   destroy: function() {
+    if (this.sourceEditor) {
+      this.sourceEditor.destroy();
+    }
     this.styleSheet.off("property-change", this._onPropertyChange);
     this.styleSheet.off("error", this._onError);
   }

@@ -31,7 +31,6 @@ function createDocument() {
       div2 = iframe2.contentDocument.createElement('div');
       div2.textContent = 'nested div';
       iframe2.contentDocument.body.appendChild(div2);
-
       
       openInspector(aInspector => {
         inspector = aInspector;
@@ -48,11 +47,11 @@ function createDocument() {
 }
 
 function moveMouseOver(aElement, cb) {
-  EventUtils.synthesizeMouse(aElement, 2, 2, {type: "mousemove"},
-    aElement.ownerDocument.defaultView);
   inspector.toolbox.once("picker-node-hovered", () => {
     executeSoon(cb);
   });
+  EventUtils.synthesizeMouseAtCenter(aElement, {type: "mousemove"},
+    aElement.ownerDocument.defaultView);
 }
 
 function runTests() {

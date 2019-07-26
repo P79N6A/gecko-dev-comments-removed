@@ -66,6 +66,38 @@ const {HighlighterActor} = require("devtools/server/actors/highlighter");
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 const HIDDEN_CLASS = "__fx-devtools-hide-shortcut__";
 
+
+const PSEUDO_SELECTORS = [
+  [":active", 1],
+  [":hover", 1],
+  [":focus", 1],
+  [":visited", 0],
+  [":link", 0],
+  [":first-letter", 0],
+  [":first-child", 2],
+  [":before", 2],
+  [":after", 2],
+  [":lang(", 0],
+  [":not(", 3],
+  [":first-of-type", 0],
+  [":last-of-type", 0],
+  [":only-of-type", 0],
+  [":only-child", 2],
+  [":nth-child(", 3],
+  [":nth-last-child(", 0],
+  [":nth-of-type(", 0],
+  [":nth-last-of-type(", 0],
+  [":last-child", 2],
+  [":root", 0],
+  [":empty", 0],
+  [":target", 0],
+  [":enabled", 0],
+  [":disabled", 0],
+  [":checked", 1],
+  ["::selection", 0]
+];
+
+
 let HELPER_SHEET = ".__fx-devtools-hide-shortcut__ { visibility: hidden !important } ";
 HELPER_SHEET += ":-moz-devtools-highlighted { outline: 2px dashed #F06!important; outline-offset: -2px!important } ";
 
@@ -1399,6 +1431,136 @@ var WalkerActor = protocol.ActorClass({
     },
     response: {
       list: RetVal("domnodelist")
+    }
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+  getSuggestionsForQuery: method(function(query, completing, selectorState) {
+    let sugs = {
+      classes: new Map,
+      tags: new Map
+    };
+    let result = [];
+    let nodes = null;
+    
+    switch (selectorState) {
+      case "pseudo":
+        result = PSEUDO_SELECTORS.filter(item => {
+          return item[0].startsWith(":" + completing);
+        });
+        break;
+
+      case "class":
+        if (!query) {
+          nodes = this.rootDoc.querySelectorAll("[class]");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          for (let className of node.className.split(" ")) {
+            sugs.classes.set(className, (sugs.classes.get(className)|0) + 1);
+          }
+        }
+        sugs.classes.delete("");
+        
+        
+        
+        sugs.classes.delete("moz-styleeditor-transitioning");
+        sugs.classes.delete(HIDDEN_CLASS);
+        for (let [className, count] of sugs.classes) {
+          if (className.startsWith(completing)) {
+            result.push(["." + className, count]);
+          }
+        }
+        break;
+
+      case "id":
+        if (!query) {
+          nodes = this.rootDoc.querySelectorAll("[id]");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          if (node.id.startsWith(completing)) {
+            result.push(["#" + node.id, 1]);
+          }
+        }
+        break;
+
+      case "tag":
+        if (!query) {
+          nodes = this.rootDoc.getElementsByTagName("*");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          let tag = node.tagName.toLowerCase();
+          sugs.tags.set(tag, (sugs.tags.get(tag)|0) + 1);
+        }
+        for (let [tag, count] of sugs.tags) {
+          if ((new RegExp("^" + completing + ".*", "i")).test(tag)) {
+            result.push([tag, count]);
+          }
+        }
+        break;
+
+      case "null":
+        nodes = this.rootDoc.querySelectorAll(query);
+        for (let node of nodes) {
+          node.id && result.push(["#" + node.id, 1]);
+          let tag = node.tagName.toLowerCase();
+          sugs.tags.set(tag, (sugs.tags.get(tag)|0) + 1);
+          for (let className of node.className.split(" ")) {
+            sugs.classes.set(className, (sugs.classes.get(className)|0) + 1);
+          }
+        }
+        for (let [tag, count] of sugs.tags) {
+          tag && result.push([tag, count]);
+        }
+        sugs.classes.delete("");
+        
+        
+        
+        sugs.classes.delete("moz-styleeditor-transitioning");
+        sugs.classes.delete(HIDDEN_CLASS);
+        for (let [className, count] of sugs.classes) {
+          className && result.push(["." + className, count]);
+        }
+    }
+
+    
+    result = result.sort();
+    
+    result = result.sort(function(a, b) {
+      return b[1] - a[1];
+    });
+
+    result.slice(0, 25);
+
+    return {
+      query: query,
+      suggestions: result
+    };
+  }, {
+    request: {
+      query: Arg(0),
+      completing: Arg(1),
+      selectorState: Arg(2)
+    },
+    response: {
+      list: RetVal("array:array:string")
     }
   }),
 

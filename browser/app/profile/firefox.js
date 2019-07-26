@@ -1158,6 +1158,7 @@ pref("devtools.scratchpad.enableCodeFolding", true);
 
 pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.source-maps-enabled", false);
+pref("devtools.styleeditor.autocompletion-enabled", true);
 
 
 pref("devtools.shadereditor.enabled", false);

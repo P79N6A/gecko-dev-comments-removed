@@ -16,6 +16,7 @@ Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
+Cu.import("resource:///modules/devtools/gDevTools.jsm");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 Cu.import("resource:///modules/devtools/SplitView.jsm");
 Cu.import("resource:///modules/devtools/StyleSheetEditor.jsm");
@@ -60,15 +61,6 @@ function StyleEditorUI(debuggee, target, panelDoc) {
   this._clear = this._clear.bind(this);
   this._onError = this._onError.bind(this);
 
-  this.createUI();
-
-  this._debuggee.getStyleSheets().then((styleSheets) => {
-    this._resetStyleSheetList(styleSheets);
-
-    this._target.on("will-navigate", this._clear);
-    this._target.on("navigate", this._onNewDocument);
-  });
-
   this._prefObserver = new PrefObserver("devtools.styleeditor.");
   this._prefObserver.on(PREF_ORIG_SOURCES, this._onNewDocument);
 }
@@ -79,8 +71,7 @@ StyleEditorUI.prototype = {
 
 
 
-  get isDirty()
-  {
+  get isDirty() {
     if (this._markedDirty === true) {
       return true;
     }
@@ -102,6 +93,24 @@ StyleEditorUI.prototype = {
   get selectedStyleSheetIndex() {
     return this.selectedEditor ?
            this.selectedEditor.styleSheet.styleSheetIndex : -1;
+  },
+
+  
+
+
+
+  initialize: function() {
+    let toolbox = gDevTools.getToolbox(this._target);
+    return toolbox.initInspector().then(() => {
+      this._walker = toolbox.walker;
+    }).then(() => this.createUI())
+      .then(() => this._debuggee.getStyleSheets())
+      .then((styleSheets) => {
+      this._resetStyleSheetList(styleSheets);
+
+      this._target.on("will-navigate", this._clear);
+      this._target.on("navigate", this._onNewDocument);
+    });
   },
 
   
@@ -236,7 +245,8 @@ StyleEditorUI.prototype = {
 
 
   _addStyleSheetEditor: function(styleSheet, file, isNew) {
-    let editor = new StyleSheetEditor(styleSheet, this._window, file, isNew);
+    let editor =
+      new StyleSheetEditor(styleSheet, this._window, file, isNew, this._walker);
 
     editor.on("property-change", this._summaryChange.bind(this, editor));
     editor.on("style-applied", this._summaryChange.bind(this, editor));
@@ -258,8 +268,7 @@ StyleEditorUI.prototype = {
 
 
 
-  _importFromFile: function(file, parentWindow)
-  {
+  _importFromFile: function(file, parentWindow) {
     let onFileSelected = function(file) {
       if (!file) {
         
@@ -411,7 +420,8 @@ StyleEditorUI.prototype = {
         }
 
         
-        if (!this.selectedEditor
+        
+        if (!this.selectedEditor && !this._styleSheetBoundToSelect
             && editor.styleSheet.styleSheetIndex == 0) {
           this._selectEditor(editor);
         }
@@ -443,6 +453,11 @@ StyleEditorUI.prototype = {
 
     for each (let editor in this.editors) {
       if (editor.styleSheet.href == sheet.href) {
+        
+        
+        
+        
+        this._styleSheetBoundToSelect = this._styleSheetToSelect;
         this._selectEditor(editor, sheet.line, sheet.col);
         this._styleSheetToSelect = null;
         return;
@@ -466,6 +481,7 @@ StyleEditorUI.prototype = {
 
     editor.getSourceEditor().then(() => {
       editor.sourceEditor.setCursor({line: line, ch: col});
+      this._styleSheetBoundToSelect = null;
     });
 
     this.getEditorSummary(editor).then((summary) => {
@@ -504,8 +520,7 @@ StyleEditorUI.prototype = {
 
 
 
-  selectStyleSheet: function(href, line, col)
-  {
+  selectStyleSheet: function(href, line, col) {
     this._styleSheetToSelect = {
       href: href,
       line: line,
