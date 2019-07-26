@@ -458,8 +458,9 @@ class CGHeaders(CGWrapper):
     """
     Generates the appropriate include statements.
     """
-    def __init__(self, descriptors, dictionaries, callbacks, declareIncludes,
-                 defineIncludes, child, config=None):
+    def __init__(self, descriptors, dictionaries, callbacks,
+                 callbackDescriptors, declareIncludes, defineIncludes, child,
+                 config=None):
         """
         Builds a set of includes to cover |descriptors|.
 
@@ -520,7 +521,8 @@ class CGHeaders(CGWrapper):
                 
                 bindingHeaders.add("mozilla/FloatingPoint.h")
 
-        callForEachType(descriptors, dictionaries, callbacks, addHeadersForType)
+        callForEachType(descriptors + callbackDescriptors, dictionaries,
+                        callbacks, addHeadersForType)
 
         declareIncludes = set(declareIncludes)
         for d in dictionaries:
@@ -531,9 +533,18 @@ class CGHeaders(CGWrapper):
         for c in callbacks:
             bindingHeaders.add(self.getDeclarationFilename(c))
 
+        for c in callbackDescriptors:
+            bindingHeaders.add(self.getDeclarationFilename(c.interface))
+
         if len(callbacks) != 0:
             
             declareIncludes.add("mozilla/dom/CallbackFunction.h")
+            
+            declareIncludes.add("mozilla/dom/BindingUtils.h")
+
+        if len(callbackDescriptors) != 0:
+            
+            declareIncludes.add("mozilla/dom/CallbackInterface.h")
             
             declareIncludes.add("mozilla/dom/BindingUtils.h")
 
@@ -6881,6 +6892,8 @@ class CGBindingRoot(CGThing):
                                             skipGen=False)
         dictionaries = config.getDictionaries(webIDLFile)
         callbacks = config.getCallbacks(webIDLFile)
+        callbackDescriptors = config.getDescriptors(webIDLFile=webIDLFile,
+                                                    isCallback=True)
 
         forwardDeclares = [CGClassForwardDeclare('XPCWrappedNativeScope')]
 
@@ -6901,6 +6914,14 @@ class CGBindingRoot(CGThing):
             workerIfaces.extend(callbackIfaces)
             if not callback.isWorkerOnly():
                 ifaces.extend(callbackIfaces)
+
+        for callbackDescriptor in callbackDescriptors:
+            callbackDescriptorIfaces = [
+                t.unroll().inner
+                for t in getTypesFromDescriptor(callbackDescriptor)
+                if t.unroll().isGeckoInterface() ]
+            workerIfaces.extend(callbackDescriptorIfaces)
+            ifaces.extend(callbackDescriptorIfaces)
 
         
         descriptorsForForwardDeclaration.extend(
@@ -6937,6 +6958,12 @@ class CGBindingRoot(CGThing):
             forwardDeclares.extend(
                 declareNativeType("mozilla::dom::" + str(t.unroll()))
                 for t in getTypesFromCallback(callback)
+                if t.unroll().isUnion() or t.unroll().isCallback())
+
+        for callbackDescriptor in callbackDescriptors:
+            forwardDeclares.extend(
+                declareNativeType("mozilla::dom::" + str(t.unroll()))
+                for t in getTypesFromDescriptor(callbackDescriptor)
                 if t.unroll().isUnion() or t.unroll().isCallback())
 
         
@@ -7031,6 +7058,7 @@ class CGBindingRoot(CGThing):
         curr = CGHeaders(descriptors,
                          dictionaries,
                          callbacks,
+                         callbackDescriptors,
                          ['mozilla/dom/BindingDeclarations.h',
                           'mozilla/ErrorResult.h',
                           'mozilla/dom/DOMJSClass.h',
@@ -7599,7 +7627,7 @@ class CGExampleRoot(CGThing):
                             self.root], "\n")
 
         
-        self.root = CGHeaders([], [], [],
+        self.root = CGHeaders([], [], [], [],
                               [ "nsWrapperCache.h",
                                 "nsCycleCollectionParticipant.h",
                                 "mozilla/Attributes.h",
@@ -8010,7 +8038,7 @@ struct PrototypeIDMap;
                                                             workers=False,
                                                             register=True)]
         defineIncludes.append('nsScriptNameSpaceManager.h')
-        curr = CGHeaders([], [], [], [], defineIncludes, curr)
+        curr = CGHeaders([], [], [], [], [], defineIncludes, curr)
 
         
         curr = CGIncludeGuard('RegisterBindings', curr)
@@ -8062,7 +8090,7 @@ struct PrototypeIDMap;
 
         curr = CGList([stack[0], curr], "\n")
 
-        curr = CGHeaders([], [], [], includes, implincludes, curr)
+        curr = CGHeaders([], [], [], [], includes, implincludes, curr)
 
         
         curr = CGIncludeGuard('UnionTypes', curr)
@@ -8084,7 +8112,7 @@ struct PrototypeIDMap;
         curr = CGWrapper(curr, post='\n')
 
         headers.update(["nsDebug.h", "mozilla/dom/UnionTypes.h", "nsDOMQS.h", "XPCWrapper.h"])
-        curr = CGHeaders([], [], [], headers, [], curr)
+        curr = CGHeaders([], [], [], [], headers, [], curr)
 
         
         curr = CGIncludeGuard('UnionConversions', curr)
