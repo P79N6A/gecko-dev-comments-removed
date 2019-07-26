@@ -61,12 +61,12 @@ namespace mp4_demuxer {
 #ifdef PR_LOGGING
 #define DMX_LOG(...) PR_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
 #else
-#define DMX_LOG(...) 0
+#define DMX_LOG(...) (void)0
 #endif
 #else
 
 
-#define DMX_LOG(...) 0
+#define DMX_LOG(...) (void)0
 #endif
 
 
