@@ -128,6 +128,9 @@ private:
          const Sequence<JS::Value>& aData);
 
   void
+  AppendCallData(const ConsoleCallData& aData);
+
+  void
   ProcessCallData(ConsoleCallData& aData);
 
   
@@ -190,6 +193,8 @@ private:
   uint64_t mInnerID;
 
   friend class ConsoleCallData;
+  friend class ConsoleCallDataRunnable;
+  friend class ConsoleProfileRunnable;
 };
 
 } 
