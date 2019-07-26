@@ -211,9 +211,6 @@ pref("lightweightThemes.update.enabled", true);
 
 pref("keyword.enabled", true);
 
-
-pref("keyword.URL", "");
-
 pref("general.useragent.locale", "@AB_CD@");
 pref("general.skins.selectedSkin", "classic/1.0");
 
