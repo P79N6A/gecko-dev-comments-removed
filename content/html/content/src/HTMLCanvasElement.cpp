@@ -1,4 +1,4 @@
-
+   
 
 
 
@@ -14,7 +14,10 @@
 #include "mozilla/dom/CanvasRenderingContext2D.h"
 #include "mozilla/dom/HTMLCanvasElementBinding.h"
 #include "mozilla/dom/UnionTypes.h"
+#include "mozilla/dom/MouseEvent.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "nsAttrValueInlines.h"
@@ -28,6 +31,7 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsIXPConnect.h"
 #include "nsJSUtils.h"
+#include "nsLayoutUtils.h"
 #include "nsMathUtils.h"
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
@@ -286,6 +290,27 @@ HTMLCanvasElement::CopyInnerTo(Element* aDest)
     }
   }
   return rv;
+}
+
+nsresult HTMLCanvasElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
+{
+  if (aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT) {
+    WidgetMouseEventBase* evt = (WidgetMouseEventBase*)aVisitor.mEvent;
+    if (mCurrentContext) {
+      nsIFrame *frame = GetPrimaryFrame();
+      if (!frame)
+        return NS_OK;
+      nsPoint ptInRoot = nsLayoutUtils::GetEventCoordinatesRelativeTo(evt, frame);
+      nsRect paddingRect = frame->GetContentRectRelativeToSelf();
+      Point hitpoint;
+      hitpoint.x = (ptInRoot.x - paddingRect.x) / AppUnitsPerCSSPixel();
+      hitpoint.y = (ptInRoot.y - paddingRect.y) / AppUnitsPerCSSPixel();
+
+      evt->region = mCurrentContext->GetHitRegion(hitpoint);
+      aVisitor.mCanHandle = true;
+    }
+  }
+  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
 }
 
 nsChangeHint

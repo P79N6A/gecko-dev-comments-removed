@@ -116,6 +116,9 @@ public:
   virtual bool GetHitRegionRect(mozilla::dom::Element* aElement, nsRect& aRect) { return false; }
 
   
+  virtual nsString GetHitRegion(const mozilla::gfx::Point& aPoint) { return nsString(); }
+
+  
   
   
 
