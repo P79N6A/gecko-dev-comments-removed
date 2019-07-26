@@ -86,10 +86,6 @@ this.EXPORTED_SYMBOLS = [
 
 
 
-
-
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -100,6 +96,17 @@ Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 
 
 const ERRORS_TO_REPORT = ["EvalError", "RangeError", "ReferenceError", "TypeError"];
+
+
+
+
+
+
+
+
+function isGenerator(aValue) {
+  return Object.prototype.toString.call(aValue) == "[object Generator]";
+}
 
 
 
@@ -140,7 +147,7 @@ this.Task = {
       }
     }
 
-    if (aTask && typeof(aTask.send) == "function") {
+    if (isGenerator(aTask)) {
       
       return new TaskImpl(aTask).deferred.promise;
     }
@@ -150,6 +157,7 @@ this.Task = {
   },
 
   
+
 
 
 
@@ -170,6 +178,7 @@ this.Task = {
 function TaskImpl(iterator) {
   this.deferred = Promise.defer();
   this._iterator = iterator;
+  this._isStarGenerator = !("send" in iterator);
   this._run(true);
 }
 
@@ -188,6 +197,11 @@ TaskImpl.prototype = {
   
 
 
+  _isStarGenerator: false,
+
+  
+
+
 
 
 
@@ -198,54 +212,90 @@ TaskImpl.prototype = {
 
 
   _run: function TaskImpl_run(aSendResolved, aSendValue) {
-    try {
-      let yielded = aSendResolved ? this._iterator.send(aSendValue)
-                                  : this._iterator.throw(aSendValue);
+    if (this._isStarGenerator) {
+      try {
+        let result = aSendResolved ? this._iterator.next(aSendValue)
+                                   : this._iterator.throw(aSendValue);
 
-      
-      
-      
-      if (yielded && typeof(yielded.send) == "function") {
-        yielded = Task.spawn(yielded);
+        if (result.done) {
+          
+          this.deferred.resolve(result.value);
+        } else {
+          
+          this._handleResultValue(result.value);
+        }
+      } catch (ex) {
+        
+        this._handleException(ex);
       }
-
-      if (yielded && typeof(yielded.then) == "function") {
+    } else {
+      try {
+        let yielded = aSendResolved ? this._iterator.send(aSendValue)
+                                    : this._iterator.throw(aSendValue);
+        this._handleResultValue(yielded);
+      } catch (ex if ex instanceof Task.Result) {
         
         
+        this.deferred.resolve(ex.value);
+      } catch (ex if ex instanceof StopIteration) {
         
-        yielded.then(this._run.bind(this, true),
-                     this._run.bind(this, false));
-      } else {
+        this.deferred.resolve();
+      } catch (ex) {
         
-        
-        this._run(true, yielded);
+        this._handleException(ex);
       }
-
-    } catch (ex if ex instanceof Task.Result) {
-      
-      
-      this.deferred.resolve(ex.value);
-    } catch (ex if ex instanceof StopIteration) {
-      
-      this.deferred.resolve();
-    } catch (ex) {
-      
-
-      if (ex && typeof ex == "object" && "name" in ex &&
-          ERRORS_TO_REPORT.indexOf(ex.name) != -1) {
-
-        
-        
-        
-        
-        
-
-        dump("A coding exception was thrown and uncaught in a Task.\n");
-        dump("Full message: " + ex + "\n");
-        dump("Full stack: " + (("stack" in ex)?ex.stack:"not available") + "\n");
-      }
-
-      this.deferred.reject(ex);
     }
+  },
+
+  
+
+
+
+
+
+  _handleResultValue: function TaskImpl_handleResultValue(aValue) {
+    
+    
+    
+    if (isGenerator(aValue)) {
+      aValue = Task.spawn(aValue);
+    }
+
+    if (aValue && typeof(aValue.then) == "function") {
+      
+      
+      
+      aValue.then(this._run.bind(this, true),
+                  this._run.bind(this, false));
+    } else {
+      
+      
+      this._run(true, aValue);
+    }
+  },
+
+  
+
+
+
+
+
+  _handleException: function TaskImpl_handleException(aException) {
+    if (aException && typeof aException == "object" && "name" in aException &&
+        ERRORS_TO_REPORT.indexOf(aException.name) != -1) {
+
+      
+      
+      
+      
+      
+
+      let stack = ("stack" in aException) ? aException.stack : "not available";
+      dump("A coding exception was thrown and uncaught in a Task.\n");
+      dump("Full message: " + aException + "\n");
+      dump("Full stack: " + stack + "\n");
+    }
+
+    this.deferred.reject(aException);
   }
 };
