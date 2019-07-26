@@ -140,7 +140,15 @@ private:
 
       NS_IMETHODIMP Run()
       {
-        nsRefPtr<DynamicsCompressorNode> node = static_cast<DynamicsCompressorNode*>(mStream->Engine()->Node());
+        nsRefPtr<DynamicsCompressorNode> node;
+        {
+          
+          
+          
+          
+          MutexAutoLock lock(mStream->Engine()->NodeMutex());
+          node = static_cast<DynamicsCompressorNode*>(mStream->Engine()->Node());
+        }
         if (node) {
           AudioParam* reduction = node->Reduction();
           reduction->CancelAllEvents();

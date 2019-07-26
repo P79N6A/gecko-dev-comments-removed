@@ -188,8 +188,10 @@ public:
                                  AudioChunk* aOutput,
                                  bool* aFinished) MOZ_OVERRIDE
   {
+    MutexAutoLock lock(NodeMutex());
+
     
-    if (!mNode) {
+    if (!Node()) {
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
       return;
     }
@@ -275,7 +277,15 @@ private:
           return NS_OK;
         }
 
-        nsRefPtr<ScriptProcessorNode> node = static_cast<ScriptProcessorNode*>(mStream->Engine()->Node());
+        nsRefPtr<ScriptProcessorNode> node;
+        {
+          
+          
+          
+          
+          MutexAutoLock lock(mStream->Engine()->NodeMutex());
+          node = static_cast<ScriptProcessorNode*>(mStream->Engine()->Node());
+        }
         if (!node) {
           return NS_OK;
         }

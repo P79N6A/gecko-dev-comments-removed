@@ -37,7 +37,15 @@ class DelayNodeEngine : public AudioNodeEngine
 
     NS_IMETHOD Run()
     {
-      nsRefPtr<DelayNode> node = static_cast<DelayNode*>(mStream->Engine()->Node());
+      nsRefPtr<DelayNode> node;
+      {
+        
+        
+        
+        
+        MutexAutoLock lock(mStream->Engine()->NodeMutex());
+        node = static_cast<DelayNode*>(mStream->Engine()->Node());
+      }
       if (node) {
         if (mChange == ADDREF) {
           node->mPlayingRef.Take(node);
