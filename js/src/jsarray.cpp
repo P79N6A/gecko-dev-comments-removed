@@ -3238,7 +3238,7 @@ js_InitArrayClass(JSContext *cx, HandleObject obj)
 
 
 
-    if (!arrayProto->setNewTypeUnknown(cx))
+    if (!JSObject::setNewTypeUnknown(cx, arrayProto))
         return NULL;
 
     if (!LinkConstructorAndPrototype(cx, ctor, arrayProto))

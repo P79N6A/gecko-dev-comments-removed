@@ -200,7 +200,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-    if (!objectProto->setNewTypeUnknown(cx))
+    if (!setNewTypeUnknown(cx, objectProto))
         return NULL;
 
     
@@ -263,7 +263,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
 
 
-        if (!functionProto->setNewTypeUnknown(cx))
+        if (!setNewTypeUnknown(cx, functionProto))
             return NULL;
     }
 

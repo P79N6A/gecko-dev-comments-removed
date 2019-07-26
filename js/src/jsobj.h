@@ -476,7 +476,7 @@ struct JSObject : public js::ObjectImpl
 
 
 
-    bool setNewTypeUnknown(JSContext *cx);
+    static bool setNewTypeUnknown(JSContext *cx, JS::HandleObject obj);
 
     
     bool splicePrototype(JSContext *cx, js::Handle<js::TaggedProto> proto);
