@@ -476,15 +476,13 @@ nsJSIID::Enumerate(nsIXPConnectWrappedNative *wrapper,
 static JSObject *
 FindObjectForHasInstance(JSContext *cx, HandleObject objArg)
 {
-    RootedObject obj(cx, objArg), proto(cx);
-    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj)) {
-        if (js::IsWrapper(obj)) {
+    RootedObject obj(cx, objArg);
+    while (obj && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)) && !IsDOMObject(obj))
+    {
+        if (js::IsWrapper(obj))
             obj = js::CheckedUnwrap(obj,  false);
-            continue;
-        }
-        if (!js::GetObjectProto(cx, obj, &proto))
+        else if (!js::GetObjectProto(cx, obj, obj.address()))
             return nullptr;
-        obj = proto;
     }
     return obj;
 }
@@ -830,8 +828,7 @@ nsJSCID::GetService(const JS::Value& iidval, JSContext* cx,
 NS_IMETHODIMP
 nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
                    JSContext * cx, JSObject * objArg,
-                   uint32_t argc, jsval * argv, jsval * vp,
-                   bool *_retval)
+                   const CallArgs &args, bool *_retval)
 {
     RootedObject obj(cx, objArg);
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
@@ -840,7 +837,8 @@ nsJSCID::Construct(nsIXPConnectWrappedNative *wrapper,
 
     
     RootedId name(cx, rt->GetStringID(XPCJSRuntime::IDX_CREATE_INSTANCE));
-    XPCCallContext ccx(JS_CALLER, cx, obj, NullPtr(), name, argc, argv, vp);
+    XPCCallContext ccx(JS_CALLER, cx, obj, NullPtr(), name, args.length(), args.array(),
+                       args.rval().address());
 
     *_retval = XPCWrappedNative::CallMethod(ccx);
     return NS_OK;
