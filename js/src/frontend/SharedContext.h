@@ -26,7 +26,7 @@ namespace frontend {
 class AnyContextFlags
 {
     
-    friend struct SharedContext;
+    friend class SharedContext;
 
     
     bool            hasExplicitUseStrict:1;
@@ -64,7 +64,7 @@ class AnyContextFlags
 class FunctionContextFlags
 {
     
-    friend struct FunctionBox;
+    friend class FunctionBox;
 
     
     bool            isGenerator:1;
