@@ -20,6 +20,7 @@
 #include "nsIURI.h"
 #include "mozilla/dom/XULElementBinding.h"
 #include "xpcpublic.h"
+#include "js/CharacterEncoding.h"
 
 using namespace mozilla;
 using js::GetGlobalForObjectCrossCompartment;
@@ -122,8 +123,16 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   if (propertyHolder != targetClassObject) {
     AssertSameCompartment(propertyHolder, scopeObject);
     AssertSameCompartment(targetClassObject, globalObject);
-    bool ok = JS_CopyPropertiesFrom(cx, targetClassObject, propertyHolder);
-    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+    for (nsXBLProtoImplMember* curr = mMembers; curr; curr = curr->GetNext()) {
+      if (curr->ShouldExposeToUntrustedContent()) {
+        JS::Rooted<jsid> id(cx);
+        JS::TwoByteChars chars(curr->GetName(), NS_strlen(curr->GetName()));
+        bool ok = JS_CharsToId(cx, chars, &id);
+        NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+        JS_CopyPropertyFrom(cx, id, targetClassObject, propertyHolder);
+        NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+      }
+    }
   }
 
   
