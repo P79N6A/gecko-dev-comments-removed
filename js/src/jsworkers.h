@@ -41,15 +41,6 @@ class WorkerThreadState
     WorkerThread *threads;
     size_t numThreads;
 
-    
-
-
-
-    volatile size_t shouldPause;
-
-    
-    uint32_t numPaused;
-
     enum CondVar {
         
         CONSUMER,
@@ -83,11 +74,14 @@ class WorkerThreadState
     
     Vector<SourceCompressionTask *, 0, SystemAllocPolicy> compressionWorklist;
 
-    WorkerThreadState() { mozilla::PodZero(this); }
+    WorkerThreadState(JSRuntime *rt) {
+        mozilla::PodZero(this);
+        runtime = rt;
+    }
     ~WorkerThreadState();
 
-    bool init(JSRuntime *rt);
-    void cleanup(JSRuntime *rt);
+    bool init();
+    void cleanup();
 
     void lock();
     void unlock();
@@ -133,6 +127,8 @@ class WorkerThreadState
     SourceCompressionTask *compressionTaskForSource(ScriptSource *ss);
 
   private:
+
+    JSRuntime *runtime;
 
     
 
@@ -188,9 +184,6 @@ struct WorkerThread
         return !ionBuilder && !asmData && !parseTask && !compressionTask;
     }
 
-    inline void maybePause();
-
-    void pause();
     void destroy();
 
     void handleAsmJSWorkload(WorkerThreadState &state);
@@ -314,59 +307,6 @@ class AutoUnlockWorkerThreadState
     }
 };
 
-#ifdef JS_WORKER_THREADS
-
-inline void
-WorkerThread::maybePause()
-{
-    if (runtime->workerThreadState->shouldPause) {
-        AutoLockWorkerThreadState lock(*runtime->workerThreadState);
-        pause();
-    }
-}
-
-#endif 
-
-
-class AutoPauseWorkersForTracing
-{
-#ifdef JS_WORKER_THREADS
-    JSRuntime *runtime;
-    bool needsUnpause;
-    mozilla::DebugOnly<bool> oldExclusiveThreadsPaused;
-#endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-  public:
-    AutoPauseWorkersForTracing(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~AutoPauseWorkersForTracing();
-};
-
-
-
-
-
-
-class AutoPauseCurrentWorkerThread
-{
-#ifdef JS_WORKER_THREADS
-    ExclusiveContext *cx;
-#endif
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-  public:
-    AutoPauseCurrentWorkerThread(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~AutoPauseCurrentWorkerThread();
-};
-
-
-void
-PauseOffThreadParsing();
-
-
-void
-ResumeOffThreadParsing();
-
 #ifdef JS_ION
 struct AsmJSParallelTask
 {
@@ -462,12 +402,6 @@ struct SourceCompressionTask
     ~SourceCompressionTask()
     {
         complete();
-    }
-
-    void maybePause() { 
-#ifdef JS_WORKER_THREADS
-        workerThread->maybePause();
-#endif
     }
 
     bool compress();

@@ -193,7 +193,7 @@ struct Zone : public JS::shadow::Zone,
         
         if (usedByExclusiveThread)
             return false;
-        JSRuntime *rt = runtimeFromMainThread();
+        JSRuntime *rt = runtimeFromAnyThread();
         if (rt->isAtomsZone(this) && rt->exclusiveThreadsPresent())
             return false;
         return true;
@@ -237,6 +237,12 @@ struct Zone : public JS::shadow::Zone,
 
     
     bool usedByExclusiveThread;
+
+    
+
+
+
+    uint64_t gcNumber();
 
     
 

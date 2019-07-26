@@ -237,6 +237,14 @@ Zone::discardJitCode(FreeOp *fop)
 #endif
 }
 
+uint64_t
+Zone::gcNumber()
+{
+    
+    
+    return usedByExclusiveThread ? 0 : runtimeFromMainThread()->gcNumber;
+}
+
 JS::Zone *
 js::ZoneOfObject(const JSObject &obj)
 {

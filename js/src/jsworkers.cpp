@@ -38,11 +38,11 @@ js::EnsureWorkerThreadsInitialized(ExclusiveContext *cx)
     if (rt->workerThreadState)
         return true;
 
-    rt->workerThreadState = rt->new_<WorkerThreadState>();
+    rt->workerThreadState = rt->new_<WorkerThreadState>(rt);
     if (!rt->workerThreadState)
         return false;
 
-    if (!rt->workerThreadState->init(rt)) {
+    if (!rt->workerThreadState->init()) {
         js_delete(rt->workerThreadState);
         rt->workerThreadState = nullptr;
         return false;
@@ -309,9 +309,9 @@ js::WaitForOffThreadParsingToFinish(JSRuntime *rt)
 }
 
 bool
-WorkerThreadState::init(JSRuntime *rt)
+WorkerThreadState::init()
 {
-    if (!rt->useHelperThreads()) {
+    if (!runtime->useHelperThreads()) {
         numThreads = 0;
         return true;
     }
@@ -328,9 +328,9 @@ WorkerThreadState::init(JSRuntime *rt)
     if (!producerWakeup)
         return false;
 
-    numThreads = rt->helperThreadCount();
+    numThreads = runtime->helperThreadCount();
 
-    threads = (WorkerThread*) rt->calloc_(sizeof(WorkerThread) * numThreads);
+    threads = (WorkerThread*) js_pod_calloc<WorkerThread>(numThreads);
     if (!threads) {
         numThreads = 0;
         return false;
@@ -338,8 +338,8 @@ WorkerThreadState::init(JSRuntime *rt)
 
     for (size_t i = 0; i < numThreads; i++) {
         WorkerThread &helper = threads[i];
-        helper.runtime = rt;
-        helper.threadData.construct(rt);
+        helper.runtime = runtime;
+        helper.threadData.construct(runtime);
         helper.threadData.ref().addToThreadList();
         helper.thread = PR_CreateThread(PR_USER_THREAD,
                                         WorkerThread::ThreadMain, &helper,
@@ -359,7 +359,7 @@ WorkerThreadState::init(JSRuntime *rt)
 }
 
 void
-WorkerThreadState::cleanup(JSRuntime *rt)
+WorkerThreadState::cleanup()
 {
     
     
@@ -375,7 +375,7 @@ WorkerThreadState::cleanup(JSRuntime *rt)
 
     
     while (!parseFinishedList.empty())
-        finishParseTask( nullptr, rt, parseFinishedList[0]);
+        finishParseTask( nullptr, runtime, parseFinishedList[0]);
 }
 
 WorkerThreadState::~WorkerThreadState()
@@ -396,7 +396,7 @@ WorkerThreadState::~WorkerThreadState()
 void
 WorkerThreadState::lock()
 {
-    JS_ASSERT(!isLocked());
+    runtime->assertCanLock(JSRuntime::WorkerThreadStateLock);
     PR_Lock(workerLock);
 #ifdef DEBUG
     lockOwner = PR_GetCurrentThread();
@@ -820,11 +820,8 @@ SourceCompressionTask::complete()
         WorkerThreadState &state = *cx->workerThreadState();
         AutoLockWorkerThreadState lock(state);
 
-        {
-            AutoPauseCurrentWorkerThread maybePause(cx);
-            while (state.compressionInProgress(this))
-                state.wait(WorkerThreadState::CONSUMER);
-        }
+        while (state.compressionInProgress(this))
+            state.wait(WorkerThreadState::CONSUMER);
 
         ss->ready_ = true;
 
@@ -897,8 +894,6 @@ WorkerThread::threadLoop()
 
         
         while (true) {
-            if (state.shouldPause)
-                pause();
             if (terminate)
                 return;
             if (state.canStartIonCompile() ||
@@ -923,112 +918,6 @@ WorkerThread::threadLoop()
         else
             MOZ_ASSUME_UNREACHABLE("No task to perform");
     }
-}
-
-AutoPauseWorkersForTracing::AutoPauseWorkersForTracing(JSRuntime *rt
-                                                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-  : runtime(rt), needsUnpause(false), oldExclusiveThreadsPaused(rt->exclusiveThreadsPaused)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
-    rt->exclusiveThreadsPaused = true;
-
-    if (!runtime->workerThreadState)
-        return;
-
-    JS_ASSERT(CurrentThreadCanAccessRuntime(runtime));
-
-    WorkerThreadState &state = *runtime->workerThreadState;
-    if (!state.numThreads)
-        return;
-
-    AutoLockWorkerThreadState lock(state);
-
-    
-    if (state.shouldPause) {
-        JS_ASSERT(state.numPaused == state.numThreads);
-        return;
-    }
-
-    needsUnpause = true;
-
-    state.shouldPause = 1;
-
-    while (state.numPaused != state.numThreads) {
-        state.notifyAll(WorkerThreadState::PRODUCER);
-        state.wait(WorkerThreadState::CONSUMER);
-    }
-}
-
-AutoPauseWorkersForTracing::~AutoPauseWorkersForTracing()
-{
-    runtime->exclusiveThreadsPaused = oldExclusiveThreadsPaused;
-
-    if (!needsUnpause)
-        return;
-
-    WorkerThreadState &state = *runtime->workerThreadState;
-    AutoLockWorkerThreadState lock(state);
-
-    state.shouldPause = 0;
-
-    
-    state.notifyAll(WorkerThreadState::PRODUCER);
-}
-
-AutoPauseCurrentWorkerThread::AutoPauseCurrentWorkerThread(ExclusiveContext *cx
-                                                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-  : cx(cx)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
-    
-    
-    
-    
-    if (cx->workerThread()) {
-        WorkerThreadState &state = *cx->workerThreadState();
-        JS_ASSERT(state.isLocked());
-
-        state.numPaused++;
-        if (state.numPaused == state.numThreads)
-            state.notifyAll(WorkerThreadState::CONSUMER);
-    }
-}
-
-AutoPauseCurrentWorkerThread::~AutoPauseCurrentWorkerThread()
-{
-    if (cx->workerThread()) {
-        WorkerThreadState &state = *cx->workerThreadState();
-        JS_ASSERT(state.isLocked());
-
-        state.numPaused--;
-
-        
-        
-        if (state.shouldPause)
-            cx->workerThread()->pause();
-    }
-}
-
-void
-WorkerThread::pause()
-{
-    WorkerThreadState &state = *runtime->workerThreadState;
-    JS_ASSERT(state.isLocked());
-    JS_ASSERT(state.shouldPause);
-
-    JS_ASSERT(state.numPaused < state.numThreads);
-    state.numPaused++;
-
-    
-    if (state.numPaused == state.numThreads)
-        state.notifyAll(WorkerThreadState::CONSUMER);
-
-    while (state.shouldPause)
-        state.wait(WorkerThreadState::PRODUCER);
-
-    state.numPaused--;
 }
 
 #else 
@@ -1083,26 +972,6 @@ ScriptSource::getOffThreadCompressionChars(ExclusiveContext *cx)
 {
     JS_ASSERT(ready());
     return nullptr;
-}
-
-AutoPauseWorkersForTracing::AutoPauseWorkersForTracing(JSRuntime *rt
-                                                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-}
-
-AutoPauseWorkersForTracing::~AutoPauseWorkersForTracing()
-{
-}
-
-AutoPauseCurrentWorkerThread::AutoPauseCurrentWorkerThread(ExclusiveContext *cx
-                                                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-}
-
-AutoPauseCurrentWorkerThread::~AutoPauseCurrentWorkerThread()
-{
 }
 
 frontend::CompileError &

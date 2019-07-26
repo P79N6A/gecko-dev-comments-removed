@@ -402,7 +402,10 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
     isUnexpectedEOF_(false),
     handler(cx, *alloc, tokenStream, foldConstants, syntaxParser, lazyOuterFunction)
 {
-    cx->perThreadData->activeCompilations++;
+    {
+        AutoLockForExclusiveAccess lock(cx);
+        cx->perThreadData->addActiveCompilation();
+    }
 
     
     
@@ -416,8 +419,6 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
 template <typename ParseHandler>
 Parser<ParseHandler>::~Parser()
 {
-    context->perThreadData->activeCompilations--;
-
     alloc.release(tempPoolMark);
 
     
@@ -426,6 +427,11 @@ Parser<ParseHandler>::~Parser()
 
 
     alloc.freeAllIfHugeAndUnused();
+
+    {
+        AutoLockForExclusiveAccess lock(context);
+        context->perThreadData->removeActiveCompilation();
+    }
 }
 
 template <typename ParseHandler>
@@ -2244,8 +2250,6 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
     
     
     
-
-    context->maybePause();
 
     Node prelude = null();
     bool hasRest;

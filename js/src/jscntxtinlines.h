@@ -135,7 +135,7 @@ class CompartmentChecker
 #define START_ASSERT_SAME_COMPARTMENT()                                       \
     if (!cx->isExclusiveContext())                                            \
         return;                                                               \
-    if (cx->isHeapBusy())                                                     \
+    if (cx->isJSContext() && cx->asJSContext()->runtime()->isHeapBusy())      \
         return;                                                               \
     CompartmentChecker c(cx->asExclusiveContext())
 
@@ -349,71 +349,6 @@ GetNativeStackLimit(ThreadSafeContext *cx)
     return cx->perThreadData->nativeStackLimit[kind];
 }
 
-inline void
-ExclusiveContext::maybePause() const
-{
-#ifdef JS_WORKER_THREADS
-    if (workerThread())
-        workerThread()->maybePause();
-#endif
-}
-
-class AutoLockForExclusiveAccess
-{
-#ifdef JS_WORKER_THREADS
-    JSRuntime *runtime;
-
-    void init(JSRuntime *rt) {
-        runtime = rt;
-        if (runtime->numExclusiveThreads) {
-            PR_Lock(runtime->exclusiveAccessLock);
-#ifdef DEBUG
-            runtime->exclusiveAccessOwner = PR_GetCurrentThread();
-#endif
-        } else {
-            JS_ASSERT(!runtime->mainThreadHasExclusiveAccess);
-            runtime->mainThreadHasExclusiveAccess = true;
-        }
-    }
-
-  public:
-    AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(cx->runtime_);
-    }
-    AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        init(rt);
-    }
-    ~AutoLockForExclusiveAccess() {
-        if (runtime->numExclusiveThreads) {
-            JS_ASSERT(runtime->exclusiveAccessOwner == PR_GetCurrentThread());
-#ifdef DEBUG
-            runtime->exclusiveAccessOwner = nullptr;
-#endif
-            PR_Unlock(runtime->exclusiveAccessLock);
-        } else {
-            JS_ASSERT(runtime->mainThreadHasExclusiveAccess);
-            runtime->mainThreadHasExclusiveAccess = false;
-        }
-    }
-#else 
-  public:
-    AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    ~AutoLockForExclusiveAccess() {
-        
-        
-    }
-#endif 
-
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 inline LifoAlloc &
 ExclusiveContext::typeLifoAlloc()
 {
@@ -569,4 +504,4 @@ js::ExecutionModeTraits<js::SequentialExecution>::toContextType(ExclusiveContext
     return cx->asJSContext();
 }
 
-#endif
+#endif 

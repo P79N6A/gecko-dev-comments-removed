@@ -125,6 +125,10 @@ JSRuntime::createJitRuntime(JSContext *cx)
 {
     
     
+    AutoLockForExclusiveAccess atomsLock(cx);
+
+    
+    
     
     AutoLockForOperationCallback lock(this);
 
@@ -138,8 +142,6 @@ JSRuntime::createJitRuntime(JSContext *cx)
     if (!jitRuntime_->initialize(cx)) {
         js_delete(jitRuntime_);
         jitRuntime_ = nullptr;
-
-        AutoLockForExclusiveAccess atomsLock(cx);
 
         JSCompartment *comp = cx->runtime()->atomsCompartment();
         if (comp->jitCompartment_) {
