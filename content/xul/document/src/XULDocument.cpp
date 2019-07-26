@@ -1720,6 +1720,7 @@ XULDocument::AddElementToDocumentPre(Element* aElement)
     
     nsIAtom* id = aElement->GetID();
     if (id) {
+        
         nsAutoScriptBlocker scriptBlocker;
         AddToIdTable(aElement, id);
     }
@@ -1853,6 +1854,7 @@ XULDocument::RemoveSubtreeFromDocument(nsIContent* aContent)
     RemoveElementFromRefMap(aElement);
     nsIAtom* id = aElement->GetID();
     if (id) {
+        
         nsAutoScriptBlocker scriptBlocker;
         RemoveFromIdTable(aElement, id);
     }
