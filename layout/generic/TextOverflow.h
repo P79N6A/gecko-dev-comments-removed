@@ -13,7 +13,9 @@
 #include "nsTHashtable.h"
 #include "mozilla/Likely.h"
 #include <algorithm>
+
 class nsIScrollableFrame;
+class gfxTextRun;
 
 namespace mozilla {
 namespace css {
@@ -219,8 +221,6 @@ class TextOverflow {
     nscoord                        mWidth;
     
     nscoord                        mIntrinsicWidth;
-    
-    nsString                       mMarkerString;
     
     const nsStyleTextOverflowSide* mStyle;
     

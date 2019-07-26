@@ -2916,6 +2916,14 @@ public:
 
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
+    
+    
+    
+    
+    
+    
+    void ReleaseFontGroup();
+
     struct LigatureData {
         
         uint32_t mLigatureStart;
@@ -3041,12 +3049,15 @@ private:
 
     void             *mUserData;
     gfxFontGroup     *mFontGroup; 
+                                  
     gfxSkipChars      mSkipChars;
     nsExpirationState mExpirationState;
 
     bool              mSkipDrawing; 
                                     
                                     
+    bool              mReleasedFontGroup; 
+                                          
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
@@ -3210,6 +3221,18 @@ public:
         return mSkipDrawing;
     }
 
+    class LazyReferenceContextGetter {
+    public:
+      virtual already_AddRefed<gfxContext> GetRefContext() = 0;
+    };
+    
+    
+    
+    
+    
+    gfxTextRun* GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel,
+                                   LazyReferenceContextGetter& aRefContextGetter);
+
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
@@ -3218,6 +3241,10 @@ protected:
 
     gfxUserFontSet* mUserFontSet;
     uint64_t mCurrGeneration;  
+
+    
+    
+    nsAutoPtr<gfxTextRun>   mCachedEllipsisTextRun;
 
     
     nsRefPtr<gfxFontFamily> mLastPrefFamily;
