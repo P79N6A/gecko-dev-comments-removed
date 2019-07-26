@@ -15,6 +15,7 @@
 #include "nsHTMLEditor.h"
 #include "nsIContent.h"
 #include "nsIDOMCharacterData.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMRange.h"
 #include "nsISupportsImpl.h"
@@ -257,12 +258,13 @@ nsWSRunObject::InsertBreak(nsCOMPtr<nsINode>* aInOutParent,
   return mHTMLEditor->CreateBRImpl(aInOutParent, aInOutOffset, aSelect);
 }
 
-nsresult 
-nsWSRunObject::InsertText(const nsAString& aStringToInsert, 
-                          nsCOMPtr<nsIDOMNode> *aInOutParent, 
-                          int32_t *aInOutOffset,
-                          nsIDOMDocument *aDoc)
+nsresult
+nsWSRunObject::InsertText(const nsAString& aStringToInsert,
+                          nsCOMPtr<nsINode>* aInOutParent,
+                          int32_t* aInOutOffset,
+                          nsIDocument* aDoc)
 {
+  
   
   
 
@@ -272,132 +274,119 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
 
   NS_ENSURE_TRUE(aInOutParent && aInOutOffset && aDoc, NS_ERROR_NULL_POINTER);
 
-  nsresult res = NS_OK;
-  if (aStringToInsert.IsEmpty()) return res;
-  
-  
+  if (aStringToInsert.IsEmpty()) {
+    return NS_OK;
+  }
+
   nsAutoString theString(aStringToInsert);
-  
+
   WSFragment *beforeRun, *afterRun;
-  FindRun(*aInOutParent, *aInOutOffset, &beforeRun, false);
-  FindRun(*aInOutParent, *aInOutOffset, &afterRun, true);
-  
+  FindRun(GetAsDOMNode(*aInOutParent), *aInOutOffset, &beforeRun, false);
+  FindRun(GetAsDOMNode(*aInOutParent), *aInOutOffset, &afterRun, true);
+
+  nsresult res;
   {
     
     
-    nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent, aInOutOffset);
+    nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater, aInOutParent,
+                                aInOutOffset);
 
     
-    if (!afterRun) {
-      
-    } else if (afterRun->mType & WSType::trailingWS) {
+    if (!afterRun || afterRun->mType & WSType::trailingWS) {
       
     } else if (afterRun->mType & WSType::leadingWS) {
       
       
-      res = DeleteChars(*aInOutParent, *aInOutOffset, GetAsDOMNode(afterRun->mEndNode), afterRun->mEndOffset,
-                         eOutsideUserSelectAll);
+      res = DeleteChars(GetAsDOMNode(*aInOutParent), *aInOutOffset, GetAsDOMNode(afterRun->mEndNode),
+                        afterRun->mEndOffset, eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
     } else if (afterRun->mType == WSType::normalWS) {
       
-      res = CheckLeadingNBSP(afterRun, *aInOutParent, *aInOutOffset);
+      
+      res = CheckLeadingNBSP(afterRun, GetAsDOMNode(*aInOutParent), *aInOutOffset);
       NS_ENSURE_SUCCESS(res, res);
     }
+
     
-    
-    if (!beforeRun) {
-      
-    } else if (beforeRun->mType & WSType::leadingWS) {
+    if (!beforeRun || beforeRun->mType & WSType::leadingWS) {
       
     } else if (beforeRun->mType & WSType::trailingWS) {
       
       
-      res = DeleteChars(GetAsDOMNode(beforeRun->mStartNode), beforeRun->mStartOffset, *aInOutParent, *aInOutOffset,
-                        eOutsideUserSelectAll);
+      res = DeleteChars(GetAsDOMNode(beforeRun->mStartNode), beforeRun->mStartOffset,
+                        GetAsDOMNode(*aInOutParent), *aInOutOffset, eOutsideUserSelectAll);
       NS_ENSURE_SUCCESS(res, res);
     } else if (beforeRun->mType == WSType::normalWS) {
       
-      res = CheckTrailingNBSP(beforeRun, *aInOutParent, *aInOutOffset);
+      
+      res = CheckTrailingNBSP(beforeRun, GetAsDOMNode(*aInOutParent), *aInOutOffset);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
+
   
   
   
-  
-  
-  
-  if (nsCRT::IsAsciiSpace(theString[0]))
-  {
+
+  if (nsCRT::IsAsciiSpace(theString[0])) {
     
     if (beforeRun) {
       if (beforeRun->mType & WSType::leadingWS) {
         theString.SetCharAt(nbsp, 0);
       } else if (beforeRun->mType & WSType::normalWS) {
-        WSPoint wspoint = GetCharBefore(*aInOutParent, *aInOutOffset);
+        WSPoint wspoint = GetCharBefore(GetAsDOMNode(*aInOutParent), *aInOutOffset);
         if (wspoint.mTextNode && nsCRT::IsAsciiSpace(wspoint.mChar)) {
           theString.SetCharAt(nbsp, 0);
         }
       }
-    } else {
-      if (mStartReason & WSType::block || mStartReason == WSType::br) {
-        theString.SetCharAt(nbsp, 0);
-      }
+    } else if (mStartReason & WSType::block || mStartReason == WSType::br) {
+      theString.SetCharAt(nbsp, 0);
     }
   }
 
   
-  uint32_t lastCharIndex = theString.Length()-1;
+  uint32_t lastCharIndex = theString.Length() - 1;
 
-  if (nsCRT::IsAsciiSpace(theString[lastCharIndex]))
-  {
+  if (nsCRT::IsAsciiSpace(theString[lastCharIndex])) {
     
-    if (afterRun)
-    {
+    if (afterRun) {
       if (afterRun->mType & WSType::trailingWS) {
         theString.SetCharAt(nbsp, lastCharIndex);
       } else if (afterRun->mType & WSType::normalWS) {
-        WSPoint wspoint = GetCharAfter(*aInOutParent, *aInOutOffset);
+        WSPoint wspoint = GetCharAfter(GetAsDOMNode(*aInOutParent), *aInOutOffset);
         if (wspoint.mTextNode && nsCRT::IsAsciiSpace(wspoint.mChar)) {
           theString.SetCharAt(nbsp, lastCharIndex);
         }
       }
-    }
-    else
-    {
-      if (mEndReason & WSType::block) {
-        theString.SetCharAt(nbsp, lastCharIndex);
-      }
+    } else if (mEndReason & WSType::block) {
+      theString.SetCharAt(nbsp, lastCharIndex);
     }
   }
+
   
   
   
   
-  
-  uint32_t j;
   bool prevWS = false;
-  for (j=0; j<=lastCharIndex; j++)
-  {
-    if (nsCRT::IsAsciiSpace(theString[j]))
-    {
-      if (prevWS)
-      {
-        theString.SetCharAt(nbsp, j-1);  
-      }
-      else
-      {
+  for (uint32_t i = 0; i <= lastCharIndex; i++) {
+    if (nsCRT::IsAsciiSpace(theString[i])) {
+      if (prevWS) {
+        
+        theString.SetCharAt(nbsp, i - 1);
+      } else {
         prevWS = true;
       }
-    }
-    else
-    {
+    } else {
       prevWS = false;
     }
   }
+
   
-  
-  res = mHTMLEditor->InsertTextImpl(theString, aInOutParent, aInOutOffset, aDoc);
+  nsCOMPtr<nsIDOMNode> parent(GetAsDOMNode(*aInOutParent));
+  nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(aDoc));
+  res = mHTMLEditor->InsertTextImpl(theString, address_of(parent),
+                                    aInOutOffset, doc);
+  *aInOutParent = do_QueryInterface(parent);
   return NS_OK;
 }
 
