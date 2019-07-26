@@ -123,12 +123,6 @@ MissingRequiredTabChild(mozilla::dom::TabChild* tabChild,
                         const char* context)
 {
   if (UsingNeckoIPCSecurity()) {
-    
-    
-    
-    
-    MOZ_ASSERT(tabChild);
-
     if (!tabChild) {
       printf_stderr("WARNING: child tried to open %s IPDL channel w/o "
                     "security info\n", context);
