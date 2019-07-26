@@ -1180,9 +1180,7 @@ var gBrowserInit = {
 
     SessionStore.promiseInitialized.then(() => {
       
-      if (SessionStore.canRestoreLastSession &&
-          !PrivateBrowsingUtils.isWindowPrivate(window))
-        goSetCommandEnabled("Browser:RestoreLastSession", true);
+      RestoreLastSessionObserver.init();
 
       TabView.init();
 
@@ -6537,19 +6535,16 @@ var gIdentityHandler = {
 
 
   handleIdentityButtonEvent : function(event) {
-    TelemetryStopwatch.start("FX_IDENTITY_POPUP_OPEN_MS");
     event.stopPropagation();
 
     if ((event.type == "click" && event.button != 0) ||
         (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
          event.keyCode != KeyEvent.DOM_VK_RETURN)) {
-      TelemetryStopwatch.cancel("FX_IDENTITY_POPUP_OPEN_MS");
       return; 
     }
 
     
     if (gURLBar.getAttribute("pageproxystate") != "valid") {
-      TelemetryStopwatch.cancel("FX_IDENTITY_POPUP_OPEN_MS");
       return;
     }
 
@@ -6575,8 +6570,6 @@ var gIdentityHandler = {
   },
 
   onPopupShown : function(event) {
-    TelemetryStopwatch.finish("FX_IDENTITY_POPUP_OPEN_MS");
-
     document.getElementById('identity-popup-more-info-button').focus();
 
     this._identityPopup.addEventListener("blur", this, true);
@@ -6809,6 +6802,26 @@ function switchToTabHavingURI(aURI, aOpenNew) {
 
   return false;
 }
+
+let RestoreLastSessionObserver = {
+  init: function () {
+    if (SessionStore.canRestoreLastSession &&
+        !PrivateBrowsingUtils.isWindowPrivate(window)) {
+      Services.obs.addObserver(this, "sessionstore-last-session-cleared", true);
+      goSetCommandEnabled("Browser:RestoreLastSession", true);
+    }
+  },
+
+  observe: function () {
+    
+    
+    Services.obs.removeObserver(this, "sessionstore-last-session-cleared");
+    goSetCommandEnabled("Browser:RestoreLastSession", false);
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference])
+};
 
 function restoreLastSession() {
   SessionStore.restoreLastSession();
