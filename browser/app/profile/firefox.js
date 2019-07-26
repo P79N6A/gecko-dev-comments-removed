@@ -1306,4 +1306,4 @@ pref("network.disable.ipc.security", true);
 
 
 
-pref("firefox.accounts.remoteUrl", "http://accounts.dev.lcip.org/flow");
+pref("firefox.accounts.remoteUrl", "https://accounts.dev.lcip.org/flow");
