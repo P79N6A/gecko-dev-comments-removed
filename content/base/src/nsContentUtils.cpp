@@ -380,9 +380,6 @@ nsContentUtils::Init()
   sSecurityManager->GetSystemPrincipal(&sSystemPrincipal);
   MOZ_ASSERT(sSystemPrincipal);
 
-  
-  sXPConnect->InitSafeJSContext();
-
   nsresult rv = CallGetService(NS_IOSERVICE_CONTRACTID, &sIOService);
   if (NS_FAILED(rv)) {
     

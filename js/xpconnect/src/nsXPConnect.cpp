@@ -142,6 +142,9 @@ nsXPConnect::InitStatics()
     
     nsScriptSecurityManager::InitStatics();
     gScriptSecurityManager = nsScriptSecurityManager::GetScriptSecurityManager();
+
+    
+    gSelf->mRuntime->GetJSContextStack()->InitSafeJSContext();
 }
 
 nsXPConnect*
@@ -1203,13 +1206,6 @@ JSContext*
 nsXPConnect::GetCurrentJSContext()
 {
     return GetRuntime()->GetJSContextStack()->Peek();
-}
-
-
-JSContext*
-nsXPConnect::InitSafeJSContext()
-{
-    return GetRuntime()->GetJSContextStack()->InitSafeJSContext();
 }
 
 
