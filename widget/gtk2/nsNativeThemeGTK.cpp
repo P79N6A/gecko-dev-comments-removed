@@ -473,12 +473,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(uint8_t aWidgetType, nsIFrame* aFrame,
           
 
 
-
-#if GTK_CHECK_VERSION(2,10,0)
           *aWidgetFlags = GTK_ARROW_NONE;
-#else
-          return false; 
-#endif 
           break;
       }
     }

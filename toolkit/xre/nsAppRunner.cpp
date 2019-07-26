@@ -2610,73 +2610,52 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     g_free(theme_name);
   }
 
-  
-  
-  
-  
-  if (gtk_check_version(2,10,0) != NULL) {
-#ifdef MOZ_X11
-    
-    
-    
-    
-    Display* dpy = GDK_DISPLAY_XDISPLAY(display);
-    if (!theme_is_qt)
-      XCloseDisplay(dpy);
-#else
-    gdk_display_close(display);
-#endif 
-  }
-  else {
 #if CLEANUP_MEMORY
-    
-    
-    
-    PangoContext *pangoContext = gdk_pango_context_get();
+  
+  
+  
+  PangoContext *pangoContext = gdk_pango_context_get();
 #endif
 
-    bool buggyCairoShutdown = cairo_version() < CAIRO_VERSION_ENCODE(1, 4, 0);
+  bool buggyCairoShutdown = cairo_version() < CAIRO_VERSION_ENCODE(1, 4, 0);
 
-    if (!buggyCairoShutdown) {
-      
-      
-      
-      
-      if (!theme_is_qt)
-        gdk_display_close(display);
-    }
+  if (!buggyCairoShutdown) {
+    
+    
+    
+    
+    if (!theme_is_qt)
+      gdk_display_close(display);
+  }
 
 #if CLEANUP_MEMORY
-    
-    PangoFontMap *fontmap = pango_context_get_font_map(pangoContext);
-    
-    
-    
-    
-    if (PANGO_IS_FC_FONT_MAP(fontmap))
-        pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(fontmap));
-    g_object_unref(pangoContext);
-    
-    
-    
-    
-    
-    
+  
+  PangoFontMap *fontmap = pango_context_get_font_map(pangoContext);
+  
+  
+  
+  
+  if (PANGO_IS_FC_FONT_MAP(fontmap))
+      pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(fontmap));
+  g_object_unref(pangoContext);
+  
+  
+  
+  
+  
+  
 
-#if GTK_CHECK_VERSION(2,8,0)
-    
-    
+  
+  
 #ifdef cairo_debug_reset_static_data
 #error "Looks like we're including Mozilla's cairo instead of system cairo"
 #endif
-    cairo_debug_reset_static_data();
-#endif 
+  cairo_debug_reset_static_data();
 #endif 
 
-    if (buggyCairoShutdown) {
-      if (!theme_is_qt)
-        gdk_display_close(display);
-    }
+  if (buggyCairoShutdown) {
+    if (!theme_is_qt)
+      gdk_display_close(display);
   }
 }
 #endif 
