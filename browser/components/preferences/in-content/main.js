@@ -22,15 +22,15 @@ var gMainPane = {
               .getService(Components.interfaces.nsIObserverService)
               .notifyObservers(window, "main-pane-loaded", null);
 
+#ifdef XP_WIN
     
 
-#ifdef XP_WIN
     try {
       let sysInfo = Cc["@mozilla.org/system-info;1"].
                     getService(Ci.nsIPropertyBag2);
       let ver = parseFloat(sysInfo.getProperty("version"));
       let showTabsInTaskbar = document.getElementById("showTabsInTaskbar");
-      showTabsInTaskbar.hidden = ver < 6.1 || (ver >= 6.1 && history.state != "tabs");
+      showTabsInTaskbar.hidden = ver < 6.1;
     } catch (ex) {}
 
 #endif
@@ -443,7 +443,30 @@ var gMainPane = {
       startupPref.updateElements(); 
     }
   },
+
   
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   
