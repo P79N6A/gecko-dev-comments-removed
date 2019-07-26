@@ -40,7 +40,7 @@
 
 
 
-static inline void silk_LPC_analysis_filter16_FLP(
+static OPUS_INLINE void silk_LPC_analysis_filter16_FLP(
           silk_float                 r_LPC[],            
     const silk_float                 PredCoef[],         
     const silk_float                 s[],                
@@ -78,7 +78,7 @@ static inline void silk_LPC_analysis_filter16_FLP(
 }
 
 
-static inline void silk_LPC_analysis_filter12_FLP(
+static OPUS_INLINE void silk_LPC_analysis_filter12_FLP(
           silk_float                 r_LPC[],            
     const silk_float                 PredCoef[],         
     const silk_float                 s[],                
@@ -112,7 +112,7 @@ static inline void silk_LPC_analysis_filter12_FLP(
 }
 
 
-static inline void silk_LPC_analysis_filter10_FLP(
+static OPUS_INLINE void silk_LPC_analysis_filter10_FLP(
           silk_float                 r_LPC[],            
     const silk_float                 PredCoef[],         
     const silk_float                 s[],                
@@ -144,7 +144,7 @@ static inline void silk_LPC_analysis_filter10_FLP(
 }
 
 
-static inline void silk_LPC_analysis_filter8_FLP(
+static OPUS_INLINE void silk_LPC_analysis_filter8_FLP(
           silk_float                 r_LPC[],            
     const silk_float                 PredCoef[],         
     const silk_float                 s[],                
@@ -174,7 +174,7 @@ static inline void silk_LPC_analysis_filter8_FLP(
 }
 
 
-static inline void silk_LPC_analysis_filter6_FLP(
+static OPUS_INLINE void silk_LPC_analysis_filter6_FLP(
           silk_float                 r_LPC[],            
     const silk_float                 PredCoef[],         
     const silk_float                 s[],                

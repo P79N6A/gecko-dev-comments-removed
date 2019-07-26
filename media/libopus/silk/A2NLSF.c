@@ -44,7 +44,7 @@
 
 
 
-static inline void silk_A2NLSF_trans_poly(
+static OPUS_INLINE void silk_A2NLSF_trans_poly(
     opus_int32          *p,                     
     const opus_int      dd                      
 )
@@ -60,7 +60,7 @@ static inline void silk_A2NLSF_trans_poly(
 }
 
 
-static inline opus_int32 silk_A2NLSF_eval_poly( 
+static OPUS_INLINE opus_int32 silk_A2NLSF_eval_poly( 
     opus_int32          *p,                     
     const opus_int32    x,                      
     const opus_int      dd                      
@@ -77,7 +77,7 @@ static inline opus_int32 silk_A2NLSF_eval_poly(
     return y32;
 }
 
-static inline void silk_A2NLSF_init(
+static OPUS_INLINE void silk_A2NLSF_init(
      const opus_int32    *a_Q16,
      opus_int32          *P,
      opus_int32          *Q,

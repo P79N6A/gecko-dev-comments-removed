@@ -38,7 +38,8 @@ void silk_find_pitch_lags_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     opus_int16                      res[],                                  
-    const opus_int16                x[]                                     
+    const opus_int16                x[],                                    
+    int                             arch                                    
 )
 {
     opus_int   buf_len, i, scale;
@@ -86,7 +87,7 @@ void silk_find_pitch_lags_FIX(
     silk_apply_sine_window( Wsig_ptr, x_buf_ptr, 2, psEnc->sCmn.la_pitch );
 
     
-    silk_autocorr( auto_corr, &scale, Wsig, psEnc->sCmn.pitch_LPC_win_length, psEnc->sCmn.pitchEstimationLPCOrder + 1 );
+    silk_autocorr( auto_corr, &scale, Wsig, psEnc->sCmn.pitch_LPC_win_length, psEnc->sCmn.pitchEstimationLPCOrder + 1, arch );
 
     
     auto_corr[ 0 ] = silk_SMLAWB( auto_corr[ 0 ], auto_corr[ 0 ], SILK_FIX_CONST( FIND_PITCH_WHITE_NOISE_FRACTION, 16 ) ) + 1;
@@ -127,7 +128,8 @@ void silk_find_pitch_lags_FIX(
         
         if( silk_pitch_analysis_core( res, psEncCtrl->pitchL, &psEnc->sCmn.indices.lagIndex, &psEnc->sCmn.indices.contourIndex,
                 &psEnc->LTPCorr_Q15, psEnc->sCmn.prevLag, psEnc->sCmn.pitchEstimationThreshold_Q16,
-                (opus_int)thrhld_Q13, psEnc->sCmn.fs_kHz, psEnc->sCmn.pitchEstimationComplexity, psEnc->sCmn.nb_subfr ) == 0 )
+                (opus_int)thrhld_Q13, psEnc->sCmn.fs_kHz, psEnc->sCmn.pitchEstimationComplexity, psEnc->sCmn.nb_subfr,
+                psEnc->sCmn.arch) == 0 )
         {
             psEnc->sCmn.indices.signalType = TYPE_VOICED;
         } else {

@@ -913,6 +913,64 @@ OPUS_EXPORT OPUS_WARN_UNUSED_RESULT opus_int32 opus_repacketizer_out(OpusRepacke
 
 
 
+
+
+
+
+
+
+
+
+
+
+OPUS_EXPORT int opus_packet_pad(unsigned char *data, opus_int32 len, opus_int32 new_len);
+
+
+
+
+
+
+
+
+
+
+
+
+OPUS_EXPORT OPUS_WARN_UNUSED_RESULT opus_int32 opus_packet_unpad(unsigned char *data, opus_int32 len);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OPUS_EXPORT int opus_multistream_packet_pad(unsigned char *data, opus_int32 len, opus_int32 new_len, int nb_streams);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OPUS_EXPORT OPUS_WARN_UNUSED_RESULT opus_int32 opus_multistream_packet_unpad(unsigned char *data, opus_int32 len, int nb_streams);
+
+
+
 #ifdef __cplusplus
 }
 #endif

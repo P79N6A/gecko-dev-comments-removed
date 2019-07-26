@@ -38,12 +38,12 @@ static const opus_int16 HARM_ATT_Q15[NB_ATT]              = { 32440, 31130 };
 static const opus_int16 PLC_RAND_ATTENUATE_V_Q15[NB_ATT]  = { 31130, 26214 }; 
 static const opus_int16 PLC_RAND_ATTENUATE_UV_Q15[NB_ATT] = { 32440, 29491 }; 
 
-static inline void silk_PLC_update(
+static OPUS_INLINE void silk_PLC_update(
     silk_decoder_state                  *psDec,             
     silk_decoder_control                *psDecCtrl          
 );
 
-static inline void silk_PLC_conceal(
+static OPUS_INLINE void silk_PLC_conceal(
     silk_decoder_state                  *psDec,             
     silk_decoder_control                *psDecCtrl,         
     opus_int16                          frame[]             
@@ -92,7 +92,7 @@ void silk_PLC(
 
 
 
-static inline void silk_PLC_update(
+static OPUS_INLINE void silk_PLC_update(
     silk_decoder_state                  *psDec,             
     silk_decoder_control                *psDecCtrl          
 )
@@ -165,7 +165,7 @@ static inline void silk_PLC_update(
     psPLC->nb_subfr = psDec->nb_subfr;
 }
 
-static inline void silk_PLC_conceal(
+static OPUS_INLINE void silk_PLC_conceal(
     silk_decoder_state                  *psDec,             
     silk_decoder_control                *psDecCtrl,         
     opus_int16                          frame[]             

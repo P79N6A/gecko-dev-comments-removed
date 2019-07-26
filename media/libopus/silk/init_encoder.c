@@ -34,18 +34,22 @@
 #include "main_FLP.h"
 #endif
 #include "tuning_parameters.h"
+#include "cpu_support.h"
 
 
 
 
 opus_int silk_init_encoder(
-    silk_encoder_state_Fxx          *psEnc                                  
+    silk_encoder_state_Fxx          *psEnc,                                 
+    int                              arch                                   
 )
 {
     opus_int ret = 0;
 
     
     silk_memset( psEnc, 0, sizeof( silk_encoder_state_Fxx ) );
+
+    psEnc->sCmn.arch = arch;
 
     psEnc->sCmn.variable_HP_smth1_Q15 = silk_LSHIFT( silk_lin2log( SILK_FIX_CONST( VARIABLE_HP_MIN_CUTOFF_HZ, 16 ) ) - ( 16 << 7 ), 8 );
     psEnc->sCmn.variable_HP_smth2_Q15 = psEnc->sCmn.variable_HP_smth1_Q15;

@@ -36,7 +36,7 @@
 
 
 
-static inline silk_float warped_gain(
+static OPUS_INLINE silk_float warped_gain(
     const silk_float     *coefs,
     silk_float           lambda,
     opus_int             order
@@ -54,7 +54,7 @@ static inline silk_float warped_gain(
 
 
 
-static inline void warped_true2monic_coefs(
+static OPUS_INLINE void warped_true2monic_coefs(
     silk_float           *coefs_syn,
     silk_float           *coefs_ana,
     silk_float           lambda,

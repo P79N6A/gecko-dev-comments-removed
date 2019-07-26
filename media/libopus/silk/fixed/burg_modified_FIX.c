@@ -50,7 +50,8 @@ void silk_burg_modified(
     const opus_int32            minInvGain_Q30,     
     const opus_int              subfr_length,       
     const opus_int              nb_subfr,           
-    const opus_int              D                   
+    const opus_int              D,                  
+    int                         arch                
 )
 {
     opus_int         k, n, s, lz, rshifts, rshifts_extra, reached_max_gain;
@@ -98,7 +99,7 @@ void silk_burg_modified(
             int i;
             opus_int32 d;
             x_ptr = x + s * subfr_length;
-            celt_pitch_xcorr(x_ptr, x_ptr + 1, xcorr, subfr_length - D, D );
+            celt_pitch_xcorr(x_ptr, x_ptr + 1, xcorr, subfr_length - D, D, arch );
             for( n = 1; n < D + 1; n++ ) {
                for ( i = n + subfr_length - D, d = 0; i < subfr_length; i++ )
                   d = MAC16_16( d, x_ptr[ i ], x_ptr[ i - n ] );

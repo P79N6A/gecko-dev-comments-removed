@@ -33,7 +33,7 @@
 #include "stack_alloc.h"
 
 
-static inline void silk_CNG_exc(
+static OPUS_INLINE void silk_CNG_exc(
     opus_int32                       residual_Q10[],     
     opus_int32                       exc_buf_Q14[],      
     opus_int32                       Gain_Q16,           

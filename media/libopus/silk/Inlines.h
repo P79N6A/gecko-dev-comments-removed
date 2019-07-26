@@ -38,7 +38,7 @@ extern "C"
 #endif
 
 
-static inline opus_int32 silk_CLZ64( opus_int64 in )
+static OPUS_INLINE opus_int32 silk_CLZ64( opus_int64 in )
 {
     opus_int32 in_upper;
 
@@ -53,7 +53,7 @@ static inline opus_int32 silk_CLZ64( opus_int64 in )
 }
 
 
-static inline void silk_CLZ_FRAC(
+static OPUS_INLINE void silk_CLZ_FRAC(
     opus_int32 in,            
     opus_int32 *lz,           
     opus_int32 *frac_Q7       
@@ -68,7 +68,7 @@ static inline void silk_CLZ_FRAC(
 
 
 
-static inline opus_int32 silk_SQRT_APPROX( opus_int32 x )
+static OPUS_INLINE opus_int32 silk_SQRT_APPROX( opus_int32 x )
 {
     opus_int32 y, lz, frac_Q7;
 
@@ -94,7 +94,7 @@ static inline opus_int32 silk_SQRT_APPROX( opus_int32 x )
 }
 
 
-static inline opus_int32 silk_DIV32_varQ(   
+static OPUS_INLINE opus_int32 silk_DIV32_varQ(   
     const opus_int32     a32,               
     const opus_int32     b32,               
     const opus_int       Qres               
@@ -140,7 +140,7 @@ static inline opus_int32 silk_DIV32_varQ(
 }
 
 
-static inline opus_int32 silk_INVERSE32_varQ(   
+static OPUS_INLINE opus_int32 silk_INVERSE32_varQ(   
     const opus_int32     b32,                   
     const opus_int       Qres                   
 )

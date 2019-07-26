@@ -43,7 +43,7 @@ typedef struct {
 } inv_D_t;
 
 
-static inline void silk_LDL_factorize_FIX(
+static OPUS_INLINE void silk_LDL_factorize_FIX(
     opus_int32          *A,         
     opus_int            M,          
     opus_int32          *L_Q16,     
@@ -51,7 +51,7 @@ static inline void silk_LDL_factorize_FIX(
 );
 
 
-static inline void silk_LS_SolveFirst_FIX(
+static OPUS_INLINE void silk_LS_SolveFirst_FIX(
     const opus_int32    *L_Q16,     
     opus_int            M,          
     const opus_int32    *b,         
@@ -59,14 +59,14 @@ static inline void silk_LS_SolveFirst_FIX(
 );
 
 
-static inline void silk_LS_SolveLast_FIX(
+static OPUS_INLINE void silk_LS_SolveLast_FIX(
     const opus_int32    *L_Q16,     
     const opus_int      M,          
     const opus_int32    *b,         
     opus_int32          *x_Q16      
 );
 
-static inline void silk_LS_divide_Q16_FIX(
+static OPUS_INLINE void silk_LS_divide_Q16_FIX(
     opus_int32          T[],        
     inv_D_t             *inv_D,     
     opus_int            M           
@@ -113,7 +113,7 @@ void silk_solve_LDL_FIX(
     RESTORE_STACK;
 }
 
-static inline void silk_LDL_factorize_FIX(
+static OPUS_INLINE void silk_LDL_factorize_FIX(
     opus_int32          *A,         
     opus_int            M,          
     opus_int32          *L_Q16,     
@@ -185,7 +185,7 @@ static inline void silk_LDL_factorize_FIX(
     silk_assert( status == 0 );
 }
 
-static inline void silk_LS_divide_Q16_FIX(
+static OPUS_INLINE void silk_LS_divide_Q16_FIX(
     opus_int32          T[],        
     inv_D_t             *inv_D,     
     opus_int            M           
@@ -205,7 +205,7 @@ static inline void silk_LS_divide_Q16_FIX(
 }
 
 
-static inline void silk_LS_SolveFirst_FIX(
+static OPUS_INLINE void silk_LS_SolveFirst_FIX(
     const opus_int32    *L_Q16,     
     opus_int            M,          
     const opus_int32    *b,         
@@ -227,7 +227,7 @@ static inline void silk_LS_SolveFirst_FIX(
 }
 
 
-static inline void silk_LS_SolveLast_FIX(
+static OPUS_INLINE void silk_LS_SolveLast_FIX(
     const opus_int32    *L_Q16,     
     const opus_int      M,          
     const opus_int32    *b,         

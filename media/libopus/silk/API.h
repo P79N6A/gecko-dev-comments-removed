@@ -64,6 +64,7 @@ opus_int silk_Get_Encoder_Size(
 
 opus_int silk_InitEncoder(                              
     void                            *encState,          
+    int                              arch,              
     silk_EncControlStruct           *encStatus          
 );
 

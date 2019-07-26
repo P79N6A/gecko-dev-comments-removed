@@ -171,6 +171,7 @@ typedef struct {
     opus_int32                   pitchEstimationThreshold_Q16;      
     opus_int                     LTPQuantLowComplexity;             
     opus_int                     mu_LTP_Q9;                         
+    opus_int32                   sum_log_gain_Q7;					
     opus_int                     NLSF_MSVQ_Survivors;               
     opus_int                     first_frame_after_reset;           
     opus_int                     controlled_since_last_payload;     
@@ -190,6 +191,8 @@ typedef struct {
 
     SideInfoIndices              indices;
     opus_int8                    pulses[ MAX_FRAME_LENGTH ];
+
+    int                          arch;
 
     
     opus_int16                   inputBuf[ MAX_FRAME_LENGTH + 2 ];  

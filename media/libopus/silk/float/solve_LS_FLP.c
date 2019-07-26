@@ -37,7 +37,7 @@
 
 
 
-static inline void silk_LDL_FLP(
+static OPUS_INLINE void silk_LDL_FLP(
     silk_float          *A,         
     opus_int            M,          
     silk_float          *L,         
@@ -48,7 +48,7 @@ static inline void silk_LDL_FLP(
 
 
 
-static inline void silk_SolveWithLowerTriangularWdiagOnes_FLP(
+static OPUS_INLINE void silk_SolveWithLowerTriangularWdiagOnes_FLP(
     const silk_float    *L,         
     opus_int            M,          
     const silk_float    *b,         
@@ -59,7 +59,7 @@ static inline void silk_SolveWithLowerTriangularWdiagOnes_FLP(
 
 
 
-static inline void silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP(
+static OPUS_INLINE void silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP(
     const silk_float    *L,         
     opus_int            M,          
     const silk_float    *b,         
@@ -109,7 +109,7 @@ void silk_solve_LDL_FLP(
     silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP( &L[ 0 ][ 0 ], M, T, x );
 }
 
-static inline void silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP(
+static OPUS_INLINE void silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP(
     const silk_float    *L,         
     opus_int            M,          
     const silk_float    *b,         
@@ -131,7 +131,7 @@ static inline void silk_SolveWithUpperTriangularFromLowerWdiagOnes_FLP(
     }
 }
 
-static inline void silk_SolveWithLowerTriangularWdiagOnes_FLP(
+static OPUS_INLINE void silk_SolveWithLowerTriangularWdiagOnes_FLP(
     const silk_float    *L,         
     opus_int            M,          
     const silk_float    *b,         
@@ -153,7 +153,7 @@ static inline void silk_SolveWithLowerTriangularWdiagOnes_FLP(
     }
 }
 
-static inline void silk_LDL_FLP(
+static OPUS_INLINE void silk_LDL_FLP(
     silk_float          *A,         
     opus_int            M,          
     silk_float          *L,         

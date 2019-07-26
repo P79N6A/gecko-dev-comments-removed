@@ -35,7 +35,7 @@
 
 
 
-static inline void silk_prefilt_FLP(
+static OPUS_INLINE void silk_prefilt_FLP(
     silk_prefilter_state_FLP    *P,                 
     silk_float                  st_res[],           
     silk_float                  xw[],               
@@ -153,7 +153,7 @@ void silk_prefilter_FLP(
 
 
 
-static inline void silk_prefilt_FLP(
+static OPUS_INLINE void silk_prefilt_FLP(
     silk_prefilter_state_FLP    *P,                 
     silk_float                  st_res[],           
     silk_float                  xw[],               

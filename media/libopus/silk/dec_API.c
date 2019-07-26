@@ -305,7 +305,7 @@ opus_int silk_Decode(
 
     
     ALLOC( samplesOut2_tmp,
-           decControl->nChannelsAPI == 2 ? *nSamplesOut : 0, opus_int16 );
+           decControl->nChannelsAPI == 2 ? *nSamplesOut : ALLOC_NONE, opus_int16 );
     if( decControl->nChannelsAPI == 2 ) {
         resample_out_ptr = samplesOut2_tmp;
     } else {

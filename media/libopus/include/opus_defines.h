@@ -98,6 +98,18 @@ extern "C" {
 # define OPUS_RESTRICT restrict
 #endif
 
+#if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+# if OPUS_GNUC_PREREQ(2,7)
+#  define OPUS_INLINE __inline__
+# elif (defined(_MSC_VER))
+#  define OPUS_INLINE __inline
+# else
+#  define OPUS_INLINE
+# endif
+#else
+# define OPUS_INLINE inline
+#endif
+
 
 
 
@@ -151,6 +163,8 @@ extern "C" {
 #define OPUS_GET_LAST_PACKET_DURATION_REQUEST 4039
 #define OPUS_SET_EXPERT_FRAME_DURATION_REQUEST 4040
 #define OPUS_GET_EXPERT_FRAME_DURATION_REQUEST 4041
+#define OPUS_SET_PREDICTION_DISABLED_REQUEST 4042
+#define OPUS_GET_PREDICTION_DISABLED_REQUEST 4043
 
 
 
@@ -194,7 +208,6 @@ extern "C" {
 #define OPUS_FRAMESIZE_20_MS                 5004 /**< Use 20 ms frames */
 #define OPUS_FRAMESIZE_40_MS                 5005 /**< Use 40 ms frames */
 #define OPUS_FRAMESIZE_60_MS                 5006 /**< Use 60 ms frames */
-#define OPUS_FRAMESIZE_VARIABLE              5010 /**< Optimize the frame size dynamically */
 
 
 
@@ -574,6 +587,14 @@ extern "C" {
 
 
 #define OPUS_GET_EXPERT_FRAME_DURATION(x) OPUS_GET_EXPERT_FRAME_DURATION_REQUEST, __opus_check_int_ptr(x)
+
+
+
+
+#define OPUS_SET_PREDICTION_DISABLED(x) OPUS_SET_PREDICTION_DISABLED_REQUEST, __opus_check_int(x)
+
+
+#define OPUS_GET_PREDICTION_DISABLED(x) OPUS_GET_PREDICTION_DISABLED_REQUEST, __opus_check_int_ptr(x)
 
 
 

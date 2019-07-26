@@ -33,7 +33,7 @@
 
 
 
-static inline void combine_pulses(
+static OPUS_INLINE void combine_pulses(
     opus_int         *out,   
     const opus_int   *in,    
     const opus_int   len     
@@ -45,7 +45,7 @@ static inline void combine_pulses(
     }
 }
 
-static inline void encode_split(
+static OPUS_INLINE void encode_split(
     ec_enc                      *psRangeEnc,    
     const opus_int              p_child1,       
     const opus_int              p,              
@@ -57,7 +57,7 @@ static inline void encode_split(
     }
 }
 
-static inline void decode_split(
+static OPUS_INLINE void decode_split(
     opus_int                    *p_child1,      
     opus_int                    *p_child2,      
     ec_dec                      *psRangeDec,    

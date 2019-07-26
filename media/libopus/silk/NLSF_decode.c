@@ -32,7 +32,7 @@
 #include "main.h"
 
 
-static inline void silk_NLSF_residual_dequant(               
+static OPUS_INLINE void silk_NLSF_residual_dequant(               
           opus_int16         x_Q10[],                        
     const opus_int8          indices[],                      
     const opus_uint8         pred_coef_Q8[],                 

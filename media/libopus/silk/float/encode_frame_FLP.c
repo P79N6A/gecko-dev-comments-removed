@@ -33,7 +33,7 @@
 #include "tuning_parameters.h"
 
 
-static inline void silk_LBRR_encode_FLP(
+static OPUS_INLINE void silk_LBRR_encode_FLP(
     silk_encoder_state_FLP          *psEnc,                             
     silk_encoder_control_FLP        *psEncCtrl,                         
     const silk_float                xfw[],                              
@@ -129,7 +129,7 @@ opus_int silk_encode_frame_FLP(
         
         
         
-        silk_find_pitch_lags_FLP( psEnc, &sEncCtrl, res_pitch, x_frame );
+        silk_find_pitch_lags_FLP( psEnc, &sEncCtrl, res_pitch, x_frame, psEnc->sCmn.arch );
 
         
         
@@ -295,15 +295,15 @@ opus_int silk_encode_frame_FLP(
         ( psEnc->sCmn.ltp_mem_length + LA_SHAPE_MS * psEnc->sCmn.fs_kHz ) * sizeof( silk_float ) );
 
     
-    psEnc->sCmn.prevLag        = sEncCtrl.pitchL[ psEnc->sCmn.nb_subfr - 1 ];
-    psEnc->sCmn.prevSignalType = psEnc->sCmn.indices.signalType;
-
-    
     if( psEnc->sCmn.prefillFlag ) {
         
         *pnBytesOut = 0;
         return ret;
     }
+
+    
+    psEnc->sCmn.prevLag        = sEncCtrl.pitchL[ psEnc->sCmn.nb_subfr - 1 ];
+    psEnc->sCmn.prevSignalType = psEnc->sCmn.indices.signalType;
 
     
     
@@ -316,7 +316,7 @@ opus_int silk_encode_frame_FLP(
 }
 
 
-static inline void silk_LBRR_encode_FLP(
+static OPUS_INLINE void silk_LBRR_encode_FLP(
     silk_encoder_state_FLP          *psEnc,                             
     silk_encoder_control_FLP        *psEncCtrl,                         
     const silk_float                xfw[],                              

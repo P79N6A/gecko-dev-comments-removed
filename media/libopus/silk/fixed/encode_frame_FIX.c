@@ -34,7 +34,7 @@
 #include "tuning_parameters.h"
 
 
-static inline void silk_LBRR_encode_FIX(
+static OPUS_INLINE void silk_LBRR_encode_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     const opus_int32                xfw_Q3[],                               
@@ -132,12 +132,12 @@ opus_int silk_encode_frame_FIX(
         
         
         
-        silk_find_pitch_lags_FIX( psEnc, &sEncCtrl, res_pitch, x_frame );
+        silk_find_pitch_lags_FIX( psEnc, &sEncCtrl, res_pitch, x_frame, psEnc->sCmn.arch );
 
         
         
         
-        silk_noise_shape_analysis_FIX( psEnc, &sEncCtrl, res_pitch_frame, x_frame );
+        silk_noise_shape_analysis_FIX( psEnc, &sEncCtrl, res_pitch_frame, x_frame, psEnc->sCmn.arch );
 
         
         
@@ -303,16 +303,16 @@ opus_int silk_encode_frame_FIX(
         ( psEnc->sCmn.ltp_mem_length + LA_SHAPE_MS * psEnc->sCmn.fs_kHz ) * sizeof( opus_int16 ) );
 
     
-    psEnc->sCmn.prevLag        = sEncCtrl.pitchL[ psEnc->sCmn.nb_subfr - 1 ];
-    psEnc->sCmn.prevSignalType = psEnc->sCmn.indices.signalType;
-
-    
     if( psEnc->sCmn.prefillFlag ) {
         
         *pnBytesOut = 0;
         RESTORE_STACK;
         return ret;
     }
+
+    
+    psEnc->sCmn.prevLag        = sEncCtrl.pitchL[ psEnc->sCmn.nb_subfr - 1 ];
+    psEnc->sCmn.prevSignalType = psEnc->sCmn.indices.signalType;
 
     
     
@@ -326,7 +326,7 @@ opus_int silk_encode_frame_FIX(
 }
 
 
-static inline void silk_LBRR_encode_FIX(
+static OPUS_INLINE void silk_LBRR_encode_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     const opus_int32                xfw_Q3[],                               

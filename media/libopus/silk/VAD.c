@@ -33,7 +33,7 @@
 #include "stack_alloc.h"
 
 
-static inline void silk_VAD_GetNoiseLevels(
+static OPUS_INLINE void silk_VAD_GetNoiseLevels(
     const opus_int32             pX[ VAD_N_BANDS ], 
     silk_VAD_state              *psSilk_VAD         
 );
@@ -296,7 +296,7 @@ opus_int silk_VAD_GetSA_Q8(
 
 
 
-static inline void silk_VAD_GetNoiseLevels(
+static OPUS_INLINE void silk_VAD_GetNoiseLevels(
     const opus_int32            pX[ VAD_N_BANDS ],  
     silk_VAD_state              *psSilk_VAD         
 )

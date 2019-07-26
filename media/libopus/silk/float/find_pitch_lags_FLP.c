@@ -37,7 +37,8 @@ void silk_find_pitch_lags_FLP(
     silk_encoder_state_FLP          *psEnc,                             
     silk_encoder_control_FLP        *psEncCtrl,                         
     silk_float                      res[],                              
-    const silk_float                x[]                                 
+    const silk_float                x[],                                
+    int                             arch                                
 )
 {
     opus_int   buf_len;
@@ -116,7 +117,7 @@ void silk_find_pitch_lags_FLP(
         
         if( silk_pitch_analysis_core_FLP( res, psEncCtrl->pitchL, &psEnc->sCmn.indices.lagIndex,
             &psEnc->sCmn.indices.contourIndex, &psEnc->LTPCorr, psEnc->sCmn.prevLag, psEnc->sCmn.pitchEstimationThreshold_Q16 / 65536.0f,
-            thrhld, psEnc->sCmn.fs_kHz, psEnc->sCmn.pitchEstimationComplexity, psEnc->sCmn.nb_subfr ) == 0 )
+            thrhld, psEnc->sCmn.fs_kHz, psEnc->sCmn.pitchEstimationComplexity, psEnc->sCmn.nb_subfr, arch ) == 0 )
         {
             psEnc->sCmn.indices.signalType = TYPE_VOICED;
         } else {

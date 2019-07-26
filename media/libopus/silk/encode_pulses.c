@@ -36,7 +36,7 @@
 
 
 
-static inline opus_int combine_and_check(    
+static OPUS_INLINE opus_int combine_and_check(    
     opus_int         *pulses_comb,           
     const opus_int   *pulses_in,             
     opus_int         max_pulses,             

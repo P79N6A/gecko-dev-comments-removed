@@ -34,7 +34,7 @@
 #include "tuning_parameters.h"
 
 
-static inline void silk_prefilt_FIX(
+static OPUS_INLINE void silk_prefilt_FIX(
     silk_prefilter_state_FIX    *P,                         
     opus_int32                  st_res_Q12[],               
     opus_int32                  xw_Q3[],                    
@@ -156,7 +156,7 @@ void silk_prefilter_FIX(
 }
 
 
-static inline void silk_prefilt_FIX(
+static OPUS_INLINE void silk_prefilt_FIX(
     silk_prefilter_state_FIX    *P,                         
     opus_int32                  st_res_Q12[],               
     opus_int32                  xw_Q3[],                    

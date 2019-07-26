@@ -41,7 +41,7 @@
 #define QA      16
 
 
-static inline void silk_NLSF2A_find_poly(
+static OPUS_INLINE void silk_NLSF2A_find_poly(
     opus_int32          *out,      
     const opus_int32    *cLSF,     
     opus_int            dd         

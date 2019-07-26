@@ -71,7 +71,8 @@ opus_int silk_encode_frame_FLP(
 
 
 opus_int silk_init_encoder(
-    silk_encoder_state_FLP          *psEnc                              
+    silk_encoder_state_FLP          *psEnc,                             
+    int                              arch                               
 );
 
 
@@ -129,7 +130,8 @@ void silk_find_pitch_lags_FLP(
     silk_encoder_state_FLP          *psEnc,                             
     silk_encoder_control_FLP        *psEncCtrl,                         
     silk_float                      res[],                              
-    const silk_float                x[]                                 
+    const silk_float                x[],                                
+    int                             arch                                
 );
 
 
@@ -199,6 +201,7 @@ void silk_quant_LTP_gains_FLP(
     silk_float                      B[ MAX_NB_SUBFR * LTP_ORDER ],      
     opus_int8                       cbk_index[ MAX_NB_SUBFR ],          
     opus_int8                       *periodicity_index,                 
+    opus_int32                      *sum_log_gain_Q7,                   
     const silk_float                W[ MAX_NB_SUBFR * LTP_ORDER * LTP_ORDER ], 
     const opus_int                  mu_Q10,                             
     const opus_int                  lowComplexity,                      

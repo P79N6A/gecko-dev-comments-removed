@@ -204,6 +204,7 @@ void silk_quant_LTP_gains(
     opus_int16                  B_Q14[ MAX_NB_SUBFR * LTP_ORDER ],          
     opus_int8                   cbk_index[ MAX_NB_SUBFR ],                  
     opus_int8                   *periodicity_index,                         
+	opus_int32					*sum_gain_dB_Q7,							
     const opus_int32            W_Q18[ MAX_NB_SUBFR*LTP_ORDER*LTP_ORDER ],  
     opus_int                    mu_Q9,                                      
     opus_int                    lowComplexity,                              
@@ -214,11 +215,14 @@ void silk_quant_LTP_gains(
 void silk_VQ_WMat_EC(
     opus_int8                   *ind,                           
     opus_int32                  *rate_dist_Q14,                 
+    opus_int                    *gain_Q7,                       
     const opus_int16            *in_Q14,                        
     const opus_int32            *W_Q18,                         
     const opus_int8             *cb_Q7,                         
+    const opus_uint8            *cb_gain_Q7,                    
     const opus_uint8            *cl_Q5,                         
     const opus_int              mu_Q9,                          
+    const opus_int32            max_gain_Q7,                    
     opus_int                    L                               
 );
 

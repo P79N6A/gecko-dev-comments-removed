@@ -128,7 +128,7 @@
 #endif
 
 #ifndef DISABLE_FLOAT_API
-static inline opus_int16 FLOAT2INT16(float x)
+static OPUS_INLINE opus_int16 FLOAT2INT16(float x)
 {
    x = x*CELT_SIG_SCALE;
    x = MAX32(x, -32768);

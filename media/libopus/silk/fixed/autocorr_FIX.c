@@ -38,10 +38,11 @@ void silk_autocorr(
     opus_int                    *scale,             
     const opus_int16            *inputData,         
     const opus_int              inputDataSize,      
-    const opus_int              correlationCount    
+    const opus_int              correlationCount,   
+    int                         arch                
 )
 {
     opus_int   corrCount;
     corrCount = silk_min_int( inputDataSize, correlationCount );
-    *scale = _celt_autocorr(inputData, results, NULL, 0, corrCount-1, inputDataSize);
+    *scale = _celt_autocorr(inputData, results, NULL, 0, corrCount-1, inputDataSize, arch);
 }

@@ -73,7 +73,8 @@ opus_int silk_encode_frame_FIX(
 
 
 opus_int silk_init_encoder(
-    silk_encoder_state_Fxx          *psEnc                                  
+    silk_encoder_state_Fxx          *psEnc,                                 
+    int                              arch                                   
 );
 
 
@@ -104,7 +105,8 @@ void silk_noise_shape_analysis_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     const opus_int16                *pitch_res,                             
-    const opus_int16                *x                                      
+    const opus_int16                *x,                                     
+    int                              arch                                   
 );
 
 
@@ -132,7 +134,8 @@ void silk_find_pitch_lags_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     opus_int16                      res[],                                  
-    const opus_int16                x[]                                     
+    const opus_int16                x[],                                    
+    int                             arch                                    
 );
 
 

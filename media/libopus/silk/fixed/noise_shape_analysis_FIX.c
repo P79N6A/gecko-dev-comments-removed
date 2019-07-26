@@ -37,7 +37,7 @@
 
 
 
-static inline opus_int32 warped_gain( 
+static OPUS_INLINE opus_int32 warped_gain( 
     const opus_int32     *coefs_Q24,
     opus_int             lambda_Q16,
     opus_int             order
@@ -56,7 +56,7 @@ static inline opus_int32 warped_gain(
 
 
 
-static inline void limit_warped_coefs(
+static OPUS_INLINE void limit_warped_coefs(
     opus_int32           *coefs_syn_Q24,
     opus_int32           *coefs_ana_Q24,
     opus_int             lambda_Q16,
@@ -145,7 +145,8 @@ void silk_noise_shape_analysis_FIX(
     silk_encoder_state_FIX          *psEnc,                                 
     silk_encoder_control_FIX        *psEncCtrl,                             
     const opus_int16                *pitch_res,                             
-    const opus_int16                *x                                      
+    const opus_int16                *x,                                     
+    int                              arch                                   
 )
 {
     silk_shape_state_FIX *psShapeSt = &psEnc->sShape;
@@ -281,7 +282,7 @@ void silk_noise_shape_analysis_FIX(
             silk_warped_autocorrelation_FIX( auto_corr, &scale, x_windowed, warping_Q16, psEnc->sCmn.shapeWinLength, psEnc->sCmn.shapingLPCOrder );
         } else {
             
-            silk_autocorr( auto_corr, &scale, x_windowed, psEnc->sCmn.shapeWinLength, psEnc->sCmn.shapingLPCOrder + 1 );
+            silk_autocorr( auto_corr, &scale, x_windowed, psEnc->sCmn.shapeWinLength, psEnc->sCmn.shapingLPCOrder + 1, arch );
         }
 
         

@@ -32,7 +32,7 @@
 #include "main.h"
 #include "stack_alloc.h"
 
-static inline void silk_nsq_scale_states(
+static OPUS_INLINE void silk_nsq_scale_states(
     const silk_encoder_state *psEncC,           
     silk_nsq_state      *NSQ,                   
     const opus_int32    x_Q3[],                 
@@ -46,7 +46,7 @@ static inline void silk_nsq_scale_states(
     const opus_int      signal_type             
 );
 
-static inline void silk_noise_shape_quantizer(
+static OPUS_INLINE void silk_noise_shape_quantizer(
     silk_nsq_state      *NSQ,                   
     opus_int            signalType,             
     const opus_int32    x_sc_Q10[],             
@@ -172,7 +172,7 @@ void silk_NSQ(
 
 
 
-static inline void silk_noise_shape_quantizer(
+static OPUS_INLINE void silk_noise_shape_quantizer(
     silk_nsq_state      *NSQ,                   
     opus_int            signalType,             
     const opus_int32    x_sc_Q10[],             
@@ -370,7 +370,7 @@ static inline void silk_noise_shape_quantizer(
     silk_memcpy( NSQ->sLPC_Q14, &NSQ->sLPC_Q14[ length ], NSQ_LPC_BUF_LENGTH * sizeof( opus_int32 ) );
 }
 
-static inline void silk_nsq_scale_states(
+static OPUS_INLINE void silk_nsq_scale_states(
     const silk_encoder_state *psEncC,           
     silk_nsq_state      *NSQ,                   
     const opus_int32    x_Q3[],                 
