@@ -18,9 +18,11 @@ pref("devtools.chrome.enabled", false);
 
 #ifdef RELEASE_BUILD
 pref("app.crashreporter.autosubmit", false);
+pref("app.crashreporter.submitURLs", false);
 #else
 
 pref("app.crashreporter.autosubmit", true);
+pref("app.crashreporter.submitURLs", false);
 #endif
 
 pref("app.crashreporter.prompted", false);

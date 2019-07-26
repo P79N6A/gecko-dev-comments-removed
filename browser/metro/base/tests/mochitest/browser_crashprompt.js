@@ -11,8 +11,7 @@ const Cc = Components.classes;
 
 const CONTRACT_ID = "@mozilla.org/xre/runtime;1";
 
-var gAppInfoClassID, gIncOldFactory;
-
+var gAppInfoClassID, gIncOldFactory, gOldCrashSubmit, gCrashesSubmitted;
 var gMockAppInfoQueried = false;
 
 function MockAppInfo() {
@@ -30,7 +29,6 @@ var newFactory = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
 };
 
-let oldPrompt;
 function initMockAppInfo() {
   var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
   gAppInfoClassID = registrar.contractIDToCID(CONTRACT_ID);
@@ -40,7 +38,13 @@ function initMockAppInfo() {
   registrar.registerFactory(gAppInfoClassID, "", CONTRACT_ID, newFactory);
   gIncOldFactory = Cm.getClassObject(Cc[CONTRACT_ID], Ci.nsIFactory);
 
-  oldPrompt = Services.prompt;
+  gCrashesSubmitted = 0;
+  gOldCrashSubmit = BrowserUI.CrashSubmit;
+  BrowserUI.CrashSubmit = {
+    submit: function() {
+      gCrashesSubmitted++;
+    }
+  };
 }
 
 function cleanupMockAppInfo() {
@@ -50,8 +54,7 @@ function cleanupMockAppInfo() {
     registrar.registerFactory(gAppInfoClassID, "", CONTRACT_ID, gIncOldFactory);
   }
   gIncOldFactory = null;
-
-  Services.prompt = oldPrompt;
+  BrowserUI.CrashSubmit = gOldCrashSubmit;
 }
 
 MockAppInfo.prototype = {
@@ -62,89 +65,151 @@ MockAppInfo.prototype = {
   },
 }
 
+function GetAutoSubmitPref() {
+  return Services.prefs.getBoolPref("app.crashreporter.autosubmit");
+}
+
+function SetAutoSubmitPref(aValue) {
+  Services.prefs.setBoolPref('app.crashreporter.autosubmit', aValue);
+}
+
+function GetPromptedPref() {
+  return Services.prefs.getBoolPref("app.crashreporter.prompted");
+}
+
+function SetPromptedPref(aValue) {
+  Services.prefs.setBoolPref('app.crashreporter.prompted', aValue);
+}
+
 gTests.push({
-  desc: "Test Crash Prompt",
+  desc: "Pressing 'cancel' button on the crash reporter prompt",
   setUp: initMockAppInfo,
   tearDown: cleanupMockAppInfo,
 
-  get autosubmitPref() {
-    return Services.prefs.getBoolPref("app.crashreporter.autosubmit");
-  },
-  set autosubmitPref(aValue) {
-    Services.prefs.setBoolPref('app.crashreporter.autosubmit', aValue);
-  },
-  get promptedPref() {
-    return Services.prefs.getBoolPref("app.crashreporter.prompted");
-  },
-  set promptedPref(aValue) {
-    Services.prefs.setBoolPref('app.crashreporter.prompted', aValue);
-  },
+  run: function() {
+    MockAppInfo.crashid = "testid";
+    SetAutoSubmitPref(false);
+    SetPromptedPref(false);
+
+    BrowserUI.startupCrashCheck();
+    yield waitForCondition2(function () {
+      return Browser.selectedBrowser.currentURI.spec == "about:crashprompt";
+    }, "Loading crash prompt");
+
+    yield Browser.selectedTab.pageShowPromise;
+    ok(true, "Loaded crash prompt");
+
+    EventUtils.sendMouseEvent({type: "click"},
+                              "refuseButton",
+                              Browser.selectedBrowser
+                                     .contentDocument
+                                     .defaultView);
+    yield waitForCondition2(function () {
+      return Browser.selectedBrowser.currentURI.spec == "about:blank";
+    }, "Crash prompt dismissed");
+
+    ok(!GetAutoSubmitPref(), "auto-submit pref should still be false");
+    ok(GetPromptedPref(), "prompted pref should now be true");
+    is(gCrashesSubmitted, 0, "did not submit crash report");
+  }
+});
+
+gTests.push({
+  desc: "Pressing 'Send Reports' button on the crash reporter prompt",
+  setUp: initMockAppInfo,
+  tearDown: cleanupMockAppInfo,
 
   run: function() {
     MockAppInfo.crashid = "testid";
-
-    
-    
-    Services.prompt = {
-      confirmEx: function() {
-        return this.retVal;
-      }
-    };
-
-    
-    
-
-    
-    this.autosubmitPref = false;
-    this.promptedPref = false;
-
-    
-    
-    Services.prompt.retVal = 1;
+    SetAutoSubmitPref(false);
+    SetPromptedPref(false);
 
     BrowserUI.startupCrashCheck();
-    ok(!this.autosubmitPref, "auto submit disabled?");
-    ok(this.promptedPref, "prompted should be true");
+    yield waitForCondition2(function () {
+      return Browser.selectedBrowser.currentURI.spec == "about:crashprompt";
+    }, "Loading crash prompt");
 
+    yield Browser.selectedTab.pageShowPromise;
+    ok(true, "Loaded crash prompt");
 
-    
-    
+    EventUtils.sendMouseEvent({type: "click"},
+                              "sendReportsButton",
+                              Browser.selectedBrowser
+                                     .contentDocument
+                                     .defaultView);
+    yield waitForCondition2(function () {
+      return Browser.selectedBrowser.currentURI.spec == "about:blank";
+    }, "Crash prompt dismissed");
 
+    ok(GetAutoSubmitPref(), "auto-submit pref should now be true");
+    ok(GetPromptedPref(), "prompted pref should now be true");
     
-    this.autosubmitPref = false;
-    this.promptedPref = false;
+    
+    
+  }
+});
 
-    
-    gMockAppInfoQueried = false;
+gTests.push({
+  desc: "Already prompted, crash reporting disabled",
+  setUp: initMockAppInfo,
+  tearDown: cleanupMockAppInfo,
 
-    
-    
-    Services.prompt.retVal = 0;
+  run: function() {
+    MockAppInfo.crashid = "testid";
+    SetAutoSubmitPref(false);
+    SetPromptedPref(true);
 
     BrowserUI.startupCrashCheck();
-    ok(gMockAppInfoQueried, "id queried");
-    ok(this.autosubmitPref, "auto submit enabled?");
-    ok(this.promptedPref, "prompted should be true");
+    is(Browser.selectedBrowser.currentURI.spec,
+       "about:blank",
+       "Not loading crash prompt");
 
+    ok(!GetAutoSubmitPref(), "auto-submit pref should still be false");
+    ok(GetPromptedPref(), "prompted pref should still be true");
+    is(gCrashesSubmitted, 0, "did not submit crash report");
+  }
+});
 
-    
-    
-    Services.prompt.confirmEx = function() {
-      ok(false, "Should not attempt to launch crash reporter prompt");
-    };
+gTests.push({
+  desc: "Already prompted, crash reporting enabled",
+  setUp: initMockAppInfo,
+  tearDown: cleanupMockAppInfo,
 
-    
-    
-    
-    this.autosubmitPref = false;
-    this.promptedPref = true;
+  run: function() {
+    MockAppInfo.crashid = "testid";
+    SetAutoSubmitPref(true);
+    SetPromptedPref(true);
+
     BrowserUI.startupCrashCheck();
+    is(Browser.selectedBrowser.currentURI.spec,
+       "about:blank",
+       "Not loading crash prompt");
 
-    
-    
-    this.autosubmitPref = true;
-    this.promptedPref = false;
+    ok(GetAutoSubmitPref(), "auto-submit pref should still be true");
+    ok(GetPromptedPref(), "prompted pref should still be true");
+    is(gCrashesSubmitted, 1, "submitted 1 crash report");
+  }
+});
+
+gTests.push({
+  desc: "Crash reporting enabled, not prompted",
+  setUp: initMockAppInfo,
+  tearDown: cleanupMockAppInfo,
+
+  run: function() {
+    MockAppInfo.crashid = "testid";
+    SetAutoSubmitPref(true);
+    SetPromptedPref(false);
+
     BrowserUI.startupCrashCheck();
+    is(Browser.selectedBrowser.currentURI.spec,
+       "about:blank",
+       "Not loading crash prompt");
+
+    ok(GetAutoSubmitPref(), "auto-submit pref should still be true");
+    
+    
+    is(gCrashesSubmitted, 1, "submitted 1 crash report");
   }
 });
 
