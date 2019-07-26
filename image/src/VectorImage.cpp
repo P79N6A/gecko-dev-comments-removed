@@ -572,33 +572,6 @@ VectorImage::GetFrame(uint32_t aWhichFrame,
                       gfxASurface** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
-  nsRefPtr<gfxImageSurface> surface;
-  nsresult rv = CopyFrame(aWhichFrame, aFlags, getter_AddRefs(surface));
-  if (NS_SUCCEEDED(rv)) {
-    *_retval = surface.forget().get();
-  }
-  return rv;
-}
-
-
-
-NS_IMETHODIMP
-VectorImage::GetImageContainer(LayerManager* aManager,
-                               mozilla::layers::ImageContainer** _retval)
-{
-  *_retval = nullptr;
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-VectorImage::CopyFrame(uint32_t aWhichFrame,
-                       uint32_t aFlags,
-                       gfxImageSurface** _retval)
-{
-  NS_ENSURE_ARG_POINTER(_retval);
   
   
   
@@ -648,6 +621,16 @@ VectorImage::CopyFrame(uint32_t aWhichFrame,
   }
 
   return rv;
+}
+
+
+
+NS_IMETHODIMP
+VectorImage::GetImageContainer(LayerManager* aManager,
+                               mozilla::layers::ImageContainer** _retval)
+{
+  *_retval = nullptr;
+  return NS_OK;
 }
 
 

@@ -491,6 +491,9 @@ private:
                                     const gfxRect &aFill,
                                     const nsIntRect &aSubimage);
 
+  nsresult CopyFrame(uint32_t aWhichFrame,
+                     uint32_t aFlags,
+                     gfxImageSurface **_retval);
   
 
 

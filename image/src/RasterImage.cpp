@@ -986,11 +986,7 @@ RasterImage::GetAnimated(bool *aAnimated)
   return NS_OK;
 }
 
-
-
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::CopyFrame(uint32_t aWhichFrame,
                        uint32_t aFlags,
                        gfxImageSurface **_retval)
