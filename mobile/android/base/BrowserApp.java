@@ -1933,17 +1933,15 @@ abstract public class BrowserApp extends GeckoApp
                 shareIntent.putExtra(Intent.EXTRA_TITLE, tab.getDisplayTitle());
 
                 
-                shareIntent.removeExtra("share_screenshot");
                 shareIntent.removeExtra("share_screenshot_uri");
 
                 
                 BitmapDrawable drawable = tab.getThumbnail();
                 if (drawable != null) {
                     Bitmap thumbnail = drawable.getBitmap();
-                    shareIntent.putExtra("share_screenshot", thumbnail);
 
                     
-                    if (Build.MANUFACTURER.equals("Kobo")) {
+                    if (Build.MANUFACTURER.equals("Kobo") && thumbnail != null) {
                         File cacheDir = getExternalCacheDir();
 
                         if (cacheDir != null) {
