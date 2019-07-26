@@ -625,11 +625,29 @@ WebConsoleActor.prototype =
   {
     
     
+    
+    
     let result = JSPropertyProvider(this.window, aRequest.text,
                                     aRequest.cursor) || {};
+    let matches = result.matches || [];
+    let reqText = aRequest.text.substr(0, aRequest.cursor);
+
+    
+    
+    let lastNonAlphaIsDot = /[.][a-zA-Z0-9$]*$/.test(reqText);
+    if (!lastNonAlphaIsDot) {
+      let helpers = {
+        sandbox: Object.create(null)
+      };
+      JSTermHelpers(helpers);
+
+      let helperNames = Object.getOwnPropertyNames(helpers.sandbox);
+      matches = matches.concat(helperNames.filter(n => n.startsWith(result.matchProp)));
+    }
+
     return {
       from: this.actorID,
-      matches: result.matches || [],
+      matches: matches.sort(),
       matchProp: result.matchProp,
     };
   },
