@@ -1190,6 +1190,10 @@ bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
 
     
     
+    RemoveIMEComposition();
+
+    
+    
     
     static bool sDefaultPreventedNotified = false;
     static bool sLastWasDownEvent = false;
