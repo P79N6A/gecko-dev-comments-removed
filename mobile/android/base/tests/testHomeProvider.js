@@ -102,4 +102,31 @@ add_task(function test_row_validation() {
   db.close();
 });
 
+add_task(function test_save_transaction() {
+  
+  let storage = HomeProvider.getStorage(TEST_DATASET_ID);
+
+  
+  let rows = [
+    { title: TEST_TITLE, url: TEST_URL },
+    { image_url: "image_url" }
+  ];
+
+  
+  try {
+    yield storage.save(rows);
+  } catch (e if e instanceof HomeProvider.ValidationError) {
+    
+  }
+
+  
+  let db = yield Sqlite.openConnection({ path: DB_PATH });
+
+  
+  let result = yield db.execute("SELECT * FROM items");
+  do_check_eq(result.length, 0);
+
+  db.close();
+});
+
 run_next_test();

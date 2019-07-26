@@ -294,22 +294,24 @@ HomeStorage.prototype = {
     return Task.spawn(function save_task() {
       let db = yield getDatabaseConnection();
       try {
-        
-        for (let item of data) {
-          validateItem(this.datasetId, item);
-
+        yield db.executeTransaction(function save_transaction() {
           
-          let params = {
-            dataset_id: this.datasetId,
-            url: item.url,
-            title: item.title,
-            description: item.description,
-            image_url: item.image_url,
-            filter: item.filter,
-            created: Date.now()
-          };
-          yield db.executeCached(SQL.insertItem, params);
-        }
+          for (let item of data) {
+            validateItem(this.datasetId, item);
+
+            
+            let params = {
+              dataset_id: this.datasetId,
+              url: item.url,
+              title: item.title,
+              description: item.description,
+              image_url: item.image_url,
+              filter: item.filter,
+              created: Date.now()
+            };
+            yield db.executeCached(SQL.insertItem, params);
+          }
+        }.bind(this));
       } finally {
         yield db.close();
       }
