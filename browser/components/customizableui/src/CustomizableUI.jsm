@@ -128,6 +128,8 @@ let gGroupWrapperCache = new Map();
 let gSingleWrapperCache = new WeakMap();
 let gListeners = new Set();
 
+let gUIStateBeforeReset = null;
+
 let gModuleName = "[CustomizableUI]";
 #include logging.js
 
@@ -693,6 +695,10 @@ let CustomizableUIInternal = {
 
   onWidgetAdded: function(aWidgetId, aArea, aPosition) {
     this.insertNode(aWidgetId, aArea, aPosition, true);
+
+    if (!gResetting) {
+      gUIStateBeforeReset = null;
+    }
   },
 
   onWidgetRemoved: function(aWidgetId, aArea) {
@@ -749,10 +755,20 @@ let CustomizableUIInternal = {
         windowCache.delete(aWidgetId);
       }
     }
+    if (!gResetting) {
+      gUIStateBeforeReset = null;
+    }
   },
 
   onWidgetMoved: function(aWidgetId, aArea, aOldPosition, aNewPosition) {
     this.insertNode(aWidgetId, aArea, aNewPosition);
+    if (!gResetting) {
+      gUIStateBeforeReset = null;
+    }
+  },
+
+  onCustomizeEnd: function(aWindow) {
+    gUIStateBeforeReset = null;
   },
 
   registerBuildArea: function(aArea, aNode) {
@@ -2049,6 +2065,20 @@ let CustomizableUIInternal = {
 
   reset: function() {
     gResetting = true;
+    this._resetUIState();
+
+    
+    
+    this._rebuildRegisteredAreas();
+
+    gResetting = false;
+  },
+
+  _resetUIState: function() {
+    try {
+      gUIStateBeforeReset = Services.prefs.getCharPref(kPrefCustomizationState);
+    } catch(e) { }
+
     Services.prefs.clearUserPref(kPrefCustomizationState);
     LOG("State reset");
 
@@ -2062,9 +2092,9 @@ let CustomizableUIInternal = {
     for (let [areaId,] of gAreas) {
       this.restoreStateForArea(areaId);
     }
+  },
 
-    
-    
+  _rebuildRegisteredAreas: function() {
     for (let [areaId, areaNodes] of gBuildAreas) {
       let placements = gPlacements.get(areaId);
       for (let areaNode of areaNodes) {
@@ -2078,7 +2108,23 @@ let CustomizableUIInternal = {
         }
       }
     }
-    gResetting = false;
+  },
+
+  
+
+
+  undoReset: function() {
+    if (!gUIStateBeforeReset) {
+      return;
+    }
+    Services.prefs.setCharPref(kPrefCustomizationState, gUIStateBeforeReset);
+    this.loadSavedState();
+    for (let areaId of Object.keys(gSavedState.placements)) {
+      let placements = gSavedState.placements[areaId];
+      gPlacements.set(areaId, placements);
+    }
+    this._rebuildRegisteredAreas();
+    gUIStateBeforeReset = null;
   },
 
   
@@ -2832,6 +2878,25 @@ this.CustomizableUI = {
   reset: function() {
     CustomizableUIInternal.reset();
   },
+
+  
+
+
+
+  undoReset: function() {
+    CustomizableUIInternal.undoReset();
+  },
+
+  
+
+
+
+
+
+  get canUndoReset() {
+    return !!gUIStateBeforeReset;
+  },
+
   
 
 
