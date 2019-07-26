@@ -332,9 +332,6 @@ DOMCI_CLASS(StorageItem)
 
 DOMCI_CLASS(XMLHttpProgressEvent)
 
-
-DOMCI_CLASS(EventSource)
-
 DOMCI_CLASS(ClientRect)
 DOMCI_CLASS(ClientRectList)
 
