@@ -10,12 +10,14 @@
 #include "nsCOMPtr.h"
 #include "nsEvent.h"
 
-class nsPresContext;
-class nsIDOMEvent;
-class nsIScriptGlobalObject;
-class nsIDOMEventTarget;
 class nsEventTargetChainItem;
+class nsIDOMEvent;
+class nsIDOMEventTarget;
+class nsIScriptGlobalObject;
+class nsPresContext;
+
 template<class E> class nsCOMArray;
+
 namespace mozilla {
 namespace dom {
 class EventTarget;
@@ -171,13 +173,13 @@ public:
   
 
 
-  nsIDOMEventTarget*   mParentTarget;
+  mozilla::dom::EventTarget* mParentTarget;
 
   
 
 
 
-  nsIDOMEventTarget*   mEventTargetAtParent;
+  mozilla::dom::EventTarget* mEventTargetAtParent;
 };
 
 class nsEventChainPostVisitor : public nsEventChainVisitor {

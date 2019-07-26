@@ -55,6 +55,7 @@
 #include "mozilla/Attributes.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 #define NS_MAX_XBL_BINDING_RECURSION 20
 
@@ -240,9 +241,8 @@ nsXBLStreamListener::OnStartRequest(nsIRequest* request, nsISupports* aCtxt)
 
   
   
-  nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(doc));
-  target->AddEventListener(NS_LITERAL_STRING("load"), this, false);
-  
+  doc->AddEventListener(NS_LITERAL_STRING("load"), this, false);
+
   return mInner->OnStartRequest(request, aCtxt);
 }
 

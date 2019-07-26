@@ -88,7 +88,7 @@ public:
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject);
   virtual void Destroy();
   virtual void OnPageShow(bool aPersisted,
-                          nsIDOMEventTarget* aDispatchStartTarget);
+                          EventTarget* aDispatchStartTarget);
 
   NS_DECL_NSIIMAGEDOCUMENT
   NS_DECL_IMGINOTIFICATIONOBSERVER
@@ -297,7 +297,7 @@ ImageDocument::Destroy()
 {
   if (mImageContent) {
     
-    nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(mImageContent);
+    nsCOMPtr<EventTarget> target = do_QueryInterface(mImageContent);
     target->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
 
     
@@ -324,7 +324,7 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
 {
   
   
-  nsCOMPtr<nsIDOMEventTarget> target;
+  nsCOMPtr<EventTarget> target;
   if (mScriptGlobalObject &&
       aScriptGlobalObject != mScriptGlobalObject) {
     target = do_QueryInterface(mScriptGlobalObject);
@@ -365,7 +365,7 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
 
 void
 ImageDocument::OnPageShow(bool aPersisted,
-                          nsIDOMEventTarget* aDispatchStartTarget)
+                          EventTarget* aDispatchStartTarget)
 {
   if (aPersisted) {
     mOriginalZoomLevel =

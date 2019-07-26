@@ -13,12 +13,12 @@
 #include "nsIDOMLocation.h"
 #include "nsIDOMXULCommandDispatcher.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsIURI.h"
+#include "mozilla/dom/EventTarget.h"
 
 #include "js/RootingAPI.h"
 
@@ -105,14 +105,14 @@ public:
     return mIsBackground;
   }
 
-  nsIDOMEventTarget* GetChromeEventHandler() const
+  mozilla::dom::EventTarget* GetChromeEventHandler() const
   {
     return mChromeEventHandler;
   }
 
-  virtual void SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler) = 0;
+  virtual void SetChromeEventHandler(mozilla::dom::EventTarget* aChromeEventHandler) = 0;
 
-  nsIDOMEventTarget* GetParentTarget()
+  mozilla::dom::EventTarget* GetParentTarget()
   {
     if (!mParentTarget) {
       UpdateParentTarget();
@@ -665,7 +665,7 @@ protected:
 
   ~nsPIDOMWindow();
 
-  void SetChromeEventHandlerInternal(nsIDOMEventTarget* aChromeEventHandler) {
+  void SetChromeEventHandlerInternal(mozilla::dom::EventTarget* aChromeEventHandler) {
     mChromeEventHandler = aChromeEventHandler;
     
     mParentTarget = nullptr;
@@ -679,14 +679,14 @@ protected:
   
   
   
-  nsCOMPtr<nsIDOMEventTarget> mChromeEventHandler; 
+  nsCOMPtr<mozilla::dom::EventTarget> mChromeEventHandler; 
   nsCOMPtr<nsIDOMDocument> mDocument; 
   nsCOMPtr<nsIDocument> mDoc; 
   
   nsCOMPtr<nsIURI> mDocumentURI; 
   nsCOMPtr<nsIURI> mDocBaseURI; 
 
-  nsCOMPtr<nsIDOMEventTarget> mParentTarget; 
+  nsCOMPtr<mozilla::dom::EventTarget> mParentTarget; 
 
   
   nsCOMPtr<nsIDOMElement> mFrameElement;

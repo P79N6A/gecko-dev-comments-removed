@@ -48,7 +48,6 @@ class nsIDOMDocument;
 class nsIDOMDocumentFragment;
 class nsIDOMDocumentType;
 class nsIDOMElement;
-class nsIDOMEventTarget;
 class nsIDOMNodeList;
 class nsIDOMTouch;
 class nsIDOMTouchList;
@@ -95,6 +94,7 @@ class DocumentType;
 class DOMImplementation;
 class Element;
 struct ElementRegistrationOptions;
+class EventTarget;
 class GlobalObject;
 class HTMLBodyElement;
 class Link;
@@ -1264,7 +1264,7 @@ public:
 
 
   virtual void OnPageShow(bool aPersisted,
-                          nsIDOMEventTarget* aDispatchStartTarget) = 0;
+                          mozilla::dom::EventTarget* aDispatchStartTarget) = 0;
 
   
 
@@ -1279,8 +1279,8 @@ public:
 
 
   virtual void OnPageHide(bool aPersisted,
-                          nsIDOMEventTarget* aDispatchStartTarget) = 0;
-  
+                          mozilla::dom::EventTarget* aDispatchStartTarget) = 0;
+
   
 
 
