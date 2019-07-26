@@ -302,7 +302,14 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
 
 
 
-    obj->initPrivate(buffer->dataPointer() + byteOffset);
+
+    if (buffer->isNeutered()) {
+        JS_ASSERT(byteOffset == 0);
+        obj->initPrivate(nullptr);
+    } else {
+        obj->initPrivate(buffer->dataPointer() + byteOffset);
+    }
+
     PostBarrierTypedArrayObject(obj);
 }
 
