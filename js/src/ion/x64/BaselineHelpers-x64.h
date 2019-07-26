@@ -110,6 +110,7 @@ EmitCallVM(IonCode *target, MacroAssembler &masm)
 
 
 static const uint32_t STUB_FRAME_SIZE = 4 * sizeof(void *);
+static const uint32_t STUB_FRAME_SAVED_STUB_OFFSET = sizeof(void *);
 
 inline void
 EmitEnterStubFrame(MacroAssembler &masm, Register)

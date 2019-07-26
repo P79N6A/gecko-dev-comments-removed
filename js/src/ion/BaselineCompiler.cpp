@@ -1629,7 +1629,7 @@ BaselineCompiler::emitCall()
     masm.mov(Imm32(argc), R0.scratchReg());
 
     
-    ICCall_Fallback::Compiler stubCompiler(cx);
+    ICCall_Fallback::Compiler stubCompiler(cx,  JSOp(*pc) == JSOP_NEW);
     if (!emitIC(stubCompiler.getStub(&stubSpace_)))
         return false;
 
