@@ -231,6 +231,13 @@ public:
   uint32_t ComputeGeckoKeyCode(UInt32 aNativeKeyCode, UInt32 aKbType,
                                bool aCmdIsPressed);
 
+  
+
+
+
+
+  static KeyNameIndex ComputeGeckoKeyNameIndex(UInt32 aNativeKeyCode);
+
 protected:
   
 
