@@ -83,6 +83,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         if (!GetIonContext()->temp)
             alloc_.construct(cx);
 #ifdef JS_CPU_ARM
+        initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
     }
@@ -97,6 +98,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         ionContext_.construct(cx, cx->compartment, (js::ion::TempAllocator *)NULL);
         alloc_.construct(cx);
 #ifdef JS_CPU_ARM
+        initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
     }

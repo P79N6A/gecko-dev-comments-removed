@@ -1221,6 +1221,13 @@ class Assembler
         dtmActive(false),
         dtmCond(Always)
     {
+    }
+
+    
+    
+    void initWithAllocator() {
+        m_buffer.initWithAllocator();
+
         
         new (&pools_[2]) Pool (1024, 8, 4, 8, 8, true);
         
@@ -1236,6 +1243,7 @@ class Assembler
             }
         }
     }
+
     static Condition InvertCondition(Condition cond);
 
     
