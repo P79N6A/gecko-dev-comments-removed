@@ -315,12 +315,20 @@ GfxInfo::Init()
           
           dwcbData = sizeof(value);
           result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
+          if (result == ERROR_SUCCESS) {
             mDriverVersion = value;
+          } else {
+            
+            mDriverVersion.AssignLiteral("0.0.0.0");
+          }
           dwcbData = sizeof(value);
           result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
+          if (result == ERROR_SUCCESS) {
             mDriverDate = value;
+          } else {
+            
+            mDriverDate.AssignLiteral("01-01-1970");
+          }
           RegCloseKey(key); 
           break;
         }
