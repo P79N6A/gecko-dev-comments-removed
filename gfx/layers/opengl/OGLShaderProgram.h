@@ -19,6 +19,8 @@
 #include "nsTArray.h"                   
 #include "mozilla/layers/CompositorTypes.h"
 
+#include <string>
+
 struct gfxRGBA;
 struct nsIntRect;
 
@@ -27,24 +29,19 @@ namespace layers {
 
 class Layer;
 
-enum ShaderProgramType {
-  RGBALayerProgramType,
-  BGRALayerProgramType,
-  RGBXLayerProgramType,
-  BGRXLayerProgramType,
-  RGBARectLayerProgramType,
-  RGBXRectLayerProgramType,
-  BGRARectLayerProgramType,
-  RGBAExternalLayerProgramType,
-  ColorLayerProgramType,
-  YCbCrLayerProgramType,
-  ComponentAlphaPass1ProgramType,
-  ComponentAlphaPass1RGBProgramType,
-  ComponentAlphaPass2ProgramType,
-  ComponentAlphaPass2RGBProgramType,
-  Copy2DProgramType,
-  Copy2DRectProgramType,
-  NumProgramTypes
+enum ShaderFeatures {
+  ENABLE_RENDER_COLOR=0x01,
+  ENABLE_TEXTURE_RECT=0x02,
+  ENABLE_TEXTURE_EXTERNAL=0x04,
+  ENABLE_TEXTURE_YCBCR=0x08,
+  ENABLE_TEXTURE_COMPONENT_ALPHA=0x10,
+  ENABLE_TEXTURE_NO_ALPHA=0x20,
+  ENABLE_TEXTURE_RB_SWAP=0x40,
+  ENABLE_OPACITY=0x80,
+  ENABLE_BLUR=0x100,
+  ENABLE_COLOR_MATRIX=0x200,
+  ENABLE_MASK_2D=0x400,
+  ENABLE_MASK_3D=0x800
 };
 
 class KnownUniform {
@@ -68,6 +65,7 @@ public:
     MaskTexture,
     RenderColor,
     TexCoordMultiplier,
+    TexturePass2,
 
     KnownUniformCount
   };
@@ -156,54 +154,51 @@ public:
   } mValue;
 };
 
-static inline ShaderProgramType
-ShaderProgramFromSurfaceFormat(gfx::SurfaceFormat aFormat)
+class ShaderConfigOGL
 {
-  switch (aFormat) {
-    case gfx::SurfaceFormat::B8G8R8A8:
-      return BGRALayerProgramType;
-    case gfx::SurfaceFormat::B8G8R8X8:
-      return BGRXLayerProgramType;
-    case gfx::SurfaceFormat::R8G8B8A8:
-      return RGBALayerProgramType;
-    case gfx::SurfaceFormat::R8G8B8X8:
-    case gfx::SurfaceFormat::R5G6B5:
-      return RGBXLayerProgramType;
-    case gfx::SurfaceFormat::A8:
-      
-      break;
-    default:
-      NS_ASSERTION(false, "Unhandled surface format!");
-  }
-  return ShaderProgramType(0);
-}
+public:
+  ShaderConfigOGL() :
+    mFeatures(0) {}
 
-static inline ShaderProgramType
-ShaderProgramFromTargetAndFormat(GLenum aTarget,
-                                 gfx::SurfaceFormat aFormat)
-{
-  switch(aTarget) {
-    case LOCAL_GL_TEXTURE_EXTERNAL:
-      MOZ_ASSERT(aFormat == gfx::SurfaceFormat::R8G8B8A8);
-      return RGBAExternalLayerProgramType;
-    case LOCAL_GL_TEXTURE_RECTANGLE_ARB:
-      MOZ_ASSERT(aFormat == gfx::SurfaceFormat::R8G8B8A8 ||
-                 aFormat == gfx::SurfaceFormat::R8G8B8X8);
-      if (aFormat == gfx::SurfaceFormat::R8G8B8A8)
-        return RGBARectLayerProgramType;
-      else
-        return RGBXRectLayerProgramType;
-    default:
-      return ShaderProgramFromSurfaceFormat(aFormat);
-  }
-}
+  void SetRenderColor(bool aEnabled);
+  void SetTextureTarget(GLenum aTarget);
+  void SetRBSwap(bool aEnabled);
+  void SetNoAlpha(bool aEnabled);
+  void SetOpacity(bool aEnabled);
+  void SetYCbCr(bool aEnabled);
+  void SetComponentAlpha(bool aEnabled);
+  void SetColorMatrix(bool aEnabled);
+  void SetBlur(bool aEnabled);
+  void SetMask2D(bool aEnabled);
+  void SetMask3D(bool aEnabled);
 
-static inline ShaderProgramType
-ShaderProgramFromContentType(gfxContentType aContentType)
+  bool operator< (const ShaderConfigOGL& other) const {
+    return mFeatures < other.mFeatures;
+  }
+
+public:
+  void SetFeature(int aBitmask, bool aState) {
+    if (aState)
+      mFeatures |= aBitmask;
+    else
+      mFeatures &= (~aBitmask);
+  }
+
+  int mFeatures;
+};
+
+static inline ShaderConfigOGL
+ShaderConfigFromTargetAndFormat(GLenum aTarget,
+                                gfx::SurfaceFormat aFormat)
 {
-  if (aContentType == gfxContentType::COLOR_ALPHA)
-    return RGBALayerProgramType;
-  return RGBXLayerProgramType;
+  ShaderConfigOGL config;
+  config.SetTextureTarget(aTarget);
+  config.SetRBSwap(aFormat == gfx::SurfaceFormat::B8G8R8A8 ||
+                   aFormat == gfx::SurfaceFormat::B8G8R8X8);
+  config.SetNoAlpha(aFormat == gfx::SurfaceFormat::B8G8R8X8 ||
+                    aFormat == gfx::SurfaceFormat::R8G8B8X8 ||
+                    aFormat == gfx::SurfaceFormat::R5G6B5);
+  return config;
 }
 
 
@@ -218,37 +213,7 @@ struct ProgramProfileOGL
 
 
 
-  static ProgramProfileOGL GetProfileFor(ShaderProgramType aType,
-                                         MaskType aMask);
-
-  
-
-
-  static bool ProgramExists(ShaderProgramType aType, MaskType aMask)
-  {
-    if (aType < 0 ||
-        aType >= NumProgramTypes)
-      return false;
-
-    if (aMask < MaskNone ||
-        aMask >= NumMaskTypes)
-      return false;
-
-    if (aMask == Mask2d &&
-        (aType == Copy2DProgramType ||
-         aType == Copy2DRectProgramType))
-      return false;
-
-    if (aMask != MaskNone &&
-        aType == BGRARectLayerProgramType)
-      return false;
-
-    return aMask != Mask3d ||
-           aType == RGBARectLayerProgramType ||
-           aType == RGBXRectLayerProgramType ||
-           aType == RGBALayerProgramType;
-  }
-
+  static ProgramProfileOGL GetProfileFor(ShaderConfigOGL aConfig);
 
   
 
@@ -276,17 +241,17 @@ struct ProgramProfileOGL
   };
 
   
-  const char *mVertexShaderString;
-  const char *mFragmentShaderString;
+  std::string mVertexShaderString;
+  std::string mFragmentShaderString;
 
   KnownUniform mUniforms[KnownUniform::KnownUniformCount];
   nsTArray<Argument> mAttributes;
+  nsTArray<const char *> mDefines;
   uint32_t mTextureCount;
-  bool mHasMatrixProj;
-private:
+
   ProgramProfileOGL() :
-    mTextureCount(0),
-    mHasMatrixProj(false) {}
+    mTextureCount(0)
+  {}
 };
 
 
@@ -341,10 +306,6 @@ public:
     return mProfile.LookupAttributeLocation(aName);
   }
 
-  GLint GetTexCoordMultiplierUniformLocation() {
-    return mProfile.mUniforms[KnownUniform::TexCoordMultiplier].mLocation;
-  }
-
   
 
 
@@ -376,17 +337,8 @@ public:
     SetMatrixUniform(KnownUniform::LayerQuadTransform, m);
   }
 
-  
-  
-  void DelayedSetProjectionMatrix(const gfx::Matrix4x4& aMatrix)
-  {
-    mIsProjectionMatrixStale = true;
-    mProjectionMatrix = aMatrix;
-  }
-
   void SetProjectionMatrix(const gfx::Matrix4x4& aMatrix) {
     SetMatrixUniform(KnownUniform::MatrixProj, aMatrix);
-    mIsProjectionMatrixStale = false;
   }
 
   
@@ -455,14 +407,17 @@ public:
   }
 
   
+  
+  
+  void SetTexturePass2(bool aFlag) {
+    SetUniform(KnownUniform::TexturePass2, aFlag ? 1 : 0);
+  }
+
+  
   static const char* const VertexCoordAttrib;
   static const char* const TexCoordAttrib;
 
 protected:
-  gfx::Matrix4x4 mProjectionMatrix;
-  
-  bool mIsProjectionMatrixStale;
-
   RefPtr<GLContext> mGL;
   
   GLuint mProgram;
@@ -472,6 +427,10 @@ protected:
     STATE_OK,
     STATE_ERROR
   } mProgramState;
+
+#ifdef CHECK_CURRENT_PROGRAM
+  static int sCurrentProgramKey;
+#endif
 
   void SetUniform(KnownUniform::KnownUniformName aKnownUniform, float aFloatValue)
   {

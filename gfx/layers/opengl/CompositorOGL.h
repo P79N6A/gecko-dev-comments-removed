@@ -55,10 +55,10 @@ struct EffectChain;
 class CompositorOGL : public Compositor
 {
   typedef mozilla::gl::GLContext GLContext;
-  typedef ShaderProgramType ProgramType;
   
   friend class GLManagerCompositor;
 
+  std::map<ShaderConfigOGL, ShaderProgramOGL*> mPrograms;
 public:
   CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
                 bool aUseExternalSurfaceSize = false);
@@ -160,10 +160,6 @@ public:
   virtual nsIWidget* GetWidget() const MOZ_OVERRIDE { return mWidget; }
 
   GLContext* gl() const { return mGLContext; }
-  ShaderProgramType GetFBOLayerProgramType() const {
-    return mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB ?
-           RGBARectLayerProgramType : RGBALayerProgramType;
-  }
   gfx::SurfaceFormat GetFBOFormat() const {
     return gfx::SurfaceFormat::R8G8B8A8;
   }
@@ -175,6 +171,10 @@ public:
 
 
   GLuint GetTemporaryTexture(GLenum aUnit);
+
+  const gfx::Matrix4x4& GetProjMatrix() const {
+    return mProjMatrix;
+  }
 private:
   virtual void DrawQuadInternal(const gfx::Rect& aRect,
                                 const gfx::Rect& aClipRect,
@@ -192,6 +192,7 @@ private:
   nsIWidget *mWidget;
   nsIntSize mWidgetSize;
   nsRefPtr<GLContext> mGLContext;
+  gfx::Matrix4x4 mProjMatrix;
 
   
   nsIntSize mSurfaceSize;
@@ -199,19 +200,6 @@ private:
   ScreenPoint mRenderOffset;
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
-
-  
-  struct ShaderProgramVariations {
-    nsAutoTArray<nsAutoPtr<ShaderProgramOGL>, NumMaskTypes> mVariations;
-    ShaderProgramVariations() {
-      MOZ_COUNT_CTOR(ShaderProgramVariations);
-      mVariations.SetLength(NumMaskTypes);
-    }
-    ~ShaderProgramVariations() {
-      MOZ_COUNT_DTOR(ShaderProgramVariations);
-    }
-  };
-  nsTArray<ShaderProgramVariations> mPrograms;
 
   
   GLenum mFBOTextureTarget;
@@ -261,25 +249,8 @@ private:
                           gfx::Rect *aClipRectOut = nullptr,
                           gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
 
-  ShaderProgramType GetProgramTypeForEffect(Effect* aEffect) const;
-
-  
-
-
-  void SetLayerProgramProjectionMatrix(const gfx::Matrix4x4& aMatrix);
-
-  
-
-
-
-  void AddPrograms(ShaderProgramType aType);
-
-  ShaderProgramOGL* GetProgram(ShaderProgramType aType,
-                               MaskType aMask = MaskNone) {
-    MOZ_ASSERT(ProgramProfileOGL::ProgramExists(aType, aMask),
-               "Invalid program type.");
-    return mPrograms[aType].mVariations[aMask];
-  }
+  ShaderConfigOGL GetShaderConfigFor(Effect *aEffect, MaskType aMask = MaskNone) const;
+  ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL &aConfig);
 
   
 
