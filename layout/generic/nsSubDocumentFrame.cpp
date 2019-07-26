@@ -465,10 +465,15 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     childItems.AppendToTop(item);
   }
 
-  if (mIsInline) {
-    WrapReplacedContentForBorderRadius(aBuilder, &childItems, aLists);
+  if (aBuilder->IsForImageVisibility()) {
+    
+    presShell->RebuildImageVisibility(childItems);
   } else {
-    aLists.Content()->AppendToTop(&childItems);
+    if (mIsInline) {
+      WrapReplacedContentForBorderRadius(aBuilder, &childItems, aLists);
+    } else {
+      aLists.Content()->AppendToTop(&childItems);
+    }
   }
 
   

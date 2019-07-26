@@ -122,8 +122,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xda75e297, 0x2c23, 0x43c4, \
-  { 0x8d, 0x7f, 0x96, 0xa6, 0x68, 0xe9, 0x6b, 0xa9 } }
+{ 0x15f6c268, 0xe40f, 0x42a9, \
+  { 0xa7, 0xeb, 0xe5, 0xe1, 0x0a, 0x58, 0x40, 0xa1 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1319,6 +1319,13 @@ public:
   virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) = 0;
 
   void InvalidatePresShellIfHidden();
+
+  
+  virtual void ScheduleImageVisibilityUpdate() = 0;
+
+  
+  
+  virtual void RebuildImageVisibility(const nsDisplayList& aList) = 0;
 
   
 
