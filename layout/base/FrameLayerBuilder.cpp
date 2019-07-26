@@ -1297,6 +1297,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
     layer = mRecycledThebesLayers[mNextFreeRecycledThebesLayer];
     ++mNextFreeRecycledThebesLayer;
     
+    
     layer->SetMaskLayer(nullptr);
 
     data = static_cast<ThebesDisplayItemLayerUserData*>
@@ -1538,15 +1539,14 @@ ContainerState::PopThebesLayerData()
   ThebesLayerData* data = mThebesLayerDataStack[lastIndex];
 
   nsRefPtr<Layer> layer;
-  ThebesLayer* thebesLayer = data->mLayer;
   nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(mBuilder);
 
   if ((data->mIsSolidColorInVisibleRegion || imageContainer) &&
-      thebesLayer->GetValidRegion().IsEmpty()) {
+      data->mLayer->GetValidRegion().IsEmpty()) {
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),
                  "Can't be a solid color as well as an image!");
     if (imageContainer) {
-      nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer(thebesLayer);
+      nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer(data->mLayer);
       imageLayer->SetContainer(imageContainer);
       data->mImage->ConfigureLayer(imageLayer, mParameters.mOffset);
       imageLayer->SetPostScale(mParameters.mXScale,
@@ -1562,13 +1562,13 @@ ContainerState::PopThebesLayerData()
       mLayerBuilder->StoreOptimizedLayerForFrame(data->mImage,
                                                  imageLayer);
     } else {
-      nsRefPtr<ColorLayer> colorLayer = CreateOrRecycleColorLayer(thebesLayer);
-      colorLayer->SetIsFixedPosition(thebesLayer->GetIsFixedPosition());
+      nsRefPtr<ColorLayer> colorLayer = CreateOrRecycleColorLayer(data->mLayer);
+      colorLayer->SetIsFixedPosition(data->mLayer->GetIsFixedPosition());
       colorLayer->SetColor(data->mSolidColor);
 
       
-      colorLayer->SetBaseTransform(thebesLayer->GetBaseTransform());
-      colorLayer->SetPostScale(thebesLayer->GetPostXScale(), thebesLayer->GetPostYScale());
+      colorLayer->SetBaseTransform(data->mLayer->GetBaseTransform());
+      colorLayer->SetPostScale(data->mLayer->GetPostXScale(), data->mLayer->GetPostYScale());
 
       
       
@@ -1590,16 +1590,13 @@ ContainerState::PopThebesLayerData()
 
     
     
-    
-    
-    thebesLayer->SetClipRect(nullptr);
     nsIntRect emptyRect;
-    thebesLayer->SetClipRect(&emptyRect);
-    thebesLayer->SetVisibleRegion(nsIntRegion());
+    data->mLayer->SetClipRect(&emptyRect);
+    data->mLayer->SetVisibleRegion(nsIntRegion());
   } else {
-    layer = thebesLayer;
-    thebesLayer->SetClipRect(nullptr);
+    layer = data->mLayer;
     imageContainer = nullptr;
+    layer->SetClipRect(nullptr);
   }
 
   gfxMatrix transform;
