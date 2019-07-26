@@ -367,6 +367,28 @@ class Range : public TempObject {
         return upper_;
     }
 
+    
+    bool isFiniteNegative() const {
+        return upper_ < 0 && !canBeInfiniteOrNaN();
+    }
+
+    
+    bool isFiniteNonNegative() const {
+        return lower_ >= 0 && !canBeInfiniteOrNaN();
+    }
+
+    
+    
+    bool canBeFiniteNegative() const {
+        return lower_ < 0;
+    }
+
+    
+    
+    bool canBeFiniteNonNegative() const {
+        return upper_ >= 0;
+    }
+
     void setLower(int64_t x) {
         setLowerInit(x);
         rectifyExponent();

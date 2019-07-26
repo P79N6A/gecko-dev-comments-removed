@@ -674,9 +674,7 @@ Range::ursh(const Range *lhs, int32_t c)
 
     
     
-    if ((lhs->lower_ >= 0 && lhs->hasInt32UpperBound()) ||
-        (lhs->upper_ < 0 && lhs->hasInt32LowerBound()))
-    {
+    if (lhs->isFiniteNonNegative() || lhs->isFiniteNegative()) {
         return Range::NewUInt32Range(
             uint32_t(lhs->lower_) >> shift,
             uint32_t(lhs->upper_) >> shift);
@@ -705,7 +703,7 @@ Range::rsh(const Range *lhs, const Range *rhs)
 Range *
 Range::ursh(const Range *lhs, const Range *rhs)
 {
-    return Range::NewUInt32Range(0, (lhs->lower() >= 0 && lhs->hasInt32UpperBound()) ? lhs->upper() : UINT32_MAX);
+    return Range::NewUInt32Range(0, lhs->isFiniteNonNegative() ? lhs->upper() : UINT32_MAX);
 }
 
 Range *
@@ -753,18 +751,9 @@ bool
 Range::negativeZeroMul(const Range *lhs, const Range *rhs)
 {
     
-    if (lhs->lower_ >= 0 && rhs->lower_ >= 0)
-        return false;
-
     
-    if (lhs->upper_ < 0 && rhs->upper_ < 0)
-        return false;
-
-    
-    if (lhs->lower_ > 0 || rhs->lower_ > 0)
-        return false;
-
-    return true;
+    return (lhs->canBeFiniteNegative() && rhs->canBeFiniteNonNegative()) ||
+           (rhs->canBeFiniteNegative() && lhs->canBeFiniteNonNegative());
 }
 
 bool
@@ -2202,23 +2191,25 @@ RangeAnalysis::truncate()
 void
 MInArray::collectRangeInfo()
 {
-    needsNegativeIntCheck_ = !index()->range() || index()->range()->lower() < 0;
+    needsNegativeIntCheck_ = !index()->range() || !index()->range()->isFiniteNonNegative();
 }
 
 void
 MLoadElementHole::collectRangeInfo()
 {
-    needsNegativeIntCheck_ = !index()->range() || index()->range()->lower() < 0;
+    needsNegativeIntCheck_ = !index()->range() || !index()->range()->isFiniteNonNegative();
 }
 
 void
 MMod::collectRangeInfo()
 {
-    canBeNegativeDividend_ = !lhs()->range() || lhs()->range()->lower() < 0;
+    canBeNegativeDividend_ = !lhs()->range() || !lhs()->range()->isFiniteNonNegative();
 }
 
 void
 MBoundsCheckLower::collectRangeInfo()
 {
-    fallible_ = !index()->range() || index()->range()->lower() < minimum_;
+    fallible_ = !index()->range() ||
+                !index()->range()->hasInt32LowerBound() ||
+                index()->range()->lower() < minimum_;
 }
