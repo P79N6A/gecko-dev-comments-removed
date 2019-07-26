@@ -1454,10 +1454,10 @@ History::~History()
 #endif
 }
 
-void
+NS_IMETHODIMP
 History::NotifyVisited(nsIURI* aURI)
 {
-  NS_ASSERTION(aURI, "Ruh-roh!  A NULL URI was passed to us!");
+  NS_ENSURE_ARG(aURI);
 
   nsAutoScriptBlocker scriptBlocker;
 
@@ -1477,14 +1477,14 @@ History::NotifyVisited(nsIURI* aURI)
   
   
   if (!mObservers.IsInitialized()) {
-    return;
+    return NS_OK;
   }
 
   
   
   KeyClass* key = mObservers.GetEntry(aURI);
   if (!key) {
-    return;
+    return NS_OK;
   }
 
   
@@ -1503,6 +1503,7 @@ History::NotifyVisited(nsIURI* aURI)
 
   
   mObservers.RemoveEntry(aURI);
+  return NS_OK;
 }
 
 mozIStorageAsyncStatement*

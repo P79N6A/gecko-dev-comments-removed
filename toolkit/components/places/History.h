@@ -50,14 +50,6 @@ public:
   
 
 
-
-
-
-  void NotifyVisited(nsIURI* aURI);
-
-  
-
-
   mozIStorageAsyncStatement* GetIsVisitedStatement();
 
   
