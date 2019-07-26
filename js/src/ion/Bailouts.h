@@ -204,7 +204,7 @@ class IonBailoutIterator : public IonFrameIterator
     void dump() const;
 };
 
-bool EnsureHasCallObject(JSContext *cx, StackFrame *fp);
+bool EnsureHasScopeObjects(JSContext *cx, StackFrame *fp);
 
 
 uint32_t Bailout(BailoutStack *sp);

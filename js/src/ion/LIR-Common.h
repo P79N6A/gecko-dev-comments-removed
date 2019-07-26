@@ -275,6 +275,22 @@ class LNewObject : public LInstructionHelper<1, 0, 0>
 
 
 
+class LNewDeclEnvObject : public LInstructionHelper<1, 0, 0>
+{
+  public:
+    LIR_HEADER(NewDeclEnvObject);
+
+    MNewDeclEnvObject *mir() const {
+        return mir_->toNewDeclEnvObject();
+    }
+};
+
+
+
+
+
+
+
 
 
 
