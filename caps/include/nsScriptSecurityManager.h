@@ -433,12 +433,6 @@ private:
     
     
     
-    nsIPrincipal*
-    GetFramePrincipal(JSContext* cx, JSStackFrame* fp, nsresult* rv);
-
-    
-    
-    
     static nsIPrincipal*
     GetScriptPrincipal(JSScript* script, nsresult* rv);
 
@@ -451,14 +445,6 @@ private:
     static nsIPrincipal*
     GetFunctionObjectPrincipal(JSContext* cx, JSObject* obj, JSStackFrame *fp,
                                nsresult* rv);
-
-    
-    
-    
-    nsIPrincipal*
-    GetPrincipalAndFrame(JSContext *cx,
-                         JSStackFrame** frameResult,
-                         nsresult* rv);
 
     
 
