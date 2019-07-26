@@ -55,6 +55,7 @@
 #include "nsIServiceManager.h"
 #include "nsContentUtils.h"
 #include "LayerTreeInvalidation.h"
+#include "nsIPermissionManager.h"
 
 using namespace mozilla;
 using mozilla::layout::RenderFrameParent;
@@ -245,10 +246,23 @@ nsSubDocumentFrame::PassPointerEventsToChildren()
   
   
   
-  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozpasspointerevents) &&
-      PresContext()->IsChrome()) {
-    return true;
+  
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mozpasspointerevents)) {
+      if (PresContext()->IsChrome()) {
+        return true;
+      }
+
+      nsCOMPtr<nsIPermissionManager> permMgr =
+        do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+      if (permMgr) {
+        uint32_t permission = nsIPermissionManager::DENY_ACTION;
+        permMgr->TestPermissionFromPrincipal(GetContent()->NodePrincipal(),
+                                             "embed-apps", &permission);
+
+        return permission == nsIPermissionManager::ALLOW_ACTION;
+      }
   }
+
   return false;
 }
 
