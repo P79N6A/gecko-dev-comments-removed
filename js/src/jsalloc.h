@@ -4,8 +4,12 @@
 
 
 
+
+
 #ifndef jsalloc_h
 #define jsalloc_h
+
+#include "mozilla/AllocPolicy.h"
 
 #include "js/Utility.h"
 
@@ -14,23 +18,6 @@ struct JSContext;
 namespace js {
 
 class ContextFriendFields;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class SystemAllocPolicy
