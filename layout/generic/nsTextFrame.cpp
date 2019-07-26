@@ -8092,7 +8092,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     
     aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth,
-                                           eNormalBreak);
+                                           gfxBreakPriority::eNormalBreak);
   }
   bool breakAfter = forceBreakAfter;
   
@@ -8112,7 +8112,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
       breakAfter = true;
     } else {
       aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
-                                              true, eNormalBreak);
+                                              true, gfxBreakPriority::eNormalBreak);
     }
   }
 

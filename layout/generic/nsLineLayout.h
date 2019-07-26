@@ -247,7 +247,7 @@ public:
     mNeedBackup = false;
     mLastOptionalBreakContent = nullptr;
     mLastOptionalBreakContentOffset = -1;
-    mLastOptionalBreakPriority = eNoBreak;
+    mLastOptionalBreakPriority = gfxBreakPriority::eNoBreak;
   }
   
   

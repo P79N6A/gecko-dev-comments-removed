@@ -57,7 +57,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
     mLastOptionalBreakContent(nullptr),
     mForceBreakContent(nullptr),
     mBlockRS(nullptr),
-    mLastOptionalBreakPriority(eNoBreak),
+    mLastOptionalBreakPriority(gfxBreakPriority::eNoBreak),
     mLastOptionalBreakContentOffset(-1),
     mForceBreakContentOffset(-1),
     mMinLineHeight(0),
@@ -1025,7 +1025,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          if (NotifyOptionalBreakPosition(aFrame->GetContent(), INT32_MAX, optionalBreakAfterFits, eNormalBreak)) {
+          if (NotifyOptionalBreakPosition(aFrame->GetContent(), INT32_MAX, optionalBreakAfterFits, gfxBreakPriority::eNormalBreak)) {
             
             aReflowStatus = NS_INLINE_LINE_BREAK_AFTER(aReflowStatus);
           }
