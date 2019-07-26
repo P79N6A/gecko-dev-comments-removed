@@ -16,12 +16,28 @@ const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVer
 
 const TIMEOUT_MS = 900000;
 
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
+
+
+let AMscope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
+let AddonManager = AMscope.AddonManager;
+let AddonManagerInternal = AMscope.AddonManagerInternal;
+
+
+let MockAsyncShutdown = {
+  hook: null,
+  profileBeforeChange: {
+    addBlocker: function(aName, aBlocker) {
+      do_print("Mock profileBeforeChange blocker for '" + aName + "'");
+      MockAsyncShutdown.hook = aBlocker;
+    }
+  }
+};
+AMscope.AsyncShutdown = MockAsyncShutdown;
 
 var gInternalManager = null;
 var gAppInfo = null;
@@ -403,11 +419,16 @@ function shutdownManager() {
   let shutdownDone = false;
 
   Services.obs.notifyObservers(null, "quit-application-granted", null);
-  let scope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
-  scope.AddonManagerInternal.shutdown()
-    .then(
-        () => shutdownDone = true,
-        err => shutdownDone = true);
+  MockAsyncShutdown.hook().then(
+    () => shutdownDone = true,
+    err => shutdownDone = true);
+
+  let thr = Services.tm.mainThread;
+
+  
+  while (!shutdownDone) {
+    thr.processNextEvent(true);
+  }
 
   gInternalManager = null;
 
@@ -417,20 +438,13 @@ function shutdownManager() {
   
   gAppInfo.annotations = {};
 
-  let thr = Services.tm.mainThread;
-
-  
-  while (!shutdownDone) {
-    thr.processNextEvent(true);
-  }
-
   
   
-  scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
+  let XPIscope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
   
   
-  gXPISaveError = scope.XPIProvider._shutdownError;
-  AddonManagerPrivate.unregisterProvider(scope.XPIProvider);
+  gXPISaveError = XPIscope.XPIProvider._shutdownError;
+  AddonManagerPrivate.unregisterProvider(XPIscope.XPIProvider);
   Components.utils.unload("resource://gre/modules/XPIProvider.jsm");
 }
 
@@ -1090,16 +1104,24 @@ if ("nsIWindowsRegKey" in AM_Ci) {
   var MockRegistry = {
     LOCAL_MACHINE: {},
     CURRENT_USER: {},
+    CLASSES_ROOT: {},
 
-    setValue: function(aRoot, aPath, aName, aValue) {
+    getRoot: function(aRoot) {
       switch (aRoot) {
       case AM_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE:
-        var rootKey = MockRegistry.LOCAL_MACHINE;
-        break
+        return MockRegistry.LOCAL_MACHINE;
       case AM_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER:
-        rootKey = MockRegistry.CURRENT_USER;
-        break
+        return MockRegistry.CURRENT_USER;
+      case AM_Ci.nsIWindowsRegKey.ROOT_KEY_CLASSES_ROOT:
+        return MockRegistry.CLASSES_ROOT;
+      default:
+        do_throw("Unknown root " + aRootKey);
+        return null;
       }
+    },
+
+    setValue: function(aRoot, aPath, aName, aValue) {
+      let rootKey = MockRegistry.getRoot(aRoot);
 
       if (!(aPath in rootKey)) {
         rootKey[aPath] = [];
@@ -1141,14 +1163,7 @@ if ("nsIWindowsRegKey" in AM_Ci) {
 
     
     open: function(aRootKey, aRelPath, aMode) {
-      switch (aRootKey) {
-      case AM_Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE:
-        var rootKey = MockRegistry.LOCAL_MACHINE;
-        break
-      case AM_Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER:
-        rootKey = MockRegistry.CURRENT_USER;
-        break
-      }
+      let rootKey = MockRegistry.getRoot(aRootKey);
 
       if (!(aRelPath in rootKey))
         rootKey[aRelPath] = [];
@@ -1400,7 +1415,7 @@ function changeXPIDBVersion(aNewVersion) {
 
 
 
-function loadJSON(aFile) {
+function loadFile(aFile) {
   let data = "";
   let fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].
           createInstance(Components.interfaces.nsIFileInputStream);
@@ -1416,6 +1431,14 @@ function loadJSON(aFile) {
     } while (read != 0);
   }
   cstream.close();
+  return data;
+}
+
+
+
+
+function loadJSON(aFile) {
+  let data = loadFile(aFile);
   do_print("Loaded JSON file " + aFile.path);
   return(JSON.parse(data));
 }

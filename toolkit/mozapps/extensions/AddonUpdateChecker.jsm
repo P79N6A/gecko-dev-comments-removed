@@ -490,8 +490,14 @@ UpdateParser.prototype = {
         this.notifyError(AddonUpdateChecker.ERROR_PARSE_ERROR);
         return;
       }
-      if ("onUpdateCheckComplete" in this.observer)
-        this.observer.onUpdateCheckComplete(results);
+      if ("onUpdateCheckComplete" in this.observer) {
+        try {
+          this.observer.onUpdateCheckComplete(results);
+        }
+        catch (e) {
+          WARN("onUpdateCheckComplete notification failed", e);
+        }
+      }
       return;
     }
 
@@ -534,8 +540,14 @@ UpdateParser.prototype = {
 
 
   notifyError: function UP_notifyError(aStatus) {
-    if ("onUpdateCheckError" in this.observer)
-      this.observer.onUpdateCheckError(aStatus);
+    if ("onUpdateCheckError" in this.observer) {
+      try {
+        this.observer.onUpdateCheckError(aStatus);
+      }
+      catch (e) {
+        WARN("onUpdateCheckError notification failed", e);
+      }
+    }
   },
 
   
@@ -549,6 +561,17 @@ UpdateParser.prototype = {
     WARN("Request timed out");
 
     this.notifyError(AddonUpdateChecker.ERROR_TIMEOUT);
+  },
+
+  
+
+
+  cancel: function UP_cancel() {
+    this.timer.cancel();
+    this.timer = null;
+    this.request.abort();
+    this.request = null;
+    this.notifyError(AddonUpdateChecker.ERROR_CANCELLED);
   }
 };
 
@@ -610,6 +633,8 @@ this.AddonUpdateChecker = {
   ERROR_UNKNOWN_FORMAT: -4,
   
   ERROR_SECURITY_ERROR: -5,
+  
+  ERROR_CANCELLED: -6,
 
   
 
@@ -722,8 +747,10 @@ this.AddonUpdateChecker = {
 
 
 
+
+
   checkForUpdates: function AUC_checkForUpdates(aId, aUpdateKey, aUrl,
                                                 aObserver) {
-    new UpdateParser(aId, aUpdateKey, aUrl, aObserver);
+    return new UpdateParser(aId, aUpdateKey, aUrl, aObserver);
   }
 };
