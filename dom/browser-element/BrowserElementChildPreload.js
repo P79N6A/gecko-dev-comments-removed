@@ -101,6 +101,14 @@ function getErrorClass(errorCode) {
   return null;
 }
 
+const OBSERVED_EVENTS = [
+  'fullscreen-origin-change',
+  'ask-parent-to-exit-fullscreen',
+  'ask-parent-to-rollback-fullscreen',
+  'xpcom-shutdown',
+  'activity-done'
+];
+
 
 
 
@@ -253,25 +261,9 @@ BrowserElementChild.prototype = {
                                this._scrollEventHandler.bind(this),
                                 false);
 
-    Services.obs.addObserver(this,
-                             "fullscreen-origin-change",
-                              true);
-
-    Services.obs.addObserver(this,
-                             'ask-parent-to-exit-fullscreen',
-                              true);
-
-    Services.obs.addObserver(this,
-                             'ask-parent-to-rollback-fullscreen',
-                              true);
-
-    Services.obs.addObserver(this,
-                             'xpcom-shutdown',
-                              true);
-
-    Services.obs.addObserver(this,
-                             'activity-done',
-                              true);
+    OBSERVED_EVENTS.forEach((aTopic) => {
+      Services.obs.addObserver(this, aTopic, false);
+    });
   },
 
   observe: function(subject, topic, data) {
@@ -306,6 +298,9 @@ BrowserElementChild.prototype = {
 
   _unloadHandler: function() {
     this._shuttingDown = true;
+    OBSERVED_EVENTS.forEach((aTopic) => {
+      Services.obs.removeObserver(this, aTopic);
+    });
   },
 
   _tryGetInnerWindowID: function(win) {
