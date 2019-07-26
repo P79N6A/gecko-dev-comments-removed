@@ -17,6 +17,14 @@ namespace layers {
 
 const float EPSILON = 0.0001f;
 
+
+
+
+
+
+
+const float COORDINATE_EPSILON = 0.01f;
+
 class FrameMetrics;
 class AsyncPanZoomController;
 
@@ -79,6 +87,17 @@ public:
 
 
   float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
+
+  
+
+
+
+  void OverscrollBy(float aOverscroll);
+
+  
+
+
+  float GetOverscroll() const;
 
   
 
@@ -180,6 +199,13 @@ protected:
   float mVelocity;
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
+  
+  
+  
+  
+  
+  
+  float mOverscroll;
   nsTArray<float> mVelocityQueue;
 
   const FrameMetrics& GetFrameMetrics() const;

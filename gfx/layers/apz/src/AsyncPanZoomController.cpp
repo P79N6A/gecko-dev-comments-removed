@@ -1235,7 +1235,7 @@ void AsyncPanZoomController::UpdateWithTouchAtDevicePoint(const MultiTouchInput&
   mY.UpdateWithTouchAtDevicePoint(point.y, timeDelta);
 }
 
-void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
+bool AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
                                            const ScreenPoint& aEndPoint,
                                            uint32_t aOverscrollHandoffChainIndex) {
 
@@ -1245,6 +1245,7 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   ScreenPoint displacement = aStartPoint - aEndPoint;
 
   ScreenPoint overscroll;  
+  CSSPoint cssOverscroll;  
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
 
@@ -1254,7 +1255,6 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
     
     CSSPoint cssDisplacement = displacement / zoom;
 
-    CSSPoint cssOverscroll;
     CSSPoint allowedDisplacement(mX.AdjustDisplacement(cssDisplacement.x,
                                                        cssOverscroll.x),
                                  mY.AdjustDisplacement(cssDisplacement.y,
@@ -1263,21 +1263,50 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
 
     if (!IsZero(allowedDisplacement)) {
       ScrollBy(allowedDisplacement);
-      ScheduleComposite();
-
-      TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
-      if (timePaintDelta.ToMilliseconds() > gfxPrefs::APZPanRepaintInterval()) {
-        RequestContentRepaint();
-      }
+      ScheduleCompositeAndMaybeRepaint();
       UpdateSharedCompositorFrameMetrics();
     }
   }
 
-  if (!IsZero(overscroll)) {
-    
-    
-    CallDispatchScroll(aEndPoint + overscroll, aEndPoint, aOverscrollHandoffChainIndex + 1);
+  
+  if (IsZero(overscroll)) {
+    return true;
   }
+
+  
+  
+  
+  
+  
+  if (CallDispatchScroll(aEndPoint + overscroll, aEndPoint, aOverscrollHandoffChainIndex + 1)) {
+    return true;
+  }
+
+  
+  
+  
+  return OverscrollBy(cssOverscroll);
+}
+
+bool AsyncPanZoomController::OverscrollBy(const CSSPoint& aOverscroll) {
+  ReentrantMonitorAutoEnter lock(mMonitor);
+  
+  
+  bool xCanScroll = mX.CanScroll();
+  bool yCanScroll = mY.CanScroll();
+  if (xCanScroll) {
+    mX.OverscrollBy(aOverscroll.x);
+  }
+  if (yCanScroll) {
+    mY.OverscrollBy(aOverscroll.y);
+  }
+  if (xCanScroll || yCanScroll) {
+    ScheduleComposite();
+    return true;
+  }
+  
+  
+  return false;
 }
 
 void AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
@@ -1289,16 +1318,15 @@ void AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
   StartAnimation(new FlingAnimation(*this, false));
 }
 
-void AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+bool AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                                                 uint32_t aOverscrollHandoffChainIndex) {
   
   
   
   APZCTreeManager* treeManagerLocal = mTreeManager;
-  if (treeManagerLocal) {
-    treeManagerLocal->DispatchScroll(this, aStartPoint, aEndPoint,
-                                     aOverscrollHandoffChainIndex);
-  }
+  return treeManagerLocal
+      && treeManagerLocal->DispatchScroll(this, aStartPoint, aEndPoint,
+                                          aOverscrollHandoffChainIndex);
 }
 
 void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
@@ -1551,6 +1579,15 @@ const LayerMargin AsyncPanZoomController::CalculatePendingDisplayPort(
 void AsyncPanZoomController::ScheduleComposite() {
   if (mCompositorParent) {
     mCompositorParent->ScheduleRenderOnCompositorThread();
+  }
+}
+
+void AsyncPanZoomController::ScheduleCompositeAndMaybeRepaint() {
+  ScheduleComposite();
+
+  TimeDuration timePaintDelta = mPaintThrottler.TimeSinceLastRequest(GetFrameTime());
+  if (timePaintDelta.ToMilliseconds() > gfxPrefs::APZPanRepaintInterval()) {
+    RequestContentRepaint();
   }
 }
 

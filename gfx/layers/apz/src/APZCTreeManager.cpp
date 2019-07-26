@@ -707,7 +707,7 @@ TransformDisplacement(APZCTreeManager* aTreeManager,
   ApplyTransform(&aEndPoint, transformToApzc);
 }
 
-void
+bool
 APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
                                 uint32_t aOverscrollHandoffChainIndex)
 {
@@ -723,14 +723,15 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
     
     if (aOverscrollHandoffChainIndex >= mOverscrollHandoffChain.length()) {
       
-      return;
+      return false;
     }
 
     next = mOverscrollHandoffChain[aOverscrollHandoffChainIndex];
   }
 
-  if (next == nullptr)
-    return;
+  if (next == nullptr) {
+    return false;
+  }
 
   
   
@@ -743,7 +744,7 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
 
   
   
-  next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
+  return next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
 }
 
 void

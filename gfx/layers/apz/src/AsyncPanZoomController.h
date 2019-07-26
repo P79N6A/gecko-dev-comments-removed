@@ -415,6 +415,12 @@ protected:
 
 
 
+  void ScheduleCompositeAndMaybeRepaint();
+
+  
+
+
+
 
 
   float PanDistance();
@@ -824,7 +830,6 @@ private:
 
 
 
-
 public:
   void SetScrollHandoffParentId(FrameMetrics::ViewID aScrollParentId) {
     mScrollParentId = aScrollParentId;
@@ -847,7 +852,14 @@ public:
 
 
 
-  void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+
+
+
+
+
+
+
+  bool AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                      uint32_t aOverscrollHandoffChainIndex = 0);
 
   void FlushRepaintForOverscrollHandoff();
@@ -860,8 +872,16 @@ private:
 
 
 
-  void CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
+  bool CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                           uint32_t aOverscrollHandoffChainIndex);
+
+  
+
+
+
+
+
+  bool OverscrollBy(const CSSPoint& aOverscroll);
 
 
   

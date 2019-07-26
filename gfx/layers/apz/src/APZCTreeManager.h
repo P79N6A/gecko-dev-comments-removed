@@ -267,7 +267,11 @@ public:
 
 
 
-  void DispatchScroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
+
+
+
+
+  bool DispatchScroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
                       uint32_t aOverscrollHandoffChainIndex);
 
   

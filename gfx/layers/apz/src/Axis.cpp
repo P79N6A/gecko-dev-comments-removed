@@ -14,6 +14,7 @@
 #include "mozilla/Preferences.h"        
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/mozalloc.h"           
+#include "mozilla/FloatingPoint.h"      
 #include "nsMathUtils.h"                
 #include "nsThreadUtils.h"              
 #include "nscore.h"                     
@@ -26,7 +27,8 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
   : mPos(0),
     mVelocity(0.0f),
     mAxisLocked(false),
-    mAsyncPanZoomController(aAsyncPanZoomController)
+    mAsyncPanZoomController(aAsyncPanZoomController),
+    mOverscroll(0)
 {
 }
 
@@ -61,6 +63,17 @@ float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut)
   float displacement = aDisplacement;
 
   
+  if (mOverscroll > 0 && aDisplacement < 0) {
+    float consumedOverscroll = std::min(mOverscroll, -aDisplacement);
+    mOverscroll -= consumedOverscroll;
+    displacement += consumedOverscroll;
+  } else if (mOverscroll < 0 && aDisplacement > 0) {
+    float consumedOverscroll = std::min(-mOverscroll, aDisplacement);
+    mOverscroll += consumedOverscroll;
+    displacement -= consumedOverscroll;
+  }
+
+  
   
   if (DisplacementWillOverscroll(displacement) != OVERSCROLL_NONE) {
     
@@ -70,6 +83,22 @@ float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut)
     displacement -= aOverscrollAmountOut;
   }
   return displacement;
+}
+
+void Axis::OverscrollBy(float aOverscroll) {
+  MOZ_ASSERT(CanScroll());
+  if (aOverscroll > 0) {
+    MOZ_ASSERT(FuzzyEqualsAdditive(GetCompositionEnd(), GetPageEnd(), COORDINATE_EPSILON));
+    MOZ_ASSERT(mOverscroll >= 0);
+  } else if (aOverscroll < 0) {
+    MOZ_ASSERT(FuzzyEqualsAdditive(GetOrigin(), GetPageStart(), COORDINATE_EPSILON));
+    MOZ_ASSERT(mOverscroll <= 0);
+  }
+  mOverscroll += aOverscroll;
+}
+
+float Axis::GetOverscroll() const {
+  return mOverscroll;
 }
 
 float Axis::PanDistance() {
