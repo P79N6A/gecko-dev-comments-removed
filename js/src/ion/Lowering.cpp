@@ -291,6 +291,13 @@ LIRGenerator::visitCall(MCall *call)
     }
 
     
+    if (call->isConstructing()) {
+        LCallConstructor *lir = new LCallConstructor(useFixed(call->getFunction(),
+                                                     CallTempReg0), argslot);
+        return (defineVMReturn(lir, call) && assignSafepoint(lir, call));
+    }
+
+    
     LCallGeneric *lir = new LCallGeneric(useFixed(call->getFunction(), CallTempReg0),
         argslot, tempFixed(ArgumentsRectifierReg), tempFixed(CallTempReg2));
     return (assignSnapshot(lir) && defineReturn(lir, call) && assignSafepoint(lir, call));
