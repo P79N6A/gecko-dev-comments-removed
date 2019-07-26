@@ -216,6 +216,11 @@ protected:
                                        bool aDidSelfCopy);
 
   
+  void BuildTextureClient(ContentType aType,
+                          const nsIntRect& aRect,
+                          uint32_t aFlags);
+
+  
   
   virtual void CreateFrontBufferAndNotify(const nsIntRect& aBufferRect) = 0;
   virtual void DestroyFrontBuffer() {}
