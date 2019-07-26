@@ -49,7 +49,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
     private final LayerView mView;
     private final SingleTileLayer mBackgroundLayer;
-    private final ScreenshotLayer mScreenshotLayer;
     private final NinePatchTileLayer mShadowLayer;
     private TextLayer mFrameRateLayer;
     private final ScrollbarLayer mHorizScrollLayer;
@@ -126,17 +125,11 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         "    gl_FragColor = texture2D(sTexture, vTexCoord);\n" +
         "}\n";
 
-    public void resetCheckerboard() {
-        mScreenshotLayer.reset();
-    }
-
     public LayerRenderer(LayerView view) {
         mView = view;
 
         CairoImage backgroundImage = new BufferedCairoImage(view.getBackgroundPattern());
         mBackgroundLayer = new SingleTileLayer(true, backgroundImage);
-
-        mScreenshotLayer = ScreenshotLayer.create();
 
         CairoImage shadowImage = new BufferedCairoImage(view.getShadowPattern());
         mShadowLayer = new NinePatchTileLayer(shadowImage);
@@ -161,7 +154,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         DirectBufferAllocator.free(mCoordByteBuffer);
         mCoordByteBuffer = null;
         mCoordBuffer = null;
-        mScreenshotLayer.destroy();
         mBackgroundLayer.destroy();
         mShadowLayer.destroy();
         mHorizScrollLayer.destroy();
@@ -457,7 +449,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);  
             mUpdated &= mBackgroundLayer.update(mScreenContext);    
             mUpdated &= mShadowLayer.update(mPageContext);  
-            mUpdated &= mScreenshotLayer.update(mPageContext);   
             if (mFrameRateLayer != null) mUpdated &= mFrameRateLayer.update(mScreenContext); 
             mUpdated &= mVertScrollLayer.update(mPageContext);  
             mUpdated &= mHorizScrollLayer.update(mPageContext); 
@@ -510,7 +501,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
-            mBackgroundColor = mView.getCheckerboardColor();
+            mBackgroundColor = mView.getBackgroundColor();
 
             
 
@@ -529,21 +520,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             
             if (!new RectF(mAbsolutePageRect).contains(mFrameMetrics.getViewport()))
                 mShadowLayer.draw(mPageContext);
-
-            
-
-
-            if (mView.checkerboardShouldShowChecks()) {
-                
-                Rect rootMask = getMaskForLayer(mView.getLayerClient().getRoot());
-                mScreenshotLayer.setMask(rootMask);
-
-                
-
-
-                setScissorRect(); 
-                mScreenshotLayer.draw(mPageContext);
-            }
         }
 
         
@@ -645,7 +621,7 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         
         
         if (msg == Tabs.TabEvents.SELECTED) {
-            mView.getChildAt(0).setBackgroundColor(tab.getCheckerboardColor());
+            mView.getChildAt(0).setBackgroundColor(tab.getBackgroundColor());
             mView.setPaintState(LayerView.PAINT_START);
         }
     }

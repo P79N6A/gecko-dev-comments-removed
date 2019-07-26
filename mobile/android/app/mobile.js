@@ -611,9 +611,6 @@ pref("direct-texture.force.enabled", false);
 pref("direct-texture.force.disabled", false);
 
 
-pref("gfx.show_checkerboard_pattern", true);
-
-
 pref("ui.scrolling.friction_slow", -1);
 
 pref("ui.scrolling.friction_fast", -1);

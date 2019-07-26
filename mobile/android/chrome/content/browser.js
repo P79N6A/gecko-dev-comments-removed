@@ -295,14 +295,6 @@ var BrowserApp = {
       }
     });
 
-    
-    sendMessageToJava({
-      gecko: {
-        "type": "Checkerboard:Toggle",
-        "value": Services.prefs.getBoolPref("gfx.show_checkerboard_pattern")
-      }
-    });
-
 #ifdef MOZ_SAFE_BROWSING
     
     setTimeout(function() { SafeBrowsing.init(); }, 5000);

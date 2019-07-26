@@ -60,7 +60,7 @@ public class Tab {
     private HashMap<Object, Layer> mPluginLayers;
     private ContentResolver mContentResolver;
     private ContentObserver mContentObserver;
-    private int mCheckerboardColor = Color.WHITE;
+    private int mBackgroundColor = Color.WHITE;
     private int mState;
     private Bitmap mThumbnailBitmap;
     private boolean mDesktopMode;
@@ -509,7 +509,7 @@ public class Tab {
         setReaderEnabled(false);
         setZoomConstraints(new ZoomConstraints(true));
         setHasTouchListeners(false);
-        setCheckerboardColor(Color.WHITE);
+        setBackgroundColor(Color.WHITE);
 
         Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.LOCATION_CHANGE, uri);
     }
@@ -562,18 +562,18 @@ public class Tab {
         }
     }
 
-    public int getCheckerboardColor() {
-        return mCheckerboardColor;
+    public int getBackgroundColor() {
+        return mBackgroundColor;
     }
 
     
-    public void setCheckerboardColor(int color) {
-        mCheckerboardColor = color;
+    public void setBackgroundColor(int color) {
+        mBackgroundColor = color;
     }
 
     
-    public void setCheckerboardColor(String newColor) {
-        setCheckerboardColor(parseColorFromGecko(newColor));
+    public void setBackgroundColor(String newColor) {
+        setBackgroundColor(parseColorFromGecko(newColor));
     }
 
     
