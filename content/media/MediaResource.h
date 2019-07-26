@@ -8,7 +8,9 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/XPCOM.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
 #include "nsIStreamListener.h"
@@ -109,6 +111,12 @@ public:
 
   bool IsNull() const {
     return mStart == 0 && mEnd == 0;
+  }
+
+  
+  void Clear() {
+    mStart = 0;
+    mEnd = 0;
   }
 
   int64_t mStart, mEnd;
@@ -287,6 +295,17 @@ public:
 
 
 
+  virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
+                                 MediaByteRange const &aByteRange)
+  {
+    return Open(aStreamListener);
+  }
+
+  
+
+
+
+
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
 protected:
@@ -364,6 +383,8 @@ public:
 
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
+  virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
+                                 MediaByteRange const & aByteRange);
   virtual nsresult Close();
   virtual void     Suspend(bool aCloseImmediately);
   virtual void     Resume();
@@ -435,6 +456,14 @@ protected:
   
   void CloseChannel();
 
+  
+  
+  
+  nsresult ParseContentRangeHeader(nsIHttpChannel * aHttpChan,
+                                   int64_t& aRangeStart,
+                                   int64_t& aRangeEnd,
+                                   int64_t& aRangeTotal);
+
   void DoNotifyDataReceived();
 
   static NS_METHOD CopySegmentToCache(nsIInputStream *aInStream,
@@ -480,6 +509,21 @@ protected:
 
   
   bool mSeekingForMetadata;
+
+  
+  MediaByteRange mByteRange;
+
+  
+  bool mByteRangeDownloads;
+
+  
+  bool mByteRangeFirstOpen;
+
+  
+  
+  
+  ReentrantMonitor mSeekOffsetMonitor;
+  int64_t mSeekOffset;
 };
 
 }

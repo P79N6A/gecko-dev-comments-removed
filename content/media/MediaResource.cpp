@@ -30,6 +30,18 @@
 #include "nsContentUtils.h"
 #include "nsBlobProtocolHandler.h"
 
+#ifdef PR_LOGGING
+PRLogModuleInfo* gMediaResourceLog;
+#define LOG(msg, ...) PR_LOG(gMediaResourceLog, PR_LOG_DEBUG, \
+                             (msg, ##__VA_ARGS__))
+
+#define CMLOG(msg, ...) \
+        LOG("%p [ChannelMediaResource]: " msg, this, ##__VA_ARGS__)
+#else
+#define LOG(msg, ...)
+#define CMLOG(msg, ...)
+#endif
+
 static const uint32_t HTTP_OK_CODE = 200;
 static const uint32_t HTTP_PARTIAL_RESPONSE_CODE = 206;
 
@@ -43,8 +55,17 @@ ChannelMediaResource::ChannelMediaResource(nsMediaDecoder* aDecoder,
     mCacheStream(this),
     mLock("ChannelMediaResource.mLock"),
     mIgnoreResume(false),
-    mSeekingForMetadata(false)
+    mSeekingForMetadata(false),
+    mByteRangeDownloads(false),
+    mByteRangeFirstOpen(true),
+    mSeekOffsetMonitor("media.dashseekmonitor"),
+    mSeekOffset(-1)
 {
+#ifdef PR_LOGGING
+  if (!gMediaResourceLog) {
+    gMediaResourceLog = PR_NewLogModule("MediaResource");
+  }
+#endif
 }
 
 ChannelMediaResource::~ChannelMediaResource()
@@ -201,7 +222,54 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
       }
     }
 
-    if (mOffset > 0 && responseStatus == HTTP_OK_CODE) {
+    
+    if (!mByteRange.IsNull() && (responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
+      
+      
+      if (!acceptsRanges) {
+        CMLOG("Error! HTTP_PARTIAL_RESPONSE_CODE received but server says "
+              "range requests are not accepted! Channel[%p]", hc.get());
+        mDecoder->NetworkError();
+        CloseChannel();
+        return NS_OK;
+      }
+
+      
+      int64_t rangeStart = 0;
+      int64_t rangeEnd = 0;
+      int64_t rangeTotal = 0;
+      rv = ParseContentRangeHeader(hc, rangeStart, rangeEnd, rangeTotal);
+      if (NS_FAILED(rv)) {
+        
+        CMLOG("Error processing \'Content-Range' for "
+              "HTTP_PARTIAL_RESPONSE_CODE: rv[%x]channel [%p]", rv, hc.get());
+        mDecoder->NetworkError();
+        CloseChannel();
+        return NS_OK;
+      }
+
+      
+      
+      NS_WARN_IF_FALSE(mByteRange.mStart == rangeStart,
+                       "response range start does not match request");
+      NS_WARN_IF_FALSE(mOffset == rangeStart,
+                       "response range start does not match current offset");
+      NS_WARN_IF_FALSE(mByteRange.mEnd == rangeEnd,
+                       "response range end does not match request");
+      
+      
+      
+      if (rangeTotal != -1) {
+        mCacheStream.NotifyDataLength(rangeTotal);
+      } else {
+        mDecoder->SetInfinite(true);
+      }
+      mCacheStream.NotifyDataStarted(rangeStart);
+
+      mOffset = rangeStart;
+      acceptsRanges = true;
+    } else if (((mOffset > 0) || !mByteRange.IsNull())
+               && (responseStatus == HTTP_OK_CODE)) {
       
       
       
@@ -285,6 +353,53 @@ ChannelMediaResource::OnStartRequest(nsIRequest* aRequest)
 }
 
 nsresult
+ChannelMediaResource::ParseContentRangeHeader(nsIHttpChannel * aHttpChan,
+                                              int64_t& aRangeStart,
+                                              int64_t& aRangeEnd,
+                                              int64_t& aRangeTotal)
+{
+  NS_ENSURE_ARG(aHttpChan);
+
+  nsAutoCString rangeStr;
+  nsresult rv = aHttpChan->GetResponseHeader(NS_LITERAL_CSTRING("Content-Range"),
+                                             rangeStr);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_FALSE(rangeStr.IsEmpty(), NS_ERROR_ILLEGAL_VALUE);
+
+  
+  int32_t spacePos = rangeStr.Find(NS_LITERAL_CSTRING(" "));
+  int32_t dashPos = rangeStr.Find(NS_LITERAL_CSTRING("-"), true, spacePos);
+  int32_t slashPos = rangeStr.Find(NS_LITERAL_CSTRING("/"), true, dashPos);
+
+  nsAutoCString aRangeStartText;
+  rangeStr.Mid(aRangeStartText, spacePos+1, dashPos-(spacePos+1));
+  aRangeStart = aRangeStartText.ToInteger64(&rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(0 <= aRangeStart, NS_ERROR_ILLEGAL_VALUE);
+
+  nsAutoCString aRangeEndText;
+  rangeStr.Mid(aRangeEndText, dashPos+1, slashPos-(dashPos+1));
+  aRangeEnd = aRangeEndText.ToInteger64(&rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(aRangeStart < aRangeEnd, NS_ERROR_ILLEGAL_VALUE);
+
+  nsAutoCString aRangeTotalText;
+  rangeStr.Right(aRangeTotalText, rangeStr.Length()-(slashPos+1));
+  if (aRangeTotalText[0] == '*') {
+    aRangeTotal = -1;
+  } else {
+    aRangeTotal = aRangeTotalText.ToInteger64(&rv);
+    NS_ENSURE_TRUE(aRangeEnd < aRangeTotal, NS_ERROR_ILLEGAL_VALUE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  CMLOG("Received bytes [%d] to [%d] of [%d]",
+        aRangeStart, aRangeEnd, aRangeTotal);
+
+  return NS_OK;
+}
+
+nsresult
 ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
 {
   NS_ASSERTION(mChannel.get() == aRequest, "Wrong channel!");
@@ -294,6 +409,14 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
   {
     MutexAutoLock lock(mLock);
     mChannelStatistics.Stop(TimeStamp::Now());
+  }
+
+  
+  
+  
+  if (mByteRangeDownloads) {
+    mDecoder->NotifyDownloadEnded(aStatus);
+    return NS_OK;
   }
 
   
@@ -361,6 +484,8 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
 
   
   closure->mResource->mOffset += aCount;
+  LOG("%p [ChannelMediaResource]: CopySegmentToCache new mOffset = %d",
+      closure->mResource, closure->mResource->mOffset);
   closure->mResource->mCacheStream.NotifyDataReceived(aCount, aFromSegment,
                                                       closure->mPrincipal);
   *aWriteCount = aCount;
@@ -398,6 +523,37 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
   }
 
   return NS_OK;
+}
+
+
+
+
+
+
+
+nsresult
+ChannelMediaResource::OpenByteRange(nsIStreamListener** aStreamListener,
+                                    MediaByteRange const & aByteRange)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  mByteRangeDownloads = true;
+  mByteRange = aByteRange;
+
+  
+  
+  if (mByteRangeFirstOpen) {
+    mByteRangeFirstOpen = false;
+    return Open(aStreamListener);
+  }
+
+  
+  CloseChannel();
+
+  nsresult rv = RecreateChannel();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return OpenChannel(aStreamListener);
 }
 
 nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
@@ -481,9 +637,19 @@ void ChannelMediaResource::SetupChannelHeaders()
   
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
   if (hc) {
+    
+    
     nsAutoCString rangeString("bytes=");
-    rangeString.AppendInt(mOffset);
+    if (!mByteRange.IsNull()) {
+      rangeString.AppendInt(mByteRange.mStart);
+      mOffset = mByteRange.mStart;
+    } else {
+      rangeString.AppendInt(mOffset);
+    }
     rangeString.Append("-");
+    if (!mByteRange.IsNull()) {
+      rangeString.AppendInt(mByteRange.mEnd);
+    }
     hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, false);
 
     
@@ -591,6 +757,12 @@ nsresult ChannelMediaResource::Read(char* aBuffer,
 nsresult ChannelMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
+
+  
+  if (mByteRangeDownloads) {
+    ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
+    mSeekOffset = aOffset;
+  }
 
   return mCacheStream.Seek(aWhence, aOffset);
 }
@@ -788,6 +960,51 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
     NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
     
     --mSuspendCount;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (mByteRangeDownloads) {
+    
+    
+    nsresult rv;
+    {
+      ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
+      
+      
+      NS_ENSURE_TRUE(aOffset <= mSeekOffset, NS_ERROR_ILLEGAL_VALUE);
+      rv = mDecoder->GetByteRangeForSeek(mSeekOffset, mByteRange);
+      mSeekOffset = -1;
+    }
+    if (rv == NS_ERROR_NOT_AVAILABLE) {
+      
+      
+      return NS_OK;
+    } else if (NS_FAILED(rv) || mByteRange.IsNull()) {
+      
+      mDecoder->NetworkError();
+      CloseChannel();
+      return rv;
+    }
+    
+    
+    mByteRange.mStart = mOffset = aOffset;
+    return OpenByteRange(nullptr, mByteRange);
   }
 
   mOffset = aOffset;

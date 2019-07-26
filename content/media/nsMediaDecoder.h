@@ -20,6 +20,7 @@ class nsITimer;
 
 namespace mozilla {
 class MediaResource;
+class MediaByteRange;
 }
 
 
@@ -39,6 +40,7 @@ class nsMediaDecoder : public nsIObserver
 {
 public:
   typedef mozilla::MediaResource MediaResource;
+  typedef mozilla::MediaByteRange MediaByteRange;
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::SourceMediaStream SourceMediaStream;
   typedef mozilla::ProcessedMediaStream ProcessedMediaStream;
@@ -72,6 +74,14 @@ public:
 
   
   virtual nsresult Seek(double aTime) = 0;
+
+  
+  
+  
+  virtual nsresult GetByteRangeForSeek(int64_t const aOffset,
+                                       MediaByteRange &aByteRange) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   
   
