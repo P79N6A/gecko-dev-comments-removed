@@ -326,7 +326,7 @@ struct AbsoluteLabel : public LabelBase
 
 
 
-class CodeLabel : public TempObject
+class CodeLabel
 {
     
     AbsoluteLabel dest_;

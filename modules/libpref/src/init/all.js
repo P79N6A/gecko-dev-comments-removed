@@ -28,6 +28,10 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.useragent.site_specific_overrides", true);
 
+
+
+pref("general.useragent.enable_overrides", false);
+
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
@@ -151,7 +155,7 @@ pref("media.cache_size", 512000);
 pref("media.volume_scale", "1.0");
 
 #ifdef MOZ_WMF
-pref("media.windows-media-foundation.enabled", false);
+pref("media.windows-media-foundation.enabled", true);
 #endif
 #ifdef MOZ_RAW
 pref("media.raw.enabled", true);
@@ -3875,7 +3879,13 @@ pref("layers.acceleration.disabled", false);
 #endif
 
 
+#ifdef ANDROID
+
+
+pref("layers.acceleration.force-enabled", true);
+#else
 pref("layers.acceleration.force-enabled", false);
+#endif
 
 pref("layers.acceleration.draw-fps", false);
 
