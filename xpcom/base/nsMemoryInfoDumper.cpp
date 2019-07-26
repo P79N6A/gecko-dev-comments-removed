@@ -826,6 +826,10 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   
 
   
+  
+  
+  
+  
   DUMP(writer, "{\n  \"version\": 1,\n");
 
   DUMP(writer, "  \"hasMozMallocUsableSize\": ");
@@ -890,9 +894,6 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
 
   DUMP(writer, "\n  ]\n}");
 
-  rv = writer->Finish();
-  NS_ENSURE_SUCCESS(rv, rv);
-
 #ifdef MOZ_DMD
   
   
@@ -923,6 +924,14 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   rv = dmdWriter->Finish();
   NS_ENSURE_SUCCESS(rv, rv);
 #endif  
+
+  
+  
+  
+  
+  
+  rv = writer->Finish();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
