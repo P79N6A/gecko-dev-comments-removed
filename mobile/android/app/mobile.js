@@ -493,6 +493,10 @@ pref("browser.search.param.yahoo-fr-ja", "mozff");
 pref("app.update.timerFirstInterval", 30000); 
 pref("app.update.timerMinimumDelay", 30); 
 
+
+
+pref("app.update.autodownload", "wifi");
+
 #ifdef MOZ_UPDATER
 
 pref("app.update.enabled", false);
