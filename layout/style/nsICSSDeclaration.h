@@ -30,12 +30,13 @@
 #include "mozilla/ErrorResult.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
-#include "nsINode.h"
 
 
 #define NS_ICSSDECLARATION_IID \
 { 0xdbeabbfa, 0x6cb3, 0x4f5c, \
  { 0xae, 0xc2, 0xdd, 0x55, 0x8d, 0x9d, 0x68, 0x1f } }
+
+class nsINode;
 
 class nsICSSDeclaration : public nsIDOMCSSStyleDeclaration,
                           public nsWrapperCache
