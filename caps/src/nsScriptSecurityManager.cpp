@@ -1620,13 +1620,8 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     
     
 
-    bool result;
-    rv = CanExecuteScripts(aCx, subject, true, &result);
-    if (NS_FAILED(rv))
-      return rv;
-
-    if (!result)
-      return NS_ERROR_DOM_SECURITY_ERR;
+    if (!ScriptAllowed(js::GetGlobalForObjectCrossCompartment(rootedFunObj)))
+        return NS_ERROR_DOM_SECURITY_ERR;
 
     if (!aTargetObj) {
         
@@ -1653,7 +1648,6 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
 nsresult
 nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
                                            nsIPrincipal *aPrincipal,
-                                           bool aAllowIfNoScriptContext,
                                            bool *result)
 {
     *result = false; 
@@ -1675,40 +1669,32 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
 
     
     nsIScriptContext *scriptContext = GetScriptContext(cx);
-    if (!scriptContext) {
-        if (aAllowIfNoScriptContext) {
-            *result = true;
+    if (scriptContext) {
+        if (!scriptContext->GetScriptsEnabled()) {
+            
+            *result = false;
             return NS_OK;
         }
-        return NS_ERROR_FAILURE;
-    }
 
-    if (!scriptContext->GetScriptsEnabled()) {
+        nsIScriptGlobalObject *sgo = scriptContext->GetGlobalObject();
+        if (!sgo) {
+            return NS_ERROR_FAILURE;
+        }
+
         
-        *result = false;
-        return NS_OK;
-    }
-    
-    nsIScriptGlobalObject *sgo = scriptContext->GetGlobalObject();
+        
+        nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
+        nsCOMPtr<nsIDocShell> docshell;
+        nsresult rv;
+        if (window) {
+            docshell = window->GetDocShell();
+        }
 
-    if (!sgo) {
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
-    nsCOMPtr<nsIDocShell> docshell;
-    nsresult rv;
-
-    if (window) {
-        docshell = window->GetDocShell();
-    }
-
-    if (docshell) {
-      rv = docshell->GetCanExecuteScripts(result);
-      if (NS_FAILED(rv)) return rv;
-      if (!*result) return NS_OK;
+        if (docshell) {
+          rv = docshell->GetCanExecuteScripts(result);
+          if (NS_FAILED(rv)) return rv;
+          if (!*result) return NS_OK;
+        }
     }
 
     
@@ -1725,7 +1711,7 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
     }
         
     bool isAbout;
-    rv = principalURI->SchemeIs("about", &isAbout);
+    nsresult rv = principalURI->SchemeIs("about", &isAbout);
     if (NS_SUCCEEDED(rv) && isAbout) {
         nsCOMPtr<nsIAboutModule> module;
         rv = NS_GetAboutModule(principalURI, getter_AddRefs(module));
@@ -1774,9 +1760,7 @@ nsScriptSecurityManager::ScriptAllowed(JSObject *aGlobal)
     nsCOMPtr<nsIScriptContext> scx = nsJSUtils::GetStaticScriptContext(global);
     AutoPushJSContext cx(scx ? scx->GetNativeContext() : GetSafeJSContext());
     bool result = false;
-    nsresult rv = CanExecuteScripts(cx, doGetObjectPrincipal(global),
-                                     false,
-                                    &result);
+    nsresult rv = CanExecuteScripts(cx, doGetObjectPrincipal(global), &result);
     return NS_SUCCEEDED(rv) && result;
 }
 

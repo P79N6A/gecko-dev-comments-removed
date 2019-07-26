@@ -462,14 +462,8 @@ private:
                         nsIPrincipal* aSubjectPrincipal,
                         const char* aObjectSecurityLevel);
 
-    
-
-
-
-
     nsresult
-    CanExecuteScripts(JSContext* cx, nsIPrincipal *aPrincipal,
-                      bool aAllowIfNoScriptContext, bool *result);
+    CanExecuteScripts(JSContext* cx, nsIPrincipal *aPrincipal, bool *result);
 
     nsresult
     Init();
