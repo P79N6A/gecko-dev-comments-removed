@@ -9,7 +9,7 @@ function run_test()
   
   
   check_except(function() {
-    DebuggerServer.openListener(2929);
+    DebuggerServer.openListener(-1);
   });
   check_except(DebuggerServer.closeListener);
   check_except(DebuggerServer.connectPipe);
@@ -20,7 +20,7 @@ function run_test()
   
   
   check_except(function() {
-    DebuggerServer.openListener(2929);
+    DebuggerServer.openListener(-1);
   });
   check_except(DebuggerServer.closeListener);
   check_except(DebuggerServer.connectPipe);
@@ -28,7 +28,7 @@ function run_test()
   DebuggerServer.addActors("resource://test/testactors.js");
 
   
-  DebuggerServer.openListener(2929);
+  DebuggerServer.openListener(-1);
   DebuggerServer.closeListener();
 
   
