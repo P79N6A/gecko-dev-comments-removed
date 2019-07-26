@@ -39,6 +39,9 @@ var APZCObserver = {
   handleEvent: function APZC_handleEvent(aEvent) {
     switch (aEvent.type) {
       case 'pageshow':
+        if (aEvent.target != Browser.selectedBrowser.contentDocument)
+          break;
+        
       case 'TabSelect':
         
         
