@@ -1827,6 +1827,13 @@ bool
 XrayWrapper<Base, Traits>::getPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
                                           JS::MutableHandleObject protop)
 {
+    
+    
+    
+    
+    if (Base::hasSecurityPolicy())
+        return Base::getPrototypeOf(cx, wrapper, protop);
+
     RootedObject target(cx, Traits::getTargetObject(wrapper));
     RootedObject expando(cx, Traits::singleton.getExpandoObject(cx, target, wrapper));
 
@@ -1858,6 +1865,11 @@ bool
 XrayWrapper<Base, Traits>::setPrototypeOf(JSContext *cx, JS::HandleObject wrapper,
                                           JS::HandleObject proto, bool *bp)
 {
+    
+    
+    if (Base::hasSecurityPolicy())
+        return Base::setPrototypeOf(cx, wrapper, proto, bp);
+
     RootedObject target(cx, Traits::getTargetObject(wrapper));
     RootedObject expando(cx, Traits::singleton.ensureExpandoObject(cx, wrapper, target));
 
