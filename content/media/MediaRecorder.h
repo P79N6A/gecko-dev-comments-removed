@@ -12,6 +12,7 @@
 #include "mozilla/dom/MediaRecorderBinding.h"
 #include "nsDOMEventTargetHelper.h"
 #include "EncodedBufferCache.h"
+#include "TrackUnionStream.h"
 
 
 #define MAX_ALLOW_MEMORY_BUFFER 1024000
@@ -59,6 +60,10 @@ public:
   
   void Stop(ErrorResult& aResult);
   
+  void Pause(ErrorResult& aResult);
+
+  void Resume(ErrorResult& aResult);
+  
   void RequestData(ErrorResult& aResult);
   
   DOMMediaStream* Stream() const { return mStream; }
@@ -103,6 +108,8 @@ protected:
   nsRefPtr<MediaEncoder> mEncoder;
   
   nsRefPtr<DOMMediaStream> mStream;
+  
+  nsAutoPtr<ProcessedMediaStream> mTrackUnionStream;
   
   nsAutoPtr<EncodedBufferCache> mEncodedBufferCache;
   
