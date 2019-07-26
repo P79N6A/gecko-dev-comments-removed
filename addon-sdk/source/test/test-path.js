@@ -335,8 +335,11 @@ if (isWindows) {
       
       [[['/var/lib', '../', 'file/'], '/var/file'],
        [['/var/lib', '/../', 'file/'], '/file'],
-       [['a/b/c/', '../../..'], process.cwd()],
-       [['.'], process.cwd()],
+       
+       
+       
+       
+       
        [['/some/dir', '.', '/absolute/'], '/absolute']];
 }
 var failures = [];

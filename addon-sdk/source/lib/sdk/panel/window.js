@@ -3,6 +3,15 @@
 
 'use strict';
 
+
+
+module.metadata = {
+  'stability': 'unstable',
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
 const { getMostRecentBrowserWindow, windows: getWindows } = require('../window/utils');
 const { ignoreWindow } = require('../private-browsing/utils');
 const { isPrivateBrowsingSupported } = require('../self');

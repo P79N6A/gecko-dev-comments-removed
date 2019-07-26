@@ -3,11 +3,15 @@
 
 'use strict';
 
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
 const { defer, all } = require('sdk/core/promise');
 const { setTimeout } = require('sdk/timers');
-try {
 const { TreeNode } = require('sdk/places/utils');
-} catch(e) { unsupported(e); }
 
 exports['test construct tree'] = function (assert) {
   let tree = TreeNode(1);
@@ -73,19 +77,5 @@ exports['test async walk'] = function (assert, done) {
     done();
   });
 };
-
-
-
-
-function unsupported (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    "test Unsupported Application": function Unsupported (assert) {
-      assert.pass(err.message);
-    }
-  };
-}
 
 require('test').run(exports);

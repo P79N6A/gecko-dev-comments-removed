@@ -1,7 +1,13 @@
 
 
 
-"use strict";
+'use strict';
+
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
 
 var timer = require("sdk/timers");
 var { Cc, Ci } = require("chrome");
@@ -492,21 +498,4 @@ function activeWindow() {
   return Cc["@mozilla.org/appshell/window-mediator;1"].
          getService(Ci.nsIWindowMediator).
          getMostRecentWindow("navigator:browser");
-};
-
-
-
-
-try {
-  require("sdk/deprecated/tab-browser");
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    testAppNotSupported: function (test) {
-      test.pass(err.message);
-    }
-  };
 }

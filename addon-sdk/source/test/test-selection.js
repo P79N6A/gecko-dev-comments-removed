@@ -2,7 +2,13 @@
 
 
 
-"use strict";
+'use strict';
+
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
 
 const HTML = "<html>\
   <body>\
@@ -986,23 +992,6 @@ if (!require("sdk/private-browsing/utils").isWindowPBSupported) {
       }
     }
   });
-}
-
-
-
-
-try {
-  require("sdk/selection");
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    "test Unsupported Application": function Unsupported (assert) {
-      assert.pass(err.message);
-    }
-  }
 }
 
 require("test").run(exports)

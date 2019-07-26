@@ -2,6 +2,14 @@
 
 
 
+'use strict';
+
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
 const { Cc, Ci, Cu } = require('chrome');
 const { getFavicon } = require('sdk/places/favicon');
 const tabs = require('sdk/tabs');

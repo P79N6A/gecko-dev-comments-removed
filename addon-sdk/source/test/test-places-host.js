@@ -3,12 +3,18 @@
 
 'use strict';
 
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
 const { Cc, Ci } = require('chrome');
 const { defer, all } = require('sdk/core/promise');
 const { setTimeout } = require('sdk/timers');
 const { newURI } = require('sdk/url/utils');
 const { send } = require('sdk/addon/events');
-try {
+
 require('sdk/places/host/host-bookmarks');
 require('sdk/places/host/host-tags');
 require('sdk/places/host/host-query');
@@ -24,7 +30,6 @@ const hsrv = Cc['@mozilla.org/browser/nav-history-service;1'].
 const tagsrv = Cc['@mozilla.org/browser/tagging-service;1'].
               getService(Ci.nsITaggingService);
 clearAllBookmarks();
-} catch(e) { unsupported(e); }
 
 exports.testBookmarksCreate = function (assert, done) {
   let items = [{
@@ -276,17 +281,4 @@ exports.testGetAllChildren = function (assert, done) {
   });
 };
 
-
-
-
-function unsupported (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    "test Unsupported Application": function Unsupported (assert) {
-      assert.pass(err.message);
-    }
-  };
-}
 require('test').run(exports);

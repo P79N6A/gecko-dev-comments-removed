@@ -1,8 +1,15 @@
 
 
 
-"use strict";
+'use strict';
 
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
+const widgets = require("sdk/widget");
 const { Cc, Ci } = require("chrome");
 const { Loader } = require('sdk/test/loader');
 const url = require("sdk/url");
@@ -1173,23 +1180,4 @@ function closeBrowserWindow(window, callback) {
     }, false);
     window.close();
   }, 0);
-}
-
-
-
-
-
-
-try {
-  const widgets = require("sdk/widget");
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    testAppNotSupported: function (test) {
-      test.pass(err.message);
-    }
-  };
 }

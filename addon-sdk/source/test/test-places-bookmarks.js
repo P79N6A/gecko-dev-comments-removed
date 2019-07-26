@@ -3,6 +3,12 @@
 
 'use strict';
 
+module.metadata = {
+  'engines': {
+    'Firefox': '*'
+  }
+};
+
 const { Cc, Ci } = require('chrome');
 const { request } = require('sdk/addon/host');
 const { filter } = require('sdk/event/utils');
@@ -13,8 +19,6 @@ const { defer, all } = require('sdk/core/promise');
 const { defer: async } = require('sdk/lang/functional');
 const { before, after } = require('sdk/test/utils');
 
-
-try {
 const {
   Bookmark, Group, Separator,
   save, search, remove,
@@ -30,7 +34,6 @@ const bmsrv = Cc['@mozilla.org/browser/nav-bookmarks-service;1'].
                     getService(Ci.nsINavBookmarksService);
 const tagsrv = Cc['@mozilla.org/browser/tagging-service;1'].
                     getService(Ci.nsITaggingService);
-} catch (e) { unsupported(e); }
 
 exports.testDefaultFolders = function (assert) {
   var ids = [
@@ -945,20 +948,6 @@ before(exports, name => {
 after(exports, name => {
   clearAllBookmarks();
 });
-
-
-
-
-function unsupported (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    "test Unsupported Application": function Unsupported (assert) {
-      assert.pass(err.message);
-    }
-  };
-}
 
 function saveP () {
   return promisedEmitter(save.apply(null, Array.slice(arguments)));
