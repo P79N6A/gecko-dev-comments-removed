@@ -84,7 +84,7 @@ class GlobalWorkerThreadState
   public:
     GlobalWorkerThreadState();
 
-    bool ensureInitialized();
+    void ensureInitialized();
     void finish();
 
     void lock();
@@ -260,7 +260,7 @@ struct WorkerThread
 
 
 
-bool
+void
 EnsureWorkerThreadsInitialized(ExclusiveContext *cx);
 
 
