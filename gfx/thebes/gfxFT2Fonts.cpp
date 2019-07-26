@@ -240,7 +240,7 @@ void gfxFT2FontGroup::GetCJKPrefFonts(nsTArray<nsRefPtr<gfxFontEntry> >& aFontEn
     key.AppendInt(mStyle.weight);
 
     if (!platform->GetPrefFontEntries(key, &aFontEntryList)) {
-        NS_ENSURE_TRUE(Preferences::GetRootBranch(), );
+        NS_ENSURE_TRUE_VOID(Preferences::GetRootBranch());
         
         nsAdoptingCString list = Preferences::GetLocalizedCString("intl.accept_languages");
         if (!list.IsEmpty()) {

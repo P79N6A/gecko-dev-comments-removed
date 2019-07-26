@@ -1836,7 +1836,7 @@ nsEditor::NotifyEditorObservers(void)
   
 
   nsCOMPtr<nsIContent> target = GetInputEventTargetContent();
-  NS_ENSURE_TRUE(target, );
+  NS_ENSURE_TRUE_VOID(target);
 
   nsContentUtils::AddScriptRunner(
     new EditorInputEventDispatcher(this, mHandlingTrustedAction, target));
@@ -1997,7 +1997,7 @@ nsEditor::BeginIMEComposition()
 void
 nsEditor::EndIMEComposition()
 {
-  NS_ENSURE_TRUE(mInIMEMode, ); 
+  NS_ENSURE_TRUE_VOID(mInIMEMode); 
 
   
   
@@ -5185,7 +5185,7 @@ nsEditor::SwitchTextDirectionTo(uint32_t aDirection)
   
   dom::Element *rootElement = GetRoot();
   nsresult rv = DetermineCurrentDirection();
-  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_SUCCESS_VOID(rv);
 
   
   if (aDirection == nsIPlaintextEditor::eEditorLeftToRight &&

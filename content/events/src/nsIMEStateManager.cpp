@@ -198,25 +198,25 @@ nsIMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
   }
 
   nsCOMPtr<nsIWidget> widget = GetWidget(aPresContext);
-  NS_ENSURE_TRUE(widget, );
+  NS_ENSURE_TRUE_VOID(widget);
 
   bool isTrusted;
   nsresult rv = aMouseEvent->GetIsTrusted(&isTrusted);
-  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_SUCCESS_VOID(rv);
   if (!isTrusted) {
     return; 
   }
 
   uint16_t button;
   rv = aMouseEvent->GetButton(&button);
-  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_SUCCESS_VOID(rv);
   if (button != 0) {
     return; 
   }
 
   int32_t clickCount;
   rv = aMouseEvent->GetDetail(&clickCount);
-  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_SUCCESS_VOID(rv);
   if (clickCount != 1) {
     return; 
   }
@@ -310,7 +310,7 @@ nsIMEStateManager::SetIMEState(const IMEState &aState,
                                nsIWidget* aWidget,
                                InputContextAction aAction)
 {
-  NS_ENSURE_TRUE(aWidget, );
+  NS_ENSURE_TRUE_VOID(aWidget);
 
   InputContext oldContext = aWidget->GetInputContext();
 

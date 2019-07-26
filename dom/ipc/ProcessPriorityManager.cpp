@@ -165,23 +165,23 @@ ProcessPriorityManager::OnContentDocumentGlobalCreated(
   
   
   nsCOMPtr<nsPIDOMWindow> outerWindow = do_QueryInterface(aOuterWindow);
-  NS_ENSURE_TRUE(outerWindow, );
+  NS_ENSURE_TRUE_VOID(outerWindow);
   nsCOMPtr<nsPIDOMWindow> innerWindow = outerWindow->GetCurrentInnerWindow();
-  NS_ENSURE_TRUE(innerWindow, );
+  NS_ENSURE_TRUE_VOID(innerWindow);
 
   
   nsCOMPtr<nsIDOMWindow> parentOuterWindow;
   innerWindow->GetScriptableParent(getter_AddRefs(parentOuterWindow));
-  NS_ENSURE_TRUE(parentOuterWindow, );
+  NS_ENSURE_TRUE_VOID(parentOuterWindow);
   if (parentOuterWindow != outerWindow) {
     return;
   }
 
   nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(innerWindow);
-  NS_ENSURE_TRUE(target, );
+  NS_ENSURE_TRUE_VOID(target);
 
   nsWeakPtr weakWin = do_GetWeakReference(innerWindow);
-  NS_ENSURE_TRUE(weakWin, );
+  NS_ENSURE_TRUE_VOID(weakWin);
 
   if (mWindows.Contains(weakWin)) {
     return;

@@ -1000,18 +1000,18 @@ nsUpdateProcessor::StartBackgroundUpdate()
                                mInfo.mAppVersion.get(),
                                false,
                                &mUpdaterPID);
-  NS_ENSURE_SUCCESS(rv, );
+  NS_ENSURE_SUCCESS_VOID(rv);
 
   if (mUpdaterPID) {
     
     rv = NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsUpdateProcessor::WaitForProcess));
-    NS_ENSURE_SUCCESS(rv, );
+    NS_ENSURE_SUCCESS_VOID(rv);
   } else {
     
     
     
     rv = NS_DispatchToMainThread(NS_NewRunnableMethod(this, &nsUpdateProcessor::ShutdownWatcherThread));
-    NS_ENSURE_SUCCESS(rv, );
+    NS_ENSURE_SUCCESS_VOID(rv);
   }
 }
 
