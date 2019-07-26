@@ -1311,19 +1311,19 @@ struct JSRuntime : public JS::shadow::Runtime,
     JS::RuntimeOptions options_;
 
     
-    bool parallelIonCompilationEnabled_;
+    bool offthreadIonCompilationEnabled_;
     bool parallelParsingEnabled_;
 
   public:
 
     
     
-    void setParallelIonCompilationEnabled(bool value) {
-        parallelIonCompilationEnabled_ = value;
+    void setOffthreadIonCompilationEnabled(bool value) {
+        offthreadIonCompilationEnabled_ = value;
     }
-    bool canUseParallelIonCompilation() const {
+    bool canUseOffthreadIonCompilation() const {
 #ifdef JS_THREADSAFE
-        return parallelIonCompilationEnabled_;
+        return offthreadIonCompilationEnabled_;
 #else
         return false;
 #endif

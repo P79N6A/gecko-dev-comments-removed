@@ -12,8 +12,8 @@ from results import TestOutput
 
 TBPL_FLAGS = [
     [], 
-    ['--ion-eager', '--ion-parallel-compile=off'], 
-    ['--ion-eager', '--ion-parallel-compile=off', '--ion-check-range-analysis', '--no-sse3'],
+    ['--ion-eager', '--ion-offthread-compile=off'], 
+    ['--ion-eager', '--ion-offthread-compile=off', '--ion-check-range-analysis', '--no-sse3'],
     ['--baseline-eager'],
     ['--baseline-eager', '--no-fpu'],
     ['--no-baseline', '--no-ion'],

@@ -34,29 +34,29 @@ var Opts_BaselineEager =
       'ion.enable': 1,
       'baseline.enable': 1,
       'baseline.usecount.trigger': 0,
-      'parallel-compilation.enable': 1
+      'offthread-compilation.enable': 1
     };
 
 
 
 
 
-var Opts_IonEagerNoParallelCompilation =
+var Opts_IonEagerNoOffthreadCompilation =
     {
       'ion.enable': 1,
       'ion.usecount.trigger': 0,
       'baseline.enable': 1,
       'baseline.usecount.trigger': 0,
-      'parallel-compilation.enable': 0,
+      'offthread-compilation.enable': 0,
     };
 
-var Opts_Ion2NoParallelCompilation =
+var Opts_Ion2NoOffthreadCompilation =
     {
       'ion.enable': 1,
       'ion.usecount.trigger': 2,
       'baseline.enable': 1,
       'baseline.usecount.trigger': 1,
-      'parallel-compilation.enable': 0
+      'offthread-compilation.enable': 0
     };
 
 var Opts_NoJits =
@@ -65,5 +65,5 @@ var Opts_NoJits =
       'ion.usecount.trigger': 0,
       'baseline.usecount.trigger': 0,
       'baseline.enable': 0,
-      'parallel-compilation.enable': 0
+      'offthread-compilation.enable': 0
     };
