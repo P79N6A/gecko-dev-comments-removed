@@ -571,6 +571,9 @@ public:
 
   virtual void DisableDeviceSensor(uint32_t aType) = 0;
 
+  virtual void EnableTimeChangeNotifications() = 0;
+  virtual void DisableTimeChangeNotifications() = 0;
+
   
 
 

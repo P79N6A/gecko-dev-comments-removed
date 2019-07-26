@@ -473,6 +473,9 @@ class nsHashKey;
 #define NS_WHEEL_WHEEL               (NS_WHEEL_EVENT_START)
 
 
+#define NS_MOZ_TIME_CHANGE_EVENT     5500
+
+
 
 
 
