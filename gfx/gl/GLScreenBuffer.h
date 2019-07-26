@@ -47,10 +47,12 @@ protected:
 
 public:
     
-    static DrawBuffer* Create(GLContext* const gl,
-                              const SurfaceCaps& caps,
-                              const GLFormats& formats,
-                              const gfx::IntSize& size);
+    
+    static bool Create(GLContext* const gl,
+                       const SurfaceCaps& caps,
+                       const GLFormats& formats,
+                       const gfx::IntSize& size,
+                       DrawBuffer** out_buffer);
 
 protected:
     GLContext* const mGL;
@@ -282,9 +284,9 @@ public:
     void Readback(SharedSurface_GL* src, gfx::DataSourceSurface* dest);
 
 protected:
-    void Attach(SharedSurface* surface, const gfx::IntSize& size);
+    bool Attach(SharedSurface* surface, const gfx::IntSize& size);
 
-    DrawBuffer* CreateDraw(const gfx::IntSize& size);
+    bool CreateDraw(const gfx::IntSize& size, DrawBuffer** out_buffer);
     ReadBuffer* CreateRead(SharedSurface_GL* surf);
 
 public:
