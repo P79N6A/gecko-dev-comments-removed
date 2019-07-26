@@ -360,7 +360,13 @@ XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
     XPCNativeScriptableInfo* siProto = proto->GetScriptableInfo();
     if (siProto && siProto->GetCallback() == sciWrapper.GetCallback()) {
         wrapper->mScriptableInfo = siProto;
+        
+        
+        
+        
+        
         delete si;
+        si = nullptr;
     } else {
         wrapper->mScriptableInfo = si;
     }
