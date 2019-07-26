@@ -12,7 +12,7 @@
 
 #include "nsCOMPtr.h"
 
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMEventListener.h"
@@ -25,12 +25,12 @@ public:
     
     
     
-    nsXULPopupListener(nsIDOMElement *aElement, bool aIsContext);
+    nsXULPopupListener(mozilla::dom::Element* aElement, bool aIsContext);
     virtual ~nsXULPopupListener(void);
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS(nsXULPopupListener)
+    NS_DECL_CYCLE_COLLECTION_SKIPPABLE_CLASS(nsXULPopupListener)
     NS_DECL_NSIDOMEVENTLISTENER
 
 protected:
@@ -48,7 +48,7 @@ private:
 #endif
 
     
-    nsCOMPtr<nsIDOMElement> mElement;
+    nsCOMPtr<mozilla::dom::Element> mElement;
 
     
     nsCOMPtr<nsIContent> mPopupContent; 
