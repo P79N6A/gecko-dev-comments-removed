@@ -7325,7 +7325,6 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     return false;
   }
 
-  bool rollup = false;
   uint32_t popupsToRollup = UINT32_MAX;
 
   nsWindow* popupWindow = static_cast<nsWindow*>(popup.get());
@@ -7337,40 +7336,66 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_NCLBUTTONDOWN:
     case WM_NCRBUTTONDOWN:
     case WM_NCMBUTTONDOWN:
-      rollup = !EventIsInsideWindow(popupWindow) &&
-               GetPopupsToRollup(rollupListener, &popupsToRollup);
-      break;
+      if (!EventIsInsideWindow(popupWindow) &&
+          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+        break;
+      }
+      return false;
 
     case WM_MOUSEWHEEL:
     case WM_MOUSEHWHEEL:
       
       
       if (!EventIsInsideWindow(popupWindow)) {
-        rollup = rollupListener->ShouldRollupOnMouseWheelEvent() &&
-                 GetPopupsToRollup(rollupListener, &popupsToRollup);
         *aResult = MA_ACTIVATE;
+        if (rollupListener->ShouldRollupOnMouseWheelEvent() &&
+            GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+          break;
+        }
       }
-      break;
+      return false;
 
     case WM_ACTIVATEAPP:
-      rollup = true;
       break;
 
     case WM_ACTIVATE:
+      
+      if (!EventIsInsideWindow(popupWindow) &&
+          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+        break;
+      }
+      return false;
+
     case WM_MOUSEACTIVATE:
       
-      rollup = !EventIsInsideWindow(popupWindow) &&
-               GetPopupsToRollup(rollupListener, &popupsToRollup);
-      break;
+      if (!EventIsInsideWindow(popupWindow) &&
+          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+        
+        
+        
+        if (HIWORD(aLParam) == WM_MOUSEMOVE &&
+            !rollupListener->ShouldRollupOnMouseActivate()) {
+          return true;
+        }
+        
+        return false;
+      }
+
+      
+      
+      
+      
+      return true;
 
     case WM_KILLFOCUS:
       
       
       if (IsDifferentThreadWindow(reinterpret_cast<HWND>(aWParam))) {
         
-        rollup = !EventIsInsideWindow(popupWindow) &&
-                 GetPopupsToRollup(rollupListener, &popupsToRollup);
-        break;
+        if (!EventIsInsideWindow(popupWindow) &&
+            GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+          break;
+        }
       }
       return false;
 
@@ -7378,37 +7403,14 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     case WM_SIZING:
     case WM_MENUSELECT:
       
-      rollup = !EventIsInsideWindow(popupWindow) &&
-               GetPopupsToRollup(rollupListener, &popupsToRollup);
-      break;
+      if (!EventIsInsideWindow(popupWindow) &&
+          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
+        break;
+      }
+      return false;
 
     default:
       return false;
-  }
-
-  if (nativeMessage == WM_MOUSEACTIVATE) {
-    
-    
-    
-    
-    if (!rollup) {
-      return true;
-    }
-
-    if (HIWORD(aLParam) == WM_MOUSEMOVE) {
-      
-      
-      rollup = rollupListener->ShouldRollupOnMouseActivate();
-      if (!rollup) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  if (!rollup) {
-    return false;
   }
 
   
