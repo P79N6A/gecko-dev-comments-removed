@@ -46,3 +46,16 @@ add_task(function test_simpleDownload_object_arguments()
                                  { file: targetFile });
   yield promiseVerifyContents(targetFile, TEST_DATA_SHORT);
 });
+
+
+
+
+
+
+add_task(function test_getPublicDownloadList()
+{
+  let downloadListOne = yield Downloads.getPublicDownloadList();
+  let downloadListTwo = yield Downloads.getPublicDownloadList();
+
+  do_check_eq(downloadListOne, downloadListTwo);
+});

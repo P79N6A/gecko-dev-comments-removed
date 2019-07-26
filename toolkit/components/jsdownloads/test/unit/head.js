@@ -101,6 +101,25 @@ function getTempFile(aLeafName)
 
 
 
+function promiseSimpleDownload(aSourceURI) {
+  return Downloads.createDownload({
+    source: { uri: aSourceURI || TEST_SOURCE_URI },
+    target: { file: getTempFile(TEST_TARGET_FILE_NAME) },
+    saver: { type: "copy" },
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 function promiseVerifyContents(aFile, aExpectedContents)
 {

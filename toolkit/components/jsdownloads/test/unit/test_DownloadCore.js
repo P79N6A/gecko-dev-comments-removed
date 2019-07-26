@@ -15,28 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-function promiseSimpleDownload(aSourceURI) {
-  return Downloads.createDownload({
-    source: { uri: aSourceURI || TEST_SOURCE_URI },
-    target: { file: getTempFile(TEST_TARGET_FILE_NAME) },
-    saver: { type: "copy" },
-  });
-}
-
-
-
-
-
-
-
 add_task(function test_download_construction()
 {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
