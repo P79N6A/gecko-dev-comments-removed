@@ -2363,9 +2363,25 @@ let RIL = {
 
 
   setupDataCall: function setupDataCall(options) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let radioTech;
+    if (RILQUIRKS_V5_LEGACY) {
+      radioTech = this._isCdma ? DATACALL_RADIOTECHNOLOGY_CDMA
+                               : DATACALL_RADIOTECHNOLOGY_GSM;
+    } else {
+      radioTech = options.radioTech + 2;
+    }
     let token = Buf.newParcel(REQUEST_SETUP_DATA_CALL, options);
     Buf.writeUint32(7);
-    Buf.writeString(options.radioTech.toString());
+    Buf.writeString(radioTech.toString());
     Buf.writeString(DATACALL_PROFILE_DEFAULT.toString());
     Buf.writeString(options.apn);
     Buf.writeString(options.user);
