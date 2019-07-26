@@ -25,7 +25,6 @@ function allAppShellDOMWindows(aWindowType)
 
 
 
-
 function appShellDOMWindowType(aWindow) {
   
   return aWindow.document.documentElement.getAttribute('windowtype');
