@@ -219,6 +219,9 @@ class ExceptionHandler {
 
   
   bool SimulateSignalDelivery(int sig);
+
+  
+  bool HandleSignal(int sig, siginfo_t* info, void* uc);
  private:
   
   static bool InstallHandlersLocked();
@@ -231,7 +234,6 @@ class ExceptionHandler {
   void WaitForContinueSignal();
 
   static void SignalHandler(int sig, siginfo_t* info, void* uc);
-  bool HandleSignal(int sig, siginfo_t* info, void* uc);
   static int ThreadEntry(void* arg);
   bool DoDump(pid_t crashing_process, const void* context,
               size_t context_size);
