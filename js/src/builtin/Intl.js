@@ -378,6 +378,43 @@ function CanonicalizeLanguageTag(locale) {
 
 
 
+var oldStyleLanguageTagMappings = {
+    "pa-PK": "pa-Arab-PK",
+    "zh-CN": "zh-Hans-CN",
+    "zh-HK": "zh-Hant-HK",
+    "zh-SG": "zh-Hans-SG",
+    "zh-TW": "zh-Hant-TW"
+};
+
+
+
+
+
+
+
+function DefaultLocale() {
+    var localeOfLastResort = "und";
+
+    var locale = RuntimeDefaultLocale();
+    if (!IsStructurallyValidLanguageTag(locale))
+        return localeOfLastResort;
+
+    locale = CanonicalizeLanguageTag(locale);
+    if (callFunction(std_Object_hasOwnProperty, oldStyleLanguageTagMappings, locale))
+        locale = oldStyleLanguageTagMappings[locale];
+
+    if (!(collatorInternalProperties.availableLocales[locale] &&
+          numberFormatInternalProperties.availableLocales[locale] &&
+          dateTimeFormatInternalProperties.availableLocales[locale]))
+    {
+        locale = localeOfLastResort;
+    }
+    return locale;
+}
+
+
+
+
 
 
 
@@ -401,17 +438,12 @@ function IsWellFormedCurrencyCode(currency) {
 
 
 function addOldStyleLanguageTags(availableLocales) {
-    
-    if (availableLocales["pa-Arab-PK"])
-        availableLocales["pa-PK"] = true;
-    if (availableLocales["zh-Hans-CN"])
-        availableLocales["zh-CN"] = true;
-    if (availableLocales["zh-Hans-SG"])
-        availableLocales["zh-SG"] = true;
-    if (availableLocales["zh-Hant-HK"])
-        availableLocales["zh-HK"] = true;
-    if (availableLocales["zh-Hant-TW"])
-        availableLocales["zh-TW"] = true;
+    var oldStyleLocales = std_Object_getOwnPropertyNames(oldStyleLanguageTagMappings);
+    for (var i = 0; i < oldStyleLocales.length; i++) {
+        var oldStyleLocale = oldStyleLocales[i];
+        if (availableLocales[oldStyleLanguageTagMappings[oldStyleLocale]])
+            availableLocales[oldStyleLocale] = true;
+    }
     return availableLocales;
 }
 
@@ -503,16 +535,16 @@ function LookupMatcher(availableLocales, requestedLocales) {
 
     var result = new Record();
     if (availableLocale !== undefined) {
-        result.__locale = availableLocale;
+        result.locale = availableLocale;
         if (locale !== noExtensionsLocale) {
             var extensionMatch = callFunction(std_String_match, locale, unicodeLocaleExtensionSequenceRE);
             var extension = extensionMatch[0];
             var extensionIndex = extensionMatch.index;
-            result.__extension = extension;
-            result.__extensionIndex = extensionIndex;
+            result.extension = extension;
+            result.extensionIndex = extensionIndex;
         }
     } else {
-        result.__locale = DefaultLocale();
+        result.locale = DefaultLocale();
     }
     return result;
 }
@@ -530,4 +562,141 @@ function LookupMatcher(availableLocales, requestedLocales) {
 function BestFitMatcher(availableLocales, requestedLocales) {
     
     return LookupMatcher(availableLocales, requestedLocales);
+}
+
+
+
+
+
+
+
+
+
+
+
+function ResolveLocale(availableLocales, requestedLocales, options, relevantExtensionKeys, localeData) {
+    
+    var matcher = options.localeMatcher;
+    var r = (matcher === "lookup") ?
+            LookupMatcher(availableLocales, requestedLocales) :
+            BestFitMatcher(availableLocales, requestedLocales);
+
+    
+    var foundLocale = r.locale;
+
+    
+    var extension = r.extension;
+    var extensionIndex, extensionSubtags, extensionSubtagsLength;
+
+    
+    if (extension !== undefined) {
+        
+        extensionIndex = r.extensionIndex;
+
+        
+        extensionSubtags = callFunction(std_String_split, extension, "-");
+        extensionSubtagsLength = extensionSubtags.length;
+    }
+
+    
+    var result = new Record();
+    result.dataLocale = foundLocale;
+
+    
+    var supportedExtension = "-u";
+
+    
+    var i = 0;
+    var len = relevantExtensionKeys.length;
+    while (i < len) {
+        
+        var key = relevantExtensionKeys[i];
+
+        
+        var foundLocaleData = localeData(foundLocale);
+        var keyLocaleData = foundLocaleData[key];
+
+        
+        
+        var value = keyLocaleData[0];
+
+        
+
+        
+        var supportedExtensionAddition = "";
+
+        
+
+        var valuePos;
+
+        
+        if (extensionSubtags !== undefined) {
+            
+            var keyPos = callFunction(std_Array_indexOf, extensionSubtags, key);
+
+            
+            if (keyPos !== -1) {
+                
+                if (keyPos + 1 < extensionSubtagsLength &&
+                    extensionSubtags[keyPos + 1].length > 2)
+                {
+                    
+                    var requestedValue = extensionSubtags[keyPos + 1];
+
+                    
+                    valuePos = callFunction(std_Array_indexOf, keyLocaleData, requestedValue);
+
+                    
+                    if (valuePos !== -1) {
+                        value = requestedValue;
+                        supportedExtensionAddition = "-" + key + "-" + value;
+                    }
+                } else {
+                    
+
+                    
+                    
+
+                    
+                    valuePos = callFunction(std_Array_indexOf, keyLocaleData, "true");
+
+                    
+                    if (valuePos !== -1)
+                        value = "true";
+                }
+            }
+        }
+
+        
+
+        
+        var optionsValue = options[key];
+
+        
+        if (optionsValue !== undefined &&
+            callFunction(std_Array_indexOf, keyLocaleData, optionsValue) !== -1)
+        {
+            
+            if (optionsValue !== value) {
+                value = optionsValue;
+                supportedExtensionAddition = "";
+            }
+        }
+
+        
+        result[key] = value;
+        supportedExtension += supportedExtensionAddition;
+        i++;
+    }
+
+    
+    if (supportedExtension.length > 2) {
+        var preExtension = callFunction(std_String_substring, foundLocale, 0, extensionIndex);
+        var postExtension = callFunction(std_String_substring, foundLocale, extensionIndex);
+        foundLocale = preExtension + supportedExtension + postExtension;
+    }
+
+    
+    result.locale = foundLocale;
+    return result;
 }
