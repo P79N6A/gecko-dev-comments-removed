@@ -100,6 +100,11 @@ SourceSurfaceD2DTarget::DrawTargetWillChange()
   mTexture->GetDesc(&desc);
 
   
+  
+  
+  desc.MiscFlags = 0;
+
+  
   Factory::GetDirect3D10Device()->CreateTexture2D(&desc, nullptr, byRef(mTexture));
   Factory::GetDirect3D10Device()->CopyResource(mTexture, oldTexture);
 
