@@ -12,8 +12,13 @@
 BEGIN_QUOTA_NAMESPACE
 
 enum StoragePrivilege {
-  Content,
-  Chrome
+  
+  Chrome,
+
+  
+  
+  
+  Content
 };
 
 END_QUOTA_NAMESPACE

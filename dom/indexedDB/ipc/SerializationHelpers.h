@@ -5,7 +5,7 @@
 #ifndef mozilla_dom_indexeddb_serializationhelpers_h__
 #define mozilla_dom_indexeddb_serializationhelpers_h__
 
-#include "IPC/IPCMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 
 #include "mozilla/dom/indexedDB/DatabaseInfo.h"
 #include "mozilla/dom/indexedDB/Key.h"
@@ -14,6 +14,13 @@
 #include "mozilla/dom/indexedDB/IDBTransaction.h"
 
 namespace IPC {
+
+template <>
+struct ParamTraits<mozilla::dom::quota::PersistenceType> :
+  public EnumSerializer<mozilla::dom::quota::PersistenceType,
+                        mozilla::dom::quota::PERSISTENCE_TYPE_PERSISTENT,
+                        mozilla::dom::quota::PERSISTENCE_TYPE_INVALID>
+{ };
 
 template <>
 struct ParamTraits<mozilla::dom::indexedDB::Key>
@@ -154,8 +161,10 @@ struct ParamTraits<mozilla::dom::indexedDB::DatabaseInfoGuts>
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, aParam.name);
+    WriteParam(aMsg, aParam.group);
     WriteParam(aMsg, aParam.origin);
     WriteParam(aMsg, aParam.version);
+    WriteParam(aMsg, aParam.persistenceType);
     WriteParam(aMsg, aParam.nextObjectStoreId);
     WriteParam(aMsg, aParam.nextIndexId);
   }
@@ -163,8 +172,10 @@ struct ParamTraits<mozilla::dom::indexedDB::DatabaseInfoGuts>
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
     return ReadParam(aMsg, aIter, &aResult->name) &&
+           ReadParam(aMsg, aIter, &aResult->group) &&
            ReadParam(aMsg, aIter, &aResult->origin) &&
            ReadParam(aMsg, aIter, &aResult->version) &&
+           ReadParam(aMsg, aIter, &aResult->persistenceType) &&
            ReadParam(aMsg, aIter, &aResult->nextObjectStoreId) &&
            ReadParam(aMsg, aIter, &aResult->nextIndexId);
   }
@@ -172,6 +183,7 @@ struct ParamTraits<mozilla::dom::indexedDB::DatabaseInfoGuts>
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
     LogParam(aParam.name, aLog);
+    LogParam(aParam.group, aLog);
     LogParam(aParam.origin, aLog);
     LogParam(aParam.version, aLog);
     LogParam(aParam.nextObjectStoreId, aLog);

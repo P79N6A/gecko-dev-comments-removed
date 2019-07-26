@@ -61,7 +61,7 @@ let DomStorage = {
       
       let isHTTPS = principal.URI && principal.URI.schemeIs("https");
       if (aFullData || SessionStore.checkPrivacyLevel(isHTTPS, isPinned)) {
-        let origin = principal.extendedOrigin;
+        let origin = principal.jarPrefix + principal.origin;
 
         
         if (!(origin in data)) {

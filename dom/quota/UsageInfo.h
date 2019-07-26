@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_dom_quota_usagerunnable_h__
-#define mozilla_dom_quota_usagerunnable_h__
+#ifndef mozilla_dom_quota_usageinfo_h__
+#define mozilla_dom_quota_usageinfo_h__
 
 #include "mozilla/dom/quota/QuotaCommon.h"
 
@@ -14,14 +14,14 @@
 
 BEGIN_QUOTA_NAMESPACE
 
-class UsageRunnable
+class UsageInfo
 {
 public:
-  UsageRunnable()
+  UsageInfo()
   : mCanceled(0), mDatabaseUsage(0), mFileUsage(0)
   { }
 
-  virtual ~UsageRunnable()
+  virtual ~UsageInfo()
   { }
 
   bool

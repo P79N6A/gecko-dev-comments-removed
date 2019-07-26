@@ -21,7 +21,8 @@ var gData = [
 
 {
   permission: "storage",
-  expected: ["indexedDB-unlimited", "offline-app", "pin-app"]
+  expected: ["indexedDB-unlimited", "offline-app", "pin-app",
+             "default-persistent-storage"]
 },
 
 {

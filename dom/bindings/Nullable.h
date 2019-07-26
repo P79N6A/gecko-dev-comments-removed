@@ -64,6 +64,28 @@ public:
     return mIsNull;
   }
 
+  bool Equals(const Nullable<T>& aOtherNullable) const
+  {
+    return (mIsNull && aOtherNullable.mIsNull) ||
+           (!mIsNull && !aOtherNullable.mIsNull &&
+            mValue == aOtherNullable.mValue);
+  }
+
+  bool operator==(const Nullable<T>& aOtherNullable) const
+  {
+    return Equals(aOtherNullable);
+  }
+
+  bool operator!=(const Nullable<T>& aOtherNullable) const
+  {
+    return !Equals(aOtherNullable);
+  }
+
+  operator bool() const
+  {
+    return !mIsNull;
+  }
+
   
   
   template<typename U>

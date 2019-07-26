@@ -79,9 +79,14 @@ pref("offline-apps.quota.warn",        51200);
 pref("browser.cache.compression_level", 0);
 
 
+pref("dom.quotaManager.testing", false);
+
+
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
+
+pref("dom.indexedDB.experimental", false);
 
 
 pref("dom.workers.enabled", true);

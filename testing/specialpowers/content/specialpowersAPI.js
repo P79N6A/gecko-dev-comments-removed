@@ -1182,6 +1182,11 @@ SpecialPowersAPI.prototype = {
     Cu.forceCC();
   },
 
+  
+  
+  
+  
+  
   exactGC: function(win, callback) {
     var self = this;
     let count = 0;

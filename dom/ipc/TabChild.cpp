@@ -2445,7 +2445,9 @@ TabChild::GetMessageManager(nsIContentFrameMessageManager** aResult)
 }
 
 PIndexedDBChild*
-TabChild::AllocPIndexedDBChild(const nsCString& aASCIIOrigin, bool* )
+TabChild::AllocPIndexedDBChild(
+                            const nsCString& aGroup,
+                            const nsCString& aASCIIOrigin, bool* )
 {
   NS_NOTREACHED("Should never get here!");
   return NULL;
