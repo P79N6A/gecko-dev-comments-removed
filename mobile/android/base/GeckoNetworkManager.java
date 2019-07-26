@@ -148,14 +148,21 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         if (mNetworkType != NetworkType.NETWORK_WIFI) {
             return 0;
         }
- 
-        WifiManager mgr = (WifiManager)sInstance.mApplicationContext.getSystemService(Context.WIFI_SERVICE);
-        DhcpInfo d = mgr.getDhcpInfo();
-        if (d == null) {
+        try {
+            WifiManager mgr = (WifiManager)sInstance.mApplicationContext.getSystemService(Context.WIFI_SERVICE);
+            DhcpInfo d = mgr.getDhcpInfo();
+            if (d == null) {
+                return 0;
+            }
+
+            return d.gateway;
+
+        } catch (Exception ex) {
+            
+            
+            
             return 0;
         }
-
-        return d.gateway;
     }
 
     private void updateNetworkType() {
