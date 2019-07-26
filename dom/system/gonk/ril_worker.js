@@ -3924,25 +3924,48 @@ RilObject.prototype = {
     this.sendChromeMessage(message);
   },
 
-  _compareDataCallLink: function(source, target) {
-    if (source.ifname != target.ifname ||
-        source.ipaddr != target.ipaddr ||
-        source.gw != target.gw) {
-      return false;
+  
+
+
+
+
+  _compareDataCallLink: function(updatedDataCall, currentDataCall) {
+    
+    if (updatedDataCall.ifname != currentDataCall.ifname) {
+      return "deactivate";
     }
 
     
-    let sdns = source.dns, tdns = target.dns;
-    if (sdns.length != tdns.length) {
-      return false;
-    }
-    for (let i = 0; i < sdns.length; i++) {
-      if (sdns[i] != tdns[i]) {
-        return false;
+    for (let i = 0; i < currentDataCall.addresses.length; i++) {
+      let address = currentDataCall.addresses[i];
+      if (updatedDataCall.addresses.indexOf(address) < 0) {
+        return "deactivate";
       }
     }
 
-    return true;
+    if (currentDataCall.addresses.length != updatedDataCall.addresses.length) {
+      
+      
+      
+      return "changed";
+    }
+
+    let fields = ["gateways", "dnses"];
+    for (let i = 0; i < fields.length; i++) {
+      
+      let field = fields[i];
+      let lhs = updatedDataCall[field], rhs = currentDataCall[field];
+      if (lhs.length != rhs.length) {
+        return "changed";
+      }
+      for (let i = 0; i < lhs.length; i++) {
+        if (lhs[i] != rhs[i]) {
+          return "changed";
+        }
+      }
+    }
+
+    return "identical";
   },
 
   _processDataCallList: function(datacalls, newDataCallOptions) {
@@ -3998,12 +4021,13 @@ RilObject.prototype = {
       }
 
       
-      if (this._compareDataCallLink(updatedDataCall, currentDataCall)) {
+      let result =
+        this._compareDataCallLink(updatedDataCall, currentDataCall);
+      if (result == "identical") {
         if (DEBUG) this.context.debug("No changes in data call.");
         continue;
       }
-      if ((updatedDataCall.ifname != currentDataCall.ifname) ||
-          (updatedDataCall.ipaddr != currentDataCall.ipaddr)) {
+      if (result == "deactivate") {
         if (DEBUG) this.context.debug("Data link changed, cleanup.");
         this.deactivateDataCall(currentDataCall);
         continue;
@@ -4012,12 +4036,9 @@ RilObject.prototype = {
       if (DEBUG) {
         this.context.debug("Data link minor change, just update and notify.");
       }
-      currentDataCall.gw = updatedDataCall.gw;
-      if (updatedDataCall.dns) {
-        currentDataCall.dns = updatedDataCall.dns.slice();
-      } else {
-        currentDataCall.dns = [];
-      }
+      currentDataCall.addresses = updatedDataCall.addresses.slice();
+      currentDataCall.dnses = updatedDataCall.dnses.slice();
+      currentDataCall.gateways = updatedDataCall.gateways.slice();
       currentDataCall.rilMessageType = "datacallstatechange";
       this.sendChromeMessage(currentDataCall);
     }
@@ -5411,12 +5432,12 @@ RilObject.prototype.readSetupDataCall_v5 = function readSetupDataCall_v5(options
   if (!options) {
     options = {};
   }
-  let [cid, ifname, ipaddr, dns, gw] = this.context.Buf.readStringList();
+  let [cid, ifname, addresses, dnses, gateways] = this.context.Buf.readStringList();
   options.cid = cid;
   options.ifname = ifname;
-  options.ipaddr = ipaddr;
-  options.dns = dns;
-  options.gw = gw;
+  options.addresses = addresses ? [addresses] : [];
+  options.dnses = dnses ? [dnses] : [];
+  options.gateways = gateways ? [gateways] : [];
   options.active = DATACALL_ACTIVE_UNKNOWN;
   options.state = GECKO_NETWORK_STATE_CONNECTING;
   return options;
@@ -5968,15 +5989,11 @@ RilObject.prototype.readDataCall_v5 = function(options) {
   options.active = Buf.readInt32(); 
   options.type = Buf.readString();
   options.apn = Buf.readString();
-  options.ipaddr = Buf.readString();
-  options.dns = Buf.readString();
-  
-  if (options.ipaddr) {
-    options.ipaddr = options.ipaddr.split(" ")[0];
-  }
-  if (options.dns) {
-    options.dns = options.dns.split(" ");
-  }
+  let addresses = Buf.readString();
+  let dnses = Buf.readString();
+  options.addresses = addresses ? addresses.split(" ") : [];
+  options.dnses = dnses ? dnses.split(" ") : [];
+  options.gateways = [];
   return options;
 };
 
@@ -5991,19 +6008,12 @@ RilObject.prototype.readDataCall_v6 = function(options) {
   options.active = Buf.readInt32();  
   options.type = Buf.readString();
   options.ifname = Buf.readString();
-  options.ipaddr = Buf.readString();
-  options.dns = Buf.readString();
-  options.gw = Buf.readString();
-  if (options.dns) {
-    options.dns = options.dns.split(" ");
-  }
-  
-  if (options.ipaddr) {
-    options.ipaddr = options.ipaddr.split(" ")[0];
-  }
-  if (options.gw) {
-    options.gw = options.gw.split(" ")[0];
-  }
+  let addresses = Buf.readString();
+  let dnses = Buf.readString();
+  let gateways = Buf.readString();
+  options.addresses = addresses ? addresses.split(" ") : [];
+  options.dnses = dnses ? dnses.split(" ") : [];
+  options.gateways = gateways ? gateways.split(" ") : [];
   return options;
 };
 
