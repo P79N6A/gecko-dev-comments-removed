@@ -3765,7 +3765,7 @@ nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
     
     
     if (aParentFrame->GetType() == nsGkAtoms::svgUseFrame) {
-      content->SetFlags(NODE_IS_ANONYMOUS);
+      content->SetFlags(NODE_IS_ANONYMOUS_ROOT);
     } else {
       content->SetNativeAnonymous();
     }
