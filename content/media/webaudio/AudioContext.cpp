@@ -172,8 +172,8 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
   if (aNumberOfChannels == 0 ||
       aNumberOfChannels > WebAudioUtils::MaxChannelCount ||
       aLength == 0 ||
-      aSampleRate <= 1.0f ||
-      aSampleRate >= TRACK_RATE_MAX) {
+      aSampleRate < WebAudioUtils::MinSampleRate ||
+      aSampleRate > WebAudioUtils::MaxSampleRate) {
     
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
