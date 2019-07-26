@@ -286,10 +286,87 @@ public:
             const ModifierKeyState& aModKeyState,
             const nsFakeCharMessage* aFakeCharMessage = nullptr);
 
-  uint32_t GetDOMKeyCode() const { return mDOMKeyCode; }
-  KeyNameIndex GetKeyNameIndex() const { return mKeyNameIndex; }
+  
 
-  UINT GetMessage() const { return mMsg.message; }
+
+
+
+
+  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr) const;
+
+  
+
+
+
+
+  bool HandleCharMessage(const MSG& aCharMsg,
+                         bool* aEventDispatched = nullptr,
+                         const EventFlags* aExtraFlags = nullptr) const;
+
+  
+
+
+
+  bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
+
+private:
+  nsRefPtr<nsWindowBase> mWidget;
+  HKL mKeyboardLayout;
+  MSG mMsg;
+  
+  
+  
+  MSG mCharMsg;
+
+  uint32_t mDOMKeyCode;
+  KeyNameIndex mKeyNameIndex;
+
+  ModifierKeyState mModKeyState;
+
+  
+  uint8_t mVirtualKeyCode;
+  
+  
+  
+  uint8_t mOriginalVirtualKeyCode;
+
+  
+  
+  
+  UniCharsAndModifiers mCommittedCharsAndModifiers;
+
+  WORD    mScanCode;
+  bool    mIsExtended;
+  bool    mIsDeadKey;
+  
+  
+  
+  
+  bool    mIsPrintableKey;
+  bool    mIsFakeCharMsg;
+
+  NativeKey()
+  {
+    MOZ_NOT_REACHED("The default constructor of NativeKey isn't available");
+  }
+
+  UINT GetScanCodeWithExtendedFlag() const;
+
+  
+  uint32_t GetKeyLocation() const;
+
+  
+
+
+
+
+  bool IsIMEDoingKakuteiUndo() const;
+
+  
+
+
+  void RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg) const;
+
   bool IsKeyDownMessage() const
   {
     return (mMsg.message == WM_KEYDOWN || mMsg.message == WM_SYSKEYDOWN);
@@ -300,17 +377,6 @@ public:
     return (mCharMsg.message != 0);
   }
   const MSG& RemoveFollowingCharMessage() const;
-  bool IsDeadKey() const { return mIsDeadKey; }
-  
-
-
-
-
-
-  inline bool IsPrintableKey() const { return mIsPrintableKey; }
-  WORD GetScanCode() const { return mScanCode; }
-  uint8_t GetVirtualKeyCode() const { return mVirtualKeyCode; }
-  uint8_t GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
 
   
 
@@ -376,83 +442,6 @@ public:
 
 
   bool NeedsToHandleWithoutFollowingCharMessages() const;
-
-  
-
-
-
-
-
-  bool HandleKeyDownMessage(bool* aEventDispatched = nullptr) const;
-
-  
-
-
-
-
-  bool HandleCharMessage(const MSG& aCharMsg,
-                         bool* aEventDispatched = nullptr,
-                         const EventFlags* aExtraFlags = nullptr) const;
-
-  
-
-
-
-  bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
-
-private:
-  nsRefPtr<nsWindowBase> mWidget;
-  HKL mKeyboardLayout;
-  MSG mMsg;
-  
-  
-  
-  MSG mCharMsg;
-
-  uint32_t mDOMKeyCode;
-  KeyNameIndex mKeyNameIndex;
-
-  ModifierKeyState mModKeyState;
-
-  
-  uint8_t mVirtualKeyCode;
-  
-  
-  
-  uint8_t mOriginalVirtualKeyCode;
-
-  
-  
-  
-  UniCharsAndModifiers mCommittedCharsAndModifiers;
-
-  WORD    mScanCode;
-  bool    mIsExtended;
-  bool    mIsDeadKey;
-  bool    mIsPrintableKey;
-  bool    mIsFakeCharMsg;
-
-  NativeKey()
-  {
-    MOZ_NOT_REACHED("The default constructor of NativeKey isn't available");
-  }
-
-  UINT GetScanCodeWithExtendedFlag() const;
-
-  
-  uint32_t GetKeyLocation() const;
-
-  
-
-
-
-
-  bool IsIMEDoingKakuteiUndo() const;
-
-  
-
-
-  void RemoveMessageAndDispatchPluginEvent(UINT aFirstMsg, UINT aLastMsg) const;
 };
 
 class KeyboardLayout
