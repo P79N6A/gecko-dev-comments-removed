@@ -527,7 +527,7 @@ TileClient::GetBackBuffer(const nsIntRegion& aDirtyRegion, TextureClientPool *aP
     }
     mBackBuffer = aPool->GetTextureClient();
     
-    if (mManager->AsShadowForwarder()->IsSameProcess()) {
+    if (gfxPlatform::GetPlatform()->PreferMemoryOverShmem()) {
       
       
       mBackLock = new gfxMemorySharedReadLock();
