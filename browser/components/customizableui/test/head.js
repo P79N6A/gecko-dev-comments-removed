@@ -428,49 +428,36 @@ function promiseTabHistoryNavigation(aDirection = -1, aConditionFn) {
   return deferred.promise;
 }
 
-function popupShown(aPopup) {
-  return promisePopupEvent(aPopup, "shown");
-}
-
-function popupHidden(aPopup) {
-  return promisePopupEvent(aPopup, "hidden");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function promisePopupEvent(aPopup, aEventSuffix) {
+function contextMenuShown(aContextMenu) {
   let deferred = Promise.defer();
-  let win = aPopup.ownerDocument.defaultView;
-  let eventType = "popup" + aEventSuffix;
-
+  let win = aContextMenu.ownerDocument.defaultView;
   let timeoutId = win.setTimeout(() => {
-    deferred.reject("Context menu (" + aPopup.id + ") did not fire "
-                    + eventType + " within 20 seconds.");
+    deferred.reject("Context menu (" + aContextMenu.id + ") did not show within 20 seconds.");
   }, 20000);
-
-  function onPopupEvent(e) {
+  function onPopupShown(e) {
+    aContextMenu.removeEventListener("popupshown", onPopupShown);
     win.clearTimeout(timeoutId);
-    aPopup.removeEventListener(eventType, onPopupEvent);
     deferred.resolve();
   };
-
-  aPopup.addEventListener(eventType, onPopupEvent);
+  aContextMenu.addEventListener("popupshown", onPopupShown);
   return deferred.promise;
 }
+
+function contextMenuHidden(aContextMenu) {
+  let deferred = Promise.defer();
+  let win = aContextMenu.ownerDocument.defaultView;
+  let timeoutId = win.setTimeout(() => {
+    deferred.reject("Context menu (" + aContextMenu.id + ") did not hide within 20 seconds.");
+  }, 20000);
+  function onPopupHidden(e) {
+    win.clearTimeout(timeoutId);
+    aContextMenu.removeEventListener("popuphidden", onPopupHidden);
+    deferred.resolve();
+  };
+  aContextMenu.addEventListener("popuphidden", onPopupHidden);
+  return deferred.promise;
+}
+
 
 
 
