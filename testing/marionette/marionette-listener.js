@@ -725,20 +725,24 @@ function elementInViewport(el) {
 
 
 function checkVisible(el, command_id) {
-    
-    let visible = utils.isElementDisplayed(el);
-    if (!visible) {
-      return false;
-    }
+  
+  let visible = utils.isElementDisplayed(el);
+  if (!visible) {
+    return false;
+  }
+  if (!elementInViewport(el)) {
     
     if (el.scrollIntoView) {
       el.scrollIntoView(true);
+      if (!elementInViewport(el)) {
+        return false;
+      }
     }
-    var scroll = elementInViewport(el);
-    if (!scroll){
+    else {
       return false;
     }
-    return true;
+  }
+  return true;
 }
 
 
