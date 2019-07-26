@@ -85,7 +85,7 @@
 
 
 #main-window[tabsintitlebar] > #titlebar {
-  min-height: calc(@tabHeight@ + @spaceAboveTabbar@ - @tabToolbarNavbarOverlap@);
+  min-height: calc(@tabMinHeight@ + @spaceAboveTabbar@ - @tabToolbarNavbarOverlap@);
 }
 
 
@@ -2803,8 +2803,8 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   content: '';
   display: block;
   -moz-appearance: toolbar;
-  height: @tabHeight@;
-  margin-bottom: -@tabHeight@;
+  height: @tabMinHeight@;
+  margin-bottom: -@tabMinHeight@;
   visibility: hidden;
 }
 
@@ -3972,7 +3972,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
-    height: calc(@tabHeight@ + @spaceAboveTabbar@) !important;
+    height: calc(@tabMinHeight@ + @spaceAboveTabbar@) !important;
   }
   #main-window[inFullscreen][privatebrowsingmode=temporary] {
     
