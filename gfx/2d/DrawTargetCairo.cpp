@@ -995,7 +995,18 @@ void
 DrawTargetCairo::PopClip()
 {
   
+
+  
+  
+  cairo_matrix_t mat;
+  cairo_get_matrix(mContext, &mat);
+
   cairo_restore(mContext);
+
+  cairo_set_matrix(mContext, &mat);
+
+  MOZ_ASSERT(GetTransform() == Matrix(mat.xx, mat.yx, mat.xy, mat.yy, mat.x0, mat.y0),
+             "Transforms are out of sync");
 }
 
 TemporaryRef<PathBuilder>
