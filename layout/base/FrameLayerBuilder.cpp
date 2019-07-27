@@ -2820,7 +2820,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
         
         
         
-        if (itemType == nsDisplayItem::TYPE_TRANSFORM &&
+        if (item->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
             nsDisplayTransform::ShouldPrerenderTransformedContent(mBuilder,
                                                                   item->Frame(),
                                                                   false)) {
