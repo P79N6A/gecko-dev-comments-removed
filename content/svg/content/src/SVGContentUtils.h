@@ -116,6 +116,13 @@ public:
       mDashPattern = nonConstArray;
       return nonConstArray;
     }
+    void DiscardDashPattern() {
+      if (mDashPattern && mDashPattern != mSmallArray) {
+        delete [] mDashPattern;
+      }
+      mDashLength = 0;
+      mDashPattern = nullptr;
+    }
   private:
     
     Float mSmallArray[16];
