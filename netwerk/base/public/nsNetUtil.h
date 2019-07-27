@@ -240,18 +240,7 @@ NS_NewChannelInternal(nsIChannel**           outChannel,
   }
 
   
-  
-  
-  
-  
-  nsCOMPtr<nsILoadInfo> loadInfo;
-  channel->GetLoadInfo(getter_AddRefs(loadInfo));
-  if (loadInfo) {
-    aSecurityFlags |= loadInfo->GetSecurityFlags();
-  }
-
-  
-  loadInfo =
+  nsCOMPtr<nsILoadInfo> loadInfo =
     new mozilla::LoadInfo(aRequestingPrincipal, aTriggeringPrincipal,
                           aRequestingNode, aSecurityFlags,
                           aContentPolicyType, aBaseURI);
