@@ -1410,7 +1410,50 @@ OptimizeMIR(MIRGenerator* mir)
         if (mir->shouldCancel("Alias analysis"))
             return false;
 
-        if (!mir->compilingAsmJS()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!mir->compilingAsmJS() && doRepeatOptimizations == 1) {
             
             
             
