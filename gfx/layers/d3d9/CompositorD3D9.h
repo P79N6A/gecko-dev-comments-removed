@@ -89,7 +89,10 @@ public:
 
   IDirect3DDevice9* device() const
   {
-    return mDeviceManager
+    
+    
+    
+    return mDeviceManager && mDeviceResetCount == mDeviceManager->GetDeviceResetCount()
            ? mDeviceManager->device()
            : nullptr;
   }
