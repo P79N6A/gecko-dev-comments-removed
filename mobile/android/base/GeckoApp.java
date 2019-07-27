@@ -5,24 +5,6 @@
 
 package org.mozilla.gecko;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.GeckoProfileDirectories.NoMozillaDirectoryException;
 import org.mozilla.gecko.db.BrowserDB;
@@ -112,6 +94,24 @@ import android.widget.RelativeLayout;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class GeckoApp
     extends GeckoActivity
@@ -203,6 +203,10 @@ public abstract class GeckoApp
     abstract public int getLayout();
 
     abstract protected String getDefaultProfileName() throws NoMozillaDirectoryException;
+
+    protected void processTabQueue() {};
+
+    protected void openQueuedTabs() {};
 
     @SuppressWarnings("serial")
     class SessionRestoreException extends Exception {
@@ -1509,17 +1513,24 @@ public abstract class GeckoApp
             
             
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
-            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
-            if (ACTION_HOMESCREEN_SHORTCUT.equals(action)) {
-                flags |= Tabs.LOADURL_PINNED;
-            }
-            loadStartupTab(passedUri, intent, flags);
+            processActionViewIntent(new Runnable() {
+                @Override
+                public void run() {
+                    int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
+                    if (ACTION_HOMESCREEN_SHORTCUT.equals(action)) {
+                        flags |= Tabs.LOADURL_PINNED;
+                    }
+                    loadStartupTab(passedUri, intent, flags);
+                }
+            });
         } else {
             if (!mIsRestoringActivity) {
                 loadStartupTabWithAboutHome(Tabs.LOADURL_NEW_TAB);
             }
 
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
+
+            processTabQueue();
         }
 
         
@@ -1566,6 +1577,8 @@ public abstract class GeckoApp
                     rec.recordJavaStartupTime(javaDuration);
                 }
 
+                UpdateServiceHelper.registerForUpdates(GeckoApp.this);
+
                 
                 
                 
@@ -1575,14 +1588,6 @@ public abstract class GeckoApp
                 }
             }
         }, 50);
-
-        final int updateServiceDelay = 30 * 1000;
-        ThreadUtils.getBackgroundHandler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                UpdateServiceHelper.registerForUpdates(GeckoApp.this);
-            }
-        }, updateServiceDelay);
 
         if (mIsRestoringActivity) {
             Tab selectedTab = Tabs.getInstance().getSelectedTab();
@@ -1602,6 +1607,34 @@ public abstract class GeckoApp
         } else if (NotificationHelper.HELPER_BROADCAST_ACTION.equals(action)) {
             NotificationHelper.getInstance(getApplicationContext()).handleNotificationIntent(intent);
         }
+    }
+
+    protected void processActionViewIntent(final Runnable openTabsRunnable) {
+        
+        
+        
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                if (AppConstants.NIGHTLY_BUILD && AppConstants.MOZ_ANDROID_TAB_QUEUE
+                                               && TabQueueHelper.shouldOpenTabQueueUrls(GeckoApp.this)) {
+
+                    EventDispatcher.getInstance().registerGeckoThreadListener(new NativeEventListener() {
+                        @Override
+                        public void handleMessage(String event, NativeJSObject message, EventCallback callback) {
+                            if ("Tabs:TabsOpened".equals(event)) {
+                                EventDispatcher.getInstance().unregisterGeckoThreadListener(this, "Tabs:TabsOpened");
+                                openTabsRunnable.run();
+                            }
+                        }
+                    }, "Tabs:TabsOpened");
+                    TabQueueHelper.openQueuedUrls(GeckoApp.this, mProfile, TabQueueHelper.FILE_NAME, true);
+                } else {
+                    openTabsRunnable.run();
+                }
+            }
+        });
     }
 
     private String restoreSessionTabs(final boolean isExternalURL) throws SessionRestoreException {
@@ -1808,36 +1841,13 @@ public abstract class GeckoApp
             String uri = intent.getDataString();
             Tabs.getInstance().loadUrl(uri);
         } else if (Intent.ACTION_VIEW.equals(action)) {
-            
-            
-            
-            
-            ThreadUtils.postToBackgroundThread(new Runnable() {
+            processActionViewIntent(new Runnable() {
                 @Override
                 public void run() {
-                    if (AppConstants.NIGHTLY_BUILD && AppConstants.MOZ_ANDROID_TAB_QUEUE
-                                && TabQueueHelper.shouldOpenTabQueueUrls(GeckoApp.this)) {
-
-                        EventDispatcher.getInstance().registerGeckoThreadListener(new NativeEventListener() {
-                            @Override
-                            public void handleMessage(String event, NativeJSObject message, EventCallback callback) {
-                                if ("Tabs:TabsOpened".equals(event)) {
-                                    EventDispatcher.getInstance().unregisterGeckoThreadListener(this, "Tabs:TabsOpened");
-                                    String uri = intent.getDataString();
-                                    Tabs.getInstance().loadUrl(uri, Tabs.LOADURL_NEW_TAB |
-                                                                            Tabs.LOADURL_USER_ENTERED |
-                                                                            Tabs.LOADURL_EXTERNAL);
-                                }
-                            }
-                        }, "Tabs:TabsOpened");
-
-                        TabQueueHelper.openQueuedUrls(GeckoApp.this, mProfile, TabQueueHelper.FILE_NAME, true);
-                    } else {
-                        final String url = intent.getDataString();
-                        Tabs.getInstance().loadUrlWithIntentExtras(url, intent, Tabs.LOADURL_NEW_TAB |
-                                Tabs.LOADURL_USER_ENTERED |
-                                Tabs.LOADURL_EXTERNAL);
-                    }
+                    final String url = intent.getDataString();
+                    Tabs.getInstance().loadUrlWithIntentExtras(url, intent, Tabs.LOADURL_NEW_TAB |
+                                                                                    Tabs.LOADURL_USER_ENTERED |
+                                                                                    Tabs.LOADURL_EXTERNAL);
                 }
             });
         } else if (ACTION_HOMESCREEN_SHORTCUT.equals(action)) {
