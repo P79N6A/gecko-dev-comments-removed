@@ -42,7 +42,7 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback, AppStateL
   private final static String TAG = "WEBRTC-JC";
 
   private Camera camera;  
-  private Camera.CameraInfo info = null;
+  private Camera.CameraInfo info;
   private final int id;
   private final long native_capturer;  
   private SurfaceHolder localPreview;
@@ -55,8 +55,8 @@ public class VideoCaptureAndroid implements PreviewCallback, Callback, AppStateL
   private volatile int mCaptureRotation;
   private int mCaptureWidth;
   private int mCaptureHeight;
-  private int mCaptureMinFPS = 0;
-  private int mCaptureMaxFPS = 0;
+  private int mCaptureMinFPS;
+  private int mCaptureMaxFPS;
   
   
   private boolean mResumeCapture;

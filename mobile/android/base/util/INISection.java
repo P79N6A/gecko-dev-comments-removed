@@ -24,7 +24,7 @@ public class INISection {
     private  boolean mDebug;
 
     
-    protected Hashtable<String, Object> mProperties = null;
+    protected Hashtable<String, Object> mProperties;
 
     
     
