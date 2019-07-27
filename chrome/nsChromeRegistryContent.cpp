@@ -3,6 +3,7 @@
 
 
 
+
 #include "RegistryMessageUtils.h"
 #include "nsChromeRegistryContent.h"
 #include "nsString.h"
@@ -18,10 +19,17 @@ nsChromeRegistryContent::RegisterRemoteChrome(
     const InfallibleTArray<ChromePackage>& aPackages,
     const InfallibleTArray<ResourceMapping>& aResources,
     const InfallibleTArray<OverrideMapping>& aOverrides,
-    const nsACString& aLocale)
+    const nsACString& aLocale,
+    bool aReset)
 {
-  NS_ABORT_IF_FALSE(mLocale == nsDependentCString(""),
+  NS_ABORT_IF_FALSE(aReset || mLocale.IsEmpty(),
                     "RegisterChrome twice?");
+
+  if (aReset) {
+    mPackagesHash.Clear();
+    mOverrideTable.Clear();
+    
+  }
 
   for (uint32_t i = aPackages.Length(); i > 0; ) {
     --i;
@@ -106,7 +114,7 @@ nsChromeRegistryContent::RegisterResource(const ResourceMapping& aResource)
     nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI),
                             aResource.resolvedURI.spec,
                             aResource.resolvedURI.charset.get(),
-                            nullptr, io);                 
+                            nullptr, io);
     if (NS_FAILED(rv))
       return;
   }
