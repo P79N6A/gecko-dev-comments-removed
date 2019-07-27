@@ -2,6 +2,7 @@
 
 
 
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -210,7 +211,7 @@ let PromptUtilsTemp = {
 
         
         
-        port = uri.port;
+        let port = uri.port;
         if (port != -1) {
             let handler = Services.io.getProtocolHandler(scheme);
             if (port != handler.defaultPort)
