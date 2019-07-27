@@ -150,7 +150,7 @@ var gPermissionManager = {
     
     
     
-    if (this._lastPermissionSortColumn.id == "statusCol") {
+    if (this._lastPermissionSortColumn == "statusCol") {
       this._resortPermissions();
     }
     this._tree.treeBoxObject.invalidate();
@@ -168,9 +168,10 @@ var gPermissionManager = {
   _resortPermissions: function()
   {
     gTreeUtils.sort(this._tree, this._view, this._permissions,
+                    this._lastPermissionSortColumn,
                     this._permissionsComparator,
                     this._lastPermissionSortColumn,
-                    this._lastPermissionSortAscending);
+                    !this._lastPermissionSortAscending); 
   },
 
   onHostInput: function (aSiteField)
@@ -377,7 +378,7 @@ var gPermissionManager = {
 
     
     this._tree.view = this._view;
-    this.onPermissionSort("rawHost", false);
+    this.onPermissionSort("rawHost");
 
     
     document.getElementById("removeAllPermissions").disabled = this._permissions.length == 0;
