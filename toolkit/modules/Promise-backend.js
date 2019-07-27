@@ -45,6 +45,10 @@ let Cc = this.require ? require("chrome").Cc : Components.classes;
 let Ci = this.require ? require("chrome").Ci : Components.interfaces;
 
 
+
+let Components_ = this.require ? require("chrome").components : Components;
+
+
 if (Cu) {
   Cu.import("resource://gre/modules/Services.jsm");
   Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -737,7 +741,15 @@ this.PromiseWalker = {
     
     
     if (Cu) {
-      DOMPromise.resolve().then(() => this.walkerLoop());
+      let stack = Components_ ? Components_.stack : null;
+      if (stack) {
+        DOMPromise.resolve().then(() => {
+          Cu.callFunctionWithAsyncStack(this.walkerLoop.bind(this), stack,
+                                        "Promise")
+        });
+      } else {
+        DOMPromise.resolve().then(() => this.walkerLoop());
+      }
     } else {
       setImmediate(this.walkerLoop);
     }
