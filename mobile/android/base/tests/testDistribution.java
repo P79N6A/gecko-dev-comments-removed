@@ -12,9 +12,12 @@ import java.util.jar.JarInputStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.SuggestedSites;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.gecko.distribution.ReferrerDescriptor;
 import org.mozilla.gecko.distribution.ReferrerReceiver;
@@ -28,6 +31,10 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+
+
+
+
 
 
 
@@ -116,6 +123,13 @@ public class testDistribution extends ContentProviderTest {
         
         
         waitForBackgroundHappiness();
+
+        
+        clearDistributionPref();
+        Distribution dist = initDistribution(mockPackagePath);
+        SuggestedSites suggestedSites = new SuggestedSites(mActivity, dist);
+        BrowserDB.setSuggestedSites(suggestedSites);
+        checkTilesReporting();
 
         
         clearDistributionPref();
@@ -229,12 +243,13 @@ public class testDistribution extends ContentProviderTest {
     }
 
     
-    private void initDistribution(String aPackagePath) {
+    private Distribution initDistribution(String aPackagePath) {
         
         Actions.EventExpecter distributionSetExpecter = mActions.expectGeckoEvent("Distribution:Set:OK");
-        Distribution.init(mActivity, aPackagePath, "prefs-" + System.currentTimeMillis());
+        Distribution dist = Distribution.init(mActivity, aPackagePath, "prefs-" + System.currentTimeMillis());
         distributionSetExpecter.blockForEvent();
         distributionSetExpecter.unregisterListener();
+        return dist;
     }
 
     
@@ -437,6 +452,41 @@ public class testDistribution extends ContentProviderTest {
         String keyName = mActivity.getPackageName() + ".distribution_state";
         settings.edit().remove(keyName).commit();
         TestableDistribution.clearReferrerDescriptorForTesting();
+    }
+
+    public void checkTilesReporting() throws Exception {
+        
+        inputAndLoadUrl(StringHelper.ABOUT_BLANK_URL);
+        inputAndLoadUrl(StringHelper.ABOUT_HOME_URL);
+
+        
+        JSONObject response = clickTrackingTile(StringHelper.DISTRIBUTION1_LABEL);
+        assertEquals(response.getInt("click"), 0);
+        assertEquals(response.getString("tiles"), "[{\"id\":123},{\"id\":456},{},{},{},{}]");
+
+        inputAndLoadUrl(StringHelper.ABOUT_HOME_URL);
+
+        
+        mSolo.clickLongOnText(StringHelper.DISTRIBUTION2_LABEL);
+        mSolo.waitForDialogToOpen();
+        mSolo.clickOnText(StringHelper.CONTEXT_MENU_PIN_SITE);
+
+        
+        response = clickTrackingTile(StringHelper.DISTRIBUTION2_LABEL);
+        assertEquals(response.getInt("click"), 1);
+        assertEquals(response.getString("tiles"), "[{\"id\":123},{\"id\":456,\"pin\":true},{},{},{},{}]");
+    }
+
+    private JSONObject clickTrackingTile(String text) throws JSONException {
+        boolean viewFound = waitForText(text);
+        assertTrue("Found text: " + text, viewFound);
+
+        Actions.EventExpecter loadExpecter = mActions.expectGeckoEvent("Robocop:TilesResponse");
+        mSolo.clickOnText(text);
+        String data = loadExpecter.blockForEventData();
+        JSONObject dataJSON = new JSONObject(data);
+        String response = dataJSON.getString("response");
+        return new JSONObject(response);
     }
 
     @Override
