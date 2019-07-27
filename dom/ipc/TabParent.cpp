@@ -2207,10 +2207,10 @@ TabParent::SendSelectionEvent(WidgetSelectionEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  
-  
-  
-  mContentCache.SetSelection(event.mOffset, event.mLength, event.mReversed);
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return true;
+  }
   return PBrowserParent::SendSelectionEvent(event);
 }
 

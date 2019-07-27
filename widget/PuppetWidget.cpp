@@ -701,8 +701,7 @@ PuppetWidget::NotifyIMEOfUpdateComposition(
 
   NS_ENSURE_TRUE(mTabChild, NS_ERROR_FAILURE);
 
-  if (NS_WARN_IF(!mContentCache.CacheTextRects(this, &aIMENotification)) ||
-      NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
+  if (NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
   mTabChild->SendNotifyIMESelectedCompositionRect(mContentCache);
@@ -741,10 +740,7 @@ PuppetWidget::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
   
   
 
-  
-  if (NS_WARN_IF(!mContentCache.CacheText(this, &aIMENotification)) ||
-      NS_WARN_IF(!mContentCache.CacheTextRects(this, &aIMENotification)) ||
-      NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
+  if (NS_WARN_IF(!mContentCache.CacheText(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -782,6 +778,7 @@ PuppetWidget::NotifyIMEOfSelectionChange(
   
   
   mContentCache.SetSelection(
+    this,
     aIMENotification.mSelectionChangeData.mOffset,
     aIMENotification.mSelectionChangeData.mLength,
     aIMENotification.mSelectionChangeData.mReversed,
@@ -820,7 +817,6 @@ PuppetWidget::NotifyIMEOfPositionChange(const IMENotification& aIMENotification)
   }
 
   if (NS_WARN_IF(!mContentCache.CacheEditorRect(this, &aIMENotification)) ||
-      NS_WARN_IF(!mContentCache.CacheTextRects(this, &aIMENotification)) ||
       NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
