@@ -463,10 +463,7 @@ public class Favicons {
         
         largestFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_largest_interesting_size);
 
-        
-        final int browserToolbarFaviconSizeDimenID = NewTabletUI.isEnabled(context) ?
-                R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.browser_toolbar_favicon_size;
-        browserToolbarFaviconSize = res.getDimensionPixelSize(browserToolbarFaviconSizeDimenID);
+        browserToolbarFaviconSize = res.getDimensionPixelSize(R.dimen.browser_toolbar_favicon_size);
 
         faviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, largestFaviconSize);
 
