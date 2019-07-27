@@ -1004,11 +1004,12 @@ function loadManifestFromRDF(aUri, aStream) {
   }
 
   
+  
+  let storage = Services.storage;
+
+  
   Object.defineProperty(addon, "syncGUID", {
     get: () => {
-      
-      
-      let storage = Services.storage;
 
       
       
