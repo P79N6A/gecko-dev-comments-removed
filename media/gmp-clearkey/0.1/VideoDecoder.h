@@ -14,9 +14,14 @@
 
 
 
-#include "stdafx.h"
+#ifndef __VideoDecoder_h__
+#define __VideoDecoder_h__
 
-#ifdef TEST_DECODING
+#include "gmp-video-decode.h"
+#include "gmp-video-host.h"
+#include "WMFH264Decoder.h"
+
+#include "mfobjects.h"
 
 class VideoDecoder : public GMPVideoDecoder
 {
@@ -45,6 +50,8 @@ public:
 
 private:
 
+  void EnsureWorker();
+
   void DrainTask();
 
   void DecodeTask(GMPVideoEncodedFrame* aInputFrame);
@@ -58,14 +65,13 @@ private:
   GMPVideoDecoderCallback* mCallback; 
   GMPThread* mWorkerThread;
   GMPMutex* mMutex;
-  AutoPtr<WMFH264Decoder> mDecoder;
+  wmf::AutoPtr<wmf::WMFH264Decoder> mDecoder;
 
   std::vector<uint8_t> mExtraData;
-  AVCDecoderConfigurationRecord mAVCC;
   std::vector<uint8_t> mAnnexB;
 
   int32_t mNumInputTasks;
   bool mSentExtraData;
 };
 
-#endif
+#endif 
