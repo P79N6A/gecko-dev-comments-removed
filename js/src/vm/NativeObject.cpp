@@ -1247,6 +1247,9 @@ AddOrChangeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
     return CallAddPropertyHook(cx, obj, shape, desc.value());
 }
 
+static bool IsConfigurable(unsigned attrs) { return (attrs & JSPROP_PERMANENT) == 0; }
+static bool IsEnumerable(unsigned attrs) { return (attrs & JSPROP_ENUMERATE) != 0; }
+
 bool
 js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId id,
                          Handle<PropertyDescriptor> desc_,
@@ -1343,6 +1346,29 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     }
 
     MOZ_ASSERT(shape);
+
+    
+    
+    
+    
+    
+    
+    bool skipRedefineChecks = (desc.attributes() & JSPROP_REDEFINE_NONCONFIGURABLE) &&
+                              obj->is<GlobalObject>() &&
+                              !obj->getClass()->isDOMClass();
+
+    
+
+    
+    
+    
+    unsigned shapeAttrs = GetShapeAttributes(obj, shape);
+    if (!IsConfigurable(shapeAttrs) && !skipRedefineChecks) {
+        if (desc.hasConfigurable() && desc.configurable())
+            return result.fail(JSMSG_CANT_REDEFINE_PROP);
+        if (desc.hasEnumerable() && desc.enumerable() != IsEnumerable(shapeAttrs))
+            return result.fail(JSMSG_CANT_REDEFINE_PROP);
+    }
 
     
     
