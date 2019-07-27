@@ -97,6 +97,12 @@ IsSupportedH264Codec(const nsAString& aCodec)
       !WMFDecoderModule::HasH264()) {
     return false;
   }
+
+  
+  if (!IsWin7OrLater() &&
+      level >= H264_LEVEL_5) {
+    return false;
+  }
 #endif
 
   
