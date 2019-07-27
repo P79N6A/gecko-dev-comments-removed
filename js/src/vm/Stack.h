@@ -381,8 +381,6 @@ class InterpreterFrame
         JS_STATIC_ASSERT(sizeof(InterpreterFrame) % sizeof(Value) == 0);
     }
 
-    void writeBarrierPost();
-
     
 
 
