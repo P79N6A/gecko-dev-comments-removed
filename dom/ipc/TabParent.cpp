@@ -1454,6 +1454,13 @@ TabParent::RecvNotifyIMEMouseButtonEvent(
 }
 
 bool
+TabParent::RecvNotifyIMEEditorRect(const nsIntRect& aRect)
+{
+  mIMEEditorRect = aRect;
+  return true;
+}
+
+bool
 TabParent::RecvRequestFocus(const bool& aCanRaise)
 {
   nsCOMPtr<nsIFocusManager> fm = nsFocusManager::GetFocusManager();
@@ -1599,6 +1606,8 @@ TabParent::RecvDispatchAfterKeyboardEvent(const WidgetKeyboardEvent& aEvent)
 
 
 
+
+
 bool
 TabParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent)
 {
@@ -1679,6 +1688,12 @@ TabParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent)
 
       aEvent.mReply.mOffset = mIMECaretOffset;
       aEvent.mReply.mRect = mIMECaretRect - GetChildProcessOffset();
+      aEvent.mSucceeded = true;
+    }
+    break;
+  case NS_QUERY_EDITOR_RECT:
+    {
+      aEvent.mReply.mRect = mIMEEditorRect - GetChildProcessOffset();
       aEvent.mSucceeded = true;
     }
     break;
