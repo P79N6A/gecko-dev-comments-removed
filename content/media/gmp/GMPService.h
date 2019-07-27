@@ -69,8 +69,8 @@ private:
     bool mAdd;
   };
 
-  Mutex mMutex; 
   nsTArray<nsRefPtr<GMPParent>> mPlugins;
+  Mutex mMutex; 
   nsCOMPtr<nsIThread> mGMPThread;
   bool mShuttingDown;
   bool mShuttingDownOnGMPThread;
