@@ -189,8 +189,7 @@ public:
     
     uint32_t version = mConnection->Version();
     LOG(("AltSvcTransaction::MaybeValidate() %p version %d\n", this, version));
-    if ((version < HTTP_VERSION_2) &&
-        (version != SPDY_VERSION_31) && (version != SPDY_VERSION_3)) {
+    if ((version < HTTP_VERSION_2) && (version != SPDY_VERSION_31)) {
       LOG(("AltSvcTransaction::MaybeValidate %p Failed due to protocol version", this));
       return;
     }
