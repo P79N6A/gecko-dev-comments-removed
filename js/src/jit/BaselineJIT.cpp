@@ -270,9 +270,8 @@ CanEnterBaselineJIT(JSContext *cx, HandleScript script, InterpreterFrame *osrFra
         return Method_Compiled;
 
     
-    if (script->incWarmUpCounter() <= js_JitOptions.baselineWarmUpThreshold) {
+    if (script->incWarmUpCounter() <= js_JitOptions.baselineWarmUpThreshold)
         return Method_Skipped;
-    }
 
     if (script->isCallsiteClone()) {
         

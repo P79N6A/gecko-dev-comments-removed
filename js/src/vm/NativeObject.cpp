@@ -270,14 +270,6 @@ js::NativeObject::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
 }
 #endif 
 
-#if defined(_MSC_VER)
-
-
-
-
-
-MOZ_NEVER_INLINE
-#endif
 Shape *
 js::NativeObject::lookup(ExclusiveContext *cx, jsid id)
 {
