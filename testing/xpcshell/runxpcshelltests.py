@@ -1074,11 +1074,6 @@ class XPCShellTests(object):
         self.debuggerInfo = None
 
         if debugger:
-            
-            
-            if debuggerArgs:
-                debuggerArgs = debuggerArgs.split();
-
             self.debuggerInfo = mozdebug.get_debugger_info(debugger, debuggerArgs, debuggerInteractive)
 
         self.xpcshell = xpcshell
