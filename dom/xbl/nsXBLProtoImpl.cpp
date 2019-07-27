@@ -87,6 +87,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
     GetGlobalForObjectCrossCompartment(targetClassObject));
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetScopeForXBLExecution(cx, globalObject, addonId));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
+  MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(scopeObject) == scopeObject);
   JSAutoCompartment ac(cx, scopeObject);
 
   
@@ -112,7 +113,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   } else if (scopeObject != globalObject) {
 
     
-    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scopeObject);
+    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr());
     NS_ENSURE_TRUE(propertyHolder, NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -245,9 +246,8 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
     return NS_ERROR_FAILURE;
   jsapi.TakeOwnershipOfErrorReporting();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> compilationGlobal(cx, xpc::CompilationScope());
 
-  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), compilationGlobal);
+  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr());
   if (!mPrecompiledMemberHolder)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -366,8 +366,7 @@ nsXBLProtoImpl::Read(nsIObjectInputStream* aStream,
   AssertInCompilationScope();
   AutoJSContext cx;
   
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
-  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), global);
+  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr());
   if (!mPrecompiledMemberHolder)
     return NS_ERROR_OUT_OF_MEMORY;
 

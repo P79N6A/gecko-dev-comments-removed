@@ -916,6 +916,8 @@ GetOrCreateMapEntryForPrototype(JSContext *cx, JS::Handle<JSObject*> proto)
   
   JS::Rooted<JSObject*> scope(cx, xpc::GetXBLScopeOrGlobal(cx, proto));
   NS_ENSURE_TRUE(scope, nullptr);
+  MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(scope) == scope);
+
   JS::Rooted<JSObject*> wrappedProto(cx, proto);
   JSAutoCompartment ac(cx, scope);
   if (!JS_WrapObject(cx, &wrappedProto)) {
@@ -939,7 +941,7 @@ GetOrCreateMapEntryForPrototype(JSContext *cx, JS::Handle<JSObject*> proto)
 
   
   JS::Rooted<JSObject*> entry(cx);
-  entry = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scope);
+  entry = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr());
   if (!entry) {
     return nullptr;
   }
@@ -1013,7 +1015,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx,
     
     
     JSAutoCompartment ac2(cx, global);
-    proto = JS_NewObjectWithGivenProto(cx, &gPrototypeJSClass, parent_proto, global);
+    proto = JS_NewObjectWithGivenProto(cx, &gPrototypeJSClass, parent_proto);
     if (!proto) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
