@@ -78,6 +78,7 @@ public:
                                     nsAsyncRedirectVerifyHelper *helper);
 
     bool IsOffline() { return mOffline; }
+    bool IsShutdown() { return mShutdown; }
     bool IsLinkUp();
 
     
