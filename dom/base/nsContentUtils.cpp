@@ -1241,24 +1241,6 @@ nsContentUtils::GetParserService()
   return sParserService;
 }
 
-static nsIAtom** sSandboxFlagAttrs[] = {
-  &nsGkAtoms::allowsameorigin,     
-  &nsGkAtoms::allowforms,          
-  &nsGkAtoms::allowscripts,        
-  &nsGkAtoms::allowtopnavigation,  
-  &nsGkAtoms::allowpointerlock,    
-  &nsGkAtoms::allowpopups          
-};
-
-static const uint32_t sSandboxFlagValues[] = {
-  SANDBOXED_ORIGIN,                                 
-  SANDBOXED_FORMS,                                  
-  SANDBOXED_SCRIPTS | SANDBOXED_AUTOMATIC_FEATURES, 
-  SANDBOXED_TOPLEVEL_NAVIGATION,                    
-  SANDBOXED_POINTER_LOCK,                           
-  SANDBOXED_AUXILIARY_NAVIGATION                    
-};
-
 
 
 
@@ -1267,10 +1249,10 @@ static const uint32_t sSandboxFlagValues[] = {
 
 
 uint32_t
-nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* aSandboxAttr)
+nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr)
 {
   
-  if (!aSandboxAttr) { return SANDBOXED_NONE; }
+  if (!sandboxAttr) { return 0; }
 
   
   uint32_t out = SANDBOXED_NAVIGATION
@@ -1284,70 +1266,19 @@ nsContentUtils::ParseSandboxAttributeToFlags(const nsAttrValue* aSandboxAttr)
                | SANDBOXED_POINTER_LOCK
                | SANDBOXED_DOMAIN;
 
-  MOZ_ASSERT(ArrayLength(sSandboxFlagAttrs) == ArrayLength(sSandboxFlagValues),
-             "Lengths of SandboxFlagAttrs and SandboxFlagvalues do not match");
 
-  
-  for (uint32_t i = 0; i <  ArrayLength(sSandboxFlagAttrs); i++) {
-    if (aSandboxAttr->Contains(*sSandboxFlagAttrs[i], eIgnoreCase)) {
-        out &= ~(sSandboxFlagValues[i]);
-    }
-  }
+#define IF_KEYWORD(atom, flags) \
+  if (sandboxAttr->Contains(nsGkAtoms::atom, eIgnoreCase)) { out &= ~(flags); }
+
+  IF_KEYWORD(allowsameorigin, SANDBOXED_ORIGIN)
+  IF_KEYWORD(allowforms,  SANDBOXED_FORMS)
+  IF_KEYWORD(allowscripts, SANDBOXED_SCRIPTS | SANDBOXED_AUTOMATIC_FEATURES)
+  IF_KEYWORD(allowtopnavigation, SANDBOXED_TOPLEVEL_NAVIGATION)
+  IF_KEYWORD(allowpointerlock, SANDBOXED_POINTER_LOCK)
+  IF_KEYWORD(allowpopups, SANDBOXED_AUXILIARY_NAVIGATION)
 
   return out;
-}
-
-
-
-
-
-
-
-
-bool
-nsContentUtils::IsValidSandboxFlag(const nsAString& aFlag)
-{
-  for (uint32_t i = 0; i < ArrayLength(sSandboxFlagAttrs); i++) {
-    if (EqualsIgnoreASCIICase(nsDependentAtomString(*sSandboxFlagAttrs[i]), aFlag)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-
-
-
-
-
-
-
-void
-nsContentUtils::SandboxFlagsToString(uint32_t aFlags, nsAString& aString)
-{
-  if (!aFlags) {
-    SetDOMStringToNull(aString);
-    return;
-  }
-
-  aString.Truncate();
-
-
-#define IF_FLAG(flag, atom)                                 \
-  if (!(aFlags & flag)) {                                   \
-    if (!aString.IsEmpty()) {                               \
-      aString.Append(NS_LITERAL_STRING(" "));               \
-    }                                                       \
-    aString.Append(nsDependentAtomString(nsGkAtoms::atom)); \
-  }
-
-  IF_FLAG(SANDBOXED_ORIGIN, allowsameorigin)
-  IF_FLAG(SANDBOXED_FORMS, allowforms)
-  IF_FLAG(SANDBOXED_SCRIPTS, allowscripts)
-  IF_FLAG(SANDBOXED_TOPLEVEL_NAVIGATION, allowtopnavigation)
-  IF_FLAG(SANDBOXED_POINTER_LOCK, allowpointerlock)
-  IF_FLAG(SANDBOXED_AUXILIARY_NAVIGATION, allowpopups)
-#undef IF_FLAG
+#undef IF_KEYWORD
 }
 
 nsIBidiKeyboard*

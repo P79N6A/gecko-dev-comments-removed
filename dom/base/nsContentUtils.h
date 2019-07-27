@@ -835,25 +835,8 @@ public:
 
 
 
-  static uint32_t ParseSandboxAttributeToFlags(const nsAttrValue* aSandboxAttr);
+  static uint32_t ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr);
 
-  
-
-
-
-
-
-
-  static bool IsValidSandboxFlag(const nsAString& aFlag);
-
-  
-
-
-
-
-
-
-  static void SandboxFlagsToString(uint32_t aFlags, nsAString& aString);
 
   
 

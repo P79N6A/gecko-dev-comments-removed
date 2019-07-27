@@ -37,7 +37,6 @@
 #include "prlog.h"
 #include "mozilla/dom/CSPReportBinding.h"
 #include "mozilla/net/ReferrerPolicy.h"
-#include "nsSandboxFlags.h"
 
 using namespace mozilla;
 
@@ -1184,49 +1183,6 @@ nsCSPContext::Permits(nsIURI* aURI,
   }
 #endif
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsCSPContext::GetCSPSandboxFlags(uint32_t* aOutSandboxFlags)
-{
-  if (aOutSandboxFlags == nullptr) {
-    return NS_ERROR_FAILURE;
-  }
-  *aOutSandboxFlags = SANDBOXED_NONE;
-
-  for (uint32_t i = 0; i < mPolicies.Length(); i++) {
-    uint32_t flags = mPolicies[i]->getSandboxFlags();
-
-    
-    if (!flags) {
-      continue;
-    }
-
-    
-    
-    
-    if (!mPolicies[i]->getReportOnlyFlag()) {
-      *aOutSandboxFlags |= flags;
-    } else {
-      
-      
-      nsAutoString policy;
-      mPolicies[i]->toString(policy);
-
-      CSPCONTEXTLOG(("nsCSPContext::ShouldSandbox, report only policy, ignoring sandbox in: %s",
-                      policy.get()));
-
-      const char16_t* params[] = { policy.get() };
-      CSP_LogLocalizedStr(MOZ_UTF16("ignoringReportOnlyDirective"),
-                          params, ArrayLength(params),
-                          EmptyString(),
-                          EmptyString(),
-                          0, 0,
-                          nsIScriptError::warningFlag,
-                          "CSP", mInnerWindowID);
-    }
-  }
   return NS_OK;
 }
 

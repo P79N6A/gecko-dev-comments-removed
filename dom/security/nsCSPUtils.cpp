@@ -12,9 +12,6 @@
 #include "nsIStringBundle.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
-#include "nsContentUtils.h"
-#include "nsAttrValue.h"
-#include "nsSandboxFlags.h"
 
 #if defined(PR_LOGGING)
 static PRLogModuleInfo*
@@ -677,23 +674,6 @@ nsCSPReportURI::toString(nsAString& outStr) const
 
 
 
-nsCSPSandboxFlags::nsCSPSandboxFlags(const nsAString& aFlags)
-  : mFlags(aFlags)
-{
-}
-
-nsCSPSandboxFlags::~nsCSPSandboxFlags()
-{
-}
-
-void
-nsCSPSandboxFlags::toString(nsAString& outStr) const
-{
-  outStr.Append(mFlags);
-}
-
-
-
 nsCSPDirective::nsCSPDirective(CSPDirective aDirective)
 {
   mDirective = aDirective;
@@ -993,27 +973,4 @@ nsCSPPolicy::getReportURIs(nsTArray<nsString>& outReportURIs) const
       return;
     }
   }
-}
-
-
-
-
-
-
-uint32_t
-nsCSPPolicy::getSandboxFlags() const
-{
-  nsAutoString flags;
-  for (uint32_t i = 0; i < mDirectives.Length(); i++) {
-    if (mDirectives[i]->equals(nsIContentSecurityPolicy::SANDBOX_DIRECTIVE)) {
-      flags.Truncate();
-      mDirectives[i]->toString(flags);
-
-      nsAttrValue attr;
-      attr.ParseAtomArray(flags);
-
-      return nsContentUtils::ParseSandboxAttributeToFlags(&attr);
-    }
-  }
-  return SANDBOXED_NONE;
 }

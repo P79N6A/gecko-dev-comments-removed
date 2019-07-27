@@ -15,7 +15,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsUnicharUtils.h"
 #include "mozilla/net/ReferrerPolicy.h"
-#include "nsContentUtils.h"
 
 using namespace mozilla;
 
@@ -914,39 +913,6 @@ nsCSPParser::reportURIList(nsTArray<nsCSPBaseSrc*>& outSrcs)
 }
 
 
-
-
-
-
-void
-nsCSPParser::sandboxFlagList(nsTArray<nsCSPBaseSrc*>& outSrcs)
-{
-  nsAutoString flags;
-
-  
-  for (uint32_t i = 1; i < mCurDir.Length(); i++) {
-    mCurToken = mCurDir[i];
-
-    CSPPARSERLOG(("nsCSPParser::sandboxFlagList, mCurToken: %s, mCurValue: %s",
-                 NS_ConvertUTF16toUTF8(mCurToken).get(),
-                 NS_ConvertUTF16toUTF8(mCurValue).get()));
-
-    if (!nsContentUtils::IsValidSandboxFlag(mCurToken)) {
-      const char16_t* params[] = { mCurToken.get() };
-      logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSandboxFlag",
-                               params, ArrayLength(params));
-      continue;
-    }
-    flags.Append(mCurToken);
-    if (i != mCurDir.Length() - 1) {
-      flags.AppendASCII(" ");
-    }
-  }
-  nsCSPSandboxFlags* sandboxFlags = new nsCSPSandboxFlags(flags);
-  outSrcs.AppendElement(sandboxFlags);
-}
-
-
 void
 nsCSPParser::directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs)
 {
@@ -964,13 +930,6 @@ nsCSPParser::directiveValue(nsTArray<nsCSPBaseSrc*>& outSrcs)
   
   if (CSP_IsDirective(mCurDir[0], nsIContentSecurityPolicy::REFERRER_DIRECTIVE)) {
     referrerDirectiveValue();
-    return;
-  }
-
-  
-  
-  if (CSP_IsDirective(mCurDir[0], nsIContentSecurityPolicy::SANDBOX_DIRECTIVE)) {
-    sandboxFlagList(outSrcs);
     return;
   }
 

@@ -10,16 +10,17 @@
     ok(true, "documents sandboxed with allow-scripts should be able to run inline scripts");
   }
 </script>
-<script src='file_csp_sandbox_fail.js'></script>
+<script src='file_iframe_sandbox_pass.js'></script>
 <body onLoad='ok(true, "documents sandboxed with allow-scripts should be able to run script from event listeners");doStuff();'>
   I am sandboxed but with only inline "allow-scripts"
 
  
+ 
 
  
- <img src="/tests/dom/base/test/csp/file_CSP.sjs?testid=img11_bad&type=img/png" />
- <img src="http://example.org/tests/dom/base/test/csp/file_CSP.sjs?testid=img11a_bad&type=img/png"> </img>
- <script src='/tests/dom/base/test/csp/file_CSP.sjs?testid=script11_bad&type=text/javascript'></script>
- <script src='http://example.org/tests/dom/base/test/csp/file_CSP.sjs?testid=script11a_bad&type=text/javascript'></script>
+ <img src="/tests/dom/base/test/csp/file_CSP.sjs?testid=img5_bad&type=img/png" />
+ <img src="http://example.org/tests/dom/base/test/csp/file_CSP.sjs?testid=img5a_bad&type=img/png"> </img>
+ <script src='/tests/dom/base/test/csp/file_CSP.sjs?testid=script5_bad&type=text/javascript'></script>
+ <script src='http://example.org/tests/dom/base/test/csp/file_CSP.sjs?testid=script5a_bad&type=text/javascript'></script>
 </body>
 </html>
