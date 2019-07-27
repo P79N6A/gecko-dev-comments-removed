@@ -1117,19 +1117,19 @@ Promise::RejectInternal(JSContext* aCx,
 }
 
 void
-Promise::MaybeSettle(JS::Handle<JS::Value> aValue,
-                     PromiseState aState)
+Promise::Settle(JS::Handle<JS::Value> aValue, PromiseState aState)
 {
-  
-  
-  
-  if (mState != Pending) {
-    return;
-  }
-
+  mSettlementTimestamp = TimeStamp::Now();
   SetResult(aValue);
   SetState(aState);
-  mSettlementTimestamp = TimeStamp::Now();
+
+  AutoJSAPI jsapi;
+  jsapi.Init();
+  JSContext* cx = jsapi.cx();
+  JS::RootedObject wrapper(cx, GetWrapper());
+  MOZ_ASSERT(wrapper); 
+  JSAutoCompartment ac(cx, wrapper);
+  JS::dbg::onPromiseSettled(cx, wrapper);
 
   
   
@@ -1151,6 +1151,20 @@ Promise::MaybeSettle(JS::Handle<JS::Value> aValue,
   }
 
   EnqueueCallbackTasks();
+}
+
+void
+Promise::MaybeSettle(JS::Handle<JS::Value> aValue,
+                     PromiseState aState)
+{
+  
+  
+  
+  if (mState != Pending) {
+    return;
+  }
+
+  Settle(aValue, aState);
 }
 
 void
