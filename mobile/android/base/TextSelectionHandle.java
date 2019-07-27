@@ -19,10 +19,30 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     private static final String LOGTAG = "GeckoTextSelectionHandle";
 
-    public enum HandleType { START, MIDDLE, END };
+    public enum HandleType { ANCHOR, CARET, FOCUS };
 
     private final HandleType mHandleType;
     private final int mWidth;
@@ -51,11 +71,11 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         int handleType = a.getInt(R.styleable.TextSelectionHandle_handleType, 0x01);
 
         if (handleType == 0x01)
-            mHandleType = HandleType.START;
+            mHandleType = HandleType.ANCHOR;
         else if (handleType == 0x02)
-            mHandleType = HandleType.MIDDLE;
+            mHandleType = HandleType.CARET;
         else
-            mHandleType = HandleType.END;
+            mHandleType = HandleType.FOCUS;
 
         mGeckoPoint = new PointF(0.0f, 0.0f);
 
@@ -132,7 +152,7 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         
         
         
-        if (mHandleType != HandleType.MIDDLE) {
+        if (mHandleType != HandleType.CARET) {
             setLayoutPosition();
         }
     }
@@ -166,9 +186,9 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     }
 
     private float adjustLeftForHandle() {
-        if (mHandleType == HandleType.START) {
+        if (mHandleType == HandleType.ANCHOR) {
             return mIsRTL ? mShadow : mWidth - mShadow;
-        } else if (mHandleType == HandleType.MIDDLE) {
+        } else if (mHandleType == HandleType.CARET) {
             return mWidth / 2;
         } else {
             return mIsRTL ? mWidth - mShadow : mShadow;
