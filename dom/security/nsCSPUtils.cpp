@@ -378,6 +378,21 @@ nsCSPHostSrc::permits(nsIURI* aUri, const nsAString& aNonce, bool aWasRedirected
 
   
   if (mHost.EqualsASCII("*")) {
+    
+    
+    
+    
+    
+    bool isBlobScheme =
+      (NS_SUCCEEDED(aUri->SchemeIs("blob", &isBlobScheme)) && isBlobScheme);
+    bool isDataScheme =
+      (NS_SUCCEEDED(aUri->SchemeIs("data", &isDataScheme)) && isDataScheme);
+    bool isFileScheme =
+      (NS_SUCCEEDED(aUri->SchemeIs("filesystem", &isFileScheme)) && isFileScheme);
+
+    if (isBlobScheme || isDataScheme || isFileScheme) {
+      return false;
+    }
     return true;
   }
 
