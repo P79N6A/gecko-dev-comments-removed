@@ -37,8 +37,10 @@ function loadWebapp(manifest, parameters, onLoad) {
   registerCleanupFunction(function() {
     
     
-    let scope = {};
-    Cu.import("resource://gre/modules/Webapps.jsm", scope);
-    scope.DOMApplicationRegistry.uninstall(url.spec);
+    let { DOMApplicationRegistry } = Cu.import("resource://gre/modules/Webapps.jsm", {});
+
+    return new Promise(function(resolve, reject) {
+      DOMApplicationRegistry.uninstall(url.spec, resolve, reject);
+    });
   });
 }
