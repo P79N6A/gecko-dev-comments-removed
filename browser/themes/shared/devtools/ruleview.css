@@ -60,6 +60,10 @@
 }
 
 
+
+
+
+.ruleview-rule[unmatched=true],
 .ruleview-rule[uneditable=true] {
   background: var(--theme-tab-toolbar-background);
 }

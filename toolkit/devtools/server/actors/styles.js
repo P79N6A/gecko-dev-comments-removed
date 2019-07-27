@@ -60,6 +60,10 @@ types.addLifetime("walker", "walker");
 
 
 
+
+
+
+
 types.addDictType("appliedstyle", {
   rule: "domstylerule#actorid",
   inherited: "nullable:domnode#actorid",
@@ -77,6 +81,11 @@ types.addDictType("appliedStylesReturn", {
   entries: "array:appliedstyle",
   rules: "array:domstylerule",
   sheets: "array:stylesheet"
+});
+
+types.addDictType("modifiedStylesReturn", {
+  isMatching: RetVal("boolean"),
+  ruleProps: RetVal("nullable:appliedStylesReturn")
 });
 
 types.addDictType("fontpreview", {
@@ -627,7 +636,6 @@ var PageStyleActor = protocol.ActorClass({
     return rules;
   },
 
-
   
 
 
@@ -842,6 +850,19 @@ var PageStyleActor = protocol.ActorClass({
 
 
 
+
+
+  getNewAppliedProps: function(node, rule) {
+    let ruleActor = this._styleRef(rule);
+    return this.getAppliedProps(node, [{ rule: ruleActor }],
+      { matchedSelectors: true });
+  },
+
+  
+
+
+
+
   addNewRule: method(function(node) {
     let style = this.styleElement;
     let sheet = style.sheet;
@@ -857,16 +878,13 @@ var PageStyleActor = protocol.ActorClass({
     }
 
     let index = sheet.insertRule(selector + " {}", sheet.cssRules.length);
-    let ruleActor = this._styleRef(sheet.cssRules[index]);
-    return this.getAppliedProps(node, [{ rule: ruleActor }],
-      { matchedSelectors: true });
+    return this.getNewAppliedProps(node, sheet.cssRules[index]);
   }, {
     request: {
       node: Arg(0, "domnode")
     },
     response: RetVal("appliedStylesReturn")
   }),
-
 });
 exports.PageStyleActor = PageStyleActor;
 
@@ -990,7 +1008,12 @@ var StyleRuleActor = protocol.ActorClass({
       actor: this.actorID,
       type: this.type,
       line: this.line || undefined,
-      column: this.column
+      column: this.column,
+      traits: {
+        
+        
+        modifySelectorUnmatched: true,
+      }
     };
 
     if (this.rawRule.parentRule) {
@@ -1105,14 +1128,53 @@ var StyleRuleActor = protocol.ActorClass({
 
 
 
+
+
+
+  _addNewSelector: function(value) {
+    let rule = this.rawRule;
+    let parentStyleSheet = rule.parentStyleSheet;
+    let cssRules = parentStyleSheet.cssRules;
+    let cssText = rule.cssText;
+    let selectorText = rule.selectorText;
+
+    for (let i = 0; i < cssRules.length; i++) {
+      if (rule === cssRules.item(i)) {
+        try {
+          
+          
+          let ruleText = cssText.slice(selectorText.length).trim();
+          parentStyleSheet.insertRule(value + " " + ruleText, i);
+          parentStyleSheet.deleteRule(i + 1);
+          return cssRules.item(i);
+        } catch(e) {}
+
+        break;
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   modifySelector: method(function(value) {
     if (this.type === ELEMENT_STYLE) {
       return false;
     }
 
-    let rule = this.rawRule;
-    let parentStyleSheet = rule.parentStyleSheet;
-    let document = this.getDocument(parentStyleSheet);
+    let document = this.getDocument(this.rawRule.parentStyleSheet);
     
     let [selector, pseudoProp] = value.split(/(:{1,2}.+$)/);
     let selectorElement;
@@ -1125,26 +1187,8 @@ var StyleRuleActor = protocol.ActorClass({
 
     
     
-    if (selectorElement && rule.selectorText !== value) {
-      let cssRules = parentStyleSheet.cssRules;
-      let cssText = rule.cssText;
-      let selectorText = rule.selectorText;
-
-      
-      let i = 0;
-      for (let cssRule of cssRules) {
-        if (rule === cssRule) {
-          parentStyleSheet.deleteRule(i);
-          break;
-        }
-
-        i++;
-      }
-
-      
-      let ruleText = cssText.slice(selectorText.length).trim();
-      parentStyleSheet.insertRule(value + " " + ruleText, i);
-
+    if (selectorElement && this.rawRule.selectorText !== value) {
+      this._addNewSelector(value);
       return true;
     } else {
       return false;
@@ -1153,6 +1197,53 @@ var StyleRuleActor = protocol.ActorClass({
     request: { selector: Arg(0, "string") },
     response: { isModified: RetVal("boolean") },
   }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  modifySelector2: method(function(node, value) {
+    let isMatching = false;
+    let ruleProps = null;
+
+    if (this.type === ELEMENT_STYLE ||
+        this.rawRule.selectorText === value) {
+      return { ruleProps, isMatching: true };
+    }
+
+    let newCssRule = this._addNewSelector(value);
+    if (newCssRule) {
+      ruleProps = this.pageStyle.getNewAppliedProps(node, newCssRule);
+    }
+
+    
+    try {
+      isMatching = node.rawNode.matches(value);
+    } catch(e) {}
+
+    return { ruleProps, isMatching };
+  }, {
+    request: {
+      node: Arg(0, "domnode"),
+      value: Arg(1, "string")
+    },
+    response: RetVal("modifiedStylesReturn")
+  })
 });
 
 
@@ -1240,6 +1331,10 @@ var StyleRuleFront = protocol.FrontClass(StyleRuleActor, {
     return sheet ? sheet.nodeHref : "";
   },
 
+  get supportsModifySelectorUnmatched() {
+    return this._form.traits && this._form.traits.modifySelectorUnmatched;
+  },
+
   get location()
   {
     return {
@@ -1278,7 +1373,24 @@ var StyleRuleFront = protocol.FrontClass(StyleRuleActor, {
         this._originalLocation = location;
         return location;
       });
-  }
+  },
+
+  modifySelector: protocol.custom(Task.async(function*(node, value) {
+    let response;
+    if (this.supportsModifySelectorUnmatched) {
+      
+      response = yield this.modifySelector2(node, value);
+    } else {
+      response = yield this._modifySelector(value);
+    }
+
+    if (response.ruleProps) {
+      response.ruleProps = response.ruleProps.entries[0];
+    }
+    return response;
+  }), {
+    impl: "_modifySelector"
+  })
 });
 
 
