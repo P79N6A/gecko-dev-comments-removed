@@ -98,12 +98,11 @@ gfxPlatformGtk::FlushContentDrawing()
 }
 
 already_AddRefed<gfxASurface>
-gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
-                                       gfxContentType contentType)
+gfxPlatformGtk::CreateOffscreenSurface(const IntSize& aSize,
+                                       gfxImageFormat aFormat)
 {
     nsRefPtr<gfxASurface> newSurface;
     bool needsClear = true;
-    gfxImageFormat imageFormat = OptimalFormatForContent(contentType);
 #ifdef MOZ_X11
     
     
@@ -116,16 +115,16 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
             Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
             XRenderPictFormat* xrenderFormat =
                 gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
-                                                 imageFormat);
+                                                 aFormat);
 
             if (xrenderFormat) {
                 newSurface = gfxXlibSurface::Create(screen, xrenderFormat,
-                                                    size);
+                                                    aSize);
             }
         } else {
             
             
-            newSurface = new gfxImageSurface(size, imageFormat);
+            newSurface = new gfxImageSurface(aSize, aFormat);
             
             
             needsClear = false;
@@ -137,7 +136,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
         
         
         
-        newSurface = new gfxImageSurface(size, imageFormat);
+        newSurface = new gfxImageSurface(aSize, aFormat);
     }
 
     if (newSurface->CairoStatus()) {
