@@ -817,7 +817,9 @@ WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
 
 
 
-        if (level > 0) {
+
+
+        if (!IsWebGL2() && level > 0) {
             if (!is_pot_assuming_nonnegative(width)) {
                 ErrorInvalidValue("%s: level >= 0, width of %d must be a power of two.",
                                   InfoFrom(func, dims), width);
@@ -839,7 +841,7 @@ WebGLContext::ValidateTexImageSize(TexImageTarget texImageTarget, GLint level,
             return false;
         }
 
-        if (depth > 0 && !is_pot_assuming_nonnegative(depth)) {
+        if (!IsWebGL2() && !is_pot_assuming_nonnegative(depth)) {
             ErrorInvalidValue("%s: level >= 0, depth of %d must be a power of two.",
                               InfoFrom(func, dims), depth);
             return false;
