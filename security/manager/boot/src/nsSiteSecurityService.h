@@ -10,6 +10,8 @@
 #include "nsIObserver.h"
 #include "nsISiteSecurityService.h"
 #include "nsString.h"
+#include "nsTArray.h"
+#include "pkix/pkixtypes.h"
 #include "prtime.h"
 
 class nsIURI;
@@ -42,12 +44,46 @@ enum SecurityPropertyState {
 
 
 
-class SiteSecurityState
+
+class SiteHPKPState
 {
 public:
-  explicit SiteSecurityState(nsCString& aStateString);
-  SiteSecurityState(PRTime aHSTSExpireTime, SecurityPropertyState aHSTSState,
-                    bool aHSTSIncludeSubdomains);
+  SiteHPKPState();
+  SiteHPKPState(nsCString& aStateString);
+  SiteHPKPState(PRTime aExpireTime, SecurityPropertyState aState,
+                bool aIncludeSubdomains, nsTArray<nsCString>& SHA256keys);
+
+  PRTime mExpireTime;
+  SecurityPropertyState mState;
+  bool mIncludeSubdomains;
+  nsTArray<nsCString> mSHA256keys;
+
+  bool IsExpired(mozilla::pkix::Time aTime)
+  {
+    if (aTime > mozilla::pkix::TimeFromEpochInSeconds(mExpireTime /
+                                                      PR_MSEC_PER_SEC)) {
+      return true;
+    }
+    return false;
+  }
+
+  void ToString(nsCString& aString);
+};
+
+
+
+
+
+
+
+
+
+class SiteHSTSState
+{
+public:
+  SiteHSTSState(nsCString& aStateString);
+  SiteHSTSState(PRTime aHSTSExpireTime, SecurityPropertyState aHSTSState,
+                bool aHSTSIncludeSubdomains);
 
   PRTime mHSTSExpireTime;
   SecurityPropertyState mHSTSState;
@@ -90,8 +126,8 @@ protected:
 
 private:
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
-  nsresult SetState(uint32_t aType, nsIURI* aSourceURI, int64_t maxage,
-                    bool includeSubdomains, uint32_t flags);
+  nsresult SetHSTSState(uint32_t aType, nsIURI* aSourceURI, int64_t maxage,
+                        bool includeSubdomains, uint32_t flags);
   nsresult ProcessHeaderMutating(uint32_t aType, nsIURI* aSourceURI,
                                  char* aHeader, uint32_t flags,
                                  uint64_t *aMaxAge, bool *aIncludeSubdomains);
