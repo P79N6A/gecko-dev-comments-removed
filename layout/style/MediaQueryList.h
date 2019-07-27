@@ -5,21 +5,19 @@
 
 
 
-
 #ifndef mozilla_dom_MediaQueryList_h
 #define mozilla_dom_MediaQueryList_h
 
 #include "nsISupports.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsAutoPtr.h"
-#include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "prclist.h"
 #include "mozilla/Attributes.h"
 #include "nsWrapperCache.h"
 #include "mozilla/dom/MediaQueryListBinding.h"
 
-class nsIDocument;
+class nsPresContext;
 class nsMediaList;
 
 namespace mozilla {
@@ -32,7 +30,7 @@ class MediaQueryList MOZ_FINAL : public nsISupports,
 public:
   
   
-  MediaQueryList(nsIDocument *aDocument,
+  MediaQueryList(nsPresContext *aPresContext,
                  const nsAString &aMediaQueryList);
 private:
   ~MediaQueryList();
@@ -83,7 +81,7 @@ private:
   
   
   
-  nsCOMPtr<nsIDocument> mDocument;
+  nsRefPtr<nsPresContext> mPresContext;
 
   nsRefPtr<nsMediaList> mMediaList;
   bool mMatches;
