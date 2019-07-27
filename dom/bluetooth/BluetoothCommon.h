@@ -80,12 +80,6 @@ extern bool gBluetoothDebugFlag;
 
 
 
-#define BT_API2_LOGR(msg, ...)                                       \
-  BT_LOGR("[WEBBT-API2] " msg, ##__VA_ARGS__)
-
-
-
-
 
 #define BT_APPEND_NAMED_VALUE(array, name, value)                    \
   array.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING(name),   \
@@ -141,7 +135,7 @@ extern bool gBluetoothDebugFlag;
 #define BT_ENSURE_TRUE_RESOLVE(x, promise, ret)                      \
   do {                                                               \
     if (MOZ_UNLIKELY(!(x))) {                                        \
-      BT_API2_LOGR("BT_ENSURE_TRUE_RESOLVE(" #x ") failed");         \
+      BT_LOGR("BT_ENSURE_TRUE_RESOLVE(" #x ") failed");              \
       (promise)->MaybeResolve(ret);                                  \
       return (promise).forget();                                     \
     }                                                                \
@@ -153,7 +147,7 @@ extern bool gBluetoothDebugFlag;
 #define BT_ENSURE_TRUE_REJECT(x, promise, ret)                       \
   do {                                                               \
     if (MOZ_UNLIKELY(!(x))) {                                        \
-      BT_API2_LOGR("BT_ENSURE_TRUE_REJECT(" #x ") failed");          \
+      BT_LOGR("BT_ENSURE_TRUE_REJECT(" #x ") failed");               \
       (promise)->MaybeReject(ret);                                   \
       return (promise).forget();                                     \
     }                                                                \
