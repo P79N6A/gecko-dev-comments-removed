@@ -130,7 +130,7 @@ public:
   
   
   AddrInfo(const char *host, const PRAddrInfo *prAddrInfo, bool disableIPv4,
-           const char *cname);
+           bool filterNameCollision, const char *cname);
 
   
   AddrInfo(const char *host, const char *cname);
