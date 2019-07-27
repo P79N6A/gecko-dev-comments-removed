@@ -129,6 +129,10 @@ public:
 
   
   
+  virtual bool HasInitializationData() { return false; }
+
+  
+  
   
   class AutoNotifyDecoded {
   public:
