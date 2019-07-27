@@ -279,9 +279,13 @@ private:
 
 
 
-  void CloneAndDispatchAs(
-         const WidgetCompositionEvent* aCompositionEvent,
-         uint32_t aMessage);
+
+
+  BaseEventFlags CloneAndDispatchAs(
+                   const WidgetCompositionEvent* aCompositionEvent,
+                   uint32_t aMessage,
+                   nsEventStatus* aStatus = nullptr,
+                   EventDispatchingCallback* aCallBack = nullptr);
 
   
 

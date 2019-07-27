@@ -879,6 +879,7 @@ const COMPOSITION_ATTR_SELECTEDCONVERTEDTEXT = 0x05;
 
 
 
+
 function synthesizeComposition(aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
