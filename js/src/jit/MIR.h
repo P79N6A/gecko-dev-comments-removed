@@ -6888,13 +6888,7 @@ class MPhi final
     
     
     bool addInputSlow(MDefinition* ins) {
-        
-        
-        if (!inputs_.growByUninitialized(1))
-            return false;
-
-        new (&inputs_.back()) MUse(ins, this);
-        return true;
+        return inputs_.emplaceBack(ins, this);
     }
 
     
