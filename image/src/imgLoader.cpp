@@ -1441,7 +1441,6 @@ imgLoader::PutIntoCache(const ImageCacheKey& aKey, imgCacheEntry* entry)
 
   
   
-  
   nsRefPtr<imgCacheEntry> tmpCacheEntry;
   if (cache.Get(aKey, getter_AddRefs(tmpCacheEntry)) && tmpCacheEntry) {
     PR_LOG(GetImgLog(), PR_LOG_DEBUG,
