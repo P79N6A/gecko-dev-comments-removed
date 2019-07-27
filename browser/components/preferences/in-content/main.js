@@ -687,30 +687,6 @@ var gMainPane = {
 
 
 
-   
-
-
-
-
-
-   shouldClaimAllTypes: function()
-   {
-    let claimAllTypes = true;
-    try {
-      if (AppConstants.platform == "win") {
-        
-        
-        
-        
-        
-        
-        let version = Services.sysinfo.getProperty("version");
-        claimAllTypes = (parseFloat(version) <= 6.3);
-      }
-    } catch (ex) {}
-    return claimAllTypes;
-   },
-
   
 
 
@@ -724,8 +700,7 @@ var gMainPane = {
       return;
     }
     let setDefaultPane = document.getElementById("setDefaultPane");
-    let claimAllTypes = gMainPane.shouldClaimAllTypes();
-    let selectedIndex = shellSvc.isDefaultBrowser(false, claimAllTypes) ? 1 : 0;
+    let selectedIndex = shellSvc.isDefaultBrowser(false, true) ? 1 : 0;
     setDefaultPane.selectedIndex = selectedIndex;
   },
 
@@ -738,8 +713,7 @@ var gMainPane = {
     if (!shellSvc)
       return;
     try {
-      let claimAllTypes = gMainPane.shouldClaimAllTypes();
-      shellSvc.setDefaultBrowser(claimAllTypes, false);
+      shellSvc.setDefaultBrowser(true, false);
     } catch (ex) {
       Cu.reportError(ex);
       return;
