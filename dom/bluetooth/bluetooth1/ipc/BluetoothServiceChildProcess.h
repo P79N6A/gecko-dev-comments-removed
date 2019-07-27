@@ -9,21 +9,9 @@
 
 #include "BluetoothService.h"
 
-namespace mozilla {
-namespace ipc {
-class UnixSocketConsumer;
-}
-namespace dom {
-namespace bluetooth {
+BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothChild;
-
-} 
-} 
-} 
-
-
-BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothServiceChildProcess : public BluetoothService
 {
