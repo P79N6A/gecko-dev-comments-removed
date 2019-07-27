@@ -6,6 +6,7 @@
 #define DOM_CAMERA_GONK_RECORDER_PROFILES_H
 
 #include <media/MediaProfiles.h>
+#include "CameraRecorderProfiles.h"
 #include "ICameraControl.h"
 
 #ifndef CHECK_SETARG_RETURN
@@ -23,7 +24,7 @@
 #endif
 
 namespace android {
-  class GonkRecorder;
+class GonkRecorder;
 };
 
 namespace mozilla {
@@ -31,117 +32,89 @@ namespace mozilla {
 
 
 
-template<class A, class V>
-class GonkRecorderProfileBase : public ICameraControl::RecorderProfile
+class GonkRecorderVideoProfile : public RecorderVideoProfile
 {
 public:
-  GonkRecorderProfileBase(uint32_t aCameraId, uint32_t aProfileIndex, const nsAString& aName)
-    : RecorderProfile(aName)
-    , mAudio(aCameraId, aProfileIndex)
-    , mVideo(aCameraId, aProfileIndex)
-  { }
-
-  virtual const Audio& GetAudio() const MOZ_OVERRIDE { return mAudio; }
-  virtual const Video& GetVideo() const MOZ_OVERRIDE { return mVideo; }
+  GonkRecorderVideoProfile(uint32_t aCameraId, uint32_t aQualityIndex);
+  ~GonkRecorderVideoProfile();
+  android::video_encoder GetPlatformCodec() const { return mPlatformCodec; }
 
 protected:
-  virtual ~GonkRecorderProfileBase() { }
-  A mAudio;
-  V mVideo;
+  android::video_encoder mPlatformCodec;
 };
 
 
 
 
-class GonkRecorderVideo : public ICameraControl::RecorderProfile::Video
+class GonkRecorderAudioProfile : public RecorderAudioProfile
 {
 public:
-  GonkRecorderVideo(uint32_t aCameraId, uint32_t aProfileIndex);
-  virtual ~GonkRecorderVideo() { }
-
-  android::video_encoder GetPlatformEncoder() const { return mPlatformEncoder; }
-  bool IsValid() const { return mIsValid; }
+  GonkRecorderAudioProfile(uint32_t aCameraId, uint32_t aQualityIndex);
+  ~GonkRecorderAudioProfile();
+  android::audio_encoder GetPlatformCodec() const { return mPlatformCodec; }
 
 protected:
-  int GetProfileParameter(const char* aParameter);
-  static bool Translate(android::video_encoder aCodec, nsAString& aCodecName);
-
-  uint32_t mCameraId;
-  uint32_t mProfileIndex;
-  bool mIsValid;
-  android::video_encoder mPlatformEncoder;
+  android::audio_encoder mPlatformCodec;
 };
 
 
 
 
-class GonkRecorderAudio : public ICameraControl::RecorderProfile::Audio
+class GonkRecorderProfile : public RecorderProfileBase<GonkRecorderAudioProfile, GonkRecorderVideoProfile>
 {
 public:
-  GonkRecorderAudio(uint32_t aCameraId, uint32_t aProfileIndex);
-  virtual ~GonkRecorderAudio() { }
+  GonkRecorderProfile(uint32_t aCameraId, uint32_t aQualityIndex);
 
-  android::audio_encoder GetPlatformEncoder() const { return mPlatformEncoder; }
-  bool IsValid() const { return mIsValid; }
+  GonkRecorderAudioProfile* GetGonkAudioProfile() { return &mAudio; }
+  GonkRecorderVideoProfile* GetGonkVideoProfile() { return &mVideo; }
+
+  android::output_format GetOutputFormat() const { return mPlatformOutputFormat; }
+
+  
+  
+  
+  
+  
+  
+  nsresult ConfigureRecorder(android::GonkRecorder* aRecorder);
 
 protected:
-  int GetProfileParameter(const char* aParameter);
-  static bool Translate(android::audio_encoder aCodec, nsAString& aCodecName);
+  virtual ~GonkRecorderProfile();
 
-  uint32_t mCameraId;
-  uint32_t mProfileIndex;
-  bool mIsValid;
-  android::audio_encoder mPlatformEncoder;
+  android::output_format mPlatformOutputFormat;
 };
 
 
 
 
-typedef nsRefPtrHashtable<nsStringHashKey, GonkRecorderProfile> ProfileHashtable;
-
-class GonkRecorderProfile
-  : public GonkRecorderProfileBase<GonkRecorderAudio, GonkRecorderVideo>
+class GonkRecorderProfileManager : public RecorderProfileManager
 {
 public:
-  static nsresult GetAll(uint32_t aCameraId,
-                         nsTArray<nsRefPtr<ICameraControl::RecorderProfile>>& aProfiles);
+  GonkRecorderProfileManager(uint32_t aCameraId);
 
   
+
+
+
+
+  void SetSupportedResolutions(const nsTArray<ICameraControl::Size>& aSizes)
+    { mSupportedSizes = aSizes; }
+
   
-  
-  
-  
-  
-  static nsresult ConfigureRecorder(android::GonkRecorder& aRecorder,
-                                    uint32_t aCameraId,
-                                    const nsAString& aProfileName);
+
+
+
+  void ClearSupportedResolutions() { mSupportedSizes.Clear(); }
+
+  bool IsSupported(uint32_t aQualityIndex) const;
+
+  already_AddRefed<RecorderProfile> Get(uint32_t aQualityIndex) const;
+  already_AddRefed<GonkRecorderProfile> Get(const char* aProfileName) const;
 
 protected:
-  GonkRecorderProfile(uint32_t aCameraId,
-                      uint32_t aProfileIndex,
-                      const nsAString& aName);
+  virtual ~GonkRecorderProfileManager();
 
-  int GetProfileParameter(const char* aParameter);
-
-  bool Translate(android::output_format aContainer, nsAString& aContainerName);
-  bool GetMimeType(android::output_format aContainer, nsAString& aMimeType);
-  bool IsValid() const { return mIsValid; };
-
-  nsresult ConfigureRecorder(android::GonkRecorder& aRecorder);
-  static ProfileHashtable* GetProfileHashtable(uint32_t aCameraId);
-  static PLDHashOperator Enumerate(const nsAString& aProfileName,
-                                   GonkRecorderProfile* aProfile,
-                                   void* aUserArg);
-
-  uint32_t mCameraId;
-  uint32_t mProfileIndex;
-  bool mIsValid;
-  android::output_format mOutputFormat;
-
-  static nsClassHashtable<nsUint32HashKey, ProfileHashtable> sProfiles;
-
-private:
-  DISALLOW_EVIL_CONSTRUCTORS(GonkRecorderProfile);
+  nsTArray<ICameraControl::Size> mSupportedSizes;
 };
 
 }; 
