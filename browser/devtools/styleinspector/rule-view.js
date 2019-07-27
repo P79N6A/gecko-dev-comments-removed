@@ -2710,7 +2710,8 @@ RuleEditor.prototype = {
     }
 
     this.selectorText = createChild(this.selectorContainer, "span", {
-      class: "ruleview-selector theme-fg-color3"
+      class: "ruleview-selector theme-fg-color3",
+      tabindex: this.isSelectorEditable ? "0" : "-1",
     });
 
     if (this.isSelectorEditable) {
@@ -2722,9 +2723,6 @@ RuleEditor.prototype = {
       editableField({
         element: this.selectorText,
         done: this._onSelectorDone,
-        stopOnShiftTab: true,
-        stopOnTab: true,
-        stopOnReturn: true
       });
     }
 
@@ -3006,9 +3004,11 @@ RuleEditor.prototype = {
 
 
 
-  _onSelectorDone: function(aValue, aCommit) {
-    if (!aCommit || this.isEditing || aValue === "" ||
-        aValue === this.rule.selectorText) {
+
+
+  _onSelectorDone: function(value, commit, direction) {
+    if (!commit || this.isEditing || value === "" ||
+        value === this.rule.selectorText) {
       return;
     }
 
@@ -3020,7 +3020,7 @@ RuleEditor.prototype = {
 
     this.isEditing = true;
 
-    this.rule.domRule.modifySelector(element, aValue).then(response => {
+    this.rule.domRule.modifySelector(element, value).then(response => {
       this.isEditing = false;
 
       if (!supportsUnmatchedRules) {
@@ -3052,10 +3052,34 @@ RuleEditor.prototype = {
         ruleView.toggleSelectorHighlighter(ruleView.lastSelectorIcon,
           ruleView.highlightedSelector);
       }
+
+      this._moveSelectorFocus(newRule, direction);
     }).then(null, err => {
       this.isEditing = false;
       promiseWarn(err);
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _moveSelectorFocus: function(rule, direction) {
+    if (!direction || direction == Ci.nsIFocusManager.MOVEFOCUS_BACKWARD) {
+      return;
+    }
+
+    if (rule.textProps.length > 0) {
+      rule.textProps[0].editor.nameSpan.click();
+    } else {
+      this.propertyList.click();
+    }
   }
 };
 
