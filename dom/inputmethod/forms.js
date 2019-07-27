@@ -348,7 +348,7 @@ let FormAssistant = {
   
   
   EditAction: function fa_editAction() {
-    if (this._editing) {
+    if (this._editing || !this.isHandlingFocus) {
       return;
     }
     this.sendInputState(this.focusedElement);
