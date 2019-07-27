@@ -476,10 +476,6 @@ public class BrowserApp extends GeckoApp
 
         final Context appContext = getApplicationContext();
 
-        
-        final SuggestedSites suggestedSites = new SuggestedSites(appContext);
-        BrowserDB.setSuggestedSites(suggestedSites);
-
         mViewFlipper = (ViewFlipper) findViewById(R.id.browser_actionbar);
         mActionBar = (ActionModeCompatView) findViewById(R.id.actionbar);
 
@@ -552,7 +548,11 @@ public class BrowserApp extends GeckoApp
             "Telemetry:Gather",
             "Updater:Launch");
 
-        Distribution.init(this);
+        Distribution distribution = Distribution.init(this);
+
+        
+        final SuggestedSites suggestedSites = new SuggestedSites(appContext, distribution);
+        BrowserDB.setSuggestedSites(suggestedSites);
 
         
         
