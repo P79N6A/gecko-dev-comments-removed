@@ -283,7 +283,7 @@ public:
 
   
   
-  virtual nsresult AllocateFrame();
+  virtual nsresult AllocateFrame(const nsIntSize& aTargetSize = nsIntSize());
 
   already_AddRefed<imgFrame> GetCurrentFrame()
   {
@@ -397,7 +397,12 @@ protected:
 
 
 
+
+
+
+
   RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
+                                const nsIntSize& aTargetSize,
                                 const nsIntRect& aFrameRect,
                                 uint32_t aDecodeFlags,
                                 gfx::SurfaceFormat aFormat,
@@ -405,6 +410,7 @@ protected:
                                 imgFrame* aPreviousFrame);
 
   RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
+                                     const nsIntSize& aTargetSize,
                                      const nsIntRect& aFrameRect,
                                      uint32_t aDecodeFlags,
                                      gfx::SurfaceFormat aFormat,
