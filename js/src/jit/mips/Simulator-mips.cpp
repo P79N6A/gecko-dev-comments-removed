@@ -3310,7 +3310,7 @@ Simulator::execute()
     
     
     int program_counter = get_pc();
-    AsmJSActivation *activation = TlsPerThreadData.get()->asmJSActivationStackFromOwnerThread();
+    AsmJSActivation *activation = TlsPerThreadData.get()->asmJSActivationStack();
 
     while (program_counter != end_sim_pc) {
         if (enableStopSimAt && (icount_ == Simulator::StopSimAt)) {

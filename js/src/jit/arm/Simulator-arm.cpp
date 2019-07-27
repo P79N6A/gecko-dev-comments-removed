@@ -4065,7 +4065,6 @@ Simulator::execute()
     
     
     int program_counter = get_pc();
-    AsmJSActivation *activation = TlsPerThreadData.get()->asmJSActivationStackFromOwnerThread();
 
     while (program_counter != end_sim_pc) {
         if (EnableStopSimAt && (icount_ == Simulator::StopSimAt)) {
@@ -4080,7 +4079,7 @@ Simulator::execute()
             int32_t rpc = resume_pc_;
             if (MOZ_UNLIKELY(rpc != 0)) {
                 
-                activation->setResumePC((void *)get_pc());
+                PerThreadData::innermostAsmJSActivation()->setResumePC((void *)get_pc());
                 set_pc(rpc);
                 resume_pc_ = 0;
             }
