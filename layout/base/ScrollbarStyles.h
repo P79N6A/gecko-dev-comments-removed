@@ -20,7 +20,6 @@ struct ScrollbarStyles
   uint8_t mVertical;
   
   
-  
   uint8_t mScrollBehavior;
   ScrollbarStyles(uint8_t aH, uint8_t aV, uint8_t aB) : mHorizontal(aH),
                                                         mVertical(aV),
