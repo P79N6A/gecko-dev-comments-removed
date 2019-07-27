@@ -11,16 +11,14 @@
 
 #include <msinkaut_i.c>
 
-StaticRefPtr<InkCollector> InkCollector::sInkCollector;
-
-InkCollector::InkCollector()
-{
-}
+StaticAutoPtr<InkCollector> InkCollector::sInkCollector;
 
 InkCollector::~InkCollector()
 {
   Shutdown();
-  MOZ_ASSERT(!mRefCount);
+  MOZ_ASSERT(!mCookie && !mEnabled && !mComInitialized
+              && !mMarshaller && !mInkCollector
+              && !mConnectionPoint && !mInkCollectorEvent);
 }
 
 void InkCollector::Initialize()
@@ -38,26 +36,32 @@ void InkCollector::Initialize()
   mComInitialized = SUCCEEDED(::CoInitialize(nullptr));
 
   
-  if (FAILED(::CoCreateFreeThreadedMarshaler(this, getter_AddRefs(mMarshaller)))) {
+  mInkCollectorEvent = new InkCollectorEvent();
+
+  
+  if (FAILED(::CoCreateFreeThreadedMarshaler(mInkCollectorEvent, getter_AddRefs(mMarshaller)))) {
     return;
   }
+
   
   if (FAILED(::CoCreateInstance(CLSID_InkCollector, NULL, CLSCTX_INPROC_SERVER,
                                 IID_IInkCollector, getter_AddRefs(mInkCollector)))) {
     return;
   }
-  NS_ADDREF(mInkCollector);
+
   
   nsRefPtr<IConnectionPointContainer> connPointContainer;
+
   
   if (SUCCEEDED(mInkCollector->QueryInterface(IID_IConnectionPointContainer,
                                               getter_AddRefs(connPointContainer)))) {
+
     
     if (SUCCEEDED(connPointContainer->FindConnectionPoint(__uuidof(_IInkCollectorEvents),
                                                           getter_AddRefs(mConnectionPoint)))) {
-      NS_ADDREF(mConnectionPoint);
+
       
-      if (SUCCEEDED(mConnectionPoint->Advise(this, &mCookie))) {
+      if (SUCCEEDED(mConnectionPoint->Advise(mInkCollectorEvent, &mCookie))) {
         OnInitialize();
       }
     }
@@ -70,10 +74,12 @@ void InkCollector::Shutdown()
   if (mConnectionPoint) {
     
     mConnectionPoint->Unadvise(mCookie);
-    NS_RELEASE(mConnectionPoint);
+    mCookie = 0;
+    mConnectionPoint = nullptr;
   }
-  NS_IF_RELEASE(mMarshaller);
-  NS_IF_RELEASE(mInkCollector);
+  mInkCollector = nullptr;
+  mMarshaller = nullptr;
+  mInkCollectorEvent = nullptr;
 
   
   if (mComInitialized) {
@@ -118,7 +124,7 @@ void InkCollector::Enable(bool aNewState)
 {
   if (aNewState != mEnabled) {
     if (mInkCollector) {
-      if (S_OK == mInkCollector->put_Enabled(aNewState ? VARIANT_TRUE : VARIANT_FALSE)) {
+      if (SUCCEEDED(mInkCollector->put_Enabled(aNewState ? VARIANT_TRUE : VARIANT_FALSE))) {
         mEnabled = aNewState;
       } else {
         NS_WARNING("InkCollector did not change status successfully");
@@ -129,6 +135,11 @@ void InkCollector::Enable(bool aNewState)
   }
 }
 
+HWND InkCollector::GetTarget()
+{
+  return mTargetWindow;
+}
+
 void InkCollector::SetTarget(HWND aTargetWindow)
 {
   NS_ASSERTION(aTargetWindow, "aTargetWindow should be exist");
@@ -136,7 +147,7 @@ void InkCollector::SetTarget(HWND aTargetWindow)
     Initialize();
     if (mInkCollector) {
       Enable(false);
-      if (S_OK == mInkCollector->put_hWnd((LONG_PTR)aTargetWindow)) {
+      if (SUCCEEDED(mInkCollector->put_hWnd((LONG_PTR)aTargetWindow))) {
         mTargetWindow = aTargetWindow;
       } else {
         NS_WARNING("InkCollector did not change window property successfully");
@@ -150,7 +161,7 @@ void InkCollector::ClearTarget()
 {
   if (mTargetWindow && mInkCollector) {
     Enable(false);
-    if (S_OK == mInkCollector->put_hWnd(0)) {
+    if (SUCCEEDED(mInkCollector->put_hWnd(0))) {
       mTargetWindow = 0;
     } else {
       NS_WARNING("InkCollector did not clear window property successfully");
@@ -163,7 +174,7 @@ void InkCollector::ClearTarget()
 
 
 
-bool InkCollector::IsHardProximityTablet(IInkTablet* aTablet) const
+bool InkCollectorEvent::IsHardProximityTablet(IInkTablet* aTablet) const
 {
   if (aTablet) {
     TabletHardwareCapabilities caps;
@@ -174,7 +185,7 @@ bool InkCollector::IsHardProximityTablet(IInkTablet* aTablet) const
   return false;
 }
 
-HRESULT __stdcall InkCollector::QueryInterface(REFIID aRiid, void **aObject)
+HRESULT __stdcall InkCollectorEvent::QueryInterface(REFIID aRiid, void **aObject)
 {
   
   if (!aObject) {
@@ -189,40 +200,27 @@ HRESULT __stdcall InkCollector::QueryInterface(REFIID aRiid, void **aObject)
     
     NS_ADDREF_THIS();
     result = S_OK;
-  } else if (IID_IMarshal == aRiid) {
-    
-    
-    NS_ASSERTION(mMarshaller, "Free threaded marshaller is null!");
-    
-    result = mMarshaller->QueryInterface(aRiid, aObject);
   }
   return result;
 }
 
-
-
-
-
-HRESULT InkCollector::Invoke(DISPID aDispIdMember, REFIID ,
-                             LCID , WORD ,
-                             DISPPARAMS* aDispParams, VARIANT* ,
-                             EXCEPINFO* , UINT* )
+HRESULT InkCollectorEvent::Invoke(DISPID aDispIdMember, REFIID ,
+                                  LCID , WORD ,
+                                  DISPPARAMS* aDispParams, VARIANT* ,
+                                  EXCEPINFO* , UINT* )
 {
   switch (aDispIdMember) {
     case DISPID_ICECursorOutOfRange: {
       if (aDispParams && aDispParams->cArgs) {
         CursorOutOfRange(static_cast<IInkCursor*>(aDispParams->rgvarg[0].pdispVal));
-        ClearTarget();
       }
       break;
     }
   };
-  
-  NS_RELEASE_THIS();
   return S_OK;
 }
 
-void InkCollector::CursorOutOfRange(IInkCursor* aCursor) const
+void InkCollectorEvent::CursorOutOfRange(IInkCursor* aCursor) const
 {
   IInkTablet* curTablet = nullptr;
   if (FAILED(aCursor->get_Tablet(&curTablet))) {
@@ -234,7 +232,7 @@ void InkCollector::CursorOutOfRange(IInkCursor* aCursor) const
     return;
   }
   
-  if (mTargetWindow) {
-    ::SendMessage(mTargetWindow, MOZ_WM_PEN_LEAVES_HOVER_OF_DIGITIZER, 0, 0);
+  if (HWND targetWindow = InkCollector::sInkCollector->GetTarget()) {
+    ::SendMessage(targetWindow, MOZ_WM_PEN_LEAVES_HOVER_OF_DIGITIZER, 0, 0);
   }
 }
