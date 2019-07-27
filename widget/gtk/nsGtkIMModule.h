@@ -106,18 +106,23 @@ protected:
     nsWindow* mLastFocusedWindow;
 
     
-    GtkIMContext       *mContext;
+    GtkIMContext* mContext;
 
     
     
     
     
-    GtkIMContext       *mSimpleContext;
+    GtkIMContext* mSimpleContext;
 
     
     
     
-    GtkIMContext       *mDummyContext;
+    GtkIMContext* mDummyContext;
+
+    
+    
+    
+    GtkIMContext* mComposingContext;
 
     
     
@@ -255,6 +260,14 @@ protected:
 
 
     GtkIMContext* GetCurrentContext() const;
+
+    
+
+
+    GtkIMContext* GetActiveContext() const
+    {
+        return mComposingContext ? mComposingContext : GetCurrentContext();
+    }
 
     
     bool IsDestroyed() { return !mOwnerWindow; }
