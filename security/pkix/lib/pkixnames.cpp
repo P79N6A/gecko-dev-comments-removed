@@ -31,7 +31,8 @@
 
 
 
-#include "pkix/Input.h"
+#include "pkix/bind.h"
+#include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
 
@@ -88,6 +89,191 @@ ParseIPv4Address(Input hostname,  uint8_t (&out)[4])
          ReadIPv4AddressComponent(input, false, out[1]) &&
          ReadIPv4AddressComponent(input, false, out[2]) &&
          ReadIPv4AddressComponent(input, true, out[3]);
+}
+
+namespace {
+
+bool
+FinishIPv6Address( uint8_t (&address)[16], int numComponents,
+                  int contractionIndex)
+{
+  assert(numComponents >= 0);
+  assert(numComponents <= 8);
+  assert(contractionIndex >= -1);
+  assert(contractionIndex <= 8);
+  assert(contractionIndex <= numComponents);
+  if (!(numComponents >= 0 &&
+        numComponents <= 8 &&
+        contractionIndex >= -1 &&
+        contractionIndex <= 8 &&
+        contractionIndex <= numComponents)) {
+    return false;
+  }
+
+  if (contractionIndex == -1) {
+    
+    return numComponents == 8;
+  }
+
+  if (numComponents >= 8) {
+    return false; 
+  }
+
+  
+  int componentsToMove = numComponents - contractionIndex;
+  memmove(address + (2u * (8 - componentsToMove)),
+          address + (2u * contractionIndex),
+          componentsToMove * 2u);
+  
+  memset(address + (2u * contractionIndex), 0u,
+         (8u - numComponents) * 2u);
+
+  return true;
+}
+
+} 
+
+
+bool
+ParseIPv6Address(Input hostname,  uint8_t (&out)[16])
+{
+  Reader input(hostname);
+
+  int currentComponentIndex = 0;
+  int contractionIndex = -1;
+
+  if (input.Peek(':')) {
+    
+    
+    uint8_t b;
+    if (input.Read(b) != Success || b != ':') {
+      assert(false);
+      return false;
+    }
+    if (input.Read(b) != Success) {
+      return false;
+    }
+    if (b != ':') {
+      return false;
+    }
+    contractionIndex = 0;
+  }
+
+  for (;;) {
+    
+    
+    Reader::Mark startOfComponent(input.GetMark());
+    uint16_t componentValue = 0;
+    size_t componentLength = 0;
+    while (!input.AtEnd() && !input.Peek(':')) {
+      uint8_t value;
+      uint8_t b;
+      if (input.Read(b) != Success) {
+        assert(false);
+        return false;
+      }
+      switch (b) {
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+          value = static_cast<uint8_t>(b - static_cast<uint8_t>('0'));
+          break;
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+          value = static_cast<uint8_t>(b - static_cast<uint8_t>('a') +
+                                       UINT8_C(10));
+          break;
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+          value = static_cast<uint8_t>(b - static_cast<uint8_t>('A') +
+                                       UINT8_C(10));
+          break;
+        case '.':
+        {
+          
+          
+          
+
+          if (currentComponentIndex > 6) {
+            return false; 
+          }
+
+          input.SkipToEnd();
+          Input ipv4Component;
+          if (input.GetInput(startOfComponent, ipv4Component) != Success) {
+            return false;
+          }
+          uint8_t (*ipv4)[4] =
+            reinterpret_cast<uint8_t(*)[4]>(&out[2 * currentComponentIndex]);
+          if (!ParseIPv4Address(ipv4Component, *ipv4)) {
+            return false;
+          }
+          assert(input.AtEnd());
+          currentComponentIndex += 2;
+
+          return FinishIPv6Address(out, currentComponentIndex,
+                                   contractionIndex);
+        }
+        default:
+          return false;
+      }
+      if (componentLength >= 4) {
+        
+        return false;
+      }
+      ++componentLength;
+      componentValue = (componentValue * 0x10u) + value;
+    }
+
+    if (currentComponentIndex >= 8) {
+      return false; 
+    }
+
+    if (componentLength == 0) {
+      if (input.AtEnd() && currentComponentIndex == contractionIndex) {
+        if (contractionIndex == 0) {
+          
+          return false;
+        }
+        return FinishIPv6Address(out, currentComponentIndex,
+                                 contractionIndex);
+      }
+      return false;
+    }
+
+    out[2 * currentComponentIndex] =
+      static_cast<uint8_t>(componentValue / 0x100);
+    out[(2 * currentComponentIndex) + 1] =
+      static_cast<uint8_t>(componentValue % 0x100);
+
+    ++currentComponentIndex;
+
+    if (input.AtEnd()) {
+      return FinishIPv6Address(out, currentComponentIndex,
+                               contractionIndex);
+    }
+
+    uint8_t b;
+    if (input.Read(b) != Success || b != ':') {
+      assert(false);
+      return false;
+    }
+
+    if (input.Peek(':')) {
+      
+      if (contractionIndex != -1) {
+        return false; 
+      }
+      uint8_t b;
+      if (input.Read(b) != Success || b != ':') {
+        assert(false);
+        return false;
+      }
+      contractionIndex = currentComponentIndex;
+      if (input.AtEnd()) {
+        
+        return FinishIPv6Address(out, currentComponentIndex,
+                                 contractionIndex);
+      }
+    }
+  }
 }
 
 bool
