@@ -20,6 +20,7 @@
 #include "nsIClassInfoImpl.h"
 #include "nsIConsoleListener.h"
 #include "nsPrintfCString.h"
+#include "nsIScriptError.h"
 
 #include "mozilla/Preferences.h"
 
@@ -64,6 +65,45 @@ nsConsoleService::nsConsoleService()
   
   
   mBufferSize = 250;
+}
+
+
+NS_IMETHODIMP
+nsConsoleService::ClearMessagesForWindowID(const uint64_t innerID)
+{
+  
+  for (uint32_t i = 0; i < mBufferSize && mMessages[i]; i++) {
+    
+    nsCOMPtr<nsIScriptError> scriptError = do_QueryInterface(mMessages[i]);
+    if (!scriptError) {
+      continue;
+    }
+    uint64_t innerWindowID;
+    nsresult rv = scriptError->GetInnerWindowID(&innerWindowID);
+    if (NS_FAILED(rv) || innerWindowID != innerID) {
+      continue;
+    }
+
+    
+    NS_RELEASE(mMessages[i]);
+
+    uint32_t j = i;
+    
+    for (; j < mBufferSize - 1 && mMessages[j + 1]; j++) {
+      mMessages[j] = mMessages[j + 1];
+    }
+    
+    mMessages[j] = nullptr;
+    mCurrent = j;
+
+    
+    mFull = false;
+
+    
+    i--;
+  }
+
+  return NS_OK;
 }
 
 nsConsoleService::~nsConsoleService()
