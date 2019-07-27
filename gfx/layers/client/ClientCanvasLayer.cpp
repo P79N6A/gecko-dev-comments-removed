@@ -1,26 +1,26 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "ClientCanvasLayer.h"
-#include "GLContext.h"                  // for GLContext
-#include "GLScreenBuffer.h"             // for GLScreenBuffer
-#include "GeckoProfiler.h"              // for PROFILER_LABEL
-#include "SharedSurfaceEGL.h"           // for SurfaceFactory_EGLImage
-#include "SharedSurfaceGL.h"            // for SurfaceFactory_GLTexture, etc
-#include "ClientLayerManager.h"         // for ClientLayerManager, etc
-#include "mozilla/gfx/Point.h"          // for IntSize
+#include "GLContext.h"                  
+#include "GLScreenBuffer.h"             
+#include "GeckoProfiler.h"              
+#include "SharedSurfaceEGL.h"           
+#include "SharedSurfaceGL.h"            
+#include "ClientLayerManager.h"         
+#include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"
-#include "nsCOMPtr.h"                   // for already_AddRefed
-#include "nsISupportsImpl.h"            // for Layer::AddRef, etc
-#include "nsRect.h"                     // for mozilla::gfx::IntRect
-#include "nsXULAppAPI.h"                // for XRE_GetProcessType, etc
-#include "gfxPrefs.h"                   // for WebGLForceLayersReadback
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsXULAppAPI.h"                
+#include "gfxPrefs.h"                   
 
 #ifdef XP_WIN
-#include "SharedSurfaceANGLE.h"         // for SurfaceFactory_ANGLEShareHandle
+#include "SharedSurfaceANGLE.h"         
 #include "gfxWindowsPlatform.h"
 #endif
 
@@ -61,7 +61,7 @@ ClientCanvasLayer::Initialize(const Data& aData)
 
   SurfaceCaps caps;
   if (mGLFrontbuffer) {
-    // The screen caps are irrelevant if we're using a separate frontbuffer.
+    
     caps = mGLFrontbuffer->mHasAlpha ? SurfaceCaps::ForRGBA()
                                      : SurfaceCaps::ForRGB();
   } else {
@@ -114,11 +114,11 @@ ClientCanvasLayer::Initialize(const Data& aData)
   }
 
   if (mGLFrontbuffer) {
-    // We're using a source other than the one in the default screen.
-    // (SkiaGL)
+    
+    
     mFactory = Move(factory);
     if (!mFactory) {
-      // Absolutely must have a factory here, so create a basic one
+      
       mFactory = MakeUnique<SurfaceFactory_Basic>(mGLContext, caps, mFlags);
     }
   } else {
@@ -133,9 +133,7 @@ ClientCanvasLayer::RenderLayer()
   PROFILER_LABEL("ClientCanvasLayer", "RenderLayer",
     js::ProfileEntry::Category::GRAPHICS);
 
-  if (GetMaskLayer()) {
-    ToClientLayer(GetMaskLayer())->RenderLayer();
-  }
+  RenderMaskLayers(this);
 
   if (!IsDirty()) {
     return;
@@ -149,7 +147,7 @@ ClientCanvasLayer::RenderLayer()
     }
 
     if (!mGLContext) {
-      // We don't support locking for buffer surfaces currently
+      
       flags |= TextureFlags::IMMEDIATE_UPLOAD;
     }
 
