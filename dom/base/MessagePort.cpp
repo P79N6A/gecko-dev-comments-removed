@@ -7,12 +7,12 @@
 #include "MessageEvent.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/Event.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/MessageChannel.h"
 #include "mozilla/dom/MessagePortBinding.h"
 #include "mozilla/dom/MessagePortList.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "nsContentUtils.h"
-#include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
 #include "nsPresContext.h"
 #include "ScriptSettings.h"
@@ -112,7 +112,7 @@ PostMessageReadStructuredClone(JSContext* cx,
 
     
     
-    DOMFileImpl* blobImpl;
+    FileImpl* blobImpl;
     if (JS_ReadBytes(reader, &blobImpl, sizeof(blobImpl))) {
       MOZ_ASSERT(blobImpl);
 
@@ -123,7 +123,7 @@ PostMessageReadStructuredClone(JSContext* cx,
       
       JS::Rooted<JS::Value> val(cx);
       {
-        nsRefPtr<DOMFile> blob = new DOMFile(scInfo->mPort->GetParentObject(),
+        nsRefPtr<File> blob = new File(scInfo->mPort->GetParentObject(),
                                              blobImpl);
         if (!WrapNewBindingObject(cx, blob, &val)) {
           return nullptr;
@@ -167,9 +167,9 @@ PostMessageWriteStructuredClone(JSContext* cx,
 
   
   {
-    DOMFile* blob = nullptr;
+    File* blob = nullptr;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, obj, blob))) {
-      DOMFileImpl* blobImpl = blob->Impl();
+      FileImpl* blobImpl = blob->Impl();
       if (JS_WriteUint32Pair(writer, SCTAG_DOM_BLOB, 0) &&
           JS_WriteBytes(writer, &blobImpl, sizeof(blobImpl))) {
         scInfo->mEvent->StoreISupports(blobImpl);

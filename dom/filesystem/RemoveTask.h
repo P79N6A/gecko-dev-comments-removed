@@ -14,7 +14,7 @@
 namespace mozilla {
 namespace dom {
 
-class DOMFileImpl;
+class FileImpl;
 class Promise;
 
 class RemoveTask MOZ_FINAL
@@ -23,7 +23,7 @@ class RemoveTask MOZ_FINAL
 public:
   RemoveTask(FileSystemBase* aFileSystem,
              const nsAString& aDirPath,
-             DOMFileImpl* aTargetFile,
+             FileImpl* aTargetFile,
              const nsAString& aTargetPath,
              bool aRecursive,
              ErrorResult& aRv);
@@ -61,7 +61,7 @@ private:
   nsString mDirRealPath;
   
   
-  nsRefPtr<DOMFileImpl> mTargetFileImpl;
+  nsRefPtr<FileImpl> mTargetFileImpl;
   nsString mTargetRealPath;
   bool mRecursive;
   bool mReturnValue;

@@ -32,7 +32,7 @@ PRLogModuleInfo* GetICLog();
 
 namespace dom {
 
-class DOMFile;
+class File;
 class VideoStreamTrack;
 
 
@@ -80,7 +80,7 @@ public:
   ImageCapture(VideoStreamTrack* aVideoStreamTrack, nsPIDOMWindow* aOwnerWindow);
 
   
-  nsresult PostBlobEvent(DOMFile* aBlob);
+  nsresult PostBlobEvent(File* aBlob);
 
   
   

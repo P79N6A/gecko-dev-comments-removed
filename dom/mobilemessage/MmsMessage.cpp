@@ -9,16 +9,15 @@
 #include "jsfriendapi.h" 
 #include "nsJSUtils.h"
 #include "nsContentUtils.h"
-#include "nsIDOMFile.h"
 #include "nsTArrayHelpers.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/mobilemessage/Constants.h" 
 #include "mozilla/dom/mobilemessage/SmsTypes.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/dom/ipc/BlobParent.h"
-#include "nsDOMFile.h"
 
 using namespace mozilla::dom::mobilemessage;
 
@@ -95,11 +94,11 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
     
     
     if (element.contentParent()) {
-      nsRefPtr<DOMFileImpl> impl = static_cast<BlobParent*>(element.contentParent())->GetBlobImpl();
-      att.mContent = new DOMFile(nullptr, impl);
+      nsRefPtr<FileImpl> impl = static_cast<BlobParent*>(element.contentParent())->GetBlobImpl();
+      att.mContent = new File(nullptr, impl);
     } else if (element.contentChild()) {
-      nsRefPtr<DOMFileImpl> impl = static_cast<BlobChild*>(element.contentChild())->GetBlobImpl();
-      att.mContent = new DOMFile(nullptr, impl);
+      nsRefPtr<FileImpl> impl = static_cast<BlobChild*>(element.contentChild())->GetBlobImpl();
+      att.mContent = new File(nullptr, impl);
     } else {
       NS_WARNING("MmsMessage: Unable to get attachment content.");
     }
@@ -580,7 +579,7 @@ MmsMessage::GetAttachments(JSContext* aCx, JS::MutableHandle<JS::Value> aAttachm
     
     nsIGlobalObject *global = xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
     MOZ_ASSERT(global);
-    nsRefPtr<DOMFile> newBlob = new DOMFile(global, attachment.content->Impl());
+    nsRefPtr<File> newBlob = new File(global, attachment.content->Impl());
 
     JS::Rooted<JS::Value> val(aCx);
     if (!WrapNewBindingObject(aCx, newBlob, &val)) {
