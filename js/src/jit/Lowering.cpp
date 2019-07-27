@@ -3883,3 +3883,32 @@ LIRGenerator::generate()
     lirGraph_.setArgumentSlotCount(maxargslots_);
     return true;
 }
+
+bool
+LIRGenerator::visitPhi(MPhi *phi)
+{
+    
+    MOZ_ASSUME_UNREACHABLE("Unexpected Phi node during Lowering.");
+}
+
+bool
+LIRGenerator::visitBeta(MBeta *beta)
+{
+    
+    
+    MOZ_ASSUME_UNREACHABLE("Unexpected Beta node during Lowering.");
+}
+
+bool
+LIRGenerator::visitObjectState(MObjectState *objState)
+{
+    
+    MOZ_ASSUME_UNREACHABLE("Unexpected ObjectState node during Lowering.");
+}
+
+bool
+LIRGenerator::visitArrayState(MArrayState *objState)
+{
+    
+    MOZ_ASSUME_UNREACHABLE("Unexpected ArrayState node during Lowering.");
+}
