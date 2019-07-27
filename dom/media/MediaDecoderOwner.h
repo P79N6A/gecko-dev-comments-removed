@@ -51,8 +51,9 @@ public:
   
   
   
+  
   virtual void MetadataLoaded(const MediaInfo* aInfo,
-                              const MetadataTags* aTags) = 0;
+                              nsAutoPtr<const MetadataTags> aTags) = 0;
 
   
   

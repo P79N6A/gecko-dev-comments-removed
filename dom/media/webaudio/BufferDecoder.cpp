@@ -140,19 +140,19 @@ BufferDecoder::IsMediaSeekable()
 }
 
 void
-BufferDecoder::MetadataLoaded(MediaInfo* aInfo, MetadataTags* aTags)
+BufferDecoder::MetadataLoaded(nsAutoPtr<MediaInfo> aInfo, nsAutoPtr<MetadataTags> aTags)
 {
   
 }
 
 void
-BufferDecoder::FirstFrameLoaded(MediaInfo* aInfo)
+BufferDecoder::FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo)
 {
   
 }
 
 void
-BufferDecoder::QueueMetadata(int64_t aTime, MediaInfo* aInfo, MetadataTags* aTags)
+BufferDecoder::QueueMetadata(int64_t aTime, nsAutoPtr<MediaInfo> aInfo, nsAutoPtr<MetadataTags> aTags)
 {
   
 }
