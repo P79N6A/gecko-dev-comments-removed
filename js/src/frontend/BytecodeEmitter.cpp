@@ -3221,30 +3221,20 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
                                 VarEmitOption emitOption)
 {
     MOZ_ASSERT(pattern->isKind(PNK_ARRAY));
-
-    bool doElemOp;
-    bool needToPopIterator = false;
-
-#ifdef DEBUG
-    int stackDepth = bce->stackDepth;
-    JS_ASSERT(stackDepth != 0);
-    JS_ASSERT(pattern->isArity(PN_LIST));
-    JS_ASSERT(pattern->isKind(PNK_ARRAY) || pattern->isKind(PNK_OBJECT));
-#endif
+    MOZ_ASSERT(pattern->isArity(PN_LIST));
+    MOZ_ASSERT(bce->stackDepth != 0);
 
     
 
 
 
-    if (pattern->isKind(PNK_ARRAY)) {
-        if (emitOption == InitializeVars) {
-            if (Emit1(cx, bce, JSOP_DUP) < 0)                      
-                return false;
-        }
-        if (!EmitIterator(cx, bce))                                
+    if (emitOption == InitializeVars) {
+        if (Emit1(cx, bce, JSOP_DUP) < 0)                      
             return false;
-        needToPopIterator = true;
     }
+    if (!EmitIterator(cx, bce))                                
+        return false;
+    bool needToPopIterator = true;
 
     for (ParseNode *member = pattern->pn_head; member; member = member->pn_next) {
         
@@ -3254,52 +3244,7 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
 
 
         ParseNode *subpattern;
-        if (pattern->isKind(PNK_OBJECT)) {
-            doElemOp = true;
-            JS_ASSERT(member->isKind(PNK_COLON) || member->isKind(PNK_SHORTHAND));
-
-            
-            if (Emit1(cx, bce, JSOP_DUP) < 0)
-                return false;
-
-            ParseNode *key = member->pn_left;
-            if (key->isKind(PNK_NUMBER)) {
-                if (!EmitNumberOp(cx, key->pn_dval, bce))
-                    return false;
-            } else if (key->isKind(PNK_NAME) || key->isKind(PNK_STRING)) {
-                PropertyName *name = key->pn_atom->asPropertyName();
-
-                
-                
-                
-                jsid id = NameToId(name);
-                if (id != types::IdToTypeId(id)) {
-                    if (!EmitTree(cx, bce, key))
-                        return false;
-                } else {
-                    if (!EmitAtomOp(cx, name, JSOP_GETPROP, bce))
-                        return false;
-                    doElemOp = false;
-                }
-            } else {
-                JS_ASSERT(key->isKind(PNK_COMPUTED_NAME));
-                if (!EmitTree(cx, bce, key->pn_kid))
-                    return false;
-            }
-
-            if (doElemOp) {
-                
-
-
-
-
-                if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
-                    return false;
-                JS_ASSERT(bce->stackDepth >= stackDepth + 1);
-            }
-
-            subpattern = member->pn_right;
-        } else {
+        if (true) {
             JS_ASSERT(pattern->isKind(PNK_ARRAY));
 
             if (member->isKind(PNK_SPREAD)) {
@@ -3364,7 +3309,6 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
 
         
         if (subpattern->isKind(PNK_ELISION)) {
-            JS_ASSERT(pattern->isKind(PNK_ARRAY));
             JS_ASSERT(member == subpattern);
             if (Emit1(cx, bce, JSOP_POP) < 0)
                 return false;
@@ -3373,8 +3317,7 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
             if (!EmitDestructuringLHS(cx, bce, subpattern, emitOption))
                 return false;
 
-            if (emitOption == PushInitialValues &&
-                (pattern->isKind(PNK_OBJECT) || needToPopIterator)) {
+            if (emitOption == PushInitialValues && needToPopIterator) {
                 
 
 
@@ -3401,16 +3344,6 @@ EmitDestructuringOpsArrayHelper(ExclusiveContext *cx, BytecodeEmitter *bce, Pars
 
     if (needToPopIterator && Emit1(cx, bce, JSOP_POP) < 0)
         return false;
-
-    if (emitOption == PushInitialValues && pattern->isKind(PNK_OBJECT)) {
-        
-
-
-
-
-        if (Emit1(cx, bce, JSOP_POP) < 0)
-            return false;
-    }
 
     return true;
 }
