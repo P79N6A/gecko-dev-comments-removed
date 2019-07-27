@@ -125,6 +125,10 @@ MobileConnection::MobileConnection(nsPIDOMWindow* aWindow, uint32_t aClientId)
 
   
   
+  mIccId.SetIsVoid(true);
+
+  
+  
   if (!service) {
     NS_WARNING("Could not acquire nsIMobileConnectionService!");
     return;
