@@ -413,13 +413,12 @@ this.DownloadsCommon = {
     if (shouldApplySmoothing) {
       
       
-      let (diff = aSeconds - aLastSeconds) {
-        aSeconds = aLastSeconds + (diff < 0 ? .3 : .1) * diff;
-      }
+      let diff = aSeconds - aLastSeconds;
+      aSeconds = aLastSeconds + (diff < 0 ? .3 : .1) * diff;
 
       
       
-      let diff = aSeconds - aLastSeconds;
+      diff = aSeconds - aLastSeconds;
       let diffPercent = diff / aLastSeconds * 100;
       if (Math.abs(diff) < 5 || Math.abs(diffPercent) < 5) {
         aSeconds = aLastSeconds - (diff < 0 ? .4 : .2);
