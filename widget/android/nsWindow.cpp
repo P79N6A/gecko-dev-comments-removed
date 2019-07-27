@@ -179,7 +179,6 @@ nsWindow::nsWindow() :
     mParent(nullptr),
     mFocus(nullptr),
     mIMEMaskSelectionUpdate(false),
-    mIMEMaskTextUpdate(false),
     mIMEMaskEventsCount(1), 
     mIMERanges(new TextRangeArray()),
     mIMEUpdatingContext(false),
@@ -1693,7 +1692,6 @@ nsWindow::RemoveIMEComposition()
 
     nsRefPtr<nsWindow> kungFuDeathGrip(this);
     AutoIMEMask selMask(mIMEMaskSelectionUpdate);
-    AutoIMEMask textMask(mIMEMaskTextUpdate);
 
     WidgetCompositionEvent compositionCommitEvent(true,
                                                   NS_COMPOSITION_COMMIT_AS_IS,
@@ -1705,7 +1703,6 @@ nsWindow::RemoveIMEComposition()
 void
 nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
 {
-    MOZ_ASSERT(!mIMEMaskTextUpdate);
     MOZ_ASSERT(!mIMEMaskSelectionUpdate);
     
 
@@ -1777,9 +1774,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
     case AndroidGeckoEvent::IME_COMPOSE_TEXT:
         {
             
-
-
-
 
 
 
@@ -1937,7 +1931,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
 
 
             AutoIMEMask selMask(mIMEMaskSelectionUpdate);
-            AutoIMEMask textMask(mIMEMaskTextUpdate);
             const auto composition(GetIMEComposition());
             MOZ_ASSERT(!composition || !composition->IsEditorHandlingEvent());
 
@@ -2011,7 +2004,6 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
 
 
             AutoIMEMask selMask(mIMEMaskSelectionUpdate);
-            AutoIMEMask textMask(mIMEMaskTextUpdate);
             RemoveIMEComposition();
             mIMERanges->Clear();
         }
@@ -2255,9 +2247,6 @@ nsWindow::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
 {
     MOZ_ASSERT(aIMENotification.mMessage == NOTIFY_IME_OF_TEXT_CHANGE,
                "NotifyIMEOfTextChange() is called with invaild notification");
-
-    if (mIMEMaskTextUpdate)
-        return NS_OK;
 
     ALOGIME("IME: NotifyIMEOfTextChange: s=%d, oe=%d, ne=%d",
             aIMENotification.mTextChangeData.mStartOffset,

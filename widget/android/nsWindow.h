@@ -217,7 +217,7 @@ protected:
 
     nsCOMPtr<nsIIdleServiceInternal> mIdleService;
 
-    bool mIMEMaskSelectionUpdate, mIMEMaskTextUpdate;
+    bool mIMEMaskSelectionUpdate;
     int32_t mIMEMaskEventsCount; 
     nsRefPtr<mozilla::TextRangeArray> mIMERanges;
     bool mIMEUpdatingContext;

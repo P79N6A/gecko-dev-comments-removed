@@ -876,6 +876,11 @@ final class GeckoEditable
         mText.insert(start, newText);
     }
 
+    private boolean isSameText(int start, int oldEnd, CharSequence newText) {
+        return oldEnd - start == newText.length() &&
+               TextUtils.regionMatches(mText, start, newText, 0, oldEnd - start);
+    }
+
     @Override
     public void onTextChange(final CharSequence text, final int start,
                       final int unboundedOldEnd, final int unboundedNewEnd) {
@@ -953,6 +958,12 @@ final class GeckoEditable
             }
 
         } else {
+            
+            if (isSameText(start, oldEnd, mChangedText)) {
+                
+                
+                return;
+            }
             geckoReplaceText(start, oldEnd, mChangedText);
         }
 
