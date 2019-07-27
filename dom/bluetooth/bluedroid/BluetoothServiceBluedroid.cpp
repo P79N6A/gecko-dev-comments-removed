@@ -2485,6 +2485,7 @@ BluetoothServiceBluedroid::AdapterPropertiesNotification(
 
 
 
+
 void
 BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
   BluetoothStatus aStatus, const nsAString& aBdAddr,
@@ -2655,7 +2656,17 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
 
   if (sRequestedDeviceCountArray.IsEmpty()) {
     
-    
+
+
+
+
+
+
+
+
+    DistributeSignal(BluetoothSignal(NS_LITERAL_STRING("DeviceFound"),
+                                     NS_LITERAL_STRING(KEY_ADAPTER),
+                                     BluetoothValue(props)));
     return;
   }
 
