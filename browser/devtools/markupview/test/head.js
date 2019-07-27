@@ -526,3 +526,38 @@ function promiseNextTick() {
   executeSoon(deferred.resolve);
   return deferred.promise;
 }
+
+
+
+
+
+function collapseSelectionAndTab(inspector) {
+  EventUtils.sendKey("tab", inspector.panelWin); 
+  EventUtils.sendKey("tab", inspector.panelWin); 
+}
+
+
+
+
+
+function collapseSelectionAndShiftTab(inspector) {
+  EventUtils.synthesizeKey("VK_TAB", { shiftKey: true },
+    inspector.panelWin); 
+  EventUtils.synthesizeKey("VK_TAB", { shiftKey: true },
+    inspector.panelWin); 
+}
+
+
+
+
+
+
+
+function checkFocusedAttribute(attrName, editMode) {
+  let focusedAttr = Services.focus.focusedElement;
+  is(focusedAttr ? focusedAttr.parentNode.dataset.attr : undefined,
+    attrName, attrName + " attribute editor is currently focused.");
+  is(focusedAttr ? focusedAttr.tagName : undefined,
+    editMode ? "input": "span",
+    editMode ? attrName + " is in edit mode" : attrName + " is not in edit mode");
+}

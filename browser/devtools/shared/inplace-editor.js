@@ -82,6 +82,8 @@ Cu.import("resource://gre/modules/devtools/event-emitter.js");
 
 
 
+
+
 function editableField(aOptions)
 {
   return editableItem(aOptions, function(aElement, aEvent) {
@@ -90,6 +92,7 @@ function editableField(aOptions)
 }
 
 exports.editableField = editableField;
+
 
 
 
@@ -148,6 +151,13 @@ function editableItem(aOptions, aCallback)
   
   
   element._editable = true;
+
+  
+  element._trigger = trigger;
+
+  return function turnOnEditMode() {
+    aCallback(element);
+  }
 }
 
 exports.editableItem = this.editableItem;
@@ -769,7 +779,7 @@ InplaceEditor.prototype = {
   
 
 
-  _apply: function InplaceEditor_apply(aEvent)
+  _apply: function InplaceEditor_apply(aEvent, direction)
   {
     if (this._applied) {
       return;
@@ -779,7 +789,7 @@ InplaceEditor.prototype = {
 
     if (this.done) {
       let val = this.input.value.trim();
-      return this.done(this.cancelled ? this.initial : val, !this.cancelled);
+      return this.done(this.cancelled ? this.initial : val, !this.cancelled, direction);
     }
 
     return null;
@@ -945,7 +955,7 @@ InplaceEditor.prototype = {
         }
       }
 
-      this._apply();
+      this._apply(aEvent, direction);
 
       
       if (this.popup && this.popup.isOpen) {
@@ -960,7 +970,9 @@ InplaceEditor.prototype = {
         
         
         if (next && next.ownerDocument === this.doc && next._editable) {
-          next.click();
+          let e = this.doc.createEvent('Event');
+          e.initEvent(next._trigger, true, true);
+          next.dispatchEvent(e);
         }
       }
 
