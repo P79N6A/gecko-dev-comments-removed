@@ -45,7 +45,6 @@
       // Protect against calling SimpleTest.finish() more than once.
       if (!done) {
 	w.close();
-        window.onmessage = null;
 	SimpleTest.finish();
 	done = true;
       }
