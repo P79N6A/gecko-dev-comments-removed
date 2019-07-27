@@ -12,17 +12,8 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
-#ifdef ANDROID
-Cu.import("resource://gre/modules/Messaging.jsm");
-#endif
 
-
-
-#ifdef ANDROID
-let log = Cu.import("resource://gre/modules/AndroidLog.jsm",{}).AndroidLog.d.bind(null, "SSDP");
-#else
 let log = Cu.reportError;
-#endif
 
 XPCOMUtils.defineLazyGetter(this, "converter", function () {
   let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
@@ -188,35 +179,7 @@ var SimpleServiceDiscovery = {
         timeout += SSDP_TRANSMISSION_INTERVAL;
       }
     }
-
-#ifdef ANDROID
-    
-    this.getAndroidDevices();
-#endif
   },
-
-#ifdef ANDROID
-  getAndroidDevices: function() {
-    Messaging.sendRequestForResult({ type: "MediaPlayer:Get" }).then((result) => {
-      for (let id in result.displays) {
-        let display = result.displays[id];
-
-        
-        let service = {
-          location: display.location,
-          target: "media:router",
-          friendlyName: display.friendlyName,
-          uuid: display.uuid,
-          manufacturer: display.manufacturer,
-          modelName: display.modelName,
-          mirror: display.mirror
-        };
-
-        this._addService(service);
-      }
-    });
-  },
-#endif
 
   _searchFixedDevices: function _searchFixedDevices() {
     let fixedDevices = null;
@@ -259,8 +222,7 @@ var SimpleServiceDiscovery = {
       
       for (let [key, service] of this._services) {
         if (service.lastPing != this._searchTimestamp) {
-          Services.obs.notifyObservers(null, EVENT_SERVICE_LOST, service.uuid);
-          this._services.delete(service.uuid);
+          this.removeService(service.uuid);
         }
       }
     }
@@ -399,27 +361,50 @@ var SimpleServiceDiscovery = {
         aService.manufacturer = doc.querySelector("manufacturer").textContent;
         aService.modelName = doc.querySelector("modelName").textContent;
 
-        this._addService(aService);
+        this.addService(aService);
       }
     }).bind(this), false);
 
     xhr.send(null);
   },
 
+  
+  
   _addService: function(service) {
     
     if (!this._filterService(service)) {
-      return;
+      return false;
+    }
+
+    let device = this._devices.get(service.target);
+    if (device && device.mirror) {
+      service.mirror = true;
+    }
+    this._services.set(service.uuid, service);
+    return true;
+  },
+
+  addService: function(service) {
+    
+    if (!this._services.has(service.uuid)) {
+      if (!this._addService(service)) {
+        return;
+      }
+      Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, service.uuid);
     }
 
     
-    if (!this._services.has(service.uuid)) {
-      let device = this._devices.get(service.target);
-      if (device && device.mirror) {
-        service.mirror = true;
-      }
-      this._services.set(service.uuid, service);
-      Services.obs.notifyObservers(null, EVENT_SERVICE_FOUND, service.uuid);
+    this._services.get(service.uuid).lastPing = this._searchTimestamp;
+  },
+
+  removeService: function(uuid) {
+    Services.obs.notifyObservers(null, EVENT_SERVICE_LOST, uuid);
+    this._services.delete(uuid);
+  },
+
+  updateService: function(service) {
+    if (!this._addService(service)) {
+      return;
     }
 
     
