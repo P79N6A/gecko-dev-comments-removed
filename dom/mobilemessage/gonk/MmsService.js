@@ -1677,24 +1677,30 @@ MmsService.prototype = {
     
     
     
-    gSystemMessenger.broadcastMessage(aName, {
-      iccId:               aDomMessage.iccId,
-      type:                aDomMessage.type,
-      id:                  aDomMessage.id,
-      threadId:            aDomMessage.threadId,
-      delivery:            aDomMessage.delivery,
-      deliveryInfo:        aDomMessage.deliveryInfo,
-      sender:              aDomMessage.sender,
-      receivers:           aDomMessage.receivers,
-      timestamp:           aDomMessage.timestamp,
-      sentTimestamp:       aDomMessage.sentTimestamp,
-      read:                aDomMessage.read,
-      subject:             aDomMessage.subject,
-      smil:                aDomMessage.smil,
-      attachments:         aDomMessage.attachments,
-      expiryDate:          aDomMessage.expiryDate,
-      readReportRequested: aDomMessage.readReportRequested
-    });
+    try {
+      gSystemMessenger.broadcastMessage(aName, {
+        iccId:               aDomMessage.iccId,
+        type:                aDomMessage.type,
+        id:                  aDomMessage.id,
+        threadId:            aDomMessage.threadId,
+        delivery:            aDomMessage.delivery,
+        deliveryInfo:        aDomMessage.deliveryInfo,
+        sender:              aDomMessage.sender,
+        receivers:           aDomMessage.receivers,
+        timestamp:           aDomMessage.timestamp,
+        sentTimestamp:       aDomMessage.sentTimestamp,
+        read:                aDomMessage.read,
+        subject:             aDomMessage.subject,
+        smil:                aDomMessage.smil,
+        attachments:         aDomMessage.attachments,
+        expiryDate:          aDomMessage.expiryDate,
+        readReportRequested: aDomMessage.readReportRequested
+      });
+    } catch (e) {
+      if (DEBUG) {
+        debug("Failed to _broadcastSmsSystemMessage: " + e);
+      }
+    }
   },
 
   
@@ -1710,6 +1716,21 @@ MmsService.prototype = {
 
     
     Services.obs.notifyObservers(aDomMessage, kSmsSentObserverTopic, null);
+  },
+
+  
+
+
+
+
+
+
+  broadcastSentFailureMessageEvent: function(aDomMessage) {
+    
+    this.broadcastMmsSystemMessage(kSmsFailedObserverTopic, aDomMessage);
+
+    
+    Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
   },
 
   
@@ -1972,11 +1993,12 @@ MmsService.prototype = {
       let topic;
       if (mmsStatus === MMS.MMS_PDU_STATUS_RETRIEVED) {
         topic = kSmsDeliverySuccessObserverTopic;
-
         
         this.broadcastMmsSystemMessage(topic, aDomMessage);
       } else if (mmsStatus === MMS.MMS_PDU_STATUS_REJECTED) {
         topic = kSmsDeliveryErrorObserverTopic;
+        
+        this.broadcastMmsSystemMessage(topic, aDomMessage);
       } else {
         if (DEBUG) debug("Needn't fire event for this MMS status. Returning.");
         return;
@@ -2224,11 +2246,7 @@ MmsService.prototype = {
       return;
     }
 
-    let self = this;
-
-    let sendTransactionCb = function sendTransactionCb(aDomMessage,
-                                                       aErrorCode,
-                                                       aEnvelopeId) {
+    let sendTransactionCb = (aDomMessage, aErrorCode, aEnvelopeId) => {
       if (DEBUG) {
         debug("The returned status of sending transaction: " +
               "aErrorCode: " + aErrorCode + " aEnvelopeId: " + aEnvelopeId);
@@ -2238,7 +2256,7 @@ MmsService.prototype = {
       
       if (aErrorCode == Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR) {
         aRequest.notifySendMessageFailed(aErrorCode, aDomMessage);
-        Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
+        this.broadcastSentFailureMessageEvent(aDomMessage);
         return;
       }
 
@@ -2249,20 +2267,20 @@ MmsService.prototype = {
                                        isSentSuccess ? DELIVERY_SENT : DELIVERY_ERROR,
                                        isSentSuccess ? null : DELIVERY_STATUS_ERROR,
                                        aEnvelopeId,
-                                       function notifySetDeliveryResult(aRv, aDomMessage) {
+                                       (aRv, aDomMessage) => {
         if (DEBUG) debug("Marking the delivery state/staus is done. Notify sent or failed.");
         
         if (!isSentSuccess) {
           if (DEBUG) debug("Sending MMS failed.");
           aRequest.notifySendMessageFailed(aErrorCode, aDomMessage);
-          Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
+          this.broadcastSentFailureMessageEvent(aDomMessage);
           return;
         }
 
         if (DEBUG) debug("Sending MMS succeeded.");
 
         
-        self.broadcastSentMessageEvent(aDomMessage);
+        this.broadcastSentMessageEvent(aDomMessage);
 
         
         aRequest.notifyMessageSent(aDomMessage);
@@ -2276,13 +2294,13 @@ MmsService.prototype = {
                                                  savableMessage);
     gMobileMessageDatabaseService
       .saveSendingMessage(savableMessage,
-                          function notifySendingResult(aRv, aDomMessage) {
+                          (aRv, aDomMessage) => {
       if (!Components.isSuccessCode(aRv)) {
         if (DEBUG) debug("Error! Fail to save sending message! rv = " + aRv);
         aRequest.notifySendMessageFailed(
           gMobileMessageDatabaseService.translateCrErrorToMessageCallbackError(aRv),
           aDomMessage);
-        Services.obs.notifyObservers(aDomMessage, kSmsFailedObserverTopic, null);
+        this.broadcastSentFailureMessageEvent(aDomMessage);
         return;
       }
 
@@ -2308,7 +2326,7 @@ MmsService.prototype = {
       
       
       
-      if (mmsConnection.serviceId != self.mmsDefaultServiceId) {
+      if (mmsConnection.serviceId != this.mmsDefaultServiceId) {
         if (DEBUG) debug("RIL service is not active to send MMS.");
         sendTransactionCb(aDomMessage,
                           Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR,
