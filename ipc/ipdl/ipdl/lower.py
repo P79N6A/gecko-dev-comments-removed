@@ -1329,7 +1329,15 @@ with some new IPDL/C++ nodes that are tuned for C++ codegen."""
         
         self.typedefs = [ ]
         self.typedefSet = set([ Typedef(Type('mozilla::ipc::ActorHandle'),
-                                        'ActorHandle') ])
+                                        'ActorHandle'),
+                                Typedef(Type('base::ProcessId'),
+                                        'ProcessId'),
+                                Typedef(Type('mozilla::ipc::ProtocolId'),
+                                        'ProtocolId'),
+                                Typedef(Type('mozilla::ipc::Transport'),
+                                        'Transport'),
+                                Typedef(Type('mozilla::ipc::TransportDescriptor'),
+                                        'TransportDescriptor') ])
         self.protocolName = None
 
     def visitTranslationUnit(self, tu):
@@ -2787,14 +2795,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             self.cls.addstmt(typedef)
         for typedef in self.includedActorTypedefs:
             self.cls.addstmt(typedef)
-        
-        
-        self.cls.addstmts([
-            Typedef(Type('base::ProcessId'), 'ProcessId'),
-            Typedef(Type('mozilla::ipc::ProtocolId'), 'ProtocolId'),
-            Typedef(Type('mozilla::ipc::Transport'), 'Transport'),
-            Typedef(Type('mozilla::ipc::TransportDescriptor'), 'TransportDescriptor')
-        ])
 
         self.cls.addstmt(Whitespace.NL)
 
