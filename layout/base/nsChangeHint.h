@@ -352,28 +352,14 @@ enum nsRestyleHint {
 
   
   
-  
-  
-  
-  
-  
-  
-  eRestyle_ChangeAnimationPhase = (1 << 7),
-
-  
-  
-  eRestyle_ChangeAnimationPhaseDescendants = (1 << 8),
-
-  
-  
-  eRestyle_Force = (1<<9),
+  eRestyle_Force = (1<<7),
 
   
   
   
   
   
-  eRestyle_ForceDescendants = (1<<10),
+  eRestyle_ForceDescendants = (1<<8),
 
   
   eRestyle_AllHintsWithAnimations = eRestyle_CSSTransitions |
