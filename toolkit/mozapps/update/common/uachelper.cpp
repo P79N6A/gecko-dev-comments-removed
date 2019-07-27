@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <wtsapi32.h>
+#include <aclapi.h>
 #include "uachelper.h"
 #include "updatelogging.h"
 
@@ -220,3 +221,93 @@ UACHelper::CanUserElevate()
 
   return canElevate;
 }
+
+
+
+
+
+
+
+
+
+bool
+UACHelper::DenyWriteACLOnPath(LPCWSTR path, PACL *originalACL,
+                              PSECURITY_DESCRIPTOR *sd)
+{
+  
+  
+  
+  *originalACL = nullptr;
+  *sd = nullptr;
+  DWORD result =
+    GetNamedSecurityInfoW(path, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                          nullptr, nullptr, originalACL, nullptr, sd);
+  if (result != ERROR_SUCCESS) {
+    *sd = nullptr;
+    *originalACL = nullptr;
+    return false;
+  }
+
+  
+  EXPLICIT_ACCESSW ea;
+  ZeroMemory(&ea, sizeof(EXPLICIT_ACCESSW));
+  ea.grfAccessPermissions = FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES |
+                            FILE_WRITE_DATA | FILE_WRITE_EA;
+  ea.grfAccessMode = DENY_ACCESS;
+  ea.grfInheritance = NO_INHERITANCE;
+  ea.Trustee.TrusteeForm = TRUSTEE_IS_NAME;
+  ea.Trustee.TrusteeType = TRUSTEE_IS_GROUP;
+  ea.Trustee.ptstrName = L"EVERYONE";
+  PACL dacl = nullptr;
+  result = SetEntriesInAclW(1, &ea, *originalACL, &dacl);
+  if (result != ERROR_SUCCESS) {
+    LocalFree(*sd);
+    *originalACL = nullptr;
+    *sd = nullptr;
+    return false;
+  }
+
+  
+  result = SetNamedSecurityInfoW(const_cast<LPWSTR>(path), SE_FILE_OBJECT,
+                                 DACL_SECURITY_INFORMATION, nullptr, nullptr,
+                                 dacl, nullptr);
+  LocalFree(dacl);
+  return result == ERROR_SUCCESS;
+}
+
+
+
+
+
+
+
+
+bool
+UACHelper::IsDirectorySafe(LPCWSTR inputPath)
+{
+  WIN32_FIND_DATAW findData;
+  HANDLE findHandle = nullptr;
+
+  WCHAR searchPath[MAX_PATH + 1] = { L'\0' };
+  wsprintfW(searchPath, L"%s\\*.*", inputPath);
+
+  findHandle = FindFirstFileW(searchPath, &findData);
+  if(findHandle == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+
+  
+  
+  do {
+    if(wcscmp(findData.cFileName, L".") != 0 &&
+       wcscmp(findData.cFileName, L"..") != 0 &&
+       wcscmp(findData.cFileName, L"updater.exe") != 0) {
+         FindClose(findHandle);
+      return false;
+    }
+  } while(FindNextFileW(findHandle, &findData));
+  FindClose(findHandle);
+
+  return true;
+}
+

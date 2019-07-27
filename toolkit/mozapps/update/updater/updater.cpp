@@ -111,6 +111,7 @@ static bool sUseHardLinks = true;
 
 #ifdef XP_WIN
 #include "updatehelper.h"
+#include <aclapi.h>
 
 
 
@@ -2807,29 +2808,135 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (!useService && !noServiceFallback && 
+      if (!useService && !noServiceFallback &&
           updateLockFileHandle == INVALID_HANDLE_VALUE) {
-        SHELLEXECUTEINFO sinfo;
-        memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
-        sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
-        sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
-                             SEE_MASK_FLAG_DDEWAIT |
-                             SEE_MASK_NOCLOSEPROCESS;
-        sinfo.hwnd         = nullptr;
-        sinfo.lpFile       = argv[0];
-        sinfo.lpParameters = cmdLine;
-        sinfo.lpVerb       = L"runas";
-        sinfo.nShow        = SW_SHOWNORMAL;
 
-        bool result = ShellExecuteEx(&sinfo);
-        free(cmdLine);
-
-        if (result) {
-          WaitForSingleObject(sinfo.hProcess, INFINITE);
-          CloseHandle(sinfo.hProcess);
+        
+        RPC_WSTR guidString = RPC_WSTR(L"");
+        GUID guid;
+        HRESULT hr = CoCreateGuid(&guid);
+        BOOL result = TRUE;
+        bool safeToUpdate = true;
+        WCHAR secureUpdaterPath[MAX_PATH + 1] = { L'\0' };
+        WCHAR secureDirPath[MAX_PATH + 1] = { L'\0' };
+        if (SUCCEEDED(hr)) {
+          UuidToString(&guid, &guidString);
+          result = PathGetSiblingFilePath(secureDirPath, argv[0],
+                                          reinterpret_cast<LPCWSTR>(guidString));
+          RpcStringFree(&guidString);
         } else {
-          WriteStatusFile(ELEVATION_CANCELED);
+          
+          result = PathGetSiblingFilePath(secureDirPath, argv[0], L"tmp_update");
         }
+
+        if (!result) {
+          fprintf(stderr, "Could not obtain secure update directory path");
+          safeToUpdate = false;
+        }
+
+        
+        if (safeToUpdate) {
+          result = CreateDirectoryW(secureDirPath, nullptr);
+          if (!result) {
+            fprintf(stderr, "Could not create secure update directory");
+            safeToUpdate = false;
+          }
+        }
+
+        
+        if (safeToUpdate) {
+          wcsncpy(secureUpdaterPath, secureDirPath, MAX_PATH);
+          result = PathAppendSafe(secureUpdaterPath, L"updater.exe");
+          if (!result) {
+            fprintf(stderr, "Could not obtain secure updater file name");
+            safeToUpdate = false;
+          }
+        }
+
+        
+        if (safeToUpdate) {
+          result = CopyFileW(argv[0], secureUpdaterPath, TRUE);
+          if (!result) {
+            fprintf(stderr, "Could not copy updater to secure location");
+            safeToUpdate = false;
+          }
+        }
+
+        
+        
+        
+        
+        HANDLE handle = INVALID_HANDLE_VALUE;
+        if (safeToUpdate) {
+          handle = CreateFileW(secureDirPath, GENERIC_READ, FILE_SHARE_READ,
+                               nullptr, OPEN_EXISTING,
+                               FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+          safeToUpdate = handle != INVALID_HANDLE_VALUE;
+        }
+
+        
+        
+        PACL originalACL = nullptr;
+        PSECURITY_DESCRIPTOR sd = nullptr;
+        if (safeToUpdate) {
+          safeToUpdate = UACHelper::DenyWriteACLOnPath(secureDirPath,
+                                                       &originalACL, &sd);
+        }
+
+        
+        
+        if (safeToUpdate) {
+          if (!UACHelper::IsDirectorySafe(secureDirPath)) {
+            safeToUpdate = false;
+          }
+        }
+
+        if (!safeToUpdate) {
+          fprintf(stderr, "Will not proceed to copy secure updater because it "
+                          "is not safe to do so.");
+          WriteStatusFile(SECURE_LOCATION_UPDATE_ERROR);
+        } else {
+          SHELLEXECUTEINFO sinfo;
+          memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
+          sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
+          sinfo.fMask        = SEE_MASK_FLAG_NO_UI |
+                              SEE_MASK_FLAG_DDEWAIT |
+                              SEE_MASK_NOCLOSEPROCESS;
+          sinfo.hwnd         = nullptr;
+          sinfo.lpFile       = secureUpdaterPath;
+          sinfo.lpParameters = cmdLine;
+          sinfo.lpVerb       = L"runas";
+          sinfo.nShow        = SW_SHOWNORMAL;
+
+          bool result = ShellExecuteEx(&sinfo);
+          free(cmdLine);
+
+          if (result) {
+            WaitForSingleObject(sinfo.hProcess, INFINITE);
+            CloseHandle(sinfo.hProcess);
+          } else {
+            WriteStatusFile(ELEVATION_CANCELED);
+          }
+        }
+
+        
+        if (originalACL) {
+          SetNamedSecurityInfoW(const_cast<LPWSTR>(secureDirPath), SE_FILE_OBJECT,
+                                DACL_SECURITY_INFORMATION, nullptr, nullptr,
+                                originalACL, nullptr);
+        }
+        if (sd) {
+          LocalFree(sd);
+        }
+
+        
+        if (INVALID_HANDLE_VALUE != handle) {
+          CloseHandle(handle);
+        }
+
+        
+        DeleteFileW(secureUpdaterPath);
+        RemoveDirectoryW(secureDirPath);
       }
 
       if (argc > callbackIndex) {
