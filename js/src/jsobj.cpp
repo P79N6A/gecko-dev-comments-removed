@@ -548,19 +548,6 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
 
         MOZ_ASSERT(nobj->lastProperty()->slotSpan() == last->slotSpan());
         JS_ALWAYS_TRUE(nobj->setLastProperty(cx, last));
-
-        
-        
-        
-        
-        
-        
-        
-        if (level == IntegrityLevel::Frozen && obj->is<ArrayObject>()) {
-            if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
-                return false;
-            obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
-        }
     } else {
         RootedId id(cx);
         Rooted<PropertyDescriptor> desc(cx);
@@ -597,6 +584,21 @@ js::SetIntegrityLevel(JSContext* cx, HandleObject obj, IntegrityLevel level)
             if (!DefineProperty(cx, obj, id, desc))
                 return false;
         }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (level == IntegrityLevel::Frozen && obj->is<ArrayObject>()) {
+        if (!obj->as<ArrayObject>().maybeCopyElementsForWrite(cx))
+            return false;
+        obj->as<ArrayObject>().getElementsHeader()->setNonwritableArrayLength();
     }
 
     return true;
