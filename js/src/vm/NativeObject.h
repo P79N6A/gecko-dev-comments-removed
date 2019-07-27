@@ -311,6 +311,17 @@ DenseRangeWriteBarrierPost(JSRuntime* rt, NativeObject* obj, uint32_t start, uin
 
 
 
+enum class DenseElementResult {
+    Failure,
+    Success,
+    Incomplete
+};
+
+
+
+
+
+
 
 
 
@@ -1048,20 +1059,15 @@ class NativeObject : public JSObject
     inline void markDenseElementsNotPacked(ExclusiveContext* cx);
 
     
+    
+    
+    
+    
+    inline DenseElementResult ensureDenseElements(ExclusiveContext* cx,
+                                                  uint32_t index, uint32_t extra);
 
-
-
-
-
-
-    enum EnsureDenseResult { ED_OK, ED_FAILED, ED_SPARSE };
-
-  public:
-    inline EnsureDenseResult ensureDenseElements(ExclusiveContext* cx,
-                                                 uint32_t index, uint32_t extra);
-
-    inline EnsureDenseResult extendDenseElements(ExclusiveContext* cx,
-                                                 uint32_t requiredCapacity, uint32_t extra);
+    inline DenseElementResult extendDenseElements(ExclusiveContext* cx,
+                                                  uint32_t requiredCapacity, uint32_t extra);
 
     
     static bool sparsifyDenseElement(ExclusiveContext* cx,
@@ -1089,8 +1095,8 @@ class NativeObject : public JSObject
 
 
 
-    static EnsureDenseResult maybeDensifySparseElements(ExclusiveContext* cx,
-                                                        HandleNativeObject obj);
+    static DenseElementResult maybeDensifySparseElements(ExclusiveContext* cx,
+                                                         HandleNativeObject obj);
 
     inline HeapSlot* fixedElements() const {
         static_assert(2 * sizeof(Value) == sizeof(ObjectElements),
