@@ -7,131 +7,101 @@
 #ifndef jit_ValueNumbering_h
 #define jit_ValueNumbering_h
 
-#include "jit/MIR.h"
+#include "jit/IonAllocPolicy.h"
+#include "js/HashTable.h"
 
 namespace js {
 namespace jit {
 
+class MDefinition;
+class MBasicBlock;
+class MIRGraph;
+class MPhi;
+class MInstruction;
+class MIRGenerator;
+
 class ValueNumberer
 {
-  protected:
-    struct ValueHasher
-    {
-        typedef MDefinition * Lookup;
-        typedef MDefinition * Key;
-        static HashNumber hash(const Lookup &ins) {
-            return ins->valueHash();
-        }
-
-        static bool match(const Key &k, const Lookup &l) {
-            
-            
-            
-            if (k->dependency() != l->dependency())
-                return false;
-            return k->congruentTo(l);
-        }
-    };
-
-    typedef HashMap<MDefinition *,
-                    uint32_t,
-                    ValueHasher,
-                    IonAllocPolicy> ValueMap;
-
-    struct DominatingValue
-    {
-        MDefinition *def;
-        uint32_t validEnd;
-    };
-
-    typedef HashMap<uint32_t,
-                    DominatingValue,
-                    DefaultHasher<uint32_t>,
-                    IonAllocPolicy> InstructionMap;
-
-  protected:
-    TempAllocator &alloc() const;
-    uint32_t lookupValue(MDefinition *ins);
-    MDefinition *findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t index);
-
-    MDefinition *simplify(MDefinition *def, bool useValueNumbers);
-    MControlInstruction *simplifyControlInstruction(MControlInstruction *def);
-    bool eliminateRedundancies();
-
-    bool computeValueNumbers();
-
-    inline bool isMarked(MDefinition *def) {
-        return pessimisticPass_ || def->isInWorklist();
-    }
-
-    void markDefinition(MDefinition *def);
-    void unmarkDefinition(MDefinition *def);
-
-    void markConsumers(MDefinition *def);
-    void markBlock(MBasicBlock *block);
-    void setClass(MDefinition *toSet, MDefinition *representative);
-
-  public:
-    static MDefinition *findSplit(MDefinition *);
-    void breakClass(MDefinition*);
-
-  protected:
-    MIRGenerator *mir;
-    MIRGraph &graph_;
-    ValueMap values;
-    bool pessimisticPass_;
-    size_t count_;
-
-  public:
-    ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic);
-    bool analyze();
-    bool clear();
-};
-
-class ValueNumberData : public TempObject {
-
-    friend void ValueNumberer::breakClass(MDefinition*);
-    friend MDefinition *ValueNumberer::findSplit(MDefinition*);
-    uint32_t number;
-    MDefinition *classNext;
-    MDefinition *classPrev;
-
-  public:
-    ValueNumberData() : number(0), classNext(nullptr), classPrev(nullptr) {}
-
-    void setValueNumber(uint32_t number_) {
-        number = number_;
-    }
-
-    uint32_t valueNumber() {
-        return number;
-    }
     
-    void setClass(MDefinition *thisDef, MDefinition *rep) {
-        JS_ASSERT(thisDef->valueNumberData() == this);
+    class VisibleValues
+    {
         
-        
-        
-        
-        
-        
-        if (this == rep->valueNumberData())
-            return;
+        struct ValueHasher
+        {
+            typedef const MDefinition *Lookup;
+            typedef MDefinition *Key;
+            static HashNumber hash(Lookup ins);
+            static bool match(Key k, Lookup l);
+            static void rekey(Key &k, Key newKey);
+        };
 
-        if (classNext)
-            classNext->valueNumberData()->classPrev = classPrev;
-        if (classPrev)
-            classPrev->valueNumberData()->classNext = classNext;
+        typedef HashSet<MDefinition *, ValueHasher, IonAllocPolicy> ValueSet;
 
+        ValueSet set_;        
 
-        classPrev = rep;
-        classNext = rep->valueNumberData()->classNext;
+      public:
+        explicit VisibleValues(TempAllocator &alloc);
+        bool init();
 
-        if (rep->valueNumberData()->classNext)
-            rep->valueNumberData()->classNext->valueNumberData()->classPrev = thisDef;
-        rep->valueNumberData()->classNext = thisDef;
-    }
+        typedef ValueSet::Ptr Ptr;
+        typedef ValueSet::AddPtr AddPtr;
+
+        Ptr findLeader(const MDefinition *def) const;
+        AddPtr findLeaderForAdd(MDefinition *def);
+        bool insert(AddPtr p, MDefinition *def);
+        void overwrite(AddPtr p, MDefinition *def);
+        void forget(const MDefinition *def);
+        void clear();
+    };
+
+    typedef Vector<MBasicBlock *, 4, IonAllocPolicy> BlockWorklist;
+    typedef Vector<MDefinition *, 4, IonAllocPolicy> DefWorklist;
+
+    MIRGenerator *const mir_;
+    MIRGraph &graph_;
+    VisibleValues values_;            
+    DefWorklist deadDefs_;            
+    BlockWorklist unreachableBlocks_; 
+    BlockWorklist remainingBlocks_;   
+    size_t numBlocksDeleted_;         
+    bool rerun_;                      
+    bool blocksRemoved_;              
+    bool updateAliasAnalysis_;        
+    bool dependenciesBroken_;         
+
+    bool deleteDefsRecursively(MDefinition *def);
+    bool pushDeadPhiOperands(MPhi *phi, const MBasicBlock *phiBlock);
+    bool pushDeadInsOperands(MInstruction *ins);
+    bool processDeadDefs();
+
+    bool removePredecessor(MBasicBlock *block, MBasicBlock *pred);
+    bool removeBlocksRecursively(MBasicBlock *block, const MBasicBlock *root);
+
+    MDefinition *simplified(MDefinition *def) const;
+    MDefinition *leader(MDefinition *def);
+    bool hasLeader(const MPhi *phi, const MBasicBlock *phiBlock) const;
+    bool loopHasOptimizablePhi(MBasicBlock *backedge) const;
+
+    bool visitDefinition(MDefinition *def);
+    bool visitControlInstruction(MBasicBlock *block, const MBasicBlock *root);
+    bool visitBlock(MBasicBlock *block, const MBasicBlock *root);
+    bool visitDominatorTree(MBasicBlock *root, size_t *totalNumVisited);
+    bool visitGraph();
+
+  public:
+    ValueNumberer(MIRGenerator *mir, MIRGraph &graph);
+
+    enum UpdateAliasAnalysisFlag {
+        DontUpdateAliasAnalysis,
+        UpdateAliasAnalysis,
+    };
+
+    
+    
+    
+    bool run(UpdateAliasAnalysisFlag updateAliasAnalysis);
 };
+
 } 
 } 
 

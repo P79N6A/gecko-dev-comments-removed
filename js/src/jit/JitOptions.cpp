@@ -68,11 +68,6 @@ JitOptions::JitOptions()
 
     
     
-    forceGvnKind = false;
-    forcedGvnKind = GVN_Optimistic;
-
-    
-    
     forceRegisterAllocator = false;
     forcedRegisterAllocator = RegisterAllocator_LSRA;
 

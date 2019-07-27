@@ -177,8 +177,7 @@ AliasAnalysis::analyze()
 
     
     
-    
-    uint32_t newId = 1;
+    uint32_t newId = 0;
 
     for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
         if (mir->shouldCancel("Alias Analysis (main loop)"))

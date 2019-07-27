@@ -6,571 +6,724 @@
 
 #include "jit/ValueNumbering.h"
 
+#include "jit/AliasAnalysis.h"
+#include "jit/IonAnalysis.h"
 #include "jit/IonSpewer.h"
 #include "jit/MIRGenerator.h"
-#include "jit/MIRGraph.h"
 
 using namespace js;
 using namespace js::jit;
 
-ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph, bool optimistic)
-  : mir(mir),
-    graph_(graph),
-    values(graph.alloc()),
-    pessimisticPass_(!optimistic),
-    count_(0)
-{ }
 
-TempAllocator &
-ValueNumberer::alloc() const
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HashNumber
+ValueNumberer::VisibleValues::ValueHasher::hash(Lookup ins)
 {
-    return graph_.alloc();
+    return ins->valueHash();
 }
 
-uint32_t
-ValueNumberer::lookupValue(MDefinition *ins)
-{
-    ValueMap::AddPtr p = values.lookupForAdd(ins);
-    if (p) {
-        
-        setClass(ins, p->key());
-        return p->value();
-    }
-
-    if (!values.add(p, ins, ins->id()))
-        return 0;
-    breakClass(ins);
-
-    return ins->id();
-}
-
-MDefinition *
-ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
-{
-    if (def->isEffectful())
-        return def;
-
-    MDefinition *ins = def->foldsTo(alloc(), useValueNumbers);
-    if (ins == def)
-        return def;
-
-    
-    if (!ins->valueNumberData())
-        ins->setValueNumberData(new(alloc()) ValueNumberData);
-
-    if (!ins->block()) {
-        
-        
-
-        
-        JS_ASSERT(!def->isPhi());
-
-        def->block()->insertAfter(def->toInstruction(), ins->toInstruction());
-        ins->setValueNumber(lookupValue(ins));
-    }
-
-    JS_ASSERT(ins->id() != 0);
-
-    def->replaceAllUsesWith(ins);
-
-    IonSpew(IonSpew_GVN, "Folding %d to be %d", def->id(), ins->id());
-    return ins;
-}
-
-MControlInstruction *
-ValueNumberer::simplifyControlInstruction(MControlInstruction *def)
-{
-    if (def->isEffectful())
-        return def;
-
-    MDefinition *repl = def->foldsTo(alloc(), false);
-    if (repl == def)
-        return def;
-
-    
-    if (!repl->valueNumberData())
-        repl->setValueNumberData(new(alloc()) ValueNumberData);
-
-    MBasicBlock *block = def->block();
-
-    
-    JS_ASSERT(repl->isControlInstruction());
-    JS_ASSERT(!def->hasUses());
-
-    if (def->isInWorklist())
-        repl->setInWorklist();
-
-    block->discardLastIns();
-    block->end(repl->toControlInstruction());
-    return repl->toControlInstruction();
-}
-
-void
-ValueNumberer::markDefinition(MDefinition *def)
-{
-    if (isMarked(def))
-        return;
-
-    IonSpew(IonSpew_GVN, "marked %d", def->id());
-    def->setInWorklist();
-    count_++;
-}
-
-void
-ValueNumberer::unmarkDefinition(MDefinition *def)
-{
-    if (pessimisticPass_)
-        return;
-
-    JS_ASSERT(count_ > 0);
-    IonSpew(IonSpew_GVN, "unmarked %d", def->id());
-    def->setNotInWorklist();
-    count_--;
-}
-
-void
-ValueNumberer::markBlock(MBasicBlock *block)
-{
-    for (MDefinitionIterator iter(block); iter; iter++)
-        markDefinition(*iter);
-    markDefinition(block->lastIns());
-}
-
-void
-ValueNumberer::markConsumers(MDefinition *def)
-{
-    if (pessimisticPass_)
-        return;
-
-    JS_ASSERT(!def->isInWorklist());
-    JS_ASSERT(!def->isControlInstruction());
-    for (MUseDefIterator use(def); use; use++)
-        markDefinition(use.def());
-}
 
 bool
-ValueNumberer::computeValueNumbers()
+ValueNumberer::VisibleValues::ValueHasher::match(Key k, Lookup l)
+{
+    
+    
+    if (k->dependency() != l->dependency())
+        return false;
+
+    return k->congruentTo(l); 
+}
+
+void
+ValueNumberer::VisibleValues::ValueHasher::rekey(Key &k, Key newKey)
+{
+    k = newKey;
+}
+
+ValueNumberer::VisibleValues::VisibleValues(TempAllocator &alloc)
+  : set_(alloc)
+{}
+
+
+bool
+ValueNumberer::VisibleValues::init()
+{
+    return set_.init();
+}
+
+
+ValueNumberer::VisibleValues::Ptr
+ValueNumberer::VisibleValues::findLeader(const MDefinition *def) const
+{
+    return set_.lookup(def);
+}
+
+
+ValueNumberer::VisibleValues::AddPtr
+ValueNumberer::VisibleValues::findLeaderForAdd(MDefinition *def)
+{
+    return set_.lookupForAdd(def);
+}
+
+
+bool
+ValueNumberer::VisibleValues::insert(AddPtr p, MDefinition *def)
+{
+    return set_.add(p, def);
+}
+
+
+void
+ValueNumberer::VisibleValues::overwrite(AddPtr p, MDefinition *def)
+{
+    set_.rekeyInPlace(p, def);
+}
+
+
+void
+ValueNumberer::VisibleValues::forget(const MDefinition *def)
+{
+    Ptr p = set_.lookup(def);
+    if (p && *p == def)
+        set_.remove(p);
+}
+
+
+void
+ValueNumberer::VisibleValues::clear()
+{
+    set_.clear();
+}
+
+
+static bool
+DeadIfUnused(const MDefinition *def)
+{
+    return !def->isEffectful() && !def->isGuard() && !def->isControlInstruction() &&
+           (!def->isInstruction() || !def->toInstruction()->resumePoint());
+}
+
+
+static bool
+IsDead(const MDefinition *def)
+{
+    return !def->hasUses() && DeadIfUnused(def);
+}
+
+
+
+
+static bool
+WillBecomeDead(const MDefinition *def)
+{
+    return def->hasOneUse() && DeadIfUnused(def);
+}
+
+
+static void
+ReplaceAllUsesWith(MDefinition *from, MDefinition *to)
+{
+    MOZ_ASSERT(from != to, "GVN shouldn't try to replace a value with itself");
+    MOZ_ASSERT(from->type() == to->type(), "Def replacement has different type");
+
+    from->replaceAllUsesWith(to);
+}
+
+
+static bool
+HasSuccessor(const MControlInstruction *newControl, const MBasicBlock *succ)
+{
+    for (size_t i = 0, e = newControl->numSuccessors(); i != e; ++i) {
+        if (newControl->getSuccessor(i) == succ)
+            return true;
+    }
+    return false;
+}
+
+
+
+
+static MBasicBlock *
+ComputeNewDominator(MBasicBlock *block, MBasicBlock *old)
+{
+    MBasicBlock *now = block->getPredecessor(0);
+    for (size_t i = 1, e = block->numPredecessors(); i != e; ++i) {
+        MBasicBlock *pred = block->getPredecessor(i);
+        
+        
+        while (!now->dominates(pred)) {
+            MBasicBlock *next = now->immediateDominator();
+            if (next == old)
+                return old;
+            if (next == now) {
+                MOZ_ASSERT(block == old, "Non-self-dominating block became self-dominating");
+                return block;
+            }
+            now = next;
+        }
+    }
+    MOZ_ASSERT(old != block || old != now, "Missed self-dominating block staying self-dominating");
+    return now;
+}
+
+
+
+
+static bool
+IsDominatorRefined(MBasicBlock *block)
+{
+    MBasicBlock *old = block->immediateDominator();
+    MBasicBlock *now = ComputeNewDominator(block, old);
+
+    
+    
+    MOZ_ASSERT(old->dominates(now), "Refined dominator not dominated by old dominator");
+    for (MBasicBlock *i = now; i != old; i = i->immediateDominator()) {
+        if (!i->phisEmpty() || *i->begin() != i->lastIns())
+            return true;
+    }
+
+    return false;
+}
+
+
+
+bool
+ValueNumberer::deleteDefsRecursively(MDefinition *def)
+{
+    def->setInWorklist();
+    return deadDefs_.append(def) && processDeadDefs();
+}
+
+
+
+bool
+ValueNumberer::pushDeadPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
+{
+    for (size_t o = 0, e = phi->numOperands(); o != e; ++o) {
+        MDefinition *op = phi->getOperand(o);
+        if (WillBecomeDead(op) && !op->isInWorklist() &&
+            !phiBlock->dominates(phiBlock->getPredecessor(o)))
+        {
+            op->setInWorklist();
+            if (!deadDefs_.append(op))
+                return false;
+        } else {
+           op->setUseRemovedUnchecked();
+        }
+    }
+    return true;
+}
+
+
+bool
+ValueNumberer::pushDeadInsOperands(MInstruction *ins)
+{
+    for (size_t o = 0, e = ins->numOperands(); o != e; ++o) {
+        MDefinition *op = ins->getOperand(o);
+        if (WillBecomeDead(op) && !op->isInWorklist()) {
+            op->setInWorklist();
+            if (!deadDefs_.append(op))
+                return false;
+        } else {
+           op->setUseRemovedUnchecked();
+        }
+    }
+    return true;
+}
+
+
+bool
+ValueNumberer::processDeadDefs()
+{
+    while (!deadDefs_.empty()) {
+        MDefinition *def = deadDefs_.popCopy();
+        IonSpew(IonSpew_GVN, "    Deleting %s%u", def->opName(), def->id());
+        MOZ_ASSERT(def->isInWorklist(), "Deleting value not on the worklist");
+        MOZ_ASSERT(IsDead(def), "Deleting non-dead definition");
+
+        values_.forget(def);
+
+        if (def->isPhi()) {
+            MPhi *phi = def->toPhi();
+            MBasicBlock *phiBlock = phi->block();
+            if (!pushDeadPhiOperands(phi, phiBlock))
+                 return false;
+            MPhiIterator at(phiBlock->phisBegin(phi));
+            phiBlock->discardPhiAt(at);
+        } else {
+            MInstruction *ins = def->toInstruction();
+            if (!pushDeadInsOperands(ins))
+                 return false;
+            ins->block()->discard(ins);
+        }
+    }
+    return true;
+}
+
+
+bool
+ValueNumberer::removePredecessor(MBasicBlock *block, MBasicBlock *pred)
+{
+    bool isUnreachableLoop = false;
+    if (block->isLoopHeader()) {
+        if (block->loopPredecessor() == pred) {
+            
+            isUnreachableLoop = true;
+            IonSpew(IonSpew_GVN, "    Loop with header block%u is no longer reachable", block->id());
+#ifdef DEBUG
+        } else if (block->hasUniqueBackedge() && block->backedge() == pred) {
+            IonSpew(IonSpew_GVN, "    Loop with header block%u is no longer a loop", block->id());
+#endif
+        }
+    }
+
+    
+    
+    
+    
+    block->removePredecessor(pred);
+    return block->numPredecessors() == 0 || isUnreachableLoop;
+}
+
+
+bool
+ValueNumberer::removeBlocksRecursively(MBasicBlock *start, const MBasicBlock *dominatorRoot)
+{
+    MOZ_ASSERT(start != graph_.entryBlock(), "Removing normal entry block");
+    MOZ_ASSERT(start != graph_.osrBlock(), "Removing OSR entry block");
+
+    
+    
+    
+    MBasicBlock *parent = start->immediateDominator();
+    if (parent != start)
+        parent->removeImmediatelyDominatedBlock(start);
+
+    if (!unreachableBlocks_.append(start))
+        return false;
+    do {
+        MBasicBlock *block = unreachableBlocks_.popCopy();
+        if (block->isDead())
+            continue;
+
+        
+        for (size_t i = 0, e = block->numSuccessors(); i != e; ++i) {
+            MBasicBlock *succ = block->getSuccessor(i);
+            if (!succ->isDead()) {
+                if (removePredecessor(succ, block)) {
+                    if (!unreachableBlocks_.append(succ))
+                        return false;
+                } else if (!rerun_) {
+                    if (!remainingBlocks_.append(succ))
+                        return false;
+                }
+            }
+        }
+
+#ifdef DEBUG
+        IonSpew(IonSpew_GVN, "    Deleting block%u%s%s%s", block->id(),
+                block->isLoopHeader() ? " (loop header)" : "",
+                block->isSplitEdge() ? " (split edge)" : "",
+                block->immediateDominator() == block ? " (dominator root)" : "");
+        for (MDefinitionIterator iter(block); iter; iter++) {
+            MDefinition *def = *iter;
+            IonSpew(IonSpew_GVN, "      Deleting %s%u", def->opName(), def->id());
+        }
+        MControlInstruction *control = block->lastIns();
+        IonSpew(IonSpew_GVN, "      Deleting %s%u", control->opName(), control->id());
+#endif
+
+        
+        if (dominatorRoot->dominates(block))
+            ++numBlocksDeleted_;
+
+        
+        
+        
+        
+        graph_.removeBlockIncludingPhis(block);
+        blocksRemoved_ = true;
+    } while (!unreachableBlocks_.empty());
+
+    return true;
+}
+
+
+MDefinition *
+ValueNumberer::simplified(MDefinition *def) const
+{
+    return def->foldsTo(graph_.alloc());
+}
+
+
+
+MDefinition *
+ValueNumberer::leader(MDefinition *def)
 {
     
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    if (!def->isEffectful() && def->congruentTo(def)) {
+        
+        VisibleValues::AddPtr p = values_.findLeaderForAdd(def);
+        if (p) {
+            MDefinition *rep = *p;
+            if (rep->block()->dominates(def->block())) {
+                
+                MOZ_ASSERT(!rep->isInWorklist(), "Dead value in set");
+                return rep;
+            }
 
-    IonSpew(IonSpew_GVN, "Numbering instructions");
+            
+            
+            values_.overwrite(p, def);
+        } else {
+            
+            if (!values_.insert(p, def))
+                return nullptr;
+        }
+    }
 
-    if (!values.init())
-        return false;
+    return def;
+}
+
+
+bool
+ValueNumberer::hasLeader(const MPhi *phi, const MBasicBlock *phiBlock) const
+{
+    if (VisibleValues::Ptr p = values_.findLeader(phi)) {
+        const MDefinition *rep = *p;
+        return rep != phi && rep->block()->dominates(phiBlock);
+    }
+    return false;
+}
+
+
+
+
+
+bool
+ValueNumberer::loopHasOptimizablePhi(MBasicBlock *backedge) const
+{
     
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        if (mir->shouldCancel("Value Numbering (preparation loop"))
+    
+    MBasicBlock *header = backedge->loopHeaderOfBackedge();
+    for (MPhiIterator iter(header->phisBegin()), end(header->phisEnd()); iter != end; ++iter) {
+        MPhi *phi = *iter;
+        MOZ_ASSERT(phi->hasUses(), "Missed an unused phi");
+
+        if (phi->operandIfRedundant() || hasLeader(phi, header))
+            return true; 
+    }
+    return false;
+}
+
+
+bool
+ValueNumberer::visitDefinition(MDefinition *def)
+{
+    
+    MDefinition *sim = simplified(def);
+    if (sim != def) {
+        if (sim == nullptr)
             return false;
-        for (MDefinitionIterator iter(*block); iter; iter++)
-            iter->setValueNumberData(new(alloc()) ValueNumberData);
-        MControlInstruction *jump = block->lastIns();
-        jump->setValueNumberData(new(alloc()) ValueNumberData);
-    }
 
-    
-    
-    
-    if (pessimisticPass_) {
-        for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-            for (MDefinitionIterator iter(*block); iter; iter++)
-                iter->setValueNumber(iter->id());
-        }
-    } else {
         
-        markBlock(*(graph_.begin()));
-        if (graph_.osrBlock())
-            markBlock(graph_.osrBlock());
+        if (sim->block() == nullptr)
+            def->block()->insertAfter(def->toInstruction(), sim->toInstruction());
+
+        IonSpew(IonSpew_GVN, "    Folded %s%u to %s%u",
+                def->opName(), def->id(), sim->opName(), sim->id());
+        ReplaceAllUsesWith(def, sim);
+        if (IsDead(def) && !deleteDefsRecursively(def))
+            return false;
+        def = sim;
     }
 
-    while (count_ > 0) {
-#ifdef DEBUG
-        if (!pessimisticPass_) {
-            size_t debugCount = 0;
-            IonSpew(IonSpew_GVN, "The following instructions require processing:");
-            for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-                for (MDefinitionIterator iter(*block); iter; iter++) {
-                    if (iter->isInWorklist()) {
-                        IonSpew(IonSpew_GVN, "\t%d", iter->id());
-                        debugCount++;
-                    }
-                }
-                if (block->lastIns()->isInWorklist()) {
-                    IonSpew(IonSpew_GVN, "\t%d", block->lastIns()->id());
-                    debugCount++;
-                }
-            }
-            if (!debugCount)
-                IonSpew(IonSpew_GVN, "\tNone");
-            JS_ASSERT(debugCount == count_);
-        }
-#endif
-        for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-            if (mir->shouldCancel("Value Numbering (main loop)"))
+    
+    MDefinition *rep = leader(def);
+    if (rep != def) {
+        if (rep == nullptr)
+            return false;
+        if (rep->updateForReplacement(def)) {
+            IonSpew(IonSpew_GVN,
+                    "    Replacing %s%u with %s%u",
+                    def->opName(), def->id(), rep->opName(), rep->id());
+            ReplaceAllUsesWith(def, rep);
+
+            
+            
+            
+            
+            def->setNotGuardUnchecked();
+
+            if (IsDead(def) && !deleteDefsRecursively(def))
                 return false;
-            for (MDefinitionIterator iter(*block); iter; ) {
+            def = rep;
+        }
+    }
 
-                if (!isMarked(*iter)) {
-                    iter++;
-                    continue;
+    
+    
+    if (updateAliasAnalysis_ && !dependenciesBroken_) {
+        const MDefinition *dep = def->dependency();
+        if (dep != nullptr && dep->block()->isDead()) {
+            IonSpew(IonSpew_GVN, "    AliasAnalysis invalidated; will recompute!");
+            dependenciesBroken_ = true;
+        }
+    }
+
+    return true;
+}
+
+
+bool
+ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *dominatorRoot)
+{
+    
+    MControlInstruction *control = block->lastIns();
+    MDefinition *rep = simplified(control);
+    if (rep == control)
+        return true;
+
+    if (rep == nullptr)
+        return false;
+
+    MControlInstruction *newControl = rep->toControlInstruction();
+    MOZ_ASSERT(!newControl->block(),
+               "Control instruction replacement shouldn't already be in a block");
+    IonSpew(IonSpew_GVN, "    Folded control instruction %s%u to %s%u",
+            control->opName(), control->id(), newControl->opName(), graph_.getNumInstructionIds());
+
+    
+    
+    size_t oldNumSuccs = control->numSuccessors();
+    size_t newNumSuccs = newControl->numSuccessors();
+    if (newNumSuccs != oldNumSuccs) {
+        MOZ_ASSERT(newNumSuccs < oldNumSuccs, "New control instruction has too many successors");
+        for (size_t i = 0; i != oldNumSuccs; ++i) {
+            MBasicBlock *succ = control->getSuccessor(i);
+            if (!HasSuccessor(newControl, succ)) {
+                if (removePredecessor(succ, block)) {
+                    if (!removeBlocksRecursively(succ, dominatorRoot))
+                        return false;
+                } else if (!rerun_) {
+                    if (!remainingBlocks_.append(succ))
+                        return false;
                 }
-
-                JS_ASSERT_IF(!pessimisticPass_, count_ > 0);
-                unmarkDefinition(*iter);
-
-                MDefinition *ins = simplify(*iter, false);
-
-                if (ins != *iter) {
-                    iter = block->discardDefAt(iter);
-                    continue;
-                }
-
-                
-                
-                
-                
-                if (!ins->hasDefUses() && (!ins->isMovable() || ins->isEffectful())) {
-                    iter++;
-                    continue;
-                }
-
-                uint32_t value = lookupValue(ins);
-
-                if (!value)
-                    return false; 
-
-                if (ins->valueNumber() != value) {
-                    IonSpew(IonSpew_GVN,
-                            "Broke congruence for instruction %d (%p) with VN %d (now using %d)",
-                            ins->id(), (void *) ins, ins->valueNumber(), value);
-                    ins->setValueNumber(value);
-                    markConsumers(ins);
-                }
-
-                iter++;
             }
-            
-            MControlInstruction *jump = block->lastIns();
-            jump = simplifyControlInstruction(jump);
+        }
+    }
 
-            
-            if (!jump->isInWorklist())
-                continue;
-            unmarkDefinition(jump);
-            if (jump->valueNumber() == 0) {
-                jump->setValueNumber(jump->id());
-                for (size_t i = 0; i < jump->numSuccessors(); i++)
-                    markBlock(jump->getSuccessor(i));
-            }
+    if (!pushDeadInsOperands(control))
+        return false;
+    block->discardLastIns();
+    block->end(newControl);
+    return processDeadDefs();
+}
 
+
+bool
+ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
+{
+    MOZ_ASSERT(!block->unreachable(), "Blocks marked unreachable during GVN");
+    MOZ_ASSERT(!block->isDead(), "Block to visit is already dead");
+
+    
+    for (MDefinitionIterator iter(block); iter; ) {
+        MDefinition *def = *iter++;
+
+        
+        if (IsDead(def)) {
+            if (!deleteDefsRecursively(def))
+                return false;
+            continue;
         }
 
+        if (!visitDefinition(def))
+            return false;
+    }
+
+    return visitControlInstruction(block, dominatorRoot);
+}
+
+
+bool
+ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVisited)
+{
+    IonSpew(IonSpew_GVN, "  Visiting dominator tree (with %llu blocks) rooted at block%u%s",
+            uint64_t(dominatorRoot->numDominated()), dominatorRoot->id(),
+            dominatorRoot == graph_.entryBlock() ? " (normal entry block)" :
+            dominatorRoot == graph_.osrBlock() ? " (OSR entry block)" :
+            " (normal entry and OSR entry merge point)");
+    MOZ_ASSERT(numBlocksDeleted_ == 0, "numBlocksDeleted_ wasn't reset");
+    MOZ_ASSERT(dominatorRoot->immediateDominator() == dominatorRoot,
+            "root is not a dominator tree root");
+
+    
+    
+    
+    size_t numVisited = 0;
+    for (ReversePostorderIterator iter(graph_.rpoBegin(dominatorRoot)); ; ++iter) {
+        MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
+        MBasicBlock *block = *iter;
         
+        if (!dominatorRoot->dominates(block))
+            continue;
         
-        if (pessimisticPass_)
+        if (!visitBlock(block, dominatorRoot))
+            return false;
+        
+        if (!rerun_ && block->isLoopBackedge() && loopHasOptimizablePhi(block)) {
+            IonSpew(IonSpew_GVN, "    Loop phi in block%u can now be optimized; will re-run GVN!",
+                    block->id());
+            rerun_ = true;
+            remainingBlocks_.clear();
+        }
+        ++numVisited;
+        MOZ_ASSERT(numVisited <= dominatorRoot->numDominated() - numBlocksDeleted_,
+                   "Visited blocks too many times");
+        if (numVisited >= dominatorRoot->numDominated() - numBlocksDeleted_)
             break;
     }
-#ifdef DEBUG
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        for (MDefinitionIterator iter(*block); iter; iter++) {
-            JS_ASSERT(!iter->isInWorklist());
-            JS_ASSERT_IF(iter->valueNumber() == 0,
-                         !iter->hasDefUses() && (!iter->isMovable() || iter->isEffectful()));
-        }
-    }
-#endif
+
+    *totalNumVisited += numVisited;
+    values_.clear();
+    numBlocksDeleted_ = 0;
     return true;
 }
 
-MDefinition *
-ValueNumberer::findDominatingDef(InstructionMap &defs, MDefinition *ins, size_t index)
-{
-    JS_ASSERT(ins->valueNumber() != 0);
-    InstructionMap::Ptr p = defs.lookup(ins->valueNumber());
-    MDefinition *dom;
-    if (!p || index >= p->value().validEnd) {
-        DominatingValue value;
-        value.def = ins;
-        
-        
-        
-        
-        
-        
-        
-        value.validEnd = index + ins->block()->numDominated();
-
-        if(!defs.put(ins->valueNumber(), value))
-            return nullptr;
-
-        dom = ins;
-    } else {
-        dom = p->value().def;
-    }
-
-    return dom;
-}
 
 bool
-ValueNumberer::eliminateRedundancies()
+ValueNumberer::visitGraph()
 {
     
     
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    size_t totalNumVisited = 0;
+    for (ReversePostorderIterator iter(graph_.rpoBegin()); ; ++iter) {
+         MBasicBlock *block = *iter;
+         if (block->immediateDominator() == block) {
+             if (!visitDominatorTree(block, &totalNumVisited))
+                 return false;
+             MOZ_ASSERT(totalNumVisited <= graph_.numBlocks(), "Visited blocks too many times");
+             if (totalNumVisited >= graph_.numBlocks())
+                 break;
+         }
+         MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
+    }
+    return true;
+}
 
-    InstructionMap defs(alloc());
+ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph)
+  : mir_(mir), graph_(graph),
+    values_(graph.alloc()),
+    deadDefs_(graph.alloc()),
+    unreachableBlocks_(graph.alloc()),
+    remainingBlocks_(graph.alloc()),
+    numBlocksDeleted_(0),
+    rerun_(false),
+    blocksRemoved_(false),
+    updateAliasAnalysis_(false),
+    dependenciesBroken_(false)
+{}
 
-    if (!defs.init())
+bool
+ValueNumberer::run(UpdateAliasAnalysisFlag updateAliasAnalysis)
+{
+    updateAliasAnalysis_ = updateAliasAnalysis == UpdateAliasAnalysis;
+
+    
+    
+    
+    
+    
+    
+    if (!values_.init())
         return false;
 
-    IonSpew(IonSpew_GVN, "Eliminating redundant instructions");
-
-    
-    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist(alloc());
-
-    
-    size_t index = 0;
+    IonSpew(IonSpew_GVN, "Running GVN on graph (with %llu blocks)",
+            uint64_t(graph_.numBlocks()));
 
     
     
-    for (MBasicBlockIterator i(graph_.begin()); i != graph_.end(); i++) {
-        MBasicBlock *block = *i;
-        if (block->immediateDominator() == block) {
-            if (!worklist.append(block))
+    
+    int runs = 0;
+    for (;;) {
+        if (!visitGraph())
+            return false;
+
+        
+        
+        while (!remainingBlocks_.empty()) {
+            MBasicBlock *block = remainingBlocks_.popCopy();
+            if (!block->isDead() && IsDominatorRefined(block)) {
+                IonSpew(IonSpew_GVN, "  Dominator for block%u can now be refined; will re-run GVN!",
+                        block->id());
+                rerun_ = true;
+                remainingBlocks_.clear();
+                break;
+            }
+        }
+
+        if (blocksRemoved_) {
+            if (!AccountForCFGChanges(mir_, graph_, dependenciesBroken_))
                 return false;
+
+            blocksRemoved_ = false;
+            dependenciesBroken_ = false;
         }
-    }
 
-    
-    while (!worklist.empty()) {
-        if (mir->shouldCancel("Value Numbering (eliminate loop)"))
+        if (mir_->shouldCancel("GVN (outer loop)"))
             return false;
-        MBasicBlock *block = worklist.popCopy();
-
-        IonSpew(IonSpew_GVN, "Looking at block %d", block->id());
 
         
-        if (!worklist.append(block->immediatelyDominatedBlocksBegin(),
-                             block->immediatelyDominatedBlocksEnd())) {
-            return false;
-        }
+        if (!rerun_)
+            break;
+
+        IonSpew(IonSpew_GVN, "Re-running GVN on graph (run %d, now with %llu blocks)",
+                runs, uint64_t(graph_.numBlocks()));
+        rerun_ = false;
 
         
-        for (MDefinitionIterator iter(block); iter; ) {
-            MDefinition *ins = simplify(*iter, true);
-
-            
-            if (ins != *iter) {
-                iter = block->discardDefAt(iter);
-                continue;
-            }
-
-            
-            if (!ins->isMovable() || ins->isEffectful()) {
-                iter++;
-                continue;
-            }
-
-            MDefinition *dom = findDominatingDef(defs, ins, index);
-            if (!dom)
-                return false; 
-
-            if (dom == ins || !dom->updateForReplacement(ins)) {
-                iter++;
-                continue;
-            }
-
-            IonSpew(IonSpew_GVN, "instruction %d is dominated by instruction %d (from block %d)",
-                    ins->id(), dom->id(), dom->block()->id());
-
-            ins->replaceAllUsesWith(dom);
-
-            JS_ASSERT(!ins->hasUses());
-            JS_ASSERT(ins->block() == block);
-            JS_ASSERT(!ins->isEffectful());
-            JS_ASSERT(ins->isMovable());
-
-            iter = ins->block()->discardDefAt(iter);
+        
+        
+        
+        
+        ++runs;
+        if (runs == 6) {
+            IonSpew(IonSpew_GVN, "Re-run cutoff reached. Terminating GVN!");
+            break;
         }
-        index++;
-    }
-
-    JS_ASSERT(index == graph_.numBlocks());
-    return true;
-}
-
-
-bool
-ValueNumberer::analyze()
-{
-    return computeValueNumbers() && eliminateRedundancies();
-}
-
-
-bool
-ValueNumberer::clear()
-{
-    IonSpew(IonSpew_GVN, "Clearing value numbers");
-
-    
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        if (mir->shouldCancel("Value Numbering (clearing)"))
-            return false;
-        for (MDefinitionIterator iter(*block); iter; iter++)
-            iter->clearValueNumberData();
-        block->lastIns()->clearValueNumberData();
     }
 
     return true;
-}
-
-uint32_t
-MDefinition::valueNumber() const
-{
-    JS_ASSERT(block_);
-    if (valueNumber_ == nullptr)
-        return 0;
-    return valueNumber_->valueNumber();
-}
-void
-MDefinition::setValueNumber(uint32_t vn)
-{
-    valueNumber_->setValueNumber(vn);
-}
-
-void
-ValueNumberer::setClass(MDefinition *def, MDefinition *rep)
-{
-    def->valueNumberData()->setClass(def, rep);
-}
-
-MDefinition *
-ValueNumberer::findSplit(MDefinition *def)
-{
-    for (MDefinition *vncheck = def->valueNumberData()->classNext;
-         vncheck != nullptr;
-         vncheck = vncheck->valueNumberData()->classNext) {
-        if (!def->congruentTo(vncheck)) {
-            IonSpew(IonSpew_GVN, "Proceeding with split because %d is not congruent to %d",
-                    def->id(), vncheck->id());
-            return vncheck;
-        }
-    }
-    return nullptr;
-}
-
-void
-ValueNumberer::breakClass(MDefinition *def)
-{
-    if (def->valueNumber() == def->id()) {
-        IonSpew(IonSpew_GVN, "Breaking congruence with itself: %d", def->id());
-        ValueNumberData *defdata = def->valueNumberData();
-        JS_ASSERT(defdata->classPrev == nullptr);
-        
-        if (defdata->classNext == nullptr)
-            return;
-        
-        
-        MDefinition *newRep = findSplit(def);
-        if (!newRep)
-            return;
-        markConsumers(def);
-        ValueNumberData *newdata = newRep->valueNumberData();
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        MDefinition *lastOld = newdata->classPrev;
-
-        JS_ASSERT(lastOld); 
-        JS_ASSERT(lastOld->valueNumberData()->classNext == newRep);
-
-        
-        
-        lastOld->valueNumberData()->classNext = nullptr;
-
-#ifdef DEBUG
-        for (MDefinition *tmp = def; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
-            JS_ASSERT(tmp->valueNumber() == def->valueNumber());
-            JS_ASSERT(tmp->congruentTo(def));
-            JS_ASSERT(tmp != newRep);
-        }
-#endif
-        
-        
-        
-        newdata->classPrev = nullptr;
-        IonSpew(IonSpew_GVN, "Choosing a new representative: %d", newRep->id());
-
-        
-        for (MDefinition *tmp = newRep; tmp != nullptr; tmp = tmp->valueNumberData()->classNext) {
-            
-            if (tmp->isInWorklist()) {
-                IonSpew(IonSpew_GVN, "Defer  to a new congruence class: %d", tmp->id());
-                continue;
-            }
-            IonSpew(IonSpew_GVN, "Moving to a new congruence class: %d", tmp->id());
-            tmp->setValueNumber(newRep->id());
-            markConsumers(tmp);
-            markDefinition(tmp);
-        }
-
-        
-        
-        
-        
-        values.put(newRep, newRep->id());
-    } else {
-        
-        
-        ValueNumberData *defdata = def->valueNumberData();
-        if (defdata->classPrev)
-            defdata->classPrev->valueNumberData()->classNext = defdata->classNext;
-        if (defdata->classNext)
-            defdata->classNext->valueNumberData()->classPrev = defdata->classPrev;
-
-        
-        defdata->classPrev = nullptr;
-        defdata->classNext = nullptr;
-    }
 }

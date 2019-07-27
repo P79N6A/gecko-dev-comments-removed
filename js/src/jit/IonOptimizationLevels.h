@@ -67,9 +67,6 @@ class OptimizationInfo
     bool gvn_;
 
     
-    IonGvnKind gvnKind_;
-
-    
     bool licm_;
 
     
@@ -160,12 +157,6 @@ class OptimizationInfo
 
     bool eliminateRedundantChecksEnabled() const {
         return eliminateRedundantChecks_;
-    }
-
-    IonGvnKind gvnKind() const {
-        if (!js_JitOptions.forceGvnKind)
-            return gvnKind_;
-        return js_JitOptions.forcedGvnKind;
     }
 
     IonRegisterAllocator registerAllocator() const {

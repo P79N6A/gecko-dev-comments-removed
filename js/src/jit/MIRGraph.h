@@ -26,7 +26,7 @@ class MDefinitionIterator;
 
 typedef InlineListIterator<MInstruction> MInstructionIterator;
 typedef InlineListReverseIterator<MInstruction> MInstructionReverseIterator;
-typedef InlineForwardListIterator<MPhi> MPhiIterator;
+typedef InlineListIterator<MPhi> MPhiIterator;
 typedef InlineForwardListIterator<MResumePoint> MResumePointIterator;
 
 class LBlock;
@@ -193,7 +193,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     
     
-    
     void removePredecessor(MBasicBlock *pred);
 
     
@@ -291,6 +290,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     }
     MPhiIterator phisBegin() const {
         return phis_.begin();
+    }
+    MPhiIterator phisBegin(MPhi *at) const {
+        return phis_.begin(at);
     }
     MPhiIterator phisEnd() const {
         return phis_.end();
@@ -420,7 +422,11 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
         numDominated_ += n;
     }
 
+    
     bool addImmediatelyDominatedBlock(MBasicBlock *child);
+
+    
+    void removeImmediatelyDominatedBlock(MBasicBlock *child);
 
     
     
@@ -506,7 +512,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     CompileInfo &info_; 
     InlineList<MInstruction> instructions_;
     Vector<MBasicBlock *, 1, IonAllocPolicy> predecessors_;
-    InlineForwardList<MPhi> phis_;
+    InlineList<MPhi> phis_;
     InlineForwardList<MResumePoint> resumePoints_;
     FixedList<MDefinition *> slots_;
     uint32_t stackPosition_;
@@ -565,7 +571,7 @@ class MIRGraph
       : alloc_(alloc),
         returnAccumulator_(nullptr),
         blockIdGen_(0),
-        idGen_(1),
+        idGen_(0),
         osrBlock_(nullptr),
         osrStart_(nullptr),
         numBlocks_(0),
@@ -627,6 +633,7 @@ class MIRGraph
     }
     void removeBlocksAfter(MBasicBlock *block);
     void removeBlock(MBasicBlock *block);
+    void removeBlockIncludingPhis(MBasicBlock *block);
     void moveBlockToEnd(MBasicBlock *block) {
         JS_ASSERT(block->id());
         blocks_.remove(block);

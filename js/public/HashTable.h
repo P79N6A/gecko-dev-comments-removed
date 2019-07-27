@@ -480,6 +480,13 @@ class HashSet
     }
 
     
+    void rekeyInPlace(Ptr p, const T &new_value)
+    {
+        MOZ_ASSERT(HashPolicy::match(*p, new_value));
+        impl.rekeyInPlace(p, new_value);
+    }
+
+    
     HashSet(HashSet &&rhs) : impl(mozilla::Move(rhs.impl)) {}
     void operator=(HashSet &&rhs) {
         MOZ_ASSERT(this != &rhs, "self-move assignment is prohibited");
@@ -1627,6 +1634,14 @@ class HashTable : private AllocPolicy
     {
         rekeyWithoutRehash(p, l, k);
         checkOverRemoved();
+    }
+
+    void rekeyInPlace(Ptr p, const Key &k)
+    {
+        MOZ_ASSERT(table);
+        mozilla::ReentrancyGuard g(*this);
+        MOZ_ASSERT(p.found());
+        HashPolicy::rekey(const_cast<Key &>(*p), const_cast<Key &>(k));
     }
 
 #undef METER

@@ -6,6 +6,7 @@
 
 #include "jit/IonAnalysis.h"
 
+#include "jit/AliasAnalysis.h"
 #include "jit/BaselineInspector.h"
 #include "jit/BaselineJIT.h"
 #include "jit/Ion.h"
@@ -1093,6 +1094,59 @@ jit::RenumberBlocks(MIRGraph &graph)
 
 
 
+bool
+jit::AccountForCFGChanges(MIRGenerator *mir, MIRGraph &graph, bool updateAliasAnalysis)
+{
+    
+    size_t id = 0;
+    for (ReversePostorderIterator i(graph.rpoBegin()), e(graph.rpoEnd()); i != e; ++i) {
+        i->clearDominatorInfo();
+        i->setId(id++);
+    }
+
+    
+    if (!BuildDominatorTree(graph))
+        return false;
+
+    
+    if (updateAliasAnalysis) {
+        if (!AliasAnalysis(mir, graph).analyze())
+             return false;
+    }
+
+    AssertExtendedGraphCoherency(graph);
+    return true;
+}
+
+
+
+bool
+jit::RemoveUnmarkedBlocks(MIRGenerator *mir, MIRGraph &graph, uint32_t numMarkedBlocks)
+{
+    
+    if (numMarkedBlocks == graph.numBlocks()) {
+        graph.unmarkBlocks();
+        return true;
+    }
+
+    for (ReversePostorderIterator iter(graph.rpoBegin()); iter != graph.rpoEnd();) {
+        MBasicBlock *block = *iter++;
+
+        if (block->isMarked()) {
+            block->unmark();
+            continue;
+        }
+
+        for (size_t i = 0, e = block->numSuccessors(); i != e; ++i)
+            block->getSuccessor(i)->removePredecessor(block);
+        graph.removeBlockIncludingPhis(block);
+    }
+
+    return AccountForCFGChanges(mir, graph, false);
+}
+
+
+
 static MBasicBlock *
 IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
 {
@@ -1559,6 +1613,12 @@ BoundsCheckHashIgnoreOffset(MBoundsCheck *check)
 static MBoundsCheck *
 FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t index)
 {
+    
+    
+    
+    
+    
+    
     
     HashNumber hash = BoundsCheckHashIgnoreOffset(check);
     BoundsCheckMap::Ptr p = checks.lookup(hash);
