@@ -42,7 +42,6 @@ class nsIDOMEventListener;
 class nsIDOMEventTarget;
 class nsIDOMKeyEvent;
 class nsIDOMNode;
-class nsIDOMRange;
 class nsIDocument;
 class nsIDocumentStateListener;
 class nsIEditActionListener;
@@ -625,7 +624,7 @@ public:
   
   nsresult CreateRange(nsIDOMNode *aStartParent, int32_t aStartOffset,
                        nsIDOMNode *aEndParent, int32_t aEndOffset,
-                       nsIDOMRange **aRange);
+                       nsRange** aRange);
 
   
   nsresult AppendNodeToSelectionAsRange(nsIDOMNode *aNode);

@@ -10,6 +10,7 @@
 #include "mozilla/Preferences.h"        
 #include "mozilla/Services.h"           
 #include "mozilla/dom/Element.h"        
+#include "mozilla/dom/Selection.h"
 #include "mozilla/mozalloc.h"           
 #include "nsAString.h"                  
 #include "nsComponentManagerUtils.h"    
@@ -23,7 +24,6 @@
 #include "nsIContentPrefService2.h"     
 #include "nsIDOMDocument.h"             
 #include "nsIDOMElement.h"              
-#include "nsIDOMRange.h"                
 #include "nsIDocument.h"                
 #include "nsIEditor.h"                  
 #include "nsIHTMLEditor.h"              
@@ -38,6 +38,7 @@
 #include "nsIVariant.h"                 
 #include "nsLiteralString.h"            
 #include "nsMemory.h"                   
+#include "nsRange.h"
 #include "nsReadableUtils.h"            
 #include "nsServiceManagerUtils.h"      
 #include "nsString.h"                   
@@ -46,6 +47,7 @@
 #include "nsXULAppAPI.h"                
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 class UpdateDictionaryHolder {
   private:
@@ -343,10 +345,9 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     
     
 
-    nsCOMPtr<nsISelection> selection;
-
-    rv = aEditor->GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsISelection> domSelection;
+    aEditor->GetSelection(getter_AddRefs(domSelection));
+    nsRefPtr<Selection> selection = static_cast<Selection*>(domSelection.get());
     NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
     int32_t count = 0;
@@ -355,10 +356,8 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (count > 0) {
-      nsCOMPtr<nsIDOMRange> range;
-
-      rv = selection->GetRangeAt(0, getter_AddRefs(range));
-      NS_ENSURE_SUCCESS(rv, rv);
+      nsRefPtr<nsRange> range = selection->GetRangeAt(0);
+      NS_ENSURE_STATE(range);
 
       bool collapsed = false;
       rv = range->GetCollapsed(&collapsed);
@@ -368,10 +367,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
         
         
 
-        nsCOMPtr<nsIDOMRange> rangeBounds;
-        rv =  range->CloneRange(getter_AddRefs(rangeBounds));
-        NS_ENSURE_SUCCESS(rv, rv);
-        NS_ENSURE_TRUE(rangeBounds, NS_ERROR_FAILURE);
+        nsRefPtr<nsRange> rangeBounds = range->CloneRange();
 
         
 

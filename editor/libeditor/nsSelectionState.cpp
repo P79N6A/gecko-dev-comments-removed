@@ -15,7 +15,6 @@
 #include "nsIContent.h"                 
 #include "nsIDOMCharacterData.h"        
 #include "nsIDOMNode.h"                 
-#include "nsIDOMRange.h"                
 #include "nsISupportsImpl.h"            
 #include "nsRange.h"                    
 #include "nsSelectionState.h"
