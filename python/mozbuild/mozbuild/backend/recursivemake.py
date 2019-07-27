@@ -320,13 +320,6 @@ class RecursiveMakeBackend(CommonBackend):
             'tools': set(),
         }
 
-        derecurse = self.environment.substs.get('MOZ_PSEUDO_DERECURSE', '').split(',')
-        self._parallel_export = False
-        self._no_skip = False
-        if derecurse != ['']:
-            self._parallel_export = 'no-parallel-export' not in derecurse
-            self._no_skip = 'no-skip' in derecurse
-
     def consume_object(self, obj):
         """Write out build files necessary to build with recursive make."""
 
@@ -480,11 +473,10 @@ class RecursiveMakeBackend(CommonBackend):
         convenience variables, and the other dependency definitions for a
         hopefully proper directory traversal.
         """
-        if not self._no_skip:
-            for tier, skip in self._may_skip.items():
-                self.log(logging.DEBUG, 'fill_root_mk', {
-                    'number': len(skip), 'tier': tier
-                    }, 'Ignoring {number} directories during {tier}')
+        for tier, skip in self._may_skip.items():
+            self.log(logging.DEBUG, 'fill_root_mk', {
+                'number': len(skip), 'tier': tier
+                }, 'Ignoring {number} directories during {tier}')
 
         
         def parallel_filter(current, subdirs):
@@ -506,14 +498,6 @@ class RecursiveMakeBackend(CommonBackend):
 
         
         
-        def export_filter(current, subdirs):
-            if self._parallel_export:
-                return parallel_filter(current, subdirs)
-            return current, subdirs.parallel, \
-                subdirs.dirs + subdirs.tests + subdirs.tools
-
-        
-        
         
         def libs_filter(current, subdirs):
             if current in self._may_skip[tier]:
@@ -531,7 +515,7 @@ class RecursiveMakeBackend(CommonBackend):
 
         
         filters = {
-            'export': export_filter,
+            'export': parallel_filter,
             'compile': compile_filter,
             'binaries': parallel_filter,
             'libs': libs_filter,
@@ -876,9 +860,6 @@ class RecursiveMakeBackend(CommonBackend):
 
         if obj.is_tool_dir:
             fh.write('IS_TOOL_DIR := 1\n')
-
-        if self._no_skip:
-            return
 
         affected_tiers = set(obj.affected_tiers)
         
