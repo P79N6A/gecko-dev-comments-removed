@@ -74,11 +74,9 @@ loop.shared.models = (function() {
 
 
 
-    initiate: function(options) {
-      var client = new loop.shared.Client({
-        baseServerUrl: options.baseServerUrl
-      });
 
+
+    initiate: function(options) {
       function handleResult(err, sessionData) {
         
         if (err) {
@@ -99,10 +97,10 @@ loop.shared.models = (function() {
       }
 
       if (options.outgoing) {
-        client.requestCallInfo(this.get("loopToken"), handleResult.bind(this));
+        options.client.requestCallInfo(this.get("loopToken"), handleResult.bind(this));
       }
       else {
-        client.requestCallsInfo(this.get("loopVersion"),
+        options.client.requestCallsInfo(this.get("loopVersion"),
           handleResult.bind(this));
       }
     },

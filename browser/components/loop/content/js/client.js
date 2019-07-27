@@ -1,0 +1,189 @@
+
+
+
+
+
+
+var loop = loop || {};
+loop.Client = (function($) {
+  "use strict";
+
+  
+  const expectedCallUrlProperties = ["call_url", "expiresAt"];
+
+  
+  const expectedCallProperties = ["calls"];
+
+  
+
+
+
+
+  function Client(settings = {}) {
+
+    
+    
+    if ("mozLoop" in settings) {
+      this.mozLoop = settings.mozLoop;
+    } else {
+      this.mozLoop = navigator.mozLoop;
+    }
+
+    this.settings = settings;
+  }
+
+  Client.prototype = {
+    
+
+
+    _hoursToSeconds: function(value) {
+      return value * 60 * 60;
+    },
+
+    
+
+
+
+
+
+
+
+    _validate: function(data, properties) {
+      if (typeof data !== "object") {
+        throw new Error("Invalid data received from server");
+      }
+
+      properties.forEach(function (property) {
+        if (!data.hasOwnProperty(property)) {
+          throw new Error("Invalid data received from server - missing " +
+            property);
+        }
+      });
+
+      if (properties.length == 1) {
+        return data[properties[0]];
+      }
+
+      return data;
+    },
+
+    
+
+
+
+
+
+    _failureHandler: function(cb, error) {
+      var message = "HTTP " + error.code + " " + error.error + "; " + error.message;
+      console.error(message);
+      cb(new Error(message));
+    },
+
+    
+
+
+
+
+
+
+
+    _ensureRegistered: function(cb) {
+      this.mozLoop.ensureRegistered(cb);
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    _requestCallUrlInternal: function(nickname, cb) {
+      this.mozLoop.hawkRequest("/call-url/", "POST", {callerId: nickname},
+                               (error, responseText) => {
+        if (error) {
+          this._failureHandler(cb, error);
+          return;
+        }
+
+        try {
+          var urlData = JSON.parse(responseText);
+          cb(null, this._validate(urlData, expectedCallUrlProperties));
+
+          var expiresHours = this._hoursToSeconds(urlData.expiresAt);
+          this.mozLoop.noteCallUrlExpiry(expiresHours);
+        } catch (err) {
+          console.log("Error requesting call info", err);
+          cb(err);
+        }
+      });
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    requestCallUrl: function(nickname, cb) {
+      this._ensureRegistered(function(err) {
+        if (err) {
+          console.log("Error registering with Loop server, code: " + err);
+          cb(err);
+          return;
+        }
+
+        this._requestCallUrlInternal(nickname, cb);
+      }.bind(this));
+    },
+
+    
+
+
+
+
+
+
+
+    requestCallsInfo: function(version, cb) {
+      
+      
+      if (!version) {
+        throw new Error("missing required parameter version");
+      }
+
+      this.mozLoop.hawkRequest("/calls?version=" + version, "GET", null,
+                               (error, responseText) => {
+        if (error) {
+          this._failureHandler(cb, error);
+          return;
+        }
+
+        try {
+          var callsData = JSON.parse(responseText);
+
+          cb(null, this._validate(callsData, expectedCallProperties));
+        } catch (err) {
+          console.log("Error requesting calls info", err);
+          cb(err);
+        }
+      });
+    },
+  };
+
+  return Client;
+})(jQuery);

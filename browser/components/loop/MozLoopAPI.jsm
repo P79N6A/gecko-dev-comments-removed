@@ -47,19 +47,6 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    serverUrl: {
-      enumerable: true,
-      configurable: true,
-      get: function() {
-        return Services.prefs.getCharPref("loop.server");
-      }
-    },
-
-    
-
-
-
-
     locale: {
       enumerable: true,
       configurable: true,
@@ -214,7 +201,40 @@ function injectLoopAPI(targetWindow) {
           ringer = null;
         }
       }
-    }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    hawkRequest: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: function(path, method, payloadObj, callback) {
+        
+        return MozLoopService.hawkRequest(path, method, payloadObj).then((response) => {
+          callback(null, response.body);
+        }, (error) => {
+          callback(Cu.cloneInto(error, targetWindow));
+        });
+      }
+    },
   };
 
   let contentObj = Cu.createObjectIn(targetWindow);

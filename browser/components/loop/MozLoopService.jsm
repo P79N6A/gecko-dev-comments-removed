@@ -148,6 +148,11 @@ let MozLoopServiceInternal = {
 
 
 
+
+
+
+
+
   hawkRequest: function(path, method, payloadObj) {
     if (!this._hawkClient) {
       this._hawkClient = new HawkClient(this.loopServerUri);
@@ -481,5 +486,22 @@ this.MozLoopService = {
         "; exception: " + ex);
       return null;
     }
-  }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  hawkRequest: function(path, method, payloadObj) {
+    return MozLoopServiceInternal.hawkRequest(path, method, payloadObj);
+  },
 };
