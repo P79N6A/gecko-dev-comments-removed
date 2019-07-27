@@ -229,24 +229,6 @@ function finishClient(aClient)
 
 
 
-function get_chrome_actors(callback)
-{
-  if (!DebuggerServer.initialized) {
-    DebuggerServer.init();
-    DebuggerServer.addBrowserActors();
-  }
-  DebuggerServer.allowChromeProcess = true;
-
-  let client = new DebuggerClient(DebuggerServer.connectPipe());
-  client.connect(() => {
-    client.attachProcess().then(response => {
-      callback(client, response.form);
-    });
-  });
-}
-
-
-
 
 function getFileUrl(aName, aAllowMissing=false) {
   let file = do_get_file(aName, aAllowMissing);
