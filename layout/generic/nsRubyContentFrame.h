@@ -21,6 +21,13 @@ public:
   
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE;
 
+  
+  
+  
+  
+  
+  bool IsIntraLevelWhitespace() const;
+
 protected:
   explicit nsRubyContentFrame(nsStyleContext* aContext)
     : nsRubyContentFrameSuper(aContext) {}

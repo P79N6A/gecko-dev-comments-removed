@@ -77,40 +77,83 @@ public:
   bool AtEnd() const;
 
   uint32_t GetLevelCount() const { return mFrames.Length(); }
-  nsIFrame* GetFrame(uint32_t aIndex) const { return mFrames[aIndex]; }
-  nsIFrame* GetBaseFrame() const { return GetFrame(0); }
-  nsIFrame* GetTextFrame(uint32_t aIndex) const { return GetFrame(aIndex + 1); }
+  nsRubyContentFrame* GetFrameAtLevel(uint32_t aIndex) const;
   void GetColumn(RubyColumn& aColumn) const;
 
 private:
-  nsAutoTArray<nsIFrame*, RTC_ARRAY_SIZE + 1> mFrames;
+  
+  
+  
+  nsAutoTArray<nsRubyContentFrame*, RTC_ARRAY_SIZE + 1> mFrames;
+  
+  bool mAtIntraLevelWhitespace;
 };
 
 RubyColumnEnumerator::RubyColumnEnumerator(
   nsRubyBaseContainerFrame* aBaseContainer,
   const nsTArray<nsRubyTextContainerFrame*>& aTextContainers)
+  : mAtIntraLevelWhitespace(false)
 {
   const uint32_t rtcCount = aTextContainers.Length();
   mFrames.SetCapacity(rtcCount + 1);
-  mFrames.AppendElement(aBaseContainer->GetFirstPrincipalChild());
+
+  nsIFrame* rbFrame = aBaseContainer->GetFirstPrincipalChild();
+  MOZ_ASSERT(!rbFrame || rbFrame->GetType() == nsGkAtoms::rubyBaseFrame);
+  mFrames.AppendElement(static_cast<nsRubyContentFrame*>(rbFrame));
   for (uint32_t i = 0; i < rtcCount; i++) {
     nsRubyTextContainerFrame* container = aTextContainers[i];
     
     
     nsIFrame* rtFrame = !container->IsSpanContainer() ?
-      aTextContainers[i]->GetFirstPrincipalChild() : nullptr;
-    mFrames.AppendElement(rtFrame);
+      container->GetFirstPrincipalChild() : nullptr;
+    MOZ_ASSERT(!rtFrame || rtFrame->GetType() == nsGkAtoms::rubyTextFrame);
+    mFrames.AppendElement(static_cast<nsRubyContentFrame*>(rtFrame));
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  for (uint32_t i = 0, iend = mFrames.Length(); i < iend; i++) {
+    nsRubyContentFrame* frame = mFrames[i];
+    if (frame && frame->IsIntraLevelWhitespace()) {
+      mAtIntraLevelWhitespace = true;
+      break;
+    }
   }
 }
 
 void
 RubyColumnEnumerator::Next()
 {
+  bool advancingToIntraLevelWhitespace = false;
   for (uint32_t i = 0, iend = mFrames.Length(); i < iend; i++) {
-    if (mFrames[i]) {
-      mFrames[i] = mFrames[i]->GetNextSibling();
+    nsRubyContentFrame* frame = mFrames[i];
+    
+    
+    
+    
+    
+    if (frame && (!mAtIntraLevelWhitespace ||
+                  frame->IsIntraLevelWhitespace())) {
+      nsIFrame* nextSibling = frame->GetNextSibling();
+      MOZ_ASSERT(!nextSibling || nextSibling->GetType() == frame->GetType(),
+                 "Frame type should be identical among a level");
+      mFrames[i] = frame = static_cast<nsRubyContentFrame*>(nextSibling);
+      if (!advancingToIntraLevelWhitespace &&
+          frame && frame->IsIntraLevelWhitespace()) {
+        advancingToIntraLevelWhitespace = true;
+      }
     }
   }
+  MOZ_ASSERT(!advancingToIntraLevelWhitespace || !mAtIntraLevelWhitespace,
+             "Should never have adjacent intra-level whitespace columns");
+  mAtIntraLevelWhitespace = advancingToIntraLevelWhitespace;
 }
 
 bool
@@ -124,13 +167,27 @@ RubyColumnEnumerator::AtEnd() const
   return true;
 }
 
+nsRubyContentFrame*
+RubyColumnEnumerator::GetFrameAtLevel(uint32_t aIndex) const
+{
+  
+  
+  
+  
+  
+  
+  nsRubyContentFrame* frame = mFrames[aIndex];
+  return !mAtIntraLevelWhitespace ||
+         (frame && frame->IsIntraLevelWhitespace()) ? frame : nullptr;
+}
+
 void
 RubyColumnEnumerator::GetColumn(RubyColumn& aColumn) const
 {
-  aColumn.mBaseFrame = mFrames[0];
+  aColumn.mBaseFrame = GetFrameAtLevel(0);
   aColumn.mTextFrames.ClearAndRetainStorage();
   for (uint32_t i = 1, iend = mFrames.Length(); i < iend; i++) {
-    aColumn.mTextFrames.AppendElement(mFrames[i]);
+    aColumn.mTextFrames.AppendElement(GetFrameAtLevel(i));
   }
 }
 
@@ -141,7 +198,7 @@ CalculateColumnPrefISize(nsRenderingContext* aRenderingContext,
   nscoord max = 0;
   uint32_t levelCount = aEnumerator.GetLevelCount();
   for (uint32_t i = 0; i < levelCount; i++) {
-    nsIFrame* frame = aEnumerator.GetFrame(i);
+    nsIFrame* frame = aEnumerator.GetFrameAtLevel(i);
     if (frame) {
       max = std::max(max, frame->GetPrefISize(aRenderingContext));
     }
