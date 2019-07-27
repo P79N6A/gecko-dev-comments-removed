@@ -113,7 +113,8 @@ gTests.push({
 
   run: function() {
     
-    ok(this.window.gEditItemOverlay.readOnly, "Dialog is read-only");
+    ok(this.window.BookmarkPropertiesPanel._readOnly, "Dialog is read-only");
+
     
     var acceptButton = this.window.document.documentElement.getButton("accept");
     ok(acceptButton.disabled, "Accept button is disabled");
@@ -125,7 +126,7 @@ gTests.push({
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Node title is correct");
     
-    this.window.gEditItemOverlay._namePicker.blur();
+    this.window.gEditItemOverlay.onNamePickerBlur();
     is(namepicker.value,
        PlacesUtils.bookmarks.getItemTitle(PlacesUtils.unfiledBookmarksFolderId),
        "Root title is correct");
@@ -149,105 +150,102 @@ gTests.push({
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+gTests.push({
+  desc: "Bug 462662 - Pressing Enter to select tag from autocomplete closes bookmarks properties dialog",
+  sidebar: SIDEBAR_BOOKMARKS_ID,
+  action: ACTION_EDIT,
+  itemType: null,
+  window: null,
+  _itemId: null,
+  _cleanShutdown: false,
+
+  setup: function(aCallback) {
+    
+    this._itemId = add_bookmark(PlacesUtils._uri(TEST_URL));
+    ok(this._itemId > 0, "Correctly added a bookmark");
+    
+    PlacesUtils.tagging.tagURI(PlacesUtils._uri(TEST_URL),
+                               ["testTag"]);
+    var tags = PlacesUtils.tagging.getTagsForURI(PlacesUtils._uri(TEST_URL));
+    is(tags[0], "testTag", "Correctly added a tag");
+    aCallback();
+  },
+
+  selectNode: function(tree) {
+    tree.selectItems([PlacesUtils.unfiledBookmarksFolderId]);
+    PlacesUtils.asContainer(tree.selectedNode).containerOpen = true;
+    tree.selectItems([this._itemId]);
+    is(tree.selectedNode.itemId, this._itemId, "Bookmark has been selected");
+  },
+
+  run: function() {
+    
+    var tagsField = this.window.document.getElementById("editBMPanel_tagsField");
+    var self = this;
+
+    this.window.addEventListener("unload", function(event) {
+      self.window.removeEventListener("unload", arguments.callee, true);
+      tagsField.popup.removeEventListener("popuphidden", popupListener, true);
+      ok(self._cleanShutdown, "Dialog window should not be closed by pressing Enter on the autocomplete popup");
+      executeSoon(function () {
+        self.finish();
+      });
+    }, true);
+
+    var popupListener = {
+      handleEvent: function(aEvent) {
+        switch (aEvent.type) {
+          case "popuphidden":
+            
+            self._cleanShutdown = true;
+            self.window.document.documentElement.cancelDialog();
+            break;
+          case "popupshown":
+            tagsField.popup.removeEventListener("popupshown", this, true);
+            
+            
+            var tree = tagsField.popup.tree;
+            
+            isnot(tree, null, "Autocomplete results tree exists");
+            is(tree.view.rowCount, 1, "We have 1 autocomplete result");
+            tagsField.popup.selectedIndex = 0;
+            is(tree.view.selection.count, 1,
+               "We have selected a tag from the autocomplete popup");
+            info("About to focus the autocomplete results tree");
+            tree.focus();
+            EventUtils.synthesizeKey("VK_RETURN", {}, self.window);
+            break;
+          default:
+            ok(false, "unknown event: " + aEvent.type);
+            return;
+        }
+      }
+    };
+    tagsField.popup.addEventListener("popupshown", popupListener, true);
+    tagsField.popup.addEventListener("popuphidden", popupListener, true);
+
+    
+    info("About to focus the tagsField");
+    tagsField.focus();
+    tagsField.value = "";
+    EventUtils.synthesizeKey("t", {}, this.window);
+  },
+
+  finish: function() {
+    SidebarUI.hide();
+    runNextTest();
+  },
+
+  cleanup: function() {
+    
+    var tags = PlacesUtils.tagging.getTagsForURI(PlacesUtils._uri(TEST_URL));
+    is(tags[0], "testTag", "Tag on node has not changed");
+
+    
+    PlacesUtils.tagging.untagURI(PlacesUtils._uri(TEST_URL), ["testTag"]);
+    PlacesUtils.bookmarks.removeItem(this._itemId);
+  }
+});
 
 
 
@@ -273,7 +271,7 @@ gTests.push({
   },
 
   run: function() {
-    this._itemId = this.window.gEditItemOverlay._paneInfo.itemId;
+    this._itemId = this.window.gEditItemOverlay._itemId;
     
     var namePicker = this.window.document.getElementById("editBMPanel_namePicker");
     var self = this;
@@ -285,9 +283,9 @@ gTests.push({
       });
     }, false);
 
+    namePicker.value = "n";
     info("About to focus the namePicker field");
     namePicker.focus();
-    EventUtils.synthesizeKey("n", {}, this.window);
     EventUtils.synthesizeKey("VK_RETURN", {}, this.window);
   },
 
@@ -564,7 +562,7 @@ function open_properties_dialog() {
         
         executeSoon(function () {
           
-          ok(win.gEditItemOverlay.initialized, "EditItemOverlay is initialized");
+          ok(win.gEditItemOverlay._initialized, "EditItemOverlay is initialized");
           gCurrentTest.window = win;
           try {
             gCurrentTest.run();

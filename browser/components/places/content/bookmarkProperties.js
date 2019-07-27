@@ -57,13 +57,10 @@
 
 
 
+
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
-                                  "resource://gre/modules/PromiseUtils.jsm");
 
 const BOOKMARK_ITEM = 0;
 const BOOKMARK_FOLDER = 1;
@@ -100,6 +97,7 @@ var BookmarkPropertiesPanel = {
   _defaultInsertionPoint: null,
   _hiddenRows: [],
   _batching: false,
+  _readOnly: false,
 
   
 
@@ -148,8 +146,8 @@ var BookmarkPropertiesPanel = {
   
 
 
-  _determineItemInfo() {
-    let dialogInfo = window.arguments[0];
+  _determineItemInfo: function BPP__determineItemInfo() {
+    var dialogInfo = window.arguments[0];
     this._action = dialogInfo.action == "add" ? ACTION_ADD : ACTION_EDIT;
     this._hiddenRows = dialogInfo.hiddenRows ? dialogInfo.hiddenRows : [];
     if (this._action == ACTION_ADD) {
@@ -161,12 +159,11 @@ var BookmarkPropertiesPanel = {
       if ("defaultInsertionPoint" in dialogInfo) {
         this._defaultInsertionPoint = dialogInfo.defaultInsertionPoint;
       }
-      else {
+      else
         this._defaultInsertionPoint =
           new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
                              PlacesUtils.bookmarks.DEFAULT_INDEX,
                              Ci.nsITreeView.DROP_ON);
-      }
 
       switch (dialogInfo.type) {
         case "bookmark":
@@ -233,14 +230,51 @@ var BookmarkPropertiesPanel = {
         this._description = dialogInfo.description;
     }
     else { 
-      this._node = dialogInfo.node;
+      NS_ASSERT("itemId" in dialogInfo);
+      this._itemId = dialogInfo.itemId;
+      this._title = PlacesUtils.bookmarks.getItemTitle(this._itemId);
+      this._readOnly = !!dialogInfo.readOnly;
+
       switch (dialogInfo.type) {
         case "bookmark":
           this._itemType = BOOKMARK_ITEM;
+
+          this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._itemId);
+          
+          this._keyword = PlacesUtils.bookmarks
+                                     .getKeywordForBookmark(this._itemId);
+          
+          this._loadInSidebar = PlacesUtils.annotations
+                                           .itemHasAnnotation(this._itemId,
+                                                              PlacesUIUtils.LOAD_IN_SIDEBAR_ANNO);
           break;
+
         case "folder":
           this._itemType = BOOKMARK_FOLDER;
+          PlacesUtils.livemarks.getLivemark({ id: this._itemId })
+            .then(aLivemark => {
+              this._itemType = LIVEMARK_CONTAINER;
+              this._feedURI = aLivemark.feedURI;
+              this._siteURI = aLivemark.siteURI;
+              this._fillEditProperties();
+
+              let acceptButton = document.documentElement.getButton("accept");
+              acceptButton.disabled = !this._inputIsValid();
+
+              let newHeight = window.outerHeight +
+                              this._element("descriptionField").boxObject.height;
+              window.resizeTo(window.outerWidth, newHeight);
+            }, () => undefined);
+
           break;
+      }
+
+      
+      if (PlacesUtils.annotations
+                     .itemHasAnnotation(this._itemId, PlacesUIUtils.DESCRIPTION_ANNO)) {
+        this._description = PlacesUtils.annotations
+                                       .getItemAnnotation(this._itemId,
+                                                          PlacesUIUtils.DESCRIPTION_ANNO);
       }
     }
   },
@@ -267,7 +301,7 @@ var BookmarkPropertiesPanel = {
 
 
 
-  onDialogLoad: Task.async(function* () {
+  onDialogLoad: function BPP_onDialogLoad() {
     this._determineItemInfo();
 
     document.title = this._getDialogTitle();
@@ -278,34 +312,17 @@ var BookmarkPropertiesPanel = {
 
     switch (this._action) {
       case ACTION_EDIT:
-        gEditItemOverlay.initPanel({ node: this._node
-                                   , hiddenRows: this._hiddenRows });
-        acceptButton.disabled = gEditItemOverlay.readOnly;
+        this._fillEditProperties();
+        acceptButton.disabled = this._readOnly;
         break;
       case ACTION_ADD:
-        this._node = yield this._promiseNewItem();
-        
-        gEditItemOverlay.initPanel({ node: this._node
-                                   , hiddenRows: this._hiddenRows });
-
-        
-        
-        
-        let locationField = this._element("locationField");
-        if (locationField.value == "about:blank")
-          locationField.value = "";
-
+        this._fillAddProperties();
         
         
         if (this._itemType == BOOKMARK_ITEM)
           acceptButton.disabled = !this._inputIsValid();
         break;
     }
-
-    
-    
-    
-    window.sizeToContent();
 
     
     
@@ -321,7 +338,7 @@ var BookmarkPropertiesPanel = {
           .addEventListener("DOMAttrModified", this, false);
     }
 
-    if (!gEditItemOverlay.readOnly) {
+    if (!this._readOnly) {
       
       if (this._itemType == BOOKMARK_ITEM) {
         this._element("locationField")
@@ -331,10 +348,16 @@ var BookmarkPropertiesPanel = {
               .addEventListener("input", this, false);
         }
       }
+      else if (this._itemType == LIVEMARK_CONTAINER) {
+        this._element("feedLocationField")
+            .addEventListener("input", this, false);
+        this._element("siteLocationField")
+            .addEventListener("input", this, false);
+      }
     }
 
     window.sizeToContent();
-  }),
+  },
 
   
   _elementsHeight: [],
@@ -343,6 +366,8 @@ var BookmarkPropertiesPanel = {
     switch (aEvent.type) {
       case "input":
         if (target.id == "editBMPanel_locationField" ||
+            target.id == "editBMPanel_feedLocationField" ||
+            target.id == "editBMPanel_siteLocationField" ||
             target.id == "editBMPanel_keywordField") {
           
           document.documentElement
@@ -372,37 +397,39 @@ var BookmarkPropertiesPanel = {
     }
   },
 
-	
-	
-	
-  _batchBlockingDeferred: null,
-  _beginBatch() {
+  _beginBatch: function BPP__beginBatch() {
     if (this._batching)
       return;
-    if (PlacesUIUtils.useAsyncTransactions) {
-      this._batchBlockingDeferred = PromiseUtils.defer();
-      PlacesTransactions.batch(function* () {
-        yield this._batchBlockingDeferred.promise;
-      }.bind(this));
-    }
-    else {
-      PlacesUtils.transactionManager.beginBatch(null);
-    }
+
+    PlacesUtils.transactionManager.beginBatch(null);
     this._batching = true;
   },
 
-  _endBatch() {
+  _endBatch: function BPP__endBatch() {
     if (!this._batching)
       return;
 
-    if (PlacesUIUtils.useAsyncTransactions) {
-      this._batchBlockingDeferred.resolve();
-      this._batchBlockingDeferred = null;
-    }
-    else {
-      PlacesUtils.transactionManager.endBatch(false);
-    }
+    PlacesUtils.transactionManager.endBatch(false);
     this._batching = false;
+  },
+
+  _fillEditProperties: function BPP__fillEditProperties() {
+    gEditItemOverlay.initPanel(this._itemId,
+                               { hiddenRows: this._hiddenRows,
+                                 forceReadOnly: this._readOnly });
+  },
+
+  _fillAddProperties: function BPP__fillAddProperties() {
+    this._createNewItem();
+    
+    gEditItemOverlay.initPanel(this._itemId,
+                               { hiddenRows: this._hiddenRows });
+    
+    
+    
+    var locationField = this._element("locationField");
+    if (locationField.value == "about:blank")
+      locationField.value = "";
   },
 
   
@@ -418,7 +445,7 @@ var BookmarkPropertiesPanel = {
     return document.getElementById("editBMPanel_" + aID);
   },
 
-  onDialogUnload() {
+  onDialogUnload: function BPP_onDialogUnload() {
     
     
     
@@ -428,9 +455,13 @@ var BookmarkPropertiesPanel = {
         .removeEventListener("DOMAttrModified", this, false);
     this._element("locationField")
         .removeEventListener("input", this, false);
+    this._element("feedLocationField")
+        .removeEventListener("input", this, false);
+    this._element("siteLocationField")
+        .removeEventListener("input", this, false);
   },
 
-  onDialogAccept() {
+  onDialogAccept: function BPP_onDialogAccept() {
     
     document.commandDispatcher.focusedElement.blur();
     
@@ -440,16 +471,13 @@ var BookmarkPropertiesPanel = {
     window.arguments[0].performed = true;
   },
 
-  onDialogCancel() {
+  onDialogCancel: function BPP_onDialogCancel() {
     
     
     
     gEditItemOverlay.uninitPanel(true);
     this._endBatch();
-    if (PlacesUIUtils.useAsyncTransactions)
-      PlacesTransactions.undo().catch(Components.utils.reportError);
-    else
-      PlacesUtils.transactionManager.undoTransaction();
+    PlacesUtils.transactionManager.undoTransaction();
     window.arguments[0].performed = false;
   },
 
@@ -555,14 +583,15 @@ var BookmarkPropertiesPanel = {
 
   _getTransactionsForURIList: function BPP__getTransactionsForURIList() {
     var transactions = [];
-    for (let uri of this._URIs) {
-      let title = this._getURITitleFromHistory(uri);
-      let createTxn = new PlacesCreateBookmarkTransaction(uri, -1,
+    for (var i = 0; i < this._URIs.length; ++i) {
+      var uri = this._URIs[i];
+      var title = this._getURITitleFromHistory(uri);
+      var createTxn = new PlacesCreateBookmarkTransaction(uri, -1, 
                                                           PlacesUtils.bookmarks.DEFAULT_INDEX,
                                                           title);
       transactions.push(createTxn);
     }
-    return transactions;
+    return transactions; 
   },
 
   
@@ -595,6 +624,9 @@ var BookmarkPropertiesPanel = {
                                                aContainer, aIndex);
   },
 
+  
+
+
   _createNewItem: function BPP__getCreateItemTransaction() {
     var [container, index] = this._getInsertionPointDetails();
     var txn;
@@ -605,93 +637,12 @@ var BookmarkPropertiesPanel = {
         break;
       case LIVEMARK_CONTAINER:
         txn = this._getCreateNewLivemarkTransaction(container, index);
-        break;
+        break;      
       default: 
         txn = this._getCreateNewBookmarkTransaction(container, index);
     }
 
     PlacesUtils.transactionManager.doTransaction(txn);
     this._itemId = PlacesUtils.bookmarks.getIdForItemAt(container, index);
-
-    return Object.freeze({
-      itemId: this._itemId,
-      get bookmarkGuid() {
-        throw new Error("Node-like bookmarkGuid getter called even though " +
-                        "async transactions are disabled");
-      },
-      title: this._title,
-      uri: this._uri ? this._uri.spec : "",
-      type: this._itemType == BOOKMARK_ITEM ?
-              Ci.nsINavHistoryResultNode.RESULT_TYPE_URI :
-              Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER
-    });
-  },
-
-  _promiseNewItem: Task.async(function* () {
-    if (!PlacesUIUtils.useAsyncTransactions)
-      return this._createNewItem();
-
-    let txnFunc =
-      { [BOOKMARK_FOLDER]: PlacesTransactions.NewFolder,
-        [LIVEMARK_CONTAINER]: PlacesTransactions.NewLivemark,
-        [BOOKMARK_ITEM]: PlacesTransactions.NewBookmark
-      }[this._itemType];
-
-    let [containerId, index] = this._getInsertionPointDetails();
-    let parentGuid = yield PlacesUtils.promiseItemGuid(containerId);
-    let annotations = [];
-    if (this._description) {
-      annotations.push({ name: PlacesUIUtils.DESCRIPTION_ANNO
-                       , value: this._description });
-    }
-    if (this._loadInSidebar) {
-      annotations.push({ name: PlacesUIUtils.LOAD_IN_SIDEBAR_ANNO
-                       , value: true });
-    }
-
-    let itemGuid;
-    let info = { parentGuid, index, title: this._title, annotations };
-    if (this._itemType == BOOKMARK_ITEM) {
-      info.url = this._uri;
-      if (this._keyword)
-        info.keyword = this._keyword;
-      if (this._postData)
-        info.postData = this._postData;
-
-      if (this._charSet && !PrivateBrowsingUtils.isWindowPrivate(window))
-        PlacesUtils.setCharsetForURI(this._uri, this._charSet);
-
-      itemGuid = yield PlacesTransactions.NewBookmark(info).transact();
-    }
-    else if (this._itemType == LIVEMARK_CONTAINER) {
-      info.feedUrl = this._feedURI;
-      if (this._siteURI)
-        info.siteUrl = this._siteURI;
-
-      itemGuid = yield PlacesTransactions.NewLivemark(info).transact();
-    }
-    else if (this._itemType == BOOKMARK_FOLDER) {
-      itemGuid = yield PlacesTransactions.NewFolder(info).transact();
-      for (let uri of this._URIs) {
-        let placeInfo = yield PlacesUtils.promisePlaceInfo(uri);
-        let title = placeInfo ? placeInfo.title : "";
-        yield PlacesTransactions.transact({ parentGuid: itemGuid, uri, title });
-      }
-    }
-    else {
-      throw new Error(`unexpected value for _itemType:  ${this._itemType}`);
-    }
-
-    this._itemGuid = itemGuid;
-    this._itemId = yield PlacesUtils.promiseItemId(itemGuid);
-    return Object.freeze({
-      itemId: this._itemId,
-      bookmarkGuid: this._itemGuid,
-      title: this._title,
-      uri: this._uri ? this._uri.spec : "",
-      type: this._itemType == BOOKMARK_ITEM ?
-              Ci.nsINavHistoryResultNode.RESULT_TYPE_URI :
-              Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER
-    });
-  })
+  }
 };
