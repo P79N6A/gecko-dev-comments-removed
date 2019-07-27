@@ -213,6 +213,11 @@ this.TelemetryController = Object.freeze({
 
 
 
+
+
+
+
+
   submitExternalPing: function(aType, aPayload, aOptions = {}) {
     aOptions.addClientId = aOptions.addClientId || false;
     aOptions.addEnvironment = aOptions.addEnvironment || false;
@@ -575,6 +580,15 @@ let Impl = {
   submitExternalPing: function send(aType, aPayload, aOptions) {
     this._log.trace("submitExternalPing - type: " + aType + ", server: " + this._server +
                     ", aOptions: " + JSON.stringify(aOptions));
+
+    
+    const typeUuid = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
+    if (!typeUuid.test(aType)) {
+      this._log.error("submitExternalPing - invalid ping type: " + aType);
+      let histogram = Telemetry.getKeyedHistogramById("TELEMETRY_INVALID_PING_TYPE_SUBMITTED");
+      histogram.add(aType, 1);
+      return Promise.reject(new Error("Invalid type string submitted."));
+    }
 
     const pingData = this.assemblePing(aType, aPayload, aOptions);
     this._log.trace("submitExternalPing - ping assembled, id: " + pingData.id);
