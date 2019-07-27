@@ -1163,9 +1163,6 @@ GeckoDriver.prototype.executeWithCallback = function(cmd, resp, directInject) {
 
 
 
-
-
-
 GeckoDriver.prototype.get = function(cmd, resp) {
   let url = cmd.parameters.url;
 
