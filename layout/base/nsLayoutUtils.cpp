@@ -3755,19 +3755,29 @@ nsLayoutUtils::GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
   gfxUserFontSet* fs = pc->GetUserFontSet();
   gfxTextPerfMetrics* tp = pc->GetTextPerfMetrics();
 
-  nsFont font = aStyleContext->StyleFont()->mFont;
-  
-  
-  
-  if (aInflation != 1.0f) {
-    font.size = NSToCoordRound(font.size * aInflation);
-  }
   WritingMode wm(aStyleContext);
-  return pc->DeviceContext()->GetMetricsFor(
-                  font, aStyleContext->StyleFont()->mLanguage,
-                  wm.IsVertical() && !wm.IsSideways()
-                    ? gfxFont::eVertical : gfxFont::eHorizontal,
-                  fs, tp, *aFontMetrics);
+  gfxFont::Orientation orientation =
+    wm.IsVertical() && !wm.IsSideways() ? gfxFont::eVertical
+                                        : gfxFont::eHorizontal;
+
+  const nsStyleFont* styleFont = aStyleContext->StyleFont();
+
+  
+  
+  
+  
+  if (aInflation == 1.0f) {
+    return pc->DeviceContext()->GetMetricsFor(styleFont->mFont,
+                                              styleFont->mLanguage,
+                                              orientation, fs, tp,
+                                              *aFontMetrics);
+  }
+
+  nsFont font = styleFont->mFont;
+  font.size = NSToCoordRound(font.size * aInflation);
+  return pc->DeviceContext()->GetMetricsFor(font, styleFont->mLanguage,
+                                            orientation, fs, tp,
+                                            *aFontMetrics);
 }
 
 nsIFrame*
