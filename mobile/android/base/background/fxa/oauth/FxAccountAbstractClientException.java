@@ -9,7 +9,6 @@ import org.mozilla.gecko.sync.HTTPFailureException;
 import org.mozilla.gecko.sync.net.SyncStorageResponse;
 
 import ch.boye.httpclientandroidlib.HttpResponse;
-import ch.boye.httpclientandroidlib.HttpStatus;
 
 
 
@@ -51,10 +50,6 @@ public class FxAccountAbstractClientException extends Exception {
     @Override
     public String toString() {
       return "<FxAccountAbstractClientRemoteException " + this.httpStatusCode + " [" + this.apiErrorNumber + "]: " + this.message + ">";
-    }
-
-    public boolean isInvalidAuthentication() {
-      return this.httpStatusCode == HttpStatus.SC_UNAUTHORIZED;
     }
   }
 

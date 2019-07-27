@@ -68,10 +68,6 @@ public class FxAccountDeletedService extends IntentService {
 
     
     new FxAccountNotificationManager(FxAccountSyncAdapter.NOTIFICATION_ID).clear(context);
-
-    
-    
-    
   }
 
   public static void deletePickle(final Context context) {

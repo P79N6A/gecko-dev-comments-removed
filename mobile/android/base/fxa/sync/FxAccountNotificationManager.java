@@ -65,7 +65,7 @@ public class FxAccountNotificationManager {
 
 
 
-  public void update(Context context, AndroidFxAccount fxAccount) {
+  protected void update(Context context, AndroidFxAccount fxAccount) {
     final NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
     final State state = fxAccount.getState();
