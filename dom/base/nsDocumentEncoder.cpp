@@ -1369,6 +1369,10 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
     return NS_ERROR_NULL_POINTER;
   range->GetCommonAncestorContainer(getter_AddRefs(commonParent));
 
+  
+  
+  
+#ifndef MOZ_THUNDERBIRD
   for (nsCOMPtr<nsIContent> selContent(do_QueryInterface(commonParent));
        selContent;
        selContent = selContent->GetParent())
@@ -1395,7 +1399,7 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
       }
     }
   }
-  
+
   
   if (mIsTextWidget) 
   {
@@ -1403,6 +1407,7 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
     mMimeType.AssignLiteral("text/plain");
     return NS_OK;
   }
+#endif
 
   
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
