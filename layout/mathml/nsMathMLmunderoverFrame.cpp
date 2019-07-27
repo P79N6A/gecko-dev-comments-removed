@@ -256,6 +256,28 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
                                  NS_MATHML_COMPRESSED,
                                  NS_MATHML_COMPRESSED);
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (overscriptFrame &&
+      NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) &&
+      !NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags)) {
+    PropagatePresentationDataFor(baseFrame, NS_MATHML_DTLS, NS_MATHML_DTLS);
+  }
+
   return NS_OK;
 }
 

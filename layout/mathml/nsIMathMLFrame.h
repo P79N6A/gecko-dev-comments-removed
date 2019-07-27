@@ -288,6 +288,10 @@ struct nsPresentationData {
 
 
 
+#define NS_MATHML_DTLS                                0x00000080U
+
+
+
 
 #define NS_MATHML_ERROR                               0x80000000U
 
@@ -313,6 +317,9 @@ struct nsPresentationData {
 
 #define NS_MATHML_IS_SPACE_LIKE(_flags) \
   (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
+
+#define NS_MATHML_IS_DTLS_SET(_flags) \
+  (NS_MATHML_DTLS == ((_flags) & NS_MATHML_DTLS))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))
