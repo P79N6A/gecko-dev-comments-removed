@@ -60,10 +60,6 @@
 
 
 
-
-
-
-
 var gPrintSettingsAreGlobal = false;
 var gSavePrintSettings = false;
 var gFocusedElement = null;
@@ -102,52 +98,51 @@ var PrintUtils = {
 
 
 
-
-
-
-
-
-
-
-
-
-  print: function (aWindow, aBrowser)
+  printWindow: function (aWindowID, aBrowser)
   {
-    if (!aWindow) {
-      
-      
-      if (this.usingRemoteTabs) {
-        throw new Error("Windows running with remote tabs must explicitly pass " +
-                        "a content window to PrintUtils.print.");
-      }
-      
-      aWindow = window.content;
+    let mm = aBrowser.messageManager;
+    mm.sendAsyncMessage("Printing:Print", {
+      windowID: aWindowID,
+    });
+  },
+
+  
+
+
+
+
+
+  print: function ()
+  {
+    if (gBrowser) {
+      return this.printWindow(gBrowser.selectedBrowser.outerWindowID,
+                              gBrowser.selectedBrowser);
     }
 
-    if (Components.utils.isCrossProcessWrapper(aWindow)) {
-      if (!aBrowser) {
-        throw new Error("PrintUtils.print expects a remote browser passed as " +
-                        "an argument if the content window is a CPOW.");
-      }
-    } else {
-      
-      
-      aBrowser = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                        .getInterface(Components.interfaces.nsIWebNavigation)
-                        .QueryInterface(Components.interfaces.nsIDocShell)
-                        .chromeEventHandler;
+    if (this.usingRemoteTabs) {
+      throw new Error("PrintUtils.print cannot be run in windows running with " +
+                      "remote tabs. Use PrintUtils.printWindow instead.");
     }
 
-    if (!aBrowser) {
+    let domWindow = window.content;
+    let ifReq = domWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor);
+    let browser = ifReq.getInterface(Components.interfaces.nsIWebNavigation)
+                       .QueryInterface(Components.interfaces.nsIDocShell)
+                       .chromeEventHandler;
+    if (!browser) {
       throw new Error("PrintUtils.print could not resolve content window " +
                       "to a browser.");
     }
 
-    let mm = aBrowser.messageManager;
+    let windowID = ifReq.getInterface(Components.interfaces.nsIDOMWindowUtils)
+                        .outerWindowID;
 
-    mm.sendAsyncMessage("Printing:Print", null, {
-      contentWindow: aWindow,
-    });
+    let Deprecated = Components.utils.import("resource://gre/modules/Deprecated.jsm", {}).Deprecated;
+    let msg = "PrintUtils.print is now deprecated. Please use PrintUtils.printWindow.";
+    let url = "https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XUL/Printing";
+    Deprecated.warning(msg, url);
+
+    this.printWindow(windowID, browser);
   },
 
   
@@ -410,9 +405,8 @@ var PrintUtils = {
     
     let ppBrowser = this._listener.getPrintPreviewBrowser();
     let mm = ppBrowser.messageManager;
-    mm.sendAsyncMessage("Printing:Preview:Enter", null, {
-      contentWindow: this._sourceBrowser.contentWindowAsCPOW ||
-                     this._sourceBrowser.contentWindow,
+    mm.sendAsyncMessage("Printing:Preview:Enter", {
+      windowID: this._sourceBrowser.outerWindowID,
     });
 
     if (this._webProgressPP.value) {
