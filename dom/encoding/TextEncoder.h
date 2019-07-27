@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozilla_dom_textencoder_h_
 #define mozilla_dom_textencoder_h_
 
@@ -46,15 +47,6 @@ public:
     return TextEncoderBinding::Wrap(aCx, this, aTookOwnership);
   }
 
-  void Encode(JSContext* aCx,
-	      JS::Handle<JSObject*> aObj,
-	      const nsAString& aString,
-	      const TextEncodeOptions& aOptions,
-	      JS::MutableHandle<JSObject*> aRetval,
-	      ErrorResult& aRv) {
-    TextEncoder::Encode(aCx, aObj, aString, aOptions.mStream, aRetval, aRv);
-  }
-
 protected:
 
   
@@ -85,17 +77,11 @@ public:
 
 
 
-
-
-
-
   void Encode(JSContext* aCx,
-	      JS::Handle<JSObject*> aObj,
-	      const nsAString& aString,
-	      const bool aStream,
-	      JS::MutableHandle<JSObject*> aRetval,
-	      ErrorResult& aRv);
-
+              JS::Handle<JSObject*> aObj,
+              const nsAString& aString,
+              JS::MutableHandle<JSObject*> aRetval,
+              ErrorResult& aRv);
 private:
   nsCString mEncoding;
   nsCOMPtr<nsIUnicodeEncoder> mEncoder;

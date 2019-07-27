@@ -2,6 +2,7 @@
 
 
 
+
 #include "mozilla/dom/TextEncoder.h"
 #include "mozilla/dom/EncodingUtils.h"
 #include "nsContentUtils.h"
@@ -38,8 +39,7 @@ void
 TextEncoder::Encode(JSContext* aCx,
                     JS::Handle<JSObject*> aObj,
                     const nsAString& aString,
-                    const bool aStream,
-		    JS::MutableHandle<JSObject*> aRetval,
+                    JS::MutableHandle<JSObject*> aRetval,
                     ErrorResult& aRv)
 {
   
@@ -64,13 +64,10 @@ TextEncoder::Encode(JSContext* aCx,
   rv = mEncoder->Convert(data, &srcLen, buf, &dstLen);
 
   
-  
-  if (!aStream) {
-    int32_t finishLen = maxLen - dstLen;
-    rv = mEncoder->Finish(buf + dstLen, &finishLen);
-    if (NS_SUCCEEDED(rv)) {
-      dstLen += finishLen;
-    }
+  int32_t finishLen = maxLen - dstLen;
+  rv = mEncoder->Finish(buf + dstLen, &finishLen);
+  if (NS_SUCCEEDED(rv)) {
+    dstLen += finishLen;
   }
 
   JSObject* outView = nullptr;
