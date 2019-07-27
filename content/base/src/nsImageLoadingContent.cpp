@@ -172,7 +172,6 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
 
 
 
-
       if (errorCode == NS_ERROR_TRACKING_URI) {
         nsCOMPtr<nsIContent> thisNode
           = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));

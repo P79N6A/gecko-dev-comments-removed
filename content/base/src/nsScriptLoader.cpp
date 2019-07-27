@@ -1414,7 +1414,6 @@ nsScriptLoader::OnStreamComplete(nsIStreamLoader* aLoader,
 
 
 
-
     if (rv == NS_ERROR_TRACKING_URI) {
       nsCOMPtr<nsIContent> cont = do_QueryInterface(request->mElement);
       mDocument->AddBlockedTrackingNode(cont);

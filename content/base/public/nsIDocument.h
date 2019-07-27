@@ -133,8 +133,8 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xa45ef8f0, 0x7c5b, 0x425d, \
-  { 0xa5, 0xe7, 0x11, 0x41, 0x5c, 0x41, 0x0c, 0x7a } }
+{ 0x613ea294, 0x0288, 0x48b4, \
+  { 0x9e, 0x7b, 0x0f, 0xe9, 0x3f, 0x8c, 0xf8, 0x95 } }
 
 
 enum DocumentFlavor {
@@ -530,6 +530,38 @@ public:
   void SetHasMixedDisplayContentBlocked(bool aHasMixedDisplayContentBlocked)
   {
     mHasMixedDisplayContentBlocked = aHasMixedDisplayContentBlocked;
+  }
+
+  
+
+
+  bool GetHasTrackingContentBlocked()
+  {
+    return mHasTrackingContentBlocked;
+  }
+
+  
+
+
+  void SetHasTrackingContentBlocked(bool aHasTrackingContentBlocked)
+  {
+    mHasTrackingContentBlocked = aHasTrackingContentBlocked;
+  }
+
+  
+
+
+  bool GetHasTrackingContentLoaded()
+  {
+    return mHasTrackingContentLoaded;
+  }
+
+  
+
+
+  void SetHasTrackingContentLoaded(bool aHasTrackingContentLoaded)
+  {
+    mHasTrackingContentLoaded = aHasTrackingContentLoaded;
   }
 
   
@@ -2530,6 +2562,12 @@ protected:
 
   
   bool mHasMixedDisplayContentBlocked;
+
+  
+  bool mHasTrackingContentBlocked;
+
+  
+  bool mHasTrackingContentLoaded;
 
   
   bool mBFCacheDisallowed;
