@@ -911,6 +911,11 @@ public:
     return mFrameMetrics.IsLayersIdRoot();
   }
 
+  bool IsRootContent() const {
+    ReentrantMonitorAutoEnter lock(mMonitor);
+    return mFrameMetrics.IsRootContent();
+  }
+
 private:
   
   
