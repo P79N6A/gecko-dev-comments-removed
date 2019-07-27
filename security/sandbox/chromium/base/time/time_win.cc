@@ -31,9 +31,6 @@
 
 
 
-
-
-
 #include "base/time/time.h"
 
 #pragma comment(lib, "winmm.lib")
@@ -87,6 +84,19 @@ void InitializeClock() {
   initial_time = CurrentWallclockMicroseconds();
 }
 
+
+
+
+const int kMinTimerIntervalHighResMs = 1;
+const int kMinTimerIntervalLowResMs = 4;
+
+bool g_high_res_timer_enabled = false;
+
+uint32_t g_high_res_timer_count = 0;
+
+base::LazyInstance<base::Lock>::Leaky g_high_res_lock =
+    LAZY_INSTANCE_INITIALIZER;
+
 }  
 
 
@@ -97,9 +107,6 @@ void InitializeClock() {
 
 
 const int64 Time::kTimeTToMicrosecondsOffset = GG_INT64_C(11644473600000000);
-
-bool Time::high_resolution_timer_enabled_ = false;
-int Time::high_resolution_timer_activated_ = 0;
 
 
 Time Time::Now() {
@@ -165,44 +172,54 @@ FILETIME Time::ToFileTime() const {
 
 
 void Time::EnableHighResolutionTimer(bool enable) {
-  
-  static PlatformThreadId my_thread = PlatformThread::CurrentId();
-  DCHECK(PlatformThread::CurrentId() == my_thread);
-
-  if (high_resolution_timer_enabled_ == enable)
+  base::AutoLock lock(g_high_res_lock.Get());
+  if (g_high_res_timer_enabled == enable)
     return;
-
-  high_resolution_timer_enabled_ = enable;
+  g_high_res_timer_enabled = enable;
+  if (!g_high_res_timer_count)
+    return;
+  
+  
+  
+  
+  
+  if (enable) {
+    timeEndPeriod(kMinTimerIntervalLowResMs);
+    timeBeginPeriod(kMinTimerIntervalHighResMs);
+  } else {
+    timeEndPeriod(kMinTimerIntervalHighResMs);
+    timeBeginPeriod(kMinTimerIntervalLowResMs);
+  }
 }
 
 
 bool Time::ActivateHighResolutionTimer(bool activating) {
-  if (!high_resolution_timer_enabled_ && activating)
-    return false;
+  
+  
+  
+  const uint32_t max = std::numeric_limits<uint32_t>::max();
 
-  
-  
-  const int kMinTimerIntervalMs = 1;
-  MMRESULT result;
+  base::AutoLock lock(g_high_res_lock.Get());
+  UINT period = g_high_res_timer_enabled ? kMinTimerIntervalHighResMs
+                                         : kMinTimerIntervalLowResMs;
   if (activating) {
-    result = timeBeginPeriod(kMinTimerIntervalMs);
-    high_resolution_timer_activated_++;
+    DCHECK(g_high_res_timer_count != max);
+    ++g_high_res_timer_count;
+    if (g_high_res_timer_count == 1)
+      timeBeginPeriod(period);
   } else {
-    result = timeEndPeriod(kMinTimerIntervalMs);
-    high_resolution_timer_activated_--;
+    DCHECK(g_high_res_timer_count != 0);
+    --g_high_res_timer_count;
+    if (g_high_res_timer_count == 0)
+      timeEndPeriod(period);
   }
-  return result == TIMERR_NOERROR;
+  return (period == kMinTimerIntervalHighResMs);
 }
 
 
 bool Time::IsHighResolutionTimerInUse() {
-  
-  
-  
-  
-  
-  return high_resolution_timer_enabled_ &&
-      high_resolution_timer_activated_ > 0;
+  base::AutoLock lock(g_high_res_lock.Get());
+  return g_high_res_timer_enabled && g_high_res_timer_count > 0;
 }
 
 
@@ -210,14 +227,14 @@ Time Time::FromExploded(bool is_local, const Exploded& exploded) {
   
   
   SYSTEMTIME st;
-  st.wYear = exploded.year;
-  st.wMonth = exploded.month;
-  st.wDayOfWeek = exploded.day_of_week;
-  st.wDay = exploded.day_of_month;
-  st.wHour = exploded.hour;
-  st.wMinute = exploded.minute;
-  st.wSecond = exploded.second;
-  st.wMilliseconds = exploded.millisecond;
+  st.wYear = static_cast<WORD>(exploded.year);
+  st.wMonth = static_cast<WORD>(exploded.month);
+  st.wDayOfWeek = static_cast<WORD>(exploded.day_of_week);
+  st.wDay = static_cast<WORD>(exploded.day_of_month);
+  st.wHour = static_cast<WORD>(exploded.hour);
+  st.wMinute = static_cast<WORD>(exploded.minute);
+  st.wSecond = static_cast<WORD>(exploded.second);
+  st.wMilliseconds = static_cast<WORD>(exploded.millisecond);
 
   FILETIME ft;
   bool success = true;
@@ -359,21 +376,24 @@ bool IsBuggyAthlon(const base::CPU& cpu) {
 class HighResNowSingleton {
  public:
   HighResNowSingleton()
-    : ticks_per_second_(0),
-      skew_(0) {
-    InitializeClock();
+      : ticks_per_second_(0),
+        skew_(0) {
 
     base::CPU cpu;
     if (IsBuggyAthlon(cpu))
-      DisableHighResClock();
+      return;
+
+    
+    LARGE_INTEGER ticks_per_sec = {0};
+    if (!QueryPerformanceFrequency(&ticks_per_sec))
+      return; 
+    ticks_per_second_ = ticks_per_sec.QuadPart;
+
+    skew_ = UnreliableNow() - ReliableNow();
   }
 
   bool IsUsingHighResClock() {
-    return ticks_per_second_ != 0.0;
-  }
-
-  void DisableHighResClock() {
-    ticks_per_second_ = 0.0;
+    return ticks_per_second_ != 0;
   }
 
   TimeDelta Now() {
@@ -393,11 +413,14 @@ class HighResNowSingleton {
   int64 QPCValueToMicroseconds(LONGLONG qpc_value) {
     if (!ticks_per_second_)
       return 0;
-
+    
+    
+    if (qpc_value < Time::kQPCOverflowThreshold)
+      return qpc_value * Time::kMicrosecondsPerSecond / ticks_per_second_;
     
     
     int64 whole_seconds = qpc_value / ticks_per_second_;
-    int64 leftover_ticks = qpc_value % ticks_per_second_;
+    int64 leftover_ticks = qpc_value - (whole_seconds * ticks_per_second_);
     int64 microseconds = (whole_seconds * Time::kMicrosecondsPerSecond) +
                          ((leftover_ticks * Time::kMicrosecondsPerSecond) /
                           ticks_per_second_);
@@ -405,16 +428,6 @@ class HighResNowSingleton {
   }
 
  private:
-  
-  void InitializeClock() {
-    LARGE_INTEGER ticks_per_sec = {0};
-    if (!QueryPerformanceFrequency(&ticks_per_sec))
-      return;  
-    ticks_per_second_ = ticks_per_sec.QuadPart;
-
-    skew_ = UnreliableNow() - ReliableNow();
-  }
-
   
   int64 UnreliableNow() {
     LARGE_INTEGER now;
@@ -443,17 +456,34 @@ TimeDelta HighResNowWrapper() {
 }
 
 typedef TimeDelta (*NowFunction)(void);
-NowFunction now_function = RolloverProtectedNow;
 
 bool CPUReliablySupportsHighResTime() {
   base::CPU cpu;
-  if (!cpu.has_non_stop_time_stamp_counter())
+  if (!cpu.has_non_stop_time_stamp_counter() ||
+      !GetHighResNowSingleton()->IsUsingHighResClock())
     return false;
 
   if (IsBuggyAthlon(cpu))
     return false;
 
   return true;
+}
+
+TimeDelta InitialNowFunction();
+
+volatile NowFunction now_function = InitialNowFunction;
+
+TimeDelta InitialNowFunction() {
+  if (!CPUReliablySupportsHighResTime()) {
+    InterlockedExchangePointer(
+        reinterpret_cast<void* volatile*>(&now_function),
+        &RolloverProtectedNow);
+    return RolloverProtectedNow();
+  }
+  InterlockedExchangePointer(
+        reinterpret_cast<void* volatile*>(&now_function),
+        &HighResNowWrapper);
+  return HighResNowWrapper();
 }
 
 }  
@@ -467,16 +497,6 @@ TimeTicks::TickFunctionType TimeTicks::SetMockTickFunction(
   rollover_ms = 0;
   last_seen_now = 0;
   return old;
-}
-
-
-bool TimeTicks::SetNowIsHighResNowIfSupported() {
-  if (!CPUReliablySupportsHighResTime()) {
-    return false;
-  }
-
-  now_function = HighResNowWrapper;
-  return true;
 }
 
 

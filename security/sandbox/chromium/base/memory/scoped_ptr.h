@@ -74,16 +74,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 #ifndef BASE_MEMORY_SCOPED_PTR_H_
 #define BASE_MEMORY_SCOPED_PTR_H_
 
@@ -184,12 +174,23 @@ template <typename T> struct IsNotRefCounted {
   };
 };
 
+template <typename T>
+struct ShouldAbortOnSelfReset {
+  template <typename U>
+  static NoType Test(const typename U::AllowSelfReset*);
+
+  template <typename U>
+  static YesType Test(...);
+
+  static const bool value = sizeof(Test<T>(0)) == sizeof(YesType);
+};
+
 
 
 template <class T, class D>
 class scoped_ptr_impl {
  public:
-  explicit scoped_ptr_impl(T* p) : data_(p) { }
+  explicit scoped_ptr_impl(T* p) : data_(p) {}
 
   
   scoped_ptr_impl(T* p, const D& d) : data_(p, d) {}
@@ -214,7 +215,7 @@ class scoped_ptr_impl {
   }
 
   ~scoped_ptr_impl() {
-    if (data_.ptr != NULL) {
+    if (data_.ptr != nullptr) {
       
       
       static_cast<D&>(data_)(data_.ptr);
@@ -223,8 +224,8 @@ class scoped_ptr_impl {
 
   void reset(T* p) {
     
-    if (p != NULL && p == data_.ptr)
-      abort();
+    
+    assert(!ShouldAbortOnSelfReset<D>::value || p == nullptr || p != data_.ptr);
 
     
     
@@ -241,8 +242,8 @@ class scoped_ptr_impl {
     
     
     T* old = data_.ptr;
-    data_.ptr = NULL;
-    if (old != NULL)
+    data_.ptr = nullptr;
+    if (old != nullptr)
       static_cast<D&>(data_)(old);
     data_.ptr = p;
   }
@@ -263,7 +264,7 @@ class scoped_ptr_impl {
 
   T* release() {
     T* old_ptr = data_.ptr;
-    data_.ptr = NULL;
+    data_.ptr = nullptr;
     return old_ptr;
   }
 
@@ -308,7 +309,7 @@ class scoped_ptr_impl {
 
 template <class T, class D = base::DefaultDeleter<T> >
 class scoped_ptr {
-  MOVE_ONLY_TYPE_FOR_CPP_03(scoped_ptr, RValue)
+  MOVE_ONLY_TYPE_WITH_MOVE_CONSTRUCTOR_FOR_CPP_03(scoped_ptr)
 
   COMPILE_ASSERT(base::internal::IsNotRefCounted<T>::value,
                  T_is_refcounted_type_and_needs_scoped_refptr);
@@ -319,13 +320,16 @@ class scoped_ptr {
   typedef D deleter_type;
 
   
-  scoped_ptr() : impl_(NULL) { }
+  scoped_ptr() : impl_(nullptr) {}
 
   
-  explicit scoped_ptr(element_type* p) : impl_(p) { }
+  explicit scoped_ptr(element_type* p) : impl_(p) {}
 
   
-  scoped_ptr(element_type* p, const D& d) : impl_(p, d) { }
+  scoped_ptr(element_type* p, const D& d) : impl_(p, d) {}
+
+  
+  scoped_ptr(decltype(nullptr)) : impl_(nullptr) {}
 
   
   
@@ -338,14 +342,12 @@ class scoped_ptr {
   
   
   template <typename U, typename V>
-  scoped_ptr(scoped_ptr<U, V> other) : impl_(&other.impl_) {
+  scoped_ptr(scoped_ptr<U, V>&& other)
+      : impl_(&other.impl_) {
     COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
   }
 
   
-  scoped_ptr(RValue rvalue) : impl_(&rvalue.object->impl_) { }
-
-  
   
   
   
@@ -356,7 +358,7 @@ class scoped_ptr {
   
   
   template <typename U, typename V>
-  scoped_ptr& operator=(scoped_ptr<U, V> rhs) {
+  scoped_ptr& operator=(scoped_ptr<U, V>&& rhs) {
     COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
     impl_.TakeState(&rhs.impl_);
     return *this;
@@ -364,16 +366,23 @@ class scoped_ptr {
 
   
   
-  void reset(element_type* p = NULL) { impl_.reset(p); }
+  scoped_ptr& operator=(decltype(nullptr)) {
+    reset();
+    return *this;
+  }
+
+  
+  
+  void reset(element_type* p = nullptr) { impl_.reset(p); }
 
   
   
   element_type& operator*() const {
-    assert(impl_.get() != NULL);
+    assert(impl_.get() != nullptr);
     return *impl_.get();
   }
   element_type* operator->() const  {
-    assert(impl_.get() != NULL);
+    assert(impl_.get() != nullptr);
     return impl_.get();
   }
   element_type* get() const { return impl_.get(); }
@@ -394,7 +403,9 @@ class scoped_ptr {
       scoped_ptr::*Testable;
 
  public:
-  operator Testable() const { return impl_.get() ? &scoped_ptr::impl_ : NULL; }
+  operator Testable() const {
+    return impl_.get() ? &scoped_ptr::impl_ : nullptr;
+  }
 
   
   
@@ -411,20 +422,8 @@ class scoped_ptr {
   
   
   
-  
   element_type* release() WARN_UNUSED_RESULT {
     return impl_.release();
-  }
-
-  
-  
-  
-  
-  
-  
-  template <typename PassAsType>
-  scoped_ptr<PassAsType> PassAs() {
-    return scoped_ptr<PassAsType>(Pass());
   }
 
  private:
@@ -445,7 +444,7 @@ class scoped_ptr {
 
 template <class T, class D>
 class scoped_ptr<T[], D> {
-  MOVE_ONLY_TYPE_FOR_CPP_03(scoped_ptr, RValue)
+  MOVE_ONLY_TYPE_WITH_MOVE_CONSTRUCTOR_FOR_CPP_03(scoped_ptr)
 
  public:
   
@@ -453,7 +452,7 @@ class scoped_ptr<T[], D> {
   typedef D deleter_type;
 
   
-  scoped_ptr() : impl_(NULL) { }
+  scoped_ptr() : impl_(nullptr) {}
 
   
   
@@ -468,27 +467,34 @@ class scoped_ptr<T[], D> {
   
   
   
-  
-  
-  
-  explicit scoped_ptr(element_type* array) : impl_(array) { }
+  explicit scoped_ptr(element_type* array) : impl_(array) {}
 
   
-  scoped_ptr(RValue rvalue) : impl_(&rvalue.object->impl_) { }
+  scoped_ptr(decltype(nullptr)) : impl_(nullptr) {}
 
   
-  scoped_ptr& operator=(RValue rhs) {
-    impl_.TakeState(&rhs.object->impl_);
+  scoped_ptr(scoped_ptr&& other) : impl_(&other.impl_) {}
+
+  
+  scoped_ptr& operator=(scoped_ptr&& rhs) {
+    impl_.TakeState(&rhs.impl_);
     return *this;
   }
 
   
   
-  void reset(element_type* array = NULL) { impl_.reset(array); }
+  scoped_ptr& operator=(decltype(nullptr)) {
+    reset();
+    return *this;
+  }
+
+  
+  
+  void reset(element_type* array = nullptr) { impl_.reset(array); }
 
   
   element_type& operator[](size_t i) const {
-    assert(impl_.get() != NULL);
+    assert(impl_.get() != nullptr);
     return impl_.get()[i];
   }
   element_type* get() const { return impl_.get(); }
@@ -504,7 +510,9 @@ class scoped_ptr<T[], D> {
       scoped_ptr::*Testable;
 
  public:
-  operator Testable() const { return impl_.get() ? &scoped_ptr::impl_ : NULL; }
+  operator Testable() const {
+    return impl_.get() ? &scoped_ptr::impl_ : nullptr;
+  }
 
   
   
@@ -517,7 +525,6 @@ class scoped_ptr<T[], D> {
     impl_.swap(p2.impl_);
   }
 
-  
   
   
   

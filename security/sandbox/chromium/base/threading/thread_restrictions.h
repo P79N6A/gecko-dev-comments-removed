@@ -15,23 +15,15 @@
 #define ENABLE_THREAD_RESTRICTIONS 0
 #endif
 
-class AcceleratedPresenter;
 class BrowserProcessImpl;
 class HistogramSynchronizer;
-class MetricsService;
 class NativeBackendKWallet;
 class ScopedAllowWaitForLegacyWebViewApi;
-class TestingAutomationProvider;
 
-namespace browser_sync {
-class NonFrontendDataTypeController;
-class UIModelWorker;
-}
 namespace cc {
 class CompletionEvent;
 }
 namespace chromeos {
-class AudioMixerAlsa;
 class BlockingMethodCaller;
 namespace system {
 class StatisticsProviderImpl;
@@ -42,9 +34,9 @@ class Predictor;
 }
 namespace content {
 class BrowserGpuChannelHostFactory;
+class BrowserGpuMemoryBufferManager;
 class BrowserShutdownProfileDumper;
 class BrowserTestBase;
-class GLHelper;
 class GpuChannelHost;
 class NestedMessagePumpAndroid;
 class RenderWidgetResizeHelper;
@@ -58,17 +50,12 @@ namespace disk_cache {
 class BackendImpl;
 class InFlightIO;
 }
-namespace media {
-class AudioOutputController;
-}
 namespace mojo {
 namespace common {
 class WatcherThreadManager;
 }
 }
 namespace net {
-class FileStreamPosix;
-class FileStreamWin;
 namespace internal {
 class AddressTrackerLinux;
 }
@@ -189,7 +176,6 @@ class BASE_EXPORT ThreadRestrictions {
   friend class content::ScopedAllowWaitForAndroidLayoutTests;
   friend class ::HistogramSynchronizer;
   friend class ::ScopedAllowWaitForLegacyWebViewApi;
-  friend class ::TestingAutomationProvider;
   friend class cc::CompletionEvent;
   friend class mojo::common::WatcherThreadManager;
   friend class remoting::AutoThread;
@@ -203,27 +189,20 @@ class BASE_EXPORT ThreadRestrictions {
 
   
   
-  friend class ::chromeos::AudioMixerAlsa;        
   friend class ::chromeos::BlockingMethodCaller;  
   friend class ::chromeos::system::StatisticsProviderImpl;  
-  friend class browser_sync::NonFrontendDataTypeController;  
-  friend class browser_sync::UIModelWorker;       
   friend class chrome_browser_net::Predictor;     
   friend class
       content::BrowserGpuChannelHostFactory;      
-  friend class content::GLHelper;                 
+  friend class
+      content::BrowserGpuMemoryBufferManager;     
   friend class content::GpuChannelHost;           
   friend class content::TextInputClientMac;       
   friend class dbus::Bus;                         
   friend class disk_cache::BackendImpl;           
   friend class disk_cache::InFlightIO;            
-  friend class media::AudioOutputController;      
-  friend class net::FileStreamPosix;              
-  friend class net::FileStreamWin;                
   friend class net::internal::AddressTrackerLinux;  
-  friend class ::AcceleratedPresenter;            
   friend class ::BrowserProcessImpl;              
-  friend class ::MetricsService;                  
   friend class ::NativeBackendKWallet;            
   
 

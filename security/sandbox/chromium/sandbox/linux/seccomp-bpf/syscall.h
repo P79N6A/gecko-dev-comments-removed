@@ -5,10 +5,16 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_SYSCALL_H__
 #define SANDBOX_LINUX_SECCOMP_BPF_SYSCALL_H__
 
+#include <signal.h>
 #include <stdint.h>
 
 #include "base/macros.h"
 #include "sandbox/sandbox_export.h"
+
+
+#if defined(OS_ANDROID)
+#include "sandbox/linux/services/android_ucontext.h"
+#endif
 
 namespace sandbox {
 
@@ -16,6 +22,13 @@ namespace sandbox {
 
 class SANDBOX_EXPORT Syscall {
  public:
+  
+  
+  
+  
+  
+  static intptr_t InvalidCall();
+
   
   
   
@@ -112,6 +125,11 @@ class SANDBOX_EXPORT Syscall {
     return Call(nr, 0, 0, 0, 0, 0, 0, 0, 0);
   }
 
+  
+  
+  
+  static void PutValueInUcontext(intptr_t ret_val, ucontext_t* ctx);
+
  private:
   
   
@@ -128,6 +146,21 @@ class SANDBOX_EXPORT Syscall {
                        intptr_t p5,
                        intptr_t p6,
                        intptr_t p7);
+
+#if defined(__mips__)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static intptr_t SandboxSyscallRaw(int nr,
+                                    const intptr_t* args,
+                                    intptr_t* err_stat);
+#endif  
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(Syscall);
 };

@@ -11,20 +11,29 @@
 
 
 
+
 #ifndef BUILD_BUILD_CONFIG_H_
 #define BUILD_BUILD_CONFIG_H_
-
-#if defined(__APPLE__)
-#include <TargetConditionals.h>
-#endif
 
 
 #if defined(__native_client__)
 
 #define OS_NACL 1
+
+
+
+#if defined(__native_client_nonsfi__)
+#define OS_NACL_NONSFI
+#else
+#define OS_NACL_SFI
+#endif
 #elif defined(ANDROID)
 #define OS_ANDROID 1
 #elif defined(__APPLE__)
+
+
+
+#include <TargetConditionals.h>
 #define OS_MACOSX 1
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 #define OS_IOS 1
@@ -113,10 +122,17 @@
 #define ARCH_CPU_32_BITS 1
 #define ARCH_CPU_LITTLE_ENDIAN 1
 #elif defined(__MIPSEL__)
+#if defined(__LP64__)
+#define ARCH_CPU_MIPS64_FAMILY 1
+#define ARCH_CPU_MIPS64EL 1
+#define ARCH_CPU_64_BITS 1
+#define ARCH_CPU_LITTLE_ENDIAN 1
+#else
 #define ARCH_CPU_MIPS_FAMILY 1
 #define ARCH_CPU_MIPSEL 1
 #define ARCH_CPU_32_BITS 1
 #define ARCH_CPU_LITTLE_ENDIAN 1
+#endif
 #else
 #error Please add support for your architecture in build/build_config.h
 #endif

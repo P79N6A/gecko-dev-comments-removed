@@ -37,7 +37,7 @@ class BindStateBase : public RefCountedThreadSafe<BindStateBase> {
 class BASE_EXPORT CallbackBase {
  public:
   
-  bool is_null() const;
+  bool is_null() const { return bind_state_.get() == NULL; }
 
   
   void Reset();
@@ -77,7 +77,7 @@ template <typename T> struct IsMoveOnlyType {
   template <typename U>
   static NoType Test(...);
 
-  static const bool value = sizeof(Test<T>(0)) == sizeof(YesType) &&
+  static const bool value = sizeof((Test<T>(0))) == sizeof(YesType) &&
                             !is_const<T>::value;
 };
 

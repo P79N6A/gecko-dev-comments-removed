@@ -5,8 +5,9 @@
 #ifndef SANDBOX_WIN_SRC_POLICY_ENGINE_OPCODES_H_
 #define SANDBOX_WIN_SRC_POLICY_ENGINE_OPCODES_H_
 
-#include "sandbox/win/src/policy_engine_params.h"
 #include "base/basictypes.h"
+#include "base/numerics/safe_conversions.h"
+#include "sandbox/win/src/policy_engine_params.h"
 
 
 
@@ -74,8 +75,8 @@ enum OpcodeID {
   OP_ALWAYS_FALSE,  
   OP_ALWAYS_TRUE,  
   OP_NUMBER_MATCH,  
-  OP_ULONG_MATCH_RANGE,  
-  OP_ULONG_AND_MATCH,  
+  OP_NUMBER_MATCH_RANGE,  
+  OP_NUMBER_AND_MATCH,  
   OP_WSTRING_MATCH,  
   OP_ACTION  
 };
@@ -194,8 +195,8 @@ class PolicyOpcode {
   }
 
   
-  void SetOptions(int16 options) {
-    options_ = options;
+  void SetOptions(uint32 options) {
+    options_ = base::checked_cast<uint16>(options);
   }
 
  private:
@@ -218,7 +219,10 @@ class PolicyOpcode {
                            MatchContext* match);
   OpcodeID opcode_id_;
   int16 parameter_;
-  int16 options_;
+  
+  
+  
+  uint16 options_;
   OpcodeArgument arguments_[PolicyOpcode::kArgumentCount];
 };
 
@@ -306,24 +310,26 @@ class OpcodeFactory {
   
   
   
-  PolicyOpcode* MakeOpNumberMatch(int16 selected_param, unsigned long match,
+  PolicyOpcode* MakeOpNumberMatch(int16 selected_param,
+                                  uint32 match,
                                   uint32 options);
 
   
   
   
   
-  PolicyOpcode* MakeOpVoidPtrMatch(int16 selected_param, const void* match,
+  PolicyOpcode* MakeOpVoidPtrMatch(int16 selected_param,
+                                   const void* match,
                                    uint32 options);
 
   
   
   
   
-  PolicyOpcode* MakeOpUlongMatchRange(int16 selected_param,
-                                      unsigned long lower_bound,
-                                      unsigned long upper_bound,
-                                      uint32 options);
+  PolicyOpcode* MakeOpNumberMatchRange(int16 selected_param,
+                                       uint32 lower_bound,
+                                       uint32 upper_bound,
+                                       uint32 options);
 
   
   
@@ -348,9 +354,9 @@ class OpcodeFactory {
   
   
   
-  PolicyOpcode* MakeOpUlongAndMatch(int16 selected_param,
-                                    unsigned long match,
-                                    uint32 options);
+  PolicyOpcode* MakeOpNumberAndMatch(int16 selected_param,
+                                     uint32 match,
+                                     uint32 options);
 
  private:
   

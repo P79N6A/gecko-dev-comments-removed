@@ -7,20 +7,6 @@
 #ifndef BASE_ATOMICOPS_INTERNALS_X86_GCC_H_
 #define BASE_ATOMICOPS_INTERNALS_X86_GCC_H_
 
-#include "base/base_export.h"
-
-
-
-
-
-
-struct AtomicOps_x86CPUFeatureStruct {
-  bool has_amd_lock_mb_bug; 
-                            
-};
-BASE_EXPORT extern struct AtomicOps_x86CPUFeatureStruct
-    AtomicOps_Internalx86CPUFeatures;
-
 #define ATOMICOPS_COMPILER_BARRIER() __asm__ __volatile__("" : : : "memory")
 
 namespace base {

@@ -44,8 +44,8 @@ ResultCode CreateAltWindowStation(HWINSTA* winsta) {
 
   
   
-  
-  *winsta = ::CreateWindowStationW(NULL, 0, WINSTA_ALL_ACCESS, &attributes);
+  *winsta = ::CreateWindowStationW(
+      NULL, 0, GENERIC_READ | WINSTA_CREATEDESKTOP, &attributes);
   LocalFree(attributes.lpSecurityDescriptor);
 
   if (*winsta)
@@ -84,8 +84,12 @@ ResultCode CreateAltDesktop(HWINSTA winsta, HDESK* desktop) {
   }
 
   
-  
-  *desktop = ::CreateDesktop(desktop_name.c_str(), NULL, NULL, 0, GENERIC_ALL,
+  *desktop = ::CreateDesktop(desktop_name.c_str(),
+                             NULL,
+                             NULL,
+                             0,
+                             DESKTOP_CREATEWINDOW | DESKTOP_READOBJECTS |
+                                 READ_CONTROL | WRITE_DAC | WRITE_OWNER,
                              &attributes);
   ::LocalFree(attributes.lpSecurityDescriptor);
 

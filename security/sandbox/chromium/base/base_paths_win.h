@@ -25,7 +25,6 @@ enum {
   DIR_START_MENU,         
 
   DIR_APP_DATA,           
-  DIR_LOCAL_APP_DATA_LOW, 
   DIR_LOCAL_APP_DATA,     
                           
   DIR_COMMON_APP_DATA,    
@@ -37,8 +36,6 @@ enum {
   DIR_COMMON_DESKTOP,     
                           
   DIR_USER_QUICK_LAUNCH,  
-  DIR_DEFAULT_USER_QUICK_LAUNCH,  
-                                  
   DIR_TASKBAR_PINS,       
                           
   DIR_WINDOWS_FONTS,      

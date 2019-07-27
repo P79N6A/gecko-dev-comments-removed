@@ -28,8 +28,11 @@
 #ifndef BASE_ATOMICOPS_H_
 #define BASE_ATOMICOPS_H_
 
+#include <cassert>  
+                    
 #include <stdint.h>
 
+#include "base/base_export.h"
 #include "build/build_config.h"
 
 #if defined(OS_WIN) && defined(ARCH_CPU_64_BITS)
@@ -138,25 +141,64 @@ Atomic64 Release_Load(volatile const Atomic64* ptr);
 }  
 
 
-#if defined(THREAD_SANITIZER)
-#include "base/atomicops_internals_tsan.h"
-#elif defined(OS_WIN) && defined(COMPILER_MSVC) && defined(ARCH_CPU_X86_FAMILY)
-#include "base/atomicops_internals_x86_msvc.h"
-#elif defined(OS_MACOSX)
-#include "base/atomicops_internals_mac.h"
-#elif defined(OS_NACL)
-#include "base/atomicops_internals_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_ARMEL)
-#include "base/atomicops_internals_arm_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_ARM64)
-#include "base/atomicops_internals_arm64_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_X86_FAMILY)
-#include "base/atomicops_internals_x86_gcc.h"
-#elif defined(COMPILER_GCC) && defined(ARCH_CPU_MIPS_FAMILY)
-#include "base/atomicops_internals_mips_gcc.h"
-#else
-#error "Atomic operations are not supported on your platform"
+
+
+
+
+#if defined(__i386__) || defined(__x86_64__)
+
+
+
+
+
+struct AtomicOps_x86CPUFeatureStruct {
+  bool has_amd_lock_mb_bug; 
+                            
+  
+  
+  
+  
+  
+  
+  bool has_sse2;            
+  bool has_cmpxchg16b;      
+};
+BASE_EXPORT extern struct AtomicOps_x86CPUFeatureStruct
+    AtomicOps_Internalx86CPUFeatures;
 #endif
+
+
+
+
+
+
+#if ((__cplusplus >= 201103L) &&                            \
+     ((defined(__GLIBCXX__) && (__GLIBCXX__ > 20110216)) || \
+      (defined(_LIBCPP_VERSION) && (_LIBCPP_STD_VER >= 11))))
+#  include "base/atomicops_internals_portable.h"
+#else  
+#  if defined(THREAD_SANITIZER)
+#    error "Thread sanitizer must use the portable atomic operations"
+#  elif (defined(OS_WIN) && defined(COMPILER_MSVC) && \
+         defined(ARCH_CPU_X86_FAMILY))
+#    include "base/atomicops_internals_x86_msvc.h"
+#  elif defined(OS_MACOSX)
+#    include "base/atomicops_internals_mac.h"
+#  elif defined(OS_NACL)
+#    include "base/atomicops_internals_gcc.h"
+#  elif defined(COMPILER_GCC) && defined(ARCH_CPU_ARMEL)
+#    include "base/atomicops_internals_arm_gcc.h"
+#  elif defined(COMPILER_GCC) && defined(ARCH_CPU_ARM64)
+#    include "base/atomicops_internals_arm64_gcc.h"
+#  elif defined(COMPILER_GCC) && defined(ARCH_CPU_X86_FAMILY)
+#    include "base/atomicops_internals_x86_gcc.h"
+#  elif (defined(COMPILER_GCC) && \
+         (defined(ARCH_CPU_MIPS_FAMILY) || defined(ARCH_CPU_MIPS64_FAMILY)))
+#    include "base/atomicops_internals_mips_gcc.h"
+#  else
+#    error "Atomic operations are not supported on your platform"
+#  endif
+#endif   
 
 
 

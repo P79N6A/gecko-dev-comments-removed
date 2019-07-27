@@ -4,6 +4,10 @@
 
 #include "sandbox/win/src/resolver.h"
 
+
+
+#include <new>
+
 #include "sandbox/win/src/sandbox_nt_util.h"
 
 namespace {
@@ -53,7 +57,7 @@ bool ResolverThunk::SetInternalThunk(void* storage, size_t storage_bytes,
   if (storage_bytes < sizeof(InternalThunk))
     return false;
 
-  InternalThunk* thunk = new(storage, NT_PLACE) InternalThunk;
+  InternalThunk* thunk = new(storage) InternalThunk;
   thunk->interceptor_function = reinterpret_cast<ULONG_PTR>(interceptor);
 
   return true;

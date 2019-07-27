@@ -5,10 +5,7 @@
 #include "build/build_config.h"
 
 #if defined(COMPILER_MSVC)
-
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #endif
 
 #include "base/location.h"

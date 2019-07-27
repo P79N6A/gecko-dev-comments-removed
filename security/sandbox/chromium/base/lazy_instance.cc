@@ -8,7 +8,6 @@
 #include "base/atomicops.h"
 #include "base/basictypes.h"
 #include "base/threading/platform_thread.h"
-#include "base/third_party/dynamic_annotations/dynamic_annotations.h"
 
 namespace base {
 namespace internal {
@@ -42,9 +41,6 @@ void CompleteLazyInstance(subtle::AtomicWord* state,
                           subtle::AtomicWord new_instance,
                           void* lazy_instance,
                           void (*dtor)(void*)) {
-  
-  ANNOTATE_HAPPENS_BEFORE(state);
-
   
   
   

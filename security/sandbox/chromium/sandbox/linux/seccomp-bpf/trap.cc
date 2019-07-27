@@ -7,14 +7,15 @@
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
-#include <sys/prctl.h>
 #include <sys/syscall.h>
 
+#include <algorithm>
 #include <limits>
 
 #include "base/logging.h"
-#include "sandbox/linux/seccomp-bpf/codegen.h"
+#include "build/build_config.h"
 #include "sandbox/linux/seccomp-bpf/die.h"
+#include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #include "sandbox/linux/seccomp-bpf/syscall.h"
 
 
@@ -23,6 +24,12 @@
 #endif
 
 namespace {
+
+struct arch_sigsys {
+  void* ip;
+  int nr;
+  unsigned int arch;
+};
 
 const int kCapacityIncrement = 20;
 
@@ -97,7 +104,7 @@ Trap::Trap()
   }
 }
 
-Trap* Trap::GetInstance() {
+bpf_dsl::TrapRegistry* Trap::Registry() {
   
   
   
@@ -150,10 +157,19 @@ void Trap::SigSys(int nr, siginfo_t* info, void* void_context) {
   struct arch_sigsys sigsys;
   memcpy(&sigsys, &info->_sifields, sizeof(sigsys));
 
+#if defined(__mips__)
+  
+  
+  
+  bool sigsys_nr_is_bad = sigsys.nr != static_cast<int>(SECCOMP_SYSCALL(ctx)) &&
+                          sigsys.nr != static_cast<int>(SECCOMP_PARM1(ctx));
+#else
+  bool sigsys_nr_is_bad = sigsys.nr != static_cast<int>(SECCOMP_SYSCALL(ctx));
+#endif
+
   
   if (sigsys.ip != reinterpret_cast<void*>(SECCOMP_IP(ctx)) ||
-      sigsys.nr != static_cast<int>(SECCOMP_SYSCALL(ctx)) ||
-      sigsys.arch != SECCOMP_ARCH) {
+      sigsys_nr_is_bad || sigsys.arch != SECCOMP_ARCH) {
     
     
     
@@ -168,16 +184,31 @@ void Trap::SigSys(int nr, siginfo_t* info, void* void_context) {
     if (sigsys.nr == __NR_clone) {
       RAW_SANDBOX_DIE("Cannot call clone() from an UnsafeTrap() handler.");
     }
-    rc = Syscall::Call(sigsys.nr,
+#if defined(__mips__)
+    
+    
+    
+    rc = Syscall::Call(SECCOMP_SYSCALL(ctx),
+                       SECCOMP_PARM1(ctx),
+                       SECCOMP_PARM2(ctx),
+                       SECCOMP_PARM3(ctx),
+                       SECCOMP_PARM4(ctx),
+                       SECCOMP_PARM5(ctx),
+                       SECCOMP_PARM6(ctx),
+                       SECCOMP_PARM7(ctx),
+                       SECCOMP_PARM8(ctx));
+#else
+    rc = Syscall::Call(SECCOMP_SYSCALL(ctx),
                        SECCOMP_PARM1(ctx),
                        SECCOMP_PARM2(ctx),
                        SECCOMP_PARM3(ctx),
                        SECCOMP_PARM4(ctx),
                        SECCOMP_PARM5(ctx),
                        SECCOMP_PARM6(ctx));
+#endif  
   } else {
-    const ErrorCode& err = trap_array_[info->si_errno - 1];
-    if (!err.safe_) {
+    const TrapKey& trap = trap_array_[info->si_errno - 1];
+    if (!trap.safe) {
       SetIsInSigHandler();
     }
 
@@ -185,7 +216,9 @@ void Trap::SigSys(int nr, siginfo_t* info, void* void_context) {
     
     
     struct arch_seccomp_data data = {
-        sigsys.nr, SECCOMP_ARCH, reinterpret_cast<uint64_t>(sigsys.ip),
+        static_cast<int>(SECCOMP_SYSCALL(ctx)),
+        SECCOMP_ARCH,
+        reinterpret_cast<uint64_t>(sigsys.ip),
         {static_cast<uint64_t>(SECCOMP_PARM1(ctx)),
          static_cast<uint64_t>(SECCOMP_PARM2(ctx)),
          static_cast<uint64_t>(SECCOMP_PARM3(ctx)),
@@ -195,13 +228,13 @@ void Trap::SigSys(int nr, siginfo_t* info, void* void_context) {
 
     
     
-    rc = err.fnc_(data, err.aux_);
+    rc = trap.fnc(data, const_cast<void*>(trap.aux));
   }
 
   
   
   
-  SECCOMP_RESULT(ctx) = static_cast<greg_t>(rc);
+  Syscall::PutValueInUcontext(rc, ctx);
   errno = old_errno;
 
   return;
@@ -217,11 +250,11 @@ bool Trap::TrapKey::operator<(const TrapKey& o) const {
   }
 }
 
-ErrorCode Trap::MakeTrap(TrapFnc fnc, const void* aux, bool safe) {
-  return GetInstance()->MakeTrapImpl(fnc, aux, safe);
+uint16_t Trap::MakeTrap(TrapFnc fnc, const void* aux, bool safe) {
+  return Registry()->Add(fnc, aux, safe);
 }
 
-ErrorCode Trap::MakeTrapImpl(TrapFnc fnc, const void* aux, bool safe) {
+uint16_t Trap::Add(TrapFnc fnc, const void* aux, bool safe) {
   if (!safe && !SandboxDebuggingAllowedByUser()) {
     
     
@@ -238,13 +271,12 @@ ErrorCode Trap::MakeTrapImpl(TrapFnc fnc, const void* aux, bool safe) {
         "Cannot use unsafe traps unless CHROME_SANDBOX_DEBUGGING "
         "is enabled");
 
-    return ErrorCode();
+    return 0;
   }
 
   
   
   TrapKey key(fnc, aux, safe);
-  TrapIds::const_iterator iter = trap_ids_.find(key);
 
   
   
@@ -254,66 +286,70 @@ ErrorCode Trap::MakeTrapImpl(TrapFnc fnc, const void* aux, bool safe) {
   
   
   
-  uint16_t id;
+
+  TrapIds::const_iterator iter = trap_ids_.find(key);
   if (iter != trap_ids_.end()) {
     
     
-    id = iter->second;
-  } else {
-    
-    if (trap_array_size_ >= SECCOMP_RET_DATA  ||
-        trap_array_size_ >= std::numeric_limits<typeof(id)>::max()) {
-      
-      
-      SANDBOX_DIE("Too many SECCOMP_RET_TRAP callback instances");
-    }
-    id = trap_array_size_ + 1;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (trap_array_size_ >= trap_array_capacity_) {
-      trap_array_capacity_ += kCapacityIncrement;
-      ErrorCode* old_trap_array = trap_array_;
-      ErrorCode* new_trap_array = new ErrorCode[trap_array_capacity_];
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      memcpy(new_trap_array, trap_array_, trap_array_size_ * sizeof(ErrorCode));
-      asm volatile("" : "=r"(new_trap_array) : "0"(new_trap_array) : "memory");
-      trap_array_ = new_trap_array;
-      asm volatile("" : "=r"(trap_array_) : "0"(trap_array_) : "memory");
-
-      delete[] old_trap_array;
-    }
-    trap_ids_[key] = id;
-    trap_array_[trap_array_size_] = ErrorCode(fnc, aux, safe, id);
-    return trap_array_[trap_array_size_++];
+    return iter->second;
   }
 
-  return ErrorCode(fnc, aux, safe, id);
+  
+  if (trap_array_size_ >= SECCOMP_RET_DATA  ||
+      trap_array_size_ >= std::numeric_limits<uint16_t>::max()) {
+    
+    
+    SANDBOX_DIE("Too many SECCOMP_RET_TRAP callback instances");
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (trap_array_size_ >= trap_array_capacity_) {
+    trap_array_capacity_ += kCapacityIncrement;
+    TrapKey* old_trap_array = trap_array_;
+    TrapKey* new_trap_array = new TrapKey[trap_array_capacity_];
+    std::copy_n(old_trap_array, trap_array_size_, new_trap_array);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    asm volatile("" : "=r"(new_trap_array) : "0"(new_trap_array) : "memory");
+    trap_array_ = new_trap_array;
+    asm volatile("" : "=r"(trap_array_) : "0"(trap_array_) : "memory");
+
+    delete[] old_trap_array;
+  }
+
+  uint16_t id = trap_array_size_ + 1;
+  trap_ids_[key] = id;
+  trap_array_[trap_array_size_] = key;
+  trap_array_size_++;
+  return id;
 }
 
 bool Trap::SandboxDebuggingAllowedByUser() const {
@@ -322,18 +358,21 @@ bool Trap::SandboxDebuggingAllowedByUser() const {
 }
 
 bool Trap::EnableUnsafeTrapsInSigSysHandler() {
-  Trap* trap = GetInstance();
-  if (!trap->has_unsafe_traps_) {
+  return Registry()->EnableUnsafeTraps();
+}
+
+bool Trap::EnableUnsafeTraps() {
+  if (!has_unsafe_traps_) {
     
     
     
     
     
-    if (trap->SandboxDebuggingAllowedByUser()) {
+    if (SandboxDebuggingAllowedByUser()) {
       
       
       SANDBOX_INFO("WARNING! Disabling sandbox for debugging purposes");
-      trap->has_unsafe_traps_ = true;
+      has_unsafe_traps_ = true;
     } else {
       SANDBOX_INFO(
           "Cannot disable sandbox and use unsafe traps unless "
@@ -341,15 +380,7 @@ bool Trap::EnableUnsafeTrapsInSigSysHandler() {
     }
   }
   
-  return trap->has_unsafe_traps_;
-}
-
-ErrorCode Trap::ErrorCodeFromTrapId(uint16_t id) {
-  if (global_trap_ && id > 0 && id <= global_trap_->trap_array_size_) {
-    return global_trap_->trap_array_[id - 1];
-  } else {
-    return ErrorCode();
-  }
+  return has_unsafe_traps_;
 }
 
 Trap* Trap::global_trap_;

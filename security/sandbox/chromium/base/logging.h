@@ -450,13 +450,35 @@ const LogSeverity LOG_0 = LOG_ERROR;
 
 #else
 
+#if defined(_PREFAST_) && defined(OS_WIN)
+
+
+
+
+
+
+
+#define CHECK(condition)                \
+  __analysis_assume(!!(condition)),     \
+  LAZY_STREAM(LOG_STREAM(FATAL), false) \
+  << "Check failed: " #condition ". "
+
+#define PCHECK(condition)                \
+  __analysis_assume(!!(condition)),      \
+  LAZY_STREAM(PLOG_STREAM(FATAL), false) \
+  << "Check failed: " #condition ". "
+
+#else  
+
 #define CHECK(condition)                       \
   LAZY_STREAM(LOG_STREAM(FATAL), !(condition)) \
   << "Check failed: " #condition ". "
 
-#define PCHECK(condition) \
+#define PCHECK(condition)                       \
   LAZY_STREAM(PLOG_STREAM(FATAL), !(condition)) \
   << "Check failed: " #condition ". "
+
+#endif  
 
 
 
@@ -484,8 +506,6 @@ std::string* MakeCheckOpString(const t1& v1, const t2& v2, const char* names) {
 }
 
 
-#if !defined(COMPILER_MSVC)
-
 
 extern template BASE_EXPORT std::string* MakeCheckOpString<int, int>(
     const int&, const int&, const char* names);
@@ -501,7 +521,6 @@ std::string* MakeCheckOpString<unsigned int, unsigned long>(
 extern template BASE_EXPORT
 std::string* MakeCheckOpString<std::string, std::string>(
     const std::string&, const std::string&, const char* name);
-#endif
 
 
 
@@ -532,6 +551,7 @@ DEFINE_CHECK_OP_IMPL(GT, > )
 #define CHECK_LT(val1, val2) CHECK_OP(LT, < , val1, val2)
 #define CHECK_GE(val1, val2) CHECK_OP(GE, >=, val1, val2)
 #define CHECK_GT(val1, val2) CHECK_OP(GT, > , val1, val2)
+#define CHECK_IMPLIES(val1, val2) CHECK(!(val1) || (val2))
 
 #if defined(NDEBUG)
 #define ENABLE_DLOG 0
@@ -618,13 +638,30 @@ const LogSeverity LOG_DCHECK = LOG_INFO;
 
 
 
-#define DCHECK(condition)                                         \
-  LAZY_STREAM(LOG_STREAM(DCHECK), DCHECK_IS_ON && !(condition))   \
+#if defined(_PREFAST_) && defined(OS_WIN)
+
+
+#define DCHECK(condition)                                               \
+  __analysis_assume(!!(condition)),                                     \
+  LAZY_STREAM(LOG_STREAM(DCHECK), false)                                \
   << "Check failed: " #condition ". "
 
-#define DPCHECK(condition)                                        \
-  LAZY_STREAM(PLOG_STREAM(DCHECK), DCHECK_IS_ON && !(condition))  \
+#define DPCHECK(condition)                                              \
+  __analysis_assume(!!(condition)),                                     \
+  LAZY_STREAM(PLOG_STREAM(DCHECK), false)                               \
   << "Check failed: " #condition ". "
+
+#else  
+
+#define DCHECK(condition)                                               \
+  LAZY_STREAM(LOG_STREAM(DCHECK), DCHECK_IS_ON ? !(condition) : false)  \
+  << "Check failed: " #condition ". "
+
+#define DPCHECK(condition)                                              \
+  LAZY_STREAM(PLOG_STREAM(DCHECK), DCHECK_IS_ON ? !(condition) : false) \
+  << "Check failed: " #condition ". "
+
+#endif  
 
 
 
@@ -662,8 +699,9 @@ const LogSeverity LOG_DCHECK = LOG_INFO;
 #define DCHECK_LT(val1, val2) DCHECK_OP(LT, < , val1, val2)
 #define DCHECK_GE(val1, val2) DCHECK_OP(GE, >=, val1, val2)
 #define DCHECK_GT(val1, val2) DCHECK_OP(GT, > , val1, val2)
+#define DCHECK_IMPLIES(val1, val2) DCHECK(!(val1) || (val2))
 
-#if defined(NDEBUG) && defined(OS_CHROMEOS)
+#if !DCHECK_IS_ON && defined(OS_CHROMEOS)
 #define NOTREACHED() LOG(ERROR) << "NOTREACHED() hit in " << \
     __FUNCTION__ << ". "
 #else

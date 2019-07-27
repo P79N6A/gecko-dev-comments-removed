@@ -103,6 +103,11 @@ class FileSystemPolicy {
 
 bool PreProcessName(const base::string16& path, base::string16* new_path);
 
+
+
+
+base::string16 FixNTPrefixForMatch(const base::string16& name);
+
 }  
 
 #endif  

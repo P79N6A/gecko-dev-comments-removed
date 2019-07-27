@@ -79,7 +79,7 @@ class CopyHelper {
   
   ArgType GetType() {
     COMPILE_ASSERT(sizeof(T) == sizeof(uint32), need_specialization);
-    return ULONG_TYPE;
+    return UINT32_TYPE;
   }
 
  private:

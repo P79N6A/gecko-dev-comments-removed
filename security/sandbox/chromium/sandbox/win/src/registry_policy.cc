@@ -16,9 +16,9 @@
 
 namespace {
 
-static const DWORD kAllowedRegFlags = KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS |
-                                      KEY_NOTIFY | KEY_READ | GENERIC_READ |
-                                      GENERIC_EXECUTE | READ_CONTROL;
+static const uint32 kAllowedRegFlags =
+    KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS | KEY_NOTIFY | KEY_READ |
+    GENERIC_READ | GENERIC_EXECUTE | READ_CONTROL;
 
 
 
@@ -137,7 +137,7 @@ bool RegistryPolicy::GenerateRules(const wchar_t* name,
       
       
       
-      DWORD restricted_flags = ~(kAllowedRegFlags | MAXIMUM_ALLOWED);
+      uint32 restricted_flags = ~(kAllowedRegFlags | MAXIMUM_ALLOWED);
       open.AddNumberMatch(IF_NOT, OpenKey::ACCESS, restricted_flags, AND);
       create.AddNumberMatch(IF_NOT, OpenKey::ACCESS, restricted_flags, AND);
       break;

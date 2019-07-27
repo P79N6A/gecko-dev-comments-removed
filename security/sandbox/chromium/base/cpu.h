@@ -56,6 +56,11 @@ class BASE_EXPORT CPU {
   bool has_non_stop_time_stamp_counter() const {
     return has_non_stop_time_stamp_counter_;
   }
+  
+  
+  
+  bool has_broken_neon() const { return has_broken_neon_; }
+
   IntelMicroArchitecture GetIntelMicroArchitecture() const;
   const std::string& cpu_brand() const { return cpu_brand_; }
 
@@ -81,6 +86,7 @@ class BASE_EXPORT CPU {
   bool has_avx_hardware_;
   bool has_aesni_;
   bool has_non_stop_time_stamp_counter_;
+  bool has_broken_neon_;
   std::string cpu_vendor_;
   std::string cpu_brand_;
 };

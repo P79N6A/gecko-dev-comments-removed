@@ -4,12 +4,15 @@
 
 #include "base/time/time.h"
 
+#include <ios>
 #include <limits>
 #include <ostream>
+#include <sstream>
 
 #include "base/float_util.h"
 #include "base/lazy_instance.h"
 #include "base/logging.h"
+#include "base/strings/stringprintf.h"
 #include "base/third_party/nspr/prtime.h"
 
 namespace base {
@@ -92,6 +95,10 @@ int64 TimeDelta::InMicroseconds() const {
     return std::numeric_limits<int64>::max();
   }
   return delta_;
+}
+
+std::ostream& operator<<(std::ostream& os, TimeDelta time_delta) {
+  return os << time_delta.InSecondsF() << "s";
 }
 
 
@@ -230,6 +237,20 @@ bool Time::FromStringInternal(const char* time_string,
   return true;
 }
 
+std::ostream& operator<<(std::ostream& os, Time time) {
+  Time::Exploded exploded;
+  time.UTCExplode(&exploded);
+  
+  return os << StringPrintf("%04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
+                            exploded.year,
+                            exploded.month,
+                            exploded.day_of_month,
+                            exploded.hour,
+                            exploded.minute,
+                            exploded.second,
+                            exploded.millisecond);
+}
+
 
 
 class UnixEpochSingleton {
@@ -251,6 +272,16 @@ static LazyInstance<UnixEpochSingleton>::Leaky
 
 TimeTicks TimeTicks::UnixEpoch() {
   return leaky_unix_epoch_singleton_instance.Get().unix_epoch();
+}
+
+std::ostream& operator<<(std::ostream& os, TimeTicks time_ticks) {
+  
+  
+  
+  
+  
+  const TimeDelta as_time_delta = time_ticks - TimeTicks();
+  return os << as_time_delta.InMicroseconds() << " bogo-microseconds";
 }
 
 

@@ -95,10 +95,16 @@
 
 
 
+
+#define ALLOW_UNUSED_LOCAL(x) false ? (void)x : (void)0
+
+
+
+
 #if defined(COMPILER_GCC)
-#define ALLOW_UNUSED __attribute__((unused))
+#define ALLOW_UNUSED_TYPE __attribute__((unused))
 #else
-#define ALLOW_UNUSED
+#define ALLOW_UNUSED_TYPE
 #endif
 
 
@@ -131,40 +137,6 @@
 #define ALIGNOF(type) (sizeof(type) - sizeof(type) + __alignof(type))
 #elif defined(COMPILER_GCC)
 #define ALIGNOF(type) __alignof__(type)
-#endif
-
-
-
-
-
-#if defined(COMPILER_MSVC)
-#define OVERRIDE override
-#elif defined(__clang__)
-#define OVERRIDE override
-#elif defined(COMPILER_GCC) && __cplusplus >= 201103 && \
-      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
-
-#define OVERRIDE override
-#else
-#define OVERRIDE
-#endif
-
-
-
-
-
-
-#if defined(__clang__)
-#define FINAL final
-#elif defined(COMPILER_MSVC)
-
-#define FINAL sealed
-#elif defined(COMPILER_GCC) && __cplusplus >= 201103 && \
-      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
-
-#define FINAL final
-#else
-#define FINAL
 #endif
 
 

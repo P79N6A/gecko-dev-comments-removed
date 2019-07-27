@@ -80,10 +80,6 @@ class GenericScopedHandle {
     return handle_;
   }
 
-  operator Handle() const {
-    return handle_;
-  }
-
   
   Handle Take() {
     Handle temp = handle_;
@@ -101,9 +97,7 @@ class GenericScopedHandle {
       Verifier::StopTracking(handle_, this, BASE_WIN_GET_CALLER,
                              tracked_objects::GetProgramCounter());
 
-      if (!Traits::CloseHandle(handle_))
-        CHECK(false);
-
+      Traits::CloseHandle(handle_);
       handle_ = Traits::NullHandle();
     }
   }
@@ -120,9 +114,7 @@ class HandleTraits {
   typedef HANDLE Handle;
 
   
-  static bool CloseHandle(HANDLE handle) {
-    return ::CloseHandle(handle) != FALSE;
-  }
+  static bool BASE_EXPORT CloseHandle(HANDLE handle);
 
   
   static bool IsHandleValid(HANDLE handle) {
@@ -167,6 +159,17 @@ class BASE_EXPORT VerifierTraits {
 };
 
 typedef GenericScopedHandle<HandleTraits, VerifierTraits> ScopedHandle;
+
+
+
+
+void BASE_EXPORT DisableHandleVerifier();
+
+
+
+
+
+void BASE_EXPORT OnHandleBeingClosed(HANDLE handle);
 
 }  
 }  

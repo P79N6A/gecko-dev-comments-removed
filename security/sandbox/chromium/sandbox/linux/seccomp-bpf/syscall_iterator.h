@@ -7,7 +7,9 @@
 
 #include <stdint.h>
 
-#include "base/basictypes.h"
+#include <iterator>
+
+#include "base/macros.h"
 #include "sandbox/sandbox_export.h"
 
 namespace sandbox {
@@ -27,30 +29,77 @@ namespace sandbox {
 
 
 
-
-
-
-
-
-class SANDBOX_EXPORT SyscallIterator {
+class SANDBOX_EXPORT SyscallSet {
  public:
-  explicit SyscallIterator(bool invalid_only)
-      : invalid_only_(invalid_only), done_(false), num_(0) {}
+  class Iterator;
 
-  bool Done() const { return done_; }
-  uint32_t Next();
+  SyscallSet(const SyscallSet& ss) : set_(ss.set_) {}
+  ~SyscallSet() {}
+
+  Iterator begin() const;
+  Iterator end() const;
+
+  
+  
+  static SyscallSet All() { return SyscallSet(Set::ALL); }
+
+  
+  
+  static SyscallSet ValidOnly() { return SyscallSet(Set::VALID_ONLY); }
+
+  
+  
+  
+  static SyscallSet InvalidOnly() { return SyscallSet(Set::INVALID_ONLY); }
+
+  
+  
   static bool IsValid(uint32_t num);
 
  private:
-  static bool IsArmPrivate(uint32_t num);
+  enum class Set { ALL, VALID_ONLY, INVALID_ONLY };
 
-  bool invalid_only_;
+  explicit SyscallSet(Set set) : set_(set) {}
+
+  Set set_;
+
+  friend bool operator==(const SyscallSet&, const SyscallSet&);
+  DISALLOW_ASSIGN(SyscallSet);
+};
+
+SANDBOX_EXPORT bool operator==(const SyscallSet& lhs, const SyscallSet& rhs);
+
+
+
+class SyscallSet::Iterator
+    : public std::iterator<std::input_iterator_tag, uint32_t> {
+ public:
+  Iterator(const Iterator& it)
+      : set_(it.set_), done_(it.done_), num_(it.num_) {}
+  ~Iterator() {}
+
+  uint32_t operator*() const;
+  Iterator& operator++();
+
+ private:
+  Iterator(Set set, bool done);
+
+  uint32_t NextSyscall() const;
+
+  Set set_;
   bool done_;
   uint32_t num_;
 
-  DISALLOW_IMPLICIT_CONSTRUCTORS(SyscallIterator);
+  friend SyscallSet;
+  friend bool operator==(const Iterator&, const Iterator&);
+  DISALLOW_ASSIGN(Iterator);
 };
+
+SANDBOX_EXPORT bool operator==(const SyscallSet::Iterator& lhs,
+                               const SyscallSet::Iterator& rhs);
+SANDBOX_EXPORT bool operator!=(const SyscallSet::Iterator& lhs,
+                               const SyscallSet::Iterator& rhs);
 
 }  
 
-#endif  
+#endif

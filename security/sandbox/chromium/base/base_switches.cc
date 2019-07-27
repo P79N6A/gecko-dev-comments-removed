@@ -52,6 +52,14 @@ const char kTraceToConsole[]                = "trace-to-console";
 
 
 
+const char kTraceToFile[]                   = "trace-to-file";
+
+
+
+const char kTraceToFileName[]               = "trace-to-file-name";
+
+
+
 
 const char kProfilerTiming[]                = "profiler-timing";
 

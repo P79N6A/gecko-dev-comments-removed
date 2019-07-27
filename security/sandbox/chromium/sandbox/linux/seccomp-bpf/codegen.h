@@ -5,16 +5,18 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_CODEGEN_H__
 #define SANDBOX_LINUX_SECCOMP_BPF_CODEGEN_H__
 
+#include <stdint.h>
+
 #include <map>
-#include <set>
 #include <vector>
 
-#include "sandbox/linux/seccomp-bpf/basicblock.h"
-#include "sandbox/linux/seccomp-bpf/instruction.h"
-#include "sandbox/linux/seccomp-bpf/sandbox_bpf.h"
 #include "sandbox/sandbox_export.h"
 
+struct sock_filter;
+
 namespace sandbox {
+struct BasicBlock;
+struct Instruction;
 
 typedef std::vector<Instruction*> Instructions;
 typedef std::vector<BasicBlock*> BasicBlocks;
@@ -52,15 +54,14 @@ typedef std::map<const BasicBlock*, int> IncomingBranches;
 
 
 
-
 class SANDBOX_EXPORT CodeGen {
  public:
+  
+  
+  typedef std::vector<struct sock_filter> Program;
+
   CodeGen();
   ~CodeGen();
-
-  
-  
-  static void PrintProgram(const SandboxBPF::Program& program);
 
   
   
@@ -68,8 +69,7 @@ class SANDBOX_EXPORT CodeGen {
   
   Instruction* MakeInstruction(uint16_t code,
                                uint32_t k,
-                               Instruction* next = NULL);
-  Instruction* MakeInstruction(uint16_t code, const ErrorCode& err);
+                               Instruction* next = nullptr);
   Instruction* MakeInstruction(uint16_t code,
                                uint32_t k,
                                Instruction* jt,
@@ -78,20 +78,7 @@ class SANDBOX_EXPORT CodeGen {
   
   
   
-  void JoinInstructions(Instruction* head, Instruction* tail);
-
-  
-  
-  
-  
-  
-  
-  void Traverse(Instruction*, void (*fnc)(Instruction*, void* aux), void* aux);
-
-  
-  
-  
-  void Compile(Instruction* instructions, SandboxBPF::Program* program);
+  void Compile(Instruction* instructions, Program* program);
 
  private:
   friend class CodeGenUnittestHelper;
@@ -141,7 +128,7 @@ class SANDBOX_EXPORT CodeGen {
 
   
   
-  void ConcatenateBasicBlocks(const BasicBlocks&, SandboxBPF::Program* program);
+  void ConcatenateBasicBlocks(const BasicBlocks&, Program* program);
 
   
   

@@ -43,7 +43,6 @@
 #include "base/debug/leak_annotations.h"
 #include "base/logging.h"
 #include "base/memory/aligned_memory.h"
-#include "base/third_party/dynamic_annotations/dynamic_annotations.h"
 #include "base/threading/thread_restrictions.h"
 
 
@@ -166,13 +165,6 @@ class LazyInstance {
       internal::CompleteLazyInstance(&private_instance_, value, this,
                                      Traits::kRegisterOnExit ? OnExit : NULL);
     }
-
-    
-    
-    
-    
-    
-    ANNOTATE_HAPPENS_AFTER(&private_instance_);
     return instance();
   }
 

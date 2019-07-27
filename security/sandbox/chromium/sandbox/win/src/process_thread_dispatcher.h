@@ -23,17 +23,19 @@ class ThreadProcessDispatcher : public Dispatcher {
 
  private:
   
-  bool NtOpenThread(IPCInfo* ipc, DWORD desired_access, DWORD thread_id);
+  bool NtOpenThread(IPCInfo* ipc, uint32 desired_access, uint32 thread_id);
 
   
-  bool NtOpenProcess(IPCInfo* ipc, DWORD desired_access, DWORD process_id);
+  bool NtOpenProcess(IPCInfo* ipc, uint32 desired_access, uint32 process_id);
 
   
-  bool NtOpenProcessToken(IPCInfo* ipc, HANDLE process, DWORD desired_access);
+  bool NtOpenProcessToken(IPCInfo* ipc, HANDLE process, uint32 desired_access);
 
   
-  bool NtOpenProcessTokenEx(IPCInfo* ipc, HANDLE process, DWORD desired_access,
-                            DWORD attributes);
+  bool NtOpenProcessTokenEx(IPCInfo* ipc,
+                            HANDLE process,
+                            uint32 desired_access,
+                            uint32 attributes);
 
   
   bool CreateProcessW(IPCInfo* ipc,

@@ -150,9 +150,8 @@ void PlatformThread::Sleep(TimeDelta duration) {
   
   
   TimeTicks end = TimeTicks::Now() + duration;
-  TimeTicks now;
-  while ((now = TimeTicks::Now()) < end)
-    ::Sleep((end - now).InMillisecondsRoundedUp());
+  for (TimeTicks now = TimeTicks::Now(); now < end; now = TimeTicks::Now())
+    ::Sleep(static_cast<DWORD>((end - now).InMillisecondsRoundedUp()));
 }
 
 

@@ -5,12 +5,14 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_SANDBOX_BPF_TEST_RUNNER_H_
 #define SANDBOX_LINUX_SECCOMP_BPF_SANDBOX_BPF_TEST_RUNNER_H_
 
-#include "base/basictypes.h"
+#include "base/macros.h"
 #include "base/memory/scoped_ptr.h"
-#include "sandbox/linux/seccomp-bpf/sandbox_bpf_policy.h"
 #include "sandbox/linux/tests/sandbox_test_runner.h"
 
 namespace sandbox {
+namespace bpf_dsl {
+class Policy;
+}
 
 
 
@@ -24,7 +26,7 @@ class BPFTesterDelegate {
   
   
   
-  virtual scoped_ptr<SandboxBPFPolicy> GetSandboxBPFPolicy() = 0;
+  virtual scoped_ptr<bpf_dsl::Policy> GetSandboxBPFPolicy() = 0;
   
   virtual void RunTestFunction() = 0;
 
@@ -45,9 +47,9 @@ class SandboxBPFTestRunner : public SandboxTestRunner {
   explicit SandboxBPFTestRunner(BPFTesterDelegate* bpf_tester_delegate);
   virtual ~SandboxBPFTestRunner();
 
-  virtual void Run() OVERRIDE;
+  virtual void Run() override;
 
-  virtual bool ShouldCheckForLeaks() const OVERRIDE;
+  virtual bool ShouldCheckForLeaks() const override;
 
  private:
   scoped_ptr<BPFTesterDelegate> bpf_tester_delegate_;

@@ -16,16 +16,16 @@ namespace base {
 
 
 BASE_EXPORT std::string StringPrintf(const char* format, ...)
-    PRINTF_FORMAT(1, 2);
+    PRINTF_FORMAT(1, 2) WARN_UNUSED_RESULT;
 
 #if !defined(OS_ANDROID)
 BASE_EXPORT std::wstring StringPrintf(const wchar_t* format, ...)
-    WPRINTF_FORMAT(1, 2);
+    WPRINTF_FORMAT(1, 2) WARN_UNUSED_RESULT;
 #endif
 
 
 BASE_EXPORT std::string StringPrintV(const char* format, va_list ap)
-    PRINTF_FORMAT(1, 0);
+    PRINTF_FORMAT(1, 0) WARN_UNUSED_RESULT;
 
 
 BASE_EXPORT const std::string& SStringPrintf(std::string* dst,

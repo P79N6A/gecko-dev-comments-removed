@@ -5,7 +5,8 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_BPF_TESTS_H__
 #define SANDBOX_LINUX_SECCOMP_BPF_BPF_TESTS_H__
 
-#include "base/basictypes.h"
+#include "base/logging.h"
+#include "base/macros.h"
 #include "build/build_config.h"
 #include "sandbox/linux/seccomp-bpf/bpf_tester_compatibility_delegate.h"
 #include "sandbox/linux/tests/unit_tests.h"
@@ -76,24 +77,21 @@ namespace sandbox {
 
 
 
-
 #define BPF_TEST(test_case_name, test_name, policy, aux) \
   BPF_DEATH_TEST(test_case_name, test_name, DEATH_SUCCESS(), policy, aux)
 
 
 
 
-#define BPF_DEATH_TEST(test_case_name, test_name, death, policy, aux)          \
-  void BPF_TEST_##test_name(                                                   \
-      sandbox::BPFTesterCompatibilityDelegate<aux>::AuxType* BPF_AUX);         \
-  TEST(test_case_name, DISABLE_ON_TSAN(test_name)) {                           \
-    sandbox::SandboxBPFTestRunner bpf_test_runner(                             \
-        new sandbox::BPFTesterCompatibilityDelegate<aux>(BPF_TEST_##test_name, \
-                                                         policy));             \
-    sandbox::UnitTests::RunTestInProcess(&bpf_test_runner, death);             \
-  }                                                                            \
-  void BPF_TEST_##test_name(                                                   \
-      sandbox::BPFTesterCompatibilityDelegate<aux>::AuxType* BPF_AUX)
+#define BPF_DEATH_TEST(test_case_name, test_name, death, policy, aux) \
+  void BPF_TEST_##test_name(aux* BPF_AUX);                            \
+  TEST(test_case_name, DISABLE_ON_TSAN(test_name)) {                  \
+    sandbox::SandboxBPFTestRunner bpf_test_runner(                    \
+        new sandbox::BPFTesterCompatibilityDelegate<policy, aux>(     \
+            BPF_TEST_##test_name));                                   \
+    sandbox::UnitTests::RunTestInProcess(&bpf_test_runner, death);    \
+  }                                                                   \
+  void BPF_TEST_##test_name(aux* BPF_AUX)
 
 
 
@@ -106,10 +104,10 @@ class BPFTesterSimpleDelegate : public BPFTesterDelegate {
       : test_function_(test_function) {}
   virtual ~BPFTesterSimpleDelegate() {}
 
-  virtual scoped_ptr<SandboxBPFPolicy> GetSandboxBPFPolicy() OVERRIDE {
-    return scoped_ptr<SandboxBPFPolicy>(new PolicyClass());
+  virtual scoped_ptr<bpf_dsl::Policy> GetSandboxBPFPolicy() override {
+    return scoped_ptr<bpf_dsl::Policy>(new PolicyClass());
   }
-  virtual void RunTestFunction() OVERRIDE {
+  virtual void RunTestFunction() override {
     DCHECK(test_function_);
     test_function_();
   }

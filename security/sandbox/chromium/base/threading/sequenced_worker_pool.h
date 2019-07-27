@@ -290,10 +290,10 @@ class BASE_EXPORT SequencedWorkerPool : public TaskRunner {
       WorkerShutdown shutdown_behavior);
 
   
-  virtual bool PostDelayedTask(const tracked_objects::Location& from_here,
-                               const Closure& task,
-                               TimeDelta delay) OVERRIDE;
-  virtual bool RunsTasksOnCurrentThread() const OVERRIDE;
+  bool PostDelayedTask(const tracked_objects::Location& from_here,
+                       const Closure& task,
+                       TimeDelta delay) override;
+  bool RunsTasksOnCurrentThread() const override;
 
   
   
@@ -336,9 +336,9 @@ class BASE_EXPORT SequencedWorkerPool : public TaskRunner {
   bool IsShutdownInProgress();
 
  protected:
-  virtual ~SequencedWorkerPool();
+  ~SequencedWorkerPool() override;
 
-  virtual void OnDestruct() const OVERRIDE;
+  void OnDestruct() const override;
 
  private:
   friend class RefCountedThreadSafe<SequencedWorkerPool>;

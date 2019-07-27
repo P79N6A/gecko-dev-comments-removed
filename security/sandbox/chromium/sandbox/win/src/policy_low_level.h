@@ -145,8 +145,10 @@ class PolicyRule {
   
   
   
-  bool AddNumberMatch(RuleType rule_type, int16 parameter,
-                      unsigned long number, RuleOp comparison_op);
+  bool AddNumberMatch(RuleType rule_type,
+                      int16 parameter,
+                      uint32 number,
+                      RuleOp comparison_op);
 
   
   size_t GetOpcodeCount() const {

@@ -20,10 +20,16 @@
 
 
 
+
+
+
+
 #ifndef BASE_TIME_TIME_H_
 #define BASE_TIME_TIME_H_
 
 #include <time.h>
+
+#include <iosfwd>
 
 #include "base/base_export.h"
 #include "base/basictypes.h"
@@ -207,6 +213,9 @@ inline TimeDelta operator*(int64 a, TimeDelta td) {
 }
 
 
+BASE_EXPORT std::ostream& operator<<(std::ostream& os, TimeDelta time_delta);
+
+
 
 
 class BASE_EXPORT Time {
@@ -223,6 +232,10 @@ class BASE_EXPORT Time {
   static const int64 kNanosecondsPerSecond = kNanosecondsPerMicrosecond *
                                              kMicrosecondsPerSecond;
 
+  
+  
+  static const int64 kTimeTToMicrosecondsOffset;
+
 #if !defined(OS_WIN)
   
   
@@ -230,6 +243,11 @@ class BASE_EXPORT Time {
   
   
   static const int64 kWindowsEpochDeltaMicroseconds;
+#else
+  
+  
+  
+  static const int64 kQPCOverflowThreshold = 0x8637BD05AF7;
 #endif
 
   
@@ -335,12 +353,6 @@ class BASE_EXPORT Time {
   
   static const int kMinLowResolutionThresholdMs = 16;
 
-  
-  
-  
-  
-  
-  
   
   static void EnableHighResolutionTimer(bool enable);
 
@@ -485,20 +497,6 @@ class BASE_EXPORT Time {
                                  Time* parsed_time);
 
   
-  
-  static const int64 kTimeTToMicrosecondsOffset;
-
-#if defined(OS_WIN)
-  
-  
-  
-  static bool high_resolution_timer_enabled_;
-  
-  
-  static int high_resolution_timer_activated_;
-#endif
-
-  
   int64 us_;
 };
 
@@ -549,7 +547,7 @@ inline TimeDelta TimeDelta::FromSecondsD(double secs) {
   
   if (secs == std::numeric_limits<double>::infinity())
     return Max();
-  return TimeDelta(secs * Time::kMicrosecondsPerSecond);
+  return TimeDelta(static_cast<int64>(secs * Time::kMicrosecondsPerSecond));
 }
 
 
@@ -557,7 +555,7 @@ inline TimeDelta TimeDelta::FromMillisecondsD(double ms) {
   
   if (ms == std::numeric_limits<double>::infinity())
     return Max();
-  return TimeDelta(ms * Time::kMicrosecondsPerMillisecond);
+  return TimeDelta(static_cast<int64>(ms * Time::kMicrosecondsPerMillisecond));
 }
 
 
@@ -571,6 +569,9 @@ inline TimeDelta TimeDelta::FromMicroseconds(int64 us) {
 inline Time TimeDelta::operator+(Time t) const {
   return Time(t.us_ + delta_);
 }
+
+
+BASE_EXPORT std::ostream& operator<<(std::ostream& os, Time time);
 
 
 
@@ -633,14 +634,6 @@ class BASE_EXPORT TimeTicks {
   
   
   static bool IsHighResClockWorking();
-
-  
-  
-  
-  
-  
-  
-  static bool SetNowIsHighResNowIfSupported();
 
   
   static TimeTicks UnprotectedNow();
@@ -741,6 +734,9 @@ class BASE_EXPORT TimeTicks {
 inline TimeTicks TimeDelta::operator+(TimeTicks t) const {
   return TimeTicks(t.ticks_ + delta_);
 }
+
+
+BASE_EXPORT std::ostream& operator<<(std::ostream& os, TimeTicks time_ticks);
 
 }  
 

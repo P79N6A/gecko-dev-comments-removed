@@ -251,7 +251,7 @@ class SupportsAddRefAndRelease {
   static Yes& Check(...);
 
  public:
-  static const bool value = sizeof(Check<Base>(0)) == sizeof(Yes);
+  enum { value = sizeof(Check<Base>(0)) == sizeof(Yes) };
 };
 
 
@@ -286,7 +286,7 @@ class HasIsMethodTag {
   static No& Check(...);
 
  public:
-  static const bool value = sizeof(Check<T>(0)) == sizeof(Yes);
+  enum { value = sizeof(Check<T>(0)) == sizeof(Yes) };
 };
 
 template <typename T>

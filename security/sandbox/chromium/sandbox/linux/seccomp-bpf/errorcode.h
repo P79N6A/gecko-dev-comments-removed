@@ -5,13 +5,13 @@
 #ifndef SANDBOX_LINUX_SECCOMP_BPF_ERRORCODE_H__
 #define SANDBOX_LINUX_SECCOMP_BPF_ERRORCODE_H__
 
-#include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
 #include "sandbox/linux/seccomp-bpf/trap.h"
 #include "sandbox/sandbox_export.h"
 
 namespace sandbox {
-
-struct arch_seccomp_data;
+namespace bpf_dsl {
+class PolicyCompiler;
+}
 
 
 
@@ -41,9 +41,14 @@ class SANDBOX_EXPORT ErrorCode {
     
     
     ERR_MIN_ERRNO = 0,
+#if defined(__mips__)
+    
+    ERR_MAX_ERRNO = 1133,
+#else
     
     
     ERR_MAX_ERRNO = 4095,
+#endif
   };
 
   
@@ -82,6 +87,7 @@ class SANDBOX_EXPORT ErrorCode {
     TP_64BIT,
   };
 
+  
   enum Operation {
     
     OP_EQUAL,
@@ -91,20 +97,8 @@ class SANDBOX_EXPORT ErrorCode {
     
     
     
-    
-    OP_GREATER_UNSIGNED,
-    OP_GREATER_EQUAL_UNSIGNED,
-
-    
-    
-    
-    
-    
     OP_HAS_ALL_BITS,
     OP_HAS_ANY_BITS,
-
-    
-    OP_NUM_OPS,
   };
 
   enum ErrorType {
@@ -119,7 +113,7 @@ class SANDBOX_EXPORT ErrorCode {
   
   
   
-  ErrorCode() : error_type_(ET_INVALID), err_(SECCOMP_RET_INVALID) {}
+  ErrorCode();
   explicit ErrorCode(int err);
 
   
@@ -140,10 +134,10 @@ class SANDBOX_EXPORT ErrorCode {
 
   bool safe() const { return safe_; }
 
+  uint64_t mask() const { return mask_; }
   uint64_t value() const { return value_; }
   int argno() const { return argno_; }
   ArgType width() const { return width_; }
-  Operation op() const { return op_; }
   const ErrorCode* passed() const { return passed_; }
   const ErrorCode* failed() const { return failed_; }
 
@@ -154,6 +148,7 @@ class SANDBOX_EXPORT ErrorCode {
   };
 
  private:
+  friend bpf_dsl::PolicyCompiler;
   friend class CodeGen;
   friend class SandboxBPF;
   friend class Trap;
@@ -161,13 +156,13 @@ class SANDBOX_EXPORT ErrorCode {
   
   
   
-  ErrorCode(Trap::TrapFnc fnc, const void* aux, bool safe, uint16_t id);
+  ErrorCode(uint16_t trap_id, Trap::TrapFnc fnc, const void* aux, bool safe);
 
   
   
   ErrorCode(int argno,
             ArgType width,
-            Operation op,
+            uint64_t mask,
             uint64_t value,
             const ErrorCode* passed,
             const ErrorCode* failed);
@@ -184,10 +179,10 @@ class SANDBOX_EXPORT ErrorCode {
 
     
     struct {
+      uint64_t mask_;            
       uint64_t value_;           
       int argno_;                
       ArgType width_;            
-      Operation op_;             
       const ErrorCode* passed_;  
       const ErrorCode* failed_;  
     };

@@ -2,17 +2,28 @@
 
 
 
-#include <string.h>
-
-#include "sandbox/linux/seccomp-bpf/sandbox_bpf.h"
-#include "sandbox/linux/seccomp-bpf/sandbox_bpf_policy.h"
-#include "sandbox/linux/seccomp-bpf/syscall_iterator.h"
 #include "sandbox/linux/seccomp-bpf/verifier.h"
 
+#include <string.h>
+
+#include <limits>
+
+#include "sandbox/linux/bpf_dsl/bpf_dsl.h"
+#include "sandbox/linux/bpf_dsl/bpf_dsl_impl.h"
+#include "sandbox/linux/bpf_dsl/policy.h"
+#include "sandbox/linux/bpf_dsl/policy_compiler.h"
+#include "sandbox/linux/seccomp-bpf/errorcode.h"
+#include "sandbox/linux/seccomp-bpf/linux_seccomp.h"
+#include "sandbox/linux/seccomp-bpf/sandbox_bpf.h"
+#include "sandbox/linux/seccomp-bpf/syscall_iterator.h"
 
 namespace sandbox {
 
 namespace {
+
+const uint64_t kLower32Bits = std::numeric_limits<uint32_t>::max();
+const uint64_t kUpper32Bits = static_cast<uint64_t>(kLower32Bits) << 32;
+const uint64_t kFull64Bits = std::numeric_limits<uint64_t>::max();
 
 struct State {
   State(const std::vector<struct sock_filter>& p,
@@ -28,7 +39,7 @@ struct State {
   DISALLOW_IMPLICIT_CONSTRUCTORS(State);
 };
 
-uint32_t EvaluateErrorCode(SandboxBPF* sandbox,
+uint32_t EvaluateErrorCode(bpf_dsl::PolicyCompiler* compiler,
                            const ErrorCode& code,
                            const struct arch_seccomp_data& data) {
   if (code.error_type() == ErrorCode::ET_SIMPLE ||
@@ -39,44 +50,17 @@ uint32_t EvaluateErrorCode(SandboxBPF* sandbox,
         (data.args[code.argno()] >> 32) &&
         (data.args[code.argno()] & 0xFFFFFFFF80000000ull) !=
             0xFFFFFFFF80000000ull) {
-      return sandbox->Unexpected64bitArgument().err();
+      return compiler->Unexpected64bitArgument().err();
     }
-    switch (code.op()) {
-      case ErrorCode::OP_EQUAL:
-        return EvaluateErrorCode(sandbox,
-                                 (code.width() == ErrorCode::TP_32BIT
-                                      ? uint32_t(data.args[code.argno()])
-                                      : data.args[code.argno()]) == code.value()
-                                     ? *code.passed()
-                                     : *code.failed(),
-                                 data);
-      case ErrorCode::OP_HAS_ALL_BITS:
-        return EvaluateErrorCode(sandbox,
-                                 ((code.width() == ErrorCode::TP_32BIT
-                                       ? uint32_t(data.args[code.argno()])
-                                       : data.args[code.argno()]) &
-                                  code.value()) == code.value()
-                                     ? *code.passed()
-                                     : *code.failed(),
-                                 data);
-      case ErrorCode::OP_HAS_ANY_BITS:
-        return EvaluateErrorCode(sandbox,
-                                 (code.width() == ErrorCode::TP_32BIT
-                                      ? uint32_t(data.args[code.argno()])
-                                      : data.args[code.argno()]) &
-                                         code.value()
-                                     ? *code.passed()
-                                     : *code.failed(),
-                                 data);
-      default:
-        return SECCOMP_RET_INVALID;
-    }
+    bool equal = (data.args[code.argno()] & code.mask()) == code.value();
+    return EvaluateErrorCode(
+        compiler, equal ? *code.passed() : *code.failed(), data);
   } else {
     return SECCOMP_RET_INVALID;
   }
 }
 
-bool VerifyErrorCode(SandboxBPF* sandbox,
+bool VerifyErrorCode(bpf_dsl::PolicyCompiler* compiler,
                      const std::vector<struct sock_filter>& program,
                      struct arch_seccomp_data* data,
                      const ErrorCode& root_code,
@@ -87,7 +71,7 @@ bool VerifyErrorCode(SandboxBPF* sandbox,
     uint32_t computed_ret = Verifier::EvaluateBPF(program, *data, err);
     if (*err) {
       return false;
-    } else if (computed_ret != EvaluateErrorCode(sandbox, root_code, *data)) {
+    } else if (computed_ret != EvaluateErrorCode(compiler, root_code, *data)) {
       
       
       
@@ -103,114 +87,83 @@ bool VerifyErrorCode(SandboxBPF* sandbox,
       *err = "Invalid argument number in error code";
       return false;
     }
-    switch (code.op()) {
-      case ErrorCode::OP_EQUAL:
-        
-        
-        data->args[code.argno()] = code.value();
-        if (!VerifyErrorCode(
-                 sandbox, program, data, root_code, *code.passed(), err)) {
-          return false;
-        }
 
-        
-        
-        data->args[code.argno()] = code.value() ^ 0x55AA55AA;
-        if (!VerifyErrorCode(
-                 sandbox, program, data, root_code, *code.failed(), err)) {
-          return false;
-        }
+    
+    
+    
+    
+    
 
-        
-        
-        
-        if (code.width() == ErrorCode::TP_32BIT) {
-          if (code.value() >> 32) {
-            SANDBOX_DIE(
-                "Invalid comparison of a 32bit system call argument "
-                "against a 64bit constant; this test is always false.");
-          }
+    
+    data->args[code.argno()] = code.value();
+    if (!VerifyErrorCode(
+            compiler, program, data, root_code, *code.passed(), err)) {
+      return false;
+    }
 
-          
-          
-          
-          data->args[code.argno()] = 0x100000000ull;
-          if (!VerifyErrorCode(sandbox,
-                               program,
-                               data,
-                               root_code,
-                               sandbox->Unexpected64bitArgument(),
-                               err)) {
-            return false;
-          }
-        } else {
-          
-          
-          
-          
-          
-          
-          data->args[code.argno()] = code.value() ^ 0x55AA55AA00000000ull;
-          if (!VerifyErrorCode(
-                   sandbox, program, data, root_code, *code.failed(), err)) {
-            return false;
-          }
-        }
-        break;
-      case ErrorCode::OP_HAS_ALL_BITS:
-      case ErrorCode::OP_HAS_ANY_BITS:
-        
-        
-        
-        
-        
-        
-        {
-          
-          
-          
-          const ErrorCode& passed =
-              (!code.value() && code.op() == ErrorCode::OP_HAS_ANY_BITS) ||
-
-                      
-                      
-                      
-                      
-                      
-                      ((code.value() & ~uint64_t(uintptr_t(-1))) &&
-                       code.op() == ErrorCode::OP_HAS_ALL_BITS) ||
-                      (code.value() && !(code.value() & uintptr_t(-1)) &&
-                       code.op() == ErrorCode::OP_HAS_ANY_BITS)
-                  ? *code.failed()
-                  : *code.passed();
-
-          
-          
-          const ErrorCode& failed =
-              !code.value() && code.op() == ErrorCode::OP_HAS_ALL_BITS
-                  ? *code.passed()
-                  : *code.failed();
-
-          data->args[code.argno()] = code.value() & uintptr_t(-1);
-          if (!VerifyErrorCode(
-                   sandbox, program, data, root_code, passed, err)) {
-            return false;
-          }
-          data->args[code.argno()] = uintptr_t(-1);
-          if (!VerifyErrorCode(
-                   sandbox, program, data, root_code, passed, err)) {
-            return false;
-          }
-          data->args[code.argno()] = 0;
-          if (!VerifyErrorCode(
-                   sandbox, program, data, root_code, failed, err)) {
-            return false;
-          }
-        }
-        break;
-      default:  
-        *err = "Unsupported operation in conditional error code";
+    
+    
+    uint64_t ignored_bits = ~code.mask();
+    if (code.width() == ErrorCode::TP_32BIT) {
+      ignored_bits = static_cast<uint32_t>(ignored_bits);
+    }
+    if ((ignored_bits & kLower32Bits) != 0) {
+      data->args[code.argno()] = code.value() | (ignored_bits & kLower32Bits);
+      if (!VerifyErrorCode(
+              compiler, program, data, root_code, *code.passed(), err)) {
         return false;
+      }
+    }
+    if ((ignored_bits & kUpper32Bits) != 0) {
+      data->args[code.argno()] = code.value() | (ignored_bits & kUpper32Bits);
+      if (!VerifyErrorCode(
+              compiler, program, data, root_code, *code.passed(), err)) {
+        return false;
+      }
+    }
+
+    
+    if ((code.mask() & kLower32Bits) != 0) {
+      data->args[code.argno()] = code.value() ^ (code.mask() & kLower32Bits);
+      if (!VerifyErrorCode(
+              compiler, program, data, root_code, *code.failed(), err)) {
+        return false;
+      }
+    }
+    if ((code.mask() & kUpper32Bits) != 0) {
+      data->args[code.argno()] = code.value() ^ (code.mask() & kUpper32Bits);
+      if (!VerifyErrorCode(
+              compiler, program, data, root_code, *code.failed(), err)) {
+        return false;
+      }
+    }
+
+    if (code.width() == ErrorCode::TP_32BIT) {
+      
+      
+
+      
+      data->args[code.argno()] = 1ULL << 32;
+      if (!VerifyErrorCode(compiler,
+                           program,
+                           data,
+                           root_code,
+                           compiler->Unexpected64bitArgument(),
+                           err)) {
+        return false;
+      }
+
+      
+      
+      data->args[code.argno()] = kUpper32Bits;
+      if (!VerifyErrorCode(compiler,
+                           program,
+                           data,
+                           root_code,
+                           compiler->Unexpected64bitArgument(),
+                           err)) {
+        return false;
+      }
     }
   } else {
     *err = "Attempting to return invalid error code from BPF program";
@@ -220,7 +173,8 @@ bool VerifyErrorCode(SandboxBPF* sandbox,
 }
 
 void Ld(State* state, const struct sock_filter& insn, const char** err) {
-  if (BPF_SIZE(insn.code) != BPF_W || BPF_MODE(insn.code) != BPF_ABS) {
+  if (BPF_SIZE(insn.code) != BPF_W || BPF_MODE(insn.code) != BPF_ABS ||
+      insn.jt != 0 || insn.jf != 0) {
     *err = "Invalid BPF_LD instruction";
     return;
   }
@@ -360,13 +314,12 @@ void Alu(State* state, const struct sock_filter& insn, const char** err) {
 
 }  
 
-bool Verifier::VerifyBPF(SandboxBPF* sandbox,
+bool Verifier::VerifyBPF(bpf_dsl::PolicyCompiler* compiler,
                          const std::vector<struct sock_filter>& program,
-                         const SandboxBPFPolicy& policy,
+                         const bpf_dsl::Policy& policy,
                          const char** err) {
   *err = NULL;
-  for (SyscallIterator iter(false); !iter.Done();) {
-    uint32_t sysnum = iter.Next();
+  for (uint32_t sysnum : SyscallSet::All()) {
     
     
     
@@ -387,10 +340,10 @@ bool Verifier::VerifyBPF(SandboxBPF* sandbox,
     }
 #endif
 #endif
-    ErrorCode code = iter.IsValid(sysnum)
-                         ? policy.EvaluateSyscall(sandbox, sysnum)
-                         : policy.InvalidSyscall(sandbox);
-    if (!VerifyErrorCode(sandbox, program, &data, code, code, err)) {
+    ErrorCode code = SyscallSet::IsValid(sysnum)
+                         ? policy.EvaluateSyscall(sysnum)->Compile(compiler)
+                         : policy.InvalidSyscall()->Compile(compiler);
+    if (!VerifyErrorCode(compiler, program, &data, code, code, err)) {
       return false;
     }
   }

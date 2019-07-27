@@ -9,14 +9,13 @@
 #include <stdint.h>
 
 #include <map>
-#include <vector>
 
-#include "base/basictypes.h"
+#include "base/macros.h"
+#include "sandbox/linux/bpf_dsl/trap_registry.h"
 #include "sandbox/sandbox_export.h"
 
 namespace sandbox {
 
-class ErrorCode;
 
 
 
@@ -25,30 +24,24 @@ class ErrorCode;
 
 
 
-
-class SANDBOX_EXPORT Trap {
+class SANDBOX_EXPORT Trap : public bpf_dsl::TrapRegistry {
  public:
+  virtual uint16_t Add(TrapFnc fnc, const void* aux, bool safe) override;
+
+  virtual bool EnableUnsafeTraps() override;
+
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef intptr_t (*TrapFnc)(const struct arch_seccomp_data& args, void* aux);
+  static bpf_dsl::TrapRegistry* Registry();
 
   
   
   
   
-  static ErrorCode MakeTrap(TrapFnc fnc, const void* aux, bool safe);
+  
+  static uint16_t MakeTrap(TrapFnc fnc, const void* aux, bool safe);
 
+  
   
   
   
@@ -59,11 +52,9 @@ class SANDBOX_EXPORT Trap {
   
   static bool EnableUnsafeTrapsInSigSysHandler();
 
-  
-  static ErrorCode ErrorCodeFromTrapId(uint16_t id);
-
  private:
   struct TrapKey {
+    TrapKey() : fnc(NULL), aux(NULL), safe(false) {}
     TrapKey(TrapFnc f, const void* a, bool s) : fnc(f), aux(a), safe(s) {}
     TrapFnc fnc;
     const void* aux;
@@ -80,21 +71,12 @@ class SANDBOX_EXPORT Trap {
   
   ~Trap();
 
-  
-  
-  
-  
-  
-  
-  
-  static Trap* GetInstance();
   static void SigSysAction(int nr, siginfo_t* info, void* void_context);
 
   
   
   void SigSys(int nr, siginfo_t* info, void* void_context)
       __attribute__((noinline));
-  ErrorCode MakeTrapImpl(TrapFnc fnc, const void* aux, bool safe);
   bool SandboxDebuggingAllowedByUser() const;
 
   
@@ -104,7 +86,7 @@ class SANDBOX_EXPORT Trap {
   static Trap* global_trap_;
 
   TrapIds trap_ids_;            
-  ErrorCode* trap_array_;       
+  TrapKey* trap_array_;         
   size_t trap_array_size_;      
   size_t trap_array_capacity_;  
   bool has_unsafe_traps_;       

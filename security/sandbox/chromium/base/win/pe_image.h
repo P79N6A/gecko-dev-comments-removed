@@ -84,6 +84,8 @@ class PEImage {
     module_ = reinterpret_cast<HMODULE>(const_cast<void*>(module));
   }
 
+  virtual ~PEImage() {}
+
   
   HMODULE module() const;
 
