@@ -45,9 +45,6 @@ HTMLObjectElement::HTMLObjectElement(already_AddRefed<mozilla::dom::NodeInfo>& a
 
 HTMLObjectElement::~HTMLObjectElement()
 {
-#ifdef XP_MACOSX
-  OnFocusBlurPlugin(this, false);
-#endif
   UnregisterActivityObserver();
   DestroyImageLoadingContent();
 }
@@ -116,50 +113,20 @@ NS_IMPL_NSICONSTRAINTVALIDATION(HTMLObjectElement)
 
 static nsIWidget* GetWidget(Element* aElement)
 {
-  return nsContentUtils::WidgetForDocument(aElement->OwnerDoc());
+  nsIWidget* retval = NULL;
+  nsIFrame* frame = aElement->GetPrimaryFrame();
+  if (frame) {
+    retval = frame->GetNearestWidget();
+  }
+  return retval;
 }
 
-Element* HTMLObjectElement::sLastFocused = nullptr; 
-
-class PluginFocusSetter : public nsRunnable
+static void OnFocusBlurPlugin(Element* aElement, bool aFocus)
 {
-public:
-  PluginFocusSetter(nsIWidget* aWidget, Element* aElement)
-  : mWidget(aWidget), mElement(aElement)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    if (mElement) {
-      HTMLObjectElement::sLastFocused = mElement;
-      bool value = true;
-      mWidget->SetPluginFocused(value);
-    } else if (!HTMLObjectElement::sLastFocused) {
-      bool value = false;
-      mWidget->SetPluginFocused(value);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<Element> mElement;
-  nsCOMPtr<nsIWidget> mWidget;
-};
-
-void
-HTMLObjectElement::OnFocusBlurPlugin(Element* aElement, bool aFocus)
-{
-  if (aFocus || aElement == sLastFocused) {
-    if (!aFocus) {
-      sLastFocused = nullptr;
-    }
-    nsIWidget* widget = GetWidget(aElement);
-    if (widget) {
-      nsContentUtils::AddScriptRunner(
-        new PluginFocusSetter(widget, aFocus ? aElement : nullptr));
-    }
+  nsIWidget* widget = GetWidget(aElement);
+  if (widget) {
+    bool value = aFocus;
+    widget->SetPluginFocused(value);
   }
 }
 
@@ -243,14 +210,6 @@ void
 HTMLObjectElement::UnbindFromTree(bool aDeep,
                                   bool aNullParent)
 {
-#ifdef XP_MACOSX
-  
-  
-  
-  
-  
-  OnFocusBlurPlugin(this, false);
-#endif
   nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 }

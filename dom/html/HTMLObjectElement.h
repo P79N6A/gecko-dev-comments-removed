@@ -33,11 +33,7 @@ public:
 #ifdef XP_MACOSX
   
   NS_IMETHOD PostHandleEvent(EventChainPostVisitor& aVisitor) override;
-  
-  static void OnFocusBlurPlugin(Element* aElement, bool aFocus);
   static void HandleFocusBlurPlugin(Element* aElement, WidgetEvent* aEvent);
-  
-  static Element* sLastFocused;
 #endif
 
   
