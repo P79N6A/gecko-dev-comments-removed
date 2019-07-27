@@ -1261,25 +1261,33 @@ nsGridContainerFrame::ReflowChildren(GridItemCSSOrderIterator&  aIter,
     } else {
       cb = aContentArea;
     }
-    nsHTMLReflowState childRS(pc, aReflowState, child, cb.Size(wm));
+    WritingMode childWM = child->GetWritingMode();
+    LogicalSize childCBSize = cb.Size(wm).ConvertTo(childWM, wm);
+    nsHTMLReflowState childRS(pc, aReflowState, child, childCBSize);
     const LogicalMargin margin = childRS.ComputedLogicalMargin();
     if (childRS.ComputedBSize() == NS_AUTOHEIGHT && MOZ_LIKELY(isGridItem)) {
       
       
       LogicalMargin bp = childRS.ComputedLogicalBorderPadding();
       bp.ApplySkipSides(child->GetLogicalSkipSides());
-      nscoord bSize = cb.BSize(wm) - bp.BStartEnd(wm) - margin.BStartEnd(wm);
+      nscoord bSize = childCBSize.BSize(childWM) - bp.BStartEnd(childWM) -
+                        margin.BStartEnd(childWM);
       childRS.SetComputedBSize(std::max(bSize, 0));
     }
-    LogicalPoint childPos = cb.Origin(wm);
-    childPos.I(wm) += margin.IStart(wm);
-    childPos.B(wm) += margin.BStart(wm);
+    
+    
+    
     nsHTMLReflowMetrics childSize(childRS);
     nsReflowStatus childStatus;
-    ReflowChild(child, pc, childSize, childRS, wm, childPos,
-                containerWidth, 0, childStatus);
+    ReflowChild(child, pc, childSize, childRS, childWM, LogicalPoint(childWM),
+                0, 0, childStatus);
+    LogicalPoint childPos =
+      cb.Origin(wm).ConvertTo(childWM, wm, containerWidth - childSize.Width() -
+                                           margin.LeftRight(childWM));
+    childPos.I(childWM) += margin.IStart(childWM);
+    childPos.B(childWM) += margin.BStart(childWM);
     childRS.ApplyRelativePositioning(&childPos, containerWidth);
-    FinishReflowChild(child, pc, childSize, &childRS, wm, childPos,
+    FinishReflowChild(child, pc, childSize, &childRS, childWM, childPos,
                       containerWidth, 0);
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, child);
     
