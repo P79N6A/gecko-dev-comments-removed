@@ -277,9 +277,7 @@ def processSingleLeakFile(leakLogFileName, processType, leakThreshold, ignoreMis
       log.info("TEST-INFO | leakcheck | %s ignoring missing output line for total leaks"
                % processString)
     else:
-      
-      
-      log.info("WARNING | leakcheck | %s missing output line for total leaks!"
+      log.info("TEST-UNEXPECTED-FAIL | leakcheck | %s missing output line for total leaks!"
                % processString)
       log.info("TEST-INFO | leakcheck | missing output line from log file %s"
                % leakLogFileName)
