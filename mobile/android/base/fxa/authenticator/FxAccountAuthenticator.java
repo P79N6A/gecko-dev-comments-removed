@@ -36,6 +36,10 @@ public class FxAccountAuthenticator extends AbstractAccountAuthenticator {
           throws NetworkErrorException {
     Logger.debug(LOG_TAG, "addAccount");
 
+    
+    
+    AndroidFxAccount.invalidateCaches();
+
     final Bundle res = new Bundle();
 
     if (!FxAccountConstants.ACCOUNT_TYPE.equals(accountType)) {
