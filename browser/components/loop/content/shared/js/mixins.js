@@ -607,6 +607,8 @@ loop.shared.mixins = (function() {
 
 
 
+
+
     play: function(name, options) {
       if (this._isLoopDesktop() && rootObject.navigator.mozLoop.doNotDisturb) {
         return;
