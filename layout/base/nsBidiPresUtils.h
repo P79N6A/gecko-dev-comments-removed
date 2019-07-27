@@ -426,8 +426,18 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
    static void IsFirstOrLast(nsIFrame*              aFrame,
                              nsContinuationStates*  aContinuationStates,
+                             bool                   aSpanInLineOrder ,
                              bool&                  aIsFirst ,
                              bool&                  aIsLast );
 

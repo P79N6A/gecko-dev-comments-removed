@@ -1279,6 +1279,7 @@ nsBidiPresUtils::GetFrameBaseLevel(nsIFrame* aFrame)
 void
 nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
                                nsContinuationStates* aContinuationStates,
+                               bool                  aSpanDirMatchesLineDir,
                                bool&                 aIsFirst ,
                                bool&                 aIsLast )
 {
@@ -1293,6 +1294,7 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
 
 
 
+  bool firstInLineOrder, lastInLineOrder;
   nsFrameContinuationState* frameState = aContinuationStates->GetEntry(aFrame);
   nsFrameContinuationState* firstFrameState;
 
@@ -1327,16 +1329,30 @@ nsBidiPresUtils::IsFirstOrLast(nsIFrame*             aFrame,
     }
     frameState->mHasContOnNextLines = (frame != nullptr);
 
-    aIsFirst = !frameState->mHasContOnPrevLines;
+    firstInLineOrder = true;
     firstFrameState = frameState;
   } else {
     
-    aIsFirst = false;
+    firstInLineOrder = false;
     firstFrameState = aContinuationStates->GetEntry(frameState->mFirstVisualFrame);
   }
 
-  aIsLast = (firstFrameState->mFrameCount == 1 &&
-             !firstFrameState->mHasContOnNextLines);
+  lastInLineOrder = (firstFrameState->mFrameCount == 1);
+
+  if (aSpanDirMatchesLineDir) {
+    aIsFirst = firstInLineOrder;
+    aIsLast = lastInLineOrder;
+  } else {
+    aIsFirst = lastInLineOrder;
+    aIsLast = firstInLineOrder;
+  }
+
+  if (frameState->mHasContOnPrevLines) {
+    aIsFirst = false;
+  }
+  if (firstFrameState->mHasContOnNextLines) {
+    aIsLast = false;
+  }
 
   if ((aIsFirst || aIsLast) &&
       (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
@@ -1370,12 +1386,13 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
     return;
 
   bool isFirst, isLast;
+  WritingMode frameWM = aFrame->GetWritingMode();
   IsFirstOrLast(aFrame,
                 aContinuationStates,
+                aLineWM.IsBidiLTR() == frameWM.IsBidiLTR(),
                 isFirst ,
                 isLast );
 
-  WritingMode frameWM = aFrame->GetWritingMode();
   nsInlineFrame* testFrame = do_QueryFrame(aFrame);
 
   if (testFrame) {
@@ -1393,24 +1410,36 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
       aFrame->RemoveStateBits(NS_INLINE_FRAME_BIDI_VISUAL_IS_LAST);
     }
   }
+
   
   
   
-  LogicalMargin margin(aLineWM, aFrame->GetUsedMargin());
-  if (isFirst) {
-    aStart += margin.IStart(aLineWM);
+  
+  
+  
+
+  
+  
+  
+  LogicalMargin frameMargin = aFrame->GetLogicalUsedMargin(frameWM);
+  LogicalMargin borderPadding = aFrame->GetLogicalUsedBorderAndPadding(frameWM);
+  if (!isFirst) {
+    frameMargin.IStart(frameWM) = 0;
+    borderPadding.IStart(frameWM) = 0;
   }
+  if (!isLast) {
+    frameMargin.IEnd(frameWM) = 0;
+    borderPadding.IEnd(frameWM) = 0;
+  }
+  LogicalMargin margin = frameMargin.ConvertTo(aLineWM, frameWM);
+  aStart += margin.IStart(aLineWM);
 
   nscoord start = aStart;
   nscoord frameISize = aFrame->ISize(aLineWM);
 
   if (!IsBidiLeaf(aFrame))
   {
-    nscoord iCoord = 0;
-    LogicalMargin borderPadding(frameWM, aFrame->GetUsedBorderAndPadding());
-    if (isFirst) {
-      iCoord += borderPadding.IStart(frameWM);
-    }
+    nscoord iCoord = borderPadding.IStart(frameWM);
 
     
     
@@ -1443,10 +1472,7 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
                 frame->GetNextSibling();
     }
 
-    if (isLast) {
-      iCoord += borderPadding.IEnd(frameWM);
-    }
-    aStart += iCoord;
+    aStart += iCoord + borderPadding.IEnd(frameWM);
   } else {
     aStart += frameISize;
   }
@@ -1456,9 +1482,7 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*             aFrame,
   logicalRect.ISize(aLineWM) = aStart - start;
   aFrame->SetRect(aLineWM, logicalRect, aLineWidth);
 
-  if (isLast) {
-    aStart += margin.IEnd(aLineWM);
-  }
+  aStart += margin.IEnd(aLineWM);
 }
 
 void
