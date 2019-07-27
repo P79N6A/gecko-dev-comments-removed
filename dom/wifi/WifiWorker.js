@@ -1780,6 +1780,7 @@ function WifiWorker() {
   }).bind(this));
 
   Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
+  Services.obs.addObserver(this, "xpcom-shutdown", false);
 
   this.wantScanResults = [];
 
@@ -2433,6 +2434,7 @@ WifiWorker.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWorkerHolder,
                                          Ci.nsIWifi,
+                                         Ci.nsIObserver,
                                          Ci.nsISettingsServiceCallback]),
 
   disconnectedByWifi: false,
@@ -3504,22 +3506,28 @@ WifiWorker.prototype = {
 
   
   observe: function observe(subject, topic, data) {
-    
-    
-    
-    
-    if (topic !== kMozSettingsChangedObserverTopic) {
-      return;
-    }
+    switch (topic) {
+    case kMozSettingsChangedObserverTopic:
+      
+      
 
-    let setting = JSON.parse(data);
-    
-    
-    if (setting.message && setting.message === "fromInternalSetting") {
-      return;
-    }
+      let setting = JSON.parse(data);
+      
+      
+      if (setting.message && setting.message === "fromInternalSetting") {
+        return;
+      }
 
-    this.handle(setting.key, setting.value);
+      this.handle(setting.key, setting.value);
+      break;
+
+    case "xpcom-shutdown":
+      let wifiService = Cc["@mozilla.org/wifi/service;1"].getService(Ci.nsIWifiProxyService);
+      wifiService.shutdown();
+      let wifiCertService = Cc["@mozilla.org/wifi/certservice;1"].getService(Ci.nsIWifiCertService);
+      wifiCertService.shutdown();
+      break;
+    }
   },
 
   handle: function handle(aName, aResult) {
