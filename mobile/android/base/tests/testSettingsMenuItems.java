@@ -259,7 +259,8 @@ public class testSettingsMenuItems extends PixelTest {
             }
 
             
-            if (mDevice.type.equals("phone")) {
+            
+            if (mDevice.type.equals("phone") || HardwareUtils.isSmallTablet()) {
                 int menuDepth = menuPath.length;
                 while (menuDepth > 0) {
                     mActions.sendSpecialKey(Actions.SpecialKey.BACK);
