@@ -140,6 +140,9 @@ private:
   
   void SetDuration(double aDuration, MSRangeRemovalAction aAction);
 
+  
+  void SourceBufferIsActive(SourceBuffer* aSourceBuffer);
+
   nsRefPtr<SourceBufferList> mSourceBuffers;
   nsRefPtr<SourceBufferList> mActiveSourceBuffers;
 

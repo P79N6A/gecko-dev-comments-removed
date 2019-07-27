@@ -117,6 +117,11 @@ public:
   
   void DoRangeRemoval(double aStart, double aEnd);
 
+  bool IsActive() const
+  {
+    return mActive;
+  }
+
 #if defined(DEBUG)
   void Dump(const char* aPath);
 #endif
@@ -173,6 +178,8 @@ private:
 
   SourceBufferAppendMode mAppendMode;
   bool mUpdating;
+
+  bool mActive;
 
   
   

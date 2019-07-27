@@ -78,6 +78,13 @@ public:
   
   double GetHighestBufferedEndTime();
 
+  
+  void AppendSimple(SourceBuffer* aSourceBuffer);
+
+  
+  
+  void ClearSimple();
+
 #if defined(DEBUG)
   void Dump(const char* aPath);
 #endif
