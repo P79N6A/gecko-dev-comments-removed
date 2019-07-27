@@ -63,7 +63,6 @@ struct nsStyleImageOrientation;
 struct nsOverflowAreas;
 
 namespace mozilla {
-class EventListenerManager;
 class SVGImageContext;
 struct IntrinsicSize;
 struct ContainerLayerParameters;
@@ -1477,6 +1476,10 @@ public:
   
   static gfxFloat GetSnappedBaselineY(nsIFrame* aFrame, gfxContext* aContext,
                                       nscoord aY, nscoord aAscent);
+  
+  
+  static gfxFloat GetSnappedBaselineX(nsIFrame* aFrame, gfxContext* aContext,
+                                      nscoord aX, nscoord aAscent);
 
   static nscoord AppUnitWidthOfString(char16_t aC,
                                       nsFontMetrics& aFontMetrics,
@@ -2551,9 +2554,6 @@ public:
                                       const mozilla::LogicalMargin& aFramePadding,
                                       mozilla::WritingMode aLineWM,
                                       mozilla::WritingMode aFrameWM);
-
-  static bool HasApzAwareListeners(mozilla::EventListenerManager* aElm);
-  static bool HasDocumentLevelListenersForApzAwareEvents(nsIPresShell* aShell);
 
 private:
   static uint32_t sFontSizeInflationEmPerLine;

@@ -20,7 +20,6 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsFrameList.h"
 #include "nsGkAtoms.h"
-#include "nsHtml5Atoms.h"
 #include "nsIAtom.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSAnonBoxes.h"
@@ -5100,6 +5099,19 @@ nsLayoutUtils::GetSnappedBaselineY(nsIFrame* aFrame, gfxContext* aContext,
   return aContext->DeviceToUser(putativeRect.TopLeft()).y * appUnitsPerDevUnit;
 }
 
+gfxFloat
+nsLayoutUtils::GetSnappedBaselineX(nsIFrame* aFrame, gfxContext* aContext,
+                                   nscoord aX, nscoord aAscent)
+{
+  gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
+  gfxFloat baseline = gfxFloat(aX) + aAscent;
+  gfxRect putativeRect(baseline / appUnitsPerDevUnit, 0, 1, 1);
+  if (!aContext->UserToDevicePixelSnapped(putativeRect, true)) {
+    return baseline;
+  }
+  return aContext->DeviceToUser(putativeRect.TopLeft()).x * appUnitsPerDevUnit;
+}
+
 
 
 #define MAX_GFX_TEXT_BUF_SIZE 8000
@@ -7838,35 +7850,4 @@ nsLayoutUtils::SetBSizeFromFontMetrics(const nsIFrame* aFrame,
   aMetrics.SetBlockStartAscent(aMetrics.BlockStartAscent() +
                                aFramePadding.BStart(aFrameWM));
   aMetrics.BSize(aLineWM) += aFramePadding.BStartEnd(aFrameWM);
-}
-
- bool
-nsLayoutUtils::HasApzAwareListeners(EventListenerManager* aElm)
-{
-  if (!aElm) {
-    return false;
-  }
-  return aElm->HasListenersFor(nsGkAtoms::ontouchstart) ||
-         aElm->HasListenersFor(nsGkAtoms::ontouchmove) ||
-         aElm->HasListenersFor(nsGkAtoms::onwheel) ||
-         aElm->HasListenersFor(nsGkAtoms::onDOMMouseScroll) ||
-         aElm->HasListenersFor(nsHtml5Atoms::onmousewheel);
-}
-
- bool
-nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(nsIPresShell* aShell)
-{
-  if (nsIDocument* doc = aShell->GetDocument()) {
-    WidgetEvent event(true, NS_EVENT_NULL);
-    nsTArray<EventTarget*> targets;
-    nsresult rv = EventDispatcher::Dispatch(doc, nullptr, &event, nullptr,
-        nullptr, nullptr, &targets);
-    NS_ENSURE_SUCCESS(rv, false);
-    for (size_t i = 0; i < targets.Length(); i++) {
-      if (HasApzAwareListeners(targets[i]->GetExistingListenerManager())) {
-        return true;
-      }
-    }
-  }
-  return false;
 }
