@@ -192,6 +192,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   if (aLowPrecision && !mLastProgressiveUpdateWasLowPrecision) {
     
     if (!mProgressiveUpdateWasInDanger) {
+      TILING_PRLOG(("TILING: Aborting low-precision rendering because not at risk of checkerboarding\n"));
       return true;
     }
     mProgressiveUpdateWasInDanger = false;
@@ -201,6 +202,8 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   
   
   if (!FuzzyEquals(compositorMetrics.GetZoom().scale, contentMetrics.GetZoom().scale)) {
+    TILING_PRLOG(("TILING: Aborting because resolution changed from %f to %f\n",
+        contentMetrics.GetZoom().scale, compositorMetrics.GetZoom().scale));
     return true;
   }
 
@@ -239,6 +242,7 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   
   
   if (aLowPrecision && !aHasPendingNewThebesContent) {
+    TILING_PRLOG(("TILING: Aborting low-precision because of new pending content\n"));
     return true;
   }
 
@@ -272,7 +276,14 @@ SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetric
   painted = painted.Intersect(aContentMetrics.mScrollableRect);
   showing = showing.Intersect(aContentMetrics.mScrollableRect);
 
-  return !painted.Contains(showing);
+  if (!painted.Contains(showing)) {
+    TILING_PRLOG_OBJ(("TILING: About to checkerboard; content %s\n", tmpstr.get()), aContentMetrics);
+    TILING_PRLOG_OBJ(("TILING: About to checkerboard; painted %s\n", tmpstr.get()), painted);
+    TILING_PRLOG_OBJ(("TILING: About to checkerboard; compositor %s\n", tmpstr.get()), aCompositorMetrics);
+    TILING_PRLOG_OBJ(("TILING: About to checkerboard; showing %s\n", tmpstr.get()), showing);
+    return true;
+  }
+  return false;
 }
 
 ClientTiledLayerBuffer::ClientTiledLayerBuffer(ClientTiledThebesLayer* aThebesLayer,
