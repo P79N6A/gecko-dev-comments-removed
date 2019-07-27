@@ -65,10 +65,22 @@ function synthesizeNativeWheelAndWaitForObserver(aElement, aX, aY, aDeltaX, aDel
 
 
 
-function synthesizeNativeWheelAndWaitForEvent(aElement, aX, aY, aDeltaX, aDeltaY, aCallback) {
+function synthesizeNativeWheelAndWaitForWheelEvent(aElement, aX, aY, aDeltaX, aDeltaY, aCallback) {
   window.addEventListener("wheel", function wheelWaiter(e) {
     window.removeEventListener("wheel", wheelWaiter);
     setTimeout(aCallback, 0);
   });
+  return synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY);
+}
+
+
+
+
+function synthesizeNativeWheelAndWaitForScrollEvent(aElement, aX, aY, aDeltaX, aDeltaY, aCallback) {
+  var useCapture = true;  
+  window.addEventListener("scroll", function scrollWaiter(e) {
+    window.removeEventListener("scroll", scrollWaiter, useCapture);
+    setTimeout(aCallback, 0);
+  }, useCapture);
   return synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY);
 }
