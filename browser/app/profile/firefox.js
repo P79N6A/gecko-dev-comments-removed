@@ -1211,9 +1211,6 @@ pref("security.sandbox.content.level", 0);
 #endif
 
 
-
-pref("security.sandbox.content.tempDirSuffix", "");
-
 #if defined(MOZ_STACKWALKING)
 
 
@@ -1378,7 +1375,7 @@ pref("devtools.toolbox.splitconsoleHeight", 100);
 
 
 pref("devtools.command-button-pick.enabled", true);
-pref("devtools.command-button-frames.enabled", false);
+pref("devtools.command-button-frames.enabled", true);
 pref("devtools.command-button-splitconsole.enabled", true);
 pref("devtools.command-button-paintflashing.enabled", false);
 pref("devtools.command-button-tilt.enabled", false);
