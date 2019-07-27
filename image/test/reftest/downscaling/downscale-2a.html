@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+
+<html reftest-zoom="1.0" class="reftest-wait">
+<head>
+  <script>
+    function snapshot() {
+      document.documentElement.removeAttribute('class');
+    }
+  </script>
+</head>
+
+
+
+
+
+
+
+
+
+<body style="margin: 0px" onload="setTimeout(snapshot, 50)">
+  <script>
+    var args = location.search.substring(1).split(',');
+    var image = document.createElement('img');
+    image.width = args[0];
+    image.height = args[1];
+    image.src = 'black-border-' + args[2] + '.png';
+    document.body.appendChild(image);
+  </script>
+</body>
+</html>
