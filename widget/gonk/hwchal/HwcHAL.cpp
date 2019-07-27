@@ -150,6 +150,51 @@ HwcHAL::SetCrop(HwcLayer &aLayer,
     }
 }
 
+bool
+HwcHAL::EnableVsync(bool aEnable)
+{
+    
+    
+#if (ANDROID_VERSION == 19 || ANDROID_VERSION >= 21)
+    if (!mHwc) {
+        return false;
+    }
+    return !mHwc->eventControl(mHwc,
+                               HWC_DISPLAY_PRIMARY,
+                               HWC_EVENT_VSYNC,
+                               aEnable);
+#else
+    return false;
+#endif
+}
+
+bool
+HwcHAL::RegisterHwcEventCallback(const HwcHALProcs_t &aProcs)
+{
+    if (!mHwc || !mHwc->registerProcs) {
+        printf_stderr("Failed to get hwc\n");
+        return false;
+    }
+
+    
+    mHwc->eventControl(mHwc,
+                       HWC_DISPLAY_PRIMARY,
+                       HWC_EVENT_VSYNC,
+                       false);
+    static const hwc_procs_t sHwcJBProcs = {aProcs.invalidate,
+                                            aProcs.vsync,
+                                            aProcs.hotplug};
+    mHwc->registerProcs(mHwc, &sHwcJBProcs);
+
+    
+    
+#if (ANDROID_VERSION == 19 || ANDROID_VERSION >= 21)
+    return true;
+#else
+    return false;
+#endif
+}
+
 void
 HwcHAL::GetHwcAttributes()
 {

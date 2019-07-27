@@ -111,6 +111,18 @@ HwcICS::SetCrop(HwcLayer& aLayer,
     aLayer.sourceCrop = aSrcCrop;
 }
 
+bool
+HwcICS::EnableVsync(bool aEnable)
+{
+    return false;
+}
+
+bool
+HwcICS::RegisterHwcEventCallback(const HwcHALProcs_t &aProcs)
+{
+    return false;
+}
+
 
 UniquePtr<HwcHALBase>
 HwcHALBase::CreateHwcHAL()

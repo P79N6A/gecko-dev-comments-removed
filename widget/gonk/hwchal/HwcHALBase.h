@@ -51,6 +51,18 @@ using HwcLayer  = hwc_layer_t;
 
 
 
+
+
+
+typedef struct HwcHALProcs {
+    void (*invalidate)(const struct hwc_procs* procs);
+    void (*vsync)(const struct hwc_procs* procs, int disp, int64_t timestamp);
+    void (*hotplug)(const struct hwc_procs* procs, int disp, int connected);
+} HwcHALProcs_t;
+
+
+
+
 class HwcHALBase {
 
 public:
@@ -105,6 +117,12 @@ public:
     
     virtual void SetCrop(HwcLayer &aLayer,
                          const hwc_rect_t &aSrcCrop) const = 0;
+
+    
+    virtual bool EnableVsync(bool aEnable) = 0;
+
+    
+    virtual bool RegisterHwcEventCallback(const HwcHALProcs_t &aProcs) = 0;
 
 protected:
     MOZ_CONSTEXPR static uint32_t HwcAPIVersion(uint32_t aMaj, uint32_t aMin) {
