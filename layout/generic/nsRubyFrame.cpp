@@ -271,6 +271,23 @@ nsRubyFrame::Reflow(nsPresContext* aPresContext,
                                          borderPadding, lineWM, frameWM);
 }
 
+#ifdef DEBUG
+static void
+SanityCheckRubyPosition(int8_t aRubyPosition)
+{
+  uint8_t horizontalPosition = aRubyPosition &
+    (NS_STYLE_RUBY_POSITION_LEFT | NS_STYLE_RUBY_POSITION_RIGHT);
+  MOZ_ASSERT(horizontalPosition == NS_STYLE_RUBY_POSITION_LEFT ||
+             horizontalPosition == NS_STYLE_RUBY_POSITION_RIGHT);
+  uint8_t verticalPosition = aRubyPosition &
+    (NS_STYLE_RUBY_POSITION_OVER | NS_STYLE_RUBY_POSITION_UNDER |
+     NS_STYLE_RUBY_POSITION_INTER_CHARACTER);
+  MOZ_ASSERT(verticalPosition == NS_STYLE_RUBY_POSITION_OVER ||
+             verticalPosition == NS_STYLE_RUBY_POSITION_UNDER ||
+             verticalPosition == NS_STYLE_RUBY_POSITION_INTER_CHARACTER);
+}
+#endif
+
 void
 nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
                            const nsHTMLReflowState& aReflowState,
@@ -356,6 +373,16 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
   }
 
   nsRect baseRect = aBaseContainer->GetRect();
+  
+  
+  
+  
+  
+  
+  
+  (lineWM.IsVertical() ? baseRect.x : baseRect.y) = 0;
+  
+  nsRect offsetRect = baseRect;
   for (uint32_t i = 0; i < rtcCount; i++) {
     nsRubyTextContainerFrame* textContainer = textContainers[i];
     nsReflowStatus textReflowStatus;
@@ -376,14 +403,36 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
                  "Ruby text container must not break itself inside");
     textContainer->SetSize(LogicalSize(lineWM, textMetrics.ISize(lineWM),
                                        textMetrics.BSize(lineWM)));
+
     nscoord x, y;
     nscoord bsize = textMetrics.BSize(lineWM);
+    uint8_t rubyPosition = textContainer->StyleText()->mRubyPosition;
+#ifdef DEBUG
+    SanityCheckRubyPosition(rubyPosition);
+#endif
     if (lineWM.IsVertical()) {
-      x = lineWM.IsVerticalLR() ? -bsize : baseRect.XMost();
-      y = baseRect.Y();
+      
+      if (rubyPosition & NS_STYLE_RUBY_POSITION_LEFT) {
+        x = offsetRect.X() - bsize;
+        offsetRect.SetLeftEdge(x);
+      } else {
+        x = offsetRect.XMost();
+        offsetRect.SetRightEdge(x + bsize);
+      }
+      y = offsetRect.Y();
     } else {
-      x = baseRect.X();
-      y = -bsize;
+      
+      x = offsetRect.X();
+      if (rubyPosition & NS_STYLE_RUBY_POSITION_OVER) {
+        y = offsetRect.Y() - bsize;
+        offsetRect.SetTopEdge(y);
+      } else if (rubyPosition & NS_STYLE_RUBY_POSITION_UNDER) {
+        y = offsetRect.YMost();
+        offsetRect.SetBottomEdge(y + bsize);
+      } else {
+        
+        MOZ_ASSERT_UNREACHABLE("Unsupported ruby-position");
+      }
     }
     FinishReflowChild(textContainer, aPresContext, textMetrics,
                       &textReflowState, x, y, 0);
