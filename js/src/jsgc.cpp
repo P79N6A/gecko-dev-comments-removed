@@ -2082,20 +2082,6 @@ size_t ArenaHeader::countUsedCells()
     return Arena::thingsPerArena(getThingSize()) - countFreeCells();
 }
 
-
-
-
-
-
-
-size_t ArenaList::countUsedCells()
-{
-    size_t count = 0;
-    for (ArenaHeader *arena = head_; arena; arena = arena->next)
-        count += arena->countUsedCells();
-    return count;
-}
-
 ArenaHeader *
 ArenaList::removeRemainingArenas(ArenaHeader **arenap, const AutoLockGC &lock)
 {
@@ -2153,7 +2139,12 @@ ArenaList::pickArenasToRelocate(JSRuntime *runtime)
 
     ArenaHeader **arenap = cursorp_;               
     size_t previousFreeCells = 0;                  
-    size_t followingUsedCells = countUsedCells();  
+
+    
+    size_t followingUsedCells = 0;
+    for (ArenaHeader *arena = *arenap; arena; arena = arena->next)
+        followingUsedCells += arena->countUsedCells();
+
     mozilla::DebugOnly<size_t> lastFreeCells(0);
     size_t cellsPerArena = Arena::thingsPerArena((*arenap)->getThingSize());
 
