@@ -108,10 +108,8 @@ static size_t getPageSize(void) {
 
 
 
-
-
 #ifndef NUWA_STACK_SIZE
-#define NUWA_STACK_SIZE (1024 * 128)
+#define NUWA_STACK_SIZE (1024 * 1024)
 #endif
 
 #define NATIVE_THREAD_NAME_LENGTH 16
@@ -173,6 +171,8 @@ struct thread_info : public mozilla::LinkedListElement<thread_info> {
   pthread_mutex_t *condMutex;
   bool condMutexNeedsBalancing;
 
+  size_t stackSize;
+  size_t guardSize;
   void *stk;
 
   pid_t origNativeThreadID;
@@ -546,20 +546,10 @@ thread_info_new(void) {
   tinfo->recreatedNativeThreadID = 0;
   tinfo->condMutex = nullptr;
   tinfo->condMutexNeedsBalancing = false;
-  tinfo->stk = MozTaggedAnonymousMmap(nullptr,
-                                      NUWA_STACK_SIZE + getPageSize(),
-                                      PROT_READ | PROT_WRITE,
-                                      MAP_PRIVATE | MAP_ANONYMOUS,
-                                       -1,
-                                       0,
-                                      "nuwa-thread-stack");
 
   
-  
-  
-  mprotect(tinfo->stk, getPageSize(), PROT_NONE);
-
-  pthread_attr_init(&tinfo->threadAttr);
+  tinfo->stackSize = NUWA_STACK_SIZE;
+  tinfo->guardSize = getPageSize();
 
   REAL(pthread_mutex_lock)(&sThreadCountLock);
   
@@ -573,6 +563,44 @@ thread_info_new(void) {
 }
 
 static void
+thread_attr_init(thread_info_t *tinfo, const pthread_attr_t *tattr)
+{
+  pthread_attr_init(&tinfo->threadAttr);
+
+  if (tattr) {
+    
+    pthread_attr_getstacksize(tattr, &tinfo->stackSize);
+    pthread_attr_getguardsize(tattr, &tinfo->guardSize);
+
+    size_t pageSize = getPageSize();
+
+    tinfo->stackSize = (tinfo->stackSize + pageSize - 1) % pageSize;
+    tinfo->guardSize = (tinfo->guardSize + pageSize - 1) % pageSize;
+
+    int detachState = 0;
+    pthread_attr_getdetachstate(tattr, &detachState);
+    pthread_attr_setdetachstate(&tinfo->threadAttr, detachState);
+  }
+
+  tinfo->stk = MozTaggedAnonymousMmap(nullptr,
+                                      tinfo->stackSize + tinfo->guardSize,
+                                      PROT_READ | PROT_WRITE,
+                                      MAP_PRIVATE | MAP_ANONYMOUS,
+                                       -1,
+                                       0,
+                                      "nuwa-thread-stack");
+
+  
+  
+  
+  mprotect(tinfo->stk, tinfo->guardSize, PROT_NONE);
+
+  pthread_attr_setstack(&tinfo->threadAttr,
+                        (char*)tinfo->stk + tinfo->guardSize,
+                        tinfo->stackSize);
+}
+
+static void
 thread_info_cleanup(void *arg) {
   if (sNuwaForking) {
     
@@ -582,7 +610,7 @@ thread_info_cleanup(void *arg) {
   thread_info_t *tinfo = (thread_info_t *)arg;
   pthread_attr_destroy(&tinfo->threadAttr);
 
-  munmap(tinfo->stk, NUWA_STACK_SIZE + getPageSize());
+  munmap(tinfo->stk, tinfo->stackSize + tinfo->guardSize);
 
   REAL(pthread_mutex_lock)(&sThreadCountLock);
   
@@ -741,11 +769,9 @@ __wrap_pthread_create(pthread_t *thread,
   }
 
   thread_info_t *tinfo = thread_info_new();
+  thread_attr_init(tinfo, attr);
   tinfo->startupFunc = start_routine;
   tinfo->startupArg = arg;
-  pthread_attr_setstack(&tinfo->threadAttr,
-                        (char*)tinfo->stk + getPageSize(),
-                        NUWA_STACK_SIZE);
 
   int rv = REAL(pthread_create)(thread,
                                 &tinfo->threadAttr,
