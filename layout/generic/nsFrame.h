@@ -583,7 +583,9 @@ public:
                                           const nsStyleDisplay* aDisp)
   {
     
-    if (MOZ_UNLIKELY(aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP)) {
+    
+    if (MOZ_UNLIKELY(aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP &&
+                     aFrame->GetType() != nsGkAtoms::listControlFrame)) {
       return true;
     }
 
