@@ -16,7 +16,6 @@ namespace image {
 
 Decoder::Decoder(RasterImage &aImage)
   : mImage(aImage)
-  , mCurrentFrame(nullptr)
   , mImageData(nullptr)
   , mColormap(nullptr)
   , mDecodeFlags(0)
@@ -61,19 +60,20 @@ Decoder::Init()
 
 
 void
-Decoder::InitSharedDecoder(uint8_t* imageData, uint32_t imageDataLength,
-                           uint32_t* colormap, uint32_t colormapSize,
-                           imgFrame* currentFrame)
+Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
+                           uint32_t* aColormap, uint32_t aColormapSize,
+                           RawAccessFrameRef&& aFrameRef)
 {
   
   NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
   NS_ABORT_IF_FALSE(mObserver, "Need an observer!");
 
-  mImageData = imageData;
-  mImageDataLength = imageDataLength;
-  mColormap = colormap;
-  mColormapSize = colormapSize;
-  mCurrentFrame = currentFrame;
+  mImageData = aImageData;
+  mImageDataLength = aImageDataLength;
+  mColormap = aColormap;
+  mColormapSize = aColormapSize;
+  mCurrentFrame = Move(aFrameRef);
+
   
   if (!IsSizeDecode()) {
     PostFrameStart();
@@ -180,10 +180,12 @@ Decoder::Finish(RasterImage::eShutdownIntent aShutdownIntent)
   }
 
   
+  
   mImageMetadata.SetOnImage(&mImage);
 
   if (mDecodeDone) {
-    mImage.DecodingComplete();
+    MOZ_ASSERT(HasError() || mCurrentFrame, "Should have an error or a frame");
+    mImage.DecodingComplete(mCurrentFrame.get());
   }
 }
 
@@ -203,34 +205,22 @@ Decoder::AllocateFrame()
   MOZ_ASSERT(mNeedsNewFrame);
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsresult rv;
-  nsRefPtr<imgFrame> frame;
-  if (mNewFrameData.mPaletteDepth) {
-    rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
-                            mNewFrameData.mOffsetY, mNewFrameData.mWidth,
-                            mNewFrameData.mHeight, mNewFrameData.mFormat,
-                            mNewFrameData.mPaletteDepth,
-                            &mImageData, &mImageDataLength,
-                            &mColormap, &mColormapSize,
-                            getter_AddRefs(frame));
-  } else {
-    rv = mImage.EnsureFrame(mNewFrameData.mFrameNum, mNewFrameData.mOffsetX,
-                            mNewFrameData.mOffsetY, mNewFrameData.mWidth,
-                            mNewFrameData.mHeight, mNewFrameData.mFormat,
-                            &mImageData, &mImageDataLength,
-                            getter_AddRefs(frame));
-  }
+  mCurrentFrame = mImage.EnsureFrame(mNewFrameData.mFrameNum,
+                                     mNewFrameData.mFrameRect,
+                                     mDecodeFlags,
+                                     mNewFrameData.mFormat,
+                                     mNewFrameData.mPaletteDepth,
+                                     mCurrentFrame.get());
 
-  if (NS_SUCCEEDED(rv)) {
-    mCurrentFrame = frame;
-  } else {
-    mCurrentFrame = nullptr;
-  }
+  if (mCurrentFrame) {
+    
+    mCurrentFrame->GetImageData(&mImageData, &mImageDataLength);
+    mCurrentFrame->GetPaletteData(&mColormap, &mColormapSize);
 
-  
-  if (NS_SUCCEEDED(rv) && mNewFrameData.mFrameNum == mFrameCount) {
-    PostFrameStart();
-  } else if (NS_FAILED(rv)) {
+    if (mNewFrameData.mFrameNum == mFrameCount) {
+      PostFrameStart();
+    }
+  } else {
     PostDataError();
   }
 
@@ -238,7 +228,7 @@ Decoder::AllocateFrame()
   
   mNeedsNewFrame = false;
 
-  return rv;
+  return mCurrentFrame ? NS_OK : NS_ERROR_FAILURE;
 }
 
 void
@@ -328,8 +318,8 @@ Decoder::PostFrameStart()
   
   
   
-  NS_ABORT_IF_FALSE(mFrameCount == mImage.GetNumFrames(),
-                    "Decoder frame count doesn't match image's!");
+  MOZ_ASSERT(mFrameCount == mImage.GetNumFrames(),
+             "Decoder frame count doesn't match image's!");
 
   
   if (mObserver) {
@@ -393,7 +383,6 @@ Decoder::PostDecodeDone(int32_t aLoopCount )
   mDecodeDone = true;
 
   mImageMetadata.SetLoopCount(aLoopCount);
-  mImageMetadata.SetIsNonPremultiplied(GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA);
 
   if (mObserver) {
     mObserver->OnStopDecode(NS_OK);
@@ -430,7 +419,9 @@ Decoder::NeedNewFrame(uint32_t framenum, uint32_t x_offset, uint32_t y_offset,
   
   MOZ_ASSERT(framenum == mFrameCount || framenum == (mFrameCount - 1));
 
-  mNewFrameData = NewFrameData(framenum, x_offset, y_offset, width, height, format, palette_depth);
+  mNewFrameData = NewFrameData(framenum,
+                               nsIntRect(x_offset, y_offset, width, height),
+                               format, palette_depth);
   mNeedsNewFrame = true;
 }
 

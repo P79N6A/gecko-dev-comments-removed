@@ -29,6 +29,7 @@
 #include "DiscardTracker.h"
 #include "Orientation.h"
 #include "nsIObserver.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -186,8 +187,6 @@ public:
   void ForceDiscard() { Discard( true); }
 
   
-  nsresult SetFrameAsNonPremult(uint32_t aFrameNum, bool aIsNonPremult);
-
   
 
 
@@ -200,29 +199,17 @@ public:
 
 
 
-  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
-                       int32_t aWidth, int32_t aHeight,
-                       gfx::SurfaceFormat aFormat,
-                       uint8_t aPaletteDepth,
-                       uint8_t** imageData,
-                       uint32_t* imageLength,
-                       uint32_t** paletteData,
-                       uint32_t* paletteLength,
-                       imgFrame** aFrame);
+
+
+  RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
+                                const nsIntRect& aFrameRect,
+                                uint32_t aDecodeFlags,
+                                gfx::SurfaceFormat aFormat,
+                                uint8_t aPaletteDepth,
+                                imgFrame* aPreviousFrame);
 
   
-
-
-
-  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
-                       int32_t aWidth, int32_t aHeight,
-                       gfx::SurfaceFormat aFormat,
-                       uint8_t** imageData,
-                       uint32_t* imageLength,
-                       imgFrame** aFrame);
-
-  
-  nsresult DecodingComplete();
+  void DecodingComplete(imgFrame* aFinalFrame);
 
   
 
@@ -547,8 +534,10 @@ private:
                                                     uint32_t aFlags,
                                                     bool aShouldSyncNotify = true);
 
-  already_AddRefed<imgFrame> LookupFrameNoDecode(uint32_t aFrameNum);
-  DrawableFrameRef LookupFrame(uint32_t aFrameNum, uint32_t aFlags, bool aShouldSyncNotify = true);
+  DrawableFrameRef LookupFrame(uint32_t aFrameNum,
+                               const nsIntSize& aSize,
+                               uint32_t aFlags,
+                               bool aShouldSyncNotify = true);
   uint32_t GetCurrentFrameIndex() const;
   uint32_t GetRequestedFrameIndex(uint32_t aWhichFrame) const;
 
@@ -557,16 +546,12 @@ private:
 
   void EnsureAnimExists();
 
-  nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
-                                  uint8_t **imageData, uint32_t *imageLength,
-                                  uint32_t **paletteData, uint32_t *paletteLength,
-                                  imgFrame** aRetFrame);
-  nsresult InternalAddFrame(uint32_t framenum, int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
-                            gfx::SurfaceFormat aFormat, uint8_t aPaletteDepth,
-                            uint8_t **imageData, uint32_t *imageLength,
-                            uint32_t **paletteData, uint32_t *paletteLength,
-                            imgFrame** aRetFrame);
-
+  RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
+                                     const nsIntRect& aFrameRect,
+                                     uint32_t aDecodeFlags,
+                                     gfx::SurfaceFormat aFormat,
+                                     uint8_t aPaletteDepth,
+                                     imgFrame* aPreviousFrame);
   nsresult DoImageDataComplete();
 
   bool ApplyDecodeFlags(uint32_t aNewFlags, uint32_t aWhichFrame);
@@ -604,10 +589,10 @@ private:
   uint32_t                   mFrameDecodeFlags;
 
   
-  FrameBlender              mFrameBlender;
+  Maybe<FrameBlender>       mFrameBlender;
 
   
-  nsRefPtr<imgFrame>        mMultipartDecodedFrame;
+  DrawableFrameRef          mMultipartDecodedFrame;
 
   nsCOMPtr<nsIProperties>   mProperties;
 
@@ -676,6 +661,14 @@ private:
   bool                       mDecoded:1;
   bool                       mHasBeenDecoded:1;
 
+  
+  bool                       mHasFirstFrame:1;
+  bool                       mFirstFrameIsOpaque:1;
+
+  
+  
+  
+  bool                       mPendingAnimation:1;
 
   
   
