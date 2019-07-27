@@ -1100,6 +1100,13 @@ SpecialPowersAPI.prototype = {
   },
 
   
+  allowUnsignedAddons: function() {
+    this._sendSyncMessage("SPWebAppService", {
+      op: "allow-unsigned-addons"
+    });
+  },
+
+  
   flushAllAppsLaunchable: function() {
     this._sendSyncMessage("SPWebAppService", {
       op: "set-launchable",

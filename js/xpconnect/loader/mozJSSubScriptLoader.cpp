@@ -346,7 +346,7 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
         return ReportError(cx, LOAD_ERROR_NOSCHEME, uri);
     }
 
-    if (!scheme.EqualsLiteral("chrome")) {
+    if (!scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("app")) {
         
         nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(uri);
         nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(innerURI);

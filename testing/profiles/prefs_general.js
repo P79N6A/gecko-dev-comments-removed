@@ -252,6 +252,8 @@ user_pref("browser.aboutHomeSnippets.updateUrl", "nonexistent://test");
 
 user_pref("dom.mozApps.debug", true);
 
+user_pref("dom.apps.customization.enabled", true);
+
 
 user_pref("browser.newtabpage.directory.source", 'data:application/json,{"testing":1}');
 user_pref("browser.newtabpage.directory.ping", "");

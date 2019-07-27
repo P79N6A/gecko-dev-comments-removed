@@ -479,7 +479,10 @@ this.AppsUtils = {
     return true;
   },
 
+  allowUnsignedAddons: false, 
+
   
+
 
 
 
@@ -487,6 +490,12 @@ this.AppsUtils = {
 
   checkAppRole: function(aRole, aStatus) {
     if (aRole == "theme" && aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+      return false;
+    }
+    if (!this.allowUnsignedAddons &&
+        (aRole == "addon" &&
+         aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED &&
+         aStatus !== Ci.nsIPrincipal.APP_STATUS_PRIVILEGED)) {
       return false;
     }
     return true;
@@ -718,6 +727,11 @@ this.AppsUtils = {
 
     
     return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+  },
+
+  
+  computeObjectHash: function(aObject) {
+    return this.computeHash(JSON.stringify(aObject));
   }
 }
 

@@ -1038,6 +1038,9 @@ pref("browser.autofocus", false);
 pref("dom.wakelock.enabled", true);
 
 
+pref("dom.apps.customization.enabled", true);
+
+
 pref("touchcaret.enabled", true);
 
 
