@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_BaselineCompiler_h
 #define jit_BaselineCompiler_h
@@ -93,6 +93,7 @@ namespace jit {
     _(JSOP_BITNOT)             \
     _(JSOP_NEG)                \
     _(JSOP_NEWARRAY)           \
+    _(JSOP_SPREADCALLARRAY)    \
     _(JSOP_NEWARRAY_COPYONWRITE) \
     _(JSOP_INITELEM_ARRAY)     \
     _(JSOP_NEWOBJECT)          \
@@ -202,30 +203,30 @@ class BaselineCompiler : public BaselineCompilerSpecific
     NonAssertingLabel           return_;
     NonAssertingLabel           postBarrierSlot_;
 
-    
+    // Native code offset right before the scope chain is initialized.
     CodeOffsetLabel prologueOffset_;
 
-    
-    
+    // Native code offset right before the frame is popped and the method
+    // returned from.
     CodeOffsetLabel epilogueOffset_;
 
-    
-    
+    // Native code offset right after debug prologue and epilogue, or
+    // equivalent positions when debug mode is off.
     CodeOffsetLabel postDebugPrologueOffset_;
 
-    
-    
+    // For each INITIALYIELD or YIELD op, this Vector maps the yield index
+    // to the bytecode offset of the next op.
     Vector<uint32_t>            yieldOffsets_;
 
-    
+    // Whether any on stack arguments are modified.
     bool modifiesArguments_;
 
     Label* labelOf(jsbytecode* pc) {
         return &labels_[script->pcToOffset(pc)];
     }
 
-    
-    
+    // If a script has more |nslots| than this, then emit code to do an
+    // early stack check.
     static const unsigned EARLY_STACK_CHECK_SLOT_COUNT = 128;
     bool needsEarlyStackCheck() const {
         return script->nslots() > EARLY_STACK_CHECK_SLOT_COUNT;
@@ -274,13 +275,13 @@ class BaselineCompiler : public BaselineCompilerSpecific
     OPCODE_LIST(EMIT_OP)
 #undef EMIT_OP
 
-    
+    // JSOP_NEG, JSOP_BITNOT
     bool emitUnaryArith();
 
-    
+    // JSOP_BITXOR, JSOP_LSH, JSOP_ADD etc.
     bool emitBinaryArith();
 
-    
+    // Handles JSOP_LT, JSOP_GT, and friends
     bool emitCompare();
 
     bool emitReturn();
@@ -309,7 +310,7 @@ class BaselineCompiler : public BaselineCompilerSpecific
 
 extern const VMFunction NewArrayCopyOnWriteInfo;
 
-} 
-} 
+} // namespace jit
+} // namespace js
 
-#endif 
+#endif /* jit_BaselineCompiler_h */

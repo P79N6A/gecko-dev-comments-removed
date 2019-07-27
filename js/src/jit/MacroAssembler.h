@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_MacroAssembler_h
 #define jit_MacroAssembler_h
@@ -32,10 +32,10 @@
 #include "vm/Shape.h"
 #include "vm/UnboxedObject.h"
 
-
-
-
-
+// This Macro is only a hint for code readers that the function is defined in a
+// specific macro assembler, and not in the generic macro assembler.  Thus, when
+// looking for the implementation one might find if the function is implemented
+// and where it is supposed to be implemented.
 # define PER_ARCH
 
 #if defined(JS_CODEGEN_X86)
@@ -61,9 +61,9 @@
 namespace js {
 namespace jit {
 
-
-
-
+// The public entrypoint for emitting assembly. Note that a MacroAssembler can
+// use cx->lifoAlloc, so take care not to interleave masm use with other
+// lifoAlloc use if one will be destroyed before the other.
 class MacroAssembler : public MacroAssemblerSpecific
 {
     MacroAssembler* thisFromCtor() {
@@ -86,9 +86,9 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
     };
 
-    
-
-
+    /*
+     * Base class for creating a branch.
+     */
     class Branch
     {
         bool init_;
@@ -101,7 +101,7 @@ class MacroAssembler : public MacroAssemblerSpecific
           : init_(false),
             cond_(Equal),
             jump_(nullptr),
-            reg_(Register::FromCode(0))      
+            reg_(Register::FromCode(0))      // Quell compiler warnings.
         { }
 
         Branch(Condition cond, Register reg, Label* jump)
@@ -138,10 +138,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         virtual void emit(MacroAssembler& masm) = 0;
     };
 
-    
-
-
-
+    /*
+     * Creates a branch based on a specific TypeSet::Type.
+     * Note: emits number test (int/double) for TypeSet::DoubleType()
+     */
     class BranchType : public Branch
     {
         TypeSet::Type type_;
@@ -180,9 +180,9 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     };
 
-    
-
-
+    /*
+     * Creates a branch based on a GCPtr.
+     */
     class BranchGCPtr : public Branch
     {
         ImmGCPtr ptr_;
@@ -209,12 +209,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     mozilla::Maybe<AutoJitContextAlloc> alloc_;
 
   private:
-    
-    
-    
+    // This field is used to manage profiling instrumentation output. If
+    // provided and enabled, then instrumentation will be emitted around call
+    // sites.
     bool emitProfilingInstrumentation_;
 
-    
+    // Labels for handling exceptions and failures.
     NonAssertingLabel failureLabel_;
 
   public:
@@ -238,8 +238,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 #endif
     }
 
-    
-    
+    // This constructor should only be used when there is no JitContext active
+    // (for example, Trampoline-$(ARCH).cpp and IonCaches.cpp).
     explicit MacroAssembler(JSContext* cx, IonScript* ion = nullptr,
                             JSScript* script = nullptr, jsbytecode* pc = nullptr)
       : emitProfilingInstrumentation_(false)
@@ -259,7 +259,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
     }
 
-    
+    // asm.js compilation handles its own JitContext-pushing
     struct AsmJSToken {};
     explicit MacroAssembler(AsmJSToken)
       : emitProfilingInstrumentation_(false)
@@ -293,8 +293,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
   public:
-    
-    
+    // ===============================================================
+    // Stack manipulation functions.
 
     void PushRegsInMask(LiveRegisterSet set) PER_ARCH;
     void PushRegsInMask(LiveGeneralRegisterSet set);
@@ -329,8 +329,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 
   public:
 
-    
-    
+    // Emits a test of a value against all types in a TypeSet. A scratch
+    // register is required.
     template <typename Source, typename TypeSet>
     void guardTypeSet(const Source& address, const TypeSet* types, BarrierKind kind, Register scratch, Label* miss);
     template <typename TypeSet>
@@ -390,7 +390,7 @@ class MacroAssembler : public MacroAssemblerSpecific
           case MIRType_Symbol:    return branchTestSymbol(cond, val, label);
           case MIRType_Object:    return branchTestObject(cond, val, label);
           case MIRType_Double:    return branchTestDouble(cond, val, label);
-          case MIRType_MagicOptimizedArguments: 
+          case MIRType_MagicOptimizedArguments: // Fall through.
           case MIRType_MagicIsConstructing:
           case MIRType_MagicHole: return branchTestMagic(cond, val, label);
           default:
@@ -398,15 +398,15 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
     }
 
-    
+    // Branches to |label| if |reg| is false. |reg| should be a C++ bool.
     void branchIfFalseBool(Register reg, Label* label) {
-        
+        // Note that C++ bool is only 1 byte, so ignore the higher-order bits.
         branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
     }
 
-    
+    // Branches to |label| if |reg| is true. |reg| should be a C++ bool.
     void branchIfTrueBool(Register reg, Label* label) {
-        
+        // Note that C++ bool is only 1 byte, so ignore the higher-order bits.
         branchTest32(Assembler::NonZero, reg, Imm32(0xFF), label);
     }
 
@@ -533,14 +533,14 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void storeCallResultValue(ValueOperand dest) {
 #if defined(JS_NUNBOX32)
-        
-        
-        
-        
-        
+        // reshuffle the return registers used for a call result to store into
+        // dest, using ReturnReg as a scratch register if necessary. This must
+        // only be called after returning from a call, at a point when the
+        // return register is not live. XXX would be better to allow wrappers
+        // to store the return value to different places.
         if (dest.typeReg() == JSReturnReg_Data) {
             if (dest.payloadReg() == JSReturnReg_Type) {
-                
+                // swap the two registers.
                 mov(JSReturnReg_Type, ReturnReg);
                 mov(JSReturnReg_Data, JSReturnReg_Type);
                 mov(ReturnReg, JSReturnReg_Data);
@@ -573,8 +573,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     void branchIfFunctionHasNoScript(Register fun, Label* label) {
-        
-        
+        // 16-bit loads are slow and unaligned 32-bit loads may be too so
+        // perform an aligned 32-bit load and adjust the bitmask accordingly.
         MOZ_ASSERT(JSFunction::offsetOfNargs() % sizeof(uint32_t) == 0);
         MOZ_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
         Address address(fun, JSFunction::offsetOfNargs());
@@ -582,8 +582,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         branchTest32(Assembler::Zero, address, Imm32(bit), label);
     }
     void branchIfInterpreted(Register fun, Label* label) {
-        
-        
+        // 16-bit loads are slow and unaligned 32-bit loads may be too so
+        // perform an aligned 32-bit load and adjust the bitmask accordingly.
         MOZ_ASSERT(JSFunction::offsetOfNargs() % sizeof(uint32_t) == 0);
         MOZ_ASSERT(JSFunction::offsetOfFlags() == JSFunction::offsetOfNargs() + 2);
         Address address(fun, JSFunction::offsetOfNargs());
@@ -645,8 +645,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     void patchableCallPreBarrier(const T& address, MIRType type) {
         Label done;
 
-        
-        
+        // All barriers are off by default.
+        // They are enabled if necessary at the end of CodeGenerator::generate().
         CodeOffsetLabel nopJump = toggledJump(&done);
         writePrebarrierOffset(nopJump);
 
@@ -704,12 +704,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     void compareExchangeToTypedIntArray(Scalar::Type arrayType, const T& mem, Register oldval, Register newval,
                                         Register temp, AnyRegister output);
 
-    
+    // Generating a result.
     template<typename S, typename T>
     void atomicBinopToTypedIntArray(AtomicOp op, Scalar::Type arrayType, const S& value,
                                     const T& mem, Register temp1, Register temp2, AnyRegister output);
 
-    
+    // Generating no result.
     template<typename S, typename T>
     void atomicBinopToTypedIntArray(AtomicOp op, Scalar::Type arrayType, const S& value, const T& mem);
 
@@ -718,16 +718,19 @@ class MacroAssembler : public MacroAssemblerSpecific
     void storeToTypedFloatArray(Scalar::Type arrayType, FloatRegister value, const Address& dest,
                                 unsigned numElems = 0);
 
-    
+    // Load a property from an UnboxedPlainObject or UnboxedArrayObject.
     template <typename T>
     void loadUnboxedProperty(T address, JSValueType type, TypedOrValueRegister output);
 
-    
-    
-    
+    // Store a property to an UnboxedPlainObject, without triggering barriers.
+    // If failure is null, the value definitely has a type suitable for storing
+    // in the property.
     template <typename T>
     void storeUnboxedProperty(T address, JSValueType type,
                               ConstantOrRegister value, Label* failure);
+
+    void checkUnboxedArrayCapacity(Register obj, const Int32Key& index, Register temp,
+                                   Label* failure);
 
     Register extractString(const Address& address, Register scratch) {
         return extractObject(address, scratch);
@@ -752,8 +755,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         return reg.typedReg().gpr();
     }
 
-    
-    
+    // Inline version of js_TypedArray_uint8_clamp_double.
+    // This function clobbers the input register.
     void clampDoubleToUint8(FloatRegister input, Register output);
 
     using MacroAssemblerSpecific::ensureDouble;
@@ -773,11 +776,11 @@ class MacroAssembler : public MacroAssemblerSpecific
         bind(&done);
     }
 
-    
-    
+    // Emit type case branch on tag matching if the type tag in the definition
+    // might actually be that type.
     void branchEqualTypeIfNeeded(MIRType type, MDefinition* maybeDef, Register tag, Label* label);
 
-    
+    // Inline allocation.
   private:
     void checkAllocatorState(Label* fail);
     bool shouldNurseryAllocate(gc::AllocKind allocKind, gc::InitialHeap initialHeap);
@@ -810,14 +813,14 @@ class MacroAssembler : public MacroAssemblerSpecific
     void newGCString(Register result, Register temp, Label* fail);
     void newGCFatInlineString(Register result, Register temp, Label* fail);
 
-    
-    
+    // Compares two strings for equality based on the JSOP.
+    // This checks for identical pointers, atoms and length and fails for everything else.
     void compareStrings(JSOp op, Register left, Register right, Register result,
                         Label* fail);
 
-    
-    
-    
+    // If the JitCode that created this assembler needs to transition into the VM,
+    // we want to store the JitCode on the stack in order to mark it during a GC.
+    // This is a reference to a patch location where the JitCode* will be written.
   private:
     CodeOffsetLabel exitCodePatch_;
 
@@ -831,14 +834,14 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void enterExitFrame(const VMFunction* f = nullptr) {
         linkExitFrame();
-        
+        // Push the ioncode. (Bailout or VM wrapper)
         PushStubCode();
-        
+        // Push VMFunction pointer, to mark arguments.
         Push(ImmPtr(f));
     }
 
-    
-    
+    // The JitCode * argument here is one of the tokens defined in the various
+    // exit frame layout classes, e.g. NativeExitFrameLayout::Token().
     void enterFakeExitFrame(JitCode* codeVal) {
         linkExitFrame();
         Push(ImmPtr(codeVal));
@@ -853,15 +856,15 @@ class MacroAssembler : public MacroAssemblerSpecific
         return exitCodePatch_.offset() != 0;
     }
 
-    
+    // Generates code used to complete a bailout.
     void generateBailoutTail(Register scratch, Register bailoutInfo);
 
-    
-    
-    
-    
-    
-    
+    // These functions exist as small wrappers around sites where execution can
+    // leave the currently running stream of instructions. They exist so that
+    // instrumentation may be put in place around them if necessary and the
+    // instrumentation is enabled. For the functions that return a uint32_t,
+    // they are returning the offset of the assembler just after the call has
+    // been made so that a safepoint can be made at that location.
 
     template <typename T>
     void callWithABI(const T& fun, MoveOp::Type result = MoveOp::GENERAL) {
@@ -870,7 +873,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         profilerPostReturn();
     }
 
-    
+    // see above comment for what is returned
     uint32_t callJit(Register callee) {
         profilerPreCall();
         MacroAssemblerSpecific::callJit(callee);
@@ -879,7 +882,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         return ret;
     }
 
-    
+    // see above comment for what is returned
     uint32_t callWithExitFrame(Label* target) {
         profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target);
@@ -888,7 +891,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         return ret;
     }
 
-    
+    // see above comment for what is returned
     uint32_t callWithExitFrame(JitCode* target) {
         profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target);
@@ -897,7 +900,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         return ret;
     }
 
-    
+    // see above comment for what is returned
     uint32_t callWithExitFrame(JitCode* target, Register dynStack) {
         profilerPreCall();
         MacroAssemblerSpecific::callWithExitFrame(target, dynStack);
@@ -909,9 +912,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     void branchTestObjectTruthy(bool truthy, Register objReg, Register scratch,
                                 Label* slowCheck, Label* checked)
     {
-        
-        
-        
+        // The branches to out-of-line code here implement a conservative version
+        // of the JSObject::isWrapper test performed in EmulatesUndefined.  If none
+        // of the branches are taken, we can check class flags directly.
         loadObjClass(objReg, scratch);
         Address flags(scratch, Class::offsetOfFlags());
 
@@ -936,9 +939,9 @@ class MacroAssembler : public MacroAssemblerSpecific
 
   public:
 #ifndef JS_CODEGEN_ARM64
-    
-    
-    
+    // StackPointer manipulation functions.
+    // On ARM64, the StackPointer is implemented as two synchronized registers.
+    // Code shared across platforms must use these functions to be valid.
     template <typename T>
     void addToStackPtr(T t) { addPtr(t, getStackPointer()); }
     template <typename T>
@@ -964,9 +967,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     template <typename T>
     void storeStackPtr(T t) { storePtr(getStackPointer(), t); }
 
-    
-    
-    
+    // StackPointer testing functions.
+    // On ARM64, sp can function as the zero register depending on context.
+    // Code shared across platforms must use these functions to be valid.
     template <typename T>
     void branchTestStackPtr(Condition cond, T t, Label* label) {
         branchTestPtr(cond, getStackPointer(), t, label);
@@ -979,12 +982,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     void branchStackPtrRhs(Condition cond, T lhs, Label* label) {
         branchPtr(cond, lhs, getStackPointer(), label);
     }
-#endif 
+#endif // !JS_CODEGEN_ARM64
 
   private:
-    
-    
-    
+    // These two functions are helpers used around call sites throughout the
+    // assembler. They are called from the above call wrappers to emit the
+    // necessary instrumentation.
     void profilerPreCall() {
         if (!emitProfilingInstrumentation_)
             return;
@@ -1013,7 +1016,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
   public:
     Label* exceptionLabel() {
-        
+        // Exceptions are currently handled the same way as sequential failures.
         return &failureLabel_;
     }
 
@@ -1116,16 +1119,16 @@ class MacroAssembler : public MacroAssemblerSpecific
         IntConversion_Any
     };
 
-    
-    
-    
+    //
+    // Functions for converting values to int.
+    //
     void convertDoubleToInt(FloatRegister src, Register output, FloatRegister temp,
                             Label* truncateFail, Label* fail, IntConversionBehavior behavior);
 
-    
-    
-    
-    
+    // Strings may be handled by providing labels to jump to when the behavior
+    // is truncation or clamping. The subroutine, usually an OOL call, is
+    // passed the unboxed string in |stringReg| and should convert it to a
+    // double store into |temp|.
     void convertValueToInt(ValueOperand value, MDefinition* input,
                            Label* handleStringEntry, Label* handleStringRejoin,
                            Label* truncateDoubleSlow,
@@ -1145,9 +1148,9 @@ class MacroAssembler : public MacroAssemblerSpecific
     void convertTypedOrValueToInt(TypedOrValueRegister src, FloatRegister temp, Register output,
                                   Label* fail, IntConversionBehavior behavior);
 
-    
-    
-    
+    //
+    // Convenience functions for converting values to int32.
+    //
     void convertValueToInt32(ValueOperand value, FloatRegister temp, Register output, Label* fail,
                              bool negativeZeroCheck)
     {
@@ -1187,9 +1190,9 @@ class MacroAssembler : public MacroAssemblerSpecific
                                  : IntConversion_Normal);
     }
 
-    
-    
-    
+    //
+    // Convenience functions for truncating values to int32.
+    //
     void truncateValueToInt32(ValueOperand value, FloatRegister temp, Register output, Label* fail) {
         convertValueToInt(value, temp, output, fail, IntConversion_Truncate);
     }
@@ -1221,7 +1224,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         convertTypedOrValueToInt(src, temp, output, fail, IntConversion_Truncate);
     }
 
-    
+    // Convenience functions for clamping values to uint8.
     void clampValueToUint8(ValueOperand value, FloatRegister temp, Register output, Label* fail) {
         convertValueToInt(value, temp, output, fail, IntConversion_ClampToUint8);
     }
@@ -1289,9 +1292,9 @@ class MacroAssembler : public MacroAssemblerSpecific
         PopRegsInMask(liveRegs);
     }
 
-    
-    
-    
+    // Align the stack pointer based on the number of arguments which are pushed
+    // on the stack, such that the JitFrameLayout would be correctly aligned on
+    // the JitStackAlignment.
     void alignJitStackBasedOnNArgs(Register nargs);
     void alignJitStackBasedOnNArgs(uint32_t nargs);
 
@@ -1300,12 +1303,12 @@ class MacroAssembler : public MacroAssemblerSpecific
         Label ok, bad;
         MOZ_ASSERT(IsPowerOfTwo(alignment));
 
-        
+        // Wrap around the offset to be a non-negative number.
         offset %= alignment;
         if (offset < 0)
             offset += alignment;
 
-        
+        // Test if each bit from offset is set.
         uint32_t off = offset;
         while (off) {
             uint32_t lowestBit = 1 << mozilla::CountTrailingZeroes32(off);
@@ -1313,7 +1316,7 @@ class MacroAssembler : public MacroAssemblerSpecific
             off ^= lowestBit;
         }
 
-        
+        // Check that all remaining bits are zero.
         branchTestStackPtr(Assembler::Zero, Imm32((alignment - 1) ^ offset), &ok);
 
         bind(&bad);
@@ -1350,9 +1353,9 @@ JSOpToDoubleCondition(JSOp op)
     }
 }
 
-
-
-
+// Note: the op may have been inverted during lowering (to put constants in a
+// position where they can be immediates), so it is important to use the
+// lir->jsop() instead of the mir->jsop() when it is present.
 static inline Assembler::Condition
 JSOpToCondition(JSOp op, bool isSigned)
 {
@@ -1404,7 +1407,7 @@ StackDecrementForCall(uint32_t alignment, size_t bytesAlreadyPushed, size_t byte
            ComputeByteAlignment(bytesAlreadyPushed + bytesToPush, alignment);
 }
 
-} 
-} 
+} // namespace jit
+} // namespace js
 
-#endif
+#endif /* jit_MacroAssembler_h */

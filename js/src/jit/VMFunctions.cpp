@@ -1109,8 +1109,8 @@ Recompile(JSContext* cx)
 }
 
 bool
-SetDenseElement(JSContext* cx, HandleNativeObject obj, int32_t index, HandleValue value,
-                bool strict)
+SetDenseOrUnboxedArrayElement(JSContext* cx, HandleObject obj, int32_t index,
+                              HandleValue value, bool strict)
 {
     
     
@@ -1118,13 +1118,13 @@ SetDenseElement(JSContext* cx, HandleNativeObject obj, int32_t index, HandleValu
 
     NativeObject::EnsureDenseResult result = NativeObject::ED_SPARSE;
     do {
-        if (index < 0)
+        if (index < 0 || obj->is<UnboxedArrayObject>())
             break;
         bool isArray = obj->is<ArrayObject>();
         if (isArray && !obj->as<ArrayObject>().lengthIsWritable())
             break;
         uint32_t idx = uint32_t(index);
-        result = obj->ensureDenseElements(cx, idx, 1);
+        result = obj->as<NativeObject>().ensureDenseElements(cx, idx, 1);
         if (result != NativeObject::ED_OK)
             break;
         if (isArray) {
@@ -1132,7 +1132,7 @@ SetDenseElement(JSContext* cx, HandleNativeObject obj, int32_t index, HandleValu
             if (idx >= arr.length())
                 arr.setLengthInt32(idx + 1);
         }
-        obj->setDenseElement(idx, value);
+        obj->as<NativeObject>().setDenseElement(idx, value);
         return true;
     } while (false);
 

@@ -331,6 +331,12 @@ GetGCKindSlots(AllocKind thingKind, const Class* clasp)
     return nslots;
 }
 
+static inline size_t
+GetGCKindBytes(AllocKind thingKind)
+{
+    return sizeof(JSObject_Slots0) + GetGCKindSlots(thingKind) * sizeof(Value);
+}
+
 
 
 
