@@ -4,7 +4,7 @@
 
 
 
-#include "WMFVideoOutputSource.h"
+#include "WMFVideoMFTManager.h"
 #include "MediaDecoderReader.h"
 #include "WMFUtils.h"
 #include "ImageContainer.h"
@@ -32,7 +32,7 @@ using mozilla::layers::LayersBackend;
 
 namespace mozilla {
 
-WMFVideoOutputSource::WMFVideoOutputSource(
+WMFVideoMFTManager::WMFVideoMFTManager(
                             const mp4_demuxer::VideoDecoderConfig& aConfig,
                             mozilla::layers::LayersBackend aLayersBackend,
                             mozilla::layers::ImageContainer* aImageContainer,
@@ -48,12 +48,12 @@ WMFVideoOutputSource::WMFVideoOutputSource(
 {
   NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
   MOZ_ASSERT(mImageContainer);
-  MOZ_COUNT_CTOR(WMFVideoOutputSource);
+  MOZ_COUNT_CTOR(WMFVideoMFTManager);
 }
 
-WMFVideoOutputSource::~WMFVideoOutputSource()
+WMFVideoMFTManager::~WMFVideoMFTManager()
 {
-  MOZ_COUNT_DTOR(WMFVideoOutputSource);
+  MOZ_COUNT_DTOR(WMFVideoMFTManager);
   
   DeleteOnMainThread(mDXVA2Manager);
 }
@@ -69,7 +69,7 @@ public:
 };
 
 bool
-WMFVideoOutputSource::InitializeDXVA()
+WMFVideoMFTManager::InitializeDXVA()
 {
   
   
@@ -90,7 +90,7 @@ WMFVideoOutputSource::InitializeDXVA()
 }
 
 TemporaryRef<MFTDecoder>
-WMFVideoOutputSource::Init()
+WMFVideoMFTManager::Init()
 {
   bool useDxva = InitializeDXVA();
 
@@ -144,7 +144,7 @@ WMFVideoOutputSource::Init()
 }
 
 HRESULT
-WMFVideoOutputSource::Input(mp4_demuxer::MP4Sample* aSample)
+WMFVideoMFTManager::Input(mp4_demuxer::MP4Sample* aSample)
 {
   
   mp4_demuxer::AnnexB::ConvertSample(aSample, mConfig.annex_b);
@@ -155,7 +155,7 @@ WMFVideoOutputSource::Input(mp4_demuxer::MP4Sample* aSample)
 }
 
 HRESULT
-WMFVideoOutputSource::ConfigureVideoFrameGeometry()
+WMFVideoMFTManager::ConfigureVideoFrameGeometry()
 {
   RefPtr<IMFMediaType> mediaType;
   HRESULT hr = mDecoder->GetOutputMediaType(mediaType);
@@ -216,9 +216,9 @@ WMFVideoOutputSource::ConfigureVideoFrameGeometry()
 }
 
 HRESULT
-WMFVideoOutputSource::CreateBasicVideoFrame(IMFSample* aSample,
-                                       int64_t aStreamOffset,
-                                       VideoData** aOutVideoData)
+WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
+                                          int64_t aStreamOffset,
+                                          VideoData** aOutVideoData)
 {
   NS_ENSURE_TRUE(aSample, E_POINTER);
   NS_ENSURE_TRUE(aOutVideoData, E_POINTER);
@@ -311,9 +311,9 @@ WMFVideoOutputSource::CreateBasicVideoFrame(IMFSample* aSample,
 }
 
 HRESULT
-WMFVideoOutputSource::CreateD3DVideoFrame(IMFSample* aSample,
-                                     int64_t aStreamOffset,
-                                     VideoData** aOutVideoData)
+WMFVideoMFTManager::CreateD3DVideoFrame(IMFSample* aSample,
+                                        int64_t aStreamOffset,
+                                        VideoData** aOutVideoData)
 {
   NS_ENSURE_TRUE(aSample, E_POINTER);
   NS_ENSURE_TRUE(aOutVideoData, E_POINTER);
@@ -351,8 +351,8 @@ WMFVideoOutputSource::CreateD3DVideoFrame(IMFSample* aSample,
 
 
 HRESULT
-WMFVideoOutputSource::Output(int64_t aStreamOffset,
-                        nsAutoPtr<MediaData>& aOutData)
+WMFVideoMFTManager::Output(int64_t aStreamOffset,
+                           nsAutoPtr<MediaData>& aOutData)
 {
   RefPtr<IMFSample> sample;
   HRESULT hr;
@@ -379,7 +379,7 @@ WMFVideoOutputSource::Output(int64_t aStreamOffset,
       break;
     }
     
-    NS_WARNING("WMFVideoOutputSource::Output() unexpected error");
+    NS_WARNING("WMFVideoMFTManager::Output() unexpected error");
     return E_FAIL;
   }
 

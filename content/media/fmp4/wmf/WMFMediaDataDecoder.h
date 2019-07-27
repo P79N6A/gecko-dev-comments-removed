@@ -22,9 +22,9 @@ namespace mozilla {
 
 
 
-class WMFOutputSource {
+class MFTManager {
 public:
-  virtual ~WMFOutputSource() {}
+  virtual ~MFTManager() {}
 
   
   
@@ -52,7 +52,7 @@ public:
 
 class WMFMediaDataDecoder : public MediaDataDecoder {
 public:
-  WMFMediaDataDecoder(WMFOutputSource* aOutputSource,
+  WMFMediaDataDecoder(MFTManager* aOutputSource,
                       MediaTaskQueue* aAudioTaskQueue,
                       MediaDataDecoderCallback* aCallback);
   ~WMFMediaDataDecoder();
@@ -85,7 +85,7 @@ private:
   MediaDataDecoderCallback* mCallback;
 
   RefPtr<MFTDecoder> mDecoder;
-  nsAutoPtr<WMFOutputSource> mSource;
+  nsAutoPtr<MFTManager> mMFTManager;
 
   
   

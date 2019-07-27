@@ -4,8 +4,8 @@
 
 
 
-#if !defined(WMFVideoOutputSource_h_)
-#define WMFVideoOutputSource_h_
+#if !defined(WMFVideoMFTManager_h_)
+#define WMFVideoMFTManager_h_
 
 #include "WMF.h"
 #include "MP4Reader.h"
@@ -18,13 +18,13 @@ namespace mozilla {
 
 class DXVA2Manager;
 
-class WMFVideoOutputSource : public WMFOutputSource {
+class WMFVideoMFTManager : public MFTManager {
 public:
-  WMFVideoOutputSource(const mp4_demuxer::VideoDecoderConfig& aConfig,
-                       mozilla::layers::LayersBackend aLayersBackend,
-                       mozilla::layers::ImageContainer* aImageContainer,
-                       bool aDXVAEnabled);
-  ~WMFVideoOutputSource();
+  WMFVideoMFTManager(const mp4_demuxer::VideoDecoderConfig& aConfig,
+                     mozilla::layers::LayersBackend aLayersBackend,
+                     mozilla::layers::ImageContainer* aImageContainer,
+                     bool aDXVAEnabled);
+  ~WMFVideoMFTManager();
 
   virtual TemporaryRef<MFTDecoder> Init() MOZ_OVERRIDE;
 
