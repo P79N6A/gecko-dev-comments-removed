@@ -107,8 +107,9 @@ var LoginManagerParent = {
       return;
     }
 
+    let allLoginsCount = Services.logins.countLogins(formOrigin, "", null);
     
-    if (!Services.logins.countLogins(formOrigin, "", null)) {
+    if (!allLoginsCount) {
       target.sendAsyncMessage("RemoteLogins:loginsFound",
                               { requestId: requestId, logins: [] });
       return;
@@ -152,6 +153,16 @@ var LoginManagerParent = {
     var logins = Services.logins.findLogins({}, formOrigin, actionOrigin, null);
     target.sendAsyncMessage("RemoteLogins:loginsFound",
                             { requestId: requestId, logins: logins });
+
+    const PWMGR_FORM_ACTION_EFFECT =  Services.telemetry.getHistogramById("PWMGR_FORM_ACTION_EFFECT");
+    if (logins.length == 0) {
+      PWMGR_FORM_ACTION_EFFECT.add(2);
+    } else if (logins.length == allLoginsCount) {
+      PWMGR_FORM_ACTION_EFFECT.add(0);
+    } else {
+      
+      PWMGR_FORM_ACTION_EFFECT.add(1);
+    }
   },
 
   doAutocompleteSearch: function({ formOrigin, actionOrigin,
