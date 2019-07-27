@@ -11,9 +11,6 @@ function evalWithCache(code, ctx) {
   if (!("global" in ctx))
     ctx.global = newGlobal();
 
-  
-  if (!("compileAndGo" in ctx))
-    ctx.compileAndGo = true;
   if (!("isRunOnce" in ctx))
     ctx.isRunOnce = true;
 
