@@ -1182,6 +1182,12 @@ pref("browser.tabs.remote.desktopbehavior", true);
 
 pref("security.sandbox.windows.log", false);
 
+
+
+
+pref("dom.ipc.plugins.sandbox.default", false);
+pref("dom.ipc.plugins.sandbox.flash", false);
+
 #if defined(MOZ_CONTENT_SANDBOX)
 
 

@@ -51,7 +51,10 @@ public:
 
 
 
-    bool Launch(UniquePtr<LaunchCompleteTask> aLaunchCompleteTask = UniquePtr<LaunchCompleteTask>());
+
+
+    bool Launch(UniquePtr<LaunchCompleteTask> aLaunchCompleteTask = UniquePtr<LaunchCompleteTask>(),
+                bool aEnableSandbox = false);
 
     void Delete();
 

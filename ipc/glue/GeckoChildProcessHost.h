@@ -172,6 +172,11 @@ protected:
   SandboxBroker mSandboxBroker;
   std::vector<std::wstring> mAllowedFilesRead;
   bool mEnableSandboxLogging;
+
+  
+  
+  
+  bool mEnableNPAPISandbox;
 #if defined(MOZ_CONTENT_SANDBOX)
   bool mMoreStrictContentSandbox;
 #endif
