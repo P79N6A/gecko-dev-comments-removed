@@ -3978,16 +3978,10 @@ CompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options,
 extern JS_PUBLIC_API(JSScript *)
 FinishOffThreadScript(JSContext *maybecx, JSRuntime *rt, void *token);
 
-
-
-
-
-
 extern JS_PUBLIC_API(bool)
 CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
                 const char *name, unsigned nargs, const char *const *argnames,
-                SourceBufferHolder &srcBuf, JS::MutableHandleFunction fun,
-                HandleObject enclosingStaticScope = NullPtr());
+                SourceBufferHolder &srcBuf, JS::MutableHandleFunction fun);
 
 extern JS_PUBLIC_API(bool)
 CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
@@ -3997,8 +3991,7 @@ CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOption
 extern JS_PUBLIC_API(bool)
 CompileFunction(JSContext *cx, JS::HandleObject obj, const ReadOnlyCompileOptions &options,
                 const char *name, unsigned nargs, const char *const *argnames,
-                const char16_t *chars, size_t length, JS::MutableHandleFunction fun,
-                HandleObject enclosingStaticScope = NullPtr());
+                const char16_t *chars, size_t length, JS::MutableHandleFunction fun);
 
 
 
@@ -4012,6 +4005,24 @@ CompileFunction(JSContext *cx, AutoObjectVector &scopeChain,
                 const ReadOnlyCompileOptions &options,
                 const char *name, unsigned nargs, const char *const *argnames,
                 const char16_t *chars, size_t length, JS::MutableHandleFunction fun);
+
+
+
+
+extern JS_PUBLIC_API(bool)
+CompileFunction(JSContext *cx, AutoObjectVector &scopeChain,
+                const ReadOnlyCompileOptions &options,
+                const char *name, unsigned nargs, const char *const *argnames,
+                SourceBufferHolder &srcBuf, JS::MutableHandleFunction fun);
+
+
+
+
+extern JS_PUBLIC_API(bool)
+CompileFunction(JSContext *cx, AutoObjectVector &scopeChain,
+                const ReadOnlyCompileOptions &options,
+                const char *name, unsigned nargs, const char *const *argnames,
+                const char *bytes, size_t length, JS::MutableHandleFunction fun);
 
 } 
 
