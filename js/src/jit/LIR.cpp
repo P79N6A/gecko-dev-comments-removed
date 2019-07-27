@@ -348,8 +348,6 @@ static const char * const TypeChars[] =
     "s",            
     "f",            
     "d",            
-    "i32x4",        
-    "f32x4",        
 #ifdef JS_NUNBOX32
     "t",            
     "p"             
@@ -543,25 +541,9 @@ bool
 LMoveGroup::add(LAllocation *from, LAllocation *to, LDefinition::Type type)
 {
 #ifdef DEBUG
-    MOZ_ASSERT(*from != *to);
+    JS_ASSERT(*from != *to);
     for (size_t i = 0; i < moves_.length(); i++)
-        MOZ_ASSERT(*to != *moves_[i].to());
-
-    
-    if (LDefinition(type).isSimdType()) {
-        if (from->isMemory()) {
-            if (from->isArgument())
-                MOZ_ASSERT(from->toArgument()->index() % SimdStackAlignment == 0);
-            else
-                MOZ_ASSERT(from->toStackSlot()->slot() % SimdStackAlignment == 0);
-        }
-        if (to->isMemory()) {
-            if (to->isArgument())
-                MOZ_ASSERT(to->toArgument()->index() % SimdStackAlignment == 0);
-            else
-                MOZ_ASSERT(to->toStackSlot()->slot() % SimdStackAlignment == 0);
-        }
-    }
+        JS_ASSERT(*to != *moves_[i].to());
 #endif
     return moves_.append(LMove(from, to, type));
 }
@@ -600,7 +582,7 @@ LMoveGroup::printOperands(FILE *fp)
         const LMove &move = getMove(i);
         
         fprintf(fp, " [%s", move.from()->toString());
-        fprintf(fp, " -> %s, %s]", move.to()->toString(), TypeChars[move.type()]);
+        fprintf(fp, " -> %s]", move.to()->toString());
         if (i != numMoves() - 1)
             fprintf(fp, ",");
     }
