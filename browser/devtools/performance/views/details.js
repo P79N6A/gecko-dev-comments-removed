@@ -16,7 +16,8 @@ let DetailsView = {
     "waterfall": {
       id: "waterfall-view",
       view: WaterfallView,
-      requires: ["timeline"]
+      actors: ["timeline"],
+      features: ["withMarkers"]
     },
     "js-calltree": {
       id: "js-profile-view",
@@ -25,19 +26,19 @@ let DetailsView = {
     "js-flamegraph": {
       id: "js-flamegraph-view",
       view: JsFlameGraphView,
-      requires: ["timeline"]
+      actors: ["timeline"]
     },
     "memory-calltree": {
       id: "memory-calltree-view",
       view: MemoryCallTreeView,
-      requires: ["memory"],
-      pref: "enable-memory"
+      actors: ["memory"],
+      features: ["withAllocations"]
     },
     "memory-flamegraph": {
       id: "memory-flamegraph-view",
       view: MemoryFlameGraphView,
-      requires: ["memory", "timeline"],
-      pref: "enable-memory"
+      actors: ["memory", "timeline"],
+      features: ["withAllocations"]
     }
   },
 
@@ -56,7 +57,6 @@ let DetailsView = {
       button.addEventListener("command", this._onViewToggle);
     }
 
-    yield this.selectDefaultView();
     yield this.setAvailableViews();
 
     PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
@@ -89,26 +89,47 @@ let DetailsView = {
 
 
   setAvailableViews: Task.async(function* () {
-    let mocks = gFront.getMocksInUse();
+    let recording = PerformanceController.getCurrentRecording();
+    let isRecording = recording && recording.isRecording();
+    let invalidCurrentView = false;
 
-    for (let [name, { view, pref, requires }] of Iterator(this.components)) {
-      let recording = PerformanceController.getCurrentRecording();
+    for (let [name, { view }] of Iterator(this.components)) {
+      let isSupported = this._isViewSupported(name, false);
 
-      let isRecorded = recording && !recording.isRecording();
-      
-      let isEnabled = !pref || PerformanceController.getOption(pref);
-      
-      let isSupported = !requires || requires.every(r => !mocks[r]);
-
-      $(`toolbarbutton[data-view=${name}]`).hidden = !isRecorded || !(isEnabled && isSupported);
+      $(`toolbarbutton[data-view=${name}]`).hidden = !isSupported;
 
       
       
-      if (!isEnabled && this.isViewSelected(view)) {
-        yield this.selectDefaultView();
+      if (!isSupported && this.isViewSelected(view)) {
+        invalidCurrentView = true;
       }
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if ((this._initialized  && !isRecording && invalidCurrentView) ||
+        (!this._initialized && !isRecording && recording)) {
+      yield this.selectDefaultView();
+    }
   }),
+
+  
+
+
+
+
+
+
+  _isViewSupported: function (viewName, isRecording) {
+    let { features, actors } = this.components[viewName];
+    return PerformanceController.isFeatureSupported({ features, actors, isRecording });
+  },
 
   
 
@@ -131,6 +152,10 @@ let DetailsView = {
       }
     }
 
+    
+    
+    this._initialized = true;
+
     this.emit(EVENTS.DETAILS_VIEW_SELECTED, viewName);
   }),
 
@@ -139,14 +164,15 @@ let DetailsView = {
 
 
   selectDefaultView: function () {
-    let { timeline: mockTimeline } = gFront.getMocksInUse();
     
-    if (mockTimeline) {
-      return this.selectView("js-calltree");
+    
+    
+    if (this._isViewSupported("waterfall")) {
+      return this.selectView("waterfall");
     } else {
       
       
-      return this.selectView("waterfall");
+      return this.selectView("js-calltree");
     }
   },
 
@@ -157,6 +183,12 @@ let DetailsView = {
 
 
   isViewSelected: function(viewObject) {
+    
+    
+    if (!this._initialized) {
+      return false;
+    }
+
     let selectedPanel = this.el.selectedPanel;
     let selectedId = selectedPanel.id;
 

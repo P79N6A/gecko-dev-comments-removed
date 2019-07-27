@@ -17,6 +17,9 @@ let test = Task.async(function*() {
   
   DetailsSubview.canUpdateWhileHidden = true;
 
+  yield startRecording(panel);
+  yield stopRecording(panel);
+
   
   
   
@@ -24,9 +27,6 @@ let test = Task.async(function*() {
   yield DetailsView.selectView("js-flamegraph");
   yield DetailsView.selectView("memory-calltree");
   yield DetailsView.selectView("memory-flamegraph");
-
-  yield startRecording(panel);
-  yield stopRecording(panel);
 
   yield startRecording(panel);
   yield stopRecording(panel);

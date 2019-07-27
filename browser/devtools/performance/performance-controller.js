@@ -27,12 +27,8 @@ devtools.lazyRequireGetter(this, "RecordingUtils",
   "devtools/performance/recording-utils", true);
 devtools.lazyRequireGetter(this, "RecordingModel",
   "devtools/performance/recording-model", true);
-devtools.lazyRequireGetter(this, "FramerateGraph",
-  "devtools/performance/performance-graphs", true);
-devtools.lazyRequireGetter(this, "MemoryGraph",
-  "devtools/performance/performance-graphs", true);
-devtools.lazyRequireGetter(this, "MarkersOverview",
-  "devtools/shared/timeline/markers-overview", true);
+devtools.lazyRequireGetter(this, "GraphsController",
+  "devtools/performance/graphs", true);
 devtools.lazyRequireGetter(this, "Waterfall",
   "devtools/shared/timeline/waterfall", true);
 devtools.lazyRequireGetter(this, "MarkerDetails",
@@ -52,8 +48,6 @@ devtools.lazyRequireGetter(this, "FlameGraphUtils",
 devtools.lazyRequireGetter(this, "FlameGraph",
   "devtools/shared/widgets/FlameGraph", true);
 
-devtools.lazyImporter(this, "CanvasGraphUtils",
-  "resource:///modules/devtools/Graphs.jsm");
 devtools.lazyImporter(this, "SideMenuWidget",
   "resource:///modules/devtools/SideMenuWidget.jsm");
 devtools.lazyImporter(this, "PluralForm",
@@ -291,6 +285,7 @@ let PerformanceController = {
 
   startRecording: Task.async(function *() {
     let options = {
+      withMarkers: true,
       withMemory: this.getOption("enable-memory"),
       withTicks: this.getOption("enable-framerate"),
       withAllocations: this.getOption("enable-memory"),
@@ -468,6 +463,42 @@ let PerformanceController = {
 
   getRecordings: function () {
     return this._recordings;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  isFeatureSupported: function ({ features, actors, isRecording: shouldBeRecording }, recording) {
+    recording = recording || this.getCurrentRecording();
+    let recordingConfig = recording ? recording.getConfiguration() : {};
+    let currentRecordingState = recording ? recording.isRecording() : void 0;
+    let actorsSupported = gFront.getActorSupport();
+
+    if (shouldBeRecording != null && shouldBeRecording !== currentRecordingState) {
+      return false;
+    }
+    if (actors && !actors.every(a => actorsSupported[a])) {
+      return false;
+    }
+    if (features && !features.every(f => recordingConfig[f])) {
+      return false;
+    }
+    return true;
   },
 
   toString: () => "[object PerformanceController]"

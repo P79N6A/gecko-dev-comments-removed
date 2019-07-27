@@ -101,8 +101,8 @@ function PerformanceActorsConnection(target) {
 PerformanceActorsConnection.prototype = {
 
   
-  _usingMockMemory: false,
-  _usingMockTimeline: false,
+  _memorySupported: true,
+  _timelineSupported: true,
 
   
 
@@ -174,9 +174,9 @@ PerformanceActorsConnection.prototype = {
     if (supported) {
       this._timeline = new TimelineFront(this._target.client, this._target.form);
     } else {
-      this._usingMockTimeline = true;
       this._timeline = new compatibility.MockTimelineFront();
     }
+    this._timelineSupported = supported;
   },
 
   
@@ -187,9 +187,9 @@ PerformanceActorsConnection.prototype = {
     if (supported) {
       this._memory = new MemoryFront(this._target.client, this._target.form);
     } else {
-      this._usingMockMemory = true;
       this._memory = new compatibility.MockMemoryFront();
     }
+    this._memorySupported = supported;
   }),
 
   
@@ -620,8 +620,8 @@ function PerformanceFront(connection) {
   this._request = connection._request;
 
   
-  this._usingMockMemory = connection._usingMockMemory;
-  this._usingMockTimeline = connection._usingMockTimeline;
+  this._memorySupported = connection._memorySupported;
+  this._timelineSupported = connection._timelineSupported;
 
   
   
@@ -631,6 +631,7 @@ function PerformanceFront(connection) {
 PerformanceFront.prototype = {
 
   
+
 
 
 
@@ -660,10 +661,12 @@ PerformanceFront.prototype = {
   
 
 
-  getMocksInUse: function () {
+
+
+  getActorSupport: function () {
     return {
-      memory: this._usingMockMemory,
-      timeline: this._usingMockTimeline
+      memory: this._memorySupported,
+      timeline: this._timelineSupported
     };
   }
 };
@@ -673,6 +676,7 @@ PerformanceFront.prototype = {
 
 function getRecordingModelPrefs () {
   return {
+    withMarkers: true,
     withMemory: Services.prefs.getBoolPref("devtools.performance.ui.enable-memory"),
     withTicks: Services.prefs.getBoolPref("devtools.performance.ui.enable-framerate"),
     withAllocations: Services.prefs.getBoolPref("devtools.performance.ui.enable-memory"),
