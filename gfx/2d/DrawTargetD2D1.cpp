@@ -39,7 +39,30 @@ DrawTargetD2D1::~DrawTargetD2D1()
 {
   PopAllClips();
 
+  if (mSnapshot) {
+    
+    
+    
+    RefPtr<SourceSurfaceD2D1> deathGrip = mSnapshot;
+    
+    
+    deathGrip->MarkIndependent();
+    
+  }
+
   mDC->EndDraw();
+
+  
+  
+  for (auto iter = mDependentTargets.begin();
+       iter != mDependentTargets.end(); iter++) {
+    (*iter)->mDependingOnTargets.erase(this);
+  }
+  
+  for (TargetSet::iterator iter = mDependingOnTargets.begin();
+       iter != mDependingOnTargets.end(); iter++) {
+    (*iter)->mDependentTargets.erase(this);
+  }
 }
 
 TemporaryRef<SourceSurface>
@@ -61,6 +84,13 @@ void
 DrawTargetD2D1::Flush()
 {
   mDC->Flush();
+
+  
+  for (TargetSet::iterator iter = mDependingOnTargets.begin();
+       iter != mDependingOnTargets.end(); iter++) {
+    (*iter)->mDependentTargets.erase(this);
+  }
+  mDependingOnTargets.clear();
 }
 
 void
