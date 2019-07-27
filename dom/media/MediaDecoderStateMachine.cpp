@@ -2684,8 +2684,6 @@ MediaDecoderStateMachine::SeekCompleted()
   
   DECODER_LOG("Seek completed, mCurrentFrameTime=%lld", mCurrentFrameTime);
 
-  mCurrentSeekTarget = SeekTarget();
-
   
   
   
