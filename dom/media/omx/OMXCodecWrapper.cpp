@@ -495,10 +495,10 @@ OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
   }
   
   uint8_t length[] = {
-    (aSize >> 24) & 0xFF,
-    (aSize >> 16) & 0xFF,
-    (aSize >> 8) & 0xFF,
-    aSize & 0xFF,
+    uint8_t((aSize >> 24) & 0xFF),
+    uint8_t((aSize >> 16) & 0xFF),
+    uint8_t((aSize >> 8) & 0xFF),
+    uint8_t(aSize & 0xFF),
   };
   aOutputBuf->AppendElements(length, sizeof(length));
   aOutputBuf->AppendElements(aData + sizeof(length), aSize);
@@ -908,14 +908,14 @@ OMXAudioEncoder::AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
   
   const uint8_t decConfig[] = {
     0x04,                   
-    15 + csdSize,           
+    uint8_t(15 + csdSize),  
     0x40,                   
     0x15,                   
     0x00, 0x03, 0x00,       
     0x00, 0x01, 0x77, 0x00, 
     0x00, 0x01, 0x77, 0x00, 
     0x05,                   
-    csdSize,                
+    uint8_t(csdSize),       
   };
   
   const uint8_t slConfig[] = {
