@@ -58,7 +58,13 @@ h1, h2, h3 {
 }
 
 .hide {
-  display: none;
+  
+
+
+
+
+
+  display: none !important;
 }
 
 .visually-hidden {
