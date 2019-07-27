@@ -475,7 +475,7 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
           buffer += 4;
           break;
         default:
-          break; 
+          MOZ_CRASH("GMP_BufferType already handled in switch above");
       }
       if (buffer+size > end) {
         
