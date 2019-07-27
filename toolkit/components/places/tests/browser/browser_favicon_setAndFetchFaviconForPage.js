@@ -30,26 +30,33 @@ function test() {
   });
 
   function getIconFile(aCallback) {
-    NetUtil.asyncFetch(favIconLocation, function(inputStream, status) {
-      if (!Components.isSuccessCode(status)) {
-        ok(false, "Could not get the icon file");
+    NetUtil.asyncFetch2(
+      favIconLocation,
+      function(inputStream, status) {
+        if (!Components.isSuccessCode(status)) {
+          ok(false, "Could not get the icon file");
+          
+          return;
+        }
+
         
-        return;
-      }
+        let size = inputStream.available();
+        favIconData = NetUtil.readInputStreamToString(inputStream, size);
+        is(size, favIconData.length, "Check correct icon size");
+        
+        is(favIconData.length, 344, "Check correct icon length (344)");
 
-      
-      let size = inputStream.available();
-      favIconData = NetUtil.readInputStreamToString(inputStream, size);
-      is(size, favIconData.length, "Check correct icon size");
-      
-      is(favIconData.length, 344, "Check correct icon length (344)");
-
-      if (aCallback) {
-        aCallback();
-      } else {
-        finish();
-      }
-    });
+        if (aCallback) {
+          aCallback();
+        } else {
+          finish();
+        }
+      },
+      null,      
+      Services.scriptSecurityManager.getSystemPrincipal(),
+      null,      
+      Ci.nsILoadInfo.SEC_NORMAL,
+      Ci.nsIContentPolicy.TYPE_IMAGE);
   }
 
   function testNormal(aWindow, aCallback) {

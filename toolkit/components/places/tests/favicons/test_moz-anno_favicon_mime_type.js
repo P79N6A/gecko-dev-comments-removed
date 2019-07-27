@@ -58,15 +58,26 @@ function run_test()
             getService(Ci.nsIIOService);
 
   
-  let (channel = ios.newChannelFromURI(fs.defaultFavicon)) {
+  let (channel = ios.newChannelFromURI2(fs.defaultFavicon,
+                                        null,      
+                                        Services.scriptSecurityManager.getSystemPrincipal(),
+                                        null,      
+                                        Ci.nsILoadInfo.SEC_NORMAL,
+                                        Ci.nsIContentPolicy.TYPE_IMAGE)) {
     channel.asyncOpen(new streamListener("image/png"), null);
     do_test_pending();
   }
 
   
   
-  let (channel = ios.newChannel(moz_anno_favicon_prefix + "http://mozilla.org",
-                                null, null)) {
+  let (channel = ios.newChannel2(moz_anno_favicon_prefix + "http://mozilla.org",
+                                 null,
+                                 null,
+                                 null,      
+                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                 null,      
+                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                 Ci.nsIContentPolicy.TYPE_IMAGE)) {
     channel.asyncOpen(new streamListener("image/png"), null);
     do_test_pending();
   }
@@ -78,8 +89,14 @@ function run_test()
                                      (Date.now() + 60 * 60 * 24 * 1000) * 1000);
 
     
-    let channel = ios.newChannel(moz_anno_favicon_prefix + testURI.spec, null,
-                                 null);
+    let channel = ios.newChannel2(moz_anno_favicon_prefix + testURI.spec,
+                                  null,
+                                  null,
+                                  null,      
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
+                                  null,      
+                                  Ci.nsILoadInfo.SEC_NORMAL,
+                                  Ci.nsIContentPolicy.TYPE_IMAGE);
     channel.asyncOpen(new streamListener("image/png"), null);
     do_test_pending();
   }
