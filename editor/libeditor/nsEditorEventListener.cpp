@@ -59,6 +59,8 @@
 #include "nsIBidiKeyboard.h"            
 #endif
 
+#include "mozilla/dom/TabParent.h"
+
 class nsPresContext;
 
 using namespace mozilla;
@@ -982,6 +984,14 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
 
   
   if (domdoc != sourceDoc) {
+    return true;
+  }
+
+  
+  
+  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(sourceNode);
+  TabParent* tp = TabParent::GetFrom(sourceContent);
+  if (tp) {
     return true;
   }
 
