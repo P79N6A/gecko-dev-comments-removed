@@ -1135,13 +1135,6 @@ protected:
 
   
   
-  
-  
-  
-  nsIntSize mMediaSize;
-
-  
-  
   TimeStamp mTimeUpdateTime;
 
   
