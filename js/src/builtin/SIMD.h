@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef builtin_SIMD_h
 #define builtin_SIMD_h
@@ -14,11 +14,11 @@
 #include "js/Conversions.h"
 #include "vm/GlobalObject.h"
 
-/*
- * JS SIMD functions.
- * Spec matching polyfill:
- * https://github.com/johnmccutchan/ecmascript_simd/blob/master/src/ecmascript_simd.js
- */
+
+
+
+
+
 
 #define FLOAT32X4_UNARY_FUNCTION_LIST(V)                                            \
   V(abs, (UnaryFunc<Float32x4, Abs, Float32x4>), 1, 0)                              \
@@ -215,15 +215,17 @@
     _(and)                           \
     _(or)                            \
     _(xor)
-#define FOREACH_COMMONX4_SIMD_OP(_)  \
-    ARITH_COMMONX4_SIMD_OP(_)        \
-    BITWISE_COMMONX4_SIMD_OP(_)      \
+#define COMP_COMMONX4_SIMD_OP(_)     \
     _(lessThan)                      \
     _(lessThanOrEqual)               \
     _(equal)                         \
     _(notEqual)                      \
     _(greaterThan)                   \
-    _(greaterThanOrEqual)            \
+    _(greaterThanOrEqual)
+#define FOREACH_COMMONX4_SIMD_OP(_)  \
+    ARITH_COMMONX4_SIMD_OP(_)        \
+    BITWISE_COMMONX4_SIMD_OP(_)      \
+    COMP_COMMONX4_SIMD_OP(_)         \
     _(bitselect)                     \
     _(select)                        \
     _(swizzle)                       \
@@ -259,7 +261,7 @@ class SIMDObject : public JSObject
     static bool toString(JSContext *cx, unsigned int argc, jsval *vp);
 };
 
-// These classes exist for use with templates below.
+
 
 struct Float32x4 {
     typedef float Elem;
@@ -352,6 +354,6 @@ INT32X4_FUNCTION_LIST(DECLARE_SIMD_INT32x4_FUNCTION)
 JSObject *
 InitSIMDClass(JSContext *cx, HandleObject obj);
 
-}  /* namespace js */
+}  
 
-#endif /* builtin_SIMD_h */
+#endif 
