@@ -1596,6 +1596,35 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     }
   } else {
     
+
+    if (wm.IsOrthogonalTo(cbwm)) {
+      
+      
+      
+      nscoord autoISize = cbSize.ISize(cbwm) - margin.IStartEnd(cbwm) -
+        borderPadding.IStartEnd(cbwm) - offsets.IStartEnd(cbwm);
+      if (autoISize < 0) {
+        autoISize = 0;
+      }
+
+      if (computedSize.ISize(cbwm) == NS_UNCONSTRAINEDSIZE) {
+        
+        
+        computedSize.ISize(cbwm) = autoISize;
+
+        
+        LogicalSize maxSize = ComputedMaxSize(cbwm);
+        LogicalSize minSize = ComputedMinSize(cbwm);
+        if (computedSize.ISize(cbwm) > maxSize.ISize(cbwm)) {
+          computedSize.ISize(cbwm) = maxSize.ISize(cbwm);
+        }
+        if (computedSize.ISize(cbwm) < minSize.ISize(cbwm)) {
+          computedSize.ISize(cbwm) = minSize.ISize(cbwm);
+        }
+      }
+    }
+
+    
     
     
     
@@ -1677,12 +1706,8 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
       computedSize.BSize(cbwm) = autoBSize;
 
       
-      LogicalSize maxSize =
-        LogicalSize(wm, ComputedMaxISize(),
-                    ComputedMaxBSize()).ConvertTo(cbwm, wm);
-      LogicalSize minSize =
-        LogicalSize(wm, ComputedMinISize(),
-                    ComputedMinBSize()).ConvertTo(cbwm, wm);
+      LogicalSize maxSize = ComputedMaxSize(cbwm);
+      LogicalSize minSize = ComputedMinSize(cbwm);
       if (computedSize.BSize(cbwm) > maxSize.BSize(cbwm)) {
         computedSize.BSize(cbwm) = maxSize.BSize(cbwm);
       }
