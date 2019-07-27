@@ -3,11 +3,7 @@
 
 "use strict";
 
-
-
-
-
-const { throttle } = require("sdk/lang/functional");
+const { debounce } = require("sdk/lang/functional");
 
 
 
@@ -26,8 +22,7 @@ const MARKER_STYLING = {
   dark: "#CED3D9"
 };
 
-
-const GRAPH_THROTTLE_TIMER = 500;
+const GRAPH_DEBOUNCE_TIMER = 100;
 
 
 
@@ -46,7 +41,7 @@ let ContextView = {
     this._onStartContext = this._onStartContext.bind(this);
     this._onEvent = this._onEvent.bind(this);
 
-    this.draw = throttle(this.draw.bind(this), GRAPH_THROTTLE_TIMER);
+    this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
     $("#graph-target").addEventListener("click", this._onGraphClick, false);
 
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
