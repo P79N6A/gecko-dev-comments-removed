@@ -451,7 +451,7 @@ public:
   class Iterator
   {
   public:
-    typedef nsIFrame* const ValueType;
+    typedef nsIFrame* ValueType;
     
     
     typedef ptrdiff_t DifferenceType;
@@ -466,7 +466,7 @@ public:
       , mCurrent(aOther.mCurrent)
     {}
 
-    ValueType& operator*() const { return mCurrent; }
+    nsIFrame* operator*() const { return mCurrent; }
 
     
     
