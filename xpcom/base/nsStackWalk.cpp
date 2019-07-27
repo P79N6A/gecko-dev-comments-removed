@@ -202,20 +202,6 @@ StackWalkInitCriticalAddress()
 #error Too old imagehlp.h
 #endif
 
-
-
-
-
-
-
-extern "C" {
-
-extern HANDLE hStackWalkMutex;
-
-bool EnsureSymInitialized();
-
-bool EnsureWalkThreadReady();
-
 struct WalkStackData
 {
   uint32_t skipFrames;
@@ -234,18 +220,11 @@ struct WalkStackData
   void* platformData;
 };
 
-void PrintError(char* aPrefix, WalkStackData* aData);
-unsigned int WINAPI WalkStackThread(void* aData);
-void WalkStackMain64(struct WalkStackData* aData);
-
-
 DWORD gStackWalkThread;
 CRITICAL_SECTION gDbgHelpCS;
 
-}
 
-
-void
+static void
 PrintError(const char* aPrefix)
 {
   LPVOID lpMsgBuf;
@@ -265,7 +244,9 @@ PrintError(const char* aPrefix)
   LocalFree(lpMsgBuf);
 }
 
-bool
+static unsigned int WINAPI WalkStackThread(void* aData);
+
+static bool
 EnsureWalkThreadReady()
 {
   static bool walkThreadReady = false;
@@ -321,7 +302,7 @@ EnsureWalkThreadReady()
   return walkThreadReady = true;
 }
 
-void
+static void
 WalkStackMain64(struct WalkStackData* aData)
 {
   
@@ -439,8 +420,7 @@ WalkStackMain64(struct WalkStackData* aData)
   return;
 }
 
-
-unsigned int WINAPI
+static unsigned int WINAPI
 WalkStackThread(void* aData)
 {
   BOOL msgRet;
@@ -742,7 +722,7 @@ BOOL SymGetModuleInfoEspecial64(HANDLE aProcess, DWORD64 aAddr,
   return retval;
 }
 
-bool
+static bool
 EnsureSymInitialized()
 {
   static bool gInitialized = false;
