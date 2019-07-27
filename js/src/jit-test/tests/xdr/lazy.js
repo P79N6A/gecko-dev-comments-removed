@@ -103,6 +103,10 @@ test = (function () {
 evalWithCache(test, { assertEqBytecode: true });
 
 
+
+gczeal(0);
+
+
 test = "function f() { }; f();"
      + "assertEq(isLazyFunction(f), false);"
      + "var expect = isRelazifiableFunction(f);";
