@@ -1145,6 +1145,8 @@ protected:
   
   void UnpinForSeek();
 
+  const char* PlayStateStr();
+
   
   
   
