@@ -10,7 +10,6 @@
 #include "jsfriendapi.h" 
 #include "js/RootingAPI.h" 
 #include "js/Value.h" 
-#include "jswrapper.h" 
 #include "mozilla/FloatingPoint.h" 
 
 namespace mozilla {
@@ -32,13 +31,6 @@ Date::SetTimeStamp(JSContext* aCx, JSObject* aObject)
 {
   JS::Rooted<JSObject*> obj(aCx, aObject);
   MOZ_ASSERT(JS_ObjectIsDate(aCx, obj));
-
-  obj = js::CheckedUnwrap(obj);
-  
-  if (!obj) {
-    return false;
-  }
-
   mMsecSinceEpoch = js::DateGetMsecSinceEpoch(aCx, obj);
   return true;
 }
