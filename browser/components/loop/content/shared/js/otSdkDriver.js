@@ -194,12 +194,22 @@ loop.OTSdkDriver = (function() {
 
 
     _onSessionDisconnected: function(event) {
-      
-      if (event.reason === "networkDisconnected") {
-        this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
-          reason: FAILURE_REASONS.NETWORK_DISCONNECTED
-        }));
+      var reason;
+      switch (event.reason) {
+        case "networkDisconnected":
+          reason = FAILURE_REASONS.NETWORK_DISCONNECTED;
+          break;
+        case "forceDisconnected":
+          reason = FAILURE_REASONS.EXPIRED_OR_INVALID;
+          break;
+        default:
+          
+          return;
       }
+
+      this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
+        reason: reason
+      }));
     },
 
     
