@@ -2201,6 +2201,12 @@ public:
 
 
 
+  static bool UsesAsyncScrolling();
+
+  
+
+
+
 
 
 
