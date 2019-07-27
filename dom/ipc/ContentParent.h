@@ -33,6 +33,7 @@ class nsICycleCollectorLogSink;
 class nsIDOMBlob;
 class nsIDumpGCAndCCLogsCallback;
 class nsIMemoryReporter;
+class nsITimer;
 class ParentIdleListener;
 
 namespace mozilla {
@@ -464,6 +465,8 @@ private:
     
     void ShutDownMessageManager();
 
+    static void ForceKillTimerCallback(nsITimer* aTimer, void* aClosure);
+
     PCompositorParent*
     AllocPCompositorParent(mozilla::ipc::Transport* aTransport,
                            base::ProcessId aOtherProcess) MOZ_OVERRIDE;
@@ -790,7 +793,7 @@ private:
     
     
     
-    CancelableTask* mForceKillTask;
+    nsCOMPtr<nsITimer> mForceKillTimer;
     
     
     
