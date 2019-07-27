@@ -15,7 +15,7 @@ public class PrivateTab extends Tab {
 
         
         
-        final int bgColor = context.getResources().getColor(R.color.background_private);
+        final int bgColor = context.getResources().getColor(R.color.private_toolbar_grey);
         setBackgroundColor(bgColor);
     }
 
