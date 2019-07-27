@@ -42,21 +42,11 @@ private:
   
   virtual void ActorDestroy(ActorDestroyReason aReason) override;
 
-  virtual bool RecvMatchResponse(const RequestId& aRequestId,
-                                 const nsresult& aRv,
-                                 const PCacheResponseOrVoid& response) override;
-  virtual bool RecvHasResponse(const cache::RequestId& aRequestId,
-                               const nsresult& aRv,
-                               const bool& aSuccess) override;
-  virtual bool RecvOpenResponse(const cache::RequestId& aRequestId,
-                                const nsresult& aRv,
-                                PCacheChild* aActor) override;
-  virtual bool RecvDeleteResponse(const cache::RequestId& aRequestId,
-                                  const nsresult& aRv,
-                                  const bool& aResult) override;
-  virtual bool RecvKeysResponse(const cache::RequestId& aRequestId,
-                                const nsresult& aRv,
-                                nsTArray<nsString>&& aKeys) override;
+  virtual PCacheOpChild*
+  AllocPCacheOpChild(const CacheOpArgs& aOpArgs) override;
+
+  virtual bool
+  DeallocPCacheOpChild(PCacheOpChild* aActor) override;
 
   
   
