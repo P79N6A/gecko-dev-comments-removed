@@ -156,17 +156,7 @@ function loadAndSelectTestTab() {
   gBrowser.selectedTab = tab;
 
   let browser = gBrowser.getBrowserForTab(tab);
-
-  
-  
-  
-  
-  
-  
-  
-  let registry = Cc['@mozilla.org/chrome/chrome-registry;1'].getService(Ci.nsIChromeRegistry);
-  let fileURI = registry.convertChromeURL(Services.io.newURI(kContentScript, null, null)).spec;
-  browser.messageManager.loadFrameScript(fileURI, false);
+  browser.messageManager.loadFrameScript(kContentScript, false);
 
   let deferred = Promise.defer();
   browser.addEventListener("DOMContentLoaded", function onBrowserLoad(aEvent) {

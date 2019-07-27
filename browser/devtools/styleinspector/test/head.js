@@ -109,16 +109,7 @@ function addTab(url) {
   let browser = tab.linkedBrowser;
 
   info("Loading the helper frame script " + FRAME_SCRIPT_URL);
-  
-  
-  
-  
-  
-  
-  let registry = Cc['@mozilla.org/chrome/chrome-registry;1']
-    .getService(Ci.nsIChromeRegistry);
-  let fileURI = registry.convertChromeURL(Services.io.newURI(FRAME_SCRIPT_URL, null, null)).spec;
-  browser.messageManager.loadFrameScript(fileURI, false);
+  browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
 
   browser.addEventListener("load", function onload() {
     browser.removeEventListener("load", onload, true);
