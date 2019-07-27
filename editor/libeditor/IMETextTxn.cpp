@@ -155,7 +155,19 @@ ToSelectionType(uint32_t aTextRangeType)
 nsresult
 IMETextTxn::SetSelectionForRanges()
 {
-  nsRefPtr<Selection> selection = mEditor.GetSelection();
+  return SetIMESelection(mEditor, mTextNode, mOffset,
+                         mStringToInsert.Length(), mRanges);
+}
+
+
+nsresult
+IMETextTxn::SetIMESelection(nsEditor& aEditor,
+                            Text* aTextNode,
+                            uint32_t aOffsetInNode,
+                            uint32_t aLengthOfCompositionString,
+                            const TextRangeArray* aRanges)
+{
+  nsRefPtr<Selection> selection = aEditor.GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NOT_INITIALIZED);
 
   nsresult rv = selection->StartBatchChanges();
@@ -170,7 +182,7 @@ IMETextTxn::SetSelectionForRanges()
   };
 
   nsCOMPtr<nsISelectionController> selCon;
-  mEditor.GetSelectionController(getter_AddRefs(selCon));
+  aEditor.GetSelectionController(getter_AddRefs(selCon));
   NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
   for (uint32_t i = 0; i < ArrayLength(kIMESelections); ++i) {
@@ -186,19 +198,18 @@ IMETextTxn::SetSelectionForRanges()
 
   
   bool setCaret = false;
-  uint32_t countOfRanges = mRanges ? mRanges->Length() : 0;
+  uint32_t countOfRanges = aRanges ? aRanges->Length() : 0;
 
 #ifdef DEBUG
   
-  uint32_t maxOffset = mTextNode->Length();
+  uint32_t maxOffset = aTextNode->Length();
 #endif
 
   
   
   
-  uint32_t insertedLength = mStringToInsert.Length();
   for (uint32_t i = 0; i < countOfRanges; ++i) {
-    const TextRange& textRange = mRanges->ElementAt(i);
+    const TextRange& textRange = aRanges->ElementAt(i);
 
     
     
@@ -206,10 +217,11 @@ IMETextTxn::SetSelectionForRanges()
       NS_ASSERTION(!setCaret, "The ranges already has caret position");
       NS_ASSERTION(!textRange.Length(), "nsEditor doesn't support wide caret");
       int32_t caretOffset = static_cast<int32_t>(
-        mOffset + std::min(textRange.mStartOffset, insertedLength));
+        aOffsetInNode +
+          std::min(textRange.mStartOffset, aLengthOfCompositionString));
       MOZ_ASSERT(caretOffset >= 0 &&
                  static_cast<uint32_t>(caretOffset) <= maxOffset);
-      rv = selection->Collapse(mTextNode, caretOffset);
+      rv = selection->Collapse(aTextNode, caretOffset);
       setCaret = setCaret || NS_SUCCEEDED(rv);
       NS_ASSERTION(setCaret, "Failed to collapse normal selection");
       continue;
@@ -223,15 +235,17 @@ IMETextTxn::SetSelectionForRanges()
 
     nsRefPtr<nsRange> clauseRange;
     int32_t startOffset = static_cast<int32_t>(
-      mOffset + std::min(textRange.mStartOffset, insertedLength));
+      aOffsetInNode +
+        std::min(textRange.mStartOffset, aLengthOfCompositionString));
     MOZ_ASSERT(startOffset >= 0 &&
                static_cast<uint32_t>(startOffset) <= maxOffset);
     int32_t endOffset = static_cast<int32_t>(
-      mOffset + std::min(textRange.mEndOffset, insertedLength));
+      aOffsetInNode +
+        std::min(textRange.mEndOffset, aLengthOfCompositionString));
     MOZ_ASSERT(endOffset >= startOffset &&
                static_cast<uint32_t>(endOffset) <= maxOffset);
-    rv = nsRange::CreateRange(mTextNode, startOffset,
-                              mTextNode, endOffset,
+    rv = nsRange::CreateRange(aTextNode, startOffset,
+                              aTextNode, endOffset,
                               getter_AddRefs(clauseRange));
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to create a DOM range for a clause of composition");
@@ -271,10 +285,11 @@ IMETextTxn::SetSelectionForRanges()
   
   
   if (!setCaret) {
-    int32_t caretOffset = static_cast<int32_t>(mOffset + insertedLength);
+    int32_t caretOffset =
+      static_cast<int32_t>(aOffsetInNode + aLengthOfCompositionString);
     MOZ_ASSERT(caretOffset >= 0 &&
                static_cast<uint32_t>(caretOffset) <= maxOffset);
-    rv = selection->Collapse(mTextNode, caretOffset);
+    rv = selection->Collapse(aTextNode, caretOffset);
     NS_ASSERTION(NS_SUCCEEDED(rv),
                  "Failed to set caret at the end of composition string");
   }
