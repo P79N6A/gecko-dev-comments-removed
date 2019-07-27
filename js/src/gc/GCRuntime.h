@@ -75,12 +75,6 @@ class ChunkPool
       private:
         Chunk *current_;
     };
-
-  private:
-    
-    
-    ChunkPool(const ChunkPool &) MOZ_DELETE;
-    ChunkPool operator=(const ChunkPool &) MOZ_DELETE;
 };
 
 
@@ -558,9 +552,8 @@ class GCRuntime
 
 
 
-    Chunk *expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC &lock);
+    ChunkPool expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC &lock);
     void freeEmptyChunks(JSRuntime *rt, const AutoLockGC &lock);
-    void freeChunkList(Chunk *chunkListHead);
     void prepareToFreeChunk(ChunkInfo &info);
     void releaseChunk(Chunk *chunk);
 

@@ -741,7 +741,7 @@ ChunkPool::Iter::next()
     current_ = current_->info.next;
 }
 
-Chunk *
+ChunkPool
 GCRuntime::expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC &lock)
 {
     
@@ -750,7 +750,8 @@ GCRuntime::expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC &lock)
 
 
 
-    Chunk *freeList = nullptr;
+    MOZ_ASSERT(emptyChunks(lock).verify());
+    ChunkPool expired;
     unsigned freeChunkCount = 0;
     for (ChunkPool::Iter iter(emptyChunks(lock)); !iter.done();) {
         Chunk *chunk = iter.get();
@@ -765,17 +766,18 @@ GCRuntime::expireEmptyChunkPool(bool shrinkBuffers, const AutoLockGC &lock)
         {
             emptyChunks(lock).remove(chunk);
             prepareToFreeChunk(chunk->info);
-            chunk->info.next = freeList;
-            freeList = chunk;
+            expired.push(chunk);
         } else {
             
             ++freeChunkCount;
             ++chunk->info.age;
         }
     }
+    MOZ_ASSERT(expired.verify());
+    MOZ_ASSERT(emptyChunks(lock).verify());
     MOZ_ASSERT(emptyChunks(lock).count() <= tunables.maxEmptyChunkCount());
     MOZ_ASSERT_IF(shrinkBuffers, emptyChunks(lock).count() <= tunables.minEmptyChunkCount());
-    return freeList;
+    return expired;
 }
 
 static void
@@ -795,16 +797,6 @@ void
 GCRuntime::freeEmptyChunks(JSRuntime *rt, const AutoLockGC &lock)
 {
     FreeChunkPool(rt, emptyChunks(lock));
-}
-
-void
-GCRuntime::freeChunkList(Chunk *chunkListHead)
-{
-    while (Chunk *chunk = chunkListHead) {
-        MOZ_ASSERT(!chunk->info.numArenasFreeCommitted);
-        chunkListHead = chunk->info.next;
-        FreeChunk(rt, chunk);
-    }
 }
 
  Chunk *
@@ -871,9 +863,7 @@ Chunk::init(JSRuntime *rt)
     decommitAllArenas(rt);
 
     
-    info.age = 0;
-    info.next = nullptr;
-    info.prev = nullptr;
+    info.init();
     info.trailer.storeBuffer = nullptr;
     info.trailer.location = ChunkLocationBitTenuredHeap;
     info.trailer.runtime = rt;
@@ -3439,9 +3429,10 @@ GCRuntime::expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock)
     rt->threadPool.pruneChunkCache();
 #endif
 
-    if (Chunk *toFree = expireEmptyChunkPool(shouldShrink, lock)) {
+    ChunkPool toFree = expireEmptyChunkPool(shouldShrink, lock);
+    {
         AutoUnlockGC unlock(lock);
-        freeChunkList(toFree);
+        FreeChunkPool(rt, toFree);
     }
 
     if (shouldShrink)

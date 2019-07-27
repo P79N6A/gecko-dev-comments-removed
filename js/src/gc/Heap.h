@@ -745,9 +745,17 @@ static_assert(sizeof(ChunkTrailer) == 2 * sizeof(uintptr_t) + sizeof(uint64_t),
 
 struct ChunkInfo
 {
+    void init() {
+        next = prev = nullptr;
+        age = 0;
+    }
+
+  private:
+    friend class ChunkPool;
     Chunk           *next;
     Chunk           *prev;
 
+  public:
     
     ArenaHeader     *freeArenasHead;
 
