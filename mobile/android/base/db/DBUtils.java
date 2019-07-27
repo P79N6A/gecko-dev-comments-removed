@@ -7,6 +7,7 @@ package org.mozilla.gecko.db;
 import org.mozilla.gecko.GeckoAppShell;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.text.TextUtils;
 import android.util.Log;
@@ -95,5 +96,46 @@ public class DBUtils {
                 values.putNull(columnName);
             }
         }
+    }
+
+    
+
+
+
+
+
+
+    public static String computeSQLInClause(int items, String field) {
+        final StringBuilder builder = new StringBuilder(field);
+        builder.append(" IN (");
+        int i = 0;
+        for (; i < items - 1; ++i) {
+            builder.append("?, ");
+        }
+        if (i < items) {
+            builder.append("?");
+        }
+        builder.append(")");
+        return builder.toString();
+    }
+
+    
+
+
+
+
+    public static String computeSQLInClauseFromLongs(final Cursor cursor, String field) {
+        final StringBuilder builder = new StringBuilder(field);
+        builder.append(" IN (");
+        final int commaLimit = cursor.getCount() - 1;
+        int i = 0;
+        while (cursor.moveToNext()) {
+            builder.append(cursor.getLong(0));
+            if (i++ < commaLimit) {
+                builder.append(", ");
+            }
+        }
+        builder.append(")");
+        return builder.toString();
     }
 }
