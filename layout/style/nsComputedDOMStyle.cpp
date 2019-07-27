@@ -3147,42 +3147,27 @@ nsComputedDOMStyle::DoGetTextDecoration()
 {
   const nsStyleTextReset* textReset = StyleTextReset();
 
-  
-  
-  
-  if (textReset->GetDecorationStyle() != NS_STYLE_TEXT_DECORATION_STYLE_SOLID) {
-    return nullptr;
-  }
-
+  bool isInitialStyle =
+    textReset->GetDecorationStyle() == NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
   nscolor color;
   bool isForegroundColor;
   textReset->GetDecorationColor(color, isForegroundColor);
+
+  if (isInitialStyle && isForegroundColor) {
+    return DoGetTextDecorationLine();
+  }
+
+  nsDOMCSSValueList *valueList = GetROCSSValueList(false);
+
+  valueList->AppendCSSValue(DoGetTextDecorationLine());
+  if (!isInitialStyle) {
+    valueList->AppendCSSValue(DoGetTextDecorationStyle());
+  }
   if (!isForegroundColor) {
-    return nullptr;
+    valueList->AppendCSSValue(DoGetTextDecorationColor());
   }
 
-  
-  
-  
-
-  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
-  uint8_t line = textReset->mTextDecorationLine;
-  
-  
-  line &= ~(NS_STYLE_TEXT_DECORATION_LINE_PREF_ANCHORS |
-            NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL);
-
-  if (line == NS_STYLE_TEXT_DECORATION_LINE_NONE) {
-    val->SetIdent(eCSSKeyword_none);
-  } else {
-    nsAutoString str;
-    nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_text_decoration_line,
-      line, NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE,
-      NS_STYLE_TEXT_DECORATION_LINE_BLINK, str);
-    val->SetString(str);
-  }
-
-  return val;
+  return valueList;
 }
 
 CSSValue*
