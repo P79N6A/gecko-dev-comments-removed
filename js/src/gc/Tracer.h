@@ -158,20 +158,7 @@ class GCMarker : public JSTracer
     void reset();
 
     
-    void traverse(JSObject* thing) { markAndPush(ObjectTag, thing); }
-    void traverse(ObjectGroup* thing) { markAndPush(GroupTag, thing); }
-    void traverse(jit::JitCode* thing) { markAndPush(JitCodeTag, thing); }
-    
-    void traverse(Shape* thing) { markAndScan(thing); }
-    void traverse(BaseShape* thing) { markAndScan(thing); }
-    void traverse(JSString* thing) { markAndScan(thing); }
-    void traverse(JS::Symbol* thing) { markAndScan(thing); }
-    
-    void traverse(JSScript* thing) { markAndTraverse(thing); }
-    void traverse(LazyScript* thing) { markAndTraverse(thing); }
-    
-    
-    
+    template <typename T> void traverse(T* thing);
 
     
 
@@ -249,27 +236,12 @@ class GCMarker : public JSTracer
         pushTaggedPtr(ObjectTag, obj);
     }
 
-    template <typename T>
-    void markAndPush(StackTag tag, T* thing) {
-        if (mark(thing))
-            pushTaggedPtr(tag, thing);
-    }
-
-    template <typename T>
-    void markAndScan(T* thing) {
-        if (mark(thing))
-            eagerlyMarkChildren(thing);
-    }
+    template <typename T> void markAndPush(StackTag tag, T* thing);
+    template <typename T> void markAndScan(T* thing);
     void eagerlyMarkChildren(Shape* shape);
     void eagerlyMarkChildren(BaseShape* base);
     void eagerlyMarkChildren(JSString* str);
     void eagerlyMarkChildren(JS::Symbol* sym);
-
-    template <typename T>
-    void markAndTraverse(T* thing) {
-        if (mark(thing))
-            dispatchToTraceChildren(thing);
-    }
 
     
     template <typename T>
