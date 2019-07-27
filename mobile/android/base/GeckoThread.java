@@ -23,6 +23,8 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GeckoThread extends Thread implements GeckoEventListener {
@@ -40,6 +42,7 @@ public class GeckoThread extends Thread implements GeckoEventListener {
 
     private static final AtomicReference<LaunchState> sLaunchState =
                                             new AtomicReference<LaunchState>(LaunchState.Launching);
+    private static final Queue<GeckoEvent> PENDING_EVENTS = new ConcurrentLinkedQueue<GeckoEvent>();
 
     private static GeckoThread sGeckoThread;
 
@@ -193,12 +196,34 @@ public class GeckoThread extends Thread implements GeckoEventListener {
         }
     }
 
+    public static void addPendingEvent(final GeckoEvent e) {
+        synchronized (PENDING_EVENTS) {
+            if (checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+                
+                GeckoAppShell.notifyGeckoOfEvent(e);
+                e.recycle();
+            } else {
+                
+                PENDING_EVENTS.add(e);
+            }
+        }
+    }
+
     @Override
     public void handleMessage(String event, JSONObject message) {
         if ("Gecko:Ready".equals(event)) {
             EventDispatcher.getInstance().unregisterGeckoThreadListener(this, event);
-            setLaunchState(LaunchState.GeckoRunning);
-            GeckoAppShell.sendPendingEventsToGecko();
+
+            
+            
+            synchronized (PENDING_EVENTS) {
+                GeckoEvent e;
+                while ((e = PENDING_EVENTS.poll()) != null) {
+                    GeckoAppShell.notifyGeckoOfEvent(e);
+                    e.recycle();
+                }
+                setLaunchState(LaunchState.GeckoRunning);
+            }
         }
     }
 
