@@ -423,6 +423,11 @@ pref("security.apps.trusted.CSP.default", "default-src *; object-src 'none'; fra
 
 
 
+
+pref("layers.acceleration.force-enabled", true);
+
+
+
 pref("browser.link.open_newwindow", 3);
 
 
