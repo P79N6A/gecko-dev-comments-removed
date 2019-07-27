@@ -418,6 +418,9 @@ enum MOZ_ENUM_TYPE(uint32_t) {
     TYPE_FLAG_NON_WRITABLE_PROPERTY = 0x00010000,
 
     
+    TYPE_FLAG_NON_CONSTANT_PROPERTY = 0x00020000,
+
+    
 
 
 
@@ -426,8 +429,8 @@ enum MOZ_ENUM_TYPE(uint32_t) {
 
 
 
-    TYPE_FLAG_DEFINITE_MASK       = 0xfffe0000,
-    TYPE_FLAG_DEFINITE_SHIFT      = 17
+    TYPE_FLAG_DEFINITE_MASK       = 0xfffc0000,
+    TYPE_FLAG_DEFINITE_SHIFT      = 18
 };
 typedef uint32_t TypeFlags;
 
@@ -558,6 +561,9 @@ class TypeSet
     bool nonWritableProperty() const {
         return flags & TYPE_FLAG_NON_WRITABLE_PROPERTY;
     }
+    bool nonConstantProperty() const {
+        return flags & TYPE_FLAG_NON_CONSTANT_PROPERTY;
+    }
     bool definiteProperty() const { return flags & TYPE_FLAG_DEFINITE_MASK; }
     unsigned definiteSlot() const {
         JS_ASSERT(definiteProperty());
@@ -676,6 +682,9 @@ class HeapTypeSet : public ConstraintTypeSet
 
     
     inline void setNonWritableProperty(ExclusiveContext *cx);
+
+    
+    inline void setNonConstantProperty(ExclusiveContext *cx);
 };
 
 class CompilerConstraintList;
@@ -765,6 +774,10 @@ class TemporaryTypeSet : public TypeSet
 
     
     bool propertyNeedsBarrier(CompilerConstraintList *constraints, jsid id);
+
+    
+    bool propertyMightBeConstant(CompilerConstraintList *constraints, jsid id);
+    bool propertyIsConstant(CompilerConstraintList *constraints, jsid id, Value *valOut);
 
     
 
@@ -1404,6 +1417,7 @@ class HeapTypeSetKey
     bool knownSubset(CompilerConstraintList *constraints, const HeapTypeSetKey &other);
     JSObject *singleton(CompilerConstraintList *constraints);
     bool needsBarrier(CompilerConstraintList *constraints);
+    bool constant(CompilerConstraintList *constraints, Value *valOut);
 };
 
 

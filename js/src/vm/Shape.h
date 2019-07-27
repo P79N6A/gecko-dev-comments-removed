@@ -823,7 +823,13 @@ class Shape : public gc::BarrieredCell<Shape>
         
         IN_DICTIONARY   = 0x02,
 
-        UNUSED_BITS     = 0x3C
+        
+
+
+
+        OVERWRITTEN     = 0x04,
+
+        UNUSED_BITS     = 0x38
     };
 
     
@@ -880,6 +886,13 @@ class Shape : public gc::BarrieredCell<Shape>
         return (hasSetterValue() && base()->setterObj)
                ? ObjectValue(*base()->setterObj)
                : UndefinedValue();
+    }
+
+    void setOverwritten() {
+        flags |= OVERWRITTEN;
+    }
+    bool hadOverwrite() const {
+        return flags & OVERWRITTEN;
     }
 
     void update(PropertyOp getter, StrictPropertyOp setter, uint8_t attrs);

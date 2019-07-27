@@ -7542,7 +7542,7 @@ IonBuilder::addTypedArrayLengthAndData(MDefinition *obj,
 #else
         bool isTenured = true;
 #endif
-        if (isTenured) {
+        if (isTenured && tarr->hasSingletonType()) {
             
             
             types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
@@ -8678,6 +8678,10 @@ IonBuilder::jsop_getprop(PropertyName *name)
     MDefinition *obj = current->pop();
 
     
+    if (!getPropTryInferredConstant(&emitted, obj, name) || emitted)
+        return emitted;
+
+    
     if (!getPropTryArgumentsLength(&emitted, obj) || emitted)
         return emitted;
 
@@ -8763,6 +8767,28 @@ IonBuilder::checkIsDefinitelyOptimizedArguments(MDefinition *obj, bool *isOptimi
     }
 
     *isOptimizedArgs = true;
+    return true;
+}
+
+bool
+IonBuilder::getPropTryInferredConstant(bool *emitted, MDefinition *obj, PropertyName *name)
+{
+    JS_ASSERT(*emitted == false);
+
+    
+    types::TemporaryTypeSet *objTypes = obj->resultTypeSet();
+    if (!objTypes)
+        return true;
+
+    Value constVal = UndefinedValue();
+    if (objTypes->propertyIsConstant(constraints(), NameToId(name), &constVal)) {
+        spew("Optimized constant property");
+        obj->setImplicitlyUsedUnchecked();
+        if (!pushConstant(constVal))
+            return false;
+        *emitted = true;
+    }
+
     return true;
 }
 
@@ -9381,12 +9407,15 @@ IonBuilder::jsop_setprop(PropertyName *name)
         return emitted;
 
     
-    if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
+    if (objTypes && !objTypes->propertyMightBeConstant(constraints(), NameToId(name))) {
+        
+        if (!setPropTryDefiniteSlot(&emitted, obj, name, value, barrier, objTypes) || emitted)
+            return emitted;
 
-    
-    if (!setPropTryInlineAccess(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
+        
+        if (!setPropTryInlineAccess(&emitted, obj, name, value, barrier, objTypes) || emitted)
+            return emitted;
+    }
 
     
     return setPropTryCache(&emitted, obj, name, value, barrier, objTypes);
