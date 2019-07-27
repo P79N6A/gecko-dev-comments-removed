@@ -1450,10 +1450,20 @@ WebConsoleFrame.prototype = {
       errorMessage = errorMessage.initial;
     }
 
+    let displayOrigin = aScriptError.sourceName;
+
+    
+    
+    
+    if (aScriptError.category && aScriptError.category == "SHA-1 Signature") {
+      let sourceURI = Services.io.newURI(aScriptError.sourceName, null, null).QueryInterface(Ci.nsIURL);
+      displayOrigin = sourceURI.prePath;
+    }
+
     
     let msg = new Messages.Simple(errorMessage, {
       location: {
-        url: aScriptError.sourceName,
+        url: displayOrigin,
         line: aScriptError.lineNumber,
         column: aScriptError.columnNumber
       },
