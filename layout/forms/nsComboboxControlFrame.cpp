@@ -1394,19 +1394,24 @@ nsComboboxControlFrame::SetInitialChildList(ChildListID     aListID,
 bool
 nsComboboxControlFrame::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** aLastRolledUp)
 {
-  if (!mDroppedDown)
+  if (!mDroppedDown) {
     return false;
+  }
 
+  bool consume = true;
+#ifdef XP_WIN
+  consume = false;
+#endif
   nsWeakFrame weakFrame(this);
   mListControlFrame->AboutToRollup(); 
-  if (!weakFrame.IsAlive())
-    return true;
+  if (!weakFrame.IsAlive()) {
+    return consume;
+  }
   ShowDropDown(false); 
   if (weakFrame.IsAlive()) {
     mListControlFrame->CaptureMouseEvents(false);
   }
-
-  return true;
+  return consume;
 }
 
 nsIWidget*
