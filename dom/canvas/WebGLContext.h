@@ -326,7 +326,7 @@ public:
     
     
     
-    void ForceClearFramebufferWithDefaultValues(GLbitfield mask,
+    void ForceClearFramebufferWithDefaultValues(bool fakeNoAlpha, GLbitfield mask,
                                                 const bool colorAttachmentsMask[kMaxColorAttachments]);
 
     
