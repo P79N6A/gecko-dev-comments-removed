@@ -35,7 +35,6 @@ import zipfile
 import bisection
 
 from automationutils import (
-    environment,
     processLeakLog,
     dumpScreen,
     printstatus,
@@ -59,6 +58,7 @@ from mozprofile.permissions import ServerLocations
 from urllib import quote_plus as encodeURIComponent
 from mozlog.structured.formatters import TbplFormatter
 from mozlog.structured import commandline
+from mozrunner.utils import test_environment
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -359,7 +359,7 @@ class MochitestServer(object):
         "Run the Mochitest server, returning the process ID of the server."
 
         
-        env = environment(xrePath=self._xrePath)
+        env = test_environment(xrePath=self._xrePath, log=self._log)
         env["XPCOM_DEBUG_BREAK"] = "warn"
         env["LD_LIBRARY_PATH"] = self._xrePath
 
@@ -1064,7 +1064,7 @@ class SSLTunnel:
                 ssltunnel)
             exit(1)
 
-        env = environment(xrePath=self.xrePath)
+        env = test_environment(xrePath=self.xrePath, log=self.log)
         env["LD_LIBRARY_PATH"] = self.xrePath
         self.process = mozprocess.ProcessHandler([ssltunnel, self.configFile],
                                                  env=env)
@@ -1235,9 +1235,6 @@ class Mochitest(MochitestUtilsMixin):
         super(Mochitest, self).__init__(logger_options)
 
         
-        self.environment = environment
-
-        
         
         
         self.SERVER_STARTUP_TIMEOUT = 180 if mozinfo.info.get('debug') else 90
@@ -1253,6 +1250,10 @@ class Mochitest(MochitestUtilsMixin):
 
         self.expectedError = {}
         self.result = {}
+
+    def environment(self, **kwargs):
+        kwargs['log'] = self.log
+        return test_environment(**kwargs)
 
     def extraPrefs(self, extraPrefs):
         """interpolate extra preferences from option strings"""
