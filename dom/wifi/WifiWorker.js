@@ -1049,6 +1049,7 @@ var WifiManager = (function() {
         manager.stopSupplicantCallback = (function () {
           wifiCommand.stopSupplicant(function (status) {
             wifiCommand.closeSupplicantConnection(function() {
+              manager.connectToSupplicant = false;
               manager.state = "UNINITIALIZED";
               netUtil.disableInterface(manager.ifname, function (ok) {
                 unloadDriver(WIFI_FIRMWARE_STATION, callback);
@@ -1061,6 +1062,11 @@ var WifiManager = (function() {
           handleEvent("CTRL-EVENT-TERMINATING");
         }).bind(this);
         createWaitForTerminateEventTimer(terminateEventCallback);
+
+        
+        
+        
+        notify("stopconnectioninfotimer");
 
         wifiCommand.terminateSupplicant(function (ok) {
           manager.connectionDropped(function () {
@@ -2327,6 +2333,10 @@ function WifiWorker() {
 
   WifiManager.onstationinfoupdate = function() {
     self._fireEvent("stationinfoupdate", { station: this.station });
+  };
+
+  WifiManager.onstopconnectioninfotimer = function() {
+    self._stopConnectionInfoTimer();
   };
 
   
