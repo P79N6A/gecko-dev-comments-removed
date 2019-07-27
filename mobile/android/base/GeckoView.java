@@ -123,6 +123,9 @@ public class GeckoView extends LayerView
 
     private void init(Context context, String url, boolean doInit) {
         
+        GeckoAppShell.setLayerView(this);
+
+        
         
         
         
@@ -185,7 +188,6 @@ public class GeckoView extends LayerView
             GeckoProfile profile = GeckoProfile.get(context).forceCreate();
             BrowserDB.initialize(profile.getName());
 
-            GeckoAppShell.setLayerView(this);
             GeckoAppShell.sendEventToGecko(GeckoEvent.createObjectEvent(
                 GeckoEvent.ACTION_OBJECT_LAYER_CLIENT, getLayerClientObject()));
             GeckoThread.createAndStart();
