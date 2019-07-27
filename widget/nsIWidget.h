@@ -2088,11 +2088,6 @@ public:
     
 
 
-    NS_IMETHOD SetLayersAcceleration(bool aEnabled) = 0;
-
-    
-
-
 
 
 
