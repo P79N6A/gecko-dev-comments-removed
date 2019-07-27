@@ -11,7 +11,9 @@
 #include "MediaData.h"
 #include "MediaPromise.h"
 #include "MediaQueue.h"
+#include "MediaTimer.h"
 #include "AudioCompactor.h"
+#include "Intervals.h"
 #include "TimeUnits.h"
 
 namespace mozilla {
@@ -247,19 +249,32 @@ public:
 protected:
   friend class TrackBuffer;
   virtual void NotifyDataArrivedInternal(uint32_t aLength, int64_t aOffset) { }
-  void NotifyDataArrived(uint32_t aLength, int64_t aOffset)
+
+  void NotifyDataArrived(const media::Interval<int64_t>& aInfo)
   {
     MOZ_ASSERT(OnTaskQueue());
     NS_ENSURE_TRUE_VOID(!mShutdown);
-    NotifyDataArrivedInternal(aLength, aOffset);
+    NotifyDataArrivedInternal(aInfo.Length(), aInfo.mStart);
     UpdateBuffered();
   }
 
+  
+  void ThrottledNotifyDataArrived(const media::Interval<int64_t>& aInterval);
+  void DoThrottledNotify();
+
 public:
-  void DispatchNotifyDataArrived(uint32_t aLength, int64_t aOffset)
+  
+  
+  
+  
+  
+  
+  void DispatchNotifyDataArrived(uint32_t aLength, int64_t aOffset, bool aThrottleUpdates)
   {
     RefPtr<nsRunnable> r =
-      NS_NewRunnableMethodWithArgs<uint32_t, int64_t>(this, &MediaDecoderReader::NotifyDataArrived, aLength, aOffset);
+      NS_NewRunnableMethodWithArg<media::Interval<int64_t>>(this, aThrottleUpdates ? &MediaDecoderReader::ThrottledNotifyDataArrived
+                                                                                   : &MediaDecoderReader::NotifyDataArrived,
+                                                            media::Interval<int64_t>(aOffset, aOffset + aLength));
     TaskQueue()->Dispatch(r.forget(), AbstractThread::DontAssertDispatchSuccess);
   }
 
@@ -359,6 +374,9 @@ protected:
   WatchManager<MediaDecoderReader> mWatchManager;
 
   
+  nsRefPtr<MediaTimer> mTimer;
+
+  
   Canonical<media::TimeIntervals> mBuffered;
 public:
   AbstractCanonical<media::TimeIntervals>* CanonicalBuffered() { return &mBuffered; }
@@ -369,6 +387,12 @@ protected:
 
   
   Mirror<media::NullableTimeUnit> mDuration;
+
+  
+  MediaPromiseRequestHolder<MediaTimerPromise> mThrottledNotify;
+  const TimeDuration mThrottleDuration;
+  TimeStamp mLastThrottledNotify;
+  Maybe<media::Interval<int64_t>> mThrottledInterval;
 
   
   

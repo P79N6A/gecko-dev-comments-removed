@@ -303,7 +303,7 @@ SourceBuffer::Ended()
   mContentManager->Ended();
   
   
-  mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++);
+  mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++,  false);
 }
 
 SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
@@ -498,7 +498,7 @@ SourceBuffer::AppendDataCompletedWithSuccess(bool aHasActiveTracks)
     
     
     
-    mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++);
+    mMediaSource->GetDecoder()->NotifyDataArrived(1, mReportedOffset++,  false);
     
     mMediaSource->GetDecoder()->NotifyBytesDownloaded();
   }

@@ -153,12 +153,6 @@ BufferDecoder::NotifyWaitingForResourcesStatusChanged()
   
 }
 
-void
-BufferDecoder::NotifyDataArrived(uint32_t aLength, int64_t aOffset)
-{
-  
-}
-
 MediaDecoderOwner*
 BufferDecoder::GetOwner()
 {
