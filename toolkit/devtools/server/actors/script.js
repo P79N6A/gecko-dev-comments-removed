@@ -2708,52 +2708,8 @@ SourceActor.prototype = {
                message: "Breakpoints can only be set while the debuggee is paused."};
     }
 
-    let loc = {
-      url: this.url,
-      line: aRequest.location.line,
-      column: aRequest.location.column,
-    };
-    let originalLoc = loc;
-
-    return this.threadActor.sources.getGeneratedLocation({
-      sourceActor: this,
-      line: loc.line,
-      column: loc.column
-    }).then(genLoc => {
-      return this._createBreakpoint(genLoc, originalLoc, aRequest.condition);
-    });
-  },
-
-  _createBreakpoint: function(loc, originalLoc, condition) {
-    return this.setBreakpoint(originalLoc.line, originalLoc.column, condition)
-               .then(response =>
-    {
-      return Promise.resolve().then(() => {
-        var actual = response.actualLocation ? response.actualLocation : loc;
-        if (actual.sourceActor.source) {
-          return this.threadActor.sources.getOriginalLocation({
-            source: actual.sourceActor.source,
-            line: actual.line,
-            column: actual.column
-          });
-        } else {
-          return actual;
-        }
-      }).then((location) => {
-        if (location.sourceActor.url !== originalLoc.url ||
-            location.line !== originalLoc.line)
-        {
-          response.actualLocation = {
-            source: location.sourceActor.form(),
-            line: location.line,
-            column: location.column
-          };
-        }
-        return response;
-      });
-    }).then(null, error => {
-      DevToolsUtils.reportException("onSetBreakpoint", error);
-    });
+    return this.setBreakpoint(aRequest.location.line, aRequest.location.column,
+                              aRequest.condition);
   },
 
   
@@ -2900,6 +2856,7 @@ SourceActor.prototype = {
 
 
   setBreakpointForActor: function (actor) {
+    let originalLocation = actor.originalLocation;
     let generatedLocation = {
       sourceActor: this,
       line: actor.generatedLocation.line,
@@ -2923,79 +2880,102 @@ SourceActor.prototype = {
       
       
       
-      return {
+      return Promise.resolve({
         actor: actor.actorID
-      };
+      });
     }
 
     
     
     scripts = scripts.filter((script) => !actor.hasScript(script));
 
+    let actualLocation;
+
+    
+    
     if (generatedColumn) {
-      return this._setBreakpointAtColumn(scripts, generatedLocation, actor);
-    }
-
-    let result;
-    if (actor.scripts.size === 0) {
-      
-      
-      
-      
-      result = this._findNextLineWithOffsets(scripts, generatedLine);
+      this._setBreakpointAtColumn(scripts, generatedLocation, actor);
+      actualLocation = generatedLocation;
     } else {
-      
-      
-      
-      let entryPoints = findEntryPointsForLine(scripts, generatedLine)
-      if (entryPoints) {
-        result = {
-          line: generatedLine,
-          entryPoints: entryPoints
-        };
-      }
-    }
-
-    if (!result) {
-      return {
-        error: "noCodeAtLineColumn",
-        actor: actor.actorID
-      };
-    }
-
-    const { line: actualLine, entryPoints } = result;
-
-    const actualLocation = actualLine !== generatedLine
-                         ? { sourceActor: this, line: actualLine }
-      : undefined;
-
-    if (actualLocation) {
-      
-      
-      
-      
-
-      let existingActor = this.breakpointActorMap.getActor(actualLocation);
-      if (existingActor) {
-        actor.onDelete();
-        this.breakpointActorMap.deleteActor(generatedLocation);
-        return {
-          actor: existingActor.actorID,
-          actualLocation
-        };
+      let result;
+      if (actor.scripts.size === 0) {
+        
+        
+        
+        
+        result = this._findNextLineWithOffsets(scripts, generatedLine);
       } else {
-        actor.generatedLocation = actualLocation;
-        this.breakpointActorMap.deleteActor(generatedLocation);
-        this.breakpointActorMap.setActor(actualLocation, actor);
+        
+        
+        
+        let entryPoints = findEntryPointsForLine(scripts, generatedLine)
+        if (entryPoints) {
+          result = {
+            line: generatedLine,
+            entryPoints: entryPoints
+          };
+        }
+      }
+
+      if (!result) {
+        return Promise.resolve({
+          error: "noCodeAtLineColumn",
+          actor: actor.actorID
+        });
+      }
+
+      if (result.line !== generatedLine) {
+        actualLocation = {
+          sourceActor: generatedLocation.sourceActor,
+          line: result.line,
+          column: generatedLocation.column
+        };
+
+        
+        
+        
+        
+
+        let existingActor = this.breakpointActorMap.getActor(actualLocation);
+        if (existingActor) {
+          actor.onDelete();
+          this.breakpointActorMap.deleteActor(generatedLocation);
+          actor = existingActor;
+        } else {
+          actor.generatedLocation = actualLocation;
+          this.breakpointActorMap.deleteActor(generatedLocation);
+          this.breakpointActorMap.setActor(actualLocation, actor);
+          setBreakpointOnEntryPoints(this.threadActor, actor, result.entryPoints);
+        }
+      } else {
+        setBreakpointOnEntryPoints(this.threadActor, actor, result.entryPoints);
+        actualLocation = generatedLocation;
       }
     }
 
-    setBreakpointOnEntryPoints(this.threadActor, actor, entryPoints);
-
-    return {
-      actor: actor.actorID,
-      actualLocation
-    };
+    return Promise.resolve().then(() => {
+      if (actualLocation.sourceActor.source) {
+        return this.threadActor.sources.getOriginalLocation({
+          source: actualLocation.sourceActor.source,
+          line: actualLocation.line,
+          column: actualLocation.column
+        });
+      } else {
+        return actualLocation;
+      }
+    }).then((actualLocation) => {
+      let response = { actor: actor.actorID };
+      if (actualLocation.sourceActor.url !== originalLocation.sourceActor.url ||
+          actualLocation.line !== originalLocation.line)
+      {
+        response.actualLocation = {
+          source: actualLocation.sourceActor.form(),
+          line: actualLocation.line,
+          column: actualLocation.column
+        };
+      }
+      return response;
+    });
   },
 
   
