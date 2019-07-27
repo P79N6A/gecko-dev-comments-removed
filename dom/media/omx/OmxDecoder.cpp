@@ -91,12 +91,13 @@ OmxDecoder::~OmxDecoder()
   mLooper->stop();
 }
 
-void OmxDecoder::statusChanged()
+void OmxDecoder::codecReserved()
 {
-  sp<AMessage> notify =
-           new AMessage(kNotifyStatusChanged, mReflector->id());
- 
- notify->post();
+  mMediaResourcePromise.ResolveIfExists(true, __func__);
+}
+void OmxDecoder::codecCanceled()
+{
+  mMediaResourcePromise.RejectIfExists(true, __func__);
 }
 
 static sp<IOMX> sOMX = nullptr;
@@ -213,14 +214,6 @@ bool OmxDecoder::EnsureMetadata() {
   return true;
 }
 
-bool OmxDecoder::IsWaitingMediaResources()
-{
-  if (mVideoSource.get()) {
-    return mVideoSource->IsWaitingResources();
-  }
-  return false;
-}
-
 static bool isInEmulator()
 {
   char propQemu[PROPERTY_VALUE_MAX];
@@ -228,8 +221,10 @@ static bool isInEmulator()
   return !strncmp(propQemu, "1", 1);
 }
 
-bool OmxDecoder::AllocateMediaResources()
+nsRefPtr<mozilla::MediaOmxCommonReader::MediaResourcePromise> OmxDecoder::AllocateMediaResources()
 {
+  nsRefPtr<MediaResourcePromise> p = mMediaResourcePromise.Ensure(__func__);
+
   if ((mVideoTrack != nullptr) && (mVideoSource == nullptr)) {
     
     
@@ -280,10 +275,11 @@ bool OmxDecoder::AllocateMediaResources()
                                 mNativeWindowClient);
     if (mVideoSource == nullptr) {
       NS_WARNING("Couldn't create OMX video source");
-      return false;
+      mMediaResourcePromise.Reject(true, __func__);
+      return p;
     } else {
-      sp<OMXCodecProxy::EventListener> listener = this;
-      mVideoSource->setEventListener(listener);
+      sp<OMXCodecProxy::CodecResourceListener> listener = this;
+      mVideoSource->setListener(listener);
       mVideoSource->requestResource();
     }
   }
@@ -299,7 +295,8 @@ bool OmxDecoder::AllocateMediaResources()
     const char *audioMime = nullptr;
     sp<MetaData> meta = mAudioTrack->getFormat();
     if (!meta->findCString(kKeyMIMEType, &audioMime)) {
-      return false;
+      mMediaResourcePromise.Reject(true, __func__);
+      return p;
     }
     if (!strcasecmp(audioMime, "audio/raw")) {
       mAudioSource = mAudioTrack;
@@ -325,20 +322,28 @@ bool OmxDecoder::AllocateMediaResources()
                                      flags);
       if (mAudioSource == nullptr) {
         NS_WARNING("Couldn't create OMX audio source");
-        return false;
+        mMediaResourcePromise.Reject(true, __func__);
+        return p;
       }
     }
     if (mAudioSource->start() != OK) {
       NS_WARNING("Couldn't start OMX audio source");
       mAudioSource.clear();
-      return false;
+      mMediaResourcePromise.Reject(true, __func__);
+      return p;
     }
   }
-  return true;
+  if (!mVideoSource.get()) {
+    
+    mMediaResourcePromise.Resolve(true, __func__);
+  }
+  return p;
 }
 
 
 void OmxDecoder::ReleaseMediaResources() {
+  mMediaResourcePromise.RejectIfExists(true, __func__);
+
   ReleaseVideoBuffer();
   ReleaseAudioBuffer();
 
@@ -825,15 +830,6 @@ void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
       }
       break;
     }
-
-    case kNotifyStatusChanged:
-    {
-      
-      
-      mDecoder->NotifyWaitingForResourcesStatusChanged();
-      break;
-    }
-
     default:
       TRESPASS();
       break;

@@ -177,7 +177,7 @@ public:
   
   
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags) = 0;
+                                MetadataTags** aTags) { MOZ_CRASH(); }
 
   
   

@@ -12,6 +12,7 @@
 #include "nsMimeTypes.h"
 #include "MP3FrameParser.h"
 #include "nsRect.h"
+
 #include <ui/GraphicBuffer.h>
 #include <stagefright/MediaSource.h>
 
@@ -26,6 +27,8 @@ class AbstractMediaDecoder;
 
 class MediaOmxReader : public MediaOmxCommonReader
 {
+  typedef MediaOmxCommonReader::MediaResourcePromise MediaResourcePromise;
+
   
   
   Mutex mShutdownMutex;
@@ -41,14 +44,12 @@ class MediaOmxReader : public MediaOmxCommonReader
   
   
   bool mIsShutdown;
+  MediaPromiseHolder<MediaDecoderReader::MetadataPromise> mMetadataPromise;
+  MediaPromiseConsumerHolder<MediaResourcePromise> mMediaResourceRequest;
 protected:
   android::sp<android::OmxDecoder> mOmxDecoder;
   android::sp<android::MediaExtractor> mExtractor;
   MP3FrameParser mMP3FrameParser;
-
-  
-  
-  bool mIsWaitingResources;
 
   
   
@@ -60,10 +61,7 @@ protected:
   
   virtual void EnsureActive();
 
-  
-  
-  
-  void UpdateIsWaitingMediaResources();
+  virtual void HandleResourceAllocated();
 
 public:
   MediaOmxReader(AbstractMediaDecoder* aDecoder);
@@ -87,15 +85,11 @@ public:
     return mHasVideo;
   }
 
-  
-  virtual bool IsWaitingMediaResources() override;
-
   virtual bool IsDormantNeeded() { return true;}
   virtual void ReleaseMediaResources();
 
-  virtual void PreReadMetadata() override;
-  virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags);
+  virtual nsRefPtr<MediaDecoderReader::MetadataPromise> AsyncReadMetadata() override;
+
   virtual nsRefPtr<SeekPromise>
   Seek(int64_t aTime, int64_t aEndTime) override;
 

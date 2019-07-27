@@ -86,22 +86,27 @@ void RtspOmxReader::EnsureActive() {
   MediaOmxReader::EnsureActive();
 }
 
-nsresult RtspOmxReader::ReadMetadata(MediaInfo *aInfo, MetadataTags **aTags)
+nsRefPtr<MediaDecoderReader::MetadataPromise>
+RtspOmxReader::AsyncReadMetadata()
 {
   
   
   mRtspResource->DisablePlayoutDelay();
-  EnsureActive();
-  nsresult rv = MediaOmxReader::ReadMetadata(aInfo, aTags);
 
-  if (rv == NS_OK && !IsWaitingMediaResources()) {
-    mRtspResource->EnablePlayoutDelay();
-  } else if (IsWaitingMediaResources()) {
-    
-    
-    SetIdle();
-  }
-  return rv;
+  nsRefPtr<MediaDecoderReader::MetadataPromise> p =
+    MediaOmxReader::AsyncReadMetadata();
+
+  
+  
+  SetIdle();
+
+  return p;
+}
+
+void RtspOmxReader::HandleResourceAllocated()
+{
+  MediaOmxReader::HandleResourceAllocated();
+  mRtspResource->EnablePlayoutDelay();
 }
 
 } 

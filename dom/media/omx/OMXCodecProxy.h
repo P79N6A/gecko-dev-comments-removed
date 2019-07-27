@@ -23,8 +23,19 @@ class OMXCodecProxy : public MediaSource,
                       public MediaResourceManagerClient::EventListener
 {
 public:
-  struct EventListener : public virtual RefBase {
-    virtual void statusChanged() = 0;
+  
+
+
+  struct CodecResourceListener : public virtual RefBase {
+    
+
+
+    virtual void codecReserved() = 0;
+    
+
+
+
+    virtual void codecCanceled() = 0;
   };
 
   static sp<OMXCodecProxy> Create(
@@ -37,10 +48,9 @@ public:
 
     MediaResourceManagerClient::State getState();
 
-    void setEventListener(const wp<EventListener>& listener);
+    void setListener(const wp<CodecResourceListener>& listener);
 
     void requestResource();
-    bool IsWaitingResources();
 
     
     virtual void statusChanged(int event);
@@ -68,6 +78,9 @@ protected:
 
     virtual ~OMXCodecProxy();
 
+    void notifyResourceReserved();
+    void notifyResourceCanceled();
+
     void notifyStatusChangedLocked();
 
 private:
@@ -91,7 +104,8 @@ private:
     MediaResourceManagerClient::State mState;
 
     sp<IMediaResourceManagerService> mManagerService;
-    wp<OMXCodecProxy::EventListener> mEventListener;
+    
+    wp<CodecResourceListener> mListener;
 };
 
 }  

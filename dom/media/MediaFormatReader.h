@@ -55,13 +55,6 @@ public:
   }
 
   virtual nsRefPtr<MetadataPromise> AsyncReadMetadata() override;
-  virtual nsresult ReadMetadata(MediaInfo* aInfo,
-                                MetadataTags** aTags) override
-  {
-    
-    
-    return NS_OK;
-  }
 
   virtual void ReadUpdatedMetadata(MediaInfo* aInfo) override;
 

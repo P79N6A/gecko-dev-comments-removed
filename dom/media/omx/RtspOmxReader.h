@@ -66,8 +66,10 @@ public:
 
   virtual void SetIdle() override;
 
-  virtual nsresult ReadMetadata(MediaInfo *aInfo, MetadataTags **aTags)
-    final override;
+  virtual nsRefPtr<MediaDecoderReader::MetadataPromise> AsyncReadMetadata()
+    override;
+
+  virtual void HandleResourceAllocated() override;
 
 private:
   

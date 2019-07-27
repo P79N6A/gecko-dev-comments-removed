@@ -10,6 +10,7 @@
 #include "mozilla/layers/FenceUtils.h"
 #include "MP3FrameParser.h"
 #include "MPAPI.h"
+#include "MediaOmxCommonReader.h"
 #include "MediaResource.h"
 #include "AbstractMediaDecoder.h"
 #include "OMXCodecProxy.h"
@@ -20,7 +21,7 @@ class OmxDecoder;
 
 namespace android {
 
-class OmxDecoder : public OMXCodecProxy::EventListener {
+class OmxDecoder : public OMXCodecProxy::CodecResourceListener {
   typedef MPAPI::AudioFrame AudioFrame;
   typedef MPAPI::VideoFrame VideoFrame;
   typedef mozilla::MP3FrameParser MP3FrameParser;
@@ -28,6 +29,7 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   typedef mozilla::AbstractMediaDecoder AbstractMediaDecoder;
   typedef mozilla::layers::FenceHandle FenceHandle;
   typedef mozilla::layers::TextureClient TextureClient;
+  typedef mozilla::MediaOmxCommonReader::MediaResourcePromise MediaResourcePromise;
 
   enum {
     kPreferSoftwareCodecs = 1,
@@ -37,7 +39,6 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
 
   enum {
     kNotifyPostReleaseVideoBuffer = 'noti',
-    kNotifyStatusChanged = 'stat'
   };
 
   AbstractMediaDecoder *mDecoder;
@@ -120,6 +121,8 @@ class OmxDecoder : public OMXCodecProxy::EventListener {
   
   bool mAudioMetadataRead;
 
+  mozilla::MediaPromiseHolder<MediaResourcePromise> mMediaResourcePromise;
+
   void ReleaseVideoBuffer();
   void ReleaseAudioBuffer();
   
@@ -142,7 +145,8 @@ public:
   ~OmxDecoder();
 
   
-  virtual void statusChanged();
+  virtual void codecReserved();
+  virtual void codecCanceled();
 
   
   
@@ -158,11 +162,7 @@ public:
   
   bool EnsureMetadata();
 
-  
-  
-  bool IsWaitingMediaResources();
-
-  bool AllocateMediaResources();
+  nsRefPtr<MediaResourcePromise> AllocateMediaResources();
   void ReleaseMediaResources();
   bool SetVideoFormat();
   bool SetAudioFormat();
