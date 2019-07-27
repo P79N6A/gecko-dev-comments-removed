@@ -145,15 +145,15 @@ public:
 
 
   bool SelectSendResolution(unsigned short width,
-                            unsigned short height);
+                            unsigned short height,
+                            bool force);
 
   
 
 
 
 
-
-  unsigned int SelectSendFrameRate(unsigned int framerate) const;
+  bool SelectSendFrameRate(unsigned int framerate);
 
   
 
@@ -306,7 +306,7 @@ private:
                            const VideoCodecConfig* codecInfo) const;
 
   
-  MediaConduitErrorCode ValidateCodecConfig(const VideoCodecConfig* codecInfo, bool send);
+  MediaConduitErrorCode ValidateCodecConfig(const VideoCodecConfig* codecInfo, bool send) const;
 
   
   void DumpCodecDB() const;
@@ -337,10 +337,7 @@ private:
   int mChannel; 
   int mCapId;   
   RecvCodecList    mRecvCodecList;
-
-  Mutex mCodecMutex; 
-  nsAutoPtr<VideoCodecConfig> mCurSendCodecConfig;
-
+  VideoCodecConfig* mCurSendCodecConfig;
   unsigned short mSendingWidth;
   unsigned short mSendingHeight;
   unsigned short mReceivingWidth;
