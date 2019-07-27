@@ -13,10 +13,13 @@ loader.lazyImporter(this, "Heritage",
 loader.lazyImporter(this, "AbstractTreeItem",
   "resource:///modules/devtools/AbstractTreeItem.jsm");
 
+const MILLISECOND_UNITS = L10N.getStr("table.ms");
+const PERCENTAGE_UNITS = L10N.getStr("table.percentage");
 const URL_LABEL_TOOLTIP = L10N.getStr("table.url.tooltiptext");
 const ZOOM_BUTTON_TOOLTIP = L10N.getStr("table.zoom.tooltiptext");
-const CALL_TREE_INDENTATION = 16; 
 const CALL_TREE_AUTO_EXPAND = 3; 
+const CALL_TREE_INDENTATION = 16; 
+const DEFAULT_SORTING_PREDICATE = (a, b) => a.frame.samples < b.frame.samples ? 1 : -1;
 
 const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 const sum = vals => vals.reduce((a, b) => a + b, 0);
@@ -55,7 +58,11 @@ exports.CallView = CallView;
 
 
 
-function CallView({ autoExpandDepth, caller, frame, level, hidden, inverted }) {
+
+
+
+
+function CallView({ caller, frame, level, hidden, inverted, sortingPredicate, autoExpandDepth }) {
   
   level = level || 0;
 
@@ -65,6 +72,11 @@ function CallView({ autoExpandDepth, caller, frame, level, hidden, inverted }) {
   }
 
   AbstractTreeItem.call(this, { parent: caller, level });
+
+  this.sortingPredicate = sortingPredicate != null
+    ? sortingPredicate
+    : caller ? caller.sortingPredicate
+             : DEFAULT_SORTING_PREDICATE
 
   this.autoExpandDepth = autoExpandDepth != null
     ? autoExpandDepth
@@ -95,18 +107,23 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     let selfPercentage;
     let selfDuration;
+    let totalAllocations;
 
     if (!this._getChildCalls().length) {
       selfPercentage = framePercentage;
       selfDuration = this.frame.duration;
+      totalAllocations = this.frame.allocations;
     } else {
       let childrenPercentage = sum(
         [this._getPercentage(c.samples) for (c of this._getChildCalls())]);
       let childrenDuration = sum(
         [c.duration for (c of this._getChildCalls())]);
+      let childrenAllocations = sum(
+        [c.allocations for (c of this._getChildCalls())]);
 
       selfPercentage = clamp(framePercentage - childrenPercentage, 0, 100);
       selfDuration = this.frame.duration - childrenDuration;
+      totalAllocations = this.frame.allocations + childrenAllocations;
 
       if (this.inverted) {
         selfPercentage = framePercentage - selfPercentage;
@@ -118,6 +135,8 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     let selfDurationCell = this._createTimeCell(selfDuration, true);
     let percentageCell = this._createExecutionCell(framePercentage);
     let selfPercentageCell = this._createExecutionCell(selfPercentage, true);
+    let allocationsCell = this._createAllocationsCell(totalAllocations);
+    let selfAllocationsCell = this._createAllocationsCell(this.frame.allocations, true);
     let samplesCell = this._createSamplesCell(this.frame.samples);
     let functionCell = this._createFunctionCell(arrowNode, frameInfo, this.level);
 
@@ -138,8 +157,10 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     targetNode.appendChild(durationCell);
     targetNode.appendChild(percentageCell);
+    targetNode.appendChild(allocationsCell);
     targetNode.appendChild(selfDurationCell);
     targetNode.appendChild(selfPercentageCell);
+    targetNode.appendChild(selfAllocationsCell);
     targetNode.appendChild(samplesCell);
     targetNode.appendChild(functionCell);
 
@@ -178,7 +199,8 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
 
     
-    children.sort((a, b) => a.frame.samples < b.frame.samples ? 1 : -1);
+    
+    children.sort(this.sortingPredicate);
   },
 
   
@@ -190,7 +212,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", isSelf ? "self-duration" : "duration");
     cell.setAttribute("crop", "end");
-    cell.setAttribute("value", L10N.numberWithDecimals(duration, 2));
+    cell.setAttribute("value", L10N.numberWithDecimals(duration, 2) + " " + MILLISECOND_UNITS);
     return cell;
   },
   _createExecutionCell: function(percentage, isSelf = false) {
@@ -198,7 +220,15 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", isSelf ? "self-percentage" : "percentage");
     cell.setAttribute("crop", "end");
-    cell.setAttribute("value", L10N.numberWithDecimals(percentage, 2) + "%");
+    cell.setAttribute("value", L10N.numberWithDecimals(percentage, 2) + PERCENTAGE_UNITS);
+    return cell;
+  },
+  _createAllocationsCell: function(count, isSelf = false) {
+    let cell = this.document.createElement("label");
+    cell.className = "plain call-tree-cell";
+    cell.setAttribute("type", isSelf ? "self-allocations" : "allocations");
+    cell.setAttribute("crop", "end");
+    cell.setAttribute("value", count || 0);
     return cell;
   },
   _createSamplesCell: function(count) {
@@ -269,6 +299,18 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
 
     return cell;
+  },
+
+  
+
+
+
+  toggleAllocations: function(visible) {
+    if (!visible) {
+      this.container.setAttribute("allocations-hidden", "");
+    } else {
+      this.container.removeAttribute("allocations-hidden");
+    }
   },
 
   

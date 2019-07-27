@@ -21,6 +21,8 @@ devtools.lazyRequireGetter(this, "TIMELINE_BLUEPRINT",
   "devtools/timeline/global", true);
 devtools.lazyRequireGetter(this, "L10N",
   "devtools/profiler/global", true);
+devtools.lazyRequireGetter(this, "RecordingUtils",
+  "devtools/performance/recording-utils", true);
 devtools.lazyRequireGetter(this, "RecordingModel",
   "devtools/performance/recording-model", true);
 devtools.lazyRequireGetter(this, "MarkersOverview",
@@ -99,13 +101,19 @@ const EVENTS = {
   DETAILS_VIEW_SELECTED: "Performance:UI:DetailsViewSelected",
 
   
-  CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered",
-
-  
   WATERFALL_RENDERED: "Performance:UI:WaterfallRendered",
 
   
-  FLAMEGRAPH_RENDERED: "Performance:UI:FlameGraphRendered",
+  JS_CALL_TREE_RENDERED: "Performance:UI:JsCallTreeRendered",
+
+  
+  JS_FLAMEGRAPH_RENDERED: "Performance:UI:JsFlameGraphRendered",
+
+  
+  MEMORY_CALL_TREE_RENDERED: "Performance:UI:MemoryCallTreeRendered",
+
+  
+  MEMORY_FLAMEGRAPH_RENDERED: "Performance:UI:MemoryFlameGraphRendered",
 
   
   SOURCE_SHOWN_IN_JS_DEBUGGER: "Performance:UI:SourceShownInJsDebugger",
@@ -184,10 +192,11 @@ let PerformanceController = {
     RecordingsView.on(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     RecordingsView.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
-    gFront.on("ticks", this._onTimelineData); 
     gFront.on("markers", this._onTimelineData); 
     gFront.on("frames", this._onTimelineData); 
     gFront.on("memory", this._onTimelineData); 
+    gFront.on("ticks", this._onTimelineData); 
+    gFront.on("allocations", this._onTimelineData); 
   }),
 
   
@@ -201,10 +210,11 @@ let PerformanceController = {
     RecordingsView.off(EVENTS.UI_EXPORT_RECORDING, this.exportRecording);
     RecordingsView.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelectFromView);
 
-    gFront.off("ticks", this._onTimelineData);
     gFront.off("markers", this._onTimelineData);
     gFront.off("frames", this._onTimelineData);
     gFront.off("memory", this._onTimelineData);
+    gFront.off("ticks", this._onTimelineData);
+    gFront.off("allocations", this._onTimelineData);
   },
 
   
@@ -223,7 +233,11 @@ let PerformanceController = {
     let recording = this._createRecording();
 
     this.emit(EVENTS.RECORDING_WILL_START, recording);
-    yield recording.startRecording({ withTicks: true, withMemory: true });
+    yield recording.startRecording({
+      withTicks: true,
+      withMemory: true,
+      withAllocations: true
+    });
     this.emit(EVENTS.RECORDING_STARTED, recording);
 
     this.setCurrentRecording(recording);
@@ -237,7 +251,9 @@ let PerformanceController = {
     let recording = this._getLatestRecording();
 
     this.emit(EVENTS.RECORDING_WILL_STOP, recording);
-    yield recording.stopRecording();
+    yield recording.stopRecording({
+      withAllocations: true
+    });
     this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
@@ -318,7 +334,7 @@ let PerformanceController = {
 
 
   _onTimelineData: function (...data) {
-    this._recordings.forEach(profile => profile.addTimelineData.apply(profile, data));
+    this._recordings.forEach(e => e.addTimelineData.apply(e, data));
     this.emit(EVENTS.TIMELINE_DATA, ...data);
   },
 

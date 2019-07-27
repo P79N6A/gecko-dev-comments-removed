@@ -141,11 +141,14 @@ ThreadNode.prototype = {
 
 
 
-function FrameNode({ location, line, column, category }) {
+
+
+function FrameNode({ location, line, column, category, allocations }) {
   this.location = location;
   this.line = line;
   this.column = column;
   this.category = category;
+  this.allocations = allocations || 0;
   this.sampleTimes = [];
   this.samples = 0;
   this.duration = 0;

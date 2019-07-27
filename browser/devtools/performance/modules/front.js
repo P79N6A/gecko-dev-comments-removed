@@ -13,11 +13,22 @@ loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 loader.lazyRequireGetter(this, "TimelineFront",
   "devtools/server/actors/timeline", true);
+loader.lazyRequireGetter(this, "MemoryFront",
+  "devtools/server/actors/memory", true);
+
 loader.lazyRequireGetter(this, "DevToolsUtils",
   "devtools/toolkit/DevToolsUtils");
 
 loader.lazyImporter(this, "gDevTools",
   "resource:///modules/devtools/gDevTools.jsm");
+
+loader.lazyImporter(this, "setTimeout",
+  "resource://gre/modules/Timer.jsm");
+loader.lazyImporter(this, "clearTimeout",
+  "resource://gre/modules/Timer.jsm");
+
+
+const DEFAULT_ALLOCATION_SITES_PULL_TIMEOUT = 200; 
 
 
 
@@ -42,6 +53,25 @@ SharedPerformanceActors.forTarget = function(target) {
   let instance = new PerformanceActorsConnection(target);
   this.set(target, instance);
   return instance;
+};
+
+
+
+
+
+
+
+function MockedFront(blueprint) {
+  EventEmitter.decorate(this);
+
+  for (let [funcName, retVal] of blueprint) {
+    this[funcName] = (x => x).bind(this, retVal);
+  }
+}
+
+MockedFront.prototype = {
+  initialize: function() {},
+  destroy: function() {}
 };
 
 
@@ -81,10 +111,12 @@ PerformanceActorsConnection.prototype = {
     yield this._target.makeRemote();
 
     
-    yield this._connectProfilerActor();
-
     
+    
+    
+    yield this._connectProfilerActor();
     yield this._connectTimelineActor();
+    yield this._connectMemoryActor();
 
     this._connected = true;
 
@@ -94,10 +126,10 @@ PerformanceActorsConnection.prototype = {
   
 
 
-  destroy: function () {
-    this._disconnectActors();
+  destroy: Task.async(function*() {
+    yield this._disconnectActors();
     this._connected = false;
-  },
+  }),
 
   
 
@@ -127,38 +159,43 @@ PerformanceActorsConnection.prototype = {
   
 
 
+
   _connectTimelineActor: function() {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     if (this._target.form && this._target.form.timelineActor) {
       this._timeline = new TimelineFront(this._target.client, this._target.form);
     } else {
-      this._timeline = {
-        start: () => 0,
-        stop: () => 0,
-        isRecording: () => false,
-        on: () => null,
-        off: () => null,
-        once: () => promise.reject(),
-        destroy: () => null
-      };
+      this._timeline = new MockedFront([
+        ["start", 0],
+        ["stop", 0]
+      ]);
     }
   },
 
   
 
 
-  _disconnectActors: function () {
-    this._timeline.destroy();
+
+  _connectMemoryActor: function() {
+    if (this._target.form && this._target.form.memoryActor) {
+      this._memory = new MemoryFront(this._target.client, this._target.form);
+    } else {
+      this._memory = new MockedFront([
+        ["attach"],
+        ["detach"],
+        ["startRecordingAllocations", 0],
+        ["stopRecordingAllocations", 0],
+        ["getAllocations"]
+      ]);
+    }
   },
+
+  
+
+
+  _disconnectActors: Task.async(function* () {
+    yield this._timeline.destroy();
+    yield this._memory.destroy();
+  }),
 
   
 
@@ -188,6 +225,11 @@ PerformanceActorsConnection.prototype = {
     if (actor == "timeline") {
       return this._timeline[method].apply(this._timeline, args);
     }
+
+    
+    if (actor == "memory") {
+      return this._memory[method].apply(this._memory, args);
+    }
   }
 };
 
@@ -208,6 +250,9 @@ function PerformanceFront(connection) {
   connection._timeline.on("frames", (delta, frames) => this.emit("frames", delta, frames));
   connection._timeline.on("memory", (delta, measurement) => this.emit("memory", delta, measurement));
   connection._timeline.on("ticks", (delta, timestamps) => this.emit("ticks", delta, timestamps));
+
+  this._pullAllocationSites = this._pullAllocationSites.bind(this);
+  this._sitesPullTimeout = 0;
 }
 
 PerformanceFront.prototype = {
@@ -220,34 +265,17 @@ PerformanceFront.prototype = {
 
 
 
-  startRecording: Task.async(function*(timelineOptions = {}) {
-    let profilerStatus = yield this._request("profiler", "isActive");
-    let profilerStartTime;
+  startRecording: Task.async(function*(options = {}) {
+    
+    
+    let profilerStartTime = yield this._startProfiler();
+    let timelineStartTime = yield this._startTimeline(options);
+    let memoryStartTime = yield this._startMemory(options);
 
-    
-    
-    
-    
-    if (!profilerStatus.isActive) {
-      
-      let profilerOptions = extend({}, this._customProfilerOptions);
-      yield this._request("profiler", "startProfiler", profilerOptions);
-      profilerStartTime = 0;
-      this.emit("profiler-activated");
-    } else {
-      profilerStartTime = profilerStatus.currentTime;
-      this.emit("profiler-already-active");
-    }
-
-    
-    
-    let timelineStartTime = yield this._request("timeline", "start", timelineOptions);
-
-    
-    
     return {
       profilerStartTime,
-      timelineStartTime
+      timelineStartTime,
+      memoryStartTime
     };
   }),
 
@@ -258,17 +286,104 @@ PerformanceFront.prototype = {
 
 
 
-  stopRecording: Task.async(function*() {
-    let timelineEndTime = yield this._request("timeline", "stop");
+
+
+  stopRecording: Task.async(function*(options = {}) {
+    let memoryEndTime = yield this._stopMemory(options);
+    let timelineEndTime = yield this._stopTimeline(options);
     let profilerData = yield this._request("profiler", "getProfile");
 
-    
-    
     return {
+      
       profile: profilerData.profile,
+
+      
       profilerEndTime: profilerData.currentTime,
-      timelineEndTime: timelineEndTime
+      timelineEndTime: timelineEndTime,
+      memoryEndTime: memoryEndTime
     };
+  }),
+
+  
+
+
+  _startProfiler: Task.async(function *() {
+    
+    
+    
+    
+    let profilerStatus = yield this._request("profiler", "isActive");
+    if (profilerStatus.isActive) {
+      this.emit("profiler-already-active");
+      return profilerStatus.currentTime;
+    }
+
+    
+    let profilerOptions = extend({}, this._customProfilerOptions);
+    yield this._request("profiler", "startProfiler", profilerOptions);
+
+    this.emit("profiler-activated");
+    return 0;
+  }),
+
+  
+
+
+  _startTimeline: Task.async(function *(options) {
+    
+    
+    return (yield this._request("timeline", "start", options));
+  }),
+
+  
+
+
+  _stopTimeline: Task.async(function *(options) {
+    return (yield this._request("timeline", "stop"));
+  }),
+
+  
+
+
+  _startMemory: Task.async(function *(options) {
+    if (!options.withAllocations) {
+      return 0;
+    }
+    yield this._request("memory", "attach");
+    let memoryStartTime = yield this._request("memory", "startRecordingAllocations");
+    yield this._pullAllocationSites();
+    return memoryStartTime;
+  }),
+
+  
+
+
+  _stopMemory: Task.async(function *(options) {
+    if (!options.withAllocations) {
+      return 0;
+    }
+    clearTimeout(this._sitesPullTimeout);
+    let memoryEndTime = yield this._request("memory", "stopRecordingAllocations");
+    yield this._request("memory", "detach");
+    return memoryEndTime;
+  }),
+
+  
+
+
+
+  _pullAllocationSites: Task.async(function *() {
+    let memoryData = yield this._request("memory", "getAllocations");
+
+    this.emit("allocations", {
+      sites: memoryData.allocations,
+      timestamps: memoryData.allocationsTimestamps,
+      frames: memoryData.frames,
+      counts: memoryData.counts
+    });
+
+    let delay = DEFAULT_ALLOCATION_SITES_PULL_TIMEOUT;
+    this._sitesPullTimeout = setTimeout(this._pullAllocationSites, delay);
   }),
 
   
@@ -283,6 +398,7 @@ PerformanceFront.prototype = {
     features: ["js"]
   }
 };
+
 
 
 

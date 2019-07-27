@@ -28,14 +28,16 @@ RecordingModel.prototype = {
   _recording: false,
   _profilerStartTime: 0,
   _timelineStartTime: 0,
+  _memoryStartTime: 0,
 
   
   _label: "",
   _duration: 0,
   _markers: null,
   _frames: null,
-  _ticks: null,
   _memory: null,
+  _ticks: null,
+  _allocations: null,
   _profile: null,
 
   
@@ -54,6 +56,7 @@ RecordingModel.prototype = {
     this._frames = recordingData.frames;
     this._memory = recordingData.memory;
     this._ticks = recordingData.ticks;
+    this._allocations = recordingData.allocations;
     this._profile = recordingData.profile;
   }),
 
@@ -74,7 +77,6 @@ RecordingModel.prototype = {
 
 
 
-
   startRecording: Task.async(function *(options = {}) {
     
     
@@ -85,19 +87,24 @@ RecordingModel.prototype = {
     let info = yield this._front.startRecording(options);
     this._profilerStartTime = info.profilerStartTime;
     this._timelineStartTime = info.timelineStartTime;
+    this._memoryStartTime = info.memoryStartTime;
     this._recording = true;
 
     this._markers = [];
     this._frames = [];
     this._memory = [];
     this._ticks = [];
+    this._allocations = { sites: [], timestamps: [], frames: [], counts: [] };
   }),
 
   
 
 
-  stopRecording: Task.async(function *() {
-    let info = yield this._front.stopRecording();
+
+
+
+  stopRecording: Task.async(function *(options) {
+    let info = yield this._front.stopRecording(options);
     this._profile = info.profile;
     this._duration = info.profilerEndTime - this._profilerStartTime;
     this._recording = false;
@@ -172,6 +179,14 @@ RecordingModel.prototype = {
 
 
 
+  getAllocations: function() {
+    return this._allocations;
+  },
+
+  
+
+
+
   getProfile: function() {
     return this._profile;
   },
@@ -186,8 +201,9 @@ RecordingModel.prototype = {
     let frames = this.getFrames();
     let memory = this.getMemory();
     let ticks = this.getTicks();
+    let allocations = this.getAllocations();
     let profile = this.getProfile();
-    return { label, duration, markers, frames, memory, ticks, profile };
+    return { label, duration, markers, frames, memory, ticks, allocations, profile };
   },
 
   
@@ -211,33 +227,48 @@ RecordingModel.prototype = {
     switch (eventName) {
       
       
-      case "markers":
+      case "markers": {
         let [markers] = data;
         RecordingUtils.offsetMarkerTimes(markers, this._timelineStartTime);
         Array.prototype.push.apply(this._markers, markers);
         break;
-
+      }
       
-      case "frames":
+      case "frames": {
         let [, frames] = data;
         Array.prototype.push.apply(this._frames, frames);
         break;
-
+      }
       
       
-      case "memory":
+      case "memory": {
         let [currentTime, measurement] = data;
         this._memory.push({
           delta: currentTime - this._timelineStartTime,
           value: measurement.total / 1024 / 1024
         });
         break;
-
+      }
       
-      case "ticks":
+      case "ticks": {
         let [, timestamps] = data;
         this._ticks = timestamps;
         break;
+      }
+      
+      
+      
+      case "allocations": {
+        let [{ sites, timestamps, frames, counts }] = data;
+        let timeOffset = this._memoryStartTime * 1000;
+        let timeScale = 1000;
+        RecordingUtils.offsetAndScaleTimestamps(timestamps, timeOffset, timeScale);
+        Array.prototype.push.apply(this._allocations.sites, sites);
+        Array.prototype.push.apply(this._allocations.timestamps, timestamps);
+        Array.prototype.push.apply(this._allocations.frames, frames);
+        Array.prototype.push.apply(this._allocations.counts, counts);
+        break;
+      }
     }
   }
 };

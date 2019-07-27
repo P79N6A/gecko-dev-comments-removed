@@ -69,6 +69,24 @@ exports.RecordingUtils.offsetMarkerTimes = function(markers, timeOffset) {
 
 
 
+exports.RecordingUtils.offsetAndScaleTimestamps = function(timestamps, timeOffset, timeScale) {
+  for (let i = 0, len = timestamps.length; i < len; i++) {
+    timestamps[i] -= timeOffset;
+    timestamps[i] /= timeScale;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 exports.RecordingUtils.getSamplesFromAllocations = function(allocations) {
   let { sites, timestamps, frames, counts } = allocations;
   let samples = [];

@@ -58,7 +58,7 @@ PerformancePanel.prototype = {
     }
 
     
-    this._connection.destroy();
+    yield this._connection.destroy();
 
     yield this.panelWin.shutdownPerformance();
     this.emit("destroyed");

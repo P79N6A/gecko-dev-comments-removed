@@ -1,12 +1,17 @@
 
 
 
+const INVERT_PREF = "devtools.performance.ui.invert-call-tree";
+
+
 
 
 
 function spawnTest () {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, DetailsView, JsCallTreeView } = panel.panelWin;
+
+  Services.prefs.setBoolPref(INVERT_PREF, true);
 
   DetailsView.selectView("js-calltree");
   ok(DetailsView.isViewSelected(JsCallTreeView), "The call tree is now selected.");
@@ -18,16 +23,17 @@ function spawnTest () {
   yield stopRecording(panel);
   yield rendered;
 
-  ok(true, "JsCallTreeView rendered after recording is stopped.");
-
-  yield startRecording(panel);
-  yield busyWait(100);
-
   rendered = once(JsCallTreeView, EVENTS.JS_CALL_TREE_RENDERED);
-  yield stopRecording(panel);
+  Services.prefs.setBoolPref(INVERT_PREF, false);
   yield rendered;
 
-  ok(true, "JsCallTreeView rendered again after recording completed a second time.");
+  ok(true, "JsCallTreeView rerendered when toggling invert-call-tree.");
+
+  rendered = once(JsCallTreeView, EVENTS.JS_CALL_TREE_RENDERED);
+  Services.prefs.setBoolPref(INVERT_PREF, true);
+  yield rendered;
+
+  ok(true, "JsCallTreeView rerendered when toggling back invert-call-tree.");
 
   yield teardown(panel);
   finish();
