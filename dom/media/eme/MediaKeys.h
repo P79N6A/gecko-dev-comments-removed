@@ -111,10 +111,6 @@ public:
   
   nsresult CheckPrincipals();
 
-  
-  
-  nsIDocument* GetOwnerDoc() const;
-
 private:
 
   bool IsInPrivateBrowsing();
