@@ -578,14 +578,6 @@ struct JSContext : public js::ExclusiveContext,
     void setPropagatingForcedReturn() { propagatingForcedReturn_ = true; }
     void clearPropagatingForcedReturn() { propagatingForcedReturn_ = false; }
 
-#ifdef DEBUG
-    
-
-
-
-    bool stackIterAssertionEnabled;
-#endif
-
     
 
 
