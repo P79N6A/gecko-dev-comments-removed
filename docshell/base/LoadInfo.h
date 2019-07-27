@@ -7,48 +7,40 @@
 #ifndef mozilla_LoadInfo_h
 #define mozilla_LoadInfo_h
 
-#include "nsIPrincipal.h"
+#include "nsIContentPolicy.h"
 #include "nsILoadInfo.h"
+#include "nsIPrincipal.h"
+#include "nsIWeakReferenceUtils.h" 
+
+class nsINode;
 
 namespace mozilla {
 
 
 
 
-class LoadInfo MOZ_FINAL : public nsILoadInfo
+class MOZ_EXPORT LoadInfo MOZ_FINAL : public nsILoadInfo
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSILOADINFO
 
-  enum InheritType
-  {
-    eInheritPrincipal,
-    eDontInheritPrincipal
-  };
-
-  enum SandboxType
-  {
-    eSandboxed,
-    eNotSandboxed
-  };
-
-  
-  
   
   LoadInfo(nsIPrincipal* aPrincipal,
-           InheritType aInheritPrincipal,
-           SandboxType aSandboxed);
+           nsINode* aLoadingContext,
+           nsSecurityFlags aSecurityFlags,
+           nsContentPolicyType aContentPolicyType);
 
 private:
   ~LoadInfo();
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  bool mInheritPrincipal;
-  bool mSandboxed;
+  nsWeakPtr              mLoadingContext;
+  nsSecurityFlags        mSecurityFlags;
+  nsContentPolicyType    mContentPolicyType;
 };
 
 } 
 
-#endif
+#endif 
 
