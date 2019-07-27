@@ -324,7 +324,7 @@ AudioNodeExternalInputStream::ProcessInput(GraphTime aFrom, GraphTime aTo,
 
   
   
-  if (!IsEnabled() || mInputs.IsEmpty()) {
+  if (!IsEnabled() || mInputs.IsEmpty() || mPassThrough) {
     mLastChunks[0].SetNull(WEBAUDIO_BLOCK_SIZE);
     AdvanceOutputSegment();
     return;
