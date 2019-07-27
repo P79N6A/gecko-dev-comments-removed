@@ -746,7 +746,15 @@ nsImageFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   
   
   
-  if (imageLoader && mImage &&
+  
+  
+  
+  
+
+  
+  
+  
+  if (imageLoader && imageLoader->CurrentRequestHasSize() && mImage &&
       intrinsicSize.width.GetUnit() == eStyleUnit_Coord &&
       intrinsicSize.height.GetUnit() == eStyleUnit_Coord) {
     uint32_t width;
