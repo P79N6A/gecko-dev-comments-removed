@@ -2347,19 +2347,14 @@ static void
 RedistributeDisplayPortExcess(CSSSize& aDisplayPortSize,
                               const CSSRect& aScrollableRect)
 {
-  float xSlack = std::max(0.0f, aDisplayPortSize.width - aScrollableRect.width);
-  float ySlack = std::max(0.0f, aDisplayPortSize.height - aScrollableRect.height);
-
-  if (ySlack > 0) {
-    
-    aDisplayPortSize.height -= ySlack;
-    float xExtra = ySlack * aDisplayPortSize.width / aDisplayPortSize.height;
-    aDisplayPortSize.width += xExtra;
-  } else if (xSlack > 0) {
-    
-    aDisplayPortSize.width -= xSlack;
-    float yExtra = xSlack * aDisplayPortSize.height / aDisplayPortSize.width;
-    aDisplayPortSize.height += yExtra;
+  
+  
+  if (aDisplayPortSize.height > aScrollableRect.height) {
+    aDisplayPortSize.width *= (aDisplayPortSize.height / aScrollableRect.height);
+    aDisplayPortSize.height = aScrollableRect.height;
+  } else if (aDisplayPortSize.width > aScrollableRect.width) {
+    aDisplayPortSize.height *= (aDisplayPortSize.width / aScrollableRect.width);
+    aDisplayPortSize.width = aScrollableRect.width;
   }
 }
 
