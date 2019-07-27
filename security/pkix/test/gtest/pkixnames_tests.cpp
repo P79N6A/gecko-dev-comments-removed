@@ -104,9 +104,9 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   DNS_ID_MISMATCH("example.com...", "example.com."),
 
   
-  DNS_ID_MATCH("x*.b.a", "xa.b.a"),
-  DNS_ID_MATCH("x*.b.a", "xna.b.a"),
-  DNS_ID_MATCH("x*.b.a", "xn-a.b.a"),
+  DNS_ID_MISMATCH("x*.b.a", "xa.b.a"),
+  DNS_ID_MISMATCH("x*.b.a", "xna.b.a"),
+  DNS_ID_MISMATCH("x*.b.a", "xn-a.b.a"),
   DNS_ID_MISMATCH("x*.b.a", "xn--a.b.a"),
   DNS_ID_MISMATCH("xn*.b.a", "xn--a.b.a"),
   DNS_ID_MISMATCH("xn-*.b.a", "xn--a.b.a"),
@@ -150,7 +150,8 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
 
   DNS_ID_MISMATCH("w*w.bar.foo.c0m", "wwww.bar.foo.com"),
 
-  DNS_ID_MATCH("wa*.bar.foo.com", "WALLY.bar.foo.com"),
+  
+  DNS_ID_MISMATCH("wa*.bar.foo.com", "WALLY.bar.foo.com"),
 
   
   
@@ -200,7 +201,8 @@ static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
   
   
   
-  DNS_ID_MATCH("baz*.example.net", "baz1.example.net"),
+  
+  DNS_ID_MISMATCH("baz*.example.net", "baz1.example.net"),
 
   
   
@@ -436,6 +438,7 @@ static const InputValidity DNSNAMES_VALIDITY[] =
 
   
   
+  
   I("*.a", false, false),
   I("a*", false, false),
   I("a*.", false, false),
@@ -443,9 +446,9 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a*.a.", false, false),
   I("*.a.b", false, true),
   I("*.a.b.", false, false),
-  I("a*.b.c", false, true),
+  I("a*.b.c", false, false),
   I("*.a.b.c", false, true),
-  I("a*.b.c.d", false, true),
+  I("a*.b.c.d", false, false),
 
   
   I("a**.b.c", false, false),
@@ -466,9 +469,9 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("a*b.c.d", false, false),
 
   
-  I("x*.a.b", false, true),
-  I("xn*.a.b", false, true),
-  I("xn-*.a.b", false, true),
+  I("x*.a.b", false, false),
+  I("xn*.a.b", false, false),
+  I("xn-*.a.b", false, false),
   I("xn--*.a.b", false, false),
   I("xn--w*.a.b", false, false),
 
