@@ -43,7 +43,7 @@ HCIEventTransactionSystemMessageConfigurator.prototype = {
 
     return new Promise((resolve, reject) => {
       appsService.getManifestFor(aManifestURL)
-      .then((aManifest) => this._checkAppManifest(aMessage.seName, aMessage.aid, aManifest))
+      .then((aManifest) => this._checkAppManifest(aMessage.origin, aMessage.aid, aManifest))
       .then(() => {
         
         
@@ -62,13 +62,13 @@ HCIEventTransactionSystemMessageConfigurator.prototype = {
   
   
   
-  _checkAppManifest: function _checkAppManifest(aSeName, aAid, aManifest) {
+  _checkAppManifest: function _checkAppManifest(aOrigin, aAid, aManifest) {
     DEBUG && debug("aManifest " + JSON.stringify(aManifest));
 
     
     
     let aid = this._byteAIDToHex(aAid);
-    let seName = aSeName.toUpperCase();
+    let seName = (aOrigin) ? aOrigin.toUpperCase() : "";
 
     let hciRules = aManifest["secure_element_access"] || [];
     let matchingRule = hciRules.find((rule) => {
