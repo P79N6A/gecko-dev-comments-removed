@@ -460,8 +460,14 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
       nsIDocShell* docShell = aDocument->GetDocShell();
       if (docShell) {
         nsCOMPtr<nsITabChild> tabChild = do_GetInterface(docShell);
-        static_cast<TabChild*>(tabChild.get())->
-          SendPDocAccessibleConstructor(ipcDoc, nullptr, 0);
+
+        
+        
+        
+        if (tabChild) {
+          static_cast<TabChild*>(tabChild.get())->
+            SendPDocAccessibleConstructor(ipcDoc, nullptr, 0);
+        }
       }
     }
   } else {
