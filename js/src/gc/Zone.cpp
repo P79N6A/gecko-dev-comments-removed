@@ -105,27 +105,15 @@ Zone::onTooMuchMalloc()
 }
 
 void
-Zone::sweepAnalysis(FreeOp *fop, bool releaseTypes)
+Zone::beginSweepTypes(FreeOp *fop, bool releaseTypes)
 {
     
     
     if (active)
         releaseTypes = false;
 
-    bool oom = false;
-    types.sweep(fop, releaseTypes, &oom);
-
-    
-    
-    
-    
-    
-    
-    if (oom) {
-        setPreservingCode(false);
-        discardJitCode(fop);
-        types.clearAllNewScriptsOnOOM();
-    }
+    types::AutoClearTypeInferenceStateOnOOM oom(this);
+    types.beginSweep(fop, releaseTypes, oom);
 }
 
 void

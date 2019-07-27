@@ -196,8 +196,6 @@ struct JSCompartment
 
     void adoptWorkerAllocator(js::Allocator *workerAllocator);
 
-    bool                         activeAnalysis;
-
     
     js::types::TypeCompartment   types;
 

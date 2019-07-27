@@ -227,6 +227,7 @@ class LifoAlloc
     
     void steal(LifoAlloc *other) {
         MOZ_ASSERT(!other->markCount);
+        MOZ_ASSERT(!latest);
 
         
         

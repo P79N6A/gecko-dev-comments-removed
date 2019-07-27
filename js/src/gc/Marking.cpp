@@ -511,16 +511,8 @@ IsAboutToBeFinalizedFromAnyThread(T **thingp)
 
     Zone *zone = thing->asTenured().zoneFromAnyThread();
     if (zone->isGCSweeping()) {
-        
-
-
-
-
-
-
-        MOZ_ASSERT_IF(!rt->isHeapMinorCollecting(),
-                      !thing->asTenured().arenaHeader()->allocatedDuringIncremental);
-
+        if (thing->asTenured().arenaHeader()->allocatedDuringIncremental)
+            return false;
         return !thing->asTenured().isMarked();
     }
 #ifdef JSGC_COMPACTING

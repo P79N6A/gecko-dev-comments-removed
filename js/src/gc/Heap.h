@@ -1139,6 +1139,17 @@ ArenaHeader::unsetAllocDuringSweep()
     auxNextLink = 0;
 }
 
+inline void
+ReleaseArenaList(ArenaHeader *aheader)
+{
+    ArenaHeader *next;
+    for (; aheader; aheader = next) {
+        
+        next = aheader->next;
+        aheader->chunk()->releaseArena(aheader);
+    }
+}
+
 static void
 AssertValidColor(const TenuredCell *thing, uint32_t color)
 {
