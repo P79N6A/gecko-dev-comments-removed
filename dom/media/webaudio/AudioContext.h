@@ -35,9 +35,12 @@ class DOMMediaStream;
 class ErrorResult;
 class MediaStream;
 class MediaStreamGraph;
+class AudioNodeEngine;
+class AudioNodeStream;
 
 namespace dom {
 
+enum class AudioContextState : uint32_t;
 class AnalyserNode;
 class AudioBuffer;
 class AudioBufferSourceNode;
@@ -64,6 +67,30 @@ class WaveShaperNode;
 class PeriodicWave;
 class Promise;
 
+
+
+class StateChangeTask final : public nsRunnable
+{
+public:
+  
+
+  StateChangeTask(AudioContext* aAudioContext, void* aPromise, AudioContextState aNewState);
+
+  
+
+  StateChangeTask(AudioNodeStream* aStream, void* aPromise, AudioContextState aNewState);
+
+  NS_IMETHOD Run() override;
+
+private:
+  nsRefPtr<AudioContext> mAudioContext;
+  void* mPromise;
+  nsRefPtr<AudioNodeStream> mAudioNodeStream;
+  AudioContextState mNewState;
+};
+
+enum AudioContextOperation { Suspend, Resume, Close };
+
 class AudioContext final : public DOMEventTargetHelper,
                            public nsIMemoryReporter
 {
@@ -76,6 +103,8 @@ class AudioContext final : public DOMEventTargetHelper,
   ~AudioContext();
 
 public:
+  typedef uint64_t AudioContextId;
+
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioContext,
                                            DOMEventTargetHelper)
@@ -87,8 +116,6 @@ public:
   }
 
   void Shutdown(); 
-  void Suspend();
-  void Resume();
 
   virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
@@ -124,11 +151,31 @@ public:
     return mSampleRate;
   }
 
+  AudioContextId Id() const
+  {
+    return mId;
+  }
+
   double CurrentTime() const;
 
   AudioListener* Listener();
 
-  already_AddRefed<AudioBufferSourceNode> CreateBufferSource();
+  AudioContextState State() const;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  already_AddRefed<Promise> Suspend(ErrorResult& aRv);
+  already_AddRefed<Promise> Resume(ErrorResult& aRv);
+  already_AddRefed<Promise> Close(ErrorResult& aRv);
+  IMPL_EVENT_HANDLER(statechange)
+
+  already_AddRefed<AudioBufferSourceNode> CreateBufferSource(ErrorResult& aRv);
 
   already_AddRefed<AudioBuffer>
   CreateBuffer(JSContext* aJSContext, uint32_t aNumberOfChannels,
@@ -145,16 +192,16 @@ public:
                         ErrorResult& aRv);
 
   already_AddRefed<StereoPannerNode>
-  CreateStereoPanner();
+  CreateStereoPanner(ErrorResult& aRv);
 
   already_AddRefed<AnalyserNode>
-  CreateAnalyser();
+  CreateAnalyser(ErrorResult& aRv);
 
   already_AddRefed<GainNode>
-  CreateGain();
+  CreateGain(ErrorResult& aRv);
 
   already_AddRefed<WaveShaperNode>
-  CreateWaveShaper();
+  CreateWaveShaper(ErrorResult& aRv);
 
   already_AddRefed<MediaElementAudioSourceNode>
   CreateMediaElementSource(HTMLMediaElement& aMediaElement, ErrorResult& aRv);
@@ -165,10 +212,10 @@ public:
   CreateDelay(double aMaxDelayTime, ErrorResult& aRv);
 
   already_AddRefed<PannerNode>
-  CreatePanner();
+  CreatePanner(ErrorResult& aRv);
 
   already_AddRefed<ConvolverNode>
-  CreateConvolver();
+  CreateConvolver(ErrorResult& aRv);
 
   already_AddRefed<ChannelSplitterNode>
   CreateChannelSplitter(uint32_t aNumberOfOutputs, ErrorResult& aRv);
@@ -177,13 +224,13 @@ public:
   CreateChannelMerger(uint32_t aNumberOfInputs, ErrorResult& aRv);
 
   already_AddRefed<DynamicsCompressorNode>
-  CreateDynamicsCompressor();
+  CreateDynamicsCompressor(ErrorResult& aRv);
 
   already_AddRefed<BiquadFilterNode>
-  CreateBiquadFilter();
+  CreateBiquadFilter(ErrorResult& aRv);
 
   already_AddRefed<OscillatorNode>
-  CreateOscillator();
+  CreateOscillator(ErrorResult& aRv);
 
   already_AddRefed<PeriodicWave>
   CreatePeriodicWave(const Float32Array& aRealData, const Float32Array& aImagData,
@@ -244,6 +291,8 @@ public:
     return aTime + ExtraCurrentTime();
   }
 
+  void OnStateChanged(void* aPromise, AudioContextState aNewState);
+
   IMPL_EVENT_HANDLER(mozinterruptbegin)
   IMPL_EVENT_HANDLER(mozinterruptend)
 
@@ -266,13 +315,23 @@ private:
 
   friend struct ::mozilla::WebAudioDecodeJob;
 
+  bool CheckClosed(ErrorResult& aRv);
+
 private:
   
   
+  
+  const AudioContextId mId;
+  
+  
   const float mSampleRate;
+  AudioContextState mAudioContextState;
   nsRefPtr<AudioDestinationNode> mDestination;
   nsRefPtr<AudioListener> mListener;
   nsTArray<nsRefPtr<WebAudioDecodeJob> > mDecodeJobs;
+  
+  
+  nsTArray<nsRefPtr<Promise>> mPromiseGripArray;
   
   
   nsTHashtable<nsRefPtrHashKey<AudioNode> > mActiveNodes;
@@ -286,7 +345,11 @@ private:
   bool mIsOffline;
   bool mIsStarted;
   bool mIsShutDown;
+  
+  bool mCloseCalled;
 };
+
+static const dom::AudioContext::AudioContextId NO_AUDIO_CONTEXT = 0;
 
 }
 }

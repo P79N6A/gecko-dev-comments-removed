@@ -248,6 +248,49 @@ public:
 
 
   static void MarkConsumed(MediaStream* aStream);
+
+  
+
+
+
+  void StreamSetForAudioContext(dom::AudioContext::AudioContextId aAudioContextId,
+                                mozilla::LinkedList<MediaStream>& aStreamSet);
+
+  
+
+
+
+  void AudioContextOperationCompleted(MediaStream* aStream,
+                                      void* aPromise,
+                                      dom::AudioContextOperation aOperation);
+
+  
+
+
+
+  void ApplyAudioContextOperationImpl(AudioNodeStream* aStream,
+                                      dom::AudioContextOperation aOperation,
+                                      void* aPromise);
+
+  
+
+
+
+  void MoveStreams(dom::AudioContextOperation aAudioContextOperation,
+                   mozilla::LinkedList<MediaStream>& aStreamSet);
+
+  
+
+
+
+  void ResetVisitedStreamState();
+
+  
+
+
+
+  bool StreamSuspended(MediaStream* aStream);
+
   
 
 
@@ -368,7 +411,10 @@ public:
   
 
 
-  bool IsEmpty() { return mStreams.IsEmpty() && mPortCount == 0; }
+  bool IsEmpty()
+  {
+    return mStreams.IsEmpty() && mSuspendedStreams.IsEmpty() && mPortCount == 0;
+  }
 
   
   
@@ -487,6 +533,13 @@ public:
 
 
   nsTArray<MediaStream*> mStreams;
+  
+
+
+
+
+
+  nsTArray<MediaStream*> mSuspendedStreams;
   
 
 

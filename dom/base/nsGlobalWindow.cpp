@@ -12968,7 +12968,8 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
 
     
     for (uint32_t i = 0; i < mAudioContexts.Length(); ++i) {
-      mAudioContexts[i]->Suspend();
+      ErrorResult dummy;
+      unused << mAudioContexts[i]->Suspend(dummy);
     }
   }
 
@@ -13028,7 +13029,8 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
 
     
     for (uint32_t i = 0; i < mAudioContexts.Length(); ++i) {
-      mAudioContexts[i]->Resume();
+      ErrorResult dummy;
+      unused << mAudioContexts[i]->Resume(dummy);
     }
 
     
