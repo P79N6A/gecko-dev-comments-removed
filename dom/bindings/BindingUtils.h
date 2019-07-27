@@ -3249,6 +3249,29 @@ bool SystemGlobalResolve(JSContext* cx, JS::Handle<JSObject*> obj,
 bool SystemGlobalEnumerate(JSContext* cx, JS::Handle<JSObject*> obj);
 
 
+#define FOREACH_CALLBACK_SLOT 0
+#define FOREACH_MAPLIKEORSETLIKEOBJ_SLOT 1
+
+
+
+
+bool ForEachHandler(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
+
+
+
+
+
+bool GetMaplikeBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
+                             size_t aSlotIndex,
+                             JS::MutableHandle<JSObject*> aBackingObj,
+                             bool* aBackingObjCreated);
+bool GetSetlikeBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
+                             size_t aSlotIndex,
+                             JS::MutableHandle<JSObject*> aBackingObj,
+                             bool* aBackingObjCreated);
+
+
 } 
 } 
 
