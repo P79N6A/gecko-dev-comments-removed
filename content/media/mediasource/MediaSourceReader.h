@@ -107,19 +107,8 @@ private:
 
   
   
-  
-  
-  
   already_AddRefed<MediaDecoderReader> SelectReader(int64_t aTarget,
-                                                    bool (MediaSourceReader::*aCanSelectReader)(MediaDecoderReader*),
                                                     const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
-
-  
-  
-  
-  
-  bool CanSelectAudioReader(MediaDecoderReader* aNewReader);
-  bool CanSelectVideoReader(MediaDecoderReader* aNewReader);
 
   
   

@@ -99,7 +99,18 @@ private:
   
   
   
-  void RegisterDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+  
+  bool RegisterDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
+
+  
+  
+  bool ValidateTrackFormats(const MediaInfo& aInfo);
+
+  
+  
+  
+  
+  void RemoveDecoder(nsRefPtr<SourceBufferDecoder> aDecoder);
 
   
   
@@ -131,8 +142,7 @@ private:
 
   
   
-  bool mHasAudio;
-  bool mHasVideo;
+  MediaInfo mInfo;
 };
 
 } 
