@@ -141,6 +141,16 @@ private:
 
 
 
+
+
+
+  bool IsOnStartFrame(const nsPoint& aPosition);
+  bool IsOnEndFrame(const nsPoint& aPosition);
+
+  
+
+
+
   nsRect GetStartFrameRect();
 
   

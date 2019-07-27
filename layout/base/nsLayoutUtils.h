@@ -765,6 +765,13 @@ public:
 
 
 
+  static bool ContainsPoint(const nsRect& aRect, const nsPoint& aPoint,
+                            nscoord aInflateSize);
+
+  
+
+
+
 
 
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,
