@@ -12,17 +12,24 @@ this.EXPORTED_SYMBOLS = ["startup"];
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+
+
+
+
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/AppsUtils.jsm");
-Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
-Cu.import('resource://gre/modules/Payment.jsm');
-Cu.import('resource://gre/modules/AlarmService.jsm');
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
-Cu.import("resource://webapprt/modules/WebRTCHandler.jsm");
+
+
+
+
+XPCOMUtils.defineLazyModuleGetter(this, "PermissionsInstaller",
+  "resource://gre/modules/PermissionsInstaller.jsm");
 
 const PROFILE_DIR = OS.Constants.Path.profileDir;
 
@@ -134,6 +141,12 @@ this.startup = function(window) {
 
     
     yield deferredWindowLoad.promise;
+
+    
+    
+    Cu.import("resource://gre/modules/Payment.jsm");
+    Cu.import("resource://gre/modules/AlarmService.jsm");
+    Cu.import("resource://webapprt/modules/WebRTCHandler.jsm");
 
     
     let appBrowser = window.document.getElementById("content");
