@@ -251,10 +251,11 @@ let DirectoryLinksProvider = {
   },
 
   _cacheSuggestedLinks: function(link) {
-    if (!link.frecent_sites || "sponsored" == link.type) {
-      
+    
+    if (!link.frecent_sites) {
       return;
     }
+
     for (let suggestedSite of link.frecent_sites) {
       let suggestedMap = this._suggestedLinks.get(suggestedSite) || new Map();
       suggestedMap.set(link.url, link);
