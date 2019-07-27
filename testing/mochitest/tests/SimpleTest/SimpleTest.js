@@ -281,7 +281,8 @@ SimpleTest.ok = function (condition, name, diag) {
 
 
 SimpleTest.is = function (a, b, name) {
-    var pass = (a === b);
+    
+    var pass = Object.is(a, b);
     var diag = pass ? "" : "got " + repr(a) + ", expected " + repr(b)
     SimpleTest.ok(pass, name, diag);
 };
@@ -293,7 +294,7 @@ SimpleTest.isfuzzy = function (a, b, epsilon, name) {
 };
 
 SimpleTest.isnot = function (a, b, name) {
-    var pass = (a !== b);
+    var pass = !Object.is(a, b);
     var diag = pass ? "" : "didn't expect " + repr(a) + ", but got it";
     SimpleTest.ok(pass, name, diag);
 };
@@ -411,14 +412,14 @@ SimpleTest.info = function(name, message) {
 
 
 SimpleTest.todo_is = function (a, b, name) {
-    var pass = (a === b);
+    var pass = Object.is(a, b);
     var diag = pass ? repr(a) + " should equal " + repr(b)
                     : "got " + repr(a) + ", expected " + repr(b);
     SimpleTest.todo(pass, name, diag);
 };
 
 SimpleTest.todo_isnot = function (a, b, name) {
-    var pass = (a !== b);
+    var pass = !Object.is(a, b);
     var diag = pass ? repr(a) + " should not equal " + repr(b)
                     : "didn't expect " + repr(a) + ", but got it";
     SimpleTest.todo(pass, name, diag);
