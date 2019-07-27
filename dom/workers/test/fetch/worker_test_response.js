@@ -66,6 +66,25 @@ function testOk() {
   ok(!r4.ok, "Response with status 302 should have ok false");
 }
 
+
+
+
+
+
+
+
+function testFinalURL() {
+  var r1 = new Response();
+  ok(!r1.finalURL, "Response.finalURL is false by default.");
+
+  try {
+    r1.finalURL = true;
+    ok(false, "Setting Response.finalURL of Response with null url should fail.");
+  } catch(e) {
+    ok(true, "Setting Response.finalURL of Response with null url should fail.");
+  }
+}
+
 function testBodyUsed() {
   var res = new Response("Sample body");
   ok(!res.bodyUsed, "bodyUsed is initially false.");
@@ -153,6 +172,7 @@ onmessage = function() {
   testClone();
   testRedirect();
   testOk();
+  testFinalURL();
 
   Promise.resolve()
     .then(testBodyCreation)
