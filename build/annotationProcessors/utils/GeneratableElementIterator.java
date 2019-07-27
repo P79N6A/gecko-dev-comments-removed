@@ -76,7 +76,7 @@ public class GeneratableElementIterator implements Iterator<AnnotatableEntity> {
                     boolean isStaticStub = false;
                     boolean isMultithreadedStub = false;
                     boolean noThrow = false;
-		    boolean narrowChars = false;
+                    boolean narrowChars = false;
                     try {
                         
                         final Method stubNameMethod = annotationType.getDeclaredMethod("stubName");
@@ -124,7 +124,7 @@ public class GeneratableElementIterator implements Iterator<AnnotatableEntity> {
                     }
 
                     AnnotationInfo annotationInfo = new AnnotationInfo(
-		        stubName, isStaticStub, isMultithreadedStub, noThrow, narrowChars);
+                        stubName, isStaticStub, isMultithreadedStub, noThrow, narrowChars);
                     mNextReturnValue = new AnnotatableEntity(candidateElement, annotationInfo);
                     return;
                 }
@@ -134,7 +134,7 @@ public class GeneratableElementIterator implements Iterator<AnnotatableEntity> {
             
             if (mIterateEveryEntry) {
                 AnnotationInfo annotationInfo = new AnnotationInfo(
-		    candidateElement.getName(), false, false, false, false);
+                    candidateElement.getName(), false, false, false, false);
                 mNextReturnValue = new AnnotatableEntity(candidateElement, annotationInfo);
                 return;
             }

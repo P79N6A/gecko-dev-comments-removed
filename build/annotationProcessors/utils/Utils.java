@@ -161,9 +161,9 @@ public class Utils {
 
         
         if (isCharSequence(type)) {
-	    if (aNarrowChars) {
-		return "const nsACString&";
-	    }
+            if (aNarrowChars) {
+                return "const nsACString&";
+            }
             return "const nsAString&";
         }
 
