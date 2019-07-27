@@ -9706,6 +9706,16 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
         if (jitinfo->isAlwaysInSlot) {
             
             
+            
+            JSObject *singleton = objTypes->getSingleton();
+            if (singleton && jitinfo->aliasSet() == JSJitInfo::AliasNone) {
+                size_t slot = jitinfo->slotIndex;
+                *emitted = true;
+                return pushConstant(GetReservedSlot(singleton, slot));
+            }
+
+            
+            
             get = MGetDOMMember::New(alloc(), jitinfo, obj, guard, globalGuard);
         } else {
             get = MGetDOMProperty::New(alloc(), jitinfo, obj, guard, globalGuard);
