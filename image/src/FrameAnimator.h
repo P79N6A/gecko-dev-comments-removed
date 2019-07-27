@@ -4,8 +4,8 @@
 
 
 
-#ifndef mozilla_imagelib_FrameAnimator_h_
-#define mozilla_imagelib_FrameAnimator_h_
+#ifndef mozilla_image_src_FrameAnimator_h
+#define mozilla_image_src_FrameAnimator_h
 
 #include "mozilla/TimeStamp.h"
 #include "nsRect.h"
@@ -43,7 +43,7 @@ public:
       : frameAdvanced(false)
       , animationFinished(false)
       , error(false)
-    {}
+    { }
 
     void Accumulate(const RefreshResult& other)
     {
