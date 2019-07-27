@@ -313,8 +313,6 @@ class JSObject : public js::gc::Cell
 
     void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassInfo *info);
 
-    bool hasIdempotentProtoChain() const;
-
     
 
 
