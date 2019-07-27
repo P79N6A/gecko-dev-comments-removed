@@ -487,10 +487,24 @@ public:
   {
     MOZ_ASSERT(IsServiceWorker());
     AssertIsOnMainThread();
-    return mLoadingWorkerScript ?
-             mLoadInfo.mServiceWorkerCacheName : EmptyString();
+    return mLoadInfo.mServiceWorkerCacheName;
   }
+
   
+  
+  
+  
+  
+  
+  
+  
+  bool
+  LoadScriptAsPartOfLoadingServiceWorkerScript()
+  {
+    MOZ_ASSERT(IsServiceWorker());
+    return mLoadingWorkerScript;
+  }
+
   void
   SetLoadingWorkerScript(bool aLoadingWorkerScript)
   {
