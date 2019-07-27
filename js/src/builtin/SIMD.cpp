@@ -14,6 +14,7 @@
 #include "builtin/SIMD.h"
 
 #include "mozilla/IntegerTypeTraits.h"
+
 #include "jsapi.h"
 #include "jsfriendapi.h"
 
@@ -822,6 +823,62 @@ CompareFunc(JSContext* cx, unsigned argc, Value* vp)
     return StoreResult<Int32x4>(cx, args, result);
 }
 
+
+
+
+
+template<typename From, typename To>
+struct ThrowOnConvert;
+
+struct NeverThrow
+{
+    static bool value(int32_t v) {
+        return false;
+    }
+};
+
+
+
+
+template<>
+struct ThrowOnConvert<int32_t, float> : public NeverThrow {};
+
+
+template<>
+struct ThrowOnConvert<int32_t, double> : public NeverThrow {};
+
+
+template<>
+struct ThrowOnConvert<float, double> : public NeverThrow {};
+
+
+
+template<>
+struct ThrowOnConvert<double, float> : public NeverThrow {};
+
+
+
+
+
+template<typename From, typename IntegerType>
+struct ThrowIfNotInRange
+{
+    static_assert(mozilla::IsIntegral<IntegerType>::value, "bad destination type");
+
+    static bool value(From v) {
+        double d(v);
+        return mozilla::IsNaN(d) ||
+               d < double(mozilla::MinValue<IntegerType>::value) ||
+               d > double(mozilla::MaxValue<IntegerType>::value);
+    }
+};
+
+template<>
+struct ThrowOnConvert<double, int32_t> : public ThrowIfNotInRange<double, int32_t> {};
+
+template<>
+struct ThrowOnConvert<float, int32_t> : public ThrowIfNotInRange<float, int32_t> {};
+
 template<typename V, typename Vret>
 static bool
 FuncConvert(JSContext* cx, unsigned argc, Value* vp)
@@ -834,9 +891,20 @@ FuncConvert(JSContext* cx, unsigned argc, Value* vp)
         return ErrorBadArgs(cx);
 
     Elem* val = TypedObjectMemory<Elem*>(args[0]);
+
     RetElem result[Vret::lanes];
-    for (unsigned i = 0; i < Vret::lanes; i++)
-        result[i] = i < V::lanes ? ConvertScalar<RetElem>(val[i]) : 0;
+    for (unsigned i = 0; i < Min(V::lanes, Vret::lanes); i++) {
+        if (ThrowOnConvert<Elem, RetElem>::value(val[i])) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
+                                 JSMSG_SIMD_FAILED_CONVERSION);
+            return false;
+        }
+        result[i] = ConvertScalar<RetElem>(val[i]);
+    }
+
+    
+    for (unsigned i = V::lanes; i < Vret::lanes; i++)
+        result[i] = 0;
 
     return StoreResult<Vret>(cx, args, result);
 }
