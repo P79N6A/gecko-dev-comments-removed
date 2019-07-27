@@ -1935,6 +1935,7 @@ Messages.ConsoleTable.prototype = Heritage.extend(Messages.Extended.prototype,
         }
 
         result.scrollIntoView();
+        this.output.owner.emit("messages-table-rendered");
 
         
         if (Array.isArray(this._arguments)) {
