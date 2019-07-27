@@ -9,11 +9,15 @@ import time
 import os
 import mozpack.path as mozpath
 from mozpack.files import FileFinder
-from .sandbox import (
-    alphabetical_sorted,
-    GlobalNamespace,
+from .sandbox import alphabetical_sorted
+from .context import (
+    Context,
+    VARIABLES,
 )
-from .sandbox_symbols import VARIABLES
+from mozbuild.util import (
+    List,
+    memoize,
+)
 from .reader import SandboxValidationError
 
 
@@ -48,22 +52,28 @@ for unused in ['RULE_INPUT_PATH', 'RULE_INPUT_ROOT', 'RULE_INPUT_NAME',
   generator_default_variables[unused] = b''
 
 
-class GypSandbox(GlobalNamespace):
-    """Class mimicking MozbuildSandbox for processing of the data
-    extracted from Gyp by a mozbuild backend.
+class GypContext(Context):
+    """Specialized Context for use with data extracted from Gyp.
 
-    Inherits from GlobalNamespace because it doesn't need the extra
-    functionality from Sandbox.
+    config is the ConfigEnvironment for this context.
+    relobjdir is the object directory that will be used for this context,
+    relative to the topobjdir defined in the ConfigEnvironment.
     """
-    def __init__(self, main_path, dependencies_paths=[]):
-        self.main_path = main_path
-        self.all_paths = set([main_path]) | set(dependencies_paths)
-        self.execution_time = 0
-        GlobalNamespace.__init__(self, allowed_variables=VARIABLES)
+    def __init__(self, config, relobjdir):
+        self._relobjdir = relobjdir
+        Context.__init__(self, allowed_variables=self.VARIABLES(), config=config)
 
-    def get_affected_tiers(self):
-        tiers = (VARIABLES[key][3] for key in self if key in VARIABLES)
-        return set(tier for tier in tiers if tier)
+    @classmethod
+    @memoize
+    def VARIABLES(cls):
+        """Returns the allowed variables for a GypContext."""
+        
+        
+        return dict(VARIABLES,
+        IS_GYP_DIR=(bool, bool, '', None),
+        EXTRA_ASSEMBLER_FLAGS=(List, list, '', None),
+        EXTRA_COMPILE_FLAGS=(List, list, '', None),
+    )
 
 
 def encode(value):
@@ -73,7 +83,7 @@ def encode(value):
 
 
 def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
-    """Read a gyp configuration and emits GypSandboxes for the backend to
+    """Read a gyp configuration and emits GypContexts for the backend to
     process.
 
     config is a ConfigEnvironment, path is the path to a root gyp configuration
@@ -115,32 +125,29 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
     
     for target in gyp.common.AllTargets(flat_list, targets, path.replace(b'/', os.sep)):
         build_file, target_name, toolset = gyp.common.ParseQualifiedTarget(target)
-        
-        included_files = [mozpath.abspath(mozpath.join(mozpath.dirname(build_file), f))
-                          for f in data[build_file]['included_files']]
-        
-        sandbox = GypSandbox(mozpath.abspath(build_file), included_files)
-        sandbox.config = config
 
-        with sandbox.allow_all_writes() as d:
-            topsrcdir = config.topsrcdir
-            relsrcdir = d['RELATIVEDIR'] = mozpath.relpath(mozpath.dirname(build_file), config.topsrcdir)
-            d['SRCDIR'] = mozpath.join(topsrcdir, relsrcdir)
+        
+        
+        
+        
+        
+        
+        reldir  = mozpath.relpath(mozpath.dirname(build_file),
+                                  mozpath.dirname(path))
+        subdir = '%s_%s' % (
+            mozpath.splitext(mozpath.basename(build_file))[0],
+            target_name,
+        )
+        
+        context = GypContext(config, mozpath.relpath(
+            mozpath.join(output, reldir, subdir), config.topobjdir))
+        context.add_source(mozpath.abspath(build_file))
+        
+        for f in data[build_file]['included_files']:
+            context.add_source(mozpath.abspath(mozpath.join(
+                mozpath.dirname(build_file), f)))
 
-            
-            
-            
-            
-            
-            
-            reldir  = mozpath.relpath(mozpath.dirname(build_file),
-                                      mozpath.dirname(path))
-            subdir = '%s_%s' % (
-                mozpath.splitext(mozpath.basename(build_file))[0],
-                target_name,
-            )
-            d['OBJDIR'] = mozpath.join(output, reldir, subdir)
-            d['IS_GYP_DIR'] = True
+        context['IS_GYP_DIR'] = True
 
         spec = targets[target]
 
@@ -154,16 +161,15 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
         if spec['type'] == 'none':
             continue
         elif spec['type'] == 'static_library':
-            sandbox['FORCE_STATIC_LIB'] = True
             
             
             name = spec['target_name']
             if name.startswith('lib'):
                 name = name[3:]
             
-            sandbox['LIBRARY_NAME'] = name.decode('utf-8')
+            context['LIBRARY_NAME'] = name.decode('utf-8')
             
-            sources = set(mozpath.normpath(mozpath.join(sandbox['SRCDIR'], f))
+            sources = set(mozpath.normpath(mozpath.join(context.srcdir, f))
                 for f in spec.get('sources', [])
                 if mozpath.splitext(f)[-1] != '.h')
             asm_sources = set(f for f in sources if f.endswith('.S'))
@@ -172,30 +178,29 @@ def read_from_gyp(config, path, output, vars, non_unified_sources = set()):
             sources -= unified_sources
             all_sources |= sources
             
-            sandbox['SOURCES'] = alphabetical_sorted(sources)
-            sandbox['UNIFIED_SOURCES'] = alphabetical_sorted(unified_sources)
+            context['SOURCES'] = alphabetical_sorted(sources)
+            context['UNIFIED_SOURCES'] = alphabetical_sorted(unified_sources)
 
             for define in target_conf.get('defines', []):
                 if '=' in define:
                     name, value = define.split('=', 1)
-                    sandbox['DEFINES'][name] = value
+                    context['DEFINES'][name] = value
                 else:
-                    sandbox['DEFINES'][define] = True
+                    context['DEFINES'][define] = True
 
             for include in target_conf.get('include_dirs', []):
-                sandbox['LOCAL_INCLUDES'] += [include]
+                context['LOCAL_INCLUDES'] += [include]
 
-            with sandbox.allow_all_writes() as d:
-                d['EXTRA_ASSEMBLER_FLAGS'] = target_conf.get('asflags_mozilla', [])
-                d['EXTRA_COMPILE_FLAGS'] = target_conf.get('cflags_mozilla', [])
+            context['EXTRA_ASSEMBLER_FLAGS'] = target_conf.get('asflags_mozilla', [])
+            context['EXTRA_COMPILE_FLAGS'] = target_conf.get('cflags_mozilla', [])
         else:
             
             
             
             raise NotImplementedError('Unsupported gyp target type: %s' % spec['type'])
 
-        sandbox.execution_time = time.time() - time_start
-        yield sandbox
+        context.execution_time = time.time() - time_start
+        yield context
         time_start = time.time()
 
 

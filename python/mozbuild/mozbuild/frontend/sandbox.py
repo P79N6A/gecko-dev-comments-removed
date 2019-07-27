@@ -8,11 +8,8 @@ This module contains classes for Python sandboxes that execute in a
 highly-controlled environment.
 
 The main class is `Sandbox`. This provides an execution environment for Python
-code.
-
-The behavior inside sandboxes is mostly regulated by the `GlobalNamespace` and
-`LocalNamespace` classes. These represent the global and local namespaces in
-the sandbox, respectively.
+code and is used to fill a Context instance for the takeaway information from
+the execution.
 
 Code in this module takes a different approach to exception handling compared
 to what you'd see elsewhere in Python. Arguments to built-in exceptions like
@@ -29,12 +26,7 @@ import sys
 from contextlib import contextmanager
 
 from mozbuild.util import ReadOnlyDict
-
-
-class SandboxDerivedValue(object):
-    """Classes deriving from this one receive a special treatment in a
-    sandbox GlobalNamespace. See GlobalNamespace documentation.
-    """
+from context import Context
 
 
 def alphabetical_sorted(iterable, cmp=None, key=lambda x: x.lower(),
@@ -43,213 +35,6 @@ def alphabetical_sorted(iterable, cmp=None, key=lambda x: x.lower(),
     default.
     """
     return sorted(iterable, cmp, key, reverse)
-
-
-class GlobalNamespace(dict):
-    """Represents the globals namespace in a sandbox.
-
-    This is a highly specialized dictionary employing light magic.
-
-    At the crux we have the concept of a restricted keys set. Only very
-    specific keys may be retrieved or mutated. The rules are as follows:
-
-        - The '__builtins__' key is hardcoded and is read-only.
-        - The set of variables that can be assigned or accessed during
-          execution is passed into the constructor.
-
-    When variables are assigned to, we verify assignment is allowed. Assignment
-    is allowed if the variable is known (set defined at constructor time) and
-    if the value being assigned is the expected type (also defined at
-    constructor time).
-
-    When variables are read, we first try to read the existing value. If a
-    value is not found and it is defined in the allowed variables set, we
-    return a new instance of the class for that variable. We don't assign
-    default instances until they are accessed because this makes debugging
-    the end-result much simpler. Instead of a data structure with lots of
-    empty/default values, you have a data structure with only the values
-    that were read or touched.
-
-    Instances of variables classes are created by invoking class_name(),
-    except when class_name derives from SandboxDerivedValue, in which
-    case class_name(instance_of_the_global_namespace) is invoked.
-    A value is added to those calls when instances are created during
-    assignment (setitem).
-
-    Instantiators of this class are given a backdoor to perform setting of
-    arbitrary values. e.g.
-
-        ns = GlobalNamespace()
-        with ns.allow_all_writes():
-            ns['foo'] = True
-
-        ns['bar'] = True  # KeyError raised.
-    """
-
-    
-    BUILTINS = ReadOnlyDict({
-        
-        'None': None,
-        'False': False,
-        'True': True,
-        'sorted': alphabetical_sorted,
-        'int': int,
-    })
-
-    def __init__(self, allowed_variables=None, builtins=None):
-        """Create a new global namespace having specific variables.
-
-        allowed_variables is a dict of the variables that can be queried and
-        mutated. Keys in this dict are the strings representing keys in this
-        namespace which are valid. Values are tuples of stored type, assigned
-        type, default value, and a docstring describing the purpose of the variable.
-
-        builtins is the value to use for the special __builtins__ key. If not
-        defined, the BUILTINS constant attached to this class is used. The
-        __builtins__ object is read-only.
-        """
-        builtins = builtins or self.BUILTINS
-
-        assert isinstance(builtins, ReadOnlyDict)
-
-        dict.__init__(self, {'__builtins__': builtins})
-
-        self._allowed_variables = allowed_variables or {}
-
-        
-        
-        self.last_name_error = None
-
-        self._allow_all_writes = False
-
-        self._allow_one_mutation = set()
-
-    def __getitem__(self, name):
-        try:
-            return dict.__getitem__(self, name)
-        except KeyError:
-            pass
-
-        
-        default = self._allowed_variables.get(name, None)
-        if default is None:
-            self.last_name_error = KeyError('global_ns', 'get_unknown', name)
-            raise self.last_name_error
-
-        
-        
-        
-        default = default[0]
-        if issubclass(default, SandboxDerivedValue):
-            value = default(self)
-        else:
-            value = default()
-
-        dict.__setitem__(self, name, value)
-        return dict.__getitem__(self, name)
-
-    def __setitem__(self, name, value):
-        if self._allow_all_writes:
-            dict.__setitem__(self, name, value)
-            self._allow_one_mutation.add(name)
-            return
-
-        
-        
-        
-        
-        
-        
-        
-        if name in self._allow_one_mutation:
-            self._allow_one_mutation.remove(name)
-        elif name in self and dict.__getitem__(self, name) is not value:
-            raise KeyError('global_ns', 'reassign', name)
-
-        
-        
-        stored_type, input_type, docs, tier = \
-            self._allowed_variables.get(name, (None, None, None, None))
-
-        
-        if stored_type is None:
-            self.last_name_error = KeyError('global_ns', 'set_unknown', name,
-                value)
-            raise self.last_name_error
-
-        
-        
-        
-        
-        
-        if not isinstance(value, stored_type):
-            if not isinstance(value, input_type):
-                self.last_name_error = ValueError('global_ns', 'set_type', name,
-                    value, input_type)
-                raise self.last_name_error
-
-            if issubclass(stored_type, SandboxDerivedValue):
-                value = stored_type(self, value)
-            else:
-                value = stored_type(value)
-
-        dict.__setitem__(self, name, value)
-
-    @contextmanager
-    def allow_all_writes(self):
-        """Allow any variable to be written to this instance.
-
-        This is used as a context manager. When activated, all writes
-        (__setitem__ calls) are allowed. When the context manager is exited,
-        the instance goes back to its default behavior of only allowing
-        whitelisted mutations.
-        """
-        self._allow_all_writes = True
-        yield self
-        self._allow_all_writes = False
-
-    
-    def update(self, other):
-        for name, value in other.items():
-            self.__setitem__(name, value)
-
-
-class LocalNamespace(dict):
-    """Represents the locals namespace in a Sandbox.
-
-    This behaves like a dict except with some additional behavior tailored
-    to our sandbox execution model.
-
-    Under normal rules of exec(), doing things like += could have interesting
-    consequences. Keep in mind that a += is really a read, followed by the
-    creation of a new variable, followed by a write. If the read came from the
-    global namespace, then the write would go to the local namespace, resulting
-    in fragmentation. This is not desired.
-
-    LocalNamespace proxies reads and writes for global-looking variables
-    (read: UPPERCASE) to the global namespace. This means that attempting to
-    read or write an unknown variable results in exceptions raised from the
-    GlobalNamespace.
-    """
-    def __init__(self, global_ns):
-        """Create a local namespace associated with a GlobalNamespace."""
-        dict.__init__({})
-
-        self._globals = global_ns
-        self.last_name_error = None
-
-    def __getitem__(self, name):
-        if name.isupper():
-            return self._globals[name]
-
-        return dict.__getitem__(self, name)
-
-    def __setitem__(self, name, value):
-        if name.isupper():
-            self._globals[name] = value
-            return
-
-        dict.__setitem__(self, name, value)
 
 
 class SandboxError(Exception):
@@ -287,11 +72,12 @@ class SandboxLoadError(SandboxError):
         self.read_error = read_error
 
 
-class Sandbox(object):
+class Sandbox(dict):
     """Represents a sandbox for executing Python code.
 
-    This class both provides a sandbox for execution of a single mozbuild
-    frontend file as well as an interface to the results of that execution.
+    This class provides a sandbox for execution of a single mozbuild frontend
+    file. The results of that execution is stored in the Context instance given
+    as the ``context`` argument.
 
     Sandbox is effectively a glorified wrapper around compile() + exec(). You
     point it at some Python code and it executes it. The main difference from
@@ -301,29 +87,41 @@ class Sandbox(object):
     prevents executed code from doing things like import modules, open files,
     etc.
 
-    Sandboxes are bound to a mozconfig instance. These objects are produced by
-    the output of configure.
+    Sandbox instances act as global namespace for the sandboxed execution
+    itself. They shall not be used to access the results of the execution.
+    Those results are available in the given Context instance after execution.
 
-    Sandbox instances can be accessed like dictionaries to facilitate result
-    retrieval. e.g. foo = sandbox['FOO']. Direct assignment is not allowed.
+    The Sandbox itself is responsible for enforcing rules such as forbidding
+    reassignment of variables.
 
-    Each sandbox has associated with it a GlobalNamespace and LocalNamespace.
-    Only data stored in the GlobalNamespace is retrievable via the dict
-    interface. This is because the local namespace should be irrelevant: it
-    should only contain throwaway variables.
+    Implementation note: Sandbox derives from dict because exec() insists that
+    what it is given for namespaces is a dict.
     """
-    def __init__(self, allowed_variables=None, builtins=None):
-        """Initialize a Sandbox ready for execution.
+    
+    BUILTINS = ReadOnlyDict({
+        
+        'None': None,
+        'False': False,
+        'True': True,
+        'sorted': alphabetical_sorted,
+        'int': int,
+    })
 
-        The arguments are proxied to GlobalNamespace.__init__.
+    def __init__(self, context, builtins=None):
+        """Initialize a Sandbox ready for execution.
         """
-        self._globals = GlobalNamespace(allowed_variables=allowed_variables,
-            builtins=builtins)
-        self._allowed_variables = allowed_variables
-        self._locals = LocalNamespace(self._globals)
+        self._builtins = builtins or self.BUILTINS
+        dict.__setitem__(self, '__builtins__', self._builtins)
+
+        assert isinstance(self._builtins, ReadOnlyDict)
+        assert isinstance(context, Context)
+
+        self._context = context
         self._execution_stack = []
-        self.main_path = None
-        self.all_paths = set()
+
+        
+        
+        self._last_name_error = None
 
     def exec_file(self, path):
         """Execute code at a path in the sandbox.
@@ -343,7 +141,7 @@ class Sandbox(object):
 
         self.exec_source(source, path)
 
-    def exec_source(self, source, path):
+    def exec_source(self, source, path=''):
         """Execute Python code within a string.
 
         The passed string should contain Python code to be executed. The string
@@ -355,10 +153,8 @@ class Sandbox(object):
         """
         self._execution_stack.append(path)
 
-        if self.main_path is None:
-            self.main_path = path
-
-        self.all_paths.add(path)
+        if path:
+            self._context.add_source(path)
 
         
         
@@ -368,7 +164,10 @@ class Sandbox(object):
             
             
             code = compile(source, path, 'exec')
-            exec(code, self._globals, self._locals)
+            
+            
+            
+            exec(code, self)
         except SandboxError as e:
             raise e
         except NameError as e:
@@ -381,10 +180,8 @@ class Sandbox(object):
             
             actual = e
 
-            if self._globals.last_name_error is not None:
-                actual = self._globals.last_name_error
-            elif self._locals.last_name_error is not None:
-                actual = self._locals.last_name_error
+            if self._last_name_error is not None:
+                actual = self._last_name_error
 
             raise SandboxExecutionError(list(self._execution_stack),
                 type(actual), actual, sys.exc_info()[2])
@@ -398,26 +195,43 @@ class Sandbox(object):
         finally:
             self._execution_stack.pop()
 
-    
-    def __len__(self):
-        return len(self._globals)
+    def __getitem__(self, key):
+        if key.isupper():
+            try:
+                return self._context[key]
+            except Exception as e:
+                self._last_name_error = e
+                raise
 
-    def __getitem__(self, name):
-        return self._globals[name]
+        return dict.__getitem__(self, key)
 
-    def __iter__(self):
-        return iter(self._globals)
+    def __setitem__(self, key, value):
+        if key in self._builtins or key == '__builtins__':
+            raise KeyError('Cannot reassign builtins')
 
-    def iterkeys(self):
-        return self.__iter__()
+        if key.isupper():
+            
+            
+            
+            
+            
+            
+            
+            if key in self._context and self._context[key] is not value:
+                raise KeyError('global_ns', 'reassign', key)
 
-    def __contains__(self, key):
-        return key in self._globals
+            self._context[key] = value
+        else:
+            dict.__setitem__(self, key, value)
 
     def get(self, key, default=None):
-        return self._globals.get(key, default)
+        raise NotImplementedError('Not supported')
 
-    def get_affected_tiers(self):
-        tiers = (self._allowed_variables[key][3] for key in self
-                 if key in self._allowed_variables)
-        return set(tier for tier in tiers if tier)
+    def __len__(self):
+        raise NotImplementedError('Not supported')
+
+    def __iter__(self):
+        raise NotImplementedError('Not supported')
+
+    def __contains__(self, key):
+        raise NotImplementedError('Not supported')
