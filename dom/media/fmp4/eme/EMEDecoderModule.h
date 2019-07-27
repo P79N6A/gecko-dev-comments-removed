@@ -13,7 +13,6 @@
 namespace mozilla {
 
 class CDMProxy;
-class FlushableMediaTaskQueue;
 
 class EMEDecoderModule : public PlatformDecoderModule {
 private:
@@ -48,7 +47,7 @@ private:
   
   nsRefPtr<PlatformDecoderModule> mPDM;
   
-  nsRefPtr<FlushableMediaTaskQueue> mTaskQueue;
+  nsRefPtr<MediaTaskQueue> mTaskQueue;
   bool mCDMDecodesAudio;
   bool mCDMDecodesVideo;
 
