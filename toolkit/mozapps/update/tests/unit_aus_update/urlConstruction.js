@@ -29,6 +29,9 @@ function run_test() {
 
 
 function callHandleEvent() {
+  
+  
+  gXHR.status = 404;
   let e = { target: gXHR };
   gXHR.onload(e);
 }

@@ -3128,22 +3128,26 @@ const updateCheckListener = {
   },
 
   onCheckComplete: function UCL_onCheckComplete(aRequest, aUpdates, aUpdateCount) {
-    gRequestURL = aRequest.channel.originalURI.spec;
+    
+    
+    
+    gRequestURL = gXHR._url;
     gUpdateCount = aUpdateCount;
     gUpdates = aUpdates;
     logTestInfo("url = " + gRequestURL + ", " +
                 "request.status = " + aRequest.status + ", " +
-                "update.statusText = " + aRequest.statusText + ", " +
                 "updateCount = " + aUpdateCount);
     
     do_execute_soon(gCheckFunc);
   },
 
   onError: function UCL_onError(aRequest, aUpdate) {
-    gRequestURL = aRequest.channel.originalURI.spec;
+    
+    
+    
+    gRequestURL = gXHR._url;
     gStatusCode = aRequest.status;
-
-    gStatusText = aUpdate.statusText;
+    gStatusText = aUpdate.statusText ? aUpdate.statusText : null;
     logTestInfo("url = " + gRequestURL + ", " +
                 "request.status = " + gStatusCode + ", " +
                 "update.statusText = " + gStatusText);
