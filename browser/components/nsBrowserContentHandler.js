@@ -342,6 +342,17 @@ nsBrowserContentHandler.prototype = {
       cmdLine.preventDefault = true;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    if (cmdLine.handleFlag("remote", true)) {
+      throw NS_ERROR_ABORT;
+    }
+
     var uriparam;
     try {
       while ((uriparam = cmdLine.handleFlagWithParam("new-window", false))) {
