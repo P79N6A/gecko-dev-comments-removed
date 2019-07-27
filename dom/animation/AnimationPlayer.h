@@ -76,20 +76,20 @@ public:
     
     
     MOZ_ASSERT(timelineTime.IsNull() || !IsPaused() ||
-               timelineTime >= mPauseStart,
+               timelineTime >= mHoldTime,
                "if paused, any non-null value of aTime must be at least"
-               " mPauseStart");
+               " mHoldTime");
 
     Nullable<TimeDuration> result; 
     if (!timelineTime.IsNull() && !mStartTime.IsNull()) {
-      result.SetValue((IsPaused() ? mPauseStart : timelineTime) - mStartTime);
+      result.SetValue((IsPaused() ? mHoldTime : timelineTime) - mStartTime);
     }
     return result;
   }
 
   
   TimeStamp mStartTime;
-  TimeStamp mPauseStart;
+  TimeStamp mHoldTime;
   uint8_t mPlayState;
   bool mIsRunningOnCompositor;
 

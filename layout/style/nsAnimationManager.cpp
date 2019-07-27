@@ -309,7 +309,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           if (!oldPlayer->IsPaused() && newPlayer->IsPaused()) {
             
-            oldPlayer->mPauseStart = timeline->GetCurrentTimeStamp();
+            oldPlayer->mHoldTime = timeline->GetCurrentTimeStamp();
           } else if (oldPlayer->IsPaused() && !newPlayer->IsPaused()) {
             const TimeStamp& now = timeline->GetCurrentTimeStamp();
             if (!now.IsNull()) {
@@ -318,9 +318,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
               
               
               
-              oldPlayer->mStartTime += now - oldPlayer->mPauseStart;
+              oldPlayer->mStartTime += now - oldPlayer->mHoldTime;
             }
-            oldPlayer->mPauseStart = TimeStamp();
+            oldPlayer->mHoldTime = TimeStamp();
           }
           oldPlayer->mPlayState = newPlayer->mPlayState;
 
@@ -457,9 +457,9 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     dest->mStartTime = now;
     dest->mPlayState = src.GetPlayState();
     if (dest->IsPaused()) {
-      dest->mPauseStart = now;
+      dest->mHoldTime = now;
     } else {
-      dest->mPauseStart = TimeStamp();
+      dest->mHoldTime = TimeStamp();
     }
 
     
