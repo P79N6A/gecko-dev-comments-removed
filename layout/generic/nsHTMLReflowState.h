@@ -825,6 +825,34 @@ public:
     ApplyRelativePositioning(frame, ComputedPhysicalOffsets(), aPosition);
   }
 
+  static void
+  ApplyRelativePositioning(nsIFrame* aFrame,
+                           mozilla::WritingMode aWritingMode,
+                           const mozilla::LogicalMargin& aComputedOffsets,
+                           mozilla::LogicalPoint* aPosition,
+                           nscoord aContainerWidth) {
+    
+    
+    
+    
+    
+    nscoord frameWidth = aFrame->GetSize().width;
+    nsPoint pos = aPosition->GetPhysicalPoint(aWritingMode,
+                                              aContainerWidth - frameWidth);
+    ApplyRelativePositioning(aFrame,
+                             aComputedOffsets.GetPhysicalMargin(aWritingMode),
+                             &pos);
+    *aPosition = mozilla::LogicalPoint(aWritingMode, pos,
+                                       aContainerWidth - frameWidth);
+  }
+
+  void ApplyRelativePositioning(mozilla::LogicalPoint* aPosition,
+                                nscoord aContainerWidth) const {
+    ApplyRelativePositioning(frame, mWritingMode,
+                             ComputedLogicalOffsets(), aPosition,
+                             aContainerWidth);
+  }
+
 #ifdef DEBUG
   
   
