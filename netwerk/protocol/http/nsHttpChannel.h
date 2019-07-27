@@ -126,6 +126,7 @@ public:
     
     NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo) override;
     NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext) override;
+    NS_IMETHOD AsyncOpen2(nsIStreamListener *aListener) override;
     
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey) override;
     
