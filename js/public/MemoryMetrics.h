@@ -115,29 +115,43 @@ enum {
 
 namespace JS {
 
-
-struct ObjectsExtraSizes
+struct ClassInfo
 {
 #define FOR_EACH_SIZE(macro) \
-    macro(Objects, NotLiveGCThing, mallocHeapSlots) \
-    macro(Objects, NotLiveGCThing, mallocHeapElementsNonAsmJS) \
-    macro(Objects, NotLiveGCThing, mallocHeapElementsAsmJS) \
-    macro(Objects, NotLiveGCThing, nonHeapElementsAsmJS) \
-    macro(Objects, NotLiveGCThing, nonHeapElementsMapped) \
-    macro(Objects, NotLiveGCThing, nonHeapCodeAsmJS) \
-    macro(Objects, NotLiveGCThing, mallocHeapAsmJSModuleData) \
-    macro(Objects, NotLiveGCThing, mallocHeapArgumentsData) \
-    macro(Objects, NotLiveGCThing, mallocHeapRegExpStatics) \
-    macro(Objects, NotLiveGCThing, mallocHeapPropertyIteratorData) \
-    macro(Objects, NotLiveGCThing, mallocHeapCtypesData)
+    macro(Objects, IsLiveGCThing,  objectsGCHeap) \
+    macro(Objects, NotLiveGCThing, objectsMallocHeapSlots) \
+    macro(Objects, NotLiveGCThing, objectsMallocHeapElementsNonAsmJS) \
+    macro(Objects, NotLiveGCThing, objectsMallocHeapElementsAsmJS) \
+    macro(Objects, NotLiveGCThing, objectsNonHeapElementsAsmJS) \
+    macro(Objects, NotLiveGCThing, objectsNonHeapElementsMapped) \
+    macro(Objects, NotLiveGCThing, objectsNonHeapCodeAsmJS) \
+    macro(Objects, NotLiveGCThing, objectsMallocHeapMisc) \
+    \
+    macro(Other,   IsLiveGCThing,  shapesGCHeapTree) \
+    macro(Other,   IsLiveGCThing,  shapesGCHeapDict) \
+    macro(Other,   IsLiveGCThing,  shapesGCHeapBase) \
+    macro(Other,   NotLiveGCThing, shapesMallocHeapTreeTables) \
+    macro(Other,   NotLiveGCThing, shapesMallocHeapDictTables) \
+    macro(Other,   NotLiveGCThing, shapesMallocHeapTreeKids) \
 
-    ObjectsExtraSizes()
+    ClassInfo()
       : FOR_EACH_SIZE(ZERO_SIZE)
         dummy()
     {}
 
-    void add(const ObjectsExtraSizes &other) {
+    void add(const ClassInfo &other) {
         FOR_EACH_SIZE(ADD_OTHER_SIZE)
+    }
+
+    void subtract(const ClassInfo &other) {
+        FOR_EACH_SIZE(SUB_OTHER_SIZE)
+    }
+
+    bool isNotable() const {
+        static const size_t NotabilityThreshold = 16 * 1024;
+        size_t n = 0;
+        FOR_EACH_SIZE(ADD_SIZE_TO_N)
+        return n >= NotabilityThreshold;
     }
 
     size_t sizeOfLiveGCThings() const {
@@ -154,6 +168,29 @@ struct ObjectsExtraSizes
     int dummy;  
 
 #undef FOR_EACH_SIZE
+};
+
+
+
+
+
+
+
+struct NotableClassInfo : public ClassInfo
+{
+    NotableClassInfo();
+    NotableClassInfo(const char *className, const ClassInfo &info);
+    NotableClassInfo(NotableClassInfo &&info);
+    NotableClassInfo &operator=(NotableClassInfo &&info);
+
+    ~NotableClassInfo() {
+        js_free(className_);
+    }
+
+    char *className_;
+
+  private:
+    NotableClassInfo(const NotableClassInfo& info) MOZ_DELETE;
 };
 
 
@@ -489,20 +526,7 @@ struct ZoneStats
 struct CompartmentStats
 {
 #define FOR_EACH_SIZE(macro) \
-    macro(Objects, IsLiveGCThing,  objectsGCHeapOrdinary) \
-    macro(Objects, IsLiveGCThing,  objectsGCHeapFunction) \
-    macro(Objects, IsLiveGCThing,  objectsGCHeapDenseArray) \
-    macro(Objects, IsLiveGCThing,  objectsGCHeapSlowArray) \
-    macro(Objects, IsLiveGCThing,  objectsGCHeapCrossCompartmentWrapper) \
     macro(Private, NotLiveGCThing, objectsPrivate) \
-    macro(Other,   IsLiveGCThing,  shapesGCHeapTreeGlobalParented) \
-    macro(Other,   IsLiveGCThing,  shapesGCHeapTreeNonGlobalParented) \
-    macro(Other,   IsLiveGCThing,  shapesGCHeapDict) \
-    macro(Other,   IsLiveGCThing,  shapesGCHeapBase) \
-    macro(Other,   NotLiveGCThing, shapesMallocHeapTreeTables) \
-    macro(Other,   NotLiveGCThing, shapesMallocHeapDictTables) \
-    macro(Other,   NotLiveGCThing, shapesMallocHeapTreeShapeKids) \
-    macro(Other,   NotLiveGCThing, shapesMallocHeapCompartmentTables) \
     macro(Other,   IsLiveGCThing,  scriptsGCHeap) \
     macro(Other,   NotLiveGCThing, scriptsMallocHeapData) \
     macro(Other,   NotLiveGCThing, baselineData) \
@@ -513,6 +537,7 @@ struct CompartmentStats
     macro(Other,   NotLiveGCThing, typeInferenceArrayTypeTables) \
     macro(Other,   NotLiveGCThing, typeInferenceObjectTypeTables) \
     macro(Other,   NotLiveGCThing, compartmentObject) \
+    macro(Other,   NotLiveGCThing, compartmentTables) \
     macro(Other,   NotLiveGCThing, crossCompartmentWrappersTable) \
     macro(Other,   NotLiveGCThing, regexpCompartment) \
     macro(Other,   NotLiveGCThing, debuggeesSet) \
@@ -520,39 +545,69 @@ struct CompartmentStats
 
     CompartmentStats()
       : FOR_EACH_SIZE(ZERO_SIZE)
-        objectsExtra(),
-        extra()
+        classInfo(),
+        extra(),
+        allClasses(nullptr),
+        notableClasses(),
+        isTotals(true)
     {}
 
-    CompartmentStats(const CompartmentStats &other)
+    CompartmentStats(CompartmentStats &&other)
       : FOR_EACH_SIZE(COPY_OTHER_SIZE)
-        objectsExtra(other.objectsExtra),
-        extra(other.extra)
-    {}
+        classInfo(mozilla::Move(other.classInfo)),
+        extra(other.extra),
+        allClasses(other.allClasses),
+        notableClasses(mozilla::Move(other.notableClasses)),
+        isTotals(other.isTotals)
+    {
+        other.allClasses = nullptr;
+        MOZ_ASSERT(!other.isTotals);
+    }
 
-    void add(const CompartmentStats &other) {
-        FOR_EACH_SIZE(ADD_OTHER_SIZE)
-        objectsExtra.add(other.objectsExtra);
+    ~CompartmentStats() {
         
+        
+        
+        js_delete(allClasses);
+    }
+
+    bool initClasses(JSRuntime *rt);
+
+    void addSizes(const CompartmentStats &other) {
+        MOZ_ASSERT(isTotals);
+        FOR_EACH_SIZE(ADD_OTHER_SIZE)
+        classInfo.add(other.classInfo);
     }
 
     size_t sizeOfLiveGCThings() const {
+        MOZ_ASSERT(isTotals);
         size_t n = 0;
         FOR_EACH_SIZE(ADD_SIZE_TO_N_IF_LIVE_GC_THING)
-        n += objectsExtra.sizeOfLiveGCThings();
-        
+        n += classInfo.sizeOfLiveGCThings();
         return n;
     }
 
     void addToTabSizes(TabSizes *sizes) const {
+        MOZ_ASSERT(isTotals);
         FOR_EACH_SIZE(ADD_TO_TAB_SIZES);
-        objectsExtra.addToTabSizes(sizes);
-        
+        classInfo.addToTabSizes(sizes);
     }
 
+    
+    
+    
     FOR_EACH_SIZE(DECL_SIZE)
-    ObjectsExtraSizes  objectsExtra;
-    void               *extra;  
+    ClassInfo   classInfo;
+    void        *extra;     
+
+    typedef js::HashMap<const char*, ClassInfo,
+                        js::CStringHashPolicy,
+                        js::SystemAllocPolicy> ClassesHashMap;
+
+    
+    ClassesHashMap *allClasses;
+    js::Vector<NotableClassInfo, 0, js::SystemAllocPolicy> notableClasses;
+    bool isTotals;
 
 #undef FOR_EACH_SIZE
 };
