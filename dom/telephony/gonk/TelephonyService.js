@@ -374,55 +374,56 @@ TelephonyService.prototype = {
     aListener.enumerateCallStateComplete();
   },
 
+  _hasCallsOnOtherClient: function(aClientId) {
+    for (let cid = 0; cid < this._numClients; ++cid) {
+      if (cid === aClientId) {
+        continue;
+      }
+      if (Object.keys(this._currentCalls[cid]).length !== 0) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  
+  _numCallsOnLine: function(aClientId) {
+    let numCalls = 0;
+    let hasConference = false;
+
+    for (let cid in this._currentCalls[aClientId]) {
+      let call = this._currentCalls[aClientId][cid];
+      if (call.isConference) {
+        hasConference = true;
+      } else {
+        numCalls++;
+      }
+    }
+
+    return hasConference ? numCalls + 1 : numCalls;
+  },
+
   isDialing: false,
   dial: function(aClientId, aNumber, aIsEmergency, aTelephonyCallback) {
     if (DEBUG) debug("Dialing " + (aIsEmergency ? "emergency " : "") + aNumber);
 
     if (this.isDialing) {
-      if (DEBUG) debug("Already has a dialing call. Drop.");
+      if (DEBUG) debug("Error: Already has a dialing call.");
       aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
       return;
     }
 
-    function hasCallsOnOtherClient(aClientId) {
-      for (let cid = 0; cid < this._numClients; ++cid) {
-        if (cid === aClientId) {
-          continue;
-        }
-        if (Object.keys(this._currentCalls[cid]).length !== 0) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     
     
-    if (hasCallsOnOtherClient.call(this, aClientId)) {
-      if (DEBUG) debug("Already has a call on other sim. Drop.");
+    if (this._hasCallsOnOtherClient(aClientId)) {
+      if (DEBUG) debug("Error: Already has a call on other sim.");
       aTelephonyCallback.notifyDialError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
       return;
     }
 
     
-    function numCallsOnLine(aClientId) {
-      let numCalls = 0;
-      let hasConference = false;
-
-      for (let cid in this._currentCalls[aClientId]) {
-        let call = this._currentCalls[aClientId][cid];
-        if (call.isConference) {
-          hasConference = true;
-        } else {
-          numCalls++;
-        }
-      }
-
-      return hasConference ? numCalls + 1 : numCalls;
-    }
-
-    if (numCallsOnLine.call(this, aClientId) >= 2) {
-      if (DEBUG) debug("Has more than 2 calls on line. Drop.");
+    if (this._numCallsOnLine(aClientId) >= 2) {
+      if (DEBUG) debug("Error: Has more than 2 calls on line.");
       aTelephonyCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
       return;
     }
