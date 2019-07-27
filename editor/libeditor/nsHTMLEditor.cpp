@@ -4503,196 +4503,156 @@ nsHTMLEditor::SetIsCSSEnabled(bool aIsCSSPrefChecked)
 nsresult
 nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
 {
-  if (!mRules) { return NS_ERROR_NOT_INITIALIZED; }
+  NS_ENSURE_TRUE(mRules, NS_ERROR_NOT_INITIALIZED);
   ForceCompositionEnd();
 
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   nsRefPtr<Selection> selection = GetSelection();
+  NS_ENSURE_STATE(selection);
 
   bool isCollapsed = selection->Collapsed();
 
   nsAutoEditBatch batchIt(this);
-  nsAutoRules beginRulesSniffing(this, EditAction::insertElement, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, EditAction::insertElement,
+                                 nsIEditor::eNext);
   nsAutoSelectionReset selectionResetter(selection, this);
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
-  
+
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::setTextProperty);
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
-  if (!cancel && !handled)
-  {
+  if (!cancel && !handled) {
     
-    nsAutoString bgcolor; bgcolor.AssignLiteral("bgcolor");
-    uint32_t rangeCount = selection->RangeCount();
-    for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
-      nsCOMPtr<nsIDOMNode> cachedBlockParent = nullptr;
-      nsRefPtr<nsRange> range = selection->GetRangeAt(rangeIdx);
+    NS_NAMED_LITERAL_STRING(bgcolor, "bgcolor");
+    for (uint32_t i = 0; i < selection->RangeCount(); i++) {
+      nsRefPtr<nsRange> range = selection->GetRangeAt(i);
       NS_ENSURE_TRUE(range, NS_ERROR_FAILURE);
+
+      nsCOMPtr<Element> cachedBlockParent;
+
       
-      
-      nsCOMPtr<nsIDOMNode> startNode, endNode;
-      int32_t startOffset, endOffset;
-      res = range->GetStartContainer(getter_AddRefs(startNode));
-      NS_ENSURE_SUCCESS(res, res);
-      res = range->GetEndContainer(getter_AddRefs(endNode));
-      NS_ENSURE_SUCCESS(res, res);
-      res = range->GetStartOffset(&startOffset);
-      NS_ENSURE_SUCCESS(res, res);
-      res = range->GetEndOffset(&endOffset);
-      NS_ENSURE_SUCCESS(res, res);
-      if ((startNode == endNode) && IsTextNode(startNode))
-      {
+      nsCOMPtr<nsINode> startNode = range->GetStartParent();
+      int32_t startOffset = range->StartOffset();
+      nsCOMPtr<nsINode> endNode = range->GetEndParent();
+      int32_t endOffset = range->EndOffset();
+      if (startNode == endNode && IsTextNode(startNode)) {
         
-        nsCOMPtr<nsIDOMNode> blockParent;
-        blockParent = GetBlockNodeParent(startNode);
+        nsCOMPtr<Element> blockParent = GetBlockNodeParent(startNode);
         
         if (blockParent && cachedBlockParent != blockParent) {
           cachedBlockParent = blockParent;
-          nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
-          int32_t count;
-          res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-          NS_ENSURE_SUCCESS(res, res);
+          mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(blockParent, nullptr,
+                                                     &bgcolor, &aColor, false);
         }
-      }
-      else if ((startNode == endNode) && nsTextEditUtils::IsBody(startNode) && isCollapsed)
-      {
+      } else if (startNode == endNode &&
+                 startNode->IsHTMLElement(nsGkAtoms::body) && isCollapsed) {
         
-        nsCOMPtr<nsIDOMElement> element = do_QueryInterface(startNode);
-        int32_t count;
-        res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      else if ((startNode == endNode) && (((endOffset-startOffset) == 1) || (!startOffset && !endOffset)))
-      {
+        mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(startNode->AsElement(),
+                                                   nullptr, &bgcolor, &aColor,
+                                                   false);
+      } else if (startNode == endNode && (endOffset - startOffset == 1 ||
+                                          (!startOffset && !endOffset))) {
         
         
-        nsCOMPtr<nsIDOMNode> selectedNode = GetChildAt(startNode, startOffset);
-        bool isBlock =false;
-        res = NodeIsBlockStatic(selectedNode, &isBlock);
-        NS_ENSURE_SUCCESS(res, res);
-        nsCOMPtr<nsIDOMNode> blockParent = selectedNode;
-        if (!isBlock) {
+        nsCOMPtr<nsIContent> selectedNode = startNode->GetChildAt(startOffset);
+        nsCOMPtr<Element> blockParent;
+        if (NodeIsBlockStatic(selectedNode)) {
+          blockParent = selectedNode->AsElement();
+        } else {
           blockParent = GetBlockNodeParent(selectedNode);
         }
         if (blockParent && cachedBlockParent != blockParent) {
           cachedBlockParent = blockParent;
-          nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
-          int32_t count;
-          res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-          NS_ENSURE_SUCCESS(res, res);
+          mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(blockParent, nullptr,
+                                                     &bgcolor, &aColor, false);
         }
-      }
-      else
-      {
-        
-        
-        
-        
-        
+      } else {
         
         
         
         
         
 
-        nsCOMPtr<nsIContentIterator> iter =
-          do_CreateInstance("@mozilla.org/content/subtree-content-iterator;1", &res);
-        NS_ENSURE_SUCCESS(res, res);
-        NS_ENSURE_TRUE(iter, NS_ERROR_FAILURE);
+        
+        
+        
+        
 
-        nsCOMArray<nsIDOMNode> arrayOfNodes;
-        nsCOMPtr<nsIDOMNode> node;
-                
+        OwningNonNull<nsIContentIterator> iter =
+          NS_NewContentSubtreeIterator();
+
+        nsTArray<OwningNonNull<nsINode>> arrayOfNodes;
+        nsCOMPtr<nsINode> node;
+
         
         res = iter->Init(range);
         
         
         
-        
-        if (NS_SUCCEEDED(res))
-        {
-          while (!iter->IsDone())
-          {
+        if (NS_SUCCEEDED(res)) {
+          for (; !iter->IsDone(); iter->Next()) {
             node = do_QueryInterface(iter->GetCurrentNode());
             NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
 
-            if (IsEditable(node))
-            {
-              arrayOfNodes.AppendObject(node);
+            if (IsEditable(node)) {
+              arrayOfNodes.AppendElement(*node);
             }
-
-            iter->Next();
           }
         }
         
         
         
-        if (IsTextNode(startNode) && IsEditable(startNode))
-        {
-          nsCOMPtr<nsIDOMNode> blockParent;
-          blockParent = GetBlockNodeParent(startNode);
+        if (IsTextNode(startNode) && IsEditable(startNode)) {
+          nsCOMPtr<Element> blockParent = GetBlockNodeParent(startNode);
           if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
-            nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
-            int32_t count;
-            res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-            NS_ENSURE_SUCCESS(res, res);
+            mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(blockParent, nullptr,
+                                                       &bgcolor, &aColor,
+                                                       false);
           }
         }
+
         
-        
-        int32_t listCount = arrayOfNodes.Count();
-        int32_t j;
-        for (j = 0; j < listCount; j++)
-        {
-          node = arrayOfNodes[j];
-          
-          bool isBlock =false;
-          res = NodeIsBlockStatic(node, &isBlock);
-          NS_ENSURE_SUCCESS(res, res);
-          nsCOMPtr<nsIDOMNode> blockParent = node;
-          if (!isBlock) {
-            
+        for (auto& node : arrayOfNodes) {
+          nsCOMPtr<Element> blockParent;
+          if (NodeIsBlockStatic(node)) {
+            blockParent = node->AsElement();
+          } else {
             blockParent = GetBlockNodeParent(node);
           }
           if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
-            nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
-            int32_t count;
-            
-            res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-            NS_ENSURE_SUCCESS(res, res);
+            mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(blockParent, nullptr,
+                                                       &bgcolor, &aColor,
+                                                       false);
           }
         }
         arrayOfNodes.Clear();
+
         
         
         
-        
-        if (IsTextNode(endNode) && IsEditable(endNode))
-        {
-          nsCOMPtr<nsIDOMNode> blockParent;
-          blockParent = GetBlockNodeParent(endNode);
+        if (IsTextNode(endNode) && IsEditable(endNode)) {
+          nsCOMPtr<Element> blockParent = GetBlockNodeParent(endNode);
           if (blockParent && cachedBlockParent != blockParent) {
             cachedBlockParent = blockParent;
-            nsCOMPtr<nsIDOMElement> element = do_QueryInterface(blockParent);
-            int32_t count;
-            res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, nullptr, &bgcolor, &aColor, &count, false);
-            NS_ENSURE_SUCCESS(res, res);
+            mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(blockParent, nullptr,
+                                                       &bgcolor, &aColor,
+                                                       false);
           }
         }
       }
     }
   }
-  if (!cancel)
-  {
+  if (!cancel) {
     
     res = mRules->DidDoAction(selection, &ruleInfo, res);
+    NS_ENSURE_SUCCESS(res, res);
   }
-  return res;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
