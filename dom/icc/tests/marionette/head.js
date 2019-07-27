@@ -140,6 +140,158 @@ function getMozIcc(aIccId) {
 
 
 
+
+
+
+
+
+function getMozMobileConnectionByServiceId(aServiceId) {
+  aServiceId = aServiceId || 0;
+  return workingFrame.contentWindow.navigator.mozMobileConnections[aServiceId];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setRadioEnabled(aEnabled, aServiceId) {
+  return getMozMobileConnectionByServiceId(aServiceId).setRadioEnabled(aEnabled)
+    .then(() => {
+      ok(true, "setRadioEnabled " + aEnabled + " on " + aServiceId + " success.");
+    }, (aError) => {
+      ok(false, "setRadioEnabled " + aEnabled + " on " + aServiceId + " " +
+         aError.name);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForTargetEvent(aEventTarget, aEventName, aMatchFun) {
+  let deferred = Promise.defer();
+
+  aEventTarget.addEventListener(aEventName, function onevent(aEvent) {
+    if (!aMatchFun || aMatchFun(aEvent)) {
+      aEventTarget.removeEventListener(aEventName, onevent);
+      ok(true, "Event '" + aEventName + "' got.");
+      deferred.resolve(aEvent);
+    }
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setRadioEnabledAndWait(aEnabled, aServiceId) {
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+  let promises = [];
+
+  promises.push(waitForTargetEvent(mobileConn, "radiostatechange", function() {
+    
+    
+    return mobileConn.radioState === (aEnabled ? "enabled" : "disabled");
+  }));
+  promises.push(setRadioEnabled(aEnabled, aServiceId));
+
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function restartRadioAndWait(aCardState) {
+  return setRadioEnabledAndWait(false).then(() => {
+    let promises = [];
+
+    promises.push(waitForTargetEvent(iccManager, "iccdetected")
+      .then((aEvent) => {
+        let icc = getMozIcc(aEvent.iccId);
+        if (icc.cardState !== aCardState) {
+          return waitForTargetEvent(icc, "cardstatechange", function() {
+            return icc.cardState === aCardState;
+          });
+        }
+      }));
+    promises.push(setRadioEnabledAndWait(true));
+
+    return Promise.all(promises);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setPinLockEnabled(aIcc, aEnabled) {
+  let options = {
+    lockType: "pin",
+    enabled: aEnabled,
+    pin: DEFAULT_PIN
+  };
+
+  return aIcc.setCardLock(options);
+}
+
+
+
+
 function cleanUp() {
   
   ok(true, ":: CLEANING UP ::");
