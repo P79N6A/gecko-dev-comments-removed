@@ -13,13 +13,13 @@
 #include "mozilla/Attributes.h"  
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Move.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIMemoryReporter.h"
 #include "gfx2DGlue.h"
 #include "gfxPattern.h"  
 #include "gfxPlatform.h"
+#include "gfxPrefs.h"
 #include "imgFrame.h"
 #include "nsAutoPtr.h"
 #include "nsExpirationTracker.h"
@@ -477,24 +477,21 @@ SurfaceCache::Initialize()
   MOZ_ASSERT(!sInstance, "Shouldn't initialize more than once");
 
   
+
   
-  uint32_t surfaceCacheExpirationTimeMS =
-    Preferences::GetUint("image.mem.surfacecache.min_expiration_ms", 60 * 1000);
+  uint32_t surfaceCacheExpirationTimeMS = gfxPrefs::ImageMemSurfaceCacheMinExpirationMS();
+
+  
+  uint32_t surfaceCacheMaxSizeKB = gfxPrefs::ImageMemSurfaceCacheMaxSizeKB();
 
   
   
-  uint32_t surfaceCacheMaxSizeKB =
-    Preferences::GetUint("image.mem.surfacecache.max_size_kb", 100 * 1024);
-
   
   
   
   
   
-  
-  
-  uint32_t surfaceCacheSizeFactor =
-    Preferences::GetUint("image.mem.surfacecache.size_factor", 64);
+  uint32_t surfaceCacheSizeFactor = gfxPrefs::ImageMemSurfaceCacheSizeFactor();
 
   
   surfaceCacheSizeFactor = max(surfaceCacheSizeFactor, 1u);

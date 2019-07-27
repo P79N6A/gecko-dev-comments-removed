@@ -6,7 +6,6 @@
 
 #include <algorithm>
 
-#include "mozilla/Preferences.h"
 #include "mozilla/Likely.h"
 
 #include "nsIHttpChannel.h"
@@ -28,24 +27,9 @@
 namespace mozilla {
 namespace image {
 
-
-static bool gInitializedPrefCaches = false;
-static bool gDecodeOnDraw = false;
-static bool gDiscardable = false;
-static bool gEnableMozSampleSize = false;
-
  void
 ImageFactory::Initialize()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-  if (!gInitializedPrefCaches) {
-    
-    gfxPrefs::GetSingleton();
-    Preferences::AddBoolVarCache(&gDiscardable, "image.mem.discardable");
-    Preferences::AddBoolVarCache(&gDecodeOnDraw, "image.mem.decodeondraw");
-    Preferences::AddBoolVarCache(&gEnableMozSampleSize, "image.mozsamplesize.enabled");
-    gInitializedPrefCaches = true;
-  }
 }
 
 static uint32_t
@@ -54,8 +38,8 @@ ComputeImageFlags(ImageURL* uri, bool isMultiPart)
   nsresult rv;
 
   
-  bool isDiscardable = gDiscardable;
-  bool doDecodeOnDraw = gDecodeOnDraw;
+  bool isDiscardable = gfxPrefs::ImageMemDiscardable();
+  bool doDecodeOnDraw = gfxPrefs::ImageMemDecodeOnDraw();
 
   
   
@@ -118,7 +102,7 @@ ImageFactory::CreateImage(nsIRequest* aRequest,
                           bool aIsMultiPart,
                           uint32_t aInnerWindowId)
 {
-  MOZ_ASSERT(gInitializedPrefCaches,
+  MOZ_ASSERT(gfxPrefs::SingletonExists(),
              "Pref observers should have been initialized already");
 
   
@@ -252,7 +236,7 @@ ImageFactory::CreateRasterImage(nsIRequest* aRequest,
 
       if ((principal &&
            principal->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED) ||
-          gEnableMozSampleSize) {
+          gfxPrefs::ImageMozSampleSizeEnabled()) {
         newImage->SetRequestedSampleSize(parser.GetSampleSize());
       }
   }

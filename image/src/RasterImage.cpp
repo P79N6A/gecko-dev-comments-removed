@@ -41,7 +41,6 @@
 #include "mozilla/Move.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Services.h"
-#include "mozilla/Preferences.h"
 #include <stdint.h>
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
@@ -50,6 +49,7 @@
 
 #include "GeckoProfiler.h"
 #include "gfx2DGlue.h"
+#include "gfxPrefs.h"
 #include <algorithm>
 
 #ifdef MOZ_NUWA_PROCESS
@@ -90,40 +90,7 @@ GetCompressedImageAccountingLog()
 
 
 
-
-static uint32_t gDecodeBytesAtATime = 0;
-static uint32_t gMaxMSBeforeYield = 0;
-static bool gHQDownscaling = false;
-
-static uint32_t gHQDownscalingMinFactor = 1000;
-static bool gMultithreadedDecoding = true;
-static int32_t gDecodingThreadLimit = -1;
-
-
-static uint32_t gHQUpscalingMaxSize = 20971520;
-
-
-
 static int32_t sMaxDecodeCount = 0;
-
-static void
-InitPrefCaches()
-{
-  Preferences::AddUintVarCache(&gDecodeBytesAtATime,
-                               "image.mem.decode_bytes_at_a_time", 200000);
-  Preferences::AddUintVarCache(&gMaxMSBeforeYield,
-                               "image.mem.max_ms_before_yield", 400);
-  Preferences::AddBoolVarCache(&gHQDownscaling,
-                               "image.high_quality_downscaling.enabled", false);
-  Preferences::AddUintVarCache(&gHQDownscalingMinFactor,
-                               "image.high_quality_downscaling.min_factor", 1000);
-  Preferences::AddBoolVarCache(&gMultithreadedDecoding,
-                               "image.multithreaded_decoding.enabled", true);
-  Preferences::AddIntVarCache(&gDecodingThreadLimit,
-                              "image.multithreaded_decoding.limit", -1);
-  Preferences::AddUintVarCache(&gHQUpscalingMaxSize,
-                               "image.high_quality_upscaling.max_size", 20971520);
-}
 
 
 
@@ -432,8 +399,6 @@ RasterImage::~RasterImage()
  void
 RasterImage::Initialize()
 {
-  InitPrefCaches();
-
   
   
   DecodePool::Singleton();
@@ -2486,7 +2451,7 @@ RasterImage::CanScale(GraphicsFilter aFilter,
   
   
   
-  if (!gHQDownscaling || !mDecoded ||
+  if (!gfxPrefs::ImageHQDownscalingEnabled() || !mDecoded ||
       !(aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING) ||
       aFilter != GraphicsFilter::FILTER_GOOD) {
     return false;
@@ -2506,7 +2471,7 @@ RasterImage::CanScale(GraphicsFilter aFilter,
   
   if (aSize.width > mSize.width || aSize.height > mSize.height) {
     uint32_t scaledSize = static_cast<uint32_t>(aSize.width * aSize.height);
-    if (scaledSize > gHQUpscalingMaxSize) {
+    if (scaledSize > gfxPrefs::ImageHQUpscalingMaxSize()) {
       return false;
     }
   }
@@ -2519,9 +2484,10 @@ RasterImage::CanScale(GraphicsFilter aFilter,
   
   
   
+  
   gfx::Size scale(double(aSize.width) / mSize.width,
                   double(aSize.height) / mSize.height);
-  gfxFloat minFactor = gHQDownscalingMinFactor / 1000.0;
+  gfxFloat minFactor = gfxPrefs::ImageHQDownscalingMinFactor() / 1000.0;
   return (scale.width < minFactor || scale.height < minFactor);
 #endif
 }
@@ -3175,15 +3141,16 @@ RIDThreadPoolListener::OnThreadShuttingDown()
 RasterImage::DecodePool::DecodePool()
  : mThreadPoolMutex("Thread Pool")
 {
-  if (gMultithreadedDecoding) {
+  if (gfxPrefs::ImageMTDecodingEnabled()) {
     mThreadPool = do_CreateInstance(NS_THREADPOOL_CONTRACTID);
     if (mThreadPool) {
       mThreadPool->SetName(NS_LITERAL_CSTRING("ImageDecoder"));
+      int32_t prefLimit = gfxPrefs::ImageMTDecodingLimit();
       uint32_t limit;
-      if (gDecodingThreadLimit <= 0) {
+      if (prefLimit <= 0) {
         limit = std::max(PR_GetNumberOfProcessors(), 2) - 1;
       } else {
-        limit = static_cast<uint32_t>(gDecodingThreadLimit);
+        limit = static_cast<uint32_t>(prefLimit);
       }
 
       mThreadPool->SetThreadLimit(limit);
@@ -3253,7 +3220,7 @@ RasterImage::DecodePool::RequestDecode(RasterImage* aImg)
     nsRefPtr<DecodeJob> job = new DecodeJob(aImg->mDecodeRequest, aImg);
 
     MutexAutoLock threadPoolLock(mThreadPoolMutex);
-    if (!gMultithreadedDecoding || !mThreadPool) {
+    if (!gfxPrefs::ImageMTDecodingEnabled() || !mThreadPool) {
       NS_DispatchToMainThread(job);
     } else {
       mThreadPool->Dispatch(job, nsIEventTarget::DISPATCH_NORMAL);
@@ -3372,7 +3339,7 @@ RasterImage::DecodePool::DecodeJob::Run()
 
 RasterImage::DecodePool::DecodeJob::~DecodeJob()
 {
-  if (gMultithreadedDecoding) {
+  if (gfxPrefs::ImageMTDecodingEnabled()) {
     
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     NS_WARN_IF_FALSE(mainThread, "Couldn't get the main thread!");
@@ -3471,7 +3438,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
     
     
     
-    maxBytes = gDecodeBytesAtATime;
+    maxBytes = gfxPrefs::ImageMemDecodeBytesAtATime();
   }
 
   if (bytesToDecode == 0) {
@@ -3480,7 +3447,7 @@ RasterImage::DecodePool::DecodeSomeOfImage(RasterImage* aImg,
 
   int32_t chunkCount = 0;
   TimeStamp start = TimeStamp::Now();
-  TimeStamp deadline = start + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
+  TimeStamp deadline = start + TimeDuration::FromMilliseconds(gfxPrefs::ImageMemMaxMSBeforeYield());
 
   
   

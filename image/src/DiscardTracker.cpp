@@ -8,6 +8,7 @@
 #include "RasterImage.h"
 #include "DiscardTracker.h"
 #include "mozilla/Preferences.h"
+#include "gfxPrefs.h"
 
 namespace mozilla {
 namespace image {
@@ -21,8 +22,6 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  Atomic<bool> DiscardTracker::sDiscardRunnablePending(false);
  uint64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
  uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
- uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
- uint32_t DiscardTracker::sHardLimitDecodedImageKB = 0;
  PRLock * DiscardTracker::sAllocationLock = nullptr;
  Mutex* DiscardTracker::sNodeListMutex = nullptr;
  Atomic<bool> DiscardTracker::sShutdown(false);
@@ -146,8 +145,8 @@ DiscardTracker::TryAllocation(uint64_t aBytes)
 
   PR_Lock(sAllocationLock);
   bool enoughSpace =
-    !sHardLimitDecodedImageKB ||
-    (sHardLimitDecodedImageKB * 1024) - sCurrentDecodedImageBytes >= aBytes;
+    !gfxPrefs::ImageMemHardLimitDecodedImageKB() ||
+    (gfxPrefs::ImageMemHardLimitDecodedImageKB() * 1024) - sCurrentDecodedImageBytes >= aBytes;
 
   if (enoughSpace) {
     sCurrentDecodedImageBytes += aBytes;
@@ -184,13 +183,6 @@ DiscardTracker::Initialize()
   Preferences::RegisterCallback(DiscardTimeoutChangedCallback,
                                 sDiscardTimeoutPref);
 
-  Preferences::AddUintVarCache(&sMaxDecodedImageKB,
-                              "image.mem.max_decoded_image_kb",
-                              50 * 1024);
-
-  Preferences::AddUintVarCache(&sHardLimitDecodedImageKB,
-                               "image.mem.hard_limit_decoded_image_kb",
-                               0);
   
   sTimer = do_CreateInstance("@mozilla.org/timer;1");
 
@@ -297,7 +289,7 @@ DiscardTracker::DiscardNow()
   Node* node;
   while ((node = sDiscardableImages.getLast())) {
     if ((now - node->timestamp).ToMilliseconds() > sMinDiscardTimeoutMs ||
-        sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024) {
+        sCurrentDecodedImageBytes > gfxPrefs::ImageMemMaxDecodedImageKB() * 1024) {
 
       
       
@@ -322,7 +314,7 @@ DiscardTracker::MaybeDiscardSoon()
 {
   
   
-  if (sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024 &&
+  if (sCurrentDecodedImageBytes > gfxPrefs::ImageMemMaxDecodedImageKB() * 1024 &&
       !sDiscardableImages.isEmpty()) {
     
     if (!sDiscardRunnablePending.exchange(true)) {
