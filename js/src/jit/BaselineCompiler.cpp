@@ -248,10 +248,8 @@ BaselineCompiler::compile()
     if (cx->runtime()->spsProfiler.enabled())
         baselineScript->toggleSPS(true);
 
-#ifdef JS_TRACE_LOGGING
     
     baselineScript->initTraceLogger(cx->runtime(), script);
-#endif
 
     uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
     types::FillBytecodeTypeMap(script, bytecodeMap);
@@ -384,10 +382,8 @@ BaselineCompiler::emitPrologue()
     if (needsEarlyStackCheck())
         masm.bind(&earlyStackCheckFailed);
 
-#ifdef JS_TRACE_LOGGING
     if (!emitTraceLoggerEnter())
         return false;
-#endif
 
     
     
@@ -767,7 +763,6 @@ BaselineCompiler::emitDebugTrap()
     return true;
 }
 
-#ifdef JS_TRACE_LOGGING
 bool
 BaselineCompiler::emitTraceLoggerEnter()
 {
@@ -823,7 +818,6 @@ BaselineCompiler::emitTraceLoggerExit()
 
     return true;
 }
-#endif
 
 bool
 BaselineCompiler::emitSPSPush()
