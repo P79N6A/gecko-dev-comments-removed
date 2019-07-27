@@ -10,6 +10,7 @@
 #include "jit/VMFunctions.h"
 
 #include "jsscriptinlines.h"
+#include "jit/MacroAssembler-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -37,6 +38,19 @@ BaselineCompilerShared::BaselineCompilerShared(JSContext* cx, TempAllocator& all
     traceLoggerExitToggleOffset_(),
     traceLoggerScriptTextIdOffset_()
 { }
+
+void
+BaselineCompilerShared::prepareVMCall()
+{
+    pushedBeforeCall_ = masm.framePushed();
+    inCall_ = true;
+
+    
+    frame.syncStack(0);
+
+    
+    masm.Push(BaselineFrameReg);
+}
 
 bool
 BaselineCompilerShared::callVM(const VMFunction& fun, CallVMPhase phase)

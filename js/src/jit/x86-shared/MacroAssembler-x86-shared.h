@@ -45,19 +45,10 @@ class MacroAssemblerX86Shared : public Assembler
     MacroAssembler& asMasm();
     const MacroAssembler& asMasm() const;
 
-  protected:
-    
-    
-    
-    
-    
-    uint32_t framePushed_;
-
   public:
     using Assembler::call;
 
     MacroAssemblerX86Shared()
-      : framePushed_(0)
     { }
 
     void compareDouble(DoubleCondition cond, FloatRegister lhs, FloatRegister rhs) {
@@ -632,26 +623,6 @@ class MacroAssemblerX86Shared : public Assembler
         MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed || cond == NotSigned);
         test32(Operand(address), imm);
         j(cond, label);
-    }
-
-    
-    CodeOffsetLabel PushWithPatch(ImmWord word) {
-        framePushed_ += sizeof(word.value);
-        return pushWithPatch(word);
-    }
-    CodeOffsetLabel PushWithPatch(ImmPtr imm) {
-        return PushWithPatch(ImmWord(uintptr_t(imm.value)));
-    }
-
-    void implicitPop(uint32_t args) {
-        MOZ_ASSERT(args % sizeof(intptr_t) == 0);
-        framePushed_ -= args;
-    }
-    uint32_t framePushed() const {
-        return framePushed_;
-    }
-    void setFramePushed(uint32_t framePushed) {
-        framePushed_ = framePushed;
     }
 
     void jump(Label* label) {
@@ -1457,14 +1428,6 @@ class MacroAssemblerX86Shared : public Assembler
     void callWithExitFrame(Label* target);
     void callWithExitFrame(JitCode* target);
 
-    void call(const CallSiteDesc& desc, Label* label) {
-        call(label);
-        append(desc, currentOffset(), framePushed_);
-    }
-    void call(const CallSiteDesc& desc, Register reg) {
-        call(reg);
-        append(desc, currentOffset(), framePushed_);
-    }
     void callJit(Register callee) {
         call(callee);
     }

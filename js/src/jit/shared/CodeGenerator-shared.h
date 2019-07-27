@@ -189,64 +189,27 @@ class CodeGeneratorShared : public LElementVisitor
     FrameSizeClass frameClass_;
 
     
-    inline int32_t ArgToStackOffset(int32_t slot) const {
-        return masm.framePushed() +
-               (gen->compilingAsmJS() ? sizeof(AsmJSFrame) : sizeof(JitFrameLayout)) +
-               slot;
-    }
+    inline int32_t ArgToStackOffset(int32_t slot) const;
 
     
-    inline int32_t CalleeStackOffset() const {
-        return masm.framePushed() + JitFrameLayout::offsetOfCalleeToken();
-    }
+    inline int32_t CalleeStackOffset() const;
 
-    inline int32_t SlotToStackOffset(int32_t slot) const {
-        MOZ_ASSERT(slot > 0 && slot <= int32_t(graph.localSlotCount()));
-        int32_t offset = masm.framePushed() - frameInitialAdjustment_ - slot;
-        MOZ_ASSERT(offset >= 0);
-        return offset;
-    }
-    inline int32_t StackOffsetToSlot(int32_t offset) const {
-        
-        
-        
-        
-        
-        
-        return masm.framePushed() - frameInitialAdjustment_ - offset;
-    }
+    inline int32_t SlotToStackOffset(int32_t slot) const;
+    inline int32_t StackOffsetToSlot(int32_t offset) const;
 
     
-    inline int32_t StackOffsetOfPassedArg(int32_t slot) const {
-        
-        MOZ_ASSERT(slot >= 0 && slot <= int32_t(graph.argumentSlotCount()));
-        int32_t offset = masm.framePushed() -
-                       graph.paddedLocalSlotsSize() -
-                       (slot * sizeof(Value));
+    inline int32_t StackOffsetOfPassedArg(int32_t slot) const;
 
-        
-        
-        
-        
-        
-        
-        MOZ_ASSERT(offset >= 0);
-        MOZ_ASSERT(offset % sizeof(Value) == 0);
-        return offset;
-    }
-
-    inline int32_t ToStackOffset(LAllocation a) const {
-        if (a.isArgument())
-            return ArgToStackOffset(a.toArgument()->index());
-        return SlotToStackOffset(a.toStackSlot()->slot());
-    }
-    inline int32_t ToStackOffset(const LAllocation* a) const {
-        return ToStackOffset(*a);
-    }
+    inline int32_t ToStackOffset(LAllocation a) const;
+    inline int32_t ToStackOffset(const LAllocation* a) const;
 
     uint32_t frameSize() const {
         return frameClass_ == FrameSizeClass::None() ? frameDepth_ : frameClass_.frameSize();
     }
+
+    inline Operand ToOperand(const LAllocation& a);
+    inline Operand ToOperand(const LAllocation* a);
+    inline Operand ToOperand(const LDefinition* def);
 
   protected:
     

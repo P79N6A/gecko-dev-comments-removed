@@ -10,6 +10,8 @@
 #include "jit/shared/CodeGenerator-shared.h"
 #include "jit/Disassembler.h"
 
+#include "jit/MacroAssembler-inl.h"
+
 namespace js {
 namespace jit {
 
@@ -140,6 +142,98 @@ GetTempValue(Register type, Register payload)
 #else
 #error "Unknown"
 #endif
+}
+
+int32_t
+CodeGeneratorShared::ArgToStackOffset(int32_t slot) const
+{
+    return masm.framePushed() +
+           (gen->compilingAsmJS() ? sizeof(AsmJSFrame) : sizeof(JitFrameLayout)) +
+           slot;
+}
+
+int32_t
+CodeGeneratorShared::CalleeStackOffset() const
+{
+    return masm.framePushed() + JitFrameLayout::offsetOfCalleeToken();
+}
+
+int32_t
+CodeGeneratorShared::SlotToStackOffset(int32_t slot) const
+{
+    MOZ_ASSERT(slot > 0 && slot <= int32_t(graph.localSlotCount()));
+    int32_t offset = masm.framePushed() - frameInitialAdjustment_ - slot;
+    MOZ_ASSERT(offset >= 0);
+    return offset;
+}
+
+int32_t
+CodeGeneratorShared::StackOffsetToSlot(int32_t offset) const
+{
+    
+    
+    
+    
+    
+    
+    return masm.framePushed() - frameInitialAdjustment_ - offset;
+}
+
+
+int32_t
+CodeGeneratorShared::StackOffsetOfPassedArg(int32_t slot) const
+{
+    
+    MOZ_ASSERT(slot >= 0 && slot <= int32_t(graph.argumentSlotCount()));
+    int32_t offset = masm.framePushed() -
+                     graph.paddedLocalSlotsSize() -
+                     (slot * sizeof(Value));
+
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(offset >= 0);
+    MOZ_ASSERT(offset % sizeof(Value) == 0);
+    return offset;
+}
+
+int32_t
+CodeGeneratorShared::ToStackOffset(LAllocation a) const
+{
+    if (a.isArgument())
+        return ArgToStackOffset(a.toArgument()->index());
+    return SlotToStackOffset(a.toStackSlot()->slot());
+}
+
+int32_t
+CodeGeneratorShared::ToStackOffset(const LAllocation* a) const
+{
+    return ToStackOffset(*a);
+}
+
+Operand
+CodeGeneratorShared::ToOperand(const LAllocation& a)
+{
+    if (a.isGeneralReg())
+        return Operand(a.toGeneralReg()->reg());
+    if (a.isFloatReg())
+        return Operand(a.toFloatReg()->reg());
+    return Operand(StackPointer, ToStackOffset(&a));
+}
+
+Operand
+CodeGeneratorShared::ToOperand(const LAllocation* a)
+{
+    return ToOperand(*a);
+}
+
+Operand
+CodeGeneratorShared::ToOperand(const LDefinition* def)
+{
+    return ToOperand(def->output());
 }
 
 void

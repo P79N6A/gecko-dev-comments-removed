@@ -141,16 +141,7 @@ class BaselineCompilerShared
     void pushArg(const T& t) {
         masm.Push(t);
     }
-    void prepareVMCall() {
-        pushedBeforeCall_ = masm.framePushed();
-        inCall_ = true;
-
-        
-        frame.syncStack(0);
-
-        
-        masm.Push(BaselineFrameReg);
-    }
+    void prepareVMCall();
 
     enum CallVMPhase {
         POST_INITIALIZE,
