@@ -714,7 +714,9 @@ let emulator = (function() {
 
 
 
-  function addCallsToConference(callsToAdd, connectedCallback) {
+
+
+  function addCallsToConference(callsToAdd, connectedCallback, twice) {
     log("Add " + callsToAdd.length + " calls into conference.");
 
     let deferred = Promise.defer();
@@ -755,10 +757,13 @@ let emulator = (function() {
     });
 
     
-    if (callsToAdd.length == 2) {
-      conference.add(callsToAdd[0], callsToAdd[1]);
-    } else {
-      conference.add(callsToAdd[0]);
+    let requestCount = twice ? 2 : 1;
+    for (let i = 0; i < requestCount; ++i) {
+      if (callsToAdd.length == 2) {
+        conference.add(callsToAdd[0], callsToAdd[1]);
+      } else {
+        conference.add(callsToAdd[0]);
+      }
     }
 
     return deferred.promise;
