@@ -315,14 +315,21 @@ RasterImage::Init(const char* aMimeType,
   
   MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
                (!(aFlags & INIT_FLAG_DISCARDABLE) &&
-                !(aFlags & INIT_FLAG_DECODE_ON_DRAW)),
-             "Transient images can't be discardable or decode-on-draw");
+                !(aFlags & INIT_FLAG_DECODE_ON_DRAW),
+                !(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE)),
+             "Illegal init flags for transient image");
 
   
   mSourceDataMimeType.Assign(aMimeType);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
   mDecodeOnDraw = !!(aFlags & INIT_FLAG_DECODE_ON_DRAW);
   mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
+  mDownscaleDuringDecode = !!(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE);
+
+#ifndef MOZ_ENABLE_SKIA
+  
+  mDownscaleDuringDecode = false;
+#endif
 
   
   if (!mDiscardable) {
