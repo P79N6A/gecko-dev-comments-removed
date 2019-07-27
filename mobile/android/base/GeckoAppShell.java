@@ -1173,6 +1173,19 @@ public class GeckoAppShell
                                    final String action,
                                    final String title) {
 
+        final Intent intent = getOpenURIIntentInner(context, targetURI, mimeType, action, title);
+
+        if (intent != null) {
+            
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        }
+
+        return intent;
+    }
+
+    private static Intent getOpenURIIntentInner(final Context context,  final String targetURI,
+            final String mimeType, final String action, final String title) {
+
         if (action.equalsIgnoreCase(Intent.ACTION_SEND)) {
             Intent shareIntent = getShareIntent(context, targetURI, mimeType, title);
             return Intent.createChooser(shareIntent,
@@ -1199,9 +1212,6 @@ public class GeckoAppShell
                 Log.e(LOGTAG, "Unable to parse URI - " + e);
                 return null;
             }
-
-            
-            intent.addCategory(Intent.CATEGORY_BROWSABLE);
 
             
             intent.setComponent(null);
