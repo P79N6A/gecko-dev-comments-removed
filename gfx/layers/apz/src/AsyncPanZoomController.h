@@ -20,6 +20,7 @@
 #include "InputData.h"
 #include "Axis.h"
 #include "InputQueue.h"
+#include "LayersTypes.h"
 #include "TaskThrottler.h"
 #include "mozilla/gfx/Matrix.h"
 #include "nsRegion.h"
@@ -997,22 +998,22 @@ private:
 
 
 public:
-  void SetLayerHitTestData(const nsIntRegion& aRegion, const Matrix4x4& aTransformToLayer) {
-    mVisibleRegion = aRegion;
+  void SetLayerHitTestData(const EventRegions& aRegions, const Matrix4x4& aTransformToLayer) {
+    mEventRegions = aRegions;
     mAncestorTransform = aTransformToLayer;
   }
 
-  void AddHitTestRegion(const nsIntRegion& aRegion) {
-    mVisibleRegion.OrWith(aRegion);
+  void AddHitTestRegions(const EventRegions& aRegions) {
+    mEventRegions.OrWith(aRegions);
   }
 
   Matrix4x4 GetAncestorTransform() const {
     return mAncestorTransform;
   }
 
-  bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
+  bool HitRegionContains(const ParentLayerPoint& aPoint) const {
     ParentLayerIntPoint point = RoundedToInt(aPoint);
-    return mVisibleRegion.Contains(point.x, point.y);
+    return mEventRegions.mHitRegion.Contains(point.x, point.y);
   }
 
   bool IsOverscrolled() const {
@@ -1024,7 +1025,7 @@ private:
 
 
 
-  nsIntRegion mVisibleRegion;
+  EventRegions mEventRegions;
   
 
   Matrix4x4 mAncestorTransform;
