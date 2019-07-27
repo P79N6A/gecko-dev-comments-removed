@@ -85,8 +85,8 @@ public:
   char16_t*            mBrandName; 
 
 private:
-  nsPrintData() MOZ_DELETE;
-  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
+  nsPrintData() = delete;
+  nsPrintData& operator=(const nsPrintData& aOther) = delete;
 
 };
 

@@ -17,7 +17,7 @@ public:
 private:
   ~NativeOSFileInternalsService() {}
   
-  void operator=(const NativeOSFileInternalsService& other) MOZ_DELETE;
+  void operator=(const NativeOSFileInternalsService& other) = delete;
 };
 
 } 

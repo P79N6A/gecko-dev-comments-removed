@@ -3699,8 +3699,8 @@ private:
   }
 
   
-  CachedStatement(const CachedStatement&) MOZ_DELETE;
-  CachedStatement& operator=(const CachedStatement&) MOZ_DELETE;
+  CachedStatement(const CachedStatement&) = delete;
+  CachedStatement& operator=(const CachedStatement&) = delete;
 };
 
 class NormalTransaction MOZ_FINAL
@@ -4898,7 +4898,7 @@ private:
 
   
   bool
-  SendResponse(const CursorResponse& aResponse) MOZ_DELETE;
+  SendResponse(const CursorResponse& aResponse) = delete;
 
   
   virtual void

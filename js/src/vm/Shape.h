@@ -357,7 +357,7 @@ class BaseShape : public gc::TenuredCell
     
     ShapeTable       *table_;
 
-    BaseShape(const BaseShape &base) MOZ_DELETE;
+    BaseShape(const BaseShape &base) = delete;
 
   public:
     void finalize(FreeOp *fop);
@@ -778,7 +778,7 @@ class Shape : public gc::TenuredCell
     inline Shape(UnownedBaseShape *base, uint32_t nfixed);
 
     
-    Shape(const Shape &other) MOZ_DELETE;
+    Shape(const Shape &other) = delete;
 
     
     static inline Shape *new_(ExclusiveContext *cx, StackShape &unrootedOther, uint32_t nfixed);

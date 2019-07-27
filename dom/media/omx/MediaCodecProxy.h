@@ -148,9 +148,9 @@ protected:
 
 private:
   
-  MediaCodecProxy() MOZ_DELETE;
-  MediaCodecProxy(const MediaCodecProxy &) MOZ_DELETE;
-  const MediaCodecProxy &operator=(const MediaCodecProxy &) MOZ_DELETE;
+  MediaCodecProxy() = delete;
+  MediaCodecProxy(const MediaCodecProxy &) = delete;
+  const MediaCodecProxy &operator=(const MediaCodecProxy &) = delete;
 
   
   MediaCodecProxy(sp<ALooper> aLooper,

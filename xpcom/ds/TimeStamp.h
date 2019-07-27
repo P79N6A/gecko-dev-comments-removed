@@ -179,7 +179,7 @@ public:
 private:
   
   
-  BaseTimeDuration operator*(const double aMultiplier) const MOZ_DELETE;
+  BaseTimeDuration operator*(const double aMultiplier) const = delete;
 
 public:
   BaseTimeDuration MultDouble(double aMultiplier) const

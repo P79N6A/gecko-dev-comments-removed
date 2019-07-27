@@ -41,8 +41,8 @@ private:
 
   
   ~NativeFileWatcherService();
-  NativeFileWatcherService(const NativeFileWatcherService& other) MOZ_DELETE;
-  void operator=(const NativeFileWatcherService& other) MOZ_DELETE;
+  NativeFileWatcherService(const NativeFileWatcherService& other) = delete;
+  void operator=(const NativeFileWatcherService& other) = delete;
 };
 
 } 

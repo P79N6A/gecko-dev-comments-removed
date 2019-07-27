@@ -158,7 +158,7 @@ private:
 
   
   
-  ErrorResult(const ErrorResult&) MOZ_DELETE;
+  ErrorResult(const ErrorResult&) = delete;
 };
 
 

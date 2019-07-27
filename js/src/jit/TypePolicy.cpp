@@ -1052,7 +1052,7 @@ namespace {
 
 
 inline TypePolicy *
-thisTypePolicy() MOZ_DELETE;
+thisTypePolicy() = delete;
 
 static MIRType
 thisTypeSpecialization()

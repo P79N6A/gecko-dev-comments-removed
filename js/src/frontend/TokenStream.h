@@ -181,8 +181,8 @@ struct CompileError {
   private:
     
     
-    void operator=(const CompileError &) MOZ_DELETE;
-    CompileError(const CompileError &) MOZ_DELETE;
+    void operator=(const CompileError &) = delete;
+    CompileError(const CompileError &) = delete;
 };
 
 
@@ -515,7 +515,7 @@ class MOZ_STACK_CLASS TokenStream
         
         explicit Position(AutoKeepAtoms&) { }
       private:
-        Position(const Position&) MOZ_DELETE;
+        Position(const Position&) = delete;
         friend class TokenStream;
         const char16_t *buf;
         Flags flags;

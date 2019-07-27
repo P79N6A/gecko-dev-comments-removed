@@ -273,8 +273,8 @@ class JS_PUBLIC_API(AutoGCRooter)
     AutoGCRooter ** const stackTop;
 
     
-    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
-    void operator=(AutoGCRooter &ida) MOZ_DELETE;
+    AutoGCRooter(AutoGCRooter &ida) = delete;
+    void operator=(AutoGCRooter &ida) = delete;
 };
 
 } 

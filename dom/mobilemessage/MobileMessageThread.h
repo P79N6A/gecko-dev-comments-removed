@@ -49,7 +49,7 @@ private:
   ~MobileMessageThread() {}
 
   
-  MobileMessageThread() MOZ_DELETE;
+  MobileMessageThread() = delete;
 
   ThreadData mData;
 };

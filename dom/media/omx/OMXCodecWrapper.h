@@ -172,9 +172,9 @@ protected:
 
 private:
   
-  OMXCodecWrapper() MOZ_DELETE;
-  OMXCodecWrapper(const OMXCodecWrapper&) MOZ_DELETE;
-  OMXCodecWrapper& operator=(const OMXCodecWrapper&) MOZ_DELETE;
+  OMXCodecWrapper() = delete;
+  OMXCodecWrapper(const OMXCodecWrapper&) = delete;
+  OMXCodecWrapper& operator=(const OMXCodecWrapper&) = delete;
 
   
 
@@ -238,9 +238,9 @@ protected:
                                        ABuffer* aData) MOZ_OVERRIDE;
 private:
   
-  OMXAudioEncoder() MOZ_DELETE;
-  OMXAudioEncoder(const OMXAudioEncoder&) MOZ_DELETE;
-  OMXAudioEncoder& operator=(const OMXAudioEncoder&) MOZ_DELETE;
+  OMXAudioEncoder() = delete;
+  OMXAudioEncoder(const OMXAudioEncoder&) = delete;
+  OMXAudioEncoder& operator=(const OMXAudioEncoder&) = delete;
 
   
 
@@ -331,9 +331,9 @@ protected:
 
 private:
   
-  OMXVideoEncoder() MOZ_DELETE;
-  OMXVideoEncoder(const OMXVideoEncoder&) MOZ_DELETE;
-  OMXVideoEncoder& operator=(const OMXVideoEncoder&) MOZ_DELETE;
+  OMXVideoEncoder() = delete;
+  OMXVideoEncoder(const OMXVideoEncoder&) = delete;
+  OMXVideoEncoder& operator=(const OMXVideoEncoder&) = delete;
 
   
 

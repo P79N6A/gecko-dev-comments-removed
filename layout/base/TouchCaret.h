@@ -62,7 +62,7 @@ public:
 
 private:
   
-  TouchCaret() MOZ_DELETE;
+  TouchCaret() = delete;
 
   ~TouchCaret();
 

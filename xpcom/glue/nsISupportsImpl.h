@@ -339,8 +339,8 @@ public:
 
   static const bool isThreadSafe = false;
 private:
-  nsrefcnt operator++(int) MOZ_DELETE;
-  nsrefcnt operator--(int) MOZ_DELETE;
+  nsrefcnt operator++(int) = delete;
+  nsrefcnt operator--(int) = delete;
   nsrefcnt mValue;
 };
 
@@ -365,8 +365,8 @@ public:
 
   static const bool isThreadSafe = true;
 private:
-  nsrefcnt operator++(int) MOZ_DELETE;
-  nsrefcnt operator--(int) MOZ_DELETE;
+  nsrefcnt operator++(int) = delete;
+  nsrefcnt operator--(int) = delete;
   
   
   

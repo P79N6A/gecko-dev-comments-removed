@@ -24,7 +24,7 @@ class SVGSVGElement;
 class SVGFragmentIdentifier
 {
   
-  SVGFragmentIdentifier() MOZ_DELETE;
+  SVGFragmentIdentifier() = delete;
 
 public:
   

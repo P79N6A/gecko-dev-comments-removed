@@ -212,8 +212,8 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
 
   private:
     
-    JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other) MOZ_DELETE;
-    JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other) MOZ_DELETE;
+    JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other) = delete;
+    JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other) = delete;
 };
 
 

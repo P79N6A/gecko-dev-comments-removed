@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #if !defined(GonkVideoDecoderManager_h_)
 #define GonkVideoDecoderManager_h_
@@ -25,13 +25,13 @@ struct ALooper;
 class MediaBuffer;
 struct MOZ_EXPORT AString;
 class GonkNativeWindow;
-} // namespace android
+} 
 
 namespace mozilla {
 
 namespace layers {
 class TextureClient;
-} // namespace mozilla::layers
+} 
 
 class GonkVideoDecoderManager : public GonkDecoderManager {
 typedef android::MediaCodecProxy MediaCodecProxy;
@@ -80,10 +80,10 @@ private:
     virtual void onMessageReceived(const android::sp<android::AMessage> &aMessage);
 
   private:
-    // Forbidden
-    MessageHandler() MOZ_DELETE;
-    MessageHandler(const MessageHandler &rhs) MOZ_DELETE;
-    const MessageHandler &operator=(const MessageHandler &rhs) MOZ_DELETE;
+    
+    MessageHandler() = delete;
+    MessageHandler(const MessageHandler &rhs) = delete;
+    const MessageHandler &operator=(const MessageHandler &rhs) = delete;
 
     GonkVideoDecoderManager *mManager;
   };
@@ -99,22 +99,22 @@ private:
     virtual void codecCanceled() MOZ_OVERRIDE;
 
   private:
-    // Forbidden
-    VideoResourceListener() MOZ_DELETE;
-    VideoResourceListener(const VideoResourceListener &rhs) MOZ_DELETE;
-    const VideoResourceListener &operator=(const VideoResourceListener &rhs) MOZ_DELETE;
+    
+    VideoResourceListener() = delete;
+    VideoResourceListener(const VideoResourceListener &rhs) = delete;
+    const VideoResourceListener &operator=(const VideoResourceListener &rhs) = delete;
 
     GonkVideoDecoderManager *mManager;
   };
   friend class VideoResourceListener;
 
-  // FrameTimeInfo keeps the presentation time stamp (pts) and its duration.
-  // On MediaDecoderStateMachine, it needs pts and duration to display decoded
-  // frame correctly. But OMX can carry one field of time info (kKeyTime) so
-  // we use FrameTimeInfo to keep pts and duration.
+  
+  
+  
+  
   struct FrameTimeInfo {
-    int64_t pts;       // presentation time stamp of this frame.
-    int64_t duration;  // the playback duration.
+    int64_t pts;       
+    int64_t duration;  
   };
 
   bool SetVideoFormat();
@@ -123,7 +123,7 @@ private:
   void ReleaseVideoBuffer();
   uint8_t* GetColorConverterBuffer(int32_t aWidth, int32_t aHeight);
 
-  // For codec resource management
+  
   void codecReserved();
   void codecCanceled();
   void onMessageReceived(const sp<AMessage> &aMessage);
@@ -155,15 +155,15 @@ private:
   android::sp<ALooper> mManagerLooper;
   FrameInfo mFrameInfo;
 
-  // It protects mFrameTimeInfo.
+  
   Monitor mMonitor;
-  // Array of FrameTimeInfo whose corresponding frames are sent to OMX.
-  // Ideally, it is a FIFO. Input() adds the entry to the end element and
-  // CreateVideoData() takes the first entry. However, there are exceptions
-  // due to MediaCodec error or seeking.
+  
+  
+  
+  
   nsTArray<FrameTimeInfo> mFrameTimeInfo;
 
-  // color converter
+  
   android::I420ColorConverterHelper mColorConverter;
   nsAutoArrayPtr<uint8_t> mColorConverterBuffer;
   size_t mColorConverterBufferSize;
@@ -173,14 +173,14 @@ private:
     kNotifyPostReleaseBuffer = 'nprb',
   };
 
-  // Hold video's MediaBuffers that are released.
-  // The holded MediaBuffers are released soon after flush.
+  
+  
   Vector<android::MediaBuffer*> mPendingVideoBuffers;
-  // The lock protects mPendingVideoBuffers.
+  
   Mutex mPendingVideoBuffersLock;
 
 };
 
-} // namespace mozilla
+} 
 
-#endif // GonkVideoDecoderManager_h_
+#endif 

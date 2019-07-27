@@ -1731,10 +1731,10 @@ private:
   
   
   
-  void EnterMargin(const nsMargin& aMargin) MOZ_DELETE;
-  void ExitMargin(const nsMargin& aMargin) MOZ_DELETE;
-  void EnterChildFrame(nscoord aChildFrameSize) MOZ_DELETE;
-  void ExitChildFrame(nscoord aChildFrameSize) MOZ_DELETE;
+  void EnterMargin(const nsMargin& aMargin) = delete;
+  void ExitMargin(const nsMargin& aMargin) = delete;
+  void EnterChildFrame(nscoord aChildFrameSize) = delete;
+  void ExitChildFrame(nscoord aChildFrameSize) = delete;
 
   nscoord  mPackingSpaceRemaining;
   uint32_t mNumPackingSpacesRemaining;

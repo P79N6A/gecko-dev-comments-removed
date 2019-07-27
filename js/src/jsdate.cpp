@@ -304,7 +304,7 @@ DayFromMonth(int month, bool isLeapYear)
 
 template<typename T>
 static inline int
-DayFromMonth(T month, bool isLeapYear) MOZ_DELETE;
+DayFromMonth(T month, bool isLeapYear) = delete;
 
 
 static double

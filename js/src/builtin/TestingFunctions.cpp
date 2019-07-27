@@ -1840,8 +1840,8 @@ class BackEdge {
 
   private:
     
-    BackEdge(const BackEdge &) MOZ_DELETE;
-    BackEdge &operator=(const BackEdge &) MOZ_DELETE;
+    BackEdge(const BackEdge &) = delete;
+    BackEdge &operator=(const BackEdge &) = delete;
 };
 
 

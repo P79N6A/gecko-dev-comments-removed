@@ -55,8 +55,8 @@ public:
 
 private:
     
-    gfxQuartzNativeDrawing(const gfxQuartzNativeDrawing&) MOZ_DELETE;
-    const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&) MOZ_DELETE;
+    gfxQuartzNativeDrawing(const gfxQuartzNativeDrawing&) = delete;
+    const gfxQuartzNativeDrawing& operator=(const gfxQuartzNativeDrawing&) = delete;
 
     
     mozilla::RefPtr<DrawTarget> mDrawTarget;

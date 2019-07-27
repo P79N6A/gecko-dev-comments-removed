@@ -41,7 +41,7 @@ public:
   Shutdown();
 
 private:
-  MobileConnectionChild() MOZ_DELETE;
+  MobileConnectionChild() = delete;
 
   
   ~MobileConnectionChild()

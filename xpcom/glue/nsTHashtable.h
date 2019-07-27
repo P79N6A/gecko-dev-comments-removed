@@ -357,7 +357,7 @@ protected:
 
 private:
   
-  nsTHashtable(nsTHashtable<EntryType>& aToCopy) MOZ_DELETE;
+  nsTHashtable(nsTHashtable<EntryType>& aToCopy) = delete;
 
   
 
@@ -374,7 +374,7 @@ private:
                                                  void*);
 
   
-  nsTHashtable<EntryType>& operator=(nsTHashtable<EntryType>& aToEqual) MOZ_DELETE;
+  nsTHashtable<EntryType>& operator=(nsTHashtable<EntryType>& aToEqual) = delete;
 };
 
 

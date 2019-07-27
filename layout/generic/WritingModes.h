@@ -634,7 +634,7 @@ private:
 #endif
 
   
-  LogicalPoint() MOZ_DELETE;
+  LogicalPoint() = delete;
 
   
   
@@ -843,7 +843,7 @@ public:
 private:
   friend class LogicalRect;
 
-  LogicalSize() MOZ_DELETE;
+  LogicalSize() = delete;
 
 #ifdef DEBUG
   WritingMode GetWritingMode() const { return mWritingMode; }
@@ -1146,7 +1146,7 @@ public:
 private:
   friend class LogicalRect;
 
-  LogicalMargin() MOZ_DELETE;
+  LogicalMargin() = delete;
 
 #ifdef DEBUG
   WritingMode GetWritingMode() const { return mWritingMode; }
@@ -1571,7 +1571,7 @@ public:
   }
 
 private:
-  LogicalRect() MOZ_DELETE;
+  LogicalRect() = delete;
 
 #ifdef DEBUG
   WritingMode GetWritingMode() const { return mWritingMode; }

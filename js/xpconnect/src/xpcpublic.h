@@ -372,8 +372,8 @@ public:
     nsAutoCString pathPrefix;
 
 private:
-    ZoneStatsExtras(const ZoneStatsExtras &other) MOZ_DELETE;
-    ZoneStatsExtras& operator=(const ZoneStatsExtras &other) MOZ_DELETE;
+    ZoneStatsExtras(const ZoneStatsExtras &other) = delete;
+    ZoneStatsExtras& operator=(const ZoneStatsExtras &other) = delete;
 };
 
 
@@ -388,8 +388,8 @@ public:
     nsCOMPtr<nsIURI> location;
 
 private:
-    CompartmentStatsExtras(const CompartmentStatsExtras &other) MOZ_DELETE;
-    CompartmentStatsExtras& operator=(const CompartmentStatsExtras &other) MOZ_DELETE;
+    CompartmentStatsExtras(const CompartmentStatsExtras &other) = delete;
+    CompartmentStatsExtras& operator=(const CompartmentStatsExtras &other) = delete;
 };
 
 

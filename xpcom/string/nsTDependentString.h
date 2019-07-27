@@ -102,5 +102,5 @@ public:
 private:
 
   
-  nsTDependentString_CharT(const substring_tuple_type&) MOZ_DELETE;
+  nsTDependentString_CharT(const substring_tuple_type&) = delete;
 };

@@ -206,8 +206,8 @@ public:
   }
 
 private:
-  NodeInfo() MOZ_DELETE; 
-  NodeInfo(const NodeInfo& aOther) MOZ_DELETE;
+  NodeInfo() = delete; 
+  NodeInfo(const NodeInfo& aOther) = delete;
 
   
   

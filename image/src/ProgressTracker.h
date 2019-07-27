@@ -169,7 +169,7 @@ private:
   friend class AsyncNotifyCurrentStateRunnable;
   friend class ProgressTrackerInit;
 
-  ProgressTracker(const ProgressTracker& aOther) MOZ_DELETE;
+  ProgressTracker(const ProgressTracker& aOther) = delete;
 
   
   

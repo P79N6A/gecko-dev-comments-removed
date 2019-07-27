@@ -111,8 +111,8 @@ private:
   uint64_t mCaps;
 
   
-  CDMCaps(const CDMCaps&) MOZ_DELETE;
-  CDMCaps& operator=(const CDMCaps&) MOZ_DELETE;
+  CDMCaps(const CDMCaps&) = delete;
+  CDMCaps& operator=(const CDMCaps&) = delete;
 };
 
 } 

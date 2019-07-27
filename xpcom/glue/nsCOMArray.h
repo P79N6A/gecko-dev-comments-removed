@@ -179,7 +179,7 @@ private:
   nsTArray<nsISupports*> mArray;
 
   
-  nsCOMArray_base& operator=(const nsCOMArray_base& aOther) MOZ_DELETE;
+  nsCOMArray_base& operator=(const nsCOMArray_base& aOther) = delete;
 };
 
 inline void
@@ -450,7 +450,7 @@ public:
 private:
 
   
-  nsCOMArray<T>& operator=(const nsCOMArray<T>& aOther) MOZ_DELETE;
+  nsCOMArray<T>& operator=(const nsCOMArray<T>& aOther) = delete;
 };
 
 template<typename T>

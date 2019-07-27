@@ -107,7 +107,7 @@ public:
 protected:
   virtual ~MediaRecorder();
 
-  MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
+  MediaRecorder& operator = (const MediaRecorder& x) = delete;
   
   nsresult CreateAndDispatchBlobEvent(already_AddRefed<nsIDOMBlob>&& aBlob);
   
@@ -119,7 +119,7 @@ protected:
   
   void SetMimeType(const nsString &aMimeType);
 
-  MediaRecorder(const MediaRecorder& x) MOZ_DELETE; 
+  MediaRecorder(const MediaRecorder& x) = delete; 
   
   void RemoveSession(Session* aSession);
   

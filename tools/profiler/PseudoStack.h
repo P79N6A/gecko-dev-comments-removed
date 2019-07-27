@@ -446,8 +446,8 @@ public:
   }
 
   
-  PseudoStack(const PseudoStack&) MOZ_DELETE;
-  void operator=(const PseudoStack&) MOZ_DELETE;
+  PseudoStack(const PseudoStack&) = delete;
+  void operator=(const PseudoStack&) = delete;
 
   
   

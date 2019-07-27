@@ -87,7 +87,7 @@ class Nursery
 
 
 
-    MOZ_ALWAYS_INLINE bool isInside(gc::Cell *cellp) const MOZ_DELETE;
+    MOZ_ALWAYS_INLINE bool isInside(gc::Cell *cellp) const = delete;
     MOZ_ALWAYS_INLINE bool isInside(const void *p) const {
         return uintptr_t(p) >= heapStart_ && uintptr_t(p) < heapEnd_;
     }

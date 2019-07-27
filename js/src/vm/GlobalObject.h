@@ -262,7 +262,7 @@ class GlobalObject : public NativeObject
 
   private:
     
-    static GlobalObject *create(...) MOZ_DELETE;
+    static GlobalObject *create(...) = delete;
 
     friend struct ::JSRuntime;
     static GlobalObject *createInternal(JSContext *cx, const Class *clasp);

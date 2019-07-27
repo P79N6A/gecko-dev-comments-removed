@@ -103,7 +103,7 @@ public:
 
   private:
     
-    PermissionKey() MOZ_DELETE;
+    PermissionKey() = delete;
 
     
     ~PermissionKey() {};
@@ -283,7 +283,7 @@ private:
     bool                      browserOnly;
     nsCOMArray<nsIPermission> permissions;
 
-    GetPermissionsForAppStruct() MOZ_DELETE;
+    GetPermissionsForAppStruct() = delete;
     GetPermissionsForAppStruct(uint32_t aAppId, bool aBrowserOnly)
       : appId(aAppId)
       , browserOnly(aBrowserOnly)

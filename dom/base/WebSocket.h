@@ -158,8 +158,8 @@ private:
   void DontKeepAliveAnyMore();
 
 private:
-  WebSocket(const WebSocket& x) MOZ_DELETE;   
-  WebSocket& operator=(const WebSocket& x) MOZ_DELETE;
+  WebSocket(const WebSocket& x) = delete;   
+  WebSocket& operator=(const WebSocket& x) = delete;
 
   void Send(nsIInputStream* aMsgStream,
             const nsACString& aMsgString,
