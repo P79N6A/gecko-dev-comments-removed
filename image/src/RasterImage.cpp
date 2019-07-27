@@ -509,13 +509,16 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  DrawableFrameRef ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
+  nsIntSize requestedSize =
+    CanDownscaleDuringDecode(aSize, aFlags) ? aSize : mSize;
+
+  DrawableFrameRef ref = LookupFrameInternal(aFrameNum, requestedSize, aFlags);
 
   if (!ref && IsOpaque() && aFrameNum == 0) {
     
     
     
-    ref = LookupFrameInternal(aFrameNum, aSize,
+    ref = LookupFrameInternal(aFrameNum, requestedSize,
                               aFlags ^ FLAG_DECODE_NO_PREMULTIPLY_ALPHA);
   }
 
@@ -530,16 +533,22 @@ RasterImage::LookupFrame(uint32_t aFrameNum,
 
     
     
-    WantDecodedFrames(mSize, aFlags, aShouldSyncNotify);
+    WantDecodedFrames(requestedSize, aFlags, aShouldSyncNotify);
 
     
     
     ref = LookupFrameInternal(aFrameNum, aSize, aFlags);
+  }
 
-    if (!ref) {
-      
-      return DrawableFrameRef();
-    }
+  if (!ref && requestedSize != mSize) {
+    
+    
+    ref = LookupFrameInternal(aFrameNum, mSize, aFlags);
+  }
+
+  if (!ref) {
+    
+    return DrawableFrameRef();
   }
 
   if (ref->GetCompositingFailed()) {
@@ -1524,6 +1533,11 @@ RasterImage::CanScale(GraphicsFilter aFilter,
   }
 
   
+  if (mDownscaleDuringDecode) {
+    return false;
+  }
+
+  
   
   if (mAnim || mTransient) {
     return false;
@@ -1556,6 +1570,40 @@ RasterImage::CanScale(GraphicsFilter aFilter,
   gfxFloat minFactor = gfxPrefs::ImageHQDownscalingMinFactor() / 1000.0;
   return (scale.width < minFactor || scale.height < minFactor);
 #endif
+}
+
+bool
+RasterImage::CanDownscaleDuringDecode(const nsIntSize& aSize, uint32_t aFlags)
+{
+  
+  
+  
+  if (!mDownscaleDuringDecode || !mHasSize ||
+      !(aFlags & imgIContainer::FLAG_HIGH_QUALITY_SCALING)) {
+    return false;
+  }
+
+  
+  if (mAnim) {
+    return false;
+  }
+
+  
+  if (aSize.width >= mSize.width || aSize.height >= mSize.height) {
+    return false;
+  }
+
+  
+  if (aSize.width < 1 || aSize.height < 1) {
+    return false;
+  }
+
+  
+  if (!SurfaceCache::CanHold(aSize.ToIntSize())) {
+    return false;
+  }
+
+  return true;
 }
 
 void
@@ -1684,11 +1732,12 @@ RasterImage::Draw(gfxContext* aContext,
 
   
   
-  
-  
-  
+  uint32_t flags = aFilter == GraphicsFilter::FILTER_GOOD
+                 ? aFlags
+                 : aFlags & ~FLAG_HIGH_QUALITY_SCALING;
+
   DrawableFrameRef ref =
-    LookupFrame(GetRequestedFrameIndex(aWhichFrame), mSize, aFlags);
+    LookupFrame(GetRequestedFrameIndex(aWhichFrame), aSize, flags);
   if (!ref) {
     
     if (mDrawStartTime.IsNull()) {
@@ -1701,7 +1750,7 @@ RasterImage::Draw(gfxContext* aContext,
                                ref->IsImageComplete();
 
   DrawWithPreDownscaleIfNeeded(Move(ref), aContext, aSize,
-                               aRegion, aFilter, aFlags);
+                               aRegion, aFilter, flags);
 
   if (shouldRecordTelemetry) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
@@ -1990,7 +2039,10 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
 
   nsIntSize destSize(ceil(aDest.width), ceil(aDest.height));
 
-  if (CanScale(aFilter, destSize, aFlags)) {
+  if (aFilter == GraphicsFilter::FILTER_GOOD &&
+      CanDownscaleDuringDecode(destSize, aFlags)) {
+    return destSize;
+  } else if (CanScale(aFilter, destSize, aFlags)) {
     DrawableFrameRef frameRef =
       SurfaceCache::Lookup(ImageKey(this),
                            RasterSurfaceKey(destSize.ToIntSize(),
