@@ -227,6 +227,12 @@ nsWindow::DoDraw(void)
     }
 }
 
+void
+nsWindow::ConfigureAPZControllerThread()
+{
+  APZThreadUtils::SetControllerThread(CompositorParent::CompositorLoop());
+}
+
  nsEventStatus
 nsWindow::DispatchInputEvent(WidgetGUIEvent& aEvent)
 {

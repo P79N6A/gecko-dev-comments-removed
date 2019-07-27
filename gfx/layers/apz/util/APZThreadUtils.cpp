@@ -11,7 +11,7 @@ namespace mozilla {
 namespace layers {
 
 static bool sThreadAssertionsEnabled = true;
-static PRThread* sControllerThread;
+static MessageLoop* sControllerThread;
 
  void
 APZThreadUtils::SetThreadAssertionsEnabled(bool aEnabled) {
@@ -24,21 +24,21 @@ APZThreadUtils::GetThreadAssertionsEnabled() {
 }
 
  void
+APZThreadUtils::SetControllerThread(MessageLoop* aLoop)
+{
+  
+  
+  MOZ_ASSERT(!sControllerThread || !aLoop || sControllerThread == aLoop);
+  sControllerThread = aLoop;
+}
+
+ void
 APZThreadUtils::AssertOnControllerThread() {
   if (!GetThreadAssertionsEnabled()) {
     return;
   }
 
-  static bool sControllerThreadDetermined = false;
-  if (!sControllerThreadDetermined) {
-    
-    
-    
-    
-    sControllerThread = PR_GetCurrentThread();
-    sControllerThreadDetermined = true;
-  }
-  MOZ_ASSERT(sControllerThread == PR_GetCurrentThread());
+  MOZ_ASSERT(sControllerThread == MessageLoop::current());
 }
 
  void
@@ -52,25 +52,19 @@ APZThreadUtils::AssertOnCompositorThread()
  void
 APZThreadUtils::RunOnControllerThread(Task* aTask)
 {
-#ifdef MOZ_WIDGET_GONK
-  
-  
-  MessageLoop* loop = CompositorParent::CompositorLoop();
-  if (!loop) {
+  if (!sControllerThread) {
     
     NS_WARNING("Dropping task posted to controller thread\n");
     delete aTask;
     return;
   }
-  MOZ_ASSERT(MessageLoop::current() != loop);
-  loop->PostTask(FROM_HERE, aTask);
-#else
-  
-  
-  AssertOnControllerThread();
-  aTask->Run();
-  delete aTask;
-#endif
+
+  if (sControllerThread == MessageLoop::current()) {
+    aTask->Run();
+    delete aTask;
+  } else {
+    sControllerThread->PostTask(FROM_HERE, aTask);
+  }
 }
 
 } 
