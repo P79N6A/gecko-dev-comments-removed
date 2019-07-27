@@ -62,7 +62,9 @@ nsColumnSetFrame::PaintColumnRule(nsRenderingContext* aCtx,
   if (!nextSibling)
     return;  
 
-  bool isRTL = StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  WritingMode wm = GetWritingMode();
+  bool isVertical = wm.IsVertical();
+  bool isRTL = !wm.IsBidiLTR();
   const nsStyleColumn* colStyle = StyleColumn();
 
   uint8_t ruleStyle;
@@ -88,31 +90,52 @@ nsColumnSetFrame::PaintColumnRule(nsRenderingContext* aCtx,
   
   
   nsStyleBorder border(presContext);
-  border.SetBorderWidth(NS_SIDE_LEFT, ruleWidth);
-  border.SetBorderStyle(NS_SIDE_LEFT, ruleStyle);
-  border.SetBorderColor(NS_SIDE_LEFT, ruleColor);
+  Sides skipSides;
+  if (isVertical) {
+    border.SetBorderWidth(NS_SIDE_TOP, ruleWidth);
+    border.SetBorderStyle(NS_SIDE_TOP, ruleStyle);
+    border.SetBorderColor(NS_SIDE_TOP, ruleColor);
+    skipSides |= mozilla::eSideBitsLeftRight;
+    skipSides |= mozilla::eSideBitsBottom;
+  } else {
+    border.SetBorderWidth(NS_SIDE_LEFT, ruleWidth);
+    border.SetBorderStyle(NS_SIDE_LEFT, ruleStyle);
+    border.SetBorderColor(NS_SIDE_LEFT, ruleColor);
+    skipSides |= mozilla::eSideBitsTopBottom;
+    skipSides |= mozilla::eSideBitsRight;
+  }
 
   
   
   nsRect contentRect = GetContentRect() - GetRect().TopLeft() + aPt;
-  nsSize ruleSize(ruleWidth, contentRect.height);
+  nsSize ruleSize = isVertical ? nsSize(contentRect.width, ruleWidth)
+                               : nsSize(ruleWidth, contentRect.height);
 
   while (nextSibling) {
     
-    nsIFrame* leftSibling = isRTL ? nextSibling : child;
-    nsIFrame* rightSibling = isRTL ? child : nextSibling;
+    
+    
+    
+    nsIFrame* prevFrame = isRTL ? nextSibling : child;
+    nsIFrame* nextFrame = isRTL ? child : nextSibling;
 
     
     
-    nsPoint edgeOfLeftSibling = leftSibling->GetRect().TopRight() + aPt;
-    nsPoint edgeOfRightSibling = rightSibling->GetRect().TopLeft() + aPt;
-    nsPoint linePt((edgeOfLeftSibling.x + edgeOfRightSibling.x - ruleWidth) / 2,
-                   contentRect.y);
+    
+    nsPoint linePt;
+    if (isVertical) {
+      nscoord edgeOfPrev = prevFrame->GetRect().YMost() + aPt.y;
+      nscoord edgeOfNext = nextFrame->GetRect().Y() + aPt.y;
+      linePt = nsPoint(contentRect.x,
+                       (edgeOfPrev + edgeOfNext - ruleSize.height) / 2);
+    } else {
+      nscoord edgeOfPrev = prevFrame->GetRect().XMost() + aPt.x;
+      nscoord edgeOfNext = nextFrame->GetRect().X() + aPt.x;
+      linePt = nsPoint((edgeOfPrev + edgeOfNext - ruleSize.width) / 2,
+                       contentRect.y);
+    }
 
     nsRect lineRect(linePt, ruleSize);
-    
-    Sides skipSides(mozilla::eSideBitsTopBottom);
-    skipSides |= mozilla::eSideBitsRight;
     nsCSSRendering::PaintBorderWithStyleBorder(presContext, *aCtx, this,
         aDirtyRect, lineRect, border, StyleContext(),
         skipSides);
@@ -125,26 +148,28 @@ nsColumnSetFrame::PaintColumnRule(nsRenderingContext* aCtx,
 static nscoord
 GetAvailableContentISize(const nsHTMLReflowState& aReflowState)
 {
-  if (aReflowState.AvailableWidth() == NS_INTRINSICSIZE) {
+  if (aReflowState.AvailableISize() == NS_INTRINSICSIZE) {
     return NS_INTRINSICSIZE;
   }
-  nscoord borderPaddingWidth =
-    aReflowState.ComputedPhysicalBorderPadding().left +
-    aReflowState.ComputedPhysicalBorderPadding().right;
-  return std::max(0, aReflowState.AvailableWidth() - borderPaddingWidth);
+
+  WritingMode wm = aReflowState.GetWritingMode();
+  nscoord borderPaddingISize =
+    aReflowState.ComputedLogicalBorderPadding().IStartEnd(wm);
+  return std::max(0, aReflowState.AvailableISize() - borderPaddingISize);
 }
 
 nscoord
 nsColumnSetFrame::GetAvailableContentBSize(const nsHTMLReflowState& aReflowState)
 {
-  if (aReflowState.AvailableHeight() == NS_INTRINSICSIZE) {
+  if (aReflowState.AvailableBSize() == NS_INTRINSICSIZE) {
     return NS_INTRINSICSIZE;
   }
 
-  nsMargin bp = aReflowState.ComputedPhysicalBorderPadding();
-  bp.ApplySkipSides(GetSkipSides(&aReflowState));
-  bp.bottom = aReflowState.ComputedPhysicalBorderPadding().bottom;
-  return std::max(0, aReflowState.AvailableHeight() - bp.TopBottom());
+  WritingMode wm = aReflowState.GetWritingMode();
+  LogicalMargin bp = aReflowState.ComputedLogicalBorderPadding();
+  bp.ApplySkipSides(GetLogicalSkipSides(&aReflowState));
+  bp.BEnd(wm) = aReflowState.ComputedLogicalBorderPadding().BEnd(wm);
+  return std::max(0, aReflowState.AvailableBSize() - bp.BStartEnd(wm));
 }
 
 static nscoord
@@ -174,8 +199,8 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
 
   const nsStyleColumn* colStyle = StyleColumn();
   nscoord availContentISize = GetAvailableContentISize(aReflowState);
-  if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
-    availContentISize = aReflowState.ComputedWidth();
+  if (aReflowState.ComputedISize() != NS_INTRINSICSIZE) {
+    availContentISize = aReflowState.ComputedISize();
   }
 
   nscoord consumedBSize = GetConsumedBSize();
@@ -187,10 +212,10 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState,
                                                     consumedBSize);
   nscoord colBSize = GetAvailableContentBSize(aReflowState);
 
-  if (aReflowState.ComputedHeight() != NS_INTRINSICSIZE) {
-    colBSize = aReflowState.ComputedHeight();
-  } else if (aReflowState.ComputedMaxHeight() != NS_INTRINSICSIZE) {
-    colBSize = std::min(colBSize, aReflowState.ComputedMaxHeight());
+  if (aReflowState.ComputedBSize() != NS_INTRINSICSIZE) {
+    colBSize = aReflowState.ComputedBSize();
+  } else if (aReflowState.ComputedMaxBSize() != NS_INTRINSICSIZE) {
+    colBSize = std::min(colBSize, aReflowState.ComputedMaxBSize());
   }
 
   nscoord colGap = GetColumnGap(this, colStyle);
@@ -347,10 +372,10 @@ static void MoveChildTo(nsIFrame* aParent, nsIFrame* aChild, nsPoint aOrigin)
 nscoord
 nsColumnSetFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
-  nscoord width = 0;
-  DISPLAY_MIN_WIDTH(this, width);
+  nscoord iSize = 0;
+  DISPLAY_MIN_WIDTH(this, iSize);
   if (mFrames.FirstChild()) {
-    width = mFrames.FirstChild()->GetMinISize(aRenderingContext);
+    iSize = mFrames.FirstChild()->GetMinISize(aRenderingContext);
   }
   const nsStyleColumn* colStyle = StyleColumn();
   nscoord colISize;
@@ -359,21 +384,21 @@ nsColumnSetFrame::GetMinISize(nsRenderingContext *aRenderingContext)
     
     
     
-    width = std::min(width, colISize);
+    iSize = std::min(iSize, colISize);
   } else {
     NS_ASSERTION(colStyle->mColumnCount > 0,
                  "column-count and column-width can't both be auto");
     
     
-    colISize = width;
-    width *= colStyle->mColumnCount;
+    colISize = iSize;
+    iSize *= colStyle->mColumnCount;
     
     
-    width = std::max(width, colISize);
+    iSize = std::max(iSize, colISize);
   }
   
   
-  return width;
+  return iSize;
 }
 
 nscoord
@@ -402,11 +427,11 @@ nsColumnSetFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
     
     numColumns = 1;
   }
+
+  nscoord iSize = colISize * numColumns + colGap * (numColumns - 1);
   
-  nscoord width = colISize*numColumns + colGap*(numColumns - 1);
   
-  
-  result = std::max(width, colISize);
+  result = std::max(iSize, colISize);
   return result;
 }
 
@@ -421,13 +446,16 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 {
   aColData.Reset();
   bool allFit = true;
-  bool RTL = StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  WritingMode wm = GetWritingMode();
+  bool isVertical = wm.IsVertical();
+  bool isRTL = !wm.IsBidiLTR();
   bool shrinkingBSizeOnly = !NS_SUBTREE_DIRTY(this) &&
     mLastBalanceBSize > aConfig.mColMaxBSize;
-  
+
 #ifdef DEBUG_roc
-  printf("*** Doing column reflow pass: mLastBalanceBSize=%d, mColMaxBSize=%d, RTL=%d\n, mBalanceColCount=%d, mColISize=%d, mColGap=%d\n",
-         mLastBalanceBSize, aConfig.mColMaxBSize, RTL, aConfig.mBalanceColCount,
+  printf("*** Doing column reflow pass: mLastBalanceBSize=%d, mColMaxBSize=%d, RTL=%d\n"
+         "    mBalanceColCount=%d, mColISize=%d, mColGap=%d\n",
+         mLastBalanceBSize, aConfig.mColMaxBSize, isRTL, aConfig.mBalanceColCount,
          aConfig.mColISize, aConfig.mColGap);
 #endif
 
@@ -447,30 +475,33 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   }
 
   
-  nsMargin borderPadding = aReflowState.ComputedPhysicalBorderPadding();
-  borderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
-  
+  LogicalMargin borderPadding = aReflowState.ComputedLogicalBorderPadding();
+  borderPadding.ApplySkipSides(GetLogicalSkipSides(&aReflowState));
+
   nsRect contentRect(0, 0, 0, 0);
   nsOverflowAreas overflowRects;
 
   nsIFrame* child = mFrames.FirstChild();
-  nsPoint childOrigin = nsPoint(borderPadding.left, borderPadding.top);
+  nsMargin physicalBP = borderPadding.GetPhysicalMargin(wm);
+  nsPoint childOrigin(physicalBP.left, physicalBP.top);
   
   
   
   
-  if (RTL) {
-    nscoord availISize = aReflowState.AvailableWidth();
-    if (aReflowState.ComputedWidth() != NS_INTRINSICSIZE) {
-      availISize = aReflowState.ComputedWidth();
+  nscoord& childOriginICoord = isVertical ? childOrigin.y : childOrigin.x;
+  if (isRTL) {
+    nscoord availISize = aReflowState.AvailableISize();
+    if (aReflowState.ComputedISize() != NS_INTRINSICSIZE) {
+      availISize = aReflowState.ComputedISize();
     }
     if (availISize != NS_INTRINSICSIZE) {
-      childOrigin.x += availISize - aConfig.mColISize;
+      childOriginICoord += availISize - aConfig.mColISize;
 #ifdef DEBUG_roc
-      printf("*** childOrigin.x = %d\n", childOrigin.x);
+      printf("*** childOrigin.iCoord = %d\n", childOriginICoord);
 #endif
     }
   }
+
   int columnCount = 0;
   int contentBEnd = 0;
   bool reflowNext = false;
@@ -499,15 +530,34 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
-    bool skipResizeBSizeShrink = shrinkingBSizeOnly
-      && child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxBSize;
+    bool skipResizeBSizeShrink = false;
+    if (shrinkingBSizeOnly) {
+      switch (wm.GetBlockDir()) {
+      case WritingMode::eBlockTB:
+        if (child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxBSize) {
+          skipResizeBSizeShrink = true;
+        }
+        break;
+      case WritingMode::eBlockLR:
+        if (child->GetScrollableOverflowRect().XMost() <= aConfig.mColMaxBSize) {
+          skipResizeBSizeShrink = true;
+        }
+        break;
+      case WritingMode::eBlockRL:
+        
+        
+        break;
+      default:
+        NS_NOTREACHED("unknown block direction");
+        break;
+      }
+    }
 
     nscoord childContentBEnd = 0;
-    WritingMode wm = child->GetWritingMode();
     if (!reflowNext && (skipIncremental || skipResizeBSizeShrink)) {
       
       MoveChildTo(this, child, childOrigin);
-      
+
       
       nsIFrame* kidNext = child->GetNextSibling();
       if (kidNext) {
@@ -519,24 +569,24 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       }
       childContentBEnd = nsLayoutUtils::CalculateContentBEnd(wm, child);
 #ifdef DEBUG_roc
-      printf("*** Skipping child #%d %p (incremental %d, resize height shrink %d): status = %d\n",
+      printf("*** Skipping child #%d %p (incremental %d, resize block-size shrink %d): status = %d\n",
              columnCount, (void*)child, skipIncremental, skipResizeBSizeShrink, aStatus);
 #endif
     } else {
-      nsSize physicalSize(aConfig.mColISize, aConfig.mColMaxBSize);
-
+      LogicalSize availSize(wm, aConfig.mColISize, aConfig.mColMaxBSize);
       if (aUnboundedLastColumn && columnCount == aConfig.mBalanceColCount - 1) {
-        physicalSize.height = GetAvailableContentBSize(aReflowState);
+        availSize.BSize(wm) = GetAvailableContentBSize(aReflowState);
       }
-      LogicalSize availSize(wm, physicalSize);
+
       LogicalSize computedSize = aReflowState.ComputedSize(wm);
 
       if (reflowNext)
         child->AddStateBits(NS_FRAME_IS_DIRTY);
 
+      LogicalSize kidCBSize(wm, availSize.ISize(wm), computedSize.BSize(wm));
       nsHTMLReflowState kidReflowState(PresContext(), aReflowState, child,
-                                       availSize, availSize.ISize(wm),
-                                       computedSize.BSize(wm));
+                                       availSize, kidCBSize.Width(wm),
+                                       kidCBSize.Height(wm));
       kidReflowState.mFlags.mIsTopOfPage = true;
       kidReflowState.mFlags.mTableIsSplittable = false;
       kidReflowState.mFlags.mIsColumnBalancing = aConfig.mBalanceColCount < INT32_MAX;
@@ -576,7 +626,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       reflowNext = (aStatus & NS_FRAME_REFLOW_NEXTINFLOW) != 0;
     
 #ifdef DEBUG_roc
-      printf("*** Reflowed child #%d %p: status = %d, desiredSize=%d,%d CarriedOutBottomMargin=%d\n",
+      printf("*** Reflowed child #%d %p: status = %d, desiredSize=%d,%d CarriedOutBEndMargin=%d\n",
              columnCount, (void*)child, aStatus, kidDesiredSize.Width(), kidDesiredSize.Height(),
              kidDesiredSize.mCarriedOutBEndMargin.get());
 #endif
@@ -584,7 +634,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       NS_FRAME_TRACE_REFLOW_OUT("Column::Reflow", aStatus);
 
       *aCarriedOutBEndMargin = kidDesiredSize.mCarriedOutBEndMargin;
-      
+
       FinishReflowChild(child, PresContext(), kidDesiredSize,
                         &kidReflowState, childOrigin.x, childOrigin.y, 0);
 
@@ -679,14 +729,14 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     child = child->GetNextSibling();
 
     if (child) {
-      if (!RTL) {
-        childOrigin.x += aConfig.mColISize + aConfig.mColGap;
+      if (isRTL) {
+        childOriginICoord -= aConfig.mColISize + aConfig.mColGap;
       } else {
-        childOrigin.x -= aConfig.mColISize + aConfig.mColGap;
+        childOriginICoord += aConfig.mColISize + aConfig.mColGap;
       }
-      
+
 #ifdef DEBUG_roc
-      printf("*** NEXT CHILD ORIGIN.x = %d\n", childOrigin.x);
+      printf("*** NEXT CHILD ORIGIN.iCoord = %d\n", childOriginICoord);
 #endif
     }
   }
@@ -705,21 +755,30 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       child->AddStateBits(NS_FRAME_IS_DIRTY);
     }
   }
-  
+
   aColData.mMaxBSize = contentBEnd;
-  contentRect.height = std::max(contentRect.height, contentBEnd);
+  LogicalSize contentSize = LogicalSize(wm, contentRect.Size());
+  contentSize.BSize(wm) = std::max(contentSize.BSize(wm), contentBEnd);
   mLastFrameStatus = aStatus;
-  
-  
-  contentRect -= nsPoint(borderPadding.left, borderPadding.top);
-
-  WritingMode wm = aReflowState.GetWritingMode();
-  LogicalSize contentSize(wm, nsSize(contentRect.XMost(), contentRect.YMost()));
 
   
+  
+  
+  if (wm.IsVerticalRL()) {
+    child = mFrames.FirstChild();
+    while (child) {
+      nscoord offset = aColData.mMaxBSize - child->GetRect().width;
+      if (offset) {
+        nsPoint childPos = child->GetPosition();
+        child->SetPosition(childPos + nsPoint(offset, 0));
+      }
+      child = child->GetNextSibling();
+    }
+  }
+
   
   if (aConfig.mComputedBSize != NS_INTRINSICSIZE) {
-    if (aReflowState.AvailableHeight() != NS_INTRINSICSIZE) {
+    if (aReflowState.AvailableBSize() != NS_INTRINSICSIZE) {
       contentSize.BSize(wm) = std::min(contentSize.BSize(wm),
                                        aConfig.mComputedBSize);
     } else {
@@ -732,19 +791,18 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     contentSize.BSize(wm) =
-      aReflowState.ApplyMinMaxHeight(contentSize.BSize(wm),
-                                     aConfig.mConsumedBSize);
+      aReflowState.ApplyMinMaxBSize(contentSize.BSize(wm),
+                                    aConfig.mConsumedBSize);
   }
   if (aReflowState.ComputedISize() != NS_INTRINSICSIZE) {
     contentSize.ISize(wm) = aReflowState.ComputedISize();
   } else {
     contentSize.ISize(wm) =
-      aReflowState.ApplyMinMaxWidth(contentSize.ISize(wm));
+      aReflowState.ApplyMinMaxISize(contentSize.ISize(wm));
   }
 
-  LogicalMargin bp(wm, borderPadding);
-  contentSize.ISize(wm) += bp.IStartEnd(wm);
-  contentSize.BSize(wm) += bp.BStartEnd(wm);
+  contentSize.ISize(wm) += borderPadding.IStartEnd(wm);
+  contentSize.BSize(wm) += borderPadding.BStartEnd(wm);
   aDesiredSize.SetSize(wm, contentSize);
   aDesiredSize.mOverflowAreas = overflowRects;
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
@@ -1014,15 +1072,15 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   if (aPresContext->HasPendingInterrupt() &&
-      aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE) {
+      aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE) {
     
     
     aStatus = NS_FRAME_COMPLETE;
   }
 
   NS_ASSERTION(NS_FRAME_IS_FULLY_COMPLETE(aStatus) ||
-               aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE,
-               "Column set should be complete if the available height is unconstrained");
+               aReflowState.AvailableBSize() != NS_UNCONSTRAINEDSIZE,
+               "Column set should be complete if the available block-size is unconstrained");
 
   
   aDesiredSize.mOverflowAreas.UnionWith(ocBounds);

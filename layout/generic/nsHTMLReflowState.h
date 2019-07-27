@@ -697,6 +697,17 @@ public:
 
 
 
+  nscoord ApplyMinMaxISize(nscoord aISize) const {
+    if (NS_UNCONSTRAINEDSIZE != ComputedMaxISize()) {
+      aISize = std::min(aISize, ComputedMaxISize());
+    }
+    return std::max(aISize, ComputedMinISize());
+  }
+
+  
+
+
+
 
 
 
@@ -714,6 +725,29 @@ public:
     }
 
     return aHeight - aConsumed;
+  }
+
+  
+
+
+
+
+
+
+
+
+  nscoord ApplyMinMaxBSize(nscoord aBSize, nscoord aConsumed = 0) const {
+    aBSize += aConsumed;
+
+    if (NS_UNCONSTRAINEDSIZE != ComputedMaxBSize()) {
+      aBSize = std::min(aBSize, ComputedMaxBSize());
+    }
+
+    if (NS_UNCONSTRAINEDSIZE != ComputedMinBSize()) {
+      aBSize = std::max(aBSize, ComputedMinBSize());
+    }
+
+    return aBSize - aConsumed;
   }
 
   bool ShouldReflowAllKids() const {
