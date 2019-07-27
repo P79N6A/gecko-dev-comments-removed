@@ -24,6 +24,8 @@ XPCOMUtils.defineLazyGetter(this, "gDatareportingService",
           .getService(Ci.nsISupports)
           .wrappedJSObject);
 
+const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
+
 
 
 
@@ -405,6 +407,24 @@ add_task(function* test_pendingPingsQuota() {
   }
 
   
+  
+  Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_SIZE_MB").clear();
+  Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA").clear();
+  Telemetry.getHistogramById("TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS").clear();
+
+  yield TelemetryController.reset();
+  yield TelemetryStorage.testPendingQuotaTaskPromise();
+
+  
+  let h = Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_SIZE_MB").snapshot();
+  Assert.equal(h.sum, Math.round(pingsSizeInBytes / 1024 / 1024),
+               "Telemetry must report the correct pending pings directory size.");
+  h = Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA").snapshot();
+  Assert.equal(h.sum, 0, "Telemetry must report 0 evictions if quota is not hit.");
+  h = Telemetry.getHistogramById("TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS").snapshot();
+  Assert.equal(h.sum, 0, "Telemetry must report a null elapsed time if quota is not hit.");
+
+  
   const testQuotaInBytes = pingsSizeInBytes * 0.8;
   fakePendingPingsQuota(testQuotaInBytes);
 
@@ -431,6 +451,12 @@ add_task(function* test_pendingPingsQuota() {
   yield TelemetryController.reset();
   yield TelemetryStorage.testPendingQuotaTaskPromise();
   yield checkPendingPings();
+
+  h = Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA").snapshot();
+  Assert.equal(h.sum, pingsOutsideQuota.length,
+               "Telemetry must correctly report the over quota pings evicted from the pending pings directory.");
+  h = Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_SIZE_MB").snapshot();
+  Assert.equal(h.sum, 17, "Pending pings quota was hit, a special size must be reported.");
 
   
   yield TelemetryController.reset();

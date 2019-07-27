@@ -58,6 +58,10 @@ const PENDING_PINGS_QUOTA_BYTES_MOBILE = 1024 * 1024;
 
 const ARCHIVE_SIZE_PROBE_SPECIAL_VALUE = 300;
 
+
+
+const PENDING_PINGS_SIZE_PROBE_SPECIAL_VALUE = 17;
+
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 
@@ -715,7 +719,7 @@ let TelemetryStorageImpl = {
 
   _enforceArchiveQuota: Task.async(function*() {
     this._log.trace("_enforceArchiveQuota");
-    const startTimeStamp = Policy.now().getTime();
+    let startTimeStamp = Policy.now().getTime();
 
     
     let pingList = [for (p of this._archivedPings) {
@@ -781,6 +785,7 @@ let TelemetryStorageImpl = {
     this._log.info("_enforceArchiveQuota - archive size: " + archiveSizeInBytes + "bytes"
                    + ", safety quota: " + SAFE_QUOTA + "bytes");
 
+    startTimeStamp = Policy.now().getTime();
     let pingsToPurge = pingList.slice(lastPingIndexToKeep + 1);
 
     
@@ -847,6 +852,7 @@ let TelemetryStorageImpl = {
 
   _enforcePendingPingsQuota: Task.async(function*() {
     this._log.trace("_enforcePendingPingsQuota");
+    let startTimeStamp = Policy.now().getTime();
 
     
     let pingList = [for (p of this._pendingPings) {
@@ -891,13 +897,25 @@ let TelemetryStorageImpl = {
     }
 
     
+    Telemetry.getHistogramById("TELEMETRY_PENDING_CHECKING_OVER_QUOTA_MS")
+             .add(Math.round(Policy.now().getTime() - startTimeStamp));
+
+    let recordHistograms = (sizeInMB, evictedPings, elapsedMs) => {
+      Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_SIZE_MB").add(sizeInMB);
+      Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA").add(evictedPings);
+      Telemetry.getHistogramById("TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS").add(elapsedMs);
+    };
+
+    
     if (pendingPingsSizeInBytes < Policy.getPendingPingsQuota()) {
+      recordHistograms(Math.round(pendingPingsSizeInBytes / 1024 / 1024), 0, 0);
       return;
     }
 
     this._log.info("_enforcePendingPingsQuota - size: " + pendingPingsSizeInBytes + "bytes"
                    + ", safety quota: " + SAFE_QUOTA + "bytes");
 
+    startTimeStamp = Policy.now().getTime();
     let pingsToPurge = pingList.slice(lastPingIndexToKeep + 1);
 
     
@@ -911,6 +929,13 @@ let TelemetryStorageImpl = {
       
       yield this.removePendingPing(ping.id);
     }
+
+    const endTimeStamp = Policy.now().getTime();
+    
+    
+    
+    recordHistograms(PENDING_PINGS_SIZE_PROBE_SPECIAL_VALUE, pingsToPurge.length,
+                 Math.ceil(endTimeStamp - startTimeStamp));
   }),
 
   

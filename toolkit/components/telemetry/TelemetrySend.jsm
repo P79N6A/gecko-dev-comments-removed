@@ -574,12 +574,19 @@ let TelemetrySendImpl = {
       return;
     }
 
-    const now = new Date();
+    const now = Policy.now();
 
     
     const overduePings = infos.filter((info) =>
       (now.getTime() - info.lastModificationDate) > OVERDUE_PING_FILE_AGE);
     this._overduePingCount = overduePings.length;
+
+    
+    for (let pingInfo of infos) {
+      const ageInDays =
+        Utils.millisecondsToDays(Math.abs(now.getTime() - pingInfo.lastModificationDate));
+      Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_AGE").add(ageInDays);
+    }
    }),
 
   shutdown: Task.async(function*() {
