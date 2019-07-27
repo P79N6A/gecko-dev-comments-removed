@@ -211,6 +211,58 @@ class TestSimplePackager(unittest.TestCase):
         self.assertEqual(packager.get_bases(), set(['', 'addon', 'qux']))
         self.assertEqual(packager.get_bases(addons=False), set(['', 'qux']))
 
+    def test_simple_packager_manifest_consistency(self):
+        formatter = MockFormatter()
+        
+        
+        packager = SimplePackager(formatter)
+        packager.add('base.manifest', GeneratedFile(
+            'manifest foo/bar.manifest\n'
+            'manifest bar/baz.manifest\n'
+        ))
+        packager.add('foo/bar.manifest', GeneratedFile('resource bar bar'))
+        packager.add('bar/baz.manifest', GeneratedFile('resource baz baz'))
+        packager.add('bar/install.rdf', GeneratedFile(''))
+
+        with self.assertRaises(ErrorMessage) as e:
+            packager.close()
+
+        self.assertEqual(e.exception.message,
+            'Error: "bar/baz.manifest" is included from "base.manifest", '
+            'which is outside "bar"')
+
+        
+        
+        
+        packager = SimplePackager(formatter)
+        packager.add('base.manifest', GeneratedFile(
+            'manifest foo/bar.manifest\n'
+            'manifest bar/baz.manifest\n'
+        ))
+        packager.add('foo/bar.manifest', GeneratedFile('resource bar bar'))
+        packager.add('bar/baz.manifest', GeneratedFile('resource baz baz'))
+        packager.add('bar/chrome.manifest', GeneratedFile('resource baz baz'))
+
+        with self.assertRaises(ErrorMessage) as e:
+            packager.close()
+
+        self.assertEqual(e.exception.message,
+            'Error: "bar/baz.manifest" is included from "base.manifest", '
+            'which is outside "bar"')
+
+        
+        
+        
+        packager = SimplePackager(formatter)
+        packager.add('base.manifest', GeneratedFile(
+            'manifest foo/bar.manifest\n'
+        ))
+        packager.add('foo/bar.manifest', GeneratedFile('resource bar bar'))
+        packager.add('bar/baz.manifest', GeneratedFile('resource baz baz'))
+        packager.add('bar/chrome.manifest',
+                     GeneratedFile('manifest baz.manifest'))
+        packager.close()
+
 
 class TestSimpleManifestSink(unittest.TestCase):
     def test_simple_manifest_parser(self):
