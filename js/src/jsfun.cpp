@@ -730,31 +730,11 @@ JSFunction::trace(JSTracer* trc)
         
         
         
-        if (hasScript() && u.i.s.script_) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            JSRuntime* rt = trc->runtime();
-            if (trc->isMarkingTracer() &&
-                (rt->allowRelazificationForTesting || !compartment()->hasBeenEntered()) &&
-                !compartment()->isDebuggee() && !compartment()->isSelfHosting &&
-                u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))
-            {
-                relazify(trc);
-            } else {
-                TraceManuallyBarrieredEdge(trc, &u.i.s.script_, "script");
-            }
-        } else if (isInterpretedLazy() && u.i.s.lazy_) {
+        if (hasScript() && u.i.s.script_)
+            TraceManuallyBarrieredEdge(trc, &u.i.s.script_, "script");
+        else if (isInterpretedLazy() && u.i.s.lazy_)
             TraceManuallyBarrieredEdge(trc, &u.i.s.lazy_, "lazyScript");
-        }
+
         if (u.i.env_)
             TraceManuallyBarrieredEdge(trc, &u.i.env_, "fun_environment");
     }
@@ -1512,24 +1492,34 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext* cx, HandleFuncti
 }
 
 void
-JSFunction::relazify(JSTracer* trc)
+JSFunction::maybeRelazify(JSRuntime* rt)
 {
-    JSScript* script = nonLazyScript();
-    MOZ_ASSERT(script->isRelazifiable());
-    MOZ_ASSERT(trc->runtime()->allowRelazificationForTesting || !compartment()->hasBeenEntered());
-    MOZ_ASSERT(!compartment()->isDebuggee());
+    
+    
+    
+    if (!hasScript() || !u.i.s.script_)
+        return;
+
+    
+    JSCompartment* comp = compartment();
+    if (comp->hasBeenEntered() && !rt->allowRelazificationForTesting)
+        return;
 
     
     
+    if (comp->isDebuggee() || comp->isSelfHosting)
+        return;
+
+    
+    if (!u.i.s.script_->isRelazifiable())
+        return;
+
     
     
-    
-    
-    
-    
-    
-    if (script->functionNonDelazifying()->hasScript())
-        TraceManuallyBarrieredEdge(trc, &u.i.s.script_, "script");
+    if (isSelfHostedBuiltin() && !isExtended())
+        return;
+
+    JSScript* script = nonLazyScript();
 
     flags_ &= ~INTERPRETED;
     flags_ |= INTERPRETED_LAZY;
@@ -1542,7 +1532,6 @@ JSFunction::relazify(JSTracer* trc)
         
         if (lazy->maybeScript() == script)
             lazy->resetScript();
-        TraceManuallyBarrieredEdge(trc, &u.i.s.lazy_, "lazyScript");
     } else {
         MOZ_ASSERT(isSelfHostedBuiltin());
         MOZ_ASSERT(isExtended());
