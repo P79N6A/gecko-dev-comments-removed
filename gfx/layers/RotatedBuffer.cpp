@@ -229,7 +229,7 @@ RotatedContentBuffer::DrawTo(PaintedLayer* aLayer,
     
     
     
-    gfxUtils::ClipToRegionSnapped(aTarget, aLayer->GetEffectiveVisibleRegion());
+    gfxUtils::ClipToRegion(aTarget, aLayer->GetEffectiveVisibleRegion());
     clipped = true;
   }
 
