@@ -11161,8 +11161,17 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
   if (!root) {
     return;
   }
-  NS_ASSERTION(root->IsFullScreenDoc(),
-    "Fullscreen root should be a fullscreen doc...");
+  if (!root->IsFullScreenDoc()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    return;
+  }
 
   
   
