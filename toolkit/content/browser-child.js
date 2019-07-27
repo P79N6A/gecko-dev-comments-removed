@@ -71,10 +71,20 @@ let WebProgressListener = {
   },
 
   _setupObjects: function setupObjects(aWebProgress) {
+    let domWindow;
+    try {
+      domWindow = aWebProgress && aWebProgress.DOMWindow;
+    } catch (e) {
+      
+      
+      
+      domWindow = null;
+    }
+
     return {
       contentWindow: content,
       
-      DOMWindow: aWebProgress && aWebProgress.DOMWindow
+      DOMWindow: domWindow
     };
   },
 
