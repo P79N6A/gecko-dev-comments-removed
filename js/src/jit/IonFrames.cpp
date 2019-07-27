@@ -216,16 +216,6 @@ JitFrameIterator::script() const
     return script;
 }
 
-uint8_t *
-JitFrameIterator::resumeAddressToFp() const
-{
-    
-    
-    if (isBaselineJS() && baselineFrame()->getDebugModeOSRInfo())
-        return baselineFrame()->debugModeOSRInfo()->resumeAddr;
-    return returnAddressToFp();
-}
-
 void
 JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) const
 {
@@ -233,7 +223,6 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
     JSScript *script = this->script();
     if (scriptRes)
         *scriptRes = script;
-    uint8_t *retAddr = resumeAddressToFp();
 
     
     
@@ -242,6 +231,14 @@ JitFrameIterator::baselineScriptAndPc(JSScript **scriptRes, jsbytecode **pcRes) 
         return;
     }
 
+    
+    
+    if (baselineFrame()->getDebugModeOSRInfo()) {
+        *pcRes = baselineFrame()->debugModeOSRInfo()->pc;
+        return;
+    }
+
+    uint8_t *retAddr = returnAddressToFp();
     if (pcRes) {
         
         
