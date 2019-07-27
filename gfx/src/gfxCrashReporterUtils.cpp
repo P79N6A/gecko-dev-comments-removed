@@ -68,7 +68,7 @@ ObserverToDestroyFeaturesAlreadyReported::Observe(nsISupports* aSubject,
 
 class RegisterObserverRunnable : public nsRunnable {
 public:
-  NS_IMETHOD Run() {
+  NS_IMETHOD Run() override {
     
     
     
@@ -79,11 +79,7 @@ public:
     if (!observerService)
       return NS_OK;
     nsRefPtr<ObserverToDestroyFeaturesAlreadyReported> observer = new ObserverToDestroyFeaturesAlreadyReported;
-    nsresult rv = observerService->AddObserver(observer, "xpcom-shutdown", false);
-    if (NS_FAILED(rv)) {
-      observer = nullptr;
-      return NS_OK;
-    }
+    observerService->AddObserver(observer, "xpcom-shutdown", false);
     return NS_OK;
   }
 };
