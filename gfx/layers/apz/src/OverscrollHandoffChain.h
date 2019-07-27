@@ -95,6 +95,9 @@ public:
   void CancelAnimations() const;
 
   
+  void ClearOverscroll() const;
+
+  
   void SnapBackOverscrolledApzc() const;
 
   
@@ -102,6 +105,9 @@ public:
   bool CanBePanned(const AsyncPanZoomController* aApzc) const;
 private:
   std::vector<nsRefPtr<AsyncPanZoomController>> mChain;
+
+  typedef void (AsyncPanZoomController::*APZCMethod)();
+  void ForEachApzc(APZCMethod aMethod) const;
 };
 
 
