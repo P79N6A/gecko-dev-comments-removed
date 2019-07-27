@@ -141,14 +141,15 @@ public:
   virtual void EventListenerWasRemoved(const nsAString& aType,
                                        ErrorResult& aRv,
                                        JSCompartment* aCompartment = nullptr) {}
+
+  
+  nsresult DispatchTrustedEvent(const nsAString& aEventName);
 protected:
   virtual ~DOMEventTargetHelper();
 
   nsresult WantsUntrusted(bool* aRetVal);
 
   nsRefPtr<EventListenerManager> mListenerManager;
-  
-  nsresult DispatchTrustedEvent(const nsAString& aEventName);
   
   nsresult DispatchTrustedEvent(nsIDOMEvent* aEvent);
 

@@ -36,8 +36,8 @@ public:
   explicit ServiceWorkerContainer(nsPIDOMWindow* aWindow)
     : mWindow(aWindow)
   {
-    
     SetIsDOMBinding();
+    StartListeningForEvents();
   }
 
   nsPIDOMWindow*
@@ -75,6 +75,12 @@ public:
   already_AddRefed<Promise>
   Ready();
 
+  nsIURI*
+  GetDocumentURI() const
+  {
+    return mWindow->GetDocumentURI();
+  }
+
   
   already_AddRefed<Promise>
   ClearAllServiceWorkerData(ErrorResult& aRv);
@@ -91,8 +97,14 @@ public:
 private:
   ~ServiceWorkerContainer()
   {
-    
+    StopListeningForEvents();
   }
+
+  void
+  StartListeningForEvents();
+
+  void
+  StopListeningForEvents();
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
 };

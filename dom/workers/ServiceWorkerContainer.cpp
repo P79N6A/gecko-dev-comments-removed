@@ -128,6 +128,26 @@ ServiceWorkerContainer::Ready()
 }
 
 
+
+void
+ServiceWorkerContainer::StartListeningForEvents()
+{
+  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID);
+  if (swm) {
+    swm->AddContainerEventListener(mWindow->GetDocumentURI(), this);
+  }
+}
+
+void
+ServiceWorkerContainer::StopListeningForEvents()
+{
+  nsCOMPtr<nsIServiceWorkerManager> swm = do_GetService(SERVICEWORKERMANAGER_CONTRACTID);
+  if (swm) {
+    swm->RemoveContainerEventListener(mWindow->GetDocumentURI(), this);
+  }
+}
+
+
 already_AddRefed<Promise>
 ServiceWorkerContainer::ClearAllServiceWorkerData(ErrorResult& aRv)
 {
