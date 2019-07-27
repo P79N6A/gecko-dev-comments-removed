@@ -65,11 +65,8 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     }
 
     virtual bool isCallable(JSObject *obj) const MOZ_OVERRIDE;
-    virtual bool isConstructor(JSObject *obj) const MOZ_OVERRIDE {
-        
-        
-        return isCallable(obj);
-    }
+    virtual bool isConstructor(JSObject *obj) const MOZ_OVERRIDE;
+
     virtual bool isScripted() const MOZ_OVERRIDE { return true; }
 
     static const char family;
@@ -78,7 +75,10 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
     
     
     static const int HANDLER_EXTRA = 0;
-    static const int IS_CALLABLE_EXTRA = 1;
+    static const int IS_CALLCONSTRUCT_EXTRA = 1;
+    
+    static const int IS_CALLABLE    = 1 << 0;
+    static const int IS_CONSTRUCTOR = 1 << 1;
     
     
     static const int REVOKE_SLOT = 0;
