@@ -832,11 +832,49 @@ AsyncPanZoomController::CancelAnimationForHandoffChain()
   CancelAnimation();
 }
 
+bool
+AsyncPanZoomController::ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints) {
+  if (aTouchPoints == 0) {
+    
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+
+  bool pannable = true;
+  bool zoomable = mZoomConstraints.mAllowZoom;
+
+  APZCTreeManager* treeManagerLocal = mTreeManager;
+  if (!treeManagerLocal || !treeManagerLocal->CanBePanned(this)) {
+    pannable = false;
+  }
+
+  pannable &= (aBlock->TouchActionAllowsPanningX() || aBlock->TouchActionAllowsPanningY());
+  zoomable &= (aBlock->TouchActionAllowsPinchZoom());
+
+  
+  
+  bool consumable = (aTouchPoints == 1 ? pannable : zoomable);
+  if (!consumable) {
+    return false;
+  }
+
+  return true;
+}
+
 nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent) {
   AssertOnControllerThread();
 
   if (aEvent.mInputType != MULTITOUCH_INPUT) {
-    return HandleInputEvent(aEvent);
+    HandleInputEvent(aEvent);
+    
+    
+    return nsEventStatus_eConsumeDoDefault;
   }
 
   TouchBlockState* block = nullptr;
@@ -883,18 +921,23 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
     return nsEventStatus_eIgnore;
   }
 
+  nsEventStatus result = ArePointerEventsConsumable(block, aEvent.AsMultiTouchInput().mTouches.Length())
+      ? nsEventStatus_eConsumeDoDefault
+      : nsEventStatus_eIgnore;
+
   if (block == CurrentTouchBlock() && block->IsReadyForHandling()) {
     APZC_LOG("%p's current touch block is ready with preventdefault %d\n",
         this, block->IsDefaultPrevented());
     if (block->IsDefaultPrevented()) {
-      return nsEventStatus_eIgnore;
+      return result;
     }
-    return HandleInputEvent(aEvent);
+    HandleInputEvent(aEvent);
+    return result;
   }
 
   
   block->AddEvent(aEvent.AsMultiTouchInput());
-  return nsEventStatus_eConsumeDoDefault;
+  return result;
 }
 
 nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) {

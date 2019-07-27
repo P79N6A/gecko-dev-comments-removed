@@ -118,7 +118,6 @@ public:
 
 
 
-
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);
 
   
@@ -543,6 +542,14 @@ private:
 
 
   void CancelAnimationForHandoffChain();
+
+  
+
+
+
+
+
+  bool ArePointerEventsConsumable(TouchBlockState* aBlock, uint32_t aTouchPoints);
 
   
 
