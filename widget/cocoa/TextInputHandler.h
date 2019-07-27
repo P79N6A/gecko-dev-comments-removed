@@ -17,6 +17,7 @@
 #include "nsITimer.h"
 #include "nsTArray.h"
 #include "mozilla/EventForwards.h"
+#include "WritingModes.h"
 
 class nsChildView;
 
@@ -696,7 +697,11 @@ public:
 
   virtual void OnFocusChangeInGecko(bool aFocus);
 
-  void OnSelectionChange() { mSelectedRange.location = NSNotFound; }
+  void OnSelectionChange()
+  {
+    mSelectedRange.location = NSNotFound;
+    mRangeForWritingMode.location = NSNotFound;
+  }
 
   
 
@@ -769,6 +774,17 @@ public:
 
 
   NSRange SelectedRange();
+
+  
+
+
+
+
+
+
+
+
+  bool DrawsVerticallyForCharacterAtIndex(uint32_t aCharIndex);
 
   
 
@@ -887,6 +903,9 @@ private:
 
   NSRange mMarkedRange;
   NSRange mSelectedRange;
+
+  NSRange mRangeForWritingMode; 
+  mozilla::WritingMode mWritingMode;
 
   bool mIsIMEComposing;
   bool mIsIMEEnabled;
