@@ -3,30 +3,17 @@
 
 
 
-
-
-
-
-
+"use strict";
 
 const PAGE_URI = NetUtil.newURI("http://example.com/test_query_result");
 
-
-
-
-function run_test()
-{
-  run_next_test();
-}
-
-add_test(function test_query_result_favicon_changed_on_child()
-{
+add_task(function* test_query_result_favicon_changed_on_child() {
   
-  let testBookmark = PlacesUtils.bookmarks.insertBookmark(
-    PlacesUtils.bookmarksMenuFolderId,
-    PAGE_URI,
-    PlacesUtils.bookmarks.DEFAULT_INDEX,
-    "test_bookmark");
+  let testBookmark = yield PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.menuGuid,
+    title: "test_bookmark",
+    url: PAGE_URI
+  });
 
   
   let query = PlacesUtils.history.getNewQuery();
@@ -42,9 +29,7 @@ add_test(function test_query_result_favicon_changed_on_child()
   let result = PlacesUtils.history.executeQuery(query, options);
   let resultObserver = {
     __proto__: NavHistoryResultObserver.prototype,
-    containerStateChanged: function QRFCOC_containerStateChanged(aContainerNode,
-                                                                 aOldState,
-                                                                 aNewState) {
+    containerStateChanged(aContainerNode, aOldState, aNewState) {
       if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED) {
         
         
@@ -56,30 +41,32 @@ add_test(function test_query_result_favicon_changed_on_child()
                                                        PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
       }
     },
-    nodeIconChanged: function QRFCOC_nodeIconChanged(aNode) {
+    nodeIconChanged(aNode) {
       do_throw("The icon should be set only for the page," +
                " not for the containing query.");
     }
   };
   result.addObserver(resultObserver, false);
 
-  waitForFaviconChanged(PAGE_URI, SMALLPNG_DATA_URI,
-                        function QRFCOC_faviconChanged() {
-    
-    
-    
-    
-    PlacesTestUtils.promiseAsyncUpdates().then(function QRFCOC_asyncUpdates() {
-      do_execute_soon(function QRFCOC_soon() {
-        result.removeObserver(resultObserver);
-
-        
-        result.root.containerOpen = false;
-        run_next_test();
-      });
-    });
-  });
+  
+  
+  
+  
+  let promise = promiseFaviconChanged(PAGE_URI, SMALLPNG_DATA_URI);
+  result.root.containerOpen = true;
+  yield promise;
 
   
-  result.root.containerOpen = true;
+  
+  
+  
+  yield PlacesTestUtils.promiseAsyncUpdates();
+  result.removeObserver(resultObserver);
+
+  
+  result.root.containerOpen = false;
 });
+
+function run_test() {
+  run_next_test();
+}
