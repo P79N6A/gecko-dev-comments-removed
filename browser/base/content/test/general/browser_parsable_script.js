@@ -13,7 +13,17 @@ const kWhitelist = new Set([
 
 let moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
 let {generateURIsFromDirTree} = Cu.import(moduleLocation, {});
-let {Reflect} = Cu.import("resource://gre/modules/reflect.jsm", {});
+
+
+
+
+
+
+
+
+
+const init = Components.classes["@mozilla.org/jsreflect;1"].createInstance();
+init();
 
 
 
