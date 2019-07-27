@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_DECODER_H_
-#define MOZILLA_IMAGELIB_DECODER_H_
+#ifndef mozilla_image_src_Decoder_h
+#define mozilla_image_src_Decoder_h
 
 #include "FrameAnimator.h"
 #include "RasterImage.h"
@@ -218,7 +218,10 @@ public:
   uint32_t GetFrameCount() { return mFrameCount; }
 
   
-  uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
+  
+  uint32_t GetCompleteFrameCount() {
+    return mInFrame ? mFrameCount - 1 : mFrameCount;
+  }
 
   
   bool HasError() const { return HasDataError() || HasDecoderError(); }
@@ -245,7 +248,8 @@ public:
 
   enum DecodeStyle {
       PROGRESSIVE, 
-      SEQUENTIAL 
+                   
+      SEQUENTIAL   
   };
 
   void SetFlags(uint32_t aFlags) { mFlags = aFlags; }
@@ -286,8 +290,8 @@ public:
                     uint32_t width, uint32_t height,
                     gfx::SurfaceFormat format,
                     uint8_t palette_depth = 0);
-  virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
 
+  virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
 
   
   
@@ -443,9 +447,9 @@ protected:
   nsIntRect mInvalidRect; 
   Progress mProgress;
 
-  uint8_t* mImageData;       
+  uint8_t* mImageData;  
   uint32_t mImageDataLength;
-  uint32_t* mColormap;       
+  uint32_t* mColormap;  
   uint32_t mColormapSize;
 
   

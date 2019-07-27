@@ -210,8 +210,9 @@ Decoder::Write(const char* aBuffer, uint32_t aCount)
   }
 
   
-  if (HasDataError())
+  if (HasDataError()) {
     return;
+  }
 
   if (IsSizeDecode() && HasSize()) {
     
@@ -248,12 +249,14 @@ void
 Decoder::CompleteDecode()
 {
   
-  if (!HasError())
+  if (!HasError()) {
     FinishInternal();
+  }
 
   
-  if (mInFrame && !HasError())
+  if (mInFrame && !HasError()) {
     PostFrameStop();
+  }
 
   
   
@@ -603,9 +606,10 @@ Decoder::PostFrameStart()
 }
 
 void
-Decoder::PostFrameStop(Opacity aFrameOpacity ,
-                       DisposalMethod aDisposalMethod ,
-                       int32_t aTimeout ,
+Decoder::PostFrameStop(Opacity aFrameOpacity    ,
+                       DisposalMethod aDisposalMethod
+                                                ,
+                       int32_t aTimeout         ,
                        BlendMethod aBlendMethod )
 {
   
