@@ -473,6 +473,29 @@ struct nsCSSRendering {
                          const nsRect& aBGClipRect,
                          const nsStyleBackground::Layer& aLayer);
 
+  struct BackgroundClipState {
+    nsRect mBGClipArea;  
+    nsRect mAdditionalBGClipArea;  
+    nsRect mDirtyRect;
+    gfxRect mDirtyRectGfx;
+
+    nscoord mRadii[8];
+    gfxCornerSizes mClippedRadii;
+    bool mHasRoundedCorners;
+    bool mHasAdditionalBGClipArea;
+
+    
+    
+    bool mCustomClip;
+  };
+
+  static void
+  GetBackgroundClip(const nsStyleBackground::Layer& aLayer,
+                    nsIFrame* aForFrame, const nsStyleBorder& aBorder, const nsRect& aBorderArea,
+                    const nsRect& aCallerDirtyRect, bool aWillPaintBorder,
+                    nscoord aAppUnitsPerPixel,
+                     BackgroundClipState* aClipState);
+
   
 
 
