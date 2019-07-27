@@ -240,8 +240,8 @@ struct Statistics
 
     int64_t startupTime;
 
+    
     FILE* fp;
-    bool fullFormat;
 
     
 
