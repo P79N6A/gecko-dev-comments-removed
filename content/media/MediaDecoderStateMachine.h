@@ -135,6 +135,7 @@ public:
 
   
   enum State {
+    DECODER_STATE_DECODING_NONE,
     DECODER_STATE_DECODING_METADATA,
     DECODER_STATE_WAIT_FOR_RESOURCES,
     DECODER_STATE_DORMANT,
@@ -892,11 +893,6 @@ protected:
   
   
   bool mDecodeThreadWaiting;
-
-  
-  
-  
-  bool mDispatchedDecodeMetadataTask;
 
   
   
