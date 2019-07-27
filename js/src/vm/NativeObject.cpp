@@ -1340,18 +1340,19 @@ CheckAccessorRedefinition(ExclusiveContext *cx, HandleObject obj, HandleShape sh
 }
 
 bool
-js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id, HandleValue value,
-                         GetterOp getter, SetterOp setter, unsigned attrs,
+js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
+                         Handle<JSPropertyDescriptor> desc,
                          ObjectOpResult &result)
 {
+    GetterOp getter = desc.getter();
+    SetterOp setter = desc.setter();
+    unsigned attrs = desc.attributes();
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
     MOZ_ASSERT(!(attrs & JSPROP_PROPOP_ACCESSORS));
 
-    AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
-
     RootedShape shape(cx);
-    RootedValue updateValue(cx, value);
+    RootedValue updateValue(cx, desc.value());
     bool shouldDefine = true;
 
     
@@ -1359,7 +1360,7 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
 
 
 
-    if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
+    if (desc.isAccessorDescriptor()) {
         if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
             return false;
         if (shape) {
@@ -1393,7 +1394,7 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
                 shouldDefine = false;
             }
         }
-    } else if (!(attrs & JSPROP_IGNORE_VALUE)) {
+    } else if (desc.hasValue()) {
         
         
         
@@ -1499,9 +1500,19 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
 }
 
 bool
+js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
+                         HandleValue value, GetterOp getter, SetterOp setter, unsigned attrs,
+                         ObjectOpResult &result)
+{
+    Rooted<PropertyDescriptor> desc(cx);
+    desc.initFields(obj, value, attrs, getter, setter);
+    return NativeDefineProperty(cx, obj, id, desc, result);
+}
+
+bool
 js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, PropertyName *name,
-                         HandleValue value, GetterOp getter, SetterOp setter,
-                         unsigned attrs, ObjectOpResult &result)
+                         HandleValue value, GetterOp getter, SetterOp setter, unsigned attrs,
+                         ObjectOpResult &result)
 {
     RootedId id(cx, NameToId(name));
     return NativeDefineProperty(cx, obj, id, value, getter, setter, attrs, result);
@@ -1509,8 +1520,8 @@ js::NativeDefineProperty(ExclusiveContext *cx, HandleNativeObject obj, PropertyN
 
 bool
 js::NativeDefineElement(ExclusiveContext *cx, HandleNativeObject obj, uint32_t index,
-                        HandleValue value, GetterOp getter, SetterOp setter,
-                        unsigned attrs, ObjectOpResult &result)
+                        HandleValue value, GetterOp getter, SetterOp setter, unsigned attrs,
+                        ObjectOpResult &result)
 {
     RootedId id(cx);
     if (index <= JSID_INT_MAX) {
