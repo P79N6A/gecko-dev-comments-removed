@@ -675,7 +675,7 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
   
   
   
-  if (IsBidiUI())
+  if (theFrame->PresContext()->BidiEnabled())
   {
     
     if (aBidiLevel & BIDI_LEVEL_UNDEFINED)
