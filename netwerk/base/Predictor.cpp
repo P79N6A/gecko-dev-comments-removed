@@ -128,7 +128,7 @@ const uint32_t STARTUP_WINDOW = 5U * 60U;
 const uint32_t METADATA_VERSION = 1;
 
 
-#define PREDICTOR_ORIGIN_EXTENSION "predictor-origin"
+const char PREDICTOR_ORIGIN_EXTENSION[] = "predictor-origin";
 
 
 
@@ -506,16 +506,16 @@ class NuwaMarkPredictorThreadRunner : public nsRunnable
 
 
 
-#define SEEN_META_DATA "predictor::seen"
-#define META_DATA_PREFIX "predictor::"
+static const char seenMetaData[] = "predictor::seen";
+static const char metaDataPrefix[] = "predictor::";
 nsresult
 Predictor::OnMetaDataElement(const char *asciiKey, const char *asciiValue)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!StringBeginsWith(nsDependentCString(asciiKey),
-                        NS_LITERAL_CSTRING(META_DATA_PREFIX)) ||
-      NS_LITERAL_CSTRING(SEEN_META_DATA).Equals(asciiKey)) {
+                        NS_LITERAL_CSTRING(metaDataPrefix)) ||
+      NS_LITERAL_CSTRING(seenMetaData).Equals(asciiKey)) {
     
     return NS_OK;
   }
@@ -1336,10 +1336,10 @@ Predictor::LearnInternal(PredictorLearnReason reason, nsICacheEntry *entry,
 
   nsCString junk;
   if (!fullUri && reason == nsINetworkPredictor::LEARN_LOAD_TOPLEVEL &&
-      NS_FAILED(entry->GetMetaDataElement(SEEN_META_DATA, getter_Copies(junk)))) {
+      NS_FAILED(entry->GetMetaDataElement(seenMetaData, getter_Copies(junk)))) {
     
     
-    entry->SetMetaDataElement(SEEN_META_DATA, "1");
+    entry->SetMetaDataElement(seenMetaData, "1");
 
     
     entry->MetaDataReady();
@@ -1376,8 +1376,8 @@ Predictor::SpaceCleaner::OnMetaDataElement(const char *key, const char *value)
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!StringBeginsWith(nsDependentCString(key),
-                        NS_LITERAL_CSTRING(META_DATA_PREFIX)) ||
-      NS_LITERAL_CSTRING(SEEN_META_DATA).Equals(key)) {
+                        NS_LITERAL_CSTRING(metaDataPrefix)) ||
+      NS_LITERAL_CSTRING(seenMetaData).Equals(key)) {
     
     return NS_OK;
   }
@@ -1420,7 +1420,7 @@ Predictor::LearnForSubresource(nsICacheEntry *entry, nsIURI *targetURI)
   RETURN_IF_FAILED(rv);
 
   nsCString key;
-  key.AssignLiteral(META_DATA_PREFIX);
+  key.AssignASCII(metaDataPrefix);
   nsCString uri;
   targetURI->GetAsciiSpec(uri);
   key.Append(uri);
@@ -1554,7 +1554,7 @@ Predictor::ParseMetaDataEntry(const char *key, const char *value, nsIURI **uri,
   PREDICTOR_LOG(("    flags -> %u", flags));
 
   if (key) {
-    const char *uriStart = key + (sizeof(META_DATA_PREFIX) - 1);
+    const char *uriStart = key + (sizeof(metaDataPrefix) - 1);
     nsresult rv = NS_NewURI(uri, uriStart, nullptr, mIOService);
     if (NS_FAILED(rv)) {
       PREDICTOR_LOG(("    NS_NewURI returned 0x%X", rv));
@@ -1652,7 +1652,7 @@ Predictor::Resetter::OnMetaDataElement(const char *asciiKey,
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!StringBeginsWith(nsDependentCString(asciiKey),
-                        NS_LITERAL_CSTRING(META_DATA_PREFIX))) {
+                        NS_LITERAL_CSTRING(metaDataPrefix))) {
     
     return NS_OK;
   }
