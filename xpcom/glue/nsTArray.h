@@ -1589,14 +1589,21 @@ public:
   
   
   
-  typename Alloc::ResultType EnsureLengthAtLeast(size_type aMinLen)
+  template<typename ActualAlloc = Alloc>
+  typename ActualAlloc::ResultType EnsureLengthAtLeast(size_type aMinLen)
   {
     size_type oldLen = Length();
     if (aMinLen > oldLen) {
-      return Alloc::ConvertBoolToResultType(!!InsertElementsAt(oldLen,
-                                                               aMinLen - oldLen));
+      return ActualAlloc::ConvertBoolToResultType(
+        !!InsertElementsAt<ActualAlloc>(oldLen, aMinLen - oldLen));
     }
-    return Alloc::ConvertBoolToResultType(true);
+    return ActualAlloc::ConvertBoolToResultType(true);
+  }
+
+  
+  bool EnsureLengthAtLeast(size_type aMinLen, const mozilla::fallible_t&)
+  {
+    return EnsureLengthAtLeast<FallibleAlloc>(aMinLen);
   }
 
   
