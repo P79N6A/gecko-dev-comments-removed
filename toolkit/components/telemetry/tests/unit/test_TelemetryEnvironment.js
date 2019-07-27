@@ -616,7 +616,9 @@ add_task(function* test_initAndShutdown() {
   TelemetryEnvironment.unregisterChangeListener("foo");
 
   
-  Assert.ok(yield isRejected(TelemetryEnvironment.shutdown()));
+  yield TelemetryEnvironment.shutdown();
+
+  
   Assert.ok(yield isRejected(TelemetryEnvironment.getEnvironmentData()));
 });
 
