@@ -62,10 +62,18 @@ TextComposition::MatchesNativeContext(nsIWidget* aWidget) const
 }
 
 bool
+TextComposition::IsValidStateForComposition(nsIWidget* aWidget) const
+{
+  return !Destroyed() && aWidget && !aWidget->Destroyed() &&
+         mPresContext->GetPresShell() &&
+         !mPresContext->GetPresShell()->IsDestroying();
+}
+
+bool
 TextComposition::MaybeDispatchCompositionUpdate(
                    const WidgetCompositionEvent* aCompositionEvent)
 {
-  if (Destroyed()) {
+  if (!IsValidStateForComposition(aCompositionEvent->widget)) {
     return false;
   }
 
@@ -86,7 +94,7 @@ TextComposition::MaybeDispatchCompositionUpdate(
   mLastData = compositionUpdate.mData;
   EventDispatcher::Dispatch(mNode, mPresContext,
                             &compositionUpdate, nullptr, &status, nullptr);
-  return !Destroyed();
+  return IsValidStateForComposition(aCompositionEvent->widget);
 }
 
 void
@@ -117,7 +125,7 @@ TextComposition::DispatchCompositionEvent(
                    EventDispatchingCallback* aCallBack,
                    bool aIsSynthesized)
 {
-  if (Destroyed()) {
+  if (!IsValidStateForComposition(aCompositionEvent->widget)) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
     return;
   }
@@ -175,7 +183,7 @@ TextComposition::DispatchCompositionEvent(
   EventDispatcher::Dispatch(mNode, mPresContext,
                             aCompositionEvent, nullptr, aStatus, aCallBack);
 
-  if (NS_WARN_IF(Destroyed())) {
+  if (!IsValidStateForComposition(aCompositionEvent->widget)) {
     return;
   }
 
@@ -295,13 +303,13 @@ TextComposition::RequestToCommit(nsIWidget* aWidget, bool aDiscard)
       
       
       
-      if (!Destroyed() && !widget->Destroyed() &&
+      if (IsValidStateForComposition(widget) &&
           (changingData || !commitData.IsEmpty())) {
         nsEventStatus status = nsEventStatus_eIgnore;
         widget->DispatchEvent(&changeEvent, status);
       }
 
-      if (!Destroyed() && !widget->Destroyed()) {
+      if (IsValidStateForComposition(widget)) {
         nsEventStatus status = nsEventStatus_eIgnore;
         WidgetCompositionEvent endEvent(true, NS_COMPOSITION_END, widget);
         endEvent.mData = commitData;
@@ -411,22 +419,17 @@ TextComposition::CompositionEventDispatcher::CompositionEventDispatcher(
 NS_IMETHODIMP
 TextComposition::CompositionEventDispatcher::Run()
 {
-  nsRefPtr<nsPresContext> presContext = mTextComposition->mPresContext;
-  if (!presContext || !presContext->GetPresShell() ||
-      presContext->GetPresShell()->IsDestroying()) {
-    return NS_OK; 
-  }
-
   
   
   
   
   
   nsCOMPtr<nsIWidget> widget(mTextComposition->GetWidget());
-  if (NS_WARN_IF(!widget)) {
+  if (!mTextComposition->IsValidStateForComposition(widget)) {
     return NS_OK; 
   }
 
+  nsRefPtr<nsPresContext> presContext = mTextComposition->mPresContext;
   nsEventStatus status = nsEventStatus_eIgnore;
   switch (mEventMessage) {
     case NS_COMPOSITION_START: {

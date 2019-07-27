@@ -253,6 +253,14 @@ private:
 
 
 
+
+
+  bool IsValidStateForComposition(nsIWidget* aWidget) const;
+
+  
+
+
+
   void DispatchCompositionEvent(WidgetCompositionEvent* aCompositionEvent,
                                 nsEventStatus* aStatus,
                                 EventDispatchingCallback* aCallBack,
