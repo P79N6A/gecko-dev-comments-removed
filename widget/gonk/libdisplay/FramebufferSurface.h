@@ -63,7 +63,11 @@ public:
 private:
     virtual ~FramebufferSurface() { }; 
 
+#if ANDROID_VERSION >= 22
+    virtual void onFrameAvailable(const ::android::BufferItem &item);
+#else
     virtual void onFrameAvailable();
+#endif
     virtual void freeBufferLocked(int slotIndex);
 
     
