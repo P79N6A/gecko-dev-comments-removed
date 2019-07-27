@@ -171,6 +171,41 @@ function TypedArrayFindIndex(predicate, thisArg = undefined) {
 }
 
 
+function TypedArrayForEach(callbackfn, thisArg = undefined) {
+    
+    if (!IsObject(this) || !IsTypedArray(this)) {
+	return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+			    "TypedArrayForEach");
+    }
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+	ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'TypedArray.prototype.forEach');
+    if (!IsCallable(callbackfn))
+	ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = thisArg;
+
+    
+    
+    for (var k = 0; k < len; k++) {
+	
+	
+	callFunction(callbackfn, T, O[k], k, O);
+    }
+
+    
+    return undefined;
+}
+
+
 function TypedArrayIndexOf(searchElement, fromIndex = 0) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
