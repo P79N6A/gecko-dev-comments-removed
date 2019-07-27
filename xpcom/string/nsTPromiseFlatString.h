@@ -58,6 +58,12 @@
 
 
 
+
+
+
+
+
+
 class nsTPromiseFlatString_CharT : public nsTString_CharT
 {
 public:
