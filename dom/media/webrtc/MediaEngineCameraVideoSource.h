@@ -83,13 +83,15 @@ protected:
   
   
   
+
+  
   Monitor mMonitor; 
+  nsTArray<SourceMediaStream*> mSources; 
   nsRefPtr<layers::Image> mImage;
   nsRefPtr<layers::ImageContainer> mImageContainer;
   int mWidth, mHeight; 
   
 
-  nsTArray<SourceMediaStream*> mSources; 
 
   bool mInitDone;
   bool mHasDirectListeners;
