@@ -26,11 +26,20 @@ class VersionControlCommands(object):
     def mercurial_bootstrap(self, update_only=False):
         sys.path.append(os.path.dirname(__file__))
 
-
         config_paths = ['~/.hgrc']
         if sys.platform in ('win32', 'cygwin'):
             config_paths.insert(0, '~/mercurial.ini')
         config_paths = map(os.path.expanduser, config_paths)
+
+        
+        
+        
+        
+        
+        state_path = os.path.join(self._context.state_dir,
+            'mercurial/setup.lastcheck')
+        with open(state_path, 'a'):
+            os.utime(state_path, None)
 
         if update_only:
             from hgsetup.update import MercurialUpdater
@@ -40,11 +49,5 @@ class VersionControlCommands(object):
             from hgsetup.wizard import MercurialSetupWizard
             wizard = MercurialSetupWizard(self._context.state_dir)
             result = wizard.run(map(os.path.expanduser, config_paths))
-
-        
-        state_path = os.path.join(self._context.state_dir,
-            'mercurial/setup.lastcheck')
-        with open(state_path, 'a'):
-            os.utime(state_path, None)
 
         return result
