@@ -32,7 +32,6 @@
 #include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
 #include "pkix/ScopedPtr.h"
-#include "secitem.h"
 
 namespace mozilla { namespace pkix { namespace test {
 
@@ -63,18 +62,6 @@ public:
   {
   }
 };
-
-namespace {
-
-inline void
-SECITEM_FreeItem_true(SECItem* item)
-{
-  SECITEM_FreeItem(item, true);
-}
-
-} 
-
-typedef mozilla::pkix::ScopedPtr<SECItem, SECITEM_FreeItem_true> ScopedSECItem;
 
 
 static const uint8_t tlv_id_kp_OCSPSigning[] = {
@@ -151,6 +138,7 @@ Result TamperOnce( ByteString& item, const ByteString& from,
 
 
 enum Version { v1 = 0, v2 = 1, v3 = 2 };
+
 
 
 
