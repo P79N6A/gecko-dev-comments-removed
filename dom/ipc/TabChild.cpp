@@ -767,6 +767,11 @@ TabChild::Observe(nsISupports *aSubject,
         
         
         
+        SetCSSViewport(kDefaultViewportSize);
+
+        
+        
+        
         
         if (HasValidInnerSize()) {
           InitializeRootMetrics();
