@@ -5,7 +5,9 @@
 
 package org.mozilla.gecko.home;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 
 import org.mozilla.gecko.GeckoSharedPrefs;
@@ -34,6 +36,7 @@ import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.ExpandableListAdapter;
@@ -65,10 +68,17 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
     private RemoteTabsExpandableListAdapter mAdapter;
 
     
+    
+    private final ArrayList<RemoteClient> mHiddenClients = new ArrayList<RemoteClient>();
+
+    
     private HomeExpandableListView mList;
 
     
     private View mEmptyView;
+
+    
+    private View mFooterView;
 
     
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
@@ -156,9 +166,8 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
                     final RemoteClient client = (RemoteClient) adapter.getGroup(groupPosition);
                     final RemoteTabsClientContextMenuInfo info = new RemoteTabsClientContextMenuInfo(view, position, id, client);
                     return info;
-                } else {
-                    return null;
                 }
+                return null;
             }
         });
 
@@ -191,8 +200,34 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
         }
 
         
+        
+        
+        
+        
+        mFooterView = LayoutInflater.from(getActivity()).inflate(R.layout.home_remote_tabs_hidden_devices_footer, mList, false);
+        final View view = mFooterView.findViewById(R.id.hidden_devices);
+        view.setClickable(true);
+        view.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                
+            }
+        });
+
+        
+        
+        
+        
+        
+        
+        mList.addFooterView(mFooterView, null, true);
+
+        
         mAdapter = new RemoteTabsExpandableListAdapter(R.layout.home_remote_tabs_group, R.layout.home_remote_tabs_child, null);
         mList.setAdapter(mAdapter);
+
+        
+        mList.removeFooterView(mFooterView);
 
         
         mCursorLoaderCallbacks = new CursorLoaderCallbacks();
@@ -240,17 +275,45 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
         final int itemId = item.getItemId();
         if (itemId == R.id.home_remote_tabs_hide_client) {
             sState.setClientHidden(info.client.guid, true);
+            getLoaderManager().restartLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
             return true;
         } else if (itemId == R.id.home_remote_tabs_show_client) {
             sState.setClientHidden(info.client.guid, false);
+            getLoaderManager().restartLoader(LOADER_ID_REMOTE_TABS, null, mCursorLoaderCallbacks);
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
-    private void updateUiFromClients(List<RemoteClient> clients) {
+    private void updateUiFromClients(List<RemoteClient> clients, List<RemoteClient> hiddenClients) {
+        
+        
+        
+        
+        boolean displayedSomeClients = false;
+
+        if (hiddenClients == null || hiddenClients.isEmpty()) {
+            mList.removeFooterView(mFooterView);
+        } else {
+            displayedSomeClients = true;
+
+            final TextView textView = (TextView) mFooterView.findViewById(R.id.hidden_devices);
+            if (hiddenClients.size() == 1) {
+                textView.setText(getResources().getString(R.string.home_remote_tabs_one_hidden_device));
+            } else {
+                textView.setText(getResources().getString(R.string.home_remote_tabs_many_hidden_devices, hiddenClients.size()));
+            }
+
+            
+            
+            if (mList.getFooterViewsCount() < 1) {
+                mList.addFooterView(mFooterView);
+            }
+        }
+
         if (clients != null && !clients.isEmpty()) {
+            displayedSomeClients = true;
+
             
             int groupCount = Math.min(mList.getExpandableListAdapter().getGroupCount(), clients.size());
             for (int i = 0; i < groupCount; i++) {
@@ -261,9 +324,13 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
                     mList.expandGroup(i);
                 }
             }
+        }
+
+        if (displayedSomeClients) {
             return;
         }
 
+        
         
         if (mEmptyView == null) {
             
@@ -305,8 +372,22 @@ public class RemoteTabsExpandableListFragment extends HomeFragment {
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
             final List<RemoteClient> clients = TabsAccessor.getClientsFromCursor(c);
+
+            
+            
+            
+            mHiddenClients.clear();
+            final Iterator<RemoteClient> it = clients.iterator();
+            while (it.hasNext()) {
+                final RemoteClient client = it.next();
+                if (sState.isClientHidden(client.guid)) {
+                    it.remove();
+                    mHiddenClients.add(client);
+                }
+            }
+
             mAdapter.replaceClients(clients);
-            updateUiFromClients(clients);
+            updateUiFromClients(clients, mHiddenClients);
         }
 
         @Override
