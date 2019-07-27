@@ -62,6 +62,10 @@
 
 
 
+namespace js {
+void DestroyTraceLoggerGraphState();
+}
+
 class TraceLoggerGraphState
 {
     uint32_t numLoggers;
@@ -69,17 +73,27 @@ class TraceLoggerGraphState
     
     FILE *out;
 
+#ifdef DEBUG
+    bool initialized;
+#endif
+
   public:
     PRLock *lock;
 
   public:
-    TraceLoggerGraphState();
+    TraceLoggerGraphState()
+      : numLoggers(0),
+        out(nullptr),
+#ifdef DEBUG
+        initialized(false),
+#endif
+        lock(nullptr)
+    {}
+
+    bool init();
     ~TraceLoggerGraphState();
 
     uint32_t nextLoggerId();
-
-  private:
-    bool ensureInitialized();
 };
 
 class TraceLoggerGraph
