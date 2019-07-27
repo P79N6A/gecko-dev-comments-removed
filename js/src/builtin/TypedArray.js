@@ -99,6 +99,70 @@ function TypedArrayFill(value, start = 0, end = undefined) {
 }
 
 
+function TypedArrayFilter(callbackfn, thisArg = undefined) {
+    
+    var O = this;
+
+    
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+                           "TypedArrayFilter");
+    }
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.filter");
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = thisArg;
+
+    
+    var defaultConstructor = _ConstructorForTypedArray(O);
+
+    
+    var C = SpeciesConstructor(O, defaultConstructor);
+
+    
+    var kept = new List();
+
+    
+    var captured = 0;
+
+    
+    for (var k = 0; k < len; k++) {
+        
+        var kValue = O[k];
+        
+        var selected = ToBoolean(callFunction(callbackfn, T, kValue, k, O));
+        
+        if (selected) {
+            
+            kept.push(kValue);
+            
+            captured++;
+        }
+    }
+
+    
+    var A = new C(captured);
+
+    
+    for (var n = 0; n < captured; n++) {
+        
+        A[n] = kept[n];
+    }
+
+    
+    return A;
+}
+
+
 function TypedArrayFind(predicate, thisArg = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
@@ -351,6 +415,51 @@ function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
 
     
     return -1;
+}
+
+
+function TypedArrayMap(callbackfn, thisArg = undefined) {
+    
+    var O = this;
+
+    
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+                            "TypedArrayMap");
+    }
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, '%TypedArray%.prototype.map');
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = thisArg;
+
+    
+    var defaultConstructor = _ConstructorForTypedArray(O);
+
+    
+    var C = SpeciesConstructor(O, defaultConstructor);
+
+    
+    var A = new C(len);
+
+    
+    for (var k = 0; k < len; k++) {
+        
+        var mappedValue = callFunction(callbackfn, T, O[k], k, O);
+        
+        A[k] = mappedValue;
+    }
+
+    
+    return A;
 }
 
 
