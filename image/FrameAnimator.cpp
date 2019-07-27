@@ -8,6 +8,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "imgIContainer.h"
+#include "LookupResult.h"
 #include "MainThreadUtils.h"
 #include "RasterImage.h"
 
@@ -265,25 +266,27 @@ FrameAnimator::GetFirstFrameRefreshArea() const
   return mFirstFrameRefreshArea;
 }
 
-DrawableFrameRef
+LookupResult
 FrameAnimator::GetCompositedFrame(uint32_t aFrameNum)
 {
   MOZ_ASSERT(aFrameNum != 0, "First frame is never composited");
 
   
   if (mLastCompositedFrameIndex == int32_t(aFrameNum)) {
-    return mCompositingFrame->DrawableRef();
+    return LookupResult(mCompositingFrame->DrawableRef(),
+                         true);
   }
 
   
   
-  DrawableFrameRef ref =
+  LookupResult result =
     SurfaceCache::Lookup(ImageKey(mImage),
                          RasterSurfaceKey(mSize,
                                           0,  
                                           aFrameNum));
-  MOZ_ASSERT(!ref || !ref->GetIsPaletted(), "About to return a paletted frame");
-  return ref;
+  MOZ_ASSERT(!result || !result.DrawableRef()->GetIsPaletted(),
+             "About to return a paletted frame");
+  return result;
 }
 
 int32_t
@@ -367,13 +370,13 @@ FrameAnimator::CollectSizeOfCompositingSurfaces(
 RawAccessFrameRef
 FrameAnimator::GetRawFrame(uint32_t aFrameNum) const
 {
-  DrawableFrameRef ref =
+  LookupResult result =
     SurfaceCache::Lookup(ImageKey(mImage),
                          RasterSurfaceKey(mSize,
                                           0,  
                                           aFrameNum));
-  return ref ? ref->RawAccessRef()
-             : RawAccessFrameRef();
+  return result ? result.DrawableRef()->RawAccessRef()
+                : RawAccessFrameRef();
 }
 
 

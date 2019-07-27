@@ -131,7 +131,7 @@ public:
 
 
 
-  DrawableFrameRef GetCompositedFrame(uint32_t aFrameNum);
+  LookupResult GetCompositedFrame(uint32_t aFrameNum);
 
   
 
