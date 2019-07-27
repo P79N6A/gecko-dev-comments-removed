@@ -162,15 +162,9 @@ private:
 
       NS_IMETHOD Run() override
       {
-        nsRefPtr<DynamicsCompressorNode> node;
-        {
-          
-          
-          
-          
-          MutexAutoLock lock(mStream->Engine()->NodeMutex());
-          node = static_cast<DynamicsCompressorNode*>(mStream->Engine()->Node());
-        }
+        nsRefPtr<DynamicsCompressorNode> node =
+          static_cast<DynamicsCompressorNode*>
+            (mStream->Engine()->NodeMainThread());
         if (node) {
           node->SetReduction(mReduction);
         }

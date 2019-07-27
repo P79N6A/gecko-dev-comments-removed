@@ -25,15 +25,7 @@ public:
 
   NS_IMETHOD Run()
   {
-    nsRefPtr<AudioNode> node;
-    {
-      
-      
-      
-      
-      MutexAutoLock lock(mStream->Engine()->NodeMutex());
-      node = mStream->Engine()->Node();
-    }
+    nsRefPtr<AudioNode> node = mStream->Engine()->NodeMainThread();
     if (node) {
       if (mChange == ADDREF) {
         node->MarkActive();

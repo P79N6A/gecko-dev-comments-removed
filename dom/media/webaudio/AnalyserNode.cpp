@@ -30,15 +30,8 @@ class AnalyserNodeEngine final : public AudioNodeEngine
 
     NS_IMETHOD Run()
     {
-      nsRefPtr<AnalyserNode> node;
-      {
-        
-        
-        
-        
-        MutexAutoLock lock(mStream->Engine()->NodeMutex());
-        node = static_cast<AnalyserNode*>(mStream->Engine()->Node());
-      }
+      nsRefPtr<AnalyserNode> node =
+        static_cast<AnalyserNode*>(mStream->Engine()->NodeMainThread());
       if (node) {
         node->AppendChunk(mChunk);
       }
