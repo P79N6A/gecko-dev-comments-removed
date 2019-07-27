@@ -12,9 +12,6 @@
 using mozilla::plugins::PluginInstanceParent;
 #endif
 
-#define PWLOG(...)
-
-
 namespace mozilla {
 namespace plugins {
 
@@ -26,7 +23,6 @@ PluginWidgetChild::PluginWidgetChild() :
 
 PluginWidgetChild::~PluginWidgetChild()
 {
-  PWLOG("PluginWidgetChild::~PluginWidgetChild()\n");
   MOZ_COUNT_DTOR(PluginWidgetChild);
 }
 
@@ -46,9 +42,8 @@ PluginWidgetChild::~PluginWidgetChild()
 
 
 
-
 void
-PluginWidgetChild::ShutdownProxy()
+PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
 {
   if (mWidget) {
     mWidget->ChannelDestroyed();
@@ -56,21 +51,10 @@ PluginWidgetChild::ShutdownProxy()
   mWidget = nullptr;
 }
 
-void
-PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
-{
-  PWLOG("PluginWidgetChild::ActorDestroy(%d)\n", aWhy);
-  ShutdownProxy(); 
-}
-
 bool
-PluginWidgetChild::RecvParentShutdown(const bool& aParentInitiated)
+PluginWidgetChild::RecvParentShutdown()
 {
-  PWLOG("PluginWidgetChild::RecvParentShutdown(%d)\n", aParentInitiated);
-  ShutdownProxy();
-  if (!aParentInitiated) {
-    Send__delete__(this);
-  }
+  Send__delete__(this);
   return true;
 }
 

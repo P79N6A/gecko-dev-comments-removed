@@ -37,7 +37,7 @@ public:
   virtual ~PluginWidgetParent();
 
   virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
-  virtual bool RecvCreate(nsresult* aResult) MOZ_OVERRIDE;
+  virtual bool RecvCreate() MOZ_OVERRIDE;
   virtual bool RecvDestroy() MOZ_OVERRIDE;
   virtual bool RecvSetFocus(const bool& aRaise) MOZ_OVERRIDE;
   virtual bool RecvGetNativePluginPort(uintptr_t* value) MOZ_OVERRIDE;
@@ -48,12 +48,7 @@ public:
   
   void ParentDestroy();
 
-  
-  void SetParent(nsIWidget* aParent);
-
 private:
-  void ShutdownCommon(bool aParentInitiated);
-
   
   mozilla::dom::TabParent* GetTabParent();
   

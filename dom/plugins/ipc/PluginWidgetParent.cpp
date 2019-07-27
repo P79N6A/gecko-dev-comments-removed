@@ -4,7 +4,6 @@
 
 #include "PluginWidgetParent.h"
 #include "mozilla/dom/TabParent.h"
-#include "mozilla/dom/ContentParent.h"
 #include "nsComponentManagerUtils.h"
 #include "nsWidgetsCID.h"
 #include "mozilla/DebugOnly.h"
@@ -75,14 +74,6 @@ PluginWidgetParent::GetTabParent()
   return static_cast<mozilla::dom::TabParent*>(Manager());
 }
 
-void
-PluginWidgetParent::SetParent(nsIWidget* aParent)
-{
-  if (mWidget && aParent) {
-    mWidget->SetParent(aParent);
-  }
-}
-
 #if defined(XP_WIN)
 
 void
@@ -108,12 +99,14 @@ PluginWidgetParent::SendAsyncUpdate(nsIWidget* aWidget)
 
 
 bool
-PluginWidgetParent::RecvCreate(nsresult* aResult)
+PluginWidgetParent::RecvCreate()
 {
   PWLOG("PluginWidgetParent::RecvCreate()\n");
 
-  mWidget = do_CreateInstance(kWidgetCID, aResult);
-  NS_ASSERTION(NS_SUCCEEDED(*aResult), "widget create failure");
+  nsresult rv;
+
+  mWidget = do_CreateInstance(kWidgetCID, &rv);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "widget create failure");
 
 #if defined(MOZ_WIDGET_GTK)
   
@@ -129,23 +122,17 @@ PluginWidgetParent::RecvCreate(nsresult* aResult)
 
   
   nsCOMPtr<nsIWidget> parentWidget = GetTabParent()->GetWidget();
-  
-  if (!parentWidget) {
-    *aResult = NS_ERROR_NOT_AVAILABLE;
-    return true;
-  }
 
   nsWidgetInitData initData;
   initData.mWindowType = eWindowType_plugin_ipc_chrome;
   initData.mUnicode = false;
   initData.clipChildren = true;
   initData.clipSiblings = true;
-  *aResult = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
-                             &initData);
-  if (NS_FAILED(*aResult)) {
+  rv = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
+                       nullptr, &initData);
+  if (NS_FAILED(rv)) {
     mWidget->Destroy();
     mWidget = nullptr;
-    
     return false;
   }
 
@@ -183,23 +170,8 @@ PluginWidgetParent::RecvCreate(nsresult* aResult)
 void
 PluginWidgetParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  PWLOG("PluginWidgetParent::ActorDestroy()\n");
-}
-
-void
-PluginWidgetParent::ShutdownCommon(bool aParentInitiated)
-{
-  if (mActorDestroyed || !mWidget) {
-    return;
-  }
-
-  PWLOG("PluginWidgetParent::ShutdownCommon()\n");
-  mWidget->UnregisterPluginWindowForRemoteUpdates();
-  DebugOnly<nsresult> rv = mWidget->Destroy();
-  NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
-  mWidget = nullptr;
   mActorDestroyed = true;
-  unused << SendParentShutdown(aParentInitiated);
+  PWLOG("PluginWidgetParent::ActorDestroy()\n");
 }
 
 
@@ -209,8 +181,16 @@ PluginWidgetParent::ShutdownCommon(bool aParentInitiated)
 void
 PluginWidgetParent::ParentDestroy()
 {
+  if (mActorDestroyed || !mWidget) {
+    return;
+  }
   PWLOG("PluginWidgetParent::ParentDestroy()\n");
-  ShutdownCommon(true);
+  mWidget->UnregisterPluginWindowForRemoteUpdates();
+  DebugOnly<nsresult> rv = mWidget->Destroy();
+  NS_ASSERTION(NS_SUCCEEDED(rv), "widget destroy failure");
+  mWidget = nullptr;
+  mActorDestroyed = true;
+  return;
 }
 
 
@@ -218,8 +198,11 @@ PluginWidgetParent::ParentDestroy()
 bool
 PluginWidgetParent::RecvDestroy()
 {
-  PWLOG("PluginWidgetParent::RecvDestroy()\n");
-  ShutdownCommon(false);
+  bool destroyed = mActorDestroyed;
+  ParentDestroy();
+  if (!destroyed) {
+    unused << SendParentShutdown();
+  }
   return true;
 }
 
