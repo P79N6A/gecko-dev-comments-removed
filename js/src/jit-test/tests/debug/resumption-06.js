@@ -1,5 +1,6 @@
 
 
+
 load(libdir + 'asserts.js')
 load(libdir + 'iteration.js')
 
@@ -16,4 +17,5 @@ function* gen() {
 var iter = gen();
 assertIteratorNext(iter, '1');
 assertEq(iter.next(), '!');
-assertIteratorDone(iter);
+iter.next();
+assertEq(0, 1);

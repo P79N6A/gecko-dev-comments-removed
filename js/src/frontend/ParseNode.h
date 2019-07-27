@@ -124,6 +124,7 @@ class UpvarCookie
     F(FINALLY) \
     F(THROW) \
     F(DEBUGGER) \
+    F(GENERATOR) \
     F(YIELD) \
     F(YIELD_STAR) \
     F(GENEXP) \
@@ -217,6 +218,9 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
 
 
 
@@ -773,8 +777,9 @@ class ParseNode
         MOZ_ASSERT(isKind(PNK_GENEXP));
         ParseNode *callee = this->pn_head;
         ParseNode *body = callee->pn_body;
-        MOZ_ASSERT(body->isKind(PNK_LEXICALSCOPE) || body->isKind(PNK_FOR));
-        return body;
+        MOZ_ASSERT(body->isKind(PNK_STATEMENTLIST));
+        MOZ_ASSERT(body->last()->isKind(PNK_LEXICALSCOPE) || body->last()->isKind(PNK_FOR));
+        return body->last();
     }
 #endif
 

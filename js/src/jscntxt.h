@@ -552,14 +552,7 @@ struct JSContext : public js::ExclusiveContext,
         runtime_->gc.gcIfNeeded(this);
     }
 
-  private:
-    
-    JSGenerator *innermostGenerator_;
   public:
-    JSGenerator *innermostGenerator() const { return innermostGenerator_; }
-    void enterGenerator(JSGenerator *gen);
-    void leaveGenerator(JSGenerator *gen);
-
     bool isExceptionPending() {
         return throwing;
     }

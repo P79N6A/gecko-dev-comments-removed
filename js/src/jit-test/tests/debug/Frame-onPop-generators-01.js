@@ -1,6 +1,7 @@
 
 
 
+
 load(libdir + "asserts.js");
 
 var g = newGlobal();
@@ -17,4 +18,4 @@ var rv = gw.evalInGlobal("it.next();");
 assertEq(rv.throw, "fit");
 
 dbg.enabled = false;
-assertEq(g.it.next(), 1);
+g.it.next();

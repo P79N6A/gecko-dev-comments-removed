@@ -1,5 +1,6 @@
 
 
+
 var g = newGlobal();
 g.debuggeeGlobal = this;
 g.eval("var dbg = new Debugger(debuggeeGlobal);" +
@@ -10,5 +11,9 @@ function gen() {
     debugger;  
     yield '2';
 }
-var x = [v for (v in gen())];
-assertEq(x.join(","), "1");
+
+var iter = gen();
+assertEq(iter.next(), "1");
+assertEq(iter.next(), "!");
+iter.next();
+assertEq(0, 1);

@@ -31,6 +31,7 @@
 #include "frontend/Parser.h"
 #include "frontend/TokenStream.h"
 #include "vm/Debugger.h"
+#include "vm/GeneratorObject.h"
 #include "vm/Stack.h"
 
 #include "jsatominlines.h"
@@ -2973,13 +2974,6 @@ frontend::EmitFunctionScript(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNo
         bce->switchToMain();
     }
 
-    if (funbox->isGenerator()) {
-        bce->switchToProlog();
-        if (Emit1(cx, bce, JSOP_GENERATOR) < 0)
-            return false;
-        bce->switchToMain();
-    }
-
     
 
 
@@ -2997,17 +2991,26 @@ frontend::EmitFunctionScript(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNo
         return false;
 
     
-    
-    if (bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->isStarGenerator()) {
-        if (!EmitPrepareIteratorResult(cx, bce))
+    if (bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->isGenerator()) {
+        if (bce->sc->asFunctionBox()->isStarGenerator() && !EmitPrepareIteratorResult(cx, bce))
             return false;
+
         if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
             return false;
-        if (!EmitFinishIteratorResult(cx, bce, true))
+
+        if (bce->sc->asFunctionBox()->isStarGenerator() && !EmitFinishIteratorResult(cx, bce, true))
+            return false;
+
+        ScopeCoordinate sc;
+        
+        
+        sc.setHops(0);
+        MOZ_ALWAYS_TRUE(LookupAliasedNameSlot(bce, bce->script, cx->names().dotGenerator, &sc));
+        if (!EmitAliasedVarOp(cx, JSOP_GETALIASEDVAR, sc, DontCheckLexical, bce))
             return false;
 
         
-        if (Emit1(cx, bce, JSOP_RETURN) < 0)
+        if (Emit1(cx, bce, JSOP_FINALYIELD) < 0)
             return false;
     }
 
@@ -5463,15 +5466,26 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     ptrdiff_t top = bce->offset();
 
-    if (Emit1(cx, bce, JSOP_RETURN) < 0)
-        return false;
+    bool isGenerator = bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->isGenerator();
+    if (Emit1(cx, bce, isGenerator ? JSOP_SETRVAL : JSOP_RETURN) < 0)
+         return false;
 
     NonLocalExitScope nle(cx, bce);
 
     if (!nle.prepareForNonLocalJump(nullptr))
         return false;
 
-    if (top + static_cast<ptrdiff_t>(JSOP_RETURN_LENGTH) != bce->offset()) {
+    if (isGenerator) {
+        ScopeCoordinate sc;
+        
+        
+        sc.setHops(0);
+        MOZ_ALWAYS_TRUE(LookupAliasedNameSlot(bce, bce->script, cx->names().dotGenerator, &sc));
+        if (!EmitAliasedVarOp(cx, JSOP_GETALIASEDVAR, sc, DontCheckLexical, bce))
+            return false;
+        if (Emit1(cx, bce, JSOP_FINALYIELDRVAL) < 0)
+            return false;
+    } else if (top + static_cast<ptrdiff_t>(JSOP_RETURN_LENGTH) != bce->offset()) {
         bce->code()[top] = JSOP_SETRVAL;
         if (Emit1(cx, bce, JSOP_RETRVAL) < 0)
             return false;
@@ -5481,7 +5495,41 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 }
 
 static bool
-EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
+EmitYield(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    MOZ_ASSERT(bce->sc->isFunctionBox());
+
+    if (pn->getOp() == JSOP_YIELD) {
+        if (bce->sc->asFunctionBox()->isStarGenerator()) {
+            if (!EmitPrepareIteratorResult(cx, bce))
+                return false;
+        }
+        if (pn->pn_left) {
+            if (!EmitTree(cx, bce, pn->pn_left))
+                return false;
+        } else {
+            if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
+                return false;
+        }
+        if (bce->sc->asFunctionBox()->isStarGenerator()) {
+            if (!EmitFinishIteratorResult(cx, bce, false))
+                return false;
+        }
+    } else {
+        MOZ_ASSERT(pn->getOp() == JSOP_INITIALYIELD);
+    }
+
+    if (!EmitTree(cx, bce, pn->pn_right))
+        return false;
+
+    if (Emit1(cx, bce, pn->getOp()) < 0)
+        return false;
+
+    return true;
+}
+
+static bool
+EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter, ParseNode *gen)
 {
     MOZ_ASSERT(bce->sc->isFunctionBox());
     MOZ_ASSERT(bce->sc->asFunctionBox()->isStarGenerator());
@@ -5500,12 +5548,13 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
         return false;
     CheckTypeSet(cx, bce, JSOP_CALL);
 
-    int depth = bce->stackDepth;
-    MOZ_ASSERT(depth >= 1);
-
     
     if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)                      
         return false;
+
+    int depth = bce->stackDepth;
+    MOZ_ASSERT(depth >= 2);
+
     ptrdiff_t initialSend = -1;
     if (EmitBackPatchOp(cx, bce, &initialSend) < 0)              
         return false;
@@ -5514,17 +5563,21 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     StmtInfoBCE stmtInfo(cx);
     PushStatementBCE(bce, &stmtInfo, STMT_TRY, bce->offset());
     ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_TRY);
+    ptrdiff_t tryStart = bce->offset();                          
     if (noteIndex < 0 || Emit1(cx, bce, JSOP_TRY) < 0)
         return false;
-    ptrdiff_t tryStart = bce->offset();                          
-    MOZ_ASSERT(bce->stackDepth == depth + 1);
+    MOZ_ASSERT(bce->stackDepth == depth);
+
+    
+    if (!EmitTree(cx, bce, gen))                                 
+        return false;
 
     
     if (Emit1(cx, bce, JSOP_YIELD) < 0)                          
         return false;
 
     
-    if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, bce->offset() - tryStart + JSOP_TRY_LENGTH))
+    if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, bce->offset() - tryStart))
         return false;
     ptrdiff_t subsequentSend = -1;
     if (EmitBackPatchOp(cx, bce, &subsequentSend) < 0)           
@@ -5532,8 +5585,10 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     ptrdiff_t tryEnd = bce->offset();                            
 
     
+    bce->stackDepth = uint32_t(depth);                           
+    if (Emit1(cx, bce, JSOP_POP) < 0)                            
+        return false;
     
-    bce->stackDepth = (uint32_t) depth;
     if (Emit1(cx, bce, JSOP_EXCEPTION) < 0)                      
         return false;
     if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
@@ -5557,7 +5612,7 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
 
     SetJumpOffsetAt(bce, checkThrow);                            
     
-    bce->stackDepth = (uint32_t) depth + 1;
+    bce->stackDepth = uint32_t(depth);
     if (Emit1(cx, bce, JSOP_DUP) < 0)                            
         return false;
     if (Emit1(cx, bce, JSOP_DUP) < 0)                            
@@ -5571,7 +5626,7 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     if (EmitCall(cx, bce, JSOP_CALL, 1, iter) < 0)               
         return false;
     CheckTypeSet(cx, bce, JSOP_CALL);
-    MOZ_ASSERT(bce->stackDepth == depth + 1);
+    MOZ_ASSERT(bce->stackDepth == depth);
     ptrdiff_t checkResult = -1;
     if (EmitBackPatchOp(cx, bce, &checkResult) < 0)              
         return false;
@@ -5582,7 +5637,7 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     
     if (Emit1(cx, bce, JSOP_NOP) < 0)
         return false;
-    if (!bce->tryNoteList.append(JSTRY_CATCH, depth, tryStart, tryEnd))
+    if (!bce->tryNoteList.append(JSTRY_CATCH, depth, tryStart + JSOP_TRY_LENGTH, tryEnd))
         return false;
 
     
@@ -5608,7 +5663,7 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     if (EmitCall(cx, bce, JSOP_CALL, 1, iter) < 0)               
         return false;
     CheckTypeSet(cx, bce, JSOP_CALL);
-    MOZ_ASSERT(bce->stackDepth == depth + 1);
+    MOZ_ASSERT(bce->stackDepth == depth);
 
     if (!BackPatch(cx, bce, checkResult, bce->code().end(), JSOP_GOTO)) 
         return false;
@@ -5629,7 +5684,7 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     if (!EmitAtomOp(cx, cx->names().value, JSOP_GETPROP, bce))   
         return false;
 
-    MOZ_ASSERT(bce->stackDepth == depth);
+    MOZ_ASSERT(bce->stackDepth == depth - 1);
 
     return true;
 }
@@ -5808,6 +5863,80 @@ static bool
 EmitArray(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, uint32_t count);
 
 static bool
+EmitSelfHostedCallFunction(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (pn->pn_count < 3) {
+        bce->reportError(pn, JSMSG_MORE_ARGS_NEEDED, "callFunction", "1", "s");
+        return false;
+    }
+
+    ParseNode *pn2 = pn->pn_head;
+    ParseNode *funNode = pn2->pn_next;
+    if (!EmitTree(cx, bce, funNode))
+        return false;
+
+    ParseNode *thisArg = funNode->pn_next;
+    if (!EmitTree(cx, bce, thisArg))
+        return false;
+
+    bool oldEmittingForInit = bce->emittingForInit;
+    bce->emittingForInit = false;
+
+    for (ParseNode *argpn = thisArg->pn_next; argpn; argpn = argpn->pn_next) {
+        if (!EmitTree(cx, bce, argpn))
+            return false;
+    }
+
+    bce->emittingForInit = oldEmittingForInit;
+
+    uint32_t argc = pn->pn_count - 3;
+    if (EmitCall(cx, bce, pn->getOp(), argc) < 0)
+        return false;
+
+    CheckTypeSet(cx, bce, pn->getOp());
+    return true;
+}
+
+static bool
+EmitSelfHostedResumeGenerator(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    
+    if (pn->pn_count != 4) {
+        bce->reportError(pn, JSMSG_MORE_ARGS_NEEDED, "resumeGenerator", "1", "s");
+        return false;
+    }
+
+    ParseNode *funNode = pn->pn_head;  
+
+    ParseNode *genNode = funNode->pn_next;
+    if (!EmitTree(cx, bce, genNode))
+        return false;
+
+    ParseNode *valNode = genNode->pn_next;
+    if (!EmitTree(cx, bce, valNode))
+        return false;
+
+    ParseNode *kindNode = valNode->pn_next;
+    MOZ_ASSERT(kindNode->isKind(PNK_STRING));
+    uint16_t operand = GeneratorObject::getResumeKind(cx, kindNode->pn_atom);
+    MOZ_ASSERT(!kindNode->pn_next);
+
+    if (EmitCall(cx, bce, JSOP_RESUME, operand) < 0)
+        return false;
+
+    return true;
+}
+
+static bool
 EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     bool callop = pn->isKind(PNK_CALL) || pn->isKind(PNK_TAGGED_TEMPLATE);
@@ -5835,46 +5964,21 @@ EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         return false;
     }
 
-    bool emitArgs = true;
     ParseNode *pn2 = pn->pn_head;
     bool spread = JOF_OPTYPE(pn->getOp()) == JOF_BYTE;
     switch (pn2->getKind()) {
       case PNK_NAME:
-        if (bce->emitterMode == BytecodeEmitter::SelfHosting &&
-            pn2->name() == cx->names().callFunction &&
-            !spread)
-        {
+        if (bce->emitterMode == BytecodeEmitter::SelfHosting && !spread) {
             
+            MOZ_ASSERT(!(pn->pn_xflags & PNX_SETCALL));
 
-
-
-
-
-
-
-
-
-
-            if (pn->pn_count < 3) {
-                bce->reportError(pn, JSMSG_MORE_ARGS_NEEDED, "callFunction", "1", "s");
-                return false;
-            }
-            ParseNode *funNode = pn2->pn_next;
-            if (!EmitTree(cx, bce, funNode))
-                return false;
-            ParseNode *thisArg = funNode->pn_next;
-            if (!EmitTree(cx, bce, thisArg))
-                return false;
-            bool oldEmittingForInit = bce->emittingForInit;
-            bce->emittingForInit = false;
-            for (ParseNode *argpn = thisArg->pn_next; argpn; argpn = argpn->pn_next) {
-                if (!EmitTree(cx, bce, argpn))
-                    return false;
-            }
-            bce->emittingForInit = oldEmittingForInit;
-            argc -= 2;
-            emitArgs = false;
-            break;
+            
+            
+            if (pn2->name() == cx->names().callFunction)
+                return EmitSelfHostedCallFunction(cx, bce, pn);
+            if (pn2->name() == cx->names().resumeGenerator)
+                return EmitSelfHostedResumeGenerator(cx, bce, pn);
+            
         }
         if (!EmitNameOp(cx, bce, pn2, callop))
             return false;
@@ -5922,25 +6026,23 @@ EmitCallOrNew(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
     }
 
-    if (emitArgs) {
-        
+    
 
 
 
 
-        bool oldEmittingForInit = bce->emittingForInit;
-        bce->emittingForInit = false;
-        if (!spread) {
-            for (ParseNode *pn3 = pn2->pn_next; pn3; pn3 = pn3->pn_next) {
-                if (!EmitTree(cx, bce, pn3))
-                    return false;
-            }
-        } else {
-            if (!EmitArray(cx, bce, pn2->pn_next, argc))
+    bool oldEmittingForInit = bce->emittingForInit;
+    bce->emittingForInit = false;
+    if (!spread) {
+        for (ParseNode *pn3 = pn2->pn_next; pn3; pn3 = pn3->pn_next) {
+            if (!EmitTree(cx, bce, pn3))
                 return false;
         }
-        bce->emittingForInit = oldEmittingForInit;
+    } else {
+        if (!EmitArray(cx, bce, pn2->pn_next, argc))
+            return false;
     }
+    bce->emittingForInit = oldEmittingForInit;
 
     if (!spread) {
         if (EmitCall(cx, bce, pn->getOp(), argc, pn) < 0)
@@ -6687,28 +6789,16 @@ frontend::EmitTree(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_YIELD_STAR:
-        ok = EmitYieldStar(cx, bce, pn->pn_kid);
+        ok = EmitYieldStar(cx, bce, pn->pn_left, pn->pn_right);
+        break;
+
+      case PNK_GENERATOR:
+        if (Emit1(cx, bce, JSOP_GENERATOR) < 0)
+            return false;
         break;
 
       case PNK_YIELD:
-        MOZ_ASSERT(bce->sc->isFunctionBox());
-        if (bce->sc->asFunctionBox()->isStarGenerator()) {
-            if (!EmitPrepareIteratorResult(cx, bce))
-                return false;
-        }
-        if (pn->pn_kid) {
-            if (!EmitTree(cx, bce, pn->pn_kid))
-                return false;
-        } else {
-            if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-                return false;
-        }
-        if (bce->sc->asFunctionBox()->isStarGenerator()) {
-            if (!EmitFinishIteratorResult(cx, bce, false))
-                return false;
-        }
-        if (Emit1(cx, bce, JSOP_YIELD) < 0)
-            return false;
+        ok = EmitYield(cx, bce, pn);
         break;
 
       case PNK_STATEMENTLIST:

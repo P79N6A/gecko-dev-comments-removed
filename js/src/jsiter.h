@@ -219,39 +219,6 @@ CreateItrResultObject(JSContext *cx, HandleValue value, bool done);
 
 } 
 
-
-
-
-enum JSGeneratorState
-{
-    JSGEN_NEWBORN,  
-    JSGEN_OPEN,     
-    JSGEN_RUNNING,  
-    JSGEN_CLOSING,  
-    JSGEN_CLOSED    
-};
-
-struct JSGenerator
-{
-    js::HeapPtrObject    obj;
-    JSGeneratorState     state;
-    js::InterpreterRegs  regs;
-    JSGenerator          *prevGenerator;
-    js::InterpreterFrame *fp;
-#if JS_BITS_PER_WORD == 32
-    uint32_t             padding;
-#endif
-
-    js::HeapValue *stackSnapshot() {
-        static_assert(sizeof(JSGenerator) % sizeof(js::HeapValue) == 0,
-                      "The generator must have Value alignment for JIT access.");
-        return reinterpret_cast<js::HeapValue *>(this + 1);
-    }
-};
-
-extern JSObject *
-js_NewGenerator(JSContext *cx, const js::InterpreterRegs &regs);
-
 extern JSObject *
 js_InitIteratorClasses(JSContext *cx, js::HandleObject obj);
 

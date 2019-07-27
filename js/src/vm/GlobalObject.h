@@ -616,6 +616,9 @@ class GlobalObject : public NativeObject
     static bool initStopIterationClass(JSContext *cx, Handle<GlobalObject*> global);
 
     
+    static bool initGeneratorClasses(JSContext *cx, Handle<GlobalObject*> global);
+
+    
     static bool initMapIteratorProto(JSContext *cx, Handle<GlobalObject*> global);
     static bool initSetIteratorProto(JSContext *cx, Handle<GlobalObject*> global);
 

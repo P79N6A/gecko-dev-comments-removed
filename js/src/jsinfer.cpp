@@ -2264,6 +2264,8 @@ types::UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
+    if (script->isGenerator())
+        return false;
     if (JSOp(*pc) != JSOP_NEW)
         return false;
     pc += JSOP_NEW_LENGTH;
