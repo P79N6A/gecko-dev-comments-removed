@@ -2048,7 +2048,7 @@ public:
     }
 
     
-    if (!mKeyPair.mPrivateKey.get()->HasAnyUsage() ||
+    if (!mKeyPair.mPublicKey.get()->HasAnyUsage() &&
         !mKeyPair.mPrivateKey.get()->HasAnyUsage()) {
       mEarlyRv = NS_ERROR_DOM_DATA_ERR;
       return;
