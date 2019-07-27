@@ -3,6 +3,7 @@
 
 #include "MediaEngineGonkVideoSource.h"
 
+#undef LOG_TAG
 #define LOG_TAG "MediaEngineGonkVideoSource"
 
 #include <utils/Log.h>
