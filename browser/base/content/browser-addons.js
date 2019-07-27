@@ -123,8 +123,7 @@ const gXPInstallObserver = {
       }
     };
 
-    options.learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL") +
-                           "find-and-install-add-ons";
+    options.learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
 
     let messageString;
     let notification = document.getElementById("addon-install-confirmation-notification");
@@ -132,17 +131,20 @@ const gXPInstallObserver = {
       
       messageString = gNavigatorBundle.getString("addonConfirmInstallUnsigned.message");
       notification.setAttribute("warning", "true");
+      options.learnMoreURL += "unsigned-addons";
     }
     else if (unsigned.length == 0) {
       
       messageString = gNavigatorBundle.getString("addonConfirmInstall.message");
       notification.removeAttribute("warning");
+      options.learnMoreURL += "find-and-install-add-ons";
     }
     else {
       
       
       messageString = gNavigatorBundle.getString("addonConfirmInstallSomeUnsigned.message");
       notification.setAttribute("warning", "true");
+      options.learnMoreURL += "unsigned-addons";
     }
 
     let brandBundle = document.getElementById("bundle_brand");
@@ -310,8 +312,7 @@ const gXPInstallObserver = {
 
         
         if (install.error == AddonManager.ERROR_SIGNEDSTATE_REQUIRED) {
-          options.learnMoreURL =
-            Services.prefs.getCharPref("xpinstall.signatures.infoURL");
+          options.learnMoreURL = Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons";
         }
 
         messageString = gNavigatorBundle.getFormattedString(error, args);
