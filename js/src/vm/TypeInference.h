@@ -492,8 +492,6 @@ class TypeSet
         return this->isSubset(other) && other->isSubset(this);
     }
 
-    bool objectsIntersect(const TypeSet *other) const;
-
     
     bool addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
 
