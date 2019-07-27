@@ -2229,6 +2229,12 @@ RadioInterface.prototype = {
 
     if (!message || !message.iccid) {
       
+      
+      if (!this.rilContext.iccInfo) {
+        return;
+      }
+
+      
       this.rilContext.iccInfo = null;
     } else {
       if (!this.rilContext.iccInfo) {
@@ -2253,11 +2259,6 @@ RadioInterface.prototype = {
     gMessageManager.sendIccMessage("RIL:IccInfoChanged",
                                    this.clientId,
                                    message.iccid ? message : null);
-
-    
-    
-    gMobileConnectionService.notifyIccChanged(this.clientId,
-                                              message.iccid || null);
 
     
     if (message.mcc) {
