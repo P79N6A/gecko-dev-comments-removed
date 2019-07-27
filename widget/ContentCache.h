@@ -229,6 +229,10 @@ private:
     return mSelection.IsValid() && mSelection.EndOffset() <= mText.Length();
   }
 
+  
+  
+  LayoutDeviceIntRect mFirstCharRect;
+
   struct Caret final
   {
     uint32_t mOffset;
