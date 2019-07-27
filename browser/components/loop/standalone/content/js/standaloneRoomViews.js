@@ -52,13 +52,15 @@ loop.standaloneRoomViews = (function(mozL10n) {
           return mozL10n.get("rooms_unavailable_notification_message");
         default:
           return mozL10n.get("status_error");
-      };
+      }
     },
 
     _renderContent: function() {
       switch(this.props.roomState) {
         case ROOM_STATES.INIT:
-        case ROOM_STATES.READY: {
+        case ROOM_STATES.READY:
+        case ROOM_STATES.ENDED: {
+          
           return (
             React.DOM.button({className: "btn btn-join btn-info", 
                     onClick: this.props.joinRoom}, 
@@ -224,8 +226,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
 
+
     componentWillUpdate: function(nextProps, nextState) {
-      if (this.state.roomState === ROOM_STATES.READY &&
+      if (this.state.roomState !== ROOM_STATES.JOINED &&
           nextState.roomState === ROOM_STATES.JOINED) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
           publisherConfig: this._getPublisherConfig(),

@@ -37,7 +37,9 @@ loop.store.ActiveRoomStore = (function() {
     
     FAILED: "room-failed",
     
-    FULL: "room-full"
+    FULL: "room-full",
+    
+    ENDED: "room-ended"
   };
 
   
@@ -424,7 +426,7 @@ loop.store.ActiveRoomStore = (function() {
       }
 
       this.setStoreState({
-        roomState: nextState ? nextState : ROOM_STATES.READY
+        roomState: nextState ? nextState : ROOM_STATES.ENDED
       });
     }
   });

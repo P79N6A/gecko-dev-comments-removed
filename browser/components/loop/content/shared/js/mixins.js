@@ -238,7 +238,7 @@ loop.shared.mixins = (function() {
 
       function isConnectedToRoom(state) {
         return state === ROOM_STATES.HAS_PARTICIPANTS ||
-          state === ROOM_STATES.SESSION_CONNECTED;
+               state === ROOM_STATES.SESSION_CONNECTED;
       }
 
       function notConnectedToRoom(state) {
@@ -246,9 +246,10 @@ loop.shared.mixins = (function() {
         
         
         return state === ROOM_STATES.INIT ||
-          state === ROOM_STATES.GATHER ||
-          state === ROOM_STATES.READY ||
-          state === ROOM_STATES.JOINED;
+               state === ROOM_STATES.GATHER ||
+               state === ROOM_STATES.READY ||
+               state === ROOM_STATES.JOINED ||
+               state === ROOM_STATES.ENDED;
       }
 
       
