@@ -2622,7 +2622,7 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
 };
 
 typedef JSObject*
-(* ObjectMetadataCallback)(JSContext* cx);
+(* ObjectMetadataCallback)(JSContext* cx, JSObject* obj);
 
 
 
