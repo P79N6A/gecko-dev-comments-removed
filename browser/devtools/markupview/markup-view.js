@@ -865,21 +865,25 @@ MarkupView.prototype = {
 
 
   updateNodeOuterHTML: function(aNode, newValue, oldValue) {
-    let container = this.getContainer(aNode);
+    let container = this._containers.get(aNode);
     if (!container) {
-      return;
+      return promise.reject();
     }
+
+    let def = promise.defer();
 
     this.getNodeChildIndex(aNode).then((i) => {
       this._outerHTMLChildIndex = i;
       this._outerHTMLNode = aNode;
 
       container.undo.do(() => {
-        this.walker.setOuterHTML(aNode, newValue);
+        this.walker.setOuterHTML(aNode, newValue).then(def.resolve, def.reject);
       }, () => {
-        this.walker.setOuterHTML(aNode, oldValue);
+        this.walker.setOuterHTML(aNode, oldValue).then(def.resolve, def.reject);
       });
     });
+
+    return def.promise;
   },
 
   
