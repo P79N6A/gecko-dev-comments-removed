@@ -233,91 +233,56 @@ template <typename T, AllowGC allowGC>
  T*
 GCRuntime::tryNewTenuredThing(ExclusiveContext* cx, AllocKind kind, size_t thingSize)
 {
+    
     T* t = reinterpret_cast<T*>(cx->arenas()->allocateFromFreeList(kind, thingSize));
-    if (!t)
-        t = reinterpret_cast<T*>(refillFreeListFromAnyThread<allowGC>(cx, kind, thingSize));
+    if (MOZ_UNLIKELY(!t)) {
+        
+        
+        
+        t = reinterpret_cast<T*>(refillFreeListFromAnyThread(cx, kind, thingSize));
+
+        if (MOZ_UNLIKELY(!t && allowGC && cx->isJSContext())) {
+            
+            
+            
+            JSRuntime *rt = cx->asJSContext()->runtime();
+            JS::PrepareForFullGC(rt);
+            AutoKeepAtoms keepAtoms(cx->perThreadData);
+            rt->gc.gc(GC_SHRINK, JS::gcreason::LAST_DITCH);
+            rt->gc.waitBackgroundSweepOrAllocEnd();
+
+            t = tryNewTenuredThing<T, NoGC>(cx, kind, thingSize);
+            if (!t)
+                ReportOutOfMemory(cx);
+        }
+    }
 
     checkIncrementalZoneState(cx, t);
     TraceTenuredAlloc(t, kind);
     return t;
 }
 
-template <AllowGC allowGC>
  void*
 GCRuntime::refillFreeListFromAnyThread(ExclusiveContext* cx, AllocKind thingKind, size_t thingSize)
 {
     MOZ_ASSERT(cx->arenas()->freeLists[thingKind].isEmpty());
 
     if (cx->isJSContext())
-        return refillFreeListFromMainThread<allowGC>(cx->asJSContext(), thingKind, thingSize);
+        return refillFreeListFromMainThread(cx->asJSContext(), thingKind, thingSize);
 
     return refillFreeListOffMainThread(cx, thingKind);
 }
 
-template <AllowGC allowGC>
  void*
 GCRuntime::refillFreeListFromMainThread(JSContext* cx, AllocKind thingKind, size_t thingSize)
 {
-    JSRuntime* rt = cx->runtime();
-    MOZ_ASSERT(!rt->isHeapBusy(), "allocating while under GC");
-    MOZ_ASSERT_IF(allowGC, !rt->currentThreadHasExclusiveAccess());
-
-    
-    void* thing = tryRefillFreeListFromMainThread(cx, thingKind);
-    if (MOZ_LIKELY(thing))
-        return thing;
-
-    
-    {
-        
-        
-        if (!allowGC)
-            return nullptr;
-
-        JS::PrepareForFullGC(rt);
-        AutoKeepAtoms keepAtoms(cx->perThreadData);
-        rt->gc.gc(GC_SHRINK, JS::gcreason::LAST_DITCH);
-    }
-
-    
-    
-    
-    thing = cx->arenas()->allocateFromFreeList(thingKind, thingSize);
-    if (!thing)
-        thing = tryRefillFreeListFromMainThread(cx, thingKind);
-    if (thing)
-        return thing;
-
-    
-    MOZ_ASSERT(allowGC, "A fallible allocation must not report OOM on failure.");
-    ReportOutOfMemory(cx);
-    return nullptr;
-}
-
- void*
-GCRuntime::tryRefillFreeListFromMainThread(JSContext* cx, AllocKind thingKind)
-{
-    ArenaLists* arenas = cx->arenas();
-    Zone* zone = cx->zone();
+    ArenaLists *arenas = cx->arenas();
+    Zone *zone = cx->zone();
+    MOZ_ASSERT(!cx->runtime()->isHeapBusy(), "allocating while under GC");
 
     AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
 
-    void* thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (MOZ_LIKELY(thing))
-        return thing;
-
-    
-    
-    
-    
-    
-    cx->runtime()->gc.waitBackgroundSweepOrAllocEnd();
-
-    thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (thing)
-        return thing;
-
-    return nullptr;
+    return arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
 }
 
  void*
@@ -336,12 +301,7 @@ GCRuntime::refillFreeListOffMainThread(ExclusiveContext* cx, AllocKind thingKind
     while (rt->isHeapBusy())
         HelperThreadState().wait(GlobalHelperThreadState::PRODUCER);
 
-    void* thing = arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-    if (thing)
-        return thing;
-
-    ReportOutOfMemory(cx);
-    return nullptr;
+    return arenas->allocateFromArena(zone, thingKind, maybeStartBGAlloc);
 }
 
 TenuredCell*
