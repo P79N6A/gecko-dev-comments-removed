@@ -393,13 +393,13 @@ class SnapshotIterator
     Value read() {
         return allocationValue(readAllocation());
     }
-    Value maybeRead(const Value &placeholder = UndefinedValue(), bool silentFailure = false) {
+    Value maybeRead(bool silentFailure = false) {
         RValueAllocation a = readAllocation();
         if (allocationReadable(a))
             return allocationValue(a);
         if (!silentFailure)
             warnUnreadableAllocation();
-        return placeholder;
+        return UndefinedValue();
     }
 
     void readCommonFrameSlots(Value *scopeChain, Value *rval) {
@@ -416,8 +416,7 @@ class SnapshotIterator
 
     template <class Op>
     void readFunctionFrameArgs(Op &op, ArgumentsObject **argsObj, Value *thisv,
-                               unsigned start, unsigned end, JSScript *script,
-                               const Value &unreadablePlaceholder = UndefinedValue())
+                               unsigned start, unsigned end, JSScript *script)
     {
         
         if (script->argumentsHasVarBinding()) {
@@ -445,7 +444,7 @@ class SnapshotIterator
             
             
             
-            Value v = maybeRead(unreadablePlaceholder);
+            Value v = maybeRead();
             op(v);
         }
     }
@@ -456,7 +455,7 @@ class SnapshotIterator
             skip();
         }
 
-        Value s = maybeRead( UndefinedValue(), true);
+        Value s = maybeRead(true);
 
         while (moreAllocations())
             skip();
@@ -532,8 +531,7 @@ class InlineFrameIterator
     void readFrameArgsAndLocals(ThreadSafeContext *cx, ArgOp &argOp, LocalOp &localOp,
                                 JSObject **scopeChain, Value *rval,
                                 ArgumentsObject **argsObj, Value *thisv,
-                                ReadFrameArgsBehavior behavior,
-                                const Value &unreadablePlaceholder = UndefinedValue()) const
+                                ReadFrameArgsBehavior behavior) const
     {
         SnapshotIterator s(si_);
 
@@ -552,10 +550,8 @@ class InlineFrameIterator
             
             
             
-            if (behavior != ReadFrame_Overflown) {
-                s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script(),
-                                        unreadablePlaceholder);
-            }
+            if (behavior != ReadFrame_Overflown)
+                s.readFunctionFrameArgs(argOp, argsObj, thisv, 0, nformal, script());
 
             if (behavior != ReadFrame_Formals) {
                 if (more()) {
@@ -583,8 +579,7 @@ class InlineFrameIterator
                     
                     parent_s.readCommonFrameSlots(nullptr, nullptr);
                     parent_s.readFunctionFrameArgs(argOp, nullptr, nullptr,
-                                                   nformal, nactual, it.script(),
-                                                   unreadablePlaceholder);
+                                                   nformal, nactual, it.script());
                 } else {
                     
                     
@@ -597,14 +592,8 @@ class InlineFrameIterator
 
         
         
-        for (unsigned i = 0; i < script()->nfixed(); i++) {
-            
-            
-            
-            
-            
-            localOp(s.maybeRead(unreadablePlaceholder));
-        }
+        for (unsigned i = 0; i < script()->nfixed(); i++)
+            localOp(s.read());
     }
 
     template <class Op>
