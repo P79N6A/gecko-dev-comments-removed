@@ -98,6 +98,15 @@ this.BingTranslator.prototype = {
 
 
 
+  _resetToken : function() {
+    
+    BingTokenManager._currentExpiryTime = 0;
+  },
+
+  
+
+
+
 
 
 
@@ -121,11 +130,13 @@ this.BingTranslator.prototype = {
 
 
 
+
   _chunkFailed: function(aError) {
     if (aError instanceof RESTRequest &&
-        aError.response.status == 400) {
+        [400, 401].indexOf(aError.response.status) != -1) {
       let body = aError.response.body;
-      if (body.contains("TranslateApiException") && body.contains("balance"))
+      if (body.contains("TranslateApiException") &&
+          (body.contains("balance") || body.contains("active state")))
         this._serviceUnavailable = true;
     }
 
