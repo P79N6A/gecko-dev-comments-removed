@@ -3,7 +3,7 @@
 
 
 
-let {LineGraphWidget, BarGraphWidget, CanvasGraphUtils} = Cu.import("resource:///modules/devtools/Graphs.jsm", {});
+let {LineGraphWidget,BarGraphWidget,CanvasGraphUtils} = devtools.require("devtools/shared/widgets/Graphs");
 let {Promise} = devtools.require("resource://gre/modules/Promise.jsm");
 
 add_task(function*() {
