@@ -2680,6 +2680,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     newInnerWindow->mChromeEventHandler = mChromeEventHandler;
   }
 
+  nsJSContext::PokeGC(JS::gcreason::SET_NEW_DOCUMENT);
   mContext->DidInitializeContext();
 
   
@@ -2902,7 +2903,7 @@ nsGlobalWindow::DetachFromDocShell()
   mChromeEventHandler = nullptr; 
 
   if (mContext) {
-    nsJSContext::PokeGC(JS::gcreason::SET_DOC_SHELL, GetWrapperPreserveColor());
+    nsJSContext::PokeGC(JS::gcreason::SET_DOC_SHELL);
     mContext = nullptr;
   }
 
