@@ -648,12 +648,11 @@ function getCanStageUpdates() {
     return false;
   }
 
-
   if (AppConstants.platform == "win" && isServiceInstalled() &&
       shouldUseService()) {
     
     
-    LOG("getCanStageUpdates - able to stage updates because we'll use the service");
+    LOG("getCanStageUpdates - able to stage updates using the service");
     return true;
   }
 
@@ -661,7 +660,7 @@ function getCanStageUpdates() {
   
   if (AppConstants.platform == "gonk") {
     LOG("getCanStageUpdates - able to stage updates because this is gonk");
-      return true;
+    return true;
   }
 
   if (!hasUpdateMutex()) {
