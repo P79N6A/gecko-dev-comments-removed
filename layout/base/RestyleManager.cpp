@@ -3391,6 +3391,15 @@ ElementRestyler::RestyleSelf(nsIFrame* aSelf,
       }
     } else {
       LOG_RESTYLE("not setting new style context, since we'll reframe");
+      
+      
+      
+      
+      
+      
+      
+      
+      mSwappedStructOwners.AppendElement(newContext->GetParent());
     }
   }
   oldContext = nullptr;
@@ -4052,17 +4061,15 @@ RestyleManager::ComputeAndProcessStyleChange(nsIFrame*          aFrame,
   MOZ_ASSERT(mReframingStyleContexts, "should have rsc");
   nsStyleChangeList changeList;
   nsTArray<ElementRestyler::ContextToClear> contextsToClear;
-  {
-    
-    
-    
-    
-    nsTArray<nsRefPtr<nsStyleContext>> swappedStructOwners;
-    ElementRestyler::ComputeStyleChangeFor(aFrame, &changeList, aMinChange,
-                                           aRestyleTracker, aRestyleHint,
-                                           contextsToClear, swappedStructOwners);
-    ProcessRestyledFrames(changeList);
-  }
+
+  
+  
+  
+  nsTArray<nsRefPtr<nsStyleContext>> swappedStructOwners;
+  ElementRestyler::ComputeStyleChangeFor(aFrame, &changeList, aMinChange,
+                                         aRestyleTracker, aRestyleHint,
+                                         contextsToClear, swappedStructOwners);
+  ProcessRestyledFrames(changeList);
   ClearCachedInheritedStyleDataOnDescendants(contextsToClear);
 }
 
@@ -4087,21 +4094,19 @@ RestyleManager::ComputeAndProcessStyleChange(nsStyleContext*    aNewContext,
   treeMatchContext.InitAncestors(parentElement);
   nsTArray<nsIContent*> visibleKidsOfHiddenElement;
   nsTArray<ElementRestyler::ContextToClear> contextsToClear;
-  {
-    
-    
-    
-    
-    nsTArray<nsRefPtr<nsStyleContext>> swappedStructOwners;
-    nsStyleChangeList changeList;
-    ElementRestyler r(frame->PresContext(), aElement, &changeList, aMinChange,
-                      aRestyleTracker, treeMatchContext,
-                      visibleKidsOfHiddenElement, contextsToClear,
-                      swappedStructOwners);
-    r.RestyleChildrenOfDisplayContentsElement(frame, aNewContext, aMinChange,
-                                              aRestyleTracker, aRestyleHint);
-    ProcessRestyledFrames(changeList);
-  }
+
+  
+  
+  
+  nsTArray<nsRefPtr<nsStyleContext>> swappedStructOwners;
+  nsStyleChangeList changeList;
+  ElementRestyler r(frame->PresContext(), aElement, &changeList, aMinChange,
+                    aRestyleTracker, treeMatchContext,
+                    visibleKidsOfHiddenElement, contextsToClear,
+                    swappedStructOwners);
+  r.RestyleChildrenOfDisplayContentsElement(frame, aNewContext, aMinChange,
+                                            aRestyleTracker, aRestyleHint);
+  ProcessRestyledFrames(changeList);
   ClearCachedInheritedStyleDataOnDescendants(contextsToClear);
 }
 
