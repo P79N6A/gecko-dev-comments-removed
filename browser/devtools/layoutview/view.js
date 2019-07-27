@@ -441,6 +441,7 @@ LayoutView.prototype = {
       for (let i in this.map) {
         let selector = this.map[i].selector;
         let span = this.doc.querySelector(selector);
+        this.updateSourceRuleTooltip(span, this.map[i].property, styleEntries);
         if (span.textContent.length > 0 &&
             span.textContent == this.map[i].value) {
           continue;
@@ -467,6 +468,40 @@ LayoutView.prototype = {
     }).bind(this)).then(null, console.error);
 
     return this._lastRequest = lastRequest;
+  },
+
+  
+
+
+
+
+
+
+
+  updateSourceRuleTooltip: function(el, property, rules) {
+    
+    let dummyEl = this.doc.createElement("div");
+
+    
+    
+    let sourceRule, value;
+    for (let {rule} of rules) {
+      dummyEl.style.cssText = rule.cssText;
+      value = dummyEl.style.getPropertyValue(property);
+      if (value !== "") {
+        sourceRule = rule;
+        break;
+      }
+    }
+
+    let title = property;
+    if (sourceRule && sourceRule.selectors) {
+      title += "\n" + sourceRule.selectors.join(", ");
+    }
+    if (sourceRule && sourceRule.parentStyleSheet) {
+      title += "\n" + sourceRule.parentStyleSheet.href + ":" + sourceRule.line;
+    }
+    el.setAttribute("title", title);
   },
 
   
