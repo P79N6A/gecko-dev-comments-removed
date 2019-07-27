@@ -15,6 +15,8 @@ loader.lazyRequireGetter(this, "prompt",
   "devtools/toolkit/security/prompt");
 loader.lazyRequireGetter(this, "cert",
   "devtools/toolkit/security/cert");
+loader.lazyRequireGetter(this, "asyncStorage",
+  "devtools/toolkit/shared/async-storage");
 DevToolsUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 
@@ -341,13 +343,19 @@ OOBCert.Client.prototype = {
             });
             break;
           case AuthenticationResult.ALLOW:
-          case AuthenticationResult.ALLOW_PERSIST:
             
             
             if (packet.k != oobData.k) {
               transport.close(new Error("Auth secret mismatch"));
               return;
             }
+            
+            
+            transport.hooks = null;
+            deferred.resolve(transport);
+            break;
+          case AuthenticationResult.ALLOW_PERSIST:
+            
             
             
             transport.hooks = null;
@@ -488,7 +496,18 @@ OOBCert.Server.prototype = {
   authenticate: Task.async(function*({ client, server, transport }) {
     
     
+    const storageKey = `devtools.auth.${this.mode}.approved-clients`;
+    let approvedClients = (yield asyncStorage.getItem(storageKey)) || {};
     
+    
+    if (approvedClients[client.cert.sha256]) {
+      let authResult = AuthenticationResult.ALLOW_PERSIST;
+      transport.send({ authResult });
+      
+      
+      return authResult;
+    }
+
     
     
     
@@ -499,19 +518,18 @@ OOBCert.Server.prototype = {
     
     
     
-    let result = yield this.allowConnection({
+    let authResult = yield this.allowConnection({
       authentication: this.mode,
       client,
       server
     });
 
-    switch (result) {
+    switch (authResult) {
       case AuthenticationResult.ALLOW_PERSIST:
-        
       case AuthenticationResult.ALLOW:
         break; 
       default:
-        return result; 
+        return authResult; 
     }
 
     
@@ -540,14 +558,20 @@ OOBCert.Server.prototype = {
 
     
     
-    transport.send({ authResult: result, k });
+    transport.send({ authResult, k });
+
+    
+    if (authResult === AuthenticationResult.ALLOW_PERSIST) {
+      approvedClients[client.cert.sha256] = true;
+      yield asyncStorage.setItem(storageKey, approvedClients);
+    }
 
     
     
 
     
     
-    return result;
+    return authResult;
   }),
 
   
