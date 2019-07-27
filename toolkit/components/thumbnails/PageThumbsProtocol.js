@@ -74,16 +74,16 @@ Protocol.prototype = {
 
 
 
-  newChannel: function Proto_newChannel(aURI) {
+
+  newChannel2: function Proto_newChannel2(aURI, aLoadInfo) {
     let {url} = parseURI(aURI);
     let file = PageThumbsStorage.getFilePathForURL(url);
     let fileuri = Services.io.newFileURI(new FileUtils.File(file));
-    return Services.io.newChannelFromURI2(fileuri,
-                                          null,      
-                                          Services.scriptSecurityManager.getSystemPrincipal(),
-                                          null,      
-                                          Ci.nsILoadInfo.SEC_NORMAL,
-                                          Ci.nsIContentPolicy.TYPE_IMAGE);
+    return Services.io.newChannelFromURIWithLoadInfo(fileuri, aLoadInfo);
+  },
+
+  newChannel: function Proto_newChannel(aURI) {
+    return newChannel2(aURI, null);
   },
 
   
