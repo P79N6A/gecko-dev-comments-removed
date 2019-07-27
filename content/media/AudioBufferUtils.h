@@ -78,8 +78,17 @@ public:
     
     
     
+    
+    
+    
+    
+    
     NS_WARN_IF_FALSE(Available() == 0 || mSampleWriteOffset == 0,
             "Audio Buffer is not full by the end of the callback.");
+    
+    if (Available()) {
+      PodZero(mBuffer + mSampleWriteOffset, FramesToSamples(CHANNELS, Available()));
+    }
     MOZ_ASSERT(mSamples, "Buffer not set.");
     mSamples = 0;
     mSampleWriteOffset = 0;
