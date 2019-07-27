@@ -1,3 +1,6 @@
+
+
+
 package org.mozilla.gecko.util;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,10 +85,10 @@ public abstract class GeckoRequest {
 
 
 
-
-
     @RobocopTarget
-    public void onError() {
-        throw new RuntimeException("Unhandled error for GeckoRequest: " + name);
+    public void onError(NativeJSObject error) {
+        final String message = error.optString("message", "<no message>");
+        final String stack = error.optString("stack", "<no stack>");
+        throw new RuntimeException("Unhandled error for GeckoRequest " + name + ": " + message + "\nJS stack:\n" + stack);
     }
 }
