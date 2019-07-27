@@ -34,6 +34,13 @@ extern PRLogModuleInfo *gSocketTransportLog;
 
 
 
+
+extern PRLogModuleInfo *gUDPSocketLog;
+#define UDPSOCKET_LOG(args)     PR_LOG(gUDPSocketLog, PR_LOG_DEBUG, args)
+#define UDPSOCKET_LOG_ENABLED() PR_LOG_TEST(gUDPSocketLog, PR_LOG_DEBUG)
+
+
+
 #define NS_SOCKET_POLL_TIMEOUT PR_INTERVAL_NO_TIMEOUT
 
 
