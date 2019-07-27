@@ -19,8 +19,6 @@ class MediaRawData;
 
 class GonkDecoderManager {
 public:
-  GonkDecoderManager(MediaTaskQueue* aTaskQueue);
-
   virtual ~GonkDecoderManager() {}
 
   
@@ -28,7 +26,7 @@ public:
   virtual android::sp<android::MediaCodecProxy> Init(MediaDataDecoderCallback* aCallback) = 0;
 
   
-  virtual nsresult Input(MediaRawData* aSample);
+  virtual nsresult Input(MediaRawData* aSample) = 0;
 
   
   
@@ -40,32 +38,12 @@ public:
                           nsRefPtr<MediaData>& aOutput) = 0;
 
   
-  
-  
-  virtual nsresult Flush();
+  virtual nsresult Flush() = 0;
 
   
-  bool HasQueuedSample() {
-    ReentrantMonitorAutoEnter mon(mMonitor);
-    return mQueueSample.Length();
-  }
+  virtual bool HasQueuedSample() = 0;
 
 protected:
-  
-  
-  virtual bool PerformFormatSpecificProcess(MediaRawData* aSample) { return true; }
-
-  
-  virtual android::status_t SendSampleToOMX(MediaRawData* aSample) = 0;
-
-  
-  ReentrantMonitor mMonitor;
-
-  
-  
-  
-  nsTArray<nsRefPtr<MediaRawData>> mQueueSample;
-
   nsRefPtr<MediaByteBuffer> mCodecSpecificData;
 
   nsAutoCString mMimeType;
