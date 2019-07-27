@@ -131,7 +131,7 @@ let gUpdater = {
     
     gGrid.sites.forEach(function (aSite) {
       
-      if (!aSite || aSites.indexOf(aSite) != -1)
+      if (!aSite || aSites.contains(aSite))
         return;
 
       batch.push(new Promise(resolve => {

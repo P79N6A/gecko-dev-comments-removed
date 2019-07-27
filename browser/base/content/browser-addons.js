@@ -46,7 +46,7 @@ const gXPInstallObserver = {
     }
     
     
-    if (!browser || gBrowser.browsers.indexOf(browser) == -1)
+    if (!browser || !gBrowser.browsers.contains(browser))
       return;
 
     const anchorID = "addons-notification-icon";

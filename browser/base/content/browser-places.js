@@ -1371,7 +1371,7 @@ let BookmarkingUI = {
       
       
       this._itemIds = this._itemIds.filter(
-        function (id) aItemIds.indexOf(id) == -1
+        function (id) !aItemIds.contains(id)
       ).concat(aItemIds);
 
       this._updateStar();
@@ -1592,7 +1592,7 @@ let BookmarkingUI = {
                                         aURI) {
     if (aURI && aURI.equals(this._uri)) {
       
-      if (this._itemIds.indexOf(aItemId) == -1) {
+      if (!this._itemIds.contains(aItemId)) {
         this._itemIds.push(aItemId);
         
         if (this._itemIds.length == 1) {

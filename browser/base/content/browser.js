@@ -2218,7 +2218,7 @@ function URLBarSetURI(aURI) {
     
     
     
-    if (gInitialPages.indexOf(uri.spec) != -1)
+    if (gInitialPages.contains(uri.spec))
       value = !gMultiProcessBrowser && content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
