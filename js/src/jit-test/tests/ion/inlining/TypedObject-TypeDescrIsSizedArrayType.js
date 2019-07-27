@@ -21,8 +21,9 @@ if (!this.TypedObject) {
 }
 
 var T = TypedObject;
-var IT = new T.ArrayType(T.int32, 100);
-var ix = IT.build(x => x == 0 ? 99 : x-1);  
+var AT = new T.ArrayType(T.int32);
+var IT = AT.dimension(100);
+var ix = AT.build(100, x => x == 0 ? 99 : x-1);  
 
 
 function check(v) {
@@ -30,7 +31,7 @@ function check(v) {
 }
 
 function test() {
-    var w = IT.build(x => x);
+    var w = AT.build(100, x => x);
     for ( var i=0 ; i < 77 ; i++ )
 	w = check(w);
     return w;

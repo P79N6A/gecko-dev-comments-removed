@@ -17,7 +17,7 @@ function test() {
     matrix[i][0] = i;
 
   var Point = new StructType({x: uint32, y: uint32});
-  var Points = Point.array(L);
+  var Points = Point.array();
 
   assertParallelExecSucceeds(
     
