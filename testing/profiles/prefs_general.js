@@ -157,6 +157,9 @@ user_pref("layout.css.ruby.enabled", true);
 user_pref("layout.css.font-loading-api.enabled", true);
 
 
+user_pref("layout.css.unicode-range.enabled", true);
+
+
 user_pref("layout.spammy_warnings.enabled", false);
 
 
@@ -310,8 +313,3 @@ user_pref("browser.readinglist.introShown", true);
 
 
 user_pref("network.proxy.pac_generator", false);
-
-
-
-user_pref("lightweightThemes.selectedThemeID", "");
-user_pref("browser.devedition.theme.enabled", false);
