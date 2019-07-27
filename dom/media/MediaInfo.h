@@ -286,6 +286,11 @@ public:
 
 class EncryptionInfo {
 public:
+  EncryptionInfo()
+    : mEncrypted(false)
+  {
+  }
+
   struct InitData {
     template<typename AInitDatas>
     InitData(const nsAString& aType, AInitDatas&& aInitData)
@@ -305,22 +310,26 @@ public:
   
   bool IsEncrypted() const
   {
-    return !mInitDatas.IsEmpty();
+    return mEncrypted;
   }
 
   template<typename AInitDatas>
   void AddInitData(const nsAString& aType, AInitDatas&& aInitData)
   {
     mInitDatas.AppendElement(InitData(aType, Forward<AInitDatas>(aInitData)));
+    mEncrypted = true;
   }
 
   void AddInitData(const EncryptionInfo& aInfo)
   {
     mInitDatas.AppendElements(aInfo.mInitDatas);
+    mEncrypted = !!mInitDatas.Length();
   }
 
   
   InitDatas mInitDatas;
+private:
+  bool mEncrypted;
 };
 
 class MediaInfo {

@@ -39,6 +39,34 @@ AppendStateToStr(TrackBuffersManager::AppendState aState)
 
 static Atomic<uint32_t> sStreamSourceID(0u);
 
+#ifdef MOZ_EME
+class DispatchKeyNeededEvent : public nsRunnable {
+public:
+  DispatchKeyNeededEvent(AbstractMediaDecoder* aDecoder,
+                         nsTArray<uint8_t>& aInitData,
+                         const nsString& aInitDataType)
+    : mDecoder(aDecoder)
+    , mInitData(aInitData)
+    , mInitDataType(aInitDataType)
+  {
+  }
+  NS_IMETHOD Run() {
+    
+    
+    MediaDecoderOwner* owner = mDecoder->GetOwner();
+    if (owner) {
+      owner->DispatchEncrypted(mInitData, mInitDataType);
+    }
+    mDecoder = nullptr;
+    return NS_OK;
+  }
+private:
+  nsRefPtr<AbstractMediaDecoder> mDecoder;
+  nsTArray<uint8_t> mInitData;
+  nsString mInitDataType;
+};
+#endif 
+
 TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSourceDecoder* aParentDecoder, const nsACString& aType)
   : mInputBuffer(new MediaByteBuffer)
   , mAppendState(AppendState::WAITING_FOR_SEGMENT)
@@ -978,17 +1006,19 @@ TrackBuffersManager::OnDemuxerInitDone(nsresult)
     mVideoTracks.mLastInfo = new SharedTrackInfo(info.mVideo, streamID);
   }
 
-  
   UniquePtr<EncryptionInfo> crypto = mInputDemuxer->GetCrypto();
   if (crypto && crypto->IsEncrypted()) {
 #ifdef MOZ_EME
     
     for (uint32_t i = 0; i < crypto->mInitDatas.Length(); i++) {
-
-
+      NS_DispatchToMainThread(
+        new DispatchKeyNeededEvent(mParentDecoder, crypto->mInitDatas[i].mInitData, NS_LITERAL_STRING("cenc")));
     }
 #endif 
     info.mCrypto = *crypto;
+    
+    
+    info.mCrypto.mInitDatas.Clear();
     mEncrypted = true;
   }
 
