@@ -24,7 +24,11 @@ function test()
       typeof this.watch != 'undefined' &&
       typeof uneval != 'undefined')
   {
-    this.__defineSetter__(0, function(){});
+    try {
+      this.__defineSetter__(0, function(){});
+    } catch (exc) {
+      
+    }
     this.watch(0, function(){});
     uneval(this);
   }
