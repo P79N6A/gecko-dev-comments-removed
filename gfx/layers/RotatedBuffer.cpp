@@ -26,6 +26,7 @@
 #include "mozilla/layers/TextureClient.h"  
 #include "nsSize.h"                     
 #include "gfx2DGlue.h"
+#include "nsLayoutUtils.h"              
 
 namespace mozilla {
 
@@ -446,13 +447,14 @@ RotatedContentBuffer::BeginPaint(PaintedLayer* aLayer,
 
   SurfaceMode mode;
   nsIntRegion neededRegion;
-  bool canReuseBuffer;
   nsIntRect destBufferRect;
+
+  bool canReuseBuffer = HaveBuffer();
 
   while (true) {
     mode = aLayer->GetSurfaceMode();
     neededRegion = aLayer->GetVisibleRegion();
-    canReuseBuffer = HaveBuffer() && BufferSizeOkFor(neededRegion.GetBounds().Size());
+    canReuseBuffer &= BufferSizeOkFor(neededRegion.GetBounds().Size());
     result.mContentType = layerContentType;
 
     if (canReuseBuffer) {
@@ -488,7 +490,8 @@ RotatedContentBuffer::BeginPaint(PaintedLayer* aLayer,
 
     if ((aFlags & PAINT_WILL_RESAMPLE) &&
         (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
-         neededRegion.GetNumRects() > 1)) {
+         neededRegion.GetNumRects() > 1))
+    {
       
       if (mode == SurfaceMode::SURFACE_OPAQUE) {
         result.mContentType = gfxContentType::COLOR_ALPHA;
@@ -502,21 +505,39 @@ RotatedContentBuffer::BeginPaint(PaintedLayer* aLayer,
 
     
     
-    if (HaveBuffer() &&
+    if (canReuseBuffer &&
         (result.mContentType != BufferContentType() ||
-        (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
-
+        (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite()))
+    {
       
       
-      result.mRegionToInvalidate = aLayer->GetValidRegion();
-      validRegion.SetEmpty();
-      Clear();
-      
-      
+      canReuseBuffer = false;
       continue;
     }
 
     break;
+  }
+
+  if (HaveBuffer() &&
+      (result.mContentType != BufferContentType() ||
+      (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite()))
+  {
+    
+    
+    canReuseBuffer = false;
+    result.mRegionToInvalidate = aLayer->GetValidRegion();
+    validRegion.SetEmpty();
+    Clear();
+
+#if defined(MOZ_DUMP_PAINTING)
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      if (result.mContentType != BufferContentType()) {
+        printf_stderr("Invalidating entire rotated buffer (layer %p): content type changed\n", aLayer);
+      } else if ((mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite()) {
+        printf_stderr("Invalidating entire rotated buffer (layer %p): component alpha changed\n", aLayer);
+      }
+    }
+#endif
   }
 
   NS_ASSERTION(destBufferRect.Contains(neededRegion.GetBounds()),
