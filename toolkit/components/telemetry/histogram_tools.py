@@ -2,7 +2,6 @@
 
 
 
-import buildconfig
 import json
 import math
 import os
@@ -10,7 +9,21 @@ import re
 import sys
 
 
-sys.path.append(os.path.join(buildconfig.topsrcdir, 'dom/base/'))
+
+
+
+
+try:
+    import buildconfig
+
+    
+    sys.path.append(os.path.join(buildconfig.topsrcdir, 'dom/base/'))
+except ImportError:
+    
+    
+    
+    pass
+
 import usecounters
 
 from collections import OrderedDict
