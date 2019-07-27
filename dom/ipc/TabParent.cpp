@@ -1211,11 +1211,25 @@ TabParent::RecvPDocAccessibleConstructor(PDocAccessibleParent* aDoc,
 #ifdef ACCESSIBILITY
   auto doc = static_cast<a11y::DocAccessibleParent*>(aDoc);
   if (aParentDoc) {
+    
+    
+    
     MOZ_ASSERT(aParentID);
+    if (!aParentID) {
+      return false;
+    }
+
     auto parentDoc = static_cast<a11y::DocAccessibleParent*>(aParentDoc);
     return parentDoc->AddChildDoc(doc, aParentID);
   } else {
+    
+    
+    
     MOZ_ASSERT(!aParentID);
+    if (aParentID) {
+      return false;
+    }
+
     doc->SetTopLevel();
     a11y::DocManager::RemoteDocAdded(doc);
   }
