@@ -76,7 +76,10 @@ GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
   
   
   if (!sample) {
-      sample = new mp4_demuxer::MP4Sample(*aSample);
+      sample = aSample->Clone();
+      if (!sample) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
   }
   mQueueSample.AppendElement(sample);
 
