@@ -369,13 +369,16 @@ var BrowserApp = {
 
         
         Services.tm.mainThread.dispatch(function() {
-          
           Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
-          CastingApps.init();
-        }, Ci.nsIThread.DISPATCH_NORMAL);
 
-        BrowserApp.gmpInstallManager = new GMPInstallManager();
-        BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
+          CastingApps.init();
+
+          
+          setTimeout(() => {
+            BrowserApp.gmpInstallManager = new GMPInstallManager();
+            BrowserApp.gmpInstallManager.simpleCheckAndInstall().then(null, () => {});
+          }, 1000 * 60);
+        }, Ci.nsIThread.DISPATCH_NORMAL);
 
 #ifdef MOZ_SAFE_BROWSING
         Services.tm.mainThread.dispatch(function() {
