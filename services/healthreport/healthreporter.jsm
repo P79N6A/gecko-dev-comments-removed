@@ -1260,8 +1260,8 @@ this.HealthReporter.prototype = Object.freeze({
 
 
   get willUploadData() {
-    return this._policy.dataSubmissionPolicyAccepted &&
-           this._policy.healthReportUploadEnabled;
+    return  this._policy.userNotifiedOfCurrentPolicy &&
+            this._policy.healthReportUploadEnabled;
   },
 
   
@@ -1321,8 +1321,8 @@ this.HealthReporter.prototype = Object.freeze({
     
     
     let inShutdown = this._shutdownRequested;
-
     let result;
+
     try {
       result = AbstractHealthReporter.prototype._onInitError.call(this, error);
     } catch (ex) {
@@ -1335,8 +1335,8 @@ this.HealthReporter.prototype = Object.freeze({
     
     
     if (!inShutdown &&
-        this._policy.ensureNotifyResponse(new Date()) &&
-        this._policy.healthReportUploadEnabled) {
+        this._policy.healthReportUploadEnabled &&
+        this._policy.ensureUserNotified()) {
       
       
       let request = {

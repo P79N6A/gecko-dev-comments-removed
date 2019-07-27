@@ -7,12 +7,6 @@
 
 
 
-
-
-
-
-
-
 #ifndef MERGED_COMPARTMENT
 
 "use strict";
@@ -20,6 +14,7 @@
 this.EXPORTED_SYMBOLS = [
   "DataSubmissionRequest", 
   "DataReportingPolicy",
+  "DATAREPORTING_POLICY_VERSION",
 ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
@@ -31,6 +26,11 @@ Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://gre/modules/UpdateChannel.jsm");
+
+
+
+
+const DATAREPORTING_POLICY_VERSION = 1;
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -56,49 +56,17 @@ const OLDEST_ALLOWED_YEAR = 2012;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function NotifyPolicyRequest(policy, deferred) {
   this.policy = policy;
   this.deferred = deferred;
 }
-NotifyPolicyRequest.prototype = {
+NotifyPolicyRequest.prototype = Object.freeze({
   
 
 
-
-
-
-  onUserNotifyComplete: function onUserNotified() {
-    this.deferred.resolve();
-    return this.deferred.promise;
-  },
-
-  
-
-
-
-
-
-  onUserNotifyFailed: function onUserNotifyFailed(error) {
-    this.deferred.reject(error);
-  },
+  onUserNotifyComplete: function () {
+    return this.deferred.resolve();
+   },
 
   
 
@@ -106,22 +74,10 @@ NotifyPolicyRequest.prototype = {
 
 
 
-  onUserAccept: function onUserAccept(reason) {
-    this.policy.recordUserAcceptance(reason);
+  onUserNotifyFailed: function (error) {
+    return this.deferred.reject(error);
   },
-
-  
-
-
-
-
-
-  onUserReject: function onUserReject(reason) {
-    this.policy.recordUserRejection(reason);
-  },
-};
-
-Object.freeze(NotifyPolicyRequest.prototype);
+});
 
 
 
@@ -273,8 +229,6 @@ this.DataSubmissionRequest.prototype = Object.freeze({
 
 
 
-
-
 this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
   this._log = Log.repository.getLogger("Services.DataReporting.Policy");
   this._log.level = Log.Level["Debug"];
@@ -289,19 +243,11 @@ this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
   this._prefs = prefs;
   this._healthReportPrefs = healthReportPrefs;
   this._listener = listener;
+  this._userNotifyPromise = null;
 
-  
-  
-  let acceptedVersion = this._prefs.get("dataSubmissionPolicyAcceptedVersion");
-  if (typeof(acceptedVersion) == "number" &&
-      acceptedVersion < this.minimumPolicyVersion) {
-    this._log.info("policy version has changed - resetting all prefs");
-    
-    let firstRunToRestore = this.firstRunDate;
-    this._prefs.resetBranch();
-    this.firstRunDate = firstRunToRestore.getTime() ?
-                        firstRunToRestore : this.now();
-  } else if (!this.firstRunDate.getTime()) {
+  this._migratePrefs();
+
+  if (!this.firstRunDate.getTime()) {
     
     this.firstRunDate = this.now();
   }
@@ -331,28 +277,10 @@ this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
 
   
   
-  
-  this._dataSubmissionPolicyNotifiedDate = null;
-
-  
-  
   this._inProgressSubmissionRequest = null;
 };
 
 this.DataReportingPolicy.prototype = Object.freeze({
-  
-
-
-  SUBMISSION_NOTIFY_INTERVAL_MSEC: 12 * 60 * 60 * 1000,
-
-  
-
-
-
-
-
-  IMPLICIT_ACCEPTANCE_INTERVAL_MSEC: 8 * 60 * 60 * 1000,
-
   
 
 
@@ -393,13 +321,6 @@ this.DataReportingPolicy.prototype = Object.freeze({
     60 * 60 * 1000,
   ],
 
-  
-
-
-  STATE_NOTIFY_UNNOTIFIED: "not-notified",
-  STATE_NOTIFY_WAIT: "waiting",
-  STATE_NOTIFY_COMPLETE: "ok",
-
   REQUIRED_LISTENERS: [
     "onRequestDataUpload",
     "onRequestRemoteDelete",
@@ -422,22 +343,6 @@ this.DataReportingPolicy.prototype = Object.freeze({
                             OLDEST_ALLOWED_YEAR);
   },
 
-  
-
-
-
-
-
-  get dataSubmissionPolicyBypassAcceptance() {
-    return this._prefs.get("dataSubmissionPolicyBypassAcceptance", false);
-  },
-
-  
-
-
-
-
-
   get dataSubmissionPolicyNotifiedDate() {
     return CommonUtils.getDatePref(this._prefs,
                                    "dataSubmissionPolicyNotifiedTime", 0,
@@ -450,46 +355,12 @@ this.DataReportingPolicy.prototype = Object.freeze({
                             value, OLDEST_ALLOWED_YEAR);
   },
 
-  
-
-
-
-
-  get dataSubmissionPolicyResponseDate() {
-    return CommonUtils.getDatePref(this._prefs,
-                                   "dataSubmissionPolicyResponseTime",
-                                   0, this._log, OLDEST_ALLOWED_YEAR);
+  get dataSubmissionPolicyBypassNotification() {
+    return this._prefs.get("dataSubmissionPolicyBypassNotification", false);
   },
 
-  set dataSubmissionPolicyResponseDate(value) {
-    this._log.debug("Setting user notified reaction date: " + value);
-    CommonUtils.setDatePref(this._prefs,
-                            "dataSubmissionPolicyResponseTime",
-                            value, OLDEST_ALLOWED_YEAR);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  get dataSubmissionPolicyResponseType() {
-    return this._prefs.get("dataSubmissionPolicyResponseType",
-                           "none-recorded");
-  },
-
-  set dataSubmissionPolicyResponseType(value) {
-    if (typeof(value) != "string") {
-      throw new Error("Value must be a string. Got " + typeof(value));
-    }
-
-    this._prefs.set("dataSubmissionPolicyResponseType", value);
+  set dataSubmissionPolicyBypassNotification(value) {
+    return this._prefs.set("dataSubmissionPolicyBypassNotification", !!value);
   },
 
   
@@ -507,6 +378,10 @@ this.DataReportingPolicy.prototype = Object.freeze({
     this._prefs.set("dataSubmissionEnabled", !!value);
   },
 
+  get currentPolicyVersion() {
+    return this._prefs.get("currentPolicyVersion", DATAREPORTING_POLICY_VERSION);
+  },
+
   
 
 
@@ -519,48 +394,21 @@ this.DataReportingPolicy.prototype = Object.freeze({
            channelPref : this._prefs.get("minimumPolicyVersion", 1);
   },
 
-  
-
-
-
-
-  get dataSubmissionPolicyAccepted() {
-    
-    return this._prefs.get("dataSubmissionPolicyAccepted", false);
+  get dataSubmissionPolicyAcceptedVersion() {
+    return this._prefs.get("dataSubmissionPolicyAcceptedVersion", 0);
   },
 
-  set dataSubmissionPolicyAccepted(value) {
-    this._prefs.set("dataSubmissionPolicyAccepted", !!value);
-    if (!!value) {
-      let currentPolicyVersion = this._prefs.get("currentPolicyVersion", 1);
-      this._prefs.set("dataSubmissionPolicyAcceptedVersion", currentPolicyVersion);
-    } else {
-      this._prefs.reset("dataSubmissionPolicyAcceptedVersion");
-    }
+  set dataSubmissionPolicyAcceptedVersion(value) {
+    this._prefs.set("dataSubmissionPolicyAcceptedVersion", value);
   },
 
   
 
 
 
-
-
-
-
-  get notifyState() {
-    if (this.dataSubmissionPolicyResponseDate.getTime()) {
-      return this.STATE_NOTIFY_COMPLETE;
-    }
-
-    
-    
-    
-    
-    if (!this._dataSubmissionPolicyNotifiedDate) {
-      return this.STATE_NOTIFY_UNNOTIFIED;
-    }
-
-    return this.STATE_NOTIFY_WAIT;
+  get userNotifiedOfCurrentPolicy() {
+    return  this.dataSubmissionPolicyNotifiedDate.getTime() > 0 &&
+            this.dataSubmissionPolicyAcceptedVersion >= this.currentPolicyVersion;
   },
 
   
@@ -691,43 +539,6 @@ this.DataReportingPolicy.prototype = Object.freeze({
 
   get healthReportUploadLocked() {
     return this._healthReportPrefs.locked("uploadEnabled");
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  recordUserAcceptance: function recordUserAcceptance(reason="no-reason") {
-    this._log.info("User accepted data submission policy: " + reason);
-    this.dataSubmissionPolicyResponseDate = this.now();
-    this.dataSubmissionPolicyResponseType = "accepted-" + reason;
-    this.dataSubmissionPolicyAccepted = true;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  recordUserRejection: function recordUserRejection(reason="no-reason") {
-    this._log.info("User rejected data submission policy: " + reason);
-    this.dataSubmissionPolicyResponseDate = this.now();
-    this.dataSubmissionPolicyResponseType = "rejected-" + reason;
-    this.dataSubmissionPolicyAccepted = false;
   },
 
   
@@ -882,18 +693,12 @@ this.DataReportingPolicy.prototype = Object.freeze({
       return;
     }
 
-    
-    if (!this.ensureNotifyResponse(now)) {
+    if (!this.ensureUserNotified()) {
+      this._log.warn("The user has not been notified about the data submission " +
+                     "policy. Not attempting upload.");
       return;
     }
 
-    
-    if (!this.dataSubmissionPolicyAccepted && !this.dataSubmissionPolicyBypassAcceptance) {
-      this._log.debug("Data submission has been disabled per user request.");
-      return;
-    }
-
-    
     
 
     if (nowT < nextSubmissionDate.getTime()) {
@@ -913,75 +718,55 @@ this.DataReportingPolicy.prototype = Object.freeze({
 
 
 
-  ensureNotifyResponse: function ensureNotifyResponse(now) {
-    if (this.dataSubmissionPolicyBypassAcceptance) {
+  ensureUserNotified: function () {
+    if (this.userNotifiedOfCurrentPolicy || this.dataSubmissionPolicyBypassNotification) {
       return true;
     }
 
-    let notifyState = this.notifyState;
-
-    if (notifyState == this.STATE_NOTIFY_UNNOTIFIED) {
-      let notifyAt = new Date(this.firstRunDate.getTime() +
-                              this.SUBMISSION_NOTIFY_INTERVAL_MSEC);
-
-      if (now.getTime() < notifyAt.getTime()) {
-        this._log.debug("Don't have to notify about data submission yet.");
-        return false;
-      }
-
-      let onComplete = function onComplete() {
-        this._log.info("Data submission notification presented.");
-        let now = this.now();
-
-        this._dataSubmissionPolicyNotifiedDate = now;
-        this.dataSubmissionPolicyNotifiedDate = now;
-      }.bind(this);
-
-      let deferred = Promise.defer();
-
-      deferred.promise.then(onComplete, (error) => {
-        this._log.warn("Data policy notification presentation failed: " +
-                       CommonUtils.exceptionStr(error));
-      });
-
-      this._log.info("Requesting display of data policy.");
-      let request = new NotifyPolicyRequest(this, deferred);
-
-      try {
-        this._listener.onNotifyDataPolicy(request);
-      } catch (ex) {
-        this._log.warn("Exception when calling onNotifyDataPolicy: " +
-                       CommonUtils.exceptionStr(ex));
-      }
+    
+    if (this._userNotifyPromise) {
       return false;
     }
 
-    
-    if (notifyState == this.STATE_NOTIFY_WAIT) {
-      
-      let implicitAcceptance =
-        this._dataSubmissionPolicyNotifiedDate.getTime() +
-        this.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC;
+    let deferred = Promise.defer();
+    deferred.promise.then((function onSuccess() {
+      this._recordDataPolicyNotification(this.now(), this.currentPolicyVersion);
+      this._userNotifyPromise = null;
+    }).bind(this), ((error) => {
+      this._log.warn("Data policy notification presentation failed: " +
+                     CommonUtils.exceptionStr(error));
+      this._userNotifyPromise = null;
+    }).bind(this));
 
-      this._log.debug("Now: " + now.getTime());
-      this._log.debug("Will accept: " + implicitAcceptance);
-      if (now.getTime() < implicitAcceptance) {
-        this._log.debug("Still waiting for reaction or implicit acceptance. " +
-                        "Now: " + now.getTime() + " < " +
-                        "Accept: " + implicitAcceptance);
-        return false;
-      }
-
-      this.recordUserAcceptance("implicit-time-elapsed");
-      return true;
+    this._log.info("Requesting display of data policy.");
+    let request = new NotifyPolicyRequest(this, deferred);
+    try {
+      this._listener.onNotifyDataPolicy(request);
+    } catch (ex) {
+      this._log.warn("Exception when calling onNotifyDataPolicy: " +
+                     CommonUtils.exceptionStr(ex));
     }
 
-    
-    if (notifyState != this.STATE_NOTIFY_COMPLETE) {
-      throw new Error("Unknown notification state: " + notifyState);
-    }
+    this._userNotifyPromise = deferred.promise;
 
-    return true;
+    return false;
+  },
+
+  _recordDataPolicyNotification: function (date, version) {
+    this._log.debug("Recording data policy notification to version " + version +
+                  " on date " + date);
+    this.dataSubmissionPolicyNotifiedDate = date;
+    this.dataSubmissionPolicyAcceptedVersion = version;
+  },
+
+  _migratePrefs: function () {
+    
+    this._prefs.reset([
+      "dataSubmissionPolicyAccepted",
+      "dataSubmissionPolicyBypassAcceptance",
+      "dataSubmissionPolicyResponseType",
+      "dataSubmissionPolicyResponseTime"
+    ]);
   },
 
   _processInProgressSubmission: function _processInProgressSubmission() {

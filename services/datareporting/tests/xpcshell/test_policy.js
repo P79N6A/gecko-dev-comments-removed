@@ -9,6 +9,7 @@ Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/services/datareporting/policy.jsm");
 Cu.import("resource://testing-common/services/datareporting/mocks.jsm");
 Cu.import("resource://gre/modules/UpdateChannel.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 
 function getPolicy(name,
                    aCurrentPolicyVersion = 1,
@@ -35,6 +36,22 @@ function getPolicy(name,
   let policy = new DataReportingPolicy(policyPrefs, healthReportPrefs, listener);
 
   return [policy, policyPrefs, healthReportPrefs, listener];
+}
+
+
+
+
+
+
+
+
+function ensureUserNotifiedAndTrigger(policy) {
+  return Task.spawn(function* ensureUserNotifiedAndTrigger () {
+    policy.ensureUserNotified();
+    yield policy._listener.lastNotifyRequest.deferred.promise;
+    do_check_true(policy.userNotifiedOfCurrentPolicy);
+    policy.checkStateAndTrigger();
+  });
 }
 
 function defineNow(policy, now) {
@@ -66,7 +83,8 @@ add_test(function test_constructor() {
   let tomorrow = Date.now() + 24 * 60 * 60 * 1000;
   do_check_true(tomorrow - policy.nextDataSubmissionDate.getTime() < 1000);
 
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_UNNOTIFIED);
+  do_check_eq(policy.dataSubmissionPolicyAcceptedVersion, 0);
+  do_check_false(policy.userNotifiedOfCurrentPolicy);
 
   run_next_test();
 });
@@ -81,29 +99,23 @@ add_test(function test_prefs() {
   do_check_eq(policyPrefs.get("firstRunTime"), nowT);
   do_check_eq(policy.firstRunDate.getTime(), nowT);
 
-  policy.dataSubmissionPolicyNotifiedDate= now;
+  policy.dataSubmissionPolicyNotifiedDate = now;
   do_check_eq(policyPrefs.get("dataSubmissionPolicyNotifiedTime"), nowT);
+  do_check_neq(policy.dataSubmissionPolicyNotifiedDate, null);
   do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(), nowT);
-
-  policy.dataSubmissionPolicyResponseDate = now;
-  do_check_eq(policyPrefs.get("dataSubmissionPolicyResponseTime"), nowT);
-  do_check_eq(policy.dataSubmissionPolicyResponseDate.getTime(), nowT);
-
-  policy.dataSubmissionPolicyResponseType = "type-1";
-  do_check_eq(policyPrefs.get("dataSubmissionPolicyResponseType"), "type-1");
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "type-1");
 
   policy.dataSubmissionEnabled = false;
   do_check_false(policyPrefs.get("dataSubmissionEnabled", true));
   do_check_false(policy.dataSubmissionEnabled);
 
-  policy.dataSubmissionPolicyAccepted = false;
-  do_check_false(policyPrefs.get("dataSubmissionPolicyAccepted", true));
-  do_check_false(policy.dataSubmissionPolicyAccepted);
+  let new_version = DATAREPORTING_POLICY_VERSION + 1;
+  policy.dataSubmissionPolicyAcceptedVersion = new_version;
+  do_check_eq(policyPrefs.get("dataSubmissionPolicyAcceptedVersion"), new_version);
 
-  do_check_false(policy.dataSubmissionPolicyBypassAcceptance);
-  policyPrefs.set("dataSubmissionPolicyBypassAcceptance", true);
-  do_check_true(policy.dataSubmissionPolicyBypassAcceptance);
+  do_check_false(policy.dataSubmissionPolicyBypassNotification);
+  policy.dataSubmissionPolicyBypassNotification = true;
+  do_check_true(policy.dataSubmissionPolicyBypassNotification);
+  do_check_true(policyPrefs.get("dataSubmissionPolicyBypassNotification"));
 
   policy.lastDataSubmissionRequestedDate = now;
   do_check_eq(hrPrefs.get("lastDataSubmissionRequestedTime"), nowT);
@@ -142,153 +154,78 @@ add_test(function test_prefs() {
   run_next_test();
 });
 
-add_test(function test_notify_state_prefs() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notify_state_prefs");
+add_task(function test_migratePrefs () {
+  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("migratePrefs");
+  let outdated_prefs = {
+    dataSubmissionPolicyAccepted: true,
+    dataSubmissionPolicyBypassAcceptance: true,
+    dataSubmissionPolicyResponseType: "something",
+    dataSubmissionPolicyResponseTime: Date.now() + "",
+  };
 
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_UNNOTIFIED);
-
-  policy._dataSubmissionPolicyNotifiedDate = new Date();
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_WAIT);
-
-  policy.dataSubmissionPolicyResponseDate = new Date();
-  policy._dataSubmissionPolicyNotifiedDate = null;
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_COMPLETE);
-
-  run_next_test();
+  
+  for (let name in outdated_prefs) {
+    policyPrefs.set(name, outdated_prefs[name]);
+  }
+  policy._migratePrefs();
+  for (let name in outdated_prefs) {
+    do_check_false(policyPrefs.has(name));
+  }
 });
 
-add_task(function test_initial_submission_notification() {
+add_task(function test_userNotifiedOfCurrentPolicy () {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("initial_submission_notification");
 
-  do_check_eq(listener.notifyUserCount, 0);
+  do_check_false(policy.userNotifiedOfCurrentPolicy,
+                 "The initial state should be unnotified.");
+  do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(), 0);
+
+  policy.dataSubmissionPolicyAcceptedVersion = DATAREPORTING_POLICY_VERSION;
+  do_check_false(policy.userNotifiedOfCurrentPolicy,
+                 "The default state of the date should have a time of 0 and it should therefore fail");
+  do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(), 0,
+              "Updating the accepted version should not set a notified date.");
+
+  policy._recordDataPolicyNotification(new Date(), DATAREPORTING_POLICY_VERSION);
+  do_check_true(policy.userNotifiedOfCurrentPolicy,
+                "Using the proper API causes user notification to report as true.");
 
   
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.notifyUserCount, 0);
-
   
-  defineNow(policy, new Date(policy.firstRunDate.getTime() +
-                             policy.SUBMISSION_NOTIFY_INTERVAL_MSEC - 1));
-  policy.checkStateAndTrigger();
+  policy._recordDataPolicyNotification(new Date(), DATAREPORTING_POLICY_VERSION);
+  policy.dataSubmissionPolicyAcceptedVersion = DATAREPORTING_POLICY_VERSION + 1;
+  do_check_true(policy.userNotifiedOfCurrentPolicy, 'A future version of the policy should pass.');
+
+  policy._recordDataPolicyNotification(new Date(), DATAREPORTING_POLICY_VERSION);
+  policy.dataSubmissionPolicyAcceptedVersion = DATAREPORTING_POLICY_VERSION - 1;
+  do_check_false(policy.userNotifiedOfCurrentPolicy, 'A previous version of the policy should fail.');
+});
+
+add_task(function* test_notification_displayed () {
+  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notification_accept_displayed");
+
+  do_check_eq(listener.requestDataUploadCount, 0);
   do_check_eq(listener.notifyUserCount, 0);
-  do_check_null(policy._dataSubmissionPolicyNotifiedDate);
   do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(), 0);
 
   
-  defineNow(policy, new Date(policy.firstRunDate.getTime() +
-                             policy.SUBMISSION_NOTIFY_INTERVAL_MSEC));
   policy.checkStateAndTrigger();
   do_check_eq(listener.notifyUserCount, 1);
-  yield listener.lastNotifyRequest.onUserNotifyComplete();
-  do_check_true(policy._dataSubmissionPolicyNotifiedDate instanceof Date);
+  do_check_eq(listener.requestDataUploadCount, 0);
+
+  yield ensureUserNotifiedAndTrigger(policy);
+
+  do_check_eq(listener.notifyUserCount, 1);
   do_check_true(policy.dataSubmissionPolicyNotifiedDate.getTime() > 0);
-  do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(),
-              policy._dataSubmissionPolicyNotifiedDate.getTime());
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_WAIT);
+  do_check_true(policy.userNotifiedOfCurrentPolicy);
 });
 
-add_test(function test_bypass_acceptance() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("bypass_acceptance");
-
-  policyPrefs.set("dataSubmissionPolicyBypassAcceptance", true);
-  do_check_false(policy.dataSubmissionPolicyAccepted);
-  do_check_true(policy.dataSubmissionPolicyBypassAcceptance);
-  defineNow(policy, new Date(policy.nextDataSubmissionDate.getTime()));
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.requestDataUploadCount, 1);
-
-  run_next_test();
-});
-
-add_task(function test_notification_implicit_acceptance() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notification_implicit_acceptance");
-
-  let now = new Date(policy.nextDataSubmissionDate.getTime() -
-                     policy.SUBMISSION_NOTIFY_INTERVAL_MSEC + 1);
-  defineNow(policy, now);
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.notifyUserCount, 1);
-  yield listener.lastNotifyRequest.onUserNotifyComplete();
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "none-recorded");
-
-  do_check_true(5000 < policy.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC);
-  defineNow(policy, new Date(now.getTime() + 5000));
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.notifyUserCount, 1);
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_WAIT);
-  do_check_eq(policy.dataSubmissionPolicyResponseDate.getTime(), 0);
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "none-recorded");
-
-  defineNow(policy, new Date(now.getTime() + policy.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC + 1));
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.notifyUserCount, 1);
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_COMPLETE);
-  do_check_eq(policy.dataSubmissionPolicyResponseDate.getTime(), policy.now().getTime());
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "accepted-implicit-time-elapsed");
-});
-
-add_task(function test_notification_rejected() {
-  
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notification_failed");
-
-  let now = new Date(policy.nextDataSubmissionDate.getTime() -
-                     policy.SUBMISSION_NOTIFY_INTERVAL_MSEC + 1);
-  defineNow(policy, now);
-  policy.checkStateAndTrigger();
-  do_check_eq(listener.notifyUserCount, 1);
-  yield listener.lastNotifyRequest.onUserNotifyFailed(new Error("testing failed."));
-  do_check_null(policy._dataSubmissionPolicyNotifiedDate);
-  do_check_eq(policy.dataSubmissionPolicyNotifiedDate.getTime(), 0);
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_UNNOTIFIED);
-});
-
-add_task(function test_notification_accepted() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notification_accepted");
-
-  let now = new Date(policy.nextDataSubmissionDate.getTime() -
-                     policy.SUBMISSION_NOTIFY_INTERVAL_MSEC + 1);
-  defineNow(policy, now);
-  policy.checkStateAndTrigger();
-  yield listener.lastNotifyRequest.onUserNotifyComplete();
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_WAIT);
-  do_check_false(policy.dataSubmissionPolicyAccepted);
-  listener.lastNotifyRequest.onUserNotifyComplete();
-  listener.lastNotifyRequest.onUserAccept("foo-bar");
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_COMPLETE);
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "accepted-foo-bar");
-  do_check_true(policy.dataSubmissionPolicyAccepted);
-  do_check_eq(policy.dataSubmissionPolicyResponseDate.getTime(), now.getTime());
-});
-
-add_task(function test_notification_rejected() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("notification_rejected");
-
-  let now = new Date(policy.nextDataSubmissionDate.getTime() -
-                     policy.SUBMISSION_NOTIFY_INTERVAL_MSEC + 1);
-  defineNow(policy, now);
-  policy.checkStateAndTrigger();
-  yield listener.lastNotifyRequest.onUserNotifyComplete();
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_WAIT);
-  do_check_false(policy.dataSubmissionPolicyAccepted);
-  listener.lastNotifyRequest.onUserReject();
-  do_check_eq(policy.notifyState, policy.STATE_NOTIFY_COMPLETE);
-  do_check_eq(policy.dataSubmissionPolicyResponseType, "rejected-no-reason");
-  do_check_false(policy.dataSubmissionPolicyAccepted);
-
-  
-  defineNow(policy, new Date(policy.nextDataSubmissionDate.getTime() + 10000));
+add_task(function* test_submission_kill_switch() {
+  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_kill_switch");
+  policy.nextDataSubmissionDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
   policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 0);
-});
-
-add_test(function test_submission_kill_switch() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_kill_switch");
-
-  policy.firstRunDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-  policy.nextDataSubmissionDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.recordUserAcceptance("accept-old-ack");
-  do_check_true(policyPrefs.has("dataSubmissionPolicyAcceptedVersion"));
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
 
   defineNow(policy,
@@ -296,39 +233,32 @@ add_test(function test_submission_kill_switch() {
   policy.dataSubmissionEnabled = false;
   policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 1);
-
-  run_next_test();
 });
 
-add_test(function test_upload_kill_switch() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("upload_kill_switch");
+add_task(function* test_upload_kill_switch() {
+   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("upload_kill_switch");
 
-  defineNow(policy, policy._futureDate(-24 * 60 * 60 * 1000));
-  policy.recordUserAcceptance();
+  yield ensureUserNotifiedAndTrigger(policy);
   defineNow(policy, policy.nextDataSubmissionDate);
 
   
   hrPrefs.ignore("uploadEnabled", policy.uploadEnabledObserver);
 
   policy.healthReportUploadEnabled = false;
-  policy.checkStateAndTrigger();
+  yield policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 0);
   policy.healthReportUploadEnabled = true;
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
-
-  run_next_test();
 });
 
-add_test(function test_data_submission_no_data() {
+add_task(function* test_data_submission_no_data() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("data_submission_no_data");
 
-  policy.dataSubmissionPolicyResponseDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.dataSubmissionPolicyAccepted = true;
   let now = new Date(policy.nextDataSubmissionDate.getTime() + 1);
   defineNow(policy, now);
   do_check_eq(listener.requestDataUploadCount, 0);
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   listener.lastDataRequest.onNoDataAvailable();
 
@@ -336,20 +266,16 @@ add_test(function test_data_submission_no_data() {
   defineNow(policy, new Date(now.getTime() + 155 * 60 * 1000));
   policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 2);
+ });
 
-  run_next_test();
-});
-
-add_task(function test_data_submission_submit_failure_hard() {
+add_task(function* test_data_submission_submit_failure_hard() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("data_submission_submit_failure_hard");
 
-  policy.dataSubmissionPolicyResponseDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.dataSubmissionPolicyAccepted = true;
   let nextDataSubmissionDate = policy.nextDataSubmissionDate;
   let now = new Date(policy.nextDataSubmissionDate.getTime() + 1);
   defineNow(policy, now);
 
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   yield listener.lastDataRequest.onSubmissionFailureHard();
   do_check_eq(listener.lastDataRequest.state,
@@ -363,30 +289,27 @@ add_task(function test_data_submission_submit_failure_hard() {
   do_check_eq(listener.requestDataUploadCount, 1);
 });
 
-add_task(function test_data_submission_submit_try_again() {
+add_task(function* test_data_submission_submit_try_again() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("data_submission_failure_soft");
 
-  policy.recordUserAcceptance();
   let nextDataSubmissionDate = policy.nextDataSubmissionDate;
   let now = new Date(policy.nextDataSubmissionDate.getTime());
   defineNow(policy, now);
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   yield listener.lastDataRequest.onSubmissionFailureSoft();
   do_check_eq(policy.nextDataSubmissionDate.getTime(),
               nextDataSubmissionDate.getTime() + 15 * 60 * 1000);
 });
 
-add_task(function test_submission_daily_scheduling() {
+add_task(function* test_submission_daily_scheduling() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_daily_scheduling");
 
-  policy.dataSubmissionPolicyResponseDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.dataSubmissionPolicyAccepted = true;
   let nextDataSubmissionDate = policy.nextDataSubmissionDate;
 
   
   let now = new Date(policy.nextDataSubmissionDate.getTime());
   defineNow(policy, now);
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   do_check_eq(policy.lastDataSubmissionRequestedDate.getTime(), now.getTime());
 
@@ -414,18 +337,17 @@ add_task(function test_submission_daily_scheduling() {
     new Date(nextScheduled.getTime() + 24 * 60 * 60 * 1000 + 200).getTime());
 });
 
-add_test(function test_submission_far_future_scheduling() {
+add_task(function* test_submission_far_future_scheduling() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_far_future_scheduling");
 
   let now = new Date(Date.now() - 24 * 60 * 60 * 1000);
   defineNow(policy, now);
-  policy.recordUserAcceptance();
-  now = new Date();
-  defineNow(policy, now);
+  yield ensureUserNotifiedAndTrigger(policy);
 
   let nextDate = policy._futureDate(3 * 24 * 60 * 60 * 1000 - 1);
   policy.nextDataSubmissionDate = nextDate;
   policy.checkStateAndTrigger();
+  do_check_true(policy.dataSubmissionPolicyAcceptedVersion >= DATAREPORTING_POLICY_VERSION);
   do_check_eq(listener.requestDataUploadCount, 0);
   do_check_eq(policy.nextDataSubmissionDate.getTime(), nextDate.getTime());
 
@@ -434,21 +356,17 @@ add_test(function test_submission_far_future_scheduling() {
   do_check_eq(listener.requestDataUploadCount, 0);
   do_check_eq(policy.nextDataSubmissionDate.getTime(),
               policy._futureDate(24 * 60 * 60 * 1000).getTime());
-
-  run_next_test();
 });
 
-add_task(function test_submission_backoff() {
+add_task(function* test_submission_backoff() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_backoff");
 
   do_check_eq(policy.FAILURE_BACKOFF_INTERVALS.length, 2);
 
-  policy.dataSubmissionPolicyResponseDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.dataSubmissionPolicyAccepted = true;
 
   let now = new Date(policy.nextDataSubmissionDate.getTime());
   defineNow(policy, now);
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   do_check_eq(policy.currentDaySubmissionFailureCount, 0);
 
@@ -499,15 +417,13 @@ add_task(function test_submission_backoff() {
 });
 
 
-add_test(function test_submission_expiring() {
+add_task(function* test_submission_expiring() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("submission_expiring");
 
-  policy.dataSubmissionPolicyResponseDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  policy.dataSubmissionPolicyAccepted = true;
   let nextDataSubmission = policy.nextDataSubmissionDate;
   let now = new Date(policy.nextDataSubmissionDate.getTime());
   defineNow(policy, now);
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   defineNow(policy, new Date(now.getTime() + 500));
   policy.checkStateAndTrigger();
@@ -518,11 +434,9 @@ add_test(function test_submission_expiring() {
 
   policy.checkStateAndTrigger();
   do_check_eq(listener.requestDataUploadCount, 2);
-
-  run_next_test();
 });
 
-add_task(function test_delete_remote_data() {
+add_task(function* test_delete_remote_data() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("delete_remote_data");
 
   do_check_false(policy.pendingDeleteRemoteData);
@@ -546,15 +460,13 @@ add_task(function test_delete_remote_data() {
 });
 
 
-add_test(function test_delete_remote_data_priority() {
+add_task(function* test_delete_remote_data_priority() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("delete_remote_data_priority");
 
   let now = new Date();
-  defineNow(policy, policy._futureDate(-24 * 60 * 60 * 1000));
-  policy.recordUserAcceptance();
   defineNow(policy, new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000));
 
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   policy._inProgressSubmissionRequest = null;
 
@@ -563,16 +475,12 @@ add_test(function test_delete_remote_data_priority() {
 
   do_check_eq(listener.requestRemoteDeleteCount, 1);
   do_check_eq(listener.requestDataUploadCount, 1);
-
-  run_next_test();
 });
 
 add_test(function test_delete_remote_data_backoff() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("delete_remote_data_backoff");
 
   let now = new Date();
-  defineNow(policy, policy._futureDate(-24 * 60 * 60 * 1000));
-  policy.recordUserAcceptance();
   defineNow(policy, now);
   policy.nextDataSubmissionDate = now;
   policy.deleteRemoteData();
@@ -600,15 +508,12 @@ add_test(function test_delete_remote_data_backoff() {
 
 
 
-add_task(function test_delete_remote_data_in_progress_upload() {
+add_task(function* test_delete_remote_data_in_progress_upload() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("delete_remote_data_in_progress_upload");
 
-  let now = new Date();
-  defineNow(policy, policy._futureDate(-24 * 60 * 60 * 1000));
-  policy.recordUserAcceptance();
   defineNow(policy, policy.nextDataSubmissionDate);
 
-  policy.checkStateAndTrigger();
+  yield ensureUserNotifiedAndTrigger(policy);
   do_check_eq(listener.requestDataUploadCount, 1);
   defineNow(policy, policy._futureDate(50 * 1000));
 
@@ -654,7 +559,6 @@ add_test(function test_polling() {
       if (count >= 2) {
         policy.stopPolling();
 
-        do_check_eq(listener.notifyUserCount, 0);
         do_check_eq(listener.requestDataUploadCount, 0);
 
         run_next_test();
@@ -672,79 +576,7 @@ add_test(function test_polling() {
   policy.startPolling();
 });
 
-
-
-
-
-add_test(function test_polling_implicit_acceptance() {
-  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("polling_implicit_acceptance");
-
-  
-  Object.defineProperty(policy, "POLL_INTERVAL_MSEC", {
-    value: 250,
-  });
-
-  Object.defineProperty(policy, "IMPLICIT_ACCEPTANCE_INTERVAL_MSEC", {
-    value: 700,
-  });
-
-  let count = 0;
-
-  
-  let start;
-  Object.defineProperty(policy, "checkStateAndTrigger", {
-    value: function CheckStateAndTriggerProxy() {
-      count++;
-      let now = Date.now();
-      let delta = now - start;
-      print("checkStateAndTrigger count: " + count + ", now " + now +
-            ", delta " + delta);
-
-      
-      DataReportingPolicy.prototype.checkStateAndTrigger.call(policy);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      do_check_eq(listener.notifyUserCount, 1);
-
-      if (count == 1) {
-        listener.lastNotifyRequest.onUserNotifyComplete();
-      }
-
-      if (delta <= (policy.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC + policy.POLL_INTERVAL_MSEC)) {
-        do_check_false(policy.dataSubmissionPolicyAccepted);
-        do_check_eq(listener.requestDataUploadCount, 0);
-      } else if (count > 3) {
-        do_check_true(policy.dataSubmissionPolicyAccepted);
-        do_check_eq(policy.dataSubmissionPolicyResponseType,
-                    "accepted-implicit-time-elapsed");
-        do_check_eq(listener.requestDataUploadCount, 1);
-      }
-
-      if ((count > 4) && policy.dataSubmissionPolicyAccepted) {
-        do_check_eq(listener.requestDataUploadCount, 1);
-        policy.stopPolling();
-        run_next_test();
-      }
-    }
-  });
-
-  policy.firstRunDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
-  policy.nextDataSubmissionDate = new Date(Date.now());
-  start = Date.now();
-  policy.startPolling();
-});
-
-add_task(function test_record_health_report_upload_enabled() {
+add_task(function* test_record_health_report_upload_enabled() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("record_health_report_upload_enabled");
 
   
@@ -791,10 +623,10 @@ add_test(function test_pref_change_initiates_deletion() {
 
   hrPrefs.set("uploadEnabled", false);
 });
- 
+
 add_task(function* test_policy_version() {
   let policy, policyPrefs, hrPrefs, listener, now, firstRunTime;
-  function createPolicy(shouldBeAccepted = false,
+  function createPolicy(shouldBeNotified = false,
                         currentPolicyVersion = 1, minimumPolicyVersion = 1,
                         branchMinimumVersionOverride) {
     [policy, policyPrefs, hrPrefs, listener] =
@@ -804,8 +636,7 @@ add_task(function* test_policy_version() {
     if (firstRun) {
       firstRunTime = policy.firstRunDate.getTime();
       do_check_true(firstRunTime > 0);
-      now = new Date(policy.firstRunDate.getTime() +
-                     policy.SUBMISSION_NOTIFY_INTERVAL_MSEC);
+      now = new Date(policy.firstRunDate.getTime());
     }
     else {
       
@@ -813,23 +644,18 @@ add_task(function* test_policy_version() {
       do_check_eq(policy.firstRunDate.getTime(), firstRunTime);
     }
     defineNow(policy, now);
-    do_check_eq(policy.dataSubmissionPolicyAccepted, shouldBeAccepted);
+    do_check_eq(policy.userNotifiedOfCurrentPolicy, shouldBeNotified);
   }
 
-  function* triggerPolicyCheckAndEnsureNotified(notified = true, accept = true) {
+  function* triggerPolicyCheckAndEnsureNotified(notified = true) {
     policy.checkStateAndTrigger();
     do_check_eq(listener.notifyUserCount, Number(notified));
     if (notified) {
-      yield listener.lastNotifyRequest.onUserNotifyComplete();
-      if (accept) {
-        listener.lastNotifyRequest.onUserAccept("because,");
-        do_check_true(policy.dataSubmissionPolicyAccepted);
-        do_check_eq(policyPrefs.get("dataSubmissionPolicyAcceptedVersion"),
-                    policyPrefs.get("currentPolicyVersion"));
-      }
-      else {
-        do_check_false(policyPrefs.has("dataSubmissionPolicyAcceptedVersion"));
-      }
+      policy.ensureUserNotified();
+      yield listener.lastNotifyRequest.deferred.promise;
+      do_check_true(policy.userNotifiedOfCurrentPolicy);
+      do_check_eq(policyPrefs.get("dataSubmissionPolicyAcceptedVersion"),
+                  policyPrefs.get("currentPolicyVersion"));
     }
   }
 
@@ -844,16 +670,16 @@ add_task(function* test_policy_version() {
   
   let currentPolicyVersion = policyPrefs.get("currentPolicyVersion");
   let minimumPolicyVersion = policyPrefs.get("minimumPolicyVersion");
-  createPolicy(true, ++currentPolicyVersion, minimumPolicyVersion);
-  yield triggerPolicyCheckAndEnsureNotified(false);
-  do_check_true(policy.dataSubmissionPolicyAccepted);
-  do_check_eq(policyPrefs.get("dataSubmissionPolicyAcceptedVersion"),
-              minimumPolicyVersion);
+  createPolicy(false, ++currentPolicyVersion, minimumPolicyVersion);
+  yield triggerPolicyCheckAndEnsureNotified(true);
+  do_check_eq(policyPrefs.get("dataSubmissionPolicyAcceptedVersion"), currentPolicyVersion);
 
   
-  createPolicy(false, currentPolicyVersion, ++minimumPolicyVersion);
-  do_check_false(policyPrefs.has("dataSubmissionPolicyAcceptedVersion"));
-  yield triggerPolicyCheckAndEnsureNotified();
+
+  createPolicy(true, currentPolicyVersion, ++minimumPolicyVersion);
+  do_check_true(policyPrefs.has("dataSubmissionPolicyAcceptedVersion"));
+  yield triggerPolicyCheckAndEnsureNotified(false);
+
 
   
   createPolicy(true, currentPolicyVersion, minimumPolicyVersion);
