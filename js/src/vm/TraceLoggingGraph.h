@@ -215,8 +215,6 @@ class TraceLoggerGraph
     ContinuousSpace<StackEntry> stack;
     uint32_t treeOffset;
 
-    ContinuousSpace<EventEntry> events;
-
     
     
     void entryToBigEndian(TreeEntry *entry);
