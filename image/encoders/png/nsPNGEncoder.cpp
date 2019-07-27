@@ -3,15 +3,28 @@
 
 
 
+#include "ImageLogging.h"
 #include "nsCRT.h"
 #include "nsPNGEncoder.h"
-#include "prprf.h"
-#include "nsString.h"
 #include "nsStreamUtils.h"
+#include "nsString.h"
+#include "prprf.h"
 
 using namespace mozilla;
 
-NS_IMPL_ISUPPORTS(nsPNGEncoder, imgIEncoder, nsIInputStream, nsIAsyncInputStream)
+#ifdef PR_LOGGING
+static PRLogModuleInfo *
+GetPNGEncoderLog()
+{
+  static PRLogModuleInfo *sPNGEncoderLog;
+  if (!sPNGEncoderLog)
+    sPNGEncoderLog = PR_NewLogModule("PNGEncoder");
+  return sPNGEncoderLog;
+}
+#endif
+
+NS_IMPL_ISUPPORTS(nsPNGEncoder, imgIEncoder, nsIInputStream,
+                  nsIAsyncInputStream)
 
 nsPNGEncoder::nsPNGEncoder() : mPNG(nullptr), mPNGinfo(nullptr),
                                mIsAnimation(false),
@@ -20,7 +33,8 @@ nsPNGEncoder::nsPNGEncoder() : mPNG(nullptr), mPNGinfo(nullptr),
                                mImageBufferUsed(0), mImageBufferReadPoint(0),
                                mCallback(nullptr),
                                mCallbackTarget(nullptr), mNotifyThreshold(0),
-                               mReentrantMonitor("nsPNGEncoder.mReentrantMonitor")
+                               mReentrantMonitor(
+                                              "nsPNGEncoder.mReentrantMonitor")
 {
 }
 
@@ -568,6 +582,7 @@ NS_IMETHODIMP nsPNGEncoder::AsyncWait(nsIInputStreamCallback *aCallback,
   
   
   
+  
   mCallback = aCallback;
 
   
@@ -631,36 +646,24 @@ nsPNGEncoder::StripAlpha(const uint8_t* aSrc, uint8_t* aDest,
 
 
 
-void 
+void
 nsPNGEncoder::WarningCallback(png_structp png_ptr,
                             png_const_charp warning_msg)
 {
-#ifdef DEBUG
-	
-        
-	PR_fprintf(PR_STDERR, "PNG Encoder: %s\n", warning_msg);;
-#endif
+  PR_LOG(GetPNGEncoderLog(), PR_LOG_WARNING,
+         ("libpng warning: %s\n", warning_msg));
 }
 
 
 
 
-void 
+void
 nsPNGEncoder::ErrorCallback(png_structp png_ptr,
                             png_const_charp error_msg)
 {
-#ifdef DEBUG
-	
-        
-	PR_fprintf(PR_STDERR, "PNG Encoder: %s\n", error_msg);;
-#endif
-#if PNG_LIBPNG_VER < 10500
-        longjmp(png_ptr->jmpbuf, 1);
-#else
-        png_longjmp(png_ptr, 1);
-#endif
+  PR_LOG(GetPNGEncoderLog(), PR_LOG_ERROR, ("libpng error: %s\n", error_msg));
+  png_longjmp(png_ptr, 1);
 }
-
 
 
 

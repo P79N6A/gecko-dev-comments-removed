@@ -4,23 +4,18 @@
 
 
 
-#include "ImageLogging.h"
-#include "nsPNGDecoder.h"
-
-#include "nsMemory.h"
-#include "nsRect.h"
-
-#include "nsIInputStream.h"
-
-#include "RasterImage.h"
-
+#include "ImageLogging.h" 
 #include "gfxColor.h"
+#include "gfxPlatform.h"
 #include "nsColor.h"
-
+#include "nsIInputStream.h"
+#include "nsMemory.h"
+#include "nsPNGDecoder.h"
+#include "nsRect.h"
 #include "nspr.h"
 #include "png.h"
+#include "RasterImage.h"
 
-#include "gfxPlatform.h"
 #include <algorithm>
 
 namespace mozilla {
@@ -85,7 +80,8 @@ nsPNGDecoder::AnimFrameInfo::AnimFrameInfo(png_structp aPNG, png_infop aInfo)
 
     
     
-    mTimeout = static_cast<int32_t>(static_cast<double>(delay_num) * 1000 / delay_den);
+    mTimeout = static_cast<int32_t>(static_cast<double>(delay_num) *
+                                    1000 / delay_den);
   }
 
   if (dispose_op == PNG_DISPOSE_OP_PREVIOUS) {
@@ -195,7 +191,8 @@ void nsPNGDecoder::EndImageFrame()
   }
 #endif
 
-  PostFrameStop(alpha, mAnimInfo.mDispose, mAnimInfo.mTimeout, mAnimInfo.mBlend);
+  PostFrameStop(alpha, mAnimInfo.mDispose, mAnimInfo.mTimeout,
+                mAnimInfo.mBlend);
 }
 
 void
@@ -209,7 +206,8 @@ nsPNGDecoder::InitInternal()
   mCMSMode = gfxPlatform::GetCMSMode();
   if ((mDecodeFlags & DECODER_NO_COLORSPACE_CONVERSION) != 0)
     mCMSMode = eCMSMode_Off;
-  mDisablePremultipliedAlpha = (mDecodeFlags & DECODER_NO_PREMULTIPLY_ALPHA) != 0;
+  mDisablePremultipliedAlpha = (mDecodeFlags & DECODER_NO_PREMULTIPLY_ALPHA)
+                                != 0;
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
   static png_byte color_chunks[]=
@@ -267,11 +265,10 @@ nsPNGDecoder::InitInternal()
 #ifdef PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
 #ifndef PR_LOGGING
   
-
-
-
-
-
+  
+  
+  
+  
   png_set_check_for_invalid_index(mPNG, 0);
 #endif
 #endif
@@ -291,7 +288,8 @@ nsPNGDecoder::InitInternal()
 }
 
 void
-nsPNGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrategy)
+nsPNGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount,
+                            DecodeStrategy)
 {
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
@@ -393,24 +391,14 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
   
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_iCCP)) {
     png_uint_32 profileLen;
-#if (PNG_LIBPNG_VER < 10500)
-    char *profileData, *profileName;
-#else
     png_bytep profileData;
     png_charp profileName;
-#endif
     int compression;
 
     png_get_iCCP(png_ptr, info_ptr, &profileName, &compression,
                  &profileData, &profileLen);
 
-    profile = qcms_profile_from_memory(
-#if (PNG_LIBPNG_VER < 10500)
-                                       profileData,
-#else
-                                       (char *)profileData,
-#endif
-                                       profileLen);
+    profile = qcms_profile_from_memory((char *)profileData, profileLen);
     if (profile) {
       uint32_t profileSpace = qcms_profile_get_color_space(profile);
 
@@ -515,13 +503,13 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
 
   
   if (width > MOZ_PNG_MAX_DIMENSION || height > MOZ_PNG_MAX_DIMENSION)
-    longjmp(png_jmpbuf(decoder->mPNG), 1);
+    png_longjmp(decoder->mPNG, 1);
 
   
   decoder->PostSize(width, height);
   if (decoder->HasError()) {
     
-    longjmp(png_jmpbuf(decoder->mPNG), 1);
+    png_longjmp(decoder->mPNG, 1);
   }
 
   if (color_type == PNG_COLOR_TYPE_PALETTE)
@@ -535,9 +523,9 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
     png_color_16p trans_values;
     png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, &trans_values);
     
-
-
-
+    
+    
+    
     if ((color_type == PNG_COLOR_TYPE_GRAY &&
        (int)trans_values->gray > sample_max) ||
        (color_type == PNG_COLOR_TYPE_RGB &&
@@ -601,35 +589,13 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
   }
 
   
-
+  
   png_read_update_info(png_ptr, info_ptr);
   decoder->mChannels = channels = png_get_channels(png_ptr, info_ptr);
 
   
   
   
-
-  
-#if 0
-  int32_t alpha_bits = 1;
-
-  if (channels == 2 || channels == 4) {
-    
-    if (num_trans) {
-      
-      if (color_type == PNG_COLOR_TYPE_PALETTE) {
-        for (int i=0; i<num_trans; i++) {
-          if ((trans[i] != 0) && (trans[i] != 255)) {
-            alpha_bits = 8;
-            break;
-          }
-        }
-      }
-    } else {
-      alpha_bits = 8;
-    }
-  }
-#endif
 
   if (channels == 1 || channels == 3)
     decoder->format = gfx::SurfaceFormat::B8G8R8X8;
@@ -656,7 +622,7 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
     decoder->mCMSLine =
       (uint8_t *)moz_malloc(bpp[channels] * width);
     if (!decoder->mCMSLine) {
-      longjmp(png_jmpbuf(decoder->mPNG), 5); 
+      png_longjmp(decoder->mPNG, 5); 
     }
   }
 
@@ -664,14 +630,13 @@ nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr)
     if (height < INT32_MAX / (width * channels))
       decoder->interlacebuf = (uint8_t *)moz_malloc(channels * width * height);
     if (!decoder->interlacebuf) {
-      longjmp(png_jmpbuf(decoder->mPNG), 5); 
+      png_longjmp(decoder->mPNG, 5); 
     }
   }
 
   if (decoder->NeedsNewFrame()) {
     
-
-
+    
     png_process_data_pause(png_ptr,  1);
   }
 }
@@ -786,7 +751,8 @@ nsPNGDecoder::row_callback(png_structp png_ptr, png_bytep new_row,
           }
         } else {
           for (uint32_t x=width; x>0; --x) {
-            *cptr32++ = gfxPackedPixelNoPreMultiply(line[3], line[0], line[1], line[2]);
+            *cptr32++ = gfxPackedPixelNoPreMultiply(line[3], line[0], line[1],
+                                                    line[2]);
             if (line[3] != 0xff)
               rowHasNoAlpha = false;
             line += 4;
@@ -795,7 +761,7 @@ nsPNGDecoder::row_callback(png_structp png_ptr, png_bytep new_row,
       }
       break;
       default:
-        longjmp(png_jmpbuf(decoder->mPNG), 1);
+        png_longjmp(decoder->mPNG, 1);
     }
 
     if (!rowHasNoAlpha)
@@ -836,8 +802,7 @@ nsPNGDecoder::frame_info_callback(png_structp png_ptr, png_uint_32 frame_num)
 
   if (decoder->NeedsNewFrame()) {
     
-
-
+    
     png_process_data_pause(png_ptr,  1);
   }
 }
@@ -882,7 +847,7 @@ void
 nsPNGDecoder::error_callback(png_structp png_ptr, png_const_charp error_msg)
 {
   PR_LOG(GetPNGLog(), PR_LOG_ERROR, ("libpng error: %s\n", error_msg));
-  longjmp(png_jmpbuf(png_ptr), 1);
+  png_longjmp(png_ptr, 1);
 }
 
 

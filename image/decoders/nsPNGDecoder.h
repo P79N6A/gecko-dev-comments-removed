@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsPNGDecoder_h__
-#define nsPNGDecoder_h__
+#ifndef nsPNGDecoder_h
+#define nsPNGDecoder_h
 
 #include "Decoder.h"
 

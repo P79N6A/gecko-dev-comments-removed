@@ -3,14 +3,15 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/ReentrantMonitor.h"
-
-#include "imgIEncoder.h"
-
-#include "nsCOMPtr.h"
+#ifndef nsPNGEncoder_h
 
 #include <png.h>
+
+#include "imgIEncoder.h"
+#include "nsCOMPtr.h"
+
+#include "mozilla/Attributes.h"
+#include "mozilla/ReentrantMonitor.h"
 
 #define NS_PNGENCODER_CID \
 { /* 38d1592e-b81e-432b-86f8-471878bbfe07 */         \
@@ -73,10 +74,10 @@ protected:
   uint32_t mNotifyThreshold;
 
   
-
-
-
-
-
+  
+  
+  
+  
   ReentrantMonitor mReentrantMonitor;
 };
+#endif 
