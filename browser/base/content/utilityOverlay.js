@@ -712,8 +712,17 @@ function openPrefsHelp() {
 function trimURL(aURL) {
   
   
-  return aURL 
-             .replace(/^((?:http|https|ftp):\/\/[^/]+)\/$/, "$1")
-              
-             .replace(/^http:\/\/((?!ftp\d*\.)[^\/@]+(?:\/|$))/, "$1");
+
+  
+  let rv = aURL.replace(/^((?:http|https|ftp):\/\/[^/]+)\/$/, "$1");
+
+  
+  
+  let hostMatch = rv.match(/^http:\/\/([^\/]*)/);
+  let ipv6Regex = /\[[\da-f:]*\]/;
+  if (hostMatch && (hostMatch[1].contains(".") || ipv6Regex.test(hostMatch[1]))) {
+    
+    rv = rv.replace(/^http:\/\/((?!ftp\d*\.)[^\/@]+(?:\/|$))/, "$1");
+  }
+  return rv;
 }
