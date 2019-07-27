@@ -24,10 +24,8 @@ class ContainerParser;
 class MediaSourceDecoder;
 class MediaLargeByteBuffer;
 
-class TrackBuffer final {
+class TrackBuffer final : public SourceBufferContentManager {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TrackBuffer);
-
   TrackBuffer(MediaSourceDecoder* aParentDecoder, const nsACString& aType);
 
   nsRefPtr<ShutdownPromise> Shutdown();
@@ -35,32 +33,45 @@ public:
   
   
   
-  nsRefPtr<TrackBufferAppendPromise> AppendData(MediaLargeByteBuffer* aData,
-                                                int64_t aTimestampOffset );
+  nsRefPtr<AppendPromise> AppendData(MediaLargeByteBuffer* aData,
+                                     int64_t aTimestampOffset ) override;
 
   
   
   
   
   
-  
-  bool EvictData(double aPlaybackTime, uint32_t aThreshold, double* aBufferStartTime);
+  EvictDataResult EvictData(double aPlaybackTime, uint32_t aThreshold, double* aBufferStartTime) override;
 
   
   
-  void EvictBefore(double aTime);
+  void EvictBefore(double aTime) override;
+
+  bool RangeRemoval(mozilla::media::TimeUnit aStart,
+                    mozilla::media::TimeUnit aEnd) override;
+
+  void AbortAppendData() override;
+
+  int64_t GetSize() override;
+
+  void ResetParserState() override;
 
   
   
-  media::TimeIntervals Buffered();
+  media::TimeIntervals Buffered() override;
+
+  void Ended() override
+  {
+    EndCurrentDecoder();
+  }
+
+  void Detach() override;
 
   
   
   void DiscardCurrentDecoder();
   
   void EndCurrentDecoder();
-
-  void Detach();
 
   
   bool HasInitSegment();
@@ -80,26 +91,7 @@ public:
   
   
   
-  void ResetParserState();
-
-  
-  
-  
   const nsTArray<nsRefPtr<SourceBufferDecoder>>& Decoders();
-
-  
-  
-  
-  
-  
-  bool RangeRemoval(mozilla::media::TimeUnit aStart,
-                    mozilla::media::TimeUnit aEnd);
-
-  
-  void AbortAppendData();
-
-  
-  int64_t GetSize();
 
   
   
@@ -116,7 +108,7 @@ public:
 private:
   friend class DecodersToInitialize;
   friend class MetadataRecipient;
-  ~TrackBuffer();
+  virtual ~TrackBuffer();
 
   
   
@@ -219,7 +211,7 @@ private:
   bool mDecoderPerSegment;
   bool mShutdown;
 
-  MediaPromiseHolder<TrackBufferAppendPromise> mInitializationPromise;
+  MediaPromiseHolder<AppendPromise> mInitializationPromise;
   
   MediaPromiseRequestHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
 };
