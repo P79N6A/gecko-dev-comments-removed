@@ -14,15 +14,15 @@ public class testBackButtonInEditMode extends UITest {
         
         mToolbar.enterEditingMode()
                 .assertIsUrlEditTextSelected();
-        testBackPressInEditMode();
-        testExitUsingBackButton();
+        checkBackPressInEditMode();
+        checkExitUsingBackButton();
 
         
         mToolbar.enterEditingMode()
                 .enterUrl("dummy")
                 .assertIsUrlEditTextSelected();
-        testBackPressInEditMode();
-        testExitUsingBackButton();
+        checkBackPressInEditMode();
+        checkExitUsingBackButton();
 
         
         mToolbar.enterEditingMode()
@@ -30,17 +30,17 @@ public class testBackButtonInEditMode extends UITest {
         mAboutHome.swipeToPanelOnLeft();
         mToolbar.assertIsUrlEditTextNotSelected()
                 .assertIsEditing();
-        testExitUsingBackButton();
+        checkExitUsingBackButton();
     }
 
-    public void testBackPressInEditMode() {
+    private void checkBackPressInEditMode() {
         
         getSolo().goBack();
         mToolbar.assertIsUrlEditTextNotSelected()
                 .assertIsEditing();
     }
 
-    public void testExitUsingBackButton() {
+    private void checkExitUsingBackButton() {
         getSolo().goBack();
         mToolbar.assertIsNotEditing();
     }
