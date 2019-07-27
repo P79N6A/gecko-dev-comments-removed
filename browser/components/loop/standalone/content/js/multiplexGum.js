@@ -33,10 +33,10 @@ loop.standaloneMedia = (function() {
   }
 
   
+  
   navigator.originalGum = navigator.getUserMedia ||
                           navigator.mozGetUserMedia ||
-                          navigator.webkitGetUserMedia ||
-                          (window["TBPlugin"] && TBPlugin.getUserMedia);
+                          navigator.webkitGetUserMedia;
 
   function _MultiplexGum() {
     this.reset();
