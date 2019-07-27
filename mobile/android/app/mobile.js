@@ -909,3 +909,10 @@ pref("touchcaret.extendedvisibility", true);
 
 
 pref("caret.manages-android-actionbar", true);
+
+
+#ifdef RELEASE_BUILD
+pref("consoleservice.logcat", false);
+#else
+pref("consoleservice.logcat", true);
+#endif
