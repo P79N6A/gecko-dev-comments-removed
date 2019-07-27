@@ -17,13 +17,14 @@ CryptoBuffer::Assign(const CryptoBuffer& aData)
 {
   
   
-  return ReplaceElementsAt(0, Length(), aData.Elements(), aData.Length());
+  return ReplaceElementsAt(0, Length(), aData.Elements(), aData.Length(),
+                           fallible);
 }
 
 uint8_t*
 CryptoBuffer::Assign(const uint8_t* aData, uint32_t aLength)
 {
-  return ReplaceElementsAt(0, Length(), aData, aLength);
+  return ReplaceElementsAt(0, Length(), aData, aLength, fallible);
 }
 
 uint8_t*
