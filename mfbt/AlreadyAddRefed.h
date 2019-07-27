@@ -25,6 +25,10 @@ struct unused_t;
 
 
 
+
+
+
+
 template<class T>
 struct already_AddRefed
 {
@@ -73,6 +77,7 @@ struct already_AddRefed
   
   
   
+  
   friend void operator<<(const mozilla::unused_t& aUnused,
                          const already_AddRefed<T>& aRhs)
   {
@@ -102,6 +107,8 @@ struct already_AddRefed
 
 
 
+
+
   template<class U>
   operator already_AddRefed<U>()
   {
@@ -111,10 +118,6 @@ struct already_AddRefed
   }
 
   
-
-
-
-
 
 
 
