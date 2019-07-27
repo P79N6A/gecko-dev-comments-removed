@@ -640,13 +640,9 @@ BluetoothHfpManager::HandleVoiceConnectionChanged(uint32_t aClientId)
 
 
 
-  nsString mode;
-  connection->GetNetworkSelectionMode(mode);
-  if (mode.EqualsLiteral("manual")) {
-    mNetworkSelectionMode = 1;
-  } else {
-    mNetworkSelectionMode = 0;
-  }
+  int32_t mode;
+  connection->GetNetworkSelectionMode(&mode);
+  mNetworkSelectionMode = (mode == 1) ? 1 : 0;
 
   nsCOMPtr<nsIMobileNetworkInfo> network;
   voiceInfo->GetNetwork(getter_AddRefs(network));
