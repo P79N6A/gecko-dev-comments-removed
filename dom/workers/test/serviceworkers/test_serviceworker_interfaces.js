@@ -153,6 +153,8 @@ var interfaceNamesInGlobalScope =
 
     "MessagePort",
 
+    "NotificationEvent",
+
     "Performance",
 
     "PerformanceEntry",

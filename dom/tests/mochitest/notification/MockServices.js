@@ -43,9 +43,10 @@ var MockServices = (function () {
         setTimeout(function () {
           listener.observe(null, "alertshow", cookie);
         }, 100);
+        setTimeout(function () {
+          listener.observe(null, "alertclickcallback", cookie);
+        }, 100);
       }
-
-      
     },
 
     showAppNotification: function(aImageUrl, aTitle, aText, aAlertListener, aDetails) {
