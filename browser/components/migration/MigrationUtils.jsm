@@ -43,11 +43,12 @@ function getMigrationBundle() {
 
 function getMigratorKeyForDefaultBrowser() {
   const APP_DESC_TO_KEY = {
-    "Internet Explorer": "ie",
-    "Safari":            "safari",
-    "Firefox":           "firefox",
-    "Google Chrome":     "chrome",  
-    "Chrome":            "chrome",  
+    "Internet Explorer":                 "ie",
+    "Safari":                            "safari",
+    "Firefox":                           "firefox",
+    "Google Chrome":                     "chrome",  
+    "Chrome":                            "chrome",  
+    "360\u5b89\u5168\u6d4f\u89c8\u5668": "360se",
   };
 
   let browserDesc = "";
@@ -460,6 +461,7 @@ this.MigrationUtils = Object.freeze({
 
 
 
+
   getMigrator: function MU_getMigrator(aKey) {
     let migrator = null;
     if (this._migrators.has(aKey)) {
@@ -482,7 +484,7 @@ this.MigrationUtils = Object.freeze({
   get migrators() {
     let migratorKeysOrdered = [
 #ifdef XP_WIN
-      "firefox", "ie", "chrome", "safari"
+      "firefox", "ie", "chrome", "safari", "360se"
 #elifdef XP_MACOSX
       "firefox", "safari", "chrome"
 #elifdef XP_UNIX
