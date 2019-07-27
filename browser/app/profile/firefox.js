@@ -183,6 +183,9 @@ pref("app.update.metro.enabled", true);
 pref("app.update.silent", false);
 
 
+pref("app.update.badge", false);
+
+
 
 pref("app.update.staging.enabled", true);
 
