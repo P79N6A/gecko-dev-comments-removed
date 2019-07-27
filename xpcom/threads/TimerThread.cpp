@@ -207,6 +207,7 @@ TimerThread::Run()
   }
 #endif
 
+  NS_SetIgnoreStatusOfCurrentThread();
   MonitorAutoLock lock(mMonitor);
 
   

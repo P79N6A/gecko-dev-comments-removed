@@ -65,13 +65,16 @@ public:
   NS_IMETHOD Run()
   {
     MOZ_ASSERT(!NS_IsMainThread());
+#ifdef MOZ_NUWA_PROCESS
+    NS_SetIgnoreStatusOfCurrentThread();
+#endif
     nsAutoString event;
     gWpaSupplicant->WaitForEvent(event, mInterface);
     if (!event.IsEmpty()) {
 #ifdef MOZ_TASK_TRACER
       
       
-      AutoSourceEvent taskTracerEvent(SourceEventType::Wifi);
+      AutoSourceEvent taskTracerEvent(SourceEventType::WIFI);
       AddLabel("%s %s", mInterface.get(), NS_ConvertUTF16toUTF8(event).get());
 #endif
       nsCOMPtr<nsIRunnable> runnable = new WifiEventDispatcher(event, mInterface);
