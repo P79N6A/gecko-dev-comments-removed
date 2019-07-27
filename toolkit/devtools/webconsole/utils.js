@@ -33,6 +33,15 @@ const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
 
 const CONSOLE_ENTRY_THRESHOLD = 5
+
+
+
+
+const MAX_AUTOCOMPLETE_ATTEMPTS = exports.MAX_AUTOCOMPLETE_ATTEMPTS = 100000;
+
+
+const MAX_AUTOCOMPLETIONS = exports.MAX_AUTOCOMPLETIONS = 1500;
+
 let WebConsoleUtils = {
   
 
@@ -710,8 +719,6 @@ const OPEN_CLOSE_BODY = {
   "(": ")",
 };
 
-const MAX_COMPLETIONS = 1500;
-
 
 
 
@@ -1044,11 +1051,22 @@ function getMatchedProps(aObj, aMatch)
 function getMatchedProps_impl(aObj, aMatch, {chainIterator, getProperties})
 {
   let matches = new Set();
+  let numProps = 0;
 
   
   let iter = chainIterator(aObj);
   for (let obj of iter) {
     let props = getProperties(obj);
+    numProps += props.length;
+
+    
+    
+    
+    if (numProps >= MAX_AUTOCOMPLETE_ATTEMPTS ||
+        matches.size >= MAX_AUTOCOMPLETIONS) {
+      break;
+    }
+
     for (let i = 0; i < props.length; i++) {
       let prop = props[i];
       if (prop.indexOf(aMatch) != 0) {
@@ -1062,13 +1080,9 @@ function getMatchedProps_impl(aObj, aMatch, {chainIterator, getProperties})
         matches.add(prop);
       }
 
-      if (matches.size > MAX_COMPLETIONS) {
+      if (matches.size >= MAX_AUTOCOMPLETIONS) {
         break;
       }
-    }
-
-    if (matches.size > MAX_COMPLETIONS) {
-      break;
     }
   }
 
