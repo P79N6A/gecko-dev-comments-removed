@@ -464,21 +464,22 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     }
 
     if (newApzc) {
-      if (apzc->HasNoParentWithSameLayersId()) {
-        
+      if (apzc->IsRootContent()) {
         
         
         ZoomConstraints constraints;
         if (state->mController->GetRootZoomConstraints(&constraints)) {
           apzc->UpdateZoomConstraints(constraints);
         }
-      } else {
+      } else if (!apzc->HasNoParentWithSameLayersId()) {
         
         
         
         
         apzc->UpdateZoomConstraints(apzc->GetParent()->GetZoomConstraints());
       }
+      
+      
     }
 
     
@@ -1035,7 +1036,7 @@ APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
 
   
   
-  if (node && node->GetApzc()->HasNoParentWithSameLayersId()) {
+  if (node && node->GetApzc()->IsRootContent()) {
     UpdateZoomConstraintsRecursively(node.get(), aConstraints);
   }
 }
