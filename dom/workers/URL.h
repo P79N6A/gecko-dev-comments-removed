@@ -49,10 +49,10 @@ public:
 
   
 
-  static URL*
+  static already_AddRefed<URL>
   Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
               URL& aBase, ErrorResult& aRv);
-  static URL*
+  static already_AddRefed<URL>
   Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
               const nsAString& aBase, ErrorResult& aRv);
 
