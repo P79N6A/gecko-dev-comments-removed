@@ -1503,6 +1503,9 @@ WebConsoleActor.prototype =
     
     
     this.onStartListeners({listeners: listeners});
+
+    
+    this._lastChromeWindow  = null;
   },
 };
 
