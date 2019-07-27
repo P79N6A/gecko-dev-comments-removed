@@ -7,6 +7,8 @@
 #define NSDISPLAYLISTINVALIDATION_H_
 
 #include "mozilla/Attributes.h"
+#include "FrameLayerBuilder.h"
+#include "imgIContainer.h"
 #include "nsRect.h"
 #include "nsColor.h"
 #include "gfxRect.h"
@@ -69,6 +71,63 @@ public:
   virtual void MoveBy(const nsPoint& aOffset) MOZ_OVERRIDE;
 
   nsRect mBorderRect;
+};
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class nsImageGeometryMixin
+{
+public:
+  explicit nsImageGeometryMixin(nsDisplayItem* aItem)
+    : mLastDrawResult(mozilla::image::DrawResult::NOT_READY)
+  {
+    auto lastGeometry =
+      static_cast<T*>(mozilla::FrameLayerBuilder::GetMostRecentGeometry(aItem));
+    if (lastGeometry) {
+      mLastDrawResult = lastGeometry->LastDrawResult();
+    }
+  }
+
+  static void UpdateDrawResult(nsDisplayItem* aItem,
+                               mozilla::image::DrawResult aResult)
+  {
+    auto lastGeometry =
+      static_cast<T*>(mozilla::FrameLayerBuilder::GetMostRecentGeometry(aItem));
+    if (lastGeometry) {
+      lastGeometry->mLastDrawResult = aResult;
+    }
+  }
+
+  mozilla::image::DrawResult LastDrawResult() const { return mLastDrawResult; }
+
+private:
+  mozilla::image::DrawResult mLastDrawResult;
+};
+
+
+
+
+
+
+
+class nsDisplayItemGenericImageGeometry
+  : public nsDisplayItemGenericGeometry
+  , public nsImageGeometryMixin<nsDisplayItemGenericImageGeometry>
+{
+public:
+  nsDisplayItemGenericImageGeometry(nsDisplayItem* aItem,
+                                    nsDisplayListBuilder* aBuilder)
+    : nsDisplayItemGenericGeometry(aItem, aBuilder)
+    , nsImageGeometryMixin(aItem)
+  { }
 };
 
 class nsDisplayItemBoundsGeometry : public nsDisplayItemGeometry

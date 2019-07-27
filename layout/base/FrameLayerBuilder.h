@@ -276,6 +276,17 @@ public:
   static void DumpRetainedLayerTree(LayerManager* aManager, std::stringstream& aStream, bool aDumpHtml = false);
 
   
+
+
+
+
+
+
+
+  static nsDisplayItemGeometry* GetMostRecentGeometry(nsDisplayItem* aItem);
+
+
+  
   
 
 
@@ -398,6 +409,7 @@ public:
 
     uint32_t GetDisplayItemKey() { return mDisplayItemKey; }
     Layer* GetLayer() { return mLayer; }
+    nsDisplayItemGeometry* GetGeometry() const { return mGeometry.get(); }
     void Invalidate() { mIsInvalid = true; }
 
   private:
