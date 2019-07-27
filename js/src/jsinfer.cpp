@@ -4891,8 +4891,6 @@ JSCompartment::sweepNewTypeObjectTable(NewTypeObjectTable &table)
     }
 }
 
-#ifdef JSGC_COMPACTING
-
 void
 JSCompartment::fixupNewTypeObjectTable(NewTypeObjectTable &table)
 {
@@ -4965,8 +4963,6 @@ TypeObject::fixupAfterMovingGC()
         }
     }
 }
-
-#endif 
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
