@@ -1719,7 +1719,7 @@ pref("loop.support_url", "https://support.mozilla.org/kb/group-conversations-fir
 pref("loop.contacts.gravatars.show", false);
 pref("loop.contacts.gravatars.promo", true);
 pref("loop.browserSharing.showInfoBar", true);
-pref("loop.contextInConverations.enabled", false);
+pref("loop.contextInConversations.enabled", false);
 
 pref("social.sidebar.unload_timeout_ms", 10000);
 
@@ -1903,7 +1903,7 @@ pref("reader.parse-node-limit", 0);
 pref("dom.serviceWorkers.enabled", true);
 #endif
 
-pref("browser.pocket.enabled", true);
+pref("browser.pocket.enabled", false);
 pref("browser.pocket.api", "api.getpocket.com");
 pref("browser.pocket.site", "getpocket.com");
 pref("browser.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
