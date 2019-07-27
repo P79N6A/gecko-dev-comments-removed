@@ -19,7 +19,7 @@ var gMozLoopAPI;
 function promiseGetMozLoopAPI() {
   return new Promise((resolve, reject) => {
     let loopPanel = document.getElementById("loop-notification-panel");
-    let btn = document.getElementById("loop-call-button");
+    let btn = document.getElementById("loop-button");
 
     
     

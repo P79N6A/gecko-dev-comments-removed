@@ -741,6 +741,9 @@ CustomizeMode.prototype = {
       let unusedWidgets = CustomizableUI.getUnusedWidgets(toolboxPalette);
       for (let widget of unusedWidgets) {
         let paletteItem = this.makePaletteItem(widget, "palette");
+        if (!paletteItem) {
+          continue;
+        }
         fragment.appendChild(paletteItem);
       }
 
@@ -758,6 +761,15 @@ CustomizeMode.prototype = {
   
   makePaletteItem: function(aWidget, aPlace) {
     let widgetNode = aWidget.forWindow(this.window).node;
+    if (!widgetNode) {
+      ERROR("Widget with id " + aWidget.id + " does not return a valid node");
+      return null;
+    }
+    
+    if (widgetNode.hidden) {
+      return null;
+    }
+
     let wrapper = this.createOrUpdateWrapper(widgetNode, aPlace);
     wrapper.appendChild(widgetNode);
     return wrapper;

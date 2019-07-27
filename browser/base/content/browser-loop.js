@@ -15,7 +15,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
   LoopUI = {
     get toolbarButton() {
       delete this.toolbarButton;
-      return this.toolbarButton = CustomizableUI.getWidget("loop-call-button").forWindow(window);
+      return this.toolbarButton = CustomizableUI.getWidget("loop-button").forWindow(window);
     },
 
     
@@ -44,20 +44,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
 
 
     init: function() {
-      if (!Services.prefs.getBoolPref("loop.enabled")) {
-        this.toolbarButton.node.hidden = true;
-        return;
-      }
-
       
       Services.obs.addObserver(this, "loop-status-changed", false);
-
-      
-      if (Services.prefs.getBoolPref("loop.throttled")) {
-        this.toolbarButton.node.hidden = true;
-        MozLoopService.checkSoftStart(this.toolbarButton.node);
-        return;
-      }
 
       MozLoopService.initialize();
       this.updateToolbarState();

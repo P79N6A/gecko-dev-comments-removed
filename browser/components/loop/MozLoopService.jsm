@@ -10,11 +10,6 @@ const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 const INVALID_AUTH_TOKEN = 110;
 
-
-
-
-const MAX_SOFT_START_TICKET_NUMBER = 16777214;
-
 const LOOP_SESSION_TYPE = {
   GUEST: 1,
   FXA: 2,
@@ -958,8 +953,14 @@ this.MozLoopService = {
     Object.freeze(this);
 
     
-    if (!Services.prefs.getBoolPref("loop.enabled") ||
-        Services.prefs.getBoolPref("loop.throttled")) {
+    
+    Services.prefs.clearUserPref("loop.throttled");
+    Services.prefs.clearUserPref("loop.throttled2");
+    Services.prefs.clearUserPref("loop.soft_start_ticket_number");
+    Services.prefs.clearUserPref("loop.soft_start_hostname");
+
+    
+    if (!Services.prefs.getBoolPref("loop.enabled")) {
       return Promise.reject("loop is not enabled");
     }
 
@@ -1044,104 +1045,6 @@ this.MozLoopService = {
 
   openChatWindow: function(conversationWindowData) {
     return MozLoopServiceInternal.openChatWindow(conversationWindowData);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  checkSoftStart(buttonNode, doneCb) {
-    if (!Services.prefs.getBoolPref("loop.throttled")) {
-      if (typeof(doneCb) == "function") {
-        doneCb(new Error("Throttling is not active"));
-      }
-      return;
-    }
-
-    if (Services.io.offline) {
-      if (typeof(doneCb) == "function") {
-        doneCb(new Error("Cannot check soft-start value: browser is offline"));
-      }
-      return;
-    }
-
-    let ticket = Services.prefs.getIntPref("loop.soft_start_ticket_number");
-    if (!ticket || ticket > MAX_SOFT_START_TICKET_NUMBER || ticket < 0) {
-      
-      
-      
-      ticket = Math.floor(Math.random() * MAX_SOFT_START_TICKET_NUMBER) + 1;
-      
-      
-      if (ticket > MAX_SOFT_START_TICKET_NUMBER) {
-        ticket = MAX_SOFT_START_TICKET_NUMBER;
-      }
-      Services.prefs.setIntPref("loop.soft_start_ticket_number", ticket);
-    }
-
-    let onLookupComplete = (request, record, status) => {
-      
-      
-      
-      if (!Components.isSuccessCode(status)) {
-        if (typeof(doneCb) == "function") {
-          doneCb(new Error("Error in DNS Lookup: " + status));
-        }
-        return;
-      }
-
-      let address = record.getNextAddrAsString().split(".");
-      if (address.length != 4) {
-        if (typeof(doneCb) == "function") {
-          doneCb(new Error("Invalid IP address"));
-        }
-        return;
-      }
-
-      if (address[0] != 127) {
-        if (typeof(doneCb) == "function") {
-          doneCb(new Error("Throttling IP address is not on localhost subnet"));
-        }
-        return
-      }
-
-      
-      
-      let now_serving = ((parseInt(address[1]) * 0x10000) +
-                         (parseInt(address[2]) * 0x100) +
-                         parseInt(address[3]));
-
-      if (now_serving > ticket) {
-        
-        log.info("MozLoopService: Activating Loop via soft-start");
-        Services.prefs.setBoolPref("loop.throttled", false);
-        buttonNode.hidden = false;
-        this.initialize();
-      }
-      if (typeof(doneCb) == "function") {
-        doneCb(null);
-      }
-    };
-
-    
-    
-    
-    
-    
-    
-    
-    let host = Services.prefs.getCharPref("loop.soft_start_hostname");
-    let task = this._DNSService.asyncResolve(host,
-                                             this._DNSService.RESOLVE_DISABLE_IPV6,
-                                             onLookupComplete,
-                                             Services.tm.mainThread);
   },
 
   
