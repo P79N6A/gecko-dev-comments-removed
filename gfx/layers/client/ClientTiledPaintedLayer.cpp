@@ -144,7 +144,7 @@ ClientTiledPaintedLayer::BeginPaint()
 
   if (!displayPortAncestor || !scrollAncestor) {
     
-#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_B2G)
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
     
     
     NS_WARNING("Tiled PaintedLayer with no scrollable container ancestor");
