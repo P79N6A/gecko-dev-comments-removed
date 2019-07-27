@@ -814,7 +814,7 @@ this.RequestSyncService = {
     this._pendingOperation = false;
 
     
-    while (this._pendingMessages.length) {
+    while (this._pendingMessages.length && !this._pendingOperation) {
       this.receiveMessage(this._pendingMessages.shift());
     }
   },
