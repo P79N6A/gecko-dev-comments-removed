@@ -30,24 +30,25 @@
 #include "CrashReporterParent.h"
 #include "IHistory.h"
 #include "mozIApplication.h"
+#include "mozilla/a11y/DocAccessibleParent.h"
+#include "nsAccessibilityService.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/dom/DataStoreService.h"
-#include "mozilla/dom/DOMStorageIPC.h"
+#include "mozilla/dom/asmjscache/AsmJSCache.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/DataStoreService.h"
 #include "mozilla/dom/ExternalHelperAppParent.h"
-#include "mozilla/dom/FileSystemRequestParent.h"
-#include "mozilla/dom/GeolocationBinding.h"
 #include "mozilla/dom/PContentBridgeParent.h"
 #include "mozilla/dom/PCycleCollectWithLogsParent.h"
-#include "mozilla/dom/PFMRadioParent.h"
 #include "mozilla/dom/PMemoryReportRequestParent.h"
-#include "mozilla/dom/asmjscache/AsmJSCache.h"
+#include "mozilla/dom/power/PowerManagerService.h"
+#include "mozilla/dom/DOMStorageIPC.h"
 #include "mozilla/dom/bluetooth/PBluetoothParent.h"
-#include "mozilla/dom/cellbroadcast/CellBroadcastParent.h"
+#include "mozilla/dom/PFMRadioParent.h"
 #include "mozilla/dom/devicestorage/DeviceStorageRequestParent.h"
+#include "mozilla/dom/FileSystemRequestParent.h"
+#include "mozilla/dom/GeolocationBinding.h"
 #include "mozilla/dom/mobileconnection/MobileConnectionParent.h"
 #include "mozilla/dom/mobilemessage/SmsParent.h"
-#include "mozilla/dom/power/PowerManagerService.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/telephony/TelephonyParent.h"
 #include "mozilla/dom/time/DateCacheCleaner.h"
@@ -191,7 +192,6 @@ static const char* sClipboardTextFlavors[] = { kUnicodeMime };
 using base::ChildPrivileges;
 using base::KillProcess;
 using namespace mozilla::dom::bluetooth;
-using namespace mozilla::dom::cellbroadcast;
 using namespace mozilla::dom::devicestorage;
 using namespace mozilla::dom::indexedDB;
 using namespace mozilla::dom::power;
@@ -2697,6 +2697,34 @@ ContentParent::Observe(nsISupports* aSubject,
     return NS_OK;
 }
 
+  a11y::PDocAccessibleParent*
+ContentParent::AllocPDocAccessibleParent(PDocAccessibleParent* aParent, const uint64_t&)
+{
+  return new a11y::DocAccessibleParent();
+}
+
+bool
+ContentParent::DeallocPDocAccessibleParent(PDocAccessibleParent* aParent)
+{
+  delete static_cast<a11y::DocAccessibleParent*>(aParent);
+  return true;
+}
+
+bool
+ContentParent::RecvPDocAccessibleConstructor(PDocAccessibleParent* aDoc, PDocAccessibleParent* aParentDoc, const uint64_t& aParentID)
+{
+  auto doc = static_cast<a11y::DocAccessibleParent*>(aDoc);
+  if (aParentDoc) {
+    MOZ_ASSERT(aParentID);
+    auto parentDoc = static_cast<a11y::DocAccessibleParent*>(aParentDoc);
+    return parentDoc->AddChildDoc(doc, aParentID);
+  } else {
+    MOZ_ASSERT(!aParentID);
+    GetAccService()->RemoteDocAdded(doc);
+  }
+  return true;
+}
+
 PCompositorParent*
 ContentParent::AllocPCompositorParent(mozilla::ipc::Transport* aTransport,
                                       base::ProcessId aOtherProcess)
@@ -3071,13 +3099,13 @@ ContentParent::AllocPExternalHelperAppParent(const OptionalURIParams& uri,
 {
     ExternalHelperAppParent *parent = new ExternalHelperAppParent(uri, aContentLength);
     parent->AddRef();
-    parent->Init(this,
-                 aMimeContentType,
+    parent->Init(this, 
+                 aMimeContentType, 
                  aContentDisposition,
                  aContentDispositionHint,
                  aContentDispositionFilename,
-                 aForceSave,
-                 aReferrer,
+                 aForceSave, 
+                 aReferrer, 
                  aBrowser);
     return parent;
 }
@@ -3088,31 +3116,6 @@ ContentParent::DeallocPExternalHelperAppParent(PExternalHelperAppParent* aServic
     ExternalHelperAppParent *parent = static_cast<ExternalHelperAppParent *>(aService);
     parent->Release();
     return true;
-}
-
-PCellBroadcastParent*
-ContentParent::AllocPCellBroadcastParent()
-{
-    if (!AssertAppProcessPermission(this, "cellbroadcast")) {
-        return nullptr;
-    }
-
-    CellBroadcastParent* actor = new CellBroadcastParent();
-    actor->AddRef();
-    return actor;
-}
-
-bool
-ContentParent::DeallocPCellBroadcastParent(PCellBroadcastParent* aActor)
-{
-    static_cast<CellBroadcastParent*>(aActor)->Release();
-    return true;
-}
-
-bool
-ContentParent::RecvPCellBroadcastConstructor(PCellBroadcastParent* aActor)
-{
-    return static_cast<CellBroadcastParent*>(aActor)->Init();
 }
 
 PSmsParent*
