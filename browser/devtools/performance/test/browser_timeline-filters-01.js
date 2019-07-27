@@ -25,6 +25,7 @@ function* spawnTest() {
   });
 
   yield stopRecording(panel);
+  ok(true, "Recording has ended.");
 
   
   let markers = PerformanceController.getCurrentRecording().getMarkers();
