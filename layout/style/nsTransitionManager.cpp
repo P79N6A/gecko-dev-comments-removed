@@ -452,6 +452,7 @@ nsTransitionManager::ConsiderStartingTransition(
       
       
       AnimationPlayerPtrArray& players = aElementTransitions->mPlayers;
+      players[currentIndex]->Cancel();
       oldPT = nullptr; 
       players.RemoveElementAt(currentIndex);
       aElementTransitions->UpdateAnimationGeneration(mPresContext);
