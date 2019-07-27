@@ -4296,6 +4296,9 @@ pref("dom.idle-observers-api.fuzz_time.disabled", true);
 pref("dom.mozApps.maxLocalId", 1000);
 
 
+pref("dom.apps.reset-permissions", false);
+
+
 
 
 
