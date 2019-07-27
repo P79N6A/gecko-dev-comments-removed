@@ -264,7 +264,7 @@ struct JSStructuredCloneWriter {
     explicit JSStructuredCloneWriter(JSContext* cx,
                                      const JSStructuredCloneCallbacks* cb,
                                      void* cbClosure,
-                                     jsval tVal)
+                                     Value tVal)
         : out(cx), objs(out.context()),
           counts(out.context()), entries(out.context()),
           memory(out.context()), callbacks(cb), closure(cbClosure),
@@ -364,7 +364,7 @@ ReportErrorTransferable(JSContext* cx, const JSStructuredCloneCallbacks* callbac
 bool
 WriteStructuredClone(JSContext* cx, HandleValue v, uint64_t** bufp, size_t* nbytesp,
                      const JSStructuredCloneCallbacks* cb, void* cbClosure,
-                     jsval transferable)
+                     Value transferable)
 {
     JSStructuredCloneWriter w(cx, cb, cbClosure, transferable);
     return w.init() && w.write(v) && w.extractBuffer(bufp, nbytesp);
