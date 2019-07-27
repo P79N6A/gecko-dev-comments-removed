@@ -777,7 +777,7 @@ public class ActivityChooserModel extends DataSetObservable {
                 if (shareDialogClassName.equals(resolveInfo.activityInfo.name) &&
                         channelToRemoveLabel.equals(resolveInfo.loadLabel(packageManager))) {
                     
-                    if (getOtherSyncedClientCount() <= 0) {
+                    if (!hasOtherSyncClients()) {
                         continue;
                     }
 
@@ -1302,9 +1302,9 @@ public class ActivityChooserModel extends DataSetObservable {
     
 
 
-    private int getOtherSyncedClientCount() {
+    private boolean hasOtherSyncClients() {
         final ClientsDatabaseAccessor db = new ClientsDatabaseAccessor(mContext);
-        return db.clientsCount();
+        return db.clientsCount() > 0;
     }
 
     
