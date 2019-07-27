@@ -7,6 +7,7 @@ this.EXPORTED_SYMBOLS = [
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
@@ -73,4 +74,22 @@ this.PlacesTestUtils = Object.freeze({
       );
     });
   },
+
+  
+
+
+
+
+
+
+  clearHistory() {
+    let expirationFinished = new Promise(resolve => {
+      Services.obs.addObserver(function observe(subj, topic, data) {
+        Services.obs.removeObserver(observe, topic);
+        resolve();
+      }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+    });
+
+    return Promise.all([expirationFinished, PlacesUtils.history.clear()]);
+  }
 });
