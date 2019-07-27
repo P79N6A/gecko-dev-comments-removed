@@ -181,21 +181,24 @@ nsBaseWidget::Shutdown()
   mShutdownObserver = nullptr;
 }
 
-static void DeferredDestroyCompositor(CompositorParent* aCompositorParent,
-                              CompositorChild* aCompositorChild)
+static void DeferredDestroyCompositor(nsRefPtr<CompositorParent> aCompositorParent,
+                                      nsRefPtr<CompositorChild> aCompositorChild)
 {
     
     
     
-    aCompositorParent->Release();
-    aCompositorChild->Release();
 }
 
 void nsBaseWidget::DestroyCompositor()
 {
   if (mCompositorChild) {
-    mCompositorChild->SendWillStop();
-    mCompositorChild->Destroy();
+    nsRefPtr<CompositorChild> compositorChild = mCompositorChild.forget();
+    nsRefPtr<CompositorParent> compositorParent = mCompositorParent.forget();
+
+    compositorChild->SendWillStop();
+    
+    
+    compositorChild->Destroy();
 
     
     
@@ -204,13 +207,12 @@ void nsBaseWidget::DestroyCompositor()
     
     
     
+
+    
+    
     MessageLoop::current()->PostTask(FROM_HERE,
-               NewRunnableFunction(DeferredDestroyCompositor, mCompositorParent,
-                                   mCompositorChild));
-    
-    
-    unused << mCompositorParent.forget();
-    unused << mCompositorChild.forget();
+               NewRunnableFunction(DeferredDestroyCompositor, compositorParent,
+                                   compositorChild));
   }
 }
 
