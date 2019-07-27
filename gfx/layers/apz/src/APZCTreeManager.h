@@ -7,6 +7,7 @@
 #define mozilla_layers_APZCTreeManager_h
 
 #include <stdint.h>                     
+#include <map>                          
 #include "FrameMetrics.h"               
 #include "Units.h"                      
 #include "gfxPoint.h"                   
@@ -376,6 +377,7 @@ private:
                                                       uint64_t aOriginatingLayersId,
                                                       const APZPaintLogHelper& aPaintLogger,
                                                       nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy,
+                                                      std::map<ScrollableLayerGuid, AsyncPanZoomController*>& aApzcMap,
                                                       const nsIntRegion& aObscured);
 
 private:

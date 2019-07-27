@@ -136,13 +136,15 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
 
   if (aRoot) {
     mApzcTreeLog << "[start]\n";
+    std::map<ScrollableLayerGuid, AsyncPanZoomController*> apzcMap;
     UpdatePanZoomControllerTree(aCompositor,
                                 aRoot,
                                 
                                 aCompositor ? aCompositor->RootLayerTreeId() : 0,
                                 Matrix4x4(), nullptr, nullptr,
                                 aIsFirstPaint, aOriginatingLayersId,
-                                paintLogger, &apzcsToDestroy, nsIntRegion());
+                                paintLogger, &apzcsToDestroy, apzcMap,
+                                nsIntRegion());
     mApzcTreeLog << "[end]\n";
   }
 
@@ -162,6 +164,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
                                              uint64_t aOriginatingLayersId,
                                              const APZPaintLogHelper& aPaintLogger,
                                              nsTArray< nsRefPtr<AsyncPanZoomController> >* aApzcsToDestroy,
+                                             std::map<ScrollableLayerGuid, AsyncPanZoomController*>& aApzcMap,
                                              const nsIntRegion& aObscured)
 {
   mTreeLock.AssertCurrentThreadOwns();
@@ -179,136 +182,153 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
       
       
 
-      apzc = aLayer->GetAsyncPanZoomController();
-
       
       
       
       
       ScrollableLayerGuid guid(aLayersId, metrics);
-      if (apzc && !apzc->Matches(guid)) {
-        apzc = nullptr;
+      auto insertResult = aApzcMap.insert(std::make_pair(guid, static_cast<AsyncPanZoomController*>(nullptr)));
+      if (!insertResult.second) {
+        apzc = insertResult.first->second;
       }
+      APZCTM_LOG("Found APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, guid.mLayersId, guid.mScrollId);
 
-      
-      
-      
       
       
       
       if (apzc == nullptr) {
-        for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
-          if (aApzcsToDestroy->ElementAt(i)->Matches(guid)) {
-            apzc = aApzcsToDestroy->ElementAt(i);
-            break;
+        apzc = aLayer->GetAsyncPanZoomController();
+
+        
+        
+        
+        
+        if (apzc && !apzc->Matches(guid)) {
+          apzc = nullptr;
+        }
+
+        
+        
+        
+        
+        
+        
+        if (apzc == nullptr) {
+          for (size_t i = 0; i < aApzcsToDestroy->Length(); i++) {
+            if (aApzcsToDestroy->ElementAt(i)->Matches(guid)) {
+              apzc = aApzcsToDestroy->ElementAt(i);
+              break;
+            }
           }
         }
-      }
 
-      
-      
-      
-      
-      bool newApzc = (apzc == nullptr || apzc->IsDestroyed());
-      if (newApzc) {
-        apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
-                                          AsyncPanZoomController::USE_GESTURE_DETECTOR);
-        apzc->SetCompositorParent(aCompositor);
-        if (state->mCrossProcessParent != nullptr) {
-          apzc->ShareFrameMetricsAcrossProcesses();
-        }
-      } else {
         
         
         
         
-        
-        aApzcsToDestroy->RemoveElement(apzc);
-        apzc->SetPrevSibling(nullptr);
-        apzc->SetLastChild(nullptr);
-      }
-      APZCTM_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, metrics.GetScrollId());
-
-      apzc->NotifyLayersUpdated(metrics,
-                                aIsFirstPaint && (aLayersId == aOriginatingLayersId));
-      apzc->SetScrollHandoffParentId(aLayer->GetScrollHandoffParentId());
-
-      
-      
-      
-      
-      ParentLayerRect visible(metrics.mCompositionBounds);
-      CSSRect touchSensitiveRegion;
-      if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
-        
-        
-        
-        visible = visible.Intersect(touchSensitiveRegion
-                                    * metrics.mDevPixelsPerCSSPixel
-                                    * metrics.GetParentResolution());
-      }
-
-      
-      
-      
-      ParentLayerIntRect roundedVisible = RoundedIn(visible);
-      nsIntRegion unobscured;
-      unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
-                               roundedVisible.width, roundedVisible.height),
-                     aObscured);
-
-      apzc->SetLayerHitTestData(unobscured, aTransform, transform);
-      APZCTM_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
-                                                                            visible.width, visible.height,
-                                                                            apzc);
-
-      mApzcTreeLog << "APZC " << guid
-                   << "\tcb=" << visible
-                   << "\tsr=" << metrics.mScrollableRect
-                   << (aLayer->GetVisibleRegion().IsEmpty() ? "\tscrollinfo" : "")
-                   << (apzc->HasScrollgrab() ? "\tscrollgrab" : "")
-                   << "\t" << aLayer->GetContentDescription();
-
-      
-      if (aNextSibling) {
-        aNextSibling->SetPrevSibling(apzc);
-      } else if (aParent) {
-        aParent->SetLastChild(apzc);
-      } else {
-        mRootApzc = apzc;
-        apzc->MakeRoot();
-      }
-
-      
-      
-      
-      
-      
-      
-      if (aLayersId == aOriginatingLayersId && apzc->GetParent()) {
-        aPaintLogger.LogTestData(metrics.GetScrollId(), "parentScrollId",
-            apzc->GetParent()->GetGuid().mScrollId);
-      }
-
-      
-      aParent = apzc;
-
-      if (newApzc) {
-        if (apzc->IsRootForLayersId()) {
-          
-          
-          
-          ZoomConstraints constraints;
-          if (state->mController->GetRootZoomConstraints(&constraints)) {
-            apzc->UpdateZoomConstraints(constraints);
+        bool newApzc = (apzc == nullptr || apzc->IsDestroyed());
+        if (newApzc) {
+          apzc = new AsyncPanZoomController(aLayersId, this, state->mController,
+                                            AsyncPanZoomController::USE_GESTURE_DETECTOR);
+          apzc->SetCompositorParent(aCompositor);
+          if (state->mCrossProcessParent != nullptr) {
+            apzc->ShareFrameMetricsAcrossProcesses();
           }
         } else {
           
           
           
           
-          apzc->UpdateZoomConstraints(apzc->GetParent()->GetZoomConstraints());
+          
+          aApzcsToDestroy->RemoveElement(apzc);
+          apzc->SetPrevSibling(nullptr);
+          apzc->SetLastChild(nullptr);
         }
+        APZCTM_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, metrics.GetScrollId());
+
+        apzc->NotifyLayersUpdated(metrics,
+                                  aIsFirstPaint && (aLayersId == aOriginatingLayersId));
+        apzc->SetScrollHandoffParentId(aLayer->GetScrollHandoffParentId());
+
+        
+        
+        
+        
+        ParentLayerRect visible(metrics.mCompositionBounds);
+        CSSRect touchSensitiveRegion;
+        if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
+          
+          
+          
+          visible = visible.Intersect(touchSensitiveRegion
+                                      * metrics.mDevPixelsPerCSSPixel
+                                      * metrics.GetParentResolution());
+        }
+
+        
+        
+        
+        ParentLayerIntRect roundedVisible = RoundedIn(visible);
+        nsIntRegion unobscured;
+        unobscured.Sub(nsIntRect(roundedVisible.x, roundedVisible.y,
+                                 roundedVisible.width, roundedVisible.height),
+                       aObscured);
+
+        apzc->SetLayerHitTestData(unobscured, aTransform, transform);
+        APZCTM_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
+                                                                              visible.width, visible.height,
+                                                                              apzc);
+
+        mApzcTreeLog << "APZC " << guid
+                     << "\tcb=" << visible
+                     << "\tsr=" << metrics.mScrollableRect
+                     << (aLayer->GetVisibleRegion().IsEmpty() ? "\tscrollinfo" : "")
+                     << (apzc->HasScrollgrab() ? "\tscrollgrab" : "")
+                     << "\t" << aLayer->GetContentDescription();
+
+        
+        if (aNextSibling) {
+          aNextSibling->SetPrevSibling(apzc);
+        } else if (aParent) {
+          aParent->SetLastChild(apzc);
+        } else {
+          mRootApzc = apzc;
+          apzc->MakeRoot();
+        }
+
+        
+        
+        
+        
+        
+        
+        if (aLayersId == aOriginatingLayersId && apzc->GetParent()) {
+          aPaintLogger.LogTestData(metrics.GetScrollId(), "parentScrollId",
+              apzc->GetParent()->GetGuid().mScrollId);
+        }
+
+        
+        aParent = apzc;
+
+        if (newApzc) {
+          if (apzc->IsRootForLayersId()) {
+            
+            
+            
+            ZoomConstraints constraints;
+            if (state->mController->GetRootZoomConstraints(&constraints)) {
+              apzc->UpdateZoomConstraints(constraints);
+            }
+          } else {
+            
+            
+            
+            
+            apzc->UpdateZoomConstraints(apzc->GetParent()->GetZoomConstraints());
+          }
+        }
+
+        insertResult.first->second = apzc;
       }
     }
   }
@@ -352,7 +372,7 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
     gfx::TreeAutoIndent indent(mApzcTreeLog);
     next = UpdatePanZoomControllerTree(aCompositor, child, childLayersId, aTransform, aParent, next,
                                        aIsFirstPaint, aOriginatingLayersId,
-                                       aPaintLogger, aApzcsToDestroy, obscured);
+                                       aPaintLogger, aApzcsToDestroy, aApzcMap, obscured);
 
     
     
