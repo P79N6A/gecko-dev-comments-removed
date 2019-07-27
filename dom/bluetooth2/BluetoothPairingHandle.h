@@ -47,11 +47,15 @@ public:
     aPasskey = mPasskey;
   }
 
+  
   already_AddRefed<Promise>
     SetPinCode(const nsAString& aPinCode, ErrorResult& aRv);
 
-  already_AddRefed<Promise>
-    SetPairingConfirmation(bool aConfirm, ErrorResult& aRv);
+  
+  already_AddRefed<Promise> Accept(ErrorResult& aRv);
+
+  
+  already_AddRefed<Promise> Reject(ErrorResult& aRv);
 
 private:
   BluetoothPairingHandle(nsPIDOMWindow* aOwner,
@@ -59,6 +63,15 @@ private:
                          const nsAString& aType,
                          const nsAString& aPasskey);
   ~BluetoothPairingHandle();
+
+  
+
+
+
+
+
+
+  bool GetSspVariant(BluetoothSspVariant& aVariant);
 
   nsCOMPtr<nsPIDOMWindow> mOwner;
   nsString mDeviceAddress;
