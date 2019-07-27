@@ -336,9 +336,9 @@ public:
   
   
   
-  
-  nscoord GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
-                                              AxisEdgeType aEdge) const;
+  nscoord GetBaselineOffsetFromOuterCrossEdge(
+    AxisEdgeType aEdge,
+    const FlexboxAxisTracker& aAxisTracker) const;
 
   float GetShareOfWeightSoFar() const { return mShareOfWeightSoFar; }
 
@@ -1613,19 +1613,21 @@ FlexItem::CheckForMinSizeAuto(const nsHTMLReflowState& aFlexItemReflowState,
 }
 
 nscoord
-FlexItem::GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
-                                              AxisEdgeType aEdge) const
+FlexItem::GetBaselineOffsetFromOuterCrossEdge(
+  AxisEdgeType aEdge,
+  const FlexboxAxisTracker& aAxisTracker) const
 {
   
   
   
   
   
-  MOZ_ASSERT(!IsAxisHorizontal(aCrossAxis),
+  MOZ_ASSERT(!aAxisTracker.IsCrossAxisHorizontal(),
              "Only expecting to be doing baseline computations when the "
              "cross axis is vertical");
 
-  mozilla::Side sideToMeasureFrom = kAxisOrientationToSidesMap[aCrossAxis][aEdge];
+  AxisOrientationType crossAxis = aAxisTracker.GetCrossAxis();
+  mozilla::Side sideToMeasureFrom = kAxisOrientationToSidesMap[crossAxis][aEdge];
 
   nscoord marginTopToBaseline = ResolvedAscent() + mMargin.top;
 
@@ -1642,7 +1644,7 @@ FlexItem::GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
   
   
   
-  return GetOuterCrossSize(aCrossAxis) - marginTopToBaseline;
+  return GetOuterCrossSize(crossAxis) - marginTopToBaseline;
 }
 
 uint32_t
@@ -2698,8 +2700,8 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
       
 
       nscoord crossStartToBaseline =
-        item->GetBaselineOffsetFromOuterCrossEdge(aAxisTracker.GetCrossAxis(),
-                                                  eAxisEdge_Start);
+        item->GetBaselineOffsetFromOuterCrossEdge(eAxisEdge_Start,
+                                                  aAxisTracker);
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       
@@ -2848,10 +2850,13 @@ SingleLineCrossAxisPositionTracker::
       
       
       
+      AxisEdgeType baselineAlignEdge =
+        aAxisTracker.AreAxesInternallyReversed() ?
+        eAxisEdge_End : eAxisEdge_Start;
+
       nscoord itemBaselineOffset =
-        aItem.GetBaselineOffsetFromOuterCrossEdge(mAxis,
-          aAxisTracker.AreAxesInternallyReversed() ?
-          eAxisEdge_End : eAxisEdge_Start);
+        aItem.GetBaselineOffsetFromOuterCrossEdge(baselineAlignEdge,
+                                                  aAxisTracker);
 
       nscoord lineBaselineOffset = aLine.GetBaselineOffset();
 
