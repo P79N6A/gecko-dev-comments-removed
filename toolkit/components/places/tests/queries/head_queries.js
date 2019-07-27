@@ -186,7 +186,7 @@ function task_populateDB(aArray)
       }
     } catch (ex) {
       
-      LOG("Problem with this URI: " + data.uri);
+      do_print("Problem with this URI: " + data.uri);
       do_throw("Error creating database: " + ex + "\n");
     }
   }
@@ -254,7 +254,7 @@ queryData.prototype = { }
 
 
 function compareArrayToResult(aArray, aRoot) {
-  LOG("Comparing Array to Results");
+  do_print("Comparing Array to Results");
 
   var wasOpen = aRoot.containerOpen;
   if (!wasOpen)
@@ -266,14 +266,14 @@ function compareArrayToResult(aArray, aRoot) {
     
     dump_table("moz_places");
     dump_table("moz_historyvisits");
-    LOG("Found children:");
+    do_print("Found children:");
     for (let i = 0; i < aRoot.childCount; i++) {
-      LOG(aRoot.getChild(i).uri);
+      do_print(aRoot.getChild(i).uri);
     }
-    LOG("Expected:");
+    do_print("Expected:");
     for (let i = 0; i < aArray.length; i++) {
       if (aArray[i].isInQuery)
-        LOG(aArray[i].uri);
+        do_print(aArray[i].uri);
     }
   }
   do_check_eq(expectedResultCount, aRoot.childCount);
@@ -284,7 +284,7 @@ function compareArrayToResult(aArray, aRoot) {
       var child = aRoot.getChild(inQueryIndex);
       
       if (!aArray[i].isFolder && !aArray[i].isSeparator) {
-        LOG("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
+        do_print("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
         if (aArray[i].uri != child.uri) {
           dump_table("moz_places");
           do_throw("Expected " + aArray[i].uri + " found " + child.uri);
@@ -306,7 +306,7 @@ function compareArrayToResult(aArray, aRoot) {
 
   if (!wasOpen)
     aRoot.containerOpen = false;
-  LOG("Comparing Array to Results passes");
+  do_print("Comparing Array to Results passes");
 }
 
 
@@ -358,12 +358,12 @@ function displayResultSet(aRoot) {
 
   if (!aRoot.hasChildren) {
     
-    LOG("Result Set Empty");
+    do_print("Result Set Empty");
     return;
   }
 
   for (var i=0; i < aRoot.childCount; ++i) {
-    LOG("Result Set URI: " + aRoot.getChild(i).uri + "   Title: " +
+    do_print("Result Set URI: " + aRoot.getChild(i).uri + "   Title: " +
         aRoot.getChild(i).title + "   Visit Time: " + aRoot.getChild(i).time);
   }
   if (!wasOpen)

@@ -58,12 +58,6 @@ XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
          "AAAA6fptVAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==");
 });
 
-function LOG(aMsg) {
-  aMsg = ("*** PLACES TESTS: " + aMsg);
-  Services.console.logStringMessage(aMsg);
-  print(aMsg);
-}
-
 let gTestDir = do_get_cwd();
 
 
@@ -118,7 +112,7 @@ function DBConn(aForceNewConnection) {
 
 
 
- 
+
 function readInputStreamData(aStream) {
   let bistream = Cc["@mozilla.org/binaryinputstream;1"].
                  createInstance(Ci.nsIBinaryInputStream);

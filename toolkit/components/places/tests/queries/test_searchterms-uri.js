@@ -68,15 +68,15 @@ add_task(function test_searchterms_uri()
    var options = PlacesUtils.history.getNewQueryOptions();
    options.sortingMode = options.SORT_BY_DATE_ASCENDING;
    options.resultType = options.RESULTS_AS_URI;
-   
+
    
    var result = PlacesUtils.history.executeQuery(query, options);
    var root = result.root;
    root.containerOpen = true;
 
-   LOG("Number of items in result set: " + root.childCount);
+   do_print("Number of items in result set: " + root.childCount);
    for(var i=0; i < root.childCount; ++i) {
-     LOG("result: " + root.getChild(i).uri + " Title: " + root.getChild(i).title);
+     do_print("result: " + root.getChild(i).uri + " Title: " + root.getChild(i).title);
    }
 
    
@@ -84,14 +84,14 @@ add_task(function test_searchterms_uri()
 
    
    
-   LOG("Adding item to query")
+   do_print("Adding item to query");
    var change1 = [{isVisit: true, isDetails: true, uri: "http://foo.com/added.htm",
                    title: "moz", transType: PlacesUtils.history.TRANSITION_LINK}];
    yield task_populateDB(change1);
    do_check_true(isInResult(change1, root));
 
    
-   LOG("Updating Item");
+   do_print("Updating Item");
    var change2 = [{isDetails: true, uri: "http://foo.com/changeme1.htm",
                    title: "moz" }];
    yield task_populateDB(change2);
@@ -99,7 +99,7 @@ add_task(function test_searchterms_uri()
 
    
    
-   LOG("Updating More Items");
+   do_print("Updating More Items");
    var change3 = [{isDetails: true, uri:"http://foo.com/changeme2.htm",
                    title: "moz"},
                   {isDetails: true, uri: "http://foo.com/yiihah",
@@ -112,7 +112,7 @@ add_task(function test_searchterms_uri()
    do_check_false(isInResult({uri: "http://foo.com/redirect"}, root));
 
    
-   LOG("Deleting items");
+   do_print("Deleting items");
    var change4 = [{isDetails: true, uri: "http://foo.com/",
                    title: "mo,z"}];
    yield task_populateDB(change4);
