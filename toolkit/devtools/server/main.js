@@ -567,10 +567,13 @@ var DebuggerServer = {
 
     let actor, childTransport;
     let prefix = aConnection.allocID("child");
+    let childID = null;
     let netMonitor = null;
 
     let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
       mm.removeMessageListener("debug:actor", onActorCreated);
+
+      childID = msg.json.childID;
 
       
       childTransport = new ChildDebuggerTransport(mm, prefix);
@@ -604,7 +607,7 @@ var DebuggerServer = {
           aConnection.cancelForwarding(prefix);
 
           
-          mm.sendAsyncMessage("debug:disconnect");
+          mm.sendAsyncMessage("debug:disconnect", { childID: childID });
         } else {
           
           
@@ -641,7 +644,7 @@ var DebuggerServer = {
         aConnection.cancelForwarding(prefix);
 
         
-        mm.sendAsyncMessage("debug:disconnect");
+        mm.sendAsyncMessage("debug:disconnect", { childID: childID });
       }
     });
 
