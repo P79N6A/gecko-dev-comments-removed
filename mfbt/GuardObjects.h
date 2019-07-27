@@ -10,12 +10,19 @@
 #define mozilla_GuardObjects_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/Types.h"
 #include "mozilla/Move.h"
+#include "mozilla/Types.h"
 
 #ifdef __cplusplus
 
 #ifdef DEBUG
+
+
+
+
+
+
+#define MOZ_POISON uintptr_t(-1)
 
 namespace mozilla {
 namespace detail {
@@ -74,9 +81,20 @@ private:
   bool* mStatementDone;
 
 public:
-  GuardObjectNotifier() : mStatementDone(nullptr) { }
+  GuardObjectNotifier()
+    : mStatementDone(reinterpret_cast<bool*>(MOZ_POISON))
+  {
+  }
 
-  ~GuardObjectNotifier() { *mStatementDone = true; }
+  ~GuardObjectNotifier()
+  {
+    
+    
+    
+    
+    MOZ_ASSERT(mStatementDone != reinterpret_cast<bool*>(MOZ_POISON));
+    *mStatementDone = true;
+  }
 
   void setStatementDone(bool* aStatementIsDone)
   {
@@ -109,6 +127,8 @@ public:
 
 } 
 } 
+
+#undef MOZ_POISON
 
 #endif 
 
