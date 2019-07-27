@@ -707,6 +707,26 @@ struct IsSmartPtr
   HAS_MEMBER(get, value);
 };
 
+template<class T>
+struct IsRefcounted
+{
+  HAS_MEMBER_TYPEDEFS;
+
+  HAS_MEMBER(AddRef, HasAddref);
+  HAS_MEMBER(Release, HasRelease);
+
+public:
+  static bool const value = HasAddref && HasRelease;
+
+private:
+  
+  
+  
+  static_assert(!IsBaseOf<nsISupports, T>::value || IsRefcounted::value,
+                "Classes derived from nsISupports are refcounted!");
+
+};
+
 #undef HAS_MEMBER
 #undef HAS_MEMBER_CHECK
 #undef HAS_MEMBER_TYPEDEFS
