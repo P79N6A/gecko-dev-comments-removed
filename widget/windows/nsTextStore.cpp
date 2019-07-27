@@ -3146,10 +3146,10 @@ nsTextStore::GetTextExt(TsViewCookie vcView,
   
   const nsString& activeTIPKeyboardDescription =
     TSFStaticSink::GetInstance()->GetActiveTIPKeyboardDescription();
-  if ((sDoNotReturnNoLayoutErrorToFreeChangJie &&
+  if (((sDoNotReturnNoLayoutErrorToFreeChangJie &&
        activeTIPKeyboardDescription.Equals(TIP_NAME_FREE_CHANG_JIE_2010)) ||
       (sDoNotReturnNoLayoutErrorToEasyChangjei &&
-       activeTIPKeyboardDescription.Equals(TIP_NAME_EASY_CHANGJEI)) &&
+       activeTIPKeyboardDescription.Equals(TIP_NAME_EASY_CHANGJEI))) &&
       mComposition.IsComposing() &&
       mLockedContent.IsLayoutChangedAfter(acpEnd) &&
       mComposition.mStart < acpEnd) {
