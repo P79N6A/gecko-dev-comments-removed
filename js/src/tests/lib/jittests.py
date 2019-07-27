@@ -674,7 +674,7 @@ def get_remote_results(tests, device, prefix, options):
 def push_libs(options, device):
     
     
-    required_libs = ['libnss3.so', 'libmozglue.so']
+    required_libs = ['libnss3.so', 'libmozglue.so', 'libnspr4.so', 'libplc4.so', 'libplds4.so']
 
     for file in os.listdir(options.local_lib):
         if file in required_libs:
