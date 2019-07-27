@@ -825,6 +825,33 @@ ApplyRectMultiplier(nsRect aRect, float aMultiplier)
   return nsRect(ceil(newX), ceil(newY), floor(newWidth), floor(newHeight));
 }
 
+
+
+static nscoord
+GetMaxDisplayPortSize(nsIContent* aContent)
+{
+  MOZ_ASSERT(!gfxPrefs::LayersTilesEnabled(), "Do not clamp displayports if tiling is enabled");
+
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  if (!frame) {
+    return nscoord_MAX;
+  }
+  frame = nsLayoutUtils::GetDisplayRootFrame(frame);
+
+  nsIWidget* widget = frame->GetNearestWidget();
+  if (!widget) {
+    return nscoord_MAX;
+  }
+  LayerManager* lm = widget->GetLayerManager();
+  if (!lm) {
+    return nscoord_MAX;
+  }
+  nsPresContext* presContext = frame->PresContext();
+
+  uint32_t maxSizeInDevPixels = lm->GetMaxTextureSize();
+  return presContext->DevPixelsToAppUnits(maxSizeInDevPixels);
+}
+
 static nsRect
 GetDisplayPortFromRectData(nsIContent* aContent,
                            DisplayPortPropertyData* aRectData,
@@ -900,24 +927,23 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
   ScreenRect screenRect = LayoutDeviceRect::FromAppUnits(base, auPerDevPixel)
                         * parentRes;
 
-  
-  screenRect.Inflate(aMarginsData->mMargins);
+  if (gfxPrefs::LayersTilesEnabled()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    int alignmentX = gfxPlatform::GetPlatform()->GetTileWidth();
+    int alignmentY = gfxPlatform::GetPlatform()->GetTileHeight();
 
-  int alignmentX = gfxPlatform::GetPlatform()->GetTileWidth();
-  int alignmentY = gfxPlatform::GetPlatform()->GetTileHeight();
+    
+    screenRect.Inflate(aMarginsData->mMargins);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (gfxPrefs::LayersTilesEnabled() && (alignmentX > 0 && alignmentY > 0)) {
     
     
     
@@ -942,6 +968,35 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
     float h = alignmentY * ceil(screenRect.YMost() / alignmentY) - y;
     screenRect = ScreenRect(x, y, w, h);
     screenRect -= scrollPosScreen;
+  } else {
+    nscoord maxSizeInAppUnits = GetMaxDisplayPortSize(aContent);
+    if (maxSizeInAppUnits == nscoord_MAX) {
+      
+      
+      maxSizeInAppUnits = presContext->DevPixelsToAppUnits(8192);
+    }
+
+    
+    int32_t maxSizeInDevPixels = presContext->AppUnitsToDevPixels(maxSizeInAppUnits);
+    int32_t maxWidthInScreenPixels = floor(double(maxSizeInDevPixels) * res.xScale);
+    int32_t maxHeightInScreenPixels = floor(double(maxSizeInDevPixels) * res.yScale);
+
+    
+    const ScreenMargin& margins = aMarginsData->mMargins;
+    if (screenRect.height < maxHeightInScreenPixels) {
+      int32_t budget = maxHeightInScreenPixels - screenRect.height;
+
+      int32_t top = std::min(int32_t(margins.top), budget);
+      screenRect.y -= top;
+      screenRect.height += top + std::min(int32_t(margins.bottom), budget - top);
+    }
+    if (screenRect.width < maxWidthInScreenPixels) {
+      int32_t budget = maxWidthInScreenPixels - screenRect.width;
+
+      int32_t left = std::min(int32_t(margins.left), budget);
+      screenRect.x -= left;
+      screenRect.width += left + std::min(int32_t(margins.right), budget - left);
+    }
   }
 
   
@@ -988,11 +1043,25 @@ GetDisplayPortImpl(nsIContent* aContent, nsRect *aResult, float aMultiplier)
   NS_ASSERTION((rectData == nullptr) != (marginsData == nullptr),
                "Only one of rectData or marginsData should be set!");
 
+  nsRect result;
   if (rectData) {
-    *aResult = GetDisplayPortFromRectData(aContent, rectData, aMultiplier);
+    result = GetDisplayPortFromRectData(aContent, rectData, aMultiplier);
   } else {
-    *aResult = GetDisplayPortFromMarginsData(aContent, marginsData, aMultiplier);
+    result = GetDisplayPortFromMarginsData(aContent, marginsData, aMultiplier);
   }
+
+  if (!gfxPrefs::LayersTilesEnabled()) {
+    
+    
+    NS_ASSERTION(GetMaxDisplayPortSize(aContent) <= 0 ||
+                 result.width < GetMaxDisplayPortSize(aContent),
+                 "Displayport must be a valid texture size");
+    NS_ASSERTION(GetMaxDisplayPortSize(aContent) <= 0 ||
+                 result.height < GetMaxDisplayPortSize(aContent),
+                 "Displayport must be a valid texture size");
+  }
+
+  *aResult = result;
   return true;
 }
 
