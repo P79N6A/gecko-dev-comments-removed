@@ -289,6 +289,15 @@ static const FeatureInfo sFeatureInfoArr[] = {
 
     },
     {
+        "invalidate_framebuffer",
+        430, 
+        300, 
+        GLContext::ARB_invalidate_subdata,
+        {
+            GLContext::Extensions_End
+        }
+    },
+    {
         "map_buffer_range",
         300, 
         300, 
