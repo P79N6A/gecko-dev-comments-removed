@@ -186,6 +186,19 @@ CompareWebGLExtensionName(const nsACString& name, const char *other)
     return name.Equals(other, nsCaseInsensitiveCStringComparator());
 }
 
+WebGLExtensionBase*
+WebGLContext::EnableSupportedExtension(JSContext* js, WebGLExtensionID ext)
+{
+    if (!IsExtensionEnabled(ext)) {
+        if (!IsExtensionSupported(js, ext))
+            return nullptr;
+
+        EnableExtension(ext);
+    }
+
+    return mExtensions[ext];
+}
+
 void
 WebGLContext::GetExtension(JSContext *cx, const nsAString& aName,
                            JS::MutableHandle<JSObject*> aRetval,
@@ -201,8 +214,7 @@ WebGLContext::GetExtension(JSContext *cx, const nsAString& aName,
     WebGLExtensionID ext = WebGLExtensionID::Unknown;
 
     
-    for (size_t i = 0; i < size_t(WebGLExtensionID::Max); i++)
-    {
+    for (size_t i = 0; i < size_t(WebGLExtensionID::Max); i++) {
         WebGLExtensionID extension = WebGLExtensionID(i);
 
         if (CompareWebGLExtensionName(name, GetExtensionString(extension))) {
@@ -211,8 +223,7 @@ WebGLContext::GetExtension(JSContext *cx, const nsAString& aName,
         }
     }
 
-    if (ext == WebGLExtensionID::Unknown)
-    {
+    if (ext == WebGLExtensionID::Unknown) {
         
 
 
@@ -254,11 +265,27 @@ WebGLContext::GetExtension(JSContext *cx, const nsAString& aName,
     }
 
     
-    if (!IsExtensionEnabled(ext)) {
-        EnableExtension(ext);
+    WebGLExtensionBase* extObj = EnableSupportedExtension(cx, ext);
+    if (!extObj) {
+        aRetval.set(nullptr);
+        return;
     }
 
-    aRetval.set(WebGLObjectAsJSObject(cx, mExtensions[ext].get(), rv));
+    
+    switch (ext) {
+    case WebGLExtensionID::OES_texture_float:
+        EnableSupportedExtension(cx, WebGLExtensionID::WEBGL_color_buffer_float);
+        break;
+
+    case WebGLExtensionID::OES_texture_half_float:
+        EnableSupportedExtension(cx, WebGLExtensionID::EXT_color_buffer_half_float);
+        break;
+
+    default:
+        break;
+    }
+
+    aRetval.set(WebGLObjectAsJSObject(cx, extObj, rv));
 }
 
 void

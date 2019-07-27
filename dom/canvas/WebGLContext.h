@@ -1084,6 +1084,9 @@ public:
         return mGLMaxVertexAttribs;
     }
 
+
+    bool IsFormatValidForFB(GLenum sizedFormat) const;
+
 protected:
     
     
@@ -1115,6 +1118,10 @@ protected:
 
     
     void EnableExtension(WebGLExtensionID ext);
+
+    
+    WebGLExtensionBase* EnableSupportedExtension(JSContext* js,
+                                                 WebGLExtensionID ext);
 
     
     bool IsExtensionEnabled(WebGLExtensionID ext) const;
