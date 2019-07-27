@@ -222,26 +222,6 @@ function waitUntil(func, time) {
 
 
 
-function getBlobContent(blob) {
-  return new Promise(resolve => {
-    var reader = new FileReader();
-
-    
-    reader.onloadend = function (event) {
-      resolve(event.target.result);
-    };
-
-    reader.readAsText(blob);
-  });
-}
-
-
-
-
-
-
-
-
 
 
 
