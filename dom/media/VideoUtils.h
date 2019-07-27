@@ -218,7 +218,20 @@ class SharedThreadPool;
 
 
 
-TemporaryRef<SharedThreadPool> GetMediaThreadPool();
+
+
+
+
+
+
+
+enum class MediaThreadType {
+  PLAYBACK, 
+  PLATFORM_DECODER
+};
+
+
+TemporaryRef<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType);
 
 enum H264_PROFILE {
   H264_PROFILE_UNKNOWN                     = 0,
