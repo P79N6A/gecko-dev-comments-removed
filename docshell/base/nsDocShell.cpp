@@ -4635,7 +4635,8 @@ nsDocShell::IsNavigationAllowed(bool aDisplayPrintErrorDialog,
                                 bool aCheckIfUnloadFired)
 {
   bool isAllowed = !IsPrintingOrPP(aDisplayPrintErrorDialog) &&
-                   (!aCheckIfUnloadFired || !mFiredUnloadEvent);
+                   (!aCheckIfUnloadFired || !mFiredUnloadEvent) &&
+                   !mBlockNavigation;
   if (!isAllowed) {
     return false;
   }
@@ -9999,13 +10000,18 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       GetCurScrollPos(ScrollOrientation_X, &cx);
       GetCurScrollPos(ScrollOrientation_Y, &cy);
 
-      
-      
-      
-      
-      
-      rv = ScrollToAnchor(curHash, newHash, aLoadType);
-      NS_ENSURE_SUCCESS(rv, rv);
+      {
+        AutoRestore<bool> scrollingToAnchor(mBlockNavigation);
+        mBlockNavigation = true;
+
+        
+        
+        
+        
+        
+        rv = ScrollToAnchor(curHash, newHash, aLoadType);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
 
       
       
