@@ -10095,6 +10095,11 @@ nsDocShell::InternalLoad(nsIURI* aURI,
       SetHistoryEntry(&mLSHE, aSHEntry);
 
       
+      nsCOMPtr<nsIDocument> doc = GetDocument();
+      NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
+      doc->SetDocumentURI(aURI);
+
+      
 
 
 
@@ -10183,11 +10188,6 @@ nsDocShell::InternalLoad(nsIURI* aURI,
           mGlobalHistory->SetPageTitle(aURI, mTitle);
         }
       }
-
-      
-      nsCOMPtr<nsIDocument> doc = GetDocument();
-      NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-      doc->SetDocumentURI(aURI);
 
       SetDocCurrentStateObj(mOSHE);
 
@@ -11716,8 +11716,8 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
   
   
   if (!equalURIs) {
-    SetCurrentURI(newURI, nullptr, true, LOCATION_CHANGE_SAME_DOCUMENT);
     document->SetDocumentURI(newURI);
+    SetCurrentURI(newURI, nullptr, true, LOCATION_CHANGE_SAME_DOCUMENT);
 
     AddURIVisit(newURI, oldURI, oldURI, 0);
 
