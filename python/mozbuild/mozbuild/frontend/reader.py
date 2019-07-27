@@ -29,7 +29,10 @@ import tokenize
 import traceback
 import types
 
-from collections import OrderedDict
+from collections import (
+    defaultdict,
+    OrderedDict,
+)
 from io import StringIO
 
 from mozbuild.util import (
@@ -63,6 +66,7 @@ from .context import (
     DEPRECATION_HINTS,
     SPECIAL_VARIABLES,
     SUBCONTEXTS,
+    SubContext,
     TemplateContext,
 )
 
@@ -986,6 +990,11 @@ class BuildReader(object):
         context.execution_time = time.time() - time_start
 
         
+        
+        
+        yield context
+
+        
         dir_vars = ['DIRS']
 
         if context.config.substs.get('ENABLE_TESTS', False) == '1':
@@ -1028,8 +1037,6 @@ class BuildReader(object):
         for gyp_context in gyp_contexts:
             context['DIRS'].append(mozpath.relpath(gyp_context.objdir, context.objdir))
             sandbox.subcontexts.append(gyp_context)
-
-        yield context
 
         for subcontext in sandbox.subcontexts:
             yield subcontext
@@ -1121,3 +1128,69 @@ class BuildReader(object):
                               if exists(mozpath.join(root, p))]
 
         return result
+
+    def read_relevant_mozbuilds(self, paths):
+        """Read and process moz.build files relevant for a set of paths.
+
+        For an iterable of relative-to-root filesystem paths ``paths``,
+        find all moz.build files that may apply to them based on filesystem
+        hierarchy and read those moz.build files.
+
+        The return value is a 2-tuple. The first item is a dict mapping each
+        input filesystem path to a list of Context instances that are relevant
+        to that path. The second item is a list of all Context instances. Each
+        Context instance is in both data structures.
+        """
+        relevants = self._find_relevant_mozbuilds(paths)
+
+        topsrcdir = self.config.topsrcdir
+
+        
+        dirs = defaultdict(set)
+        
+        path_mozbuilds = {}
+
+        
+        
+        
+        for path, mbpaths in relevants.items():
+            path_mozbuilds[path] = [mozpath.join(topsrcdir, p) for p in mbpaths]
+
+            for i, mbpath in enumerate(mbpaths[0:-1]):
+                source_dir = mozpath.dirname(mbpath)
+                target_dir = mozpath.dirname(mbpaths[i + 1])
+
+                d = mozpath.normpath(mozpath.join(topsrcdir, mbpath))
+                dirs[d].add(mozpath.relpath(target_dir, source_dir))
+
+        
+        
+        functions = dict(FUNCTIONS)
+        def export(sandbox):
+            return lambda varname: None
+        functions['export'] = tuple([export] + list(FUNCTIONS['export'][1:]))
+
+        metadata = {
+            'functions': functions,
+        }
+
+        contexts = defaultdict(list)
+        all_contexts = []
+        for context in self.read_mozbuild(mozpath.join(topsrcdir, 'moz.build'),
+                                          self.config, metadata=metadata):
+            
+            
+            if not isinstance(context, SubContext):
+                for v in ('DIRS', 'GYP_DIRS', 'TEST_DIRS'):
+                    context[v][:] = []
+
+                context['DIRS'] = sorted(dirs[context.main_path])
+
+            contexts[context.main_path].append(context)
+            all_contexts.append(context)
+
+        result = {}
+        for path, paths in path_mozbuilds.items():
+            result[path] = reduce(lambda x, y: x + y, (contexts[p] for p in paths), [])
+
+        return result, all_contexts
