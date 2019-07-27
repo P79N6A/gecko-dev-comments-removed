@@ -74,6 +74,31 @@ function dumpn(text)
 
 
 
+
+
+function configureToLoadJarEngines(loadFromJars = true)
+{
+  let defaultBranch = Services.prefs.getDefaultBranch(null);
+
+  let url = "chrome://testsearchplugin/locale/searchplugins/";
+  defaultBranch.setCharPref("browser.search.jarURIs", url);
+
+  defaultBranch.setBoolPref("browser.search.loadFromJars", loadFromJars);
+
+  
+  
+  Services.prefs.setBoolPref("browser.search.loadFromJars", !loadFromJars)
+
+  
+  let dir = Services.dirsvc.get(NS_APP_SEARCH_DIR, Ci.nsIFile);
+  if (!dir.exists())
+    dir.create(dir.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+  do_get_file("data/engine-app.xml").copyTo(dir, "app.xml");
+}
+
+
+
+
 function removeMetadata()
 {
   let file = gProfD.clone();
