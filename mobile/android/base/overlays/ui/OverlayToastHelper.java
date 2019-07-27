@@ -29,21 +29,48 @@ public class OverlayToastHelper {
 
 
 
-    public static void showFailureToast(Context context, String failureMessage, boolean isTransient, View.OnClickListener retryListener) {
-        showToast(context, failureMessage, isTransient, retryListener);
+    public static void showFailureToast(Context context, String failureMessage, View.OnClickListener retryListener) {
+        showToast(context, failureMessage, false, retryListener);
     }
-    public static void showFailureToast(Context context, String failureMessage, boolean isTransient) {
-        showFailureToast(context, failureMessage, isTransient, null);
+    public static void showFailureToast(Context context, String failureMessage) {
+        showFailureToast(context, failureMessage, null);
     }
 
     
 
 
 
-    public static void showSuccessToast(Context context, String successMesssage) {
-        showToast(context, successMesssage, false, null);
+    public static void showSuccessToast(Context context, String successMessage) {
+        showToast(context, successMessage, true, null);
     }
 
-    private static void showToast(Context context, String message, boolean withRetry, View.OnClickListener retryListener) {
+    private static void showToast(Context context, String message, boolean success, View.OnClickListener retryListener) {
+        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        View layout = inflater.inflate(R.layout.overlay_share_toast, null);
+
+        TextView text = (TextView) layout.findViewById(R.id.overlay_toast_message);
+        text.setText(message);
+
+        if (retryListener == null) {
+            
+            layout.findViewById(R.id.overlay_toast_separator).setVisibility(View.GONE);
+            layout.findViewById(R.id.overlay_toast_retry_btn).setVisibility(View.GONE);
+        } else {
+            
+            Button retryBtn = (Button) layout.findViewById(R.id.overlay_toast_retry_btn);
+            retryBtn.setOnClickListener(retryListener);
+        }
+
+        if (!success) {
+            
+            text.setCompoundDrawables(null, null, null, null);
+        }
+
+        Toast toast = new Toast(context);
+        toast.setGravity(Gravity.CENTER_VERTICAL | Gravity.BOTTOM, 0, 0);
+        toast.setDuration(Toast.LENGTH_SHORT);
+        toast.setView(layout);
+        toast.show();
     }
 }
