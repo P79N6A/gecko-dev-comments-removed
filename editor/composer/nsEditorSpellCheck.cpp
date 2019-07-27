@@ -857,22 +857,30 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
         
         int32_t dot_pos = lang.FindChar('.');
         if (dot_pos != -1) {
-          lang = Substring(lang, 0, dot_pos - 1);
+          lang = Substring(lang, 0, dot_pos);
         }
         
-        int32_t underScore = lang.FindChar('_');
-        if (underScore != -1) {
-          lang.Replace(underScore, 1, '-');
-        }
         rv = SetCurrentDictionary(lang);
+        if (NS_FAILED(rv)) {
+          
+          int32_t underScore = lang.FindChar('_');
+          if (underScore != -1) {
+            lang.Replace(underScore, 1, '-');
+            rv = SetCurrentDictionary(lang);
+          }
+        }
       }
       if (NS_FAILED(rv)) {
         rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US"));
         if (NS_FAILED(rv)) {
-          nsTArray<nsString> dictList;
-          rv = mSpellChecker->GetDictionaryList(&dictList);
-          if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
-            SetCurrentDictionary(dictList[0]);
+          
+          rv = SetCurrentDictionary(NS_LITERAL_STRING("en_US"));
+          if (NS_FAILED(rv)) {
+            nsTArray<nsString> dictList;
+            rv = mSpellChecker->GetDictionaryList(&dictList);
+            if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
+              SetCurrentDictionary(dictList[0]);
+            }
           }
         }
       }
