@@ -165,6 +165,12 @@ loop.shared.actions = (function() {
     
 
 
+    GotMediaPermission: Action.define("gotMediaPermission", {
+    }),
+
+    
+
+
     MediaConnected: Action.define("mediaConnected", {
     }),
 

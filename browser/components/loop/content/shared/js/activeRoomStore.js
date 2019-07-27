@@ -29,6 +29,8 @@ loop.store.ActiveRoomStore = (function() {
     
     READY: "room-ready",
     
+    MEDIA_WAIT: "room-media-wait",
+    
     JOINED: "room-joined",
     
     SESSION_CONNECTED: "room-session-connected",
@@ -127,6 +129,7 @@ loop.store.ActiveRoomStore = (function() {
         "roomFailure",
         "setupRoomInfo",
         "updateRoomInfo",
+        "gotMediaPermission",
         "joinRoom",
         "joinedRoom",
         "connectedToSdkServers",
@@ -260,6 +263,14 @@ loop.store.ActiveRoomStore = (function() {
         this.setStoreState({failureReason: undefined});
       }
 
+      this.setStoreState({roomState: ROOM_STATES.MEDIA_WAIT});
+    },
+
+    
+
+
+
+    gotMediaPermission: function() {
       this._mozLoop.rooms.join(this._storeState.roomToken,
         function(error, responseData) {
           if (error) {

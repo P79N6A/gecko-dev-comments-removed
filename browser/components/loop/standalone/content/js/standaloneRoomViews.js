@@ -68,6 +68,16 @@ loop.standaloneRoomViews = (function(mozL10n) {
             )
           );
         }
+        case ROOM_STATES.MEDIA_WAIT: {
+          var msg = mozL10n.get("call_progress_getting_media_description",
+                                {clientShortname: mozL10n.get("clientShortname2")});
+          
+          return (
+            React.DOM.p({className: "prompt-media-message"}, 
+              msg
+            )
+          );
+        }
         case ROOM_STATES.JOINED:
         case ROOM_STATES.SESSION_CONNECTED: {
           return (
@@ -211,7 +221,31 @@ loop.standaloneRoomViews = (function(mozL10n) {
       };
     },
 
+    
+
+
+
+    updateVideoContainer: function() {
+      var localStreamParent = this._getElement('.local .OT_publisher');
+      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
+      if (localStreamParent) {
+        localStreamParent.style.width = "100%";
+      }
+      if (remoteStreamParent) {
+        remoteStreamParent.style.height = "100%";
+      }
+    },
+
     componentDidMount: function() {
+      
+
+
+
+
+
+      window.addEventListener('orientationchange', this.updateVideoContainer);
+      window.addEventListener('resize', this.updateVideoContainer);
+
       
       document.body.classList.add("is-standalone-room");
     },
@@ -228,13 +262,21 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
     componentWillUpdate: function(nextProps, nextState) {
-      if (this.state.roomState !== ROOM_STATES.JOINED &&
-          nextState.roomState === ROOM_STATES.JOINED) {
+      if (this.state.roomState !== ROOM_STATES.MEDIA_WAIT &&
+          nextState.roomState === ROOM_STATES.MEDIA_WAIT) {
         this.props.dispatcher.dispatch(new sharedActions.SetupStreamElements({
           publisherConfig: this._getPublisherConfig(),
           getLocalElementFunc: this._getElement.bind(this, ".local"),
           getRemoteElementFunc: this._getElement.bind(this, ".remote")
         }));
+      }
+
+      if (this.state.roomState !== ROOM_STATES.JOINED &&
+          nextState.roomState === ROOM_STATES.JOINED) {
+        
+        
+        
+        this.updateVideoContainer();
       }
     },
 
