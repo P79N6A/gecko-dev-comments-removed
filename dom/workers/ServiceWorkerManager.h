@@ -71,8 +71,9 @@ class ServiceWorkerJobQueue MOZ_FINAL
 public:
   ~ServiceWorkerJobQueue()
   {
-    
-    MOZ_ASSERT(mJobs.IsEmpty());
+    if (!mJobs.IsEmpty()) {
+      NS_WARNING("Pending/running jobs still around on shutdown!");
+    }
   }
 
   void
