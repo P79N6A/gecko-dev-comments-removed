@@ -41,6 +41,9 @@ Cu.importGlobalProperties(["URL"]);
 
 
 
+
+
+
 this.FxAccountsOAuthClient = function(options) {
   this._validateOptions(options);
   this.parameters = options.parameters;
@@ -60,6 +63,9 @@ this.FxAccountsOAuthClient = function(options) {
   params.append("scope", this.parameters.scope || "");
   params.append("action", this.parameters.action || "signin");
   params.append("webChannelId", this._webChannelId);
+  if (this.parameters.keys) {
+    params.append("keys", "true");
+  }
 
 };
 
@@ -69,7 +75,14 @@ this.FxAccountsOAuthClient.prototype = {
 
 
 
+
   onComplete: null,
+  
+
+
+
+
+  onError: null,
   
 
 
@@ -116,6 +129,7 @@ this.FxAccountsOAuthClient.prototype = {
 
   tearDown: function() {
     this.onComplete = null;
+    this.onError = null;
     this._complete = true;
     this._channel.stopListening();
     this._channel = null;
@@ -162,19 +176,35 @@ this.FxAccountsOAuthClient.prototype = {
           case "oauth_complete":
             
             let result = null;
-            if (this.parameters.state === data.state) {
+            let err = null;
+
+            if (this.parameters.state !== data.state) {
+              err = new Error("OAuth flow failed. State doesn't match");
+            } else if (this.parameters.keys && !data.keys) {
+              err = new Error("OAuth flow failed. Keys were not returned");
+            } else {
               result = {
                 code: data.code,
                 state: data.state
               };
-              log.debug("OAuth flow completed.");
-            } else {
-              log.debug("OAuth flow failed. State doesn't match");
             }
 
-            if (this.onComplete) {
-              this.onComplete(result);
+            if (err) {
+              log.debug(err.message);
+              if (this.onError) {
+                this.onError(err);
+              }
+            } else {
+              log.debug("OAuth flow completed.");
+              if (this.onComplete) {
+                if (this.parameters.keys) {
+                  this.onComplete(result, data.keys);
+                } else {
+                  this.onComplete(result);
+                }
+              }
             }
+
             
             
             this.tearDown();

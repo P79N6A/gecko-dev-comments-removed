@@ -964,6 +964,7 @@ let MozLoopServiceInternal = {
     this.promiseFxAOAuthClient().then(
       client => {
         client.onComplete = this._fxAOAuthComplete.bind(this, deferred);
+        client.onError = this._fxAOAuthError.bind(this, deferred);
         client.launchWebFlow();
       },
       error => {
@@ -1008,13 +1009,19 @@ let MozLoopServiceInternal = {
 
   _fxAOAuthComplete: function(deferred, result) {
     gFxAOAuthClientPromise = null;
-
     
-    if (result) {
-      deferred.resolve(result);
-    } else {
-      deferred.reject("Invalid token data");
-    }
+    deferred.resolve(result);
+  },
+
+  
+
+
+
+
+
+  _fxAOAuthError: function(deferred, err) {
+    gFxAOAuthClientPromise = null;
+    deferred.reject(err);
   },
 };
 Object.freeze(MozLoopServiceInternal);
