@@ -4,13 +4,12 @@
 
 #include "nsThreadUtils.h"
 #include "nsAndroidHistory.h"
-#include "nsComponentManagerUtils.h"
 #include "AndroidBridge.h"
 #include "Link.h"
 #include "nsIURI.h"
+#include "mozilla/Services.h"
 #include "nsIObserverService.h"
 
-#include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 
 #define NS_LINK_VISITED_EVENT_TOPIC "link-visited"
@@ -18,9 +17,6 @@
 
 
 #define PREF_HISTORY_ENABLED "places.history.enabled"
-
-
-#define PENDING_REDIRECT_TIMEOUT 3000
 
 using namespace mozilla;
 using mozilla::dom::Link;
@@ -46,8 +42,6 @@ nsAndroidHistory::nsAndroidHistory()
   : mHistoryEnabled(true)
 {
   LoadPrefs();
-
-  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
 }
 
 NS_IMETHODIMP
@@ -164,76 +158,11 @@ nsAndroidHistory::IsEmbedURI(nsIURI* aURI) {
   return equals;
 }
 
-inline bool
-nsAndroidHistory::RemovePendingVisitURI(nsIURI* aURI) {
-  
-  
-  bool equals = false;
-  PendingVisitArray::index_type i;
-  for (i = 0; i < mPendingVisitURIs.Length(); ++i) {
-    aURI->Equals(mPendingVisitURIs.ElementAt(i), &equals);
-    if (equals) {
-      mPendingVisitURIs.RemoveElementAt(i);
-      return true;
-    }
-  }
-  return false;
-}
-
-NS_IMETHODIMP
-nsAndroidHistory::Notify(nsITimer *timer)
-{
-  
-  
-  PendingVisitArray::index_type i;
-  for (i = 0; i < mPendingVisitURIs.Length(); ++i) {
-    SaveVisitURI(mPendingVisitURIs.ElementAt(i));
-  }
-  mPendingVisitURIs.Clear();
-
-  return NS_OK;
-}
-
-void
-nsAndroidHistory::SaveVisitURI(nsIURI* aURI) {
-  
-  AppendToRecentlyVisitedURIs(aURI);
-
-  if (AndroidBridge::HasEnv()) {
-    
-    nsAutoCString spec;
-    (void)aURI->GetSpec(spec);
-    mozilla::widget::android::GeckoAppShell::MarkURIVisited(NS_ConvertUTF8toUTF16(spec));
-  }
-
-  
-  nsCOMPtr<nsIObserverService> obsService = mozilla::services::GetObserverService();
-  if (obsService) {
-    obsService->NotifyObservers(aURI, NS_LINK_VISITED_EVENT_TOPIC, nullptr);
-  }
-}
-
 NS_IMETHODIMP
 nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlags)
 {
-  if (!aURI) {
+  if (!aURI)
     return NS_OK;
-  }
-
-  if (!(aFlags & VisitFlags::TOP_LEVEL)) {
-    return NS_OK;
-  }
-
-  if (aFlags & VisitFlags::UNRECOVERABLE_ERROR) {
-    return NS_OK;
-  }
-
-  if (aFlags & VisitFlags::REDIRECT_SOURCE || aFlags & VisitFlags::REDIRECT_PERMANENT || aFlags & VisitFlags::REDIRECT_TEMPORARY) {
-    
-    
-    
-    RemovePendingVisitURI(aLastVisitedURI);
-  }
 
   
   bool canAdd;
@@ -251,17 +180,35 @@ nsAndroidHistory::VisitURI(nsIURI *aURI, nsIURI *aLastVisitedURI, uint32_t aFlag
       
       return NS_OK;
     }
-
-    
-    
-    if (RemovePendingVisitURI(aLastVisitedURI)) {
-      SaveVisitURI(aLastVisitedURI);
-    }
   }
 
+  if (!(aFlags & VisitFlags::TOP_LEVEL)) {
+    AppendToEmbedURIs(aURI);
+    return NS_OK;
+  }
+
+  if (aFlags & VisitFlags::REDIRECT_SOURCE)
+    return NS_OK;
+
+  if (aFlags & VisitFlags::UNRECOVERABLE_ERROR)
+    return NS_OK;
+
+  if (AndroidBridge::HasEnv()) {
+    nsAutoCString uri;
+    rv = aURI->GetSpec(uri);
+    if (NS_FAILED(rv)) return rv;
+    NS_ConvertUTF8toUTF16 uriString(uri);
+    mozilla::widget::android::GeckoAppShell::MarkURIVisited(uriString);
+  }
+
+  AppendToRecentlyVisitedURIs(aURI);
+
   
-  mPendingVisitURIs.AppendElement(aURI);
-  mTimer->InitWithCallback(this, PENDING_REDIRECT_TIMEOUT, nsITimer::TYPE_ONE_SHOT);
+  nsCOMPtr<nsIObserverService> obsService =
+    mozilla::services::GetObserverService();
+  if (obsService) {
+    obsService->NotifyObservers(aURI, NS_LINK_VISITED_EVENT_TOPIC, nullptr);
+  }
 
   return NS_OK;
 }
@@ -297,7 +244,7 @@ nsAndroidHistory::NotifyVisited(nsIURI *aURI)
   if (aURI && sHistory) {
     nsAutoCString spec;
     (void)aURI->GetSpec(spec);
-    sHistory->mPendingLinkURIs.Push(NS_ConvertUTF8toUTF16(spec));
+    sHistory->mPendingURIs.Push(NS_ConvertUTF8toUTF16(spec));
     NS_DispatchToMainThread(sHistory);
   }
   return NS_OK;
@@ -306,8 +253,8 @@ nsAndroidHistory::NotifyVisited(nsIURI *aURI)
 NS_IMETHODIMP
 nsAndroidHistory::Run()
 {
-  while (! mPendingLinkURIs.IsEmpty()) {
-    nsString uriString = mPendingLinkURIs.Pop();
+  while (! mPendingURIs.IsEmpty()) {
+    nsString uriString = mPendingURIs.Pop();
     nsTArray<Link*>* list = sHistory->mListeners.Get(uriString);
     if (list) {
       for (unsigned int i = 0; i < list->Length(); i++) {
