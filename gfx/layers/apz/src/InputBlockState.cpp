@@ -180,6 +180,22 @@ WheelBlockState::WheelBlockState(const nsRefPtr<AsyncPanZoomController>& aTarget
   }
 }
 
+bool
+WheelBlockState::SetConfirmedTargetApzc(const nsRefPtr<AsyncPanZoomController>& aTargetApzc)
+{
+  
+  
+  
+  nsRefPtr<AsyncPanZoomController> apzc = aTargetApzc;
+  if (apzc && mEvents.Length() > 0) {
+    const ScrollWheelInput& event = mEvents.ElementAt(0);
+    apzc = apzc->BuildOverscrollHandoffChain()->FindFirstScrollable(event);
+  }
+
+  InputBlockState::SetConfirmedTargetApzc(apzc);
+  return true;
+}
+
 void
 WheelBlockState::Update(const ScrollWheelInput& aEvent)
 {
