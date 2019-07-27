@@ -11592,6 +11592,8 @@ FullscreenRequest::FullscreenRequest(Element* aElement)
   }
 }
 
+static void RedispatchPendingPointerLockRequest(nsIDocument* aDocument);
+
 FullscreenRequest::~FullscreenRequest()
 {
   MOZ_COUNT_DTOR(FullscreenRequest);
@@ -11600,6 +11602,11 @@ FullscreenRequest::~FullscreenRequest()
     return;
   }
   mDocument->mPendingFullscreenRequests--;
+  if (!mDocument->mPendingFullscreenRequests) {
+    
+    
+    RedispatchPendingPointerLockRequest(mDocument);
+  }
 }
 
 
@@ -11965,6 +11972,7 @@ DispatchPointerLockError(nsIDocument* aTarget)
 
 static const uint8_t kPointerLockRequestLimit = 2;
 
+class nsPointerLockPermissionRequest;
 mozilla::StaticRefPtr<nsPointerLockPermissionRequest> gPendingPointerLockRequest;
 
 class nsPointerLockPermissionRequest : public nsRunnable,
@@ -12165,6 +12173,35 @@ nsDocument::SetApprovedForFullscreen(bool aIsApproved)
   mIsApprovedForFullscreen = aIsApproved;
 }
 
+static void
+RedispatchPendingPointerLockRequest(nsIDocument* aDocument)
+{
+  if (!gPendingPointerLockRequest) {
+    return;
+  }
+  nsCOMPtr<nsIDocument> doc =
+    do_QueryReferent(gPendingPointerLockRequest->mDocument);
+  if (doc != aDocument) {
+    return;
+  }
+  nsCOMPtr<Element> elem =
+    do_QueryReferent(gPendingPointerLockRequest->mElement);
+  if (!elem || elem->GetUncomposedDoc() != aDocument) {
+    gPendingPointerLockRequest->Handled();
+    return;
+  }
+
+  
+  
+  
+  bool userInputOrChromeCaller =
+    gPendingPointerLockRequest->mUserInputOrChromeCaller;
+  gPendingPointerLockRequest->Handled();
+  gPendingPointerLockRequest =
+    new nsPointerLockPermissionRequest(elem, userInputOrChromeCaller);
+  NS_DispatchToMainThread(gPendingPointerLockRequest);
+}
+
 nsresult
 nsDocument::Observe(nsISupports *aSubject,
                     const char *aTopic,
@@ -12176,24 +12213,7 @@ nsDocument::Observe(nsISupports *aSubject,
       return NS_OK;
     }
     SetApprovedForFullscreen(true);
-    if (gPendingPointerLockRequest) {
-      
-      
-      nsCOMPtr<Element> el =
-        do_QueryReferent(gPendingPointerLockRequest->mElement);
-      nsCOMPtr<nsIDocument> doc =
-        do_QueryReferent(gPendingPointerLockRequest->mDocument);
-      bool userInputOrChromeCaller =
-        gPendingPointerLockRequest->mUserInputOrChromeCaller;
-      gPendingPointerLockRequest->Handled();
-      if (doc == this && el && el->GetUncomposedDoc() == doc) {
-        nsPointerLockPermissionRequest* clone =
-          new nsPointerLockPermissionRequest(el, userInputOrChromeCaller);
-        gPendingPointerLockRequest = clone;
-        nsCOMPtr<nsIRunnable> r = gPendingPointerLockRequest.get();
-        NS_DispatchToMainThread(r);
-      }
-    }
+    RedispatchPendingPointerLockRequest(this);
   } else if (strcmp("app-theme-changed", aTopic) == 0) {
     if (!nsContentUtils::IsSystemPrincipal(NodePrincipal()) &&
         !IsUnstyledDocument()) {
