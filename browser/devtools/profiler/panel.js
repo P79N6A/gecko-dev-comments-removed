@@ -35,12 +35,12 @@ ProfilerPanel.prototype = {
 
 
   open: Task.async(function*() {
-    let connection = getProfilerConnection(this._toolbox);
-    yield connection.open();
+    this._connection = getProfilerConnection(this._toolbox);
+    yield this._connection.open();
 
     this.panelWin.gToolbox = this._toolbox;
     this.panelWin.gTarget = this.target;
-    this.panelWin.gFront = new ProfilerFront(connection);
+    this.panelWin.gFront = new ProfilerFront(this._connection);
     yield this.panelWin.startupProfiler();
 
     this.isReady = true;
@@ -59,6 +59,10 @@ ProfilerPanel.prototype = {
     }
 
     yield this.panelWin.shutdownProfiler();
+
+    
+    this._connection.destroy();
+
     this.emit("destroyed");
     this._destroyed = true;
   })

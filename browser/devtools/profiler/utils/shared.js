@@ -115,6 +115,14 @@ ProfilerConnection.prototype = {
   
 
 
+  destroy: function() {
+    this._disconnectMiscActors();
+    this._connected = false;
+  },
+
+  
+
+
 
   _connectMiscActors: function() {
     
@@ -124,6 +132,7 @@ ProfilerConnection.prototype = {
       this._framerate = new FramerateFront(this._target.client, this._target.form);
     } else {
       this._framerate = {
+        destroy: () => {},
         startRecording: () => {},
         stopRecording: () => {},
         cancelRecording: () => {},
@@ -131,6 +140,14 @@ ProfilerConnection.prototype = {
         getPendingTicks: () => null
       };
     }
+  },
+
+  
+
+
+
+  _disconnectMiscActors: function() {
+    this._framerate.destroy();
   },
 
   
