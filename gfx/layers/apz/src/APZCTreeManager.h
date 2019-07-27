@@ -373,9 +373,16 @@ public:
 
 
 
+  enum HitTestResult {
+    NoApzcHit,
+    ApzcHitRegion,
+    ApzcContentRegion,
+    OverscrolledApzc,
+  };
+
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
-                                                         bool* aOutInOverscrolledApzc);
+                                                         HitTestResult* aOutHitResult);
   gfx::Matrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;
   gfx::Matrix4x4 GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) const;
 private:
@@ -384,11 +391,11 @@ private:
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid);
   AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc,
                                          const gfx::Point& aHitTestPoint,
-                                         bool* aOutInOverscrolledApzc);
+                                         HitTestResult* aOutHitResult);
   already_AddRefed<AsyncPanZoomController> CommonAncestor(AsyncPanZoomController* aApzc1, AsyncPanZoomController* aApzc2);
   already_AddRefed<AsyncPanZoomController> RootAPZCForLayersId(AsyncPanZoomController* aApzc);
   already_AddRefed<AsyncPanZoomController> GetTouchInputBlockAPZC(const MultiTouchInput& aEvent,
-                                                                  bool* aOutInOverscrolledApzc);
+                                                                  HitTestResult* aOutHitResult);
   nsEventStatus ProcessTouchInput(MultiTouchInput& aInput,
                                   ScrollableLayerGuid* aOutTargetGuid,
                                   uint64_t* aOutInputBlockId);
@@ -453,7 +460,7 @@ private:
   
 
 
-  bool mInOverscrolledApzc;
+  HitTestResult mHitResultForInputBlock;
   
 
 
@@ -479,4 +486,4 @@ private:
 }
 }
 
-#endif 
+#endif
