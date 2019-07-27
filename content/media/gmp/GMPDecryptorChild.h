@@ -114,11 +114,13 @@ private:
 
   virtual bool RecvDecryptingComplete() MOZ_OVERRIDE;
 
-  GMPChild* mPlugin;
-
   
   
   GMPDecryptor* mSession;
+
+#ifdef DEBUG
+  GMPChild* mPlugin;
+#endif           
 };
 
 } 
