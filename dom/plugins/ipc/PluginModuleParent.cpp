@@ -812,7 +812,7 @@ PluginModuleChromeParent::FinishHangUI()
         
 
         if (needsCancel ||
-            !mIsTimerReset && mHangUIParent->WasShown()) {
+            (!mIsTimerReset && mHangUIParent->WasShown())) {
             
 
 

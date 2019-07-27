@@ -300,7 +300,7 @@ PluginHangUIParent::UnwatchHangUIChildProcess(bool aWait)
     
     
     if (::UnregisterWaitEx(mRegWait, completionEvent) ||
-        !aWait && ::GetLastError() == ERROR_IO_PENDING) {
+        (!aWait && ::GetLastError() == ERROR_IO_PENDING)) {
       mRegWait = nullptr;
       if (aWait) {
         
