@@ -867,7 +867,6 @@ TabChild::TabChild(nsIContentChild* aManager,
   , mDefaultScale(0)
   , mIPCOpen(true)
   , mParentIsActive(false)
-  , mAudioChannelActive(false)
 {
   
   
@@ -880,22 +879,6 @@ TabChild::TabChild(nsIContentChild* aManager,
   if (mUniqueId) {
     MOZ_ASSERT(NestedTabChildMap().find(mUniqueId) == NestedTabChildMap().end());
     NestedTabChildMap()[mUniqueId] = this;
-  }
-
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-
-  if (observerService) {
-    const nsAttrValue::EnumTable* table =
-      AudioChannelService::GetAudioChannelTable();
-
-    nsAutoCString topic;
-    for (uint32_t i = 0; table[i].tag; ++i) {
-      topic.Assign("audiochannel-activity-");
-      topic.Append(table[i].tag);
-
-      observerService->AddObserver(this, topic.get(), false);
-    }
   }
 }
 
@@ -961,56 +944,6 @@ TabChild::Observe(nsISupports *aSubject,
           HandlePossibleViewportChange(GetInnerSize());
         }
       }
-    }
-  }
-
-  const nsAttrValue::EnumTable* table =
-    AudioChannelService::GetAudioChannelTable();
-
-  nsAutoCString topic;
-  int16_t audioChannel = -1;
-  for (uint32_t i = 0; table[i].tag; ++i) {
-    topic.Assign("audiochannel-activity-");
-    topic.Append(table[i].tag);
-
-    if (topic.Equals(aTopic)) {
-      audioChannel = table[i].value;
-      break;
-    }
-  }
-
-  if (audioChannel != -1 && mIPCOpen) {
-    
-    
-    nsCOMPtr<nsISupportsPRUint64> wrapper = do_QueryInterface(aSubject);
-    if (!wrapper) {
-      return NS_OK;
-    }
-
-    
-    
-    nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(WebNavigation());
-    if (!window) {
-      return NS_OK;
-    }
-
-    uint64_t windowID = 0;
-    nsresult rv = wrapper->GetData(&windowID);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    
-    
-    if (window->WindowID() != windowID) {
-      return NS_OK;
-    }
-
-    nsAutoString activeStr(aData);
-    bool active = activeStr.EqualsLiteral("active");
-    if (active != mAudioChannelActive) {
-      mAudioChannelActive = active;
-      unused << SendAudioChannelActivityNotification(audioChannel, active);
     }
   }
 
@@ -2838,17 +2771,6 @@ TabChild::RecvDestroy()
 
   observerService->RemoveObserver(this, BROWSER_ZOOM_TO_RECT);
   observerService->RemoveObserver(this, BEFORE_FIRST_PAINT);
-
-  const nsAttrValue::EnumTable* table =
-    AudioChannelService::GetAudioChannelTable();
-
-  nsAutoCString topic;
-  for (uint32_t i = 0; table[i].tag; ++i) {
-    topic.Assign("audiochannel-activity-");
-    topic.Append(table[i].tag);
-
-    observerService->RemoveObserver(this, topic.get());
-  }
 
   
   DestroyWindow();

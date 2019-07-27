@@ -13,6 +13,7 @@
 #include "nsIObserver.h"
 #include "mozilla/CORSMode.h"
 #include "DOMMediaStream.h"
+#include "AudioChannelCommon.h"
 #include "DecoderTraits.h"
 #include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
@@ -1008,7 +1009,7 @@ protected:
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
   
-  nsresult UpdateChannelMuteState(float aVolume, bool aMuted);
+  nsresult UpdateChannelMuteState(mozilla::dom::AudioChannelState aCanPlay);
 
   
   
@@ -1363,7 +1364,7 @@ protected:
   AudioChannel mAudioChannel;
 
   
-  float mAudioChannelVolume;
+  bool mAudioChannelFaded;
 
   
   bool mPlayingThroughTheAudioChannel;
