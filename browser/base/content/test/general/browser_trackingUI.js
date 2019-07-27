@@ -69,6 +69,10 @@ function testTrackingPage(gTestBrowser)
     "Tracking Content is being blocked");
 
   
+  ok(!PopupNotifications.panel.firstChild.hasAttribute("trackingblockdisabled"),
+    "Doorhanger must have no trackingblockdisabled attribute");
+
+  
   PopupNotifications.panel.firstChild.disableTrackingContentProtection();
 }
 
@@ -81,6 +85,10 @@ function testTrackingPageWhitelisted(gTestBrowser)
   
   is(PopupNotifications.panel.firstChild.isTrackingContentBlocked, 0,
     "Tracking Content is NOT being blocked");
+
+  
+  is(PopupNotifications.panel.firstChild.getAttribute("trackingblockdisabled"), "true",
+    "Doorhanger must have [trackingblockdisabled='true'] attribute");
 }
 
 function testTrackingPageOFF(gTestBrowser)
