@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set ts=8 sts=4 et sw=4 tw=99: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsXULAppAPI.h"
 #include "jsapi.h"
@@ -41,14 +41,14 @@
 #include <windows.h>
 #endif
 
-// all this crap is needed to do the interactive shell stuff
+
 #include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_IO_H
-#include <io.h>     /* for isatty() */
+#include <io.h>     
 #endif
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>     /* for isatty() */
+#include <unistd.h>     
 #endif
 
 #ifdef MOZ_CRASHREPORTER
@@ -69,16 +69,16 @@ public:
     XPCShellDirProvider() { }
     ~XPCShellDirProvider() { }
 
-    // The platform resource folder
+    
     void SetGREDir(nsIFile *greDir);
     void ClearGREDir() { mGREDir = nullptr; }
-    // The application resource folder
+    
     void SetAppDir(nsIFile *appFile);
     void ClearAppDir() { mAppDir = nullptr; }
-    // The app executable
+    
     void SetAppFile(nsIFile *appFile);
     void ClearAppFile() { mAppFile = nullptr; }
-    // An additional custom plugin dir if specified
+    
     void SetPluginDir(nsIFile* pluginDir);
     void ClearPluginDir() { mPluginDir = nullptr; }
 
@@ -119,7 +119,7 @@ static bool
 GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
 #if !defined(XP_WIN) && !defined(XP_UNIX)
-    //XXX: your platform should really implement this
+    
     return false;
 #else
     JS::AutoFilename filename;
@@ -129,7 +129,7 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
             do_GetService(kXPConnectServiceContractID, &rv);
 
 #if defined(XP_WIN)
-        // convert from the system codepage to UTF-16
+        
         int bufferSize = MultiByteToWideChar(CP_ACP, 0, filename.get(),
                                              -1, nullptr, 0);
         nsAutoString filenameString;
@@ -137,11 +137,11 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
         MultiByteToWideChar(CP_ACP, 0, filename.get(),
                             -1, (LPWSTR)filenameString.BeginWriting(),
                             filenameString.Length());
-        // remove the null terminator
+        
         filenameString.SetLength(bufferSize - 1);
 
-        // replace forward slashes with backslashes,
-        // since nsLocalFileWin chokes on them
+        
+        
         char16_t* start = filenameString.BeginWriting();
         char16_t* end = filenameString.EndWriting();
 
@@ -161,8 +161,8 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
         }
 
         if (!location && gWorkingDirectory) {
-            // could be a relative path, try appending it to the cwd
-            // and then normalize
+            
+            
             nsAutoString absolutePath(*gWorkingDirectory);
             absolutePath.Append(filenameString);
 
@@ -174,7 +174,7 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
             nsCOMPtr<nsIXPConnectJSObjectHolder> locationHolder;
 
             bool symlink;
-            // don't normalize symlinks, because that's kind of confusing
+            
             if (NS_SUCCEEDED(location->IsSymlink(&symlink)) &&
                 !symlink)
                 location->Normalize();
@@ -211,12 +211,12 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    // While 4096 might be quite arbitrary, this is something to be fixed in
-    // bug 105707. It is also the same limit as in ProcessFile.
+    
+    
     char buf[4096];
     RootedString str(cx);
 
-    /* If a prompt was specified, construct the string */
+    
     if (args.length() > 0) {
         str = JS::ToString(cx, args[0]);
         if (!str)
@@ -225,12 +225,12 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
         str = JS_GetEmptyString(JS_GetRuntime(cx));
     }
 
-    /* Get a line from the infile */
+    
     JSAutoByteString strBytes(cx, str);
     if (!strBytes || !GetLine(cx, buf, gInFile, strBytes.ptr()))
         return false;
 
-    /* Strip newline character added by GetLine() */
+    
     unsigned int buflen = strlen(buf);
     if (buflen == 0) {
         if (feof(gInFile)) {
@@ -241,7 +241,7 @@ ReadLine(JSContext *cx, unsigned argc, jsval *vp)
         --buflen;
     }
 
-    /* Turn buf into a JSString */
+    
     str = JS_NewStringCopyN(cx, buf, buflen);
     if (!str)
         return false;
@@ -339,7 +339,8 @@ Load(JSContext *cx, unsigned argc, jsval *vp)
         }
         JS::CompileOptions options(cx);
         options.setUTF8(true)
-               .setFileAndLine(filename.ptr(), 1);
+               .setFileAndLine(filename.ptr(), 1)
+               .setCompileAndGo(true);
         JS::Rooted<JSScript*> script(cx);
         JS::Compile(cx, obj, options, file, &script);
         fclose(file);
@@ -380,13 +381,13 @@ Quit(JSContext *cx, unsigned argc, jsval *vp)
     JS_ConvertArguments(cx, JS::CallArgsFromVp(argc, vp),"/ i", &gExitCode);
 
     gQuitting = true;
-//    exit(0);
+
     return false;
 }
 
-// Provide script a way to disable the xpcshell error reporter, preventing
-// reported errors from being logged to the console and also from affecting the
-// exit code returned by the xpcshell binary.
+
+
+
 static bool
 IgnoreReportedErrors(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -660,7 +661,7 @@ XPCShellInterruptCallback(JSContext *cx)
     MOZ_ASSERT(!sScriptedInterruptCallback.empty());
     RootedValue callback(cx, sScriptedInterruptCallback.ref());
 
-    // If no interrupt callback was set by script, no-op.
+    
     if (callback.isUndefined())
         return true;
 
@@ -682,20 +683,20 @@ SetInterruptCallback(JSContext *cx, unsigned argc, jsval *vp)
 {
     MOZ_ASSERT(!sScriptedInterruptCallback.empty());
 
-    // Sanity-check args.
+    
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     if (args.length() != 1) {
         JS_ReportError(cx, "Wrong number of arguments");
         return false;
     }
 
-    // Allow callers to remove the interrupt callback by passing undefined.
+    
     if (args[0].isUndefined()) {
         sScriptedInterruptCallback.ref() = UndefinedValue();
         return true;
     }
 
-    // Otherwise, we should have a callable object.
+    
     if (!args[0].isObject() || !JS_ObjectIsCallable(cx, &args[0].toObject())) {
         JS_ReportError(cx, "Argument must be callable");
         return false;
@@ -709,7 +710,7 @@ SetInterruptCallback(JSContext *cx, unsigned argc, jsval *vp)
 static bool
 SimulateActivityCallback(JSContext *cx, unsigned argc, jsval *vp)
 {
-    // Sanity-check args.
+    
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     if (args.length() != 1 || !args[0].isBoolean()) {
         JS_ReportError(cx, "Wrong number of arguments");
@@ -748,7 +749,7 @@ static const JSFunctionSpec glob_functions[] = {
 static bool
 env_setProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, MutableHandleValue vp)
 {
-/* XXX porting may be easy, but these don't seem to supply setenv by default */
+
 #if !defined SOLARIS
     JSString *valstr;
     JS::Rooted<JSString*> idstr(cx);
@@ -777,13 +778,13 @@ env_setProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, Mutab
         }
         rv = putenv(waste);
 #ifdef XP_WIN
-        /*
-         * HPUX9 at least still has the bad old non-copying putenv.
-         *
-         * Per mail from <s.shanmuganathan@digital.com>, OSF1 also has a putenv
-         * that will crash if you pass it an auto char array (so it must place
-         * its argument directly in the char *environ[] array).
-         */
+        
+
+
+
+
+
+
         free(waste);
 #endif
     }
@@ -795,7 +796,7 @@ env_setProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, Mutab
         return false;
     }
     vp.set(STRING_TO_JSVAL(valstr));
-#endif /* !defined SOLARIS */
+#endif 
     return true;
 }
 
@@ -863,7 +864,7 @@ static const JSClass env_class = {
     JS_ConvertStub,   nullptr
 };
 
-/***************************************************************************/
+
 
 typedef enum JSShellErrNum {
 #define MSG_DEF(name, number, count, exception, format) \
@@ -904,14 +905,14 @@ ProcessFile(JSContext *cx, JS::Handle<JSObject*> obj, const char *filename, FILE
         file = stdin;
     } else if (!isatty(fileno(file)))
     {
-        /*
-         * It's not interactive - just execute it.
-         *
-         * Support the UNIX #! shell hack; gobble the first line if it starts
-         * with '#'.  TODO - this isn't quite compatible with sharp variables,
-         * as a legal js program (using sharp variables) might start with '#'.
-         * But that would require multi-character lookahead.
-         */
+        
+
+
+
+
+
+
+
         int ch = fgetc(file);
         if (ch == '#') {
             while ((ch = fgetc(file)) != EOF) {
@@ -924,7 +925,8 @@ ProcessFile(JSContext *cx, JS::Handle<JSObject*> obj, const char *filename, FILE
 
         JS::CompileOptions options(cx);
         options.setUTF8(true)
-               .setFileAndLine(filename, 1);
+               .setFileAndLine(filename, 1)
+               .setCompileAndGo(true);
         if (JS::Compile(cx, obj, options, file, &script) && !compileOnly)
             (void)JS_ExecuteScript(cx, obj, script, &result);
         DoEndRequest(cx);
@@ -932,19 +934,19 @@ ProcessFile(JSContext *cx, JS::Handle<JSObject*> obj, const char *filename, FILE
         return;
     }
 
-    /* It's an interactive filehandle; drop into read-eval-print loop. */
+    
     lineno = 1;
     hitEOF = false;
     do {
         bufp = buffer;
         *bufp = '\0';
 
-        /*
-         * Accumulate lines until we get a 'compilable unit' - one that either
-         * generates an error (before running out of source) or that compiles
-         * cleanly.  This should be whenever we get a complete statement that
-         * coincides with the end of a line.
-         */
+        
+
+
+
+
+
         startline = lineno;
         do {
             if (!GetLine(cx, bufp, file, startline == lineno ? "js> " : "")) {
@@ -956,17 +958,18 @@ ProcessFile(JSContext *cx, JS::Handle<JSObject*> obj, const char *filename, FILE
         } while (!JS_BufferIsCompilableUnit(cx, obj, buffer, strlen(buffer)));
 
         DoBeginRequest(cx);
-        /* Clear any pending exception from previous failed compiles.  */
+        
         JS_ClearPendingException(cx);
         JS::CompileOptions options(cx);
-        options.setFileAndLine("typein", startline);
+        options.setFileAndLine("typein", startline)
+               .setCompileAndGo(true);
         if (JS_CompileScript(cx, obj, buffer, strlen(buffer), options, &script)) {
             JSErrorReporter older;
 
             if (!compileOnly) {
                 ok = JS_ExecuteScript(cx, obj, script, &result);
                 if (ok && result != JSVAL_VOID) {
-                    /* Suppress error reports from JS::ToString(). */
+                    
                     older = JS_SetErrorReporter(cx, nullptr);
                     str = ToString(cx, result);
                     JS_SetErrorReporter(cx, older);
@@ -1060,12 +1063,12 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
         fclose(rcfile);
     }
 
-    /*
-     * Scan past all optional arguments so we can create the arguments object
-     * before processing any -f options, which must interleave properly with
-     * -v and -w options.  This requires two passes, and without getopt, we'll
-     * have to keep the option logic here and in the second for loop in sync.
-     */
+    
+
+
+
+
+
     for (i = 0; i < argc; i++) {
         if (argv[i][0] != '-' || argv[i][1] == '\0') {
             ++i;
@@ -1081,10 +1084,10 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
         }
     }
 
-    /*
-     * Create arguments early and define it to root it, so it's safe from any
-     * GC calls nested below, and so it is available to -f <file> arguments.
-     */
+    
+
+
+
     argsObj = JS_NewArrayObject(cx, 0);
     if (!argsObj)
         return 1;
@@ -1122,18 +1125,18 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
         case 'x':
             break;
         case 'd':
-            /* This used to try to turn on the debugger. */
+            
             break;
         case 'f':
             if (++i == argc) {
                 return usage();
             }
             Process(cx, obj, argv[i], false);
-            /*
-             * XXX: js -f foo.js should interpret foo.js and then
-             * drop into interactive mode, but that breaks test
-             * harness. Just execute foo.js for now.
-             */
+            
+
+
+
+
             isInteractive = false;
             break;
         case 'i':
@@ -1160,11 +1163,11 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
         case 's':
         case 'm':
         case 'I':
-            // These options are processed in ProcessArgsForCompartment.
+            
             break;
         case 'p':
         {
-          // plugins path
+          
           char *pluginPath = argv[++i];
           nsCOMPtr<nsIFile> pluginsDir;
           if (NS_FAILED(XRE_GetFileFromPath(pluginPath, getter_AddRefs(pluginsDir)))) {
@@ -1185,12 +1188,12 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
     return gExitCode;
 }
 
-/***************************************************************************/
 
-// #define TEST_InitClassesWithNewWrappedGlobal
+
+
 
 #ifdef TEST_InitClassesWithNewWrappedGlobal
-// XXX hacky test code...
+
 #include "xpctest.h"
 
 class TestGlobal : public nsIXPCTestNoisy, public nsIXPCScriptable
@@ -1205,20 +1208,20 @@ public:
 
 NS_IMPL_ISUPPORTS(TestGlobal, nsIXPCTestNoisy, nsIXPCScriptable)
 
-// The nsIXPCScriptable map declaration that will generate stubs for us...
+
 #define XPC_MAP_CLASSNAME           TestGlobal
 #define XPC_MAP_QUOTED_CLASSNAME   "TestGlobal"
 #define XPC_MAP_FLAGS               nsIXPCScriptable::USE_JSSTUB_FOR_ADDPROPERTY |\
                                     nsIXPCScriptable::USE_JSSTUB_FOR_DELPROPERTY |\
                                     nsIXPCScriptable::USE_JSSTUB_FOR_SETPROPERTY
-#include "xpc_map_end.h" /* This will #undef the above */
+#include "xpc_map_end.h" 
 
 NS_IMETHODIMP TestGlobal::Squawk() {return NS_OK;}
 
 #endif
 
-// uncomment to install the test 'this' translator
-// #define TEST_TranslateThis
+
+
 
 #ifdef TEST_TranslateThis
 
@@ -1232,10 +1235,10 @@ public:
 
   nsXPCFunctionThisTranslator();
   virtual ~nsXPCFunctionThisTranslator();
-  /* additional members */
+  
 };
 
-/* Implementation file */
+
 NS_IMPL_ISUPPORTS(nsXPCFunctionThisTranslator, nsIXPCFunctionThisTranslator)
 
 nsXPCFunctionThisTranslator::nsXPCFunctionThisTranslator()
@@ -1246,7 +1249,7 @@ nsXPCFunctionThisTranslator::~nsXPCFunctionThisTranslator()
 {
 }
 
-/* nsISupports TranslateThis (in nsISupports aInitialThis); */
+
 NS_IMETHODIMP
 nsXPCFunctionThisTranslator::TranslateThis(nsISupports *aInitialThis,
                                            nsISupports **_retval)
@@ -1267,7 +1270,7 @@ XPCShellErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep)
     if (!JSREPORT_IS_WARNING(rep->flags))
         gExitCode = EXITCODE_RUNTIME_ERROR;
 
-    // Delegate to the system error reporter for heavy lifting.
+    
     xpc::SystemErrorReporter(cx, message, rep);
 }
 
@@ -1283,19 +1286,19 @@ static bool
 GetCurrentWorkingDirectory(nsAString& workingDirectory)
 {
 #if !defined(XP_WIN) && !defined(XP_UNIX)
-    //XXX: your platform should really implement this
+    
     return false;
 #elif XP_WIN
     DWORD requiredLength = GetCurrentDirectoryW(0, nullptr);
     workingDirectory.SetLength(requiredLength);
     GetCurrentDirectoryW(workingDirectory.Length(),
                          (LPWSTR)workingDirectory.BeginWriting());
-    // we got a trailing null there
+    
     workingDirectory.SetLength(requiredLength);
     workingDirectory.Replace(workingDirectory.Length() - 1, 1, L'\\');
 #elif defined(XP_UNIX)
     nsAutoCString cwd;
-    // 1024 is just a guess at a sane starting value
+    
     size_t bufsize = 1024;
     char* result = nullptr;
     while (result == nullptr) {
@@ -1304,11 +1307,11 @@ GetCurrentWorkingDirectory(nsAString& workingDirectory)
         if (!result) {
             if (errno != ERANGE)
                 return false;
-            // need to make the buffer bigger
+            
             bufsize *= 2;
         }
     }
-    // size back down to the actual string length
+    
     cwd.SetLength(strlen(result) + 1);
     cwd.Replace(cwd.Length() - 1, 1, '/');
     workingDirectory = NS_ConvertUTF8toUTF16(cwd);
@@ -1449,7 +1452,7 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
         }
 
         nsCOMPtr<nsIJSRuntimeService> rtsvc = do_GetService("@mozilla.org/js/xpc/RuntimeService;1");
-        // get the JSRuntime from the runtime svc
+        
         if (!rtsvc) {
             printf("failed to get nsJSRuntimeService!\n");
             return 1;
@@ -1462,9 +1465,9 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
 
         rtsvc->RegisterContextCallback(ContextCallback);
 
-        // Override the default XPConnect interrupt callback. We could store the
-        // old one and restore it before shutting down, but there's not really a
-        // reason to bother.
+        
+        
+        
         sScriptedInterruptCallback.construct(rt, UndefinedValue());
         JS_SetInterruptCallback(rt, XPCShellInterruptCallback);
 
@@ -1485,9 +1488,9 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
         }
 
         nsCOMPtr<nsIPrincipal> systemprincipal;
-        // Fetch the system principal and store it away in a global, to use for
-        // script compilation in Load() and ProcessFile() (including interactive
-        // eval loop)
+        
+        
+        
         {
 
             nsCOMPtr<nsIScriptSecurityManager> securityManager =
@@ -1497,7 +1500,7 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
                 if (NS_FAILED(rv)) {
                     fprintf(gErrFile, "+++ Failed to obtain SystemPrincipal from ScriptSecurityManager service.\n");
                 } else {
-                    // fetch the JS principals and stick in a global
+                    
                     gJSPrincipals = nsJSPrincipals::get(systemprincipal);
                     JS_HoldPrincipals(gJSPrincipals);
                 }
@@ -1528,8 +1531,8 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
             return 1;
         }
 
-        // Make the default XPCShell global use a fresh zone (rather than the
-        // System Zone) to improve cross-zone test coverage.
+        
+        
         JS::CompartmentOptions options;
         options.setZone(JS::FreshZone)
                .setVersion(JSVERSION_LATEST);
@@ -1549,9 +1552,9 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
                 return 1;
             }
 
-            // Even if we're building in a configuration where source is
-            // discarded, there's no reason to do that on XPCShell, and doing so
-            // might break various automation scripts.
+            
+            
+            
             JS::CompartmentOptionsRef(glob).setDiscardSource(false);
 
             backstagePass->SetGlobalObject(glob);
@@ -1594,19 +1597,19 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
         pusher.Pop();
         JS_GC(rt);
         JS_DestroyContext(cx);
-    } // this scopes the nsCOMPtrs
+    } 
 
     if (!XRE_ShutdownTestShell())
         NS_ERROR("problem shutting down testshell");
 
-    // no nsCOMPtrs are allowed to be alive when you call NS_ShutdownXPCOM
+    
     rv = NS_ShutdownXPCOM( nullptr );
     MOZ_ASSERT(NS_SUCCEEDED(rv), "NS_ShutdownXPCOM failed");
 
     sScriptedInterruptCallback.destroyIfConstructed();
 
 #ifdef TEST_CALL_ON_WRAPPED_JS_AFTER_SHUTDOWN
-    // test of late call and release (see above)
+    
     JSContext* bogusCX;
     bogus->Peek(&bogusCX);
     bogus = nullptr;
@@ -1620,7 +1623,7 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
     dirprovider.ClearAppFile();
 
 #ifdef MOZ_CRASHREPORTER
-    // Shut down the crashreporter service to prevent leaking some strings it holds.
+    
     if (CrashReporter::GetEnabled())
         CrashReporter::UnsetExceptionHandler();
 #endif
@@ -1726,16 +1729,16 @@ XPCShellDirProvider::GetFiles(const char *prop, nsISimpleEnumerator* *result)
         return NS_ERROR_FAILURE;
     } else if (!strcmp(prop, NS_APP_PLUGINS_DIR_LIST)) {
         nsCOMArray<nsIFile> dirs;
-        // Add the test plugin location passed in by the caller or through
-        // runxpcshelltests.
+        
+        
         if (mPluginDir) {
             dirs.AppendObject(mPluginDir);
-        // If there was no path specified, default to the one set up by automation
+        
         } else {
             nsCOMPtr<nsIFile> file;
             bool exists;
-            // We have to add this path, buildbot copies the test plugin directory
-            // to (app)/bin when unpacking test zips.
+            
+            
             if (mGREDir) {
                 mGREDir->Clone(getter_AddRefs(file));
                 if (NS_SUCCEEDED(mGREDir->Clone(getter_AddRefs(file)))) {
