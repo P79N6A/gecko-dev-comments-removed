@@ -1531,7 +1531,8 @@ protected:
       }
       return NS_OK;
     }
-    nsRootPresContext* mPresContext;
+    
+    nsRootPresContext* MOZ_NON_OWNING_REF mPresContext;
   };
 
   friend class nsPresContext;
