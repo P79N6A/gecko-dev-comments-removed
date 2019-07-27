@@ -508,6 +508,8 @@ protected:
     bool mSelectionReversed;
     
     bool mIncomplete;
+    
+    bool mAdjustSelection;
   };
   
   
@@ -610,8 +612,7 @@ protected:
     void ReplaceTextWith(LONG aStart, LONG aLength, const nsAString& aString);
 
     void StartComposition(ITfCompositionView* aCompositionView,
-                          const PendingAction& aCompStart,
-                          bool aPreserveSelection);
+                          const PendingAction& aCompStart);
     void EndComposition(const PendingAction& aCompEnd);
 
     const nsString& Text() const
