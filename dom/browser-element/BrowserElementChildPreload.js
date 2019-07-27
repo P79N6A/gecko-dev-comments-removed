@@ -594,6 +594,11 @@ BrowserElementChild.prototype = {
 
   _selectionStateChangedHandler: function(e) {
     e.stopPropagation();
+
+    if (!this._isContentWindowCreated) {
+      return;
+    }
+
     let boundingClientRect = e.boundingClientRect;
 
     let isCollapsed = (e.selectedText.length == 0);
@@ -614,9 +619,11 @@ BrowserElementChild.prototype = {
 
       
       
-      
       if (isCollapsed) {
         if (isMouseUp && canPaste) {
+          
+          
+        } else if (e.states.indexOf('blur') == 0) {
           
         } else {
           return;
