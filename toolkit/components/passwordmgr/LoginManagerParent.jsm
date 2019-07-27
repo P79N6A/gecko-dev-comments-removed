@@ -160,7 +160,6 @@ var LoginManagerParent = {
         
         
         var result;
-        var matchingLogins;
 
         let searchStringLower = searchString.toLowerCase();
         let logins;

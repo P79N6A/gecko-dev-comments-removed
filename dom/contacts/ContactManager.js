@@ -261,7 +261,7 @@ ContactManager.prototype = {
     }
 
     
-    let type = {
+    type = {
       type: "contacts",
       access: access,
       options: [],

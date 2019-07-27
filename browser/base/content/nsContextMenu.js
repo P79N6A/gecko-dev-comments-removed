@@ -740,7 +740,7 @@ nsContextMenu.prototype = {
 
     
     if (!this.onEditableArea) {
-      var win = this.target.ownerDocument.defaultView;
+      win = this.target.ownerDocument.defaultView;
       if (win) {
         var isEditable = false;
         try {
@@ -1315,11 +1315,11 @@ nsContextMenu.prototype = {
   },
 
   playPlugin: function() {
-    gPluginHandler.contextMenuCommand(this.browser, this.target, "play");
+    gPluginHandler._showClickToPlayNotification(this.browser, this.target, true);
   },
 
   hidePlugin: function() {
-    gPluginHandler.contextMenuCommand(this.browser, this.target, "hide");
+    gPluginHandler.hideClickToPlayOverlay(this.target);
   },
 
   

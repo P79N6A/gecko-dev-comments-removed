@@ -624,7 +624,7 @@ this.AddonRepository = {
       AddonManager.getAllAddons(resolve));
 
     
-    let allAddons = [a for (a of allAddons) if (a.id != AddonManager.hotfixID)];
+    allAddons = [a for (a of allAddons) if (a.id != AddonManager.hotfixID)];
 
     
     if (!this.cacheEnabled) {
@@ -1327,7 +1327,6 @@ this.AddonRepository = {
     }
 
     
-    let self = this;
     results.forEach(function(aResult) {
       let addon = aResult.addon;
       let callback = function addonInstallCallback(aInstall) {

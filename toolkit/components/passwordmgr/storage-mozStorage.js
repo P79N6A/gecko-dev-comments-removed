@@ -1116,7 +1116,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
         
         let ids = [];
-        let query = "SELECT id FROM moz_logins WHERE guid isnull";
+        query = "SELECT id FROM moz_logins WHERE guid isnull";
         let stmt;
         try {
             stmt = this._dbCreateStatement(query);

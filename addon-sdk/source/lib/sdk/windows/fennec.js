@@ -64,7 +64,7 @@ function getBrowserWindow(options) {
     return window;
 
   
-  var window = BrowserWindow(options);
+  window = BrowserWindow(options);
   addListItem(browserWindows, window);
   return window;
 }

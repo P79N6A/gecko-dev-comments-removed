@@ -648,25 +648,25 @@ exports.close = close;
 
 
 function openSync(path, flags, mode) {
-  let [ fd, flags, mode, file ] =
+  let [ fd, flags_, mode_, file ] =
       [ { path: path }, Flags(flags), Mode(mode), nsILocalFile(path) ];
 
   nsIFile(fd, file);
 
   
   
-  if (!file.exists() && !isWritable(flags))
+  if (!file.exists() && !isWritable(flags_))
     throw FSError("open", "ENOENT", 34, path);
 
   
-  if (isReadable(flags)) {
-    let input = FileInputStream(file, flags, mode, DEFER_OPEN);
+  if (isReadable(flags_)) {
+    let input = FileInputStream(file, flags_, mode_, DEFER_OPEN);
     nsIFileInputStream(fd, input);
   }
 
   
-  if (isWritable(flags)) {
-    let output = FileOutputStream(file, flags, mode, DEFER_OPEN);
+  if (isWritable(flags_)) {
+    let output = FileOutputStream(file, flags_, mode_, DEFER_OPEN);
     nsIFileOutputStream(fd, output);
   }
 

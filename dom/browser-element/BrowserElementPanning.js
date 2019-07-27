@@ -512,7 +512,7 @@ const ContentPanning = {
   },
 
   _recvDoubleTap: function(data) {
-    let data = data.json;
+    data = data.json;
 
     
     if (this._viewport == null) {

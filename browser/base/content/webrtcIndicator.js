@@ -147,7 +147,7 @@ let PositionHandler = {
   },
   setXPosition: function(desiredX) {
     
-    let desiredX = Math.max(desiredX, screen.availLeft);
+    desiredX = Math.max(desiredX, screen.availLeft);
     let maxX =
       screen.availLeft + screen.availWidth - document.documentElement.clientWidth;
     window.moveTo(Math.min(desiredX, maxX), screen.availTop);

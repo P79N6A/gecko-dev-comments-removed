@@ -1480,7 +1480,7 @@ ThreadActor.prototype = {
 
 
     
-    let scripts = this.dbg.findScripts({
+    scripts = this.dbg.findScripts({
       url: aLocation.url,
       line: aLocation.line,
       innermost: true
@@ -2466,14 +2466,15 @@ PauseScopedActor.prototype = {
 
 
 function resolveURIToLocalPath(aURI) {
+  let resolved;
   switch (aURI.scheme) {
     case "jar":
     case "file":
       return aURI;
 
     case "chrome":
-      let resolved = Cc["@mozilla.org/chrome/chrome-registry;1"].
-                     getService(Ci.nsIChromeRegistry).convertChromeURL(aURI);
+      resolved = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                 getService(Ci.nsIChromeRegistry).convertChromeURL(aURI);
       return resolveURIToLocalPath(resolved);
 
     case "resource":
@@ -4622,7 +4623,8 @@ EnvironmentActor.prototype = {
       let value = this.obj.getVariable(name);
       
       
-      if (value && (value.optimizedOut || value.missingArguments)) {
+      
+      if (value && (value.optimizedOut || value.missingArguments || value.uninitialized)) {
         continue;
       }
 

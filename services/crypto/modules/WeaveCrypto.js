@@ -709,7 +709,7 @@ WeaveCrypto.prototype = {
         
         let prfAlg    = this.nss.SEC_OID_HMAC_SHA1;
 
-        let keyLength  = keyLength || 0;    
+        keyLength  = keyLength || 0;    
         let iterations = KEY_DERIVATION_ITERATIONS;
 
         let algid, slot, symKey, keyData;
