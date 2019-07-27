@@ -13,6 +13,7 @@
 #include "nsThreadUtils.h"
 #include "nsIRunnable.h"
 #include "mozIGeckoMediaPluginService.h"
+#include "mozilla/unused.h"
 
 namespace mozilla {
 namespace gmp {
@@ -127,7 +128,7 @@ GMPParent::VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder)
   MOZ_ASSERT(GMPThread() == NS_GetCurrentThread());
 
   
-  NS_WARN_IF(!mVideoDecoders.RemoveElement(aDecoder));
+  unused << NS_WARN_IF(!mVideoDecoders.RemoveElement(aDecoder));
 
   
   
