@@ -48,17 +48,13 @@ let DEFAULT_PREFS = [
   "devtools.performance.ui.show-idle-blocks",
   "devtools.performance.ui.enable-memory",
   "devtools.performance.ui.enable-framerate",
-
-  
-  "devtools.performance_dev.enabled"
 ].reduce((prefs, pref) => {
   prefs[pref] = Services.prefs.getBoolPref(pref);
   return prefs;
 }, {});
 
 
-
-Services.prefs.setBoolPref("devtools.performance_dev.enabled", true);
+Services.prefs.setBoolPref("devtools.performance.enabled", true);
 
 
 Services.prefs.setBoolPref("devtools.debugger.log", false);
