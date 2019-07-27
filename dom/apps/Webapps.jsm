@@ -221,6 +221,7 @@ this.DOMApplicationRegistry = {
                      "Webapps:RegisterBEP",
                      "Webapps:Export",
                      "Webapps:Import",
+                     "Webapps:GetIcon",
                      "Webapps:ExtractManifest",
                      "Webapps:SetEnabled",
                      "child-process-shutdown"];
@@ -724,18 +725,6 @@ this.DOMApplicationRegistry = {
       let runUpdate = AppsUtils.isFirstRun(Services.prefs);
 
       yield this.loadCurrentRegistry();
-
-      
-      for (let id in this.webapps) {
-        let oldDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id + ".old"], false, true);
-        if (oldDir.exists()) {
-          let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], false, true);
-          if (dir.exists()) {
-            dir.remove(true);
-          }
-          oldDir.moveTo(null, id);
-        }
-      }
 
       try {
         let systemManifestURL =
@@ -1417,6 +1406,9 @@ this.DOMApplicationRegistry = {
         case "Webapps:RegisterBEP":
           this.registerBrowserElementParentForApp(msg, mm);
           break;
+        case "Webapps:GetIcon":
+          this.getIcon(msg, mm);
+          break;
         case "Webapps:Export":
           this.doExport(msg, mm);
           break;
@@ -1866,6 +1858,8 @@ this.DOMApplicationRegistry = {
     app.readyToApplyDownload = true;
     app.updateTime = Date.now();
 
+    yield this._saveApps();
+
     this.broadcastMessage("Webapps:UpdateState", {
       app: app,
       id: app.id
@@ -1900,33 +1894,18 @@ this.DOMApplicationRegistry = {
     let appFile = tmpDir.clone();
     appFile.append("application.zip");
 
-    
-    
-    
-    
-    
-    let oldDir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
-    let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id + ".new"], true, true);
+    let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
     appFile.moveTo(dir, "application.zip");
     manFile.moveTo(dir, "manifest.webapp");
 
     
-    let staged = oldDir.clone();
+    let staged = dir.clone();
     staged.append("staged-update.webapp");
 
     
     
     if (staged.exists()) {
-      staged.copyTo(dir, "update.webapp");
-    }
-
-    oldDir.moveTo(null, id + ".old");
-    dir.moveTo(null, id);
-
-    try {
-      oldDir.remove(true);
-    } catch(e) {
-      oldDir.moveTo(tmpDir, "old." + app.updateTime);
+      staged.moveTo(dir, "update.webapp");
     }
 
     try {
@@ -4238,6 +4217,74 @@ this.DOMApplicationRegistry = {
     });
   },
 
+  getIcon: function(aData, aMm) {
+    function sendError(aError) {
+      debug("getIcon error: " + aError);
+      aData.error = aError;
+      aMm.sendAsyncMessage("Webapps:GetIcon:Return", aData);
+    }
+
+    let app = this.getAppByManifestURL(aData.manifestURL);
+    if (!app) {
+      sendError("NO_APP");
+      return;
+    }
+
+    function loadIcon(aUrl) {
+      let fallbackMimeType = aUrl.indexOf('.') >= 0 ?
+                             "image/" + aUrl.split(".").reverse()[0] : "";
+      
+      let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+                  .createInstance(Ci.nsIXMLHttpRequest);
+      xhr.mozBackgroundRequest = true;
+      xhr.open("GET", aUrl, true);
+      xhr.responseType = "blob";
+      xhr.addEventListener("load", function() {
+        debug("Got http status=" + xhr.status + " for " + aUrl);
+        if (xhr.status == 200) {
+          let blob = xhr.response;
+          
+          
+          let payload = {
+            "oid": aData.oid,
+            "requestID": aData.requestID,
+            "blob": blob,
+            "type": xhr.getResponseHeader("Content-Type") || fallbackMimeType
+          };
+          aMm.sendAsyncMessage("Webapps:GetIcon:Return", payload);
+        } else if (xhr.status === 0) {
+          sendError("NETWORK_ERROR");
+        } else {
+          sendError("FETCH_ICON_FAILED");
+        }
+      });
+      xhr.addEventListener("error", function() {
+        sendError("FETCH_ICON_FAILED");
+      });
+      xhr.send();
+    }
+
+    
+    this.getManifestFor(aData.manifestURL, aData.entryPoint)
+        .then((aManifest) => {
+      if (!aManifest) {
+        sendError("FETCH_ICON_FAILED");
+        return;
+      }
+
+      let manifest = new ManifestHelper(aManifest, app.origin, app.manifestURL);
+      let url = manifest.iconURLForSize(aData.iconID);
+      if (!url) {
+        sendError("NO_ICON");
+        return;
+      }
+      loadIcon(url);
+    }).catch(() => {
+      sendError("FETCH_ICON_FAILED");
+      return;
+    });
+  },
+
   getAll: function(aCallback) {
     debug("getAll");
     let apps = [];
@@ -4471,7 +4518,7 @@ this.DOMApplicationRegistry = {
     });
   },
 
-  getManifestFor: function(aManifestURL) {
+  getManifestFor: function(aManifestURL, aEntryPoint) {
     let id = this._appIdForManifestURL(aManifestURL);
     let app = this.webapps[id];
     if (!id || (app.installState == "pending" && !app.retryingDownload)) {
@@ -4479,7 +4526,11 @@ this.DOMApplicationRegistry = {
     }
 
     return this._readManifests([{ id: id }]).then((aResult) => {
-      return aResult[0].manifest;
+      if (aEntryPoint) {
+        return aResult[0].manifest.entry_points[aEntryPoint];
+      } else {
+        return aResult[0].manifest;
+      }
     });
   },
 
