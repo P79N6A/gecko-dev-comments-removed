@@ -160,6 +160,10 @@ public:
     : Base(Forward<AArg>(aA), Forward<BArg>(aB))
   {}
 
+  Pair(Pair&& aOther)
+    : Base(Move(aOther.first()), Move(aOther.second()))
+  { }
+
   
   using Base::first;
   
@@ -177,6 +181,26 @@ void
 Swap(Pair<A, B>& aX, Pair<A, B>& aY)
 {
   aX.swap(aY);
+}
+
+
+
+
+
+
+
+
+
+template<typename A, typename B>
+Pair<typename RemoveCV<typename RemoveReference<A>::Type>::Type,
+     typename RemoveCV<typename RemoveReference<B>::Type>::Type>
+MakePair(A&& aA, B&& aB)
+{
+  return
+    Pair<typename RemoveCV<typename RemoveReference<A>::Type>::Type,
+         typename RemoveCV<typename RemoveReference<B>::Type>::Type>(
+             Forward<A>(aA),
+             Forward<B>(aB));
 }
 
 } 
