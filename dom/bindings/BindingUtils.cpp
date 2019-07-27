@@ -2504,15 +2504,7 @@ ConvertExceptionToPromise(JSContext* cx,
 void
 CreateGlobalOptions<nsGlobalWindow>::TraceGlobal(JSTracer* aTrc, JSObject* aObj)
 {
-  mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj);
-
-  
-  
-  
-  xpc::CompartmentPrivate* compartmentPrivate = xpc::CompartmentPrivate::Get(aObj);
-  if (compartmentPrivate && compartmentPrivate->scope) {
-    compartmentPrivate->scope->TraceSelf(aTrc);
-  }
+  xpc::TraceXPCGlobal(aTrc, aObj);
 }
 
 
