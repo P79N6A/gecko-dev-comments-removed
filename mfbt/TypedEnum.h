@@ -33,31 +33,6 @@
 
 
 
-#ifdef MOZ_HAVE_CXX11_ENUM_TYPE
-#  define MOZ_ENUM_TYPE(type)   : type
-#else
-#  define MOZ_ENUM_TYPE(type)
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -155,7 +130,7 @@
      class Name \
      { \
      public: \
-       enum Enum MOZ_ENUM_TYPE(type) \
+       enum Enum : type \
        {
 #  define MOZ_END_NESTED_ENUM_CLASS(Name) \
        }; \

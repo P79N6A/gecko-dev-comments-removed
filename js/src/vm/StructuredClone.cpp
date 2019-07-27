@@ -65,7 +65,7 @@ using JS::CanonicalizeNaN;
 
 
 
-enum StructuredDataType MOZ_ENUM_TYPE(uint32_t) {
+enum StructuredDataType : uint32_t {
     
     SCTAG_FLOAT_MAX = 0xFFF00000,
     SCTAG_NULL = 0xFFFF0000,

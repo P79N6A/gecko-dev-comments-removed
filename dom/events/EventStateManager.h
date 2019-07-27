@@ -429,7 +429,7 @@ protected:
     
 
 
-    enum Action MOZ_ENUM_TYPE(uint8_t)
+    enum Action : uint8_t
     {
       ACTION_NONE = 0,
       ACTION_SCROLL,

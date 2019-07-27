@@ -136,7 +136,7 @@
 
 
   #include "ErrorListCxxDefines.h"
-#elif defined(MOZ_HAVE_CXX11_ENUM_TYPE)
+#elif defined(__cplusplus)
   typedef enum tag_nsresult : uint32_t
   {
     #undef ERROR
@@ -144,21 +144,6 @@
     #include "ErrorList.h"
     #undef ERROR
   } nsresult;
-#elif defined(__cplusplus)
-  
-
-
-
-
-
-  typedef uint32_t nsresult;
-
-  const nsresult
-  #undef ERROR
-  #define ERROR(key, val) key = val
-  #include "ErrorList.h"
-  #undef ERROR
-    ;
 #else
   
 

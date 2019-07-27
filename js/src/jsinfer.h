@@ -293,7 +293,7 @@ public:
 };
 
 
-enum MOZ_ENUM_TYPE(uint32_t) {
+enum : uint32_t {
     TYPE_FLAG_UNDEFINED =   0x1,
     TYPE_FLAG_NULL      =   0x2,
     TYPE_FLAG_BOOLEAN   =   0x4,
@@ -352,7 +352,7 @@ enum MOZ_ENUM_TYPE(uint32_t) {
 typedef uint32_t TypeFlags;
 
 
-enum MOZ_ENUM_TYPE(uint32_t) {
+enum : uint32_t {
     
     OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
 

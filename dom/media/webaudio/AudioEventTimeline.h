@@ -23,7 +23,7 @@ namespace dom {
 
 
 struct AudioTimelineEvent {
-  enum Type MOZ_ENUM_TYPE(uint32_t) {
+  enum Type : uint32_t {
     SetValue,
     LinearRamp,
     ExponentialRamp,
