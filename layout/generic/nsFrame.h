@@ -221,8 +221,8 @@ public:
   virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
 #endif
 
-  virtual nsIFrame* GetParentStyleContextFrame() const MOZ_OVERRIDE {
-    return DoGetParentStyleContextFrame();
+  virtual nsStyleContext* GetParentStyleContext(nsIFrame** aProviderFrame) const MOZ_OVERRIDE {
+    return DoGetParentStyleContext(aProviderFrame);
   }
 
   
@@ -232,7 +232,13 @@ public:
 
 
 
-  nsIFrame* DoGetParentStyleContextFrame() const;
+
+
+
+
+
+
+  nsStyleContext* DoGetParentStyleContext(nsIFrame** aProviderFrame) const;
 
   virtual bool IsEmpty() MOZ_OVERRIDE;
   virtual bool IsSelfEmpty() MOZ_OVERRIDE;

@@ -2486,7 +2486,9 @@ public:
 
 
 
-  virtual nsIFrame* GetParentStyleContextFrame() const = 0;
+
+
+  virtual nsStyleContext* GetParentStyleContext(nsIFrame** aProviderFrame) const = 0;
 
   
 

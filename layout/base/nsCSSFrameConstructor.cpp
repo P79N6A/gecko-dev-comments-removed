@@ -2602,7 +2602,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   
   
   
-  mRootElementStyleFrame = contentFrame->GetParentStyleContextFrame();
+  contentFrame->GetParentStyleContext(&mRootElementStyleFrame);
   bool isChild = mRootElementStyleFrame &&
                  mRootElementStyleFrame->GetParent() == contentFrame;
   if (!isChild) {
@@ -6287,15 +6287,19 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
       nsGkAtoms::menuFrame == parentType) {
     
     if (UNSET_DISPLAY == aDisplay) {
-      nsRefPtr<nsStyleContext> styleContext;
-      nsIFrame* styleParent = aSibling->GetParentStyleContextFrame();
+      nsIFrame* styleParent;
+      aSibling->GetParentStyleContext(&styleParent);
+      if (!styleParent) {
+        styleParent = aSibling->GetParent();
+      }
       if (!styleParent) {
         NS_NOTREACHED("Shouldn't happen");
         return false;
       }
       
       
-      styleContext = ResolveStyleContext(styleParent, aContent, nullptr);
+      nsRefPtr<nsStyleContext> styleContext =
+        ResolveStyleContext(styleParent, aContent, nullptr);
       const nsStyleDisplay* display = styleContext->StyleDisplay();
       aDisplay = display->mDisplay;
     }

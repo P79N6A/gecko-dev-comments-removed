@@ -2,7 +2,10 @@
 
 
 
+
 #include "nsTableOuterFrame.h"
+
+#include "nsFrameManager.h"
 #include "nsTableFrame.h"
 #include "nsTableCellFrame.h"
 #include "nsStyleContext.h"
@@ -102,25 +105,32 @@ nsTableCaptionFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   return result;
 }
 
-nsIFrame*
-nsTableCaptionFrame::GetParentStyleContextFrame() const
+nsStyleContext*
+nsTableCaptionFrame::GetParentStyleContext(nsIFrame** aProviderFrame) const
 {
-  NS_PRECONDITION(mContent->GetParent(),
-                  "How could we not have a parent here?");
+  MOZ_ASSERT(GetContent()->GetParent(), "How could we not have a parent here?");
     
+  nsStyleContext* sc =
+    PresContext()->FrameManager()->GetDisplayContentsStyleFor(GetContent()->GetParent());
+  if (sc) {
+    *aProviderFrame = nullptr;
+    return sc;
+  }
+
   
   
   nsIFrame* outerFrame = GetParent();
   if (outerFrame && outerFrame->GetType() == nsGkAtoms::tableOuterFrame) {
     nsIFrame* innerFrame = outerFrame->GetFirstPrincipalChild();
     if (innerFrame) {
-      return nsFrame::CorrectStyleParentFrame(innerFrame,
-                                              StyleContext()->GetPseudo());
+      *aProviderFrame = nsFrame::CorrectStyleParentFrame(innerFrame,
+                                   StyleContext()->GetPseudo());
+      return *aProviderFrame ? (*aProviderFrame)->StyleContext() : nullptr;
     }
   }
 
   NS_NOTREACHED("Where is our inner table frame?");
-  return nsBlockFrame::GetParentStyleContextFrame();
+  return nsBlockFrame::GetParentStyleContext(aProviderFrame);
 }
 
 #ifdef ACCESSIBILITY
@@ -324,8 +334,8 @@ nsTableOuterFrame::BuildDisplayListForInnerTable(nsDisplayListBuilder*   aBuilde
   }
 }
 
-nsIFrame*
-nsTableOuterFrame::GetParentStyleContextFrame() const
+nsStyleContext*
+nsTableOuterFrame::GetParentStyleContext(nsIFrame** aProviderFrame) const
 {
   
   
@@ -337,7 +347,7 @@ nsTableOuterFrame::GetParentStyleContextFrame() const
   
   
 
-  return InnerTableFrame();
+  return (*aProviderFrame = InnerTableFrame())->StyleContext();
 }
 
 
