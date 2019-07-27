@@ -1,0 +1,71 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef AVFORMAT_VERSION_H
+#define AVFORMAT_VERSION_H
+
+
+
+
+
+
+
+#include "libavutil/avutil.h"
+
+#define LIBAVFORMAT_VERSION_MAJOR 54
+#define LIBAVFORMAT_VERSION_MINOR 20
+#define LIBAVFORMAT_VERSION_MICRO  4
+
+#define LIBAVFORMAT_VERSION_INT AV_VERSION_INT(LIBAVFORMAT_VERSION_MAJOR, \
+                                               LIBAVFORMAT_VERSION_MINOR, \
+                                               LIBAVFORMAT_VERSION_MICRO)
+#define LIBAVFORMAT_VERSION     AV_VERSION(LIBAVFORMAT_VERSION_MAJOR,   \
+                                           LIBAVFORMAT_VERSION_MINOR,   \
+                                           LIBAVFORMAT_VERSION_MICRO)
+#define LIBAVFORMAT_BUILD       LIBAVFORMAT_VERSION_INT
+
+#define LIBAVFORMAT_IDENT       "Lavf" AV_STRINGIFY(LIBAVFORMAT_VERSION)
+
+
+
+
+
+
+
+#ifndef FF_API_CLOSE_INPUT_FILE
+#define FF_API_CLOSE_INPUT_FILE        (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+#ifndef FF_API_APPLEHTTP_PROTO
+#define FF_API_APPLEHTTP_PROTO         (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+#ifndef FF_API_READ_PACKET
+#define FF_API_READ_PACKET             (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+#ifndef FF_API_INTERLEAVE_PACKET
+#define FF_API_INTERLEAVE_PACKET       (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+#ifndef FF_API_AV_GETTIME
+#define FF_API_AV_GETTIME              (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+#ifndef FF_API_R_FRAME_RATE
+#define FF_API_R_FRAME_RATE            (LIBAVFORMAT_VERSION_MAJOR < 55)
+#endif
+
+#endif 
