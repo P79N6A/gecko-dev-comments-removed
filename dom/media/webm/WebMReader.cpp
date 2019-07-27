@@ -1092,7 +1092,7 @@ nsresult WebMReader::GetBuffered(dom::TimeRanges* aBuffered)
     return NS_ERROR_FAILURE;
   }
 
-  MediaResource* resource = mDecoder->GetResource();
+  AutoPinned<MediaResource> resource(mDecoder->GetResource());
 
   
   if (mContext && resource->IsDataCachedToEndOfResource(0)) {
