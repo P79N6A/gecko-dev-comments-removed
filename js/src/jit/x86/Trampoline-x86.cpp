@@ -370,6 +370,9 @@ JitCode *
 JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
 {
     MacroAssembler masm(cx);
+    
+    
+    
 
     
     
@@ -380,6 +383,22 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     masm.mov(eax, ecx);
     masm.andl(Imm32(CalleeTokenMask), ecx);
     masm.movzwl(Operand(ecx, JSFunction::offsetOfNargs()), ecx);
+
+    
+    
+    
+    
+    static_assert(sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+    static_assert((sizeof(Value) + 2 * sizeof(void *)) % JitStackAlignment == 0,
+      "No need to consider |this| and the frame pointer and its padding for aligning the stack");
+    static_assert(JitStackAlignment % sizeof(Value) == 0,
+      "Ensure that we can pad the stack by pushing extra UndefinedValue");
+
+    const uint32_t alignment = JitStackAlignment / sizeof(Value);
+    MOZ_ASSERT(IsPowerOfTwo(alignment));
+    masm.addl(Imm32(alignment - 1 ), ecx);
+    masm.andl(Imm32(~(alignment - 1)), ecx);
     masm.subl(esi, ecx);
 
     
@@ -393,6 +412,17 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, void **returnAddrOut)
     
     masm.push(FramePointer);
     masm.movl(esp, FramePointer); 
+    masm.push(FramePointer );
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     
     {
