@@ -1238,18 +1238,14 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     RootedValue value(cx, desc.value());
 
     
-
-
-
-
+    
+    
     if (desc.isAccessorDescriptor()) {
         if (!NativeLookupOwnProperty<CanGC>(cx, obj, id, &shape))
             return false;
         if (shape) {
             
-
-
-
+            
             if (IsImplicitDenseOrTypedArrayElement(shape)) {
                 if (IsAnyTypedArray(obj)) {
                     
@@ -1327,10 +1323,8 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             if (IsImplicitDenseOrTypedArrayElement(shape)) {
                 if (IsAnyTypedArray(obj)) {
                     
-
-
-
-
+                    
+                    
                     return result.succeed();
                 }
                 if (!NativeObject::sparsifyDenseElement(cx, obj, JSID_TO_INT(id)))
@@ -1365,40 +1359,11 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         }
     }
 
-    if (!PurgeScopeChain(cx, obj, id))
-        return false;
-
     
     
     
     
     attrs = ApplyOrDefaultAttributes(attrs) & ~JSPROP_IGNORE_VALUE;
-
-    MOZ_ASSERT(getter != JS_PropertyStub);
-    MOZ_ASSERT(setter != JS_StrictPropertyStub);
-
-    
-    if (JSID_IS_INT(id) &&
-        !getter &&
-        !setter &&
-        attrs == JSPROP_ENUMERATE &&
-        (!obj->isIndexed() || !obj->containsPure(id)) &&
-        !IsAnyTypedArray(obj))
-    {
-        uint32_t index = JSID_TO_INT(id);
-        if (WouldDefinePastNonwritableLength(obj, index))
-            return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
-
-        NativeObject::EnsureDenseResult edResult = obj->ensureDenseElements(cx, index, 1);
-        if (edResult == NativeObject::ED_FAILED)
-            return false;
-        if (edResult == NativeObject::ED_OK) {
-            obj->setDenseElementWithType(cx, index, value);
-            if (!CallAddPropertyHookDense(cx, obj, index, value))
-                return false;
-            return result.succeed();
-        }
-    }
 
     if (obj->is<ArrayObject>()) {
         Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
@@ -1413,13 +1378,40 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             if (WouldDefinePastNonwritableLength(obj, index))
                 return result.fail(JSMSG_CANT_DEFINE_PAST_ARRAY_LENGTH);
         }
-    }
-
-    
-    if (IsAnyTypedArray(obj)) {
+    } else if (IsAnyTypedArray(obj)) {
+        
         uint64_t index;
         if (IsTypedArrayIndex(id, &index))
             return result.succeed();
+    }
+
+    
+    
+
+    MOZ_ASSERT(getter != JS_PropertyStub);
+    MOZ_ASSERT(setter != JS_StrictPropertyStub);
+
+    if (!PurgeScopeChain(cx, obj, id))
+        return false;
+
+    
+    if (JSID_IS_INT(id) &&
+        !getter &&
+        !setter &&
+        attrs == JSPROP_ENUMERATE &&
+        (!obj->isIndexed() || !obj->containsPure(id)) &&
+        !IsAnyTypedArray(obj))
+    {
+        uint32_t index = JSID_TO_INT(id);
+        NativeObject::EnsureDenseResult edResult = obj->ensureDenseElements(cx, index, 1);
+        if (edResult == NativeObject::ED_FAILED)
+            return false;
+        if (edResult == NativeObject::ED_OK) {
+            obj->setDenseElementWithType(cx, index, value);
+            if (!CallAddPropertyHookDense(cx, obj, index, value))
+                return false;
+            return result.succeed();
+        }
     }
 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
@@ -1431,9 +1423,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
         return false;
 
     
-
-
-
+    
     if (JSID_IS_INT(id)) {
         if (!obj->maybeCopyElementsForWrite(cx))
             return false;
