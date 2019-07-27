@@ -186,12 +186,14 @@ function promiseRejects(promise) {
   return promise.then(() => false, () => true);
 }
 
+if (runningInParent) {
+  
+  Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
+  
+  Services.prefs.setBoolPref("toolkit.telemetry.archive.enabled", true);
+}
 
-Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
 TelemetryController.initLogging();
-
-
-Services.prefs.setBoolPref("toolkit.telemetry.archive.enabled", true);
 
 
 fakeSchedulerTimer(() => {}, () => {});

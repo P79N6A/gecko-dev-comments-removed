@@ -158,6 +158,13 @@ this.TelemetryController = Object.freeze({
   
 
 
+  setupContent: function() {
+    return Impl.setupContentTelemetry(true);
+  },
+
+  
+
+
   observe: function (aSubject, aTopic, aData) {
     return Impl.observe(aSubject, aTopic, aData);
   },
@@ -690,6 +697,21 @@ let Impl = {
   },
 
   
+
+
+
+  setupContentTelemetry: function (testing = false) {
+    this._testMode = testing;
+
+    
+    
+    if (!this.enableTelemetryRecording()) {
+      this._log.trace("setupContentTelemetry - Content process recording disabled.");
+      return;
+    }
+  },
+
+  
   _cleanupOnShutdown: Task.async(function*() {
     if (!this._initialized) {
       return;
@@ -761,12 +783,7 @@ let Impl = {
       return this.setupTelemetry();
     case "app-startup":
       
-      
-      
-      if (!this.enableTelemetryRecording()) {
-        this._log.trace("observe - Content process recording disabled.");
-        return;
-      }
+      return this.setupContentTelemetry();
       break;
     }
   },
