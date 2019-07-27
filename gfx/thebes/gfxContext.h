@@ -157,16 +157,6 @@ public:
     void LineTo(const gfxPoint& pt);
 
     
-
-
-    void CurveTo(const gfxPoint& pt1, const gfxPoint& pt2, const gfxPoint& pt3);
-
-    
-
-
-    void QuadraticCurveTo(const gfxPoint& pt1, const gfxPoint& pt2);
-
-    
     
 
 
