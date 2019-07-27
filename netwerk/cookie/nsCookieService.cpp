@@ -8,11 +8,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Likely.h"
 
-#ifdef MOZ_LOGGING
-
-#define FORCE_PR_LOG
-#endif
-
 #include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoCommon.h"
 

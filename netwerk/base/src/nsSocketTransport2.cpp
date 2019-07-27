@@ -4,10 +4,6 @@
 
 
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG
-#endif
-
 #include "nsSocketTransport2.h"
 
 #include "mozilla/Attributes.h"

@@ -254,9 +254,6 @@ private:
   void FireLoadEvent(nsIThreadInternal* aThread);
 };
 
-#ifdef MOZ_LOGGING
-
-#endif 
 #include "prlog.h"
 
 #ifdef PR_LOGGING

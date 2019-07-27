@@ -9,15 +9,6 @@
 #ifndef logging_h__
 #define logging_h__
 
-#if defined(PR_LOG)
-#error "Must #include logging.h before any IPDL-generated files or other files that #include prlog.h."
-#endif
-
-
-#ifndef PR_LOGGING
-#define FORCE_PR_LOG 1
-#endif
-
 #include <sstream>
 #include <prlog.h>
 
