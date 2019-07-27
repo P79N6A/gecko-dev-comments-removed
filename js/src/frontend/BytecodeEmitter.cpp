@@ -2016,6 +2016,12 @@ CheckSideEffects(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool
                 *answer = true;
             }
         }
+
+        if (pn->isHoistedLetUse()) {
+            
+            *answer = true;
+        }
+
         if (pn->isKind(PNK_DOT)) {
             
             *answer = true;
