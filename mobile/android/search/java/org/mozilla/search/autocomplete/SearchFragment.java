@@ -108,6 +108,11 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
             }
         });
 
+        
+        
+        
+        mainView.setClickable(false);
+
         editText = (ClearableEditText) mainView.findViewById(R.id.auto_complete_edit_text);
         editText.setOnClickListener(new View.OnClickListener() {
             @Override
