@@ -1207,6 +1207,7 @@ pref("security.sandbox.windows.log", false);
 
 
 pref("dom.ipc.plugins.sandbox-level.default", 0);
+pref("dom.ipc.plugins.sandbox-level.flash", 0);
 
 #if defined(MOZ_CONTENT_SANDBOX)
 
@@ -1410,7 +1411,7 @@ pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
 pref("devtools.inspector.remote", false);
 
-pref("devtools.inspector.show_pseudo_elements", false);
+pref("devtools.inspector.show_pseudo_elements", true);
 
 pref("devtools.inspector.imagePreviewTooltipSize", 300);
 
@@ -1469,7 +1470,7 @@ pref("devtools.performance.ui.show-idle-blocks", true);
 pref("devtools.performance.ui.enable-memory", false);
 pref("devtools.performance.ui.enable-allocations", false);
 pref("devtools.performance.ui.enable-framerate", true);
-pref("devtools.performance.ui.enable-jit-optimizations", false);
+pref("devtools.performance.ui.show-jit-optimizations", false);
 
 
 #if defined(NIGHTLY_BUILD)
@@ -1835,9 +1836,6 @@ pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox
 
 
 pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
-
-
-pref("identity.fxaccounts.profile_image.enabled", true);
 
 
 

@@ -2972,6 +2972,29 @@ void* nsWindow::GetNativeData(uint32_t aDataType)
   return nullptr;
 }
 
+void
+nsWindow::SetNativeData(uint32_t aDataType, uintptr_t aVal)
+{
+  switch (aDataType) {
+    case NS_NATIVE_CHILD_WINDOW:
+      {
+        HWND childWindow = reinterpret_cast<HWND>(aVal);
+
+        
+        LONG_PTR style = GetWindowLongPtr(childWindow, GWL_STYLE);
+        style |= WS_CHILD;
+        style &= ~WS_POPUP;
+        SetWindowLongPtr(childWindow, GWL_STYLE, style);
+
+        
+        ::SetParent(childWindow, mWnd);
+        break;
+      }
+    default:
+      NS_ERROR("SetNativeData called with unsupported data type.");
+  }
+}
+
 
 void nsWindow::FreeNativeData(void * data, uint32_t aDataType)
 {

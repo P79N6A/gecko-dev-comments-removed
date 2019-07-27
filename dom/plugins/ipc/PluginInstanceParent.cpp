@@ -49,6 +49,8 @@
 #include "mozilla/plugins/PluginSurfaceParent.h"
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
+#include "nsIWidget.h"
+#include "nsPluginNativeWindow.h"
 extern const wchar_t* kFlashFullscreenClass;
 #elif defined(MOZ_WIDGET_GTK)
 #include <gdk/gdk.h>
@@ -1025,8 +1027,30 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
     window.colormap = ws_info->colormap;
 #endif
 
-    if (!CallNPP_SetWindow(window))
+    NPRemoteWindow childWindow;
+    if (!CallNPP_SetWindow(window, &childWindow)) {
         return NPERR_GENERIC_ERROR;
+    }
+
+#if defined(XP_WIN)
+    
+    if (childWindow.window) {
+        nsCOMPtr<nsIWidget> widget;
+        static_cast<const nsPluginNativeWindow*>(aWindow)->
+            GetPluginWidget(getter_AddRefs(widget));
+        if (widget) {
+            widget->SetNativeData(NS_NATIVE_CHILD_WINDOW,
+                                  static_cast<uintptr_t>(childWindow.window));
+        }
+
+        
+        
+        HWND childHWND = reinterpret_cast<HWND>(childWindow.window);
+        ShowWindow(childHWND, SW_SHOWNA);
+        SetWindowPos(childHWND, nullptr, 0, 0, window.width, window.height,
+                     SWP_NOZORDER | SWP_NOREPOSITION);
+    }
+#endif
 
     return NPERR_NO_ERROR;
 }
