@@ -127,6 +127,7 @@ class WebIDLCodegenManager(LoggingMixin):
 
     
     GLOBAL_DECLARE_FILES = {
+        'FeatureList.h',
         'GeneratedAtomList.h',
         'PrototypeList.h',
         'RegisterBindings.h',
