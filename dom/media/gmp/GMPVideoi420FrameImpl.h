@@ -7,7 +7,6 @@
 #define GMPVideoi420FrameImpl_h_
 
 #include "gmp-video-frame-i420.h"
-#include "mozilla/UniquePtr.h"
 #include "mozilla/ipc/Shmem.h"
 #include "GMPVideoPlaneImpl.h"
 
@@ -79,15 +78,6 @@ private:
 };
 
 } 
-
-template<>
-struct DefaultDelete<mozilla::gmp::GMPVideoi420FrameImpl>
-{
-  void operator()(mozilla::gmp::GMPVideoi420FrameImpl* aFrame) const
-  {
-    aFrame->Destroy();
-  }
-};
 
 } 
 
