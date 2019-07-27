@@ -1745,6 +1745,10 @@ pref("security.mixed_content.block_active_content", true);
 pref("security.cert_pinning.enforcement_level", 1);
 
 
+
+pref("security.onecrl.maximum_staleness_in_seconds", 0);
+
+
 pref("plain_text.wrap_long_lines", true);
 
 
