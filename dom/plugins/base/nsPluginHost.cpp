@@ -1959,9 +1959,39 @@ struct CompareFilesByTime
 
 } 
 
+bool
+nsPluginHost::ShouldAddPlugin(nsPluginTag* aPluginTag)
+{
+#if defined(XP_WIN) && (defined(__x86_64__) || defined(_M_X64))
+  
+  
+  if (StringBeginsWith(aPluginTag->mFileName, NS_LITERAL_CSTRING("NPSWF"), nsCaseInsensitiveCStringComparator()) &&
+      (aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-shockwave-flash")) ||
+       aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-shockwave-flash-test")))) {
+    return true;
+  }
+  
+  if (aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-test")) ||
+      aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-Second-Test")) ||
+      aPluginTag->HasMimeType(NS_LITERAL_CSTRING("application/x-java-test"))) {
+    return true;
+  }
+#ifdef PLUGIN_LOGGING
+  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
+             ("ShouldAddPlugin : Ignoring non-flash plugin library %s\n", aPluginTag->mFileName.get()));
+#endif 
+  return false;
+#else
+  return true;
+#endif 
+}
+
 void
 nsPluginHost::AddPluginTag(nsPluginTag* aPluginTag)
 {
+  if (!ShouldAddPlugin(aPluginTag)) {
+    return;
+  }
   aPluginTag->mNext = mPlugins;
   mPlugins = aPluginTag;
 
@@ -3119,6 +3149,11 @@ nsPluginHost::ReadPluginInfo()
 
     MOZ_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_BASIC,
       ("LoadCachedPluginsInfo : Loading Cached plugininfo for %s\n", tag->mFileName.get()));
+
+    if (!ShouldAddPlugin(tag)) {
+      continue;
+    }
+
     tag->mNext = mCachedPlugins;
     mCachedPlugins = tag;
   }
