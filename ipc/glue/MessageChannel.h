@@ -242,7 +242,7 @@ class MessageChannel : HasResultCodes
 
     
     
-    void DispatchSyncMessage(const Message &aMsg);
+    void DispatchSyncMessage(const Message &aMsg, Message*& aReply);
     void DispatchUrgentMessage(const Message &aMsg);
     void DispatchAsyncMessage(const Message &aMsg);
     void DispatchRPCMessage(const Message &aMsg);
