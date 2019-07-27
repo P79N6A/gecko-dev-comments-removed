@@ -9,7 +9,6 @@
 
 #include "nsAutoPtr.h"
 #include "Decoder.h"
-#include "imgFrame.h"
 #include "nsBMPDecoder.h"
 #include "nsPNGDecoder.h"
 #include "ICOFileHeaders.h"
@@ -83,7 +82,6 @@ private:
   uint32_t mRowBytes; 
   int32_t mOldLine;   
   nsRefPtr<Decoder> mContainedDecoder; 
-  RawAccessFrameRef mRefForContainedDecoder; 
 
   char mDirEntryArray[ICODIRENTRYSIZE]; 
   IconDirEntry mDirEntry; 
