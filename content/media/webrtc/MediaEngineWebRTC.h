@@ -28,9 +28,9 @@
 #include "MediaStreamGraph.h"
 
 #include "MediaEngineWrapper.h"
+#include "mozilla/dom/MediaStreamTrackBinding.h"
 
-
-
+#include "webrtc/common.h"
 
 #include "webrtc/voice_engine/include/voe_base.h"
 #include "webrtc/voice_engine/include/voe_codec.h"
@@ -95,12 +95,14 @@ class MediaEngineWebRTCVideoSource : public MediaEngineVideoSource
 {
 public:
 #ifdef MOZ_B2G_CAMERA
-  MediaEngineWebRTCVideoSource(int aIndex)
+  MediaEngineWebRTCVideoSource(int aIndex,
+                               dom::MediaSourceEnum aMediaSource = dom::MediaSourceEnum::Camera)
     : mCameraControl(nullptr)
     , mCallbackMonitor("WebRTCCamera.CallbackMonitor")
     , mRotation(0)
     , mBackCamera(false)
     , mCaptureIndex(aIndex)
+    , mMediaSource(aMediaSource)
     , mMonitor("WebRTCCamera.Monitor")
     , mWidth(0)
     , mHeight(0)
@@ -124,11 +126,13 @@ public:
 
   virtual bool IsTextureSupported() { return false; }
 
-  MediaEngineWebRTCVideoSource(webrtc::VideoEngine* aVideoEnginePtr, int aIndex)
+  MediaEngineWebRTCVideoSource(webrtc::VideoEngine* aVideoEnginePtr, int aIndex,
+                               dom::MediaSourceEnum aMediaSource = dom::MediaSourceEnum::Camera)
     : mVideoEngine(aVideoEnginePtr)
     , mCaptureIndex(aIndex)
     , mFps(-1)
     , mMinFps(-1)
+    , mMediaSource(aMediaSource)
     , mMonitor("WebRTCCamera.Monitor")
     , mWidth(0)
     , mHeight(0)
@@ -163,6 +167,10 @@ public:
 
   virtual bool IsFake() {
     return false;
+  }
+
+  virtual const dom::MediaSourceEnum GetMediaSource() {
+    return mMediaSource;
   }
 
 #ifndef MOZ_B2G_CAMERA
@@ -239,6 +247,7 @@ private:
   int mCaptureIndex;
   int mFps; 
   int mMinFps; 
+  dom::MediaSourceEnum mMediaSource; 
 
   
   
@@ -381,9 +390,10 @@ public:
   
   void Shutdown();
 
-  virtual void EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSource> >*);
-  virtual void EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSource> >*);
-
+  virtual void EnumerateVideoDevices(dom::MediaSourceEnum,
+                                    nsTArray<nsRefPtr<MediaEngineVideoSource> >*);
+  virtual void EnumerateAudioDevices(dom::MediaSourceEnum,
+                                    nsTArray<nsRefPtr<MediaEngineAudioSource> >*);
 private:
   ~MediaEngineWebRTC() {
     Shutdown();
@@ -397,14 +407,22 @@ private:
   nsCOMPtr<nsIThread> mThread;
 
   Mutex mMutex;
-  
 
+  
+  webrtc::VideoEngine* mScreenEngine;
+  webrtc::VideoEngine* mAppEngine;
   webrtc::VideoEngine* mVideoEngine;
   webrtc::VoiceEngine* mVoiceEngine;
 
   
+  webrtc::Config mAppEngineConfig;
+  webrtc::Config mScreenEngineConfig;
+
+  
   bool mVideoEngineInit;
   bool mAudioEngineInit;
+  bool mScreenEngineInit;
+  bool mAppEngineInit;
   bool mHasTabVideoSource;
 
   

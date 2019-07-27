@@ -9,6 +9,7 @@
 #include "nsIDOMFile.h"
 #include "DOMMediaStream.h"
 #include "MediaStreamGraph.h"
+#include "mozilla/dom/MediaStreamTrackBinding.h"
 
 namespace mozilla {
 
@@ -54,11 +55,13 @@ public:
 
   
 
-  virtual void EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSource> >*) = 0;
+  virtual void EnumerateVideoDevices(dom::MediaSourceEnum,
+                                     nsTArray<nsRefPtr<MediaEngineVideoSource> >*) = 0;
 
   
 
-  virtual void EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSource> >*) = 0;
+  virtual void EnumerateAudioDevices(dom::MediaSourceEnum,
+                                     nsTArray<nsRefPtr<MediaEngineAudioSource> >*) = 0;
 
 protected:
   virtual ~MediaEngine() {}
@@ -182,6 +185,9 @@ class MediaEngineVideoSource : public MediaEngineSource
 public:
   virtual ~MediaEngineVideoSource() {}
 
+  virtual const dom::MediaSourceEnum GetMediaSource() {
+      return dom::MediaSourceEnum::Camera;
+  }
   
   virtual nsresult Allocate(const VideoTrackConstraintsN &aConstraints,
                             const MediaEnginePrefs &aPrefs) = 0;
