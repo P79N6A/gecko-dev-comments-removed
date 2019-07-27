@@ -26,6 +26,16 @@ this.AddonTestUtils = {
 
 
 
+  getAddonById: function (id) {
+    return new Promise(resolve => AddonManager.getAddonByID(id, addon => resolve(addon)));
+  },
+
+  
+
+
+
+
+
 
 
   uninstallAddonByID: function (id) {
