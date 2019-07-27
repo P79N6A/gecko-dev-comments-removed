@@ -858,12 +858,13 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
 
       
       
-      MOZ_ASSERT(
-        collection->mElementProperty == nsGkAtoms::transitionsProperty ||
-        collection->mElementProperty ==
-          nsGkAtoms::transitionsOfBeforeProperty ||
-        collection->mElementProperty == nsGkAtoms::transitionsOfAfterProperty,
-        "Unexpected element property; might restyle too much");
+      MOZ_ASSERT(collection->mElementProperty ==
+                   nsGkAtoms::transitionsProperty ||
+                 collection->mElementProperty ==
+                   nsGkAtoms::transitionsOfBeforeProperty ||
+                 collection->mElementProperty ==
+                   nsGkAtoms::transitionsOfAfterProperty,
+                 "Unexpected element property; might restyle too much");
       if (!canThrottleTick || transitionStartedOrEnded) {
         collection->PostRestyleForAnimation(mPresContext);
       } else {
