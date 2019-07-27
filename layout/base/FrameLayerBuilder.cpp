@@ -1986,8 +1986,12 @@ ContainerState::GetLayerCreationHint(const nsIFrame* aAnimatedGeometryRoot)
     return LayerManager::SCROLLABLE;
   }
   nsIFrame* animatedGeometryRootParent = aAnimatedGeometryRoot->GetParent();
-  if (animatedGeometryRootParent &&
-      animatedGeometryRootParent->GetType() == nsGkAtoms::scrollFrame) {
+  nsIScrollableFrame* scrollable = do_QueryFrame(animatedGeometryRootParent);
+  if (scrollable && scrollable->WantAsyncScroll()) {
+    
+    
+    
+    
     return LayerManager::SCROLLABLE;
   }
   return LayerManager::NONE;
