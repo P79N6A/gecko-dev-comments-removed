@@ -847,11 +847,17 @@ public:
 void
 ServiceWorkerRegistrationWorkerThread::ReleaseListener(Reason aReason)
 {
-  
-  MOZ_ASSERT(!NS_IsMainThread());
   if (!mListener) {
     return;
   }
+
+  
+  
+  
+  
+  
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  mWorkerPrivate->RemoveFeature(mWorkerPrivate->GetJSContext(), this);
 
   mListener->ClearRegistration();
 
@@ -870,6 +876,13 @@ ServiceWorkerRegistrationWorkerThread::ReleaseListener(Reason aReason)
   }
   mListener = nullptr;
   mWorkerPrivate = nullptr;
+}
+
+bool
+ServiceWorkerRegistrationWorkerThread::Notify(JSContext* aCx, workers::Status aStatus)
+{
+  ReleaseListener(WorkerIsGoingAway);
+  return true;
 }
 
 class FireUpdateFoundRunnable final : public WorkerRunnable
