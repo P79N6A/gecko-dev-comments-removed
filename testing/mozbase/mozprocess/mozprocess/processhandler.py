@@ -212,10 +212,11 @@ class ProcessHandlerMixin(object):
                     args = comspec + " /c " + args
 
                 
-                canCreateJob = winprocess.CanCreateJobObject()
+                can_create_job = winprocess.CanCreateJobObject()
+                can_nest_jobs = self._can_nest_jobs()
 
                 
-                if not canCreateJob and not self._ignore_children:
+                if not (can_create_job or can_nest_jobs) and not self._ignore_children:
                     
                     
                     print >> sys.stderr, "ProcessManager UNABLE to use job objects to manage child processes"
@@ -223,9 +224,9 @@ class ProcessHandlerMixin(object):
                 
                 creationflags |= winprocess.CREATE_SUSPENDED
                 creationflags |= winprocess.CREATE_UNICODE_ENVIRONMENT
-                if canCreateJob:
+                if can_create_job:
                     creationflags |= winprocess.CREATE_BREAKAWAY_FROM_JOB
-                else:
+                if not (can_create_job or can_nest_jobs):
                     
                     
                     print "ProcessManager NOT managing child processes"
@@ -244,7 +245,7 @@ class ProcessHandlerMixin(object):
                 self.pid = pid
                 self.tid = tid
 
-                if not self._ignore_children and canCreateJob:
+                if not self._ignore_children and (can_create_job or can_nest_jobs):
                     try:
                         
                         
@@ -317,6 +318,17 @@ falling back to not using job objects for managing child processes"""
                 for i in (p2cread, c2pwrite, errwrite):
                     if i is not None:
                         i.Close()
+
+            def _can_nest_jobs(self):
+                
+                
+                
+                
+                
+                winver = sys.getwindowsversion()
+                return (winver.major > 6 or
+                        winver.major == 6 and winver.minor >= 2)
+
 
             
             
