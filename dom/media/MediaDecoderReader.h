@@ -57,6 +57,7 @@ public:
   
   
   
+  
   virtual void Shutdown();
 
   virtual void SetCallback(RequestSampleCallback* aDecodedSampleCallback);
