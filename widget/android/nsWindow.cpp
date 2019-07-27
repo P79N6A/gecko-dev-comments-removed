@@ -1681,6 +1681,23 @@ nsWindow::RemoveIMEComposition()
     DispatchEvent(&compositionCommitEvent);
 }
 
+
+
+
+
+
+void
+nsWindow::SendIMEDummyKeyEvents()
+{
+    WidgetKeyboardEvent downEvent(true, NS_KEY_DOWN, this);
+    MOZ_ASSERT(downEvent.keyCode == 0);
+    DispatchEvent(&downEvent);
+
+    WidgetKeyboardEvent upEvent(true, NS_KEY_UP, this);
+    MOZ_ASSERT(upEvent.keyCode == 0);
+    DispatchEvent(&upEvent);
+}
+
 void
 nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
 {
@@ -1837,6 +1854,10 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
                         true, NS_COMPOSITION_COMMIT_AS_IS, this);
                 InitEvent(compositionCommitEvent, nullptr);
                 DispatchEvent(&compositionCommitEvent);
+            }
+
+            if (mInputContext.mMayBeIMEUnaware) {
+                SendIMEDummyKeyEvents();
             }
 
             FlushIMEChanges();
@@ -2087,8 +2108,6 @@ nsWindow::SetInputContext(const InputContext& aContext,
             aContext.mIMEState.mEnabled, aContext.mIMEState.mOpen,
             aAction.mCause, aAction.mFocusChange);
 
-    mInputContext = aContext;
-
     
     
     if (aContext.mIMEState.mEnabled != IMEState::DISABLED && 
@@ -2108,6 +2127,7 @@ nsWindow::SetInputContext(const InputContext& aContext,
         enabled = IMEState::DISABLED;
     }
 
+    mInputContext = aContext;
     mInputContext.mIMEState.mEnabled = enabled;
 
     if (enabled == IMEState::ENABLED && aAction.UserMightRequestOpenVKB()) {
