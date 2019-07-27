@@ -23,7 +23,7 @@ function init()
 
 eval("init()");
 
-gcslice(0);
+gcslice(0); 
 selectforgc(objs.root2);
 gcslice(1);
 objs.root2.ptr = objs.root1.ptr;
