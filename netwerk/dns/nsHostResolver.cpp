@@ -625,7 +625,7 @@ nsHostResolver::FlushCache()
     }
 
     
-    for (auto iter = mDB.RemovingIter(); !iter.Done(); iter.Next()) {
+    for (auto iter = mDB.Iter(); !iter.Done(); iter.Next()) {
         auto entry = static_cast<nsHostDBEnt *>(iter.Get());
         
         if (entry->rec->RemoveOrRefresh()) {

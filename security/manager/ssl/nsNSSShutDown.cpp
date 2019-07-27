@@ -177,7 +177,7 @@ nsresult nsNSSShutDownList::evaporateAllNSSResources()
   
   while (true) {
     MutexAutoLock lock(mListLock);
-    auto iter = mObjects.RemovingIter();
+    auto iter = mObjects.Iter();
     if (iter.Done()) {
       break;
     }

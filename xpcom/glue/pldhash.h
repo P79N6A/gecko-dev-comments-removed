@@ -369,22 +369,34 @@ public:
   
   
   
+  
+  
+  
+  
+  
   class Iterator
   {
   public:
-    explicit Iterator(const PLDHashTable* aTable);
+    explicit Iterator(PLDHashTable* aTable);
     Iterator(Iterator&& aOther);
     ~Iterator();
+
     bool Done() const;                
     PLDHashEntryHdr* Get() const;     
     void Next();                      
 
+    
+    
+    void Remove();
+
   protected:
-    const PLDHashTable* mTable;       
+    PLDHashTable* mTable;             
 
   private:
     char* mCurrent;                   
     char* mLimit;                     
+
+    bool mHaveRemoved;                
 
     bool IsOnNonLiveEntry() const;
 
@@ -394,35 +406,13 @@ public:
     Iterator& operator=(const Iterator&&) = delete;
   };
 
-  Iterator Iter() const { return Iterator(this); }
+  Iterator Iter() { return Iterator(this); }
 
   
   
-  
-  
-  class RemovingIterator : public Iterator
+  Iterator ConstIter() const
   {
-  public:
-    explicit RemovingIterator(PLDHashTable* aTable);
-    RemovingIterator(RemovingIterator&& aOther);
-    ~RemovingIterator();
-
-    
-    
-    void Remove();
-
-  private:
-    bool mHaveRemoved;      
-
-    RemovingIterator() = delete;
-    RemovingIterator(const RemovingIterator&) = delete;
-    RemovingIterator& operator=(const RemovingIterator&) = delete;
-    RemovingIterator& operator=(const RemovingIterator&&) = delete;
-  };
-
-  RemovingIterator RemovingIter() const
-  {
-    return RemovingIterator(const_cast<PLDHashTable*>(this));
+    return Iterator(const_cast<PLDHashTable*>(this));
   }
 
 private:

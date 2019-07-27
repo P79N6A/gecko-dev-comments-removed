@@ -51,10 +51,6 @@ TEST(PLDHashTableTest, LazyStorage)
     ASSERT_TRUE(false); 
   }
 
-  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
-    ASSERT_TRUE(false); 
-  }
-
   
   
   mozilla::MallocSizeOf mallocSizeOf = nullptr;
@@ -185,19 +181,8 @@ TEST(PLDHashTableIterator, Iterator)
     n++;
   }
   ASSERT_TRUE(saw77 && saw88 && saw99 && n == 3);
-}
 
-TEST(PLDHashTableTest, RemovingIterator)
-{
-  PLDHashTable t(&trivialOps, sizeof(PLDHashEntryStub));
-
-  
-  
-  
-  {
-    PLDHashTable::RemovingIterator iter1(&t);
-    PLDHashTable::RemovingIterator iter2(mozilla::Move(iter1));
-  }
+  t.Clear();
 
   
   
@@ -209,7 +194,7 @@ TEST(PLDHashTableTest, RemovingIterator)
 
   
   
-  for (PLDHashTable::RemovingIterator iter(&t); !iter.Done(); iter.Next()) {
+  for (PLDHashTable::Iterator iter(&t); !iter.Done(); iter.Next()) {
     (void) iter.Get();
   }
   ASSERT_EQ(t.EntryCount(), 64u);
@@ -217,7 +202,7 @@ TEST(PLDHashTableTest, RemovingIterator)
 
   
   
-  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+  for (auto iter = t.Iter(); !iter.Done(); iter.Next()) {
     auto entry = static_cast<PLDHashEntryStub*>(iter.Get());
     if ((intptr_t)(entry->key) % 4 == 0) {
       iter.Remove();
@@ -228,7 +213,7 @@ TEST(PLDHashTableTest, RemovingIterator)
 
   
   
-  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+  for (auto iter = t.Iter(); !iter.Done(); iter.Next()) {
     auto entry = static_cast<PLDHashEntryStub*>(iter.Get());
     if ((intptr_t)(entry->key) % 2 == 0) {
       iter.Remove();
@@ -239,7 +224,7 @@ TEST(PLDHashTableTest, RemovingIterator)
 
   
   
-  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+  for (auto iter = t.Iter(); !iter.Done(); iter.Next()) {
     iter.Remove();
   }
   ASSERT_EQ(t.EntryCount(), 0u);

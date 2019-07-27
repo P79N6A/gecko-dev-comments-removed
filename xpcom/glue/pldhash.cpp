@@ -753,7 +753,7 @@ PLDHashTable::SizeOfExcludingThis(
 
   size_t n = aMallocSizeOf(mEntryStore);
   if (aSizeOfEntryExcludingThis) {
-    for (auto iter = Iter(); !iter.Done(); iter.Next()) {
+    for (auto iter = ConstIter(); !iter.Done(); iter.Next()) {
       n += aSizeOfEntryExcludingThis(iter.Get(), aMallocSizeOf, aArg);
     }
   }
@@ -794,17 +794,20 @@ PLDHashTable::Iterator::Iterator(Iterator&& aOther)
   : mTable(aOther.mTable)
   , mCurrent(aOther.mCurrent)
   , mLimit(aOther.mLimit)
+  , mHaveRemoved(aOther.mHaveRemoved)
 {
   
   aOther.mTable = nullptr;
   aOther.mCurrent = nullptr;
   aOther.mLimit = nullptr;
+  aOther.mHaveRemoved = false;
 }
 
-PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
+PLDHashTable::Iterator::Iterator(PLDHashTable* aTable)
   : mTable(aTable)
   , mCurrent(mTable->mEntryStore)
   , mLimit(mTable->mEntryStore + mTable->Capacity() * mTable->mEntrySize)
+  , mHaveRemoved(false)
 {
 #ifdef DEBUG
   mTable->mChecker.StartReadOp();
@@ -818,11 +821,14 @@ PLDHashTable::Iterator::Iterator(const PLDHashTable* aTable)
 
 PLDHashTable::Iterator::~Iterator()
 {
-#ifdef DEBUG
   if (mTable) {
+    if (mHaveRemoved) {
+      mTable->ShrinkIfAppropriate();
+    }
+#ifdef DEBUG
     mTable->mChecker.EndReadOp();
-  }
 #endif
+  }
 }
 
 bool
@@ -857,41 +863,11 @@ PLDHashTable::Iterator::Next()
   } while (IsOnNonLiveEntry());
 }
 
-PLDHashTable::RemovingIterator::RemovingIterator(RemovingIterator&& aOther)
-  : Iterator(mozilla::Move(aOther))
-  , mHaveRemoved(aOther.mHaveRemoved)
-{
-  
-  
-  
-}
-
-PLDHashTable::RemovingIterator::RemovingIterator(PLDHashTable* aTable)
-  : Iterator(aTable)
-  , mHaveRemoved(false)
-{
-}
-
-PLDHashTable::RemovingIterator::~RemovingIterator()
-{
-  if (mHaveRemoved) {
-#ifdef DEBUG
-    AutoIteratorRemovalOp op(mTable->mChecker);
-#endif
-
-    
-    
-    
-    
-    const_cast<PLDHashTable*>(mTable)->ShrinkIfAppropriate();
-  }
-}
-
 void
-PLDHashTable::RemovingIterator::Remove()
+PLDHashTable::Iterator::Remove()
 {
   
-  const_cast<PLDHashTable*>(mTable)->RawRemove(Get());
+  mTable->RawRemove(Get());
   mHaveRemoved = true;
 }
 
