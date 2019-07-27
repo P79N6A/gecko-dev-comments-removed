@@ -17,9 +17,8 @@ add_task(function*() {
   if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete"))
     return;
 
-  let itemIds = [];
   registerCleanupFunction(() => {
-    itemIds.forEach(PlacesUtils.bookmarks.removeItem);
+    PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
   });
 
   let itemId =
@@ -28,7 +27,6 @@ add_task(function*() {
                                          PlacesUtils.bookmarks.DEFAULT_INDEX,
                                          "test");
   PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "keyword");
-  itemIds.push(itemId);
 
   
   
@@ -37,12 +35,10 @@ add_task(function*() {
                                          NetUtil.newURI("http://example.com/keyword"),
                                          PlacesUtils.bookmarks.DEFAULT_INDEX,
                                          "keyword abc");
-  itemIds.push(itemId);
 
   yield promiseAutoComplete("keyword a");
 
   
-  EventUtils.synthesizeKey("VK_DOWN", {});
   is_selected(0);
   
   EventUtils.synthesizeKey("VK_DOWN", {});
