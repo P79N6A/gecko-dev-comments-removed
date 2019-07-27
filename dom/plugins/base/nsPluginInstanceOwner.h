@@ -26,7 +26,7 @@
 class nsIInputStream;
 struct nsIntRect;
 class nsPluginDOMContextMenuListener;
-class nsObjectFrame;
+class nsPluginFrame;
 class nsDisplayListBuilder;
 
 namespace mozilla {
@@ -155,8 +155,8 @@ public:
   void UpdateDocumentActiveState(bool aIsActive);
 #endif 
 
-  void SetFrame(nsObjectFrame *aFrame);
-  nsObjectFrame* GetFrame();
+  void SetFrame(nsPluginFrame *aFrame);
+  nsPluginFrame* GetFrame();
 
   uint32_t GetLastEventloopNestingLevel() const {
     return mLastEventloopNestingLevel; 
@@ -276,7 +276,7 @@ private:
  
   nsPluginNativeWindow       *mPluginWindow;
   nsRefPtr<nsNPAPIPluginInstance> mInstance;
-  nsObjectFrame              *mObjectFrame;
+  nsPluginFrame              *mObjectFrame;
   nsIContent                 *mContent; 
   nsCString                   mDocumentBase;
   bool                        mWidgetCreationComplete;

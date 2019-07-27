@@ -26,7 +26,7 @@
 class nsAsyncInstantiateEvent;
 class nsStopPluginRunnable;
 class AutoSetInstantiatingToFalse;
-class nsObjectFrame;
+class nsPluginFrame;
 class nsFrameLoader;
 class nsXULElement;
 class nsPluginInstanceOwner;
@@ -502,7 +502,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    nsObjectFrame* GetExistingFrame();
+    nsPluginFrame* GetExistingFrame();
 
     
     class SetupProtoChainRunner MOZ_FINAL : public nsIRunnable

@@ -1680,7 +1680,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
 
   if (pPluginEvent && !pPluginEvent->event) {
     
-    NS_WARNING("nsObjectFrame ProcessEvent: trying to send null event to plugin.");
+    NS_WARNING("nsPluginFrame ProcessEvent: trying to send null event to plugin.");
     return rv;
   }
 
@@ -2372,7 +2372,7 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
   
   nsIFrame* frame = aContent->GetPrimaryFrame();
   nsIObjectFrame* iObjFrame = do_QueryFrame(frame);
-  nsObjectFrame* objFrame =  static_cast<nsObjectFrame*>(iObjFrame);
+  nsPluginFrame* objFrame =  static_cast<nsPluginFrame*>(iObjFrame);
   if (objFrame) {
     SetFrame(objFrame);
     
@@ -2818,7 +2818,7 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
   return NS_OK;
 }
 
-void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
+void nsPluginInstanceOwner::SetFrame(nsPluginFrame *aFrame)
 {
   
   if (mObjectFrame == aFrame) {
@@ -2853,7 +2853,7 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
   }
 }
 
-nsObjectFrame* nsPluginInstanceOwner::GetFrame()
+nsPluginFrame* nsPluginInstanceOwner::GetFrame()
 {
   return mObjectFrame;
 }

@@ -5,8 +5,8 @@
 
 
 
-#ifndef nsObjectFrame_h___
-#define nsObjectFrame_h___
+#ifndef nsPluginFrame_h___
+#define nsPluginFrame_h___
 
 #include "mozilla/Attributes.h"
 #include "nsIObjectFrame.h"
@@ -40,9 +40,9 @@ class LayerManager;
 }
 }
 
-typedef nsFrame nsObjectFrameSuper;
+typedef nsFrame nsPluginFrameSuper;
 
-class nsObjectFrame : public nsObjectFrameSuper,
+class nsPluginFrame : public nsPluginFrameSuper,
                       public nsIObjectFrame,
                       public nsIReflowCallback {
 public:
@@ -57,7 +57,7 @@ public:
   friend nsIFrame* NS_NewObjectFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
   NS_DECL_QUERYFRAME
-  NS_DECL_QUERYFRAME_TARGET(nsObjectFrame)
+  NS_DECL_QUERYFRAME_TARGET(nsPluginFrame)
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
@@ -83,7 +83,7 @@ public:
 
   virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
   {
-    return nsObjectFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
+    return nsPluginFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
 
   virtual bool NeedsView() MOZ_OVERRIDE { return true; }
@@ -211,8 +211,8 @@ public:
   void SetInstanceOwner(nsPluginInstanceOwner* aOwner);
 
 protected:
-  explicit nsObjectFrame(nsStyleContext* aContext);
-  virtual ~nsObjectFrame();
+  explicit nsPluginFrame(nsStyleContext* aContext);
+  virtual ~nsPluginFrame();
 
   
   
@@ -327,7 +327,7 @@ public:
                                              LayerManager* aManager,
                                              const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE
   {
-    return static_cast<nsObjectFrame*>(mFrame)->BuildLayer(aBuilder,
+    return static_cast<nsPluginFrame*>(mFrame)->BuildLayer(aBuilder,
                                                            aManager, 
                                                            this,
                                                            aContainerParameters);
@@ -337,7 +337,7 @@ public:
                                    LayerManager* aManager,
                                    const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
   {
-    return static_cast<nsObjectFrame*>(mFrame)->GetLayerState(aBuilder,
+    return static_cast<nsPluginFrame*>(mFrame)->GetLayerState(aBuilder,
                                                               aManager);
   }
 };

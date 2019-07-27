@@ -263,7 +263,7 @@ NS_IMPL_ISUPPORTS(PluginTimerCallBack, nsITimerCallback)
 #endif
 
 already_AddRefed<Accessible>
-nsAccessibilityService::CreatePluginAccessible(nsObjectFrame* aFrame,
+nsAccessibilityService::CreatePluginAccessible(nsPluginFrame* aFrame,
                                                nsIContent* aContent,
                                                Accessible* aContext)
 {
@@ -1619,7 +1619,7 @@ nsAccessibilityService::CreateAccessibleByFrameType(nsIFrame* aFrame,
       newAcc = new OuterDocAccessible(aContent, document);
       break;
     case ePluginType: {
-      nsObjectFrame* objectFrame = do_QueryFrame(aFrame);
+      nsPluginFrame* objectFrame = do_QueryFrame(aFrame);
       newAcc = CreatePluginAccessible(objectFrame, aContent, aContext);
       break;
     }

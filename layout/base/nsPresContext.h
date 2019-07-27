@@ -60,7 +60,7 @@ class gfxUserFontSet;
 class gfxTextPerfMetrics;
 class nsUserFontSet;
 struct nsFontFaceRuleContainer;
-class nsObjectFrame;
+class nsPluginFrame;
 class nsTransitionManager;
 class nsAnimationManager;
 class nsRefreshDriver;

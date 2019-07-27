@@ -860,7 +860,7 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   
   nsIFrame* frame = thisContent->GetPrimaryFrame();
   if (frame && mInstanceOwner) {
-    mInstanceOwner->SetFrame(static_cast<nsObjectFrame*>(frame));
+    mInstanceOwner->SetFrame(static_cast<nsPluginFrame*>(frame));
 
     
     
@@ -1296,7 +1296,7 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
 
   
   
-  nsObjectFrame *objFrame = static_cast<nsObjectFrame*>(aFrame);
+  nsPluginFrame *objFrame = static_cast<nsPluginFrame*>(aFrame);
   mInstanceOwner->SetFrame(objFrame);
 
   return NS_OK;
@@ -2718,13 +2718,13 @@ nsObjectLoadingContent::GetTypeOfContent(const nsCString& aMIMEType)
   return eType_Null;
 }
 
-nsObjectFrame*
+nsPluginFrame*
 nsObjectLoadingContent::GetExistingFrame()
 {
   nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   nsIFrame* frame = thisContent->GetPrimaryFrame();
   nsIObjectFrame* objFrame = do_QueryFrame(frame);
-  return static_cast<nsObjectFrame*>(objFrame);
+  return static_cast<nsPluginFrame*>(objFrame);
 }
 
 void
