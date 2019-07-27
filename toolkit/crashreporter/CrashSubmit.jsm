@@ -261,12 +261,6 @@ Submitter.prototype = {
     if (envOverride != '') {
       serverURL = envOverride;
     }
-    else if ('PluginHang' in this.extraKeyVals) {
-      try {
-        serverURL = Services.prefs.
-          getCharPref("toolkit.crashreporter.pluginHangSubmitURL");
-      } catch(e) { }
-    }
 
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
               .createInstance(Ci.nsIXMLHttpRequest);
