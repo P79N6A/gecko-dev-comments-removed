@@ -1168,7 +1168,6 @@ SetDenseElement(JSContext *cx, HandleNativeObject obj, int32_t index, HandleValu
     
     
     
-    MOZ_ASSERT(!obj->isIndexed());
 
     NativeObject::EnsureDenseResult result = NativeObject::ED_SPARSE;
     do {
