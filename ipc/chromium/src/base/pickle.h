@@ -226,10 +226,12 @@ class Pickle {
   
   
   char* end_of_payload() {
+    
     return payload() + payload_size();
   }
   const char* end_of_payload() const {
-    return payload() + payload_size();
+    
+    return header_ ? payload() + payload_size() : nullptr;
   }
 
   uint32_t capacity() const {
