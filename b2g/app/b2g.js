@@ -1134,4 +1134,8 @@ pref("gfx.touch.resample", true);
 
 
 
+pref("dom.activities.developer_mode_only", "import-app");
+
+
+
 pref("dom.serviceWorkers.enabled", false);
