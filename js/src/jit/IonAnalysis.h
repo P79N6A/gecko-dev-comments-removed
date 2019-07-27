@@ -83,6 +83,9 @@ AssertExtendedGraphCoherency(MIRGraph& graph);
 bool
 EliminateRedundantChecks(MIRGraph& graph);
 
+void
+AddKeepAliveInstructions(MIRGraph& graph);
+
 class MDefinition;
 
 

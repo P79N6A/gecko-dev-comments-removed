@@ -103,6 +103,7 @@ class LIRGeneratorShared : public MDefinitionVisitor
     
     inline LAllocation useStorable(MDefinition* mir);
     inline LAllocation useStorableAtStart(MDefinition* mir);
+    inline LAllocation useKeepalive(MDefinition* mir);
     inline LAllocation useKeepaliveOrConstant(MDefinition* mir);
     inline LAllocation useRegisterOrConstant(MDefinition* mir);
     inline LAllocation useRegisterOrConstantAtStart(MDefinition* mir);
