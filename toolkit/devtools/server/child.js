@@ -65,6 +65,16 @@ let chromeGlobal = this;
     }
   });
   addMessageListener("debug:disconnect", onDisconnect);
+
+  let onInspect = DevToolsUtils.makeInfallible(function(msg) {
+    
+    
+    
+    
+    let inspector = devtools.require("devtools/server/actors/inspector");
+    inspector.setInspectingNode(msg.objects.node);
+  });
+  addMessageListener("debug:inspect", onInspect);
 })();
 
 } catch(e) {
