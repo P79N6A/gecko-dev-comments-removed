@@ -44,10 +44,10 @@ CSSAnimation::Play(ErrorResult &aRv, LimitBehavior aLimitBehavior)
 }
 
 void
-CSSAnimation::Pause()
+CSSAnimation::Pause(ErrorResult& aRv)
 {
   mPauseShouldStick = true;
-  Animation::Pause();
+  Animation::Pause(aRv);
 }
 
 AnimationPlayState
@@ -89,7 +89,20 @@ CSSAnimation::PauseFromStyle()
   }
 
   mIsStylePaused = true;
-  DoPause();
+  ErrorResult rv;
+  DoPause(rv);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (rv.Failed()) {
+    NS_WARNING("Unexpected exception pausing animation - silently failing");
+  }
 }
 
 void

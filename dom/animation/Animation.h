@@ -102,7 +102,7 @@ public:
   void Cancel();
   virtual void Finish(ErrorResult& aRv);
   virtual void Play(ErrorResult& aRv, LimitBehavior aLimitBehavior);
-  virtual void Pause();
+  virtual void Pause(ErrorResult& aRv);
   bool IsRunningOnCompositor() const { return mIsRunningOnCompositor; }
 
   
@@ -126,7 +126,7 @@ public:
 
 
 
-  void PauseFromJS() { Pause(); }
+  void PauseFromJS(ErrorResult& aRv) { Pause(aRv); }
   
   
   
@@ -284,7 +284,7 @@ protected:
   void SilentlySetPlaybackRate(double aPlaybackRate);
   void DoCancel();
   void DoPlay(ErrorResult& aRv, LimitBehavior aLimitBehavior);
-  void DoPause();
+  void DoPause(ErrorResult& aRv);
   void ResumeAt(const TimeDuration& aReadyTime);
   void PauseAt(const TimeDuration& aReadyTime);
   void FinishPendingAt(const TimeDuration& aReadyTime)
