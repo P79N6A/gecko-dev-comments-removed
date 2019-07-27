@@ -21,6 +21,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsITimer.h"
 #include "mozilla/dom/HTMLMediaElement.h"
+#include "VideoUtils.h"
 
 #include <binder/IPCThreadState.h>
 #include <stagefright/foundation/ADebug.h>
@@ -51,7 +52,7 @@ PRLogModuleInfo* gAudioOffloadPlayerLog;
 
 static const uint64_t OFFLOAD_PAUSE_MAX_MSECS = 60000ll;
 
-AudioOffloadPlayer::AudioOffloadPlayer(MediaOmxDecoder* aObserver) :
+AudioOffloadPlayer::AudioOffloadPlayer(MediaOmxCommonDecoder* aObserver) :
   mObserver(aObserver),
   mInputBuffer(nullptr),
   mSampleRate(0),
@@ -196,6 +197,7 @@ status_t AudioOffloadPlayer::ChangeState(MediaDecoder::PlayState aState)
 
     case MediaDecoder::PLAY_STATE_PAUSED:
     case MediaDecoder::PLAY_STATE_SHUTDOWN:
+      
       
       
       Pause();
@@ -421,14 +423,14 @@ void AudioOffloadPlayer::NotifyAudioEOS()
 void AudioOffloadPlayer::NotifyPositionChanged()
 {
   nsCOMPtr<nsIRunnable> nsEvent = NS_NewRunnableMethod(mObserver,
-      &MediaOmxDecoder::PlaybackPositionChanged);
+      &MediaOmxCommonDecoder::PlaybackPositionChanged);
   NS_DispatchToMainThread(nsEvent);
 }
 
 void AudioOffloadPlayer::NotifyAudioTearDown()
 {
   nsCOMPtr<nsIRunnable> nsEvent = NS_NewRunnableMethod(mObserver,
-      &MediaOmxDecoder::AudioOffloadTearDown);
+      &MediaOmxCommonDecoder::AudioOffloadTearDown);
   NS_DispatchToMainThread(nsEvent);
 }
 

@@ -27,13 +27,12 @@
 #include <utils/RefBase.h>
 
 #include "AudioOutput.h"
-
+#include "AudioOffloadPlayerBase.h"
 #include "MediaDecoderOwner.h"
-#include "MediaOmxDecoder.h"
+#include "MediaOmxCommonDecoder.h"
 
 namespace mozilla {
 
-class MediaOmxDecoder;
 
 
 
@@ -70,7 +69,7 @@ public:
     SEEK_COMPLETE
   };
 
-  AudioOffloadPlayer(MediaOmxDecoder* aDecoder = nullptr);
+  AudioOffloadPlayer(MediaOmxCommonDecoder* aDecoder = nullptr);
 
   ~AudioOffloadPlayer();
 
@@ -149,6 +148,7 @@ private:
   
   
   
+  
   int64_t mStartPosUs;
 
   
@@ -181,7 +181,7 @@ private:
   MediaBuffer* mInputBuffer;
 
   
-  MediaOmxDecoder* mObserver;
+  MediaOmxCommonDecoder* mObserver;
 
   TimeStamp mLastFireUpdateTime;
 
