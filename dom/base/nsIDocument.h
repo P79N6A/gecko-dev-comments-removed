@@ -183,7 +183,7 @@ class nsIDocument : public nsINode
 {
   typedef mozilla::dom::GlobalObject GlobalObject;
 public:
-  typedef mozilla::net::ReferrerPolicy ReferrerPolicy;
+  typedef mozilla::net::ReferrerPolicy ReferrerPolicyEnum;
   typedef mozilla::dom::Element Element;
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_IID)
@@ -290,9 +290,17 @@ public:
 
 
 
-  ReferrerPolicy GetReferrerPolicy() const
+  ReferrerPolicyEnum GetReferrerPolicy() const
   {
     return mReferrerPolicy;
+  }
+
+  
+
+
+  uint32_t ReferrerPolicy() const
+  {
+    return GetReferrerPolicy();
   }
 
   
@@ -1969,7 +1977,7 @@ public:
 
   virtual void MaybePreLoadImage(nsIURI* uri,
                                  const nsAString& aCrossOriginAttr,
-                                 ReferrerPolicy aReferrerPolicy) = 0;
+                                 ReferrerPolicyEnum aReferrerPolicy) = 0;
 
   
 
@@ -1984,7 +1992,7 @@ public:
 
   virtual void PreloadStyle(nsIURI* aURI, const nsAString& aCharset,
                             const nsAString& aCrossOriginAttr,
-                            ReferrerPolicy aReferrerPolicy) = 0;
+                            ReferrerPolicyEnum aReferrerPolicy) = 0;
 
   
 
@@ -2581,7 +2589,7 @@ protected:
   nsWeakPtr mDocumentLoadGroup;
 
   bool mReferrerPolicySet;
-  ReferrerPolicy mReferrerPolicy;
+  ReferrerPolicyEnum mReferrerPolicy;
 
   mozilla::WeakPtr<nsDocShell> mDocumentContainer;
 
