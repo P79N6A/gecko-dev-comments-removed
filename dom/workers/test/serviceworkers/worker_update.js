@@ -3,7 +3,7 @@
 
 onmessage = function(e) {
   self.update();
-  clients.getServiced().then(function(c) {
+  clients.matchAll().then(function(c) {
     if (c.length == 0) {
       
       return;
