@@ -1729,6 +1729,10 @@ public class BrowserApp extends GeckoApp
         if (!areTabsShown()) {
             mTabsPanel.setVisibility(View.INVISIBLE);
             mTabsPanel.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        } else {
+            
+            
+            mBrowserToolbar.cancelEdit();
         }
 
         mTabsPanel.finishTabsAnimation();

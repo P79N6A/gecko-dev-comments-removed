@@ -315,6 +315,10 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         tabsButton.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
+                
+                
+                urlEditLayout.clearFocus();
+
                 toggleTabs();
             }
         });
