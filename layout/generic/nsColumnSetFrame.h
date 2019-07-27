@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsColumnSetFrame_h___
+#define nsColumnSetFrame_h___
+
 
 
 #include "mozilla/Attributes.h"
@@ -74,6 +77,13 @@ public:
   virtual void PaintColumnRule(nsRenderingContext* aCtx,
                                const nsRect&        aDirtyRect,
                                const nsPoint&       aPt);
+
+  
+
+
+
+
+  void DrainOverflowColumns();
 
 #ifdef DEBUG_FRAME_DUMP
   virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
@@ -153,13 +163,6 @@ protected:
     }
   };
 
-  
-
-
-
-
-  void DrainOverflowColumns();
-
   bool ReflowColumns(nsHTMLReflowMetrics& aDesiredSize,
                      const nsHTMLReflowState& aReflowState,
                      nsReflowStatus& aReflowStatus,
@@ -224,3 +227,5 @@ protected:
                         nsCollapsingMargin* aCarriedOutBottomMargin,
                         ColumnBalanceData& aColData);
 };
+
+#endif 
