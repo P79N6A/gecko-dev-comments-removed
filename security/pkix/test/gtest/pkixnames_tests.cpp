@@ -22,9 +22,11 @@
 
 
 #include "pkix/pkix.h"
+#include "pkixcheck.h"
 #include "pkixder.h"
 #include "pkixgtest.h"
 #include "pkixtestutil.h"
+#include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
 
@@ -1542,3 +1544,269 @@ TEST_P(pkixnames_CheckCertHostname_IPV4_Addresses,
 INSTANTIATE_TEST_CASE_P(pkixnames_CheckCertHostname_IPV4_ADDRESSES,
                         pkixnames_CheckCertHostname_IPV4_Addresses,
                         testing::ValuesIn(IPV4_ADDRESSES));
+
+struct NameConstraintParams
+{
+  ByteString subject;
+  ByteString subjectAltName;
+  ByteString subtrees;
+  Result expectedPermittedSubtreesResult;
+  Result expectedExcludedSubtreesResult;
+};
+
+static ByteString
+PermittedSubtrees(const ByteString& generalSubtrees)
+{
+  return TLV(der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 0,
+             generalSubtrees);
+}
+
+static ByteString
+ExcludedSubtrees(const ByteString& generalSubtrees)
+{
+  return TLV(der::CONTEXT_SPECIFIC | der::CONSTRUCTED | 1,
+             generalSubtrees);
+}
+
+
+static ByteString
+GeneralSubtree(const ByteString& base)
+{
+  return TLV(der::SEQUENCE, base);
+}
+
+static const NameConstraintParams NAME_CONSTRAINT_PARAMS[] =
+{
+  
+  
+  
+  
+
+  
+  
+  
+  { ByteString(), DNSName("host.example.com"),
+    GeneralSubtree(DNSName("host.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    ByteString(), DNSName("host1.example.com"),
+    GeneralSubtree(DNSName("host.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  
+  
+  { 
+    ByteString(),  DNSName("www.host.example.com"),
+    GeneralSubtree(DNSName(    "host.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+  
+  { ByteString(), DNSName("bigfoo.bar.com"),
+    GeneralSubtree(DNSName("foo.bar.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  
+  
+  
+  { ByteString(), DNSName("www.example.com"),
+    GeneralSubtree(DNSName(".example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    ByteString(), DNSName("example.com"),
+    GeneralSubtree(DNSName(".example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    ByteString(), DNSName("bexample.com"),
+    GeneralSubtree(DNSName(".example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  
+  
+
+  
+  
+  
+  
+  { ByteString(), DNSName("example.com"),
+    GeneralSubtree(DNSName("example.com.")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+  },
+  { ByteString(), DNSName("example.com."),
+    GeneralSubtree(DNSName("example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+  },
+  { 
+    
+    
+    ByteString(), DNSName("p.example.com"),
+    GeneralSubtree(DNSName(".example.com.")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+  },
+  { 
+    ByteString(), DNSName("*.example.com"),
+    GeneralSubtree(DNSName(".example.com.")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  { ByteString(), DNSName("example.com"),
+    GeneralSubtree(DNSName("")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), DNSName("example.com."),
+    GeneralSubtree(DNSName("")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { ByteString(), DNSName("example.com"),
+    GeneralSubtree(DNSName(".")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success,
+  },
+  { ByteString(), DNSName("example.com."),
+    GeneralSubtree(DNSName(".")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+
+  
+  
+
+  { 
+    ByteString(), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    
+    
+    
+    RDN(CN("")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    
+    
+    RDN(CN("1.2.3.4")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    RDN(OU("a.example.com")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    RDN(OU("b.example.com")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { 
+    RDN(CN("Not a DNSName")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Success
+  },
+  { RDN(CN("a.example.com")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { RDN(CN("b.example.com")), NO_SAN, GeneralSubtree(DNSName("a.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+
+  
+  
+  
+
+  { 
+    
+    RDN(CN("a.example.com") + CN("b.example.com")), NO_SAN,
+    GeneralSubtree(DNSName("a.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    
+    RDN(CN("a.example.com")) + RDN(CN("b.example.com")), NO_SAN,
+    GeneralSubtree(DNSName("a.example.com")),
+    Result::ERROR_CERT_NOT_IN_NAME_SPACE, Success
+  },
+  { 
+    
+    RDN(CN("a.example.com") + CN("b.example.com")), NO_SAN,
+    GeneralSubtree(DNSName("b.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+  { 
+    
+    RDN(CN("a.example.com")) + RDN(CN("b.example.com")), NO_SAN,
+    GeneralSubtree(DNSName("b.example.com")),
+    Success, Result::ERROR_CERT_NOT_IN_NAME_SPACE
+  },
+};
+
+class pkixnames_CheckNameConstraints
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<NameConstraintParams>
+{
+};
+
+TEST_P(pkixnames_CheckNameConstraints,
+       NameConstraintsEnforcedforDirectlyIssuedEndEntity)
+{
+  
+  
+
+  const NameConstraintParams& param(GetParam());
+
+  ByteString certDER(CreateCert(param.subject, param.subjectAltName));
+  ASSERT_FALSE(ENCODING_FAILED(certDER));
+  Input certInput;
+  ASSERT_EQ(Success, certInput.Init(certDER.data(), certDER.length()));
+  BackCert cert(certInput, EndEntityOrCA::MustBeEndEntity, nullptr);
+  ASSERT_EQ(Success, cert.Init());
+
+  {
+    ByteString nameConstraintsDER(TLV(der::SEQUENCE,
+                                      PermittedSubtrees(param.subtrees)));
+    Input nameConstraints;
+    ASSERT_EQ(Success,
+              nameConstraints.Init(nameConstraintsDER.data(),
+                                   nameConstraintsDER.length()));
+    ASSERT_EQ(param.expectedPermittedSubtreesResult,
+              CheckNameConstraints(nameConstraints, cert,
+                                   KeyPurposeId::id_kp_serverAuth));
+  }
+  {
+    ByteString nameConstraintsDER(TLV(der::SEQUENCE,
+                                      ExcludedSubtrees(param.subtrees)));
+    Input nameConstraints;
+    ASSERT_EQ(Success,
+              nameConstraints.Init(nameConstraintsDER.data(),
+                                   nameConstraintsDER.length()));
+    ASSERT_EQ(param.expectedExcludedSubtreesResult,
+              CheckNameConstraints(nameConstraints, cert,
+                                   KeyPurposeId::id_kp_serverAuth));
+  }
+  {
+    ByteString nameConstraintsDER(TLV(der::SEQUENCE,
+                                      PermittedSubtrees(param.subtrees) +
+                                      ExcludedSubtrees(param.subtrees)));
+    Input nameConstraints;
+    ASSERT_EQ(Success,
+              nameConstraints.Init(nameConstraintsDER.data(),
+                                   nameConstraintsDER.length()));
+    ASSERT_EQ((param.expectedPermittedSubtreesResult == Success &&
+               param.expectedExcludedSubtreesResult == Success)
+                ? Success
+                : Result::ERROR_CERT_NOT_IN_NAME_SPACE,
+              CheckNameConstraints(nameConstraints, cert,
+                                   KeyPurposeId::id_kp_serverAuth));
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_CheckNameConstraints,
+                        pkixnames_CheckNameConstraints,
+                        testing::ValuesIn(NAME_CONSTRAINT_PARAMS));
