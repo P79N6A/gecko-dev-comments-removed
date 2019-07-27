@@ -292,6 +292,11 @@ function init() {
   fxAccounts.getSignedInUser().then(user => {
     
     
+    if (window.closed) {
+      return;
+    }
+    
+    
     
     
     
@@ -300,11 +305,6 @@ function init() {
     let entryPoint = "";
     if (entryPointPos >= 0) {
       entryPoint = window.location.href.substring(entryPointPos).split("&")[0];
-    }
-    
-    
-    if (window.closed) {
-      return;
     }
     if (window.location.href.contains("action=signin")) {
       if (user) {
