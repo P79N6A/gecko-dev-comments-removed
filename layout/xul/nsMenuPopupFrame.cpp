@@ -1635,6 +1635,87 @@ void nsMenuPopupFrame::EnsureMenuItemIsVisible(nsMenuFrame* aMenuItem)
   }
 }
 
+void nsMenuPopupFrame::ChangeByPage(bool aIsUp)
+{
+  nsIFrame* parentMenu = GetParent();
+  if (parentMenu) {
+    
+    nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(parentMenu->GetContent());
+    if (!menulist) {
+      return;
+    }
+  }
+
+  nsMenuFrame* newMenu = nullptr;
+  nsIFrame* currentMenu = mCurrentMenu;
+  if (!currentMenu) {
+    
+    
+    
+    
+    newMenu = nsXULPopupManager::GetNextMenuItem(this, nullptr, true);
+    if (!aIsUp) {
+      currentMenu = newMenu;
+    }
+  }
+
+  if (currentMenu) {
+    nscoord scrollHeight = mRect.height;
+    nsIScrollableFrame *scrollframe = GetScrollFrame(this);
+    if (scrollframe) {
+      scrollHeight = scrollframe->GetScrollPortRect().height;
+    }
+
+    
+    
+    nscoord targetPosition = aIsUp ? currentMenu->GetRect().YMost() - scrollHeight :
+                                     currentMenu->GetRect().y + scrollHeight;
+
+    
+    bool lastWasValid = false;
+
+    
+    
+    while (currentMenu) {
+      
+      nsMenuFrame* menuFrame = do_QueryFrame(currentMenu);
+      if (menuFrame &&
+          nsXULPopupManager::IsValidMenuItem(PresContext(), menuFrame->GetContent(), true)) {
+
+        
+        if ((!aIsUp && currentMenu->GetRect().YMost() > targetPosition) ||
+            (aIsUp && currentMenu->GetRect().y < targetPosition)) {
+
+          
+          
+          
+          if (!lastWasValid) {
+            newMenu = menuFrame;
+          }
+
+          break;
+        }
+
+        
+        
+        lastWasValid = true;
+        newMenu = menuFrame;
+      }
+      else {
+        lastWasValid = false;
+      }
+
+      currentMenu = aIsUp ? currentMenu->GetPrevSibling() :
+                            currentMenu->GetNextSibling();
+    }
+  }
+
+  
+  if (newMenu) {
+    ChangeMenuItem(newMenu, false);
+  }
+}
+
 NS_IMETHODIMP nsMenuPopupFrame::SetCurrentMenuItem(nsMenuFrame* aMenuItem)
 {
   if (mCurrentMenu == aMenuItem)

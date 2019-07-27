@@ -326,6 +326,8 @@ public:
 
   void EnsureMenuItemIsVisible(nsMenuFrame* aMenuFrame);
 
+  void ChangeByPage(bool aIsUp);
+
   
   
   

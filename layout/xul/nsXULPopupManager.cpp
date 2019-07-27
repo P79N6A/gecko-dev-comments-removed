@@ -2172,6 +2172,13 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
       HandleKeyboardNavigation(keyCode);
       break;
 
+    case nsIDOMKeyEvent::DOM_VK_PAGE_DOWN:
+    case nsIDOMKeyEvent::DOM_VK_PAGE_UP:
+      if (aTopVisibleMenuItem) {
+        aTopVisibleMenuItem->Frame()->ChangeByPage(keyCode == nsIDOMKeyEvent::DOM_VK_PAGE_UP);
+      }
+      break;
+
     case nsIDOMKeyEvent::DOM_VK_ESCAPE:
       
       
