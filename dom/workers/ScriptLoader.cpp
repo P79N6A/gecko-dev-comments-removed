@@ -124,8 +124,37 @@ ChannelFromScriptURL(nsIPrincipal* principal,
   uint32_t flags = nsIRequest::LOAD_NORMAL | nsIChannel::LOAD_CLASSIFY_URI;
 
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), uri, ios, loadGroup, nullptr,
-                     flags, channelPolicy);
+  
+  if (parentDoc) {
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       uri,
+                       parentDoc,
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_SCRIPT,
+                       channelPolicy,
+                       loadGroup,
+                       nullptr, 
+                       flags,
+                       ios);
+  } else {
+    
+    
+    
+    
+    nsCOMPtr<nsIPrincipal> nullPrincipal =
+      do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       uri,
+                       nullPrincipal,
+                       nsILoadInfo::SEC_NORMAL,
+                       nsIContentPolicy::TYPE_SCRIPT,
+                       channelPolicy,
+                       loadGroup,
+                       nullptr, 
+                       flags,
+                       ios);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   channel.forget(aChannel);
