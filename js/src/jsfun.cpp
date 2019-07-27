@@ -2046,8 +2046,11 @@ js::NewFunctionWithProto(ExclusiveContext *cx, Native native,
     
     if (native && !IsAsmJSModuleNative(native))
         newKind = SingletonObject;
-    RootedObject realParent(cx, SkipScopeParent(enclosingDynamicScope));
-    funobj = NewObjectWithClassProto(cx, &JSFunction::class_, proto, realParent, allocKind,
+#ifdef DEBUG
+    RootedObject nonScopeParent(cx, SkipScopeParent(enclosingDynamicScope));
+    MOZ_ASSERT(!nonScopeParent || nonScopeParent == cx->global());
+#endif
+    funobj = NewObjectWithClassProto(cx, &JSFunction::class_, proto, NullPtr(), allocKind,
                                      newKind);
     if (!funobj)
         return nullptr;

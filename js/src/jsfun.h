@@ -517,11 +517,13 @@ NewNativeConstructor(ExclusiveContext *cx, JSNative native, unsigned nargs, Hand
 
 
 
+
 extern JSFunction *
 NewScriptedFunction(ExclusiveContext *cx, unsigned nargs, JSFunction::Flags flags,
                     HandleAtom atom, gc::AllocKind allocKind = JSFunction::FinalizeKind,
                     NewObjectKind newKind = GenericObject,
                     HandleObject enclosingDynamicScope = NullPtr());
+
 
 
 
