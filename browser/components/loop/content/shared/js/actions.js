@@ -415,6 +415,7 @@ loop.shared.actions = (function() {
 
 
     CopyRoomUrl: Action.define("copyRoomUrl", {
+      from: String,
       roomUrl: String
     }),
 
@@ -423,6 +424,7 @@ loop.shared.actions = (function() {
 
 
     EmailRoomUrl: Action.define("emailRoomUrl", {
+      from: String,
       roomUrl: String
       
     }),

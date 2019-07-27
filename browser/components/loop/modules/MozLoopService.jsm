@@ -43,6 +43,19 @@ const SHARING_STATE_CHANGE = {
 };
 
 
+
+
+
+
+
+const SHARING_ROOM_URL = {
+  COPY_FROM_PANEL: 0,
+  COPY_FROM_CONVERSATION: 1,
+  EMAIL_FROM_CALLFAILED: 2,
+  EMAIL_FROM_CONVERSATION: 3
+};
+
+
 const PREF_LOG_LEVEL = "loop.debug.loglevel";
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -56,7 +69,7 @@ Cu.import("resource://gre/modules/FxAccountsOAuthClient.jsm");
 Cu.importGlobalProperties(["URL"]);
 
 this.EXPORTED_SYMBOLS = ["MozLoopService", "LOOP_SESSION_TYPE",
-  "TWO_WAY_MEDIA_CONN_LENGTH", "SHARING_STATE_CHANGE"];
+  "TWO_WAY_MEDIA_CONN_LENGTH", "SHARING_STATE_CHANGE", "SHARING_ROOM_URL"];
 
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI",
   "resource:///modules/loop/MozLoopAPI.jsm");
