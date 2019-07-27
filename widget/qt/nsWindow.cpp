@@ -89,8 +89,6 @@ static bool sAltGrModifier = false;
 
 static void find_first_visible_parent(QWindow* aItem, QWindow*& aVisibleItem);
 static bool is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY);
-static bool isContextMenuKeyEvent(const QKeyEvent *qe);
-static void InitKeyEvent(WidgetKeyboardEvent &aEvent, QKeyEvent *aQEvent);
 
 nsWindow::nsWindow()
 {
@@ -1078,6 +1076,57 @@ nsWindow::focusOutEvent(QFocusEvent* aEvent)
     return nsEventStatus_eIgnore;
 }
 
+static bool
+IsContextMenuKeyEvent(const QKeyEvent* aQEvent)
+{
+    if (aQEvent->modifiers() & (Qt::ControlModifier |
+                                Qt::AltModifier |
+                                Qt::MetaModifier)) {
+        return false;
+    }
+
+    bool isShift = aQEvent->modifiers() & Qt::ShiftModifier;
+    uint32_t keyCode = QtKeyCodeToDOMKeyCode(aQEvent->key());
+    return (keyCode == NS_VK_F10 && isShift) ||
+           (keyCode == NS_VK_CONTEXT_MENU && !isShift);
+}
+
+static void
+InitKeyEvent(WidgetKeyboardEvent& aEvent, QKeyEvent* aQEvent)
+{
+    aEvent.InitBasicModifiers(aQEvent->modifiers() & Qt::ControlModifier,
+                              aQEvent->modifiers() & Qt::AltModifier,
+                              aQEvent->modifiers() & Qt::ShiftModifier,
+                              aQEvent->modifiers() & Qt::MetaModifier);
+
+    aEvent.mIsRepeat =
+        (aEvent.message == NS_KEY_DOWN || aEvent.message == NS_KEY_PRESS) &&
+        aQEvent->isAutoRepeat();
+    aEvent.time = 0;
+
+    if (sAltGrModifier) {
+        aEvent.modifiers |= (MODIFIER_CONTROL | MODIFIER_ALT);
+    }
+
+    if (aQEvent->text().length() && aQEvent->text()[0].isPrint()) {
+        aEvent.charCode = (int32_t) aQEvent->text()[0].unicode();
+        aEvent.keyCode = 0;
+        aEvent.mKeyNameIndex = KEY_NAME_INDEX_PrintableKey;
+    } else {
+        aEvent.charCode = 0;
+        aEvent.keyCode = QtKeyCodeToDOMKeyCode(aQEvent->key());
+        aEvent.mKeyNameIndex = QtKeyCodeToDOMKeyNameIndex(aQEvent->key());
+    }
+
+    aEvent.mCodeNameIndex = ScanCodeToDOMCodeNameIndex(aQEvent->nativeScanCode());
+
+    
+    
+    
+    
+    aEvent.pluginEvent = (void *)aQEvent;
+}
+
 nsEventStatus
 nsWindow::keyPressEvent(QKeyEvent* aEvent)
 {
@@ -1090,105 +1139,25 @@ nsWindow::keyPressEvent(QKeyEvent* aEvent)
         sAltGrModifier = true;
     }
 
-    CodeNameIndex codeNameIndex =
-        ScanCodeToDOMCodeNameIndex(aEvent->nativeScanCode());
-
-#ifdef MOZ_X11
     
     
-    if (isContextMenuKeyEvent(aEvent)) {
+    if (IsContextMenuKeyEvent(aEvent)) {
         WidgetMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
                                           WidgetMouseEvent::eReal,
                                           WidgetMouseEvent::eContextMenuKey);
-        
         return DispatchEvent(&contextMenuEvent);
     }
 
-    uint32_t domCharCode = 0;
+    
+    
+
     uint32_t domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
 
-    
-    Display *display = gfxQtPlatform::GetXDisplay(mWidget);
-    int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
-    XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
-    XModifierKeymap *xmodmap = XGetModifierMapping(display);
-    if (!xmodmap)
-        return nsEventStatus_eIgnore;
-
-    KeySym *xkeymap = XGetKeyboardMapping(display, x_min_keycode, x_max_keycode - x_min_keycode,
-                                          &xkeysyms_per_keycode);
-    if (!xkeymap) {
-        XFreeModifiermap(xmodmap);
-        return nsEventStatus_eIgnore;
-    }
-
-    
-    qint32 shift_mask = 0, shift_lock_mask = 0, caps_lock_mask = 0, num_lock_mask = 0;
-
-    for (int i = 0; i < 8 * xmodmap->max_keypermod; ++i) {
-        qint32 maskbit = 1 << (i / xmodmap->max_keypermod);
-        KeyCode modkeycode = xmodmap->modifiermap[i];
-        if (modkeycode == NoSymbol) {
-            continue;
-        }
-
-        quint32 mapindex = (modkeycode - x_min_keycode) * xkeysyms_per_keycode;
-        for (int j = 0; j < xkeysyms_per_keycode; ++j) {
-            KeySym modkeysym = xkeymap[mapindex + j];
-            switch (modkeysym) {
-                case XK_Num_Lock:
-                    num_lock_mask |= maskbit;
-                    break;
-                case XK_Caps_Lock:
-                    caps_lock_mask |= maskbit;
-                    break;
-                case XK_Shift_Lock:
-                    shift_lock_mask |= maskbit;
-                    break;
-                case XK_Shift_L:
-                case XK_Shift_R:
-                    shift_mask |= maskbit;
-                    break;
-            }
-        }
-    }
-    
-    bool shift_state = ((shift_mask & aEvent->nativeModifiers()) != 0) ^
-                          (bool)(shift_lock_mask & aEvent->nativeModifiers());
-    bool capslock_state = (bool)(caps_lock_mask & aEvent->nativeModifiers());
-
-    
-    
-    
-    if (!domKeyCode &&
-        aEvent->nativeScanCode() >= (quint32)x_min_keycode &&
-        aEvent->nativeScanCode() <= (quint32)x_max_keycode) {
-        int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-        for(int i = 0; (i < xkeysyms_per_keycode) && (domKeyCode == (quint32)NoSymbol); ++i) {
-            domKeyCode = QtKeyCodeToDOMKeyCode(xkeymap[index + i]);
-        }
-    }
-
-    
-    if (aEvent->text().length() && aEvent->text()[0].isPrint())
-        domCharCode = (int32_t) aEvent->text()[0].unicode();
-
-    KeyNameIndex keyNameIndex =
-        domCharCode ? KEY_NAME_INDEX_PrintableKey :
-                      QtKeyCodeToDOMKeyNameIndex(aEvent->key());
-
-    
     if (!aEvent->isAutoRepeat() && !IsKeyDown(domKeyCode)) {
-        
-
         SetKeyDownFlag(domKeyCode);
 
         WidgetKeyboardEvent downEvent(true, NS_KEY_DOWN, this);
         InitKeyEvent(downEvent, aEvent);
-
-        downEvent.keyCode = domKeyCode;
-        downEvent.mKeyNameIndex = keyNameIndex;
-        downEvent.mCodeNameIndex = codeNameIndex;
 
         nsEventStatus status = DispatchEvent(&downEvent);
 
@@ -1214,7 +1183,6 @@ nsWindow::keyPressEvent(QKeyEvent* aEvent)
         aEvent->key() == Qt::Key_Meta    ||
         aEvent->key() == Qt::Key_Alt     ||
         aEvent->key() == Qt::Key_AltGr) {
-
         return nsEventStatus_eIgnore;
     }
 
@@ -1258,203 +1226,8 @@ nsWindow::keyPressEvent(QKeyEvent* aEvent)
 
     WidgetKeyboardEvent event(true, NS_KEY_PRESS, this);
     InitKeyEvent(event, aEvent);
-
-    
-    
-    
-    
-    if ((!domCharCode) &&
-        (QGuiApplication::keyboardModifiers() &
-        (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
-
-        
-        KeySym keysym = aEvent->nativeVirtualKey();
-        if (keysym) {
-            domCharCode = (uint32_t) keysym2ucs(keysym);
-            if (domCharCode == -1 || !QChar((quint32)domCharCode).isPrint()) {
-                domCharCode = 0;
-            }
-        }
-
-        
-        if (domCharCode > 0xFF && (QGuiApplication::keyboardModifiers() & Qt::ControlModifier)) {
-            
-            int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-            for (int i = 0; i < xkeysyms_per_keycode; ++i) {
-                if (xkeymap[index + i] <= 0xFF && !shift_state) {
-                    domCharCode = (uint32_t) QChar::toLower((uint) xkeymap[index + i]);
-                    break;
-                }
-            }
-        }
-
-    } else { 
-             
-             
-             
-        event.modifiers &= ~(MODIFIER_CONTROL |
-                             MODIFIER_ALT |
-                             MODIFIER_META);
-    }
-
-    KeySym keysym = NoSymbol;
-    int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-    for (int i = 0; i < xkeysyms_per_keycode; ++i) {
-        if (xkeymap[index + i] == aEvent->nativeVirtualKey()) {
-            if ((i % 2) == 0) { 
-                keysym = xkeymap[index + i + 1];
-                break;
-            } else { 
-                keysym = xkeymap[index + i - 1];
-                break;
-            }
-        }
-        if (xkeysyms_per_keycode - 1 == i) {
-            qWarning() << "Symbol '" << aEvent->nativeVirtualKey() << "' not found";
-        }
-    }
-    QChar unshiftedChar(domCharCode);
-    long ucs = keysym2ucs(keysym);
-    ucs = ucs == -1 ? 0 : ucs;
-    QChar shiftedChar((uint)ucs);
-
-    
-    
-    
-    if (domCharCode &&
-        (QGuiApplication::keyboardModifiers() &
-        (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
-
-        event.charCode = domCharCode;
-        event.keyCode = 0;
-        AlternativeCharCode altCharCode(0, 0);
-        
-        if ((unshiftedChar.isUpper() || unshiftedChar.isLower()) &&
-            unshiftedChar.toLower() == shiftedChar.toLower()) {
-            if (shift_state ^ capslock_state) {
-                altCharCode.mUnshiftedCharCode = (uint32_t) QChar::toUpper((uint)domCharCode);
-                altCharCode.mShiftedCharCode = (uint32_t) QChar::toLower((uint)domCharCode);
-            } else {
-                altCharCode.mUnshiftedCharCode = (uint32_t) QChar::toLower((uint)domCharCode);
-                altCharCode.mShiftedCharCode = (uint32_t) QChar::toUpper((uint)domCharCode);
-            }
-        } else {
-            altCharCode.mUnshiftedCharCode = (uint32_t) unshiftedChar.unicode();
-            altCharCode.mShiftedCharCode = (uint32_t) shiftedChar.unicode();
-        }
-
-        
-        if ((altCharCode.mUnshiftedCharCode && altCharCode.mUnshiftedCharCode != domCharCode) ||
-            (altCharCode.mShiftedCharCode && altCharCode.mShiftedCharCode != domCharCode)) {
-            event.alternativeCharCodes.AppendElement(altCharCode);
-        }
-
-        
-        if (altCharCode.mUnshiftedCharCode > 0xFF || altCharCode.mShiftedCharCode > 0xFF) {
-            altCharCode.mUnshiftedCharCode = altCharCode.mShiftedCharCode = 0;
-
-            
-            KeySym keysym = NoSymbol;
-            int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-            
-            for (int i = 0; i < xkeysyms_per_keycode; ++i) {
-                keysym = xkeymap[index + i];
-                if (keysym && keysym <= 0xFF) {
-                    if ((shift_state && (i % 2 == 1)) ||
-                        (!shift_state && (i % 2 == 0))) {
-                        altCharCode.mUnshiftedCharCode = altCharCode.mUnshiftedCharCode ?
-                            altCharCode.mUnshiftedCharCode :
-                            keysym;
-                    } else {
-                        altCharCode.mShiftedCharCode = altCharCode.mShiftedCharCode ?
-                            altCharCode.mShiftedCharCode :
-                            keysym;
-                    }
-                    if (altCharCode.mUnshiftedCharCode && altCharCode.mShiftedCharCode) {
-                        break;
-                    }
-                }
-            }
-
-            if (altCharCode.mUnshiftedCharCode || altCharCode.mShiftedCharCode) {
-                event.alternativeCharCodes.AppendElement(altCharCode);
-            }
-        }
-    } else {
-        event.charCode = domCharCode;
-    }
-
-    if (xmodmap) {
-        XFreeModifiermap(xmodmap);
-    }
-    if (xkeymap) {
-        XFree(xkeymap);
-    }
-
-    event.keyCode = domCharCode ? 0 : domKeyCode;
-    event.mKeyNameIndex = keyNameIndex;
-    event.mCodeNameIndex = codeNameIndex;
     
     return DispatchEvent(&event);
-#else
-
-    
-    
-
-    
-    
-    if (isContextMenuKeyEvent(aEvent)) {
-        WidgetMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
-                                          WidgetMouseEvent::eReal,
-                                          WidgetMouseEvent::eContextMenuKey);
-        
-        return DispatchEvent(&contextMenuEvent);
-    }
-
-    uint32_t domCharCode = 0;
-    uint32_t domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
-
-    if (aEvent->text().length() && aEvent->text()[0].isPrint()) {
-        domCharCode = (int32_t) aEvent->text()[0].unicode();
-    }
-
-    KeyNameIndex keyNameIndex =
-        domCharCode ? KEY_NAME_INDEX_PrintableKey :
-                      QtKeyCodeToDOMKeyNameIndex(aEvent->key());
-
-    
-    if (!aEvent->isAutoRepeat() && !IsKeyDown(domKeyCode)) {
-        
-
-        SetKeyDownFlag(domKeyCode);
-
-        WidgetKeyboardEvent downEvent(true, NS_KEY_DOWN, this);
-        InitKeyEvent(downEvent, aEvent);
-
-        downEvent.keyCode = domKeyCode;
-        downEvent.mKeyNameIndex = keyNameIndex;
-        downEvent.mCodeNameIndex = codeNameIndex;
-
-        nsEventStatus status = DispatchEvent(&downEvent);
-
-        
-        if (status == nsEventStatus_eConsumeNoDefault) {
-            return nsEventStatus_eConsumeNoDefault;
-        }
-    }
-
-    WidgetKeyboardEvent event(true, NS_KEY_PRESS, this);
-    InitKeyEvent(event, aEvent);
-
-    event.charCode = domCharCode;
-
-    event.keyCode = domCharCode ? 0 : domKeyCode;
-    event.mKeyNameIndex = keyNameIndex;
-    event.mCodeNameIndex = codeNameIndex;
-
-    
-    return DispatchEvent(&event);
-#endif
 }
 
 nsEventStatus
@@ -1465,35 +1238,10 @@ nsWindow::keyReleaseEvent(QKeyEvent* aEvent)
     
     UserActivity();
 
-    if (isContextMenuKeyEvent(aEvent)) {
+    if (IsContextMenuKeyEvent(aEvent)) {
         
         return nsEventStatus_eConsumeDoDefault;
     }
-
-    uint32_t domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
-
-#ifdef MOZ_X11
-    if (!domKeyCode) {
-        
-        Display *display = gfxQtPlatform::GetXDisplay(mWidget);
-        int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
-        XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
-        KeySym *xkeymap = XGetKeyboardMapping(display, x_min_keycode, x_max_keycode - x_min_keycode,
-                                              &xkeysyms_per_keycode);
-
-        if (aEvent->nativeScanCode() >= (quint32)x_min_keycode &&
-            aEvent->nativeScanCode() <= (quint32)x_max_keycode) {
-            int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-            for(int i = 0; (i < xkeysyms_per_keycode) && (domKeyCode == (quint32)NoSymbol); ++i) {
-                domKeyCode = QtKeyCodeToDOMKeyCode(xkeymap[index + i]);
-            }
-        }
-
-        if (xkeymap) {
-            XFree(xkeymap);
-        }
-    }
-#endif 
 
     
     WidgetKeyboardEvent event(true, NS_KEY_UP, this);
@@ -1502,14 +1250,6 @@ nsWindow::keyReleaseEvent(QKeyEvent* aEvent)
     if (aEvent->key() == Qt::Key_AltGr) {
         sAltGrModifier = false;
     }
-
-    event.keyCode = domKeyCode;
-    event.mKeyNameIndex =
-        (aEvent->text().length() && aEvent->text()[0].isPrint()) ?
-            KEY_NAME_INDEX_PrintableKey :
-            QtKeyCodeToDOMKeyNameIndex(aEvent->key());
-    event.mCodeNameIndex =
-        ScanCodeToDOMCodeNameIndex(aEvent->nativeScanCode());
 
     
     ClearKeyDownFlag(event.keyCode);
@@ -1638,42 +1378,6 @@ nsWindow::DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus)
 }
 
 
-
- bool
-isContextMenuKeyEvent(const QKeyEvent *qe)
-{
-    uint32_t kc = QtKeyCodeToDOMKeyCode(qe->key());
-    if (qe->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier)) {
-        return false;
-    }
-
-    bool isShift = qe->modifiers() & Qt::ShiftModifier;
-    return (kc == NS_VK_F10 && isShift) ||
-        (kc == NS_VK_CONTEXT_MENU && !isShift);
-}
-
-void
-InitKeyEvent(WidgetKeyboardEvent &aEvent, QKeyEvent *aQEvent)
-{
-    aEvent.InitBasicModifiers(aQEvent->modifiers() & Qt::ControlModifier,
-                              aQEvent->modifiers() & Qt::AltModifier,
-                              aQEvent->modifiers() & Qt::ShiftModifier,
-                              aQEvent->modifiers() & Qt::MetaModifier);
-    aEvent.mIsRepeat =
-        (aEvent.message == NS_KEY_DOWN || aEvent.message == NS_KEY_PRESS) &&
-        aQEvent->isAutoRepeat();
-    aEvent.time = 0;
-
-    if (sAltGrModifier) {
-        aEvent.modifiers |= (MODIFIER_CONTROL | MODIFIER_ALT);
-    }
-
-    
-    
-    
-    
-    aEvent.pluginEvent = (void *)aQEvent;
-}
 
 NS_IMPL_ISUPPORTS_INHERITED(nsWindow, nsBaseWidget, nsISupportsWeakReference)
 
