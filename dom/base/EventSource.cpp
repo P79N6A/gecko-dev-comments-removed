@@ -201,11 +201,7 @@ EventSource::Init(nsISupports* aOwner,
 
   
   if (JSContext *cx = nsContentUtils::GetCurrentJSContext()) {
-    const char *filename;
-    if (nsJSUtils::GetCallingLocation(cx, &filename, &mScriptLine)) {
-      mScriptFile.AssignASCII(filename);
-    }
-
+    nsJSUtils::GetCallingLocation(cx, mScriptFile, &mScriptLine);
     mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
   }
 
