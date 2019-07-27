@@ -105,7 +105,9 @@ def install(src, dest):
     if not is_installer(src):
         raise InvalidSource(src + ' is not valid installer file.')
 
+    did_we_create = False
     if not os.path.exists(dest):
+        did_we_create = True
         os.makedirs(dest)
 
     trbk = None
@@ -120,10 +122,24 @@ def install(src, dest):
 
         return install_dir
 
-    except Exception, ex:
+    except:
         cls, exc, trbk = sys.exc_info()
-        error = InstallError('Failed to install "%s (%s)"' % (src, str(ex)))
-        raise InstallError, error, trbk
+        if did_we_create:
+            try:
+                
+                uninstall(dest)
+            except:
+                
+                
+                try:
+                    mozfile.remove(dest)
+                except:
+                    pass
+        if issubclass(cls, Exception):
+            error = InstallError('Failed to install "%s (%s)"' % (src, str(exc)))
+            raise InstallError, error, trbk
+        
+        raise cls, exc, trbk
 
     finally:
         
