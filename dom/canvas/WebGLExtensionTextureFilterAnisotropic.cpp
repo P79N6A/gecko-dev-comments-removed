@@ -3,14 +3,15 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionTextureFilterAnisotropic::WebGLExtensionTextureFilterAnisotropic(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionTextureFilterAnisotropic::WebGLExtensionTextureFilterAnisotropic(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -19,3 +20,5 @@ WebGLExtensionTextureFilterAnisotropic::~WebGLExtensionTextureFilterAnisotropic(
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionTextureFilterAnisotropic)
+
+} 

@@ -3,18 +3,17 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLSampler.h"
 
 #include "GLContext.h"
-
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLSampler::WebGLSampler(WebGLContext* context, GLuint sampler)
+WebGLSampler::WebGLSampler(WebGLContext* webgl, GLuint sampler)
     : WebGLBindableName<GLenum>(sampler),
-      WebGLContextBoundObject(context)
+      WebGLContextBoundObject(webgl)
 {
     mContext->mSamplers.insertBack(this);
 }
@@ -49,3 +48,5 @@ WebGLSampler::WrapObject(JSContext* cx)
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLSampler)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLSampler, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLSampler, Release)
+
+} 

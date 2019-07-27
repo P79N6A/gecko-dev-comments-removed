@@ -3,14 +3,15 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionLoseContext::WebGLExtensionLoseContext(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionLoseContext::WebGLExtensionLoseContext(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -31,3 +32,5 @@ WebGLExtensionLoseContext::RestoreContext()
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionLoseContext)
+
+} 

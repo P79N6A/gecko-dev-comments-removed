@@ -4,16 +4,22 @@
 
 
 #include "WebGLObjectModel.h"
+
 #include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLContextBoundObject::WebGLContextBoundObject(WebGLContext *context) {
-    mContext = context;
-    mContextGeneration = context->Generation();
+WebGLContextBoundObject::WebGLContextBoundObject(WebGLContext* webgl)
+    : mContext(webgl)
+    , mContextGeneration(webgl->Generation())
+{
 }
+
 bool
-WebGLContextBoundObject::IsCompatibleWithContext(WebGLContext *other) {
-    return mContext == other &&
-        mContextGeneration == other->Generation();
+WebGLContextBoundObject::IsCompatibleWithContext(WebGLContext* other)
+{
+    return (mContext == other &&
+            mContextGeneration == other->Generation());
 }
+
+} 

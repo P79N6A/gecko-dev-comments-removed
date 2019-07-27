@@ -437,7 +437,7 @@ WebGLContext::VertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 
 
-    WebGLVertexAttribData &vd = mBoundVertexArray->mAttribs[index];
+    WebGLVertexAttribData& vd = mBoundVertexArray->mAttribs[index];
 
     vd.buf = mBoundArrayBuffer;
     vd.stride = stride;

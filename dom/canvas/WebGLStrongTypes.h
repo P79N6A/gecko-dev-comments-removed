@@ -3,14 +3,15 @@
 
 
 
-
-#ifndef WEBGLSTRONGTYPES_H_
-#define WEBGLSTRONGTYPES_H_
+#ifndef WEBGL_STRONG_TYPES_H_
+#define WEBGL_STRONG_TYPES_H_
 
 #include "GLDefs.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+
+
 
 
 
@@ -103,8 +104,7 @@ private:
 
     GLenum mValue;
 
-    static void AssertOnceThatEnumValuesAreSorted()
-    {
+    static void AssertOnceThatEnumValuesAreSorted() {
 #ifdef DEBUG
         static bool alreadyChecked = false;
         if (alreadyChecked) {
@@ -133,8 +133,8 @@ public:
         AssertOnceThatEnumValuesAreSorted();
     }
 
-    MOZ_IMPLICIT StrongGLenum(GLenum aVal)
-        : mValue(aVal)
+    MOZ_IMPLICIT StrongGLenum(GLenum value)
+        : mValue(value)
     {
         AssertOnceThatEnumValuesAreSorted();
         MOZ_ASSERT(IsValueLegal(mValue));
@@ -207,7 +207,6 @@ bool operator!=(StrongGLenum<Details> a, GLenum b)
         static const uint16_t* values() { return NAME##Values; } \
     }; \
     typedef StrongGLenum<NAME##Details> NAME;
-
 
 
 
@@ -451,4 +450,4 @@ STRONG_GLENUM_BEGIN(BufferBinding)
     STRONG_GLENUM_VALUE(ELEMENT_ARRAY_BUFFER),
 STRONG_GLENUM_END(BufferBinding)
 
-#endif
+#endif 

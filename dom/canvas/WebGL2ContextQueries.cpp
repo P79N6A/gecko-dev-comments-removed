@@ -88,9 +88,9 @@ WebGL2Context::CreateQuery()
 
 
 
-        GenerateWarning("createQuery: the WebGL 2 prototype might generate "
-                        "INVALID_OPERATION when creating a query object while "
-                        "one other is active.");
+        GenerateWarning("createQuery: The WebGL 2 prototype might generate"
+                        " INVALID_OPERATION when creating a query object while"
+                        " one other is active.");
         
 
 
@@ -124,9 +124,9 @@ WebGL2Context::DeleteQuery(WebGLQuery* query)
 
 
 
-        GenerateWarning("deleteQuery: the WebGL 2 prototype might generate "
-                        "INVALID_OPERATION when deleting a query object while "
-                        "one other is active.");
+        GenerateWarning("deleteQuery: The WebGL 2 prototype might generate"
+                        " INVALID_OPERATION when deleting a query object while"
+                        " one other is active.");
     }
 
     query->RequestDelete();
@@ -170,7 +170,7 @@ WebGL2Context::BeginQuery(GLenum target, WebGLQuery* query)
 
 
 
-        ErrorInvalidOperation("beginQuery: query should not be null");
+        ErrorInvalidOperation("beginQuery: Query should not be null.");
         return;
     }
 
@@ -180,38 +180,35 @@ WebGL2Context::BeginQuery(GLenum target, WebGLQuery* query)
 
 
 
-        ErrorInvalidOperation("beginQuery: query has been deleted");
+
+        ErrorInvalidOperation("beginQuery: Query has been deleted.");
         return;
     }
 
     if (query->HasEverBeenActive() &&
         query->mType != target)
     {
-        
-
-
-        ErrorInvalidOperation("beginQuery: target doesn't match with the query type");
+        ErrorInvalidOperation("beginQuery: Target doesn't match with the query"
+                              " type.");
         return;
     }
 
     if (*targetSlot) {
-        
-
-
-        ErrorInvalidOperation("beginQuery: an other query already active");
+        ErrorInvalidOperation("beginQuery: An other query already active.");
         return;
     }
 
-    if (!query->HasEverBeenActive()) {
+    if (!query->HasEverBeenActive())
         query->mType = target;
-    }
 
     MakeContextCurrent();
 
     if (target == LOCAL_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN) {
-        gl->fBeginQuery(LOCAL_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query->mGLName);
+        gl->fBeginQuery(LOCAL_GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+                        query->mGLName);
     } else {
-        gl->fBeginQuery(SimulateOcclusionQueryTarget(gl, target), query->mGLName);
+        gl->fBeginQuery(SimulateOcclusionQueryTarget(gl, target),
+                        query->mGLName);
     }
 
     *targetSlot = query;
@@ -229,8 +226,11 @@ WebGL2Context::EndQuery(GLenum target)
         return;
     }
 
-    if (!*targetSlot || target != (*targetSlot)->mType) {
+    if (!*targetSlot ||
+        target != (*targetSlot)->mType)
+    {
         
+
 
 
 
@@ -274,7 +274,7 @@ WebGL2Context::GetQuery(GLenum target, GLenum pname)
         
 
 
-        ErrorInvalidEnum("getQuery: pname must be CURRENT_QUERY");
+        ErrorInvalidEnum("getQuery: `pname` must be CURRENT_QUERY.");
         return nullptr;
     }
 
@@ -283,7 +283,8 @@ WebGL2Context::GetQuery(GLenum target, GLenum pname)
 }
 
 void
-WebGL2Context::GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS::MutableHandleValue retval)
+WebGL2Context::GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname,
+                                 JS::MutableHandleValue retval)
 {
     retval.set(JS::NullValue());
 
@@ -296,19 +297,20 @@ WebGL2Context::GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS
 
 
 
-        ErrorInvalidOperation("getQueryObject: query should not be null");
+
+        ErrorInvalidOperation("getQueryObject: `query` should not be null.");
         return;
     }
 
     if (query->IsDeleted()) {
         
-        ErrorInvalidOperation("getQueryObject: query has been deleted");
+        ErrorInvalidOperation("getQueryObject: `query` has been deleted.");
         return;
     }
 
     if (query->IsActive()) {
         
-        ErrorInvalidOperation("getQueryObject: query is active");
+        ErrorInvalidOperation("getQueryObject: `query` is active.");
         return;
     }
 
@@ -317,7 +319,7 @@ WebGL2Context::GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS
 
 
 
-        ErrorInvalidOperation("getQueryObject: query has never been active");
+        ErrorInvalidOperation("getQueryObject: `query` has never been active.");
         return;
     }
 
@@ -349,5 +351,5 @@ WebGL2Context::GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS
         break;
     }
 
-    ErrorInvalidEnum("getQueryObject: pname must be QUERY_RESULT{_AVAILABLE}");
+    ErrorInvalidEnum("getQueryObject: `pname` must be QUERY_RESULT{_AVAILABLE}.");
 }

@@ -3,24 +3,27 @@
 
 
 
-#ifndef WEBGLSHADER_H_
-#define WEBGLSHADER_H_
-
-#include "WebGLObjectModel.h"
-#include "WebGLUniformInfo.h"
-
-#include "nsWrapperCache.h"
-
-#include "angle/ShaderLang.h"
+#ifndef WEBGL_SHADER_H_
+#define WEBGL_SHADER_H_
 
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
+#include "nsWrapperCache.h"
+#include "WebGLObjectModel.h"
+#include "WebGLUniformInfo.h"
 
 namespace mozilla {
 
-struct WebGLMappedIdentifier {
-    nsCString original, mapped; 
-    WebGLMappedIdentifier(const nsACString& o, const nsACString& m) : original(o), mapped(m) {}
+struct WebGLMappedIdentifier
+{
+    
+    nsCString original;
+    nsCString mapped;
+
+    WebGLMappedIdentifier(const nsACString& o, const nsACString& m)
+        : original(o)
+        , mapped(m)
+    {}
 };
 
 class WebGLShader MOZ_FINAL
@@ -33,14 +36,15 @@ class WebGLShader MOZ_FINAL
     friend class WebGLProgram;
 
 public:
-    WebGLShader(WebGLContext *context, GLenum stype);
+    WebGLShader(WebGLContext* webgl, GLenum type);
 
-    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
     GLuint GLName() { return mGLName; }
     sh::GLenum ShaderType() { return mType; }
 
     void SetSource(const nsAString& src) {
+        
         
         mSource.Assign(src);
     }
@@ -63,18 +67,18 @@ public:
     void SetTranslationSuccess();
 
     void SetTranslationFailure(const nsCString& msg) {
-        mTranslationLog.Assign(msg); 
+        mTranslationLog.Assign(msg);
     }
 
     const nsCString& TranslationLog() const { return mTranslationLog; }
 
     const nsString& TranslatedSource() const { return mTranslatedSource; }
 
-    WebGLContext *GetParentObject() const {
+    WebGLContext* GetParentObject() const {
         return Context();
     }
 
-    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext* cx) MOZ_OVERRIDE;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLShader)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLShader)
@@ -85,7 +89,7 @@ protected:
     }
 
     GLuint mGLName;
-    sh::GLenum mType;
+    GLenum mType;
     nsString mSource;
     nsString mTranslatedSource;
     nsCString mTranslationLog; 
@@ -96,6 +100,7 @@ protected:
     int mAttribMaxNameLength;
     bool mCompileStatus;
 };
+
 } 
 
-#endif
+#endif 

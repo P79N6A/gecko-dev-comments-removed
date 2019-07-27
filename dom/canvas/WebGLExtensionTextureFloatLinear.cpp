@@ -2,14 +2,15 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionTextureFloatLinear::WebGLExtensionTextureFloatLinear(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionTextureFloatLinear::WebGLExtensionTextureFloatLinear(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -18,3 +19,5 @@ WebGLExtensionTextureFloatLinear::~WebGLExtensionTextureFloatLinear()
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionTextureFloatLinear)
+
+} 

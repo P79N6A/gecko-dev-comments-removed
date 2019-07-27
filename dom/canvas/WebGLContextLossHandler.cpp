@@ -42,8 +42,7 @@ WebGLContextLossHandler::StartTimer(unsigned long delayMS)
 }
 
  void
-WebGLContextLossHandler::StaticTimerCallback(nsITimer*,
-                                             void* voidHandler)
+WebGLContextLossHandler::StaticTimerCallback(nsITimer*, void* voidHandler)
 {
     typedef WebGLContextLossHandler T;
     T* handler = static_cast<T*>(voidHandler);

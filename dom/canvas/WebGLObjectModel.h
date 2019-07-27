@@ -91,6 +91,7 @@ class WebGLContext;
 
 
 
+
 template<typename Derived>
 class WebGLRefCountedObject
 {
@@ -99,11 +100,14 @@ public:
 
     WebGLRefCountedObject()
       : mDeletionStatus(Default)
-    { }
+    {}
 
     ~WebGLRefCountedObject() {
-        MOZ_ASSERT(mWebGLRefCnt == 0, "destroying WebGL object still referenced by other WebGL objects");
-        MOZ_ASSERT(mDeletionStatus == Deleted, "Derived class destructor must call DeleteOnce()");
+        MOZ_ASSERT(mWebGLRefCnt == 0,
+                   "Destroying WebGL object still referenced by other WebGL"
+                   " objects.");
+        MOZ_ASSERT(mDeletionStatus == Deleted,
+                   "Derived class destructor must call DeleteOnce().");
     }
 
     
@@ -113,7 +117,8 @@ public:
 
     
     void WebGLRelease() {
-        MOZ_ASSERT(mWebGLRefCnt > 0, "releasing WebGL object with WebGL refcnt already zero");
+        MOZ_ASSERT(mWebGLRefCnt > 0,
+                   "Releasing WebGL object with WebGL refcnt already zero");
         --mWebGLRefCnt;
         MaybeDelete();
     }
@@ -174,16 +179,16 @@ class WebGLRefPtr
 public:
     WebGLRefPtr()
         : mRawPtr(0)
-    { }
+    {}
 
-    WebGLRefPtr(const WebGLRefPtr<T>& aSmartPtr)
-        : mRawPtr(aSmartPtr.mRawPtr)
+    WebGLRefPtr(const WebGLRefPtr<T>& smartPtr)
+        : mRawPtr(smartPtr.mRawPtr)
     {
         AddRefOnPtr(mRawPtr);
     }
 
-    explicit WebGLRefPtr(T* aRawPtr)
-        : mRawPtr(aRawPtr)
+    explicit WebGLRefPtr(T* rawPtr)
+        : mRawPtr(rawPtr)
     {
         AddRefOnPtr(mRawPtr);
     }
@@ -252,7 +257,7 @@ private:
     }
 
 protected:
-    T *mRawPtr;
+    T* mRawPtr;
 };
 
 
@@ -261,15 +266,15 @@ protected:
 class WebGLContextBoundObject
 {
 public:
-    explicit WebGLContextBoundObject(WebGLContext* context);
+    explicit WebGLContextBoundObject(WebGLContext* webgl);
 
-    bool IsCompatibleWithContext(WebGLContext *other);
+    bool IsCompatibleWithContext(WebGLContext* other);
 
-    WebGLContext *Context() const { return mContext; }
+    WebGLContext* Context() const { return mContext; }
 
 protected:
-    WebGLContext *mContext;
-    uint32_t mContextGeneration;
+    WebGLContext* const mContext;
+    const uint32_t mContextGeneration;
 };
 
 
@@ -278,10 +283,14 @@ class WebGLRectangleObject
 {
 public:
     WebGLRectangleObject()
-        : mWidth(0), mHeight(0) { }
+        : mWidth(0)
+        , mHeight(0)
+    {}
 
     WebGLRectangleObject(GLsizei width, GLsizei height)
-        : mWidth(width), mHeight(height) { }
+        : mWidth(width)
+        , mHeight(height)
+    {}
 
     GLsizei Width() const { return mWidth; }
     void width(GLsizei value) { mWidth = value; }
@@ -294,7 +303,7 @@ public:
         mHeight = height;
     }
 
-    void setDimensions(WebGLRectangleObject *rect) {
+    void setDimensions(WebGLRectangleObject* rect) {
         if (rect) {
             mWidth = rect->Width();
             mHeight = rect->Height();
@@ -317,19 +326,19 @@ protected:
 
 template <typename T>
 inline void
-ImplCycleCollectionUnlink(mozilla::WebGLRefPtr<T>& aField)
+ImplCycleCollectionUnlink(mozilla::WebGLRefPtr<T>& field)
 {
-  aField = nullptr;
+    field = nullptr;
 }
 
 template <typename T>
 inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            mozilla::WebGLRefPtr<T>& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
+ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
+                            mozilla::WebGLRefPtr<T>& field,
+                            const char* name,
+                            uint32_t flags = 0)
 {
-  CycleCollectionNoteChild(aCallback, aField.get(), aName, aFlags);
+    CycleCollectionNoteChild(callback, field.get(), name, flags);
 }
 
 #endif

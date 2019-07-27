@@ -3,14 +3,15 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionDebugRendererInfo::WebGLExtensionDebugRendererInfo(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionDebugRendererInfo::WebGLExtensionDebugRendererInfo(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -19,3 +20,5 @@ WebGLExtensionDebugRendererInfo::~WebGLExtensionDebugRendererInfo()
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionDebugRendererInfo)
+
+} 

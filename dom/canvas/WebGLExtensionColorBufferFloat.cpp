@@ -8,12 +8,12 @@
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionColorBufferFloat::WebGLExtensionColorBufferFloat(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionColorBufferFloat::WebGLExtensionColorBufferFloat(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
-    MOZ_ASSERT(IsSupported(context));
+    MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
 }
 
 WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat()
@@ -21,9 +21,9 @@ WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat()
 }
 
 bool
-WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* context)
+WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* webgl)
 {
-    gl::GLContext* gl = context->GL();
+    gl::GLContext* gl = webgl->GL();
 
     
     
@@ -33,3 +33,5 @@ WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* context)
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferFloat)
+
+} 

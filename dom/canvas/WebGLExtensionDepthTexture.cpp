@@ -3,14 +3,15 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionDepthTexture::WebGLExtensionDepthTexture(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionDepthTexture::WebGLExtensionDepthTexture(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -19,3 +20,5 @@ WebGLExtensionDepthTexture::~WebGLExtensionDepthTexture()
 }
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionDepthTexture)
+
+} 

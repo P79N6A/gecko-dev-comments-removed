@@ -4,16 +4,13 @@
 
 
 #include "WebGL2Context.h"
+
 #include "GLContext.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 
-using namespace mozilla;
-using namespace mozilla::gl;
-
-
-
+namespace mozilla {
 
 WebGL2Context::WebGL2Context()
     : WebGLContext()
@@ -27,32 +24,23 @@ WebGL2Context::~WebGL2Context()
 
 }
 
-
-
-
-
-bool
+ bool
 WebGL2Context::IsSupported()
 {
     return Preferences::GetBool("webgl.enable-prototype-webgl2", false);
 }
 
-WebGL2Context*
+ WebGL2Context*
 WebGL2Context::Create()
 {
     return new WebGL2Context();
 }
 
-
-
-
-
 JSObject*
-WebGL2Context::WrapObject(JSContext *cx)
+WebGL2Context::WrapObject(JSContext* cx)
 {
     return dom::WebGL2RenderingContextBinding::Wrap(cx, this);
 }
-
 
 
 
@@ -76,15 +64,15 @@ WebGLContext::InitWebGL2()
         WebGLExtensionID::WEBGL_depth_texture,
         WebGLExtensionID::WEBGL_draw_buffers
     };
-    const GLFeature sFeatureRequiredArr[] = {
-        GLFeature::instanced_non_arrays,
-        GLFeature::transform_feedback2,
-        GLFeature::invalidate_framebuffer
+    const gl::GLFeature sFeatureRequiredArr[] = {
+        gl::GLFeature::instanced_non_arrays,
+        gl::GLFeature::transform_feedback2,
+        gl::GLFeature::invalidate_framebuffer
     };
 
     
-    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr)); i++)
-    {
+    size_t len = MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr);
+    for (size_t i = 0; i < len; i++) {
         WebGLExtensionID extension = sExtensionNativelySupportedArr[i];
 
         if (!IsExtensionSupported(extension)) {
@@ -94,40 +82,42 @@ WebGLContext::InitWebGL2()
     }
 
     
-    if (!gl->IsExtensionSupported(GLContext::EXT_gpu_shader4)) {
+    if (!gl->IsExtensionSupported(gl::GLContext::EXT_gpu_shader4)) {
         GenerateWarning("WebGL 2 requires GL_EXT_gpu_shader4!");
         return false;
     }
 
     
-    if (!gl->IsSupported(GLFeature::occlusion_query) &&
-        !gl->IsSupported(GLFeature::occlusion_query_boolean))
+    if (!gl->IsSupported(gl::GLFeature::occlusion_query) &&
+        !gl->IsSupported(gl::GLFeature::occlusion_query_boolean))
     {
         
-
-
-
+        
         GenerateWarning("WebGL 2 requires occlusion queries!");
         return false;
     }
 
-    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sFeatureRequiredArr)); i++)
-    {
+    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sFeatureRequiredArr)); i++) {
         if (!gl->IsSupported(sFeatureRequiredArr[i])) {
-            GenerateWarning("WebGL 2 requires GLFeature::%s!", GLContext::GetFeatureName(sFeatureRequiredArr[i]));
+            GenerateWarning("WebGL 2 requires GLFeature::%s!",
+                            gl::GLContext::GetFeatureName(sFeatureRequiredArr[i]));
             return false;
         }
     }
 
     
-    for (size_t i = 0; i < size_t(MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr)); i++) {
+    len = MOZ_ARRAY_LENGTH(sExtensionNativelySupportedArr);
+    for (size_t i = 0; i < len; i++) {
         EnableExtension(sExtensionNativelySupportedArr[i]);
 
         MOZ_ASSERT(IsExtensionEnabled(sExtensionNativelySupportedArr[i]));
     }
 
     
-    gl->GetUIntegerv(LOCAL_GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &mGLMaxTransformFeedbackSeparateAttribs);
+    gl->GetUIntegerv(LOCAL_GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS,
+                     &mGLMaxTransformFeedbackSeparateAttribs);
 
     return true;
 }
+
+} 

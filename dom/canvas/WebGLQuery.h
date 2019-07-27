@@ -3,14 +3,12 @@
 
 
 
-#ifndef WEBGLQUERY_H_
-#define WEBGLQUERY_H_
-
-#include "WebGLObjectModel.h"
-
-#include "nsWrapperCache.h"
+#ifndef WEBGL_QUERY_H_
+#define WEBGL_QUERY_H_
 
 #include "mozilla/LinkedList.h"
+#include "nsWrapperCache.h"
+#include "WebGLObjectModel.h"
 
 namespace mozilla {
 
@@ -20,45 +18,28 @@ class WebGLQuery MOZ_FINAL
     , public LinkedListElement<WebGLQuery>
     , public WebGLContextBoundObject
 {
-
-
 public:
-
-    
-    
-
-    explicit WebGLQuery(WebGLContext* aContext);
-
-    
-    
+    explicit WebGLQuery(WebGLContext* webgl);
 
     bool IsActive() const;
 
-    bool HasEverBeenActive()
-    {
+    bool HasEverBeenActive() {
         return mType != 0;
     }
 
-
     
-    
-
     void Delete();
 
-    WebGLContext* GetParentObject() const
-    {
+    
+    WebGLContext* GetParentObject() const {
         return Context();
     }
 
-
     
-    
-    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext* cx) MOZ_OVERRIDE;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLQuery)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLQuery)
-
-
 
 
 private:
@@ -66,16 +47,12 @@ private:
         DeleteOnce();
     };
 
-    
-    
     GLuint mGLName;
     GLenum mType;
 
-    
-    
     friend class WebGL2Context;
 };
 
 } 
 
-#endif
+#endif 

@@ -3,8 +3,8 @@
 
 
 
-#ifndef WEBGLSHADERPRECISIONFORMAT_H_
-#define WEBGLSHADERPRECISIONFORMAT_H_
+#ifndef WEBGL_SHADER_PRECISION_FORMAT_H_
+#define WEBGL_SHADER_PRECISION_FORMAT_H_
 
 #include "WebGLObjectModel.h"
 
@@ -16,23 +16,25 @@ class WebGLShaderPrecisionFormat MOZ_FINAL
     : public WebGLContextBoundObject
 {
 public:
-    WebGLShaderPrecisionFormat(WebGLContext *context, GLint rangeMin, GLint rangeMax, GLint precision) :
-        WebGLContextBoundObject(context),
-        mRangeMin(rangeMin),
-        mRangeMax(rangeMax),
-        mPrecision(precision)
-    {
-    }
+    WebGLShaderPrecisionFormat(WebGLContext* context, GLint rangeMin,
+                               GLint rangeMax, GLint precision)
+        : WebGLContextBoundObject(context)
+        , mRangeMin(rangeMin)
+        , mRangeMax(rangeMax)
+        , mPrecision(precision)
+    { }
 
-    JSObject* WrapObject(JSContext *cx);
+    JSObject* WrapObject(JSContext* cx);
 
     
     GLint RangeMin() const {
         return mRangeMin;
     }
+
     GLint RangeMax() const {
         return mRangeMax;
     }
+
     GLint Precision() const {
         return mPrecision;
     }
@@ -41,9 +43,7 @@ public:
 
 private:
     
-    ~WebGLShaderPrecisionFormat()
-    {
-    }
+    ~WebGLShaderPrecisionFormat() { }
 
     GLint mRangeMin;
     GLint mRangeMax;
@@ -52,4 +52,4 @@ private:
 
 } 
 
-#endif
+#endif 

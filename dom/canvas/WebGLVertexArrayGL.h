@@ -3,8 +3,8 @@
 
 
 
-#ifndef WEBGLVERTEXARRAYGL_H_
-#define WEBGLVERTEXARRAYGL_H_
+#ifndef WEBGL_VERTEX_ARRAY_GL_H_
+#define WEBGL_VERTEX_ARRAY_GL_H_
 
 #include "WebGLVertexArray.h"
 
@@ -19,8 +19,8 @@ public:
     virtual void GenVertexArray() MOZ_OVERRIDE;
 
 private:
-    explicit WebGLVertexArrayGL(WebGLContext* aContext)
-        : WebGLVertexArray(aContext)
+    explicit WebGLVertexArrayGL(WebGLContext* webgl)
+        : WebGLVertexArray(webgl)
     { }
 
     ~WebGLVertexArrayGL() {
@@ -32,4 +32,4 @@ private:
 
 } 
 
-#endif
+#endif 

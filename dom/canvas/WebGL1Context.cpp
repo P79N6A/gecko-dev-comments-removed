@@ -25,9 +25,6 @@ WebGL1Context::~WebGL1Context()
 {
 }
 
-
-
-
 JSObject*
 WebGL1Context::WrapObject(JSContext* cx)
 {
@@ -35,9 +32,6 @@ WebGL1Context::WrapObject(JSContext* cx)
 }
 
 } 
-
-
-
 
 nsresult
 NS_NewCanvasRenderingContextWebGL(nsIDOMWebGLRenderingContext** out_result)

@@ -3,19 +3,20 @@
 
 
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
-#include "mozilla/dom/WebGLRenderingContextBinding.h"
+
 #include "GLContext.h"
+#include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionSRGB::WebGLExtensionSRGB(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionSRGB::WebGLExtensionSRGB(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
-    MOZ_ASSERT(IsSupported(context), "should not construct WebGLExtensionSRGB: "
-                                     "sRGB is unsupported.");
-    gl::GLContext* gl = context->GL();
+    MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
+
+    gl::GLContext* gl = webgl->GL();
     if (!gl->IsGLES()) {
         
         
@@ -29,12 +30,14 @@ WebGLExtensionSRGB::~WebGLExtensionSRGB()
 }
 
 bool
-WebGLExtensionSRGB::IsSupported(const WebGLContext* context)
+WebGLExtensionSRGB::IsSupported(const WebGLContext* webgl)
 {
-    gl::GLContext* gl = context->GL();
+    gl::GLContext* gl = webgl->GL();
 
     return gl->IsSupported(gl::GLFeature::sRGB);
 }
 
 
 IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionSRGB)
+
+} 
