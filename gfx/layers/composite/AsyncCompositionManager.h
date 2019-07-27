@@ -95,7 +95,9 @@ public:
 
   
   
-  bool TransformShadowTree(TimeStamp aCurrentFrame);
+  enum class TransformsToSkip : uint8_t { NoneOfThem = 0, APZ = 1 };
+  bool TransformShadowTree(TimeStamp aCurrentFrame,
+    TransformsToSkip aSkip = TransformsToSkip::NoneOfThem);
 
   
   
@@ -207,6 +209,8 @@ private:
 
   gfx::Matrix mWorldTransform;
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(AsyncCompositionManager::TransformsToSkip)
 
 class MOZ_STACK_CLASS AutoResolveRefLayers {
 public:
