@@ -206,13 +206,13 @@ public:
                         nsIContent* aLastPopup,
                         nsPopupType aPopupType,
                         bool aDeselectMenu,
-                        bool aIsRollup)
+                        bool aIsCancel)
     : mPopup(aPopup),
       mNextPopup(aNextPopup),
       mLastPopup(aLastPopup),
       mPopupType(aPopupType),
       mDeselectMenu(aDeselectMenu),
-      mIsRollup(aIsRollup)
+      mIsRollup(aIsCancel)
   {
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupHidingEvent constructor");
     
@@ -446,7 +446,7 @@ public:
                  bool aHideChain,
                  bool aDeselectMenu,
                  bool aAsynchronous,
-                 bool aIsRollup,
+                 bool aIsCancel,
                  nsIContent* aLastPopup = nullptr);
 
   
@@ -679,7 +679,7 @@ protected:
                             nsPresContext *aPresContext,
                             nsPopupType aPopupType,
                             bool aDeselectMenu,
-                            bool aIsRollup);
+                            bool aIsCancel);
 
   
 
