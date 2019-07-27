@@ -60,7 +60,7 @@ public:
     virtual bool ProvidesGlyphWidths() const { return true; }
 
     
-    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
+    virtual int32_t GetGlyphWidth(DrawTarget& aDrawTarget, uint16_t aGID);
 
     virtual void AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
                                         FontCacheSizes* aSizes) const;
