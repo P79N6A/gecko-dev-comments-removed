@@ -38,34 +38,104 @@ AnimationTimeline::GetCurrentTimeAsDouble() const
   return AnimationUtils::TimeDurationToDouble(GetCurrentTime());
 }
 
+void
+AnimationTimeline::FastForward(const TimeStamp& aTimeStamp)
+{
+  
+  
+  if (!mFastForwardTime.IsNull() && aTimeStamp <= mFastForwardTime) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRefreshDriver* refreshDriver = GetRefreshDriver();
+  if (refreshDriver && refreshDriver->IsTestControllingRefreshesEnabled()) {
+    return;
+  }
+
+  
+  
+  
+  if (refreshDriver &&
+      aTimeStamp < refreshDriver->MostRecentRefresh()) {
+    mFastForwardTime = refreshDriver->MostRecentRefresh();
+    return;
+  }
+
+  
+  
+  
+  
+
+  mFastForwardTime = aTimeStamp;
+}
+
 TimeStamp
 AnimationTimeline::GetCurrentTimeStamp() const
 {
-  
-  TimeStamp result = mLastCurrentTime;
+  nsRefreshDriver* refreshDriver = GetRefreshDriver();
+  TimeStamp refreshTime = refreshDriver
+                          ? refreshDriver->MostRecentRefresh()
+                          : TimeStamp();
 
   
+  TimeStamp result = !refreshTime.IsNull()
+                     ? refreshTime
+                     : mLastRefreshDriverTime;
+
   
   
   if (result.IsNull()) {
     nsRefPtr<nsDOMNavigationTiming> timing = mDocument->GetNavigationTiming();
-    if (!timing) {
-      return result;
+    if (timing) {
+      result = timing->GetNavigationStartTimeStamp();
+      
+      
+      
+      refreshTime = result;
     }
-    result = timing->GetNavigationStartTimeStamp();
   }
 
-  nsRefreshDriver* refreshDriver = GetRefreshDriver();
-  if (!refreshDriver) {
-    return result;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  MOZ_ASSERT(refreshTime.IsNull() || mLastRefreshDriverTime.IsNull() ||
+             refreshTime >= mLastRefreshDriverTime ||
+             mFastForwardTime.IsNull(),
+             "The refresh driver time should not go backwards when the"
+             " fast-forward time is set");
+
+  
+  
+  
+  
+  
+  if (result.IsNull() ||
+       (!mFastForwardTime.IsNull() && mFastForwardTime > result)) {
+    result = mFastForwardTime;
+  } else {
+    
+    mFastForwardTime = TimeStamp();
   }
 
-  result = refreshDriver->MostRecentRefresh();
-  
-  
-  
-  
-  mLastCurrentTime = result;
+  if (!refreshTime.IsNull()) {
+    mLastRefreshDriverTime = refreshTime;
+  }
+
   return result;
 }
 
