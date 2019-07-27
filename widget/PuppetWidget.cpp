@@ -502,9 +502,6 @@ PuppetWidget::NotifyIMEOfFocusChange(bool aFocus)
     if (queryEvent.mSucceeded) {
       mTabChild->SendNotifyIMETextHint(queryEvent.mReply.mString);
     }
-  } else {
-    
-    IMEEndComposition(false);
   }
 
   uint32_t chromeSeqno;
