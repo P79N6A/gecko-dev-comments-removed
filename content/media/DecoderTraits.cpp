@@ -684,6 +684,14 @@ MediaDecoderReader* DecoderTraits::CreateReader(const nsACString& aType, Abstrac
 
 bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
 {
+  
+  
+  
+  if (!Preferences::GetBool("media.windows-media-foundation.play-stand-alone", true) ||
+      !Preferences::GetBool("media.play-stand-alone", true)) {
+    return false;
+  }
+
   return
     IsOggType(aType) ||
 #ifdef MOZ_OMX_DECODER
@@ -704,8 +712,7 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
     IsMP4SupportedType(aType) ||
 #endif
 #ifdef MOZ_WMF
-    (IsWMFSupportedType(aType) &&
-     Preferences::GetBool("media.windows-media-foundation.play-stand-alone", true)) ||
+    IsWMFSupportedType(aType) ||
 #endif
 #ifdef MOZ_DIRECTSHOW
     IsDirectShowSupportedType(aType) ||

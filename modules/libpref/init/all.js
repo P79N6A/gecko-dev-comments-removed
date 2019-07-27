@@ -234,10 +234,13 @@ pref("media.volume_scale", "1.0");
 
 pref("media.wakelock_timeout", 2000);
 
+
+
+pref("media.play-stand-alone", true);
+
 #ifdef MOZ_WMF
 pref("media.windows-media-foundation.enabled", true);
 pref("media.windows-media-foundation.use-dxva", true);
-pref("media.windows-media-foundation.play-stand-alone", true);
 #endif
 #ifdef MOZ_DIRECTSHOW
 pref("media.directshow.enabled", true);
