@@ -978,6 +978,12 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
                        Long.toString(BrowserContract.Bookmarks.DEFAULT_POSITION));
         }
 
+        if (!values.containsKey(Bookmarks.TITLE)) {
+            
+            
+            values.put(Bookmarks.TITLE, "");
+        }
+
         String url = values.getAsString(Bookmarks.URL);
 
         debug("Inserting bookmark in database with URL: " + url);
