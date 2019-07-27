@@ -146,26 +146,6 @@ private:
                              bool aOnlyInMemory,
                              bool aOverwrite);
 
-  
-
-
-
-
-  void ForceEntryValidFor(nsACString &aCacheEntryKey,
-                          uint32_t aSecondsToTheFuture);
-
-private:
-  friend class CacheIndex;
-
-  
-
-
-
-
-
-
-  bool IsForcedValidEntry(nsACString &aCacheEntryKey);
-
 private:
   
   void TelemetryPrune(TimeStamp &now);
@@ -285,9 +265,6 @@ private:
   static CacheStorageService* sSelf;
 
   mozilla::Mutex mLock;
-
-  
-  nsDataHashtable<nsCStringHashKey, TimeStamp> mForcedValidEntries;
 
   bool mShutdown;
 
