@@ -125,7 +125,7 @@ struct Statistics
     void endSlice();
 
     void startTimingMutator();
-    void stopTimingMutator(double &mutator_ms, double &gc_ms);
+    bool stopTimingMutator(double &mutator_ms, double &gc_ms);
 
     void reset(const char *reason) { slices.back().resetReason = reason; }
     void nonincremental(const char *reason) { nonincrementalReason = reason; }
@@ -189,9 +189,6 @@ struct Statistics
     int64_t phaseStartTimes[PHASE_LIMIT];
 
     
-    bool timingMutator;
-
-    
     int64_t timedGCStart;
     int64_t timedGCTime;
 
@@ -214,6 +211,15 @@ struct Statistics
     static const size_t MAX_NESTING = 8;
     Phase phaseNesting[MAX_NESTING];
     size_t phaseNestingDepth;
+
+    
+
+
+
+
+
+    Phase suspendedPhases[MAX_NESTING];
+    size_t suspendedPhaseNestingDepth;
 
     
     Vector<int64_t, 0, SystemAllocPolicy> sccTimes;

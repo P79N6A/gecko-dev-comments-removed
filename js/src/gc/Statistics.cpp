@@ -283,6 +283,13 @@ struct PhaseInfo
 
 static const Phase PHASE_NO_PARENT = PHASE_LIMIT;
 
+
+
+
+
+
+
+
 static const PhaseInfo phases[] = {
     { PHASE_MUTATOR, "Mutator Running", PHASE_NO_PARENT },
     { PHASE_GC_BEGIN, "Begin Callback", PHASE_NO_PARENT },
@@ -639,11 +646,11 @@ Statistics::Statistics(JSRuntime *rt)
     fullFormat(false),
     gcDepth(0),
     nonincrementalReason(nullptr),
-    timingMutator(false),
     timedGCStart(0),
     preBytes(0),
     maxPauseInInterval(0),
     phaseNestingDepth(0),
+    suspendedPhaseNestingDepth(0),
     sliceCallback(nullptr)
 {
     PodArrayZero(phaseTotals);
@@ -833,12 +840,10 @@ Statistics::endSlice()
 void
 Statistics::startTimingMutator()
 {
-    MOZ_ASSERT(!timingMutator);
-
     
     MOZ_ASSERT(phaseNestingDepth == 0);
+    MOZ_ASSERT(suspendedPhaseNestingDepth == 0);
 
-    timingMutator = true;
     timedGCTime = 0;
     phaseStartTimes[PHASE_MUTATOR] = 0;
     phaseTimes[PHASE_MUTATOR] = 0;
@@ -847,38 +852,42 @@ Statistics::startTimingMutator()
     beginPhase(PHASE_MUTATOR);
 }
 
-void
+bool
 Statistics::stopTimingMutator(double &mutator_ms, double &gc_ms)
 {
-    MOZ_ASSERT(timingMutator);
-
     
-    MOZ_ASSERT(phaseNestingDepth == 1 && phaseNesting[0] == PHASE_MUTATOR);
+    if (phaseNestingDepth != 1 || phaseNesting[0] != PHASE_MUTATOR)
+        return false;
 
     endPhase(PHASE_MUTATOR);
     mutator_ms = t(phaseTimes[PHASE_MUTATOR]);
     gc_ms = t(timedGCTime);
-    timingMutator = false;
+
+    return true;
 }
 
 void
 Statistics::beginPhase(Phase phase)
 {
+    Phase parent = phaseNestingDepth ? phaseNesting[phaseNestingDepth - 1] : PHASE_NO_PARENT;
+
+    
+    
+    
+    
+    if (parent == PHASE_GC_BEGIN || parent == PHASE_GC_END || parent == PHASE_MUTATOR) {
+        suspendedPhases[suspendedPhaseNestingDepth++] = parent;
+        MOZ_ASSERT(suspendedPhaseNestingDepth <= mozilla::ArrayLength(suspendedPhases));
+        endPhase(parent);
+        parent = phaseNestingDepth ? phaseNesting[phaseNestingDepth - 1] : PHASE_NO_PARENT;
+    }
+
     
     MOZ_ASSERT(!phaseStartTimes[phase]);
 
-    if (timingMutator) {
-        if (phaseNestingDepth == 1 && phaseNesting[0] == PHASE_MUTATOR) {
-            endPhase(PHASE_MUTATOR);
-            timedGCStart = PRMJ_Now();
-        }
-    }
-
 #ifdef DEBUG
     MOZ_ASSERT(phases[phase].index == phase);
-    Phase parent = phaseNestingDepth ? phaseNesting[phaseNestingDepth - 1] : PHASE_NO_PARENT;
     MOZ_ASSERT(phaseNestingDepth < MAX_NESTING);
-    
     MOZ_ASSERT_IF(gcDepth == 1 && phase != PHASE_MINOR_GC, phases[phase].parent == parent);
 #endif
 
@@ -891,20 +900,31 @@ Statistics::beginPhase(Phase phase)
 void
 Statistics::endPhase(Phase phase)
 {
+    int64_t now = PRMJ_Now();
+
+    if (phase == PHASE_MUTATOR)
+        timedGCStart = now;
+
     phaseNestingDepth--;
 
-    int64_t now = PRMJ_Now();
     int64_t t = now - phaseStartTimes[phase];
     if (!slices.empty())
         slices.back().phaseTimes[phase] += t;
     phaseTimes[phase] += t;
     phaseStartTimes[phase] = 0;
 
-    if (timingMutator) {
-        if (phaseNestingDepth == 0 && phase != PHASE_MUTATOR) {
+    
+    
+    
+    
+    
+    
+    
+    if (phaseNestingDepth == 0 && suspendedPhaseNestingDepth > 0 && phase != PHASE_MUTATOR) {
+        Phase resumePhase = suspendedPhases[--suspendedPhaseNestingDepth];
+        if (resumePhase == PHASE_MUTATOR)
             timedGCTime += now - timedGCStart;
-            beginPhase(PHASE_MUTATOR);
-        }
+        beginPhase(resumePhase);
     }
 }
 
