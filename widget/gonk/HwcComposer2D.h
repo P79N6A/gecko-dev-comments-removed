@@ -77,19 +77,17 @@ public:
     HwcComposer2D();
     virtual ~HwcComposer2D();
 
-    int Init(hwc_display_t aDisplay, hwc_surface_t aSurface, gl::GLContext* aGLContext);
-
-    bool Initialized() const { return mHwc; }
-
     static HwcComposer2D* GetInstance();
 
     
     
     
-    bool TryRender(layers::Layer* aRoot,
-                   bool aGeometryChanged) override;
+    virtual bool TryRenderWithHwc(layers::Layer* aRoot,
+                                  bool aGeometryChanged) override;
 
-    bool Render(EGLDisplay dpy, EGLSurface sur);
+    virtual bool Render() override;
+
+    virtual bool HasHwc() override { return mHwc; }
 
     bool EnableVsync(bool aEnable);
 #if ANDROID_VERSION >= 17
@@ -98,6 +96,10 @@ public:
     void Invalidate();
 #endif
     void SetCompositorParent(layers::CompositorParent* aCompositorParent);
+
+    
+    
+    void SetEGLInfo(hwc_display_t aDisplay, hwc_surface_t aSurface, gl::GLContext* aGLContext);
 
 private:
     void Reset();
@@ -113,9 +115,9 @@ private:
 
     HwcDevice*              mHwc;
     HwcList*                mList;
-    hwc_display_t           mDpy;
-    hwc_surface_t           mSur;
-    gl::GLContext*          mGLContext;
+    hwc_display_t           mDpy; 
+    hwc_surface_t           mSur; 
+    gl::GLContext*          mGLContext; 
     nsIntRect               mScreenRect;
     int                     mMaxLayerCount;
     bool                    mColorFill;
