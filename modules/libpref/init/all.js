@@ -4330,3 +4330,8 @@ pref("dom.udpsocket.enabled", false);
 
 pref("dns.ttl-experiment.variant", 0);
 pref("dns.ttl-experiment.enabled", true);
+
+
+#ifdef XP_MACOSX
+pref("intl.collation.mac.use_icu", true);
+#endif
