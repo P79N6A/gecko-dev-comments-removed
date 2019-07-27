@@ -10,7 +10,10 @@ let { Ci, Cc, CC, Cr } = require("chrome");
 let Services = require("Services");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn } = DevToolsUtils;
-let { DebuggerTransport } = require("devtools/toolkit/transport/transport");
+loader.lazyRequireGetter(this, "DebuggerTransport",
+  "devtools/toolkit/transport/transport", true);
+loader.lazyRequireGetter(this, "DebuggerServer",
+  "devtools/server/main", true);
 
 DevToolsUtils.defineLazyGetter(this, "ServerSocket", () => {
   return CC("@mozilla.org/network/server-socket;1",
@@ -32,6 +35,8 @@ DevToolsUtils.defineLazyGetter(this, "socketTransportService", () => {
   return Cc["@mozilla.org/network/socket-transport-service;1"]
          .getService(Ci.nsISocketTransportService);
 });
+
+const DBG_STRINGS_URI = "chrome://global/locale/devtools/debugger.properties";
 
 
 
@@ -70,6 +75,36 @@ function socketConnect(host, port) {
 function SocketListener(server) {
   this._server = server;
 }
+
+
+
+
+
+
+
+
+
+SocketListener.defaultAllowConnection = () => {
+  let bundle = Services.strings.createBundle(DBG_STRINGS_URI);
+  let title = bundle.GetStringFromName("remoteIncomingPromptTitle");
+  let msg = bundle.GetStringFromName("remoteIncomingPromptMessage");
+  let disableButton = bundle.GetStringFromName("remoteIncomingPromptDisable");
+  let prompt = Services.prompt;
+  let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
+              prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
+              prompt.BUTTON_POS_2 * prompt.BUTTON_TITLE_IS_STRING +
+              prompt.BUTTON_POS_1_DEFAULT;
+  let result = prompt.confirmEx(null, title, msg, flags, null, null,
+                                disableButton, null, { value: false });
+  if (result === 0) {
+    return true;
+  }
+  if (result === 2) {
+    DebuggerServer.closeAllListeners();
+    Services.prefs.setBoolPref("devtools.debugger.remote-enabled", false);
+  }
+  return false;
+};
 
 SocketListener.prototype = {
 
@@ -129,10 +164,19 @@ SocketListener.prototype = {
 
   
 
+
+
+
+
+
+  allowConnection: SocketListener.defaultAllowConnection,
+
+  
+
   onSocketAccepted:
   DevToolsUtils.makeInfallible(function(socket, socketTransport) {
     if (Services.prefs.getBoolPref("devtools.debugger.prompt-connection") &&
-        !this._server._allowConnection()) {
+        !this.allowConnection()) {
       return;
     }
     dumpn("New debugging connection on " +
