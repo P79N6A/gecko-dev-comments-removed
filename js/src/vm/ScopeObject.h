@@ -812,6 +812,7 @@ class ScopeIterVal
         hasScopeObject_(si.hasScopeObject_) {}
 
     AbstractFramePtr frame() const { return frame_; }
+    void updateFrame(AbstractFramePtr frame) { frame_ = frame; }
 };
 
 
@@ -942,7 +943,10 @@ class DebugScopes
     static bool updateLiveScopes(JSContext *cx);
     static ScopeIterVal *hasLiveScope(ScopeObject &scope);
 
-    static void rekeyMissingScopes(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to);
+    
+    
+    
+    static void forwardLiveFrame(JSContext *cx, AbstractFramePtr from, AbstractFramePtr to);
 
     
     

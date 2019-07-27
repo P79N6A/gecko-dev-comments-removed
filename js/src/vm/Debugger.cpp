@@ -4541,7 +4541,9 @@ Debugger::replaceFrameGuts(JSContext *cx, AbstractFramePtr from, AbstractFramePt
     }
 
     
-    DebugScopes::rekeyMissingScopes(cx, from, to);
+    
+    
+    DebugScopes::forwardLiveFrame(cx, from, to);
 
     return true;
 }
