@@ -1006,6 +1006,8 @@ MediaCodecReader::DecodeVideoFrameSync(int64_t aTimeThreshold)
     }
 
     if (v) {
+      
+      mDecoder->NotifyDecodedFrames(0, 1, 0);
       VideoQueue().Push(v);
     } else {
       NS_WARNING("Unable to create VideoData");
@@ -1817,6 +1819,10 @@ MediaCodecReader::GetCodecOutputData(Track& aTrack,
     }
 
     if (status == OK) {
+      
+      if (&aTrack == &mVideoTrack) {
+        mDecoder->NotifyDecodedFrames(1, 0, 0);
+      }
       if (!IsValidTimestampUs(aThreshold) || info.mTimeUs >= aThreshold) {
         
         break;
