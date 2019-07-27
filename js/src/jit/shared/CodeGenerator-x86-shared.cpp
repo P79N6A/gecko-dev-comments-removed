@@ -2964,7 +2964,22 @@ CodeGeneratorX86Shared::visitSimdSelect(LSimdSelect *ins)
     if (mask != temp)
         masm.vmovaps(mask, temp);
 
-    masm.bitwiseAndX4(Operand(mask), output);
+    MSimdSelect *mir = ins->mir();
+    if (mir->isElementWise()) {
+        if (AssemblerX86Shared::HasAVX()) {
+            masm.vblendvps(mask, onTrue, onFalse, output);
+            return;
+        }
+
+        
+        
+
+        
+        if (!mir->mask()->isSimdBinaryComp())
+            masm.packedRightShiftByScalar(Imm32(31), temp);
+    }
+
+    masm.bitwiseAndX4(Operand(temp), output);
     masm.bitwiseAndNotX4(Operand(onFalse), temp);
     masm.bitwiseOrX4(Operand(temp), output);
 }
