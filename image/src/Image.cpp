@@ -63,6 +63,12 @@ ImageResource::ImageResource(ImageURL* aURI) :
   mError(false)
 { }
 
+ImageResource::~ImageResource()
+{
+  
+  mProgressTracker->ResetImage();
+}
+
 
 Image::eDecoderType
 Image::GetDecoderType(const char* aMimeType)

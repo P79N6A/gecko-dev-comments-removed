@@ -69,8 +69,7 @@ public:
   void OnSVGDocumentError();
 
 protected:
-  explicit VectorImage(ProgressTracker* aProgressTracker = nullptr,
-                       ImageURL* aURI = nullptr);
+  explicit VectorImage(ImageURL* aURI = nullptr);
   virtual ~VectorImage();
 
   virtual nsresult StartAnimation() override;
@@ -110,9 +109,6 @@ private:
                                           
   bool           mHasPendingInvalidation; 
                                           
-
-  
-  nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
 
   friend class ImageFactory;
 };

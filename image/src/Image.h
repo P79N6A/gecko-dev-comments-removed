@@ -289,6 +289,7 @@ public:
 
 protected:
   explicit ImageResource(ImageURL* aURI);
+  ~ImageResource();
 
   
   

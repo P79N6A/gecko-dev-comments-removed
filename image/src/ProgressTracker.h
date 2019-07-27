@@ -158,21 +158,20 @@ public:
   
   bool FirstObserverIs(IProgressObserver* aObserver);
 
+  
+  
+  void ResetImage();
+
 private:
   typedef nsTObserverArray<mozilla::WeakPtr<IProgressObserver>> ObserverArray;
   friend class AsyncNotifyRunnable;
   friend class AsyncNotifyCurrentStateRunnable;
-  friend class ProgressTrackerInit;
+  friend class ImageFactory;
 
   ProgressTracker(const ProgressTracker& aOther) = delete;
 
   
-  
   void SetImage(Image* aImage);
-
-  
-  
-  void ResetImage();
 
   
   
@@ -199,15 +198,6 @@ private:
   ObserverArray mObservers;
 
   Progress mProgress;
-};
-
-class ProgressTrackerInit
-{
-public:
-  ProgressTrackerInit(Image* aImage, ProgressTracker* aTracker);
-  ~ProgressTrackerInit();
-private:
-  ProgressTracker* mTracker;
 };
 
 } 

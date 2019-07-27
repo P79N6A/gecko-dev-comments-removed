@@ -327,8 +327,7 @@ NS_IMPL_ISUPPORTS(VectorImage,
 
 
 
-VectorImage::VectorImage(ProgressTracker* aProgressTracker,
-                         ImageURL* aURI ) :
+VectorImage::VectorImage(ImageURL* aURI ) :
   ImageResource(aURI), 
   mLockCount(0),
   mIsInitialized(false),
@@ -336,9 +335,7 @@ VectorImage::VectorImage(ProgressTracker* aProgressTracker,
   mIsDrawing(false),
   mHaveAnimations(false),
   mHasPendingInvalidation(false)
-{
-  mProgressTrackerInit = new ProgressTrackerInit(this, aProgressTracker);
-}
+{ }
 
 VectorImage::~VectorImage()
 {

@@ -424,9 +424,6 @@ private:
 
   TimeStamp mDrawStartTime;
 
-  
-  nsAutoPtr<ProgressTrackerInit> mProgressTrackerInit;
-
 
   
   
@@ -474,8 +471,7 @@ private:
   bool CanDiscard();
 
 protected:
-  explicit RasterImage(ProgressTracker* aProgressTracker = nullptr,
-                       ImageURL* aURI = nullptr);
+  explicit RasterImage(ImageURL* aURI = nullptr);
 
   bool ShouldAnimate() override;
 

@@ -18,6 +18,7 @@ namespace image {
 
 class Image;
 class ImageURL;
+class MultipartImage;
 class ProgressTracker;
 
 class ImageFactory
@@ -53,6 +54,18 @@ public:
 
   static already_AddRefed<Image>
   CreateAnonymousImage(const nsCString& aMimeType);
+
+  
+
+
+
+
+
+
+
+
+  static already_AddRefed<MultipartImage>
+  CreateMultipartImage(Image* aFirstPart, ProgressTracker* aProgressTracker);
 
 private:
   
