@@ -92,6 +92,9 @@ const NOTAB_MESSAGES = new Set([
 const CLOSED_MESSAGES = new Set([
   
   "SessionStore:crashedTabRevived",
+
+  
+  "SessionStore:update",
 ]);
 
 
@@ -341,6 +344,11 @@ let SessionStoreInternal = {
   
   
   _lastKnownFrameLoader: new WeakMap(),
+
+  
+  
+  
+  _closedTabs: new WeakMap(),
 
   
   _browserSetState: false,
@@ -632,9 +640,48 @@ let SessionStoreInternal = {
         if (frameLoader != aMessage.targetFrameLoader) {
           return;
         }
+
+        
+        
         this.recordTelemetry(aMessage.data.telemetry);
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
+
+        
+        
+        
+        if (this._closedTabs.has(browser.permanentKey)) {
+          let {closedTabs, tabData} = this._closedTabs.get(browser.permanentKey);
+
+          
+          
+          TabState.copyFromCache({linkedBrowser: browser}, tabData.state);
+
+          
+          if (aMessage.data.isFinal) {
+            
+            this._closedTabs.delete(browser.permanentKey);
+            
+            delete tabData.permanentKey;
+
+            
+            let shouldSave = this._shouldSaveTabState(tabData.state);
+            let index = closedTabs.indexOf(tabData);
+
+            if (shouldSave && index == -1) {
+              
+              
+              
+              
+              this.saveClosedTabData(closedTabs, tabData);
+            } else if (!shouldSave && index > -1) {
+              
+              
+              
+              this.removeClosedTabData(closedTabs, index);
+            }
+          }
+        }
         break;
       case "SessionStore:restoreHistoryComplete":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
@@ -1399,9 +1446,6 @@ let SessionStoreInternal = {
     }
 
     
-    TabState.flush(aTab.linkedBrowser);
-
-    
     let tabState = TabState.collect(aTab);
 
     
@@ -1411,22 +1455,95 @@ let SessionStoreInternal = {
     }
 
     
-    if (this._shouldSaveTabState(tabState)) {
-      let tabTitle = aTab.label;
-      let tabbrowser = aWindow.gBrowser;
-      tabTitle = this._replaceLoadingTitle(tabTitle, tabbrowser, aTab);
+    let tabbrowser = aWindow.gBrowser;
+    let tabTitle = this._replaceLoadingTitle(aTab.label, tabbrowser, aTab);
+    let {permanentKey} = aTab.linkedBrowser;
 
-      this._windows[aWindow.__SSi]._closedTabs.unshift({
-        state: tabState,
-        title: tabTitle,
-        image: tabbrowser.getIcon(aTab),
-        pos: aTab._tPos,
-        closedAt: Date.now()
-      });
-      var length = this._windows[aWindow.__SSi]._closedTabs.length;
-      if (length > this._max_tabs_undo)
-        this._windows[aWindow.__SSi]._closedTabs.splice(this._max_tabs_undo, length - this._max_tabs_undo);
+    let tabData = {
+      permanentKey,
+      state: tabState,
+      title: tabTitle,
+      image: tabbrowser.getIcon(aTab),
+      pos: aTab._tPos,
+      closedAt: Date.now()
+    };
+
+    let closedTabs = this._windows[aWindow.__SSi]._closedTabs;
+
+    
+    
+    
+    
+    if (this._shouldSaveTabState(tabState)) {
+      
+      
+      
+      
+      this.saveClosedTabData(closedTabs, tabData);
     }
+
+    
+    
+    this._closedTabs.set(permanentKey, {closedTabs, tabData});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  saveClosedTabData(closedTabs, tabData) {
+    
+    
+    let index = closedTabs.findIndex(tab => {
+      return tab.closedAt < tabData.closedAt;
+    });
+
+    
+    
+    if (index == -1) {
+      index = closedTabs.length;
+    }
+
+    
+    closedTabs.splice(index, 0, tabData);
+
+    
+    if (closedTabs.length > this._max_tabs_undo) {
+      closedTabs.splice(this._max_tabs_undo, closedTabs.length);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  removeClosedTabData(closedTabs, index) {
+    
+    let [closedTab] = closedTabs.splice(index, 1);
+
+    
+    
+    
+    
+    if (closedTab.permanentKey) {
+      this._closedTabs.delete(closedTab.permanentKey);
+      delete closedTab.permanentKey;
+    }
+
+    return closedTab;
   },
 
   
@@ -1729,18 +1846,17 @@ let SessionStoreInternal = {
     }
 
     
-    let [closedTab] = closedTabs.splice(aIndex, 1);
-    let closedTabState = closedTab.state;
+    let {state, pos} = this.removeClosedTabData(closedTabs, aIndex);
 
     
     let tabbrowser = aWindow.gBrowser;
     let tab = tabbrowser.selectedTab = tabbrowser.addTab();
 
     
-    this.restoreTab(tab, closedTabState);
+    this.restoreTab(tab, state);
 
     
-    tabbrowser.moveTabTo(tab, closedTab.pos);
+    tabbrowser.moveTabTo(tab, pos);
 
     
     tab.linkedBrowser.focus();
@@ -1762,7 +1878,7 @@ let SessionStoreInternal = {
     }
 
     
-    closedTabs.splice(aIndex, 1);
+    this.removeClosedTabData(closedTabs, aIndex);
   },
 
   getClosedWindowCount: function ssi_getClosedWindowCount() {

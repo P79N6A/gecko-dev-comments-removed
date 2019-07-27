@@ -53,6 +53,10 @@ this.TabState = Object.freeze({
 
   clone: function (tab) {
     return TabStateInternal.clone(tab);
+  },
+
+  copyFromCache: function (tab, tabData, options) {
+    TabStateInternal.copyFromCache(tab, tabData, options);
   }
 });
 
@@ -218,7 +222,7 @@ let TabStateInternal = {
 
     
     
-    this._copyFromCache(tab, tabData, options);
+    this.copyFromCache(tab, tabData, options);
 
     return tabData;
   },
@@ -233,7 +237,7 @@ let TabStateInternal = {
 
 
 
-  _copyFromCache: function (tab, tabData, options = {}) {
+  copyFromCache: function (tab, tabData, options = {}) {
     let data = TabStateCache.get(tab.linkedBrowser);
     if (!data) {
       return;
