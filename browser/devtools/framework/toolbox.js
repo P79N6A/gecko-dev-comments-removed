@@ -1358,8 +1358,10 @@ Toolbox.prototype = {
     
     outstanding.push(this.destroyInspector().then(() => {
       
-      this._pickerButton.removeEventListener("command", this._togglePicker, false);
-      this._pickerButton = null;
+      if (this._pickerButton) {
+        this._pickerButton.removeEventListener("command", this._togglePicker, false);
+        this._pickerButton = null;
+      }
     }));
 
     
