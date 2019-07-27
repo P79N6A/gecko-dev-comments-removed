@@ -62,6 +62,7 @@
 #include "nsBoxLayout.h"
 #include "nsFlexContainerFrame.h"
 #include "nsGridContainerFrame.h"
+#include "RubyUtils.h"
 #include "nsRubyFrame.h"
 #include "nsRubyBaseFrame.h"
 #include "nsRubyBaseContainerFrame.h"
@@ -9146,8 +9147,7 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   nsIAtom* parentType = parent->GetType();
   if (parentType == nsGkAtoms::rubyFrame ||
-      parentType == nsGkAtoms::rubyBaseContainerFrame ||
-      parentType == nsGkAtoms::rubyTextContainerFrame) {
+      RubyUtils::IsRubyContainerBox(parentType)) {
     
     
     
@@ -11911,8 +11911,7 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
   nsIAtom* frameType = aFrame->GetType();
   if (IsRubyPseudo(aFrame) ||
       frameType == nsGkAtoms::rubyFrame ||
-      frameType == nsGkAtoms::rubyBaseContainerFrame ||
-      frameType == nsGkAtoms::rubyTextContainerFrame) {
+      RubyUtils::IsRubyContainerBox(frameType)) {
     
     
     
