@@ -2558,11 +2558,7 @@ let gMenuButtonUpdateBadge = {
         
         
         
-        let badge = document.getAnonymousElementByAttribute(PanelUI.menuButton,
-                                                            "class",
-                                                            "toolbarbutton-badge");
-        badge.style.backgroundColor = '#74BF43';
-        PanelUI.menuButton.setAttribute("badge", "\u2B06");
+        PanelUI.menuButton.setAttribute("update-status", "succeeded");
 
         let brandBundle = document.getElementById("bundle_brand");
         let brandShortName = brandBundle.getString("brandShortName");
@@ -2580,6 +2576,7 @@ let gMenuButtonUpdateBadge = {
       case STATE_FAILED:
         
         
+        PanelUI.menuButton.setAttribute("update-status", "failed");
         PanelUI.menuButton.setAttribute("badge", "!");
 
         stringId = "appmenu.updateFailed.description";
