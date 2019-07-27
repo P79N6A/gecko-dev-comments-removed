@@ -682,9 +682,14 @@ PopupNotifications.prototype = {
     let haveNotifications = notifications.length > 0;
     if (haveNotifications) {
       
+      notificationsToShow = notifications.filter(function (n) {
+        return !n.dismissed && !n.options.neverShow;
+      });
+
       
       
-      anchorElement = anchor || notifications[0].anchorElement;
+      if (!anchorElement && notificationsToShow.length)
+        anchorElement = notificationsToShow[0].anchorElement;
 
       if (useIconBox) {
         this._showIcons(notifications);
@@ -694,9 +699,8 @@ PopupNotifications.prototype = {
       }
 
       
-      notificationsToShow = notifications.filter(function (n) {
-        return !n.dismissed && n.anchorElement == anchorElement &&
-               !n.options.neverShow;
+      notificationsToShow = notificationsToShow.filter(function (n) {
+        return n.anchorElement == anchorElement;
       });
     }
 
