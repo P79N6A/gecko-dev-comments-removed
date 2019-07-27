@@ -247,16 +247,10 @@ class nsStyleSet
   
   
   
-  
-  
-  
-  
-  
   already_AddRefed<nsStyleContext>
   ReparentStyleContext(nsStyleContext* aStyleContext,
                        nsStyleContext* aNewParentContext,
-                       mozilla::dom::Element* aElement,
-                       mozilla::dom::Element* aElementOrPseudoElement);
+                       mozilla::dom::Element* aElement);
 
   
   bool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
