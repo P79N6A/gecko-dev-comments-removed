@@ -2117,10 +2117,8 @@ CanRelocateArena(ArenaHeader *arena)
 
 
 
-
     JSRuntime *rt = arena->zone->runtimeFromMainThread();
-    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST &&
-        ((!rt->options().baseline() && !rt->options().ion()) || !ArenaContainsGlobal(arena));
+    return arena->getAllocKind() <= FINALIZE_OBJECT_LAST && !ArenaContainsGlobal(arena);
 }
 
 static bool
