@@ -156,6 +156,31 @@ GFX2D_API void AppendEllipseToPath(PathBuilder* aPathBuilder,
                                    const Point& aCenter,
                                    const Size& aDimensions);
 
+
+
+
+
+
+
+
+
+
+
+GFX2D_API bool SnapLineToDevicePixelsForStroking(Point& aP1, Point& aP2,
+                                                 const DrawTarget& aDrawTarget);
+
+
+
+
+
+
+
+
+GFX2D_API void StrokeSnappedEdgesOfRect(const Rect& aRect,
+                                        DrawTarget& aDrawTarget,
+                                        const ColorPattern& aColor,
+                                        const StrokeOptions& aStrokeOptions);
+
 static inline bool
 UserToDevicePixelSnapped(Rect& aRect, const Matrix& aTransform)
 {

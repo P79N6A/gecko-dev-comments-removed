@@ -162,6 +162,65 @@ AppendEllipseToPath(PathBuilder* aPathBuilder,
   AppendRoundedRectToPath(aPathBuilder, rect, radii);
 }
 
+bool
+SnapLineToDevicePixelsForStroking(Point& aP1, Point& aP2,
+                                  const DrawTarget& aDrawTarget)
+{
+  Matrix mat = aDrawTarget.GetTransform();
+  if (mat.HasNonTranslation()) {
+    return false;
+  }
+  if (aP1.x != aP2.x && aP1.y != aP2.y) {
+    return false; 
+  }
+  Point p1 = aP1 + mat.GetTranslation(); 
+  Point p2 = aP2 + mat.GetTranslation();
+  p1.Round();
+  p2.Round();
+  p1 -= mat.GetTranslation(); 
+  p2 -= mat.GetTranslation();
+  if (aP1.x == aP2.x) {
+    
+    aP1 = p1 + Point(0.5, 0);
+    aP2 = p2 + Point(0.5, 0);
+  } else {
+    
+    aP1 = p1 + Point(0, 0.5);
+    aP2 = p2 + Point(0, 0.5);
+  }
+  return true;
+}
+
+void
+StrokeSnappedEdgesOfRect(const Rect& aRect, DrawTarget& aDrawTarget,
+                        const ColorPattern& aColor,
+                        const StrokeOptions& aStrokeOptions)
+{
+  if (aRect.IsEmpty()) {
+    return;
+  }
+
+  Point p1 = aRect.TopLeft();
+  Point p2 = aRect.BottomLeft();
+  SnapLineToDevicePixelsForStroking(p1, p2, aDrawTarget);
+  aDrawTarget.StrokeLine(p1, p2, aColor, aStrokeOptions);
+
+  p1 = aRect.BottomLeft();
+  p2 = aRect.BottomRight();
+  SnapLineToDevicePixelsForStroking(p1, p2, aDrawTarget);
+  aDrawTarget.StrokeLine(p1, p2, aColor, aStrokeOptions);
+
+  p1 = aRect.TopLeft();
+  p2 = aRect.TopRight();
+  SnapLineToDevicePixelsForStroking(p1, p2, aDrawTarget);
+  aDrawTarget.StrokeLine(p1, p2, aColor, aStrokeOptions);
+
+  p1 = aRect.TopRight();
+  p2 = aRect.BottomRight();
+  SnapLineToDevicePixelsForStroking(p1, p2, aDrawTarget);
+  aDrawTarget.StrokeLine(p1, p2, aColor, aStrokeOptions);
+}
+
 } 
 } 
 
