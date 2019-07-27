@@ -61,11 +61,6 @@ class nsFrameLoader final : public nsIFrameLoader,
   typedef mozilla::dom::TabParent TabParent;
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
 
-protected:
-  nsFrameLoader(mozilla::dom::Element* aOwner, bool aNetworkCreated);
-
-  ~nsFrameLoader();
-
 public:
   static nsFrameLoader* Create(mozilla::dom::Element* aOwner,
                                bool aNetworkCreated);
@@ -215,7 +210,13 @@ public:
   
   nsresult GetWindowDimensions(nsIntRect& aRect);
 
+  
+  nsRefPtr<nsFrameMessageManager> mMessageManager;
+  nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
+
 private:
+  nsFrameLoader(mozilla::dom::Element* aOwner, bool aNetworkCreated);
+  ~nsFrameLoader();
 
   void SetOwnerContent(mozilla::dom::Element* aContent);
 
@@ -312,11 +313,6 @@ private:
   
   uint32_t mAppIdSentToPermissionManager;
 
-public:
-  
-  nsRefPtr<nsFrameMessageManager> mMessageManager;
-  nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
-private:
   
   
   nsView* mDetachedSubdocViews;
@@ -326,6 +322,13 @@ private:
   
   
   nsCOMPtr<nsIDocument> mContainerDocWhileDetached;
+
+  TabParent* mRemoteBrowser;
+  uint64_t mChildID;
+
+  
+  
+  uint32_t mEventMode;
 
   bool mIsPrerendered : 1;
   bool mDepthTooGreat : 1;
@@ -350,13 +353,6 @@ private:
   
   
   bool mVisible : 1;
-
-  TabParent* mRemoteBrowser;
-  uint64_t mChildID;
-
-  
-  
-  uint32_t mEventMode;
 };
 
 #endif
