@@ -24,12 +24,13 @@ class MemoryReport;
 
 class nsMemoryReporterManager : public nsIMemoryReporterManager
 {
+  virtual ~nsMemoryReporterManager();
+
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTERMANAGER
 
   nsMemoryReporterManager();
-  virtual ~nsMemoryReporterManager();
 
   
   static nsMemoryReporterManager* GetOrCreate()

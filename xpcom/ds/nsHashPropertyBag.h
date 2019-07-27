@@ -16,7 +16,6 @@ class nsHashPropertyBag : public nsIWritablePropertyBag
 {
 public:
     nsHashPropertyBag() { }
-    virtual ~nsHashPropertyBag() {}
 
     NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -31,6 +30,8 @@ public:
 protected:
     
     nsInterfaceHashtable<nsStringHashKey, nsIVariant> mPropertyHash;
+
+    virtual ~nsHashPropertyBag() {}
 };
 
 
