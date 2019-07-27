@@ -57,7 +57,8 @@ VMFunction::addToFunctions()
 }
 
 bool
-InvokeFunction(JSContext* cx, HandleObject obj, uint32_t argc, Value* argv, Value* rval)
+InvokeFunction(JSContext* cx, HandleObject obj, uint32_t argc, Value* argv,
+               MutableHandleValue rval)
 {
     AutoArrayRooter argvRoot(cx, argc + 1, argv);
 
@@ -68,23 +69,10 @@ InvokeFunction(JSContext* cx, HandleObject obj, uint32_t argc, Value* argv, Valu
     
     
     
-    RootedValue rv(cx);
-    if (thisv.isMagic(JS_IS_CONSTRUCTING)) {
-        if (!InvokeConstructor(cx, ObjectValue(*obj), argc, argvWithoutThis, &rv))
-            return false;
-    } else {
-        if (!Invoke(cx, thisv, ObjectValue(*obj), argc, argvWithoutThis, &rv))
-            return false;
-    }
+    if (thisv.isMagic(JS_IS_CONSTRUCTING))
+        return InvokeConstructor(cx, ObjectValue(*obj), argc, argvWithoutThis, rval);
 
-    if (obj->is<JSFunction>()) {
-        jsbytecode* pc;
-        RootedScript script(cx, cx->currentScript(&pc));
-        TypeScript::Monitor(cx, script, pc, rv.get());
-    }
-
-    *rval = rv;
-    return true;
+    return Invoke(cx, thisv, ObjectValue(*obj), argc, argvWithoutThis, rval);
 }
 
 bool
