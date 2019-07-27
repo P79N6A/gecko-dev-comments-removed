@@ -75,7 +75,10 @@ public:
 
 
 
-  void ReportClientLost() { mOutstandingClients--; }
+  void ReportClientLost() {
+    MOZ_ASSERT(mOutstandingClients > mTextureClientsDeferred.size());
+    mOutstandingClients--;
+  }
 
   
 
@@ -104,6 +107,9 @@ private:
   
   uint32_t mShrinkTimeoutMsec;
 
+  
+  
+  
   uint32_t mOutstandingClients;
 
   

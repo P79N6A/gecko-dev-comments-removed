@@ -42,11 +42,10 @@ TextureClientPool::~TextureClientPool()
 TemporaryRef<TextureClient>
 TextureClientPool::GetTextureClient()
 {
-  mOutstandingClients++;
-
   
   RefPtr<TextureClient> textureClient;
   if (mTextureClients.size()) {
+    mOutstandingClients++;
     textureClient = mTextureClients.top();
     mTextureClients.pop();
     return textureClient;
@@ -67,6 +66,7 @@ TextureClientPool::GetTextureClient()
       mFormat, mSize, gfx::BackendType::NONE, TextureFlags::IMMEDIATE_UPLOAD);
   }
 
+  mOutstandingClients++;
   return textureClient;
 }
 
@@ -76,11 +76,12 @@ TextureClientPool::ReturnTextureClient(TextureClient *aClient)
   if (!aClient) {
     return;
   }
-  MOZ_ASSERT(mOutstandingClients);
+  
+  MOZ_ASSERT(mOutstandingClients > mTextureClientsDeferred.size());
   mOutstandingClients--;
+  mTextureClients.push(aClient);
 
   
-  mTextureClients.push(aClient);
   ShrinkToMaximumSize();
 
   
@@ -94,6 +95,9 @@ TextureClientPool::ReturnTextureClient(TextureClient *aClient)
 void
 TextureClientPool::ReturnTextureClientDeferred(TextureClient *aClient)
 {
+  if (!aClient) {
+    return;
+  }
   mTextureClientsDeferred.push(aClient);
   ShrinkToMaximumSize();
 }
@@ -109,6 +113,7 @@ TextureClientPool::ShrinkToMaximumSize()
   
   while (totalClientsOutstanding > mMaxTextureClients) {
     if (mTextureClientsDeferred.size()) {
+      MOZ_ASSERT(mOutstandingClients > 0);
       mOutstandingClients--;
       mTextureClientsDeferred.pop();
     } else {
@@ -143,7 +148,8 @@ TextureClientPool::ReturnDeferredClients()
     MOZ_ASSERT(mOutstandingClients > 0);
     mOutstandingClients--;
   }
-  ShrinkToMinimumSize();
+  ShrinkToMaximumSize();
+
   
   
   if (mTextureClients.size() > sMinCacheSize) {
@@ -159,6 +165,7 @@ TextureClientPool::Clear()
     mTextureClients.pop();
   }
   while (!mTextureClientsDeferred.empty()) {
+    MOZ_ASSERT(mOutstandingClients > 0);
     mOutstandingClients--;
     mTextureClientsDeferred.pop();
   }
