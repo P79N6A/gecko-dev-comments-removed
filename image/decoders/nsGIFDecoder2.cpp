@@ -216,7 +216,7 @@ nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 void
 nsGIFDecoder2::EndImageFrame()
 {
-  FrameBlender::FrameAlpha alpha = FrameBlender::kFrameHasAlpha;
+  Opacity opacity = Opacity::SOME_TRANSPARENCY;
 
   
   if (!mGIFStruct.images_decoded) {
@@ -235,7 +235,7 @@ nsGIFDecoder2::EndImageFrame()
     }
     
     if (mGIFStruct.is_transparent && !mSawTransparency) {
-      alpha = FrameBlender::kFrameOpaque;
+      opacity = Opacity::OPAQUE;
     }
   }
   mCurrentRow = mLastFlushedRow = -1;
@@ -259,8 +259,8 @@ nsGIFDecoder2::EndImageFrame()
   mGIFStruct.images_decoded++;
 
   
-  PostFrameStop(alpha,
-                FrameBlender::FrameDisposalMethod(mGIFStruct.disposal_method),
+  PostFrameStop(opacity,
+                DisposalMethod(mGIFStruct.disposal_method),
                 mGIFStruct.delay_time);
 
   
@@ -830,10 +830,9 @@ nsGIFDecoder2::WriteInternal(const char* aBuffer, uint32_t aCount,
       }
 
       {
-        int32_t method =
-          FrameBlender::FrameDisposalMethod(mGIFStruct.disposal_method);
-        if (method == FrameBlender::kDisposeClearAll ||
-            method == FrameBlender::kDisposeClear) {
+        DisposalMethod method = DisposalMethod(mGIFStruct.disposal_method);
+        if (method == DisposalMethod::CLEAR_ALL ||
+            method == DisposalMethod::CLEAR) {
           
           
           PostHasTransparency();

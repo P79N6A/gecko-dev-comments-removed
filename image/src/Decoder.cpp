@@ -333,10 +333,10 @@ Decoder::PostFrameStart()
 }
 
 void
-Decoder::PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha ,
-                       FrameBlender::FrameDisposalMethod aDisposalMethod ,
+Decoder::PostFrameStop(Opacity aFrameOpacity ,
+                       DisposalMethod aDisposalMethod ,
                        int32_t aTimeout ,
-                       FrameBlender::FrameBlendMethod aBlendMethod )
+                       BlendMethod aBlendMethod )
 {
   
   MOZ_ASSERT(!IsSizeDecode(), "Stopping frame during a size decode");
@@ -346,11 +346,11 @@ Decoder::PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha ,
   
   mInFrame = false;
 
-  if (aFrameAlpha == FrameBlender::kFrameOpaque) {
+  if (aFrameOpacity == Opacity::OPAQUE) {
     mCurrentFrame->SetHasNoAlpha();
   }
 
-  mCurrentFrame->SetFrameDisposalMethod(aDisposalMethod);
+  mCurrentFrame->SetDisposalMethod(aDisposalMethod);
   mCurrentFrame->SetRawTimeout(aTimeout);
   mCurrentFrame->SetBlendMethod(aBlendMethod);
   mCurrentFrame->ImageUpdated(mCurrentFrame->GetRect());

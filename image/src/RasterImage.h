@@ -18,7 +18,6 @@
 #define mozilla_imagelib_RasterImage_h_
 
 #include "Image.h"
-#include "FrameBlender.h"
 #include "nsCOMPtr.h"
 #include "imgIContainer.h"
 #include "nsIProperties.h"
@@ -348,11 +347,9 @@ private:
   
   uint32_t                   mFrameDecodeFlags;
 
-  
-  Maybe<FrameBlender>       mFrameBlender;
-
   nsCOMPtr<nsIProperties>   mProperties;
 
+  
   
   
   

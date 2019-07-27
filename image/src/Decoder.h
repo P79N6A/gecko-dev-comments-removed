@@ -6,6 +6,7 @@
 #ifndef MOZILLA_IMAGELIB_DECODER_H_
 #define MOZILLA_IMAGELIB_DECODER_H_
 
+#include "FrameAnimator.h"
 #include "RasterImage.h"
 #include "mozilla/RefPtr.h"
 #include "DecodePool.h"
@@ -241,10 +242,10 @@ protected:
   
   
   
-  void PostFrameStop(FrameBlender::FrameAlpha aFrameAlpha = FrameBlender::kFrameHasAlpha,
-                     FrameBlender::FrameDisposalMethod aDisposalMethod = FrameBlender::kDisposeKeep,
+  void PostFrameStop(Opacity aFrameOpacity = Opacity::SOME_TRANSPARENCY,
+                     DisposalMethod aDisposalMethod = DisposalMethod::KEEP,
                      int32_t aTimeout = 0,
-                     FrameBlender::FrameBlendMethod aBlendMethod = FrameBlender::kBlendOver);
+                     BlendMethod aBlendMethod = BlendMethod::OVER);
 
   
   

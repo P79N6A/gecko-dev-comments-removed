@@ -10,6 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/TypedEnum.h"
 #include "mozilla/VolatileBuffer.h"
 #include "gfxDrawable.h"
 #include "imgIContainer.h"
@@ -20,6 +21,29 @@ namespace image {
 class ImageRegion;
 class DrawableFrameRef;
 class RawAccessFrameRef;
+
+MOZ_BEGIN_ENUM_CLASS(BlendMethod, int8_t)
+  
+  
+  SOURCE,
+
+  
+  
+  OVER
+MOZ_END_ENUM_CLASS(BlendMethod)
+
+MOZ_BEGIN_ENUM_CLASS(DisposalMethod, int8_t)
+  CLEAR_ALL = -1,  
+  NOT_SPECIFIED,   
+  KEEP,            
+  CLEAR,           
+  RESTORE_PREVIOUS 
+MOZ_END_ENUM_CLASS(DisposalMethod)
+
+MOZ_BEGIN_ENUM_CLASS(Opacity, uint8_t)
+  OPAQUE,
+  SOME_TRANSPARENCY
+MOZ_END_ENUM_CLASS(Opacity)
 
 class imgFrame
 {
@@ -113,10 +137,15 @@ public:
   int32_t GetRawTimeout() const;
   void SetRawTimeout(int32_t aTimeout);
 
-  int32_t GetFrameDisposalMethod() const;
-  void SetFrameDisposalMethod(int32_t aFrameDisposalMethod);
-  int32_t GetBlendMethod() const;
-  void SetBlendMethod(int32_t aBlendMethod);
+  DisposalMethod GetDisposalMethod() const { return mDisposalMethod; }
+  void SetDisposalMethod(DisposalMethod aDisposalMethod)
+  {
+    mDisposalMethod = aDisposalMethod;
+  }
+
+  BlendMethod GetBlendMethod() const { return mBlendMethod; }
+  void SetBlendMethod(BlendMethod aBlendMethod) { mBlendMethod = aBlendMethod; }
+
   bool ImageComplete() const;
 
   void SetHasNoAlpha();
@@ -202,7 +231,6 @@ private:
   Color        mSinglePixelColor;
 
   int32_t      mTimeout; 
-  int32_t      mDisposalMethod;
 
   
   int32_t mLockCount;
@@ -210,9 +238,10 @@ private:
   RefPtr<VolatileBuffer> mVBuf;
   VolatileBufferPtr<uint8_t> mVBufPtr;
 
-  SurfaceFormat mFormat;
-  uint8_t      mPaletteDepth;
-  int8_t       mBlendMethod;
+  SurfaceFormat  mFormat;
+  uint8_t        mPaletteDepth;
+  DisposalMethod mDisposalMethod;
+  BlendMethod    mBlendMethod;
   bool mSinglePixel;
   bool mCompositingFailed;
   bool mHasNoAlpha;
