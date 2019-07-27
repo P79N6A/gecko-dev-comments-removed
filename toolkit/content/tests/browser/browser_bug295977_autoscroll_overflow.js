@@ -116,7 +116,7 @@ function test()
       
       
       
-      if (timeCompensation < 1) {
+      if (timeCompensation < 5) {
         window.mozRequestAnimationFrame(checkScroll);
         return;
       }
