@@ -165,6 +165,9 @@ MOZ_BEGIN_ENUM_CLASS(AttributeType)
 MOZ_END_ENUM_CLASS(AttributeType)
 
 
+const float kMaxStdDeviation = 500;
+
+
 
 
 
@@ -444,6 +447,13 @@ public:
   ComputePostFilterExtents(const FilterDescription& aFilter,
                            const nsIntRegion& aSourceGraphicExtents);
 
+  
+
+
+
+  static nsIntRegion
+  PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& aDescription,
+                                const nsTArray<nsIntRegion>& aInputExtents);
 };
 
 }

@@ -275,6 +275,11 @@ private:
   
 
 
+  nsIntRect               mTargetBBoxInFilterSpace;
+
+  
+
+
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;
 
   
