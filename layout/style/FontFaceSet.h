@@ -200,6 +200,12 @@ private:
 
 
 
+  void DisconnectFromRule(FontFace* aFontFace);
+
+  
+
+
+
   bool MightHavePendingFontLoads();
 
   
@@ -304,6 +310,13 @@ private:
   
   
   nsTArray<FontFace*> mUnavailableFaces;
+
+  
+  
+  
+  
+  
+  nsDataHashtable<nsPtrHashKey<nsCSSFontFaceRule>, FontFace*> mRuleFaceMap;
 
   
   mozilla::dom::FontFaceSetLoadStatus mStatus;
