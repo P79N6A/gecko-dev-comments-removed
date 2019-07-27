@@ -157,29 +157,217 @@ loop.shared.mixins = (function() {
 
 
   var MediaSetupMixin = {
+    _videoDimensionsCache: {
+      local: {},
+      remote: {}
+    },
+
     componentDidMount: function() {
-      rootObject.addEventListener('orientationchange', this.updateVideoContainer);
-      rootObject.addEventListener('resize', this.updateVideoContainer);
+      rootObject.addEventListener("orientationchange", this.updateVideoContainer);
+      rootObject.addEventListener("resize", this.updateVideoContainer);
     },
 
     componentWillUnmount: function() {
-      rootObject.removeEventListener('orientationchange', this.updateVideoContainer);
-      rootObject.removeEventListener('resize', this.updateVideoContainer);
+      rootObject.removeEventListener("orientationchange", this.updateVideoContainer);
+      rootObject.removeEventListener("resize", this.updateVideoContainer);
     },
 
     
 
 
 
+
+
+
+
+
+
+    _updateDimensionsCache: function(which, newDimensions) {
+      var cache = this._videoDimensionsCache[which];
+      var cacheKeys = Object.keys(cache);
+      var changed = false;
+      Object.keys(newDimensions).forEach(function(videoType) {
+        if (cacheKeys.indexOf(videoType) === -1) {
+          cache[videoType] = newDimensions[videoType];
+          cache[videoType].aspectRatio = this.getAspectRatio(cache[videoType]);
+          changed = true;
+          return;
+        }
+        if (cache[videoType].width !== newDimensions[videoType].width) {
+          cache[videoType].width = newDimensions[videoType].width;
+          changed = true;
+        }
+        if (cache[videoType].height !== newDimensions[videoType].height) {
+          cache[videoType].height = newDimensions[videoType].height;
+          changed = true;
+        }
+        if (changed) {
+          cache[videoType].aspectRatio = this.getAspectRatio(cache[videoType]);
+        }
+      }, this);
+      return changed;
+    },
+
+    
+
+
+
+
+
+
+
+
+
+    updateVideoDimensions: function(localVideoDimensions, remoteVideoDimensions) {
+      var localChanged = this._updateDimensionsCache("local", localVideoDimensions);
+      var remoteChanged = this._updateDimensionsCache("remote", remoteVideoDimensions);
+      if (localChanged || remoteChanged) {
+        this.updateVideoContainer();
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    getAspectRatio: function(dimensions) {
+      if (dimensions.width === dimensions.height) {
+        return {width: 1, height: 1};
+      }
+      var denominator = Math.max(dimensions.width, dimensions.height);
+      return {
+        width: dimensions.width / denominator,
+        height: dimensions.height / denominator
+      };
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    getRemoteVideoDimensions: function() {
+      var remoteVideoDimensions;
+
+      Object.keys(this._videoDimensionsCache.remote).forEach(function(videoType) {
+        var node = this._getElement("." + (videoType === "camera" ? "remote" : videoType));
+        var width = node.offsetWidth;
+        
+        
+        
+        
+        
+        if (width) {
+          remoteVideoDimensions = {
+            width: width,
+            height: node.offsetHeight
+          };
+          var ratio = this._videoDimensionsCache.remote[videoType].aspectRatio;
+          var leadingAxis = Math.min(ratio.width, ratio.height) === ratio.width ?
+            "width" : "height";
+          var slaveSize = remoteVideoDimensions[leadingAxis] +
+            (remoteVideoDimensions[leadingAxis] * (1 - ratio[leadingAxis]));
+          remoteVideoDimensions.streamWidth = leadingAxis === "width" ?
+            remoteVideoDimensions.width : slaveSize;
+          remoteVideoDimensions.streamHeight = leadingAxis === "height" ?
+            remoteVideoDimensions.height: slaveSize;
+        }
+      }, this);
+
+      
+      
+      if (!remoteVideoDimensions) {
+        var node = this._getElement(".remote");
+        var width = node.offsetWidth;
+        var height = node.offsetHeight;
+        remoteVideoDimensions = {
+          width: width,
+          height: height,
+          streamWidth: width,
+          streamHeight: height
+        };
+      }
+
+      
+      remoteVideoDimensions.offsetX = remoteVideoDimensions.width -
+        remoteVideoDimensions.streamWidth
+      if (remoteVideoDimensions.offsetX > 0) {
+        remoteVideoDimensions.offsetX /= 2;
+      }
+      remoteVideoDimensions.offsetY = remoteVideoDimensions.height -
+        remoteVideoDimensions.streamHeight;
+      if (remoteVideoDimensions.offsetY > 0) {
+        remoteVideoDimensions.offsetY /= 2;
+      }
+
+      return remoteVideoDimensions;
+    },
+
+    
+
+
+
+
+
+
+
     updateVideoContainer: function() {
-      var localStreamParent = this._getElement('.local .OT_publisher');
-      var remoteStreamParent = this._getElement('.remote .OT_subscriber');
-      if (localStreamParent) {
-        localStreamParent.style.width = "100%";
+      if (this._bufferedUpdateVideo) {
+        rootObject.clearTimeout(this._bufferedUpdateVideo);
+        this._bufferedUpdateVideo = null;
       }
-      if (remoteStreamParent) {
-        remoteStreamParent.style.height = "100%";
-      }
+
+      this._bufferedUpdateVideo = rootObject.setTimeout(function() {
+        this._bufferedUpdateVideo = null;
+        var localStreamParent = this._getElement(".local .OT_publisher");
+        var remoteStreamParent = this._getElement(".remote .OT_subscriber");
+        if (localStreamParent) {
+          localStreamParent.style.width = "100%";
+        }
+        if (remoteStreamParent) {
+          remoteStreamParent.style.height = "100%";
+        }
+
+        
+        
+        
+        Object.keys(this._videoDimensionsCache.local).forEach(function(videoType) {
+          var ratio = this._videoDimensionsCache.local[videoType].aspectRatio
+          if (videoType == "camera" && this.updateLocalCameraPosition) {
+            this.updateLocalCameraPosition(ratio);
+          }
+        }, this);
+      }.bind(this), 0);
     },
 
     

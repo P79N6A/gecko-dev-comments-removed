@@ -224,7 +224,9 @@ loop.standaloneRoomViews = (function(mozL10n) {
 
 
     _onActiveRoomStateChanged: function() {
-      this.setState(this.props.activeRoomStore.getStoreState());
+      var state = this.props.activeRoomStore.getStoreState();
+      this.updateVideoDimensions(state.localVideoDimensions, state.remoteVideoDimensions);
+      this.setState(state);
     },
 
     componentDidMount: function() {
@@ -281,6 +283,41 @@ loop.standaloneRoomViews = (function(mozL10n) {
         type: type,
         enabled: enabled
       }));
+    },
+
+    
+
+
+
+
+
+
+
+    updateLocalCameraPosition: function(ratio) {
+      var node = this._getElement(".local");
+      var parent = node.offsetParent || this._getElement(".media");
+      
+      
+      var parentWidth = parent.offsetWidth;
+      var targetWidth = parentWidth / 6;
+
+      node.style.right = "auto";
+      if (window.matchMedia && window.matchMedia("screen and (max-width:640px)").matches) {
+        targetWidth = 180;
+        node.style.left = "auto";
+      } else {
+        
+        
+        var remoteVideoDimensions = this.getRemoteVideoDimensions();
+        var offsetX = (remoteVideoDimensions.streamWidth + remoteVideoDimensions.offsetX);
+        
+        
+        
+        
+        node.style.left = (offsetX - ((targetWidth * ratio.height) / 4)) + "px";
+      }
+      node.style.width = (targetWidth * ratio.width) + "px";
+      node.style.height = (targetWidth * ratio.height) + "px";
     },
 
     

@@ -179,6 +179,15 @@ loop.shared.actions = (function() {
     
 
 
+
+    VideoDimensionsChanged: Action.define("videoDimensionsChanged", {
+      videoType: String,
+      dimensions: Object
+    }),
+
+    
+
+
     SetMute: Action.define("setMute", {
       
       type: String,

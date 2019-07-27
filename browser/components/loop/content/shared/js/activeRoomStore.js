@@ -68,7 +68,9 @@ loop.store.ActiveRoomStore = (function() {
         
         
         
-        used: false
+        used: false,
+        localVideoDimensions: {},
+        remoteVideoDimensions: {}
       };
     },
 
@@ -119,7 +121,8 @@ loop.store.ActiveRoomStore = (function() {
         "remotePeerConnected",
         "windowUnload",
         "leaveRoom",
-        "feedbackComplete"
+        "feedbackComplete",
+        "videoDimensionsChanged"
       ]);
     },
 
@@ -477,6 +480,23 @@ loop.store.ActiveRoomStore = (function() {
       
       
       this.setStoreState(this.getInitialStoreState());
+    },
+
+    
+
+
+
+
+
+    videoDimensionsChanged: function(actionData) {
+      
+      
+      
+      var storeProp = (actionData.isLocal ? "local" : "remote") + "VideoDimensions";
+      var nextState = {};
+      nextState[storeProp] = this.getStoreState()[storeProp];
+      nextState[storeProp][actionData.videoType] = actionData.dimensions;
+      this.setStoreState(nextState);
     }
   });
 
