@@ -32,6 +32,11 @@ function ok(condition, msg) {
 
 const workAroundFullscreenTransition = navigator.userAgent.indexOf("Linux") != -1;
 
+if (workAroundFullscreenTransition) {
+  SimpleTest.requestFlakyTimeout("We need to wait an arbitrary and non-zero " +
+    "amount of time in case of the Linux specific workaround to avoid busy-waiting.");
+}
+
 
 
 
