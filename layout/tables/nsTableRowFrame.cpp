@@ -966,12 +966,14 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       if (kidReflowState) {
         
         kidReflowState->ApplyRelativePositioning(&kidPosition);
-      } else {
+      } else if (kidFrame->IsRelativelyPositioned()) {
         
         
         
-        
-        kidPosition += kidRect.TopLeft() - origKidNormalPosition;
+        const nsMargin* computedOffsets = static_cast<nsMargin*>
+          (kidFrame->Properties().Get(nsIFrame::ComputedOffsetProperty()));
+        nsHTMLReflowState::ApplyRelativePositioning(kidFrame, *computedOffsets,
+                                                    &kidPosition);
       }
       FinishReflowChild(kidFrame, aPresContext, desiredSize, nullptr,
                         kidPosition.x, kidPosition.y, 0);
