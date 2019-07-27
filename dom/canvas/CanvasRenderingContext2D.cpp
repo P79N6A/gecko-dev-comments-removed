@@ -3163,15 +3163,24 @@ CanvasRenderingContext2D::MeasureText(const nsAString& rawText,
 void
 CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorResult& error)
 {
-  
-  EnsureUserSpacePath(CanvasWindingRule::Nonzero);
-  if(!mPath) {
+  RefPtr<gfx::Path> path;
+  if (options.mPath) {
+    path = options.mPath->GetPath(CanvasWindingRule::Nonzero, mTarget);
+  }
+
+  if (!path) {
+    
+    EnsureUserSpacePath(CanvasWindingRule::Nonzero);
+    path = mPath;
+  }
+
+  if(!path) {
     error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return;
   }
 
   
-  mgfx::Rect bounds(mPath->GetBounds(mTarget->GetTransform()));
+  mgfx::Rect bounds(path->GetBounds(mTarget->GetTransform()));
   if ((bounds.width == 0) || (bounds.height == 0) || !bounds.IsFinite()) {
     
     error.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
@@ -3200,7 +3209,7 @@ CanvasRenderingContext2D::AddHitRegion(const HitRegionOptions& options, ErrorRes
   RegionInfo info;
   info.mId = options.mId;
   info.mElement = options.mControl;
-  RefPtr<PathBuilder> pathBuilder = mPath->TransformedCopyToBuilder(mTarget->GetTransform());
+  RefPtr<PathBuilder> pathBuilder = path->TransformedCopyToBuilder(mTarget->GetTransform());
   info.mPath = pathBuilder->Finish();
 
   mHitRegionsOptions.InsertElementAt(0, info);
