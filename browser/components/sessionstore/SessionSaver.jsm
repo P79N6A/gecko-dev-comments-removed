@@ -246,9 +246,6 @@ let SessionSaverInternal = {
 
 
   _writeState: function (state) {
-    
-    notify(null, "sessionstore-state-write");
-
     stopWatchStart("WRITE_STATE_LONGEST_OP_MS");
 
     
