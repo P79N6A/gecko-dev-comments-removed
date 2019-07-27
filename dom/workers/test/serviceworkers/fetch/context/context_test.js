@@ -8,6 +8,10 @@ self.addEventListener("fetch", function(event) {
     var body = event.request.context == "fetch" ?
                "so fetch" : "so unfetch";
     event.respondWith(new Response(body));
+  } else if (event.request.url.indexOf("img.jpg") >= 0) {
+    if (event.request.context == "image") {
+      event.respondWith(fetch("realimg.jpg"));
+    }
   } else {
     
     event.respondWith(Promise.reject());
