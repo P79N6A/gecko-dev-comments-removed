@@ -47,6 +47,7 @@ class OverscrollHandoffChain;
 struct OverscrollHandoffState;
 class LayerMetricsWrapper;
 class InputQueue;
+class GeckoContentController;
 
 
 
@@ -379,6 +380,10 @@ public:
 protected:
   
   virtual ~APZCTreeManager();
+
+  
+  virtual AsyncPanZoomController* MakeAPZCInstance(uint64_t aLayersId,
+                                                   GeckoContentController* aController);
 
 public:
   
