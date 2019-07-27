@@ -6,8 +6,8 @@
 
 
 let test = Task.async(function*() {
-  let { target, panel, toolbox } = yield initPerformance(SIMPLE_URL);
-  let { EVENTS, PerformanceController, DetailsView, DetailsSubview } = panel.panelWin;
+  var { target, panel, toolbox } = yield initPerformance(SIMPLE_URL);
+  var { EVENTS, PerformanceController, DetailsView, DetailsSubview } = panel.panelWin;
 
   
   Services.prefs.setBoolPref(MEMORY_PREF, true);
@@ -79,6 +79,25 @@ let test = Task.async(function*() {
     "The imported data is identical to the original data (8).");
   is(importedData.configuration.withMemory, originalData.configuration.withMemory,
     "The imported data is identical to the original data (9).");
+
+  yield teardown(panel);
+
+  
+  
+  
+  var { target, panel, toolbox } = yield initPerformance(SIMPLE_URL);
+  var { EVENTS, PerformanceController, DetailsView, DetailsSubview, OverviewView, WaterfallView } = panel.panelWin;
+  yield PerformanceController.clearRecordings();
+
+  rerendered = once(WaterfallView, EVENTS.WATERFALL_RENDERED);
+  imported = once(PerformanceController, EVENTS.RECORDING_IMPORTED);
+  yield PerformanceController.importRecording("", file);
+
+  yield imported;
+  ok(true, "The recording data appears to have been successfully imported.");
+
+  yield rerendered;
+  ok(true, "The imported data was re-rendered.");
 
   yield teardown(panel);
   finish();

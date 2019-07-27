@@ -344,9 +344,14 @@ GraphsController.prototype = {
     return this._getPrimaryLink().setMappedSelection(selection, { mapStart, mapEnd });
   },
 
+  
+
+
+
   getMappedSelection: function ({ mapStart, mapEnd }) {
-    if (this._getPrimaryLink()) {
-      return this._getPrimaryLink().getMappedSelection({ mapStart, mapEnd });
+    let primary = this._getPrimaryLink();
+    if (primary && primary.hasData()) {
+      return primary.getMappedSelection({ mapStart, mapEnd });
     } else {
       return null;
     }
