@@ -263,7 +263,7 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
   mSourceBuffer(new SourceBuffer()),
   mFrameCount(0),
   mHasSize(false),
-  mDecodeOnDraw(false),
+  mDecodeOnlyOnDraw(false),
   mTransient(false),
   mDiscardable(false),
   mHasSourceData(false),
@@ -308,14 +308,14 @@ RasterImage::Init(const char* aMimeType,
   
   MOZ_ASSERT(!(aFlags & INIT_FLAG_TRANSIENT) ||
                (!(aFlags & INIT_FLAG_DISCARDABLE) &&
-                !(aFlags & INIT_FLAG_DECODE_ON_DRAW) &&
+                !(aFlags & INIT_FLAG_DECODE_ONLY_ON_DRAW) &&
                 !(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE)),
              "Illegal init flags for transient image");
 
   
   mSourceDataMimeType.Assign(aMimeType);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
-  mDecodeOnDraw = !!(aFlags & INIT_FLAG_DECODE_ON_DRAW);
+  mDecodeOnlyOnDraw = !!(aFlags & INIT_FLAG_DECODE_ONLY_ON_DRAW);
   mTransient = !!(aFlags & INIT_FLAG_TRANSIENT);
   mDownscaleDuringDecode = !!(aFlags & INIT_FLAG_DOWNSCALE_DURING_DECODE);
 
@@ -1172,7 +1172,7 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
 
   Progress loadProgress = LoadCompleteProgress(aLastPart, mError, finalStatus);
 
-  if (mDecodeOnDraw) {
+  if (mDecodeOnlyOnDraw) {
     
     
     
@@ -1192,11 +1192,11 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
 }
 
 void
-RasterImage::NotifyForDecodeOnDrawOnly()
+RasterImage::NotifyForDecodeOnlyOnDraw()
 {
   if (!NS_IsMainThread()) {
     nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethod(this, &RasterImage::NotifyForDecodeOnDrawOnly);
+      NS_NewRunnableMethod(this, &RasterImage::NotifyForDecodeOnlyOnDraw);
     NS_DispatchToMainThread(runnable);
     return;
   }
@@ -1213,10 +1213,10 @@ RasterImage::OnImageDataAvailable(nsIRequest*,
 {
   nsresult rv;
 
-  if (MOZ_UNLIKELY(mDecodeOnDraw && aOffset == 0)) {
+  if (MOZ_UNLIKELY(mDecodeOnlyOnDraw && aOffset == 0)) {
     
     
-    NotifyForDecodeOnDrawOnly();
+    NotifyForDecodeOnlyOnDraw();
   }
 
   
@@ -1425,7 +1425,7 @@ NS_IMETHODIMP
 RasterImage::RequestDecode()
 {
   
-  if (mDecodeOnDraw) {
+  if (mDecodeOnlyOnDraw) {
     return NS_OK;
   }
 
@@ -1437,7 +1437,7 @@ NS_IMETHODIMP
 RasterImage::StartDecoding()
 {
   
-  if (mDecodeOnDraw) {
+  if (mDecodeOnlyOnDraw) {
     return NS_OK;
   }
 

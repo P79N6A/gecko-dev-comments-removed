@@ -59,7 +59,7 @@ public:
 
   static const uint32_t INIT_FLAG_NONE                     = 0x0;
   static const uint32_t INIT_FLAG_DISCARDABLE              = 0x1;
-  static const uint32_t INIT_FLAG_DECODE_ON_DRAW           = 0x2;
+  static const uint32_t INIT_FLAG_DECODE_ONLY_ON_DRAW      = 0x2;
   static const uint32_t INIT_FLAG_TRANSIENT                = 0x4;
   static const uint32_t INIT_FLAG_DOWNSCALE_DURING_DECODE  = 0x8;
 

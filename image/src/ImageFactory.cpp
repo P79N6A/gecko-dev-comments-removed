@@ -46,8 +46,8 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
 
   
   bool isDiscardable = gfxPrefs::ImageMemDiscardable();
-  bool doDecodeOnDraw = gfxPrefs::ImageMemDecodeOnDraw() &&
-                        gfxPrefs::AsyncPanZoomEnabled();
+  bool doDecodeOnlyOnDraw = gfxPrefs::ImageDecodeOnlyOnDrawEnabled() &&
+                            gfxPrefs::AsyncPanZoomEnabled();
   bool doDownscaleDuringDecode = gfxPrefs::ImageDownscaleDuringDecodeEnabled();
 
   
@@ -55,7 +55,7 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   bool isChrome = false;
   rv = uri->SchemeIs("chrome", &isChrome);
   if (NS_SUCCEEDED(rv) && isChrome) {
-    isDiscardable = doDecodeOnDraw = false;
+    isDiscardable = doDecodeOnlyOnDraw = false;
   }
 
   
@@ -63,21 +63,21 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   bool isResource = false;
   rv = uri->SchemeIs("resource", &isResource);
   if (NS_SUCCEEDED(rv) && isResource) {
-    isDiscardable = doDecodeOnDraw = false;
+    isDiscardable = doDecodeOnlyOnDraw = false;
   }
 
   
   
-  if ((doDownscaleDuringDecode || doDecodeOnDraw) &&
+  if ((doDownscaleDuringDecode || doDecodeOnlyOnDraw) &&
       !ShouldDownscaleDuringDecode(aMimeType)) {
     doDownscaleDuringDecode = false;
-    doDecodeOnDraw = false;
+    doDecodeOnlyOnDraw = false;
   }
 
   
   
   if (isMultiPart) {
-    isDiscardable = doDecodeOnDraw = doDownscaleDuringDecode = false;
+    isDiscardable = doDecodeOnlyOnDraw = doDownscaleDuringDecode = false;
   }
 
   
@@ -85,8 +85,8 @@ ComputeImageFlags(ImageURL* uri, const nsCString& aMimeType, bool isMultiPart)
   if (isDiscardable) {
     imageFlags |= Image::INIT_FLAG_DISCARDABLE;
   }
-  if (doDecodeOnDraw) {
-    imageFlags |= Image::INIT_FLAG_DECODE_ON_DRAW;
+  if (doDecodeOnlyOnDraw) {
+    imageFlags |= Image::INIT_FLAG_DECODE_ONLY_ON_DRAW;
   }
   if (isMultiPart) {
     imageFlags |= Image::INIT_FLAG_TRANSIENT;

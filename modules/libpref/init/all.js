@@ -3826,6 +3826,10 @@ pref("image.cache.size", 5242880);
 pref("image.cache.timeweight", 500);
 
 
+
+pref("image.decode-only-on-draw.enabled", true);
+
+
 pref("image.downscale-during-decode.enabled", false);
 
 
@@ -3851,10 +3855,6 @@ pref("image.single-color-optimization.enabled", true);
 
 
 pref("image.mem.discardable", true);
-
-
-
-pref("image.mem.decodeondraw", true);
 
 
 pref("image.mem.allow_locking_in_content_processes", true);

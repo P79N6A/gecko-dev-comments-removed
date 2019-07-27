@@ -248,7 +248,7 @@ public:
                                        nsresult aStatus,
                                        bool aLastPart) override;
 
-  void NotifyForDecodeOnDrawOnly();
+  void NotifyForDecodeOnlyOnDraw();
 
   
 
@@ -400,7 +400,7 @@ private:
 
   
   bool                       mHasSize:1;       
-  bool                       mDecodeOnDraw:1;  
+  bool                       mDecodeOnlyOnDraw:1; 
   bool                       mTransient:1;     
   bool                       mDiscardable:1;   
   bool                       mHasSourceData:1; 
