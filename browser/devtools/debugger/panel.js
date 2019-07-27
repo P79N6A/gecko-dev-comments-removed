@@ -43,6 +43,9 @@ DebuggerPanel.prototype = {
     
     if (!this.target.isRemote) {
       targetPromise = this.target.makeRemote();
+      
+      
+      this.target.tab.addEventListener('TabSelect', this);
     } else {
       targetPromise = promise.resolve(this.target);
     }
@@ -76,6 +79,10 @@ DebuggerPanel.prototype = {
     this.target.off("thread-paused", this.highlightWhenPaused);
     this.target.off("thread-resumed", this.unhighlightWhenResumed);
 
+    if (!this.target.isRemote) {
+      this.target.tab.removeEventListener('TabSelect', this);
+    }
+
     return this._destroyer = this._controller.shutdownDebugger().then(() => {
       this.emit("destroyed");
     });
@@ -105,5 +112,15 @@ DebuggerPanel.prototype = {
 
   unhighlightWhenResumed: function() {
     this._toolbox.unhighlightTool("jsdebugger");
+  },
+
+  
+
+  handleEvent: function(aEvent) {
+    if (aEvent.target == this.target.tab &&
+        this._controller.activeThread.state == "paused") {
+      
+      DevToolsUtils.executeSoon(() => this._toolbox.focusTool("jsdebugger"));
+    }
   }
 };
