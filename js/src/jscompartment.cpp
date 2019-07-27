@@ -556,8 +556,7 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 void
 JSCompartment::trace(JSTracer *trc)
 {
-    
-    
+    savedStacks_.trace(trc);
 }
 
 void
