@@ -14,7 +14,6 @@
 
 #include "mozilla/RefPtr.h"
 #include "nsComponentManagerUtils.h"
-#include "nsIProtocolProxyCallback.h"
 
 #ifdef USE_FAKE_MEDIA_STREAMS
 #include "FakeMediaStreams.h"
@@ -435,19 +434,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
       SignalEndOfLocalCandidates;
 
  private:
-  class ProtocolProxyQueryHandler : public nsIProtocolProxyCallback {
-   public:
-    explicit ProtocolProxyQueryHandler(PeerConnectionMedia *pcm) :
-      pcm_(pcm) {}
-
-    NS_IMETHODIMP OnProxyAvailable(nsICancelable *request, nsIURI *uri, nsIProxyInfo *proxyinfo, nsresult result) MOZ_OVERRIDE;
-    NS_DECL_ISUPPORTS
-
-   private:
-      PeerConnectionMedia *pcm_;
-      virtual ~ProtocolProxyQueryHandler() {}
-  };
-
   
   void ShutdownMediaTransport_s();
 
@@ -461,7 +447,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
                               const std::string& aUfrag,
                               const std::string& aPassword,
                               const std::vector<std::string>& aCandidateList);
-  void GatherIfReady();
   void EnsureIceGathering_s();
   void StartIceChecks_s(bool aIsControlling,
                         bool aIsIceLite,
@@ -534,18 +519,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
   
   nsCOMPtr<nsIEventTarget> mSTSThread;
-
-  
-  bool mTransportsUpdated;
-
-  
-  nsCOMPtr<nsICancelable> mProxyRequest;
-
-  
-  bool mProxyResolveCompleted;
-
-  
-  NrIceProxyServer mProxyServer;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PeerConnectionMedia)
 };

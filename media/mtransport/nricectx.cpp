@@ -60,7 +60,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "ScopedNSSTypes.h"
-#include "runnable_utils.h"
 
 
 extern "C" {
@@ -75,7 +74,6 @@ extern "C" {
 #include "nr_crypto.h"
 #include "nr_socket.h"
 #include "nr_socket_local.h"
-#include "nr_proxy_tunnel.h"
 #include "stun_client_ctx.h"
 #include "stun_reg.h"
 #include "stun_server_ctx.h"
@@ -199,6 +197,9 @@ static nr_ice_crypto_vtbl nr_ice_crypto_nss_vtbl = {
   nr_crypto_nss_hmac,
   nr_crypto_nss_md5
 };
+
+
+
 
 nsresult NrIceStunServer::ToNicerStunStruct(nr_ice_stun_server *server,
                                             const std::string &transport) const {
@@ -626,48 +627,7 @@ nsresult NrIceCtx::SetResolver(nr_resolver *resolver) {
   return NS_OK;
 }
 
-nsresult NrIceCtx::SetProxyServer(const NrIceProxyServer& proxy_server) {
-  int r,_status;
-  nr_proxy_tunnel_config *config = nullptr;
-  nr_socket_wrapper_factory *wrapper = nullptr;
-
-  if ((r = nr_proxy_tunnel_config_create(&config))) {
-    ABORT(r);
-  }
-
-  if ((r = nr_proxy_tunnel_config_set_proxy(config,
-                                            proxy_server.host().c_str(),
-                                            proxy_server.port()))) {
-    ABORT(r);
-  }
-
-  if ((r = nr_proxy_tunnel_config_set_resolver(config, ctx_->resolver))) {
-    ABORT(r);
-  }
-
-  if ((r = nr_socket_wrapper_factory_proxy_tunnel_create(config, &wrapper))) {
-    MOZ_MTLOG(PR_LOG_ERROR, "Couldn't create proxy tunnel wrapper.");
-    ABORT(r);
-  }
-
-  
-  if ((r = nr_ice_ctx_set_turn_tcp_socket_wrapper(ctx_, wrapper))) {
-    MOZ_MTLOG(ML_ERROR, "Couldn't set proxy for '" << name_ << "': " << r);
-    ABORT(r);
-  }
-
-  _status = 0;
-abort:
-  nr_proxy_tunnel_config_destroy(&config);
-  if (_status) {
-    nr_socket_wrapper_factory_destroy(&wrapper);
-    return NS_ERROR_FAILURE;
-  }
-  return NS_OK;
-}
-
 nsresult NrIceCtx::StartGathering() {
-  ASSERT_ON_THREAD(sts_target_);
   MOZ_ASSERT(ctx_->state == ICE_CTX_INIT);
   if (ctx_->state != ICE_CTX_INIT) {
     MOZ_MTLOG(ML_ERROR, "ICE ctx in the wrong state for gathering: '"
@@ -676,7 +636,8 @@ nsresult NrIceCtx::StartGathering() {
     return NS_ERROR_FAILURE;
   }
 
-  int r = nr_ice_initialize(ctx_, &NrIceCtx::initialized_cb, this);
+  int r = nr_ice_initialize(ctx_, &NrIceCtx::initialized_cb,
+                            this);
 
   if (r && r != R_WOULDBLOCK) {
       MOZ_MTLOG(ML_ERROR, "Couldn't gather ICE candidates for '"

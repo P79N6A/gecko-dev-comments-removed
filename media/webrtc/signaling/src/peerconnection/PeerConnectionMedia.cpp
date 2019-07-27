@@ -23,12 +23,6 @@
 #include "signaling/src/jsep/JsepSession.h"
 #include "signaling/src/jsep/JsepTransport.h"
 
-#include "nsNetCID.h"
-#include "nsNetUtil.h"
-#include "nsICancelable.h"
-#include "nsIProxyInfo.h"
-#include "nsIProtocolProxyService.h"
-
 #ifdef MOZILLA_INTERNAL_API
 #include "MediaStreamList.h"
 #include "nsIScriptGlobalObject.h"
@@ -204,48 +198,6 @@ PeerConnectionImpl* PeerConnectionImpl::CreatePeerConnection()
   return pc;
 }
 
-NS_IMETHODIMP PeerConnectionMedia::ProtocolProxyQueryHandler::
-OnProxyAvailable(nsICancelable *request, nsIURI *uri, nsIProxyInfo *proxyinfo,
-    nsresult result) {
-  CSFLogInfo(logTag, "%s: Proxy Available: %d", __FUNCTION__, (int)result);
-
-  if (NS_SUCCEEDED(result) && proxyinfo) {
-    nsresult rv;
-    nsCString httpsProxyHost;
-    int32_t httpsProxyPort;
-
-    rv = proxyinfo->GetHost(httpsProxyHost);
-    if (NS_FAILED(rv)) {
-      CSFLogError(logTag, "%s: Failed to get proxy server host", __FUNCTION__);
-      return rv;
-    }
-
-    rv = proxyinfo->GetPort(&httpsProxyPort);
-    if (NS_FAILED(rv)) {
-      CSFLogError(logTag, "%s: Failed to get proxy server port", __FUNCTION__);
-      return rv;
-    }
-
-    if (pcm_->mIceCtx.get()) {
-      assert(httpsProxyPort >= 0 && httpsProxyPort < (1 << 16));
-      pcm_->mProxyServer = NrIceProxyServer(httpsProxyHost.get(),
-                                      static_cast<uint16_t>(httpsProxyPort));
-    } else {
-      CSFLogError(logTag, "%s: Failed to set proxy server (ICE ctx unavailable)",
-          __FUNCTION__);
-    }
-  }
-
-  if (result != NS_ERROR_ABORT) {
-    
-    pcm_->mProxyResolveCompleted = true;
-    pcm_->GatherIfReady();
-  }
-
-  return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS(PeerConnectionMedia::ProtocolProxyQueryHandler, nsIProtocolProxyCallback)
 
 PeerConnectionMedia::PeerConnectionMedia(PeerConnectionImpl *parent)
     : mParent(parent),
@@ -256,37 +208,7 @@ PeerConnectionMedia::PeerConnectionMedia(PeerConnectionImpl *parent)
       mDNSResolver(new mozilla::NrIceResolver()),
       mUuidGen(MakeUnique<PCUuidGenerator>()),
       mMainThread(mParent->GetMainThread()),
-      mSTSThread(mParent->GetSTSThread()),
-      mTransportsUpdated(false),
-      mProxyResolveCompleted(false) {
-  nsresult rv;
-
-  nsCOMPtr<nsIProtocolProxyService> pps =
-    do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) {
-    CSFLogError(logTag, "%s: Failed to get proxy service: %d", __FUNCTION__, (int)rv);
-    return;
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIURI> fakeHttpsLocation;
-  rv = NS_NewURI(getter_AddRefs(fakeHttpsLocation), "https://example.com");
-  if (NS_FAILED(rv)) {
-    CSFLogError(logTag, "%s: Failed to set URI: %d", __FUNCTION__, (int)rv);
-    return;
-  }
-
-  nsRefPtr<ProtocolProxyQueryHandler> handler = new ProtocolProxyQueryHandler(this);
-  rv = pps->AsyncResolve(fakeHttpsLocation,
-                         nsIProtocolProxyService::RESOLVE_PREFER_HTTPS_PROXY |
-                         nsIProtocolProxyService::RESOLVE_ALWAYS_TUNNEL,
-                         handler, getter_AddRefs(mProxyRequest));
-  if (NS_FAILED(rv)) {
-    CSFLogError(logTag, "%s: Failed to resolve protocol proxy: %d", __FUNCTION__, (int)rv);
-    return;
-  }
+      mSTSThread(mParent->GetSTSThread()) {
 }
 
 nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_servers,
@@ -381,8 +303,12 @@ PeerConnectionMedia::UpdateTransports(const mozilla::JsepSession& session) {
 
   
   
-  mTransportsUpdated = true;
-  GatherIfReady();
+  RUN_ON_THREAD(GetSTSThread(),
+                WrapRunnable(
+                    RefPtr<PeerConnectionMedia>(this),
+                    &PeerConnectionMedia::EnsureIceGathering_s),
+                NS_DISPATCH_NORMAL);
+
 }
 
 nsresult PeerConnectionMedia::UpdateMediaPipelines(
@@ -538,22 +464,8 @@ PeerConnectionMedia::AddIceCandidate_s(const std::string& aCandidate,
 }
 
 void
-PeerConnectionMedia::GatherIfReady() {
-  ASSERT_ON_THREAD(mMainThread);
-
-  if (mTransportsUpdated && mProxyResolveCompleted) {
-    RUN_ON_THREAD(GetSTSThread(),
-        WrapRunnable(
-          RefPtr<PeerConnectionMedia>(this),
-          &PeerConnectionMedia::EnsureIceGathering_s),
-        NS_DISPATCH_NORMAL);
-  }
-}
-
-void
 PeerConnectionMedia::EnsureIceGathering_s() {
   if (mIceCtx->gathering_state() == NrIceCtx::ICE_CTX_GATHER_INIT) {
-    mIceCtx->SetProxyServer(mProxyServer);
     mIceCtx->StartGathering();
   }
 }
@@ -733,10 +645,6 @@ PeerConnectionMedia::SelfDestruct()
   }
 
   
-  
-  mProxyResolveCompleted = false;
-
-  
   RUN_ON_THREAD(mSTSThread, WrapRunnable(
       this, &PeerConnectionMedia::ShutdownMediaTransport_s),
                 NS_DISPATCH_NORMAL);
@@ -750,11 +658,6 @@ PeerConnectionMedia::SelfDestruct_m()
   CSFLogDebug(logTag, "%s: ", __FUNCTION__);
 
   ASSERT_ON_THREAD(mMainThread);
-
-  if (mProxyRequest) {
-    mProxyRequest->Cancel(NS_ERROR_ABORT);
-  }
-
   mLocalSourceStreams.Clear();
   mRemoteSourceStreams.Clear();
 
