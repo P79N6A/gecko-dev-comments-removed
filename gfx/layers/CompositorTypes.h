@@ -85,9 +85,6 @@ MOZ_BEGIN_ENUM_CLASS(TextureFlags, uint32_t)
   
   DOUBLE_BUFFERED    = 1 << 16,
   
-  
-  ALLOC_FALLBACK     = 1 << 17,
-  
   NON_PREMULTIPLIED  = 1 << 18,
 
   
