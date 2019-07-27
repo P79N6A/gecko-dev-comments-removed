@@ -94,7 +94,7 @@ nsFontFaceLoader::StartedLoading(nsIStreamLoader* aStreamLoader)
                                        nsITimer::TYPE_ONE_SHOT);
     }
   } else {
-    mUserFontEntry->mLoadingState = gfxUserFontEntry::LOADING_SLOWLY;
+    mUserFontEntry->mFontDataLoadingState = gfxUserFontEntry::LOADING_SLOWLY;
   }
   mStreamLoader = aStreamLoader;
 }
@@ -114,7 +114,7 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer* aTimer, void* aClosure)
 
   
   
-  if (ufe->mLoadingState == gfxUserFontEntry::LOADING_STARTED) {
+  if (ufe->mFontDataLoadingState == gfxUserFontEntry::LOADING_STARTED) {
     int64_t contentLength;
     uint32_t numBytesRead;
     if (NS_SUCCEEDED(loader->mChannel->GetContentLength(&contentLength)) &&
@@ -126,7 +126,7 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer* aTimer, void* aClosure)
       
       
       
-      ufe->mLoadingState = gfxUserFontEntry::LOADING_ALMOST_DONE;
+      ufe->mFontDataLoadingState = gfxUserFontEntry::LOADING_ALMOST_DONE;
       uint32_t delay;
       loader->mLoadTimer->GetDelay(&delay);
       loader->mLoadTimer->InitWithFuncCallback(LoadTimerCallback,
@@ -142,7 +142,7 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer* aTimer, void* aClosure)
   
   
   if (updateUserFontSet) {
-    ufe->mLoadingState = gfxUserFontEntry::LOADING_SLOWLY;
+    ufe->mFontDataLoadingState = gfxUserFontEntry::LOADING_SLOWLY;
     gfxUserFontSet* fontSet = loader->mFontSet;
     nsPresContext* ctx = loader->mFontSet->GetPresContext();
     NS_ASSERTION(ctx, "userfontset doesn't have a presContext?");
@@ -213,8 +213,8 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   
   
   
-  bool fontUpdate = mUserFontEntry->OnLoadComplete(aString,
-                                                   aStringLen, aStatus);
+  bool fontUpdate =
+    mUserFontEntry->FontDataDownloadComplete(aString, aStringLen, aStatus);
 
   
   if (fontUpdate) {
@@ -237,7 +237,7 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
 void
 nsFontFaceLoader::Cancel()
 {
-  mUserFontEntry->mLoadingState = gfxUserFontEntry::NOT_LOADING;
+  mUserFontEntry->mFontDataLoadingState = gfxUserFontEntry::NOT_LOADING;
   mUserFontEntry->mLoader = nullptr;
   mFontSet = nullptr;
   if (mLoadTimer) {

@@ -120,7 +120,8 @@ gfxUserFontEntry::gfxUserFontEntry(gfxUserFontSet* aFontSet,
              uint32_t aLanguageOverride,
              gfxSparseBitSet* aUnicodeRanges)
     : gfxFontEntry(NS_LITERAL_STRING("userfont")),
-      mLoadingState(NOT_LOADING),
+      mUserFontLoadState(STATUS_NOT_LOADED),
+      mFontDataLoadingState(NOT_LOADING),
       mUnsupportedFormat(false),
       mLoader(nullptr),
       mFontSet(aFontSet)
@@ -310,16 +311,21 @@ CopyWOFFMetadata(const uint8_t* aFontData,
     *aMetaOrigLen = woff->metaOrigLen;
 }
 
-gfxUserFontEntry::LoadStatus
-gfxUserFontEntry::LoadNext()
+void
+gfxUserFontEntry::LoadNextSrc()
 {
     uint32_t numSrc = mSrcList.Length();
 
     NS_ASSERTION(mSrcIndex < numSrc,
                  "already at the end of the src list for user font");
+    NS_ASSERTION((mUserFontLoadState == STATUS_NOT_LOADED ||
+                  mUserFontLoadState == STATUS_LOADING) &&
+                 mFontDataLoadingState < LOADING_FAILED,
+                 "attempting to load a font that has either completed or failed");
 
-    if (mLoadingState == NOT_LOADING) {
-        mLoadingState = LOADING_STARTED;
+    if (mUserFontLoadState == STATUS_NOT_LOADED) {
+        SetLoadState(STATUS_LOADING);
+        mFontDataLoadingState = LOADING_STARTED;
         mUnsupportedFormat = false;
     } else {
         
@@ -356,7 +362,8 @@ gfxUserFontEntry::LoadNext()
                 
                 StoreUserFontData(fe, false, nsString(), nullptr, 0);
                 mPlatformFontEntry = fe;
-                return STATUS_LOADED;
+                SetLoadState(STATUS_LOADED);
+                return;
             } else {
                 LOG(("fontset (%p) [src %d] failed local: (%s) for (%s)\n",
                      mFontSet, mSrcIndex,
@@ -385,7 +392,8 @@ gfxUserFontEntry::LoadNext()
                                                    mFontSet->GetPrivateBrowsing());
                         if (fe) {
                             mPlatformFontEntry = fe;
-                            return STATUS_LOADED;
+                            SetLoadState(STATUS_LOADED);
+                            return;
                         }
                     }
 
@@ -408,8 +416,9 @@ gfxUserFontEntry::LoadNext()
                                                         bufferLength);
 
                         if (NS_SUCCEEDED(rv) &&
-                            LoadFont(buffer, bufferLength)) {
-                            return STATUS_LOADED;
+                            LoadPlatformFont(buffer, bufferLength)) {
+                            SetLoadState(STATUS_LOADED);
+                            return;
                         } else {
                             mFontSet->LogMessage(this,
                                                  "font load failed",
@@ -432,7 +441,7 @@ gfxUserFontEntry::LoadNext()
                                      NS_ConvertUTF16toUTF8(mFamilyName).get()));
                             }
 #endif
-                            return STATUS_LOADING;
+                            return;
                         } else {
                             mFontSet->LogMessage(this,
                                                  "download failed",
@@ -462,14 +471,24 @@ gfxUserFontEntry::LoadNext()
     
     LOG(("userfonts (%p) failed all src for (%s)\n",
         mFontSet, NS_ConvertUTF16toUTF8(mFamilyName).get()));
-    mLoadingState = LOADING_FAILED;
+    mFontDataLoadingState = LOADING_FAILED;
+    SetLoadState(STATUS_FAILED);
+}
 
-    return STATUS_END_OF_LIST;
+void
+gfxUserFontEntry::SetLoadState(UserFontLoadState aLoadState)
+{
+    mUserFontLoadState = aLoadState;
 }
 
 bool
-gfxUserFontEntry::LoadFont(const uint8_t* aFontData, uint32_t &aLength)
+gfxUserFontEntry::LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength)
 {
+    NS_ASSERTION((mUserFontLoadState == STATUS_NOT_LOADED ||
+                  mUserFontLoadState == STATUS_LOADING) &&
+                 mFontDataLoadingState < LOADING_FAILED,
+                 "attempting to load a font that has either completed or failed");
+
     gfxFontEntry* fe = nullptr;
 
     gfxUserFontType fontType =
@@ -541,6 +560,7 @@ gfxUserFontEntry::LoadFont(const uint8_t* aFontData, uint32_t &aLength)
         }
 #endif
         mPlatformFontEntry = fe;
+        SetLoadState(STATUS_LOADED);
         gfxUserFontSet::UserFontCache::CacheFont(fe);
     } else {
 #ifdef PR_LOGGING
@@ -562,12 +582,21 @@ gfxUserFontEntry::LoadFont(const uint8_t* aFontData, uint32_t &aLength)
     return fe != nullptr;
 }
 
+void
+gfxUserFontEntry::Load()
+{
+    if (mUserFontLoadState == STATUS_NOT_LOADED) {
+        LoadNextSrc();
+    }
+}
+
 
 
 
 bool
-gfxUserFontEntry::OnLoadComplete(const uint8_t* aFontData, uint32_t aLength,
-                                 nsresult aDownloadStatus)
+gfxUserFontEntry::FontDataDownloadComplete(const uint8_t* aFontData,
+                                           uint32_t aLength,
+                                           nsresult aDownloadStatus)
 {
     
     
@@ -575,7 +604,7 @@ gfxUserFontEntry::OnLoadComplete(const uint8_t* aFontData, uint32_t aLength,
 
     
     if (NS_SUCCEEDED(aDownloadStatus)) {
-        bool loaded = LoadFont(aFontData, aLength);
+        bool loaded = LoadPlatformFont(aFontData, aLength);
         aFontData = nullptr;
 
         if (loaded) {
@@ -595,7 +624,7 @@ gfxUserFontEntry::OnLoadComplete(const uint8_t* aFontData, uint32_t aLength,
     }
 
     
-    LoadNext();
+    LoadNextSrc();
 
     
     
@@ -755,42 +784,19 @@ gfxUserFontSet::FindUserFontEntry(gfxFontFamily* aFamily,
     NS_ASSERTION(!fe || fe->mIsUserFontContainer,
                  "should only have userfont entries in userfont families");
 
-    
     if (!fe || !fe->mIsUserFontContainer) {
         return nullptr;
     }
 
     gfxUserFontEntry* userFontEntry = static_cast<gfxUserFontEntry*> (fe);
 
+    
+    userFontEntry->Load();
     if (userFontEntry->GetPlatformFontEntry()) {
         return userFontEntry;
     }
 
-    
-    if (userFontEntry->mLoadingState > gfxUserFontEntry::NOT_LOADING) {
-        aWaitForUserFont =
-            (userFontEntry->mLoadingState < gfxUserFontEntry::LOADING_SLOWLY);
-        return nullptr;
-    }
-
-    
-    gfxUserFontEntry::LoadStatus status;
-
-    
-    
-    status = userFontEntry->LoadNext();
-
-    
-    if (status == gfxUserFontEntry::STATUS_LOADED) {
-        return userFontEntry;
-    }
-
-    
-    
-    aWaitForUserFont = (status != gfxUserFontEntry::STATUS_END_OF_LIST) &&
-        (userFontEntry->mLoadingState < gfxUserFontEntry::LOADING_SLOWLY);
-
-    
+    aWaitForUserFont = userFontEntry->WaitForUserFont();
     return nullptr;
 }
 

@@ -465,12 +465,11 @@ class gfxUserFontEntry : public gfxFontEntry {
     friend class gfxOTSContext;
 
 public:
-    enum LoadStatus {
-        STATUS_LOADING = 0,
+    enum UserFontLoadState {
+        STATUS_NOT_LOADED = 0,
+        STATUS_LOADING,
         STATUS_LOADED,
-        STATUS_FORMAT_NOT_SUPPORTED,
-        STATUS_ERROR,
-        STATUS_END_OF_LIST
+        STATUS_FAILED
     };
 
     gfxUserFontEntry(gfxUserFontSet* aFontSet,
@@ -493,18 +492,23 @@ public:
                  uint32_t aLanguageOverride,
                  gfxSparseBitSet* aUnicodeRanges);
 
-    virtual gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle, bool aNeedsBold);
+    virtual gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle,
+                                        bool aNeedsBold);
 
     gfxFontEntry* GetPlatformFontEntry() { return mPlatformFontEntry; }
 
     
+    UserFontLoadState LoadState() const { return mUserFontLoadState; }
+
+    
+    bool WaitForUserFont() const {
+        return mUserFontLoadState == STATUS_LOADING &&
+               mFontDataLoadingState < LOADING_SLOWLY;
+    }
+
     
     
-    
-    
-    
-    bool OnLoadComplete(const uint8_t* aFontData, uint32_t aLength,
-                        nsresult aDownloadStatus);
+    void Load();
 
 protected:
     const uint8_t* SanitizeOpenTypeData(const uint8_t* aData,
@@ -513,13 +517,25 @@ protected:
                                         bool aIsCompressed);
 
     
-    LoadStatus LoadNext();
+    void LoadNextSrc();
+
+    
+    void SetLoadState(UserFontLoadState aLoadState);
 
     
     
     
     
-    bool LoadFont(const uint8_t* aFontData, uint32_t &aLength);
+    
+    
+    bool FontDataDownloadComplete(const uint8_t* aFontData, uint32_t aLength,
+                                  nsresult aDownloadStatus);
+
+    
+    
+    
+    
+    bool LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength);
 
     
     void StoreUserFontData(gfxFontEntry*      aFontEntry,
@@ -529,7 +545,12 @@ protected:
                            uint32_t           aMetaOrigLen);
 
     
-    enum LoadingState {
+    UserFontLoadState        mUserFontLoadState;
+
+    
+    
+    
+    enum FontDataLoadingState {
         NOT_LOADING = 0,     
         LOADING_STARTED,     
         LOADING_ALMOST_DONE, 
@@ -538,7 +559,8 @@ protected:
                              
         LOADING_FAILED       
     };
-    LoadingState             mLoadingState;
+    FontDataLoadingState     mFontDataLoadingState;
+
     bool                     mUnsupportedFormat;
 
     nsRefPtr<gfxFontEntry>   mPlatformFontEntry;
