@@ -6816,17 +6816,11 @@ var gIdentityHandler = {
     
     
     
-    
-    
     if (state &
         (nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT |
          nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT  |
-         nsIWebProgressListener.STATE_BLOCKED_MIXED_DISPLAY_CONTENT|
          nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT     |
-         nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)     ||
-        
-        (gPrefService.getBoolPref("security.mixed_content.block_display_content")
-        && (state & nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT))) {
+         nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)) {
       this.showBadContentDoorhanger(state);
     } else if (gPrefService.getBoolPref("privacy.trackingprotection.enabled")) {
       
@@ -6867,11 +6861,8 @@ var gIdentityHandler = {
       histogram.add(3);
     }
     if (state &
-        (Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT  |
-         Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)     ||
-        
-        (gPrefService.getBoolPref("security.mixed_content.block_display_content")
-        && (state & Ci.nsIWebProgressListener.STATE_LOADED_MIXED_DISPLAY_CONTENT))) {
+        (Ci.nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT |
+         Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT)) {
       iconState = "bad-content-unblocked-notification-icon";
     }
 
