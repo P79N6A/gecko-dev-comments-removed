@@ -1681,13 +1681,13 @@ public:
     PAINT_COMPRESSED = 0x10
   };
   void PaintRoot(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
-                 uint32_t aFlags);
+                 uint32_t aFlags) const;
   
 
 
 
   void PaintForFrame(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
-                     nsIFrame* aForFrame, uint32_t aFlags);
+                     nsIFrame* aForFrame, uint32_t aFlags) const;
   
 
 

@@ -208,13 +208,12 @@ public:
 
 
 
-
   already_AddRefed<ContainerLayer>
   BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                          LayerManager* aManager,
                          nsIFrame* aContainerFrame,
                          nsDisplayItem* aContainerItem,
-                         nsDisplayList* aChildren,
+                         const nsDisplayList& aChildren,
                          const ContainerLayerParameters& aContainerParameters,
                          const gfx3DMatrix* aTransform,
                          uint32_t aFlags = 0);
