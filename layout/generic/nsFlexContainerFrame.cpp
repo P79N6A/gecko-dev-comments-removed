@@ -3608,6 +3608,9 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   containerBorderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
   const nsPoint containerContentBoxOrigin(containerBorderPadding.left,
                                           containerBorderPadding.top);
+  WritingMode outerWM = aReflowState.GetWritingMode();
+  nscoord containerWidth = IsAxisHorizontal(aAxisTracker.GetMainAxis()) ?
+                             aContentBoxMainSize : contentBoxCrossSize;
 
   
   
@@ -3622,6 +3625,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
       physicalPosn += containerContentBoxOrigin;
+
+      
+      
+      LogicalPoint framePos(outerWM, physicalPosn,
+                            containerWidth - item->Frame()->GetRect().width);
 
       WritingMode wm = item->Frame()->GetWritingMode();
       LogicalSize availSize = aReflowState.ComputedSize(wm);
@@ -3685,7 +3693,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       nsReflowStatus childReflowStatus;
       ReflowChild(item->Frame(), aPresContext,
                   childDesiredSize, childReflowState,
-                  physicalPosn.x, physicalPosn.y,
+                  outerWM, framePos, containerWidth,
                   0, childReflowStatus);
 
       
@@ -3696,11 +3704,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                  "We gave flex item unconstrained available height, so it "
                  "should be complete");
 
-      childReflowState.ApplyRelativePositioning(&physicalPosn);
+      childReflowState.ApplyRelativePositioning(&framePos, containerWidth);
 
       FinishReflowChild(item->Frame(), aPresContext,
                         childDesiredSize, &childReflowState,
-                        physicalPosn.x, physicalPosn.y, 0);
+                        outerWM, framePos, containerWidth, 0);
 
       
       
@@ -3712,11 +3720,10 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         
         
         
-        WritingMode wm = aReflowState.GetWritingMode();
-        flexContainerAscent =
-          item->Frame()->GetLogicalNormalPosition(wm,
-                                                  childDesiredSize.Width()).B(wm) +
-          childDesiredSize.BlockStartAscent();
+        flexContainerAscent = item->Frame()->GetLogicalNormalPosition(
+                                outerWM,
+                                childDesiredSize.Width()).B(outerWM) +
+                              childDesiredSize.BlockStartAscent();
       }
     }
   }
