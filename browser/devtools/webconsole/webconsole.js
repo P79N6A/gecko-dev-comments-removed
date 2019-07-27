@@ -3264,6 +3264,12 @@ JSTerm.prototype = {
       return;
     }
 
+    let selectedNodeActor = null;
+    let inspectorSelection = this.hud.owner.getInspectorSelection();
+    if (inspectorSelection) {
+      selectedNodeActor = inspectorSelection.nodeFront.actorID;
+    }
+
     let message = new Messages.Simple(aExecuteString, {
       category: "input",
       severity: "log",
@@ -3271,7 +3277,11 @@ JSTerm.prototype = {
     this.hud.output.addMessage(message);
     let onResult = this._executeResultCallback.bind(this, message, aCallback);
 
-    let options = { frame: this.SELECTED_FRAME };
+    let options = {
+      frame: this.SELECTED_FRAME,
+      selectedNodeActor: selectedNodeActor,
+    };
+
     this.requestEvaluation(aExecuteString, options).then(onResult, onResult);
 
     
@@ -3285,6 +3295,9 @@ JSTerm.prototype = {
   },
 
   
+
+
+
 
 
 
@@ -3326,6 +3339,7 @@ JSTerm.prototype = {
     let evalOptions = {
       bindObjectActor: aOptions.bindObjectActor,
       frameActor: frameActor,
+      selectedNodeActor: aOptions.selectedNodeActor,
     };
 
     this.webConsoleClient.evaluateJS(aString, onResult, evalOptions);

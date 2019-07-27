@@ -725,7 +725,9 @@ WebConsoleActor.prototype =
       bindObjectActor: aRequest.bindObjectActor,
       frameActor: aRequest.frameActor,
       url: aRequest.url,
+      selectedNodeActor: aRequest.selectedNodeActor,
     };
+
     let evalInfo = this.evalWithDebugger(input, evalOptions);
     let evalResult = evalInfo.result;
     let helperResult = evalInfo.helperResult;
@@ -978,6 +980,10 @@ WebConsoleActor.prototype =
 
 
 
+
+
+
+
   evalWithDebugger: function WCA_evalWithDebugger(aString, aOptions = {})
   {
     
@@ -1031,6 +1037,13 @@ WebConsoleActor.prototype =
       bindings._self = bindSelf;
     }
 
+    if (aOptions.selectedNodeActor) {
+      let actor = this.conn.getActor(aOptions.selectedNodeActor);
+      if (actor) {
+        helpers.selectedNode = actor.rawNode;
+      }
+    }
+
     
     
     let found$ = false, found$$ = false;
@@ -1075,6 +1088,7 @@ WebConsoleActor.prototype =
     let helperResult = helpers.helperResult;
     delete helpers.evalInput;
     delete helpers.helperResult;
+    delete helpers.selectedNode;
 
     if ($) {
       bindings.$ = $;

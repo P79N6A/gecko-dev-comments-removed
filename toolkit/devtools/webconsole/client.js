@@ -105,6 +105,11 @@ WebConsoleClient.prototype = {
 
 
 
+
+
+
+
+
   evaluateJS: function WCC_evaluateJS(aString, aOnResponse, aOptions = {})
   {
     let packet = {
@@ -114,6 +119,7 @@ WebConsoleClient.prototype = {
       bindObjectActor: aOptions.bindObjectActor,
       frameActor: aOptions.frameActor,
       url: aOptions.url,
+      selectedNodeActor: aOptions.selectedNodeActor,
     };
     this._client.request(packet, aOnResponse);
   },

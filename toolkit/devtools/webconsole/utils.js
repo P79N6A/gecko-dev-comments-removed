@@ -1566,35 +1566,9 @@ function JSTermHelpers(aOwner)
 
 
 
-
-
-
-
-
-   Object.defineProperty(aOwner.sandbox, "$0", {
+  Object.defineProperty(aOwner.sandbox, "$0", {
     get: function() {
-      let window = aOwner.chromeWindow();
-      if (!window) {
-        return null;
-      }
-
-      let target = null;
-      try {
-        target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
-      }
-      catch (ex) {
-        
-        
-      }
-
-      if (!target) {
-        return null;
-      }
-
-      let toolbox = gDevTools.getToolbox(target);
-      let node = toolbox && toolbox.selection ? toolbox.selection.node : null;
-
-      return node ? aOwner.makeDebuggeeValue(node) : null;
+      return aOwner.makeDebuggeeValue(aOwner.selectedNode)
     },
     enumerable: true,
     configurable: false

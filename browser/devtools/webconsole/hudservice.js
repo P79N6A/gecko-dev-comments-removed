@@ -587,6 +587,30 @@ WebConsole.prototype = {
 
 
 
+
+
+
+
+  getInspectorSelection: function WC_getInspectorSelection()
+  {
+    let toolbox = gDevTools.getToolbox(this.target);
+    if (!toolbox) {
+      return null;
+    }
+    let panel = toolbox.getPanel("inspector");
+    if (!panel || !panel.selection) {
+      return null;
+    }
+    return panel.selection;
+  },
+
+  
+
+
+
+
+
+
   destroy: function WC_destroy()
   {
     if (this._destroyer) {
