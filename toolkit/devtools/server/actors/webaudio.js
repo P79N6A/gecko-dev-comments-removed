@@ -334,9 +334,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     });
     
     
-    
-    
-    on(this._callWatcher._contentObserver, "global-destroyed", this._onGlobalDestroyed);
+    on(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
   }, {
     request: { reload: Option(0, "boolean") },
     oneway: true
@@ -406,7 +404,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
     }
     this.tabActor = null;
     this._initialized = false;
-    off(this._callWatcher._contentObserver, "global-destroyed", this._onGlobalDestroyed);
+    off(this.tabActor, "window-destroyed", this._onGlobalDestroyed);
     this._nativeToActorID = null;
     this._callWatcher.eraseRecording();
     this._callWatcher.finalize();
@@ -586,7 +584,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
 
-  _onGlobalDestroyed: function (id) {
+  _onGlobalDestroyed: function ({id}) {
     if (this._callWatcher._tracedWindowId !== id) {
       return;
     }

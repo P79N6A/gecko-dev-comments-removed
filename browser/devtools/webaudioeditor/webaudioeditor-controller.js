@@ -223,8 +223,6 @@ let WebAudioEditorController = {
 
 
   reset: function () {
-    $("#reload-notice").hidden = true;
-    $("#waiting-notice").hidden = false;
     $("#content").hidden = true;
     WebAudioGraphView.resetUI();
     WebAudioInspectorView.resetUI();
@@ -250,15 +248,29 @@ let WebAudioEditorController = {
   
 
 
-  _onTabNavigated: Task.async(function* (event) {
+  _onTabNavigated: Task.async(function* (event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
         
-        yield gFront.setup({ reload: false });
+        if (!isFrameSwitching) {
+          yield gFront.setup({ reload: false });
+        }
+
+        
+        this.reset();
 
         
         
-        this.reset();
+        if (isFrameSwitching) {
+          $("#reload-notice").hidden = false;
+          $("#waiting-notice").hidden = true;
+        } else {
+          
+          
+          
+          $("#reload-notice").hidden = true;
+          $("#waiting-notice").hidden = false;
+        }
 
         
         AudioNodes.length = 0;

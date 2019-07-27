@@ -120,17 +120,26 @@ let EventsHandler = {
   
 
 
-  _onTabNavigated: function(event) {
+  _onTabNavigated: function(event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
         Task.spawn(function() {
           
-          gFront.setup({ reload: false });
+          if (!isFrameSwitching) {
+            gFront.setup({ reload: false });
+          }
 
           
           ShadersListView.empty();
-          $("#reload-notice").hidden = true;
-          $("#waiting-notice").hidden = false;
+          
+          
+          if (isFrameSwitching) {
+            $("#reload-notice").hidden = false;
+            $("#waiting-notice").hidden = true;
+          } else {
+            $("#reload-notice").hidden = true;
+            $("#waiting-notice").hidden = false;
+          }
           yield ShadersEditorsView.setText({ vs: "", fs: "" });
           $("#content").hidden = true;
         }).then(() => window.emit(EVENTS.UI_RESET));
