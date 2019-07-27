@@ -4,12 +4,9 @@
 
 
 var gContentPane = {
-
-  
-
-
   init: function ()
   {
+    
     this._rebuildFonts();
     var menulist = document.getElementById("defaultFont");
     if (menulist.selectedIndex == -1) {
@@ -23,6 +20,10 @@ var gContentPane = {
       let row = document.getElementById("translationBox");
       row.removeAttribute("hidden");
     }
+
+    let drmInfoURL =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
+    document.getElementById("playDRMContentLink").setAttribute("href", drmInfoURL);
   },
 
   

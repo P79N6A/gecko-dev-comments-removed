@@ -3,10 +3,6 @@
 
 
 var gContentPane = {
-
-  
-
-
   init: function ()
   {
     function setEventListener(aId, aEventType, aCallback)
@@ -15,6 +11,7 @@ var gContentPane = {
               .addEventListener(aEventType, aCallback.bind(gContentPane));
     }
 
+    
     this._rebuildFonts();
     var menulist = document.getElementById("defaultFont");
     if (menulist.selectedIndex == -1) {
@@ -43,6 +40,10 @@ var gContentPane = {
       gContentPane.openTranslationProviderAttribution);
     setEventListener("translateButton", "command",
       gContentPane.showTranslationExceptions);
+
+    let drmInfoURL =
+      Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
+    document.getElementById("playDRMContentLink").setAttribute("href", drmInfoURL);
   },
 
   
