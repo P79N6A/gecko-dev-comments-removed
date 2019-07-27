@@ -153,172 +153,49 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   }
 }
 
-
-bool
-MediaEngineWebRTCVideoSource::SatisfiesConstraintSet(const MediaTrackConstraintSet &aConstraints,
-                                                     const webrtc::CaptureCapability& aCandidate) {
-  if (!MediaEngineCameraVideoSource::IsWithin(aCandidate.width, aConstraints.mWidth) ||
-      !MediaEngineCameraVideoSource::IsWithin(aCandidate.height, aConstraints.mHeight)) {
-    return false;
-  }
-  if (!MediaEngineCameraVideoSource::IsWithin(aCandidate.maxFPS, aConstraints.mFrameRate)) {
-    return false;
-  }
-  return true;
-}
-
-typedef nsTArray<uint8_t> CapabilitySet;
-
-
-
-
-bool
-MediaEngineWebRTCVideoSource::SatisfiesConstraintSets(
-    const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
+size_t
+MediaEngineWebRTCVideoSource::NumCapabilities()
 {
-  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId);
+  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); 
+
   int num = mViECapture->NumberOfCapabilities(uniqueId.get(), kMaxUniqueIdLength);
-  if (num <= 0) {
-    return true;
+  if (num > 0) {
+    return num;
   }
+  
+  
+  
+  
+  
 
-  CapabilitySet candidateSet;
-  for (int i = 0; i < num; i++) {
-    candidateSet.AppendElement(i);
-  }
-
-  for (size_t j = 0; j < aConstraintSets.Length(); j++) {
-    for (size_t i = 0; i < candidateSet.Length();  ) {
-      webrtc::CaptureCapability cap;
-      mViECapture->GetCaptureCapability(uniqueId.get(), kMaxUniqueIdLength,
-                                        candidateSet[i], cap);
-      if (!SatisfiesConstraintSet(*aConstraintSets[j], cap)) {
-        candidateSet.RemoveElementAt(i);
-      } else {
-        ++i;
-      }
+  if (mHardcodedCapabilities.IsEmpty()) {
+    for (int i = 0; i < 9; i++) {
+      webrtc::CaptureCapability c;
+      c.width = 1920 - i*128;
+      c.height = 1080 - i*72;
+      c.maxFPS = 30;
+      mHardcodedCapabilities.AppendElement(c);
+    }
+    for (int i = 0; i < 16; i++) {
+      webrtc::CaptureCapability c;
+      c.width = 640 - i*40;
+      c.height = 480 - i*30;
+      c.maxFPS = 30;
+      mHardcodedCapabilities.AppendElement(c);
     }
   }
-  return !!candidateSet.Length();
+  return mHardcodedCapabilities.Length();
 }
 
 void
-MediaEngineWebRTCVideoSource::ChooseCapability(
-    const VideoTrackConstraintsN &aConstraints,
-    const MediaEnginePrefs &aPrefs)
+MediaEngineWebRTCVideoSource::GetCapability(size_t aIndex,
+                                            webrtc::CaptureCapability& aOut)
 {
-  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId);
-  int num = mViECapture->NumberOfCapabilities(uniqueId.get(), kMaxUniqueIdLength);
-  if (num <= 0) {
-    
-    return GuessCapability(aConstraints, aPrefs);
+  if (!mHardcodedCapabilities.IsEmpty()) {
+    MediaEngineCameraVideoSource::GetCapability(aIndex, aOut);
   }
-
-  
-
-  LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps",
-       aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
-
-  CapabilitySet candidateSet;
-  for (int i = 0; i < num; i++) {
-    candidateSet.AppendElement(i);
-  }
-
-  
-
-  for (uint32_t i = 0; i < candidateSet.Length();) {
-    webrtc::CaptureCapability cap;
-    mViECapture->GetCaptureCapability(uniqueId.get(), kMaxUniqueIdLength,
-                                      candidateSet[i], cap);
-    if (!SatisfiesConstraintSet(aConstraints.mRequired, cap)) {
-      candidateSet.RemoveElementAt(i);
-    } else {
-      ++i;
-    }
-  }
-
-  CapabilitySet tailSet;
-
-  
-
-  if (aConstraints.mAdvanced.WasPassed()) {
-    auto &array = aConstraints.mAdvanced.Value();
-
-    for (uint32_t i = 0; i < array.Length(); i++) {
-      CapabilitySet rejects;
-      for (uint32_t j = 0; j < candidateSet.Length();) {
-        webrtc::CaptureCapability cap;
-        mViECapture->GetCaptureCapability(uniqueId.get(), kMaxUniqueIdLength,
-                                          candidateSet[j], cap);
-        if (!SatisfiesConstraintSet(array[i], cap)) {
-          rejects.AppendElement(candidateSet[j]);
-          candidateSet.RemoveElementAt(j);
-        } else {
-          ++j;
-        }
-      }
-      (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
-    }
-  }
-
-  if (!candidateSet.Length()) {
-    candidateSet.AppendElement(0);
-  }
-
-  int prefWidth = aPrefs.GetWidth();
-  int prefHeight = aPrefs.GetHeight();
-
-  
-  
-  
-
-  webrtc::CaptureCapability cap;
-  bool higher = true;
-  for (uint32_t i = 0; i < candidateSet.Length(); i++) {
-    mViECapture->GetCaptureCapability(NS_ConvertUTF16toUTF8(mUniqueId).get(),
-                                      kMaxUniqueIdLength, candidateSet[i], cap);
-    if (higher) {
-      if (i == 0 ||
-          (mCapability.width > cap.width && mCapability.height > cap.height)) {
-        
-        mCapability = cap;
-        
-      }
-      if (cap.width <= (uint32_t) prefWidth && cap.height <= (uint32_t) prefHeight) {
-        higher = false;
-      }
-    } else {
-      if (cap.width > (uint32_t) prefWidth || cap.height > (uint32_t) prefHeight ||
-          cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
-        continue;
-      }
-      if (mCapability.width < cap.width && mCapability.height < cap.height) {
-        mCapability = cap;
-        
-      }
-    }
-    
-    if (mCapability.width == cap.width && mCapability.height == cap.height) {
-      
-      if (cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
-        continue;
-      }
-      
-      if (cap.maxFPS < mCapability.maxFPS) {
-        mCapability = cap;
-      } else if (cap.maxFPS == mCapability.maxFPS) {
-        
-        if (cap.rawType == webrtc::RawVideoType::kVideoI420
-          || cap.rawType == webrtc::RawVideoType::kVideoYUY2
-          || cap.rawType == webrtc::RawVideoType::kVideoYV12) {
-          mCapability = cap;
-        }
-      }
-    }
-  }
-  LOG(("chose cap %dx%d @%dfps codec %d raw %d",
-       mCapability.width, mCapability.height, mCapability.maxFPS,
-       mCapability.codecType, mCapability.rawType));
+  NS_ConvertUTF16toUTF8 uniqueId(mUniqueId); 
+  mViECapture->GetCaptureCapability(uniqueId.get(), kMaxUniqueIdLength, aIndex, aOut);
 }
 
 nsresult

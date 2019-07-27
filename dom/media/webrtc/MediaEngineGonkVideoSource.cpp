@@ -107,11 +107,47 @@ MediaEngineGonkVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   }
 }
 
-void
-MediaEngineGonkVideoSource::ChooseCapability(const VideoTrackConstraintsN& aConstraints,
-                                             const MediaEnginePrefs& aPrefs)
+size_t
+MediaEngineGonkVideoSource::NumCapabilities()
 {
-  return GuessCapability(aConstraints, aPrefs);
+  
+  
+  
+  
+  
+  
+  
+
+  if (mHardcodedCapabilities.IsEmpty()) {
+    const struct { int width, height; } hardcodes[] = {
+      { 800, 1280 },
+      { 720, 1280 },
+      { 600, 1024 },
+      { 540, 960 },
+      { 480, 854 },
+      { 480, 800 },
+      { 320, 480 },
+      { 240, 320 }, 
+    };
+    const int framerates[] = { 15, 30 };
+
+    for (auto& hardcode : hardcodes) {
+      webrtc::CaptureCapability c;
+      c.width = hardcode.width;
+      c.height = hardcode.height;
+      for (int framerate : framerates) {
+        c.maxFPS = framerate;
+        mHardcodedCapabilities.AppendElement(c); 
+      }
+      c.width = hardcode.height;
+      c.height = hardcode.width;
+      for (int framerate : framerates) {
+        c.maxFPS = framerate;
+        mHardcodedCapabilities.AppendElement(c); 
+      }
+    }
+  }
+  return mHardcodedCapabilities.Length();
 }
 
 nsresult

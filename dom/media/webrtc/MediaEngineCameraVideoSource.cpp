@@ -69,83 +69,171 @@ bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
 }
 
 
-void
-MediaEngineCameraVideoSource::GuessCapability(
-    const VideoTrackConstraintsN& aConstraints,
-    const MediaEnginePrefs& aPrefs)
+
+size_t
+MediaEngineCameraVideoSource::NumCapabilities()
 {
-  LOG(("GuessCapability: prefs: %dx%d @%d-%dfps",
-       aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
+  return mHardcodedCapabilities.Length();
+}
 
-  
+void
+MediaEngineCameraVideoSource::GetCapability(size_t aIndex,
+                                            webrtc::CaptureCapability& aOut)
+{
+  MOZ_ASSERT(aIndex < mHardcodedCapabilities.Length());
+  aOut = mHardcodedCapabilities[aIndex];
+}
 
-  ConstrainLongRange cWidth(aConstraints.mRequired.mWidth);
-  ConstrainLongRange cHeight(aConstraints.mRequired.mHeight);
 
-  if (aConstraints.mAdvanced.WasPassed()) {
-    const auto& advanced = aConstraints.mAdvanced.Value();
-    for (uint32_t i = 0; i < advanced.Length(); i++) {
-      if (AreIntersecting(cWidth, advanced[i].mWidth) &&
-          AreIntersecting(cHeight, advanced[i].mHeight)) {
-        Intersect(cWidth, advanced[i].mWidth);
-        Intersect(cHeight, advanced[i].mHeight);
+
+
+
+bool
+MediaEngineCameraVideoSource::SatisfiesConstraintSet(const MediaTrackConstraintSet &aConstraints,
+                                                     const webrtc::CaptureCapability& aCandidate) {
+  if (!IsWithin(aCandidate.width, aConstraints.mWidth) ||
+      !IsWithin(aCandidate.height, aConstraints.mHeight)) {
+    return false;
+  }
+  if (!IsWithin(aCandidate.maxFPS, aConstraints.mFrameRate)) {
+    return false;
+  }
+  return true;
+}
+
+
+
+
+bool
+MediaEngineCameraVideoSource::SatisfiesConstraintSets(
+    const nsTArray<const MediaTrackConstraintSet*>& aConstraintSets)
+{
+  size_t num = NumCapabilities();
+
+  CapabilitySet candidateSet;
+  for (size_t i = 0; i < num; i++) {
+    candidateSet.AppendElement(i);
+  }
+
+  for (const MediaTrackConstraintSet* cs : aConstraintSets) {
+    for (size_t i = 0; i < candidateSet.Length();  ) {
+      webrtc::CaptureCapability cap;
+      GetCapability(candidateSet[i], cap);
+      if (!SatisfiesConstraintSet(*cs, cap)) {
+        candidateSet.RemoveElementAt(i);
+      } else {
+        ++i;
       }
     }
   }
-  
-  
-  
-  
+  return !!candidateSet.Length();
+}
+
+void
+MediaEngineCameraVideoSource::ChooseCapability(
+    const VideoTrackConstraintsN &aConstraints,
+    const MediaEnginePrefs &aPrefs)
+{
+  LOG(("ChooseCapability: prefs: %dx%d @%d-%dfps",
+       aPrefs.mWidth, aPrefs.mHeight, aPrefs.mFPS, aPrefs.mMinFPS));
+
+  size_t num = NumCapabilities();
+
+  CapabilitySet candidateSet;
+  for (size_t i = 0; i < num; i++) {
+    candidateSet.AppendElement(i);
+  }
+
   
 
-  bool macHD = ((!aPrefs.mWidth || !aPrefs.mHeight) &&
-                mDeviceName.EqualsASCII("FaceTime HD Camera (Built-in)") &&
-                (aPrefs.GetWidth() < cWidth.mMin ||
-                 aPrefs.GetHeight() < cHeight.mMin) &&
-                !(aPrefs.GetWidth(true) > cWidth.mMax ||
-                  aPrefs.GetHeight(true) > cHeight.mMax));
-  int prefWidth = aPrefs.GetWidth(macHD);
-  int prefHeight = aPrefs.GetHeight(macHD);
-
-  
-
-  if (IsWithin(prefWidth, cWidth) == IsWithin(prefHeight, cHeight)) {
-    
-    
-    
-    mCapability.width = Clamp(prefWidth, cWidth);
-    mCapability.height = Clamp(prefHeight, cHeight);
-  } else {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (IsWithin(prefWidth, cWidth)) {
-      mCapability.height = Clamp(prefHeight, cHeight);
-      mCapability.width = Clamp((mCapability.height * prefWidth) /
-                                prefHeight, cWidth);
+  for (size_t i = 0; i < candidateSet.Length();) {
+    webrtc::CaptureCapability cap;
+    GetCapability(candidateSet[i], cap);
+    if (!SatisfiesConstraintSet(aConstraints.mRequired, cap)) {
+      candidateSet.RemoveElementAt(i);
     } else {
-      mCapability.width = Clamp(prefWidth, cWidth);
-      mCapability.height = Clamp((mCapability.width * prefHeight) /
-                                 prefWidth, cHeight);
+      ++i;
     }
   }
-  mCapability.maxFPS = MediaEngine::DEFAULT_VIDEO_FPS;
-  LOG(("chose cap %dx%d @%dfps",
-       mCapability.width, mCapability.height, mCapability.maxFPS));
+
+  CapabilitySet tailSet;
+
+  
+
+  if (aConstraints.mAdvanced.WasPassed()) {
+    for (const MediaTrackConstraintSet &cs : aConstraints.mAdvanced.Value()) {
+      CapabilitySet rejects;
+      for (size_t i = 0; i < candidateSet.Length();) {
+        webrtc::CaptureCapability cap;
+        GetCapability(candidateSet[i], cap);
+        if (!SatisfiesConstraintSet(cs, cap)) {
+          rejects.AppendElement(candidateSet[i]);
+          candidateSet.RemoveElementAt(i);
+        } else {
+          ++i;
+        }
+      }
+      (candidateSet.Length()? tailSet : candidateSet).MoveElementsFrom(rejects);
+    }
+  }
+
+  if (!candidateSet.Length()) {
+    candidateSet.AppendElement(0);
+  }
+
+  int prefWidth = aPrefs.GetWidth();
+  int prefHeight = aPrefs.GetHeight();
+
+  
+  
+  
+
+  webrtc::CaptureCapability cap;
+  bool higher = true;
+  for (size_t i = 0; i < candidateSet.Length(); i++) {
+    GetCapability(candidateSet[i], cap);
+    if (higher) {
+      if (i == 0 ||
+          (mCapability.width > cap.width && mCapability.height > cap.height)) {
+        
+        mCapability = cap;
+        
+      }
+      if (cap.width <= (uint32_t) prefWidth && cap.height <= (uint32_t) prefHeight) {
+        higher = false;
+      }
+    } else {
+      if (cap.width > (uint32_t) prefWidth || cap.height > (uint32_t) prefHeight ||
+          cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
+        continue;
+      }
+      if (mCapability.width < cap.width && mCapability.height < cap.height) {
+        mCapability = cap;
+        
+      }
+    }
+    
+    if (mCapability.width == cap.width && mCapability.height == cap.height) {
+      
+      if (cap.maxFPS < (uint32_t) aPrefs.mMinFPS) {
+        continue;
+      }
+      
+      if (cap.maxFPS < mCapability.maxFPS) {
+        mCapability = cap;
+      } else if (cap.maxFPS == mCapability.maxFPS) {
+        
+        if (cap.rawType == webrtc::RawVideoType::kVideoI420
+          || cap.rawType == webrtc::RawVideoType::kVideoYUY2
+          || cap.rawType == webrtc::RawVideoType::kVideoYV12) {
+          mCapability = cap;
+        }
+      }
+    }
+  }
+  LOG(("chose cap %dx%d @%dfps codec %d raw %d",
+       mCapability.width, mCapability.height, mCapability.maxFPS,
+       mCapability.codecType, mCapability.rawType));
 }
 
 void

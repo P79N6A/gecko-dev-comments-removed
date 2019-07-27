@@ -58,7 +58,12 @@ public:
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  bool SatisfiesConstraintSets(
+      const nsTArray<const dom::MediaTrackConstraintSet*>& aConstraintSets) MOZ_OVERRIDE;
+
 protected:
+  typedef nsTArray<size_t> CapabilitySet;
+
   ~MediaEngineCameraVideoSource() {}
 
   
@@ -73,8 +78,12 @@ protected:
   static bool AreIntersecting(const dom::ConstrainLongRange& aA,
                               const dom::ConstrainLongRange& aB);
   static bool Intersect(dom::ConstrainLongRange& aA, const dom::ConstrainLongRange& aB);
-  void GuessCapability(const VideoTrackConstraintsN& aConstraints,
-                       const MediaEnginePrefs& aPrefs);
+  static bool SatisfiesConstraintSet(const dom::MediaTrackConstraintSet& aConstraints,
+                                     const webrtc::CaptureCapability& aCandidate);
+  virtual size_t NumCapabilities();
+  virtual void GetCapability(size_t aIndex, webrtc::CaptureCapability& aOut);
+  void ChooseCapability(const VideoTrackConstraintsN &aConstraints,
+                        const MediaEnginePrefs &aPrefs);
 
   
 
@@ -101,6 +110,7 @@ protected:
 
   webrtc::CaptureCapability mCapability; 
 
+  nsTArray<webrtc::CaptureCapability> mHardcodedCapabilities; 
   nsString mDeviceName;
   nsString mUniqueId;
 };
