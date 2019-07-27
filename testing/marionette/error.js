@@ -55,9 +55,27 @@ const XPCOM_EXCEPTIONS = [];
 
 this.error = {};
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 error.toJSON = function(err) {
+  let msg = err.message;
+  if (!error.isWebDriverError(err) && "name" in error) {
+    msg = `${err.name}: ${msg}`;
+  }
   return {
-    message: err.message,
+    message: msg,
     stacktrace: err.stack || null,
     status: err.status
   };
