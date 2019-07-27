@@ -35,6 +35,7 @@ var VIEW_HISTORY_MEMORY = 20;
 var SCALE_SELECT_CONTAINER_PADDING = 8;
 var SCALE_SELECT_PADDING = 22;
 var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
+var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
 
 PDFJS.imageResourcesPath = './images/';
   PDFJS.workerSrc = '../build/pdf.worker.js';
@@ -303,6 +304,7 @@ var ProgressBar = (function ProgressBarClosure() {
   }
 
   function ProgressBar(id, opts) {
+    this.visible = true;
 
     
     this.div = document.querySelector(id + ' .progress');
@@ -356,8 +358,21 @@ var ProgressBar = (function ProgressBarClosure() {
     },
 
     hide: function ProgressBar_hide() {
+      if (!this.visible) {
+        return;
+      }
+      this.visible = false;
       this.bar.classList.add('hidden');
-      this.bar.removeAttribute('style');
+      document.body.classList.remove('loadingInProgress');
+    },
+
+    show: function ProgressBar_show() {
+      if (this.visible) {
+        return;
+      }
+      this.visible = true;
+      document.body.classList.add('loadingInProgress');
+      this.bar.classList.remove('hidden');
     }
   };
 
@@ -1893,6 +1908,11 @@ var PresentationMode = {
     HandTool.enterPresentationMode();
     this.contextMenuOpen = false;
     this.container.setAttribute('contextmenu', 'viewerContextMenu');
+
+    
+    
+    
+    window.getSelection().removeAllRanges();
   },
 
   exit: function presentationModeExit() {
@@ -5177,6 +5197,24 @@ var PDFViewerApplication = {
     
     if (percent > this.loadingBar.percent || isNaN(percent)) {
       this.loadingBar.percent = percent;
+
+      
+      
+      
+      
+      
+      if (PDFJS.disableAutoFetch && percent) {
+        if (this.disableAutoFetchLoadingBarTimeout) {
+          clearTimeout(this.disableAutoFetchLoadingBarTimeout);
+          this.disableAutoFetchLoadingBarTimeout = null;
+        }
+        this.loadingBar.show();
+
+        this.disableAutoFetchLoadingBarTimeout = setTimeout(function () {
+          this.loadingBar.hide();
+          this.disableAutoFetchLoadingBarTimeout = null;
+        }.bind(this), DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT);
+      }
     }
   },
 
@@ -5195,8 +5233,6 @@ var PDFViewerApplication = {
     var downloadedPromise = pdfDocument.getDownloadInfo().then(function() {
       self.downloadComplete = true;
       self.loadingBar.hide();
-      var outerContainer = document.getElementById('outerContainer');
-      outerContainer.classList.remove('loadingInProgress');
     });
 
     var pagesCount = pdfDocument.numPages;
@@ -6550,7 +6586,9 @@ window.addEventListener('scalechange', function scalechange(evt) {
 
   var predefinedValueFound = selectScaleOption('' + evt.scale);
   if (!predefinedValueFound) {
-    customScaleOption.textContent = Math.round(evt.scale * 10000) / 100 + '%';
+    var customScale = Math.round(evt.scale * 10000) / 100;
+    customScaleOption.textContent =
+      mozL10n.get('page_scale_percent', { scale: customScale }, '{{scale}}%');
     customScaleOption.selected = true;
   }
   updateViewarea();
@@ -6628,9 +6666,9 @@ window.addEventListener('keydown', function keydown(evt) {
   if (cmd === 1 || cmd === 8 || cmd === 5 || cmd === 12) {
     
     var pdfViewer = PDFViewerApplication.pdfViewer;
-    var inPresentationMode =
-      pdfViewer.presentationModeState === PresentationModeState.CHANGING ||
-      pdfViewer.presentationModeState === PresentationModeState.FULLSCREEN;
+    var inPresentationMode = pdfViewer &&
+      (pdfViewer.presentationModeState === PresentationModeState.CHANGING ||
+       pdfViewer.presentationModeState === PresentationModeState.FULLSCREEN);
 
     switch (evt.keyCode) {
       case 70: 
