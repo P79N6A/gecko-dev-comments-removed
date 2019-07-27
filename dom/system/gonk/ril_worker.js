@@ -4128,10 +4128,8 @@ RilObject.prototype = {
     
     for each (let newDataCall in datacalls) {
       if (newDataCall.status != DATACALL_FAIL_NONE) {
-        if (newDataCallOptions) {
-          newDataCall.apn = newDataCallOptions.apn;
-        }
-        this._sendDataCallError(newDataCall, newDataCall.status);
+        this._sendDataCallError(newDataCallOptions || newDataCall,
+                                newDataCall.status);
       }
     }
 
