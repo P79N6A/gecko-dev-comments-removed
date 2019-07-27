@@ -404,6 +404,15 @@ loadListener.prototype = {
 
 
 function getIsUS() {
+  let geoSpecificDefaults = false;
+  try {
+    geoSpecificDefaults = Services.prefs.getBoolPref("browser.search.geoSpecificDefaults");
+  } catch(e) {}
+
+  if (!geoSpecificDefaults) {
+    return false;
+  }
+
   
   let cachePref = "browser.search.isUS";
   try {
