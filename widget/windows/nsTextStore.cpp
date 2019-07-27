@@ -4176,9 +4176,10 @@ nsTextStore::OnFocusChange(bool aGotFocus,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  nsRefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
+
   
   if (ThinksHavingFocus()) {
-    nsRefPtr<ITfDocumentMgr> prevFocusedDocumentMgr;
     DebugOnly<HRESULT> hr =
       sThreadMgr->AssociateFocus(
         sEnabledTextStore->mWidget->GetWindowHandle(),
