@@ -79,6 +79,7 @@ class TableTicker: public Sampler {
     mProfileMemory = hasFeature(aFeatures, aFeatureCount, "memory");
     mTaskTracer = hasFeature(aFeatures, aFeatureCount, "tasktracer");
     mLayersDump = hasFeature(aFeatures, aFeatureCount, "layersdump");
+    mDisplayListDump = hasFeature(aFeatures, aFeatureCount, "displaylistdump");
 
 #if defined(XP_WIN)
     if (mProfilePower) {
@@ -210,6 +211,7 @@ class TableTicker: public Sampler {
   bool ProfileMemory() const { return mProfileMemory; }
   bool TaskTracer() const { return mTaskTracer; }
   bool LayersDump() const { return mLayersDump; }
+  bool DisplayListDump() const { return mDisplayListDump; }
 
 protected:
   
@@ -236,6 +238,7 @@ protected:
   bool mProfileJava;
   bool mProfilePower;
   bool mLayersDump;
+  bool mDisplayListDump;
 
   
   
