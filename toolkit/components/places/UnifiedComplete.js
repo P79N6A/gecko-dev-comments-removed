@@ -66,6 +66,11 @@ const TELEMETRY_6_FIRST_RESULTS = "PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS";
 const FRECENCY_DEFAULT = 1000;
 
 
+
+
+const REGEXP_SINGLEWORD_HOST = new RegExp("^[a-z0-9-]+$", "i");
+
+
 const QUERYINDEX_QUERYTYPE     = 0;
 const QUERYINDEX_URL           = 1;
 const QUERYINDEX_TITLE         = 2;
@@ -1005,7 +1010,7 @@ Search.prototype = {
   
   _matchUnknownUrl: function* () {
     let flags = Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS |
-                Ci.nsIURIFixup.FIXUP_FLAG_REQUIRE_WHITELISTED_HOST;
+                Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;
     let fixupInfo = null;
     try {
       fixupInfo = Services.uriFixup.getFixupURIInfo(this._originalSearchString,
@@ -1014,14 +1019,30 @@ Search.prototype = {
       return false;
     }
 
-    let uri = fixupInfo.preferredURI;
+    
+    
+    
+    
+    
+    if (!fixupInfo.fixedURI || fixupInfo.keywordAsSent)
+      return false;
+
+    let uri = fixupInfo.fixedURI;
     
     
     
     
     let hostExpected = new Set(["http", "https", "ftp", "chrome", "resource"]);
-    if (!uri || (hostExpected.has(uri.scheme) && !uri.host))
+    if (hostExpected.has(uri.scheme) && !uri.host)
       return false;
+
+    
+    
+    if (uri.asciiHost &&
+        REGEXP_SINGLEWORD_HOST.test(uri.asciiHost) &&
+        !Services.uriFixup.isDomainWhitelisted(uri.asciiHost, -1)) {
+      return false;
+    }
 
     let value = makeActionURL("visiturl", {
       url: uri.spec,

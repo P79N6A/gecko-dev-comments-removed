@@ -303,10 +303,17 @@ function makeActionURI(action, params) {
 }
 
 
-add_task(function ensure_no_search_engines() {
-  let count = {};
-  let engines = Services.search.getEngines(count);
-  for (let i = 0; i < count.value; i++) {
-    engines[i].hidden = true;
+
+add_task(function ensure_search_engine() {
+  
+  Services.prefs.setBoolPref("keyword.enabled", true);
+
+  
+  for (let engine of Services.search.getEngines()) {
+    Services.search.removeEngine(engine);
   }
+  Services.search.addEngineWithDetails("MozSearch", "", "", "", "GET",
+                                       "http://s.example.com/search");
+  let engine = Services.search.getEngineByName("MozSearch");
+  Services.search.currentEngine = engine;
 });
