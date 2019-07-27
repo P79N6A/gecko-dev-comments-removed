@@ -82,7 +82,7 @@ this.ForgetAboutSite = {
 
     
     let mps = Cc["@mozilla.org/gecko-media-plugin-service;1"].
-               getService(Ci.mozIGeckoMediaPluginService);
+               getService(Ci.mozIGeckoMediaPluginChromeService);
     mps.forgetThisSite(aDomain);
 
     

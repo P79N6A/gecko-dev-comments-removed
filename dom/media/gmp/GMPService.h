@@ -15,37 +15,47 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
-#include "nsThreadUtils.h"
-#include "nsITimer.h"
-#include "nsClassHashtable.h"
-#include "nsDataHashtable.h"
-#include "mozilla/Atomics.h"
 
 template <class> struct already_AddRefed;
 
 namespace mozilla {
+
+extern PRLogModuleInfo* GetGMPLog();
+
 namespace gmp {
 
 class GMPParent;
 
 #define GMP_DEFAULT_ASYNC_SHUTDONW_TIMEOUT 3000
 
-class GeckoMediaPluginService final : public mozIGeckoMediaPluginService
-                                    , public nsIObserver
+class GeckoMediaPluginService : public mozIGeckoMediaPluginService
+                              , public nsIObserver
 {
 public:
   static already_AddRefed<GeckoMediaPluginService> GetGeckoMediaPluginService();
 
-  GeckoMediaPluginService();
-  nsresult Init();
+  virtual nsresult Init();
 
   NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_MOZIGECKOMEDIAPLUGINSERVICE
-  NS_DECL_NSIOBSERVER
 
-  void AsyncShutdownNeeded(GMPParent* aParent);
-  void AsyncShutdownComplete(GMPParent* aParent);
-  void AbortAsyncShutdown();
+  
+  NS_IMETHOD GetThread(nsIThread** aThread) override;
+  NS_IMETHOD HasPluginForAPI(const nsACString& aAPI, nsTArray<nsCString>* aTags,
+                             bool *aRetVal) override;
+  NS_IMETHOD GetGMPVideoDecoder(nsTArray<nsCString>* aTags,
+                                const nsACString& aNodeId,
+                                GMPVideoHost** aOutVideoHost,
+                                GMPVideoDecoderProxy** aGMPVD) override;
+  NS_IMETHOD GetGMPVideoEncoder(nsTArray<nsCString>* aTags,
+                                const nsACString& aNodeId,
+                                GMPVideoHost **aOutVideoHost,
+                                GMPVideoEncoderProxy** aGMPVE) override;
+  NS_IMETHOD GetGMPAudioDecoder(nsTArray<nsCString>* aTags,
+                                const nsACString& aNodeId,
+                                GMPAudioDecoderProxy **aGMPAD) override;
+  NS_IMETHOD GetGMPDecryptor(nsTArray<nsCString>* aTags,
+                             const nsACString& aNodeId,
+                             GMPDecryptorProxy** aDecryptor) override;
 
   int32_t AsyncShutdownTimeoutMs();
 
@@ -77,119 +87,27 @@ public:
                                const nsACString& aPluginName,
                                const nsAString& aPluginDumpId);
 
-private:
-  ~GeckoMediaPluginService();
+protected:
+  GeckoMediaPluginService();
+  virtual ~GeckoMediaPluginService();
+
+  virtual void InitializePlugins() = 0;
+  virtual GMPParent* SelectPluginForAPI(const nsACString& aNodeId,
+                                const nsCString& aAPI,
+                                const nsTArray<nsCString>& aTags) = 0;
 
   nsresult GMPDispatch(nsIRunnable* event, uint32_t flags = NS_DISPATCH_NORMAL);
-
-  void ClearStorage();
-
-  GMPParent* SelectPluginForAPI(const nsACString& aNodeId,
-                                const nsCString& aAPI,
-                                const nsTArray<nsCString>& aTags);
-  GMPParent* FindPluginForAPIFrom(size_t aSearchStartIndex,
-                                  const nsCString& aAPI,
-                                  const nsTArray<nsCString>& aTags,
-                                  size_t* aOutPluginIndex);
-
-  void UnloadPlugins();
-  void CrashPlugins();
-  void SetAsyncShutdownComplete();
-
-  void LoadFromEnvironment();
-  void ProcessPossiblePlugin(nsIFile* aDir);
-
-  void AddOnGMPThread(const nsAString& aDirectory);
-  void RemoveOnGMPThread(const nsAString& aDirectory,
-                         const bool aDeleteFromDisk);
-
-  nsresult SetAsyncShutdownTimeout();
-
-  struct DirectoryFilter {
-    virtual bool operator()(nsIFile* aPath) = 0;
-    ~DirectoryFilter() {}
-  };
-  void ClearNodeIdAndPlugin(DirectoryFilter& aFilter);
-
-  void ForgetThisSiteOnGMPThread(const nsACString& aOrigin);
-  void ClearRecentHistoryOnGMPThread(PRTime aSince);
+  void ShutdownGMPThread();
 
 protected:
-  friend class GMPParent;
-  void ReAddOnGMPThread(nsRefPtr<GMPParent>& aOld);
-private:
-  GMPParent* ClonePlugin(const GMPParent* aOriginal);
-  nsresult EnsurePluginsOnDiskScanned();
-  nsresult InitStorage();
-
-  class PathRunnable : public nsRunnable
-  {
-  public:
-    enum EOperation {
-      ADD,
-      REMOVE,
-      REMOVE_AND_DELETE_FROM_DISK,
-    };
-
-    PathRunnable(GeckoMediaPluginService* aService, const nsAString& aPath,
-                 EOperation aOperation)
-      : mService(aService)
-      , mPath(aPath)
-      , mOperation(aOperation)
-    { }
-
-    NS_DECL_NSIRUNNABLE
-
-  private:
-    nsRefPtr<GeckoMediaPluginService> mService;
-    nsString mPath;
-    EOperation mOperation;
-  };
-
   Mutex mMutex; 
-  nsTArray<nsRefPtr<GMPParent>> mPlugins;
+                
   nsCOMPtr<nsIThread> mGMPThread;
-  bool mShuttingDown;
+  bool mGMPThreadShutdown;
   bool mShuttingDownOnGMPThread;
 
   nsTArray<nsRefPtr<PluginCrashCallback>> mPluginCrashCallbacks;
-
-  
-  
-  Atomic<bool> mScannedPluginOnDisk;
-
-  template<typename T>
-  class MainThreadOnly {
-  public:
-    MOZ_IMPLICIT MainThreadOnly(T aValue)
-      : mValue(aValue)
-    {}
-    operator T&() {
-      MOZ_ASSERT(NS_IsMainThread());
-      return mValue;
-    }
-
-  private:
-    T mValue;
-  };
-
-  MainThreadOnly<bool> mWaitingForPluginsAsyncShutdown;
-
-  nsTArray<nsRefPtr<GMPParent>> mAsyncShutdownPlugins; 
-
-  nsCOMPtr<nsIFile> mStorageBaseDir;
-
-  
-  
-  nsClassHashtable<nsUint32HashKey, nsCString> mTempNodeIds;
-
-  
-  
-  nsDataHashtable<nsCStringHashKey, bool> mPersistentStorageAllowed;
 };
-
-nsresult ReadSalt(nsIFile* aPath, nsACString& aOutData);
-bool MatchOrigin(nsIFile* aPath, const nsACString& aOrigin);
 
 } 
 } 
