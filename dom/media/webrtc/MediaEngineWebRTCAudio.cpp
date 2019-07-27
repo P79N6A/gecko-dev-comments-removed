@@ -585,7 +585,7 @@ MediaEngineWebRTCAudioSource::Process(int channel,
     if (mSources[i]) {
       
       
-      LogTime(AsyncLatencyLogger::AudioTrackInsertion, LATENCY_STREAM_ID(mSources[i], mTrackID),
+      LogTime(AsyncLatencyLogger::AudioTrackInsertion, LATENCY_STREAM_ID(mSources[i].get(), mTrackID),
               (i+1 < len) ? 0 : 1, insertTime);
 
       

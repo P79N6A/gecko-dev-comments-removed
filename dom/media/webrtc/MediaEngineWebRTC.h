@@ -219,7 +219,7 @@ private:
   
   
   Monitor mMonitor;
-  nsTArray<SourceMediaStream*> mSources; 
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; 
   nsCOMPtr<nsIThread> mThread;
   int mCapIndex;
   int mChannel;

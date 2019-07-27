@@ -98,7 +98,7 @@ protected:
 
   
   Monitor mMonitor; 
-  nsTArray<SourceMediaStream*> mSources; 
+  nsTArray<nsRefPtr<SourceMediaStream>> mSources; 
   nsRefPtr<layers::Image> mImage;
   nsRefPtr<layers::ImageContainer> mImageContainer;
   int mWidth, mHeight; 
