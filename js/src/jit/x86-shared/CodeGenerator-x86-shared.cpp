@@ -3107,12 +3107,9 @@ CodeGeneratorX86Shared::visitSimdShift(LSimdShift* ins)
     
     
     
-    
-    
-    
     const LAllocation* val = ins->value();
     if (val->isConstant()) {
-        int32_t c = ToInt32(val);
+        uint32_t c = uint32_t(ToInt32(val));
         if (c > 31) {
             switch (ins->operation()) {
               case MSimdShift::lsh:
