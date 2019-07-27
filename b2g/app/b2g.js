@@ -162,15 +162,7 @@ pref("browser.ssl_override_behavior", 2);
 pref("browser.xul.error_pages.expert_bad_cert", false);
 
 
-pref("browser.search.log", false);
-
-
 pref("browser.search.update", false);
-pref("browser.search.update.log", false);
-pref("browser.search.updateinterval", 6);
-
-
-pref("browser.search.suggest.enabled", true);
 
 
 pref("browser.search.noCurrentEngine", true);

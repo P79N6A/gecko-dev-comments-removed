@@ -1596,7 +1596,9 @@ pref("network.predictor.preserve", 80);
 
 
 
-pref("network.auth.force-generic-ntlm-v1", false);
+pref("network.negotiate-auth.allow-insecure-ntlm-v1", false);
+
+pref("network.negotiate-auth.allow-insecure-ntlm-v1-https", true);
 
 
 
@@ -1639,6 +1641,14 @@ pref("network.auth.force-generic-ntlm", false);
 pref("network.automatic-ntlm-auth.allow-proxies", true);
 pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
+
+
+
+
+
+
+
+pref("network.ntlm.send-lm-response", false);
 
 pref("permissions.default.image",           1); 
 
@@ -2154,7 +2164,11 @@ pref("layout.css.grid.enabled", false);
 pref("layout.css.ruby.enabled", false);
 
 
+#ifdef RELEASE_BUILD
+pref("layout.css.display-contents.enabled", false);
+#else
 pref("layout.css.display-contents.enabled", true);
+#endif
 
 
 pref("layout.css.box-decoration-break.enabled", true);
@@ -4425,43 +4439,19 @@ pref("dom.mozSettings.SettingsService.verbose.enabled", false);
 
 pref("dom.mozSettings.allowForceReadOnly", false);
 
-#ifndef MOZ_WIDGET_GONK
+
+pref("browser.search.log", false);
+pref("browser.search.update", true);
+pref("browser.search.update.log", false);
+pref("browser.search.update.interval", 21600);
+pref("browser.search.suggest.enabled", true);
+pref("browser.search.geoSpecificDefaults", false);
+pref("browser.search.geoip.url", "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%");
 
 
+pref("browser.search.geoip.timeout", 2000);
 
-pref("media.gmp-manager.log", false);
+#ifdef MOZ_OFFICIAL_BRANDING
 
-
-
-
-
-pref("media.gmp-manager.url", "https://aus4.mozilla.org/update/3/GMP/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
-
-
-
-
-
-pref("media.gmp-manager.cert.requireBuiltIn", true);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pref("media.gmp-manager.cert.checkAttributes", true);
-pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
-pref("media.gmp-manager.certs.1.commonName", "aus4.mozilla.org");
-pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
-pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
+pref("browser.search.official", true);
 #endif

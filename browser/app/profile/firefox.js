@@ -397,9 +397,6 @@ pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
 
 
-pref("browser.search.log", false);
-
-
 pref("browser.search.order.1",                "chrome://browser-region/locale/region.properties");
 pref("browser.search.order.2",                "chrome://browser-region/locale/region.properties");
 pref("browser.search.order.3",                "chrome://browser-region/locale/region.properties");
@@ -417,33 +414,10 @@ pref("browser.search.openintab", false);
 
 pref("browser.search.context.loadInBackground", false);
 
-
-pref("browser.search.update", true);
-
-
-pref("browser.search.update.log", false);
-
-
-pref("browser.search.update.interval", 21600);
-
-
-pref("browser.search.suggest.enabled", true);
-
 pref("browser.search.showOneOffButtons", true);
-
-#ifdef MOZ_OFFICIAL_BRANDING
-
-pref("browser.search.official", true);
-#endif
 
 
 pref("browser.search.highlightCount", 5);
-
-
-pref("browser.search.geoip.url", "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%");
-
-
-pref("browser.search.geoip.timeout", 2000);
 
 pref("browser.sessionhistory.max_entries", 50);
 
@@ -1778,6 +1752,45 @@ pref("media.eme.enabled", true);
 
 
 
+pref("media.gmp-manager.log", false);
+
+
+
+
+
+pref("media.gmp-manager.url", "https://aus4.mozilla.org/update/3/GMP/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
+
+
+
+
+
+pref("media.gmp-manager.cert.requireBuiltIn", true);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("media.gmp-manager.cert.checkAttributes", true);
+pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=DigiCert Inc,C=US");
+pref("media.gmp-manager.certs.1.commonName", "aus4.mozilla.org");
+pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
+pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
+
+
+
+
 pref("browser.cache.frecency_experiment", 0);
 
 pref("browser.translation.detectLanguage", false);
@@ -1816,7 +1829,6 @@ pref("print.enable_e10s_testing", true);
 #ifdef NIGHTLY_BUILD
 
 pref("extensions.interposition.enabled", true);
-pref("extensions.interposition.prefetching", true);
 #endif
 
 pref("browser.defaultbrowser.notificationbar", false);
