@@ -332,6 +332,10 @@ function jsTestDriverBrowserInit()
     {
       properties.version = '1.8';
     }
+    else if (properties.test.match(/^ecma_6\/Class/))
+    {
+      properties.version = '1.8';
+    }
   }
 
   
