@@ -171,10 +171,19 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
         
         
         element->ClearAnyCachedPath();
-      } else if (StyleSVG()->mFillRule !=
-                   aOldStyleContext->PeekStyleSVG()->mFillRule) {
-        
-        element->ClearAnyCachedPath();
+      } else if (GetStateBits() & NS_STATE_SVG_CLIPPATH_CHILD) {
+        if (StyleSVG()->mClipRule !=
+              aOldStyleContext->PeekStyleSVG()->mClipRule) {
+          
+          
+          element->ClearAnyCachedPath();
+        }
+      } else {
+        if (StyleSVG()->mFillRule !=
+              aOldStyleContext->PeekStyleSVG()->mFillRule) {
+          
+          element->ClearAnyCachedPath();
+        }
       }
     }
   }
