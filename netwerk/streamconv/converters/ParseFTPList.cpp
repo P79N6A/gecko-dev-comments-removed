@@ -723,7 +723,13 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
 
-      if ((numtoks >= 4) && (toklen[0] == 8 || toklen[0] == 10) && toklen[1] == 7 && 
+      
+      
+      
+      
+      
+      if ((numtoks >= 4) && (toklen[0] == 8 || toklen[0] == 10) &&
+          (toklen[1] == 5 || toklen[1] == 7) &&
           (*tokens[2] == '<' || isdigit(*tokens[2])) )
       {
         p = tokens[0];
@@ -734,7 +740,8 @@ int ParseFTPList(const char *line, struct list_state *state,
           p = tokens[1];
           if ( isdigit(p[0]) && isdigit(p[1]) && p[2]==':' && 
                isdigit(p[3]) && isdigit(p[4]) && 
-               (p[5]=='A' || p[5]=='P') && p[6]=='M')
+               (toklen[1] == 5 || (toklen[1] == 7 &&
+                                  (p[5]=='A' || p[5]=='P') && p[6]=='M')))
           {
             lstyle = 'W';
             if (!state->lstyle)
@@ -831,10 +838,13 @@ int ParseFTPList(const char *line, struct list_state *state,
 
         result->fe_time.tm_hour = atoi(tokens[1]+0);
         result->fe_time.tm_min = atoi(tokens[1]+3);
-        if ((tokens[1][5]) == 'P' && result->fe_time.tm_hour < 12)
-          result->fe_time.tm_hour += 12;
-	else if ((tokens[1][5]) == 'A' && result->fe_time.tm_hour == 12)
-          result->fe_time.tm_hour = 0;
+        if (toklen[1] == 7)
+        {
+          if ((tokens[1][5]) == 'P' && result->fe_time.tm_hour < 12)
+            result->fe_time.tm_hour += 12;
+          else if ((tokens[1][5]) == 'A' && result->fe_time.tm_hour == 12)
+            result->fe_time.tm_hour = 0;
+        }
 
         
 
