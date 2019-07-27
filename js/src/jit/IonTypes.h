@@ -412,6 +412,41 @@ IsNullOrUndefined(MIRType type)
     return type == MIRType_Null || type == MIRType_Undefined;
 }
 
+static inline bool
+IsSimdType(MIRType type)
+{
+    return type == MIRType_Int32x4 || type == MIRType_Float32x4;
+};
+
+
+
+static inline unsigned
+SimdTypeToLength(MIRType type)
+{
+    JS_ASSERT(IsSimdType(type));
+    switch (type) {
+      case MIRType_Int32x4:
+      case MIRType_Float32x4:
+        return 4;
+      default: break;
+    }
+    MOZ_ASSUME_UNREACHABLE("unexpected SIMD kind");
+}
+
+static inline MIRType
+SimdTypeToScalarType(MIRType type)
+{
+    JS_ASSERT(IsSimdType(type));
+    switch (type) {
+      case MIRType_Int32x4:
+        return MIRType_Int32;
+      case MIRType_Float32x4:
+        return MIRType_Float32;
+      default: break;
+    }
+    MOZ_ASSUME_UNREACHABLE("unexpected SIMD kind");
+}
+
 #ifdef DEBUG
 
 
