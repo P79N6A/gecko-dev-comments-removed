@@ -251,8 +251,9 @@ nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, co
       if (NS_SUCCEEDED(rv)){
         rv = encoder->InitFromData(rgbData, 0, width, height, 3 * width , 
                                    imgIEncoder::INPUT_FORMAT_RGB, EmptyString());
-        if (NS_SUCCEEDED(rv))
-          encoder->QueryInterface(NS_GET_IID(nsIInputStream), (void **) aInputStream);
+        if (NS_SUCCEEDED(rv)) {
+          encoder.forget(aInputStream);
+        }
       }
     }
     delete [] rgbData;
