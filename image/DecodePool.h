@@ -50,6 +50,10 @@ public:
   static DecodePool* Singleton();
 
   
+  
+  static uint32_t NumberOfCores();
+
+  
   void AsyncDecode(Decoder* aDecoder);
 
   
@@ -86,6 +90,7 @@ private:
   void NotifyProgress(Decoder* aDecoder);
 
   static StaticRefPtr<DecodePool> sSingleton;
+  static uint32_t sNumCores;
 
   nsRefPtr<DecodePoolImpl>    mImpl;
 

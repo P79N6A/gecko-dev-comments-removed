@@ -1196,7 +1196,12 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
   
   mSourceBuffer->Complete(aStatus);
 
-  if (mSyncLoad && !mHasSize) {
+  
+  
+  
+  bool canSyncSizeDecode = mSyncLoad || DecodePool::NumberOfCores() < 2;
+
+  if (canSyncSizeDecode && !mHasSize) {
     
     
     
@@ -1219,7 +1224,7 @@ RasterImage::OnImageDataComplete(nsIRequest*, nsISupports*, nsresult aStatus,
 
   if (!mHasSize && !mError) {
     
-    MOZ_ASSERT(!mSyncLoad, "Firing load asynchronously but mSyncLoad is set?");
+    MOZ_ASSERT(!canSyncSizeDecode, "Firing load async but canSyncSizeDecode?");
     NotifyProgress(FLAG_ONLOAD_BLOCKED);
     mLoadProgress = Some(loadProgress);
     return finalStatus;
