@@ -12,6 +12,9 @@
 #include "nsThreadUtils.h"
 #include "ScopedGLHelpers.h"
 #include "SharedSurfaceGL.h"
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/TextureClientSharedSurface.h"
+#include "mozilla/unused.h"
 
 namespace mozilla {
 namespace gl {
@@ -32,12 +35,9 @@ SharedSurface::ProdCopy(SharedSurface* src, SharedSurface* dest,
         dest->mAttachType == AttachmentType::Screen)
     {
         
-        UniquePtr<SharedSurface_GLTexture> tempSurf;
-        tempSurf = SharedSurface_GLTexture::Create(gl,
-                                                   gl,
-                                                   factory->mFormats,
-                                                   src->mSize,
-                                                   factory->mCaps.alpha);
+        UniquePtr<SharedSurface_Basic> tempSurf;
+        tempSurf = SharedSurface_Basic::Create(gl, factory->mFormats, src->mSize,
+                                               factory->mCaps.alpha);
 
         ProdCopy(src, tempSurf.get(), factory);
         ProdCopy(tempSurf.get(), dest, factory);
@@ -203,20 +203,21 @@ SharedSurface::SharedSurface(SharedSurfaceType type,
                              AttachmentType attachType,
                              GLContext* gl,
                              const gfx::IntSize& size,
-                             bool hasAlpha)
+                             bool hasAlpha,
+                             bool canRecycle)
     : mType(type)
     , mAttachType(attachType)
     , mGL(gl)
     , mSize(size)
     , mHasAlpha(hasAlpha)
+    , mCanRecycle(canRecycle)
     , mIsLocked(false)
     , mIsProducerAcquired(false)
     , mIsConsumerAcquired(false)
 #ifdef DEBUG
     , mOwningThread(NS_GetCurrentThread())
 #endif
-{
-}
+{ }
 
 void
 SharedSurface::LockProd()
@@ -265,8 +266,6 @@ SharedSurface::PollSync_ContentThread()
 
 
 
-
-
 static void
 ChooseBufferBits(const SurfaceCaps& caps,
                  SurfaceCaps* const out_drawCaps,
@@ -301,12 +300,15 @@ ChooseBufferBits(const SurfaceCaps& caps,
     }
 }
 
-SurfaceFactory::SurfaceFactory(GLContext* gl,
-                               SharedSurfaceType type,
-                               const SurfaceCaps& caps)
-    : mGL(gl)
+SurfaceFactory::SurfaceFactory(SharedSurfaceType type, GLContext* gl,
+                               const SurfaceCaps& caps,
+                               const RefPtr<layers::ISurfaceAllocator>& allocator,
+                               const layers::TextureFlags& flags)
+    : mType(type)
+    , mGL(gl)
     , mCaps(caps)
-    , mType(type)
+    , mAllocator(allocator)
+    , mFlags(flags)
     , mFormats(gl->ChooseGLFormats(caps))
 {
     ChooseBufferBits(mCaps, &mDrawCaps, &mReadCaps);
@@ -314,51 +316,95 @@ SurfaceFactory::SurfaceFactory(GLContext* gl,
 
 SurfaceFactory::~SurfaceFactory()
 {
-    while (!mScraps.Empty()) {
-        mScraps.Pop();
+    while (!mRecycleTotalPool.empty()) {
+        StopRecycling(*mRecycleTotalPool.begin());
     }
-}
 
-UniquePtr<SharedSurface>
-SurfaceFactory::NewSharedSurface(const gfx::IntSize& size)
-{
+    MOZ_RELEASE_ASSERT(mRecycleTotalPool.empty());
+
     
-    while (!mScraps.Empty()) {
-        UniquePtr<SharedSurface> cur = mScraps.Pop();
-
-        if (cur->mSize == size)
-            return Move(cur);
-
-        
-        
-    }
-
-    return CreateShared(size);
+    
+    mRecycleFreePool.clear();
 }
 
-TemporaryRef<ShSurfHandle>
-SurfaceFactory::NewShSurfHandle(const gfx::IntSize& size)
+TemporaryRef<layers::SharedSurfaceTextureClient>
+SurfaceFactory::NewTexClient(const gfx::IntSize& size)
 {
-    auto surf = NewSharedSurface(size);
+    while (!mRecycleFreePool.empty()) {
+        RefPtr<layers::SharedSurfaceTextureClient> cur = mRecycleFreePool.front();
+        mRecycleFreePool.pop();
+
+        if (cur->Surf()->mSize == size) {
+            return cur.forget();
+        }
+
+        StopRecycling(cur);
+    }
+
+    UniquePtr<SharedSurface> surf = Move(CreateShared(size));
     if (!surf)
         return nullptr;
 
-    
-    
-    surf->WaitForBufferOwnership();
+    RefPtr<layers::SharedSurfaceTextureClient> ret;
+    ret = new layers::SharedSurfaceTextureClient(mAllocator, mFlags, Move(surf), this);
 
-    return MakeAndAddRef<ShSurfHandle>(this, Move(surf));
+    StartRecycling(ret);
+
+    return ret.forget();
 }
 
+void
+SurfaceFactory::StartRecycling(layers::SharedSurfaceTextureClient* tc)
+{
+    tc->SetRecycleCallback(&SurfaceFactory::RecycleCallback, static_cast<void*>(this));
+
+    bool didInsert = mRecycleTotalPool.insert(tc);
+    MOZ_RELEASE_ASSERT(didInsert);
+    mozilla::unused << didInsert;
+}
 
 void
-SurfaceFactory::Recycle(UniquePtr<SharedSurface> surf)
+SurfaceFactory::StopRecycling(layers::SharedSurfaceTextureClient* tc)
 {
-    MOZ_ASSERT(surf);
+    
+    tc->ClearRecycleCallback();
 
-    if (surf->mType == mType) {
-        mScraps.Push(Move(surf));
+    bool didErase = mRecycleTotalPool.erase(tc);
+    MOZ_RELEASE_ASSERT(didErase);
+    mozilla::unused << didErase;
+}
+
+ void
+SurfaceFactory::RecycleCallback(layers::TextureClient* rawTC, void* rawFactory)
+{
+    MOZ_ASSERT(NS_IsMainThread());
+
+    RefPtr<layers::SharedSurfaceTextureClient> tc;
+    tc = static_cast<layers::SharedSurfaceTextureClient*>(rawTC);
+
+    SurfaceFactory* factory = static_cast<SurfaceFactory*>(rawFactory);
+
+    if (tc->mSurf->mCanRecycle) {
+        if (factory->Recycle(tc))
+            return;
     }
+
+    
+    factory->StopRecycling(tc);
+}
+
+bool
+SurfaceFactory::Recycle(layers::SharedSurfaceTextureClient* texClient)
+{
+    MOZ_ASSERT(texClient);
+
+    if (mRecycleFreePool.size() >= 2) {
+        return false;
+    }
+
+    RefPtr<layers::SharedSurfaceTextureClient> texClientRef = texClient;
+    mRecycleFreePool.push(texClientRef);
+    return true;
 }
 
 
