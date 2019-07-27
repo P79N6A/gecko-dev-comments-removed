@@ -1757,6 +1757,7 @@ class BindingIter
     
     
     
+    
     uint32_t frameIndex() const {
         MOZ_ASSERT(!done());
         if (i_ < bindings_->numArgs())
@@ -1764,6 +1765,10 @@ class BindingIter
         MOZ_ASSERT(!(*this)->aliased());
         return unaliasedLocal_;
     }
+
+    
+    
+    
     uint32_t argIndex() const {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(i_ < bindings_->numArgs());
@@ -1787,16 +1792,6 @@ class BindingIter
     const Binding &operator*() const { MOZ_ASSERT(!done()); return bindings_->bindingArray()[i_]; }
     const Binding *operator->() const { MOZ_ASSERT(!done()); return &bindings_->bindingArray()[i_]; }
 };
-
-
-
-
-
-
-typedef Vector<Binding, 32> BindingVector;
-
-extern bool
-FillBindingVector(HandleScript fromScript, BindingVector *vec);
 
 
 
