@@ -891,6 +891,12 @@ int vcmGetVideoMaxSupportedPacketizationMode();
 
 
 
+uint32_t vcmGetVideoH264ProfileLevelID();
+
+
+
+
+
 
 
 

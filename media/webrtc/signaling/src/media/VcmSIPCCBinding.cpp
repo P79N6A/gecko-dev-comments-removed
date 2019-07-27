@@ -2806,6 +2806,17 @@ int vcmGetVideoMaxSupportedPacketizationMode()
 
 
 
+uint32_t vcmGetVideoH264ProfileLevelID()
+{
+  
+  
+  return 0x42E00C;
+}
+
+
+
+
+
 
 
 
@@ -3040,62 +3051,6 @@ cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level, void 
 
     default:
         return FALSE;
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void vcmPopulateAttribs(void *sdp_p, int level, cc_uint32_t media_type,
-                          cc_uint16_t payload_number, cc_boolean isOffer)
-{
-    CSFLogDebug( logTag, "vcmPopulateAttribs(): media=%d PT=%d, isOffer=%d", media_type, payload_number, isOffer);
-    uint16_t a_inst;
-    int profile;
-    char profile_level_id[MAX_SPROP_LEN];
-
-    switch (media_type)
-    {
-    case RTP_H264_P0:
-    case RTP_H264_P1:
-
-        if ( ccsdpAddNewAttr(sdp_p, level, 0, SDP_ATTR_FMTP, &a_inst) != SDP_SUCCESS ) return;
-
-        (void) ccsdpAttrSetFmtpPayloadType(sdp_p, level, 0, a_inst, payload_number);
-
-        if (media_type == RTP_H264_P1) {
-          (void) ccsdpAttrSetFmtpPackMode(sdp_p, level, 0, a_inst, 1 );
-        }
-        
-
-        
-        profile = 0x42E00C;
-        csf_sprintf(profile_level_id, MAX_SPROP_LEN, "%X", profile);
-        (void) ccsdpAttrSetFmtpProfileLevelId(sdp_p, level, 0, a_inst, profile_level_id);
-
-        
-        
-        
-        
-        
-        
-        
-
-        break;
-
-    default:
-        break;
     }
 }
 

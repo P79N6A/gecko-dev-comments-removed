@@ -506,28 +506,6 @@ boolean vcmCheckAttribs(uint32_t media_type, void *sdp_p, int level, void **rcap
 
 
 
-void vcmPopulateAttribs(void *sdp_p, int level, uint32_t media_type,
-                          uint16_t payload_number, boolean isOffer)
-{
-    return;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
