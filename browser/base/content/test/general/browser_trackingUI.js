@@ -58,15 +58,23 @@ function testBenignPage(gTestBrowser)
   is(notification, null, "Tracking Content Doorhanger did NOT appear when protection was ON and tracking was NOT present");
 }
 
-function testTrackingPage(gTestBrowser)
+function* testTrackingPage(gTestBrowser)
 {
   
   var notification = PopupNotifications.getNotification("bad-content", gTestBrowser);
   isnot(notification, null, "Tracking Content Doorhanger did appear when protection was ON and tracking was present");
   notification.reshow();
+
   
-  isnot(PopupNotifications.panel.firstChild.isTrackingContentBlocked, 0,
-    "Tracking Content is being blocked");
+  yield promiseWaitForCondition(() => {
+    return PopupNotifications.panel.firstChild.disableTrackingContentProtection;
+  });
+
+
+  
+  is(PopupNotifications.panel.firstChild.isTrackingContentBlocked,
+     Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT,
+     "Tracking Content is being blocked");
 
   
   ok(!PopupNotifications.panel.firstChild.hasAttribute("trackingblockdisabled"),
@@ -127,7 +135,7 @@ add_task(function* () {
 
   
   yield promiseTabLoadEvent(tab, "http://tracking.example.org/browser/browser/base/content/test/general/trackingPage.html");
-  testTrackingPage(gBrowser.getBrowserForTab(tab));
+  yield testTrackingPage(gBrowser.getBrowserForTab(tab));
 
   
   yield promiseTabLoadEvent(tab);
