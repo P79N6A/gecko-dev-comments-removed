@@ -3438,6 +3438,7 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
         if (!ins->resultTypeSet() || ins->resultTypeSet()->unknown())
             return true;
 
+        types::TemporaryTypeSet *oldType = ins->resultTypeSet();
         types::TemporaryTypeSet *type;
 
         
@@ -3448,27 +3449,30 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
             {
                 return true;
             }
-            type = ins->resultTypeSet()->filter(alloc_->lifoAlloc(), true, true);
+            type = oldType->filter(alloc_->lifoAlloc(), true, true);
         } else {
             
             
             uint32_t flags = types::TYPE_FLAG_PRIMITIVE;
 
             
-            if (!ins->resultTypeSet()->maybeEmulatesUndefined())
-                flags &= ~types::TYPE_FLAG_ANYOBJECT;
+            
+            if (oldType->maybeEmulatesUndefined())
+                flags |= types::TYPE_FLAG_ANYOBJECT;
 
             
-            if (!ins->resultTypeSet()->hasAnyFlag(~flags & types::TYPE_FLAG_BASE_MASK) &&
-                ins->resultTypeSet()->getObjectCount() == 0)
+            
+            
+            if (!oldType->hasAnyFlag(~flags & types::TYPE_FLAG_BASE_MASK) &&
+                (oldType->maybeEmulatesUndefined() || !oldType->maybeObject()))
             {
                 return true;
             }
 
             types::TemporaryTypeSet base(flags, static_cast<types::TypeObjectKey**>(nullptr));
-            type = types::TypeSet::intersectSets(&base, ins->resultTypeSet(), alloc_->lifoAlloc());
-            replaceTypeSet(ins, type, test);
+            type = types::TypeSet::intersectSets(&base, oldType, alloc_->lifoAlloc());
         }
+        replaceTypeSet(ins, type, test);
       }
 
     }
