@@ -550,7 +550,8 @@ public:
     uint32_t mOffset;
     uint32_t mLength;
   } mInput;
-  struct
+
+  struct Reply
   {
     void* mContentsRoot;
     uint32_t mOffset;
@@ -563,17 +564,28 @@ public:
     
     nsIWidget* mFocusedWidget;
     
-    bool mReversed;
-    
-    bool mHasSelection;
-    
-    bool mWidgetIsHit;
-    
     mozilla::WritingMode mWritingMode;
     
     nsCOMPtr<nsITransferable> mTransferable;
     
     nsAutoTArray<mozilla::FontRange, 1> mFontRanges;
+    
+    bool mReversed;
+    
+    bool mHasSelection;
+    
+    bool mWidgetIsHit;
+
+    Reply()
+      : mContentsRoot(nullptr)
+      , mOffset(NOT_FOUND)
+      , mTentativeCaretOffset(NOT_FOUND)
+      , mFocusedWidget(nullptr)
+      , mReversed(false)
+      , mHasSelection(false)
+      , mWidgetIsHit(false)
+    {
+    }
   } mReply;
 
   enum
