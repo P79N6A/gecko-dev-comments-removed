@@ -342,7 +342,6 @@ IsInsideNursery(const js::gc::Cell *cell)
 }
 
 } 
-
 } 
 
 namespace JS {
@@ -378,19 +377,25 @@ GCThingIsMarkedGray(void *thing)
     return *word & mask;
 }
 
+} 
+
+namespace js {
+namespace gc {
+
 static MOZ_ALWAYS_INLINE bool
-IsIncrementalBarrierNeededOnTenuredGCThing(shadow::Runtime *rt, void *thing, JSGCTraceKind kind)
+IsIncrementalBarrierNeededOnTenuredGCThing(JS::shadow::Runtime *rt, const JS::GCCellPtr thing)
 {
     MOZ_ASSERT(thing);
 #ifdef JSGC_GENERATIONAL
-    MOZ_ASSERT(!js::gc::IsInsideNursery((js::gc::Cell *)thing));
+    MOZ_ASSERT(!js::gc::IsInsideNursery(thing));
 #endif
     if (!rt->needsIncrementalBarrier())
         return false;
-    JS::Zone *zone = GetTenuredGCThingZone(thing);
-    return reinterpret_cast<shadow::Zone *>(zone)->needsIncrementalBarrier();
+    JS::Zone *zone = JS::GetTenuredGCThingZone(thing);
+    return JS::shadow::Zone::asShadowZone(zone)->needsIncrementalBarrier();
 }
 
+} 
 } 
 
 #endif 
