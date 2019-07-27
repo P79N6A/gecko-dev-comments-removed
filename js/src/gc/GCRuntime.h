@@ -776,6 +776,8 @@ class GCRuntime
 
 
 
+
+
 #ifdef JS_GC_ZEAL
     int                   zealMode;
     int                   zealFrequency;
