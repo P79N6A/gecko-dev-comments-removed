@@ -698,8 +698,8 @@ TEST_F(APZCBasicTester, ComplexTransform) {
     Matrix4x4(),
     Matrix4x4(),
   };
-  transforms[0].ScalePost(0.5f, 0.5f, 1.0f); 
-  transforms[1].ScalePost(2.0f, 1.0f, 1.0f); 
+  transforms[0].PostScale(0.5f, 0.5f, 1.0f); 
+  transforms[1].PostScale(2.0f, 1.0f, 1.0f); 
 
   nsTArray<nsRefPtr<Layer> > layers;
   nsRefPtr<LayerManager> lm;
