@@ -499,7 +499,6 @@ protected:
   static bool           sJustGotActivate;
   static bool           sIsInMouseCapture;
   static int            sTrimOnMinimize;
-  static const char*    sDefaultMainWindowClass;
 
   
   static TriStateBool   sHasBogusPopupsDropShadowOnMultiMonitor;
