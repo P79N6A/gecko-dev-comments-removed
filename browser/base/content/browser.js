@@ -2571,6 +2571,7 @@ let gMenuButtonUpdateBadge = {
       }
       PanelUI.menuButton.classList.add("badged-button");
       Services.obs.addObserver(this, "update-staged", false);
+      Services.obs.addObserver(this, "update-downloaded", false);
     }
   },
 
@@ -2579,6 +2580,7 @@ let gMenuButtonUpdateBadge = {
       this.timer.cancel();
     if (this.enabled) {
       Services.obs.removeObserver(this, "update-staged");
+      Services.obs.removeObserver(this, "update-downloaded");
       PanelUI.panel.removeEventListener("popupshowing", this, true);
       this.enabled = false;
     }
@@ -2602,72 +2604,55 @@ let gMenuButtonUpdateBadge = {
   },
 
   observe: function (subject, topic, status) {
-    const STATE_DOWNLOADING     = "downloading";
-    const STATE_PENDING         = "pending";
-    const STATE_PENDING_SVC     = "pending-service";
-    const STATE_APPLIED         = "applied";
-    const STATE_APPLIED_SVC     = "applied-service";
-    const STATE_FAILED          = "failed";
-
-    let updateButton = document.getElementById("PanelUI-update-status");
-
-    let updateButtonText;
-    let stringId;
+    if (status == "failed") {
+      
+      
+      this.displayBadge(false);
+      this.uninit();
+      return;
+    }
 
     
-    switch (status) {
-      case STATE_APPLIED:
-      case STATE_APPLIED_SVC:
-      case STATE_PENDING:
-      case STATE_PENDING_SVC:
-        if (this.timer) {
-          return;
-        }
-        
-        this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-        this.timer.initWithCallback(this, this.badgeWaitTime * 1000,
-                                    this.timer.TYPE_ONE_SHOT);
-        
-        break;
-      case STATE_FAILED:
-        
-        
-        PanelUI.menuButton.setAttribute("update-status", "failed");
-        PanelUI.menuButton.setAttribute("badge", "!");
-
-        stringId = "appmenu.updateFailed.description";
-        updateButtonText = gNavigatorBundle.getString(stringId);
-
-        updateButton.setAttribute("label", updateButtonText);
-        updateButton.setAttribute("update-status", "failed");
-        updateButton.hidden = false;
-
-        PanelUI.panel.addEventListener("popupshowing", this, true);
-
-        this.uninit();
-        break;
-    }
+    this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this.timer.initWithCallback(this, this.badgeWaitTime * 1000,
+                                this.timer.TYPE_ONE_SHOT);
+    
   },
 
   notify: function () {
     
     
     
-    PanelUI.menuButton.setAttribute("update-status", "succeeded");
+    this.displayBadge(true);
+    this.uninit();
+  },
 
-    let brandBundle = document.getElementById("bundle_brand");
-    let brandShortName = brandBundle.getString("brandShortName");
-    stringId = "appmenu.restartNeeded.description";
-    updateButtonText = gNavigatorBundle.getFormattedString(stringId,
-                                                           [brandShortName]);
+  displayBadge: function (succeeded) {
+    let status = succeeded ? "succeeded" : "failed";
+    PanelUI.menuButton.setAttribute("update-status", status);
+    if (!succeeded) {
+      PanelUI.menuButton.setAttribute("badge", "!");
+    }
+
+    let stringId;
+    let updateButtonText;
+    if (succeeded) {
+      let brandBundle = document.getElementById("bundle_brand");
+      let brandShortName = brandBundle.getString("brandShortName");
+      stringId = "appmenu.restartNeeded.description";
+      updateButtonText = gNavigatorBundle.getFormattedString(stringId,
+                                                             [brandShortName]);
+    } else {
+      stringId = "appmenu.updateFailed.description";
+      updateButtonText = gNavigatorBundle.getString(stringId);
+    }
 
     let updateButton = document.getElementById("PanelUI-update-status");
     updateButton.setAttribute("label", updateButtonText);
-    updateButton.setAttribute("update-status", "succeeded");
+    updateButton.setAttribute("update-status", status);
     updateButton.hidden = false;
 
     PanelUI.panel.addEventListener("popupshowing", this, true);
-    this.uninit();
   },
 
   handleEvent: function(e) {
