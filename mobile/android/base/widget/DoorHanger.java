@@ -129,6 +129,9 @@ public class DoorHanger extends LinearLayout {
             
             setBackgroundColor(mResources.getColor(R.color.doorhanger_background_dark));
             mTextView.setTextAppearance(getContext(), R.style.TextAppearance_Widget_DoorHanger_Small);
+
+            
+            mDivider.setBackgroundColor(mDividerColor);
         }
     }
 
