@@ -20,6 +20,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 var debug = false;
 function log(...pieces) {
   function generateLogMessage(args) {
@@ -201,34 +203,65 @@ LoginManager.prototype = {
                        "passwordmgr-storage-replace-complete", null);
         }.bind(this));
       } else if (topic == "gather-telemetry") {
-        this._pwmgr._gatherTelemetry();
+        
+        
+        this._pwmgr._gatherTelemetry(data ? parseInt(data)
+                                          : new Date().getTime());
       } else {
         log("Oops! Unexpected notification:", topic);
       }
     }
   },
 
-  _gatherTelemetry : function() {
-    let numPasswordsBlocklist = Services.telemetry.getHistogramById("PWMGR_BLOCKLIST_NUM_SITES");
-    numPasswordsBlocklist.clear();
-    numPasswordsBlocklist.add(this.getAllDisabledHosts({}).length);
+  
 
-    let numPasswordsHist = Services.telemetry.getHistogramById("PWMGR_NUM_SAVED_PASSWORDS");
-    numPasswordsHist.clear();
-    numPasswordsHist.add(this.countLogins("", "", ""));
 
-    let isPwdSavedEnabledHist = Services.telemetry.getHistogramById("PWMGR_SAVING_ENABLED");
-    isPwdSavedEnabledHist.clear();
-    isPwdSavedEnabledHist.add(this._remember);
+
+
+
+
+
+
+
+
+
+  _gatherTelemetry : function (referenceTimeMs) {
+    function clearAndGetHistogram(histogramId) {
+      let histogram = Services.telemetry.getHistogramById(histogramId);
+      histogram.clear();
+      return histogram;
+    }
+
+    clearAndGetHistogram("PWMGR_BLOCKLIST_NUM_SITES").add(
+      this.getAllDisabledHosts({}).length
+    );
+    clearAndGetHistogram("PWMGR_NUM_SAVED_PASSWORDS").add(
+      this.countLogins("", "", "")
+    );
 
     
-    if (this.isLoggedIn) {
-      let logins = this.getAllLogins({});
+    
+    clearAndGetHistogram("PWMGR_SAVING_ENABLED").add(this._remember);
 
-      let usernameHist = Services.telemetry.getHistogramById("PWMGR_USERNAME_PRESENT");
-      usernameHist.clear();
-      for (let login of logins) {
-        usernameHist.add(!!login.username);
+    
+    if (!this.isLoggedIn) {
+      return;
+    }
+
+    let logins = this.getAllLogins({});
+
+    let usernamePresentHistogram = clearAndGetHistogram("PWMGR_USERNAME_PRESENT");
+    let loginLastUsedDaysHistogram = clearAndGetHistogram("PWMGR_LOGIN_LAST_USED_DAYS");
+
+    for (let login of logins) {
+      usernamePresentHistogram.add(!!login.username);
+
+      login.QueryInterface(Ci.nsILoginMetaInfo);
+      let timeLastUsedAgeMs = referenceTimeMs - login.timeLastUsed;
+      if (timeLastUsedAgeMs > 0) {
+        loginLastUsedDaysHistogram.add(
+          Math.floor(timeLastUsedAgeMs / MS_PER_DAY)
+        );
       }
     }
   },
