@@ -49,7 +49,7 @@ static inline bool SkScalarIsFinite(float x) {
     float prod = x * 0;
     
     
-    return prod == prod;
+    return !SkScalarIsNaN(prod);
 }
 
 

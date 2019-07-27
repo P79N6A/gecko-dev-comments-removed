@@ -348,11 +348,11 @@ struct SK_API SkPoint {
         accum *= fY;
 
         
-        SkASSERT(0 == accum || !(accum == accum));
+        SkASSERT(0 == accum || SkScalarIsNaN(accum));
 
         
         
-        return accum == accum;
+        return !SkScalarIsNaN(accum);
     }
 
     

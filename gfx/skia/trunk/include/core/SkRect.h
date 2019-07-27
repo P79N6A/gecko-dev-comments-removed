@@ -457,11 +457,11 @@ struct SK_API SkRect {
         accum *= fBottom;
 
         
-        SkASSERT(0 == accum || !(accum == accum));
+        SkASSERT(0 == accum || SkScalarIsNaN(accum));
 
         
         
-        return accum == accum;
+        return !SkScalarIsNaN(accum);
     }
 
     SkScalar    x() const { return fLeft; }
