@@ -3567,7 +3567,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
                            nsDisplayListBuilder* aDisplayListBuilder,
                            nsIFrame* aContainerFrame,
                            const nsRect& aVisibleRect,
-                           const gfx3DMatrix* aTransform,
+                           const Matrix4x4* aTransform,
                            const ContainerLayerParameters& aIncomingScale,
                            ContainerLayer* aLayer,
                            LayerState aState,
@@ -3575,8 +3575,8 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
 {
   nsIntPoint offset;
 
-  gfx3DMatrix transform =
-    gfx3DMatrix::ScalingMatrix(aIncomingScale.mXScale, aIncomingScale.mYScale, 1.0);
+  Matrix4x4 transform =
+    Matrix4x4().Scale(aIncomingScale.mXScale, aIncomingScale.mYScale, 1.0);
   if (aTransform) {
     
     transform = (*aTransform)*transform;
@@ -3587,7 +3587,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     
     transform.NudgeToIntegersFixedEpsilon();
   }
-  gfxMatrix transform2d;
+  Matrix transform2d;
   if (aContainerFrame &&
       (aState == LAYER_INACTIVE || aState == LAYER_SVG_EFFECTS) &&
       (!aTransform || (aTransform->Is2D(&transform2d) &&
@@ -3605,7 +3605,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
         NS_lround(NSAppUnitsToDoublePixels(appUnitOffset.x, appUnitsPerDevPixel)*aIncomingScale.mXScale),
         NS_lround(NSAppUnitsToDoublePixels(appUnitOffset.y, appUnitsPerDevPixel)*aIncomingScale.mYScale));
   }
-  transform = transform * gfx3DMatrix::Translation(offset.x + aIncomingScale.mOffset.x, offset.y + aIncomingScale.mOffset.y, 0);
+  transform = transform * Matrix4x4().Translate(offset.x + aIncomingScale.mOffset.x, offset.y + aIncomingScale.mOffset.y, 0);
 
   if (transform.IsSingular()) {
     return false;
@@ -3623,14 +3623,14 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
       scale = nsLayoutUtils::ComputeSuitableScaleForAnimation(aContainerFrame->GetContent());
     } else {
       
-      scale = RoundToFloatPrecision(transform2d.ScaleFactors(true));
+      scale = RoundToFloatPrecision(ThebesMatrix(transform2d).ScaleFactors(true));
       
       
       
       
       
       
-      gfxMatrix frameTransform;
+      Matrix frameTransform;
       if (ActiveLayerTracker::IsStyleAnimated(aContainerFrame, eCSSProperty_transform) &&
           aTransform &&
           (!aTransform->Is2D(&frameTransform) || frameTransform.HasNonTranslationOrFlip())) {
@@ -3668,7 +3668,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   }
 
   
-  aLayer->SetBaseTransform(ToMatrix4x4(transform));
+  aLayer->SetBaseTransform(transform);
   aLayer->SetPreScale(1.0f/float(scale.width),
                       1.0f/float(scale.height));
   aLayer->SetInheritedScale(aIncomingScale.mXScale,
@@ -3731,7 +3731,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           nsDisplayItem* aContainerItem,
                                           nsDisplayList* aChildren,
                                           const ContainerLayerParameters& aParameters,
-                                          const gfx3DMatrix* aTransform,
+                                          const Matrix4x4* aTransform,
                                           uint32_t aFlags)
 {
   uint32_t containerDisplayItemKey =
