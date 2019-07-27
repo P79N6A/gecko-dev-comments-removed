@@ -621,14 +621,8 @@ RegExpShared::execute(JSContext *cx, HandleLinearString input, size_t start,
             
             
             
-            bool interrupted;
-            {
-                JSRuntime::AutoLockForInterrupt lock(cx->runtime());
-                interrupted = cx->runtime()->interrupt;
-            }
-
-            if (interrupted) {
-                if (!InvokeInterruptCallback(cx))
+            if (cx->runtime()->hasPendingInterrupt()) {
+                if (!cx->runtime()->handleInterrupt(cx))
                     return RegExpRunStatus_Error;
                 break;
             }

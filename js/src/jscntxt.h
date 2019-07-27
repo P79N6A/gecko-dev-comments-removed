@@ -289,7 +289,7 @@ struct ThreadSafeContext : ContextFriendFields,
     PropertyName *emptyString() { return runtime_->emptyString; }
     FreeOp *defaultFreeOp() { return runtime_->defaultFreeOp(); }
     void *runtimeAddressForJit() { return runtime_; }
-    void *runtimeAddressOfInterrupt() { return &runtime_->interrupt; }
+    void *runtimeAddressOfInterruptUint32() { return runtime_->addressOfInterruptUint32(); }
     void *stackLimitAddress(StackKind kind) { return &runtime_->mainThread.nativeStackLimit[kind]; }
     void *stackLimitAddressForJitCode(StackKind kind);
     size_t gcSystemPageSize() { return gc::SystemPageSize(); }
@@ -782,33 +782,15 @@ extern const JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 namespace js {
 
-
-
-
-
-bool
-InvokeInterruptCallback(JSContext *cx);
-
-bool
-HandleExecutionInterrupt(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-
 MOZ_ALWAYS_INLINE bool
 CheckForInterrupt(JSContext *cx)
 {
-    MOZ_ASSERT(cx->runtime()->requestDepth >= 1);
-    return !cx->runtime()->interrupt || InvokeInterruptCallback(cx);
+    
+    
+    JSRuntime *rt = cx->runtime();
+    if (rt->hasPendingInterrupt())
+        return rt->handleInterrupt(cx);
+    return true;
 }
 
 

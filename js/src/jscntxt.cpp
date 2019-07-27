@@ -41,7 +41,6 @@
 #include "gc/Marking.h"
 #include "jit/Ion.h"
 #include "js/CharacterEncoding.h"
-#include "vm/Debugger.h"
 #include "vm/HelperThreads.h"
 #include "vm/Shape.h"
 
@@ -969,90 +968,6 @@ js_GetErrorMessage(void *userRef, const unsigned errorNumber)
     if (errorNumber > 0 && errorNumber < JSErr_Limit)
         return &js_ErrorFormatString[errorNumber];
     return nullptr;
-}
-
-bool
-js::InvokeInterruptCallback(JSContext *cx)
-{
-    MOZ_ASSERT(cx->runtime()->requestDepth >= 1);
-
-    JSRuntime *rt = cx->runtime();
-    MOZ_ASSERT(rt->interrupt);
-
-    
-    
-    
-    rt->interrupt = false;
-
-    
-    
-    rt->resetJitStackLimit();
-
-    cx->gcIfNeeded();
-
-    rt->interruptPar = false;
-
-    
-    
-    jit::AttachFinishedCompilations(cx);
-
-    
-    
-    
-    JSInterruptCallback cb = cx->runtime()->interruptCallback;
-    if (!cb)
-        return true;
-
-    if (cb(cx)) {
-        
-        
-        if (cx->compartment()->debugMode()) {
-            ScriptFrameIter iter(cx);
-            if (iter.script()->stepModeEnabled()) {
-                RootedValue rval(cx);
-                switch (Debugger::onSingleStep(cx, &rval)) {
-                  case JSTRAP_ERROR:
-                    return false;
-                  case JSTRAP_CONTINUE:
-                    return true;
-                  case JSTRAP_RETURN:
-                    
-                    Debugger::propagateForcedReturn(cx, iter.abstractFramePtr(), rval);
-                    return false;
-                  case JSTRAP_THROW:
-                    cx->setPendingException(rval);
-                    return false;
-                  default:;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    
-    
-    JSString *stack = ComputeStackString(cx);
-    JSFlatString *flat = stack ? stack->ensureFlat(cx) : nullptr;
-
-    const char16_t *chars;
-    AutoStableStringChars stableChars(cx);
-    if (flat && stableChars.initTwoByte(cx, flat))
-        chars = stableChars.twoByteRange().start().get();
-    else
-        chars = MOZ_UTF16("(stack not available)");
-    JS_ReportErrorFlagsAndNumberUC(cx, JSREPORT_WARNING, js_GetErrorMessage, nullptr,
-                                   JSMSG_TERMINATED, chars);
-
-    return false;
-}
-
-bool
-js::HandleExecutionInterrupt(JSContext *cx)
-{
-    if (cx->runtime()->interrupt)
-        return InvokeInterruptCallback(cx);
-    return true;
 }
 
 ThreadSafeContext::ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
