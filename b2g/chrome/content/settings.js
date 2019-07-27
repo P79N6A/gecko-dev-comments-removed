@@ -123,6 +123,11 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
       }
     });
   });
+
+  
+  SettingsListener.observe('ril.debugging.enabled', false, function(value) {
+    Services.prefs.setBoolPref('ril.debugging.enabled', value);
+  });
 })();
 
 
@@ -617,4 +622,3 @@ for (let key in settingsToObserve) {
     setPref(prefName, value);
   });
 };
-
