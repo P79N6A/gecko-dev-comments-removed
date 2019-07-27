@@ -697,7 +697,7 @@ class GCRuntime
 
     bool grayBitsValid;
 
-    mozilla::Atomic<uintptr_t> majorGCRequested;
+    volatile uintptr_t majorGCRequested;
     JS::gcreason::Reason majorGCTriggerReason;
 
     bool minorGCRequested;
@@ -792,7 +792,7 @@ class GCRuntime
 
 
 
-    mozilla::Atomic<uintptr_t> interFrameGC;
+    volatile uintptr_t interFrameGC;
 
     
     int64_t sliceBudget;
@@ -836,7 +836,7 @@ class GCRuntime
 
     bool poked;
 
-    mozilla::Atomic<js::HeapState> heapState;
+    volatile js::HeapState heapState;
 
     
 
