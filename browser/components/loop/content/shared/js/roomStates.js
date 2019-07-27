@@ -17,6 +17,8 @@ loop.store.ROOM_STATES = {
     
     MEDIA_WAIT: "room-media-wait",
     
+    JOINING: "room-joining",
+    
     JOINED: "room-joined",
     
     SESSION_CONNECTED: "room-session-connected",
