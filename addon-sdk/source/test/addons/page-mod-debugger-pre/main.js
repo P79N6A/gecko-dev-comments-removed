@@ -127,4 +127,7 @@ function closeConnection() {
   return deferred.promise;
 }
 
+
+module.exports = {};
+
 require('sdk/test/runner').runTestsFromModule(module);

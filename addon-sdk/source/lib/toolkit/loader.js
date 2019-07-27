@@ -405,22 +405,23 @@ const nodeResolve = iced(function nodeResolve(id, requirer, { rootURI }) {
   
   
   let fullId = join(rootURI, id);
-
   let resolvedPath;
+
   if ((resolvedPath = loadAsFile(fullId)))
     return stripBase(rootURI, resolvedPath);
-  else if ((resolvedPath = loadAsDirectory(fullId)))
+
+  if ((resolvedPath = loadAsDirectory(fullId)))
     return stripBase(rootURI, resolvedPath);
+
   
   
-  else {
-    let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
-    for (let i = 0; i < dirs.length; i++) {
-      if ((resolvedPath = loadAsFile(dirs[i])))
-        return stripBase(rootURI, resolvedPath);
-      if ((resolvedPath = loadAsDirectory(dirs[i])))
-        return stripBase(rootURI, resolvedPath);
-    }
+  let dirs = getNodeModulePaths(dirname(join(rootURI, requirer))).map(dir => join(dir, id));
+  for (let i = 0; i < dirs.length; i++) {
+    if ((resolvedPath = loadAsFile(dirs[i])))
+      return stripBase(rootURI, resolvedPath);
+
+    if ((resolvedPath = loadAsDirectory(dirs[i])))
+      return stripBase(rootURI, resolvedPath);
   }
 
   
@@ -452,14 +453,14 @@ function loadAsFile (path) {
 
 
 function loadAsDirectory (path) {
-  let found;
   try {
     
     
     let main = getManifestMain(JSON.parse(readURI(path + '/package.json')));
     if (main != null) {
       let tmpPath = join(path, main);
-      if ((found = loadAsFile(tmpPath)))
+      let found = loadAsFile(tmpPath);
+      if (found)
         return found
     }
     try {
@@ -533,7 +534,7 @@ exports.resolveURI = resolveURI;
 
 const Require = iced(function Require(loader, requirer) {
   let {
-    modules, mapping, resolve, load, manifest, rootURI, isNative, requireMap
+    modules, mapping, resolve: loaderResolve, load, manifest, rootURI, isNative, requireMap
   } = loader;
 
   function require(id) {
@@ -541,55 +542,7 @@ const Require = iced(function Require(loader, requirer) {
       throw Error('you must provide a module name when calling require() from '
                   + requirer.id, requirer.uri);
 
-    let requirement;
-    let uri;
-
-    
-    
-    if (isNative) {
-      
-      
-      if (requireMap && requireMap[requirer.id])
-        requirement = requireMap[requirer.id][id];
-
-      
-      
-      
-      if (!requirement && modules[id])
-        uri = requirement = id;
-
-      
-      
-      if (!requirement && !isNodeModule(id)) {
-        
-        
-        
-        
-        requirement = resolve(id, requirer.id, {
-          manifest: manifest,
-          rootURI: rootURI
-        });
-      }
-
-      
-      
-      
-      
-      if (!requirement) {
-        requirement = isRelative(id) ? exports.resolve(id, requirer.id) : id;
-      }
-    } else {
-      
-      requirement = requirer ? resolve(id, requirer.id) : id;
-    }
-
-    
-    uri = uri || resolveURI(requirement, mapping);
-
-    if (!uri) 
-      throw Error('Module: Can not resolve "' + id + '" module required by ' +
-                  requirer.id + ' located at ' + requirer.uri, requirer.uri);
-
+    let { uri, requirement } = getRequirements(id);
     let module = null;
     
     if (uri in modules) {
@@ -643,6 +596,73 @@ const Require = iced(function Require(loader, requirer) {
 
     return module.exports;
   }
+
+  
+  
+  
+  function getRequirements(id) {
+    if (!id) 
+      throw Error('you must provide a module name when calling require() from '
+                  + requirer.id, requirer.uri);
+
+    let requirement;
+    let uri;
+
+    
+    
+    if (isNative) {
+      
+      
+      if (requireMap && requireMap[requirer.id])
+        requirement = requireMap[requirer.id][id];
+
+      
+      
+      
+      if (!requirement && modules[id])
+        uri = requirement = id;
+
+      
+      
+      if (!requirement && !isNodeModule(id)) {
+        
+        
+        
+        
+        requirement = loaderResolve(id, requirer.id, {
+          manifest: manifest,
+          rootURI: rootURI
+        });
+      }
+
+      
+      
+      
+      
+      if (!requirement) {
+        requirement = isRelative(id) ? exports.resolve(id, requirer.id) : id;
+      }
+    } else {
+      
+      requirement = requirer ? loaderResolve(id, requirer.id) : id;
+    }
+
+    
+    uri = uri || resolveURI(requirement, mapping);
+
+    if (!uri) 
+      throw Error('Module: Can not resolve "' + id + '" module required by ' +
+                  requirer.id + ' located at ' + requirer.uri, requirer.uri);
+
+    return { uri: uri, requirement: requirement };
+  }
+
+  
+  require.resolve = function resolve(id) {
+    let { uri } = getRequirements(id);
+    return uri;
+  }
+
   
   require.main = loader.main === requirer ? requirer : undefined;
   return iced(require);
@@ -864,14 +884,14 @@ function findAllModuleIncludes (uri, options, results, callback) {
   
   if (isJSONURI(uri) || isJSMURI(uri)) {
     callback(results);
-    return void 0;
+    return;
   }
 
   findModuleIncludes(join(rootURI, uri), modules => {
     
     if (!modules.length) {
       callback(results);
-      return void 0;
+      return;
     }
 
     results[uri] = modules.reduce((agg, mod) => {

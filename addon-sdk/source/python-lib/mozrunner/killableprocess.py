@@ -126,7 +126,7 @@ class Popen(subprocess.Popen):
 
             if not isinstance(args, types.StringTypes):
                 args = subprocess.list2cmdline(args)
-            
+
             
             creationflags |= winprocess.CREATE_NEW_PROCESS_GROUP
 
@@ -135,7 +135,7 @@ class Popen(subprocess.Popen):
 
             if None not in (p2cread, c2pwrite, errwrite):
                 startupinfo.dwFlags |= winprocess.STARTF_USESTDHANDLES
-                
+
                 startupinfo.hStdInput = int(p2cread)
                 startupinfo.hStdOutput = int(c2pwrite)
                 startupinfo.hStdError = int(errwrite)
@@ -198,7 +198,7 @@ class Popen(subprocess.Popen):
                 winprocess.TerminateJobObject(self._job, 127)
             else:
                 winprocess.TerminateProcess(self._handle, 127)
-            self.returncode = 127    
+            self.returncode = 127
         else:
             if group:
                 try:
@@ -223,7 +223,7 @@ class Popen(subprocess.Popen):
             if timeout is None:
                 timeout = -1
             rc = winprocess.WaitForSingleObject(self._handle, timeout)
-            
+
             if (rc == winprocess.WAIT_OBJECT_0 or
                 rc == winprocess.WAIT_ABANDONED or
                 rc == winprocess.WAIT_FAILED):
@@ -236,7 +236,7 @@ class Popen(subprocess.Popen):
                 def check():
                     now = datetime.datetime.now()
                     diff = now - starttime
-                    if (diff.seconds * 1000 * 1000 + diff.microseconds) < (timeout * 1000):
+                    if (diff.seconds * 1000000 + diff.microseconds) < (timeout * 1000):    
                         if self._job:
                             if (winprocess.QueryInformationJobObject(self._job, 8)['BasicInfo']['ActiveProcesses'] > 0):
                                 
@@ -314,14 +314,14 @@ class Popen(subprocess.Popen):
                 now = datetime.datetime.now()
                 diff = now - starttime
             return self.returncode
-                
+
         return self.returncode
     
     __del__ = lambda self: None        
         
 def setpgid_preexec_fn():
     os.setpgid(0, 0)
-        
+   
 def runCommand(cmd, **kwargs):
     if sys.platform != "win32":
         return Popen(cmd, preexec_fn=setpgid_preexec_fn, **kwargs)
