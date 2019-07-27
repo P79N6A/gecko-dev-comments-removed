@@ -354,9 +354,6 @@ IsAboutToBeFinalized(BarrieredBase<JSScript*> *scriptp)
     return IsScriptAboutToBeFinalized(scriptp);
 }
 
-#ifdef JS_ION
-
-
 inline bool
 IsAboutToBeFinalized(const js::jit::VMFunction **vmfunc)
 {
@@ -372,7 +369,6 @@ IsAboutToBeFinalized(ReadBarrieredJitCode code)
 {
     return IsJitCodeAboutToBeFinalized(code.unsafeGet());
 }
-#endif
 
 inline Cell *
 ToMarkable(const Value &v)

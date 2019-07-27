@@ -10,8 +10,6 @@
 #include "jit/IonTypes.h"
 #include "js/TypeDecls.h"
 
-#ifdef JS_ION
-
 namespace js {
 namespace jit {
 
@@ -70,7 +68,5 @@ extern JitOptions js_JitOptions;
 
 } 
 } 
-
-#endif 
 
 #endif 

@@ -20,18 +20,15 @@
 
 #include "builtin/TypedObject.h"
 #include "jit/BaselineJIT.h"
+#include "jit/JitCommon.h"
+#include "jit/RematerializedFrame.h"
+#ifdef FORKJOIN_SPEW
+# include "jit/Ion.h"
+# include "jit/JitCompartment.h"
+# include "jit/MIR.h"
+# include "jit/MIRGraph.h"
+#endif
 #include "vm/Monitor.h"
-
-#ifdef JS_ION
-# include "jit/JitCommon.h"
-# include "jit/RematerializedFrame.h"
-# ifdef FORKJOIN_SPEW
-#  include "jit/Ion.h"
-#  include "jit/JitCompartment.h"
-#  include "jit/MIR.h"
-#  include "jit/MIRGraph.h"
-# endif
-#endif 
 
 #include "gc/ForkJoinNursery-inl.h"
 #include "vm/Interpreter-inl.h"
@@ -63,116 +60,6 @@ ForkJoinSequentially(JSContext *cx, CallArgs &args)
     MOZ_ASSERT(sliceStart == sliceEnd);
     return true;
 }
-
-#if !defined(JS_ION)
-bool
-js::ForkJoin(JSContext *cx, CallArgs &args)
-{
-    return ForkJoinSequentially(cx, args);
-}
-
-JSContext *
-ForkJoinContext::acquireJSContext()
-{
-    return nullptr;
-}
-
-void
-ForkJoinContext::releaseJSContext()
-{
-}
-
-bool
-ForkJoinContext::isMainThread() const
-{
-    return true;
-}
-
-JSRuntime *
-ForkJoinContext::runtime()
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-bool
-ForkJoinContext::check()
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-void
-ForkJoinContext::requestGC(JS::gcreason::Reason reason)
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-void
-ForkJoinContext::requestZoneGC(JS::Zone *zone, JS::gcreason::Reason reason)
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-bool
-ForkJoinContext::setPendingAbortFatal(ParallelBailoutCause cause)
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-void
-ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, JitFrameIterator &frameIter)
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-void
-ParallelBailoutRecord::rematerializeFrames(ForkJoinContext *cx, IonBailoutIterator &frameIter)
-{
-    MOZ_CRASH("Not THREADSAFE build");
-}
-
-bool
-js::InExclusiveParallelSection()
-{
-    return false;
-}
-
-bool
-js::ParallelTestsShouldPass(JSContext *cx)
-{
-    return false;
-}
-
-bool
-js::intrinsic_SetForkJoinTargetRegion(JSContext *cx, unsigned argc, Value *vp)
-{
-    return true;
-}
-
-static bool
-intrinsic_SetForkJoinTargetRegionPar(ForkJoinContext *cx, unsigned argc, Value *vp)
-{
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL(js::intrinsic_SetForkJoinTargetRegionInfo,
-                           intrinsic_SetForkJoinTargetRegionPar);
-
-bool
-js::intrinsic_ClearThreadLocalArenas(JSContext *cx, unsigned argc, Value *vp)
-{
-    return true;
-}
-
-static bool
-intrinsic_ClearThreadLocalArenasPar(ForkJoinContext *cx, unsigned argc, Value *vp)
-{
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL(js::intrinsic_ClearThreadLocalArenasInfo,
-                           intrinsic_ClearThreadLocalArenasPar);
-
-#endif 
 
 
 
@@ -214,9 +101,6 @@ ForkJoinContext::initializeTls()
 
 
 
-
-
-#ifdef JS_ION
 
 
 
@@ -2467,5 +2351,3 @@ intrinsic_ClearThreadLocalArenasPar(ForkJoinContext *cx, unsigned argc, Value *v
 
 JS_JITINFO_NATIVE_PARALLEL(js::intrinsic_ClearThreadLocalArenasInfo,
                            intrinsic_ClearThreadLocalArenasPar);
-
-#endif 

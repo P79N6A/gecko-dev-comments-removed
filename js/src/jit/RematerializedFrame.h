@@ -7,8 +7,6 @@
 #ifndef jit_RematerializedFrame_h
 #define jit_RematerializedFrame_h
 
-#ifdef JS_ION
-
 #include "jsfun.h"
 
 #include "jit/JitFrameIterator.h"
@@ -182,5 +180,4 @@ class RematerializedFrame
 } 
 } 
 
-#endif 
 #endif 

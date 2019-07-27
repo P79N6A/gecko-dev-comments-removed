@@ -414,14 +414,14 @@ IsNullOrUndefined(MIRType type)
 
 #ifdef DEBUG
 
+
 #define TRACK_SNAPSHOTS 1
 
 
 
-#  if defined(JS_ION)
-#    define CHECK_OSIPOINT_REGISTERS 1
-#  endif
-#endif
+#define CHECK_OSIPOINT_REGISTERS 1
+
+#endif 
 
 enum {
     ArgType_General = 0x1,

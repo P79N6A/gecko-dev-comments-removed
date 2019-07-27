@@ -2544,7 +2544,6 @@ Parser<FullParseHandler>::asmJS(Node list)
 
     pc->sc->asFunctionBox()->useAsm = true;
 
-#ifdef JS_ION
     
     
     
@@ -2557,7 +2556,6 @@ Parser<FullParseHandler>::asmJS(Node list)
         pc->newDirectives->setAsmJS();
         return false;
     }
-#endif
 
     return true;
 }

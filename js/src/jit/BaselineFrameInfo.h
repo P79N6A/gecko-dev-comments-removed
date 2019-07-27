@@ -7,8 +7,6 @@
 #ifndef jit_BaselineFrameInfo_h
 #define jit_BaselineFrameInfo_h
 
-#ifdef JS_ION
-
 #include "mozilla/Alignment.h"
 
 #include "jit/BaselineFrame.h"
@@ -317,7 +315,5 @@ class FrameInfo
 
 } 
 } 
-
-#endif 
 
 #endif 

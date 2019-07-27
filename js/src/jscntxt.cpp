@@ -39,9 +39,7 @@
 #include "jswatchpoint.h"
 
 #include "gc/Marking.h"
-#ifdef JS_ION
 #include "jit/Ion.h"
-#endif
 #include "js/CharacterEncoding.h"
 #include "js/OldDebugAPI.h"
 #include "vm/Debugger.h"
@@ -990,13 +988,11 @@ js::InvokeInterruptCallback(JSContext *cx)
 
     js::gc::GCIfNeeded(cx);
 
-#ifdef JS_ION
     rt->interruptPar = false;
 
     
     
     jit::AttachFinishedCompilations(cx);
-#endif
 
     
     

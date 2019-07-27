@@ -662,20 +662,17 @@ class FastInvokeGuard
     InvokeArgs args_;
     RootedFunction fun_;
     RootedScript script_;
-#ifdef JS_ION
+
     
     
     bool useIon_;
-#endif
 
   public:
     FastInvokeGuard(JSContext *cx, const Value &fval)
       : args_(cx)
       , fun_(cx)
       , script_(cx)
-#ifdef JS_ION
       , useIon_(jit::IsIonEnabled(cx))
-#endif
     {
         JS_ASSERT(!InParallelSection());
         initFunction(fval);
@@ -694,7 +691,6 @@ class FastInvokeGuard
     }
 
     bool invoke(JSContext *cx) {
-#ifdef JS_ION
         if (useIon_ && fun_) {
             if (!script_) {
                 script_ = fun_->getOrCreateScript(cx);
@@ -723,7 +719,6 @@ class FastInvokeGuard
                 script_->incUseCount(5);
             }
         }
-#endif
 
         return Invoke(cx, args_);
     }

@@ -7,7 +7,6 @@
 #ifndef jit_mips_BaselineHelpers_mips_h
 #define jit_mips_BaselineHelpers_mips_h
 
-#ifdef JS_ION
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineRegisters.h"
@@ -328,6 +327,3 @@ EmitStubGuardFailure(MacroAssembler &masm)
 } 
 
 #endif 
-
-#endif 
-

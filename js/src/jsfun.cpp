@@ -32,10 +32,8 @@
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/TokenStream.h"
 #include "gc/Marking.h"
-#ifdef JS_ION
 #include "jit/Ion.h"
 #include "jit/JitFrameIterator.h"
-#endif
 #include "vm/Interpreter.h"
 #include "vm/Shape.h"
 #include "vm/StringBuffer.h"
@@ -98,14 +96,12 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         if (!argsobj)
             return false;
 
-#ifdef JS_ION
         
         
         
         
         JSScript *script = iter.script();
         jit::ForbidCompilation(cx, script);
-#endif
 
         vp.setObject(*argsobj);
         return true;

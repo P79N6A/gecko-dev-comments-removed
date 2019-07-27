@@ -7,8 +7,6 @@
 #ifndef jit_BaselineIC_h
 #define jit_BaselineIC_h
 
-#ifdef JS_ION
-
 #include "mozilla/Assertions.h"
 
 #include "jscntxt.h"
@@ -6470,7 +6468,5 @@ IsCacheableDOMProxy(JSObject *obj)
 
 } 
 } 
-
-#endif 
 
 #endif 

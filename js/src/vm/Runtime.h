@@ -720,14 +720,12 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     mozilla::Atomic<bool, mozilla::Relaxed> interrupt;
 
-#ifdef JS_ION
     
 
 
 
 
     mozilla::Atomic<bool, mozilla::Relaxed> interruptPar;
-#endif
 
     
     bool handlingSignal;
@@ -1043,7 +1041,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     void                *data;
 
-#if defined(XP_MACOSX) && defined(JS_ION)
+#ifdef XP_MACOSX
     js::AsmJSMachExceptionHandler asmJSMachExceptionHandler;
 #endif
 

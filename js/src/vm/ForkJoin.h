@@ -523,25 +523,17 @@ class ForkJoinContext : public ThreadSafeContext
 
 class LockedJSContext
 {
-#ifdef JS_ION
     ForkJoinContext *cx_;
-#endif
     JSContext *jscx_;
 
   public:
     explicit LockedJSContext(ForkJoinContext *cx)
-#ifdef JS_ION
       : cx_(cx),
         jscx_(cx->acquireJSContext())
-#else
-      : jscx_(nullptr)
-#endif
     { }
 
     ~LockedJSContext() {
-#ifdef JS_ION
         cx_->releaseJSContext();
-#endif
     }
 
     operator JSContext *() { return jscx_; }
@@ -591,7 +583,7 @@ enum SpewChannel {
     NumSpewChannels
 };
 
-#if defined(FORKJOIN_SPEW) && defined(JS_ION)
+#ifdef FORKJOIN_SPEW
 
 bool SpewEnabled(SpewChannel channel);
 void Spew(SpewChannel channel, const char *fmt, ...);
@@ -614,10 +606,8 @@ static inline void SpewBailout(uint32_t count, HandleScript script,
                                jsbytecode *pc, ParallelBailoutCause cause) {}
 static inline ExecutionStatus SpewEndOp(ExecutionStatus status) { return status; }
 static inline void SpewBeginCompile(HandleScript script) { }
-#ifdef JS_ION
 static inline jit::MethodStatus SpewEndCompile(jit::MethodStatus status) { return status; }
 static inline void SpewMIR(jit::MDefinition *mir, const char *fmt, ...) { }
-#endif
 
 #endif 
 

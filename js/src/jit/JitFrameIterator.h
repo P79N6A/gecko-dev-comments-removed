@@ -7,8 +7,6 @@
 #ifndef jit_JitFrameIterator_h
 #define jit_JitFrameIterator_h
 
-#ifdef JS_ION
-
 #include "jsfun.h"
 #include "jsscript.h"
 #include "jstypes.h"
@@ -693,7 +691,5 @@ class InlineFrameIterator
 
 } 
 } 
-
-#endif 
 
 #endif 

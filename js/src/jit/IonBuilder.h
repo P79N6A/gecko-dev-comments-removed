@@ -7,8 +7,6 @@
 #ifndef jit_IonBuilder_h
 #define jit_IonBuilder_h
 
-#ifdef JS_ION
-
 
 
 
@@ -1067,7 +1065,5 @@ bool NeedsPostBarrier(CompileInfo &info, MDefinition *value);
 
 } 
 } 
-
-#endif
 
 #endif

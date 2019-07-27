@@ -7,8 +7,6 @@
 #ifndef jit_IonAnalysis_h
 #define jit_IonAnalysis_h
 
-#ifdef JS_ION
-
 
 
 #include "jit/IonAllocPolicy.h"
@@ -158,7 +156,5 @@ AnalyzeArgumentsUsage(JSContext *cx, JSScript *script);
 
 } 
 } 
-
-#endif 
 
 #endif 

@@ -86,14 +86,12 @@ SPSProfiler::enable(bool enabled)
 
     enabled_ = enabled;
 
-#ifdef JS_ION
     
 
 
 
 
     jit::ToggleBaselineSPS(rt, enabled);
-#endif
 }
 
 

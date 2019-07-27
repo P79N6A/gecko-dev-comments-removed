@@ -73,24 +73,10 @@ static const size_t AsmJSBufferProtectedSize = 4 * 1024ULL * 1024ULL * 1024ULL;
 static const size_t AsmJSMappedSize = AsmJSPageSize + AsmJSBufferProtectedSize;
 #endif 
 
-#ifdef JS_ION
-
 
 
 extern bool
 IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, JS::Value *vp);
-
-#else 
-
-inline bool
-IsAsmJSCompilationAvailable(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().set(BooleanValue(false));
-    return true;
-}
-
-#endif 
 
 
 
