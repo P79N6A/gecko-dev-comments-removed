@@ -61,7 +61,7 @@ let publicProperties = [
 
 
 
-AccountState = function(fxaInternal) {
+let AccountState = function(fxaInternal) {
   this.fxaInternal = fxaInternal;
 };
 
