@@ -850,7 +850,7 @@ pref("device.storage.enabled", true);
 pref("dom.meta-viewport.enabled", true);
 
 
-pref("media.gmp-gmpopenh264.provider.enabled", true);
+pref("media.gmp-provider.enabled", true);
 
 
 

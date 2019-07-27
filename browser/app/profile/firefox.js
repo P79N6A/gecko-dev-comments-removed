@@ -1810,7 +1810,7 @@ pref("experiments.manifest.uri", "https://telemetry-experiment.cdn.mozilla.net/m
 pref("experiments.supported", true);
 
 
-pref("media.gmp-gmpopenh264.provider.enabled", true);
+pref("media.gmp-provider.enabled", true);
 
 pref("browser.apps.URL", "https://marketplace.firefox.com/discovery/");
 
