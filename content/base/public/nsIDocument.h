@@ -2326,6 +2326,24 @@ public:
   virtual bool IsMasterDocument() = 0;
   virtual already_AddRefed<mozilla::dom::ImportManager> ImportManager() = 0;
 
+  
+
+
+
+
+  void AddBlockedTrackingNode(nsINode *node)
+  {
+    if (!node) {
+      return;
+    }
+
+    nsWeakPtr weakNode = do_GetWeakReference(node);
+
+    if (weakNode) {
+      mBlockedTrackingNodes.AppendElement(weakNode);
+    }
+  }
+
 private:
   uint64_t mWarnedAbout;
   SelectorCache mSelectorCache;
@@ -2627,6 +2645,13 @@ protected:
 
 
   int32_t mFrameRequestCallbackCounter;
+
+  
+  
+  
+  
+  
+  nsTArray<nsWeakPtr> mBlockedTrackingNodes;
 
   
   

@@ -1146,6 +1146,32 @@ public:
   virtual nsIDocument* GetFullscreenRoot() MOZ_OVERRIDE;
   virtual void SetFullscreenRoot(nsIDocument* aRoot) MOZ_OVERRIDE;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  long BlockedTrackingNodeCount() const;
+
+  
+  
+  
+  
+  
+  
+  
+  already_AddRefed<nsSimpleContentList> BlockedTrackingNodes() const;
+
   static void ExitFullscreen(nsIDocument* aDoc);
 
   

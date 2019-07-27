@@ -1402,6 +1402,17 @@ nsScriptLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   nsresult rv = PrepareLoadedRequest(request, aLoader, aStatus, aStringLen,
                                      aString);
   if (NS_FAILED(rv)) {
+    
+
+
+
+
+
+    if (rv == NS_ERROR_TRACKING_URI) {
+      nsCOMPtr<nsIContent> cont = do_QueryInterface(request->mElement);
+      mDocument->AddBlockedTrackingNode(cont);
+    }
+
     if (mDeferRequests.RemoveElement(request) ||
         mAsyncRequests.RemoveElement(request) ||
         mNonAsyncExternalScriptInsertedRequests.RemoveElement(request) ||

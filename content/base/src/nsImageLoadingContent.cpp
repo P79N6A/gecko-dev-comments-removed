@@ -163,6 +163,24 @@ nsImageLoadingContent::Notify(imgIRequest* aRequest,
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
     uint32_t reqStatus;
     aRequest->GetImageStatus(&reqStatus);
+    
+    if (reqStatus & imgIRequest::STATUS_ERROR) {
+      nsresult errorCode = NS_OK;
+      aRequest->GetImageErrorCode(&errorCode);
+
+      
+
+
+
+
+      if (errorCode == NS_ERROR_TRACKING_URI) {
+        nsCOMPtr<nsIContent> thisNode
+          = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+
+        nsIDocument *doc = GetOurOwnerDoc();
+        doc->AddBlockedTrackingNode(thisNode);
+      }
+    }
     nsresult status =
         reqStatus & imgIRequest::STATUS_ERROR ? NS_ERROR_FAILURE : NS_OK;
     return OnStopRequest(aRequest, status);
