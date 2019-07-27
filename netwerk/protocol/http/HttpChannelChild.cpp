@@ -1888,8 +1888,12 @@ HttpChannelChild::DivertToParent(ChannelDiverterChild **aChild)
   
   mDivertingToParent = true;
 
+  HttpChannelDiverterArgs args;
+  args.mChannelChild() = this;
+  args.mApplyConversion() = mApplyConversion;
+
   PChannelDiverterChild* diverter =
-    gNeckoChild->SendPChannelDiverterConstructor(this);
+    gNeckoChild->SendPChannelDiverterConstructor(args);
   MOZ_RELEASE_ASSERT(diverter);
 
   *aChild = static_cast<ChannelDiverterChild*>(diverter);
