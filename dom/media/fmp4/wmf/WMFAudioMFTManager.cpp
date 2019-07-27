@@ -22,7 +22,8 @@ PRLogModuleInfo* GetDemuxerLog();
 namespace mozilla {
 
 static void
-AACAudioSpecificConfigToUserData(const uint8_t* aAudioSpecConfig,
+AACAudioSpecificConfigToUserData(uint8_t aAACProfileLevelIndication,
+                                 const uint8_t* aAudioSpecConfig,
                                  uint32_t aConfigLength,
                                  nsTArray<BYTE>& aOutUserData)
 {
@@ -59,8 +60,8 @@ AACAudioSpecificConfigToUserData(const uint8_t* aAudioSpecConfig,
   
   BYTE heeInfo[heeInfoLen] = {0};
   WORD* w = (WORD*)heeInfo;
-  w[0] = 0x1; 
-  w[1] = 0xFE; 
+  w[0] = 0x0; 
+  w[1] = aAACProfileLevelIndication;
 
   aOutUserData.AppendElements(heeInfo, heeInfoLen);
   aOutUserData.AppendElements(aAudioSpecConfig, aConfigLength);
@@ -81,7 +82,8 @@ WMFAudioMFTManager::WMFAudioMFTManager(
     mStreamType = MP3;
   } else if (!strcmp(aConfig.mime_type, "audio/mp4a-latm")) {
     mStreamType = AAC;
-    AACAudioSpecificConfigToUserData(&aConfig.audio_specific_config[0],
+    AACAudioSpecificConfigToUserData(aConfig.aac_profile,
+                                     &aConfig.audio_specific_config[0],
                                      aConfig.audio_specific_config.length(),
                                      mUserData);
   } else {
@@ -145,7 +147,7 @@ WMFAudioMFTManager::Init()
   NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
   if (mStreamType == AAC) {
-    hr = type->SetUINT32(MF_MT_AAC_PAYLOAD_TYPE, 0x1); 
+    hr = type->SetUINT32(MF_MT_AAC_PAYLOAD_TYPE, 0x0); 
     NS_ENSURE_TRUE(SUCCEEDED(hr), nullptr);
 
     hr = type->SetBlob(MF_MT_USER_DATA,
