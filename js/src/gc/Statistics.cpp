@@ -983,7 +983,6 @@ Statistics::beginSlice(const ZoneGCStats &zoneStats, JSGCInvocationKind gckind,
     if (!slices.append(data)) {
         
         abortSlices = true;
-        slices.clear();
         return;
     }
 
