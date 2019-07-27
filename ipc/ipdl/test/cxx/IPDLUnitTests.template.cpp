@@ -38,6 +38,9 @@ MessageLoop *gParentMessageLoop;
 bool gParentDone;
 bool gChildDone;
 
+void
+DeleteChildActor();
+
 
 
 
@@ -134,6 +137,10 @@ void
 IPDLUnitTestMain(void* aData)
 {
     char* testString = reinterpret_cast<char*>(aData);
+
+    
+    
+    mozilla::ipc::IToplevelProtocol::SetAllowNonMainThreadUse();
 
     
     const char *prefix = "thread:";
@@ -321,6 +328,13 @@ QuitParent()
     }
 }
 
+static void
+ChildDie()
+{
+    DeleteChildActor();
+    XRE_ShutdownChildProcess();
+}
+
 void
 QuitChild()
 {
@@ -328,7 +342,8 @@ QuitChild()
         gParentMessageLoop->PostTask(
             FROM_HERE, NewRunnableFunction(ChildCompleted));
     } else { 
-        XRE_ShutdownChildProcess();
+        MessageLoop::current()->PostTask(
+            FROM_HERE, NewRunnableFunction(ChildDie));
     }
 }
 
@@ -362,8 +377,9 @@ IPDLUnitTestChildInit(IPC::Channel* transport,
                       base::ProcessHandle parent,
                       MessageLoop* worker)
 {
-    if (atexit(DeleteChildActor))
-        fail("can't install atexit() handler");
+    
+    
+    mozilla::ipc::IToplevelProtocol::SetAllowNonMainThreadUse();
 
     switch (IPDLUnitTest()) {
 
