@@ -384,7 +384,7 @@ public:
 #endif
 
   
-  int32_t GetColumnWidth(int32_t aColIndex);
+  int32_t GetColumnISize(int32_t aColIndex);
 
   
 
