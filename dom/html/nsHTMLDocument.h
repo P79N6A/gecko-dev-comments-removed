@@ -276,9 +276,6 @@ protected:
   nsresult RemoveWyciwygChannel(void);
 
   
-  already_AddRefed<nsIChannel> CreateDummyChannelForCookies(nsIURI* aCodebaseURI);
-
-  
 
 
   bool IsEditingOnAfterFlush();
