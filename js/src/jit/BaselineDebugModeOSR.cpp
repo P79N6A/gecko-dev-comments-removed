@@ -1113,7 +1113,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext* cx, uint32_t* noFrame
     CodeOffsetLabel noFrameRegPopOffset(masm.currentOffset());
 
     
-    masm.movePtr(StackPointer, syncedStackStart);
+    masm.moveStackPtrTo(syncedStackStart);
     masm.push(ReturnReg);
     masm.push(BaselineFrameReg);
 
@@ -1132,7 +1132,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext* cx, uint32_t* noFrame
     masm.pop(BaselineFrameReg);
     masm.pop(ReturnReg);
     masm.loadPtr(Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfScratchValue()), temp);
-    masm.addPtr(Address(temp, offsetof(BaselineDebugModeOSRInfo, stackAdjust)), StackPointer);
+    masm.addToStackPtr(Address(temp, offsetof(BaselineDebugModeOSRInfo, stackAdjust)));
 
     
     

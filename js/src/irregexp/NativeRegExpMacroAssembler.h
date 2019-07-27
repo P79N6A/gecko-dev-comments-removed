@@ -210,7 +210,7 @@ class MOZ_STACK_CLASS NativeRegExpMacroAssembler : public RegExpMacroAssembler
     
     jit::Address register_location(int register_index) {
         checkRegister(register_index);
-        return jit::Address(jit::StackPointer, register_offset(register_index));
+        return jit::Address(masm.getStackPointer(), register_offset(register_index));
     }
 
     int32_t register_offset(int register_index) {

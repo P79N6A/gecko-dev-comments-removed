@@ -1011,7 +1011,7 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
         
         masm.loadJSContext(argJSContextReg);
         masm.move32(Imm32(0), argUintNReg);
-        masm.movePtr(StackPointer, argVpReg);
+        masm.moveStackPtrTo(argVpReg);
 
         
         masm.Push(argUintNReg);
@@ -1032,7 +1032,7 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
-        Address outparam(StackPointer, IonOOLNativeExitFrameLayout::offsetOfResult());
+        Address outparam(masm.getStackPointer(), IonOOLNativeExitFrameLayout::offsetOfResult());
         masm.loadTypedOrValue(outparam, output);
 
         
@@ -1054,14 +1054,14 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
 
         
         masm.Push(UndefinedValue());
-        masm.movePtr(StackPointer, argVpReg);
+        masm.moveStackPtrTo(argVpReg);
 
         
         masm.Push(shape->propid(), scratchReg);
-        masm.movePtr(StackPointer, argIdReg);
+        masm.moveStackPtrTo(argIdReg);
 
         masm.Push(object);
-        masm.movePtr(StackPointer, argObjReg);
+        masm.moveStackPtrTo(argObjReg);
 
         masm.loadJSContext(argJSContextReg);
 
@@ -1081,7 +1081,7 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
         masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
         
-        Address outparam(StackPointer, IonOOLPropertyOpExitFrameLayout::offsetOfResult());
+        Address outparam(masm.getStackPointer(), IonOOLPropertyOpExitFrameLayout::offsetOfResult());
         masm.loadTypedOrValue(outparam, output);
 
         
@@ -1561,17 +1561,17 @@ EmitCallProxyGet(JSContext* cx, MacroAssembler& masm, IonCache::StubAttacher& at
 
     
     masm.Push(UndefinedValue());
-    masm.movePtr(StackPointer, argVpReg);
+    masm.moveStackPtrTo(argVpReg);
 
     RootedId propId(cx, AtomToId(name));
     masm.Push(propId, scratch);
-    masm.movePtr(StackPointer, argIdReg);
+    masm.moveStackPtrTo(argIdReg);
 
     
     
     masm.Push(object);
     masm.Push(object);
-    masm.movePtr(StackPointer, argProxyReg);
+    masm.moveStackPtrTo(argProxyReg);
 
     masm.loadJSContext(argJSContextReg);
 
@@ -1592,7 +1592,7 @@ EmitCallProxyGet(JSContext* cx, MacroAssembler& masm, IonCache::StubAttacher& at
     masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
 
     
-    Address outparam(StackPointer, IonOOLProxyExitFrameLayout::offsetOfResult());
+    Address outparam(masm.getStackPointer(), IonOOLProxyExitFrameLayout::offsetOfResult());
     masm.loadTypedOrValue(outparam, output);
 
     
@@ -2192,7 +2192,7 @@ EmitObjectOpResultCheck(MacroAssembler& masm, Label* failure, bool strict,
     
     Label noStrictError;
     masm.branch32(Assembler::Equal,
-                  Address(StackPointer,
+                  Address(masm.getStackPointer(),
                           FrameLayout::offsetOfObjectOpResult()),
                   Imm32(ObjectOpResult::OkCode),
                   &noStrictError);
@@ -2201,14 +2201,14 @@ EmitObjectOpResultCheck(MacroAssembler& masm, Label* failure, bool strict,
     
     masm.loadJSContext(argJSContextReg);
     masm.computeEffectiveAddress(
-        Address(StackPointer, FrameLayout::offsetOfObject()),
+        Address(masm.getStackPointer(), FrameLayout::offsetOfObject()),
         argObjReg);
     masm.computeEffectiveAddress(
-        Address(StackPointer, FrameLayout::offsetOfId()),
+        Address(masm.getStackPointer(), FrameLayout::offsetOfId()),
         argIdReg);
     masm.move32(Imm32(strict), argStrictReg);
     masm.computeEffectiveAddress(
-        Address(StackPointer, FrameLayout::offsetOfObjectOpResult()),
+        Address(masm.getStackPointer(), FrameLayout::offsetOfObjectOpResult()),
         argResultReg);
     masm.setupUnalignedABICall(5, scratchReg);
     masm.passABIArg(argJSContextReg);
@@ -2265,18 +2265,18 @@ EmitCallProxySet(JSContext* cx, MacroAssembler& masm, IonCache::StubAttacher& at
     
     
     masm.Push(value);
-    masm.movePtr(StackPointer, argValueReg);
+    masm.moveStackPtrTo(argValueReg);
 
     masm.move32(Imm32(strict), argStrictReg);
 
     masm.Push(propId, scratch);
-    masm.movePtr(StackPointer, argIdReg);
+    masm.moveStackPtrTo(argIdReg);
 
     
     
     masm.Push(object);
     masm.Push(object);
-    masm.movePtr(StackPointer, argProxyReg);
+    masm.moveStackPtrTo(argProxyReg);
 
     masm.loadJSContext(argJSContextReg);
 
@@ -2477,7 +2477,7 @@ GenerateCallSetter(JSContext* cx, IonScript* ion, MacroAssembler& masm,
         masm.Push(value);
         masm.Push(TypedOrValueRegister(MIRType_Object, AnyRegister(object)));
         masm.Push(ObjectValue(*target));
-        masm.movePtr(StackPointer, argVpReg);
+        masm.moveStackPtrTo(argVpReg);
 
         
         masm.loadJSContext(argJSContextReg);
@@ -2521,7 +2521,7 @@ GenerateCallSetter(JSContext* cx, IonScript* ion, MacroAssembler& masm,
         
         
         PushObjectOpResult(masm);
-        masm.movePtr(StackPointer, argResultReg);
+        masm.moveStackPtrTo(argResultReg);
 
         attacher.pushStubCodePointer(masm);
 
@@ -2540,14 +2540,14 @@ GenerateCallSetter(JSContext* cx, IonScript* ion, MacroAssembler& masm,
         
         Register argObjReg       = object;
         Register argIdReg        = regSet.takeAnyGeneral();
-        masm.movePtr(StackPointer, argValueReg);
+        masm.moveStackPtrTo(argValueReg);
 
         
         masm.Push(shape->propid(), argIdReg);
-        masm.movePtr(StackPointer, argIdReg);
+        masm.moveStackPtrTo(argIdReg);
 
         masm.Push(object);
-        masm.movePtr(StackPointer, argObjReg);
+        masm.moveStackPtrTo(argObjReg);
 
         masm.loadJSContext(argJSContextReg);
 
@@ -2775,7 +2775,7 @@ GenerateAddSlot(JSContext* cx, MacroAssembler& masm, IonCache::StubAttacher& att
     
     if (checkTypeset) {
         CheckTypeSetForWrite(masm, obj, newShape->propid(), object, value, &failuresPopObject);
-        masm.loadPtr(Address(StackPointer, 0), object);
+        masm.loadPtr(Address(masm.getStackPointer(), 0), object);
     }
 
     
