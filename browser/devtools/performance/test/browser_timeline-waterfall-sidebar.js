@@ -7,9 +7,8 @@
 
 function* spawnTest() {
   let { target, panel } = yield initPerformance(SIMPLE_URL);
-  let { $, $$, EVENTS, PerformanceController, OverviewView, WaterfallView } = panel.panelWin;
+  let { $, $$, PerformanceController, WaterfallView } = panel.panelWin;
   let { L10N } = devtools.require("devtools/performance/global");
-  let { TIMELINE_BLUEPRINT } = devtools.require("devtools/performance/markers");
   let { getMarkerLabel } = devtools.require("devtools/performance/marker-utils");
 
   
@@ -34,38 +33,35 @@ function* spawnTest() {
   yield stopRecording(panel);
   ok(true, "Recording has ended.");
 
-  
-  let timeline = OverviewView.graphs.get("timeline");
-  let rerendered = WaterfallView.once(EVENTS.WATERFALL_RENDERED);
-  timeline.setSelection({ start: 0, end: timeline.width })
-  yield rerendered;
-
   let bars = $$(".waterfall-marker-bar");
   let markers = PerformanceController.getCurrentRecording().getMarkers();
 
   ok(bars.length > 2, "Got at least 3 markers (1)");
   ok(markers.length > 2, "Got at least 3 markers (2)");
 
+  let toMs = ms => L10N.getFormatStrWithNumbers("timeline.tick", ms);
+
   for (let i = 0; i < bars.length; i++) {
     let bar = bars[i];
-    let m = markers[i];
+    let mkr = markers[i];
     EventUtils.sendMouseEvent({ type: "mousedown" }, bar);
 
-    is($("#waterfall-details .marker-details-type").getAttribute("value"), getMarkerLabel(m),
-      "Sidebar title matches markers name.");
-
+    let type = $(".marker-details-type").getAttribute("value");
     let tooltip = $(".marker-details-duration").getAttribute("tooltiptext");
     let duration = $(".marker-details-duration .marker-details-labelvalue").getAttribute("value");
 
-    let toMs = ms => L10N.getFormatStrWithNumbers("timeline.tick", ms);
+    info("Current marker data: " + mkr.toSource());
+    info("Current marker output: " + $("#waterfall-details").innerHTML);
+
+    is(type, getMarkerLabel(mkr), "Sidebar title matches markers name.");
 
     
-    is(toMs(m.end - m.start), duration, "Sidebar duration is valid.");
+    is(toMs(mkr.end - mkr.start), duration, "Sidebar duration is valid.");
 
     
     
-    ok(tooltip.indexOf(toMs(m.start)) !== -1, "Tooltip has start time.");
-    ok(tooltip.indexOf(toMs(m.end)) !== -1, "Tooltip has end time.");
+    ok(tooltip.indexOf(toMs(mkr.start)) !== -1, "Tooltip has start time.");
+    ok(tooltip.indexOf(toMs(mkr.end)) !== -1, "Tooltip has end time.");
   }
 
   yield teardown(panel);
