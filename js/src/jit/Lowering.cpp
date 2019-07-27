@@ -3066,6 +3066,11 @@ LIRGenerator::visitGetNameCache(MGetNameCache *ins)
 {
     MOZ_ASSERT(ins->scopeObj()->type() == MIRType_Object);
 
+    
+    
+    
+    gen->setPerformsCall();
+
     LGetNameCache *lir = new(alloc()) LGetNameCache(useRegister(ins->scopeObj()));
     defineBox(lir, ins);
     assignSafepoint(lir, ins);
@@ -3083,6 +3088,14 @@ void
 LIRGenerator::visitGetPropertyCache(MGetPropertyCache *ins)
 {
     MOZ_ASSERT(ins->object()->type() == MIRType_Object);
+
+    if (ins->monitoredResult()) {
+        
+        
+        
+        gen->setPerformsCall();
+    }
+
     if (ins->type() == MIRType_Value) {
         LGetPropertyCacheV *lir = new(alloc()) LGetPropertyCacheV(useRegister(ins->object()));
         defineBox(lir, ins);
@@ -3312,6 +3325,11 @@ LIRGenerator::visitSetPropertyCache(MSetPropertyCache *ins)
 {
     LUse obj = useRegisterAtStart(ins->object());
     LDefinition slots = tempCopy(ins->object(), 0);
+
+    
+    
+    
+    gen->setPerformsCall();
 
     LInstruction *lir;
     if (ins->value()->type() == MIRType_Value) {
