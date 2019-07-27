@@ -27,7 +27,6 @@
 #endif
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
-#include "vm/Interpreter-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -957,18 +956,12 @@ MacroAssembler::copySlotsFromTemplate(Register obj, const NativeObject *template
 }
 
 void
-MacroAssembler::fillSlotsWithConstantValue(Address base, Register temp,
-                                           uint32_t start, uint32_t end, const Value &v)
+MacroAssembler::fillSlotsWithUndefined(Address base, Register temp, uint32_t start, uint32_t end)
 {
-    MOZ_ASSERT(v.isUndefined() || IsUninitializedLexical(v));
-
-    if (start >= end)
-        return;
-
 #ifdef JS_NUNBOX32
     
     
-    jsval_layout jv = JSVAL_TO_IMPL(v);
+    jsval_layout jv = JSVAL_TO_IMPL(UndefinedValue());
 
     Address addr = base;
     move32(Imm32(jv.s.payload.i32), temp);
@@ -980,43 +973,22 @@ MacroAssembler::fillSlotsWithConstantValue(Address base, Register temp,
     for (unsigned i = start; i < end; ++i, addr.offset += sizeof(HeapValue))
         store32(temp, ToType(addr));
 #else
-    moveValue(v, temp);
+    moveValue(UndefinedValue(), temp);
     for (uint32_t i = start; i < end; ++i, base.offset += sizeof(HeapValue))
         storePtr(temp, base);
 #endif
 }
 
-void
-MacroAssembler::fillSlotsWithUndefined(Address base, Register temp, uint32_t start, uint32_t end)
-{
-    fillSlotsWithConstantValue(base, temp, start, end, UndefinedValue());
-}
-
-void
-MacroAssembler::fillSlotsWithUninitialized(Address base, Register temp, uint32_t start, uint32_t end)
-{
-    fillSlotsWithConstantValue(base, temp, start, end, MagicValue(JS_UNINITIALIZED_LEXICAL));
-}
-
-static void
-FindStartOfUndefinedAndUninitializedSlots(NativeObject *templateObj, uint32_t nslots,
-                                          uint32_t *startOfUndefined, uint32_t *startOfUninitialized)
+static uint32_t
+FindStartOfUndefinedSlots(NativeObject *templateObj, uint32_t nslots)
 {
     MOZ_ASSERT(nslots == templateObj->lastProperty()->slotSpan(templateObj->getClass()));
     MOZ_ASSERT(nslots > 0);
-    uint32_t first = nslots;
-    for (; first != 0; --first) {
-        if (!IsUninitializedLexical(templateObj->getSlot(first - 1)))
-            break;
+    for (uint32_t first = nslots; first != 0; --first) {
+        if (templateObj->getSlot(first - 1) != UndefinedValue())
+            return first;
     }
-    *startOfUninitialized = first;
-    for (; first != 0; --first) {
-        if (templateObj->getSlot(first - 1) != UndefinedValue()) {
-            *startOfUndefined = first;
-            return;
-        }
-    }
-    *startOfUndefined = 0;
+    return 0;
 }
 
 void
@@ -1039,18 +1011,8 @@ MacroAssembler::initGCSlots(Register obj, Register slots, NativeObject *template
     
     
     
-    
-    
-    
-    
-    
-    uint32_t startOfUndefined = nslots;
-    uint32_t startOfUninitialized = nslots;
-    FindStartOfUndefinedAndUninitializedSlots(templateObj, nslots,
-                                              &startOfUndefined, &startOfUninitialized);
+    uint32_t startOfUndefined = FindStartOfUndefinedSlots(templateObj, nslots);
     MOZ_ASSERT(startOfUndefined <= nfixed); 
-    MOZ_ASSERT_IF(startOfUndefined != nfixed, startOfUndefined <= startOfUninitialized);
-    MOZ_ASSERT_IF(!templateObj->is<CallObject>(), startOfUninitialized == nslots);
 
     
     copySlotsFromTemplate(obj, templateObj, 0, startOfUndefined);
@@ -1058,9 +1020,7 @@ MacroAssembler::initGCSlots(Register obj, Register slots, NativeObject *template
     
     if (initFixedSlots) {
         fillSlotsWithUndefined(Address(obj, NativeObject::getFixedSlotOffset(startOfUndefined)), slots,
-                               startOfUndefined, Min(startOfUninitialized, nfixed));
-        size_t offset = NativeObject::getFixedSlotOffset(startOfUninitialized);
-        fillSlotsWithUninitialized(Address(obj, offset), slots, startOfUninitialized, nfixed);
+                               startOfUndefined, nfixed);
     }
 
     if (ndynamic) {
@@ -1068,14 +1028,7 @@ MacroAssembler::initGCSlots(Register obj, Register slots, NativeObject *template
         
         push(obj);
         loadPtr(Address(obj, NativeObject::offsetOfSlots()), obj);
-
-        
         fillSlotsWithUndefined(Address(obj, 0), slots, 0, ndynamic);
-
-        
-        fillSlotsWithUninitialized(Address(obj, 0), slots, startOfUninitialized - nfixed,
-                                   nslots - startOfUninitialized);
-
         pop(obj);
     }
 }
