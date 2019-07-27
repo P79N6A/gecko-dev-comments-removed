@@ -3541,11 +3541,7 @@ nsHTMLEditRules::WillMakeBasicBlock(Selection* aSelection,
     } else if (tString.EqualsLiteral("normal") || tString.IsEmpty()) {
       res = RemoveBlockStyle(arrayOfNodes);
     } else {
-      nsCOMArray<nsIDOMNode> arrayOfDOMNodes;
-      for (auto& node : arrayOfNodes) {
-        arrayOfDOMNodes.AppendObject(GetAsDOMNode(node));
-      }
-      res = ApplyBlockStyle(arrayOfDOMNodes, aBlockType);
+      res = ApplyBlockStyle(arrayOfNodes, *blockType);
     }
     return res;
   }
@@ -6951,172 +6947,131 @@ nsHTMLEditRules::RemoveBlockStyle(nsTArray<nsCOMPtr<nsINode>>& aNodeArray)
 
 
 
-
-nsresult 
-nsHTMLEditRules::ApplyBlockStyle(nsCOMArray<nsIDOMNode>& arrayOfNodes, const nsAString *aBlockTag)
+nsresult
+nsHTMLEditRules::ApplyBlockStyle(nsTArray<nsCOMPtr<nsINode>>& aNodeArray,
+                                 nsIAtom& aBlockTag)
 {
   
   
   
-  
-  NS_ENSURE_TRUE(aBlockTag, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIAtom> blockTag = do_GetAtom(*aBlockTag);
-  nsresult res = NS_OK;
-  
-  nsCOMPtr<nsINode> curParent;
-  nsCOMPtr<nsIDOMNode> newBlock;
-  int32_t offset;
-  int32_t listCount = arrayOfNodes.Count();
-  nsString tString(*aBlockTag);
+  NS_ENSURE_STATE(mHTMLEditor);
+  nsCOMPtr<nsIEditor> kungFuDeathGrip(mHTMLEditor);
+
+  nsresult res;
 
   
-  int32_t j;
-  for (j=listCount-1; j>=0; j--)
-  {
-    NS_ENSURE_STATE(mHTMLEditor);
-    if (!mHTMLEditor->IsEditable(arrayOfNodes[j]))
-    {
-      arrayOfNodes.RemoveObjectAt(j);
+  for (int32_t i = aNodeArray.Length() - 1; i >= 0; i--) {
+    if (!mHTMLEditor->IsEditable(aNodeArray[i])) {
+      aNodeArray.RemoveElementAt(i);
     }
   }
-  
-  
-  listCount = arrayOfNodes.Count();
-  
+
+  nsCOMPtr<Element> newBlock;
+
   nsCOMPtr<Element> curBlock;
-  int32_t i;
-  for (i=0; i<listCount; i++)
-  {
+  for (auto& curNode : aNodeArray) {
+    nsCOMPtr<nsINode> curParent = curNode->GetParentNode();
+    int32_t offset = curParent ? curParent->IndexOf(curNode) : -1;
+
     
-    nsCOMPtr<nsIContent> curNode = do_QueryInterface(arrayOfNodes[i]);
-    NS_ENSURE_STATE(curNode);
-    curParent = curNode->GetParentNode();
-    offset = curParent ? curParent->IndexOf(curNode) : -1;
-    nsAutoString curNodeTag;
-    curNode->NodeInfo()->NameAtom()->ToString(curNodeTag);
-    ToLowerCase(curNodeTag);
- 
-    
-    if (curNodeTag == *aBlockTag)
-    {
-      curBlock = 0;  
-      continue;  
+    if (curNode->IsHTMLElement(&aBlockTag)) {
+      
+      curBlock = nullptr;
+      
+      continue;
     }
-        
+
     
     
     
-    if (nsHTMLEditUtils::IsMozDiv(curNode)     ||
-        nsHTMLEditUtils::IsFormatNode(curNode))
-    {
-      curBlock = 0;  
-      NS_ENSURE_STATE(mHTMLEditor);
-      nsCOMPtr<Element> element = curNode->AsElement();
-      newBlock = dont_AddRef(GetAsDOMNode(
-        mHTMLEditor->ReplaceContainer(element, blockTag, nullptr, nullptr,
-                                      nsEditor::eCloneAttributes).take()));
+    if (nsHTMLEditUtils::IsMozDiv(curNode) ||
+        nsHTMLEditUtils::IsFormatNode(curNode)) {
+      
+      curBlock = nullptr;
+      newBlock = mHTMLEditor->ReplaceContainer(curNode->AsElement(),
+                                               &aBlockTag, nullptr, nullptr,
+                                               nsEditor::eCloneAttributes);
       NS_ENSURE_STATE(newBlock);
-    }
-    else if (nsHTMLEditUtils::IsTable(curNode)                    || 
-             (curNodeTag.EqualsLiteral("tbody"))      ||
-             (curNodeTag.EqualsLiteral("tr"))         ||
-             (curNodeTag.EqualsLiteral("td"))         ||
-             nsHTMLEditUtils::IsList(curNode)                     ||
-             (curNodeTag.EqualsLiteral("li"))         ||
-             curNode->IsAnyOfHTMLElements(nsGkAtoms::blockquote,
-                                          nsGkAtoms::div)) {
-      curBlock = 0;  
+    } else if (nsHTMLEditUtils::IsTable(curNode) ||
+               nsHTMLEditUtils::IsList(curNode) ||
+               curNode->IsAnyOfHTMLElements(nsGkAtoms::tbody,
+                                            nsGkAtoms::tr,
+                                            nsGkAtoms::td,
+                                            nsGkAtoms::li,
+                                            nsGkAtoms::blockquote,
+                                            nsGkAtoms::div)) {
+      
+      curBlock = nullptr;
       
       nsTArray<nsCOMPtr<nsINode>> childArray;
       GetChildNodesForOperation(*curNode, childArray);
       if (childArray.Length()) {
-        nsCOMArray<nsIDOMNode> childArrayDOM;
-        for (auto& child : childArray) {
-          childArrayDOM.AppendObject(GetAsDOMNode(child));
-        }
-        res = ApplyBlockStyle(childArrayDOM, aBlockTag);
+        res = ApplyBlockStyle(childArray, aBlockTag);
         NS_ENSURE_SUCCESS(res, res);
-      }
-      else
-      {
+      } else {
         
-        res = SplitAsNeeded(*blockTag, curParent, offset);
+        res = SplitAsNeeded(aBlockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        NS_ENSURE_STATE(mHTMLEditor);
         nsCOMPtr<Element> theBlock =
-          mHTMLEditor->CreateNode(blockTag, curParent, offset);
+          mHTMLEditor->CreateNode(&aBlockTag, curParent, offset);
         NS_ENSURE_STATE(theBlock);
         
         mNewBlock = theBlock->AsDOMNode();
       }
-    }
-    
-    
-    else if (curNodeTag.EqualsLiteral("br"))
-    {
-      if (curBlock)
-      {
-        curBlock = 0;  
-        NS_ENSURE_STATE(mHTMLEditor);
+    } else if (curNode->IsHTMLElement(nsGkAtoms::br)) {
+      
+      
+      if (curBlock) {
+        
+        curBlock = nullptr;
         res = mHTMLEditor->DeleteNode(curNode);
         NS_ENSURE_SUCCESS(res, res);
-      }
-      else
-      {
+      } else {
         
         
-        res = SplitAsNeeded(*blockTag, curParent, offset);
+        res = SplitAsNeeded(aBlockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        NS_ENSURE_STATE(mHTMLEditor);
-        curBlock = mHTMLEditor->CreateNode(blockTag, curParent, offset);
+        curBlock = mHTMLEditor->CreateNode(&aBlockTag, curParent, offset);
         NS_ENSURE_STATE(curBlock);
         
         mNewBlock = curBlock->AsDOMNode();
         
-        NS_ENSURE_STATE(mHTMLEditor);
-        res = mHTMLEditor->MoveNode(curNode, curBlock, -1);
+        res = mHTMLEditor->MoveNode(curNode->AsContent(), curBlock, -1);
         NS_ENSURE_SUCCESS(res, res);
       }
-        
-    
-    
-    
-    
-    
-    
-    
-    
     } else if (IsInlineNode(GetAsDOMNode(curNode))) {
       
-      NS_ENSURE_STATE(mHTMLEditor);
-      if (tString.LowerCaseEqualsLiteral("pre") 
-        && (!mHTMLEditor->IsEditable(curNode)))
-        continue; 
       
       
-      if (!curBlock)
-      {
-        res = SplitAsNeeded(*blockTag, curParent, offset);
+      
+      
+      
+      
+      if (&aBlockTag == nsGkAtoms::pre && !mHTMLEditor->IsEditable(curNode)) {
+        
+        continue;
+      }
+
+      
+      if (!curBlock) {
+        res = SplitAsNeeded(aBlockTag, curParent, offset);
         NS_ENSURE_SUCCESS(res, res);
-        NS_ENSURE_STATE(mHTMLEditor);
-        curBlock = mHTMLEditor->CreateNode(blockTag, curParent, offset);
+        curBlock = mHTMLEditor->CreateNode(&aBlockTag, curParent, offset);
         NS_ENSURE_STATE(curBlock);
         
         mNewBlock = curBlock->AsDOMNode();
         
       }
+
+      
+
       
       
-      
- 
-      
-      
-      NS_ENSURE_STATE(mHTMLEditor);
-      res = mHTMLEditor->MoveNode(curNode, curBlock, -1);
+      res = mHTMLEditor->MoveNode(curNode->AsContent(), curBlock, -1);
       NS_ENSURE_SUCCESS(res, res);
     }
   }
-  return res;
+  return NS_OK;
 }
 
 
