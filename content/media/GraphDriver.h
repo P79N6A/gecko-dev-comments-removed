@@ -62,8 +62,13 @@ public:
   
   virtual void Dispatch(nsIRunnable* aEvent) = 0;
 
+  
+
+
+
   virtual TimeStamp GetCurrentTimeStamp() {
     MOZ_ASSERT(false, "This clock does not support getting the current time stamp.");
+    return TimeStamp();
   }
 
   bool IsWaiting() {
@@ -86,6 +91,11 @@ public:
   GraphTime StateComputedTime() {
     return mStateComputedTime;
   }
+
+  
+
+
+
 
   void UpdateStateComputedTime(GraphTime aStateComputedTime) {
     MOZ_ASSERT(aStateComputedTime > mIterationEnd);
@@ -197,16 +207,28 @@ protected:
 
 
 
+class ThreadedDriver : public GraphDriver
+{
+public:
+  ThreadedDriver(MediaStreamGraphImpl* aGraphImpl);
+  virtual ~ThreadedDriver();
+  virtual void Start() MOZ_OVERRIDE;
+  virtual void Stop() MOZ_OVERRIDE;
+  virtual void Dispatch(nsIRunnable* aEvent) MOZ_OVERRIDE;
+  void RunThread();
+private:
+  nsCOMPtr<nsIThread> mThread;
+};
 
-class SystemClockDriver : public GraphDriver
+
+
+
+
+class SystemClockDriver : public ThreadedDriver
 {
 public:
   SystemClockDriver(MediaStreamGraphImpl* aGraphImpl);
   virtual ~SystemClockDriver();
-  virtual void Start() MOZ_OVERRIDE;
-  virtual void Stop() MOZ_OVERRIDE;
-  virtual void Dispatch(nsIRunnable* aEvent) MOZ_OVERRIDE;
-  virtual void RunThread() MOZ_OVERRIDE;
   virtual void GetIntervalForIteration(GraphTime& aFrom,
                                        GraphTime& aTo) MOZ_OVERRIDE;
   virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
@@ -219,22 +241,17 @@ private:
   TimeStamp mInitialTimeStamp;
   TimeStamp mLastTimeStamp;
   TimeStamp mCurrentTimeStamp;
-  nsCOMPtr<nsIThread> mThread;
 };
 
 
 
 
 
-class OfflineClockDriver : public GraphDriver
+class OfflineClockDriver : public ThreadedDriver
 {
 public:
   OfflineClockDriver(MediaStreamGraphImpl* aGraphImpl, GraphTime aSlice);
   virtual ~OfflineClockDriver();
-  virtual void Start() MOZ_OVERRIDE;
-  virtual void Stop() MOZ_OVERRIDE;
-  virtual void Dispatch(nsIRunnable* aEvent) MOZ_OVERRIDE;
-  virtual void RunThread() MOZ_OVERRIDE;
   virtual void GetIntervalForIteration(GraphTime& aFrom,
                                        GraphTime& aTo) MOZ_OVERRIDE;
   virtual GraphTime GetCurrentTime() MOZ_OVERRIDE;
@@ -244,7 +261,6 @@ public:
 private:
   
   GraphTime mSlice;
-  nsCOMPtr<nsIThread> mThread;
 };
 
 }
