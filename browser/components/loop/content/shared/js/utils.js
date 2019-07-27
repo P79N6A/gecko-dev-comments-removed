@@ -11,6 +11,32 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
 (function() {
   "use strict";
 
+  
+
+
+
+  var rootObject = inChrome ? {} : window;
+  
+
+
+
+  var rootNavigator = inChrome ? {} : navigator;
+
+  
+
+
+
+
+
+
+
+
+
+  function setRootObjects(windowObj, navigatorObj) {
+    rootObject = windowObj || window;
+    rootNavigator = navigatorObj || navigator;
+  }
+
   var mozL10n;
   if (inChrome) {
     this.EXPORTED_SYMBOLS = ["utils"];
@@ -48,6 +74,7 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
 
   var FAILURE_DETAILS = {
     MEDIA_DENIED: "reason-media-denied",
+    NO_MEDIA: "reason-no-media",
     UNABLE_TO_PUBLISH_MEDIA: "unable-to-publish-media",
     COULD_NOT_CONNECT: "reason-could-not-connect",
     NETWORK_DISCONNECTED: "reason-network-disconnected",
@@ -278,6 +305,40 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     }
     return platform;
   };
+
+  
+
+
+
+
+
+  function hasAudioDevices(callback) {
+    
+    if ("mediaDevices" in rootNavigator) {
+      rootNavigator.mediaDevices.enumerateDevices().then(function(result) {
+        function checkForInput(device) {
+          return device.kind === "audioinput";
+        }
+
+        callback(result.some(checkForInput));
+      }).catch(function() {
+        callback(false);
+      });
+    
+    
+    } else if ("MediaStreamTrack" in rootObject) {
+      rootObject.MediaStreamTrack.getSources(function(result) {
+        function checkForInput(device) {
+          return device.kind === "audio";
+        }
+
+        callback(result.some(checkForInput));
+      });
+    } else {
+      
+      callback(true);
+    }
+  }
 
   
 
@@ -671,6 +732,7 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     STREAM_PROPERTIES: STREAM_PROPERTIES,
     SCREEN_SHARE_STATES: SCREEN_SHARE_STATES,
     ROOM_INFO_FAILURES: ROOM_INFO_FAILURES,
+    setRootObjects: setRootObjects,
     composeCallUrlEmail: composeCallUrlEmail,
     formatDate: formatDate,
     formatURL: formatURL,
@@ -683,6 +745,7 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     isFirefoxOS: isFirefoxOS,
     isOpera: isOpera,
     getUnsupportedPlatform: getUnsupportedPlatform,
+    hasAudioDevices: hasAudioDevices,
     locationData: locationData,
     atob: atob,
     btoa: btoa,

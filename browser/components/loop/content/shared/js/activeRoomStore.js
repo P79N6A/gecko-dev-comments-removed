@@ -410,7 +410,20 @@ loop.store.ActiveRoomStore = (function() {
         this.setStoreState({failureReason: undefined});
       }
 
-      this.setStoreState({roomState: ROOM_STATES.MEDIA_WAIT});
+      
+      
+      
+      loop.shared.utils.hasAudioDevices(function(hasAudio) {
+        if (hasAudio) {
+          
+          
+          this.setStoreState({roomState: ROOM_STATES.MEDIA_WAIT});
+        } else {
+          this.dispatchAction(new sharedActions.ConnectionFailure({
+            reason: FAILURE_DETAILS.NO_MEDIA
+          }));
+        }
+      }.bind(this));
     },
 
     

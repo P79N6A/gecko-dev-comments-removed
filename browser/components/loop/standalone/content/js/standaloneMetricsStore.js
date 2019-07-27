@@ -32,7 +32,8 @@ loop.store.StandaloneMetricsStore = (function() {
     button: "button click",
     download: "download button click",
     faceMute: "face mute",
-    link: "link click",
+    failed: "failed",
+    linkClick: "link click",
     pageLoad: "page load messages",
     success: "success",
     support: "support link click"
@@ -40,11 +41,15 @@ loop.store.StandaloneMetricsStore = (function() {
 
   var StandaloneMetricsStore = loop.store.createStore({
     actions: [
+      "connectedToSdkServers",
+      "connectionFailure",
       "gotMediaPermission",
       "joinRoom",
+      "joinedRoom",
       "leaveRoom",
       "mediaConnected",
-      "recordClick"
+      "recordClick",
+      "remotePeerConnected"
     ],
 
     
@@ -106,6 +111,29 @@ loop.store.StandaloneMetricsStore = (function() {
     
 
 
+    connectedToSdkServers: function() {
+      this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.success,
+        "Joined sdk servers");
+    },
+
+    
+
+
+
+
+    connectionFailure: function(actionData) {
+      if (actionData.reason === FAILURE_DETAILS.MEDIA_DENIED) {
+        this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.failed,
+          "Media denied");
+      } else if (actionData.reason === FAILURE_DETAILS.NO_MEDIA) {
+        this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.failed,
+          "No media");
+      }
+    },
+
+    
+
+
     gotMediaPermission: function() {
       this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.success,
         "Media granted");
@@ -117,6 +145,14 @@ loop.store.StandaloneMetricsStore = (function() {
     joinRoom: function() {
       this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.button,
         "Join the conversation");
+    },
+
+    
+
+
+    joinedRoom: function() {
+      this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.success,
+        "Joined room");
     },
 
     
@@ -144,6 +180,14 @@ loop.store.StandaloneMetricsStore = (function() {
     recordClick: function(actionData) {
       this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.linkClick,
         actionData.linkInfo);
+    },
+
+    
+
+
+    remotePeerConnected: function() {
+      this._storeEvent(METRICS_GA_CATEGORY.general, METRICS_GA_ACTIONS.success,
+        "Remote peer connected");
     },
 
     
