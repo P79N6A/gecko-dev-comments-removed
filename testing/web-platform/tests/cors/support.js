@@ -20,7 +20,7 @@ var SUBDOMAIN = 'www1'
 var SUBDOMAIN2 = 'www2'
 var PORT = {{ports[http][1]}}
 
-
+var PORTS = {{ports[https][0]}}
 
 
 var CROSSDOMAIN     = dirname(location.href)
