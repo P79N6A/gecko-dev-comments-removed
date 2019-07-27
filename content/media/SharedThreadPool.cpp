@@ -11,10 +11,8 @@
 #include "VideoUtils.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
-
 #ifdef XP_WIN
-
-#include <objbase.h>
+#include "ThreadPoolCOMListener.h"
 #endif
 
 namespace mozilla {
@@ -186,40 +184,6 @@ SharedThreadPool::~SharedThreadPool()
 {
   MOZ_COUNT_DTOR(SharedThreadPool);
 }
-
-#ifdef XP_WIN
-
-
-
-
-class MSCOMInitThreadPoolListener MOZ_FINAL : public nsIThreadPoolListener {
-  ~MSCOMInitThreadPoolListener() {}
-
-public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSITHREADPOOLLISTENER
-};
-
-NS_IMPL_ISUPPORTS(MSCOMInitThreadPoolListener, nsIThreadPoolListener)
-
-NS_IMETHODIMP
-MSCOMInitThreadPoolListener::OnThreadCreated()
-{
-  HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-  if (FAILED(hr)) {
-    NS_WARNING("Failed to initialize MSCOM on WMFByteStream thread.");
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-MSCOMInitThreadPoolListener::OnThreadShuttingDown()
-{
-  CoUninitialize();
-  return NS_OK;
-}
-
-#endif
 
 nsresult
 SharedThreadPool::EnsureThreadLimitIsAtLeast(uint32_t aLimit)
