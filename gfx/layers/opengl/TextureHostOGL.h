@@ -125,38 +125,6 @@ private:
 
 
 
-class TextureHostOGL
-{
-public:
-  
-
-
-
-  virtual bool SetReleaseFence(const FenceHandle& aReleaseFence);
-
-  
-
-
-  virtual FenceHandle GetAndResetReleaseFence();
-
-  virtual void SetAcquireFence(const FenceHandle& aAcquireFence);
-
-  
-
-
-  virtual FenceHandle GetAndResetAcquireFence();
-
-  virtual void WaitAcquireFenceSyncComplete();
-
-protected:
-  FenceHandle mReleaseFence;
-
-  FenceHandle mAcquireFence;
-};
-
-
-
-
 
 
 

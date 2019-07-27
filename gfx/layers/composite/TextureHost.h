@@ -470,8 +470,6 @@ public:
 
   PTextureParent* GetIPDLActor();
 
-  virtual FenceHandle GetAndResetReleaseFenceHandle();
-
   
 
 
@@ -518,7 +516,31 @@ public:
 
   int NumCompositableRefs() const { return mCompositableCount; }
 
+  
+
+
+
+  bool SetReleaseFenceHandle(const FenceHandle& aReleaseFenceHandle);
+
+  
+
+
+  FenceHandle GetAndResetReleaseFenceHandle();
+
+  void SetAcquireFenceHandle(const FenceHandle& aAcquireFenceHandle);
+
+  
+
+
+  FenceHandle GetAndResetAcquireFenceHandle();
+
+  virtual void WaitAcquireFenceHandleSyncComplete() {};
+
 protected:
+  FenceHandle mReleaseFenceHandle;
+
+  FenceHandle mAcquireFenceHandle;
+
   void RecycleTexture(TextureFlags aFlags);
 
   PTextureParent* mActor;
