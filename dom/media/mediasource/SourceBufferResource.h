@@ -46,6 +46,8 @@ class SourceBuffer;
 
 class SourceBufferResource MOZ_FINAL : public MediaResource
 {
+  
+  
 public:
   explicit SourceBufferResource(const nsACString& aType);
   virtual nsresult Close() MOZ_OVERRIDE;
@@ -111,6 +113,7 @@ public:
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
+  
   
   void AppendData(LargeDataBuffer* aData);
   void Ended();

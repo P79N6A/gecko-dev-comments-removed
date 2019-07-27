@@ -14,12 +14,14 @@
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
 #endif
+#include "mozilla/Monitor.h"
 #include "mozilla/ReentrantMonitor.h"
 
 namespace mozilla {
 
 class MediaResource;
 class MediaDecoderReader;
+class LargeDataBuffer;
 
 namespace dom {
 
@@ -30,8 +32,6 @@ class TimeRanges;
 class SourceBufferDecoder MOZ_FINAL : public AbstractMediaDecoder
 {
 public:
-  
-  
   SourceBufferDecoder(MediaResource* aResource, AbstractMediaDecoder* aParentDecoder,
                       int64_t aTimestampOffset );
 
@@ -70,6 +70,23 @@ public:
   
   
   nsresult GetBuffered(dom::TimeRanges* aBuffered);
+
+  
+  
+  void AppendData(LargeDataBuffer* aData);
+  void Ended()
+  {
+    GetResource()->Ended();
+  }
+  uint32_t EvictData(uint64_t aPlaybackOffset, uint32_t aThreshold);
+  
+  void EvictBefore(uint64_t aOffset);
+  
+  uint32_t EvictAll();
+  int64_t GetSize()
+  {
+    return GetResource()->GetSize();
+  }
 
   void SetReader(MediaDecoderReader* aReader)
   {
@@ -143,6 +160,8 @@ public:
 
 private:
   virtual ~SourceBufferDecoder();
+  void BuildTimeRangesFromCache(dom::TimeRanges* aBuffered);
+  void BuildCacheFromTimeRanges(dom::TimeRanges* aBuffered);
 
   
   RefPtr<MediaTaskQueue> mTaskQueue;
@@ -159,6 +178,23 @@ private:
   int64_t mRealMediaDuration;
   
   double mTrimmedOffset;
+
+  Monitor mCacheMonitor;
+  
+  
+  
+  
+  
+  struct TimeRange
+  {
+    TimeRange(double aStart, double aEnd)
+      : mStart(aStart),
+        mEnd(aEnd) {}
+    double mStart;
+    double mEnd;
+  };
+  nsAutoTArray<TimeRange,4> mCacheBufferedRanges;
+  bool mCacheBufferedRangeStale;
 
 #ifdef MOZ_EME
   nsRefPtr<CDMProxy> mCDMProxy;
