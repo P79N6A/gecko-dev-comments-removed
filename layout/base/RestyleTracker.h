@@ -42,13 +42,6 @@ public:
 
 
     CHILDREN_CHANGED,
-    
-
-
-
-
-
-    CHILDREN_AND_PARENT_CHANGED
   };
 
   OverflowChangedTracker() :
@@ -121,12 +114,7 @@ public:
       nsIFrame *frame = entry->mFrame;
 
       bool overflowChanged = false;
-      if (entry->mChangeKind == CHILDREN_AND_PARENT_CHANGED) {
-        
-        
-        frame->UpdateOverflow();
-        overflowChanged = true;
-      } else if (entry->mChangeKind == CHILDREN_CHANGED) {
+      if (entry->mChangeKind == CHILDREN_CHANGED) {
         
         
         overflowChanged = frame->UpdateOverflow();
