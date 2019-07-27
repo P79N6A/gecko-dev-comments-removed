@@ -5,6 +5,7 @@
 import multiprocessing
 import sys
 import time
+import warnings
 
 
 try:
@@ -178,15 +179,26 @@ class SystemResourceMonitor(object):
 
         self._running = False
         self._stopped = False
+        self._process = None
 
         if psutil is None:
             return
 
-        cpu_percent = psutil.cpu_percent(0.0, True)
-        cpu_times = psutil.cpu_times(False)
-        io = get_disk_io_counters()
-        virt = psutil.virtual_memory()
-        swap = psutil.swap_memory()
+        
+        
+        
+        
+        
+        
+        try:
+            cpu_percent = psutil.cpu_percent(0.0, True)
+            cpu_times = psutil.cpu_times(False)
+            io = get_disk_io_counters()
+            virt = psutil.virtual_memory()
+            swap = psutil.swap_memory()
+        except Exception as e:
+            warnings.warn('psutil failed to run: %s' % e)
+            return
 
         self._cpu_cores = len(cpu_percent)
         self._cpu_times_type = type(cpu_times)
@@ -215,7 +227,7 @@ class SystemResourceMonitor(object):
 
         You should only call this once per instance.
         """
-        if psutil is None:
+        if not self._process:
             return
 
         self._running = True
@@ -229,7 +241,7 @@ class SystemResourceMonitor(object):
 
         Currently, data is not available until you call stop().
         """
-        if psutil is None:
+        if not self._process:
             self._stopped = True
             return
 
