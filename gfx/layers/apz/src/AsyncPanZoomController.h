@@ -334,6 +334,14 @@ public:
 
 
 
+  Matrix4x4 GetTransformToThis() const;
+
+  
+
+
+
+
+
 
 
   ScreenPoint ToScreenCoordinates(const ParentLayerPoint& aVector,
