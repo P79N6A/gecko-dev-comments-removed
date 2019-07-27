@@ -742,35 +742,37 @@ var LoginManagerContent = {
 
     
 
-    if (autofillForm && !isFormDisabled) {
-      
-
-      if (usernameField) {
-        
-        let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
-
-        let userNameDiffers = selectedLogin.username != usernameField.value;
-        
-        
-        
-        let userEnteredDifferentCase = userTriggered && userNameDiffers &&
-               usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase();
-
-        if (!disabledOrReadOnly && !userEnteredDifferentCase && userNameDiffers) {
-          usernameField.setUserInput(selectedLogin.username);
-        }
-      }
-      if (passwordField.value != selectedLogin.password) {
-        passwordField.setUserInput(selectedLogin.password);
-      }
-    } else if (!autofillForm) {
+    if (!autofillForm) {
       log("autofillForms=false but form can be filled; notified observers");
       recordAutofillResult(AUTOFILL_RESULT.NO_AUTOFILL_FORMS);
       return;
-    } else if (isFormDisabled) {
+    }
+
+    if (isFormDisabled) {
       log("autocomplete=off but form can be filled; notified observers");
       recordAutofillResult(AUTOFILL_RESULT.AUTOCOMPLETE_OFF);
       return;
+    }
+
+    
+
+    if (usernameField) {
+      
+      let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
+
+      let userNameDiffers = selectedLogin.username != usernameField.value;
+      
+      
+      
+      let userEnteredDifferentCase = userTriggered && userNameDiffers &&
+             usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase();
+
+      if (!disabledOrReadOnly && !userEnteredDifferentCase && userNameDiffers) {
+        usernameField.setUserInput(selectedLogin.username);
+      }
+    }
+    if (passwordField.value != selectedLogin.password) {
+      passwordField.setUserInput(selectedLogin.password);
     }
 
     recordAutofillResult(AUTOFILL_RESULT.FILLED);
