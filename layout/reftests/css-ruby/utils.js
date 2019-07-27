@@ -12,6 +12,22 @@ function setBSize(elem, bsize) {
   elem.style.lineHeight = bsize;
 }
 
+
+
+
+
+
+
+
 function makeBSizeMatchInlineBox(block, inline) {
   setBSize(block, getBSize(inline));
+}
+
+function makeBSizeOfParentMatch(elems) {
+  
+  
+  for (var elem of elems)
+    elem.dataset.bsize = getBSize(elem);
+  for (var elem of elems)
+    setBSize(elem.parentNode, elem.dataset.bsize);
 }
