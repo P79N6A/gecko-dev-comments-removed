@@ -533,7 +533,7 @@ TelephonyService.prototype = {
       } else if (aNumber === "1") {
         this._sendToRilWorker(aClientId, "hangUpForeground", null, mmiCallback);
       } else if (aNumber[0] === "1" && aNumber.length === 2) {
-        this._sendToRilWorker(aClientId, "hangUpCall",
+        this._sendToRilWorker(aClientId, "hangUp",
                               { callIndex: parseInt(aNumber[1]) }, mmiCallback);
       } else if (aNumber === "2") {
         this._sendToRilWorker(aClientId, "switchActiveCall", null, mmiCallback);
@@ -625,9 +625,7 @@ TelephonyService.prototype = {
       if (activeCall.isConference) {
         this.holdConference(aClientId);
       } else {
-        this.holdCall(aClientId, activeCall.callIndex,
-                      { notifySuccess: function () {},
-                        notifyError: function (errorMsg) {} });
+        this.holdCall(aClientId, activeCall.callIndex);
       }
     }
   },
@@ -917,19 +915,14 @@ TelephonyService.prototype = {
     }
   },
 
-  
-
-
-
-
-
-
-
-  _defaultCallbackHandler: function(aCallback, aResponse) {
-    if (!aResponse.success) {
-      aCallback.notifyError(aResponse.errorMsg);
+  hangUp: function(aClientId, aCallIndex) {
+    let parentId = this._currentCalls[aClientId][aCallIndex].parentId;
+    if (parentId) {
+      
+      
+      this.hangUp(aClientId, parentId);
     } else {
-      aCallback.notifySuccess();
+      this._sendToRilWorker(aClientId, "hangUp", { callIndex: aCallIndex });
     }
   },
 
@@ -941,48 +934,34 @@ TelephonyService.prototype = {
     this._sendToRilWorker(aClientId, "stopTone");
   },
 
-  answerCall: function(aClientId, aCallIndex, aCallback) {
-    this._sendToRilWorker(aClientId, "answerCall", { callIndex: aCallIndex },
-                          this._defaultCallbackHandler.bind(this, aCallback));
+  answerCall: function(aClientId, aCallIndex) {
+    this._sendToRilWorker(aClientId, "answerCall", { callIndex: aCallIndex });
   },
 
-  rejectCall: function(aClientId, aCallIndex, aCallback) {
-    this._sendToRilWorker(aClientId, "rejectCall", { callIndex: aCallIndex },
-                          this._defaultCallbackHandler.bind(this, aCallback));
+  rejectCall: function(aClientId, aCallIndex) {
+    this._sendToRilWorker(aClientId, "rejectCall", { callIndex: aCallIndex });
   },
 
-  hangUpCall: function(aClientId, aCallIndex, aCallback) {
-    let parentId = this._currentCalls[aClientId][aCallIndex].parentId;
-    if (parentId) {
-      
-      
-      this.hangUpCall(aClientId, parentId, aCallback);
-    } else {
-      this._sendToRilWorker(aClientId, "hangUpCall", { callIndex: aCallIndex },
-                            this._defaultCallbackHandler.bind(this, aCallback));
-    }
-  },
-
-  holdCall: function(aClientId, aCallIndex, aCallback) {
+  holdCall: function(aClientId, aCallIndex) {
     let call = this._currentCalls[aClientId][aCallIndex];
     if (!call || !call.isSwitchable) {
-      aCallback.notifyError(RIL.GECKO_ERROR_GENERIC_FAILURE);
+      
+      
       return;
     }
 
-    this._sendToRilWorker(aClientId, "holdCall", { callIndex: aCallIndex },
-                          this._defaultCallbackHandler.bind(this, aCallback));
+    this._sendToRilWorker(aClientId, "holdCall", { callIndex: aCallIndex });
   },
 
-  resumeCall: function(aClientId, aCallIndex, aCallback) {
+  resumeCall: function(aClientId, aCallIndex) {
     let call = this._currentCalls[aClientId][aCallIndex];
     if (!call || !call.isSwitchable) {
-      aCallback.notifyError(RIL.GECKO_ERROR_GENERIC_FAILURE);
+      
+      
       return;
     }
 
-    this._sendToRilWorker(aClientId, "resumeCall", { callIndex: aCallIndex },
-                          this._defaultCallbackHandler.bind(this, aCallback));
+    this._sendToRilWorker(aClientId, "resumeCall", { callIndex: aCallIndex });
   },
 
   conferenceCall: function(aClientId) {
