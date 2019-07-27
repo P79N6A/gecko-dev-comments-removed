@@ -31,7 +31,7 @@
 
 #define PL_DHASH_MAX_CAPACITY           ((uint32_t)1 << 26)
 
-#define PL_DHASH_MIN_CAPACITY           16
+#define PL_DHASH_MIN_CAPACITY           4
 
 
 
@@ -40,7 +40,7 @@
 #define PL_DHASH_MAX_INITIAL_LENGTH     (PL_DHASH_MAX_CAPACITY / 2)
 
 
-#define PL_DHASH_DEFAULT_INITIAL_LENGTH 8
+#define PL_DHASH_DEFAULT_INITIAL_LENGTH 4
 
 
 
