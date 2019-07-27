@@ -233,7 +233,7 @@ ReportError(JSContext* cx, const char* message, JSErrorReport* reportp,
 
 
 
-        if (cx->options().autoJSAPIOwnsErrorReporting())
+        if (cx->options().autoJSAPIOwnsErrorReporting() && !JSREPORT_IS_WARNING(reportp->flags))
             return;
     }
 
