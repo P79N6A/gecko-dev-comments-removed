@@ -827,10 +827,7 @@ let FlameGraphUtils = {
 
       
       
-      for (let i = frameIndex; i < prevFrames.length; i++) {
-        prevFrames[i] = null;
-      }
-
+      prevFrames.length = frameIndex;
       prevTime = time;
     }
 
