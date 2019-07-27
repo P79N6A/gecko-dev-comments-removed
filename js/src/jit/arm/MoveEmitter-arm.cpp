@@ -122,7 +122,6 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
             FloatRegister src = to.floatReg();
             
             
-            FloatRegister src2 = src.doubleOverlay();
             masm.ma_vstr(src.doubleOverlay(), cycleSlot(slotId, 0));
         }
         break;
