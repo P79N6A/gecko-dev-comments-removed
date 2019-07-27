@@ -454,7 +454,8 @@ private:
     
     nsContentUtils::RegisterShutdownObserver(this);
 
-    nsRefPtr<nsIRunnable> event = new ExtractRunnable(this);
+    already_AddRefed<Session> session(this); 
+    nsRefPtr<nsIRunnable> event = new ExtractRunnable(Move(session));
     if (NS_FAILED(mReadThread->Dispatch(event, NS_DISPATCH_NORMAL))) {
       NS_WARNING("Failed to dispatch ExtractRunnable at beginning");
     }
@@ -472,7 +473,8 @@ private:
       MOZ_ASSERT(false, "NS_DispatchToMainThread PushBlobRunnable failed");
     }
     
-    if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(this)))) {
+    already_AddRefed<Session> session(this); 
+    if (NS_FAILED(NS_DispatchToMainThread(new DestroyRunnable(Move(session))))) {
       MOZ_ASSERT(false, "NS_DispatchToMainThread DestroyRunnable failed");
     }
   }
