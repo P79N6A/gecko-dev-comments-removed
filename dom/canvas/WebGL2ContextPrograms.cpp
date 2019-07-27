@@ -4,16 +4,25 @@
 
 
 #include "WebGL2Context.h"
-#include "GLContext.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+#include "GLContext.h"
+#include "WebGLProgram.h"
+
+namespace mozilla {
+
 
 
 
 GLint
-WebGL2Context::GetFragDataLocation(WebGLProgram* program, const nsAString& name)
+WebGL2Context::GetFragDataLocation(WebGLProgram* prog, const nsAString& name)
 {
-    MOZ_CRASH("Not Implemented.");
-    return 0;
+    if (IsContextLost())
+        return -1;
+
+    if (!ValidateObject("getFragDataLocation: program", prog))
+        return -1;
+
+    return prog->GetFragDataLocation(name);
 }
+
+} 
