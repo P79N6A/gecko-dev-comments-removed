@@ -503,8 +503,7 @@ nsBrowserElement::GetAllowedAudioChannels(
   
   if (mBrowserElementAudioChannels.IsEmpty()) {
     nsCOMPtr<nsIFrameLoader> frameLoader = GetFrameLoader();
-    if (!frameLoader) {
-      aRv.Throw(NS_ERROR_FAILURE);
+    if (NS_WARN_IF(!frameLoader)) {
       return;
     }
 
