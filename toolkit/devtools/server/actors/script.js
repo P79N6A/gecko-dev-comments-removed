@@ -1437,24 +1437,34 @@ ThreadActor.prototype = {
 
 
 
-  _setBreakpoint: function (aLocation) {
+
+
+
+  _setBreakpoint: function (aLocation, aOnlyThisScript=null) {
+    let location = {
+      url: aLocation.url,
+      line: aLocation.line,
+      column: aLocation.column,
+      condition: aLocation.condition
+    };
+
     let actor;
-    let storedBp = this.breakpointStore.getBreakpoint(aLocation);
+    let storedBp = this.breakpointStore.getBreakpoint(location);
     if (storedBp.actor) {
       actor = storedBp.actor;
-      actor.condition = aLocation.condition;
+      actor.condition = location.condition;
     } else {
       storedBp.actor = actor = new BreakpointActor(this, {
-        url: aLocation.url,
-        line: aLocation.line,
-        column: aLocation.column,
-        condition: aLocation.condition
+        url: location.url,
+        line: location.line,
+        column: location.column,
+        condition: location.condition
       });
       this.threadLifetimePool.addActor(actor);
     }
 
     
-    let scripts = this.dbg.findScripts(aLocation);
+    let scripts = this.dbg.findScripts(location);
     if (scripts.length == 0) {
       
       
@@ -1474,13 +1484,17 @@ ThreadActor.prototype = {
     let scriptsAndOffsetMappings = new Map();
 
     for (let script of scripts) {
-      this._findClosestOffsetMappings(aLocation,
+      this._findClosestOffsetMappings(location,
                                       script,
                                       scriptsAndOffsetMappings);
     }
 
     if (scriptsAndOffsetMappings.size > 0) {
       for (let [script, mappings] of scriptsAndOffsetMappings) {
+        if (aOnlyThisScript && script !== aOnlyThisScript) {
+          continue;
+        }
+
         for (let offsetMapping of mappings) {
           script.setBreakpoint(offsetMapping.offset, actor);
         }
@@ -1515,23 +1529,29 @@ ThreadActor.prototype = {
     let found = false;
     for (let script of scripts) {
       let offsets = script.getAllOffsets();
-      for (let line = aLocation.line; line < offsets.length; ++line) {
+
+      for (let line = location.line; line < offsets.length; ++line) {
         if (offsets[line]) {
-          for (let offset of offsets[line]) {
-            script.setBreakpoint(offset, actor);
+          if (!aOnlyThisScript || script === aOnlyThisScript) {
+            for (let offset of offsets[line]) {
+              script.setBreakpoint(offset, actor);
+            }
+            actor.addScript(script, this);
           }
-          actor.addScript(script, this);
+
           if (!actualLocation) {
             actualLocation = {
-              url: aLocation.url,
+              url: location.url,
               line: line
             };
           }
+
           found = true;
           break;
         }
       }
     }
+
     if (found) {
       let existingBp = this.breakpointStore.hasBreakpoint(actualLocation);
 
@@ -1542,30 +1562,30 @@ ThreadActor.prototype = {
 
 
         actor.onDelete();
-        this.breakpointStore.removeBreakpoint(aLocation);
+        this.breakpointStore.removeBreakpoint(location);
         return {
           actor: existingBp.actor.actorID,
           actualLocation: actualLocation
         };
-      } else {
-        
-
-
-
-
-        actor.location = actualLocation;
-        this.breakpointStore.addBreakpoint({
-          actor: actor,
-          url: actualLocation.url,
-          line: actualLocation.line,
-          column: actualLocation.column
-        });
-        this.breakpointStore.removeBreakpoint(aLocation);
-        return {
-          actor: actor.actorID,
-          actualLocation: actualLocation
-        };
       }
+
+      
+
+
+
+
+      actor.location = actualLocation;
+      this.breakpointStore.addBreakpoint({
+        actor: actor,
+        url: actualLocation.url,
+        line: actualLocation.line,
+        column: actualLocation.column
+      });
+      this.breakpointStore.removeBreakpoint(location);
+      return {
+        actor: actor.actorID,
+        actualLocation: actualLocation
+      };
     }
 
     
@@ -2344,12 +2364,9 @@ ThreadActor.prototype = {
     let endLine = aScript.startLine + aScript.lineCount - 1;
     for (let bp of this.breakpointStore.findBreakpoints({ url: aScript.url })) {
       
-      
-      
-      if (!bp.actor.scripts.length
-          && bp.line >= aScript.startLine
+      if (bp.line >= aScript.startLine
           && bp.line <= endLine) {
-        this._setBreakpoint(bp);
+        this._setBreakpoint(bp, aScript);
       }
     }
 
@@ -4510,7 +4527,10 @@ FrameActor.prototype.requestTypes = {
 
 function BreakpointActor(aThreadActor, { url, line, column, condition })
 {
-  this.scripts = [];
+  
+  
+  this.scripts = new Set();
+
   this.threadActor = aThreadActor;
   this.location = { url: url, line: line, column: column };
   this.condition = condition;
@@ -4531,7 +4551,7 @@ BreakpointActor.prototype = {
 
   addScript: function (aScript, aThreadActor) {
     this.threadActor = aThreadActor;
-    this.scripts.push(aScript);
+    this.scripts.add(aScript);
   },
 
   
@@ -4541,7 +4561,7 @@ BreakpointActor.prototype = {
     for (let script of this.scripts) {
       script.clearBreakpoint(this);
     }
-    this.scripts = [];
+    this.scripts.clear();
   },
 
   
@@ -4552,7 +4572,7 @@ BreakpointActor.prototype = {
 
 
   isValidCondition: function(aFrame) {
-    if(!this.condition) {
+    if (!this.condition) {
       return true;
     }
     var res = aFrame.eval(this.condition);
