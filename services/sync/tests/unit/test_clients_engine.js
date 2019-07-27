@@ -577,6 +577,32 @@ add_test(function test_receive_display_uri() {
   do_check_true(engine.processIncomingCommands());
 });
 
+add_test(function test_optional_client_fields() {
+  _("Ensure that we produce records with the fields added in Bug 1097222.");
+
+  const SUPPORTED_PROTOCOL_VERSIONS = ["1.1", "1.5"];
+  let local = engine._store.createRecord(engine.localID, "clients");
+  do_check_eq(local.name, engine.localName);
+  do_check_eq(local.type, engine.localType);
+  do_check_eq(local.version, Services.appinfo.version);
+  do_check_array_eq(local.protocols, SUPPORTED_PROTOCOL_VERSIONS);
+
+  
+  
+  do_check_eq(local.os, Services.appinfo.OS);
+  do_check_eq(local.appPackage, Services.appinfo.ID);
+
+  
+  do_check_true(!!local.os);
+  do_check_true(!!local.appPackage);
+  do_check_true(!!local.application);
+
+  
+  
+
+  run_next_test();
+});
+
 function run_test() {
   initTestLogging("Trace");
   Log.repository.getLogger("Sync.Engine.Clients").level = Log.Level.Trace;
