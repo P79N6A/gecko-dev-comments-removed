@@ -13881,7 +13881,6 @@ nsGlobalModalWindow::SetReturnValue(nsIVariant *aRetVal)
 bool
 nsGlobalWindow::IsModalContentWindow(JSContext* aCx, JSObject* aGlobal)
 {
-  
   return xpc::WindowOrNull(aGlobal)->IsModalContentWindow();
 }
 
