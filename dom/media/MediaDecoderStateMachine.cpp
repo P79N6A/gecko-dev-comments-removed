@@ -2941,8 +2941,7 @@ MediaDecoderStateMachine::FlushDecoding()
     
     
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-    DecodeTaskQueue()->Dispatch(task);
-    DecodeTaskQueue()->AwaitIdle();
+    DecodeTaskQueue()->FlushAndDispatch(task);
   }
 
   
