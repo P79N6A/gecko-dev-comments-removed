@@ -7,9 +7,8 @@
 function MozillaLogger(aPath) {
 }
 
-var LOG_DELIMITER = String.fromCharCode(0xe175) + String.fromCharCode(0xee31) + String.fromCharCode(0x2c32) + String.fromCharCode(0xacbf);
 function formatLogMessage(msg) {
-    return LOG_DELIMITER + msg.info.join(' ') + LOG_DELIMITER + "\n";
+    return msg.info.join(' ') + "\n";
 }
 
 MozillaLogger.prototype = {
