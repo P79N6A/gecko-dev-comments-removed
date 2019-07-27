@@ -202,9 +202,11 @@ ContentRestoreInternal.prototype = {
         let referrerPolicy = ('referrerPolicy' in loadArguments
             ? loadArguments.referrerPolicy
             : Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT);
+        let postData = loadArguments.postData ?
+                       Utils.makeInputStream(loadArguments.postData) : null;
         webNavigation.loadURIWithOptions(loadArguments.uri, loadArguments.flags,
-                                         referrer, referrerPolicy, null, null,
-                                         null);
+                                         referrer, referrerPolicy, postData,
+                                         null, null);
       } else if (tabData.userTypedValue && tabData.userTypedClear) {
         
         
