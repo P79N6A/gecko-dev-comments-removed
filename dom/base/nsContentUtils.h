@@ -2406,6 +2406,25 @@ public:
 
   static already_AddRefed<nsPIWindowRoot> GetWindowRoot(nsIDocument* aDoc);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult SetFetchReferrerURIWithPolicy(nsIPrincipal* aPrincipal,
+                                                nsIDocument* aDoc,
+                                                nsIHttpChannel* aChannel);
+
 private:
   static bool InitializeEventTable();
 

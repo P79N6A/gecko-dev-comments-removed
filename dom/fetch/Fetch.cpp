@@ -217,11 +217,6 @@ FetchRequest(nsIGlobalObject* aGlobal, const RequestOrUSVString& aInput,
 
   nsRefPtr<InternalRequest> r = request->GetInternalRequest();
 
-  aRv = UpdateRequestReferrer(aGlobal, r);
-  if (NS_WARN_IF(aRv.Failed())) {
-    return nullptr;
-  }
-
   if (NS_IsMainThread()) {
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal);
     nsCOMPtr<nsIDocument> doc;
@@ -396,58 +391,6 @@ WorkerFetchResolver::OnResponseEnd()
   if (!r->Dispatch(cx)) {
     NS_WARNING("Could not dispatch fetch resolve end");
   }
-}
-
-
-
-
-
-
-
-nsresult
-UpdateRequestReferrer(nsIGlobalObject* aGlobal, InternalRequest* aRequest)
-{
-  nsAutoString originalReferrer;
-  aRequest->GetReferrer(originalReferrer);
-  
-  if (!originalReferrer.EqualsLiteral(kFETCH_CLIENT_REFERRER_STR)) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal);
-  if (window) {
-    nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
-    if (doc) {
-      nsAutoString referrer;
-      doc->GetReferrer(referrer);
-      aRequest->SetReferrer(referrer);
-    }
-  } else if (NS_IsMainThread()) {
-    
-    nsIPrincipal *principal = aGlobal->PrincipalOrNull();
-    bool isNull;
-    
-    
-    if (principal &&
-        NS_SUCCEEDED(principal->GetIsNullPrincipal(&isNull)) && !isNull &&
-        !nsContentUtils::IsSystemPrincipal(principal)) {
-      nsCOMPtr<nsIURI> uri;
-      if (NS_SUCCEEDED(principal->GetURI(getter_AddRefs(uri))) && uri) {
-        nsAutoCString referrer;
-        if (NS_SUCCEEDED(uri->GetSpec(referrer))) {
-          aRequest->SetReferrer(NS_ConvertUTF8toUTF16(referrer));
-        }
-      }
-    }
-  } else {
-    WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(worker);
-    worker->AssertIsOnWorkerThread();
-    WorkerPrivate::LocationInfo& info = worker->GetLocationInfo();
-    aRequest->SetReferrer(NS_ConvertUTF8toUTF16(info.mHref));
-  }
-
-  return NS_OK;
 }
 
 namespace {

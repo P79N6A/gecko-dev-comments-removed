@@ -416,21 +416,37 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     
     nsAutoString referrer;
     mRequest->GetReferrer(referrer);
-    
-    MOZ_ASSERT(!referrer.EqualsLiteral(kFETCH_CLIENT_REFERRER_STR));
-    if (!referrer.IsEmpty()) {
-      nsCOMPtr<nsIURI> refURI;
-      rv = NS_NewURI(getter_AddRefs(refURI), referrer, nullptr, nullptr);
+    if (referrer.EqualsLiteral(kFETCH_CLIENT_REFERRER_STR)) {
+      rv = nsContentUtils::SetFetchReferrerURIWithPolicy(mPrincipal,
+                                                         mDocument,
+                                                         httpChan);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return FailWithNetworkError();
+      }
+    } else if (referrer.IsEmpty()) {
+      rv = httpChan->SetReferrerWithPolicy(nullptr, net::RP_No_Referrer);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return FailWithNetworkError();
+      }
+    } else {
+      
+      
+      
+      
+      
+      
+      nsCOMPtr<nsIURI> referrerURI;
+      rv = NS_NewURI(getter_AddRefs(referrerURI), referrer, nullptr, nullptr);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return FailWithNetworkError();
       }
 
-      net::ReferrerPolicy referrerPolicy = net::RP_Default;
-      if (mDocument) {
-        referrerPolicy = mDocument->GetReferrerPolicy();
-      }
-
-      rv = httpChan->SetReferrerWithPolicy(refURI, referrerPolicy);
+      
+      
+      rv =
+        httpChan->SetReferrerWithPolicy(nullptr,
+                                        mDocument ? mDocument->GetReferrerPolicy() :
+                                                    net::RP_Default);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return FailWithNetworkError();
       }

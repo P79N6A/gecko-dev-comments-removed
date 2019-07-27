@@ -2682,50 +2682,10 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
     httpChannel->GetRequestMethod(method); 
 
     if (!IsSystemXHR()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      nsCOMPtr<nsIURI> principalURI;
-      mPrincipal->GetURI(getter_AddRefs(principalURI));
-
-      nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-      NS_ENSURE_SUCCESS(rv, rv);
-      nsCOMPtr<nsIDocument> doc =
-        nsContentUtils::GetDocumentFromScriptContext(sc);
-
-      nsCOMPtr<nsIURI> docCurURI;
-      nsCOMPtr<nsIURI> docOrigURI;
-      net::ReferrerPolicy referrerPolicy = net::RP_Default;
-
-      if (doc) {
-        docCurURI = doc->GetDocumentURI();
-        docOrigURI = doc->GetOriginalURI();
-        referrerPolicy = doc->GetReferrerPolicy();
-      }
-
-      nsCOMPtr<nsIURI> referrerURI;
-
-      if (principalURI && docCurURI && docOrigURI) {
-        bool equal = false;
-        principalURI->Equals(docOrigURI, &equal);
-        if (equal) {
-          referrerURI = docCurURI;
-        }
-      }
-
-      if (!referrerURI)
-        referrerURI = principalURI;
-
-      httpChannel->SetReferrerWithPolicy(referrerURI, referrerPolicy);
+      nsCOMPtr<nsPIDOMWindow> owner = GetOwner();
+      nsCOMPtr<nsIDocument> doc = owner ? owner->GetExtantDoc() : nullptr;
+      nsContentUtils::SetFetchReferrerURIWithPolicy(mPrincipal, doc,
+                                                    httpChannel);
     }
 
     
