@@ -208,10 +208,19 @@ function formatLogMessage(logMessage) {
 
 
 
+function textEncode(str) {
+  return new TextEncoder("utf-8").encode(str);
+}
+
+
+
+
+
+
 
 function prettyPrintLogArray(array) {
   let logMessages = parseLogArray(array);
-  return logMessages.map(formatLogMessage).join("");
+  return textEncode(logMessages.map(formatLogMessage).join(""));
 }
 
 
@@ -224,8 +233,9 @@ function prettyPrintPropertiesArray(properties) {
   for(let propName in properties) {
     propertiesString += "[" + propName + "]: [" + properties[propName] + "]\n";
   }
-  return propertiesString;
+  return textEncode(propertiesString);
 }
+
 
 
 
