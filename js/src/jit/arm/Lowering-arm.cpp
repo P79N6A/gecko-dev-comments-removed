@@ -502,9 +502,8 @@ LIRGeneratorARM::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
 
     
     if (ptr->isConstant() && !ins->needsBoundsCheck()) {
-        int32_t ptrValue = ptr->toConstant()->value().toInt32();
         
-        MOZ_ASSERT(ptrValue >= 0);
+        MOZ_ASSERT(ptr->toConstant()->value().toInt32() >= 0);
         ptrAlloc = LAllocation(ptr->toConstant()->vp());
     } else
         ptrAlloc = useRegisterAtStart(ptr);
