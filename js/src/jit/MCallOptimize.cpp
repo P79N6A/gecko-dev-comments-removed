@@ -359,6 +359,12 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSFunction *target)
     if (native == js::simd_float32x4_load)
         return inlineSimdLoad(callInfo, native, SimdTypeDescr::TYPE_FLOAT32);
 
+
+    if (native == js::simd_int32x4_store)
+        return inlineSimdStore(callInfo, native, SimdTypeDescr::TYPE_INT32);
+    if (native == js::simd_float32x4_store)
+        return inlineSimdStore(callInfo, native, SimdTypeDescr::TYPE_FLOAT32);
+
     return InliningStatus_NotInlined;
 }
 
@@ -3134,34 +3140,30 @@ SimdTypeToScalarType(SimdTypeDescr::Type type)
     MOZ_CRASH("unexpected simd type");
 }
 
-IonBuilder::InliningStatus
-IonBuilder::inlineSimdLoad(CallInfo &callInfo, JSNative native, SimdTypeDescr::Type type)
+bool
+IonBuilder::prepareForSimdLoadStore(CallInfo &callInfo, Scalar::Type simdType, MInstruction **elements,
+                                    MDefinition **index, Scalar::Type *arrayType)
 {
-    InlineTypedObject *templateObj = nullptr;
-    if (!checkInlineSimd(callInfo, native, type, 2, &templateObj))
-        return InliningStatus_NotInlined;
-
     MDefinition *array = callInfo.getArg(0);
-    MDefinition *index = callInfo.getArg(1);
+    *index = callInfo.getArg(1);
 
-    Scalar::Type arrayType;
-    if (!ElementAccessIsAnyTypedArray(constraints(), array, index, &arrayType))
-        return InliningStatus_NotInlined;
+    if (!ElementAccessIsAnyTypedArray(constraints(), array, *index, arrayType))
+        return false;
 
-    MInstruction *indexAsInt32 = MToInt32::New(alloc(), index);
+    MInstruction *indexAsInt32 = MToInt32::New(alloc(), *index);
     current->add(indexAsInt32);
-    index = indexAsInt32;
+    *index = indexAsInt32;
 
-    MDefinition *indexForBoundsCheck = index;
+    MDefinition *indexForBoundsCheck = *index;
 
     
     
     
-    MOZ_ASSERT(Simd128DataSize % Scalar::byteSize(arrayType) == 0);
-    int32_t suppSlotsNeeded = Simd128DataSize / Scalar::byteSize(arrayType) - 1;
+    MOZ_ASSERT(Scalar::byteSize(simdType) % Scalar::byteSize(*arrayType) == 0);
+    int32_t suppSlotsNeeded = Scalar::byteSize(simdType) / Scalar::byteSize(*arrayType) - 1;
     if (suppSlotsNeeded) {
         MConstant *suppSlots = constant(Int32Value(suppSlotsNeeded));
-        MAdd *addedIndex = MAdd::New(alloc(), index, suppSlots);
+        MAdd *addedIndex = MAdd::New(alloc(), *index, suppSlots);
         
         
         addedIndex->setInt32();
@@ -3170,17 +3172,64 @@ IonBuilder::inlineSimdLoad(CallInfo &callInfo, JSNative native, SimdTypeDescr::T
     }
 
     MInstruction *length;
-    MInstruction *elements;
-    addTypedArrayLengthAndData(array, SkipBoundsCheck, &index, &length, &elements);
+    addTypedArrayLengthAndData(array, SkipBoundsCheck, index, &length, elements);
 
     MInstruction *check = MBoundsCheck::New(alloc(), indexForBoundsCheck, length);
     current->add(check);
+    return true;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineSimdLoad(CallInfo &callInfo, JSNative native, SimdTypeDescr::Type type)
+{
+    InlineTypedObject *templateObj = nullptr;
+    if (!checkInlineSimd(callInfo, native, type, 2, &templateObj))
+        return InliningStatus_NotInlined;
+
+    Scalar::Type simdType = SimdTypeToScalarType(type);
+
+    MDefinition *index = nullptr;
+    MInstruction *elements = nullptr;
+    Scalar::Type arrayType;
+    if (!prepareForSimdLoadStore(callInfo, simdType, &elements, &index, &arrayType))
+        return InliningStatus_NotInlined;
 
     MLoadTypedArrayElement *load = MLoadTypedArrayElement::New(alloc(), elements, index, arrayType);
     load->setResultType(SimdTypeDescrToMIRType(type));
-    load->setReadType(SimdTypeToScalarType(type));
+    load->setReadType(simdType);
 
     return boxSimd(callInfo, load, templateObj);
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineSimdStore(CallInfo &callInfo, JSNative native, SimdTypeDescr::Type type)
+{
+    InlineTypedObject *templateObj = nullptr;
+    if (!checkInlineSimd(callInfo, native, type, 3, &templateObj))
+        return InliningStatus_NotInlined;
+
+    Scalar::Type simdType = SimdTypeToScalarType(type);
+
+    MDefinition *index = nullptr;
+    MInstruction *elements = nullptr;
+    Scalar::Type arrayType;
+    if (!prepareForSimdLoadStore(callInfo, simdType, &elements, &index, &arrayType))
+        return InliningStatus_NotInlined;
+
+    MDefinition *valueToWrite = callInfo.getArg(2);
+    MStoreTypedArrayElement *store = MStoreTypedArrayElement::New(alloc(), elements, index,
+                                                                  valueToWrite, arrayType);
+    store->setWriteType(simdType);
+
+    current->add(store);
+    current->push(valueToWrite);
+
+    callInfo.setImplicitlyUsedUnchecked();
+
+    if (!resumeAfter(store))
+        return InliningStatus_Error;
+
+    return InliningStatus_Inlined;
 }
 
 } 
