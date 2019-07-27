@@ -9,6 +9,8 @@
 
 #include "ConnectionOrientedSocket.h"
 
+class MessageLoop;
+
 namespace mozilla {
 namespace ipc {
 
@@ -19,6 +21,12 @@ class UnixSocketConnector;
 class StreamSocket final : public ConnectionOrientedSocket
 {
 public:
+  
+
+
+
+
+
   StreamSocket(StreamSocketConsumer* aConsumer, int aIndex);
 
   
@@ -36,12 +44,25 @@ public:
 
 
 
+
+  nsresult Connect(UnixSocketConnector* aConnector, int aDelayMs,
+                   MessageLoop* aIOLoop);
+
+  
+
+
+
+
+
+
+
   nsresult Connect(UnixSocketConnector* aConnector, int aDelayMs = 0);
 
   
   
 
   nsresult PrepareAccept(UnixSocketConnector* aConnector,
+                         MessageLoop* aIOLoop,
                          ConnectionOrientedSocketIO*& aIO) override;
 
   
@@ -61,9 +82,9 @@ protected:
   virtual ~StreamSocket();
 
 private:
+  StreamSocketIO* mIO;
   StreamSocketConsumer* mConsumer;
   int mIndex;
-  StreamSocketIO* mIO;
 };
 
 } 

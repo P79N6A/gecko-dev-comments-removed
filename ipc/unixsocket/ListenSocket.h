@@ -10,6 +10,8 @@
 #include "nsString.h"
 #include "mozilla/ipc/SocketBase.h"
 
+class MessageLoop;
+
 namespace mozilla {
 namespace ipc {
 
@@ -20,11 +22,28 @@ class UnixSocketConnector;
 
 class ListenSocket final : public SocketBase
 {
-protected:
-  virtual ~ListenSocket();
-
 public:
+  
+
+
+
+
+
   ListenSocket(ListenSocketConsumer* aConsumer, int aIndex);
+
+  
+
+
+
+
+
+
+
+
+
+  nsresult Listen(UnixSocketConnector* aConnector,
+                  MessageLoop* aIOLoop,
+                  ConnectionOrientedSocket* aCOSocket);
 
   
 
@@ -57,10 +76,13 @@ public:
   void OnConnectError() override;
   void OnDisconnect() override;
 
+protected:
+  virtual ~ListenSocket();
+
 private:
+  ListenSocketIO* mIO;
   ListenSocketConsumer* mConsumer;
   int mIndex;
-  ListenSocketIO* mIO;
 };
 
 } 

@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include "DataSocket.h"
 
+class MessageLoop;
+
 namespace mozilla {
 namespace ipc {
 
@@ -43,7 +45,9 @@ public:
 
 
 
+
   virtual nsresult PrepareAccept(UnixSocketConnector* aConnector,
+                                 MessageLoop* aIOLoop,
                                  ConnectionOrientedSocketIO*& aIO) = 0;
 
 protected:

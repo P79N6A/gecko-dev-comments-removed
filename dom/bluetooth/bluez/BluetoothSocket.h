@@ -16,6 +16,8 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
+class MessageLoop;
+
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothSocketObserver;
@@ -66,8 +68,31 @@ public:
 
 
 
+
+  nsresult Connect(BluetoothUnixSocketConnector* aConnector,
+                   int aDelayMs, MessageLoop* aIOLoop);
+
+  
+
+
+
+
+
+
+
   nsresult Connect(BluetoothUnixSocketConnector* aConnector,
                    int aDelayMs = 0);
+
+  
+
+
+
+
+
+
+
+  nsresult Listen(BluetoothUnixSocketConnector* aConnector,
+                  MessageLoop* aIOLoop);
 
   
 
