@@ -346,10 +346,15 @@ protected:
   protected:
     virtual void DoResolveOrRejectInternal(ResolveOrRejectValue& aValue) override
     {
+      
+      
+      
+      
+      
       if (aValue.IsResolve()) {
-        mResolveFunction.ref()(aValue.ResolveValue());
+        InvokeCallbackMethod(mResolveFunction.ptr(), &ResolveFunction::operator(), aValue.ResolveValue());
       } else {
-        mRejectFunction.ref()(aValue.RejectValue());
+        InvokeCallbackMethod(mRejectFunction.ptr(), &RejectFunction::operator(), aValue.RejectValue());
       }
 
       
