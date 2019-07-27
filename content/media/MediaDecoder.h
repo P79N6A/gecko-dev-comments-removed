@@ -690,12 +690,6 @@ public:
   }
 
   
-  nsresult StartProgress();
-
-  
-  nsresult StopProgress();
-
-  
   
   
   
@@ -1171,6 +1165,12 @@ protected:
 
   
   bool mInfiniteStream;
+
+  
+  nsresult StartProgress();
+
+  
+  nsresult StopProgress();
 
   
   void PinForSeek();
