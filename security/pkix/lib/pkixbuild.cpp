@@ -46,9 +46,11 @@ static Result
 BuildForwardInner(TrustDomain& trustDomain,
                   const BackCert& subject,
                   PRTime time,
+                  EndEntityOrCA endEntityOrCA,
                   KeyPurposeId requiredEKUIfPresent,
                   const CertPolicyId& requiredPolicy,
                   const SECItem& potentialIssuerDER,
+                   const SECItem* stapledOCSPResponse,
                   unsigned int subCACount,
                    ScopedCERTCertList& results)
 {
@@ -96,6 +98,15 @@ BuildForwardInner(TrustDomain& trustDomain,
                                 potentialIssuer.GetSubjectPublicKeyInfo());
   if (srv != SECSuccess) {
     return MapSECStatus(srv);
+  }
+
+  CertID certID(subject.GetIssuer(), potentialIssuer.GetSubjectPublicKeyInfo(),
+                subject.GetSerialNumber());
+  srv = trustDomain.CheckRevocation(endEntityOrCA, certID, time,
+                                    stapledOCSPResponse,
+                                    subject.GetAuthorityInfoAccess());
+  if (srv != SECSuccess) {
+    return MapSECStatus(SECFailure);
   }
 
   return Success;
@@ -196,27 +207,19 @@ BuildForward(TrustDomain& trustDomain,
 
   for (CERTCertListNode* n = CERT_LIST_HEAD(candidates);
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
-    rv = BuildForwardInner(trustDomain, subject, time, requiredEKUIfPresent,
-                           requiredPolicy, n->cert->derCert, subCACount,
-                           results);
+    rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
+                           requiredEKUIfPresent,
+                           requiredPolicy, n->cert->derCert,
+                           stapledOCSPResponse, subCACount, results);
     if (rv == Success) {
+      
+
       
       
       if (deferredEndEntityError != 0) {
         return Fail(FatalError, deferredEndEntityError);
       }
 
-      CertID certID(subject.GetIssuer(), n->cert->derPublicKey,
-                    subject.GetSerialNumber());
-      SECStatus srv = trustDomain.CheckRevocation(
-                                    endEntityOrCA, certID, time,
-                                    stapledOCSPResponse,
-                                    subject.GetAuthorityInfoAccess());
-      if (srv != SECSuccess) {
-        return MapSECStatus(SECFailure);
-      }
-
-      
       
       return Success;
     }
