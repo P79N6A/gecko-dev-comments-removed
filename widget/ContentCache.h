@@ -31,6 +31,10 @@ struct IMENotification;
 
 
 
+
+
+
+
 class ContentCache final
 {
 public:
@@ -39,9 +43,15 @@ public:
 
   ContentCache();
 
+  
+
+
+
+
   void Clear();
 
   
+
 
 
 
@@ -70,10 +80,14 @@ public:
 
 
 
+
   bool HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
                                nsIWidget* aWidget) const;
 
   
+
+
+
 
 
   bool CacheEditorRect(nsIWidget* aWidget,
@@ -90,8 +104,10 @@ public:
 
 
 
+
   bool OnCompositionEvent(const WidgetCompositionEvent& aCompositionEvent);
   
+
 
 
 
@@ -116,6 +132,11 @@ public:
 
   void InitNotification(IMENotification& aNotification) const;
 
+  
+
+
+
+
   void SetSelection(nsIWidget* aWidget,
                     uint32_t aStartOffset,
                     uint32_t aLength,
@@ -126,9 +147,12 @@ private:
   
   nsString mText;
   
+  
   nsString mCommitStringByRequest;
   
+  
   uint32_t mCompositionStart;
+  
   
   
   uint32_t mCompositionEventsDuringRequest;
@@ -242,7 +266,9 @@ private:
 
   LayoutDeviceIntRect mEditorRect;
 
+  
   bool mIsComposing;
+  
   bool mRequestedToCommitOrCancelComposition;
   bool mIsChrome;
 
