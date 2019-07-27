@@ -400,11 +400,8 @@ class NativeObject : public JSObject
     }
 
     
-
-
-
-    static bool setLastProperty(ExclusiveContext *cx,
-                                HandleNativeObject obj, HandleShape shape);
+    
+    bool setLastProperty(ExclusiveContext *cx, Shape *shape);
 
     
     
@@ -420,8 +417,7 @@ class NativeObject : public JSObject
     
     
     
-    static void setLastPropertyMakeNative(ExclusiveContext *cx, HandleNativeObject obj,
-                                          HandleShape shape);
+    void setLastPropertyMakeNative(ExclusiveContext *cx, Shape *shape);
 
   protected:
 #ifdef DEBUG
@@ -447,7 +443,7 @@ class NativeObject : public JSObject
 
 
 
-    static bool setSlotSpan(ExclusiveContext *cx, HandleNativeObject obj, uint32_t span);
+    bool setSlotSpan(ExclusiveContext *cx, uint32_t span);
 
     bool toDictionaryMode(ExclusiveContext *cx);
 
@@ -590,10 +586,8 @@ class NativeObject : public JSObject
 
 
 
-    static bool growSlots(ExclusiveContext *cx, HandleNativeObject obj, uint32_t oldCount,
-                          uint32_t newCount);
-    static void shrinkSlots(ExclusiveContext *cx, HandleNativeObject obj, uint32_t oldCount,
-                            uint32_t newCount);
+    bool growSlots(ExclusiveContext *cx, uint32_t oldCount, uint32_t newCount);
+    void shrinkSlots(ExclusiveContext *cx, uint32_t oldCount, uint32_t newCount);
 
     bool hasDynamicSlots() const { return !!slots_; }
 
@@ -791,8 +785,7 @@ class NativeObject : public JSObject
     static const uint32_t MAX_FIXED_SLOTS = 16;
 
   protected:
-    static inline bool updateSlotsForSpan(ExclusiveContext *cx,
-                                          HandleNativeObject obj, size_t oldSpan, size_t newSpan);
+    inline bool updateSlotsForSpan(ExclusiveContext *cx, size_t oldSpan, size_t newSpan);
 
   public:
     
