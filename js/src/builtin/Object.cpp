@@ -844,43 +844,7 @@ static bool
 obj_keys(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-
-    
-    RootedObject obj(cx);
-    if (!GetFirstArgumentAsObject(cx, args, "Object.keys", &obj))
-        return false;
-
-    
-    
-    
-    AutoIdVector props(cx);
-    if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &props))
-        return false;
-
-    AutoValueVector namelist(cx);
-    if (!namelist.reserve(props.length()))
-        return false;
-    for (size_t i = 0, len = props.length(); i < len; i++) {
-        jsid id = props[i];
-        JSString *str;
-        if (JSID_IS_STRING(id)) {
-            str = JSID_TO_STRING(id);
-        } else {
-            str = Int32ToString<CanGC>(cx, JSID_TO_INT(id));
-            if (!str)
-                return false;
-        }
-        namelist.infallibleAppend(StringValue(str));
-    }
-
-    
-    MOZ_ASSERT(props.length() <= UINT32_MAX);
-    JSObject *aobj = NewDenseCopiedArray(cx, uint32_t(namelist.length()), namelist.begin());
-    if (!aobj)
-        return false;
-
-    args.rval().setObject(*aobj);
-    return true;
+    return GetOwnPropertyKeys(cx, args, JSITER_OWNONLY);
 }
 
 
