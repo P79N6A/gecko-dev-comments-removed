@@ -34,14 +34,6 @@ public:
 
 
 
-  static bool CanRetargetOnDataAvailable(ImageURL* aURI, bool aIsMultiPart);
-
-  
-
-
-
-
-
 
 
 

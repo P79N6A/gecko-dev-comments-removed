@@ -242,8 +242,6 @@ public:
                                        nsresult aStatus,
                                        bool aLastPart) MOZ_OVERRIDE;
 
-  static already_AddRefed<nsIEventTarget> GetEventTarget();
-
   
 
 
