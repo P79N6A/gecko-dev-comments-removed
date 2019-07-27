@@ -248,9 +248,19 @@ let AboutProtocolParent = {
 
     let uri = BrowserUtils.makeURI(msg.data.uri);
     let contractID = msg.data.contractID;
-    let module = Cc[contractID].getService(Ci.nsIAboutModule);
+    let loadingPrincipal = msg.data.loadingPrincipal;
+    let securityFlags = msg.data.securityFlags;
+    let contentPolicyType = msg.data.contentPolicyType;
     try {
-      let channel = module.newChannel(uri, null);
+      let channel = NetUtil.newChannel2(uri,
+                                        null,
+                                        null,
+                                        null,  
+                                        loadingPrincipal,
+                                        null,  
+                                        securityFlags,
+                                        contentPolicyType);
+
       
       
       
