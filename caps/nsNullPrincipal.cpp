@@ -9,6 +9,7 @@
 
 
 
+
 #include "mozilla/ArrayUtils.h"
 
 #include "nsNullPrincipal.h"
@@ -86,6 +87,24 @@ nsNullPrincipal::Init(uint32_t aAppId, bool aInMozBrowser)
   mAppId = aAppId;
   mInMozBrowser = aInMozBrowser;
 
+  nsCString str;
+  nsresult rv = GenerateNullPrincipalURI(str);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mURI = new nsNullPrincipalURI(str);
+
+  return NS_OK;
+}
+
+void
+nsNullPrincipal::GetScriptLocation(nsACString &aStr)
+{
+  mURI->GetSpec(aStr);
+}
+
+nsresult
+nsNullPrincipal::GenerateNullPrincipalURI(nsACString &aStr)
+{
   
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
@@ -104,26 +123,17 @@ nsNullPrincipal::Init(uint32_t aAppId, bool aInMozBrowser)
 
   
   
-  nsCString str;
-  str.SetCapacity(prefixLen + suffixLen);
+  aStr.SetCapacity(prefixLen + suffixLen);
 
-  str.Append(NS_NULLPRINCIPAL_PREFIX);
-  str.Append(chars);
+  aStr.Append(NS_NULLPRINCIPAL_PREFIX);
+  aStr.Append(chars);
 
-  if (str.Length() != prefixLen + suffixLen) {
+  if (aStr.Length() != prefixLen + suffixLen) {
     NS_WARNING("Out of memory allocating null-principal URI");
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mURI = new nsNullPrincipalURI(str);
-
   return NS_OK;
-}
-
-void
-nsNullPrincipal::GetScriptLocation(nsACString &aStr)
-{
-  mURI->GetSpec(aStr);
 }
 
 #ifdef DEBUG
