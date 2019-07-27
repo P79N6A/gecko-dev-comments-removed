@@ -13,6 +13,7 @@
 #include "nsString.h"
 #include "nsIDialogParamBlock.h"
 #include "nsIMutableArray.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 
 
@@ -70,6 +71,11 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
       privateParent = privateParent->GetPrivateRoot();
     parent = do_QueryInterface(privateParent);
   }
+
+  
+  
+  
+  mozilla::dom::AutoNoJSAPI nojsapi;
 
   
   
