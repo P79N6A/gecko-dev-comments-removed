@@ -255,10 +255,7 @@ public:
   
   static void ExitFullScreen(jobject view);
 #endif
-
-  void NotifyHostAsyncInitFailed();
-  void NotifyHostCreateWidget();
-
+  
 private:
   virtual ~nsPluginInstanceOwner();
 

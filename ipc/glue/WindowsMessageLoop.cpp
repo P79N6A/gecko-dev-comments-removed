@@ -966,7 +966,7 @@ MessageChannel::WaitForInterruptNotify()
     return WaitForSyncNotify();
   }
 
-  if (!InterruptStackDepth() && !AwaitingIncomingMessage()) {
+  if (!InterruptStackDepth()) {
     
     NS_RUNTIMEABORT("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
   }
