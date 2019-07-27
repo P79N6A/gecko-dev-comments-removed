@@ -465,15 +465,7 @@ nsGeolocationRequest::Allow(JS::HandleValue aChoices)
     return NS_OK;
   }
 
-  
   nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
-  nsresult rv = gs->StartDevice(GetPrincipal());
-
-  if (NS_FAILED(rv)) {
-    
-    NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
-    return NS_OK;
-  }
 
   bool canUseCache = false;
   CachedPositionAndAccuracy lastPosition = gs->GetCachedPosition();
@@ -497,6 +489,15 @@ nsGeolocationRequest::Allow(JS::HandleValue aChoices)
     
     
     Update(lastPosition.position);
+  } else {
+    
+    nsresult rv = gs->StartDevice(GetPrincipal());
+
+    if (NS_FAILED(rv)) {
+      
+      NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
+      return NS_OK;
+    }
   }
 
   if (mIsWatchPositionRequest || !canUseCache) {
