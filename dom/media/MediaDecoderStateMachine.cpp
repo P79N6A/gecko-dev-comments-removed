@@ -1992,6 +1992,12 @@ int64_t MediaDecoderStateMachine::AudioDecodedUsecs()
   
   
   int64_t pushed = (mAudioEndTime != -1) ? (mAudioEndTime - GetMediaTime()) : 0;
+
+  
+  
+  if (IsRealTime()) {
+    return pushed + FramesToUsecs(AudioQueue().FrameCount(), mInfo.mAudio.mRate).value();
+  }
   return pushed + AudioQueue().Duration();
 }
 
