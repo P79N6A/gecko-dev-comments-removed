@@ -304,8 +304,8 @@ public:
       NS_NewRunnableFunction([self, aStartTime] () -> void
     {
       MOZ_ASSERT(self->OnTaskQueue());
-      MOZ_ASSERT(self->mStartTime == -1);
-      self->mStartTime = aStartTime;
+      MOZ_ASSERT(!self->HaveStartTime());
+      self->mStartTime.emplace(aStartTime);
       self->UpdateBuffered();
     });
     TaskQueue()->Dispatch(r.forget());
@@ -407,7 +407,9 @@ protected:
   
   
   
-  int64_t mStartTime;
+  Maybe<int64_t> mStartTime;
+  bool HaveStartTime() { MOZ_ASSERT(OnTaskQueue()); return mStartTime.isSome(); }
+  int64_t StartTime() { MOZ_ASSERT(HaveStartTime()); return mStartTime.ref(); }
 
   
   
