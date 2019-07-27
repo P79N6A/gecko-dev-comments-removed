@@ -202,7 +202,9 @@ public:
                      
                      eSpecialType_PDF,
                      
-                     eSpecialType_RealPlayer };
+                     eSpecialType_RealPlayer,
+                     
+                     eSpecialType_Unity };
   static SpecialType GetSpecialType(const nsACString & aMIMEType);
 
   static nsresult PostPluginUnloadEvent(PRLibrary* aLibrary);

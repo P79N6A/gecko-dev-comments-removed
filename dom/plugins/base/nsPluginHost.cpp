@@ -1663,6 +1663,10 @@ nsPluginHost::GetSpecialType(const nsACString & aMIMEType)
     return eSpecialType_PDF;
   }
 
+  if (aMIMEType.LowerCaseEqualsASCII("application/vnd.unity")) {
+    return eSpecialType_Unity;
+  }
+
   
   
   const nsACString &noParam = Substring(aMIMEType, 0, aMIMEType.FindChar(';'));
