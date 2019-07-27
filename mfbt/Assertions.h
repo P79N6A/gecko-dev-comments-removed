@@ -301,6 +301,13 @@ __declspec(noreturn) __inline void MOZ_NoReturn() {}
 
 
 
+
+
+
+
+
+
+
 #ifdef __cplusplus
 #  include "mozilla/TypeTraits.h"
 namespace mozilla {
@@ -377,6 +384,12 @@ struct AssertionConditionType
 #else
 #  define MOZ_ASSERT(...) do { } while (0)
 #endif 
+
+#ifdef RELEASE_BUILD
+#  define MOZ_DIAGNOSTIC_ASSERT MOZ_ASSERT
+#else
+#  define MOZ_DIAGNOSTIC_ASSERT MOZ_RELEASE_ASSERT
+#endif
 
 
 
