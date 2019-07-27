@@ -7,7 +7,7 @@ var gSafeBrowsing = {
 
   setReportPhishingMenu: function() {
     
-    var uri = gBrowser.currentURI;
+    var uri = getBrowser().currentURI;
     var isPhishingPage = uri && uri.spec.startsWith("about:blocked?e=phishingBlocked");
 
     
