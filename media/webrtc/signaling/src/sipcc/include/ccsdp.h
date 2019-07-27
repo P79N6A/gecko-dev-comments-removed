@@ -272,6 +272,17 @@ typedef enum {
 
 
 
+int ccsdpAttrGetFmtpInst(void *sdp_handle, uint16_t level, uint16_t payload_num);
+
+
+
+
+
+
+
+
+
+
 
 
 const char* ccsdpAttrGetFmtpParamSets(void *sdp_handle, uint16_t level,

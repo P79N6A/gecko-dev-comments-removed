@@ -1014,7 +1014,9 @@ void vcmSetRtcpDscp(cc_groupid_t group_id, int dscp);
 
 
 
-cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level, void **rcapptr);
+
+cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level,
+                           int remote_pt, void **rcapptr);
 
 
 
