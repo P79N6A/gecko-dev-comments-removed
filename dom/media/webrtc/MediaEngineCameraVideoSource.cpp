@@ -61,8 +61,6 @@ bool MediaEngineCameraVideoSource::AppendToTrack(SourceMediaStream* aSource,
   IntSize size(image ? mWidth : 0, image ? mHeight : 0);
   segment.AppendFrame(image.forget(), delta, size);
 
-  mProducedDuration += delta;
-
   
   
   

@@ -25,7 +25,6 @@ public:
     , mMonitor(aMonitorName)
     , mWidth(0)
     , mHeight(0)
-    , mProducedDuration(0)
     , mInitDone(false)
     , mHasDirectListeners(false)
     , mCaptureIndex(aIndex)
@@ -91,8 +90,6 @@ protected:
   
 
   nsTArray<SourceMediaStream*> mSources; 
-
-  StreamTime mProducedDuration;
 
   bool mInitDone;
   bool mHasDirectListeners;

@@ -89,6 +89,8 @@ public:
     mStream = aStream;
     mAudioSource = aAudioSource;
     mVideoSource = aVideoSource;
+    mLastEndTimeAudio = 0;
+    mLastEndTimeVideo = 0;
 
     mStream->AddListener(this);
   }
@@ -185,10 +187,10 @@ public:
     
     
     if (mAudioSource) {
-      mAudioSource->NotifyPull(aGraph, mStream, kAudioTrack, aDesiredTime);
+      mAudioSource->NotifyPull(aGraph, mStream, kAudioTrack, aDesiredTime, mLastEndTimeAudio);
     }
     if (mVideoSource) {
-      mVideoSource->NotifyPull(aGraph, mStream, kVideoTrack, aDesiredTime);
+      mVideoSource->NotifyPull(aGraph, mStream, kVideoTrack, aDesiredTime, mLastEndTimeVideo);
     }
   }
 
@@ -237,6 +239,8 @@ private:
   nsRefPtr<MediaEngineSource> mAudioSource; 
   nsRefPtr<MediaEngineSource> mVideoSource; 
   nsRefPtr<SourceMediaStream> mStream; 
+  StreamTime mLastEndTimeAudio;
+  StreamTime mLastEndTimeVideo;
   bool mFinished;
 
   
