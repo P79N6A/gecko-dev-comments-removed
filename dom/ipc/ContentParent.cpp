@@ -1496,8 +1496,21 @@ ContentParent::TransformPreallocatedIntoBrowser(ContentParent* aOpener)
 }
 
 void
-ContentParent::ShutDownProcess(bool aCloseWithError)
+ContentParent::ShutDownProcess(ShutDownMethod aMethod)
 {
+    
+    
+    
+    if (aMethod == SEND_SHUTDOWN_MESSAGE) {
+        if (mIPCOpen && SendShutdown()) {
+            mShutdownPending = true;
+        }
+
+        
+        
+        return;
+    }
+
     using mozilla::dom::quota::QuotaManager;
 
     if (QuotaManager* quotaManager = QuotaManager::Get()) {
@@ -1508,7 +1521,7 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
     
     
 
-    if (!aCloseWithError && !mCalledClose) {
+    if (aMethod == CLOSE_CHANNEL && !mCalledClose) {
         
         
         mCalledClose = true;
@@ -1522,7 +1535,7 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
 #endif
     }
 
-    if (aCloseWithError && !mCalledCloseWithError) {
+    if (aMethod == CLOSE_CHANNEL_WITH_ERROR && !mCalledCloseWithError) {
         MessageChannel* channel = GetIPCChannel();
         if (channel) {
             mCalledCloseWithError = true;
@@ -1547,6 +1560,17 @@ ContentParent::ShutDownProcess(bool aCloseWithError)
     
     
     ShutDownMessageManager();
+}
+
+bool
+ContentParent::RecvFinishShutdown()
+{
+    
+    
+    
+    MOZ_ASSERT(mShutdownPending);
+    ShutDownProcess(CLOSE_CHANNEL);
+    return true;
 }
 
 void
@@ -1749,7 +1773,20 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         mForceKillTask = nullptr;
     }
 
-    ShutDownMessageManager();
+    
+    
+    mIPCOpen = false;
+
+    if (why == NormalShutdown && !mCalledClose) {
+        
+        
+        
+        mCalledClose = true;
+    }
+
+    
+    ShutDownProcess(why == NormalShutdown ? CLOSE_CHANNEL
+                                          : CLOSE_CHANNEL_WITH_ERROR);
 
     nsRefPtr<ContentParent> kungFuDeathGrip(this);
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -1787,8 +1824,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     RecvRemoveGeolocationListener();
 
     mConsoleService = nullptr;
-
-    MarkAsDead();
 
     if (obs) {
         nsRefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
@@ -1841,11 +1876,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     mIdleListeners.Clear();
 
-    
-    
-    
-    ShutDownProcess( true);
-
     MessageLoop::current()->
         PostTask(FROM_HERE,
                  NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
@@ -1869,7 +1899,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         MessageLoop::current()->PostTask(
             FROM_HERE,
             NewRunnableMethod(cp, &ContentParent::ShutDownProcess,
-                               false));
+                              CLOSE_CHANNEL));
     }
     cpm->RemoveContentProcess(this->ChildID());
 }
@@ -1915,10 +1945,12 @@ ContentParent::NotifyTabDestroyed(PBrowserParent* aTab,
     
     
     if (ManagedPBrowserParent().Length() == 1) {
+        
+        
         MessageLoop::current()->PostTask(
             FROM_HERE,
             NewRunnableMethod(this, &ContentParent::ShutDownProcess,
-                               false));
+                              SEND_SHUTDOWN_MESSAGE));
     }
 }
 
@@ -1966,6 +1998,8 @@ ContentParent::InitializeMembers()
     mCalledCloseWithError = false;
     mCalledKillHard = false;
     mCreatedPairedMinidumps = false;
+    mShutdownPending = false;
+    mIPCOpen = true;
 }
 
 ContentParent::ContentParent(mozIApplication* aApp,
@@ -2710,7 +2744,16 @@ ContentParent::Observe(nsISupports* aSubject,
                        const char16_t* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        ShutDownProcess( false);
+        if (!mShutdownPending && mIPCOpen) {
+            ShutDownProcess(SEND_SHUTDOWN_MESSAGE);
+        }
+
+        
+        
+        
+        while (mIPCOpen) {
+            NS_ProcessNextEvent(nullptr, true);
+        }
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
 
