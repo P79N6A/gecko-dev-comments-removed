@@ -156,6 +156,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "rf-firefox-22.dll", ALL_VERSIONS },
 
+  
+  { "dtwxsvc.dll", 0x53153234, DllBlockInfo::USE_TIMESTAMP },
+
   { nullptr, 0 }
 };
 
