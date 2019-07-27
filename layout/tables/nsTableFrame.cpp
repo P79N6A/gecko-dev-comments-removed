@@ -2973,19 +2973,11 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
   nsIFrame* prevKidFrame = nullptr;
   WritingMode wm = aReflowState.reflowState.GetWritingMode();
-  nscoord containerWidth = aReflowState.reflowState.ComputedWidth();
-  if (containerWidth == NS_UNCONSTRAINEDSIZE) {
-    NS_WARN_IF_FALSE(wm.IsVertical(),
-                     "shouldn't have unconstrained width in horizontal mode");
-    
-    
-    
-    
-    containerWidth = 0;
-  } else {
-    containerWidth +=
-      aReflowState.reflowState.ComputedPhysicalBorderPadding().LeftRight();
-  }
+  NS_WARN_IF_FALSE(wm.IsVertical() || NS_UNCONSTRAINEDSIZE !=
+                                      aReflowState.reflowState.ComputedWidth(),
+                   "shouldn't have unconstrained width in horizontal mode");
+  nscoord containerWidth =
+    aReflowState.reflowState.ComputedSizeAsContainerIfConstrained().width;
 
   nsPresContext* presContext = PresContext();
   
@@ -3388,12 +3380,8 @@ nsTableFrame::DistributeBSizeToRows(const nsHTMLReflowState& aReflowState,
   WritingMode wm = aReflowState.GetWritingMode();
   LogicalMargin borderPadding = GetChildAreaOffset(wm, &aReflowState);
 
-  nscoord containerWidth = aReflowState.ComputedWidth();
-  if (containerWidth == NS_UNCONSTRAINEDSIZE) {
-    containerWidth = 0;
-  } else {
-    containerWidth += aReflowState.ComputedPhysicalBorderPadding().LeftRight();
-  }
+  nscoord containerWidth =
+    aReflowState.ComputedSizeAsContainerIfConstrained().width;
 
   RowGroupArray rowGroups;
   OrderRowGroups(rowGroups);

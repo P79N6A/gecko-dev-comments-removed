@@ -866,8 +866,8 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
 
   
   WritingMode wm = aReflowState.GetWritingMode();
-  nscoord containerWidth = aReflowState.ComputedWidth() +
-    aReflowState.ComputedPhysicalBorderPadding().LeftRight();
+  nscoord containerWidth =
+    aReflowState.ComputedSizeAsContainerIfConstrained().width;
   LogicalRect buttonRect = mButtonFrame->GetLogicalRect(containerWidth);
 
   buttonRect.IStart(wm) =

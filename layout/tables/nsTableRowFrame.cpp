@@ -817,12 +817,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*           aPresContext,
 
   
   WritingMode wm = aReflowState.GetWritingMode();
-  nscoord containerWidth = aReflowState.ComputedWidth();
-  if (containerWidth == NS_UNCONSTRAINEDSIZE) {
-    containerWidth = 0; 
-  } else {
-    containerWidth += aReflowState.ComputedPhysicalBorderPadding().LeftRight();
-  }
+  nscoord containerWidth =
+    aReflowState.ComputedSizeAsContainerIfConstrained().width;
 
   for (nsIFrame* kidFrame : mFrames) {
     nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
