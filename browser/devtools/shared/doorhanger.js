@@ -76,6 +76,14 @@ exports.showDoorhanger = Task.async(function *({ window, type, anchor }) {
     return;
   }
 
+  
+  
+  success();
+
+  
+  
+  yield wait(200);
+
   let document = window.document;
 
   let panel = document.createElementNS(XULNS, "panel");
@@ -108,9 +116,6 @@ exports.showDoorhanger = Task.async(function *({ window, type, anchor }) {
       close();
     });
   }
-
-  
-  success();
 });
 
 function setDoorhangerStyle (panel, frame) {
@@ -146,4 +151,10 @@ function onFrameLoad (frame) {
 
 function getGBrowser () {
   return getMostRecentBrowserWindow().gBrowser;
+}
+
+function wait (n) {
+  let { resolve, promise } = Promise.defer();
+  setTimeout(resolve, n);
+  return promise;
 }
