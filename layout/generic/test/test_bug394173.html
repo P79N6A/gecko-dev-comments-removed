@@ -23,6 +23,7 @@
   ok(true, "Should not crash");
   SimpleTest.finish();
 }
+  SimpleTest.requestFlakyTimeout("untriaged");
   setTimeout(boom, 500);
   SimpleTest.waitForExplicitFinish();
 </script>

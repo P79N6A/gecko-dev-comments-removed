@@ -18,6 +18,7 @@
 /** Test for Bug 147777 **/
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 window.addEventListener("load", start, false);
 
 var iframe;

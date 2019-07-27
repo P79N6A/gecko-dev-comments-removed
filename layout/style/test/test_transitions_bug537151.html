@@ -24,6 +24,7 @@
 /** Test for Bug 537151 **/
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 
 var p = document.getElementById("display");
 p.addEventListener("transitionend", listener, false);

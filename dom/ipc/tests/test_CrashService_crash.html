@@ -14,6 +14,7 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 SpecialPowers.addPermission("browser", true, document);
 SpecialPowers.pushPrefEnv({'set':[
   ["dom.mozBrowserFramesEnabled", true],

@@ -870,6 +870,8 @@ function mediaTestCleanup(callback) {
 }
 
 (function() {
+  SimpleTest.requestFlakyTimeout("untriaged");
+
   
   var prefService = SpecialPowers.wrap(SpecialPowers.Components)
                                  .classes["@mozilla.org/preferences-service;1"]

@@ -19,6 +19,8 @@
 </div>
 <pre id="test">
 <script type="application/javascript">
+SimpleTest.requestFlakyTimeout("untriaged");
+
 function theTest() {
   function testPeerIdentityConstraint(withConstraint, done) {
     var config = { audio: true, video: true, fake: true };

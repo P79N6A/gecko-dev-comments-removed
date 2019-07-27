@@ -21,6 +21,7 @@
 
 /** Test for Bug 342448 **/
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 try {
 setTimeout(1, 0);
 } catch (ex) {}

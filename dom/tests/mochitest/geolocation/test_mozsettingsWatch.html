@@ -20,6 +20,7 @@
 <script class="testbody" type="text/javascript">
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 
 resume_geolocationProvider(function() {
   force_prompt(true, test1);

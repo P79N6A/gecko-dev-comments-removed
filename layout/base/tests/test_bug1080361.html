@@ -13,6 +13,7 @@
       var iframe = undefined;
       function prepareTest() {
         SimpleTest.waitForExplicitFinish();
+        SimpleTest.requestFlakyTimeout("untriaged");
         iframe = document.getElementById("testFrame");
         turnOnPointerEvents(startTest);
       }

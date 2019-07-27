@@ -19,6 +19,7 @@
 
 /** Test for Bug 569520 **/
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 
 var startNow = Date.now();
 var start = window.mozAnimationStartTime;

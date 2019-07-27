@@ -33,6 +33,7 @@
  * various mouse events.
  **/
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 SimpleTest.waitForFocus(function() {
   test();
 });

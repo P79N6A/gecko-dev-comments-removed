@@ -23,6 +23,7 @@
 /** Test for Bug 511449 **/
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 window.addEventListener('load', runTest, false);
 
 var win = null;
