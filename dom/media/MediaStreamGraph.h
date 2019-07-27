@@ -838,9 +838,6 @@ protected:
     TrackRate mInputRate;
     
     
-    TrackRate mOutputRate;
-    
-    
     nsAutoRef<SpeexResamplerState> mResampler;
 #ifdef DEBUG
     int mResamplerChannelCount;
