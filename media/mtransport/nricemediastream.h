@@ -136,9 +136,7 @@ class NrIceMediaStream {
   
   nsresult GetCandidatePairs(std::vector<NrIceCandidatePair>* out_pairs) const;
 
-  
-  
-  nsresult GetDefaultCandidate(NrIceCandidate* candidate) const;
+  nsresult GetDefaultCandidate(int component, NrIceCandidate* candidate) const;
 
   
   nsresult ParseAttributes(std::vector<std::string>& candidates);

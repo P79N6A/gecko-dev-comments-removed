@@ -298,9 +298,10 @@ public:
                                 NrIceCtx::ConnectionState state);
   void IceGatheringStateChange(NrIceCtx* ctx,
                                NrIceCtx::GatheringState state);
-  
   void EndOfLocalCandidates(const std::string& defaultAddr,
                             uint16_t defaultPort,
+                            const std::string& defaultRtcpAddr,
+                            uint16_t defaultRtcpPort,
                             uint16_t level);
   void IceStreamReady(NrIceMediaStream *aStream);
 
