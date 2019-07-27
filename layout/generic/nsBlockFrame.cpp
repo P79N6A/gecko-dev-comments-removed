@@ -1150,11 +1150,16 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (NS_FRAME_IS_COMPLETE(state.mReflowStatus)) {
+  
+  
+  if (NS_FRAME_IS_FULLY_COMPLETE(state.mReflowStatus)) {
     nsBlockFrame* nif = static_cast<nsBlockFrame*>(GetNextInFlow());
     while (nif) {
       if (nif->HasPushedFloatsFromPrevContinuation()) {
-        NS_MergeReflowStatusInto(&state.mReflowStatus, NS_FRAME_NOT_COMPLETE);
+        bool oc = nif->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER;
+        NS_MergeReflowStatusInto(&state.mReflowStatus,
+            oc ? NS_FRAME_OVERFLOW_INCOMPLETE : NS_FRAME_NOT_COMPLETE);
+        break;
       }
 
       nif = static_cast<nsBlockFrame*>(nif->GetNextInFlow());
@@ -1549,9 +1554,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       "Shouldn't be incomplete if availableBSize is UNCONSTRAINED.");
     finalSize.BSize(wm) = std::max(aState.mBCoord,
                                    aReflowState.AvailableBSize());
-    if (aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE)
+    if (aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE) {
       
       finalSize.BSize(wm) = aState.mBCoord;
+    }
   }
 
   if (IS_TRUE_OVERFLOW_CONTAINER(this) &&
