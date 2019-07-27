@@ -1924,7 +1924,7 @@ pref("bidi.support", 1);
 
 
 
-pref("bidi.edit.delete_immediately", false);
+pref("bidi.edit.delete_immediately", true);
 
 
 
