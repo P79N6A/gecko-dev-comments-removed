@@ -18,9 +18,12 @@
 #include "nsIAudioChannelAgent.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AudioChannelBinding.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/TextTrackManager.h"
 #include "MediaDecoder.h"
+#ifdef MOZ_EME
 #include "mozilla/dom/MediaKeys.h"
+#endif
 
 
 
@@ -521,6 +524,7 @@ public:
 
   
 
+#ifdef MOZ_EME
   MediaKeys* GetMediaKeys() const;
 
   already_AddRefed<Promise> SetMediaKeys(MediaKeys* mediaKeys,
@@ -536,6 +540,7 @@ public:
 
 
   bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
+#endif 
 
   bool MozAutoplayEnabled() const
   {
@@ -1076,8 +1081,10 @@ protected:
   
   nsRefPtr<TimeRanges> mPlayed;
 
+#ifdef MOZ_EME
   
   nsRefPtr<MediaKeys> mMediaKeys;
+#endif
 
   
   double mCurrentPlayRangeStart;
