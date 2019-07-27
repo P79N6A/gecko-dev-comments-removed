@@ -182,11 +182,12 @@ ContentPrefService.prototype = {
     
     
     
-    for (var i in this) {
-      try { this[i] = null }
-      
-      catch(ex) {}
-    }
+    delete this._observers;
+    delete this._genericObservers;
+    delete this.__consoleSvc;
+    delete this.__grouper;
+    delete this.__observerSvc;
+    delete this.__prefSvc;
   },
 
 
