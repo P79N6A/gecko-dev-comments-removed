@@ -9156,18 +9156,18 @@ QuotaClient::GetType()
   return QuotaClient::IDB;
 }
 
+struct FileManagerInitInfo
+{
+  nsCOMPtr<nsIFile> mDirectory;
+  nsCOMPtr<nsIFile> mDatabaseFile;
+};
+
 nsresult
 QuotaClient::InitOrigin(PersistenceType aPersistenceType,
                         const nsACString& aGroup,
                         const nsACString& aOrigin,
                         UsageInfo* aUsageInfo)
 {
-  struct FileManagerInitInfo
-  {
-    nsCOMPtr<nsIFile> mDirectory;
-    nsCOMPtr<nsIFile> mDatabaseFile;
-  };
-
   AssertIsOnIOThread();
 
   nsCOMPtr<nsIFile> directory;
@@ -9213,13 +9213,6 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
       return rv;
     }
 
-    if (StringEndsWith(leafName, NS_LITERAL_STRING(".sqlite-journal"))) {
-      continue;
-    }
-
-    if (leafName.EqualsLiteral(DSSTORE_FILE_NAME)) {
-      continue;
-    }
 
     bool isDirectory;
     rv = file->IsDirectory(&isDirectory);
@@ -9232,6 +9225,15 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
           !validSubdirs.GetEntry(leafName)) {
         subdirsToProcess.AppendElement(leafName);
       }
+      continue;
+    }
+
+    
+    
+    
+    
+    if (StringEndsWith(leafName, NS_LITERAL_STRING(".sqlite-journal")) ||
+        leafName.EqualsLiteral(DSSTORE_FILE_NAME)) {
       continue;
     }
 
@@ -9282,16 +9284,14 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
     
     nsString subdirNameWithSuffix = subdirName + filesSuffix;
     if (!validSubdirs.GetEntry(subdirNameWithSuffix)) {
-#ifdef XP_WIN
+      
+      
       
       
       subdirNameWithSuffix = subdirName + NS_LITERAL_STRING(".") + filesSuffix;
       if (NS_WARN_IF(!validSubdirs.GetEntry(subdirNameWithSuffix))) {
         return NS_ERROR_UNEXPECTED;
       }
-#else
-      return NS_ERROR_UNEXPECTED;
-#endif
     }
 
     
@@ -9339,29 +9339,6 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
     }
   }
 
-  for (uint32_t count = unknownFiles.Length(), i = 0; i < count; i++) {
-    nsCOMPtr<nsIFile>& unknownFile = unknownFiles[i];
-
-    
-    
-    bool exists;
-    rv = unknownFile->Exists(&exists);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    if (exists) {
-      nsString leafName;
-      unknownFile->GetLeafName(leafName);
-
-      
-      if (NS_WARN_IF(!StringEndsWith(leafName,
-                                     NS_LITERAL_STRING(".sqlite-journal")))) {
-        return NS_ERROR_UNEXPECTED;
-      }
-    }
-  }
-
   for (uint32_t count = initInfos.Length(), i = 0; i < count; i++) {
     FileManagerInitInfo& initInfo = initInfos[i];
     MOZ_ASSERT(initInfo.mDirectory);
@@ -9394,6 +9371,23 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
       }
 
       aUsageInfo->AppendToFileUsage(usage);
+    }
+  }
+
+  
+  for (uint32_t count = unknownFiles.Length(), i = 0; i < count; i++) {
+    nsCOMPtr<nsIFile>& unknownFile = unknownFiles[i];
+
+    
+    
+    bool exists;
+    rv = unknownFile->Exists(&exists);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    if (exists) {
+      return NS_ERROR_UNEXPECTED;
     }
   }
 
