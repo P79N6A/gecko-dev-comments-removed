@@ -254,6 +254,7 @@ class PaintedLayerData {
 public:
   PaintedLayerData() :
     mAnimatedGeometryRoot(nullptr),
+    mIsAsyncScrollable(false),
     mFixedPosFrameForLayerData(nullptr),
     mReferenceFrame(nullptr),
     mLayer(nullptr),
@@ -342,7 +343,16 @@ public:
 
   void CopyAboveRegion(PaintedLayerData* aOther)
   {
-    if (aOther->mAllDrawingAbove || mAllDrawingAbove) {
+    
+    
+    
+    
+    
+    
+    bool aOtherCanDrawAnywhere = aOther->IsSubjectToAsyncTransforms()
+                              && !aOther->mDrawRegion.IsEmpty();
+
+    if (aOther->mAllDrawingAbove || mAllDrawingAbove || aOtherCanDrawAnywhere) {
       SetAllDrawingAbove();
     } else {
       mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
@@ -386,7 +396,8 @@ public:
 
   bool IsSubjectToAsyncTransforms()
   {
-    return mFixedPosFrameForLayerData != nullptr;
+    return mFixedPosFrameForLayerData != nullptr
+        || mIsAsyncScrollable;
   }
 
   
@@ -425,6 +436,12 @@ public:
 
 
   const nsIFrame* mAnimatedGeometryRoot;
+  
+
+
+
+
+  bool mIsAsyncScrollable;
   
 
 
@@ -815,6 +832,13 @@ protected:
 
 
   void PopPaintedLayerData();
+  
+
+
+
+
+
+  bool HasAsyncScrollableGeometryInContainer(const nsIFrame* aAnimatedGeometryRoot);
   
 
 
@@ -2482,6 +2506,28 @@ PaintedLayerData::Accumulate(ContainerState* aState,
   }
 }
 
+bool
+ContainerState::HasAsyncScrollableGeometryInContainer(const nsIFrame* aAnimatedGeometryRoot)
+{
+  const nsIFrame* f = aAnimatedGeometryRoot;
+  while (f) {
+    if (nsLayoutUtils::GetScrollableFrameFor(f) &&
+        nsLayoutUtils::GetDisplayPort(f->GetContent(), nullptr)) {
+      return true;
+    }
+    if (f == mContainerAnimatedGeometryRoot) {
+      break;
+    }
+    nsIFrame* fParent = nsLayoutUtils::GetCrossDocParentFrame(f);
+    if (!fParent) {
+      break;
+    }
+    f = nsLayoutUtils::GetAnimatedGeometryRootForFrame(
+          this->mBuilder, fParent, mContainerAnimatedGeometryRoot);
+  }
+  return false;
+}
+
 PaintedLayerData*
 ContainerState::FindPaintedLayerFor(nsDisplayItem* aItem,
                                    const nsIntRect& aVisibleRect,
@@ -2549,6 +2595,8 @@ ContainerState::FindPaintedLayerFor(nsDisplayItem* aItem,
     paintedLayerData->mAnimatedGeometryRoot = aAnimatedGeometryRoot;
     paintedLayerData->mFixedPosFrameForLayerData =
       FindFixedPosFrameForLayerData(aAnimatedGeometryRoot, aShouldFixToViewport);
+    paintedLayerData->mIsAsyncScrollable =
+      HasAsyncScrollableGeometryInContainer(aAnimatedGeometryRoot);
     paintedLayerData->mReferenceFrame = aItem->ReferenceFrame();
     paintedLayerData->mSingleItemFixedToViewport = aShouldFixToViewport;
 
