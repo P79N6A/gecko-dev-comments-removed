@@ -662,10 +662,9 @@ bool
 js::Execute(JSContext *cx, HandleScript script, JSObject &scopeChainArg, Value *rval)
 {
     
+
     RootedObject scopeChain(cx, &scopeChainArg);
-    scopeChain = GetInnerObject(scopeChain);
-    if (!scopeChain)
-        return false;
+    MOZ_ASSERT(scopeChain == GetInnerObject(scopeChain));
 
     MOZ_RELEASE_ASSERT(scopeChain->is<GlobalObject>() || !script->compileAndGo(),
                        "Only non-compile-and-go scripts can be executed with "

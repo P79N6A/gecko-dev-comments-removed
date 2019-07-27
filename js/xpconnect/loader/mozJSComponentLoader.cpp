@@ -779,7 +779,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             }
 
             if (!mReuseLoaderGlobal) {
-                Compile(cx, obj, options, buf, fileSize32, &script);
+                Compile(cx, options, buf, fileSize32, &script);
             } else {
                 
                 
@@ -829,8 +829,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             }
 
             if (!mReuseLoaderGlobal) {
-                script = Compile(cx, obj, options, buf,
-                                     fileSize32);
+                script = Compile(cx, options, buf, fileSize32);
             } else {
                 
                 
@@ -875,7 +874,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo &aInfo,
             buf[len] = '\0';
 
             if (!mReuseLoaderGlobal) {
-                Compile(cx, obj, options, buf, bytesRead, &script);
+                Compile(cx, options, buf, bytesRead, &script);
             } else {
                 
                 
