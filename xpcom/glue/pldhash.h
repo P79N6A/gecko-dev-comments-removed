@@ -17,10 +17,6 @@
 #include "mozilla/Types.h"
 #include "nscore.h"
 
-#ifdef PL_DHASHMETER
-#include <stdio.h>
-#endif
-
 #if defined(__GNUC__) && defined(__i386__)
 #define PL_DHASH_FASTCALL __attribute__ ((regparm (3),stdcall))
 #elif defined(XP_WIN)
@@ -169,28 +165,6 @@ private:
   uint32_t            mRemovedCount;  
   uint32_t            mGeneration;    
   char*               mEntryStore;    
-#ifdef PL_DHASHMETER
-  struct PLDHashStats
-  {
-    uint32_t        mSearches;      
-    uint32_t        mSteps;         
-    uint32_t        mHits;          
-    uint32_t        mMisses;        
-    uint32_t        mSearches;      
-    uint32_t        mAddMisses;     
-    uint32_t        mAddOverRemoved;
-    uint32_t        mAddHits;       
-    uint32_t        mAddFailures;   
-    uint32_t        mRemoveHits;    
-    uint32_t        mRemoveMisses;  
-    uint32_t        mRemoveFrees;   
-    uint32_t        mRemoveEnums;   
-    uint32_t        mGrows;         
-    uint32_t        mShrinks;       
-    uint32_t        mCompresses;    
-    uint32_t        mEnumShrinks;   
-  } mStats;
-#endif
 
 #ifdef DEBUG
   
@@ -287,10 +261,6 @@ public:
   void MoveEntryStub(const PLDHashEntryHdr* aFrom, PLDHashEntryHdr* aTo);
 
   void ClearEntryStub(PLDHashEntryHdr* aEntry);
-
-#ifdef PL_DHASHMETER
-  void DumpMeter(PLDHashEnumerator aDump, FILE* aFp);
-#endif
 
   
   
@@ -562,7 +532,6 @@ PL_DHashTableRemove(PLDHashTable* aTable, const void* aKey);
 
 
 
-
 void PL_DHashTableRawRemove(PLDHashTable* aTable, PLDHashEntryHdr* aEntry);
 
 uint32_t
@@ -604,11 +573,6 @@ size_t PL_DHashTableSizeOfIncludingThis(
 
 
 void PL_DHashMarkTableImmutable(PLDHashTable* aTable);
-#endif
-
-#ifdef PL_DHASHMETER
-void PL_DHashTableDumpMeter(PLDHashTable* aTable,
-                            PLDHashEnumerator aDump, FILE* aFp);
 #endif
 
 #endif 
