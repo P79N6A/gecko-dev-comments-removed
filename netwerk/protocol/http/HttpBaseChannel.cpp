@@ -1623,7 +1623,7 @@ HttpBaseChannel::TakeAllSecurityMessages(
 
 
 
-NS_IMETHODIMP
+nsresult
 HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageTag,
     const nsAString &aMessageCategory)
 {
