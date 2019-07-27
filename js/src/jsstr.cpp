@@ -4,17 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 #include "jsstr.h"
 
 #include "mozilla/Attributes.h"
