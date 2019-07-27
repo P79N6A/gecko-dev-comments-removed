@@ -162,6 +162,9 @@ pref("dom.webcrypto.enabled", true);
 pref("dom.undo_manager.enabled", false);
 
 
+pref("dom.url.encode_hash", true);
+
+
 
 
 #ifdef NIGHTLY_BUILD
