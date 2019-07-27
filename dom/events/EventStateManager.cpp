@@ -3798,6 +3798,7 @@ EventStateManager::DispatchMouseOrPointerEvent(WidgetMouseEvent* aMouseEvent,
         nsAutoPtr<WidgetMouseEvent> remoteEvent;
         CreateMouseOrPointerWidgetEvent(aMouseEvent, NS_MOUSE_EXIT,
                                         aRelatedContent, remoteEvent);
+        remoteEvent->exit = WidgetMouseEvent::eTopLevel;
 
         
         
