@@ -36,14 +36,6 @@ extern PRLogModuleInfo* GetTimerLog();
     {0x84, 0x27, 0xfb, 0xab, 0x44, 0xf2, 0x9b, 0xc8} \
 }
 
-enum
-{
-  CALLBACK_TYPE_UNKNOWN   = 0,
-  CALLBACK_TYPE_INTERFACE = 1,
-  CALLBACK_TYPE_FUNC      = 2,
-  CALLBACK_TYPE_OBSERVER  = 3
-};
-
 class nsTimerImpl final : public nsITimer
 {
 public:
@@ -81,6 +73,13 @@ public:
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
 
 private:
+  enum class CallbackType : uint8_t {
+    Unknown = 0,
+    Interface = 1,
+    Function = 2,
+    Observer = 3,
+  };
+
   ~nsTimerImpl();
   nsresult InitCommon(uint32_t aType, uint32_t aDelay);
 
@@ -89,12 +88,12 @@ private:
     
     
     
-    uint8_t cbType = mCallbackType;
-    mCallbackType = CALLBACK_TYPE_UNKNOWN;
+    CallbackType cbType = mCallbackType;
+    mCallbackType = CallbackType::Unknown;
 
-    if (cbType == CALLBACK_TYPE_INTERFACE) {
+    if (cbType == CallbackType::Interface) {
       NS_RELEASE(mCallback.i);
-    } else if (cbType == CALLBACK_TYPE_OBSERVER) {
+    } else if (cbType == CallbackType::Observer) {
       NS_RELEASE(mCallback.o);
     }
   }
@@ -131,7 +130,7 @@ private:
   nsCOMPtr<nsITimerCallback> mTimerCallbackWhileFiring;
 
   
-  uint8_t               mCallbackType;
+  CallbackType          mCallbackType;
 
   
   
@@ -167,4 +166,4 @@ private:
 
 };
 
-#endif 
+#endif
