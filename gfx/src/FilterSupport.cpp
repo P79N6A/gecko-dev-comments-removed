@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FilterSupport.h"
 
@@ -16,8 +16,8 @@
 
 #include "nsMargin.h"
 
-
-
+// c = n / 255
+// c <= 0.0031308f ? c * 12.92f : 1.055f * powf(c, 1 / 2.4f) - 0.055f
 static const float glinearRGBTosRGBMap[256] = {
   0.000f, 0.050f, 0.085f, 0.111f, 0.132f, 0.150f, 0.166f, 0.181f,
   0.194f, 0.207f, 0.219f, 0.230f, 0.240f, 0.250f, 0.260f, 0.269f,
@@ -53,8 +53,8 @@ static const float glinearRGBTosRGBMap[256] = {
   0.988f, 0.990f, 0.991f, 0.993f, 0.995f, 0.997f, 0.998f, 1.000f
 };
 
-
-
+// c = n / 255
+// c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f)
 static const float gsRGBToLinearRGBMap[256] = {
   0.000f, 0.000f, 0.001f, 0.001f, 0.001f, 0.002f, 0.002f, 0.002f,
   0.002f, 0.003f, 0.003f, 0.003f, 0.004f, 0.004f, 0.004f, 0.005f,
@@ -93,7 +93,7 @@ static const float gsRGBToLinearRGBMap[256] = {
 namespace mozilla {
 namespace gfx {
 
-
+// Some convenience FilterNode creation functions.
 
 namespace FilterWrappers {
 
@@ -220,37 +220,37 @@ namespace FilterWrappers {
 
 }
 
-
-
-
-
-
-
-
-
+// A class that wraps a FilterNode and handles conversion between different
+// color models. Create FilterCachedColorModels with your original filter and
+// the color model that this filter outputs in natively, and then call
+// ->ForColorModel(colorModel) in order to get a FilterNode which outputs to
+// the specified colorModel.
+// Internally, this is achieved by wrapping the original FilterNode with
+// conversion FilterNodes. These filter nodes are cached in such a way that no
+// repeated or back-and-forth conversions happen.
 class FilterCachedColorModels
 {
 public:
   NS_INLINE_DECL_REFCOUNTING(FilterCachedColorModels)
-  
-  
+  // aFilter can be null. In that case, ForColorModel will return a non-null
+  // completely transparent filter for all color models.
   FilterCachedColorModels(DrawTarget* aDT,
                           FilterNode* aFilter,
                           ColorModel aOriginalColorModel);
 
-  
+  // Get a FilterNode for the specified color model, guaranteed to be non-null.
   TemporaryRef<FilterNode> ForColorModel(ColorModel aColorModel);
 
   AlphaModel OriginalAlphaModel() const { return mOriginalColorModel.mAlphaModel; }
 
 private:
-  
+  // Create the required FilterNode that will be cached by ForColorModel.
   TemporaryRef<FilterNode> WrapForColorModel(ColorModel aColorModel);
 
   RefPtr<DrawTarget> mDT;
   ColorModel mOriginalColorModel;
 
-  
+  // This array is indexed by ColorModel::ToIndex.
   RefPtr<FilterNode> mFilterForColorModel[4];
 
   ~FilterCachedColorModels() {}
@@ -285,11 +285,11 @@ FilterCachedColorModels::ForColorModel(ColorModel aColorModel)
 TemporaryRef<FilterNode>
 FilterCachedColorModels::WrapForColorModel(ColorModel aColorModel)
 {
-  
-  
-  
-  
-  
+  // Convert one aspect at a time and recurse.
+  // Conversions between premultiplied / unpremultiplied color channels for the
+  // same color space can happen directly.
+  // Conversions between different color spaces can only happen on
+  // unpremultiplied color channels.
 
   if (aColorModel.mAlphaModel == AlphaModel::Premultiplied) {
     RefPtr<FilterNode> unpre =
@@ -312,18 +312,18 @@ FilterCachedColorModels::WrapForColorModel(ColorModel aColorModel)
   return FilterWrappers::LinearRGBToSRGB(mDT, unpremultipliedOriginal);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
+// When aAmount == 0, the identity matrix is returned.
+// When aAmount == 1, aToMatrix is returned.
+// When aAmount > 1, an exaggerated version of aToMatrix is returned. This can
+// be useful in certain cases, such as producing a color matrix to oversaturate
+// an image.
+//
+// This function is a shortcut of a full matrix addition and a scalar multiply,
+// and it assumes that the following elements in aToMatrix are 0 and 1:
+//   x x x 0 0
+//   x x x 0 0
+//   x x x 0 0
+//   0 0 0 1 0
 static void
 InterpolateFromIdentityMatrix(const float aToMatrix[20], float aAmount,
                               float aOutMatrix[20])
@@ -351,8 +351,8 @@ InterpolateFromIdentityMatrix(const float aToMatrix[20], float aAmount,
   aOutMatrix[12] = aAmount * aToMatrix[12] + oneMinusAmount;
 }
 
-
-
+// Create a 4x5 color matrix for the different ways to specify color matrices
+// in SVG.
 static nsresult
 ComputeColorMatrix(uint32_t aColorMatrixType, const nsTArray<float>& aValues,
                    float aOutMatrix[20])
@@ -363,7 +363,7 @@ ComputeColorMatrix(uint32_t aColorMatrixType, const nsTArray<float>& aValues,
       0, 0, 1, 0, 0,
       0, 0, 0, 1, 0 };
 
-  
+  // Luminance coefficients.
   static const float lumR = 0.2126f;
   static const float lumG = 0.7152f;
   static const float lumB = 0.0722f;
@@ -390,7 +390,7 @@ ComputeColorMatrix(uint32_t aColorMatrixType, const nsTArray<float>& aValues,
       0.272f, 0.534f, 0.131f, 0, 0,
       0,      0,      0,      1, 0 };
 
-  
+  // Hue rotate specific coefficients.
   static const float hueRotateR = 0.143f;
   static const float hueRotateG = 0.140f;
   static const float hueRotateB = 0.283f;
@@ -484,24 +484,24 @@ DisableAllTransfers(FilterNode* aTransferFilterNode)
   aTransferFilterNode->SetAttribute(ATT_TRANSFER_DISABLE_A, true);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Called for one channel at a time.
+// This function creates the required FilterNodes on demand and tries to
+// merge conversions of different channels into the same FilterNode if
+// possible.
+// There's a mismatch between the way SVG and the Moz2D API handle transfer
+// functions: In SVG, it's possible to specify a different transfer function
+// type for each color channel, but in Moz2D, a given transfer function type
+// applies to all color channels.
+//
+//  @param aFunctionAttributes The attributes of the transfer function for this
+//                             channel.
+//  @param aChannel The color channel that this function applies to, where
+//                  0 = red, 1 = green, 2 = blue, 3 = alpha
+//  @param aDT The DrawTarget that the FilterNodes should be created for.
+//  @param aTableTransfer Existing FilterNode holders (which may still be
+//                        null) that the resulting FilterNodes from this
+//                        function will be stored in.
+//           
 static void
 ConvertComponentTransferFunctionToFilter(const AttributeMap& aFunctionAttributes,
                                          int32_t aChannel,
@@ -640,13 +640,13 @@ ConvertComponentTransferFunctionToFilter(const AttributeMap& aFunctionAttributes
 
 const int32_t kMorphologyMaxRadius = 100000;
 
-
-
-
-
-
-
-
+// Handle the different primitive description types and create the necessary
+// FilterNode(s) for each.
+// Returns nullptr for invalid filter primitives. This should be interpreted as
+// transparent black by the caller.
+// aSourceRegions contains the filter primitive subregions of the source
+// primitives; only needed for eTile primitives.
+// aInputImages carries additional surfaces that are used by eImage primitives.
 static TemporaryRef<FilterNode>
 FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescription,
                                    DrawTarget* aDT,
@@ -725,14 +725,14 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
       int32_t rx = radii.width;
       int32_t ry = radii.height;
       if (rx < 0 || ry < 0) {
-        
+        // XXX SVGContentUtils::ReportToConsole()
         return nullptr;
       }
       if (rx == 0 && ry == 0) {
         return nullptr;
       }
 
-      
+      // Clamp radii to prevent completely insane values:
       rx = std::min(rx, kMorphologyMaxRadius);
       ry = std::min(ry, kMorphologyMaxRadius);
 
@@ -764,7 +764,7 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
 
     case PrimitiveType::ComponentTransfer:
     {
-      RefPtr<FilterNode> filters[4]; 
+      RefPtr<FilterNode> filters[4]; // one for each FILTER_*_TRANSFER type
       static const AttributeName componentFunctionNames[4] = {
         eComponentTransferFunctionR,
         eComponentTransferFunctionG,
@@ -778,7 +778,7 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
           filters[0], filters[1], filters[2], filters[3]);
       }
 
-      
+      // Connect all used filters nodes.
       RefPtr<FilterNode> lastFilter = aSources[0];
       for (int32_t i = 0; i < 4; i++) {
         if (filters[i]) {
@@ -807,10 +807,10 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
                            aSourceRegions[0]);
       uint32_t edgeMode = atts.GetUint(eConvolveMatrixEdgeMode);
       static const uint8_t edgeModes[SVG_EDGEMODE_NONE+1] = {
-        EDGE_MODE_NONE,      
-        EDGE_MODE_DUPLICATE, 
-        EDGE_MODE_WRAP,      
-        EDGE_MODE_NONE       
+        EDGE_MODE_NONE,      // SVG_EDGEMODE_UNKNOWN
+        EDGE_MODE_DUPLICATE, // SVG_EDGEMODE_DUPLICATE
+        EDGE_MODE_WRAP,      // SVG_EDGEMODE_WRAP
+        EDGE_MODE_NONE       // SVG_EDGEMODE_NONE
       };
       filter->SetAttribute(ATT_CONVOLVE_MATRIX_EDGE_MODE, (uint32_t)edgeModes[edgeMode]);
       filter->SetAttribute(ATT_CONVOLVE_MATRIX_KERNEL_UNIT_LENGTH,
@@ -833,11 +833,11 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
       filter->SetAttribute(ATT_DISPLACEMENT_MAP_SCALE,
                            atts.GetFloat(eDisplacementMapScale));
       static const uint8_t channel[SVG_CHANNEL_A+1] = {
-        COLOR_CHANNEL_R, 
-        COLOR_CHANNEL_R, 
-        COLOR_CHANNEL_G, 
-        COLOR_CHANNEL_B, 
-        COLOR_CHANNEL_A  
+        COLOR_CHANNEL_R, // SVG_CHANNEL_UNKNOWN
+        COLOR_CHANNEL_R, // SVG_CHANNEL_R
+        COLOR_CHANNEL_G, // SVG_CHANNEL_G
+        COLOR_CHANNEL_B, // SVG_CHANNEL_B
+        COLOR_CHANNEL_A  // SVG_CHANNEL_A
       };
       filter->SetAttribute(ATT_DISPLACEMENT_MAP_X_CHANNEL,
                            (uint32_t)channel[atts.GetUint(eDisplacementMapXChannel)]);
@@ -860,9 +860,9 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
       filter->SetAttribute(ATT_TURBULENCE_SEED,
                            (uint32_t)atts.GetFloat(eTurbulenceSeed));
       static const uint8_t type[SVG_TURBULENCE_TYPE_TURBULENCE+1] = {
-        TURBULENCE_TYPE_FRACTAL_NOISE, 
-        TURBULENCE_TYPE_FRACTAL_NOISE, 
-        TURBULENCE_TYPE_TURBULENCE     
+        TURBULENCE_TYPE_FRACTAL_NOISE, // SVG_TURBULENCE_TYPE_UNKNOWN
+        TURBULENCE_TYPE_FRACTAL_NOISE, // SVG_TURBULENCE_TYPE_FRACTALNOISE
+        TURBULENCE_TYPE_TURBULENCE     // SVG_TURBULENCE_TYPE_TURBULENCE
       };
       filter->SetAttribute(ATT_TURBULENCE_TYPE,
                            (uint32_t)type[atts.GetUint(eTurbulenceType)]);
@@ -885,12 +885,12 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
       } else {
         filter = aDT->CreateFilter(FilterType::COMPOSITE);
         static const uint8_t operators[SVG_FECOMPOSITE_OPERATOR_ARITHMETIC] = {
-          COMPOSITE_OPERATOR_OVER, 
-          COMPOSITE_OPERATOR_OVER, 
-          COMPOSITE_OPERATOR_IN,   
-          COMPOSITE_OPERATOR_OUT,  
-          COMPOSITE_OPERATOR_ATOP, 
-          COMPOSITE_OPERATOR_XOR   
+          COMPOSITE_OPERATOR_OVER, // SVG_FECOMPOSITE_OPERATOR_UNKNOWN
+          COMPOSITE_OPERATOR_OVER, // SVG_FECOMPOSITE_OPERATOR_OVER
+          COMPOSITE_OPERATOR_IN,   // SVG_FECOMPOSITE_OPERATOR_IN
+          COMPOSITE_OPERATOR_OUT,  // SVG_FECOMPOSITE_OPERATOR_OUT
+          COMPOSITE_OPERATOR_ATOP, // SVG_FECOMPOSITE_OPERATOR_ATOP
+          COMPOSITE_OPERATOR_XOR   // SVG_FECOMPOSITE_OPERATOR_XOR
         };
         filter->SetAttribute(ATT_COMPOSITE_OPERATOR, (uint32_t)operators[op]);
         filter->SetInput(IN_COMPOSITE_IN_START, aSources[1]);
@@ -1029,8 +1029,8 @@ FilterNodeFromPrimitiveDescription(const FilterPrimitiveDescription& aDescriptio
         return nullptr;
       }
 
-      
-      
+      // Pull the image from the additional image list using the index that's
+      // stored in the primitive description.
       RefPtr<SourceSurface> inputImage =
         aInputImages[atts.GetUint(eImageInputIndex)];
 
@@ -1106,16 +1106,16 @@ OutputAlphaModelForPrimitive(const FilterPrimitiveDescription& aDescr,
                              const nsTArray<AlphaModel>& aInputAlphaModels)
 {
   if (aInputAlphaModels.Length()) {
-    
-    
+    // For filters with inputs, the output is premultiplied if and only if the
+    // first input is premultiplied.
     return InputAlphaModelForPrimitive(aDescr, 0, aInputAlphaModels[0]);
   }
 
-  
+  // All filters without inputs produce premultiplied alpha.
   return AlphaModel::Premultiplied;
 }
 
-
+// Returns the output FilterNode, in premultiplied sRGB space.
 static TemporaryRef<FilterNode>
 FilterNodeGraphFromDescription(DrawTarget* aDT,
                                const FilterDescription& aFilter,
@@ -1177,8 +1177,8 @@ FilterNodeGraphFromDescription(DrawTarget* aDT,
             IntPoint offset = surfaceRect.TopLeft();
             sourceFilterNode = FilterWrappers::ForSurface(aDT, surf, offset);
 
-            
-            
+            // Clip the original SourceGraphic to the first filter region if the
+            // surface isn't already sized appropriately.
             if ((inputIndex == FilterPrimitiveDescription::kPrimitiveIndexSourceGraphic ||
                  inputIndex == FilterPrimitiveDescription::kPrimitiveIndexSourceAlpha) &&
                 !descr.FilterSpaceBounds().Contains(aSourceGraphicRect)) {
@@ -1225,7 +1225,7 @@ FilterNodeGraphFromDescription(DrawTarget* aDT,
   return primitiveFilters.LastElement()->ForColorModel(ColorModel::PremulSRGB());
 }
 
-
+// FilterSupport
 
 void
 FilterSupport::RenderFilterDescription(DrawTarget* aDT,
@@ -1238,6 +1238,7 @@ FilterSupport::RenderFilterDescription(DrawTarget* aDT,
                                        SourceSurface* aStrokePaint,
                                        const IntRect& aStrokePaintRect,
                                        nsTArray<RefPtr<SourceSurface>>& aAdditionalImages,
+                                       const Point& aDestPoint,
                                        const DrawOptions& aOptions)
 {
   RefPtr<FilterNode> resultFilter =
@@ -1245,7 +1246,7 @@ FilterSupport::RenderFilterDescription(DrawTarget* aDT,
                                    aSourceGraphic, aSourceGraphicRect, aFillPaint, aFillPaintRect,
                                    aStrokePaint, aStrokePaintRect, aAdditionalImages);
 
-  aDT->DrawFilter(resultFilter, aRenderRect, Point(0, 0), aOptions);
+  aDT->DrawFilter(resultFilter, aRenderRect, aDestPoint, aOptions);
 }
 
 static nsIntRegion
@@ -1357,7 +1358,7 @@ ResultChangeRegionForPrimitive(const FilterPrimitiveDescription& aDescription,
   }
 }
 
- nsIntRegion
+/* static */ nsIntRegion
 FilterSupport::ComputeResultChangeRegion(const FilterDescription& aFilter,
                                          const nsIntRegion& aSourceGraphicChange,
                                          const nsIntRegion& aFillPaintChange,
@@ -1402,13 +1403,13 @@ FilterSupport::PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& a
     {
       uint32_t op = atts.GetUint(eCompositeOperator);
       if (op == SVG_FECOMPOSITE_OPERATOR_ARITHMETIC) {
-        
-        
+        // The arithmetic composite primitive can draw outside the bounding
+        // box of its source images.
         const nsTArray<float>& coefficients = atts.GetFloats(eCompositeCoefficients);
         MOZ_ASSERT(coefficients.Length() == 4);
 
-        
-        
+        // The calculation is:
+        // r = c[0] * in[0] * in[1] + c[1] * in[0] + c[2] * in[1] + c[3]
         nsIntRegion region;
         if (coefficients[0] > 0.0f) {
           region = aInputExtents[0].Intersect(aInputExtents[1]);
@@ -1461,7 +1462,7 @@ FilterSupport::PostFilterExtentsForPrimitive(const FilterPrimitiveDescription& a
   }
 }
 
- nsIntRegion
+/* static */ nsIntRegion
 FilterSupport::ComputePostFilterExtents(const FilterDescription& aFilter,
                                         const nsIntRegion& aSourceGraphicExtents)
 {
@@ -1588,7 +1589,7 @@ SourceNeededRegionForPrimitive(const FilterPrimitiveDescription& aDescription,
 
 }
 
- void
+/* static */ void
 FilterSupport::ComputeSourceNeededRegions(const FilterDescription& aFilter,
                                           const nsIntRegion& aResultNeededRegion,
                                           nsIntRegion& aSourceGraphicNeededRegion,
@@ -1618,7 +1619,7 @@ FilterSupport::ComputeSourceNeededRegions(const FilterDescription& aFilter,
     }
   }
 
-  
+  // Clip original SourceGraphic to first filter region.
   if (primitives.Length() > 0) {
     const FilterPrimitiveDescription& firstDescr = primitives[0];
     aSourceGraphicNeededRegion.And(aSourceGraphicNeededRegion,
@@ -1626,7 +1627,7 @@ FilterSupport::ComputeSourceNeededRegions(const FilterDescription& aFilter,
   }
 }
 
-
+// FilterPrimitiveDescription
 
 FilterPrimitiveDescription::FilterPrimitiveDescription()
  : mType(PrimitiveType::Empty)
@@ -1683,7 +1684,7 @@ FilterPrimitiveDescription::operator==(const FilterPrimitiveDescription& aOther)
     mAttributes == aOther.mAttributes;
 }
 
-
+// FilterDescription
 
 bool
 FilterDescription::operator==(const FilterDescription& aOther) const
@@ -1691,10 +1692,10 @@ FilterDescription::operator==(const FilterDescription& aOther) const
   return mPrimitives == aOther.mPrimitives;
 }
 
+// AttributeMap
 
-
-
-
+// A class that wraps different types for easy storage in a hashtable. Only
+// used by AttributeMap.
 struct FilterAttribute {
   FilterAttribute(const FilterAttribute& aOther);
   ~FilterAttribute();
