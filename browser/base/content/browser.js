@@ -944,6 +944,7 @@ var gBrowserInit = {
     LanguageDetectionListener.init();
     BrowserOnClick.init();
     DevEdition.init();
+    AboutPrivateBrowsingListener.init();
 
     let mm = window.getGroupMessageManager("browsers");
     mm.loadFrameScript("chrome://browser/content/tab-content.js", true);
@@ -6837,9 +6838,11 @@ var gIdentityHandler = {
     } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
     } else if (state & nsIWebProgressListener.STATE_IS_BROKEN) {
-      if (state & nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
+      if ((state & nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) &&
+          gPrefService.getBoolPref("security.mixed_content.block_active_content")) {
         this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_LOADED);
-      } else if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) {
+      } else if ((state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT) &&
+                gPrefService.getBoolPref("security.mixed_content.block_active_content")) {
         this.setMode(this.IDENTITY_MODE_MIXED_DISPLAY_LOADED_ACTIVE_BLOCKED);
       } else {
         this.setMode(this.IDENTITY_MODE_MIXED_DISPLAY_LOADED);
@@ -7783,4 +7786,14 @@ let PanicButtonNotifier = {
     let popup = document.getElementById("panic-button-success-notification");
     popup.hidePopup();
   },
+};
+
+let AboutPrivateBrowsingListener = {
+  init: function () {
+    window.messageManager.addMessageListener(
+      "AboutPrivateBrowsing:OpenPrivateWindow",
+      msg => {
+        OpenBrowserWindow({private: true});
+    });
+  }
 };
