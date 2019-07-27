@@ -142,6 +142,9 @@ nsXPConnect::InitStatics()
 
     
     gSelf->mRuntime->GetJSContextStack()->InitSafeJSContext();
+
+    
+    gSelf->mRuntime->InitSingletonScopes();
 }
 
 nsXPConnect*
