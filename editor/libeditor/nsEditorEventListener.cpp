@@ -695,11 +695,7 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
       nsresult rv = aDragEvent->GetRangeOffset(&offset);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      
-      if (mCaret)
-        mCaret->EraseCaret();
-      
-      
+      mCaret->SetVisible(true);
       mCaret->DrawAtPosition(parent, offset);
     }
   }
@@ -713,7 +709,7 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
 
     if (mCaret)
     {
-      mCaret->EraseCaret();
+      mCaret->SetVisible(false);
     }
   }
 
@@ -725,7 +721,6 @@ nsEditorEventListener::CleanupDragDropCaret()
 {
   if (mCaret)
   {
-    mCaret->EraseCaret();
     mCaret->SetVisible(false);    
 
     nsCOMPtr<nsIPresShell> presShell = GetPresShell();

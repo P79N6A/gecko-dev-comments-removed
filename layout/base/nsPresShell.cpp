@@ -1835,9 +1835,6 @@ PresShell::Initialize(nscoord aWidth, nscoord aHeight)
   }
 #endif
 
-  if (mCaret)
-    mCaret->EraseCaret();
-
   
   
 
@@ -3936,9 +3933,6 @@ PresShell::UnsuppressAndInvalidate()
     
     rootFrame->InvalidateFrame();
 
-    if (mCaretEnabled && mCaret) {
-      mCaret->CheckCaretDrawingState();
-    }
     if (mTouchCaret) {
       mTouchCaret->UpdatePositionIfNeeded();
     }
@@ -8635,10 +8629,6 @@ PresShell::DidDoReflow(bool aInterruptible, bool aWasInterrupted)
 
   if (sSynthMouseMove) {
     SynthesizeMouseMove(false);
-  }
-
-  if (mCaret) {
-    mCaret->UpdateCaretPosition();
   }
 
   if (mTouchCaret) {

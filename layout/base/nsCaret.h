@@ -62,7 +62,6 @@ class nsCaret : public nsISelectionListener
 
 
     void SetIgnoreUserModify(bool aIgnoreUserModify);
-    void CheckCaretDrawingState();
     
 
 
@@ -89,22 +88,18 @@ class nsCaret : public nsISelectionListener
     
 
 
-    void EraseCaret();
-    
-
-
-
-
-    void UpdateCaretPosition();
-    
-
-
 
 
 
 
 
     nsresult DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
+
+    
+
+
+
+    void SchedulePaint();
 
     
 
@@ -159,9 +154,6 @@ class nsCaret : public nsISelectionListener
 protected:
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
-    
-    
-    void          SchedulePaint();
     void          CheckSelectionLanguageChange();
 
     void          KillTimer();
@@ -169,12 +161,6 @@ protected:
 
     void          StartBlinking();
     void          StopBlinking();
-
-    bool          DrawAtPositionWithHint(nsIDOMNode* aNode,
-                                         int32_t aOffset,
-                                         CaretAssociationHint aFrameHint,
-                                         uint8_t aBidiLevel,
-                                         bool aInvalidate);
 
     mozilla::dom::Selection* GetSelectionInternal();
 
@@ -189,11 +175,8 @@ protected:
                                         nsRect*   aRect,
                                         nscoord*  aBidiIndicatorSize);
 
-    void          DrawCaret(bool aInvalidate);
-    void          DrawCaretAfterBriefDelay();
     void          ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
                                     nsRect* aCaretRect, nsRect* aHookRect);
-    void          ToggleDrawnStatus() { mDrawn = !mDrawn; }
 
     nsFrameSelection* GetFrameSelection();
 
@@ -236,7 +219,7 @@ protected:
 
     uint8_t               mLastBidiLevel;     
 
-    nsCOMPtr<nsIContent>  mLastContent;       
+    nsCOMPtr<nsINode>     mLastContent;       
                                               
                                               
                                               

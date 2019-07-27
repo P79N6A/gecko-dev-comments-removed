@@ -745,8 +745,8 @@ nsXULPopupManager::ShowPopupWithAnchorAlign(nsIContent* aPopup,
 }
 
 static void
-CheckCaretDrawingState() {
-
+CheckCaretDrawingState()
+{
   
   
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -770,7 +770,7 @@ CheckCaretDrawingState() {
     nsRefPtr<nsCaret> caret = presShell->GetCaret();
     if (!caret)
       return;
-    caret->CheckCaretDrawingState();
+    caret->SchedulePaint();
   }
 }
 
