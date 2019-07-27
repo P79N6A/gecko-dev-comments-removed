@@ -54,13 +54,6 @@ const kSubviewEvents = [
 
 
 
-const JS_HAS_SYMBOLS = typeof Symbol === "function";
-const kIteratorSymbol = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
-
-
-
-
-
 let kVersion = 4;
 
 
@@ -2710,7 +2703,7 @@ this.CustomizableUI = {
 
 
   windows: {
-    *[kIteratorSymbol]() {
+    *[Symbol.iterator]() {
       for (let [window,] of gBuildWindows)
         yield window;
     }
