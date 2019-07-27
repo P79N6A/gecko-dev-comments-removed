@@ -2490,6 +2490,12 @@ pref("svg.marker-improvements.enabled", true);
 
 pref("svg.new-getBBox.enabled", false);
 
+#ifdef RELEASE_BUILD
+pref("svg.transform-origin.enabled", false);
+#else
+pref("svg.transform-origin.enabled", true);
+#endif 
+
 
 pref("font.default.ar", "sans-serif");
 pref("font.minimum-size.ar", 0);
