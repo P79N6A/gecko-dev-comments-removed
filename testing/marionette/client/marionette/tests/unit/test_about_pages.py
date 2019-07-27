@@ -2,7 +2,7 @@
 
 
 
-from marionette import MarionetteTestCase
+from marionette_test import MarionetteTestCase
 from marionette_driver.keys import Keys
 
 class TestAboutPages(MarionetteTestCase):
