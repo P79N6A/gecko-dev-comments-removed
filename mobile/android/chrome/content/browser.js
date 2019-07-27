@@ -2217,7 +2217,20 @@ var NativeWindow = {
 
 
 
-    show: function(aMessage, aValue, aButtons, aTabID, aOptions) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+    show: function(aMessage, aValue, aButtons, aTabID, aOptions, aCategory) {
       if (aButtons == null) {
         aButtons = [];
       }
@@ -2236,7 +2249,8 @@ var NativeWindow = {
         buttons: aButtons,
         
         tabID: aTabID || BrowserApp.selectedTab.id,
-        options: aOptions || {}
+        options: aOptions || {},
+        category: aCategory
       };
       Messaging.sendRequest(json);
     },
