@@ -158,6 +158,36 @@ public:
   nsExpirationState* GetExpirationState() { return &mExpirationState; }
   Lifetime GetLifetime() const { return mLifetime; }
 
+  
+  struct SizeOfSurfacesSum
+  {
+    SizeOfSurfacesSum(gfxMemoryLocation aLocation,
+                      MallocSizeOf      aMallocSizeOf)
+      : mLocation(aLocation)
+      , mMallocSizeOf(aMallocSizeOf)
+      , mSum(0)
+    { }
+
+    void Add(CachedSurface* aCachedSurface)
+    {
+      MOZ_ASSERT(aCachedSurface, "Should have a CachedSurface");
+
+      if (!aCachedSurface->mSurface) {
+        return;
+      }
+
+      mSum += aCachedSurface->mSurface->
+        SizeOfExcludingThisWithComputedFallbackIfHeap(mLocation, mMallocSizeOf);
+    }
+
+    size_t Result() const { return mSum; }
+
+  private:
+    gfxMemoryLocation mLocation;
+    MallocSizeOf      mMallocSizeOf;
+    size_t            mSum;
+  };
+
 private:
   nsExpirationState  mExpirationState;
   nsRefPtr<imgFrame> mSurface;
@@ -550,38 +580,53 @@ public:
   NS_IMETHOD
   CollectReports(nsIHandleReportCallback* aHandleReport,
                  nsISupports*             aData,
-                 bool                     aAnonymize)
+                 bool                     aAnonymize) MOZ_OVERRIDE
   {
+    
+    
+    
     nsresult rv;
 
-    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-total",
+    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-estimated-total",
                             KIND_OTHER, UNITS_BYTES,
-                            SizeOfSurfacesEstimate(),
-                            "Total memory used by the imagelib surface cache.");
+                            (mMaxCost - mAvailableCost),
+                            "Estimated total memory used by the imagelib "
+                            "surface cache.");
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-locked",
+    rv = MOZ_COLLECT_REPORT("imagelib-surface-cache-estimated-locked",
                             KIND_OTHER, UNITS_BYTES,
-                            SizeOfLockedSurfacesEstimate(),
-                            "Memory used by locked surfaces in the imagelib "
-                            "surface cache.");
+                            mLockedCost,
+                            "Estimated memory used by locked surfaces in the "
+                            "imagelib surface cache.");
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
   }
 
-  
-  
-  
-  
-  Cost SizeOfSurfacesEstimate() const
+  size_t SizeOfSurfaces(const ImageKey    aImageKey,
+                        gfxMemoryLocation aLocation,
+                        MallocSizeOf      aMallocSizeOf)
   {
-    return mMaxCost - mAvailableCost;
+    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
+    if (!cache) {
+      return 0;  
+    }
+
+    
+    CachedSurface::SizeOfSurfacesSum sum(aLocation, aMallocSizeOf);
+    cache->ForEach(DoSizeOfSurfacesSum, &sum);
+
+    return sum.Result();
   }
 
-  Cost SizeOfLockedSurfacesEstimate() const
+  static PLDHashOperator DoSizeOfSurfacesSum(const SurfaceKey&,
+                                             CachedSurface*    aSurface,
+                                             void*             aSum)
   {
-    return mLockedCost;
+    auto sum = static_cast<CachedSurface::SizeOfSurfacesSum*>(aSum);
+    sum->Add(aSurface);
+    return PL_DHASH_NEXT;
   }
 
 private:
@@ -625,7 +670,9 @@ private:
   {
     NS_DECL_ISUPPORTS
 
-    NS_IMETHOD Observe(nsISupports*, const char* aTopic, const char16_t*)
+    NS_IMETHOD Observe(nsISupports*,
+                       const char* aTopic,
+                       const char16_t*) MOZ_OVERRIDE
     {
       if (sInstance && strcmp(aTopic, "memory-pressure") == 0) {
         sInstance->DiscardForMemoryPressure();
@@ -794,6 +841,19 @@ SurfaceCache::DiscardAll()
   if (sInstance) {
     sInstance->DiscardAll();
   }
+}
+
+ size_t
+SurfaceCache::SizeOfSurfaces(const ImageKey    aImageKey,
+                             gfxMemoryLocation aLocation,
+                             MallocSizeOf      aMallocSizeOf)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    return 0;
+  }
+
+  return sInstance->SizeOfSurfaces(aImageKey, aLocation, aMallocSizeOf);
 }
 
 } 
