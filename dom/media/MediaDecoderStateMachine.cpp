@@ -805,7 +805,7 @@ MediaDecoderStateMachine::Push(VideoData* aSample)
 
 void
 MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
-                                       MediaDecoderReader::NotDecodedReason aReason)
+                                       RequestSampleCallback::NotDecodedReason aReason)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   SAMPLE_LOG("OnNotDecoded (aType=%u, aReason=%u)", aType, aReason);
@@ -820,7 +820,7 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
   }
 
   
-  if (aReason == MediaDecoderReader::DECODE_ERROR) {
+  if (aReason == RequestSampleCallback::DECODE_ERROR) {
     DecodeError();
     return;
   }
@@ -828,7 +828,7 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
   
   
   
-  if (aReason == MediaDecoderReader::WAITING_FOR_DATA) {
+  if (aReason == RequestSampleCallback::WAITING_FOR_DATA) {
     bool outOfSamples = isAudio ? !AudioQueue().GetSize() : !VideoQueue().GetSize();
     if (outOfSamples) {
       StartBuffering();
@@ -837,14 +837,14 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
     return;
   }
 
-  if (aReason == MediaDecoderReader::CANCELED) {
+  if (aReason == RequestSampleCallback::CANCELED) {
     DispatchDecodeTasksIfNeeded();
     return;
   }
 
   
   
-  MOZ_ASSERT(aReason == MediaDecoderReader::END_OF_STREAM);
+  MOZ_ASSERT(aReason == RequestSampleCallback::END_OF_STREAM);
   if (!isAudio && mState == DECODER_STATE_SEEKING &&
       mCurrentSeekTarget.IsValid() && mFirstVideoFrameAfterSeek) {
     

@@ -100,7 +100,7 @@ MediaSourceReader::RequestAudioData()
   MSE_DEBUGV("MediaSourceReader(%p)::RequestAudioData", this);
   if (!mAudioReader) {
     MSE_DEBUG("MediaSourceReader(%p)::RequestAudioData called with no audio reader", this);
-    GetCallback()->OnNotDecoded(MediaData::AUDIO_DATA, DECODE_ERROR);
+    GetCallback()->OnNotDecoded(MediaData::AUDIO_DATA, RequestSampleCallback::DECODE_ERROR);
     return;
   }
   mAudioIsSeeking = false;
@@ -139,7 +139,7 @@ MediaSourceReader::RequestVideoData(bool aSkipToNextKeyframe, int64_t aTimeThres
              this, aSkipToNextKeyframe, aTimeThreshold);
   if (!mVideoReader) {
     MSE_DEBUG("MediaSourceReader(%p)::RequestVideoData called with no video reader", this);
-    GetCallback()->OnNotDecoded(MediaData::VIDEO_DATA, DECODE_ERROR);
+    GetCallback()->OnNotDecoded(MediaData::VIDEO_DATA, RequestSampleCallback::DECODE_ERROR);
     return;
   }
   if (aSkipToNextKeyframe) {
@@ -177,16 +177,17 @@ MediaSourceReader::OnVideoDecoded(VideoData* aSample)
 }
 
 void
-MediaSourceReader::OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason)
+MediaSourceReader::OnNotDecoded(MediaData::Type aType, RequestSampleCallback::NotDecodedReason aReason)
 {
   MSE_DEBUG("MediaSourceReader(%p)::OnNotDecoded aType=%u aReason=%u IsEnded: %d", this, aType, aReason, IsEnded());
-  if (aReason == DECODE_ERROR || aReason == CANCELED) {
+  if (aReason == RequestSampleCallback::DECODE_ERROR ||
+      aReason == RequestSampleCallback::CANCELED) {
     GetCallback()->OnNotDecoded(aType, aReason);
     return;
   }
   
   
-  MOZ_ASSERT(aReason == END_OF_STREAM);
+  MOZ_ASSERT(aReason == RequestSampleCallback::END_OF_STREAM);
   nsRefPtr<MediaDecoderReader> reader = aType == MediaData::AUDIO_DATA ?
                                           mAudioReader : mVideoReader;
 
@@ -227,13 +228,13 @@ MediaSourceReader::OnNotDecoded(MediaData::Type aType, NotDecodedReason aReason)
 
   
   if (IsEnded()) {
-    GetCallback()->OnNotDecoded(aType, END_OF_STREAM);
+    GetCallback()->OnNotDecoded(aType, RequestSampleCallback::END_OF_STREAM);
     return;
   }
 
   
   
-  GetCallback()->OnNotDecoded(aType, WAITING_FOR_DATA);
+  GetCallback()->OnNotDecoded(aType, RequestSampleCallback::WAITING_FOR_DATA);
 }
 
 void
