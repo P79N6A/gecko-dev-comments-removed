@@ -246,7 +246,7 @@ UnwindScope(JSContext *cx, ScopeIter &si, jsbytecode *pc);
 
 
 extern void
-UnwindAllScopesInFrame(JSContext *cx, ScopeIter &si);
+UnwindAllScopes(JSContext *cx, ScopeIter &si);
 
 
 

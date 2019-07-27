@@ -146,33 +146,30 @@ AssertDynamicScopeMatchesStaticScope(JSContext *cx, JSScript *script, JSObject *
     for (StaticScopeIter<NoGC> i(enclosingScope); !i.done(); i++) {
         if (i.hasDynamicScopeObject()) {
             switch (i.type()) {
-              case StaticScopeIter<NoGC>::Function:
-                MOZ_ASSERT(scope->as<CallObject>().callee().nonLazyScript() == i.funScript());
-                scope = &scope->as<CallObject>().enclosingScope();
-                break;
-              case StaticScopeIter<NoGC>::Block:
+              case StaticScopeIter<NoGC>::BLOCK:
                 MOZ_ASSERT(&i.block() == scope->as<ClonedBlockObject>().staticScope());
                 scope = &scope->as<ClonedBlockObject>().enclosingScope();
                 break;
-              case StaticScopeIter<NoGC>::With:
+              case StaticScopeIter<NoGC>::WITH:
                 MOZ_ASSERT(&i.staticWith() == scope->as<DynamicWithObject>().staticScope());
                 scope = &scope->as<DynamicWithObject>().enclosingScope();
                 break;
-              case StaticScopeIter<NoGC>::NamedLambda:
-                scope = &scope->as<DeclEnvObject>().enclosingScope();
-                break;
-              case StaticScopeIter<NoGC>::Eval:
+              case StaticScopeIter<NoGC>::FUNCTION:
+                MOZ_ASSERT(scope->as<CallObject>().callee().nonLazyScript() == i.funScript());
                 scope = &scope->as<CallObject>().enclosingScope();
+                break;
+              case StaticScopeIter<NoGC>::NAMED_LAMBDA:
+                scope = &scope->as<DeclEnvObject>().enclosingScope();
                 break;
             }
         }
     }
 
     
-    
-    MOZ_ASSERT(!scope->is<ScopeObject>() ||
-               (scope->is<DynamicWithObject>() &&
-                !scope->as<DynamicWithObject>().isSyntactic()));
+
+
+
+
 #endif
 }
 
@@ -355,7 +352,7 @@ InterpreterFrame::markValues(JSTracer *trc, Value *sp, jsbytecode *pc)
     size_t nlivefixed = script->nbodyfixed();
 
     if (nfixed != nlivefixed) {
-        NestedScopeObject *staticScope = script->getStaticBlockScope(pc);
+        NestedScopeObject *staticScope = script->getStaticScope(pc);
         while (staticScope && !staticScope->is<StaticBlockObject>())
             staticScope = staticScope->enclosingNestedScope();
 

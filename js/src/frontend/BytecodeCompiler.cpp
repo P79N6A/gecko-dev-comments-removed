@@ -210,7 +210,6 @@ frontend::CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOp
 JSScript *
 frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject scopeChain,
                         HandleScript evalCaller,
-                        Handle<StaticEvalObject *> evalStaticScope,
                         const ReadOnlyCompileOptions &options,
                         SourceBufferHolder &srcBuf,
                         JSString *source_ ,
@@ -285,7 +284,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     GlobalSharedContext globalsc(cx, scopeChain, directives, options.extraWarningsOption);
 
     bool savedCallerFun = evalCaller && evalCaller->functionOrCallerFunction();
-    Rooted<JSScript*> script(cx, JSScript::Create(cx, evalStaticScope, savedCallerFun,
+    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), savedCallerFun,
                                                   options, staticLevel, sourceObject, 0,
                                                   srcBuf.length()));
     if (!script)
@@ -301,7 +300,7 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
     BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
                          js::NullPtr(), options.forEval,
-                        evalCaller, evalStaticScope, !!globalScope, options.lineno, emitterMode);
+                        evalCaller, !!globalScope, options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
 
@@ -517,7 +516,6 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const cha
 
     BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, lazy,
                         options.forEval,  js::NullPtr(),
-                         js::NullPtr(),
                          true, options.lineno,
                         BytecodeEmitter::LazyFunction);
     if (!bce.init())
@@ -649,7 +647,6 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
                                 js::NullPtr(),  false,
-                                js::NullPtr(),
                                 js::NullPtr(),
                                fun->environment() && fun->environment()->is<GlobalObject>(),
                                options.lineno);
