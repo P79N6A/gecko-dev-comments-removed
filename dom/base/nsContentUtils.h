@@ -1542,6 +1542,8 @@ public:
   static uint32_t MicroTaskLevel();
   static void SetMicroTaskLevel(uint32_t aLevel);
 
+  static void PerformMainThreadMicroTaskCheckpoint();
+
   
 
 

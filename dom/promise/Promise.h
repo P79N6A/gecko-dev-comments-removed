@@ -112,6 +112,9 @@ public:
                                            
 
   
+  static void PerformMicroTaskCheckpoint();
+
+  
 
   nsIGlobalObject* GetParentObject() const
   {
@@ -167,7 +170,7 @@ protected:
 
   
   static void
-  DispatchToMainOrWorkerThread(nsIRunnable* aRunnable);
+  DispatchToMicroTask(nsIRunnable* aRunnable);
 
   
   void CreateWrapper(ErrorResult& aRv);

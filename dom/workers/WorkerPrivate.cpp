@@ -49,6 +49,7 @@
 #include "mozilla/dom/MessageEvent.h"
 #include "mozilla/dom/MessageEventBinding.h"
 #include "mozilla/dom/MessagePortList.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/StructuredClone.h"
 #include "mozilla/dom/WorkerBinding.h"
@@ -4111,6 +4112,10 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
     
     MOZ_ALWAYS_TRUE(NS_ProcessNextEvent(mThread, false));
+
+    
+    
+    Promise::PerformMicroTaskCheckpoint();
 
     if (NS_HasPendingEvents(mThread)) {
       
