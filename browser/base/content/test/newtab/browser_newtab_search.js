@@ -206,6 +206,24 @@ function runTests() {
   is(searchBar.textbox.inputField, gWindow.document.activeElement, "Toolbar's search bar should be focused");
 
   
+  
+  yield addNewTabPageTab();
+  
+  CustomizableUI.removeWidgetFromArea("search-container");
+  NewTabUtils.allPages.enabled = false;
+  EventUtils.synthesizeKey("k", { accelKey: true });
+  let waitEvent = "AboutHomeLoadSnippetsCompleted";
+  yield promiseTabLoadEvent(gWindow.gBrowser.selectedTab, "about:home", waitEvent).then(TestRunner.next);
+
+  is(getContentDocument().documentURI.toLowerCase(), "about:home", "New tab's uri should be about:home");
+  let searchInput = getContentDocument().getElementById("searchText");
+  is(searchInput, getContentDocument().activeElement, "Search input must be the selected element");
+
+  NewTabUtils.allPages.enabled = true;
+  CustomizableUI.reset();
+  gBrowser.removeCurrentTab();
+
+  
   Services.search.currentEngine = oldCurrentEngine;
   yield promiseSearchEvents(["CurrentEngine"]).then(TestRunner.next);
 
@@ -413,4 +431,47 @@ function logoImg() {
 
 function gSearch() {
   return getContentWindow().gSearch;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseTabLoadEvent(tab, url, eventType="load") {
+  let deferred = Promise.defer();
+  info("Wait tab event: " + eventType);
+
+  function handle(event) {
+    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+        event.target.location.href == "about:blank" ||
+        (url && event.target.location.href != url)) {
+      info("Skipping spurious '" + eventType + "'' event" +
+           " for " + event.target.location.href);
+      return;
+    }
+    clearTimeout(timeout);
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    info("Tab event received: " + eventType);
+    deferred.resolve(event);
+  }
+
+  let timeout = setTimeout(() => {
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    deferred.reject(new Error("Timed out while waiting for a '" + eventType + "'' event"));
+  }, 20000);
+
+  tab.linkedBrowser.addEventListener(eventType, handle, true, true);
+  if (url)
+    tab.linkedBrowser.loadURI(url);
+  return deferred.promise;
 }
