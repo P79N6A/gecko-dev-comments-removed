@@ -69,23 +69,17 @@ let successfulPinningPageListener = {
 
 
 let certErrorProgressListener = {
-  buttonClicked: false,
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-      let self = this;
-      
-      executeSoon(function() {
-        let button =   content.document.getElementById("errorTryAgain");
-        
-        
-        if (button && !self.buttonClicked) {
-          gBrowser.removeProgressListener(self);
-          gBrowser.selectedBrowser.addEventListener("load",
-                                                    successfulPinningRemovalPageListener,
-                                                    true);
-          gBrowser.selectedBrowser.loadURI("https://" + kPinningDomain + kURLPath + "zeromaxagevalid");
-        }
-      });
+      let textElement = content.document.getElementById("errorShortDescText");
+      let text = textElement.innerHTML;
+      ok(text.indexOf("mozilla_pkix_error_key_pinning_failure") > 0,
+         "Got a pinning error page");
+      gBrowser.removeProgressListener(this);
+      gBrowser.selectedBrowser.addEventListener("load",
+                                                successfulPinningRemovalPageListener,
+                                                true);
+      gBrowser.selectedBrowser.loadURI("https://" + kPinningDomain + kURLPath + "zeromaxagevalid");
     }
   }
 };
