@@ -135,12 +135,11 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
   sourceRect.Round();
 
   
-  gfxMatrix transform =
+  Matrix matrix =
     gfxUtils::TransformRectToRect(sourceRect,
-                                  gfxPoint(aDestRect.x, aDestRect.y),
-                                  gfxPoint(aDestRect.XMost(), aDestRect.y),
-                                  gfxPoint(aDestRect.XMost(), aDestRect.YMost()));
-  Matrix matrix = ToMatrix(transform);
+                                  gfx::IntPoint(aDestRect.x, aDestRect.y),
+                                  gfx::IntPoint(aDestRect.XMost(), aDestRect.y),
+                                  gfx::IntPoint(aDestRect.XMost(), aDestRect.YMost()));
 
   
   gfx::Rect unitRect(0, 0, 1, 1);

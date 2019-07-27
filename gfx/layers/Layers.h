@@ -14,7 +14,6 @@
 #include "gfxContext.h"                 
 #include "gfxTypes.h"
 #include "gfxColor.h"                   
-#include "gfxMatrix.h"                  
 #include "GraphicsFilter.h"             
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
