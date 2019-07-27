@@ -440,7 +440,6 @@ void MediaDecoderStateMachine::SendStreamData()
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
   MOZ_ASSERT(!mAudioSink, "Should've been stopped in RunStateMachine()");
-  MOZ_ASSERT(mStreamStartTime != -1);
 
   DecodedStreamData* stream = GetDecodedStream();
 
@@ -2784,7 +2783,6 @@ int64_t MediaDecoderStateMachine::GetStreamClock() const
 {
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
-  MOZ_ASSERT(mStreamStartTime != -1);
   return mStreamStartTime + GetDecodedStream()->GetPosition();
 }
 
@@ -3367,9 +3365,6 @@ void MediaDecoderStateMachine::DispatchAudioCaptured()
     if (!self->mAudioCaptured) {
       
       self->StopAudioThread();
-      
-      
-      
       self->mStreamStartTime = self->GetMediaTime();
       
       
