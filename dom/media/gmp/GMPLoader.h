@@ -52,7 +52,7 @@ public:
   
   
   
-  virtual bool Load(const char* aLibPath,
+  virtual bool Load(const char* aUTF8LibPath,
                     uint32_t aLibPathLen,
                     char* aOriginSalt,
                     uint32_t aOriginSaltLen,
