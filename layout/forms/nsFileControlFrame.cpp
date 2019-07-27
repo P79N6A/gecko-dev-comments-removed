@@ -13,6 +13,7 @@
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/HTMLButtonElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/Preferences.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
@@ -66,10 +67,59 @@ nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   }
 
   nsContentUtils::DestroyAnonymousContent(&mTextContent);
-  nsContentUtils::DestroyAnonymousContent(&mBrowse);
+  nsContentUtils::DestroyAnonymousContent(&mBrowseDirs);
+  nsContentUtils::DestroyAnonymousContent(&mBrowseFiles);
 
   mMouseListener->ForgetFrame();
   nsBlockFrame::DestroyFrom(aDestructRoot);
+}
+
+static already_AddRefed<Element>
+MakeAnonButton(nsIDocument* aDoc, const char* labelKey,
+               HTMLInputElement* aInputElement,
+               const nsAString& aAccessKey)
+{
+  nsRefPtr<Element> button = aDoc->CreateHTMLElement(nsGkAtoms::button);
+  
+  
+  button->SetIsNativeAnonymousRoot();
+  button->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
+                  NS_LITERAL_STRING("button"), false);
+
+  
+  nsXPIDLString buttonTxt;
+  nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
+                                     labelKey, buttonTxt);
+
+  
+  
+  nsRefPtr<nsTextNode> textContent =
+    new nsTextNode(button->NodeInfo()->NodeInfoManager());
+
+  textContent->SetText(buttonTxt, false);
+
+  nsresult rv = button->AppendChildTo(textContent, false);
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  
+  
+  nsRefPtr<HTMLButtonElement> buttonElement =
+    HTMLButtonElement::FromContentOrNull(button);
+
+  if (!aAccessKey.IsEmpty()) {
+    buttonElement->SetAccessKey(aAccessKey);
+  }
+
+  
+  
+  
+  int32_t tabIndex;
+  aInputElement->GetTabIndex(&tabIndex);
+  buttonElement->SetTabIndex(tabIndex);
+
+  return button.forget();
 }
 
 nsresult
@@ -77,44 +127,34 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   nsCOMPtr<nsIDocument> doc = mContent->GetComposedDoc();
 
-  
-  mBrowse = doc->CreateHTMLElement(nsGkAtoms::button);
-  
-  
-  mBrowse->SetIsNativeAnonymousRoot();
-  mBrowse->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
-                   NS_LITERAL_STRING("button"), false);
+  nsIContent* content = GetContent();
+  bool isDirPicker = Preferences::GetBool("dom.input.dirpicker", false) &&
+                     content && content->HasAttr(kNameSpaceID_None, nsGkAtoms::directory);
 
-  
-  nsXPIDLString buttonTxt;
-  nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
-                                     "Browse", buttonTxt);
-
-  
-  
-  nsRefPtr<nsTextNode> textContent =
-    new nsTextNode(mBrowse->NodeInfo()->NodeInfoManager());
-
-  textContent->SetText(buttonTxt, false);
-
-  nsresult rv = mBrowse->AppendChildTo(textContent, false);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
   nsRefPtr<HTMLInputElement> fileContent = HTMLInputElement::FromContentOrNull(mContent);
-  nsRefPtr<HTMLButtonElement> browseControl = HTMLButtonElement::FromContentOrNull(mBrowse);
 
+  
+  
+  
   nsAutoString accessKey;
   fileContent->GetAccessKey(accessKey);
-  browseControl->SetAccessKey(accessKey);
 
-  int32_t tabIndex;
-  fileContent->GetTabIndex(&tabIndex);
-  browseControl->SetTabIndex(tabIndex);
-
-  if (!aElements.AppendElement(mBrowse)) {
+  mBrowseFiles = MakeAnonButton(doc, isDirPicker ? "ChooseFiles" : "Browse",
+                                fileContent, accessKey);
+  if (!mBrowseFiles || !aElements.AppendElement(mBrowseFiles)) {
     return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  if (isDirPicker) {
+    mBrowseDirs = MakeAnonButton(doc, "ChooseDirs", fileContent, EmptyString());
+    
+    
+    
+    mBrowseDirs->SetAttr(kNameSpaceID_None, nsGkAtoms::directory,
+                         EmptyString(), false);
+    if (!mBrowseDirs || !aElements.AppendElement(mBrowseDirs)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
   }
 
   
@@ -153,8 +193,12 @@ void
 nsFileControlFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
                                              uint32_t aFilter)
 {
-  if (mBrowse) {
-    aElements.AppendElement(mBrowse);
+  if (mBrowseFiles) {
+    aElements.AppendElement(mBrowseFiles);
+  }
+
+  if (mBrowseDirs) {
+    aElements.AppendElement(mBrowseDirs);
   }
 
   if (mTextContent) {
@@ -279,10 +323,17 @@ nsFileControlFrame::SyncDisabledState()
 {
   EventStates eventStates = mContent->AsElement()->State();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
-    mBrowse->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled, EmptyString(),
-                     true);
+    mBrowseFiles->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled, EmptyString(),
+                          true);
+    if (mBrowseDirs) {
+      mBrowseDirs->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled, EmptyString(),
+                           true);
+    }
   } else {
-    mBrowse->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
+    mBrowseFiles->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
+    if (mBrowseDirs) {
+      mBrowseDirs->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
+    }
   }
 }
 
@@ -293,11 +344,17 @@ nsFileControlFrame::AttributeChanged(int32_t  aNameSpaceID,
 {
   if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::tabindex) {
     if (aModType == nsIDOMMutationEvent::REMOVAL) {
-      mBrowse->UnsetAttr(aNameSpaceID, aAttribute, true);
+      mBrowseFiles->UnsetAttr(aNameSpaceID, aAttribute, true);
+      if (mBrowseDirs) {
+        mBrowseDirs->UnsetAttr(aNameSpaceID, aAttribute, true);
+      }
     } else {
       nsAutoString value;
       mContent->GetAttr(aNameSpaceID, aAttribute, value);
-      mBrowse->SetAttr(aNameSpaceID, aAttribute, value, true);
+      mBrowseFiles->SetAttr(aNameSpaceID, aAttribute, value, true);
+      if (mBrowseDirs) {
+        mBrowseDirs->SetAttr(aNameSpaceID, aAttribute, value, true);
+      }
     }
   }
 
