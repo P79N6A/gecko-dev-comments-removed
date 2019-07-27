@@ -363,9 +363,6 @@ private:
   
   bool mVisible : 1;
 
-  
-  
-  nsRefPtr<mozilla::dom::nsIContentParent> mContentParent;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
   uint64_t mChildID;
