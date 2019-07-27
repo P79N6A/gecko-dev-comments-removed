@@ -2,8 +2,12 @@
 
 
 
-#include "nsCOMPtr.h"
+
 #include "nsComboboxControlFrame.h"
+
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
+#include "nsCOMPtr.h"
 #include "nsFocusManager.h"
 #include "nsFormControlFrame.h"
 #include "nsGkAtoms.h"
@@ -43,6 +47,7 @@
 #include "mozilla/unused.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 NS_IMETHODIMP
 nsComboboxControlFrame::RedisplayTextEvent::Run()
@@ -1510,18 +1515,16 @@ void nsComboboxControlFrame::PaintFocus(nsRenderingContext& aRenderingContext,
   
   
 
-  aRenderingContext.SetLineStyle(nsLineStyle_kDotted);
-  aRenderingContext.SetColor(StyleColor()->mColor);
-
-  
-
+  StrokeOptions strokeOptions;
+  nsLayoutUtils::InitDashPattern(strokeOptions, NS_STYLE_BORDER_STYLE_DOTTED);
+  ColorPattern color(nsLayoutUtils::NSColorToColor(StyleColor()->mColor));
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
   clipRect.width -= onePixel;
   clipRect.height -= onePixel;
-  aRenderingContext.DrawLine(clipRect.TopLeft(), clipRect.TopRight());
-  aRenderingContext.DrawLine(clipRect.TopRight(), clipRect.BottomRight());
-  aRenderingContext.DrawLine(clipRect.BottomRight(), clipRect.BottomLeft());
-  aRenderingContext.DrawLine(clipRect.BottomLeft(), clipRect.TopLeft());
+  Rect r =
+    ToRect(nsLayoutUtils::RectToGfxRect(clipRect, PresContext()->AppUnitsPerDevPixel()));
+  StrokeSnappedEdgesOfRect(r, *aRenderingContext.GetDrawTarget(),
+                           color, strokeOptions);
 
   aRenderingContext.ThebesContext()->Restore();
 }
