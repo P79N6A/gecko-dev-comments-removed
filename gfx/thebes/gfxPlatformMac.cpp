@@ -469,12 +469,22 @@ public:
       
       
       if (CVDisplayLinkCreateWithActiveCGDisplays(&mDisplayLink) != kCVReturnSuccess) {
-        NS_WARNING("Could not create a display link, returning");
-        return;
+        NS_WARNING("Could not create a display link with all active displays. Falling back to main display\n");
+
+        
+        
+        
+        
+        
+        if (CVDisplayLinkCreateWithCGDisplay(CGMainDisplayID(), &mDisplayLink) != kCVReturnSuccess) {
+          MOZ_CRASH("Could not create a CVDisplayLink with either active displays or the main display");
+        }
+        NS_WARNING("Using the CVDisplayLink from the main display\n");
       }
 
       if (CVDisplayLinkSetOutputCallback(mDisplayLink, &VsyncCallback, this) != kCVReturnSuccess) {
         NS_WARNING("Could not set displaylink output callback");
+        mDisplayLink = nullptr;
         return;
       }
 
