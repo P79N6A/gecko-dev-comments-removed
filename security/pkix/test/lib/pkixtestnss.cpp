@@ -213,13 +213,6 @@ GenerateKeyPairInner()
   }
 
   abort();
-#if defined(_MSC_VER) && (_MSC_VER < 1700)
-  
-  
-  
-  
-  return nullptr;
-#endif
 }
 
 } 
