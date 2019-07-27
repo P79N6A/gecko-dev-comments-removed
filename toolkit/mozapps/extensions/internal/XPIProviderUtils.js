@@ -439,7 +439,7 @@ this.XPIDatabase = {
     let promise = this._deferredSave.saveChanges();
     if (!this._schemaVersionSet) {
       this._schemaVersionSet = true;
-      promise.then(
+      promise = promise.then(
         count => {
           
           
@@ -451,12 +451,17 @@ this.XPIDatabase = {
         error => {
           
           this._schemaVersionSet = false;
-          logger.warn("Failed to save XPI database", error);
           
           
           this._loadError = null;
+
+          throw error;
         });
     }
+
+    promise.catch(error => {
+      logger.warn("Failed to save XPI database", error);
+    });
   },
 
   flush: function() {
