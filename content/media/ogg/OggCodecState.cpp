@@ -297,7 +297,7 @@ TheoraState::DecodeHeader(ogg_packet* aPacket)
                                &mComment,
                                &mSetup,
                                aPacket);
- 
+
   
   
   
@@ -350,7 +350,7 @@ int64_t TheoraState::Time(th_info* aInfo, int64_t aGranulepos)
   }
   
   
-  int shift = aInfo->keyframe_granule_shift; 
+  int shift = aInfo->keyframe_granule_shift;
   ogg_int64_t iframe = aGranulepos >> shift;
   ogg_int64_t pframe = aGranulepos - (iframe << shift);
   int64_t frameno = iframe + pframe - TH_VERSION_CHECK(aInfo, 3, 2, 1);
@@ -380,7 +380,7 @@ TheoraState::MaxKeyframeOffset()
   
   
   int64_t frameDuration;
-  
+
   
   int64_t keyframeDiff = (1 << mInfo.keyframe_granule_shift) - 1;
 
@@ -724,7 +724,7 @@ nsresult VorbisState::ReconstructVorbisGranulepos()
     if (packet->e_o_s && packet->granulepos >= mGranulepos) {
        samples = packet->granulepos - mGranulepos;
     }
- 
+
     mGranulepos = packet->granulepos;
     RecordVorbisPacketSamples(packet, samples);
     return NS_OK;
@@ -1088,7 +1088,7 @@ SkeletonState::SkeletonState(ogg_page* aBosPage) :
 {
   MOZ_COUNT_CTOR(SkeletonState);
 }
- 
+
 SkeletonState::~SkeletonState()
 {
   MOZ_COUNT_DTOR(SkeletonState);
@@ -1223,11 +1223,11 @@ bool SkeletonState::DecodeIndex(ogg_packet* aPacket)
   {
     return (mActive = false);
   }
-  
+
   int64_t sizeofIndex = aPacket->bytes - INDEX_KEYPOINT_OFFSET;
   int64_t maxNumKeyPoints = sizeofIndex / MIN_KEY_POINT_SIZE;
   if (aPacket->bytes < minPacketSize.value() ||
-      numKeyPoints > maxNumKeyPoints || 
+      numKeyPoints > maxNumKeyPoints ||
       numKeyPoints < 0)
   {
     
@@ -1244,7 +1244,7 @@ bool SkeletonState::DecodeIndex(ogg_packet* aPacket)
   }
 
   nsAutoPtr<nsKeyFrameIndex> keyPoints(new nsKeyFrameIndex(startTime, endTime));
-  
+
   p = aPacket->packet + INDEX_KEYPOINT_OFFSET;
   const unsigned char* limit = aPacket->packet + aPacket->bytes;
   int64_t numKeyPointsRead = 0;
