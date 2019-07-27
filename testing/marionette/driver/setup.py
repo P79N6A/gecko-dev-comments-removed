@@ -1,13 +1,26 @@
+
+
+
+
+import os
+import re
 from setuptools import setup, find_packages
 
-version = '0.10'
+THIS_DIR = os.path.dirname(os.path.realpath(__name__))
 
 
-with open('requirements.txt') as f:
-    deps = f.read().splitlines()
+def read(*parts):
+    with open(os.path.join(THIS_DIR, *parts)) as f:
+        return f.read()
+
+
+def get_version():
+    return re.findall("__version__ = '([\d\.]+)'",
+                      read('marionette_driver', '__init__.py'), re.M)[0]
+
 
 setup(name='marionette_driver',
-      version=version,
+      version=get_version(),
       description="Marionette Driver",
       long_description='See http://marionette-driver.readthedocs.org/',
       classifiers=[],  
@@ -19,5 +32,5 @@ setup(name='marionette_driver',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      install_requires=deps,
+      install_requires=read('requirements.txt').splitlines(),
       )
