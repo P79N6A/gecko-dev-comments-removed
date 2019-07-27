@@ -923,18 +923,20 @@ class GCRuntime
     void sweepBackgroundThings(ZoneList &zones, LifoAlloc &freeBlocks, ThreadType threadType);
     void assertBackgroundSweepingFinished();
     bool shouldCompact();
+    IncrementalProgress beginCompactPhase();
     IncrementalProgress compactPhase(JS::gcreason::Reason reason);
+    void endCompactPhase(JS::gcreason::Reason reason);
     void sweepTypesAfterCompacting(Zone *zone);
     void sweepZoneAfterCompacting(Zone *zone);
-    ArenaHeader *relocateArenas(JS::gcreason::Reason reason);
-    void updateAllCellPointersParallel(MovingTracer *trc);
-    void updateAllCellPointersSerial(MovingTracer *trc);
-    void updatePointersToRelocatedCells();
-    void releaseRelocatedArenas(ArenaHeader *relocatedList);
-    void releaseRelocatedArenasWithoutUnlocking(ArenaHeader *relocatedList, const AutoLockGC& lock);
+    bool relocateArenas(Zone *zone, JS::gcreason::Reason reason);
+    void updateAllCellPointersParallel(MovingTracer *trc, Zone *zone);
+    void updateAllCellPointersSerial(MovingTracer *trc, Zone *zone);
+    void updatePointersToRelocatedCells(Zone *zone);
+    void releaseRelocatedArenas();
+    void releaseRelocatedArenasWithoutUnlocking(const AutoLockGC& lock);
 #ifdef DEBUG
-    void protectRelocatedArenas(ArenaHeader *relocatedList);
-    void unprotectRelocatedArenas(ArenaHeader *relocatedList);
+    void protectRelocatedArenas();
+    void unprotectRelocatedArenas();
 #endif
     void finishCollection(JS::gcreason::Reason reason);
 
@@ -1074,6 +1076,7 @@ class GCRuntime
 
     
     ZoneList backgroundSweepZones;
+
     
 
 
@@ -1104,6 +1107,13 @@ class GCRuntime
 
 
     js::gc::ArenaHeader *arenasAllocatedDuringSweep;
+
+    
+
+
+    bool startedCompacting;
+    js::gc::ZoneList zonesToMaybeCompact;
+    ArenaHeader* relocatedArenasToRelease;
 
 #ifdef JS_GC_MARKING_VALIDATION
     js::gc::MarkingValidator *markingValidator;
@@ -1239,9 +1249,6 @@ class GCRuntime
     int inUnsafeRegion;
 
     size_t noGCOrAllocationCheck;
-
-    ArenaHeader* relocatedArenasToRelease;
-
 #endif
 
     
