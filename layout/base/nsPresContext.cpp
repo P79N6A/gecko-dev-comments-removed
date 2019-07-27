@@ -2172,12 +2172,8 @@ nsPresContext::UserFontSetUpdated(gfxUserFontEntry* aUpdatedFont)
   
   
   
-
   if (UsesExChUnits()) {
-    
-    
-    PostRebuildAllStyleDataEvent(NS_STYLE_HINT_REFLOW, eRestyle_ForceDescendants);
-    return;
+    PostRebuildAllStyleDataEvent(nsChangeHint(0), eRestyle_ForceDescendants);
   }
 
   
