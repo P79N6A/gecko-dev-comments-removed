@@ -19,12 +19,9 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMOBILECONNECTIONSERVICE
 
-  static MobileConnectionIPCService*
-  GetSingleton();
-
-private:
   MobileConnectionIPCService();
 
+private:
   
   ~MobileConnectionIPCService();
 
