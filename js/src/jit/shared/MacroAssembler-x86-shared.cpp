@@ -12,6 +12,172 @@
 using namespace js;
 using namespace js::jit;
 
+
+void
+MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
+{
+    MOZ_ASSERT(input != ScratchDoubleReg);
+    Label positive, done;
+
+    
+    zeroDouble(ScratchDoubleReg);
+    branchDouble(DoubleGreaterThan, input, ScratchDoubleReg, &positive);
+    {
+        move32(Imm32(0), output);
+        jump(&done);
+    }
+
+    bind(&positive);
+
+    
+    loadConstantDouble(0.5, ScratchDoubleReg);
+    addDouble(ScratchDoubleReg, input);
+
+    Label outOfRange;
+
+    
+    
+    
+    vcvttsd2si(input, output);
+    branch32(Assembler::Above, output, Imm32(255), &outOfRange);
+    {
+        
+        convertInt32ToDouble(output, ScratchDoubleReg);
+        branchDouble(DoubleNotEqual, input, ScratchDoubleReg, &done);
+
+        
+        
+        and32(Imm32(~1), output);
+        jump(&done);
+    }
+
+    
+    bind(&outOfRange);
+    {
+        move32(Imm32(255), output);
+    }
+
+    bind(&done);
+}
+
+
+
+void
+MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
+{
+    mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
+
+    CodeLabel cl;
+    mov(cl.dest(), scratch);
+
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    asMasm().Push(Imm32(descriptor));
+    asMasm().Push(scratch);
+
+    bind(cl.src());
+    *offset = currentOffset();
+
+    MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
+    addCodeLabel(cl);
+}
+
+void
+MacroAssemblerX86Shared::callWithExitFrame(Label *target)
+{
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    asMasm().Push(Imm32(descriptor));
+    call(target);
+}
+
+void
+MacroAssemblerX86Shared::callWithExitFrame(JitCode *target)
+{
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    asMasm().Push(Imm32(descriptor));
+    call(target);
+}
+
+void
+MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
+void
+MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
+bool
+MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
+{
+    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
+    asMasm().Push(Imm32(descriptor));
+    asMasm().Push(ImmPtr(fakeReturnAddr));
+    return true;
+}
+
+void
+MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
+                                            Register scratch,
+                                            Label *label,
+                                            bool maybeNonZero)
+{
+    
+    
+
+#if defined(JS_CODEGEN_X86)
+    Label nonZero;
+
+    
+    if (maybeNonZero) {
+        
+        zeroDouble(ScratchDoubleReg);
+
+        
+        branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
+    }
+    
+    vmovmskpd(reg, scratch);
+
+    
+    
+    branchTest32(NonZero, scratch, Imm32(1), label);
+
+    bind(&nonZero);
+#elif defined(JS_CODEGEN_X64)
+    vmovq(reg, scratch);
+    cmpq(Imm32(1), scratch);
+    j(Overflow, label);
+#endif
+}
+
+void
+MacroAssemblerX86Shared::branchNegativeZeroFloat32(FloatRegister reg,
+                                                   Register scratch,
+                                                   Label *label)
+{
+    vmovd(reg, scratch);
+    cmp32(scratch, Imm32(1));
+    j(Overflow, label);
+}
+
+MacroAssembler &
+MacroAssemblerX86Shared::asMasm()
+{
+    return *static_cast<MacroAssembler *>(this);
+}
+
+const MacroAssembler &
+MacroAssemblerX86Shared::asMasm() const
+{
+    return *static_cast<const MacroAssembler *>(this);
+}
+
+
+
+
 void
 MacroAssembler::PushRegsInMask(RegisterSet set, FloatRegisterSet simdSet)
 {
@@ -128,153 +294,78 @@ MacroAssembler::PopRegsInMaskIgnore(RegisterSet set, RegisterSet ignore, FloatRe
     MOZ_ASSERT(diffG == 0);
 }
 
-
 void
-MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output)
+MacroAssembler::Push(const Operand op)
 {
-    MOZ_ASSERT(input != ScratchDoubleReg);
-    Label positive, done;
-
-    
-    zeroDouble(ScratchDoubleReg);
-    branchDouble(DoubleGreaterThan, input, ScratchDoubleReg, &positive);
-    {
-        move32(Imm32(0), output);
-        jump(&done);
-    }
-
-    bind(&positive);
-
-    
-    loadConstantDouble(0.5, ScratchDoubleReg);
-    addDouble(ScratchDoubleReg, input);
-
-    Label outOfRange;
-
-    
-    
-    
-    vcvttsd2si(input, output);
-    branch32(Assembler::Above, output, Imm32(255), &outOfRange);
-    {
-        
-        convertInt32ToDouble(output, ScratchDoubleReg);
-        branchDouble(DoubleNotEqual, input, ScratchDoubleReg, &done);
-
-        
-        
-        and32(Imm32(~1), output);
-        jump(&done);
-    }
-
-    
-    bind(&outOfRange);
-    {
-        move32(Imm32(255), output);
-    }
-
-    bind(&done);
-}
-
-
-
-void
-MacroAssemblerX86Shared::buildFakeExitFrame(Register scratch, uint32_t *offset)
-{
-    mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
-
-    CodeLabel cl;
-    mov(cl.dest(), scratch);
-
-    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
-    Push(Imm32(descriptor));
-    Push(scratch);
-
-    bind(cl.src());
-    *offset = currentOffset();
-
-    MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
-    addCodeLabel(cl);
+    push(op);
+    framePushed_ += sizeof(intptr_t);
 }
 
 void
-MacroAssemblerX86Shared::callWithExitFrame(Label *target)
+MacroAssembler::Push(Register reg)
 {
-    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
-    Push(Imm32(descriptor));
-    call(target);
+    push(reg);
+    framePushed_ += sizeof(intptr_t);
 }
 
 void
-MacroAssemblerX86Shared::callWithExitFrame(JitCode *target)
+MacroAssembler::Push(const Imm32 imm)
 {
-    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
-    Push(Imm32(descriptor));
-    call(target);
+    push(imm);
+    framePushed_ += sizeof(intptr_t);
 }
 
 void
-MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
+MacroAssembler::Push(const ImmWord imm)
 {
-    
+    push(imm);
+    framePushed_ += sizeof(intptr_t);
 }
 
 void
-MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive &aic)
+MacroAssembler::Push(const ImmPtr imm)
 {
-    
-}
-
-bool
-MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
-{
-    uint32_t descriptor = MakeFrameDescriptor(framePushed(), JitFrame_IonJS);
-    Push(Imm32(descriptor));
-    Push(ImmPtr(fakeReturnAddr));
-    return true;
+    Push(ImmWord(uintptr_t(imm.value)));
 }
 
 void
-MacroAssemblerX86Shared::branchNegativeZero(FloatRegister reg,
-                                            Register scratch,
-                                            Label *label,
-                                            bool maybeNonZero)
+MacroAssembler::Push(const ImmGCPtr ptr)
 {
-    
-    
-
-#if defined(JS_CODEGEN_X86)
-    Label nonZero;
-
-    
-    if (maybeNonZero) {
-        
-        zeroDouble(ScratchDoubleReg);
-
-        
-        branchDouble(DoubleNotEqual, reg, ScratchDoubleReg, &nonZero);
-    }
-    
-    vmovmskpd(reg, scratch);
-
-    
-    
-    branchTest32(NonZero, scratch, Imm32(1), label);
-
-    bind(&nonZero);
-#elif defined(JS_CODEGEN_X64)
-    vmovq(reg, scratch);
-    cmpq(Imm32(1), scratch);
-    j(Overflow, label);
-#endif
+    push(ptr);
+    framePushed_ += sizeof(intptr_t);
 }
 
 void
-MacroAssemblerX86Shared::branchNegativeZeroFloat32(FloatRegister reg,
-                                                   Register scratch,
-                                                   Label *label)
+MacroAssembler::Push(FloatRegister t)
 {
-    vmovd(reg, scratch);
-    cmp32(scratch, Imm32(1));
-    j(Overflow, label);
+    push(t);
+    framePushed_ += sizeof(double);
+}
+
+void
+MacroAssembler::Pop(const Operand op)
+{
+    pop(op);
+    framePushed_ -= sizeof(intptr_t);
+}
+
+void
+MacroAssembler::Pop(Register reg)
+{
+    pop(reg);
+    framePushed_ -= sizeof(intptr_t);
+}
+
+void
+MacroAssembler::Pop(FloatRegister reg)
+{
+    pop(reg);
+    framePushed_ -= sizeof(double);
+}
+
+void
+MacroAssembler::Pop(const ValueOperand &val)
+{
+    popValue(val);
+    framePushed_ -= sizeof(Value);
 }
