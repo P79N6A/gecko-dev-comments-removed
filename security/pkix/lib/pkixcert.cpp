@@ -79,9 +79,6 @@ BackCert::Init()
   if (rv != Success) {
     return rv;
   }
-  
-  
-  
   rv = der::ExpectTagAndGetValue(tbsCertificate, der::SEQUENCE, signature);
   if (rv != Success) {
     return rv;

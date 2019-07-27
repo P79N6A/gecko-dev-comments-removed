@@ -53,16 +53,18 @@ public:
   Result Init();
 
   const Input GetDER() const { return der; }
-  der::Version GetVersion() const { return version; }
   const der::SignedDataWithSignature& GetSignedData() const {
     return signedData;
   }
+
+  der::Version GetVersion() const { return version; }
+  const Input GetSerialNumber() const { return serialNumber; }
+  const Input GetSignature() const { return signature; }
   const Input GetIssuer() const { return issuer; }
   
   
   
   const Input GetValidity() const { return validity; }
-  const Input GetSerialNumber() const { return serialNumber; }
   const Input GetSubject() const { return subject; }
   const Input GetSubjectPublicKeyInfo() const
   {

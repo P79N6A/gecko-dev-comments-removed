@@ -111,6 +111,13 @@ SignatureAlgorithmIdentifierValue(Reader& input,
                                   PublicKeyAlgorithm& publicKeyAlgorithm,
                                   DigestAlgorithm& digestAlgorithm)
 {
+  
+  
+  
+  
+  
+  
+  
   Reader algorithmID;
   Result rv = AlgorithmIdentifierValue(input, algorithmID);
   if (rv != Success) {
@@ -165,15 +172,6 @@ SignatureAlgorithmIdentifierValue(Reader& input,
   static const uint8_t ecdsa_with_SHA1[] = {
     0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x01
   };
-
-  
-  
-  
-  
-  
-  
-  
-  
 
   
   

@@ -31,6 +31,58 @@ namespace mozilla { namespace pkix {
 
 
 
+
+Result
+CheckSignatureAlgorithm(Input signatureAlgorithmValue, Input signatureValue)
+{
+  
+  der::PublicKeyAlgorithm publicKeyAlg;
+  DigestAlgorithm digestAlg;
+  Reader signatureAlgorithmReader(signatureAlgorithmValue);
+  Result rv = der::SignatureAlgorithmIdentifierValue(signatureAlgorithmReader,
+                                                     publicKeyAlg, digestAlg);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(signatureAlgorithmReader);
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+  der::PublicKeyAlgorithm signedPublicKeyAlg;
+  DigestAlgorithm signedDigestAlg;
+  Reader signedSignatureAlgorithmReader(signatureValue);
+  rv = der::SignatureAlgorithmIdentifierValue(signedSignatureAlgorithmReader,
+                                              signedPublicKeyAlg,
+                                              signedDigestAlg);
+  if (rv != Success) {
+    return rv;
+  }
+  rv = der::End(signedSignatureAlgorithmReader);
+  if (rv != Success) {
+    return rv;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (publicKeyAlg != signedPublicKeyAlg || digestAlg != signedDigestAlg) {
+    return Result::ERROR_SIGNATURE_ALGORITHM_MISMATCH;
+  }
+
+  return Success;
+}
+
+
+
 Result
 CheckValidity(Input encodedValidity, Time time)
 {
@@ -735,18 +787,33 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   const EndEntityOrCA endEntityOrCA = cert.endEntityOrCA;
 
+  
+  
+  
   rv = trustDomain.GetCertTrust(endEntityOrCA, requiredPolicy, cert.GetDER(),
                                 trustLevel);
   if (rv != Success) {
     return rv;
   }
-  if (trustLevel == TrustLevel::ActivelyDistrusted) {
-    return Result::ERROR_UNTRUSTED_CERT;
-  }
-  if (trustLevel != TrustLevel::TrustAnchor &&
-      trustLevel != TrustLevel::InheritsTrust) {
-    
-    return Result::FATAL_ERROR_INVALID_STATE;
+
+  switch (trustLevel) {
+    case TrustLevel::InheritsTrust:
+      rv = CheckSignatureAlgorithm(cert.GetSignedData().algorithm,
+                                   cert.GetSignature());
+      if (rv != Success) {
+        return rv;
+      }
+      break;
+
+    case TrustLevel::TrustAnchor:
+      
+      
+      
+      
+      break;
+
+    case TrustLevel::ActivelyDistrusted:
+      return Result::ERROR_UNTRUSTED_CERT;
   }
 
   
