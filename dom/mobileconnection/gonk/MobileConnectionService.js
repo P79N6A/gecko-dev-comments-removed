@@ -299,6 +299,13 @@ MobileConnectionProvider.prototype = {
 
   _selectingNetwork: null,
 
+  
+
+
+
+  _expectedRadioState: RIL.GECKO_RADIOSTATE_UNKNOWN,
+  _hardwareRadioState: RIL.GECKO_RADIOSTATE_UNKNOWN,
+
   voice: null,
   data: null,
   networkSelectionMode: Ci.nsIMobileConnection.NETWORK_SELECTION_MODE_UNKNOWN,
@@ -581,12 +588,83 @@ MobileConnectionProvider.prototype = {
     }
   },
 
-  updateRadioState: function(aRadioState) {
-    if (this.radioState === aRadioState) {
+  updateRadioState: function(aMessage, aCallback = null) {
+    switch (aMessage.msgType) {
+      case "ExpectedRadioState":
+        this._expectedRadioState = aMessage.msgData;
+        break;
+      case "HardwareRadioState":
+        this._hardwareRadioState = aMessage.msgData;
+        break;
+      default:
+        if (DEBUG) this._debug("updateRadioState: Invalid message type");
+        return;
+    }
+
+    if (aMessage.msgType === "ExpectedRadioState" && aCallback &&
+        this._hardwareRadioState === this._expectedRadioState) {
+      
+      aCallback.notifySuccess();
       return;
     }
 
-    this.radioState = aRadioState;
+    let newState;
+    switch (this._expectedRadioState) {
+      case RIL.GECKO_RADIOSTATE_ENABLED:
+        newState = this._hardwareRadioState === this._expectedRadioState ?
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED :
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLING;
+        break;
+
+      case RIL.GECKO_RADIOSTATE_DISABLED:
+        newState = this._hardwareRadioState === this._expectedRadioState ?
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED :
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLING;
+        break;
+
+      default: 
+        switch (this._hardwareRadioState) {
+          case RIL.GECKO_RADIOSTATE_ENABLED:
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED;
+            break;
+          case RIL.GECKO_RADIOSTATE_DISABLED:
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED;
+            break;
+          default: 
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN;
+        }
+    }
+
+    
+    if (aMessage.msgType === "HardwareRadioState" &&
+        aMessage.msgData === RIL.GECKO_RADIOSTATE_UNKNOWN) {
+      
+      newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN;
+    }
+
+    if (newState === Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLING ||
+        newState === Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLING) {
+      let action = this._expectedRadioState === RIL.GECKO_RADIOSTATE_ENABLED;
+      this._radioInterface.sendWorkerMessage("setRadioEnabled",
+                                             {enabled: action},
+                                             function(aResponse) {
+        if (!aCallback) {
+          return false;
+        }
+        if (aResponse.errorMsg) {
+          aCallback.notifyError(aResponse.errorMsg);
+          return false;
+        }
+        aCallback.notifySuccess();
+        return false;
+      });
+    }
+
+    if (DEBUG) this._debug("Current Radio State is '" + newState + "'");
+    if (this.radioState === newState) {
+      return;
+    }
+    this.radioState = newState;
     this.deliverListenerEvent("notifyRadioStateChanged");
   },
 
@@ -944,17 +1022,27 @@ MobileConnectionProvider.prototype = {
   },
 
   setRadioEnabled: function(aEnabled, aCallback) {
-    this._radioInterface.sendWorkerMessage("setRadioEnabled",
-                                           {enabled: aEnabled},
-                                           (function(aResponse) {
-      if (aResponse.errorMsg) {
-        aCallback.notifyError(aResponse.errorMsg);
-        return true;
-      }
+    if (DEBUG) {
+      this._debug("setRadioEnabled: " + aEnabled);
+    }
 
-      aCallback.notifySuccess();
-      return true;
-    }).bind(this));
+    
+    switch (this.radioState) {
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN:
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED:
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED:
+        break;
+      default:
+        aCallback.notifyError("InvalidStateError");
+        return;
+    }
+
+    let message = {
+      msgType: "ExpectedRadioState",
+      msgData: (aEnabled ? RIL.GECKO_RADIOSTATE_ENABLED :
+                           RIL.GECKO_RADIOSTATE_DISABLED)
+    };
+    this.updateRadioState(message, aCallback);
   },
 
   getCellInfoList: function(aCallback) {
@@ -1134,7 +1222,11 @@ MobileConnectionService.prototype = {
       debug("notifyRadioStateChanged for " + aClientId + ": " + aRadioState);
     }
 
-    this.getItemByServiceId(aClientId).updateRadioState(aRadioState);
+    let message = {
+      msgType: "HardwareRadioState",
+      msgData: aRadioState
+    };
+    this.getItemByServiceId(aClientId).updateRadioState(message);
   },
 
   notifyNetworkInfoChanged: function(aClientId, aNetworkInfo) {
