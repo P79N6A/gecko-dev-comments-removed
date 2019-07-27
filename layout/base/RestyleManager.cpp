@@ -2440,16 +2440,26 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     RestyleResult result = RestyleResult(0);
 
+    nsRestyleHint thisRestyleHint = aRestyleHint;
+
     bool haveMoreContinuations = false;
-    for (nsIFrame* f = mFrame; f;
-         f = GetNextContinuationWithSameStyle(f, oldContext,
-                                              &haveMoreContinuations)) {
+    for (nsIFrame* f = mFrame; f; ) {
+      RestyleResult thisResult = RestyleSelf(f, thisRestyleHint);
 
-      RestyleResult thisResult = RestyleSelf(f, aRestyleHint);
+      if (thisResult != eRestyleResult_Stop) {
+        
+        
+        thisRestyleHint = nsRestyleHint(thisRestyleHint | eRestyle_Force);
 
-      
-      NS_ASSERTION(thisResult != eRestyleResult_Stop,
-                   "cannot handle eRestyleResult_Stop yet");
+        if (result == eRestyleResult_Stop) {
+          
+          
+          
+          result = thisResult;
+          f = mFrame;
+          continue;
+        }
+      }
 
       if (thisResult > result) {
         
@@ -2457,6 +2467,33 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         
         result = thisResult;
       }
+
+      f = GetNextContinuationWithSameStyle(f, oldContext,
+                                           &haveMoreContinuations);
+    }
+
+    if (result == eRestyleResult_Stop) {
+      MOZ_ASSERT(mFrame->StyleContext() == oldContext,
+                 "frame should have been left with its old style context");
+
+      nsStyleContext* newParent =
+        mFrame->GetParentStyleContextFrame()->StyleContext();
+
+      if (oldContext->GetParent() != newParent) {
+        
+        
+        
+        oldContext->MoveTo(newParent);
+      }
+
+      
+      
+      if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
+        InitializeAccessibilityNotifications();
+        SendAccessibilityNotifications();
+      }
+
+      return;
     }
 
     if (result == eRestyleResult_ContinueAndForceDescendants) {
