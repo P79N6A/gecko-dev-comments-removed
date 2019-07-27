@@ -646,6 +646,13 @@ public:
   
   bool IsBeingDestroyed();
 
+  IMPL_EVENT_HANDLER(mozinterruptbegin)
+  IMPL_EVENT_HANDLER(mozinterruptend)
+
+  
+  float ComputedVolume() const;
+  bool ComputedMuted() const;
+
 protected:
   virtual ~HTMLMediaElement();
 
