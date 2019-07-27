@@ -100,13 +100,37 @@ LIRGeneratorX86Shared::lowerForALU(LInstructionHelper<1, 2, 0> *ins, MDefinition
     return defineReuseInput(ins, mir, 0);
 }
 
+static bool
+UseAVXEncoding(MIRType type)
+{
+    if (!Assembler::HasAVX())
+        return false;
+
+    
+    
+    if (IsFloatingPointType(type))
+        return true;
+    if (IsSimdType(type) && IsFloatingPointType(SimdTypeToScalarType(type)))
+        return true;
+
+    return false;
+}
+
 template<size_t Temps>
 bool
 LIRGeneratorX86Shared::lowerForFPU(LInstructionHelper<1, 2, Temps> *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs)
 {
+    
+    
+    if (!UseAVXEncoding(mir->type())) {
+        ins->setOperand(0, useRegisterAtStart(lhs));
+        ins->setOperand(1, lhs != rhs ? use(rhs) : useAtStart(rhs));
+        return defineReuseInput(ins, mir, 0);
+    }
+
     ins->setOperand(0, useRegisterAtStart(lhs));
-    ins->setOperand(1, lhs != rhs ? use(rhs) : useAtStart(rhs));
-    return defineReuseInput(ins, mir, 0);
+    ins->setOperand(1, useAtStart(rhs));
+    return define(ins, mir);
 }
 
 template bool LIRGeneratorX86Shared::lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir,
