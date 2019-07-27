@@ -4782,6 +4782,11 @@ nsHttpChannel::GetSecurityInfo(nsISupports **securityInfo)
     return NS_OK;
 }
 
+
+
+
+
+
 NS_IMETHODIMP
 nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
 {
@@ -4857,6 +4862,9 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
 
 
 
+
+
+
 nsresult
 nsHttpChannel::BeginConnect()
 {
@@ -4881,14 +4889,12 @@ nsHttpChannel::BeginConnect()
     if (NS_SUCCEEDED(rv))
         rv = mURI->GetAsciiSpec(mSpec);
     if (NS_FAILED(rv)) {
-        AsyncAbort(rv);
         return rv;
     }
 
     
     if (host.IsEmpty()) {
         rv = NS_ERROR_MALFORMED_URI;
-        AsyncAbort(rv);
         return rv;
     }
     LOG(("host=%s port=%d\n", host.get(), port));
@@ -4964,7 +4970,6 @@ nsHttpChannel::BeginConnect()
     if (NS_SUCCEEDED(rv))
         rv = mAuthProvider->Init(this);
     if (NS_FAILED(rv)) {
-        AsyncAbort(rv);
         return rv;
     }
 
@@ -4977,11 +4982,7 @@ nsHttpChannel::BeginConnect()
     
     
     if (mAPIRedirectToURI) {
-        rv = AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
-        if (NS_FAILED(rv)) {
-            AsyncAbort(rv);
-        }
-        return rv;
+        return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
     }
     
     nsRefPtr<nsChannelClassifier> channelClassifier = new nsChannelClassifier();
@@ -5094,33 +5095,43 @@ nsHttpChannel::BeginConnect()
         }
         mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
     }
-    if (!(mLoadFlags & LOAD_CLASSIFY_URI)) {
-        
-        
-        return ContinueBeginConnect();
+
+    
+    
+    
+    if (mCanceled) {
+        return mStatus;
     }
+
+    if (!(mLoadFlags & LOAD_CLASSIFY_URI)) {
+        ContinueBeginConnect();
+        return NS_OK;
+    }
+
     
     
     
     
     bool callContinueBeginConnect = true;
-    if (mCanceled || !mLocalBlocklist) {
-       rv = ContinueBeginConnect();
-       if (NS_FAILED(rv)) {
-           
-           
-           return rv;
-       }
-       callContinueBeginConnect = false;
+    if (!mLocalBlocklist) {
+        
+        
+        
+        rv = ContinueBeginConnectWithResult();
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+        callContinueBeginConnect = false;
     }
     
     
     
     
-    if (!mCanceled) {
-        LOG(("nsHttpChannel::Starting nsChannelClassifier %p [this=%p]",
-           channelClassifier.get(), this));
-        channelClassifier->Start(this, callContinueBeginConnect);
+    LOG(("nsHttpChannel::Starting nsChannelClassifier %p [this=%p]",
+         channelClassifier.get(), this));
+    channelClassifier->Start(this);
+    if (callContinueBeginConnect) {
+        ContinueBeginConnect();
     }
     return NS_OK;
 }
@@ -5158,28 +5169,39 @@ nsHttpChannel::SetPriority(int32_t value)
     return NS_OK;
 }
 
-
-
-
-NS_IMETHODIMP
-nsHttpChannel::ContinueBeginConnect()
+nsresult
+nsHttpChannel::ContinueBeginConnectWithResult()
 {
-    LOG(("nsHttpChannel::ContinueBeginConnect [this=%p]", this));
+    LOG(("nsHttpChannel::ContinueBeginConnectWithResult [this=%p]", this));
+    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+
     nsresult rv;
-    
-    
-    
-    if (mCanceled) {
+
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async connect [this=%p]\n", this));
+        mCallOnResume = &nsHttpChannel::ContinueBeginConnect;
+        rv = NS_OK;
+    } else if (mCanceled) {
+        
+        
         rv = mStatus;
     } else {
         rv = Connect();
     }
+
+    LOG(("nsHttpChannel::ContinueBeginConnectWithResult result [this=%p rv=%x "
+         "mCanceled=%i]\n", this, rv, mCanceled));
+    return rv;
+}
+
+void
+nsHttpChannel::ContinueBeginConnect()
+{
+    nsresult rv = ContinueBeginConnectWithResult();
     if (NS_FAILED(rv)) {
-        LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
         CloseCacheEntry(true);
         AsyncAbort(rv);
     }
-    return rv;
 }
 
 
@@ -5232,14 +5254,13 @@ nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIChannel *channel,
         LOG(("nsHttpChannel::OnProxyAvailable [this=%p] "
              "Handler no longer active.\n", this));
         rv = NS_ERROR_NOT_AVAILABLE;
-        AsyncAbort(rv);
     }
     else {
-        
         rv = BeginConnect();
     }
 
     if (NS_FAILED(rv)) {
+        AsyncAbort(rv);
         Cancel(rv);
     }
     return rv;

@@ -22,9 +22,7 @@ public:
 
     
     
-    
-    
-    void Start(nsIChannel *aChannel, bool aContinueBeginConnect);
+    void Start(nsIChannel *aChannel);
     
     nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
 
@@ -34,7 +32,6 @@ private:
     
     bool mSuspendedChannel;
     nsCOMPtr<nsIChannel> mChannel;
-    nsCOMPtr<nsIHttpChannelInternal> mChannelInternal;
 
     ~nsChannelClassifier() {}
     
