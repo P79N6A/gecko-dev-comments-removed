@@ -1470,9 +1470,18 @@ struct nsStylePosition {
   }
 
   
+
   
 
+
+
+
   inline bool HasTransform(const nsIFrame* aContextFrame) const;
+
+  
+
+
+
 
   inline bool IsFixedPosContainingBlock(const nsIFrame* aContextFrame) const;
 
