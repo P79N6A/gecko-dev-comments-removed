@@ -2,6 +2,7 @@
 
 
 
+import os
 import unittest
 
 from mozunit import main
@@ -94,6 +95,110 @@ class TestContext(unittest.TestCase):
         test.update([('foo', 42), ('baz', [('c', 3), ('d', 4)])])
         self.assertEqual(test['foo'], 42)
         self.assertEqual(test['baz'], { 'c': 3, 'd': 4 })
+
+    def test_paths(self):
+        test = Context()
+
+        
+        self.assertIsNone(test.main_path)
+        self.assertIsNone(test.current_path)
+        self.assertEqual(test.all_paths, set())
+        self.assertEqual(test.source_stack, [])
+
+        foo = os.path.abspath('foo')
+        test.add_source(foo)
+
+        
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, foo)
+        self.assertEqual(test.all_paths, set([foo]))
+        self.assertEqual(test.source_stack, [foo])
+
+        bar = os.path.abspath('bar')
+        test.add_source(bar)
+
+        
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, foo)
+        self.assertEqual(test.all_paths, set([bar, foo]))
+        self.assertEqual(test.source_stack, [foo])
+
+        qux = os.path.abspath('qux')
+        test.push_source(qux)
+
+        
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, qux)
+        self.assertEqual(test.all_paths, set([bar, foo, qux]))
+        self.assertEqual(test.source_stack, [foo, qux])
+
+        hoge = os.path.abspath('hoge')
+        test.push_source(hoge)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, hoge)
+        self.assertEqual(test.all_paths, set([bar, foo, hoge, qux]))
+        self.assertEqual(test.source_stack, [foo, qux, hoge])
+
+        fuga = os.path.abspath('fuga')
+
+        
+        test.add_source(fuga)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, hoge)
+        self.assertEqual(test.all_paths, set([bar, foo, fuga, hoge, qux]))
+        self.assertEqual(test.source_stack, [foo, qux, hoge])
+
+        
+        test.add_source(qux)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, hoge)
+        self.assertEqual(test.all_paths, set([bar, foo, fuga, hoge, qux]))
+        self.assertEqual(test.source_stack, [foo, qux, hoge])
+
+        last = test.pop_source()
+
+        
+        self.assertEqual(last, hoge)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, qux)
+        self.assertEqual(test.all_paths, set([bar, foo, fuga, hoge, qux]))
+        self.assertEqual(test.source_stack, [foo, qux])
+
+        last = test.pop_source()
+        self.assertEqual(last, qux)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, foo)
+        self.assertEqual(test.all_paths, set([bar, foo, fuga, hoge, qux]))
+        self.assertEqual(test.source_stack, [foo])
+
+        
+        last = test.pop_source()
+        self.assertEqual(last, foo)
+        self.assertEqual(test.main_path, foo)
+        self.assertIsNone(test.current_path)
+        self.assertEqual(test.all_paths, set([bar, foo, fuga, hoge, qux]))
+        self.assertEqual(test.source_stack, [])
+
+        
+        with self.assertRaises(AssertionError):
+            test.pop_source()
+
+        
+        with self.assertRaises(AssertionError):
+            test.push_source(foo)
+
+        test = Context()
+        test.push_source(foo)
+        test.push_source(bar)
+
+        
+        test.push_source(bar)
+        test.push_source(foo)
+        self.assertEqual(last, foo)
+        self.assertEqual(test.main_path, foo)
+        self.assertEqual(test.current_path, foo)
+        self.assertEqual(test.all_paths, set([bar, foo]))
+        self.assertEqual(test.source_stack, [foo, bar, bar, foo])
 
 
 class TestSymbols(unittest.TestCase):

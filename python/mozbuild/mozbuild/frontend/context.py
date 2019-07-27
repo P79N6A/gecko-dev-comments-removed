@@ -78,18 +78,63 @@ class Context(KeyedDefaultDict):
     def __init__(self, allowed_variables={}, config=None):
         self._allowed_variables = allowed_variables
         self.main_path = None
-        self.all_paths = set()
+        self.current_path = None
+        
+        
+        self._all_paths = []
         self.config = config
         self.executed_time = 0
         KeyedDefaultDict.__init__(self, self._factory)
 
+    def push_source(self, path):
+        """Adds the given path as source of the data from this context and make
+        it the current path for the context."""
+        assert os.path.isabs(path)
+        if not self.main_path:
+            self.main_path = path
+        else:
+            
+            assert self.current_path
+        self.current_path = path
+        
+        
+        self._all_paths.append(path)
+
+    def pop_source(self):
+        """Get back to the previous current path for the context."""
+        assert self.main_path
+        assert self.current_path
+        last = self._all_paths.pop()
+        
+        
+        self._all_paths.insert(0, last)
+        if last == self.main_path:
+            self.current_path = None
+        else:
+            self.current_path = self._all_paths[-1]
+        return last
+
     def add_source(self, path):
         """Adds the given path as source of the data from this context."""
         assert os.path.isabs(path)
-
         if not self.main_path:
-            self.main_path = path
-        self.all_paths.add(path)
+            self.main_path = self.current_path = path
+        
+        
+        if path not in self._all_paths:
+            self._all_paths.insert(0, path)
+
+    @property
+    def all_paths(self):
+        """Returns all paths ever added to the context."""
+        return set(self._all_paths)
+
+    @property
+    def source_stack(self):
+        """Returns the current stack of pushed sources."""
+        if not self.current_path:
+            return []
+        return self._all_paths[self._all_paths.index(self.main_path):]
 
     @memoized_property
     def objdir(self):
