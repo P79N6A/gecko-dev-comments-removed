@@ -23,6 +23,8 @@
 
 
 
+gczeal(0);
+
 const debuggeree = newGlobal();
 const debuggee = debuggeree.debuggee = newGlobal();
 

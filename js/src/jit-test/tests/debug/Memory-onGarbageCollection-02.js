@@ -1,5 +1,7 @@
 
 
+gczeal(0);
+
 const root1 = newGlobal();
 const dbg1 = new Debugger();
 dbg1.addDebuggee(root1)
