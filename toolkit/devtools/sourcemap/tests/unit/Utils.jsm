@@ -582,7 +582,7 @@ define('lib/source-map/util', ['require', 'exports', 'module' , ], function(requ
       
       
       aRoot = aRoot.slice(0, index);
-      if (aRoot.match(/^([^\/]+:\/)?\/*$/)) {
+      if (aRoot.match(/^([^\/]+:\/)\/*$/)) {
         return aPath;
       }
 
@@ -613,6 +613,12 @@ define('lib/source-map/util', ['require', 'exports', 'module' , ], function(requ
   }
   exports.fromSetString = fromSetString;
 
+  function strcmp(aStr1, aStr2) {
+    var s1 = aStr1 || "";
+    var s2 = aStr2 || "";
+    return (s1 > s2) - (s1 < s2);
+  }
+
   
 
 
@@ -622,32 +628,34 @@ define('lib/source-map/util', ['require', 'exports', 'module' , ], function(requ
 
 
   function compareByOriginalPositions(mappingA, mappingB, onlyCompareOriginal) {
-    var cmp = mappingA.source - mappingB.source;
-    if (cmp !== 0) {
+    var cmp;
+
+    cmp = strcmp(mappingA.source, mappingB.source);
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalLine - mappingB.originalLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalColumn - mappingB.originalColumn;
-    if (cmp !== 0 || onlyCompareOriginal) {
+    if (cmp || onlyCompareOriginal) {
       return cmp;
     }
 
     cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.generatedLine - mappingB.generatedLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
-    return mappingA.name - mappingB.name;
+    return strcmp(mappingA.name, mappingB.name);
   };
   exports.compareByOriginalPositions = compareByOriginalPositions;
 
@@ -661,32 +669,34 @@ define('lib/source-map/util', ['require', 'exports', 'module' , ], function(requ
 
 
   function compareByGeneratedPositions(mappingA, mappingB, onlyCompareGenerated) {
-    var cmp = mappingA.generatedLine - mappingB.generatedLine;
-    if (cmp !== 0) {
+    var cmp;
+
+    cmp = mappingA.generatedLine - mappingB.generatedLine;
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-    if (cmp !== 0 || onlyCompareGenerated) {
+    if (cmp || onlyCompareGenerated) {
       return cmp;
     }
 
-    cmp = mappingA.source - mappingB.source;
-    if (cmp !== 0) {
+    cmp = strcmp(mappingA.source, mappingB.source);
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalLine - mappingB.originalLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalColumn - mappingB.originalColumn;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
-    return mappingA.name - mappingB.name;
+    return strcmp(mappingA.name, mappingB.name);
   };
   exports.compareByGeneratedPositions = compareByGeneratedPositions;
 

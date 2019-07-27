@@ -17,7 +17,6 @@
 
 this.EXPORTED_SYMBOLS = [ "SourceMapConsumer", "SourceMapGenerator", "SourceNode" ];
 
-Components.utils.import("resource://gre/modules/devtools/Console.jsm");
 Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 
 
@@ -25,13 +24,12 @@ Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 
 
 
-define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'source-map/util', 'source-map/binary-search', 'source-map/array-set', 'source-map/base64-vlq', 'source-map/quick-sort'], function(require, exports, module) {
+define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'source-map/util', 'source-map/binary-search', 'source-map/array-set', 'source-map/base64-vlq'], function(require, exports, module) {
 
   var util = require('source-map/util');
   var binarySearch = require('source-map/binary-search');
   var ArraySet = require('source-map/array-set').ArraySet;
   var base64VLQ = require('source-map/base64-vlq');
-  var quickSort = require('source-map/quick-sort').quickSort;
 
   function SourceMapConsumer(aSourceMap) {
     var sourceMap = aSourceMap;
@@ -87,6 +85,8 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
   Object.defineProperty(SourceMapConsumer.prototype, '_generatedMappings', {
     get: function () {
       if (!this.__generatedMappings) {
+        this.__generatedMappings = [];
+        this.__originalMappings = [];
         this._parseMappings(this._mappings, this.sourceRoot);
       }
 
@@ -98,6 +98,8 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
   Object.defineProperty(SourceMapConsumer.prototype, '_originalMappings', {
     get: function () {
       if (!this.__originalMappings) {
+        this.__generatedMappings = [];
+        this.__originalMappings = [];
         this._parseMappings(this._mappings, this.sourceRoot);
       }
 
@@ -105,8 +107,8 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
     }
   });
 
-  SourceMapConsumer.prototype._charIsMappingSeparator =
-    function SourceMapConsumer_charIsMappingSeparator(aStr, index) {
+  SourceMapConsumer.prototype._nextCharIsMappingSeparator =
+    function SourceMapConsumer_nextCharIsMappingSeparator(aStr, index) {
       var c = aStr.charAt(index);
       return c === ";" || c === ",";
     };
@@ -162,7 +164,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
       var sourceRoot = this.sourceRoot;
       mappings.map(function (mapping) {
-        var source = mapping.source === null ? null : this._sources.at(mapping.source);
+        var source = mapping.source;
         if (source != null && sourceRoot != null) {
           source = util.join(sourceRoot, source);
         }
@@ -172,9 +174,9 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
           generatedColumn: mapping.generatedColumn,
           originalLine: mapping.originalLine,
           originalColumn: mapping.originalColumn,
-          name: mapping.name === null ? null : this._names.at(mapping.name)
+          name: mapping.name
         };
-      }, this).forEach(aCallback, context);
+      }).forEach(aCallback, context);
     };
 
   
@@ -213,10 +215,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
       if (this.sourceRoot != null) {
         needle.source = util.relative(this.sourceRoot, needle.source);
       }
-      if (!this._sources.has(needle.source)) {
-        return [];
-      }
-      needle.source = this._sources.indexOf(needle.source);
 
       var mappings = [];
 
@@ -363,17 +361,9 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
       smc.file = aSourceMap._file;
 
       smc.__generatedMappings = aSourceMap._mappings.toArray().slice();
-      smc.__originalMappings = aSourceMap._mappings.toArray().slice().sort();
+      smc.__originalMappings = aSourceMap._mappings.toArray().slice()
+        .sort(util.compareByOriginalPositions);
 
-      smc.__generatedMappings.forEach(function (m) {
-        if (m.source !== null) {
-          m.source = smc._sources.indexOf(m.source);
-
-          if (m.name !== null) {
-            m.name = smc._names.indexOf(m.name);
-          }
-        }
-      });
       return smc;
     };
 
@@ -396,18 +386,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
   
 
 
-  function Mapping() {
-    this.generatedLine = 0;
-    this.generatedColumn = 0;
-    this.source = null;
-    this.originalLine = null;
-    this.originalColumn = null;
-    this.name = null;
-  }
-
-  
-
-
 
 
   BasicSourceMapConsumer.prototype._parseMappings =
@@ -420,23 +398,21 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
       var previousName = 0;
       var length = aStr.length;
       var index = 0;
-      var cachedSegments = {};
+      var cachedValues = {};
       var temp = {};
-      var originalMappings = [];
-      var generatedMappings = [];
-      var mapping, str, segment, end, value;
+      var mapping, str, values, end, value;
 
       while (index < length) {
         if (aStr.charAt(index) === ';') {
           generatedLine++;
-          index++;
+          ++index;
           previousGeneratedColumn = 0;
         }
         else if (aStr.charAt(index) === ',') {
-          index++;
+          ++index;
         }
         else {
-          mapping = new Mapping();
+          mapping = {};
           mapping.generatedLine = generatedLine;
 
           
@@ -444,74 +420,68 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
           
           
           
-          for (end = index; end < length; end++) {
-            if (this._charIsMappingSeparator(aStr, end)) {
+          for (end = index; end < length; ++end) {
+            if (this._nextCharIsMappingSeparator(aStr, end)) {
               break;
             }
           }
           str = aStr.slice(index, end);
 
-          segment = cachedSegments[str];
-          if (segment) {
+          values = cachedValues[str];
+          if (values) {
             index += str.length;
           } else {
-            segment = [];
+            values = [];
             while (index < end) {
               base64VLQ.decode(aStr, index, temp);
               value = temp.value;
               index = temp.rest;
-              segment.push(value);
+              values.push(value);
             }
-
-            if (segment.length === 2) {
-              throw new Error('Found a source, but no line and column');
-            }
-
-            if (segment.length === 3) {
-              throw new Error('Found a source and line, but no column');
-            }
-
-            cachedSegments[str] = segment;
+            cachedValues[str] = values;
           }
 
           
-          mapping.generatedColumn = previousGeneratedColumn + segment[0];
+          mapping.generatedColumn = previousGeneratedColumn + values[0];
           previousGeneratedColumn = mapping.generatedColumn;
 
-          if (segment.length > 1) {
+          if (values.length > 1) {
             
-            mapping.source = previousSource + segment[1];
-            previousSource += segment[1];
+            mapping.source = this._sources.at(previousSource + values[1]);
+            previousSource += values[1];
+            if (values.length === 2) {
+              throw new Error('Found a source, but no line and column');
+            }
 
             
-            mapping.originalLine = previousOriginalLine + segment[2];
+            mapping.originalLine = previousOriginalLine + values[2];
             previousOriginalLine = mapping.originalLine;
             
             mapping.originalLine += 1;
+            if (values.length === 3) {
+              throw new Error('Found a source and line, but no column');
+            }
 
             
-            mapping.originalColumn = previousOriginalColumn + segment[3];
+            mapping.originalColumn = previousOriginalColumn + values[3];
             previousOriginalColumn = mapping.originalColumn;
 
-            if (segment.length > 4) {
+            if (values.length > 4) {
               
-              mapping.name = previousName + segment[4];
-              previousName += segment[4];
+              mapping.name = this._names.at(previousName + values[4]);
+              previousName += values[4];
             }
           }
 
-          generatedMappings.push(mapping);
+          this.__generatedMappings.push(mapping);
           if (typeof mapping.originalLine === 'number') {
-            originalMappings.push(mapping);
+            this.__originalMappings.push(mapping);
           }
         }
       }
 
-      quickSort(generatedMappings, util.compareByGeneratedPositions);
-      this.__generatedMappings = generatedMappings;
-
-      quickSort(originalMappings, util.compareByOriginalPositions);
-      this.__originalMappings = originalMappings;
+      this.__generatedMappings.sort(util.compareByGeneratedPositions);
+      this.__originalMappings.sort(util.compareByOriginalPositions);
     };
 
   
@@ -606,21 +576,14 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
         if (mapping.generatedLine === needle.generatedLine) {
           var source = util.getArg(mapping, 'source', null);
-          if (source !== null) {
-            source = this._sources.at(source);
-            if (this.sourceRoot != null) {
-              source = util.join(this.sourceRoot, source);
-            }
-          }
-          var name = util.getArg(mapping, 'name', null);
-          if (name !== null) {
-            name = this._names.at(name);
+          if (source != null && this.sourceRoot != null) {
+            source = util.join(this.sourceRoot, source);
           }
           return {
             source: source,
             line: util.getArg(mapping, 'originalLine', null),
             column: util.getArg(mapping, 'originalColumn', null),
-            name: name
+            name: util.getArg(mapping, 'name', null)
           };
         }
       }
@@ -631,19 +594,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         column: null,
         name: null
       };
-    };
-
-  
-
-
-
-  BasicSourceMapConsumer.prototype.hasContentsOfAllSources =
-    function BasicSourceMapConsumer_hasContentsOfAllSources() {
-      if (!this.sourcesContent) {
-        return false;
-      }
-      return this.sourcesContent.length >= this._sources.size() &&
-        !this.sourcesContent.some(function (sc) { return sc == null; });
     };
 
   
@@ -717,24 +667,15 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
   BasicSourceMapConsumer.prototype.generatedPositionFor =
     function SourceMapConsumer_generatedPositionFor(aArgs) {
-      var source = util.getArg(aArgs, 'source');
-      if (this.sourceRoot != null) {
-        source = util.relative(this.sourceRoot, source);
-      }
-      if (!this._sources.has(source)) {
-        return {
-          line: null,
-          column: null,
-          lastColumn: null
-        };
-      }
-      source = this._sources.indexOf(source);
-
       var needle = {
-        source: source,
+        source: util.getArg(aArgs, 'source'),
         originalLine: util.getArg(aArgs, 'line'),
         originalColumn: util.getArg(aArgs, 'column')
       };
+
+      if (this.sourceRoot != null) {
+        needle.source = util.relative(this.sourceRoot, needle.source);
+      }
 
       var index = this._findMapping(
         needle,
@@ -823,9 +764,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
     if (version != this._version) {
       throw new Error('Unsupported version: ' + version);
     }
-
-    this._sources = new ArraySet();
-    this._names = new ArraySet();
 
     var lastOffset = {
       line: -1,
@@ -942,17 +880,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
 
 
 
-  IndexedSourceMapConsumer.prototype.hasContentsOfAllSources =
-    function IndexedSourceMapConsumer_hasContentsOfAllSources() {
-      return this._sections.every(function (s) {
-        return s.consumer.hasContentsOfAllSources();
-      });
-    };
-
-  
-
-
-
 
   IndexedSourceMapConsumer.prototype.sourceContentFor =
     function IndexedSourceMapConsumer_sourceContentFor(aSource, nullOnMissing) {
@@ -1031,16 +958,12 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         for (var j = 0; j < sectionMappings.length; j++) {
           var mapping = sectionMappings[i];
 
-          var source = section.consumer._sources.at(mapping.source);
-          if (section.consumer.sourceRoot !== null) {
-            source = util.join(section.consumer.sourceRoot, source);
-          }
-          this._sources.add(source);
-          source = this._sources.indexOf(source);
+          var source = mapping.source;
+          var sourceRoot = section.consumer.sourceRoot;
 
-          var name = section.consumer._names.at(mapping.name);
-          this._names.add(name);
-          name = this._names.indexOf(name);
+          if (source != null && sourceRoot != null) {
+            source = util.join(sourceRoot, source);
+          }
 
           
           
@@ -1056,7 +979,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
               : 0,
             originalLine: mapping.originalLine,
             originalColumn: mapping.originalColumn,
-            name: name
+            name: mapping.name
           };
 
           this.__generatedMappings.push(adjustedMapping);
@@ -1066,9 +989,9 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' ,  'sou
         };
       };
 
-      quickSort(this.__generatedMappings, util.compareByGeneratedPositions);
-      quickSort(this.__originalMappings, util.compareByOriginalPositions);
-    };
+    this.__generatedMappings.sort(util.compareByGeneratedPositions);
+    this.__originalMappings.sort(util.compareByOriginalPositions);
+  };
 
   exports.IndexedSourceMapConsumer = IndexedSourceMapConsumer;
 
@@ -1285,7 +1208,7 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
       
       
       aRoot = aRoot.slice(0, index);
-      if (aRoot.match(/^([^\/]+:\/)?\/*$/)) {
+      if (aRoot.match(/^([^\/]+:\/)\/*$/)) {
         return aPath;
       }
 
@@ -1316,6 +1239,12 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
   }
   exports.fromSetString = fromSetString;
 
+  function strcmp(aStr1, aStr2) {
+    var s1 = aStr1 || "";
+    var s2 = aStr2 || "";
+    return (s1 > s2) - (s1 < s2);
+  }
+
   
 
 
@@ -1325,32 +1254,34 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
 
 
   function compareByOriginalPositions(mappingA, mappingB, onlyCompareOriginal) {
-    var cmp = mappingA.source - mappingB.source;
-    if (cmp !== 0) {
+    var cmp;
+
+    cmp = strcmp(mappingA.source, mappingB.source);
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalLine - mappingB.originalLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalColumn - mappingB.originalColumn;
-    if (cmp !== 0 || onlyCompareOriginal) {
+    if (cmp || onlyCompareOriginal) {
       return cmp;
     }
 
     cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.generatedLine - mappingB.generatedLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
-    return mappingA.name - mappingB.name;
+    return strcmp(mappingA.name, mappingB.name);
   };
   exports.compareByOriginalPositions = compareByOriginalPositions;
 
@@ -1364,32 +1295,34 @@ define('source-map/util', ['require', 'exports', 'module' , ], function(require,
 
 
   function compareByGeneratedPositions(mappingA, mappingB, onlyCompareGenerated) {
-    var cmp = mappingA.generatedLine - mappingB.generatedLine;
-    if (cmp !== 0) {
+    var cmp;
+
+    cmp = mappingA.generatedLine - mappingB.generatedLine;
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.generatedColumn - mappingB.generatedColumn;
-    if (cmp !== 0 || onlyCompareGenerated) {
+    if (cmp || onlyCompareGenerated) {
       return cmp;
     }
 
-    cmp = mappingA.source - mappingB.source;
-    if (cmp !== 0) {
+    cmp = strcmp(mappingA.source, mappingB.source);
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalLine - mappingB.originalLine;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
     cmp = mappingA.originalColumn - mappingB.originalColumn;
-    if (cmp !== 0) {
+    if (cmp) {
       return cmp;
     }
 
-    return mappingA.name - mappingB.name;
+    return strcmp(mappingA.name, mappingB.name);
   };
   exports.compareByGeneratedPositions = compareByGeneratedPositions;
 
@@ -1538,16 +1471,6 @@ define('source-map/array-set', ['require', 'exports', 'module' ,  'source-map/ut
       set.add(aArray[i], aAllowDuplicates);
     }
     return set;
-  };
-
-  
-
-
-
-
-
-  ArraySet.prototype.size = function ArraySet_size() {
-    return Object.getOwnPropertyNames(this._set).length;
   };
 
   
@@ -1738,12 +1661,7 @@ define('source-map/base64-vlq', ['require', 'exports', 'module' ,  'source-map/b
       if (aIndex >= strLen) {
         throw new Error("Expected more digits in base 64 VLQ value.");
       }
-
-      digit = base64.decode(aStr.charCodeAt(aIndex++));
-      if (digit === -1) {
-        throw new Error("Invalid base64 digit: " + aStr.charAt(aIndex - 1));
-      }
-
+      digit = base64.decode(aStr.charAt(aIndex++));
       continuation = !!(digit & VLQ_CONTINUATION_BIT);
       digit &= VLQ_BASE_MASK;
       result = result + (digit << shift);
@@ -1763,14 +1681,22 @@ define('source-map/base64-vlq', ['require', 'exports', 'module' ,  'source-map/b
 
 define('source-map/base64', ['require', 'exports', 'module' , ], function(require, exports, module) {
 
-  var intToCharMap = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
+  var charToIntMap = {};
+  var intToCharMap = {};
+
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    .split('')
+    .forEach(function (ch, index) {
+      charToIntMap[ch] = index;
+      intToCharMap[index] = ch;
+    });
 
   
 
 
-  exports.encode = function (number) {
-    if (0 <= number && number < intToCharMap.length) {
-      return intToCharMap[number];
+  exports.encode = function base64_encode(aNumber) {
+    if (aNumber in intToCharMap) {
+      return intToCharMap[aNumber];
     }
     throw new TypeError("Must be between 0 and 63: " + aNumber);
   };
@@ -1778,167 +1704,11 @@ define('source-map/base64', ['require', 'exports', 'module' , ], function(requir
   
 
 
-
-  exports.decode = function (charCode) {
-    var bigA = 65;     
-    var bigZ = 90;     
-
-    var littleA = 97;  
-    var littleZ = 122; 
-
-    var zero = 48;     
-    var nine = 57;     
-
-    var plus = 43;     
-    var slash = 47;    
-
-    var littleOffset = 26;
-    var numberOffset = 52;
-
-    
-    if (bigA <= charCode && charCode <= bigZ) {
-      return (charCode - bigA);
+  exports.decode = function base64_decode(aChar) {
+    if (aChar in charToIntMap) {
+      return charToIntMap[aChar];
     }
-
-    
-    if (littleA <= charCode && charCode <= littleZ) {
-      return (charCode - littleA + littleOffset);
-    }
-
-    
-    if (zero <= charCode && charCode <= nine) {
-      return (charCode - zero + numberOffset);
-    }
-
-    
-    if (charCode == plus) {
-      return 62;
-    }
-
-    
-    if (charCode == slash) {
-      return 63;
-    }
-
-    
-    return -1;
-  };
-
-});
-
-
-
-
-
-
-define('source-map/quick-sort', ['require', 'exports', 'module' , ], function(require, exports, module) {
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-
-
-
-
-
-
-
-
-
-  function swap(ary, x, y) {
-    var temp = ary[x];
-    ary[x] = ary[y];
-    ary[y] = temp;
-  }
-
-  
-
-
-
-
-
-
-
-  function randomIntInRange(low, high) {
-    return Math.round(low + (Math.random() * (high - low)));
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  function doQuickSort(ary, comparator, p, r) {
-    
-    
-    
-
-    if (p < r) {
-      
-      
-      
-      
-      
-      
-      
-      
-
-      
-      
-      var pivotIndex = randomIntInRange(p, r);
-      var i = p - 1;
-
-      swap(ary, pivotIndex, r);
-      var pivot = ary[r];
-
-      
-      
-      
-      
-      
-      
-      for (var j = p; j < r; j++) {
-        if (comparator(ary[j], pivot) <= 0) {
-          i += 1;
-          swap(ary, i, j);
-        }
-      }
-
-      swap(ary, i + 1, j);
-      var q = i + 1;
-
-      
-
-      doQuickSort(ary, comparator, p, q - 1);
-      doQuickSort(ary, comparator, q + 1, r);
-    }
-  }
-
-  
-
-
-
-
-
-
-
-  exports.quickSort = function (ary, comparator) {
-    doQuickSort(ary, comparator, 0, ary.length - 1);
+    throw new TypeError("Not a valid base 64 digit: " + aChar);
   };
 
 });
