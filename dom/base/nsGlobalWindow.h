@@ -492,7 +492,9 @@ public:
   virtual bool DispatchCustomEvent(const nsAString& aEventName);
   bool DispatchResizeEvent(const mozilla::CSSIntSize& aSize);
 
+  
   virtual void RefreshCompartmentPrincipal();
+
   virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust);
 
   
