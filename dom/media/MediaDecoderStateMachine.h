@@ -145,8 +145,6 @@ public:
     DECODER_STATE_ERROR
   };
 
-  DecodedStreamData* GetDecodedStream() const;
-
   void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
 
   
@@ -159,11 +157,6 @@ private:
   void InitializationTask();
 
   void DispatchAudioCaptured();
-
-  
-  
-  
-  void RecreateDecodedStream(MediaStreamGraph* aGraph);
 
   void Shutdown();
 public:
@@ -320,7 +313,7 @@ public:
     if (mReader) {
       mReader->BreakCycles();
     }
-    mDecodedStream.DestroyData();
+    mDecodedStream->DestroyData();
     mDecoder = nullptr;
   }
 
@@ -1356,7 +1349,7 @@ protected:
   
   
   
-  DecodedStream mDecodedStream;
+  nsRefPtr<DecodedStream> mDecodedStream;
 };
 
 } 

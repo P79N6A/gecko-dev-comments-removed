@@ -64,6 +64,9 @@ protected:
   
   
   bool mFallbackToStateMachine;
+
+  
+  bool mIsCaptured;
 };
 
 } 
