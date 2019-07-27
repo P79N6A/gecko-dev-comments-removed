@@ -151,11 +151,9 @@ ComputeViewTransform(const FrameMetrics& aContentMetrics, const FrameMetrics& aC
   
   
 
-  LayerToParentLayerScale scale(aCompositorMetrics.mPresShellResolution
-                                * aCompositorMetrics.GetAsyncZoom().scale);
   ParentLayerPoint translation = (aCompositorMetrics.GetScrollOffset() - aContentMetrics.GetScrollOffset())
                                * aCompositorMetrics.GetZoom();
-  return ViewTransform(scale, -translation);
+  return ViewTransform(aCompositorMetrics.GetAsyncZoom(), -translation);
 }
 
 bool
@@ -1323,28 +1321,13 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 
 
 
-
 static LayerRect
 GetCompositorSideCompositionBounds(const LayerMetricsWrapper& aScrollAncestor,
                                    const Matrix4x4& aTransformToCompBounds,
                                    const ViewTransform& aAPZTransform)
 {
-  Matrix4x4 nonTransientAPZUntransform = Matrix4x4::Scaling(
-    aScrollAncestor.Metrics().mPresShellResolution,
-    aScrollAncestor.Metrics().mPresShellResolution,
-    1.f);
-  nonTransientAPZUntransform.Invert();
-
-  
-  
-  
-  
-  Matrix4x4 transform = aTransformToCompBounds
-                      * nonTransientAPZUntransform
-                      * Matrix4x4(aAPZTransform);
-  transform.Invert();
-
-  return TransformTo<LayerPixel>(transform,
+  Matrix4x4 transform = aTransformToCompBounds * Matrix4x4(aAPZTransform);
+  return TransformTo<LayerPixel>(transform.Inverse(),
             aScrollAncestor.Metrics().mCompositionBounds);
 }
 

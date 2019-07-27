@@ -2639,19 +2639,10 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() const {
     }
   }
 
-  LayerToParentLayerScale scale(mFrameMetrics.mPresShellResolution      
-                                * mFrameMetrics.GetAsyncZoom().scale);  
   ParentLayerPoint translation = (currentScrollOffset - lastPaintScrollOffset)
                                * mFrameMetrics.GetZoom();
 
-  return ViewTransform(scale, -translation);
-}
-
-Matrix4x4 AsyncPanZoomController::GetNontransientAsyncTransform() const {
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  return Matrix4x4::Scaling(mLastContentPaintMetrics.mPresShellResolution,
-                            mLastContentPaintMetrics.mPresShellResolution,
-                            1.0f);
+  return ViewTransform(mFrameMetrics.GetAsyncZoom(), -translation);
 }
 
 Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() const {
@@ -2660,16 +2651,7 @@ Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() const {
   LayerPoint scrollChange =
     (mLastContentPaintMetrics.GetScrollOffset() - mLastDispatchedPaintMetrics.GetScrollOffset())
     * mLastContentPaintMetrics.GetDevPixelsPerCSSPixel()
-    * mLastContentPaintMetrics.GetCumulativeResolution()
-      
-      
-      
-      
-      
-      
-      
-      
-    / mLastContentPaintMetrics.mPresShellResolution;
+    * mLastContentPaintMetrics.GetCumulativeResolution();
 
   float zoomChange = mLastContentPaintMetrics.GetZoom().scale / mLastDispatchedPaintMetrics.GetZoom().scale;
 

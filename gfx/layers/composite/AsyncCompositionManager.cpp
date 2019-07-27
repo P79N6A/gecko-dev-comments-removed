@@ -695,8 +695,6 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   AsyncPanZoomController* apzc = aContent.GetApzc();
 
   Matrix4x4 asyncTransform = apzc->GetCurrentAsyncTransform();
-  Matrix4x4 nontransientTransform = apzc->GetNontransientAsyncTransform();
-  Matrix4x4 transientTransform = nontransientTransform.Inverse() * asyncTransform;
 
   
   
@@ -724,16 +722,16 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       
       scale *= metrics.mPresShellResolution;
     }
-    scrollbarTransform.PostScale(1.f, 1.f / transientTransform._22, 1.f);
-    scrollbarTransform.PostTranslate(0, -transientTransform._42 * scale, 0);
+    scrollbarTransform.PostScale(1.f, 1.f / asyncTransform._22, 1.f);
+    scrollbarTransform.PostTranslate(0, -asyncTransform._42 * scale, 0);
   }
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.GetScrollableRect().width;
     if (aScrollbarIsDescendant) {
       scale *= metrics.mPresShellResolution;
     }
-    scrollbarTransform.PostScale(1.f / transientTransform._11, 1.f, 1.f);
-    scrollbarTransform.PostTranslate(-transientTransform._41 * scale, 0, 0);
+    scrollbarTransform.PostScale(1.f / asyncTransform._11, 1.f, 1.f);
+    scrollbarTransform.PostTranslate(-asyncTransform._41 * scale, 0, 0);
   }
 
   Matrix4x4 transform = scrollbarTransform * aScrollbar->GetTransform();
@@ -749,11 +747,27 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Matrix4x4 resolutionCancellingTransform =
+        Matrix4x4::Scaling(metrics.mPresShellResolution,
+                           metrics.mPresShellResolution,
+                           1.0f).Inverse();
     Matrix4x4 asyncUntransform = (asyncTransform * apzc->GetOverscrollTransform()).Inverse();
     Matrix4x4 contentTransform = aContent.GetTransform();
     Matrix4x4 contentUntransform = contentTransform.Inverse();
 
-    Matrix4x4 compensation = contentTransform * asyncUntransform * contentUntransform;
+    Matrix4x4 compensation = resolutionCancellingTransform
+                           * contentTransform
+                           * asyncUntransform
+                           * contentUntransform;
     transform = transform * compensation;
 
     
@@ -894,10 +908,8 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   }
 
   LayerToParentLayerScale asyncZoom = userZoom / metrics.LayersPixelsPerCSSPixel();
-  LayerToParentLayerScale scale(metrics.mPresShellResolution
-                                * asyncZoom.scale);
   ParentLayerPoint translation = userScroll - geckoScroll;
-  Matrix4x4 treeTransform = ViewTransform(scale, -translation);
+  Matrix4x4 treeTransform = ViewTransform(asyncZoom, -translation);
 
   SetShadowTransform(aLayer, oldTransform * treeTransform);
   NS_ASSERTION(!aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation(),
