@@ -421,31 +421,8 @@ PendingLookup::LookupNext()
     nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
     return lookup->LookupSpec(spec, true);
   }
-#ifdef XP_WIN
-  
-  nsCString serviceUrl;
-  NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
-                    NS_ERROR_NOT_AVAILABLE);
-  if (serviceUrl.EqualsLiteral("")) {
-    return OnComplete(false, NS_ERROR_NOT_AVAILABLE);
-  }
-
-  
-  
-  if (!IsBinaryFile()) {
-    LOG(("Not eligible for remote lookups [this=%x]", this));
-    return OnComplete(false, NS_OK);
-  }
-  
-  nsresult rv = SendRemoteQuery();
-  if (NS_FAILED(rv)) {
-    return OnComplete(false, rv);
-  }
-  return NS_OK;
-#else
   LOG(("PendingLookup: Nothing left to check [this=%p]", this));
   return OnComplete(false, NS_OK);
-#endif
 }
 
 nsCString
