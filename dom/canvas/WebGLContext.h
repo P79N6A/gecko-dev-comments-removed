@@ -134,11 +134,13 @@ TexTarget TexImageTargetToTexTarget(TexImageTarget texImageTarget);
 class WebGLIntOrFloat {
     enum {
         Int,
-        Float
+        Float,
+        Uint
     } mType;
     union {
         GLint i;
         GLfloat f;
+        GLuint u;
     } mValue;
 
 public:
@@ -158,6 +160,7 @@ class WebGLContext
     , public nsWrapperCache
     , public SupportsWeakPtr<WebGLContext>
 {
+    friend class WebGL2Context;
     friend class WebGLContextUserData;
     friend class WebGLExtensionCompressedTextureATC;
     friend class WebGLExtensionCompressedTextureETC1;
@@ -1006,6 +1009,7 @@ private:
     uint32_t mMaxFetchedVertices;
     uint32_t mMaxFetchedInstances;
 
+protected:
     inline void InvalidateBufferFetching() {
         mBufferFetchingIsVerified = false;
         mBufferFetchingHasPerVertex = false;
@@ -1192,6 +1196,10 @@ protected:
     bool ValidateTexInputData(GLenum type, js::Scalar::Type jsArrayType,
                               WebGLTexImageFunc func, WebGLTexDimensions dims);
     bool ValidateDrawModeEnum(GLenum mode, const char* info);
+    bool ValidateAttribIndex(GLuint index, const char* info);
+    bool ValidateAttribPointer(bool integerMode, GLuint index, GLint size, GLenum type,
+                               WebGLboolean normalized, GLsizei stride,
+                               WebGLintptr byteOffset, const char* info);
     bool ValidateStencilParamsForDrawCall();
 
     bool ValidateGLSLVariableName(const nsAString& name, const char* info);
@@ -1328,6 +1336,11 @@ private:
     
     template<class ObjectType>
     bool ValidateObjectAssumeNonNull(const char* info, ObjectType* object);
+
+private:
+    
+    
+    virtual bool ValidateAttribPointerType(bool integerMode, GLenum type, GLsizei* alignment, const char* info) = 0;
 
 protected:
     int32_t MaxTextureSizeForTarget(TexTarget target) const {
