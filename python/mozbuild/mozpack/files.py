@@ -212,7 +212,20 @@ class File(BaseFile):
         if platform.system() == 'Windows':
             return None
         assert self.path is not None
-        return os.stat(self.path).st_mode
+        mode = os.stat(self.path).st_mode
+        
+        
+        ret = stat.S_IFMT(mode)
+        
+        if mode & 0400:
+            ret |= 0444
+        if mode & 0100:
+            ret |= 0111
+        
+        if mode & 0200:
+            ret |= 0200
+        
+        return ret
 
 class ExecutableFile(File):
     '''
