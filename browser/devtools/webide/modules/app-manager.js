@@ -433,6 +433,7 @@ let AppManager = exports.AppManager = {
     
     
     return this.connection.client &&
+           this.connection.client.mainRoot &&
            this.connection.client.mainRoot.traits.allowChromeProcess ||
            (this._listTabsResponse &&
             this._listTabsResponse.consoleActor);
