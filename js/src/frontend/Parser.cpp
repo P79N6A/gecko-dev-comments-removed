@@ -3062,17 +3062,6 @@ Parser<FullParseHandler>::checkDestructuringObject(BindData<FullParseHandler> *d
             }
             ok = bindDestructuringVar(data, expr);
         } else {
-            
-
-
-
-
-
-            if (!member->isKind(PNK_MUTATEPROTO) && member->pn_right == member->pn_left) {
-                RootedPropertyName name(context, expr->pn_atom->asPropertyName());
-                if (!noteNameUse(name, expr))
-                    return false;
-            }
             ok = checkAndMarkAsAssignmentLhs(expr, KeyedDestructuringAssignment);
         }
         if (!ok)
