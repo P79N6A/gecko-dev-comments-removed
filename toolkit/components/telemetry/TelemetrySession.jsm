@@ -12,11 +12,13 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/debug.js", this);
 Cu.import("resource://gre/modules/Log.jsm");
+Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 
 const IS_CONTENT_PROCESS = (function() {
@@ -27,7 +29,7 @@ const IS_CONTENT_PROCESS = (function() {
 })();
 
 
-const PAYLOAD_VERSION = 1;
+const PAYLOAD_VERSION = 4;
 const PING_TYPE_MAIN = "main";
 const RETENTION_DAYS = 14;
 
@@ -61,6 +63,8 @@ const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_ASYNC_PLUGIN_INIT = "dom.ipc.plugins.asyncInit";
 
 const MESSAGE_TELEMETRY_PAYLOAD = "Telemetry:Payload";
+
+const SESSION_STATE_FILE_NAME = "session-state.json";
 
 
 const TELEMETRY_INTERVAL = 60000;
@@ -115,6 +119,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
                                   "resource://gre/modules/UpdateChannel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
                                   "resource://gre/modules/TelemetryEnvironment.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils",
+                                  "resource://services-common/utils.js");
 
 function generateUUID() {
   let str = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID().toString();
@@ -216,6 +222,95 @@ let processInfo = {
   }
 };
 
+
+
+
+
+
+
+
+let gStateSaveSerializer = {
+  _queuedOperations: [],
+  _queuedInProgress: false,
+  _log: Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX),
+
+  
+
+
+
+
+
+
+  enqueueTask: function (aFunction) {
+    let promise = new Promise((resolve, reject) =>
+      this._queuedOperations.push([aFunction, resolve, reject]));
+
+    if (this._queuedOperations.length == 1) {
+      this._popAndPerformQueuedOperation();
+    }
+    return promise;
+  },
+
+  
+
+
+
+  flushTasks: function () {
+    let dummyTask = () => new Promise(resolve => resolve());
+    return this.enqueueTask(dummyTask);
+  },
+
+  
+
+
+
+  _popAndPerformQueuedOperation: function () {
+    if (!this._queuedOperations.length || this._queuedInProgress) {
+      return;
+    }
+
+    this._log.trace("_popAndPerformQueuedOperation - Performing queued operation.");
+    let [func, resolve, reject] = this._queuedOperations.shift();
+    let promise;
+
+    try {
+      this._queuedInProgress = true;
+      promise = func();
+    } catch (ex) {
+      this._log.warn("_popAndPerformQueuedOperation - Queued operation threw during execution. ",
+                     ex);
+      this._queuedInProgress = false;
+      reject(ex);
+      this._popAndPerformQueuedOperation();
+      return;
+    }
+
+    if (!promise || typeof(promise.then) != "function") {
+      let msg = "Queued operation did not return a promise: " + func;
+      this._log.warn("_popAndPerformQueuedOperation - " + msg);
+
+      this._queuedInProgress = false;
+      reject(new Error(msg));
+      this._popAndPerformQueuedOperation();
+      return;
+    }
+
+    promise.then(result => {
+        this._log.trace("_popAndPerformQueuedOperation - Queued operation completed.");
+        this._queuedInProgress = false;
+        resolve(result);
+        this._popAndPerformQueuedOperation();
+      },
+      error => {
+        this._log.warn("_popAndPerformQueuedOperation - Failure when performing queued operation.",
+                       error);
+        this._queuedInProgress = false;
+        reject(error);
+        this._popAndPerformQueuedOperation();
+      });
+  },
+};
+
 this.EXPORTED_SYMBOLS = ["TelemetrySession"];
 
 this.TelemetrySession = Object.freeze({
@@ -277,6 +372,8 @@ this.TelemetrySession = Object.freeze({
 
 
   reset: function() {
+    Impl._subsessionCounter = 0;
+    Impl._profileSubsessionCounter = 0;
     this.uninstall();
     return this.setup();
   },
@@ -327,23 +424,31 @@ let Impl = {
   _prevValues: {},
   
   
-  _uuid: generateUUID(),
-  
-  
   _startupHistogramRegex: /SQLITE|HTTP|SPDY|CACHE|DNS/,
   _slowSQLStartup: {},
-  _prevSession: null,
   _hasWindowRestoredObserver: false,
   _hasXulWindowVisibleObserver: false,
   _startupIO : {},
   
   
-  _previousBuildID: undefined,
+  _previousBuildId: null,
   
   
   
   
   _childTelemetry: [],
+  
+  
+  _sessionId: generateUUID(),
+  
+  _subsessionId: null,
+  
+  
+  _previousSubsessionId: null,
+  
+  _subsessionCounter: 0,
+  
+  _profileSubsessionCounter: 0,
   
   _subsessionStartDate: null,
   
@@ -608,37 +713,39 @@ let Impl = {
   getMetadata: function getMetadata(reason) {
     this._log.trace("getMetadata - Reason " + reason);
 
+    let sessionStartDate = toLocalTimeISOString(truncateToDays(this._sessionStartDate));
     let subsessionStartDate = toLocalTimeISOString(truncateToDays(this._subsessionStartDate));
+    
+    let subsessionLength =
+      Math.floor((Policy.now() - this._subsessionStartDate.getTime()) / 1000);
 
-    let ai = Services.appinfo;
     let ret = {
       reason: reason,
-      OS: ai.OS,
-      appVersion: ai.version, 
-      appName: ai.name, 
-      appBuildID: ai.appBuildID, 
-      appUpdateChannel: UpdateChannel.get(), 
-      platformBuildID: ai.platformBuildID,
       revision: HISTOGRAMS_FILE_VERSION,
-      asyncPluginInit: Preferences.get(PREF_ASYNC_PLUGIN_INIT, false)
+      asyncPluginInit: Preferences.get(PREF_ASYNC_PLUGIN_INIT, false),
 
+      
+      
+      timezoneOffset: -this._subsessionStartDate.getTimezoneOffset(),
+      previousBuildId: this._previousBuildId,
+
+      sessionId: this._sessionId,
+      subsessionId: this._subsessionId,
+      previousSubsessionId: this._previousSubsessionId,
+
+      subsessionCounter: this._subsessionCounter,
+      profileSubsessionCounter: this._profileSubsessionCounter,
+
+      sessionStartDate: sessionStartDate,
       subsessionStartDate: subsessionStartDate,
+      subsessionLength: subsessionLength,
     };
 
     
-    
-    
-    if(Services.metro && Services.metro.immersive) {
-      ret.appName = "MetroFirefox";
-    }
-
-    if (this._previousBuildID) {
-      ret.previousBuildID = this._previousBuildID;
-    }
-
     if (this._addons)
       ret.addons = this._addons;
 
+    
     let flashVersion = this.getFlashVersion();
     if (flashVersion)
       ret.flashVersion = flashVersion;
@@ -828,16 +935,22 @@ let Impl = {
       payloadObj.slowSQLStartup = this._slowSQLStartup;
     }
 
-    let clientID = TelemetryPing.clientID;
-    if (clientID && Preferences.get(PREF_FHR_UPLOAD_ENABLED, false)) {
-      payloadObj.clientID = clientID;
-    }
-
     if (this._childTelemetry.length) {
       payloadObj.childPayloads = this.getChildPayloads();
     }
 
     return payloadObj;
+  },
+
+  
+
+
+  startNewSubsession: function () {
+    this._subsessionStartDate = Policy.now();
+    this._previousSubsessionId = this._subsessionId;
+    this._subsessionId = generateUUID();
+    this._subsessionCounter++;
+    this._profileSubsessionCounter++;
   },
 
   getSessionPayload: function getSessionPayload(reason, clearSubsession) {
@@ -847,8 +960,11 @@ let Impl = {
     let info = !IS_CONTENT_PROCESS ? this.getMetadata(reason) : null;
     let payload = this.assemblePayloadWithMeasurements(measurements, info, reason, clearSubsession);
 
-    if (clearSubsession) {
-      this._subsessionStartDate = Policy.now();
+    if (!IS_CONTENT_PROCESS && clearSubsession) {
+      this.startNewSubsession();
+      
+      let sessionData = this._getSessionDataObject();
+      gStateSaveSerializer.enqueueTask(() => this._saveSessionData(sessionData));
       this._rescheduleDailyTimer();
     }
 
@@ -941,8 +1057,10 @@ let Impl = {
       return Promise.resolve();
     }
 
-    this._sessionStartDate = Policy.now();
-    this._subsessionStartDate = this._sessionStartDate;
+    this.startNewSubsession();
+    
+    
+    this._sessionStartDate = this._subsessionStartDate;
 
     
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
@@ -950,12 +1068,11 @@ let Impl = {
 
     
     
-    let previousBuildID = Preferences.get(PREF_PREVIOUS_BUILDID, undefined);
+    let previousBuildId = Preferences.get(PREF_PREVIOUS_BUILDID, null);
     let thisBuildID = Services.appinfo.appBuildID;
     
-    
-    if (previousBuildID != thisBuildID) {
-      this._previousBuildID = previousBuildID;
+    if (previousBuildId != thisBuildID) {
+      this._previousBuildId = previousBuildId;
       Preferences.set(PREF_PREVIOUS_BUILDID, thisBuildID);
     }
 
@@ -986,6 +1103,12 @@ let Impl = {
       try {
         this._initialized = true;
 
+        let hasLoaded = yield this._loadSessionData();
+        if (!hasLoaded) {
+          
+          yield this._saveSessionData(this._getSessionDataObject()).catch(() =>
+            this._log.error("setupChromeProcess - Could not write session data to disk."));
+        }
         this.attachObservers();
         this.gatherMemory();
 
@@ -1284,7 +1407,9 @@ let Impl = {
       };
 
       if (Telemetry.canSend || testing) {
-        return this.savePendingPings().then(reset);
+        return this.savePendingPings()
+                .then(() => gStateSaveSerializer.flushTasks())
+                .then(reset);
       }
 
       reset();
@@ -1356,6 +1481,61 @@ let Impl = {
     
     return promise;
   },
+
+  
+
+
+
+
+  _loadSessionData: Task.async(function* () {
+    let dataFile = OS.Path.join(OS.Constants.Path.profileDir, "datareporting",
+                                SESSION_STATE_FILE_NAME);
+
+    
+    try {
+      let data = yield CommonUtils.readJSON(dataFile);
+      if (data &&
+          "profileSubsessionCounter" in data &&
+          typeof(data.profileSubsessionCounter) == "number" &&
+          "previousSubsessionId" in data) {
+        this._previousSubsessionId = data.previousSubsessionId;
+        
+        
+        
+        this._profileSubsessionCounter = data.profileSubsessionCounter +
+                                         this._subsessionCounter;
+        return true;
+      }
+    } catch (e) {
+      this._log.info("_loadSessionData - Cannot load session data file " + dataFile, e);
+    }
+    return false;
+  }),
+
+  
+
+
+  _getSessionDataObject: function() {
+    return {
+      previousSubsessionId: this._previousSubsessionId,
+      profileSubsessionCounter: this._profileSubsessionCounter,
+    };
+  },
+
+  
+
+
+  _saveSessionData: Task.async(function* (sessionData) {
+    let dataDir = OS.Path.join(OS.Constants.Path.profileDir, "datareporting");
+    yield OS.File.makeDir(dataDir);
+
+    let filePath = OS.Path.join(dataDir, SESSION_STATE_FILE_NAME);
+    try {
+      yield CommonUtils.writeJSON(sessionData, filePath);
+    } catch(e) {
+      this._log.error("_saveSessionData - Failed to write session data to " + filePath, e);
+    }
+  }),
 
   _onEnvironmentChange: function() {
     this._log.trace("_onEnvironmentChange");
