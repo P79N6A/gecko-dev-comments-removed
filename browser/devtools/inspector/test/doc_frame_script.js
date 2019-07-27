@@ -25,6 +25,17 @@ loader.loadSubScript("chrome://marionette/content/EventUtils.js", EventUtils);
 
 
 
+addEventListener("DOMWindowCreated", () => {
+  content.addEventListener("test-page-processing-done", () => {
+    sendAsyncMessage("Test:TestPageProcessingDone");
+  }, false);
+});
+
+
+
+
+
+
 
 function getHighlighterActor(actorID, connPrefix) {
   let {DebuggerServer} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
