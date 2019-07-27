@@ -106,6 +106,9 @@ JitOptions::JitOptions()
     SET_DEFAULT(disableEaa, false);
 
     
+    SET_DEFAULT(disableAma, false);
+
+    
     SET_DEFAULT(eagerCompilation, false);
 
     

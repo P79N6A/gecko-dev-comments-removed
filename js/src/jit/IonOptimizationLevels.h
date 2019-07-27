@@ -50,6 +50,9 @@ class OptimizationInfo
     bool eaa_;
 
     
+    bool ama_;
+
+    
     bool edgeCaseAnalysis_;
 
     
@@ -165,6 +168,10 @@ class OptimizationInfo
 
     bool eaaEnabled() const {
         return eaa_ && !js_JitOptions.disableEaa;
+    }
+
+    bool amaEnabled() const {
+        return ama_ && !js_JitOptions.disableAma;
     }
 
     bool edgeCaseAnalysisEnabled() const {
