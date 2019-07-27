@@ -216,5 +216,4 @@ class SelectionCaretsTest(MarionetteTestCase):
     
     def test_content_non_editable_minimum_select_one_character_by_selection(self):
         self.openTestHtml(enabled=True)
-        
-        self._test_minimum_select_one_character(self._content, self.assertNotEqual)
+        self._test_minimum_select_one_character(self._content, self.assertEqual)
