@@ -1275,6 +1275,7 @@ public abstract class GeckoApp
         mRootLayout = (OuterLayout) findViewById(R.id.root_layout);
         mGeckoLayout = (RelativeLayout) findViewById(R.id.gecko_layout);
         mMainLayout = (RelativeLayout) findViewById(R.id.main_layout);
+        mLayerView = (LayerView) findViewById(R.id.layer_view);
 
         
         mShouldRestore = getSessionRestoreState(savedInstanceState);
@@ -1414,13 +1415,12 @@ public abstract class GeckoApp
             }
         }
 
-        if (mLayerView == null) {
-            LayerView layerView = (LayerView) findViewById(R.id.layer_view);
-            layerView.initializeView(EventDispatcher.getInstance());
-            mLayerView = layerView;
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createObjectEvent(
-                GeckoEvent.ACTION_OBJECT_LAYER_CLIENT, layerView.getLayerClientObject()));
-        }
+        
+        
+        
+        mLayerView.setFocusable(false);
+        mLayerView.setFocusable(true);
+        mLayerView.setFocusableInTouchMode(true);
     }
 
     

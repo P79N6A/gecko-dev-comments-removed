@@ -122,6 +122,10 @@ public class GeckoView extends LayerView
         
         GeckoAppShell.setLayerView(this);
 
+        initializeView(EventDispatcher.getInstance());
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createObjectEvent(
+                GeckoEvent.ACTION_OBJECT_LAYER_CLIENT, getLayerClientObject()));
+
         
         
         
@@ -181,13 +185,9 @@ public class GeckoView extends LayerView
             "Accessibility:Ready",
             "GeckoView:Message");
 
-        initializeView(EventDispatcher.getInstance());
-
         if (GeckoThread.launch()) {
             
             GeckoProfile profile = GeckoProfile.get(context).forceCreate();
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createObjectEvent(
-                GeckoEvent.ACTION_OBJECT_LAYER_CLIENT, getLayerClientObject()));
 
         } else if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             
