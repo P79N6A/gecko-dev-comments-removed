@@ -580,6 +580,11 @@ public:
 
   nsresult MaintainSelection(nsSelectionAmount aAmount = eSelectNoAmount);
 
+  nsresult ConstrainFrameAndPointToAnchorSubtree(nsIFrame *aFrame,
+                                                 nsPoint& aPoint,
+                                                 nsIFrame **aRetFrame,
+                                                 nsPoint& aRetPoint);
+
   nsFrameSelection();
 
   void StartBatchChanges();
@@ -642,8 +647,6 @@ private:
   nsresult     FetchDesiredX(nscoord &aDesiredX); 
   void         InvalidateDesiredX(); 
   void         SetDesiredX(nscoord aX); 
-
-  nsresult     ConstrainFrameAndPointToAnchorSubtree(nsIFrame *aFrame, nsPoint& aPoint, nsIFrame **aRetFrame, nsPoint& aRetPoint);
 
   uint32_t     GetBatching() const {return mBatching; }
   bool         GetNotifyFrames() const { return mNotifyFrames; }
