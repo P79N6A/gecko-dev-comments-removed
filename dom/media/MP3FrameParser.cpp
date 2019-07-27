@@ -337,6 +337,11 @@ nsresult MP3FrameParser::ParseBuffer(const uint8_t* aBuffer,
         
         
         buffer = ch + mID3Parser.GetHeaderLength() - (ID3_HEADER_LENGTH - 1);
+
+        if (buffer <= ch) {
+          return NS_ERROR_FAILURE;
+        }
+
         ch = buffer;
 
         mTotalID3Size += mID3Parser.GetHeaderLength();
