@@ -162,9 +162,9 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 class PLDHashTable
 {
 private:
-  const PLDHashTableOps* mOps;        
+  const PLDHashTableOps* const mOps;  
   int16_t             mHashShift;     
-  uint32_t            mEntrySize;     
+  const uint32_t      mEntrySize;     
   uint32_t            mEntryCount;    
   uint32_t            mRemovedCount;  
   uint32_t            mGeneration;    
@@ -214,7 +214,12 @@ public:
                uint32_t aLength = PL_DHASH_DEFAULT_INITIAL_LENGTH);
 
   PLDHashTable(PLDHashTable&& aOther)
-    : mOps(nullptr)
+      
+      
+    : mOps(aOther.mOps)
+    , mEntrySize(aOther.mEntrySize)
+      
+      
     , mEntryStore(nullptr)
 #ifdef DEBUG
     , mRecursionLevel(0)
@@ -321,9 +326,6 @@ private:
   }
 
   PLDHashNumber ComputeKeyHash(const void* aKey);
-
-  void Init(const PLDHashTableOps* aOps, uint32_t aEntrySize, uint32_t aLength);
-  void Finish();
 
   enum SearchReason { ForSearchOrRemove, ForAdd };
 

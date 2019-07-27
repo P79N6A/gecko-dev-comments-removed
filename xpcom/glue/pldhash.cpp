@@ -7,6 +7,7 @@
 
 
 
+#include <new>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -192,15 +193,8 @@ MinLoad(uint32_t aCapacity)
   return aCapacity >> 2;                
 }
 
-static inline uint32_t
-MinCapacity(uint32_t aLength)
-{
-  return (aLength * 4 + (3 - 1)) / 3;   
-}
-
-MOZ_ALWAYS_INLINE void
-PLDHashTable::Init(const PLDHashTableOps* aOps,
-                   uint32_t aEntrySize, uint32_t aLength)
+static MOZ_ALWAYS_INLINE uint32_t
+HashShift(uint32_t aEntrySize, uint32_t aLength)
 {
   if (aLength > PL_DHASH_MAX_INITIAL_LENGTH) {
     MOZ_CRASH("Initial length is too large");
@@ -208,38 +202,39 @@ PLDHashTable::Init(const PLDHashTableOps* aOps,
 
   
   
-  uint32_t capacity = MinCapacity(aLength);
+  uint32_t capacity = (aLength * 4 + (3 - 1)) / 3; 
   if (capacity < PL_DHASH_MIN_CAPACITY) {
     capacity = PL_DHASH_MIN_CAPACITY;
   }
 
+  
   int log2 = CeilingLog2(capacity);
-
   capacity = 1u << log2;
   MOZ_ASSERT(capacity <= PL_DHASH_MAX_CAPACITY);
-  mOps = aOps;
-  mHashShift = PL_DHASH_BITS - log2;
-  mEntrySize = aEntrySize;
-  mEntryCount = mRemovedCount = 0;
-  mGeneration = 0;
+
   uint32_t nbytes;
   if (!SizeOfEntryStore(capacity, aEntrySize, &nbytes)) {
     MOZ_CRASH("Initial entry store size is too large");
   }
 
-  mEntryStore = nullptr;
-
-  METER(memset(&mStats, 0, sizeof(mStats)));
-
-#ifdef DEBUG
-  mRecursionLevel = 0;
-#endif
+  
+  return PL_DHASH_BITS - log2;
 }
 
 PLDHashTable::PLDHashTable(const PLDHashTableOps* aOps, uint32_t aEntrySize,
                            uint32_t aLength)
+  : mOps(aOps)
+  , mHashShift(HashShift(aEntrySize, aLength))
+  , mEntrySize(aEntrySize)
+  , mEntryCount(0)
+  , mRemovedCount(0)
+  , mGeneration(0)
+  , mEntryStore(nullptr)
+#ifdef DEBUG
+  , mRecursionLevel(0)
+#endif
 {
-  Init(aOps, aEntrySize, aLength);
+  METER(memset(&mStats, 0, sizeof(mStats)));
 }
 
 PLDHashTable&
@@ -250,12 +245,18 @@ PLDHashTable::operator=(PLDHashTable&& aOther)
   }
 
   
-  Finish();
+  this->~PLDHashTable();
 
   
-  mOps = Move(aOther.mOps);
+  
+  
+  
+  
+  MOZ_RELEASE_ASSERT(mOps == aOther.mOps);
+  MOZ_RELEASE_ASSERT(mEntrySize == aOther.mEntrySize);
+
+  
   mHashShift = Move(aOther.mHashShift);
-  mEntrySize = Move(aOther.mEntrySize);
   mEntryCount = Move(aOther.mEntryCount);
   mRemovedCount = Move(aOther.mRemovedCount);
   mGeneration = Move(aOther.mGeneration);
@@ -313,8 +314,7 @@ PLDHashTable::EntryIsFree(PLDHashEntryHdr* aEntry)
   return aEntry->mKeyHash == 0;
 }
 
-MOZ_ALWAYS_INLINE void
-PLDHashTable::Finish()
+PLDHashTable::~PLDHashTable()
 {
   if (!mEntryStore) {
     return;
@@ -342,11 +342,6 @@ PLDHashTable::Finish()
   mEntryStore = nullptr;
 }
 
-PLDHashTable::~PLDHashTable()
-{
-  Finish();
-}
-
 void
 PLDHashTable::ClearAndPrepareForLength(uint32_t aLength)
 {
@@ -354,8 +349,8 @@ PLDHashTable::ClearAndPrepareForLength(uint32_t aLength)
   const PLDHashTableOps* ops = mOps;
   uint32_t entrySize = mEntrySize;
 
-  Finish();
-  Init(ops, entrySize, aLength);
+  this->~PLDHashTable();
+  new (this) PLDHashTable(ops, entrySize, aLength);
 }
 
 void
