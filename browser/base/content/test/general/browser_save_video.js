@@ -8,70 +8,68 @@ MockFilePicker.init(window);
 
 
 
-function test() {
-  waitForExplicitFinish();
+add_task(function* () {
   var fileName;
 
+  let loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   gBrowser.loadURI("http://mochi.test:8888/browser/browser/base/content/test/general/web_video.html");
+  yield loadPromise;
 
-  gBrowser.addEventListener("pageshow", function pageShown(event) {
-    if (event.target.location == "about:blank")
-      return;
-    gBrowser.removeEventListener("pageshow", pageShown);
+  let popupShownPromise = BrowserTestUtils.waitForEvent(document, "popupshown");
 
-    executeSoon(function () {
-      document.addEventListener("popupshown", contextMenuOpened);
+  yield BrowserTestUtils.synthesizeMouseAtCenter("#video1",
+                                                 { type: "contextmenu", button: 2 },
+                                                 gBrowser.selectedBrowser);
+  info("context menu click on video1");
 
-      var video1 = gBrowser.contentDocument.getElementById("video1");
-      EventUtils.synthesizeMouseAtCenter(video1,
-                                         { type: "contextmenu", button: 2 },
-                                         gBrowser.contentWindow);
-      info("context menu click on video1");
-    });
-  });
+  yield popupShownPromise;
 
-  function contextMenuOpened(event) {
-    event.currentTarget.removeEventListener("popupshown", contextMenuOpened);
-    info("context menu opened on video1");
+  info("context menu opened on video1");
 
-    
-    var destDir = createTemporarySaveDirectory();
-    var destFile = destDir.clone();
+  
+  var destDir = createTemporarySaveDirectory();
+  var destFile = destDir.clone();
 
-    MockFilePicker.displayDirectory = destDir;
-    MockFilePicker.showCallback = function(fp) {
-      fileName = fp.defaultString;
-      destFile.append (fileName);
-      MockFilePicker.returnFiles = [destFile];
-      MockFilePicker.filterIndex = 1; 
-    };
+  MockFilePicker.displayDirectory = destDir;
+  MockFilePicker.showCallback = function(fp) {
+    fileName = fp.defaultString;
+    destFile.append(fileName);
+    MockFilePicker.returnFiles = [destFile];
+    MockFilePicker.filterIndex = 1; 
+  };
+
+  let transferCompletePromise = new Promise((resolve) => {
+    function onTransferComplete(downloadSuccess) {
+      ok(downloadSuccess, "Video file should have been downloaded successfully");
+
+      is(fileName, "web-video1-expectedName.ogv",
+         "Video file name is correctly retrieved from Content-Disposition http header");
+      resolve();
+    }
 
     mockTransferCallback = onTransferComplete;
     mockTransferRegisterer.register();
+  });
 
-    registerCleanupFunction(function () {
-      mockTransferRegisterer.unregister();
-      MockFilePicker.cleanup();
-      destDir.remove(true);
-    });
+  registerCleanupFunction(function () {
+    mockTransferRegisterer.unregister();
+    MockFilePicker.cleanup();
+    destDir.remove(true);
+  });
 
-    
-    var saveVideoCommand = document.getElementById("context-savevideo");
-    saveVideoCommand.doCommand();
-    info("context-savevideo command executed");
+  
+  var saveVideoCommand = document.getElementById("context-savevideo");
+  saveVideoCommand.doCommand();
+  info("context-savevideo command executed");
 
-    event.target.hidePopup();
-  }
+  let contextMenu = document.getElementById("contentAreaContextMenu");
+  let popupHiddenPromise = BrowserTestUtils.waitForEvent(contextMenu, "popuphidden");
+  contextMenu.hidePopup();
+  yield popupHiddenPromise;
 
-  function onTransferComplete(downloadSuccess) {
-    ok(downloadSuccess, "Video file should have been downloaded successfully");
+  yield transferCompletePromise;
+});
 
-    is(fileName, "web-video1-expectedName.ogv",
-       "Video file name is correctly retrieved from Content-Disposition http header");
-
-    finish();
-  }
-}
 
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
