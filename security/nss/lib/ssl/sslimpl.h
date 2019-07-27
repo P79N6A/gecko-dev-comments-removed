@@ -153,6 +153,15 @@ typedef enum { SSLAppOpRead = 0,
 
 #define EXPORT_RSA_KEY_LENGTH 64	/* bytes */
 
+
+
+#define SSL_RSA_MIN_MODULUS_BITS 1023
+
+
+
+#define SSL_DH_MIN_P_BITS 1023
+#define SSL_DSA_MIN_P_BITS 1023
+
 #define INITIAL_DTLS_TIMEOUT_MS   1000  /* Default value from RFC 4347 = 1s*/
 #define MAX_DTLS_TIMEOUT_MS      60000  /* 1 minute */
 #define DTLS_FINISHED_TIMER_MS  120000  /* Time to wait in FINISHED state */
