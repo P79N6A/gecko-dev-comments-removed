@@ -26,7 +26,7 @@ class DocAccessibleParent : public ProxyAccessible,
 {
 public:
   DocAccessibleParent() :
-    ProxyAccessible(this), mParentDoc(nullptr)
+    ProxyAccessible(this), mParentDoc(nullptr), mShutdown(false)
   { MOZ_COUNT_CTOR_INHERITED(DocAccessibleParent, ProxyAccessible); }
   ~DocAccessibleParent()
   {
@@ -45,7 +45,12 @@ public:
   virtual bool RecvShowEvent(const ShowEventData& aData) MOZ_OVERRIDE;
   virtual bool RecvHideEvent(const uint64_t& aRootID) MOZ_OVERRIDE;
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  void Destroy();
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE
+  {
+    if (!mShutdown)
+      Destroy();
+  }
 
   
 
@@ -115,6 +120,7 @@ private:
 
 
   nsTHashtable<ProxyEntry> mAccessibles;
+  bool mShutdown;
 };
 
 }
