@@ -498,7 +498,7 @@ public:
   
   
   
-  gfx::Rect ClipRectInLayersCoordinates(gfx::Rect aClip) const;
+  RenderTargetRect ClipRectInLayersCoordinates(RenderTargetIntRect aClip) const;
 
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,

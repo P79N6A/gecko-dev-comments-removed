@@ -565,7 +565,7 @@ LayerManagerComposite::Render()
   }
 
   
-  RootLayer()->Prepare(clipRect);
+  RootLayer()->Prepare(RenderTargetPixel::FromUntyped(clipRect));
   RootLayer()->RenderLayer(clipRect);
 
   if (!mRegionToClear.IsEmpty()) {
