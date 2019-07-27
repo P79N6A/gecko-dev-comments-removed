@@ -1476,49 +1476,63 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
 {
     JitSpew(JitSpew_IonSnapshots, "Recover PC & Script from the last frame.");
 
-    JSRuntime *rt = cx->runtime();
-
     
+    
+    JSRuntime *rt = cx->runtime();
     JitActivationIterator iter(rt);
     JitFrameIterator it(iter);
-
-    
-    
-    if (it.prevType() == JitFrame_Rectifier || it.prevType() == JitFrame_Unwound_Rectifier) {
+    uint8_t *retAddr;
+    if (it.type() == JitFrame_Exit) {
         ++it;
-        MOZ_ASSERT(it.prevType() == JitFrame_BaselineStub ||
-                   it.prevType() == JitFrame_BaselineJS ||
-                   it.prevType() == JitFrame_IonJS);
+
+        
+        if (it.isRectifierMaybeUnwound()) {
+            ++it;
+            MOZ_ASSERT(it.isBaselineStub() || it.isBaselineJS() || it.isIonJS());
+        }
+
+        
+        if (it.isBaselineStubMaybeUnwound()) {
+            ++it;
+            MOZ_ASSERT(it.isBaselineJS());
+        }
+
+        MOZ_ASSERT(it.isBaselineJS() || it.isIonJS());
+
+        
+        
+        
+        
+        
+        
+        if (!it.isBaselineJS() || !it.baselineFrame()->hasOverridePc()) {
+            retAddr = it.returnAddressToFp();
+            MOZ_ASSERT(retAddr);
+        } else {
+            retAddr = nullptr;
+        }
+    } else {
+        MOZ_ASSERT(it.isBailoutJS());
+        retAddr = it.returnAddress();
+    }
+
+    uint32_t hash;
+    if (retAddr) {
+        hash = PcScriptCache::Hash(retAddr);
+
+        
+        if (MOZ_UNLIKELY(rt->ionPcScriptCache == nullptr)) {
+            rt->ionPcScriptCache = (PcScriptCache *)js_malloc(sizeof(struct PcScriptCache));
+            if (rt->ionPcScriptCache)
+                rt->ionPcScriptCache->clear(rt->gc.gcNumber());
+        }
+
+        if (rt->ionPcScriptCache && rt->ionPcScriptCache->get(rt, hash, retAddr, scriptRes, pcRes))
+            return;
     }
 
     
-    
-    
-    if (it.prevType() == JitFrame_BaselineStub || it.prevType() == JitFrame_Unwound_BaselineStub) {
-        ++it;
-        MOZ_ASSERT(it.prevType() == JitFrame_BaselineJS);
-    }
-
-    uint8_t *retAddr = it.returnAddress();
-    uint32_t hash = PcScriptCache::Hash(retAddr);
-    MOZ_ASSERT(retAddr != nullptr);
-
-    
-    if (MOZ_UNLIKELY(rt->ionPcScriptCache == nullptr)) {
-        rt->ionPcScriptCache = (PcScriptCache *)js_malloc(sizeof(struct PcScriptCache));
-        if (rt->ionPcScriptCache)
-            rt->ionPcScriptCache->clear(rt->gc.gcNumber());
-    }
-
-    
-    if (rt->ionPcScriptCache && rt->ionPcScriptCache->get(rt, hash, retAddr, scriptRes, pcRes))
-        return;
-
-    
-    if (!it.isBailoutJS())
-        ++it; 
     jsbytecode *pc = nullptr;
-
     if (it.isIonJS() || it.isBailoutJS()) {
         InlineFrameIterator ifi(cx, &it);
         *scriptRes = ifi.script();
@@ -1532,7 +1546,7 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
         *pcRes = pc;
 
     
-    if (rt->ionPcScriptCache)
+    if (retAddr && rt->ionPcScriptCache)
         rt->ionPcScriptCache->add(hash, retAddr, pc, *scriptRes);
 }
 
