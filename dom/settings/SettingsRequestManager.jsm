@@ -398,6 +398,28 @@ let SettingsRequestManager = {
     return this.queueTaskReturn(aTask, {task: aTask});
   },
 
+  startRunning: function(aLockID) {
+    let lock = this.lockInfo[aLockID];
+
+    if (!lock) {
+      if (DEBUG) debug("Lock no longer alive, cannot start running");
+      return;
+    }
+
+    lock.consumable = true;
+    if (aLockID == this.settingsLockQueue[0] || this.settingsLockQueue.length == 0) {
+      
+      
+      if (DEBUG) debug("Start running tasks for " + aLockID);
+      this.queueConsume();
+    } else {
+      
+      
+      
+      if (DEBUG) debug("Queuing tasks for " + aLockID + " while waiting for " + this.settingsLockQueue[0]);
+    }
+  },
+
   queueConsume: function() {
     if (this.settingsLockQueue.length > 0 && this.lockInfo[this.settingsLockQueue[0]].consumable) {
       Services.tm.currentThread.dispatch(SettingsRequestManager.consumeTasks.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
@@ -771,12 +793,15 @@ let SettingsRequestManager = {
       if (DEBUG) debug("Alive lock has pending tasks: " + lock.lockID);
       this.queueTask("finalize", {lockID: lock.lockID}, principal).then(
         function() {
-          if (DEBUG) debug("Alive lock " + lockId + " succeeded to force-finalize");
+          if (DEBUG) debug("Alive lock " + lock.lockID + " succeeded to force-finalize");
         },
         function(error) {
-          if (DEBUG) debug("Alive lock " + lockId + " failed to force-finalize due to error: " + error);
+          if (DEBUG) debug("Alive lock " + lock.lockID + " failed to force-finalize due to error: " + error);
         }
       );
+      
+      
+      this.startRunning(lock.lockID);
     }
   },
 
@@ -792,16 +817,14 @@ let SettingsRequestManager = {
     }
   },
 
-  forceFinalizeChildLocksOOP: function(aMsgMgr, aPrincipal) {
+  forceFinalizeChildLocksOOP: function(aMsgMgr) {
     if (DEBUG) debug("Forcing finalize on child locks, OOP");
-
-    let msgMgrPrincipal = this.mmPrincipals.get(aMsgMgr);
-    this.removeObserver(aMsgMgr);
 
     for (let lockId of Object.keys(this.lockInfo)) {
       let lock = this.lockInfo[lockId];
-      if (lock._mm === aMsgMgr && msgMgrPrincipal === aPrincipal) {
-        this.enqueueForceFinalize(lock, aPrincipal);
+      if (lock._mm === aMsgMgr) {
+        let principal = this.mmPrincipals.get(lock._mm);
+        this.enqueueForceFinalize(lock, principal);
       }
     }
   },
@@ -859,7 +882,8 @@ let SettingsRequestManager = {
     switch (aMessage.name) {
       case "child-process-shutdown":
         if (DEBUG) debug("Child process shutdown received.");
-        this.forceFinalizeChildLocksOOP(mm, aMessage.principal);
+        this.forceFinalizeChildLocksOOP(mm);
+        this.removeObserver(mm);
         break;
       case "Settings:RegisterForMessages":
         if (!SettingsPermissions.hasSomeReadPermission(aMessage.principal)) {
@@ -953,18 +977,7 @@ let SettingsRequestManager = {
       
       case "Settings:Run":
         if (DEBUG) debug("Received Run");
-        this.lockInfo[msg.lockID].consumable = true;
-        if (msg.lockID == this.settingsLockQueue[0] || this.settingsLockQueue.length == 0) {
-          
-          
-          if (DEBUG) debug("Running tasks for " + msg.lockID);
-          this.queueConsume();
-        } else {
-          
-          
-          
-          if (DEBUG) debug("Queuing tasks for " + msg.lockID + " while waiting for " + this.settingsLockQueue[0]);
-        }
+        this.startRunning(msg.lockID);
         break;
       default:
         if (DEBUG) debug("Wrong message: " + aMessage.name);
