@@ -885,16 +885,18 @@ ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
   dbg->r_brk();
   if (dbg->r_map == map)
     dbg->r_map = map->l_next;
-  else
+  else if (map->l_prev) {
     map->l_prev->l_next = map->l_next;
+  }
   if (map == firstAdded) {
     firstAdded = map->l_prev;
     
 
     EnsureWritable w(&map->l_next->l_prev);
     map->l_next->l_prev = map->l_prev;
-  } else
+  } else if (map->l_next) {
     map->l_next->l_prev = map->l_prev;
+  }
   dbg->r_state = r_debug::RT_CONSISTENT;
   dbg->r_brk();
 }
