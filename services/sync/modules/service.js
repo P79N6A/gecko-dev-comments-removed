@@ -1281,6 +1281,15 @@ Sync11Service.prototype = {
       histogram.add(1);
 
       
+      
+      
+      
+      
+      if (this.clusterURL) {
+        this.recordManager.get(this.storageURL + "meta/fxa_credentials");
+      }
+
+      
       let meta = this.recordManager.get(this.metaURL);
       if (!meta) {
         this._log.warn("No meta/global; can't update declined state.");
@@ -1314,6 +1323,92 @@ Sync11Service.prototype = {
       throw response;
     }
     this.recordManager.set(this.metaURL, meta);
+  },
+
+  
+
+
+
+
+
+
+  getFxAMigrationSentinel: function() {
+    if (this._shouldLogin()) {
+      this._log.debug("In getFxAMigrationSentinel: should login.");
+      if (!this.login()) {
+        this._log.debug("Can't get migration sentinel: login returned false.");
+        return Promise.resolve(null);
+      }
+    }
+    if (!this.identity.syncKeyBundle) {
+      this._log.error("Can't get migration sentinel: no syncKeyBundle.");
+      return Promise.resolve(null);
+    }
+    try {
+      let collectionURL = this.storageURL + "meta/fxa_credentials";
+      let cryptoWrapper = this.recordManager.get(collectionURL);
+      if (!cryptoWrapper.payload) {
+        
+        
+        return Promise.resolve(null);
+      }
+      
+      
+      if (cryptoWrapper.payload.sentinel) {
+        return Promise.resolve(cryptoWrapper.payload.sentinel);
+      }
+      
+      
+      let payload = cryptoWrapper.decrypt(this.identity.syncKeyBundle);
+      
+      
+      cryptoWrapper.payload = payload;
+      return Promise.resolve(payload.sentinel);
+    } catch (ex) {
+      this._log.error("Failed to fetch the migration sentinel: ${}", ex);
+      return Promise.resolve(null);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  setFxAMigrationSentinel: function(sentinel) {
+    if (this._shouldLogin()) {
+      this._log.debug("In setFxAMigrationSentinel: should login.");
+      if (!this.login()) {
+        this._log.debug("Can't set migration sentinel: login returned false.");
+        return Promise.resolve(false);
+      }
+    }
+    if (!this.identity.syncKeyBundle) {
+      this._log.error("Can't set migration sentinel: no syncKeyBundle.");
+      return Promise.resolve(false);
+    }
+    try {
+      let collectionURL = this.storageURL + "meta/fxa_credentials";
+      let cryptoWrapper = new CryptoWrapper("meta", "fxa_credentials");
+      cryptoWrapper.cleartext.sentinel = sentinel;
+
+      cryptoWrapper.encrypt(this.identity.syncKeyBundle);
+
+      let res = this.resource(collectionURL);
+      let response = res.put(cryptoWrapper.toJSON());
+
+      if (!response.success) {
+        throw response;
+      }
+      this.recordManager.set(collectionURL, cryptoWrapper);
+    } catch (ex) {
+      this._log.error("Failed to set the migration sentinel: ${}", ex);
+      return Promise.resolve(false);
+    }
+    return Promise.resolve(true);
   },
 
   

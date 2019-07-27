@@ -103,19 +103,17 @@ add_task(function *testMigration() {
 
   
   let haveStartedSentinel = false;
-
-
-
-
-
-
-
-
-
-
-
-
-
+  let origSetFxAMigrationSentinel = Service.setFxAMigrationSentinel;
+  let promiseSentinelWritten = new Promise((resolve, reject) => {
+    Service.setFxAMigrationSentinel = function(arg) {
+      haveStartedSentinel = true;
+      return origSetFxAMigrationSentinel.call(Service, arg).then(result => {
+        Service.setFxAMigrationSentinel = origSetFxAMigrationSentinel;
+        resolve(result);
+        return result;
+      });
+    }
+  });
 
   
   
@@ -227,10 +225,7 @@ add_task(function *testMigration() {
   Assert.ok(Service.scheduler.isBlocked, "sync is blocked.");
 
   
-
-
-
-
+  Assert.ok((yield promiseSentinelWritten), "wrote the sentinel");
 
   
   yield promiseFinalSync;
