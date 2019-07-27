@@ -740,11 +740,6 @@ gfxUserFontSet::gfxUserFontSet()
     if (fp) {
         fp->AddUserFontSet(this);
     }
-
-    
-    
-    
-    ots::EnableWOFF2();
 }
 
 gfxUserFontSet::~gfxUserFontSet()

@@ -223,7 +223,6 @@ class OTS_API OTSContext {
     
     
     
-    
     bool Process(OTSStream *output, const uint8_t *input, size_t length);
 
     
@@ -238,16 +237,6 @@ class OTS_API OTSContext {
     
     virtual TableAction GetTableAction(uint32_t tag) { return ots::TABLE_ACTION_DEFAULT; }
 };
-
-
-bool Process(OTSStream *output, const uint8_t *input, size_t length);
-
-
-
-void DisableDebugOutput();
-
-
-void OTS_API EnableWOFF2();
 
 }  
 
