@@ -496,6 +496,10 @@ Tester.prototype = {
 
         
         
+        Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
+
+        
+        
         
         
 
