@@ -276,15 +276,20 @@ class RInstructionResults
     
     IonJSFrameLayout *fp_;
 
+    
+    
+    
+    bool initialized_;
+
   public:
-    RInstructionResults();
+    RInstructionResults(IonJSFrameLayout *fp);
     RInstructionResults(RInstructionResults&& src);
 
     RInstructionResults& operator=(RInstructionResults&& rhs);
 
     ~RInstructionResults();
 
-    bool init(JSContext *cx, uint32_t numResults, IonJSFrameLayout *fp);
+    bool init(JSContext *cx, uint32_t numResults);
     bool isInitialized() const;
 
     IonJSFrameLayout *frame() const;

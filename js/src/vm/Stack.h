@@ -1405,7 +1405,7 @@ class JitActivation : public Activation
 
 
     
-    bool registerIonFrameRecovery(IonJSFrameLayout *fp, RInstructionResults&& results);
+    bool registerIonFrameRecovery(RInstructionResults&& results);
 
     
     RInstructionResults *maybeIonFrameRecovery(IonJSFrameLayout *fp);
