@@ -38,7 +38,7 @@ public class MenuItemActionView extends LinearLayout
 
     @TargetApi(14)
     public MenuItemActionView(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
+        super(context, attrs);
 
         LayoutInflater.from(context).inflate(R.layout.menu_item_action_view, this);
         mMenuItem = (MenuItemDefault) findViewById(R.id.menu_item);
@@ -164,19 +164,5 @@ public class MenuItemActionView extends LinearLayout
         for (View.OnClickListener listener : mActionButtonListeners) {
             listener.onClick(view);
         }
-    }
-
-    
-
-
-
-
-
-
-    public void initContextMenuStyles() {
-        final int defaultContextMenuPadding = getContext().getResources().getDimensionPixelOffset(
-                R.dimen.context_menu_item_horizontal_padding);
-        mMenuItem.setPadding(defaultContextMenuPadding, getPaddingTop(),
-                defaultContextMenuPadding, getPaddingBottom());
     }
 }
