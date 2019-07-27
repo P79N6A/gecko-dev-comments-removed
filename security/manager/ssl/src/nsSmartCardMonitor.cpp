@@ -32,47 +32,37 @@ using namespace mozilla::dom;
 
 
 
-
-
-
 class nsTokenEventRunnable : public nsIRunnable {
 public:
-  nsTokenEventRunnable(const nsAString& aType, const nsAString& aTokenName);
+  nsTokenEventRunnable(const nsAString& aType, const nsAString& aTokenName)
+    : mType(aType)
+    , mTokenName(aTokenName)
+  {
+  }
 
-  NS_IMETHOD Run ();
   NS_DECL_THREADSAFE_ISUPPORTS
-protected:
-  virtual ~nsTokenEventRunnable();
+  NS_DECL_NSIRUNNABLE
+
 private:
+  virtual ~nsTokenEventRunnable() {}
   nsresult DispatchEventToWindow(nsIDOMWindow* domWin);
 
   nsString mType;
   nsString mTokenName;
 };
 
-
 NS_IMPL_ISUPPORTS(nsTokenEventRunnable, nsIRunnable)
-
-nsTokenEventRunnable::nsTokenEventRunnable(const nsAString& aType,
-                                           const nsAString& aTokenName)
-  : mType(aType)
-  , mTokenName(aTokenName)
-{
-}
-
-nsTokenEventRunnable::~nsTokenEventRunnable() { }
-
-
 
 NS_IMETHODIMP
 nsTokenEventRunnable::Run()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   
   nsresult rv;
   nsCOMPtr<nsIWindowWatcher> windowWatcher =
-                            do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
-
+    do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -83,19 +73,19 @@ nsTokenEventRunnable::Run()
     return rv;
   }
 
-  bool hasMoreWindows;
-
-  while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMoreWindows))
-         && hasMoreWindows) {
+  for (;;) {
+    bool hasMoreWindows;
+    rv = enumerator->HasMoreElements(&hasMoreWindows);
+    if (NS_FAILED(rv) || !hasMoreWindows) {
+      return rv;
+    }
     nsCOMPtr<nsISupports> supports;
     enumerator->GetNext(getter_AddRefs(supports));
     nsCOMPtr<nsIDOMWindow> domWin(do_QueryInterface(supports));
     if (domWin) {
-      nsresult rv2 = DispatchEventToWindow(domWin);
-      if (NS_FAILED(rv2)) {
-        
-        
-        rv = rv2;
+      rv = DispatchEventToWindow(domWin);
+      if (NS_FAILED(rv)) {
+        return rv;
       }
     }
   }
@@ -105,38 +95,52 @@ nsTokenEventRunnable::Run()
 nsresult
 nsTokenEventRunnable::DispatchEventToWindow(nsIDOMWindow* domWin)
 {
-  if (!domWin) {
-    return NS_OK;
-  }
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(domWin);
 
   
-  nsresult rv;
   nsCOMPtr<nsIDOMWindowCollection> frames;
-  rv = domWin->GetFrames(getter_AddRefs(frames));
+  nsresult rv = domWin->GetFrames(getter_AddRefs(frames));
   if (NS_FAILED(rv)) {
     return rv;
   }
 
   uint32_t length;
-  frames->GetLength(&length);
-  uint32_t i;
-  for (i = 0; i < length; i++) {
+  rv = frames->GetLength(&length);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  for (uint32_t i = 0; i < length; i++) {
     nsCOMPtr<nsIDOMWindow> childWin;
-    frames->Item(i, getter_AddRefs(childWin));
-    DispatchEventToWindow(childWin);
+    rv = frames->Item(i, getter_AddRefs(childWin));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    if (domWin) {
+      rv = DispatchEventToWindow(childWin);
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
+    }
   }
 
   
   
   
   nsCOMPtr<nsIDOMCrypto> crypto;
-  domWin->GetCrypto(getter_AddRefs(crypto));
+  rv = domWin->GetCrypto(getter_AddRefs(crypto));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
   if (!crypto) {
     return NS_OK; 
   }
 
   bool boolrv;
-  crypto->GetEnableSmartCardEvents(&boolrv);
+  rv = crypto->GetEnableSmartCardEvents(&boolrv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
   if (!boolrv) {
     return NS_OK; 
   }
@@ -146,8 +150,11 @@ nsTokenEventRunnable::DispatchEventToWindow(nsIDOMWindow* domWin)
   
   nsCOMPtr<nsIDOMDocument> doc;
   rv = domWin->GetDocument(getter_AddRefs(doc));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
   if (!doc) {
-    return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<EventTarget> d = do_QueryInterface(doc);
@@ -157,7 +164,7 @@ nsTokenEventRunnable::DispatchEventToWindow(nsIDOMWindow* domWin)
   init.mCancelable = true;
   init.mTokenName = mTokenName;
 
-  nsRefPtr<SmartCardEvent> event = SmartCardEvent::Constructor(d, mType, init);
+  nsRefPtr<SmartCardEvent> event(SmartCardEvent::Constructor(d, mType, init));
   event->SetTrusted(true);
 
   return d->DispatchEvent(event, &boolrv);
@@ -165,25 +172,48 @@ nsTokenEventRunnable::DispatchEventToWindow(nsIDOMWindow* domWin)
 
 
 
-class SmartCardThreadEntry {
+class SmartCardThreadEntry
+{
 public:
- SmartCardThreadEntry *next;
- SmartCardThreadEntry *prev;
- SmartCardThreadEntry **head;
- SmartCardMonitoringThread *thread;
- SmartCardThreadEntry(SmartCardMonitoringThread *thread_,
-   SmartCardThreadEntry *next_, SmartCardThreadEntry *prev_,
-   SmartCardThreadEntry **head_) : 
-   next(next_), prev(prev_), head(head_), thread(thread_) { 
-    if (prev) { prev->next = this; } else { *head = this; }
-    if (next) { next->prev = this; }
+  friend class SmartCardThreadList;
+  SmartCardThreadEntry(SmartCardMonitoringThread *thread,
+                       SmartCardThreadEntry *next,
+                       SmartCardThreadEntry *prev,
+                       SmartCardThreadEntry **head)
+    : next(next)
+    , prev(prev)
+    , head(head)
+    , thread(thread)
+  {
+    if (prev) {
+      prev->next = this;
+    } else {
+      *head = this;
+    }
+    if (next) {
+      next->prev = this;
+    }
   }
-  ~SmartCardThreadEntry() {
-    if (prev) { prev->next = next; } else { *head = next; }
-    if (next) { next->prev = prev; }
+
+  ~SmartCardThreadEntry()
+  {
+    if (prev) {
+      prev->next = next;
+    } else {
+      *head = next;
+    }
+    if (next) {
+      next->prev = prev;
+    }
     
     delete thread;
   }
+
+private:
+  SmartCardThreadEntry *next;
+  SmartCardThreadEntry *prev;
+  SmartCardThreadEntry **head;
+  SmartCardMonitoringThread *thread;
 };
 
 
@@ -208,7 +238,8 @@ SmartCardThreadList::~SmartCardThreadList()
 void
 SmartCardThreadList::Remove(SECMODModule *aModule)
 {
-  for (SmartCardThreadEntry *current = head; current; current = current->next) {
+  for (SmartCardThreadEntry* current = head; current;
+       current = current->next) {
     if (current->thread->GetModule() == aModule) {
       
       delete current;
@@ -219,10 +250,10 @@ SmartCardThreadList::Remove(SECMODModule *aModule)
 
 
 nsresult
-SmartCardThreadList::Add(SmartCardMonitoringThread *thread)
+SmartCardThreadList::Add(SmartCardMonitoringThread* thread)
 {
-  SmartCardThreadEntry *current = new SmartCardThreadEntry(thread, head, nullptr,
-                                                           &head);
+  SmartCardThreadEntry* current = new SmartCardThreadEntry(thread, head,
+                                                           nullptr, &head);
   
   unused << current;
 
@@ -232,16 +263,16 @@ SmartCardThreadList::Add(SmartCardMonitoringThread *thread)
 
 
 static PLHashNumber
-unity(const void *key) { return PLHashNumber(NS_PTR_TO_INT32(key)); }
+unity(const void* key) { return PLHashNumber(NS_PTR_TO_INT32(key)); }
 
-SmartCardMonitoringThread::SmartCardMonitoringThread(SECMODModule *module_)
+SmartCardMonitoringThread::SmartCardMonitoringThread(SECMODModule* module_)
   : mThread(nullptr)
 {
   mModule = SECMOD_ReferenceModule(module_);
   
   
-  mHash = PL_NewHashTable(10, unity, PL_CompareValues, 
-                           PL_CompareStrings, nullptr, 0);
+  mHash = PL_NewHashTable(10, unity, PL_CompareValues, PL_CompareStrings,
+                          nullptr, 0);
 }
 
 
@@ -284,7 +315,7 @@ void SmartCardMonitoringThread::Stop()
     
     return;
   }
- 
+
   
   
   
@@ -293,7 +324,7 @@ void SmartCardMonitoringThread::Stop()
   
   if (mThread) {
     PR_JoinThread(mThread);
-    mThread = 0; 
+    mThread = 0;
   }
 }
 
@@ -306,40 +337,40 @@ void SmartCardMonitoringThread::Stop()
 
 
 void
-SmartCardMonitoringThread::SetTokenName(CK_SLOT_ID slotid, 
-                                       const char *tokenName, uint32_t series)
+SmartCardMonitoringThread::SetTokenName(CK_SLOT_ID slotid,
+                                       const char* tokenName, uint32_t series)
 {
   if (mHash) {
     if (tokenName) {
       int len = strlen(tokenName) + 1;
       
 
-      char *entry = (char *)PR_Malloc(len+sizeof(uint32_t));
-     
-      if (entry) {  
-        memcpy(entry,&series,sizeof(uint32_t));
-        memcpy(&entry[sizeof(uint32_t)],tokenName,len);
+      char* entry = (char*)PR_Malloc(len + sizeof(uint32_t));
 
-        PL_HashTableAdd(mHash,(void *)(uintptr_t)slotid, entry); 
+      if (entry) {
+        memcpy(entry, &series, sizeof(uint32_t));
+        memcpy(&entry[sizeof(uint32_t)], tokenName, len);
+
+        PL_HashTableAdd(mHash, (void*)(uintptr_t)slotid, entry); 
         return;
       }
-    } 
-    else {
+    } else {
       
-      PL_HashTableRemove(mHash,(void *)(uintptr_t)slotid);
+      PL_HashTableRemove(mHash, (void*)(uintptr_t)slotid);
     }
   }
 }
 
 
-const char *
+const char*
 SmartCardMonitoringThread::GetTokenName(CK_SLOT_ID slotid)
 {
-  const char *tokenName = nullptr;
-  const char *entry;
+  const char* tokenName = nullptr;
+  const char* entry;
 
   if (mHash) {
-    entry = (const char *)PL_HashTableLookupConst(mHash,(void *)(uintptr_t)slotid);
+    entry = (const char*)PL_HashTableLookupConst(mHash,
+                                                 (void*)(uintptr_t)slotid);
     if (entry) {
       tokenName = &entry[sizeof(uint32_t)];
     }
@@ -352,12 +383,13 @@ uint32_t
 SmartCardMonitoringThread::GetTokenSeries(CK_SLOT_ID slotid)
 {
   uint32_t series = 0;
-  const char *entry;
+  const char* entry;
 
   if (mHash) {
-    entry = (const char *)PL_HashTableLookupConst(mHash,(void *)(uintptr_t)slotid);
+    entry = (const char*)PL_HashTableLookupConst(mHash,
+                                                 (void*)(uintptr_t)slotid);
     if (entry) {
-      memcpy(&series,entry,sizeof(uint32_t));
+      memcpy(&series, entry, sizeof(uint32_t));
     }
   }
   return series;
@@ -366,14 +398,22 @@ SmartCardMonitoringThread::GetTokenSeries(CK_SLOT_ID slotid)
 
 
 
-nsresult
-SmartCardMonitoringThread::SendEvent(const nsAString &eventType,
-                                     const char *tokenName)
+void
+SmartCardMonitoringThread::SendEvent(const nsAString& eventType,
+                                     const char* tokenName)
 {
-  nsCOMPtr<nsIRunnable> runnable =
-                               new nsTokenEventRunnable(eventType, NS_ConvertUTF8toUTF16(tokenName));
-
-  return NS_DispatchToMainThread(runnable);
+  
+  
+  
+  
+  
+  nsAutoString tokenNameUTF16(NS_LITERAL_STRING(""));
+  if (IsUTF8(nsDependentCString(tokenName))) {
+    tokenNameUTF16.Assign(NS_ConvertUTF8toUTF16(tokenName));
+  }
+  nsCOMPtr<nsIRunnable> runnable(new nsTokenEventRunnable(eventType,
+                                                          tokenNameUTF16));
+  NS_DispatchToMainThread(runnable);
 }
 
 
@@ -381,28 +421,28 @@ SmartCardMonitoringThread::SendEvent(const nsAString &eventType,
 
 void SmartCardMonitoringThread::Execute()
 {
-  PK11SlotInfo *slot;
-  const char *tokenName = nullptr;
+  PK11SlotInfo* slot;
+  const char* tokenName;
 
   
   
   
-  PK11SlotList *sl =
-            PK11_FindSlotsByNames(mModule->dllName, nullptr, nullptr, true);
-  PK11SlotListElement *sle;
- 
+  PK11SlotList* sl = PK11_FindSlotsByNames(mModule->dllName, nullptr, nullptr,
+                                           true);
+
+  PK11SlotListElement* sle;
   if (sl) {
-    for (sle=PK11_GetFirstSafe(sl); sle; 
-                                      sle=PK11_GetNextSafe(sl,sle,false)) {
-      SetTokenName(PK11_GetSlotID(sle->slot), 
-                  PK11_GetTokenName(sle->slot), PK11_GetSlotSeries(sle->slot));
+    for (sle = PK11_GetFirstSafe(sl); sle;
+         sle = PK11_GetNextSafe(sl, sle, false)) {
+      SetTokenName(PK11_GetSlotID(sle->slot), PK11_GetTokenName(sle->slot),
+                   PK11_GetSlotSeries(sle->slot));
     }
     PK11_FreeSlotList(sl);
   }
 
   
   do {
-    slot = SECMOD_WaitForAnyTokenEvent(mModule, 0, PR_SecondsToInterval(1)  );
+    slot = SECMOD_WaitForAnyTokenEvent(mModule, 0, PR_SecondsToInterval(1));
     if (!slot) {
       break;
     }
@@ -445,16 +485,15 @@ void SmartCardMonitoringThread::Execute()
 }
 
 
-const SECMODModule * SmartCardMonitoringThread::GetModule() 
+const SECMODModule* SmartCardMonitoringThread::GetModule()
 {
   return mModule;
 }
 
 
-void SmartCardMonitoringThread::LaunchExecute(void *arg)
+void SmartCardMonitoringThread::LaunchExecute(void* arg)
 {
   PR_SetCurrentThreadName("SmartCard");
 
   ((SmartCardMonitoringThread*)arg)->Execute();
 }
-
