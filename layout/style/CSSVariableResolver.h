@@ -34,7 +34,9 @@ public:
 
   CSSVariableResolver(CSSVariableValues* aOutput)
     : mOutput(aOutput)
+#ifdef DEBUG
     , mResolved(false)
+#endif
   {
     MOZ_ASSERT(aOutput);
   }
@@ -135,8 +137,10 @@ private:
   
   CSSVariableValues* mOutput;
 
+#ifdef DEBUG
   
-  DebugOnly<bool> mResolved;
+  bool mResolved;
+#endif
 };
 
 }
