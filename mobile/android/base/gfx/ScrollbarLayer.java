@@ -16,7 +16,7 @@ import android.util.Log;
 import java.nio.FloatBuffer;
 import java.nio.ByteBuffer;
 
-public class ScrollbarLayer extends TileLayer {
+public class ScrollbarLayer extends Layer {
     private static final String LOGTAG = "GeckoScrollbarLayer";
 
     public static final long FADE_DELAY = 500; 
@@ -388,7 +388,7 @@ public class ScrollbarLayer extends TileLayer {
         } else {
             
             
-            throw new RuntimeException("Buffer/image size mismatch in TileLayer!");
+            throw new RuntimeException("Buffer/image size mismatch in ScrollbarLayer!");
         }
     }
 
