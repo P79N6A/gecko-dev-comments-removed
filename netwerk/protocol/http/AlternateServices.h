@@ -49,6 +49,12 @@ public:
                 int32_t alternatePort,
                 const nsACString &npnToken);
 
+  static void ProcessHeader(const nsCString &buf, const nsCString &originScheme,
+                            const nsCString &originHost, int32_t originPort,
+                            const nsACString &username, bool privateBrowsing,
+                            nsIInterfaceRequestor *callbacks, nsProxyInfo *proxyInfo,
+                            uint32_t caps);
+
   const nsCString &AlternateHost() const { return mAlternateHost; }
   const nsCString &OriginHost() const { return mOriginHost; }
   const nsCString &HashKey() const { return mHashKey; }
