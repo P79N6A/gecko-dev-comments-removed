@@ -5,7 +5,7 @@
 
 
 
-if ((this.SharedArrayBuffer && this.AtomicsObject && this.getSharedArrayBuffer && this.setSharedArrayBuffer))
+if (!(this.SharedArrayBuffer && this.getSharedArrayBuffer && this.setSharedArrayBuffer))
     quit(0);
 
 var DEBUG = false;
