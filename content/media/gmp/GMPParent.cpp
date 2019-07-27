@@ -161,6 +161,12 @@ GMPParent::CloseIfUnused()
       mVideoEncoders.IsEmpty() &&
       mDecryptors.IsEmpty() &&
       mAudioDecoders.IsEmpty()) {
+
+    
+    for (uint32_t i = mTimers.Length(); i > 0; i--) {
+      mTimers[i - 1]->Shutdown();
+    }
+
     if (mAsyncShutdownRequired) {
       if (!mAsyncShutdownInProgress) {
         LOGD(("%s::%s: %p sending async shutdown notification", __CLASS__,
@@ -234,9 +240,8 @@ GMPParent::CloseActive(bool aDieWhenUnloaded)
     mAudioDecoders[i - 1]->Shutdown();
   }
 
-  for (uint32_t i = mTimers.Length(); i > 0; i--) {
-    mTimers[i - 1]->Shutdown();
-  }
+  
+  
 
   
   
