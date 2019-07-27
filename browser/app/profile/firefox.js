@@ -1719,7 +1719,7 @@ pref("loop.support_url", "https://support.mozilla.org/kb/group-conversations-fir
 pref("loop.contacts.gravatars.show", false);
 pref("loop.contacts.gravatars.promo", true);
 pref("loop.browserSharing.showInfoBar", true);
-pref("loop.contextInConversations.enabled", false);
+pref("loop.contextInConversations.enabled", true);
 
 pref("social.sidebar.unload_timeout_ms", 10000);
 
@@ -1739,10 +1739,6 @@ pref("security.mixed_content.block_active_content", true);
 
 
 pref("security.cert_pinning.enforcement_level", 1);
-
-
-
-pref("security.onecrl.maximum_staleness_in_seconds", 0);
 
 
 pref("plain_text.wrap_long_lines", true);
