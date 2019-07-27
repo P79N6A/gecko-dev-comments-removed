@@ -835,9 +835,14 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 
     
     void boxDouble(FloatRegister src, const ValueOperand &dest) {
-        movd(src, dest.payloadReg());
-        psrldq(Imm32(4), src);
-        movd(src, dest.typeReg());
+        if (Assembler::HasSSE41()) {
+            movd(src, dest.payloadReg());
+            pextrd(1, src, dest.typeReg());
+        } else {
+            movd(src, dest.payloadReg());
+            psrldq(Imm32(4), src);
+            movd(src, dest.typeReg());
+        }
     }
     void boxNonDouble(JSValueType type, Register src, const ValueOperand &dest) {
         if (src != dest.payloadReg())
