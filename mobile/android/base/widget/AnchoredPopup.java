@@ -1,0 +1,110 @@
+
+
+
+
+
+package org.mozilla.gecko.widget;
+
+import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.R;
+
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.drawable.BitmapDrawable;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+
+
+
+
+public abstract class AnchoredPopup extends PopupWindow {
+    private View mAnchor;
+
+    protected LinearLayout mContent;
+    protected boolean mInflated;
+
+    protected final Context mContext;
+
+    public AnchoredPopup(Context context) {
+        super(context);
+
+        mContext = context;
+
+        setAnimationStyle(R.style.PopupAnimation);
+    }
+
+    protected void init() {
+        
+        
+        setBackgroundDrawable(new BitmapDrawable(mContext.getResources()));
+
+        
+        setOutsideTouchable(true);
+
+        
+        int width = (int) mContext.getResources().getDimension(R.dimen.doorhanger_width);
+        setWindowLayoutMode(0, ViewGroup.LayoutParams.WRAP_CONTENT);
+        setWidth(width);
+
+        final LayoutInflater inflater = LayoutInflater.from(mContext);
+        final View layout = inflater.inflate(R.layout.anchored_popup, null);
+        setContentView(layout);
+
+        mContent = (LinearLayout) layout.findViewById(R.id.content);
+
+        mInflated = true;
+    }
+
+    
+
+
+
+
+    public void setAnchor(View anchor) {
+        mAnchor = anchor;
+    }
+
+    
+
+
+
+    public void show() {
+        if (!mInflated) {
+            throw new IllegalStateException("ArrowPopup#init() must be called before ArrowPopup#show()");
+        }
+
+        final int[] anchorLocation = new int[2];
+        if (mAnchor != null) {
+            mAnchor.getLocationInWindow(anchorLocation);
+        }
+
+        
+        
+        if (mAnchor == null || anchorLocation[1] < 0) {
+            final View decorView = ((Activity) mContext).getWindow().getDecorView();
+
+            
+            
+            if (Versions.preHC) {
+                setWidth(decorView.getWidth());
+                setHeight(decorView.getHeight());
+            }
+
+            showAtLocation(decorView, Gravity.NO_GRAVITY, anchorLocation[0], 0);
+            return;
+        }
+
+        
+        int offsetX = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_offsetX);
+        int offsetY = mContext.getResources().getDimensionPixelOffset(R.dimen.doorhanger_offsetY);
+        if (isShowing()) {
+            update(mAnchor, offsetX, -offsetY, -1, -1);
+        } else {
+            showAsDropDown(mAnchor, offsetX, -offsetY);
+        }
+    }
+}

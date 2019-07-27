@@ -14,7 +14,7 @@ import org.mozilla.gecko.SiteIdentity.MixedMode;
 import org.mozilla.gecko.SiteIdentity.TrackingMode;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.widget.ArrowPopup;
+import org.mozilla.gecko.widget.AnchoredPopup;
 import org.mozilla.gecko.widget.DoorHanger;
 import org.mozilla.gecko.widget.DoorHanger.OnButtonClickListener;
 import org.json.JSONException;
@@ -32,7 +32,7 @@ import android.widget.TextView;
 
 
 
-public class SiteIdentityPopup extends ArrowPopup {
+public class SiteIdentityPopup extends AnchoredPopup {
     private static final String LOGTAG = "GeckoSiteIdentityPopup";
 
     private static final String MIXED_CONTENT_SUPPORT_URL =
