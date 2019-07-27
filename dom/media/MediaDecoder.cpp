@@ -637,7 +637,7 @@ void MediaDecoder::Shutdown()
   
   
   if (mDecoderStateMachine) {
-    mDecoderStateMachine->Shutdown();
+    mDecoderStateMachine->DispatchShutdown();
   }
 
   
