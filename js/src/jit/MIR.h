@@ -6255,11 +6255,7 @@ class MNot
     }
     bool writeRecoverData(CompactBufferWriter &writer) const;
     bool canRecoverOnBailout() const {
-        
-        
-        
-        
-        return !operandMightEmulateUndefined_;
+        return true;
     }
 };
 
