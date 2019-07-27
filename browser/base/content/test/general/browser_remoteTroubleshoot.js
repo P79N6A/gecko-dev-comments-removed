@@ -44,7 +44,7 @@ add_task(function*() {
                      "remote-troubleshooting",
                      Services.perms.ALLOW_ACTION);
   registerCleanupFunction(() => {
-    Services.perms.remove(TEST_URI_GOOD, "remote-troubleshooting");
+    Services.perms.remove(TEST_URI_GOOD.spec, "remote-troubleshooting");
   });
 
   

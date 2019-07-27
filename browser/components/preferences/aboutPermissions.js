@@ -179,7 +179,7 @@ Site.prototype = {
 
 
   clearPermission: function Site_clearPermission(aType) {
-    Services.perms.remove(this.httpURI, aType);
+    Services.perms.remove(this.host, aType);
   },
 
   
