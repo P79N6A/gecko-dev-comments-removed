@@ -854,7 +854,7 @@ pref("media.gmp-provider.enabled", true);
 pref("reader.color_scheme", "auto");
 
 
-pref("reader.color_scheme.values", "[\"light\",\"dark\",\"auto\"]");
+pref("reader.color_scheme.values", "[\"dark\",\"auto\",\"light\"]");
 
 
 pref("reader.toolbar.vertical", false);
