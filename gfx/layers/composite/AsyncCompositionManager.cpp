@@ -694,7 +694,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
 
   Matrix4x4 asyncTransform = apzc->GetCurrentAsyncTransform();
   Matrix4x4 nontransientTransform = apzc->GetNontransientAsyncTransform();
-  Matrix4x4 transientTransform = asyncTransform * nontransientTransform.Inverse();
+  Matrix4x4 transientTransform = nontransientTransform.Inverse() * asyncTransform;
 
   
   
@@ -712,11 +712,24 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   Matrix4x4 scrollbarTransform;
   if (aScrollbar->GetScrollbarDirection() == Layer::VERTICAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().height / metrics.mScrollableRect.height;
+    if (aScrollbarIsDescendant) {
+      
+      
+      
+      
+      
+      
+      
+      scale *= metrics.mResolution.scale;
+    }
     scrollbarTransform.PostScale(1.f, 1.f / transientTransform._22, 1.f);
     scrollbarTransform.PostTranslate(0, -transientTransform._42 * scale, 0);
   }
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
     float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.mScrollableRect.width;
+    if (aScrollbarIsDescendant) {
+      scale *= metrics.mResolution.scale;
+    }
     scrollbarTransform.PostScale(1.f / transientTransform._11, 1.f, 1.f);
     scrollbarTransform.PostTranslate(-transientTransform._41 * scale, 0, 0);
   }
@@ -724,6 +737,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   Matrix4x4 transform = scrollbarTransform * aScrollbar->GetTransform();
 
   if (aScrollbarIsDescendant) {
+    
     
     
     
