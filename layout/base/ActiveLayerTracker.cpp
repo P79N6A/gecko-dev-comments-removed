@@ -310,23 +310,11 @@ ActiveLayerTracker::IsOffsetOrMarginStyleAnimated(nsIFrame* aFrame)
       return true;
     }
   }
-  nsIContent* content = aFrame->GetContent();
-  if (content) {
-    static const nsCSSProperty properties[] = {
-      eCSSProperty_left,
-      eCSSProperty_top,
-      eCSSProperty_right,
-      eCSSProperty_bottom,
-      eCSSProperty_margin_left,
-      eCSSProperty_margin_top,
-      eCSSProperty_margin_right,
-      eCSSProperty_margin_bottom
-    };
-    if (nsLayoutUtils::HasCurrentAnimationsForProperties(
-          content, properties, MOZ_ARRAY_LENGTH(properties))) {
-      return true;
-    }
-  }
+  
+  
+  
+  
+  
   return false;
 }
 
