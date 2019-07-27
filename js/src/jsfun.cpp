@@ -2182,11 +2182,6 @@ js::CloneFunctionAndScript(JSContext* cx, HandleFunction fun, HandleObject paren
 #endif
 
     if (clone->isInterpreted()) {
-        
-        
-        
-        MOZ_ASSERT_IF(fun->compartment()->isSelfHosting, !fun->isInterpretedLazy());
-
         RootedScript script(cx, fun->nonLazyScript());
         MOZ_ASSERT(script->compartment() == fun->compartment());
         MOZ_ASSERT(cx->compartment() == clone->compartment(),

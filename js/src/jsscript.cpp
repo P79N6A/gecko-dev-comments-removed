@@ -4138,11 +4138,30 @@ void
 JSScript::AutoDelazify::holdScript(JS::HandleFunction fun)
 {
     if (fun) {
-        JSAutoCompartment ac(cx_, fun);
-        script_ = fun->getOrCreateScript(cx_);
-        if (script_) {
-            oldDoNotRelazify_ = script_->doNotRelazify_;
-            script_->setDoNotRelazify(true);
+        if (fun->compartment()->isSelfHosting) {
+            
+            
+            
+            
+            script_ = fun->nonLazyScript();
+        } else {
+            JSAutoCompartment ac(cx_, fun);
+            script_ = fun->getOrCreateScript(cx_);
+            if (script_) {
+                oldDoNotRelazify_ = script_->doNotRelazify_;
+                script_->setDoNotRelazify(true);
+            }
         }
+    }
+}
+
+void
+JSScript::AutoDelazify::dropScript()
+{
+    
+    
+    if (script_ && !script_->compartment()->isSelfHosting) {
+        script_->setDoNotRelazify(oldDoNotRelazify_);
+        script_ = nullptr;
     }
 }
