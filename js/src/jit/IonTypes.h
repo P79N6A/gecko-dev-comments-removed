@@ -112,6 +112,9 @@ enum BailoutKind
     Bailout_Debugger,
 
     
+    Bailout_UninitializedLexical,
+
+    
 
 
     
@@ -206,6 +209,8 @@ BailoutKindString(BailoutKind kind)
         return "Bailout_InitialState";
       case Bailout_Debugger:
         return "Bailout_Debugger";
+      case Bailout_UninitializedLexical:
+        return "Bailout_UninitializedLexical";
 
       
       case Bailout_OverflowInvalidate:
