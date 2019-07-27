@@ -96,13 +96,25 @@ typedef int64_t GMPTimestamp;
 
 class GMPDecryptorCallback {
 public:
+
   
   
   
   
-  virtual void ResolveNewSessionPromise(uint32_t aPromiseId,
-                                        const char* aSessionId,
-                                        uint32_t aSessionIdLength) = 0;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual void SetSessionId(uint32_t aCreateSessionToken,
+                            const char* aSessionId,
+                            uint32_t aSessionIdLength) = 0;
 
   
   
@@ -201,7 +213,7 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt"
+#define GMP_API_DECRYPTOR "eme-decrypt-v2"
 
 
 
@@ -211,6 +223,13 @@ enum GMPSessionType {
 class GMPDecryptor {
 public:
 
+  
+  
+  
+  
+  
+  
+  
   
   
   virtual void Init(GMPDecryptorCallback* aCallback) = 0;
@@ -224,7 +243,22 @@ public:
   
   
   
-  virtual void CreateSession(uint32_t aPromiseId,
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  virtual void CreateSession(uint32_t aCreateSessionToken,
+                             uint32_t aPromiseId,
                              const char* aInitDataType,
                              uint32_t aInitDataTypeSize,
                              const uint8_t* aInitData,
@@ -232,10 +266,27 @@ public:
                              GMPSessionType aSessionType) = 0;
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   virtual void LoadSession(uint32_t aPromiseId,
                            const char* aSessionId,
                            uint32_t aSessionIdLength) = 0;
 
+  
   
   virtual void UpdateSession(uint32_t aPromiseId,
                              const char* aSessionId,
@@ -244,15 +295,18 @@ public:
                              uint32_t aResponseSize) = 0;
 
   
+  
   virtual void CloseSession(uint32_t aPromiseId,
                             const char* aSessionId,
                             uint32_t aSessionIdLength) = 0;
 
   
+  
   virtual void RemoveSession(uint32_t aPromiseId,
                              const char* aSessionId,
                              uint32_t aSessionIdLength) = 0;
 
+  
   
   virtual void SetServerCertificate(uint32_t aPromiseId,
                                     const uint8_t* aServerCert,

@@ -75,14 +75,20 @@ public:
   already_AddRefed<MediaKeySession> GetSession(const nsAString& aSessionId);
 
   
+  
+  already_AddRefed<MediaKeySession> GetPendingSession(uint32_t aToken);
+
+  
   void OnCDMCreated(PromiseId aId, const nsACString& aNodeId);
+
   
   
-  void OnSessionPending(PromiseId aId, MediaKeySession* aSession);
   
-  void OnSessionCreated(PromiseId aId, const nsAString& aSessionId);
+  void OnSessionIdReady(MediaKeySession* aSession);
+
   
   void OnSessionLoaded(PromiseId aId, bool aSuccess);
+
   
   void OnSessionClosed(MediaKeySession* aSession);
 
