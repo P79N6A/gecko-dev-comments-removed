@@ -396,7 +396,7 @@ this.ContentControl.prototype = {
           this._contentScope.get().sendAsyncMessage(
             'AccessFu:Present', Presentation.pivotChanged(
               vc.position, null, Ci.nsIAccessiblePivot.REASON_NONE,
-              vc.startOffset, vc.endOffset, false));
+              vc.startOffset, vc.endOffset));
         }
       };
 
@@ -416,12 +416,11 @@ this.ContentControl.prototype = {
       let moveFirstOrLast = moveMethod in ['moveFirst', 'moveLast'];
       if (!moveFirstOrLast || acc) {
         
-        moved = vc[moveFirstOrLast ? 'moveNext' : moveMethod](rule, acc, true,
-                                                              false);
+        moved = vc[moveFirstOrLast ? 'moveNext' : moveMethod](rule, acc, true);
       }
       if (moveFirstOrLast && !moved) {
         
-        moved = vc[moveMethod](rule, false);
+        moved = vc[moveMethod](rule);
       }
 
       let sentToChild = this.sendToChild(vc, {
