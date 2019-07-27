@@ -235,8 +235,7 @@ NS_IMPL_RELEASE(nsXPCComponents_Interfaces)
 #define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Interfaces"
 #define                             XPC_MAP_WANT_RESOLVE
 #define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
-                                    nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" 
 
 
@@ -485,8 +484,7 @@ NS_IMPL_RELEASE(nsXPCComponents_InterfacesByID)
 #define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_InterfacesByID"
 #define                             XPC_MAP_WANT_RESOLVE
 #define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
-                                    nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" 
 
 
@@ -737,8 +735,7 @@ NS_IMPL_RELEASE(nsXPCComponents_Classes)
 #define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Classes"
 #define                             XPC_MAP_WANT_RESOLVE
 #define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
-                                    nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" 
 
 
@@ -977,8 +974,7 @@ NS_IMPL_RELEASE(nsXPCComponents_ClassesByID)
 #define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_ClassesByID"
 #define                             XPC_MAP_WANT_RESOLVE
 #define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
-                                    nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" 
 
 
@@ -1241,8 +1237,7 @@ NS_IMPL_RELEASE(nsXPCComponents_Results)
 #define XPC_MAP_QUOTED_CLASSNAME   "nsXPCComponents_Results"
 #define                             XPC_MAP_WANT_RESOLVE
 #define                             XPC_MAP_WANT_NEWENUMERATE
-#define XPC_MAP_FLAGS               nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |\
-                                    nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
+#define XPC_MAP_FLAGS               nsIXPCScriptable::ALLOW_PROP_MODS_DURING_RESOLVE
 #include "xpc_map_end.h" 
 
 
