@@ -963,6 +963,7 @@ static inline bool IS_PROTO_CLASS(const js::Class *clazz)
 
 
 
+class nsIAddonInterposition;
 class nsXPCComponentsBase;
 class XPCWrappedNativeScope : public PRCList
 {
@@ -1097,6 +1098,14 @@ public:
             mDOMExpandoSet->remove(expando);
     }
 
+    typedef js::HashMap<JSAddonId *,
+                        nsCOMPtr<nsIAddonInterposition>,
+                        js::PointerHasher<JSAddonId *, 3>,
+                        js::SystemAllocPolicy> InterpositionMap;
+
+    static bool SetAddonInterposition(JSAddonId *addonId,
+                                      nsIAddonInterposition *interp);
+
     
     
     
@@ -1114,6 +1123,9 @@ public:
 
     bool IsAddonScope() { return mIsAddonScope; }
 
+    bool HasInterposition() { return mInterposition; }
+    nsCOMPtr<nsIAddonInterposition> GetInterposition();
+
 protected:
     virtual ~XPCWrappedNativeScope();
 
@@ -1124,6 +1136,8 @@ protected:
 private:
     static XPCWrappedNativeScope* gScopes;
     static XPCWrappedNativeScope* gDyingScopes;
+
+    static InterpositionMap*         gInterpositionMap;
 
     XPCJSRuntime*                    mRuntime;
     Native2WrappedNativeMap*         mWrappedNativeMap;
@@ -1143,6 +1157,10 @@ private:
 
     
     nsTArray<JS::ObjectPtr>          mAddonScopes;
+
+    
+    
+    nsCOMPtr<nsIAddonInterposition>  mInterposition;
 
     nsAutoPtr<DOMExpandoSet> mDOMExpandoSet;
 
@@ -3279,6 +3297,9 @@ xpc_GetSafeJSContext()
 }
 
 namespace xpc {
+
+JSAddonId *
+NewAddonId(JSContext *cx, const nsACString &id);
 
 
 bool

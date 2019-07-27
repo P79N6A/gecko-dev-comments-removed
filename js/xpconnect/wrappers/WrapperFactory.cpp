@@ -397,6 +397,31 @@ SelectWrapper(bool securityWrapper, bool wantXrays, XrayType xrayType,
     return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
 }
 
+static const Wrapper *
+SelectAddonWrapper(JSContext *cx, HandleObject obj, const Wrapper *wrapper)
+{
+    JSAddonId *originAddon = JS::AddonIdOfObject(obj);
+    JSAddonId *targetAddon = JS::AddonIdOfObject(JS::CurrentGlobalOrNull(cx));
+
+    MOZ_ASSERT(AccessCheck::isChrome(JS::CurrentGlobalOrNull(cx)));
+    MOZ_ASSERT(targetAddon);
+
+    if (targetAddon == originAddon)
+        return wrapper;
+
+    
+    
+    if (wrapper == &CrossCompartmentWrapper::singleton)
+        return &AddonWrapper<CrossCompartmentWrapper>::singleton;
+    else if (wrapper == &PermissiveXrayXPCWN::singleton)
+        return &AddonWrapper<PermissiveXrayXPCWN>::singleton;
+    else if (wrapper == &PermissiveXrayDOM::singleton)
+        return &AddonWrapper<PermissiveXrayDOM>::singleton;
+
+    
+    return wrapper;
+}
+
 JSObject *
 WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
                        HandleObject parent, unsigned flags)
@@ -477,6 +502,11 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
 
         wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays,
                                 originIsContentXBLScope);
+
+        
+        
+        if (CompartmentPrivate::Get(target)->scope->HasInterposition())
+            wrapper = SelectAddonWrapper(cx, obj, wrapper);
     }
 
     if (!targetSubsumesOrigin) {

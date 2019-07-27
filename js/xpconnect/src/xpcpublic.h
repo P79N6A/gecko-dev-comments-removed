@@ -287,6 +287,8 @@ private:
     XPCStringConvert();         
 };
 
+class nsIAddonInterposition;
+
 namespace xpc {
 
 
@@ -499,6 +501,9 @@ RecordDonatedNode(JSCompartment *c);
 
 bool
 ShouldDiscardSystemSource();
+
+bool
+SetAddonInterposition(const nsACString &addonId, nsIAddonInterposition *interposition);
 
 } 
 
