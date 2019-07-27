@@ -15,6 +15,7 @@
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsPresContext.h"
+#include "nsRenderingContext.h"
 #include "nsStyleContext.h"
 #include "prlog.h"
 #include <algorithm>
@@ -271,7 +272,11 @@ public:
   nsIFrame* Frame() const          { return mFrame; }
   nscoord GetFlexBaseSize() const  { return mFlexBaseSize; }
 
-  nscoord GetMainMinSize() const   { return mMainMinSize; }
+  nscoord GetMainMinSize() const   {
+    MOZ_ASSERT(!mNeedsMinSizeAutoResolution,
+               "Someone's using an unresolved 'auto' main min-size");
+    return mMainMinSize;
+  }
   nscoord GetMainMaxSize() const   { return mMainMaxSize; }
 
   
@@ -321,6 +326,11 @@ public:
   
   
   bool IsStretched() const         { return mIsStretched; }
+
+  
+  
+  bool NeedsMinSizeAutoResolution() const
+    { return mNeedsMinSizeAutoResolution; }
 
   
   
@@ -417,21 +427,27 @@ public:
 
   
   
-
+  
+  
   void UpdateMainMinSize(nscoord aNewMinSize)
   {
-    MOZ_ASSERT(mMainMinSize == 0 ||
-               mFrame->IsThemed(mFrame->StyleDisplay()),
-               "Should only update main min-size for min-height:auto, "
-               "which would initially be resolved as 0 (unless we have an "
-               "additional themed-widget-imposed minimum size)");
+    NS_ASSERTION(aNewMinSize >= 0,
+                 "How did we end up with a negative min-size?");
+    MOZ_ASSERT(mMainMaxSize >= aNewMinSize,
+               "Should only use this function for resolving min-size:auto, "
+               "and main max-size should be an upper-bound for resolved val");
+    MOZ_ASSERT(mNeedsMinSizeAutoResolution &&
+               (mMainMinSize == 0 || mFrame->IsThemed(mFrame->StyleDisplay())),
+               "Should only use this function for resolving min-size:auto, "
+               "so we shouldn't already have a nonzero min-size established "
+               "(unless it's a themed-widget-imposed minimum size)");
 
     if (aNewMinSize > mMainMinSize) {
       mMainMinSize = aNewMinSize;
       
-      mMainMaxSize = std::max(mMainMaxSize, aNewMinSize);
       mMainSize = std::max(mMainSize, aNewMinSize);
     }
+    mNeedsMinSizeAutoResolution = false;
   }
 
   
@@ -540,6 +556,10 @@ public:
 
 protected:
   
+  void CheckForMinSizeAuto(const nsHTMLReflowState& aFlexItemReflowState,
+                           const FlexboxAxisTracker& aAxisTracker);
+
+  
   nsIFrame* const mFrame;
 
   
@@ -582,6 +602,10 @@ protected:
   bool mIsStretched; 
   bool mIsStrut;     
                      
+
+  
+  bool mNeedsMinSizeAutoResolution;
+
   uint8_t mAlignSelf; 
                       
                       
@@ -1033,39 +1057,214 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   
   
   ResolveAutoFlexBasisAndMinSize(aPresContext, *item,
-                                 aParentReflowState, aAxisTracker);
-
+                                 childRS, aAxisTracker);
   return item;
 }
+
+
+
+
+
+
+static bool
+IsCrossSizeDefinite(const nsHTMLReflowState& aItemReflowState,
+                    const FlexboxAxisTracker& aAxisTracker)
+{
+  const nsStylePosition* pos = aItemReflowState.mStylePosition;
+  if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
+    return pos->mWidth.GetUnit() != eStyleUnit_Auto;
+  }
+  
+  
+  nscoord cbHeight = aItemReflowState.mCBReflowState->ComputedHeight();
+  return !nsLayoutUtils::IsAutoHeight(pos->mHeight, cbHeight);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static nscoord
+CrossSizeToUseWithRatio(const FlexItem& aFlexItem,
+                        const nsHTMLReflowState& aItemReflowState,
+                        bool aMinSizeFallback,
+                        const FlexboxAxisTracker& aAxisTracker)
+{
+  if (aFlexItem.IsStretched()) {
+    
+    return aFlexItem.GetCrossSize();
+  }
+
+  if (IsCrossSizeDefinite(aItemReflowState, aAxisTracker)) {
+    
+    return GET_CROSS_COMPONENT(aAxisTracker,
+                               aItemReflowState.ComputedWidth(),
+                               aItemReflowState.ComputedHeight());
+  }
+
+  if (aMinSizeFallback) {
+    
+    
+    return GET_CROSS_COMPONENT(aAxisTracker,
+                               aItemReflowState.ComputedMinWidth(),
+                               aItemReflowState.ComputedMinHeight());
+  }
+
+  
+  return NS_AUTOHEIGHT;
+}
+
+
+
+#define MULDIV(a,b,c) (nscoord(int64_t(a) * int64_t(b) / int64_t(c)))
+
+
+
+
+static nscoord
+MainSizeFromAspectRatio(nscoord aCrossSize,
+                        const nsSize& aIntrinsicRatio,
+                        const FlexboxAxisTracker& aAxisTracker)
+{
+  MOZ_ASSERT(aAxisTracker.GetCrossComponent(aIntrinsicRatio) != 0,
+             "Invalid ratio; will divide by 0! Caller should've checked...");
+
+  if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
+    
+    return MULDIV(aCrossSize, aIntrinsicRatio.height, aIntrinsicRatio.width);
+  }
+  
+  return MULDIV(aCrossSize, aIntrinsicRatio.width, aIntrinsicRatio.height);
+}
+
+
+
+
+
+
+
+
+static nscoord
+PartiallyResolveAutoMinSize(const FlexItem& aFlexItem,
+                            const nsHTMLReflowState& aItemReflowState,
+                            const nsSize& aIntrinsicRatio,
+                            const FlexboxAxisTracker& aAxisTracker)
+{
+  MOZ_ASSERT(aFlexItem.NeedsMinSizeAutoResolution(),
+             "only call for FlexItems that need min-size auto resolution");
+
+  nscoord minMainSize = nscoord_MAX; 
+                                     
+
+  
+  
+  
+  if (eStyleUnit_Auto ==
+      aItemReflowState.mStylePosition->mFlexBasis.GetUnit() &&
+      aFlexItem.GetFlexBaseSize() != NS_AUTOHEIGHT) {
+    
+    
+    
+    
+    minMainSize = std::min(minMainSize, aFlexItem.GetFlexBaseSize());
+  }
+
+  
+  nscoord maxSize =
+    GET_MAIN_COMPONENT(aAxisTracker,
+                       aItemReflowState.ComputedMaxWidth(),
+                       aItemReflowState.ComputedMaxHeight());
+  if (maxSize != NS_UNCONSTRAINEDSIZE) {
+    minMainSize = std::min(minMainSize, maxSize);
+  }
+
+  
+  
+
+  
+  
+  
+  if (aAxisTracker.GetCrossComponent(aIntrinsicRatio) != 0) {
+    
+    const bool useMinSizeIfCrossSizeIsIndefinite = true;
+    nscoord crossSizeToUseWithRatio =
+      CrossSizeToUseWithRatio(aFlexItem, aItemReflowState,
+                              useMinSizeIfCrossSizeIsIndefinite,
+                              aAxisTracker);
+    nscoord minMainSizeFromRatio =
+      MainSizeFromAspectRatio(crossSizeToUseWithRatio,
+                              aIntrinsicRatio, aAxisTracker);
+    minMainSize = std::min(minMainSize, minMainSizeFromRatio);
+  }
+
+  return minMainSize;
+}
+
+
+
+
+
+static bool
+ResolveAutoFlexBasisFromRatio(FlexItem& aFlexItem,
+                              const nsHTMLReflowState& aItemReflowState,
+                              const nsSize& aIntrinsicRatio,
+                              const FlexboxAxisTracker& aAxisTracker)
+{
+  MOZ_ASSERT(NS_AUTOHEIGHT == aFlexItem.GetFlexBaseSize(),
+             "Should only be called to resolve an 'auto' flex-basis");
+  
+  
+  
+  
+  
+  
+  if (aAxisTracker.GetCrossComponent(aIntrinsicRatio) != 0) {
+    
+    const bool useMinSizeIfCrossSizeIsIndefinite = false;
+    nscoord crossSizeToUseWithRatio =
+      CrossSizeToUseWithRatio(aFlexItem, aItemReflowState,
+                              useMinSizeIfCrossSizeIsIndefinite,
+                              aAxisTracker);
+    if (crossSizeToUseWithRatio != NS_AUTOHEIGHT) {
+      
+      nscoord mainSizeFromRatio =
+        MainSizeFromAspectRatio(crossSizeToUseWithRatio,
+                                aIntrinsicRatio, aAxisTracker);
+      aFlexItem.SetFlexBaseSizeAndMainSize(mainSizeFromRatio);
+      return true;
+    }
+  }
+  return false;
+}
+
+
 
 void
 nsFlexContainerFrame::
   ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
                                  FlexItem& aFlexItem,
-                                 const nsHTMLReflowState& aParentReflowState,
+                                 const nsHTMLReflowState& aItemReflowState,
                                  const FlexboxAxisTracker& aAxisTracker)
 {
-  if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-    
-    
-    return;
-  }
+  
+  
+  const bool isMainSizeAuto = (!IsAxisHorizontal(aAxisTracker.GetMainAxis()) &&
+                               NS_AUTOHEIGHT == aFlexItem.GetFlexBaseSize());
 
-  
-  
-  bool isMainSizeAuto = (NS_AUTOHEIGHT == aFlexItem.GetFlexBaseSize());
-
-  
-  
-  bool isMainMinSizeAuto =
-    (eStyleUnit_Auto ==
-     aFlexItem.Frame()->StylePosition()->mMinHeight.GetUnit());
+  const bool isMainMinSizeAuto = aFlexItem.NeedsMinSizeAutoResolution();
 
   if (!isMainSizeAuto && !isMainMinSizeAuto) {
     
     
-    
-    
     return;
   }
 
@@ -1074,36 +1273,102 @@ nsFlexContainerFrame::
   
   
   
-  if (NS_STYLE_FLEX_WRAP_NOWRAP ==
-      aParentReflowState.mStylePosition->mFlexWrap) {
-    aFlexItem.ResolveStretchedCrossSize(aParentReflowState.ComputedWidth(),
-                                        aAxisTracker);
+  
+  
+  
+  
+  const nsHTMLReflowState* flexContainerRS = aItemReflowState.parentReflowState;
+  MOZ_ASSERT(flexContainerRS,
+             "flex item's reflow state should have ptr to container's state");
+  if (NS_STYLE_FLEX_WRAP_NOWRAP == flexContainerRS->mStylePosition->mFlexWrap) {
+    
+    
+    nscoord containerCrossSize =
+      GET_CROSS_COMPONENT(aAxisTracker,
+                          flexContainerRS->ComputedWidth(),
+                          flexContainerRS->ComputedHeight());
+    
+    
+    
+    if (IsAxisHorizontal(aAxisTracker.GetCrossAxis()) ||
+        containerCrossSize != NS_AUTOHEIGHT) {
+      aFlexItem.ResolveStretchedCrossSize(containerCrossSize, aAxisTracker);
+    }
   }
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  bool forceVerticalResizeForMeasuringReflow =
-    !aFlexItem.IsFrozen() || 
-    !isMainSizeAuto; 
+  const nsSize ratio = aFlexItem.Frame()->GetIntrinsicRatio();
 
-  nscoord contentHeight =
-    MeasureFlexItemContentHeight(aPresContext, aFlexItem,
-                                 forceVerticalResizeForMeasuringReflow,
-                                 aParentReflowState);
-
-  if (isMainSizeAuto) {
-    aFlexItem.SetFlexBaseSizeAndMainSize(contentHeight);
-  }
+  nscoord resolvedMinSize; 
+  bool minSizeNeedsToMeasureContent = false; 
   if (isMainMinSizeAuto) {
-    aFlexItem.UpdateMainMinSize(contentHeight);
+    
+    
+    resolvedMinSize = PartiallyResolveAutoMinSize(aFlexItem, aItemReflowState,
+                                                  ratio, aAxisTracker);
+    if (resolvedMinSize > 0 &&
+        aAxisTracker.GetCrossComponent(ratio) == 0) {
+      
+      
+      
+      
+      
+      minSizeNeedsToMeasureContent = true;
+    }
+  }
+
+  bool flexBasisNeedsToMeasureContent = false; 
+  if (isMainSizeAuto) {
+    if (!ResolveAutoFlexBasisFromRatio(aFlexItem, aItemReflowState,
+                                       ratio, aAxisTracker)) {
+      flexBasisNeedsToMeasureContent = true;
+    }
+  }
+
+  
+  if (minSizeNeedsToMeasureContent || flexBasisNeedsToMeasureContent) {
+    if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
+      nsRefPtr<nsRenderingContext> rctx =
+        aPresContext->PresShell()->CreateReferenceRenderingContext();
+      if (minSizeNeedsToMeasureContent) {
+        resolvedMinSize = std::min(resolvedMinSize, aFlexItem.Frame()->GetMinWidth(rctx));
+      }
+      NS_ASSERTION(!flexBasisNeedsToMeasureContent,
+                   "flex-basis:auto should have been resolved in the "
+                   "reflow state, for horizontal flexbox. It shouldn't need "
+                   "special handling here");
+    } else {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      bool forceVerticalResizeForMeasuringReflow =
+        !aFlexItem.IsFrozen() ||         
+        !flexBasisNeedsToMeasureContent; 
+                                         
+
+      nscoord contentHeight =
+        MeasureFlexItemContentHeight(aPresContext, aFlexItem,
+                                     forceVerticalResizeForMeasuringReflow,
+                                     *flexContainerRS);
+      if (minSizeNeedsToMeasureContent) {
+        resolvedMinSize = std::min(resolvedMinSize, contentHeight);
+      }
+      if (flexBasisNeedsToMeasureContent) {
+        aFlexItem.SetFlexBaseSizeAndMainSize(contentHeight);
+      }
+    }
+  }
+
+  if (isMainMinSizeAuto) {
+    aFlexItem.UpdateMainMinSize(resolvedMinSize);
   }
 }
 
@@ -1183,6 +1448,7 @@ FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
     mHadMeasuringReflow(false),
     mIsStretched(false),
     mIsStrut(false),
+    
     mAlignSelf(aFlexItemReflowState.mStylePosition->mAlignSelf)
 {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
@@ -1192,6 +1458,7 @@ FlexItem::FlexItem(nsHTMLReflowState& aFlexItemReflowState,
              "out-of-flow frames should not be treated as flex items");
 
   SetFlexBaseSizeAndMainSize(aFlexBaseSize);
+  CheckForMinSizeAuto(aFlexItemReflowState, aAxisTracker);
 
   
   
@@ -1256,6 +1523,7 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
     mHadMeasuringReflow(false),
     mIsStretched(false),
     mIsStrut(true), 
+    mNeedsMinSizeAutoResolution(false),
     mAlignSelf(NS_STYLE_ALIGN_ITEMS_FLEX_START)
 {
   MOZ_ASSERT(mFrame, "expecting a non-null child frame");
@@ -1266,6 +1534,30 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
              "placeholder frames should not be treated as flex items");
   MOZ_ASSERT(!(mFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
              "out-of-flow frames should not be treated as flex items");
+}
+
+void
+FlexItem::CheckForMinSizeAuto(const nsHTMLReflowState& aFlexItemReflowState,
+                              const FlexboxAxisTracker& aAxisTracker)
+{
+  const nsStylePosition* pos = aFlexItemReflowState.mStylePosition;
+  const nsStyleDisplay* disp = aFlexItemReflowState.mStyleDisplay;
+
+  
+  
+  
+  
+  
+  const nsStyleCoord& minSize = GET_MAIN_COMPONENT(aAxisTracker,
+                                                   pos->mMinWidth,
+                                                   pos->mMinHeight);
+
+  const uint8_t overflowVal = GET_MAIN_COMPONENT(aAxisTracker,
+                                                 disp->mOverflowX,
+                                                 disp->mOverflowY);
+
+  mNeedsMinSizeAutoResolution = (minSize.GetUnit() == eStyleUnit_Auto &&
+                                 overflowVal == NS_STYLE_OVERFLOW_VISIBLE);
 }
 
 nscoord

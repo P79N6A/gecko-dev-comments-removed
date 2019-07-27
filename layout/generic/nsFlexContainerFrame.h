@@ -140,7 +140,7 @@ protected:
 
   void ResolveAutoFlexBasisAndMinSize(nsPresContext* aPresContext,
                                       FlexItem& aFlexItem,
-                                      const nsHTMLReflowState& aParentReflowState,
+                                      const nsHTMLReflowState& aItemReflowState,
                                       const FlexboxAxisTracker& aAxisTracker);
 
   
