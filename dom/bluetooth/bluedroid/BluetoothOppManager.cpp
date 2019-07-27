@@ -89,7 +89,6 @@ BluetoothOppManager::Observe(nsISupports* aSubject,
 {
   MOZ_ASSERT(sBluetoothOppManager);
 
-  
   if (!strcmp(aTopic, NS_VOLUME_STATE_CHANGED)) {
     HandleVolumeStateChanged(aSubject);
     return NS_OK;
@@ -184,7 +183,7 @@ public:
   void Run() override
   {
     MOZ_ASSERT(NS_IsMainThread());
-    mSocket->CloseSocket();
+    mSocket->Close();
   }
 
 private:
@@ -283,7 +282,7 @@ BluetoothOppManager::ConnectInternal(const nsAString& aDeviceAddress)
 
   
   if (mServerSocket) {
-    mServerSocket->CloseSocket();
+    mServerSocket->Close();
     mServerSocket = nullptr;
   }
 
@@ -314,31 +313,25 @@ BluetoothOppManager::HandleVolumeStateChanged(nsISupports* aSubject)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  
-  
-  
-  
-
   if (!mConnected) {
     return;
   }
 
   
+
+
+
+
+
   nsCOMPtr<nsIVolume> vol = do_QueryInterface(aSubject);
   if (!vol) {
     return;
   }
+
   int32_t state;
   vol->GetState(&state);
   if (nsIVolume::STATE_MOUNTED != state) {
-    
-    
-    
-    
-    
-    
-    
-    BT_LOGR("Volume state is not STATE_MOUNTED. Abort any ongoing OPP connection.");
+    BT_LOGR("Volume becomes non-mounted. Abort ongoing OPP connection");
     Disconnect(nullptr);
   }
 }
@@ -359,7 +352,7 @@ BluetoothOppManager::Listen()
 
 
   if (mServerSocket) {
-    mServerSocket->CloseSocket();
+    mServerSocket->Close();
     mServerSocket = nullptr;
   }
 
@@ -1554,7 +1547,7 @@ void
 BluetoothOppManager::Disconnect(BluetoothProfileController* aController)
 {
   if (mSocket) {
-    mSocket->CloseSocket();
+    mSocket->Close();
   } else {
     BT_WARNING("%s: No ongoing file transfer to stop", __FUNCTION__);
   }
@@ -1568,10 +1561,12 @@ BluetoothOppManager::AcquireSdcardMountLock()
   nsCOMPtr<nsIVolumeService> volumeSrv =
     do_GetService(NS_VOLUMESERVICE_CONTRACTID);
   NS_ENSURE_TRUE(volumeSrv, false);
-  nsresult rv;
-  rv = volumeSrv->CreateMountLock(NS_LITERAL_STRING("sdcard"),
-                                  getter_AddRefs(mMountLock));
-  NS_ENSURE_SUCCESS(rv, false);
+
+  NS_ENSURE_SUCCESS(
+    volumeSrv->CreateMountLock(NS_LITERAL_STRING("sdcard"),
+                               getter_AddRefs(mMountLock)),
+    false);
+
   return true;
 }
 
