@@ -321,12 +321,9 @@ bool
 nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const
 {
   for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
-    
-    
-    
     nsDependentString name(f->GetName());
-    JS::Rooted<JS::Value> dummy(cx);
-    if (!::JS_LookupUCProperty(cx, obj, name.get(), name.Length(), &dummy)) {
+    bool dummy;
+    if (!::JS_HasUCProperty(cx, obj, name.get(), name.Length(), &dummy)) {
       return false;
     }
   }

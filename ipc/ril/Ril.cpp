@@ -149,15 +149,12 @@ ConnectWorkerToRIL::RunTask(JSContext *aCx)
 
     
     
-    
     JS::Rooted<JS::Value> val(aCx);
-    if (!JS_LookupProperty(aCx, workerGlobal, "postRILMessage", &val)) {
+    if (!JS_GetProperty(aCx, workerGlobal, "postRILMessage", &val)) {
         JS_ReportPendingException(aCx);
         return false;
     }
 
-    
-    
     
     if (JSTYPE_FUNCTION == JS_TypeOfValue(aCx, val)) {
         return true;
