@@ -183,15 +183,21 @@ static gunichar
 getCharacterAtOffsetCB(AtkText* aText, gint aOffset)
 {
   AccessibleWrap* accWrap = GetAccessibleWrap(ATK_OBJECT(aText));
-  if (!accWrap)
-    return 0;
+  if (accWrap) {
+    HyperTextAccessible* text = accWrap->AsHyperText();
+    if (!text || !text->IsTextRole()) {
+      return 0;
+    }
 
-  HyperTextAccessible* text = accWrap->AsHyperText();
-  if (!text || !text->IsTextRole())
-    return 0;
+    
+    return static_cast<gunichar>(text->CharAt(aOffset));
+  }
 
-  
-  return static_cast<gunichar>(text->CharAt(aOffset));
+  if (ProxyAccessible* proxy = GetProxy(ATK_OBJECT(aText))) {
+    return static_cast<gunichar>(proxy->CharAt(aOffset));
+  }
+
+  return 0;
 }
 
 static gchar*
