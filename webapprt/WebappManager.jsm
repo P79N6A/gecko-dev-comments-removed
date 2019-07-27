@@ -122,7 +122,7 @@ this.WebappManager = {
     
     if (choice == 0) {
       DOMApplicationRegistry.confirmUninstall(aData).then((aApp) => {
-        WebappOSUtils.uninstall(aApp);
+        WebappOSUtils.uninstall(aApp).then(null, Cu.reportError);
       });
     } else {
       DOMApplicationRegistry.denyUninstall(aData);
