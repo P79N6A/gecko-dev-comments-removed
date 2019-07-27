@@ -10,13 +10,13 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 
-class nsIDOMFile;
 class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
 
 class Directory;
+class DOMFileImpl;
 
 class FileSystemBase
 {
@@ -73,7 +73,7 @@ public:
 
 
   virtual bool
-  GetRealPath(nsIDOMFile* aFile, nsAString& aRealPath) const = 0;
+  GetRealPath(DOMFileImpl* aFile, nsAString& aRealPath) const = 0;
 
   
 
