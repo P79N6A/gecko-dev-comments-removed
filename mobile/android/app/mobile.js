@@ -403,7 +403,7 @@ pref("font.size.inflation.minTwips", 0);
 
 pref("browser.ui.zoom.force-user-scalable", false);
 
-pref("ui.zoomedview.enabled", false);
+pref("ui.zoomedview.disabled", false);
 pref("ui.zoomedview.limitReadableSize", 8);  
 
 pref("ui.touch.radius.enabled", false);
