@@ -711,6 +711,16 @@ class LValue : public LInstructionHelper<BOX_PIECES, 0, 0>
     }
 };
 
+class LNurseryObject : public LInstructionHelper<1, 0, 0>
+{
+  public:
+    LIR_HEADER(NurseryObject);
+
+    MNurseryObject* mir() const {
+        return mir_->toNurseryObject();
+    }
+};
+
 
 
 class LCloneLiteral : public LCallInstructionHelper<1, 1, 0>

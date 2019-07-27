@@ -312,12 +312,10 @@ class JSObject : public js::gc::Cell
     size_t sizeOfIncludingThisInNursery() const;
 
     
-    
-    
-    static inline bool setSingleton(js::ExclusiveContext* cx, js::HandleObject obj);
 
-    
-    static bool changeToSingleton(JSContext* cx, js::HandleObject obj);
+
+
+    static inline bool setSingleton(js::ExclusiveContext* cx, js::HandleObject obj);
 
     inline js::ObjectGroup* getGroup(JSContext* cx);
 
