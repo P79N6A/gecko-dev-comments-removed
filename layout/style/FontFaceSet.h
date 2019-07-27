@@ -128,6 +128,13 @@ public:
 
 
 
+  already_AddRefed<gfxUserFontEntry>
+    FindOrCreateUserFontEntryFromFontFace(FontFace* aFontFace);
+
+  
+
+
+
 
 
 

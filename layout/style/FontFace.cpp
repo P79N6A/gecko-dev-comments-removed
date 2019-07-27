@@ -478,11 +478,7 @@ FontFace::Load(ErrorResult& aRv)
   SetStatus(FontFaceLoadStatus::Loading);
 
   if (mInitialized) {
-    
-    
-    if (mUserFontEntry) {
-      mUserFontEntry->Load();
-    }
+    DoLoad();
   } else {
     
     
@@ -490,6 +486,28 @@ FontFace::Load(ErrorResult& aRv)
   }
 
   return mLoaded;
+}
+
+void
+FontFace::DoLoad()
+{
+  MOZ_ASSERT(mInitialized);
+
+  if (!mUserFontEntry) {
+    MOZ_ASSERT(!IsConnected(),
+               "CSS-connected FontFace objects should already have a user font "
+               "entry by the time Load() can be called on them");
+
+    nsRefPtr<gfxUserFontEntry> newEntry =
+      mFontFaceSet->FindOrCreateUserFontEntryFromFontFace(this);
+    if (!newEntry) {
+      return;
+    }
+
+    SetUserFontEntry(newEntry);
+  }
+
+  mUserFontEntry->Load();
 }
 
 Promise*
@@ -636,6 +654,13 @@ FontFace::OnInitialized()
   MOZ_ASSERT(!mInitialized);
 
   mInitialized = true;
+
+  
+  
+  if (mLoadWhenInitialized) {
+    mLoadWhenInitialized = false;
+    DoLoad();
+  }
 
   if (mInFontFaceSet) {
     mFontFaceSet->OnFontFaceInitialized(this);

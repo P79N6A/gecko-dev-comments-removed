@@ -621,6 +621,20 @@ FontFaceSet::InsertConnectedFontFace(
 }
 
 already_AddRefed<gfxUserFontEntry>
+FontFaceSet::FindOrCreateUserFontEntryFromFontFace(FontFace* aFontFace)
+{
+  nsAutoString fontfamily;
+  if (!aFontFace->GetFamilyName(fontfamily)) {
+    
+    
+    return nullptr;
+  }
+
+  return FindOrCreateUserFontEntryFromFontFace(fontfamily, aFontFace,
+                                               nsStyleSet::eDocSheet);
+}
+
+already_AddRefed<gfxUserFontEntry>
 FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
                                                    FontFace* aFontFace,
                                                    uint8_t aSheetType)

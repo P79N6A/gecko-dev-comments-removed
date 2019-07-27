@@ -156,6 +156,9 @@ private:
   void Initialize(FontFaceInitializer* aInitializer);
 
   
+  void DoLoad();
+
+  
 
 
 
