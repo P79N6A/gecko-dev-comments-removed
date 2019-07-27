@@ -333,7 +333,6 @@ class nsCookieService final : public nsICookieService
 
   protected:
     
-    nsCOMPtr<nsIObserverService>     mObserverService;
     nsCOMPtr<nsICookiePermission>    mPermissionService;
     nsCOMPtr<mozIThirdPartyUtil>     mThirdPartyUtil;
     nsCOMPtr<nsIEffectiveTLDService> mTLDService;
