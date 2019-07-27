@@ -245,11 +245,6 @@ public:
 
   void DidDivertRequest(nsIRequest *request);
 
-  
-
-
-  void MaybeApplyDecodingForExtension(nsIRequest *request);
-
 protected:
   ~nsExternalAppHandler();
 

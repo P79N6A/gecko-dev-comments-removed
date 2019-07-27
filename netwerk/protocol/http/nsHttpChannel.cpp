@@ -922,7 +922,8 @@ nsHttpChannel::CallOnStartRequest()
     
     if (!unknownDecoderStarted) {
       nsCOMPtr<nsIStreamListener> listener;
-      rv = DoApplyContentConversions(mListener, getter_AddRefs(listener));
+      nsISupports *ctxt = mListenerContext;
+      rv = DoApplyContentConversions(mListener, getter_AddRefs(listener), ctxt);
       if (NS_FAILED(rv)) {
         return rv;
       }
