@@ -99,6 +99,7 @@ class Tracked {
 
   
   void SetBirthPlace(const Location& from_here);
+  Location GetBirthPlace() const;
 
   
   
