@@ -303,7 +303,8 @@ public class RecentTabsPanel extends HomeFragment
                                                                    RecentTabs.TYPE });
 
             if (closedTabs != null && closedTabs.length > 0) {
-                addRow(c, null, context.getString(R.string.home_closed_tabs_title), RecentTabs.TYPE_HEADER);
+                
+                int visibleClosedTabs = 0;
 
                 final int length = closedTabs.length;
                 for (int i = 0; i < length; i++) {
@@ -311,12 +312,17 @@ public class RecentTabsPanel extends HomeFragment
 
                     
                     if (!AboutPages.isAboutHome(url)) {
+                        
+                        if (visibleClosedTabs == 0) {
+                            addRow(c, null, context.getString(R.string.home_closed_tabs_title), RecentTabs.TYPE_HEADER);
+                        }
                         addRow(c, url, closedTabs[i].title, RecentTabs.TYPE_CLOSED);
+                        visibleClosedTabs++;
                     }
                 }
 
                 
-                if (length > 1) {
+                if (visibleClosedTabs > 1) {
                     addRow(c, null, null, RecentTabs.TYPE_OPEN_ALL_CLOSED);
                 }
             }
