@@ -355,6 +355,8 @@ protected:
 
   void AssertCurrentThreadInMonitor() const { mDecoder->GetReentrantMonitor().AssertCurrentThreadIn(); }
 
+  void SetState(State aState);
+
   
   
   void Push(AudioData* aSample);
