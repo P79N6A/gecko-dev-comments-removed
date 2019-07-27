@@ -158,24 +158,10 @@ nsSystemPrincipal::GetUnknownAppId(bool* aUnknownAppId)
 }
 
 NS_IMETHODIMP
-nsSystemPrincipal::GetIsNullPrincipal(bool* aIsNullPrincipal)
-{
-  *aIsNullPrincipal = false;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsSystemPrincipal::GetBaseDomain(nsACString& aBaseDomain)
 {
   
   return NS_OK;
-}
-
-bool
-nsSystemPrincipal::IsOnCSSUnprefixingWhitelist()
-{
-  
-  return false;
 }
 
 
