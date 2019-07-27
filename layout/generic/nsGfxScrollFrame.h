@@ -177,6 +177,7 @@ public:
   nsSize GetScrollPositionClampingScrollPortSize() const;
   gfxSize GetResolution() const;
   void SetResolution(const gfxSize& aResolution);
+  void SetResolutionAndScaleTo(const gfxSize& aResolution);
 
 protected:
   nsRect GetScrollRangeForClamping() const;
@@ -461,6 +462,10 @@ public:
   
   bool mIsResolutionSet:1;
 
+  
+  
+  bool mScaleToResolution:1;
+
 protected:
   
 
@@ -642,6 +647,9 @@ public:
   }
   virtual void SetResolution(const gfxSize& aResolution) MOZ_OVERRIDE {
     return mHelper.SetResolution(aResolution);
+  }
+  virtual void SetResolutionAndScaleTo(const gfxSize& aResolution) MOZ_OVERRIDE {
+    return mHelper.SetResolutionAndScaleTo(aResolution);
   }
   virtual nsSize GetLineScrollAmount() const MOZ_OVERRIDE {
     return mHelper.GetLineScrollAmount();
@@ -1003,6 +1011,9 @@ public:
   }
   virtual void SetResolution(const gfxSize& aResolution) MOZ_OVERRIDE {
     return mHelper.SetResolution(aResolution);
+  }
+  virtual void SetResolutionAndScaleTo(const gfxSize& aResolution) MOZ_OVERRIDE {
+    return mHelper.SetResolutionAndScaleTo(aResolution);
   }
   virtual nsSize GetLineScrollAmount() const MOZ_OVERRIDE {
     return mHelper.GetLineScrollAmount();

@@ -141,8 +141,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-  { 0xa0a4b515, 0x0b91, 0x4f13, \
-    { 0xa0, 0x60, 0x4b, 0xfb, 0x35, 0x00, 0xdc, 0x00 } }
+  { 0x9d010f90, 0x2d90, 0x471c, \
+    { 0xb6, 0x40, 0x03, 0x8c, 0xc3, 0x50, 0xc1, 0x87 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1401,6 +1401,19 @@ public:
   float GetXResolution() { return mXResolution; }
   float GetYResolution() { return mYResolution; }
   virtual gfxSize GetCumulativeResolution() = 0;
+
+  
+
+
+
+  virtual nsresult SetResolutionAndScaleTo(float aXResolution, float aYResolution) = 0;
+
+  
+
+
+
+
+  virtual bool ScaleToResolution() const = 0;
 
   
 

@@ -197,7 +197,13 @@ public:
 
   virtual void SetIgnoreViewportScrolling(bool aIgnore) MOZ_OVERRIDE;
 
-  virtual nsresult SetResolution(float aXResolution, float aYResolution) MOZ_OVERRIDE;
+  virtual nsresult SetResolution(float aXResolution, float aYResolution) MOZ_OVERRIDE {
+    return SetResolutionImpl(aXResolution, aYResolution,  false);
+  }
+  virtual nsresult SetResolutionAndScaleTo(float aXResolution, float aYResolution) MOZ_OVERRIDE {
+    return SetResolutionImpl(aXResolution, aYResolution,  true);
+  }
+  virtual bool ScaleToResolution() const MOZ_OVERRIDE;
   virtual gfxSize GetCumulativeResolution() MOZ_OVERRIDE;
 
   
@@ -753,6 +759,8 @@ protected:
   
   nsTHashtable< nsRefPtrHashKey<nsIImageLoadingContent> > mVisibleImages;
 
+  nsresult SetResolutionImpl(float aXResolution, float aYResolution, bool aScaleToResolution);
+
 #ifdef DEBUG
   
   
@@ -854,6 +862,11 @@ protected:
   bool                      mNextPaintCompressed : 1;
 
   bool                      mHasCSSBackgroundColor : 1;
+
+  
+  
+  
+  bool                      mScaleToResolution : 1;
 
   static bool               sDisableNonTestMouseEvents;
 };

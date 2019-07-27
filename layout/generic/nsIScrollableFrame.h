@@ -157,6 +157,12 @@ public:
 
 
 
+
+  virtual void SetResolutionAndScaleTo(const gfxSize& aResolution) = 0;
+  
+
+
+
   virtual nsSize GetLineScrollAmount() const = 0;
   
 

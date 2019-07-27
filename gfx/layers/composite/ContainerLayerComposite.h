@@ -92,6 +92,24 @@ public:
   
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE { return nullptr; }
 
+  
+  
+  
+  
+  
+  virtual float GetPostXScale() const MOZ_OVERRIDE {
+    if (mScaleToResolution) {
+      return mPostXScale * mPresShellResolution;
+    }
+    return mPostXScale;
+  }
+  virtual float GetPostYScale() const MOZ_OVERRIDE {
+    if (mScaleToResolution) {
+      return mPostYScale * mPresShellResolution;
+    }
+    return mPostYScale;
+  }
+
   virtual const char* Name() const MOZ_OVERRIDE { return "ContainerLayerComposite"; }
   UniquePtr<PreparedData> mPrepared;
 
