@@ -48,7 +48,7 @@ class OriginKeyStore : public nsISupports
     static const size_t DecodedLength = 18;
     static const size_t EncodedLength = DecodedLength * 4 / 3;
 
-    OriginKey(const nsACString& aKey, int64_t aSecondsStamp = 0) 
+    explicit OriginKey(const nsACString& aKey, int64_t aSecondsStamp = 0) 
     : mKey(aKey)
     , mSecondsStamp(aSecondsStamp) {}
 
