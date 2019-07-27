@@ -963,6 +963,15 @@ nsTextStore::DidLockGranted()
     mNativeCaretIsCreated = false;
   }
   if (IsReadWriteLocked()) {
+    if (IsPendingCompositionUpdateIncomplete()) {
+      
+      
+      
+      
+      
+      RecordCompositionUpdateAction();
+    }
+
     FlushPendingActions();
   }
 
@@ -1621,7 +1630,7 @@ nsTextStore::RecordCompositionUpdateAction()
     return E_FAIL;
   }
 
-  PendingAction* action = GetPendingCompositionUpdate();
+  PendingAction* action = LastOrNewPendingCompositionUpdate();
   action->mData = mComposition.mString;
   
   
@@ -1713,6 +1722,8 @@ nsTextStore::RecordCompositionUpdateAction()
   caretRange.mStartOffset = caretRange.mEndOffset = uint32_t(caretPosition);
   caretRange.mRangeType = NS_TEXTRANGE_CARETPOSITION;
   action->mRanges->AppendElement(caretRange);
+
+  action->mIncomplete = false;
 
   PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
          ("TSF: 0x%p   nsTextStore::RecordCompositionUpdateAction() "
@@ -2925,6 +2936,8 @@ nsTextStore::OnUpdateComposition(ITfCompositionView* pComposition,
 
   
   if (!pRangeNew) {
+    PendingAction* action = LastOrNewPendingCompositionUpdate();
+    action->mIncomplete = true;
     PR_LOG(sTextStoreLog, PR_LOG_ALWAYS,
            ("TSF: 0x%p   nsTextStore::OnUpdateComposition() succeeded but "
             "not complete", this));

@@ -506,6 +506,8 @@ protected:
     nsRefPtr<mozilla::TextRangeArray> mRanges;
     
     bool mSelectionReversed;
+    
+    bool mIncomplete;
   };
   
   
@@ -513,7 +515,7 @@ protected:
   
   nsTArray<PendingAction> mPendingActions;
 
-  PendingAction* GetPendingCompositionUpdate()
+  PendingAction* LastOrNewPendingCompositionUpdate()
   {
     if (!mPendingActions.IsEmpty()) {
       PendingAction& lastAction = mPendingActions.LastElement();
@@ -524,7 +526,18 @@ protected:
     PendingAction* newAction = mPendingActions.AppendElement();
     newAction->mType = PendingAction::COMPOSITION_UPDATE;
     newAction->mRanges = new mozilla::TextRangeArray();
+    newAction->mIncomplete = true;
     return newAction;
+  }
+
+  bool IsPendingCompositionUpdateIncomplete() const
+  {
+    if (mPendingActions.IsEmpty()) {
+      return false;
+    }
+    const PendingAction& lastAction = mPendingActions.LastElement();
+    return lastAction.mType == PendingAction::COMPOSITION_UPDATE &&
+           lastAction.mIncomplete;
   }
 
   
