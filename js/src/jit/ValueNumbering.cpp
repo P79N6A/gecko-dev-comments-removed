@@ -749,6 +749,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
         JitSpew(JitSpew_GVN, "      Folded %s%u to %s%u",
                 def->opName(), def->id(), sim->opName(), sim->id());
 #endif
+        MOZ_ASSERT(!sim->isDiscarded());
         ReplaceAllUsesWith(def, sim);
 
         
@@ -759,7 +760,13 @@ ValueNumberer::visitDefinition(MDefinition *def)
         if (DeadIfUnused(def)) {
             if (!discardDefsRecursively(def))
                 return false;
+
+            
+            if (sim->isDiscarded())
+                return true;
         }
+
+        
         def = sim;
     }
 
