@@ -58,6 +58,15 @@ loop.shared.utils = (function() {
       return platform.indexOf("Firefox") !== -1;
     },
 
+    isFirefoxOS: function(platform) {
+      
+      
+      
+      
+      
+      return !!window.MozActivity && /mobi/i.test(platform);
+    },
+
     isIOS: function(platform) {
       return this._iOSRegex.test(platform);
     },

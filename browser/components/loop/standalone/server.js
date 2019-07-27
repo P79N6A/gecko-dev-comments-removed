@@ -21,6 +21,12 @@ function getConfigFile(req, res) {
     "loop.config.serverUrl = 'http://localhost:" + loopServerPort + "';",
     "loop.config.feedbackApiUrl = '" + feedbackApiUrl + "';",
     "loop.config.feedbackProductName = '" + feedbackProductName + "';",
+    
+    
+    "loop.config.marketplaceUrl = 'http://fake-market.herokuapp.com/iframe-install.html'",
+    "loop.config.fxosApp = loop.config.fxosApp || {};",
+    "loop.config.fxosApp.name = 'Loop';",
+    "loop.config.fxosApp.manifestUrl = 'http://fake-market.herokuapp.com/apps/packagedApp/manifest.webapp';"
   ].join("\n"));
 }
 

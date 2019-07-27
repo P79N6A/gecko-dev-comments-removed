@@ -370,8 +370,11 @@ loop.shared.models = (function(l10n) {
 
 
 
-    errorL10n: function(messageId) {
-      this.error(l10n.get(messageId));
+
+
+
+    errorL10n: function(messageId, l10nProps) {
+      this.error(l10n.get(messageId, l10nProps));
     }
   });
 
