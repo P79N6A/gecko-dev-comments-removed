@@ -8,6 +8,7 @@ import itertools
 import json
 import logging
 import os
+import re
 import types
 
 from collections import (
@@ -144,18 +145,17 @@ class RecursiveMakeTraversal(object):
         - static
         - (normal) dirs
         - tests
-        - tools
 
     The "traditional" recursive make backend recurses through those by first
     building the current directory, followed by parallel directories (in
     parallel), then static directories, dirs, tests and tools (all
     sequentially).
     """
-    SubDirectoryCategories = ['parallel', 'static', 'dirs', 'tests', 'tools']
+    SubDirectoryCategories = ['parallel', 'static', 'dirs', 'tests']
     SubDirectoriesTuple = namedtuple('SubDirectories', SubDirectoryCategories)
     class SubDirectories(SubDirectoriesTuple):
         def __new__(self):
-            return RecursiveMakeTraversal.SubDirectoriesTuple.__new__(self, [], [], [], [], [])
+            return RecursiveMakeTraversal.SubDirectoriesTuple.__new__(self, [], [], [], [])
 
     def __init__(self):
         self._traversal = {}
@@ -182,7 +182,7 @@ class RecursiveMakeTraversal(object):
         Default filter for use with compute_dependencies and traverse.
         """
         return current, subdirs.parallel, \
-               subdirs.static + subdirs.dirs + subdirs.tests + subdirs.tools
+               subdirs.static + subdirs.dirs + subdirs.tests
 
     def call_filter(self, current, filter):
         """
@@ -329,6 +329,8 @@ class RecursiveMakeBackend(CommonBackend):
             'export': set(),
             'binaries': set(),
             'libs': set(),
+        }
+        self._no_skip = {
             'tools': set(),
         }
 
@@ -502,11 +504,15 @@ class RecursiveMakeBackend(CommonBackend):
             self.log(logging.DEBUG, 'fill_root_mk', {
                 'number': len(skip), 'tier': tier
                 }, 'Ignoring {number} directories during {tier}')
+        for tier, no_skip in self._no_skip.items():
+            self.log(logging.DEBUG, 'fill_root_mk', {
+                'number': len(no_skip), 'tier': tier
+                }, 'Using {number} directories during {tier}')
 
         
         def parallel_filter(current, subdirs):
             all_subdirs = subdirs.parallel + subdirs.dirs + \
-                          subdirs.tests + subdirs.tools
+                          subdirs.tests
             if current in self._may_skip[tier] \
                     or current.startswith('subtiers/'):
                 current = None
@@ -515,9 +521,8 @@ class RecursiveMakeBackend(CommonBackend):
         
         
         
-        
         def libs_filter(current, subdirs):
-            if current in self._may_skip[tier] \
+            if current in self._may_skip['libs'] \
                     or current.startswith('subtiers/'):
                 current = None
             return current, [], subdirs.parallel + \
@@ -525,12 +530,13 @@ class RecursiveMakeBackend(CommonBackend):
 
         
         
+        
         def tools_filter(current, subdirs):
-            if current in self._may_skip[tier] \
+            if current not in self._no_skip['tools'] \
                     or current.startswith('subtiers/'):
                 current = None
-            return current, subdirs.parallel, \
-                subdirs.dirs + subdirs.tests + subdirs.tools
+            return current, [], subdirs.parallel + \
+                subdirs.dirs + subdirs.tests
 
         
         filters = [
@@ -721,6 +727,19 @@ class RecursiveMakeBackend(CommonBackend):
                                 t = '%s/target' % mozpath.relpath(objdir,
                                     bf.environment.topobjdir)
                                 self._compile_graph[t].add(target)
+                    
+                    
+                    
+                    for t in (b'XPI_PKGNAME', b'INSTALL_EXTENSION_ID',
+                            b'tools'):
+                        if t not in content:
+                            continue
+                        if t == b'tools' and not re.search('(?:^|\s)tools.*::', content, re.M):
+                            continue
+                        if objdir == bf.environment.topobjdir:
+                            continue
+                        self._no_skip['tools'].add(mozpath.relpath(objdir,
+                            bf.environment.topobjdir))
 
         
         ipdl_dir = mozpath.join(self.environment.topobjdir, 'ipc', 'ipdl')
@@ -834,39 +853,21 @@ class RecursiveMakeBackend(CommonBackend):
             self._traversal.add(backend_file.relobjdir,
                                 parallel=relativize(obj.parallel_dirs))
 
-        if obj.tool_dirs:
-            fh.write('TOOL_DIRS := %s\n' % ' '.join(obj.tool_dirs))
-            self._traversal.add(backend_file.relobjdir,
-                                tools=relativize(obj.tool_dirs))
-
         if obj.test_dirs:
             fh.write('TEST_DIRS := %s\n' % ' '.join(obj.test_dirs))
             if self.environment.substs.get('ENABLE_TESTS', False):
                 self._traversal.add(backend_file.relobjdir,
                                     tests=relativize(obj.test_dirs))
 
-        if obj.test_tool_dirs and \
-            self.environment.substs.get('ENABLE_TESTS', False):
-
-            fh.write('TOOL_DIRS += %s\n' % ' '.join(obj.test_tool_dirs))
-            self._traversal.add(backend_file.relobjdir,
-                                tools=relativize(obj.test_tool_dirs))
-
         
         
         self._traversal.add(backend_file.relobjdir)
-
-        if obj.is_tool_dir:
-            fh.write('IS_TOOL_DIR := 1\n')
 
         affected_tiers = set(obj.affected_tiers)
         
         
         if 'binaries' in affected_tiers:
             affected_tiers.add('libs')
-        if obj.is_tool_dir and 'libs' in affected_tiers:
-            affected_tiers.remove('libs')
-            affected_tiers.add('tools')
 
         for tier in set(self._may_skip.keys()) - affected_tiers:
             self._may_skip[tier].add(backend_file.relobjdir)
