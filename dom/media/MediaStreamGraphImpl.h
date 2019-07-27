@@ -399,7 +399,6 @@ public:
   }
 
   TrackRate AudioSampleRate() const { return mSampleRate; }
-  TrackRate GraphRate() const { return mSampleRate; }
   
   uint32_t AudioChannelCount() { return 2; }
 
@@ -594,12 +593,6 @@ public:
 
   GraphTime mEndTime;
 
-  
-
-
-
-
-  TrackRate mSampleRate;
   
 
 

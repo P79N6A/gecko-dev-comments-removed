@@ -1194,9 +1194,15 @@ public:
     *mPendingUpdateRunnables.AppendElement() = aRunnable;
   }
 
+  
+
+
+  TrackRate GraphRate() const { return mSampleRate; }
+
 protected:
-  MediaStreamGraph()
+  MediaStreamGraph(TrackRate aSampleRate)
     : mNextGraphUpdateIndex(1)
+    , mSampleRate(aSampleRate)
   {
     MOZ_COUNT_CTOR(MediaStreamGraph);
   }
@@ -1212,6 +1218,13 @@ protected:
   
   
   int64_t mNextGraphUpdateIndex;
+
+  
+
+
+
+
+  TrackRate mSampleRate;
 };
 
 }
