@@ -1344,10 +1344,19 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     
     cbOffset.MoveTo(0, 0);
     do {
-      NS_ASSERTION(aContainingBlock,
-                   "Should hit cbrs->frame before we run off the frame tree!");
       cbOffset += aContainingBlock->GetPositionIgnoringScrolling();
-      aContainingBlock = aContainingBlock->GetParent();
+      nsContainerFrame* parent = aContainingBlock->GetParent();
+      if (!parent) {
+        
+        
+        
+        
+        
+        
+        cbOffset -= aContainingBlock->GetOffsetTo(cbrs->frame);
+        break;
+      }
+      aContainingBlock = parent;
     } while (aContainingBlock != cbrs->frame);
   } else {
     
