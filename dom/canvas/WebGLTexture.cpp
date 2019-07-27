@@ -599,10 +599,10 @@ ClearWithTempFB(WebGLContext* webgl, GLuint tex,
 
     gl::ScopedRenderbuffer rb(gl);
     {
-        gl::ScopedBindRenderbuffer(gl, rb.RB());
-        gl->fRenderbufferStorage(LOCAL_GL_RENDERBUFFER,
-                                 LOCAL_GL_RGBA4,
-                                 width, height);
+        
+        GLenum format = gl->IsGLES() ? LOCAL_GL_RGBA4 : LOCAL_GL_RGBA8;
+        gl::ScopedBindRenderbuffer rbBinding(gl, rb.RB());
+        gl->fRenderbufferStorage(LOCAL_GL_RENDERBUFFER, format, width, height);
     }
 
     gl->fFramebufferRenderbuffer(LOCAL_GL_FRAMEBUFFER, LOCAL_GL_COLOR_ATTACHMENT0,
