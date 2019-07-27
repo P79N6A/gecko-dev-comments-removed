@@ -478,36 +478,6 @@ var BrowserApp = {
       Services.prefs.setBoolPref("xpinstall.enabled", false);
     }
 
-    
-    if (Services.prefs.prefHasUserValue("intl.locale.os")) {
-      try {
-        let currentAcceptLang = Services.prefs.getCharPref("intl.accept_languages");
-
-        
-        
-        if (currentAcceptLang.startsWith("chrome://global/locale/intl.properties,")) {
-          
-          try {
-            let currentUALocale = Services.prefs.getCharPref("general.useragent.locale");
-            if (currentUALocale.startsWith("chrome://")) {
-              
-            } else {
-              
-              this.setLocalizedPref("general.useragent.locale", currentUALocale);
-            }
-          } catch (ee) {
-          }
-
-          
-          let osLocale = this.getOSLocalePref();
-          let uaLocale = this.getUALocalePref();
-          this.computeAcceptLanguages(osLocale, uaLocale);
-        }
-      } catch (e) {
-        
-      }
-    }
-
     try {
       
       
