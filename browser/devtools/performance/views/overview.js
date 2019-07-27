@@ -97,9 +97,10 @@ let OverviewView = {
 
 
   get isMouseActive() {
-    return (this.markersOverview && this.markersOverview.isMouseActive) ||
-           (this.memoryOverview && this.memoryOverview.isMouseActive) ||
-           (this.framerateGraph && this.framerateGraph.isMouseActive);
+    
+    
+    
+    return !!this.graphs.getWidgets().some(e => e.isMouseActive);
   },
 
   
