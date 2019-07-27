@@ -1780,7 +1780,7 @@ WebGLContext::InitAndValidateGL()
     MakeContextCurrent();
 
     
-    if (gl->IsCompatibilityProfile())
+    if (!gl->IsGLES())
         gl->fEnableVertexAttribArray(0);
 
     if (MinCapabilityMode())
@@ -1889,7 +1889,7 @@ WebGLContext::InitAndValidateGL()
     
     mMaxFramebufferColorAttachments = 1;
 
-    if (gl->IsCompatibilityProfile()) {
+    if (!gl->IsGLES()) {
         
         
         gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
