@@ -83,6 +83,8 @@ already_AddRefed<FakeTracedTask> CreateFakeTracedTask(int* aVptr);
 
 void FreeTraceInfo();
 
+const char* GetJSLabelPrefix();
+
 } 
 } 
 
