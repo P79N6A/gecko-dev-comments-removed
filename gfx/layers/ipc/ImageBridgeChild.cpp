@@ -21,6 +21,8 @@
 #include "mozilla/ipc/MessageChannel.h" 
 #include "mozilla/ipc/Transport.h"      
 #include "mozilla/gfx/Point.h"          
+#include "mozilla/media/MediaSystemResourceManager.h" 
+#include "mozilla/media/MediaSystemResourceManagerChild.h" 
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/CompositorParent.h" 
 #include "mozilla/layers/ISurfaceAllocator.h"  
@@ -49,6 +51,7 @@ using base::Thread;
 using base::ProcessId;
 using namespace mozilla::ipc;
 using namespace mozilla::gfx;
+using namespace mozilla::media;
 
 typedef std::vector<CompositableOperation> OpVector;
 
@@ -171,6 +174,9 @@ static void ImageBridgeShutdownStep1(ReentrantMonitor *aBarrier, bool *aDone)
 
   MOZ_ASSERT(InImageBridgeChildThread(),
              "Should be in ImageBridgeChild thread.");
+
+  MediaSystemResourceManager::Shutdown();
+
   if (sImageBridgeChildSingleton) {
     
     InfallibleTArray<PCompositableChild*> compositables;
@@ -188,6 +194,7 @@ static void ImageBridgeShutdownStep1(ReentrantMonitor *aBarrier, bool *aDone)
     
     
   }
+
   *aDone = true;
   aBarrier->NotifyAll();
 }
@@ -819,6 +826,21 @@ bool
 ImageBridgeChild::DeallocPTextureChild(PTextureChild* actor)
 {
   return TextureClient::DestroyIPDLActor(actor);
+}
+
+PMediaSystemResourceManagerChild*
+ImageBridgeChild::AllocPMediaSystemResourceManagerChild()
+{
+  MOZ_ASSERT(!mShuttingDown);
+  return new mozilla::media::MediaSystemResourceManagerChild();
+}
+
+bool
+ImageBridgeChild::DeallocPMediaSystemResourceManagerChild(PMediaSystemResourceManagerChild* aActor)
+{
+  MOZ_ASSERT(aActor);
+  delete static_cast<mozilla::media::MediaSystemResourceManagerChild*>(aActor);
+  return true;
 }
 
 bool

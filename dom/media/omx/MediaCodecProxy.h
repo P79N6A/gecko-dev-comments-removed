@@ -11,8 +11,10 @@
 #include <stagefright/MediaCodec.h>
 #include <stagefright/MediaBuffer.h>
 #include <utils/threads.h>
-#include "MediaResourceHandler.h"
+
+#include "mozilla/media/MediaSystemResourceClient.h"
 #include "mozilla/Monitor.h"
+#include "nsRefPtr.h"
 
 namespace android {
 
@@ -21,7 +23,8 @@ namespace android {
 
 
 
-class MediaCodecProxy : public MediaResourceHandler::ResourceListener
+class MediaCodecProxy : public RefBase
+                      , public mozilla::MediaSystemResourceReservationListener
 {
 public:
   
@@ -137,6 +140,7 @@ public:
 
   
   
+  
   bool AskMediaCodecAndWait();
 
   
@@ -144,15 +148,14 @@ public:
   bool AsyncAskMediaCodec();
 
   
-  void SetMediaCodecFree();
+  void ReleaseMediaCodec();
 
 protected:
   virtual ~MediaCodecProxy();
 
   
-  virtual void resourceReserved();
-  
-  virtual void resourceCanceled();
+  void ResourceReserved() override;
+  void ResourceReserveFailed() override;
 
 private:
   
@@ -180,7 +183,7 @@ private:
   wp<CodecResourceListener> mListener;
 
   
-  sp<MediaResourceHandler> mResourceHandler;
+  nsRefPtr<mozilla::MediaSystemResourceClient> mResourceClient;
 
   
   mutable RWLock mCodecLock;

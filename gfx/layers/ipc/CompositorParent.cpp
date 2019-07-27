@@ -42,6 +42,7 @@
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/PLayerTransactionParent.h"
 #include "mozilla/layers/ShadowLayersManager.h" 
+#include "mozilla/media/MediaSystemResourceService.h" 
 #include "mozilla/mozalloc.h"           
 #include "mozilla/Telemetry.h"
 #ifdef MOZ_WIDGET_GTK
@@ -593,6 +594,7 @@ void CompositorParent::ShutDown()
   MOZ_ASSERT(sCompositorThreadHolder, "The compositor thread has already been shut down!");
 
   ReleaseImageBridgeParentSingleton();
+  MediaSystemResourceService::Shutdown();
 
   sCompositorThreadHolder = nullptr;
 

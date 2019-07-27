@@ -13,14 +13,15 @@
 #include <stagefright/MediaSource.h>
 #include <utils/threads.h>
 
-#include "MediaResourceManagerClient.h"
+#include "mozilla/media/MediaSystemResourceClient.h"
+#include "nsRefPtr.h"
 
 namespace android {
 
 struct MetaData;
 
-class OMXCodecProxy : public MediaSource,
-                      public MediaResourceManagerClient::EventListener
+class OMXCodecProxy : public MediaSource
+                    , public mozilla::MediaSystemResourceReservationListener
 {
 public:
   
@@ -38,6 +39,15 @@ public:
     virtual void codecCanceled() = 0;
   };
 
+  
+  enum class ResourceState : int8_t {
+    START,
+    WAITING,
+    ACQUIRED,
+    NOT_ACQUIRED,
+    END
+  };
+
   static sp<OMXCodecProxy> Create(
           const sp<IOMX> &omx,
           const sp<MetaData> &meta, bool createEncoder,
@@ -46,14 +56,13 @@ public:
           uint32_t flags = 0,
           const sp<ANativeWindow> &nativeWindow = nullptr);
 
-    MediaResourceManagerClient::State getState();
-
     void setListener(const wp<CodecResourceListener>& listener);
 
     void requestResource();
 
     
-    virtual void statusChanged(int event);
+    void ResourceReserved() override;
+    void ResourceReserveFailed() override;
 
     
     virtual status_t start(MetaData *params = nullptr);
@@ -100,14 +109,14 @@ private:
     sp<MediaSource> mSource;
 
     sp<MediaSource> mOMXCodec;
-    sp<MediaResourceManagerClient> mClient;
-    MediaResourceManagerClient::State mState;
 
-    sp<IMediaResourceManagerService> mManagerService;
+    nsRefPtr<mozilla::MediaSystemResourceClient> mResourceClient;
+    ResourceState mState;
+
     
     wp<CodecResourceListener> mListener;
 };
 
 }  
 
-#endif  
+#endif
