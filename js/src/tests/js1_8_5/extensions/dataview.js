@@ -56,13 +56,13 @@ function test() {
 
     
     buffer = (new Uint8Array([1, 2])).buffer;
-    checkThrow(function () new DataView(buffer, 0, 3), RangeError);
-    checkThrow(function () new DataView(buffer, 1, 2), RangeError);
-    checkThrow(function () new DataView(buffer, 2, 1), RangeError);
-    checkThrow(function () new DataView(buffer, 2147483649, 0), RangeError);
-    checkThrow(function () new DataView(buffer, 0, 2147483649), RangeError);
-    checkThrow(function() new DataView(), TypeError);
-    checkThrow(function() new DataView(Object.create(new ArrayBuffer(5))), TypeError);
+    checkThrow(() => new DataView(buffer, 0, 3), RangeError);
+    checkThrow(() => new DataView(buffer, 1, 2), RangeError);
+    checkThrow(() => new DataView(buffer, 2, 1), RangeError);
+    checkThrow(() => new DataView(buffer, 2147483649, 0), RangeError);
+    checkThrow(() => new DataView(buffer, 0, 2147483649), RangeError);
+    checkThrow(() => new DataView(), TypeError);
+    checkThrow(() => new DataView(Object.create(new ArrayBuffer(5))), TypeError);
 
     
 
@@ -431,331 +431,331 @@ function test() {
     var buffer12 = new Uint8Array(data12).buffer;
     view = new DataView(buffer12, 3, 2);
     assertEq(view.getInt8(0), 0);
-    checkThrow(function () view.getInt8(8), RangeError);
-    checkThrow(function () view.getInt8(15), RangeError);
+    checkThrow(() => view.getInt8(8), RangeError);
+    checkThrow(() => view.getInt8(15), RangeError);
     assertEq(view.getUint8(0), 0);
-    checkThrow(function () view.getUint8(8), RangeError);
-    checkThrow(function () view.getUint8(15), RangeError);
+    checkThrow(() => view.getUint8(8), RangeError);
+    checkThrow(() => view.getUint8(15), RangeError);
     
     assertEq(view.getInt16(0, true), 256);
-    checkThrow(function () view.getInt16(5, true), RangeError);
-    checkThrow(function () view.getInt16(9, true), RangeError);
-    checkThrow(function () view.getInt16(14, true), RangeError);
+    checkThrow(() => view.getInt16(5, true), RangeError);
+    checkThrow(() => view.getInt16(9, true), RangeError);
+    checkThrow(() => view.getInt16(14, true), RangeError);
     
     assertEq(view.getInt16(0), 1);
-    checkThrow(function () view.getInt16(5), RangeError);
-    checkThrow(function () view.getInt16(9), RangeError);
-    checkThrow(function () view.getInt16(14), RangeError);
+    checkThrow(() => view.getInt16(5), RangeError);
+    checkThrow(() => view.getInt16(9), RangeError);
+    checkThrow(() => view.getInt16(14), RangeError);
     
     assertEq(view.getUint16(0, true), 256);
-    checkThrow(function () view.getUint16(5, true), RangeError);
-    checkThrow(function () view.getUint16(9, true), RangeError);
-    checkThrow(function () view.getUint16(14, true), RangeError);
+    checkThrow(() => view.getUint16(5, true), RangeError);
+    checkThrow(() => view.getUint16(9, true), RangeError);
+    checkThrow(() => view.getUint16(14, true), RangeError);
     
     assertEq(view.getUint16(0), 1);
-    checkThrow(function () view.getUint16(5), RangeError);
-    checkThrow(function () view.getUint16(9), RangeError);
-    checkThrow(function () view.getUint16(14), RangeError);
+    checkThrow(() => view.getUint16(5), RangeError);
+    checkThrow(() => view.getUint16(9), RangeError);
+    checkThrow(() => view.getUint16(14), RangeError);
     
-    checkThrow(function () view.getInt32(0, true), RangeError);
-    checkThrow(function () view.getInt32(3, true), RangeError);
-    checkThrow(function () view.getInt32(6, true), RangeError);
-    checkThrow(function () view.getInt32(9, true), RangeError);
-    checkThrow(function () view.getInt32(12, true), RangeError);
+    checkThrow(() => view.getInt32(0, true), RangeError);
+    checkThrow(() => view.getInt32(3, true), RangeError);
+    checkThrow(() => view.getInt32(6, true), RangeError);
+    checkThrow(() => view.getInt32(9, true), RangeError);
+    checkThrow(() => view.getInt32(12, true), RangeError);
     
-    checkThrow(function () view.getInt32(0), RangeError);
-    checkThrow(function () view.getInt32(3), RangeError);
-    checkThrow(function () view.getInt32(6), RangeError);
-    checkThrow(function () view.getInt32(9), RangeError);
-    checkThrow(function () view.getInt32(12), RangeError);
+    checkThrow(() => view.getInt32(0), RangeError);
+    checkThrow(() => view.getInt32(3), RangeError);
+    checkThrow(() => view.getInt32(6), RangeError);
+    checkThrow(() => view.getInt32(9), RangeError);
+    checkThrow(() => view.getInt32(12), RangeError);
     
-    checkThrow(function () view.getUint32(0, true), RangeError);
-    checkThrow(function () view.getUint32(3, true), RangeError);
-    checkThrow(function () view.getUint32(6, true), RangeError);
-    checkThrow(function () view.getUint32(9, true), RangeError);
-    checkThrow(function () view.getUint32(12, true), RangeError);
+    checkThrow(() => view.getUint32(0, true), RangeError);
+    checkThrow(() => view.getUint32(3, true), RangeError);
+    checkThrow(() => view.getUint32(6, true), RangeError);
+    checkThrow(() => view.getUint32(9, true), RangeError);
+    checkThrow(() => view.getUint32(12, true), RangeError);
     
-    checkThrow(function () view.getUint32(0), RangeError);
-    checkThrow(function () view.getUint32(3), RangeError);
-    checkThrow(function () view.getUint32(6), RangeError);
-    checkThrow(function () view.getUint32(9), RangeError);
-    checkThrow(function () view.getUint32(12), RangeError);
+    checkThrow(() => view.getUint32(0), RangeError);
+    checkThrow(() => view.getUint32(3), RangeError);
+    checkThrow(() => view.getUint32(6), RangeError);
+    checkThrow(() => view.getUint32(9), RangeError);
+    checkThrow(() => view.getUint32(12), RangeError);
 
     
 
     
     
     view = new DataView(buffer2, 3, 1);
-    checkThrow(function () view.getFloat32(0, true), RangeError);
+    checkThrow(() => view.getFloat32(0, true), RangeError);
     view = new DataView(buffer2_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, true), RangeError);
+    checkThrow(() => view.getFloat32(3, true), RangeError);
     view = new DataView(buffer2_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, true), RangeError);
+    checkThrow(() => view.getFloat32(7, true), RangeError);
     view = new DataView(buffer2_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, true), RangeError);
+    checkThrow(() => view.getFloat32(10, true), RangeError);
     
     view = new DataView(buffer2_r, 3, 1);
-    checkThrow(function () view.getFloat32(0, false), RangeError);
+    checkThrow(() => view.getFloat32(0, false), RangeError);
     view = new DataView(buffer2_r_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, false), RangeError);
+    checkThrow(() => view.getFloat32(3, false), RangeError);
     view = new DataView(buffer2_r_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, false), RangeError);
+    checkThrow(() => view.getFloat32(7, false), RangeError);
     view = new DataView(buffer2_r_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, false), RangeError);
+    checkThrow(() => view.getFloat32(10, false), RangeError);
 
     
     
     view = new DataView(buffer3, 3, 1);
-    checkThrow(function () view.getFloat32(0, true), RangeError);
+    checkThrow(() => view.getFloat32(0, true), RangeError);
     view = new DataView(buffer3_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, true), RangeError);
+    checkThrow(() => view.getFloat32(3, true), RangeError);
     view = new DataView(buffer3_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, true), RangeError);
+    checkThrow(() => view.getFloat32(7, true), RangeError);
     view = new DataView(buffer3_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, true), RangeError);
+    checkThrow(() => view.getFloat32(10, true), RangeError);
     
     view = new DataView(buffer3_r, 3, 1);
-    checkThrow(function () view.getFloat32(0, false), RangeError);
+    checkThrow(() => view.getFloat32(0, false), RangeError);
     view = new DataView(buffer3_r_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, false), RangeError);
+    checkThrow(() => view.getFloat32(3, false), RangeError);
     view = new DataView(buffer3_r_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, false), RangeError);
+    checkThrow(() => view.getFloat32(7, false), RangeError);
     view = new DataView(buffer3_r_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, false), RangeError);
+    checkThrow(() => view.getFloat32(10, false), RangeError);
 
     
     
     view = new DataView(buffer4, 3, 1);
-    checkThrow(function () view.getFloat32(0, true), RangeError);
+    checkThrow(() => view.getFloat32(0, true), RangeError);
     view = new DataView(buffer4_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, true), RangeError);
+    checkThrow(() => view.getFloat32(3, true), RangeError);
     view = new DataView(buffer4_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, true), RangeError);
+    checkThrow(() => view.getFloat32(7, true), RangeError);
     view = new DataView(buffer4_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, true), RangeError);
+    checkThrow(() => view.getFloat32(10, true), RangeError);
     
     view = new DataView(buffer4_r, 3, 1);
-    checkThrow(function () view.getFloat32(0, false), RangeError);
+    checkThrow(() => view.getFloat32(0, false), RangeError);
     view = new DataView(buffer4_r_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, false), RangeError);
+    checkThrow(() => view.getFloat32(3, false), RangeError);
     view = new DataView(buffer4_r_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, false), RangeError);
+    checkThrow(() => view.getFloat32(7, false), RangeError);
     view = new DataView(buffer4_r_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, false), RangeError);
+    checkThrow(() => view.getFloat32(10, false), RangeError);
 
     
     
     view = new DataView(buffer5, 3, 1);
-    checkThrow(function () view.getFloat32(0, true), RangeError);
+    checkThrow(() => view.getFloat32(0, true), RangeError);
     view = new DataView(buffer5_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, true), RangeError);
+    checkThrow(() => view.getFloat32(3, true), RangeError);
     view = new DataView(buffer5_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, true), RangeError);
+    checkThrow(() => view.getFloat32(7, true), RangeError);
     view = new DataView(buffer5_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, true), RangeError);
+    checkThrow(() => view.getFloat32(10, true), RangeError);
     
     view = new DataView(buffer5_r, 3, 1);
-    checkThrow(function () view.getFloat32(0, false), RangeError);
+    checkThrow(() => view.getFloat32(0, false), RangeError);
     view = new DataView(buffer5_r_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, false), RangeError);
+    checkThrow(() => view.getFloat32(3, false), RangeError);
     view = new DataView(buffer5_r_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, false), RangeError);
+    checkThrow(() => view.getFloat32(7, false), RangeError);
     view = new DataView(buffer5_r_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, false), RangeError);
+    checkThrow(() => view.getFloat32(10, false), RangeError);
 
     
     
     view = new DataView(buffer6, 3, 1);
-    checkThrow(function () view.getFloat32(0, true), RangeError);
+    checkThrow(() => view.getFloat32(0, true), RangeError);
     view = new DataView(buffer6_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, true), RangeError);
+    checkThrow(() => view.getFloat32(3, true), RangeError);
     view = new DataView(buffer6_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, true), RangeError);
+    checkThrow(() => view.getFloat32(7, true), RangeError);
     view = new DataView(buffer6_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, true), RangeError);
+    checkThrow(() => view.getFloat32(10, true), RangeError);
     
     view = new DataView(buffer6_r, 3, 1);
-    checkThrow(function () view.getFloat32(0, false), RangeError);
+    checkThrow(() => view.getFloat32(0, false), RangeError);
     view = new DataView(buffer6_r_pad3, 3, 4);
-    checkThrow(function () view.getFloat32(3, false), RangeError);
+    checkThrow(() => view.getFloat32(3, false), RangeError);
     view = new DataView(buffer6_r_pad7, 3, 8);
-    checkThrow(function () view.getFloat32(7, false), RangeError);
+    checkThrow(() => view.getFloat32(7, false), RangeError);
     view = new DataView(buffer6_r_pad10, 3, 11);
-    checkThrow(function () view.getFloat32(10, false), RangeError);
+    checkThrow(() => view.getFloat32(10, false), RangeError);
 
     
     
     view = new DataView(buffer7, 3, 5);
-    checkThrow(function () view.getFloat64(0, true), RangeError);
+    checkThrow(() => view.getFloat64(0, true), RangeError);
     view = new DataView(buffer7_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, true), RangeError);
+    checkThrow(() => view.getFloat64(3, true), RangeError);
     view = new DataView(buffer7_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, true), RangeError);
+    checkThrow(() => view.getFloat64(7, true), RangeError);
     view = new DataView(buffer7_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, true), RangeError);
+    checkThrow(() => view.getFloat64(10, true), RangeError);
     
     view = new DataView(buffer7_r, 3, 5);
-    checkThrow(function () view.getFloat64(0, false), RangeError);
+    checkThrow(() => view.getFloat64(0, false), RangeError);
     view = new DataView(buffer7_r_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, false), RangeError);
+    checkThrow(() => view.getFloat64(3, false), RangeError);
     view = new DataView(buffer7_r_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, false), RangeError);
+    checkThrow(() => view.getFloat64(7, false), RangeError);
     view = new DataView(buffer7_r_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, false), RangeError);
+    checkThrow(() => view.getFloat64(10, false), RangeError);
 
     
     
     view = new DataView(buffer8, 3, 5);
-    checkThrow(function () view.getFloat64(0, true), RangeError);
+    checkThrow(() => view.getFloat64(0, true), RangeError);
     view = new DataView(buffer8_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, true), RangeError);
+    checkThrow(() => view.getFloat64(3, true), RangeError);
     view = new DataView(buffer8_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, true), RangeError);
+    checkThrow(() => view.getFloat64(7, true), RangeError);
     view = new DataView(buffer8_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, true), RangeError);
+    checkThrow(() => view.getFloat64(10, true), RangeError);
     
     view = new DataView(buffer8_r, 3, 5);
-    checkThrow(function () view.getFloat64(0, false), RangeError);
+    checkThrow(() => view.getFloat64(0, false), RangeError);
     view = new DataView(buffer8_r_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, false), RangeError);
+    checkThrow(() => view.getFloat64(3, false), RangeError);
     view = new DataView(buffer8_r_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, false), RangeError);
+    checkThrow(() => view.getFloat64(7, false), RangeError);
     view = new DataView(buffer8_r_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, false), RangeError);
+    checkThrow(() => view.getFloat64(10, false), RangeError);
 
     
     
     view = new DataView(buffer9, 3, 5);
-    checkThrow(function () view.getFloat64(0, true), RangeError);
+    checkThrow(() => view.getFloat64(0, true), RangeError);
     view = new DataView(buffer9_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, true), RangeError);
+    checkThrow(() => view.getFloat64(3, true), RangeError);
     view = new DataView(buffer9_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, true), RangeError);
+    checkThrow(() => view.getFloat64(7, true), RangeError);
     view = new DataView(buffer9_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, true), RangeError);
+    checkThrow(() => view.getFloat64(10, true), RangeError);
     
     view = new DataView(buffer9_r, 3, 5);
-    checkThrow(function () view.getFloat64(0, false), RangeError);
+    checkThrow(() => view.getFloat64(0, false), RangeError);
     view = new DataView(buffer9_r_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, false), RangeError);
+    checkThrow(() => view.getFloat64(3, false), RangeError);
     view = new DataView(buffer9_r_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, false), RangeError);
+    checkThrow(() => view.getFloat64(7, false), RangeError);
     view = new DataView(buffer9_r_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, false), RangeError);
+    checkThrow(() => view.getFloat64(10, false), RangeError);
 
     
     
     view = new DataView(buffer10, 3, 5);
-    checkThrow(function () view.getFloat64(0, true), RangeError);
+    checkThrow(() => view.getFloat64(0, true), RangeError);
     view = new DataView(buffer10_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, true), RangeError);
+    checkThrow(() => view.getFloat64(3, true), RangeError);
     view = new DataView(buffer10_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, true), RangeError);
+    checkThrow(() => view.getFloat64(7, true), RangeError);
     view = new DataView(buffer10_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, true), RangeError);
+    checkThrow(() => view.getFloat64(10, true), RangeError);
     
     view = new DataView(buffer10_r, 3, 5);
-    checkThrow(function () view.getFloat64(0, false), RangeError);
+    checkThrow(() => view.getFloat64(0, false), RangeError);
     view = new DataView(buffer10_r_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, false), RangeError);
+    checkThrow(() => view.getFloat64(3, false), RangeError);
     view = new DataView(buffer10_r_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, false), RangeError);
+    checkThrow(() => view.getFloat64(7, false), RangeError);
     view = new DataView(buffer10_r_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, false), RangeError);
+    checkThrow(() => view.getFloat64(10, false), RangeError);
 
     
     
     view = new DataView(buffer11, 3, 5);
-    checkThrow(function () view.getFloat64(0, true), RangeError);
+    checkThrow(() => view.getFloat64(0, true), RangeError);
     view = new DataView(buffer11_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, true), RangeError);
+    checkThrow(() => view.getFloat64(3, true), RangeError);
     view = new DataView(buffer11_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, true), RangeError);
+    checkThrow(() => view.getFloat64(7, true), RangeError);
     view = new DataView(buffer11_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, true), RangeError);
+    checkThrow(() => view.getFloat64(10, true), RangeError);
     
     view = new DataView(buffer11_r, 3, 5);
-    checkThrow(function () view.getFloat64(0, false), RangeError);
+    checkThrow(() => view.getFloat64(0, false), RangeError);
     view = new DataView(buffer11_r_pad3, 3, 8);
-    checkThrow(function () view.getFloat64(3, false), RangeError);
+    checkThrow(() => view.getFloat64(3, false), RangeError);
     view = new DataView(buffer11_r_pad7, 3, 12);
-    checkThrow(function () view.getFloat64(7, false), RangeError);
+    checkThrow(() => view.getFloat64(7, false), RangeError);
     view = new DataView(buffer11_r_pad10, 3, 15);
-    checkThrow(function () view.getFloat64(10, false), RangeError);
+    checkThrow(() => view.getFloat64(10, false), RangeError);
 
     
     view = new DataView(buffer1, 0, 16);
-    checkThrow(function () view.getInt8(-1), RangeError);
-    checkThrow(function () view.getInt8(-2), RangeError);
-    checkThrow(function () view.getUint8(-1), RangeError);
-    checkThrow(function () view.getUint8(-2), RangeError);
-    checkThrow(function () view.getInt16(-1), RangeError);
-    checkThrow(function () view.getInt16(-2), RangeError);
-    checkThrow(function () view.getInt16(-3), RangeError);
-    checkThrow(function () view.getUint16(-1), RangeError);
-    checkThrow(function () view.getUint16(-2), RangeError);
-    checkThrow(function () view.getUint16(-3), RangeError);
-    checkThrow(function () view.getInt32(-1), RangeError);
-    checkThrow(function () view.getInt32(-3), RangeError);
-    checkThrow(function () view.getInt32(-5), RangeError);
-    checkThrow(function () view.getUint32(-1), RangeError);
-    checkThrow(function () view.getUint32(-3), RangeError);
-    checkThrow(function () view.getUint32(-5), RangeError);
+    checkThrow(() => view.getInt8(-1), RangeError);
+    checkThrow(() => view.getInt8(-2), RangeError);
+    checkThrow(() => view.getUint8(-1), RangeError);
+    checkThrow(() => view.getUint8(-2), RangeError);
+    checkThrow(() => view.getInt16(-1), RangeError);
+    checkThrow(() => view.getInt16(-2), RangeError);
+    checkThrow(() => view.getInt16(-3), RangeError);
+    checkThrow(() => view.getUint16(-1), RangeError);
+    checkThrow(() => view.getUint16(-2), RangeError);
+    checkThrow(() => view.getUint16(-3), RangeError);
+    checkThrow(() => view.getInt32(-1), RangeError);
+    checkThrow(() => view.getInt32(-3), RangeError);
+    checkThrow(() => view.getInt32(-5), RangeError);
+    checkThrow(() => view.getUint32(-1), RangeError);
+    checkThrow(() => view.getUint32(-3), RangeError);
+    checkThrow(() => view.getUint32(-5), RangeError);
     view = new DataView(buffer7, 0, 8);
-    checkThrow(function () view.getFloat32(-1), RangeError);
-    checkThrow(function () view.getFloat32(-3), RangeError);
-    checkThrow(function () view.getFloat32(-5), RangeError);
-    checkThrow(function () view.getFloat64(-1), RangeError);
-    checkThrow(function () view.getFloat64(-5), RangeError);
-    checkThrow(function () view.getFloat64(-9), RangeError);
+    checkThrow(() => view.getFloat32(-1), RangeError);
+    checkThrow(() => view.getFloat32(-3), RangeError);
+    checkThrow(() => view.getFloat32(-5), RangeError);
+    checkThrow(() => view.getFloat64(-1), RangeError);
+    checkThrow(() => view.getFloat64(-5), RangeError);
+    checkThrow(() => view.getFloat64(-9), RangeError);
 
     
-    checkThrow(function () view.getInt8(2147483648), RangeError);
-    checkThrow(function () view.getInt8(2147483649), RangeError);
-    checkThrow(function () view.getUint8(2147483648), RangeError);
-    checkThrow(function () view.getUint8(2147483649), RangeError);
-    checkThrow(function () view.getInt16(2147483648), RangeError);
-    checkThrow(function () view.getInt16(2147483649), RangeError);
-    checkThrow(function () view.getUint16(2147483648), RangeError);
-    checkThrow(function () view.getUint16(2147483649), RangeError);
-    checkThrow(function () view.getInt32(2147483648), RangeError);
-    checkThrow(function () view.getInt32(2147483649), RangeError);
-    checkThrow(function () view.getUint32(2147483648), RangeError);
-    checkThrow(function () view.getUint32(2147483649), RangeError);
-    checkThrow(function () view.getFloat32(2147483648), RangeError);
-    checkThrow(function () view.getFloat32(2147483649), RangeError);
-    checkThrow(function () view.getFloat64(2147483648), RangeError);
-    checkThrow(function () view.getFloat64(2147483649), RangeError);
+    checkThrow(() => view.getInt8(2147483648), RangeError);
+    checkThrow(() => view.getInt8(2147483649), RangeError);
+    checkThrow(() => view.getUint8(2147483648), RangeError);
+    checkThrow(() => view.getUint8(2147483649), RangeError);
+    checkThrow(() => view.getInt16(2147483648), RangeError);
+    checkThrow(() => view.getInt16(2147483649), RangeError);
+    checkThrow(() => view.getUint16(2147483648), RangeError);
+    checkThrow(() => view.getUint16(2147483649), RangeError);
+    checkThrow(() => view.getInt32(2147483648), RangeError);
+    checkThrow(() => view.getInt32(2147483649), RangeError);
+    checkThrow(() => view.getUint32(2147483648), RangeError);
+    checkThrow(() => view.getUint32(2147483649), RangeError);
+    checkThrow(() => view.getFloat32(2147483648), RangeError);
+    checkThrow(() => view.getFloat32(2147483649), RangeError);
+    checkThrow(() => view.getFloat64(2147483648), RangeError);
+    checkThrow(() => view.getFloat64(2147483649), RangeError);
 
     
     
     
-    checkThrow(function () view.getInt8(), TypeError);
-    checkThrow(function () view.getUint8(), TypeError);
-    checkThrow(function () view.getInt16(), TypeError);
-    checkThrow(function () view.getUint16(), TypeError);
-    checkThrow(function () view.getInt32(), TypeError);
-    checkThrow(function () view.getUint32(), TypeError);
-    checkThrow(function () view.getFloat32(), TypeError);
-    checkThrow(function () view.getFloat64(), TypeError);
+    checkThrow(() => view.getInt8(), TypeError);
+    checkThrow(() => view.getUint8(), TypeError);
+    checkThrow(() => view.getInt16(), TypeError);
+    checkThrow(() => view.getUint16(), TypeError);
+    checkThrow(() => view.getInt32(), TypeError);
+    checkThrow(() => view.getUint32(), TypeError);
+    checkThrow(() => view.getFloat32(), TypeError);
+    checkThrow(() => view.getFloat64(), TypeError);
 
     
-    checkThrow(function () view.getInt8.apply("dead", [0]), TypeError);
-    checkThrow(function () view.getUint8.apply("puppies", [0]), TypeError);
-    checkThrow(function () view.getInt16.apply("aren", [0]), TypeError);
-    checkThrow(function () view.getUint16.apply("t", [0]), TypeError);
-    checkThrow(function () view.getInt32.apply("much", [0]), TypeError);
-    checkThrow(function () view.getUint32.apply("fun", [0]), TypeError);
-    checkThrow(function () view.getFloat32.apply("(in", [0]), TypeError);
-    checkThrow(function () view.getFloat64.apply("bed)", [0]), TypeError);
-    checkThrow(function () view.setInt8.apply("dead", [0, 0]), TypeError);
-    checkThrow(function () view.setUint8.apply("puppies", [0, 0]), TypeError);
-    checkThrow(function () view.setInt16.apply("aren", [0, 0]), TypeError);
-    checkThrow(function () view.setUint16.apply("t", [0, 0]), TypeError);
-    checkThrow(function () view.setInt32.apply("much", [0, 0]), TypeError);
-    checkThrow(function () view.setUint32.apply("fun", [0, 0]), TypeError);
-    checkThrow(function () view.setFloat32.apply("(in", [0, 0]), TypeError);
-    checkThrow(function () view.setFloat64.apply("bed)", [0, 0]), TypeError);
+    checkThrow(() => view.getInt8.apply("dead", [0]), TypeError);
+    checkThrow(() => view.getUint8.apply("puppies", [0]), TypeError);
+    checkThrow(() => view.getInt16.apply("aren", [0]), TypeError);
+    checkThrow(() => view.getUint16.apply("t", [0]), TypeError);
+    checkThrow(() => view.getInt32.apply("much", [0]), TypeError);
+    checkThrow(() => view.getUint32.apply("fun", [0]), TypeError);
+    checkThrow(() => view.getFloat32.apply("(in", [0]), TypeError);
+    checkThrow(() => view.getFloat64.apply("bed)", [0]), TypeError);
+    checkThrow(() => view.setInt8.apply("dead", [0, 0]), TypeError);
+    checkThrow(() => view.setUint8.apply("puppies", [0, 0]), TypeError);
+    checkThrow(() => view.setInt16.apply("aren", [0, 0]), TypeError);
+    checkThrow(() => view.setUint16.apply("t", [0, 0]), TypeError);
+    checkThrow(() => view.setInt32.apply("much", [0, 0]), TypeError);
+    checkThrow(() => view.setUint32.apply("fun", [0, 0]), TypeError);
+    checkThrow(() => view.setFloat32.apply("(in", [0, 0]), TypeError);
+    checkThrow(() => view.setFloat64.apply("bed)", [0, 0]), TypeError);
 
     
 
@@ -1146,52 +1146,52 @@ function test() {
     view = new DataView(buffer13, 3, 2);
     view.setInt8(0, 0);
     assertEq(view.getInt8(0), 0);
-    checkThrow(function () view.setInt8(8, -128), RangeError);
-    checkThrow(function () view.setInt8(15, -1), RangeError);
+    checkThrow(() => view.setInt8(8, -128), RangeError);
+    checkThrow(() => view.setInt8(15, -1), RangeError);
     view.setUint8(0, 0);
     assertEq(view.getUint8(0), 0);
-    checkThrow(function () view.setUint8(8, 128), RangeError);
-    checkThrow(function () view.setUint8(15, 255), RangeError);
+    checkThrow(() => view.setUint8(8, 128), RangeError);
+    checkThrow(() => view.setUint8(15, 255), RangeError);
     view.setInt16(0, 256, true);
     assertEq(view.getInt16(0, true), 256);
-    checkThrow(function () view.setInt16(5, 26213, true), RangeError);
-    checkThrow(function () view.setInt16(9, -32127, true), RangeError);
-    checkThrow(function () view.setInt16(14, -2, true), RangeError);
+    checkThrow(() => view.setInt16(5, 26213, true), RangeError);
+    checkThrow(() => view.setInt16(9, -32127, true), RangeError);
+    checkThrow(() => view.setInt16(14, -2, true), RangeError);
     view.setInt16(0, 1);
     assertEq(view.getInt16(0), 1);
-    checkThrow(function () view.setInt16(5, 25958), RangeError);
-    checkThrow(function () view.setInt16(9, -32382), RangeError);
-    checkThrow(function () view.setInt16(14, -257), RangeError);
+    checkThrow(() => view.setInt16(5, 25958), RangeError);
+    checkThrow(() => view.setInt16(9, -32382), RangeError);
+    checkThrow(() => view.setInt16(14, -257), RangeError);
     view.setUint16(0, 256, true);
     assertEq(view.getUint16(0, true), 256);
-    checkThrow(function () view.setUint16(5, 26213, true), RangeError);
-    checkThrow(function () view.setUint16(9, 33409, true), RangeError);
-    checkThrow(function () view.setUint16(14, 65534, true), RangeError);
+    checkThrow(() => view.setUint16(5, 26213, true), RangeError);
+    checkThrow(() => view.setUint16(9, 33409, true), RangeError);
+    checkThrow(() => view.setUint16(14, 65534, true), RangeError);
     view.setUint16(0, 1);
     assertEq(view.getUint16(0), 1);
-    checkThrow(function () view.setUint16(5, 25958), RangeError);
-    checkThrow(function () view.setUint16(9, 33154), RangeError);
-    checkThrow(function () view.setUint16(14, 65279), RangeError);
-    checkThrow(function () view.setInt32(0, 50462976, true), RangeError);
-    checkThrow(function () view.setInt32(3, 1717920771, true), RangeError);
-    checkThrow(function () view.setInt32(6, -2122291354, true), RangeError);
-    checkThrow(function () view.setInt32(9, -58490239, true), RangeError);
-    checkThrow(function () view.setInt32(12, -66052, true), RangeError);
-    checkThrow(function () view.setInt32(0, 66051), RangeError);
-    checkThrow(function () view.setInt32(3, 56911206), RangeError);
-    checkThrow(function () view.setInt32(6, 1718059137), RangeError);
-    checkThrow(function () view.setInt32(9, -2122152964), RangeError);
-    checkThrow(function () view.setInt32(12, -50462977), RangeError);
-    checkThrow(function () view.setUint32(0, 50462976, true), RangeError);
-    checkThrow(function () view.setUint32(3, 1717920771, true), RangeError);
-    checkThrow(function () view.setUint32(6, 2172675942, true), RangeError);
-    checkThrow(function () view.setUint32(9, 4236477057, true), RangeError);
-    checkThrow(function () view.setUint32(12, 4294901244, true), RangeError);
-    checkThrow(function () view.setUint32(0, 66051), RangeError);
-    checkThrow(function () view.setUint32(3, 56911206), RangeError);
-    checkThrow(function () view.setUint32(6, 1718059137), RangeError);
-    checkThrow(function () view.setUint32(9, 2172814332), RangeError);
-    checkThrow(function () view.setUint32(12, 4244504319), RangeError);
+    checkThrow(() => view.setUint16(5, 25958), RangeError);
+    checkThrow(() => view.setUint16(9, 33154), RangeError);
+    checkThrow(() => view.setUint16(14, 65279), RangeError);
+    checkThrow(() => view.setInt32(0, 50462976, true), RangeError);
+    checkThrow(() => view.setInt32(3, 1717920771, true), RangeError);
+    checkThrow(() => view.setInt32(6, -2122291354, true), RangeError);
+    checkThrow(() => view.setInt32(9, -58490239, true), RangeError);
+    checkThrow(() => view.setInt32(12, -66052, true), RangeError);
+    checkThrow(() => view.setInt32(0, 66051), RangeError);
+    checkThrow(() => view.setInt32(3, 56911206), RangeError);
+    checkThrow(() => view.setInt32(6, 1718059137), RangeError);
+    checkThrow(() => view.setInt32(9, -2122152964), RangeError);
+    checkThrow(() => view.setInt32(12, -50462977), RangeError);
+    checkThrow(() => view.setUint32(0, 50462976, true), RangeError);
+    checkThrow(() => view.setUint32(3, 1717920771, true), RangeError);
+    checkThrow(() => view.setUint32(6, 2172675942, true), RangeError);
+    checkThrow(() => view.setUint32(9, 4236477057, true), RangeError);
+    checkThrow(() => view.setUint32(12, 4294901244, true), RangeError);
+    checkThrow(() => view.setUint32(0, 66051), RangeError);
+    checkThrow(() => view.setUint32(3, 56911206), RangeError);
+    checkThrow(() => view.setUint32(6, 1718059137), RangeError);
+    checkThrow(() => view.setUint32(9, 2172814332), RangeError);
+    checkThrow(() => view.setUint32(12, 4244504319), RangeError);
 
     
 
@@ -1479,57 +1479,57 @@ function test() {
 
     
     view = new DataView(buffer1, 0, 16);
-    checkThrow(function () view.setInt8(-1, 0), RangeError);
-    checkThrow(function () view.setInt8(-2, 0), RangeError);
-    checkThrow(function () view.setUint8(-1, 0), RangeError);
-    checkThrow(function () view.setUint8(-2, 0), RangeError);
-    checkThrow(function () view.setInt16(-1, 0), RangeError);
-    checkThrow(function () view.setInt16(-2, 0), RangeError);
-    checkThrow(function () view.setInt16(-3, 0), RangeError);
-    checkThrow(function () view.setUint16(-1, 0), RangeError);
-    checkThrow(function () view.setUint16(-2, 0), RangeError);
-    checkThrow(function () view.setUint16(-3, 0), RangeError);
-    checkThrow(function () view.setInt32(-1, 0), RangeError);
-    checkThrow(function () view.setInt32(-3, 0), RangeError);
-    checkThrow(function () view.setInt32(-5, 0), RangeError);
-    checkThrow(function () view.setUint32(-1, 0), RangeError);
-    checkThrow(function () view.setUint32(-3, 0), RangeError);
-    checkThrow(function () view.setUint32(-5, 0), RangeError);
+    checkThrow(() => view.setInt8(-1, 0), RangeError);
+    checkThrow(() => view.setInt8(-2, 0), RangeError);
+    checkThrow(() => view.setUint8(-1, 0), RangeError);
+    checkThrow(() => view.setUint8(-2, 0), RangeError);
+    checkThrow(() => view.setInt16(-1, 0), RangeError);
+    checkThrow(() => view.setInt16(-2, 0), RangeError);
+    checkThrow(() => view.setInt16(-3, 0), RangeError);
+    checkThrow(() => view.setUint16(-1, 0), RangeError);
+    checkThrow(() => view.setUint16(-2, 0), RangeError);
+    checkThrow(() => view.setUint16(-3, 0), RangeError);
+    checkThrow(() => view.setInt32(-1, 0), RangeError);
+    checkThrow(() => view.setInt32(-3, 0), RangeError);
+    checkThrow(() => view.setInt32(-5, 0), RangeError);
+    checkThrow(() => view.setUint32(-1, 0), RangeError);
+    checkThrow(() => view.setUint32(-3, 0), RangeError);
+    checkThrow(() => view.setUint32(-5, 0), RangeError);
     view = new DataView(buffer7, 0, 8);
-    checkThrow(function () view.setFloat32(-1, 0), RangeError);
-    checkThrow(function () view.setFloat32(-3, 0), RangeError);
-    checkThrow(function () view.setFloat32(-5, 0), RangeError);
-    checkThrow(function () view.setFloat64(-1, 0), RangeError);
-    checkThrow(function () view.setFloat64(-5, 0), RangeError);
-    checkThrow(function () view.setFloat64(-9, 0), RangeError);
+    checkThrow(() => view.setFloat32(-1, 0), RangeError);
+    checkThrow(() => view.setFloat32(-3, 0), RangeError);
+    checkThrow(() => view.setFloat32(-5, 0), RangeError);
+    checkThrow(() => view.setFloat64(-1, 0), RangeError);
+    checkThrow(() => view.setFloat64(-5, 0), RangeError);
+    checkThrow(() => view.setFloat64(-9, 0), RangeError);
 
     
-    checkThrow(function () view.setInt8(2147483649, 1), RangeError);
-    checkThrow(function () view.setUint8(2147483649, 1), RangeError);
-    checkThrow(function () view.setInt16(2147483649, 1), RangeError);
-    checkThrow(function () view.setUint16(2147483649, 1), RangeError);
-    checkThrow(function () view.setInt32(2147483649, 1), RangeError);
-    checkThrow(function () view.setUint32(2147483649, 1), RangeError);
-    checkThrow(function () view.setFloat32(2147483649, 1), RangeError);
-    checkThrow(function () view.setFloat64(2147483649, 1), RangeError);
+    checkThrow(() => view.setInt8(2147483649, 1), RangeError);
+    checkThrow(() => view.setUint8(2147483649, 1), RangeError);
+    checkThrow(() => view.setInt16(2147483649, 1), RangeError);
+    checkThrow(() => view.setUint16(2147483649, 1), RangeError);
+    checkThrow(() => view.setInt32(2147483649, 1), RangeError);
+    checkThrow(() => view.setUint32(2147483649, 1), RangeError);
+    checkThrow(() => view.setFloat32(2147483649, 1), RangeError);
+    checkThrow(() => view.setFloat64(2147483649, 1), RangeError);
 
     
-    checkThrow(function () view.setInt8(), Error);
-    checkThrow(function () view.setUint8(), Error);
-    checkThrow(function () view.setInt16(), Error);
-    checkThrow(function () view.setUint16(), Error);
-    checkThrow(function () view.setInt32(), Error);
-    checkThrow(function () view.setUint32(), Error);
-    checkThrow(function () view.setFloat32(), Error);
-    checkThrow(function () view.setFloat64(), Error);
-    checkThrow(function () view.setInt8(1), Error);
-    checkThrow(function () view.setUint8(1), Error);
-    checkThrow(function () view.setInt16(1), Error);
-    checkThrow(function () view.setUint16(1), Error);
-    checkThrow(function () view.setInt32(1), Error);
-    checkThrow(function () view.setUint32(1), Error);
-    checkThrow(function () view.setFloat32(1), Error);
-    checkThrow(function () view.setFloat64(1), Error);
+    checkThrow(() => view.setInt8(), Error);
+    checkThrow(() => view.setUint8(), Error);
+    checkThrow(() => view.setInt16(), Error);
+    checkThrow(() => view.setUint16(), Error);
+    checkThrow(() => view.setInt32(), Error);
+    checkThrow(() => view.setUint32(), Error);
+    checkThrow(() => view.setFloat32(), Error);
+    checkThrow(() => view.setFloat64(), Error);
+    checkThrow(() => view.setInt8(1), Error);
+    checkThrow(() => view.setUint8(1), Error);
+    checkThrow(() => view.setInt16(1), Error);
+    checkThrow(() => view.setUint16(1), Error);
+    checkThrow(() => view.setInt32(1), Error);
+    checkThrow(() => view.setUint32(1), Error);
+    checkThrow(() => view.setFloat32(1), Error);
+    checkThrow(() => view.setFloat64(1), Error);
 
     
     var intArray1 = [0, 1, 2, 3, 100, 101, 102, 103, 128, 129, 130, 131, 252, 253, 254, 255];
@@ -1582,9 +1582,9 @@ function test() {
     }, TypeError);
 
     
-    checkThrow(function () DataView.prototype.byteLength, TypeError);
-    checkThrow(function () DataView.prototype.byteOffset, TypeError);
-    checkThrow(function () DataView.prototype.buffer, TypeError);
+    checkThrow(() => DataView.prototype.byteLength, TypeError);
+    checkThrow(() => DataView.prototype.byteOffset, TypeError);
+    checkThrow(() => DataView.prototype.buffer, TypeError);
 
     
     var alien = newGlobal();
@@ -1594,10 +1594,10 @@ function test() {
 
     
     var o = Object.create(view1);
-    checkThrow(function () o.getUint8(4), TypeError); 
-    checkThrow(function () o.buffer, TypeError); 
-    checkThrow(function () o.byteOffset, TypeError);
-    checkThrow(function () o.byteLength, TypeError);
+    checkThrow(() => o.getUint8(4), TypeError); 
+    checkThrow(() => o.buffer, TypeError); 
+    checkThrow(() => o.byteOffset, TypeError);
+    checkThrow(() => o.byteLength, TypeError);
 
     
     assertEq(alien_view.buffer.byteLength > 0, true);
@@ -1629,8 +1629,8 @@ function test() {
     
     
     var av = Object.create(alien_view);
-    checkThrowTODO(function () av.getUint8(4), alien.TypeError);
-    checkThrowTODO(function () av.buffer, alien.TypeError);
+    checkThrowTODO(() => av.getUint8(4), alien.TypeError);
+    checkThrowTODO(() => av.buffer, alien.TypeError);
 
     
     
@@ -1639,7 +1639,7 @@ function test() {
     
     
     buffer = Object.create(buffer1);
-    checkThrow(function () new DataView(buffer), TypeError);
+    checkThrow(() => new DataView(buffer), TypeError);
 
     
     av = new DataView(alien_buffer);
