@@ -81,8 +81,10 @@ class BaselineCompilerShared
             return nullptr;
 
         
-        if (!icEntries_.append(ICEntry(script->pcToOffset(pc), kind)))
+        if (!icEntries_.append(ICEntry(script->pcToOffset(pc), kind))) {
+            ReportOutOfMemory(cx);
             return nullptr;
+        }
         ICEntry& vecEntry = icEntries_.back();
 
         
