@@ -100,7 +100,9 @@ nsImageFrame::IconLoad* nsImageFrame::gIconLoad = nullptr;
 nsIIOService* nsImageFrame::sIOService;
 
 
-static bool HaveFixedSize(const nsStylePosition* aStylePosition)
+
+
+static bool HaveSpecifiedSize(const nsStylePosition* aStylePosition)
 {
   
   
@@ -111,26 +113,14 @@ static bool HaveFixedSize(const nsStylePosition* aStylePosition)
 
 
 
-
 inline bool HaveFixedSize(const nsHTMLReflowState& aReflowState)
 {
   NS_ASSERTION(aReflowState.mStylePosition, "crappy reflowState - null stylePosition");
   
   
   
-  
-  
-  
-  
-  const nsStyleCoord &height = aReflowState.mStylePosition->mHeight;
-  const nsStyleCoord &width = aReflowState.mStylePosition->mWidth;
-  return ((height.HasPercent() &&
-           NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight()) ||
-          (width.HasPercent() &&
-           (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedWidth() ||
-            0 == aReflowState.ComputedWidth())))
-          ? false
-          : HaveFixedSize(aReflowState.mStylePosition);
+  return aReflowState.mStylePosition->mHeight.ConvertsToLength() &&
+         aReflowState.mStylePosition->mWidth.ConvertsToLength();
 }
 
 nsIFrame*
@@ -451,7 +441,7 @@ nsImageFrame::ShouldCreateImageFrameFor(Element* aElement,
 {
   EventStates state = aElement->State();
   if (IMAGE_OK(state,
-               HaveFixedSize(aStyleContext->StylePosition()))) {
+               HaveSpecifiedSize(aStyleContext->StylePosition()))) {
     
     return true;
   }
@@ -490,7 +480,7 @@ nsImageFrame::ShouldCreateImageFrameFor(Element* aElement,
   }
   else {
     
-    useSizedBox = HaveFixedSize(aStyleContext->StylePosition());
+    useSizedBox = HaveSpecifiedSize(aStyleContext->StylePosition());
   }
 
   return useSizedBox;
