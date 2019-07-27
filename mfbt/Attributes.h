@@ -312,8 +312,6 @@
 #  define MOZ_ALLOCATOR
 #endif
 
-#ifdef __cplusplus
-
 
 
 
@@ -332,6 +330,8 @@
 #else
 #  define MOZ_WARN_UNUSED_RESULT
 #endif
+
+#ifdef __cplusplus
 
 
 

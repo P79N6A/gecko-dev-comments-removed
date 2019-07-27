@@ -134,8 +134,9 @@ public:
 
 
 
+  MOZ_WARN_UNUSED_RESULT
   bool AppendTo(nsAString& aString,
-                const mozilla::fallible_t& aFallible) const NS_WARN_UNUSED_RESULT {
+                const mozilla::fallible_t& aFallible) const {
     if (mState.mIs2b) {
       bool ok = aString.Append(m2b, mState.mLength, aFallible);
       if (!ok) {
@@ -167,8 +168,9 @@ public:
 
 
 
+  MOZ_WARN_UNUSED_RESULT
   bool AppendTo(nsAString& aString, int32_t aOffset, int32_t aLength,
-                const mozilla::fallible_t& aFallible) const NS_WARN_UNUSED_RESULT
+                const mozilla::fallible_t& aFallible) const
   {
     if (mState.mIs2b) {
       bool ok = aString.Append(m2b + aOffset, aLength, aFallible);

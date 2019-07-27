@@ -89,7 +89,7 @@ public:
     }
   }
 
-  NS_WARN_UNUSED_RESULT bool Push(void* aItem, const fallible_t&);
+  MOZ_WARN_UNUSED_RESULT bool Push(void* aItem, const fallible_t&);
 
   
 
@@ -103,7 +103,7 @@ public:
     }
   }
 
-  NS_WARN_UNUSED_RESULT bool PushFront(void* aItem, const fallible_t&);
+  MOZ_WARN_UNUSED_RESULT bool PushFront(void* aItem, const fallible_t&);
 
   
 
