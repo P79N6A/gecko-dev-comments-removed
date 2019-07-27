@@ -745,6 +745,10 @@ protected:
   RenderingMode mRenderingMode;
 
   
+  unsigned int mVideoTexture;
+  nsIntSize mCurrentVideoSize;
+
+  
   int32_t mWidth, mHeight;
 
   
