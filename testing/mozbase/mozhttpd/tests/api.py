@@ -4,6 +4,7 @@
 
 
 
+import mozfile
 import mozhttpd
 import urllib2
 import os
@@ -194,6 +195,7 @@ class ProxyTest(unittest.TestCase):
 
     def test_proxy(self):
         docroot = tempfile.mkdtemp()
+        self.addCleanup(mozfile.remove, docroot)
         hosts = ('mozilla.com', 'mozilla.org')
         unproxied_host = 'notmozilla.org'
         def url(host): return 'http://%s/' % host
