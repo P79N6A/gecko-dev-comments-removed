@@ -1316,10 +1316,8 @@ nsEventStatus AsyncPanZoomController::OnScaleEnd(const PinchGestureInput& aEvent
     
     
     
-    
-    
-    
-    CurrentTouchBlock()->GetOverscrollHandoffChain()->ClearOverscroll();
+    mX.ClearOverscroll();
+    mY.ClearOverscroll();
 
     ScheduleComposite();
     RequestContentRepaint();
@@ -1899,17 +1897,12 @@ void AsyncPanZoomController::CancelAnimation() {
   
   
   if (mX.IsOverscrolled() || mY.IsOverscrolled()) {
-    ClearOverscroll();
+    mX.ClearOverscroll();
+    mY.ClearOverscroll();
     RequestContentRepaint();
     ScheduleComposite();
     UpdateSharedCompositorFrameMetrics();
   }
-}
-
-void AsyncPanZoomController::ClearOverscroll() {
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  mX.ClearOverscroll();
-  mY.ClearOverscroll();
 }
 
 void AsyncPanZoomController::SetCompositorParent(CompositorParent* aCompositorParent) {

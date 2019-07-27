@@ -902,6 +902,10 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev,
     return false;
   }
 
+  if (next->GetGuid().mLayersId != aPrev->GetGuid().mLayersId) {
+    NS_WARNING("Handing off scroll across a layer tree boundary; may need to revise approach to bug 1031067");
+  }
+
   
   
   
