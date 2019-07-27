@@ -814,6 +814,7 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
 
 
 
+            handler.prepareNodeForMutation(pn);
             pn->setKind(PNK_STATEMENTLIST);
             pn->setArity(PN_LIST);
             pn->makeEmpty();
