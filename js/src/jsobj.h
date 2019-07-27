@@ -78,6 +78,10 @@ class NormalArgumentsObject;
 class SetObject;
 class StrictArgumentsObject;
 
+
+bool PreventExtensions(JSContext *cx, JS::HandleObject obj, bool *succeeded);
+bool SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
+
 }  
 
 
@@ -113,6 +117,9 @@ class JSObject : public js::gc::Cell
     friend class js::GCMarker;
     friend class js::NewObjectCache;
     friend class js::Nursery;
+    friend bool js::PreventExtensions(JSContext *cx, JS::HandleObject obj, bool *succeeded);
+    friend bool js::SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj,
+                                          bool *succeeded);
 
     
     static js::types::TypeObject *makeLazyType(JSContext *cx, js::HandleObject obj);
@@ -386,19 +393,6 @@ class JSObject : public js::gc::Cell
     }
 
     
-    
-    
-    
-    static bool
-    setImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
-
-    static inline bool getProto(JSContext *cx, js::HandleObject obj,
-                                js::MutableHandleObject protop);
-    
-    static inline bool setProto(JSContext *cx, JS::HandleObject obj,
-                                JS::HandleObject proto, bool *succeeded);
-
-    
     inline void setType(js::types::TypeObject *newType);
     void uninlinedSetType(js::types::TypeObject *newType);
 
@@ -493,9 +487,6 @@ class JSObject : public js::gc::Cell
 
 
   public:
-    static inline bool
-    isExtensible(js::ExclusiveContext *cx, js::HandleObject obj, bool *extensible);
-
     
     
     
@@ -506,12 +497,6 @@ class JSObject : public js::gc::Cell
         
         return !lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
     }
-
-    
-    
-    
-    static bool
-    preventExtensions(JSContext *cx, js::HandleObject obj, bool *succeeded);
 
   private:
     enum ImmutabilityType { SEAL, FREEZE };
@@ -892,7 +877,70 @@ class ValueArray {
 namespace js {
 
 
-bool
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+GetPrototype(JSContext *cx, HandleObject obj, MutableHandleObject protop);
+
+
+
+
+
+
+
+
+extern bool
+SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succeeded);
+
+
+
+
+
+
+inline bool
+IsExtensible(ExclusiveContext *cx, HandleObject obj, bool *extensible);
+
+
+
+
+
+
+extern bool
+PreventExtensions(JSContext *cx, HandleObject obj, bool *succeeded);
+
+
+
+
+
+
+
+
+
+
+extern bool
+SetImmutablePrototype(js::ExclusiveContext *cx, JS::HandleObject obj, bool *succeeded);
+
+
+extern bool
 HasOwnProperty(JSContext *cx, HandleObject obj, HandleId id, bool *resultp);
 
 template <AllowGC allowGC>

@@ -164,8 +164,8 @@ JSObject::setType(js::types::TypeObject *newType)
     type_ = newType;
 }
 
- inline bool
-JSObject::getProto(JSContext *cx, js::HandleObject obj, js::MutableHandleObject protop)
+inline bool
+js::GetPrototype(JSContext *cx, js::HandleObject obj, js::MutableHandleObject protop)
 {
     if (obj->getTaggedProto().isLazy()) {
         MOZ_ASSERT(obj->is<js::ProxyObject>());
@@ -176,89 +176,13 @@ JSObject::getProto(JSContext *cx, js::HandleObject obj, js::MutableHandleObject 
     }
 }
 
- inline bool
-JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, bool *succeeded)
+inline bool
+js::IsExtensible(ExclusiveContext *cx, HandleObject obj, bool *extensible)
 {
-    
-
-
-
-
-
-    if (obj->hasLazyPrototype()) {
-        MOZ_ASSERT(obj->is<js::ProxyObject>());
-        return js::Proxy::setPrototypeOf(cx, obj, proto, succeeded);
-    }
-
-    
-    if (obj->nonLazyPrototypeIsImmutable()) {
-        *succeeded = false;
-        return true;
-    }
-
-    
-
-
-
-
-    if (obj->is<js::ArrayBufferObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
-                             "incompatible ArrayBuffer");
-        return false;
-    }
-
-    
-
-
-    if (obj->is<js::TypedObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
-                             "incompatible TypedObject");
-        return false;
-    }
-
-    
-
-
-
-    if (!strcmp(obj->getClass()->name, "Location")) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
-                             "incompatible Location object");
-        return false;
-    }
-
-    
-    bool extensible;
-    if (!JSObject::isExtensible(cx, obj, &extensible))
-        return false;
-    if (!extensible) {
-        *succeeded = false;
-        return true;
-    }
-
-    
-    js::RootedObject obj2(cx);
-    for (obj2 = proto; obj2; ) {
-        if (obj2 == obj) {
-            *succeeded = false;
-            return true;
-        }
-
-        if (!JSObject::getProto(cx, obj2, &obj2))
-            return false;
-    }
-
-    JS::Rooted<js::TaggedProto> taggedProto(cx, js::TaggedProto(proto));
-    *succeeded = SetClassAndProto(cx, obj, obj->getClass(), taggedProto);
-    return *succeeded;
-}
-
- inline bool
-JSObject::isExtensible(js::ExclusiveContext *cx, js::HandleObject obj, bool *extensible)
-{
-    if (obj->is<js::ProxyObject>()) {
+    if (obj->is<ProxyObject>()) {
         if (!cx->shouldBeJSContext())
             return false;
-        return js::Proxy::isExtensible(cx->asJSContext(), obj, extensible);
+        return Proxy::isExtensible(cx->asJSContext(), obj, extensible);
     }
 
     *extensible = obj->nonProxyIsExtensible();

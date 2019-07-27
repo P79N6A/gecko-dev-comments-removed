@@ -606,7 +606,7 @@ DefinePropertyOnObject(JSContext *cx, HandleNativeObject obj, HandleId id, const
     
     if (!shape) {
         bool extensible;
-        if (!JSObject::isExtensible(cx, obj, &extensible))
+        if (!IsExtensible(cx, obj, &extensible))
             return false;
         if (!extensible)
             return Reject(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE, throwError, rval);
@@ -1103,7 +1103,7 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
     MOZ_ASSERT(it == SEAL || it == FREEZE);
 
     bool succeeded;
-    if (!JSObject::preventExtensions(cx, obj, &succeeded))
+    if (!PreventExtensions(cx, obj, &succeeded))
         return false;
     if (!succeeded) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_CHANGE_EXTENSIBILITY);
@@ -1202,7 +1202,7 @@ JSObject::sealOrFreeze(JSContext *cx, HandleObject obj, ImmutabilityType it)
 JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it, bool *resultp)
 {
     bool extensible;
-    if (!JSObject::isExtensible(cx, obj, &extensible))
+    if (!IsExtensible(cx, obj, &extensible))
         return false;
     if (extensible) {
         *resultp = false;
@@ -2153,7 +2153,7 @@ js::XDRObjectLiteral(XDRState<mode> *xdr, MutableHandleNativeObject obj)
         uint32_t frozen;
         bool extensible;
         if (mode == XDR_ENCODE) {
-            if (!JSObject::isExtensible(cx, obj, &extensible))
+            if (!IsExtensible(cx, obj, &extensible))
                 return false;
             frozen = extensible ? 0 : 1;
         }
@@ -3229,6 +3229,135 @@ JSObject::reportNotExtensible(JSContext *cx, unsigned report)
                                     nullptr, nullptr);
 }
 
+
+
+
+bool
+js::SetPrototype(JSContext *cx, HandleObject obj, HandleObject proto, bool *succeeded)
+{
+    
+
+
+
+
+
+    if (obj->hasLazyPrototype()) {
+        MOZ_ASSERT(obj->is<ProxyObject>());
+        return Proxy::setPrototypeOf(cx, obj, proto, succeeded);
+    }
+
+    
+    if (obj->nonLazyPrototypeIsImmutable()) {
+        *succeeded = false;
+        return true;
+    }
+
+    
+
+
+
+
+    if (obj->is<ArrayBufferObject>()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+                             "incompatible ArrayBuffer");
+        return false;
+    }
+
+    
+
+
+    if (obj->is<TypedObject>()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+                             "incompatible TypedObject");
+        return false;
+    }
+
+    
+
+
+
+    if (!strcmp(obj->getClass()->name, "Location")) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+                             "incompatible Location object");
+        return false;
+    }
+
+    
+    bool extensible;
+    if (!IsExtensible(cx, obj, &extensible))
+        return false;
+    if (!extensible) {
+        *succeeded = false;
+        return true;
+    }
+
+    
+    RootedObject obj2(cx);
+    for (obj2 = proto; obj2; ) {
+        if (obj2 == obj) {
+            *succeeded = false;
+            return true;
+        }
+
+        if (!GetPrototype(cx, obj2, &obj2))
+            return false;
+    }
+
+    Rooted<TaggedProto> taggedProto(cx, TaggedProto(proto));
+    *succeeded = SetClassAndProto(cx, obj, obj->getClass(), taggedProto);
+    return *succeeded;
+}
+
+bool
+js::PreventExtensions(JSContext *cx, HandleObject obj, bool *succeeded)
+{
+    if (obj->is<ProxyObject>())
+        return js::Proxy::preventExtensions(cx, obj, succeeded);
+
+    if (!obj->nonProxyIsExtensible()) {
+        *succeeded = true;
+        return true;
+    }
+
+    
+
+
+
+    AutoIdVector props(cx);
+    if (!js::GetPropertyKeys(cx, obj, JSITER_HIDDEN | JSITER_OWNONLY, &props))
+        return false;
+
+    
+
+
+
+
+
+    if (obj->isNative() && !NativeObject::sparsifyDenseElements(cx, obj.as<NativeObject>()))
+        return false;
+
+    *succeeded = true;
+    return obj->setFlag(cx, BaseShape::NOT_EXTENSIBLE, JSObject::GENERATE_SHAPE);
+}
+
+
+
+
+bool
+js::SetImmutablePrototype(ExclusiveContext *cx, HandleObject obj, bool *succeeded)
+{
+    if (obj->hasLazyPrototype()) {
+        if (!cx->shouldBeJSContext())
+            return false;
+        return Proxy::setImmutablePrototype(cx->asJSContext(), obj, succeeded);
+    }
+
+    if (!obj->setFlag(cx, BaseShape::IMMUTABLE_PROTOTYPE))
+        return false;
+    *succeeded = true;
+    return true;
+}
+
  bool
 JSObject::defaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp)
 {
@@ -3306,6 +3435,9 @@ js::NativeUnwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id)
 {
     return UnwatchGuts(cx, obj, id);
 }
+
+
+
 
 bool
 js::HasDataProperty(JSContext *cx, NativeObject *obj, jsid id, Value *vp)
@@ -3443,7 +3575,7 @@ js::IsDelegateOfObject(JSContext *cx, HandleObject protoObj, JSObject* obj, bool
 {
     RootedObject obj2(cx, obj);
     for (;;) {
-        if (!JSObject::getProto(cx, obj2, &obj2))
+        if (!GetPrototype(cx, obj2, &obj2))
             return false;
         if (!obj2) {
             *result = false;
@@ -3626,6 +3758,9 @@ js_ReportGetterOnlyAssignment(JSContext *cx, bool strict)
                                         js_GetErrorMessage, nullptr,
                                         JSMSG_GETTER_ONLY);
 }
+
+
+
 
 #ifdef DEBUG
 
@@ -3950,6 +4085,9 @@ js_DumpBacktrace(JSContext *cx)
     }
 #endif
 }
+
+
+
 
 void
 JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::ClassInfo *info)
