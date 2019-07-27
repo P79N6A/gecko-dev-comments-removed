@@ -182,6 +182,7 @@ nsHttpHandler::nsHttpHandler()
     , mParentalControlEnabled(false)
     , mTelemetryEnabled(false)
     , mAllowExperiments(true)
+    , mDebugObservations(false)
     , mHandlerActive(false)
     , mEnableSpdy(false)
     , mSpdyV31(true)
@@ -1440,6 +1441,15 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
     }
 
     
+    if (PREF_CHANGED("network.http.debug-observations")) {
+        cVar = false;
+        rv = prefs->GetBoolPref("network.http.debug-observations", &cVar);
+        if (NS_SUCCEEDED(rv)) {
+            mDebugObservations = cVar;
+        }
+    }
+
+    
     
     
     
@@ -2053,6 +2063,17 @@ nsHttpHandler::SpeculativeConnectInternal(nsIURI *aURI,
 
     if (!mHandlerActive)
         return NS_OK;
+
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mDebugObservations && mObserverService) {
+        
+        nsAutoCString spec;
+        aURI->GetSpec(spec);
+        spec.Append(anonymous ? NS_LITERAL_CSTRING("[A]") : NS_LITERAL_CSTRING("[.]"));
+        mObserverService->NotifyObservers(nullptr,
+                                          "speculative-connect-request",
+                                          NS_ConvertUTF8toUTF16(spec).get());
+    }
 
     nsISiteSecurityService* sss = gHttpHandler->GetSSService();
     bool isStsHost = false;

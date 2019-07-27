@@ -478,6 +478,9 @@ private:
     uint32_t           mAllowExperiments : 1;
 
     
+    uint32_t           mDebugObservations : 1;
+
+    
     uint32_t           mHandlerActive : 1;
 
     uint32_t           mEnableSpdy : 1;
