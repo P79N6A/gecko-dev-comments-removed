@@ -3,6 +3,7 @@
 
 
 #include "WebrtcGlobalInformation.h"
+#include "mozilla/media/webrtc/WebrtcGlobal.h"
 #include "WebrtcGlobalChild.h"
 #include "WebrtcGlobalParent.h"
 
@@ -16,7 +17,6 @@
 #include "CSFLog.h"
 #include "WebRtcLog.h"
 #include "mozilla/dom/WebrtcGlobalInformationBinding.h"
-#include "WebrtcGlobal.h"
 #include "mozilla/dom/ContentChild.h"
 
 #include "nsAutoPtr.h"
