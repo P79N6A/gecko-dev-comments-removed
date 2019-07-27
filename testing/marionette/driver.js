@@ -3170,7 +3170,8 @@ BrowserObj.prototype.register = function(uid, target) {
 BrowserObj.prototype.hasRemotenessChange = function() {
   
   
-  if (this.driver.appName != "Firefox" || this.tab === null) {
+  if (this.driver.appName != "Firefox" || this.tab === null ||
+      !this.browserForTab) {
     return false;
   }
 
