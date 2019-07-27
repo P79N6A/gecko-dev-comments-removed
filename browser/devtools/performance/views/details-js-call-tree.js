@@ -13,7 +13,7 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
     "show-platform-data"
   ],
 
-  rangeChangeDebounceTime: 50, 
+  rangeChangeDebounceTime: 75, 
 
   
 

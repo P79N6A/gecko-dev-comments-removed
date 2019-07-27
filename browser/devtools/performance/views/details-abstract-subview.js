@@ -74,6 +74,12 @@ let DetailsSubview = {
   
 
 
+
+  shouldUpdateWhileMouseIsActive: false,
+
+  
+
+
   _onRecordingStoppedOrSelected: function(_, recording) {
     if (!recording || recording.isRecording()) {
       return;
@@ -90,7 +96,14 @@ let DetailsSubview = {
 
   _onOverviewRangeChange: function (_, interval) {
     if (DetailsView.isViewSelected(this)) {
-      let debounced = () => this.render(interval);
+      let debounced = () => {
+        if (!this.shouldUpdateWhileMouseIsActive && OverviewView.isMouseActive) {
+          
+          setNamedTimeout("range-change-debounce", this.rangeChangeDebounceTime, debounced);
+        } else {
+          this.render(interval);
+        }
+      };
       setNamedTimeout("range-change-debounce", this.rangeChangeDebounceTime, debounced);
     } else {
       this.shouldUpdateWhenShown = true;

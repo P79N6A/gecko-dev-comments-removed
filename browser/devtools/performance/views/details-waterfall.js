@@ -16,7 +16,7 @@ let WaterfallView = Heritage.extend(DetailsSubview, {
     "hidden-markers"
   ],
 
-  rangeChangeDebounceTime: 10, 
+  rangeChangeDebounceTime: 75, 
 
   
 

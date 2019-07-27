@@ -96,6 +96,16 @@ let OverviewView = {
 
 
 
+  get isMouseActive() {
+    return (this.markersOverview && this.markersOverview.isMouseActive) ||
+           (this.memoryOverview && this.memoryOverview.isMouseActive) ||
+           (this.framerateGraph && this.framerateGraph.isMouseActive);
+  },
+
+  
+
+
+
 
   disable: function () {
     this._disabled = true;

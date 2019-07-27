@@ -223,6 +223,14 @@ AbstractCanvasGraph.prototype = {
   
 
 
+
+  get isMouseActive() {
+    return this._isMouseActive;
+  },
+
+  
+
+
   ready: function() {
     return this._ready.promise;
   },
