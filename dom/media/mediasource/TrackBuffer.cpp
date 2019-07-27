@@ -1008,7 +1008,7 @@ TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
     for (size_t i = 0; i < decoders.Length(); ++i) {
       nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
       decoders[i]->GetBuffered(buffered);
-      if (buffered->GetEndTime() < aEnd) {
+      if (int64_t(buffered->GetEndTime() * USECS_PER_S) < aEnd) {
         
         MSE_DEBUG("remove all bufferedEnd=%f time=%f, size=%lld",
                   buffered->GetEndTime(), time,
@@ -1027,7 +1027,7 @@ TrackBuffer::RangeRemoval(int64_t aStart, int64_t aEnd)
   } else {
     
     for (size_t i = 0; i < decoders.Length(); ++i) {
-      if (aStart <= buffered->GetStartTime()) {
+      if (aStart <= int64_t(buffered->GetStartTime() * USECS_PER_SEC)) {
         
         decoders[i]->GetResource()->EvictAll();
       } else {
