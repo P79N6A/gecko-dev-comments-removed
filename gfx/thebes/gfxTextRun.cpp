@@ -23,10 +23,6 @@
 #include "mozilla/Likely.h"
 #include "gfx2DGlue.h"
 
-#if defined(MOZ_WIDGET_GTK)
-#include "gfxPlatformGtk.h" 
-#endif
-
 #include "cairo.h"
 
 using namespace mozilla;
@@ -1540,7 +1536,6 @@ gfxFontGroup::gfxFontGroup(const FontFamilyList& aFontFamilyList,
     , mTextPerf(nullptr)
     , mPageLang(gfxPlatform::GetFontPrefLangFor(aStyle->language))
     , mSkipDrawing(false)
-    , mSkipUpdateUserFonts(false)
 {
     
     
@@ -1687,17 +1682,10 @@ void gfxFontGroup::EnumerateFontList(nsIAtom *aLanguage, void *aClosure)
 void
 gfxFontGroup::BuildFontList()
 {
-    bool enumerateFonts = true;
 
-#if defined(MOZ_WIDGET_GTK)
-    
-    enumerateFonts = gfxPlatformGtk::UseFcFontList();
-#elif defined(MOZ_WIDGET_QT)
-    enumerateFonts = false;
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
+    EnumerateFontList(mStyle.language);
 #endif
-    if (enumerateFonts) {
-        EnumerateFontList(mStyle.language);
-    }
 }
 
 void
@@ -2357,11 +2345,13 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
     NS_ASSERTION(aTextRun->GetShapingState() != gfxTextRun::eShapingState_Aborted,
                  "don't call InitScriptRun with aborted shaping state");
 
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
     
-    if (!mSkipUpdateUserFonts && mUserFontSet &&
-        mCurrGeneration != mUserFontSet->GetGeneration()) {
+    
+    if (mUserFontSet && mCurrGeneration != mUserFontSet->GetGeneration()) {
         UpdateUserFonts();
     }
+#endif
 
     gfxFont *mainFont = GetFirstValidFont();
 
@@ -2616,6 +2606,10 @@ gfxFontGroup::FindNonItalicFaceForChar(gfxFontFamily* aFamily, uint32_t aCh)
 {
     NS_ASSERTION(mStyle.style != NS_FONT_STYLE_NORMAL,
                  "should only be called in the italic/oblique case");
+
+    if (!aFamily->TestCharacterMap(aCh)) {
+        return nullptr;
+    }
 
     gfxFontStyle regularStyle = mStyle;
     regularStyle.style = NS_FONT_STYLE_NORMAL;

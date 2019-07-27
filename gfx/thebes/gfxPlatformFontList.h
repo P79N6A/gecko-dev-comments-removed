@@ -110,9 +110,9 @@ public:
     
     virtual nsresult InitFontList();
 
-    virtual void GetFontList(nsIAtom *aLangGroup,
-                             const nsACString& aGenericFamily,
-                             nsTArray<nsString>& aListOfFonts);
+    void GetFontList (nsIAtom *aLangGroup,
+                      const nsACString& aGenericFamily,
+                      nsTArray<nsString>& aListOfFonts);
 
     void UpdateFontList();
 
@@ -210,18 +210,6 @@ protected:
     static PLDHashOperator FindFontForCharProc(nsStringHashKey::KeyType aKey,
                                                nsRefPtr<gfxFontFamily>& aFamilyEntry,
                                                void* userArg);
-
-    
-    
-    gfxFontFamily* FindFamilyByCanonicalName(const nsAString& aFamily) {
-        nsAutoString key;
-        gfxFontFamily *familyEntry;
-        GenerateFontListKey(aFamily, key);
-        if ((familyEntry = mFontFamilies.GetWeak(key))) {
-            return CheckFamily(familyEntry);
-        }
-        return nullptr;
-    }
 
     
     gfxFontEntry* CommonFontFallback(uint32_t aCh, uint32_t aNextCh,

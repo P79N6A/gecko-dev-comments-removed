@@ -41,13 +41,6 @@ public:
 
     virtual nsresult UpdateFontList() override;
 
-    virtual void
-    GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
-                           int32_t aRunScript,
-                           nsTArray<const char*>& aFontList) override;
-
-    virtual gfxPlatformFontList* CreatePlatformFontList();
-
     virtual nsresult GetStandardFamilyName(const nsAString& aFontName,
                                            nsAString& aFamilyName) override;
 
@@ -108,8 +101,6 @@ public:
 #endif
     }
 
-    static bool UseFcFontList() { return sUseFcFontList; }
-
     bool UseImageOffscreenSurfaces() {
         
         
@@ -138,10 +129,6 @@ private:
 #ifdef MOZ_X11
     static bool sUseXRender;
 #endif
-
-    
-    
-    static bool sUseFcFontList;
 };
 
 #endif 
