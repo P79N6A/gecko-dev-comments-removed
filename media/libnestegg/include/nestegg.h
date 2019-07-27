@@ -373,12 +373,7 @@ int nestegg_has_cues(nestegg * context);
 
 
 
-
-
 int nestegg_sniff(unsigned char const * buffer, size_t length);
-
-
-
 
 
 
