@@ -10,6 +10,7 @@
 #ifndef SkMatrix_DEFINED
 #define SkMatrix_DEFINED
 
+#include "SkDynamicAnnotations.h"
 #include "SkRect.h"
 
 class SkString;
@@ -222,53 +223,53 @@ public:
 
 
 
-    bool setConcat(const SkMatrix& a, const SkMatrix& b);
+    void setConcat(const SkMatrix& a, const SkMatrix& b);
 
     
 
 
-    bool preTranslate(SkScalar dx, SkScalar dy);
+    void preTranslate(SkScalar dx, SkScalar dy);
     
 
 
-    bool preScale(SkScalar sx, SkScalar sy, SkScalar px, SkScalar py);
+    void preScale(SkScalar sx, SkScalar sy, SkScalar px, SkScalar py);
     
 
 
-    bool preScale(SkScalar sx, SkScalar sy);
+    void preScale(SkScalar sx, SkScalar sy);
     
 
 
-    bool preRotate(SkScalar degrees, SkScalar px, SkScalar py);
+    void preRotate(SkScalar degrees, SkScalar px, SkScalar py);
     
 
 
-    bool preRotate(SkScalar degrees);
+    void preRotate(SkScalar degrees);
     
 
 
-    bool preSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
+    void preSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
     
 
 
-    bool preSkew(SkScalar kx, SkScalar ky);
+    void preSkew(SkScalar kx, SkScalar ky);
     
 
 
-    bool preConcat(const SkMatrix& other);
+    void preConcat(const SkMatrix& other);
 
     
 
 
-    bool postTranslate(SkScalar dx, SkScalar dy);
+    void postTranslate(SkScalar dx, SkScalar dy);
     
 
 
-    bool postScale(SkScalar sx, SkScalar sy, SkScalar px, SkScalar py);
+    void postScale(SkScalar sx, SkScalar sy, SkScalar px, SkScalar py);
     
 
 
-    bool postScale(SkScalar sx, SkScalar sy);
+    void postScale(SkScalar sx, SkScalar sy);
     
 
 
@@ -276,23 +277,23 @@ public:
     
 
 
-    bool postRotate(SkScalar degrees, SkScalar px, SkScalar py);
+    void postRotate(SkScalar degrees, SkScalar px, SkScalar py);
     
 
 
-    bool postRotate(SkScalar degrees);
+    void postRotate(SkScalar degrees);
     
 
 
-    bool postSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
+    void postSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
     
 
 
-    bool postSkew(SkScalar kx, SkScalar ky);
+    void postSkew(SkScalar kx, SkScalar ky);
     
 
 
-    bool postConcat(const SkMatrix& other);
+    void postConcat(const SkMatrix& other);
 
     enum ScaleToFit {
         
@@ -568,7 +569,7 @@ public:
 
 
 
-    SkScalar getMinStretch() const;
+    SkScalar getMinScale() const;
 
     
 
@@ -576,7 +577,14 @@ public:
 
 
 
-    SkScalar getMaxStretch() const;
+    SkScalar getMaxScale() const;
+
+    
+
+
+
+
+    bool getMinMaxScales(SkScalar scaleFactors[2]) const;
 
     
 
@@ -588,6 +596,15 @@ public:
 
 
     static const SkMatrix& InvalidMatrix();
+
+    
+
+
+    static SkMatrix Concat(const SkMatrix& a, const SkMatrix& b) {
+        SkMatrix result;
+        result.setConcat(a, b);
+        return result;
+    }
 
     
 
@@ -627,7 +644,7 @@ private:
     };
 
     SkScalar         fMat[9];
-    mutable uint32_t fTypeMask;
+    mutable SkTRacy<uint32_t> fTypeMask;
 
     uint8_t computeTypeMask() const;
     uint8_t computePerspectiveTypeMask() const;
@@ -648,7 +665,7 @@ private:
     void clearTypeMask(int mask) {
         
         SkASSERT((mask & kAllMasks) == mask);
-        fTypeMask &= ~mask;
+        fTypeMask = fTypeMask & ~mask;
     }
 
     TypeMask getPerspectiveTypeMaskOnly() const {

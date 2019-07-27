@@ -74,6 +74,14 @@ public:
         
         
         
+        
+        
+        
+        kNinePatch_Type,
+
+        
+        
+        
         kComplex_Type,
     };
 
@@ -99,20 +107,10 @@ public:
     inline bool isSimpleCircular() const {
         return this->isSimple() && fRadii[0].fX == fRadii[0].fY;
     }
+    inline bool isNinePatch() const { return kNinePatch_Type == this->getType(); }
     inline bool isComplex() const { return kComplex_Type == this->getType(); }
 
     bool allCornersCircular() const;
-
-    
-
-
-
-    bool isNinePatch() const {
-        return fRadii[kUpperLeft_Corner].fX == fRadii[kLowerLeft_Corner].fX &&
-               fRadii[kUpperRight_Corner].fX == fRadii[kLowerRight_Corner].fX &&
-               fRadii[kUpperLeft_Corner].fY == fRadii[kUpperRight_Corner].fY &&
-               fRadii[kLowerLeft_Corner].fY == fRadii[kLowerRight_Corner].fY;
-    }
 
     SkScalar width() const { return fRect.width(); }
     SkScalar height() const { return fRect.height(); }
@@ -170,6 +168,12 @@ public:
 
 
     void setRectXY(const SkRect& rect, SkScalar xRad, SkScalar yRad);
+
+    
+
+
+    void setNinePatch(const SkRect& rect, SkScalar leftRad, SkScalar topRad,
+                      SkScalar rightRad, SkScalar bottomRad);
 
     
 
@@ -287,6 +291,14 @@ public:
 
 
     bool transform(const SkMatrix& matrix, SkRRect* dst) const;
+
+#ifdef SK_DEVELOPER
+    
+
+
+
+    void dump() const;
+#endif
 
 private:
     SkRect fRect;

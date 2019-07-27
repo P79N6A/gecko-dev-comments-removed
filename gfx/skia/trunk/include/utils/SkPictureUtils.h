@@ -26,7 +26,7 @@ public:
 
 
 
-    static SkData* GatherPixelRefs(SkPicture* pict, const SkRect& area);
+    static SkData* GatherPixelRefs(const SkPicture* pict, const SkRect& area);
 
     
 

@@ -40,7 +40,7 @@ public:
 
 
 template <typename T, typename C = GrLess<T> >
-class GrRedBlackTree : public SkNoncopyable {
+class GrRedBlackTree : SkNoncopyable {
 public:
     
 

@@ -35,10 +35,10 @@ public:
     };
 
     
-    static const GrEffectRef* Create(GrTexture*,
-                                     bool swapRedAndBlue,
-                                     PMConversion pmConversion,
-                                     const SkMatrix& matrix);
+    static const GrEffect* Create(GrTexture*,
+                                  bool swapRedAndBlue,
+                                  PMConversion pmConversion,
+                                  const SkMatrix& matrix);
 
     static const char* Name() { return "Config Conversion"; }
     typedef GrGLConfigConversionEffect GLEffect;

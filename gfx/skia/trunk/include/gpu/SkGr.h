@@ -16,7 +16,6 @@
 
 #include "GrTypes.h"
 #include "GrContext.h"
-#include "GrFontScaler.h"
 
 
 #include "SkBitmap.h"
@@ -45,12 +44,19 @@ GR_STATIC_ASSERT((int)kIDA_GrBlendCoeff  == (int)SkXfermode::kIDA_Coeff);
 
 #include "SkColorPriv.h"
 
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
 
 
 
 
 GrPixelConfig SkBitmapConfig2GrPixelConfig(SkBitmap::Config);
+#endif
 GrPixelConfig SkImageInfo2GrPixelConfig(SkColorType, SkAlphaType);
+
+static inline GrPixelConfig SkImageInfo2GrPixelConfig(const SkImageInfo& info) {
+    return SkImageInfo2GrPixelConfig(info.colorType(), info.alphaType());
+}
+
 bool GrPixelConfig2ColorType(GrPixelConfig, SkColorType*);
 
 static inline GrColor SkColor2GrColor(SkColor c) {
@@ -60,6 +66,11 @@ static inline GrColor SkColor2GrColor(SkColor c) {
     unsigned b = SkGetPackedB32(pm);
     unsigned a = SkGetPackedA32(pm);
     return GrColorPackRGBA(r, g, b, a);
+}
+
+static inline GrColor SkColor2GrColorJustAlpha(SkColor c) {
+    U8CPU a = SkColorGetA(c);
+    return GrColorPackRGBA(a, a, a, a);
 }
 
 
@@ -73,26 +84,24 @@ void GrUnlockAndUnrefCachedBitmapTexture(GrTexture*);
 
 
 
+
+
+
+
+
+void SkPaint2GrPaintNoShader(GrContext* context, const SkPaint& skPaint, GrColor paintColor,
+                             bool constantColor, GrPaint* grPaint);
+
+
+
+
+void SkPaint2GrPaintShader(GrContext* context, const SkPaint& skPaint,
+                           bool constantColor, GrPaint* grPaint);
+
+
+
+
 class SkGlyphCache;
-
-class SkGrFontScaler : public GrFontScaler {
-public:
-    explicit SkGrFontScaler(SkGlyphCache* strike);
-    virtual ~SkGrFontScaler();
-
-    
-    virtual const GrKey* getKey();
-    virtual GrMaskFormat getMaskFormat();
-    virtual bool getPackedGlyphBounds(GrGlyph::PackedID, SkIRect* bounds);
-    virtual bool getPackedGlyphImage(GrGlyph::PackedID, int width, int height,
-                                     int rowBytes, void* image);
-    virtual bool getGlyphPath(uint16_t glyphID, SkPath*);
-
-private:
-    SkGlyphCache* fStrike;
-    GrKey*  fKey;
-
-};
 
 
 

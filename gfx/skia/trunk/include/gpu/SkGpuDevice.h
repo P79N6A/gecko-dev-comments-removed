@@ -13,7 +13,7 @@
 
 #include "SkGr.h"
 #include "SkBitmap.h"
-#include "SkBitmapDevice.h"
+#include "SkDevice.h"
 #include "SkPicture.h"
 #include "SkRegion.h"
 #include "GrContext.h"
@@ -27,14 +27,21 @@ class GrTextContext;
 
 
 
-class SK_API SkGpuDevice : public SkBitmapDevice {
+class SK_API SkGpuDevice : public SkBaseDevice {
 public:
+    enum Flags {
+        kNeedClear_Flag = 1 << 0,  
+        kCached_Flag    = 1 << 1,  
+        kDFFonts_Flag   = 1 << 2,  
+    };
 
     
 
 
 
-    static SkGpuDevice* Create(GrSurface* surface);
+
+
+    static SkGpuDevice* Create(GrSurface* surface, unsigned flags = 0);
 
     
 
@@ -44,21 +51,11 @@ public:
 
     static SkGpuDevice* Create(GrContext*, const SkImageInfo&, int sampleCount);
 
-#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
     
 
 
 
-
-
-    SkGpuDevice(GrContext*, SkBitmap::Config, int width, int height, int sampleCount = 0);
-#endif
-
-    
-
-
-
-    SkGpuDevice(GrContext*, GrRenderTarget*);
+    SkGpuDevice(GrContext*, GrRenderTarget*, unsigned flags = 0);
 
     
 
@@ -66,7 +63,7 @@ public:
 
 
 
-    SkGpuDevice(GrContext*, GrTexture*);
+    SkGpuDevice(GrContext*, GrTexture*, unsigned flags = 0);
 
     virtual ~SkGpuDevice();
 
@@ -74,24 +71,11 @@ public:
 
     virtual GrRenderTarget* accessRenderTarget() SK_OVERRIDE;
 
-    
-    virtual int width() const SK_OVERRIDE {
-        return NULL == fRenderTarget ? 0 : fRenderTarget->width();
+    virtual SkImageInfo imageInfo() const SK_OVERRIDE {
+        return fRenderTarget ? fRenderTarget->info() : SkImageInfo::MakeUnknown();
     }
-    virtual int height() const SK_OVERRIDE {
-        return NULL == fRenderTarget ? 0 : fRenderTarget->height();
-    }
-    virtual bool isOpaque() const SK_OVERRIDE {
-        return NULL == fRenderTarget ? false
-                                     : kRGB_565_GrPixelConfig == fRenderTarget->config();
-    }
-    virtual SkBitmap::Config config() const SK_OVERRIDE;
 
     virtual void clear(SkColor color) SK_OVERRIDE;
-#ifdef SK_SUPPORT_LEGACY_WRITEPIXELSCONFIG
-    virtual void writePixels(const SkBitmap& bitmap, int x, int y,
-                             SkCanvas::Config8888 config8888) SK_OVERRIDE;
-#endif
     virtual void drawPaint(const SkDraw&, const SkPaint& paint) SK_OVERRIDE;
     virtual void drawPoints(const SkDraw&, SkCanvas::PointMode mode, size_t count,
                             const SkPoint[], const SkPaint& paint) SK_OVERRIDE;
@@ -99,6 +83,8 @@ public:
                           const SkPaint& paint) SK_OVERRIDE;
     virtual void drawRRect(const SkDraw&, const SkRRect& r,
                            const SkPaint& paint) SK_OVERRIDE;
+    virtual void drawDRRect(const SkDraw& draw, const SkRRect& outer,
+                            const SkRRect& inner, const SkPaint& paint) SK_OVERRIDE;
     virtual void drawOval(const SkDraw&, const SkRect& oval,
                           const SkPaint& paint) SK_OVERRIDE;
     virtual void drawPath(const SkDraw&, const SkPath& path,
@@ -134,6 +120,8 @@ public:
     virtual void onAttachToCanvas(SkCanvas* canvas) SK_OVERRIDE;
     virtual void onDetachFromCanvas() SK_OVERRIDE;
 
+    virtual const SkBitmap& onAccessBitmap() SK_OVERRIDE;
+
     
 
 
@@ -149,13 +137,13 @@ public:
 
 
 protected:
-    virtual bool onReadPixels(const SkBitmap&, int x, int y, SkCanvas::Config8888) SK_OVERRIDE;
+    virtual bool onReadPixels(const SkImageInfo&, void*, size_t, int, int) SK_OVERRIDE;
     virtual bool onWritePixels(const SkImageInfo&, const void*, size_t, int, int) SK_OVERRIDE;
 
     
-    virtual void EXPERIMENTAL_optimize(SkPicture* picture) SK_OVERRIDE;
+    virtual void EXPERIMENTAL_optimize(const SkPicture* picture) SK_OVERRIDE;
     
-    virtual bool EXPERIMENTAL_drawPicture(const SkPicture& picture) SK_OVERRIDE;
+    virtual bool EXPERIMENTAL_drawPicture(SkCanvas* canvas, const SkPicture* picture) SK_OVERRIDE;
 
 private:
     GrContext*      fContext;
@@ -172,10 +160,10 @@ private:
     bool                fNeedClear;
 
     
-    void initFromRenderTarget(GrContext*, GrRenderTarget*, bool cached);
+    SkBitmap fLegacyBitmap;
 
     
-    SkGpuDevice(GrContext*, GrTexture* texture, bool needClear);
+    void initFromRenderTarget(GrContext*, GrRenderTarget*, unsigned flags);
 
     virtual SkBaseDevice* onCreateDevice(const SkImageInfo&, Usage) SK_OVERRIDE;
 
@@ -212,7 +200,8 @@ private:
                             const GrTextureParams& params,
                             const SkPaint& paint,
                             SkCanvas::DrawBitmapRectFlags flags,
-                            bool bicubic);
+                            bool bicubic,
+                            bool needsTextureDomain);
     void drawTiledBitmap(const SkBitmap& bitmap,
                          const SkRect& srcRect,
                          const SkIRect& clippedSrcRect,
@@ -222,9 +211,11 @@ private:
                          int tileSize,
                          bool bicubic);
 
+    bool drawDashLine(const SkPoint pts[2], const SkPaint& paint);
+
     static SkPicture::AccelData::Key ComputeAccelDataKey();
 
-    typedef SkBitmapDevice INHERITED;
+    typedef SkBaseDevice INHERITED;
 };
 
 #endif

@@ -12,8 +12,6 @@
 #include "SkUtils.h"
 #include "SkUtilsArm.h"
 
-#include "SkCachePreload_arm.h"
-
 
 #define USE_NEON_CODE  (!SK_ARM_NEON_IS_NONE)
 

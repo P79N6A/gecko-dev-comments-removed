@@ -10,6 +10,7 @@
 #include "SkPreConfig.h"
 
 class SkPath;
+struct SkRect;
 
 
 
@@ -53,5 +54,13 @@ bool SK_API Op(const SkPath& one, const SkPath& two, SkPathOp op, SkPath* result
 
 
 bool SK_API Simplify(const SkPath& path, SkPath* result);
+
+
+
+
+
+
+
+bool SK_API TightBounds(const SkPath& path, SkRect* result);
 
 #endif

@@ -6,10 +6,10 @@
 
 
 
-#include "GrPathRenderer.h"
-
 #ifndef GrAAConvexPathRenderer_DEFINED
 #define GrAAConvexPathRenderer_DEFINED
+
+#include "GrPathRenderer.h"
 
 class GrAAConvexPathRenderer : public GrPathRenderer {
 public:

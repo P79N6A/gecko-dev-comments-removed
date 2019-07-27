@@ -33,6 +33,7 @@ public:
     
     virtual void blitAntiH(int x, int y, const SkAlpha antialias[],
                            const int16_t runs[]);
+
     
     virtual void blitV(int x, int y, int height, SkAlpha alpha);
     
@@ -62,6 +63,30 @@ public:
     virtual bool isNullBlitter() const;
 
     
+
+
+    virtual bool resetShaderContext(const SkShader::ContextRec&);
+    virtual SkShader::Context* getShaderContext() const;
+
+    
+
+
+
+
+
+    virtual int requestRowsPreserved() const { return 1; }
+
+    
+
+
+
+
+
+    virtual void* allocBlitMemory(size_t sz) {
+        return fBlitMemory.reset(sz, SkAutoMalloc::kReuse_OnShrink);
+    }
+
+    
     void blitMaskRegion(const SkMask& mask, const SkRegion& clip);
     void blitRectRegion(const SkIRect& rect, const SkRegion& clip);
     void blitRegion(const SkRegion& clip);
@@ -83,6 +108,10 @@ public:
                                    SkTBlitterAllocator*);
     
 
+protected:
+
+    SkAutoMalloc fBlitMemory;
+    
 private:
 };
 
@@ -122,6 +151,10 @@ public:
     virtual void blitMask(const SkMask&, const SkIRect& clip) SK_OVERRIDE;
     virtual const SkBitmap* justAnOpaqueColor(uint32_t* value) SK_OVERRIDE;
 
+    virtual void* allocBlitMemory(size_t sz) SK_OVERRIDE {
+        return fBlitter->allocBlitMemory(sz);
+    }
+
 private:
     SkBlitter*  fBlitter;
     SkIRect     fClipRect;
@@ -148,6 +181,10 @@ public:
                      SkAlpha leftAlpha, SkAlpha rightAlpha) SK_OVERRIDE;
     virtual void blitMask(const SkMask&, const SkIRect& clip) SK_OVERRIDE;
     virtual const SkBitmap* justAnOpaqueColor(uint32_t* value) SK_OVERRIDE;
+
+    virtual void* allocBlitMemory(size_t sz) SK_OVERRIDE {
+        return fBlitter->allocBlitMemory(sz);
+    }
 
 private:
     SkBlitter*      fBlitter;

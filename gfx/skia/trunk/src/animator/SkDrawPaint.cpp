@@ -5,14 +5,12 @@
 
 
 
-
-
 #include "SkDrawPaint.h"
 #include "SkAnimateMaker.h"
 #include "SkDrawColor.h"
 #include "SkDrawShader.h"
 #include "SkMaskFilter.h"
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkPathEffect.h"
 
 enum SkPaint_Functions {

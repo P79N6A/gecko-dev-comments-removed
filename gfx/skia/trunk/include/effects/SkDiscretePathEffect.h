@@ -20,8 +20,20 @@ public:
 
 
 
-    static SkDiscretePathEffect* Create(SkScalar segLength, SkScalar deviation) {
-        return SkNEW_ARGS(SkDiscretePathEffect, (segLength, deviation));
+
+
+
+
+
+
+
+
+
+    static SkDiscretePathEffect* Create(SkScalar segLength,
+                                        SkScalar deviation,
+                                        uint32_t seedAssist=0) {
+        return SkNEW_ARGS(SkDiscretePathEffect,
+                          (segLength, deviation, seedAssist));
     }
 
     virtual bool filterPath(SkPath* dst, const SkPath& src,
@@ -30,16 +42,17 @@ public:
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkDiscretePathEffect)
 
 protected:
-    SkDiscretePathEffect(SkReadBuffer&);
+    SkDiscretePathEffect(SkScalar segLength,
+                         SkScalar deviation,
+                         uint32_t seedAssist);
+    explicit SkDiscretePathEffect(SkReadBuffer&);
     virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
-
-#ifdef SK_SUPPORT_LEGACY_PUBLICEFFECTCONSTRUCTORS
-public:
-#endif
-    SkDiscretePathEffect(SkScalar segLength, SkScalar deviation);
 
 private:
     SkScalar fSegLength, fPerterb;
+
+    
+    uint32_t fSeedAssist;
 
     typedef SkPathEffect INHERITED;
 };

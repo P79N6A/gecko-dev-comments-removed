@@ -13,13 +13,14 @@
 
 #include "GrConfig.h"
 #include "GrTypes.h"
-#include "GrTMultiMap.h"
+#include "SkTMultiMap.h"
 #include "GrBinHashKey.h"
 #include "SkMessageBus.h"
 #include "SkTInternalLList.h"
 
-class GrResource;
-class GrResourceEntry;
+class GrGpuResource;
+class GrResourceCache;
+class GrResourceCacheEntry;
 
 class GrResourceKey {
 public:
@@ -115,31 +116,40 @@ struct GrResourceInvalidatedMessage {
 
 
 
-class GrResourceEntry {
+class GrResourceCacheEntry {
 public:
-    GrResource* resource() const { return fResource; }
+    GrGpuResource* resource() const { return fResource; }
     const GrResourceKey& key() const { return fKey; }
 
-    static const GrResourceKey& GetKey(const GrResourceEntry& e) { return e.key(); }
+    static const GrResourceKey& GetKey(const GrResourceCacheEntry& e) { return e.key(); }
     static uint32_t Hash(const GrResourceKey& key) { return key.getHash(); }
-    static bool Equal(const GrResourceEntry& a, const GrResourceKey& b) {
-        return a.key() == b;
-    }
 #ifdef SK_DEBUG
     void validate() const;
 #else
     void validate() const {}
 #endif
 
-private:
-    GrResourceEntry(const GrResourceKey& key, GrResource* resource);
-    ~GrResourceEntry();
+    
 
+
+
+
+    void didChangeResourceSize();
+
+private:
+    GrResourceCacheEntry(GrResourceCache* resourceCache,
+                         const GrResourceKey& key,
+                         GrGpuResource* resource);
+    ~GrResourceCacheEntry();
+
+    GrResourceCache* fResourceCache;
     GrResourceKey    fKey;
-    GrResource*      fResource;
+    GrGpuResource*   fResource;
+    size_t           fCachedSize;
+    bool             fIsExclusive;
 
     
-    SK_DECLARE_INTERNAL_LLIST_INTERFACE(GrResourceEntry);
+    SK_DECLARE_INTERNAL_LLIST_INTERFACE(GrResourceCacheEntry);
 
     friend class GrResourceCache;
 };
@@ -214,6 +224,11 @@ public:
     size_t getCachedResourceBytes() const { return fEntryBytes; }
 
     
+
+
+    int getCachedResourceCount() const { return fEntryCount; }
+
+    
     
     enum OwnershipFlags {
         kNoOtherOwners_OwnershipFlag = 0x1, 
@@ -231,8 +246,8 @@ public:
 
 
 
-    GrResource* find(const GrResourceKey& key,
-                     uint32_t ownershipFlags = 0);
+    GrGpuResource* find(const GrResourceKey& key,
+                        uint32_t ownershipFlags = 0);
 
     
 
@@ -246,7 +261,7 @@ public:
 
 
     void addResource(const GrResourceKey& key,
-                     GrResource* resource,
+                     GrGpuResource* resource,
                      uint32_t ownershipFlags = 0);
 
     
@@ -261,18 +276,24 @@ public:
 
 
 
-    void makeExclusive(GrResourceEntry* entry);
+    void makeExclusive(GrResourceCacheEntry* entry);
 
     
 
 
 
-    void makeNonExclusive(GrResourceEntry* entry);
+    void makeNonExclusive(GrResourceCacheEntry* entry);
 
     
 
 
-    void deleteResource(GrResourceEntry* entry);
+    void didIncreaseResourceSize(const GrResourceCacheEntry*, size_t amountInc);
+    void didDecreaseResourceSize(const GrResourceCacheEntry*, size_t amountDec);
+
+    
+
+
+    void deleteResource(GrResourceCacheEntry* entry);
 
     
 
@@ -308,19 +329,15 @@ private:
         kIgnore_BudgetBehavior
     };
 
-    void internalDetach(GrResourceEntry*, BudgetBehaviors behavior = kAccountFor_BudgetBehavior);
-    void attachToHead(GrResourceEntry*, BudgetBehaviors behavior = kAccountFor_BudgetBehavior);
+    void internalDetach(GrResourceCacheEntry*, BudgetBehaviors behavior = kAccountFor_BudgetBehavior);
+    void attachToHead(GrResourceCacheEntry*, BudgetBehaviors behavior = kAccountFor_BudgetBehavior);
 
-    void removeInvalidResource(GrResourceEntry* entry);
+    void removeInvalidResource(GrResourceCacheEntry* entry);
 
-    GrTMultiMap<GrResourceEntry,
-                GrResourceKey,
-                GrResourceEntry::GetKey,
-                GrResourceEntry::Hash,
-                GrResourceEntry::Equal> fCache;
+    SkTMultiMap<GrResourceCacheEntry, GrResourceKey> fCache;
 
     
-    typedef SkTInternalLList<GrResourceEntry> EntryList;
+    typedef SkTInternalLList<GrResourceCacheEntry> EntryList;
     EntryList      fList;
 
 #ifdef SK_DEBUG
@@ -358,7 +375,7 @@ private:
     void purgeInvalidated();
 
 #ifdef SK_DEBUG
-    static size_t countBytes(const SkTInternalLList<GrResourceEntry>& list);
+    static size_t countBytes(const SkTInternalLList<GrResourceCacheEntry>& list);
 #endif
 };
 

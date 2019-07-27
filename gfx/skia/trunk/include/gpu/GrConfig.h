@@ -181,15 +181,6 @@ typedef unsigned __int64 uint64_t;
 
 
 
-inline void GrCrash() { GrAlwaysAssert(false); }
-inline void GrCrash(const char* msg) { GrPrintf(msg); GrAlwaysAssert(false); }
-inline void GrDebugCrash() { SkASSERT(false); }
-inline void GrDebugCrash(const char* msg) { GrPrintf(msg); SkASSERT(false); }
-
-
-
-
-
 
 
 
@@ -211,8 +202,8 @@ inline void GrDebugCrash(const char* msg) { GrPrintf(msg); SkASSERT(false); }
 
 
 
-#if !defined(GR_GEOM_BUFFER_LOCK_THRESHOLD)
-    #define GR_GEOM_BUFFER_LOCK_THRESHOLD (1 << 15)
+#if !defined(GR_GEOM_BUFFER_MAP_THRESHOLD)
+    #define GR_GEOM_BUFFER_MAP_THRESHOLD (1 << 15)
 #endif
 
 

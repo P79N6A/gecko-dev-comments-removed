@@ -27,98 +27,52 @@
 
 
 
-
 #include "SkDynamicAnnotations.h"
 #include "SkThread.h"
 #include "SkTypes.h"
 
-#define SK_ONCE_INIT { false, { 0, SkDEBUGCODE(0) } }
-#define SK_DECLARE_STATIC_ONCE(name) static SkOnceFlag name = SK_ONCE_INIT
 
-struct SkOnceFlag;  
+#define SK_DECLARE_STATIC_ONCE(name) static SkOnceFlag name
 
-template <typename Func, typename Arg>
-inline void SkOnce(SkOnceFlag* once, Func f, Arg arg, void(*atExit)() = NULL);
+class SkOnceFlag;
 
+inline void SkOnce(SkOnceFlag* once, void (*f)());
 
-template <typename Lock, typename Func, typename Arg>
-inline void SkOnce(bool* done, Lock* lock, Func f, Arg arg, void(*atExit)() = NULL);
-
-
-
-
-struct SkSpinlock {
-    void acquire() {
-        SkASSERT(shouldBeZero == 0);
-        
-        while (!sk_atomic_cas(&thisIsPrivate, 0, 1)) {
-            
-        }
-    }
-
-    void release() {
-        SkASSERT(shouldBeZero == 0);
-        
-        SkAssertResult(sk_atomic_cas(&thisIsPrivate, 1, 0));
-    }
-
-    int32_t thisIsPrivate;
-    SkDEBUGCODE(int32_t shouldBeZero;)
-};
-
-struct SkOnceFlag {
-    bool done;
-    SkSpinlock lock;
-};
-
-
-
-#ifdef SK_BUILD_FOR_WIN
-#  include <intrin.h>
-inline static void compiler_barrier() {
-    _ReadWriteBarrier();
-}
-#else
-inline static void compiler_barrier() {
-    asm volatile("" : : : "memory");
-}
-#endif
-
-inline static void full_barrier_on_arm() {
-#ifdef SK_CPU_ARM
-#  if SK_ARM_ARCH >= 7
-    asm volatile("dmb" : : : "memory");
-#  else
-    asm volatile("mcr p15, 0, %0, c7, c10, 5" : : "r" (0) : "memory");
-#  endif
-#endif
-}
-
-
-
-
-
-
-
-
-inline static void release_barrier() {
-    compiler_barrier();
-    full_barrier_on_arm();
-}
-
-inline static void acquire_barrier() {
-    compiler_barrier();
-    full_barrier_on_arm();
-}
+template <typename Arg>
+inline void SkOnce(SkOnceFlag* once, void (*f)(Arg), Arg arg);
 
 
 template <typename Lock>
-class SkAutoLockAcquire {
+inline void SkOnce(bool* done, Lock* lock, void (*f)());
+
+template <typename Lock, typename Arg>
+inline void SkOnce(bool* done, Lock* lock, void (*f)(Arg), Arg arg);
+
+
+
+
+class SkOnceFlag {
 public:
-    explicit SkAutoLockAcquire(Lock* lock) : fLock(lock) { fLock->acquire(); }
-    ~SkAutoLockAcquire() { fLock->release(); }
+    bool* mutableDone() { return &fDone; }
+
+    void acquire() {
+        
+        
+        while (!sk_atomic_cas(&fSpinlock, 0, 1)) {
+            
+        }
+        
+        SkAssertResult(sk_acquire_load(&fSpinlock));
+    }
+
+    void release() {
+        
+        SkAssertResult(sk_atomic_cas(&fSpinlock, 1, 0));
+    }
+
 private:
-    Lock* fLock;
+    bool fDone;
+    int32_t fSpinlock;
 };
 
 
@@ -128,14 +82,11 @@ private:
 
 
 
-template <typename Lock, typename Func, typename Arg>
-static void sk_once_slow(bool* done, Lock* lock, Func f, Arg arg, void (*atExit)()) {
-    const SkAutoLockAcquire<Lock> locked(lock);
+template <typename Lock, typename Arg>
+static void sk_once_slow(bool* done, Lock* lock, void (*f)(Arg), Arg arg) {
+    lock->acquire();
     if (!*done) {
         f(arg);
-        if (atExit != NULL) {
-            atexit(atExit);
-        }
         
         
         
@@ -145,16 +96,16 @@ static void sk_once_slow(bool* done, Lock* lock, Func f, Arg arg, void (*atExit)
         
         
         
-        release_barrier();
-        *done = true;
+        sk_release_store(done, true);
     }
+    lock->release();
 }
 
 
-template <typename Lock, typename Func, typename Arg>
-inline void SkOnce(bool* done, Lock* lock, Func f, Arg arg, void(*atExit)()) {
+template <typename Lock, typename Arg>
+inline void SkOnce(bool* done, Lock* lock, void (*f)(Arg), Arg arg) {
     if (!SK_ANNOTATE_UNPROTECTED_READ(*done)) {
-        sk_once_slow(done, lock, f, arg, atExit);
+        sk_once_slow(done, lock, f, arg);
     }
     
     
@@ -166,14 +117,28 @@ inline void SkOnce(bool* done, Lock* lock, Func f, Arg arg, void(*atExit)()) {
     
     
     
-    acquire_barrier();
+    SkAssertResult(sk_acquire_load(done));
 }
 
-template <typename Func, typename Arg>
-inline void SkOnce(SkOnceFlag* once, Func f, Arg arg, void(*atExit)()) {
-    return SkOnce(&once->done, &once->lock, f, arg, atExit);
+template <typename Arg>
+inline void SkOnce(SkOnceFlag* once, void (*f)(Arg), Arg arg) {
+    return SkOnce(once->mutableDone(), once, f, arg);
 }
 
-#undef SK_ANNOTATE_BENIGN_RACE
+
+
+
+static void sk_once_no_arg_adaptor(void (*f)()) {
+    f();
+}
+
+inline void SkOnce(SkOnceFlag* once, void (*func)()) {
+    return SkOnce(once, sk_once_no_arg_adaptor, func);
+}
+
+template <typename Lock>
+inline void SkOnce(bool* done, Lock* lock, void (*func)()) {
+    return SkOnce(done, lock, sk_once_no_arg_adaptor, func);
+}
 
 #endif  

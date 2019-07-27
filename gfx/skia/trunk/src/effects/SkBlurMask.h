@@ -5,52 +5,44 @@
 
 
 
-
-
 #ifndef SkBlurMask_DEFINED
 #define SkBlurMask_DEFINED
 
+#include "SkBlurTypes.h"
 #include "SkShader.h"
 #include "SkMask.h"
 #include "SkRRect.h"
 
 class SkBlurMask {
 public:
-    enum Style {
-        kNormal_Style,  
-        kSolid_Style,   
-        kOuter_Style,   
-        kInner_Style,   
-
-        kStyleCount
-    };
-
-    enum Quality {
-        kLow_Quality,   
-        kHigh_Quality   
-    };
-
-    static bool BlurRect(SkScalar sigma, SkMask *dst, const SkRect &src,
-                         Style style,
+    static bool BlurRect(SkScalar sigma, SkMask *dst, const SkRect &src, SkBlurStyle,
                          SkIPoint *margin = NULL,
                          SkMask::CreateMode createMode =
                                                 SkMask::kComputeBoundsAndRenderImage_CreateMode);
-    static bool BlurRRect(SkScalar sigma, SkMask *dst, const SkRRect &src,
-                         Style style,
+    static bool BlurRRect(SkScalar sigma, SkMask *dst, const SkRRect &src, SkBlurStyle,
                          SkIPoint *margin = NULL,
                          SkMask::CreateMode createMode =
                                                 SkMask::kComputeBoundsAndRenderImage_CreateMode);
+
+    
+    
+    
+    
+    
+
     static bool BoxBlur(SkMask* dst, const SkMask& src,
-                        SkScalar sigma, Style style, Quality quality,
-                        SkIPoint* margin = NULL);
+                        SkScalar sigma, SkBlurStyle style, SkBlurQuality quality,
+                        SkIPoint* margin = NULL, bool force_quality=false);
 
     
     
-    static bool BlurGroundTruth(SkScalar sigma, SkMask* dst, const SkMask& src,
-                                Style style,
+    static bool BlurGroundTruth(SkScalar sigma, SkMask* dst, const SkMask& src, SkBlurStyle,
                                 SkIPoint* margin = NULL);
 
+    
     static SkScalar ConvertRadiusToSigma(SkScalar radius);
+    
+    static SkScalar ConvertSigmaToRadius(SkScalar sigma);
 
     
 

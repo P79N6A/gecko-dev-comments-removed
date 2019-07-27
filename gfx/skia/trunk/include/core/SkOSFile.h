@@ -78,7 +78,9 @@ bool    sk_fidentical(SkFILE* a, SkFILE* b);
 int     sk_fileno(SkFILE* f);
 
 
-bool    sk_exists(const char *path);
+
+
+bool    sk_exists(const char *path, SkFILE_Flags = (SkFILE_Flags)0);
 
 
 bool    sk_isdir(const char *path);
@@ -116,19 +118,6 @@ public:
         SkString    fPath, fSuffix;
 #endif
     };
-};
-
-class SkUTF16_Str {
-public:
-    SkUTF16_Str(const char src[]);
-    ~SkUTF16_Str()
-    {
-        sk_free(fStr);
-    }
-    const uint16_t* get() const { return fStr; }
-
-private:
-    uint16_t*   fStr;
 };
 
 

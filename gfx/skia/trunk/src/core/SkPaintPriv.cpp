@@ -76,3 +76,14 @@ bool isPaintOpaque(const SkPaint* paint,
     }
     return false;
 }
+
+bool NeedsDeepCopy(const SkPaint& paint) {
+    
+
+
+
+
+
+
+    return paint.getImageFilter();
+}

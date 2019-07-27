@@ -38,6 +38,7 @@ class SK_API SkBitmap {
 public:
     class SK_API Allocator;
 
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
     enum Config {
         kNo_Config,         
         kA8_Config,         
@@ -52,6 +53,13 @@ public:
     enum {
         kConfigCount = kARGB_8888_Config + 1
     };
+
+    
+    Config  config() const;
+    
+    SK_ATTR_DEPRECATED("use config()")
+    Config  getConfig() const { return this->config(); }
+#endif
 
     
 
@@ -91,10 +99,10 @@ public:
     
 
 
+
     int bytesPerPixel() const { return fInfo.bytesPerPixel(); }
 
     
-
 
 
 
@@ -103,7 +111,6 @@ public:
     }
 
     
-
 
 
 
@@ -125,12 +132,6 @@ public:
     
 
     bool drawsNothing() const { return this->empty() || this->isNull(); }
-
-    
-    Config  config() const;
-
-    SK_ATTR_DEPRECATED("use config()")
-    Config  getConfig() const { return this->config(); }
 
     
     size_t rowBytes() const { return fRowBytes; }
@@ -218,26 +219,6 @@ public:
     
 
 
-    static size_t ComputeRowBytes(Config c, int width);
-
-    
-
-
-    static int ComputeBytesPerPixel(Config c);
-
-    
-
-
-    static int ComputeShiftPerPixel(Config c) {
-        return ComputeBytesPerPixel(c) >> 1;
-    }
-
-    static int64_t ComputeSize64(Config, int width, int height);
-    static size_t ComputeSize(Config, int width, int height);
-
-    
-
-
 
 
 
@@ -252,18 +233,7 @@ public:
     void getBounds(SkRect* bounds) const;
     void getBounds(SkIRect* bounds) const;
 
-    
-
-
-
-    bool setConfig(Config, int width, int height, size_t rowBytes, SkAlphaType);
-
-    bool setConfig(Config config, int width, int height, size_t rowBytes = 0) {
-        return this->setConfig(config, width, height, rowBytes,
-                               kPremul_SkAlphaType);
-    }
-
-    bool setConfig(const SkImageInfo& info, size_t rowBytes = 0);
+    bool setInfo(const SkImageInfo&, size_t rowBytes = 0);
 
     
 
@@ -279,15 +249,19 @@ public:
 
 
 
-    bool allocPixels(const SkImageInfo& info) {
-        return this->allocPixels(info, NULL, NULL);
-    }
+
+
+    bool allocPixels(const SkImageInfo& info, size_t rowBytes);
 
     
 
 
 
-    bool allocConfigPixels(Config, int width, int height, bool isOpaque = false);
+
+
+    bool allocPixels(const SkImageInfo& info) {
+        return this->allocPixels(info, info.minRowBytes());
+    }
 
     bool allocN32Pixels(int width, int height, bool isOpaque = false) {
         SkImageInfo info = SkImageInfo::MakeN32Premul(width, height);
@@ -304,9 +278,8 @@ public:
 
 
 
-    bool installPixels(const SkImageInfo&, void* pixels, size_t rowBytes,
-                       void (*ReleaseProc)(void* addr, void* context),
-                       void* context);
+    bool installPixels(const SkImageInfo&, void* pixels, size_t rowBytes, SkColorTable*,
+                       void (*releaseProc)(void* addr, void* context), void* context);
 
     
 
@@ -314,7 +287,7 @@ public:
 
 
     bool installPixels(const SkImageInfo& info, void* pixels, size_t rowBytes) {
-        return this->installPixels(info, pixels, rowBytes, NULL, NULL);
+        return this->installPixels(info, pixels, rowBytes, NULL, NULL, NULL);
     }
 
     
@@ -323,20 +296,6 @@ public:
 
 
     bool installMaskPixels(const SkMask&);
-
-    
-
-
-    bool asImageInfo(SkImageInfo* info) const {
-        
-        if (kUnknown_SkColorType == this->colorType()) {
-            return false;
-        }
-        if (info) {
-            *info = this->info();
-        }
-        return true;
-    }
 
     
 
@@ -389,7 +348,6 @@ public:
     }
 
     
-
 
 
 
@@ -549,7 +507,6 @@ public:
 
 
 
-
     bool scrollRect(const SkIRect* subset, int dx, int dy,
                     SkRegion* inval = NULL) const;
 
@@ -637,6 +594,28 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool readPixels(const SkImageInfo& dstInfo, void* dstPixels, size_t dstRowBytes,
+                    int srcX, int srcY) const;
+
+    
+
+
+
     bool canCopyTo(SkColorType colorType) const;
 
     
@@ -646,9 +625,6 @@ public:
 
 
     bool deepCopyTo(SkBitmap* dst) const;
-
-    SK_ATTR_DEPRECATED("use setFilterLevel on SkPaint")
-    void buildMipMap(bool forceRebuild = false);
 
 #ifdef SK_BUILD_FOR_ANDROID
     bool hasHardwareMipMap() const {
@@ -688,16 +664,6 @@ public:
 
     bool extractAlpha(SkBitmap* dst, const SkPaint* paint, Allocator* allocator,
                       SkIPoint* offset) const;
-
-    
-
-
-
-
-
-
-    void flatten(SkWriteBuffer&) const;
-    void unflatten(SkReadBuffer&);
 
     SkDEBUGCODE(void validate() const;)
 
@@ -750,9 +716,6 @@ public:
     SK_TO_STRING_NONVIRT()
 
 private:
-    struct MipMap;
-    mutable MipMap* fMipMap;
-
     mutable SkPixelRef* fPixelRef;
     mutable int         fPixelLockCount;
     
@@ -762,9 +725,7 @@ private:
     SkIPoint    fPixelRefOrigin;
 
     enum Flags {
-        kImageIsOpaque_Flag     = 0x01,
         kImageIsVolatile_Flag   = 0x02,
-        kImageIsImmutable_Flag  = 0x04,
 #ifdef SK_BUILD_FOR_ANDROID
         
 
@@ -784,34 +745,21 @@ private:
 
     
 
-    static int64_t ComputeSafeSize64(Config   config,
-                                     uint32_t width,
-                                     uint32_t height,
-                                     size_t   rowBytes);
-    static size_t ComputeSafeSize(Config   config,
-                                  uint32_t width,
-                                  uint32_t height,
-                                  size_t   rowBytes);
-
-    
-
     void freePixels();
     void updatePixelsFromRef() const;
 
-    static SkFixed ComputeMipLevel(SkFixed sx, SkFixed dy);
+    void legacyUnflatten(SkReadBuffer&);
 
-    
+    static void WriteRawPixels(SkWriteBuffer*, const SkBitmap&);
+    static bool ReadRawPixels(SkReadBuffer*, SkBitmap*);
 
-
-
-    int extractMipLevel(SkBitmap* dst, SkFixed sx, SkFixed sy);
-    bool hasMipMap() const;
-    void freeMipMap();
-
+    friend class SkBitmapSource;    
+    friend class SkReadBuffer;      
+    friend class SkWriteBuffer;     
     friend struct SkBitmapProcState;
 };
 
-class SkAutoLockPixels : public SkNoncopyable {
+class SkAutoLockPixels : SkNoncopyable {
 public:
     SkAutoLockPixels(const SkBitmap& bm, bool doLock = true) : fBitmap(bm) {
         fDidLock = doLock;
@@ -835,7 +783,7 @@ private:
 
 
 
-class SkAutoLockColors : public SkNoncopyable {
+class SkAutoLockColors : SkNoncopyable {
 public:
     
 
@@ -917,11 +865,13 @@ inline SkPMColor SkBitmap::getIndex8Color(int x, int y) const {
     return (*fColorTable)[*((const uint8_t*)fPixels + y * fRowBytes + x)];
 }
 
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
 
 
 
 
-extern SkBitmap::Config SkColorTypeToBitmapConfig(SkColorType);
-extern SkColorType SkBitmapConfigToColorType(SkBitmap::Config);
+SK_API SkBitmap::Config SkColorTypeToBitmapConfig(SkColorType);
+SK_API SkColorType SkBitmapConfigToColorType(SkBitmap::Config);
+#endif
 
 #endif

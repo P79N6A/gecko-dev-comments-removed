@@ -16,6 +16,7 @@
 #include "SkTDArray.h"
 #include "SkTLazy.h"
 
+class SkCanvasClipVisitor;
 
 
 
@@ -47,7 +48,10 @@ public:
             kRRect_Type,
             
             kPath_Type,
+
+            kLastType = kPath_Type
         };
+        static const int kTypeCnt = kLastType + 1;
 
         Element() {
             this->initCommon(0, SkRegion::kReplace_Op, false);
@@ -73,6 +77,9 @@ public:
 
         
         Type getType() const { return fType; }
+
+        
+        int getSaveCount() const { return fSaveCount; }
 
         
         const SkPath& getPath() const { SkASSERT(kPath_Type == fType); return *fPath.get(); }
@@ -155,6 +162,19 @@ public:
         bool isInverseFilled() const {
             return kPath_Type == fType && fPath.get()->isInverseFillType();
         }
+
+        
+
+
+        void replay(SkCanvasClipVisitor*) const;
+
+#ifdef SK_DEVELOPER
+        
+
+
+
+        void dump() const;
+#endif
 
     private:
         friend class SkClipStack;
@@ -331,6 +351,14 @@ public:
     static const int32_t kWideOpenGenID = 2;    
 
     int32_t getTopmostGenID() const;
+
+#ifdef SK_DEVELOPER
+    
+
+
+
+    void dump() const;
+#endif
 
 public:
     class Iter {

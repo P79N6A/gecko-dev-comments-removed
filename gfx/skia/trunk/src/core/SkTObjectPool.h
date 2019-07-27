@@ -74,6 +74,11 @@ public:
 
     int blocks() const { return fBlocks.getCount(); }
 
+    
+
+
+    int allocated() const { return fBlocks.getCount() * numItemsPerBlock; }
+
 private:
     
 

@@ -253,7 +253,7 @@ private:
 
 
 
-    SkBitmap::Config getBitmapConfig(jpeg_decompress_struct*);
+    SkColorType getBitmapColorType(jpeg_decompress_struct*);
 
     typedef SkImageDecoder INHERITED;
 };
@@ -400,7 +400,7 @@ static void set_dct_method(const SkImageDecoder& decoder, jpeg_decompress_struct
 #endif
 }
 
-SkBitmap::Config SkJPEGImageDecoder::getBitmapConfig(jpeg_decompress_struct* cinfo) {
+SkColorType SkJPEGImageDecoder::getBitmapColorType(jpeg_decompress_struct* cinfo) {
     SkASSERT(cinfo != NULL);
 
     SrcDepth srcDepth = k32Bit_SrcDepth;
@@ -408,26 +408,26 @@ SkBitmap::Config SkJPEGImageDecoder::getBitmapConfig(jpeg_decompress_struct* cin
         srcDepth = k8BitGray_SrcDepth;
     }
 
-    SkBitmap::Config config = this->getPrefConfig(srcDepth,  false);
-    switch (config) {
-        case SkBitmap::kA8_Config:
+    SkColorType colorType = this->getPrefColorType(srcDepth,  false);
+    switch (colorType) {
+        case kAlpha_8_SkColorType:
             
             
             
             if (cinfo->jpeg_color_space != JCS_GRAYSCALE) {
-                config = SkBitmap::kARGB_8888_Config;
+                colorType = kN32_SkColorType;
             }
             break;
-        case SkBitmap::kARGB_8888_Config:
+        case kN32_SkColorType:
             
-        case SkBitmap::kARGB_4444_Config:
+        case kARGB_4444_SkColorType:
             
-        case SkBitmap::kRGB_565_Config:
+        case kRGB_565_SkColorType:
             
             break;
         default:
             
-            config = SkBitmap::kARGB_8888_Config;
+            colorType = kN32_SkColorType;
             break;
     }
 
@@ -441,7 +441,7 @@ SkBitmap::Config SkJPEGImageDecoder::getBitmapConfig(jpeg_decompress_struct* cin
             cinfo->out_color_space = JCS_CMYK;
             break;
         case JCS_GRAYSCALE:
-            if (SkBitmap::kA8_Config == config) {
+            if (kAlpha_8_SkColorType == colorType) {
                 cinfo->out_color_space = JCS_GRAYSCALE;
                 break;
             }
@@ -451,27 +451,27 @@ SkBitmap::Config SkJPEGImageDecoder::getBitmapConfig(jpeg_decompress_struct* cin
             cinfo->out_color_space = JCS_RGB;
             break;
     }
-    return config;
+    return colorType;
 }
 
-#ifdef ANDROID_RGB
 
 
 
 
 static void adjust_out_color_space_and_dither(jpeg_decompress_struct* cinfo,
-                                              SkBitmap::Config config,
+                                              SkColorType colorType,
                                               const SkImageDecoder& decoder) {
     SkASSERT(cinfo != NULL);
+#ifdef ANDROID_RGB
     cinfo->dither_mode = JDITHER_NONE;
     if (JCS_CMYK == cinfo->out_color_space) {
         return;
     }
-    switch(config) {
-        case SkBitmap::kARGB_8888_Config:
+    switch (colorType) {
+        case kN32_SkColorType:
             cinfo->out_color_space = JCS_RGBA_8888;
             break;
-        case SkBitmap::kRGB_565_Config:
+        case kRGB_565_SkColorType:
             cinfo->out_color_space = JCS_RGB_565;
             if (decoder.getDitherImage()) {
                 cinfo->dither_mode = JDITHER_ORDERED;
@@ -480,8 +480,8 @@ static void adjust_out_color_space_and_dither(jpeg_decompress_struct* cinfo,
         default:
             break;
     }
-}
 #endif
+}
 
 
 
@@ -569,20 +569,19 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
     turn_off_visual_optimizations(&cinfo);
 
-    const SkBitmap::Config config = this->getBitmapConfig(&cinfo);
+    const SkColorType colorType = this->getBitmapColorType(&cinfo);
+    const SkAlphaType alphaType = kAlpha_8_SkColorType == colorType ?
+                                      kPremul_SkAlphaType : kOpaque_SkAlphaType;
 
-#ifdef ANDROID_RGB
-    adjust_out_color_space_and_dither(&cinfo, config, *this);
-#endif
+    adjust_out_color_space_and_dither(&cinfo, colorType, *this);
 
     if (1 == sampleSize && SkImageDecoder::kDecodeBounds_Mode == mode) {
         
         
         
         
-        return bm->setConfig(config, cinfo.image_width, cinfo.image_height, 0,
-                             SkBitmap::kA8_Config == config ?
-                                kPremul_SkAlphaType : kOpaque_SkAlphaType);
+        return bm->setInfo(SkImageInfo::Make(cinfo.image_width, cinfo.image_height,
+                                             colorType, alphaType));
     }
 
     
@@ -606,27 +605,28 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
             
             
             
-            return bm->setConfig(config, smpl.scaledWidth(), smpl.scaledHeight(),
-                                 0, SkBitmap::kA8_Config == config ?
-                                    kPremul_SkAlphaType : kOpaque_SkAlphaType);
+            return bm->setInfo(SkImageInfo::Make(smpl.scaledWidth(), smpl.scaledHeight(),
+                                                 colorType, alphaType));
         } else {
             return return_false(cinfo, *bm, "start_decompress");
         }
     }
     sampleSize = recompute_sampleSize(sampleSize, cinfo);
 
+#ifdef SK_SUPPORT_LEGACY_IMAGEDECODER_CHOOSER
     
-    if (!this->chooseFromOneChoice(config, cinfo.output_width, cinfo.output_height)) {
+    if (!this->chooseFromOneChoice(colorType, cinfo.output_width, cinfo.output_height)) {
         return return_false(cinfo, *bm, "chooseFromOneChoice");
     }
+#endif
 
     SkScaledBitmapSampler sampler(cinfo.output_width, cinfo.output_height, sampleSize);
     
     
     
     
-    bm->setConfig(config, sampler.scaledWidth(), sampler.scaledHeight(), 0,
-                  SkBitmap::kA8_Config != config ? kOpaque_SkAlphaType : kPremul_SkAlphaType);
+    bm->setInfo(SkImageInfo::Make(sampler.scaledWidth(), sampler.scaledHeight(),
+                                  colorType, alphaType));
     if (SkImageDecoder::kDecodeBounds_Mode == mode) {
         return true;
     }
@@ -641,10 +641,8 @@ bool SkJPEGImageDecoder::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
 
 
     if (sampleSize == 1 &&
-        ((config == SkBitmap::kARGB_8888_Config &&
-                cinfo.out_color_space == JCS_RGBA_8888) ||
-        (config == SkBitmap::kRGB_565_Config &&
-                cinfo.out_color_space == JCS_RGB_565)))
+        ((kN32_SkColorType == colorType && cinfo.out_color_space == JCS_RGBA_8888) ||
+         (kRGB_565_SkColorType == colorType && cinfo.out_color_space == JCS_RGB_565)))
     {
         JSAMPLE* rowptr = (JSAMPLE*)bm->getPixels();
         INT32 const bpr =  bm->rowBytes();
@@ -764,7 +762,7 @@ bool SkJPEGImageDecoder::onBuildTileIndex(SkStreamRewindable* stream, int *width
     
     
     
-    (void) this->getBitmapConfig(cinfo);
+    (void) this->getBitmapColorType(cinfo);
 
     turn_off_visual_optimizations(cinfo);
 
@@ -815,10 +813,8 @@ bool SkJPEGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
 
     set_dct_method(*this, cinfo);
 
-    const SkBitmap::Config config = this->getBitmapConfig(cinfo);
-#ifdef ANDROID_RGB
-    adjust_out_color_space_and_dither(cinfo, config, *this);
-#endif
+    const SkColorType colorType = this->getBitmapColorType(cinfo);
+    adjust_out_color_space_and_dither(cinfo, colorType, *this);
 
     int startX = rect.fLeft;
     int startY = rect.fTop;
@@ -833,14 +829,13 @@ bool SkJPEGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
     SkScaledBitmapSampler sampler(width, height, skiaSampleSize);
 
     SkBitmap bitmap;
-    bitmap.setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
     
     
     
     
-    bitmap.setConfig(config, sampler.scaledWidth(), sampler.scaledHeight(), 0,
-                     config == SkBitmap::kA8_Config ? kPremul_SkAlphaType :
-                     kOpaque_SkAlphaType);
+    bitmap.setInfo(SkImageInfo::Make(sampler.scaledWidth(), sampler.scaledHeight(), colorType,
+                                     kAlpha_8_SkColorType == colorType ?
+                                         kPremul_SkAlphaType : kOpaque_SkAlphaType));
 
     
     
@@ -869,10 +864,8 @@ bool SkJPEGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
 
 
     if (skiaSampleSize == 1 &&
-        ((config == SkBitmap::kARGB_8888_Config &&
-                cinfo->out_color_space == JCS_RGBA_8888) ||
-        (config == SkBitmap::kRGB_565_Config &&
-                cinfo->out_color_space == JCS_RGB_565)))
+        ((kN32_SkColorType == colorType && cinfo->out_color_space == JCS_RGBA_8888) ||
+         (kRGB_565_SkColorType == colorType && cinfo->out_color_space == JCS_RGB_565)))
     {
         JSAMPLE* rowptr = (JSAMPLE*)bitmap.getPixels();
         INT32 const bpr = bitmap.rowBytes();
@@ -1116,14 +1109,14 @@ static void Write_Index_YUV(uint8_t* SK_RESTRICT dst,
 }
 
 static WriteScanline ChooseWriter(const SkBitmap& bm) {
-    switch (bm.config()) {
-        case SkBitmap::kARGB_8888_Config:
+    switch (bm.colorType()) {
+        case kN32_SkColorType:
             return Write_32_YUV;
-        case SkBitmap::kRGB_565_Config:
+        case kRGB_565_SkColorType:
             return Write_16_YUV;
-        case SkBitmap::kARGB_4444_Config:
+        case kARGB_4444_SkColorType:
             return Write_4444_YUV;
-        case SkBitmap::kIndex8_Config:
+        case kIndex_8_SkColorType:
             return Write_Index_YUV;
         default:
             return NULL;

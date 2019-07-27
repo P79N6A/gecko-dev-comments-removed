@@ -25,12 +25,6 @@ static inline bool SkIsValidMode(SkXfermode::Mode mode) {
 
 
 
-static inline bool SkIsValidConfig(SkBitmap::Config config) {
-    return (config >= 0) && (config <= static_cast<int>(SkBitmap::kConfigCount));
-}
-
-
-
 static inline bool SkIsValidIRect(const SkIRect& rect) {
     return rect.width() >= 0 && rect.height() >= 0;
 }

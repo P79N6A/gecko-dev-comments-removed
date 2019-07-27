@@ -12,10 +12,10 @@
 #include "GrColor.h"
 #include "GrPaint.h"
 #include "GrPathRendererChain.h"
-#include "GrPoint.h"
 #include "GrRenderTarget.h"
 #include "GrTexture.h"
 #include "SkMatrix.h"
+#include "SkPathEffect.h"
 #include "SkTypes.h"
 
 class GrAARectRenderer;
@@ -25,9 +25,11 @@ class GrDrawTarget;
 class GrEffect;
 class GrFontCache;
 class GrGpu;
+class GrGpuTraceMarker;
 class GrIndexBuffer;
 class GrIndexBufferAllocPool;
 class GrInOrderDrawBuffer;
+class GrLayerCache;
 class GrOvalRenderer;
 class GrPath;
 class GrPathRenderer;
@@ -35,9 +37,11 @@ class GrResourceEntry;
 class GrResourceCache;
 class GrStencilBuffer;
 class GrTestTarget;
+class GrTextContext;
 class GrTextureParams;
 class GrVertexBuffer;
 class GrVertexBufferAllocPool;
+class GrStrokeInfo;
 class GrSoftwarePathRenderer;
 class SkStrokeRec;
 
@@ -101,6 +105,62 @@ public:
     void contextDestroyed();
 
     
+    
+
+    
+
+
+
+
+
+
+
+    void getResourceCacheLimits(int* maxResources, size_t* maxResourceBytes) const;
+    SK_ATTR_DEPRECATED("This function has been renamed to getResourceCacheLimits().")
+    void getTextureCacheLimits(int* maxTextures, size_t* maxTextureBytes) const {
+        this->getResourceCacheLimits(maxTextures, maxTextureBytes);
+    }
+
+    
+
+
+
+
+
+
+
+    void getResourceCacheUsage(int* resourceCount, size_t* resourceBytes) const;
+
+    SK_ATTR_DEPRECATED("Use getResourceCacheUsage().")
+    size_t getGpuTextureCacheBytes() const {
+        size_t bytes;
+        this->getResourceCacheUsage(NULL, &bytes);
+        return bytes;
+    }
+
+    SK_ATTR_DEPRECATED("Use getResourceCacheUsage().")
+    int getGpuTextureCacheResourceCount() const {
+        int count;
+        this->getResourceCacheUsage(&count, NULL);
+        return count;
+    }
+
+    
+
+
+
+
+
+
+
+
+    void setResourceCacheLimits(int maxResources, size_t maxResourceBytes);
+    SK_ATTR_DEPRECATED("This function has been renamed to setResourceCacheLimits().")
+    void setTextureCacheLimits(int maxTextures, size_t maxTextureBytes) {
+        this->setResourceCacheLimits(maxTextures, maxTextureBytes);
+    }
+
+    
 
 
 
@@ -109,12 +169,46 @@ public:
     
 
 
-    size_t getGpuTextureCacheBytes() const;
+
+
+
+
+    void purgeCache();
+
+    
+
+
+
+
+    void purgeAllUnlockedResources();
+
+    
+
+
+    void addResourceToCache(const GrResourceKey&, GrGpuResource*);
+
+    
+
+
+
+
+    GrGpuResource* findAndRefCachedResource(const GrResourceKey&);
+
+    
+
+
+
+
+
+    GrTextContext* createTextContext(GrRenderTarget*,
+                                     const SkDeviceProperties&,
+                                     bool enableDistanceFieldFonts);
 
     
     
 
     
+
 
 
 
@@ -132,10 +226,9 @@ public:
     GrTexture* createTexture(const GrTextureParams* params,
                              const GrTextureDesc& desc,
                              const GrCacheID& cacheID,
-                             void* srcData,
+                             const void* srcData,
                              size_t rowBytes,
                              GrResourceKey* cacheKey = NULL);
-
     
 
 
@@ -204,22 +297,6 @@ public:
 
 
 
-
-
-
-    void purgeCache();
-
-    
-
-
-
-
-    void purgeAllUnlockedResources();
-
-    
-
-
-
     GrTexture* createUncachedTexture(const GrTextureDesc& desc,
                                      void* srcData,
                                      size_t rowBytes);
@@ -233,27 +310,6 @@ public:
     bool supportsIndex8PixelConfig(const GrTextureParams*,
                                    int width,
                                    int height) const;
-
-    
-
-
-
-
-
-
-
-    void getTextureCacheLimits(int* maxTextures, size_t* maxTextureBytes) const;
-
-    
-
-
-
-
-
-
-
-
-    void setTextureCacheLimits(int maxTextures, size_t maxTextureBytes);
 
     
 
@@ -286,8 +342,6 @@ public:
 
     const GrRenderTarget* getRenderTarget() const { return fRenderTarget.get(); }
     GrRenderTarget* getRenderTarget() { return fRenderTarget.get(); }
-
-    GrAARectRenderer* getAARectRenderer() { return fAARectRenderer; }
 
     
 
@@ -420,9 +474,11 @@ public:
 
 
 
+
+
     void drawRect(const GrPaint& paint,
                   const SkRect&,
-                  const SkStrokeRec* stroke = NULL,
+                  const GrStrokeInfo* strokeInfo = NULL,
                   const SkMatrix* matrix = NULL);
 
     
@@ -451,9 +507,8 @@ public:
 
 
 
-    void drawRRect(const GrPaint& paint,
-                   const SkRRect& rrect,
-                   const SkStrokeRec& stroke);
+
+    void drawRRect(const GrPaint& paint, const SkRRect& rrect, const GrStrokeInfo& strokeInfo);
 
     
 
@@ -462,7 +517,20 @@ public:
 
 
 
-    void drawPath(const GrPaint& paint, const SkPath& path, const SkStrokeRec& stroke);
+
+
+    void drawDRRect(const GrPaint& paint, const SkRRect& outer, const SkRRect& inner);
+
+
+    
+
+
+
+
+
+
+
+    void drawPath(const GrPaint& paint, const SkPath& path, const GrStrokeInfo& strokeInfo);
 
     
 
@@ -483,8 +551,8 @@ public:
     void drawVertices(const GrPaint& paint,
                       GrPrimitiveType primitiveType,
                       int vertexCount,
-                      const GrPoint positions[],
-                      const GrPoint texs[],
+                      const SkPoint positions[],
+                      const SkPoint texs[],
                       const GrColor colors[],
                       const uint16_t indices[],
                       int indexCount);
@@ -496,9 +564,10 @@ public:
 
 
 
+
     void drawOval(const GrPaint& paint,
                   const SkRect& oval,
-                  const SkStrokeRec& stroke);
+                  const GrStrokeInfo& strokeInfo);
 
     
     
@@ -625,7 +694,6 @@ public:
                             size_t rowBytes,
                             uint32_t pixelOpsFlags = 0);
 
-
     
 
 
@@ -648,7 +716,13 @@ public:
 
 
 
-    void resolveRenderTarget(GrRenderTarget* target);
+    void resolveRenderTarget(GrRenderTarget*);
+
+    
+
+
+
+    void discardRenderTarget(GrRenderTarget*);
 
 #ifdef SK_DEVELOPER
     void dumpFontCache() const;
@@ -849,11 +923,21 @@ public:
     GrGpu* getGpu() { return fGpu; }
     const GrGpu* getGpu() const { return fGpu; }
     GrFontCache* getFontCache() { return fFontCache; }
+    GrLayerCache* getLayerCache() { return fLayerCache.get(); }
     GrDrawTarget* getTextTarget();
     const GrIndexBuffer* getQuadIndexBuffer() const;
+    GrAARectRenderer* getAARectRenderer() { return fAARectRenderer; }
 
     
     void getTestTarget(GrTestTarget*);
+
+    
+    bool isGpuTracingEnabled() const { return fGpuTracingEnabled; }
+    void enableGpuTracing() { fGpuTracingEnabled = true; }
+    void disableGpuTracing() { fGpuTracingEnabled = false; }
+
+    void addGpuTraceMarker(const GrGpuTraceMarker* marker);
+    void removeGpuTraceMarker(const GrGpuTraceMarker* marker);
 
     
 
@@ -869,7 +953,6 @@ public:
                     bool allowSW,
                     GrPathRendererChain::DrawType drawType = GrPathRendererChain::kColor_DrawType,
                     GrPathRendererChain::StencilSupport* stencilSupport = NULL);
-
 
 #if GR_CACHE_STATS
     void printCacheStats() const;
@@ -889,8 +972,9 @@ private:
     const GrClipData*               fClip;  
     GrDrawState*                    fDrawState;
 
-    GrResourceCache*                fTextureCache;
+    GrResourceCache*                fResourceCache;
     GrFontCache*                    fFontCache;
+    SkAutoTDelete<GrLayerCache>     fLayerCache;
 
     GrPathRendererChain*            fPathRendererChain;
     GrSoftwarePathRenderer*         fSoftwarePathRenderer;
@@ -918,6 +1002,8 @@ private:
 
     int                             fMaxTextureSizeOverride;
 
+    bool                            fGpuTracingEnabled;
+
     GrContext(); 
     bool init(GrBackend, GrBackendContext);
 
@@ -930,11 +1016,11 @@ private:
     GrDrawTarget* prepareToDraw(const GrPaint*, BufferedDraw, AutoRestoreEffects*, AutoCheckFlush*);
 
     void internalDrawPath(GrDrawTarget* target, bool useAA, const SkPath& path,
-                          const SkStrokeRec& stroke);
+                          const GrStrokeInfo& stroke);
 
     GrTexture* createResizedTexture(const GrTextureDesc& desc,
                                     const GrCacheID& cacheID,
-                                    void* srcData,
+                                    const void* srcData,
                                     size_t rowBytes,
                                     bool filter);
 
@@ -942,6 +1028,7 @@ private:
     
     friend class GrTexture;
     friend class GrStencilAndCoverPathRenderer;
+    friend class GrStencilAndCoverTextContext;
 
     
     
@@ -952,12 +1039,12 @@ private:
 
 
 
-    const GrEffectRef* createPMToUPMEffect(GrTexture* texture,
-                                           bool swapRAndB,
-                                           const SkMatrix& matrix);
-    const GrEffectRef* createUPMToPMEffect(GrTexture* texture,
-                                           bool swapRAndB,
-                                           const SkMatrix& matrix);
+    const GrEffect* createPMToUPMEffect(GrTexture* texture,
+                                        bool swapRAndB,
+                                        const SkMatrix& matrix);
+    const GrEffect* createUPMToPMEffect(GrTexture* texture,
+                                        bool swapRAndB,
+                                        const SkMatrix& matrix);
 
     
 
@@ -1031,8 +1118,8 @@ public:
         
         
         
-        SkASSERT(texture->getRefCnt() > 1);
-        texture->setFlag((GrTextureFlags) GrTexture::kReturnToCache_FlagBit);
+        SkASSERT(!texture->unique());
+        texture->impl()->setFlag((GrTextureFlags) GrTextureImpl::kReturnToCache_FlagBit);
         texture->unref();
         SkASSERT(NULL != texture->getCacheEntry());
 

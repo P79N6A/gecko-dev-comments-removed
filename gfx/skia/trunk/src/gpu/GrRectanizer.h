@@ -8,14 +8,9 @@
 #ifndef GrRectanizer_DEFINED
 #define GrRectanizer_DEFINED
 
-#include "GrPoint.h"
+#include "GrTypes.h"
 
-class GrRectanizerPurgeListener {
-public:
-    virtual ~GrRectanizerPurgeListener() {}
-
-    virtual void notifyPurgeStrip(void*, int yCoord) = 0;
-};
+struct SkIPoint16;
 
 class GrRectanizer {
 public:
@@ -31,14 +26,10 @@ public:
     int width() const { return fWidth; }
     int height() const { return fHeight; }
 
-    virtual bool addRect(int width, int height, GrIPoint16* loc) = 0;
+    
+    
+    virtual bool addRect(int width, int height, SkIPoint16* loc) = 0;
     virtual float percentFull() const = 0;
-
-    
-    
-    
-    virtual int stripToPurge(int height) const = 0;
-    virtual void purgeStripAtY(int yCoord) = 0;
 
     
 

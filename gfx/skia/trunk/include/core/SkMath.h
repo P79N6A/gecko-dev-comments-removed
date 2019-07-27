@@ -17,29 +17,6 @@
 
 
 
-int32_t SkMulDiv(int32_t numer1, int32_t numer2, int32_t denom);
-
-
-
-
-
-
-int32_t SkDivBits(int32_t numer, int32_t denom, int shift);
-
-
-
-
-int32_t SkSqrtBits(int32_t value, int bitBias);
-
-
-
-#define SkSqrt32(n)         SkSqrtBits(n, 15)
-
-
-
-
-
-
 static inline bool sk_64_isS32(int64_t value) {
     return (int32_t)value == value;
 }
@@ -64,6 +41,34 @@ static inline int64_t sk_64_mul(int64_t a, int64_t b) {
 
 
 
+
+
+
+
+static inline int32_t SkMulDiv(int32_t numer1, int32_t numer2, int32_t denom) {
+    SkASSERT(denom);
+
+    int64_t tmp = sk_64_mul(numer1, numer2) / denom;
+    return sk_64_asS32(tmp);
+}
+
+
+
+
+
+
+int32_t SkDivBits(int32_t numer, int32_t denom, int shift);
+
+
+
+
+int32_t SkSqrtBits(int32_t value, int bitBias);
+
+
+
+#define SkSqrt32(n)         SkSqrtBits(n, 15)
+
+
 int SkCLZ_portable(uint32_t);
 
 #ifndef SkCLZ
@@ -79,7 +84,7 @@ int SkCLZ_portable(uint32_t);
                 return 32;
             }
         }
-    #elif defined(SK_CPU_ARM) || defined(__GNUC__) || defined(__clang__)
+    #elif defined(SK_CPU_ARM32) || defined(__GNUC__) || defined(__clang__)
         static inline int SkCLZ(uint32_t mask) {
             
             return mask ? __builtin_clz(mask) : 32;
@@ -204,7 +209,7 @@ static inline U8CPU SkMulDiv255Round(U16CPU a, U16CPU b) {
 
 template <typename In, typename Out>
 inline void SkTDivMod(In numer, In denom, Out* div, Out* mod) {
-#ifdef SK_CPU_ARM
+#ifdef SK_CPU_ARM32
     
     
     
@@ -218,7 +223,7 @@ inline void SkTDivMod(In numer, In denom, Out* div, Out* mod) {
     
     *div = static_cast<Out>(numer/denom);
     *mod = static_cast<Out>(numer%denom);
-#endif  
+#endif
 }
 
 #endif

@@ -60,9 +60,12 @@ public:
 
     static void Unlock(ID*);
 
-    static size_t GetBytesUsed();
-    static size_t GetByteLimit();
-    static size_t SetByteLimit(size_t newLimit);
+    static size_t GetTotalBytesUsed();
+    static size_t GetTotalByteLimit();
+    static size_t SetTotalByteLimit(size_t newLimit);
+
+    static size_t SetSingleAllocationByteLimit(size_t);
+    static size_t GetSingleAllocationByteLimit();
 
     static SkBitmap::Allocator* GetAllocator();
 
@@ -144,15 +147,22 @@ public:
 
     void unlock(ID*);
 
-    size_t getBytesUsed() const { return fBytesUsed; }
-    size_t getByteLimit() const { return fByteLimit; }
+    size_t getTotalBytesUsed() const { return fTotalBytesUsed; }
+    size_t getTotalByteLimit() const { return fTotalByteLimit; }
 
     
 
 
 
 
-    size_t setByteLimit(size_t newLimit);
+    size_t setSingleAllocationByteLimit(size_t maximumAllocationSize);
+    size_t getSingleAllocationByteLimit() const;
+    
+
+
+
+
+    size_t setTotalByteLimit(size_t newLimit);
 
     SkBitmap::Allocator* allocator() const { return fAllocator; };
 
@@ -175,8 +185,9 @@ private:
     
     SkBitmap::Allocator* fAllocator;
 
-    size_t  fBytesUsed;
-    size_t  fByteLimit;
+    size_t  fTotalBytesUsed;
+    size_t  fTotalByteLimit;
+    size_t  fSingleAllocationByteLimit;
     int     fCount;
 
     Rec* findAndLock(uint32_t generationID, SkScalar sx, SkScalar sy,

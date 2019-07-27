@@ -5,12 +5,10 @@
 
 
 
-
-
 #ifndef SkDrawColor_DEFINED
 #define SkDrawColor_DEFINED
 
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkColor.h"
 
 class SkDrawColor : public SkPaintPart {

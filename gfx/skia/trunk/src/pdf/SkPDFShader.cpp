@@ -659,22 +659,20 @@ SkPDFObject* SkPDFShader::GetPDFShader(const SkShader& shader,
 
 
 SkTDArray<SkPDFShader::ShaderCanonicalEntry>& SkPDFShader::CanonicalShaders() {
-    
+    SkPDFShader::CanonicalShadersMutex().assertHeld();
     static SkTDArray<ShaderCanonicalEntry> gCanonicalShaders;
     return gCanonicalShaders;
 }
 
+SK_DECLARE_STATIC_MUTEX(gCanonicalShadersMutex);
 
 SkBaseMutex& SkPDFShader::CanonicalShadersMutex() {
-    
-    
-    SK_DECLARE_STATIC_MUTEX(gCanonicalShadersMutex);
     return gCanonicalShadersMutex;
 }
 
 
 SkPDFObject* SkPDFFunctionShader::RangeObject() {
-    
+    SkPDFShader::CanonicalShadersMutex().assertHeld();
     static SkPDFArray* range = NULL;
     
     

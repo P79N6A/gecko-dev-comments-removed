@@ -10,14 +10,14 @@
 #ifndef GrGeometryBuffer_DEFINED
 #define GrGeometryBuffer_DEFINED
 
-#include "GrResource.h"
+#include "GrGpuResource.h"
 
 class GrGpu;
 
 
 
 
-class GrGeometryBuffer : public GrResource {
+class GrGeometryBuffer : public GrGpuResource {
 public:
     SK_DECLARE_INST_COUNT(GrGeometryBuffer);
 
@@ -47,7 +47,21 @@ public:
 
 
 
-    virtual void* lock() = 0;
+
+
+
+     void* map() { return (fMapPtr = this->onMap()); }
+
+    
+
+
+
+
+     void unmap() {
+         SkASSERT(NULL != fMapPtr);
+         this->onUnmap();
+         fMapPtr = NULL;
+     }
 
     
 
@@ -55,21 +69,14 @@ public:
 
 
 
-    virtual void* lockPtr() const = 0;
+     void* mapPtr() const { return fMapPtr; }
 
     
 
 
 
 
-    virtual void unlock() = 0;
-
-    
-
-
-
-
-    virtual bool isLocked() const = 0;
+     bool isMapped() const { return NULL != fMapPtr; }
 
     
 
@@ -80,24 +87,39 @@ public:
 
 
 
-    virtual bool updateData(const void* src, size_t srcSizeInBytes) = 0;
+
+
+
+
+
+    bool updateData(const void* src, size_t srcSizeInBytes) {
+        SkASSERT(!this->isMapped());
+        SkASSERT(srcSizeInBytes <= fGpuMemorySize);
+        return this->onUpdateData(src, srcSizeInBytes);
+    }
 
     
-    virtual size_t sizeInBytes() const { return fSizeInBytes; }
+    virtual size_t gpuMemorySize() const { return fGpuMemorySize; }
 
 protected:
-    GrGeometryBuffer(GrGpu* gpu, bool isWrapped, size_t sizeInBytes, bool dynamic, bool cpuBacked)
+    GrGeometryBuffer(GrGpu* gpu, bool isWrapped, size_t gpuMemorySize, bool dynamic, bool cpuBacked)
         : INHERITED(gpu, isWrapped)
-        , fSizeInBytes(sizeInBytes)
+        , fMapPtr(NULL)
+        , fGpuMemorySize(gpuMemorySize)
         , fDynamic(dynamic)
         , fCPUBacked(cpuBacked) {}
 
 private:
-    size_t   fSizeInBytes;
+    virtual void* onMap() = 0;
+    virtual void onUnmap() = 0;
+    virtual bool onUpdateData(const void* src, size_t srcSizeInBytes) = 0;
+
+    void*    fMapPtr;
+    size_t   fGpuMemorySize;
     bool     fDynamic;
     bool     fCPUBacked;
 
-    typedef GrResource INHERITED;
+    typedef GrGpuResource INHERITED;
 };
 
 #endif

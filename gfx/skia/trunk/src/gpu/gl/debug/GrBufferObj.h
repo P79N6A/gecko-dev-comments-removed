@@ -34,9 +34,15 @@ public:
         GrAlwaysAssert(!fMapped);
     }
 
-    void setMapped()             { fMapped = true; }
+    void setMapped(GrGLintptr offset, GrGLsizeiptr length) {
+        fMapped = true;
+        fMappedOffset = offset;
+        fMappedLength = length;
+    }
     void resetMapped()           { fMapped = false; }
     bool getMapped() const       { return fMapped; }
+    GrGLintptr getMappedOffset() const { return fMappedOffset; }
+    GrGLsizeiptr getMappedLength() const { return fMappedLength; }
 
     void setBound()              { fBound = true; }
     void resetBound()            { fBound = false; }
@@ -56,6 +62,8 @@ private:
 
     GrGLchar*    fDataPtr;
     bool         fMapped;       
+    GrGLintptr   fMappedOffset; 
+    GrGLsizeiptr fMappedLength; 
     bool         fBound;        
     GrGLsizeiptr fSize;         
     GrGLint      fUsage;        

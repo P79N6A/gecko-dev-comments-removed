@@ -68,6 +68,10 @@ static inline bool SkAlphaTypeIsValid(unsigned value) {
 
 
 
+
+
+
+
 enum SkColorType {
     kUnknown_SkColorType,
     kAlpha_8_SkColorType,
@@ -80,11 +84,15 @@ enum SkColorType {
     kLastEnum_SkColorType = kIndex_8_SkColorType,
 
 #if SK_PMCOLOR_BYTE_ORDER(B,G,R,A)
-    kPMColor_SkColorType = kBGRA_8888_SkColorType
+    kN32_SkColorType = kBGRA_8888_SkColorType,
 #elif SK_PMCOLOR_BYTE_ORDER(R,G,B,A)
-    kPMColor_SkColorType = kRGBA_8888_SkColorType
+    kN32_SkColorType = kRGBA_8888_SkColorType,
 #else
 #error "SK_*32_SHFIT values must correspond to BGRA or RGBA byte order"
+#endif
+
+#ifdef SK_SUPPORT_LEGACY_N32_NAME
+    kPMColor_SkColorType = kN32_SkColorType
 #endif
 };
 
@@ -118,6 +126,15 @@ static inline bool SkColorTypeIsValid(unsigned value) {
 
 
 
+
+bool SkColorTypeValidateAlphaType(SkColorType colorType, SkAlphaType alphaType,
+                                  SkAlphaType* canonical = NULL);
+
+
+
+
+
+
 struct SkImageInfo {
     int         fWidth;
     int         fHeight;
@@ -136,7 +153,7 @@ struct SkImageInfo {
 
     static SkImageInfo MakeN32(int width, int height, SkAlphaType at) {
         SkImageInfo info = {
-            width, height, kPMColor_SkColorType, at
+            width, height, kN32_SkColorType, at
         };
         return info;
     }
@@ -146,7 +163,7 @@ struct SkImageInfo {
 
     static SkImageInfo MakeN32Premul(int width, int height) {
         SkImageInfo info = {
-            width, height, kPMColor_SkColorType, kPremul_SkAlphaType
+            width, height, kN32_SkColorType, kPremul_SkAlphaType
         };
         return info;
     }
@@ -172,6 +189,13 @@ struct SkImageInfo {
         return info;
     }
 
+    static SkImageInfo MakeUnknown() {
+        SkImageInfo info = {
+            0, 0, kUnknown_SkColorType, kIgnore_SkAlphaType
+        };
+        return info;
+    }
+
     int width() const { return fWidth; }
     int height() const { return fHeight; }
     SkColorType colorType() const { return fColorType; }
@@ -184,6 +208,14 @@ struct SkImageInfo {
     }
 
     SkISize dimensions() const { return SkISize::Make(fWidth, fHeight); }
+
+    
+
+
+
+    SkImageInfo makeWH(int newWidth, int newHeight) const {
+        return SkImageInfo::Make(newWidth, newHeight, fColorType, fAlphaType);
+    }
 
     int bytesPerPixel() const {
         return SkColorTypeBytesPerPixel(fColorType);

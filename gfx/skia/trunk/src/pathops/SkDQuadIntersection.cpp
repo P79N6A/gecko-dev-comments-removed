@@ -4,7 +4,6 @@
 
 
 
-
 #include "SkDQuadImplicit.h"
 #include "SkIntersections.h"
 #include "SkPathOpsLine.h"
@@ -159,10 +158,13 @@ static bool is_linear_inner(const SkDQuad& q1, double t1s, double t1e, const SkD
         int roots = rootTs.intersect(q2, *testLines[index]);
         for (int idx2 = 0; idx2 < roots; ++idx2) {
             double t = rootTs[0][idx2];
-#ifdef SK_DEBUG
+#if 0 
+
+
+
             SkDPoint qPt = q2.ptAtT(t);
             SkDPoint lPt = testLines[index]->ptAtT(rootTs[1][idx2]);
-            SkASSERT(qPt.approximatelyPEqual(lPt));
+            SkASSERT(qPt.approximatelyDEqual(lPt));
 #endif
             if (approximately_negative(t - t2s) || approximately_positive(t - t2e)) {
                 continue;
@@ -305,10 +307,10 @@ static bool binary_search(const SkDQuad& quad1, const SkDQuad& quad2, double* t1
     #endif
             return true;
         }
-        if (calcMask & (1 << 0)) t1[0] = quad1.ptAtT(*t1Seed - tStep);
-        if (calcMask & (1 << 2)) t1[2] = quad1.ptAtT(*t1Seed + tStep);
-        if (calcMask & (1 << 3)) t2[0] = quad2.ptAtT(*t2Seed - tStep);
-        if (calcMask & (1 << 5)) t2[2] = quad2.ptAtT(*t2Seed + tStep);
+        if (calcMask & (1 << 0)) t1[0] = quad1.ptAtT(SkTMax(0., *t1Seed - tStep));
+        if (calcMask & (1 << 2)) t1[2] = quad1.ptAtT(SkTMin(1., *t1Seed + tStep));
+        if (calcMask & (1 << 3)) t2[0] = quad2.ptAtT(SkTMax(0., *t2Seed - tStep));
+        if (calcMask & (1 << 5)) t2[2] = quad2.ptAtT(SkTMin(1., *t2Seed + tStep));
         double dist[3][3];
         
         
@@ -383,7 +385,7 @@ static void lookNearEnd(const SkDQuad& q1, const SkDQuad& q2, int testT,
     impTs.intersectRay(q1, tmpLine);
     for (int index = 0; index < impTs.used(); ++index) {
         SkDPoint realPt = impTs.pt(index);
-        if (!tmpLine[0].approximatelyEqual(realPt)) {
+        if (!tmpLine[0].approximatelyPEqual(realPt)) {
             continue;
         }
         if (swap) {
@@ -420,7 +422,7 @@ int SkIntersections::intersect(const SkDQuad& q1, const SkDQuad& q2) {
     swapped.setMax(fMax);
     if (is_linear(q2, q1, &swapped)) {
         swapped.swapPts();
-        set(swapped);
+        *this = swapped;
         return fUsed;
     }
     SkIntersections copyI(*this);

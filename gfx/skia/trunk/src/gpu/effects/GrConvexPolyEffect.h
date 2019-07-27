@@ -37,12 +37,11 @@ public:
 
 
 
-    static GrEffectRef* Create(GrEffectEdgeType edgeType, int n, const SkScalar edges[]) {
+    static GrEffect* Create(GrEffectEdgeType edgeType, int n, const SkScalar edges[]) {
         if (n <= 0 || n > kMaxEdges || kHairlineAA_GrEffectEdgeType == edgeType) {
             return NULL;
         }
-        return CreateEffectRef(AutoEffectUnref(SkNEW_ARGS(GrConvexPolyEffect,
-                                                          (edgeType, n, edges))));
+        return SkNEW_ARGS(GrConvexPolyEffect, (edgeType, n, edges));
     }
 
     
@@ -50,12 +49,12 @@ public:
 
 
 
-    static GrEffectRef* Create(GrEffectEdgeType, const SkPath&, const SkVector* offset = NULL);
+    static GrEffect* Create(GrEffectEdgeType, const SkPath&, const SkVector* offset = NULL);
 
     
 
 
-    static GrEffectRef* Create(GrEffectEdgeType, const SkRect&);
+    static GrEffect* Create(GrEffectEdgeType, const SkRect&);
 
     virtual ~GrConvexPolyEffect();
 

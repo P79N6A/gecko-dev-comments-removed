@@ -244,8 +244,12 @@ public:
         kXOR_Op,        
         
         kReverseDifference_Op,
-        kReplace_Op     
+        kReplace_Op,    
+
+        kLastOp = kReplace_Op
     };
+
+    static const int kOpCnt = kLastOp + 1;
 
     
 

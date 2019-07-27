@@ -37,25 +37,23 @@ public:
     
 
 
-    static GrEffectRef* Create(GrTexture* tex, const SkScalar coefficients[16],
-                               const SkRect* domain = NULL) {
+    static GrEffect* Create(GrTexture* tex, const SkScalar coefficients[16],
+                            const SkRect* domain = NULL) {
         if (NULL == domain) {
             static const SkShader::TileMode kTileModes[] = { SkShader::kClamp_TileMode,
                                                              SkShader::kClamp_TileMode };
             return Create(tex, coefficients, MakeDivByTextureWHMatrix(tex), kTileModes);
         } else {
-            AutoEffectUnref effect(SkNEW_ARGS(GrBicubicEffect, (tex, coefficients,
-                                                                MakeDivByTextureWHMatrix(tex),
-                                                                *domain)));
-            return CreateEffectRef(effect);
+            return SkNEW_ARGS(GrBicubicEffect, (tex, coefficients,
+                                                MakeDivByTextureWHMatrix(tex), *domain));
         }
     }
 
     
 
 
-    static GrEffectRef* Create(GrTexture* tex, const SkMatrix& matrix,
-                               SkShader::TileMode tileModes[2]) {
+    static GrEffect* Create(GrTexture* tex, const SkMatrix& matrix,
+                            SkShader::TileMode tileModes[2]) {
         return Create(tex, gMitchellCoefficients, matrix, tileModes);
     }
 
@@ -63,20 +61,27 @@ public:
 
 
 
-    static GrEffectRef* Create(GrTexture* tex, const SkScalar coefficients[16],
-                               const SkMatrix& matrix, const SkShader::TileMode tileModes[2]) {
-        AutoEffectUnref effect(SkNEW_ARGS(GrBicubicEffect, (tex, coefficients, matrix, tileModes)));
-        return CreateEffectRef(effect);
+    static GrEffect* Create(GrTexture* tex, const SkScalar coefficients[16],
+                            const SkMatrix& matrix, const SkShader::TileMode tileModes[2]) {
+        return SkNEW_ARGS(GrBicubicEffect, (tex, coefficients, matrix, tileModes));
     }
 
     
 
 
-    static GrEffectRef* Create(GrTexture* tex, const SkMatrix& matrix, const SkRect& domain) {
-        AutoEffectUnref effect(SkNEW_ARGS(GrBicubicEffect, (tex, gMitchellCoefficients, matrix,
-                                                            domain)));
-        return CreateEffectRef(effect);
+    static GrEffect* Create(GrTexture* tex, const SkMatrix& matrix, const SkRect& domain) {
+        return SkNEW_ARGS(GrBicubicEffect, (tex, gMitchellCoefficients, matrix, domain));
     }
+
+    
+
+
+
+
+
+
+    static bool ShouldUseBicubic(const SkMatrix& localCoordsToDevice,
+                                 GrTextureParams::FilterMode* filterMode);
 
 private:
     GrBicubicEffect(GrTexture*, const SkScalar coefficients[16],

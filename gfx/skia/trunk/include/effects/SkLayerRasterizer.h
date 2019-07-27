@@ -41,28 +41,33 @@ public:
 
 
 
+
+
+
         SkLayerRasterizer* detachRasterizer();
+
+        
+
+
+
+
+
+
+
+
+
+
+
+        SkLayerRasterizer* snapshotRasterizer() const;
 
     private:
         SkDeque* fLayers;
     };
 
-#ifdef SK_SUPPORT_LEGACY_LAYERRASTERIZER_API
-    void addLayer(const SkPaint& paint) {
-        this->addLayer(paint, 0, 0);
-    }
-
-    
-
-
-
-
-    void addLayer(const SkPaint& paint, SkScalar dx, SkScalar dy);
-#endif
-
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLayerRasterizer)
 
 protected:
+    SkLayerRasterizer();
     SkLayerRasterizer(SkDeque* layers);
     SkLayerRasterizer(SkReadBuffer&);
     virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
@@ -72,19 +77,12 @@ protected:
                              const SkIRect* clipBounds,
                              SkMask* mask, SkMask::CreateMode mode) const;
 
-#ifdef SK_SUPPORT_LEGACY_LAYERRASTERIZER_API
-public:
-#endif
-    SkLayerRasterizer();
-
 private:
-#ifdef SK_SUPPORT_LEGACY_LAYERRASTERIZER_API
-    SkDeque* fLayers;
-#else
     const SkDeque* const fLayers;
-#endif
 
     static SkDeque* ReadLayers(SkReadBuffer& buffer);
+
+    friend class LayerRasterizerTester;
 
     typedef SkRasterizer INHERITED;
 };

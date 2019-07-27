@@ -160,6 +160,10 @@ public:
         return SkToBool(fRec.fFlags & kSubpixelPositioning_Flag);
     }
 
+    bool isVertical() const {
+        return SkToBool(fRec.fFlags & kVertical_Flag);
+    }
+
     
     void setBaseGlyphCount(unsigned baseGlyphCount) {
         fBaseGlyphCount = baseGlyphCount;
@@ -184,6 +188,17 @@ public:
     void        getPath(const SkGlyph&, SkPath*);
     void        getFontMetrics(SkPaint::FontMetrics*);
 
+    
+
+    static size_t GetGammaLUTSize(SkScalar contrast, SkScalar paintGamma, SkScalar deviceGamma,
+                                  int* width, int* height);
+
+    
+
+
+    static void   GetGammaLUTData(SkScalar contrast, SkScalar paintGamma, SkScalar deviceGamma,
+                                  void* data);
+
 #ifdef SK_BUILD_FOR_ANDROID
     unsigned getBaseGlyphCount(SkUnichar charCode);
 
@@ -192,8 +207,8 @@ public:
     SkFontID findTypefaceIdForChar(SkUnichar uni);
 #endif
 
-    static inline void MakeRec(const SkPaint&, const SkDeviceProperties* deviceProperties,
-                               const SkMatrix*, Rec* rec);
+    static void MakeRec(const SkPaint&, const SkDeviceProperties* deviceProperties,
+                        const SkMatrix*, Rec* rec);
     static inline void PostMakeRec(const SkPaint&, Rec*);
 
     static SkMaskGamma::PreBlend GetMaskPreBlend(const Rec& rec);
@@ -235,10 +250,7 @@ protected:
     virtual void generatePath(const SkGlyph& glyph, SkPath* path) = 0;
 
     
-
-
-    virtual void generateFontMetrics(SkPaint::FontMetrics* mX,
-                                     SkPaint::FontMetrics* mY) = 0;
+    virtual void generateFontMetrics(SkPaint::FontMetrics*) = 0;
 
     
     virtual unsigned generateGlyphCount() = 0;

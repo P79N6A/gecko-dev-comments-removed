@@ -48,12 +48,6 @@ protected:
     virtual SkData* onRefEncodedData() SK_OVERRIDE {
         return fImageGenerator->refEncodedData();
     }
-    
-    
-    
-    
-    
-    SK_DECLARE_UNFLATTENABLE_OBJECT()
 
 private:
     SkImageGenerator* const fImageGenerator;

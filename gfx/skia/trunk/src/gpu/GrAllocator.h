@@ -13,11 +13,9 @@
 #include "SkTArray.h"
 #include "SkTypes.h"
 
-class GrAllocator : public SkNoncopyable {
+class GrAllocator : SkNoncopyable {
 public:
-    ~GrAllocator() {
-        reset();
-    }
+    ~GrAllocator() { this->reset(); }
 
     
 
@@ -28,31 +26,21 @@ public:
 
 
 
-    GrAllocator(size_t itemSize, int itemsPerBlock, void* initialBlock) :
-            fItemSize(itemSize),
-            fItemsPerBlock(itemsPerBlock),
-            fOwnFirstBlock(NULL == initialBlock),
-            fCount(0) {
+    GrAllocator(size_t itemSize, int itemsPerBlock, void* initialBlock)
+        : fItemSize(itemSize)
+        , fItemsPerBlock(itemsPerBlock)
+        , fOwnFirstBlock(NULL == initialBlock)
+        , fCount(0)
+        , fInsertionIndexInBlock(0) {
         SkASSERT(itemsPerBlock > 0);
         fBlockSize = fItemSize * fItemsPerBlock;
-        fBlocks.push_back() = initialBlock;
-        SkDEBUGCODE(if (!fOwnFirstBlock) {*((char*)initialBlock+fBlockSize-1)='a';} );
-    }
-
-    
-
-
-
-
-
-
-
-    void setInitialBlock(void* initialBlock) {
-        SkASSERT(0 == fCount);
-        SkASSERT(1 == fBlocks.count());
-        SkASSERT(NULL == fBlocks.back());
-        fOwnFirstBlock = false;
-        fBlocks.back() = initialBlock;
+        if (fOwnFirstBlock) {
+            
+            fInsertionIndexInBlock = fItemsPerBlock;
+        } else {
+            fBlocks.push_back() = initialBlock;
+            fInsertionIndexInBlock = 0;
+        }
     }
 
     
@@ -61,18 +49,14 @@ public:
 
 
     void* push_back() {
-        int indexInBlock = fCount % fItemsPerBlock;
         
-        if (0 == indexInBlock) {
-            if (0 != fCount) {
-                fBlocks.push_back() = sk_malloc_throw(fBlockSize);
-            } else if (fOwnFirstBlock) {
-                fBlocks[0] = sk_malloc_throw(fBlockSize);
-            }
+        if (fItemsPerBlock == fInsertionIndexInBlock) {
+            fBlocks.push_back() = sk_malloc_throw(fBlockSize);
+            fInsertionIndexInBlock = 0;
         }
-        void* ret = (char*)fBlocks[fCount/fItemsPerBlock] +
-                    fItemSize * indexInBlock;
+        void* ret = (char*)fBlocks.back() + fItemSize * fInsertionIndexInBlock;
         ++fCount;
+        ++fInsertionIndexInBlock;
         return ret;
     }
 
@@ -80,16 +64,18 @@ public:
 
 
     void reset() {
-        int blockCount = GrMax((unsigned)1,
-                               GrUIDivRoundUp(fCount, fItemsPerBlock));
-        for (int i = 1; i < blockCount; ++i) {
+        int firstBlockToFree = fOwnFirstBlock ? 0 : 1;
+        for (int i = firstBlockToFree; i < fBlocks.count(); ++i) {
             sk_free(fBlocks[i]);
         }
         if (fOwnFirstBlock) {
-            sk_free(fBlocks[0]);
-            fBlocks[0] = NULL;
+            fBlocks.reset();
+            
+            fInsertionIndexInBlock = fItemsPerBlock;
+        } else {
+            fBlocks.pop_back_n(fBlocks.count() - 1);
+            fInsertionIndexInBlock = 0;
         }
-        fBlocks.pop_back_n(blockCount-1);
         fCount = 0;
     }
 
@@ -103,14 +89,15 @@ public:
     
 
 
-    bool empty() const { return fCount == 0; }
+    bool empty() const { return 0 == fCount; }
 
     
 
 
     void* back() {
         SkASSERT(fCount);
-        return (*this)[fCount-1];
+        SkASSERT(fInsertionIndexInBlock > 0);
+        return (char*)(fBlocks.back()) + (fInsertionIndexInBlock - 1) * fItemSize;
     }
 
     
@@ -118,8 +105,54 @@ public:
 
     const void* back() const {
         SkASSERT(fCount);
-        return (*this)[fCount-1];
+        SkASSERT(fInsertionIndexInBlock > 0);
+        return (const char*)(fBlocks.back()) + (fInsertionIndexInBlock - 1) * fItemSize;
     }
+
+
+    
+
+
+
+    class Iter {
+    public:
+        
+
+
+        Iter(const GrAllocator* allocator)
+            : fAllocator(allocator)
+            , fBlockIndex(-1)
+            , fIndexInBlock(allocator->fItemsPerBlock - 1)
+            , fItemIndex(-1) {}
+
+        
+
+
+        bool next() {
+            ++fIndexInBlock;
+            ++fItemIndex;
+            if (fIndexInBlock == fAllocator->fItemsPerBlock) {
+                ++fBlockIndex;
+                fIndexInBlock = 0;
+            }
+            return fItemIndex < fAllocator->fCount;
+        }
+
+        
+
+
+
+        void* get() const {
+            SkASSERT(fItemIndex >= 0 && fItemIndex < fAllocator->fCount);
+            return (char*) fAllocator->fBlocks[fBlockIndex] + fIndexInBlock * fAllocator->fItemSize;
+        }
+
+    private:
+        const GrAllocator* fAllocator;
+        int                fBlockIndex;
+        int                fIndexInBlock;
+        int                fItemIndex;
+    };
 
     
 
@@ -139,21 +172,43 @@ public:
                fItemSize * (i % fItemsPerBlock);
     }
 
+protected:
+    
+
+
+
+
+
+
+
+    void setInitialBlock(void* initialBlock) {
+        SkASSERT(0 == fCount);
+        SkASSERT(0 == fBlocks.count());
+        SkASSERT(fItemsPerBlock == fInsertionIndexInBlock);
+        fOwnFirstBlock = false;
+        fBlocks.push_back() = initialBlock;
+        fInsertionIndexInBlock = 0;
+    }
+
+    
+    template <typename T> friend class GrTAllocator;
+
 private:
     static const int NUM_INIT_BLOCK_PTRS = 8;
 
-    SkSTArray<NUM_INIT_BLOCK_PTRS, void*>   fBlocks;
-    size_t                                  fBlockSize;
-    size_t                                  fItemSize;
-    int                                     fItemsPerBlock;
-    bool                                    fOwnFirstBlock;
-    int                                     fCount;
+    SkSTArray<NUM_INIT_BLOCK_PTRS, void*, true>   fBlocks;
+    size_t                                        fBlockSize;
+    size_t                                        fItemSize;
+    int                                           fItemsPerBlock;
+    bool                                          fOwnFirstBlock;
+    int                                           fCount;
+    int                                           fInsertionIndexInBlock;
 
     typedef SkNoncopyable INHERITED;
 };
 
 template <typename T>
-class GrTAllocator : public SkNoncopyable {
+class GrTAllocator : SkNoncopyable {
 public:
     virtual ~GrTAllocator() { this->reset(); };
 
@@ -220,6 +275,38 @@ public:
     const T& back() const {
         return *(const T*)fAllocator.back();
     }
+
+    
+
+
+
+    class Iter {
+    public:
+        
+
+
+        Iter(const GrTAllocator* allocator) : fImpl(&allocator->fAllocator) {}
+
+        
+
+
+        bool next() { return fImpl.next(); }
+
+        
+
+
+
+        T* get() const { return (T*) fImpl.get(); }
+
+        
+
+
+        T& operator*() const { return *this->get(); }
+        T* operator->() const { return this->get(); }
+
+    private:
+        GrAllocator::Iter fImpl;
+    };
 
     
 

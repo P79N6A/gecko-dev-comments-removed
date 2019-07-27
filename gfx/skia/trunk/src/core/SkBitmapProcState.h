@@ -33,7 +33,6 @@
 #endif
 
 class SkPaint;
-struct SkConvolutionProcs;
 
 struct SkBitmapProcState {
 
@@ -93,12 +92,6 @@ struct SkBitmapProcState {
 
 
 
-    void endContext();
-
-    
-
-
-
 
 
 
@@ -109,12 +102,6 @@ struct SkBitmapProcState {
 
 
     void platformProcs();
-
-    
-
-
-
-    void platformConvolutionProcs(SkConvolutionProcs*);
 
     
 

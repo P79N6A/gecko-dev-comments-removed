@@ -13,8 +13,7 @@
 
 
 
-
-#if !defined(SK_BUILD_FOR_ANDROID_FRAMEWORK) || SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSSE3
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSSE3
 
 #include <tmmintrin.h>  
 
@@ -395,7 +394,7 @@ void S32_generic_D32_filter_DX_SSSE3(const SkBitmapProcState& s,
                                      int count, uint32_t* colors) {
     SkASSERT(count > 0 && colors != NULL);
     SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
-    SkASSERT(s.fBitmap->config() == SkBitmap::kARGB_8888_Config);
+    SkASSERT(kN32_SkColorType == s.fBitmap->colorType());
     if (has_alpha) {
         SkASSERT(s.fAlphaScale < 256);
     } else {
@@ -425,9 +424,10 @@ void S32_generic_D32_filter_DX_SSSE3(const SkBitmapProcState& s,
     const __m128i zero = _mm_setzero_si128();
 
     __m128i alpha = _mm_setzero_si128();
-    if (has_alpha)
+    if (has_alpha) {
         
         alpha = _mm_set1_epi16(s.fAlphaScale);
+    }
 
     if (sub_y == 0) {
         
@@ -586,7 +586,7 @@ void S32_generic_D32_filter_DXDY_SSSE3(const SkBitmapProcState& s,
                                        int count, uint32_t* colors) {
     SkASSERT(count > 0 && colors != NULL);
     SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
-    SkASSERT(s.fBitmap->config() == SkBitmap::kARGB_8888_Config);
+    SkASSERT(kN32_SkColorType == s.fBitmap->colorType());
     if (has_alpha) {
         SkASSERT(s.fAlphaScale < 256);
     } else {

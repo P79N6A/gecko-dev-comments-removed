@@ -5,12 +5,10 @@
 
 
 
-
-
 #ifndef SkDrawDash_DEFINED
 #define SkDrawDash_DEFINED
 
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkIntArray.h"
 
 class SkDash : public SkDrawPathEffect {

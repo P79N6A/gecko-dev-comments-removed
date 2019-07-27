@@ -104,6 +104,33 @@ public:
                           const SkStrokeRec&, const SkMatrix&,
                           const SkRect* cullR) const;
 
+    
+
+
+
+
+
+
+
+
+
+    enum DashType {
+        kNone_DashType, 
+        kDash_DashType, 
+    };
+
+    struct DashInfo {
+        DashInfo() : fIntervals(NULL), fCount(0), fPhase(0) {}
+
+        SkScalar*   fIntervals;         
+                                        
+        int32_t     fCount;             
+        SkScalar    fPhase;             
+                                        
+    };
+
+    virtual DashType asADash(DashInfo* info) const;
+
     SK_DEFINE_FLATTENABLE_TYPE(SkPathEffect)
 
 protected:
@@ -162,13 +189,9 @@ public:
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkComposePathEffect)
 
 protected:
-    SkComposePathEffect(SkReadBuffer& buffer) : INHERITED(buffer) {}
-
-#ifdef SK_SUPPORT_LEGACY_PUBLICEFFECTCONSTRUCTORS
-public:
-#endif
     SkComposePathEffect(SkPathEffect* outer, SkPathEffect* inner)
         : INHERITED(outer, inner) {}
+    explicit SkComposePathEffect(SkReadBuffer& buffer) : INHERITED(buffer) {}
 
 private:
     
@@ -200,13 +223,9 @@ public:
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkSumPathEffect)
 
 protected:
-    SkSumPathEffect(SkReadBuffer& buffer) : INHERITED(buffer) {}
-
-#ifdef SK_SUPPORT_LEGACY_PUBLICEFFECTCONSTRUCTORS
-public:
-#endif
     SkSumPathEffect(SkPathEffect* first, SkPathEffect* second)
         : INHERITED(first, second) {}
+    explicit SkSumPathEffect(SkReadBuffer& buffer) : INHERITED(buffer) {}
 
 private:
     

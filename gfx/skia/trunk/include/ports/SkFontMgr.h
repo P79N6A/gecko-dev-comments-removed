@@ -45,6 +45,9 @@ public:
 
 
 
+
+
+
     SkFontStyleSet* matchFamily(const char familyName[]) const;
 
     
@@ -53,7 +56,22 @@ public:
 
 
 
+
+
+
+
     SkTypeface* matchFamilyStyle(const char familyName[], const SkFontStyle&) const;
+
+    
+
+
+
+
+
+
+
+    SkTypeface* matchFamilyStyleCharacter(const char familyName[], const SkFontStyle&,
+                                          const char bpc47[], uint32_t character) const;
 
     SkTypeface* matchFaceStyle(const SkTypeface*, const SkFontStyle&) const;
 
@@ -98,6 +116,10 @@ protected:
 
     virtual SkTypeface* onMatchFamilyStyle(const char familyName[],
                                            const SkFontStyle&) const = 0;
+    
+    virtual SkTypeface* onMatchFamilyStyleCharacter(const char familyName[], const SkFontStyle&,
+                                                    const char bpc47[], uint32_t character) const
+    { return NULL; }
     virtual SkTypeface* onMatchFaceStyle(const SkTypeface*,
                                          const SkFontStyle&) const = 0;
 
@@ -109,7 +131,7 @@ protected:
                                                unsigned styleBits) const = 0;
 private:
     static SkFontMgr* Factory();    
-    friend void set_up_default(SkFontMgr** singleton);
+    static SkFontMgr* CreateDefault();
 
     typedef SkRefCnt INHERITED;
 };

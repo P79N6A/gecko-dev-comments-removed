@@ -9,28 +9,34 @@
 
 #include "SkPoint.h"
 
+class SkOpAngle;
 class SkOpSegment;
 
 struct SkOpSpan {
-    SkOpSegment* fOther;
     SkPoint fPt;  
     double fT;
     double fOtherT;  
+    SkOpSegment* fOther;
+    SkOpAngle* fFromAngle;  
+    SkOpAngle* fToAngle;  
     int fOtherIndex;  
     int fWindSum;  
     int fOppSum;  
     int fWindValue;  
     int fOppValue;  
+    bool fChased;  
+    bool fCoincident;  
     bool fDone;  
-    bool fUnsortableStart;  
-    bool fUnsortableEnd;  
+    bool fLoop;  
+    bool fMultiple;  
+    bool fNear;  
     bool fSmall;   
     bool fTiny;  
-    bool fLoop;  
 
-#ifdef SK_DEBUG
+    
+    const SkOpSegment* debugToSegment(ptrdiff_t* ) const;
     void dump() const;
-#endif
+    void dumpOne() const;
 };
 
 #endif

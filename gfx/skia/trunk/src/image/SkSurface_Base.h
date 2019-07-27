@@ -50,6 +50,12 @@ public:
 
 
 
+    virtual void onDiscard() {}
+
+    
+
+
+
 
     virtual void onCopyOnWrite(ContentChangeMode) = 0;
 
@@ -67,15 +73,15 @@ private:
     friend class SkCanvas;
     friend class SkSurface;
 
-    inline void installIntoCanvasForDirtyNotification();
-
     typedef SkSurface INHERITED;
 };
 
 SkCanvas* SkSurface_Base::getCachedCanvas() {
     if (NULL == fCachedCanvas) {
         fCachedCanvas = this->onNewCanvas();
-        this->installIntoCanvasForDirtyNotification();
+        if (NULL != fCachedCanvas) {
+            fCachedCanvas->setSurfaceBase(this);
+        }
     }
     return fCachedCanvas;
 }
@@ -83,15 +89,9 @@ SkCanvas* SkSurface_Base::getCachedCanvas() {
 SkImage* SkSurface_Base::getCachedImage() {
     if (NULL == fCachedImage) {
         fCachedImage = this->onNewImageSnapshot();
-        this->installIntoCanvasForDirtyNotification();
+        SkASSERT(!fCachedCanvas || fCachedCanvas->getSurfaceBase() == this);
     }
     return fCachedImage;
-}
-
-void SkSurface_Base::installIntoCanvasForDirtyNotification() {
-    if (NULL != fCachedCanvas) {
-        fCachedCanvas->setSurfaceBase(this);
-    }
 }
 
 #endif

@@ -79,9 +79,47 @@ public:
 
     static void PurgeFontCache();
 
-    static size_t GetImageCacheBytesUsed();
-    static size_t GetImageCacheByteLimit();
-    static size_t SetImageCacheByteLimit(size_t newLimit);
+    
+
+
+
+
+
+
+    static size_t GetImageCacheTotalBytesUsed();
+    
+
+
+
+
+    static size_t GetImageCacheTotalByteLimit();
+    static size_t SetImageCacheTotalByteLimit(size_t newLimit);
+
+    
+    static size_t GetImageCacheBytesUsed() {
+        return GetImageCacheTotalBytesUsed();
+    }
+    
+    static size_t GetImageCacheByteLimit() {
+        return GetImageCacheTotalByteLimit();
+    }
+    
+    static size_t SetImageCacheByteLimit(size_t newLimit) {
+        return SetImageCacheTotalByteLimit(newLimit);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    static size_t GetImageCacheSingleAllocationByteLimit();
+    static size_t SetImageCacheSingleAllocationByteLimit(size_t newLimit);
 
     
 

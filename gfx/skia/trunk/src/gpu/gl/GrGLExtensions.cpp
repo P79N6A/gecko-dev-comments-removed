@@ -54,10 +54,11 @@ bool GrGLExtensions::init(GrGLStandard standard,
 
     
     const GrGLubyte* verString = getString(GR_GL_VERSION);
-    if (NULL == verString) {
+    GrGLVersion version = GrGLGetVersionFromString((const char*) verString);
+    if (GR_GL_INVALID_VER == version) {
         return false;
     }
-    GrGLVersion version = GrGLGetVersionFromString((const char*) verString);
+
     bool indexed = version >= GR_GL_VER(3, 0);
 
     if (indexed) {

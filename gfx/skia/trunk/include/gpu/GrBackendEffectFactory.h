@@ -12,78 +12,132 @@
 #include "SkTemplates.h"
 #include "SkThread.h"
 #include "SkTypes.h"
+#include "SkTArray.h"
 
-
-
-
-
-
-
-
-
-
-
-class GrEffectRef;
 class GrGLEffect;
 class GrGLCaps;
 class GrDrawEffect;
 
-class GrBackendEffectFactory : public SkNoncopyable {
+
+
+
+class GrEffectKeyBuilder {
 public:
-    typedef uint32_t EffectKey;
-    enum {
-        kNoEffectKey = 0,
-        kEffectKeyBits = 10,
-        
+    GrEffectKeyBuilder(SkTArray<unsigned char, true>* data) : fData(data), fCount(0) {
+        SkASSERT(0 == fData->count() % sizeof(uint32_t));
+    }
+
+    void add32(uint32_t v) {
+        ++fCount;
+        fData->push_back_n(4, reinterpret_cast<uint8_t*>(&v));
+    }
+
+    
+
+    uint32_t* SK_WARN_UNUSED_RESULT add32n(int count) {
+        SkASSERT(count > 0);
+        fCount += count;
+        return reinterpret_cast<uint32_t*>(fData->push_back_n(4 * count));
+    }
+
+    size_t size() const { return sizeof(uint32_t) * fCount; }
+
+private:
+    SkTArray<uint8_t, true>* fData; 
+    int fCount;                     
+};
 
 
 
-        kTextureKeyBits = 4,
-        kTransformKeyBits = 6,
-        kAttribKeyBits = 6,
-        kClassIDBits = 6
-    };
 
-    virtual EffectKey glEffectKey(const GrDrawEffect&, const GrGLCaps&) const = 0;
+
+
+class GrEffectKey {
+public:
+    GrEffectKey(const uint32_t* key, int count) : fKey(key), fCount(count) {
+        SkASSERT(0 == reinterpret_cast<intptr_t>(key) % sizeof(uint32_t));
+    }
+
+    
+    uint32_t get32(int index) const {
+        SkASSERT(index >=0 && index < fCount);
+        return fKey[index];
+    }
+
+    
+    int count32() const { return fCount; }
+
+private:
+    const uint32_t* fKey;           
+    int             fCount;         
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class GrBackendEffectFactory : SkNoncopyable {
+public:
+    
+
+
+
+
+    virtual void getGLEffectKey(const GrDrawEffect&, const GrGLCaps&, GrEffectKeyBuilder*) const = 0;
+
+    
+
+
+
     virtual GrGLEffect* createGLInstance(const GrDrawEffect&) const = 0;
 
-    bool operator ==(const GrBackendEffectFactory& b) const {
-        return fEffectClassID == b.fEffectClassID;
-    }
-    bool operator !=(const GrBackendEffectFactory& b) const {
-        return !(*this == b);
-    }
+    
+
 
     virtual const char* name() const = 0;
 
-    static EffectKey GetTransformKey(EffectKey key) {
-        return key >> (kEffectKeyBits + kTextureKeyBits) & ((1U << kTransformKeyBits) - 1);
-    }
+    
+
+
+
+
+    uint32_t effectClassID() const { return fEffectClassID; }
 
 protected:
+    GrBackendEffectFactory() : fEffectClassID(GenID()) {}
+    virtual ~GrBackendEffectFactory() {}
+
+private:
     enum {
         kIllegalEffectClassID = 0,
     };
 
-    GrBackendEffectFactory() {
-        fEffectClassID = kIllegalEffectClassID;
-    }
-    virtual ~GrBackendEffectFactory() {}
-
-    static EffectKey GenID() {
-        SkDEBUGCODE(static const int32_t kClassIDBits = 8 * sizeof(EffectKey) -
-                           kTextureKeyBits - kEffectKeyBits - kAttribKeyBits);
+    static uint32_t GenID() {
         
         
         
-        int32_t id = sk_atomic_inc(&fCurrEffectClassID) + 1;
-        SkASSERT(id < (1 << kClassIDBits));
-        return static_cast<EffectKey>(id);
+        uint32_t id = static_cast<uint32_t>(sk_atomic_inc(&fCurrEffectClassID)) + 1;
+        if (!id) {
+            SkFAIL("This should never wrap as it should only be called once for each GrEffect "
+                   "subclass.");
+        }
+        return id;
     }
 
-    EffectKey fEffectClassID;
-
-private:
+    const uint32_t fEffectClassID;
     static int32_t fCurrEffectClassID;
 };
 

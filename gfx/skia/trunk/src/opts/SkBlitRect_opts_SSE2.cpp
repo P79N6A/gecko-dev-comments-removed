@@ -5,11 +5,10 @@
 
 
 
+#include <emmintrin.h>
 #include "SkBlitRect_opts_SSE2.h"
 #include "SkBlitRow.h"
 #include "SkColorPriv.h"
-
-#include <emmintrin.h>
 
 
 

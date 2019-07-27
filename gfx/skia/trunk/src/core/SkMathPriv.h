@@ -10,6 +10,12 @@
 
 #include "SkMath.h"
 
+#ifdef SK_BUILD_FOR_IOS
+
+
+#define SK_DISCARD_DENORMALIZED_FOR_SPEED
+#endif
+
 
 
 #define SkExtractSign(n)    ((int32_t)(n) >> 31)

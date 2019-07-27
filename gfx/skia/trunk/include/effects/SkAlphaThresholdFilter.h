@@ -20,7 +20,8 @@ public:
 
 
 
-    static SkImageFilter* Create(const SkRegion& region, SkScalar innerThreshold, SkScalar outerThreshold);
+    static SkImageFilter* Create(const SkRegion& region, SkScalar innerThreshold,
+                                 SkScalar outerThreshold, SkImageFilter* input = NULL);
 };
 
 #endif

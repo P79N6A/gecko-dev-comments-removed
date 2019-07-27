@@ -10,7 +10,10 @@
 #ifndef SkDrawLooper_DEFINED
 #define SkDrawLooper_DEFINED
 
+#include "SkBlurTypes.h"
 #include "SkFlattenable.h"
+#include "SkPoint.h"
+#include "SkColor.h"
 
 class SkCanvas;
 class SkPaint;
@@ -35,7 +38,7 @@ public:
 
 
 
-    class SK_API Context : public SkNoncopyable {
+    class SK_API Context : ::SkNoncopyable {
     public:
         Context() {}
         virtual ~Context() {}
@@ -87,6 +90,24 @@ public:
     virtual bool canComputeFastBounds(const SkPaint& paint) const;
     virtual void computeFastBounds(const SkPaint& paint,
                                    const SkRect& src, SkRect* dst) const;
+
+    struct BlurShadowRec {
+        SkScalar        fSigma;
+        SkVector        fOffset;
+        SkColor         fColor;
+        SkBlurStyle     fStyle;
+        SkBlurQuality   fQuality;
+    };
+    
+
+
+
+
+
+
+
+
+    virtual bool asABlurShadow(BlurShadowRec*) const;
 
     SK_TO_STRING_PUREVIRT()
     SK_DEFINE_FLATTENABLE_TYPE(SkDrawLooper)

@@ -19,10 +19,13 @@
 
 
 
-static inline void Filter_32_opaque_neon(unsigned x, unsigned y,
-                                         SkPMColor a00, SkPMColor a01,
-                                         SkPMColor a10, SkPMColor a11,
-                                         SkPMColor *dst) {
+
+
+
+static SK_ALWAYS_INLINE void Filter_32_opaque_neon(unsigned x, unsigned y,
+                                                   SkPMColor a00, SkPMColor a01,
+                                                   SkPMColor a10, SkPMColor a11,
+                                                   SkPMColor *dst) {
     uint8x8_t vy, vconst16_8, v16_y, vres;
     uint16x4_t vx, vconst16_16, v16_x, tmp;
     uint32x2_t va0, va1;
@@ -53,10 +56,11 @@ static inline void Filter_32_opaque_neon(unsigned x, unsigned y,
     vst1_lane_u32(dst, vreinterpret_u32_u8(vres), 0);         
 }
 
-static inline void Filter_32_alpha_neon(unsigned x, unsigned y,
-                                        SkPMColor a00, SkPMColor a01,
-                                        SkPMColor a10, SkPMColor a11,
-                                        SkPMColor *dst, uint16_t scale) {
+static SK_ALWAYS_INLINE void Filter_32_alpha_neon(unsigned x, unsigned y,
+                                                  SkPMColor a00, SkPMColor a01,
+                                                  SkPMColor a10, SkPMColor a11,
+                                                  SkPMColor *dst,
+                                                  uint16_t scale) {
     uint8x8_t vy, vconst16_8, v16_y, vres;
     uint16x4_t vx, vconst16_16, v16_x, tmp, vscale;
     uint32x2_t va0, va1;

@@ -15,9 +15,9 @@
 class GrContext;
 class GrIndexBufferAllocPool;
 class GrPath;
+class GrPathRange;
 class GrPathRenderer;
 class GrPathRendererChain;
-class GrResource;
 class GrStencilBuffer;
 class GrVertexBufferAllocPool;
 
@@ -83,6 +83,17 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
     GrTexture* createTexture(const GrTextureDesc& desc,
                              const void* srcData, size_t rowBytes);
 
@@ -131,6 +142,13 @@ public:
 
 
 
+    GrPathRange* createPathRange(size_t size, const SkStrokeRec&);
+
+    
+
+
+
+
 
 
     const GrIndexBuffer* getQuadIndexBuffer() const;
@@ -139,13 +157,6 @@ public:
 
 
     void resolveRenderTarget(GrRenderTarget* target);
-
-    
-
-
-
-
-    void forceRenderTargetFlush();
 
     
 
@@ -253,14 +264,13 @@ public:
 
 
 
-    void insertResource(GrResource* resource);
+    void insertObject(GrGpuResource* object);
 
     
 
 
 
-
-    void removeResource(GrResource* resource);
+    void removeObject(GrGpuResource* object);
 
     
     virtual void clear(const SkIRect* rect,
@@ -330,15 +340,16 @@ public:
 
     void getPathStencilSettingsForFillType(SkPath::FillType fill, GrStencilSettings* outStencilSettings);
 
-protected:
     enum DrawType {
         kDrawPoints_DrawType,
         kDrawLines_DrawType,
         kDrawTriangles_DrawType,
         kStencilPath_DrawType,
         kDrawPath_DrawType,
+        kDrawPaths_DrawType,
     };
 
+protected:
     DrawType PrimTypeToDrawType(GrPrimitiveType type) {
         switch (type) {
             case kTriangles_GrPrimitiveType:
@@ -351,7 +362,7 @@ protected:
             case kLineStrip_GrPrimitiveType:
                 return kDrawLines_DrawType;
             default:
-                GrCrash("Unexpected primitive type");
+                SkFAIL("Unexpected primitive type");
                 return kDrawTriangles_DrawType;
         }
     }
@@ -421,11 +432,14 @@ private:
     virtual GrTexture* onCreateTexture(const GrTextureDesc& desc,
                                        const void* srcData,
                                        size_t rowBytes) = 0;
+    virtual GrTexture* onCreateCompressedTexture(const GrTextureDesc& desc,
+                                                 const void* srcData) = 0;
     virtual GrTexture* onWrapBackendTexture(const GrBackendTextureDesc&) = 0;
     virtual GrRenderTarget* onWrapBackendRenderTarget(const GrBackendRenderTargetDesc&) = 0;
     virtual GrVertexBuffer* onCreateVertexBuffer(size_t size, bool dynamic) = 0;
     virtual GrIndexBuffer* onCreateIndexBuffer(size_t size, bool dynamic) = 0;
     virtual GrPath* onCreatePath(const SkPath& path, const SkStrokeRec&) = 0;
+    virtual GrPathRange* onCreatePathRange(size_t size, const SkStrokeRec&) = 0;
 
     
     
@@ -438,9 +452,10 @@ private:
     
     virtual void onGpuStencilPath(const GrPath*, SkPath::FillType) = 0;
     virtual void onGpuDrawPath(const GrPath*, SkPath::FillType) = 0;
-
-    
-    virtual void onForceRenderTargetFlush() = 0;
+    virtual void onGpuDrawPaths(const GrPathRange*,
+                                const uint32_t indices[], int count,
+                                const float transforms[], PathTransformType,
+                                SkPath::FillType) = 0;
 
     
     virtual bool onReadPixels(GrRenderTarget* target,
@@ -483,6 +498,10 @@ private:
     virtual void onStencilPath(const GrPath*, SkPath::FillType) SK_OVERRIDE;
     virtual void onDrawPath(const GrPath*, SkPath::FillType,
                             const GrDeviceCoordTexture* dstCopy) SK_OVERRIDE;
+    virtual void onDrawPaths(const GrPathRange*,
+                             const uint32_t indices[], int count,
+                             const float transforms[], PathTransformType,
+                             SkPath::FillType, const GrDeviceCoordTexture*) SK_OVERRIDE;
 
     
     void prepareVertexPool();
@@ -507,7 +526,7 @@ private:
     enum {
         kPreallocGeomPoolStateStackCnt = 4,
     };
-    typedef SkTInternalLList<GrResource> ResourceList;
+    typedef SkTInternalLList<GrGpuResource> ObjectList;
     SkSTArray<kPreallocGeomPoolStateStackCnt, GeometryPoolState, true>  fGeomPoolStateStack;
     ResetTimestamp                                                      fResetTimestamp;
     uint32_t                                                            fResetBits;
@@ -520,7 +539,7 @@ private:
     mutable GrIndexBuffer*                                              fQuadIndexBuffer;
     
     
-    ResourceList                                                        fResourceList;
+    ObjectList                                                          fObjectList;
 
     typedef GrDrawTarget INHERITED;
 };

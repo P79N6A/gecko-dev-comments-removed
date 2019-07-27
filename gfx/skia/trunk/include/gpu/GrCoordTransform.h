@@ -39,7 +39,7 @@ enum GrCoordSet {
 
 
 
-class GrCoordTransform : public SkNoncopyable {
+class GrCoordTransform : SkNoncopyable {
 public:
     GrCoordTransform() { SkDEBUGCODE(fInEffect = false); }
 

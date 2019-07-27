@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkImageDecoder_DEFINED
 #define SkImageDecoder_DEFINED
 
@@ -24,7 +22,7 @@ class SkStreamRewindable;
 
 
 
-class SkImageDecoder : public SkNoncopyable {
+class SkImageDecoder : SkNoncopyable {
 public:
     virtual ~SkImageDecoder();
 
@@ -37,8 +35,10 @@ public:
         kPNG_Format,
         kWBMP_Format,
         kWEBP_Format,
+        kPKM_Format,
+        kKTX_Format,
 
-        kLastKnownFormat = kWEBP_Format,
+        kLastKnownFormat = kKTX_Format,
     };
 
     
@@ -135,6 +135,7 @@ public:
     Peeker* getPeeker() const { return fPeeker; }
     Peeker* setPeeker(Peeker*);
 
+#ifdef SK_SUPPORT_LEGACY_IMAGEDECODER_CHOOSER
     
 
 
@@ -156,7 +157,9 @@ public:
 
     Chooser* getChooser() const { return fChooser; }
     Chooser* setChooser(Chooser*);
+#endif
 
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
     
 
 
@@ -200,6 +203,21 @@ public:
 
 
     void resetPrefConfigTable() { fUsePrefTable = false; }
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+    void setPreserveSrcDepth(bool preserve) {
+        fPreserveSrcDepth = preserve;
+    }
 
     SkBitmap::Allocator* getAllocator() const { return fAllocator; }
     SkBitmap::Allocator* setAllocator(SkBitmap::Allocator*);
@@ -262,12 +280,9 @@ public:
 
 
 
-
-
-
-    bool decode(SkStream*, SkBitmap* bitmap, SkBitmap::Config pref, Mode);
+    bool decode(SkStream*, SkBitmap* bitmap, SkColorType pref, Mode);
     bool decode(SkStream* stream, SkBitmap* bitmap, Mode mode) {
-        return this->decode(stream, bitmap, SkBitmap::kNo_Config, mode);
+        return this->decode(stream, bitmap, kUnknown_SkColorType, mode);
     }
 
     
@@ -286,12 +301,7 @@ public:
 
 
 
-    bool decodeSubset(SkBitmap* bm, const SkIRect& subset, SkBitmap::Config pref);
-
-    SK_ATTR_DEPRECATED("use decodeSubset() instead")
-    bool decodeRegion(SkBitmap* bitmap, const SkIRect& rect, SkBitmap::Config pref) {
-        return this->decodeSubset(bitmap, rect, pref);
-    }
+    bool decodeSubset(SkBitmap* bm, const SkIRect& subset, SkColorType pref);
 
     
 
@@ -307,13 +317,12 @@ public:
 
 
 
-    static bool DecodeFile(const char file[], SkBitmap* bitmap,
-                           SkBitmap::Config prefConfig, Mode,
+    static bool DecodeFile(const char file[], SkBitmap* bitmap, SkColorType pref, Mode,
                            Format* format = NULL);
     static bool DecodeFile(const char file[], SkBitmap* bitmap) {
-        return DecodeFile(file, bitmap, SkBitmap::kNo_Config,
-                          kDecodePixels_Mode, NULL);
+        return DecodeFile(file, bitmap, kUnknown_SkColorType, kDecodePixels_Mode, NULL);
     }
+
     
 
 
@@ -323,12 +332,10 @@ public:
 
 
 
-    static bool DecodeMemory(const void* buffer, size_t size, SkBitmap* bitmap,
-                             SkBitmap::Config prefConfig, Mode,
-                             Format* format = NULL);
+    static bool DecodeMemory(const void* buffer, size_t size, SkBitmap* bitmap, SkColorType pref,
+                             Mode, Format* format = NULL);
     static bool DecodeMemory(const void* buffer, size_t size, SkBitmap* bitmap){
-        return DecodeMemory(buffer, size, bitmap, SkBitmap::kNo_Config,
-                            kDecodePixels_Mode, NULL);
+        return DecodeMemory(buffer, size, bitmap, kUnknown_SkColorType, kDecodePixels_Mode, NULL);
     }
 
     
@@ -355,27 +362,11 @@ public:
 
 
 
-    static bool DecodeStream(SkStreamRewindable* stream, SkBitmap* bitmap,
-                             SkBitmap::Config prefConfig, Mode,
+    static bool DecodeStream(SkStreamRewindable* stream, SkBitmap* bitmap, SkColorType pref, Mode,
                              Format* format = NULL);
     static bool DecodeStream(SkStreamRewindable* stream, SkBitmap* bitmap) {
-        return DecodeStream(stream, bitmap, SkBitmap::kNo_Config,
-                            kDecodePixels_Mode, NULL);
+        return DecodeStream(stream, bitmap, kUnknown_SkColorType, kDecodePixels_Mode, NULL);
     }
-
-    
-
-
-
-
-    static SkBitmap::Config GetDeviceConfig();
-    
-
-
-
-
-
-    static void SetDeviceConfig(SkBitmap::Config);
 
 protected:
     
@@ -422,12 +413,6 @@ protected:
 
 
 
-    SkBitmap::Config getDefaultPref() { return fDefaultPref; }
-
-    
-
-
-
 
 
 
@@ -440,11 +425,17 @@ protected:
     SkImageDecoder();
 
     
+
+
+    SkColorType getDefaultPref() { return fDefaultPref; }
     
-    bool chooseFromOneChoice(SkBitmap::Config config, int width, int height) const;
+#ifdef SK_SUPPORT_LEGACY_IMAGEDECODER_CHOOSER
+    
+    
+    bool chooseFromOneChoice(SkColorType, int width, int height) const;
+#endif
 
     
-
 
 
     bool allocPixelRef(SkBitmap*, SkColorTable*) const;
@@ -465,20 +456,22 @@ protected:
 
 
 
-
-
-
-    SkBitmap::Config getPrefConfig(SrcDepth, bool hasAlpha) const;
+    SkColorType getPrefColorType(SrcDepth, bool hasAlpha) const;
 
 private:
     Peeker*                 fPeeker;
+#ifdef SK_SUPPORT_LEGACY_IMAGEDECODER_CHOOSER
     Chooser*                fChooser;
+#endif
     SkBitmap::Allocator*    fAllocator;
     int                     fSampleSize;
-    SkBitmap::Config        fDefaultPref;   
+    SkColorType             fDefaultPref;   
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
     PrefConfigTable         fPrefTable;     
-    bool                    fDitherImage;
     bool                    fUsePrefTable;
+#endif
+    bool                    fPreserveSrcDepth;
+    bool                    fDitherImage;
     bool                    fSkipWritingZeroes;
     mutable bool            fShouldCancelDecode;
     bool                    fPreferQualityOverSpeed;
@@ -530,7 +523,8 @@ DECLARE_DECODER_CREATOR(JPEGImageDecoder);
 DECLARE_DECODER_CREATOR(PNGImageDecoder);
 DECLARE_DECODER_CREATOR(WBMPImageDecoder);
 DECLARE_DECODER_CREATOR(WEBPImageDecoder);
-
+DECLARE_DECODER_CREATOR(PKMImageDecoder);
+DECLARE_DECODER_CREATOR(KTXImageDecoder);
 
 
 

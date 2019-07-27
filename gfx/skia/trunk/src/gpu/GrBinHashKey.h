@@ -10,7 +10,65 @@
 #ifndef GrBinHashKey_DEFINED
 #define GrBinHashKey_DEFINED
 
+#include "SkChecksum.h"
 #include "GrTypes.h"
+
+
+
+
+
+
+template<size_t KEY_SIZE_IN_BYTES>
+class GrMurmur3HashKey {
+public:
+    GrMurmur3HashKey() {
+        this->reset();
+    }
+
+    void reset() {
+        fHash = 0;
+#ifdef SK_DEBUG
+        fIsValid = false;
+#endif
+    }
+
+    void setKeyData(const uint32_t* data) {
+        SK_COMPILE_ASSERT(KEY_SIZE_IN_BYTES % 4 == 0, key_size_mismatch);
+        memcpy(fData, data, KEY_SIZE_IN_BYTES);
+
+        fHash = SkChecksum::Murmur3(fData, KEY_SIZE_IN_BYTES);
+#ifdef SK_DEBUG
+        fIsValid = true;
+#endif
+    }
+
+    bool operator==(const GrMurmur3HashKey& other) const {
+        if (fHash != other.fHash) {
+            return false;
+        }
+
+        return !memcmp(fData, other.fData, KEY_SIZE_IN_BYTES);
+    }
+
+    uint32_t getHash() const {
+        SkASSERT(fIsValid);
+        return fHash;
+    }
+
+    const uint8_t* getData() const {
+        SkASSERT(fIsValid);
+        return reinterpret_cast<const uint8_t*>(fData);
+    }
+
+private:
+    uint32_t fHash;
+    uint32_t fData[KEY_SIZE_IN_BYTES / sizeof(uint32_t)];  
+
+#ifdef SK_DEBUG
+public:
+    bool                fIsValid;
+#endif
+};
 
 
 

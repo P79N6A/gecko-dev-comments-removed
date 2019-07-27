@@ -60,9 +60,9 @@ public:
     
 
 
-    GrGLuint programID() const { return fProgramID; }
+    GrGLuint programID() const { return fBuilderOutput.fProgramID; }
 
-    bool hasVertexShader() const { return fHasVertexShader; }
+    bool hasVertexShader() const { return fBuilderOutput.fHasVertexShader; }
 
     
 
@@ -103,19 +103,49 @@ public:
             fRenderTargetSize.fHeight = -1;
             fRenderTargetOrigin = (GrSurfaceOrigin) -1;
         }
+
+        
+
+
         template<int Size> void getGLMatrix(GrGLfloat* destMatrix) {
+            GrGLGetMatrix<Size>(destMatrix, fViewMatrix);
+        }
+
+        
+
+
+        template<int Size> void getRTAdjustedGLMatrix(GrGLfloat* destMatrix) {
             SkMatrix combined;
             if (kBottomLeft_GrSurfaceOrigin == fRenderTargetOrigin) {
                 combined.setAll(SkIntToScalar(2) / fRenderTargetSize.fWidth, 0, -SK_Scalar1,
                                 0, -SkIntToScalar(2) / fRenderTargetSize.fHeight, SK_Scalar1,
-                                0, 0, SkMatrix::I()[8]);
+                                0, 0, 1);
             } else {
                 combined.setAll(SkIntToScalar(2) / fRenderTargetSize.fWidth, 0, -SK_Scalar1,
                                 0, SkIntToScalar(2) / fRenderTargetSize.fHeight, -SK_Scalar1,
-                                0, 0, SkMatrix::I()[8]);
+                                0, 0, 1);
             }
-            combined.setConcat(combined, fViewMatrix);
+            combined.preConcat(fViewMatrix);
             GrGLGetMatrix<Size>(destMatrix, combined);
+        }
+
+        
+
+
+
+
+
+
+        void getRTAdjustmentVec(GrGLfloat* destVec) {
+            destVec[0] = 2.f / fRenderTargetSize.fWidth;
+            destVec[1] = -1.f;
+            if (kBottomLeft_GrSurfaceOrigin == fRenderTargetOrigin) {
+                destVec[2] = -2.f / fRenderTargetSize.fHeight;
+                destVec[3] = 1.f;
+            } else {
+                destVec[2] = 2.f / fRenderTargetSize.fHeight;
+                destVec[3] = -1.f;
+            }
         }
     };
 
@@ -134,36 +164,10 @@ public:
 private:
     typedef GrGLUniformManager::UniformHandle UniformHandle;
 
-    
-    struct UniformHandles {
-        UniformHandle       fViewMatrixUni;
-        UniformHandle       fColorUni;
-        UniformHandle       fCoverageUni;
-
-        
-        
-        UniformHandle       fRTHeightUni;
-
-        
-        UniformHandle       fDstCopyTopLeftUni;
-        UniformHandle       fDstCopyScaleUni;
-        UniformHandle       fDstCopySamplerUni;
-    };
-
-    GrGLProgram(GrGpuGL* gpu,
-                const GrGLProgramDesc& desc,
-                const GrEffectStage* colorStages[],
-                const GrEffectStage* coverageStages[]);
-
-    bool succeeded() const { return 0 != fProgramID; }
-
-    
-
-
-
-    bool genProgram(GrGLShaderBuilder* builder,
-                    const GrEffectStage* colorStages[],
-                    const GrEffectStage* coverageStages[]);
+    GrGLProgram(GrGpuGL*,
+                const GrGLProgramDesc&,
+                GrGLUniformManager*,
+                const GrGLShaderBuilder::GenProgramOutput&);
 
     
     void initSamplerUniforms();
@@ -180,25 +184,17 @@ private:
     void setMatrixAndRenderTargetHeight(const GrDrawState&);
 
     
-    GrGLuint                    fProgramID;
+    MatrixState                         fMatrixState;
+    GrColor                             fColor;
+    GrColor                             fCoverage;
+    int                                 fDstCopyTexUnit;
 
-    
-    MatrixState                       fMatrixState;
-    GrColor                           fColor;
-    GrColor                           fCoverage;
-    int                               fDstCopyTexUnit;
+    GrGLShaderBuilder::GenProgramOutput fBuilderOutput;
 
-    SkAutoTDelete<GrGLProgramEffects> fColorEffects;
-    SkAutoTDelete<GrGLProgramEffects> fCoverageEffects;
+    GrGLProgramDesc                     fDesc;
+    GrGpuGL*                            fGpu;
 
-    GrGLProgramDesc                   fDesc;
-    GrGpuGL*                          fGpu;
-
-    GrGLUniformManager                fUniformManager;
-    UniformHandles                    fUniformHandles;
-
-    bool                              fHasVertexShader;
-    int                               fNumTexCoordSets;
+    SkAutoTUnref<GrGLUniformManager>    fUniformManager;
 
     typedef SkRefCnt INHERITED;
 };

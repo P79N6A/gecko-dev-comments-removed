@@ -31,6 +31,7 @@ enum NeighborFlags {
 
 
 
+
 static bool found_edge(const unsigned char* imagePtr, int width, int neighborFlags) {
     
     const int kNum8ConnectedNeighbors = 8;
@@ -38,18 +39,23 @@ static bool found_edge(const unsigned char* imagePtr, int width, int neighborFla
     SkASSERT(kNum8ConnectedNeighbors == kNeighborFlagCount);
 
     
-    bool currVal = (*imagePtr != 0);
+    unsigned char currVal = *imagePtr;
+    unsigned char currCheck = (currVal >> 7);
     for (int i = 0; i < kNum8ConnectedNeighbors; ++i) {
-        bool checkVal;
+        unsigned char neighborVal;
         if ((1 << i) & neighborFlags) {
             const unsigned char* checkPtr = imagePtr + offsets[i];
-            checkVal = (*checkPtr != 0);
+            neighborVal = *checkPtr;
         } else {
-            checkVal = false;
+            neighborVal = 0;
         }
-        SkASSERT(checkVal == 0 || checkVal == 1);
-        SkASSERT(currVal == 0 || currVal == 1);
-        if (checkVal != currVal) {
+        unsigned char neighborCheck = (neighborVal >> 7);
+        SkASSERT(currCheck == 0 || currCheck == 1);
+        SkASSERT(neighborCheck == 0 || neighborCheck == 1);
+        
+        if (currCheck != neighborCheck ||
+            
+            (!currCheck && !neighborCheck && currVal && neighborVal)) {
             return true;
         }
     }
@@ -322,18 +328,16 @@ static unsigned char pack_distance_field_val(float dist, float distanceMagnitude
 #endif
 
 
-bool SkGenerateDistanceFieldFromImage(unsigned char* distanceField,
-                                      const unsigned char* image,
-                                      int width, int height,
-                                      int distanceMagnitude) {
+
+static bool generate_distance_field_from_image(unsigned char* distanceField,
+                                               const unsigned char* copyPtr,
+                                               int width, int height) {
     SkASSERT(NULL != distanceField);
-    SkASSERT(NULL != image);
+    SkASSERT(NULL != copyPtr);
 
     
     
-    
-    
-    int pad = distanceMagnitude+1;
+    int pad = SK_DistanceFieldPad + 1;
 
     
     int dataWidth = width + 2*pad;
@@ -350,9 +354,9 @@ bool SkGenerateDistanceFieldFromImage(unsigned char* distanceField,
     sk_bzero(edgePtr, dataWidth*dataHeight*sizeof(char));
 
     
-    init_glyph_data(dataPtr, edgePtr, image,
+    init_glyph_data(dataPtr, edgePtr, copyPtr,
                     dataWidth, dataHeight,
-                    width, height, pad);
+                    width+2, height+2, SK_DistanceFieldPad);
 
     
     init_distances(dataPtr, edgePtr, dataWidth, dataHeight);
@@ -426,10 +430,14 @@ bool SkGenerateDistanceFieldFromImage(unsigned char* distanceField,
     for (int j = 1; j < dataHeight-1; ++j) {
         for (int i = 1; i < dataWidth-1; ++i) {
 #if DUMP_EDGE
-            unsigned char val = sk_float_round2int(255*currData->fAlpha);
+            float alpha = currData->fAlpha;
+            float edge = 0.0f;
             if (*currEdge) {
-                val = 128;
+                edge = 0.25f;
             }
+            
+            float result = alpha + (1.0f-alpha)*edge;
+            unsigned char val = sk_float_round2int(255*result);
             *dfPtr++ = val;
 #else
             float dist;
@@ -438,7 +446,7 @@ bool SkGenerateDistanceFieldFromImage(unsigned char* distanceField,
             } else {
                 dist = SkScalarSqrt(currData->fDistSq);
             }
-            *dfPtr++ = pack_distance_field_val(dist, (float)distanceMagnitude);
+            *dfPtr++ = pack_distance_field_val(dist, (float)SK_DistanceFieldMagnitude);
 #endif
             ++currData;
             ++currEdge;
@@ -448,4 +456,66 @@ bool SkGenerateDistanceFieldFromImage(unsigned char* distanceField,
     }
 
     return true;
+}
+
+
+bool SkGenerateDistanceFieldFromA8Image(unsigned char* distanceField,
+                                        const unsigned char* image,
+                                        int width, int height, int rowBytes) {
+    SkASSERT(NULL != distanceField);
+    SkASSERT(NULL != image);
+
+    
+    SkAutoSMalloc<1024> copyStorage((width+2)*(height+2)*sizeof(char));
+    unsigned char* copyPtr = (unsigned char*) copyStorage.get();
+
+    
+    
+    const unsigned char* currSrcScanLine = image;
+    sk_bzero(copyPtr, (width+2)*sizeof(char));
+    unsigned char* currDestPtr = copyPtr + width + 2;
+    for (int i = 0; i < height; ++i) {
+        *currDestPtr++ = 0;
+        memcpy(currDestPtr, currSrcScanLine, rowBytes);
+        currSrcScanLine += rowBytes;
+        currDestPtr += width;
+        *currDestPtr++ = 0;
+    }
+    sk_bzero(currDestPtr, (width+2)*sizeof(char));
+
+    return generate_distance_field_from_image(distanceField, copyPtr, width, height);
+}
+
+
+bool SkGenerateDistanceFieldFromBWImage(unsigned char* distanceField,
+                                        const unsigned char* image,
+                                        int width, int height, int rowBytes) {
+    SkASSERT(NULL != distanceField);
+    SkASSERT(NULL != image);
+
+    
+    SkAutoSMalloc<1024> copyStorage((width+2)*(height+2)*sizeof(char));
+    unsigned char* copyPtr = (unsigned char*) copyStorage.get();
+
+    
+    
+    const unsigned char* currSrcScanLine = image;
+    sk_bzero(copyPtr, (width+2)*sizeof(char));
+    unsigned char* currDestPtr = copyPtr + width + 2;
+    for (int i = 0; i < height; ++i) {
+        *currDestPtr++ = 0;
+        int rowWritesLeft = width;
+        const unsigned char *maskPtr = currSrcScanLine;
+        while (rowWritesLeft > 0) {
+            unsigned mask = *maskPtr++;
+            for (int i = 7; i >= 0 && rowWritesLeft; --i, --rowWritesLeft) {
+                *currDestPtr++ = (mask & (1 << i)) ? 0xff : 0;
+            }
+        }
+        currSrcScanLine += rowBytes;
+        *currDestPtr++ = 0;
+    }
+    sk_bzero(currDestPtr, (width+2)*sizeof(char));
+
+    return generate_distance_field_from_image(distanceField, copyPtr, width, height);
 }

@@ -137,7 +137,8 @@ private:
     virtual ~SkData();
 
     
-    static void NewEmptyImpl(int);
+    static SkData* NewEmptyImpl();
+    static void DeleteEmpty(SkData*);
 
     typedef SkRefCnt INHERITED;
 };

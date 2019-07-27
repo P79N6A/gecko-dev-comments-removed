@@ -10,27 +10,34 @@
 
 
 
-#ifdef SK_DEBUG_PTHREAD_MUTEX
-#include "SkTypes.h"
-#define SkDEBUGCODE_PTHREAD_MUTEX(code) code
-#else
-#define SkDEBUGCODE_PTHREAD_MUTEX(code)
-#ifndef SkDebugf
-    void SkDebugf(const char format[], ...);
-#endif
-#endif
-
 #include <errno.h>
 #include <pthread.h>
+
+
+
+SkDEBUGCODE(static const pthread_t kNoOwner = 0;)
 
 
 
 
 
 struct SkBaseMutex {
-    void acquire() { pthread_mutex_lock(&fMutex); }
-    void release() { pthread_mutex_unlock(&fMutex); }
+    void acquire() {
+        SkASSERT(0 == pthread_equal(fOwner, pthread_self()));  
+        pthread_mutex_lock(&fMutex);
+        SkDEBUGCODE(fOwner = pthread_self();)
+    }
+    void release() {
+        this->assertHeld();
+        SkDEBUGCODE(fOwner = kNoOwner;)
+        pthread_mutex_unlock(&fMutex);
+    }
+    void assertHeld() {
+        SkASSERT(0 != pthread_equal(fOwner, pthread_self()));
+    }
+
     pthread_mutex_t fMutex;
+    SkDEBUGCODE(pthread_t fOwner;)
 };
 
 
@@ -38,18 +45,19 @@ struct SkBaseMutex {
 class SkMutex : public SkBaseMutex {
 public:
     SkMutex() {
-        SkDEBUGCODE_PTHREAD_MUTEX(int status = )pthread_mutex_init(&fMutex, NULL);
-        SkDEBUGCODE_PTHREAD_MUTEX(
+        SkDEBUGCODE(int status = )pthread_mutex_init(&fMutex, NULL);
+        SkDEBUGCODE(
             if (status != 0) {
                 print_pthread_error(status);
                 SkASSERT(0 == status);
             }
+            fOwner = kNoOwner;
         )
     }
 
     ~SkMutex() {
-        SkDEBUGCODE_PTHREAD_MUTEX(int status = )pthread_mutex_destroy(&fMutex);
-        SkDEBUGCODE_PTHREAD_MUTEX(
+        SkDEBUGCODE(int status = )pthread_mutex_destroy(&fMutex);
+        SkDEBUGCODE(
             if (status != 0) {
                 print_pthread_error(status);
                 SkASSERT(0 == status);
@@ -78,10 +86,16 @@ private:
     }
 };
 
+#define SK_BASE_MUTEX_INIT { PTHREAD_MUTEX_INITIALIZER, SkDEBUGCODE(0) }
 
-#define SK_DECLARE_STATIC_MUTEX(name) static SkBaseMutex name = { PTHREAD_MUTEX_INITIALIZER }
 
 
-#define SK_DECLARE_GLOBAL_MUTEX(name) SkBaseMutex name = { PTHREAD_MUTEX_INITIALIZER }
+
+
+
+
+
+
+#define SK_DECLARE_STATIC_MUTEX(name) namespace {} static SkBaseMutex name = SK_BASE_MUTEX_INIT
 
 #endif

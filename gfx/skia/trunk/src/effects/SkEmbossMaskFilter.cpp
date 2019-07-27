@@ -5,8 +5,6 @@
 
 
 
-
-
 #include "SkEmbossMaskFilter.h"
 #include "SkBlurMaskFilter.h"
 #include "SkBlurMask.h"
@@ -14,6 +12,10 @@
 #include "SkReadBuffer.h"
 #include "SkWriteBuffer.h"
 #include "SkString.h"
+
+SkEmbossMaskFilter* SkEmbossMaskFilter::Create(SkScalar blurSigma, const Light& light) {
+    return SkNEW_ARGS(SkEmbossMaskFilter, (blurSigma, light));
+}
 
 static inline int pin2byte(int n) {
     if (n < 0) {
@@ -76,8 +78,7 @@ bool SkEmbossMaskFilter::filterMask(SkMask* dst, const SkMask& src,
                                     const SkMatrix& matrix, SkIPoint* margin) const {
     SkScalar sigma = matrix.mapRadius(fBlurSigma);
 
-    if (!SkBlurMask::BoxBlur(dst, src, sigma, SkBlurMask::kInner_Style,
-                             SkBlurMask::kLow_Quality)) {
+    if (!SkBlurMask::BoxBlur(dst, src, sigma, kInner_SkBlurStyle, kLow_SkBlurQuality)) {
         return false;
     }
 

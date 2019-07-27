@@ -11,19 +11,27 @@
 #define SkPicture_DEFINED
 
 #include "SkBitmap.h"
+#include "SkDrawPictureCallback.h"
 #include "SkImageDecoder.h"
 #include "SkRefCnt.h"
+#include "SkTDArray.h"
 
+#if SK_SUPPORT_GPU
+class GrContext;
+#endif
+
+class SkBBHFactory;
 class SkBBoxHierarchy;
 class SkCanvas;
-class SkDrawPictureCallback;
 class SkData;
-class SkPicturePlayback;
+class SkPictureData;
 class SkPictureRecord;
 class SkStream;
 class SkWStream;
 
 struct SkPictInfo;
+
+class SkRecord;
 
 
 
@@ -55,27 +63,15 @@ public:
         typedef SkRefCnt INHERITED;
     };
 
-    
-
-
-
+#ifdef SK_SUPPORT_LEGACY_DEFAULT_PICTURE_CTOR
     SkPicture();
-    
-
-
-    SkPicture(const SkPicture& src);
+#endif
 
     
-    void EXPERIMENTAL_addAccelData(const AccelData* data) {
-        SkRefCnt_SafeAssign(fAccelData, data);
-    }
+    void EXPERIMENTAL_addAccelData(const AccelData*) const;
+
     
-    const AccelData* EXPERIMENTAL_getAccelData(AccelData::Key key) const {
-        if (NULL != fAccelData && fAccelData->getKey() == key) {
-            return fAccelData;
-        }
-        return NULL;
-    }
+    const AccelData* EXPERIMENTAL_getAccelData(AccelData::Key) const;
 
     
 
@@ -113,79 +109,17 @@ public:
 
     virtual ~SkPicture();
 
-    
-
-
-    void swap(SkPicture& other);
-
+#ifdef SK_SUPPORT_LEGACY_PICTURE_CLONE
     
 
 
     SkPicture* clone() const;
+#endif
 
     
 
 
-
-
-    void clone(SkPicture* pictures, int count) const;
-
-    enum RecordingFlags {
-        
-
-
-
-
-
-
-
-        kUsePathBoundsForClip_RecordingFlag = 0x01,
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        kOptimizeForClippedPlayback_RecordingFlag = 0x02,
-    };
-
-    
-
-
-
-
-
-
-
-    SkCanvas* beginRecording(int width, int height, uint32_t recordFlags = 0);
-
-    
-
-
-    SkCanvas* getRecordingCanvas() const;
-    
-
-
-
-
-    void endRecording();
-
-    
-
-
-
-    void draw(SkCanvas* canvas, SkDrawPictureCallback* = NULL);
+    void draw(SkCanvas* canvas, SkDrawPictureCallback* = NULL) const;
 
     
 
@@ -200,6 +134,13 @@ public:
 
 
     int height() const { return fHeight; }
+
+    
+
+
+
+
+    uint32_t uniqueID() const;
 
     
 
@@ -229,17 +170,7 @@ public:
 
 
 
-
     bool willPlayBackBitmaps() const;
-
-#ifdef SK_BUILD_FOR_ANDROID
-    
-
-
-
-
-    void abortPlayback();
-#endif
 
     
 
@@ -255,12 +186,27 @@ public:
     
 
 
+#if SK_SUPPORT_GPU
+    bool suitableForGpuRasterization(GrContext*, const char ** = NULL) const;
+#endif
 
+    class DeletionListener : public SkRefCnt {
+    public:
+        virtual void onDeletion(uint32_t pictureID) = 0;
+    };
 
+    
+    void addDeletionListener(DeletionListener* listener) const;
 
-    void internalOnly_EnableOpts(bool enableOpts);
-
-protected:
+private:
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -290,49 +236,61 @@ protected:
 
     
     static const uint32_t MIN_PICTURE_VERSION = 19;
-    static const uint32_t CURRENT_PICTURE_VERSION = 22;
+    static const uint32_t CURRENT_PICTURE_VERSION = 30;
+
+    mutable uint32_t      fUniqueID;
 
     
-    
-    
-    SkPicturePlayback*    fPlayback;
-    SkPictureRecord*      fRecord;
+    SkAutoTDelete<SkPictureData> fData;
     int                   fWidth, fHeight;
-    const AccelData*      fAccelData;
+    mutable SkAutoTUnref<const AccelData> fAccelData;
+
+    mutable SkTDArray<DeletionListener*> fDeletionListeners;  
+
+    void needsNewGenID() { fUniqueID = SK_InvalidGenID; }
+    void callDeletionListeners();
 
     
     
-    SkPicture(SkPicturePlayback*, int width, int height);
+    SkPicture(SkPictureData* data, int width, int height);
+
+    SkPicture(int width, int height, const SkPictureRecord& record, bool deepCopyOps);
 
     
     
-    virtual SkBBoxHierarchy* createBBoxHierarchy() const;
-private:
+    class OperationList : ::SkNoncopyable {
+    public:
+        
+        
+        int numOps() const { return fOps.count(); }
+        
+        uint32_t offset(int index) const;
+        
+        const SkMatrix& matrix(int index) const;
+
+        SkTDArray<void*> fOps;
+    };
+
+    
+
+
+    const OperationList* EXPERIMENTAL_getActiveOps(const SkIRect& queryRect) const;
+
     void createHeader(SkPictInfo* info) const;
     static bool IsValidPictInfo(const SkPictInfo& info);
 
-    friend class SkFlatPicture;
-    friend class SkPicturePlayback;
+    friend class SkPictureData;                
+    friend class SkPictureRecorder;            
+    friend class SkGpuDevice;                  
+    friend class GrGatherCanvas;               
+    friend class SkPicturePlayback;            
+    friend class SkPictureReplacementPlayback; 
 
     typedef SkRefCnt INHERITED;
-};
 
-
-
-
-
-
-
-
-
-
-
-class SK_API SkDrawPictureCallback {
-public:
-    SkDrawPictureCallback() {}
-    virtual ~SkDrawPictureCallback() {}
-
-    virtual bool abortDrawing() = 0;
+    SkPicture(int width, int height, SkRecord*);  
+    SkAutoTDelete<SkRecord> fRecord;
+    bool fRecordWillPlayBackBitmaps; 
 };
 
 #endif

@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkDevice_DEFINED
 #define SkDevice_DEFINED
 
@@ -16,13 +14,6 @@
 #include "SkColor.h"
 #include "SkDeviceProperties.h"
 #include "SkImageFilter.h"
-
-
-
-
-
-
-
 
 class SkClipStack;
 class SkDraw;
@@ -49,39 +40,9 @@ public:
 
     virtual ~SkBaseDevice();
 
-#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
-    
-
-
-
-
-
-
-
-
-
-
-    SkBaseDevice* createCompatibleDevice(SkBitmap::Config config,
-                                         int width, int height,
-                                         bool isOpaque);
-#endif
     SkBaseDevice* createCompatibleDevice(const SkImageInfo&);
 
     SkMetaData& getMetaData();
-
-#ifdef SK_SUPPORT_LEGACY_GETDEVICECAPABILITIES
-    enum Capabilities {
-        kVector_Capability = 0x1,
-    };
-    virtual uint32_t getDeviceCapabilities() { return 0; }
-#endif
-
-    
-
-    virtual int width() const = 0;
-    
-
-    virtual int height() const = 0;
 
     
     virtual const SkDeviceProperties& getDeviceProperties() const {
@@ -106,15 +67,17 @@ public:
         bounds->setXYWH(origin.x(), origin.y(), this->width(), this->height());
     }
 
+    int width() const {
+        return this->imageInfo().width();
+    }
 
-    
+    int height() const {
+        return this->imageInfo().height();
+    }
 
-
-    virtual bool isOpaque() const = 0;
-
-    
-
-    virtual SkBitmap::Config config() const = 0;
+    bool isOpaque() const {
+        return this->imageInfo().isOpaque();
+    }
 
     
 
@@ -124,34 +87,14 @@ public:
 
     const SkBitmap& accessBitmap(bool changePixels);
 
-#ifdef SK_SUPPORT_LEGACY_WRITEPIXELSCONFIG
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual void writePixels(const SkBitmap& bitmap, int x, int y,
-                             SkCanvas::Config8888 config8888 = SkCanvas::kNative_Premul_Config8888);
-#endif
-
-    bool writePixelsDirect(const SkImageInfo&, const void*, size_t rowBytes, int x, int y);
+    bool writePixels(const SkImageInfo&, const void*, size_t rowBytes, int x, int y);
 
     void* accessPixels(SkImageInfo* info, size_t* rowBytes);
 
     
 
 
-    virtual GrRenderTarget* accessRenderTarget() = 0;
+    virtual GrRenderTarget* accessRenderTarget() { return NULL; }
 
 
     
@@ -205,9 +148,7 @@ protected:
 
 
 
-
-
-    virtual bool filterTextFlags(const SkPaint& paint, TextFlags*) = 0;
+    virtual bool filterTextFlags(const SkPaint& paint, TextFlags*) { return false; }
 
     
 
@@ -307,36 +248,7 @@ protected:
     virtual void drawDevice(const SkDraw&, SkBaseDevice*, int x, int y,
                             const SkPaint&) = 0;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool readPixels(SkBitmap* bitmap,
-                    int x, int y,
-                    SkCanvas::Config8888 config8888);
+    bool readPixels(const SkImageInfo&, void* dst, size_t rowBytes, int x, int y);
 
     
 
@@ -349,8 +261,8 @@ protected:
     
 
 
-    virtual void lockPixels() = 0;
-    virtual void unlockPixels() = 0;
+    virtual void lockPixels() {}
+    virtual void unlockPixels() {}
 
     
 
@@ -358,7 +270,7 @@ protected:
 
 
 
-    virtual bool allowImageFilter(const SkImageFilter*) = 0;
+    virtual bool allowImageFilter(const SkImageFilter*) { return true; }
 
     
 
@@ -367,7 +279,7 @@ protected:
 
 
 
-    virtual bool canHandleImageFilter(const SkImageFilter*) = 0;
+    virtual bool canHandleImageFilter(const SkImageFilter*) { return false; }
 
     
 
@@ -378,11 +290,9 @@ protected:
 
     virtual bool filterImage(const SkImageFilter*, const SkBitmap&,
                              const SkImageFilter::Context& ctx,
-                             SkBitmap* result, SkIPoint* offset) = 0;
-
-    
-    
-    static const SkCanvas::Config8888 kPMColorAlias;
+                             SkBitmap* result, SkIPoint* offset) {
+        return false;
+    }
 
 protected:
     
@@ -397,10 +307,7 @@ protected:
 
 
 
-
-    virtual bool onReadPixels(const SkBitmap& bitmap,
-                              int x, int y,
-                              SkCanvas::Config8888 config8888);
+    virtual bool onReadPixels(const SkImageInfo&, void*, size_t, int x, int y);
 
     
 
@@ -427,7 +334,7 @@ protected:
 
 
 
-    virtual void EXPERIMENTAL_optimize(SkPicture* picture);
+    virtual void EXPERIMENTAL_optimize(const SkPicture* picture);
 
     
 
@@ -439,7 +346,7 @@ protected:
 
 
 
-    virtual bool EXPERIMENTAL_drawPicture(const SkPicture& picture);
+    virtual bool EXPERIMENTAL_drawPicture(SkCanvas* canvas, const SkPicture* picture);
 
 private:
     friend class SkCanvas;
@@ -456,32 +363,20 @@ private:
     
     
     
-    virtual void replaceBitmapBackendForRasterSurface(const SkBitmap&) = 0;
+    virtual void replaceBitmapBackendForRasterSurface(const SkBitmap&) {}
 
     
     void setOrigin(int x, int y) { fOrigin.set(x, y); }
     
     SkBaseDevice* createCompatibleDeviceForSaveLayer(const SkImageInfo&);
 
-#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
-    
-
-
-
-
-    virtual SkBaseDevice* onCreateCompatibleDevice(SkBitmap::Config config,
-                                                   int width, int height,
-                                                   bool isOpaque, Usage) {
-        return NULL;
-    }
-#endif
     virtual SkBaseDevice* onCreateDevice(const SkImageInfo&, Usage) {
         return NULL;
     }
 
     
 
-    virtual void flush() = 0;
+    virtual void flush() {}
 
     SkIPoint    fOrigin;
     SkMetaData* fMetaData;

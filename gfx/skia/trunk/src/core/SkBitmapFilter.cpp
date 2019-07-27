@@ -124,7 +124,7 @@ bool SkBitmapProcState::setBitmapFilterProcs() {
     }
 
     
-    if (fBitmap->colorType() != kPMColor_SkColorType) {
+    if (fBitmap->colorType() != kN32_SkColorType) {
         return false;
     }
 

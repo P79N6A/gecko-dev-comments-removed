@@ -9,10 +9,10 @@
 #define GrTextureStripAtlas_DEFINED
 
 #include "GrBinHashKey.h"
-#include "GrTHashTable.h"
 #include "SkBitmap.h"
 #include "SkGr.h"
 #include "SkTDArray.h"
+#include "SkTDynamicHash.h"
 #include "SkTypes.h"
 
 
@@ -79,7 +79,7 @@ private:
 
 
 
-    struct AtlasRow : public SkNoncopyable {
+    struct AtlasRow : SkNoncopyable {
         AtlasRow() : fKey(kEmptyAtlasRowKey), fLocks(0), fNext(NULL), fPrev(NULL) { }
         
         uint32_t fKey;
@@ -135,23 +135,24 @@ private:
     static void CleanUp(const GrContext* context, void* info);
 
     
-    class AtlasEntry;
-    class AtlasHashKey : public GrBinHashKey<sizeof(GrTextureStripAtlas::Desc)> {
-    public:
-        static bool Equals(const AtlasEntry& entry, const AtlasHashKey& key);
-        static bool LessThan(const AtlasEntry& entry, const AtlasHashKey& key);
-    };
     class AtlasEntry : public ::SkNoncopyable {
     public:
+        
+        class Key : public GrMurmur3HashKey<sizeof(GrTextureStripAtlas::Desc)> {};
+        static const Key& GetKey(const AtlasEntry& entry) { return entry.fKey; }
+        static uint32_t Hash(const Key& key) { return key.getHash(); }
+
+        
         AtlasEntry() : fAtlas(NULL) {}
         ~AtlasEntry() { SkDELETE(fAtlas); }
-        AtlasHashKey fKey;
+        Key fKey;
         GrTextureStripAtlas* fAtlas;
     };
 
-    static GrTHashTable<AtlasEntry, AtlasHashKey, 8>* gAtlasCache;
+    class Hash;
+    static Hash* gAtlasCache;
 
-    static GrTHashTable<AtlasEntry, AtlasHashKey, 8>* GetCache();
+    static Hash* GetCache();
 
     
     static int32_t gCacheCount;
@@ -180,15 +181,5 @@ private:
     
     SkTDArray<AtlasRow*> fKeyTable;
 };
-
-inline bool GrTextureStripAtlas::AtlasHashKey::Equals(const AtlasEntry& entry,
-                                                      const AtlasHashKey& key) {
-    return entry.fKey == key;
-}
-
-inline bool GrTextureStripAtlas::AtlasHashKey::LessThan(const AtlasEntry& entry,
-                                                        const AtlasHashKey& key) {
-    return entry.fKey < key;
-}
 
 #endif

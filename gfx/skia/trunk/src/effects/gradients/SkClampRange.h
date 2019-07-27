@@ -27,7 +27,6 @@ struct SkClampRange {
     SkFixed fFx1;   
                     
     int fV0, fV1;
-    bool fOverflowed;   
 
     void init(SkFixed fx, SkFixed dx, int count, int v0, int v1);
 

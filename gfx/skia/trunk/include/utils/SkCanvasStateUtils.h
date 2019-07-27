@@ -70,6 +70,7 @@ namespace SkCanvasStateUtils {
 
 
 
+
     SK_API void ReleaseCanvasState(SkCanvasState* state);
 };
 

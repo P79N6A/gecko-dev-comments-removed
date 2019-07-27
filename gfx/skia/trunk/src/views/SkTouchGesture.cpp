@@ -203,7 +203,9 @@ float SkTouchGesture::limitTotalZoom(float scale) const {
 void SkTouchGesture::touchMoved(void* owner, float x, float y) {
 
 
-    SkASSERT(kEmpty_State != fState);
+    if (kEmpty_State == fState) {
+        return;
+    }
 
     int index = this->findRec(owner);
     if (index < 0) {

@@ -38,7 +38,7 @@ class GrDrawTarget;
 
 
 
-class GrSWMaskHelper : public SkNoncopyable {
+class GrSWMaskHelper : SkNoncopyable {
 public:
     GrSWMaskHelper(GrContext* context)
     : fContext(context) {
@@ -100,6 +100,15 @@ private:
     SkBitmap        fBM;
     SkDraw          fDraw;
     SkRasterClip    fRasterClip;
+
+    
+    
+    void sendTextureData(GrTexture *texture, const GrTextureDesc& desc,
+                         const void *data, int rowbytes);
+
+    
+    
+    void compressTextureData(GrTexture *texture, const GrTextureDesc& desc);
 
     typedef SkNoncopyable INHERITED;
 };

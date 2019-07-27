@@ -5,8 +5,6 @@
 
 
 
-
-
 #ifndef SkBitmapFilter_opts_sse2_DEFINED
 #define SkBitmapFilter_opts_sse2_DEFINED
 
@@ -14,9 +12,9 @@
 #include "SkConvolver.h"
 
 void highQualityFilter_ScaleOnly_SSE2(const SkBitmapProcState &s, int x, int y,
-                          SkPMColor *SK_RESTRICT colors, int count);
+                                      SkPMColor *SK_RESTRICT colors, int count);
 void highQualityFilter_SSE2(const SkBitmapProcState &s, int x, int y,
-                SkPMColor *SK_RESTRICT colors, int count);
+                            SkPMColor *SK_RESTRICT colors, int count);
 
 
 void convolveVertically_SSE2(const SkConvolutionFilter1D::ConvolutionFixed* filter_values,

@@ -12,16 +12,13 @@
 #include "SkImageEncoder.h"
 #include "SkRefCnt.h"
 #include "SkScalar.h"
+#include "SkShader.h"
 
 class SkData;
 class SkCanvas;
 class SkPaint;
-class SkShader;
 class GrContext;
 class GrTexture;
-
-
-#include "SkShader.h"
 
 
 
@@ -61,8 +58,9 @@ public:
 
     GrTexture* getTexture();
 
-    SkShader*   newShaderClamp() const;
-    SkShader*   newShader(SkShader::TileMode, SkShader::TileMode) const;
+    virtual SkShader* newShader(SkShader::TileMode,
+                                SkShader::TileMode,
+                                const SkMatrix* localMatrix = NULL) const;
 
     void draw(SkCanvas*, SkScalar x, SkScalar y, const SkPaint*);
 

@@ -36,7 +36,7 @@ class SkPath;
 
 
 
-class GrClipMaskManager : public SkNoncopyable {
+class GrClipMaskManager : SkNoncopyable {
 public:
     GrClipMaskManager()
         : fGpu(NULL)
@@ -132,11 +132,14 @@ private:
 
     
     
+    GrTexture* getCachedMaskTexture(int32_t elementsGenID, const SkIRect& clipSpaceIBounds);
+
+
     
-    bool getMaskTexture(int32_t elementsGenID,
-                        const SkIRect& clipSpaceIBounds,
-                        GrTexture** result,
-                        bool willUpload);
+    
+    GrTexture* allocMaskTexture(int32_t elementsGenID,
+                                const SkIRect& clipSpaceIBounds,
+                                bool willUpload);
 
     bool useSWOnlyPath(const GrReducedClip::ElementList& elements);
 

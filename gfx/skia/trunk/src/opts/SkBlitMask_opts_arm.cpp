@@ -1,11 +1,17 @@
 
+
+
+
+
+
+
 #include "SkColor.h"
 #include "SkColorPriv.h"
 #include "SkBlitMask.h"
 #include "SkUtilsArm.h"
 #include "SkBlitMask_opts_arm_neon.h"
 
-SkBlitMask::ColorProc SkBlitMask::PlatformColorProcs(SkBitmap::Config dstConfig,
+SkBlitMask::ColorProc SkBlitMask::PlatformColorProcs(SkColorType dstCT,
                                                      SkMask::Format maskFormat,
                                                      SkColor color) {
 #if SK_ARM_NEON_IS_NONE
@@ -39,7 +45,7 @@ SkBlitMask::BlitLCD16RowProc SkBlitMask::PlatformBlitRowProcs16(bool isOpaque) {
     }
 }
 
-SkBlitMask::RowProc SkBlitMask::PlatformRowProcs(SkBitmap::Config dstConfig,
+SkBlitMask::RowProc SkBlitMask::PlatformRowProcs(SkColorType dstCT,
                                                  SkMask::Format maskFormat,
                                                  RowFlags flags) {
     return NULL;

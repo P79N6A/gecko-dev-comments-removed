@@ -35,15 +35,21 @@ public:
         kCFF_Font,
         kTrueType_Font,
         kOther_Font,
-        kNotEmbeddable_Font
     };
     
     
     
     FontType fType;
 
+    enum FontFlags {
+        kEmpty_FontFlag          = 0x0,  
+        kMultiMaster_FontFlag    = 0x1,  
+        kNotEmbeddable_FontFlag  = 0x2,  
+        kNotSubsettable_FontFlag = 0x4,  
+    };
     
-    bool fMultiMaster;
+    FontFlags fFlags;
+
     uint16_t fLastGlyphID; 
     uint16_t fEmSize;  
 

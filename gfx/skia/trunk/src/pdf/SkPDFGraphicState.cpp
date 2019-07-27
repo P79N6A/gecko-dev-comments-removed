@@ -5,10 +5,10 @@
 
 
 
+#include "SkData.h"
 #include "SkPDFFormXObject.h"
 #include "SkPDFGraphicState.h"
 #include "SkPDFUtils.h"
-#include "SkStream.h"
 #include "SkTypes.h"
 
 static const char* blend_mode_from_xfermode(SkXfermode::Mode mode) {
@@ -82,24 +82,20 @@ size_t SkPDFGraphicState::getOutputSize(SkPDFCatalog* catalog, bool indirect) {
 }
 
 
-SkTDArray<SkPDFGraphicState::GSCanonicalEntry>&
-SkPDFGraphicState::CanonicalPaints() {
-    
+SkTDArray<SkPDFGraphicState::GSCanonicalEntry>& SkPDFGraphicState::CanonicalPaints() {
+    CanonicalPaintsMutex().assertHeld();
     static SkTDArray<SkPDFGraphicState::GSCanonicalEntry> gCanonicalPaints;
     return gCanonicalPaints;
 }
 
+SK_DECLARE_STATIC_MUTEX(gCanonicalPaintsMutex);
 
 SkBaseMutex& SkPDFGraphicState::CanonicalPaintsMutex() {
-    
-    
-    SK_DECLARE_STATIC_MUTEX(gCanonicalPaintsMutex);
     return gCanonicalPaintsMutex;
 }
 
 
-SkPDFGraphicState* SkPDFGraphicState::GetGraphicStateForPaint(
-        const SkPaint& paint) {
+SkPDFGraphicState* SkPDFGraphicState::GetGraphicStateForPaint(const SkPaint& paint) {
     SkAutoMutexAcquire lock(CanonicalPaintsMutex());
     int index = Find(paint);
     if (index >= 0) {
@@ -114,6 +110,7 @@ SkPDFGraphicState* SkPDFGraphicState::GetGraphicStateForPaint(
 
 SkPDFObject* SkPDFGraphicState::GetInvertFunction() {
     
+    CanonicalPaintsMutex().assertHeld();
     static SkPDFStream* invertFunction = NULL;
     if (!invertFunction) {
         
@@ -124,8 +121,9 @@ SkPDFObject* SkPDFGraphicState::GetInvertFunction() {
         domainAndRange->appendInt(1);
 
         static const char psInvert[] = "{1 exch sub}";
-        SkAutoTUnref<SkMemoryStream> psInvertStream(
-            new SkMemoryStream(&psInvert, strlen(psInvert), true));
+        
+        SkAutoTUnref<SkData> psInvertStream(
+                SkData::NewWithCopy(psInvert, strlen(psInvert)));
 
         invertFunction = new SkPDFStream(psInvertStream.get());
         invertFunction->insertInt("FunctionType", 4);
@@ -185,6 +183,7 @@ SkPDFGraphicState* SkPDFGraphicState::GetNoSMaskGraphicState() {
 
 
 int SkPDFGraphicState::Find(const SkPaint& paint) {
+    CanonicalPaintsMutex().assertHeld();
     GSCanonicalEntry search(&paint);
     return CanonicalPaints().find(search);
 }

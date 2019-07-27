@@ -29,7 +29,7 @@ template<typename T> void destroyT(void* ptr) {
 
 
 template<uint32_t kMaxObjects, size_t kTotalBytes>
-class SkSmallAllocator : public SkNoncopyable {
+class SkSmallAllocator : SkNoncopyable {
 public:
     SkSmallAllocator()
     : fStorageUsed(0)
@@ -96,6 +96,16 @@ public:
         return static_cast<T*>(buf);
     }
 
+    template<typename T, typename A1, typename A2, typename A3, typename A4>
+    T* createT(const A1& a1, const A2& a2, const A3& a3, const A4& a4) {
+        void* buf = this->reserveT<T>();
+        if (NULL == buf) {
+            return NULL;
+        }
+        SkNEW_PLACEMENT_ARGS(buf, T, (a1, a2, a3, a4));
+        return static_cast<T*>(buf);
+    }
+
     
 
 
@@ -117,10 +127,12 @@ public:
             
             
             SkASSERT(false);
+            rec->fStorageSize = 0;
             rec->fHeapStorage = sk_malloc_throw(storageRequired);
             rec->fObj = static_cast<void*>(rec->fHeapStorage);
         } else {
             
+            rec->fStorageSize = storageRequired;
             rec->fHeapStorage = NULL;
             SkASSERT(SkIsAlign4(fStorageUsed));
             rec->fObj = static_cast<void*>(fStorage + (fStorageUsed / 4));
@@ -131,11 +143,26 @@ public:
         return rec->fObj;
     }
 
+    
+
+
+
+
+    void freeLast() {
+        SkASSERT(fNumObjects > 0);
+        Rec* rec = &fRecs[fNumObjects - 1];
+        sk_free(rec->fHeapStorage);
+        fStorageUsed -= rec->fStorageSize;
+
+        fNumObjects--;
+    }
+
 private:
     struct Rec {
-        void* fObj;
-        void* fHeapStorage;
-        void  (*fKillProc)(void*);
+        size_t fStorageSize;  
+        void*  fObj;
+        void*  fHeapStorage;
+        void   (*fKillProc)(void*);
     };
 
     

@@ -9,12 +9,15 @@
 #define GrDrawTarget_DEFINED
 
 #include "GrClipData.h"
+#include "GrContext.h"
 #include "GrDrawState.h"
 #include "GrIndexBuffer.h"
+#include "GrTraceMarker.h"
 
 #include "SkClipStack.h"
 #include "SkMatrix.h"
 #include "SkPath.h"
+#include "SkStrokeRec.h"
 #include "SkTArray.h"
 #include "SkTLazy.h"
 #include "SkTypes.h"
@@ -23,8 +26,8 @@
 class GrClipData;
 class GrDrawTargetCaps;
 class GrPath;
+class GrPathRange;
 class GrVertexBuffer;
-class SkStrokeRec;
 
 class GrDrawTarget : public SkRefCnt {
 protected:
@@ -355,6 +358,50 @@ public:
 
 
 
+    enum PathTransformType {
+        kNone_PathTransformType,        
+        kTranslateX_PathTransformType,  
+        kTranslateY_PathTransformType,  
+        kTranslate_PathTransformType,   
+        kAffine_PathTransformType,      
+
+        kLast_PathTransformType = kAffine_PathTransformType
+    };
+    void drawPaths(const GrPathRange* pathRange,
+                   const uint32_t indices[], int count,
+                   const float transforms[], PathTransformType transformsType,
+                   SkPath::FillType fill);
+
+    static inline int PathTransformSize(PathTransformType type) {
+        switch (type) {
+            case kNone_PathTransformType:
+                return 0;
+            case kTranslateX_PathTransformType:
+            case kTranslateY_PathTransformType:
+                return 1;
+            case kTranslate_PathTransformType:
+                return 2;
+            case kAffine_PathTransformType:
+                return 6;
+
+            default:
+                SkFAIL("Unknown path transform type");
+                return 0;
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
 
     void drawRect(const SkRect& rect,
                   const SkMatrix* matrix,
@@ -426,15 +473,26 @@ public:
 
 
 
-    void instantGpuTraceEvent(const char* marker);
+    virtual void discard(GrRenderTarget* = NULL) = 0;
+
+    
+
+
+
+
+    void addGpuTraceMarker(const GrGpuTraceMarker* marker);
+    void removeGpuTraceMarker(const GrGpuTraceMarker* marker);
+
     
 
 
 
 
 
-    void pushGpuTraceEvent(const char* marker);
-    void popGpuTraceEvent();
+
+
+    void saveActiveTraceMarkers();
+    void restoreActiveTraceMarkers();
 
     
 
@@ -485,6 +543,21 @@ public:
     void executeDrawPath(const GrPath* path, SkPath::FillType fill,
                          const GrDeviceCoordTexture* dstCopy) {
         this->onDrawPath(path, fill, dstCopy);
+    }
+
+    
+
+
+    void executeDrawPaths(const GrPathRange* pathRange,
+                          const uint32_t indices[], int count,
+                          const float transforms[], PathTransformType transformsType,
+                          SkPath::FillType fill,
+                          const GrDeviceCoordTexture* dstCopy) {
+        this->onDrawPaths(pathRange, indices, count, transforms, transformsType, fill, dstCopy);
+    }
+
+    inline bool isGpuTracingEnabled() const {
+        return this->getContext()->isGpuTracingEnabled();
     }
 
     
@@ -578,8 +651,8 @@ public:
         bool succeeded() const { return NULL != fTarget; }
         void* vertices() const { SkASSERT(this->succeeded()); return fVertices; }
         void* indices() const { SkASSERT(this->succeeded()); return fIndices; }
-        GrPoint* positions() const {
-            return static_cast<GrPoint*>(this->vertices());
+        SkPoint* positions() const {
+            return static_cast<SkPoint*>(this->vertices());
         }
 
     private:
@@ -713,9 +786,9 @@ protected:
             case kArray_GeometrySrcType:
                 return src.fIndexCount;
             case kBuffer_GeometrySrcType:
-                return static_cast<int>(src.fIndexBuffer->sizeInBytes() / sizeof(uint16_t));
+                return static_cast<int>(src.fIndexBuffer->gpuMemorySize() / sizeof(uint16_t));
             default:
-                GrCrash("Unexpected Index Source.");
+                SkFAIL("Unexpected Index Source.");
                 return 0;
         }
     }
@@ -762,6 +835,8 @@ protected:
 
     
     SkAutoTUnref<const GrDrawTargetCaps> fCaps;
+
+    const GrTraceMarkerSet& getActiveTraceMarkers() { return fActiveTraceMarkers; }
 
     
 
@@ -867,10 +942,13 @@ private:
     virtual void onStencilPath(const GrPath*, SkPath::FillType) = 0;
     virtual void onDrawPath(const GrPath*, SkPath::FillType,
                             const GrDeviceCoordTexture* dstCopy) = 0;
+    virtual void onDrawPaths(const GrPathRange*,
+                             const uint32_t indices[], int count,
+                             const float transforms[], PathTransformType,
+                             SkPath::FillType, const GrDeviceCoordTexture*) = 0;
 
-    virtual void onInstantGpuTraceEvent(const char* marker) = 0;
-    virtual void onPushGpuTraceEvent(const char* marker) = 0;
-    virtual void onPopGpuTraceEvent() = 0;
+    virtual void didAddGpuTraceMarker() = 0;
+    virtual void didRemoveGpuTraceMarker() = 0;
 
     
     bool reserveVertexSpace(size_t vertexSize,
@@ -907,7 +985,9 @@ private:
     
     GrContext*                                                      fContext;
     
-    int                                                             fPushGpuTraceCount;
+    int                                                             fGpuTraceMarkerCount;
+    GrTraceMarkerSet                                                fActiveTraceMarkers;
+    GrTraceMarkerSet                                                fStoredTraceMarkers;
 
     typedef SkRefCnt INHERITED;
 };

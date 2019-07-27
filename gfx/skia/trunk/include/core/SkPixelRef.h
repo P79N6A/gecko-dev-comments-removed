@@ -9,10 +9,11 @@
 #define SkPixelRef_DEFINED
 
 #include "SkBitmap.h"
+#include "SkDynamicAnnotations.h"
 #include "SkRefCnt.h"
 #include "SkString.h"
-#include "SkFlattenable.h"
 #include "SkImageInfo.h"
+#include "SkSize.h"
 #include "SkTDArray.h"
 
 
@@ -46,7 +47,7 @@ class GrTexture;
 
 
 
-class SK_API SkPixelRef : public SkFlattenable {
+class SK_API SkPixelRef : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(SkPixelRef)
 
@@ -219,6 +220,18 @@ public:
 
     virtual GrTexture* getTexture() { return NULL; }
 
+    
+
+
+
+
+
+
+
+    bool getYUV8Planes(SkISize sizes[3], void* planes[3], size_t rowBytes[3]) {
+        return this->onGetYUV8Planes(sizes, planes, rowBytes);
+    }
+
     bool readPixels(SkBitmap* dst, const SkIRect* subset = NULL);
 
     
@@ -230,7 +243,7 @@ public:
 
 
 
-    virtual SkPixelRef* deepCopy(SkBitmap::Config config, const SkIRect* subset = NULL) {
+    virtual SkPixelRef* deepCopy(SkColorType colortype, const SkIRect* subset) {
         return NULL;
     }
 
@@ -249,8 +262,6 @@ public:
 
     virtual void globalUnref();
 #endif
-
-    SK_DEFINE_FLATTENABLE_TYPE(SkPixelRef)
 
     
     
@@ -308,6 +319,9 @@ protected:
     virtual SkData* onRefEncodedData();
 
     
+    virtual bool onGetYUV8Planes(SkISize sizes[3], void* planes[3], size_t rowBytes[3]);
+
+    
 
 
 
@@ -321,10 +335,6 @@ protected:
 
 
     SkBaseMutex* mutex() const { return fMutex; }
-
-    
-    SkPixelRef(SkReadBuffer&, SkBaseMutex*);
-    virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
 
     
     
@@ -341,8 +351,8 @@ private:
     LockRec         fRec;
     int             fLockCount;
 
-    mutable uint32_t fGenerationID;
-    mutable bool     fUniqueGenerationID;
+    mutable SkTRacy<uint32_t> fGenerationID;
+    mutable SkTRacy<bool>     fUniqueGenerationID;
 
     SkTDArray<GenIDChangeListener*> fGenIDChangeListeners;  
 
@@ -363,7 +373,7 @@ private:
     friend class SkBitmap;  
     void cloneGenID(const SkPixelRef&);
 
-    typedef SkFlattenable INHERITED;
+    typedef SkRefCnt INHERITED;
 };
 
 class SkPixelRefFactory : public SkRefCnt {
@@ -374,7 +384,7 @@ public:
 
 
 
-    virtual SkPixelRef* create(const SkImageInfo&, SkColorTable*) = 0;
+    virtual SkPixelRef* create(const SkImageInfo&, size_t rowBytes, SkColorTable*) = 0;
 };
 
 #endif

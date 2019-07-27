@@ -62,9 +62,10 @@ struct SkDQuad {
     SkDCubic toCubic() const;
     SkDPoint top(double startT, double endT) const;
 
-#ifdef SK_DEBUG
-    void dump();
-#endif
+    
+    void dump() const;
+    void dumpComma(const char*) const;
+
 private:
 
 };

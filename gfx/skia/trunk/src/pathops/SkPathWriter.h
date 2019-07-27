@@ -41,5 +41,4 @@ private:
     bool fMoved;
 };
 
-
 #endif 

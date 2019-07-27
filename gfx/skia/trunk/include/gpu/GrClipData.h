@@ -9,8 +9,8 @@
 #define GrClip_DEFINED
 
 #include "SkClipStack.h"
+#include "GrSurface.h"
 
-class GrSurface;
 struct SkIRect;
 
 
@@ -20,7 +20,7 @@ struct SkIRect;
 
 
 
-class GrClipData : public SkNoncopyable {
+class GrClipData : SkNoncopyable {
 public:
     const SkClipStack*  fClipStack;
     SkIPoint            fOrigin;
@@ -47,6 +47,13 @@ public:
     }
 
     void getConservativeBounds(const GrSurface* surface,
+                               SkIRect* devResult,
+                               bool* isIntersectionOfRects = NULL) const {
+        this->getConservativeBounds(surface->width(), surface->height(),
+                                    devResult, isIntersectionOfRects);
+    }
+
+    void getConservativeBounds(int width, int height,
                                SkIRect* devResult,
                                bool* isIntersectionOfRects = NULL) const;
 };

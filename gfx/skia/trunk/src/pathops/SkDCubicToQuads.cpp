@@ -44,7 +44,6 @@
 
 
 
-
 #include "SkPathOpsCubic.h"
 #include "SkPathOpsLine.h"
 #include "SkPathOpsQuad.h"

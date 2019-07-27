@@ -14,6 +14,8 @@
 #include "SkTArray.h"
 #include "SkTypeface.h"
 
+struct SkBaseMutex;
+
 
 
 
@@ -96,7 +98,9 @@ public:
 
 
 
-    static SkFontConfigInterface* GetSingletonDirectInterface();
+
+    static SkFontConfigInterface* GetSingletonDirectInterface
+        (SkBaseMutex* mutex = NULL);
 
     
 

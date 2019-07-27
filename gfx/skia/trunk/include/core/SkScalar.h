@@ -85,6 +85,26 @@ static inline bool SkScalarIsFinite(float x) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+static inline int SkDScalarRoundToInt(SkScalar x) {
+    double xx = x;
+    xx += 0.5;
+    return (int)floor(xx);
+}
+
+
+
 #define SkScalarAbs(x)          sk_float_abs(x)
 
 

@@ -79,30 +79,22 @@ public:
         RESIZE_LAST_ALGORITHM_METHOD = RESIZE_MITCHELL,
     };
 
-    
-    
-    
-    
-    
-    
-    
-    
     static bool Resize(SkBitmap* result,
                        const SkBitmap& source,
                        ResizeMethod method,
-                       int dest_width, int dest_height,
-                       const SkIRect& dest_subset,
-                       const SkConvolutionProcs&,
+                       float dest_width, float dest_height,
                        SkBitmap::Allocator* allocator = NULL);
 
-    
-    
-    static bool Resize(SkBitmap* result,
-                       const SkBitmap& source,
-                       ResizeMethod method,
-                       int dest_width, int dest_height,
-                       const SkConvolutionProcs&,
-                       SkBitmap::Allocator* allocator = NULL);
+    static SkBitmap Resize(const SkBitmap& source,
+                           ResizeMethod method,
+                           float dest_width, float dest_height,
+                           SkBitmap::Allocator* allocator = NULL);
+
+     
+
+
+
+    static void PlatformConvolutionProcs(SkConvolutionProcs*);
 };
 
 #endif

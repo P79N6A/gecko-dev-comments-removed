@@ -41,6 +41,14 @@ public:
 
 
 
+    static SkSurface* NewRasterDirectReleaseProc(const SkImageInfo&, void* pixels, size_t rowBytes,
+                                                 void (*releaseProc)(void* pixels, void* context),
+                                                 void* context);
+
+    
+
+
+
 
 
 
@@ -58,20 +66,56 @@ public:
     
 
 
+    enum TextRenderMode {
+        
 
 
-    static SkSurface* NewPicture(int width, int height);
+        kStandard_TextRenderMode,
+        
+
+
+        kDistanceField_TextRenderMode,
+    };
+
+    enum RenderTargetFlags {
+        kNone_RenderTargetFlag      = 0x0,
+        
+
+
+
+        kDontClear_RenderTargetFlag = 0x01,
+    };
 
     
 
 
-    static SkSurface* NewRenderTargetDirect(GrRenderTarget*);
+    static SkSurface* NewRenderTargetDirect(GrRenderTarget*,
+                                            TextRenderMode trm = kStandard_TextRenderMode,
+                                            RenderTargetFlags flags = kNone_RenderTargetFlag);
 
     
 
 
 
-    static SkSurface* NewRenderTarget(GrContext*, const SkImageInfo&, int sampleCount = 0);
+    static SkSurface* NewRenderTarget(GrContext*, const SkImageInfo&, int sampleCount = 0,
+                                      TextRenderMode trm = kStandard_TextRenderMode,
+                                      RenderTargetFlags flags = kNone_RenderTargetFlag);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    static SkSurface* NewScratchRenderTarget(GrContext*, const SkImageInfo&, int sampleCount = 0,
+                                             TextRenderMode trm = kStandard_TextRenderMode,
+                                             RenderTargetFlags flags = kNone_RenderTargetFlag);
 
     int width() const { return fWidth; }
     int height() const { return fHeight; }

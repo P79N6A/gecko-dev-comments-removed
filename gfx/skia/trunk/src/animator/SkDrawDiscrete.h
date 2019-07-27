@@ -5,12 +5,10 @@
 
 
 
-
-
 #ifndef SkDrawDiscrete_DEFINED
 #define SkDrawDiscrete_DEFINED
 
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 
 class SkDiscrete : public SkDrawPathEffect {
     DECLARE_MEMBER_INFO(Discrete);

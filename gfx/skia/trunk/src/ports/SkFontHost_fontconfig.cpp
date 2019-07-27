@@ -16,10 +16,6 @@
 #include "SkTypefaceCache.h"
 
 
-bool find_name_and_attributes(SkStream* stream, SkString* name,
-                              SkTypeface::Style* style, bool* isFixedWidth);
-
-
 
 
 SK_DECLARE_STATIC_MUTEX(gFontConfigInterfaceMutex);
@@ -50,7 +46,7 @@ static SkFontConfigInterface* RefFCI() {
         if (fci) {
             return fci;
         }
-        fci = SkFontConfigInterface::GetSingletonDirectInterface();
+        fci = SkFontConfigInterface::GetSingletonDirectInterface(&gFontConfigInterfaceMutex);
         SkFontConfigInterface::SetGlobal(fci);
     }
 }
@@ -118,7 +114,7 @@ SkTypeface* FontConfigTypeface::LegacyCreateTypeface(
         return face;
     }
 
-    face = SkNEW_ARGS(FontConfigTypeface, (outStyle, indentity, outFamilyName));
+    face = FontConfigTypeface::Create(outStyle, indentity, outFamilyName);
     SkTypefaceCache::Add(face, style);
 
     return face;
@@ -148,7 +144,7 @@ SkTypeface* SkFontHost::CreateTypefaceFromStream(SkStream* stream) {
     
     SkTypeface::Style style = SkTypeface::kNormal;
     bool isFixedWidth = false;
-    if (!find_name_and_attributes(stream, NULL, &style, &isFixedWidth)) {
+    if (!SkTypeface_FreeType::ScanFont(stream, 0, NULL, &style, &isFixedWidth)) {
         return NULL;
     }
 

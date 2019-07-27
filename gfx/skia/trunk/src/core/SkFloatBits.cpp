@@ -85,7 +85,16 @@ int32_t SkFloatBits_toIntFloor(int32_t packed) {
         value = SkApplySign(value, SkExtractSign(packed));
         exp = -exp;
         if (exp > 25) {   
+#ifdef SK_DISCARD_DENORMALIZED_FOR_SPEED
+        
+        
+        
+            if (exp > 149) {
+                return 0;
+            }
+#else
             exp = 25;
+#endif
         }
         
         return value >> exp;
@@ -145,7 +154,17 @@ int32_t SkFloatBits_toIntCeil(int32_t packed) {
         value = SkApplySign(value, SkExtractSign(packed));
         exp = -exp;
         if (exp > 25) {   
+#ifdef SK_DISCARD_DENORMALIZED_FOR_SPEED
+        
+        
+        
+            if (exp > 149) {
+                return 0;
+            }
+            return 0 < value;
+#else
             exp = 25;
+#endif
         }
         int add = (1 << exp) - 1;
         return (value + add) >> exp;

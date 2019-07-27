@@ -21,6 +21,8 @@
 
 
 
+
+
 #define GR_MAKE_BITFIELD_OPS(X) \
     inline X operator | (X a, X b) { \
         return (X) (+a | +b); \
@@ -50,6 +52,7 @@
     friend X operator & (X a, T b); \
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef SK_SUPPORT_LEGACY_GRTYPES
 
 
 
@@ -65,6 +68,31 @@ template <typename T> const T& GrMin(const T& a, const T& b) {
 template <typename T> const T& GrMax(const T& a, const T& b) {
     return (b < a) ? a : b;
 }
+
+
+
+
+#define GR_ARRAY_COUNT(array)  SK_ARRAY_COUNT(array)
+
+
+
+
+typedef int32_t GrFixed;
+
+#ifdef SK_DEBUG
+
+static inline int16_t GrToS16(intptr_t x) {
+    SkASSERT((int16_t)x == x);
+    return (int16_t)x;
+}
+
+#else
+
+#define GrToS16(x)  x
+
+#endif
+
+#endif
 
 
 #define GR_CT_MAX(a, b) (((b) < (a)) ? (a) : (b))
@@ -123,18 +151,6 @@ static inline size_t GrSizeAlignDown(size_t x, uint32_t alignment) {
 
 
 
-#define GR_ARRAY_COUNT(array)  SK_ARRAY_COUNT(array)
-
-
-
-
-
-
-static inline bool GrIsPow2(unsigned n) {
-    return n && 0 == (n & (n - 1));
-}
-
-
 
 
 static inline uint32_t GrNextPow2(uint32_t n) {
@@ -145,27 +161,6 @@ static inline int GrNextPow2(int n) {
     SkASSERT(n >= 0); 
     return n ? (1 << (32 - SkCLZ(n - 1))) : 1;
 }
-
-
-
-
-
-
-typedef int32_t GrFixed;
-
-#ifdef SK_DEBUG
-
-static inline int16_t GrToS16(intptr_t x) {
-    SkASSERT((int16_t)x == x);
-    return (int16_t)x;
-}
-
-#else
-
-#define GrToS16(x)  x
-
-#endif
-
 
 
 
@@ -279,8 +274,37 @@ enum GrPixelConfig {
 
 
     kBGRA_8888_GrPixelConfig,
+    
 
-    kLast_GrPixelConfig = kBGRA_8888_GrPixelConfig
+
+    kETC1_GrPixelConfig,
+    
+
+
+    kLATC_GrPixelConfig,
+    
+
+
+
+    kR11_EAC_GrPixelConfig,
+
+    
+
+
+
+
+
+
+
+
+
+    kASTC_12x12_GrPixelConfig,
+
+    
+
+
+    kRGBA_float_GrPixelConfig,
+    kLast_GrPixelConfig = kRGBA_float_GrPixelConfig
 };
 static const int kGrPixelConfigCnt = kLast_GrPixelConfig + 1;
 
@@ -295,6 +319,20 @@ static const int kGrPixelConfigCnt = kLast_GrPixelConfig + 1;
 #else
     #error "SK_*32_SHIFT values must correspond to GL_BGRA or GL_RGBA format."
 #endif
+
+
+
+static inline bool GrPixelConfigIsCompressed(GrPixelConfig config) {
+    switch (config) {
+        case kETC1_GrPixelConfig:
+        case kLATC_GrPixelConfig:
+        case kR11_EAC_GrPixelConfig:
+        case kASTC_12x12_GrPixelConfig:
+            return true;
+        default:
+            return false;
+    }
+}
 
 
 static inline bool GrPixelConfigIs8888(GrPixelConfig config) {
@@ -331,6 +369,25 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
         case kRGBA_8888_GrPixelConfig:
         case kBGRA_8888_GrPixelConfig:
             return 4;
+        case kRGBA_float_GrPixelConfig:
+            return 16;
+        default:
+            return 0;
+    }
+}
+
+static inline size_t GrUnpackAlignment(GrPixelConfig config) {
+    switch (config) {
+        case kAlpha_8_GrPixelConfig:
+        case kIndex_8_GrPixelConfig:
+            return 1;
+        case kRGB_565_GrPixelConfig:
+        case kRGBA_4444_GrPixelConfig:
+            return 2;
+        case kRGBA_8888_GrPixelConfig:
+        case kBGRA_8888_GrPixelConfig:
+        case kRGBA_float_GrPixelConfig:
+            return 4;
         default:
             return 0;
     }
@@ -338,6 +395,7 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
 
 static inline bool GrPixelConfigIsOpaque(GrPixelConfig config) {
     switch (config) {
+        case kETC1_GrPixelConfig:
         case kRGB_565_GrPixelConfig:
             return true;
         default:
@@ -347,6 +405,9 @@ static inline bool GrPixelConfigIsOpaque(GrPixelConfig config) {
 
 static inline bool GrPixelConfigIsAlphaOnly(GrPixelConfig config) {
     switch (config) {
+        case kR11_EAC_GrPixelConfig:
+        case kLATC_GrPixelConfig:
+        case kASTC_12x12_GrPixelConfig:
         case kAlpha_8_GrPixelConfig:
             return true;
         default:
@@ -616,6 +677,32 @@ enum GrGLBackendState {
     kPathRendering_GrGLBackendState    = 1 << 11,
     kALL_GrGLBackendState              = 0xffff
 };
+
+
+
+
+static inline size_t GrCompressedFormatDataSize(GrPixelConfig config,
+                                                int width, int height) {
+    SkASSERT(GrPixelConfigIsCompressed(config));
+
+    switch (config) {
+        case kR11_EAC_GrPixelConfig:
+        case kLATC_GrPixelConfig:
+        case kETC1_GrPixelConfig:
+            SkASSERT((width & 3) == 0);
+            SkASSERT((height & 3) == 0);
+            return (width >> 2) * (height >> 2) * 8;
+
+        case kASTC_12x12_GrPixelConfig:
+            SkASSERT((width % 12) == 0);
+            SkASSERT((height % 12) == 0);
+            return (width / 12) * (height / 12) * 16;
+
+        default:
+            SkFAIL("Unknown compressed pixel config");
+            return 4 * width * height;
+    }
+}
 
 
 

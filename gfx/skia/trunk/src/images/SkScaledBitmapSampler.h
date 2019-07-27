@@ -34,10 +34,23 @@ public:
         kRGB_565 
     };
 
+    struct Options {
+        bool fDither;
+        bool fPremultiplyAlpha;
+        bool fSkipZeros;
+        explicit Options(const SkImageDecoder &dec)
+            : fDither(dec.getDitherImage())
+            , fPremultiplyAlpha(!dec.getRequireUnpremultipliedColors())
+            , fSkipZeros(dec.getSkipWritingZeroes())
+            { }
+    };
+
     
     
     
     bool begin(SkBitmap* dst, SrcConfig sc, const SkImageDecoder& decoder,
+               const SkPMColor* = NULL);
+    bool begin(SkBitmap* dst, SrcConfig sc, const Options& opts,
                const SkPMColor* = NULL);
     
     

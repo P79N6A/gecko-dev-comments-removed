@@ -21,7 +21,7 @@ class SkPaint;
 class SkPDFCatalog;
 class SkPDFFont;
 
-class SkPDFGlyphSet : public SkNoncopyable {
+class SkPDFGlyphSet : SkNoncopyable {
 public:
     SkPDFGlyphSet();
 
@@ -34,7 +34,7 @@ private:
     SkBitSet fBitSet;
 };
 
-class SkPDFGlyphSetMap : public SkNoncopyable {
+class SkPDFGlyphSetMap : SkNoncopyable {
 public:
     struct FontGlyphSetPair {
         FontGlyphSetPair(SkPDFFont* font, SkPDFGlyphSet* glyphSet);
@@ -101,6 +101,14 @@ public:
 
     
 
+    bool canEmbed() const;
+
+    
+
+    bool canSubset() const;
+
+    
+
     bool hasGlyph(uint16_t glyphID);
 
     
@@ -111,7 +119,7 @@ public:
 
 
 
-    size_t glyphsToPDFFontEncoding(uint16_t* glyphIDs, size_t numGlyphs);
+    int glyphsToPDFFontEncoding(uint16_t* glyphIDs, int numGlyphs);
 
     
 
@@ -121,8 +129,7 @@ public:
 
 
 
-    static SkPDFFont* GetFontResource(SkTypeface* typeface,
-                                             uint16_t glyphID);
+    static SkPDFFont* GetFontResource(SkTypeface* typeface, uint16_t glyphID);
 
     
 
@@ -134,12 +141,12 @@ public:
 
 protected:
     
-    SkPDFFont(SkAdvancedTypefaceMetrics* fontInfo, SkTypeface* typeface,
+    SkPDFFont(const SkAdvancedTypefaceMetrics* fontInfo, SkTypeface* typeface,
               SkPDFDict* relatedFontDescriptor);
 
     
-    SkAdvancedTypefaceMetrics* fontInfo();
-    void setFontInfo(SkAdvancedTypefaceMetrics* info);
+    const SkAdvancedTypefaceMetrics* fontInfo();
+    void setFontInfo(const SkAdvancedTypefaceMetrics* info);
     uint16_t firstGlyphID() const;
     uint16_t lastGlyphID() const;
     void setLastGlyphID(uint16_t glyphID);
@@ -164,7 +171,7 @@ protected:
     void populateToUnicodeTable(const SkPDFGlyphSet* subset);
 
     
-    static SkPDFFont* Create(SkAdvancedTypefaceMetrics* fontInfo,
+    static SkPDFFont* Create(const SkAdvancedTypefaceMetrics* fontInfo,
                              SkTypeface* typeface, uint16_t glyphID,
                              SkPDFDict* relatedFontDescriptor);
 
@@ -188,9 +195,7 @@ private:
     
     uint16_t fFirstGlyphID;
     uint16_t fLastGlyphID;
-    
-    
-    SkAutoTUnref<SkAdvancedTypefaceMetrics> fFontInfo;
+    SkAutoTUnref<const SkAdvancedTypefaceMetrics> fFontInfo;
     SkTDArray<SkPDFObject*> fResources;
     SkAutoTUnref<SkPDFDict> fDescriptor;
 

@@ -9,6 +9,7 @@
 #ifndef SkPathRef_DEFINED
 #define SkPathRef_DEFINED
 
+#include "SkDynamicAnnotations.h"
 #include "SkMatrix.h"
 #include "SkPoint.h"
 #include "SkRect.h"
@@ -290,9 +291,11 @@ private:
     
     void computeBounds() const {
         SkDEBUGCODE(this->validate();)
-        SkASSERT(fBoundsIsDirty);
+        
+        
+        
 
-        fIsFinite = ComputePtBounds(&fBounds, *this);
+        fIsFinite = ComputePtBounds(fBounds.get(), *this);
         fBoundsIsDirty = false;
     }
 
@@ -300,7 +303,7 @@ private:
         SkASSERT(rect.fLeft <= rect.fRight && rect.fTop <= rect.fBottom);
         fBounds = rect;
         fBoundsIsDirty = false;
-        fIsFinite = fBounds.isFinite();
+        fIsFinite = fBounds->isFinite();
     }
 
     
@@ -418,7 +421,7 @@ private:
     
 
 
-    static void CreateEmptyImpl(int);
+    static SkPathRef* CreateEmptyImpl();
 
     void setIsOval(bool isOval) { fIsOval = isOval; }
 
@@ -432,11 +435,12 @@ private:
         kMinSize = 256,
     };
 
-    mutable SkRect      fBounds;
-    uint8_t             fSegmentMask;
-    mutable uint8_t     fBoundsIsDirty;
-    mutable SkBool8     fIsFinite;    
-    mutable SkBool8     fIsOval;
+    mutable SkTRacyReffable<SkRect> fBounds;
+    mutable SkTRacy<uint8_t>        fBoundsIsDirty;
+    mutable SkTRacy<SkBool8>        fIsFinite;    
+
+    SkBool8  fIsOval;
+    uint8_t  fSegmentMask;
 
     SkPoint*            fPoints; 
     uint8_t*            fVerbs; 

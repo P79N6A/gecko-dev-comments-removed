@@ -30,93 +30,12 @@ public:
 
     SkBitmapDevice(const SkBitmap& bitmap, const SkDeviceProperties& deviceProperties);
 
-#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    SkBitmapDevice(SkBitmap::Config config, int width, int height, bool isOpaque = false);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    SkBitmapDevice(SkBitmap::Config config, int width, int height, bool isOpaque,
-                   const SkDeviceProperties& deviceProperties);
-#endif
     static SkBitmapDevice* Create(const SkImageInfo&,
                                   const SkDeviceProperties* = NULL);
 
-    
-
-    virtual int width() const SK_OVERRIDE { return fBitmap.width(); }
-    
-
-    virtual int height() const SK_OVERRIDE { return fBitmap.height(); }
-
-    
-
-
-    virtual bool isOpaque() const SK_OVERRIDE { return fBitmap.isOpaque(); }
-
-    
-
-    virtual SkBitmap::Config config() const SK_OVERRIDE { return fBitmap.config(); }
-
     virtual SkImageInfo imageInfo() const SK_OVERRIDE;
 
-#ifdef SK_SUPPORT_LEGACY_WRITEPIXELSCONFIG
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual void writePixels(const SkBitmap& bitmap, int x, int y,
-                             SkCanvas::Config8888 config8888) SK_OVERRIDE;
-#endif
-    
-
-
-    virtual GrRenderTarget* accessRenderTarget() SK_OVERRIDE { return NULL; }
-
 protected:
-    
-
-
-
-
-
-
-
     virtual bool filterTextFlags(const SkPaint& paint, TextFlags*) SK_OVERRIDE;
 
     
@@ -207,14 +126,7 @@ protected:
         return pr;
     }
 
-    
-
-
-
-
-
-
-    virtual bool onReadPixels(const SkBitmap&, int x, int y, SkCanvas::Config8888) SK_OVERRIDE;
+    virtual bool onReadPixels(const SkImageInfo&, void*, size_t, int x, int y) SK_OVERRIDE;
     virtual bool onWritePixels(const SkImageInfo&, const void*, size_t, int, int) SK_OVERRIDE;
     virtual void* onAccessPixels(SkImageInfo* info, size_t* rowBytes) SK_OVERRIDE;
 
@@ -223,33 +135,6 @@ protected:
 
     virtual void lockPixels() SK_OVERRIDE;
     virtual void unlockPixels() SK_OVERRIDE;
-
-    
-
-
-
-
-
-    virtual bool allowImageFilter(const SkImageFilter*) SK_OVERRIDE;
-
-    
-
-
-
-
-
-
-    virtual bool canHandleImageFilter(const SkImageFilter*) SK_OVERRIDE;
-
-    
-
-
-
-
-
-
-    virtual bool filterImage(const SkImageFilter*, const SkBitmap&, const SkImageFilter::Context&,
-                             SkBitmap* result, SkIPoint* offset) SK_OVERRIDE;
 
 private:
     friend class SkCanvas;
@@ -266,16 +151,7 @@ private:
     
     virtual void replaceBitmapBackendForRasterSurface(const SkBitmap&) SK_OVERRIDE;
 
-#ifdef SK_SUPPORT_LEGACY_COMPATIBLEDEVICE_CONFIG
-    
-    void init(SkBitmap::Config config, int width, int height, bool isOpaque);
-#endif
-
     virtual SkBaseDevice* onCreateDevice(const SkImageInfo&, Usage) SK_OVERRIDE;
-
-    
-
-    virtual void flush() SK_OVERRIDE {}
 
     virtual SkSurface* newSurface(const SkImageInfo&) SK_OVERRIDE;
     virtual const void* peekPixels(SkImageInfo*, size_t* rowBytes) SK_OVERRIDE;

@@ -105,11 +105,12 @@ static inline SkFixed SkFixedCos(SkFixed radians) {
     #define SkFixedMul(a,b)     SkFixedMul_longlong(a,b)
 #endif
 
-#if defined(SK_CPU_ARM)
+#if defined(SK_CPU_ARM32)
     
 
 
-    inline SkFixed SkFloatToFixed_arm(float x)
+
+    SK_ALWAYS_INLINE SkFixed SkFloatToFixed_arm(float x)
     {
         int32_t y, z;
         asm("movs    %1, %3, lsl #1         \n"

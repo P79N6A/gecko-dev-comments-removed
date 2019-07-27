@@ -43,11 +43,7 @@ void SkSurface_Base::onDraw(SkCanvas* canvas, SkScalar x, SkScalar y,
 void SkSurface_Base::aboutToDraw(ContentChangeMode mode) {
     this->dirtyGenerationID();
 
-    if (NULL != fCachedCanvas) {
-        SkASSERT(fCachedCanvas->getSurfaceBase() == this || \
-                 NULL == fCachedCanvas->getSurfaceBase());
-        fCachedCanvas->setSurfaceBase(NULL);
-    }
+    SkASSERT(!fCachedCanvas || fCachedCanvas->getSurfaceBase() == this);
 
     if (NULL != fCachedImage) {
         
@@ -61,12 +57,13 @@ void SkSurface_Base::aboutToDraw(ContentChangeMode mode) {
         
         fCachedImage->unref();
         fCachedImage = NULL;
+    } else if (kDiscard_ContentChangeMode == mode) {
+        this->onDiscard();
     }
 }
 
 uint32_t SkSurface_Base::newGenerationID() {
-    this->installIntoCanvasForDirtyNotification();
-
+    SkASSERT(!fCachedCanvas || fCachedCanvas->getSurfaceBase() == this);
     static int32_t gID;
     return sk_atomic_inc(&gID) + 1;
 }

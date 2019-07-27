@@ -5,16 +5,13 @@
 
 
 
-
+#include <emmintrin.h>
 #include "SkBitmap.h"
-#include "SkColorPriv.h"
 #include "SkBlurImage_opts_SSE2.h"
+#include "SkColorPriv.h"
 #include "SkRect.h"
 
-#include <emmintrin.h>
-
 namespace {
-
 enum BlurDirection {
     kX, kY
 };
@@ -22,19 +19,17 @@ enum BlurDirection {
 
 
 
-
-
 inline __m128i expand(int a) {
-      const __m128i zero = _mm_setzero_si128();
+    const __m128i zero = _mm_setzero_si128();
 
-      
-      __m128i result = _mm_cvtsi32_si128(a);
+    
+    __m128i result = _mm_cvtsi32_si128(a);
 
-      
-      result = _mm_unpacklo_epi8(result, zero);
+    
+    result = _mm_unpacklo_epi8(result, zero);
 
-      
-      return _mm_unpacklo_epi16(result, zero);
+    
+    return _mm_unpacklo_epi16(result, zero);
 }
 
 template<BlurDirection srcDirection, BlurDirection dstDirection>
@@ -60,17 +55,13 @@ void SkBoxBlur_SSE2(const SkPMColor* src, int srcStride, SkPMColor* dst, int ker
         const SkPMColor* sptr = src;
         SkColor* dptr = dst;
         for (int x = 0; x < width; ++x) {
-#if 0
-            
-            __m128i result = _mm_mullo_epi32(sum, scale);
-#else
             
             __m128i tmp1 = _mm_mul_epu32(sum, scale);
             __m128i tmp2 = _mm_mul_epu32(_mm_srli_si128(sum, 4),
                                          _mm_srli_si128(scale, 4));
             __m128i result = _mm_unpacklo_epi32(_mm_shuffle_epi32(tmp1, _MM_SHUFFLE(0,0,2,0)),
                                                 _mm_shuffle_epi32(tmp2, _MM_SHUFFLE(0,0,2,0)));
-#endif
+
             
             result = _mm_add_epi32(result, half);
 

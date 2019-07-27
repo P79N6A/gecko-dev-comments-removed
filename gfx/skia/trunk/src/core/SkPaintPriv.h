@@ -22,4 +22,11 @@ class SkPaint;
 
 bool isPaintOpaque(const SkPaint* paint,
                    const SkBitmap* bmpReplacesShader = NULL);
+
+
+
+
+
+
+bool NeedsDeepCopy(const SkPaint& paint);
 #endif

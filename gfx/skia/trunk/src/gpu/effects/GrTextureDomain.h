@@ -108,7 +108,7 @@ public:
 
 
 
-        static GrGLEffect::EffectKey DomainKey(const GrTextureDomain& domain) {
+        static uint32_t DomainKey(const GrTextureDomain& domain) {
             GR_STATIC_ASSERT(kModeCount <= 4);
             return domain.mode();
         }
@@ -136,12 +136,12 @@ class GrGLTextureDomainEffect;
 class GrTextureDomainEffect : public GrSingleTextureEffect {
 
 public:
-    static GrEffectRef* Create(GrTexture*,
-                               const SkMatrix&,
-                               const SkRect& domain,
-                               GrTextureDomain::Mode,
-                               GrTextureParams::FilterMode filterMode,
-                               GrCoordSet = kLocal_GrCoordSet);
+    static GrEffect* Create(GrTexture*,
+                            const SkMatrix&,
+                            const SkRect& domain,
+                            GrTextureDomain::Mode,
+                            GrTextureParams::FilterMode filterMode,
+                            GrCoordSet = kLocal_GrCoordSet);
 
     virtual ~GrTextureDomainEffect();
 

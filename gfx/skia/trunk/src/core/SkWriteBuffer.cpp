@@ -206,9 +206,8 @@ void SkWriteBuffer::writeBitmap(const SkBitmap& bitmap) {
         }
     }
 
-    
-    this->writeUInt(0);
-    bitmap.flatten(*this);
+    this->writeUInt(0); 
+    SkBitmap::WriteRawPixels(this, bitmap);
 }
 
 void SkWriteBuffer::writeTypeface(SkTypeface* obj) {

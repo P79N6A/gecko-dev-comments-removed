@@ -18,7 +18,7 @@ class GrTexture;
 
 
 
-class GrClipMaskCache : public SkNoncopyable {
+class GrClipMaskCache : SkNoncopyable {
 public:
     GrClipMaskCache();
 

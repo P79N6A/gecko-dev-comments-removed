@@ -17,7 +17,6 @@ class SK_API SkLayerDrawLooper : public SkDrawLooper {
 public:
     SK_DECLARE_INST_COUNT(SkLayerDrawLooper)
 
-            SkLayerDrawLooper();
     virtual ~SkLayerDrawLooper();
 
     
@@ -74,29 +73,11 @@ public:
         LayerInfo();
     };
 
-    
-
-
-
-
-    SkPaint* addLayer(const LayerInfo&);
-
-    
-
-
-    void addLayer(SkScalar dx, SkScalar dy);
-
-    
-
-
-    void addLayer() { this->addLayer(0, 0); }
-
-    
-    SkPaint* addLayerOnTop(const LayerInfo&);
-
     virtual SkDrawLooper::Context* createContext(SkCanvas*, void* storage) const SK_OVERRIDE;
 
     virtual size_t contextSize() const SK_OVERRIDE { return sizeof(LayerDrawLooperContext); }
+
+    virtual bool asABlurShadow(BlurShadowRec* rec) const SK_OVERRIDE;
 
     SK_TO_STRING_OVERRIDE()
 
@@ -105,6 +86,8 @@ public:
     static SkFlattenable* CreateProc(SkReadBuffer& buffer);
 
 protected:
+    SkLayerDrawLooper();
+
     virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
 
 private:

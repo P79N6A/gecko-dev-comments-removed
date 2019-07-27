@@ -5,14 +5,12 @@
 
 
 
-
-
 #include "SkDrawExtraPathEffect.h"
 #include "SkDrawPath.h"
 #include "Sk1DPathEffect.h"
 #include "Sk2DPathEffect.h"
 #include "SkMemberInfo.h"
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkPathEffect.h"
 #include "SkCornerPathEffect.h"
 

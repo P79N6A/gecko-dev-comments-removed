@@ -93,7 +93,7 @@ inline void operator delete(void* p) {
 #endif
 
 #ifdef SK_DEBUG
-    #define SkASSERT(cond)              SK_DEBUGBREAK(cond)
+    #define SkASSERT(cond)              SK_ALWAYSBREAK(cond)
     #define SkDEBUGFAIL(message)        SkASSERT(false && message)
     #define SkDEBUGCODE(code)           code
     #define SkDECLAREPARAM(type, var)   , type var
@@ -112,6 +112,13 @@ inline void operator delete(void* p) {
     
     #define SkAssertResult(cond)        cond
 #endif
+
+#define SkFAIL(message)                 SK_ALWAYSBREAK(false && message)
+
+
+
+
+#define SkASSERTF(cond, fmt, ...)       SkASSERT((cond) || (SkDebugf(fmt"\n", __VA_ARGS__), false))
 
 #ifdef SK_DEVELOPER
     #define SkDEVCODE(code)             code
@@ -317,6 +324,13 @@ typedef uint32_t SkMSec;
 
 
 
+#define SK_InvalidGenID     0
+
+
+#define SK_InvalidUniqueID  0
+
+
+
 
 #ifdef __cplusplus
 
@@ -486,7 +500,7 @@ private:
 
 
 
-class SkAutoMalloc : public SkNoncopyable {
+class SkAutoMalloc : SkNoncopyable {
 public:
     explicit SkAutoMalloc(size_t size = 0) {
         fPtr = size ? sk_malloc_throw(size) : NULL;

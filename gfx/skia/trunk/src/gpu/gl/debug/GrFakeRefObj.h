@@ -18,7 +18,7 @@
 
 
 
-class GrFakeRefObj : public SkNoncopyable {
+class GrFakeRefObj : SkNoncopyable {
 public:
     GrFakeRefObj()
         : fRef(0)

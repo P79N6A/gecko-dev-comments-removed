@@ -15,6 +15,7 @@
 #include "SkMipMap.h"
 #include "SkPixelRef.h"
 #include "SkScaledImageCache.h"
+#include "SkImageEncoder.h"
 
 #if !SK_ARM_NEON_IS_NONE
 
@@ -128,6 +129,21 @@ private:
 
 
 
+static inline bool cache_size_okay(const SkBitmap& bm, const SkMatrix& invMat) {
+    size_t maximumAllocation
+        = SkScaledImageCache::GetSingleAllocationByteLimit();
+    if (0 == maximumAllocation) {
+        return true;
+    }
+    
+    
+    
+    return bm.info().getSafeSize(bm.info().minRowBytes())
+        < (maximumAllocation * invMat.getScaleX() * invMat.getScaleY());
+}
+
+
+
 
 
 bool SkBitmapProcState::possiblyScaleImage() {
@@ -139,14 +155,14 @@ bool SkBitmapProcState::possiblyScaleImage() {
     if (fFilterLevel <= SkPaint::kLow_FilterLevel) {
         return false;
     }
-
     
     
     
 
     if (SkPaint::kHigh_FilterLevel == fFilterLevel &&
         fInvMatrix.getType() <= (SkMatrix::kScale_Mask | SkMatrix::kTranslate_Mask) &&
-        fOrigBitmap.config() == SkBitmap::kARGB_8888_Config) {
+        kN32_SkColorType == fOrigBitmap.colorType() &&
+        cache_size_okay(fOrigBitmap, fInvMatrix)) {
 
         SkScalar invScaleX = fInvMatrix.getScaleX();
         SkScalar invScaleY = fInvMatrix.getScaleY();
@@ -166,27 +182,23 @@ bool SkBitmapProcState::possiblyScaleImage() {
         }
 
         if (NULL == fScaledCacheID) {
-            int dest_width  = SkScalarCeilToInt(fOrigBitmap.width() / invScaleX);
-            int dest_height = SkScalarCeilToInt(fOrigBitmap.height() / invScaleY);
+            float dest_width  = fOrigBitmap.width() / invScaleX;
+            float dest_height = fOrigBitmap.height() / invScaleY;
 
             
-
-            SkConvolutionProcs simd;
-            sk_bzero(&simd, sizeof(simd));
-            this->platformConvolutionProcs(&simd);
 
             if (!SkBitmapScaler::Resize(&fScaledBitmap,
                                         fOrigBitmap,
                                         SkBitmapScaler::RESIZE_BEST,
                                         dest_width,
                                         dest_height,
-                                        simd,
                                         SkScaledImageCache::GetAllocator())) {
                 
                 
                 return false;
 
             }
+
             SkASSERT(NULL != fScaledBitmap.getPixels());
             fScaledCacheID = SkScaledImageCache::AddAndLock(fOrigBitmap,
                                                             invScaleX,
@@ -263,6 +275,7 @@ bool SkBitmapProcState::possiblyScaleImage() {
             if (mip) {
                 fScaledCacheID = SkScaledImageCache::AddAndLockMip(fOrigBitmap,
                                                                    mip);
+                SkASSERT(mip->getRefCnt() > 1);
                 mip->unref();   
                 SkASSERT(fScaledCacheID);
             }
@@ -277,10 +290,10 @@ bool SkBitmapProcState::possiblyScaleImage() {
                 SkScalar invScaleFixup = level.fScale;
                 fInvMatrix.postScale(invScaleFixup, invScaleFixup);
 
-                fScaledBitmap.setConfig(fOrigBitmap.config(),
-                                        level.fWidth, level.fHeight,
-                                        level.fRowBytes);
-                fScaledBitmap.setPixels(level.fPixels);
+                SkImageInfo info = fOrigBitmap.info();
+                info.fWidth = level.fWidth;
+                info.fHeight = level.fHeight;
+                fScaledBitmap.installPixels(info, level.fPixels, level.fRowBytes);
                 fBitmap = &fScaledBitmap;
                 fFilterLevel = SkPaint::kLow_FilterLevel;
                 unlocker.release();
@@ -359,17 +372,6 @@ bool SkBitmapProcState::lockBaseBitmap() {
     return true;
 }
 
-void SkBitmapProcState::endContext() {
-    SkDELETE(fBitmapFilter);
-    fBitmapFilter = NULL;
-    fScaledBitmap.reset();
-
-    if (fScaledCacheID) {
-        SkScaledImageCache::Unlock(fScaledCacheID);
-        fScaledCacheID = NULL;
-    }
-}
-
 SkBitmapProcState::~SkBitmapProcState() {
     if (fScaledCacheID) {
         SkScaledImageCache::Unlock(fScaledCacheID);
@@ -398,8 +400,15 @@ bool SkBitmapProcState::chooseProcs(const SkMatrix& inv, const SkPaint& paint) {
     }
     
     
+    
     if (NULL == fBitmap) {
         return false;
+    }
+
+    
+    
+    if (SkPaint::kMedium_FilterLevel == fFilterLevel) {
+        fFilterLevel = SkPaint::kLow_FilterLevel;
     }
 
     bool trivialMatrix = (fInvMatrix.getType() & ~SkMatrix::kTranslate_Mask) == 0;
@@ -480,11 +489,14 @@ bool SkBitmapProcState::chooseProcs(const SkMatrix& inv, const SkPaint& paint) {
     
 
     fMatrixProc = this->chooseMatrixProc(trivialMatrix);
+    
     if (NULL == fMatrixProc) {
         return false;
     }
 
     
+
+    const SkAlphaType at = fBitmap->alphaType();
 
     
     
@@ -503,24 +515,34 @@ bool SkBitmapProcState::chooseProcs(const SkMatrix& inv, const SkPaint& paint) {
             index |= 4;
         }
         
-        switch (fBitmap->config()) {
-            case SkBitmap::kARGB_8888_Config:
+        switch (fBitmap->colorType()) {
+            case kN32_SkColorType:
+                if (kPremul_SkAlphaType != at && kOpaque_SkAlphaType != at) {
+                    return false;
+                }
                 index |= 0;
                 break;
-            case SkBitmap::kRGB_565_Config:
+            case kRGB_565_SkColorType:
                 index |= 8;
                 break;
-            case SkBitmap::kIndex8_Config:
+            case kIndex_8_SkColorType:
+                if (kPremul_SkAlphaType != at && kOpaque_SkAlphaType != at) {
+                    return false;
+                }
                 index |= 16;
                 break;
-            case SkBitmap::kARGB_4444_Config:
+            case kARGB_4444_SkColorType:
+                if (kPremul_SkAlphaType != at && kOpaque_SkAlphaType != at) {
+                    return false;
+                }
                 index |= 24;
                 break;
-            case SkBitmap::kA8_Config:
+            case kAlpha_8_SkColorType:
                 index |= 32;
                 fPaintPMColor = SkPreMultiplyColor(paint.getColor());
                 break;
             default:
+                
                 return false;
         }
 
@@ -880,7 +902,7 @@ bool SkBitmapProcState::setupForTranslate() {
 
 SkBitmapProcState::ShaderProc32 SkBitmapProcState::chooseShaderProc32() {
 
-    if (SkBitmap::kARGB_8888_Config != fBitmap->config()) {
+    if (kN32_SkColorType != fBitmap->colorType()) {
         return NULL;
     }
 

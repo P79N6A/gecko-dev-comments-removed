@@ -1,4 +1,13 @@
+
+
+
+
+
+
+
 #include "GrBicubicEffect.h"
+
+#include "gl/GrGLShaderBuilder.h"
 
 #define DS(x) SkDoubleToScalar(x)
 
@@ -17,7 +26,7 @@ public:
 
     virtual void emitCode(GrGLShaderBuilder*,
                           const GrDrawEffect&,
-                          EffectKey,
+                          const GrEffectKey&,
                           const char* outputColor,
                           const char* inputColor,
                           const TransformedCoordsArray&,
@@ -25,9 +34,10 @@ public:
 
     virtual void setData(const GrGLUniformManager&, const GrDrawEffect&) SK_OVERRIDE;
 
-    static inline EffectKey GenKey(const GrDrawEffect& drawEffect, const GrGLCaps&) {
+    static inline void GenKey(const GrDrawEffect& drawEffect, const GrGLCaps&,
+                              GrEffectKeyBuilder* b) {
         const GrTextureDomain& domain = drawEffect.castEffect<GrBicubicEffect>().domain();
-        return GrTextureDomain::GLDomain::DomainKey(domain);
+        b->add32(GrTextureDomain::GLDomain::DomainKey(domain));
     }
 
 private:
@@ -46,7 +56,7 @@ GrGLBicubicEffect::GrGLBicubicEffect(const GrBackendEffectFactory& factory, cons
 
 void GrGLBicubicEffect::emitCode(GrGLShaderBuilder* builder,
                                  const GrDrawEffect& drawEffect,
-                                 EffectKey key,
+                                 const GrEffectKey& key,
                                  const char* outputColor,
                                  const char* inputColor,
                                  const TransformedCoordsArray& coords,
@@ -165,10 +175,10 @@ void GrBicubicEffect::getConstantColorComponents(GrColor* color, uint32_t* valid
 
 GR_DEFINE_EFFECT_TEST(GrBicubicEffect);
 
-GrEffectRef* GrBicubicEffect::TestCreate(SkRandom* random,
-                                         GrContext* context,
-                                         const GrDrawTargetCaps&,
-                                         GrTexture* textures[]) {
+GrEffect* GrBicubicEffect::TestCreate(SkRandom* random,
+                                      GrContext* context,
+                                      const GrDrawTargetCaps&,
+                                      GrTexture* textures[]) {
     int texIdx = random->nextBool() ? GrEffectUnitTest::kSkiaPMTextureIdx :
                                       GrEffectUnitTest::kAlphaTextureIdx;
     SkScalar coefficients[16];
@@ -176,4 +186,37 @@ GrEffectRef* GrBicubicEffect::TestCreate(SkRandom* random,
         coefficients[i] = random->nextSScalar1();
     }
     return GrBicubicEffect::Create(textures[texIdx], coefficients);
+}
+
+
+
+bool GrBicubicEffect::ShouldUseBicubic(const SkMatrix& matrix,
+                                       GrTextureParams::FilterMode* filterMode) {
+    if (matrix.isIdentity()) {
+        *filterMode = GrTextureParams::kNone_FilterMode;
+        return false;
+    }
+
+    SkScalar scales[2];
+    if (!matrix.getMinMaxScales(scales) || scales[0] < SK_Scalar1) {
+        
+        
+        *filterMode = GrTextureParams::kMipMap_FilterMode;
+        return false;
+    }
+    
+    if (scales[1] == SK_Scalar1) {
+        if (matrix.rectStaysRect() && SkScalarIsInt(matrix.getTranslateX()) &&
+            SkScalarIsInt(matrix.getTranslateY())) {
+            *filterMode = GrTextureParams::kNone_FilterMode;
+        } else {
+            
+            *filterMode = GrTextureParams::kBilerp_FilterMode;
+        }
+        return false;
+    }
+    
+    
+    *filterMode = GrTextureParams::kNone_FilterMode;
+    return true;
 }

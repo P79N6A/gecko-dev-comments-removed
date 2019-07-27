@@ -28,7 +28,7 @@ inline void* operator new(size_t, SkTLList<T>* list,
 
 
 template <typename T>
-class SkTLList : public SkNoncopyable {
+class SkTLList : SkNoncopyable {
 private:
     struct Block;
     struct Node {

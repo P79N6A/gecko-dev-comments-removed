@@ -52,14 +52,6 @@ typedef const SkGlyph& (*SkMeasureCacheProc)(SkGlyphCache*, const char**);
 
 
 class SK_API SkPaint {
-    enum {
-        
-        kFilterBitmap_Flag    = 0x02, 
-        
-        kHighQualityFilterBitmap_Flag = 0x4000, 
-        
-        kHighQualityDownsampleBitmap_Flag = 0x8000, 
-    };
 public:
     SkPaint();
     SkPaint(const SkPaint& paint);
@@ -97,7 +89,7 @@ public:
     };
 
     Hinting getHinting() const {
-        return static_cast<Hinting>(fHinting);
+        return static_cast<Hinting>(fBitfields.fHinting);
     }
 
     void setHinting(Hinting hintingLevel);
@@ -129,7 +121,7 @@ public:
     
 
 
-    uint32_t getFlags() const { return fFlags; }
+    uint32_t getFlags() const { return fBitfields.fFlags; }
 
     
 
@@ -310,7 +302,9 @@ public:
 
 
 
-    FilterLevel getFilterLevel() const;
+    FilterLevel getFilterLevel() const {
+      return (FilterLevel)fBitfields.fFilterLevel;
+    }
 
     
 
@@ -358,7 +352,7 @@ public:
 
 
 
-    Style getStyle() const { return (Style)fStyle; }
+    Style getStyle() const { return (Style)fBitfields.fStyle; }
 
     
 
@@ -464,7 +458,7 @@ public:
 
 
 
-    Cap getStrokeCap() const { return (Cap)fCapType; }
+    Cap getStrokeCap() const { return (Cap)fBitfields.fCapType; }
 
     
 
@@ -476,7 +470,7 @@ public:
 
 
 
-    Join getStrokeJoin() const { return (Join)fJoinType; }
+    Join getStrokeJoin() const { return (Join)fBitfields.fJoinType; }
 
     
 
@@ -507,6 +501,11 @@ public:
     SkShader* getShader() const { return fShader; }
 
     
+
+
+
+
+
 
 
 
@@ -688,7 +687,7 @@ public:
     
 
 
-    Align   getTextAlign() const { return (Align)fTextAlign; }
+    Align   getTextAlign() const { return (Align)fBitfields.fTextAlign; }
 
     
 
@@ -741,7 +740,9 @@ public:
         kGlyphID_TextEncoding   
     };
 
-    TextEncoding getTextEncoding() const { return (TextEncoding)fTextEncoding; }
+    TextEncoding getTextEncoding() const {
+      return (TextEncoding)fBitfields.fTextEncoding;
+    }
 
     void setTextEncoding(TextEncoding encoding);
 
@@ -1041,10 +1042,6 @@ public:
 
 private:
     SkTypeface*     fTypeface;
-    SkScalar        fTextSize;
-    SkScalar        fTextScaleX;
-    SkScalar        fTextSkewX;
-
     SkPathEffect*   fPathEffect;
     SkShader*       fShader;
     SkXfermode*     fXfermode;
@@ -1055,10 +1052,12 @@ private:
     SkImageFilter*  fImageFilter;
     SkAnnotation*   fAnnotation;
 
+    SkScalar        fTextSize;
+    SkScalar        fTextScaleX;
+    SkScalar        fTextSkewX;
     SkColor         fColor;
     SkScalar        fWidth;
     SkScalar        fMiterLimit;
-
     union {
         struct {
             
@@ -1069,13 +1068,11 @@ private:
             unsigned        fStyle : 2;
             unsigned        fTextEncoding : 2;  
             unsigned        fHinting : 2;
+            unsigned        fFilterLevel : 2;
             
-        };
-        uint32_t fBitfields;
+        } fBitfields;
+        uint32_t fBitfieldsUInt;
     };
-    uint32_t getBitfields() const { return fBitfields; }
-    void setBitfields(uint32_t bitfields);
-
     uint32_t fDirtyBits;
 
     SkDrawCacheProc    getDrawCacheProc() const;
@@ -1085,7 +1082,8 @@ private:
     SkScalar measure_text(SkGlyphCache*, const char* text, size_t length,
                           int* count, SkRect* bounds) const;
 
-    SkGlyphCache* detachCache(const SkDeviceProperties* deviceProperties, const SkMatrix*) const;
+    SkGlyphCache* detachCache(const SkDeviceProperties* deviceProperties, const SkMatrix*,
+                              bool ignoreGamma) const;
 
     void descriptorProc(const SkDeviceProperties* deviceProperties, const SkMatrix* deviceMatrix,
                         void (*proc)(SkTypeface*, const SkDescriptor*, void*),
@@ -1120,9 +1118,6 @@ private:
 
     static bool TooBigToUseCache(const SkMatrix& ctm, const SkMatrix& textM);
 
-    bool tooBigToUseCache() const;
-    bool tooBigToUseCache(const SkMatrix& ctm) const;
-
     
     
     
@@ -1135,12 +1130,14 @@ private:
     }
 
     friend class SkAutoGlyphCache;
+    friend class SkAutoGlyphCacheNoGamma;
     friend class SkCanvas;
     friend class SkDraw;
     friend class SkGraphics; 
     friend class SkPDFDevice;
     friend class GrBitmapTextContext;
     friend class GrDistanceFieldTextContext;
+    friend class GrStencilAndCoverTextContext;
     friend class SkTextToPathIter;
     friend class SkCanonicalizePaint;
 

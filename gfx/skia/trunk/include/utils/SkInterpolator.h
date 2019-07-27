@@ -113,7 +113,6 @@ public:
 
     Result timeToValues(SkMSec time, SkScalar values[] = NULL) const;
 
-    SkDEBUGCODE(static void UnitTest();)
 private:
     SkScalar* fValues;  
 #ifdef SK_DEBUG

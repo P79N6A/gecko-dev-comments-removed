@@ -54,7 +54,9 @@ public:
 
 
 
-    Iterator getIterator(const SkTDArray<void*>& draws, SkCanvas* canvas);
+    void initIterator(SkPictureStateTree::Iterator* iter, 
+                      const SkTDArray<void*>& draws, 
+                      SkCanvas* canvas);
 
     void appendSave();
     void appendSaveLayer(size_t offset);
@@ -75,12 +77,22 @@ public:
     class Iterator {
     public:
         
-        uint32_t draw();
+
+
+
+
+
+
+        uint32_t nextDraw();
         static const uint32_t kDrawComplete = SK_MaxU32;
-        Iterator() : fPlaybackMatrix(), fValid(false) { }
+        Iterator() : fValid(false) { }
         bool isValid() const { return fValid; }
+
     private:
-        Iterator(const SkTDArray<void*>& draws, SkCanvas* canvas, Node* root);
+        void init(const SkTDArray<void*>& draws, SkCanvas* canvas, Node* root);
+
+        void setCurrentMatrix(const SkMatrix*);
+
         
         const SkTDArray<void*>* fDraws;
 
@@ -94,10 +106,10 @@ public:
         SkTDArray<Node*> fNodes;
 
         
-        const SkMatrix fPlaybackMatrix;
+        SkMatrix fPlaybackMatrix;
 
         
-        SkMatrix* fCurrentMatrix;
+        const SkMatrix* fCurrentMatrix;
 
         
         int fPlaybackIndex;
@@ -106,6 +118,8 @@ public:
 
         
         bool fValid;
+
+        uint32_t finish();
 
         friend class SkPictureStateTree;
     };

@@ -136,6 +136,22 @@ public:
 
     PreBlend preBlend(SkColor color) const;
 
+    
+
+
+    void getGammaTableDimensions(int* tableWidth, int* numTables) const {
+        *tableWidth = 256;
+        *numTables = (1 << MAX_LUM_BITS);
+    }
+
+    
+
+
+
+    const uint8_t* getGammaTables() const {
+        return (const uint8_t*) fGammaTables;
+    }
+    
 private:
     static const int MAX_LUM_BITS =
           B_LUM_BITS > (R_LUM_BITS > G_LUM_BITS ? R_LUM_BITS : G_LUM_BITS)

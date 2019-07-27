@@ -7,6 +7,7 @@
 
 
 
+#include "SkMathPriv.h"
 #include "SkPoint.h"
 
 void SkIPoint::rotateCW(SkIPoint* dst) const {
@@ -168,7 +169,17 @@ bool SkPoint::setLength(float x, float y, float length) {
         
         double xx = x;
         double yy = y;
+    #ifdef SK_DISCARD_DENORMALIZED_FOR_SPEED
+        
+        
+        
+        double dscale = length / sqrt(xx * xx + yy * yy);
+        fX = x * dscale;
+        fY = y * dscale;
+        return true;
+    #else
         scale = (float)(length / sqrt(xx * xx + yy * yy));
+    #endif
     }
     fX = x * scale;
     fY = y * scale;

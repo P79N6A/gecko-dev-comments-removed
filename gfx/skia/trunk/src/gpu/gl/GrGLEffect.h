@@ -10,9 +10,10 @@
 
 #include "GrBackendEffectFactory.h"
 #include "GrGLProgramEffects.h"
-#include "GrGLShaderBuilder.h"
 #include "GrGLShaderVar.h"
 #include "GrGLSL.h"
+
+class GrGLShaderBuilder;
 
 
 
@@ -38,16 +39,9 @@ class GrGLVertexEffect;
 class GrGLEffect {
 
 public:
-    typedef GrBackendEffectFactory::EffectKey EffectKey;
     typedef GrGLProgramEffects::TransformedCoordsArray TransformedCoordsArray;
     typedef GrGLProgramEffects::TextureSampler TextureSampler;
     typedef GrGLProgramEffects::TextureSamplerArray TextureSamplerArray;
-
-    enum {
-        kNoEffectKey = GrBackendEffectFactory::kNoEffectKey,
-        
-        kEffectKeyBits = GrBackendEffectFactory::kEffectKeyBits,
-    };
 
     GrGLEffect(const GrBackendEffectFactory& factory)
         : fFactory(factory)
@@ -74,11 +68,9 @@ public:
 
 
 
-
-
     virtual void emitCode(GrGLShaderBuilder* builder,
                           const GrDrawEffect& drawEffect,
-                          EffectKey key,
+                          const GrEffectKey& key,
                           const char* outputColor,
                           const char* inputColor,
                           const TransformedCoordsArray& coords,
@@ -95,7 +87,7 @@ public:
 
     const char* name() const { return fFactory.name(); }
 
-    static inline EffectKey GenKey(const GrDrawEffect&, const GrGLCaps&) { return 0; }
+    static void GenKey(const GrDrawEffect&, const GrGLCaps&, GrEffectKeyBuilder*) {}
 
     
 

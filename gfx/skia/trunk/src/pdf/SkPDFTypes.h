@@ -369,7 +369,7 @@ public:
 
     
 
-    int size() { return fValue.count(); }
+    int size() const;
 
     
 
@@ -396,6 +396,14 @@ public:
 
 
 
+    void insertInt(const char key[], size_t value) {
+        this->insertInt(key, SkToS32(value));
+    }
+
+    
+
+
+
     void insertScalar(const char key[], SkScalar value);
 
     
@@ -416,27 +424,29 @@ public:
 
     void clear();
 
+protected:
+    
+
+    void remove(const char key[]);
+
+    
+
+
+    void mergeFrom(const SkPDFDict& other);
+
 private:
     struct Rec {
-      SkPDFName* key;
-      SkPDFObject* value;
+        SkPDFName* key;
+        SkPDFObject* value;
+        Rec(SkPDFName* k, SkPDFObject* v) : key(k), value(v) {}
     };
 
-public:
-    class Iter {
-    public:
-        explicit Iter(const SkPDFDict& dict);
-        SkPDFName* next(SkPDFObject** value);
-
-    private:
-        const Rec* fIter;
-        const Rec* fStop;
-    };
-
-private:
     static const int kMaxLen = 4095;
 
+    mutable SkMutex fMutex;  
     SkTDArray<struct Rec> fValue;
+
+    SkPDFObject* append(SkPDFName* key, SkPDFObject* value);
 
     typedef SkPDFObject INHERITED;
 };

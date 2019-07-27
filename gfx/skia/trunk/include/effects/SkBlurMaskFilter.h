@@ -11,17 +11,15 @@
 
 #include "SkMaskFilter.h"
 #include "SkScalar.h"
+#include "SkBlurTypes.h"
 
 class SK_API SkBlurMaskFilter {
 public:
-    enum BlurStyle {
-        kNormal_BlurStyle,  
-        kSolid_BlurStyle,   
-        kOuter_BlurStyle,   
-        kInner_BlurStyle,   
+    
 
-        kBlurStyleCount
-    };
+
+
+    static SkScalar ConvertRadiusToSigma(SkScalar radius);
 
     enum BlurFlags {
         kNone_BlurFlag = 0x00,
@@ -33,18 +31,13 @@ public:
         kAll_BlurFlag = 0x03
     };
 
-    SK_ATTR_DEPRECATED("use sigma version")
-    static SkMaskFilter* Create(SkScalar radius, BlurStyle style,
-                                uint32_t flags = kNone_BlurFlag);
-
     
 
 
 
 
 
-    static SkMaskFilter* Create(BlurStyle style, SkScalar sigma,
-                                uint32_t flags = kNone_BlurFlag);
+    static SkMaskFilter* Create(SkBlurStyle style, SkScalar sigma, uint32_t flags = kNone_BlurFlag);
 
     
 

@@ -8,7 +8,6 @@
 #ifndef GrPathUtils_DEFINED
 #define GrPathUtils_DEFINED
 
-#include "GrPoint.h"
 #include "SkRect.h"
 #include "SkPath.h"
 #include "SkTArray.h"
@@ -31,25 +30,25 @@ namespace GrPathUtils {
 
     
     
-    uint32_t quadraticPointCount(const GrPoint points[], SkScalar tol);
+    uint32_t quadraticPointCount(const SkPoint points[], SkScalar tol);
 
-    uint32_t generateQuadraticPoints(const GrPoint& p0,
-                                     const GrPoint& p1,
-                                     const GrPoint& p2,
+    uint32_t generateQuadraticPoints(const SkPoint& p0,
+                                     const SkPoint& p1,
+                                     const SkPoint& p2,
                                      SkScalar tolSqd,
-                                     GrPoint** points,
+                                     SkPoint** points,
                                      uint32_t pointsLeft);
 
     
     
-    uint32_t cubicPointCount(const GrPoint points[], SkScalar tol);
+    uint32_t cubicPointCount(const SkPoint points[], SkScalar tol);
 
-    uint32_t generateCubicPoints(const GrPoint& p0,
-                                 const GrPoint& p1,
-                                 const GrPoint& p2,
-                                 const GrPoint& p3,
+    uint32_t generateCubicPoints(const SkPoint& p0,
+                                 const SkPoint& p1,
+                                 const SkPoint& p2,
+                                 const SkPoint& p3,
                                  SkScalar tolSqd,
-                                 GrPoint** points,
+                                 SkPoint** points,
                                  uint32_t pointsLeft);
 
     
@@ -59,8 +58,8 @@ namespace GrPathUtils {
     public:
         QuadUVMatrix() {};
         
-        QuadUVMatrix(const GrPoint controlPts[3]) { this->set(controlPts); }
-        void set(const GrPoint controlPts[3]);
+        QuadUVMatrix(const SkPoint controlPts[3]) { this->set(controlPts); }
+        void set(const SkPoint controlPts[3]);
 
         
 
@@ -85,8 +84,8 @@ namespace GrPathUtils {
             float sy = fM[4];
             float ty = fM[5];
             for (int i = 0; i < N; ++i) {
-                const GrPoint* xy = reinterpret_cast<const GrPoint*>(xyPtr);
-                GrPoint* uv = reinterpret_cast<GrPoint*>(uvPtr);
+                const SkPoint* xy = reinterpret_cast<const SkPoint*>(xyPtr);
+                SkPoint* uv = reinterpret_cast<SkPoint*>(uvPtr);
                 uv->fX = sx * xy->fX + kx * xy->fY + tx;
                 uv->fY = ky * xy->fX + sy * xy->fY + ty;
                 xyPtr += STRIDE;
@@ -119,7 +118,7 @@ namespace GrPathUtils {
     
     
     
-    void convertCubicToQuads(const GrPoint p[4],
+    void convertCubicToQuads(const SkPoint p[4],
                              SkScalar tolScale,
                              bool constrainWithinTangents,
                              SkPath::Direction dir,

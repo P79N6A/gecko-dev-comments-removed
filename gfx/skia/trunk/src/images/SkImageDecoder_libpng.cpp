@@ -5,8 +5,6 @@
 
 
 
-
-
 #include "SkImageDecoder.h"
 #include "SkImageEncoder.h"
 #include "SkColor.h"
@@ -59,7 +57,7 @@ public:
         : fStream(stream)
         , fPng_ptr(png_ptr)
         , fInfo_ptr(info_ptr)
-        , fConfig(SkBitmap::kNo_Config) {
+        , fColorType(kUnknown_SkColorType) {
         SkASSERT(stream != NULL);
         stream->ref();
     }
@@ -72,7 +70,7 @@ public:
     SkAutoTUnref<SkStreamRewindable>    fStream;
     png_structp                         fPng_ptr;
     png_infop                           fInfo_ptr;
-    SkBitmap::Config                    fConfig;
+    SkColorType                         fColorType;
 };
 
 class SkPNGImageDecoder : public SkImageDecoder {
@@ -102,9 +100,8 @@ private:
     bool decodePalette(png_structp png_ptr, png_infop info_ptr,
                        bool * SK_RESTRICT hasAlphap, bool *reallyHasAlphap,
                        SkColorTable **colorTablep);
-    bool getBitmapConfig(png_structp png_ptr, png_infop info_ptr,
-                         SkBitmap::Config *config, bool *hasAlpha,
-                         SkPMColor *theTranspColor);
+    bool getBitmapColorType(png_structp, png_infop, SkColorType*, bool* hasAlpha,
+                            SkPMColor* theTranspColor);
 
     typedef SkImageDecoder INHERITED;
 };
@@ -169,7 +166,7 @@ static bool pos_le(int value, int max) {
 }
 
 static bool substituteTranspColor(SkBitmap* bm, SkPMColor match) {
-    SkASSERT(bm->config() == SkBitmap::kARGB_8888_Config);
+    SkASSERT(bm->colorType() == kN32_SkColorType);
 
     bool reallyHasAlpha = false;
 
@@ -186,13 +183,12 @@ static bool substituteTranspColor(SkBitmap* bm, SkPMColor match) {
     return reallyHasAlpha;
 }
 
-static bool canUpscalePaletteToConfig(SkBitmap::Config dstConfig,
-                                      bool srcHasAlpha) {
-    switch (dstConfig) {
-        case SkBitmap::kARGB_8888_Config:
-        case SkBitmap::kARGB_4444_Config:
+static bool canUpscalePaletteToConfig(SkColorType dstColorType, bool srcHasAlpha) {
+    switch (dstColorType) {
+        case kN32_SkColorType:
+        case kARGB_4444_SkColorType:
             return true;
-        case SkBitmap::kRGB_565_Config:
+        case kRGB_565_SkColorType:
             
             return !srcHasAlpha;
         default:
@@ -317,26 +313,24 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
     }
 
     png_uint_32 origWidth, origHeight;
-    int bitDepth, colorType, interlaceType;
+    int bitDepth, pngColorType, interlaceType;
     png_get_IHDR(png_ptr, info_ptr, &origWidth, &origHeight, &bitDepth,
-                 &colorType, &interlaceType, int_p_NULL, int_p_NULL);
+                 &pngColorType, &interlaceType, int_p_NULL, int_p_NULL);
 
-    SkBitmap::Config    config;
+    SkColorType         colorType;
     bool                hasAlpha = false;
     SkPMColor           theTranspColor = 0; 
 
-    if (!this->getBitmapConfig(png_ptr, info_ptr, &config, &hasAlpha, &theTranspColor)) {
+    if (!this->getBitmapColorType(png_ptr, info_ptr, &colorType, &hasAlpha, &theTranspColor)) {
         return false;
     }
 
+    SkAlphaType alphaType = this->getRequireUnpremultipliedColors() ?
+                                kUnpremul_SkAlphaType : kPremul_SkAlphaType;
     const int sampleSize = this->getSampleSize();
     SkScaledBitmapSampler sampler(origWidth, origHeight, sampleSize);
-    decodedBitmap->setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
-
-    
-    if (this->getRequireUnpremultipliedColors()) {
-        decodedBitmap->setAlphaType(kUnpremul_SkAlphaType);
-    }
+    decodedBitmap->setInfo(SkImageInfo::Make(sampler.scaledWidth(), sampler.scaledHeight(),
+                                             colorType, alphaType));
 
     if (SkImageDecoder::kDecodeBounds_Mode == mode) {
         return true;
@@ -350,14 +344,14 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
     bool reallyHasAlpha = false;
     SkColorTable* colorTable = NULL;
 
-    if (colorType == PNG_COLOR_TYPE_PALETTE) {
+    if (pngColorType == PNG_COLOR_TYPE_PALETTE) {
         decodePalette(png_ptr, info_ptr, &hasAlpha, &reallyHasAlpha, &colorTable);
     }
 
     SkAutoUnref aur(colorTable);
 
     if (!this->allocPixelRef(decodedBitmap,
-                             SkBitmap::kIndex8_Config == config ? colorTable : NULL)) {
+                             kIndex_8_SkColorType == colorType ? colorTable : NULL)) {
         return false;
     }
 
@@ -376,15 +370,15 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
 
     png_read_update_info(png_ptr, info_ptr);
 
-    if ((SkBitmap::kA8_Config == config || SkBitmap::kIndex8_Config == config)
-        && 1 == sampleSize) {
-        if (SkBitmap::kA8_Config == config) {
+    if ((kAlpha_8_SkColorType == colorType || kIndex_8_SkColorType == colorType) &&
+            1 == sampleSize) {
+        if (kAlpha_8_SkColorType == colorType) {
             
             
             
             reallyHasAlpha = true;
             
-            SkASSERT(PNG_COLOR_TYPE_GRAY == colorType);
+            SkASSERT(PNG_COLOR_TYPE_GRAY == pngColorType);
         }
         for (int i = 0; i < number_passes; i++) {
             for (png_uint_32 y = 0; y < origHeight; y++) {
@@ -399,9 +393,9 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
         if (colorTable != NULL) {
             sc = SkScaledBitmapSampler::kIndex;
             srcBytesPerPixel = 1;
-        } else if (SkBitmap::kA8_Config == config) {
+        } else if (kAlpha_8_SkColorType == colorType) {
             
-            SkASSERT(PNG_COLOR_TYPE_GRAY == colorType);
+            SkASSERT(PNG_COLOR_TYPE_GRAY == pngColorType);
             sc = SkScaledBitmapSampler::kGray;
             srcBytesPerPixel = 1;
         } else if (hasAlpha) {
@@ -468,10 +462,10 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
         reallyHasAlpha |= substituteTranspColor(decodedBitmap, theTranspColor);
     }
     if (reallyHasAlpha && this->getRequireUnpremultipliedColors()) {
-        switch (decodedBitmap->config()) {
-            case SkBitmap::kIndex8_Config:
+        switch (decodedBitmap->colorType()) {
+            case kIndex_8_SkColorType:
                 
-            case SkBitmap::kARGB_4444_Config:
+            case kARGB_4444_SkColorType:
                 
                 return false;
             default: {
@@ -491,10 +485,10 @@ bool SkPNGImageDecoder::onDecode(SkStream* sk_stream, SkBitmap* decodedBitmap,
 
 
 
-bool SkPNGImageDecoder::getBitmapConfig(png_structp png_ptr, png_infop info_ptr,
-                                        SkBitmap::Config* SK_RESTRICT configp,
-                                        bool* SK_RESTRICT hasAlphap,
-                                        SkPMColor* SK_RESTRICT theTranspColorp) {
+bool SkPNGImageDecoder::getBitmapColorType(png_structp png_ptr, png_infop info_ptr,
+                                           SkColorType* colorTypep,
+                                           bool* hasAlphap,
+                                           SkPMColor* SK_RESTRICT theTranspColorp) {
     png_uint_32 origWidth, origHeight;
     int bitDepth, colorType;
     png_get_IHDR(png_ptr, info_ptr, &origWidth, &origHeight, &bitDepth,
@@ -518,10 +512,10 @@ bool SkPNGImageDecoder::getBitmapConfig(png_structp png_ptr, png_infop info_ptr,
 
     if (colorType == PNG_COLOR_TYPE_PALETTE) {
         bool paletteHasAlpha = hasTransparencyInPalette(png_ptr, info_ptr);
-        *configp = this->getPrefConfig(kIndex_SrcDepth, paletteHasAlpha);
+        *colorTypep = this->getPrefColorType(kIndex_SrcDepth, paletteHasAlpha);
         
-        if (!canUpscalePaletteToConfig(*configp, paletteHasAlpha)) {
-            *configp = SkBitmap::kIndex8_Config;
+        if (!canUpscalePaletteToConfig(*colorTypep, paletteHasAlpha)) {
+            *colorTypep = kIndex_8_SkColorType;
         }
     } else {
         png_color_16p transpColor = NULL;
@@ -585,21 +579,21 @@ bool SkPNGImageDecoder::getBitmapConfig(png_structp png_ptr, png_infop info_ptr,
             
         }
 
-        *configp = this->getPrefConfig(srcDepth, *hasAlphap);
+        *colorTypep = this->getPrefColorType(srcDepth, *hasAlphap);
         
         if (*hasAlphap) {
-            if (*configp != SkBitmap::kARGB_4444_Config) {
-                *configp = SkBitmap::kARGB_8888_Config;
+            if (*colorTypep != kARGB_4444_SkColorType) {
+                *colorTypep = kN32_SkColorType;
             }
         } else {
-            if (SkBitmap::kA8_Config == *configp) {
+            if (kAlpha_8_SkColorType == *colorTypep) {
                 if (k8BitGray_SrcDepth != srcDepth) {
                     
-                    *configp = SkBitmap::kARGB_8888_Config;
+                    *colorTypep = kN32_SkColorType;
                 }
-            } else if (*configp != SkBitmap::kRGB_565_Config &&
-                       *configp != SkBitmap::kARGB_4444_Config) {
-                *configp = SkBitmap::kARGB_8888_Config;
+            } else if (*colorTypep != kRGB_565_SkColorType &&
+                       *colorTypep != kARGB_4444_SkColorType) {
+                *colorTypep = kN32_SkColorType;
             }
         }
     }
@@ -613,30 +607,31 @@ bool SkPNGImageDecoder::getBitmapConfig(png_structp png_ptr, png_infop info_ptr,
         }
     }
 
-    if (!this->chooseFromOneChoice(*configp, origWidth, origHeight)) {
+#ifdef SK_SUPPORT_LEGACY_IMAGEDECODER_CHOOSER
+    if (!this->chooseFromOneChoice(*colorTypep, origWidth, origHeight)) {
         return false;
     }
+#endif
 
     
     
     if (this->getRequireUnpremultipliedColors() && *hasAlphap) {
-        *configp = SkBitmap::kARGB_8888_Config;
+        *colorTypep = kN32_SkColorType;
     }
 
     if (fImageIndex != NULL) {
-        if (SkBitmap::kNo_Config == fImageIndex->fConfig) {
+        if (kUnknown_SkColorType == fImageIndex->fColorType) {
             
             
-            fImageIndex->fConfig = *configp;
-        } else if (fImageIndex->fConfig != *configp) {
+            fImageIndex->fColorType = *colorTypep;
+        } else if (fImageIndex->fColorType != *colorTypep) {
             
             
             return false;
         }
     }
 
-    bool convertGrayToRGB = PNG_COLOR_TYPE_GRAY == colorType
-                            && *configp != SkBitmap::kA8_Config;
+    bool convertGrayToRGB = PNG_COLOR_TYPE_GRAY == colorType && *colorTypep != kAlpha_8_SkColorType;
 
     
     
@@ -774,9 +769,9 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
     }
 
     png_uint_32 origWidth, origHeight;
-    int bitDepth, colorType, interlaceType;
+    int bitDepth, pngColorType, interlaceType;
     png_get_IHDR(png_ptr, info_ptr, &origWidth, &origHeight, &bitDepth,
-                 &colorType, &interlaceType, int_p_NULL, int_p_NULL);
+                 &pngColorType, &interlaceType, int_p_NULL, int_p_NULL);
 
     SkIRect rect = SkIRect::MakeWH(origWidth, origHeight);
 
@@ -786,11 +781,11 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
         return false;
     }
 
-    SkBitmap::Config    config;
+    SkColorType         colorType;
     bool                hasAlpha = false;
     SkPMColor           theTranspColor = 0; 
 
-    if (!this->getBitmapConfig(png_ptr, info_ptr, &config, &hasAlpha, &theTranspColor)) {
+    if (!this->getBitmapColorType(png_ptr, info_ptr, &colorType, &hasAlpha, &theTranspColor)) {
         return false;
     }
 
@@ -798,7 +793,8 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
     SkScaledBitmapSampler sampler(origWidth, rect.height(), sampleSize);
 
     SkBitmap decodedBitmap;
-    decodedBitmap.setConfig(config, sampler.scaledWidth(), sampler.scaledHeight());
+    decodedBitmap.setInfo(SkImageInfo::Make(sampler.scaledWidth(), sampler.scaledHeight(),
+                                            colorType, kPremul_SkAlphaType));
 
     
 
@@ -808,7 +804,7 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
     bool reallyHasAlpha = false;
     SkColorTable* colorTable = NULL;
 
-    if (colorType == PNG_COLOR_TYPE_PALETTE) {
+    if (pngColorType == PNG_COLOR_TYPE_PALETTE) {
         decodePalette(png_ptr, info_ptr, &hasAlpha, &reallyHasAlpha, &colorTable);
     }
 
@@ -821,7 +817,7 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
     int h = rect.height() / sampleSize;
     const bool swapOnly = (rect == region) && (w == decodedBitmap.width()) &&
                           (h == decodedBitmap.height()) && bm->isNull();
-    const bool needColorTable = SkBitmap::kIndex8_Config == config;
+    const bool needColorTable = kIndex_8_SkColorType == colorType;
     if (swapOnly) {
         if (!this->allocPixelRef(&decodedBitmap, needColorTable ? colorTable : NULL)) {
             return false;
@@ -856,15 +852,15 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
 
     int actualTop = rect.fTop;
 
-    if ((SkBitmap::kA8_Config == config || SkBitmap::kIndex8_Config == config)
+    if ((kAlpha_8_SkColorType == colorType || kIndex_8_SkColorType == colorType)
         && 1 == sampleSize) {
-        if (SkBitmap::kA8_Config == config) {
+        if (kAlpha_8_SkColorType == colorType) {
             
             
             
             reallyHasAlpha = true;
             
-            SkASSERT(PNG_COLOR_TYPE_GRAY == colorType);
+            SkASSERT(PNG_COLOR_TYPE_GRAY == pngColorType);
         }
 
         for (int i = 0; i < number_passes; i++) {
@@ -886,9 +882,9 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
         if (colorTable != NULL) {
             sc = SkScaledBitmapSampler::kIndex;
             srcBytesPerPixel = 1;
-        } else if (SkBitmap::kA8_Config == config) {
+        } else if (kAlpha_8_SkColorType == colorType) {
             
-            SkASSERT(PNG_COLOR_TYPE_GRAY == colorType);
+            SkASSERT(PNG_COLOR_TYPE_GRAY == pngColorType);
             sc = SkScaledBitmapSampler::kGray;
             srcBytesPerPixel = 1;
         } else if (hasAlpha) {
@@ -915,8 +911,7 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
             for (int i = 0; i < number_passes; i++) {
                 png_configure_decoder(png_ptr, &actualTop, i);
                 for (int j = 0; j < rect.fTop - actualTop; j++) {
-                    uint8_t* bmRow = (uint8_t*)decodedBitmap.getPixels();
-                    png_read_rows(png_ptr, &bmRow, png_bytepp_NULL, 1);
+                    png_read_rows(png_ptr, &base, png_bytepp_NULL, 1);
                 }
                 uint8_t* row = base;
                 for (int32_t y = 0; y < rect.height(); y++) {
@@ -939,8 +934,7 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
             skip_src_rows(png_ptr, srcRow, sampler.srcY0());
 
             for (int i = 0; i < rect.fTop - actualTop; i++) {
-                uint8_t* bmRow = (uint8_t*)decodedBitmap.getPixels();
-                png_read_rows(png_ptr, &bmRow, png_bytepp_NULL, 1);
+                png_read_rows(png_ptr, &srcRow, png_bytepp_NULL, 1);
             }
             for (int y = 0; y < height; y++) {
                 uint8_t* tmp = srcRow;
@@ -957,10 +951,10 @@ bool SkPNGImageDecoder::onDecodeSubset(SkBitmap* bm, const SkIRect& region) {
         reallyHasAlpha |= substituteTranspColor(&decodedBitmap, theTranspColor);
     }
     if (reallyHasAlpha && this->getRequireUnpremultipliedColors()) {
-        switch (decodedBitmap.config()) {
-            case SkBitmap::kIndex8_Config:
+        switch (decodedBitmap.colorType()) {
+            case kIndex_8_SkColorType:
                 
-            case SkBitmap::kARGB_4444_Config:
+            case kARGB_4444_SkColorType:
                 
                 return false;
             default: {
@@ -1002,29 +996,28 @@ static void sk_write_fn(png_structp png_ptr, png_bytep data, png_size_t len) {
     }
 }
 
-static transform_scanline_proc choose_proc(SkBitmap::Config config,
-                                           bool hasAlpha) {
+static transform_scanline_proc choose_proc(SkColorType ct, bool hasAlpha) {
     
     
-    if (SkBitmap::kIndex8_Config == config) {
+    if (kIndex_8_SkColorType == ct) {
         hasAlpha = false;   
     }
 
     static const struct {
-        SkBitmap::Config        fConfig;
+        SkColorType             fColorType;
         bool                    fHasAlpha;
         transform_scanline_proc fProc;
     } gMap[] = {
-        { SkBitmap::kRGB_565_Config,    false,  transform_scanline_565 },
-        { SkBitmap::kARGB_8888_Config,  false,  transform_scanline_888 },
-        { SkBitmap::kARGB_8888_Config,  true,   transform_scanline_8888 },
-        { SkBitmap::kARGB_4444_Config,  false,  transform_scanline_444 },
-        { SkBitmap::kARGB_4444_Config,  true,   transform_scanline_4444 },
-        { SkBitmap::kIndex8_Config,     false,  transform_scanline_memcpy },
+        { kRGB_565_SkColorType,     false,  transform_scanline_565 },
+        { kN32_SkColorType,         false,  transform_scanline_888 },
+        { kN32_SkColorType,         true,   transform_scanline_8888 },
+        { kARGB_4444_SkColorType,   false,  transform_scanline_444 },
+        { kARGB_4444_SkColorType,   true,   transform_scanline_4444 },
+        { kIndex_8_SkColorType,     false,  transform_scanline_memcpy },
     };
 
     for (int i = SK_ARRAY_COUNT(gMap) - 1; i >= 0; --i) {
-        if (gMap[i].fConfig == config && gMap[i].fHasAlpha == hasAlpha) {
+        if (gMap[i].fColorType == ct && gMap[i].fHasAlpha == hasAlpha) {
             return gMap[i].fProc;
         }
     }
@@ -1111,38 +1104,37 @@ protected:
 private:
     bool doEncode(SkWStream* stream, const SkBitmap& bm,
                   const bool& hasAlpha, int colorType,
-                  int bitDepth, SkBitmap::Config config,
+                  int bitDepth, SkColorType ct,
                   png_color_8& sig_bit);
 
     typedef SkImageEncoder INHERITED;
 };
 
-bool SkPNGImageEncoder::onEncode(SkWStream* stream, const SkBitmap& bitmap,
-                                 int ) {
-    SkBitmap::Config config = bitmap.config();
+bool SkPNGImageEncoder::onEncode(SkWStream* stream, const SkBitmap& bitmap, int ) {
+    SkColorType ct = bitmap.colorType();
 
     const bool hasAlpha = !bitmap.isOpaque();
     int colorType = PNG_COLOR_MASK_COLOR;
     int bitDepth = 8;   
     png_color_8 sig_bit;
 
-    switch (config) {
-        case SkBitmap::kIndex8_Config:
+    switch (ct) {
+        case kIndex_8_SkColorType:
             colorType |= PNG_COLOR_MASK_PALETTE;
             
-        case SkBitmap::kARGB_8888_Config:
+        case kN32_SkColorType:
             sig_bit.red = 8;
             sig_bit.green = 8;
             sig_bit.blue = 8;
             sig_bit.alpha = 8;
             break;
-        case SkBitmap::kARGB_4444_Config:
+        case kARGB_4444_SkColorType:
             sig_bit.red = 4;
             sig_bit.green = 4;
             sig_bit.blue = 4;
             sig_bit.alpha = 4;
             break;
-        case SkBitmap::kRGB_565_Config:
+        case kRGB_565_SkColorType:
             sig_bit.red = 5;
             sig_bit.green = 6;
             sig_bit.blue = 5;
@@ -1177,13 +1169,12 @@ bool SkPNGImageEncoder::onEncode(SkWStream* stream, const SkBitmap& bitmap,
         bitDepth = computeBitDepth(ctable->count());
     }
 
-    return doEncode(stream, bitmap, hasAlpha, colorType,
-                    bitDepth, config, sig_bit);
+    return doEncode(stream, bitmap, hasAlpha, colorType, bitDepth, ct, sig_bit);
 }
 
 bool SkPNGImageEncoder::doEncode(SkWStream* stream, const SkBitmap& bitmap,
                   const bool& hasAlpha, int colorType,
-                  int bitDepth, SkBitmap::Config config,
+                  int bitDepth, SkColorType ct,
                   png_color_8& sig_bit) {
 
     png_structp png_ptr;
@@ -1228,7 +1219,7 @@ bool SkPNGImageEncoder::doEncode(SkWStream* stream, const SkBitmap& bitmap,
     
     png_color paletteColors[256];
     png_byte trans[256];
-    if (SkBitmap::kIndex8_Config == config) {
+    if (kIndex_8_SkColorType == ct) {
         SkColorTable* ct = bitmap.getColorTable();
         int numTrans = pack_palette(ct, paletteColors, trans, hasAlpha);
         png_set_PLTE(png_ptr, info_ptr, paletteColors, ct->count());
@@ -1243,7 +1234,7 @@ bool SkPNGImageEncoder::doEncode(SkWStream* stream, const SkBitmap& bitmap,
     const char* srcImage = (const char*)bitmap.getPixels();
     SkAutoSMalloc<1024> rowStorage(bitmap.width() << 2);
     char* storage = (char*)rowStorage.get();
-    transform_scanline_proc proc = choose_proc(config, hasAlpha);
+    transform_scanline_proc proc = choose_proc(ct, hasAlpha);
 
     for (int y = 0; y < bitmap.height(); y++) {
         png_bytep row_ptr = (png_bytep)storage;

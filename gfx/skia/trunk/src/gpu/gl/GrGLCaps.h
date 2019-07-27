@@ -14,9 +14,6 @@
 #include "SkTArray.h"
 #include "SkTDArray.h"
 
-
-#undef interface
-
 class GrGLContextInfo;
 
 
@@ -78,7 +75,24 @@ public:
         
         kNV_FBFetchType,
 
-        kLast_FBFetchType = kNV_FBFetchType,
+        kLast_FBFetchType = kNV_FBFetchType
+    };
+
+    enum InvalidateFBType {
+        kNone_InvalidateFBType,
+        kDiscard_InvalidateFBType,       
+        kInvalidate_InvalidateFBType,     
+
+        kLast_InvalidateFBType = kInvalidate_InvalidateFBType
+    };
+
+    enum MapBufferType {
+        kNone_MapBufferType,
+        kMapBuffer_MapBufferType,         
+        kMapBufferRange_MapBufferType,    
+        kChromium_MapBufferType,          
+
+        kLast_MapBufferType = kChromium_MapBufferType,
     };
 
     
@@ -100,7 +114,7 @@ public:
 
 
 
-    void init(const GrGLContextInfo& ctxInfo, const GrGLInterface* interface);
+    bool init(const GrGLContextInfo& ctxInfo, const GrGLInterface* glInterface);
 
     
 
@@ -162,10 +176,10 @@ public:
 
     FBFetchType fbFetchType() const { return fFBFetchType; }
 
+    InvalidateFBType invalidateFBType() const { return fInvalidateFBType; }
+
     
-
-
-    virtual SkString dump() const SK_OVERRIDE;
+    MapBufferType mapBufferType() const { return fMapBufferType; }
 
     
 
@@ -190,9 +204,6 @@ public:
 
     
     bool rgba8RenderbufferSupport() const { return fRGBA8RenderbufferSupport; }
-
-    
-    bool bgraFormatSupport() const { return fBGRAFormatSupport; }
 
     
 
@@ -246,12 +257,28 @@ public:
 
     bool isCoreProfile() const { return fIsCoreProfile; }
 
-    bool fixedFunctionSupport() const { return fFixedFunctionSupport; }
-
-    
-    bool discardFBSupport() const { return fDiscardFBSupport; }
 
     bool fullClearIsFree() const { return fFullClearIsFree; }
+
+    bool dropsTileOnZeroDivide() const { return fDropsTileOnZeroDivide; }
+
+    
+
+
+    virtual SkString dump() const SK_OVERRIDE;
+
+    
+
+
+
+
+    enum LATCAlias {
+        kLATC_LATCAlias,
+        kRGTC_LATCAlias,
+        k3DC_LATCAlias
+    };
+
+    LATCAlias latcAlias() const { return fLATCAlias; }
 
 private:
     
@@ -295,6 +322,7 @@ private:
     void initStencilFormats(const GrGLContextInfo&);
     
     void initConfigRenderableTable(const GrGLContextInfo&);
+    void initConfigTexturableTable(const GrGLContextInfo&, const GrGLInterface*);
 
     
     
@@ -311,12 +339,13 @@ private:
     int fMaxFragmentTextureUnits;
     int fMaxFixedFunctionTextureCoords;
 
-    MSFBOType fMSFBOType;
-
-    FBFetchType fFBFetchType;
+    MSFBOType           fMSFBOType;
+    FBFetchType         fFBFetchType;
+    InvalidateFBType    fInvalidateFBType;
+    MapBufferType       fMapBufferType;
+    LATCAlias           fLATCAlias;
 
     bool fRGBA8RenderbufferSupport : 1;
-    bool fBGRAFormatSupport : 1;
     bool fBGRAIsInternalFormat : 1;
     bool fTextureSwizzleSupport : 1;
     bool fUnpackRowLengthSupport : 1;
@@ -332,9 +361,8 @@ private:
     bool fVertexArrayObjectSupport : 1;
     bool fUseNonVBOVertexAndIndexDynamicData : 1;
     bool fIsCoreProfile : 1;
-    bool fFixedFunctionSupport : 1;
-    bool fDiscardFBSupport : 1;
     bool fFullClearIsFree : 1;
+    bool fDropsTileOnZeroDivide : 1;
 
     typedef GrDrawTargetCaps INHERITED;
 };

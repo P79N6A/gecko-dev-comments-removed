@@ -6,10 +6,21 @@
 
 
 #include "SkGr.h"
+#include "SkColorFilter.h"
 #include "SkConfig8888.h"
+#include "SkData.h"
 #include "SkMessageBus.h"
 #include "SkPixelRef.h"
 #include "GrResourceCache.h"
+#include "GrGpu.h"
+#include "effects/GrDitherEffect.h"
+#include "GrDrawTargetCaps.h"
+#include "effects/GrYUVtoRGBEffect.h"
+
+#ifndef SK_IGNORE_ETC1_SUPPORT
+#  include "ktx.h"
+#  include "etc1.h"
+#endif
 
 
 
@@ -23,7 +34,7 @@
 
 
 static void build_compressed_data(void* buffer, const SkBitmap& bitmap) {
-    SkASSERT(SkBitmap::kIndex8_Config == bitmap.config());
+    SkASSERT(kIndex_8_SkColorType == bitmap.colorType());
 
     SkAutoLockPixels alp(bitmap);
     if (!bitmap.readyToDraw()) {
@@ -34,11 +45,22 @@ static void build_compressed_data(void* buffer, const SkBitmap& bitmap) {
     SkColorTable* ctable = bitmap.getColorTable();
     char* dst = (char*)buffer;
 
-    uint32_t* colorTableDst = reinterpret_cast<uint32_t*>(dst);
-    const uint32_t* colorTableSrc = reinterpret_cast<const uint32_t*>(ctable->lockColors());
-    SkConvertConfig8888Pixels(colorTableDst, 0, SkCanvas::kRGBA_Premul_Config8888,
-                              colorTableSrc, 0, SkCanvas::kNative_Premul_Config8888,
-                              ctable->count(), 1);
+    const int count = ctable->count();
+
+    SkDstPixelInfo dstPI;
+    dstPI.fColorType = kRGBA_8888_SkColorType;
+    dstPI.fAlphaType = kPremul_SkAlphaType;
+    dstPI.fPixels = buffer;
+    dstPI.fRowBytes = count * sizeof(SkPMColor);
+
+    SkSrcPixelInfo srcPI;
+    srcPI.fColorType = kN32_SkColorType;
+    srcPI.fAlphaType = kPremul_SkAlphaType;
+    srcPI.fPixels = ctable->lockColors();
+    srcPI.fRowBytes = count * sizeof(SkPMColor);
+
+    srcPI.convertPixelsTo(&dstPI, count, 1);
+
     ctable->unlockColors();
 
     
@@ -86,7 +108,7 @@ static void generate_bitmap_texture_desc(const SkBitmap& bitmap, GrTextureDesc* 
     desc->fFlags = kNone_GrTextureFlags;
     desc->fWidth = bitmap.width();
     desc->fHeight = bitmap.height();
-    desc->fConfig = SkBitmapConfig2GrPixelConfig(bitmap.config());
+    desc->fConfig = SkImageInfo2GrPixelConfig(bitmap.info());
     desc->fSampleCnt = 0;
 }
 
@@ -112,6 +134,141 @@ static void add_genID_listener(GrResourceKey key, SkPixelRef* pixelRef) {
     pixelRef->addGenIDChangeListener(SkNEW_ARGS(GrResourceInvalidator, (key)));
 }
 
+#ifndef SK_IGNORE_ETC1_SUPPORT
+static GrTexture *load_etc1_texture(GrContext* ctx,
+                                    const GrTextureParams* params,
+                                    const SkBitmap &bm, GrTextureDesc desc) {
+    SkAutoTUnref<SkData> data(bm.pixelRef()->refEncodedData());
+
+    
+    if (NULL == data) {
+        return NULL;
+    }
+
+    
+    const uint8_t *bytes = data->bytes();
+    if (etc1_pkm_is_valid(bytes)) {
+        uint32_t encodedWidth = etc1_pkm_get_width(bytes);
+        uint32_t encodedHeight = etc1_pkm_get_height(bytes);
+
+        
+        
+        if (encodedWidth != static_cast<uint32_t>(bm.width()) ||
+            encodedHeight != static_cast<uint32_t>(bm.height())) {
+            return NULL;
+        }
+
+        
+        bytes += ETC_PKM_HEADER_SIZE;
+        desc.fConfig = kETC1_GrPixelConfig;
+    } else if (SkKTXFile::is_ktx(bytes)) {
+        SkKTXFile ktx(data);
+
+        
+        if (!ktx.isETC1()) {
+            return NULL;
+        }
+
+        
+        
+        if (ktx.width() != bm.width() || ktx.height() != bm.height()) {
+            return NULL;
+        }        
+
+        bytes = ktx.pixelData();
+        desc.fConfig = kETC1_GrPixelConfig;
+    } else {
+        return NULL;
+    }
+
+    
+    GrCacheID cacheID;
+    generate_bitmap_cache_id(bm, &cacheID);
+
+    GrResourceKey key;
+    GrTexture* result = ctx->createTexture(params, desc, cacheID, bytes, 0, &key);
+    if (NULL != result) {
+        add_genID_listener(key, bm.pixelRef());
+    }
+    return result;
+}
+#endif   
+
+static GrTexture *load_yuv_texture(GrContext* ctx, const GrTextureParams* params,
+                                   const SkBitmap& bm, const GrTextureDesc& desc) {
+    GrTexture* result = NULL;
+    
+    SkPixelRef* pixelRef = bm.pixelRef();
+    SkISize yuvSizes[3];
+    if ((NULL == pixelRef) || !pixelRef->getYUV8Planes(yuvSizes, NULL, NULL)) {
+        return NULL;
+    }
+
+    
+    size_t totalSize(0);
+    size_t sizes[3], rowBytes[3];
+    for (int i = 0; i < 3; ++i) {
+        rowBytes[i] = yuvSizes[i].fWidth;
+        totalSize  += sizes[i] = rowBytes[i] * yuvSizes[i].fHeight;
+    }
+    SkAutoMalloc storage(totalSize);
+    void* planes[3];
+    planes[0] = storage.get();
+    planes[1] = (uint8_t*)planes[0] + sizes[0];
+    planes[2] = (uint8_t*)planes[1] + sizes[1];
+
+    
+    if (!pixelRef->getYUV8Planes(yuvSizes, planes, rowBytes)) {
+        return NULL;
+    }
+
+    GrTextureDesc yuvDesc;
+    yuvDesc.fConfig = kAlpha_8_GrPixelConfig;
+    GrAutoScratchTexture yuvTextures[3];
+    for (int i = 0; i < 3; ++i) {
+        yuvDesc.fWidth  = yuvSizes[i].fWidth;
+        yuvDesc.fHeight = yuvSizes[i].fHeight;
+        yuvTextures[i].set(ctx, yuvDesc);
+        if ((NULL == yuvTextures[i].texture()) ||
+            !ctx->writeTexturePixels(yuvTextures[i].texture(),
+                0, 0, yuvDesc.fWidth, yuvDesc.fHeight,
+                yuvDesc.fConfig, planes[i], rowBytes[i])) {
+            return NULL;
+        }
+    }
+
+    GrTextureDesc rtDesc = desc;
+    rtDesc.fFlags = rtDesc.fFlags |
+                    kRenderTarget_GrTextureFlagBit |
+                    kNoStencil_GrTextureFlagBit;
+
+    
+    GrCacheID cacheID;
+    generate_bitmap_cache_id(bm, &cacheID);
+
+    GrResourceKey key;
+    result = ctx->createTexture(params, rtDesc, cacheID, NULL, 0, &key);
+    GrRenderTarget* renderTarget = result ? result->asRenderTarget() : NULL;
+    if (NULL != renderTarget) {
+        add_genID_listener(key, bm.pixelRef());
+        SkAutoTUnref<GrEffect> yuvToRgbEffect(GrYUVtoRGBEffect::Create(
+            yuvTextures[0].texture(), yuvTextures[1].texture(), yuvTextures[2].texture()));
+        GrPaint paint;
+        paint.addColorEffect(yuvToRgbEffect);
+        SkRect r = SkRect::MakeWH(SkIntToScalar(yuvSizes[0].fWidth),
+                                  SkIntToScalar(yuvSizes[0].fHeight));
+        GrContext::AutoRenderTarget autoRT(ctx, renderTarget);
+        GrContext::AutoMatrix am;
+        am.setIdentity(ctx);
+        GrContext::AutoClip ac(ctx, GrContext::AutoClip::kWideOpen_InitialClip);
+        ctx->drawRect(paint, r);
+    } else {
+        SkSafeSetNull(result);
+    }
+
+    return result;
+}
+
 static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
                                               bool cache,
                                               const GrTextureParams* params,
@@ -123,7 +280,7 @@ static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
     GrTextureDesc desc;
     generate_bitmap_texture_desc(*bitmap, &desc);
 
-    if (SkBitmap::kIndex8_Config == bitmap->config()) {
+    if (kIndex_8_SkColorType == bitmap->colorType()) {
         
         
         if (ctx->supportsIndex8PixelConfig(params, bitmap->width(), bitmap->height())) {
@@ -155,13 +312,40 @@ static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
                 return result;
             }
         } else {
-            origBitmap.copyTo(&tmpBitmap, kPMColor_SkColorType);
+            origBitmap.copyTo(&tmpBitmap, kN32_SkColorType);
             
             bitmap = &tmpBitmap;
-            desc.fConfig = SkBitmapConfig2GrPixelConfig(bitmap->config());
+            desc.fConfig = SkImageInfo2GrPixelConfig(bitmap->info());
         }
     }
 
+    
+#ifndef SK_IGNORE_ETC1_SUPPORT
+    else if (
+        
+        
+        cache
+        
+        
+        && ctx->getGpu()->caps()->isConfigTexturable(kETC1_GrPixelConfig)
+        
+        
+        
+        
+        && !(bitmap->readyToDraw())) {
+        GrTexture *texture = load_etc1_texture(ctx, params, *bitmap, desc);
+        if (NULL != texture) {
+            return texture;
+        }
+    }
+#endif   
+
+    else {
+        GrTexture *texture = load_yuv_texture(ctx, params, *bitmap, desc);
+        if (NULL != texture) {
+            return texture;
+        }
+    }
     SkAutoLockPixels alp(*bitmap);
     if (!bitmap->readyToDraw()) {
         return NULL;
@@ -242,6 +426,7 @@ void GrUnlockAndUnrefCachedBitmapTexture(GrTexture* texture) {
 
 
 
+#ifdef SK_SUPPORT_LEGACY_BITMAP_CONFIG
 GrPixelConfig SkBitmapConfig2GrPixelConfig(SkBitmap::Config config) {
     switch (config) {
         case SkBitmap::kA8_Config:
@@ -259,6 +444,7 @@ GrPixelConfig SkBitmapConfig2GrPixelConfig(SkBitmap::Config config) {
             return kUnknown_GrPixelConfig;
     }
 }
+#endif
 
 
 
@@ -311,4 +497,129 @@ bool GrPixelConfig2ColorType(GrPixelConfig config, SkColorType* ctOut) {
         *ctOut = ct;
     }
     return true;
+}
+
+
+
+void SkPaint2GrPaintNoShader(GrContext* context, const SkPaint& skPaint, GrColor paintColor,
+                             bool constantColor, GrPaint* grPaint) {
+
+    grPaint->setDither(skPaint.isDither());
+    grPaint->setAntiAlias(skPaint.isAntiAlias());
+
+    SkXfermode::Coeff sm;
+    SkXfermode::Coeff dm;
+
+    SkXfermode* mode = skPaint.getXfermode();
+    GrEffect* xferEffect = NULL;
+    if (SkXfermode::AsNewEffectOrCoeff(mode, &xferEffect, &sm, &dm)) {
+        if (NULL != xferEffect) {
+            grPaint->addColorEffect(xferEffect)->unref();
+            sm = SkXfermode::kOne_Coeff;
+            dm = SkXfermode::kZero_Coeff;
+        }
+    } else {
+        
+        
+        sm = SkXfermode::kOne_Coeff;
+        dm = SkXfermode::kISA_Coeff;
+    }
+    grPaint->setBlendFunc(sk_blend_to_grblend(sm), sk_blend_to_grblend(dm));
+    
+    
+    grPaint->setColor(paintColor);
+
+    SkColorFilter* colorFilter = skPaint.getColorFilter();
+    if (NULL != colorFilter) {
+        
+        
+        if (constantColor) {
+            SkColor filtered = colorFilter->filterColor(skPaint.getColor());
+            grPaint->setColor(SkColor2GrColor(filtered));
+        } else {
+            SkAutoTUnref<GrEffect> effect(colorFilter->asNewEffect(context));
+            if (NULL != effect.get()) {
+                grPaint->addColorEffect(effect);
+            }
+        }
+    }
+
+#ifndef SK_IGNORE_GPU_DITHER
+    
+    
+    if (skPaint.isDither() && grPaint->numColorStages() > 0) {
+        
+        const GrRenderTarget *target = context->getRenderTarget();
+        SkASSERT(NULL != target);
+
+        
+        
+        if (target->config() == kRGBA_8888_GrPixelConfig ||
+            target->config() == kBGRA_8888_GrPixelConfig) {
+            
+            
+            SkAutoTUnref<GrEffect> effect(GrDitherEffect::Create());
+            if (NULL != effect.get()) {
+                grPaint->addColorEffect(effect);
+                grPaint->setDither(false);
+            }
+        }
+    }
+#endif
+}
+
+
+
+
+
+
+class AutoMatrix {
+public:
+    AutoMatrix(GrContext* context) {
+        fMatrix = context->getMatrix();
+        fContext = context;
+    }
+    ~AutoMatrix() {
+        SkASSERT(NULL != fContext);
+        fContext->setMatrix(fMatrix);
+    }
+private:
+    GrContext* fContext;
+    SkMatrix fMatrix;
+};
+
+void SkPaint2GrPaintShader(GrContext* context, const SkPaint& skPaint,
+                           bool constantColor, GrPaint* grPaint) {
+    SkShader* shader = skPaint.getShader();
+    if (NULL == shader) {
+        SkPaint2GrPaintNoShader(context, skPaint, SkColor2GrColor(skPaint.getColor()),
+                                constantColor, grPaint);
+        return;
+    }
+
+    GrColor paintColor = SkColor2GrColor(skPaint.getColor());
+
+    
+    
+    
+    {
+        
+        
+        
+        GrContext::AutoRenderTarget art(context, NULL);
+        GrContext::AutoClip ac(context, GrContext::AutoClip::kWideOpen_InitialClip);
+        AutoMatrix am(context);
+
+        
+        
+        GrEffect* effect = NULL;
+        if (shader->asNewEffect(context, skPaint, NULL, &paintColor, &effect) && NULL != effect) {
+            grPaint->addColorEffect(effect)->unref();
+            constantColor = false;
+        }
+    }
+
+    
+    
+    SkPaint2GrPaintNoShader(context, skPaint, paintColor, constantColor, grPaint);
 }

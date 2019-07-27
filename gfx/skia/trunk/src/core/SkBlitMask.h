@@ -51,13 +51,13 @@ public:
 
 
 
-    static ColorProc ColorFactory(SkBitmap::Config, SkMask::Format, SkColor);
+    static ColorProc ColorFactory(SkColorType, SkMask::Format, SkColor);
 
     
 
 
 
-    static ColorProc PlatformColorProcs(SkBitmap::Config, SkMask::Format, SkColor);
+    static ColorProc PlatformColorProcs(SkColorType, SkMask::Format, SkColor);
 
     
 
@@ -78,13 +78,13 @@ public:
 
 
 
-    static RowProc RowFactory(SkBitmap::Config, SkMask::Format, RowFlags);
+    static RowProc RowFactory(SkColorType, SkMask::Format, RowFlags);
 
     
 
 
 
-    static RowProc PlatformRowProcs(SkBitmap::Config, SkMask::Format, RowFlags);
+    static RowProc PlatformRowProcs(SkColorType, SkMask::Format, RowFlags);
 };
 
 #endif

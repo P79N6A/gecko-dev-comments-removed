@@ -8,7 +8,8 @@
 #ifndef SkCGUtils_DEFINED
 #define SkCGUtils_DEFINED
 
-#include "SkTypes.h"
+#include "SkSize.h"
+#include "SkImageInfo.h"
 
 #ifdef SK_BUILD_FOR_MAC
 #include <ApplicationServices/ApplicationServices.h>
@@ -21,6 +22,22 @@
 class SkBitmap;
 class SkData;
 class SkStream;
+
+
+
+
+
+
+
+
+SK_API bool SkCreateBitmapFromCGImage(SkBitmap* dst, CGImageRef src, SkISize* scaleToFit = NULL);
+
+
+
+
+
+SK_API bool SkCopyPixelsFromCGImage(const SkImageInfo& info, size_t rowBytes, void* dstPixels,
+                                    CGImageRef src);
 
 
 

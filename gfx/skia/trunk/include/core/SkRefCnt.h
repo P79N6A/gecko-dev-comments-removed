@@ -25,7 +25,7 @@
 
 
 
-class SK_API SkRefCntBase : public SkNoncopyable {
+class SK_API SkRefCntBase : SkNoncopyable {
 public:
     SK_DECLARE_INST_COUNT_ROOT(SkRefCntBase)
 
@@ -37,7 +37,7 @@ public:
 
     virtual ~SkRefCntBase() {
 #ifdef SK_DEBUG
-        SkASSERT(fRefCnt == 1);
+        SkASSERTF(fRefCnt == 1, "fRefCnt was %d", fRefCnt);
         fRefCnt = 0;    
 #endif
     }
@@ -113,7 +113,6 @@ private:
 
     
     
-    friend class GrTexture;
     friend class SkWeakRefCnt;
 
     mutable int32_t fRefCnt;
@@ -247,46 +246,5 @@ public:
     SkAutoUnref(SkRefCnt* obj) : SkAutoTUnref<SkRefCnt>(obj) {}
 };
 #define SkAutoUnref(...) SK_REQUIRE_LOCAL_VAR(SkAutoUnref)
-
-class SkAutoRef : SkNoncopyable {
-public:
-    SkAutoRef(SkRefCnt* obj) : fObj(obj) { SkSafeRef(obj); }
-    ~SkAutoRef() { SkSafeUnref(fObj); }
-private:
-    SkRefCnt* fObj;
-};
-#define SkAutoRef(...) SK_REQUIRE_LOCAL_VAR(SkAutoRef)
-
-
-
-
-template <typename T> class SkRefPtr {
-public:
-    SkRefPtr() : fObj(NULL) {}
-    SkRefPtr(T* obj) : fObj(obj) { SkSafeRef(fObj); }
-    SkRefPtr(const SkRefPtr& o) : fObj(o.fObj) { SkSafeRef(fObj); }
-    ~SkRefPtr() { SkSafeUnref(fObj); }
-
-    SkRefPtr& operator=(const SkRefPtr& rp) {
-        SkRefCnt_SafeAssign(fObj, rp.fObj);
-        return *this;
-    }
-    SkRefPtr& operator=(T* obj) {
-        SkRefCnt_SafeAssign(fObj, obj);
-        return *this;
-    }
-
-    T* get() const { return fObj; }
-    T& operator*() const { return *fObj; }
-    T* operator->() const { return fObj; }
-
-    typedef T* SkRefPtr::*unspecified_bool_type;
-    operator unspecified_bool_type() const {
-        return fObj ? &SkRefPtr::fObj : NULL;
-    }
-
-private:
-    T* fObj;
-};
 
 #endif

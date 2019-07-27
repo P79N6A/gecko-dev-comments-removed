@@ -15,7 +15,7 @@
 #include "SkXfermode.h"
 
 class SkBitmap;
-class GrEffectRef;
+class GrEffect;
 class GrContext;
 
 
@@ -126,7 +126,7 @@ public:
     
 
 
-    virtual GrEffectRef* asNewEffect(GrContext*) const;
+    virtual GrEffect* asNewEffect(GrContext*) const;
 
     SK_TO_STRING_PUREVIRT()
 

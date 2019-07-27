@@ -70,8 +70,16 @@ public:
 
     
 
+
     SK_API void getCountOfFontTypes(
-        int counts[SkAdvancedTypefaceMetrics::kNotEmbeddable_Font + 1]) const;
+        int counts[SkAdvancedTypefaceMetrics::kOther_Font + 2]) const;
+
+    
+
+    SK_API void getCountOfFontTypes(
+        int counts[SkAdvancedTypefaceMetrics::kOther_Font + 1],
+        int* notSubsettableCount,
+        int* notEmbedddableCount) const;
 
 private:
     SkAutoTDelete<SkPDFCatalog> fCatalog;

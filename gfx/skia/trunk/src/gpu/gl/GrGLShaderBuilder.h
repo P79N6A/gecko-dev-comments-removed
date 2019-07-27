@@ -13,6 +13,7 @@
 #include "GrColor.h"
 #include "GrEffect.h"
 #include "SkTypes.h"
+#include "gl/GrGLProgramDesc.h"
 #include "gl/GrGLProgramEffects.h"
 #include "gl/GrGLSL.h"
 #include "gl/GrGLUniformManager.h"
@@ -30,7 +31,6 @@ class GrGLProgramDesc;
 class GrGLShaderBuilder {
 public:
     typedef GrTAllocator<GrGLShaderVar> VarArray;
-    typedef GrBackendEffectFactory::EffectKey EffectKey;
     typedef GrGLProgramEffects::TextureSampler TextureSampler;
     typedef GrGLProgramEffects::TransformedCoordsArray TransformedCoordsArray;
     typedef GrGLUniformManager::BuilderUniform BuilderUniform;
@@ -41,7 +41,62 @@ public:
         kFragment_Visibility = 0x4,
     };
 
-    GrGLShaderBuilder(GrGpuGL*, GrGLUniformManager&, const GrGLProgramDesc&);
+    typedef GrGLUniformManager::UniformHandle UniformHandle;
+
+    
+    struct UniformHandles {
+        UniformHandle       fViewMatrixUni;
+        UniformHandle       fRTAdjustmentUni;
+        UniformHandle       fColorUni;
+        UniformHandle       fCoverageUni;
+
+        
+        
+        UniformHandle       fRTHeightUni;
+
+        
+        UniformHandle       fDstCopyTopLeftUni;
+        UniformHandle       fDstCopyScaleUni;
+        UniformHandle       fDstCopySamplerUni;
+    };
+
+    struct GenProgramOutput {
+        GenProgramOutput()
+            : fColorEffects(NULL)
+            , fCoverageEffects(NULL)
+            , fHasVertexShader(false)
+            , fTexCoordSetCnt(0)
+            , fProgramID(0) {}
+
+        GenProgramOutput(const GenProgramOutput& other) {
+            *this = other;
+        }
+
+        GenProgramOutput& operator=(const GenProgramOutput& other) {
+            fColorEffects.reset(SkRef(other.fColorEffects.get()));
+            fCoverageEffects.reset(SkRef(other.fCoverageEffects.get()));
+            fUniformHandles = other.fUniformHandles;
+            fHasVertexShader = other.fHasVertexShader;
+            fTexCoordSetCnt = other.fTexCoordSetCnt;
+            fProgramID = other.fProgramID;
+            return *this;
+        }
+
+        SkAutoTUnref<GrGLProgramEffects> fColorEffects;
+        SkAutoTUnref<GrGLProgramEffects> fCoverageEffects;
+        UniformHandles                   fUniformHandles;
+        bool                             fHasVertexShader;
+        int                              fTexCoordSetCnt;
+        GrGLuint                         fProgramID;
+    };
+
+    static bool GenProgram(GrGpuGL* gpu,
+                           GrGLUniformManager* uman,
+                           const GrGLProgramDesc& desc,
+                           const GrEffectStage* inColorStages[],
+                           const GrEffectStage* inCoverageStages[],
+                           GenProgramOutput* output);
+
     virtual ~GrGLShaderBuilder() {}
 
     
@@ -126,7 +181,6 @@ public:
 
 
 
-
     GrGLUniformManager::UniformHandle addUniform(uint32_t visibility,
                                                  GrSLType type,
                                                  const char* name,
@@ -140,7 +194,7 @@ public:
                                                       const char** outName = NULL);
 
     const GrGLShaderVar& getUniformVariable(GrGLUniformManager::UniformHandle u) const {
-        return fUniformManager.getBuilderUniform(fUniforms, u).fVariable;
+        return fUniformManager->getBuilderUniform(fUniforms, u).fVariable;
     }
 
     
@@ -165,47 +219,6 @@ public:
 
     const char* dstColor();
 
-    
-
-
-    const GrGLSLExpr4& getInputColor() const {
-        return fInputColor;
-    }
-    const GrGLSLExpr4& getInputCoverage() const {
-        return fInputCoverage;
-    }
-
-    
-
-
-
-
-
-
-
-    virtual GrGLProgramEffects* createAndEmitEffects(const GrEffectStage* effectStages[],
-                                                     const EffectKey effectKeys[],
-                                                     int effectCnt,
-                                                     GrGLSLExpr4* inOutFSColor) = 0;
-
-    const char* getColorOutputName() const;
-    const char* enableSecondaryOutput();
-
-    GrGLUniformManager::UniformHandle getRTHeightUniform() const { return fRTHeightUniform; }
-    GrGLUniformManager::UniformHandle getDstCopyTopLeftUniform() const {
-        return fDstCopyTopLeftUniform;
-    }
-    GrGLUniformManager::UniformHandle getDstCopyScaleUniform() const {
-        return fDstCopyScaleUniform;
-    }
-    GrGLUniformManager::UniformHandle getColorUniform() const { return fColorUniform; }
-    GrGLUniformManager::UniformHandle getCoverageUniform() const { return fCoverageUniform; }
-    GrGLUniformManager::UniformHandle getDstCopySamplerUniform() const {
-        return fDstCopySamplerUniform;
-    }
-
-    bool finish(GrGLuint* outProgramId);
-
     const GrGLContextInfo& ctxInfo() const;
 
     
@@ -228,34 +241,40 @@ public:
     };
 
 protected:
+    GrGLShaderBuilder(GrGpuGL*, GrGLUniformManager*, const GrGLProgramDesc&);
+
     GrGpuGL* gpu() const { return fGpu; }
 
-    void setInputColor(const GrGLSLExpr4& inputColor) { fInputColor = inputColor; }
-    void setInputCoverage(const GrGLSLExpr4& inputCoverage) { fInputCoverage = inputCoverage; }
+    const GrGLProgramDesc& desc() const { return fDesc; }
 
     
     GrGLShaderVar& fsInputAppend() { return fFSInputs.push_back(); }
+
+    
+    void createAndEmitEffects(GrGLProgramEffectsBuilder*,
+                              const GrEffectStage* effectStages[],
+                              int effectCnt,
+                              const GrGLProgramDesc::EffectKeyProvider&,
+                              GrGLSLExpr4* inOutFSColor);
 
     
     
     
     void nameVariable(SkString* out, char prefix, const char* name);
 
-    
-    void createAndEmitEffects(GrGLProgramEffectsBuilder*,
-                              const GrEffectStage* effectStages[],
-                              const EffectKey effectKeys[],
-                              int effectCnt,
-                              GrGLSLExpr4* inOutFSColor);
-
     virtual bool compileAndAttachShaders(GrGLuint programId, SkTDArray<GrGLuint>* shaderIds) const;
+
     virtual void bindProgramLocations(GrGLuint programId) const;
 
     void appendDecls(const VarArray&, SkString*) const;
     void appendUniformDecls(ShaderVisibility, SkString*) const;
 
+    const GenProgramOutput& getOutput() const { return fOutput; }
+
+    GenProgramOutput fOutput;
+
 private:
-    class CodeStage : public SkNoncopyable {
+    class CodeStage : SkNoncopyable {
     public:
         CodeStage() : fNextIndex(0), fCurrentIndex(-1), fEffectStage(NULL) {}
 
@@ -274,7 +293,7 @@ private:
             return fCurrentIndex;
         }
 
-        class AutoStageRestore : public SkNoncopyable {
+        class AutoStageRestore : SkNoncopyable {
         public:
             AutoStageRestore(CodeStage* codeStage, const GrEffectStage* newStage) {
                 SkASSERT(NULL != codeStage);
@@ -306,6 +325,47 @@ private:
         const GrEffectStage*    fEffectStage;
     } fCodeStage;
 
+    bool genProgram(const GrEffectStage* colorStages[], const GrEffectStage* coverageStages[]);
+
+    
+
+
+
+
+
+
+    virtual void emitCodeBeforeEffects(GrGLSLExpr4* color, GrGLSLExpr4* coverage) = 0;
+
+    
+
+
+
+
+
+
+
+    virtual GrGLProgramEffects* createAndEmitEffects(const GrEffectStage* effectStages[],
+                                                     int effectCnt,
+                                                     const GrGLProgramDesc::EffectKeyProvider&,
+                                                     GrGLSLExpr4* inOutFSColor) = 0;
+
+    
+
+
+    virtual void emitCodeAfterEffects() = 0;
+
+    
+
+    const char* enableSecondaryOutput();
+    
+    const char* getColorOutputName() const;
+
+    
+
+
+
+    bool finish();
+
     
 
 
@@ -322,10 +382,10 @@ private:
 
     
     enum {
-        kNoDstRead_DstReadKey         = 0,
-        kYesDstRead_DstReadKeyBit     = 0x1, 
-        kUseAlphaConfig_DstReadKeyBit = 0x2, 
-        kTopLeftOrigin_DstReadKeyBit  = 0x4, 
+        kNoDstRead_DstReadKey           = 0,
+        kYesDstRead_DstReadKeyBit       = 0x1, 
+        kUseAlphaConfig_DstReadKeyBit   = 0x2, 
+        kTopLeftOrigin_DstReadKeyBit    = 0x4, 
     };
 
     enum {
@@ -334,8 +394,9 @@ private:
         kBottomLeftFragPosRead_FragPosKey   = 0x2,
     };
 
+    const GrGLProgramDesc&                  fDesc;
     GrGpuGL*                                fGpu;
-    GrGLUniformManager&                     fUniformManager;
+    SkAutoTUnref<GrGLUniformManager>        fUniformManager;
     uint32_t                                fFSFeaturesAddedMask;
     SkString                                fFSFunctions;
     SkString                                fFSExtensions;
@@ -346,28 +407,17 @@ private:
     SkString                                fFSCode;
 
     bool                                    fSetupFragPosition;
-    GrGLUniformManager::UniformHandle       fDstCopySamplerUniform;
-
-    GrGLSLExpr4                             fInputColor;
-    GrGLSLExpr4                             fInputCoverage;
+    bool                                    fTopLeftFragPosRead;
 
     bool                                    fHasCustomColorOutput;
     bool                                    fHasSecondaryOutput;
-
-    GrGLUniformManager::UniformHandle       fRTHeightUniform;
-    GrGLUniformManager::UniformHandle       fDstCopyTopLeftUniform;
-    GrGLUniformManager::UniformHandle       fDstCopyScaleUniform;
-    GrGLUniformManager::UniformHandle       fColorUniform;
-    GrGLUniformManager::UniformHandle       fCoverageUniform;
-
-    bool                                    fTopLeftFragPosRead;
 };
 
 
 
 class GrGLFullShaderBuilder : public GrGLShaderBuilder {
 public:
-    GrGLFullShaderBuilder(GrGpuGL*, GrGLUniformManager&, const GrGLProgramDesc&);
+    GrGLFullShaderBuilder(GrGpuGL*, GrGLUniformManager*, const GrGLProgramDesc&);
 
     
 
@@ -411,22 +461,21 @@ public:
     bool addEffectAttribute(int attributeIndex, GrSLType type, const SkString& name);
     const SkString* getEffectAttributeName(int attributeIndex) const;
 
-    virtual GrGLProgramEffects* createAndEmitEffects(
-                const GrEffectStage* effectStages[],
-                const EffectKey effectKeys[],
-                int effectCnt,
-                GrGLSLExpr4* inOutFSColor) SK_OVERRIDE;
+private:
+    virtual void emitCodeBeforeEffects(GrGLSLExpr4* color, GrGLSLExpr4* coverage) SK_OVERRIDE;
 
-    GrGLUniformManager::UniformHandle getViewMatrixUniform() const {
-        return fViewMatrixUniform;
-    }
+    virtual GrGLProgramEffects* createAndEmitEffects(const GrEffectStage* effectStages[],
+                                                     int effectCnt,
+                                                     const GrGLProgramDesc::EffectKeyProvider&,
+                                                     GrGLSLExpr4* inOutFSColor) SK_OVERRIDE;
 
-protected:
-    virtual bool compileAndAttachShaders(GrGLuint programId, SkTDArray<GrGLuint>* shaderIds) const SK_OVERRIDE;
+    virtual void emitCodeAfterEffects() SK_OVERRIDE;
+
+    virtual bool compileAndAttachShaders(GrGLuint programId,
+                                         SkTDArray<GrGLuint>* shaderIds) const SK_OVERRIDE;
+
     virtual void bindProgramLocations(GrGLuint programId) const SK_OVERRIDE;
 
-private:
-    const GrGLProgramDesc&              fDesc;
     VarArray                            fVSAttrs;
     VarArray                            fVSOutputs;
     VarArray                            fGSInputs;
@@ -443,8 +492,6 @@ private:
     };
     SkSTArray<10, AttributePair, true>  fEffectAttributes;
 
-    GrGLUniformManager::UniformHandle   fViewMatrixUniform;
-
     GrGLShaderVar*                      fPositionVar;
     GrGLShaderVar*                      fLocalCoordsVar;
 
@@ -455,19 +502,19 @@ private:
 
 class GrGLFragmentOnlyShaderBuilder : public GrGLShaderBuilder {
 public:
-    GrGLFragmentOnlyShaderBuilder(GrGpuGL*, GrGLUniformManager&, const GrGLProgramDesc&);
+    GrGLFragmentOnlyShaderBuilder(GrGpuGL*, GrGLUniformManager*, const GrGLProgramDesc&);
 
-    int getNumTexCoordSets() const { return fNumTexCoordSets; }
     int addTexCoordSets(int count);
 
-    virtual GrGLProgramEffects* createAndEmitEffects(
-                const GrEffectStage* effectStages[],
-                const EffectKey effectKeys[],
-                int effectCnt,
-                GrGLSLExpr4* inOutFSColor) SK_OVERRIDE;
-
 private:
-    int fNumTexCoordSets;
+    virtual void emitCodeBeforeEffects(GrGLSLExpr4* color, GrGLSLExpr4* coverage) SK_OVERRIDE {}
+
+    virtual GrGLProgramEffects* createAndEmitEffects(const GrEffectStage* effectStages[],
+                                                     int effectCnt,
+                                                     const GrGLProgramDesc::EffectKeyProvider&,
+                                                     GrGLSLExpr4* inOutFSColor) SK_OVERRIDE;
+
+    virtual void emitCodeAfterEffects() SK_OVERRIDE {}
 
     typedef GrGLShaderBuilder INHERITED;
 };

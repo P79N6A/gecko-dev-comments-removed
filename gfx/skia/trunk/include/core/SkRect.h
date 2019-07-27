@@ -160,6 +160,20 @@ struct SK_API SkIRect {
     
 
 
+    SkIRect makeOffset(int dx, int dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight + dx, fBottom + dy);
+    }
+
+    
+
+
+    SkIRect makeInset(int dx, int dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight - dx, fBottom - dy);
+    }
+
+    
+
+
     void offset(int32_t dx, int32_t dy) {
         fLeft   += dx;
         fTop    += dy;
@@ -580,6 +594,20 @@ struct SK_API SkRect {
     
 
 
+    SkRect makeOffset(SkScalar dx, SkScalar dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight + dx, fBottom + dy);
+    }
+
+    
+
+
+    SkRect makeInset(SkScalar dx, SkScalar dy) const {
+        return MakeLTRB(fLeft + dx, fTop + dy, fRight - dx, fBottom - dy);
+    }
+
+    
+
+
     void offset(SkScalar dx, SkScalar dy) {
         fLeft   += dx;
         fTop    += dy;
@@ -735,6 +763,24 @@ struct SK_API SkRect {
 
 
 
+
+
+
+
+
+
+
+
+    void dround(SkIRect* dst) const {
+        SkASSERT(dst);
+        dst->set(SkDScalarRoundToInt(fLeft), SkDScalarRoundToInt(fTop),
+                 SkDScalarRoundToInt(fRight), SkDScalarRoundToInt(fBottom));
+    }
+
+    
+
+
+
     void roundOut(SkIRect* dst) const {
         SkASSERT(dst);
         dst->set(SkScalarFloorToInt(fLeft), SkScalarFloorToInt(fTop),
@@ -787,6 +833,17 @@ struct SK_API SkRect {
 
 
     const SkScalar* asScalars() const { return &fLeft; }
+
+#ifdef SK_DEVELOPER
+    
+
+
+
+    void dump() const {
+        SkDebugf("{ l: %f, t: %f, r: %f, b: %f }", fLeft, fTop, fRight, fBottom);
+    }
+#endif
+
 };
 
 #endif

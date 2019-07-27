@@ -10,6 +10,7 @@
 #ifndef SkMaskFilter_DEFINED
 #define SkMaskFilter_DEFINED
 
+#include "SkBlurTypes.h"
 #include "SkFlattenable.h"
 #include "SkMask.h"
 #include "SkPaint.h"
@@ -18,7 +19,6 @@ class GrContext;
 class GrPaint;
 class SkBitmap;
 class SkBlitter;
-class SkBounder;
 class SkMatrix;
 class SkPath;
 class SkRasterClip;
@@ -72,7 +72,7 @@ public:
 
 
 
-    virtual bool asNewEffect(GrEffectRef** effect,
+    virtual bool asNewEffect(GrEffect** effect,
                              GrTexture*,
                              const SkMatrix& ctm) const;
 
@@ -138,6 +138,18 @@ public:
 
     virtual void computeFastBounds(const SkRect& src, SkRect* dest) const;
 
+    struct BlurRec {
+        SkScalar        fSigma;
+        SkBlurStyle     fStyle;
+        SkBlurQuality   fQuality;
+    };
+    
+
+
+
+
+    virtual bool asABlur(BlurRec*) const;
+
     SK_TO_STRING_PUREVIRT()
     SK_DEFINE_FLATTENABLE_TYPE(SkMaskFilter)
 
@@ -192,17 +204,15 @@ private:
 
 
 
-    bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
-                    const SkRasterClip&, SkBounder*, SkBlitter* blitter,
-                    SkPaint::Style style) const;
+    bool filterPath(const SkPath& devPath, const SkMatrix& ctm, const SkRasterClip&, SkBlitter*,
+                    SkPaint::Style) const;
 
     
 
 
 
-    bool filterRRect(const SkRRect& devRRect, const SkMatrix& devMatrix,
-                     const SkRasterClip&, SkBounder*, SkBlitter* blitter,
-                     SkPaint::Style style) const;
+    bool filterRRect(const SkRRect& devRRect, const SkMatrix& ctm, const SkRasterClip&,
+                     SkBlitter*, SkPaint::Style style) const;
 
     typedef SkFlattenable INHERITED;
 };

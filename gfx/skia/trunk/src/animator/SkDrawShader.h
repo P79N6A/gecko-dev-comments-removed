@@ -5,12 +5,10 @@
 
 
 
-
-
 #ifndef SkDrawShader_DEFINED
 #define SkDrawShader_DEFINED
 
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkShader.h"
 
 class SkBaseBitmap;

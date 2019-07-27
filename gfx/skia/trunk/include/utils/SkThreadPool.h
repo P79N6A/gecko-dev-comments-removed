@@ -26,7 +26,7 @@ static inline int num_cores() {
     GetSystemInfo(&sysinfo);
     return sysinfo.dwNumberOfProcessors;
 #elif defined(SK_BUILD_FOR_UNIX) || defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_ANDROID)
-    return sysconf(_SC_NPROCESSORS_ONLN);
+    return (int) sysconf(_SC_NPROCESSORS_ONLN);
 #else
     return 1;
 #endif
@@ -52,6 +52,11 @@ public:
     
 
 
+    void addNext(SkTRunnable<T>*);
+
+    
+
+
     void wait();
 
  private:
@@ -65,6 +70,9 @@ public:
         kWaiting_State,  
         kHalting_State,  
     };
+
+    void addSomewhere(SkTRunnable<T>* r,
+                      void (SkTInternalLList<LinkedRunnable>::*)(LinkedRunnable*));
 
     SkTInternalLList<LinkedRunnable> fQueue;
     SkCondVar                        fReady;
@@ -111,7 +119,8 @@ struct ThreadLocal<void> {
 }  
 
 template <typename T>
-void SkTThreadPool<T>::add(SkTRunnable<T>* r) {
+void SkTThreadPool<T>::addSomewhere(SkTRunnable<T>* r,
+                                    void (SkTInternalLList<LinkedRunnable>::* f)(LinkedRunnable*)) {
     if (r == NULL) {
         return;
     }
@@ -126,9 +135,19 @@ void SkTThreadPool<T>::add(SkTRunnable<T>* r) {
     linkedRunnable->fRunnable = r;
     fReady.lock();
     SkASSERT(fState != kHalting_State);  
-    fQueue.addToHead(linkedRunnable);
+    (fQueue.*f)(linkedRunnable);
     fReady.signal();
     fReady.unlock();
+}
+
+template <typename T>
+void SkTThreadPool<T>::add(SkTRunnable<T>* r) {
+    this->addSomewhere(r, &SkTInternalLList<LinkedRunnable>::addToTail);
+}
+
+template <typename T>
+void SkTThreadPool<T>::addNext(SkTRunnable<T>* r) {
+    this->addSomewhere(r, &SkTInternalLList<LinkedRunnable>::addToHead);
 }
 
 
@@ -174,7 +193,7 @@ template <typename T>
         
 
         
-        LinkedRunnable* r = pool->fQueue.tail();
+        LinkedRunnable* r = pool->fQueue.head();
 
         pool->fQueue.remove(r);
 

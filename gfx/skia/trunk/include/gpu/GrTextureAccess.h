@@ -112,7 +112,7 @@ private:
 
 
 
-class GrTextureAccess : public SkNoncopyable {
+class GrTextureAccess : SkNoncopyable {
 public:
     
 

@@ -108,7 +108,6 @@ public:
 
     virtual ~SuperBlitter() {
         this->flush();
-        sk_free(fRuns.fRuns);
     }
 
     
@@ -123,31 +122,56 @@ public:
     virtual void blitRect(int x, int y, int width, int height) SK_OVERRIDE;
 
 private:
+    
+    
+    
+    
+    int         fRunsToBuffer;
+    void*       fRunsBuffer;
+    int         fCurrentRun;
     SkAlphaRuns fRuns;
+
+    
+    int getRunsSz() const { return (fWidth + 1 + (fWidth + 2)/2) * sizeof(int16_t); }
+
+    
+    
+    
+    void advanceRuns() {
+        const size_t kRunsSz = this->getRunsSz();
+        fCurrentRun = (fCurrentRun + 1) % fRunsToBuffer;
+        fRuns.fRuns = reinterpret_cast<int16_t*>(
+            reinterpret_cast<uint8_t*>(fRunsBuffer) + fCurrentRun * kRunsSz);
+        fRuns.fAlpha = reinterpret_cast<SkAlpha*>(fRuns.fRuns + fWidth + 1);
+        fRuns.reset(fWidth);
+    }
+
     int         fOffsetX;
 };
 
 SuperBlitter::SuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
                            const SkRegion& clip)
         : BaseSuperBlitter(realBlitter, ir, clip) {
-    const int width = fWidth;
+    fRunsToBuffer = realBlitter->requestRowsPreserved();
+    fRunsBuffer = realBlitter->allocBlitMemory(fRunsToBuffer * this->getRunsSz());
+    fCurrentRun = -1;
 
-    
-    fRuns.fRuns = (int16_t*)sk_malloc_throw((width + 1 + (width + 2)/2) * sizeof(int16_t));
-    fRuns.fAlpha = (uint8_t*)(fRuns.fRuns + width + 1);
-    fRuns.reset(width);
+    this->advanceRuns();
 
     fOffsetX = 0;
 }
 
 void SuperBlitter::flush() {
     if (fCurrIY >= fTop) {
+
+        SkASSERT(fCurrentRun < fRunsToBuffer);
         if (!fRuns.empty()) {
-        
+            
             fRealBlitter->blitAntiH(fLeft, fCurrIY, fRuns.fAlpha, fRuns.fRuns);
-            fRuns.reset(fWidth);
+            this->advanceRuns();
             fOffsetX = 0;
         }
+
         fCurrIY = fTop - 1;
         SkDEBUGCODE(fCurrX = -1;)
     }

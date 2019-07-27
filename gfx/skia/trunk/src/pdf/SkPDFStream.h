@@ -22,8 +22,6 @@ class SkPDFCatalog;
 
 
 
-
-
 class SkPDFStream : public SkPDFDict {
     SK_DECLARE_INST_COUNT(SkPDFStream)
 public:
@@ -31,16 +29,17 @@ public:
 
 
 
-
     explicit SkPDFStream(SkData* data);
+
     
+
+
+
     explicit SkPDFStream(SkStream* stream);
-    
 
-
-    explicit SkPDFStream(const SkPDFStream& pdfStream);
     virtual ~SkPDFStream();
 
+    
     
     virtual void emitObject(SkWStream* stream, SkPDFCatalog* catalog,
                             bool indirect);
@@ -57,6 +56,11 @@ protected:
     
 
 
+    explicit SkPDFStream(const SkPDFStream& pdfStream);
+
+    
+
+
     SkPDFStream();
 
     
@@ -67,22 +71,20 @@ protected:
         fSubstitute.reset(stream);
     }
 
-    SkPDFStream* getSubstitute() {
+    SkPDFStream* getSubstitute() const {
         return fSubstitute.get();
     }
 
     void setData(SkData* data);
     void setData(SkStream* stream);
 
-    SkStream* getData() {
-        return fData.get();
-    }
+    size_t dataSize() const;
 
     void setState(State state) {
         fState = state;
     }
 
-    State getState() {
+    State getState() const {
         return fState;
     }
 
@@ -91,7 +93,12 @@ private:
     State fState;
 
     
-    SkAutoTUnref<SkStream> fData;
+    SkMutex fMutex;
+
+    SkMemoryStream fMemoryStream;  
+                                   
+                                   
+    SkAutoTUnref<SkStreamRewindable> fDataStream;
     SkAutoTUnref<SkPDFStream> fSubstitute;
 
     typedef SkPDFDict INHERITED;

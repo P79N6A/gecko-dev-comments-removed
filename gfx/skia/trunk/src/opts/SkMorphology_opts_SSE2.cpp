@@ -5,11 +5,9 @@
 
 
 
-
+#include <emmintrin.h>
 #include "SkColorPriv.h"
 #include "SkMorphology_opts_SSE2.h"
-
-#include <emmintrin.h>
 
 
 
@@ -48,8 +46,12 @@ static void SkMorph_SSE2(const SkPMColor* src, SkPMColor* dst, int radius,
             lp += srcStrideY;
             up += srcStrideY;
         }
-        if (x >= radius) src += srcStrideX;
-        if (x + radius < width - 1) upperSrc += srcStrideX;
+        if (x >= radius) {
+            src += srcStrideX;
+        }
+        if (x + radius < width - 1) {
+            upperSrc += srcStrideX;
+        }
         dst += dstStrideX;
     }
 }

@@ -31,56 +31,7 @@ class SkString;
 
 
 
-
-class GrEffectRef : public SkRefCnt {
-public:
-    SK_DECLARE_INST_COUNT(GrEffectRef);
-    virtual ~GrEffectRef();
-
-    GrEffect* get() { return fEffect; }
-    const GrEffect* get() const { return fEffect; }
-
-    const GrEffect* operator-> () { return fEffect; }
-    const GrEffect* operator-> () const { return fEffect; }
-
-    void* operator new(size_t size);
-    void operator delete(void* target);
-
-    void* operator new(size_t size, void* placement) {
-        return ::operator new(size, placement);
-    }
-    void operator delete(void* target, void* placement) {
-        ::operator delete(target, placement);
-    }
-
-private:
-    friend class GrEffect; 
-
-    explicit GrEffectRef(GrEffect* effect);
-
-    GrEffect* fEffect;
-
-    typedef SkRefCnt INHERITED;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class GrEffect : private SkRefCnt {
+class GrEffect : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(GrEffect)
 
@@ -123,9 +74,17 @@ public:
 
 
 
-
-    bool isEqual(const GrEffectRef& other) const {
-        return this->isEqual(*other.get());
+    bool isEqual(const GrEffect& other) const {
+        if (&this->getFactory() != &other.getFactory()) {
+            return false;
+        }
+        bool result = this->onIsEqual(other);
+#ifdef SK_DEBUG
+        if (result) {
+            this->assertEquality(other);
+        }
+#endif
+        return result;
     }
 
     
@@ -185,24 +144,6 @@ public:
         ::operator delete(target, placement);
     }
 
-    
-
-
-    void incDeferredRefCounts() const {
-        this->ref();
-        int count = fTextureAccesses.count();
-        for (int t = 0; t < count; ++t) {
-            fTextureAccesses[t]->getTexture()->incDeferredRefCount();
-        }
-    }
-    void decDeferredRefCounts() const {
-        int count = fTextureAccesses.count();
-        for (int t = 0; t < count; ++t) {
-            fTextureAccesses[t]->getTexture()->decDeferredRefCount();
-        }
-        this->unref();
-    }
-
 protected:
     
 
@@ -225,56 +166,13 @@ protected:
         : fWillReadDstColor(false)
         , fWillReadFragmentPosition(false)
         , fWillUseInputColor(true)
-        , fHasVertexCode(false)
-        , fEffectRef(NULL) {}
-
-    
-
-    static GrEffectRef* CreateEffectRef(GrEffect* effect) {
-        if (NULL == effect->fEffectRef) {
-            effect->fEffectRef = SkNEW_ARGS(GrEffectRef, (effect));
-        } else {
-            effect->fEffectRef->ref();
-        }
-        return effect->fEffectRef;
-    }
-
-    static const GrEffectRef* CreateEffectRef(const GrEffect* effect) {
-        return CreateEffectRef(const_cast<GrEffect*>(effect));
-    }
-
-    
-    static GrEffectRef* CreateStaticEffectRef(void* refStorage, GrEffect* effect) {
-        SkASSERT(NULL == effect->fEffectRef);
-        effect->fEffectRef = SkNEW_PLACEMENT_ARGS(refStorage, GrEffectRef, (effect));
-        return effect->fEffectRef;
-    }
-
+        , fHasVertexCode(false) {}
 
     
 
 
-
-
-
-
-
-
-
-    class AutoEffectUnref {
-    public:
-        AutoEffectUnref(GrEffect* effect) : fEffect(effect) { }
-        ~AutoEffectUnref() { fEffect->unref(); }
-        operator GrEffect*() { return fEffect; }
-    private:
-        GrEffect* fEffect;
-    };
-
-    
-
-    template <typename T>
-    static const T& CastEffect(const GrEffect& effectRef) {
-        return *static_cast<const T*>(&effectRef);
+    template <typename T> static const T& CastEffect(const GrEffect& effect) {
+        return *static_cast<const T*>(&effect);
     }
 
     
@@ -299,19 +197,6 @@ protected:
     void setWillNotUseInputColor() { fWillUseInputColor = false; }
 
 private:
-    bool isEqual(const GrEffect& other) const {
-        if (&this->getFactory() != &other.getFactory()) {
-            return false;
-        }
-        bool result = this->onIsEqual(other);
-#ifdef SK_DEBUG
-        if (result) {
-            this->assertEquality(other);
-        }
-#endif
-        return result;
-    }
-
     SkDEBUGCODE(void assertEquality(const GrEffect& other) const;)
 
     
@@ -319,12 +204,6 @@ private:
 
     virtual bool onIsEqual(const GrEffect& other) const = 0;
 
-    void EffectRefDestroyed() { fEffectRef = NULL; }
-
-    friend class GrEffectRef;    
-    friend class GrEffectStage;  
-                                 
-                                 
     friend class GrVertexEffect; 
 
     SkSTArray<4, const GrCoordTransform*, true>  fCoordTransforms;
@@ -334,32 +213,18 @@ private:
     bool                                         fWillReadFragmentPosition;
     bool                                         fWillUseInputColor;
     bool                                         fHasVertexCode;
-    GrEffectRef*                                 fEffectRef;
 
     typedef SkRefCnt INHERITED;
 };
-
-inline GrEffectRef::GrEffectRef(GrEffect* effect) {
-    SkASSERT(NULL != effect);
-    effect->ref();
-    fEffect = effect;
-}
 
 
 
 
 
 #define GR_CREATE_STATIC_EFFECT(NAME, EFFECT_CLASS, ARGS)                                         \
-enum {                                                                                            \
-    k_##NAME##_EffectRefOffset = GR_CT_ALIGN_UP(sizeof(EFFECT_CLASS), 8),                         \
-    k_##NAME##_StorageSize = k_##NAME##_EffectRefOffset + sizeof(GrEffectRef)                     \
-};                                                                                                \
-static SkAlignedSStorage<k_##NAME##_StorageSize> g_##NAME##_Storage;                              \
-static void* NAME##_RefLocation = (char*)g_##NAME##_Storage.get() + k_##NAME##_EffectRefOffset;   \
-static GrEffect* NAME##_Effect SkNEW_PLACEMENT_ARGS(g_##NAME##_Storage.get(), EFFECT_CLASS, ARGS);\
-static SkAutoTDestroy<GrEffect> NAME##_ad(NAME##_Effect);                                         \
-static GrEffectRef* NAME(GrEffect::CreateStaticEffectRef(NAME##_RefLocation, NAME##_Effect));     \
-static SkAutoTDestroy<GrEffectRef> NAME##_Ref_ad(NAME)
+static SkAlignedSStorage<sizeof(EFFECT_CLASS)> g_##NAME##_Storage;                                \
+static GrEffect* NAME SkNEW_PLACEMENT_ARGS(g_##NAME##_Storage.get(), EFFECT_CLASS, ARGS);         \
+static SkAutoTDestroy<GrEffect> NAME##_ad(NAME);
 
 
 #endif

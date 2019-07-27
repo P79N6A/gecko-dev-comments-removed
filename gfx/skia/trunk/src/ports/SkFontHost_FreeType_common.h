@@ -26,7 +26,6 @@
     #define SkASSERT_CONTINUE(pred)
 #endif
 
-
 class SkScalerContext_FreeType_Base : public SkScalerContext {
 protected:
     
@@ -45,6 +44,13 @@ private:
 };
 
 class SkTypeface_FreeType : public SkTypeface {
+public:
+    
+
+
+    static bool ScanFont(SkStream* stream, int ttcIndex,
+                         SkString* name, SkTypeface::Style* style, bool* isFixedPitch);
+
 protected:
     SkTypeface_FreeType(Style style, SkFontID uniqueID, bool isFixedPitch)
         : INHERITED(style, uniqueID, isFixedPitch)

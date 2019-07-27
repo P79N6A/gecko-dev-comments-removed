@@ -15,13 +15,7 @@ bool GrSoftwarePathRenderer::canDrawPath(const SkPath&,
                                          const SkStrokeRec&,
                                          const GrDrawTarget*,
                                          bool antiAlias) const {
-    if (!antiAlias || NULL == fContext) {
-        
-        
-        
-        
-        
-        
+    if (NULL == fContext) {
         return false;
     }
 

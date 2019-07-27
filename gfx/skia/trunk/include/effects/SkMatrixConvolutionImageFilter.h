@@ -23,9 +23,10 @@ class SK_API SkMatrixConvolutionImageFilter : public SkImageFilter {
 public:
     
     enum TileMode {
-      kClamp_TileMode,         
+      kClamp_TileMode = 0,         
       kRepeat_TileMode,        
       kClampToBlack_TileMode,  
+      kMax_TileMode = kClampToBlack_TileMode
     };
 
     virtual ~SkMatrixConvolutionImageFilter();
@@ -68,22 +69,6 @@ public:
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkMatrixConvolutionImageFilter)
 
 protected:
-    SkMatrixConvolutionImageFilter(SkReadBuffer& buffer);
-    virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
-
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const Context&,
-                               SkBitmap* result, SkIPoint* loc) const SK_OVERRIDE;
-
-#if SK_SUPPORT_GPU
-    virtual bool asNewEffect(GrEffectRef** effect,
-                             GrTexture*,
-                             const SkMatrix& ctm,
-                             const SkIRect& bounds) const SK_OVERRIDE;
-#endif
-
-#ifdef SK_SUPPORT_LEGACY_PUBLICEFFECTCONSTRUCTORS
-public:
-#endif
     SkMatrixConvolutionImageFilter(const SkISize& kernelSize,
                                    const SkScalar* kernel,
                                    SkScalar gain,
@@ -91,8 +76,22 @@ public:
                                    const SkIPoint& kernelOffset,
                                    TileMode tileMode,
                                    bool convolveAlpha,
-                                   SkImageFilter* input = NULL,
-                                   const CropRect* cropRect = NULL);
+                                   SkImageFilter* input,
+                                   const CropRect* cropRect);
+    explicit SkMatrixConvolutionImageFilter(SkReadBuffer& buffer);
+    virtual void flatten(SkWriteBuffer&) const SK_OVERRIDE;
+
+    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const Context&,
+                               SkBitmap* result, SkIPoint* loc) const SK_OVERRIDE;
+    virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*) const SK_OVERRIDE;
+
+
+#if SK_SUPPORT_GPU
+    virtual bool asNewEffect(GrEffect** effect,
+                             GrTexture*,
+                             const SkMatrix& ctm,
+                             const SkIRect& bounds) const SK_OVERRIDE;
+#endif
 
 private:
     SkISize   fKernelSize;

@@ -11,13 +11,13 @@
 #include "SkFlattenable.h"
 #include "SkMatrix.h"
 #include "SkRect.h"
+#include "SkTemplates.h"
 
 class SkBitmap;
 class SkColorFilter;
 class SkBaseDevice;
 struct SkIPoint;
-class SkShader;
-class GrEffectRef;
+class GrEffect;
 class GrTexture;
 
 
@@ -49,16 +49,30 @@ public:
         uint32_t fFlags;
     };
 
+    class SK_API Cache : public SkRefCnt {
+    public:
+        
+        
+        static Cache* Create(int minChildren = 2);
+        virtual ~Cache() {}
+        virtual bool get(const SkImageFilter* key, SkBitmap* result, SkIPoint* offset) = 0;
+        virtual void set(const SkImageFilter* key,
+                         const SkBitmap& result, const SkIPoint& offset) = 0;
+        virtual void remove(const SkImageFilter* key) = 0;
+    };
+
     class Context {
     public:
-        Context(const SkMatrix& ctm, const SkIRect& clipBounds) :
-            fCTM(ctm), fClipBounds(clipBounds) {
+        Context(const SkMatrix& ctm, const SkIRect& clipBounds, Cache* cache) :
+            fCTM(ctm), fClipBounds(clipBounds), fCache(cache) {
         }
         const SkMatrix& ctm() const { return fCTM; }
         const SkIRect& clipBounds() const { return fClipBounds; }
+        Cache* cache() const { return fCache; }
     private:
         SkMatrix fCTM;
         SkIRect  fClipBounds;
+        Cache*   fCache;
     };
 
     class Proxy {
@@ -172,16 +186,46 @@ public:
                            SkBitmap* result, SkIPoint* offset) const;
 #endif
 
+    
+
+
+
+    static void SetExternalCache(Cache* cache);
+
+    
+
+
+    static Cache* GetExternalCache();
+
     SK_DEFINE_FLATTENABLE_TYPE(SkImageFilter)
 
 protected:
+    class Common {
+    public:
+        Common() {}
+        ~Common();
+
+        bool unflatten(SkReadBuffer&, int expectedInputs = -1);
+
+        CropRect        cropRect() const { return fCropRect; }
+        int             inputCount() const { return fInputs.count(); }
+        SkImageFilter** inputs() const { return fInputs.get(); }
+
+        
+        
+        
+        
+        void detachInputs(SkImageFilter** inputs);
+
+    private:
+        CropRect fCropRect;
+        
+        SkAutoSTArray<2, SkImageFilter*> fInputs;
+
+        void allocInputs(int count);
+    };
+
     SkImageFilter(int inputCount, SkImageFilter** inputs, const CropRect* cropRect = NULL);
-
-    
-    explicit SkImageFilter(SkImageFilter* input, const CropRect* cropRect = NULL);
-
-    
-    SkImageFilter(SkImageFilter* input1, SkImageFilter* input2, const CropRect* cropRect = NULL);
 
     virtual ~SkImageFilter();
 
@@ -258,11 +302,10 @@ protected:
 
 
 
-    virtual bool asNewEffect(GrEffectRef** effect,
+    virtual bool asNewEffect(GrEffect** effect,
                              GrTexture*,
                              const SkMatrix& matrix,
                              const SkIRect& bounds) const;
-
 
 private:
     typedef SkFlattenable INHERITED;

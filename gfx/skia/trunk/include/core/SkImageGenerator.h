@@ -8,8 +8,8 @@
 #ifndef SkImageGenerator_DEFINED
 #define SkImageGenerator_DEFINED
 
-#include "SkDiscardableMemory.h"
 #include "SkImageInfo.h"
+#include "SkColor.h"
 
 class SkBitmap;
 class SkData;
@@ -33,13 +33,13 @@ class SkImageGenerator;
 
 
 
+SK_API bool SkInstallDiscardablePixelRef(SkImageGenerator*, SkBitmap* destination);
 
 
 
 
-SK_API bool SkInstallDiscardablePixelRef(SkImageGenerator* generator,
-                                         SkBitmap* destination,
-                                         SkDiscardableMemory::Factory* factory = NULL);
+
+SK_API void SkPurgeGlobalDiscardableMemoryPool();
 
 
 
@@ -54,6 +54,13 @@ public:
 
     virtual ~SkImageGenerator() { }
 
+#ifdef SK_SUPPORT_LEGACY_IMAGEGENERATORAPI
+    virtual SkData* refEncodedData() { return this->onRefEncodedData(); }
+    virtual bool getInfo(SkImageInfo* info) { return this->onGetInfo(info); }
+    virtual bool getPixels(const SkImageInfo& info, void* pixels, size_t rowBytes) {
+        return this->onGetPixels(info, pixels, rowBytes, NULL, NULL);
+    }
+#else
     
 
 
@@ -61,7 +68,7 @@ public:
 
 
 
-    virtual SkData* refEncodedData() { return NULL; }
+    SkData* refEncodedData() { return this->onRefEncodedData(); }
 
     
 
@@ -72,7 +79,7 @@ public:
 
 
 
-    virtual bool getInfo(SkImageInfo* info) = 0;
+    bool getInfo(SkImageInfo* info);
 
     
 
@@ -93,9 +100,42 @@ public:
 
 
 
-    virtual bool getPixels(const SkImageInfo& info,
-                           void* pixels,
-                           size_t rowBytes) = 0;
+
+
+
+
+
+
+
+    bool getPixels(const SkImageInfo& info, void* pixels, size_t rowBytes,
+                   SkPMColor ctable[], int* ctableCount);
+
+    
+
+
+    bool getPixels(const SkImageInfo& info, void* pixels, size_t rowBytes);
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+
+    bool getYUV8Planes(SkISize sizes[3], void* planes[3], size_t rowBytes[3]);
+
+protected:
+    virtual SkData* onRefEncodedData();
+    virtual bool onGetInfo(SkImageInfo* info);
+    virtual bool onGetPixels(const SkImageInfo& info,
+                             void* pixels, size_t rowBytes,
+                             SkPMColor ctable[], int* ctableCount);
+    virtual bool onGetYUV8Planes(SkISize sizes[3], void* planes[3], size_t rowBytes[3]);
 };
 
 #endif  

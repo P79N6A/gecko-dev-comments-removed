@@ -32,35 +32,48 @@
 
 
 
-class SkMutex {
+
+
+struct SkBaseMutex {
 public:
-    SkMutex() {
+    SkBaseMutex() {
         InitializeCriticalSection(&fStorage);
+        SkDEBUGCODE(fOwner = 0;)
     }
 
-    ~SkMutex() {
+    ~SkBaseMutex() {
+        SkASSERT(0 == fOwner);
         DeleteCriticalSection(&fStorage);
     }
 
     void acquire() {
         EnterCriticalSection(&fStorage);
+        SkDEBUGCODE(fOwner = GetCurrentThreadId();)
     }
 
     void release() {
+        this->assertHeld();
+        SkDEBUGCODE(fOwner = 0;)
         LeaveCriticalSection(&fStorage);
     }
 
-private:
-    SkMutex(const SkMutex&);
-    SkMutex& operator=(const SkMutex&);
+    void assertHeld() {
+        SkASSERT(GetCurrentThreadId() == fOwner);
+    }
 
+protected:
     CRITICAL_SECTION fStorage;
+    SkDEBUGCODE(DWORD fOwner;)
+
+private:
+    SkBaseMutex(const SkBaseMutex&);
+    SkBaseMutex& operator=(const SkBaseMutex&);
 };
 
-typedef SkMutex SkBaseMutex;
+class SkMutex : public SkBaseMutex { };
 
 
-#define SK_DECLARE_STATIC_MUTEX(name) static SkBaseMutex name
-#define SK_DECLARE_GLOBAL_MUTEX(name) SkBaseMutex name
+
+#define SK_DECLARE_STATIC_MUTEX(name) namespace{} static SkBaseMutex name
 
 #endif

@@ -9,16 +9,16 @@
 #define SkDiscardableMemoryPool_DEFINED
 
 #include "SkDiscardableMemory.h"
-#include "SkTInternalLList.h"
-#include "SkThread.h"
 
-class SkPoolDiscardableMemory;
-
-#ifdef SK_DEBUG
-    #define LAZY_CACHE_STATS 1
-#elif !defined(LAZY_CACHE_STATS)
-    #define LAZY_CACHE_STATS 0
+#ifndef SK_LAZY_CACHE_STATS
+    #ifdef SK_DEBUG
+        #define SK_LAZY_CACHE_STATS 1
+    #else
+        #define SK_LAZY_CACHE_STATS 0
+    #endif
 #endif
+
+
 
 
 
@@ -26,43 +26,33 @@ class SkPoolDiscardableMemory;
 
 class SkDiscardableMemoryPool : public SkDiscardableMemory::Factory {
 public:
+    virtual ~SkDiscardableMemoryPool() { }
+
+    virtual size_t getRAMUsed() = 0;
+    virtual void setRAMBudget(size_t budget) = 0;
+    virtual size_t getRAMBudget() = 0;
+
+    
+    virtual void dumpPool() = 0;
+
+    #if SK_LAZY_CACHE_STATS
     
 
 
-    SkDiscardableMemoryPool(size_t budget, SkBaseMutex* mutex = NULL);
-    virtual ~SkDiscardableMemoryPool();
 
-    virtual SkDiscardableMemory* create(size_t bytes) SK_OVERRIDE;
 
-    size_t getRAMUsed();
-    void setRAMBudget(size_t budget);
-
-    
-    void dumpPool();
-
-    #if LAZY_CACHE_STATS
-    int          fCacheHits;
-    int          fCacheMisses;
-    #endif  
-
-private:
-    SkBaseMutex* fMutex;
-    size_t       fBudget;
-    size_t       fUsed;
-    SkTInternalLList<SkPoolDiscardableMemory> fList;
+    virtual int getCacheHits() = 0;
+    virtual int getCacheMisses() = 0;
+    virtual void resetCacheHitsAndMisses() = 0;
+    #endif
 
     
-    void dumpDownTo(size_t budget);
-    
-    void free(SkPoolDiscardableMemory* dm);
-    
-    bool lock(SkPoolDiscardableMemory* dm);
-    
-    void unlock(SkPoolDiscardableMemory* dm);
 
-    friend class SkPoolDiscardableMemory;
 
-    typedef SkDiscardableMemory::Factory INHERITED;
+
+
+    static SkDiscardableMemoryPool* Create(
+            size_t size, SkBaseMutex* mutex = NULL);
 };
 
 

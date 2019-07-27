@@ -16,6 +16,7 @@
 
 
 static int32_t sk_atomic_inc(int32_t* addr);
+static int64_t sk_atomic_inc(int64_t* addr);
 
 
 
@@ -26,12 +27,6 @@ static int32_t sk_atomic_add(int32_t* addr, int32_t inc);
 
 
 static int32_t sk_atomic_dec(int32_t* addr);
-
-
-
-
-
-static int32_t sk_atomic_conditional_inc(int32_t* addr);
 
 
 
@@ -50,6 +45,40 @@ static void sk_membar_acquire__after_atomic_dec();
 static void sk_membar_acquire__after_atomic_conditional_inc();
 
 #include SK_ATOMICS_PLATFORM_H
+
+
+
+
+
+template<typename INT_TYPE> static inline INT_TYPE sk_atomic_conditional_inc(INT_TYPE* addr) {
+    INT_TYPE prev;
+    do {
+        prev = *addr;
+        if (0 == prev) {
+            break;
+        }
+    } while (!sk_atomic_cas(addr, prev, prev+1));
+    return prev;
+}
+
+
+
+
+static void sk_compiler_barrier();
+
+
+
+
+
+template <typename T> T sk_acquire_load(T*);
+
+
+
+
+
+template <typename T> void sk_release_store(T*, T);
+
+#include SK_BARRIERS_PLATFORM_H
 
 
 
@@ -98,6 +127,12 @@ public:
             fMutex->release();
             fMutex = NULL;
         }
+    }
+
+    
+    void assertHeld() {
+        SkASSERT(fMutex);
+        fMutex->assertHeld();
     }
 
 private:

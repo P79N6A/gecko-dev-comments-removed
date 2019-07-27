@@ -17,7 +17,7 @@
 
 
 
-void sk_memset16_portable(uint16_t dst[], uint16_t value, int count);
+void sk_memset16(uint16_t dst[], uint16_t value, int count);
 typedef void (*SkMemset16Proc)(uint16_t dst[], uint16_t value, int count);
 SkMemset16Proc SkMemset16GetPlatformProc();
 
@@ -26,17 +26,18 @@ SkMemset16Proc SkMemset16GetPlatformProc();
 
 
 
-void sk_memset32_portable(uint32_t dst[], uint32_t value, int count);
+void sk_memset32(uint32_t dst[], uint32_t value, int count);
 typedef void (*SkMemset32Proc)(uint32_t dst[], uint32_t value, int count);
 SkMemset32Proc SkMemset32GetPlatformProc();
 
-#ifndef sk_memset16
-extern SkMemset16Proc sk_memset16;
-#endif
 
-#ifndef sk_memset32
-extern SkMemset32Proc sk_memset32;
-#endif
+
+
+
+
+void sk_memcpy32(uint32_t dst[], const uint32_t src[], int count);
+typedef void (*SkMemcpy32Proc)(uint32_t dst[], const uint32_t src[], int count);
+SkMemcpy32Proc SkMemcpy32GetPlatformProc();
 
 
 

@@ -5,12 +5,10 @@
 
 
 
-
-
 #ifndef SkDrawBlur_DEFINED
 #define SkDrawBlur_DEFINED
 
-#include "SkPaintParts.h"
+#include "SkPaintPart.h"
 #include "SkBlurMaskFilter.h"
 
 class SkDrawBlur : public SkDrawMaskFilter {
