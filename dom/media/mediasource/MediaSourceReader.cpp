@@ -370,10 +370,19 @@ MediaSourceReader::CreateSubDecoder(const nsACString& aType)
   
   
   
+  
+  
+  
+  
+  reader->SetBorrowedTaskQueue(GetTaskQueue());
+
+  
+  
+  
   RefPtr<MediaDataDecodedListener<MediaSourceReader>> callback =
-    new MediaDataDecodedListener<MediaSourceReader>(this, GetTaskQueue());
+    new MediaDataDecodedListener<MediaSourceReader>(this, reader->GetTaskQueue());
   reader->SetCallback(callback);
-  reader->SetTaskQueue(GetTaskQueue());
+
 #ifdef MOZ_FMP4
   reader->SetSharedDecoderManager(mSharedDecoderManager);
 #endif

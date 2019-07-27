@@ -731,7 +731,7 @@ protected:
   
   
   
-  RefPtr<MediaTaskQueue> mDecodeTaskQueue;
+  MediaTaskQueue* DecodeTaskQueue() const { return mReader->GetTaskQueue(); }
 
   
   

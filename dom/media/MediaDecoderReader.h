@@ -61,7 +61,19 @@ public:
   virtual void Shutdown();
 
   virtual void SetCallback(RequestSampleCallback* aDecodedSampleCallback);
-  virtual void SetTaskQueue(MediaTaskQueue* aTaskQueue);
+  MediaTaskQueue* EnsureTaskQueue();
+
+  virtual bool OnDecodeThread()
+  {
+    return !GetTaskQueue() || GetTaskQueue()->IsCurrentThreadIn();
+  }
+
+  void SetBorrowedTaskQueue(MediaTaskQueue* aTaskQueue)
+  {
+    MOZ_ASSERT(!mTaskQueue && aTaskQueue);
+    mTaskQueue = aTaskQueue;
+    mTaskQueueIsBorrowed = true;
+  }
 
   
   
@@ -261,6 +273,7 @@ private:
   nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;
 
   nsRefPtr<MediaTaskQueue> mTaskQueue;
+  bool mTaskQueueIsBorrowed;
 
   
   
