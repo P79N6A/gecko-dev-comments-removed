@@ -188,6 +188,7 @@ public:
   
 
 
+
   static nsINode* GetCrossDocParentNode(nsINode* aChild);
 
   
@@ -216,6 +217,7 @@ public:
     const nsINode* aPossibleDescendant, const nsINode* aPossibleAncestor);
 
   
+
 
 
 
