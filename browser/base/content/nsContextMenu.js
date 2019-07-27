@@ -1007,11 +1007,19 @@ nsContextMenu.prototype = {
 
     let inTab = Services.prefs.getBoolPref("view_source.tab");
     if (inTab) {
-      let tab = gBrowser.loadOneTab("about:blank", {
+      let tabBrowser = gBrowser;
+      
+      
+      
+      if (!tabBrowser) {
+        let browserWindow = RecentWindow.getMostRecentBrowserWindow();
+        tabBrowser = browserWindow.gBrowser;
+      }
+      let tab = tabBrowser.loadOneTab("about:blank", {
         relatedToCurrent: true,
         inBackground: false
       });
-      let viewSourceBrowser = gBrowser.getBrowserForTab(tab);
+      let viewSourceBrowser = tabBrowser.getBrowserForTab(tab);
       if (aContext == "selection") {
         top.gViewSourceUtils
            .viewSourceFromSelectionInBrowser(reference, viewSourceBrowser);
