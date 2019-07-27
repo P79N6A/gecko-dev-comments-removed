@@ -99,15 +99,14 @@ const imgICache = Components.interfaces.imgICache;
 const nsISupportsCString = Components.interfaces.nsISupportsCString;
 
 function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
-                      aSkipPrompt, aReferrer, aDoc)
+                      aSkipPrompt, aReferrer, aDoc, aContentType, aContentDisp)
 {
   forbidCPOW(aURL, "saveImageURL", "aURL");
   forbidCPOW(aReferrer, "saveImageURL", "aReferrer");
   
 
-  var contentType = null;
-  var contentDisposition = null;
-  if (!aShouldBypassCache) {
+  if (!aShouldBypassCache &&
+      (!aContentType && !aContentDisp)) {
     try {
       var imageCache = Components.classes["@mozilla.org/image/tools;1"]
                                  .getService(Components.interfaces.imgITools)
@@ -115,15 +114,14 @@ function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
       var props =
         imageCache.findEntryProperties(makeURI(aURL, getCharsetforSave(null)));
       if (props) {
-        contentType = props.get("type", nsISupportsCString);
-        contentDisposition = props.get("content-disposition",
-                                       nsISupportsCString);
+        aContentType = props.get("type", nsISupportsCString);
+        aContentDisp = props.get("content-disposition", nsISupportsCString);
       }
     } catch (e) {
       
     }
   }
-  internalSave(aURL, null, aFileName, contentDisposition, contentType,
+  internalSave(aURL, null, aFileName, aContentDisp, aContentType,
                aShouldBypassCache, aFilePickerTitleKey, null, aReferrer,
                aDoc, aSkipPrompt, null);
 }
