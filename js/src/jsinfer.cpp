@@ -2966,9 +2966,9 @@ UpdatePropertyType(ExclusiveContext *cx, HeapTypeSet *types, NativeObject *obj, 
 
 
 
-        MOZ_ASSERT_IF(value.isMagic(JS_UNINITIALIZED_LEXICAL), obj->is<CallObject>());
+        MOZ_ASSERT_IF(IsUntrackedValue(value), obj->is<CallObject>());
         if ((indexed || !value.isUndefined() || !CanHaveEmptyPropertyTypesForOwnProperty(obj)) &&
-            !value.isMagic(JS_UNINITIALIZED_LEXICAL))
+            !IsUntrackedValue(value))
         {
             Type type = GetValueType(value);
             types->TypeSet::addType(type, &cx->typeLifoAlloc());
