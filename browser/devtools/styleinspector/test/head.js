@@ -390,6 +390,20 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
 
 
 
+
+
+function* getComputedStyleProperty(selector, pseudo, propName) {
+ return yield executeInContent("Test:GetComputedStylePropertyValue",
+                               {selector: selector,
+                                pseudo: pseudo,
+                                name: propName});
+}
+
+
+
+
+
+
 let focusEditableField = Task.async(function*(editable, xOffset=1, yOffset=1, options={}) {
   let onFocus = once(editable.parentNode, "focus", true);
 

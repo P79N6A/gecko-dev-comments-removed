@@ -73,4 +73,19 @@ addMessageListener("Test:GetStyleSheetsInfoForNode", function(msg) {
   sendAsyncMessage("Test:GetStyleSheetsInfoForNode", sheets);
 });
 
+
+
+
+
+
+
+
+
+addMessageListener("Test:GetComputedStylePropertyValue", function(msg) {
+  let {selector, pseudo, name} = msg.data;
+  let element = content.document.querySelector(selector);
+  let value = content.document.defaultView.getComputedStyle(element, pseudo).getPropertyValue(name);
+  sendAsyncMessage("Test:GetComputedStylePropertyValue", value);
+});
+
 let dumpn = msg => dump(msg + "\n");
