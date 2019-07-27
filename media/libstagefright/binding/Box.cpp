@@ -5,7 +5,7 @@
 
 
 #include "mp4_demuxer/Box.h"
-#include "mp4_demuxer/mp4_demuxer.h"
+#include "mp4_demuxer/Stream.h"
 #include "mozilla/Endian.h"
 #include <algorithm>
 

@@ -20,7 +20,6 @@
 #include "SharedDecoderManager.h"
 #include "MP4Decoder.h"
 #include "MP4Demuxer.h"
-#include "MP4Reader.h"
 #endif
 
 #ifdef MOZ_WEBM
@@ -708,11 +707,8 @@ CreateReaderForType(const nsACString& aType, AbstractMediaDecoder* aDecoder,
   if ((aType.LowerCaseEqualsLiteral("video/mp4") ||
        aType.LowerCaseEqualsLiteral("audio/mp4")) &&
       MP4Decoder::IsEnabled() && aDecoder) {
-    bool useFormatDecoder =
-      Preferences::GetBool("media.mediasource.format-reader.mp4", true);
-    MediaDecoderReader* reader = useFormatDecoder ?
-      static_cast<MediaDecoderReader*>(new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()), aBorrowedTaskQueue)) :
-      static_cast<MediaDecoderReader*>(new MP4Reader(aDecoder, aBorrowedTaskQueue));
+    MediaDecoderReader* reader =
+      new MediaFormatReader(aDecoder, new MP4Demuxer(aDecoder->GetResource()), aBorrowedTaskQueue);
     return reader;
   }
 #endif
