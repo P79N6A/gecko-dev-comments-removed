@@ -1,7 +1,7 @@
 
 
 
-Cu.import("resource:///modules/loop/CardDavImporter.jsm");
+const {CardDavImporter} = Cu.import("resource:///modules/loop/CardDavImporter.jsm", {});
 
 const mockDb = {
   _store: { },
