@@ -108,6 +108,11 @@ class OptimizationInfo
     
     double inliningWarmUpThresholdFactor_;
 
+    
+    
+    
+    uint32_t inliningRecompileThresholdFactor_;
+
     OptimizationInfo()
     { }
 
@@ -193,6 +198,10 @@ class OptimizationInfo
         if (js_JitOptions.forceDefaultIonWarmUpThreshold)
             compilerWarmUpThreshold = js_JitOptions.forcedDefaultIonWarmUpThreshold;
         return compilerWarmUpThreshold * inliningWarmUpThresholdFactor_;
+    }
+
+    uint32_t inliningRecompileThreshold() const {
+        return inliningWarmUpThreshold() * inliningRecompileThresholdFactor_;
     }
 };
 
