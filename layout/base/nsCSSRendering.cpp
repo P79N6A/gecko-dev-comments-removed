@@ -85,9 +85,9 @@ struct InlineBackgroundData
   void Reset()
   {
     mBoundingBox.SetRect(0,0,0,0);
-    mContinuationPoint = mLineContinuationPoint = mUnbrokenWidth = 0;
+    mContinuationPoint = mLineContinuationPoint = mUnbrokenMeasure = 0;
     mFrame = mBlockFrame = nullptr;
-    mLeftBorderData.Reset();
+    mPIStartBorderData.Reset();
   }
 
   
@@ -101,25 +101,31 @@ struct InlineBackgroundData
 
     SetFrame(aFrame);
 
-    nscoord x;
+    nscoord pos; 
+                 
     if (mBidiEnabled) {
-      x = mLineContinuationPoint;
+      pos = mLineContinuationPoint;
 
       
       
       
       bool isRtlBlock = (mBlockFrame->StyleVisibility()->mDirection ==
                            NS_STYLE_DIRECTION_RTL);
-      nscoord curOffset = aFrame->GetOffsetTo(mBlockFrame).x;
+      nscoord curOffset = mVertical ? aFrame->GetOffsetTo(mBlockFrame).y
+                                    : aFrame->GetOffsetTo(mBlockFrame).x;
 
       
       
       nsIFrame* inlineFrame = aFrame->GetPrevContinuation();
       while (inlineFrame && !inlineFrame->GetNextInFlow() &&
              AreOnSameLine(aFrame, inlineFrame)) {
-        nscoord frameXOffset = inlineFrame->GetOffsetTo(mBlockFrame).x;
-        if(isRtlBlock == (frameXOffset >= curOffset)) {
-          x += inlineFrame->GetSize().width;
+        nscoord frameOffset = mVertical
+          ? inlineFrame->GetOffsetTo(mBlockFrame).y
+          : inlineFrame->GetOffsetTo(mBlockFrame).x;
+        if (isRtlBlock == (frameOffset >= curOffset)) {
+          pos += mVertical
+               ? inlineFrame->GetSize().height
+               : inlineFrame->GetSize().width;
         }
         inlineFrame = inlineFrame->GetPrevContinuation();
       }
@@ -127,28 +133,34 @@ struct InlineBackgroundData
       inlineFrame = aFrame->GetNextContinuation();
       while (inlineFrame && !inlineFrame->GetPrevInFlow() &&
              AreOnSameLine(aFrame, inlineFrame)) {
-        nscoord frameXOffset = inlineFrame->GetOffsetTo(mBlockFrame).x;
-        if(isRtlBlock == (frameXOffset >= curOffset)) {
-          x += inlineFrame->GetSize().width;
+        nscoord frameOffset = mVertical
+          ? inlineFrame->GetOffsetTo(mBlockFrame).y
+          : inlineFrame->GetOffsetTo(mBlockFrame).x;
+        if (isRtlBlock == (frameOffset >= curOffset)) {
+          pos += mVertical
+                 ? inlineFrame->GetSize().height
+                 : inlineFrame->GetSize().width;
         }
         inlineFrame = inlineFrame->GetNextContinuation();
       }
       if (isRtlBlock) {
         
-        x += aFrame->GetSize().width;
+        pos += mVertical ? aFrame->GetSize().height : aFrame->GetSize().width;
         
         
         
-        x = mUnbrokenWidth - x;
+        pos = mUnbrokenMeasure - pos;
       }
     } else {
-      x = mContinuationPoint;
+      pos = mContinuationPoint;
     }
 
     
     
     
-    return nsRect(-x, 0, mUnbrokenWidth, mFrame->GetSize().height);
+    return mVertical
+      ? nsRect(0, -pos, mFrame->GetSize().width, mUnbrokenMeasure)
+      : nsRect(-pos, 0, mUnbrokenMeasure, mFrame->GetSize().height);
   }
 
   
@@ -163,23 +175,40 @@ struct InlineBackgroundData
   {
     
     
-    LeftBorderData saved(mLeftBorderData);
+    PhysicalInlineStartBorderData saved(mPIStartBorderData);
     nsRect joinedBorderArea = GetContinuousRect(aFrame);
-    if (!saved.mIsValid || saved.mFrame != mLeftBorderData.mFrame) {
-      if (aFrame == mLeftBorderData.mFrame) {
-        mLeftBorderData.SetX(joinedBorderArea.x);
-      } else if (mLeftBorderData.mFrame) {
-        mLeftBorderData.SetX(GetContinuousRect(mLeftBorderData.mFrame).x);
+    if (!saved.mIsValid || saved.mFrame != mPIStartBorderData.mFrame) {
+      if (aFrame == mPIStartBorderData.mFrame) {
+        if (mVertical) {
+          mPIStartBorderData.SetCoord(joinedBorderArea.y);
+        } else {
+          mPIStartBorderData.SetCoord(joinedBorderArea.x);
+        }
+      } else if (mPIStartBorderData.mFrame) {
+        if (mVertical) {
+          mPIStartBorderData.SetCoord(GetContinuousRect(mPIStartBorderData.mFrame).y);
+        } else {
+          mPIStartBorderData.SetCoord(GetContinuousRect(mPIStartBorderData.mFrame).x);
+        }
       }
     } else {
       
-      mLeftBorderData.mX = saved.mX;
+      mPIStartBorderData.mCoord = saved.mCoord;
     }
-    if (joinedBorderArea.x > mLeftBorderData.mX) {
-      joinedBorderArea.x =
-        -(mUnbrokenWidth + joinedBorderArea.x - aBorderArea.width);
+    if (mVertical) {
+      if (joinedBorderArea.y > mPIStartBorderData.mCoord) {
+        joinedBorderArea.y =
+          -(mUnbrokenMeasure + joinedBorderArea.y - aBorderArea.height);
+      } else {
+        joinedBorderArea.y -= mPIStartBorderData.mCoord;
+      }
     } else {
-      joinedBorderArea.x -= mLeftBorderData.mX;
+      if (joinedBorderArea.x > mPIStartBorderData.mCoord) {
+        joinedBorderArea.x =
+          -(mUnbrokenMeasure + joinedBorderArea.x - aBorderArea.width);
+      } else {
+        joinedBorderArea.x -= mPIStartBorderData.mCoord;
+      }
     }
     return joinedBorderArea;
   }
@@ -201,22 +230,27 @@ struct InlineBackgroundData
   }
 
 protected:
-  struct LeftBorderData {
+  
+  
+  
+  
+  struct PhysicalInlineStartBorderData {
     nsIFrame* mFrame;   
-    nscoord   mX;       
+    nscoord   mCoord;   
     bool      mIsValid; 
     void Reset() { mFrame = nullptr; mIsValid = false; }
-    void SetX(nscoord aX) { mX = aX; mIsValid = true; }
+    void SetCoord(nscoord aCoord) { mCoord = aCoord; mIsValid = true; }
   };
 
   nsIFrame*      mFrame;
   nsBlockFrame*  mBlockFrame;
   nsRect         mBoundingBox;
   nscoord        mContinuationPoint;
-  nscoord        mUnbrokenWidth;
+  nscoord        mUnbrokenMeasure;
   nscoord        mLineContinuationPoint;
-  LeftBorderData mLeftBorderData;
+  PhysicalInlineStartBorderData mPIStartBorderData;
   bool           mBidiEnabled;
+  bool           mVertical;
 
   void SetFrame(nsIFrame* aFrame)
   {
@@ -239,7 +273,8 @@ protected:
 
     
     
-    mContinuationPoint += mFrame->GetSize().width;
+    mContinuationPoint += mVertical ? mFrame->GetSize().height
+                                    : mFrame->GetSize().width;
 
     
     if (mBidiEnabled &&
@@ -289,7 +324,7 @@ protected:
 
   void Init(nsIFrame* aFrame)
   {
-    mLeftBorderData.Reset();
+    mPIStartBorderData.Reset();
     mBidiEnabled = aFrame->PresContext()->BidiEnabled();
     if (mBidiEnabled) {
       
@@ -303,20 +338,23 @@ protected:
       NS_ASSERTION(mBlockFrame, "Cannot find containing block.");
     }
 
+    mVertical = aFrame->GetWritingMode().IsVertical();
+
     
     
     nsIFrame* inlineFrame = GetPrevContinuation(aFrame);
     while (inlineFrame) {
-      if (!mLeftBorderData.mFrame &&
-          !inlineFrame->GetSkipSides().Left()) {
-        mLeftBorderData.mFrame = inlineFrame;
+      if (!mPIStartBorderData.mFrame &&
+          !(mVertical ? inlineFrame->GetSkipSides().Top()
+                      : inlineFrame->GetSkipSides().Left())) {
+        mPIStartBorderData.mFrame = inlineFrame;
       }
       nsRect rect = inlineFrame->GetRect();
-      mContinuationPoint += rect.width;
+      mContinuationPoint += mVertical ? rect.height : rect.width;
       if (mBidiEnabled && !AreOnSameLine(aFrame, inlineFrame)) {
-        mLineContinuationPoint += rect.width;
+        mLineContinuationPoint += mVertical ? rect.height : rect.width;
       }
-      mUnbrokenWidth += rect.width;
+      mUnbrokenMeasure += mVertical ? rect.height : rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
       inlineFrame = GetPrevContinuation(inlineFrame);
     }
@@ -325,12 +363,13 @@ protected:
     
     inlineFrame = aFrame;
     while (inlineFrame) {
-      if (!mLeftBorderData.mFrame &&
-          !inlineFrame->GetSkipSides().Left()) {
-        mLeftBorderData.mFrame = inlineFrame;
+      if (!mPIStartBorderData.mFrame &&
+          !(mVertical ? inlineFrame->GetSkipSides().Top()
+                      : inlineFrame->GetSkipSides().Left())) {
+        mPIStartBorderData.mFrame = inlineFrame;
       }
       nsRect rect = inlineFrame->GetRect();
-      mUnbrokenWidth += rect.width;
+      mUnbrokenMeasure += mVertical ? rect.height : rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
       inlineFrame = GetNextContinuation(inlineFrame);
     }
