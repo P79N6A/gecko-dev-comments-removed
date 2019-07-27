@@ -41,6 +41,7 @@
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsIHttpChannel.h"
+#include "GeneratedSDKWrappers.h"
 
 using namespace mozilla;
 using namespace mozilla::widget::android;
@@ -219,6 +220,11 @@ AndroidBridge::Init(JNIEnv *jEnv)
     jAvailable = jEnv->GetMethodID(jInputStream, "available", "()I");
 
     InitAndroidJavaWrappers(jEnv);
+
+    if (mAPIVersion >= 16 ) {
+        
+        InitSDKStubs(jEnv);
+    }
 
     
     
