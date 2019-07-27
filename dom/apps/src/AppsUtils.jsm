@@ -24,8 +24,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 
 
 
-this.EXPORTED_SYMBOLS =
-  ["AppsUtils", "ManifestHelper", "isAbsoluteURI", "mozIApplication"];
+this.EXPORTED_SYMBOLS = ["AppsUtils", "ManifestHelper", "isAbsoluteURI", "mozIApplication"];
 
 function debug(s) {
   
@@ -374,8 +373,7 @@ this.AppsUtils = {
 
     
     if ('locales' in aNewManifest) {
-      let defaultName =
-        new ManifestHelper(aOldManifest, aApp.origin, aApp.manifestURL).name;
+      let defaultName = new ManifestHelper(aOldManifest, aApp.origin).name;
       for (let locale in aNewManifest.locales) {
         let entry = aNewManifest.locales[locale];
         if (!entry.name) {
@@ -595,25 +593,11 @@ this.AppsUtils = {
 
 
 
-this.ManifestHelper = function(aManifest, aOrigin, aManifestURL) {
-  
-  
-
-  if (!aOrigin || !aManifestURL) {
-    throw Error("ManifestHelper needs both origin and manifestURL");
-  }
-
-  this._baseURI = Services.io.newURI(
-    aOrigin.startsWith("app://") ? aOrigin : aManifestURL, null, null);
-
-  
-  
-  this._manifestURL = Services.io.newURI(aManifestURL, null, null);
-
+this.ManifestHelper = function(aManifest, aOrigin) {
+  this._origin = Services.io.newURI(aOrigin, null, null);
   this._manifest = aManifest;
-  let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIXULChromeRegistry)
-                 .QueryInterface(Ci.nsIToolkitChromeRegistry);
+  let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry)
+                                                          .QueryInterface(Ci.nsIToolkitChromeRegistry);
   let locale = chrome.getSelectedLocale("global").toLowerCase();
   this._localeRoot = this._manifest;
 
@@ -702,7 +686,7 @@ ManifestHelper.prototype = {
     iconSizes.sort((a, b) => a - b);
     let biggestIconSize = iconSizes.pop();
     let biggestIcon = icons[biggestIconSize];
-    let biggestIconURL = this._baseURI.resolve(biggestIcon);
+    let biggestIconURL = this._origin.resolve(biggestIcon);
 
     return biggestIconURL;
   },
@@ -716,7 +700,7 @@ ManifestHelper.prototype = {
     for (let size in icons) {
       let iSize = parseInt(size);
       if (Math.abs(iSize - aSize) < dist) {
-        icon = this._baseURI.resolve(icons[size]);
+        icon = this._origin.resolve(icons[size]);
         dist = Math.abs(iSize - aSize);
       }
     }
@@ -727,7 +711,7 @@ ManifestHelper.prototype = {
     
     
     if ((aStartPoint || "") === "") {
-      return this._baseURI.resolve(this._localeProp("launch_path") || "");
+      return this._origin.resolve(this._localeProp("launch_path") || "");
     }
 
     
@@ -737,28 +721,28 @@ ManifestHelper.prototype = {
     }
 
     if (entryPoints[aStartPoint]) {
-      return this._baseURI.resolve(entryPoints[aStartPoint].launch_path || "");
+      return this._origin.resolve(entryPoints[aStartPoint].launch_path || "");
     }
 
     return null;
   },
 
-  resolveURL: function(aURI) {
+  resolveFromOrigin: function(aURI) {
     
     if (isAbsoluteURI(aURI)) {
-      throw new Error("Webapps.jsm: non-relative URI passed to resolve");
+      throw new Error("Webapps.jsm: non-relative URI passed to resolveFromOrigin");
     }
-    return this._baseURI.resolve(aURI);
+    return this._origin.resolve(aURI);
   },
 
   fullAppcachePath: function() {
     let appcachePath = this._localeProp("appcache_path");
-    return this._baseURI.resolve(appcachePath ? appcachePath : "");
+    return this._origin.resolve(appcachePath ? appcachePath : "");
   },
 
   fullPackagePath: function() {
     let packagePath = this._localeProp("package_path");
-    return this._manifestURL.resolve(packagePath ? packagePath : "");
+    return this._origin.resolve(packagePath ? packagePath : "");
   },
 
   get role() {

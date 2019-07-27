@@ -178,12 +178,10 @@ this.SystemMessagePermissionsChecker = {
 
 
   isSystemMessagePermittedToRegister:
-    function isSystemMessagePermittedToRegister(aSysMsgName,
-                                                aManifestURL,
-                                                aManifest) {
+    function isSystemMessagePermittedToRegister(aSysMsgName, aOrigin, aManifest) {
     debug("isSystemMessagePermittedToRegister(): " +
           "aSysMsgName: " + aSysMsgName + ", " +
-          "aManifestURL: " + aManifestURL + ", " +
+          "aOrigin: " + aOrigin + ", " +
           "aManifest: " + JSON.stringify(aManifest));
 
     let permNames = this.getSystemMessagePermissions(aSysMsgName);
@@ -209,22 +207,20 @@ this.SystemMessagePermissionsChecker = {
       break;
     }
 
-    
-    
-    let newManifest = new ManifestHelper(aManifest, aManifestURL, aManifestURL);
+    let newManifest = new ManifestHelper(aManifest, aOrigin);
 
     for (let permName in permNames) {
       
       if (!newManifest.permissions || !newManifest.permissions[permName]) {
         debug("'" + aSysMsgName + "' isn't permitted by '" + permName + "'. " +
-              "Please add the permission for app: '" + aManifestURL + "'.");
+              "Please add the permission for app: '" + aOrigin + "'.");
         return false;
       }
       let permValue = PermissionsTable[permName][appStatus];
       if (permValue != Ci.nsIPermissionManager.PROMPT_ACTION &&
           permValue != Ci.nsIPermissionManager.ALLOW_ACTION) {
         debug("'" + aSysMsgName + "' isn't permitted by '" + permName + "'. " +
-              "Please add the permission for app: '" + aManifestURL + "'.");
+              "Please add the permission for app: '" + aOrigin + "'.");
         return false;
       }
 
