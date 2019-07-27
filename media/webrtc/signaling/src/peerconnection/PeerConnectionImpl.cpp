@@ -323,7 +323,8 @@ namespace mozilla {
 #ifdef MOZILLA_INTERNAL_API
 RTCStatsQuery::RTCStatsQuery(bool internal) :
   failed(false),
-  internalStats(internal) {
+  internalStats(internal),
+  grabAllLevels(false) {
 }
 
 RTCStatsQuery::~RTCStatsQuery() {
@@ -2891,31 +2892,8 @@ PeerConnectionImpl::BuildStatsQuery_m(
     }
   }
 
-  
-  
-  std::set<size_t> levelsToGrab;
-  if (aSelector) {
-    for (size_t p = 0; p < query->pipelines.Length(); ++p) {
-      size_t level = query->pipelines[p]->level();
-      levelsToGrab.insert(level);
-    }
-  } else {
-    
-    
-    for (size_t s = 0; s < mMedia->num_ice_media_streams(); ++s) {
-      levelsToGrab.insert(s);
-    }
-  }
-
-  for (auto s = levelsToGrab.begin(); s != levelsToGrab.end(); ++s) {
-    
-    
-    RefPtr<NrIceMediaStream> temp(mMedia->ice_media_stream(*s));
-    RefPtr<TransportFlow> flow(mMedia->GetTransportFlow(*s, false));
-    
-    if (temp && flow) {
-      query->streams.AppendElement(temp);
-    }
+  if (!aSelector) {
+    query->grabAllLevels = true;
   }
 
   return rv;
@@ -3190,20 +3168,32 @@ PeerConnectionImpl::ExecuteStatsQuery_s(RTCStatsQuery *query) {
         break;
       }
     }
+
+    if (!query->grabAllLevels) {
+      
+      
+      if (query->iceCtx->GetStream(p)) {
+        RecordIceStats_s(*query->iceCtx->GetStream(p),
+                         query->internalStats,
+                         query->now,
+                         query->report);
+      }
+    }
+  }
+
+  if (query->grabAllLevels) {
+    for (size_t i = 0; i < query->iceCtx->GetStreamCount(); ++i) {
+      if (query->iceCtx->GetStream(i)) {
+        RecordIceStats_s(*query->iceCtx->GetStream(i),
+                         query->internalStats,
+                         query->now,
+                         query->report);
+      }
+    }
   }
 
   
-  for (size_t s = 0; s != query->streams.Length(); ++s) {
-    RecordIceStats_s(*query->streams[s],
-                     query->internalStats,
-                     query->now,
-                     query->report);
-  }
-
   
-  
-  
-  query->streams.Clear();
   query->iceCtx = nullptr;
   return NS_OK;
 }
