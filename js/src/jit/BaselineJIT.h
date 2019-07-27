@@ -215,6 +215,11 @@ struct BaselineScript
     
     
     
+    uint16_t inlinedBytecodeLength_;
+
+    
+    
+    
     
     
     uint8_t maxInliningDepth_;
@@ -441,6 +446,15 @@ struct BaselineScript
     }
     void resetMaxInliningDepth() {
         maxInliningDepth_ = UINT8_MAX;
+    }
+
+    uint16_t inlinedBytecodeLength() const {
+        return inlinedBytecodeLength_;
+    }
+    void setInlinedBytecodeLength(uint32_t len) {
+        if (len > UINT16_MAX)
+            len = UINT16_MAX;
+        inlinedBytecodeLength_ = len;
     }
 };
 static_assert(sizeof(BaselineScript) % sizeof(uintptr_t) == 0,
