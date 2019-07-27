@@ -250,6 +250,7 @@ class BuilderOrigin : public Builder {
     JSObject *unwrap(Object &object) { return unwrapAny(object); }
 };
 
+
 
 
 
@@ -262,6 +263,7 @@ class BuilderOrigin : public Builder {
 
 
 void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSizeOf);
+
 
 
 
@@ -291,6 +293,12 @@ onNewPromise(JSContext *cx, HandleObject promise);
 
 JS_PUBLIC_API(void)
 onPromiseSettled(JSContext *cx, HandleObject promise);
+
+
+
+
+JS_PUBLIC_API(bool)
+IsDebugger(JS::Value val);
 
 } 
 } 

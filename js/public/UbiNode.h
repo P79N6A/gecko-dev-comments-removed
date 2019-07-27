@@ -10,6 +10,7 @@
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 
@@ -19,6 +20,7 @@
 #include "js/HashTable.h"
 #include "js/TracingAPI.h"
 #include "js/TypeDecls.h"
+#include "js/Vector.h"
 
 
 
@@ -138,6 +140,8 @@
 
 namespace JS {
 namespace ubi {
+
+using mozilla::Maybe;
 
 class Edge;
 class EdgeRange;
@@ -423,6 +427,102 @@ class EdgeRange {
 
 
 
+
+class SimpleEdge : public Edge {
+    SimpleEdge(SimpleEdge &) MOZ_DELETE;
+    SimpleEdge &operator=(const SimpleEdge &) MOZ_DELETE;
+
+  public:
+    SimpleEdge() : Edge() { }
+
+    
+    SimpleEdge(char16_t *name, const Node &referent) {
+        this->name = name;
+        this->referent = referent;
+    }
+    ~SimpleEdge() {
+        js_free(const_cast<char16_t *>(name));
+    }
+
+    
+    SimpleEdge(SimpleEdge &&rhs) {
+        name = rhs.name;
+        referent = rhs.referent;
+
+        rhs.name = nullptr;
+    }
+    SimpleEdge &operator=(SimpleEdge &&rhs) {
+        MOZ_ASSERT(&rhs != this);
+        this->~SimpleEdge();
+        new(this) SimpleEdge(mozilla::Move(rhs));
+        return *this;
+    }
+};
+
+typedef mozilla::Vector<SimpleEdge, 8, js::TempAllocPolicy> SimpleEdgeVector;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS RootList {
+    Maybe<AutoCheckCannotGC> &noGC;
+
+  public:
+    SimpleEdgeVector edges;
+    bool             wantNames;
+
+    RootList(JSContext *cx, Maybe<AutoCheckCannotGC> &noGC, bool wantNames = false);
+
+    
+    bool init(JSContext *cx);
+    
+    bool init(JSContext *cx, ZoneSet &debuggees);
+    
+    bool init(JSContext *cx, HandleObject debuggees);
+};
+
+
+
+
+template<>
+struct Concrete<RootList> : public Base {
+    EdgeRange *edges(JSContext *cx, bool wantNames) const MOZ_OVERRIDE;
+    const char16_t *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
+
+  protected:
+    explicit Concrete(RootList *ptr) : Base(ptr) { }
+    RootList &get() const { return *static_cast<RootList *>(ptr); }
+
+  public:
+    static const char16_t concreteTypeName[];
+    static void construct(void *storage, RootList *ptr) { new (storage) Concrete(ptr); }
+};
 
 
 
