@@ -339,9 +339,6 @@ IsWorkerGlobal(JSObject* global);
 bool
 IsDebuggerGlobal(JSObject* global);
 
-bool
-IsDebuggerSandbox(JSObject* object);
-
 
 
 
