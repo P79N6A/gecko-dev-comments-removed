@@ -132,7 +132,6 @@ EXIFParser::ParseIFD0(Orientation& aOrientationOut)
       return false;
 
     
-    Orientation orientation;
     if (!ParseOrientation(type, count, aOrientationOut))
       return false;
 
