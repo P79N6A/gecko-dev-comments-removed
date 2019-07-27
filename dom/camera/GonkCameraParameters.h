@@ -101,6 +101,7 @@ protected:
   int32_t mExposureCompensationMaxIndex;
   nsTArray<int> mZoomRatios;
   nsTArray<nsString> mIsoModes;
+  nsTArray<nsString> mSceneModes;
   nsClassHashtable<nsStringHashKey, nsCString> mIsoModeMap;
 
   
@@ -224,6 +225,10 @@ protected:
   
   
   nsresult Initialize();
+
+  
+  
+  static bool IsLowMemoryPlatform();
 };
 
 } 

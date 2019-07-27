@@ -4273,3 +4273,11 @@ pref("beacon.enabled", true);
 
 pref("camera.control.autofocus_moving_callback.enabled", true);
 pref("camera.control.face_detection.enabled", true);
+#ifdef MOZ_WIDGET_GONK
+
+
+
+
+
+pref("camera.control.low_memory_thresholdMB", 404);
+#endif
