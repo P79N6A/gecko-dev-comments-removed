@@ -31,12 +31,12 @@ function add_cert_override(aHost, aExpectedBits, aSecurityInfo) {
 function add_cert_override_test(aHost, aExpectedBits, aExpectedError) {
   add_connection_test(aHost, aExpectedError, null,
                       add_cert_override.bind(this, aHost, aExpectedBits));
-  add_connection_test(aHost, PRErrorCodeSuccess);
+  add_connection_test(aHost, Cr.NS_OK);
 }
 
 function add_non_overridable_test(aHost, aExpectedError) {
   add_connection_test(
-    aHost, aExpectedError, null,
+    aHost, getXPCOMStatusFromNSS(aExpectedError), null,
     function (securityInfo) {
       
       
@@ -103,41 +103,44 @@ function run_test() {
 function add_simple_tests() {
   add_cert_override_test("expired.example.com",
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_EXPIRED_CERTIFICATE);
+                         getXPCOMStatusFromNSS(SEC_ERROR_EXPIRED_CERTIFICATE));
   add_cert_override_test("notyetvalid.example.com",
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE);
+                         getXPCOMStatusFromNSS(
+                           MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE));
   add_cert_override_test("before-epoch.example.com",
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_INVALID_TIME);
+                         getXPCOMStatusFromNSS(SEC_ERROR_INVALID_TIME));
   add_cert_override_test("selfsigned.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   add_cert_override_test("unknownissuer.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   add_cert_override_test("expiredissuer.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE);
+                         getXPCOMStatusFromNSS(SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE));
   add_cert_override_test("notyetvalidissuer.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE);
+                         getXPCOMStatusFromNSS(
+                           MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE));
   add_cert_override_test("before-epoch-issuer.example.com",
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_INVALID_TIME);
+                         getXPCOMStatusFromNSS(SEC_ERROR_INVALID_TIME));
   add_cert_override_test("md5signature.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+                         getXPCOMStatusFromNSS(
+                            SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED));
   add_cert_override_test("mismatch.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH,
-                         SSL_ERROR_BAD_CERT_DOMAIN);
+                         getXPCOMStatusFromNSS(SSL_ERROR_BAD_CERT_DOMAIN));
 
   
   
   
   add_cert_override_test("selfsigned-inadequateEKU.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
 
   add_non_overridable_test("inadequatekeyusage.example.com",
                            SEC_ERROR_INADEQUATE_KEY_USAGE);
@@ -163,17 +166,17 @@ function add_simple_tests() {
   
   add_cert_override_test("self-signed-end-entity-with-cA-true.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
 
   add_cert_override_test("ca-used-as-end-entity.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY);
+                         getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY));
 
   
   
   add_cert_override_test("end-entity-issued-by-v1-cert.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA);
+                         getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA));
   
   add_test(function() {
     certOverrideService.clearValidityOverride("end-entity-issued-by-v1-cert.example.com", 8443);
@@ -182,8 +185,7 @@ function add_simple_tests() {
     clearSessionCache();
     run_next_test();
   });
-  add_connection_test("end-entity-issued-by-v1-cert.example.com",
-                      PRErrorCodeSuccess);
+  add_connection_test("end-entity-issued-by-v1-cert.example.com", Cr.NS_OK);
   
   add_test(function() {
     let v1Cert = constructCertFromFile("tlsserver/v1Cert.der");
@@ -196,50 +198,51 @@ function add_simple_tests() {
   
   add_cert_override_test("end-entity-issued-by-non-CA.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_CA_CERT_INVALID);
+                         getXPCOMStatusFromNSS(SEC_ERROR_CA_CERT_INVALID));
 
   add_cert_override_test("inadequate-key-size-ee.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE);
+                         getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE));
 }
 
 function add_combo_tests() {
   add_cert_override_test("mismatch-expired.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH |
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SSL_ERROR_BAD_CERT_DOMAIN);
+                         getXPCOMStatusFromNSS(SSL_ERROR_BAD_CERT_DOMAIN));
   add_cert_override_test("mismatch-notYetValid.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH |
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SSL_ERROR_BAD_CERT_DOMAIN);
+                         getXPCOMStatusFromNSS(SSL_ERROR_BAD_CERT_DOMAIN));
   add_cert_override_test("mismatch-untrusted.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH |
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   add_cert_override_test("untrusted-expired.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED |
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
   add_cert_override_test("mismatch-untrusted-expired.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH |
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED |
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_UNKNOWN_ISSUER);
+                         getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_ISSUER));
 
   add_cert_override_test("md5signature-expired.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED |
                          Ci.nsICertOverrideService.ERROR_TIME,
-                         SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED);
+                         getXPCOMStatusFromNSS(
+                            SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED));
 
   add_cert_override_test("ca-used-as-end-entity-name-mismatch.example.com",
                          Ci.nsICertOverrideService.ERROR_MISMATCH |
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
-                         MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY);
+                         getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY));
 }
 
 function add_distrust_tests() {
   
-  add_connection_test("untrusted.example.com", PRErrorCodeSuccess);
+  add_connection_test("untrusted.example.com", Cr.NS_OK);
 
   add_distrust_test("tlsserver/default-ee.der", "untrusted.example.com",
                     SEC_ERROR_UNTRUSTED_CERT);

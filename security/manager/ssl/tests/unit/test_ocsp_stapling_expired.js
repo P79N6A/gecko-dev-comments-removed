@@ -70,81 +70,81 @@ function run_test() {
   
   
   
-  add_ocsp_test("ocsp-stapling-expired.example.com", PRErrorCodeSuccess,
+  add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK,
                 ocspResponseGood);
-  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", PRErrorCodeSuccess,
+  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK,
                 ocspResponseGood);
   
   
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 expiredOCSPResponseGood);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 expiredOCSPResponseGood);
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 oldValidityPeriodOCSPResponseGood);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 oldValidityPeriodOCSPResponseGood);
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 null);
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_OCSP_OLD_RESPONSE,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_OLD_RESPONSE),
                 null);
   
   
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_REVOKED_CERTIFICATE,
+                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 ocspResponseRevoked);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
-                SEC_ERROR_REVOKED_CERTIFICATE,
+                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 ocspResponseRevoked);
   add_ocsp_test("ocsp-stapling-expired.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 ocspResponseUnknown);
   add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 ocspResponseUnknown);
 
   
   
   
   add_ocsp_test("ocsp-stapling-revoked-old.example.com",
-                SEC_ERROR_REVOKED_CERTIFICATE,
+                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 null);
   add_ocsp_test("ocsp-stapling-unknown-old.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 null);
   
   
   
-  add_ocsp_test("ocsp-stapling-revoked-old.example.com", PRErrorCodeSuccess,
+  add_ocsp_test("ocsp-stapling-revoked-old.example.com", Cr.NS_OK,
                 ocspResponseGood);
-  add_ocsp_test("ocsp-stapling-unknown-old.example.com", PRErrorCodeSuccess,
+  add_ocsp_test("ocsp-stapling-unknown-old.example.com", Cr.NS_OK,
                 ocspResponseGood);
   
   
   
   add_ocsp_test("ocsp-stapling-revoked-old.example.com",
-                SEC_ERROR_REVOKED_CERTIFICATE,
+                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 expiredOCSPResponseGood);
   add_ocsp_test("ocsp-stapling-unknown-old.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 expiredOCSPResponseGood);
 
   
   
   
-  add_ocsp_test("ocsp-stapling-ancient-valid.example.com", PRErrorCodeSuccess,
+  add_ocsp_test("ocsp-stapling-ancient-valid.example.com", Cr.NS_OK,
                 ocspResponseGood);
   add_ocsp_test("ocsp-stapling-ancient-valid.example.com",
-                SEC_ERROR_REVOKED_CERTIFICATE,
+                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                 ocspResponseRevoked);
   add_ocsp_test("ocsp-stapling-ancient-valid.example.com",
-                SEC_ERROR_OCSP_UNKNOWN_CERT,
+                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                 ocspResponseUnknown);
 
   add_test(function () { ocspResponder.stop(run_next_test); });

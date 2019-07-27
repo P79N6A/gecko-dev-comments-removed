@@ -53,14 +53,14 @@ function add_tests() {
   
   
   add_connection_test("ocsp-stapling-unknown.example.com",
-                      SEC_ERROR_OCSP_UNKNOWN_CERT,
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 0); run_next_test(); });
 
   
   
   add_connection_test("ocsp-stapling-none.example.com",
-                      SEC_ERROR_OCSP_UNKNOWN_CERT,
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT),
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
@@ -81,14 +81,14 @@ function add_tests() {
     gGoodOCSPResponse = generateGoodOCSPResponse();
     run_next_test();
   });
-  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 2); run_next_test(); });
 
   
   
   
-  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 2); run_next_test(); });
 
@@ -100,19 +100,19 @@ function add_tests() {
 
   
   
-  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
   
-  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
+  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 
   
   
   add_connection_test("ocsp-stapling-revoked.example.com",
-                      SEC_ERROR_REVOKED_CERTIFICATE,
+                      getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE),
                       clearSessionCache);
   add_test(function() { do_check_eq(gFetchCount, 1); run_next_test(); });
 

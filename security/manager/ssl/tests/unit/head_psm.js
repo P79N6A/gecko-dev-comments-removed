@@ -31,10 +31,6 @@ const SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
 const MOZILLA_PKIX_ERROR_BASE = Ci.nsINSSErrorsService.MOZILLA_PKIX_ERROR_BASE;
 
 
-
-const PRErrorCodeSuccess = 0;
-
-
 const SEC_ERROR_INVALID_ARGS                            = SEC_ERROR_BASE +   5; 
 const SEC_ERROR_INVALID_TIME                            = SEC_ERROR_BASE +   8;
 const SEC_ERROR_BAD_DER                                 = SEC_ERROR_BASE +   9;
@@ -246,16 +242,6 @@ function add_tls_server_setup(serverBinName) {
 
 
 
-
-
-
-
-
-
-
-
-
-
 function add_connection_test(aHost, aExpectedResult,
                              aBeforeConnect, aWithSecurityInfo,
                              aAfterStreamOpen) {
@@ -339,9 +325,7 @@ function add_connection_test(aHost, aExpectedResult,
     }
     connectTo(aHost).then(function(conn) {
       do_print("handling " + aHost);
-      do_check_eq(conn.result, aExpectedResult == PRErrorCodeSuccess
-                               ? Cr.NS_OK
-                               : getXPCOMStatusFromNSS(aExpectedResult));
+      do_check_eq(conn.result, aExpectedResult);
       if (aWithSecurityInfo) {
         aWithSecurityInfo(conn.transport.securityInfo
                               .QueryInterface(Ci.nsITransportSecurityInfo));
