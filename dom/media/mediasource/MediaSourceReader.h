@@ -132,7 +132,7 @@ public:
 
   
   bool IsEnded();
-  bool IsNearEnd(int64_t aTime );
+  bool IsNearEnd(MediaData::Type aType, int64_t aTime );
 
   
   void SetMediaSourceDuration(double aDuration );
