@@ -2,8 +2,6 @@
 
 
 
-#if defined(JSGC_USE_EXACT_ROOTING)
-
 #include "js/Class.h"
 #include "jsapi-tests/tests.h"
 
@@ -180,5 +178,3 @@ BEGIN_TEST(test_PersistentRootedAssign)
     return true;
 }
 END_TEST(test_PersistentRootedAssign)
-
-#endif 

@@ -4943,7 +4943,6 @@ DebuggerGenericEval(JSContext *cx, const char *fullMethodName, const Value &code
 
     
     RootedValue rval(cx);
-    JS::Anchor<JSString *> anchor(flat);
     AbstractFramePtr frame = iter ? iter->abstractFramePtr() : NullFramePtr();
     AutoStableStringChars stableChars(cx);
     if (!stableChars.initTwoByte(cx, flat))

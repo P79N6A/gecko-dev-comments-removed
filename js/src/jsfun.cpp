@@ -1862,8 +1862,6 @@ FunctionConstructor(JSContext *cx, unsigned argc, Value *vp, GeneratorKind gener
     if (!str)
         return false;
 
-    JS::Anchor<JSString *> strAnchor(str);
-
     
 
 

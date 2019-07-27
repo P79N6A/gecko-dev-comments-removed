@@ -18,7 +18,6 @@
 #include "js-config.h"
 #include "jstypes.h"
 
-#include "js/Anchor.h"
 #include "js/GCAPI.h"
 #include "js/RootingAPI.h"
 #include "js/Utility.h"
@@ -1864,26 +1863,6 @@ IsPoisonedValue(const Value &v)
 {
     return js::GCMethods<Value>::poisoned(v);
 }
-
-#ifndef __GNUC__
-
-
-
-
-
-
-
-
-
-
-
-template<>
-inline Anchor<Value>::~Anchor()
-{
-    volatile uint64_t bits;
-    bits = JSVAL_TO_IMPL(hold).asBits;
-}
-#endif
 
 #ifdef JS_DEBUG
 namespace detail {

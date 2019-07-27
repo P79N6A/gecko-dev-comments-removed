@@ -728,14 +728,12 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     
     template <typename CX>
     void init(CX *cx) {
-#ifdef JSGC_TRACK_EXACT_ROOTS
         js::ThingRootKind kind = js::RootKind<T>::rootKind();
         this->stack = &cx->thingGCRooters[kind];
         this->prev = *stack;
         *stack = reinterpret_cast<Rooted<void*>*>(this);
 
         MOZ_ASSERT(!js::GCMethods<T>::poisoned(ptr));
-#endif
     }
 
   public:
@@ -809,19 +807,12 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
         init(js::PerThreadDataFriendFields::getMainThread(rt));
     }
 
-    
-    
-    
-#ifdef JSGC_TRACK_EXACT_ROOTS
     ~Rooted() {
         MOZ_ASSERT(*stack == reinterpret_cast<Rooted<void*>*>(this));
         *stack = prev;
     }
-#endif
 
-#ifdef JSGC_TRACK_EXACT_ROOTS
     Rooted<T> *previous() { return reinterpret_cast<Rooted<T>*>(prev); }
-#endif
 
     
 
@@ -854,14 +845,12 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     bool operator==(const T &other) const { return ptr == other; }
 
   private:
-#ifdef JSGC_TRACK_EXACT_ROOTS
     
 
 
 
 
     Rooted<void *> **stack, *prev;
-#endif
 
     
 

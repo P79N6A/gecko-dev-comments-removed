@@ -1062,8 +1062,6 @@ js::ArrayJoin(JSContext *cx, HandleObject obj, HandleLinearString sepstr, uint32
 
     
 
-    JS::Anchor<JSString*> anchor(sepstr);
-
     
 
     

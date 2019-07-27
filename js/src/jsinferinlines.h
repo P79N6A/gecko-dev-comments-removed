@@ -1344,8 +1344,4 @@ struct GCMethods<types::Type>
 
 } 
 
-namespace JS {
-template<> class AnchorPermitted<js::types::TypeObject *> { };
-}  
-
 #endif 
