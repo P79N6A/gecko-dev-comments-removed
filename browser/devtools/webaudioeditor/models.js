@@ -35,6 +35,12 @@ const AudioNodeModel = Class({
 
   setup: Task.async(function* () {
     yield this.getType();
+
+    
+    this._bypassed = yield this.isBypassed();
+
+    
+    this.bypassable = !AUDIO_NODE_DEFINITION[this.type].unbypassable;
   }),
 
   
@@ -80,6 +86,26 @@ const AudioNodeModel = Class({
 
 
 
+  isBypassed: function () {
+    return this.actor.isBypassed();
+  },
+
+  
+
+
+
+
+
+  bypass: function (enable) {
+    this._bypassed = enable;
+    return this.actor.bypass(enable).then(() => coreEmit(this, "bypass", this, enable));
+  },
+
+  
+
+
+
+
 
   getParams: function () {
     return this.actor.getParams();
@@ -106,7 +132,8 @@ const AudioNodeModel = Class({
     graph.addNode(this.id, {
       type: this.type,
       label: this.type.replace(/Node$/, ""),
-      id: this.id
+      id: this.id,
+      bypassed: this._bypassed
     });
   },
 
@@ -279,7 +306,7 @@ const AudioNodesCollection = Class({
       this.remove(node);
     } else {
       
-      coreEmit(this, eventName, [node].concat(args));
+      coreEmit(this, eventName, node, ...args);
     }
   }
 });

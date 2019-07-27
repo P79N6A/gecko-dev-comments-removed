@@ -44,108 +44,113 @@ const NODE_ROUTING_METHODS = [
 
 const NODE_PROPERTIES = {
   "OscillatorNode": {
-    "type": {},
-    "frequency": {
-      "param": true
-    },
-    "detune": {
-      "param": true
+    "properties": {
+      "type": {},
+      "frequency": {
+        "param": true
+      },
+      "detune": {
+        "param": true
+      }
     }
   },
   "GainNode": {
-    "gain": {
-      "param": true
-    }
+    "properties": { "gain": { "param": true }}
   },
   "DelayNode": {
-    "delayTime": {
-      "param": true
-    }
+    "properties": { "delayTime": { "param": true }}
   },
   
   
   
   
   "AudioBufferSourceNode": {
-    "buffer": { "Buffer": true },
-    "playbackRate": {
-      "param": true,
-    },
-    "loop": {},
-    "loopStart": {},
-    "loopEnd": {}
+    "properties": {
+      "buffer": { "Buffer": true },
+      "playbackRate": {
+        "param": true
+      },
+      "loop": {},
+      "loopStart": {},
+      "loopEnd": {}
+    }
   },
   "ScriptProcessorNode": {
-    "bufferSize": { "readonly": true }
+    "properties": { "bufferSize": { "readonly": true }}
   },
   "PannerNode": {
-    "panningModel": {},
-    "distanceModel": {},
-    "refDistance": {},
-    "maxDistance": {},
-    "rolloffFactor": {},
-    "coneInnerAngle": {},
-    "coneOuterAngle": {},
-    "coneOuterGain": {}
+    "properties": {
+      "panningModel": {},
+      "distanceModel": {},
+      "refDistance": {},
+      "maxDistance": {},
+      "rolloffFactor": {},
+      "coneInnerAngle": {},
+      "coneOuterAngle": {},
+      "coneOuterGain": {}
+    }
   },
   "ConvolverNode": {
-    "buffer": { "Buffer": true },
-    "normalize": {},
+    "properties": {
+      "buffer": { "Buffer": true },
+      "normalize": {},
+    }
   },
   "DynamicsCompressorNode": {
-    "threshold": {
-      "param": true
-    },
-    "knee": {
-      "param": true
-    },
-    "ratio": {
-      "param": true
-    },
-    "reduction": {},
-    "attack": {
-      "param": true
-    },
-    "release": {
-      "param": true
+    "properties": {
+      "threshold": { "param": true },
+      "knee": { "param": true },
+      "ratio": { "param": true },
+      "reduction": {},
+      "attack": { "param": true },
+      "release": { "param": true }
     }
   },
   "BiquadFilterNode": {
-    "type": {},
-    "frequency": {
-      "param": true
-    },
-    "Q": {
-      "param": true
-    },
-    "detune": {
-      "param": true
-    },
-    "gain": {
-      "param": true
+    "properties": {
+      "type": {},
+      "frequency": { "param": true },
+      "Q": { "param": true },
+      "detune": { "param": true },
+      "gain": { "param": true }
     }
   },
   "WaveShaperNode": {
-    "curve": { "Float32Array": true },
-    "oversample": {}
+    "properties": {
+      "curve": { "Float32Array": true },
+      "oversample": {}
+    }
   },
   "AnalyserNode": {
-    "fftSize": {},
-    "minDecibels": {},
-    "maxDecibels": {},
-    "smoothingTimeConstant": {},
-    "frequencyBinCount": { "readonly": true },
+    "properties": {
+      "fftSize": {},
+      "minDecibels": {},
+      "maxDecibels": {},
+      "smoothingTimeConstant": {},
+      "frequencyBinCount": { "readonly": true },
+    }
   },
-  "AudioDestinationNode": {},
-  "ChannelSplitterNode": {},
-  "ChannelMergerNode": {},
+  "AudioDestinationNode": {
+    "unbypassable": true
+  },
+  "ChannelSplitterNode": {
+    "unbypassable": true
+  },
+  "ChannelMergerNode": {
+    "unbypassable": true
+  },
   "MediaElementAudioSourceNode": {},
   "MediaStreamAudioSourceNode": {},
   "MediaStreamAudioDestinationNode": {
-    "stream": { "MediaStream": true }
+    "unbypassable": true,
+    "properties": {
+      "stream": { "MediaStream": true }
+    }
   },
   "StereoPannerNode": {
-    "pan": {}
+    "properties": {
+      "pan": {}
+    }
   }
 };
 
@@ -184,7 +189,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
     }
 
     
-    Object.keys(NODE_PROPERTIES[this.type])
+    Object.keys(NODE_PROPERTIES[this.type].properties || {})
       .filter(isAudioParam.bind(null, node))
       .forEach(paramName => {
         this.automation[paramName] = new AutomationTimeline(node[paramName].defaultValue);
@@ -223,12 +228,16 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       return false;
     }
 
-    return node.passThrough;
+    
+    
+    return !!node.passThrough;
   }, {
     response: { bypassed: RetVal("boolean") }
   }),
 
   
+
+
 
 
 
@@ -243,10 +252,15 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
       return;
     }
 
-    node.passThrough = enable;
+    let bypassable = !NODE_PROPERTIES[this.type].unbypassable;
+    if (bypassable) {
+      node.passThrough = enable;
+    }
+
+    return this.isBypassed();
   }, {
     request: { enable: Arg(0, "boolean") },
-    oneway: true
+    response: { bypassed: RetVal("boolean") }
   }),
 
   
@@ -331,7 +345,7 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
   getParamFlags: method(function (param) {
-    return (NODE_PROPERTIES[this.type] || {})[param];
+    return ((NODE_PROPERTIES[this.type] || {}).properties || {})[param];
   }, {
     request: { param: Arg(0, "string") },
     response: { flags: RetVal("nullable:primitive") }
@@ -341,8 +355,8 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
 
 
 
-  getParams: method(function () {
-    let props = Object.keys(NODE_PROPERTIES[this.type]);
+  getParams: method(function (param) {
+    let props = Object.keys(NODE_PROPERTIES[this.type].properties || {});
     return props.map(prop =>
       ({ param: prop, value: this.getParam(prop), flags: this.getParamFlags(prop) }));
   }, {
@@ -604,6 +618,16 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
 
+  getDefinition: method(function () {
+    return NODE_PROPERTIES;
+  }, {
+    response: { definition: RetVal("json") }
+  }),
+
+  
+
+
+
 
 
 
@@ -810,7 +834,7 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
   _instrumentParams: function (node) {
     let type = getConstructorName(node);
-    Object.keys(NODE_PROPERTIES[type])
+    Object.keys(NODE_PROPERTIES[type].properties || {})
       .filter(isAudioParam.bind(null, node))
       .forEach(paramName => {
         let param = node[paramName];

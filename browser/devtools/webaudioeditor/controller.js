@@ -41,7 +41,7 @@ let WebAudioEditorController = {
   
 
 
-  initialize: function() {
+  initialize: Task.async(function* () {
     telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
@@ -60,7 +60,10 @@ let WebAudioEditorController = {
     
     
     gDevTools.on("pref-changed", this._onThemeChange);
-  },
+
+    
+    AUDIO_NODE_DEFINITION = yield gFront.getDefinition();
+  }),
 
   
 

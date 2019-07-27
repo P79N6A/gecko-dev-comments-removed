@@ -36,13 +36,13 @@ let ContextView = {
 
 
   initialize: function() {
-    this._onGraphNodeClick = this._onGraphNodeClick.bind(this);
+    this._onGraphClick = this._onGraphClick.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
     this._onStartContext = this._onStartContext.bind(this);
     this._onEvent = this._onEvent.bind(this);
 
     this.draw = debounce(this.draw.bind(this), GRAPH_DEBOUNCE_TIMER);
-    $('#graph-target').addEventListener('click', this._onGraphNodeClick, false);
+    $("#graph-target").addEventListener("click", this._onGraphClick, false);
 
     window.on(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.on(EVENTS.START_CONTEXT, this._onStartContext);
@@ -58,7 +58,8 @@ let ContextView = {
     if (this._zoomBinding) {
       this._zoomBinding.on("zoom", null);
     }
-    $('#graph-target').removeEventListener('click', this._onGraphNodeClick, false);
+    $("#graph-target").removeEventListener("click", this._onGraphClick, false);
+
     window.off(EVENTS.THEME_CHANGE, this._onThemeChange);
     window.off(EVENTS.START_CONTEXT, this._onStartContext);
     gAudioNodes.off("*", this._onEvent);
@@ -130,6 +131,15 @@ let ContextView = {
 
 
 
+  _bypassNode: function (node, enabled) {
+    let el = this._getNodeByID(node.id);
+    el.classList[enabled ? "add" : "remove"]("bypassed");
+  },
+
+  
+
+
+
 
   draw: function () {
     
@@ -143,42 +153,33 @@ let ContextView = {
     let oldDrawNodes = renderer.drawNodes();
     renderer.drawNodes(function(graph, root) {
       let svgNodes = oldDrawNodes(graph, root);
-      svgNodes.attr("class", (n) => {
+      svgNodes.each(function (n) {
         let node = graph.node(n);
-        return "audionode type-" + node.type;
-      });
-      svgNodes.attr("data-id", (n) => {
-        let node = graph.node(n);
-        return node.id;
+        let classString = "audionode type-" + node.type + (node.bypassed ? " bypassed" : "");
+        this.setAttribute("class", classString);
+        this.setAttribute("data-id", node.id);
+        this.setAttribute("data-type", node.type);
       });
       return svgNodes;
     });
 
     
-    
-    
-    
     let oldDrawEdgePaths = renderer.drawEdgePaths();
+    let defaultClasses = "edgePath enter";
+
     renderer.drawEdgePaths(function(graph, root) {
       let svgEdges = oldDrawEdgePaths(graph, root);
-      svgEdges.attr("data-source", (n) => {
-        let edge = graph.edge(n);
-        return edge.source;
-      });
-      svgEdges.attr("data-target", (n) => {
-        let edge = graph.edge(n);
-        return edge.target;
-      });
-      svgEdges.attr("data-param", (n) => {
-        let edge = graph.edge(n);
-        return edge.param ? edge.param : null;
-      });
-      
-      
-      let defaultClasses = "edgePath enter";
-      svgEdges.attr("class", (n) => {
-        let edge = graph.edge(n);
-        return defaultClasses + (edge.param ? (" param-connection " + edge.param) : "");
+      svgEdges.each(function (e) {
+        let edge = graph.edge(e);
+
+        
+        
+        let edgeClass = defaultClasses + (edge.param ? (" param-connection " + edge.param) : "");
+
+        this.setAttribute("data-source", edge.source);
+        this.setAttribute("data-target", edge.target);
+        this.setAttribute("data-param", edge.param ? edge.param : null);
+        this.setAttribute("class", edgeClass);
       });
 
       return svgEdges;
@@ -263,6 +264,11 @@ let ContextView = {
 
 
   _onEvent: function (eventName, ...args) {
+    
+    
+    if (eventName === "bypass") {
+      this._bypassNode.apply(this, args);
+    }
     if (~GRAPH_REDRAW_EVENTS.indexOf(eventName)) {
       this.draw();
     }
@@ -285,7 +291,7 @@ let ContextView = {
 
 
 
-  _onGraphNodeClick: function (e) {
+  _onGraphClick: function (e) {
     let node = findGraphNodeParent(e.target);
     
     

@@ -15,6 +15,7 @@ const { require } = devtools;
 
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 let { EventTarget } = require("sdk/event/target");
+
 const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const { Class } = require("sdk/core/heritage");
 const EventEmitter = require("devtools/toolkit/event-emitter");
@@ -24,6 +25,10 @@ const Telemetry = require("devtools/shared/telemetry");
 const telemetry = new Telemetry();
 devtools.lazyImporter(this, "LineGraphWidget",
   "resource:///modules/devtools/Graphs.jsm");
+
+
+
+let AUDIO_NODE_DEFINITION;
 
 
 const { defer, all } = Cu.import("resource://gre/modules/Promise.jsm", {}).Promise;
