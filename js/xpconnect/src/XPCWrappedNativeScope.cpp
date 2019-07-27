@@ -41,8 +41,10 @@ XPCWrappedNativeScope::ClearInterpositionsObserver::Observe(nsISupports *subject
     
     
     
-    if (gInterpositionMap)
+    if (gInterpositionMap) {
         delete gInterpositionMap;
+        gInterpositionMap = nullptr;
+    }
 
     nsContentUtils::UnregisterShutdownObserver(this);
     return NS_OK;
