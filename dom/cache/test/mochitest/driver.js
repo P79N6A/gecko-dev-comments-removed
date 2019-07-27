@@ -11,7 +11,12 @@
 
 
 
-function runTests(testFile) {
+
+
+
+
+
+function runTests(testFile, order) {
   function setupPrefs() {
     return new Promise(function(resolve, reject) {
       SpecialPowers.pushPrefEnv({
@@ -56,14 +61,17 @@ function runTests(testFile) {
         var doc = iframe.contentDocument;
         var s = doc.createElement("script");
         s.src = testFile;
-        window.onmessage = function(event) {
+        window.addEventListener("message", function onMessage(event) {
+          if (event.data.context != "Window") {
+            return;
+          }
           if (event.data.type == 'finish') {
-            window.onmessage = null;
+            window.removeEventListener("message", onMessage);
             resolve();
           } else if (event.data.type == 'status') {
-            ok(event.data.status, event.data.msg);
+            ok(event.data.status, event.data.context + ": " + event.data.msg);
           }
-        };
+        }, false);
         doc.body.appendChild(s);
       };
       document.body.appendChild(iframe);
@@ -71,14 +79,35 @@ function runTests(testFile) {
   }
 
   SimpleTest.waitForExplicitFinish();
+
+  if (typeof order == "undefined") {
+    order = "both"; 
+  }
+
+  ok(order == "parallel" || order == "sequential" || order == "both",
+     "order argument should be valid");
+
+  if (order == "both") {
+    info("Running tests in both modes; first: sequential");
+    return runTests(testFile, "sequential")
+        .then(function() {
+          info("Running tests in parallel mode");
+          return runTests(testFile, "parallel");
+        });
+  }
+  if (order == "sequential") {
+    return setupPrefs()
+        .then(importDrivers)
+        .then(runWorkerTest)
+        .then(runServiceWorkerTest)
+        .then(runFrameTest)
+        .catch(function(e) {
+          ok(false, "A promise was rejected during test execution: " + e);
+        });
+  }
   return setupPrefs()
       .then(importDrivers)
-      
-      
-      
-      .then(runWorkerTest)
-      .then(runServiceWorkerTest)
-      .then(runFrameTest)
+      .then(() => Promise.all([runWorkerTest(), runServiceWorkerTest(), runFrameTest()]))
       .catch(function(e) {
         ok(false, "A promise was rejected during test execution: " + e);
       });
