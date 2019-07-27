@@ -860,22 +860,22 @@ gfxGDIFontList::GetDefaultFont(const gfxFontStyle* aStyle)
     gfxFontFamily *ff = nullptr;
 
     
-    HGDIOBJ hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
-    LOGFONTW logFont;
-    if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
-        ff = FindFamily(nsDependentString(logFont.lfFaceName));
-        if (ff) {
-            return ff;
-        }
-    }
-
-    
     NONCLIENTMETRICSW ncm;
     ncm.cbSize = sizeof(ncm);
     BOOL status = ::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 
                                           sizeof(ncm), &ncm, 0);
     if (status) {
         ff = FindFamily(nsDependentString(ncm.lfMessageFont.lfFaceName));
+        if (ff) {
+            return ff;
+        }
+    }
+
+    
+    HGDIOBJ hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
+    LOGFONTW logFont;
+    if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
+        ff = FindFamily(nsDependentString(logFont.lfFaceName));
     }
 
     return ff;
