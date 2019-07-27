@@ -286,12 +286,19 @@ private:
 
   void RemoveFeature();
 
+  
+  
+  bool CaptureStack(JSContext* aCx, JS::Heap<JSObject*>& aTarget);
+
   nsRefPtr<nsIGlobalObject> mGlobal;
 
   nsTArray<nsRefPtr<PromiseCallback> > mResolveCallbacks;
   nsTArray<nsRefPtr<PromiseCallback> > mRejectCallbacks;
 
   JS::Heap<JS::Value> mResult;
+  
+  
+  JS::Heap<JSObject*> mAllocationStack;
   PromiseState mState;
   bool mTaskPending;
   bool mHadRejectCallback;
