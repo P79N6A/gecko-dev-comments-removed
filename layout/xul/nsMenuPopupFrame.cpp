@@ -1221,8 +1221,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   
   parentRect.MoveBy(referenceFrame->GetScreenRectInAppUnits().TopLeft());
   
-  parentRect.ConvertAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
-                                     presContext->AppUnitsPerDevPixel());
+  parentRect =
+    parentRect.ConvertAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
+                                       presContext->AppUnitsPerDevPixel());
 
   
   
