@@ -110,6 +110,13 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
   *aCookieString = nullptr;
 
   
+  
+  nsAutoCString scheme;
+  aHostURI->GetScheme(scheme);
+  if (scheme.EqualsLiteral("moz-nullprincipal"))
+    return NS_OK;
+
+  
   bool isForeign = true;
   if (RequireThirdPartyCheck())
     mThirdPartyUtil->IsThirdPartyChannel(aChannel, aHostURI, &isForeign);
@@ -136,6 +143,13 @@ CookieServiceChild::SetCookieStringInternal(nsIURI *aHostURI,
 {
   NS_ENSURE_ARG(aHostURI);
   NS_ENSURE_ARG_POINTER(aCookieString);
+
+  
+  
+  nsAutoCString scheme;
+  aHostURI->GetScheme(scheme);
+  if (scheme.EqualsLiteral("moz-nullprincipal"))
+    return NS_OK;
 
   
   bool isForeign = true;
