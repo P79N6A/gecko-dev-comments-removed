@@ -22,6 +22,9 @@ const kWhitelist = [
   
   {sourceName: /loop\/.*sdk-content\/.*\.css$/i},
   
+  {sourceName: /loop\/.*\.css/i,
+   errorMessage: /Unknown pseudo-class.*placeholder/i},
+  
   {sourceName: /highlighter\.css/i,
    errorMessage: /Unknown pseudo-class.*moz-native-anonymous/i},
 ];
