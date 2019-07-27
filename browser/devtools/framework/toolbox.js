@@ -1520,7 +1520,9 @@ Toolbox.prototype = {
     this._telemetry.toolClosed("toolbox");
     this._telemetry.destroy();
 
-    this._destroyer = promise.all(outstanding).then(() => {
+    
+    
+    this._destroyer = promise.all(outstanding).then(null, console.error).then(() => {
       
       
       
@@ -1533,7 +1535,7 @@ Toolbox.prototype = {
       this.highlighterUtils.release();
       target.off("close", this.destroy);
       return target.destroy();
-    }).then(() => {
+    }, console.error).then(() => {
       this.emit("destroyed");
 
       
