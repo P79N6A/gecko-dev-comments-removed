@@ -80,7 +80,7 @@ class MOZ_STACK_CLASS RegExpMacroAssembler
 
     LifoAlloc &alloc() { return alloc_; }
 
-    virtual RegExpCode GenerateCode(JSContext *cx) = 0;
+    virtual RegExpCode GenerateCode(JSContext *cx, bool match_only) = 0;
 
     
     
@@ -228,7 +228,7 @@ class MOZ_STACK_CLASS InterpretedRegExpMacroAssembler : public RegExpMacroAssemb
     ~InterpretedRegExpMacroAssembler();
 
     
-    RegExpCode GenerateCode(JSContext *cx);
+    RegExpCode GenerateCode(JSContext *cx, bool match_only);
     void AdvanceCurrentPosition(int by);
     void AdvanceRegister(int reg, int by);
     void Backtrack();

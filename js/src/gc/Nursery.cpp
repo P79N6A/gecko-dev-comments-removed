@@ -813,10 +813,6 @@ js::Nursery::collect(JSRuntime *rt, JS::gcreason::Reason reason, TypeObjectList 
     rt->newObjectCache.clearNurseryObjects(rt);
     TIME_END(clearNewObjectCache);
 
-    TIME_START(clearRegExpTestCache);
-    rt->regExpTestCache.purge();
-    TIME_END(clearRegExpTestCache);
-
     
     
     

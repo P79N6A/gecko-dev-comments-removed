@@ -220,10 +220,12 @@ StringHasPattern(JSLinearString *text, const char16_t *pat, uint32_t patlen);
 extern int
 StringFindPattern(JSLinearString *text, JSLinearString *pat, size_t start);
 
-
+template <typename CharT>
+extern bool
+HasRegExpMetaChars(const CharT *chars, size_t length);
 
 extern bool
-StringHasRegExpMetaChars(JSLinearString *str, size_t beginOffset = 0, size_t endOffset = 0);
+StringHasRegExpMetaChars(JSLinearString *str);
 
 template <typename Char1, typename Char2>
 inline bool

@@ -1002,8 +1002,29 @@ template class irregexp::RegExpParser<char16_t>;
 template <typename CharT>
 static bool
 ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc, const CharT *chars, size_t length,
-             bool multiline, RegExpCompileData *data)
+             bool multiline, bool match_only, RegExpCompileData *data)
 {
+    if (match_only) {
+        
+        
+        
+        
+        if (length >= 3 && chars[0] == '.' && chars[1] == '*' && chars[2] != '?') {
+            chars += 2;
+            length -= 2;
+        }
+
+        
+        
+        
+        
+        if (length >= 3 && !HasRegExpMetaChars(chars, length - 2) &&
+            chars[length - 2] == '.' && chars[length - 1] == '*')
+        {
+            length -= 2;
+        }
+    }
+
     RegExpParser<CharT> parser(ts, &alloc, chars, chars + length, multiline);
     data->tree = parser.ParsePattern();
     if (!data->tree)
@@ -1016,13 +1037,16 @@ ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc, const CharT *chars, si
 }
 
 bool
-irregexp::ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc, JSAtom *str, bool multiline,
+irregexp::ParsePattern(frontend::TokenStream &ts, LifoAlloc &alloc, JSAtom *str,
+                       bool multiline, bool match_only,
                        RegExpCompileData *data)
 {
     JS::AutoCheckCannotGC nogc;
     return str->hasLatin1Chars()
-           ? ::ParsePattern(ts, alloc, str->latin1Chars(nogc), str->length(), multiline, data)
-           : ::ParsePattern(ts, alloc, str->twoByteChars(nogc), str->length(), multiline, data);
+           ? ::ParsePattern(ts, alloc, str->latin1Chars(nogc), str->length(),
+                            multiline, match_only, data)
+           : ::ParsePattern(ts, alloc, str->twoByteChars(nogc), str->length(),
+                            multiline, match_only, data);
 }
 
 template <typename CharT>

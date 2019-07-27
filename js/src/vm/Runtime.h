@@ -348,30 +348,6 @@ class NewObjectCache
     }
 };
 
-class RegExpObject;
-
-
-
-struct RegExpTestCache
-{
-    RegExpObject *key;
-    RegExpObject *value;
-
-    RegExpTestCache()
-      : key(nullptr), value(nullptr)
-    {}
-
-    void purge() {
-        key = nullptr;
-        value = nullptr;
-    }
-
-    void fill(RegExpObject *key, RegExpObject *value) {
-        this->key = key;
-        this->value = value;
-    }
-};
-
 
 
 
@@ -1133,7 +1109,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::UncompressedSourceCache uncompressedSourceCache;
     js::EvalCache       evalCache;
     js::LazyScriptCache lazyScriptCache;
-    js::RegExpTestCache regExpTestCache;
 
     js::CompressedSourceSet compressedSourceSet;
     js::DateTimeInfo    dateTimeInfo;

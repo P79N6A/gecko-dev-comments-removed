@@ -126,14 +126,6 @@ class RegExpStatics
     RegExpFlag getFlags() const { return flags; }
     bool multiline() const { return flags & MultilineFlag; }
 
-    
-    bool matched() const {
-        
-        JS_ASSERT(!pendingLazyEvaluation);
-        JS_ASSERT(matches.pairCount() > 0);
-        return matches[0].limit - matches[0].start > 0;
-    }
-
     void mark(JSTracer *trc) {
         
 
