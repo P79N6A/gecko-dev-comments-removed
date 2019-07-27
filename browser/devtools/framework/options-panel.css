@@ -22,14 +22,14 @@
 .options-vertical-pane {
   margin: 5px;
   width: calc(100%/3 - 30px);
-  min-width: 260px;
+  min-width: 320px;
   -moz-padding-start: 5px;
 }
 
 
 
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .options-vertical-pane {
     width: calc(100%/2 - 30px);
   }
