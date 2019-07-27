@@ -733,7 +733,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     aMetrics.ISize(lineWM) += framePadding.IEnd(frameWM);
   }
 
-  nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics, aReflowState,
+  nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics,
                                          framePadding, lineWM, frameWM);
 
   
