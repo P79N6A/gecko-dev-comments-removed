@@ -81,13 +81,13 @@ BackgroundChildImpl::~BackgroundChildImpl()
 }
 
 void
-BackgroundChildImpl::ProcessingError(Result aWhat)
+BackgroundChildImpl::ProcessingError(Result aCode, const char* aReason)
 {
   
 
   nsAutoCString abortMessage;
 
-  switch (aWhat) {
+  switch (aCode) {
 
 #define HANDLE_CASE(_result)                                                   \
     case _result:                                                              \

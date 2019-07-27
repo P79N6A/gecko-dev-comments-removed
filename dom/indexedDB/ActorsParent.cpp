@@ -10750,7 +10750,7 @@ FactoryOp::CheckPermission(ContentParent* aContentParent,
     if (aContentParent) {
       
       
-      aContentParent->KillHard();
+      aContentParent->KillHard("IndexedDB CheckPermission 1");
     }
     return NS_ERROR_DOM_INDEXEDDB_NOT_ALLOWED_ERR;
   }
@@ -10797,14 +10797,14 @@ FactoryOp::CheckPermission(ContentParent* aContentParent,
 
       
       if (mDeleting && !canWrite) {
-        aContentParent->KillHard();
+        aContentParent->KillHard("IndexedDB CheckPermission 2");
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
 
       
       if (!canRead) {
-        aContentParent->KillHard();
+        aContentParent->KillHard("IndexedDB CheckPermission 3");
         IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }

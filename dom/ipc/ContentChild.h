@@ -441,7 +441,7 @@ public:
 private:
     virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
-    virtual void ProcessingError(Result what) MOZ_OVERRIDE;
+    virtual void ProcessingError(Result aCode, const char* aReason) MOZ_OVERRIDE;
 
     
 

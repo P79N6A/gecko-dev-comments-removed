@@ -238,7 +238,7 @@ public:
 
 
 
-    void KillHard();
+    void KillHard(const char* aWhy);
 
     
 
@@ -742,7 +742,7 @@ private:
     virtual bool RecvNotifyKeywordSearchLoading(const nsString &aProvider,
                                                 const nsString &aKeyword) MOZ_OVERRIDE; 
 
-    virtual void ProcessingError(Result what) MOZ_OVERRIDE;
+    virtual void ProcessingError(Result aCode, const char* aMsgName) MOZ_OVERRIDE;
 
     virtual bool RecvAllocateLayerTreeId(uint64_t* aId) MOZ_OVERRIDE;
     virtual bool RecvDeallocateLayerTreeId(const uint64_t& aId) MOZ_OVERRIDE;
