@@ -10,11 +10,8 @@ const Cu = Components.utils;
 
 Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
-const {DeferredTask} = Cu.import("resource://gre/modules/DeferredTask.jsm", {});
 
 this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
-
-const SCROLL_FREQUENCY = 16;
 
 
 
@@ -87,14 +84,6 @@ SideMenuWidget.prototype = {
 
 
 
-  autoscrollWithAppendedItems: false,
-
-  
-
-
-
-
-
 
 
 
@@ -106,28 +95,9 @@ SideMenuWidget.prototype = {
 
 
   insertItemAt: function(aIndex, aContents, aAttachment={}) {
-    
-    
-    
-    let maintainScrollAtBottom =
-      
-      this.autoscrollWithAppendedItems &&
-      
-      !this._selectedItem &&
-      
-      (aIndex < 0 || aIndex >= this._orderedMenuElementsArray.length) &&
-      
-      (!this._scrollToBottomTask || !this._scrollToBottomTask.isArmed) &&
-      
-      this.isScrolledToBottom();
-
     let group = this._getMenuGroupForName(aAttachment.group);
     let item = this._getMenuItemForGroup(group, aContents, aAttachment);
     let element = item.insertSelfAt(aIndex);
-
-    if (maintainScrollAtBottom) {
-      this.scrollToBottom();
-    }
 
     return element;
   },
@@ -158,30 +128,8 @@ SideMenuWidget.prototype = {
 
 
   scrollToBottom: function() {
-    
-    
-    if (!this._scrollToBottomTask) {
-      
-      
-      let ignoreNextScroll = false;
-
-      this._scrollToBottomTask = new DeferredTask(() => {
-        ignoreNextScroll = true;
-        this._list.scrollTop = this._list.scrollHeight;
-        this.emit("scroll-to-bottom");
-      }, SCROLL_FREQUENCY);
-
-      
-      this._list.addEventListener("scroll", () => {
-        if (!ignoreNextScroll && this._scrollToBottomTask.isArmed &&
-            !this.isScrolledToBottom()) {
-          this._scrollToBottomTask.disarm();
-        }
-        ignoreNextScroll = false;
-      }, true);
-    }
-
-    this._scrollToBottomTask.arm();
+    this._list.scrollTop = this._list.scrollHeight;
+    this.emit("scroll-to-bottom");
   },
 
   
