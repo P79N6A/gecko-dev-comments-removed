@@ -406,6 +406,12 @@ loop.store.ConversationStore = (function() {
         this._websocket.close();
         delete this._websocket;
       }
+
+      
+      
+      var locationHash = new loop.shared.utils.Helper().locationHash();
+      var callId = locationHash.match(/\#outgoing\/(.*)/)[1];
+      navigator.mozLoop.releaseCallData(callId);
     },
 
     
