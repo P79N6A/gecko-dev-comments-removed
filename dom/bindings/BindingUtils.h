@@ -1064,11 +1064,9 @@ WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
       ac.emplace(cx, scope);
     }
 
-    bool tookOwnership = false;
     MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
-    obj = value->WrapObject(cx, &tookOwnership);
-    MOZ_ASSERT_IF(obj, tookOwnership);
-    if (tookOwnership) {
+    obj = value->WrapObject(cx);
+    if (obj) {
       value.forget();
     }
   }
@@ -2523,11 +2521,6 @@ HasConstructor(JSObject* obj)
 }
  #endif
  
-inline void
-MustInheritFromNonRefcountedDOMObject(NonRefcountedDOMObject*)
-{
-}
-
 template<class T, bool hasCallback=NativeHasMember<T>::JSBindingFinalized>
 struct JSBindingFinalized
 {
@@ -2754,6 +2747,101 @@ ToSupportsIsOnPrimaryInheritanceChain(T* aObject, nsWrapperCache* aCache)
   return CastingAssertions<T>::ToSupportsIsOnPrimaryInheritanceChain(aObject,
                                                                      aCache);
 }
+
+
+
+
+
+
+
+
+
+
+
+template<class T>
+class MOZ_STACK_CLASS BindingJSObjectCreator
+{
+public:
+  explicit BindingJSObjectCreator(JSContext* aCx)
+    : mObject(aCx)
+  {
+  }
+
+  ~BindingJSObjectCreator()
+  {
+    if (mObject) {
+      js::SetReservedOrProxyPrivateSlot(mObject, DOM_OBJECT_SLOT,
+                                        JS::UndefinedValue());
+    }
+  }
+
+  JS::Rooted<JSObject*>&
+  CreateProxyObject(JSContext* aCx, const js::Class* aClass,
+                    const DOMProxyHandler* aHandler,
+                    JS::Handle<JSObject*> aProto,
+                    JS::Handle<JSObject*> aParent, T* aNative)
+  {
+    js::ProxyOptions options;
+    options.setClass(aClass);
+    JS::Rooted<JS::Value> proxyPrivateVal(aCx, JS::PrivateValue(aNative));
+    mObject = js::NewProxyObject(aCx, aHandler, proxyPrivateVal, aProto,
+                                 aParent, options);
+    if (mObject) {
+      mNative = aNative;
+    }
+    return mObject;
+  }
+
+  JS::Rooted<JSObject*>&
+  CreateObject(JSContext* aCx, const JSClass* aClass,
+               JS::Handle<JSObject*> aProto, JS::Handle<JSObject*> aParent,
+               T* aNative)
+  {
+    mObject = JS_NewObject(aCx, aClass, aProto, aParent);
+    if (mObject) {
+      js::SetReservedSlot(mObject, DOM_OBJECT_SLOT, JS::PrivateValue(aNative));
+      mNative = aNative;
+    }
+    return mObject;
+  }
+
+  JSObject*
+  ForgetObject()
+  {
+    void* dummy;
+    mNative.forget(&dummy);
+
+    JSObject* obj = mObject;
+    mObject = nullptr;
+    return obj;
+  }
+
+private:
+  struct OwnedNative
+  {
+    
+    
+    static_assert(IsBaseOf<NonRefcountedDOMObject, T>::value,
+                  "Non-refcounted objects with DOM bindings should inherit "
+                  "from NonRefcountedDOMObject.");
+
+    OwnedNative&
+    operator=(T* aNative)
+    {
+      return *this;
+    }
+
+    
+    
+    void
+    forget(void**)
+    {
+    }
+  };
+
+  JS::Rooted<JSObject*> mObject;
+  typename Conditional<IsRefcounted<T>::value, nsRefPtr<T>, OwnedNative>::Type mNative;
+};
 
 template<class T,
          bool isISupports=IsBaseOf<nsISupports, T>::value>
