@@ -466,6 +466,11 @@ ParallelSafetyVisitor::convertToBailout(MInstructionIterator &iter)
     block->discardAllInstructionsStartingAt(iter);
 
     
+    
+    if (block->outerResumePoint())
+        block->clearOuterResumePoint();
+
+    
     block->add(bail);
     block->end(MUnreachable::New(alloc()));
     return true;
