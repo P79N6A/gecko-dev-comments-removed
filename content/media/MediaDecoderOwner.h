@@ -137,6 +137,12 @@ public:
   
   
   virtual void ResetConnectionState() = 0;
+
+  
+  
+  
+  virtual void DispatchNeedKey(const nsTArray<uint8_t>& aInitData,
+                               const nsAString& aInitDataType) = 0;
 };
 
 }

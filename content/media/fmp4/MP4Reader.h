@@ -12,6 +12,7 @@
 #include "PlatformDecoderModule.h"
 #include "mp4_demuxer/mp4_demuxer.h"
 #include "MediaTaskQueue.h"
+#include "mozilla/CDMProxy.h"
 
 #include <deque>
 #include "mozilla/Monitor.h"
@@ -55,7 +56,11 @@ public:
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
                                int64_t aStartTime) MOZ_OVERRIDE;
 
+  virtual bool IsWaitingMediaResources() MOZ_OVERRIDE;
+
 private:
+
+  void ExtractCryptoInitData(nsTArray<uint8_t>& aInitData);
 
   
   void Shutdown();
@@ -152,11 +157,17 @@ private:
   uint64_t mLastReportedNumDecodedFrames;
 
   DecoderData& GetDecoderData(mp4_demuxer::TrackType aTrack);
-  MP4SampleQueue& SampleQueue(mp4_demuxer::TrackType aTrack);
   MediaDataDecoder* Decoder(mp4_demuxer::TrackType aTrack);
 
   layers::LayersBackend mLayersBackendType;
 
+  nsTArray<nsTArray<uint8_t>> mInitDataEncountered;
+
+  
+  bool mDemuxerInitialized;
+
+  
+  bool mIsEncrypted;
 };
 
 } 

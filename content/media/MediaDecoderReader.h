@@ -176,7 +176,7 @@ public:
   
   
   virtual bool IsMediaSeekable() = 0;
-  
+
 protected:
   virtual ~MediaDecoderReader();
 

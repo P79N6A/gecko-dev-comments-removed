@@ -31,6 +31,7 @@ class MediaDataDecoder;
 class MediaDataDecoderCallback;
 class MediaInputQueue;
 class MediaTaskQueue;
+class CDMProxy;
 typedef int64_t Microseconds;
 
 
@@ -64,6 +65,15 @@ public:
   
   
   static PlatformDecoderModule* Create();
+
+  
+  
+  
+  
+  static PlatformDecoderModule* CreateCDMWrapper(CDMProxy* aProxy,
+                                                 bool aHasAudio,
+                                                 bool aHasVideo,
+                                                 MediaTaskQueue* aTaskQueue);
 
   
   
