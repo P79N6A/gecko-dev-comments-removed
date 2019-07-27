@@ -1662,6 +1662,7 @@ public:
 
 
 
+
   enum {
     PAINT_DEFAULT = 0,
     PAINT_USE_WIDGET_LAYERS = 0x01,
@@ -1670,8 +1671,9 @@ public:
     PAINT_NO_COMPOSITE = 0x08,
     PAINT_COMPRESSED = 0x10
   };
-  void PaintRoot(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
-                 uint32_t aFlags);
+  already_AddRefed<LayerManager> PaintRoot(nsDisplayListBuilder* aBuilder,
+                                           nsRenderingContext* aCtx,
+                                           uint32_t aFlags);
   
 
 
