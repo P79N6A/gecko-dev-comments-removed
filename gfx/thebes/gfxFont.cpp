@@ -3431,10 +3431,11 @@ gfxFont::CreateVerticalMetrics()
     
     
     metrics->underlineSize = std::max(1.0, metrics->underlineSize);
-    metrics->underlineOffset = - metrics->maxDescent - metrics->underlineSize;
+    metrics->underlineOffset = 0; 
 
     metrics->strikeoutSize = std::max(1.0, metrics->strikeoutSize);
-    metrics->strikeoutOffset = - 0.5 * metrics->strikeoutSize;
+    metrics->strikeoutOffset =
+        metrics->maxDescent - 0.5 * metrics->strikeoutSize;
 
     
     metrics->spaceWidth = metrics->aveCharWidth;
