@@ -78,8 +78,6 @@ WMFVideoMFTManager::WMFVideoMFTManager(
   
   
 {
-  NS_ASSERTION(!NS_IsMainThread(), "Should not be on main thread.");
-  MOZ_ASSERT(mImageContainer);
   MOZ_COUNT_CTOR(WMFVideoMFTManager);
 
   
@@ -165,7 +163,12 @@ WMFVideoMFTManager::InitializeDXVA()
 
   
   nsRefPtr<CreateDXVAManagerEvent> event(new CreateDXVAManagerEvent(mLayersBackend));
-  NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+
+  if (NS_IsMainThread()) {
+    event->Run();
+  } else {
+    NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+  }
   mDXVA2Manager = event->mDXVA2Manager;
 
   return mDXVA2Manager != nullptr;

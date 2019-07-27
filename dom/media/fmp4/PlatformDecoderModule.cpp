@@ -119,7 +119,6 @@ already_AddRefed<PlatformDecoderModule>
 PlatformDecoderModule::Create()
 {
   
-  MOZ_ASSERT(!NS_IsMainThread());
 
   nsRefPtr<PlatformDecoderModule> m(CreatePDM());
 
