@@ -178,7 +178,7 @@ class SharedContext
   public:
     ExclusiveContext *const context;
     AnyContextFlags anyCxFlags;
-    bool strict;
+    bool strictScript;
     bool extraWarnings;
 
     
@@ -186,7 +186,7 @@ class SharedContext
     SharedContext(ExclusiveContext *cx, Directives directives, bool extraWarnings)
       : context(cx),
         anyCxFlags(),
-        strict(directives.strict()),
+        strictScript(directives.strict()),
         extraWarnings(extraWarnings)
     {}
 
@@ -208,9 +208,14 @@ class SharedContext
 
     inline bool allLocalsAliased();
 
+    bool strict() {
+        
+        return strictScript;
+    }
+
     
     bool needStrictChecks() {
-        return strict || extraWarnings;
+        return strict() || extraWarnings;
     }
 
     bool isDotVariable(JSAtom *atom) const {

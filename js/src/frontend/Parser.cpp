@@ -754,7 +754,7 @@ Parser<ParseHandler>::reportBadReturn(Node pn, ParseReportKind kind,
     } else {
         errnum = anonerrnum;
     }
-    return report(kind, pc->sc->strict, pn, errnum, name.ptr());
+    return report(kind, pc->sc->strict(), pn, errnum, name.ptr());
 }
 
 
@@ -777,7 +777,7 @@ Parser<ParseHandler>::checkStrictAssignment(Node lhs)
         if (!AtomToPrintableString(context, atom, &name))
             return false;
 
-        if (!report(ParseStrictError, pc->sc->strict, lhs, JSMSG_BAD_STRICT_ASSIGN, name.ptr()))
+        if (!report(ParseStrictError, pc->sc->strict(), lhs, JSMSG_BAD_STRICT_ASSIGN, name.ptr()))
             return false;
     }
     return true;
@@ -800,7 +800,7 @@ Parser<ParseHandler>::checkStrictBinding(PropertyName *name, Node pn)
         JSAutoByteString bytes;
         if (!AtomToPrintableString(context, name, &bytes))
             return false;
-        return report(ParseStrictError, pc->sc->strict, pn,
+        return report(ParseStrictError, pc->sc->strict(), pn,
                       JSMSG_BAD_BINDING, bytes.ptr());
     }
 
@@ -1505,7 +1505,7 @@ Parser<ParseHandler>::defineArg(Node funcpn, HandlePropertyName name,
             JSAutoByteString bytes;
             if (!AtomToPrintableString(context, name, &bytes))
                 return false;
-            if (!report(ParseStrictError, pc->sc->strict, pn,
+            if (!report(ParseStrictError, pc->sc->strict(), pn,
                         JSMSG_DUPLICATE_FORMAL, bytes.ptr()))
             {
                 return false;
@@ -1892,7 +1892,7 @@ Parser<FullParseHandler>::checkFunctionDefinition(HandlePropertyName funName,
 
 
 
-            MOZ_ASSERT(!pc->sc->strict);
+            MOZ_ASSERT(!pc->sc->strict());
             MOZ_ASSERT(pn->pn_cookie.isFree());
             if (pc->sc->isFunctionBox()) {
                 FunctionBox *funbox = pc->sc->asFunctionBox();
@@ -2278,7 +2278,7 @@ Parser<SyntaxParseHandler>::finishFunctionDefinition(Node pn, FunctionBox *funbo
     for (size_t i = 0; i < numInnerFunctions; i++)
         innerFunctions[i].init(pc->innerFunctions[i]);
 
-    if (pc->sc->strict)
+    if (pc->sc->strict())
         lazy->setStrict();
     lazy->setGeneratorKind(funbox->generatorKind());
     if (funbox->usesArguments && funbox->usesApply && funbox->usesThis)
@@ -2590,7 +2590,7 @@ Parser<ParseHandler>::checkYieldNameValidity()
 {
     
     
-    if (pc->isStarGenerator() || versionNumber() >= JSVERSION_1_7 || pc->sc->strict) {
+    if (pc->isStarGenerator() || versionNumber() >= JSVERSION_1_7 || pc->sc->strict()) {
         report(ParseError, false, null(), JSMSG_RESERVED_ID, "yield");
         return false;
     }
@@ -2629,7 +2629,7 @@ Parser<ParseHandler>::functionStmt()
 
     
     if (!pc->atBodyLevel() && pc->sc->needStrictChecks() &&
-        !report(ParseStrictError, pc->sc->strict, null(), JSMSG_STRICT_FUNCTION_STATEMENT))
+        !report(ParseStrictError, pc->sc->strict(), null(), JSMSG_STRICT_FUNCTION_STATEMENT))
         return null();
 
     return functionDef(name, Normal, Statement, generatorKind);
@@ -2782,7 +2782,7 @@ Parser<ParseHandler>::maybeParseDirective(Node list, Node pn, bool *cont)
             
             
             pc->sc->setExplicitUseStrict();
-            if (!pc->sc->strict) {
+            if (!pc->sc->strict()) {
                 if (pc->sc->isFunctionBox()) {
                     
                     pc->newDirectives->setStrict();
@@ -2795,7 +2795,7 @@ Parser<ParseHandler>::maybeParseDirective(Node list, Node pn, bool *cont)
                         report(ParseError, false, null(), JSMSG_DEPRECATED_OCTAL);
                         return false;
                     }
-                    pc->sc->strict = true;
+                    pc->sc->strictScript = true;
                 }
             }
         } else if (directive == context->names().useAsm) {
@@ -3266,7 +3266,7 @@ Parser<FullParseHandler>::makeSetCall(ParseNode *pn, unsigned msg)
                pn->isOp(JSOP_SPREADEVAL) || pn->isOp(JSOP_STRICTSPREADEVAL) ||
                pn->isOp(JSOP_FUNCALL) || pn->isOp(JSOP_FUNAPPLY));
 
-    if (!report(ParseStrictError, pc->sc->strict, pn, msg))
+    if (!report(ParseStrictError, pc->sc->strict(), pn, msg))
         return false;
     handler.markAsSetCall(pn);
     return true;
@@ -3663,7 +3663,7 @@ Parser<ParseHandler>::deprecatedLetBlockOrExpression(LetContext letContext)
 
 
 
-            if (!reportWithOffset(ParseStrictError, pc->sc->strict, begin,
+            if (!reportWithOffset(ParseStrictError, pc->sc->strict(), begin,
                                   JSMSG_STRICT_CODE_LET_EXPR_STMT))
             {
                 return null();
@@ -3687,7 +3687,7 @@ Parser<ParseHandler>::deprecatedLetBlockOrExpression(LetContext letContext)
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_LET);
 
         addTelemetry(JSCompartment::DeprecatedLetBlock);
-        if (!report(ParseWarning, pc->sc->strict, expr, JSMSG_DEPRECATED_LET_BLOCK))
+        if (!report(ParseWarning, pc->sc->strict(), expr, JSMSG_DEPRECATED_LET_BLOCK))
             return null();
     } else {
         MOZ_ASSERT(letContext == LetExpression);
@@ -3696,7 +3696,7 @@ Parser<ParseHandler>::deprecatedLetBlockOrExpression(LetContext letContext)
             return null();
 
         addTelemetry(JSCompartment::DeprecatedLetExpression);
-        if (!report(ParseWarning, pc->sc->strict, expr, JSMSG_DEPRECATED_LET_EXPRESSION))
+        if (!report(ParseWarning, pc->sc->strict(), expr, JSMSG_DEPRECATED_LET_EXPRESSION))
             return null();
     }
     handler.setLexicalScopeBody(block, expr);
@@ -4619,7 +4619,7 @@ Parser<FullParseHandler>::forStatement()
             isForEach = true;
             addTelemetry(JSCompartment::DeprecatedForEach);
             if (versionNumber() < JSVERSION_LATEST) {
-                if (!report(ParseWarning, pc->sc->strict, null(), JSMSG_DEPRECATED_FOR_EACH))
+                if (!report(ParseWarning, pc->sc->strict(), null(), JSMSG_DEPRECATED_FOR_EACH))
                     return null();
             }
         }
@@ -5487,7 +5487,7 @@ Parser<FullParseHandler>::withStatement()
     
     
     
-    if (pc->sc->strict && !report(ParseStrictError, true, null(), JSMSG_STRICT_CODE_WITH))
+    if (pc->sc->strict() && !report(ParseStrictError, true, null(), JSMSG_STRICT_CODE_WITH))
         return null();
 
     MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_WITH);
@@ -6411,7 +6411,7 @@ Parser<ParseHandler>::unaryExpr(InvokedPrediction invoked)
         
         
         if (handler.isName(expr)) {
-            if (!report(ParseStrictError, pc->sc->strict, expr, JSMSG_DEPRECATED_DELETE_OPERAND))
+            if (!report(ParseStrictError, pc->sc->strict(), expr, JSMSG_DEPRECATED_DELETE_OPERAND))
                 return null();
             pc->sc->setBindingsAccessedDynamically();
         }
@@ -6820,7 +6820,7 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode *bodyExpr, unsigned 
                 pn2->pn_iflags |= JSITER_FOREACH;
                 addTelemetry(JSCompartment::DeprecatedForEach);
                 if (versionNumber() < JSVERSION_LATEST) {
-                    if (!report(ParseWarning, pc->sc->strict, pn2, JSMSG_DEPRECATED_FOR_EACH))
+                    if (!report(ParseWarning, pc->sc->strict(), pn2, JSMSG_DEPRECATED_FOR_EACH))
                         return null();
                 }
             }
@@ -7076,7 +7076,7 @@ Parser<ParseHandler>::generatorComprehensionLambda(GeneratorKind comprehensionKi
         return null();
 
     
-    Directives directives( outerpc->sc->strict);
+    Directives directives( outerpc->sc->strict());
     FunctionBox *genFunbox = newFunctionBox(genfn, fun, outerpc, directives, comprehensionKind);
     if (!genFunbox)
         return null();
@@ -7594,7 +7594,7 @@ Parser<ParseHandler>::memberExpr(TokenKind tt, bool allowCallSyntax, InvokedPred
             if (JSAtom *atom = handler.isName(lhs)) {
                 if (tt == TOK_LP && atom == context->names().eval) {
                     
-                    op = pc->sc->strict ? JSOP_STRICTEVAL : JSOP_EVAL;
+                    op = pc->sc->strict() ? JSOP_STRICTEVAL : JSOP_EVAL;
                     pc->sc->setBindingsAccessedDynamically();
                     pc->sc->setHasDirectEval();
 
@@ -7602,7 +7602,7 @@ Parser<ParseHandler>::memberExpr(TokenKind tt, bool allowCallSyntax, InvokedPred
 
 
 
-                    if (pc->sc->isFunctionBox() && !pc->sc->strict)
+                    if (pc->sc->isFunctionBox() && !pc->sc->strict())
                         pc->sc->asFunctionBox()->setHasExtensibleScope();
                 }
             } else if (JSAtom *atom = handler.isGetProp(lhs)) {
