@@ -16,6 +16,29 @@ function run_test() {
   run_next_test();
 }
 
+add_task(function validCacheMidPopulation() {
+  let expectedLinks = makeLinks(0, 3, 1);
+
+  let provider = new TestProvider(done => done(expectedLinks));
+  provider.maxNumLinks = expectedLinks.length;
+
+  NewTabUtils.initWithoutProviders();
+  NewTabUtils.links.addProvider(provider);
+  let promise = new Promise(resolve => NewTabUtils.links.populateCache(resolve));
+
+  
+  
+  do_check_false(NewTabUtils.isTopSiteGivenProvider("example1.com", provider));
+  do_check_links(NewTabUtils.getProviderLinks(provider), []);
+
+  yield promise;
+
+  
+  do_check_true(NewTabUtils.isTopSiteGivenProvider("example1.com", provider));
+  do_check_links(NewTabUtils.getProviderLinks(provider), expectedLinks);
+  NewTabUtils.links.removeProvider(provider);
+});
+
 add_task(function notifyLinkDelete() {
   let expectedLinks = makeLinks(0, 3, 1);
 
