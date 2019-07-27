@@ -5,7 +5,6 @@ try {
 } catch (e if e instanceof SyntaxError) { }
 
 
-
 assertThrowsInstanceOf(() => eval('new.target'), SyntaxError);
 
 
@@ -17,6 +16,7 @@ try {
 
 function assertNewTarget(expected) {
     assertEq(eval('new.target'), expected);
+    assertEq((()=>eval('new.target'))(), expected);
 
     
     assertEq(eval('eval("new.target")'), expected);
