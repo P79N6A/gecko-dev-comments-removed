@@ -642,6 +642,21 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::Activation * volatile profilingActivation_;
 
     
+
+
+
+
+
+
+
+
+
+
+
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> profilerSampleBufferGen_;
+    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> profilerSampleBufferLapCount_;
+
+    
     js::AsmJSActivation * volatile asmJSActivationStack_;
 
   public:
@@ -660,6 +675,31 @@ struct JSRuntime : public JS::shadow::Runtime,
     }
     static unsigned offsetOfProfilingActivation() {
         return offsetof(JSRuntime, profilingActivation_);
+    }
+
+    uint32_t profilerSampleBufferGen() {
+        return profilerSampleBufferGen_;
+    }
+    void setProfilerSampleBufferGen(uint32_t gen) {
+        profilerSampleBufferGen_ = gen;
+    }
+
+    uint32_t profilerSampleBufferLapCount() {
+        MOZ_ASSERT(profilerSampleBufferLapCount_ > 0);
+        return profilerSampleBufferLapCount_;
+    }
+    void updateProfilerSampleBufferLapCount(uint32_t lapCount) {
+        MOZ_ASSERT(profilerSampleBufferLapCount_ > 0);
+
+        
+        for (;;) {
+            uint32_t curLapCount = profilerSampleBufferLapCount_;
+            if (curLapCount >= lapCount)
+                break;
+
+            if (profilerSampleBufferLapCount_.compareExchange(curLapCount, lapCount))
+                break;
+        }
     }
 
     js::AsmJSActivation *asmJSActivationStack() const {
