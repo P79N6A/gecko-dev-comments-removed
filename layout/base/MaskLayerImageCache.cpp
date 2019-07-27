@@ -57,14 +57,6 @@ MaskLayerImageCache::PutImage(const MaskLayerImageKey* aKey, ImageContainer* aCo
   entry->mContainer = aContainer;
 }
 
-
-
-template<>
-struct HasDangerousPublicDestructor<MaskLayerImageCache::MaskLayerImageKey>
-{
-  static const bool value = true;
-};
-
 MaskLayerImageCache::MaskLayerImageKey::MaskLayerImageKey()
   : mLayerCount(0)
   , mRoundedClipRects()

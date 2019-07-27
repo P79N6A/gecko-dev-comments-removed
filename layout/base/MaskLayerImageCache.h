@@ -136,8 +136,8 @@ public:
 
     ~MaskLayerImageKey();
 
-    void AddRef() const { ++mLayerCount; }
-    void Release() const
+    void IncLayerCount() const { ++mLayerCount; }
+    void DecLayerCount() const
     {
       NS_ASSERTION(mLayerCount > 0, "Inconsistent layer count");
       --mLayerCount;
@@ -164,6 +164,42 @@ public:
   };
 
   
+
+
+
+
+
+
+
+
+
+  struct MaskLayerImageKeyRef
+  {
+    ~MaskLayerImageKeyRef()
+    {
+      if (mRawPtr) {
+        mRawPtr->DecLayerCount();
+      }
+    }
+
+    MaskLayerImageKeyRef() : mRawPtr(nullptr) {}
+    MaskLayerImageKeyRef(const MaskLayerImageKeyRef&) = delete;
+    void operator=(const MaskLayerImageKeyRef&) = delete;
+
+    void Reset(const MaskLayerImageKey* aPtr)
+    {
+      MOZ_ASSERT(aPtr, "Cannot initialize a MaskLayerImageKeyRef with a null pointer");
+      aPtr->IncLayerCount();
+      if (mRawPtr) {
+        mRawPtr->DecLayerCount();
+      }
+      mRawPtr = aPtr;
+    }
+
+  private:
+    const MaskLayerImageKey* mRawPtr;
+  };
+
   
   
   
