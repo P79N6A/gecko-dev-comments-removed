@@ -56,7 +56,11 @@ const extend = function(target, source) {
 
 const containsParticipant = function(room, participant) {
   for (let user of room.participants) {
-    if (user.roomConnectionId == participant.roomConnectionId) {
+    
+    
+    
+    if (user.roomConnectionId == participant.roomConnectionId &&
+        user.id == participant.id) {
       return true;
     }
   }
@@ -175,6 +179,10 @@ let LoopRoomsInternal = {
         if (orig) {
           checkForParticipantsUpdate(orig, room);
         }
+        
+        if ("currSize" in room) {
+          delete room.currSize;
+        }
         this.rooms.set(room.roomToken, room);
         
         
@@ -224,11 +232,6 @@ let LoopRoomsInternal = {
         room.roomToken = roomToken;
         checkForParticipantsUpdate(room, data);
         extend(room, data);
-
-        
-        if ("currSize" in room) {
-          delete room.currSize;
-        }
         this.rooms.set(roomToken, room);
 
         let eventName = !needsUpdate ? "update" : "add";

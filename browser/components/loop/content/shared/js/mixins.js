@@ -154,6 +154,10 @@ loop.shared.mixins = (function() {
 
 
     play: function(name, options) {
+      if (this._isLoopDesktop() && rootObject.navigator.mozLoop.doNotDisturb) {
+        return;
+      }
+
       options = options || {};
       options.loop = options.loop || false;
 
