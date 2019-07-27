@@ -7054,22 +7054,31 @@ IonBuilder::maybeInsertResume()
     return resumeAfter(ins);
 }
 
+
 static bool
-ClassHasEffectlessLookup(const Class* clasp, PropertyName* name)
+ClassHasEffectlessLookup(const Class* clasp)
 {
     return (clasp == &UnboxedPlainObject::class_) ||
+           IsTypedObjectClass(clasp) ||
            (clasp->isNative() && !clasp->ops.lookupProperty);
 }
 
+
+
 static bool
-ClassHasResolveHook(CompileCompartment* comp, const Class* clasp, PropertyName* name)
+ObjectHasExtraOwnProperty(CompileCompartment* comp, TypeSet::ObjectKey* object, PropertyName* name)
 {
     
-    
+    if (object->isGroup() && object->group()->maybeTypeDescr())
+        return object->group()->typeDescr().hasProperty(comp->runtime()->names(), NameToId(name));
+
+    const Class* clasp = object->clasp();
+
     
     if (clasp == &ArrayObject::class_)
         return name == comp->runtime()->names().length;
 
+    
     if (!clasp->resolve)
         return false;
 
@@ -7126,7 +7135,7 @@ IonBuilder::testSingletonProperty(JSObject* obj, PropertyName* name)
     
 
     while (obj) {
-        if (!ClassHasEffectlessLookup(obj->getClass(), name))
+        if (!ClassHasEffectlessLookup(obj->getClass()))
             return nullptr;
 
         TypeSet::ObjectKey* objKey = TypeSet::ObjectKey::get(obj);
@@ -7143,7 +7152,7 @@ IonBuilder::testSingletonProperty(JSObject* obj, PropertyName* name)
             return nullptr;
         }
 
-        if (ClassHasResolveHook(compartment, obj->getClass(), name))
+        if (ObjectHasExtraOwnProperty(compartment, objKey, name))
             return nullptr;
 
         obj = obj->getProto();
@@ -7215,7 +7224,7 @@ IonBuilder::testSingletonPropertyTypes(MDefinition* obj, JSObject* singleton, Pr
                 key->ensureTrackedProperty(analysisContext, NameToId(name));
 
             const Class* clasp = key->clasp();
-            if (!ClassHasEffectlessLookup(clasp, name) || ClassHasResolveHook(compartment, clasp, name))
+            if (!ClassHasEffectlessLookup(clasp) || ObjectHasExtraOwnProperty(compartment, key, name))
                 return false;
             if (key->unknownProperties())
                 return false;
@@ -9636,10 +9645,10 @@ IonBuilder::objectsHaveCommonPrototype(TemporaryTypeSet* types, PropertyName* na
                 return false;
 
             const Class* clasp = key->clasp();
-            if (!ClassHasEffectlessLookup(clasp, name))
+            if (!ClassHasEffectlessLookup(clasp))
                 return false;
             JSObject* singleton = key->isSingleton() ? key->singleton() : nullptr;
-            if (ClassHasResolveHook(compartment, clasp, name)) {
+            if (ObjectHasExtraOwnProperty(compartment, key, name)) {
                 if (!singleton || !singleton->is<GlobalObject>())
                     return false;
                 *guardGlobal = true;
@@ -9647,8 +9656,7 @@ IonBuilder::objectsHaveCommonPrototype(TemporaryTypeSet* types, PropertyName* na
 
             
             
-            
-            if (isGetter && clasp->ops.getProperty && !IsAnyTypedArrayClass(clasp))
+            if (isGetter && clasp->ops.getProperty)
                 return false;
             if (!isGetter && clasp->ops.setProperty)
                 return false;
@@ -9806,7 +9814,7 @@ IonBuilder::annotateGetPropertyCache(MDefinition* obj, MGetPropertyCache* getPro
             continue;
 
         const Class* clasp = key->clasp();
-        if (!ClassHasEffectlessLookup(clasp, name) || ClassHasResolveHook(compartment, clasp, name))
+        if (!ClassHasEffectlessLookup(clasp) || ObjectHasExtraOwnProperty(compartment, key, name))
             continue;
 
         HeapTypeSetKey ownTypes = key->property(NameToId(name));

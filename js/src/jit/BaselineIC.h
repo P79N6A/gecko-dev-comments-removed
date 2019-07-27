@@ -3885,11 +3885,14 @@ class ReceiverGuard
           : group(nullptr), shape(nullptr)
         {
             if (obj) {
-                shape = obj->maybeShape();
-                if (!shape) {
+                if (obj->is<UnboxedPlainObject>()) {
                     group = obj->group();
                     if (UnboxedExpandoObject* expando = obj->as<UnboxedPlainObject>().maybeExpando())
                         shape = expando->lastProperty();
+                } else if (obj->is<TypedObject>()) {
+                    group = obj->group();
+                } else {
+                    shape = obj->maybeShape();
                 }
             }
         }
@@ -3942,9 +3945,17 @@ class ReceiverGuard
     
     
     static int32_t keyBits(JSObject* obj) {
-        if (obj->maybeShape())
-            return 0;
-        return obj->as<UnboxedPlainObject>().maybeExpando() ? 1 : 2;
+        if (obj->is<UnboxedPlainObject>()) {
+            
+            return obj->as<UnboxedPlainObject>().maybeExpando() ? 0 : 1;
+        }
+        if (obj->is<TypedObject>()) {
+            
+            return 2;
+        }
+        
+        
+        return 3;
     }
 };
 
