@@ -5255,6 +5255,19 @@ if (SpecialPowers.getBoolPref("layout.css.vertical-text.enabled")) {
   for (var prop in verticalTextProperties) {
     gCSSProperties[prop] = verticalTextProperties[prop];
   }
+  
+
+
+
+
+
+  ["font", "line-height"].forEach(function(prop) {
+    var p = gCSSProperties[prop];
+    if (p.prerequisites === undefined) {
+      p.prerequisites = {};
+    }
+    p.prerequisites["writing-mode"] = "initial";
+  });
 }
 
 if (SpecialPowers.getBoolPref("layout.css.masking.enabled")) {
