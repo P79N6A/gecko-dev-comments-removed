@@ -87,9 +87,8 @@ js_GetLocalizedErrorMessage(js::ExclusiveContext *cx, void *userRef, const char 
 
 
 
-
 extern JSObject *
-js_CopyErrorObject(JSContext *cx, JS::Handle<js::ErrorObject*> errobj, js::HandleObject scope);
+js_CopyErrorObject(JSContext *cx, JS::Handle<js::ErrorObject*> errobj);
 
 static inline JSProtoKey
 GetExceptionProtoKey(JSExnType exn)
