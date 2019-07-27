@@ -498,7 +498,6 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 {
     MOZ_ASSERT(thing.kind() != JSTRACE_SHAPE);
 
-    JS::shadow::Runtime *rt = GetGCThingRuntime(thing.asCell());
     
 
 
@@ -506,6 +505,7 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 
     if (IsInsideNursery(thing.asCell()))
         return;
+    JS::shadow::Runtime *rt = detail::GetGCThingRuntime(thing.unsafeAsUIntPtr());
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
         JS::IncrementalReferenceBarrier(thing);
     else if (JS::GCThingIsMarkedGray(thing.asCell()))
