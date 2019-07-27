@@ -115,7 +115,7 @@ function delayed(aIsSelectedTab) {
 
   if (!aIsSelectedTab) {
     
-    content.location = REDIRECT_FROM + "#FG";
+    gBrowser.selectedBrowser.loadURI(REDIRECT_FROM + "#FG");
   }
   else {
     

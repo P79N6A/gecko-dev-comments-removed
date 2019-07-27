@@ -134,6 +134,10 @@ let NotificationTracker = {
 
     this._registered.delete(watcher);
   },
+
+  getCount(component1) {
+    return this.findPaths([component1]).length;
+  },
 };
 
 
@@ -542,5 +546,9 @@ let RemoteAddonsChild = {
         Cu.reportError(e);
       }
     }
+  },
+
+  get useSyncWebProgress() {
+    return NotificationTracker.getCount("web-progress") > 0;
   },
 };
