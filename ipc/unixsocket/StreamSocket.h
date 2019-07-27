@@ -34,14 +34,6 @@ public:
 
 
 
-  void SendSocketData(UnixSocketIOBuffer* aBuffer);
-
-  
-
-
-
-
-
 
 
 
@@ -74,6 +66,16 @@ public:
 
   void GetSocketAddr(nsAString& aAddrStr);
 
+  
+  
+
+  void SendSocketData(UnixSocketIOBuffer* aBuffer) override;
+
+  
+  
+
+  void CloseSocket() override;
+
 protected:
   virtual ~StreamSocket();
 
@@ -83,13 +85,6 @@ protected:
   ConnectionOrientedSocketIO* PrepareAccept(UnixSocketConnector* aConnector);
 
 private:
-
-  
-  void CloseSocket() override
-  {
-    Close();
-  }
-
   StreamSocketIO* mIO;
 };
 

@@ -43,22 +43,6 @@ public:
 
   StreamSocket* GetStreamSocket();
   DataSocket* GetDataSocket();
-  SocketBase* GetSocketBase() override;
-
-  
-  
-
-  nsresult Accept(int aFd,
-                  const union sockaddr_any* aAddr, socklen_t aAddrLen);
-
-  
-  
-
-  bool IsShutdownOnMainThread() const override;
-  void ShutdownOnMainThread() override;
-
-  bool IsShutdownOnIOThread() const override;
-  void ShutdownOnIOThread() override;
 
   
   
@@ -91,9 +75,27 @@ public:
   
   
 
-  nsresult QueryReceiveBuffer(UnixSocketIOBuffer** aBuffer);
-  void ConsumeBuffer();
-  void DiscardBuffer();
+  nsresult Accept(int aFd,
+                  const union sockaddr_any* aAddr,
+                  socklen_t aAddrLen) override;
+
+  
+  
+
+  nsresult QueryReceiveBuffer(UnixSocketIOBuffer** aBuffer) override;
+  void ConsumeBuffer() override;
+  void DiscardBuffer() override;
+
+  
+  
+
+  SocketBase* GetSocketBase() override;
+
+  bool IsShutdownOnMainThread() const override;
+  bool IsShutdownOnIOThread() const override;
+
+  void ShutdownOnMainThread() override;
+  void ShutdownOnIOThread() override;
 
 private:
   void FireSocketError();
@@ -204,45 +206,6 @@ StreamSocketIO::GetDataSocket()
   return mStreamSocket.get();
 }
 
-SocketBase*
-StreamSocketIO::GetSocketBase()
-{
-  return GetDataSocket();
-}
-
-bool
-StreamSocketIO::IsShutdownOnMainThread() const
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  return mStreamSocket == nullptr;
-}
-
-void
-StreamSocketIO::ShutdownOnMainThread()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(!IsShutdownOnMainThread());
-
-  mStreamSocket = nullptr;
-}
-
-bool
-StreamSocketIO::IsShutdownOnIOThread() const
-{
-  return mShuttingDownOnIOThread;
-}
-
-void
-StreamSocketIO::ShutdownOnIOThread()
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(!mShuttingDownOnIOThread);
-
-  Close(); 
-  mShuttingDownOnIOThread = true;
-}
-
 void
 StreamSocketIO::SetDelayedConnectTask(CancelableTask* aTask)
 {
@@ -270,42 +233,6 @@ StreamSocketIO::CancelDelayedConnectTask()
 
   mDelayedConnectTask->Cancel();
   ClearDelayedConnectTask();
-}
-
-nsresult
-StreamSocketIO::Accept(int aFd,
-                       const union sockaddr_any* aAddr, socklen_t aAddrLen)
-{
-  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTING);
-
-  
-
-  if (!mConnector->SetUp(aFd)) {
-    NS_WARNING("Could not set up socket!");
-    return NS_ERROR_FAILURE;
-  }
-
-  if (!SetSocketFlags(aFd)) {
-    return NS_ERROR_FAILURE;
-  }
-  SetSocket(aFd, SOCKET_IS_CONNECTED);
-
-  AddWatchers(READ_WATCHER, true);
-  if (HasPendingData()) {
-    AddWatchers(WRITE_WATCHER, false);
-  }
-
-  
-
-  memcpy(&mAddr, aAddr, aAddrLen);
-  mAddrSize = aAddrLen;
-
-  
-  NS_DispatchToMainThread(
-    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
-
-  return NS_OK;
 }
 
 void
@@ -506,6 +433,46 @@ StreamSocketIO::SetSocketFlags(int aFd)
   return true;
 }
 
+
+
+nsresult
+StreamSocketIO::Accept(int aFd,
+                       const union sockaddr_any* aAddr, socklen_t aAddrLen)
+{
+  MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
+  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTING);
+
+  
+
+  if (!mConnector->SetUp(aFd)) {
+    NS_WARNING("Could not set up socket!");
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!SetSocketFlags(aFd)) {
+    return NS_ERROR_FAILURE;
+  }
+  SetSocket(aFd, SOCKET_IS_CONNECTED);
+
+  AddWatchers(READ_WATCHER, true);
+  if (HasPendingData()) {
+    AddWatchers(WRITE_WATCHER, false);
+  }
+
+  
+
+  memcpy(&mAddr, aAddr, aAddrLen);
+  mAddrSize = aAddrLen;
+
+  
+  NS_DispatchToMainThread(
+    new SocketIOEventRunnable(this, SocketIOEventRunnable::CONNECT_SUCCESS));
+
+  return NS_OK;
+}
+
+
+
 nsresult
 StreamSocketIO::QueryReceiveBuffer(UnixSocketIOBuffer** aBuffer)
 {
@@ -570,6 +537,47 @@ StreamSocketIO::DiscardBuffer()
 
 
 
+SocketBase*
+StreamSocketIO::GetSocketBase()
+{
+  return GetDataSocket();
+}
+
+bool
+StreamSocketIO::IsShutdownOnMainThread() const
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  return mStreamSocket == nullptr;
+}
+
+bool
+StreamSocketIO::IsShutdownOnIOThread() const
+{
+  return mShuttingDownOnIOThread;
+}
+
+void
+StreamSocketIO::ShutdownOnMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(!IsShutdownOnMainThread());
+
+  mStreamSocket = nullptr;
+}
+
+void
+StreamSocketIO::ShutdownOnIOThread()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(!mShuttingDownOnIOThread);
+
+  Close(); 
+  mShuttingDownOnIOThread = true;
+}
+
+
+
 
 
 class StreamSocketIO::ConnectTask final
@@ -626,18 +634,6 @@ StreamSocket::StreamSocket()
 StreamSocket::~StreamSocket()
 {
   MOZ_ASSERT(!mIO);
-}
-
-void
-StreamSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mIO);
-
-  MOZ_ASSERT(!mIO->IsShutdownOnMainThread());
-  XRE_GetIOMessageLoop()->PostTask(
-    FROM_HERE,
-    new SocketIOSendTask<StreamSocketIO, UnixSocketIOBuffer>(mIO, aBuffer));
 }
 
 bool
@@ -732,6 +728,28 @@ StreamSocket::PrepareAccept(UnixSocketConnector* aConnector)
                            -1, UnixSocketWatcher::SOCKET_IS_CONNECTING,
                            this, connector.forget(), EmptyCString());
   return mIO;
+}
+
+
+
+void
+StreamSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mIO);
+
+  MOZ_ASSERT(!mIO->IsShutdownOnMainThread());
+  XRE_GetIOMessageLoop()->PostTask(
+    FROM_HERE,
+    new SocketIOSendTask<StreamSocketIO, UnixSocketIOBuffer>(mIO, aBuffer));
+}
+
+
+
+void
+StreamSocket::CloseSocket()
+{
+  Close();
 }
 
 } 
