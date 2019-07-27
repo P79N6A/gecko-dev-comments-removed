@@ -3935,10 +3935,7 @@ IonBuilder::jsop_try()
         if (!successor)
             return false;
 
-        
-        MConstant *true_ = MConstant::New(alloc(), BooleanValue(true));
-        current->add(true_);
-        current->end(newTest(true_, tryBlock, successor));
+        current->end(MGotoWithFake::New(alloc(), tryBlock, successor));
     } else {
         successor = nullptr;
         current->end(MGoto::New(alloc(), tryBlock));

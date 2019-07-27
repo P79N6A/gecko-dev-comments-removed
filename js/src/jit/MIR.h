@@ -2415,6 +2415,33 @@ class MTest
 };
 
 
+
+
+class MGotoWithFake
+  : public MAryControlInstruction<0, 2>
+{
+    MGotoWithFake(MBasicBlock *successor, MBasicBlock *fake)
+    {
+        setSuccessor(0, successor);
+        setSuccessor(1, fake);
+    }
+
+  public:
+    INSTRUCTION_HEADER(GotoWithFake)
+    static MGotoWithFake *New(TempAllocator &alloc, MBasicBlock *successor, MBasicBlock *fake) {
+        return new(alloc) MGotoWithFake(successor, fake);
+    }
+
+    MBasicBlock *target() const {
+        return getSuccessor(0);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+
 class MReturn
   : public MAryControlInstruction<1, 0>,
     public BoxInputsPolicy::Data
