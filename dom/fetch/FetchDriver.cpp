@@ -501,7 +501,7 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     
     nsRefPtr<nsCORSListenerProxy> corsListener =
       new nsCORSListenerProxy(this, mPrincipal, useCredentials);
-    rv = corsListener->Init(chan, true );
+    rv = corsListener->Init(chan, DataURIHandling::Allow);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return FailWithNetworkError();
     }

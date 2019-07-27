@@ -511,7 +511,9 @@ FontFaceSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
   } else {
     nsRefPtr<nsCORSListenerProxy> listener =
       new nsCORSListenerProxy(streamLoader, aUserFontEntry->GetPrincipal(), false);
-    rv = listener->Init(channel);
+    
+    
+    rv = listener->Init(channel, DataURIHandling::Disallow);
     if (NS_SUCCEEDED(rv)) {
       rv = channel->AsyncOpen(listener, nullptr);
     }
