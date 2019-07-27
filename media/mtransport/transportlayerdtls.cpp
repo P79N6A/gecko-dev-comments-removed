@@ -593,8 +593,6 @@ static const uint32_t EnabledCiphers[] = {
 };
 
 
-#if 0
-
 
 
 static const uint32_t DisabledCiphers[] = {
@@ -649,7 +647,6 @@ static const uint32_t DisabledCiphers[] = {
   TLS_RSA_WITH_NULL_SHA256,
   TLS_RSA_WITH_NULL_MD5,
 };
-#endif 
 
 bool TransportLayerDtls::SetupCipherSuites(PRFileDesc* ssl_fd) const {
   SECStatus rv;
@@ -675,8 +672,6 @@ bool TransportLayerDtls::SetupCipherSuites(PRFileDesc* ssl_fd) const {
     }
   }
 
-
-#if 0
   for (size_t i = 0; i < PR_ARRAY_SIZE(DisabledCiphers); ++i) {
     MOZ_MTLOG(ML_INFO, LAYER_INFO << "Disabling: " << DisabledCiphers[i]);
 
@@ -696,7 +691,7 @@ bool TransportLayerDtls::SetupCipherSuites(PRFileDesc* ssl_fd) const {
       }
     }
   }
-#endif
+
   return true;
 }
 
