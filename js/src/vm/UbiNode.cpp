@@ -115,14 +115,14 @@ Node::exposeToJS() const
 
 
 
-class SimpleEdgeVectorTracer : public JSTracer {
+class SimpleEdgeVectorTracer : public JS::CallbackTracer {
     
     SimpleEdgeVector *vec;
 
     
     bool wantNames;
 
-    static void staticCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind) {
+    static void staticCallback(JS::CallbackTracer *trc, void **thingp, JSGCTraceKind kind) {
         static_cast<SimpleEdgeVectorTracer *>(trc)->callback(thingp, kind);
     }
 
@@ -164,7 +164,7 @@ class SimpleEdgeVectorTracer : public JSTracer {
     bool okay;
 
     SimpleEdgeVectorTracer(JSContext *cx, SimpleEdgeVector *vec, bool wantNames)
-      : JSTracer(JS_GetRuntime(cx), staticCallback),
+      : JS::CallbackTracer(JS_GetRuntime(cx), staticCallback),
         vec(vec),
         wantNames(wantNames),
         okay(true)

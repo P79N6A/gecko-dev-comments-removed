@@ -745,7 +745,7 @@ JSFunction::trace(JSTracer *trc)
             
             
             JSRuntime *rt = trc->runtime();
-            if (IsMarkingTracer(trc) &&
+            if (trc->isMarkingTracer() &&
                 (rt->allowRelazificationForTesting || !compartment()->hasBeenEntered()) &&
                 !compartment()->isDebuggee() && !compartment()->isSelfHosting &&
                 u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))

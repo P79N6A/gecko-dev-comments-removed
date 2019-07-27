@@ -57,7 +57,7 @@ function indirectCallCannotGC(fullCaller, fullVariable)
 
 
 var ignoreClasses = {
-    "JSTracer" : true,
+    "JS::CallbackTracer" : true,
     "JSStringFinalizer" : true,
     "SprintfState" : true,
     "SprintfStateStr" : true,

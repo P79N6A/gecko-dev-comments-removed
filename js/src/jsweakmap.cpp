@@ -46,7 +46,7 @@ void
 WeakMapBase::trace(JSTracer *tracer)
 {
     MOZ_ASSERT(isInList());
-    if (IsMarkingTracer(tracer)) {
+    if (tracer->isMarkingTracer()) {
         
         
         

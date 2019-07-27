@@ -15,6 +15,7 @@
 class JS_PUBLIC_API(JSTracer);
 
 namespace JS {
+class JS_PUBLIC_API(CallbackTracer);
 template <typename T> class Heap;
 template <typename T> class TenuredHeap;
 }
@@ -77,7 +78,7 @@ GCTraceKindToAscii(JSGCTraceKind kind);
 
 
 typedef void
-(* JSTraceCallback)(JSTracer *trc, void **thingp, JSGCTraceKind kind);
+(* JSTraceCallback)(JS::CallbackTracer *trc, void **thingp, JSGCTraceKind kind);
 
 
 
@@ -93,9 +94,6 @@ enum WeakMapTraceKind {
 class JS_PUBLIC_API(JSTracer)
 {
   public:
-    JSTracer(JSRuntime *rt, JSTraceCallback traceCallback,
-             WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
-
     
     
     
@@ -152,9 +150,6 @@ class JS_PUBLIC_API(JSTracer)
     
     WeakMapTraceKind eagerlyTraceWeakMaps() const { return eagerlyTraceWeakMaps_; }
 
-    
-    void setTraceCallback(JSTraceCallback traceCallback);
-
 #ifdef JS_GC_ZEAL
     
     
@@ -172,11 +167,21 @@ class JS_PUBLIC_API(JSTracer)
 #endif
 
     
-    
-    JSTraceCallback     callback;
+    enum TracerKindTag {
+        MarkingTracer,
+        CallbackTracer
+    };
+    bool isMarkingTracer() const { return tag == MarkingTracer; }
+    bool isCallbackTracer() const { return tag == CallbackTracer; }
+    inline JS::CallbackTracer *asCallbackTracer();
+
+  protected:
+    JSTracer(JSRuntime *rt, TracerKindTag tag,
+             WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
 
   private:
     JSRuntime           *runtime_;
+    TracerKindTag       tag;
     JSTraceNamePrinter  debugPrinter_;
     const void          *debugPrintArg_;
     size_t              debugPrintIndex_;
@@ -185,6 +190,44 @@ class JS_PUBLIC_API(JSTracer)
     void                *realLocation_;
 #endif
 };
+
+namespace JS {
+
+class JS_PUBLIC_API(CallbackTracer) : public JSTracer
+{
+  public:
+    CallbackTracer(JSRuntime *rt, JSTraceCallback traceCallback,
+                   WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
+      : JSTracer(rt, JSTracer::CallbackTracer, weakTraceKind), callback(traceCallback)
+    {}
+
+    
+    void setTraceCallback(JSTraceCallback traceCallback);
+
+    
+    bool hasCallback(JSTraceCallback maybeCallback) const {
+        return maybeCallback == callback;
+    }
+
+    
+    void invoke(void **thing, JSGCTraceKind kind) {
+        callback(this, thing, kind);
+    }
+
+  private:
+    
+    
+    JSTraceCallback callback;
+};
+
+} 
+
+JS::CallbackTracer *
+JSTracer::asCallbackTracer()
+{
+    MOZ_ASSERT(isCallbackTracer());
+    return static_cast<JS::CallbackTracer *>(this);
+}
 
 
 
