@@ -30,10 +30,7 @@ var ecmaGlobals =
     "Float32Array",
     "Float64Array",
     "Function",
-    
-    
-    
-    {name: "Infinity"},
+    "Infinity",
     "Int16Array",
     "Int32Array",
     "Int8Array",
@@ -43,7 +40,7 @@ var ecmaGlobals =
     "JSON",
     "Map",
     "Math",
-    {name: "NaN"},
+    "NaN",
     "Number",
     "Object",
     "Proxy",
@@ -75,9 +72,11 @@ var interfaceNamesInGlobalScope =
 
     "Blob",
 
-    "Console",
-
     "DedicatedWorkerGlobalScope",
+
+    { name: "DataStore", b2g: true },
+
+    { name: "DataStoreCursor", b2g: true },
 
     "DOMException",
 

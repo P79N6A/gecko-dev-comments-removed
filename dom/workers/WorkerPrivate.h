@@ -1191,7 +1191,7 @@ public:
               ErrorResult& rv);
 
   static bool
-  WorkerAvailable(JSContext* , JSObject* );
+  WorkerAvailable(JSContext* aCx, JSObject* );
 
 private:
   ChromeWorkerPrivate() MOZ_DELETE;

@@ -3580,11 +3580,17 @@ ChromeWorkerPrivate::Constructor(const GlobalObject& aGlobal,
 
 
 bool
-ChromeWorkerPrivate::WorkerAvailable(JSContext* , JSObject* )
+ChromeWorkerPrivate::WorkerAvailable(JSContext* aCx, JSObject* )
 {
   
   
-  return nsContentUtils::ThreadsafeIsCallerChrome();
+  
+  
+  if (NS_IsMainThread()) {
+    return nsContentUtils::IsCallerChrome();
+  }
+
+  return GetWorkerPrivateFromContext(aCx)->IsChromeWorker();
 }
 
 

@@ -138,6 +138,8 @@ class Configuration:
                 getter = lambda x: x.interface.isJSImplemented()
             elif key == 'isNavigatorProperty':
                 getter = lambda x: x.interface.getNavigatorProperty() != None
+            elif key == 'isExposedInAllWorkers':
+                getter = lambda x: not x.interface.isExternal() and "Worker" in x.interface._exposureGlobalNames
             else:
                 
                 
