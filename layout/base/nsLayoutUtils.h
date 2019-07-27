@@ -2163,9 +2163,14 @@ public:
 
 
 
+  static bool HasCurrentAnimations(const nsIFrame* aFrame);
 
-  static bool HasCurrentAnimations(const nsIFrame* aFrame,
-                                   nsIAtom* aAnimationProperty);
+  
+
+
+
+
+  static bool HasCurrentTransitions(const nsIFrame* aFrame);
 
   
 

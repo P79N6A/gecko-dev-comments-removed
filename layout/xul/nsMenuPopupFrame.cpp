@@ -521,8 +521,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu,
     
     if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::animate,
                               nsGkAtoms::open, eCaseMatters) &&
-        nsLayoutUtils::HasCurrentAnimations(this,
-                                            nsGkAtoms::transitionsProperty)) {
+        nsLayoutUtils::HasCurrentTransitions(this)) {
       mPopupShownDispatcher = new nsXULPopupShownEvent(mContent, pc);
       mContent->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
                                        mPopupShownDispatcher, false, false);

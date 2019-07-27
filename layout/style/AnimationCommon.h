@@ -174,6 +174,12 @@ public:
   GetAnimationsForCompositor(const nsIFrame* aFrame,
                              nsCSSProperty aProperty);
 
+  
+  
+  
+  AnimationCollection*
+  GetAnimationCollection(const nsIFrame* aFrame);
+
 protected:
   PRCList mElementCollections;
   nsPresContext *mPresContext; 
