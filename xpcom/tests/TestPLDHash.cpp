@@ -113,20 +113,72 @@ static bool test_pldhash_lazy_storage()
 }
 
 
-#ifndef MOZ_WIDGET_ANDROID
-
 
 
 static PLDHashNumber
-hash(PLDHashTable *table, const void *key)
+trivial_hash(PLDHashTable *table, const void *key)
 {
   return (PLDHashNumber)(size_t)key;
 }
 
+static bool test_pldhash_move_semantics()
+{
+  static const PLDHashTableOps ops = {
+    trivial_hash,
+    PL_DHashMatchEntryStub,
+    PL_DHashMoveEntryStub,
+    PL_DHashClearEntryStub,
+    nullptr
+  };
+
+  PLDHashTable t1, t2;
+  PL_DHashTableInit(&t1, &ops, sizeof(PLDHashEntryStub));
+  PL_DHashTableAdd(&t1, (const void*)88);
+  PL_DHashTableInit(&t2, &ops, sizeof(PLDHashEntryStub));
+  PL_DHashTableAdd(&t2, (const void*)99);
+
+  t1 = mozilla::Move(t1);   
+
+  t1 = mozilla::Move(t2);   
+
+  PL_DHashTableFinish(&t1);
+  PL_DHashTableFinish(&t2);
+
+  PLDHashTable t3, t4;
+  PL_DHashTableInit(&t3, &ops, sizeof(PLDHashEntryStub));
+  PL_DHashTableAdd(&t3, (const void*)88);
+
+  t3 = mozilla::Move(t4);   
+
+  PL_DHashTableFinish(&t3);
+  PL_DHashTableFinish(&t4);
+
+  PLDHashTable t5, t6;
+  PL_DHashTableInit(&t6, &ops, sizeof(PLDHashEntryStub));
+  PL_DHashTableAdd(&t6, (const void*)88);
+
+  t5 = mozilla::Move(t6);   
+
+  PL_DHashTableFinish(&t5);
+  PL_DHashTableFinish(&t6);
+
+  PLDHashTable t7;
+  PLDHashTable t8(mozilla::Move(t7));   
+
+  PLDHashTable t9;
+  PL_DHashTableInit(&t9, &ops, sizeof(PLDHashEntryStub));
+  PL_DHashTableAdd(&t9, (const void*)88);
+  PLDHashTable t10(mozilla::Move(t9));  
+
+  return true;
+}
+
+
+#ifndef MOZ_WIDGET_ANDROID
 static bool test_pldhash_grow_to_max_capacity()
 {
   static const PLDHashTableOps ops = {
-    hash,
+    trivial_hash,
     PL_DHashMatchEntryStub,
     PL_DHashMoveEntryStub,
     PL_DHashClearEntryStub,
@@ -174,6 +226,7 @@ static const struct Test {
 } tests[] = {
   DECL_TEST(test_pldhash_Init_capacity_ok),
   DECL_TEST(test_pldhash_lazy_storage),
+  DECL_TEST(test_pldhash_move_semantics),
 
 #ifndef MOZ_WIDGET_ANDROID
   DECL_TEST(test_pldhash_grow_to_max_capacity),
