@@ -246,12 +246,12 @@ var CastingApps = {
       return;
     }
 
-    if (!this.getVideo(video, 0, 0)) {
-      return;
-    }
-
-    
-    this._sendEventToVideo(video, { allow: true });
+    this.getVideo(video, 0, 0, (aBundle) => {
+      
+      if (aBundle) {
+        this._sendEventToVideo(aBundle.element, { allow: true });
+      }
+    });
   },
 
   handleVideoBindingCast: function handleVideoBindingCast(aTab, aEvent) {
@@ -274,43 +274,77 @@ var CastingApps = {
     return Services.io.newURI(aURL, aOriginCharset, aBaseURI);
   },
 
-  getVideo: function(aElement, aX, aY) {
+  allowableExtension: function(aURI, aExtensions) {
+    return (aURI instanceof Ci.nsIURL) && aExtensions.indexOf(aURI.fileExtension) != -1;
+  },
+
+  allowableMimeType: function(aType, aTypes) {
+    return aTypes.indexOf(aType) != -1;
+  },
+
+  
+  
+  
+  getVideo: function(aElement, aX, aY, aCallback) {
     let extensions = SimpleServiceDiscovery.getSupportedExtensions();
     let types = SimpleServiceDiscovery.getSupportedMimeTypes();
 
     
-    let video = this._getVideo(aElement, types, extensions);
-    if (video) {
-      return video;
+    if (aElement instanceof HTMLVideoElement) {
+      
+      
+      this._getVideo(aElement, types, extensions, aCallback);
+      return;
     }
 
     
     
+
+    
+    
     try {
-      
-      
       let elements = aElement.ownerDocument.querySelectorAll("video");
       for (let element of elements) {
         
         let rect = element.getBoundingClientRect();
         if (aY >= rect.top && aX >= rect.left && aY <= rect.bottom && aX <= rect.right) {
-          video = this._getVideo(element, types, extensions);
-          if (video) {
-            break;
-          }
+          
+          this._getVideo(element, types, extensions, aCallback);
+          return;
         }
       }
     } catch(e) {}
-
-    
-    return video;
   },
 
-  _getVideo: function(aElement, aTypes, aExtensions) {
-    if (!(aElement instanceof HTMLVideoElement)) {
-      return null;
-    }
+  _getContentTypeForURI: function(aURI, aCallback) {
+    let channel = Services.io.newChannelFromURI(aURI);
+    let listener = {
+      onStartRequest: function(request, context) {
+        switch (channel.responseStatus) {
+          case 301:
+          case 302:
+          case 303:
+            request.cancel(0);
+            let location = channel.getResponseHeader("Location");
+            CastingApps._getContentTypeForURI(CastingApps.makeURI(location), aCallback);
+            break;
+          default:
+            aCallback(channel.contentType);
+            request.cancel(0);
+            break;
+        }
+      },
+      onStopRequest: function(request, context, statusCode)  {},
+      onDataAvailable: function(request, context, stream, offset, count) {}
+    };
+    channel.asyncOpen(listener, null)
+  },
 
+  
+  
+  _getVideo: function(aElement, aTypes, aExtensions, aCallback) {
+    
+    let asyncURIs = [];
 
     
     let posterURL = aElement.poster;
@@ -327,8 +361,20 @@ var CastingApps = {
       
       let sourceURI = this.makeURI(sourceURL, null, this.makeURI(aElement.baseURI));
       if (this.allowableExtension(sourceURI, aExtensions)) {
-        return { element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI};
+        aCallback({ element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI});
+        return;
       }
+
+      if (aElement.type) {
+        
+        if (this.allowableMimeType(aElement.type, aTypes)) {
+          aCallback({ element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: aElement.type });
+          return;
+        }
+      }
+
+      
+      asyncURIs.push(sourceURI);
     }
 
     
@@ -339,23 +385,77 @@ var CastingApps = {
 
       
       
-      if (this.allowableMimeType(sourceNode.type, aTypes) || this.allowableExtension(sourceURI, aExtensions)) {
-        return { element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: sourceNode.type };
+      if (this.allowableExtension(sourceURI, aExtensions)) {
+        aCallback({ element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: sourceNode.type });
+        return;
       }
+
+      if (sourceNode.type) {
+        
+        if (this.allowableMimeType(sourceNode.type, aTypes)) {
+          aCallback({ element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: sourceNode.type });
+          return;
+        }
+      }
+
+      
+      asyncURIs.push(sourceURI);
     }
 
-    return null;
+    
+    
+    aCallback.fired = false;
+    for (let sourceURI of asyncURIs) {
+      
+      this._getContentTypeForURI(sourceURI, (aType) => {
+        if (!aCallback.fired && this.allowableMimeType(aType, aTypes)) {
+          aCallback.fired = true;
+          aCallback({ element: aElement, source: sourceURI.spec, poster: posterURL, sourceURI: sourceURI, type: aType });
+        }
+      });
+    }
+
+    
+    if (!aCallback.fired) {
+      aCallback(null);
+    }
+  },
+
+  
+  
+  isVideoCastable: function(aElement, aX, aY) {
+    
+    if (aElement instanceof HTMLVideoElement) {
+      return aElement.mozAllowCasting;
+    }
+
+    
+    
+    
+    try {
+      
+      
+      let elements = aElement.ownerDocument.querySelectorAll("video");
+      for (let element of elements) {
+        
+        let rect = element.getBoundingClientRect();
+        if (aY >= rect.top && aX >= rect.left && aY <= rect.bottom && aX <= rect.right) {
+          
+          return element.mozAllowCasting;
+        }
+      }
+    } catch(e) {}
+
+    return false;
   },
 
   filterCast: {
     matches: function(aElement, aX, aY) {
+      
+      
       if (SimpleServiceDiscovery.services.length == 0)
         return false;
-      let video = CastingApps.getVideo(aElement, aX, aY);
-      if (CastingApps.session) {
-        return (video && CastingApps.session.data.source != video.source);
-      }
-      return (video != null);
+      return CastingApps.isVideoCastable(aElement, aX, aY);
     }
   },
 
@@ -495,13 +595,16 @@ var CastingApps = {
 
   openExternal: function(aElement, aX, aY) {
     
-    let video = this.getVideo(aElement, aX, aY);
-    if (!video) {
+    this.getVideo(aElement, aX, aY, this._openExternal.bind(this));
+  },
+
+  _openExternal: function(aVideo) {
+    if (!aVideo) {
       return;
     }
 
-    function filterFunc(service) {
-      return this.allowableExtension(video.sourceURI, service.extensions) || this.allowableMimeType(video.type, service.types);
+    function filterFunc(aService) {
+      return this.allowableExtension(aVideo.sourceURI, aService.extensions) || this.allowableMimeType(aVideo.type, aService.types);
     }
 
     this.prompt(function(aService) {
@@ -513,11 +616,12 @@ var CastingApps = {
       if (!app)
         return;
 
-      video.title = aElement.ownerDocument.defaultView.top.document.title;
-      if (video.element) {
+      if (aVideo.element) {
+        aVideo.title = aVideo.element.ownerDocument.defaultView.top.document.title;
+
         
-        if (!video.element.paused) {
-          video.element.pause();
+        if (!aVideo.element.paused) {
+          aVideo.element.pause();
         }
       }
 
@@ -539,11 +643,11 @@ var CastingApps = {
               app: app,
               remoteMedia: aRemoteMedia,
               data: {
-                title: video.title,
-                source: video.source,
-                poster: video.poster
+                title: aVideo.title,
+                source: aVideo.source,
+                poster: aVideo.poster
               },
-              videoRef: Cu.getWeakReference(video.element)
+              videoRef: Cu.getWeakReference(aVideo.element)
             };
           }.bind(this), this);
         }.bind(this));
@@ -601,21 +705,5 @@ var CastingApps = {
     if (status == "completed") {
       this.closeExternal();
     }
-  },
-
-  allowableExtension: function(aURI, aExtensions) {
-    if (aURI && aURI instanceof Ci.nsIURL) {
-      for (let x in aExtensions) {
-        if (aURI.fileExtension == aExtensions[x]) return true;
-      }
-    }
-    return false;
-  },
-
-  allowableMimeType: function(aType, aTypes) {
-    for (let x in aTypes) {
-      if (aType == aTypes[x]) return true;
-    }
-    return false;
   }
 };
