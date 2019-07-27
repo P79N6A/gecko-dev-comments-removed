@@ -146,6 +146,9 @@ GetPrefNameForFeature(int32_t aFeature)
     case nsIGfxInfo::FEATURE_STAGEFRIGHT:
       name = BLACKLIST_PREF_BRANCH "stagefright";
       break;
+    case nsIGfxInfo::FEATURE_WEBRTC_HW_ACCELERATION:
+      name = BLACKLIST_PREF_BRANCH "webrtc.hw.acceleration";
+      break;
     default:
       break;
   };
@@ -332,6 +335,8 @@ BlacklistFeatureToGfxFeature(const nsAString& aFeature)
     return nsIGfxInfo::FEATURE_WEBGL_MSAA;
   else if (aFeature.EqualsLiteral("STAGEFRIGHT"))
     return nsIGfxInfo::FEATURE_STAGEFRIGHT;
+  else if (aFeature.EqualsLiteral("WEBRTC_HW_ACCELERATION"))
+    return nsIGfxInfo::FEATURE_WEBRTC_HW_ACCELERATION;
   return 0;
 }
 
@@ -678,8 +683,9 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
     
     
     
-    if (info[i].mOperatingSystem != DRIVER_OS_ALL &&
-        info[i].mOperatingSystem != os)
+    if (info[i].mOperatingSystem == DRIVER_OS_UNKNOWN ||
+        (info[i].mOperatingSystem != DRIVER_OS_ALL &&
+         info[i].mOperatingSystem != os))
     {
       continue;
     }
@@ -934,6 +940,7 @@ GfxInfoBase::EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo)
     nsIGfxInfo::FEATURE_WEBGL_ANGLE,
     nsIGfxInfo::FEATURE_WEBGL_MSAA,
     nsIGfxInfo::FEATURE_STAGEFRIGHT,
+    nsIGfxInfo::FEATURE_WEBRTC_HW_ACCELERATION,
     0
   };
 
@@ -991,8 +998,8 @@ GfxInfoBase::LogFailure(const nsACString &failure)
 
 
 NS_IMETHODIMP GfxInfoBase::GetFailures(uint32_t* failureCount,
-				       int32_t** indices,
-				       char ***failures)
+                                       int32_t** indices,
+                                       char ***failures)
 {
   MutexAutoLock lock(mMutex);
 
@@ -1043,7 +1050,7 @@ NS_IMETHODIMP GfxInfoBase::GetFailures(uint32_t* failureCount,
       if (!(*failures)[i]) {
         
         NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(i, (*failures));
-	*failureCount = i;
+        *failureCount = i;
         return NS_ERROR_OUT_OF_MEMORY;
       }
     }
