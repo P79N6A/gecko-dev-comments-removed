@@ -103,20 +103,27 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   
   char input_buf_[Channel::kReadBufferSize];
 
+  
+  
+  
+  
+  
+  
+  
   enum {
-    
-    
-    MAX_READ_FDS = (Channel::kReadBufferSize / sizeof(IPC::Message::Header)) *
-                   FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE
+    kControlBufferSlopBytes = 32
   };
 
   
-#if defined(OS_MACOSX) || defined(OS_NETBSD)
   
-  char input_cmsg_buf_[1024];
-#else
-  char input_cmsg_buf_[CMSG_SPACE(sizeof(int) * MAX_READ_FDS)];
-#endif
+  
+  
+  
+  
+  
+  
+  
+  char input_cmsg_buf_[Channel::kReadBufferSize + kControlBufferSlopBytes];
 
   
   
