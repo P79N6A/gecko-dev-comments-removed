@@ -1866,24 +1866,44 @@ GlobalObject::GetAsSupports() const
     return mGlobalObject;
   }
 
-  if (!NS_IsMainThread()) {
-    mGlobalObject = UnwrapDOMObjectToISupports(mGlobalJSObject);
+  MOZ_ASSERT(!js::IsWrapper(mGlobalJSObject));
+
+  
+  
+  
+  mGlobalObject = UnwrapDOMObjectToISupports(mGlobalJSObject);
+  if (mGlobalObject) {
     return mGlobalObject;
   }
 
-  JS::Rooted<JS::Value> val(mCx, JS::ObjectValue(*mGlobalJSObject));
+  MOZ_ASSERT(NS_IsMainThread(), "All our worker globals are DOM objects");
 
   
   
-  nsresult rv = UnwrapArg<nsISupports>(mCx, val, &mGlobalObject,
-                                       static_cast<nsISupports**>(getter_AddRefs(mGlobalObjectRef)),
-                                       &val);
-  if (NS_FAILED(rv)) {
-    mGlobalObject = nullptr;
-    Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+  
+
+  
+  
+  
+  
+  mGlobalObject = xpc::UnwrapReflectorToISupports(mGlobalJSObject);
+  if (mGlobalObject) {
+    return mGlobalObject;
   }
 
-  return mGlobalObject;
+  
+  
+  
+  
+  
+  if (XPCConvert::GetISupportsFromJSObject(mGlobalJSObject, &mGlobalObject)) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(!mGlobalObject);
+
+  Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+  return nullptr;
 }
 
 bool
