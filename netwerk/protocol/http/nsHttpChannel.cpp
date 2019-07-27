@@ -1263,6 +1263,10 @@ nsHttpChannel::ProcessAltService()
     
     
 
+    if (!mAllowAltSvc) { 
+        return;
+    }
+
     if (!gHttpHandler->AllowAltSvc() || (mCaps & NS_HTTP_DISALLOW_SPDY)) {
         return;
     }
@@ -4824,7 +4828,8 @@ nsHttpChannel::BeginConnect()
     mRequestHead.SetOrigin(scheme, host, port);
 
     nsRefPtr<AltSvcMapping> mapping;
-    if ((scheme.Equals(NS_LITERAL_CSTRING("http")) ||
+    if (mAllowAltSvc && 
+        (scheme.Equals(NS_LITERAL_CSTRING("http")) ||
          scheme.Equals(NS_LITERAL_CSTRING("https"))) &&
         (!proxyInfo || proxyInfo->IsDirect()) &&
         (mapping = gHttpHandler->GetAltServiceMapping(scheme,
