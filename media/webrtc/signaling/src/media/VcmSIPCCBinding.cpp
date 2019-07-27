@@ -366,6 +366,7 @@ void vcmControlRinger (vcm_ring_mode_t ringMode,
                        int line,
                        cc_callid_t call_id)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmControlRinger";
 
     CSFLogDebug( logTag, "%s: ringMode=%d once=%d", fname, ringMode, once);
@@ -402,6 +403,7 @@ void vcmControlRinger (vcm_ring_mode_t ringMode,
 
 void vcmEnableSidetone(cc_uint16_t side_tone)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     
     CSFLogDebug( logTag, "vcmEnableSidetone: vcmEnableSidetone(): called");
 }
@@ -441,6 +443,9 @@ map_algorithmID( vcm_crypto_algorithmID algorithmID )
 
 void vcmInit (void)
 {
+    
+    
+    
     CSFLogDebug( logTag, "vcmInit() called.");
 }
 
@@ -449,6 +454,7 @@ void vcmInit (void)
 
 void vcmUnload (void)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     CSFLogDebug( logTag, "vcmUnload() called.");
 }
 
@@ -473,6 +479,7 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
                     cc_uint16_t port_requested,
                     int *port_allocated)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     *port_allocated = -1;
     CSFLogDebug( logTag, "vcmRxAllocPort(): group_id=%d stream_id=%d call_handle=%d port_requested = %d",
         group_id, stream_id, call_handle, port_requested);
@@ -500,15 +507,6 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
     CSFLogDebug( logTag, "vcmRxAllocPort(): allocated port %d", port);
     *port_allocated = port;
 }
-
-static void InformPCOfNewMline_m(const std::string &peerconnection,
-                                 uint16_t level) {
-  sipcc::PeerConnectionWrapper pc(peerconnection.c_str());
-  ENSURE_PC_NO_RET(pc, peerconnection.c_str());
-
-  pc.impl()->OnNewMline(level);
-}
-
 
 
 
@@ -559,14 +557,10 @@ short vcmRxAllocICE(cc_mcapid_t mcap_id,
 
   
   
-  std::string pc_handle(peerconnection);
-  nsresult rv = VcmSIPCCBinding::getMainThread()->Dispatch(
-      WrapRunnableNM(&InformPCOfNewMline_m, pc_handle, level),
-      NS_DISPATCH_NORMAL);
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
 
-  if (NS_FAILED(rv)) {
-    return VCM_ERROR;
-  }
+  pc.impl()->OnNewMline(level);
 
   return 0;
 }
@@ -578,10 +572,11 @@ short vcmRxAllocICE(cc_mcapid_t mcap_id,
 
 
 
-static short vcmGetIceParams_m(const char *peerconnection,
-                               char **ufragp,
-                               char **pwdp)
+short vcmGetIceParams(const char *peerconnection,
+                      char **ufragp,
+                      char **pwdp)
 {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
   *ufragp = *pwdp = nullptr;
@@ -642,36 +637,12 @@ static short vcmGetIceParams_m(const char *peerconnection,
 
 
 
-
-short vcmGetIceParams(const char *peerconnection,
-                     char **ufragp,
-                     char **pwdp)
+short vcmSetIceSessionParams(const char *peerconnection,
+                             char *ufrag,
+                             char *pwd,
+                             cc_boolean icelite)
 {
-  int ret;
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetIceParams_m,
-                        peerconnection,
-                        ufragp,
-                        pwdp,
-                        &ret));
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-static short vcmSetIceSessionParams_m(const char *peerconnection,
-                                      char *ufrag,
-                                      char *pwd,
-                                      cc_boolean icelite)
-{
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
   sipcc::PeerConnectionWrapper pc(peerconnection);
@@ -705,39 +676,11 @@ static short vcmSetIceSessionParams_m(const char *peerconnection,
 
 
 
-
-
-
-short vcmSetIceSessionParams(const char *peerconnection,
-                             char *ufrag,
-                             char *pwd,
-                             cc_boolean icelite)
+short vcmSetIceCandidate(const char *peerconnection,
+                         const char *icecandidate,
+                         uint16_t level)
 {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmSetIceSessionParams_m,
-                        peerconnection,
-                        ufrag,
-                        pwd,
-                        icelite,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-static short vcmSetIceCandidate_m(const char *peerconnection,
-                                  const char *icecandidate,
-                                  uint16_t level)
-{
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
   sipcc::PeerConnectionWrapper pc(peerconnection);
@@ -772,35 +715,9 @@ static short vcmSetIceCandidate_m(const char *peerconnection,
 
 
 
-
-
-
-
-
-
-short vcmSetIceCandidate(const char *peerconnection,
-                         const char *icecandidate,
-                         uint16_t level)
+short vcmStartIceChecks(const char *peerconnection, cc_boolean isControlling)
 {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmSetIceCandidate_m,
-                        peerconnection,
-                        icecandidate,
-                        level,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-static short vcmStartIceChecks_m(const char *peerconnection, cc_boolean isControlling)
-{
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
   sipcc::PeerConnectionWrapper pc(peerconnection);
@@ -834,36 +751,17 @@ static short vcmStartIceChecks_m(const char *peerconnection, cc_boolean isContro
 
 
 
-short vcmStartIceChecks(const char *peerconnection, cc_boolean isControlling)
+
+
+
+short vcmSetIceMediaParams(const char *peerconnection,
+                           int level,
+                           char *ufrag,
+                           char *pwd,
+                           char **candidates,
+                           int candidate_ct)
 {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmStartIceChecks_m,
-                        peerconnection,
-                        isControlling,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-static short vcmSetIceMediaParams_m(const char *peerconnection,
-                                    int level,
-                                    char *ufrag,
-                                    char *pwd,
-                                    char **candidates,
-                                    int candidate_ct)
-{
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
   sipcc::PeerConnectionWrapper pc(peerconnection);
@@ -908,45 +806,11 @@ static short vcmSetIceMediaParams_m(const char *peerconnection,
 
 
 
-short vcmSetIceMediaParams(const char *peerconnection,
-                           int level,
-                           char *ufrag,
-                           char *pwd,
-                           char **candidates,
-                           int candidate_ct)
-{
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmSetIceMediaParams_m,
-                     peerconnection,
-                     level,
-                     ufrag,
-                     pwd,
-                     candidates,
-                     candidate_ct,
-                     &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static short vcmCreateRemoteStream_m(
+short vcmCreateRemoteStream(
   cc_mcapid_t mcap_id,
   const char *peerconnection,
   int *pc_stream_id) {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   nsresult res;
 
   *pc_stream_id = -1;
@@ -984,40 +848,11 @@ static short vcmCreateRemoteStream_m(
 
 
 
-
-
-short vcmCreateRemoteStream(cc_mcapid_t mcap_id,
-                            const char *peerconnection,
-                            int *pc_stream_id)
-{
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmCreateRemoteStream_m,
-                        mcap_id,
-                        peerconnection,
-                        pc_stream_id,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static short vcmAddRemoteStreamHint_m(
+short vcmAddRemoteStreamHint(
   const char *peerconnection,
   int pc_stream_id,
   cc_boolean is_video) {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   nsresult res;
 
   sipcc::PeerConnectionWrapper pc(peerconnection);
@@ -1042,39 +877,17 @@ static short vcmAddRemoteStreamHint_m(
 
 
 
-short vcmAddRemoteStreamHint(
-  const char *peerconnection,
-  int pc_stream_id,
-  cc_boolean is_video) {
-  short ret = 0;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmAddRemoteStreamHint_m,
-                        peerconnection,
-                        pc_stream_id,
-                        is_video,
-                        &ret));
-
-  return ret;
-}
 
 
 
 
+short vcmGetDtlsIdentity(const char *peerconnection,
+                         char *digest_algp,
+                         size_t max_digest_alg_len,
+                         char *digestp,
+                         size_t max_digest_len) {
 
-
-
-
-
-
-
-
-static short vcmGetDtlsIdentity_m(const char *peerconnection,
-                                  char *digest_algp,
-                                  size_t max_digest_alg_len,
-                                  char *digestp,
-                                  size_t max_digest_len) {
-
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   digest_algp[0]='\0';
   digestp[0]='\0';
 
@@ -1099,42 +912,11 @@ static short vcmGetDtlsIdentity_m(const char *peerconnection,
 
 
 
-
-
-
-short vcmGetDtlsIdentity(const char *peerconnection,
-                         char *digest_algp,
-                         size_t max_digest_alg_len,
-                         char *digestp,
-                         size_t max_digest_len) {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetDtlsIdentity_m,
-                        peerconnection,
-                        digest_algp,
-                        max_digest_alg_len,
-                        digestp,
-                        max_digest_len,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-static short vcmInitializeDataChannel_m(const char *peerconnection,
+short vcmInitializeDataChannel(const char *peerconnection,
   int track_id, cc_uint16_t streams,
   int local_datachannel_port, int remote_datachannel_port, const char* protocol)
 {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   nsresult res;
 
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
@@ -1150,36 +932,6 @@ static short vcmInitializeDataChannel_m(const char *peerconnection,
 
   return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-short vcmInitializeDataChannel(const char *peerconnection, int track_id,
-  cc_uint16_t streams,
-  int local_datachannel_port, int remote_datachannel_port, const char* protocol)
-{
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmInitializeDataChannel_m,
-                        peerconnection,
-                        track_id,
-                        streams,
-                        local_datachannel_port,
-                        remote_datachannel_port,
-                        protocol,
-                        &ret));
-
-  return ret;
-}
-
 
 
 
@@ -1208,6 +960,7 @@ short vcmRxOpen(cc_mcapid_t mcap_id,
                 cc_boolean is_multicast,
                 int *port_allocated)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     char fname[] = "vcmRxOpen";
 
     char dottedIP[20] = "";
@@ -1269,16 +1022,17 @@ short vcmRxOpen(cc_mcapid_t mcap_id,
 
 
 int vcmRxStart(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle,
-        const vcm_payload_info_t *payload,
-        cpr_ip_addr_t *local_addr,
-        cc_uint16_t port,
-        vcm_crypto_algorithmID algorithmID,
-        vcm_crypto_key_t *rx_key,
-        vcm_mediaAttrs_t *attrs)
+               cc_groupid_t group_id,
+               cc_streamid_t stream_id,
+               cc_call_handle_t  call_handle,
+               const vcm_payload_info_t *payload,
+               cpr_ip_addr_t *local_addr,
+               cc_uint16_t port,
+               vcm_crypto_algorithmID algorithmID,
+               vcm_crypto_key_t *rx_key,
+               vcm_mediaAttrs_t *attrs)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     uint8_t    *key;
     uint8_t    *salt;
     cc_uint16_t    key_len;
@@ -1370,21 +1124,22 @@ int vcmRxStart(cc_mcapid_t mcap_id,
 
 
 
-static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        int level,
-        int pc_stream_id,
-        int pc_track_id,
-        cc_call_handle_t  call_handle,
-        const char *peerconnection,
-        int num_payloads,
-        const vcm_payload_info_t* payloads,
-        sdp_setup_type_e setup_type,
-        const char *fingerprint_alg,
-        const char *fingerprint,
-        vcm_mediaAttrs_t *attrs)
+int vcmRxStartICE(cc_mcapid_t mcap_id,
+                  cc_groupid_t group_id,
+                  cc_streamid_t stream_id,
+                  int level,
+                  int pc_stream_id,
+                  int pc_track_id,
+                  cc_call_handle_t  call_handle,
+                  const char *peerconnection,
+                  int num_payloads,
+                  const vcm_payload_info_t* payloads,
+                  sdp_setup_type_e setup_type,
+                  const char *fingerprint_alg,
+                  const char *fingerprint,
+                  vcm_mediaAttrs_t *attrs)
 {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug( logTag, "%s(%s) track = %d, stream = %d, level = %d",
               __FUNCTION__,
               peerconnection,
@@ -1630,75 +1385,12 @@ static int vcmRxStartICE_m(cc_mcapid_t mcap_id,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-int vcmRxStartICE(cc_mcapid_t mcap_id,
-                  cc_groupid_t group_id,
-                  cc_streamid_t stream_id,
-                  int level,
-                  int pc_stream_id,
-                  int pc_track_id,
-                  cc_call_handle_t  call_handle,
-                  const char *peerconnection,
-                  int num_payloads,
-                  const vcm_payload_info_t* payloads,
-                  sdp_setup_type_e setup_type,
-                  const char *fingerprint_alg,
-                  const char *fingerprint,
-                  vcm_mediaAttrs_t *attrs)
-{
-  int ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmRxStartICE_m,
-                        mcap_id,
-                        group_id,
-                        stream_id,
-                        level,
-                        pc_stream_id,
-                        pc_track_id,
-                        call_handle,
-                        peerconnection,
-                        num_payloads,
-                        payloads,
-                        setup_type,
-                        fingerprint_alg,
-                        fingerprint,
-                        attrs,
-                        &ret));
-
-  return ret;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 short vcmRxClose(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle)
+                 cc_groupid_t group_id,
+                 cc_streamid_t stream_id,
+                 cc_call_handle_t  call_handle)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     char fname[] = "vcmRxClose";
 
     CSFLogDebug( logTag, "%s: group_id=%d call_handle=%d", fname, group_id, call_handle);
@@ -1743,6 +1435,7 @@ void vcmRxReleasePort  (cc_mcapid_t mcap_id,
                         cc_call_handle_t  call_handle,
                         int port)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     CSFLogDebug( logTag, "vcmRxReleasePort(): group_id=%d stream_id=%d call_handle=%d port=%d",
                       group_id, stream_id, call_handle, port);
 
@@ -1847,12 +1540,13 @@ map_tone_type( vcm_tones_t tone )
 
 
 void vcmToneStart(vcm_tones_t tone,
-        short alert_info,
-        cc_call_handle_t  call_handle,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_uint16_t direction)
+                  short alert_info,
+                  cc_call_handle_t  call_handle,
+                  cc_groupid_t group_id,
+                  cc_streamid_t stream_id,
+                  cc_uint16_t direction)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmToneStart";
 
     CSFLogDebug( logTag, "%s:tone=%d call_handle=%d dir=%d", fname, tone, call_handle, direction);
@@ -1906,12 +1600,13 @@ void vcmToneStart(vcm_tones_t tone,
 
 
 void vcmToneStartWithSpeakerAsBackup(vcm_tones_t tone,
-        short alert_info,
-        cc_call_handle_t  call_handle,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_uint16_t direction)
+                                     short alert_info,
+                                     cc_call_handle_t  call_handle,
+                                     cc_groupid_t group_id,
+                                     cc_streamid_t stream_id,
+                                     cc_uint16_t direction)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmToneStartWithSpeakerAsBackup";
 
     CSFLogDebug( logTag, "%s:tone=%d call_handle=%d dir=%d", fname, tone, call_handle, direction);
@@ -1941,10 +1636,11 @@ void vcmToneStartWithSpeakerAsBackup(vcm_tones_t tone,
 
 
 void vcmToneStop(vcm_tones_t tone,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t call_handle)
+                 cc_groupid_t group_id,
+                 cc_streamid_t stream_id,
+                 cc_call_handle_t call_handle)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmToneStop";
 
     CSFLogDebug( logTag, "%s:tone=%d stream_id=%d", fname, tone, stream_id);
@@ -1969,10 +1665,11 @@ void vcmToneStop(vcm_tones_t tone,
 
 
 short vcmTxOpen(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle)
+                cc_groupid_t group_id,
+                cc_streamid_t stream_id,
+                cc_call_handle_t call_handle)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     char        fname[] = "vcmTxOpen";
 
     CSFLogDebug( logTag, "%s: group_id=%d call_handle=%d", fname, group_id, call_handle);
@@ -2064,19 +1761,20 @@ static int vcmEnsureExternalCodec(
 
 
 int vcmTxStart(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle,
-        const vcm_payload_info_t *payload,
-        short tos,
-        cpr_ip_addr_t *local_addr,
-        cc_uint16_t local_port,
-        cpr_ip_addr_t *remote_ip_addr,
-        cc_uint16_t remote_port,
-        vcm_crypto_algorithmID algorithmID,
-        vcm_crypto_key_t *tx_key,
-        vcm_mediaAttrs_t *attrs)
+               cc_groupid_t group_id,
+               cc_streamid_t stream_id,
+               cc_call_handle_t  call_handle,
+               const vcm_payload_info_t *payload,
+               short tos,
+               cpr_ip_addr_t *local_addr,
+               cc_uint16_t local_port,
+               cpr_ip_addr_t *remote_ip_addr,
+               cc_uint16_t remote_port,
+               vcm_crypto_algorithmID algorithmID,
+               vcm_crypto_key_t *tx_key,
+               vcm_mediaAttrs_t *attrs)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmTxStart";
     uint8_t    *key;
     uint8_t    *salt;
@@ -2279,21 +1977,22 @@ static int vcmTxCreateVideoConduit(int level,
 
 #define EXTRACT_DYNAMIC_PAYLOAD_TYPE(PTYPE) ((PTYPE)>>16)
 
-static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
-                           cc_groupid_t group_id,
-                           cc_streamid_t stream_id,
-                           int level,
-                           int pc_stream_id,
-                           int pc_track_id,
-                           cc_call_handle_t  call_handle,
-                           const char *peerconnection,
-                           const vcm_payload_info_t *payload,
-                           short tos,
-                           sdp_setup_type_e setup_type,
-                           const char *fingerprint_alg,
-                           const char *fingerprint,
-                           vcm_mediaAttrs_t *attrs)
+int vcmTxStartICE(cc_mcapid_t mcap_id,
+                  cc_groupid_t group_id,
+                  cc_streamid_t stream_id,
+                  int level,
+                  int pc_stream_id,
+                  int pc_track_id,
+                  cc_call_handle_t  call_handle,
+                  const char *peerconnection,
+                  const vcm_payload_info_t *payload,
+                  short tos,
+                  sdp_setup_type_e setup_type,
+                  const char *fingerprint_alg,
+                  const char *fingerprint,
+                  vcm_mediaAttrs_t *attrs)
 {
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   CSFLogDebug(logTag, "%s(%s) track = %d, stream = %d, level = %d",
               __FUNCTION__,
               peerconnection,
@@ -2346,6 +2045,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
     CSFLogError(logTag, "%s: mcap_id unrecognized", __FUNCTION__);
   }
   if (err) {
+    CSFLogError(logTag, "%s: failed to create %s conduit", __FUNCTION__, mediaType);
     return err;
   }
 
@@ -2403,70 +2103,7 @@ static int vcmTxStartICE_m(cc_mcapid_t mcap_id,
   return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define EXTRACT_DYNAMIC_PAYLOAD_TYPE(PTYPE) ((PTYPE)>>16)
-
-int vcmTxStartICE(cc_mcapid_t mcap_id,
-                  cc_groupid_t group_id,
-                  cc_streamid_t stream_id,
-                  int level,
-                  int pc_stream_id,
-                  int pc_track_id,
-                  cc_call_handle_t  call_handle,
-                  const char *peerconnection,
-                  const vcm_payload_info_t *payload,
-                  short tos,
-                  sdp_setup_type_e setup_type,
-                  const char *fingerprint_alg,
-                  const char *fingerprint,
-                  vcm_mediaAttrs_t *attrs)
-{
-  int ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmTxStartICE_m,
-                        mcap_id,
-                        group_id,
-                        stream_id,
-                        level,
-                        pc_stream_id,
-                        pc_track_id,
-                        call_handle,
-                        peerconnection,
-                        payload,
-                        tos,
-                        setup_type,
-                        fingerprint_alg,
-                        fingerprint,
-                        attrs,
-                        &ret));
-
-  return ret;
-}
-
 
 
 
@@ -2480,10 +2117,11 @@ int vcmTxStartICE(cc_mcapid_t mcap_id,
 
 
 short vcmTxClose(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle)
+                 cc_groupid_t group_id,
+                 cc_streamid_t stream_id,
+                 cc_call_handle_t  call_handle)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     const char fname[] = "vcmTxClose";
 
     CSFLogDebug( logTag, "%s: group_id=%d call_handle=%d", fname, group_id, call_handle);
@@ -2560,6 +2198,7 @@ int vcmGetAudioCodecList(int request_type)
     CSFLogDebug( logTag, "%s(codec_mask = %X)", fname, codecMask);
     return codecMask;
 #else
+  ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
   int codecMask = VcmSIPCCBinding::getAudioCodecs();
   CSFLogDebug(logTag, "GetAudioCodecList returning %X", codecMask);
 
@@ -2678,6 +2317,7 @@ uint32_t vcmGetVideoH264ProfileLevelID()
 
 void vcmMediaControl(cc_call_handle_t  call_handle, vcm_media_control_to_encoder_t to_encoder)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     if ( to_encoder == VCM_MEDIA_CONTROL_PICTURE_FAST_UPDATE )
     {
         StreamObserver* obs = VcmSIPCCBinding::getStreamObserver();
@@ -2701,12 +2341,13 @@ void vcmMediaControl(cc_call_handle_t  call_handle, vcm_media_control_to_encoder
 
 
 int vcmGetRtpStats(cc_mcapid_t mcap_id,
-        cc_groupid_t group_id,
-        cc_streamid_t stream_id,
-        cc_call_handle_t  call_handle,
-        char *rx_stats,
-        char *tx_stats)
+                   cc_groupid_t group_id,
+                   cc_streamid_t stream_id,
+                   cc_call_handle_t  call_handle,
+                   char *rx_stats,
+                   char *tx_stats)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     rx_stats[0] = '\0';
     tx_stats[0] = '\0';
     return 0;
@@ -2805,6 +2446,7 @@ void vcmFreeMediaPtr(void *ptr)
 cc_boolean vcmCheckAttribs(cc_uint32_t media_type, void *sdp_p, int level,
                            int remote_pt, void **rcapptr)
 {
+    ASSERT_ON_THREAD(VcmSIPCCBinding::getMainThread());
     CSFLogDebug( logTag, "vcmCheckAttribs(): media=%d", media_type);
 
     cc_uint16_t     temp;
@@ -3070,41 +2712,14 @@ vcmCreateTransportFlow(sipcc::PeerConnectionImpl *pc, int level, bool rtcp,
 
 
 
-static void vcmOnSdpParseError_m(nsAutoPtr<std::string> peerconnection,
-                                 nsAutoPtr<std::string> message) {
-
-  sipcc::PeerConnectionWrapper pc(peerconnection->c_str());
-  ENSURE_PC_NO_RET(pc, peerconnection->c_str());
-
-  pc.impl()->OnSdpParseError(message->c_str());
-}
-
-
-
-
-
-
-
-
-
 int vcmOnSdpParseError(const char *peerconnection, const char *message) {
   MOZ_ASSERT(peerconnection);
   MOZ_ASSERT(message);
-  nsAutoPtr<std::string> peerconnectionDuped(new std::string(peerconnection));
-  nsAutoPtr<std::string> messageDuped(new std::string(message));
 
-  
-  nsresult rv = VcmSIPCCBinding::getMainThread()->Dispatch(
-      WrapRunnableNM(&vcmOnSdpParseError_m,
-                   peerconnectionDuped,
-                   messageDuped),
-      NS_DISPATCH_NORMAL);
+  sipcc::PeerConnectionWrapper pc(peerconnection);
+  ENSURE_PC(pc, VCM_ERROR);
 
-  if (!NS_SUCCEEDED(rv)) {
-    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
-    return VCM_ERROR;
-  }
-
+  pc.impl()->OnSdpParseError(message);
   return 0;
 }
 
@@ -3114,7 +2729,8 @@ int vcmOnSdpParseError(const char *peerconnection, const char *message) {
 
 
 
-static int vcmDisableRtcpComponent_m(const char *peerconnection, int level) {
+
+int vcmDisableRtcpComponent(const char *peerconnection, int level) {
 #ifdef MOZILLA_INTERNAL_API
   MOZ_ASSERT(NS_IsMainThread());
 #endif
@@ -3141,25 +2757,9 @@ static int vcmDisableRtcpComponent_m(const char *peerconnection, int level) {
   return 0;
 }
 
-
-
-
-
-
-
-int vcmDisableRtcpComponent(const char *peerconnection, int level) {
-  int ret;
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmDisableRtcpComponent_m,
-                        peerconnection,
-                        level,
-                        &ret));
-  return ret;
-}
-
-static short vcmGetVideoPref_m(uint16_t codec,
-                               const char *pref,
-                               int32_t *ret) {
+static short vcmGetVideoPref(uint16_t codec,
+                             const char *pref,
+                             int32_t *ret) {
   nsCOMPtr<nsIPrefBranch> branch = VcmSIPCCBinding::getPrefBranch();
   if (branch && NS_SUCCEEDED(branch->GetIntPref(pref, ret))) {
     return 0;
@@ -3169,53 +2769,31 @@ static short vcmGetVideoPref_m(uint16_t codec,
 
 short vcmGetVideoMaxFs(uint16_t codec,
                        int32_t *max_fs) {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetVideoPref_m,
-                        codec,
-                        "media.navigator.video.max_fs",
-                        max_fs,
-                        &ret));
-  return ret;
+  return vcmGetVideoPref(codec,
+                         "media.navigator.video.max_fs",
+                         max_fs);
 }
 
 short vcmGetVideoMaxFr(uint16_t codec,
                        int32_t *max_fr) {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetVideoPref_m,
-                        codec,
-                        "media.navigator.video.max_fr",
-                        max_fr,
-                        &ret));
-  return ret;
+  return vcmGetVideoPref(codec,
+                         "media.navigator.video.max_fr",
+                         max_fr);
 }
 
 short vcmGetVideoMaxBr(uint16_t codec,
                        int32_t *max_br) {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetVideoPref_m,
-                        codec,
-                        "media.navigator.video.h264.max_br",
-                        max_br,
-                        &ret));
-  return ret;
+  return vcmGetVideoPref(codec,
+                         "media.navigator.video.h264.max_br",
+                         max_br);
 }
 
 short vcmGetVideoMaxMbps(uint16_t codec,
-                       int32_t *max_mbps) {
-  short ret;
+                         int32_t *max_mbps) {
+  short ret = vcmGetVideoPref(codec,
+                              "media.navigator.video.h264.max_mbps",
+                              max_mbps);
 
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetVideoPref_m,
-                        codec,
-                        "media.navigator.video.h264.max_mbps",
-                        max_mbps,
-                        &ret));
   if (ret == VCM_ERROR) {
 #ifdef MOZ_WEBRTC_OMX
     
@@ -3227,13 +2805,8 @@ short vcmGetVideoMaxMbps(uint16_t codec,
 }
 
 short vcmGetVideoPreferredCodec(int32_t *preferred_codec) {
-  short ret;
-
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmGetVideoPref_m,
-                        (uint16_t)0,
-                        "media.navigator.video.preferred_codec",
-                        preferred_codec,
-                        &ret));
-  return ret;
+  return vcmGetVideoPref((uint16_t)0,
+                         "media.navigator.video.preferred_codec",
+                         preferred_codec);
 }
+

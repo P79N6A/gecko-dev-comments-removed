@@ -18,7 +18,6 @@
 #include "PeerConnectionImpl.h"
 #include "PeerConnectionCtx.h"
 #include "runnable_utils.h"
-#include "cpr_socket.h"
 #include "debug-psipcc-types.h"
 #include "prcvar.h"
 
@@ -36,17 +35,8 @@
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
 #include "StaticPtr.h"
-extern "C" {
-#include "../sipcc/core/common/thread_monitor.h"
-}
 
 static const char* logTag = "PeerConnectionCtx";
-
-extern "C" {
-extern PRCondVar *ccAppReadyToStartCond;
-extern PRLock *ccAppReadyToStartLock;
-extern char ccAppReadyToStart;
-}
 
 namespace mozilla {
 
@@ -169,29 +159,11 @@ PeerConnectionCtx* PeerConnectionCtx::gInstance;
 nsIThread* PeerConnectionCtx::gMainThread;
 StaticRefPtr<PeerConnectionCtxShutdown> PeerConnectionCtx::gPeerConnectionCtxShutdown;
 
-
-
-
-
-static void thread_ended_dispatcher(thread_ended_funct func, thread_monitor_id_t id)
-{
-  nsresult rv = PeerConnectionCtx::gMainThread->Dispatch(WrapRunnableNM(func, id),
-                                                         NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv)) {
-    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
-  }
-}
-
-static void join_waiter() {
-  NS_ProcessPendingEvents(PeerConnectionCtx::gMainThread);
-}
-
 nsresult PeerConnectionCtx::InitializeGlobal(nsIThread *mainThread,
   nsIEventTarget* stsThread) {
   if (!gMainThread) {
     gMainThread = mainThread;
     CSF::VcmSIPCCBinding::setMainThread(gMainThread);
-    init_thread_monitor(&thread_ended_dispatcher, &join_waiter);
   } else {
     MOZ_ASSERT(gMainThread == mainThread);
   }
@@ -425,31 +397,14 @@ nsresult PeerConnectionCtx::Initialize() {
   codecMask |= VCM_CODEC_RESOURCE_VP8;
   
   mCCM->setVideoCodecs(codecMask);
-
-  ccAppReadyToStartLock = PR_NewLock();
-  if (!ccAppReadyToStartLock) {
-    return NS_ERROR_FAILURE;
-  }
-
-  ccAppReadyToStartCond = PR_NewCondVar(ccAppReadyToStartLock);
-  if (!ccAppReadyToStartCond) {
-    return NS_ERROR_FAILURE;
-  }
+  mCCM->addCCObserver(this);
+  ChangeSipccState(dom::PCImplSipccState::Starting);
 
   if (!mCCM->startSDPMode())
     return NS_ERROR_FAILURE;
 
   mDevice = mCCM->getActiveDevice();
-  mCCM->addCCObserver(this);
   NS_ENSURE_TRUE(mDevice.get(), NS_ERROR_FAILURE);
-  ChangeSipccState(dom::PCImplSipccState::Starting);
-
-  
-  
-  PR_Lock(ccAppReadyToStartLock);
-  ccAppReadyToStart = 1;
-  PR_NotifyAllCondVar(ccAppReadyToStartCond);
-  PR_Unlock(ccAppReadyToStartLock);
 
 #ifdef MOZILLA_INTERNAL_API
   mConnectionCounter = 0;
@@ -570,36 +525,11 @@ void PeerConnectionCtx::onDeviceEvent(ccapi_device_event_e aDeviceEvent,
   }
 }
 
-static void onCallEvent_m(nsAutoPtr<std::string> peerconnection,
-                          ccapi_call_event_e aCallEvent,
-                          CSF::CC_CallInfoPtr aInfo);
-
 void PeerConnectionCtx::onCallEvent(ccapi_call_event_e aCallEvent,
                                     CSF::CC_CallPtr aCall,
                                     CSF::CC_CallInfoPtr aInfo) {
-  
-  
-  
-  
-  
-  
-  nsAutoPtr<std::string> pcDuped(new std::string(aCall->getPeerConnection()));
-
-  
-  nsresult rv = gMainThread->Dispatch(WrapRunnableNM(&onCallEvent_m, pcDuped,
-                                                     aCallEvent, aInfo),
-                                      NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv)) {
-    CSFLogError( logTag, "%s(): Could not dispatch to main thread", __FUNCTION__);
-  }
-}
-
-
-static void onCallEvent_m(nsAutoPtr<std::string> peerconnection,
-                          ccapi_call_event_e aCallEvent,
-                          CSF::CC_CallInfoPtr aInfo) {
   CSFLogDebug(logTag, "onCallEvent()");
-  PeerConnectionWrapper pc(peerconnection->c_str());
+  PeerConnectionWrapper pc(aCall->getPeerConnection());
   if (!pc.impl())  
     return;
   CSFLogDebug(logTag, "Calling PC");

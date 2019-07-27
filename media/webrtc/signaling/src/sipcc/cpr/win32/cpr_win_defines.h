@@ -71,21 +71,6 @@ void cprEnableSwap (void);
 
 
 
-
-
-
-
-
-typedef struct {
-    const char *name;
-    uint16_t queueId;
-    uint16_t currentCount;
-    void *handlePtr;
-} cpr_msg_queue_t;
-
-
-
-
 __END_DECLS
 
 #endif

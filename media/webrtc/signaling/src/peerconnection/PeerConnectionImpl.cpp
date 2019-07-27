@@ -1785,8 +1785,6 @@ PeerConnectionImpl::Close()
 
   nsresult res = CloseInt();
 
-  SetSignalingState_m(PCImplSignalingState::SignalingClosed);
-
   return res;
 }
 
@@ -1868,18 +1866,23 @@ PeerConnectionImpl::CloseInt()
 {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
-  
-  
-  
-  
-  if (!IsClosed()) {
-    RecordLongtermICEStatistics();
+  if (IsClosed()) {
+    return NS_OK;
   }
+
+  SetSignalingState_m(PCImplSignalingState::SignalingClosed);
+
+  
+  
+  
+  
+  RecordLongtermICEStatistics();
 
   if (mInternal->mCall) {
     CSFLogInfo(logTag, "%s: Closing PeerConnectionImpl %s; "
                "ending call", __FUNCTION__, mHandle.c_str());
     mInternal->mCall->endCall();
+    mInternal->mCall = nullptr;
   }
 #ifdef MOZILLA_INTERNAL_API
   if (mDataConnection) {

@@ -8,10 +8,6 @@
 #include "cpr_types.h"
 #include "cpr_threads.h"
 
-#ifndef SIP_OS_WINDOWS
-#include <pthread.h>
-#endif 
-
 __BEGIN_DECLS
 
 
@@ -32,75 +28,6 @@ typedef void* cprMsgQueue_t;
 
 #define CPR_MAX_MSG_SIZE  8192
 
-
-#ifdef SIP_OS_WINDOWS
-#define PHONE_IPC_MSG 0xF005
-
-
-struct msgbuffer {
-    int32_t mtype; 
-    void *msgPtr;  
-    void *usrPtr;  
-};
-
-#else
-#define PHONE_IPC_MSG 1
-
-
-
-
-extern pthread_mutex_t msgQueueListMutex;
-
-#endif 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cprMsgQueue_t
-cprCreateMessageQueue(const char *name, uint16_t depth);
-
-
-#ifdef CPR_USE_SET_MESSAGE_QUEUE_THREAD
-
-
-
-
-
-
-
-
-
-
-
-
-
-cprRC_t
-cprSetMessageQueueThread(cprMsgQueue_t msgQueue, cprThread_t thread);
-#endif
 
 
 
@@ -127,44 +54,6 @@ void *
 cprGetMessage(cprMsgQueue_t msgQueue,
               boolean waitForever,
               void** usrPtr);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cprRC_t
-cprSendMessage(cprMsgQueue_t msgQueue,
-               void* msg,
-               void** usrPtr);
 
 
 

@@ -125,11 +125,6 @@
 
 
 
-extern pthread_mutex_t msgQueueListMutex;
-
-
-
-
 static boolean pre_init_called = FALSE;
 
 
@@ -168,21 +163,8 @@ cprPreInit (void)
         return CPR_SUCCESS;
     }
     pre_init_called = TRUE;
-    
-
-
-    returnCode = pthread_mutex_init(&msgQueueListMutex, NULL);
-    if (returnCode != 0) {
-        CPR_ERROR("%s: MsgQueue Mutex init failure %d\n", fname, returnCode);
-        return CPR_FAILURE;
-    }
-#ifdef CPR_TIMERS_ENABLED
-    returnCode = cpr_timer_pre_init();
-    if (returnCode != 0) {
-        CPR_ERROR("%s: timer pre init failed %d\n", fname, returnCode);
-        return CPR_FAILURE;
-    }
-#endif
+    (void)fname;
+    (void)returnCode;
     return CPR_SUCCESS;
 }
 

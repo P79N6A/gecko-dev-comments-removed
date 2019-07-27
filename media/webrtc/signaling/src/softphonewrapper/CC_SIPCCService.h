@@ -23,12 +23,10 @@ extern "C" {
 #include "CSFVideoControlWrapper.h"
 #include "CSFMediaProvider.h"
 
-#include "base/lock.h"
 #include "base/waitable_event.h"
 
 #include <vector>
 #include <set>
-#include "mozilla/Mutex.h"
 
 namespace CSF
 {
@@ -129,7 +127,6 @@ namespace CSF
 	    
         bool bCreated;
         bool bStarted;
-        mozilla::Mutex m_lock;
 
         
         VcmSIPCCBinding vcmMediaBridge;

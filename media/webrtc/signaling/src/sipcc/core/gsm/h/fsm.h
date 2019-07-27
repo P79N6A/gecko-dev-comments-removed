@@ -357,15 +357,6 @@ typedef struct {
     boolean spoof_ringout_applied;
 
     
-    cprTimer_t err_onhook_tmr;
-
-    
-    cprTimer_t req_pending_tmr;
-
-    
-    cprTimer_t ringback_delay_tmr;
-
-    
 
 
 
@@ -384,11 +375,6 @@ typedef struct {
 
     cc_security_e security;
     cc_policy_e policy;
-
-    
-    cprTimer_t autoAnswerTimer;
-    int32_t    reversionInterval;
-    cprTimer_t revertTimer;
 
     boolean dsp_out_of_resources;
 
