@@ -27,10 +27,6 @@ public @interface WrapElementForJNI {
     String stubName() default "";
 
     
-    
-    boolean generateStatic() default false;
-
-    
 
 
 

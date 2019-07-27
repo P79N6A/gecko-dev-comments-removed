@@ -12,7 +12,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -97,24 +96,22 @@ public class CodeGenerator {
         generateMemberCommon(theMethod, CMethodName, mClassToWrap);
 
         boolean isFieldStatic = Utils.isMemberStatic(theMethod);
-        boolean shallGenerateStatic = isFieldStatic || aMethodTuple.mAnnotationInfo.isStatic;
 
         Class<?>[] parameterTypes = theMethod.getParameterTypes();
         Class<?> returnType = theMethod.getReturnType();
 
         
         String implementationSignature = Utils.getCImplementationMethodSignature(parameterTypes, returnType, CMethodName, mCClassName, aMethodTuple.mAnnotationInfo.narrowChars);
-        String headerSignature = Utils.getCHeaderMethodSignature(parameterTypes, theMethod.getParameterAnnotations(), returnType, CMethodName, mCClassName, shallGenerateStatic, aMethodTuple.mAnnotationInfo.narrowChars);
+        String headerSignature = Utils.getCHeaderMethodSignature(parameterTypes, theMethod.getParameterAnnotations(), returnType, CMethodName, mCClassName, isFieldStatic, aMethodTuple.mAnnotationInfo.narrowChars);
 
         
         writeSignatureToHeader(headerSignature);
 
         
-        writeMethodBody(implementationSignature, CMethodName, theMethod, mClassToWrap,
-            aMethodTuple.mAnnotationInfo.isStatic,
-            aMethodTuple.mAnnotationInfo.isMultithreaded,
-            aMethodTuple.mAnnotationInfo.noThrow,
-            aMethodTuple.mAnnotationInfo.narrowChars);
+        writeMethodBody(implementationSignature, theMethod, mClassToWrap,
+                        aMethodTuple.mAnnotationInfo.isMultithreaded,
+                        aMethodTuple.mAnnotationInfo.noThrow,
+                        aMethodTuple.mAnnotationInfo.narrowChars);
     }
 
     private void generateGetterOrSetterBody(Class<?> aFieldType, String aFieldName, boolean aIsFieldStatic, boolean isSetter, boolean aNarrowChars) {
@@ -182,15 +179,14 @@ public class CodeGenerator {
 
         boolean isFieldStatic = Utils.isMemberStatic(theField);
         boolean isFieldFinal = Utils.isMemberFinal(theField);
-        boolean shallGenerateStatic = isFieldStatic || aFieldTuple.mAnnotationInfo.isStatic;
 
         String getterName = "get" + CFieldName;
         String getterSignature = Utils.getCImplementationMethodSignature(EMPTY_CLASS_ARRAY, fieldType, getterName, mCClassName, aFieldTuple.mAnnotationInfo.narrowChars);
-        String getterHeaderSignature = Utils.getCHeaderMethodSignature(EMPTY_CLASS_ARRAY, GETTER_ARGUMENT_ANNOTATIONS, fieldType, getterName, mCClassName, shallGenerateStatic, aFieldTuple.mAnnotationInfo.narrowChars);
+        String getterHeaderSignature = Utils.getCHeaderMethodSignature(EMPTY_CLASS_ARRAY, GETTER_ARGUMENT_ANNOTATIONS, fieldType, getterName, mCClassName, isFieldStatic, aFieldTuple.mAnnotationInfo.narrowChars);
 
         writeSignatureToHeader(getterHeaderSignature);
 
-        writeFunctionStartupBoilerPlate(getterSignature, fieldType, isFieldStatic, true);
+        writeFunctionStartupBoilerPlate(getterSignature, true);
 
         generateGetterOrSetterBody(fieldType, CFieldName, isFieldStatic, false, aFieldTuple.mAnnotationInfo.narrowChars);
 
@@ -201,11 +197,11 @@ public class CodeGenerator {
             Class<?>[] setterArguments = new Class<?>[]{fieldType};
 
             String setterSignature = Utils.getCImplementationMethodSignature(setterArguments, Void.class, setterName, mCClassName, aFieldTuple.mAnnotationInfo.narrowChars);
-            String setterHeaderSignature = Utils.getCHeaderMethodSignature(setterArguments, SETTER_ARGUMENT_ANNOTATIONS, Void.class, setterName, mCClassName, shallGenerateStatic, aFieldTuple.mAnnotationInfo.narrowChars);
+            String setterHeaderSignature = Utils.getCHeaderMethodSignature(setterArguments, SETTER_ARGUMENT_ANNOTATIONS, Void.class, setterName, mCClassName, isFieldStatic, aFieldTuple.mAnnotationInfo.narrowChars);
 
             writeSignatureToHeader(setterHeaderSignature);
 
-            writeFunctionStartupBoilerPlate(setterSignature, Void.class, isFieldStatic, true);
+            writeFunctionStartupBoilerPlate(setterSignature, true);
 
             generateGetterOrSetterBody(fieldType, CFieldName, isFieldStatic, true, aFieldTuple.mAnnotationInfo.narrowChars);
         }
@@ -271,12 +267,7 @@ public class CodeGenerator {
     
 
 
-
-
-
-
-
-    private void writeFunctionStartupBoilerPlate(String methodSignature, Class<?> returnType, boolean aIsStatic, boolean aIsThreaded) {
+    private void writeFunctionStartupBoilerPlate(String methodSignature, boolean aIsThreaded) {
         
         wrapperMethodBodies.append('\n')
                            .append(methodSignature)
@@ -384,7 +375,7 @@ public class CodeGenerator {
             boolean aIsThreaded, boolean aNoThrow) {
         Class<?>[] argumentTypes = theCtor.getParameterTypes();
 
-        writeFunctionStartupBoilerPlate(implementationSignature, Void.class, false, aIsThreaded);
+        writeFunctionStartupBoilerPlate(implementationSignature, aIsThreaded);
 
         writeFramePushBoilerplate(theCtor, false, aNoThrow);
 
@@ -424,14 +415,13 @@ public class CodeGenerator {
 
 
 
-
-    private void writeMethodBody(String methodSignature, String aCMethodName, Method aMethod,
-            Class<?> aClass, boolean aIsStaticBridgeMethod, boolean aIsMultithreaded,
-            boolean aNoThrow, boolean aNarrowChars) {
+    private void writeMethodBody(String methodSignature, Method aMethod,
+                                 Class<?> aClass, boolean aIsMultithreaded,
+                                 boolean aNoThrow, boolean aNarrowChars) {
         Class<?>[] argumentTypes = aMethod.getParameterTypes();
         Class<?> returnType = aMethod.getReturnType();
 
-        writeFunctionStartupBoilerPlate(methodSignature, returnType, aIsStaticBridgeMethod, aIsMultithreaded);
+        writeFunctionStartupBoilerPlate(methodSignature, aIsMultithreaded);
 
         boolean isObjectReturningMethod = !returnType.getCanonicalName().equals("void") && Utils.isObjectType(returnType);
 
