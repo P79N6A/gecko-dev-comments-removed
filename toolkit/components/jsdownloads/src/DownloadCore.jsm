@@ -231,9 +231,15 @@ this.Download.prototype = {
 
 
 
+
+
+
+
+
   totalBytes: 0,
 
   
+
 
 
 
@@ -468,12 +474,22 @@ this.Download.prototype = {
                                  DS_setProperties.bind(this));
 
         
+        
+        yield this.target.refresh();
+
+        
+        
+        
+        
         if (this._promiseCanceled) {
           try {
             yield OS.File.remove(this.target.path);
           } catch (ex) {
             Cu.reportError(ex);
           }
+
+          this.target.exists = false;
+          this.target.size = 0;
 
           
           throw new DownloadError();
@@ -610,6 +626,7 @@ this.Download.prototype = {
     this._promiseUnblock = Task.spawn(function* () {
       try {
         yield OS.File.move(this.target.partFilePath, this.target.path);
+        yield this.target.refresh();
       } catch (ex) {
         yield this.refresh();
         this._promiseUnblock = null;
@@ -893,6 +910,16 @@ this.Download.prototype = {
   {
     return Task.spawn(function () {
       if (!this.stopped || this._finalized) {
+        return;
+      }
+
+      if (this.succeeded) {
+        let oldExists = this.target.exists;
+        let oldSize = this.target.size;
+        yield this.target.refresh();
+        if (oldExists != this.target.exists || oldSize != this.target.size) {
+          this._notifyChange();
+        }
         return;
       }
 
@@ -1323,6 +1350,58 @@ this.DownloadTarget.prototype = {
 
 
   partFilePath: null,
+
+  
+
+
+
+
+
+
+  exists: false,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  size: 0,
+
+  
+
+
+
+
+
+
+  refresh: Task.async(function* () {
+    try {
+      this.size = (yield OS.File.stat(this.path)).size;
+      this.exists = true;
+    } catch (ex) {
+      
+      
+      if (!(ex instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+        Cu.reportError(ex);
+      }
+      this.exists = false;
+    }
+  }),
 
   
 

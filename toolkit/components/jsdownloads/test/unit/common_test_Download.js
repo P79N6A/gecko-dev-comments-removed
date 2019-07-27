@@ -115,6 +115,26 @@ function promisePartFileReady(aDownload) {
 
 
 
+
+
+
+
+
+let promiseVerifyTarget = Task.async(function* (downloadTarget,
+                                                expectedContents) {
+  yield promiseVerifyContents(downloadTarget.path, expectedContents);
+  do_check_true(downloadTarget.exists);
+  do_check_eq(downloadTarget.size, expectedContents.length);
+});
+
+
+
+
+
+
+
+
+
 add_task(function test_basic()
 {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
@@ -148,7 +168,7 @@ add_task(function test_basic()
   
   do_check_true(download.source.referrer === null);
 
-  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
 
 
@@ -163,8 +183,7 @@ add_task(function test_basic_tryToKeepPartialData()
   yield promiseDownloadStopped(download);
 
   
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
   do_check_eq(32, download.saver.getSha256Hash().length);
 });
@@ -287,6 +306,8 @@ add_task(function test_initial_final_state()
     do_check_true(download.error === null);
     do_check_eq(download.progress, 0);
     do_check_true(download.startTime === null);
+    do_check_false(download.target.exists);
+    do_check_eq(download.target.size, 0);
 
     yield download.start();
   } else {
@@ -302,6 +323,8 @@ add_task(function test_initial_final_state()
   do_check_true(download.error === null);
   do_check_eq(download.progress, 100);
   do_check_true(isValidDate(download.startTime));
+  do_check_true(download.target.exists);
+  do_check_eq(download.target.size, TEST_DATA_SHORT.length);
 });
 
 
@@ -349,14 +372,17 @@ add_task(function test_intermediate_progress()
   do_check_eq(download.totalBytes, TEST_DATA_SHORT.length * 2);
 
   
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
+
+  
   continueResponses();
   yield promiseDownloadStopped(download);
 
   do_check_true(download.stopped);
   do_check_eq(download.progress, 100);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -377,6 +403,8 @@ add_task(function test_empty_progress()
   do_check_eq(download.contentType, "text/plain");
 
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+  do_check_true(download.target.exists);
+  do_check_eq(download.target.size, 0);
 });
 
 
@@ -406,6 +434,9 @@ add_task(function test_empty_progress_tryToKeepPartialData()
 
   
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
+  do_check_true(download.target.exists);
+  do_check_eq(download.target.size, 0);
+
   do_check_false(yield OS.File.exists(download.target.partFilePath));
   do_check_eq(32, download.saver.getSha256Hash().length);
 });
@@ -481,6 +512,8 @@ add_task(function test_empty_noprogress()
   do_check_eq(download.progress, 100);
   do_check_eq(download.currentBytes, 0);
   do_check_eq(download.totalBytes, 0);
+  do_check_true(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   do_check_eq((yield OS.File.stat(download.target.path)).size, 0);
 });
@@ -519,8 +552,7 @@ add_task(function test_start_twice()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -577,6 +609,8 @@ add_task(function test_cancel_midway()
   do_check_true(download.stopped);
   do_check_true(download.canceled);
   do_check_true(download.error === null);
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   do_check_false(yield OS.File.exists(download.target.path));
 
@@ -694,8 +728,7 @@ add_task(function test_cancel_midway_restart()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -712,6 +745,8 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData()
   
   do_check_false(yield OS.File.exists(download.target.path));
   yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   
   do_check_eq(gMostRecentFirstBytePos, 0);
@@ -745,8 +780,7 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData()
   do_check_eq(gMostRecentFirstBytePos, TEST_DATA_SHORT.length);
 
   
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
 
@@ -761,11 +795,15 @@ add_task(function test_cancel_midway_restart_removePartialData()
 
   do_check_true(download.hasPartialData);
   yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   yield download.removePartialData();
 
   do_check_false(download.hasPartialData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   
   continueResponses();
@@ -775,8 +813,7 @@ add_task(function test_cancel_midway_restart_removePartialData()
   do_check_eq(gMostRecentFirstBytePos, 0);
 
   
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
 
@@ -831,8 +868,7 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   do_check_eq(gMostRecentFirstBytePos, 0);
 
   
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
 });
 
@@ -885,8 +921,7 @@ add_task(function test_cancel_immediately_restart_immediately()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -934,8 +969,7 @@ add_task(function test_cancel_midway_restart_immediately()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -954,7 +988,7 @@ add_task(function test_cancel_successful()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
 
 
@@ -991,6 +1025,31 @@ add_task(function test_cancel_twice()
   do_check_true(download.error === null);
 
   do_check_false(yield OS.File.exists(download.target.path));
+});
+
+
+
+
+add_task(function test_refresh_succeeded()
+{
+  let download = yield promiseStartDownload();
+  yield promiseDownloadStopped(download);
+
+  
+  yield download.refresh();
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
+
+  
+  
+  yield OS.File.move(download.target.path, download.target.path + ".old");
+  yield download.refresh();
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, TEST_DATA_SHORT.length);
+
+  
+  yield OS.File.move(download.target.path + ".old", download.target.path);
+  yield download.refresh();
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
 
 
@@ -1080,8 +1139,7 @@ add_task(function test_whenSucceeded_after_restart()
   do_check_false(download.canceled);
   do_check_true(download.error === null);
 
-  yield promiseVerifyContents(download.target.path,
-                              TEST_DATA_SHORT + TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
 
 
@@ -1124,6 +1182,8 @@ add_task(function test_error_source()
     do_check_false(download.error.becauseTargetFailed);
 
     do_check_false(yield OS.File.exists(download.target.path));
+    do_check_false(download.target.exists);
+    do_check_eq(download.target.size, 0);
   } finally {
     serverSocket.close();
   }
@@ -1177,6 +1237,8 @@ add_task(function test_error_source_partial()
   do_check_eq(download.error.result, Cr.NS_ERROR_NET_PARTIAL_TRANSFER);
 
   do_check_false(yield OS.File.exists(download.target.path));
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 });
 
 
@@ -1276,7 +1338,7 @@ add_task(function test_error_restart()
   do_check_true(download.error === null);
   do_check_eq(download.progress, 100);
 
-  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
 
 
@@ -1387,7 +1449,7 @@ add_task(function test_with_content_encoding()
   do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
 
   
-  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 
   cleanup();
 });
@@ -1421,10 +1483,11 @@ add_task(function test_with_content_encoding_ignore_extension()
 
   do_check_eq(download.progress, 100);
   do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
+  do_check_eq(download.target.size, TEST_DATA_SHORT_GZIP_ENCODED.length);
 
   
   
-  yield promiseVerifyContents(download.target.path,
+  yield promiseVerifyTarget(download.target,
         String.fromCharCode.apply(String, TEST_DATA_SHORT_GZIP_ENCODED));
 
   cleanup();
@@ -1465,7 +1528,7 @@ add_task(function test_cancel_midway_restart_with_content_encoding()
   do_check_eq(download.progress, 100);
   do_check_eq(download.totalBytes, TEST_DATA_SHORT_GZIP_ENCODED.length);
 
-  yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
 
 
@@ -1559,7 +1622,6 @@ add_task(function test_getSha256Hash()
 
 
 
-
 let promiseBlockedDownload = Task.async(function* (options) {
   function cleanup() {
     DownloadIntegration.shouldBlockInTestForApplicationReputation = false;
@@ -1613,6 +1675,8 @@ add_task(function test_blocked_applicationReputation()
 
   
   do_check_false(yield OS.File.exists(download.target.path));
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 
   
   do_check_false(download.hasBlockedData);
@@ -1641,6 +1705,8 @@ add_task(function test_blocked_applicationReputation_confirmBlock()
   do_check_false(download.hasBlockedData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
   do_check_false(yield OS.File.exists(download.target.path));
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 });
 
 
@@ -1665,7 +1731,7 @@ add_task(function test_blocked_applicationReputation_unblock()
   do_check_true(download.succeeded);
   do_check_false(download.hasBlockedData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
-  do_check_true(yield OS.File.exists(download.target.path));
+  yield promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 
   
   
@@ -1743,6 +1809,8 @@ add_task(function test_blocked_applicationReputation_decisionRace()
   do_check_false(download.hasBlockedData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
   do_check_false(yield OS.File.exists(download.target.path));
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 });
 
 
@@ -1772,6 +1840,8 @@ add_task(function test_blocked_applicationReputation_unblock()
   do_check_false(download.hasBlockedData);
   do_check_true(download.stopped);
   do_check_false(download.succeeded);
+  do_check_false(download.target.exists);
+  do_check_eq(download.target.size, 0);
 });
 
 
@@ -2034,7 +2104,7 @@ add_task(function test_platform_integration()
     
     yield promiseDownloadStopped(download);
 
-    yield promiseVerifyContents(download.target.path, TEST_DATA_SHORT);
+    yield promiseVerifyTarget(download.target, TEST_DATA_SHORT);
   }
 });
 
