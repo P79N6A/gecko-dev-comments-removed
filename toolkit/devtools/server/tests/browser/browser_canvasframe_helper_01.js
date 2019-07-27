@@ -1,15 +1,18 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+
+
+
 
 "use strict";
 
-// Simple CanvasFrameAnonymousContentHelper tests.
 
-// This makes sure the 'domnode' protocol actor type is known when importing
-// highlighter.
+
+
+
 require("devtools/server/actors/inspector");
-const {CanvasFrameAnonymousContentHelper} = require("devtools/server/actors/highlighter");
+const {
+  CanvasFrameAnonymousContentHelper,
+  HighlighterEnvironment
+} = require("devtools/server/actors/highlighter");
 const TEST_URL = "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test";
 
 add_task(function*() {
@@ -27,8 +30,9 @@ add_task(function*() {
   };
 
   info("Building the helper");
-  let helper = new CanvasFrameAnonymousContentHelper(
-    getMockTabActor(doc.defaultView), nodeBuilder);
+  let env = new HighlighterEnvironment();
+  env.initFromWindow(doc.defaultView);
+  let helper = new CanvasFrameAnonymousContentHelper(env, nodeBuilder);
 
   ok(helper.content instanceof AnonymousContent,
     "The helper owns the AnonymousContent object");
@@ -70,6 +74,7 @@ add_task(function*() {
 
   info("Destroying the helper");
   helper.destroy();
+  env.destroy();
 
   ok(!helper.getTextContentForElement("child-element"),
     "No text content was retrieved after the helper was destroyed");

@@ -1,16 +1,19 @@
-/* vim: set ft=javascript ts=2 et sw=2 tw=80: */
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+
+
+
 
 "use strict";
 
-// Test some edge cases of the CanvasFrameAnonymousContentHelper event handling
-// mechanism.
 
-// This makes sure the 'domnode' protocol actor type is known when importing
-// highlighter.
+
+
+
+
 require("devtools/server/actors/inspector");
-const {CanvasFrameAnonymousContentHelper} = require("devtools/server/actors/highlighter");
+const {
+  CanvasFrameAnonymousContentHelper,
+  HighlighterEnvironment
+} = require("devtools/server/actors/highlighter");
 const TEST_URL = "data:text/html;charset=utf-8,CanvasFrameAnonymousContentHelper test";
 
 add_task(function*() {
@@ -33,8 +36,9 @@ add_task(function*() {
   };
 
   info("Building the helper");
-  let helper = new CanvasFrameAnonymousContentHelper(
-    getMockTabActor(doc.defaultView), nodeBuilder);
+  let env = new HighlighterEnvironment();
+  env.initFromWindow(doc.defaultView);
+  let helper = new CanvasFrameAnonymousContentHelper(env, nodeBuilder);
 
   info("Getting the parent and child elements");
   let parentEl = helper.getElement("parent-element");
@@ -89,13 +93,16 @@ add_task(function*() {
   info("Removing the parent listener");
   parentEl.removeEventListener("mousedown", onMouseDown);
 
+  env.destroy();
+  helper.destroy();
+
   gBrowser.removeCurrentTab();
 });
 
 function synthesizeMouseDown(x, y, win) {
-  // We need to make sure the inserted anonymous content can be targeted by the
-  // event right after having been inserted, and so we need to force a sync
-  // reflow.
+  
+  
+  
   let forceReflow = win.document.documentElement.offsetWidth;
   EventUtils.synthesizeMouseAtPoint(x, y, {type: "mousedown"}, win);
 }
