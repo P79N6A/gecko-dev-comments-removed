@@ -293,25 +293,50 @@ public:
 #endif
 
   
-
-
-
-
-  class Iterator {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  class Iterator
+  {
   public:
     explicit Iterator(const PLDHashTable* aTable);
-    Iterator(const Iterator& aIterator);
+    Iterator(Iterator&& aOther);
     ~Iterator();
-    bool HasMoreEntries() const;
-    PLDHashEntryHdr* NextEntry();
+    bool Done() const;                
+    PLDHashEntryHdr* Get() const;     
+    void Next();                      
 
   private:
     const PLDHashTable* mTable;       
-    char* mEntryAddr;                 
-    uint32_t mEntryOffset;            
+    char* mCurrent;                   
+    char* mLimit;                     
+
+    bool IsOnNonLiveEntry() const;
+
+    Iterator() = delete;
+    Iterator(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&) = delete;
+    Iterator& operator=(const Iterator&&) = delete;
   };
 
-  Iterator Iterate() const { return Iterator(this); }
+  Iterator Iter() const { return Iterator(this); }
 
 private:
   static bool EntryIsFree(PLDHashEntryHdr* aEntry);
