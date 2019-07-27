@@ -748,7 +748,7 @@ Debugger::firstBreakpoint() const
     return Breakpoint::fromDebuggerLinks(JS_NEXT_LINK(&breakpoints));
 }
 
-Debugger *
+ Debugger *
 Debugger::fromOnNewGlobalObjectWatchersLink(JSCList *link) {
     char *p = reinterpret_cast<char *>(link);
     return reinterpret_cast<Debugger *>(p - offsetof(Debugger, onNewGlobalObjectWatchersLink));
@@ -792,7 +792,7 @@ Debugger::observesGlobal(GlobalObject *global) const
     return debuggees.has(global);
 }
 
-JSTrapStatus
+ JSTrapStatus
 Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame)
 {
     if (!cx->compartment()->debugMode())
@@ -800,7 +800,7 @@ Debugger::onEnterFrame(JSContext *cx, AbstractFramePtr frame)
     return slowPathOnEnterFrame(cx, frame);
 }
 
-JSTrapStatus
+ JSTrapStatus
 Debugger::onDebuggerStatement(JSContext *cx, MutableHandleValue vp)
 {
     return cx->compartment()->debugMode()
@@ -808,7 +808,7 @@ Debugger::onDebuggerStatement(JSContext *cx, MutableHandleValue vp)
            : JSTRAP_CONTINUE;
 }
 
-JSTrapStatus
+ JSTrapStatus
 Debugger::onExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
 {
     if (!cx->compartment()->debugMode())
@@ -816,7 +816,7 @@ Debugger::onExceptionUnwind(JSContext *cx, AbstractFramePtr frame)
     return slowPathOnExceptionUnwind(cx, frame);
 }
 
-void
+ void
 Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileAndGoGlobal)
 {
     MOZ_ASSERT_IF(script->compileAndGo(), compileAndGoGlobal);
@@ -831,7 +831,7 @@ Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileA
         slowPathOnNewScript(cx, script, compileAndGoGlobal);
 }
 
-void
+ void
 Debugger::onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global)
 {
     MOZ_ASSERT(!global->compartment()->firedOnNewGlobalObject);
@@ -842,7 +842,7 @@ Debugger::onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global)
         Debugger::slowPathOnNewGlobalObject(cx, global);
 }
 
-bool
+ bool
 Debugger::onLogAllocationSite(JSContext *cx, HandleSavedFrame frame, int64_t when)
 {
     GlobalObject::DebuggerVector *dbgs = cx->global()->getDebuggers();
