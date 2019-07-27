@@ -403,5 +403,20 @@ CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   forwarder->UseTexture(this, mFrontTex);
 }
 
+void
+CanvasClientSharedSurface::ClearSurfaces()
+{
+  if (mFrontTex && (mFront || mPrevFront)) {
+    
+    
+    
+    mFrontTex->ForceRemove(true );
+    mFrontTex = nullptr;
+  }
+  
+  mFront = nullptr;
+  mPrevFront = nullptr;
+}
+
 }
 }

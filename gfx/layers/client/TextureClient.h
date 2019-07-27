@@ -427,7 +427,9 @@ public:
 
 
 
-  void ForceRemove();
+
+
+  void ForceRemove(bool sync = false);
 
   virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle)
   {
