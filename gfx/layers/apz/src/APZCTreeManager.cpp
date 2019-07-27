@@ -625,7 +625,7 @@ APZCTreeManager::ProcessTouchInput(MultiTouchInput& aInput,
     
     
     
-    if (mApzcForInputBlock && mApzcForInputBlock->IsOverscrolled()) {
+    if (mApzcForInputBlock && BuildOverscrollHandoffChain(mApzcForInputBlock)->HasOverscrolledApzc()) {
       if (mRetainedTouchIdentifier == -1) {
         mRetainedTouchIdentifier = mApzcForInputBlock->GetLastTouchIdentifier();
       }

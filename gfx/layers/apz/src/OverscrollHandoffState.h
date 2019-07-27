@@ -105,11 +105,16 @@ public:
   
   
   bool CanBePanned(const AsyncPanZoomController* aApzc) const;
+
+  
+  bool HasOverscrolledApzc() const;
 private:
   std::vector<nsRefPtr<AsyncPanZoomController>> mChain;
 
   typedef void (AsyncPanZoomController::*APZCMethod)();
+  typedef bool (AsyncPanZoomController::*APZCPredicate)() const;
   void ForEachApzc(APZCMethod aMethod) const;
+  bool AnyApzc(APZCPredicate aPredicate) const;
 };
 
 
