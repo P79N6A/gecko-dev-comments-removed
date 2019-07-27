@@ -337,6 +337,13 @@ add_task(function* test_roomUpdates() {
 });
 
 
+add_task(function* test_joinRoomGuest() {
+  
+  let roomToken = "_nxD4V4FflQ";
+  let joinedData = yield LoopRooms.promise("join", roomToken);
+  Assert.equal(joinedData.action, "join");
+});
+
 add_task(function* test_joinRoom() {
   
   Services.prefs.setCharPref("loop.fxa_oauth.profile", JSON.stringify({
@@ -350,6 +357,9 @@ add_task(function* test_joinRoom() {
   let joinedData = yield LoopRooms.promise("join", roomToken);
   Assert.equal(joinedData.action, "join");
   Assert.equal(joinedData.displayName, "fake@invalid.com");
+
+  Services.prefs.clearUserPref("loop.fxa_oauth.profile");
+  Services.prefs.clearUserPref("loop.fxa_oauth.tokendata");
 });
 
 
