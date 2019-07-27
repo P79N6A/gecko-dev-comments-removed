@@ -123,7 +123,9 @@ nsCSPTokenizer::tokenizeCSPPolicy(const nsAString &aPolicyString,
 nsCSPParser::nsCSPParser(cspTokens& aTokens,
                          nsIURI* aSelfURI,
                          uint64_t aInnerWindowID)
- : mTokens(aTokens)
+ : mHasHashOrNonce(false)
+ , mUnsafeInlineKeywordSrc(nullptr)
+ , mTokens(aTokens)
  , mSelfURI(aSelfURI)
  , mInnerWindowID(aInnerWindowID)
 {
@@ -570,8 +572,22 @@ nsCSPParser::keywordSource()
     return CSP_CreateHostSrcFromURI(mSelfURI);
   }
 
-  if (CSP_IsKeyword(mCurToken, CSP_UNSAFE_INLINE) ||
-      CSP_IsKeyword(mCurToken, CSP_UNSAFE_EVAL)) {
+  if (CSP_IsKeyword(mCurToken, CSP_UNSAFE_INLINE)) {
+    
+    
+    if (mUnsafeInlineKeywordSrc) {
+      const char16_t* params[] = { mCurToken.get() };
+      logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringDuplicateSrc",
+                               params, ArrayLength(params));
+      return nullptr;
+    }
+    
+    
+    mUnsafeInlineKeywordSrc = new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
+    return mUnsafeInlineKeywordSrc;
+  }
+
+  if (CSP_IsKeyword(mCurToken, CSP_UNSAFE_EVAL)) {
     return new nsCSPKeywordSrc(CSP_KeywordToEnum(mCurToken));
   }
   return nullptr;
@@ -676,6 +692,8 @@ nsCSPParser::nonceSource()
   if (dashIndex < 0) {
     return nullptr;
   }
+  
+  mHasHashOrNonce = true;
   return new nsCSPNonceSrc(Substring(expr,
                                      dashIndex + 1,
                                      expr.Length() - dashIndex + 1));
@@ -708,6 +726,8 @@ nsCSPParser::hashSource()
 
   for (uint32_t i = 0; i < kHashSourceValidFnsLen; i++) {
     if (algo.LowerCaseEqualsASCII(kHashSourceValidFns[i])) {
+      
+      mHasHashOrNonce = true;
       return new nsCSPHashSrc(algo, hash);
     }
   }
@@ -1004,6 +1024,11 @@ nsCSPParser::directive()
   }
 
   
+  
+  mHasHashOrNonce = false;
+  mUnsafeInlineKeywordSrc = nullptr;
+
+  
   nsTArray<nsCSPBaseSrc*> srcs;
   directiveValue(srcs);
 
@@ -1012,6 +1037,18 @@ nsCSPParser::directive()
   if (srcs.Length() == 0) {
     nsCSPKeywordSrc *keyword = new nsCSPKeywordSrc(CSP_NONE);
     srcs.AppendElement(keyword);
+  }
+
+  
+  
+  
+  if (cspDir->equals(nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE) &&
+      mHasHashOrNonce && mUnsafeInlineKeywordSrc) {
+    mUnsafeInlineKeywordSrc->invalidate();
+    
+    const char16_t* params[] = { NS_LITERAL_STRING("'unsafe-inline'").get() };
+    logWarningErrorToConsole(nsIScriptError::warningFlag, "ignoringSrcWithinScriptSrc",
+                             params, ArrayLength(params));
   }
 
   

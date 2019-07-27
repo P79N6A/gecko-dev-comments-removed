@@ -220,9 +220,12 @@ class nsCSPKeywordSrc : public nsCSPBaseSrc {
 
     bool allows(enum CSPKeyword aKeyword, const nsAString& aHashOrNonce) const;
     void toString(nsAString& outStr) const;
+    void invalidate();
 
   private:
     CSPKeyword mKeyword;
+    
+    bool       mInvalidated;
 };
 
 

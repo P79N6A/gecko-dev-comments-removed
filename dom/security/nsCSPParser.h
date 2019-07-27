@@ -228,6 +228,10 @@ class nsCSPParser {
     nsString           mCurToken;
     nsTArray<nsString> mCurDir;
 
+    
+    bool               mHasHashOrNonce; 
+    nsCSPKeywordSrc*   mUnsafeInlineKeywordSrc; 
+
     cspTokens          mTokens;
     nsIURI*            mSelfURI;
     nsCSPPolicy*       mPolicy;
