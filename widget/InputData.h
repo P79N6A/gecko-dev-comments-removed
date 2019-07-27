@@ -6,6 +6,7 @@
 #ifndef InputData_h__
 #define InputData_h__
 
+#include "nsIDOMWheelEvent.h"
 #include "nsDebug.h"
 #include "nsPoint.h"
 #include "nsTArray.h"
@@ -465,8 +466,23 @@ public:
   {
     
     
-    SCROLLDELTA_LINE
+    SCROLLDELTA_LINE,
+    SCROLLDELTA_PIXEL
   };
+
+  static ScrollDeltaType
+  DeltaTypeForDeltaMode(uint32_t aDeltaMode)
+  {
+    switch (aDeltaMode) {
+      case nsIDOMWheelEvent::DOM_DELTA_LINE:
+        return SCROLLDELTA_LINE;
+      case nsIDOMWheelEvent::DOM_DELTA_PIXEL:
+        return SCROLLDELTA_PIXEL;
+      default:
+        MOZ_CRASH();
+    }
+    return SCROLLDELTA_LINE;
+  }
 
   enum ScrollMode
   {
