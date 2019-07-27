@@ -93,6 +93,9 @@ function TouchEventHandler(window) {
       
       if (evt.type.startsWith("touch") && !isSystemWindow) {
         let sysFrame = content.realFrameElement;
+        if (!sysFrame) {
+          return;
+        }
         let sysDocument = sysFrame.ownerDocument;
         let sysWindow = sysDocument.defaultView;
 
