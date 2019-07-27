@@ -891,7 +891,9 @@ loop.webapp = (function($, _, OT, mozL10n) {
 
       
       standaloneAppStore: React.PropTypes.instanceOf(
-        loop.store.StandaloneAppStore).isRequired
+        loop.store.StandaloneAppStore).isRequired,
+      activeRoomStore: React.PropTypes.instanceOf(
+        loop.store.ActiveRoomStore).isRequired
     },
 
     getInitialState: function() {
@@ -933,7 +935,11 @@ loop.webapp = (function($, _, OT, mozL10n) {
           );
         }
         case "room": {
-          return loop.standaloneRoomViews.StandaloneRoomView(null);
+          return (
+            loop.standaloneRoomViews.StandaloneRoomView({
+              activeRoomStore: this.props.activeRoomStore}
+            )
+          );
         }
         case "home": {
           return HomeView(null);
@@ -983,6 +989,12 @@ loop.webapp = (function($, _, OT, mozL10n) {
       helper: helper,
       sdk: OT
     });
+    var activeRoomStore = new loop.store.ActiveRoomStore({
+      dispatcher: dispatcher,
+      
+      
+      mozLoop: {}
+    });
 
     React.renderComponent(WebappRootView({
       client: client, 
@@ -991,7 +1003,8 @@ loop.webapp = (function($, _, OT, mozL10n) {
       notifications: notifications, 
       sdk: OT, 
       feedbackApiClient: feedbackApiClient, 
-      standaloneAppStore: standaloneAppStore}
+      standaloneAppStore: standaloneAppStore, 
+      activeRoomStore: activeRoomStore}
     ), document.querySelector("#main"));
 
     

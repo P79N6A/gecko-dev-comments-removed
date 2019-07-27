@@ -671,7 +671,11 @@ loop.conversation = (function(mozL10n) {
 
     window.addEventListener("unload", function(event) {
       
+      
+      
       navigator.mozLoop.calls.clearCallInProgress(windowId);
+
+      dispatcher.dispatch(new sharedActions.WindowUnload());
     });
 
     React.renderComponent(AppControllerView({

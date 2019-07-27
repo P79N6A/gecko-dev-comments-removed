@@ -102,7 +102,7 @@ loop.store = loop.store || {};
 
 
 
-    defaultExpiresIn: 5,
+    defaultExpiresIn: 24 * 7 * 8,
 
     
 

@@ -70,6 +70,12 @@ loop.shared.actions = (function() {
     
 
 
+    WindowUnload: Action.define("windowUnload", {
+    }),
+
+    
+
+
 
     FetchEmailLink: Action.define("fetchEmailLink", {
     }),
@@ -227,6 +233,46 @@ loop.shared.actions = (function() {
 
     CopyRoomUrl: Action.define("copyRoomUrl", {
       roomUrl: String
+    }),
+
+    
+
+
+    RoomFailure: Action.define("roomFailure", {
+      error: Object
+    }),
+
+    
+
+
+
+
+
+    UpdateRoomInfo: Action.define("updateRoomInfo", {
+      roomName: String,
+      roomOwner: String,
+      roomToken: String,
+      roomUrl: String
+    }),
+
+    
+
+
+
+    JoinRoom: Action.define("joinRoom", {
+    }),
+
+    
+
+
+
+
+
+    JoinedRoom: Action.define("joinedRoom", {
+      apiKey: String,
+      sessionToken: String,
+      sessionId: String,
+      expires: Number
     })
   };
 })();

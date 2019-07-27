@@ -11,6 +11,19 @@ loop.store.ActiveRoomStore = (function() {
 
   var sharedActions = loop.shared.actions;
 
+  var ROOM_STATES = loop.store.ROOM_STATES = {
+    
+    INIT: "room-init",
+    
+    GATHER: "room-gather",
+    
+    READY: "room-ready",
+    
+    JOINED: "room-joined",
+    
+    FAILED: "room-failed"
+  };
+
   
 
 
@@ -29,19 +42,21 @@ loop.store.ActiveRoomStore = (function() {
     if (!options.dispatcher) {
       throw new Error("Missing option dispatcher");
     }
-    this.dispatcher = options.dispatcher;
+    this._dispatcher = options.dispatcher;
 
     if (!options.mozLoop) {
       throw new Error("Missing option mozLoop");
     }
-    this.mozLoop = options.mozLoop;
+    this._mozLoop = options.mozLoop;
 
-    this.dispatcher.register(this, [
-      "setupWindowData"
+    this._dispatcher.register(this, [
+      "roomFailure",
+      "setupWindowData",
+      "updateRoomInfo",
+      "joinRoom",
+      "joinedRoom",
+      "windowUnload"
     ]);
-  }
-
-  ActiveRoomStore.prototype = _.extend({
 
     
 
@@ -55,15 +70,26 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
-    _storeState: {
-    },
+    this._storeState = {
+      roomState: ROOM_STATES.INIT
+    };
+  }
+
+  ActiveRoomStore.prototype = _.extend({
+    
+
+
+
+    expiresTimeFactor: 0.9,
 
     getStoreState: function() {
       return this._storeState;
     },
 
-    setStoreState: function(state) {
-      this._storeState = state;
+    setStoreState: function(newState) {
+      for (var key in newState) {
+        this._storeState[key] = newState[key];
+      }
       this.trigger("change");
     },
 
@@ -72,6 +98,18 @@ loop.store.ActiveRoomStore = (function() {
 
 
 
+
+    roomFailure: function(actionData) {
+      console.error("Error in state `" + this._storeState.roomState + "`:",
+        actionData.error);
+
+      this.setStoreState({
+        error: actionData.error,
+        roomState: ROOM_STATES.FAILED
+      });
+    },
+
+    
 
 
 
@@ -85,14 +123,144 @@ loop.store.ActiveRoomStore = (function() {
         return;
       }
 
-      this.mozLoop.rooms.get(actionData.roomToken,
+      this.setStoreState({
+        roomState: ROOM_STATES.GATHER
+      });
+
+      
+      this._mozLoop.rooms.get(actionData.roomToken,
         function(error, roomData) {
-          this.setStoreState({
-            error: error,
+          if (error) {
+            this._dispatcher.dispatch(new sharedActions.RoomFailure({
+              error: error
+            }));
+            return;
+          }
+
+          this._dispatcher.dispatch(
+            new sharedActions.UpdateRoomInfo({
             roomToken: actionData.roomToken,
-            serverData: roomData
-          });
+            roomName: roomData.roomName,
+            roomOwner: roomData.roomOwner,
+            roomUrl: roomData.roomUrl
+          }));
+
+          
+          
+          this._dispatcher.dispatch(new sharedActions.JoinRoom());
         }.bind(this));
+    },
+
+    
+
+
+
+
+
+    updateRoomInfo: function(actionData) {
+      this.setStoreState({
+        roomName: actionData.roomName,
+        roomOwner: actionData.roomOwner,
+        roomState: ROOM_STATES.READY,
+        roomToken: actionData.roomToken,
+        roomUrl: actionData.roomUrl
+      });
+    },
+
+    
+
+
+    joinRoom: function() {
+      this._mozLoop.rooms.join(this._storeState.roomToken,
+        function(error, responseData) {
+          if (error) {
+            this._dispatcher.dispatch(
+              new sharedActions.RoomFailure({error: error}));
+            return;
+          }
+
+          this._dispatcher.dispatch(new sharedActions.JoinedRoom({
+            apiKey: responseData.apiKey,
+            sessionToken: responseData.sessionToken,
+            sessionId: responseData.sessionId,
+            expires: responseData.expires
+          }));
+        }.bind(this));
+    },
+
+    
+
+
+
+
+
+
+    joinedRoom: function(actionData) {
+      this.setStoreState({
+        apiKey: actionData.apiKey,
+        sessionToken: actionData.sessionToken,
+        sessionId: actionData.sessionId,
+        roomState: ROOM_STATES.JOINED
+      });
+
+      this._setRefreshTimeout(actionData.expires);
+    },
+
+    
+
+
+    windowUnload: function() {
+      this._leaveRoom();
+    },
+
+    
+
+
+
+
+    _setRefreshTimeout: function(expireTime) {
+      this._timeout = setTimeout(this._refreshMembership.bind(this),
+        expireTime * this.expiresTimeFactor * 1000);
+    },
+
+    
+
+
+
+    _refreshMembership: function() {
+      this._mozLoop.rooms.refreshMembership(this._storeState.roomToken,
+        this._storeState.sessionToken,
+        function(error, responseData) {
+          if (error) {
+            this._dispatcher.dispatch(
+              new sharedActions.RoomFailure({error: error}));
+            return;
+          }
+
+          this._setRefreshTimeout(responseData.expires);
+        }.bind(this));
+    },
+
+    
+
+
+
+    _leaveRoom: function() {
+      if (this._storeState.roomState !== ROOM_STATES.JOINED) {
+        return;
+      }
+
+      if (this._timeout) {
+        clearTimeout(this._timeout);
+        delete this._timeout;
+      }
+
+      this._mozLoop.rooms.leave(this._storeState.roomToken,
+        this._storeState.sessionToken);
+
+      this.setStoreState({
+        roomState: ROOM_STATES.READY
+      });
     }
 
   }, Backbone.Events);
