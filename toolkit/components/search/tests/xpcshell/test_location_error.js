@@ -21,10 +21,9 @@ function run_test() {
   });
 
   
-  
-  
-  let url = "https://nocert.example.com:443";
+  let url = "unknown-scheme://something";
   Services.prefs.setCharPref("browser.search.geoip.url", url);
+
   Services.search.init(() => {
     try {
       Services.prefs.getCharPref("browser.search.countryCode");
