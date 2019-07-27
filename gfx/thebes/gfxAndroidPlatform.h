@@ -40,7 +40,7 @@ public:
       GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
 
     
-    void GetFontList(InfallibleTArray<FontListEntry>* retValue);
+    void GetSystemFontList(InfallibleTArray<FontListEntry>* retValue);
 
     
     virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags);
