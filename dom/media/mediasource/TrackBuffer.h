@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/mozalloc.h"
+#include "mozilla/Maybe.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nscore.h"
@@ -147,7 +148,7 @@ private:
   
   
   int64_t mLastStartTimestamp;
-  int64_t mLastEndTimestamp;
+  Maybe<int64_t> mLastEndTimestamp;
 
   
   
