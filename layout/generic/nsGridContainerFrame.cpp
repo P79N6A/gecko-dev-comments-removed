@@ -1249,7 +1249,15 @@ nsGridContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsDisplayListSet childLists(aLists, aLists.BlockBorderBackgrounds());
+  
+  
+  nsDisplayList positionedDescendants;
+  nsDisplayListSet childLists(aLists.BlockBorderBackgrounds(),
+                              aLists.BlockBorderBackgrounds(),
+                              aLists.Floats(),
+                              aLists.Content(),
+                              &positionedDescendants,
+                              aLists.Outlines());
   typedef GridItemCSSOrderIterator::OrderState OrderState;
   OrderState order = mIsNormalFlowInCSSOrder ? OrderState::eKnownOrdered
                                              : OrderState::eKnownUnordered;
@@ -1259,6 +1267,8 @@ nsGridContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     BuildDisplayListForChild(aBuilder, child, aDirtyRect, childLists,
                              ::GetDisplayFlagsForGridItem(child));
   }
+  positionedDescendants.SortByCSSOrder(aBuilder);
+  aLists.PositionedDescendants()->AppendToTop(&positionedDescendants);
 }
 
 #ifdef DEBUG_FRAME_DUMP
