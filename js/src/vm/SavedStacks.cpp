@@ -338,17 +338,18 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
         return false;
     }
 
-    JSObject &thisObject = thisValue.toObject();
-    if (!thisObject.is<SavedFrame>()) {
+    JSObject *thisObject = CheckedUnwrap(&thisValue.toObject());
+    if (!thisObject || !thisObject->is<SavedFrame>()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             SavedFrame::class_.name, fnName, thisObject.getClass()->name);
+                             SavedFrame::class_.name, fnName,
+                             thisObject ? thisObject->getClass()->name : "object");
         return false;
     }
 
     
     
     
-    if (thisObject.as<SavedFrame>().getReservedSlot(JSSLOT_SOURCE).isNull()) {
+    if (thisObject->as<SavedFrame>().getReservedSlot(JSSLOT_SOURCE).isNull()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SavedFrame::class_.name, fnName, "prototype object");
         return false;
@@ -356,7 +357,7 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName,
 
     
     
-    frame.set(GetFirstSubsumedFrame(cx, &thisObject.as<SavedFrame>()));
+    frame.set(GetFirstSubsumedFrame(cx, &thisObject->as<SavedFrame>()));
     return true;
 }
 
