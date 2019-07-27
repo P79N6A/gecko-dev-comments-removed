@@ -212,13 +212,6 @@ struct BaselineScript
     
     uint32_t yieldEntriesOffset_;
 
-    
-    
-    
-    
-    
-    uint8_t maxInliningDepth_;
-
   public:
     
     BaselineScript(uint32_t prologueOffset, uint32_t epilogueOffset,
@@ -430,17 +423,6 @@ struct BaselineScript
     uint32_t *bytecodeTypeMap() {
         MOZ_ASSERT(bytecodeTypeMapOffset_);
         return reinterpret_cast<uint32_t *>(reinterpret_cast<uint8_t *>(this) + bytecodeTypeMapOffset_);
-    }
-
-    uint8_t maxInliningDepth() const {
-        return maxInliningDepth_;
-    }
-    void setMaxInliningDepth(uint32_t depth) {
-        MOZ_ASSERT(depth <= UINT8_MAX);
-        maxInliningDepth_ = depth;
-    }
-    void resetMaxInliningDepth() {
-        maxInliningDepth_ = UINT8_MAX;
     }
 };
 static_assert(sizeof(BaselineScript) % sizeof(uintptr_t) == 0,
