@@ -500,12 +500,7 @@ void
 ProgressTracker::ResetForNewRequest()
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  mProgress &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR |
-               FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
-
+  mProgress = NoProgress;
   CheckProgressConsistency(mProgress);
 }
 

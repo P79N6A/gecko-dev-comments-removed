@@ -12,6 +12,7 @@
 #include "ProgressTracker.h"
 #include "ImageFactory.h"
 #include "Image.h"
+#include "MultipartImage.h"
 #include "RasterImage.h"
 
 #include "nsIChannel.h"
@@ -72,7 +73,7 @@ imgRequest::imgRequest(imgLoader* aLoader)
  , mIsMultiPartChannel(false)
  , mGotData(false)
  , mIsInCache(false)
- , mResniffMimeType(false)
+ , mNewPartPending(false)
 { }
 
 imgRequest::~imgRequest()
@@ -142,7 +143,7 @@ void imgRequest::ClearLoader() {
 already_AddRefed<ProgressTracker>
 imgRequest::GetProgressTracker()
 {
-  if (mImage && mGotData) {
+  if (mImage) {
     NS_ABORT_IF_FALSE(!mProgressTracker,
                       "Should have given mProgressTracker to mImage");
     return mImage->GetProgressTracker();
@@ -633,12 +634,13 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 {
   LOG_SCOPE(GetImgLog(), "imgRequest::OnStartRequest");
 
+  mNewPartPending = true;
+
   
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
   nsRefPtr<ProgressTracker> progressTracker = GetProgressTracker();
   if (mpchan) {
     mIsMultiPartChannel = true;
-    progressTracker->SetIsMultipart();
   } else {
     NS_ABORT_IF_FALSE(!mIsMultiPartChannel, "Something went wrong");
   }
@@ -646,19 +648,6 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   
   NS_ABORT_IF_FALSE(mIsMultiPartChannel || !mImage,
                     "Already have an image for non-multipart request");
-
-  
-  
-  if (mIsMultiPartChannel && mImage) {
-    mResniffMimeType = true;
-
-    
-    
-    
-    
-    
-    mImage->OnNewSourceData();
-  }
 
   
 
@@ -674,10 +663,6 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     mpchan->GetBaseChannel(getter_AddRefs(chan));
     mRequest = chan;
   }
-
-  
-  progressTracker = GetProgressTracker();
-  progressTracker->ResetForNewRequest();
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
@@ -838,16 +823,12 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
   NS_ASSERTION(aRequest, "imgRequest::OnDataAvailable -- no request!");
 
   nsresult rv;
+  mGotData = true;
 
-  if (!mGotData || mResniffMimeType) {
-    LOG_SCOPE(GetImgLog(), "imgRequest::OnDataAvailable |First time through... finding mimetype|");
+  if (mNewPartPending) {
+    LOG_SCOPE(GetImgLog(), "imgRequest::OnDataAvailable |New part; finding MIME type|");
 
-    mGotData = true;
-
-    
-    
-    bool resniffMimeType = mResniffMimeType;
-    mResniffMimeType = false;
+    mNewPartPending = false;
 
     mimetype_closure closure;
     nsAutoCString newType;
@@ -881,65 +862,66 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       LOG_MSG(GetImgLog(), "imgRequest::OnDataAvailable", "Got content type from the channel");
     }
 
-    
-    
-    
-    
-    
-    
-    if (mContentType != newType || newType.EqualsLiteral(IMAGE_SVG_XML)) {
-      mContentType = newType;
+    mContentType = newType;
+    SetProperties(chan);
+    bool firstPart = !mImage;
 
-      
-      
-      
-      if (resniffMimeType) {
-        MOZ_ASSERT(mIsMultiPartChannel, "Resniffing a non-multipart image");
+    LOG_MSG_WITH_PARAM(GetImgLog(), "imgRequest::OnDataAvailable", "content type", mContentType.get());
 
+    
+    
+    
+
+    
+    if (mIsMultiPartChannel) {
+      
+      nsRefPtr<ProgressTracker> progressTracker = new ProgressTracker();
+      nsRefPtr<Image> image =
+        ImageFactory::CreateImage(aRequest, progressTracker, mContentType,
+                                  mURI,  true,
+                                  static_cast<uint32_t>(mInnerWindowId));
+
+      if (!mImage) {
         
-        nsRefPtr<ProgressTracker> freshTracker = new ProgressTracker();
-        freshTracker->SetIsMultipart();
-
+        MOZ_ASSERT(mProgressTracker, "Shouldn't have given away tracker yet");
+        mImage = new MultipartImage(image, mProgressTracker);
+        mProgressTracker = nullptr;
+      } else {
         
-        nsRefPtr<ProgressTracker> oldProgressTracker = GetProgressTracker();
-        freshTracker->AdoptObservers(oldProgressTracker);
-        mProgressTracker = freshTracker.forget();
+        static_cast<MultipartImage*>(mImage.get())->BeginTransitionToPart(image);
       }
-
-      SetProperties(chan);
-
-      LOG_MSG_WITH_PARAM(GetImgLog(), "imgRequest::OnDataAvailable", "content type", mContentType.get());
-
-      
-      
-      
+    } else {
+      MOZ_ASSERT(!mImage, "New part for non-multipart channel?");
+      MOZ_ASSERT(mProgressTracker, "Shouldn't have given away tracker yet");
 
       
-      
-      mImage = ImageFactory::CreateImage(aRequest, mProgressTracker, mContentType,
-                                         mURI, mIsMultiPartChannel,
-                                         static_cast<uint32_t>(mInnerWindowId));
-
-      
+      mImage =
+        ImageFactory::CreateImage(aRequest, mProgressTracker, mContentType,
+                                  mURI,  false,
+                                  static_cast<uint32_t>(mInnerWindowId));
       mProgressTracker = nullptr;
+    }
 
+    if (firstPart) {
       
       nsRefPtr<ProgressTracker> progressTracker = GetProgressTracker();
       progressTracker->OnImageAvailable();
+      MOZ_ASSERT(progressTracker->HasImage());
+    }
 
-      if (mImage->HasError() && !mIsMultiPartChannel) { 
-        
-        
-        
-        this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
-        return NS_BINDING_ABORTED;
-      }
+    if (mImage->HasError() && !mIsMultiPartChannel) { 
+      
+      
+      
+      this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
+      return NS_BINDING_ABORTED;
+    }
 
-      NS_ABORT_IF_FALSE(progressTracker->HasImage(), "Status tracker should have an image!");
-      NS_ABORT_IF_FALSE(mImage, "imgRequest should have an image!");
+    MOZ_ASSERT(!mProgressTracker, "Should've given tracker to image");
+    MOZ_ASSERT(mImage, "Should have image");
 
-      if (mDecodeRequested)
-        mImage->StartDecoding();
+    if (mDecodeRequested) {
+      mImage->StartDecoding();
     }
   }
 
