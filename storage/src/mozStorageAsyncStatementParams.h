@@ -16,6 +16,8 @@ class mozIStorageAsyncStatement;
 namespace mozilla {
 namespace storage {
 
+class AsyncStatement;
+
 
 
 
