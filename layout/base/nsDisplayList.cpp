@@ -704,7 +704,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   }
 
   metrics.SetScrollId(scrollId);
-  metrics.mIsRoot = aIsRoot;
+  metrics.SetIsRoot(aIsRoot);
 
   
   

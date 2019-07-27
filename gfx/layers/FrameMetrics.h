@@ -337,10 +337,17 @@ public:
   
   bool mMayHaveTouchCaret;
 
-  
-  bool mIsRoot;
-
 public:
+  void SetIsRoot(bool aIsRoot)
+  {
+    mIsRoot = aIsRoot;
+  }
+
+  bool GetIsRoot() const
+  {
+    return mIsRoot;
+  }
+
   void SetHasScrollgrab(bool aHasScrollgrab)
   {
     mHasScrollgrab = aHasScrollgrab;
@@ -450,6 +457,9 @@ public:
 private:
   
   
+
+  
+  bool mIsRoot;
 
   
   bool mHasScrollgrab;
