@@ -410,18 +410,21 @@ private:
 
   
   webrtc::VideoEngine* mScreenEngine;
+  webrtc::VideoEngine* mWinEngine;
   webrtc::VideoEngine* mAppEngine;
   webrtc::VideoEngine* mVideoEngine;
   webrtc::VoiceEngine* mVoiceEngine;
 
   
   webrtc::Config mAppEngineConfig;
+  webrtc::Config mWinEngineConfig;
   webrtc::Config mScreenEngineConfig;
 
   
   bool mVideoEngineInit;
   bool mAudioEngineInit;
   bool mScreenEngineInit;
+  bool mWinEngineInit;
   bool mAppEngineInit;
   bool mHasTabVideoSource;
 
