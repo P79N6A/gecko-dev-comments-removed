@@ -4137,6 +4137,8 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
   
   nsRefPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
+  bool didStyleFlush = false;
+  bool didLayoutFlush = false;
   if (isSafeToFlush && mViewManager) {
     
     
@@ -4226,6 +4228,8 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
       mPresContext->RestyleManager()->ProcessPendingRestyles();
     }
 
+    didStyleFlush = true;
+
 
     
     
@@ -4233,6 +4237,7 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
 
     if (flushType >= (mSuppressInterruptibleReflows ? Flush_Layout : Flush_InterruptibleLayout) &&
         !mIsDestroying) {
+      didLayoutFlush = true;
       mFrameConstructor->RecalcQuotesAndCounters();
       mViewManager->FlushDelayedResize(true);
       if (ProcessReflowCommands(flushType < Flush_Layout) && mContentToScrollTo) {
@@ -4243,11 +4248,6 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
           mContentToScrollTo = nullptr;
         }
       }
-    } else if (!mIsDestroying && mSuppressInterruptibleReflows &&
-               flushType == Flush_InterruptibleLayout) {
-      
-      
-      mDocument->SetNeedLayoutFlush();
     }
 
     if (flushType >= Flush_Layout) {
@@ -4255,6 +4255,19 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
         mViewManager->UpdateWidgetGeometry();
       }
     }
+  }
+
+  if (!didStyleFlush && flushType >= Flush_Style && !mIsDestroying) {
+    mDocument->SetNeedStyleFlush();
+  }
+
+  if (!didLayoutFlush && !mIsDestroying &&
+      (flushType >=
+       (mSuppressInterruptibleReflows ? Flush_Layout : Flush_InterruptibleLayout))) {
+    
+    
+    
+    mDocument->SetNeedLayoutFlush();
   }
 }
 
