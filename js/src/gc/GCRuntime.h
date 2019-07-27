@@ -1086,6 +1086,9 @@ class GCRuntime
     JSGCInvocationKind invocationKind;
 
     
+    JS::gcreason::Reason initialReason;
+
+    
 
 
 
