@@ -400,6 +400,12 @@ class nsStyleSet
                           bool aWalkAllXBLStylesheets);
 
   
+  nsRuleNode* RuleNodeWithReplacement(mozilla::dom::Element* aElement,
+                                      nsRuleNode* aOldRuleNode,
+                                      nsCSSPseudoElements::Type aPseudoType,
+                                      nsRestyleHint aReplacements);
+
+  
 
 
   enum {
