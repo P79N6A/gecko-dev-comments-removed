@@ -1705,6 +1705,8 @@ AppUnitsPerDevPixel(nsDisplayItem* aItem)
 
 
 
+
+
 static void
 SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
                       const nsIntRect* aLayerContentsVisibleRect = nullptr)
@@ -1714,12 +1716,27 @@ SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
   gfxMatrix transform2D;
   if (transform.Is2D(&transform2D) && !transform2D.HasNonIntegerTranslation()) {
     aOuterVisibleRegion->MoveBy(-int(transform2D._31), -int(transform2D._32));
+    if (aLayerContentsVisibleRect) {
+      aOuterVisibleRegion->And(*aOuterVisibleRegion, *aLayerContentsVisibleRect);
+    }
   } else {
     nsIntRect outerRect = aOuterVisibleRegion->GetBounds();
     
     
     gfxRect outerVisible(outerRect.x, outerRect.y, outerRect.width, outerRect.height);
     gfxRect layerVisible = transform.Inverse().ProjectRectBounds(outerVisible);
+    if (aLayerContentsVisibleRect) {
+      NS_ASSERTION(aLayerContentsVisibleRect->width >= 0 &&
+                   aLayerContentsVisibleRect->height >= 0,
+                   "Bad layer contents rectangle");
+      
+      
+      
+      gfxRect layerContentsVisible(
+          aLayerContentsVisibleRect->x, aLayerContentsVisibleRect->y,
+          aLayerContentsVisibleRect->width, aLayerContentsVisibleRect->height);
+      layerVisible.IntersectRect(layerVisible, layerContentsVisible);
+    }
     layerVisible.RoundOut();
     nsIntRect visRect;
     if (gfxUtils::GfxRectToIntRect(layerVisible, &visRect)) {
@@ -1727,10 +1744,6 @@ SetOuterVisibleRegion(Layer* aLayer, nsIntRegion* aOuterVisibleRegion,
     } else  {
       aOuterVisibleRegion->SetEmpty();
     }
-  }
-
-  if (aLayerContentsVisibleRect && aLayerContentsVisibleRect->width >= 0) {
-    aOuterVisibleRegion->And(*aOuterVisibleRegion, *aLayerContentsVisibleRect);
   }
 
   aLayer->SetVisibleRegion(*aOuterVisibleRegion);
@@ -2753,6 +2766,9 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
       }
 
       
+      
+      
+      
       nsIntRect layerContentsVisibleRect(0, 0, -1, -1);
       mParameters.mLayerContentsVisibleRect = &layerContentsVisibleRect;
       nsRefPtr<Layer> ownLayer = item->BuildLayer(mBuilder, mManager, mParameters);
@@ -2847,6 +2863,12 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
       newLayerEntry->mLayer = ownLayer;
       newLayerEntry->mAnimatedGeometryRoot = animatedGeometryRoot;
       newLayerEntry->mFixedPosFrameForLayerData = fixedPosFrame;
+      
+      
+      
+      NS_ASSERTION(itemType != nsDisplayItem::TYPE_TRANSFORM ||
+                   layerContentsVisibleRect.width >= 0,
+                   "Transform items must set layerContentsVisibleRect!");
       if (mLayerBuilder->IsBuildingRetainedLayers()) {
         newLayerEntry->mLayerContentsVisibleRect = layerContentsVisibleRect;
         newLayerEntry->mVisibleRegion = itemVisibleRect;
@@ -2855,7 +2877,7 @@ ContainerState::ProcessDisplayItems(nsDisplayList* aList,
           &newLayerEntry->mHideAllLayersBelow);
       } else {
         SetOuterVisibleRegionForLayer(ownLayer, itemVisibleRect,
-                                      &layerContentsVisibleRect);
+            layerContentsVisibleRect.width >= 0 ? &layerContentsVisibleRect : nullptr);
       }
       if (itemType == nsDisplayItem::TYPE_SCROLL_LAYER) {
         nsDisplayScrollLayer* scrollItem = static_cast<nsDisplayScrollLayer*>(item);
