@@ -112,9 +112,7 @@ function initializeAutoCompletion(ctx, options = {}) {
 
     if (!autocompleteState.suggestionInsertedOnce && popup.selectedItem) {
       autocompleteMap.get(ed).insertingSuggestion = true;
-      let {label, preLabel, text} = popup.selectedItem;
-      let cur = ed.getCursor();
-      ed.replaceText(text.slice(preLabel.length), cur, cur);
+      insertPopupItem(ed, popup.selectedItem);
     }
 
     popup.hidePopup();
@@ -230,6 +228,28 @@ function autoComplete({ ed, cm }) {
 
 
 
+function insertPopupItem(ed, popupItem) {
+  let {label, preLabel, text} = popupItem;
+  let cur = ed.getCursor();
+  let textBeforeCursor = ed.getText(cur.line).substring(0, cur.ch);
+  let backwardsTextBeforeCursor = textBeforeCursor.split("").reverse().join("");
+  let backwardsPreLabel = preLabel.split("").reverse().join("");
+
+  
+  
+  
+  
+  if (backwardsPreLabel.indexOf(backwardsTextBeforeCursor) === 0) {
+    ed.replaceText(text, {line: cur.line, ch: 0}, cur);
+  } else {
+    ed.replaceText(text.slice(preLabel.length), cur, cur);
+  }
+}
+
+
+
+
+
 function cycleSuggestions(ed, reverse) {
   let private = autocompleteMap.get(ed);
   let { popup, completer } = private;
@@ -250,7 +270,7 @@ function cycleSuggestions(ed, reverse) {
     }
     if (popup.itemCount == 1)
       popup.hidePopup();
-    ed.replaceText(firstItem.text.slice(firstItem.preLabel.length), cur, cur);
+    insertPopupItem(ed, firstItem);
   } else {
     let fromCur = {
       line: cur.line,
