@@ -8,6 +8,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/DOMErrorBinding.h"
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/DOMExceptionBinding.h"
 #include "jsfriendapi.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
@@ -204,7 +206,9 @@ CallbackObject::CallSetup::ShouldRethrowException(JS::Handle<JS::Value> aExcepti
   }
 
   DOMError* domError;
-  return NS_SUCCEEDED(UNWRAP_OBJECT(DOMError, obj, domError));
+  DOMException* domException;
+  return NS_SUCCEEDED(UNWRAP_OBJECT(DOMError, obj, domError)) ||
+         NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, obj, domException));
 }
 
 CallbackObject::CallSetup::~CallSetup()

@@ -34,6 +34,8 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/DOMError.h"
 #include "mozilla/dom/DOMErrorBinding.h"
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
@@ -216,6 +218,10 @@ ErrorResult::ReportJSException(JSContext* cx)
   
   
   js::RemoveRawValueRoot(cx, &mJSException);
+
+  
+  
+  mResult = NS_ERROR_FAILURE;
 }
 
 void
@@ -224,8 +230,45 @@ ErrorResult::ReportJSExceptionFromJSImplementation(JSContext* aCx)
   MOZ_ASSERT(!mMightHaveUnreportedJSException,
              "Why didn't you tell us you planned to handle JS exceptions?");
 
+  dom::DOMException* domException;
+  nsresult rv =
+    UNWRAP_OBJECT(DOMException, &mJSException.toObject(), domException);
+  if (NS_SUCCEEDED(rv)) {
+    
+    
+    
+    nsString message;
+    domException->GetMessageMoz(message);
+    nsString name;
+    domException->GetName(name);
+    nsRefPtr<dom::DOMException> newException =
+      new dom::DOMException(nsresult(domException->Result()),
+                            NS_ConvertUTF16toUTF8(message),
+                            NS_ConvertUTF16toUTF8(name),
+                            domException->Code());
+    JS::Rooted<JS::Value> reflector(aCx);
+    if (!GetOrCreateDOMReflector(aCx, newException, &reflector)) {
+      
+      
+      
+      
+      js::RemoveRawValueRoot(aCx, &mJSException);
+
+      
+      
+      mResult = NS_ERROR_FAILURE;
+
+      
+      return;
+    }
+
+    mJSException = reflector;
+    ReportJSException(aCx);
+    return;
+  }
+
   dom::DOMError* domError;
-  nsresult rv = UNWRAP_OBJECT(DOMError, &mJSException.toObject(), domError);
+  rv = UNWRAP_OBJECT(DOMError, &mJSException.toObject(), domError);
   if (NS_FAILED(rv)) {
     
     
