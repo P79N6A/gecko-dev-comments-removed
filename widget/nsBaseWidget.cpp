@@ -154,35 +154,65 @@ nsBaseWidget::nsBaseWidget()
   }
 #endif
   mShutdownObserver = new WidgetShutdownObserver(this);
-  nsContentUtils::RegisterShutdownObserver(mShutdownObserver);
 }
 
 NS_IMPL_ISUPPORTS(WidgetShutdownObserver, nsIObserver)
+
+WidgetShutdownObserver::WidgetShutdownObserver(nsBaseWidget* aWidget) :
+  mWidget(aWidget),
+  mRegistered(false)
+{
+  Register();
+}
+
+WidgetShutdownObserver::~WidgetShutdownObserver()
+{
+  
+  
+  
+}
 
 NS_IMETHODIMP
 WidgetShutdownObserver::Observe(nsISupports *aSubject,
                                 const char *aTopic,
                                 const char16_t *aData)
 {
-  if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0 &&
-      mWidget) {
-#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
-    if (sPluginWidgetList) {
-      delete sPluginWidgetList;
-      sPluginWidgetList = nullptr;
-    }
-#endif
+  if (mWidget && !strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
+    nsCOMPtr<nsIWidget> kungFuDeathGrip(mWidget);
     mWidget->Shutdown();
-    nsContentUtils::UnregisterShutdownObserver(this);
   }
- return NS_OK;
+  return NS_OK;
+}
+
+void
+WidgetShutdownObserver::Register()
+{
+  if (!mRegistered) {
+    mRegistered = true;
+    nsContentUtils::RegisterShutdownObserver(this);
+  }
+}
+
+void
+WidgetShutdownObserver::Unregister()
+{
+  if (mRegistered) {
+    nsContentUtils::UnregisterShutdownObserver(this);
+    mRegistered = false;
+  }
 }
 
 void
 nsBaseWidget::Shutdown()
 {
   DestroyCompositor();
-  mShutdownObserver = nullptr;
+  FreeShutdownObserver();
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+  if (sPluginWidgetList) {
+    delete sPluginWidgetList;
+    sPluginWidgetList = nullptr;
+  }
+#endif
 }
 
 void nsBaseWidget::DestroyCompositor()
@@ -205,6 +235,15 @@ void nsBaseWidget::DestroyLayerManager()
   DestroyCompositor();
 }
 
+void
+nsBaseWidget::FreeShutdownObserver()
+{
+  if (mShutdownObserver) {
+    mShutdownObserver->Unregister();
+  }
+  mShutdownObserver = nullptr;
+}
+
 
 
 
@@ -217,15 +256,7 @@ nsBaseWidget::~nsBaseWidget()
     static_cast<BasicLayerManager*>(mLayerManager.get())->ClearRetainerWidget();
   }
 
-  if (mShutdownObserver) {
-    
-    
-    
-    
-    mShutdownObserver->mWidget = nullptr;
-    nsContentUtils::UnregisterShutdownObserver(mShutdownObserver);
-  }
-
+  FreeShutdownObserver();
   DestroyLayerManager();
 
 #ifdef NOISY_WIDGET_LEAKS
