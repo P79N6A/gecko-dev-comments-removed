@@ -25,6 +25,21 @@ using mozilla::dom::CrashReporterChild;
 #include <unistd.h> 
 #endif
 
+#if defined(XP_WIN)
+
+
+
+
+
+
+
+
+#define HASH_NODE_ID_WITH_DEVICE_ID 1
+#include "rlz/lib/machine_id.h"
+#include "rlz/lib/string_utils.h"
+#include "mozilla/SHA1.h"
+#endif
+
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #define TARGET_SANDBOX_EXPORTS
 #include "mozilla/sandboxTarget.h"
@@ -239,8 +254,36 @@ GMPChild::Init(const std::string& aPluginPath,
 bool
 GMPChild::RecvSetNodeId(const nsCString& aNodeId)
 {
-  
+#ifdef HASH_NODE_ID_WITH_DEVICE_ID
+  if (!aNodeId.IsEmpty() && !aNodeId.EqualsLiteral("null")) {
+    string16 deviceId;
+    int volumeId;
+    if (!rlz_lib::GetRawMachineId(&deviceId, &volumeId)) {
+      return false;
+    }
+
+    
+    mozilla::SHA1Sum hash;
+    hash.update(deviceId.c_str(), deviceId.size() * sizeof(string16::value_type));
+    hash.update(aNodeId.get(), aNodeId.Length());
+    hash.update(&volumeId, sizeof(int));
+    uint8_t digest[mozilla::SHA1Sum::kHashSize];
+    hash.finish(digest);
+    if (!rlz_lib::BytesToString(digest, mozilla::SHA1Sum::kHashSize, &mNodeId)) {
+      return false;
+    }
+
+    
+    
+    volumeId = 0;
+    memset(&deviceId.front(), '*', sizeof(string16::size_type) * deviceId.size());
+    deviceId = L"";
+  } else {
+    mNodeId = "null";
+  }
+#else
   mNodeId = std::string(aNodeId.BeginReading(), aNodeId.EndReading());
+#endif
   return true;
 }
 
