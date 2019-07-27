@@ -134,19 +134,10 @@ this.CrashManager.prototype = Object.freeze({
   PROCESS_TYPE_GMPLUGIN: "gmplugin",
 
   
-  PROCESS_TYPE_SUBMISSION: "submission",
-
-  
   CRASH_TYPE_CRASH: "crash",
 
   
   CRASH_TYPE_HANG: "hang",
-
-  
-  SUBMISSION_TYPE_SUCCEEDED: "succeeded",
-
-  
-  SUBMISSION_TYPE_FAILED: "failed",
 
   
   SUBMISSION_RESULT_OK: "ok",
@@ -374,38 +365,6 @@ this.CrashManager.prototype = Object.freeze({
         yield store.save();
       }
     }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  addSubmission: function (processType, crashType, succeeded, id, date) {
-    return Task.spawn(function* () {
-      let store = yield this._getStore();
-      if (this._addSubmissionAsCrash(store, processType, crashType, succeeded,
-                                     id, date)) {
-        yield store.save();
-      }
-    }.bind(this));
-  },
-
-  _addSubmissionAsCrash: function (store, processType, crashType, succeeded,
-                                   id, date) {
-    id += "-" + this.PROCESS_TYPE_SUBMISSION;
-    let process = processType + "-" + crashType + "-" +
-                  this.PROCESS_TYPE_SUBMISSION;
-    let submission_type = (
-      succeeded ? this.SUBMISSION_TYPE_SUCCEEDED : this.SUBMISSION_TYPE_FAILED);
-
-    return store.addCrash(process, submission_type, id, date);
   },
 
   
