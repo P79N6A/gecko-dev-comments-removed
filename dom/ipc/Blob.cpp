@@ -419,48 +419,15 @@ public:
   NS_IMETHOD
   Available(uint64_t* aAvailable) MOZ_OVERRIDE
   {
-    if (!IsOnOwningThread()) {
-      nsresult rv = BlockAndWaitForStream();
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = mStream->Available(aAvailable);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-#ifdef DEBUG
-    if (NS_IsMainThread()) {
-      NS_WARNING("Someone is trying to do main-thread I/O...");
-    }
-#endif
-
-    nsresult rv;
-
     
-    nsCOMPtr<nsIInputStream> inputStream;
-    {
-      MonitorAutoLock lock(mMonitor);
-
-      inputStream = mStream;
-    }
-
-    
-    if (inputStream) {
-      rv = inputStream->Available(aAvailable);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      return NS_OK;
-    }
-
-    
-    if (!mBlobImpl) {
+    if (IsOnOwningThread()) {
       return NS_BASE_STREAM_CLOSED;
     }
 
-    
-    NS_WARNING("Available() called before real stream has been delivered, "
-               "guessing the amount of data available!");
+    nsresult rv = BlockAndWaitForStream();
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mBlobImpl->GetSize(aAvailable);
+    rv = mStream->Available(aAvailable);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
