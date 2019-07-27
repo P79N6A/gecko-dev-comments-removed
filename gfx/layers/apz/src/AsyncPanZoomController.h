@@ -1022,7 +1022,7 @@ private:
 
 
 
-  bool OverscrollBy(const CSSPoint& aOverscroll);
+  bool OverscrollBy(const ScreenPoint& aOverscroll);
 
   
 

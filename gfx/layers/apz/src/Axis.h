@@ -8,7 +8,7 @@
 #define mozilla_layers_Axis_h
 
 #include <sys/types.h>                  
-#include "Units.h"                      
+#include "Units.h"
 #include "mozilla/TimeStamp.h"          
 #include "nsTArray.h"                   
 
@@ -36,20 +36,6 @@ class AsyncPanZoomController;
 class Axis {
 public:
   explicit Axis(AsyncPanZoomController* aAsyncPanZoomController);
-
-  enum Overscroll {
-    
-    OVERSCROLL_NONE = 0,
-    
-    
-    OVERSCROLL_MINUS,
-    
-    
-    OVERSCROLL_PLUS,
-    
-    
-    OVERSCROLL_BOTH
-  };
 
   
 
@@ -87,7 +73,7 @@ public:
 
 
 
-  bool AdjustDisplacement(CSSCoord aDisplacement,
+  bool AdjustDisplacement(ScreenCoord aDisplacement,
                            float& aDisplacementOut,
                            float& aOverscrollAmountOut);
 
@@ -95,12 +81,12 @@ public:
 
 
 
-  void OverscrollBy(CSSCoord aOverscroll);
+  void OverscrollBy(ScreenCoord aOverscroll);
 
   
 
 
-  CSSCoord GetOverscroll() const;
+  ScreenCoord GetOverscroll() const;
 
   
 
@@ -181,14 +167,7 @@ public:
 
 
 
-
-  Overscroll DisplacementWillOverscroll(CSSCoord aDisplacement);
-
-  
-
-
-
-  CSSCoord DisplacementWillOverscrollAmount(CSSCoord aDisplacement);
+  ScreenCoord DisplacementWillOverscrollAmount(ScreenCoord aDisplacement) const;
 
   
 
@@ -198,7 +177,11 @@ public:
 
 
 
-  CSSCoord ScaleWillOverscrollAmount(float aScale, CSSCoord aFocus);
+
+
+
+
+  CSSCoord ScaleWillOverscrollAmount(float aScale, CSSCoord aFocus) const;
 
   
 
@@ -207,20 +190,20 @@ public:
 
 
 
-  bool ScaleWillOverscrollBothSides(float aScale);
+  bool ScaleWillOverscrollBothSides(float aScale) const;
 
-  CSSCoord GetOrigin() const;
-  CSSCoord GetCompositionLength() const;
-  CSSCoord GetPageStart() const;
-  CSSCoord GetPageLength() const;
-  CSSCoord GetCompositionEnd() const;
-  CSSCoord GetPageEnd() const;
+  ScreenCoord GetOrigin() const;
+  ScreenCoord GetCompositionLength() const;
+  ScreenCoord GetPageStart() const;
+  ScreenCoord GetPageLength() const;
+  ScreenCoord GetCompositionEnd() const;
+  ScreenCoord GetPageEnd() const;
 
   ScreenCoord GetPos() const { return mPos; }
 
-  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const = 0;
-  virtual CSSCoord GetRectLength(const CSSRect& aRect) const = 0;
-  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const = 0;
+  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const = 0;
+  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const = 0;
+  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const = 0;
 
   virtual ScreenPoint MakePoint(ScreenCoord aCoord) const = 0;
 
@@ -228,7 +211,7 @@ protected:
   ScreenCoord mPos;
   uint32_t mPosTimeMs;
   ScreenCoord mStartPos;
-  float mVelocity;
+  float mVelocity;      
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
   
@@ -237,7 +220,7 @@ protected:
   
   
   
-  CSSCoord mOverscroll;
+  ScreenCoord mOverscroll;
   
   
   
@@ -248,25 +231,25 @@ protected:
 
   
   
-  CSSCoord ApplyResistance(CSSCoord aOverscroll) const;
+  ScreenCoord ApplyResistance(ScreenCoord aOverscroll) const;
 };
 
 class AxisX : public Axis {
 public:
   explicit AxisX(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const;
-  virtual CSSCoord GetRectLength(const CSSRect& aRect) const;
-  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const;
-  virtual ScreenPoint MakePoint(ScreenCoord aCoord) const;
+  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const MOZ_OVERRIDE;
+  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ScreenPoint MakePoint(ScreenCoord aCoord) const MOZ_OVERRIDE;
 };
 
 class AxisY : public Axis {
 public:
   explicit AxisY(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual CSSCoord GetPointOffset(const CSSPoint& aPoint) const;
-  virtual CSSCoord GetRectLength(const CSSRect& aRect) const;
-  virtual CSSCoord GetRectOffset(const CSSRect& aRect) const;
-  virtual ScreenPoint MakePoint(ScreenCoord aCoord) const;
+  virtual ScreenCoord GetPointOffset(const ScreenPoint& aPoint) const MOZ_OVERRIDE;
+  virtual ScreenCoord GetRectLength(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ScreenCoord GetRectOffset(const ScreenRect& aRect) const MOZ_OVERRIDE;
+  virtual ScreenPoint MakePoint(ScreenCoord aCoord) const MOZ_OVERRIDE;
 };
 
 }
