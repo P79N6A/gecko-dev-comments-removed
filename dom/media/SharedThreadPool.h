@@ -43,9 +43,9 @@ public:
   
   
   
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
-  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
-  NS_IMETHOD_(MozExternalRefCountType) Release(void);
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) MOZ_OVERRIDE;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void) MOZ_OVERRIDE;
+  NS_IMETHOD_(MozExternalRefCountType) Release(void) MOZ_OVERRIDE;
 
   
   NS_FORWARD_SAFE_NSITHREADPOOL(mPool);

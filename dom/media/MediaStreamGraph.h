@@ -693,10 +693,10 @@ public:
     mNeedsMixing(false)
   {}
 
-  virtual SourceMediaStream* AsSourceStream() { return this; }
+  virtual SourceMediaStream* AsSourceStream() MOZ_OVERRIDE { return this; }
 
   
-  virtual void DestroyImpl();
+  virtual void DestroyImpl() MOZ_OVERRIDE;
 
   
   
@@ -1069,7 +1069,7 @@ public:
 
   void SetAutofinish(bool aAutofinish);
 
-  virtual ProcessedMediaStream* AsProcessedStream() { return this; }
+  virtual ProcessedMediaStream* AsProcessedStream() MOZ_OVERRIDE { return this; }
 
   friend class MediaStreamGraphImpl;
 
@@ -1087,7 +1087,7 @@ public:
   {
     return mInputs.Length();
   }
-  virtual void DestroyImpl();
+  virtual void DestroyImpl() MOZ_OVERRIDE;
   
 
 

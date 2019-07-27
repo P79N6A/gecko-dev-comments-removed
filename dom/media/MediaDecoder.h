@@ -616,7 +616,7 @@ public:
   virtual bool IsMediaSeekable() MOZ_FINAL MOZ_OVERRIDE;
   
   
-  virtual bool IsTransportSeekable();
+  virtual bool IsTransportSeekable() MOZ_OVERRIDE;
 
   
   virtual nsresult GetSeekable(dom::TimeRanges* aSeekable);
@@ -749,7 +749,7 @@ public:
   
   void QueueMetadata(int64_t aPublishTime,
                      nsAutoPtr<MediaInfo> aInfo,
-                     nsAutoPtr<MetadataTags> aTags);
+                     nsAutoPtr<MetadataTags> aTags) MOZ_OVERRIDE;
 
   int64_t GetSeekTime() { return mRequestedSeekTarget.mTime; }
   void ResetSeekTime() { mRequestedSeekTarget.Reset(); }
@@ -775,11 +775,11 @@ public:
   
   
   virtual void MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
-                              nsAutoPtr<MetadataTags> aTags);
+                              nsAutoPtr<MetadataTags> aTags) MOZ_OVERRIDE;
 
   
   
-  virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo);
+  virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo) MOZ_OVERRIDE;
 
   
   

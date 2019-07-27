@@ -266,7 +266,7 @@ public:
 
   void RunThread();
   friend class MediaStreamGraphInitThreadRunnable;
-  uint32_t IterationDuration() {
+  virtual uint32_t IterationDuration() MOZ_OVERRIDE {
     return MEDIA_GRAPH_TARGET_PERIOD_MS;
   }
 
@@ -312,7 +312,7 @@ public:
   virtual void WaitForNextIteration() MOZ_OVERRIDE;
   virtual void WakeUp() MOZ_OVERRIDE;
   virtual TimeStamp GetCurrentTimeStamp() MOZ_OVERRIDE;
-  virtual OfflineClockDriver* AsOfflineClockDriver() {
+  virtual OfflineClockDriver* AsOfflineClockDriver() MOZ_OVERRIDE {
     return this;
   }
 
@@ -378,7 +378,7 @@ public:
   void StateCallback(cubeb_state aState);
   
 
-  uint32_t IterationDuration();
+  virtual uint32_t IterationDuration() MOZ_OVERRIDE;
 
   
 
@@ -388,7 +388,7 @@ public:
                              uint32_t aFrames,
                              uint32_t aSampleRate) MOZ_OVERRIDE;
 
-  virtual AudioCallbackDriver* AsAudioCallbackDriver() {
+  virtual AudioCallbackDriver* AsAudioCallbackDriver() MOZ_OVERRIDE {
     return this;
   }
 
