@@ -13,10 +13,7 @@ this.EXPORTED_SYMBOLS = [
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/Promise.jsm");
 
-
-
-
-let gScriptLoadedSet = new WeakSet();
+const FRAME_SCRIPT = "chrome://mochikit/content/tests/BrowserTestUtils/content-task.js";
 
 
 
@@ -50,12 +47,12 @@ this.ContentTask = {
 
 
   spawn: function ContentTask_spawn(browser, arg, task) {
-    if(!gScriptLoadedSet.has(browser.permanentKey)) {
-      let mm = browser.messageManager;
-      mm.loadFrameScript(
-        "chrome://mochikit/content/tests/BrowserTestUtils/content-task.js", true);
+    let mm = browser.ownerDocument.defaultView.messageManager;
+    let scripts = mm.getDelayedFrameScripts();
 
-      gScriptLoadedSet.add(browser.permanentKey);
+    
+    if (!scripts.find(script => script[0] == FRAME_SCRIPT)) {
+      mm.loadFrameScript(FRAME_SCRIPT, true);
     }
 
     let deferred = {};
