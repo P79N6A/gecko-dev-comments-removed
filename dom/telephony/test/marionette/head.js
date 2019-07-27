@@ -2,7 +2,7 @@
 
 
 
-Promise.defer = function() { return new Deferred(); }
+Promise.defer = function() { return new Deferred(); };
 function Deferred()  {
   this.promise = new Promise(function(resolve, reject) {
     this.resolve = resolve;
@@ -626,6 +626,38 @@ let emulator = (function() {
 
 
 
+  function resume(call) {
+    log("Resuming the held call.");
+
+    let deferred = Promise.defer();
+
+    let gotResuming = false;
+    call.onresuming = function onresuming(event) {
+      log("Received 'resuming' call event");
+      call.onresuming = null;
+      checkEventCallState(event, call, "resuming");
+      gotResuming = true;
+    };
+
+    call.onconnected = function onconnected(event) {
+      log("Received 'connected' call event");
+      call.onconnected = null;
+      checkEventCallState(event, call, "connected");
+      ok(gotResuming);
+      deferred.resolve(call);
+    };
+    call.resume();
+
+    return deferred.promise;
+  }
+
+  
+
+
+
+
+
+
   function hangUp(call) {
     let deferred = Promise.defer();
 
@@ -1203,6 +1235,7 @@ let emulator = (function() {
   this.gAnswer = answer;
   this.gHangUp = hangUp;
   this.gHold = hold;
+  this.gResume = resume;
   this.gRemoteDial = remoteDial;
   this.gRemoteAnswer = remoteAnswer;
   this.gRemoteHangUp = remoteHangUp;
