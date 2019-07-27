@@ -37,9 +37,10 @@ public:
   }
 
   WidgetGestureNotifyEvent(bool aIsTrusted, uint32_t aMessage,
-                           nsIWidget *aWidget) :
-    WidgetGUIEvent(aIsTrusted, aMessage, aWidget, NS_GESTURENOTIFY_EVENT),
-    panDirection(ePanNone), displayPanFeedback(false)
+                           nsIWidget *aWidget)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eGestureNotifyEventClass)
+    , panDirection(ePanNone)
+    , displayPanFeedback(false)
   {
   }
 
@@ -50,7 +51,7 @@ public:
     
     
     
-    MOZ_ASSERT(mClass == NS_GESTURENOTIFY_EVENT,
+    MOZ_ASSERT(mClass == eGestureNotifyEventClass,
                "Duplicate() must be overridden by sub class");
     
     WidgetGestureNotifyEvent* result =
