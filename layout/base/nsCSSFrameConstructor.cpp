@@ -1394,18 +1394,6 @@ nsFrameConstructorSaveState::~nsFrameConstructorSaveState()
   }
 }
 
-static
-bool IsBorderCollapse(nsIFrame* aFrame)
-{
-  for (nsIFrame* frame = aFrame; frame; frame = frame->GetParent()) {
-    if (nsGkAtoms::tableFrame == frame->GetType()) {
-      return ((nsTableFrame*)frame)->IsBorderCollapse();
-    }
-  }
-  NS_ASSERTION(false, "program error");
-  return false;
-}
-
 
 
 
@@ -2187,7 +2175,8 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   nsStyleContext* const styleContext = aItem.mStyleContext;
   const uint32_t nameSpaceID = aItem.mNameSpaceID;
 
-  bool borderCollapse = IsBorderCollapse(aParentFrame);
+  nsTableFrame* tableFrame =
+    static_cast<nsTableRowFrame*>(aParentFrame)->GetTableFrame();
   nsContainerFrame* newFrame;
   
   
@@ -2196,13 +2185,14 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
   
   
   
-  if (kNameSpaceID_MathML == nameSpaceID && !borderCollapse)
-    newFrame = NS_NewMathMLmtdFrame(mPresShell, styleContext);
-  else
+  if (kNameSpaceID_MathML == nameSpaceID && !tableFrame->IsBorderCollapse()) {
+    newFrame = NS_NewMathMLmtdFrame(mPresShell, styleContext, tableFrame);
+  } else {
     
     
     
-    newFrame = NS_NewTableCellFrame(mPresShell, styleContext, borderCollapse);
+    newFrame = NS_NewTableCellFrame(mPresShell, styleContext, tableFrame);
+  }
 
   
   InitAndRestoreFrame(aState, content, aParentFrame, newFrame);
@@ -8699,8 +8689,10 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext*    aPresContext,
     
     
     
+    nsTableFrame* tableFrame =
+      static_cast<nsTableRowFrame*>(aParentFrame)->GetTableFrame();
     nsTableCellFrame* cellFrame =
-      NS_NewTableCellFrame(shell, styleContext, IsBorderCollapse(aParentFrame));
+      NS_NewTableCellFrame(shell, styleContext, tableFrame);
 
     cellFrame->Init(content, aParentFrame, aFrame);
     if (cellFrame->GetStateBits() & NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN) {
