@@ -6,6 +6,7 @@
 
 
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/WidgetUtils.h"
 #include "NativeKeyBindings.h"
 #include "nsWidgetsCID.h"
 #include "nsAppShell.h"
@@ -268,6 +269,9 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
 static void
 nsWidgetGtk2ModuleDtor()
 {
+  
+  WidgetUtils::Shutdown();
+
   NativeKeyBindings::Shutdown();
   nsLookAndFeel::Shutdown();
   nsFilePicker::Shutdown();

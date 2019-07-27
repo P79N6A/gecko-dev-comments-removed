@@ -43,6 +43,12 @@ namespace widget {
 class WidgetUtils
 {
 public:
+  
+
+
+
+
+  static void Shutdown();
 
   
 

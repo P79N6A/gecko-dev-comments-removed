@@ -4,6 +4,7 @@
 
 
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/WidgetUtils.h"
 
 #include "nsCOMPtr.h"
 #include "nsWidgetsCID.h"
@@ -109,6 +110,9 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
 static void
 nsWidgetAndroidModuleDtor()
 {
+    
+    mozilla::widget::WidgetUtils::Shutdown();
+
     nsLookAndFeel::Shutdown();
     nsAppShellShutdown();
 }
