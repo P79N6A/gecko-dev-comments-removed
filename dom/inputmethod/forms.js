@@ -224,7 +224,8 @@ let FormAssistant = {
   scrollIntoViewTimeout: null,
   _focusedElement: null,
   _focusCounter: 0, 
-  _observer: null,
+  _focusDeleteObserver: null,
+  _focusContentObserver: null,
   _documentEncoder: null,
   _editor: null,
   _editing: false,
@@ -250,9 +251,13 @@ let FormAssistant = {
 
     if (this.focusedElement) {
       this.focusedElement.removeEventListener('compositionend', this);
-      if (this._observer) {
-        this._observer.disconnect();
-        this._observer = null;
+      if (this._focusDeleteObserver) {
+        this._focusDeleteObserver.disconnect();
+        this._focusDeleteObserver = null;
+      }
+      if (this._focusContentObserver) {
+        this._focusContentObserver.disconnect();
+        this._focusContentObserver = null;
       }
       if (this._selectionPrivate) {
         this._selectionPrivate.removeSelectionListener(this);
@@ -292,7 +297,7 @@ let FormAssistant = {
 
       
       let MutationObserver = element.ownerDocument.defaultView.MutationObserver;
-      this._observer = new MutationObserver(function(mutations) {
+      this._focusDeleteObserver = new MutationObserver(function(mutations) {
         var del = [].some.call(mutations, function(m) {
           return [].some.call(m.removedNodes, function(n) {
             return n.contains(element);
@@ -305,10 +310,23 @@ let FormAssistant = {
         }
       });
 
-      this._observer.observe(element.ownerDocument.body, {
+      this._focusDeleteObserver.observe(element.ownerDocument.body, {
         childList: true,
         subtree: true
       });
+
+      
+      
+      if (isContentEditable(element)) {
+        this._focusContentObserver = new MutationObserver(function() {
+          this.updateSelection();
+        }.bind(this));
+
+        this._focusContentObserver.observe(element, {
+          childList: true,
+          subtree: true
+        });
+      }
     }
 
     this.focusedElement = element;
