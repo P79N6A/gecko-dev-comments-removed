@@ -34,7 +34,11 @@ loop.shared.models = (function() {
                                    
       selectedCallType: undefined, 
                                    
-      callToken:    undefined      
+      callToken:    undefined,     
+                                   
+      subscribedStream: false,     
+                                   
+      publishedStream: false       
                                    
     },
 
@@ -217,6 +221,39 @@ loop.shared.models = (function() {
         return this.get("selectedCallType") === "audio-video";
       }
       return undefined;
+    },
+
+    
+
+
+
+
+
+    publish: function(publisher) {
+      this.session.publish(publisher);
+      this.set("publishedStream", true);
+    },
+
+    
+
+
+
+
+
+
+
+
+    subscribe: function(stream, element, config) {
+      this.session.subscribe(stream, element, config);
+      this.set("subscribedStream", true);
+    },
+
+    
+
+
+
+    streamsConnected: function() {
+      return this.get("publishedStream") && this.get("subscribedStream");
     },
 
     

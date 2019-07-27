@@ -194,6 +194,9 @@ loop.conversation = (function(OT, mozL10n) {
         this.navigate("call/declineAndBlock", {trigger: true});
       }.bind(this));
       this._conversation.once("call:incoming", this.startCall, this);
+      this._conversation.once("change:publishedStream", this._checkConnected, this);
+      this._conversation.once("change:subscribedStream", this._checkConnected, this);
+
       this._client.requestCallsInfo(loopVersion, function(err, sessionData) {
         if (err) {
           console.error("Failed to get the sessionData", err);
@@ -233,6 +236,18 @@ loop.conversation = (function(OT, mozL10n) {
         this._handleSessionError();
         return;
       }.bind(this));
+    },
+
+    
+
+
+
+    _checkConnected: function() {
+      
+      
+      if (this._conversation.streamsConnected()) {
+        this._websocket.mediaUp();
+      }
     },
 
     

@@ -414,6 +414,18 @@ loop.webapp = (function($, _, OT, webL10n) {
 
 
 
+    _checkConnected: function() {
+      
+      
+      if (this._conversation.streamsConnected()) {
+        this._websocket.mediaUp();
+      }
+    },
+
+    
+
+
+
     _handleWebSocketProgress: function(progressData) {
       if (progressData.state === "terminated") {
         
@@ -495,6 +507,8 @@ loop.webapp = (function($, _, OT, webL10n) {
         client: this._client
       });
       this._conversation.once("call:outgoing:setup", this.setupOutgoingCall, this);
+      this._conversation.once("change:publishedStream", this._checkConnected, this);
+      this._conversation.once("change:subscribedStream", this._checkConnected, this);
       this.loadReactComponent(startView);
     },
 

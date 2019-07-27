@@ -141,6 +141,17 @@ loop.CallConnectionWebSocket = (function() {
 
 
 
+    mediaUp: function() {
+      this._send({
+        messageType: "action",
+        event: "media-up"
+      });
+    },
+
+    
+
+
+
 
     _send: function(data) {
       this._log("WS Sending", data);
