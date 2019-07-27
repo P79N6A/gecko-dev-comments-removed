@@ -19,6 +19,7 @@
 #include "mozilla/layers/FenceUtils.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/mozalloc.h"           
+#include "mozilla/UniquePtr.h"          
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
@@ -569,7 +570,7 @@ public:
   virtual void OnShutdown() MOZ_OVERRIDE;
 
 protected:
-  mozilla::ipc::Shmem* mShmem;
+  UniquePtr<mozilla::ipc::Shmem> mShmem;
   RefPtr<ISurfaceAllocator> mDeallocator;
 };
 
