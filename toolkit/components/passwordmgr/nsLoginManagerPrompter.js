@@ -14,11 +14,9 @@ Cu.import("resource://gre/modules/SharedPromptUtils.jsm");
 
 const PROMPT_DISPLAYED = 0;
 
-const PROMPT_ADD = 1;
+const PROMPT_ADD_OR_UPDATE = 1;
 const PROMPT_NOTNOW = 2;
 const PROMPT_NEVER = 3;
-
-const PROMPT_UPDATE = 1;
 
 
 
@@ -742,8 +740,6 @@ LoginManagerPrompter.prototype = {
 
   promptToSavePassword : function (aLogin) {
     var notifyObj = this._getPopupNote() || this._getNotifyBox();
-    Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION").add(PROMPT_DISPLAYED);
-
     if (notifyObj)
       this._showSaveLoginNotification(notifyObj, aLogin);
     else
@@ -793,6 +789,100 @@ LoginManagerPrompter.prototype = {
 
 
 
+  _showLoginCaptureDoorhanger(login, type) {
+    let { browser } = this._getNotifyWindow();
+
+    let msgNames = type == "password-save" ? {
+      prompt: "rememberPasswordMsgNoUsername",
+      buttonLabel: "notifyBarRememberPasswordButtonText",
+      buttonAccessKey: "notifyBarRememberPasswordButtonAccessKey",
+    } : {
+      
+      
+      prompt: "updatePasswordMsg",
+      buttonLabel: "notifyBarUpdateButtonText",
+      buttonAccessKey: "notifyBarUpdateButtonAccessKey",
+    };
+
+    let histogramName = type == "password-save" ? "PWMGR_PROMPT_REMEMBER_ACTION"
+                                                : "PWMGR_PROMPT_UPDATE_ACTION";
+    let histogram = Services.telemetry.getHistogramById(histogramName);
+    histogram.add(PROMPT_DISPLAYED);
+
+    
+    let mainAction = {
+      label: this._getLocalizedString(msgNames.buttonLabel),
+      accessKey: this._getLocalizedString(msgNames.buttonAccessKey),
+      callback: () => {
+        histogram.add(PROMPT_ADD_OR_UPDATE);
+        let foundLogins = Services.logins.findLogins({}, login.hostname,
+                                                     login.formSubmitURL,
+                                                     login.httpRealm);
+        let logins = foundLogins.filter(l => l.username == login.username);
+        if (logins.length == 0) {
+          Services.logins.addLogin(login);
+        } else if (logins.length == 1) {
+          this._updateLogin(logins[0], login.password);
+        } else {
+          Cu.reportError("Unexpected match of multiple logins.");
+        }
+        browser.focus();
+      }
+    };
+
+    
+    let secondaryActions = type == "password-save" ? [{
+      label: this._getLocalizedString("notifyBarNeverRememberButtonText"),
+      accessKey: this._getLocalizedString("notifyBarNeverRememberButtonAccessKey"),
+      callback: () => {
+        histogram.add(PROMPT_NEVER);
+        Services.logins.setLoginSavingEnabled(login.hostname, false);
+        browser.focus();
+      }
+    }] : null;
+
+    let usernamePlaceholder = this._getLocalizedString("noUsernamePlaceholder");
+    let displayHost = this._getShortDisplayHost(login.hostname);
+
+    this._getPopupNote().show(
+      browser,
+      "password",
+      this._getLocalizedString(msgNames.prompt, [displayHost]),
+      "password-notification-icon",
+      mainAction,
+      secondaryActions,
+      {
+        timeout: Date.now() + 10000,
+        persistWhileVisible: true,
+        passwordNotificationType: type,
+        eventCallback: function (topic) {
+          if (topic != "showing") {
+            return false;
+          }
+
+          let chromeDoc = this.browser.ownerDocument;
+
+          chromeDoc.getElementById("password-notification-username")
+                   .setAttribute("placeholder", usernamePlaceholder);
+          chromeDoc.getElementById("password-notification-username")
+                   .setAttribute("value", login.username);
+          chromeDoc.getElementById("password-notification-password")
+                   .setAttribute("value", login.password);
+        },
+      }
+    );
+  },
+
+  
+
+
+
+
+
+
+
+
+
   _showSaveLoginNotification : function (aNotifyObj, aLogin) {
     
     
@@ -806,8 +896,6 @@ LoginManagerPrompter.prototype = {
           this._getLocalizedString("notifyBarRememberPasswordButtonText");
     var rememberButtonAccessKey =
           this._getLocalizedString("notifyBarRememberPasswordButtonAccessKey");
-    var usernamePlaceholder =
-          this._getLocalizedString("noUsernamePlaceholder");
 
     var displayHost = this._getShortDisplayHost(aLogin.hostname);
     var notificationText = this._getLocalizedString(
@@ -818,58 +906,10 @@ LoginManagerPrompter.prototype = {
     
     
     var pwmgr = this._pwmgr;
-    let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_REMEMBER_ACTION");
 
     
     if (aNotifyObj == this._getPopupNote()) {
-      
-      var mainAction = {
-        label:     rememberButtonText,
-        accessKey: rememberButtonAccessKey,
-        callback: function(aNotifyObj, aButton) {
-          promptHistogram.add(PROMPT_ADD);
-          pwmgr.addLogin(aLogin);
-          browser.focus();
-        }
-      };
-
-      var secondaryActions = [
-        
-        {
-          label:     neverButtonText,
-          accessKey: neverButtonAccessKey,
-          callback: function(aNotifyObj, aButton) {
-            promptHistogram.add(PROMPT_NEVER);
-            pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
-            browser.focus();
-          }
-        }
-      ];
-
-      var { browser } = this._getNotifyWindow();
-
-      let eventCallback = function (topic) {
-        if (topic != "showing") {
-          return false;
-        }
-
-        let chromeDoc = this.browser.ownerDocument;
-
-        chromeDoc.getElementById("password-notification-username")
-                 .setAttribute("placeholder", usernamePlaceholder);
-        chromeDoc.getElementById("password-notification-username")
-                 .setAttribute("value", aLogin.username);
-        chromeDoc.getElementById("password-notification-password")
-                 .setAttribute("value", aLogin.password);
-      };
-
-      aNotifyObj.show(browser, "password", notificationText,
-                      "password-notification-icon", mainAction,
-                      secondaryActions,
-                      { timeout: Date.now() + 10000,
-                        persistWhileVisible: true,
-                        passwordNotificationType: "password-save",
-                        eventCallback });
+      this._showLoginCaptureDoorhanger(aLogin, "password-save");
     } else {
       var notNowButtonText =
             this._getLocalizedString("notifyBarNotNowButtonText");
@@ -1030,8 +1070,6 @@ LoginManagerPrompter.prototype = {
           this._getLocalizedString("notifyBarUpdateButtonText");
     var changeButtonAccessKey =
           this._getLocalizedString("notifyBarUpdateButtonAccessKey");
-    var usernamePlaceholder =
-          this._getLocalizedString("noUsernamePlaceholder");
 
     
     
@@ -1044,44 +1082,10 @@ LoginManagerPrompter.prototype = {
     
     var self = this;
 
-    let promptHistogram = Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION");
     
     if (aNotifyObj == this._getPopupNote()) {
-      
-      var mainAction = {
-        label:     changeButtonText,
-        accessKey: changeButtonAccessKey,
-        popup:     null,
-        callback:  function(aNotifyObj, aButton) {
-          self._updateLogin(aOldLogin, aNewPassword);
-          promptHistogram.add(PROMPT_UPDATE);
-        }
-      };
-
-      var { browser } = this._getNotifyWindow();
-
-      let eventCallback = function (topic) {
-        if (topic != "showing") {
-          return false;
-        }
-
-        let chromeDoc = this.browser.ownerDocument;
-
-        chromeDoc.getElementById("password-notification-username")
-                 .setAttribute("placeholder", usernamePlaceholder);
-        chromeDoc.getElementById("password-notification-username")
-                 .setAttribute("value", aOldLogin.username);
-        chromeDoc.getElementById("password-notification-password")
-                 .setAttribute("value", aNewPassword);
-      };
-
-      Services.telemetry.getHistogramById("PWMGR_PROMPT_UPDATE_ACTION").add(PROMPT_DISPLAYED);
-      aNotifyObj.show(browser, "password", notificationText,
-                      "password-notification-icon", mainAction,
-                      null, { timeout: Date.now() + 10000,
-                              persistWhileVisible: true,
-                              passwordNotificationType: "password-change",
-                              eventCallback });
+      aOldLogin.password = aNewPassword;
+      this._showLoginCaptureDoorhanger(aOldLogin, "password-change");
     } else {
       var dontChangeButtonText =
             this._getLocalizedString("notifyBarDontChangeButtonText");
