@@ -1,0 +1,54 @@
+
+
+
+
+#defaultEngine > .menulist-label-box > .menulist-icon {
+  height: 16px;
+}
+
+
+.searchengine-menuitem > .menu-iconic-left {
+  display: -moz-box;
+}
+
+#engineList {
+  margin: .5em 6px;
+}
+
+#engineList treechildren::-moz-tree-image(engineShown, checked) {
+  
+  list-style-image: url("check.png");
+  -moz-margin-start: 5px;
+  width: 12px;
+  height: 12px;
+}
+
+@media (min-resolution: 2dppx) {
+  #engineList treechildren::-moz-tree-image(engineShown, checked) {
+    list-style-image: url("check@2x.png");
+  }
+}
+
+#engineList treechildren::-moz-tree-image(engineName) {
+  -moz-margin-end: 10px;
+  -moz-margin-start: 1px;
+  width: 16px;
+  height: 16px;
+}
+
+#engineList treechildren::-moz-tree-row {
+  min-height: 36px;
+}
+
+#engineList treechildren::-moz-tree-cell-text {
+  
+  color: -moz-FieldText;
+}
+
+#engineList treechildren::-moz-tree-drop-feedback {
+  background-color: Highlight;
+  width: 10000px; 
+
+  height: 2px;
+  -moz-margin-start: 0;
+}
