@@ -319,7 +319,7 @@ public:
 
   void Composite();
 
-  void SendPendingAsyncMessge();
+  virtual void SendPendingAsyncMessges();
 
   
 
@@ -403,6 +403,7 @@ protected:
 private:
 
   Transaction* mTxn;
+  std::vector<AsyncChildMessageData> mPendingAsyncMessages;
   DiagnosticTypes mDiagnosticTypes;
   bool mIsFirstPaint;
   bool mWindowOverlayChanged;

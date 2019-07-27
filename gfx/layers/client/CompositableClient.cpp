@@ -171,6 +171,10 @@ CompositableClient::Destroy()
   if (!mCompositableChild) {
     return;
   }
+  
+  
+  mForwarder->SendPendingAsyncMessges();
+  
   mCompositableChild->mCompositableClient = nullptr;
   PCompositableChild::Send__delete__(mCompositableChild);
   mCompositableChild = nullptr;
