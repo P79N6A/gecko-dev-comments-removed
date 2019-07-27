@@ -3426,7 +3426,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(AsyncVerifyRedirectCallbackForwarder)
 
   
-  NS_IMETHOD OnRedirectVerifyCallback(nsresult result)
+  NS_IMETHOD OnRedirectVerifyCallback(nsresult result) MOZ_OVERRIDE
   {
     mXHR->OnRedirectVerifyCallback(result);
 
