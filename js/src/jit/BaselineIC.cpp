@@ -1015,6 +1015,14 @@ ICWarmUpCounter_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
         masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &checkOk);
         masm.loadPtr(AbsoluteAddress((void*)&cx->mainThread().jitActivation), scratchReg);
         masm.loadPtr(Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()), scratchReg);
+
+        
+        
+        
+        
+        
+        masm.branchPtr(Assembler::Equal, scratchReg, Imm32(0), &checkOk);
+
         masm.branchPtr(Assembler::Equal, scratchReg, BaselineStackReg, &checkOk);
         masm.assumeUnreachable("Baseline OSR lastProfilingFrame mismatch.");
         masm.bind(&checkOk);
