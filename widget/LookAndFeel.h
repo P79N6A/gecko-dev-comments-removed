@@ -39,6 +39,7 @@ public:
     eColorID_TextForeground,
     eColorID_TextSelectBackground,
     eColorID_TextSelectForeground,
+    eColorID_TextSelectForegroundCustom,
     eColorID_TextSelectBackgroundDisabled,
     eColorID_TextSelectBackgroundAttention,
     eColorID_TextHighlightBackground,
@@ -587,6 +588,12 @@ public:
 
 
 #define NS_DONT_CHANGE_COLOR 	NS_RGB(0x01, 0x01, 0x01)
+
+
+
+
+
+#define NS_CHANGE_COLOR_IF_SAME_AS_BG NS_RGB(0x02, 0x02, 0x02)
 
 
 
