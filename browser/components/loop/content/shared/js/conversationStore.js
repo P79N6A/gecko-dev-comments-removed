@@ -10,8 +10,9 @@ loop.store = loop.store || {};
 (function() {
   var sharedActions = loop.shared.actions;
   var CALL_TYPES = loop.shared.utils.CALL_TYPES;
-
   var REST_ERRNOS = loop.shared.utils.REST_ERRNOS;
+  var FAILURE_DETAILS = loop.shared.utils.FAILURE_DETAILS;
+
   
 
 
@@ -132,6 +133,7 @@ loop.store = loop.store || {};
       this.client = options.client;
       this.sdkDriver = options.sdkDriver;
       this.mozLoop = options.mozLoop;
+      this._isDesktop = options.isDesktop || false;
     },
 
     
@@ -141,6 +143,21 @@ loop.store = loop.store || {};
 
 
     connectionFailure: function(actionData) {
+      
+
+
+
+
+      if (this._isDesktop &&
+          actionData.reason === FAILURE_DETAILS.UNABLE_TO_PUBLISH_MEDIA &&
+          this.getStoreState().videoMuted === false) {
+        
+        
+        this.setStoreState({videoMuted: true});
+        this.sdkDriver.retryPublishWithoutVideo();
+        return;
+      }
+
       this._endSession();
       this.setStoreState({
         callState: CALL_STATES.TERMINATED,

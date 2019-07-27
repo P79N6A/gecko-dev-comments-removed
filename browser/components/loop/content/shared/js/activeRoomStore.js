@@ -55,6 +55,8 @@ loop.store.ActiveRoomStore = (function() {
         throw new Error("Missing option sdkDriver");
       }
       this._sdkDriver = options.sdkDriver;
+
+      this._isDesktop = options.isDesktop || false;
     },
 
     
@@ -356,6 +358,21 @@ loop.store.ActiveRoomStore = (function() {
 
 
     connectionFailure: function(actionData) {
+      
+
+
+
+
+      if (this._isDesktop &&
+          actionData.reason === FAILURE_DETAILS.UNABLE_TO_PUBLISH_MEDIA &&
+          this.getStoreState().videoMuted === false) {
+        
+        
+        this.setStoreState({videoMuted: true});
+        this._sdkDriver.retryPublishWithoutVideo();
+        return;
+      }
+
       
       
       

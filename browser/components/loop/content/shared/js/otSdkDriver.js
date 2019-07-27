@@ -33,6 +33,21 @@ loop.OTSdkDriver = (function() {
         "setupStreamElements",
         "setMute"
       ]);
+
+    
+
+
+
+
+    if ("isDesktop" in options && options.isDesktop &&
+        !window.MediaStreamTrack.getSources) {
+      
+      
+      
+      window.MediaStreamTrack.getSources = function(callback) {
+        callback([{kind: "audio"}, {kind: "video"}]);
+      };
+    }
   };
 
   OTSdkDriver.prototype = {
@@ -57,9 +72,19 @@ loop.OTSdkDriver = (function() {
       this.getRemoteElement = actionData.getRemoteElementFunc;
       this.publisherConfig = actionData.publisherConfig;
 
+      this.sdk.on("exception", this._onOTException.bind(this));
+
       
       
       
+      this._publishLocalStreams();
+    },
+
+    
+
+
+
+    _publishLocalStreams: function() {
       this.publisher = this.sdk.initPublisher(this.getLocalElement(),
         this._getCopyPublisherConfig());
       this.publisher.on("streamCreated", this._onLocalStreamCreated.bind(this));
@@ -67,6 +92,17 @@ loop.OTSdkDriver = (function() {
       this.publisher.on("accessDenied", this._onPublishDenied.bind(this));
       this.publisher.on("accessDialogOpened",
         this._onAccessDialogOpened.bind(this));
+    },
+
+    
+
+
+
+    retryPublishWithoutVideo: function() {
+      window.MediaStreamTrack.getSources = function(callback) {
+        callback([{kind: "audio"}]);
+      };
+      this._publishLocalStreams();
     },
 
     
@@ -434,6 +470,22 @@ loop.OTSdkDriver = (function() {
       this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
         reason: FAILURE_DETAILS.MEDIA_DENIED
       }));
+    },
+
+    _onOTException: function(event) {
+      if (event.code === OT.ExceptionCodes.UNABLE_TO_PUBLISH &&
+          event.message === "GetUserMedia") {
+        
+        
+        if (this.publisher) {
+          this.publisher.off("accessAllowed accessDenied accessDialogOpened streamCreated");
+          this.publisher.destroy();
+          delete this.publisher;
+        }
+        this.dispatcher.dispatch(new sharedActions.ConnectionFailure({
+          reason: FAILURE_DETAILS.UNABLE_TO_PUBLISH_MEDIA
+        }));
+      }
     },
 
     
