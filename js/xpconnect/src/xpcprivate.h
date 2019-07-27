@@ -3602,8 +3602,6 @@ public:
         , skipWriteToGlobalPrototype(false)
         , universalXPConnectEnabled(false)
         , forcePermissiveCOWs(false)
-        , adoptedNode(false)
-        , donatedNode(false)
         , warnedAboutXrays(false)
         , scriptability(c)
         , scope(nullptr)
@@ -3655,10 +3653,6 @@ public:
     
     
     bool forcePermissiveCOWs;
-
-    
-    bool adoptedNode;
-    bool donatedNode;
 
     
     

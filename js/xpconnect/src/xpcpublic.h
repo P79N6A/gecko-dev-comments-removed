@@ -479,12 +479,6 @@ SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 void
 SimulateActivityCallback(bool aActive);
 
-void
-RecordAdoptedNode(JSCompartment *c);
-
-void
-RecordDonatedNode(JSCompartment *c);
-
 
 
 bool
