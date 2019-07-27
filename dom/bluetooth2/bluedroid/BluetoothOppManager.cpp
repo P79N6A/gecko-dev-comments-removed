@@ -751,6 +751,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aMessage);
 
+  const uint8_t* data = aMessage->GetData();
   int frameHeaderLength = 0;
 
   
@@ -759,8 +760,9 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
     
     frameHeaderLength = 3;
 
-    mPacketLength = ((((int)aMessage->mData[1]) << 8) | aMessage->mData[2]) -
-                      frameHeaderLength;
+    mPacketLength = ((static_cast<int>(data[1]) << 8) | data[2]) -
+                    frameHeaderLength;
+
     
 
 
@@ -771,7 +773,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
     mPutFinalFlag = (aOpCode == ObexRequestCode::PutFinal);
   }
 
-  int dataLength = aMessage->mSize - frameHeaderLength;
+  int dataLength = aMessage->GetSize() - frameHeaderLength;
 
   
   if (dataLength < 0 ||
@@ -786,7 +788,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
   }
 
   memcpy(mReceivedDataBuffer.get() + mPutPacketReceivedLength,
-         &aMessage->mData[frameHeaderLength], dataLength);
+         &data[frameHeaderLength], dataLength);
 
   mPutPacketReceivedLength += dataLength;
 
@@ -799,12 +801,13 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
   MOZ_ASSERT(NS_IsMainThread());
 
   uint8_t opCode;
-  int receivedLength = aMessage->mSize;
+  int receivedLength = aMessage->GetSize();
+  const uint8_t* data = aMessage->GetData();
 
   if (mPutPacketReceivedLength > 0) {
     opCode = mPutFinalFlag ? ObexRequestCode::PutFinal : ObexRequestCode::Put;
   } else {
-    opCode = aMessage->mData[0];
+    opCode = data[0];
 
     
     
@@ -821,7 +824,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     
     
     
-    if (!ParseHeaders(&aMessage->mData[7], receivedLength - 7, &pktHeaders)) {
+    if (!ParseHeaders(&data[7], receivedLength - 7, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -831,7 +834,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
   } else if (opCode == ObexRequestCode::Abort) {
     
     
-    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+    if (!ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -841,7 +844,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
   } else if (opCode == ObexRequestCode::Disconnect) {
     
     
-    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+    if (!ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -924,7 +927,8 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  uint8_t opCode = aMessage->mData[0];
+  const uint8_t* data = aMessage->GetData();
+  uint8_t opCode = data[0];
 
   
   
@@ -981,10 +985,9 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
     AfterOppConnected();
 
     
-    mRemoteObexVersion = aMessage->mData[3];
-    mRemoteConnectionFlags = aMessage->mData[4];
-    mRemoteMaxPacketLength =
-      (((int)(aMessage->mData[5]) << 8) | aMessage->mData[6]);
+    mRemoteObexVersion = data[3];
+    mRemoteConnectionFlags = data[4];
+    mRemoteMaxPacketLength = ((static_cast<int>(data[5]) << 8) | data[6]);
 
     
     int fileNameByteLen = (mFileName.Length() + 1) * 2;
@@ -1253,8 +1256,7 @@ BluetoothOppManager::SendObexData(uint8_t* aData, uint8_t aOpcode, int aSize)
     mLastCommand = aOpcode;
   }
 
-  UnixSocketRawData* s = new UnixSocketRawData(aSize);
-  memcpy(s->mData, aData, s->mSize);
+  UnixSocketRawData* s = new UnixSocketRawData(aData, aSize);
   mSocket->SendSocketData(s);
 }
 
