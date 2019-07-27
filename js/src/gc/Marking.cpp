@@ -2414,11 +2414,7 @@ js::UnmarkGrayCellRecursively(gc::Cell* cell, JS::TraceKind kind)
     MOZ_ASSERT(cell);
 
     JSRuntime* rt = cell->runtimeFromMainThread();
-
-    
-    
-    if (rt->isHeapBusy())
-        return false;
+    MOZ_ASSERT(!rt->isHeapBusy());
 
     bool unmarkedArg = false;
     if (cell->isTenured()) {
