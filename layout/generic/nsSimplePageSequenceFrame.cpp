@@ -117,6 +117,43 @@ nsSimplePageSequenceFrame::SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
                                  nscoord(aHeight * PresContext()->GetPrintPreviewScale()));
 }
 
+
+
+nscoord
+nsSimplePageSequenceFrame::ComputeCenteringMargin(
+  nscoord aContainerContentBoxWidth,
+  nscoord aChildPaddingBoxWidth,
+  const nsMargin& aChildPhysicalMargin)
+{
+  
+  nscoord childMarginBoxWidth =
+    aChildPaddingBoxWidth + aChildPhysicalMargin.LeftRight();
+
+  
+  
+  
+  
+  auto ppScale = PresContext()->GetPrintPreviewScale();
+  nscoord scaledChildMarginBoxWidth =
+    NSToCoordRound(childMarginBoxWidth * ppScale);
+
+  
+  
+  nscoord scaledExtraSpace =
+    aContainerContentBoxWidth - scaledChildMarginBoxWidth;
+
+  if (scaledExtraSpace <= 0) {
+    
+    return 0;
+  }
+
+  
+  
+  
+  
+  return NSToCoordRound(scaledExtraSpace * 0.5 / ppScale);
+}
+
 void
 nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
                                   nsHTMLReflowMetrics&     aDesiredSize,
@@ -138,6 +175,22 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     SetDesiredSize(aDesiredSize, aReflowState, mSize.width, mSize.height);
     aDesiredSize.SetOverflowAreasToDesiredBounds();
     FinishAndStoreOverflow(&aDesiredSize);
+
+    if (GetRect().Width() != aDesiredSize.Width()) {
+      
+      for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+        nsIFrame* child = e.get();
+        nsMargin pageCSSMargin = child->GetUsedMargin();
+        nscoord centeringMargin =
+          ComputeCenteringMargin(aReflowState.ComputedWidth(),
+                                 child->GetRect().width,
+                                 pageCSSMargin);
+        nscoord newX = pageCSSMargin.left + centeringMargin;
+
+        
+        child->MovePositionBy(nsPoint(newX - child->GetNormalPosition().x, 0));
+      }
+    }
     return;
   }
 
@@ -219,11 +272,15 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
     nsMargin pageCSSMargin = kidReflowState.ComputedPhysicalMargin();
     y += pageCSSMargin.top;
-    const nscoord x = pageCSSMargin.left;
+
+    nscoord x = pageCSSMargin.left;
 
     
-    
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, x, y, 0, status);
+
+    
+    x += ComputeCenteringMargin(aReflowState.ComputedWidth(),
+                                kidSize.Width(), pageCSSMargin);
 
     FinishReflowChild(kidFrame, aPresContext, kidSize, nullptr, x, y, 0);
     y += kidSize.Height();
@@ -763,7 +820,7 @@ nsSimplePageSequenceFrame::DoPageEnd()
   return rv;
 }
 
-static gfx::Matrix4x4
+inline gfx::Matrix4x4
 ComputePageSequenceTransform(nsIFrame* aFrame, float aAppUnitsPerPixel)
 {
   float scale = aFrame->PresContext()->GetPrintPreviewScale();

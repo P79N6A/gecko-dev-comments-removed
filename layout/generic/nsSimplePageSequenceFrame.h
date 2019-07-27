@@ -129,6 +129,13 @@ protected:
                       const nsHTMLReflowState& aReflowState,
                       nscoord aWidth, nscoord aHeight);
 
+  
+  
+  nscoord ComputeCenteringMargin(nscoord aContainerContentBoxWidth,
+                                 nscoord aChildPaddingBoxWidth,
+                                 const nsMargin& aChildPhysicalMargin);
+
+
   void DetermineWhetherToPrintPage();
   nsIFrame* GetCurrentPageFrame();
 
