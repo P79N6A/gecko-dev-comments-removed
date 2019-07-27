@@ -313,13 +313,30 @@ RenderLayers(ContainerT* aContainer,
       layerToRender->SetShadowVisibleRegion(preparedData.mSavedVisibleRegion);
     }
 
+    Layer* layer = layerToRender->GetLayer();
     if (gfxPrefs::UniformityInfo()) {
-      PrintUniformityInfo(layerToRender->GetLayer());
+      PrintUniformityInfo(layer);
     }
 
     if (gfxPrefs::DrawLayerInfo()) {
-      DrawLayerInfo(clipRect, aManager, layerToRender->GetLayer());
+      DrawLayerInfo(clipRect, aManager, layer);
     }
+
+    
+    for (uint32_t i = 0; i < layer->GetFrameMetricsCount(); i++) {
+      
+      
+      if (layer->GetFrameMetrics(i).IsScrollable()) {
+        
+        
+        ParentLayerRect compositionBounds = layer->GetFrameMetrics(i).mCompositionBounds;
+        aManager->GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTAINER,
+                                                   compositionBounds.ToUnknownRect(),
+                                                   gfx::Rect(aClipRect.ToUnknownRect()),
+                                                   aContainer->GetEffectiveTransform());
+      }
+    }
+
     
     
   }
@@ -433,19 +450,6 @@ ContainerRender(ContainerT* aContainer,
     RenderLayers(aContainer, aManager, RenderTargetPixel::FromUntyped(aClipRect));
   }
   aContainer->mPrepared = nullptr;
-
-  for (uint32_t i = 0; i < aContainer->GetFrameMetricsCount(); i++) {
-    if (!aContainer->GetFrameMetrics(i).IsScrollable()) {
-      continue;
-    }
-    const FrameMetrics& frame = aContainer->GetFrameMetrics(i);
-    LayerRect layerBounds = frame.mCompositionBounds * ParentLayerToLayerScale(1.0);
-    gfx::Rect rect(layerBounds.x, layerBounds.y, layerBounds.width, layerBounds.height);
-    gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
-    aManager->GetCompositor()->DrawDiagnostics(DiagnosticFlags::CONTAINER,
-                                               rect, clipRect,
-                                               aContainer->GetEffectiveTransform());
-  }
 }
 
 ContainerLayerComposite::ContainerLayerComposite(LayerManagerComposite *aManager)
