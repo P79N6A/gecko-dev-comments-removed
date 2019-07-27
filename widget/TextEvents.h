@@ -242,7 +242,7 @@ public:
   }
 
   
-  nsString theText;
+  nsString mData;
   
   
   

@@ -388,7 +388,7 @@ PuppetWidget::IMEEndComposition(bool aCancel)
   
   
   if (!mTabChild ||
-      !mTabChild->SendEndIMEComposition(aCancel, &textEvent.theText)) {
+      !mTabChild->SendEndIMEComposition(aCancel, &textEvent.mData)) {
     return NS_ERROR_FAILURE;
   }
 
