@@ -112,7 +112,7 @@ let PdfjsContentUtils = {
 
 
 
-  displayWarning: function (aWindow, aMessage, aCallback, aLabel, accessKey) {
+  displayWarning: function (aWindow, aMessage, aLabel, accessKey) {
     
     let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIDocShell)
@@ -122,8 +122,6 @@ let PdfjsContentUtils = {
       message: aMessage,
       label: aLabel,
       accessKey: accessKey
-    }, {
-      callback: aCallback
     });
   },
 
