@@ -121,6 +121,8 @@ Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
   mLastDataReadEpoch = mLastReadEpoch;
 
   mPingThreshold = gHttpHandler->SpdyPingThreshold();
+
+  mNegotiatedToken.AssignLiteral(NS_HTTP2_DRAFT_TOKEN);
 }
 
 
@@ -3027,6 +3029,14 @@ Http2Session::ConfirmTLSProfile()
 
 
 
+
+  nsresult rv = ssl->GetNegotiatedNPN(mNegotiatedToken);
+  if (NS_FAILED(rv)) {
+    
+    LOG3(("Http2Session::ConfirmTLSProfile %p could not get negotiated token. "
+          "Falling back to draft token.", this));
+    mNegotiatedToken.AssignLiteral(NS_HTTP2_DRAFT_TOKEN);
+  }
 
   mTLSProfileConfirmed = true;
   return NS_OK;

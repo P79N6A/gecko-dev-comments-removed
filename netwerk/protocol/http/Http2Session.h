@@ -211,6 +211,7 @@ public:
   nsISocketTransport *SocketTransport() { return mSocketTransport; }
   int64_t ServerSessionWindow() { return mServerSessionWindow; }
   void DecrementServerSessionWindow (uint32_t bytes) { mServerSessionWindow -= bytes; }
+  void GetNegotiatedToken(nsACString &s) { s.Assign(mNegotiatedToken); }
 
 private:
 
@@ -455,6 +456,9 @@ private:
   
   bool mWaitingForSettingsAck;
   bool mGoAwayOnPush;
+
+  
+  nsCString mNegotiatedToken;
 
 private:
 

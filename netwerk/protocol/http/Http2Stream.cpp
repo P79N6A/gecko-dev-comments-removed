@@ -881,7 +881,11 @@ Http2Stream::ConvertResponseHeaders(Http2Decompressor *decompressor,
   
 
   aHeadersIn.Truncate();
-  aHeadersOut.Append("X-Firefox-Spdy: " NS_HTTP2_DRAFT_TOKEN "\r\n\r\n");
+  nsAutoCString negotiatedToken;
+  mSession->GetNegotiatedToken(negotiatedToken);
+  aHeadersOut.Append("X-Firefox-Spdy: ");
+  aHeadersOut.Append(negotiatedToken);
+  aHeadersOut.Append("\r\n\r\n");
   LOG (("decoded response headers are:\n%s", aHeadersOut.BeginReading()));
   if (mIsTunnel && !mPlainTextTunnel) {
     aHeadersOut.Truncate();
