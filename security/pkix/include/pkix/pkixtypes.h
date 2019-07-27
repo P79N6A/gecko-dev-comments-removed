@@ -70,12 +70,6 @@ MOZILLA_PKIX_ENUM_CLASS SignatureAlgorithm
   rsa_pkcs1_with_sha1 = 16,
 
   
-  dsa_with_sha256 = 17,
-
-  
-  dsa_with_sha1 = 18,
-
-  
   unsupported_algorithm = 19,
 };
 

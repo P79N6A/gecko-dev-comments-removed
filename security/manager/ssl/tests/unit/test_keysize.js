@@ -88,7 +88,6 @@ function checkForKeyType(keyType, inadequateKeySize, adequateKeySize) {
 
 function run_test() {
   checkForKeyType("rsa", 1016, 1024);
-  checkForKeyType("dsa", 960, 1024);
 
   run_next_test();
 }

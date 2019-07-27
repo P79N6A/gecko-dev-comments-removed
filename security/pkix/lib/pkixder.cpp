@@ -140,12 +140,6 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
 {
   
   
-  static const uint8_t id_dsa_with_sha256[] = {
-    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x02
-  };
-
-  
-  
   static const uint8_t ecdsa_with_SHA256[] = {
     0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02
   };
@@ -189,12 +183,6 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
 
   
   
-  static const uint8_t id_dsa_with_sha1[] = {
-    0x2a, 0x86, 0x48, 0xce, 0x38, 0x04, 0x03
-  };
-
-  
-  
   static const uint8_t ecdsa_with_SHA1[] = {
     0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x01
   };
@@ -226,10 +214,6 @@ SignatureAlgorithmOIDValue(Reader& algorithmID,
     algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha384;
   } else if (algorithmID.MatchRest(sha512WithRSAEncryption)) {
     algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha512;
-  } else if (algorithmID.MatchRest(id_dsa_with_sha1)) {
-    algorithm = SignatureAlgorithm::dsa_with_sha1;
-  } else if (algorithmID.MatchRest(id_dsa_with_sha256)) {
-    algorithm = SignatureAlgorithm::dsa_with_sha256;
   } else if (algorithmID.MatchRest(sha1WithRSASignature)) {
     
     algorithm = SignatureAlgorithm::rsa_pkcs1_with_sha1;

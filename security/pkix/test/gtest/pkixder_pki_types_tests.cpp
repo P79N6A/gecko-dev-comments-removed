@@ -350,15 +350,32 @@ static const AlgorithmIdentifierTestInfo<SignatureAlgorithm>
   },
 
   
-  { SignatureAlgorithm::dsa_with_sha256,
+  { SignatureAlgorithm::unsupported_algorithm,
     { 0x30, 0x0b, 0x06, 0x09,
       0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x03, 0x02 },
     13,
   },
-  { SignatureAlgorithm::dsa_with_sha1,
+
+  
+  { SignatureAlgorithm::unsupported_algorithm,
     { 0x30, 0x09, 0x06, 0x07,
       0x2a, 0x86, 0x48, 0xce, 0x38, 0x04, 0x03 },
     11,
+  },
+
+  
+  { SignatureAlgorithm::unsupported_algorithm,
+    { 0x30, 0x0b, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x04 },
+    13,
+  },
+
+  
+  
+  { SignatureAlgorithm::unsupported_algorithm,
+    { 0x30, 0x0b, 0x06, 0x09,
+      0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01 },
+    13,
   },
 };
 
@@ -369,7 +386,7 @@ class pkixder_SignatureAlgorithmIdentifier
 {
 };
 
-TEST_P(pkixder_SignatureAlgorithmIdentifier, Valid)
+TEST_P(pkixder_SignatureAlgorithmIdentifier, ValidAndInvalid)
 {
   const AlgorithmIdentifierTestInfo<SignatureAlgorithm>& param(GetParam());
 
@@ -403,37 +420,5 @@ TEST_P(pkixder_SignatureAlgorithmIdentifier, Valid)
 INSTANTIATE_TEST_CASE_P(pkixder_SignatureAlgorithmIdentifier,
                         pkixder_SignatureAlgorithmIdentifier,
                         testing::ValuesIn(SIGNATURE_ALGORITHM_TEST_INFO));
-
-TEST_F(pkixder_SignatureAlgorithmIdentifier, Invalid_RSA_With_MD5)
-{
-  
-  
-  static const uint8_t DER[] = {
-    0x30, 0x0b, 0x06, 0x09,
-    0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x04
-  };
-  Input input(DER);
-  Reader reader(input);
-
-  SignatureAlgorithm alg;
-  ASSERT_EQ(Success, SignatureAlgorithmIdentifier(reader, alg));
-  ASSERT_EQ(SignatureAlgorithm::unsupported_algorithm, alg);
-}
-
-TEST_F(pkixder_SignatureAlgorithmIdentifier, Invalid_SignatureAlgorithm_SHA256)
-{
-  
-  
-  static const uint8_t DER[] = {
-    0x30, 0x0b, 0x06, 0x09,
-    0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01
-  };
-  Input input(DER);
-  Reader reader(input);
-
-  SignatureAlgorithm alg;
-  ASSERT_EQ(Success, SignatureAlgorithmIdentifier(reader, alg));
-  ASSERT_EQ(SignatureAlgorithm::unsupported_algorithm, alg);
-}
 
 } 
