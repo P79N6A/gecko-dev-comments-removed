@@ -227,4 +227,11 @@ bool net_IsValidIPv4Addr(const char *addr, int32_t addrLen);
 
 bool net_IsValidIPv6Addr(const char *addr, int32_t addrLen);
 
+
+
+
+
+
+int32_t net_GetURLMaxLength();
+
 #endif 
