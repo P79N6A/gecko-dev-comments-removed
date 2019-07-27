@@ -546,10 +546,14 @@ class GCRuntime
 #ifdef JSGC_COMPACTING
     void sweepTypesAfterCompacting(Zone *zone);
     void sweepZoneAfterCompacting(Zone *zone);
-    void compactPhase();
+    void compactPhase(bool lastGC);
     ArenaHeader *relocateArenas();
     void updatePointersToRelocatedCells();
     void releaseRelocatedArenas(ArenaHeader *relocatedList);
+#ifdef DEBUG
+    void protectRelocatedArenas(ArenaHeader *relocatedList);
+    void unprotectRelocatedArenas(ArenaHeader *relocatedList);
+#endif
 #endif
     void finishCollection();
 
@@ -849,6 +853,9 @@ class GCRuntime
     CallbackVector<JSTraceDataOp> blackRootTracers;
     Callback<JSTraceDataOp> grayRootTracer;
 
+    
+    bool                  alwaysPreserveCode;
+
 #ifdef DEBUG
     
 
@@ -857,13 +864,13 @@ class GCRuntime
 
 
     int inUnsafeRegion;
+
+    size_t noGCOrAllocationCheck;
+
+#ifdef JSGC_COMPACTING
+    ArenaHeader* relocatedArenasToRelease;
 #endif
 
-    
-    bool                  alwaysPreserveCode;
-
-#ifdef DEBUG
-    size_t                noGCOrAllocationCheck;
 #endif
 
     
