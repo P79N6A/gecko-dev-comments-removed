@@ -14,6 +14,7 @@
 #include "ImageLayers.h"
 #include "DisplayItemClip.h"
 #include "mozilla/layers/LayersTypes.h"
+#include "LayerState.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -37,19 +38,6 @@ class FrameLayerBuilder;
 class LayerManagerData;
 class ThebesLayerData;
 class ContainerState;
-
-enum LayerState {
-  LAYER_NONE,
-  LAYER_INACTIVE,
-  LAYER_ACTIVE,
-  
-  
-  LAYER_ACTIVE_FORCE,
-  
-  LAYER_ACTIVE_EMPTY,
-  
-  LAYER_SVG_EFFECTS
-};
 
 class RefCountedRegion {
 private:
