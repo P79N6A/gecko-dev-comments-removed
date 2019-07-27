@@ -805,7 +805,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     scrollbarTransform.PostTranslate(xTranslation, 0, 0);
   }
 
-  Matrix4x4 transform = aScrollbar->GetTransform() * scrollbarTransform;
+  Matrix4x4 transform = aScrollbar->GetLocalTransform() * scrollbarTransform;
 
   if (aScrollbarIsDescendant) {
     
