@@ -445,66 +445,69 @@ exports.defineLazyGetter(this, "NetUtil", () => {
 
 
 
-exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true,
-                                                policy: Ci.nsIContentPolicy.TYPE_OTHER,
-                                                window: null,
-                                                charset: null }) {
-  let deferred = promise.defer();
-  let scheme;
-  let url = aURL.split(" -> ").pop();
-  let charset;
-  let contentType;
 
-  try {
-    scheme = Services.io.extractScheme(url);
-  } catch (e) {
-    
-    
-    
-    url = "file://" + url;
-    scheme = Services.io.extractScheme(url);
-  }
 
-  switch (scheme) {
-    case "file":
-    case "chrome":
-    case "resource":
-      try {
-        NetUtil.asyncFetch({
-          uri: url,
-          loadUsingSystemPrincipal: true
-        }, function onFetch(aStream, aStatus, aRequest) {
-            if (!components.isSuccessCode(aStatus)) {
-              deferred.reject(new Error("Request failed with status code = "
-                                        + aStatus
-                                        + " after NetUtil.asyncFetch for url = "
-                                        + url));
-              return;
-            }
 
-            let source = NetUtil.readInputStreamToString(aStream, aStream.available());
-            contentType = aRequest.contentType;
-            deferred.resolve(source);
-            aStream.close();
-          });
-      } catch (ex) {
-        deferred.reject(ex);
-      }
-      break;
+if (!this.isWorker) {
+  exports.fetch = function (aURL, aOptions={ loadFromCache: true,
+                                             policy: Ci.nsIContentPolicy.TYPE_OTHER,
+                                             window: null,
+                                             charset: null }) {
+    let deferred = promise.defer();
+    let scheme;
+    let url = aURL.split(" -> ").pop();
+    let charset;
+    let contentType;
 
-    default:
-      let channel;
-      try {
-        channel = Services.io.newChannel2(url,
-                                          null,
-                                          null,
-                                          null,      
-                                          Services.scriptSecurityManager.getSystemPrincipal(),
-                                          null,      
-                                          Ci.nsILoadInfo.SEC_NORMAL,
-                                          aOptions.policy);
-      } catch (e) {
-        if (e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
+    try {
+      scheme = Services.io.extractScheme(url);
+    } catch (e) {
+      
+      
+      
+      url = "file://" + url;
+      scheme = Services.io.extractScheme(url);
+    }
+
+    switch (scheme) {
+      case "file":
+      case "chrome":
+      case "resource":
+        try {
+          NetUtil.asyncFetch({
+            uri: url,
+            loadUsingSystemPrincipal: true
+          }, function onFetch(aStream, aStatus, aRequest) {
+              if (!components.isSuccessCode(aStatus)) {
+                deferred.reject(new Error("Request failed with status code = "
+                                          + aStatus
+                                          + " after NetUtil.asyncFetch for url = "
+                                          + url));
+                return;
+              }
+
+              let source = NetUtil.readInputStreamToString(aStream, aStream.available());
+              contentType = aRequest.contentType;
+              deferred.resolve(source);
+              aStream.close();
+            });
+        } catch (ex) {
+          deferred.reject(ex);
+        }
+        break;
+
+      default:
+        let channel;
+        try {
+          channel = Services.io.newChannel2(url,
+                                            null,
+                                            null,
+                                            null,      
+                                            Services.scriptSecurityManager.getSystemPrincipal(),
+                                            null,      
+                                            Ci.nsILoadInfo.SEC_NORMAL,
+                                            aOptions.policy);
+        } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
           
           
           url = "file:///" + url;
@@ -516,65 +519,70 @@ exports.fetch = function fetch(aURL, aOptions={ loadFromCache: true,
                                             null,      
                                             Ci.nsILoadInfo.SEC_NORMAL,
                                             aOptions.policy);
-        } else {
-          throw e;
         }
-      }
-      let chunks = [];
-      let streamListener = {
-        onStartRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStartRequest handler for url = "
-                                      + url));
-          }
-        },
-        onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
-          chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
-        },
-        onStopRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStopRequest handler for url = "
-                                      + url));
-            return;
-          }
+        let chunks = [];
+        let streamListener = {
+          onStartRequest: function(aRequest, aContext, aStatusCode) {
+            if (!components.isSuccessCode(aStatusCode)) {
+              deferred.reject(new Error("Request failed with status code = "
+                                        + aStatusCode
+                                        + " in onStartRequest handler for url = "
+                                        + url));
+            }
+          },
+          onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
+            chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
+          },
+          onStopRequest: function(aRequest, aContext, aStatusCode) {
+            if (!components.isSuccessCode(aStatusCode)) {
+              deferred.reject(new Error("Request failed with status code = "
+                                        + aStatusCode
+                                        + " in onStopRequest handler for url = "
+                                        + url));
+              return;
+            }
 
-          charset = channel.contentCharset || aOptions.charset;
-          contentType = channel.contentType;
-          deferred.resolve(chunks.join(""));
+            charset = channel.contentCharset || aOptions.charset;
+            contentType = channel.contentType;
+            deferred.resolve(chunks.join(""));
+          }
+        };
+
+        if (aOptions.window) {
+          
+          channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIWebNavigation)
+                                .QueryInterface(Ci.nsIDocumentLoader)
+                                .loadGroup;
         }
+        channel.loadFlags = aOptions.loadFromCache
+          ? channel.LOAD_FROM_CACHE
+          : channel.LOAD_BYPASS_CACHE;
+        try {
+          channel.asyncOpen(streamListener, null);
+        } catch(e) {
+          deferred.reject(new Error("Request failed for '"
+                                    + url
+                                    + "': "
+                                    + e.message));
+        }
+        break;
+    }
+
+    return deferred.promise.then(source => {
+      return {
+        content: convertToUnicode(source, charset),
+        contentType: contentType
       };
-
-      if (aOptions.window) {
-        
-        channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebNavigation)
-                              .QueryInterface(Ci.nsIDocumentLoader)
-                              .loadGroup;
-      }
-      channel.loadFlags = aOptions.loadFromCache
-        ? channel.LOAD_FROM_CACHE
-        : channel.LOAD_BYPASS_CACHE;
-      try {
-        channel.asyncOpen(streamListener, null);
-      } catch(e) {
-        deferred.reject(new Error("Request failed for '"
-                                  + url
-                                  + "': "
-                                  + e.message));
-      }
-      break;
+    });
   }
-
-  return deferred.promise.then(source => {
-    return {
-      content: convertToUnicode(source, charset),
-      contentType: contentType
-    };
-  });
+} else {
+  
+  
+  
+  exports.fetch = function (url, options) {
+    return rpc("fetch", url, options);
+  }
 }
 
 

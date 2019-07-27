@@ -20,6 +20,7 @@ let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 let { dumpn, dumpv, dbg_assert } = DevToolsUtils;
 let EventEmitter = require("devtools/toolkit/event-emitter");
 let Debugger = require("Debugger");
+let Promise = require("promise");
 
 DevToolsUtils.defineLazyGetter(this, "DebuggerSocket", () => {
   let { DebuggerSocket } = require("devtools/toolkit/security/socket");
@@ -761,7 +762,52 @@ var DebuggerServer = {
   connectToWorker: function (aConnection, aDbg, aId, aOptions) {
     return new Promise((resolve, reject) => {
       
-      aDbg.initialize("resource://gre/modules/devtools/server/worker.js");
+      if (!aDbg.isInitialized) {
+        aDbg.initialize("resource://gre/modules/devtools/server/worker.js");
+
+        
+        
+        
+        let listener = {
+          onClose: () => {
+            aDbg.removeListener(listener);
+          },
+
+          onMessage: (message) => {
+            let packet = JSON.parse(message);
+            if (packet.type !== "rpc") {
+              return;
+            }
+
+            Promise.resolve().then(() => {
+              let method = {
+                "fetch": DevToolsUtils.fetch,
+              }[packet.method];
+              if (!method) {
+                throw Error("Unknown method: " + packet.method);
+              }
+
+              return method.apply(undefined, packet.params);
+            }).then((value) => {
+              aDbg.postMessage(JSON.stringify({
+                type: "rpc",
+                result: value,
+                error: null,
+                id: packet.id
+              }));
+            }, (reason) => {
+              aDbg.postMessage(JSON.stringify({
+                type: "rpc",
+                result: null,
+                error: reason,
+                id: packet.id
+              }));
+            });
+          }
+        };
+
+        aDbg.addListener(listener);
+      }
 
       
       aDbg.postMessage(JSON.stringify({
