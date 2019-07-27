@@ -680,9 +680,7 @@ let emulator = (function() {
 
 
 
-
-
-  function addCallsToConference(callsToAdd, connectedCallback, twice) {
+  function addCallsToConference(callsToAdd, connectedCallback) {
     log("Add " + callsToAdd.length + " calls into conference.");
 
     let promises = [];
@@ -703,13 +701,12 @@ let emulator = (function() {
     promises.push(promise);
 
     
-    let requestCount = twice ? 2 : 1;
-    for (let i = 0; i < requestCount; ++i) {
-      if (callsToAdd.length == 2) {
-        conference.add(callsToAdd[0], callsToAdd[1]);
-      } else {
-        conference.add(callsToAdd[0]);
-      }
+    if (callsToAdd.length == 2) {
+      promise = conference.add(callsToAdd[0], callsToAdd[1]);
+      promises.push(promise);
+    } else {
+      promise = conference.add(callsToAdd[0]);
+      promises.push(promise);
     }
 
     return Promise.all(promises).then(() => conference.calls);
@@ -745,7 +742,7 @@ let emulator = (function() {
       });
     promises.push(promise);
 
-    conference.hold();
+    promises.push(conference.hold());
 
     return Promise.all(promises).then(() => conference.calls);
   }
@@ -780,7 +777,7 @@ let emulator = (function() {
       });
     promises.push(promise);
 
-    conference.resume();
+    promises.push(conference.resume());
 
     return Promise.all(promises).then(() => conference.calls);
   }
@@ -837,7 +834,7 @@ let emulator = (function() {
       });
     promises.push(promise);
 
-    conference.remove(callToRemove);
+    promises.push(conference.remove(callToRemove));
 
     return Promise.all(promises)
       .then(() => checkCalls(conference.calls, remainedCalls))
