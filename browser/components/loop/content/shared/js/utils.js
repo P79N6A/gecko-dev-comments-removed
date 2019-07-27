@@ -278,6 +278,33 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
 
 
 
+  function formatURL(url) {
+    
+    
+    
+    
+    var urlObject;
+    try {
+      urlObject = new URL(url);
+    } catch (ex) {
+      console.error("Error occurred whilst parsing URL:", ex);
+      return null;
+    }
+
+    
+    return {
+      hostname: urlObject.hostname,
+      location: decodeURI(urlObject.href)
+    };
+  }
+
+  
+
+
+
+
+
+
   function composeCallUrlEmail(callUrl, recipient) {
     if (typeof navigator.mozLoop === "undefined") {
       console.warn("composeCallUrlEmail isn't available for Loop standalone.");
@@ -536,6 +563,7 @@ var inChrome = typeof Components != "undefined" && "utils" in Components;
     ROOM_INFO_FAILURES: ROOM_INFO_FAILURES,
     composeCallUrlEmail: composeCallUrlEmail,
     formatDate: formatDate,
+    formatURL: formatURL,
     getBoolPreference: getBoolPreference,
     getOS: getOS,
     getOSVersion: getOSVersion,
