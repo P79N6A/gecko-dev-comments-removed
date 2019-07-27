@@ -101,11 +101,6 @@ public:
     return sSelectionCaretsInflateSize;
   }
 
-private:
-  virtual ~SelectionCarets();
-
-  SelectionCarets() = delete;
-
   
 
 
@@ -115,6 +110,11 @@ private:
 
 
   void UpdateSelectionCarets();
+
+private:
+  virtual ~SelectionCarets();
+
+  SelectionCarets() = delete;
 
   
 
