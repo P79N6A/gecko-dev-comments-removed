@@ -25,3 +25,12 @@ function waitForFrame() {
     window.requestAnimationFrame(resolve);
   });
 }
+
+
+
+
+
+
+function waitForAllPlayers(players) {
+  return Promise.all(players.map(function(player) { return player.ready; }));
+}
