@@ -39,11 +39,24 @@ function test() {
     let url = "http://example.com/?window=" + windowsToOpen.length;
 
     provideWindow(function onTestURLLoaded(win) {
-      win.close();
-      
-      executeSoon(function() {
-        openWindowRec(windowsToOpen, expectedResults, recCallback);
-      });
+      let tabReady = () => {
+        promiseWindowClosed(win).then(() => {
+          openWindowRec(windowsToOpen, expectedResults, recCallback);
+        });
+      };
+
+      if (win.gMultiProcessBrowser) {
+        
+        
+        
+        
+        
+        
+        let tab = win.gBrowser.selectedTab;
+        promiseTabRestored(tab).then(tabReady);
+      } else {
+        tabReady();
+      }
     }, url, settings);
   }
 
