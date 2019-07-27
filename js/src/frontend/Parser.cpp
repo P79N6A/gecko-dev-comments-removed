@@ -3622,7 +3622,7 @@ Parser<SyntaxParseHandler>::pushLetScope(HandleStaticBlockObject blockObj, StmtI
 
 template <typename ParseHandler>
 typename ParseHandler::Node
-Parser<ParseHandler>::letBlock(LetContext letContext)
+Parser<ParseHandler>::deprecatedLetBlockOrExpression(LetContext letContext)
 {
     MOZ_ASSERT(tokenStream.isCurrentTokenType(TOK_LET));
 
@@ -3644,11 +3644,6 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
     Node block = pushLetScope(blockObj, &stmtInfo);
     if (!block)
         return null();
-
-    Node pnlet = handler.newBinary(PNK_LET, vars, block);
-    if (!pnlet)
-        return null();
-    handler.setBeginPosition(pnlet, begin);
 
     bool needExprStmt = false;
     if (letContext == LetStatement) {
@@ -3672,8 +3667,8 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
 
 
 
-            if (!report(ParseStrictError, pc->sc->strict, pnlet,
-                        JSMSG_STRICT_CODE_LET_EXPR_STMT))
+            if (!reportWithOffset(ParseStrictError, pc->sc->strict, begin,
+                                  JSMSG_STRICT_CODE_LET_EXPR_STMT))
             {
                 return null();
             }
@@ -3711,14 +3706,22 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
     handler.setLexicalScopeBody(block, expr);
     PopStatementPC(tokenStream, pc);
 
-    handler.setEndPosition(pnlet, pos().end);
+    TokenPos letPos(begin, pos().end);
 
-    if (needExprStmt) {
-        if (!MatchOrInsertSemicolon(tokenStream))
+    if (letContext == LetExpression) {
+        if (needExprStmt) {
+            if (!MatchOrInsertSemicolon(tokenStream))
+                return null();
+        }
+
+        Node letExpr = handler.newLetExpression(vars, block, letPos);
+        if (!letExpr)
             return null();
-        return handler.newExprStatement(pnlet, pos().end);
+
+        return needExprStmt ? handler.newExprStatement(letExpr, pos().end) : letExpr;
     }
-    return pnlet;
+
+    return handler.newLetBlock(vars, block, letPos);
 }
 
 template <typename ParseHandler>
@@ -4097,27 +4100,44 @@ Parser<SyntaxParseHandler>::lexicalDeclaration(bool)
 
 template <>
 ParseNode *
-Parser<FullParseHandler>::letStatement()
+Parser<FullParseHandler>::letDeclarationOrBlock()
 {
     handler.disableSyntaxParser();
 
     
-    ParseNode *pn;
     TokenKind tt;
     if (!tokenStream.peekToken(&tt))
         return null();
     if (tt == TOK_LP) {
-        pn = letBlock(LetStatement);
-        MOZ_ASSERT_IF(pn, pn->isKind(PNK_LET) || pn->isKind(PNK_SEMI));
-    } else {
-        pn = lexicalDeclaration( false);
+        ParseNode *node = deprecatedLetBlockOrExpression(LetStatement);
+        if (!node)
+            return nullptr;
+
+        if (node->isKind(PNK_LETBLOCK)) {
+            MOZ_ASSERT(node->isArity(PN_BINARY));
+        } else {
+            MOZ_ASSERT(node->isKind(PNK_SEMI));
+            MOZ_ASSERT(node->pn_kid->isKind(PNK_LETEXPR));
+            MOZ_ASSERT(node->pn_kid->isArity(PN_BINARY));
+        }
+
+        return node;
     }
-    return pn;
+
+    ParseNode *decl = lexicalDeclaration( false);
+    if (!decl)
+        return nullptr;
+
+    
+    
+    MOZ_ASSERT(decl->isKind(PNK_LET) || decl->isKind(PNK_VAR));
+    MOZ_ASSERT(decl->isArity(PN_LIST));
+    return decl;
 }
 
 template <>
 SyntaxParseHandler::Node
-Parser<SyntaxParseHandler>::letStatement()
+Parser<SyntaxParseHandler>::letDeclarationOrBlock()
 {
     JS_ALWAYS_FALSE(abortIfSyntaxParser());
     return SyntaxParseHandler::NodeFailure;
@@ -4655,7 +4675,7 @@ Parser<FullParseHandler>::forStatement()
                 if (!tokenStream.peekToken(&tt))
                     return null();
                 if (tt == TOK_LP) {
-                    pn1 = letBlock(LetExpression);
+                    pn1 = deprecatedLetBlockOrExpression(LetExpression);
                 } else {
                     isForDecl = true;
                     blockObj = StaticBlockObject::create(context);
@@ -4928,11 +4948,7 @@ Parser<FullParseHandler>::forStatement()
     if (forLetImpliedBlock) {
         forLetImpliedBlock->pn_expr = forLoop;
         forLetImpliedBlock->pn_pos = forLoop->pn_pos;
-        ParseNode *let = handler.newBinary(PNK_LET, forLetDecl, forLetImpliedBlock);
-        if (!let)
-            return null();
-        let->pn_pos = forLoop->pn_pos;
-        return let;
+        return handler.newLetBlock(forLetDecl, forLetImpliedBlock, forLoop->pn_pos);
     }
     return forLoop;
 }
@@ -5812,7 +5828,7 @@ Parser<ParseHandler>::statement(bool canHaveDirectives)
       }
 
       case TOK_LET:
-        return letStatement();
+        return letDeclarationOrBlock();
       case TOK_IMPORT:
         return importDeclaration();
       case TOK_EXPORT:
@@ -8129,7 +8145,7 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt, InvokedPrediction invoked)
         return objectLiteral();
 
       case TOK_LET:
-        return letBlock(LetExpression);
+        return deprecatedLetBlockOrExpression(LetExpression);
 
       case TOK_LP: {
         TokenKind next;
