@@ -295,6 +295,36 @@ let AudioNodeActor = exports.AudioNodeActor = protocol.ActorClass({
   
 
 
+  connectParam: method(function (destActor, paramName, output) {
+    let srcNode = this.node.get();
+    let destNode = destActor.node.get();
+
+    if (srcNode === null || destNode === null) {
+      return CollectedAudioNodeError();
+    }
+
+    try {
+      
+      
+      
+      
+      
+      XPCNativeWrapper.unwrap(srcNode).connect(destNode[paramName], output);
+    } catch (e) {
+      return constructError(e);
+    }
+  }, {
+    request: {
+      destActor: Arg(0, "audionode"),
+      paramName: Arg(1, "string"),
+      output: Arg(2, "nullable:number")
+    },
+    response: { error: RetVal("nullable:json") }
+  }),
+
+  
+
+
   connectNode: method(function (destActor, output, input) {
     let srcNode = this.node.get();
     let destNode = destActor.node.get();
