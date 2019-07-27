@@ -356,6 +356,16 @@ public:
     mCreatedByFetchEvent = false;
   }
 
+  bool
+  IsNavigationRequest() const;
+
+  bool
+  IsWorkerRequest() const;
+
+  bool
+  IsClientRequest() const;
+
+
 private:
   
   explicit InternalRequest(const InternalRequest& aOther);
