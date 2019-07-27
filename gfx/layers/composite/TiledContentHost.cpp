@@ -9,6 +9,7 @@
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/Effects.h"     
+#include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/layers/TextureHostOGL.h"  
 #include "nsAString.h"
 #include "nsDebug.h"                    
@@ -367,7 +368,7 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
     
     
     for (Layer* ancestor = GetLayer(); ancestor; ancestor = ancestor->GetParent()) {
-      if (ancestor->GetFrameMetrics().IsScrollable()) {
+      if (ancestor->HasScrollableFrameMetrics()) {
         backgroundColor = ancestor->GetBackgroundColor();
         break;
       }

@@ -650,6 +650,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
                                nsIFrame* aScrollFrame,
                                const nsIFrame* aReferenceFrame,
                                ContainerLayer* aRoot,
+                               ViewID aScrollParentId,
                                const nsRect& aViewport,
                                bool aForceNullScrollId,
                                bool aIsRoot,
@@ -706,6 +707,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
 
   metrics.SetScrollId(scrollId);
   metrics.SetIsRoot(aIsRoot);
+  metrics.SetScrollParentId(aScrollParentId);
 
   
   
@@ -1291,7 +1293,7 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
 
   RecordFrameMetrics(aForFrame, rootScrollFrame,
                      aBuilder->FindReferenceFrameFor(aForFrame),
-                     root, viewport,
+                     root, FrameMetrics::NULL_SCROLL_ID, viewport,
                      !isRoot, isRoot, containerParameters);
 
   
@@ -3681,9 +3683,8 @@ nsDisplaySubDocument::BuildLayer(nsDisplayListBuilder* aBuilder,
                       mFrame->GetPosition() +
                       mFrame->GetOffsetToCrossDoc(ReferenceFrame());
 
-    container->SetScrollHandoffParentId(mScrollParentId);
     RecordFrameMetrics(mFrame, rootScrollFrame, ReferenceFrame(),
-                       container, viewport,
+                       container, mScrollParentId, viewport,
                        false, isRootContentDocument, params);
   }
 
@@ -3992,9 +3993,8 @@ nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
                     mScrollFrame->GetPosition() +
                     mScrollFrame->GetOffsetToCrossDoc(ReferenceFrame());
 
-  layer->SetScrollHandoffParentId(mScrollParentId);
   RecordFrameMetrics(mScrolledFrame, mScrollFrame, ReferenceFrame(), layer,
-                     viewport, false, false, params);
+                     mScrollParentId, viewport, false, false, params);
 
   if (mList.IsOpaque()) {
     nsRect displayport;
