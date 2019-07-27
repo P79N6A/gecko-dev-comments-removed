@@ -1883,8 +1883,16 @@ public:
 
 
 
+
   static bool HasCurrentAnimations(nsIContent* aContent,
                                    nsIAtom* aAnimationProperty);
+
+  
+
+
+
+  static bool HasCurrentAnimationsForProperty(nsIContent* aContent,
+                                              nsCSSProperty aProperty);
 
   
 
