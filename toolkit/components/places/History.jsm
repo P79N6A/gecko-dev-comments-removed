@@ -141,6 +141,24 @@ function ensureModuleIsOpen() {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+function notify(observers, notification, args) {
+  for (let observer of observers) {
+    try {
+      observer[notification](...args);
+    } catch (ex) {}
+  }
+}
+
 this.History = Object.freeze({
   
 
