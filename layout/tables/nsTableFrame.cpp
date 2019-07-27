@@ -159,6 +159,7 @@ nsTableFrame::Init(nsIContent*       aContent,
                    nsIFrame*         aPrevInFlow)
 {
   NS_PRECONDITION(!mCellMap, "Init called twice");
+  NS_PRECONDITION(!mTableLayoutStrategy, "Init called twice");
   NS_PRECONDITION(!aPrevInFlow ||
                   aPrevInFlow->GetType() == nsGkAtoms::tableFrame,
                   "prev-in-flow must be of same type");
@@ -171,23 +172,19 @@ nsTableFrame::Init(nsIContent*       aContent,
   bool borderCollapse = (NS_STYLE_BORDER_COLLAPSE == tableStyle->mBorderCollapse);
   SetBorderCollapse(borderCollapse);
 
-  
   if (!aPrevInFlow) {
+    
+    
     mCellMap = new nsTableCellMap(*this, borderCollapse);
-  }
-
-  if (aPrevInFlow) {
+    if (IsAutoLayout()) {
+      mTableLayoutStrategy = new BasicTableLayoutStrategy(this);
+    } else {
+      mTableLayoutStrategy = new FixedTableLayoutStrategy(this);
+    }
+  } else {
     
     
     mRect.width = aPrevInFlow->GetSize().width;
-  }
-  else {
-    NS_ASSERTION(!mTableLayoutStrategy, "strategy was created before Init was called");
-    
-    if (IsAutoLayout())
-      mTableLayoutStrategy = new BasicTableLayoutStrategy(this);
-    else
-      mTableLayoutStrategy = new FixedTableLayoutStrategy(this);
   }
 }
 
