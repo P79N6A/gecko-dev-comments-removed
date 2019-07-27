@@ -2330,7 +2330,7 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
         
         
         
-        if (pn->isLikelyIIFE())
+        if (pn->isLikelyIIFE() && !funbox->isGenerator())
             break;
 
         Parser<SyntaxParseHandler> *parser = handler.syntaxParser;
