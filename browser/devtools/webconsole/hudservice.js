@@ -434,15 +434,6 @@ WebConsole.prototype = {
 
 
   viewSource: function WC_viewSource(aSourceURL, aSourceLine) {
-    
-    
-    let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
-    if (browserWin) {
-      return browserWin.BrowserViewSourceOfDocument({
-        URL: aSourceURL,
-        lineNumber: aSourceLine
-      });
-    }
     this.gViewSourceUtils.viewSource(aSourceURL, null, this.iframeWindow.document, aSourceLine || 0);
   },
 
