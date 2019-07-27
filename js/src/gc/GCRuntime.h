@@ -35,35 +35,6 @@ class MarkingValidator;
 struct AutoPrepareForTracing;
 class AutoTraceSession;
 
-class ChunkPool
-{
-    Chunk *head_;
-    size_t count_;
-
-  public:
-    ChunkPool() : head_(nullptr), count_(0) {}
-
-    size_t count() const { return count_; }
-
-    
-    inline Chunk *get(JSRuntime *rt);
-
-    
-    inline void put(Chunk *chunk);
-
-    class Enum {
-      public:
-        explicit Enum(ChunkPool &pool) : pool(pool), chunkp(&pool.head_) {}
-        bool empty() { return !*chunkp; }
-        Chunk *front();
-        inline void popFront();
-        inline void removeAndPopFront();
-      private:
-        ChunkPool &pool;
-        Chunk **chunkp;
-    };
-};
-
 
 
 
@@ -429,7 +400,8 @@ class GCRuntime
     inline void updateOnArenaFree(const ChunkInfo &info);
 
     GCChunkSet::Range allChunks() { return chunkSet.all(); }
-    inline Chunk **getAvailableChunkList(Zone *zone);
+    ChunkPool &availableChunks() { return availableChunks_; }
+    ChunkPool &emptyChunks() { return emptyChunks_; }
     void moveChunkToFreePool(Chunk *chunk);
     bool hasChunk(Chunk *chunk) { return chunkSet.has(chunk); }
 
@@ -451,7 +423,7 @@ class GCRuntime
   private:
     
     friend class ArenaLists;
-    Chunk *pickChunk(Zone *zone, AutoMaybeStartBackgroundAllocation &maybeStartBGAlloc);
+    Chunk *pickChunk(AutoMaybeStartBackgroundAllocation &maybeStartBGAlloc);
     inline void arenaAllocatedDuringGC(JS::Zone *zone, ArenaHeader *arena);
 
     template <AllowGC allowGC>
@@ -463,9 +435,9 @@ class GCRuntime
 
 
 
-    Chunk *expireChunkPool(bool shrinkBuffers, bool releaseAll);
-    void expireAndFreeChunkPool(bool releaseAll);
-    void freeChunkList(Chunk *chunkListHead);
+    ChunkPool expireEmptyChunks(bool shrinkBuffers, bool releaseAll);
+    void expireAndFreeEmptyChunks(bool releaseAll);
+    void freeChunks(ChunkPool pool);
     void prepareToFreeChunk(ChunkInfo &info);
     void releaseChunk(Chunk *chunk);
 
@@ -505,7 +477,6 @@ class GCRuntime
     bool sweepPhase(SliceBudget &sliceBudget);
     void endSweepPhase(bool lastGC);
     void sweepZones(FreeOp *fop, bool lastGC);
-    void decommitArenasFromAvailableList(Chunk **availableListHeadp);
     void decommitArenas();
     void expireChunksAndArenas(bool shouldShrink);
     void sweepBackgroundThings();
@@ -561,21 +532,26 @@ class GCRuntime
   private:
     
 
+    
+
 
 
 
     js::GCChunkSet        chunkSet;
 
     
+    
+    
+    
+    ChunkPool             emptyChunks_;
 
-
-
-
-
-
-    js::gc::Chunk         *systemAvailableChunkListHead;
-    js::gc::Chunk         *userAvailableChunkListHead;
-    js::gc::ChunkPool     emptyChunks;
+    
+    
+    
+    
+    
+    
+    ChunkPool             availableChunks_;
 
     js::RootedValueMap    rootsHash;
 
