@@ -109,7 +109,7 @@ public:
     
     
     
-    uint8_t* frame = new uint8_t[mFrameWidth * mFrameHeight];
+    nsAutoArrayPtr<uint8_t> frame(new uint8_t[mFrameWidth * mFrameHeight]);
     memset(frame, 0, mFrameWidth * mFrameHeight);
     VideoData::YCbCrBuffer buffer;
 
