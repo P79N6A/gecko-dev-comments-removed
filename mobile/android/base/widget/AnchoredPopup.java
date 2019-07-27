@@ -100,11 +100,15 @@ public abstract class AnchoredPopup extends PopupWindow {
             return;
         }
 
-        
-        
-        final boolean validAnchor = (mAnchor != null) && (anchorLocation[1] > 0);
-        final View anchor = validAnchor ? mAnchor : decorView;
+        if (HardwareUtils.isTablet()) {
+            showAsDropDown(mAnchor, 0, 0);
+        } else {
+            
+            
+            final boolean validAnchor = (mAnchor != null) && (anchorLocation[1] > 0);
+            final View anchor = validAnchor ? mAnchor : decorView;
 
-        showAtLocation(anchor, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, offsetY);
+            showAtLocation(anchor, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, offsetY);
+        }
     }
 }
