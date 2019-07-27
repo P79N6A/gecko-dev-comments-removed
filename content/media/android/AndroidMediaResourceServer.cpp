@@ -438,11 +438,38 @@ AndroidMediaResourceServer::AppendRandomPath(nsCString& aUrl)
   
   
   nsresult rv;
-  nsAutoCString salt;
-  rv = GenerateRandomPathName(salt, 16);
+  nsCOMPtr<nsIRandomGenerator> rg =
+    do_GetService("@mozilla.org/security/random-generator;1", &rv);
   if (NS_FAILED(rv)) return rv;
+
+  
+  
+  
+  const uint32_t wantedFileNameLength = 16;
+  const uint32_t requiredBytesLength =
+    static_cast<uint32_t>((wantedFileNameLength + 1) / 4 * 3);
+
+  uint8_t* buffer;
+  rv = rg->GenerateRandomBytes(requiredBytesLength, &buffer);
+  if (NS_FAILED(rv)) return rv;
+
+  nsAutoCString tempLeafName;
+  nsDependentCSubstring randomData(reinterpret_cast<const char*>(buffer),
+                                   requiredBytesLength);
+  rv = Base64Encode(randomData, tempLeafName);
+  NS_Free(buffer);
+  buffer = nullptr;
+  if (NS_FAILED (rv)) return rv;
+
+  tempLeafName.Truncate(wantedFileNameLength);
+
+  
+  
+  tempLeafName.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+
   aUrl += "/";
-  aUrl += salt;
+  aUrl += tempLeafName;
+
   return NS_OK;
 }
 
@@ -450,7 +477,7 @@ nsresult
 AndroidMediaResourceServer::AddResource(mozilla::MediaResource* aResource, nsCString& aUrl)
 {
   nsCString url = GetURLPrefix();
-  nsresult rv = GenerateRandomPathName(url, 16);
+  nsresult rv = AppendRandomPath(url);
   if (NS_FAILED (rv)) return rv;
 
   {

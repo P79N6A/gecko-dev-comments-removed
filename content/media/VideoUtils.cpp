@@ -11,9 +11,7 @@
 #include "ImageContainer.h"
 #include "SharedThreadPool.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Base64.h"
-#include "nsIRandomGenerator.h"
-#include "nsIServiceManager.h"
+
 #include <stdint.h>
 
 namespace mozilla {
@@ -231,43 +229,5 @@ ExtractH264CodecDetails(const nsAString& aCodec,
 
   return true;
 }
-
-nsresult
-GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength)
-{
-  nsresult rv;
-  nsCOMPtr<nsIRandomGenerator> rg =
-    do_GetService("@mozilla.org/security/random-generator;1", &rv);
-  if (NS_FAILED(rv)) return rv;
-
-  
-  
-  
-  const uint32_t requiredBytesLength =
-    static_cast<uint32_t>((aLength + 1) / 4 * 3);
-
-  uint8_t* buffer;
-  rv = rg->GenerateRandomBytes(requiredBytesLength, &buffer);
-  if (NS_FAILED(rv)) return rv;
-
-  nsAutoCString temp;
-  nsDependentCSubstring randomData(reinterpret_cast<const char*>(buffer),
-                                   requiredBytesLength);
-  rv = Base64Encode(randomData, temp);
-  NS_Free(buffer);
-  buffer = nullptr;
-  if (NS_FAILED (rv)) return rv;
-
-  temp.Truncate(aLength);
-
-  
-  
-  temp.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
-
-  aOutSalt = temp;
-
-  return NS_OK;
-}
-
 
 } 

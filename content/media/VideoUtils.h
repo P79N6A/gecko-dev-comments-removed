@@ -257,12 +257,6 @@ ExtractH264CodecDetails(const nsAString& aCodecs,
                         int16_t& aProfile,
                         int16_t& aLevel);
 
-
-
-
-nsresult
-GenerateRandomPathName(nsCString& aOutSalt, uint32_t aLength);
-
 } 
 
 #endif
