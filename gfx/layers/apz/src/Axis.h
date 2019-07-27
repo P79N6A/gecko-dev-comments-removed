@@ -236,7 +236,8 @@ protected:
   
   
   
-  ParentLayerCoord mOverscrollOffset;
+  
+  ParentLayerCoord mLastOverscrollPeak;
   float mOverscrollScale;
 
   
