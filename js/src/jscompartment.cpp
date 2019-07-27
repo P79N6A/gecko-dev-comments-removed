@@ -758,16 +758,25 @@ CreateLazyScriptsForCompartment(JSContext* cx)
     
     for (gc::ZoneCellIter i(cx->zone(), JSFunction::FinalizeKind); !i.done(); i.next()) {
         JSObject* obj = i.get<JSObject>();
-        if (obj->compartment() == cx->compartment() && obj->is<JSFunction>()) {
-            JSFunction* fun = &obj->as<JSFunction>();
-            if (fun->isInterpretedLazy()) {
-                LazyScript* lazy = fun->lazyScriptOrNull();
-                if (lazy && lazy->sourceObject() && !lazy->maybeScript() &&
-                    !lazy->hasUncompiledEnclosingScript())
-                {
-                    if (!lazyFunctions.append(fun))
-                        return false;
-                }
+
+        
+        
+        
+        if (gc::IsAboutToBeFinalizedUnbarriered(&obj) ||
+            obj->compartment() != cx->compartment() ||
+            !obj->is<JSFunction>())
+        {
+            continue;
+        }
+
+        JSFunction* fun = &obj->as<JSFunction>();
+        if (fun->isInterpretedLazy()) {
+            LazyScript* lazy = fun->lazyScriptOrNull();
+            if (lazy && lazy->sourceObject() && !lazy->maybeScript() &&
+                !lazy->hasUncompiledEnclosingScript())
+            {
+                if (!lazyFunctions.append(fun))
+                    return false;
             }
         }
     }
