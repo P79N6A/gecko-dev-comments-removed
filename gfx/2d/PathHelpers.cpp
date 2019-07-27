@@ -3,6 +3,9 @@
 
 
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include "PathHelpers.h"
 
 namespace mozilla {
@@ -236,6 +239,29 @@ StrokeSnappedEdgesOfRect(const Rect& aRect, DrawTarget& aDrawTarget,
   p2 = aRect.BottomRight();
   SnapLineToDevicePixelsForStroking(p1, p2, aDrawTarget);
   aDrawTarget.StrokeLine(p1, p2, aColor, aStrokeOptions);
+}
+
+
+Margin
+MaxStrokeExtents(const StrokeOptions& aStrokeOptions,
+                 const Matrix& aTransform)
+{
+  double styleExpansionFactor = 0.5f;
+
+  if (aStrokeOptions.mLineCap == CapStyle::SQUARE) {
+    styleExpansionFactor = M_SQRT1_2;
+  }
+
+  if (aStrokeOptions.mLineJoin == JoinStyle::MITER &&
+      styleExpansionFactor < M_SQRT2 * aStrokeOptions.mMiterLimit) {
+    styleExpansionFactor = M_SQRT2 * aStrokeOptions.mMiterLimit;
+  }
+
+  styleExpansionFactor *= aStrokeOptions.mLineWidth;
+
+  double dx = styleExpansionFactor * hypot(aTransform._11, aTransform._21);
+  double dy = styleExpansionFactor * hypot(aTransform._22, aTransform._12);
+  return Margin(dy, dx, dy, dx);
 }
 
 } 

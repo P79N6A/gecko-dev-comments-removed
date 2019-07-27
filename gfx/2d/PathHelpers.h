@@ -283,6 +283,16 @@ GFX2D_API void StrokeSnappedEdgesOfRect(const Rect& aRect,
                                         const ColorPattern& aColor,
                                         const StrokeOptions& aStrokeOptions);
 
+
+
+
+
+
+
+
+GFX2D_API Margin MaxStrokeExtents(const StrokeOptions& aStrokeOptions,
+                                  const Matrix& aTransform);
+
 extern UserDataKey sDisablePixelSnapping;
 
 
