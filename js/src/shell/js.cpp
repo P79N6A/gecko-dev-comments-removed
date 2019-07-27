@@ -22,11 +22,8 @@
 # include <io.h>     
 #endif
 #include <locale.h>
-#ifdef HAVE_MALLOC_H 
-#include <malloc.h>
-#endif
-#ifdef HAVE_MALLOC_MALLOC_H
-#include <malloc/malloc.h> 
+#if defined(MALLOC_H)
+# include MALLOC_H    
 #endif
 #include <math.h>
 #include <signal.h>
