@@ -63,36 +63,8 @@ xpc_qsThrow(JSContext *cx, nsresult rv);
 
 
 
-
-
-
-
-
-
-
-
-
-
-bool
-xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
-                              JSObject *obj, jsid memberId);
-
-bool
-xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
-                              JSObject *obj, const char* memberName);
-bool
-xpc_qsThrowGetterSetterFailed(JSContext *cx, nsresult rv,
-                              JSObject *obj, uint16_t memberIndex);
-
-
-
-
-
-
 bool
 xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv, jsval *vp);
-
-
 
 
 
@@ -106,23 +78,6 @@ xpc_qsThrowBadArgWithCcx(XPCCallContext &ccx, nsresult rv, unsigned paramnum);
 void
 xpc_qsThrowBadArgWithDetails(JSContext *cx, nsresult rv, unsigned paramnum,
                              const char *ifaceName, const char *memberName);
-
-
-
-
-
-
-void
-xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
-                          jsid propId);
-
-void
-xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
-                          const char* propName);
-void
-xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
-                          uint16_t name_index);
-
 
 bool
 xpc_qsGetterOnlyNativeStub(JSContext *cx, unsigned argc, jsval *vp);
