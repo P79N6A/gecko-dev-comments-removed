@@ -115,7 +115,7 @@ IMPL_UPDATE_ALL_THROTTLED_STYLES_INTERNAL(nsTransitionManager,
 void
 nsTransitionManager::UpdateAllThrottledStyles()
 {
-  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
     mPresContext->TickLastUpdateThrottledTransitionStyle();
     return;
@@ -131,25 +131,26 @@ nsTransitionManager::UpdateAllThrottledStyles()
 }
 
 void
-nsTransitionManager::ElementDataRemoved()
+nsTransitionManager::ElementCollectionRemoved()
 {
   
   
-  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
   }
 }
 
 void
-nsTransitionManager::AddElementData(ElementAnimationCollection* aData)
+nsTransitionManager::AddElementCollection(
+  ElementAnimationCollection* aCollection)
 {
-  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
     nsRefreshDriver *rd = mPresContext->RefreshDriver();
     rd->AddRefreshObserver(this, Flush_Style);
   }
 
-  PR_INSERT_BEFORE(aData, &mElementData);
+  PR_INSERT_BEFORE(aCollection, &mElementCollections);
 }
 
 already_AddRefed<nsIStyleRule>
@@ -597,7 +598,7 @@ nsTransitionManager::GetElementTransitions(
   nsCSSPseudoElements::Type aPseudoType,
   bool aCreateIfNeeded)
 {
-  if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementData)) {
+  if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
     return nullptr;
   }
@@ -633,7 +634,7 @@ nsTransitionManager::GetElementTransitions(
       aElement->SetMayHaveAnimations();
     }
 
-    AddElementData(collection);
+    AddElementCollection(collection);
   }
 
   return collection;
@@ -764,7 +765,7 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
     
     
     
-    RemoveAllElementData();
+    RemoveAllElementCollections();
     return;
   }
 
@@ -774,7 +775,7 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
 void
 nsTransitionManager::FlushTransitions(FlushFlags aFlags)
 {
-  if (PR_CLIST_IS_EMPTY(&mElementData)) {
+  if (PR_CLIST_IS_EMPTY(&mElementCollections)) {
     
     return;
   }
@@ -785,8 +786,8 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
   
   
   {
-    PRCList *next = PR_LIST_HEAD(&mElementData);
-    while (next != &mElementData) {
+    PRCList *next = PR_LIST_HEAD(&mElementCollections);
+    while (next != &mElementCollections) {
       ElementAnimationCollection* collection =
         static_cast<ElementAnimationCollection*>(next);
       next = PR_NEXT_LINK(next);

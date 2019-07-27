@@ -50,7 +50,7 @@ namespace css {
 CommonAnimationManager::CommonAnimationManager(nsPresContext *aPresContext)
   : mPresContext(aPresContext)
 {
-  PR_INIT_CLIST(&mElementData);
+  PR_INIT_CLIST(&mElementCollections);
 }
 
 CommonAnimationManager::~CommonAnimationManager()
@@ -62,17 +62,18 @@ void
 CommonAnimationManager::Disconnect()
 {
   
-  RemoveAllElementData();
+  RemoveAllElementCollections();
 
   mPresContext = nullptr;
 }
 
 void
-CommonAnimationManager::RemoveAllElementData()
+CommonAnimationManager::RemoveAllElementCollections()
 {
-  while (!PR_CLIST_IS_EMPTY(&mElementData)) {
-    ElementAnimationCollection *head =
-      static_cast<ElementAnimationCollection*>(PR_LIST_HEAD(&mElementData));
+  while (!PR_CLIST_IS_EMPTY(&mElementCollections)) {
+    ElementAnimationCollection* head =
+      static_cast<ElementAnimationCollection*>(
+        PR_LIST_HEAD(&mElementCollections));
     head->Destroy();
   }
 }
