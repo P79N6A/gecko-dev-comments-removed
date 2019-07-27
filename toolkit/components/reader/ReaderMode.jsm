@@ -121,7 +121,8 @@ this.ReaderMode = {
     
     
     
-    return new Readability(uri, doc).isProbablyReaderable(this.isNodeVisible.bind(this, utils));
+    
+    return new Readability(uri, doc).isProbablyReaderable();
   },
 
   isNodeVisible: function(utils, node) {
