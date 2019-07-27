@@ -161,6 +161,19 @@ toolbarseparator {
   z-index: 1;
 }
 
+
+
+@media (-moz-mac-yosemite-theme) {
+  #main-window[tabsintitlebar] #TabsToolbar:not([collapsed="true"]) + #nav-bar:not(:-moz-lwtheme) {
+    border-top: 1px solid hsla(0,0%,0%,.2);
+    background-clip: padding-box;
+    margin-top: -@tabToolbarNavbarOverlap@;
+    
+    position: relative;
+    z-index: 1;
+  }
+}
+
 #nav-bar-customization-target {
   padding: 4px;
 }
