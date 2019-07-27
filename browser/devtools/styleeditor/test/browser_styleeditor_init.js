@@ -2,6 +2,13 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("TypeError: summary is undefined");
+
 const TESTCASE_URI = TEST_BASE + "simple.html";
 
 let gUI;
