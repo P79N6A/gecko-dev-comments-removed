@@ -2724,7 +2724,6 @@ var InspectorFront = exports.InspectorFront = protocol.FrontClass(InspectorActor
 
     
     
-    client.addActorPool(this);
     this.manage(this);
   },
 

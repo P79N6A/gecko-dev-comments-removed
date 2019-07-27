@@ -202,7 +202,6 @@ exports.GcliFront = protocol.FrontClass(GcliActor, {
 
     
     
-    client.addActorPool(this);
     this.manage(this);
   },
 });
