@@ -1,13 +1,14 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-*/
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 #include "MediaEncoder.h"
 #include "MediaDecoder.h"
 #include "nsIPrincipal.h"
 #include "nsMimeTypes.h"
 #include "prlog.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPtr.h"
 
 #include "OggWriter.h"
 #ifdef MOZ_OPUS
@@ -49,8 +50,8 @@ MediaEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
                                        uint32_t aTrackEvents,
                                        const MediaSegment& aQueuedMedia)
 {
-  // Process the incoming raw track data from MediaStreamGraph, called on the
-  // thread of MediaStreamGraph.
+  
+  
   if (mAudioEncoder && aQueuedMedia.GetType() == MediaSegment::AUDIO) {
     mAudioEncoder->NotifyQueuedTrackChanges(aGraph, aID, aTrackRate,
                                             aTrackOffset, aTrackEvents,
@@ -67,7 +68,7 @@ void
 MediaEncoder::NotifyEvent(MediaStreamGraph* aGraph,
                           MediaStreamListener::MediaStreamGraphEvent event)
 {
-  // In case that MediaEncoder does not receive a TRACK_EVENT_ENDED event.
+  
   LOG(PR_LOG_DEBUG, ("NotifyRemoved in [MediaEncoder]."));
   if (mAudioEncoder) {
     mAudioEncoder->NotifyEvent(aGraph, event);
@@ -77,7 +78,7 @@ MediaEncoder::NotifyEvent(MediaStreamGraph* aGraph,
   }
 }
 
-/* static */
+
 already_AddRefed<MediaEncoder>
 MediaEncoder::CreateEncoder(const nsAString& aMIMEType, uint8_t aTrackTypes)
 {
@@ -109,7 +110,7 @@ MediaEncoder::CreateEncoder(const nsAString& aMIMEType, uint8_t aTrackTypes)
     NS_ENSURE_TRUE(videoEncoder, nullptr);
     mimeType = NS_LITERAL_STRING(VIDEO_WEBM);
   }
-#endif //MOZ_WEBM_ENCODER
+#endif 
 #ifdef MOZ_OMX_ENCODER
   else if (MediaEncoder::IsOMXEncoderEnabled() &&
           (aMIMEType.EqualsLiteral(VIDEO_MP4) ||
@@ -132,7 +133,7 @@ MediaEncoder::CreateEncoder(const nsAString& aMIMEType, uint8_t aTrackTypes)
     NS_ENSURE_TRUE(writer, nullptr);
     mimeType = NS_LITERAL_STRING(AUDIO_3GPP);
   }
-#endif // MOZ_OMX_ENCODER
+#endif 
   else if (MediaDecoder::IsOggEnabled() && MediaDecoder::IsOpusEnabled() &&
            (aMIMEType.EqualsLiteral(AUDIO_OGG) ||
            (aTrackTypes & ContainerWriter::CREATE_AUDIO_TRACK))) {
@@ -154,30 +155,30 @@ MediaEncoder::CreateEncoder(const nsAString& aMIMEType, uint8_t aTrackTypes)
   return encoder.forget();
 }
 
-/**
- * GetEncodedData() runs as a state machine, starting with mState set to
- * GET_METADDATA, the procedure should be as follow:
- *
- * While non-stop
- *   If mState is GET_METADDATA
- *     Get the meta data from audio/video encoder
- *     If a meta data is generated
- *       Get meta data from audio/video encoder
- *       Set mState to ENCODE_TRACK
- *       Return the final container data
- *
- *   If mState is ENCODE_TRACK
- *     Get encoded track data from audio/video encoder
- *     If a packet of track data is generated
- *       Insert encoded track data into the container stream of writer
- *       If the final container data is copied to aOutput
- *         Return the copy of final container data
- *       If this is the last packet of input stream
- *         Set mState to ENCODE_DONE
- *
- *   If mState is ENCODE_DONE or ENCODE_ERROR
- *     Stop the loop
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
                              nsAString& aMIMEType)
@@ -204,6 +205,9 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
 
       rv = mWriter->GetContainerData(aOutputBufs,
                                      ContainerWriter::GET_HEADER);
+      if (aOutputBufs != nullptr) {
+        mSizeOfBuffer = aOutputBufs->SizeOfExcludingThis(MallocSizeOf);
+      }
       if (NS_FAILED(rv)) {
        LOG(PR_LOG_ERROR,("Error! writer fail to generate header!"));
        mState = ENCODE_ERROR;
@@ -230,14 +234,17 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
         break;
       }
       LOG(PR_LOG_DEBUG, ("Video encoded TimeStamp = %f", GetEncodeTimeStamp()));
-      // In audio only or video only case, let unavailable track's flag to be true.
+      
       bool isAudioCompleted = (mAudioEncoder && mAudioEncoder->IsEncodingComplete()) || !mAudioEncoder;
       bool isVideoCompleted = (mVideoEncoder && mVideoEncoder->IsEncodingComplete()) || !mVideoEncoder;
       rv = mWriter->GetContainerData(aOutputBufs,
                                      isAudioCompleted && isVideoCompleted ?
                                      ContainerWriter::FLUSH_NEEDED : 0);
+      if (aOutputBufs != nullptr) {
+        mSizeOfBuffer = aOutputBufs->SizeOfExcludingThis(MallocSizeOf);
+      }
       if (NS_SUCCEEDED(rv)) {
-        // Successfully get the copy of final container data from writer.
+        
         reloop = false;
       }
       mState = (mWriter->IsWritingComplete()) ? ENCODE_DONE : ENCODE_TRACK;
@@ -250,6 +257,7 @@ MediaEncoder::GetEncodedData(nsTArray<nsTArray<uint8_t> >* aOutputBufs,
     case ENCODE_DONE:
     case ENCODE_ERROR:
       LOG(PR_LOG_DEBUG, ("MediaEncoder has been shutdown."));
+      mSizeOfBuffer = 0;
       mShutdown = true;
       reloop = false;
       break;
@@ -271,7 +279,7 @@ MediaEncoder::WriteEncodedDataToMuxer(TrackEncoder *aTrackEncoder)
   EncodedFrameContainer encodedVideoData;
   nsresult rv = aTrackEncoder->GetEncodedTrack(encodedVideoData);
   if (NS_FAILED(rv)) {
-    // Encoding might be canceled.
+    
     LOG(PR_LOG_ERROR, ("Error! Fail to get encoded data from video encoder."));
     mState = ENCODE_ERROR;
     return rv;
@@ -322,5 +330,22 @@ MediaEncoder::IsOMXEncoderEnabled()
   return Preferences::GetBool("media.encoder.omx.enabled");
 }
 #endif
+
+
+
+
+
+
+size_t
+MediaEncoder::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+  size_t amount = 0;
+  if (mState == ENCODE_TRACK) {
+    amount = mSizeOfBuffer +
+             (mAudioEncoder != nullptr ? mAudioEncoder->SizeOfExcludingThis(aMallocSizeOf) : 0) +
+             (mVideoEncoder != nullptr ? mVideoEncoder->SizeOfExcludingThis(aMallocSizeOf) : 0);
+  }
+  return amount;
+}
 
 }

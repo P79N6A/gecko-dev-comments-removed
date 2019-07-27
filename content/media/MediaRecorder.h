@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/MediaRecorderBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/MemoryReporting.h"
 #include "nsIDocumentActivity.h"
 
 
@@ -90,6 +91,11 @@ public:
               const MediaRecorderOptions& aInitDict,
               ErrorResult& aRv);
 
+  
+
+
+
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   
   IMPL_EVENT_HANDLER(dataavailable)
   IMPL_EVENT_HANDLER(error)
