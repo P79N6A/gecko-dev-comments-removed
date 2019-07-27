@@ -57,6 +57,7 @@ namespace layers {
 class Compositor;
 class CompositorOGL;
 class TextureImageTextureSourceOGL;
+class TextureSharedDataGonkOGL;
 
 
 
@@ -69,18 +70,83 @@ class TextureImageTextureSourceOGL;
 
 class CompositableDataGonkOGL : public CompositableBackendSpecificData
 {
-public:
-  CompositableDataGonkOGL();
+protected:
   virtual ~CompositableDataGonkOGL();
 
-  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+public:
+  CompositableDataGonkOGL();
   virtual void ClearData() MOZ_OVERRIDE;
+  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+
+  TextureSharedDataGonkOGL* GetTextureBackendSpecificData();
+protected:
+  nsRefPtr<TextureSharedDataGonkOGL> mTextureBackendSpecificData;
+  RefPtr<CompositorOGL> mCompositor;
+};
+
+
+
+
+
+
+
+
+
+
+
+class TextureSharedDataGonkOGL
+{
+protected:
+  virtual ~TextureSharedDataGonkOGL();
+
+public:
+  NS_INLINE_DECL_REFCOUNTING(TextureSharedDataGonkOGL)
+
+  TextureSharedDataGonkOGL();
+  TextureSharedDataGonkOGL(GLuint aTexture, EGLImage aImage, CompositorOGL* aCompositor);
+
+  void SetCompositor(Compositor* aCompositor);
+  void ClearData();
+
+  
+  void SetOwnedByTextureHost()
+  {
+    mOwnedByCompositableHost = false;
+  }
+
+  
+  bool IsOwnedByCompositableHost()
+  {
+    return mOwnedByCompositableHost;
+  }
+
+  bool IsAllowingSharingTextureHost()
+  {
+    return mAllowSharingTextureHost;
+  }
+
+  void SetAllowSharingTextureHost(bool aAllow)
+  {
+    mAllowSharingTextureHost = aAllow;
+  }
+
+  
+  
+  
+  
+  TemporaryRef<TextureSharedDataGonkOGL> GetNewTextureBackendSpecificData(EGLImage aImage);
+
   GLuint GetTexture();
   void DeleteTextureIfPresent();
   gl::GLContext* gl() const;
   void BindEGLImage(GLuint aTarget, EGLImage aImage);
   void ClearBoundEGLImage(EGLImage aImage);
+  bool IsEGLImageBound(EGLImage aImage);
 protected:
+  GLuint GetAndResetGLTextureOwnership();
+
+  bool mOwnedByCompositableHost;
+  bool mAllowSharingTextureHost;
   RefPtr<CompositorOGL> mCompositor;
   GLuint mTexture;
   EGLImage mBoundEGLImage;

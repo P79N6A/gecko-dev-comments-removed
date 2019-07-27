@@ -131,11 +131,6 @@ public:
 
 
   virtual BigImageIterator* AsBigImageIterator() { return nullptr; }
-
-  virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
-
-protected:
-  RefPtr<CompositableBackendSpecificData> mCompositableBackendData;
 };
 
 
@@ -442,6 +437,8 @@ public:
   }
 
   virtual void SetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
+
+  virtual void UnsetCompositableBackendSpecificData(CompositableBackendSpecificData* aBackendData);
 
   
   

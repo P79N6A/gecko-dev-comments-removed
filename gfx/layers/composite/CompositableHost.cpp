@@ -24,6 +24,14 @@ namespace layers {
 
 class Compositor;
 
+CompositableBackendSpecificData::CompositableBackendSpecificData()
+  : mAllowSharingTextureHost(false)
+{
+  static uint64_t sNextID = 1;
+  ++sNextID;
+  mId = sNextID;
+}
+
 
 
 
@@ -131,7 +139,7 @@ void
 CompositableHost::RemoveTextureHost(TextureHost* aTexture)
 {
   
-  aTexture->SetCompositableBackendSpecificData(nullptr);
+  aTexture->UnsetCompositableBackendSpecificData(GetCompositableBackendSpecificData());
 }
 
 void
