@@ -496,22 +496,6 @@ class PerThreadData : public PerThreadDataFriendFields
     JSRuntime *runtime_;
 
   public:
-    
-
-
-
-
-
-#ifdef DEBUG
-    struct SavedGCRoot {
-        void *thing;
-        JSGCTraceKind kind;
-
-        SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
-    };
-    js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
-#endif
-
 #ifdef JS_TRACE_LOGGING
     TraceLoggerThread   *traceLogger;
 #endif

@@ -219,7 +219,6 @@ gc::GCRuntime::startVerifyPreBarriers()
     
     trc->curnode = MakeNode(trc, nullptr, JSGCTraceKind(0));
 
-    
     incrementalState = MARK_ROOTS;
 
     
