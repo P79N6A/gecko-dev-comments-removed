@@ -1378,10 +1378,19 @@ RObjectState::recover(JSContext* cx, SnapshotIterator& iter) const
         const UnboxedLayout::PropertyVector& properties = layout.properties();
         for (size_t i = 0; i < properties.length(); i++) {
             val = iter.read();
+
             
             
             if (val.isUndefined())
                 continue;
+
+            
+            
+            
+            
+            
+            if (properties[i].type == JSVAL_TYPE_BOOLEAN)
+                val.setBoolean(val.toInt32() != 0);
 
             MOZ_ALWAYS_TRUE(object->as<UnboxedPlainObject>().setValue(cx, properties[i], val));
         }
