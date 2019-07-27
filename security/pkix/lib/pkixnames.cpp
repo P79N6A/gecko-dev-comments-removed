@@ -1154,6 +1154,11 @@ MatchPresentedDNSIDWithReferenceDNSID(
                         Result::FATAL_ERROR_LIBRARY_FAILURE);
     }
     do {
+      
+      if (reference.AtEnd()) {
+        matches = false;
+        return Success;
+      }
       uint8_t referenceByte;
       if (reference.Read(referenceByte) != Success) {
         return NotReached("invalid reference ID",
