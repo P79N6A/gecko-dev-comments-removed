@@ -2,14 +2,19 @@
 
 
 
+"use strict";
+
 let Ci = Components.interfaces, Cc = Components.classes, Cu = Components.utils;
+
+this.EXPORTED_SYMBOLS = [ "AboutReader" ];
 
 Cu.import("resource://gre/modules/Messaging.jsm");
 Cu.import("resource://gre/modules/Services.jsm")
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "UITelemetry",
-                                  "resource://gre/modules/UITelemetry.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ReaderMode", "resource://gre/modules/ReaderMode.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UITelemetry", "resource://gre/modules/UITelemetry.jsm");
 
 XPCOMUtils.defineLazyGetter(window, "gChromeWin", function ()
   window.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -786,7 +791,7 @@ AboutReader.prototype = {
           return;
 
         
-        setTimeout(updatePopupPosition, 0);
+        win.setTimeout(updatePopupPosition, 0);
       }, true);
 
       dropdownToggle.addEventListener("click", function(aEvent) {
