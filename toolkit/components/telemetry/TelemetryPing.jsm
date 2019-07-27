@@ -214,6 +214,7 @@ this.TelemetryPing = Object.freeze({
 
   reset: function() {
     this.uninstall();
+    Impl._clientID = null;
     return this.setup();
   },
   
@@ -222,6 +223,7 @@ this.TelemetryPing = Object.freeze({
   setup: function() {
     return Impl.setupChromeProcess(true);
   },
+
   
 
 
@@ -231,6 +233,13 @@ this.TelemetryPing = Object.freeze({
     } catch (ex) {
       
     }
+  },
+
+  
+
+
+  shutdown: function() {
+    return Impl.shutdown(true);
   },
   
 
@@ -1025,10 +1034,7 @@ let Impl = {
     AsyncShutdown.sendTelemetry.addBlocker(
       "Telemetry: shutting down",
       function condition(){
-        this.uninstall();
-        if (Telemetry.canSend) {
-          return this.savePendingPings();
-        }
+        this.shutdown();
       }.bind(this));
 
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
@@ -1175,7 +1181,6 @@ let Impl = {
 #ifdef MOZ_WIDGET_ANDROID
     Services.obs.removeObserver(this, "application-background", false);
 #endif
-    this._clientID = null;
   },
 
   getPayload: function getPayload() {
@@ -1307,5 +1312,17 @@ let Impl = {
 
   get clientID() {
     return this._clientID;
+  },
+
+  
+
+
+
+
+  shutdown: function(testing = false) {
+    this.uninstall();
+    if (Telemetry.canSend || testing) {
+      return this.savePendingPings();
+    }
   },
 };
