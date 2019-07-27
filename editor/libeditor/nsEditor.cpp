@@ -4065,29 +4065,25 @@ nsEditor::DeleteSelectionImpl(EDirection aAction,
   return res;
 }
 
-
-NS_IMETHODIMP
-nsEditor::DeleteSelectionAndCreateNode(const nsAString& aTag,
-                                           nsIDOMNode ** aNewNode)
+already_AddRefed<Element>
+nsEditor::DeleteSelectionAndCreateElement(nsIAtom& aTag)
 {
-  nsCOMPtr<nsIAtom> tag = do_GetAtom(aTag);
-
-  nsresult result = DeleteSelectionAndPrepareToCreateNode();
-  NS_ENSURE_SUCCESS(result, result);
+  nsresult res = DeleteSelectionAndPrepareToCreateNode();
+  NS_ENSURE_SUCCESS(res, nullptr);
 
   nsRefPtr<Selection> selection = GetSelection();
-  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(selection, nullptr);
 
   nsCOMPtr<nsINode> node = selection->GetAnchorNode();
   uint32_t offset = selection->AnchorOffset();
 
-  nsCOMPtr<nsIDOMNode> newNode;
-  *aNewNode = GetAsDOMNode(CreateNode(tag, node, offset).take());
-  
-  
+  nsCOMPtr<Element> newElement = CreateNode(&aTag, node, offset);
 
   
-  return selection->Collapse(node, offset + 1);
+  res = selection->Collapse(node, offset + 1);
+  NS_ENSURE_SUCCESS(res, nullptr);
+
+  return newElement.forget();
 }
 
 
