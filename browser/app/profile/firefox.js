@@ -422,6 +422,12 @@ pref("browser.search.showOneOffButtons", true);
 
 pref("browser.search.hiddenOneOffs", "");
 
+#ifdef XP_WIN
+pref("browser.search.redirectWindowsSearch", true);
+#else
+pref("browser.search.redirectWindowsSearch", false);
+#endif
+
 pref("browser.sessionhistory.max_entries", 50);
 
 
