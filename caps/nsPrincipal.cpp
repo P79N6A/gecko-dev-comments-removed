@@ -14,12 +14,14 @@
 #include "pratom.h"
 #include "nsIURI.h"
 #include "nsJSPrincipals.h"
+#include "nsIEffectiveTLDService.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIProtocolHandler.h"
 #include "nsError.h"
 #include "nsIContentSecurityPolicy.h"
+#include "nsNetCID.h"
 #include "jswrapper.h"
 
 #include "mozilla/dom/ScriptSettings.h"
@@ -30,6 +32,8 @@
 #include "mozIApplication.h"
 
 using namespace mozilla;
+
+static bool gIsWhitelistingTestDomains = false;
 
 static bool gCodeBasePrincipalSupport = false;
 static bool gIsObservingCodeBasePrincipalSupport = false;
@@ -125,6 +129,15 @@ NS_IMPL_CI_INTERFACE_GETTER(nsPrincipal,
                             nsISerializable)
 NS_IMPL_ADDREF_INHERITED(nsPrincipal, nsBasePrincipal)
 NS_IMPL_RELEASE_INHERITED(nsPrincipal, nsBasePrincipal)
+
+
+ void
+nsPrincipal::InitializeStatics()
+{
+  Preferences::AddBoolVarCache(
+    &gIsWhitelistingTestDomains,
+    "layout.css.unprefixing-service.include-test-domains");
+}
 
 nsPrincipal::nsPrincipal()
   : mAppId(nsIScriptSecurityManager::UNKNOWN_APP_ID)
@@ -610,6 +623,145 @@ nsPrincipal::GetAppStatus()
 
 
 
+
+static inline bool
+IsWhitelistingTestDomains()
+{
+  return gIsWhitelistingTestDomains;
+}
+
+
+
+static bool
+IsOnFullDomainWhitelist(nsIURI* aURI)
+{
+  nsAutoCString hostStr;
+  nsresult rv = aURI->GetHost(hostStr);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  
+  static const nsLiteralCString sFullDomainsOnWhitelist[] = {
+    
+    NS_LITERAL_CSTRING("test1.example.org"),
+    NS_LITERAL_CSTRING("map.baidu.com"),
+    NS_LITERAL_CSTRING("music.baidu.com"),
+    NS_LITERAL_CSTRING("3g.163.com"),
+    NS_LITERAL_CSTRING("3glogo.gtimg.com"), 
+    NS_LITERAL_CSTRING("info.3g.qq.com"), 
+    NS_LITERAL_CSTRING("3gimg.qq.com"), 
+    NS_LITERAL_CSTRING("img.m.baidu.com"), 
+    NS_LITERAL_CSTRING("m.mogujie.com"),
+    NS_LITERAL_CSTRING("touch.qunar.com"),
+  };
+  static const size_t sNumFullDomainsOnWhitelist =
+    MOZ_ARRAY_LENGTH(sFullDomainsOnWhitelist);
+
+  
+  const size_t firstWhitelistIdx = IsWhitelistingTestDomains() ? 0 : 1;
+
+  for (size_t i = firstWhitelistIdx; i < sNumFullDomainsOnWhitelist; ++i) {
+    if (hostStr == sFullDomainsOnWhitelist[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+static bool
+IsOnBaseDomainWhitelist(nsIURI* aURI)
+{
+  static const nsLiteralCString sBaseDomainsOnWhitelist[] = {
+    
+    NS_LITERAL_CSTRING("test2.example.org"),
+    NS_LITERAL_CSTRING("tbcdn.cn"), 
+    NS_LITERAL_CSTRING("dpfile.com"), 
+    NS_LITERAL_CSTRING("hao123img.com"), 
+  };
+  static const size_t sNumBaseDomainsOnWhitelist =
+    MOZ_ARRAY_LENGTH(sBaseDomainsOnWhitelist);
+
+  nsCOMPtr<nsIEffectiveTLDService> tldService =
+    do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
+
+  if (tldService) {
+    
+    const size_t firstWhitelistIdx = IsWhitelistingTestDomains() ? 0 : 1;
+
+    
+    
+    
+    
+    
+    
+    const uint32_t maxSubdomainDepth = IsWhitelistingTestDomains() ? 1 : 0;
+
+    for (uint32_t subdomainDepth = 0;
+         subdomainDepth <= maxSubdomainDepth; ++subdomainDepth) {
+
+      
+      nsAutoCString baseDomainStr;
+      nsresult rv = tldService->GetBaseDomain(aURI, subdomainDepth,
+                                              baseDomainStr);
+      if (NS_FAILED(rv)) {
+        
+        
+        return false;
+      }
+
+      
+      for (size_t i = firstWhitelistIdx; i < sNumBaseDomainsOnWhitelist; ++i) {
+        if (baseDomainStr == sBaseDomainsOnWhitelist[i]) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+
+static bool
+IsOnCSSUnprefixingWhitelistImpl(nsIURI* aURI)
+{
+  
+  nsAutoCString schemeStr;
+  nsresult rv = aURI->GetScheme(schemeStr);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  
+  if (!(StringBeginsWith(schemeStr, NS_LITERAL_CSTRING("http")) &&
+        (schemeStr.Length() == 4 ||
+         (schemeStr.Length() == 5 && schemeStr[4] == 's')))) {
+    return false;
+  }
+
+  return (IsOnFullDomainWhitelist(aURI) ||
+          IsOnBaseDomainWhitelist(aURI));
+}
+
+
+bool
+nsPrincipal::IsOnCSSUnprefixingWhitelist()
+{
+  if (mIsOnCSSUnprefixingWhitelist.isNothing()) {
+    
+    
+    
+    mIsOnCSSUnprefixingWhitelist.emplace(
+      mCodebaseImmutable &&
+      IsOnCSSUnprefixingWhitelistImpl(mCodebase));
+  }
+
+  return *mIsOnCSSUnprefixingWhitelist;
+}
+
+
+
 static const char EXPANDED_PRINCIPAL_SPEC[] = "[Expanded Principal]";
 
 NS_IMPL_CLASSINFO(nsExpandedPrincipal, nullptr, nsIClassInfo::MAIN_THREAD_ONLY,
@@ -822,6 +974,15 @@ nsExpandedPrincipal::GetBaseDomain(nsACString& aBaseDomain)
 {
   return NS_ERROR_NOT_AVAILABLE;
 }
+
+bool
+nsExpandedPrincipal::IsOnCSSUnprefixingWhitelist()
+{
+  
+  
+  return false;
+}
+
 
 void
 nsExpandedPrincipal::GetScriptLocation(nsACString& aStr)

@@ -201,6 +201,13 @@ nsSystemPrincipal::GetBaseDomain(nsACString& aBaseDomain)
   return NS_OK;
 }
 
+bool
+nsSystemPrincipal::IsOnCSSUnprefixingWhitelist()
+{
+  
+  return false;
+}
+
 
 
 

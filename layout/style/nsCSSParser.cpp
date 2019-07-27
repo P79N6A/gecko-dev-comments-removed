@@ -6639,11 +6639,12 @@ bool
 CSSParserImpl::ShouldUseUnprefixingService()
 {
   if (!sUnprefixingServiceEnabled) {
+    
     return false;
   }
 
   
-  return true;
+  return mSheetPrincipal && mSheetPrincipal->IsOnCSSUnprefixingWhitelist();
 }
 
 bool
