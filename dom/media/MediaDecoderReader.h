@@ -315,6 +315,9 @@ private:
   bool mAudioDiscontinuity;
   bool mVideoDiscontinuity;
   bool mShutdown;
+
+public:
+  bool IsShutdown() { return mShutdown; }
 };
 
 
