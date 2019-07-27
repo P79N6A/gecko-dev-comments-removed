@@ -155,12 +155,6 @@ public:
 
 
 
-    CLIP, 
-    
-
-
-
-
 
     CLIP_MASK 
   };

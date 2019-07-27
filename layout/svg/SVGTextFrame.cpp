@@ -2894,12 +2894,9 @@ SVGTextDrawPathCallbacks::SetupContext()
 void
 SVGTextDrawPathCallbacks::HandleTextGeometry()
 {
-  if (mRenderMode != SVGAutoRenderState::NORMAL) {
-    
-    if (mRenderMode == SVGAutoRenderState::CLIP_MASK) {
-      gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
-      gfx->Fill();
-    }
+  if (mRenderMode == SVGAutoRenderState::CLIP_MASK) {
+    gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
+    gfx->Fill();
   } else {
     
     gfxContextMatrixAutoSaveRestore saveMatrix(gfx);

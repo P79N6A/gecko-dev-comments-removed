@@ -12,6 +12,8 @@
 #include "nsGkAtoms.h"
 #include "nsRenderingContext.h"
 #include "nsSVGEffects.h"
+#include "nsSVGPathGeometryElement.h"
+#include "nsSVGPathGeometryFrame.h"
 #include "nsSVGUtils.h"
 
 using namespace mozilla;
@@ -45,33 +47,44 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
 
   mMatrixForChildren = GetClipPathTransform(aClippedFrame) * aMatrix;
 
-  gfxContext *gfx = aContext->ThebesContext();
+  gfxContext* gfx = aContext->ThebesContext();
 
-  nsISVGChildFrame *singleClipPathChild = nullptr;
+  nsISVGChildFrame* singleClipPathChild = nullptr;
 
   if (IsTrivial(&singleClipPathChild)) {
-    
-    
-    SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP);
-
-    if (!singleClipPathChild) {
+    gfxContextMatrixAutoSaveRestore autoRestore(gfx);
+    RefPtr<Path> clipPath;
+    if (singleClipPathChild) {
+      nsSVGPathGeometryFrame* pathFrame = do_QueryFrame(singleClipPathChild);
+      if (pathFrame) {
+        nsSVGPathGeometryElement* pathElement =
+          static_cast<nsSVGPathGeometryElement*>(pathFrame->GetContent());
+        gfxMatrix toChildsUserSpace = pathElement->
+          PrependLocalTransformsTo(mMatrixForChildren,
+                                   nsSVGElement::eUserSpaceToParent);
+        gfxMatrix newMatrix =
+          gfx->CurrentMatrix().PreMultiply(toChildsUserSpace).NudgeToIntegers();
+        if (!newMatrix.IsSingular()) {
+          gfx->SetMatrix(newMatrix);
+          RefPtr<PathBuilder> builder =
+            gfx->GetDrawTarget()->CreatePathBuilder(
+              nsSVGUtils::ToFillRule(pathFrame->StyleSVG()->mClipRule));
+          clipPath = pathElement->BuildPath(builder);
+        }
+      }
+    }
+    gfx->NewPath();
+    if (clipPath) {
+      gfx->SetPath(clipPath);
+      
+      
+      
+      
+      gfx->SetFillRule(clipPath->GetFillRule());
+    } else {
+      
       
       gfx->Rectangle(gfxRect());
-    } else {
-      nsIFrame* child = do_QueryFrame(singleClipPathChild);
-      nsIContent* childContent = child->GetContent();
-      if (childContent->IsSVG()) {
-        singleClipPathChild->NotifySVGChanged(
-                               nsISVGChildFrame::TRANSFORM_CHANGED);
-        gfxMatrix toChildsUserSpace =
-          static_cast<const nsSVGElement*>(childContent)->
-            PrependLocalTransformsTo(mMatrixForChildren,
-                                     nsSVGElement::eUserSpaceToParent);
-        singleClipPathChild->PaintSVG(aContext, toChildsUserSpace);
-      } else {
-        
-        gfx->Rectangle(gfxRect());
-      }
     }
     gfx->Clip();
     gfx->NewPath();

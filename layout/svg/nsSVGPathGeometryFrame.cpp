@@ -626,56 +626,28 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
     break;
   }
 
-  if (renderMode != SVGAutoRenderState::NORMAL) {
-    NS_ABORT_IF_FALSE(renderMode == SVGAutoRenderState::CLIP ||
-                      renderMode == SVGAutoRenderState::CLIP_MASK,
-                      "Unknown render mode");
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    gfxContextMatrixAutoSaveRestore autoSaveRestore;
-    
-    
-    
-      autoSaveRestore.SetContext(gfx);
-    
+  if (renderMode == SVGAutoRenderState::CLIP_MASK) {
+    gfxContextMatrixAutoSaveRestore autoSaveRestore(gfx);
 
     GeneratePath(gfx, ToMatrix(aTransform));
 
-    
-    
-    
-    
-    
-    
-    
-
-    FillRule oldFillRull = gfx->CurrentFillRule();
+    FillRule oldFillRule = gfx->CurrentFillRule();
 
     if (StyleSVG()->mClipRule == NS_STYLE_FILL_RULE_EVENODD)
       gfx->SetFillRule(FillRule::FILL_EVEN_ODD);
     else
       gfx->SetFillRule(FillRule::FILL_WINDING);
 
-    if (renderMode == SVGAutoRenderState::CLIP_MASK) {
-      gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
-      gfx->Fill();
-      gfx->SetFillRule(oldFillRull); 
-      gfx->NewPath();
-    }
+    gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
+    gfx->Fill();
+    gfx->SetFillRule(oldFillRule);
+    gfx->NewPath();
 
     return;
   }
+
+  NS_ABORT_IF_FALSE(renderMode == SVGAutoRenderState::NORMAL,
+                    "Unknown render mode");
 
   gfxContextAutoSaveRestore autoSaveRestore(gfx);
 
