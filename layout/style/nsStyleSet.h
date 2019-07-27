@@ -136,10 +136,12 @@ class nsStyleSet
 
   
   
+  
   already_AddRefed<nsStyleContext>
   ResolveStyleWithReplacement(mozilla::dom::Element* aElement,
                               nsStyleContext* aNewParentContext,
-                              nsStyleContext* aOldStyleContext);
+                              nsStyleContext* aOldStyleContext,
+                              nsRestyleHint aReplacements);
 
   
   

@@ -251,7 +251,8 @@ CommonAnimationManager::UpdateThrottledStyle(dom::Element* aElement,
 
   nsStyleSet* styleSet = mPresContext->StyleSet();
   nsRefPtr<nsStyleContext> newStyle =
-    styleSet->ResolveStyleWithReplacement(aElement, aParentStyle, oldStyle);
+    styleSet->ResolveStyleWithReplacement(aElement, aParentStyle, oldStyle,
+      nsRestyleHint(eRestyle_CSSTransitions | eRestyle_CSSAnimations));
 
   
   
