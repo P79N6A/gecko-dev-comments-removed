@@ -77,7 +77,7 @@ public:
   NS_DECL_NSISELECTIONLISTENER
 
   
-  void NotifyBlur();
+  void NotifyBlur(bool aIsLeavingDocument);
 
   
   virtual void ScrollPositionChanged() MOZ_OVERRIDE;
