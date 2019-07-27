@@ -123,6 +123,7 @@ public:
     static nsEventStatus DispatchSynthesizedMouseEvent(uint32_t aMsg,
                                                        uint64_t aTime,
                                                        const LayoutDevicePoint& aRefPoint,
+                                                       Modifiers aModifiers,
                                                        nsIWidget* aWidget);
 
     
@@ -139,6 +140,7 @@ public:
     
 
     static void FireSingleTapEvent(const LayoutDevicePoint& aPoint,
+                                   Modifiers aModifiers,
                                    nsIWidget* aWidget);
 
     
