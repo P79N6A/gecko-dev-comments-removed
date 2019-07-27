@@ -713,6 +713,18 @@ function unBlackBox(sourceClient) {
 
 
 
+function getSourceContent(sourceClient) {
+  dumpn("Getting source content for " + sourceClient.actor);
+  return rdpRequest(sourceClient, sourceClient.source);
+}
+
+
+
+
+
+
+
+
 function getSource(threadClient, url) {
   let deferred = promise.defer();
   threadClient.getSources((res) => {
