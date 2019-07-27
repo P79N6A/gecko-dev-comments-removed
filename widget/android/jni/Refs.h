@@ -28,8 +28,7 @@ template<class Cls> class GlobalRef;
 
 
 
-template<class Cls> struct ParamImpl { typedef Ref<Cls> Type; };
-template<class Cls> using Param = typename ParamImpl<Cls>::Type;
+template<class Cls> struct Param { typedef Ref<Cls> Type; };
 
 
 
@@ -42,13 +41,6 @@ enum class ExceptionMode
     
     NSRESULT,
 };
-
-
-
-
-
-template<typename...>
-struct Args {};
 
 
 
@@ -81,7 +73,7 @@ public:
     typedef jni::Ref<Object> Ref;
     typedef jni::LocalRef<Object>  LocalRef;
     typedef jni::GlobalRef<Object> GlobalRef;
-    typedef const jni::Param<Object>& Param;
+    typedef const typename jni::Param<Object>::Type& Param;
 };
 
 
@@ -98,7 +90,7 @@ public:
     typedef jni::Ref<Self> Ref;
     typedef jni::LocalRef<Self>  LocalRef;
     typedef jni::GlobalRef<Self> GlobalRef;
-    typedef const jni::Param<Self>& Param;
+    typedef const typename jni::Param<Self>::Type& Param;
 };
 
 
@@ -116,7 +108,7 @@ typedef TypedObject<jfloatArray>   FloatArray;
 typedef TypedObject<jdoubleArray>  DoubleArray;
 typedef TypedObject<jobjectArray>  ObjectArray;
 
-template<> struct ParamImpl<String> { class Type; };
+template<> struct Param<String> { class Type; };
 
 
 
@@ -533,7 +525,7 @@ public:
 
 
 
-class ParamImpl<String>::Type : public Ref<String>
+class Param<String>::Type : public Ref<String>
 {
 private:
     
