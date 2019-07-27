@@ -295,6 +295,10 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     }
 
     
+    
+    masm.assertStackAlignment(JitStackAlignment, sizeof(uintptr_t));
+
+    
     masm.ma_callJitHalfPush(reg_code);
 
     if (type == EnterJitBaseline) {

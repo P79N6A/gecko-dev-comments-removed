@@ -162,12 +162,14 @@ static MOZ_CONSTEXPR_VAR FloatRegister f30 = { FloatRegisters::f30, FloatRegiste
 
 static const uint32_t ABIStackAlignment = 8;
 static const uint32_t CodeAlignment = 4;
+static const uint32_t JitStackAlignment = 8;
 
 
 
 
 
 static const bool SupportsSimd = false;
+
 
 
 static const uint32_t SimdMemoryAlignment = 8;
