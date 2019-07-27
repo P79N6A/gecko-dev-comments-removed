@@ -28,7 +28,6 @@
 #include <ctime>
 #include <stdint.h>
 
-#include "cert.h"
 #include "keyhi.h"
 #include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
@@ -72,8 +71,6 @@ SECITEM_FreeItem_true(SECItem* item)
 
 } 
 
-typedef ScopedPtr<CERTCertificate, CERT_DestroyCertificate> ScopedCERTCertificate;
-typedef ScopedPtr<CERTCertList, CERT_DestroyCertList> ScopedCERTCertList;
 typedef mozilla::pkix::ScopedPtr<SECItem, SECITEM_FreeItem_true> ScopedSECItem;
 typedef mozilla::pkix::ScopedPtr<SECKEYPublicKey, SECKEY_DestroyPublicKey>
   ScopedSECKEYPublicKey;
@@ -171,17 +168,6 @@ public:
   const CertID& certID;
   
 
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
 
   enum OCSPResponseStatus {
