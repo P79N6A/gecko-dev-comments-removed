@@ -18,10 +18,7 @@ namespace win {
 
 
 #if defined(COMPILER_MSVC)
-
-extern "C" {
-  void* _ReturnAddress();
-}
+#include <intrin.h>
 #define BASE_WIN_GET_CALLER _ReturnAddress()
 #elif defined(COMPILER_GCC)
 #define BASE_WIN_GET_CALLER __builtin_extract_return_addr(\\
