@@ -6443,8 +6443,18 @@ function WindowIsClosing()
 
   for (let browser of gBrowser.browsers) {
     let ds = browser.docShell;
-    if (ds.contentViewer && !ds.contentViewer.permitUnload())
+    
+    
+    
+    
+    if (ds.contentViewer && !ds.contentViewer.permitUnload(true)) {
+      
+      
+      
+      
+      window.getInterface(Ci.nsIDocShell).contentViewer.resetCloseWindow();
       return false;
+    }
   }
 
   return true;
