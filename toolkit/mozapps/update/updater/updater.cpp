@@ -3017,7 +3017,13 @@ int NS_main(int argc, NS_tchar **argv)
   
   
   
-  if (gSucceeded) {
+  
+  if (gSucceeded && !sStagedUpdate) {
+    NS_tchar oldPrecomplete[MAXPATHLEN];
+    NS_tsnprintf(oldPrecomplete, sizeof(oldPrecomplete)/sizeof(oldPrecomplete[0]),
+                 NS_T("%s/precomplete"), gInstallDirPath);
+    NS_tremove(oldPrecomplete);
+
     NS_tchar oldDistDir[MAXPATHLEN];
     NS_tsnprintf(oldDistDir, sizeof(oldDistDir)/sizeof(oldDistDir[0]),
                  NS_T("%s/Contents/MacOS/distribution"), gInstallDirPath);
