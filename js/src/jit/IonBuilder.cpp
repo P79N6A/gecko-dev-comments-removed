@@ -417,6 +417,25 @@ IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
         return DontInline(nullptr, "Non-interpreted target");
     }
 
+    if (info().analysisMode() != Analysis_DefiniteProperties) {
+        
+        
+        
+        
+
+        if (callInfo.thisArg()->emptyResultTypeSet()) {
+            trackOptimizationOutcome(TrackedOutcome::CantInlineUnreachable);
+            return DontInline(nullptr, "Empty TypeSet for |this|");
+        }
+
+        for (size_t i = 0; i < callInfo.argc(); i++) {
+            if (callInfo.getArg(i)->emptyResultTypeSet()) {
+                trackOptimizationOutcome(TrackedOutcome::CantInlineUnreachable);
+                return DontInline(nullptr, "Empty TypeSet for argument");
+            }
+        }
+    }
+
     
     
     if (target->isInterpreted() && info().analysisMode() == Analysis_DefiniteProperties) {
