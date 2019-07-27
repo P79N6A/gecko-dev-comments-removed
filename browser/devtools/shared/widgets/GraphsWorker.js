@@ -68,9 +68,6 @@ function getMinMaxSum(source) {
 
 
 
-
-
-
 function plotTimestamps(timestamps, interval = 100, clamp = 60) {
   let timeline = [];
   let totalTicks = timestamps.length;
