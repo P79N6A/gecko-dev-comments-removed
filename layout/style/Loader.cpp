@@ -119,7 +119,8 @@ public:
                 nsIStyleSheetLinkingElement* aOwningElement,
                 bool aIsAlternate,
                 nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aLoaderPrincipal);
+                nsIPrincipal* aLoaderPrincipal,
+                nsINode* aRequestingNode);
 
   
   SheetLoadData(Loader* aLoader,
@@ -127,7 +128,8 @@ public:
                 CSSStyleSheet* aSheet,
                 SheetLoadData* aParentData,
                 nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aLoaderPrincipal);
+                nsIPrincipal* aLoaderPrincipal,
+                nsINode* aRequestingNode);
 
   
   SheetLoadData(Loader* aLoader,
@@ -138,7 +140,8 @@ public:
                 bool aUseSystemPrincipal,
                 const nsCString& aCharset,
                 nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aLoaderPrincipal);
+                nsIPrincipal* aLoaderPrincipal,
+                nsINode* aRequestingNode);
 
   already_AddRefed<nsIURI> GetReferrerURI();
 
@@ -235,6 +238,9 @@ public:
   nsCOMPtr<nsIPrincipal>                mLoaderPrincipal;
 
   
+  nsCOMPtr<nsINode>                     mRequestingNode;
+
+  
   
   nsCString                             mCharsetHint;
 
@@ -314,7 +320,8 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
                              nsIStyleSheetLinkingElement* aOwningElement,
                              bool aIsAlternate,
                              nsICSSLoaderObserver* aObserver,
-                             nsIPrincipal* aLoaderPrincipal)
+                             nsIPrincipal* aLoaderPrincipal,
+                             nsINode* aRequestingNode)
   : mLoader(aLoader),
     mTitle(aTitle),
     mURI(aURI),
@@ -333,7 +340,8 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
     mSheetAlreadyComplete(false),
     mOwningElement(aOwningElement),
     mObserver(aObserver),
-    mLoaderPrincipal(aLoaderPrincipal)
+    mLoaderPrincipal(aLoaderPrincipal),
+    mRequestingNode(aRequestingNode)
 {
   NS_PRECONDITION(mLoader, "Must have a loader!");
 }
@@ -343,7 +351,8 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
                              CSSStyleSheet* aSheet,
                              SheetLoadData* aParentData,
                              nsICSSLoaderObserver* aObserver,
-                             nsIPrincipal* aLoaderPrincipal)
+                             nsIPrincipal* aLoaderPrincipal,
+                             nsINode* aRequestingNode)
   : mLoader(aLoader),
     mURI(aURI),
     mLineNumber(1),
@@ -362,7 +371,8 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
     mSheetAlreadyComplete(false),
     mOwningElement(nullptr),
     mObserver(aObserver),
-    mLoaderPrincipal(aLoaderPrincipal)
+    mLoaderPrincipal(aLoaderPrincipal),
+    mRequestingNode(aRequestingNode)
 {
   NS_PRECONDITION(mLoader, "Must have a loader!");
   if (mParentData) {
@@ -385,7 +395,8 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
                              bool aUseSystemPrincipal,
                              const nsCString& aCharset,
                              nsICSSLoaderObserver* aObserver,
-                             nsIPrincipal* aLoaderPrincipal)
+                             nsIPrincipal* aLoaderPrincipal,
+                             nsINode* aRequestingNode)
   : mLoader(aLoader),
     mURI(aURI),
     mLineNumber(1),
@@ -404,6 +415,7 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
     mOwningElement(nullptr),
     mObserver(aObserver),
     mLoaderPrincipal(aLoaderPrincipal),
+    mRequestingNode(aRequestingNode),
     mCharsetHint(aCharset)
 {
   NS_PRECONDITION(mLoader, "Must have a loader!");
@@ -1415,6 +1427,22 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
     return NS_BINDING_ABORTED;
   }
 
+  bool inherit = false;
+  nsIPrincipal* requestingPrincipal = aLoadData->mLoaderPrincipal;
+  if (requestingPrincipal) {
+    rv = NS_URIChainHasFlags(aLoadData->mURI,
+                             nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
+                             &inherit);
+    inherit =
+      ((NS_SUCCEEDED(rv) && inherit) ||
+       (nsContentUtils::URIIsLocalFile(aLoadData->mURI) &&
+        NS_SUCCEEDED(aLoadData->mLoaderPrincipal->
+                     CheckMayLoad(aLoadData->mURI, false, false))));
+  }
+  else {
+    requestingPrincipal = nsContentUtils::GetSystemPrincipal();
+  }
+
   if (aLoadData->mSyncLoad) {
     LOG(("  Synchronous load"));
     NS_ASSERTION(!aLoadData->mObserver, "Observer for a sync load?");
@@ -1441,9 +1469,22 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
     
     nsCOMPtr<nsIInputStream> stream;
     nsCOMPtr<nsIChannel> channel;
-    rv = NS_OpenURI(getter_AddRefs(stream), aLoadData->mURI, nullptr,
-                    nullptr, nullptr, nsIRequest::LOAD_NORMAL,
-                    getter_AddRefs(channel));
+    
+    
+    
+    
+    rv = NS_OpenURIInternal(getter_AddRefs(stream),
+                            aLoadData->mURI,
+                            aLoadData->mRequestingNode,
+                            requestingPrincipal,
+                            nsILoadInfo::SEC_NORMAL,
+                            nsIContentPolicy::TYPE_OTHER,
+                            nullptr,   
+                            nullptr,   
+                            nsIRequest::LOAD_NORMAL,
+                            nullptr,   
+                            getter_AddRefs(channel));
+
     if (NS_FAILED(rv)) {
       LOG_ERROR(("  Failed to open URI synchronously"));
       SheetComplete(aLoadData, rv);
@@ -1527,11 +1568,27 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
     }
   }
 
+  nsLoadFlags securityFlags = nsILoadInfo::SEC_NORMAL;
+  if (inherit) {
+    securityFlags |= nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL;
+  }
+
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel),
-                     aLoadData->mURI, nullptr, loadGroup, nullptr,
-                     nsIChannel::LOAD_NORMAL | nsIChannel::LOAD_CLASSIFY_URI,
-                     channelPolicy);
+  
+  
+  
+  
+  rv = NS_NewChannelInternal(getter_AddRefs(channel),
+                             aLoadData->mURI,
+                             aLoadData->mRequestingNode,
+                             requestingPrincipal,
+                             securityFlags,
+                             nsIContentPolicy::TYPE_STYLESHEET,
+                             channelPolicy,
+                             loadGroup,
+                             nullptr,   
+                             nsIChannel::LOAD_NORMAL |
+                             nsIChannel::LOAD_CLASSIFY_URI);
 
   if (NS_FAILED(rv)) {
 #ifdef DEBUG
@@ -1571,24 +1628,6 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
   
   
   channel->SetContentType(NS_LITERAL_CSTRING("text/css"));
-
-  if (aLoadData->mLoaderPrincipal) {
-    bool inherit;
-    rv = NS_URIChainHasFlags(aLoadData->mURI,
-                             nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
-                             &inherit);
-    inherit =
-      ((NS_SUCCEEDED(rv) && inherit) ||
-       (nsContentUtils::URIIsLocalFile(aLoadData->mURI) &&
-        NS_SUCCEEDED(aLoadData->mLoaderPrincipal->
-                     CheckMayLoad(aLoadData->mURI, false, false))));
-    nsCOMPtr<nsILoadInfo> loadInfo =
-      new LoadInfo(aLoadData->mLoaderPrincipal,
-                   inherit ?
-                     LoadInfo::eInheritPrincipal : LoadInfo::eDontInheritPrincipal,
-                   LoadInfo::eNotSandboxed);
-    channel->SetLoadInfo(loadInfo);
-  }
 
   
   
@@ -1917,7 +1956,7 @@ Loader::LoadInlineStyle(nsIContent* aElement,
 
   SheetLoadData* data = new SheetLoadData(this, aTitle, nullptr, sheet,
                                           owningElement, *aIsAlternate,
-                                          aObserver, nullptr);
+                                          aObserver, nullptr, static_cast<nsINode*>(aElement));
 
   
   sheet->SetPrincipal(aElement->NodePrincipal());
@@ -2002,9 +2041,10 @@ Loader::LoadStyleLink(nsIContent* aElement,
   }
 
   
+  nsCOMPtr<nsINode> requestingNode = do_QueryInterface(context);
   SheetLoadData* data = new SheetLoadData(this, aTitle, aURL, sheet,
                                           owningElement, *aIsAlternate,
-                                          aObserver, principal);
+                                          aObserver, principal, requestingNode);
   NS_ADDREF(data);
 
   
@@ -2152,8 +2192,9 @@ Loader::LoadChildSheet(CSSStyleSheet* aParentSheet,
     return NS_OK;
   }
 
+  nsCOMPtr<nsINode> requestingNode = do_QueryInterface(context);
   SheetLoadData* data = new SheetLoadData(this, aURL, sheet, parentData,
-                                          observer, principal);
+                                          observer, principal, requestingNode);
 
   NS_ADDREF(data);
   bool syncLoad = data->mSyncLoad;
@@ -2265,7 +2306,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
   SheetLoadData* data =
     new SheetLoadData(this, aURL, sheet, syncLoad, aAllowUnsafeRules,
                       aUseSystemPrincipal, aCharset, aObserver,
-                      aOriginPrincipal);
+                      aOriginPrincipal, mDocument);
 
   NS_ADDREF(data);
   rv = LoadSheet(data, state);
@@ -2300,7 +2341,8 @@ Loader::PostLoadEvent(nsIURI* aURI,
                       aElement,
                       aWasAlternate,
                       aObserver,
-                      nullptr);
+                      nullptr,
+                      mDocument);
   NS_ENSURE_TRUE(evt, NS_ERROR_OUT_OF_MEMORY);
 
   if (!mPostedEvents.AppendElement(evt)) {
