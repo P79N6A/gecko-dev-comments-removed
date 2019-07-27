@@ -3470,8 +3470,14 @@ IonBuilder::improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test)
     
     if ((op == JSOP_STRICTEQ || op == JSOP_EQ) ^ trueBranch) {
         
-        type = subject->resultTypeSet()->filter(alloc_->lifoAlloc(), altersUndefined,
-                                                                     altersNull);
+        uint32_t flags = 0;
+        if (altersUndefined)
+            flags |= types::TYPE_FLAG_UNDEFINED;
+        if (altersNull)
+            flags |= types::TYPE_FLAG_NULL;
+
+        types::TemporaryTypeSet remove(flags, static_cast<types::TypeSetObjectKey**>(nullptr));
+        type = types::TypeSet::removeSet(subject->resultTypeSet(), &remove, alloc_->lifoAlloc());
     } else {
         
         uint32_t flags = 0;
@@ -3594,7 +3600,9 @@ IonBuilder::improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test)
         {
             return true;
         }
-        type = oldType->filter(alloc_->lifoAlloc(), true, true);
+        uint32_t flags = types::TYPE_FLAG_UNDEFINED | types::TYPE_FLAG_NULL;
+        types::TemporaryTypeSet remove(flags, static_cast<types::TypeSetObjectKey**>(nullptr));
+        type = types::TypeSet::removeSet(oldType, &remove, alloc_->lifoAlloc());
     } else {
         
         
