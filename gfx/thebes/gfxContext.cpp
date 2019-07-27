@@ -550,28 +550,6 @@ gfxContext::UserToDevicePixelSnapped(gfxPoint& pt, bool ignoreScale) const
 }
 
 void
-gfxContext::PixelSnappedRectangleAndSetPattern(const gfxRect& rect,
-                                               gfxPattern *pattern)
-{
-  gfxRect r(rect);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  Rectangle(r, true);
-  SetPattern(pattern);
-}
-
-void
 gfxContext::SetAntialiasMode(AntialiasMode mode)
 {
   CurrentState().aaMode = mode;

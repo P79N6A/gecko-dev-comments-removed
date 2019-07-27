@@ -312,15 +312,6 @@ public:
 
 
 
-
-
-
-    void PixelSnappedRectangleAndSetPattern(const gfxRect& rect, gfxPattern *pattern);
-
-    
-
-
-
     
 
 

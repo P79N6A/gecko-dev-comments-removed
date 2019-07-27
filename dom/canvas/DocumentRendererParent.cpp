@@ -2,10 +2,12 @@
 
 
 
-#include "mozilla/gfx/2D.h"
 #include "mozilla/ipc/DocumentRendererParent.h"
+
+#include "gfx2DGlue.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/RefPtr.h"
-#include "gfxPattern.h"
 #include "nsICanvasRenderingContextInternal.h"
 
 using namespace mozilla;
@@ -31,23 +33,18 @@ void DocumentRendererParent::DrawToCanvas(const nsIntSize& aSize,
     if (!mCanvas || !mCanvasContext)
         return;
 
+    DrawTarget* drawTarget = mCanvasContext->GetDrawTarget();
+    Rect rect(0, 0, aSize.width, aSize.height);
+    MaybeSnapToDevicePixels(rect, *drawTarget, true);
     RefPtr<DataSourceSurface> dataSurface =
         Factory::CreateWrappingDataSourceSurface(reinterpret_cast<uint8_t*>(const_cast<nsCString&>(aData).BeginWriting()),
                                                  aSize.width * 4,
                                                  IntSize(aSize.width, aSize.height),
                                                  SurfaceFormat::B8G8R8A8);
-    nsRefPtr<gfxPattern> pat = new gfxPattern(dataSurface, Matrix());
+    SurfacePattern pattern(dataSurface, ExtendMode::CLAMP);
+    drawTarget->FillRect(rect, pattern);
 
-    gfxRect rect(gfxPoint(0, 0), gfxSize(aSize.width, aSize.height));
-    mCanvasContext->NewPath();
-    mCanvasContext->PixelSnappedRectangleAndSetPattern(rect, pat);
-    mCanvasContext->Fill();
-
-    
-    
-    mCanvasContext->SetColor(gfxRGBA(1,1,1,1));
-
-    gfxRect damageRect = mCanvasContext->UserToDevice(rect);
+    gfxRect damageRect = mCanvasContext->UserToDevice(ThebesRect(rect));
     mCanvas->Redraw(damageRect);
 }
 
