@@ -50,7 +50,7 @@ import android.widget.Toast;
 
 
 
-abstract class HomeFragment extends Fragment {
+public abstract class HomeFragment extends Fragment {
     
     private static final String LOGTAG="GeckoHomeFragment";
 
