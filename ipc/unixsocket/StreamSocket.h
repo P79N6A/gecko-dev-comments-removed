@@ -28,6 +28,14 @@ public:
 
 
 
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer) = 0;
+
+  
+
+
+
+
+
   void SendSocketData(UnixSocketIOBuffer* aBuffer);
 
   

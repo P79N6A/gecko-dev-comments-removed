@@ -34,13 +34,19 @@ public:
 
   void CloseSocket() override;
 
+  
+
+
+
+
+
+  void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer);
+
   void SendSocketData(mozilla::ipc::UnixSocketIOBuffer* aBuffer) override;
 
   virtual void OnConnectSuccess() override;
   virtual void OnConnectError() override;
   virtual void OnDisconnect() override;
-  virtual void ReceiveSocketData(
-    nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer) override;
 
   inline void GetAddress(nsAString& aDeviceAddress)
   {

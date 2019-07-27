@@ -44,13 +44,19 @@ public:
   virtual void OnConnectSuccess() override;
   virtual void OnConnectError() override;
   virtual void OnDisconnect() override;
-  virtual void ReceiveSocketData(
-    nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer) override;
 
   inline void GetAddress(nsAString& aDeviceAddress)
   {
     GetSocketAddr(aDeviceAddress);
   }
+
+  
+
+
+
+
+
+  void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer);
 
   
 

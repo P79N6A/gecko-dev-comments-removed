@@ -34,57 +34,7 @@ public:
 
 
 
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketBuffer>& aBuffer) = 0;
-
-  
-
-
-
-
-
   virtual void SendSocketData(UnixSocketIOBuffer* aBuffer) = 0;
-};
-
-
-
-
-
-
-
-
-
-template <typename T>
-class SocketIOReceiveRunnable final : public SocketIORunnable<T>
-{
-public:
-  SocketIOReceiveRunnable(T* aIO, UnixSocketBuffer* aBuffer)
-    : SocketIORunnable<T>(aIO)
-    , mBuffer(aBuffer)
-  { }
-
-  NS_IMETHOD Run() override
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-
-    T* io = SocketIORunnable<T>::GetIO();
-
-    if (io->IsShutdownOnMainThread()) {
-      NS_WARNING("mConsumer is null, aborting receive!");
-      
-      
-      return NS_OK;
-    }
-
-    DataSocket* dataSocket = io->GetDataSocket();
-    MOZ_ASSERT(dataSocket);
-
-    dataSocket->ReceiveSocketData(mBuffer);
-
-    return NS_OK;
-  }
-
-private:
-  nsAutoPtr<UnixSocketBuffer> mBuffer;
 };
 
 
