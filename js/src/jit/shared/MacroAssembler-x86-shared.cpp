@@ -146,6 +146,18 @@ MacroAssemblerX86Shared::callWithExitFrame(JitCode *target)
     call(target);
 }
 
+void
+MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
+void
+MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
 bool
 MacroAssemblerX86Shared::buildOOLFakeExitFrame(void *fakeReturnAddr)
 {

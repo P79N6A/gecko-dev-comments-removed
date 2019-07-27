@@ -1803,6 +1803,18 @@ MacroAssemblerARMCompat::callIonFromAsmJS(Register callee)
 }
 
 void
+MacroAssembler::alignFrameForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
+void
+MacroAssembler::restoreFrameAlignmentForICArguments(AfterICSaveLive &aic)
+{
+    
+}
+
+void
 MacroAssemblerARMCompat::reserveStack(uint32_t amount)
 {
     if (amount)
