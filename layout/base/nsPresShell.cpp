@@ -9257,7 +9257,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     
     nsMargin currentBorder = target->GetUsedBorder();
     nsMargin currentPadding = target->GetUsedPadding();
-    reflowState.Init(mPresContext, -1, -1, &currentBorder, &currentPadding);
+    reflowState.Init(mPresContext, nullptr, &currentBorder, &currentPadding);
   }
 
   

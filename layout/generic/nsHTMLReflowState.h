@@ -159,17 +159,17 @@ public:
   }
 
   nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext,
-                   nscoord aContainingBlockWidth);
+                   nscoord aContainingBlockISize);
 
 #ifdef DEBUG
   
   
-  static void* DisplayInitOffsetsEnter(nsIFrame* aFrame,
-                                       nsCSSOffsetState* aState,
-                                       nscoord aInlineDirPercentBasis,
-                                       nscoord aBlockDirPercentBasis,
-                                       const nsMargin* aBorder,
-                                       const nsMargin* aPadding);
+  static void* DisplayInitOffsetsEnter(
+                                     nsIFrame* aFrame,
+                                     nsCSSOffsetState* aState,
+                                     const mozilla::LogicalSize& aPercentBasis,
+                                     const nsMargin* aBorder,
+                                     const nsMargin* aPadding);
   static void DisplayInitOffsetsExit(nsIFrame* aFrame,
                                      nsCSSOffsetState* aState,
                                      void* aValue);
@@ -191,8 +191,7 @@ private:
 
 
 
-  bool ComputeMargin(nscoord aInlineDirPercentBasis,
-                     nscoord aBlockDirPercentBasis);
+  bool ComputeMargin(const mozilla::LogicalSize& aPercentBasis);
   
   
 
@@ -208,13 +207,13 @@ private:
 
 
 
-   bool ComputePadding(nscoord aInlineDirPercentBasis,
-                       nscoord aBlockDirPercentBasis, nsIAtom* aFrameType);
+
+  bool ComputePadding(const mozilla::LogicalSize& aPercentBasis,
+                      nsIAtom* aFrameType);
 
 protected:
 
-  void InitOffsets(nscoord aInlineDirPercentBasis,
-                   nscoord aBlockDirPercentBasis,
+  void InitOffsets(const mozilla::LogicalSize& aPercentBasis,
                    nsIAtom* aFrameType,
                    const nsMargin *aBorder = nullptr,
                    const nsMargin *aPadding = nullptr);
@@ -224,19 +223,20 @@ protected:
 
 
 
-  inline nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
+
+  inline nscoord ComputeISizeValue(nscoord aContainingBlockISize,
                                    nscoord aContentEdgeToBoxSizing,
                                    nscoord aBoxSizingToMarginEdge,
                                    const nsStyleCoord& aCoord);
   
   
-  nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
+  nscoord ComputeISizeValue(nscoord aContainingBlockISize,
                             uint8_t aBoxSizing,
                             const nsStyleCoord& aCoord);
 
-  nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
-                             uint8_t aBoxSizing,
-                             const nsStyleCoord& aCoord);
+  nscoord ComputeBSizeValue(nscoord aContainingBlockBSize,
+                            uint8_t aBoxSizing,
+                            const nsStyleCoord& aCoord);
 };
 
 
@@ -621,15 +621,11 @@ public:
 
 
 
-
-
-
   nsHTMLReflowState(nsPresContext*              aPresContext,
                     const nsHTMLReflowState&    aParentReflowState,
                     nsIFrame*                   aFrame,
                     const mozilla::LogicalSize& aAvailableSpace,
-                    nscoord                     aContainingBlockWidth = -1,
-                    nscoord                     aContainingBlockHeight = -1,
+                    const mozilla::LogicalSize* aContainingBlockSize = nullptr,
                     uint32_t                    aFlags = 0);
 
   
@@ -645,11 +641,10 @@ public:
 
   
   
-  void Init(nsPresContext* aPresContext,
-            nscoord         aContainingBlockISize = -1,
-            nscoord         aContainingBlockBSize = -1,
-            const nsMargin* aBorder = nullptr,
-            const nsMargin* aPadding = nullptr);
+  void Init(nsPresContext*              aPresContext,
+            const mozilla::LogicalSize* aContainingBlockSize = nullptr,
+            const nsMargin*             aBorder = nullptr,
+            const nsMargin*             aPadding = nullptr);
 
   
 
@@ -681,10 +676,9 @@ public:
                                 float aFontSizeInflation);
 
 
-  void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,
-                                       const nsHTMLReflowState* aContainingBlockRS,
-                                       nscoord&                 aContainingBlockWidth,
-                                       nscoord&                 aContainingBlockHeight);
+  mozilla::LogicalSize ComputeContainingBlockRectangle(
+         nsPresContext*          aPresContext,
+         const nsHTMLReflowState* aContainingBlockRS);
 
   
 
@@ -804,10 +798,9 @@ public:
   }
 
   
-  static void ComputeRelativeOffsets(uint8_t aCBDirection,
+  static void ComputeRelativeOffsets(mozilla::WritingMode aWM,
                                      nsIFrame* aFrame,
-                                     nscoord aContainingBlockWidth,
-                                     nscoord aContainingBlockHeight,
+                                     const mozilla::LogicalSize& aCBSize,
                                      nsMargin& aComputedOffsets);
 
   
@@ -852,8 +845,8 @@ public:
   
   static void* DisplayInitConstraintsEnter(nsIFrame* aFrame,
                                            nsHTMLReflowState* aState,
-                                           nscoord aCBWidth,
-                                           nscoord aCBHeight,
+                                           nscoord aCBISize,
+                                           nscoord aCBBSize,
                                            const nsMargin* aBorder,
                                            const nsMargin* aPadding);
   static void DisplayInitConstraintsExit(nsIFrame* aFrame,
@@ -871,46 +864,43 @@ protected:
   void InitCBReflowState();
   void InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType);
 
-  void InitConstraints(nsPresContext* aPresContext,
-                       nscoord         aContainingBlockWidth,
-                       nscoord         aContainingBlockHeight,
-                       const nsMargin* aBorder,
-                       const nsMargin* aPadding,
-                       nsIAtom*        aFrameType);
+  void InitConstraints(nsPresContext*              aPresContext,
+                       const mozilla::LogicalSize& aContainingBlockSize,
+                       const nsMargin*             aBorder,
+                       const nsMargin*             aPadding,
+                       nsIAtom*                    aFrameType);
 
+  
   
   
   
   
   nsIFrame* GetHypotheticalBoxContainer(nsIFrame* aFrame,
-                                        nscoord& aCBLeftEdge,
-                                        nscoord& aCBWidth);
+                                        nscoord& aCBIStartEdge,
+                                        nscoord& aCBISize);
 
   void CalculateHypotheticalBox(nsPresContext*    aPresContext,
                                 nsIFrame*         aPlaceholderFrame,
                                 nsIFrame*         aContainingBlock,
-                                nscoord           aBlockLeftContentEdge,
-                                nscoord           aBlockContentWidth,
+                                nscoord           aBlockIStartContentEdge,
+                                nscoord           aBlockContentISize,
                                 const nsHTMLReflowState* cbrs,
                                 nsHypotheticalBox& aHypotheticalBox,
                                 nsIAtom*          aFrameType);
 
   void InitAbsoluteConstraints(nsPresContext* aPresContext,
                                const nsHTMLReflowState* cbrs,
-                               nscoord aContainingBlockWidth,
-                               nscoord aContainingBlockHeight,
+                               const mozilla::LogicalSize& aContainingBlockSize,
                                nsIAtom* aFrameType);
 
   
   
   
-  void ComputeMinMaxValues(nscoord                  aContainingBlockWidth,
-                           nscoord                  aContainingBlockHeight,
-                           const nsHTMLReflowState* aContainingBlockRS);
+  void ComputeMinMaxValues(const mozilla::LogicalSize& aContainingBlockSize);
 
-  void CalculateHorizBorderPaddingMargin(nscoord aContainingBlockWidth,
-                                         nscoord* aInsideBoxSizing,
-                                         nscoord* aOutsideBoxSizing);
+  void CalculateInlineBorderPaddingMargin(nscoord aContainingBlockISize,
+                                          nscoord* aInsideBoxSizing,
+                                          nscoord* aOutsideBoxSizing);
 
   void CalculateBlockSideMargins(nsIAtom* aFrameType);
 };

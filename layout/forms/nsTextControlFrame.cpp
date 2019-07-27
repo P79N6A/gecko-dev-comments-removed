@@ -553,10 +553,10 @@ nsTextControlFrame::ReflowTextControlChild(nsIFrame*                aKid,
   availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
 
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, 
-                                   aKid, availSize, -1, -1,
+                                   aKid, availSize, nullptr,
                                    nsHTMLReflowState::CALLER_WILL_INIT);
   
-  kidReflowState.Init(aPresContext, -1, -1, nullptr, &aReflowState.ComputedPhysicalPadding());
+  kidReflowState.Init(aPresContext, nullptr, nullptr, &aReflowState.ComputedPhysicalPadding());
 
   
   kidReflowState.SetComputedWidth(aReflowState.ComputedWidth());

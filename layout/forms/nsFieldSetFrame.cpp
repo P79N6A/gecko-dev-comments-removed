@@ -495,10 +495,10 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   
   if (reflowInner) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, inner,
-                                     innerAvailSize, -1, -1,
+                                     innerAvailSize, nullptr,
                                      nsHTMLReflowState::CALLER_WILL_INIT);
     
-    kidReflowState.Init(aPresContext, -1, -1, nullptr,
+    kidReflowState.Init(aPresContext, nullptr, nullptr,
                         &aReflowState.ComputedPhysicalPadding());
     
     
