@@ -269,9 +269,9 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     extraleft = std::min(extraleft, aButtonReflowState.ComputedPhysicalPadding().left);
     extraright = std::min(extraright, aButtonReflowState.ComputedPhysicalPadding().right);
     xoffset -= extraleft;
-    availSize.SetWidth(wm, availSize.Width(wm) + extraleft + extraright);
+    availSize.Width(wm) = availSize.Width(wm) + extraleft + extraright;
   }
-  availSize.SetWidth(wm, std::max(availSize.Width(wm), 0));
+  availSize.Width(wm) = std::max(availSize.Width(wm), 0);
 
   
   
