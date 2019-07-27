@@ -44,6 +44,23 @@ VolumeManager::~VolumeManager()
 }
 
 
+void
+VolumeManager::Dump(const char* aLabel)
+{
+  if (!sVolumeManager) {
+    LOG("%s: sVolumeManager == null", aLabel);
+    return;
+  }
+
+  VolumeArray::size_type  numVolumes = NumVolumes();
+  VolumeArray::index_type volIndex;
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = GetVolume(volIndex);
+    vol->Dump(aLabel);
+  }
+}
+
+
 size_t
 VolumeManager::NumVolumes()
 {
@@ -138,6 +155,61 @@ VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
   return vol;
 }
 
+
+void VolumeManager::InitConfig()
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  ScopedCloseFile fp;
+  int n = 0;
+  char line[255];
+  char *command, *volNamePtr, *mountPointPtr, *save_ptr;
+  const char *filename = "/system/etc/volume.cfg";
+  if (!(fp = fopen(filename, "r"))) {
+    LOG("Unable to open volume configuration file '%s' - ignoring", filename);
+    return;
+  }
+  while(fgets(line, sizeof(line), fp)) {
+    const char *delim = " \t\n";
+    n++;
+
+    if (line[0] == '#')
+      continue;
+    if (!(command = strtok_r(line, delim, &save_ptr))) {
+      
+      continue;
+    }
+    if (!strcmp(command, "create")) {
+      if (!(volNamePtr = strtok_r(nullptr, delim, &save_ptr))) {
+        ERR("No vol_name in %s line %d",  filename, n);
+        continue;
+      }
+      if (!(mountPointPtr = strtok_r(nullptr, delim, &save_ptr))) {
+        ERR("No mount point for volume '%s'. %s line %d", volNamePtr, filename, n);
+        continue;
+      }
+      nsCString mountPoint(mountPointPtr);
+      nsCString volName(volNamePtr);
+
+      RefPtr<Volume> vol = FindAddVolumeByName(volName);
+      vol->SetFakeVolume(mountPoint);
+    }
+    else {
+      ERR("Unrecognized command: '%s'", command);
+    }
+  }
+}
+
 class VolumeListCallback : public VolumeResponseCallback
 {
   virtual void ResponseReceived(const VolumeCommand* aCommand)
@@ -160,6 +232,9 @@ class VolumeListCallback : public VolumeResponseCallback
       case ::ResponseCode::CommandOkay: {
         
         
+        
+        VolumeManager::InitConfig();
+        VolumeManager::Dump("READY");
         VolumeManager::SetState(VolumeManager::VOLUMES_READY);
         break;
       }

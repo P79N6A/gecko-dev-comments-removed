@@ -63,14 +63,18 @@ MozMtpStorage::Notify(Volume* const& aVolume)
           aVolume->NameStr(), mStorageID, aVolume->StateStr(),
           aVolume->IsSharingEnabled());
 
+  
+  
+  
+
   if (mMtpStorage) {
-    if (volState != nsIVolume::STATE_MOUNTED || !aVolume->IsSharingEnabled()) {
+    if (volState != nsIVolume::STATE_MOUNTED) {
       
       
       StorageUnavailable();
     }
   } else {
-    if (volState == nsIVolume::STATE_MOUNTED && aVolume->IsSharingEnabled()) {
+    if (volState == nsIVolume::STATE_MOUNTED) {
       
       StorageAvailable();
     }

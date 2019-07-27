@@ -78,6 +78,7 @@ USING_MTP_NAMESPACE
 #define ICS_SYS_MTP_DIRECTORY "/sys/devices/virtual/android_usb/android0/f_mtp"
 #define ICS_SYS_USB_STATE     "/sys/devices/virtual/android_usb/android0/state"
 
+#undef USE_DEBUG    // MozMtpDatabase.h also defines USE_DEBUG
 #define USE_DEBUG 0
 
 #undef LOG
@@ -715,7 +716,15 @@ AutoMounter::UpdateState()
     DBG("UpdateState: USB functions: '%s'", functionsStr);
 
     bool  usbConfigured = IsUsbConfigured();
-    umsAvail = (access(ICS_SYS_UMS_DIRECTORY, F_OK) == 0);
+
+    
+    
+    
+    char persistSysUsbConfig[PROPERTY_VALUE_MAX];
+    property_get(PERSIST_SYS_USB_CONFIG, persistSysUsbConfig, "");
+    if (IsUsbFunctionEnabled(persistSysUsbConfig, USB_FUNC_UMS)) {
+      umsAvail = (access(ICS_SYS_UMS_DIRECTORY, F_OK) == 0);
+    }
     if (umsAvail) {
       umsConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_UMS) != nullptr;
       umsEnabled = (mMode == AUTOMOUNTER_ENABLE_UMS) ||
@@ -1230,68 +1239,9 @@ public:
 static StaticRefPtr<UsbCableObserver> sUsbCableObserver;
 static StaticRefPtr<AutoMounterSetting> sAutoMounterSetting;
 
-static void
-InitVolumeConfig()
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  nsCOMPtr<nsIVolumeService> vs = do_GetService(NS_VOLUMESERVICE_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(vs);
-
-  ScopedCloseFile fp;
-  int n = 0;
-  char line[255];
-  char *command, *vol_name_cstr, *mount_point_cstr, *save_ptr;
-  const char *filename = "/system/etc/volume.cfg";
-  if (!(fp = fopen(filename, "r"))) {
-    LOG("Unable to open volume configuration file '%s' - ignoring", filename);
-    return;
-  }
-  while(fgets(line, sizeof(line), fp)) {
-    const char *delim = " \t\n";
-    n++;
-
-    if (line[0] == '#')
-      continue;
-    if (!(command = strtok_r(line, delim, &save_ptr))) {
-      
-      continue;
-    }
-    if (!strcmp(command, "create")) {
-      if (!(vol_name_cstr = strtok_r(nullptr, delim, &save_ptr))) {
-        ERR("No vol_name in %s line %d",  filename, n);
-        continue;
-      }
-      if (!(mount_point_cstr = strtok_r(nullptr, delim, &save_ptr))) {
-        ERR("No mount point for volume '%s'. %s line %d", vol_name_cstr, filename, n);
-        continue;
-      }
-      nsString  mount_point = NS_ConvertUTF8toUTF16(mount_point_cstr);
-      nsString vol_name = NS_ConvertUTF8toUTF16(vol_name_cstr);
-      nsresult rv;
-      rv = vs->CreateFakeVolume(vol_name, mount_point);
-      NS_ENSURE_SUCCESS_VOID(rv);
-      rv = vs->SetFakeVolumeState(vol_name, nsIVolume::STATE_MOUNTED);
-      NS_ENSURE_SUCCESS_VOID(rv);
-    }
-    else {
-      ERR("Unrecognized command: '%s'", command);
-    }
-  }
-}
-
 void
 InitAutoMounter()
 {
-  InitVolumeConfig();
   InitVolumeManager();
   sAutoMounterSetting = new AutoMounterSetting();
 

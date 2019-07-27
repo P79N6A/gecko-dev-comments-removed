@@ -54,6 +54,8 @@ public:
   const nsCString& Name() const { return mName; }
   const char* NameStr() const   { return mName.get(); }
 
+  void Dump(const char* aLabel) const;
+
   
   
   const nsCString& MountPoint() const { return mMountPoint; }
@@ -73,6 +75,8 @@ public:
   bool IsSharing() const              { return mIsSharing; }
   bool IsFormatting() const           { return mIsFormatting; }
   bool IsUnmounting() const           { return mIsUnmounting; }
+
+  void SetFakeVolume(const nsACString& aMountPoint);
 
   void SetSharingEnabled(bool aSharingEnabled);
   void SetFormatRequested(bool aFormatRequested);
