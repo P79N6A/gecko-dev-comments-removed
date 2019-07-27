@@ -910,10 +910,15 @@ static int sRecreateGatePassed = 0;
 
 
 
+
+
+
 #define THREAD_FREEZE_POINT1()                                 \
   bool freezeCountChg = false;                                 \
   bool recreated = false;                                      \
+  (void) recreated;                                            \
   volatile bool freezePoint2 = false;                          \
+  (void) freezePoint2;                                         \
   thread_info_t *tinfo;                                        \
   if (sIsNuwaProcess &&                                        \
       (tinfo = CUR_THREAD_INFO) &&                             \
