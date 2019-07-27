@@ -52,13 +52,9 @@ class ChunkPool
 
     size_t count() const { return count_; }
 
-    
+    Chunk *head() { MOZ_ASSERT(head_); return head_; }
     Chunk *pop();
-
-    
     void push(Chunk *chunk);
-
-    
     Chunk *remove(Chunk *chunk);
 
 #ifdef DEBUG
@@ -479,10 +475,11 @@ class GCRuntime
     inline void updateOnArenaFree(const ChunkInfo &info);
 
     GCChunkSet::Range allChunks() { return chunkSet.all(); }
-    Chunk **getAvailableChunkList();
     void moveChunkToFreePool(Chunk *chunk, const AutoLockGC &lock);
     bool hasChunk(Chunk *chunk) { return chunkSet.has(chunk); }
+    ChunkPool &availableChunks(const AutoLockGC &lock) { return availableChunks_; }
     ChunkPool &emptyChunks(const AutoLockGC &lock) { return emptyChunks_; }
+    const ChunkPool &availableChunks(const AutoLockGC &lock) const { return availableChunks_; }
     const ChunkPool &emptyChunks(const AutoLockGC &lock) const { return emptyChunks_; }
 
 #ifdef JS_GC_ZEAL
@@ -645,8 +642,8 @@ class GCRuntime
 
 
 
-    js::gc::Chunk *availableChunkListHead;
-    js::gc::ChunkPool emptyChunks_;
+    ChunkPool availableChunks_;
+    ChunkPool emptyChunks_;
 
     js::RootedValueMap rootsHash;
 
