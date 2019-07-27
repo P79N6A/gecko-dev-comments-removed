@@ -40,7 +40,8 @@ function testSidebar() {
 
   gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
     let inspector = toolbox.getCurrentPanel();
-    let sidebarTools = ["ruleview", "computedview", "fontinspector", "layoutview"];
+    let sidebarTools = ["ruleview", "computedview", "fontinspector",
+                        "layoutview", "animationinspector"];
 
     
     sidebarTools.push.apply(sidebarTools, sidebarTools);
