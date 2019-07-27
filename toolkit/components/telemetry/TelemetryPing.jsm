@@ -740,14 +740,7 @@ let Impl = {
       payloadObj.slowSQLStartup = this._slowSQLStartup;
     }
 
-    let fhrUploadEnabled = false;
-    try {
-      fhrUploadEnabled = Services.prefs.getBoolPref(PREF_FHR_UPLOAD_ENABLED);
-    } catch (e) {
-      
-    }
-
-    if (this._clientID && fhrUploadEnabled) {
+    if (this._clientID && Preferences.get(PREF_FHR_UPLOAD_ENABLED, false)) {
       payloadObj.clientID = this._clientID;
     }
 
@@ -920,18 +913,13 @@ let Impl = {
 
     
     
-    let previousBuildID = undefined;
-    try {
-      previousBuildID = Services.prefs.getCharPref(PREF_PREVIOUS_BUILDID);
-    } catch (e) {
-      
-    }
+    let previousBuildID = Preferences.get(PREF_PREVIOUS_BUILDID, undefined);
     let thisBuildID = Services.appinfo.appBuildID;
     
     
     if (previousBuildID != thisBuildID) {
       this._previousBuildID = previousBuildID;
-      Services.prefs.setCharPref(PREF_PREVIOUS_BUILDID, thisBuildID);
+      Preferences.set(PREF_PREVIOUS_BUILDID, thisBuildID);
     }
 
 #ifdef MOZILLA_OFFICIAL
@@ -943,13 +931,9 @@ let Impl = {
       return;
     }
 #endif
-    let enabled = false;
-    try {
-      enabled = Services.prefs.getBoolPref(PREF_ENABLED);
-      this._server = Services.prefs.getCharPref(PREF_SERVER);
-    } catch (e) {
-      
-    }
+
+    let enabled = Preferences.get(PREF_ENABLED, false);
+    this._server = Preferences.get(PREF_SERVER, undefined);
     if (!enabled) {
       
       
