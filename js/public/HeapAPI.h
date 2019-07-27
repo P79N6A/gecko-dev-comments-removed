@@ -238,6 +238,12 @@ class JS_FRIEND_API(GCCellPtr)
     js::gc::Cell *operator->() const { return asCell(); }
 
     
+    bool isObject() const { return kind() == JSTRACE_OBJECT; }
+    bool isScript() const { return kind() == JSTRACE_SCRIPT; }
+    bool isString() const { return kind() == JSTRACE_STRING; }
+    bool isSymbol() const { return kind() == JSTRACE_SYMBOL; }
+
+    
     
     JSObject *toObject() const {
         MOZ_ASSERT(kind() == JSTRACE_OBJECT);
@@ -250,6 +256,10 @@ class JS_FRIEND_API(GCCellPtr)
     JSScript *toScript() const {
         MOZ_ASSERT(kind() == JSTRACE_SCRIPT);
         return reinterpret_cast<JSScript *>(asCell());
+    }
+    Symbol *toSymbol() const {
+        MOZ_ASSERT(kind() == JSTRACE_SYMBOL);
+        return reinterpret_cast<Symbol *>(asCell());
     }
 
     
