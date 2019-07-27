@@ -37,6 +37,7 @@ const UINT DWM_EC_DISABLECOMPOSITION = 0;
 const UINT DWM_EC_ENABLECOMPOSITION = 1;
 
 typedef HRESULT (WINAPI * DwmEnableCompositionFunc)(UINT);
+typedef HRESULT (WINAPI * DwmIsCompositionEnabledFunc)(BOOL*);
 
 const wchar_t kDwmapiLibraryName[] = L"dwmapi.dll";
 
@@ -102,6 +103,9 @@ class ScreenCapturerWin : public ScreenCapturer {
 
   HMODULE dwmapi_library_;
   DwmEnableCompositionFunc composition_func_;
+  DwmIsCompositionEnabledFunc composition_enabled_func_;
+
+  bool disable_composition_;
 
   
   bool set_thread_execution_state_failed_;
@@ -118,16 +122,18 @@ ScreenCapturerWin::ScreenCapturerWin(const DesktopCaptureOptions& options)
       dwmapi_library_(NULL),
       composition_func_(NULL),
       set_thread_execution_state_failed_(false) {
-  if (options.disable_effects()) {
-    
-    if (!dwmapi_library_)
-      dwmapi_library_ = LoadLibrary(kDwmapiLibraryName);
+  
+  if (!dwmapi_library_)
+    dwmapi_library_ = LoadLibrary(kDwmapiLibraryName);
 
-    if (dwmapi_library_) {
-      composition_func_ = reinterpret_cast<DwmEnableCompositionFunc>(
-          GetProcAddress(dwmapi_library_, "DwmEnableComposition"));
-    }
+  if (dwmapi_library_) {
+    composition_func_ = reinterpret_cast<DwmEnableCompositionFunc>(
+      GetProcAddress(dwmapi_library_, "DwmEnableComposition"));
+    composition_enabled_func_ = reinterpret_cast<DwmIsCompositionEnabledFunc>
+      (GetProcAddress(dwmapi_library_, "DwmIsCompositionEnabled"));
   }
+
+  disable_composition_ = options.disable_effects();
 }
 
 ScreenCapturerWin::~ScreenCapturerWin() {
@@ -136,9 +142,11 @@ ScreenCapturerWin::~ScreenCapturerWin() {
   if (memory_dc_)
     DeleteDC(memory_dc_);
 
-  
-  if (composition_func_)
-    (*composition_func_)(DWM_EC_ENABLECOMPOSITION);
+  if (disable_composition_) {
+    
+    if (composition_func_)
+      (*composition_func_)(DWM_EC_ENABLECOMPOSITION);
+  }
 
   if (dwmapi_library_)
     FreeLibrary(dwmapi_library_);
@@ -261,11 +269,13 @@ void ScreenCapturerWin::Start(Callback* callback) {
 
   callback_ = callback;
 
-  
-  
-  
-  if (composition_func_)
-    (*composition_func_)(DWM_EC_DISABLECOMPOSITION);
+  if (disable_composition_) {
+    
+    
+    
+    if (composition_func_)
+      (*composition_func_)(DWM_EC_DISABLECOMPOSITION);
+  }
 }
 
 void ScreenCapturerWin::PrepareCaptureResources() {
@@ -288,10 +298,12 @@ void ScreenCapturerWin::PrepareCaptureResources() {
     
     desktop_.SetThreadDesktop(input_desktop.release());
 
-    
-    
-    if (composition_func_ != NULL) {
-      (*composition_func_)(DWM_EC_DISABLECOMPOSITION);
+    if (disable_composition_) {
+      
+      
+      if (composition_func_ != NULL) {
+        (*composition_func_)(DWM_EC_DISABLECOMPOSITION);
+      }
     }
   }
 
@@ -360,12 +372,24 @@ bool ScreenCapturerWin::CaptureImage() {
   DesktopFrameWin* current = static_cast<DesktopFrameWin*>(
       queue_.current_frame()->GetUnderlyingFrame());
   HGDIOBJ previous_object = SelectObject(memory_dc_, current->bitmap());
+  DWORD rop = SRCCOPY;
+  if (composition_enabled_func_) {
+    BOOL enabled;
+    (*composition_enabled_func_)(&enabled);
+    if (!enabled) {
+      
+      rop |= CAPTUREBLT;
+    }
+  } else {
+    
+    rop |= CAPTUREBLT;
+  }
   if (previous_object != NULL) {
     BitBlt(memory_dc_,
            0, 0, screen_rect.width(), screen_rect.height(),
            desktop_dc_,
            screen_rect.left(), screen_rect.top(),
-           SRCCOPY | CAPTUREBLT);
+           rop);
 
     
     
