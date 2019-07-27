@@ -271,6 +271,7 @@ pref("general.autoScroll", true);
 pref("browser.shell.checkDefaultBrowser", true);
 pref("browser.shell.shortcutFavicons",true);
 pref("browser.shell.mostRecentDateSetAsDefault", "");
+pref("browser.shell.windows10DefaultBrowserABTest", -1);
 
 
 
