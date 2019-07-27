@@ -538,6 +538,13 @@ ShadowLayerForwarder::EndTransaction(InfallibleTArray<EditReply>* aReplies,
     return true;
   }
 
+  if (!mTxn->mPaints.empty()) {
+    
+    
+    
+    gfxPlatform::GetPlatform()->FlushContentDrawing();
+  }
+
   MOZ_LAYERS_LOG(("[LayersForwarder] destroying buffers..."));
 
   MOZ_LAYERS_LOG(("[LayersForwarder] building transaction..."));
