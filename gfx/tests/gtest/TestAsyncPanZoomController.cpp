@@ -909,6 +909,34 @@ TEST_F(APZCBasicTester, Fling) {
   }
 }
 
+TEST_F(APZCBasicTester, FlingIntoOverscroll) {
+  
+  SCOPED_GFX_PREF(APZOverscrollEnabled, bool, true);
+
+  
+  int time = 0;
+  ApzcPanNoFling(apzc, time, 50, 25);
+
+  
+  
+  
+  ApzcPan(apzc, time, 25, 45);
+  const TimeDuration increment = TimeDuration::FromMilliseconds(1);
+  bool reachedOverscroll = false;
+  bool recoveredFromOverscroll = false;
+  while (apzc->AdvanceAnimations(testStartTime)) {
+    if (!reachedOverscroll && apzc->IsOverscrolled()) {
+      reachedOverscroll = true;
+    }
+    if (reachedOverscroll && !apzc->IsOverscrolled()) {
+      recoveredFromOverscroll = true;
+    }
+    testStartTime += increment;
+  }
+  EXPECT_TRUE(reachedOverscroll);
+  EXPECT_TRUE(recoveredFromOverscroll);
+}
+
 class APZCFlingStopTester : public APZCGestureDetectorTester {
 protected:
   
