@@ -14,7 +14,6 @@ FIREFOX_PREFERENCES = {
     "media.volume_scale": "0",
     "loop.gettingStarted.seen": True,
     "loop.seenToS": "seen",
-    "loop.screenshare.enabled": True,
 
     
     "media.navigator.permission.disabled": True
