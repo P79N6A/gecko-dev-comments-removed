@@ -86,6 +86,13 @@ WebGL2Context::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
       return JS::NumberValue(0); 
 
     case LOCAL_GL_MAX_ELEMENT_INDEX:
+      
+      
+      if (!gl->IsSupported(gl::GLFeature::ES3_compatibility))
+        return JS::NumberValue(0);
+
+      
+
     case LOCAL_GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS:
     case LOCAL_GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS:
     case LOCAL_GL_MAX_UNIFORM_BLOCK_SIZE: {
