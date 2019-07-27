@@ -492,6 +492,10 @@ function Requisition(options) {
 
   addMapping(this);
   this._setBlankAssignment(this.commandAssignment);
+
+  
+  
+  this.onExternalUpdate = util.createEvent('Requisition.onExternalUpdate');
 }
 
 
@@ -584,8 +588,8 @@ Object.defineProperty(Requisition.prototype, 'executionContext', {
       if (legacy) {
         this._executionContext.createView = view.createView;
         this._executionContext.exec = this.exec.bind(this);
-        this._executionContext.update = this.update.bind(this);
-        this._executionContext.updateExec = this.updateExec.bind(this);
+        this._executionContext.update = this._contextUpdate.bind(this);
+        this._executionContext.updateExec = this._contextUpdateExec.bind(this);
 
         Object.defineProperty(this._executionContext, 'document', {
           get: function() { return requisition.document; },
@@ -612,8 +616,8 @@ Object.defineProperty(Requisition.prototype, 'conversionContext', {
 
         createView: view.createView,
         exec: this.exec.bind(this),
-        update: this.update.bind(this),
-        updateExec: this.updateExec.bind(this)
+        update: this._contextUpdate.bind(this),
+        updateExec: this._contextUpdateExec.bind(this)
       };
 
       
@@ -771,12 +775,31 @@ Requisition.prototype._getFirstBlankPositionalAssignment = function() {
 
 
 
-Requisition.prototype.getAssignmentAt = function(cursor) {
-  if (!this._args) {
-    console.trace();
-    throw new Error('Missing args');
-  }
 
+
+
+
+
+
+
+Requisition.prototype.isUpToDate = function() {
+  if (!this._args) {
+    return false;
+  }
+  for (var i = 0; i < this._args.length; i++) {
+    if (this._args[i].assignment == null) {
+      return false;
+    }
+  }
+  return true;
+};
+
+
+
+
+
+
+Requisition.prototype.getAssignmentAt = function(cursor) {
   
   
   if (cursor === 0) {
@@ -822,14 +845,7 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
   
   
 
-  var reply = assignForPos[cursor - 1];
-
-  if (!reply) {
-    throw new Error('Missing assignment.' +
-        ' cursor=' + cursor + ' text=' + this.toString());
-  }
-
-  return reply;
+  return assignForPos[cursor - 1];
 };
 
 
@@ -1482,11 +1498,27 @@ function getDataCommandAttribute(element) {
 
 
 
+
+Requisition.prototype._contextUpdate = function(typed) {
+  return this.update(typed).then(function(reply) {
+    this.onExternalUpdate({ typed: typed });
+    return reply;
+  }.bind(this));
+};
+
+
+
+
+
+
+
 Requisition.prototype.update = function(typed) {
-  if (typeof HTMLElement !== 'undefined' && typed instanceof HTMLElement) {
+  
+  if (typeof typed.querySelector === 'function') {
     typed = getDataCommandAttribute(typed);
   }
-  if (typeof Event !== 'undefined' && typed instanceof Event) {
+  
+  if (typeof typed.currentTarget === 'object') {
     typed = getDataCommandAttribute(typed.currentTarget);
   }
 
@@ -2066,6 +2098,18 @@ Requisition.prototype.exec = function(options) {
       this.clear();
     }
   }
+};
+
+
+
+
+
+
+Requisition.prototype._contextUpdateExec = function(typed, options) {
+  return this.updateExec(typed, options).then(function(reply) {
+    this.onExternalUpdate({ typed: typed });
+    return reply;
+  }.bind(this));
 };
 
 
