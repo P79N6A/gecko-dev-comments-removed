@@ -170,7 +170,7 @@ public class LightweightTheme implements GeckoEventListener {
         
         
         if (bitmapWidth >= maxWidth) {
-            mBitmap = bitmap;
+            mBitmap = Bitmap.createBitmap(bitmap, bitmapWidth - maxWidth, 0, maxWidth, bitmapHeight);
         } else {
             Paint paint = new Paint();
             paint.setAntiAlias(true);
