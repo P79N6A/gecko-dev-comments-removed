@@ -1857,7 +1857,7 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
              xmlHttpRequest->mResponseXML) {
     
     uint32_t previousLength = xmlHttpRequest->mResponseBody.Length();
-    xmlHttpRequest->mResponseBody.Append(fromRawSegment, count, fallible);
+    xmlHttpRequest->mResponseBody.Append(fromRawSegment,count);
     if (count > 0 && xmlHttpRequest->mResponseBody.Length() == previousLength) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
