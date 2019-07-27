@@ -20,7 +20,7 @@ function test() {
     testForgetThisSiteVisibility(1, function() {
       testForgetThisSiteVisibility(2, function() {
         
-        waitForClearHistory(finish);
+        PlacesTestUtils.clearHistory().then(finish);
       });
     });
   });

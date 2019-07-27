@@ -39,7 +39,7 @@ function test() {
     
     organizer.close();
     
-    waitForClearHistory(finish);
+    PlacesTestUtils.clearHistory().then(finish);
   }
 
   waitForExplicitFinish();

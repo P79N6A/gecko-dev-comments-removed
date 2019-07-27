@@ -6,6 +6,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+  "resource://testing-common/PlacesTestUtils.jsm");
 
 
 let cachedLeftPaneFolderIdGetter;
@@ -71,21 +73,6 @@ function promiseClipboard(aPopulateClipboardFn, aFlavor) {
                    function () { deferred.resolve(); },
                    aFlavor);
   return deferred.promise;
-}
-
-
-
-
-
-
-
-
-function waitForClearHistory(aCallback) {
-  Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-    aCallback();
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-  PlacesUtils.bhistory.removeAllPages();
 }
 
 
@@ -371,38 +358,4 @@ function promiseHistoryNotification(notification, conditionFn) {
       reject(new Error("Timed out while waiting for history notification"));
     }, 2000);
   });
-}
-
-
-
-
-
-
-
-
-function promiseClearHistory() {
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  PlacesUtils.bhistory.removeAllPages();
-  return promise;
-}
-
-
-
-
-
-
-
-
-
-
-
-function promiseTopicObserved(topic)
-{
-  let deferred = Promise.defer();
-  info("Waiting for observer topic " + topic);
-  Services.obs.addObserver(function PTO_observe(subject, topic, data) {
-    Services.obs.removeObserver(PTO_observe, topic);
-    deferred.resolve([subject, data]);
-  }, topic, false);
-  return deferred.promise;
 }
