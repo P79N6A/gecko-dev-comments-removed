@@ -930,6 +930,9 @@ AsmJSModule::detachHeap(JSContext* cx)
     MOZ_ASSERT_IF(active(), activation()->exitReason() == AsmJSExit::Reason_JitFFI ||
                             activation()->exitReason() == AsmJSExit::Reason_SlowFFI);
 
+    AutoFlushICache afc("AsmJSModule::detachHeap");
+    setAutoFlushICacheRange();
+
     restoreHeapToInitialState(maybeHeap_);
 
     MOZ_ASSERT(hasDetachedHeap());
@@ -1654,11 +1657,13 @@ AsmJSModule::clone(JSContext* cx, ScopedJSDeletePtr<AsmJSModule>* moduleOut) con
         }
     }
 
+
     
-    
+    AutoFlushICache afc("AsmJSModule::clone",  true);
     out.setAutoFlushICacheRange();
 
     out.restoreToInitialState(maybeHeap_, code_, cx);
+    out.staticallyLink(cx);
     return true;
 }
 
@@ -2250,8 +2255,6 @@ js::LookupAsmJSModuleInCache(ExclusiveContext* cx,
     parser.tokenStream.advance(module->srcEndBeforeCurly());
 
     {
-        
-        
         
         AutoFlushICache afc("LookupAsmJSModuleInCache",  true);
         module->setAutoFlushICacheRange();

@@ -9380,6 +9380,7 @@ CheckModule(ExclusiveContext* cx, AsmJSParser& parser, ParseNode* stmtList,
         return m.fail(nullptr, "top-level export (return) must be the last statement");
 
     
+    
     AutoFlushICache afc("CheckModule",  true);
 
     ScopedJSDeletePtr<AsmJSModule> module;
