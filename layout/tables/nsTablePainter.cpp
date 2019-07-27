@@ -230,7 +230,7 @@ TableBackgroundPainter::PaintTableFrame(nsTableFrame*         aTableFrame,
         border.BStart(wm) = tempBorder.BStart(wm);
       }
 
-      border.IStart(wm) = aTableFrame->GetContinuousLeftBCBorderWidth();
+      border.IStart(wm) = aTableFrame->GetContinuousIStartBCBorderWidth();
 
       tableData.SetBCBorder(border.GetPhysicalMargin(wm));
     }
@@ -322,7 +322,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame*   aTableFrame,
     
 
     
-    nscoord lastLeftBorder = aTableFrame->GetContinuousLeftBCBorderWidth();
+    nscoord lastLeftBorder = aTableFrame->GetContinuousIStartBCBorderWidth();
 
     for (nsTableColGroupFrame* cgFrame : colGroupFrames) {
       
