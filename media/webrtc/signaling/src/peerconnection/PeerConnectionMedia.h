@@ -241,8 +241,10 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   nsresult UpdateMediaPipelines(const JsepSession& session);
 
   
+  
+  
   nsresult AddTrack(DOMMediaStream* aMediaStream,
-                    const std::string& streamId,
+                    std::string* streamId,
                     const std::string& trackId);
 
   nsresult RemoveLocalTrack(const std::string& streamId,
@@ -250,7 +252,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   nsresult RemoveRemoteTrack(const std::string& streamId,
                             const std::string& trackId);
 
-  nsresult GetRemoteTrackId(const std::string streamId,
+  nsresult GetRemoteTrackId(DOMMediaStream* mediaStream,
                             TrackID numericTrackId,
                             std::string* trackId) const;
 
@@ -261,6 +263,8 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
   LocalSourceStreamInfo* GetLocalStreamByIndex(int index);
   LocalSourceStreamInfo* GetLocalStreamById(const std::string& id);
+  LocalSourceStreamInfo* GetLocalStreamByDomStream(
+      const DOMMediaStream& stream);
 
   
   uint32_t RemoteStreamsLength()
@@ -270,6 +274,8 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
   RemoteSourceStreamInfo* GetRemoteStreamByIndex(size_t index);
   RemoteSourceStreamInfo* GetRemoteStreamById(const std::string& id);
+  RemoteSourceStreamInfo* GetRemoteStreamByDomStream(
+      const DOMMediaStream& stream);
 
   
   nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo);
