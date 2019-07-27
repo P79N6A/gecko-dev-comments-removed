@@ -23,6 +23,7 @@ class ImageContainer;
 }
 
 class MediaByteBuffer;
+class SharedTrackInfo;
 
 
 class MediaData {
@@ -394,6 +395,8 @@ public:
 
   const CryptoSample& mCrypto;
   nsRefPtr<MediaByteBuffer> mExtraData;
+
+  nsRefPtr<SharedTrackInfo> mTrackInfo;
 
   
   virtual already_AddRefed<MediaRawData> Clone() const;
