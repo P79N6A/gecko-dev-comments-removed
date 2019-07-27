@@ -20,23 +20,6 @@ function inNormalMode() {
          window.outerHeight == normalSize.h;
 }
 
-function ok(condition, msg) {
-  opener.ok(condition, "[rollback] " + msg);
-  if (!condition) {
-    opener.finish();
-  }
-}
-
-
-
-
-const workAroundFullscreenTransition = navigator.userAgent.indexOf("Linux") != -1;
-
-if (workAroundFullscreenTransition) {
-  SimpleTest.requestFlakyTimeout("We need to wait an arbitrary and non-zero " +
-    "amount of time in case of the Linux specific workaround to avoid busy-waiting.");
-}
-
 
 
 
@@ -48,53 +31,39 @@ if (workAroundFullscreenTransition) {
 
 function addFullscreenChangeContinuation(type, callback, inDoc) {
   var doc = inDoc || document;
-  var listener = null;
-  if (type === "enter") {
-    
-    
-    listener = function(event) {
-      doc.removeEventListener("mozfullscreenchange", listener, false);
-      if (!workAroundFullscreenTransition) {
-        callback(event);
-        return;
-      }
-      if (!inFullscreenMode()) {
-        opener.todo(false, "fullscreenchange before entering fullscreen complete! " +
-                    " window.fullScreen=" + window.fullScreen +
-                    " normal=(" + normalSize.w + "," + normalSize.h + ")" +
-                    " outerWidth=" + window.outerWidth + " width=" + window.screen.width +
-                    " outerHeight=" + window.outerHeight + " height=" + window.screen.height);
-        setTimeout(function(){listener(event);}, 100);
-        return;
-      }
-      setTimeout(function(){callback(event)}, 0);
-    };
-  } else if (type === "exit") {
-    listener = function(event) {
-      doc.removeEventListener("mozfullscreenchange", listener, false);
-      if (!workAroundFullscreenTransition) {
-        callback(event);
-        return;
-      }
-      if (!document.mozFullScreenElement && !inNormalMode()) {
-        opener.todo(false, "fullscreenchange before exiting fullscreen complete! " +
-                    " window.fullScreen=" + window.fullScreen +
-                    " normal=(" + normalSize.w + "," + normalSize.h + ")" +
-                    " outerWidth=" + window.outerWidth + " width=" + window.screen.width +
-                    " outerHeight=" + window.outerHeight + " height=" + window.screen.height);
-        
-        
-        
-        setTimeout(function(){listener(event);}, 100);
-        return;
-      }
-      opener.info("[rollback] Exited fullscreen");
-      setTimeout(function(){callback(event);}, 0);
-    };
-  } else {
-    throw "'type' must be either 'enter', or 'exit'.";
+  function checkCondition() {
+    if (type == "enter") {
+      return inFullscreenMode();
+    } else if (type == "exit") {
+      
+      
+      
+      return doc.mozFullScreenElement || inNormalMode();
+    } else {
+      throw "'type' must be either 'enter', or 'exit'.";
+    }
   }
-  doc.addEventListener("mozfullscreenchange", listener, false);
+  function invokeCallback(event) {
+    
+    
+    requestAnimationFrame(() => setTimeout(() => callback(event), 0), 0);
+  }
+  function onFullscreenChange(event) {
+    doc.removeEventListener("mozfullscreenchange", onFullscreenChange, false);
+    if (checkCondition()) {
+      invokeCallback(event);
+      return;
+    }
+    var win = doc.defaultView;
+    function onResize() {
+      if (checkCondition()) {
+        win.removeEventListener("resize", onResize, false);
+        invokeCallback(event);
+      }
+    }
+    win.addEventListener("resize", onResize, false);
+  }
+  doc.addEventListener("mozfullscreenchange", onFullscreenChange, false);
 }
 
 
