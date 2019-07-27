@@ -129,7 +129,9 @@ public:
     const SurfaceCaps mCaps;
 protected:
     UniquePtr<SurfaceFactory> mFactory;
-    RefPtr<SurfaceStream> mStream;
+
+    RefPtr<ShSurfHandle> mBack;
+    RefPtr<ShSurfHandle> mFront;
 
     UniquePtr<DrawBuffer> mDraw;
     UniquePtr<ReadBuffer> mRead;
@@ -149,14 +151,10 @@ protected:
 
     GLScreenBuffer(GLContext* gl,
                    const SurfaceCaps& caps,
-                   UniquePtr<SurfaceFactory> factory,
-                   const RefPtr<SurfaceStream>& stream)
+                   UniquePtr<SurfaceFactory> factory)
         : mGL(gl)
         , mCaps(caps)
         , mFactory(Move(factory))
-        , mStream(stream)
-        , mDraw(nullptr)
-        , mRead(nullptr)
         , mNeedsBlit(true)
         , mUserDrawFB(0)
         , mUserReadFB(0)
@@ -171,12 +169,12 @@ protected:
 public:
     virtual ~GLScreenBuffer();
 
-    SurfaceStream* Stream() const {
-        return mStream;
-    }
-
     SurfaceFactory* Factory() const {
         return mFactory.get();
+    }
+
+    SharedSurface* Front() const {
+        return mFront->Surf();
     }
 
     SharedSurface* SharedSurf() const {
@@ -184,7 +182,7 @@ public:
         return mRead->SharedSurf();
     }
 
-    bool PreserveBuffer() const {
+    bool ShouldPreserveBuffer() const {
         return mCaps.preserve;
     }
 
@@ -225,19 +223,7 @@ public:
                     GLenum format, GLenum type, GLvoid *pixels);
 
     
-
-
-
-
-
-
-
-
-
-
-
-    void Morph(UniquePtr<SurfaceFactory> newFactory,
-               SurfaceStreamType streamType);
+    void Morph(UniquePtr<SurfaceFactory> newFactory);
 
 protected:
     
