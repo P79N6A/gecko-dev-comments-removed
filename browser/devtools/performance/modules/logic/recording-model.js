@@ -133,8 +133,11 @@ RecordingModel.prototype = {
 
 
 
-  _onStopRecording: Task.async(function *(info) {
-    this._profile = info.profile;
+  _onStopRecording: Task.async(function *({ profilerEndTime, profile }) {
+    
+    
+    this._duration = profilerEndTime - this._profilerStartTime;
+    this._profile = profile;
     this._completed = true;
 
     
