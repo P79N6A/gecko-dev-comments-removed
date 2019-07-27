@@ -43,7 +43,7 @@ toolbox:-moz-lwtheme,
 toolbar:-moz-lwtheme {
   -moz-appearance: none;
   background: none;
-  border-style: none;
+  border-color: transparent;
 }
 
 
@@ -65,7 +65,7 @@ toolbarspacer {
 
 
 toolbarpaletteitem {
-  cursor: -moz-grab;
+  cursor: grab;
 }
 
 .toolbarpaletteitem-box[type="spacer"],
