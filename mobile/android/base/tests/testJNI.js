@@ -7,21 +7,37 @@ Components.utils.import("resource://gre/modules/ctypes.jsm");
 Components.utils.import("resource://gre/modules/JNI.jsm");
 
 add_task(function test_JNI() {
-  let iconSize = -1;
-
-  let jni = null;
+  var jenv = null;
   try {
-    jni = new JNI();
-    let cls = jni.findClass("org/mozilla/gecko/GeckoAppShell");
-    let method = jni.getStaticMethodID(cls, "getPreferredIconSize", "()I");
-    iconSize = jni.callStaticIntMethod(cls, method);
+    jenv = JNI.GetForThread();
+
+    
+    var geckoAppShell = JNI.LoadClass(jenv, "org.mozilla.gecko.GeckoAppShell", {
+      static_methods: [
+        { name: "getPreferredIconSize", sig: "()I" }
+      ],
+    });
+
+    let iconSize = -1;
+    iconSize = geckoAppShell.getPreferredIconSize();
+    do_check_neq(iconSize, -1);
+
+    
+    
+    
+    let jGeckoNetworkManager = JNI.LoadClass(jenv, "org/mozilla/gecko/GeckoNetworkManager", {
+      static_methods: [
+        { name: "getMNC", sig: "()I" },
+        { name: "getMCC", sig: "()I" },
+      ],
+    });
+    do_check_eq(typeof jGeckoNetworkManager.getMNC(), "number");
+    do_check_eq(typeof jGeckoNetworkManager.getMCC(), "number");
   } finally {
-    if (jni != null) {
-      jni.close();
+    if (jenv) {
+      JNI.UnloadClasses(jenv);
     }
   }
-
-  do_check_neq(iconSize, -1);
 });
 
 run_next_test();
