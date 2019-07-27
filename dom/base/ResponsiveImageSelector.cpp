@@ -621,11 +621,13 @@ ResponsiveImageCandidate::ConsumeDescriptors(nsAString::const_iterator& aIter,
         
         
         descriptors.AddDescriptor(Substring(currentDescriptor, iter));
-        for (; iter != end && *iter == char16_t(' '); ++iter);
+        for (; iter != end && nsContentUtils::IsHTMLWhitespace(*iter); ++iter);
         if (iter == end) {
           break;
         }
         currentDescriptor = iter;
+        
+        iter--;
       } else if (*iter == char16_t('(')) {
         inParens = true;
       }
