@@ -24,17 +24,7 @@
 #include "mozilla/StaticPtr.h"
 
 #ifndef MOZ_DISABLE_CRYPTOLEGACY
-#include "nsIDOMNode.h"
-#include "nsIDOMEvent.h"
-#include "nsIDOMDocument.h"
-#include "nsIDOMWindow.h"
-#include "nsIDOMWindowCollection.h"
-#include "nsIDocument.h"
-#include "mozilla/dom/SmartCardEvent.h"
 #include "nsSmartCardMonitor.h"
-#include "nsIDOMCryptoLegacy.h"
-#else
-#include "nsIDOMCrypto.h"
 #endif
 
 #include "nsCRT.h"
@@ -67,7 +57,6 @@
 #include "p12plcy.h"
 
 using namespace mozilla;
-using namespace mozilla::dom;
 using namespace mozilla::psm;
 
 #ifdef PR_LOGGING
@@ -75,53 +64,6 @@ PRLogModuleInfo* gPIPNSSLog = nullptr;
 #endif
 
 int nsNSSComponent::mInstanceCount = 0;
-
-
-extern char* pk11PasswordPrompt(PK11SlotInfo* slot, PRBool retry, void* arg);
-
-#ifndef MOZ_DISABLE_CRYPTOLEGACY
-
-
-class nsTokenEventRunnable : public nsIRunnable {
-public:
-  nsTokenEventRunnable(const nsAString& aType, const nsAString& aTokenName);
-
-  NS_IMETHOD Run ();
-  NS_DECL_THREADSAFE_ISUPPORTS
-protected:
-  virtual ~nsTokenEventRunnable();
-private:
-  nsString mType;
-  nsString mTokenName;
-};
-
-
-NS_IMPL_ISUPPORTS(nsTokenEventRunnable, nsIRunnable)
-
-nsTokenEventRunnable::nsTokenEventRunnable(const nsAString& aType,
-                                           const nsAString& aTokenName)
-  : mType(aType)
-  , mTokenName(aTokenName)
-{
-}
-
-nsTokenEventRunnable::~nsTokenEventRunnable() { }
-
-
-
-NS_IMETHODIMP
-nsTokenEventRunnable::Run()
-{
-  static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-
-  nsresult rv;
-  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-  if (NS_FAILED(rv))
-    return rv;
-
-  return nssComponent->DispatchEvent(mType, mTokenName);
-}
-#endif 
 
 bool nsPSMInitPanic::isPanic = false;
 
@@ -335,121 +277,6 @@ nsNSSComponent::~nsNSSComponent()
 
   PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsNSSComponent::dtor finished\n"));
 }
-
-#ifndef MOZ_DISABLE_CRYPTOLEGACY
-NS_IMETHODIMP
-nsNSSComponent::PostEvent(const nsAString& eventType,
-                          const nsAString& tokenName)
-{
-  nsCOMPtr<nsIRunnable> runnable =
-                               new nsTokenEventRunnable(eventType, tokenName);
-
-  return NS_DispatchToMainThread(runnable);
-}
-
-
-NS_IMETHODIMP
-nsNSSComponent::DispatchEvent(const nsAString& eventType,
-                              const nsAString& tokenName)
-{
-  
-  
-  nsresult rv;
-  nsCOMPtr<nsIWindowWatcher> windowWatcher =
-                            do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
-
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  nsCOMPtr<nsISimpleEnumerator> enumerator;
-  rv = windowWatcher->GetWindowEnumerator(getter_AddRefs(enumerator));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  bool hasMoreWindows;
-
-  while (NS_SUCCEEDED(enumerator->HasMoreElements(&hasMoreWindows))
-         && hasMoreWindows) {
-    nsCOMPtr<nsISupports> supports;
-    enumerator->GetNext(getter_AddRefs(supports));
-    nsCOMPtr<nsIDOMWindow> domWin(do_QueryInterface(supports));
-    if (domWin) {
-      nsresult rv2 = DispatchEventToWindow(domWin, eventType, tokenName);
-      if (NS_FAILED(rv2)) {
-        
-        
-        rv = rv2;
-      }
-    }
-  }
-  return rv;
-}
-
-nsresult
-nsNSSComponent::DispatchEventToWindow(nsIDOMWindow* domWin,
-                                      const nsAString& eventType,
-                                      const nsAString& tokenName)
-{
-  if (!domWin) {
-    return NS_OK;
-  }
-
-  
-  nsresult rv;
-  nsCOMPtr<nsIDOMWindowCollection> frames;
-  rv = domWin->GetFrames(getter_AddRefs(frames));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  uint32_t length;
-  frames->GetLength(&length);
-  uint32_t i;
-  for (i = 0; i < length; i++) {
-    nsCOMPtr<nsIDOMWindow> childWin;
-    frames->Item(i, getter_AddRefs(childWin));
-    DispatchEventToWindow(childWin, eventType, tokenName);
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIDOMCrypto> crypto;
-  domWin->GetCrypto(getter_AddRefs(crypto));
-  if (!crypto) {
-    return NS_OK; 
-  }
-
-  bool boolrv;
-  crypto->GetEnableSmartCardEvents(&boolrv);
-  if (!boolrv) {
-    return NS_OK; 
-  }
-
-  
-
-  
-  nsCOMPtr<nsIDOMDocument> doc;
-  rv = domWin->GetDocument(getter_AddRefs(doc));
-  if (!doc) {
-    return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<EventTarget> d = do_QueryInterface(doc);
-
-  SmartCardEventInit init;
-  init.mBubbles = false;
-  init.mCancelable = true;
-  init.mTokenName = tokenName;
-
-  nsRefPtr<SmartCardEvent> event = SmartCardEvent::Constructor(d, eventType, init);
-  event->SetTrusted(true);
-
-  return d->DispatchEvent(event, &boolrv);
-}
-#endif 
 
 NS_IMETHODIMP
 nsNSSComponent::PIPBundleFormatStringFromName(const char* name,
