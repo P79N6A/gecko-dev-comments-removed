@@ -1,4 +1,5 @@
 load(libdir + "asm.js");
+load(libdir + "asserts.js");
 var heap = new ArrayBuffer(0x10000);
 
 
@@ -729,14 +730,19 @@ var f = asmLink(asmCompile('glob', USE_ASM + I32 + F32 + CF32 + CI32 + CVTIF + '
 assertEqX4(f(SIMD.int32x4(1,2,3,4)), [1, 2, 3, 4]);
 assertEqX4(f(SIMD.int32x4(0,INT32_MIN,INT32_MAX,-1)), [0, Math.fround(INT32_MIN), Math.fround(INT32_MAX), -1]);
 
-
-
-
-
-const UNDEFINED_INT32 = 0x80000000 | 0;
 var f = asmLink(asmCompile('glob', USE_ASM + I32 + CI32 + F32 + CF32 + CVTFI + 'function f(x){x=cf4(x); var y=i4(0,0,0,0); y=cvt(x); return ci4(y);} return f'), this);
 assertEqX4(f(SIMD.float32x4(1,2,3,4)), [1, 2, 3, 4]);
-assertEqX4(f(SIMD.float32x4(NaN,Infinity,-Infinity,-0)), [UNDEFINED_INT32, UNDEFINED_INT32, UNDEFINED_INT32, 0]);
+
+
+assertEqX4(f(SIMD.float32x4(INT32_MIN, INT32_MAX - 64, -0, 0)), [INT32_MIN, INT32_MAX - 64, 0, 0].map(Math.fround));
+
+assertThrowsInstanceOf(() => f(SIMD.float32x4(INT32_MIN - 129, 0, 0, 0)), RangeError);
+
+assertThrowsInstanceOf(() => f(SIMD.float32x4(Math.pow(2, 31), 0, 0, 0)), RangeError);
+
+assertThrowsInstanceOf(() => f(SIMD.float32x4(NaN, 0, 0, 0)), RangeError);
+assertThrowsInstanceOf(() => f(SIMD.float32x4(Infinity, 0, 0, 0)), RangeError);
+assertThrowsInstanceOf(() => f(SIMD.float32x4(-Infinity, 0, 0, 0)), RangeError);
 
 
 const CVTIFB = 'var cvt=f4.fromInt32x4Bits;';
