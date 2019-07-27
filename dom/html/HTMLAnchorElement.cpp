@@ -193,6 +193,18 @@ HTMLAnchorElement::UnbindFromTree(bool aDeep, bool aNullParent)
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
+static bool
+IsNodeInEditableRegion(nsINode* aNode)
+{
+  while (aNode) {
+    if (aNode->IsEditable()) {
+      return true;
+    }
+    aNode = aNode->GetParent();
+  }
+  return false;
+}
+
 bool
 HTMLAnchorElement::IsHTMLFocusable(bool aWithMouse,
                                    bool *aIsFocusable, int32_t *aTabIndex)
@@ -214,7 +226,9 @@ HTMLAnchorElement::IsHTMLFocusable(bool aWithMouse,
     }
   }
 
-  if (IsEditable()) {
+  
+  
+  if (IsNodeInEditableRegion(this)) {
     if (aTabIndex) {
       *aTabIndex = -1;
     }
