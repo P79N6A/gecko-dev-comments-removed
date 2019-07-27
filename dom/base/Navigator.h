@@ -36,6 +36,7 @@ struct MediaStreamConstraints;
 class WakeLock;
 class ArrayBufferViewOrBlobOrStringOrFormData;
 struct MobileIdOptions;
+class ServiceWorkerContainer;
 }
 }
 
@@ -102,10 +103,6 @@ namespace system {
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
 class AudioChannelManager;
 #endif
-} 
-
-namespace workers {
-class ServiceWorkerContainer;
 } 
 
 class Navigator : public nsIDOMNavigator
@@ -262,7 +259,7 @@ public:
                               ErrorResult& aRv);
 #endif 
 
-  already_AddRefed<workers::ServiceWorkerContainer> ServiceWorker();
+  already_AddRefed<ServiceWorkerContainer> ServiceWorker();
 
   bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                     JS::Handle<jsid> aId,
@@ -340,7 +337,7 @@ private:
   nsCOMPtr<nsIDOMNavigatorSystemMessages> mMessagesManager;
   nsTArray<nsRefPtr<nsDOMDeviceStorage> > mDeviceStorageStores;
   nsRefPtr<time::TimeManager> mTimeManager;
-  nsRefPtr<workers::ServiceWorkerContainer> mServiceWorkerContainer;
+  nsRefPtr<ServiceWorkerContainer> mServiceWorkerContainer;
   nsCOMPtr<nsPIDOMWindow> mWindow;
 
   

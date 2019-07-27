@@ -4,12 +4,10 @@
 
 
 
-#ifndef mozilla_dom_workers_serviceworkercontainer_h__
-#define mozilla_dom_workers_serviceworkercontainer_h__
+#ifndef mozilla_dom_serviceworkercontainer_h__
+#define mozilla_dom_serviceworkercontainer_h__
 
 #include "mozilla/DOMEventTargetHelper.h"
-
-#include "ServiceWorkerManager.h"
 
 class nsPIDOMWindow;
 
@@ -20,8 +18,8 @@ class Promise;
 struct RegistrationOptionList;
 
 namespace workers {
-
 class ServiceWorker;
+}
 
 
 class ServiceWorkerContainer MOZ_FINAL : public DOMEventTargetHelper
@@ -30,7 +28,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerContainer, DOMEventTargetHelper)
 
-  IMPL_EVENT_HANDLER(updatefound)
   IMPL_EVENT_HANDLER(controllerchange)
   IMPL_EVENT_HANDLER(reloadpage)
   IMPL_EVENT_HANDLER(error)
@@ -51,38 +48,18 @@ public:
            const RegistrationOptionList& aOptions,
            ErrorResult& aRv);
 
-  already_AddRefed<Promise>
-  Unregister(const nsAString& scope, ErrorResult& aRv);
-
-  already_AddRefed<ServiceWorker>
-  GetInstalling();
-
-  already_AddRefed<ServiceWorker>
-  GetWaiting();
-
-  already_AddRefed<ServiceWorker>
-  GetActive();
-
-  already_AddRefed<ServiceWorker>
+  already_AddRefed<workers::ServiceWorker>
   GetController();
 
   already_AddRefed<Promise>
-  GetAll(ErrorResult& aRv);
+  GetRegistration(const nsAString& aDocumentURL,
+                  ErrorResult& aRv);
+
+  already_AddRefed<Promise>
+  GetRegistrations(ErrorResult& aRv);
 
   already_AddRefed<Promise>
   GetReady(ErrorResult& aRv);
-
-  nsIURI*
-  GetDocumentURI() const
-  {
-    return mWindow->GetDocumentURI();
-  }
-
-  void
-  InvalidateWorkerReference(WhichServiceWorker aWhichOnes);
-
-  already_AddRefed<workers::ServiceWorker>
-  GetWorkerReference(WhichServiceWorker aWhichOne);
 
   
   already_AddRefed<Promise>
@@ -100,28 +77,14 @@ public:
 private:
   ~ServiceWorkerContainer();
 
-  void
-  StartListeningForEvents();
-
-  void
-  StopListeningForEvents();
-
   nsCOMPtr<nsPIDOMWindow> mWindow;
 
   
   
   
-  
-  nsRefPtr<ServiceWorker> mInstallingWorker;
-  nsRefPtr<ServiceWorker> mWaitingWorker;
-  nsRefPtr<ServiceWorker> mActiveWorker;
-  
-  
-  
-  nsRefPtr<ServiceWorker> mControllerWorker;
+  nsRefPtr<workers::ServiceWorker> mControllerWorker;
 };
 
-} 
 } 
 } 
 
