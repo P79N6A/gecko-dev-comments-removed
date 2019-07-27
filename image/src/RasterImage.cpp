@@ -390,7 +390,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker,
   ImageResource(aURI), 
   mSize(0,0),
   mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
-  mAnim(nullptr),
   mLockCount(0),
   mDecodeCount(0),
   mRequestedSampleSize(0),
@@ -463,7 +462,6 @@ RasterImage::~RasterImage()
     }
   }
 
-  delete mAnim;
   mAnim = nullptr;
 
   
@@ -1123,7 +1121,7 @@ RasterImage::EnsureAnimExists()
   if (!mAnim) {
 
     
-    mAnim = new FrameAnimator(mFrameBlender, mAnimationMode);
+    mAnim = MakeUnique<FrameAnimator>(mFrameBlender, mAnimationMode);
 
     
     
@@ -1646,7 +1644,6 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
       StopAnimation();
     mAnimationFinished = false;
     if (mAnim) {
-      delete mAnim;
       mAnim = nullptr;
     }
     

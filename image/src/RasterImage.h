@@ -35,6 +35,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/WeakPtr.h"
+#include "mozilla/UniquePtr.h"
 #ifdef DEBUG
   #include "imgIContainerDebug.h"
 #endif
@@ -644,7 +645,7 @@ private:
   
   
   
-  FrameAnimator* mAnim;
+  UniquePtr<FrameAnimator> mAnim;
 
   
   uint32_t                   mLockCount;
