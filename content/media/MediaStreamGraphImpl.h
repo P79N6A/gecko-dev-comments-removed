@@ -113,7 +113,8 @@ public:
 
 
 
-  void RunInStableState();
+
+  void RunInStableState(bool aSourceIsMSG);
   
 
 
