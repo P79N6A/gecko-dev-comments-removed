@@ -40,19 +40,50 @@ Atomic<int32_t> CompositableForwarder::sSerialCounter(0);
 
 CompositorChild::CompositorChild(ClientLayerManager *aLayerManager)
   : mLayerManager(aLayerManager)
-  , mCanSend(true)
+  , mCanSend(false)
 {
 }
 
 CompositorChild::~CompositorChild()
 {
+  if (mCanSend) {
+    gfxCriticalError() << "CompositorChild was not deinitialized";
+  }
+}
+
+static void DeferredDestroyCompositor(nsRefPtr<CompositorParent> aCompositorParent,
+                                      nsRefPtr<CompositorChild> aCompositorChild)
+{
+    
+    
+    
 }
 
 void
 CompositorChild::Destroy()
 {
-  mLayerManager->Destroy();
-  mLayerManager = nullptr;
+  if (!mCanSend) {
+    NS_WARNING("Trying to deinitialize a CompositorChild twice");
+    return;
+  }
+
+  SendWillStop();
+  
+  
+  
+  
+  
+  
+  
+
+  
+  mCanSend = false;
+
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+    mLayerManager = nullptr;
+  }
+
   
   
   for (int i = ManagedPLayerTransactionChild().Length() - 1; i >= 0; --i) {
@@ -60,8 +91,13 @@ CompositorChild::Destroy()
       static_cast<LayerTransactionChild*>(ManagedPLayerTransactionChild()[i]);
     layers->Destroy();
   }
-  MOZ_ASSERT(!mCanSend);
+
   SendStop();
+
+  
+  
+  MessageLoop::current()->PostTask(FROM_HERE,
+             NewRunnableFunction(DeferredDestroyCompositor, mCompositorParent, this));
 }
 
 bool
@@ -94,6 +130,8 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
     return nullptr;
   }
 
+  child->mCanSend = true;
+
   
   sCompositor = child.forget().take();
 
@@ -104,6 +142,18 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
 
   
   return sCompositor;
+}
+
+bool
+CompositorChild::OpenSameProcess(CompositorParent* aParent)
+{
+  MOZ_ASSERT(aParent);
+
+  mCompositorParent = aParent;
+  mCanSend = Open(mCompositorParent->GetIPCChannel(),
+                  CompositorParent::CompositorLoop(),
+                  ipc::ChildSide);
+  return mCanSend;
 }
 
  CompositorChild*
@@ -482,8 +532,6 @@ bool
 CompositorChild::SendWillStop()
 {
   MOZ_ASSERT(mCanSend);
-  
-  mCanSend = false;
   return PCompositorChild::SendWillStop();
 }
 
