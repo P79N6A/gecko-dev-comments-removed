@@ -17,52 +17,105 @@ namespace layers {
 
 class CompositableForwarder;
 
-SharedTextureClientOGL::SharedTextureClientOGL(TextureFlags aFlags)
+
+
+
+EGLImageTextureClient::EGLImageTextureClient(TextureFlags aFlags,
+                                             EGLImage aImage,
+                                             gfx::IntSize aSize,
+                                             bool aInverted)
   : TextureClient(aFlags)
-  , mHandle(0)
-  , mInverted(false)
+  , mImage(aImage)
+  , mSize(aSize)
   , mIsLocked(false)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
+             "Can't pass an `EGLImage` between processes.");
   
-  mFlags |= TextureFlags::DEALLOCATE_CLIENT;
-}
-
-SharedTextureClientOGL::~SharedTextureClientOGL()
-{
   
-}
-
-
-bool
-SharedTextureClientOGL::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
-{
-  MOZ_ASSERT(IsValid());
-  if (!IsAllocated()) {
-    return false;
-  }
-  aOutDescriptor = SharedTextureDescriptor(mShareType, mHandle, mSize, mInverted);
-  return true;
-}
-
-void
-SharedTextureClientOGL::InitWith(gl::SharedTextureHandle aHandle,
-                                 gfx::IntSize aSize,
-                                 gl::SharedTextureShareType aShareType,
-                                 bool aInverted)
-{
-  MOZ_ASSERT(IsValid());
-  MOZ_ASSERT(!IsAllocated());
-  mHandle = aHandle;
-  mSize = aSize;
-  mShareType = aShareType;
-  mInverted = aInverted;
-  if (mInverted) {
+  AddFlags(TextureFlags::DEALLOCATE_CLIENT);
+  
+  if (aInverted) {
     AddFlags(TextureFlags::NEEDS_Y_FLIP);
   }
 }
+  
+EGLImageTextureClient::~EGLImageTextureClient()
+{
+  
+}
 
 bool
-SharedTextureClientOGL::Lock(OpenMode mode)
+EGLImageTextureClient::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
+{
+  MOZ_ASSERT(IsValid());
+  MOZ_ASSERT(IsAllocated());
+
+  aOutDescriptor = EGLImageDescriptor((uintptr_t)mImage, mSize);
+  return true;
+}
+
+bool
+EGLImageTextureClient::Lock(OpenMode mode)
+  {
+    MOZ_ASSERT(!mIsLocked);
+    if (!IsValid() || !IsAllocated()) {
+      return false;
+    }
+    mIsLocked = true;
+    return true;
+  }
+  
+void
+EGLImageTextureClient::Unlock()
+{
+  MOZ_ASSERT(mIsLocked);
+  mIsLocked = false;
+}
+  
+
+
+
+#ifdef MOZ_WIDGET_ANDROID
+
+SurfaceTextureClient::SurfaceTextureClient(TextureFlags aFlags,
+                                           nsSurfaceTexture* aSurfTex,
+                                           gfx::IntSize aSize,
+                                           bool aInverted)
+  : TextureClient(aFlags)
+  , mSurfTex(aSurfTex)
+  , mSize(aSize)
+  , mIsLocked(false)
+{
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
+             "Can't pass pointers between processes.");
+
+  
+  AddFlags(TextureFlags::DEALLOCATE_CLIENT);
+
+  if (aInverted) {
+    AddFlags(TextureFlags::NEEDS_Y_FLIP);
+  }
+}
+  
+SurfaceTextureClient::~SurfaceTextureClient()
+{
+  
+}
+
+bool
+SurfaceTextureClient::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
+{
+  MOZ_ASSERT(IsValid());
+  MOZ_ASSERT(IsAllocated());
+
+  aOutDescriptor = SurfaceTextureDescriptor((uintptr_t)mSurfTex.get(),
+                                            mSize);
+  return true;
+}
+
+bool
+SurfaceTextureClient::Lock(OpenMode mode)
 {
   MOZ_ASSERT(!mIsLocked);
   if (!IsValid() || !IsAllocated()) {
@@ -73,17 +126,13 @@ SharedTextureClientOGL::Lock(OpenMode mode)
 }
 
 void
-SharedTextureClientOGL::Unlock()
+SurfaceTextureClient::Unlock()
 {
   MOZ_ASSERT(mIsLocked);
   mIsLocked = false;
 }
 
-bool
-SharedTextureClientOGL::IsAllocated() const
-{
-  return mHandle != 0;
-}
+#endif 
 
 } 
 } 

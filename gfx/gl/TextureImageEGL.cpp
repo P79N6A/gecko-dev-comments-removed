@@ -89,8 +89,9 @@ TextureImageEGL::~TextureImageEGL()
     
     
     
-    mGLContext->MakeCurrent();
-    mGLContext->fDeleteTextures(1, &mTexture);
+    if (mGLContext->MakeCurrent()) {
+        mGLContext->fDeleteTextures(1, &mTexture);
+    }
     ReleaseTexImage();
     DestroyEGLSurface();
 }
