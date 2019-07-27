@@ -178,6 +178,7 @@ struct CompositorOGLVRObjects {
   GLint mUTexture[2];
   GLint mUVREyeToSource[2];
   GLint mUVRDestionatinScaleAndOffset[2];
+  GLint mUHeight[2];
 };
 
 
