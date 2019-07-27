@@ -290,22 +290,25 @@ GetNonEmptyTextFrameAndNode(nsIFrame* aFrame,
                             nsTextNode*& aTextNode)
 {
   nsTextFrame* text = do_QueryFrame(aFrame);
-  if (!text) {
-    return false;
+  bool isNonEmptyTextFrame = text && text->GetContentLength() != 0;
+
+  if (isNonEmptyTextFrame) {
+    nsIContent* content = text->GetContent();
+    NS_ASSERTION(content && content->IsNodeOfType(nsINode::eTEXT),
+                 "unexpected content type for nsTextFrame");
+
+    nsTextNode* node = static_cast<nsTextNode*>(content);
+    MOZ_ASSERT(node->TextLength() != 0,
+               "frame's GetContentLength() should be 0 if the text node "
+               "has no content");
+
+    aTextFrame = text;
+    aTextNode = node;
   }
 
-  nsIContent* content = text->GetContent();
-  NS_ASSERTION(content && content->IsNodeOfType(nsINode::eTEXT),
-               "unexpected content type for nsTextFrame");
-
-  nsTextNode* node = static_cast<nsTextNode*>(content);
-  if (node->TextLength() == 0) {
-    return false;
-  }
-
-  aTextFrame = text;
-  aTextNode = node;
-  return true;
+  MOZ_ASSERT(IsNonEmptyTextFrame(aFrame) == isNonEmptyTextFrame,
+             "our logic should agree with IsNonEmptyTextFrame");
+  return isNonEmptyTextFrame;
 }
 
 
