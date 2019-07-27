@@ -249,6 +249,15 @@ public:
   virtual ~SharedTextureClientD3D9();
 
   
+  static TemporaryRef<SharedTextureClientD3D9>
+  Create(ISurfaceAllocator* aAllocator,
+         gfx::SurfaceFormat aFormat,
+         TextureFlags aFlags,
+         IDirect3DTexture9* aTexture,
+         HANDLE aSharedHandle,
+         D3DSURFACE_DESC aDesc);
+
+  
 
   virtual bool IsAllocated() const override { return !!mTexture; }
 
@@ -259,17 +268,6 @@ public:
   virtual bool IsLocked() const override { return mIsLocked; }
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) override;
-
-  void InitWith(IDirect3DTexture9* aTexture, HANDLE aSharedHandle, D3DSURFACE_DESC aDesc)
-  {
-    MOZ_ASSERT(!mTexture);
-    mTexture = aTexture;
-    mHandle = aSharedHandle;
-    mDesc = aDesc;
-    if (mTexture) {
-      gfxWindowsPlatform::sD3D9SharedTextureUsed += mDesc.Width * mDesc.Height * 4;
-    }
-  }
 
   virtual gfx::IntSize GetSize() const
   {

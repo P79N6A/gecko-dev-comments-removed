@@ -32,11 +32,13 @@ public:
 
   virtual ~TextureClientD3D11();
 
-  void InitWith(ID3D11Texture2D* aTexture, const gfx::IntSize& aSize)
-  {
-    mTexture = aTexture;
-    mSize = aSize;
-  }
+  
+  static TemporaryRef<TextureClientD3D11>
+  Create(ISurfaceAllocator* aAllocator,
+         gfx::SurfaceFormat aFormat,
+         TextureFlags aFlags,
+         ID3D11Texture2D* aTexture,
+         gfx::IntSize aSize);
 
   
 
@@ -91,6 +93,20 @@ public:
   virtual ~DXGIYCbCrTextureClient();
 
   
+  static TemporaryRef<DXGIYCbCrTextureClient>
+  Create(ISurfaceAllocator* aAllocator,
+         TextureFlags aFlags,
+         IUnknown* aTextureY,
+         IUnknown* aTextureCb,
+         IUnknown* aTextureCr,
+         HANDLE aHandleY,
+         HANDLE aHandleCb,
+         HANDLE aHandleCr,
+         const gfx::IntSize& aSize,
+         const gfx::IntSize& aSizeY,
+         const gfx::IntSize& aSizeCbCr);
+
+  
 
   virtual bool IsAllocated() const override{ return !!mHoldRefs[0]; }
 
@@ -101,27 +117,6 @@ public:
   virtual bool IsLocked() const override{ return mIsLocked; }
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) override;
-
-  void InitWith(IUnknown* aTextureY,
-                IUnknown* aTextureCb,
-                IUnknown* aTextureCr,
-                HANDLE aHandleY,
-                HANDLE aHandleCb,
-                HANDLE aHandleCr,
-                const gfx::IntSize& aSize,
-                const gfx::IntSize& aSizeY,
-                const gfx::IntSize& aSizeCbCr)
-  {
-    mHandles[0] = aHandleY;
-    mHandles[1] = aHandleCb;
-    mHandles[2] = aHandleCr;
-    mHoldRefs[0] = aTextureY;
-    mHoldRefs[1] = aTextureCb;
-    mHoldRefs[2] = aTextureCr;
-    mSize = aSize;
-    mSizeY = aSizeY;
-    mSizeCbCr = aSizeCbCr;
-  }
 
   virtual gfx::IntSize GetSize() const
   {
