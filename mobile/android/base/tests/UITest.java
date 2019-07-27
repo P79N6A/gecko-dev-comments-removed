@@ -79,7 +79,7 @@ abstract class UITest extends BaseRobocopTest
             mAsserter.endTest();
             
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Robocop:Quit", null));
-            mSolo.sleep(7000);
+            mSolo.sleep(120000);
             
             mSolo.finishOpenedActivities();
         } catch (Throwable e) {
