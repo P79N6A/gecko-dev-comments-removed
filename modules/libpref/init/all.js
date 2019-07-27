@@ -453,6 +453,11 @@ pref("media.mediasource.whitelist", false);
 pref("media.mediasource.mp4.enabled", true);
 pref("media.mediasource.webm.enabled", false);
 
+
+pref("media.mediasource.format-reader.mp4", false);
+
+pref("media.format-reader.mp4", false);
+
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
 pref("media.webspeech.synth.enabled", false);
