@@ -36,6 +36,49 @@ SharedSurface_IOSurface::Fence()
 }
 
 bool
+SharedSurface_IOSurface::CopyTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                                        GLint x, GLint y, GLsizei width, GLsizei height,
+                                        GLint border)
+{
+    
+
+
+
+
+
+
+    
+    
+    
+    
+    if (width == 0 || height == 0)
+        return false;
+
+    MOZ_ASSERT(mGL->IsCurrent());
+
+    ScopedTexture destTex(mGL);
+    {
+        ScopedBindTexture bindTex(mGL, destTex.Texture());
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER,
+                            LOCAL_GL_NEAREST);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER,
+                            LOCAL_GL_NEAREST);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S,
+                            LOCAL_GL_CLAMP_TO_EDGE);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T,
+                            LOCAL_GL_CLAMP_TO_EDGE);
+        mGL->raw_fCopyTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, x, y, width,
+                                 height, 0);
+    }
+
+    ScopedFramebufferForTexture tmpFB(mGL, destTex.Texture(), LOCAL_GL_TEXTURE_2D);
+    ScopedBindFramebuffer bindFB(mGL, tmpFB.FB());
+    mGL->raw_fCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+
+    return true;
+}
+
+bool
 SharedSurface_IOSurface::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                                     GLenum format, GLenum type, GLvoid* pixels)
 {
