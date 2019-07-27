@@ -154,7 +154,8 @@ private:
     HRESULT hr;
     if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
       
-      ITEMIDLIST* dir = ILCreateFromPathW(mResolvedPath.get());
+      ITEMIDLIST* dir =
+        static_cast<ITEMIDLIST*>(ILCreateFromPathW(mResolvedPath.get()));
       if (!dir) {
         return NS_ERROR_FAILURE;
       }
@@ -177,13 +178,15 @@ private:
       PathRemoveFileSpecW(parentDirectoryPath);
 
       
-      ITEMIDLIST* dir = ILCreateFromPathW(parentDirectoryPath);
+      ITEMIDLIST* dir =
+        static_cast<ITEMIDLIST*>(ILCreateFromPathW(parentDirectoryPath));
       if (!dir) {
         return NS_ERROR_FAILURE;
       }
 
       
-      ITEMIDLIST* item = ILCreateFromPathW(mResolvedPath.get());
+      ITEMIDLIST* item =
+        static_cast<ITEMIDLIST*>(ILCreateFromPathW(mResolvedPath.get()));
       if (!item) {
         CoTaskMemFree(dir);
         return NS_ERROR_FAILURE;
