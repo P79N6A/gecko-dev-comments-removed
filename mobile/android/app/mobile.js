@@ -281,11 +281,7 @@ pref("browser.search.official", true);
 #endif
 
 
-#ifdef RELEASE_BUILD
-pref("browser.casting.enabled", false);
-#else
 pref("browser.casting.enabled", true);
-#endif
 
 
 pref("chrome.override_package.global", "browser");
