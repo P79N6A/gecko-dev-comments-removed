@@ -86,7 +86,7 @@ function viewPartialSourceForSelection(selection)
   
   
   var isHTML = (doc.createElement("div").tagName == "DIV");
-  var dataDoc = isHTML ? 
+  var dataDoc = isHTML ?
     ancestorContainer.ownerDocument.implementation.createHTMLDocument("") :
     ancestorContainer.ownerDocument.implementation.createDocument("", "", null);
   ancestorContainer = dataDoc.importNode(ancestorContainer, true);

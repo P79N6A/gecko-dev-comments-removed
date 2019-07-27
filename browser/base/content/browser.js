@@ -7099,7 +7099,7 @@ var gIdentityHandler = {
     dt.setData("text/html", htmlString);
     dt.setDragImage(gProxyFavIcon, 16, 16);
   },
- 
+
   handleEvent: function (event) {
     switch (event.type) {
       case "blur":
