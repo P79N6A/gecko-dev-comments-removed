@@ -105,8 +105,8 @@ MIRGraph::removeBlock(MBasicBlock *block)
         }
     }
 
-    block->discardAllResumePoints();
     block->discardAllInstructions();
+    block->discardAllResumePoints();
 
     
     
@@ -297,6 +297,7 @@ MBasicBlock::MBasicBlock(MIRGraph &graph, CompileInfo &info, const BytecodeSite 
     pc_(site.pc()),
     lir_(nullptr),
     entryResumePoint_(nullptr),
+    outerResumePoint_(nullptr),
     successorWithPhis_(nullptr),
     positionInPhiSuccessor_(0),
     loopDepth_(0),
@@ -819,8 +820,7 @@ MBasicBlock::discardAllInstructionsStartingAt(MInstructionIterator &iter)
         
         
         
-        
-        prepareForDiscard(*iter, RefType_DiscardOperands);
+        prepareForDiscard(*iter, RefType_DefaultNoAssert);
         iter = instructions_.removeAt(iter);
     }
 }
@@ -845,17 +845,24 @@ MBasicBlock::discardAllPhis()
 void
 MBasicBlock::discardAllResumePoints(bool discardEntry)
 {
-    for (MResumePointIterator iter = resumePointsBegin(); iter != resumePointsEnd(); ) {
-        MResumePoint *rp = *iter;
-        if (rp == entryResumePoint() && !discardEntry) {
-            iter++;
-        } else {
-            rp->discardUses();
-            iter = resumePoints_.removeAt(iter);
-        }
+    if (outerResumePoint_) {
+        discardResumePoint(outerResumePoint_);
+        outerResumePoint_ = nullptr;
     }
-    if (discardEntry)
+
+    if (discardEntry && entryResumePoint_)
         clearEntryResumePoint();
+
+#ifdef DEBUG
+    if (!entryResumePoint()) {
+        MOZ_ASSERT(resumePointsEmpty());
+    } else {
+        MResumePointIterator iter(resumePointsBegin());
+        MOZ_ASSERT(iter != resumePointsEnd());
+        iter++;
+        MOZ_ASSERT(iter == resumePointsEnd());
+    }
+#endif
 }
 
 void
