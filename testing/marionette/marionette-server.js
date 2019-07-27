@@ -1496,7 +1496,7 @@ MarionetteServerConnection.prototype = {
         if (this.curBrowser.elementManager.seenItems[aRequest.parameters.element]) {
           let wantedFrame = this.curBrowser.elementManager.getKnownElement(aRequest.parameters.element, curWindow); 
           
-          if (wantedFrame.tagName == "xul:browser") {
+          if (wantedFrame.tagName == "xul:browser" || wantedFrame.tagName == "browser") {
             curWindow = wantedFrame.contentWindow;
             this.curFrame = curWindow;
             if (aRequest.parameters.focus) {
