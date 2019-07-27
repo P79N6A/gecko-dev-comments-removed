@@ -2243,31 +2243,10 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         StopPlayback();
       }
 
-      
-      
+      FlushDecoding();
+
       
       RefPtr<nsIRunnable> task;
-      task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
-      mDecodeTaskQueue->Dispatch(task);
-
-      {
-        
-        
-        
-        
-        
-        
-        
-        ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
-        mDecodeTaskQueue->Flush();
-      }
-
-      
-      
-      
-      ResetPlayback();
-
-      
       task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::Shutdown);
       mDecodeTaskQueue->Dispatch(task);
 
@@ -2325,6 +2304,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       if (IsPlaying()) {
         StopPlayback();
       }
+      FlushDecoding();
       StopAudioThread();
       
       
@@ -2465,6 +2445,38 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
   }
 
   return NS_OK;
+}
+
+void
+MediaDecoderStateMachine::FlushDecoding()
+{
+  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
+               "Should be on state machine or decode thread.");
+  mDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
+
+  
+  
+  
+  RefPtr<nsIRunnable> task;
+  task = NS_NewRunnableMethod(mReader, &MediaDecoderReader::ResetDecode);
+  mDecodeTaskQueue->Dispatch(task);
+
+  {
+    
+    
+    
+    
+    
+    
+    
+    ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+    mDecodeTaskQueue->Flush();
+  }
+
+  
+  
+  
+  ResetPlayback();
 }
 
 void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,

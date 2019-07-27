@@ -447,6 +447,11 @@ protected:
 
   
   
+  
+  void FlushDecoding();
+
+  
+  
   int64_t GetAudioClock();
 
   
