@@ -15,7 +15,6 @@
 #include "mozilla/UniquePtr.h"
 #include "nsRect.h"
 
-#ifdef MOZ_ENABLE_SKIA
 
 namespace skia {
   class ConvolutionFilter1D;
@@ -33,6 +32,8 @@ struct DownscalerInvalidRect
   nsIntRect mOriginalSizeRect;
   nsIntRect mTargetSizeRect;
 };
+
+#ifdef MOZ_ENABLE_SKIA
 
 
 
@@ -119,20 +120,12 @@ private:
   bool mHasAlpha;
 };
 
-} 
-} 
-
-
 #else
 
 
 
 
 
-
-
-namespace mozilla {
-namespace image {
 
 class Downscaler
 {
@@ -144,6 +137,7 @@ public:
 
   const nsIntSize& OriginalSize() const { return nsIntSize(); }
   const nsIntSize& TargetSize() const { return nsIntSize(); }
+  const gfxSize& Scale() const { return gfxSize(1.0, 1.0); }
 
   nsresult BeginFrame(const nsIntSize&, uint8_t*, bool)
   {
@@ -153,14 +147,13 @@ public:
   uint8_t* RowBuffer() { return nullptr; }
   void CommitRow() { }
   bool HasInvalidation() const { return false; }
-  nsIntRect TakeInvalidRect() { return nsIntRect(); }
+  DownscalerInvalidRect TakeInvalidRect() { return DownscalerInvalidRect(); }
   void ResetForNextProgressivePass() { }
 };
 
-
-} 
-} 
-
 #endif 
+
+} 
+} 
 
 #endif 
