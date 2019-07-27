@@ -161,9 +161,6 @@ JitOptions::JitOptions()
 
     
     SET_DEFAULT(smallFunctionMaxBytecodeLength_, 100);
-
-    
-    SET_DEFAULT(disableUnboxedObjects, false);
 }
 
 bool
