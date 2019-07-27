@@ -34,34 +34,43 @@ function RegisteredActorFactory(options, prefix) {
   this._prefix = prefix;
   if (typeof(options) != "function") {
     
+    if (options.constructorFun) {
+      this._getConstructor = () => options.constructorFun;
+    } else {
+      
+      
+      this._getConstructor = function () {
+        
+        let mod;
+        try {
+          mod = require(options.id);
+        } catch(e) {
+          throw new Error("Unable to load actor module '" + options.id + "'.\n" +
+                          e.message + "\n" + e.stack + "\n");
+        }
+        
+        let c = mod[options.constructorName];
+        if (!c) {
+          throw new Error("Unable to find actor constructor named '" +
+                          options.constructorName + "'. (Is it exported?)");
+        }
+        return c;
+      };
+    }
     
-    this._getConstructor = function () {
-      
-      let mod;
-      try {
-        mod = require(options.id);
-      } catch(e) {
-        throw new Error("Unable to load actor module '" + options.id + "'.\n" +
-                        e.message + "\n" + e.stack + "\n");
-      }
-      
-      let c = mod[options.constructorName];
-      if (!c) {
-        throw new Error("Unable to find actor constructor named '" +
-                        options.constructorName + "'. (Is it exported?)");
-      }
-      return c;
-    };
+    
+    this.name = options.constructorName;
   } else {
     
     this._getConstructor = () => options;
     
     
     this.name = options.name;
+
     
     
     
-    if (options.prototype.actorPrefix) {
+    if (options.prototype && options.prototype.actorPrefix) {
       this._prefix = options.prototype.actorPrefix;
     }
   }
@@ -162,7 +171,12 @@ exports.createExtraActors = function createExtraActors(aFactories, aPool) {
       actor = aFactories[name].createObservedActorFactory(this.conn, this);
       this._extraActors[name] = actor;
     }
-    aPool.addActor(actor);
+
+    
+    
+    if (!aPool.has(actor.actorID)) {
+      aPool.addActor(actor);
+    }
   }
 }
 
@@ -270,7 +284,13 @@ ActorPool.prototype = {
       actor.disconnect();
     }
     this._cleanups = {};
-  }
+  },
+
+  forEach: function(callback) {
+    for (let name in this._actors) {
+      callback(this._actors[name]);
+    }
+  },
 }
 
 exports.ActorPool = ActorPool;

@@ -86,11 +86,10 @@ exports.makeInfallible = function makeInfallible(aHandler, aName) {
       if (aName) {
         who += " " + aName;
       }
-      exports.reportException(who, ex);
+      return exports.reportException(who, ex);
     }
   }
 }
-
 
 
 

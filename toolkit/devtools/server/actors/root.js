@@ -280,14 +280,12 @@ RootActor.prototype = {
         newActorPool.addActor(tabActor);
         tabActorList.push(tabActor);
       }
-
       
       if (!this._globalActorPool) {
         this._globalActorPool = new ActorPool(this.conn);
-        this._createExtraActors(this._parameters.globalActorFactories, this._globalActorPool);
         this.conn.addActorPool(this._globalActorPool);
       }
-
+      this._createExtraActors(this._parameters.globalActorFactories, this._globalActorPool);
       
 
 
@@ -451,7 +449,28 @@ RootActor.prototype = {
     this._globalActorPool.addActor(actor);
 
     return actor;
-  }
+  },
+
+  
+
+
+
+  removeActorByName: function(aName) {
+    if (aName in this._extraActors) {
+      const actor = this._extraActors[aName];
+      if (this._globalActorPool.has(actor)) {
+        this._globalActorPool.removeActor(actor);
+      }
+      if (this._tabActorPool) {
+        
+        
+        this._tabActorPool.forEach(tab => {
+          tab.removeActorByName(aName);
+        });
+      }
+      delete this._extraActors[aName];
+    }
+   }
 };
 
 RootActor.prototype.requestTypes = {

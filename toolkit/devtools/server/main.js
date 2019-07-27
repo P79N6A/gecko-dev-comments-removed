@@ -347,7 +347,7 @@ var DebuggerServer = {
         throw new Error("Lazy actor definition for '" + id + "' requires a string 'constructor' option.");
       }
       if (!("global" in type) && !("tab" in type)) {
-        throw new Error("Lazy actor definition for '" + id + "' requires a dictionnary 'type' option whose attributes can be 'global' or 'tab'.");
+        throw new Error("Lazy actor definition for '" + id + "' requires a dictionary 'type' option whose attributes can be 'global' or 'tab'.");
       }
       let name = prefix + "Actor";
       let mod = {
@@ -431,6 +431,11 @@ var DebuggerServer = {
       this.registerModule("devtools/server/actors/preference", {
         prefix: "preference",
         constructor: "PreferenceActor",
+        type: { global: true }
+      });
+      this.registerModule("devtools/server/actors/actor-registry", {
+        prefix: "actorRegistry",
+        constructor: "ActorRegistryActor",
         type: { global: true }
       });
     }
@@ -986,12 +991,17 @@ var DebuggerServer = {
 
 
 
+
+
   removeTabActor: function DS_removeTabActor(aActor) {
     for (let name in DebuggerServer.tabActorFactories) {
       let handler = DebuggerServer.tabActorFactories[name];
       if ((handler.name && handler.name == aActor.name) ||
           (handler.id && handler.id == aActor.id)) {
         delete DebuggerServer.tabActorFactories[name];
+        for (let connID of Object.getOwnPropertyNames(this._connections)) {
+          this._connections[connID].rootActor.removeActorByName(name);
+        }
       }
     }
   },
@@ -1040,12 +1050,17 @@ var DebuggerServer = {
 
 
 
+
+
   removeGlobalActor: function DS_removeGlobalActor(aActor) {
     for (let name in DebuggerServer.globalActorFactories) {
       let handler = DebuggerServer.globalActorFactories[name];
       if ((handler.name && handler.name == aActor.name) ||
           (handler.id && handler.id == aActor.id)) {
         delete DebuggerServer.globalActorFactories[name];
+        for (let connID of Object.getOwnPropertyNames(this._connections)) {
+          this._connections[connID].rootActor.removeActorByName(name);
+        }
       }
     }
   }

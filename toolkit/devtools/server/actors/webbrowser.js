@@ -1527,7 +1527,17 @@ TabActor.prototype = {
     this._tabPool.addActor(actor);
 
     return actor;
-  }
+  },
+
+  removeActorByName: function BTA_removeActor(aName) {
+    if (aName in this._extraActors) {
+      const actor = this._extraActors[aName];
+      if (this._tabActorPool.has(actor)) {
+        this._tabActorPool.removeActor(actor);
+      }
+      delete this._extraActors[aName];
+    }
+  },
 };
 
 
