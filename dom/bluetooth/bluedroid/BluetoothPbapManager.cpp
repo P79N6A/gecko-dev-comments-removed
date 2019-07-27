@@ -183,17 +183,27 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  const uint8_t* data = aMessage->GetData();
-  int receivedLength = aMessage->GetSize();
-  uint8_t opCode = data[0];
+  
 
-  ObexHeaderSet pktHeaders(opCode);
+
+
+
+  int receivedLength = aMessage->GetSize();
+  if (receivedLength < 1 || receivedLength > MAX_PACKET_LENGTH) {
+    ReplyError(ObexResponseCode::BadRequest);
+    return;
+  }
+
+  const uint8_t* data = aMessage->GetData();
+  uint8_t opCode = data[0];
+  ObexHeaderSet pktHeaders;
   switch (opCode) {
     case ObexRequestCode::Connect:
       
       
       
-      if (!ParseHeaders(&data[7], receivedLength - 7, &pktHeaders)) {
+      if (receivedLength < 7 ||
+          !ParseHeaders(&data[7], receivedLength - 7, &pktHeaders)) {
         ReplyError(ObexResponseCode::BadRequest);
         return;
       }
@@ -213,7 +223,8 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
       
       
       
-      if (!ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
+      if (receivedLength < 3 ||
+          !ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
         ReplyError(ObexResponseCode::BadRequest);
         return;
       }
@@ -224,7 +235,8 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
     case ObexRequestCode::SetPath: {
         
         
-        if (!ParseHeaders(&data[5], receivedLength - 5, &pktHeaders)) {
+        if (receivedLength < 5 ||
+            !ParseHeaders(&data[5], receivedLength - 5, &pktHeaders)) {
           ReplyError(ObexResponseCode::BadRequest);
           return;
         }

@@ -899,10 +899,19 @@ BluetoothOppManager::ServerDataHandler(UnixSocketBuffer* aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  uint8_t opCode;
-  int receivedLength = aMessage->GetSize();
-  const uint8_t* data = aMessage->GetData();
+  
 
+
+
+
+  int receivedLength = aMessage->GetSize();
+  if (receivedLength < 1 || receivedLength > MAX_PACKET_LENGTH) {
+    ReplyError(ObexResponseCode::BadRequest);
+    return;
+  }
+
+  uint8_t opCode;
+  const uint8_t* data = aMessage->GetData();
   if (mPutPacketReceivedLength > 0) {
     opCode = mPutFinalFlag ? ObexRequestCode::PutFinal : ObexRequestCode::Put;
   } else {
@@ -918,12 +927,13 @@ BluetoothOppManager::ServerDataHandler(UnixSocketBuffer* aMessage)
     }
   }
 
-  ObexHeaderSet pktHeaders(opCode);
+  ObexHeaderSet pktHeaders;
   if (opCode == ObexRequestCode::Connect) {
     
     
     
-    if (!ParseHeaders(&data[7], receivedLength - 7, &pktHeaders)) {
+    if (receivedLength < 7 ||
+        !ParseHeaders(&data[7], receivedLength - 7, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -933,7 +943,8 @@ BluetoothOppManager::ServerDataHandler(UnixSocketBuffer* aMessage)
   } else if (opCode == ObexRequestCode::Abort) {
     
     
-    if (!ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
+    if (receivedLength < 3 ||
+        !ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -943,7 +954,8 @@ BluetoothOppManager::ServerDataHandler(UnixSocketBuffer* aMessage)
   } else if (opCode == ObexRequestCode::Disconnect) {
     
     
-    if (!ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
+    if (receivedLength < 3 ||
+        !ParseHeaders(&data[3], receivedLength - 3, &pktHeaders)) {
       ReplyError(ObexResponseCode::BadRequest);
       return;
     }
@@ -1026,6 +1038,13 @@ BluetoothOppManager::ClientDataHandler(UnixSocketBuffer* aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  
+  int receivedLength = aMessage->GetSize();
+  if (receivedLength < 1) {
+    BT_LOGR("Receive empty response packet");
+    return;
+  }
+
   const uint8_t* data = aMessage->GetData();
   uint8_t opCode = data[0];
 
@@ -1082,6 +1101,13 @@ BluetoothOppManager::ClientDataHandler(UnixSocketBuffer* aMessage)
     MOZ_ASSERT(mBlob);
 
     AfterOppConnected();
+
+    
+    if (receivedLength < 7) {
+      BT_LOGR("The length of connect response packet is invalid");
+      SendDisconnectRequest();
+      return;
+    }
 
     
     mRemoteObexVersion = data[3];
