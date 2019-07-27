@@ -133,10 +133,6 @@
 #include "mozilla/WindowsVersion.h"
 #include "nsThemeConstants.h"
 
-#ifdef MOZ_ENABLE_D3D9_LAYER
-#include "LayerManagerD3D9.h"
-#endif
-
 #ifdef MOZ_ENABLE_D3D10_LAYER
 #include "LayerManagerD3D10.h"
 #endif
@@ -255,9 +251,6 @@ int             nsWindow::sTrimOnMinimize         = 2;
 
 
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
-
-
-bool            nsWindow::sAllowD3D9              = false;
 
 TriStateBool nsWindow::sHasBogusPopupsDropShadowOnMultiMonitor = TRI_UNKNOWN;
 
@@ -3349,10 +3342,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     CreateCompositor();
   }
 
-  if (!mLayerManager ||
-      (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC &&
-        !ShouldUseOffMainThreadCompositing())) {
+  if (!mLayerManager) {
     
     
     LayerManagerPrefs prefs;
@@ -3370,27 +3360,10 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
       mUseLayersAcceleration = true;
 
     if (mUseLayersAcceleration) {
-      if (aPersistence == LAYER_MANAGER_PERSISTENT && !sAllowD3D9) {
-        MOZ_ASSERT(!mLayerManager || !mLayerManager->IsInTransaction());
-
-        
-        
-        nsToolkit::StartAllowingD3D9();
-      }
-
 #ifdef MOZ_ENABLE_D3D10_LAYER
       if (!prefs.mPreferD3D9 && !prefs.mPreferOpenGL) {
         nsRefPtr<LayerManagerD3D10> layerManager =
           new LayerManagerD3D10(this);
-        if (layerManager->Initialize(prefs.mForceAcceleration)) {
-          mLayerManager = layerManager;
-        }
-      }
-#endif
-#ifdef MOZ_ENABLE_D3D9_LAYER
-      if (!prefs.mPreferOpenGL && !mLayerManager && sAllowD3D9) {
-        nsRefPtr<LayerManagerD3D9> layerManager =
-          new LayerManagerD3D9(this);
         if (layerManager->Initialize(prefs.mForceAcceleration)) {
           mLayerManager = layerManager;
         }
@@ -6670,56 +6643,6 @@ bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
 bool nsWindow::AutoErase(HDC dc)
 {
   return false;
-}
-
-void
-nsWindow::AllowD3D9Callback(nsWindow *aWindow)
-{
-  if (aWindow->mLayerManager && !aWindow->ShouldUseOffMainThreadCompositing()) {
-    aWindow->mLayerManager->Destroy();
-    aWindow->mLayerManager = nullptr;
-  }
-}
-
-void
-nsWindow::AllowD3D9WithReinitializeCallback(nsWindow *aWindow)
-{
-  if (aWindow->mLayerManager && !aWindow->ShouldUseOffMainThreadCompositing()) {
-    aWindow->mLayerManager->Destroy();
-    aWindow->mLayerManager = nullptr;
-    (void) aWindow->GetLayerManager();
-  }
-}
-
-void
-nsWindow::StartAllowingD3D9(bool aReinitialize)
-{
-  sAllowD3D9 = true;
-
-  LayerManagerPrefs prefs;
-  GetLayerManagerPrefs(&prefs);
-  if (prefs.mDisableAcceleration) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    return;
-  }
-
-  if (aReinitialize) {
-    EnumAllWindows(AllowD3D9WithReinitializeCallback);
-  } else {
-    EnumAllWindows(AllowD3D9Callback);
-  }
 }
 
 bool

@@ -246,16 +246,6 @@ public:
 
 
 
-  static void             StartAllowingD3D9(bool aReinitialize);
-
-  
-
-
-
-
-
-
-
 
 
 
@@ -314,8 +304,6 @@ protected:
   static BOOL    CALLBACK ClearResourcesCallback(HWND aChild, LPARAM aParam);
   static BOOL    CALLBACK EnumAllChildWindProc(HWND aWnd, LPARAM aParam);
   static BOOL    CALLBACK EnumAllThreadWindowProc(HWND aWnd, LPARAM aParam);
-  static void             AllowD3D9Callback(nsWindow *aWindow);
-  static void             AllowD3D9WithReinitializeCallback(nsWindow *aWindow);
 
   
 
@@ -498,7 +486,6 @@ protected:
   static bool           sIsInMouseCapture;
   static int            sTrimOnMinimize;
   static const char*    sDefaultMainWindowClass;
-  static bool           sAllowD3D9;
 
   
   static TriStateBool   sHasBogusPopupsDropShadowOnMultiMonitor;
