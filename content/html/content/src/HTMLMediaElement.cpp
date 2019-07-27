@@ -3070,9 +3070,6 @@ void HTMLMediaElement::SeekCompleted()
 void HTMLMediaElement::NotifySuspendedByCache(bool aIsSuspended)
 {
   mDownloadSuspendedByCache = aIsSuspended;
-  
-  
-  CheckAutoplayDataReady();
 }
 
 void HTMLMediaElement::DownloadSuspended()
@@ -3293,8 +3290,7 @@ bool HTMLMediaElement::CanActivateAutoplay()
   return !mPausedForInactiveDocumentOrChannel &&
          mAutoplaying &&
          mPaused &&
-         (mDownloadSuspendedByCache ||
-          (mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
+         ((mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
           (mSrcStream && mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA)) &&
          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
          mAutoplayEnabled &&
