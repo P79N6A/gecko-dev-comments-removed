@@ -36,12 +36,33 @@ let gFxAccounts = {
       this.FxAccountsCommon.ONVERIFIED_NOTIFICATION,
       this.FxAccountsCommon.ONLOGOUT_NOTIFICATION,
       "weave:notification:removed",
+      this.FxAccountsCommon.ON_PROFILE_CHANGE_NOTIFICATION,
     ];
   },
 
-  get button() {
-    delete this.button;
-    return this.button = document.getElementById("PanelUI-fxa-status");
+  get panelUIFooter() {
+    delete this.panelUIFooter;
+    return this.panelUIFooter = document.getElementById("PanelUI-footer-fxa");
+  },
+
+  get panelUIStatus() {
+    delete this.panelUIStatus;
+    return this.panelUIStatus = document.getElementById("PanelUI-fxa-status");
+  },
+
+  get panelUIAvatar() {
+    delete this.panelUIAvatar;
+    return this.panelUIAvatar = document.getElementById("PanelUI-fxa-avatar");
+  },
+
+  get panelUILabel() {
+    delete this.panelUILabel;
+    return this.panelUILabel = document.getElementById("PanelUI-fxa-label");
+  },
+
+  get panelUIIcon() {
+    delete this.panelUIIcon;
+    return this.panelUIIcon = document.getElementById("PanelUI-fxa-icon");
   },
 
   get strings() {
@@ -135,6 +156,9 @@ let gFxAccounts = {
           this.fxaMigrator.recordTelemetry(this.fxaMigrator.TELEMETRY_DECLINED);
         }
         break;
+      case this.FxAccountsCommon.ONPROFILE_IMAGE_CHANGE_NOTIFICATION:
+        this.updateUI();
+        break;
       default:
         this.updateUI();
         break;
@@ -211,59 +235,97 @@ let gFxAccounts = {
       return;
     }
 
+    let profileInfoEnabled = false;
+    try {
+      profileInfoEnabled = Services.prefs.getBoolPref("identity.fxaccounts.profile_image.enabled");
+    } catch (e) { }
+
     
     if (!this.weave.fxAccountsEnabled) {
       
       
       
       
-      this.button.hidden = true;
-      this.button.removeAttribute("fxastatus");
+      this.panelUIFooter.removeAttribute("fxastatus");
       return;
     }
 
     
-    this.button.hidden = false;
-
-    
     if (this._inCustomizationMode) {
-      this.button.setAttribute("disabled", "true");
+      this.panelUILabel.setAttribute("disabled", "true");
+      this.panelUIAvatar.setAttribute("disabled", "true");
+      this.panelUIIcon.setAttribute("disabled", "true");
     } else {
-      this.button.removeAttribute("disabled");
+      this.panelUILabel.removeAttribute("disabled");
+      this.panelUIAvatar.removeAttribute("disabled");
+      this.panelUIIcon.removeAttribute("disabled");
     }
 
-    let defaultLabel = this.button.getAttribute("defaultlabel");
-    let errorLabel = this.button.getAttribute("errorlabel");
+    let defaultLabel = this.panelUIStatus.getAttribute("defaultlabel");
+    let errorLabel = this.panelUIStatus.getAttribute("errorlabel");
+    let signedInTooltiptext = this.panelUIStatus.getAttribute("signedinTooltiptext");
 
-    
-    
-    let doUpdate = userData => {
+    let updateWithUserData = (userData) => {
       
-      this.button.setAttribute("label", defaultLabel);
-      this.button.removeAttribute("tooltiptext");
-      this.button.removeAttribute("fxastatus");
+      this.panelUILabel.setAttribute("label", defaultLabel);
+      this.panelUIStatus.removeAttribute("tooltiptext");
+      this.panelUIFooter.removeAttribute("fxastatus");
+      this.panelUIFooter.removeAttribute("fxaprofileimage");
+      this.panelUIAvatar.style.removeProperty("list-style-image");
 
-      if (!this._inCustomizationMode) {
+      if (!this._inCustomizationMode && userData) {
+        
         if (this.loginFailed) {
           let tooltipDescription = this.strings.formatStringFromName("reconnectDescription", [userData.email], 1);
-          this.button.setAttribute("fxastatus", "error");
-          this.button.setAttribute("label", errorLabel);
-          this.button.setAttribute("tooltiptext", tooltipDescription);
-        } else if (userData) {
-          this.button.setAttribute("fxastatus", "signedin");
-          this.button.setAttribute("label", userData.email);
-          this.button.setAttribute("tooltiptext", userData.email);
+          this.panelUIFooter.setAttribute("fxastatus", "error");
+          this.panelUILabel.setAttribute("label", errorLabel);
+          this.panelUIStatus.setAttribute("tooltiptext", tooltipDescription);
+        } else {
+          this.panelUIFooter.setAttribute("fxastatus", "signedin");
+          this.panelUILabel.setAttribute("label", userData.email);
+          this.panelUIStatus.setAttribute("tooltiptext", signedInTooltiptext);
+        }
+        if (profileInfoEnabled) {
+          this.panelUIFooter.setAttribute("fxaprofileimage", "enabled");
         }
       }
     }
+
+    let updateWithProfile = (profile) => {
+      if (!this._inCustomizationMode && profileInfoEnabled) {
+        if (profile.displayName) {
+          this.panelUILabel.setAttribute("label", profile.displayName);
+        }
+        if (profile.avatar) {
+          let img = new Image();
+          
+          img.onload = () => {
+            this.panelUIFooter.setAttribute("fxaprofileimage", "set");
+            this.panelUIAvatar.style.listStyleImage = "url('" + profile.avatar + "')";
+          };
+          img.src = profile.avatar;
+        }
+      }
+    }
+
+    
+    
     fxAccounts.getSignedInUser().then(userData => {
-      doUpdate(userData);
-    }).then(null, error => {
+      
+      updateWithUserData(userData);
+      return fxAccounts.getSignedInUserProfile();
+    }).then(profile => {
+      if (!profile) {
+        return;
+      }
+      updateWithProfile(profile);
+    }).catch(error => {
       
       
       
       
-      doUpdate(null);
+      this.FxAccountsCommon.log.error("Error updating FxA profile", error);
+      updateWithUserData(null);
     });
   },
 
@@ -274,7 +336,7 @@ let gFxAccounts = {
       case this.fxaMigrator.STATE_USER_FXA:
         status = "migrate-signup";
         label = this.strings.formatStringFromName("needUserShort",
-          [this.button.getAttribute("fxabrandname")], 1);
+          [this.panelUILabel.getAttribute("fxabrandname")], 1);
         break;
       case this.fxaMigrator.STATE_USER_FXA_VERIFIED:
         status = "migrate-verify";
@@ -283,9 +345,8 @@ let gFxAccounts = {
                                                   1);
         break;
     }
-    this.button.label = label;
-    this.button.hidden = false;
-    this.button.setAttribute("fxastatus", status);
+    this.panelUILabel.label = label;
+    this.panelUIFooter.setAttribute("fxastatus", status);
   }),
 
   updateMigrationNotification: Task.async(function* () {
@@ -352,10 +413,9 @@ let gFxAccounts = {
     Weave.Notifications.replaceTitle(note);
   }),
 
-  onMenuPanelCommand: function (event) {
-    let button = event.originalTarget;
+  onMenuPanelCommand: function () {
 
-    switch (button.getAttribute("fxastatus")) {
+    switch (this.panelUIFooter.getAttribute("fxastatus")) {
     case "signedin":
       this.openPreferences();
       break;
