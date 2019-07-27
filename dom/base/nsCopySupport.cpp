@@ -620,13 +620,8 @@ IsSelectionInsideRuby(nsISelection* aSelection)
 }
 
 bool
-nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPresShell* aPresShell,
-                                  nsISelection* aSelection, bool* aActionTaken)
+nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPresShell* aPresShell, nsISelection* aSelection)
 {
-  if (aActionTaken) {
-    *aActionTaken = false;
-  }
-
   NS_ASSERTION(aType == NS_CUT || aType == NS_COPY || aType == NS_PASTE,
                "Invalid clipboard event type");
 
@@ -651,6 +646,14 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
   
   nsresult rv;
   if (sel) {
+    
+    if (aType == NS_CUT || aType == NS_COPY) {
+      bool isCollapsed;
+      sel->GetIsCollapsed(&isCollapsed);
+      if (isCollapsed)
+        return false;
+    }
+
     nsCOMPtr<nsIDOMRange> range;
     rv = sel->GetRangeAt(0, getter_AddRefs(range));
     if (NS_SUCCEEDED(rv) && range) {
@@ -693,7 +696,7 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
     
     doDefault = (status != nsEventStatus_eConsumeNoDefault);
   }
-
+  
   
   
   
@@ -705,9 +708,6 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
       clipboardData->SetReadOnly();
     }
 
-    if (aActionTaken) {
-      *aActionTaken = true;
-    }
     return doDefault;
   }
 
@@ -722,42 +722,19 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
   uint32_t count = 0;
   if (doDefault) {
     
-    nsCOMPtr<nsIContent> srcNode = content;
-    if (content->IsInNativeAnonymousSubtree()) {
-      srcNode = content->FindFirstNonChromeOnlyAccessContent();
+    bool isCollapsed;
+    sel->GetIsCollapsed(&isCollapsed);
+    if (isCollapsed) {
+      return false;
     }
-
-    
-    nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(srcNode);
-    if (formControl) {
-      if (formControl->GetType() == NS_FORM_INPUT_PASSWORD) {
-        return false;
-      }
-    }
-
     
     
-    if (aType != NS_CUT || content->IsEditable()) {
-      
-      bool isCollapsed;
-      sel->GetIsCollapsed(&isCollapsed);
-      if (isCollapsed) {
-        if (aActionTaken) {
-          *aActionTaken = true;
-        }
-        return false;
-      }
-      
-      
-      
-      
-      bool withRubyAnnotation = IsSelectionInsideRuby(sel);
-      
-      rv = HTMLCopy(sel, doc, aClipboardType, withRubyAnnotation);
-      if (NS_FAILED(rv)) {
-        return false;
-      }
-    } else {
+    
+    
+    bool withRubyAnnotation = IsSelectionInsideRuby(sel);
+    
+    rv = HTMLCopy(sel, doc, aClipboardType, withRubyAnnotation);
+    if (NS_FAILED(rv)) {
       return false;
     }
   } else if (clipboardData) {
@@ -786,8 +763,5 @@ nsCopySupport::FireClipboardEvent(int32_t aType, int32_t aClipboardType, nsIPres
     piWindow->UpdateCommands(NS_LITERAL_STRING("clipboard"), nullptr, 0);
   }
 
-  if (aActionTaken) {
-    *aActionTaken = true;
-  }
   return doDefault;
 }
