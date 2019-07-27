@@ -851,6 +851,9 @@ public:
   
   bool IsLogicallyPlaying();
 
+  
+  void RecreateDecodedStreamIfNecessary(int64_t aStartTimeUSecs);
+
 #ifdef MOZ_EME
   
   virtual nsresult SetCDMProxy(CDMProxy* aProxy) MOZ_OVERRIDE;
