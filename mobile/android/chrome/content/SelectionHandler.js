@@ -1024,9 +1024,15 @@ var SelectionHandler = {
     if (selection) {
       
       selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
+
+      
       
       if (selection.rangeCount != 0) {
-        selection.collapseToStart();
+        if (this.isElementEditableText(this._targetElement)) {
+          selection.collapseToStart();
+        } else {
+          selection.removeAllRanges();
+        }
       }
     }
   },
