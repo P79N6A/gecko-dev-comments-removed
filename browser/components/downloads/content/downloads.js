@@ -834,6 +834,16 @@ const DownloadsView = {
 
 
 
+  _controllersForElements: new Map(),
+
+  controllerForElement(element) {
+    return this._controllersForElements.get(element);
+  },
+
+  
+
+
+
   _addViewItem(aDataItem, aNewest)
   {
     DownloadsCommon.log("Adding a new DownloadsViewItem to the downloads list.",
@@ -842,6 +852,8 @@ const DownloadsView = {
     let element = document.createElement("richlistitem");
     let viewItem = new DownloadsViewItem(aDataItem, element);
     this._visibleViewItems.set(aDataItem, viewItem);
+    let viewItemController = new DownloadsViewItemController(aDataItem);
+    this._controllersForElements.set(element, viewItemController);
     if (aNewest) {
       this.richListBox.insertBefore(element, this.richListBox.firstChild);
     } else {
@@ -862,6 +874,7 @@ const DownloadsView = {
                                                 this.richListBox.itemCount - 1);
     }
     this._visibleViewItems.delete(aDataItem);
+    this._controllersForElements.delete(element);
   },
 
   
@@ -882,7 +895,7 @@ const DownloadsView = {
     while (target.nodeName != "richlistitem") {
       target = target.parentNode;
     }
-    new DownloadsViewItemController(target).doCommand(aCommand);
+    DownloadsView.controllerForElement(target).doCommand(aCommand);
   },
 
   onDownloadClick(aEvent) {
@@ -956,8 +969,8 @@ const DownloadsView = {
       return;
     }
 
-    let controller = new DownloadsViewItemController(element);
-    let localFile = controller.dataItem.localFile;
+    let localFile = DownloadsView.controllerForElement(element)
+                                 .dataItem.localFile;
     if (!localFile.exists()) {
       return;
     }
@@ -1001,8 +1014,6 @@ function DownloadsViewItem(aDataItem, aElement) {
   let attributes = {
     "type": "download",
     "class": "download-state",
-    "id": "downloadsItem_" + this.dataItem.downloadGuid,
-    "downloadGuid": this.dataItem.downloadGuid,
     "state": this.dataItem.state,
     "progress": this.dataItem.inProgress ? this.dataItem.percentComplete : 100,
     "target": this.dataItem.target,
@@ -1272,8 +1283,8 @@ const DownloadsViewController = {
 
     
     let element = DownloadsView.richListBox.selectedItem;
-    return element &&
-           new DownloadsViewItemController(element).isCommandEnabled(aCommand);
+    return element && DownloadsView.controllerForElement(element)
+                                   .isCommandEnabled(aCommand);
   },
 
   doCommand(aCommand) {
@@ -1287,7 +1298,7 @@ const DownloadsViewController = {
     let element = DownloadsView.richListBox.selectedItem;
     if (element) {
       
-      new DownloadsViewItemController(element).doCommand(aCommand);
+      DownloadsView.controllerForElement(element).doCommand(aCommand);
     }
   },
 
@@ -1323,9 +1334,8 @@ const DownloadsViewController = {
 
 
 
-function DownloadsViewItemController(aElement) {
-  let downloadGuid = aElement.getAttribute("downloadGuid");
-  this.dataItem = DownloadsCommon.getData(window).dataItems[downloadGuid];
+function DownloadsViewItemController(aDataItem) {
+  this.dataItem = aDataItem;
 }
 
 DownloadsViewItemController.prototype = {
