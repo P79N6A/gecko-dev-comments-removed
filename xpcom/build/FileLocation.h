@@ -87,11 +87,7 @@ public:
 
 
 
-#if defined(MOZILLA_XPCOMRT_API)
-  operator bool() const { return mBaseFile; }
-#else
   operator bool() const { return mBaseFile || mBaseZip; }
-#endif 
 
   
 
@@ -115,9 +111,7 @@ public:
     nsresult Copy(char* aBuf, uint32_t aLen);
   protected:
     friend class FileLocation;
-#if !defined(MOZILLA_XPCOMRT_API)
     nsZipItem* mItem;
-#endif 
     nsRefPtr<nsZipArchive> mZip;
     mozilla::AutoFDClose mFd;
   };
@@ -129,9 +123,7 @@ public:
   nsresult GetData(Data& aData);
 private:
   nsCOMPtr<nsIFile> mBaseFile;
-#if !defined(MOZILLA_XPCOMRT_API)
   nsRefPtr<nsZipArchive> mBaseZip;
-#endif 
   nsCString mPath;
 }; 
 
