@@ -710,15 +710,16 @@ bool
 DebugEpilogue(JSContext* cx, BaselineFrame* frame, jsbytecode* pc, bool ok)
 {
     
-    ScopeIter si(cx, frame, pc);
-    UnwindAllScopesInFrame(cx, si);
-    jsbytecode* unwindPc = frame->script()->main();
-    frame->setOverridePc(unwindPc);
-
-    
     
     
     ok = Debugger::onLeaveFrame(cx, frame, ok);
+
+    
+    
+    ScopeIter si(cx, frame, pc);
+    UnwindAllScopesInFrame(cx, si);
+    JSScript* script = frame->script();
+    frame->setOverridePc(script->lastPC());
 
     if (frame->isNonEvalFunctionFrame()) {
         MOZ_ASSERT_IF(ok, frame->hasReturnValue());

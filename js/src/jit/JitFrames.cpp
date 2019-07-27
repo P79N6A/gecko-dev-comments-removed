@@ -370,7 +370,7 @@ JitFrameIterator::machineState() const
 }
 
 static void
-CloseLiveIterator(JSContext* cx, const InlineFrameIterator& frame, uint32_t localSlot)
+CloseLiveIteratorIon(JSContext* cx, const InlineFrameIterator& frame, uint32_t localSlot)
 {
     SnapshotIterator si = frame.snapshotIterator();
 
@@ -389,6 +389,20 @@ CloseLiveIterator(JSContext* cx, const InlineFrameIterator& frame, uint32_t loca
     else
         UnwindIteratorForUncatchableException(cx, obj);
 }
+
+class IgnoreStackDepthOp
+{
+  public:
+    uint32_t operator()() { return UINT32_MAX; }
+};
+
+class TryNoteIterIon : public TryNoteIter<IgnoreStackDepthOp>
+{
+  public:
+    TryNoteIterIon(JSContext* cx, JSScript* script, jsbytecode* pc)
+      : TryNoteIter(cx, script, pc, IgnoreStackDepthOp())
+    { }
+};
 
 static void
 HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromException* rfe,
@@ -442,15 +456,8 @@ HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromEx
     if (!script->hasTrynotes())
         return;
 
-    JSTryNote* tn = script->trynotes()->vector;
-    JSTryNote* tnEnd = tn + script->trynotes()->length;
-
-    uint32_t pcOffset = uint32_t(pc - script->main());
-    for (; tn != tnEnd; ++tn) {
-        if (pcOffset < tn->start)
-            continue;
-        if (pcOffset >= tn->start + tn->length)
-            continue;
+    for (TryNoteIterIon tni(cx, script, pc); !tni.done(); ++tni) {
+        JSTryNote* tn = *tni;
 
         switch (tn->kind) {
           case JSTRY_FOR_IN: {
@@ -458,7 +465,7 @@ HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromEx
             MOZ_ASSERT(tn->stackDepth > 0);
 
             uint32_t localSlot = tn->stackDepth;
-            CloseLiveIterator(cx, frame, localSlot);
+            CloseLiveIteratorIon(cx, frame, localSlot);
             break;
           }
 
@@ -492,50 +499,49 @@ HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame, ResumeFromEx
 }
 
 static void
-ForcedReturn(JSContext* cx, const JitFrameIterator& frame, jsbytecode* pc,
-             ResumeFromException* rfe, bool* calledDebugEpilogue)
+OnLeaveBaselineFrame(JSContext* cx, const JitFrameIterator& frame, jsbytecode* pc,
+                     ResumeFromException* rfe, bool frameOk)
 {
     BaselineFrame* baselineFrame = frame.baselineFrame();
-    MOZ_ASSERT(baselineFrame->hasReturnValue());
-
-    if (jit::DebugEpilogue(cx, baselineFrame, pc, true)) {
+    if (jit::DebugEpilogue(cx, baselineFrame, pc, frameOk)) {
         rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;
         rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
         rfe->stackPointer = reinterpret_cast<uint8_t*>(baselineFrame);
-        return;
     }
+}
 
-    
-    *calledDebugEpilogue = true;
+static inline void
+ForcedReturn(JSContext* cx, const JitFrameIterator& frame, jsbytecode* pc,
+             ResumeFromException* rfe)
+{
+    OnLeaveBaselineFrame(cx, frame, pc, rfe, true);
+}
+
+static inline void
+BaselineFrameAndStackPointersFromTryNote(JSTryNote* tn, const JitFrameIterator& frame,
+                                         uint8_t** framePointer, uint8_t** stackPointer)
+{
+    JSScript* script = frame.baselineFrame()->script();
+    *framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
+    *stackPointer = *framePointer - BaselineFrame::Size() -
+                    (script->nfixed() + tn->stackDepth) * sizeof(Value);
 }
 
 static void
-HandleClosingGeneratorReturn(JSContext* cx, const JitFrameIterator& frame, jsbytecode* pc,
-                             jsbytecode* unwoundScopeToPc, ResumeFromException* rfe,
-                             bool* calledDebugEpilogue)
+SettleOnTryNote(JSContext* cx, JSTryNote *tn, const JitFrameIterator& frame,
+                ScopeIter& si, ResumeFromException* rfe, jsbytecode** pc)
 {
+    RootedScript script(cx, frame.baselineFrame()->script());
+
     
+    if (cx->isExceptionPending())
+        UnwindScope(cx, si, UnwindScopeToTryPc(script, tn));
+
     
+    BaselineFrameAndStackPointersFromTryNote(tn, frame, &rfe->framePointer, &rfe->stackPointer);
+
     
-
-    if (!cx->isExceptionPending())
-        return;
-    RootedValue exception(cx);
-    if (!cx->getPendingException(&exception))
-        return;
-    if (!exception.isMagic(JS_GENERATOR_CLOSING))
-        return;
-
-    cx->clearPendingException();
-    SetReturnValueForClosingGenerator(cx, frame.baselineFrame());
-
-    if (unwoundScopeToPc) {
-        if (frame.baselineFrame()->isDebuggee())
-            frame.baselineFrame()->setOverridePc(unwoundScopeToPc);
-        pc = unwoundScopeToPc;
-    }
-
-    ForcedReturn(cx, frame, pc, rfe, calledDebugEpilogue);
+    *pc = script->main() + tn->start + tn->length;
 }
 
 struct AutoBaselineHandlingException
@@ -553,122 +559,101 @@ struct AutoBaselineHandlingException
     }
 };
 
-static void
-HandleExceptionBaseline(JSContext* cx, const JitFrameIterator& frame, ResumeFromException* rfe,
-                        jsbytecode* pc, jsbytecode** unwoundScopeToPc, bool* calledDebugEpilogue)
+class BaselineFrameStackDepthOp
 {
-    MOZ_ASSERT(frame.isBaselineJS());
-    MOZ_ASSERT(!*calledDebugEpilogue);
-
-    
-    
-    if (cx->isPropagatingForcedReturn()) {
-        cx->clearPropagatingForcedReturn();
-        ForcedReturn(cx, frame, pc, rfe, calledDebugEpilogue);
-        return;
+    BaselineFrame* frame_;
+  public:
+    explicit BaselineFrameStackDepthOp(BaselineFrame* frame)
+      : frame_(frame)
+    { }
+    uint32_t operator()() {
+        MOZ_ASSERT(frame_->numValueSlots() >= frame_->script()->nfixed());
+        return frame_->numValueSlots() - frame_->script()->nfixed();
     }
+};
 
-    RootedValue exception(cx);
-    if (cx->isExceptionPending() && cx->compartment()->isDebuggee() &&
-        !cx->isClosingGenerator())
-    {
-        switch (Debugger::onExceptionUnwind(cx, frame.baselineFrame())) {
-          case JSTRAP_ERROR:
-            
-            MOZ_ASSERT(!cx->isExceptionPending());
-            break;
+class TryNoteIterBaseline : public TryNoteIter<BaselineFrameStackDepthOp>
+{
+  public:
+    TryNoteIterBaseline(JSContext* cx, BaselineFrame* frame, jsbytecode* pc)
+      : TryNoteIter(cx, frame->script(), pc, BaselineFrameStackDepthOp(frame))
+    { }
+};
 
-          case JSTRAP_CONTINUE:
-          case JSTRAP_THROW:
-            MOZ_ASSERT(cx->isExceptionPending());
-            break;
 
-          case JSTRAP_RETURN:
-            ForcedReturn(cx, frame, pc, rfe, calledDebugEpilogue);
-            return;
 
-          default:
-            MOZ_CRASH("Invalid trap status");
+static void
+CloseLiveIteratorsBaselineForUncatchableException(JSContext* cx, const JitFrameIterator& frame,
+                                                  jsbytecode* pc)
+{
+    for (TryNoteIterBaseline tni(cx, frame.baselineFrame(), pc); !tni.done(); ++tni) {
+        JSTryNote* tn = *tni;
+
+        if (tn->kind == JSTRY_FOR_IN) {
+            uint8_t* framePointer;
+            uint8_t* stackPointer;
+            BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer, &stackPointer);
+            Value iterValue(*(Value*) stackPointer);
+            RootedObject iterObject(cx, &iterValue.toObject());
+            UnwindIteratorForUncatchableException(cx, iterObject);
         }
     }
+}
 
+static bool
+ProcessTryNotesBaseline(JSContext* cx, const JitFrameIterator& frame, ScopeIter& si,
+                        ResumeFromException* rfe, jsbytecode** pc)
+{
     RootedScript script(cx, frame.baselineFrame()->script());
 
-    if (!script->hasTrynotes()) {
-        HandleClosingGeneratorReturn(cx, frame, pc, *unwoundScopeToPc, rfe, calledDebugEpilogue);
-        return;
-    }
+    for (TryNoteIterBaseline tni(cx, frame.baselineFrame(), *pc); !tni.done(); ++tni) {
+        JSTryNote* tn = *tni;
 
-    JSTryNote* tn = script->trynotes()->vector;
-    JSTryNote* tnEnd = tn + script->trynotes()->length;
-
-    uint32_t pcOffset = uint32_t(pc - script->main());
-    ScopeIter si(cx, frame.baselineFrame(), pc);
-    for (; tn != tnEnd; ++tn) {
-        if (pcOffset < tn->start)
-            continue;
-        if (pcOffset >= tn->start + tn->length)
-            continue;
-
-        
-        
-        MOZ_ASSERT(frame.baselineFrame()->numValueSlots() >= script->nfixed());
-        size_t stackDepth = frame.baselineFrame()->numValueSlots() - script->nfixed();
-        if (tn->stackDepth > stackDepth)
-            continue;
-
-        
-        if (cx->isExceptionPending()) {
-            *unwoundScopeToPc = UnwindScopeToTryPc(script, tn);
-            UnwindScope(cx, si, *unwoundScopeToPc);
-        }
-
-        
-        rfe->framePointer = frame.fp() - BaselineFrame::FramePointerOffset;
-        rfe->stackPointer = rfe->framePointer - BaselineFrame::Size() -
-            (script->nfixed() + tn->stackDepth) * sizeof(Value);
-
+        MOZ_ASSERT(cx->isExceptionPending());
         switch (tn->kind) {
-          case JSTRY_CATCH:
-            if (cx->isExceptionPending()) {
-                
-                
-                if (cx->isClosingGenerator())
-                    continue;
+          case JSTRY_CATCH: {
+            
+            
+            if (cx->isClosingGenerator())
+                continue;
 
-                
-                
-                
-                script->resetWarmUpCounter();
+            SettleOnTryNote(cx, tn, frame, si, rfe, pc);
 
-                
-                rfe->kind = ResumeFromException::RESUME_CATCH;
-                jsbytecode* catchPC = script->main() + tn->start + tn->length;
-                rfe->target = script->baselineScript()->nativeCodeForPC(script, catchPC);
-                return;
-            }
-            break;
+            
+            
+            
+            script->resetWarmUpCounter();
 
-          case JSTRY_FINALLY:
-            if (cx->isExceptionPending()) {
-                rfe->kind = ResumeFromException::RESUME_FINALLY;
-                jsbytecode* finallyPC = script->main() + tn->start + tn->length;
-                rfe->target = script->baselineScript()->nativeCodeForPC(script, finallyPC);
-                
-                if (!cx->getPendingException(MutableHandleValue::fromMarkedLocation(&rfe->exception)))
-                    rfe->exception = UndefinedValue();
-                cx->clearPendingException();
-                return;
-            }
-            break;
+            
+            rfe->kind = ResumeFromException::RESUME_CATCH;
+            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc);
+            return true;
+          }
+
+          case JSTRY_FINALLY: {
+            SettleOnTryNote(cx, tn, frame, si, rfe, pc);
+            rfe->kind = ResumeFromException::RESUME_FINALLY;
+            rfe->target = script->baselineScript()->nativeCodeForPC(script, *pc);
+            
+            if (!cx->getPendingException(MutableHandleValue::fromMarkedLocation(&rfe->exception)))
+                rfe->exception = UndefinedValue();
+            cx->clearPendingException();
+            return true;
+          }
 
           case JSTRY_FOR_IN: {
-            Value iterValue(* (Value*) rfe->stackPointer);
+            uint8_t* framePointer;
+            uint8_t* stackPointer;
+            BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer, &stackPointer);
+            Value iterValue(*(Value*) stackPointer);
             RootedObject iterObject(cx, &iterValue.toObject());
-            if (cx->isExceptionPending())
-                UnwindIteratorForException(cx, iterObject);
-            else
-                UnwindIteratorForUncatchableException(cx, iterObject);
+            if (!UnwindIteratorForException(cx, iterObject)) {
+                
+                
+                SettleOnTryNote(cx, tn, frame, si, rfe, pc);
+                MOZ_ASSERT(**pc == JSOP_ENDITER);
+                return false;
+            }
             break;
           }
 
@@ -680,8 +665,66 @@ HandleExceptionBaseline(JSContext* cx, const JitFrameIterator& frame, ResumeFrom
             MOZ_CRASH("Invalid try note");
         }
     }
+    return true;
+}
 
-    HandleClosingGeneratorReturn(cx, frame, pc, *unwoundScopeToPc, rfe, calledDebugEpilogue);
+static void
+HandleExceptionBaseline(JSContext* cx, const JitFrameIterator& frame, ResumeFromException* rfe,
+                        jsbytecode* pc)
+{
+    MOZ_ASSERT(frame.isBaselineJS());
+
+    
+    
+    if (cx->isPropagatingForcedReturn()) {
+        cx->clearPropagatingForcedReturn();
+        ForcedReturn(cx, frame, pc, rfe);
+        return;
+    }
+
+    bool frameOk = false;
+    RootedScript script(cx, frame.baselineFrame()->script());
+
+again:
+    if (cx->isExceptionPending()) {
+        if (!cx->isClosingGenerator()) {
+            switch (Debugger::onExceptionUnwind(cx, frame.baselineFrame())) {
+              case JSTRAP_ERROR:
+                
+                MOZ_ASSERT(!cx->isExceptionPending());
+                goto again;
+
+              case JSTRAP_CONTINUE:
+              case JSTRAP_THROW:
+                MOZ_ASSERT(cx->isExceptionPending());
+                break;
+
+              case JSTRAP_RETURN:
+                if (script->hasTrynotes())
+                    CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
+                ForcedReturn(cx, frame, pc, rfe);
+                return;
+
+              default:
+                MOZ_CRASH("Invalid trap status");
+            }
+        }
+
+        if (script->hasTrynotes()) {
+            ScopeIter si(cx, frame.baselineFrame(), pc);
+            if (!ProcessTryNotesBaseline(cx, frame, si, rfe, &pc))
+                goto again;
+            if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME)
+                return;
+        }
+
+        frameOk = HandleClosingGeneratorReturn(cx, frame.baselineFrame(), frameOk);
+        frameOk = Debugger::onLeaveFrame(cx, frame.baselineFrame(), frameOk);
+    } else if (script->hasTrynotes()) {
+        CloseLiveIteratorsBaselineForUncatchableException(cx, frame, pc);
+    }
+
+    OnLeaveBaselineFrame(cx, frame, pc, rfe, frameOk);
 }
 
 struct AutoDeleteDebugModeOSRInfo
@@ -807,12 +850,6 @@ HandleException(ResumeFromException* rfe)
 
         } else if (iter.isBaselineJS()) {
             
-            bool calledDebugEpilogue = false;
-
-            
-            jsbytecode* unwoundScopeToPc = nullptr;
-
-            
             
             
             
@@ -828,7 +865,7 @@ HandleException(ResumeFromException* rfe)
             iter.baselineScriptAndPc(nullptr, &pc);
             AutoBaselineHandlingException handlingException(iter.baselineFrame(), pc);
 
-            HandleExceptionBaseline(cx, iter, rfe, pc, &unwoundScopeToPc, &calledDebugEpilogue);
+            HandleExceptionBaseline(cx, iter, rfe, pc);
 
             
             
@@ -836,8 +873,11 @@ HandleException(ResumeFromException* rfe)
             
             AutoDeleteDebugModeOSRInfo deleteDebugModeOSRInfo(iter.baselineFrame());
 
-            if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME)
+            if (rfe->kind != ResumeFromException::RESUME_ENTRY_FRAME &&
+                rfe->kind != ResumeFromException::RESUME_FORCED_RETURN)
+            {
                 return;
+            }
 
             TraceLogStopEvent(logger, TraceLogger_Baseline);
             TraceLogStopEvent(logger, TraceLogger_Scripts);
@@ -847,26 +887,8 @@ HandleException(ResumeFromException* rfe)
             probes::ExitScript(cx, script, script->functionNonDelazifying(),
                                 false);
 
-            if (iter.baselineFrame()->isDebuggee() && !calledDebugEpilogue) {
-                
-                
-                
-                if (unwoundScopeToPc)
-                    iter.baselineFrame()->setOverridePc(unwoundScopeToPc);
-
-                
-                
-                BaselineFrame* frame = iter.baselineFrame();
-                jsbytecode* pc;
-                iter.baselineScriptAndPc(nullptr, &pc);
-                if (jit::DebugEpilogue(cx, frame, pc, false)) {
-                    MOZ_ASSERT(frame->hasReturnValue());
-                    rfe->kind = ResumeFromException::RESUME_FORCED_RETURN;
-                    rfe->framePointer = iter.fp() - BaselineFrame::FramePointerOffset;
-                    rfe->stackPointer = reinterpret_cast<uint8_t*>(frame);
-                    return;
-                }
-            }
+            if (rfe->kind == ResumeFromException::RESUME_FORCED_RETURN)
+                return;
         }
 
         JitFrameLayout* current = iter.isScripted() ? iter.jsFrame() : nullptr;
