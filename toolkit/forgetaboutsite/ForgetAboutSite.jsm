@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
@@ -48,50 +50,46 @@ this.ForgetAboutSite = {
     PlacesUtils.history.removePagesFromHost(aDomain, true);
 
     
-    let (cs = Cc["@mozilla.org/netwerk/cache-storage-service;1"].
-              getService(Ci.nsICacheStorageService)) {
-      
-      
-      try {
-        cs.clear();
-      } catch (ex) {
-        Cu.reportError("Exception thrown while clearing the cache: " +
-          ex.toString());
-      }
+    let cs = Cc["@mozilla.org/netwerk/cache-storage-service;1"].
+             getService(Ci.nsICacheStorageService);
+    
+    
+    try {
+      cs.clear();
+    } catch (ex) {
+      Cu.reportError("Exception thrown while clearing the cache: " +
+        ex.toString());
     }
 
     
-    let (imageCache = Cc["@mozilla.org/image/tools;1"].
-                      getService(Ci.imgITools).getImgCacheForDocument(null)) {
-      try {
-        imageCache.clearCache(false); 
-      } catch (ex) {
-        Cu.reportError("Exception thrown while clearing the image cache: " +
-          ex.toString());
-      }
+    let imageCache = Cc["@mozilla.org/image/tools;1"].
+                     getService(Ci.imgITools).getImgCacheForDocument(null);
+    try {
+      imageCache.clearCache(false); 
+    } catch (ex) {
+      Cu.reportError("Exception thrown while clearing the image cache: " +
+        ex.toString());
     }
 
     
-    let (cm = Cc["@mozilla.org/cookiemanager;1"].
-              getService(Ci.nsICookieManager2)) {
-      let enumerator = cm.getCookiesFromHost(aDomain);
-      while (enumerator.hasMoreElements()) {
-        let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie);
-        cm.remove(cookie.host, cookie.name, cookie.path, false);
-      }
+    let cm = Cc["@mozilla.org/cookiemanager;1"].
+             getService(Ci.nsICookieManager2);
+    let enumerator = cm.getCookiesFromHost(aDomain);
+    while (enumerator.hasMoreElements()) {
+      let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie);
+      cm.remove(cookie.host, cookie.name, cookie.path, false);
     }
 
     
     const phInterface = Ci.nsIPluginHost;
     const FLAG_CLEAR_ALL = phInterface.FLAG_CLEAR_ALL;
-    let (ph = Cc["@mozilla.org/plugin/host;1"].getService(phInterface)) {
-      let tags = ph.getPluginTags();
-      for (let i = 0; i < tags.length; i++) {
-        try {
-          ph.clearSiteData(tags[i], aDomain, FLAG_CLEAR_ALL, -1);
-        } catch (e) {
-          
-        }
+    let ph = Cc["@mozilla.org/plugin/host;1"].getService(phInterface);
+    let tags = ph.getPluginTags();
+    for (let i = 0; i < tags.length; i++) {
+      try {
+        ph.clearSiteData(tags[i], aDomain, FLAG_CLEAR_ALL, -1);
+      } catch (e) {
+        
       }
     }
 
@@ -112,20 +110,19 @@ this.ForgetAboutSite = {
       }).then(null, Cu.reportError);
     }
     else {
-      let (dm = Cc["@mozilla.org/download-manager;1"].
-                getService(Ci.nsIDownloadManager)) {
-        
-        for (let enumerator of [dm.activeDownloads, dm.activePrivateDownloads]) {
-          while (enumerator.hasMoreElements()) {
-            let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
-            if (hasRootDomain(dl.source.host, aDomain)) {
-              dl.cancel();
-              dl.remove();
-            }
+      let dm = Cc["@mozilla.org/download-manager;1"].
+               getService(Ci.nsIDownloadManager);
+      
+      for (let enumerator of [dm.activeDownloads, dm.activePrivateDownloads]) {
+        while (enumerator.hasMoreElements()) {
+          let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
+          if (hasRootDomain(dl.source.host, aDomain)) {
+            dl.cancel();
+            dl.remove();
           }
         }
 
-        function deleteAllLike(db) {
+        const deleteAllLike = function(db) {
           
           
           
@@ -160,52 +157,49 @@ this.ForgetAboutSite = {
     }
 
     
-    let (lm = Cc["@mozilla.org/login-manager;1"].
-              getService(Ci.nsILoginManager)) {
-      
-      try {
-        let logins = lm.getAllLogins();
-        for (let i = 0; i < logins.length; i++)
-          if (hasRootDomain(logins[i].hostname, aDomain))
-            lm.removeLogin(logins[i]);
-      }
-      
-      
-      catch (ex if ex.message.indexOf("User canceled Master Password entry") != -1) { }
+    let lm = Cc["@mozilla.org/login-manager;1"].
+             getService(Ci.nsILoginManager);
+    
+    try {
+      let logins = lm.getAllLogins();
+      for (let i = 0; i < logins.length; i++)
+        if (hasRootDomain(logins[i].hostname, aDomain))
+          lm.removeLogin(logins[i]);
+    }
+    
+    
+    catch (ex if ex.message.indexOf("User canceled Master Password entry") != -1) { }
 
-      
-      let disabledHosts = lm.getAllDisabledHosts();
-      for (let i = 0; i < disabledHosts.length; i++)
-        if (hasRootDomain(disabledHosts[i], aDomain))
-          lm.setLoginSavingEnabled(disabledHosts, true);
+    
+    let disabledHosts = lm.getAllDisabledHosts();
+    for (let i = 0; i < disabledHosts.length; i++)
+      if (hasRootDomain(disabledHosts[i], aDomain))
+        lm.setLoginSavingEnabled(disabledHosts, true);
+
+    
+    let pm = Cc["@mozilla.org/permissionmanager;1"].
+             getService(Ci.nsIPermissionManager);
+    
+    enumerator = pm.enumerator;
+    while (enumerator.hasMoreElements()) {
+      let perm = enumerator.getNext().QueryInterface(Ci.nsIPermission);
+      if (hasRootDomain(perm.host, aDomain))
+        pm.remove(perm.host, perm.type);
     }
 
     
-    let (pm = Cc["@mozilla.org/permissionmanager;1"].
-              getService(Ci.nsIPermissionManager)) {
-      
-      let enumerator = pm.enumerator;
-      while (enumerator.hasMoreElements()) {
-        let perm = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-        if (hasRootDomain(perm.host, aDomain))
-          pm.remove(perm.host, perm.type);
-      }
-    }
-
+    let qm = Cc["@mozilla.org/dom/quota/manager;1"].
+             getService(Ci.nsIQuotaManager);
     
-    let (qm = Cc["@mozilla.org/dom/quota/manager;1"].
-              getService(Ci.nsIQuotaManager)) {
-      
-      let caUtils = {};
-      let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-                         getService(Ci.mozIJSSubScriptLoader);
-      scriptLoader.loadSubScript("chrome://global/content/contentAreaUtils.js",
-                                 caUtils);
-      let httpURI = caUtils.makeURI("http://" + aDomain);
-      let httpsURI = caUtils.makeURI("https://" + aDomain);
-      qm.clearStoragesForURI(httpURI);
-      qm.clearStoragesForURI(httpsURI);
-    }
+    let caUtils = {};
+    let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
+                       getService(Ci.mozIJSSubScriptLoader);
+    scriptLoader.loadSubScript("chrome://global/content/contentAreaUtils.js",
+                               caUtils);
+    let httpURI = caUtils.makeURI("http://" + aDomain);
+    let httpsURI = caUtils.makeURI("https://" + aDomain);
+    qm.clearStoragesForURI(httpURI);
+    qm.clearStoragesForURI(httpsURI);
 
     function onContentPrefsRemovalFinished() {
       

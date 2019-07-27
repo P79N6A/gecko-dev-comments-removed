@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 let Ci = Components.interfaces;
 let Cc = Components.classes;
 let Cu = Components.utils;
@@ -569,18 +571,17 @@ let AboutPermissions = {
       itemCnt++;
     }, this);
 
-    let (enumerator = Services.perms.enumerator) {
-      while (enumerator.hasMoreElements()) {
-        if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
-          yield true;
-        }
-        let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-        
-        if (this._supportedPermissions.indexOf(permission.type) != -1) {
-          this.addHost(permission.host);
-        }
-        itemCnt++;
+    let enumerator = Services.perms.enumerator;
+    while (enumerator.hasMoreElements()) {
+      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
+        yield true;
       }
+      let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
+      
+      if (this._supportedPermissions.indexOf(permission.type) != -1) {
+        this.addHost(permission.host);
+      }
+      itemCnt++;
     }
 
     yield false;
@@ -672,7 +673,8 @@ let AboutPermissions = {
 
 
   deleteFromSitesList: function(aHost) {
-    for each (let site in this._sites) {
+    for (let host in this._sites) {
+      let site = this._sites[host];
       if (site.host.hasRootDomain(aHost)) {
         if (site == this._selectedSite) {
           
