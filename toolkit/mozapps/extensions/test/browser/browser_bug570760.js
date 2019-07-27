@@ -3,6 +3,9 @@
 
 
 
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("");
+
+
 
 var gManagerWindow;
 var focusCount = 0;
