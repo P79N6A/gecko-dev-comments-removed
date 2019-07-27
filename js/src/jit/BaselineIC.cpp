@@ -9335,28 +9335,24 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
         
         RootedObject templateObject(cx);
         if (constructing) {
-            
-            
-            
-            
-            
+            JSObject *thisObject = CreateThisForFunction(cx, fun, MaybeSingletonObject);
+            if (!thisObject)
+                return false;
 
-            
-            
-            RootedValue protov(cx);
-            if (!GetPropertyPure(cx, fun, NameToId(cx->names().prototype), protov.address())) {
-                JitSpew(JitSpew_BaselineIC, "  Can't purely lookup function prototype");
-                return true;
-            }
+            if (thisObject->is<PlainObject>() || thisObject->is<UnboxedPlainObject>()) {
+                templateObject = thisObject;
 
-            if (protov.isObject()) {
-                TaggedProto proto(&protov.toObject());
-                ObjectGroup *group = ObjectGroup::defaultNewGroup(cx, nullptr, proto, fun);
-                if (!group)
-                    return false;
-
-                if (group->newScript() && !group->newScript()->analyzed()) {
-                    JitSpew(JitSpew_BaselineIC, "  Function newScript has not been analyzed");
+                
+                
+                
+                
+                
+                TypeNewScript *newScript = templateObject->group()->newScript();
+                if (newScript && !newScript->analyzed()) {
+                    
+                    
+                    
+                    newScript->unregisterNewObject(&templateObject->as<PlainObject>());
                     return true;
                 }
             }
