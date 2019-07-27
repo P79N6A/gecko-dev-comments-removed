@@ -61,8 +61,6 @@ class TransportFlow : public nsISupports,
       state_(TransportLayer::TS_NONE),
       layers_(new std::deque<TransportLayer *>) {}
 
-  ~TransportFlow();
-
   const std::string& id() const { return id_; }
 
   
@@ -102,6 +100,8 @@ class TransportFlow : public nsISupports,
   NS_DECL_THREADSAFE_ISUPPORTS
 
  private:
+  ~TransportFlow();
+
   DISALLOW_COPY_ASSIGN(TransportFlow);
 
   
@@ -137,14 +137,6 @@ class TransportFlow : public nsISupports,
   TransportLayer::State state_;
   ScopedDeletePtr<std::deque<TransportLayer *> > layers_;
   nsCOMPtr<nsIEventTarget> target_;
-};
-
-
-
-template<>
-struct HasDangerousPublicDestructor<TransportFlow>
-{
-  static const bool value = true;
 };
 
 }  
