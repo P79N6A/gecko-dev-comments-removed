@@ -1548,14 +1548,34 @@ var BrowserApp = {
 
         
         if (aData) {
-          let allowMixedContent = JSON.parse(aData).allowMixedContent;
-          if (allowMixedContent) {
-            
-            flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_MIXED_CONTENT;
-          } else {
-            
-            let docShell = browser.webNavigation.QueryInterface(Ci.nsIDocShell);
-            docShell.mixedContentChannel = null;
+          let data = JSON.parse(aData);
+          if (data.contentType === "mixed") {
+            if (data.allowContent) {
+              
+              flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_MIXED_CONTENT;
+            } else {
+              
+              let docShell = browser.webNavigation.QueryInterface(Ci.nsIDocShell);
+              docShell.mixedContentChannel = null;
+            }
+          } else if (data.contentType === "tracking") {
+            if (data.allowContent) {
+              
+              
+              
+              let normalizedUrl = Services.io.newURI("https://" + browser.currentURI.hostPort, null, null);
+              
+              
+              
+              Services.perms.add(normalizedUrl, "trackingprotection", Services.perms.ALLOW_ACTION);
+              Telemetry.addData("TRACKING_PROTECTION_EVENTS", 1);
+            } else {
+              
+              
+              
+              Services.perms.remove(browser.currentURI.host, "trackingprotection");
+              Telemetry.addData("TRACKING_PROTECTION_EVENTS", 2);
+            }
           }
         }
 
