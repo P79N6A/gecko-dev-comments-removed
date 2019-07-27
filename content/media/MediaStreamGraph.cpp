@@ -2789,9 +2789,15 @@ MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
       EnsureImmediateWakeUpLocked(monitorLock);
     }
 
+    if (mLifecycleState >= LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN) {
+      
+      return NS_OK;
+    }
+
     
     nsresult rv;
-    while ((rv = memoryReportLock.Wait()) != NS_OK) {
+    const PRIntervalTime kMaxWait = PR_SecondsToInterval(1);
+    while ((rv = memoryReportLock.Wait(kMaxWait)) != NS_OK) {
       if (PR_GetError() != PR_PENDING_INTERRUPT_ERROR) {
         return rv;
       }
