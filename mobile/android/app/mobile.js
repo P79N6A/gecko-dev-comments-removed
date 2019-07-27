@@ -561,6 +561,12 @@ pref("media.preload.auto", 2);
 pref("media.video-queue.default-size", 3);
 
 
+pref("media.fragmented-mp4.exposed", true);
+pref("media.fragmented-mp4.enabled", true);
+pref("media.fragmented-mp4.android-media-codec.enabled", true);
+pref("media.fragmented-mp4.android-media-codec.preferred", true);
+
+
 pref("image.mem.decodeondraw", true);
 pref("image.mem.min_discard_timeout_ms", 10000);
 
