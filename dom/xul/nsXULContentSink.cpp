@@ -913,21 +913,7 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
       aAttributes += 2;
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
   nsCOMPtr<nsIDocument> doc(do_QueryReferent(mDocument));
-  if (langID != nsIProgrammingLanguage::UNKNOWN && 
-      langID != nsIProgrammingLanguage::JAVASCRIPT &&
-      doc && !nsContentUtils::IsChromeDoc(doc)) {
-      langID = nsIProgrammingLanguage::UNKNOWN;
-      NS_WARNING("Non JS language called from non chrome - ignored");
-  }
 
   
   if (langID != nsIProgrammingLanguage::UNKNOWN) {
