@@ -33,7 +33,6 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 
@@ -196,13 +195,6 @@ let SessionFileInternal = {
   
 
 
-
-
-  _latestWrite: null,
-
-  
-
-
   _isClosed: false,
 
   read: Task.async(function* () {
@@ -278,8 +270,16 @@ let SessionFileInternal = {
       isFinalWrite = this._isClosed = true;
     }
 
-    return this._latestWrite = Task.spawn(function* task() {
+    let deferredWritten = Promise.defer();
+    return Task.spawn(function* task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
+
+      
+      
+      AsyncShutdown.profileBeforeChange.addBlocker(
+        "SessionFile: Finish writing Session Restore data",
+        deferredWritten.promise
+      );
 
       try {
         let performShutdownCleanup = isFinalWrite &&
@@ -296,14 +296,18 @@ let SessionFileInternal = {
         let msg = yield promise;
         this._recordTelemetry(msg.telemetry);
 
-        if (msg.ok && msg.ok.upgradeBackup) {
+        if (msg.result.upgradeBackup) {
           
           
           Services.prefs.setCharPref(PREF_UPGRADE_BACKUP, Services.appinfo.platformBuildID);
         }
+        deferredWritten.resolve();
       } catch (ex) {
         TelemetryStopwatch.cancel("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
         console.error("Could not write session state file ", ex, ex.stack);
+        deferredWritten.reject(ex);
+      } finally {
+        AsyncShutdown.profileBeforeChange.removeBlocker(deferredWritten.promise);
       }
 
       if (isFinalWrite) {
@@ -332,11 +336,3 @@ let SessionFileInternal = {
     }
   }
 };
-
-
-
-AsyncShutdown.profileBeforeChange.addBlocker(
-  "SessionFile: Finish writing the latest sessionstore.js",
-  function() {
-    return SessionFileInternal._latestWrite;
-  });
