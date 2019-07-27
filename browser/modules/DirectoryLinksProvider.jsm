@@ -86,6 +86,9 @@ const ALLOWED_LINK_SCHEMES = new Set(["http", "https"]);
 const ALLOWED_IMAGE_SCHEMES = new Set(["https", "data"]);
 
 
+const ALLOWED_URL_BASE = new Set(["mozilla.net", ""]);
+
+
 const DIRECTORY_FRECENCY = 1000;
 
 
@@ -159,6 +162,7 @@ let DirectoryLinksProvider = {
     if (!this.__linksURL) {
       try {
         this.__linksURL = Services.prefs.getCharPref(this._observedPrefs["linksURL"]);
+        this.__linksURLModified = Services.prefs.prefHasUserValue(this._observedPrefs["linksURL"]);
       }
       catch (e) {
         Cu.reportError("Error fetching directory links url from prefs: " + e);
@@ -578,19 +582,28 @@ let DirectoryLinksProvider = {
   
 
 
-  isURLAllowed: function DirectoryLinksProvider_isURLAllowed(url, allowed) {
+
+
+
+
+  isURLAllowed(url, allowed, checkBase) {
     
     if (!url) {
       return true;
     }
 
-    let scheme = "";
+    let scheme = "", base = "";
     try {
       
-      scheme = Services.io.newURI(url, null, null).scheme;
+      let uri = Services.io.newURI(url, null, null);
+      scheme = uri.scheme;
+
+      
+      base = Services.eTLD.getBaseDomain(uri);
     }
     catch(ex) {}
-    return allowed.has(scheme);
+    
+    return allowed.has(scheme) && (!checkBase || ALLOWED_URL_BASE.has(base));
   },
 
   
@@ -604,11 +617,13 @@ let DirectoryLinksProvider = {
       this._suggestedLinks.clear();
       this._clearCampaignTimeout();
 
+      
+      let checkBase = !this.__linksURLModified;
       let validityFilter = function(link) {
         
-        return this.isURLAllowed(link.url, ALLOWED_LINK_SCHEMES) &&
-               this.isURLAllowed(link.imageURI, ALLOWED_IMAGE_SCHEMES) &&
-               this.isURLAllowed(link.enhancedImageURI, ALLOWED_IMAGE_SCHEMES);
+        return this.isURLAllowed(link.url, ALLOWED_LINK_SCHEMES, false) &&
+               this.isURLAllowed(link.imageURI, ALLOWED_IMAGE_SCHEMES, checkBase) &&
+               this.isURLAllowed(link.enhancedImageURI, ALLOWED_IMAGE_SCHEMES, checkBase);
       }.bind(this);
 
       rawLinks.suggested.filter(validityFilter).forEach((link, position) => {
