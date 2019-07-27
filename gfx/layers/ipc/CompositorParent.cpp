@@ -801,6 +801,22 @@ CompositorParent::SchedulePauseOnCompositorThread()
 }
 
 bool
+CompositorParent::ScheduleResumeOnCompositorThread()
+{
+  MonitorAutoLock lock(mResumeCompositionMonitor);
+
+  CancelableTask *resumeTask =
+    NewRunnableMethod(this, &CompositorParent::ResumeComposition);
+  MOZ_ASSERT(CompositorLoop());
+  CompositorLoop()->PostTask(FROM_HERE, resumeTask);
+
+  
+  lock.Wait();
+
+  return !mPaused;
+}
+
+bool
 CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 {
   MonitorAutoLock lock(mResumeCompositionMonitor);
