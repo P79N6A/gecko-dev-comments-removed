@@ -159,11 +159,11 @@ let AnimationPlayerActor = ActorClass({
 
 
   getCurrentState: method(function() {
-    return {
+    
+    
+    
+    let newState = {
       
-
-
-
       startTime: this.player.startTime,
       currentTime: this.player.currentTime,
       playState: this.player.playState,
@@ -172,15 +172,31 @@ let AnimationPlayerActor = ActorClass({
       delay: this.getDelay(),
       iterationCount: this.getIterationCount(),
       
-
-
-
-
-
-
-
+      
+      
+      
+      
       isRunningOnCompositor: this.player.isRunningOnCompositor
     };
+
+    
+    
+    
+    
+    let sentState = {};
+    if (this.currentState) {
+      for (let key in newState) {
+        if (typeof this.currentState[key] === "undefined" ||
+            this.currentState[key] !== newState[key]) {
+          sentState[key] = newState[key];
+        }
+      }
+    } else {
+      sentState = newState;
+    }
+    this.currentState = newState;
+
+    return sentState;
   }, {
     request: {},
     response: {
@@ -323,20 +339,31 @@ let AnimationPlayerFront = FrontClass(AnimationPlayerActor, {
       return;
     }
 
-    
-    let hasChanged = false;
-    for (let key in data) {
-      if (this.state[key] !== data[key]) {
-        hasChanged = true;
-        break;
-      }
-    }
-
-    if (hasChanged) {
+    if (this.currentStateHasChanged) {
       this.state = data;
       this.emit(this.AUTO_REFRESH_EVENT, this.state);
     }
-  })
+  }),
+
+  
+
+
+
+  getCurrentState: protocol.custom(function() {
+    this.currentStateHasChanged = false;
+    return this._getCurrentState().then(data => {
+      for (let key in this.state) {
+        if (typeof data[key] === "undefined") {
+          data[key] = this.state[key];
+        } else if (data[key] !== this.state[key]) {
+          this.currentStateHasChanged = true;
+        }
+      }
+      return data;
+    });
+  }, {
+    impl: "_getCurrentState"
+  }),
 });
 
 
