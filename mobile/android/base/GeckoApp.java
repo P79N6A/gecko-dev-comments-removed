@@ -191,7 +191,6 @@ public abstract class GeckoApp
     private Telemetry.Timer mGeckoReadyStartupTimer;
 
     private String mPrivateBrowsingSession;
-    private volatile boolean mIsPaused = true;
 
     private volatile HealthRecorder mHealthRecorder;
     private volatile Locale mLastLocale;
@@ -247,13 +246,7 @@ public abstract class GeckoApp
     }
 
     public void addAppStateListener(GeckoAppShell.AppStateListener listener) {
-        ThreadUtils.assertOnUiThread();
         mAppStateListeners.add(listener);
-
-        
-        if (!mIsPaused) {
-            listener.onResume();
-        }
     }
 
     public void removeAppStateListener(GeckoAppShell.AppStateListener listener) {
@@ -1892,8 +1885,6 @@ public abstract class GeckoApp
                 listener.onResume();
             }
         }
-        
-        mIsPaused = false;
 
         
         
@@ -1970,9 +1961,6 @@ public abstract class GeckoApp
             }
         });
 
-        
-        
-        mIsPaused = true;
         if (mAppStateListeners != null) {
             for(GeckoAppShell.AppStateListener listener: mAppStateListeners) {
                 listener.onPause();
@@ -2335,25 +2323,14 @@ public abstract class GeckoApp
     {
     }
 
-    private static final String CPU = "cpu";
-    private static final String SCREEN = "screen";
-
     
     public void notifyWakeLockChanged(String topic, String state) {
         PowerManager.WakeLock wl = mWakeLocks.get(topic);
         if (state.equals("locked-foreground") && wl == null) {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-
-            if (CPU.equals(topic)) {
-              wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, topic);
-            } else if (SCREEN.equals(topic)) {
-              wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, topic);
-            }
-
-            if (wl != null) {
-              wl.acquire();
-              mWakeLocks.put(topic, wl);
-            }
+            wl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, topic);
+            wl.acquire();
+            mWakeLocks.put(topic, wl);
         } else if (!state.equals("locked-foreground") && wl != null) {
             wl.release();
             mWakeLocks.remove(topic);
