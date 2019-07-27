@@ -50,6 +50,20 @@ MarkPropertyDescriptorRoot(JSTracer* trc, JSPropertyDescriptor* pd, const char* 
     pd->trace(trc);
 }
 
+
+
+
+struct ConcreteTraceable : public JS::DynamicTraceable
+{
+    void trace(JSTracer* trc) override {}
+};
+
+static void
+MarkDynamicTraceable(JSTracer* trc, ConcreteTraceable* t, const char* name)
+{
+    static_cast<JS::DynamicTraceable*>(t)->trace(trc);
+}
+
 template <typename T>
 using TraceFunction = void (*)(JSTracer* trc, T* ref, const char* name);
 
@@ -86,6 +100,8 @@ MarkExactStackRootsAcrossTypes(T context, JSTracer* trc)
     MarkExactStackRootList<JS::StaticTraceable,
                            js::DispatchWrapper<JS::StaticTraceable>::TraceWrapped>(
         trc, context, "StaticTraceable");
+    MarkExactStackRootList<ConcreteTraceable, MarkDynamicTraceable>(
+        trc, context, "DynamicTraceable");
 }
 
 static void
