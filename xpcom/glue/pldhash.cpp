@@ -684,8 +684,6 @@ PL_DHashTableAdd(PLDHashTable* aTable, const void* aKey)
   PLDHashEntryHdr* entry = PL_DHashTableAdd(aTable, aKey, fallible);
   if (!entry) {
     
-    
-    
     NS_ABORT_OOM(aTable->EntrySize() * aTable->EntryCount());
   }
   return entry;

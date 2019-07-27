@@ -373,7 +373,6 @@ typedef void (*PLDHashInitEntry)(PLDHashEntryHdr* aEntry, const void* aKey);
 
 
 
-
 struct PLDHashTableOps
 {
   
@@ -477,8 +476,6 @@ void PL_DHashTableFinish(PLDHashTable* aTable);
 
 PLDHashEntryHdr* PL_DHASH_FASTCALL
 PL_DHashTableSearch(PLDHashTable* aTable, const void* aKey);
-
-
 
 
 
