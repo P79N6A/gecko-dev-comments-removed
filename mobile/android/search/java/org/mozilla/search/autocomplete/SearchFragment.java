@@ -22,6 +22,7 @@ import android.widget.ListView;
 
 import org.mozilla.search.AcceptsSearchQuery;
 import org.mozilla.search.AcceptsSearchQuery.SuggestionAnimation;
+import org.mozilla.search.Constants;
 import org.mozilla.search.R;
 
 import java.util.ArrayList;
@@ -40,9 +41,6 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
 
     
     private static final int SUGGESTION_TIMEOUT = 3000;
-
-    
-    private static final int SUGGESTION_MAX = 5;
 
     
     private static final int SUGGESTION_HIGHLIGHT_COLOR = 0xFF999999;
@@ -80,9 +78,9 @@ public class SearchFragment extends Fragment implements AcceptsJumpTaps {
 
         
         final String template = "https://search.yahoo.com/sugg/ff?" +
-                "output=fxjson&appid=ffm&command=__searchTerms__&nresults=" + SUGGESTION_MAX;
+                "output=fxjson&appid=ffm&command=__searchTerms__&nresults=" + Constants.SUGGESTION_MAX;
 
-        suggestClient = new SuggestClient(activity, template, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+        suggestClient = new SuggestClient(activity, template, SUGGESTION_TIMEOUT, Constants.SUGGESTION_MAX);
         suggestionLoaderCallbacks = new SuggestionLoaderCallbacks();
 
         autoCompleteAdapter = new AutoCompleteAdapter(activity, this);
