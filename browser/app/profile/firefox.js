@@ -1863,7 +1863,7 @@ pref("browser.polaris.enabled", false);
 pref("privacy.trackingprotection.ui.enabled", false);
 #endif
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
 
 
 
@@ -1871,7 +1871,7 @@ pref("browser.tabs.remote.autostart.1", false);
 pref("browser.tabs.remote.autostart.2", true);
 #endif
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
 
 pref("extensions.interposition.enabled", true);
 pref("extensions.interposition.prefetching", true);

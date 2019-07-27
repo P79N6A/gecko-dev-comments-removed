@@ -179,7 +179,7 @@ pref("dom.url.encode_decode_hash", true);
 
 
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
 pref("dom.compartment_per_addon", true);
 #else
 pref("dom.compartment_per_addon", false);
@@ -2438,7 +2438,7 @@ pref("dom.ipc.plugins.unloadTimeoutSecs", 30);
 
 
 
-#ifdef NIGHTLY_BUILD
+#ifdef E10S_TESTING_ONLY
 pref("dom.ipc.plugins.asyncInit", false);
 #else
 pref("dom.ipc.plugins.asyncInit", true);
