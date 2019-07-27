@@ -2,6 +2,13 @@
 
 
 function serviceWorkerTestExec(testFile) {
+  var isB2G = !navigator.userAgent.contains("Android") &&
+              /Mobile|Tablet/.test(navigator.userAgent);
+  if (isB2G) {
+    
+    dump("Skipping running the test in SW until bug 1137683 gets fixed.\n");
+    return Promise.resolve();
+  }
   return new Promise(function(resolve, reject) {
     function setupSW(registration) {
       var worker = registration.waiting ||
