@@ -945,7 +945,7 @@ void HTMLMediaElement::NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream)
   if (videoHasChanged) {
     
     
-    NotifyOwnerDocumentActivityChangedInternal();
+    NotifyOwnerDocumentActivityChanged();
   }
 
   mWatchManager.ManualNotify(&HTMLMediaElement::UpdateReadyStateInternal);
@@ -2101,7 +2101,7 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   mPaused.SetOuter(this);
 
   RegisterActivityObserver();
-  NotifyOwnerDocumentActivityChangedInternal();
+  NotifyOwnerDocumentActivityChanged();
 
   MOZ_ASSERT(NS_IsMainThread());
   mWatchManager.Watch(mDownloadSuspendedByCache, &HTMLMediaElement::UpdateReadyStateInternal);
@@ -2857,7 +2857,7 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
 
   
   
-  NotifyOwnerDocumentActivityChangedInternal();
+  NotifyOwnerDocumentActivityChanged();
 
   if (!mPaused) {
     SetPlayedOrSeeked(true);
@@ -3270,7 +3270,7 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
 
   if (IsVideo() && aInfo->HasVideo()) {
     
-    NotifyOwnerDocumentActivityChangedInternal();
+    NotifyOwnerDocumentActivityChanged();
   }
 }
 
@@ -4028,17 +4028,6 @@ bool HTMLMediaElement::IsBeingDestroyed()
 
 void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
-  bool pauseElement = NotifyOwnerDocumentActivityChangedInternal();
-  if (pauseElement && mAudioChannelAgent) {
-    
-    
-    NotifyAudioChannelAgent(false);
-  }
-}
-
-bool
-HTMLMediaElement::NotifyOwnerDocumentActivityChangedInternal()
-{
   nsIDocument* ownerDoc = OwnerDoc();
   if (mDecoder && !IsBeingDestroyed()) {
     mDecoder->SetElementVisibility(!ownerDoc->Hidden());
@@ -4058,8 +4047,6 @@ HTMLMediaElement::NotifyOwnerDocumentActivityChangedInternal()
   }
 
   AddRemoveSelfReference();
-
-  return pauseElement;
 }
 
 void HTMLMediaElement::AddRemoveSelfReference()
@@ -4523,26 +4510,20 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
                                                this);
     }
 
-    NotifyAudioChannelAgent(mPlayingThroughTheAudioChannel);
-  }
-}
+    
+    
+    
+    AutoNoJSAPI nojsapi;
 
-void
-HTMLMediaElement::NotifyAudioChannelAgent(bool aPlaying)
-{
-  
-  
-  
-  AutoNoJSAPI nojsapi;
-
-  if (aPlaying) {
-    float volume = 0.0;
-    bool muted = true;
-    mAudioChannelAgent->StartPlaying(&volume, &muted);
-    WindowVolumeChanged(volume, muted);
-  } else {
-    mAudioChannelAgent->StopPlaying();
-    mAudioChannelAgent = nullptr;
+    if (mPlayingThroughTheAudioChannel) {
+      float volume = 0.0;
+      bool muted = true;
+      mAudioChannelAgent->StartPlaying(&volume, &muted);
+      WindowVolumeChanged(volume, muted);
+    } else {
+      mAudioChannelAgent->StopPlaying();
+      mAudioChannelAgent = nullptr;
+    }
   }
 }
 
