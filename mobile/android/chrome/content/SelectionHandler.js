@@ -38,7 +38,7 @@ var SelectionHandler = {
 
   
   
-  _cache: null,
+  _cache: { anchorPt: {}, focusPt: {} },
   _targetIsRTL: false,
   _anchorIsRTL: false,
   _focusIsRTL: false,
@@ -85,7 +85,6 @@ var SelectionHandler = {
   _addObservers: function sh_addObservers() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
     Services.obs.addObserver(this, "Tab:Selected", false);
-    Services.obs.addObserver(this, "after-viewport-change", false);
     Services.obs.addObserver(this, "TextSelection:Move", false);
     Services.obs.addObserver(this, "TextSelection:Position", false);
     Services.obs.addObserver(this, "TextSelection:End", false);
@@ -100,7 +99,6 @@ var SelectionHandler = {
   _removeObservers: function sh_removeObservers() {
     Services.obs.removeObserver(this, "Gesture:SingleTap");
     Services.obs.removeObserver(this, "Tab:Selected");
-    Services.obs.removeObserver(this, "after-viewport-change");
     Services.obs.removeObserver(this, "TextSelection:Move");
     Services.obs.removeObserver(this, "TextSelection:Position");
     Services.obs.removeObserver(this, "TextSelection:End");
@@ -122,9 +120,6 @@ var SelectionHandler = {
       
       
       case "TextSelection:LayerReflow": {
-        if (this._activeType == this.TYPE_SELECTION) {
-          this._updateCacheForSelection();
-        }
         if (this._activeType != this.TYPE_NONE) {
           this._positionHandlesOnChange();
         }
@@ -151,13 +146,6 @@ var SelectionHandler = {
           }
         }
         break;
-      case "after-viewport-change": {
-        if (this._activeType == this.TYPE_SELECTION) {
-          
-          this._updateCacheForSelection();
-        }
-        break;
-      }
 
       case "TextSelection:Move": {
         let data = JSON.parse(aData);
@@ -183,8 +171,6 @@ var SelectionHandler = {
           this._startDraggingHandles();
           this._ensureSelectionDirection();
           this._stopDraggingHandles();
-
-          this._updateCacheForSelection();
           this._positionHandles();
 
           
@@ -320,7 +306,6 @@ var SelectionHandler = {
     }
 
     
-    this._updateCacheForSelection();
     this._positionHandles();
   },
 
@@ -368,11 +353,7 @@ var SelectionHandler = {
     this._activeType = this.TYPE_SELECTION;
 
     
-    this._cache = { anchorPt: {}, focusPt: {}};
-    this._updateCacheForSelection();
-
     let scroll = this._getScrollPos();
-    
     let positions = this._getHandlePositions(scroll);
 
     if (aOptions.mode == this.SELECT_AT_POINT &&
@@ -1111,7 +1092,6 @@ var SelectionHandler = {
     this._contentWindow = null;
     this._targetElement = null;
     this._targetIsRTL = false;
-    this._cache = null;
     this._ignoreCompositionChanges = false;
     this._prevHandlePositions = [];
     this._prevTargetElementHasText = null;
@@ -1215,7 +1195,7 @@ var SelectionHandler = {
     return (nodeStyle.direction == "rtl");
   },
 
-  _getHandlePositions: function sh_getHandlePositions(scroll) {
+  _getHandlePositions: function(scroll = this._getScrollPos()) {
     
     
     
@@ -1230,7 +1210,6 @@ var SelectionHandler = {
       };
     }
 
-    let positions = null;
     if (this._activeType == this.TYPE_CURSOR) {
       
       
@@ -1245,27 +1224,21 @@ var SelectionHandler = {
                 top: y + scroll.Y,
                 rtl: this._targetIsRTL,
                 hidden: checkHidden(x, y) }];
-    } else {
-      let anchorX = this._cache.anchorPt.x;
-      let anchorY = this._cache.anchorPt.y;
-      let focusX = this._cache.focusPt.x;
-      let focusY = this._cache.focusPt.y;
-
-      
-      
-      let offset = this._getViewOffset();
-
-      return  [{ handle: this.HANDLE_TYPE_ANCHOR,
-                 left: anchorX + offset.x + scroll.X,
-                 top: anchorY + offset.y + scroll.Y,
-                 rtl: this._anchorIsRTL,
-                 hidden: checkHidden(anchorX, anchorY) },
-               { handle: this.HANDLE_TYPE_FOCUS,
-                 left: focusX + offset.x + scroll.X,
-                 top: focusY + offset.y + scroll.Y,
-                 rtl: this._focusIsRTL,
-                 hidden: checkHidden(focusX, focusY) }];
     }
+
+    
+    this._updateCacheForSelection();
+    let offset = this._getViewOffset();
+    return  [{ handle: this.HANDLE_TYPE_ANCHOR,
+               left: this._cache.anchorPt.x + offset.x + scroll.X,
+               top: this._cache.anchorPt.y + offset.y + scroll.Y,
+               rtl: this._anchorIsRTL,
+               hidden: checkHidden(this._cache.anchorPt.x, this._cache.anchorPt.y) },
+             { handle: this.HANDLE_TYPE_FOCUS,
+               left: this._cache.focusPt.x + offset.x + scroll.X,
+               top: this._cache.focusPt.y + offset.y + scroll.Y,
+               rtl: this._focusIsRTL,
+               hidden: checkHidden(this._cache.focusPt.x, this._cache.focusPt.y) }];
   },
 
   
@@ -1287,7 +1260,7 @@ var SelectionHandler = {
       return true;
     }
 
-    let positions = this._getHandlePositions(this._getScrollPos());
+    let positions = this._getHandlePositions();
     if (!samePositions(this._prevHandlePositions, positions)) {
       this._positionHandles(positions);
     }
@@ -1297,10 +1270,7 @@ var SelectionHandler = {
   
   
   
-  _positionHandles: function sh_positionHandles(positions) {
-    if (!positions) {
-      positions = this._getHandlePositions(this._getScrollPos());
-    }
+  _positionHandles: function(positions = this._getHandlePositions()) {
     Messaging.sendRequest({
       type: "TextSelection:PositionHandles",
       positions: positions,
@@ -1330,9 +1300,6 @@ var SelectionHandler = {
       if (view == scrollView) {
         
         
-        if (this._activeType == this.TYPE_SELECTION) {
-          this._updateCacheForSelection();
-        }
         this._positionHandles();
         break;
       }
