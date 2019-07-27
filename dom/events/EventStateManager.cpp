@@ -2704,6 +2704,15 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         break;
       }
 
+      
+      
+      
+      
+      if (dispatchedToContentProcess && !nsIPresShell::GetCapturingContent()) {
+        nsIContent* content = mCurrentTarget ? mCurrentTarget->GetContent() : nullptr;
+        nsIPresShell::SetCapturingContent(content, 0);
+      }
+
       nsCOMPtr<nsIContent> activeContent;
       if (nsEventStatus_eConsumeNoDefault != *aStatus) {
         nsCOMPtr<nsIContent> newFocus;      
