@@ -2727,7 +2727,7 @@ GetIndexedPropertiesInRange(JSContext *cx, HandleObject obj, uint32_t begin, uin
     
     JSObject *pobj = obj;
     do {
-        if (!pobj->isNative() || pobj->getClass()->resolve || pobj->getOps()->lookupGeneric)
+        if (!pobj->isNative() || pobj->getClass()->resolve || pobj->getOps()->lookupProperty)
             return true;
     } while ((pobj = pobj->getProto()));
 

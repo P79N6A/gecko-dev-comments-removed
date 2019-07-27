@@ -6814,7 +6814,7 @@ static bool
 ClassHasEffectlessLookup(const Class *clasp, PropertyName *name)
 {
     return (clasp == &UnboxedPlainObject::class_) ||
-           (clasp->isNative() && !clasp->ops.lookupGeneric);
+           (clasp->isNative() && !clasp->ops.lookupProperty);
 }
 
 static bool
@@ -9369,9 +9369,9 @@ IonBuilder::objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyN
             
             
             
-            if (isGetter && clasp->ops.getGeneric && !IsAnyTypedArrayClass(clasp))
+            if (isGetter && clasp->ops.getProperty && !IsAnyTypedArrayClass(clasp))
                 return false;
-            if (!isGetter && clasp->ops.setGeneric)
+            if (!isGetter && clasp->ops.setProperty)
                 return false;
 
             
