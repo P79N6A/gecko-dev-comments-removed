@@ -42,6 +42,7 @@ public:
     : mTimeline(aTimeline)
     , mIsPaused(false)
     , mIsRunningOnCompositor(false)
+    , mIsPreviousStateFinished(false)
   {
   }
 
@@ -128,6 +129,12 @@ protected:
   Nullable<TimeDuration> mHoldTime;  
   bool mIsPaused;
   bool mIsRunningOnCompositor;
+  
+  
+  
+  
+  
+  bool mIsPreviousStateFinished; 
 };
 
 } 

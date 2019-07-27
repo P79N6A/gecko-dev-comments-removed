@@ -202,12 +202,7 @@ AnimationPlayer::CanThrottle() const
   
   
   
-  
-  
-  
-  
-  
-  return mSource->LastNotification() == Animation::LAST_NOTIFICATION_END;
+  return mIsPreviousStateFinished;
 }
 
 void
@@ -219,11 +214,14 @@ AnimationPlayer::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
     return;
   }
 
-  if (PlayState() == AnimationPlayState::Running) {
+  AnimationPlayState playState = PlayState();
+  if (playState == AnimationPlayState::Running) {
     aNeedsRefreshes = true;
   }
 
   mSource->ComposeStyle(aStyleRule, aSetProperties);
+
+  mIsPreviousStateFinished = (playState == AnimationPlayState::Finished);
 }
 
 void
