@@ -233,6 +233,13 @@ ExtractH264CodecDetails(const nsAString& aCodec,
   aLevel = PromiseFlatString(Substring(aCodec, 9, 2)).ToInteger(&rv, 16);
   NS_ENSURE_SUCCESS(rv, false);
 
+  
+  
+  
+  
+  uint8_t constraints = PromiseFlatString(Substring(aCodec, 7, 2)).ToInteger(&rv, 16);
+  Telemetry::Accumulate(Telemetry::VIDEO_CANPLAYTYPE_H264_CONSTRAINT_SET_FLAG,
+                        constraints >= 4 ? constraints : 0);
 
   
   
