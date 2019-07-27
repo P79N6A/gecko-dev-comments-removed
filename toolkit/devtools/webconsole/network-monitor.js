@@ -595,9 +595,17 @@ NetworkMonitor.prototype = {
     }
 
     if (this.window) {
+      
+      
       let win = NetworkHelper.getWindowForRequest(aChannel);
-      if (win && win.top === this.window) {
-        return true;
+      while(win) {
+        if (win == this.window) {
+          return true;
+        }
+        if (win.parent == win) {
+          break;
+        }
+        win = win.parent;
       }
     }
 
@@ -1074,13 +1082,18 @@ NetworkMonitorChild.prototype = {
 
   destroy: function() {
     let mm = this._messageManager;
-    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
-                             this._onNewEvent);
-    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
-                             this._onUpdateEvent);
-    mm.sendAsyncMessage("debug:netmonitor:" + this.connID, {
-      action: "disconnect",
-    });
+    try {
+      mm.removeMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
+                               this._onNewEvent);
+      mm.removeMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
+                               this._onUpdateEvent);
+    } catch(e) {
+      
+      
+      
+      
+      
+    }
     this._netEvents.clear();
     this._messageManager = null;
     this.owner = null;

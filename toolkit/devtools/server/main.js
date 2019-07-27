@@ -645,6 +645,11 @@ var DebuggerServer = {
 
         
         mm.sendAsyncMessage("debug:disconnect", { childID: childID });
+
+        if (netMonitor) {
+          netMonitor.destroy();
+          netMonitor = null;
+        }
       }
     });
 
