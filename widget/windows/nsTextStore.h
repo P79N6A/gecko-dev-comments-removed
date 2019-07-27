@@ -41,6 +41,7 @@ class nsWindow;
 #ifdef MOZ_METRO
 class MetroWidget;
 #endif
+class TSFStaticSink;
 
 namespace mozilla {
 namespace widget {
@@ -54,8 +55,6 @@ struct MSGResult;
 
 class nsTextStore MOZ_FINAL : public ITextStoreACP
                             , public ITfContextOwnerCompositionSink
-                            , public ITfActiveLanguageProfileNotifySink
-                            , public ITfInputProcessorProfileActivationSink
                             , public ITfMouseTrackerACP
 {
 public: 
@@ -100,14 +99,6 @@ public:
   STDMETHODIMP OnStartComposition(ITfCompositionView*, BOOL*);
   STDMETHODIMP OnUpdateComposition(ITfCompositionView*, ITfRange*);
   STDMETHODIMP OnEndComposition(ITfCompositionView*);
-
-public: 
-  STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile,
-                           BOOL fActivated);
-
-public: 
-  STDMETHODIMP OnActivated(DWORD, LANGID, REFCLSID, REFGUID, REFGUID,
-                           HKL, DWORD);
 
 public: 
   STDMETHODIMP AdviseMouseSink(ITfRangeACP*, ITfMouseSink*, DWORD*);
@@ -224,19 +215,7 @@ public:
     return (IsComposing() && sEnabledTextStore->mWidget == aWidget);
   }
 
-  static bool IsIMM_IME()
-  {
-    if (!sEnabledTextStore ||
-        !sEnabledTextStore->EnsureInitActiveTIPKeyboard()) {
-      return IsIMM_IME(::GetKeyboardLayout(0));
-    }
-    return sEnabledTextStore->mIsIMM_IME;
-  }
-
-  static bool IsIMM_IME(HKL aHKL)
-  {
-     return (::ImmGetIMEFileNameW(aHKL, nullptr, 0) > 0);
-  }
+  static bool IsIMM_IME();
 
 #ifdef DEBUG
   
@@ -247,16 +226,8 @@ protected:
   nsTextStore();
   ~nsTextStore();
 
-  bool Init(ITfThreadMgr* aThreadMgr);
-  void Shutdown();
-
   static void MarkContextAsKeyboardDisabled(ITfContext* aContext);
   static void MarkContextAsEmpty(ITfContext* aContext);
-
-  static bool IsTIPCategoryKeyboard(REFCLSID aTextService, LANGID aLangID,
-                                    REFGUID aProfile);
-  static void GetTIPDescription(REFCLSID aTextService, LANGID aLangID,
-                                REFGUID aProfile, nsAString& aDescription);
 
   bool     Create(nsWindowBase* aWidget);
   bool     Destroy(void);
@@ -318,18 +289,12 @@ protected:
   
   void     CreateNativeCaret();
 
-  bool     EnsureInitActiveTIPKeyboard();
-
   
   nsRefPtr<nsWindowBase>       mWidget;
   
   nsRefPtr<ITfDocumentMgr>     mDocumentMgr;
   
   DWORD                        mEditCookie;
-  
-  DWORD                        mIPProfileCookie;
-  
-  DWORD                        mLangProfileCookie;
   
   nsRefPtr<ITfContext>         mContext;
   
@@ -340,9 +305,6 @@ protected:
   DWORD                        mLock;
   
   DWORD                        mLockQueued;
-  
-  
-  nsString                     mActiveTIPKeyboardDescription;
 
   class Composition MOZ_FINAL
   {
@@ -770,11 +732,6 @@ protected:
   bool                         mPendingOnLayoutChange;
   
   bool                         mNativeCaretIsCreated;
-
-  
-  bool                         mIsIMM_IME;
-  
-  bool                         mOnActivatedCalled;
 
   
   static ITfThreadMgr*  sTsfThreadMgr;
