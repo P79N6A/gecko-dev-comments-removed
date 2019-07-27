@@ -2917,17 +2917,39 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
  bool
 nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
+  
+  
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!(mRuleCascades && mPreviousCacheKey));
   RuleCascadeData *old = mRuleCascades;
-  
-  
-  
-  
-  
-  
   if (old) {
     RefreshRuleCascade(aPresContext);
+    return (old != mRuleCascades);
   }
-  return (old != mRuleCascades);
+
+  if (mPreviousCacheKey) {
+    
+    
+    
+    
+    UniquePtr<nsMediaQueryResultCacheKey> previousCacheKey(
+      Move(mPreviousCacheKey));
+    RefreshRuleCascade(aPresContext);
+
+    
+    
+    
+    
+    
+    return !mRuleCascades || 
+           mRuleCascades->mCacheKey != *previousCacheKey;
+  }
+
+  return false;
 }
 
 UniquePtr<nsMediaQueryResultCacheKey>
