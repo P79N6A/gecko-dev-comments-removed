@@ -338,6 +338,22 @@ ExpectTagAndGetValue(Input& input, uint8_t tag,  Input& value)
   return input.Skip(length, value);
 }
 
+
+
+inline Result
+ExpectTagAndGetTLV(Input& input, uint8_t tag,  SECItem& tlv)
+{
+  Input::Mark mark(input.GetMark());
+  uint16_t length;
+  if (internal::ExpectTagAndGetLength(input, tag, length) != Success) {
+    return Failure;
+  }
+  if (input.Skip(length) != Success) {
+    return Failure;
+  }
+  return input.GetSECItem(siBuffer, mark, tlv);
+}
+
 inline Result
 End(Input& input)
 {
