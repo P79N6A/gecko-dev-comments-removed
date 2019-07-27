@@ -2121,21 +2121,7 @@ ThreadActor.prototype = {
 
 
   _allowSource: function (aSource) {
-    let url = getSourceURL(aSource);
-
-    if (isHiddenSource(aSource)) {
-      return false;
-    }
-
-    
-    if (url && url.indexOf("chrome://") == 0) {
-      return false;
-    }
-    
-    if (url && url.indexOf("about:") == 0) {
-      return false;
-    }
-    return true;
+    return !isHiddenSource(aSource);
   },
 
   
@@ -5201,16 +5187,7 @@ update(ChromeDebuggerActor.prototype, {
   constructor: ChromeDebuggerActor,
 
   
-  actorPrefix: "chromeDebugger",
-
-  
-
-
-
-
-  _allowSource: function(aSource) {
-    return !isHiddenSource(aSource);
-  }
+  actorPrefix: "chromeDebugger"
 });
 
 exports.ChromeDebuggerActor = ChromeDebuggerActor;
