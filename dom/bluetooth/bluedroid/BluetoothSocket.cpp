@@ -143,6 +143,11 @@ public:
     return mConsumer.get();
   }
 
+  SocketBase* GetSocketBase()
+  {
+    return GetConsumer();
+  }
+
   
 
 

@@ -109,12 +109,12 @@ enum SocketConnectionStatus {
 
 
 
-class SocketConsumerBase
+class SocketBase
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SocketConsumerBase)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SocketBase)
 
-  virtual ~SocketConsumerBase();
+  virtual ~SocketBase();
 
   SocketConnectionStatus GetConnectionStatus() const;
 
@@ -125,24 +125,6 @@ public:
 
 
   virtual void CloseSocket() = 0;
-
-  
-
-
-
-
-
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
-
-  
-
-
-
-
-
-
-
-  virtual bool SendSocketData(UnixSocketRawData* aMessage) = 0;
 
   
 
@@ -176,7 +158,7 @@ public:
   void NotifyDisconnect();
 
 protected:
-  SocketConsumerBase();
+  SocketBase();
 
   void SetConnectionStatus(SocketConnectionStatus aConnectionStatus);
 
@@ -186,6 +168,34 @@ private:
   SocketConnectionStatus mConnectionStatus;
   PRIntervalTime mConnectTimestamp;
   uint32_t mConnectDelayMs;
+};
+
+
+
+
+
+class SocketConsumerBase : public SocketBase
+{
+public:
+  virtual ~SocketConsumerBase();
+
+  
+
+
+
+
+
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual bool SendSocketData(UnixSocketRawData* aMessage) = 0;
 };
 
 
@@ -249,15 +259,15 @@ public:
       return NS_OK;
     }
 
-    SocketConsumerBase* consumer = io->GetConsumer();
-    MOZ_ASSERT(consumer);
+    SocketBase* base = io->GetSocketBase();
+    MOZ_ASSERT(base);
 
     if (mEvent == CONNECT_SUCCESS) {
-      consumer->NotifySuccess();
+      base->NotifySuccess();
     } else if (mEvent == CONNECT_ERROR) {
-      consumer->NotifyError();
+      base->NotifyError();
     } else if (mEvent == DISCONNECT) {
-      consumer->NotifyDisconnect();
+      base->NotifyDisconnect();
     }
 
     return NS_OK;
@@ -325,10 +335,10 @@ public:
       return NS_OK;
     }
 
-    SocketConsumerBase* consumer = io->GetConsumer();
-    MOZ_ASSERT(consumer);
+    SocketBase* base = io->GetSocketBase();
+    MOZ_ASSERT(base);
 
-    consumer->CloseSocket();
+    base->CloseSocket();
 
     return NS_OK;
   }
