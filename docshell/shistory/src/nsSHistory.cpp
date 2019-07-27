@@ -59,8 +59,6 @@ int32_t nsSHistory::sHistoryMaxTotalViewers = -1;
 
 static uint32_t gTouchCounter = 0;
 
-#ifdef PR_LOGGING
-
 static PRLogModuleInfo*
 GetSHistoryLog()
 {
@@ -104,14 +102,6 @@ GetSHistoryLog()
       LOG_SPEC(format, uri);                               \
     }                                                      \
   PR_END_MACRO
-
-#else 
-
-#define LOG(format)
-#define LOG_SPEC(format, uri)
-#define LOG_SHENTRY_SPEC(format, shentry)
-
-#endif 
 
 
 #define ITERATE_LISTENERS(body)                            \
