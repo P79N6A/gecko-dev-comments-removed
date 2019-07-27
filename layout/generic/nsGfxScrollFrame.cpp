@@ -1146,15 +1146,30 @@ ScrollFrameHelper::ScrollByLine(nsScrollbarFrame* aScrollbar, int32_t aDirection
   nsIntPoint delta;
   if (isHorizontal) {
     const double kScrollMultiplier =
-      Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
+      Preferences::GetInt("toolkit.scrollbox.horizontalScrollDistance",
                           NS_DEFAULT_HORIZONTAL_SCROLL_DISTANCE);
     delta.x = aDirection * kScrollMultiplier;
+    if (GetLineScrollAmount().width * delta.x > GetPageScrollAmount().width) {
+      
+      
+      
+      ScrollByPage(aScrollbar, aDirection);
+      return;
+    }
   } else {
     const double kScrollMultiplier =
-      Preferences::GetInt("toolkit.scrollbox.horizontalScrollDistance",
+      Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
                           NS_DEFAULT_VERTICAL_SCROLL_DISTANCE);
     delta.y = aDirection * kScrollMultiplier;
+    if (GetLineScrollAmount().height * delta.y > GetPageScrollAmount().height) {
+      
+      
+      
+      ScrollByPage(aScrollbar, aDirection);
+      return;
+    }
   }
+  
   nsIntPoint overflow;
   ScrollBy(delta, nsIScrollableFrame::LINES, nsIScrollableFrame::SMOOTH,
            &overflow, nsGkAtoms::other);
