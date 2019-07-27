@@ -1581,7 +1581,7 @@ BrowserGlue.prototype = {
                       .getHistogramById("PLACES_BACKUPS_DAYSFROMLAST")
                       .add(backupAge);
             } catch (ex) {
-              Components.utils.reportError("Unable to report telemetry.");
+              Cu.reportError("Unable to report telemetry.");
             }
 
             if (backupAge > BOOKMARKS_BACKUP_MAX_INTERVAL_DAYS)
@@ -2072,150 +2072,118 @@ BrowserGlue.prototype = {
       return;
     }
 
-    let batch = {
-      runBatched: function BG_EPDQI_runBatched() {
-        let menuIndex = 0;
-        let toolbarIndex = 0;
-        let bundle = Services.strings.createBundle("chrome://browser/locale/places/places.properties");
+    try {
+      let menuIndex = 0;
+      let toolbarIndex = 0;
+      let bundle = Services.strings.createBundle("chrome://browser/locale/places/places.properties");
+      let queryOptions = Ci.nsINavHistoryQueryOptions;
 
-        let smartBookmarks = {
-          MostVisited: {
-            title: bundle.GetStringFromName("mostVisitedTitle"),
-            uri: NetUtil.newURI("place:sort=" +
-                                Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
-                                "&maxResults=" + MAX_RESULTS),
-            parent: PlacesUtils.toolbarFolderId,
-            get position() { return toolbarIndex++; },
-            newInVersion: 1
-          },
-          RecentlyBookmarked: {
-            title: bundle.GetStringFromName("recentlyBookmarkedTitle"),
-            uri: NetUtil.newURI("place:folder=BOOKMARKS_MENU" +
-                                "&folder=UNFILED_BOOKMARKS" +
-                                "&folder=TOOLBAR" +
-                                "&queryType=" +
-                                Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
-                                "&sort=" +
-                                Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
-                                "&maxResults=" + MAX_RESULTS +
-                                "&excludeQueries=1"),
-            parent: PlacesUtils.bookmarksMenuFolderId,
-            get position() { return menuIndex++; },
-            newInVersion: 1
-          },
-          RecentTags: {
-            title: bundle.GetStringFromName("recentTagsTitle"),
-            uri: NetUtil.newURI("place:"+
-                                "type=" +
-                                Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY +
-                                "&sort=" +
-                                Ci.nsINavHistoryQueryOptions.SORT_BY_LASTMODIFIED_DESCENDING +
-                                "&maxResults=" + MAX_RESULTS),
-            parent: PlacesUtils.bookmarksMenuFolderId,
-            get position() { return menuIndex++; },
-            newInVersion: 1
-          },
-        };
+      let smartBookmarks = {
+        MostVisited: {
+          title: bundle.GetStringFromName("mostVisitedTitle"),
+          url: "place:sort=" + queryOptions.SORT_BY_VISITCOUNT_DESCENDING +
+                    "&maxResults=" + MAX_RESULTS,
+          parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+          newInVersion: 1
+        },
+        RecentlyBookmarked: {
+          title: bundle.GetStringFromName("recentlyBookmarkedTitle"),
+          url: "place:folder=BOOKMARKS_MENU" +
+                    "&folder=UNFILED_BOOKMARKS" +
+                    "&folder=TOOLBAR" +
+                    "&queryType=" + queryOptions.QUERY_TYPE_BOOKMARKS +
+                    "&sort=" + queryOptions.SORT_BY_DATEADDED_DESCENDING +
+                    "&maxResults=" + MAX_RESULTS +
+                    "&excludeQueries=1",
+          parentGuid: PlacesUtils.bookmarks.menuGuid,
+          newInVersion: 1
+        },
+        RecentTags: {
+          title: bundle.GetStringFromName("recentTagsTitle"),
+          url: "place:type=" + queryOptions.RESULTS_AS_TAG_QUERY +
+                    "&sort=" + queryOptions.SORT_BY_LASTMODIFIED_DESCENDING +
+                    "&maxResults=" + MAX_RESULTS,
+          parentGuid: PlacesUtils.bookmarks.menuGuid,
+          newInVersion: 1
+        },
+      };
 
-        if (Services.metro && Services.metro.supported) {
-          smartBookmarks.Windows8Touch = {
-            title: PlacesUtils.getString("windows8TouchTitle"),
-            get uri() {
-              let metroBookmarksRoot = PlacesUtils.annotations.getItemsWithAnnotation('metro/bookmarksRoot', {});
-              if (metroBookmarksRoot.length > 0) {
-                return NetUtil.newURI("place:folder=" +
-                                      metroBookmarksRoot[0] +
-                                      "&queryType=" +
-                                      Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
-                                      "&sort=" +
-                                      Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
-                                      "&maxResults=" + MAX_RESULTS +
-                                      "&excludeQueries=1")
-              }
-              return null;
-            },
-            parent: PlacesUtils.bookmarksMenuFolderId,
-            get position() { return menuIndex++; },
-            newInVersion: 7
-          };
-        }
-
-        
-        
-        
-        let smartBookmarkItemIds = PlacesUtils.annotations.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO);
-        smartBookmarkItemIds.forEach(function (itemId) {
-          let queryId = PlacesUtils.annotations.getItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
-          if (queryId in smartBookmarks) {
-            let smartBookmark = smartBookmarks[queryId];
-            if (!smartBookmark.uri) {
-              PlacesUtils.bookmarks.removeItem(itemId);
-              return;
-            }
-            smartBookmark.itemId = itemId;
-            smartBookmark.parent = PlacesUtils.bookmarks.getFolderIdForItem(itemId);
-            smartBookmark.updatedPosition = PlacesUtils.bookmarks.getItemIndex(itemId);
-          }
-          else {
-            
-            
-            
-            PlacesUtils.annotations.removeItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
-          }
-        });
-
-        for (let queryId in smartBookmarks) {
+      
+      
+      
+      let smartBookmarkItemIds = PlacesUtils.annotations.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO);
+      for (let itemId of smartBookmarkItemIds) {
+        let queryId = PlacesUtils.annotations.getItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
+        if (queryId in smartBookmarks) {
+          
           let smartBookmark = smartBookmarks[queryId];
+          smartBookmark.guid = yield PlacesUtils.promiseItemGuid(itemId);
 
-          
-          
-          
-          if (smartBookmarksCurrentVersion > 0 &&
-              smartBookmark.newInVersion <= smartBookmarksCurrentVersion &&
-              !smartBookmark.itemId || !smartBookmark.uri)
+          if (!smartBookmark.url) {
+            yield PlacesUtils.bookmarks.remove(smartBookmark.guid);
             continue;
-
-          
-          
-          if (smartBookmark.itemId) {
-            PlacesUtils.bookmarks.removeItem(smartBookmark.itemId);
           }
 
-          
-          smartBookmark.itemId =
-            PlacesUtils.bookmarks.insertBookmark(smartBookmark.parent,
-                                                 smartBookmark.uri,
-                                                 smartBookmark.updatedPosition || smartBookmark.position,
-                                                 smartBookmark.title);
-          PlacesUtils.annotations.setItemAnnotation(smartBookmark.itemId,
-                                                    SMART_BOOKMARKS_ANNO,
-                                                    queryId, 0,
-                                                    PlacesUtils.annotations.EXPIRE_NEVER);
+          let bm = yield PlacesUtils.bookmarks.fetch(smartBookmark.guid);
+          smartBookmark.parentGuid = bm.parentGuid;
+          smartBookmark.index = bm.index;
         }
-
-        
-        
-        if (smartBookmarksCurrentVersion == 0 &&
-            smartBookmarkItemIds.length == 0) {
-          let id = PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.bookmarksMenuFolderId,
-                                                        menuIndex);
+        else {
           
-          if (id != -1 &&
-              PlacesUtils.bookmarks.getItemType(id) != PlacesUtils.bookmarks.TYPE_SEPARATOR) {
-            PlacesUtils.bookmarks.insertSeparator(PlacesUtils.bookmarksMenuFolderId,
-                                                  menuIndex);
-          }
+          
+          
+          PlacesUtils.annotations.removeItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
         }
       }
-    };
 
-    try {
-      PlacesUtils.bookmarks.runInBatchMode(batch, null);
-    }
-    catch(ex) {
-      Components.utils.reportError(ex);
-    }
-    finally {
+      for (let queryId of Object.keys(smartBookmarks)) {
+        let smartBookmark = smartBookmarks[queryId];
+
+        
+        
+        
+        if (smartBookmarksCurrentVersion > 0 &&
+            smartBookmark.newInVersion <= smartBookmarksCurrentVersion &&
+            !smartBookmark.guid || !smartBookmark.url)
+          continue;
+
+        
+        
+        if (smartBookmark.guid) {
+          yield PlacesUtils.bookmarks.remove(smartBookmark.guid);
+        }
+
+        
+        if (!("index" in smartBookmark)) {
+          if (smartBookmark.parentGuid == PlacesUtils.bookmarks.toolbarGuid)
+            smartBookmark.index = toolbarIndex++;
+          else if (smartBookmark.parentGuid == PlacesUtils.bookmarks.menuGuid)
+            smartBookmark.index = menuIndex++;
+        }
+        smartBookmark = yield PlacesUtils.bookmarks.insert(smartBookmark);
+        let itemId = yield PlacesUtils.promiseItemId(smartBookmark.guid);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  SMART_BOOKMARKS_ANNO,
+                                                  queryId, 0,
+                                                  PlacesUtils.annotations.EXPIRE_NEVER);
+      }
+
+      
+      
+      if (smartBookmarksCurrentVersion == 0 &&
+          smartBookmarkItemIds.length == 0) {
+        let bm = yield PlacesUtils.bookmarks.fetch({ parentGuid: PlacesUtils.bookmarks.menuGuid,
+                                                     index: menuIndex });
+        
+        if (bm && bm.type != PlacesUtils.bookmarks.TYPE_SEPARATOR) {
+          yield PlacesUtils.bookmarks.insert({ type: PlacesUtils.bookmarks.TYPE_SEPARATOR,
+                                               parentGuid: PlacesUtils.bookmarks.menuGuid,
+                                               index: menuIndex });
+        }
+      }
+    } catch(ex) {
+      Cu.reportError(ex);
+    } finally {
       Services.prefs.setIntPref(SMART_BOOKMARKS_PREF, SMART_BOOKMARKS_VERSION);
       Services.prefs.savePrefFile(null);
     }
