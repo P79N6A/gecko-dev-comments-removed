@@ -231,7 +231,7 @@ Connection.prototype = {
         transport = DebuggerServer.connectPipe();
       } else {
         try {
-          transport = debuggerSocketConnect(this.host, this.port);
+          transport = DebuggerClient.socketConnect(this.host, this.port);
         } catch (e) {
           
           
@@ -299,4 +299,3 @@ Connection.prototype = {
 
 exports.ConnectionManager = ConnectionManager;
 exports.Connection = Connection;
-

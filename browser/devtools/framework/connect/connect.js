@@ -62,7 +62,7 @@ function submit() {
   
   let transport;
   try {
-    transport = debuggerSocketConnect(host, port);
+    transport = DebuggerClient.socketConnect(host, port);
   } catch(e) {
     
     showError("unexpected");
