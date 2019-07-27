@@ -7,6 +7,11 @@ const {
   MozLoopServiceInternal,
 } = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
 
+
+
+
+const WAS_OFFLINE = Services.io.offline;
+
 var gMozLoopAPI;
 
 function promiseGetMozLoopAPI() {
@@ -46,7 +51,11 @@ function promiseGetMozLoopAPI() {
   
   registerCleanupFunction(function() {
     loopPanel.hidePopup();
-    loopPanel.removeChild(document.getElementById(btn.getAttribute("notificationFrameId")));
+    let frameId = btn.getAttribute("notificationFrameId");
+    let frame = document.getElementById(frameId);
+    if (frame) {
+      loopPanel.removeChild(frame);
+    }
   });
 
   return deferred.promise;
@@ -67,7 +76,6 @@ function loadLoopPanel(aOverrideOptions = {}) {
   
   
   
-  let wasOffline = Services.io.offline;
   if (!aOverrideOptions.stayOnline) {
     Services.io.offline = true;
   }
@@ -75,7 +83,7 @@ function loadLoopPanel(aOverrideOptions = {}) {
   registerCleanupFunction(function() {
     Services.prefs.clearUserPref("services.push.serverURL");
     Services.prefs.clearUserPref("loop.server");
-    Services.io.offline = wasOffline;
+    Services.io.offline = WAS_OFFLINE;
   });
 
   
@@ -110,6 +118,11 @@ function resetFxA() {
   Services.prefs.clearUserPref(fxASessionPref);
 }
 
+function setInternalLoopGlobal(aName, aValue) {
+  let global = Cu.import("resource:///modules/loop/MozLoopService.jsm", {});
+  global[aName] = aValue;
+}
+
 function promiseDeletedOAuthParams(baseURL) {
   let deferred = Promise.defer();
   let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
@@ -122,12 +135,13 @@ function promiseDeletedOAuthParams(baseURL) {
   return deferred.promise;
 }
 
-function promiseObserverNotified(aTopic) {
+function promiseObserverNotified(aTopic, aExpectedData = null) {
   let deferred = Promise.defer();
   Services.obs.addObserver(function onNotification(aSubject, aTopic, aData) {
     Services.obs.removeObserver(onNotification, aTopic);
-      deferred.resolve({subject: aSubject, data: aData});
-    }, aTopic, false);
+    is(aData, aExpectedData, "observer data should match expected data")
+    deferred.resolve({subject: aSubject, data: aData});
+  }, aTopic, false);
   return deferred.promise;
 }
 
