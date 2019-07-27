@@ -1195,19 +1195,26 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     const layers::PlanarYCbCrData *data = yuv->GetData();
 
     uint8_t *y = data->mYChannel;
-#ifdef DEBUG
     uint8_t *cb = data->mCbChannel;
     uint8_t *cr = data->mCrChannel;
-#endif
     uint32_t width = yuv->GetSize().width;
     uint32_t height = yuv->GetSize().height;
     uint32_t length = yuv->GetDataSize();
+    
+    
 
     
     
-    MOZ_ASSERT(cb == (y + YSIZE(width, height)) &&
-               cr == (cb + CRSIZE(width, height)) &&
-               length == I420SIZE(width, height));
+    if (cb != (y + YSIZE(width, height)) ||
+        cr != (cb + CRSIZE(width, height))) {
+      MOZ_ASSERT(false, "Incorrect cb/cr pointers in ProcessVideoChunk()!");
+      return;
+    }
+    if (length < I420SIZE(width, height)) {
+      MOZ_ASSERT(false, "Invalid length for ProcessVideoChunk()");
+      return;
+    }
+    
     
     
     
@@ -1218,7 +1225,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     
     MOZ_MTLOG(ML_DEBUG, "Sending a video frame");
     
-    conduit->SendVideoFrame(y, length, width, height, mozilla::kVideoI420, 0);
+    conduit->SendVideoFrame(y, I420SIZE(width, height), width, height, mozilla::kVideoI420, 0);
   } else if(format == ImageFormat::CAIRO_SURFACE) {
     layers::CairoImage* rgb =
     const_cast<layers::CairoImage *>(
