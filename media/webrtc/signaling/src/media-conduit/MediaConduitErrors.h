@@ -36,7 +36,8 @@ kMediaConduitPlayoutError,
 kMediaConduitMTUError,                 
 kMediaConduitRTCPStatusError,          
 kMediaConduitKeyFrameRequestError,     
-kMediaConduitNACKStatusError           
+kMediaConduitNACKStatusError,          
+kMediaConduitTMMBRStatusError          
 };
 
 }
