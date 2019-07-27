@@ -47,12 +47,21 @@ class TypedArrayLayout
 
     
     static const size_t BUFFER_SLOT = 0;
+    static_assert(BUFFER_SLOT == JS_TYPEDARRAYLAYOUT_BUFFER_SLOT,
+                  "self-hosted code with burned-in constants must get the "
+                  "right buffer slot");
 
     
     static const size_t LENGTH_SLOT = 1;
+    static_assert(LENGTH_SLOT == JS_TYPEDARRAYLAYOUT_LENGTH_SLOT,
+                  "self-hosted code with burned-in constants must get the "
+                  "right length slot");
 
     
     static const size_t BYTEOFFSET_SLOT = 2;
+    static_assert(BYTEOFFSET_SLOT == JS_TYPEDARRAYLAYOUT_BYTEOFFSET_SLOT,
+                  "self-hosted code with burned-in constants must get the "
+                  "right byteOffset slot");
 
     static const size_t RESERVED_SLOTS = 3;
 
@@ -315,6 +324,19 @@ TypedArrayElemSize(Scalar::Type viewType)
 {
     return 1u << TypedArrayShift(viewType);
 }
+
+
+
+
+
+
+
+
+
+
+extern void
+SetDisjointTypedElements(TypedArrayObject* target, uint32_t targetOffset,
+                         TypedArrayObject* unsafeSrcCrossCompartment);
 
 extern JSObject*
 InitDataViewClass(JSContext* cx, HandleObject obj);

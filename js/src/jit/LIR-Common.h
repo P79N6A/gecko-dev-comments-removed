@@ -4236,6 +4236,43 @@ class LTypedArrayElements : public LInstructionHelper<1, 1, 0>
 };
 
 
+
+
+
+
+
+class LSetDisjointTypedElements : public LCallInstructionHelper<0, 3, 1>
+{
+  public:
+    LIR_HEADER(SetDisjointTypedElements)
+
+    explicit LSetDisjointTypedElements(const LAllocation& target, const LAllocation& targetOffset,
+                                       const LAllocation& source, const LDefinition& temp)
+    {
+        setOperand(0, target);
+        setOperand(1, targetOffset);
+        setOperand(2, source);
+        setTemp(0, temp);
+    }
+
+    const LAllocation* target() {
+        return getOperand(0);
+    }
+
+    const LAllocation* targetOffset() {
+        return getOperand(1);
+    }
+
+    const LAllocation* source() {
+        return getOperand(2);
+    }
+
+    const LDefinition* temp() {
+        return getTemp(0);
+    }
+};
+
+
 class LTypedObjectDescr : public LInstructionHelper<1, 1, 0>
 {
   public:

@@ -2,6 +2,8 @@
 
 
 
+#include "TypedObjectConstants.h"
+
 
 function TypedArrayCopyWithin(target, start, end = undefined) {
     
@@ -647,6 +649,142 @@ function TypedArrayReverse() {
 
     
     return O;
+}
+
+function ViewedArrayBufferIfReified(tarray) {
+    assert(IsTypedArray(tarray), "non-typed array asked for its buffer");
+
+    var buf = UnsafeGetReservedSlot(tarray, JS_TYPEDARRAYLAYOUT_BUFFER_SLOT);
+    assert(buf === null || (IsObject(buf) && IsArrayBuffer(buf)),
+           "unexpected value in buffer slot");
+    return buf;
+}
+
+function IsDetachedBuffer(buffer) {
+    
+    
+    if (buffer === null)
+        return false;
+
+    assert(IsArrayBuffer(buffer),
+           "non-ArrayBuffer passed to IsDetachedBuffer");
+
+    var flags = UnsafeGetInt32FromReservedSlot(buffer, JS_ARRAYBUFFER_FLAGS_SLOT);
+    return (flags & JS_ARRAYBUFFER_NEUTERED_FLAG) !== 0;
+}
+
+
+function SetFromNonTypedArray(target, array, targetOffset, targetLength, targetBuffer) {
+    assert(!IsPossiblyWrappedTypedArray(array),
+           "typed arrays must be passed to SetFromTypedArray");
+
+    
+
+    
+    var src = ToObject(array);
+
+    
+    var srcLength = ToLength(src.length);
+
+    
+    var limitOffset = targetOffset + srcLength;
+    if (limitOffset > targetLength)
+        ThrowRangeError(JSMSG_BAD_INDEX);
+
+    
+    var k = 0;
+
+    
+    while (targetOffset < limitOffset) {
+        
+        var kNumber = ToNumber(src[k]);
+
+        
+        
+        if (targetBuffer === null) {
+            
+            
+            targetBuffer = ViewedArrayBufferIfReified(target);
+        }
+        if (IsDetachedBuffer(targetBuffer))
+            ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+
+        
+        target[targetOffset] = kNumber;
+
+        
+        k++;
+        targetOffset++;
+    }
+
+    
+    return undefined;
+}
+
+
+function SetFromTypedArray(target, typedArray, targetOffset, targetLength) {
+    assert(IsPossiblyWrappedTypedArray(typedArray),
+           "only typed arrays may be passed to this method");
+
+    
+
+    
+    var res = SetFromTypedArrayApproach(target, typedArray, targetOffset,
+                                        targetLength | 0);
+    assert(res === JS_SETTYPEDARRAY_SAME_TYPE ||
+           res === JS_SETTYPEDARRAY_OVERLAPPING ||
+           res === JS_SETTYPEDARRAY_DISJOINT,
+           "intrinsic didn't return one of its enumerated return values");
+
+    
+    
+    if (res == JS_SETTYPEDARRAY_SAME_TYPE)
+        return undefined; 
+
+    
+    
+    
+
+    if (res === JS_SETTYPEDARRAY_DISJOINT) {
+        SetDisjointTypedElements(target, targetOffset | 0, typedArray);
+        return undefined; 
+    }
+
+    
+    
+    SetOverlappingTypedElements(target, targetOffset | 0, typedArray);
+
+    
+    return undefined;
+}
+
+
+function TypedArraySet(overloaded, offset) {
+    
+    var target = this;
+    if (!IsObject(target) || !IsTypedArray(target)) {
+        return callFunction(CallTypedArrayMethodIfWrapped,
+                            target, overloaded, offset, "TypedArraySet");
+    }
+
+    
+    var targetOffset = ToInteger(offset);
+    if (targetOffset < 0)
+        ThrowRangeError(JSMSG_TYPED_ARRAY_NEGATIVE_ARG, "2");
+
+    
+    var targetBuffer = ViewedArrayBufferIfReified(target);
+    if (IsDetachedBuffer(targetBuffer))
+        ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+
+    
+    var targetLength = TypedArrayLength(target);
+
+    
+    if (IsPossiblyWrappedTypedArray(overloaded))
+        return SetFromTypedArray(target, overloaded, targetOffset, targetLength);
+
+    return SetFromNonTypedArray(target, overloaded, targetOffset, targetLength, targetBuffer);
 }
 
 

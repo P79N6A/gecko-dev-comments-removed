@@ -803,8 +803,12 @@ class IonBuilder
                                                MIRType knownValueType);
 
     
+    enum WrappingBehavior { AllowWrappedTypedArrays, RejectWrappedTypedArrays };
+    InliningStatus inlineIsTypedArrayHelper(CallInfo& callInfo, WrappingBehavior wrappingBehavior);
     InliningStatus inlineIsTypedArray(CallInfo& callInfo);
+    InliningStatus inlineIsPossiblyWrappedTypedArray(CallInfo& callInfo);
     InliningStatus inlineTypedArrayLength(CallInfo& callInfo);
+    InliningStatus inlineSetDisjointTypedElements(CallInfo& callInfo);
 
     
     InliningStatus inlineObjectIsTypeDescr(CallInfo& callInfo);
