@@ -74,19 +74,13 @@ public:
 protected:
   ~KeyboardEvent() {}
 
-  void InitWithKeyboardEventInit(EventTarget* aOwner,
-                                 const nsAString& aType,
-                                 const KeyboardEventInit& aParam,
-                                 ErrorResult& aRv);
-
 private:
   
   bool mInitializedByCtor;
-
   
   
   
-  uint32_t mInitializedWhichValue;
+  uint32_t mInitialzedWhichValue;
 };
 
 } 
