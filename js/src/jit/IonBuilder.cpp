@@ -372,6 +372,59 @@ IonBuilder::DontInline(JSScript* targetScript, const char* reason)
     return InliningDecision_DontInline;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+IonBuilder::hasCommonInliningPath(const JSScript* scriptToInline)
+{
+    if (this->script() == scriptToInline)
+        return true;
+
+    
+    
+    for (IonBuilder* it = this; it; it = it->callerBuilder_) {
+        if (it->script() != scriptToInline)
+            continue;
+
+        
+        
+        IonBuilder* path = it->callerBuilder_;
+        if (!path || this->script() == path->script())
+            return true;
+    }
+
+    return false;
+}
+
 IonBuilder::InliningDecision
 IonBuilder::canInlineTarget(JSFunction* target, CallInfo& callInfo)
 {
@@ -468,14 +521,9 @@ IonBuilder::canInlineTarget(JSFunction* target, CallInfo& callInfo)
         return DontInline(inlineScript, "Too many actual args");
     }
 
-    
-    IonBuilder* builder = callerBuilder_;
-    while (builder) {
-        if (builder->script() == inlineScript) {
-            trackOptimizationOutcome(TrackedOutcome::CantInlineRecursive);
-            return DontInline(inlineScript, "Recursive call");
-        }
-        builder = builder->callerBuilder_;
+    if (hasCommonInliningPath(inlineScript)) {
+        trackOptimizationOutcome(TrackedOutcome::HasCommonInliningPath);
+        return DontInline(inlineScript, "Common inlining path");
     }
 
     if (target->isHeavyweight()) {

@@ -721,6 +721,9 @@ class IonBuilder
     static InliningDecision DontInline(JSScript* targetScript, const char* reason);
 
     
+    bool hasCommonInliningPath(const JSScript* scriptToInline);
+
+    
     InliningDecision canInlineTarget(JSFunction* target, CallInfo& callInfo);
     InliningDecision makeInliningDecision(JSObject* target, CallInfo& callInfo);
     bool selectInliningTargets(const ObjectVector& targets, CallInfo& callInfo,
