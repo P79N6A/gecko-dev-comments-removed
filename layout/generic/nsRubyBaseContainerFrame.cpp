@@ -209,15 +209,21 @@ CalculateColumnPrefISize(nsRenderingContext* aRenderingContext,
   for (uint32_t i = 0; i < levelCount; i++) {
     nsIFrame* frame = aEnumerator.GetFrameAtLevel(i);
     if (frame) {
-      max = std::max(max, frame->GetPrefISize(aRenderingContext));
+      nsIFrame::InlinePrefISizeData data;
+      frame->AddInlinePrefISize(aRenderingContext, &data);
+      MOZ_ASSERT(data.prevLines == 0, "Shouldn't have prev lines");
+      max = std::max(max, data.currentLine);
     }
   }
   return max;
 }
 
+
+
+
  void
 nsRubyBaseContainerFrame::AddInlineMinISize(
-    nsRenderingContext *aRenderingContext, nsIFrame::InlineMinISizeData *aData)
+  nsRenderingContext *aRenderingContext, nsIFrame::InlineMinISizeData *aData)
 {
   AutoTextContainerArray textContainers;
   GetTextContainers(textContainers);
@@ -226,38 +232,54 @@ nsRubyBaseContainerFrame::AddInlineMinISize(
     if (textContainers[i]->IsSpanContainer()) {
       
       
-      aData->currentLine += GetPrefISize(aRenderingContext);
+      nsIFrame::InlinePrefISizeData data;
+      AddInlinePrefISize(aRenderingContext, &data);
+      aData->currentLine += data.currentLine;
+      if (data.currentLine > 0) {
+        aData->atStartOfLine = false;
+      }
       return;
     }
   }
 
-  nscoord max = 0;
-  RubyColumnEnumerator enumerator(this, textContainers);
-  for (; !enumerator.AtEnd(); enumerator.Next()) {
-    
-    
-    max = std::max(max, CalculateColumnPrefISize(aRenderingContext,
-                                                 enumerator));
+  for (nsIFrame* frame = this; frame; frame = frame->GetNextInFlow()) {
+    RubyColumnEnumerator enumerator(
+      static_cast<nsRubyBaseContainerFrame*>(frame), textContainers);
+    for (; !enumerator.AtEnd(); enumerator.Next()) {
+      
+      
+      aData->OptionallyBreak(aRenderingContext);
+      nscoord isize = CalculateColumnPrefISize(aRenderingContext, enumerator);
+      aData->currentLine += isize;
+      if (isize > 0) {
+        aData->atStartOfLine = false;
+      }
+    }
   }
-  aData->currentLine += max;
 }
 
  void
 nsRubyBaseContainerFrame::AddInlinePrefISize(
-    nsRenderingContext *aRenderingContext, nsIFrame::InlinePrefISizeData *aData)
+  nsRenderingContext *aRenderingContext, nsIFrame::InlinePrefISizeData *aData)
 {
   AutoTextContainerArray textContainers;
   GetTextContainers(textContainers);
 
   nscoord sum = 0;
-  RubyColumnEnumerator enumerator(this, textContainers);
-  for (; !enumerator.AtEnd(); enumerator.Next()) {
-    sum += CalculateColumnPrefISize(aRenderingContext, enumerator);
+  for (nsIFrame* frame = this; frame; frame = frame->GetNextInFlow()) {
+    RubyColumnEnumerator enumerator(
+      static_cast<nsRubyBaseContainerFrame*>(frame), textContainers);
+    for (; !enumerator.AtEnd(); enumerator.Next()) {
+      sum += CalculateColumnPrefISize(aRenderingContext, enumerator);
+    }
   }
   for (uint32_t i = 0, iend = textContainers.Length(); i < iend; i++) {
     if (textContainers[i]->IsSpanContainer()) {
       nsIFrame* frame = textContainers[i]->GetFirstPrincipalChild();
-      sum = std::max(sum, frame->GetPrefISize(aRenderingContext));
+      nsIFrame::InlinePrefISizeData data;
+      frame->AddInlinePrefISize(aRenderingContext, &data);
+      MOZ_ASSERT(data.prevLines == 0, "Shouldn't have prev lines");
+      sum = std::max(sum, data.currentLine);
     }
   }
   aData->currentLine += sum;
