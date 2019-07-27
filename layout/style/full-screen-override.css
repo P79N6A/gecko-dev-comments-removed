@@ -6,19 +6,19 @@
 *|*:-moz-full-screen-ancestor {
   
 
-  z-index: auto;
+  z-index: initial !important;
   
 
 
 
-  opacity: 1;
+  opacity: initial !important;
   
 
 
-  mask: none;
-  clip: auto;
-  filter: none;
-  -moz-transform: none;
-  will-change: auto;
+  mask: initial !important;
+  clip: initial !important;
+  filter: initial !important;
+  transform: initial !important;
+  will-change: initial !important;
 }
 
