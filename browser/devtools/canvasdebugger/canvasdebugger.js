@@ -39,6 +39,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "DevToolsUtils",
   "resource://gre/modules/devtools/DevToolsUtils.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "NetworkHelper", function() {
+  return require("devtools/toolkit/webconsole/network-helper");
+});
+
 
 const EVENTS = {
   
@@ -196,24 +200,9 @@ let $all = (selector, target = document) => target.querySelectorAll(selector);
 
 
 
-function nsIURL(url, store = nsIURL.store) {
-  if (store.has(url)) {
-    return store.get(url);
-  }
-  let uri = Services.io.newURI(url, null, null).QueryInterface(Ci.nsIURL);
-  store.set(url, uri);
-  return uri;
-}
-
-
-nsIURL.store = new Map();
-
-
-
-
 function getFileName(url) {
   try {
-    let { fileName } = nsIURL(url);
+    let { fileName } = NetworkHelper.nsIURL(url);
     return fileName || "/";
   } catch (e) {
     

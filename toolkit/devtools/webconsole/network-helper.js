@@ -59,6 +59,9 @@ loader.lazyImporter(this, "NetUtil", "resource://gre/modules/NetUtil.jsm");
 loader.lazyImporter(this, "DevToolsUtils", "resource://gre/modules/devtools/DevToolsUtils.jsm");
 
 
+const gNSURLStore = new Map();
+
+
 
 
 
@@ -743,6 +746,46 @@ let NetworkHelper = {
 
     return reasons;
   },
+
+  
+
+
+
+
+
+
+
+  parseQueryString: function(aQueryString) {
+    
+    
+    
+    if (!aQueryString) {
+      return;
+    }
+
+    
+    let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map(e => {
+      let param = e.split("=");
+      return {
+        name: param[0] ? NetworkHelper.convertToUnicode(unescape(param[0])) : "",
+        value: param[1] ? NetworkHelper.convertToUnicode(unescape(param[1])) : ""
+      }});
+
+    return paramsArray;
+  },
+
+  
+
+
+  nsIURL: function(aUrl, aStore = gNSURLStore) {
+    if (aStore.has(aUrl)) {
+      return aStore.get(aUrl);
+    }
+
+    let uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+    aStore.set(aUrl, uri);
+    return uri;
+  }
 };
 
 for (let prop of Object.getOwnPropertyNames(NetworkHelper)) {
