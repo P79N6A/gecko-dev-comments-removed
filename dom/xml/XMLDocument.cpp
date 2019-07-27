@@ -303,6 +303,19 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   WarnOnceAbout(nsIDocument::eUseOfDOM3LoadMethod);
 
   nsCOMPtr<nsIDocument> callingDoc = GetEntryDocument();
+  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
+
+  
+  if (callingDoc->NodePrincipal() != principal) {
+    nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
+                                    NS_LITERAL_CSTRING("DOM"),
+                                    callingDoc,
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    "XMLDocumentLoadPrincipalMismatch");
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return false;
+  }
+
   nsIURI *baseURI = mDocumentURI;
   nsAutoCString charset;
 
@@ -327,7 +340,6 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   
   
   
-  nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
   if (!nsContentUtils::IsSystemPrincipal(principal)) {
     rv = principal->CheckMayLoad(uri, false, false);
     if (NS_FAILED(rv)) {
