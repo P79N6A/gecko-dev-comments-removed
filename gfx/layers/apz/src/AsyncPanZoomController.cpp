@@ -3123,6 +3123,7 @@ void AsyncPanZoomController::SetState(PanZoomState aNewState)
   
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
+    APZC_LOG("%p changing from state %d to %d\n", this, mState, aNewState);
     oldState = mState;
     mState = aNewState;
   }

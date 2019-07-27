@@ -2146,6 +2146,13 @@ TabChild::RecvNotifyAPZStateChange(const ViewID& aViewId,
                                    const int& aArg)
 {
   mAPZEventState->ProcessAPZStateChange(GetDocument(), aViewId, aChange, aArg);
+  if (aChange == APZStateChange::TransformEnd) {
+    
+    
+    DispatchMessageManagerMessage(
+      NS_LITERAL_STRING("APZ:TransformEnd"),
+      NS_LITERAL_STRING("{}"));
+  }
   return true;
 }
 
