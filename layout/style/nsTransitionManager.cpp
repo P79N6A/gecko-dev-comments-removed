@@ -192,13 +192,6 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     
     return;
   }
-
-  
-  if (newStyleContext->PresContext()->RestyleManager()->
-        IsProcessingAnimationStyleChange()) {
-    return;
-  }
-
   if (newStyleContext->GetParent() &&
       newStyleContext->GetParent()->HasPseudoElementData()) {
     

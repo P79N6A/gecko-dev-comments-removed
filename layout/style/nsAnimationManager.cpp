@@ -224,142 +224,139 @@ nsIStyleRule*
 nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
                                        mozilla::dom::Element* aElement)
 {
+  if (!mPresContext->IsDynamic()) {
+    
+    return nullptr;
+  }
+
   
-  if (!mPresContext->RestyleManager()->IsProcessingAnimationStyleChange()) {
-    if (!mPresContext->IsDynamic()) {
-      
-      return nullptr;
-    }
+  
+  
+  
 
-    
-    
-    
-    
+  const nsStyleDisplay* disp = aStyleContext->StyleDisplay();
+  AnimationPlayerCollection* collection =
+    GetAnimationPlayers(aElement, aStyleContext->GetPseudoType(), false);
+  if (!collection &&
+      disp->mAnimationNameCount == 1 &&
+      disp->mAnimations[0].GetName().IsEmpty()) {
+    return nullptr;
+  }
 
-    const nsStyleDisplay* disp = aStyleContext->StyleDisplay();
-    AnimationPlayerCollection* collection =
-      GetAnimationPlayers(aElement, aStyleContext->GetPseudoType(), false);
-    if (!collection &&
-        disp->mAnimationNameCount == 1 &&
-        disp->mAnimations[0].GetName().IsEmpty()) {
-      return nullptr;
-    }
+  
+  dom::AnimationTimeline* timeline = aElement->OwnerDoc()->Timeline();
+  AnimationPlayerPtrArray newPlayers;
+  BuildAnimations(aStyleContext, aElement, timeline, newPlayers);
 
-    
-    dom::AnimationTimeline* timeline = aElement->OwnerDoc()->Timeline();
-    AnimationPlayerPtrArray newPlayers;
-    BuildAnimations(aStyleContext, aElement, timeline, newPlayers);
-
-    if (newPlayers.IsEmpty()) {
-      if (collection) {
-        collection->Destroy();
-      }
-      return nullptr;
-    }
-
+  if (newPlayers.IsEmpty()) {
     if (collection) {
-      collection->mStyleRule = nullptr;
-      collection->mStyleRuleRefreshTime = TimeStamp();
-      collection->UpdateAnimationGeneration(mPresContext);
+      collection->Destroy();
+    }
+    return nullptr;
+  }
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (!collection->mPlayers.IsEmpty()) {
+  if (collection) {
+    collection->mStyleRule = nullptr;
+    collection->mStyleRuleRefreshTime = TimeStamp();
+    collection->UpdateAnimationGeneration(mPresContext);
 
-        for (size_t newIdx = newPlayers.Length(); newIdx-- != 0;) {
-          AnimationPlayer* newPlayer = newPlayers[newIdx];
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!collection->mPlayers.IsEmpty()) {
 
-          
-          
-          
-          
-          
-          
-          nsRefPtr<CSSAnimationPlayer> oldPlayer;
-          size_t oldIdx = collection->mPlayers.Length();
-          while (oldIdx-- != 0) {
-            CSSAnimationPlayer* a =
-              collection->mPlayers[oldIdx]->AsCSSAnimationPlayer();
-            MOZ_ASSERT(a, "All players in the CSS Animation collection should"
-                          " be CSSAnimationPlayer objects");
-            if (a->Name() == newPlayer->Name()) {
-              oldPlayer = a;
-              break;
-            }
+      for (size_t newIdx = newPlayers.Length(); newIdx-- != 0;) {
+        AnimationPlayer* newPlayer = newPlayers[newIdx];
+
+        
+        
+        
+        
+        
+        
+        nsRefPtr<CSSAnimationPlayer> oldPlayer;
+        size_t oldIdx = collection->mPlayers.Length();
+        while (oldIdx-- != 0) {
+          CSSAnimationPlayer* a =
+            collection->mPlayers[oldIdx]->AsCSSAnimationPlayer();
+          MOZ_ASSERT(a, "All players in the CSS Animation collection should"
+                        " be CSSAnimationPlayer objects");
+          if (a->Name() == newPlayer->Name()) {
+            oldPlayer = a;
+            break;
           }
-          if (!oldPlayer) {
-            continue;
-          }
-
-          
-          
-          if (oldPlayer->GetSource() && newPlayer->GetSource()) {
-            Animation* oldAnim = oldPlayer->GetSource();
-            Animation* newAnim = newPlayer->GetSource();
-            oldAnim->Timing() = newAnim->Timing();
-            oldAnim->Properties() = newAnim->Properties();
-          }
-
-          
-          oldPlayer->ClearIsRunningOnCompositor();
-
-          
-          
-          
-          
-          
-          
-          
-          
-          if (!oldPlayer->IsStylePaused() && newPlayer->IsPaused()) {
-            oldPlayer->PauseFromStyle();
-          } else if (oldPlayer->IsStylePaused() && !newPlayer->IsPaused()) {
-            oldPlayer->PlayFromStyle();
-          }
-
-          
-          
-          
-          
-          
-          
-          newPlayer->Cancel();
-          newPlayer = nullptr;
-          newPlayers.ReplaceElementAt(newIdx, oldPlayer);
-          collection->mPlayers.RemoveElementAt(oldIdx);
         }
+        if (!oldPlayer) {
+          continue;
+        }
+
+        
+        
+        if (oldPlayer->GetSource() && newPlayer->GetSource()) {
+          Animation* oldAnim = oldPlayer->GetSource();
+          Animation* newAnim = newPlayer->GetSource();
+          oldAnim->Timing() = newAnim->Timing();
+          oldAnim->Properties() = newAnim->Properties();
+        }
+
+        
+        oldPlayer->ClearIsRunningOnCompositor();
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!oldPlayer->IsStylePaused() && newPlayer->IsPaused()) {
+          oldPlayer->PauseFromStyle();
+        } else if (oldPlayer->IsStylePaused() && !newPlayer->IsPaused()) {
+          oldPlayer->PlayFromStyle();
+        }
+
+        
+        
+        
+        
+        
+        
+        newPlayer->Cancel();
+        newPlayer = nullptr;
+        newPlayers.ReplaceElementAt(newIdx, oldPlayer);
+        collection->mPlayers.RemoveElementAt(oldIdx);
       }
-    } else {
-      collection =
-        GetAnimationPlayers(aElement, aStyleContext->GetPseudoType(), true);
     }
-    collection->mPlayers.SwapElements(newPlayers);
-    collection->mNeedsRefreshes = true;
-    collection->Tick();
+  } else {
+    collection =
+      GetAnimationPlayers(aElement, aStyleContext->GetPseudoType(), true);
+  }
+  collection->mPlayers.SwapElements(newPlayers);
+  collection->mNeedsRefreshes = true;
+  collection->Tick();
 
-    
-    for (size_t newPlayerIdx = newPlayers.Length(); newPlayerIdx-- != 0; ) {
-      newPlayers[newPlayerIdx]->Cancel();
-    }
+  
+  for (size_t newPlayerIdx = newPlayers.Length(); newPlayerIdx-- != 0; ) {
+    newPlayers[newPlayerIdx]->Cancel();
+  }
 
-    TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
-    UpdateStyleAndEvents(collection, refreshTime,
-                         EnsureStyleRule_IsNotThrottled);
-    
-    
-    
-    
-    if (!mPendingEvents.IsEmpty()) {
-      mPresContext->Document()->SetNeedStyleFlush();
-    }
+  TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
+  UpdateStyleAndEvents(collection, refreshTime,
+                       EnsureStyleRule_IsNotThrottled);
+  
+  
+  
+  
+  if (!mPendingEvents.IsEmpty()) {
+    mPresContext->Document()->SetNeedStyleFlush();
   }
 
   return GetAnimationRule(aElement, aStyleContext->GetPseudoType());

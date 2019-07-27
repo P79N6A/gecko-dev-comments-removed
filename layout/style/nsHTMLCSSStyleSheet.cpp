@@ -74,15 +74,7 @@ nsHTMLCSSStyleSheet::ElementRulesMatching(nsPresContext* aPresContext,
   rule = aElement->GetSMILOverrideStyleRule();
   if (rule) {
     RestyleManager* restyleManager = aPresContext->RestyleManager();
-    if (restyleManager->SkipAnimationRules()) {
-      
-      
-      
-      if (restyleManager->PostAnimationRestyles()) {
-        aPresContext->PresShell()->RestyleForAnimation(aElement,
-          eRestyle_StyleAttribute | eRestyle_ChangeAnimationPhase);
-      }
-    } else {
+    if (!restyleManager->SkipAnimationRules()) {
       
       
       rule->RuleMatched();

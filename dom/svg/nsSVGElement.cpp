@@ -918,20 +918,8 @@ nsSVGElement::WalkAnimatedContentStyleRules(nsRuleWalker* aRuleWalker)
   
   
   
-  nsPresContext* context = aRuleWalker->PresContext();
-  nsIPresShell* shell = context->PresShell();
-  RestyleManager* restyleManager = context->RestyleManager();
-  if (restyleManager->SkipAnimationRules()) {
-    if (restyleManager->PostAnimationRestyles()) {
-      
-      
-      
-      
-      shell->RestyleForAnimation(this,
-        eRestyle_SVGAttrAnimations | eRestyle_ChangeAnimationPhase);
-    }
-  } else {
-    
+  RestyleManager* restyleManager = aRuleWalker->PresContext()->RestyleManager();
+  if (!restyleManager->SkipAnimationRules()) {
     
     css::StyleRule* animContentStyleRule = GetAnimatedContentStyleRule();
     if (!animContentStyleRule) {

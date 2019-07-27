@@ -373,13 +373,6 @@ CommonAnimationManager::GetAnimationRule(mozilla::dom::Element* aElement,
 
   RestyleManager* restyleManager = mPresContext->RestyleManager();
   if (restyleManager->SkipAnimationRules()) {
-    
-    
-
-    if (collection->mStyleRule && restyleManager->PostAnimationRestyles()) {
-      collection->PostRestyleForAnimation(mPresContext);
-    }
-
     return nullptr;
   }
 

@@ -1658,15 +1658,12 @@ nsStyleSet::ResolveStyleWithoutAnimation(dom::Element* aTarget,
 
   bool oldSkipAnimationRules = restyleManager->SkipAnimationRules();
   restyleManager->SetSkipAnimationRules(true);
-  bool oldPostAnimationRestyles = restyleManager->PostAnimationRestyles();
-  restyleManager->SetPostAnimationRestyles(false);
 
   nsRefPtr<nsStyleContext> result =
     ResolveStyleWithReplacement(aTarget, aStyleContext->GetParent(),
                                 aStyleContext, aWhichToRemove,
                                 eSkipStartingAnimations);
 
-  restyleManager->SetPostAnimationRestyles(oldPostAnimationRestyles);
   restyleManager->SetSkipAnimationRules(oldSkipAnimationRules);
 
   return result.forget();
@@ -2142,43 +2139,6 @@ nsStyleSet::GCRuleTrees()
   }
 }
 
-
-
-
-
-static inline nsRuleNode*
-SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElementOrPseudoElement,
-                   bool aPostAnimationRestyles)
-{
-  nsRuleNode* ruleNode = aRuleNode;
-  
-  if (!ruleNode->IsRoot() &&
-      ruleNode->GetLevel() == nsStyleSet::eTransitionSheet) {
-    ruleNode = ruleNode->GetParent();
-  }
-  MOZ_ASSERT(ruleNode->IsRoot() ||
-             ruleNode->GetLevel() != nsStyleSet::eTransitionSheet,
-             "can't have more than one transition rule");
-
-  
-  
-  nsIStyleRule* animationRule = GetAnimationRule(ruleNode);
-  if (animationRule) {
-    ruleNode = ReplaceAnimationRule(ruleNode, animationRule, nullptr);
-  }
-
-  if (ruleNode != aRuleNode && aPostAnimationRestyles) {
-    NS_ASSERTION(aElementOrPseudoElement,
-                 "How can we have transition rules but no element?");
-    
-    
-    
-    aRuleNode->PresContext()->PresShell()->
-      RestyleForAnimation(aElementOrPseudoElement, eRestyle_Self);
-  }
-  return ruleNode;
-}
-
 already_AddRefed<nsStyleContext>
 nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
                                  nsStyleContext* aNewParentContext,
@@ -2201,18 +2161,8 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   nsCSSPseudoElements::Type pseudoType = aStyleContext->GetPseudoType();
   nsRuleNode* ruleNode = aStyleContext->RuleNode();
 
-  
-  
-  RestyleManager* restyleManager = PresContext()->RestyleManager();
-  bool skipAnimationRules = restyleManager->SkipAnimationRules();
-  bool postAnimationRestyles = restyleManager->PostAnimationRestyles();
-  if (skipAnimationRules) {
-    
-    
-    
-    ruleNode = SkipAnimationRules(ruleNode, aElementOrPseudoElement,
-                                  postAnimationRestyles);
-  }
+  NS_ASSERTION(!PresContext()->RestyleManager()->SkipAnimationRules(),
+               "we no longer handle SkipAnimationRules()");
 
   nsRuleNode* visitedRuleNode = nullptr;
   nsStyleContext* visitedContext = aStyleContext->GetStyleIfVisited();
@@ -2221,14 +2171,7 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   
   
   if (visitedContext) {
-     visitedRuleNode = visitedContext->RuleNode();
-     
-     if (skipAnimationRules) {
-      
-       visitedRuleNode =
-         SkipAnimationRules(visitedRuleNode, aElementOrPseudoElement,
-                            postAnimationRestyles);
-     }
+    visitedRuleNode = visitedContext->RuleNode();
   }
 
   uint32_t flags = eNoFlags;

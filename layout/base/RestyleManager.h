@@ -109,33 +109,10 @@ public:
   void IncrementAnimationGeneration() { ++mAnimationGeneration; }
 
   
-  bool SkipAnimationRules() const {
-    MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
-               "inconsistent state");
-    return mSkipAnimationRules;
-  }
+  bool SkipAnimationRules() const { return mSkipAnimationRules; }
 
   void SetSkipAnimationRules(bool aSkipAnimationRules) {
     mSkipAnimationRules = aSkipAnimationRules;
-  }
-
-  
-  
-  
-  bool PostAnimationRestyles() const {
-    MOZ_ASSERT(mSkipAnimationRules || !mPostAnimationRestyles,
-               "inconsistent state");
-    return mPostAnimationRestyles;
-  }
-
-  void SetPostAnimationRestyles(bool aPostAnimationRestyles) {
-    mPostAnimationRestyles = aPostAnimationRestyles;
-  }
-
-  
-  
-  bool IsProcessingAnimationStyleChange() const {
-    return mIsProcessingAnimationStyleChange;
   }
 
   
@@ -348,23 +325,17 @@ public:
                            nsRestyleHint aRestyleHint);
 
   
+
+
+
+
+
+
+
+
   void PostRestyleEvent(Element* aElement,
                         nsRestyleHint aRestyleHint,
-                        nsChangeHint aMinChangeHint)
-  {
-    if (mPresContext) {
-      PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint,
-                             IsProcessingAnimationStyleChange());
-    }
-  }
-
-  
-  void PostAnimationRestyleEvent(Element* aElement,
-                                 nsRestyleHint aRestyleHint,
-                                 nsChangeHint aMinChangeHint)
-  {
-    PostRestyleEventCommon(aElement, aRestyleHint, aMinChangeHint, true);
-  }
+                        nsChangeHint aMinChangeHint);
 
   void PostRestyleEventForLazyConstruction()
   {
@@ -382,25 +353,6 @@ public:
 #endif
 
 private:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void PostRestyleEventCommon(Element* aElement,
-                              nsRestyleHint aRestyleHint,
-                              nsChangeHint aMinChangeHint,
-                              bool aForAnimation);
   void PostRestyleEventInternal(bool aForLazyConstruction);
 
 public:
@@ -511,13 +463,6 @@ private:
   bool mInStyleRefresh : 1;
   
   bool mSkipAnimationRules : 1;
-  
-  
-  
-  bool mPostAnimationRestyles : 1;
-  
-  
-  bool mIsProcessingAnimationStyleChange : 1;
   bool mHavePendingNonAnimationRestyles : 1;
 
   uint32_t mHoverGeneration;
@@ -535,7 +480,6 @@ private:
   ReframingStyleContexts* mReframingStyleContexts;
 
   RestyleTracker mPendingRestyles;
-  RestyleTracker mPendingAnimationRestyles;
 
 #ifdef DEBUG
   bool mIsProcessingRestyles;
