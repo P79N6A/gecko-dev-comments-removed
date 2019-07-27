@@ -7,7 +7,7 @@
 #include <stdint.h>                     
 #include "ImageContainer.h"             
 #include "ImageTypes.h"                 
-#include "GLImages.h"                   
+#include "SharedTextureImage.h"         
 #include "gfx2DGlue.h"                  
 #include "gfxPlatform.h"                
 #include "mozilla/Assertions.h"         
@@ -247,9 +247,9 @@ ImageClientSingle::UpdateImageInternal(ImageContainer* aContainer,
       return false;
     }
 
-  } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE ||
-             image->GetFormat() == ImageFormat::EGLIMAGE)
-  {
+  } else if (image->GetFormat() == ImageFormat::SHARED_TEXTURE) {
+    SharedTextureImage* sharedImage = static_cast<SharedTextureImage*>(image);
+    const SharedTextureImage::Data *data = sharedImage->GetData();
     gfx::IntSize size = gfx::IntSize(image->GetSize().width, image->GetSize().height);
 
     if (mFrontBuffer) {
@@ -257,30 +257,8 @@ ImageClientSingle::UpdateImageInternal(ImageContainer* aContainer,
       mFrontBuffer = nullptr;
     }
 
-    RefPtr<TextureClient> buffer;
-
-    if (image->GetFormat() == ImageFormat::EGLIMAGE) {
-      EGLImageImage* typedImage = static_cast<EGLImageImage*>(image);
-      const EGLImageImage::Data* data = typedImage->GetData();
-
-      buffer = new EGLImageTextureClient(mTextureFlags,
-                                         data->mImage,
-                                         size,
-                                         data->mInverted);
-#ifdef MOZ_WIDGET_ANDROID
-    } else if (image->GetFormat() == ImageFormat::SURFACE_TEXTURE) {
-      SurfaceTextureImage* typedImage = static_cast<SurfaceTextureImage*>(image);
-      const SurfaceTextureImage::Data* data = typedImage->GetData();
-
-      buffer = new SurfaceTextureClient(mTextureFlags,
-                                        data->mSurfTex,
-                                        size,
-                                        data->mInverted);
-#endif
-    } else {
-      MOZ_ASSERT(false, "Bad ImageFormat.");
-    }
-
+    RefPtr<SharedTextureClientOGL> buffer = new SharedTextureClientOGL(mTextureFlags);
+    buffer->InitWith(data->mHandle, size, data->mShareType, data->mInverted);
     mFrontBuffer = buffer;
     if (!AddTextureClient(mFrontBuffer)) {
       mFrontBuffer = nullptr;
@@ -288,7 +266,6 @@ ImageClientSingle::UpdateImageInternal(ImageContainer* aContainer,
     }
 
     GetForwarder()->UseTexture(this, mFrontBuffer);
-
   } else {
     RefPtr<gfx::SourceSurface> surface = image->GetAsSourceSurface();
     MOZ_ASSERT(surface);

@@ -60,13 +60,7 @@ MOZ_BEGIN_ENUM_CLASS(ImageFormat)
   
 
 
-
-  SURFACE_TEXTURE,
-
-  
-
-
-  EGLIMAGE,
+  SHARED_TEXTURE,
 
   
 
