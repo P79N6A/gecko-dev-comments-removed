@@ -13,6 +13,7 @@
 #include "mozilla/net/NeckoParent.h"
 #include "nsIParentChannel.h"
 #include "nsIInterfaceRequestor.h"
+#include "OfflineObserver.h"
 
 class nsFtpChannel;
 class nsILoadContext;
@@ -25,6 +26,7 @@ class FTPChannelParent : public PFTPChannelParent
                        , public nsIInterfaceRequestor
                        , public ADivertableParentChannel
                        , public nsIChannelEventSink
+                       , public DisconnectableParent
 {
 public:
   NS_DECL_ISUPPORTS
@@ -82,6 +84,9 @@ protected:
 
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
+  void OfflineDisconnect() MOZ_OVERRIDE;
+  uint32_t GetAppId() MOZ_OVERRIDE;
+
   
   nsCOMPtr<nsIChannel> mChannel;
 
@@ -106,6 +111,7 @@ protected:
   
   
   bool mSuspendedForDiversion;
+  nsRefPtr<OfflineObserver> mObserver;
 };
 
 } 
