@@ -133,16 +133,14 @@ NS_IMETHODIMP
 nsContentDLF::CreateInstance(const char* aCommand,
                              nsIChannel* aChannel,
                              nsILoadGroup* aLoadGroup,
-                             const char* aContentType, 
+                             const nsACString& aContentType, 
                              nsIDocShell* aContainer,
                              nsISupports* aExtraInfo,
                              nsIStreamListener** aDocListener,
                              nsIContentViewer** aDocViewer)
 {
   
-  
-  
-  nsAutoCString type;
+  nsAutoCString contentType(aContentType);
 
   
   nsCOMPtr<nsIViewSourceChannel> viewSourceChannel = do_QueryInterface(aChannel);
@@ -154,6 +152,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
     
     
     
+    nsAutoCString type;
     viewSourceChannel->GetOriginalContentType(type);
     bool knownType = false;
     int32_t typeIndex;
@@ -187,18 +186,18 @@ nsContentDLF::CreateInstance(const char* aCommand,
     } else if (IsImageContentType(type.get())) {
       
       
-      aContentType = type.get();
+      contentType = type;
     } else {
       viewSourceChannel->SetContentType(NS_LITERAL_CSTRING(TEXT_PLAIN));
     }
-  } else if (0 == PL_strcmp(VIEWSOURCE_CONTENT_TYPE, aContentType)) {
+  } else if (aContentType.EqualsLiteral(VIEWSOURCE_CONTENT_TYPE)) {
     aChannel->SetContentType(NS_LITERAL_CSTRING(TEXT_PLAIN));
-    aContentType = TEXT_PLAIN;
+    contentType = TEXT_PLAIN;
   }
   
   int typeIndex=0;
   while(gHTMLTypes[typeIndex]) {
-    if (0 == PL_strcmp(gHTMLTypes[typeIndex++], aContentType)) {
+    if (contentType.EqualsASCII(gHTMLTypes[typeIndex++])) {
       return CreateDocument(aCommand, 
                             aChannel, aLoadGroup,
                             aContainer, kHTMLDocumentCID,
@@ -209,7 +208,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
   
   typeIndex = 0;
   while(gXMLTypes[typeIndex]) {
-    if (0== PL_strcmp(gXMLTypes[typeIndex++], aContentType)) {
+    if (contentType.EqualsASCII(gXMLTypes[typeIndex++])) {
       return CreateDocument(aCommand, 
                             aChannel, aLoadGroup,
                             aContainer, kXMLDocumentCID,
@@ -220,7 +219,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
   
   typeIndex = 0;
   while(gSVGTypes[typeIndex]) {
-    if (!PL_strcmp(gSVGTypes[typeIndex++], aContentType)) {
+    if (contentType.EqualsASCII(gSVGTypes[typeIndex++])) {
       return CreateDocument(aCommand,
                             aChannel, aLoadGroup,
                             aContainer, kSVGDocumentCID,
@@ -231,19 +230,17 @@ nsContentDLF::CreateInstance(const char* aCommand,
   
   typeIndex = 0;
   while (gXULTypes[typeIndex]) {
-    if (0 == PL_strcmp(gXULTypes[typeIndex++], aContentType)) {
+    if (contentType.EqualsASCII(gXULTypes[typeIndex++])) {
       if (!MayUseXULXBL(aChannel)) {
         return NS_ERROR_REMOTE_XUL;
       }
 
-      return CreateXULDocument(aCommand,
-                               aChannel, aLoadGroup,
-                               aContentType, aContainer,
+      return CreateXULDocument(aCommand, aChannel, aLoadGroup, aContainer,
                                aExtraInfo, aDocListener, aDocViewer);
     }
   }
 
-  if (mozilla::DecoderTraits::ShouldHandleMediaType(aContentType)) {
+  if (mozilla::DecoderTraits::ShouldHandleMediaType(contentType.get())) {
     return CreateDocument(aCommand, 
                           aChannel, aLoadGroup,
                           aContainer, kVideoDocumentCID,
@@ -251,7 +248,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
   }  
 
   
-  if (IsImageContentType(aContentType)) {
+  if (IsImageContentType(contentType.get())) {
     return CreateDocument(aCommand, 
                           aChannel, aLoadGroup,
                           aContainer, kImageDocumentCID,
@@ -261,7 +258,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
   nsCOMPtr<nsIPluginHost> pluginHostCOM(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID));
   nsPluginHost *pluginHost = static_cast<nsPluginHost*>(pluginHostCOM.get());
   if(pluginHost &&
-     pluginHost->PluginExistsForType(aContentType)) {
+     pluginHost->PluginExistsForType(contentType.get())) {
     return CreateDocument(aCommand,
                           aChannel, aLoadGroup,
                           aContainer, kPluginDocumentCID,
@@ -414,7 +411,6 @@ nsresult
 nsContentDLF::CreateXULDocument(const char* aCommand,
                                 nsIChannel* aChannel,
                                 nsILoadGroup* aLoadGroup,
-                                const char* aContentType,
                                 nsIDocShell* aContainer,
                                 nsISupports* aExtraInfo,
                                 nsIStreamListener** aDocListener,
