@@ -20,62 +20,31 @@ add_task(function* test_send_report_manual_nocert() {
 
 
 function createNetworkErrorMessagePromise(aBrowser) {
-  let progressListener;
   let promise = new Promise(function(resolve, reject) {
-    
     let originalDocumentURI = aBrowser.contentDocument.documentURI;
 
-    progressListener = {
-      onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
-        
-        if (!(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE)) {
-          reject("location change was not to an error page");
-        }
-      },
+    let loadedListener = function() {
+      let doc = aBrowser.contentDocument;
 
-      onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-        let doc = aBrowser.contentDocument;
+      if (doc && doc.getElementById("reportCertificateError")) {
+        let documentURI = doc.documentURI;
 
-        if (doc && doc.getElementById("reportCertificateError")) {
-          
-          
-          let documentURI = doc.documentURI;
-          if (documentURI == originalDocumentURI) {
-            return;
-          }
-
-          aWebProgress.removeProgressListener(progressListener,
-            Ci.nsIWebProgress.NOTIFY_LOCATION |
-            Ci.nsIWebProgress.NOTIFY_STATE_REQUEST);
-          let matchArray = /about:neterror\?.*&d=([^&]*)/.exec(documentURI);
-          if (!matchArray) {
-            reject("no network error message found in URI")
+        aBrowser.removeEventListener("DOMContentLoaded", loadedListener, true);
+        let matchArray = /about:neterror\?.*&d=([^&]*)/.exec(documentURI);
+        if (!matchArray) {
+          reject("no network error message found in URI");
           return;
-          }
-
-          let errorMsg = matchArray[1];
-          resolve(decodeURIComponent(errorMsg));
         }
-      },
 
-      QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                          Ci.nsISupportsWeakReference])
+        let errorMsg = matchArray[1];
+        resolve(decodeURIComponent(errorMsg));
+      }
     };
-
-    aBrowser.addProgressListener(progressListener,
-            Ci.nsIWebProgress.NOTIFY_LOCATION |
-            Ci.nsIWebProgress.NOTIFY_STATE_REQUEST);
+    aBrowser.addEventListener("DOMContentLoaded", loadedListener, true);
   });
-
-  
-  createNetworkErrorMessagePromise.listeners.set(promise, progressListener);
 
   return promise;
 }
-
-
-
-createNetworkErrorMessagePromise.listeners = new WeakMap();
 
 
 add_task(function* test_set_automatic() {
