@@ -4151,7 +4151,7 @@ nsDocumentViewer::ShouldAttachToTopLevel()
   if (nsIWidget::UsePuppetWidgets())
     return true;
 
-#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_ANDROID)
   
   
   nsWindowType winType = mParentWidget->WindowType();
