@@ -44,14 +44,14 @@ var gPluginHandler = {
     switch (msg.name) {
       case "PluginContent:ShowClickToPlayNotification":
         this.showClickToPlayNotification(msg.target, msg.data.plugins, msg.data.showNow,
-                                         msg.principal, msg.data.host);
+                                         msg.principal, msg.data.host, msg.data.location);
         break;
       case "PluginContent:RemoveNotification":
         this.removeNotification(msg.target, msg.data.name);
         break;
       case "PluginContent:UpdateHiddenPluginUI":
         this.updateHiddenPluginUI(msg.target, msg.data.haveInsecure, msg.data.actions,
-                                  msg.principal, msg.data.host);
+                                  msg.principal, msg.data.host, msg.data.location);
         break;
       case "PluginContent:HideNotificationBar":
         this.hideNotificationBar(msg.target, msg.data.name);
@@ -216,13 +216,23 @@ var gPluginHandler = {
     });
   },
 
-  showClickToPlayNotification: function (browser, plugins, showNow, principal, host) {
+  showClickToPlayNotification: function (browser, plugins, showNow, principal,
+                                         host, location) {
     
     
     
     
     
     if (!principal.equals(browser.contentPrincipal)) {
+      return;
+    }
+
+    
+    
+    
+    
+    let receivedURI = BrowserUtils.makeURI(location);
+    if (!browser.documentURI.equalsExceptRef(receivedURI)) {
       return;
     }
 
@@ -300,13 +310,23 @@ var gPluginHandler = {
       notificationBox.removeNotification(notification, true);
   },
 
-  updateHiddenPluginUI: function (browser, haveInsecure, actions, principal, host) {
+  updateHiddenPluginUI: function (browser, haveInsecure, actions, principal,
+                                  host, location) {
     
     
     
     
     
     if (!principal.equals(browser.contentPrincipal)) {
+      return;
+    }
+
+    
+    
+    
+    
+    let receivedURI = BrowserUtils.makeURI(location);
+    if (!browser.documentURI.equalsExceptRef(receivedURI)) {
       return;
     }
 

@@ -662,7 +662,7 @@ PluginContent.prototype = {
     
     
     if (plugin === null) {
-      let contentWindow = this.global.content;
+      let contentWindow = this.content;
       let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                              .getInterface(Ci.nsIDOMWindowUtils);
       
@@ -679,8 +679,9 @@ PluginContent.prototype = {
 
     let pluginData = this.pluginData;
 
-    let principal = this.global.content.document.nodePrincipal;
+    let principal = this.content.document.nodePrincipal;
     let principalHost = this._getHostFromPrincipal(principal);
+    let location = this.content.document.location.href;
 
     for (let p of plugins) {
       let pluginInfo = this._getPluginInfo(p);
@@ -710,6 +711,7 @@ PluginContent.prototype = {
       plugins: [... this.pluginData.values()],
       showNow: showNow,
       host: principalHost,
+      location: location,
     }, null, principal);
   },
 
@@ -725,16 +727,13 @@ PluginContent.prototype = {
 
 
   updateNotificationUI: function (document) {
-    let principal;
+    document = document || this.content.document;
 
-    if (document) {
-      
-      
-      
-      principal = document.defaultView.top.document.nodePrincipal;
-    } else {
-      principal = this.content.document.nodePrincipal;
-    }
+    
+    
+    
+    let principal = document.defaultView.top.document.nodePrincipal;
+    let location = document.location.href;
 
     
     let haveInsecure = false;
@@ -795,6 +794,7 @@ PluginContent.prototype = {
       haveInsecure: haveInsecure,
       actions: [... actions.values()],
       host: this._getHostFromPrincipal(principal),
+      location: location,
     }, null, principal);
   },
 
