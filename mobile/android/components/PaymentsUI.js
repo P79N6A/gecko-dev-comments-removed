@@ -9,52 +9,14 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/JNI.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
-function paymentSuccess(aRequestId) {
-  return function(aResult) {
-    closePaymentTab(aRequestId, function() {
-      cpmm.sendAsyncMessage("Payment:Success", { result: aResult,
-                                    requestId: aRequestId });
-    });
-  }
-}
-
-function paymentFailed(aRequestId) {
-  return function(aErrorMsg) {
-    closePaymentTab(aRequestId, function() {
-      cpmm.sendAsyncMessage("Payment:Failed", { errorMsg: aErrorMsg,
-                                    requestId: aRequestId });
-    });
-  }
-}
-
 let paymentTabs = {};
 let cancelTabCallbacks = {};
-function paymentCanceled(aRequestId) {
-  return function() {
-    paymentFailed(aRequestId)();
-  }
-}
-function closePaymentTab(aId, aCallback) {
-  if (paymentTabs[aId]) {
-    paymentTabs[aId].browser.removeEventListener("TabClose", cancelTabCallbacks[aId]);
-    delete cancelTabCallbacks[aId];
-
-    
-    let content = Services.wm.getMostRecentWindow("navigator:browser");
-    if (content) {
-      content.BrowserApp.closeTab(paymentTabs[aId]);
-    }
-
-    paymentTabs[aId] = null;
-  }
-
-  aCallback();
-}
 
 function PaymentUI() {
 }
@@ -66,6 +28,16 @@ PaymentUI.prototype = {
     }
     return this._bundle;
   },
+
+  _error: function(aCallback) {
+    return function _error(id, msg) {
+      if (aCallback) {
+        aCallback.onresult(id, msg);
+      }
+    };
+  },
+
+  
 
   confirmPaymentRequest: function confirmPaymentRequest(aRequestId,
                                                         aRequests,
@@ -104,17 +76,15 @@ PaymentUI.prototype = {
     });
   },
 
-  _error: function(aCallback) {
-    return function _error(id, msg) {
-      if (aCallback) {
-        aCallback.onresult(id, msg);
-      }
-    };
-  },
-
   showPaymentFlow: function showPaymentFlow(aRequestId,
                                             aPaymentFlowInfo,
                                             aErrorCb) {
+    function paymentCanceled(aErrorCb, aRequestId) {
+      return function() {
+        aErrorCb.onresult(aRequestId, "DIALOG_CLOSED_BY_USER");
+      }
+    }
+
     let _error = this._error(aErrorCb);
 
     
@@ -127,69 +97,56 @@ PaymentUI.prototype = {
     
     
     
-    let tab = content.BrowserApp.addTab(aPaymentFlowInfo.uri + aPaymentFlowInfo.jwt);
-
-    
-    tab.browser.addEventListener("DOMWindowCreated", function loadPaymentShim() {
-      let frame = tab.browser.contentDocument.defaultView;
-      try {
-        frame.wrappedJSObject.mozPaymentProvider = {
-          __exposedProps__: {
-            paymentSuccess: 'r',
-            paymentFailed: 'r',
-            mnc: 'r',
-            mcc: 'r',
-          },
-
-          _getNetworkInfo: function(type) {
-            let jenv = JNI.GetForThread();
-            let jMethodName = "get" + type.toUpperCase();
-            let jGeckoNetworkManager = JNI.LoadClass(jenv, "org/mozilla/gecko/GeckoNetworkManager", {
-              static_methods: [
-                { name: jMethodName, sig: "()I" },
-              ],
-            });
-            let val = jGeckoNetworkManager[jMethodName]();
-            JNI.UnloadClasses(jenv);
-
-            if (val < 0)
-              return null;
-            return val;
-          },
-
-          get mnc() {
-            delete this.mnc;
-            return this.mnc = this._getNetworkInfo("mnc");
-          },
-
-          get mcc() {
-            delete this.mcc;
-            return this.mcc = this._getNetworkInfo("mcc");
-          },
-
-          paymentSuccess: paymentSuccess(aRequestId),
-          paymentFailed: paymentFailed(aRequestId)
-        };
-      } catch (e) {
-        _error(aRequestId, "ERROR_ADDING_METHODS");
-      } finally {
-        tab.browser.removeEventListener("DOMWindowCreated", loadPaymentShim);
-      }
-    }, true);
-
-    
+    let tab = content.BrowserApp
+                     .addTab("chrome://browser/content/payment.xhtml");
+    tab.browser.addEventListener("DOMContentLoaded", function onloaded() {
+      tab.browser.removeEventListener("DOMContentLoaded", onloaded);
+      let document = tab.browser.contentDocument;
+      let frame = document.getElementById("payflow");
+      frame.setAttribute("mozbrowser", true);
+      let docshell = frame.contentWindow
+                          .QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIWebNavigation)
+                          .QueryInterface(Ci.nsIDocShell);
+      docshell.paymentRequestId = aRequestId;
+      frame.src = aPaymentFlowInfo.uri + aPaymentFlowInfo.jwt;
+      document.title = aPaymentFlowInfo.description || aPaymentFlowInfo.name ||
+                       frame.src;
+    });
     paymentTabs[aRequestId] = tab;
-    cancelTabCallbacks[aRequestId] = paymentCanceled(aRequestId);
+    cancelTabCallbacks[aRequestId] = paymentCanceled(aErrorCb, aRequestId);
 
     
     tab.browser.addEventListener("TabClose", cancelTabCallbacks[aRequestId]);
   },
 
-  cleanup: function cleanup() {
+  closePaymentFlow: function closePaymentFlow(aRequestId) {
+    if (!paymentTabs[aRequestId]) {
+      return Promise.reject();
+    }
+
+    let deferred = Promise.defer();
+
+    paymentTabs[aRequestId].browser.removeEventListener(
+      "TabClose",
+      cancelTabCallbacks[aRequestId]
+    );
+    delete cancelTabCallbacks[aRequestId];
+
     
+    let content = Services.wm.getMostRecentWindow("navigator:browser");
+    if (content) {
+      content.BrowserApp.closeTab(paymentTabs[aRequestId]);
+    }
+    paymentTabs[aRequestId] = null;
+
+    deferred.resolve();
+
+    return deferred.promise;
   },
 
-  classID: Components.ID("{3c6c9575-f57e-427b-a8aa-57bc3cbff48f}"), 
+  classID: Components.ID("{3c6c9575-f57e-427b-a8aa-57bc3cbff48f}"),
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPaymentUIGlue])
 }
 
