@@ -255,7 +255,15 @@ LinkModuleToHeap(JSContext *cx, AsmJSModule &module, Handle<ArrayBufferObject*> 
         return LinkFail(cx, msg.get());
     }
 
-    if (!ArrayBufferObject::prepareForAsmJS(cx, heap))
+    
+    
+    
+    
+    
+    if (module.usesSignalHandlers() && !cx->canUseSignalHandlers())
+        return LinkFail(cx, "Code generated with signal handlers but signals are deactivated");
+
+    if (!ArrayBufferObject::prepareForAsmJS(cx, heap, module.usesSignalHandlers()))
         return LinkFail(cx, "Unable to prepare ArrayBuffer for asm.js use");
 
     module.initHeap(heap, cx);

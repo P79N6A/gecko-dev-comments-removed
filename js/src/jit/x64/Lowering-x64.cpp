@@ -131,16 +131,23 @@ LIRGeneratorX64::visitAsmJSLoadHeap(MAsmJSLoadHeap *ins)
 {
     MDefinition *ptr = ins->ptr();
     JS_ASSERT(ptr->type() == MIRType_Int32);
+    LAllocation ptrAlloc;
 
-    
-    
-    
-    
-    if (ptr->isConstant() && ptr->toConstant()->value().toInt32() >= 0) {
-        LAsmJSLoadHeap *lir = new(alloc()) LAsmJSLoadHeap(LAllocation(ptr->toConstant()->vp()));
-        return define(lir, ins);
+    bool useConstant = false;
+    if (ptr->isConstant()) {
+        int32_t ptrValue = ptr->toConstant()->value().toInt32();
+        if (ins->skipBoundsCheck() && ptrValue >= 0) {
+            
+            
+            
+            useConstant = true;
+        }
+        
     }
-    return define(new(alloc()) LAsmJSLoadHeap(useRegisterAtStart(ptr)), ins);
+
+    ptrAlloc = (useConstant) ? LAllocation(ptr->toConstant()->vp()) : useRegisterAtStart(ptr);
+    LAsmJSLoadHeap *lir = new(alloc()) LAsmJSLoadHeap(ptrAlloc);
+    return define(lir, ins);
 }
 
 bool

@@ -414,10 +414,38 @@ ArrayBufferObject::changeContents(JSContext *cx, void *newData)
 JS_STATIC_ASSERT(AsmJSAllocationGranularity == AsmJSPageSize);
 #endif
 
+ bool
+ArrayBufferObject::prepareForAsmJSNoSignals(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+{
+    if (buffer->isAsmJSArrayBuffer())
+        return true;
+
+    if (buffer->isSharedArrayBuffer())
+        return true;
+
+    if (!ensureNonInline(cx, buffer))
+        return false;
+
+    buffer->setIsAsmJSArrayBuffer();
+    return true;
+}
+
+void
+ArrayBufferObject::releaseAsmJSArrayNoSignals(FreeOp *fop)
+{
+    JS_ASSERT(!isAsmJSMappedArrayBuffer());
+    fop->free_(dataPointer());
+}
+
 #if defined(JS_ION) && defined(JS_CPU_X64)
  bool
-ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer,
+                                   bool usesSignalHandlers)
 {
+    
+    if (!usesSignalHandlers)
+        return prepareForAsmJSNoSignals(cx, buffer);
+
     if (buffer->isAsmJSArrayBuffer())
         return true;
 
@@ -467,6 +495,7 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
     
     
     buffer->setIsAsmJSArrayBuffer();
+    buffer->setIsAsmJSMappedArrayBuffer();
 
     return true;
 }
@@ -474,6 +503,11 @@ ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buf
 void
 ArrayBufferObject::releaseAsmJSArray(FreeOp *fop)
 {
+    if (!isAsmJSMappedArrayBuffer()) {
+        releaseAsmJSArrayNoSignals(fop);
+        return;
+    }
+
     void *data = dataPointer();
 
     JS_ASSERT(uintptr_t(data) % AsmJSPageSize == 0);
@@ -492,25 +526,20 @@ ArrayBufferObject::releaseAsmJSArray(FreeOp *fop)
 }
 #else  
 bool
-ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+ArrayBufferObject::prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer,
+                                   bool usesSignalHandlers)
 {
-    if (buffer->isAsmJSArrayBuffer())
-        return true;
-
-    if (buffer->isSharedArrayBuffer())
-        return true;
-
-    if (!ensureNonInline(cx, buffer))
-        return false;
-
-    buffer->setIsAsmJSArrayBuffer();
-    return true;
+    
+    
+    JS_ASSERT(!usesSignalHandlers);
+    return prepareForAsmJSNoSignals(cx, buffer);
 }
 
 void
 ArrayBufferObject::releaseAsmJSArray(FreeOp *fop)
 {
-    fop->free_(dataPointer());
+    
+    releaseAsmJSArrayNoSignals(fop);
 }
 #endif
 
@@ -774,13 +803,12 @@ ArrayBufferObject::addSizeOfExcludingThis(JSObject *obj, mozilla::MallocSizeOf m
         return;
 
     if (MOZ_UNLIKELY(buffer.isAsmJSArrayBuffer())) {
-#if defined (JS_CPU_X64)
         
         
-        sizes->nonHeapElementsAsmJS += buffer.byteLength();
-#else
-        sizes->mallocHeapElementsAsmJS += mallocSizeOf(buffer.dataPointer());
-#endif
+        if (buffer.isAsmJSMappedArrayBuffer())
+            sizes->nonHeapElementsAsmJS += buffer.byteLength();
+        else
+            sizes->mallocHeapElementsAsmJS += mallocSizeOf(buffer.dataPointer());
     } else if (MOZ_UNLIKELY(buffer.isMappedArrayBuffer())) {
         sizes->nonHeapElementsMapped += buffer.byteLength();
     } else if (buffer.dataPointer()) {
