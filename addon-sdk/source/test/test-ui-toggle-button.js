@@ -263,7 +263,7 @@ exports['test button global state updated'] = function(assert) {
   
 
   assert.throws(() => button.id = 'another-id',
-    /^setting a property that has only a getter/,
+    /^setting getter-only property/,
     'id cannot be set at runtime');
 
   assert.equal(button.id, 'my-button-4',
