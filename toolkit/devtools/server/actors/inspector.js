@@ -275,6 +275,22 @@ var NodeActor = exports.NodeActor = protocol.ActorClass({
       }
     }
 
+    
+    
+    form.setFormProperty = (name, value) => {
+      if (!form.props) {
+        form.props = {};
+      }
+      form.props[name] = value;
+    };
+
+    
+    
+    events.emit(NodeActor, "form", {
+      target: this,
+      data: form
+    });
+
     return form;
   },
 
@@ -928,6 +944,18 @@ let NodeFront = protocol.FrontClass(NodeActor, {
   }, {
     impl: "_getNodeValue"
   }),
+
+  
+
+  getFormProperty: function(name) {
+    return this._form.props ? this._form.props[name] : null;
+  },
+
+  hasFormProperty: function(name) {
+    return this._form.props ? (name in this._form.props) : null;
+  },
+
+  get formProperties() this._form.props,
 
   
 
