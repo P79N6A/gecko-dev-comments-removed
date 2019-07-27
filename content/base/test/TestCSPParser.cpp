@@ -114,9 +114,7 @@ nsresult runTest(uint32_t aExpectedPolicyCount,
   
   nsString policyStr;
   policyStr.AssignASCII(aPolicy);
-  
-  
-  rv = csp->AppendPolicy(policyStr, nullptr, false);
+  rv = csp->AppendPolicy(policyStr, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
   

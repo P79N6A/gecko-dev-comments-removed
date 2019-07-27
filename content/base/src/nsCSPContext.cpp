@@ -265,16 +265,11 @@ nsCSPContext::RemovePolicy(uint32_t aIndex)
 
 NS_IMETHODIMP
 nsCSPContext::AppendPolicy(const nsAString& aPolicyString,
-                           nsIURI* aSelfURI,
                            bool aReportOnly)
 {
   CSPCONTEXTLOG(("nsCSPContext::AppendPolicy: %s",
                  NS_ConvertUTF16toUTF8(aPolicyString).get()));
 
-  if (aSelfURI) {
-    
-    NS_WARNING("aSelfURI should be a nullptr in AppendPolicy and removed in bug 991474");
-  }
   
   NS_ASSERTION(mSelfURI, "mSelfURI required for AppendPolicy, but not set");
   nsCSPPolicy* policy = nsCSPParser::parseContentSecurityPolicy(aPolicyString, mSelfURI, aReportOnly, mInnerWindowID);
