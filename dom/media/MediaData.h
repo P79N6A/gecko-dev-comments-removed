@@ -409,15 +409,6 @@ private:
 };
 
   
-  
-class MediaLargeByteBuffer : public FallibleTArray<uint8_t> {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaLargeByteBuffer);
-
-private:
-  ~MediaLargeByteBuffer() {}
-};
-
-  
 class MediaByteBuffer : public nsTArray<uint8_t> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaByteBuffer);
 
