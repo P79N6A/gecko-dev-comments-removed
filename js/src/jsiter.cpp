@@ -9,6 +9,7 @@
 #include "jsiter.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 
@@ -45,6 +46,7 @@ using namespace js::gc;
 using JS::ForOfIterator;
 
 using mozilla::ArrayLength;
+using mozilla::Maybe;
 #ifdef JS_MORE_DETERMINISTIC
 using mozilla::PodCopy;
 #endif
@@ -96,7 +98,7 @@ NewKeyValuePair(JSContext *cx, jsid id, const Value &val, MutableHandleValue rva
 
 static inline bool
 Enumerate(JSContext *cx, HandleObject pobj, jsid id,
-          bool enumerable, unsigned flags, IdSet& ht, AutoIdVector *props)
+          bool enumerable, unsigned flags, Maybe<IdSet>& ht, AutoIdVector *props)
 {
     
     
@@ -108,15 +110,22 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
         return true;
 
     if (!(flags & JSITER_OWNONLY) || pobj->is<ProxyObject>() || pobj->getOps()->enumerate) {
+        if (!ht) {
+            ht.emplace(cx);
+            
+            if (!ht->init(5))
+                return false;
+        }
+
         
-        IdSet::AddPtr p = ht.lookupForAdd(id);
+        IdSet::AddPtr p = ht->lookupForAdd(id);
         if (MOZ_UNLIKELY(!!p))
             return true;
 
         
         
         
-        if ((pobj->is<ProxyObject>() || pobj->getProto() || pobj->getOps()->enumerate) && !ht.add(p, id))
+        if ((pobj->is<ProxyObject>() || pobj->getProto() || pobj->getOps()->enumerate) && !ht->add(p, id))
             return false;
     }
 
@@ -132,7 +141,7 @@ Enumerate(JSContext *cx, HandleObject pobj, jsid id,
 }
 
 static bool
-EnumerateNativeProperties(JSContext *cx, HandleNativeObject pobj, unsigned flags, IdSet &ht,
+EnumerateNativeProperties(JSContext *cx, HandleNativeObject pobj, unsigned flags, Maybe<IdSet> &ht,
                           AutoIdVector *props)
 {
     bool enumerateSymbols;
@@ -274,10 +283,8 @@ static bool
 Snapshot(JSContext *cx, HandleObject pobj_, unsigned flags, AutoIdVector *props)
 {
     
-    IdSet ht(cx);
-    if (!ht.init(3))
-        return false;
-
+    
+    Maybe<IdSet> ht;
     RootedObject pobj(cx, pobj_);
 
     do {
