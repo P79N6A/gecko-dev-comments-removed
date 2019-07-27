@@ -93,7 +93,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mLineNumber = 0;
   mTotalPlacedFrames = 0;
   mBStartEdge = 0;
-  mTrimmableWidth = 0;
+  mTrimmableISize = 0;
 
   mInflationMinFontSize =
     nsLayoutUtils::InflationMinFontSizeFor(aOuterReflowState->frame);
@@ -881,7 +881,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nscoord availableWidth = psd->mIEnd - (psd->mICoord - mTrimmableWidth);
+        nscoord availableISize = psd->mIEnd - (psd->mICoord - mTrimmableISize);
         if (psd->mNoWrap) {
           
           
@@ -892,9 +892,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          availableWidth = 0;
+          availableISize = 0;
         }
-        placedFloat = AddFloat(outOfFlowFrame, availableWidth);
+        placedFloat = AddFloat(outOfFlowFrame, availableISize);
         NS_ASSERTION(!(outOfFlowFrame->GetType() == nsGkAtoms::letterFrame &&
                        GetFirstLetterStyleOK()),
                     "FirstLetterStyle set on line with floating first letter");
@@ -1005,7 +1005,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
     
     
     if (!continuingTextRun && !pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
-      mTrimmableWidth = 0;
+      mTrimmableISize = 0;
     }
 
     
@@ -1204,7 +1204,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
   
   
-  bool outside = pfd->mBounds.IEnd(lineWM) - mTrimmableWidth + endMargin >
+  bool outside = pfd->mBounds.IEnd(lineWM) - mTrimmableISize + endMargin >
                  psd->mIEnd;
   if (!outside) {
     
