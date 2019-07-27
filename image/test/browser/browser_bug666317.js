@@ -27,18 +27,6 @@ function currentRequest() {
   return img.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
 }
 
-function attachDiscardObserver(result) {
-  
-  let observer = new ImageDiscardObserver(result);
-  let scriptedObserver = Cc["@mozilla.org/image/tools;1"]
-                           .getService(Ci.imgITools)
-                           .createScriptedObserver(observer);
-
-  
-  let request = currentRequest();
-  return request.clone(scriptedObserver);
-}
-
 function isImgDecoded() {
   let request = currentRequest();
   return request.imageStatus & Ci.imgIRequest.STATUS_FRAME_COMPLETE ? true : false;
@@ -71,7 +59,16 @@ function test() {
 function step2() {
   
   var result = { wasDiscarded: false };
-  var clonedRequest = attachDiscardObserver(result);
+
+  
+  var observer = new ImageDiscardObserver(result);
+  var scriptedObserver = Cc["@mozilla.org/image/tools;1"]
+                           .getService(Ci.imgITools)
+                           .createScriptedObserver(observer);
+
+  
+  var request = currentRequest();
+  var clonedRequest = request.clone(scriptedObserver);
 
   
   forceDecodeImg();
@@ -83,6 +80,13 @@ function step2() {
   var os = Cc["@mozilla.org/observer-service;1"]
              .getService(Ci.nsIObserverService);
   os.notifyObservers(null, 'memory-pressure', 'heap-minimize');
+
+  
+  
+  setTimeout(() => step3(result, scriptedObserver, clonedRequest), 0);
+}
+
+function step3(result, scriptedObserver, clonedRequest) {
   ok(result.wasDiscarded, 'Image should be discarded.');
 
   
