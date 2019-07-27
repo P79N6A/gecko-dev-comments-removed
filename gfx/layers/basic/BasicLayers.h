@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include "Layers.h"                     
 #include "gfxTypes.h"
-#include "gfxCachedTempSurface.h"       
 #include "gfxContext.h"                 
 #include "mozilla/Attributes.h"         
 #include "mozilla/WidgetUtils.h"        
@@ -136,9 +135,6 @@ public:
   already_AddRefed<gfxContext> PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
                                                  const nsIntRegion& aRegion,
                                                  bool* aNeedsClipToVisibleRegion);
-  already_AddRefed<gfxContext> PushGroupWithCachedSurface(gfxContext *aTarget,
-                                                          gfxContentType aContent);
-  void PopGroupToSourceWithCachedSurface(gfxContext *aTarget, gfxContext *aPushed);
 
   virtual bool IsCompositingCheap() { return false; }
   virtual int32_t GetMaxTextureSize() const { return INT32_MAX; }
@@ -186,12 +182,8 @@ protected:
   
   nsRefPtr<ImageFactory> mFactory;
 
-  
-  gfxCachedTempSurface mCachedSurface;
-
   BufferMode mDoubleBuffering;
   bool mUsingDefaultTarget;
-  bool mCachedSurfaceInUse;
   bool mTransactionIncomplete;
   bool mCompositorMightResample;
 };
