@@ -714,6 +714,13 @@ protected:
   
 
 
+
+  already_AddRefed<PaintedLayer> AttemptToRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
+                                                              const nsIFrame *aReferenceFrame,
+                                                              const nsPoint& aTopLeft);
+  
+
+
   PaintedDisplayItemLayerUserData* RecyclePaintedLayer(PaintedLayer* aLayer,
                                                        const nsIFrame* aAnimatedGeometryRoot,
                                                        bool& didResetScrollPositionForLayerPixelAlignment);
@@ -1701,54 +1708,63 @@ ContainerState::GetLayerCreationHint(const nsIFrame* aAnimatedGeometryRoot)
 }
 
 already_AddRefed<PaintedLayer>
+ContainerState::AttemptToRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
+                                             const nsIFrame* aReferenceFrame,
+                                             const nsPoint& aTopLeft)
+{
+  if (mNextFreeRecycledPaintedLayer >= mRecycledPaintedLayers.Length()) {
+    return nullptr;
+  }
+
+  
+  nsRefPtr<PaintedLayer> layer = mRecycledPaintedLayers[mNextFreeRecycledPaintedLayer];
+  ++mNextFreeRecycledPaintedLayer;
+
+  
+  
+  if (!mManager->IsOptimizedFor(layer, GetLayerCreationHint(aAnimatedGeometryRoot))) {
+    return nullptr;
+  }
+
+  bool didResetScrollPositionForLayerPixelAlignment = false;
+  PaintedDisplayItemLayerUserData* data =
+    RecyclePaintedLayer(layer, aAnimatedGeometryRoot,
+                        didResetScrollPositionForLayerPixelAlignment);
+  PreparePaintedLayerForUse(layer, data, aAnimatedGeometryRoot, aReferenceFrame,
+                            aTopLeft,
+                            didResetScrollPositionForLayerPixelAlignment);
+
+  return layer.forget();
+}
+
+already_AddRefed<PaintedLayer>
 ContainerState::CreateOrRecyclePaintedLayer(const nsIFrame* aAnimatedGeometryRoot,
                                             const nsIFrame* aReferenceFrame,
                                             const nsPoint& aTopLeft)
 {
   
-  nsRefPtr<PaintedLayer> layer;
-  PaintedDisplayItemLayerUserData* data;
-  bool layerRecycled = false;
-  bool didResetScrollPositionForLayerPixelAlignment = false;
+  nsRefPtr<PaintedLayer> layer =
+    AttemptToRecyclePaintedLayer(aAnimatedGeometryRoot, aReferenceFrame, aTopLeft);
+  if (layer) {
+    return layer.forget();
+  }
 
-  
-  
   LayerManager::PaintedLayerCreationHint creationHint =
     GetLayerCreationHint(aAnimatedGeometryRoot);
 
-  if (mNextFreeRecycledPaintedLayer < mRecycledPaintedLayers.Length()) {
-    
-    layer = mRecycledPaintedLayers[mNextFreeRecycledPaintedLayer];
-    ++mNextFreeRecycledPaintedLayer;
-
-    
-    
-    if (mManager->IsOptimizedFor(layer, creationHint)) {
-      layerRecycled = true;
-      data = RecyclePaintedLayer(layer, aAnimatedGeometryRoot,
-                                 didResetScrollPositionForLayerPixelAlignment);
-
-      
-      
-      
-    }
+  
+  layer = mManager->CreatePaintedLayerWithHint(creationHint);
+  if (!layer) {
+    return nullptr;
   }
 
-  if (!layerRecycled) {
-    
-    layer = mManager->CreatePaintedLayerWithHint(creationHint);
-    if (!layer)
-      return nullptr;
-    
-    data = new PaintedDisplayItemLayerUserData();
-    layer->SetUserData(&gPaintedDisplayItemLayerUserData, data);
-    ResetScrollPositionForLayerPixelAlignment(aAnimatedGeometryRoot);
-    didResetScrollPositionForLayerPixelAlignment = true;
-  }
+  
+  PaintedDisplayItemLayerUserData* data = new PaintedDisplayItemLayerUserData();
+  layer->SetUserData(&gPaintedDisplayItemLayerUserData, data);
+  ResetScrollPositionForLayerPixelAlignment(aAnimatedGeometryRoot);
 
   PreparePaintedLayerForUse(layer, data, aAnimatedGeometryRoot,
-                            aReferenceFrame, aTopLeft,
-                            didResetScrollPositionForLayerPixelAlignment);
+                            aReferenceFrame, aTopLeft, true);
 
   return layer.forget();
 }
