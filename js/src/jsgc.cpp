@@ -2407,12 +2407,6 @@ GCRuntime::updatePointersToRelocatedCells()
         comp->sweepCrossCompartmentWrappers();
 
     
-    for (ContextIter i(rt); !i.done(); i.next()) {
-        for (JSGenerator *gen = i.get()->innermostGenerator(); gen; gen = gen->prevGenerator)
-            gen->obj = MaybeForwarded(gen->obj.get());
-    }
-
-    
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
         ArenaLists &al = zone->allocator.arenas;
         for (unsigned i = 0; i < FINALIZE_LIMIT; ++i) {
