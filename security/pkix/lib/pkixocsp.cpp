@@ -323,8 +323,7 @@ VerifyEncodedOCSPResponse(TrustDomain& trustDomain, const struct CertID& certID,
       return Result::ERROR_OCSP_UNKNOWN_CERT;
   }
 
-  PR_NOT_REACHED("unknown CertStatus");
-  return Result::ERROR_OCSP_UNKNOWN_CERT;
+  return NotReached("unknown CertStatus", Result::ERROR_OCSP_UNKNOWN_CERT);
 }
 
 
@@ -888,7 +887,7 @@ CreateEncodedOCSPRequest(TrustDomain& trustDomain, const struct CertID& certID,
     + 2                             
     + 2                             
     + 2                             
-    + PR_ARRAY_SIZE(hashAlgorithm)  
+    + sizeof(hashAlgorithm)         
     + 2 + hashLen                   
     + 2 + hashLen                   
     + 2;                            
@@ -918,7 +917,7 @@ CreateEncodedOCSPRequest(TrustDomain& trustDomain, const struct CertID& certID,
   *d++ = 0x30; *d++ = totalLen - 10u; 
 
   
-  for (size_t i = 0; i < PR_ARRAY_SIZE(hashAlgorithm); ++i) {
+  for (size_t i = 0; i < sizeof(hashAlgorithm); ++i) {
     *d++ = hashAlgorithm[i];
   }
 

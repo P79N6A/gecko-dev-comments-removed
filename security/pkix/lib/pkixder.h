@@ -37,8 +37,6 @@
 
 
 
-#include <cassert>
-
 #include "pkix/Input.h"
 #include "pkix/pkixtypes.h"
 
