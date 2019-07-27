@@ -202,9 +202,9 @@ public:
     
     
   }
-  void RebuildFragmentedIndex(
+  bool RebuildFragmentedIndex(
     const nsTArray<mozilla::MediaByteRange>& aByteRanges);
-  void RebuildFragmentedIndex(BoxContext& aContext);
+  bool RebuildFragmentedIndex(BoxContext& aContext);
   Interval<Microseconds> GetCompositionRange(
     const nsTArray<mozilla::MediaByteRange>& aByteRanges);
   bool ReachedEnd();
