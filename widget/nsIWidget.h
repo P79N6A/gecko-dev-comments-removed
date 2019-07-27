@@ -55,6 +55,7 @@ struct ScrollableLayerGuid;
 }
 namespace gfx {
 class DrawTarget;
+class SourceSurface;
 }
 namespace widget {
 class TextEventDispatcher;
@@ -2102,6 +2103,23 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsresult ClearNativeTouchSequence(nsIObserver* aObserver);
+
+    
+
+
+
+
+
+
+
+    mozilla::TemporaryRef<mozilla::gfx::SourceSurface> SnapshotWidgetOnScreen();
+
+    
+
+
+
+
+    virtual bool CaptureWidgetOnScreen(mozilla::RefPtr<mozilla::gfx::DrawTarget> aDT) = 0;
 
 private:
   class LongTapInfo
