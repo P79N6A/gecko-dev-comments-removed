@@ -56,7 +56,7 @@ public:
                        bool aImpactedByFloats,
                        bool aIsTopOfPage,
                        mozilla::WritingMode aWritingMode,
-                       nscoord aContainerWidth);
+                       const nsSize& aContainerSize);
 
   void EndLineReflow();
 
@@ -553,7 +553,7 @@ protected:
   
   nscoord ContainerWidthForSpan(PerSpanData* aPSD) {
     return (aPSD == mRootSpan)
-      ? mContainerWidth
+      ? ContainerWidth()
       : aPSD->mFrame->mBounds.Width(mRootSpan->mWritingMode);
   }
 
@@ -589,7 +589,9 @@ protected:
   nscoord mTrimmableISize;
 
   
-  nscoord mContainerWidth;
+  nsSize mContainerSize;
+  nscoord ContainerWidth() const { return mContainerSize.width; }
+  nscoord ContainerHeight() const { return mContainerSize.height; }
 
   bool mFirstLetterStyleOK      : 1;
   bool mIsTopOfPage             : 1;

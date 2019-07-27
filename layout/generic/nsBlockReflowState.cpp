@@ -72,12 +72,20 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   
   
   
-  mContainerWidth = aReflowState.ComputedWidth();
-  if (mContainerWidth == NS_UNCONSTRAINEDSIZE) {
-    mContainerWidth = 0;
+  
+  
+  mContainerSize.width = aReflowState.ComputedWidth();
+  if (mContainerSize.width == NS_UNCONSTRAINEDSIZE) {
+    mContainerSize.width = 0;
   }
 
-  mContainerWidth += mBorderPadding.LeftRight(wm);
+  mContainerSize.width += mBorderPadding.LeftRight(wm);
+
+  
+  
+  
+  mContainerSize.height = aReflowState.ComputedHeight() +
+                          mBorderPadding.TopBottom(wm);
 
   if ((aBStartMarginRoot && !logicalSkipSides.BStart()) ||
       0 != mBorderPadding.BStart(wm)) {
@@ -320,7 +328,7 @@ nsBlockReflowState::GetFloatAvailableSpaceWithState(
   nsFlowAreaRect result =
     mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::BAND_FROM_POINT,
                                blockSize, mContentArea, aState,
-                               mContainerWidth);
+                               ContainerWidth());
   
   if (result.mRect.ISize(wm) < 0) {
     result.mRect.ISize(wm) = 0;
@@ -357,7 +365,7 @@ nsBlockReflowState::GetFloatAvailableSpaceForBSize(
 #endif
   nsFlowAreaRect result =
     mFloatManager->GetFlowArea(wm, aBCoord, nsFloatManager::WIDTH_WITHIN_HEIGHT,
-                               aBSize, mContentArea, aState, mContainerWidth);
+                               aBSize, mContentArea, aState, ContainerWidth());
   
   if (result.mRect.ISize(wm) < 0) {
     result.mRect.ISize(wm) = 0;
@@ -488,7 +496,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
                mFloatManagerOrigin.B(mFloatManagerWM));
         nsFrame::ListTag(stdout, floatFrame);
         LogicalRect region = nsFloatManager::GetRegionFor(wm, floatFrame,
-                                                          mContainerWidth);
+                                                          ContainerWidth());
         printf(" aDeltaBCoord=%d region={%d,%d,%d,%d}\n",
                aDeltaBCoord, region.IStart(wm), region.BStart(wm),
                region.ISize(wm), region.BSize(wm));
@@ -496,13 +504,13 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
 #endif
       mFloatManager->AddFloat(floatFrame,
                               nsFloatManager::GetRegionFor(wm, floatFrame,
-                                                           mContainerWidth),
-                              wm, mContainerWidth);
+                                                           ContainerWidth()),
+                              wm, ContainerWidth());
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
     nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager, wm,
-                                   mContainerWidth);
+                                   ContainerWidth());
   }
   mFloatManager->Untranslate(oldWM, oPt);
 }
@@ -696,7 +704,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   LogicalRect oldRegion = nsFloatManager::GetRegionFor(wm, aFloat,
-                                                       mContainerWidth);
+                                                       ContainerWidth());
 
   
   
@@ -704,7 +712,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   LogicalPoint oPt(wm);
   WritingMode oldWM = mFloatManager->Translate(wm, oPt);
-  mBCoord = std::max(mFloatManager->GetLowestFloatTop(wm, mContainerWidth),
+  mBCoord = std::max(mFloatManager->GetLowestFloatTop(wm, ContainerWidth()),
                      mBCoord);
 
   
@@ -918,14 +926,14 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   nsHTMLReflowState::ApplyRelativePositioning(aFloat, wm, floatOffsets,
-                                              &origin, mContainerWidth);
+                                              &origin, ContainerWidth());
 
   
   
   
-  bool moved = aFloat->GetLogicalPosition(wm, mContainerWidth) != origin;
+  bool moved = aFloat->GetLogicalPosition(wm, ContainerWidth()) != origin;
   if (moved) {
-    aFloat->SetPosition(wm, origin, mContainerWidth);
+    aFloat->SetPosition(wm, origin, ContainerWidth());
     nsContainerFrame::PositionFrameView(aFloat);
     nsContainerFrame::PositionChildViews(aFloat);
   }
@@ -939,7 +947,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   LogicalRect region =
     nsFloatManager::CalculateRegionFor(wm, aFloat, floatMargin,
-                                       mContainerWidth);
+                                       ContainerWidth());
   
   if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus) &&
       (NS_UNCONSTRAINEDSIZE != ContentBSize())) {
@@ -947,10 +955,10 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                                 ContentBSize() - floatPos.B(wm));
   }
   DebugOnly<nsresult> rv = mFloatManager->AddFloat(aFloat, region, wm,
-                                                   mContainerWidth);
+                                                   ContainerWidth());
   MOZ_ASSERT(NS_SUCCEEDED(rv), "bad float placement");
   
-  nsFloatManager::StoreRegionFor(wm, aFloat, region, mContainerWidth);
+  nsFloatManager::StoreRegionFor(wm, aFloat, region, ContainerWidth());
 
   
   
@@ -1078,7 +1086,7 @@ nsBlockReflowState::ClearFloats(nscoord aBCoord, uint8_t aBreakType,
 
   if (aBreakType != NS_STYLE_CLEAR_NONE) {
     newBCoord = mFloatManager->ClearFloats(wm, newBCoord, aBreakType,
-                                           mContainerWidth, aFlags);
+                                           ContainerWidth(), aFlags);
   }
 
   if (aReplacedBlock) {

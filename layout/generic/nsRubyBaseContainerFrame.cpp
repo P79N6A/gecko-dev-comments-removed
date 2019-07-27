@@ -390,7 +390,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
     
     lineLayout->BeginLineReflow(0, 0, reflowState->ComputedISize(),
                                 NS_UNCONSTRAINEDSIZE,
-                                false, false, lineWM, 0);
+                                false, false, lineWM, nsSize(0, 0));
     lineLayout->AttachRootFrameToBaseLineLayout();
   }
 
