@@ -70,11 +70,13 @@ public:
 
 
 
-  static bool ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
-                                           nsCollapsingMargin* aMargin,
-                                           nsIFrame* aClearanceFrame,
-                                           bool* aMayNeedRetry,
-                                           bool* aIsEmpty = nullptr);
+
+
+  bool ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
+                                    nsCollapsingMargin* aMargin,
+                                    nsIFrame* aClearanceFrame,
+                                    bool* aMayNeedRetry,
+                                    bool* aIsEmpty = nullptr);
 
 protected:
   nsPresContext* mPresContext;

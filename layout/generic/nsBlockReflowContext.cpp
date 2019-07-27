@@ -57,8 +57,10 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
                                                    bool* aBlockIsEmpty)
 {
   WritingMode wm = aRS.GetWritingMode();
+  WritingMode parentWM = mMetrics.GetWritingMode();
+
   
-  aMargin->Include(aRS.ComputedLogicalMargin().BStart(wm));
+  aMargin->Include(aRS.ComputedLogicalMargin().ConvertTo(parentWM, wm).BStart(parentWM));
 
   
   
@@ -174,8 +176,8 @@ nsBlockReflowContext::ComputeCollapsedBStartMargin(const nsHTMLReflowState& aRS,
             if (isEmpty) {
               WritingMode innerWM = innerReflowState.GetWritingMode();
               LogicalMargin innerMargin =
-                innerReflowState.ComputedLogicalMargin().ConvertTo(wm, innerWM);
-              aMargin->Include(innerMargin.BEnd(wm));
+                innerReflowState.ComputedLogicalMargin().ConvertTo(parentWM, innerWM);
+              aMargin->Include(innerMargin.BEnd(parentWM));
             }
           }
           if (outerReflowState != &aRS) {

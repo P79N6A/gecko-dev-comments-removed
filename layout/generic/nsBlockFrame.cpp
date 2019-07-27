@@ -3065,10 +3065,10 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       
       
       
-      nsBlockReflowContext::ComputeCollapsedBStartMargin(reflowState,
-                                                         &aState.mPrevBEndMargin,
-                                                         clearanceFrame,
-                                                         &mayNeedRetry);
+      brc.ComputeCollapsedBStartMargin(reflowState,
+                                       &aState.mPrevBEndMargin,
+                                       clearanceFrame,
+                                       &mayNeedRetry);
 
       
       
@@ -3101,10 +3101,10 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
 
           
           mayNeedRetry = false;
-          nsBlockReflowContext::ComputeCollapsedBStartMargin(reflowState,
-                                                             &aState.mPrevBEndMargin,
-                                                             clearanceFrame,
-                                                             &mayNeedRetry);
+          brc.ComputeCollapsedBStartMargin(reflowState,
+                                           &aState.mPrevBEndMargin,
+                                           clearanceFrame,
+                                           &mayNeedRetry);
         }
       }
 
@@ -5855,9 +5855,9 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
     floatRS.mDiscoveredClearance = nullptr;
     
     if (!aFloat->GetPrevInFlow()) {
-      nsBlockReflowContext::ComputeCollapsedBStartMargin(floatRS, &margin,
-                                                         clearanceFrame,
-                                                         &mayNeedRetry);
+      brc.ComputeCollapsedBStartMargin(floatRS, &margin,
+                                       clearanceFrame,
+                                       &mayNeedRetry);
 
       if (mayNeedRetry && !clearanceFrame) {
         floatRS.mDiscoveredClearance = &clearanceFrame;
