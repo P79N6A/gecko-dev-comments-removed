@@ -1242,41 +1242,53 @@ ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
 extern JS_FRIEND_API(uint64_t)
 js_GetSCOffset(JSStructuredCloneWriter* writer);
 
-
-
 namespace js {
-namespace ArrayBufferView {
-
-enum ViewType {
-    TYPE_INT8 = 0,
-    TYPE_UINT8,
-    TYPE_INT16,
-    TYPE_UINT16,
-    TYPE_INT32,
-    TYPE_UINT32,
-    TYPE_FLOAT32,
-    TYPE_FLOAT64,
-
-    
+namespace Scalar {
 
 
-
-    TYPE_UINT8_CLAMPED,
+enum Type {
+    Int8 = 0,
+    Uint8,
+    Int16,
+    Uint16,
+    Int32,
+    Uint32,
+    Float32,
+    Float64,
 
     
 
 
 
-    TYPE_DATAVIEW,
+    Uint8Clamped,
 
-    TYPE_MAX
+    TypeMax
 };
 
-} 
+static inline size_t
+byteSize(Type atype)
+{
+    switch (atype) {
+      case Int8:
+      case Uint8:
+      case Uint8Clamped:
+        return 1;
+      case Int16:
+      case Uint16:
+        return 2;
+      case Int32:
+      case Uint32:
+      case Float32:
+        return 4;
+      case Float64:
+        return 8;
+      default:
+        MOZ_ASSUME_UNREACHABLE("invalid type");
+    }
+}
 
 } 
-
-typedef js::ArrayBufferView::ViewType JSArrayBufferViewType;
+} 
 
 
 
@@ -1535,7 +1547,7 @@ JS_GetObjectAsArrayBuffer(JSObject *obj, uint32_t *length, uint8_t **data);
 
 
 
-extern JS_FRIEND_API(JSArrayBufferViewType)
+extern JS_FRIEND_API(js::Scalar::Type)
 JS_GetArrayBufferViewType(JSObject *obj);
 
 

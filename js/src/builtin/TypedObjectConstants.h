@@ -62,7 +62,6 @@
 
 
 
-
 #define JS_SCALARTYPEREPR_INT8          0
 #define JS_SCALARTYPEREPR_UINT8         1
 #define JS_SCALARTYPEREPR_INT16         2

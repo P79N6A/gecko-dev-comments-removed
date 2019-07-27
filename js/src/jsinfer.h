@@ -749,7 +749,7 @@ class TemporaryTypeSet : public TypeSet
     JSObject *getCommonPrototype();
 
     
-    int getTypedArrayType();
+    Scalar::Type getTypedArrayType();
 
     
     bool isDOMClass();
