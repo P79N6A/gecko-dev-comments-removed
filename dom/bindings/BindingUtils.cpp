@@ -109,6 +109,28 @@ ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
 }
 
 bool
+ThrowMethodFailed(JSContext* cx, ErrorResult& rv)
+{
+  if (rv.IsUncatchableException()) {
+    
+    JS_ClearPendingException(cx);
+    
+    
+    return false;
+  }
+  if (rv.IsErrorWithMessage()) {
+    rv.ReportErrorWithMessage(cx);
+    return false;
+  }
+  if (rv.IsJSException()) {
+    rv.ReportJSException(cx);
+    return false;
+  }
+  rv.ReportGenericError(cx);
+  return false;
+}
+
+bool
 ThrowNoSetterArg(JSContext* aCx, prototypes::ID aProtoId)
 {
   nsPrintfCString errorMessage("%s attribute setter",

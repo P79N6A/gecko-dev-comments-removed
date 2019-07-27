@@ -89,27 +89,8 @@ ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
                  const ErrNum aErrorNumber,
                  prototypes::ID aProtoId);
 
-inline bool
-ThrowMethodFailed(JSContext* cx, ErrorResult& rv)
-{
-  if (rv.IsUncatchableException()) {
-    
-    JS_ClearPendingException(cx);
-    
-    
-    return false;
-  }
-  if (rv.IsErrorWithMessage()) {
-    rv.ReportErrorWithMessage(cx);
-    return false;
-  }
-  if (rv.IsJSException()) {
-    rv.ReportJSException(cx);
-    return false;
-  }
-  rv.ReportGenericError(cx);
-  return false;
-}
+bool
+ThrowMethodFailed(JSContext* cx, ErrorResult& rv);
 
 
 inline bool
