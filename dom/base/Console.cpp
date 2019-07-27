@@ -847,6 +847,19 @@ Console::TimeEnd(JSContext* aCx, const JS::Handle<JS::Value> aTime)
 }
 
 void
+Console::TimeStamp(JSContext* aCx, const JS::Handle<JS::Value> aData)
+{
+  Sequence<JS::Value> data;
+  SequenceRooter<JS::Value> rooter(aCx, &data);
+
+  if (aData.isString()) {
+    data.AppendElement(aData);
+  }
+
+  Method(aCx, MethodTimeStamp, NS_LITERAL_STRING("timeStamp"), data);
+}
+
+void
 Console::Profile(JSContext* aCx, const Sequence<JS::Value>& aData)
 {
   ProfileMethod(aCx, NS_LITERAL_STRING("profile"), aData);
@@ -1016,6 +1029,27 @@ public:
   }
 };
 
+class TimestampTimelineMarker : public TimelineMarker
+{
+public:
+  TimestampTimelineMarker(nsDocShell* aDocShell,
+                          TracingMetadata aMetaData,
+                          const nsAString& aCause)
+    : TimelineMarker(aDocShell, "TimeStamp", aMetaData, aCause)
+  {
+    CaptureStack();
+    MOZ_ASSERT(aMetaData == TRACING_TIMESTAMP);
+  }
+
+  virtual void AddDetails(mozilla::dom::ProfileTimelineMarker& aMarker) override
+  {
+    if (!GetCause().IsEmpty()) {
+      aMarker.mCauseName.Construct(GetCause());
+    }
+    aMarker.mEndStack = GetStack();
+  }
+};
+
 
 void
 Console::Method(JSContext* aCx, MethodName aMethodName,
@@ -1090,7 +1124,9 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
   }
 
   
-  if ((aMethodName == MethodTime || aMethodName == MethodTimeEnd)) {
+  if (aMethodName == MethodTime ||
+      aMethodName == MethodTimeEnd ||
+      aMethodName == MethodTimeStamp) {
     if (mWindow) {
       nsGlobalWindow *win = static_cast<nsGlobalWindow*>(mWindow.get());
       MOZ_ASSERT(win);
@@ -1109,7 +1145,23 @@ Console::Method(JSContext* aCx, MethodName aMethodName,
         docShell->GetRecordProfileTimelineMarkers(&isTimelineRecording);
       }
 
-      if (isTimelineRecording && aData.Length() == 1) {
+      
+      
+      if (isTimelineRecording && aMethodName == MethodTimeStamp) {
+        JS::Rooted<JS::Value> value(aCx, aData.Length() == 0 ?
+                                    JS_GetEmptyStringValue(aCx) : aData[0]);
+        JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+        nsAutoJSString key;
+        if (jsString) {
+          key.init(aCx, jsString);
+        }
+
+        mozilla::UniquePtr<TimelineMarker> marker =
+          MakeUnique<TimestampTimelineMarker>(docShell, TRACING_TIMESTAMP, key);
+        docShell->AddProfileTimelineMarker(Move(marker));
+      }
+      
+      else if (isTimelineRecording && aData.Length() == 1) {
         JS::Rooted<JS::Value> value(aCx, aData[0]);
         JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
         if (jsString) {

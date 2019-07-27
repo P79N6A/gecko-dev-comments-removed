@@ -2987,6 +2987,20 @@ nsDocShell::PopProfileTimelineMarkers(
     
     dom::Sequence<dom::ProfileTimelineLayerRect> layerRectangles;
 
+    
+    
+    
+    if (startPayload->GetMetaData() == TRACING_TIMESTAMP) {
+      mozilla::dom::ProfileTimelineMarker* marker =
+        profileTimelineMarkers.AppendElement();
+
+      marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
+      marker->mStart = startPayload->GetTime();
+      marker->mEnd = startPayload->GetTime();
+      startPayload->AddDetails(*marker);
+      continue;
+    }
+
     if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
       bool hasSeenEnd = false;
 
