@@ -101,6 +101,9 @@ function* check_autocomplete(test) {
   let input = new AutoCompleteInput(["unifiedcomplete"]);
   input.textValue = test.search;
 
+  if (test.searchParam)
+    input.searchParam = test.searchParam;
+
   
   let strLen = test.search.length;
   input.selectTextRange(strLen, strLen);
@@ -130,27 +133,112 @@ function* check_autocomplete(test) {
   Assert.equal(numSearchesStarted, 1, "Only one search started");
 
   
-  Assert.equal(input.textValue, test.autofilled,
-               "Autofilled value is correct");
+  if (test.matches) {
+    for (let i = 0; i < controller.matchCount; i++) {
+      let value = controller.getValueAt(i);
+      let comment = controller.getCommentAt(i);
+      do_log_info("Looking for '" + value + "', '" + comment + "' in expected results...");
+      let j;
+      for (j = 0; j < test.matches.length; j++) {
+        
+        if (test.matches[j] == undefined)
+          continue;
 
-  
-  
-  
-  controller.handleEnter(false);
-  Assert.equal(input.textValue, test.completed,
-               "Completed value is correct");
+        let { uri, title, tags } = test.matches[j];
+        if (tags)
+          title += " \u2013 " + tags.sort().join(", ");
+
+        do_log_info("Checking against expected '" + uri.spec + "', '" + title + "'...");
+        
+        if (uri.spec == value && title == comment) {
+          do_log_info("Got a match at index " + j + "!");
+          
+          test.matches[j] = undefined;
+          break;
+        }
+      }
+
+      
+      if (j == test.matches.length)
+        do_throw("Didn't find the current result ('" + value + "', '" + comment + "') in matches");
+    }
+
+    Assert.equal(controller.matchCount, test.matches.length,
+                 "Got as many results as expected");
+
+    
+    do_check_eq(controller.searchStatus, test.matches.length ?
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH :
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH);
+  }
+
+  if (test.autofilled) {
+    
+    Assert.equal(input.textValue, test.autofilled,
+                 "Autofilled value is correct");
+
+    
+    
+    
+    controller.handleEnter(false);
+    Assert.equal(input.textValue, test.completed,
+                 "Completed value is correct");
+  }
 }
 
 function addBookmark(aBookmarkObj) {
-  Assert.ok(!!aBookmarkObj.url, "Bookmark object contains an url");
+  Assert.ok(!!aBookmarkObj.uri, "Bookmark object contains an uri");
   let parentId = aBookmarkObj.parentId ? aBookmarkObj.parentId
                                        : PlacesUtils.unfiledBookmarksFolderId;
   let itemId = PlacesUtils.bookmarks
                           .insertBookmark(parentId,
-                                          NetUtil.newURI(aBookmarkObj.url),
+                                          aBookmarkObj.uri,
                                           PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                          "A bookmark");
+                                          aBookmarkObj.title || "A bookmark");
   if (aBookmarkObj.keyword) {
     PlacesUtils.bookmarks.setKeywordForBookmark(itemId, aBookmarkObj.keyword);
   }
+
+  if (aBookmarkObj.tags) {
+    PlacesUtils.tagging.tagURI(aBookmarkObj.uri, aBookmarkObj.tags);
+  }
+}
+
+function addOpenPages(aUri, aCount=1) {
+  let ac = Cc["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
+             .getService(Ci.mozIPlacesAutoComplete);
+  for (let i = 0; i < aCount; i++) {
+    ac.registerOpenPage(aUri);
+  }
+}
+
+function removeOpenPages(aUri, aCount=1) {
+  let ac = Cc["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"]
+             .getService(Ci.mozIPlacesAutoComplete);
+  for (let i = 0; i < aCount; i++) {
+    ac.unregisterOpenPage(aUri);
+  }
+}
+
+function changeRestrict(aType, aChar) {
+  let branch = "browser.urlbar.";
+  
+  if (aType == "title" || aType == "url")
+    branch += "match.";
+  else
+    branch += "restrict.";
+
+  do_log_info("changing restrict for " + aType + " to '" + aChar + "'");
+  Services.prefs.setCharPref(branch + aType, aChar);
+}
+
+function resetRestrict(aType) {
+  let branch = "browser.urlbar.";
+  
+  if (aType == "title" || aType == "url")
+    branch += "match.";
+  else
+    branch += "restrict.";
+
+  Services.prefs.clearUserPref(branch + aType);
 }
