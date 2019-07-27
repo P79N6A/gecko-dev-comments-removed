@@ -27,13 +27,15 @@ enum InputType
   MULTITOUCH_INPUT,
   PANGESTURE_INPUT,
   PINCHGESTURE_INPUT,
-  TAPGESTURE_INPUT
+  TAPGESTURE_INPUT,
+  SCROLLWHEEL_INPUT
 };
 
 class MultiTouchInput;
 class PanGestureInput;
 class PinchGestureInput;
 class TapGestureInput;
+class ScrollWheelInput;
 
 
 
@@ -72,6 +74,7 @@ public:
   INPUTDATA_AS_CHILD_TYPE(PanGestureInput, PANGESTURE_INPUT)
   INPUTDATA_AS_CHILD_TYPE(PinchGestureInput, PINCHGESTURE_INPUT)
   INPUTDATA_AS_CHILD_TYPE(TapGestureInput, TAPGESTURE_INPUT)
+  INPUTDATA_AS_CHILD_TYPE(ScrollWheelInput, SCROLLWHEEL_INPUT)
 
   InputData()
   {
@@ -429,6 +432,60 @@ public:
   
   
   ParentLayerPoint mLocalPoint;
+};
+
+
+
+
+class ScrollWheelInput : public InputData
+{
+public:
+  enum ScrollDeltaType
+  {
+    
+    
+    SCROLLDELTA_LINE
+  };
+
+  enum ScrollMode
+  {
+    SCROLLMODE_INSTANT,
+    SCROLLMODE_SMOOTH
+  };
+
+  ScrollWheelInput(uint32_t aTime,
+                   TimeStamp aTimeStamp,
+                   Modifiers aModifiers,
+                   ScrollMode aScrollMode,
+                   ScrollDeltaType aDeltaType,
+                   const ScreenPoint& aOrigin,
+                   double aDeltaX,
+                   double aDeltaY)
+   : InputData(SCROLLWHEEL_INPUT, aTime, aTimeStamp, aModifiers),
+     mDeltaType(aDeltaType),
+     mScrollMode(aScrollMode),
+     mOrigin(aOrigin),
+     mDeltaX(aDeltaX),
+     mDeltaY(aDeltaY)
+  {}
+
+  ScrollDeltaType mDeltaType;
+  ScrollMode mScrollMode;
+  ScreenPoint mOrigin;
+
+  
+  
+  
+  
+  
+  
+  
+  double mDeltaX;
+  double mDeltaY;
+
+  
+  
+  ParentLayerPoint mLocalOrigin;
 };
 
 }

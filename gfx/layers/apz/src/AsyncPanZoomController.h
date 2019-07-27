@@ -417,6 +417,11 @@ protected:
   
 
 
+  nsEventStatus OnScrollWheel(const ScrollWheelInput& aEvent);
+
+  
+
+
   nsEventStatus OnLongPress(const TapGestureInput& aEvent);
   nsEventStatus OnLongPressUp(const TapGestureInput& aEvent);
 
