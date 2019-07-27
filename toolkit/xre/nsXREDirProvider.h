@@ -127,6 +127,9 @@ protected:
   
   void LoadExtensionBundleDirectories();
 
+  
+  void LoadAppBundleDirs();
+
   void Append(nsIFile* aDirectory);
 
   nsCOMPtr<nsIDirectoryServiceProvider> mAppProvider;
