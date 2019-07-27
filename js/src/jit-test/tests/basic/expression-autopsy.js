@@ -111,27 +111,31 @@ check("o[- (o)]");
 
 check_one("6", (function () { 6() }), " is not a function");
 check_one("0", (function () { Array.prototype.reverse.call('123'); }), " is read-only");
-check_one("(intermediate value)[Symbol.iterator](...).next(...).value",
-          function () { ieval("let (x) { var [a, b, [c0, c1]] = [x, x, x]; }") }, " is undefined");
 check_one("void 1", function() { (void 1)(); }, " is not a function");
 check_one("void o[1]", function() { var o = []; (void o[1])() }, " is not a function");
 
 
 
 
-try
+
+
+function checkCantConvert(f, valstr)
 {
-  (function() {
-    var [{x}] = [null, {}];
-   })();
-  throw new Error("didn't throw");
+    try
+    {
+        f();
+        throw new Error("didn't throw");
+    }
+    catch (e)
+    {
+        assertEq(e instanceof TypeError, true,
+                 "expected TypeError, got " + e + " for function " + f);
+        assertEq(e.message, "can't convert " + valstr + " to object");
+    }
 }
-catch (e)
-{
-  assertEq(e instanceof TypeError, true,
-           "expected TypeError, got " + e);
-  assertEq(e.message, "can't convert null to object");
-}
+
+checkCantConvert(function() { var [{x}] = [null, {}]; }, "null");
+checkCantConvert(function () { ieval("let (x) { var [a, b, [c0, c1]] = [x, x, x]; }") }, "undefined");
 
 
 assertThrowsInstanceOf(function () { for (let x of undefined) {} }, TypeError);

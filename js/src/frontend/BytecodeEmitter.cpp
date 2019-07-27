@@ -4974,7 +4974,15 @@ bool
 BytecodeEmitter::emitIterator()
 {
     
+    
+    
+    
+    
+    
+    
     if (!emit1(JSOP_DUP))                                 
+        return false;
+    if (!emitToObject())                                  
         return false;
     if (!emit2(JSOP_SYMBOL, jsbytecode(JS::SymbolCode::iterator))) 
         return false;
