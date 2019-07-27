@@ -400,6 +400,15 @@ SideMenuWidget.prototype = {
       return;
     }
 
+    
+    let node = e.originalTarget;
+    while (node && node !== this._list) {
+      if (node.hasAttribute("contextmenu")) {
+        return;
+      }
+      node = node.parentNode;
+    }
+
     this._contextMenu.openPopupAtScreen(e.screenX, e.screenY, true);
   },
 
@@ -510,7 +519,7 @@ SideMenuGroup.prototype = {
     for (let group of groupsArray) {
       let name = group.getAttribute("name");
       if (sortPredicate(name, identifier) > 0 && 
-          !name.includes(identifier)) { 
+          !name.contains(identifier)) { 
         return groupsArray.indexOf(group);
       }
     }
