@@ -240,7 +240,7 @@ Accessible::Description(nsString& aDescription)
   if (!aDescription.IsEmpty()) {
     aDescription.CompressWhitespace();
     nsAutoString name;
-    ENameValueFlag nameFlag = Name(name);
+    Name(name);
     
     if (aDescription.Equals(name))
       aDescription.Truncate();
