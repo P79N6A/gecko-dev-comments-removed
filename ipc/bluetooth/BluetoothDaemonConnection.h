@@ -19,7 +19,7 @@ namespace ipc {
 
 class DaemonSocketConsumer;
 class BluetoothDaemonConnectionIO;
-class BluetoothDaemonPDUConsumer;
+class DaemonSocketIOConsumer;
 
 
 
@@ -58,7 +58,7 @@ public:
   BluetoothDaemonPDU(size_t aPayloadSize);
   ~BluetoothDaemonPDU();
 
-  void SetConsumer(BluetoothDaemonPDUConsumer* aConsumer)
+  void SetConsumer(DaemonSocketIOConsumer* aConsumer)
   {
     mConsumer = aConsumer;
   }
@@ -87,7 +87,7 @@ private:
   size_t GetPayloadSize() const;
   void OnError(const char* aFunction, int aErrno);
 
-  BluetoothDaemonPDUConsumer* mConsumer;
+  DaemonSocketIOConsumer* mConsumer;
   void* mUserData;
   ScopedClose mReceivedFd;
 };
@@ -97,16 +97,16 @@ private:
 
 
 
-class BluetoothDaemonPDUConsumer
+class DaemonSocketIOConsumer
 {
 public:
-  virtual ~BluetoothDaemonPDUConsumer();
+  virtual ~DaemonSocketIOConsumer();
 
   virtual void Handle(BluetoothDaemonPDU& aPDU) = 0;
   virtual void StoreUserData(const BluetoothDaemonPDU& aPDU) = 0;
 
 protected:
-  BluetoothDaemonPDUConsumer();
+  DaemonSocketIOConsumer();
 };
 
 
@@ -117,7 +117,7 @@ protected:
 class BluetoothDaemonConnection : public ConnectionOrientedSocket
 {
 public:
-  BluetoothDaemonConnection(BluetoothDaemonPDUConsumer* aPDUConsumer,
+  BluetoothDaemonConnection(DaemonSocketIOConsumer* aIOConsumer,
                             DaemonSocketConsumer* aConsumer,
                             int aIndex);
   virtual ~BluetoothDaemonConnection();
@@ -145,7 +145,7 @@ public:
 
 private:
   BluetoothDaemonConnectionIO* mIO;
-  BluetoothDaemonPDUConsumer* mPDUConsumer;
+  DaemonSocketIOConsumer* mIOConsumer;
   DaemonSocketConsumer* mConsumer;
   int mIndex;
 };

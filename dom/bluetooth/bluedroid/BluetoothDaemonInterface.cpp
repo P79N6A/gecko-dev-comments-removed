@@ -1427,7 +1427,7 @@ const int BluetoothDaemonCoreModule::MAX_NUM_CLIENTS = 1;
 
 
 class BluetoothDaemonProtocol final
-  : public BluetoothDaemonPDUConsumer
+  : public DaemonSocketIOConsumer
   , public BluetoothDaemonSetupModule
   , public BluetoothDaemonCoreModule
   , public BluetoothDaemonSocketModule
