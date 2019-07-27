@@ -450,7 +450,7 @@ let ParserHelpers = {
         loc.end.column = loc.start.column + aNode.name.length;
         return loc;
       }
-      if (parentType == "ContinueStatement") {
+      if (parentType == "ContinueStatement" || parentType == "BreakStatement") {
         
         
         let loc = Cu.cloneInto(parentLocation, {});
