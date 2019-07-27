@@ -543,6 +543,22 @@ MDefinition::justReplaceAllUsesWith(MDefinition *dom)
     dom->uses_.takeElements(uses_);
 }
 
+void
+MDefinition::optimizeOutAllUses(TempAllocator &alloc)
+{
+    for (MUseIterator i(usesBegin()), e(usesEnd()); i != e;) {
+        MUse *use = *i++;
+        MConstant *constant = use->consumer()->block()->optimizedOutConstant(alloc);
+
+        
+        use->setProducerUnchecked(constant);
+        constant->addUseUnchecked(use);
+    }
+
+    
+    this->uses_.clear();
+}
+
 bool
 MDefinition::emptyResultTypeSet() const
 {

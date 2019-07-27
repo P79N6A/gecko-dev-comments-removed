@@ -679,10 +679,18 @@ class MDefinition : public MNode
         MOZ_ASSERT(now->producer() == this);
         uses_.replace(old, now);
     }
+
+    
+    
     void replaceAllUsesWith(MDefinition *dom);
 
     
     void justReplaceAllUsesWith(MDefinition *dom);
+
+    
+    
+    
+    void optimizeOutAllUses(TempAllocator &alloc);
 
     
     
