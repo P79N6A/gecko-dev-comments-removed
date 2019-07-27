@@ -4790,13 +4790,15 @@ PresShell::RenderDocument(const nsRect& aRect, uint32_t aFlags,
   gfxPoint offset(-nsPresContext::AppUnitsToFloatCSSPixels(aRect.x),
                   -nsPresContext::AppUnitsToFloatCSSPixels(aRect.y));
   gfxFloat scale = gfxFloat(devCtx->AppUnitsPerDevPixel())/nsPresContext::AppUnitsPerCSSPixel();
-  aThebesContext->SetMatrix(
-    aThebesContext->CurrentMatrix().Translate(offset).Scale(scale, scale));
 
   
   
   
-  aThebesContext->NudgeCurrentMatrixToIntegers();
+  
+  gfxMatrix newTM = aThebesContext->CurrentMatrix().Translate(offset).
+                                                    Scale(scale, scale).
+                                                    NudgeToIntegers();
+  aThebesContext->SetMatrix(newTM);
 
   AutoSaveRestoreRenderingState _(this);
 

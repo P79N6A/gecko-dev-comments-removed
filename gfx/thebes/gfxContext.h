@@ -245,12 +245,6 @@ public:
 
 
     void Multiply(const gfxMatrix& other);
-    
-
-
-
-
-    void MultiplyAndNudgeToIntegers(const gfxMatrix& other);
 
     
 
@@ -261,13 +255,6 @@ public:
 
 
     gfxMatrix CurrentMatrix() const;
-
-    
-
-
-
-
-    void NudgeCurrentMatrixToIntegers();
 
     
 
