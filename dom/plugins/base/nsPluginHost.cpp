@@ -186,6 +186,37 @@ PRLogModuleInfo* nsPluginLogging::gPluginLog = nullptr;
 nsIFile *nsPluginHost::sPluginTempDir;
 nsPluginHost *nsPluginHost::sInst;
 
+
+
+
+static
+PRInt32
+busy_beaver_PR_Read(PRFileDesc *fd, void * start, PRInt32 len)
+{
+    int n;
+    PRInt32 remaining = len;
+
+    while (remaining > 0)
+    {
+        n = PR_Read(fd, start, remaining);
+        if (n < 0)
+        {
+            
+            if( (len - remaining) == 0 ) 
+                return -1;
+            break;
+        }
+        else
+        {
+            remaining -= n;
+            char *cp = (char *) start;
+            cp += n;
+            start = cp;
+        }
+    }
+    return len - remaining;
+}
+
 NS_IMPL_ISUPPORTS0(nsInvalidPluginTag)
 
 nsInvalidPluginTag::nsInvalidPluginTag(const char* aFullPath, int64_t aLastModifiedTime)
@@ -2851,7 +2882,9 @@ nsPluginHost::ReadPluginInfo()
   
   rv = NS_ERROR_FAILURE;
 
-  int32_t bread = PR_Read(fd, registry, flen);
+  
+  
+  int32_t bread = busy_beaver_PR_Read(fd, registry, flen);
 
   PRStatus prrc;
   prrc = PR_Close(fd);
@@ -2862,6 +2895,7 @@ nsPluginHost::ReadPluginInfo()
     return rv;
   }
 
+  
   if (flen > bread)
     return rv;
 
