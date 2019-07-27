@@ -155,6 +155,9 @@ PhysicalCoordFromFlexRelativeCoord(nscoord aFlexRelativeCoord,
 #define GET_MAIN_COMPONENT_LOGICAL(axisTracker_, isize_, bsize_)  \
   (axisTracker_).IsRowOriented() ? (isize_) : (bsize_)
 
+#define GET_CROSS_COMPONENT_LOGICAL(axisTracker_, inline_, block_)  \
+  (axisTracker_).IsRowOriented() ? (block_) : (inline_)
+
 
 class MOZ_STACK_CLASS nsFlexContainerFrame::FlexboxAxisTracker {
 public:
@@ -1055,15 +1058,15 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
 
   
   
-  nscoord flexBaseSize = GET_MAIN_COMPONENT(aAxisTracker,
-                                            childRS.ComputedWidth(),
-                                            childRS.ComputedHeight());
-  nscoord mainMinSize = GET_MAIN_COMPONENT(aAxisTracker,
-                                           childRS.ComputedMinWidth(),
-                                           childRS.ComputedMinHeight());
-  nscoord mainMaxSize = GET_MAIN_COMPONENT(aAxisTracker,
-                                           childRS.ComputedMaxWidth(),
-                                           childRS.ComputedMaxHeight());
+  nscoord flexBaseSize = GET_MAIN_COMPONENT_LOGICAL(aAxisTracker,
+                                                    childRS.ComputedISize(),
+                                                    childRS.ComputedBSize());
+  nscoord mainMinSize = GET_MAIN_COMPONENT_LOGICAL(aAxisTracker,
+                                                   childRS.ComputedMinISize(),
+                                                   childRS.ComputedMinBSize());
+  nscoord mainMaxSize = GET_MAIN_COMPONENT_LOGICAL(aAxisTracker,
+                                                   childRS.ComputedMaxISize(),
+                                                   childRS.ComputedMaxBSize());
   
   MOZ_ASSERT(mainMinSize <= mainMaxSize, "min size is larger than max size");
 
@@ -1072,15 +1075,18 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   
   
   
-  nscoord tentativeCrossSize = GET_CROSS_COMPONENT(aAxisTracker,
-                                                   childRS.ComputedWidth(),
-                                                   childRS.ComputedHeight());
-  nscoord crossMinSize = GET_CROSS_COMPONENT(aAxisTracker,
-                                             childRS.ComputedMinWidth(),
-                                             childRS.ComputedMinHeight());
-  nscoord crossMaxSize = GET_CROSS_COMPONENT(aAxisTracker,
-                                             childRS.ComputedMaxWidth(),
-                                             childRS.ComputedMaxHeight());
+  nscoord tentativeCrossSize =
+    GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                childRS.ComputedISize(),
+                                childRS.ComputedBSize());
+  nscoord crossMinSize =
+    GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                childRS.ComputedMinISize(),
+                                childRS.ComputedMinBSize());
+  nscoord crossMaxSize =
+    GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                childRS.ComputedMaxISize(),
+                                childRS.ComputedMaxBSize());
 
   
   
@@ -1199,17 +1205,17 @@ CrossSizeToUseWithRatio(const FlexItem& aFlexItem,
 
   if (IsCrossSizeDefinite(aItemReflowState, aAxisTracker)) {
     
-    return GET_CROSS_COMPONENT(aAxisTracker,
-                               aItemReflowState.ComputedWidth(),
-                               aItemReflowState.ComputedHeight());
+    return GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                       aItemReflowState.ComputedISize(),
+                                       aItemReflowState.ComputedBSize());
   }
 
   if (aMinSizeFallback) {
     
     
-    return GET_CROSS_COMPONENT(aAxisTracker,
-                               aItemReflowState.ComputedMinWidth(),
-                               aItemReflowState.ComputedMinHeight());
+    return GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                       aItemReflowState.ComputedMinISize(),
+                                       aItemReflowState.ComputedMinBSize());
   }
 
   
@@ -1269,9 +1275,9 @@ PartiallyResolveAutoMinSize(const FlexItem& aFlexItem,
 
   
   nscoord maxSize =
-    GET_MAIN_COMPONENT(aAxisTracker,
-                       aItemReflowState.ComputedMaxWidth(),
-                       aItemReflowState.ComputedMaxHeight());
+    GET_MAIN_COMPONENT_LOGICAL(aAxisTracker,
+                               aItemReflowState.ComputedMaxISize(),
+                               aItemReflowState.ComputedMaxBSize());
   if (maxSize != NS_UNCONSTRAINEDSIZE) {
     minMainSize = std::min(minMainSize, maxSize);
   }
@@ -1373,9 +1379,9 @@ nsFlexContainerFrame::
     
     
     nscoord containerCrossSize =
-      GET_CROSS_COMPONENT(aAxisTracker,
-                          flexContainerRS->ComputedWidth(),
-                          flexContainerRS->ComputedHeight());
+      GET_CROSS_COMPONENT_LOGICAL(aAxisTracker,
+                                  flexContainerRS->ComputedISize(),
+                                  flexContainerRS->ComputedBSize());
     
     
     
