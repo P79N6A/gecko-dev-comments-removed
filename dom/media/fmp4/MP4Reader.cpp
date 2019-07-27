@@ -7,7 +7,6 @@
 #include "MP4Reader.h"
 #include "MP4Stream.h"
 #include "MediaData.h"
-#include "MediaInfo.h"
 #include "MediaResource.h"
 #include "nsPrintfCString.h"
 #include "nsSize.h"
@@ -58,14 +57,13 @@ namespace mozilla {
 
 #ifdef PR_LOGGING
 static const char*
-TrackTypeToStr(TrackInfo::TrackType aTrack)
+TrackTypeToStr(TrackType aTrack)
 {
-  MOZ_ASSERT(aTrack == TrackInfo::kAudioTrack ||
-             aTrack == TrackInfo::kVideoTrack);
+  MOZ_ASSERT(aTrack == kAudio || aTrack == kVideo);
   switch (aTrack) {
-  case TrackInfo::kAudioTrack:
+  case kAudio:
     return "Audio";
-  case TrackInfo::kVideoTrack:
+  case kVideo:
     return "Video";
   default:
     return "Unknown";
@@ -219,7 +217,7 @@ MP4Reader::Shutdown()
   MOZ_ASSERT(GetTaskQueue()->IsCurrentThreadIn());
 
   if (mAudio.mDecoder) {
-    Flush(TrackInfo::kAudioTrack);
+    Flush(kAudio);
     mAudio.mDecoder->Shutdown();
     mAudio.mDecoder = nullptr;
   }
@@ -232,7 +230,7 @@ MP4Reader::Shutdown()
   MOZ_ASSERT(mAudio.mPromise.IsEmpty());
 
   if (mVideo.mDecoder) {
-    Flush(TrackInfo::kVideoTrack);
+    Flush(kVideo);
     mVideo.mDecoder->Shutdown();
     mVideo.mDecoder = nullptr;
   }
@@ -377,7 +375,8 @@ bool
 MP4Reader::IsSupportedAudioMimeType(const nsACString& aMimeType)
 {
   return (aMimeType.EqualsLiteral("audio/mpeg") ||
-          aMimeType.EqualsLiteral("audio/mp4a-latm")) &&
+          aMimeType.EqualsLiteral("audio/mp4a-latm") ||
+          aMimeType.EqualsLiteral("audio/3gpp")) &&
          mPlatform->SupportsMimeType(aMimeType);
 }
 
@@ -437,12 +436,12 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
 
   if (HasAudio()) {
     mInfo.mAudio = mDemuxer->AudioConfig();
-    mAudio.mCallback = new DecoderCallback(this, TrackInfo::kAudioTrack);
+    mAudio.mCallback = new DecoderCallback(this, kAudio);
   }
 
   if (HasVideo()) {
     mInfo.mVideo = mDemuxer->VideoConfig();
-    mVideo.mCallback = new DecoderCallback(this, TrackInfo::kVideoTrack);
+    mVideo.mCallback = new DecoderCallback(this, kVideo);
 
     
     if (!mFoundSPSForTelemetry) {
@@ -568,8 +567,7 @@ MP4Reader::EnsureDecodersSetup()
     NS_ENSURE_TRUE(IsSupportedVideoMimeType(mDemuxer->VideoConfig().mMimeType),
                    false);
 
-    if (mSharedDecoderManager &&
-        mPlatform->SupportsSharedDecoders(mDemuxer->VideoConfig())) {
+    if (mSharedDecoderManager && mPlatform->SupportsSharedDecoders(mDemuxer->VideoConfig())) {
       mVideo.mDecoder =
         mSharedDecoderManager->CreateVideoDecoder(mPlatform,
                                                   mDemuxer->VideoConfig(),
@@ -623,9 +621,8 @@ MP4Reader::HasVideo()
 MP4Reader::DecoderData&
 MP4Reader::GetDecoderData(TrackType aTrack)
 {
-  MOZ_ASSERT(aTrack == TrackInfo::kAudioTrack ||
-             aTrack == TrackInfo::kVideoTrack);
-  if (aTrack == TrackInfo::kAudioTrack) {
+  MOZ_ASSERT(aTrack == kAudio || aTrack == kVideo);
+  if (aTrack == kAudio) {
     return mAudio;
   }
   return mVideo;
@@ -653,7 +650,7 @@ MP4Reader::DisableHardwareAcceleration()
       }
     } else {
       MonitorAutoLock lock(mVideo.mMonitor);
-      ScheduleUpdate(TrackInfo::kVideoTrack);
+      ScheduleUpdate(kVideo);
     }
   }
 }
@@ -710,7 +707,7 @@ MP4Reader::RequestVideoData(bool aSkipToNextKeyframe,
   } else if (eos) {
     mVideo.mPromise.Reject(END_OF_STREAM, __func__);
   } else {
-    ScheduleUpdate(TrackInfo::kVideoTrack);
+    ScheduleUpdate(kVideo);
   }
 
   return p;
@@ -734,7 +731,7 @@ MP4Reader::RequestAudioData()
 
   MonitorAutoLock lock(mAudio.mMonitor);
   nsRefPtr<AudioDataPromise> p = mAudio.mPromise.Ensure(__func__);
-  ScheduleUpdate(TrackInfo::kAudioTrack);
+  ScheduleUpdate(kAudio);
   return p;
 }
 
@@ -795,9 +792,8 @@ MP4Reader::Update(TrackType aTrack)
       decoder.mInputExhausted = false;
       decoder.mNumSamplesInput++;
     }
-    if (aTrack == TrackInfo::kVideoTrack) {
-      uint64_t delta =
-        decoder.mNumSamplesOutput - mLastReportedNumDecodedFrames;
+    if (aTrack == kVideo) {
+      uint64_t delta = decoder.mNumSamplesOutput - mLastReportedNumDecodedFrames;
       a.mDecoded = static_cast<uint32_t>(delta);
       mLastReportedNumDecodedFrames = decoder.mNumSamplesOutput;
     }
@@ -831,7 +827,7 @@ MP4Reader::Update(TrackType aTrack)
 
     if (sample) {
       decoder.mDecoder->Input(sample);
-      if (aTrack == TrackInfo::kVideoTrack) {
+      if (aTrack == kVideo) {
         a.mParsed++;
       }
     } else {
@@ -857,7 +853,7 @@ MP4Reader::ReturnOutput(MediaData* aData, TrackType aTrack)
     aData->mDiscontinuity = true;
   }
 
-  if (aTrack == TrackInfo::kAudioTrack) {
+  if (aTrack == kAudio) {
     AudioData* audioData = static_cast<AudioData*>(aData);
 
     if (audioData->mChannels != mInfo.mAudio.mChannels ||
@@ -869,7 +865,7 @@ MP4Reader::ReturnOutput(MediaData* aData, TrackType aTrack)
     }
 
     mAudio.mPromise.Resolve(audioData, __func__);
-  } else if (aTrack == TrackInfo::kVideoTrack) {
+  } else if (aTrack == kVideo) {
     mVideo.mPromise.Resolve(static_cast<VideoData*>(aData), __func__);
   }
 }
@@ -887,11 +883,11 @@ MP4Reader::PopSampleLocked(TrackType aTrack)
   mDemuxerMonitor.AssertCurrentThreadOwns();
   nsRefPtr<MediaRawData> sample;
   switch (aTrack) {
-    case TrackInfo::kAudioTrack:
+    case kAudio:
       sample =
         InvokeAndRetry(this, &MP4Reader::DemuxAudioSample, mStream, &mDemuxerMonitor);
       return sample.forget();
-    case TrackInfo::kVideoTrack:
+    case kVideo:
       if (mQueuedVideoSample) {
         return mQueuedVideoSample.forget();
       }
@@ -920,13 +916,13 @@ MP4Reader::DemuxVideoSample()
 size_t
 MP4Reader::SizeOfVideoQueueInFrames()
 {
-  return SizeOfQueue(TrackInfo::kVideoTrack);
+  return SizeOfQueue(kVideo);
 }
 
 size_t
 MP4Reader::SizeOfAudioQueueInFrames()
 {
-  return SizeOfQueue(TrackInfo::kAudioTrack);
+  return SizeOfQueue(kAudio);
 }
 
 size_t
@@ -941,14 +937,14 @@ nsresult
 MP4Reader::ResetDecode()
 {
   MOZ_ASSERT(GetTaskQueue()->IsCurrentThreadIn());
-  Flush(TrackInfo::kVideoTrack);
+  Flush(kVideo);
   {
     MonitorAutoLock mon(mDemuxerMonitor);
     if (mVideo.mTrackDemuxer) {
       mVideo.mTrackDemuxer->Seek(0);
     }
   }
-  Flush(TrackInfo::kAudioTrack);
+  Flush(kAudio);
   {
     MonitorAutoLock mon(mDemuxerMonitor);
     if (mAudio.mTrackDemuxer) {
@@ -1051,7 +1047,7 @@ MP4Reader::Flush(TrackType aTrack)
     data.mDiscontinuity = true;
     data.mUpdateScheduled = false;
   }
-  if (aTrack == TrackInfo::kVideoTrack) {
+  if (aTrack == kVideo) {
     mQueuedVideoSample = nullptr;
   }
   VLOG("Flush(%s) END", TrackTypeToStr(aTrack));
@@ -1064,11 +1060,11 @@ MP4Reader::SkipVideoDemuxToNextKeyFrame(int64_t aTimeThreshold, uint32_t& parsed
 
   MOZ_ASSERT(mVideo.mDecoder);
 
-  Flush(TrackInfo::kVideoTrack);
+  Flush(kVideo);
 
   
   while (true) {
-    nsRefPtr<MediaRawData> compressed(PopSample(TrackInfo::kVideoTrack));
+    nsRefPtr<MediaRawData> compressed(PopSample(kVideo));
     if (!compressed) {
       
       MonitorAutoLock mon(mVideo.mMonitor);
@@ -1102,7 +1098,7 @@ MP4Reader::Seek(int64_t aTime, int64_t aEndTime)
   mQueuedVideoSample = nullptr;
   if (mDemuxer->HasValidVideo()) {
     mVideo.mTrackDemuxer->Seek(seekTime);
-    mQueuedVideoSample = PopSampleLocked(TrackInfo::kVideoTrack);
+    mQueuedVideoSample = PopSampleLocked(kVideo);
     if (mQueuedVideoSample) {
       seekTime = mQueuedVideoSample->mTime;
     }
@@ -1242,12 +1238,12 @@ MP4Reader::NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOff
   mLastSeenEnd = end;
 
   if (HasVideo()) {
-    auto& decoder = GetDecoderData(TrackInfo::kVideoTrack);
+    auto& decoder = GetDecoderData(kVideo);
     MonitorAutoLock lock(decoder.mMonitor);
     decoder.mDemuxEOS = false;
   }
   if (HasAudio()) {
-    auto& decoder = GetDecoderData(TrackInfo::kAudioTrack);
+    auto& decoder = GetDecoderData(kAudio);
     MonitorAutoLock lock(decoder.mMonitor);
     decoder.mDemuxEOS = false;
   }

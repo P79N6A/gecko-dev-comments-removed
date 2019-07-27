@@ -147,7 +147,6 @@ private:
 
   android::MediaBuffer* mVideoBuffer;
 
-  nsRefPtr<MediaByteBuffer>  mCodecSpecificData;
   MediaDataDecoderCallback*  mReaderCallback;
   MediaInfo mInfo;
   android::sp<VideoResourceListener> mVideoListener;
@@ -178,7 +177,6 @@ private:
   
   Mutex mPendingVideoBuffersLock;
 
-  nsAutoCString mMimeType;
 };
 
 } 
