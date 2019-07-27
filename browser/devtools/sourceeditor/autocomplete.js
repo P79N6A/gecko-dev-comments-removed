@@ -3,6 +3,7 @@
 
 
 
+const { Cu } = require("chrome");
 const cssAutoCompleter = require("devtools/sourceeditor/css-autocompleter");
 const { AutocompletePopup } = require("devtools/shared/autocomplete-popup");
 
@@ -215,7 +216,7 @@ function autoComplete({ ed, cm }) {
     private.suggestionInsertedOnce = false;
     
     ed.emit("after-suggest");
-  });
+  }).then(null, Cu.reportError);
 }
 
 
