@@ -79,6 +79,13 @@ public:
   void SetUserFontEntry(gfxUserFontEntry* aEntry);
 
   
+
+
+
+
+  bool GetFamilyName(nsString& aResult);
+
+  
   static already_AddRefed<FontFace>
   Constructor(const GlobalObject& aGlobal,
               const nsAString& aFamily,
