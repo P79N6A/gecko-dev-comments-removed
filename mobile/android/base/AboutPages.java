@@ -5,6 +5,9 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.home.HomeConfig;
+import org.mozilla.gecko.home.HomeConfig.PanelType;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.StringUtils;
 
 public class AboutPages {
@@ -89,5 +92,16 @@ public class AboutPages {
         }
         return false;
     }
-}
 
+    
+
+
+
+
+
+
+    @RobocopTarget
+    public static String getURLForBuiltinPanelType(PanelType panelType) throws IllegalArgumentException {
+        return HOME + "?panel=" + HomeConfig.getIdForBuiltinPanelType(panelType);
+    }
+}

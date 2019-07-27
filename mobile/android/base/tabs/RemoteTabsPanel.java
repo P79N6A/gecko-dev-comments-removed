@@ -4,9 +4,10 @@
 
 package org.mozilla.gecko.tabs;
 
+import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.home.HomeConfig;
+import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.tabs.TabsPanel.PanelView;
 
 import android.content.Context;
@@ -34,6 +35,14 @@ class RemoteTabsPanel extends FrameLayout implements PanelView {
             @Override
             public void onClick(View v) {
                 
+                
+                
+                
+                
+                
+                
+                Tabs.getInstance().loadUrl(AboutPages.getURLForBuiltinPanelType(PanelType.REMOTE_TABS),
+                        Tabs.LOADURL_NEW_TAB);
                 if (tabsPanel != null) {
                     tabsPanel.autoHidePanel();
                 }
