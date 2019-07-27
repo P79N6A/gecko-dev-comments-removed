@@ -22,6 +22,12 @@ using namespace mozilla::widget;
 PRLogModuleInfo* gGtkIMLog = nullptr;
 
 static const char*
+GetBoolName(bool aBool)
+{
+  return aBool ? "true" : "false";
+}
+
+static const char*
 GetRangeTypeName(uint32_t aRangeType)
 {
     switch (aRangeType) {
@@ -54,6 +60,19 @@ GetEnabledStateName(uint32_t aState)
             return "PLUG_IN";
         default:
             return "UNKNOWN ENABLED STATUS!!";
+    }
+}
+
+static const char*
+GetEventType(GdkEventKey* aKeyEvent)
+{
+    switch (aKeyEvent->type) {
+        case GDK_KEY_PRESS:
+            return "GDK_KEY_PRESS";
+        case GDK_KEY_RELEASE:
+            return "GDK_KEY_RELEASE";
+        default:
+            return "Unknown";
     }
 }
 #endif
@@ -298,8 +317,9 @@ nsGtkIMModule::OnBlurWindow(nsWindow* aWindow)
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): OnBlurWindow, aWindow=%p, mLastFocusedWindow=%p, mIsIMFocused=%s",
-         this, aWindow, mLastFocusedWindow, mIsIMFocused ? "YES" : "NO"));
+        ("GtkIMModule(%p): OnBlurWindow, aWindow=%p, mLastFocusedWindow=%p, "
+         "mIsIMFocused=%s",
+         this, aWindow, mLastFocusedWindow, GetBoolName(mIsIMFocused)));
 
     if (!mIsIMFocused || mLastFocusedWindow != aWindow) {
         return;
@@ -320,13 +340,12 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): OnKeyEvent, aCaller=%p, aKeyDownEventWasSent=%s",
-         this, aCaller, aKeyDownEventWasSent ? "TRUE" : "FALSE"));
-    PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("    aEvent: type=%s, keyval=%s, unicode=0x%X",
-         aEvent->type == GDK_KEY_PRESS ? "GDK_KEY_PRESS" :
-         aEvent->type == GDK_KEY_RELEASE ? "GDK_KEY_RELEASE" : "Unknown",
-         gdk_keyval_name(aEvent->keyval),
+        ("GtkIMModule(%p): OnKeyEvent, aCaller=%p, aKeyDownEventWasSent=%s, "
+         "mCompositionState=%s, current context=%p, active context=%p, "
+         "aEvent(%p): { type=%s, keyval=%s, unicode=0x%X }",
+         this, aCaller, GetBoolName(aKeyDownEventWasSent),
+         GetCompositionStateName(), GetCurrentContext(), GetActiveContext(),
+         aEvent, GetEventType(aEvent), gdk_keyval_name(aEvent->keyval),
          gdk_keyval_to_unicode(aEvent->keyval)));
 
     if (aCaller != mLastFocusedWindow) {
@@ -336,8 +355,10 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
         return false;
     }
 
-    GtkIMContext* activeContext = GetActiveContext();
-    if (MOZ_UNLIKELY(!activeContext)) {
+    
+    
+    GtkIMContext* currentContext = GetCurrentContext();
+    if (MOZ_UNLIKELY(!currentContext)) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    FAILED, there are no context"));
         return false;
@@ -347,7 +368,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     mFilterKeyEvent = true;
     mProcessingKeyEvent = aEvent;
     gboolean isFiltered =
-        gtk_im_context_filter_keypress(activeContext, aEvent);
+        gtk_im_context_filter_keypress(currentContext, aEvent);
     mProcessingKeyEvent = nullptr;
 
     
@@ -357,7 +378,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     
     bool filterThisEvent = isFiltered && mFilterKeyEvent;
 
-    if (IsComposing() && !isFiltered) {
+    if (IsComposingOnCurrentContext() && !isFiltered) {
         if (aEvent->type == GDK_KEY_PRESS) {
             if (!mDispatchedCompositionString.IsEmpty()) {
                 
@@ -371,7 +392,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
                 
                 
                 
-                DispatchCompositionCommitEvent(activeContext, &EmptyString());
+                DispatchCompositionCommitEvent(currentContext, &EmptyString());
                 filterThisEvent = false;
             }
         } else {
@@ -382,9 +403,10 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("    filterThisEvent=%s (isFiltered=%s, mFilterKeyEvent=%s)",
-         filterThisEvent ? "TRUE" : "FALSE", isFiltered ? "YES" : "NO",
-         mFilterKeyEvent ? "YES" : "NO"));
+        ("    filterThisEvent=%s (isFiltered=%s, mFilterKeyEvent=%s), "
+         "mCompositionState=%s",
+         GetBoolName(filterThisEvent), GetBoolName(isFiltered),
+         GetBoolName(mFilterKeyEvent), GetCompositionStateName()));
 
     return filterThisEvent;
 }
@@ -395,8 +417,8 @@ nsGtkIMModule::OnFocusChangeInGecko(bool aFocus)
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s, "
          "mCompositionState=%s, mIsIMFocused=%s",
-         this, aFocus ? "YES" : "NO", GetCompositionStateName(),
-         mIsIMFocused ? "YES" : "NO"));
+         this, GetBoolName(aFocus), GetCompositionStateName(),
+         GetBoolName(mIsIMFocused)));
 
     
     mSelectedString.Truncate();
@@ -407,7 +429,7 @@ nsGtkIMModule::ResetIME()
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): ResetIME, mCompositionState=%s, mIsIMFocused=%s",
-         this, GetCompositionStateName(), mIsIMFocused ? "YES" : "NO"));
+         this, GetCompositionStateName(), GetBoolName(mIsIMFocused)));
 
     GtkIMContext* activeContext = GetActiveContext();
     if (MOZ_UNLIKELY(!activeContext)) {
@@ -646,7 +668,7 @@ nsGtkIMModule::Blur()
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): Blur, mIsIMFocused=%s",
-         this, mIsIMFocused ? "YES" : "NO"));
+         this, GetBoolName(mIsIMFocused)));
 
     if (!mIsIMFocused) {
         return;
@@ -889,11 +911,13 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): OnCommitCompositionNative, aContext=%p, "
-         "current context=%p, commitString=\"%s\"",
-         this, aContext, GetCurrentContext(), commitString));
+         "current context=%p, active context=%p, commitString=\"%s\", "
+         "mProcessingKeyEvent=%p, IsComposingOn(aContext)=%s",
+         this, aContext, GetCurrentContext(), GetActiveContext(), commitString,
+         mProcessingKeyEvent, GetBoolName(IsComposingOn(aContext))));
 
     
-    if (GetCurrentContext() != aContext) {
+    if (!IsValidContext(aContext)) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    FAILED, given context doesn't match"));
         return;
@@ -904,14 +928,17 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     
     
     
-    if (!IsComposing() && !commitString[0]) {
+    if (!IsComposingOn(aContext) && !commitString[0]) {
         return;
     }
 
     
     
     
-    if (!IsComposing() && mProcessingKeyEvent) {
+    
+    
+    if (!IsComposingOn(aContext) && mProcessingKeyEvent &&
+        aContext == GetCurrentContext()) {
         char keyval_utf8[8]; 
         gint keyval_utf8_len;
         guint32 keyval_unicode;
