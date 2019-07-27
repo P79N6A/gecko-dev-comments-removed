@@ -3536,8 +3536,7 @@ SVGTextFrame::NotifySVGChanged(uint32_t aFlags)
       needNewBounds = true;
       needGlyphMetricsUpdate = true;
     }
-    if (StyleSVGReset()->mVectorEffect ==
-        NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE) {
+    if (StyleSVGReset()->HasNonScalingStroke()) {
       
       
       needNewBounds = true;

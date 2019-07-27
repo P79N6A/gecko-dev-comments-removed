@@ -440,9 +440,7 @@ nsSVGPathGeometryFrame::NotifySVGChanged(uint32_t aFlags)
     }
   }
 
-  if ((aFlags & TRANSFORM_CHANGED) &&
-      StyleSVGReset()->mVectorEffect ==
-        NS_STYLE_VECTOR_EFFECT_NON_SCALING_STROKE) {
+  if ((aFlags & TRANSFORM_CHANGED) && StyleSVGReset()->HasNonScalingStroke()) {
     
     
     nsSVGUtils::ScheduleReflowSVG(this);
