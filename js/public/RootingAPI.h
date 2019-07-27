@@ -513,6 +513,69 @@ namespace js {
 
 
 
+
+template <typename T>
+class InternalHandle {};
+
+template <typename T>
+class InternalHandle<T*>
+{
+    void * const* holder;
+    size_t offset;
+
+  public:
+    
+
+
+
+    template<typename H>
+    InternalHandle(const JS::Handle<H>& handle, T* field)
+      : holder((void**)handle.address()), offset(uintptr_t(field) - uintptr_t(handle.get()))
+    {}
+
+    
+
+
+    template<typename R>
+    InternalHandle(const JS::Rooted<R>& root, T* field)
+      : holder((void**)root.address()), offset(uintptr_t(field) - uintptr_t(root.get()))
+    {}
+
+    InternalHandle(const InternalHandle<T*>& other)
+      : holder(other.holder), offset(other.offset) {}
+
+    T* get() const { return reinterpret_cast<T*>(uintptr_t(*holder) + offset); }
+
+    const T& operator*() const { return *get(); }
+    T* operator->() const { return get(); }
+
+    static InternalHandle<T*> fromMarkedLocation(T* fieldPtr) {
+        return InternalHandle(fieldPtr);
+    }
+
+  private:
+    
+
+
+
+
+
+
+
+
+    explicit InternalHandle(T* field)
+      : holder(&js::ConstNullValue),
+        offset(uintptr_t(field))
+    {}
+
+    void operator=(InternalHandle<T*> other) = delete;
+};
+
+
+
+
+
+
 template <typename T>
 struct RootKind
 {
