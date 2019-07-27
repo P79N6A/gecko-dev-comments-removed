@@ -135,7 +135,6 @@ let PanelFrame = {
     let notificationFrameId = aToolbarButton.getAttribute("notificationFrameId");
     let notificationFrame = aWindow.document.getElementById(notificationFrameId);
 
-    let wasAlive = SharedFrame.isGroupAlive(notificationFrameId);
     SharedFrame.setOwner(notificationFrameId, notificationFrame);
 
     
@@ -184,7 +183,7 @@ let PanelFrame = {
       if (!inMenuPanel)
         anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
-          notificationFrame.contentDocument.readyState == "complete" && wasAlive) {
+          notificationFrame.contentDocument.readyState == "complete") {
         initFrameShow();
       } else {
         

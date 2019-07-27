@@ -24,15 +24,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
         iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
           iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
           injectLoopAPI(iframe.contentWindow);
-
-          
-          
-          iframe.contentWindow.addEventListener("loopPanelInitialized",
-            function documentLoaded() {
-              iframe.contentWindow.removeEventListener("loopPanelInitialized",
-                                                       documentLoaded, true);
-            }, true);
-
         }, true);
       };
 
