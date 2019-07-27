@@ -874,7 +874,7 @@ const COMPOSITION_ATTR_CONVERTED_CLAUSE =
 const COMPOSITION_ATTR_SELECTED_CLAUSE =
   _EU_Ci.nsITextInputProcessor.ATTR_SELECTED_CLAUSE;
 
-function _getTIP(aWindow)
+function _getTIP(aWindow, aCallback)
 {
   if (!aWindow) {
     aWindow = window;
@@ -884,7 +884,7 @@ function _getTIP(aWindow)
       _EU_Cc["@mozilla.org/text-input-processor;1"].
         createInstance(_EU_Ci.nsITextInputProcessor);
   }
-  if (!aWindow._EU_TIP.initForTests(aWindow)) {
+  if (!aWindow._EU_TIP.initForTests(aWindow, aCallback)) {
     aWindow._EU_TIP = null;
   }
   return aWindow._EU_TIP;
@@ -904,9 +904,11 @@ function _getTIP(aWindow)
 
 
 
-function synthesizeComposition(aEvent, aWindow)
+
+
+function synthesizeComposition(aEvent, aWindow, aCallback)
 {
-  var TIP = _getTIP(aWindow);
+  var TIP = _getTIP(aWindow, aCallback);
   if (!TIP) {
     return false;
   }
@@ -962,9 +964,11 @@ function synthesizeComposition(aEvent, aWindow)
 
 
 
-function synthesizeCompositionChange(aEvent, aWindow)
+
+
+function synthesizeCompositionChange(aEvent, aWindow, aCallback)
 {
-  var TIP = _getTIP(aWindow);
+  var TIP = _getTIP(aWindow, aCallback);
   if (!TIP) {
     return;
   }
