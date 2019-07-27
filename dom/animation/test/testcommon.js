@@ -43,8 +43,10 @@ function waitForFrame() {
 
 
 
-function waitForAllPlayers(players) {
-  return Promise.all(players.map(function(player) { return player.ready; }));
+function waitForAllAnimations(animations) {
+  return Promise.all(animations.map(function(animation) {
+    return animation.ready;
+  }));
 }
 
 
