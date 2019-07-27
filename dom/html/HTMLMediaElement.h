@@ -281,6 +281,11 @@ public:
 
   void NotifyMediaTrackEnabled(MediaTrack* aTrack);
 
+  
+
+
+  void NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream);
+
   virtual bool IsNodeOfType(uint32_t aFlags) const MOZ_OVERRIDE;
 
   
@@ -612,6 +617,7 @@ protected:
   virtual ~HTMLMediaElement();
 
   class MediaLoadListener;
+  class MediaStreamTracksAvailableCallback;
   class StreamListener;
 
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
@@ -1035,6 +1041,9 @@ protected:
   
   nsMediaNetworkState mNetworkState;
   nsMediaReadyState mReadyState;
+
+  
+  NextFrameStatus mLastNextFrameStatus;
 
   enum LoadAlgorithmState {
     
