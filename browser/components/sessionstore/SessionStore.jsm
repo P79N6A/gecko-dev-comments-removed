@@ -310,18 +310,7 @@ this.SessionStore = {
 
   reviveCrashedTab(aTab) {
     return SessionStoreInternal.reviveCrashedTab(aTab);
-  },
-
-  
-
-
-
-  get _internal() {
-    if (Services.prefs.getBoolPref("browser.sessionstore.debug")) {
-      return SessionStoreInternal;
-    }
-    return undefined;
-  },
+  }
 };
 
 
