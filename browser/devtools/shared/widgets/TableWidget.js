@@ -3,7 +3,7 @@
 
 "use strict";
 
-const { Cu } = require("chrome");
+const {Cc, Ci, Cu} = require("chrome");
 
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -754,15 +754,22 @@ Column.prototype = {
 
 
   sort: function(items) {
-
     
     if (this.sorted == 1) {
       items.sort((a, b) => {
-        return a[this.id] > b[this.id]
+        let val1 = (a[this.id] instanceof Ci.nsIDOMNode) ?
+            a[this.id].textContent : a[this.id];
+        let val2 = (b[this.id] instanceof Ci.nsIDOMNode) ?
+            b[this.id].textContent : b[this.id];
+        return val1 > val2;
       });
     } else if (this.sorted > 1) {
       items.sort((a, b) => {
-        return b[this.id] > a[this.id]
+        let val1 = (a[this.id] instanceof Ci.nsIDOMNode) ?
+            a[this.id].textContent : a[this.id];
+        let val2 = (b[this.id] instanceof Ci.nsIDOMNode) ?
+            b[this.id].textContent : b[this.id];
+        return val2 > val1;
       });
     }
 
@@ -806,8 +813,18 @@ Column.prototype = {
       return;
     }
     if (event.button == 0) {
-      this.table.emit(EVENTS.ROW_SELECTED,
-        event.originalTarget.getAttribute("data-id"));
+      let target = event.originalTarget;
+      let dataid = null;
+
+      while (target) {
+        dataid = target.getAttribute("data-id");
+        if (dataid) {
+          break;
+        }
+        target = target.parentNode;
+      }
+
+      this.table.emit(EVENTS.ROW_SELECTED, dataid);
     }
   },
 
@@ -859,6 +876,8 @@ Column.prototype = {
 
 
 
+
+
 function Cell(column, item, nextCell) {
   let document = column.document;
 
@@ -892,10 +911,23 @@ Cell.prototype = {
       this.label.setAttribute("value", "");
       return;
     }
-    if (value.length > MAX_VISIBLE_STRING_SIZE) {
+
+    if (!(value instanceof Ci.nsIDOMNode) &&
+        value.length > MAX_VISIBLE_STRING_SIZE) {
       value = value .substr(0, MAX_VISIBLE_STRING_SIZE) + "\u2026"; 
     }
-    this.label.setAttribute("value", value + "");
+
+    if (value instanceof Ci.nsIDOMNode) {
+      this.label.removeAttribute("value");
+
+      while (this.label.firstChild) {
+        this.label.removeChild(this.label.firstChild);
+      }
+
+      this.label.appendChild(value);
+    } else {
+      this.label.setAttribute("value", value + "");
+    }
   },
 
   get value() {

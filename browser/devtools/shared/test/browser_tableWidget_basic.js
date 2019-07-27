@@ -108,11 +108,15 @@ function populateTable() {
     col3: "value27",
     col4: "value34"
   });
+
+  let span = doc.createElement("span");
+  span.textContent = "domnode";
+
   table.push({
     col1: "id9",
     col2: "value11",
     col3: "value23",
-    col4: "value38"
+    col4: span
   });
 }
 
@@ -300,22 +304,48 @@ function testAPI() {
   
   table.sortBy("col2");
   let cell = table.tbody.children[2].firstChild.children[2];
-  while(cell) {
-    ok(cell.value >= cell.previousSibling.value, "Sorting is in ascending order");
-    cell = cell.nextSibling;
-  }
+  checkAscendingOrder(cell);
+
   
   table.sortBy("col2");
   let cell = table.tbody.children[2].firstChild.lastChild.previousSibling;
-  while(cell != cell.parentNode.firstChild) {
-    ok(cell.value >= cell.nextSibling.value, "Sorting is in descending order");
-    cell = cell.previousSibling;
-  }
+  checkDescendingOrder(cell);
+
   
   table.sortBy("col2");
   let cell = table.tbody.children[2].firstChild.children[2];
+  checkAscendingOrder(cell);
+
+  table.clear();
+  populateTable();
+
+  
+  table.sortBy("col4");
+  let cell = table.tbody.children[6].firstChild.children[1];
+  is(cell.textContent, "domnode", "DOMNode sorted correctly");
+  checkAscendingOrder(cell.nextSibling);
+
+  
+  table.sortBy("col4");
+  let cell = table.tbody.children[6].firstChild.children[9];
+  is(cell.textContent, "domnode", "DOMNode sorted correctly");
+  checkDescendingOrder(cell.previousSibling);
+}
+
+function checkAscendingOrder(cell) {
   while(cell) {
-    ok(cell.value >= cell.previousSibling.value, "Sorting is in ascending order");
+    let currentCell = cell.value || cell.textContent;
+    let prevCell = cell.previousSibling.value || cell.previousSibling.textContent;
+    ok(currentCell >= prevCell, "Sorting is in ascending order");
     cell = cell.nextSibling;
+  }
+}
+
+function checkDescendingOrder(cell) {
+  while(cell != cell.parentNode.firstChild) {
+    let currentCell = cell.value || cell.textContent;
+    let nextCell = cell.nextSibling.value || cell.nextSibling.textContent;
+    ok(currentCell >= nextCell, "Sorting is in descending order");
+    cell = cell.previousSibling;
   }
 }
