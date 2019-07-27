@@ -330,34 +330,37 @@ var Addons = {
     try {
       let optionsURL = aListItem.getAttribute("optionsURL");
       let xhr = new XMLHttpRequest();
-      xhr.open("GET", optionsURL, false);
-      xhr.send();
-      if (xhr.responseXML) {
-        
-        let settings = xhr.responseXML.querySelectorAll(":root > setting");
-        if (settings.length > 0) {
-          for (let i = 0; i < settings.length; i++) {
-            var setting = settings[i];
-            var desc = stripTextNodes(setting).trim();
-            if (!setting.hasAttribute("desc"))
-              setting.setAttribute("desc", desc);
-            box.appendChild(setting);
-          }
+      xhr.open("GET", optionsURL, true);
+      xhr.onload = function(e) {
+        if (xhr.responseXML) {
           
-          
-          let event = document.createEvent("Events");
-          event.initEvent("AddonOptionsLoad", true, false);
-          window.dispatchEvent(event);
+          let settings = xhr.responseXML.querySelectorAll(":root > setting");
+          if (settings.length > 0) {
+            for (let i = 0; i < settings.length; i++) {
+              var setting = settings[i];
+              var desc = stripTextNodes(setting).trim();
+              if (!setting.hasAttribute("desc")) {
+                setting.setAttribute("desc", desc);
+              }
+              box.appendChild(setting);
+            }
+            
+            
+            let event = document.createEvent("Events");
+            event.initEvent("AddonOptionsLoad", true, false);
+            window.dispatchEvent(event);
   
-          
-          let id = aListItem.getAttribute("addonID");
-          Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
-        } else {
-          
-          detailItem.setAttribute("optionsURL", "");
-          aListItem.setAttribute("optionsURL", "");
+            
+            let id = aListItem.getAttribute("addonID");
+            Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
+          } else {
+            
+            detailItem.setAttribute("optionsURL", "");
+            aListItem.setAttribute("optionsURL", "");
+          }
         }
       }
+      xhr.send(null);
     } catch (e) { }
 
     let list = document.querySelector("#addons-list");
