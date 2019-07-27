@@ -157,12 +157,12 @@ PropDesc::initFromPropertyDescriptor(Handle<PropertyDescriptor> desc)
     attrs = uint8_t(desc.attributes());
     MOZ_ASSERT_IF(attrs & JSPROP_READONLY, !(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
     if (desc.hasGetterOrSetterObject()) {
-        hasGet_ = true;
-        get_ = desc.hasGetterObject() && desc.getterObject()
+        hasGet_ = desc.hasGetterObject();
+        get_ = hasGet_ && desc.getterObject()
                ? ObjectValue(*desc.getterObject())
                : UndefinedValue();
-        hasSet_ = true;
-        set_ = desc.hasSetterObject() && desc.setterObject()
+        hasSet_ = desc.hasSetterObject();
+        set_ = hasSet_ && desc.setterObject()
                ? ObjectValue(*desc.setterObject())
                : UndefinedValue();
         hasValue_ = false;
@@ -3194,10 +3194,27 @@ js::GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id,
     if (desc.hasGetterOrSetterObject()) {
         MOZ_ASSERT(desc.isShared());
         doGet = false;
-        if (desc.hasGetterObject())
+
+        
+        
+        
+        
+        
+        
+        
+        
+        if (desc.hasGetterObject()) {
             desc.setGetterObject(shape->getterObject());
-        if (desc.hasSetterObject())
+        } else {
+            desc.setGetterObject(nullptr);
+            desc.attributesRef() |= JSPROP_GETTER;
+        }
+        if (desc.hasSetterObject()) {
             desc.setSetterObject(shape->setterObject());
+        } else {
+            desc.setSetterObject(nullptr);
+            desc.attributesRef() |= JSPROP_SETTER;
+        }
     } else {
         
         
