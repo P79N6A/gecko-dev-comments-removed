@@ -91,8 +91,8 @@ public:
   void SetFeatureSettings(const nsAString& aValue, mozilla::ErrorResult& aRv);
 
   mozilla::dom::FontFaceLoadStatus Status();
-  mozilla::dom::Promise* Load();
-  mozilla::dom::Promise* Loaded();
+  mozilla::dom::Promise* Load(mozilla::ErrorResult& aRv);
+  mozilla::dom::Promise* GetLoaded(mozilla::ErrorResult& aRv);
 
 private:
   FontFace(nsISupports* aParent, nsPresContext* aPresContext);
@@ -123,6 +123,8 @@ private:
   nsCOMPtr<nsISupports> mParent;
   nsPresContext* mPresContext;
 
+  
+  
   nsRefPtr<mozilla::dom::Promise> mLoaded;
 
   
