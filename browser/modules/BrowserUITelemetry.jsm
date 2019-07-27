@@ -288,8 +288,10 @@ this.BrowserUITelemetry = {
 
     Services.search.init(rv => {
       
-      this._firstWindowMeasurements = win ? this._getWindowMeasurements(win, rv)
-                                          : {};
+      
+      let hasWindow = win && !win.closed;
+      this._firstWindowMeasurements = hasWindow ? this._getWindowMeasurements(win, rv)
+                                                : {};
     });
   },
 
