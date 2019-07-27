@@ -107,15 +107,6 @@ SpecialPowers.prototype.executeAfterFlushingMessageQueue = function(aCallback) {
 };
 
 
-
-
-SpecialPowers.prototype.__exposedProps__ = {};
-for (var i in SpecialPowers.prototype) {
-  if (i.charAt(0) != "_")
-    SpecialPowers.prototype.__exposedProps__[i] = "r";
-}
-
-
 function attachSpecialPowersToWindow(aWindow) {
   try {
     if ((aWindow !== null) &&

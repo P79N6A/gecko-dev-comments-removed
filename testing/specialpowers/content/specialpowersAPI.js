@@ -18,6 +18,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+
+Cu.forcePermissiveCOWs();
+
 function SpecialPowersAPI() {
   this._consoleListeners = [];
   this._encounteredCrashDumpFiles = [];
@@ -223,27 +227,6 @@ function crawlProtoChain(obj, fn) {
   return undefined;
 };
 
-
-
-
-
-
-function ExposedPropsWaiverHandler() {
-  
-  
-  var _permit = { value: 'rw', writable: false, configurable: false, enumerable: true };
-  return {
-    getOwnPropertyDescriptor: function(name) { return _permit; },
-    getPropertyDescriptor: function(name) { return _permit; },
-    getOwnPropertyNames: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
-    getPropertyNames: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
-    enumerate: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
-    defineProperty: function(name) { throw Error("Can't define props on ExposedPropsWaiver"); },
-    delete: function(name) { throw Error("Can't delete props from ExposedPropsWaiver"); }
-  };
-};
-var ExposedPropsWaiver = Proxy.create(ExposedPropsWaiverHandler());
-
 function SpecialPowersHandler(obj) {
   this.wrappedObject = obj;
 };
@@ -255,10 +238,6 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   if (name == "SpecialPowers_wrappedObject")
     return { value: this.wrappedObject, writeable: false, configurable: false, enumerable: false };
-
-  
-  if (name == "__exposedProps__")
-    return { value: ExposedPropsWaiver, writable: false, configurable: false, enumerable: false };
 
   
   
@@ -445,11 +424,6 @@ SPConsoleListener.prototype = {
       m.isStrict      = ((msg.flags & Ci.nsIScriptError.strictFlag) === 1);
     }
 
-    
-    let expose = {};
-    for (let prop in m)
-      expose[prop] = 'r';
-    m.__exposedProps__ = expose;
     Object.freeze(m);
 
     this.callback.call(undefined, m);
@@ -470,7 +444,7 @@ function wrapCallback(cb) {
 
 function wrapCallbackObject(obj) {
   obj = Cu.waiveXrays(obj);
-  var wrapper = { __exposedProps__: ExposedPropsWaiver };
+  var wrapper = {};
   for (var i in obj) {
     if (typeof obj[i] == 'function')
       wrapper[i] = wrapCallback(obj[i]);
@@ -528,9 +502,7 @@ SpecialPowersAPI.prototype = {
 
 
   createBlankObject: function () {
-    var obj = new Object;
-    obj.__exposedProps__ = ExposedPropsWaiver;
-    return obj;
+    return new Object;
   },
 
   
@@ -1477,13 +1449,12 @@ SpecialPowersAPI.prototype = {
 
   getDOMRequestService: function() {
     var serv = Services.DOMRequest;
-    var res = { __exposedProps__: {} };
+    var res = {};
     var props = ["createRequest", "createCursor", "fireError", "fireSuccess",
                  "fireDone", "fireDetailedError"];
     for (var i in props) {
       let prop = props[i];
       res[prop] = function() { return serv[prop].apply(serv, arguments) };
-      res.__exposedProps__[prop] = "r";
     }
     return res;
   },
