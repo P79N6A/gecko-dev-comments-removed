@@ -1505,8 +1505,7 @@ EventStateManager::BeginTrackingDragGesture(nsPresContext* aPresContext,
 
   
   
-  mGestureDownPoint = inDownEvent->refPoint +
-    LayoutDeviceIntPoint::FromUntyped(inDownEvent->widget->WidgetToScreenOffset());
+  mGestureDownPoint = inDownEvent->refPoint + inDownEvent->widget->WidgetToScreenOffset();
 
   inDownFrame->GetContentForEvent(inDownEvent,
                                   getter_AddRefs(mGestureDownContent));
@@ -1544,8 +1543,7 @@ EventStateManager::FillInEventFromGestureDown(WidgetMouseEvent* aEvent)
   
   
   
-  aEvent->refPoint = mGestureDownPoint -
-    LayoutDeviceIntPoint::FromUntyped(aEvent->widget->WidgetToScreenOffset());
+  aEvent->refPoint = mGestureDownPoint - aEvent->widget->WidgetToScreenOffset();
   aEvent->modifiers = mGestureModifiers;
   aEvent->buttons = mGestureDownButtons;
 }
@@ -1601,8 +1599,7 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
     }
 
     
-    LayoutDeviceIntPoint pt = aEvent->refPoint +
-      LayoutDeviceIntPoint::FromUntyped(aEvent->widget->WidgetToScreenOffset());
+    LayoutDeviceIntPoint pt = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
     LayoutDeviceIntPoint distance = pt - mGestureDownPoint;
     if (Abs(distance.x) > AssertedCast<uint32_t>(pixelThresholdX) ||
         Abs(distance.y) > AssertedCast<uint32_t>(pixelThresholdY)) {
@@ -3216,9 +3213,9 @@ EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
         event.refPoint = mouseEvent->refPoint;
         if (mouseEvent->widget) {
-          event.refPoint += LayoutDeviceIntPoint::FromUntyped(mouseEvent->widget->WidgetToScreenOffset());
+          event.refPoint += mouseEvent->widget->WidgetToScreenOffset();
         }
-        event.refPoint -= LayoutDeviceIntPoint::FromUntyped(widget->WidgetToScreenOffset());
+        event.refPoint -= widget->WidgetToScreenOffset();
         event.modifiers = mouseEvent->modifiers;
         event.buttons = mouseEvent->buttons;
         event.inputSource = mouseEvent->inputSource;
@@ -4023,8 +4020,8 @@ EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
           
           sSynthCenteringPoint = center;
           aMouseEvent->widget->SynthesizeNativeMouseMove(
-            LayoutDeviceIntPoint::ToUntyped(center) +
-              aMouseEvent->widget->WidgetToScreenOffset());
+            LayoutDeviceIntPoint::ToUntyped(center +
+              aMouseEvent->widget->WidgetToScreenOffset()));
         } else if (aMouseEvent->refPoint == sSynthCenteringPoint) {
           
           
@@ -4160,7 +4157,7 @@ EventStateManager::SetPointerLock(nsIWidget* aWidget,
                                              aWidget,
                                              mPresContext);
     aWidget->SynthesizeNativeMouseMove(
-      LayoutDeviceIntPoint::ToUntyped(sLastRefPoint) + aWidget->WidgetToScreenOffset());
+      LayoutDeviceIntPoint::ToUntyped(sLastRefPoint + aWidget->WidgetToScreenOffset()));
 
     
     nsIPresShell::SetCapturingContent(aElement, CAPTURE_POINTERLOCK);
@@ -4176,7 +4173,7 @@ EventStateManager::SetPointerLock(nsIWidget* aWidget,
     
     sLastRefPoint = mPreLockPoint;
     aWidget->SynthesizeNativeMouseMove(
-      LayoutDeviceIntPoint::ToUntyped(mPreLockPoint) + aWidget->WidgetToScreenOffset());
+      LayoutDeviceIntPoint::ToUntyped(mPreLockPoint + aWidget->WidgetToScreenOffset()));
 
     
     nsIPresShell::SetCapturingContent(nullptr, CAPTURE_POINTERLOCK);

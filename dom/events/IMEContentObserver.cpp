@@ -449,15 +449,14 @@ IMEContentObserver::OnMouseButtonEvent(nsPresContext* aPresContext,
   nsIWidget* topLevelWidget = mWidget->GetTopLevelWidget();
   if (topLevelWidget && topLevelWidget != mWidget) {
     charAtPt.mReply.mRect.MoveBy(
-      topLevelWidget->WidgetToScreenOffset() -
-        mWidget->WidgetToScreenOffset());
+      topLevelWidget->WidgetToScreenOffsetUntyped() -
+        mWidget->WidgetToScreenOffsetUntyped());
   }
   
   
   if (aMouseEvent->widget != mWidget) {
-    charAtPt.refPoint += LayoutDeviceIntPoint::FromUntyped(
-      aMouseEvent->widget->WidgetToScreenOffset() -
-        mWidget->WidgetToScreenOffset());
+    charAtPt.refPoint += aMouseEvent->widget->WidgetToScreenOffset() -
+      mWidget->WidgetToScreenOffset();
   }
 
   IMENotification notification(NOTIFY_IME_OF_MOUSE_BUTTON_EVENT);
