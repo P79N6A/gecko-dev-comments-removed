@@ -13,7 +13,6 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 
-#include "gfxPrefs.h"
 #include "gfxTypes.h"
 #include "gfxFontFamilyList.h"
 #include "gfxBlur.h"
@@ -62,7 +61,7 @@ BackendTypeBit(BackendType b)
 
 #define MOZ_PERFORMANCE_WARNING(module, ...) \
   do { \
-    if (gfxPrefs::PerfWarnings()) { \
+    if (gfxPlatform::PerfWarnings()) { \
       printf_stderr("[" module "] " __VA_ARGS__); \
     } \
   } while (0)
@@ -261,7 +260,7 @@ public:
 
     
     
-    virtual bool UseProgressivePaint() { return gfxPrefs::ProgressivePaintDoNotUseDirectly(); }
+    virtual bool UseProgressivePaint();
 
     static bool AsyncPanZoomEnabled();
 
@@ -619,6 +618,12 @@ public:
       CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
                                  const mozilla::gfx::IntSize& aSize,
                                  mozilla::gfx::SurfaceFormat aFormat);
+
+    
+
+
+
+    static bool PerfWarnings();
 
 protected:
     gfxPlatform();

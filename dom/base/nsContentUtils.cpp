@@ -26,6 +26,7 @@
 #include "MediaDecoder.h"
 
 #include "nsNPAPIPluginInstance.h"
+#include "gfxPrefs.h"
 #include "mozAutoDocUpdate.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"

@@ -14,7 +14,6 @@
 #include "mozilla/gfx/ScaleFactor.h"    
 #include "mozilla/gfx/Logging.h"        
 #include "gfxColor.h"
-#include "gfxPrefs.h"                   
 #include "nsString.h"
 
 namespace IPC {
@@ -540,10 +539,9 @@ public:
     return mIsLayersIdRoot;
   }
 
-  void SetUsesContainerScrolling(bool aValue) {
-    MOZ_ASSERT_IF(aValue, gfxPrefs::LayoutUseContainersForRootFrames());
-    mUsesContainerScrolling = aValue;
-  }
+  
+  
+  void SetUsesContainerScrolling(bool aValue);
   bool UsesContainerScrolling() const {
     return mUsesContainerScrolling;
   }

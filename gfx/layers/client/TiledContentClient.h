@@ -36,7 +36,6 @@
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "gfxReusableSurfaceWrapper.h"
 #include "pratom.h"                     
-#include "gfxPrefs.h"
 
 namespace mozilla {
 namespace layers {

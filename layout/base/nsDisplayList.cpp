@@ -1300,6 +1300,18 @@ nsDisplayListBuilder::GetDirtyRectForScrolledContents(const nsIFrame* aScrollabl
   return result;
 }
 
+bool
+nsDisplayListBuilder::IsBuildingLayerEventRegions()
+{
+  if (mMode == PAINTING) {
+    
+    
+    return gfxPrefs::LayoutEventRegionsEnabledDoNotUseDirectly() ||
+           mAsyncPanZoomEnabled;
+  }
+  return false;
+}
+
 void nsDisplayListSet::MoveTo(const nsDisplayListSet& aDestination) const
 {
   aDestination.BorderBackground()->AppendToTop(BorderBackground());

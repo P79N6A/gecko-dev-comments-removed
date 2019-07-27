@@ -13,6 +13,7 @@
 #include "Layers.h"                     
 #include "ShadowLayerParent.h"          
 #include "CompositableTransactionParent.h"  
+#include "gfxPrefs.h"
 #include "mozilla/gfx/BasePoint3D.h"    
 #include "mozilla/layers/CanvasLayerComposite.h"
 #include "mozilla/layers/ColorLayerComposite.h"
