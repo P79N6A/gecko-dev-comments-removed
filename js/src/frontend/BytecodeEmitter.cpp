@@ -1076,7 +1076,7 @@ EmitAtomOp(ExclusiveContext *cx, JSAtom *atom, JSOp op, BytecodeEmitter *bce)
 
     
     
-    MOZ_ASSERT_IF(op == JSOP_GETNAME || op == JSOP_GETGNAME, atom != cx->names().dotGenerator);
+    MOZ_ASSERT_IF(op == JSOP_GETNAME || op == JSOP_GETGNAME, !bce->sc->isDotVariable(atom));
 
     if (op == JSOP_GETPROP && atom == cx->names().length) {
         
@@ -5589,6 +5589,16 @@ EmitContinue(ExclusiveContext *cx, BytecodeEmitter *bce, PropertyName *label)
 }
 
 static bool
+InTryBlockWithFinally(BytecodeEmitter *bce)
+{
+    for (StmtInfoBCE *stmt = bce->topStmt; stmt; stmt = stmt->down) {
+        if (stmt->type == STMT_FINALLY)
+            return true;
+    }
+    return false;
+}
+
+static bool
 EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     if (!UpdateSourceCoordNotes(cx, bce, pn->pn_pos.begin))
@@ -5600,7 +5610,7 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
-    if (ParseNode *pn2 = pn->pn_kid) {
+    if (ParseNode *pn2 = pn->pn_left) {
         if (!EmitTree(cx, bce, pn2))
             return false;
     } else {
@@ -5628,8 +5638,25 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     ptrdiff_t top = bce->offset();
 
     bool isGenerator = bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->isGenerator();
-    if (Emit1(cx, bce, isGenerator ? JSOP_SETRVAL : JSOP_RETURN) < 0)
-         return false;
+    bool useGenRVal = false;
+    if (isGenerator) {
+        if (bce->sc->asFunctionBox()->isStarGenerator() && InTryBlockWithFinally(bce)) {
+            
+            
+            useGenRVal = true;
+            MOZ_ASSERT(pn->pn_right);
+            if (!EmitTree(cx, bce, pn->pn_right))
+                return false;
+            if (Emit1(cx, bce, JSOP_POP) < 0)
+                return false;
+        } else {
+            if (Emit1(cx, bce, JSOP_SETRVAL) < 0)
+                return false;
+        }
+    } else {
+        if (Emit1(cx, bce, JSOP_RETURN) < 0)
+            return false;
+    }
 
     NonLocalExitScope nle(cx, bce);
 
@@ -5641,6 +5668,14 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         
         
         sc.setHops(0);
+        if (useGenRVal) {
+            MOZ_ALWAYS_TRUE(LookupAliasedNameSlot(bce, bce->script, cx->names().dotGenRVal, &sc));
+            if (!EmitAliasedVarOp(cx, JSOP_GETALIASEDVAR, sc, DontCheckLexical, bce))
+                return false;
+            if (Emit1(cx, bce, JSOP_SETRVAL) < 0)
+                return false;
+        }
+
         MOZ_ALWAYS_TRUE(LookupAliasedNameSlot(bce, bce->script, cx->names().dotGenerator, &sc));
         if (!EmitAliasedVarOp(cx, JSOP_GETALIASEDVAR, sc, DontCheckLexical, bce))
             return false;
