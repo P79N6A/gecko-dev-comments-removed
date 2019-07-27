@@ -297,7 +297,11 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           oldPlayer->mTiming = newPlayer->mTiming;
-          oldPlayer->mProperties = newPlayer->mProperties;
+          if (oldPlayer->GetSource() && newPlayer->GetSource()) {
+            Animation* oldAnim = oldPlayer->GetSource();
+            Animation* newAnim = newPlayer->GetSource();
+            oldAnim->Properties() = newAnim->Properties();
+          }
 
           
           oldPlayer->mIsRunningOnCompositor = false;
@@ -544,7 +548,7 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
         lastKey = kf.mKey;
       }
 
-      AnimationProperty &propData = *dest->mProperties.AppendElement();
+      AnimationProperty &propData = *destAnim->Properties().AppendElement();
       propData.mProperty = prop;
 
       KeyframeData *fromKeyframe = nullptr;
@@ -596,7 +600,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
       
       
       if (!interpolated) {
-        dest->mProperties.RemoveElementAt(dest->mProperties.Length() - 1);
+        destAnim->Properties().RemoveElementAt(
+          destAnim->Properties().Length() - 1);
       }
     }
   }

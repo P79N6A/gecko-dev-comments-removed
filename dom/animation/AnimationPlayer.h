@@ -10,13 +10,10 @@
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/StyleAnimationValue.h" 
 #include "mozilla/TimeStamp.h" 
 #include "mozilla/dom/Animation.h" 
 #include "mozilla/dom/AnimationTimeline.h" 
 #include "nsCSSProperty.h" 
-#include "nsSMILKeySpline.h" 
-#include "nsStyleStruct.h" 
 
 
 #ifdef CurrentTime
@@ -28,36 +25,6 @@ struct JSContext;
 namespace mozilla {
 
 struct ElementPropertyTransition;
-
-class ComputedTimingFunction {
-public:
-  typedef nsTimingFunction::Type Type;
-  void Init(const nsTimingFunction &aFunction);
-  double GetValue(double aPortion) const;
-  const nsSMILKeySpline* GetFunction() const {
-    NS_ASSERTION(mType == nsTimingFunction::Function, "Type mismatch");
-    return &mTimingFunction;
-  }
-  Type GetType() const { return mType; }
-  uint32_t GetSteps() const { return mSteps; }
-private:
-  Type mType;
-  nsSMILKeySpline mTimingFunction;
-  uint32_t mSteps;
-};
-
-struct AnimationPropertySegment
-{
-  float mFromKey, mToKey;
-  StyleAnimationValue mFromValue, mToValue;
-  ComputedTimingFunction mTimingFunction;
-};
-
-struct AnimationProperty
-{
-  nsCSSProperty mProperty;
-  InfallibleTArray<AnimationPropertySegment> mSegments;
-};
 
 
 
@@ -178,7 +145,6 @@ public:
     mIsFinishedTransition = true;
   }
 
-  bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   bool IsRunning() const;
   bool IsCurrent() const;
 
@@ -252,8 +218,6 @@ public:
   
   
   uint64_t mLastNotification;
-
-  InfallibleTArray<AnimationProperty> mProperties;
 
   nsRefPtr<AnimationTimeline> mTimeline;
   nsRefPtr<Animation> mSource;
