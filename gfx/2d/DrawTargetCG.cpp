@@ -995,6 +995,21 @@ DrawTargetCG::StrokeLine(const Point &p1, const Point &p2, const Pattern &aPatte
   CGContextRestoreGState(mCg);
 }
 
+static bool
+IsInteger(Float aValue)
+{
+  return floorf(aValue) == aValue;
+}
+
+static bool
+IsPixelAlignedStroke(const Rect& aRect, Float aLineWidth)
+{
+  Float halfWidth = aLineWidth/2;
+  return IsInteger(aLineWidth) &&
+         IsInteger(aRect.x - halfWidth) && IsInteger(aRect.y - halfWidth) &&
+         IsInteger(aRect.XMost() - halfWidth) && IsInteger(aRect.YMost() - halfWidth);
+}
+
 void
 DrawTargetCG::StrokeRect(const Rect &aRect,
                          const Pattern &aPattern,
@@ -1012,8 +1027,19 @@ DrawTargetCG::StrokeRect(const Rect &aRect,
   UnboundnessFixer fixer;
   CGContextRef cg = fixer.Check(mCg, aDrawOptions.mCompositionOp);
   CGContextSetAlpha(mCg, aDrawOptions.mAlpha);
-  CGContextSetShouldAntialias(cg, aDrawOptions.mAntialiasMode != AntialiasMode::NONE);
   CGContextSetBlendMode(mCg, ToBlendMode(aDrawOptions.mCompositionOp));
+
+  
+  
+  
+  
+  
+  bool pixelAlignedStroke = mTransform.IsAllIntegers() &&
+    mTransform.PreservesAxisAlignedRectangles() &&
+    aPattern.GetType() == PatternType::COLOR &&
+    IsPixelAlignedStroke(aRect, aStrokeOptions.mLineWidth);
+  CGContextSetShouldAntialias(cg,
+    aDrawOptions.mAntialiasMode != AntialiasMode::NONE && !pixelAlignedStroke);
 
   CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(mTransform));
 

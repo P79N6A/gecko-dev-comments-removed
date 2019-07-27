@@ -295,14 +295,6 @@ public:
             || (FuzzyEqual(_21, 0.0) && FuzzyEqual(_12, 0.0)));
     }
 
-    
-
-
-    bool HasNonIntegerScale() const {
-        return !FuzzyEqual(_11, floor(_11 + 0.5)) ||
-               !FuzzyEqual(_22, floor(_22 + 0.5));
-    }
-
 private:
     static bool FuzzyEqual(gfxFloat aV1, gfxFloat aV2) {
         return fabs(aV2 - aV1) < 1e-6;
