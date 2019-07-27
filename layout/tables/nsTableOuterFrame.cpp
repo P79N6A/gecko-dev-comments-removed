@@ -512,8 +512,7 @@ nsTableOuterFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                    bool aShrinkWrap)
 {
   nscoord kidAvailableWidth = aAvailableISize - aMargin.ISize(aWM);
-  NS_ASSERTION(aBorder == LogicalSize(aWM) &&
-               aPadding == LogicalSize(aWM),
+  NS_ASSERTION(aBorder.IsAllZero() && aPadding.IsAllZero(),
                "Table outer frames cannot have borders or paddings");
 
   
