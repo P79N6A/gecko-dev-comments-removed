@@ -292,6 +292,24 @@ public:
   nscoord GetCrossSize() const     { return mCrossSize;  }
   nscoord GetCrossPosition() const { return mCrossPosn; }
 
+  nscoord ResolvedAscent() const {
+    if (mAscent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+      
+      
+      
+      
+      
+      
+      
+      WritingMode wm = mFrame->GetWritingMode();
+      
+      if (!nsLayoutUtils::GetFirstLineBaseline(wm, mFrame, &mAscent)) {
+        mAscent = mFrame->GetLogicalBaseline(wm);
+      }
+    }
+    return mAscent;
+  }
+
   
   
   
@@ -539,7 +557,7 @@ public:
   
   
   void SetAscent(nscoord aAscent) const {
-    mAscent = aAscent;
+    mAscent = aAscent; 
   }
 
   void SetHadMeasuringReflow() {
@@ -1387,13 +1405,6 @@ nsFlexContainerFrame::
   }
 }
 
-
-
-
-static void
-ResolveReflowedChildAscent(nsIFrame* aFrame,
-                           nsHTMLReflowMetrics& aChildDesiredSize);
-
 nscoord
 nsFlexContainerFrame::
   MeasureFlexItemContentHeight(nsPresContext* aPresContext,
@@ -1443,7 +1454,6 @@ nsFlexContainerFrame::
   
   if (aFlexItem.Frame() == mFrames.FirstChild() ||
       aFlexItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
-    ResolveReflowedChildAscent(aFlexItem.Frame(), childDesiredSize);
     aFlexItem.SetAscent(childDesiredSize.BlockStartAscent());
   }
 
@@ -1608,7 +1618,7 @@ FlexItem::GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
 
   mozilla::Side sideToMeasureFrom = kAxisOrientationToSidesMap[aCrossAxis][aEdge];
 
-  nscoord marginTopToBaseline = mAscent + mMargin.top;
+  nscoord marginTopToBaseline = ResolvedAscent() + mMargin.top;
 
   if (sideToMeasureFrom == eSideTop) {
     
@@ -3243,25 +3253,6 @@ FlexLine::PositionItemsInMainAxis(uint8_t aJustifyContent,
 
 
 
-static void
-ResolveReflowedChildAscent(nsIFrame* aFrame,
-                           nsHTMLReflowMetrics& aChildDesiredSize)
-{
-  WritingMode wm = aChildDesiredSize.GetWritingMode();
-  if (aChildDesiredSize.BlockStartAscent() ==
-      nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    
-    nscoord ascent;
-    if (nsLayoutUtils::GetFirstLineBaseline(wm, aFrame, &ascent)) {
-      aChildDesiredSize.SetBlockStartAscent(ascent);
-    } else {
-      aChildDesiredSize.SetBlockStartAscent(aFrame->GetLogicalBaseline(wm));
-    }
-  }
-}
-
-
-
 
 
 
@@ -3360,7 +3351,6 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
   
   if (aItem.Frame() == mFrames.FirstChild() ||
       aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
-    ResolveReflowedChildAscent(aItem.Frame(), childDesiredSize);
     aItem.SetAscent(childDesiredSize.BlockStartAscent());
   }
 }
@@ -3778,7 +3768,6 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         
         
         
-        ResolveReflowedChildAscent(item->Frame(), childDesiredSize);
         item->SetAscent(childDesiredSize.BlockStartAscent());
       }
 
@@ -3793,7 +3782,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
         flexContainerAscent = item->Frame()->GetLogicalNormalPosition(
                                 outerWM,
                                 childDesiredSize.Width()).B(outerWM) +
-                              childDesiredSize.BlockStartAscent();
+                              item->ResolvedAscent();
       }
     }
   }
