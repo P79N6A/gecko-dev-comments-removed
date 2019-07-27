@@ -102,15 +102,54 @@ let test = Task.async(function* () {
     info("Item selected. Waiting for NETWORKDETAILSVIEW_POPULATED");
     yield onDetailsPopulated;
 
-    info("Selecting tab at index " + tabIndex);
+    info("Received populated event. Selecting tab at index " + tabIndex);
     NetworkDetails.widget.selectedIndex = tabIndex;
 
-    ok(true, "Received NETWORKDETAILSVIEW_POPULATED. Waiting for request to finish");
+    info("Waiting for request to finish.");
     yield onRequestFinished;
 
-    ok(true, "Request finished. Waiting for tab update to complete");
-    let onDetailsUpdateFinished = waitFor(panel, EVENTS.TAB_UPDATED);
-    yield onDetailsUpdateFinished;
-    ok(true, "Details were updated");
+    ok(true, "Request finished.");
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    let hasQueuedUpdates = RequestsMenu._updateQueue.length !== 0;
+    let hasRunningTabUpdate = NetworkDetails._viewState.updating[tabIndex];
+
+    if (hasQueuedUpdates || hasRunningTabUpdate) {
+      info("There's pending updates - waiting for them to finish.");
+      info("  hasQueuedUpdates: " + hasQueuedUpdates);
+      info("  hasRunningTabUpdate: " + hasRunningTabUpdate);
+
+      if (hasQueuedUpdates && hasRunningTabUpdate) {
+        info("Waiting for updates to be flushed.");
+        
+        yield waitFor(panel, EVENTS.NETWORKDETAILSVIEW_POPULATED);
+
+        info("Requests flushed.");
+      }
+
+      info("Waiting for final tab update.");
+      yield waitFor(panel, EVENTS.TAB_UPDATED);
+    }
+
+    info("All updates completed.");
   }
 });
