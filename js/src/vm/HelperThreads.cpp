@@ -197,7 +197,17 @@ ParseTask::ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal, JSC
 bool
 ParseTask::init(JSContext *cx, const ReadOnlyCompileOptions &options)
 {
-    return this->options.copy(cx, options);
+    if (!this->options.copy(cx, options))
+        return false;
+
+    
+    
+    
+    
+    if (cx->compartment()->isDebuggee())
+        this->options.asmJSOption = false;
+
+    return true;
 }
 
 void
@@ -363,12 +373,6 @@ js::StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &optio
             return false;
     } else {
         task->activate(cx->runtime());
-
-        if (cx->compartment()->isDebuggee()) {
-            task->cx->compartment()->setIsDebuggee();
-            if (cx->compartment()->debugObservesAllExecution())
-                task->cx->compartment()->setDebugObservesAllExecution();
-        }
 
         AutoLockHelperThreadState lock;
 

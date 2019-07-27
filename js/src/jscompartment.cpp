@@ -560,12 +560,7 @@ void
 JSCompartment::sweepGlobalObject(FreeOp *fop)
 {
     if (global_.unbarrieredGet() && IsObjectAboutToBeFinalizedFromAnyThread(global_.unsafeGet())) {
-        
-        
-        
-        
-        
-        if (isDebuggee() && !global_->compartment()->options().invisibleToDebugger())
+        if (isDebuggee())
             Debugger::detachAllDebuggersFromGlobal(fop, global_);
         global_.set(nullptr);
     }
