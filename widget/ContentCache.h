@@ -36,6 +36,30 @@ public:
 
   void Clear();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool HandleQueryContentEvent(WidgetQueryContentEvent& aEvent,
+                               nsIWidget* aWidget) const;
+
   void SetText(const nsAString& aText);
   const nsString& Text() const { return mText; }
   uint32_t TextLength() const { return mText.Length(); }
