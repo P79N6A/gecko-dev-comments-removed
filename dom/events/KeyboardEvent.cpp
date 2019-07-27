@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/dom/KeyboardEvent.h"
 #include "mozilla/TextEvents.h"
@@ -19,7 +19,7 @@ KeyboardEvent::KeyboardEvent(EventTarget* aOwner,
   , mInitializedByCtor(false)
   , mInitialzedWhichValue(0)
 {
-  NS_ASSERTION(mEvent->mClass == NS_KEY_EVENT, "event type mismatch");
+  NS_ASSERTION(mEvent->mClass == eKeyboardEventClass, "event type mismatch");
 
   if (aEvent) {
     mEventIsInternal = false;
@@ -251,7 +251,7 @@ KeyboardEvent::GetCharCode(uint32_t* aCharCode)
 uint32_t
 KeyboardEvent::CharCode()
 {
-  // If this event is initialized with ctor, we shouldn't check event type.
+  
   if (mInitializedByCtor) {
     return mEvent->AsKeyboardEvent()->charCode;
   }
@@ -277,7 +277,7 @@ KeyboardEvent::GetKeyCode(uint32_t* aKeyCode)
 uint32_t
 KeyboardEvent::KeyCode()
 {
-  // If this event is initialized with ctor, we shouldn't check event type.
+  
   if (mInitializedByCtor) {
     return mEvent->AsKeyboardEvent()->keyCode;
   }
@@ -294,7 +294,7 @@ KeyboardEvent::KeyCode()
 uint32_t
 KeyboardEvent::Which()
 {
-  // If this event is initialized with ctor, which can have independent value.
+  
   if (mInitializedByCtor) {
     return mInitialzedWhichValue;
   }
@@ -304,8 +304,8 @@ KeyboardEvent::Which()
     case NS_KEY_DOWN:
       return KeyCode();
     case NS_KEY_PRESS:
-      //Special case for 4xp bug 62878.  Try to make value of which
-      //more closely mirror the values that 4.x gave for RETURN and BACKSPACE
+      
+      
       {
         uint32_t keyCode = mEvent->AsKeyboardEvent()->keyCode;
         if (keyCode == NS_VK_RETURN || keyCode == NS_VK_BACK) {
@@ -333,7 +333,7 @@ KeyboardEvent::Location()
   return mEvent->AsKeyboardEvent()->location;
 }
 
-// static
+
 already_AddRefed<KeyboardEvent>
 KeyboardEvent::Constructor(const GlobalObject& aGlobal,
                            const nsAString& aType,
@@ -388,8 +388,8 @@ KeyboardEvent::InitKeyEvent(const nsAString& aType,
   return NS_OK;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 using namespace mozilla;
 using namespace mozilla::dom;
