@@ -5122,8 +5122,11 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       break;
 
     case WM_APPCOMMAND:
-      result = HandleAppCommandMsg(wParam, lParam, aRetValue);
+    {
+      MSG nativeMsg = WinUtils::InitMSG(msg, wParam, lParam, mWnd);
+      result = HandleAppCommandMsg(nativeMsg, aRetValue);
       break;
+    }
 
     
     

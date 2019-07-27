@@ -234,7 +234,7 @@ public:
   };
 
   NativeKey(nsWindowBase* aWidget,
-            const MSG& aKeyOrCharMessage,
+            const MSG& aMessage,
             const ModifierKeyState& aModKeyState,
             nsTArray<FakeCharMsg>* aFakeCharMsgs = nullptr);
 
@@ -259,6 +259,12 @@ public:
 
 
   bool HandleKeyUpMessage(bool* aEventDispatched = nullptr) const;
+
+  
+
+
+
+  bool HandleAppCommandMessage() const;
 
 private:
   nsRefPtr<nsWindowBase> mWidget;
@@ -294,10 +300,18 @@ private:
 
   nsTArray<FakeCharMsg>* mFakeCharMsgs;
 
+  
+  
+  
+  
+  static uint8_t sDispatchedKeyOfAppCommand;
+
   NativeKey()
   {
     MOZ_CRASH("The default constructor of NativeKey isn't available");
   }
+
+  void InitWithAppCommand();
 
   
 
@@ -312,6 +326,21 @@ private:
       case WM_DEADCHAR:
       case WM_SYSDEADCHAR:
         return ((mMsg.lParam & (1 << 30)) != 0);
+      case WM_APPCOMMAND:
+        if (mVirtualKeyCode) {
+          
+          
+          BYTE kbdState[256];
+          memset(kbdState, 0, sizeof(kbdState));
+          ::GetKeyboardState(kbdState);
+          return !!kbdState[mVirtualKeyCode];
+        }
+        
+        
+        
+        
+        
+        return false;
       default:
         return false;
     }
@@ -413,6 +442,12 @@ private:
   void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
                     const ModifierKeyState& aModKeyState) const;
   void InitKeyEvent(WidgetKeyboardEvent& aKeyEvent) const;
+
+  
+
+
+
+  bool DispatchCommandEvent(uint32_t aEventCommand) const;
 
   
 
