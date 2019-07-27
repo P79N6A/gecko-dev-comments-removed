@@ -16,8 +16,15 @@ var index = 0;
 var test_flags = new Array();
 var testPathBase = "/cl_hdrs";
 
+var prefs;
+var enforcePref;
+
 function run_test()
 {
+  prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+  enforcePref = prefs.getBoolPref("network.http.enforce-framing.http1");
+  prefs.setBoolPref("network.http.enforce-framing.http1", true);
+
   httpserver.start(-1);
 
   do_test_pending();
@@ -46,6 +53,7 @@ function setupChannel(url)
 
 function endTests()
 {
+  prefs.setBoolPref("network.http.enforce-framing.http1", enforcePref);
   httpserver.stop(do_test_finished);
 }
 
@@ -93,6 +101,34 @@ function handler2(metadata, response)
 
 function completeTest2(request, data, ctx)
 {
+  do_check_eq(request.status, Components.results.NS_OK);
+
+  
+  prefs.setBoolPref("network.http.enforce-framing.http1", false);
+  run_test_number(3);
+}
+
+
+
+test_flags[3] = CL_IGNORE_CL;
+
+function handler3(metadata, response)
+{
+  var body = "blablabla";
+
+  response.seizePower();
+  response.write("HTTP/1.1 200 OK\r\n");
+  response.write("Content-Type: text/plain\r\n");
+  response.write("Content-Length: 556677\r\n");
+  response.write("\r\n");
+  response.write(body);
+  response.finish();
+}
+
+function completeTest3(request, data, ctx)
+{
+  
+  prefs.setBoolPref("network.http.enforce-framing.http1", true);
   do_check_eq(request.status, Components.results.NS_OK);
   endTests();
 }

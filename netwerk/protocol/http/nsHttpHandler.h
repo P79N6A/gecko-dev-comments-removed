@@ -150,6 +150,9 @@ public:
       return mTCPKeepaliveLongLivedIdleTimeS;
     }
 
+    
+    bool GetEnforceH1Framing() { return mEnforceH1Framing; }
+
     nsHttpAuthCache     *AuthCache(bool aPrivate) {
         return aPrivate ? &mPrivateAuthCache : &mAuthCache;
     }
@@ -521,6 +524,10 @@ private:
     bool mTCPKeepaliveLongLivedEnabled;
     
     int32_t mTCPKeepaliveLongLivedIdleTimeS;
+
+    
+    
+    bool mEnforceH1Framing;
 
 private:
     
