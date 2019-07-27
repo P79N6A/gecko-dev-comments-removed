@@ -7666,14 +7666,13 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler& masm)
 
     Label failure;
 
-    AllocatableGeneralRegisterSet regs(availableGeneralRegs(0));
+    AllocatableGeneralRegisterSet regs(availableGeneralRegs(1));
     Register objReg = InvalidReg;
 
     MOZ_ASSERT(!(inputDefinitelyObject_ && outerClass_));
     if (inputDefinitelyObject_) {
         objReg = R0.scratchReg();
     } else {
-        regs.take(R0);
         
         masm.branchTestObject(Assembler::NotEqual, R0, &failure);
         objReg = masm.extractObject(R0, ExtractTemp0);
@@ -7683,12 +7682,11 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler& masm)
             masm.branchTestObjClass(Assembler::NotEqual, objReg, tmp, outerClass_, &failure);
             masm.loadPtr(Address(objReg, ProxyDataOffset + offsetof(ProxyDataLayout, values)), tmp);
             masm.loadValue(Address(tmp, offsetof(ProxyValueArray, privateSlot)), val);
-            objReg = masm.extractObject(val, ExtractTemp0);
+            masm.movePtr(masm.extractObject(val, ExtractTemp0), objReg);
             regs.add(val);
             regs.add(tmp);
         }
     }
-    regs.takeUnchecked(objReg);
 
     Register scratch = regs.takeAnyExcluding(ICTailCallReg);
 
@@ -7705,6 +7703,13 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler& masm)
     }
 
     
+    if (inputDefinitelyObject_)
+        masm.tagValue(JSVAL_TYPE_OBJECT, objReg, R0);
+    EmitStowICValues(masm, 1);
+    if (inputDefinitelyObject_)
+        objReg = masm.extractObject(R0, ExtractTemp0);
+
+    
     enterStubFrame(masm, scratch);
 
     
@@ -7715,14 +7720,13 @@ ICGetProp_CallNative::Compiler::generateStubCode(MacroAssembler& masm)
     masm.push(objReg);
     masm.push(callee);
 
-    if (!inputDefinitelyObject_)
-        regs.add(R0);
-    else
-        regs.add(objReg);
+    regs.add(R0);
 
     if (!callVM(DoCallNativeGetterInfo, masm))
         return false;
     leaveStubFrame(masm);
+
+    EmitUnstowICValues(masm, 1, true);
 
     
     EmitEnterTypeMonitorIC(masm);
