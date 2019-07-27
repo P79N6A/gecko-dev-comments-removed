@@ -27,6 +27,8 @@ USING_BLUETOOTH_NAMESPACE
 #define AVRC_KEY_PRESS_STATE  1
 #define AVRC_KEY_RELEASE_STATE  0
 
+#define AVRC_MAX_ATTR_STR_LEN 255
+
 namespace {
   StaticRefPtr<BluetoothA2dpManager> sBluetoothA2dpManager;
   bool sInShutdown = false;
@@ -47,12 +49,27 @@ ConvertAttributeString(BluetoothAvrcpMediaAttribute aAttrId,
   switch (aAttrId) {
     case AVRCP_MEDIA_ATTRIBUTE_TITLE:
       a2dp->GetTitle(aAttrStr);
+      
+
+
+      if (aAttrStr.Length() >= AVRC_MAX_ATTR_STR_LEN) {
+        aAttrStr.Truncate(AVRC_MAX_ATTR_STR_LEN - 1);
+        BT_WARNING("Truncate media item attribute title, length is over 255");
+      }
       break;
     case AVRCP_MEDIA_ATTRIBUTE_ARTIST:
       a2dp->GetArtist(aAttrStr);
+      if (aAttrStr.Length() >= AVRC_MAX_ATTR_STR_LEN) {
+        aAttrStr.Truncate(AVRC_MAX_ATTR_STR_LEN - 1);
+        BT_WARNING("Truncate media item attribute artist, length is over 255");
+      }
       break;
     case AVRCP_MEDIA_ATTRIBUTE_ALBUM:
       a2dp->GetAlbum(aAttrStr);
+      if (aAttrStr.Length() >= AVRC_MAX_ATTR_STR_LEN) {
+        aAttrStr.Truncate(AVRC_MAX_ATTR_STR_LEN - 1);
+        BT_WARNING("Truncate media item attribute album, length is over 255");
+      }
       break;
     case AVRCP_MEDIA_ATTRIBUTE_TRACK_NUM:
       aAttrStr.AppendInt(a2dp->GetMediaNumber());
