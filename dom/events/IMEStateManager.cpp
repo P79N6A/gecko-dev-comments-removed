@@ -979,6 +979,16 @@ IMEStateManager::OnCompositionEventDiscarded(
 
   nsRefPtr<TextComposition> composition =
     sTextCompositions->GetCompositionFor(aCompositionEvent->widget);
+  if (!composition) {
+    
+    
+    
+    
+    PR_LOG(sISMLog, PR_LOG_ALWAYS,
+      ("ISM:   IMEStateManager::OnCompositionEventDiscarded(), "
+       "TextComposition instance for the widget has already gone"));
+    return;
+  }
   composition->OnCompositionEventDiscarded(aCompositionEvent);
 }
 
