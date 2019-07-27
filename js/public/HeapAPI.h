@@ -211,6 +211,9 @@ struct Zone
 
 class JS_FRIEND_API(GCCellPtr)
 {
+    typedef void (GCCellPtr::* ConvertibleToBool)();
+    void nonNull() {}
+
   public:
     
     GCCellPtr(void *gcthing, JSGCTraceKind traceKind) : ptr(checkedCast(gcthing, traceKind)) {}
@@ -234,8 +237,10 @@ class JS_FRIEND_API(GCCellPtr)
     }
 
     
-    operator js::gc::Cell *() const { return asCell(); }
-    js::gc::Cell *operator->() const { return asCell(); }
+    operator ConvertibleToBool() const {
+        MOZ_ASSERT(bool(asCell()) == (kind() != JSTRACE_NULL));
+        return asCell() ? &GCCellPtr::nonNull : 0;
+    }
 
     
     bool isObject() const { return kind() == JSTRACE_OBJECT; }
@@ -261,6 +266,9 @@ class JS_FRIEND_API(GCCellPtr)
         MOZ_ASSERT(kind() == JSTRACE_SYMBOL);
         return reinterpret_cast<Symbol *>(asCell());
     }
+    js::gc::Cell *asCell() const {
+        return reinterpret_cast<js::gc::Cell *>(ptr & ~JSTRACE_OUTOFLINE);
+    }
 
     
     void *unsafeGetUntypedPtr() const {
@@ -277,10 +285,6 @@ class JS_FRIEND_API(GCCellPtr)
         MOZ_ASSERT_IF(traceKind >= JSTRACE_OUTOFLINE,
                       (traceKind & JSTRACE_OUTOFLINE) == JSTRACE_OUTOFLINE);
         return uintptr_t(p) | (traceKind & JSTRACE_OUTOFLINE);
-    }
-
-    js::gc::Cell *asCell() const {
-        return reinterpret_cast<js::gc::Cell *>(ptr & ~JSTRACE_OUTOFLINE);
     }
 
     JSGCTraceKind outOfLineKind() const;
@@ -397,11 +401,11 @@ IsIncrementalBarrierNeededOnTenuredGCThing(JS::shadow::Runtime *rt, const JS::GC
 {
     MOZ_ASSERT(thing);
 #ifdef JSGC_GENERATIONAL
-    MOZ_ASSERT(!js::gc::IsInsideNursery(thing));
+    MOZ_ASSERT(!js::gc::IsInsideNursery(thing.asCell()));
 #endif
     if (!rt->needsIncrementalBarrier())
         return false;
-    JS::Zone *zone = JS::GetTenuredGCThingZone(thing);
+    JS::Zone *zone = JS::GetTenuredGCThingZone(thing.asCell());
     return JS::shadow::Zone::asShadowZone(zone)->needsIncrementalBarrier();
 }
 

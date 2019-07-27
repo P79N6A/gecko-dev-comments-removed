@@ -483,20 +483,20 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 {
     MOZ_ASSERT(thing.kind() != JSTRACE_SHAPE);
 
-    JS::shadow::Runtime *rt = GetGCThingRuntime(thing);
+    JS::shadow::Runtime *rt = GetGCThingRuntime(thing.asCell());
 #ifdef JSGC_GENERATIONAL
     
 
 
 
 
-    if (IsInsideNursery(thing))
+    if (IsInsideNursery(thing.asCell()))
         return;
 #endif
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
         JS::IncrementalReferenceBarrier(thing);
-    else if (JS::GCThingIsMarkedGray(thing))
-        JS::UnmarkGrayGCThingRecursively(thing, thing.kind());
+    else if (JS::GCThingIsMarkedGray(thing.asCell()))
+        JS::UnmarkGrayGCThingRecursively(thing.asCell(), thing.kind());
 }
 
 static MOZ_ALWAYS_INLINE void
@@ -507,7 +507,7 @@ MarkGCThingAsLive(JSRuntime *aRt, JS::GCCellPtr thing)
     
 
 
-    if (IsInsideNursery(thing))
+    if (IsInsideNursery(thing.asCell()))
         return;
 #endif
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
