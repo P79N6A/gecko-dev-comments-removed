@@ -617,8 +617,16 @@ FT2FontFamily::AddFacesToFontList(InfallibleTArray<FontListEntry>* aFontList,
 class FontNameCache {
 public:
     FontNameCache()
-        : mWriteNeeded(false)
+        : mMap(&mOps, sizeof(FNCMapEntry), 0)
+        , mWriteNeeded(false)
     {
+        
+        
+        
+        
+        
+        
+        
         mOps = (PLDHashTableOps) {
             StringHash,
             HashMatchEntry,
@@ -626,8 +634,6 @@ public:
             PL_DHashClearEntryStub,
             nullptr
         };
-
-        PL_DHashTableInit(&mMap, &mOps, sizeof(FNCMapEntry), 0);
 
         MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
                    "StartupCacheFontNameCache should only be used in chrome "
@@ -639,17 +645,12 @@ public:
 
     ~FontNameCache()
     {
-        if (!mMap.IsInitialized()) {
-            return;
-        }
         if (!mWriteNeeded || !mCache) {
-            PL_DHashTableFinish(&mMap);
             return;
         }
 
         nsAutoCString buf;
         PL_DHashTableEnumerate(&mMap, WriteOutMap, &buf);
-        PL_DHashTableFinish(&mMap);
         mCache->PutBuffer(CACHE_KEY, buf.get(), buf.Length() + 1);
     }
 
@@ -748,7 +749,7 @@ public:
 
 private:
     mozilla::scache::StartupCache* mCache;
-    PLDHashTable mMap;
+    PLDHashTable2 mMap;
     bool mWriteNeeded;
 
     PLDHashTableOps mOps;
