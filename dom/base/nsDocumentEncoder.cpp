@@ -1396,17 +1396,12 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
                                                              nullptr, nullptr);
       if (styleContext) {
         const nsStyleText* textStyle = styleContext->StyleText();
-        switch (textStyle->mWhiteSpace) {
-        case NS_STYLE_WHITESPACE_PRE:
-        case NS_STYLE_WHITESPACE_PRE_WRAP:
-        case NS_STYLE_WHITESPACE_PRE_LINE:
-        case NS_STYLE_WHITESPACE_PRE_SPACE:
+        if (textStyle->WhiteSpaceOrNewlineIsSignificant()) {
           
           mIsTextWidget = true;
-          break;
         }
+        break;
       }
-      break;
     }
   }
   
