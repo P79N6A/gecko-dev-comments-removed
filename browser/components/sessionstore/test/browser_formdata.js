@@ -43,7 +43,7 @@ add_task(function test_formdata() {
   Services.prefs.setIntPref("browser.sessionstore.privacy_level", 1);
 
   yield createAndRemoveTab();
-  let [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
+  [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
   is(formdata.id.txt, OUTER_VALUE, "outer value is correct");
   ok(!formdata.children, "inner value was *not* stored");
 
@@ -51,7 +51,7 @@ add_task(function test_formdata() {
   Services.prefs.setIntPref("browser.sessionstore.privacy_level", 2);
 
   yield createAndRemoveTab();
-  let [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
+  [{state: {formdata}}] = JSON.parse(ss.getClosedTabData(window));
   ok(!formdata, "form data has *not* been stored");
 
   
@@ -176,13 +176,13 @@ add_task(function test_nested() {
     "formdata for iframe stored correctly");
 
   
-  let tab = ss.undoCloseTab(window, 0);
-  let browser = tab.linkedBrowser;
+  tab = ss.undoCloseTab(window, 0);
+  browser = tab.linkedBrowser;
   yield promiseTabRestored(tab);
 
   
   SyncHandlers.get(browser).flush();
-  let {formdata} = JSON.parse(ss.getTabState(tab));
+  ({formdata} = JSON.parse(ss.getTabState(tab)));
   is(JSON.stringify(formdata), JSON.stringify(FORM_DATA),
     "formdata for iframe restored correctly");
 
@@ -224,8 +224,8 @@ add_task(function test_design_mode() {
   yield promiseTabRestored(tab);
 
   
-  let html = yield getInnerHTML(browser);
-  let expected = "<h1>Mmozilla</h1><script>document.designMode='on'</script>";
+  html = yield getInnerHTML(browser);
+  expected = "<h1>Mmozilla</h1><script>document.designMode='on'</script>";
   is(html, expected, "editable document has been restored correctly");
 
   

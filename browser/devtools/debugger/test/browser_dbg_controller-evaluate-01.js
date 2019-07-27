@@ -62,7 +62,7 @@ function test() {
     ok(true, "Evaluating in the topmost frame works properly.");
 
     
-    let updatedView = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);
+    updatedView = waitForDebuggerEvents(panel, events.FETCHED_SCOPES);
     try {
       yield frames.evaluate("foo", { depth: 3 }); 
     } catch (result) {

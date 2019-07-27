@@ -93,7 +93,7 @@ add_task(function test_removeAllPages() {
   for (let i = 0; i < 5; i++) {
     let pageURI = uri("http://item_anno." + i + ".mozilla.org/");
     
-    yield promiseAddVisits({ uri: pageURI, visitDate: now++ });
+    yield promiseAddVisits({ uri: pageURI });
     let id = bs.insertBookmark(bs.unfiledBookmarksFolder, pageURI,
                                bs.DEFAULT_INDEX, null);
     
@@ -113,12 +113,11 @@ add_task(function test_removeAllPages() {
   }
 
   
-  let now = Date.now() * 1000;
   for (let i = 0; i < 5; i++) {
     
     
     let pageURI = uri("http://page_anno." + i + ".mozilla.org/");
-    yield promiseAddVisits({ uri: pageURI, visitDate: now++ });
+    yield promiseAddVisits({ uri: pageURI });
     as.setPageAnnotation(pageURI, "expire", "test", 0, as.EXPIRE_NEVER);
     as.setPageAnnotation(pageURI, "expire_session", "test", 0, as.EXPIRE_SESSION);
     add_old_anno(pageURI, "expire_days", "test", as.EXPIRE_DAYS, 8);

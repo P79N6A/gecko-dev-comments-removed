@@ -102,7 +102,7 @@ function get_test_function_for_localhost_with_hostname(hostName, isPrivate) {
     browser.removeTab(tab);
 
     
-    let tab = browser.selectedTab = browser.addTab();
+    tab = browser.selectedTab = browser.addTab();
     
     yield* runURLBarSearchTest(hostName, isPrivate, isPrivate, win);
     browser.removeTab(tab);

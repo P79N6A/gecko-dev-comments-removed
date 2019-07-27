@@ -711,7 +711,7 @@ add_task(function test_programmatic_binding_transaction_partial_rollback() {
 
       
       
-      let result = yield c.execute(sql, bindings);
+      result = yield c.execute(sql, bindings);
       secondSucceeded = true;
     });
   } catch (ex) {

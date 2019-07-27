@@ -66,7 +66,7 @@ add_task(function test_save_and_delete() {
   yield storage.deleteAll();
 
   
-  let result = yield db.execute("SELECT * FROM items");
+  result = yield db.execute("SELECT * FROM items");
   do_check_eq(result.length, 0);
 
   db.close();

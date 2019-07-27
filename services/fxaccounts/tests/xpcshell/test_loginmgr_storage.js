@@ -128,7 +128,7 @@ add_task(function test_migrationMPUnlocked() {
   Assert.deepEqual(data, creds, "we got all the data back");
 
   
-  let data = yield CommonUtils.readJSON(path);
+  data = yield CommonUtils.readJSON(path);
 
   Assert.strictEqual(data.accountData.email, creds.email, "correct email in the clear text");
   Assert.strictEqual(data.accountData.sessionToken, creds.sessionToken, "correct sessionToken in the clear text");
@@ -255,7 +255,7 @@ add_task(function test_consistentWithMPEdgeCases() {
   
   
   
-  let fxa = new FxAccounts({});
+  fxa = new FxAccounts({});
 
   let accountData = yield fxa.getSignedInUser();
   Assert.strictEqual(accountData.email, creds2.email);

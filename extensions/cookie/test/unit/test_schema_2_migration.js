@@ -115,7 +115,7 @@ function do_run_test() {
   
   
   
-  let cookie = new Cookie("oh", "hai", "baz.com", "/",
+  cookie = new Cookie("oh", "hai", "baz.com", "/",
                           futureExpiry, now, now + 100, false, false, false);
 
   schema2db.insertCookie(cookie);

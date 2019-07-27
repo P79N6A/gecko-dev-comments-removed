@@ -92,13 +92,13 @@ add_task(function () {
   is(ss.getClosedTabCount(win), 0, "no tabs to restore");
 
   
-  let tab = win.gBrowser.addTab("about:mozilla");
-  let browser = tab.linkedBrowser;
+  tab = win.gBrowser.addTab("about:mozilla");
+  browser = tab.linkedBrowser;
   yield promiseBrowserLoaded(browser);
   SyncHandlers.get(browser).flush();
 
   
-  let state = JSON.parse(ss.getTabState(tab));
+  state = JSON.parse(ss.getTabState(tab));
   ok(state.isPrivate, "tab considered private");
 
   

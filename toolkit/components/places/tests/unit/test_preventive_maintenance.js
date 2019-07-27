@@ -1170,7 +1170,7 @@ tests.push({
     setLastVisitDate(url, now++);
 
     
-    let url = "http://5.moz.org/";
+    url = "http://5.moz.org/";
     addPlace(url);
     
     url = "http://6.moz.org/";

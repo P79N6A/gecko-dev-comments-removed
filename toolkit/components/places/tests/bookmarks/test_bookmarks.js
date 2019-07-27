@@ -349,7 +349,7 @@ add_task(function test_bookmarks() {
   do_check_eq("bar", k);
 
   
-  let k = bs.getKeywordForURI(uri("http://keywordtest.com/"));
+  k = bs.getKeywordForURI(uri("http://keywordtest.com/"));
   do_check_eq("bar", k);
 
   
@@ -358,8 +358,8 @@ add_task(function test_bookmarks() {
 
   
   
-  let tmpFolder = bs.createFolder(testRoot, "removeFolderChildren",
-                                  bs.DEFAULT_INDEX);
+  tmpFolder = bs.createFolder(testRoot, "removeFolderChildren",
+                              bs.DEFAULT_INDEX);
   bs.insertBookmark(tmpFolder, uri("http://foo9.com/"), bs.DEFAULT_INDEX, "");
   bs.createFolder(tmpFolder, "subfolder", bs.DEFAULT_INDEX);
   bs.insertSeparator(tmpFolder, bs.DEFAULT_INDEX);
@@ -451,9 +451,9 @@ add_task(function test_bookmarks() {
   
   let newId10 = bs.insertBookmark(testRoot, uri("http://foo10.com/"),
                                   bs.DEFAULT_INDEX, "");
-  let dateAdded = bs.getItemDateAdded(newId10);
+  dateAdded = bs.getItemDateAdded(newId10);
   
-  let lastModified = bs.getItemLastModified(newId10);
+  lastModified = bs.getItemLastModified(newId10);
   do_check_eq(lastModified, dateAdded);
 
   
@@ -464,7 +464,7 @@ add_task(function test_bookmarks() {
   bs.changeBookmarkURI(newId10, uri("http://foo11.com/"));
 
   
-  let lastModified2 = bs.getItemLastModified(newId10);
+  lastModified2 = bs.getItemLastModified(newId10);
   LOG("test changeBookmarkURI");
   LOG("dateAdded = " + dateAdded);
   LOG("lastModified = " + lastModified);
@@ -597,8 +597,8 @@ add_task(function test_bookmarks() {
   
   let newId14 = bs.insertBookmark(testRoot, uri("http://bar.tld/"),
                                   bs.DEFAULT_INDEX, "");
-  let dateAdded = bs.getItemDateAdded(newId14);
-  let lastModified = bs.getItemLastModified(newId14);
+  dateAdded = bs.getItemDateAdded(newId14);
+  lastModified = bs.getItemLastModified(newId14);
   do_check_eq(lastModified, dateAdded);
   bs.setItemLastModified(newId14, 1234);
   let fakeLastModified = bs.getItemLastModified(newId14);

@@ -77,7 +77,7 @@ add_task(function () {
   yield promiseBrowserLoaded(browser, false );
 
   SyncHandlers.get(browser).flush();
-  let {entries} = JSON.parse(ss.getTabState(tab));
+  ({entries} = JSON.parse(ss.getTabState(tab)));
 
   
   ok(entries[0].url.startsWith("data:text/html"), "correct 1st root url");

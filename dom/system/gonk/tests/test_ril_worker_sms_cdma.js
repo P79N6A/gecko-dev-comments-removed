@@ -154,7 +154,7 @@ function pduToParcelData(cdmaPduHelper, pdu) {
   writeByte(0);
 
   
-  let dataLength = pdu.bearerData.length;
+  dataLength = pdu.bearerData.length;
   writeByte(dataLength);
 
   

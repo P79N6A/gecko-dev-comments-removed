@@ -83,7 +83,7 @@ function test() {
     
 
     let protoVar1 = argsVar1.get("__proto__");
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
     protoVar1.expand();
     yield fetched;
 
@@ -98,7 +98,7 @@ function test() {
     
     
     
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_VARIABLES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_VARIABLES);
     secondScope.expand();
     thirdScope.expand();
     globalScope.expand();
@@ -118,7 +118,7 @@ function test() {
     
 
     let argsVar2 = secondScope.get("arguments");
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
     argsVar2.expand();
     yield fetched;
 
@@ -128,7 +128,7 @@ function test() {
       "The getOwnerScopeForVariableOrProperty method works properly (7).");
 
     let argsVar3 = thirdScope.get("arguments");
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
     argsVar3.expand();
     yield fetched;
 
@@ -141,7 +141,7 @@ function test() {
     
 
     let protoVar2 = argsVar2.get("__proto__");
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
     protoVar2.expand();
     yield fetched;
 
@@ -151,7 +151,7 @@ function test() {
       "The getOwnerScopeForVariableOrProperty method works properly (9).");
 
     let protoVar3 = argsVar3.get("__proto__");
-    let fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
+    fetched = waitForDebuggerEvents(panel, events.FETCHED_PROPERTIES);
     protoVar3.expand();
     yield fetched;
 

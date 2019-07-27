@@ -65,13 +65,13 @@ function applyTheme()
   
   testThemeOption.click();
 
-  let color = panelWin.getComputedStyle(testThemeOption).color;
+  color = panelWin.getComputedStyle(testThemeOption).color;
   is(color, "rgb(255, 0, 0)", "style applied");
 
   
   lightThemeOption.click();
 
-  let color = panelWin.getComputedStyle(testThemeOption).color;
+  color = panelWin.getComputedStyle(testThemeOption).color;
   isnot(color, "rgb(255, 0, 0)", "style unapplied");
 
   

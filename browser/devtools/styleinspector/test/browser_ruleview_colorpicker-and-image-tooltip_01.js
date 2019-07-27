@@ -54,7 +54,7 @@ function* testImageTooltipAfterColorChange(swatch, url, ruleView) {
   
   
   url = getRuleViewProperty(ruleView, "body", "background").valueSpan.querySelector(".theme-link");
-  let anchor = yield isHoverTooltipTarget(ruleView.tooltips.previewTooltip, url);
+  anchor = yield isHoverTooltipTarget(ruleView.tooltips.previewTooltip, url);
   ok(anchor, "The image preview tooltip is shown on the url span");
   is(anchor, url, "The anchor returned by the showOnHover callback is correct");
 }
