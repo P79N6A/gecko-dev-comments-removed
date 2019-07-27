@@ -68,6 +68,12 @@ loop.shared.models = (function(l10n) {
         throw new Error("missing required sdk");
       }
       this.sdk = options.sdk;
+
+      
+      
+      if (loop.shared.utils.getBoolPreference("debug.sdk")) {
+        this.sdk.setLogLevel(this.sdk.DEBUG);
+      }
     },
 
     

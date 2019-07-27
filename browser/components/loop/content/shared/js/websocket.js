@@ -37,10 +37,9 @@ loop.CallConnectionWebSocket = (function() {
     }
 
     
-    if (navigator.mozLoop) {
-      this._debugWebSocket =
-        navigator.mozLoop.getLoopBoolPref("debug.websocket");
-    }
+    
+    this._debugWebSocket =
+      loop.shared.utils.getBoolPreference("debug.websocket");
 
     _.extend(this, Backbone.Events);
   };

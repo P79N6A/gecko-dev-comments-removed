@@ -29,7 +29,25 @@ loop.shared.utils = (function() {
     return platform;
   }
 
+  
+
+
+
+
+
+
+
+
+  function getBoolPreference(prefName) {
+    if (navigator.mozLoop) {
+      return !!navigator.mozLoop.getLoopBoolPref(prefName);
+    }
+
+    return !!localStorage.getItem(prefName);
+  }
+
   return {
-    getTargetPlatform: getTargetPlatform
+    getTargetPlatform: getTargetPlatform,
+    getBoolPreference: getBoolPreference
   };
 })();
