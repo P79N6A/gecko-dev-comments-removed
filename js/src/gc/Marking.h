@@ -56,15 +56,14 @@ void
 TraceManuallyBarrieredCrossCompartmentEdge(JSTracer* trc, JSObject* src, T* dst,
                                            const char* name);
 
+
+
+
+template <typename T>
+void
+TraceProcessGlobalRoot(JSTracer* trc, T* thing, const char* name);
+
 namespace gc {
-
-
-
-void
-MarkPermanentAtom(JSTracer* trc, JSAtom* atom, const char* name);
-
-void
-MarkWellKnownSymbol(JSTracer* trc, JS::Symbol* sym);
 
 
 
