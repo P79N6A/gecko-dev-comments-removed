@@ -2693,10 +2693,8 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   if (!mouseEvent->IsAlt()) {
     for (nsIContent* content = mContent; content;
          content = content->GetParent()) {
-      
       if (nsContentUtils::ContentIsDraggable(content) &&
-          !content->IsEditable() &&
-          !nsContentUtils::IsDraggableLink(content)) {
+          !content->IsEditable()) {
         
         if ((mRect - GetPosition()).Contains(
               nsLayoutUtils::GetEventCoordinatesRelativeTo(mouseEvent, this))) {

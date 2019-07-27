@@ -1563,6 +1563,17 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
     }
 
     
+    
+    if (mCurrentTarget)
+    {
+      nsRefPtr<nsFrameSelection> frameSel = mCurrentTarget->GetFrameSelection();
+      if (frameSel && frameSel->GetMouseDownState()) {
+        StopTrackingDragGesture();
+        return;
+      }
+    }
+
+    
     if (nsIPresShell::IsMouseCapturePreventingDrag()) {
       StopTrackingDragGesture();
       return;
@@ -1585,49 +1596,12 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
     
     LayoutDeviceIntPoint pt = aEvent->refPoint +
       LayoutDeviceIntPoint::FromUntyped(aEvent->widget->WidgetToScreenOffset());
-    if (Abs(pt.x - mGestureDownPoint.x) > Abs(pixelThresholdX) ||
-        Abs(pt.y - mGestureDownPoint.y) > Abs(pixelThresholdY)) {
+    if (DeprecatedAbs(pt.x - mGestureDownPoint.x) > pixelThresholdX ||
+        DeprecatedAbs(pt.y - mGestureDownPoint.y) > pixelThresholdY) {
       if (Prefs::ClickHoldContextMenu()) {
         
         
         KillClickHoldTimer();
-      }
-
-      nsCOMPtr<nsIContent> eventContent;
-      mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(eventContent));
-
-      
-      bool isLinkDraggedVertical = false;
-      bool isDraggableLink = false;
-      nsCOMPtr<nsIContent> dragLinkNode = eventContent;
-      while (dragLinkNode) {
-        if (nsContentUtils::IsDraggableLink(dragLinkNode)) {
-          isDraggableLink = true;
-          
-          isLinkDraggedVertical = Abs(pt.y - mGestureDownPoint.y) > Abs(pixelThresholdY);
-          break;
-        }
-        dragLinkNode = dragLinkNode->GetParent();
-      }
-
-      
-      
-      if (mCurrentTarget) {
-        nsRefPtr<nsFrameSelection> frameSel = mCurrentTarget->GetFrameSelection();
-        if (frameSel && frameSel->GetMouseDownState()) {
-          if (isLinkDraggedVertical) {
-            
-            frameSel->SetMouseDownState(PR_FALSE);
-            
-            frameSel->ClearNormalSelection();
-          } else {
-            StopTrackingDragGesture();
-            
-            if (isDraggableLink)
-              mLClickCount = 0;
-            return;
-          }
-        }
       }
 
       nsCOMPtr<nsISupports> container = aPresContext->GetContainerWeak();
@@ -1639,7 +1613,8 @@ EventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
         new DataTransfer(window, NS_DRAGDROP_START, false, -1);
 
       nsCOMPtr<nsISelection> selection;
-      nsCOMPtr<nsIContent> targetContent;
+      nsCOMPtr<nsIContent> eventContent, targetContent;
+      mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(eventContent));
       if (eventContent)
         DetermineDragTarget(window, eventContent, dataTransfer,
                             getter_AddRefs(selection), getter_AddRefs(targetContent));
