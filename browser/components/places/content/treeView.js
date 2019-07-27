@@ -1674,9 +1674,9 @@ PlacesTreeView.prototype = {
     if (PlacesUtils.nodeIsSeparator(node) || PlacesUtils.isRootItem(itemId))
       return false;
 
-    let parentId = node.parent.itemId;
+    let parentId = PlacesUtils.getConcreteItemId(node.parent);
     if (parentId == PlacesUIUtils.leftPaneFolderId ||
-        parentId == PlacesUIUtils.allBallBookmarksFolderId) {
+        parentId == PlacesUIUtils.allBookmarksFolderId) {
       
       
       
