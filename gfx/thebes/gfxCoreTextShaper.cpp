@@ -170,7 +170,7 @@ gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
             (CTRunRef)::CFArrayGetValueAtIndex(glyphRuns, runIndex);
         
         CFRange range = ::CTRunGetStringRange(aCTRun);
-        if (range.location + range.length <= startOffset ||
+        if (uint32_t(range.location + range.length) <= startOffset ||
             range.location - startOffset >= aLength) {
             continue;
         }
