@@ -1519,6 +1519,11 @@ class Mochitest(MochitestUtilsMixin):
         if debugger and not options.slowscript:
             browserEnv["JS_DISABLE_SLOW_SCRIPT_SIGNALS"] = "1"
 
+        
+        
+        if not options.enableCPOWWarnings:
+            browserEnv["DISABLE_UNSAFE_CPOW_WARNINGS"] = "1"
+
         return browserEnv
 
     def cleanup(self, options):
