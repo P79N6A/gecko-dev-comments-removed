@@ -61,7 +61,8 @@ let WindowMessageHandler = {
   
   
   isDocumentLoaded: function WMH_isDocumentLoaded(cx) {
-    let isLoaded = (content.document.readyState != "uninitialized" &&
+    let isLoaded = (content &&
+                    content.document.readyState != "uninitialized" &&
                     !webProgress.isLoadingDocument);
 
     sendAsyncMessage(cx.name, {isLoaded: isLoaded});
@@ -71,7 +72,8 @@ let WindowMessageHandler = {
   
   
   isImageDocument: function WMH_isImageDocument(cx) {
-    let isImageDocument = (content.document instanceof Ci.nsIImageDocument);
+    let isImageDocument = (content &&
+                           content.document instanceof Ci.nsIImageDocument);
 
     sendAsyncMessage(cx.name, {isImageDocument: isImageDocument});
   },

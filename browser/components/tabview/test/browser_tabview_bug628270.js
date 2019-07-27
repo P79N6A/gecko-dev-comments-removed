@@ -70,17 +70,24 @@ function test() {
     let groupItem = getGroupItem(1);
     let tabItem = groupItem.getChild(0);
 
+    
+    let promise = BrowserTestUtils.removeTab(tabItem.tab, {dontRemove: true});
+
+    
     EventUtils.synthesizeMouseAtCenter(
       tabItem.$close[0], {}, TabView.getContentWindow());
-    assertNumberOfTabsInGroup(groupItem, 1);
 
-    restoreTab(function () {
-      assertNumberOfTabsInGroup(groupItem, 2);
+    promise.then(() => {
+      assertNumberOfTabsInGroup(groupItem, 1);
 
-      activateFirstGroupItem();
-      gBrowser.removeTab(gBrowser.tabs[1]);
-      gBrowser.removeTab(gBrowser.tabs[1]);
-      hideTabView(finishTest);
+      restoreTab(function () {
+        assertNumberOfTabsInGroup(groupItem, 2);
+
+        activateFirstGroupItem();
+        gBrowser.removeTab(gBrowser.tabs[1]);
+        gBrowser.removeTab(gBrowser.tabs[1]);
+        hideTabView(finishTest);
+      });
     });
   }
 
