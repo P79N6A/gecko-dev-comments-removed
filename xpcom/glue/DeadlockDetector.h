@@ -208,75 +208,6 @@ private:
   };
 
   
-
-  void PutEntry(T* aKey)
-  {
-    mOrdering.Put(aKey, new OrderingEntry(aKey));
-  }
-
-  
-  
-
-  
-
-
-
-
-
-
-
-
-  void AddOrder(OrderingEntry* aLT, OrderingEntry* aGT)
-  {
-    aLT->mOrderedLT
-      .InsertElementSorted(aGT);
-  }
-
-  
-
-
-
-
-
-  bool IsOrdered(const OrderingEntry* aFirst, const OrderingEntry* aSecond)
-  const
-  {
-    return aFirst->mOrderedLT.BinaryIndexOf(aSecond) != NoIndex;
-  }
-
-  
-
-
-
-
-
-  OrderingEntry* const* GetOrders(const OrderingEntry* aEntry) const
-  {
-    return
-      aEntry->mOrderedLT.Elements();
-  }
-
-  
-
-
-
-
-
-  size_type NumOrders(const OrderingEntry* aEntry) const
-  {
-    return
-      aEntry->mOrderedLT.Length();
-  }
-
-  
-  ResourceAcquisition MakeResourceAcquisition(const OrderingEntry* aEntry) const
-  {
-    return ResourceAcquisition(
-      aEntry->mResource,
-      aEntry->mFirstSeen);
-  }
-
-  
   struct PRAutoLock
   {
     explicit PRAutoLock(PRLock* aLock) : mLock(aLock) { PR_Lock(mLock); }
@@ -326,7 +257,7 @@ public:
   void Add(T* aResource)
   {
     PRAutoLock _(mLock);
-    PutEntry(aResource);
+    mOrdering.Put(aResource, new OrderingEntry(aResource));
   }
 
   
@@ -389,7 +320,8 @@ public:
       if (!cycle) {
         NS_RUNTIMEABORT("can't allocate dep. cycle array");
       }
-      cycle->AppendElement(MakeResourceAcquisition(current));
+      cycle->AppendElement(ResourceAcquisition(current->mResource,
+                                               current->mFirstSeen));
       cycle->AppendElement(ResourceAcquisition(aProposed,
                                                aCallContext));
       return cycle;
@@ -413,7 +345,7 @@ public:
     
     
     
-    AddOrder(current, proposed);
+    current->mOrderedLT.InsertElementSorted(proposed);
     return 0;
   }
 
@@ -426,13 +358,16 @@ public:
   bool InTransitiveClosure(const OrderingEntry* aStart,
                            const OrderingEntry* aTarget) const
   {
-    if (IsOrdered(aStart, aTarget)) {
+    
+    
+    static nsDefaultComparator<const OrderingEntry*, const OrderingEntry*> comp;
+    if (aStart->mOrderedLT.BinaryIndexOf(aTarget, comp) != NoIndex) {
       return true;
     }
 
     index_type i = 0;
-    size_type len = NumOrders(aStart);
-    for (const OrderingEntry* const* it = GetOrders(aStart); i < len; ++i, ++it) {
+    size_type len = aStart->mOrderedLT.Length();
+    for (const OrderingEntry* const* it = aStart->mOrderedLT.Elements(); i < len; ++i, ++it) {
       if (InTransitiveClosure(*it, aTarget)) {
         return true;
       }
@@ -463,7 +398,8 @@ public:
     if (!chain) {
       NS_RUNTIMEABORT("can't allocate dep. cycle array");
     }
-    chain->AppendElement(MakeResourceAcquisition(aStart));
+    chain->AppendElement(ResourceAcquisition(aStart->mResource,
+                                             aStart->mFirstSeen));
 
     NS_ASSERTION(GetDeductionChain_Helper(aStart, aTarget, chain),
                  "GetDeductionChain called when there's no deadlock");
@@ -476,15 +412,17 @@ public:
                                 const OrderingEntry* aTarget,
                                 ResourceAcquisitionArray* aChain)
   {
-    if (IsOrdered(aStart, aTarget)) {
-      aChain->AppendElement(MakeResourceAcquisition(aTarget));
+    if (aStart->mOrderedLT.BinaryIndexOf(aTarget) != NoIndex) {
+      aChain->AppendElement(ResourceAcquisition(aTarget->mResource,
+                                                aTarget->mFirstSeen));
       return true;
     }
 
     index_type i = 0;
-    size_type len = NumOrders(aStart);
-    for (const OrderingEntry* const* it = GetOrders(aStart); i < len; ++i, ++it) {
-      aChain->AppendElement(MakeResourceAcquisition(*it));
+    size_type len = aStart->mOrderedLT.Length();
+    for (const OrderingEntry* const* it = aStart->mOrderedLT.Elements(); i < len; ++i, ++it) {
+      aChain->AppendElement(ResourceAcquisition((*it)->mResource,
+                                                (*it)->mFirstSeen));
       if (GetDeductionChain_Helper(*it, aTarget, aChain)) {
         return true;
       }
