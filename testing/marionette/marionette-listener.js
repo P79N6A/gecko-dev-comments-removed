@@ -1761,8 +1761,10 @@ function switchToFrame(msg) {
         
         
         let iframes = curFrame.document.getElementsByTagName("iframe");
-        curFrame = iframes[msg.json.id];
-        foundFrame = msg.json.id
+        if (msg.json.id >= 0 && msg.json.id < iframes.length) {
+          curFrame = iframes[msg.json.id];
+          foundFrame = msg.json.id;
+        }
       }
     }
   }
