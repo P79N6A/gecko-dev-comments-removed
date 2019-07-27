@@ -1362,12 +1362,6 @@ pref("network.ftp.control.qos", 0);
 
 
 
-pref("network.sts.serve_multiple_events_per_poll_iteration", true);
-
-pref("network.sts.max_time_for_events_between_two_polls", 100);
-
-
-
 pref("network.websocket.max-message-size", 2147483647);
 
 
