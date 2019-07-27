@@ -1722,6 +1722,9 @@ pref("security.csp.debug", false);
 pref("security.csp.experimentalEnabled", false);
 
 
+pref("security.apps.privileged.CSP.default", "default-src *; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'");
+
+
 pref("security.mixed_content.block_active_content", false);
 pref("security.mixed_content.block_display_content", false);
 
