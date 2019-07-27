@@ -94,8 +94,16 @@ loop.shared.mixins = (function() {
       return {showMenu: false};
     },
 
-    _onBodyClick: function() {
-      this.setState({showMenu: false});
+    _onBodyClick: function(event) {
+      var menuButton = this.refs["menu-button"] && this.refs["menu-button"].getDOMNode();
+      if (this.refs.anchor) {
+        menuButton = this.refs.anchor.getDOMNode();
+      }
+      
+      
+      if (event.target !== menuButton) {
+        this.setState({ showMenu: false });
+      }
     },
 
     _correctMenuPosition: function() {
