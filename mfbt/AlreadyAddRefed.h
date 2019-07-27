@@ -68,8 +68,15 @@ struct already_AddRefed
 
   
   already_AddRefed(const already_AddRefed<T>& aOther) = delete;
+  already_AddRefed<T>& operator=(const already_AddRefed<T>& aOther) = delete;
 
   already_AddRefed(already_AddRefed<T>&& aOther) : mRawPtr(aOther.take()) {}
+
+  already_AddRefed<T>& operator=(already_AddRefed<T>&& aOther)
+  {
+    mRawPtr = aOther.take();
+    return *this;
+  }
 
   
 
