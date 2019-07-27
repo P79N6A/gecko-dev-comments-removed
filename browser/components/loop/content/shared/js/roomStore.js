@@ -154,10 +154,13 @@ loop.store = loop.store || {};
 
 
     _onRoomAdded: function(eventName, addedRoomData) {
-      addedRoomData.participants = [];
-      addedRoomData.ctime = new Date().getTime();
+      addedRoomData.participants = addedRoomData.participants || [];
+      addedRoomData.ctime = addedRoomData.ctime || new Date().getTime();
       this.dispatchAction(new sharedActions.UpdateRoomList({
-        roomList: this._storeState.rooms.concat(new Room(addedRoomData))
+        
+        roomList: this._storeState.rooms.filter(function(room) {
+          return addedRoomData.roomToken !== room.roomToken;
+        }).concat(new Room(addedRoomData))
       }));
     },
 
