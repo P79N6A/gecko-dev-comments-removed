@@ -2877,7 +2877,11 @@ nsINode::OwnerDocAsNode() const
 inline mozilla::dom::ParentObject
 nsINode::GetParentObject() const
 {
-  return GetParentObjectInternal(OwnerDoc());
+  mozilla::dom::ParentObject p(OwnerDoc());
+    
+    
+  p.mUseXBLScope = IsInAnonymousSubtree() && !IsAnonymousContentInSVGUseSubtree();
+  return p;
 }
 
 #endif 

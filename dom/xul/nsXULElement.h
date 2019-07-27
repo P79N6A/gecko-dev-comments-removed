@@ -606,18 +606,9 @@ public:
     already_AddRefed<nsFrameLoader> GetFrameLoader();
     void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& rv);
 
-    
-    mozilla::dom::ParentObject GetParentObject() const
-    {
-        Element* parent = GetParentElement();
-        if (parent) {
-          return GetParentObjectInternal(parent);
-        }
-        return nsStyledElement::GetParentObject();
-    }
-
     nsINode* GetScopeChainParent() const MOZ_OVERRIDE
     {
+        
         Element* parent = GetParentElement();
         return parent ? parent : nsStyledElement::GetScopeChainParent();
     }
