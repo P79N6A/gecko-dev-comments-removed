@@ -490,7 +490,7 @@ protected:
   
 
 
-  void HandlePanningUpdate(float aDX, float aDY);
+  void HandlePanningUpdate(const ScreenPoint& aDelta);
 
   
 
