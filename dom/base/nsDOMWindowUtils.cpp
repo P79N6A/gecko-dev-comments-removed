@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsDOMWindowUtils.h"
 
 #include "mozilla/layers/CompositorChild.h"
@@ -70,7 +71,6 @@
 #include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
 #include "mozilla/dom/MutableFile.h"
 #include "mozilla/dom/MutableFileBinding.h"
-#include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "nsDOMBlobBuilder.h"
@@ -89,7 +89,6 @@
 #include "GeckoProfiler.h"
 #include "mozilla/Preferences.h"
 #include "nsIContentIterator.h"
-#include "nsContentPermissionHelper.h"
 
 #ifdef XP_WIN
 #undef GetClassName
@@ -3589,6 +3588,74 @@ nsDOMWindowUtils::GetOMTAStyle(nsIDOMElement* aElement,
   return NS_OK;
 }
 
+namespace {
+
+class HandlingUserInputHelper MOZ_FINAL : public nsIJSRAIIHelper
+{
+public:
+  HandlingUserInputHelper(bool aHandlingUserInput);
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIJSRAIIHELPER
+
+private:
+  ~HandlingUserInputHelper();
+
+  bool mHandlingUserInput;
+  bool mDestructCalled;
+};
+
+NS_IMPL_ISUPPORTS(HandlingUserInputHelper, nsIJSRAIIHelper)
+
+HandlingUserInputHelper::HandlingUserInputHelper(bool aHandlingUserInput)
+  : mHandlingUserInput(aHandlingUserInput),
+    mDestructCalled(false)
+{
+  if (aHandlingUserInput) {
+    EventStateManager::StartHandlingUserInput();
+  }
+}
+
+HandlingUserInputHelper::~HandlingUserInputHelper()
+{
+  
+  MOZ_ASSERT(mDestructCalled);
+  if (!mDestructCalled) {
+    Destruct();
+  }
+}
+
+NS_IMETHODIMP
+HandlingUserInputHelper::Destruct()
+{
+  if (NS_WARN_IF(mDestructCalled)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mDestructCalled = true;
+  if (mHandlingUserInput) {
+    EventStateManager::StopHandlingUserInput();
+  }
+
+  return NS_OK;
+}
+
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::SetHandlingUserInput(bool aHandlingUserInput,
+                                       nsIJSRAIIHelper** aHelper)
+{
+  if (!nsContentUtils::IsCallerChrome()) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  nsRefPtr<HandlingUserInputHelper> helper(
+    new HandlingUserInputHelper(aHandlingUserInput));
+  helper.forget(aHelper);
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsDOMWindowUtils::GetContentAPZTestData(JSContext* aContext,
                                         JS::MutableHandleValue aOutContentTestData)
@@ -3676,49 +3743,6 @@ NS_IMETHODIMP
 nsDOMWindowUtils::XpconnectArgument(nsIDOMWindowUtils* aThis)
 {
   
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::AskPermission(nsIContentPermissionRequest* aRequest)
-{
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
-  nsRefPtr<RemotePermissionRequest> req =
-    new RemotePermissionRequest(aRequest, window->GetCurrentInnerWindow());
-
-    
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    MOZ_ASSERT(NS_IsMainThread()); 
-
-    dom::TabChild* child = dom::TabChild::GetFrom(window->GetDocShell());
-    NS_ENSURE_TRUE(child, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsIArray> typeArray;
-    nsresult rv = req->GetTypes(getter_AddRefs(typeArray));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsTArray<PermissionRequest> permArray;
-    RemotePermissionRequest::ConvertArrayToPermissionRequest(typeArray, permArray);
-
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = req->GetPrincipal(getter_AddRefs(principal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    req->AddRef();
-    child->SendPContentPermissionRequestConstructor(req,
-                                                    permArray,
-                                                    IPC::Principal(principal));
-
-    req->Sendprompt();
-    return NS_OK;
-  }
-
-  
-  nsCOMPtr<nsIContentPermissionPrompt> prompt =
-    do_GetService(NS_CONTENT_PERMISSION_PROMPT_CONTRACTID);
-  if (prompt) {
-    prompt->Prompt(req);
-  }
   return NS_OK;
 }
 
