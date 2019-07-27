@@ -25,7 +25,8 @@
 #include "vm/StringBuffer.h"
 
 #include "jscntxtinlines.h"
-#include "jsobjinlines.h"
+
+#include "vm/ObjectImpl-inl.h"
 
 using mozilla::AddToHash;
 using mozilla::HashString;
@@ -280,7 +281,7 @@ SavedFrame::checkThis(JSContext *cx, CallArgs &args, const char *fnName)
     
     
     
-    if (thisObject.getReservedSlot(JSSLOT_SOURCE).isNull()) {
+    if (thisObject.as<SavedFrame>().getReservedSlot(JSSLOT_SOURCE).isNull()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
                              SavedFrame::class_.name, fnName, "prototype object");
         return nullptr;
@@ -592,9 +593,10 @@ SavedStacks::getOrCreateSavedFramePrototype(JSContext *cx)
     if (!global)
         return nullptr;
 
-    RootedObject proto(cx, NewObjectWithGivenProto(cx, &SavedFrame::class_,
-                                                   global->getOrCreateObjectPrototype(cx),
-                                                   global));
+    RootedNativeObject proto(cx,
+        NewNativeObjectWithGivenProto(cx, &SavedFrame::class_,
+                                      global->getOrCreateObjectPrototype(cx),
+                                      global));
     if (!proto
         || !JS_DefineProperties(cx, proto, SavedFrame::properties)
         || !JS_DefineFunctions(cx, proto, SavedFrame::methods)
@@ -603,10 +605,11 @@ SavedStacks::getOrCreateSavedFramePrototype(JSContext *cx)
         return nullptr;
     }
 
+    
+    
+    proto->setReservedSlot(SavedFrame::JSSLOT_SOURCE, NullValue());
+
     savedFrameProto.set(proto);
-    
-    
-    savedFrameProto->setReservedSlot(SavedFrame::JSSLOT_SOURCE, NullValue());
     return savedFrameProto;
 }
 

@@ -886,6 +886,24 @@ class RootedBase<JSObject*>
 };
 
 
+
+
+
+
+
+
+
+
+
+template <>
+class HandleBase<JSObject*>
+{
+  public:
+    template <class U>
+    JS::Handle<U*> as() const;
+};
+
+
 template <typename T>
 class FakeRooted : public RootedBase<T>
 {
@@ -1003,6 +1021,11 @@ template <typename T> class MaybeRooted<T, CanGC>
     static inline JS::MutableHandle<T> toMutableHandle(MutableHandleType v) {
         return v;
     }
+
+    template <typename T2>
+    static inline JS::Handle<T2*> downcastHandle(HandleType v) {
+        return v.template as<T2>();
+    }
 };
 
 template <typename T> class MaybeRooted<T, NoGC>
@@ -1018,6 +1041,11 @@ template <typename T> class MaybeRooted<T, NoGC>
 
     static JS::MutableHandle<T> toMutableHandle(MutableHandleType v) {
         MOZ_CRASH("Bad conversion");
+    }
+
+    template <typename T2>
+    static inline T2* downcastHandle(HandleType v) {
+        return &v->template as<T2>();
     }
 };
 

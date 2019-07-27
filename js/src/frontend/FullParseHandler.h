@@ -172,7 +172,7 @@ class FullParseHandler
     
     
     template <class Boxer>
-    ParseNode *newRegExp(HandleObject reobj, const TokenPos &pos, Boxer &boxer) {
+    ParseNode *newRegExp(RegExpObject *reobj, const TokenPos &pos, Boxer &boxer) {
         ObjectBox *objbox = boxer.newObjectBox(reobj);
         if (!objbox)
             return null();

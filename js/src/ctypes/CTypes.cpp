@@ -3393,14 +3393,14 @@ void
 CType::Trace(JSTracer* trc, JSObject* obj)
 {
   
-  jsval slot = obj->getSlot(SLOT_TYPECODE);
+  jsval slot = obj->as<NativeObject>().getSlot(SLOT_TYPECODE);
   if (slot.isUndefined())
     return;
 
   
   switch (TypeCode(slot.toInt32())) {
   case TYPE_struct: {
-    slot = obj->getReservedSlot(SLOT_FIELDINFO);
+    slot = obj->as<NativeObject>().getReservedSlot(SLOT_FIELDINFO);
     if (slot.isUndefined())
       return;
 
@@ -3417,7 +3417,7 @@ CType::Trace(JSTracer* trc, JSObject* obj)
   }
   case TYPE_function: {
     
-    slot = obj->getReservedSlot(SLOT_FNINFO);
+    slot = obj->as<NativeObject>().getReservedSlot(SLOT_FNINFO);
     if (slot.isUndefined())
       return;
 

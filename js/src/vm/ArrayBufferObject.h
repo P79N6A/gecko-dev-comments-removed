@@ -63,7 +63,7 @@ uint32_t AnyArrayBufferByteLength(const ArrayBufferObjectMaybeShared *buf);
 uint8_t *AnyArrayBufferDataPointer(const ArrayBufferObjectMaybeShared *buf);
 ArrayBufferObjectMaybeShared &AsAnyArrayBuffer(HandleValue val);
 
-class ArrayBufferObjectMaybeShared : public JSObject
+class ArrayBufferObjectMaybeShared : public NativeObject
 {
   public:
     uint32_t byteLength() {
@@ -224,7 +224,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared
     
     ArrayBufferViewObject *firstView();
 
-    bool addView(JSContext *cx, ArrayBufferViewObject *view);
+    bool addView(JSContext *cx, JSObject *view);
 
     void setNewOwnedData(FreeOp* fop, BufferContents newContents);
     void changeContents(JSContext *cx, BufferContents newContents);
@@ -355,7 +355,7 @@ PostBarrierTypedArrayObject(JSObject *obj)
 }
 
 inline void
-InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *buffer, size_t byteOffset)
+InitArrayBufferViewDataPointer(JSObject *obj, ArrayBufferObject *buffer, size_t byteOffset)
 {
     
 
@@ -363,7 +363,7 @@ InitArrayBufferViewDataPointer(ArrayBufferViewObject *obj, ArrayBufferObject *bu
 
 
     MOZ_ASSERT(buffer->dataPointer() != nullptr);
-    obj->initPrivate(buffer->dataPointer() + byteOffset);
+    obj->as<NativeObject>().initPrivate(buffer->dataPointer() + byteOffset);
 
     PostBarrierTypedArrayObject(obj);
 }

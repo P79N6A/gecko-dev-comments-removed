@@ -85,7 +85,8 @@ NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type,
 
 
 extern ArrayObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleObject src, uint32_t elementOffset, JSObject *proto = nullptr);
+NewDenseCopiedArray(JSContext *cx, uint32_t length, HandleArrayObject src,
+                    uint32_t elementOffset, JSObject *proto = nullptr);
 
 
 extern ArrayObject *
@@ -98,7 +99,7 @@ NewDenseFullyAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject
 
 
 extern JSObject *
-NewDenseCopyOnWriteArray(JSContext *cx, HandleObject templateObject, gc::InitialHeap heap);
+NewDenseCopyOnWriteArray(JSContext *cx, HandleNativeObject templateObject, gc::InitialHeap heap);
 
 
 
@@ -174,7 +175,7 @@ extern JSString *
 array_join_impl(JSContext *cx, HandleValue array, HandleString sep);
 
 extern void
-ArrayShiftMoveElements(JSObject *obj);
+ArrayShiftMoveElements(ArrayObject *obj);
 
 extern bool
 array_shift(JSContext *cx, unsigned argc, js::Value *vp);

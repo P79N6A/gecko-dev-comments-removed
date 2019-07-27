@@ -1437,7 +1437,7 @@ LookupAsmJSModuleInCache(ExclusiveContext *cx,
 
 
 
-class AsmJSModuleObject : public JSObject
+class AsmJSModuleObject : public NativeObject
 {
     static const unsigned MODULE_SLOT = 0;
 

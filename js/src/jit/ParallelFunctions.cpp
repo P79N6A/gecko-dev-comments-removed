@@ -15,6 +15,8 @@
 #include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
+#include "vm/ObjectImpl-inl.h"
+
 using namespace js;
 using namespace jit;
 
@@ -165,12 +167,12 @@ jit::InterruptCheckPar(ForkJoinContext *cx)
     return true;
 }
 
-JSObject *
-jit::ExtendArrayPar(ForkJoinContext *cx, JSObject *array, uint32_t length)
+ArrayObject *
+jit::ExtendArrayPar(ForkJoinContext *cx, ArrayObject *array, uint32_t length)
 {
-    JSObject::EnsureDenseResult res =
+    NativeObject::EnsureDenseResult res =
         array->ensureDenseElementsPreservePackedFlag(cx, 0, length);
-    if (res != JSObject::ED_OK)
+    if (res != NativeObject::ED_OK)
         return nullptr;
     return array;
 }
@@ -183,9 +185,9 @@ jit::SetPropertyPar(ForkJoinContext *cx, HandleObject obj, HandlePropertyName na
 
     if (*pc == JSOP_SETALIASEDVAR) {
         
-        Shape *shape = obj->nativeLookupPure(name);
+        Shape *shape = obj->as<NativeObject>().lookupPure(name);
         MOZ_ASSERT(shape && shape->hasSlot());
-        return obj->nativeSetSlotIfHasType(shape, value);
+        return obj->as<NativeObject>().setSlotIfHasType(shape, value);
     }
 
     
@@ -194,7 +196,10 @@ jit::SetPropertyPar(ForkJoinContext *cx, HandleObject obj, HandlePropertyName na
 
     RootedValue v(cx, value);
     RootedId id(cx, NameToId(name));
-    return baseops::SetPropertyHelper<ParallelExecution>(cx, obj, obj, id, baseops::Qualified, &v,
+    return baseops::SetPropertyHelper<ParallelExecution>(cx,
+                                                         obj.as<NativeObject>(),
+                                                         obj.as<NativeObject>(),
+                                                         id, baseops::Qualified, &v,
                                                          strict);
 }
 
@@ -206,13 +211,19 @@ jit::SetElementPar(ForkJoinContext *cx, HandleObject obj, HandleValue index, Han
     if (!ValueToIdPure(index, id.address()))
         return false;
 
+    if (!obj->isNative())
+        return false;
+
     
     
     
     
     
     RootedValue v(cx, value);
-    return baseops::SetPropertyHelper<ParallelExecution>(cx, obj, obj, id, baseops::Qualified, &v,
+    return baseops::SetPropertyHelper<ParallelExecution>(cx,
+                                                         obj.as<NativeObject>(),
+                                                         obj.as<NativeObject>(),
+                                                         id, baseops::Qualified, &v,
                                                          strict);
 }
 
@@ -589,23 +600,22 @@ jit::CallToUncompiledScriptPar(ForkJoinContext *cx, JSObject *obj)
 
 JSObject *
 jit::InitRestParameterPar(ForkJoinContext *cx, uint32_t length, Value *rest,
-                          HandleObject templateObj, HandleObject res)
+                          HandleObject templateObj, HandleArrayObject res)
 {
     
     
     
     MOZ_ASSERT(res);
-    MOZ_ASSERT(res->is<ArrayObject>());
     MOZ_ASSERT(!res->getDenseInitializedLength());
     MOZ_ASSERT(res->type() == templateObj->type());
 
     if (length > 0) {
-        JSObject::EnsureDenseResult edr =
+        NativeObject::EnsureDenseResult edr =
             res->ensureDenseElementsPreservePackedFlag(cx, 0, length);
-        if (edr != JSObject::ED_OK)
+        if (edr != NativeObject::ED_OK)
             return nullptr;
         res->initDenseElementsUnbarriered(0, rest, length);
-        res->as<ArrayObject>().setLengthInt32(length);
+        res->setLengthInt32(length);
     }
 
     return res;

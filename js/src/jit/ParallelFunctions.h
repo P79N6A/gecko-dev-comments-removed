@@ -26,7 +26,7 @@ bool InterruptCheckPar(ForkJoinContext *cx);
 
 
 
-JSObject *ExtendArrayPar(ForkJoinContext *cx, JSObject *array, uint32_t length);
+ArrayObject *ExtendArrayPar(ForkJoinContext *cx, ArrayObject *array, uint32_t length);
 
 
 bool SetPropertyPar(ForkJoinContext *cx, HandleObject obj, HandlePropertyName name,
@@ -69,7 +69,7 @@ bool UrshValuesPar(ForkJoinContext *cx, HandleValue lhs, HandleValue rhs, Mutabl
 
 
 JSObject *InitRestParameterPar(ForkJoinContext *cx, uint32_t length, Value *rest,
-                               HandleObject templateObj, HandleObject res);
+                               HandleObject templateObj, HandleArrayObject res);
 
 
 void BailoutPar(BailoutStack *sp, uint8_t **entryFramePointer);

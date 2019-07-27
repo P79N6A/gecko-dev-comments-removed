@@ -344,7 +344,7 @@ class SharedTypedArrayObjectTemplate : public SharedTypedArrayObject
 
     
     static bool
-    DefineGetter(JSContext *cx, HandleObject proto, PropertyName *name, Native native)
+    DefineGetter(JSContext *cx, HandleNativeObject proto, PropertyName *name, Native native)
     {
         RootedId id(cx, NameToId(name));
         unsigned attrs = JSPROP_SHARED | JSPROP_GETTER;

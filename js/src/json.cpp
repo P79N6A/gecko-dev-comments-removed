@@ -24,7 +24,8 @@
 
 #include "jsatominlines.h"
 #include "jsboolinlines.h"
-#include "jsobjinlines.h"
+
+#include "vm/ObjectImpl-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -565,7 +566,7 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
             uint32_t len;
             JS_ALWAYS_TRUE(GetLengthProperty(cx, replacer, &len));
             if (replacer->is<ArrayObject>() && !replacer->isIndexed())
-                len = Min(len, replacer->getDenseInitializedLength());
+                len = Min(len, replacer->as<ArrayObject>().getDenseInitializedLength());
 
             
             
@@ -662,7 +663,7 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
     }
 
     
-    RootedObject wrapper(cx, NewBuiltinClassInstance(cx, &JSObject::class_));
+    RootedNativeObject wrapper(cx, NewNativeBuiltinClassInstance(cx, &JSObject::class_));
     if (!wrapper)
         return false;
 

@@ -193,7 +193,7 @@ ScopeCoordinateFunctionScript(JSScript *script, jsbytecode *pc);
 
 
 
-class ScopeObject : public JSObject
+class ScopeObject : public NativeObject
 {
   protected:
     static const uint32_t SCOPE_CHAIN_SLOT = 0;
@@ -841,8 +841,8 @@ class DebugScopeObject : public ProxyObject
     JSObject &enclosingScope() const;
 
     
-    JSObject *maybeSnapshot() const;
-    void initSnapshot(JSObject &snapshot);
+    ArrayObject *maybeSnapshot() const;
+    void initSnapshot(ArrayObject &snapshot);
 
     
     bool isForDeclarative() const;

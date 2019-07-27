@@ -162,14 +162,14 @@ EmptyShape::ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass
 
     
     
-    if (!obj->nativeEmpty())
+    if (!obj->empty())
         return true;
 
     
     RootedShape shape(cx, ObjectSubclass::assignInitialShape(cx, obj));
     if (!shape)
         return false;
-    MOZ_ASSERT(!obj->nativeEmpty());
+    MOZ_ASSERT(!obj->empty());
 
     
     

@@ -452,9 +452,10 @@ ThisToStringForStringProto(JSContext *cx, CallReceiver call)
     if (call.thisv().isObject()) {
         RootedObject obj(cx, &call.thisv().toObject());
         if (obj->is<StringObject>()) {
+            StringObject *nobj = &obj->as<StringObject>();
             Rooted<jsid> id(cx, NameToId(cx->names().toString));
-            if (ClassMethodIsNative(cx, obj, &StringObject::class_, id, js_str_toString)) {
-                JSString *str = obj->as<StringObject>().unbox();
+            if (ClassMethodIsNative(cx, nobj, &StringObject::class_, id, js_str_toString)) {
+                JSString *str = nobj->unbox();
                 call.setThis(StringValue(str));
                 return str;
             }
@@ -2257,9 +2258,12 @@ class MOZ_STACK_CLASS StringRegExpGuard
 
         
         
-        if (obj_->is<RegExpObject>() && obj_->nativeLookup(cx, cx->names().lastIndex)->writable()) {
-            obj_->as<RegExpObject>().zeroLastIndex();
-            return true;
+        if (obj_->is<RegExpObject>()) {
+            RegExpObject *nobj = &obj_->as<RegExpObject>();
+            if (nobj->lookup(cx, cx->names().lastIndex)->writable()) {
+                nobj->zeroLastIndex();
+                return true;
+            }
         }
 
         
@@ -2591,7 +2595,7 @@ struct ReplaceData
     RootedString       str;            
     StringRegExpGuard  g;              
     RootedObject       lambda;         
-    RootedObject       elembase;       
+    RootedNativeObject elembase;       
     RootedLinearString repstr;         
     uint32_t           dollarIndex;    
     int                leftIndex;      
@@ -3501,7 +3505,7 @@ str_replace_flat_lambda(JSContext *cx, CallArgs outerArgs, ReplaceData &rdata, c
 
 
 static bool
-LambdaIsGetElem(JSContext *cx, JSObject &lambda, MutableHandleObject pobj)
+LambdaIsGetElem(JSContext *cx, JSObject &lambda, MutableHandleNativeObject pobj)
 {
     if (!lambda.is<JSFunction>())
         return true;
@@ -3553,7 +3557,7 @@ LambdaIsGetElem(JSContext *cx, JSObject &lambda, MutableHandleObject pobj)
     if (!clasp->isNative() || clasp->ops.lookupProperty || clasp->ops.getProperty)
         return true;
 
-    pobj.set(&bobj);
+    pobj.set(&bobj.as<NativeObject>());
     return true;
 }
 
@@ -4303,7 +4307,7 @@ static const JSFunctionSpec string_static_methods[] = {
  Shape *
 StringObject::assignInitialShape(ExclusiveContext *cx, Handle<StringObject*> obj)
 {
-    MOZ_ASSERT(obj->nativeEmpty());
+    MOZ_ASSERT(obj->empty());
 
     return obj->addDataProperty(cx, cx->names().length, LENGTH_SLOT,
                                 JSPROP_PERMANENT | JSPROP_READONLY);

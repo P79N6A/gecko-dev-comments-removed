@@ -7,11 +7,11 @@
 #ifndef vm_ArrayObject_h
 #define vm_ArrayObject_h
 
-#include "jsobj.h"
+#include "vm/ObjectImpl.h"
 
 namespace js {
 
-class ArrayObject : public JSObject
+class ArrayObject : public NativeObject
 {
   public:
     
@@ -37,6 +37,43 @@ class ArrayObject : public JSObject
         MOZ_ASSERT(length <= INT32_MAX);
         getElementsHeader()->length = length;
     }
+
+    
+    static inline ArrayObject *
+    createArray(ExclusiveContext *cx,
+                gc::AllocKind kind,
+                gc::InitialHeap heap,
+                HandleShape shape,
+                HandleTypeObject type,
+                uint32_t length);
+
+    
+    static inline ArrayObject *
+    createArray(ExclusiveContext *cx,
+                gc::InitialHeap heap,
+                HandleShape shape,
+                HandleTypeObject type,
+                HeapSlot *elements);
+
+    
+    
+    static inline ArrayObject *
+    createCopyOnWriteArray(ExclusiveContext *cx,
+                           gc::InitialHeap heap,
+                           HandleShape shape,
+                           HandleNativeObject sharedElementsOwner);
+
+  private:
+    
+    static inline ArrayObject *
+    createArrayInternal(ExclusiveContext *cx,
+                        gc::AllocKind kind,
+                        gc::InitialHeap heap,
+                        HandleShape shape,
+                        HandleTypeObject type);
+
+    static inline ArrayObject *
+    finishCreateArray(ArrayObject *obj, HandleShape shape);
 };
 
 } 

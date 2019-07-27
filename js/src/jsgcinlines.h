@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jsgcinlines_h
 #define jsgcinlines_h
@@ -37,14 +37,14 @@ ThreadSafeContext::isThreadLocal(T thing) const
         return true;
 #endif
 
-    // Global invariant
+    
     MOZ_ASSERT(!IsInsideNursery(thing));
 
-    // The thing is not in the nursery, but is it in the private tenured area?
+    
     if (allocator_->arenas.containsArena(runtime_, thing->asTenured().arenaHeader()))
     {
-        // GC should be suppressed in preparation for mutating thread local
-        // objects, as we don't want to trip any barriers.
+        
+        
         MOZ_ASSERT(!thing->zoneFromAnyThread()->needsIncrementalBarrier());
         MOZ_ASSERT(!thing->runtimeFromAnyThread()->needsIncrementalBarrier());
 
@@ -101,7 +101,7 @@ GCRuntime::poke()
     poked = true;
 
 #ifdef JS_GC_ZEAL
-    /* Schedule a GC to happen "soon" after a GC poke. */
+    
     if (zealMode == ZealPokeValue)
         nextScheduled = 1;
 #endif
@@ -164,27 +164,27 @@ class ArenaIter
 
 class ArenaCellIterImpl
 {
-    // These three are set in initUnsynchronized().
+    
     size_t firstThingOffset;
     size_t thingSize;
 #ifdef DEBUG
     bool isInited;
 #endif
 
-    // These three are set in reset() (which is called by init()).
+    
     FreeSpan span;
     uintptr_t thing;
     uintptr_t limit;
 
-    // Upon entry, |thing| points to any thing (free or used) and finds the
-    // first used thing, which may be |thing|.
+    
+    
     void moveForwardIfFree() {
         MOZ_ASSERT(!done());
         MOZ_ASSERT(thing);
-        // Note: if |span| is empty, this test will fail, which is what we want
-        // -- |span| being empty means that we're past the end of the last free
-        // thing, all the remaining things in the arena are used, and we'll
-        // never need to move forward.
+        
+        
+        
+        
         if (thing == span.first) {
             thing = span.last + thingSize;
             span = *span.nextSpan();
@@ -193,8 +193,8 @@ class ArenaCellIterImpl
 
   public:
     ArenaCellIterImpl()
-      : firstThingOffset(0)     // Squelch
-      , thingSize(0)            //   warnings
+      : firstThingOffset(0)     
+      , thingSize(0)            
       , limit(0)
     {
     }
@@ -217,8 +217,8 @@ class ArenaCellIterImpl
         initUnsynchronized(aheader);
     }
 
-    // Use this to move from an Arena of a particular kind to another Arena of
-    // the same kind.
+    
+    
     void reset(ArenaHeader *aheader) {
         MOZ_ASSERT(isInited);
         span = aheader->getFirstFreeSpan();
@@ -336,12 +336,12 @@ class ZoneCellIter : public ZoneCellIterImpl
       : lists(&zone->allocator.arenas),
         kind(kind)
     {
-        /*
-         * We have a single-threaded runtime, so there's no need to protect
-         * against other threads iterating or allocating. However, we do have
-         * background finalization; we have to wait for this to finish if it's
-         * currently active.
-         */
+        
+
+
+
+
+
         if (IsBackgroundFinalized(kind) &&
             zone->allocator.arenas.needBackgroundFinalizeWait(kind))
         {
@@ -349,7 +349,7 @@ class ZoneCellIter : public ZoneCellIterImpl
         }
 
 #ifdef JSGC_GENERATIONAL
-        /* Evict the nursery before iterating so we can see all things. */
+        
         JSRuntime *rt = zone->runtimeFromMainThread();
         rt->gc.evictNursery();
 #endif
@@ -361,7 +361,7 @@ class ZoneCellIter : public ZoneCellIterImpl
             lists->copyFreeListToArena(kind);
         }
 
-        /* Assert that no GCs can occur while a ZoneCellIter is live. */
+        
         noAlloc.disallowAlloc(zone->runtimeFromMainThread());
 
         init(zone, kind);
@@ -404,7 +404,7 @@ class GCZonesIter
 
 typedef CompartmentsIterT<GCZonesIter> GCCompartmentsIter;
 
-/* Iterates over all zones in the current zone group. */
+
 class GCZoneGroupIter {
   private:
     JS::Zone *current;
@@ -434,10 +434,10 @@ class GCZoneGroupIter {
 typedef CompartmentsIterT<GCZoneGroupIter> GCCompartmentGroupIter;
 
 #ifdef JSGC_GENERATIONAL
-/*
- * Attempt to allocate a new GC thing out of the nursery. If there is not enough
- * room in the nursery or there is an OOM, this method will return nullptr.
- */
+
+
+
+
 template <AllowGC allowGC>
 inline JSObject *
 TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots)
@@ -451,7 +451,7 @@ TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots)
     if (allowGC && !rt->mainThread.suppressGC) {
         cx->minorGC(JS::gcreason::OUT_OF_NURSERY);
 
-        /* Exceeding gcMaxBytes while tenuring can disable the Nursery. */
+        
         if (nursery.isEnabled()) {
             JSObject *obj = nursery.allocateObject(cx, thingSize, nDynamicSlots);
             MOZ_ASSERT(obj);
@@ -460,7 +460,7 @@ TryNewNurseryObject(JSContext *cx, size_t thingSize, size_t nDynamicSlots)
     }
     return nullptr;
 }
-#endif /* JSGC_GENERATIONAL */
+#endif 
 
 #ifdef JSGC_FJGENERATIONAL
 template <AllowGC allowGC>
@@ -482,7 +482,7 @@ TryNewNurseryObject(ForkJoinContext *cx, size_t thingSize, size_t nDynamicSlots)
 
     return nullptr;
 }
-#endif /* JSGC_FJGENERATIONAL */
+#endif 
 
 static inline bool
 PossiblyFail()
@@ -510,11 +510,11 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
     MOZ_ASSERT(rt->gc.isAllocAllowed());
 #endif
 
-    // Crash if we perform a GC action when it is not safe.
+    
     if (allowGC && !rt->mainThread.suppressGC)
         JS::AutoAssertOnGC::VerifyIsSafeToGC(rt);
 
-    // For testing out of memory conditions
+    
     if (!PossiblyFail()) {
         js_ReportOutOfMemory(cx);
         return false;
@@ -527,8 +527,8 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
 #endif
 
         if (rt->interrupt) {
-            // Invoking the interrupt callback can fail and we can't usefully
-            // handle that here. Just check in case we need to collect instead.
+            
+            
             ncx->gcIfNeeded();
         }
     }
@@ -550,12 +550,12 @@ CheckIncrementalZoneState(ThreadSafeContext *cx, T *t)
 #endif
 }
 
-/*
- * Allocate a new GC thing. After a successful allocation the caller must
- * fully initialize the thing before calling any function that can potentially
- * trigger GC. This will ensure that GC tracing never sees junk values stored
- * in the partially initialized thing.
- */
+
+
+
+
+
+
 
 template <AllowGC allowGC>
 inline JSObject *
@@ -606,7 +606,7 @@ AllocateObject(ThreadSafeContext *cx, AllocKind kind, size_t nDynamicSlots, Init
         obj = static_cast<JSObject *>(js::gc::ArenaLists::refillFreeList<allowGC>(cx, kind));
 
     if (obj)
-        obj->setInitialSlots(slots);
+        obj->fakeNativeSetInitialSlots(slots);
     else
         js_free(slots);
 
@@ -638,15 +638,15 @@ AllocateNonObject(ThreadSafeContext *cx)
     return t;
 }
 
-/*
- * When allocating for initialization from a cached object copy, we will
- * potentially destroy the cache entry we want to copy if we allow GC. On the
- * other hand, since these allocations are extremely common, we don't want to
- * delay GC from these allocation sites. Instead we allow the GC, but still
- * fail the allocation, forcing the non-cached path.
- *
- * Observe this won't be used for ForkJoin allocation, as it takes a JSContext*
- */
+
+
+
+
+
+
+
+
+
 template <AllowGC allowGC>
 inline JSObject *
 AllocateObjectForCacheHit(JSContext *cx, AllocKind kind, InitialHeap heap)
@@ -694,7 +694,7 @@ IsInsideGGCNursery(const js::gc::Cell *cell)
 #endif
 }
 
-} /* namespace gc */
+} 
 
 template <js::AllowGC allowGC>
 inline JSObject *
@@ -738,7 +738,7 @@ NewGCExternalString(js::ThreadSafeContext *cx)
     return js::gc::AllocateNonObject<JSExternalString, js::CanGC>(cx);
 }
 
-} /* namespace js */
+} 
 
 inline JSScript *
 js_NewGCScript(js::ThreadSafeContext *cx)
@@ -765,4 +765,4 @@ js_NewGCBaseShape(js::ThreadSafeContext *cx)
     return js::gc::AllocateNonObject<js::BaseShape, allowGC>(cx);
 }
 
-#endif /* jsgcinlines_h */
+#endif 
