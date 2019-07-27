@@ -337,6 +337,7 @@ pref("media.peerconnection.video.max_bitrate", 2000);
 #endif
 pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:stun.services.mozilla.com\"}]");
+pref("media.peerconnection.ice.loopback", false); 
 pref("media.peerconnection.use_document_iceservers", true);
 
 

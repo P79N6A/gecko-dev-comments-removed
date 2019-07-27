@@ -204,9 +204,19 @@ PeerConnectionMedia::PeerConnectionMedia(PeerConnectionImpl *parent)
 nsresult PeerConnectionMedia::Init(const std::vector<NrIceStunServer>& stun_servers,
                                    const std::vector<NrIceTurnServer>& turn_servers)
 {
+#ifdef MOZILLA_INTERNAL_API
+  bool allow_loopback = Preferences::GetBool(
+    "media.peerconnection.ice.loopback", false);
+#else
+  bool allow_loopback = false;
+#endif
+
   
   
-  mIceCtx = NrIceCtx::Create("PC:" + mParent->GetName(), true);
+  mIceCtx = NrIceCtx::Create("PC:" + mParent->GetName(),
+                             true, 
+                             true, 
+                             allow_loopback);
   if(!mIceCtx) {
     CSFLogError(logTag, "%s: Failed to create Ice Context", __FUNCTION__);
     return NS_ERROR_FAILURE;

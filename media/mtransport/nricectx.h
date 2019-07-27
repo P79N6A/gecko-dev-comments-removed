@@ -190,7 +190,13 @@ class NrIceCtx {
 
   static RefPtr<NrIceCtx> Create(const std::string& name,
                                  bool offerer,
-                                 bool set_interface_priorities = true);
+                                 bool set_interface_priorities = true,
+                                 bool allow_loopback = false);
+
+  
+  static void internal_DeinitializeGlobal();
+
+
   nr_ice_ctx *ctx() { return ctx_; }
   nr_ice_peer_ctx *peer() { return peer_; }
 
