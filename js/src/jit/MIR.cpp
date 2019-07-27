@@ -3035,7 +3035,8 @@ MNewArray::shouldUseVM() const
 
     
     
-    bool allocating = allocatingBehaviour() != NewArray_Unallocating && count() > arraySlots;
+    
+    bool allocating = isAllocating() && count() > arraySlots;
 
     return templateObject()->hasSingletonType() || allocating;
 }

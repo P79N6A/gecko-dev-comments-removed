@@ -508,7 +508,7 @@ IsArrayEscaped(MInstruction *ins)
 
     
     
-    if (ins->toNewArray()->allocatingBehaviour() == NewArray_Unallocating) {
+    if (!ins->toNewArray()->isAllocating()) {
         JitSpewDef(JitSpew_Escape, "Array is not allocated\n", ins);
         return true;
     }

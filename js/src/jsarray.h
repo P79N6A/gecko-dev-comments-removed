@@ -49,6 +49,11 @@ NewDenseEmptyArray(JSContext *cx, JSObject *proto = nullptr,
                    NewObjectKind newKind = GenericObject);
 
 
+extern ArrayObject * JS_FASTCALL
+NewDenseAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
+                       NewObjectKind newKind = GenericObject);
+
+
 
 
 
@@ -61,27 +66,7 @@ NewDenseUnallocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto 
 
 
 extern ArrayObject * JS_FASTCALL
-NewDensePartlyAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
-                             NewObjectKind newKind = GenericObject);
-
-
-extern ArrayObject * JS_FASTCALL
-NewDenseFullyAllocatedArray(ExclusiveContext *cx, uint32_t length, JSObject *proto = nullptr,
-                            NewObjectKind newKind = GenericObject);
-
-enum AllocatingBehaviour {
-    NewArray_Unallocating,
-    NewArray_PartlyAllocating,
-    NewArray_FullyAllocating
-};
-
-
-
-
-
-extern ArrayObject * JS_FASTCALL
-NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type,
-              AllocatingBehaviour allocating);
+NewDenseArray(ExclusiveContext *cx, uint32_t length, HandleTypeObject type, bool allocateArray);
 
 
 extern ArrayObject *
@@ -94,7 +79,7 @@ NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *values, JSObjec
 
 
 extern ArrayObject *
-NewDenseFullyAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject *templateObject);
+NewDenseAllocatedArrayWithTemplate(JSContext *cx, uint32_t length, JSObject *templateObject);
 
 
 extern JSObject *

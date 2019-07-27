@@ -15,9 +15,7 @@ class ArrayObject : public JSObject
 {
   public:
     
-    
-    
-    static const uint32_t EagerAllocationMaxLength = 2048 - ObjectElements::VALUES_PER_HEADER;
+    static const uint32_t EagerAllocationMaxLength = 2048;
 
     static const Class class_;
 
