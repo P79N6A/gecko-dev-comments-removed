@@ -443,11 +443,11 @@ enum Int64FunctionSlot {
 
 namespace CType {
   JSObject* Create(JSContext* cx, HandleObject typeProto, HandleObject dataProto,
-    TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType);
+    TypeCode type, JSString* name, Value size, Value align, ffi_type* ffiType);
 
   JSObject* DefineBuiltin(JSContext* cx, HandleObject ctypesObj, const char* propName,
     JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type,
-    jsval size, jsval align, ffi_type* ffiType);
+    Value size, Value align, ffi_type* ffiType);
 
   bool IsCType(JSObject* obj);
   bool IsCTypeProto(JSObject* obj);
@@ -505,7 +505,7 @@ namespace FunctionType {
 
 namespace CClosure {
   JSObject* Create(JSContext* cx, HandleObject typeObj, HandleObject fnObj,
-    HandleObject thisObj, jsval errVal, PRFuncPtr* fnptr);
+    HandleObject thisObj, Value errVal, PRFuncPtr* fnptr);
 } 
 
 namespace CData {
@@ -519,9 +519,9 @@ namespace CData {
   bool IsCDataProto(JSObject* obj);
 
   
-  bool Cast(JSContext* cx, unsigned argc, jsval* vp);
+  bool Cast(JSContext* cx, unsigned argc, Value* vp);
   
-  bool GetRuntime(JSContext* cx, unsigned argc, jsval* vp);
+  bool GetRuntime(JSContext* cx, unsigned argc, Value* vp);
 } 
 
 namespace Int64 {
