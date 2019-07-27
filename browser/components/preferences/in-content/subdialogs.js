@@ -89,6 +89,9 @@ let gSubDialog = {
     this._overlay.style.visibility = "";
     
     this._frame.removeAttribute("style");
+    
+    this._box.removeAttribute("width");
+    this._box.removeAttribute("height");
 
     setTimeout(() => {
       
