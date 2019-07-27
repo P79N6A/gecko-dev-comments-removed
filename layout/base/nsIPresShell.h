@@ -1422,7 +1422,8 @@ public:
 
 
 
-  virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
+  virtual void SynthesizeMouseMove(bool aFromScroll,
+                                   bool aIsSynthesizedForTests) = 0;
 
   enum PaintFlags {
     
