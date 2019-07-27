@@ -7799,7 +7799,7 @@ nsGlobalWindow::CallerInnerWindow()
   
   
   
-  {
+  if (xpc::IsSandbox(scope)) {
     JSAutoCompartment ac(cx, scope);
     JS::Rooted<JSObject*> scopeProto(cx);
     bool ok = JS_GetPrototype(cx, scope, &scopeProto);
@@ -7807,26 +7807,14 @@ nsGlobalWindow::CallerInnerWindow()
     if (scopeProto && xpc::IsSandboxPrototypeProxy(scopeProto) &&
         (scopeProto = js::CheckedUnwrap(scopeProto,  false)))
     {
-      scope = scopeProto;
+      global = xpc::NativeGlobal(scopeProto);
+      NS_ENSURE_TRUE(global, nullptr);
     }
   }
-  JSAutoCompartment ac(cx, scope);
 
   
   
-  
-  
-  nsISupports* native =
-    nsContentUtils::XPConnect()->GetNativeOfWrapper(cx, scope);
-  if (!native)
-    return nullptr;
-
-  
-  
-  
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(native);
-  if (!win)
-    return GetCurrentInnerWindowInternal();
+  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(global);
   return static_cast<nsGlobalWindow*>(win.get());
 }
 
@@ -11981,6 +11969,9 @@ nsGlobalWindow::InnerForSetTimeoutOrInterval(ErrorResult& aError)
     
 
     forwardTo = CallerInnerWindow();
+    if (!forwardTo && nsContentUtils::IsCallerChrome()) {
+      forwardTo = currentInner;
+    }
     if (!forwardTo) {
       aError.Throw(NS_ERROR_NOT_AVAILABLE);
       return nullptr;
@@ -12199,14 +12190,15 @@ nsGlobalWindow::SetTimeoutOrInterval(bool aIsInterval, int32_t *aReturn)
 
   if (IsOuterWindow()) {
     nsGlobalWindow* callerInner = CallerInnerWindow();
-    NS_ENSURE_TRUE(callerInner, NS_ERROR_NOT_AVAILABLE);
+    NS_ENSURE_TRUE(callerInner || nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
     
     
     
     
 
-    if (callerInner->GetOuterWindow() == this &&
+    if (callerInner &&
+        callerInner->GetOuterWindow() == this &&
         callerInner->IsInnerWindow()) {
       return callerInner->SetTimeoutOrInterval(aIsInterval, aReturn);
     }
