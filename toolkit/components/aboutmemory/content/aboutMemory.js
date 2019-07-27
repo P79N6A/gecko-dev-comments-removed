@@ -825,16 +825,37 @@ function makeDReportMap(aJSONReports)
     
     
     
+    
+    
+
+    
+    
+    
     let pidRegex = /pid([ =])\d+/g;
     let pidSubst = "pid$1NNN";
-    let strippedProcess = jr.process.replace(pidRegex, pidSubst);
-    let strippedPath = jr.path.replace(/0x[0-9A-Fa-f]+/g, "0xNNN");
-    strippedPath = strippedPath.replace(pidRegex, pidSubst);
-    strippedPath = strippedPath.replace(
+    let process = jr.process.replace(pidRegex, pidSubst);
+    let path = jr.path.replace(pidRegex, pidSubst);
+
+    
+    
+    
+    
+    path = path.replace(/zone\(0x[0-9A-Fa-f]+\)\//, "zone(0xNNN)/");
+    path = path.replace(/\/worker\((.+), 0x[0-9A-Fa-f]+\)\//,
+                        "/worker($1, 0xNNN)/");
+
+    
+    
+    path = path.replace(/^(explicit\/window-objects\/top\(.*, id=)\d+\)/,
+                        "$1NNN)");
+
+    
+    
+    path = path.replace(
       /moz-nullprincipal:{........-....-....-....-............}/g,
       "moz-nullprincipal:{NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN}");
-    let processPath = strippedProcess + kProcessPathSep + strippedPath;
 
+    let processPath = process + kProcessPathSep + path;
     let rOld = dreportMap[processPath];
     if (rOld === undefined) {
       dreportMap[processPath] =
