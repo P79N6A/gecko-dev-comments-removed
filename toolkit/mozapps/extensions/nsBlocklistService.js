@@ -287,26 +287,6 @@ function parseRegExp(aStr) {
 
 
 
-
-
-function matchesAllPluginNames(blockEntry, plugin) {
-  for (let name in blockEntry.matches) {
-    if (!(name in plugin) ||
-        typeof(plugin[name]) != "string" ||
-        !blockEntry.matches[name].test(plugin[name])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-
-
-
-
-
-
-
 function Blocklist() {
   Services.obs.addObserver(this, "xpcom-shutdown", false);
   Services.obs.addObserver(this, "sessionstore-windows-restored", false);
@@ -1062,10 +1042,10 @@ Blocklist.prototype = {
 
 
 
-  _getPluginBlocklistState: function Blocklist_getPluginBlocklistState(plugin,
+  _getPluginBlocklistEntry: function Blocklist_getPluginBlocklistEntry(plugin,
                             pluginEntries, appVersion, toolkitVersion) {
     if (!gBlocklistEnabled)
-      return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+      return null;
 
     
     if (!appVersion && !gApp.version)
@@ -1092,23 +1072,13 @@ Blocklist.prototype = {
 
       for (let blockEntryVersion of blockEntry.versions) {
         if (blockEntryVersion.includesItem(plugin.version, appVersion,
-                                                toolkitVersion)) {
-          if (blockEntryVersion.severity >= gBlocklistLevel)
-            return Ci.nsIBlocklistService.STATE_BLOCKED;
-          if (blockEntryVersion.severity == SEVERITY_OUTDATED) {
-            let vulnerabilityStatus = blockEntryVersion.vulnerabilityStatus;
-            if (vulnerabilityStatus == VULNERABILITYSTATUS_UPDATE_AVAILABLE)
-              return Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE;
-            if (vulnerabilityStatus == VULNERABILITYSTATUS_NO_UPDATE)
-              return Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE;
-            return Ci.nsIBlocklistService.STATE_OUTDATED;
-          }
-          return Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
+                                           toolkitVersion)) {
+          return {entry: blockEntry, version: blockEntryVersion};
         }
       }
     }
 
-    return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+    return null;
   },
 
   
@@ -1118,26 +1088,51 @@ Blocklist.prototype = {
 
 
 
-  _getPluginBlockEntry: function (plugin) {
-    if (!gBlocklistEnabled)
-      return null;
 
-    if (!this._isBlocklistLoaded())
-      this._loadBlocklist();
 
-    for each (let blockEntry in this._pluginEntries) {
-      if (matchesAllPluginNames(blockEntry, plugin)) {
-        return blockEntry;
-      }
+
+
+
+
+
+
+
+
+  _getPluginBlocklistState: function Blocklist_getPluginBlocklistState(plugin,
+                            pluginEntries, appVersion, toolkitVersion) {
+
+    let r = this._getPluginBlocklistEntry(plugin, pluginEntries,
+                                          appVersion, toolkitVersion);
+    if (!r) {
+      return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
     }
 
-	  return null;
+    let {entry: blockEntry, version: blockEntryVersion} = r;
+
+    if (blockEntryVersion.severity >= gBlocklistLevel)
+      return Ci.nsIBlocklistService.STATE_BLOCKED;
+    if (blockEntryVersion.severity == SEVERITY_OUTDATED) {
+      let vulnerabilityStatus = blockEntryVersion.vulnerabilityStatus;
+      if (vulnerabilityStatus == VULNERABILITYSTATUS_UPDATE_AVAILABLE)
+        return Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE;
+      if (vulnerabilityStatus == VULNERABILITYSTATUS_NO_UPDATE)
+        return Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE;
+      return Ci.nsIBlocklistService.STATE_OUTDATED;
+    }
+    return Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
   },
 
   
   getPluginBlocklistURL: function Blocklist_getPluginBlocklistURL(plugin) {
-    let blockEntry = this._getPluginBlockEntry(plugin);
-    if (!blockEntry || !blockEntry.blockID) {
+    if (!this._isBlocklistLoaded())
+      this._loadBlocklist();
+
+    let r = this._getPluginBlocklistEntry(plugin, this._pluginEntries);
+    if (!r) {
+      return null;
+    }
+    let {entry: blockEntry, version: blockEntryVersion} = r;
+    if (!blockEntry.blockID) {
       return null;
     }
 
@@ -1146,8 +1141,15 @@ Blocklist.prototype = {
 
   
   getPluginInfoURL: function (plugin) {
-    let blockEntry = this._getPluginBlockEntry(plugin);
-    if (!blockEntry || !blockEntry.blockID) {
+    if (!this._isBlocklistLoaded())
+      this._loadBlocklist();
+
+    let r = this._getPluginBlocklistEntry(plugin, this._pluginEntries);
+    if (!r) {
+      return null;
+    }
+    let {entry: blockEntry, version: blockEntryVersion} = r;
+    if (!blockEntry.blockID) {
       return null;
     }
 
