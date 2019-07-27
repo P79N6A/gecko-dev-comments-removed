@@ -990,7 +990,7 @@ pref("browser.autofocus", false);
 pref("dom.wakelock.enabled", true);
 
 
-pref("touchcaret.enabled", false);
+pref("touchcaret.enabled", true);
 
 
 pref("selectioncaret.enabled", false);
