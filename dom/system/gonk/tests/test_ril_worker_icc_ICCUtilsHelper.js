@@ -190,12 +190,22 @@ add_test(function test_get_network_name_from_icc() {
   };
 
   
+  ICCUtilsHelper.isICCServiceAvailable = function fakeIsICCServiceAvailable(service) {
+    return false;
+  };
+
+  
   testGetNetworkNameFromICC({mcc: "321", mnc: "654", lac: 0x1000}, null);
 
   
   
   testGetNetworkNameFromICC({mcc: "123", mnc: "456", lac: 0x1000},
                             {longName: "PNN1Long", shortName: "PNN1Short"});
+
+  
+  ICCUtilsHelper.isICCServiceAvailable = function fakeIsICCServiceAvailable(service) {
+    return service === "OPL";
+  };
 
   
   RIL.iccInfoPrivate.OPL = [
