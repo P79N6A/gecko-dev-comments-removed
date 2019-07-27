@@ -189,6 +189,10 @@ public:
     MOZ_ASSERT(mMediaStream);
   }
 
+  DOMMediaStream* GetMediaStream() const {
+    return mMediaStream;
+  }
+
   
   
   const std::map<mozilla::TrackID, mozilla::RefPtr<mozilla::MediaPipeline>>&
@@ -214,9 +218,6 @@ public:
                         PeerConnectionMedia *aParent)
       : SourceStreamInfo(aMediaStream, aParent) {}
 
-  DOMMediaStream* GetMediaStream() {
-    return mMediaStream;
-  }
   
 #if 0
   int HasTrack(DOMMediaStream* aStream, mozilla::TrackID aTrack);
@@ -262,9 +263,6 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
     : SourceStreamInfo(aMediaStream, aParent),
       mTrackTypeHints(0) {}
 
-  DOMMediaStream* GetMediaStream() {
-    return mMediaStream;
-  }
   void StorePipeline(int aTrack, bool aIsVideo,
                      mozilla::RefPtr<mozilla::MediaPipelineReceive> aPipeline);
 
