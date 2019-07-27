@@ -596,7 +596,8 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
     
     if (jsStackAddr > nativeStackAddr) {
       MOZ_ASSERT(jsIndex >= 0);
-      addDynamicTag(aProfile, 'c', jsFrames[jsIndex].label);
+      const JS::ProfilingFrameIterator::Frame& jsFrame = jsFrames[jsIndex];
+      addDynamicTag(aProfile, 'c', jsFrame.label);
 
       
       
@@ -611,12 +612,15 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
       
       
       
-      MOZ_ASSERT_IF(jsFrames[jsIndex].hasTrackedOptimizations,
-                    jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Ion);
+      
+      
+      
+      
       if (!aSample->isSamplingCurrentThread &&
-          (jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Ion ||
-           jsFrames[jsIndex].kind == JS::ProfilingFrameIterator::Frame_Baseline)) {
-        aProfile.addTag(ProfileEntry('J', jsFrames[jsIndex].returnAddress));
+          (jsFrame.kind == JS::ProfilingFrameIterator::Frame_Ion ||
+           jsFrame.kind == JS::ProfilingFrameIterator::Frame_Baseline)) {
+        char entryTag = jsFrame.mightHaveTrackedOptimizations ? 'O' : 'J';
+        aProfile.addTag(ProfileEntry(entryTag, jsFrames[jsIndex].returnAddress));
       }
 
       jsIndex--;

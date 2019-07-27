@@ -1862,7 +1862,7 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
         frames[offset].returnAddress = nullptr;
         frames[offset].activation = activation_;
         frames[offset].label = asmJSIter().label();
-        frames[offset].hasTrackedOptimizations = false;
+        frames[offset].mightHaveTrackedOptimizations = false;
         return 1;
     }
 
@@ -1898,7 +1898,7 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
         frames[offset + i].returnAddress = returnAddr;
         frames[offset + i].activation = activation_;
         frames[offset + i].label = labels[i];
-        frames[offset + i].hasTrackedOptimizations = false;
+        frames[offset + i].mightHaveTrackedOptimizations = false;
     }
 
     
@@ -1907,12 +1907,7 @@ JS::ProfilingFrameIterator::extractStack(Frame *frames, uint32_t offset, uint32_
     
     
     
-    
-    if (false && entry.hasTrackedOptimizations()) {
-        uint32_t dummy;
-        mozilla::Maybe<uint8_t> index = entry.trackedOptimizationIndexAtAddr(returnAddr, &dummy);
-        frames[offset].hasTrackedOptimizations = index.isSome();
-    }
+    frames[offset].mightHaveTrackedOptimizations = entry.hasTrackedOptimizations();
 
     return depth;
 }
