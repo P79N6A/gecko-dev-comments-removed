@@ -14,8 +14,10 @@
 #include "mozilla/layers/GeckoContentController.h"  
 #include "nsCOMPtr.h"
 #include "nsISupportsImpl.h"  
+#include "nsIWeakReferenceUtils.h"  
 #include "nsRefPtr.h"
 
+template <class> class nsCOMPtr;
 class nsIDOMWindowUtils;
 class nsIWidget;
 
@@ -69,8 +71,9 @@ private:
   ~APZEventState();
   void SendPendingTouchPreventedResponse(bool aPreventDefault,
                                          const ScrollableLayerGuid& aGuid);
+  already_AddRefed<nsIWidget> GetWidget() const;
 private:
-  nsCOMPtr<nsIWidget> mWidget;
+  nsWeakPtr mWidget;
   nsRefPtr<ActiveElementManager> mActiveElementManager;
   nsRefPtr<ContentReceivedInputBlockCallback> mContentReceivedInputBlockCallback;
   bool mPendingTouchPreventedResponse;
