@@ -350,12 +350,35 @@ Migrator.prototype = {
   
   
   
-  resendVerificationMail: Task.async(function * () {
+  resendVerificationMail: Task.async(function * (win) {
     
     if (this._state != this.STATE_USER_FXA_VERIFIED) {
       this.log.warn("createFxAccount called in an unexpected state: ${}", this._state);
     }
-    return fxAccounts.resendVerificationEmail();
+    let ok = true;
+    try {
+      yield fxAccounts.resendVerificationEmail();
+    } catch (ex) {
+      this.log.error("Failed to resend verification mail: ${}", ex);
+      ok = false;
+    }
+    let fxauser = yield fxAccounts.getSignedInUser();
+    let sb = Services.strings.createBundle("chrome://browser/locale/accounts.properties");
+
+    let heading = ok ?
+                  sb.formatStringFromName("verificationSentHeading", [fxauser.email], 1) :
+                  sb.GetStringFromName("verificationNotSentHeading");
+    let title = sb.GetStringFromName(ok ? "verificationSentTitle" : "verificationNotSentTitle");
+    let description = sb.GetStringFromName(ok ? "verificationSentDescription"
+                                              : "verificationNotSentDescription");
+
+    let factory = Cc["@mozilla.org/prompter;1"]
+                    .getService(Ci.nsIPromptFactory);
+    let prompt = factory.getPrompt(win, Ci.nsIPrompt);
+    let bag = prompt.QueryInterface(Ci.nsIWritablePropertyBag2);
+    bag.setPropertyAsBool("allowTabModal", true);
+
+    prompt.alert(title, heading + "\n\n" + description);
   }),
 
   
