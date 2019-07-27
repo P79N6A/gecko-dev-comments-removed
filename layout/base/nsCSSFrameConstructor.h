@@ -1043,8 +1043,8 @@ private:
                           bool aSuppressWhiteSpaceOptimizations,
                           nsTArray<nsIAnonymousContentCreator::ContentInfo>* aAnonChildren) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
-      mNameSpaceID(aNameSpaceID),
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
+      mNameSpaceID(aNameSpaceID),
       mSuppressWhiteSpaceOptimizations(aSuppressWhiteSpaceOptimizations),
       mIsText(false), mIsGeneratedContent(false),
       mIsAnonymousContentCreatorContent(false),
@@ -1089,13 +1089,30 @@ private:
     }
 
     
+    FrameConstructionItemList mChildItems;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsTArray<nsIAnonymousContentCreator::ContentInfo> mAnonChildren;
+
+    
     const FrameConstructionData* mFCData;
     
     nsIContent* mContent;
     
     nsIAtom* mTag;
-    
-    int32_t mNameSpaceID;
     
     
     
@@ -1107,6 +1124,8 @@ private:
     PendingBinding* mPendingBinding;
     
     nsRefPtr<nsStyleContext> mStyleContext;
+    
+    int32_t mNameSpaceID;
     
     
     bool mSuppressWhiteSpaceOptimizations;
@@ -1142,25 +1161,6 @@ private:
     bool mIsLineParticipant;
     
     bool mIsForSVGAElement;
-
-    
-    FrameConstructionItemList mChildItems;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    nsTArray<nsIAnonymousContentCreator::ContentInfo> mAnonChildren;
 
   private:
     FrameConstructionItem(const FrameConstructionItem& aOther) MOZ_DELETE; 
