@@ -2149,10 +2149,10 @@ js::NativeSetProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiv
             
             
             if (!qualified) {
-                RootedObject pobj(cx);
-                if (!LookupProperty(cx, proto, id, &pobj, &shape))
+                bool found;
+                if (!HasProperty(cx, proto, id, &found))
                     return false;
-                if (!shape)
+                if (!found)
                     return SetNonexistentProperty(cx, obj, receiver, id, qualified, vp, strict);
             }
 
