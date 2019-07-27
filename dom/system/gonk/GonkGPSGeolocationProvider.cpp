@@ -532,9 +532,7 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
   }
 
   nsCOMPtr<nsIMobileConnection> connection;
-  
-  
-  service->GetItemByServiceId(0 , getter_AddRefs(connection));
+  service->GetItemByServiceId(mRilDataServiceId, getter_AddRefs(connection));
   NS_ENSURE_TRUE_VOID(connection);
 
   nsCOMPtr<nsIMobileConnectionInfo> voice;
@@ -1026,9 +1024,7 @@ GonkGPSGeolocationProvider::Observe(nsISupports* aSubject,
             }
 
             nsCOMPtr<nsIMobileConnection> connection;
-            
-            
-            service->GetItemByServiceId(0 , getter_AddRefs(connection));
+            service->GetItemByServiceId(mRilDataServiceId, getter_AddRefs(connection));
             if (!connection) {
               break;
             }
