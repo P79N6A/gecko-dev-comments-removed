@@ -22,8 +22,7 @@ loader.lazyRequireGetter(this, "StackFrameCache",
 
 
 
-
-let MemoryBridge = Class({
+let Memory = exports.Memory = Class({
   extends: EventTarget,
 
   
@@ -335,5 +334,3 @@ let MemoryBridge = Class({
     return this._mgr.residentUnique;
   }
 });
-
-exports.MemoryBridge = MemoryBridge;

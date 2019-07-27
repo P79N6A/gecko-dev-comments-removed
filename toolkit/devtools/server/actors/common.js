@@ -7,6 +7,7 @@
 "use strict";
 
 const promise = require("promise");
+const { method } = require("devtools/server/protocol");
 
 
 
@@ -519,3 +520,19 @@ function expectState(expectedState, method, activity) {
 }
 
 exports.expectState = expectState;
+
+
+
+
+
+
+
+
+
+
+function actorBridge (methodName, definition={}) {
+  return method(function () {
+    return this.bridge[methodName].apply(this.bridge, arguments);
+  }, definition);
+}
+exports.actorBridge = actorBridge;

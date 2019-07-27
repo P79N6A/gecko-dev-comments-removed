@@ -6,8 +6,8 @@
 
 const protocol = require("devtools/server/protocol");
 const { method, RetVal, Arg, types } = protocol;
-const { MemoryBridge } = require("./utils/memory-bridge");
-const { actorBridge } = require("./utils/actor-utils");
+const { Memory } = require("devtools/toolkit/shared/memory");
+const { actorBridge } = require("devtools/server/actors/common");
 loader.lazyRequireGetter(this, "events", "sdk/event/core");
 loader.lazyRequireGetter(this, "StackFrameCache",
                          "devtools/server/actors/utils/stack", true);
@@ -30,7 +30,12 @@ types.addDictType("AllocationsRecordingOptions", {
 
 
 
-let MemoryActor = protocol.ActorClass({
+
+
+
+
+
+let MemoryActor = exports.MemoryActor = protocol.ActorClass({
   typeName: "memory",
 
   
@@ -52,7 +57,7 @@ let MemoryActor = protocol.ActorClass({
     protocol.Actor.prototype.initialize.call(this, conn);
 
     this._onGarbageCollection = this._onGarbageCollection.bind(this);
-    this.bridge = new MemoryBridge(parent, frameCache);
+    this.bridge = new Memory(parent, frameCache);
     this.bridge.on("garbage-collection", this._onGarbageCollection);
   },
 
@@ -62,22 +67,12 @@ let MemoryActor = protocol.ActorClass({
     protocol.Actor.prototype.destroy.call(this);
   },
 
-  
-
-
-
-
-
-
   attach: actorBridge("attach", {
     request: {},
     response: {
       type: "attached"
     }
   }),
-
-  
-
 
   detach: actorBridge("detach", {
     request: {},
@@ -86,29 +81,16 @@ let MemoryActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
   getState: actorBridge("getState", {
     response: {
       state: RetVal(0, "string")
     }
   }),
 
-  
-
-
-
   takeCensus: actorBridge("takeCensus", {
     request: {},
     response: RetVal("json")
   }),
-
-  
-
-
-
-
 
   startRecordingAllocations: actorBridge("startRecordingAllocations", {
     request: {
@@ -120,9 +102,6 @@ let MemoryActor = protocol.ActorClass({
     }
   }),
 
-  
-
-
   stopRecordingAllocations: actorBridge("stopRecordingAllocations", {
     request: {},
     response: {
@@ -130,10 +109,6 @@ let MemoryActor = protocol.ActorClass({
       value: RetVal(0, "nullable:number")
     }
   }),
-
-  
-
-
 
   getAllocationsSettings: actorBridge("getAllocationsSettings", {
     request: {},
@@ -147,29 +122,15 @@ let MemoryActor = protocol.ActorClass({
     response: RetVal("json")
   }),
 
-  
-
-
   forceGarbageCollection: actorBridge("forceGarbageCollection", {
     request: {},
     response: {}
   }),
 
-  
-
-
-
-
   forceCycleCollection: actorBridge("forceCycleCollection", {
     request: {},
     response: {}
   }),
-
-  
-
-
-
-
 
   measure: actorBridge("measure", {
     request: {},
@@ -181,16 +142,10 @@ let MemoryActor = protocol.ActorClass({
     response: { value: RetVal("number") }
   }),
 
-  
-
-
-
   _onGarbageCollection: function (data) {
     events.emit(this, "garbage-collection", data);
   },
 });
-
-exports.MemoryActor = MemoryActor;
 
 exports.MemoryFront = protocol.FrontClass(MemoryActor, {
   initialize: function(client, form) {
