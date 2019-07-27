@@ -814,6 +814,9 @@ ContentChild::InitXPCOM()
     RecvSetOffline(isOffline);
     RecvBidiKeyboardNotify(isLangRTL);
 
+    
+    SendPJavaScriptConstructor();
+
     if (domainPolicy.active()) {
         nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
         MOZ_ASSERT(ssm);
