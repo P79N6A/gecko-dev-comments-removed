@@ -44,7 +44,12 @@ var gContentPane = {
     let drmInfoURL =
       Services.urlFormatter.formatURLPref("app.support.baseURL") + "drm-content";
     document.getElementById("playDRMContentLink").setAttribute("href", drmInfoURL);
-    if (!Services.prefs.getBoolPref("browser.eme.ui.enabled")) {
+    let emeUIEnabled = Services.prefs.getBoolPref("browser.eme.ui.enabled");
+    
+    if (navigator.platform.toLowerCase().startsWith("win")) {
+      emeUIEnabled = emeUIEnabled && parseFloat(Services.sysinfo.get("version")) >= 6;
+    }
+    if (!emeUIEnabled) {
       
       
       document.getElementById("drmGroup").setAttribute("style", "display: none !important");
