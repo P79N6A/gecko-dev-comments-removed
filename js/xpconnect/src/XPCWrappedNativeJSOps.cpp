@@ -629,42 +629,6 @@ XPC_WN_NoHelper_Resolve(JSContext *cx, HandleObject obj, HandleId id)
                                  JSPROP_PERMANENT, nullptr);
 }
 
-static JSObject *
-XPC_WN_OuterObject(JSContext *cx, HandleObject objArg)
-{
-    JSObject *obj = objArg;
-
-    XPCWrappedNative *wrapper = XPCWrappedNative::Get(obj);
-    if (!wrapper) {
-        Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
-
-        return nullptr;
-    }
-
-    if (!wrapper->IsValid()) {
-        Throw(NS_ERROR_XPC_HAS_BEEN_SHUTDOWN, cx);
-
-        return nullptr;
-    }
-
-    XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
-    if (si && si->GetFlags().WantOuterObject()) {
-        RootedObject newThis(cx);
-        nsresult rv =
-            si->GetCallback()->OuterObject(wrapper, cx, obj, newThis.address());
-
-        if (NS_FAILED(rv)) {
-            Throw(rv, cx);
-
-            return nullptr;
-        }
-
-        obj = newThis;
-    }
-
-    return obj;
-}
-
 const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
   { 
     "XPCWrappedNative_NoHelper",    
@@ -1172,24 +1136,8 @@ XPCNativeScriptableShared::PopulateJSClass()
     
     mJSClass.base.resolve = (JSResolveOp) XPC_WN_Helper_NewResolve;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     if (mFlags.WantConvert())
         mJSClass.base.convert = XPC_WN_Helper_Convert;
-    else if (mFlags.WantOuterObject())
-        mJSClass.base.convert = JS_ConvertStub;
     else
         mJSClass.base.convert = XPC_WN_Shared_Convert;
 
@@ -1215,9 +1163,6 @@ XPCNativeScriptableShared::PopulateJSClass()
         mJSClass.base.trace = JS_GlobalObjectTraceHook;
     else
         mJSClass.base.trace = XPCWrappedNative::Trace;
-
-    if (mFlags.WantOuterObject())
-        mJSClass.base.ext.outerObject = XPC_WN_OuterObject;
 
     mJSClass.base.ext.isWrappedNative = true;
 }
