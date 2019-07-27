@@ -932,8 +932,6 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
-
-    
     if (!handler) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_PROXY_REVOKED);
         return false;
@@ -941,8 +939,6 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     RootedObject target(cx, proxy->as<ProxyObject>().target());
-
-    
     RootedValue trap(cx);
     if (!GetProperty(cx, handler, handler, cx->names().set, &trap))
         return false;
@@ -966,41 +962,35 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
         return false;
 
     
+    if (!ToBoolean(trapResult))
+        return result.fail(JSMSG_PROXY_SET_RETURNED_FALSE);
+
     
+    Rooted<PropertyDescriptor> desc(cx);
+    if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
+        return false;
+
     
-    bool success = ToBoolean(trapResult);
-
-    if (success) {
-        
-        Rooted<PropertyDescriptor> desc(cx);
-        if (!GetOwnPropertyDescriptor(cx, target, id, &desc))
-            return false;
-
-        
-        if (desc.object()) {
-            if (IsDataDescriptor(desc) && desc.isPermanent() && desc.isReadonly()) {
-                bool same;
-                if (!SameValue(cx, vp, desc.value(), &same))
-                    return false;
-                if (!same) {
-                    JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_NW_NC);
-                    return false;
-                }
-            }
-
-            if (IsAccessorDescriptor(desc) && desc.isPermanent() && !desc.hasSetterObject()) {
-                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_WO_SETTER);
+    if (desc.object()) {
+        if (IsDataDescriptor(desc) && desc.isPermanent() && desc.isReadonly()) {
+            bool same;
+            if (!SameValue(cx, vp, desc.value(), &same))
+                return false;
+            if (!same) {
+                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_NW_NC);
                 return false;
             }
+        }
+
+        if (IsAccessorDescriptor(desc) && desc.isPermanent() && !desc.hasSetterObject()) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CANT_SET_WO_SETTER);
+            return false;
         }
     }
 
     
-    
-    vp.setBoolean(success);
     return result.succeed();
 }
-
 
 
 bool
