@@ -4,7 +4,11 @@
 
 package org.mozilla.gecko.db;
 
+import android.annotation.TargetApi;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import android.os.Build;
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoProfile;
 
@@ -15,6 +19,9 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.mozglue.RobocopTarget;
+
+import java.util.Map;
 
 public class DBUtils {
     private static final String LOGTAG = "GeckoDBUtils";
@@ -172,5 +179,176 @@ public class DBUtils {
             return appendProfile(GeckoProfile.DEFAULT_PROFILE, uri);
         }
         return appendProfile(profile, uri);
+    }
+
+    
+
+
+    private static final int CONFLICT_NONE = 0;
+    private static final String[] CONFLICT_VALUES = new String[] {"", " OR ROLLBACK ", " OR ABORT ", " OR FAIL ", " OR IGNORE ", " OR REPLACE "};
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    @RobocopTarget
+    public static int updateArrays(SQLiteDatabase db, String table, ContentValues[] values, UpdateOperation[] ops, String whereClause, String[] whereArgs) {
+        return updateArraysWithOnConflict(db, table, values, ops, whereClause, whereArgs, CONFLICT_NONE, true);
+    }
+
+    public static void updateArraysBlindly(SQLiteDatabase db, String table, ContentValues[] values, UpdateOperation[] ops, String whereClause, String[] whereArgs) {
+        updateArraysWithOnConflict(db, table, values, ops, whereClause, whereArgs, CONFLICT_NONE, false);
+    }
+
+    @RobocopTarget
+    public enum UpdateOperation {
+        ASSIGN,
+        BITWISE_OR,
+    }
+
+    
+
+
+
+
+
+    private static int updateArraysWithOnConflict(SQLiteDatabase db, String table,
+                                          ContentValues[] values,
+                                          UpdateOperation[] ops,
+                                          String whereClause,
+                                          String[] whereArgs,
+                                          int conflictAlgorithm,
+                                          boolean returnChangedRows) {
+        if (values == null || values.length == 0) {
+            throw new IllegalArgumentException("Empty values");
+        }
+
+        if (ops == null || ops.length != values.length) {
+            throw new IllegalArgumentException("ops and values don't match");
+        }
+
+        StringBuilder sql = new StringBuilder(120);
+        sql.append("UPDATE ");
+        sql.append(CONFLICT_VALUES[conflictAlgorithm]);
+        sql.append(table);
+        sql.append(" SET ");
+
+        
+        int setValuesSize = 0;
+        for (int i = 0; i < values.length; i++) {
+            setValuesSize += values[i].size();
+        }
+
+        int bindArgsSize = (whereArgs == null) ? setValuesSize : (setValuesSize + whereArgs.length);
+        Object[] bindArgs = new Object[bindArgsSize];
+
+        int arg = 0;
+        for (int i = 0; i < values.length; i++) {
+            final ContentValues v = values[i];
+            final UpdateOperation op = ops[i];
+
+            
+            switch (op) {
+                case ASSIGN:
+                    for (Map.Entry<String, Object> entry : v.valueSet()) {
+                        final String colName = entry.getKey();
+                        sql.append((arg > 0) ? "," : "");
+                        sql.append(colName);
+                        bindArgs[arg++] = entry.getValue();
+                        sql.append("= ?");
+                    }
+                    break;
+                case BITWISE_OR:
+                    for (Map.Entry<String, Object> entry : v.valueSet()) {
+                        final String colName = entry.getKey();
+                        sql.append((arg > 0) ? "," : "");
+                        sql.append(colName);
+                        bindArgs[arg++] = entry.getValue();
+                        sql.append("= ? | ");
+                        sql.append(colName);
+                    }
+                    break;
+            }
+        }
+
+        if (whereArgs != null) {
+            for (arg = setValuesSize; arg < bindArgsSize; arg++) {
+                bindArgs[arg] = whereArgs[arg - setValuesSize];
+            }
+        }
+        if (!TextUtils.isEmpty(whereClause)) {
+            sql.append(" WHERE ");
+            sql.append(whereClause);
+        }
+
+        
+        
+        
+        final SQLiteStatement statement = db.compileStatement(sql.toString());
+        try {
+            bindAllArgs(statement, bindArgs);
+            if (!returnChangedRows) {
+                statement.execute();
+                return 0;
+            }
+
+            if (AppConstants.Versions.feature11Plus) {
+                
+                return executeStatementReturningChangedRows(statement);
+            } else {
+                statement.execute();
+                final Cursor cursor = db.rawQuery("SELECT changes()", null);
+                try {
+                    cursor.moveToFirst();
+                    return cursor.getInt(0);
+                } finally {
+                    cursor.close();
+                }
+
+            }
+        } finally {
+            statement.close();
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    private static int executeStatementReturningChangedRows(SQLiteStatement statement) {
+        return statement.executeUpdateDelete();
+    }
+
+    
+    private static void bindAllArgs(SQLiteStatement statement, Object[] bindArgs) {
+        if (bindArgs == null) {
+            return;
+        }
+        for (int i = bindArgs.length; i != 0; i--) {
+            Object v = bindArgs[i - 1];
+            if (v == null) {
+                statement.bindNull(i);
+            } else if (v instanceof String) {
+                statement.bindString(i, (String) v);
+            } else if (v instanceof Double) {
+                statement.bindDouble(i, (Double) v);
+            } else if (v instanceof Float) {
+                statement.bindDouble(i, (Float) v);
+            } else if (v instanceof Long) {
+                statement.bindLong(i, (Long) v);
+            } else if (v instanceof Integer) {
+                statement.bindLong(i, (Integer) v);
+            } else if (v instanceof Byte) {
+                statement.bindLong(i, (Byte) v);
+            } else if (v instanceof byte[]) {
+                statement.bindBlob(i, (byte[]) v);
+            }
+        }
     }
 }
