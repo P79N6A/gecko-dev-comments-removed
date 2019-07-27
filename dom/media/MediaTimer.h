@@ -19,6 +19,13 @@
 
 namespace mozilla {
 
+extern PRLogModuleInfo* gMediaTimerLog;
+
+#define TIMER_LOG(x, ...) \
+  MOZ_ASSERT(gMediaTimerLog); \
+  PR_LOG(gMediaTimerLog, PR_LOG_DEBUG, ("[MediaTimer=%p relative_t=%lld]" x, this, \
+                                        RelativeMicroseconds(TimeStamp::Now()), ##__VA_ARGS__))
+
 
 
 typedef MediaPromise<bool, bool,  true> MediaTimerPromise;
@@ -62,6 +69,7 @@ private:
   {
     MOZ_ASSERT(OnMediaTimerThread());
     if (TimerIsArmed()) {
+      TIMER_LOG("MediaTimer::CancelTimerIfArmed canceling timer");
       mTimer->Cancel();
       mCurrentTimerTarget = TimeStamp();
     }
@@ -94,6 +102,15 @@ private:
   Monitor mMonitor;
   nsCOMPtr<nsITimer> mTimer;
   TimeStamp mCurrentTimerTarget;
+
+  
+  
+  TimeStamp mCreationTimeStamp;
+  int64_t RelativeMicroseconds(const TimeStamp& aTimeStamp)
+  {
+    return (int64_t) (aTimeStamp - mCreationTimeStamp).ToMicroseconds();
+  }
+
   bool mUpdateScheduled;
 };
 
