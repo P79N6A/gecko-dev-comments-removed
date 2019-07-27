@@ -5181,6 +5181,17 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
 
   
   
+  bool parentIsGradient = aParentFrame &&
+    (aParentFrame->GetType() == nsGkAtoms::svgLinearGradientFrame ||
+     aParentFrame->GetType() == nsGkAtoms::svgRadialGradientFrame);
+  bool stop = (aTag == nsGkAtoms::stop);
+  if ((parentIsGradient && !stop) ||
+      (!parentIsGradient && stop)) {
+    return &sSuppressData;
+  }
+
+  
+  
   
   bool parentIsFilter = aParentFrame &&
     aParentFrame->GetType() == nsGkAtoms::svgFilterFrame;
