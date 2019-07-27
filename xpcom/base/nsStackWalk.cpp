@@ -1135,7 +1135,7 @@ NS_FormatCodeAddress(char* aBuffer, uint32_t aBufferSize, uint32_t aFrameNumber,
     
     snprintf(aBuffer, aBufferSize,
              "#%02u: %s[%s +0x%" PRIxPTR "]",
-             aFrameNumber, function, aLibrary, aLOffset);
+             aFrameNumber, function, aLibrary, static_cast<uintptr_t>(aLOffset));
   } else {
     
     
@@ -1144,4 +1144,3 @@ NS_FormatCodeAddress(char* aBuffer, uint32_t aBufferSize, uint32_t aFrameNumber,
              aFrameNumber);
   }
 }
-
