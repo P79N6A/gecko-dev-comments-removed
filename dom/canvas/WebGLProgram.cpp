@@ -217,6 +217,90 @@ WebGLProgram::GetUniformInfoForMappedIdentifier(const nsACString& name) {
     return info;
 }
 
+bool
+WebGLProgram::UpdateInfo()
+{
+    mAttribMaxNameLength = 0;
+    for (size_t i = 0; i < mAttachedShaders.Length(); i++)
+        mAttribMaxNameLength = std::max(mAttribMaxNameLength, mAttachedShaders[i]->mAttribMaxNameLength);
+
+    GLint attribCount;
+    mContext->gl->fGetProgramiv(mGLName, LOCAL_GL_ACTIVE_ATTRIBUTES, &attribCount);
+
+    if (!mAttribsInUse.SetLength(mContext->mGLMaxVertexAttribs)) {
+        mContext->ErrorOutOfMemory("updateInfo: out of memory to allocate %d attribs", mContext->mGLMaxVertexAttribs);
+        return false;
+    }
+
+    for (size_t i = 0; i < mAttribsInUse.Length(); i++)
+        mAttribsInUse[i] = false;
+
+    nsAutoArrayPtr<char> nameBuf(new char[mAttribMaxNameLength]);
+
+    for (int i = 0; i < attribCount; ++i) {
+        GLint attrnamelen;
+        GLint attrsize;
+        GLenum attrtype;
+        mContext->gl->fGetActiveAttrib(mGLName, i, mAttribMaxNameLength, &attrnamelen, &attrsize, &attrtype, nameBuf);
+        if (attrnamelen > 0) {
+            GLint loc = mContext->gl->fGetAttribLocation(mGLName, nameBuf);
+            MOZ_ASSERT(loc >= 0, "major oops in managing the attributes of a WebGL program");
+            if (loc < mContext->mGLMaxVertexAttribs) {
+                mAttribsInUse[loc] = true;
+            } else {
+                mContext->GenerateWarning("program exceeds MAX_VERTEX_ATTRIBS");
+                return false;
+            }
+        }
+    }
+
+    
+    mIdentifierMap = new CStringMap;
+    mIdentifierReverseMap = new CStringMap;
+    mUniformInfoMap = new CStringToUniformInfoMap;
+    for (size_t i = 0; i < mAttachedShaders.Length(); i++) {
+        
+        for (size_t j = 0; j < mAttachedShaders[i]->mAttributes.Length(); j++) {
+            const WebGLMappedIdentifier& attrib = mAttachedShaders[i]->mAttributes[j];
+            mIdentifierMap->Put(attrib.original, attrib.mapped); 
+            mIdentifierReverseMap->Put(attrib.mapped, attrib.original); 
+        }
+
+        
+        for (size_t j = 0; j < mAttachedShaders[i]->mUniforms.Length(); j++) {
+            
+            const WebGLMappedIdentifier& uniform = mAttachedShaders[i]->mUniforms[j];
+            mIdentifierMap->Put(uniform.original, uniform.mapped); 
+            mIdentifierReverseMap->Put(uniform.mapped, uniform.original); 
+
+            
+            const WebGLUniformInfo& info = mAttachedShaders[i]->mUniformInfos[j];
+            mUniformInfoMap->Put(uniform.mapped, info);
+        }
+    }
+
+    mActiveAttribMap.clear();
+
+    GLint numActiveAttrs = 0;
+    mContext->gl->fGetProgramiv(mGLName, LOCAL_GL_ACTIVE_ATTRIBUTES, &numActiveAttrs);
+
+    
+    
+    char attrName[257];
+
+    GLint dummySize;
+    GLenum dummyType;
+    for (GLint i = 0; i < numActiveAttrs; i++) {
+        mContext->gl->fGetActiveAttrib(mGLName, i, 257, nullptr, &dummySize,
+                                       &dummyType, attrName);
+        GLint attrLoc = mContext->gl->fGetAttribLocation(mGLName, attrName);
+        MOZ_ASSERT(attrLoc >= 0);
+        mActiveAttribMap.insert(std::make_pair(attrLoc, nsCString(attrName)));
+    }
+
+    return true;
+}
+
  uint64_t
 WebGLProgram::IdentifierHashFunction(const char *ident, size_t size)
 {
