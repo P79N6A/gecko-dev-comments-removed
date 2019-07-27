@@ -159,6 +159,7 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
 {
   ThreadProfile& sampledThreadProfile = *sample->threadProfile;
   PseudoStack* stack = sampledThreadProfile.GetPseudoStack();
+  stack->updateGeneration(sampledThreadProfile.GetGenerationID());
 
   
 
@@ -180,7 +181,6 @@ void populateBuffer(UnwinderThreadBuffer* utb, TickSample* sample,
       stack->addStoredMarker(marker);
       utb__addEntry( utb, ProfileEntry('m', marker) );
     }
-    stack->updateGeneration(sampledThreadProfile.GetGenerationID());
     if (jankOnly) {
       
       
