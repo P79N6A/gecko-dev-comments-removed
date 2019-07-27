@@ -155,7 +155,7 @@ public:
   
   
   void SetVolume(double aVolume);
-  void SetAudioCaptured(bool aCapture);
+  void SetAudioCaptured();
 
   
   bool IsDormantNeeded();
@@ -241,6 +241,7 @@ public:
   
   
   double GetCurrentTime() const;
+  int64_t GetCurrentTimeUs() const;
 
   
   

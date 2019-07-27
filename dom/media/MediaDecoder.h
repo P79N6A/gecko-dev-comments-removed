@@ -374,9 +374,6 @@ public:
   virtual void Pause();
   
   virtual void SetVolume(double aVolume);
-  
-  
-  virtual void SetAudioCaptured(bool aCaptured);
 
   virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
 
@@ -857,9 +854,6 @@ public:
   
   bool IsLogicallyPlaying();
 
-  
-  void RecreateDecodedStreamIfNecessary(int64_t aStartTimeUSecs);
-
 #ifdef MOZ_EME
   
   virtual nsresult SetCDMProxy(CDMProxy* aProxy) MOZ_OVERRIDE;
@@ -1067,9 +1061,6 @@ protected:
   
   
   int64_t mDuration;
-
-  
-  bool mInitialAudioCaptured;
 
   
   bool mMediaSeekable;
