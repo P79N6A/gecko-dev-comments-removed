@@ -162,6 +162,7 @@ struct JsepTrackPair {
   size_t mLevel;
   
   Maybe<size_t> mBundleLevel;
+  uint32_t mRecvonlySsrc;
   RefPtr<JsepTrack> mSending;
   RefPtr<JsepTrack> mReceiving;
   RefPtr<JsepTransport> mRtpTransport;
