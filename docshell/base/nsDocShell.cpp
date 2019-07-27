@@ -5162,6 +5162,15 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
     
     NS_ENSURE_FALSE(messageStr.IsEmpty(), NS_ERROR_FAILURE);
 
+    if (NS_ERROR_NET_INTERRUPT == aError || NS_ERROR_NET_RESET == aError) {
+        bool isSecureURI = false;
+        rv = aURI->SchemeIs("https", &isSecureURI);
+        if (NS_SUCCEEDED(rv) && isSecureURI) {
+            
+            error.AssignLiteral("nssFailure2");
+        }
+    }
+
     if (UseErrorPages()) {
         
         LoadErrorPage(aURI, aURL, errorPage.get(), error.get(),
