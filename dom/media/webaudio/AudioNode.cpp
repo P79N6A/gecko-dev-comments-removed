@@ -217,15 +217,13 @@ AudioNode::Connect(AudioNode& aDestination, uint32_t aOutput,
   input->mInputNode = this;
   input->mInputPort = aInput;
   input->mOutputPort = aOutput;
-  if (aDestination.mStream) {
+  AudioNodeStream* destinationStream = aDestination.mStream;
+  if (mStream && destinationStream) {
     
-    MOZ_ASSERT(aDestination.mStream->AsProcessedStream());
-    ProcessedMediaStream* ps =
-      static_cast<ProcessedMediaStream*>(aDestination.mStream.get());
     MOZ_ASSERT(aInput <= UINT16_MAX, "Unexpected large input port number");
     MOZ_ASSERT(aOutput <= UINT16_MAX, "Unexpected large output port number");
-    input->mStreamPort =
-      ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT,
+    input->mStreamPort = destinationStream->
+      AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT,
                             static_cast<uint16_t>(aInput),
                             static_cast<uint16_t>(aOutput));
   }
@@ -263,11 +261,13 @@ AudioNode::Connect(AudioParam& aDestination, uint32_t aOutput,
   MediaStream* stream = aDestination.Stream();
   MOZ_ASSERT(stream->AsProcessedStream());
   ProcessedMediaStream* ps = static_cast<ProcessedMediaStream*>(stream);
-
-  
-  MOZ_ASSERT(aOutput <= UINT16_MAX, "Unexpected large output port number");
-  input->mStreamPort = ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT,
-                                             0, static_cast<uint16_t>(aOutput));
+  if (mStream) {
+    
+    MOZ_ASSERT(aOutput <= UINT16_MAX, "Unexpected large output port number");
+    input->mStreamPort =
+      ps->AllocateInputPort(mStream, MediaInputPort::FLAG_BLOCK_INPUT,
+                            0, static_cast<uint16_t>(aOutput));
+  }
 }
 
 void
