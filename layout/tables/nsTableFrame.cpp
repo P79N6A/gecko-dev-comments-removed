@@ -6992,16 +6992,40 @@ BCBlockDirSeg::Paint(BCPaintBorderIterator& aIter,
                   nsPresContext::CSSPixelsToAppUnits(mBEndInlineSegBSize) : 0;
   LogicalSide bEndBevelSide =
     (aInlineSegBSize > 0) ? eLogicalSideIEnd : eLogicalSideIStart;
+
+  
+
+  nsRect physicalRect = segRect.GetPhysicalRect(aIter.mTableWM,
+                                                aIter.mTable->GetSize().width);
+  
+  
+  
+  
+
+  uint8_t startBevelSide = aIter.mTableWM.PhysicalSide(mBStartBevelSide);
+  uint8_t endBevelSide = aIter.mTableWM.PhysicalSide(bEndBevelSide);
+  nscoord startBevelOffset = mBStartBevelOffset;
+  nscoord endBevelOffset = bEndBevelOffset;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aIter.mTableWM.IsVerticalRL()) {
+    Swap(startBevelSide, endBevelSide);
+    Swap(startBevelOffset, endBevelOffset);
+  }
   nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color,
-                                         aIter.mTableBgColor,
-                                         segRect.GetPhysicalRect(aIter.mTableWM,
-                                           aIter.mTable->GetSize().width),
+                                         aIter.mTableBgColor, physicalRect,
                                          appUnitsPerDevPixel,
                                          nsPresContext::AppUnitsPerCSSPixel(),
-                                         aIter.mTableWM.PhysicalSide(mBStartBevelSide),
-                                         mBStartBevelOffset,
-                                         aIter.mTableWM.PhysicalSide(bEndBevelSide),
-                                         bEndBevelOffset);
+                                         startBevelSide, startBevelOffset,
+                                         endBevelSide, endBevelOffset);
 }
 
 
