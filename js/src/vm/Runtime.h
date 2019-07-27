@@ -702,7 +702,16 @@ struct JSRuntime : public JS::shadow::Runtime,
   private:
     mozilla::Atomic<uint32_t, mozilla::Relaxed> interrupt_;
     mozilla::Atomic<uint32_t, mozilla::Relaxed> interruptPar_;
+
+    
+    JSAccumulateTelemetryDataCallback telemetryCallback;
   public:
+    
+    
+    
+    void addTelemetry(int id, uint32_t sample, const char *key = nullptr);
+
+    void setTelemetryCallback(JSRuntime *rt, JSAccumulateTelemetryDataCallback callback);
 
     enum InterruptMode {
         RequestInterruptUrgent,
@@ -1084,9 +1093,6 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
-
-    
-    JSAccumulateTelemetryDataCallback telemetryCallback;
 
     
     JSErrorReporter     errorReporter;

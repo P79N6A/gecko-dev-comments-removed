@@ -514,8 +514,6 @@ Parser<ParseHandler>::Parser(ExclusiveContext *cx, LifoAlloc *alloc,
     sawDeprecatedDestructuringForIn(false),
     sawDeprecatedLegacyGenerator(false),
     sawDeprecatedExpressionClosure(false),
-    sawDeprecatedLetBlock(false),
-    sawDeprecatedLetExpression(false),
     handler(cx, *alloc, tokenStream, foldConstants, syntaxParser, lazyOuterFunction)
 {
     {
@@ -3649,7 +3647,7 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
 
 
             needExprStmt = true;
-            letContext = LetExpression;
+            letContext = LetExpresion;
         }
     }
 
@@ -3659,15 +3657,10 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
         if (!expr)
             return null();
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_LET);
-        sawDeprecatedLetBlock = true;
     } else {
-        MOZ_ASSERT(letContext == LetExpression);
+        MOZ_ASSERT(letContext == LetExpresion);
         expr = assignExpr();
         if (!expr)
-            return null();
-
-        sawDeprecatedLetExpression = true;
-        if (!report(ParseWarning, pc->sc->strict, expr, JSMSG_DEPRECATED_LET_EXPRESSION))
             return null();
     }
     handler.setLexicalScopeBody(block, expr);
@@ -4372,6 +4365,7 @@ Parser<SyntaxParseHandler>::exportDeclaration()
     return SyntaxParseHandler::NodeFailure;
 }
 
+
 template <typename ParseHandler>
 typename ParseHandler::Node
 Parser<ParseHandler>::expressionStatement()
@@ -4618,7 +4612,7 @@ Parser<FullParseHandler>::forStatement()
                 if (!tokenStream.peekToken(&tt))
                     return null();
                 if (tt == TOK_LP) {
-                    pn1 = letBlock(LetExpression);
+                    pn1 = letBlock(LetExpresion);
                 } else {
                     isForDecl = true;
                     blockObj = StaticBlockObject::create(context);
@@ -8086,7 +8080,7 @@ Parser<ParseHandler>::primaryExpr(TokenKind tt)
         return objectLiteral();
 
       case TOK_LET:
-        return letBlock(LetExpression);
+        return letBlock(LetExpresion);
 
       case TOK_LP:
         return parenExprOrGeneratorComprehension();
@@ -8322,9 +8316,6 @@ Parser<ParseHandler>::accumulateTelemetry()
     JSContext* cx = context->maybeJSContext();
     if (!cx)
         return;
-    JSAccumulateTelemetryDataCallback cb = cx->runtime()->telemetryCallback;
-    if (!cb)
-        return;
     const char* filename = getFilename();
     if (!filename)
         return;
@@ -8341,8 +8332,6 @@ Parser<ParseHandler>::accumulateTelemetry()
         DeprecatedDestructuringForIn = 1, 
         DeprecatedLegacyGenerator = 2,    
         DeprecatedExpressionClosure = 3,  
-        DeprecatedLetBlock = 4,           
-        DeprecatedLetExpression = 5,      
     };
 
     
@@ -8350,17 +8339,13 @@ Parser<ParseHandler>::accumulateTelemetry()
 
     
     if (sawDeprecatedForEach)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedForEach);
+        cx->runtime()->addTelemetry(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedForEach);
     if (sawDeprecatedDestructuringForIn)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedDestructuringForIn);
+        cx->runtime()->addTelemetry(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedDestructuringForIn);
     if (sawDeprecatedLegacyGenerator)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedLegacyGenerator);
+        cx->runtime()->addTelemetry(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedLegacyGenerator);
     if (sawDeprecatedExpressionClosure)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedExpressionClosure);
-    if (sawDeprecatedLetBlock)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedLetBlock);
-    if (sawDeprecatedLetExpression)
-        (*cb)(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedLetExpression);
+        cx->runtime()->addTelemetry(JS_TELEMETRY_DEPRECATED_LANGUAGE_EXTENSIONS_IN_CONTENT, DeprecatedExpressionClosure);
 }
 
 template class Parser<FullParseHandler>;
