@@ -43,11 +43,6 @@ protected:
 
 private:
   DOMCursor() MOZ_DELETE;
-  
-  
-  already_AddRefed<mozilla::dom::Promise>
-  Then(JSContext* aCx, AnyCallback* aResolveCallback,
-       AnyCallback* aRejectCallback, ErrorResult& aRv) MOZ_DELETE;
 
   nsCOMPtr<nsICursorContinueCallback> mCallback;
   bool mFinished;
