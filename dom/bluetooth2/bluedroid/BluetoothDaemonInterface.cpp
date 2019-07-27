@@ -5,6 +5,8 @@
 
 
 #include "BluetoothDaemonInterface.h"
+#include <cutils/properties.h>
+#include <fcntl.h>
 #include "BluetoothDaemonA2dpInterface.h"
 #include "BluetoothDaemonAvrcpInterface.h"
 #include "BluetoothDaemonHandsfreeInterface.h"
@@ -12,6 +14,8 @@
 #include "BluetoothDaemonSetupInterface.h"
 #include "BluetoothDaemonSocketInterface.h"
 #include "BluetoothInterfaceHelpers.h"
+#include "mozilla/ipc/ListenSocket.h"
+#include "mozilla/ipc/UnixSocketConnector.h"
 #include "mozilla/unused.h"
 
 using namespace mozilla::ipc;
@@ -1512,7 +1516,9 @@ class BluetoothDaemonProtocol MOZ_FINAL
   , public BluetoothDaemonAvrcpModule
 {
 public:
-  BluetoothDaemonProtocol(BluetoothDaemonConnection* aConnection);
+  BluetoothDaemonProtocol();
+
+  void SetConnection(BluetoothDaemonConnection* aConnection);
 
   nsresult RegisterModule(uint8_t aId, uint8_t aMode,
                           BluetoothSetupResultHandler* aRes) MOZ_OVERRIDE;
@@ -1552,11 +1558,13 @@ private:
   nsTArray<void*> mUserDataQ;
 };
 
-BluetoothDaemonProtocol::BluetoothDaemonProtocol(
-  BluetoothDaemonConnection* aConnection)
-  : mConnection(aConnection)
+BluetoothDaemonProtocol::BluetoothDaemonProtocol()
+{ }
+
+void
+BluetoothDaemonProtocol::SetConnection(BluetoothDaemonConnection* aConnection)
 {
-  MOZ_ASSERT(mConnection);
+  mConnection = aConnection;
 }
 
 nsresult
@@ -1576,6 +1584,7 @@ BluetoothDaemonProtocol::UnregisterModule(uint8_t aId,
 nsresult
 BluetoothDaemonProtocol::Send(BluetoothDaemonPDU* aPDU, void* aUserData)
 {
+  MOZ_ASSERT(mConnection);
   MOZ_ASSERT(aPDU);
 
   aPDU->SetUserData(aUserData);
@@ -1691,13 +1700,10 @@ BluetoothDaemonProtocol::FetchUserData(const BluetoothDaemonPDUHeader& aHeader)
 
 
 
-class BluetoothDaemonChannel MOZ_FINAL : public BluetoothDaemonConnection
+class BluetoothDaemonListenSocket MOZ_FINAL : public ipc::ListenSocket
 {
 public:
-  BluetoothDaemonChannel(BluetoothDaemonInterface::Channel aChannel);
-
-  nsresult ConnectSocket(BluetoothDaemonInterface* aInterface,
-                         BluetoothDaemonPDUConsumer* aConsumer);
+  BluetoothDaemonListenSocket(BluetoothDaemonInterface* aInterface);
 
   
   
@@ -1708,25 +1714,77 @@ public:
 
 private:
   BluetoothDaemonInterface* mInterface;
+};
+
+BluetoothDaemonListenSocket::BluetoothDaemonListenSocket(
+  BluetoothDaemonInterface* aInterface)
+  : mInterface(aInterface)
+{ }
+
+void
+BluetoothDaemonListenSocket::OnConnectSuccess()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mInterface);
+
+  mInterface->OnConnectSuccess(BluetoothDaemonInterface::LISTEN_SOCKET);
+}
+
+void
+BluetoothDaemonListenSocket::OnConnectError()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mInterface);
+
+  mInterface->OnConnectError(BluetoothDaemonInterface::LISTEN_SOCKET);
+}
+
+void
+BluetoothDaemonListenSocket::OnDisconnect()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mInterface);
+
+  mInterface->OnDisconnect(BluetoothDaemonInterface::LISTEN_SOCKET);
+}
+
+
+
+
+
+class BluetoothDaemonChannel MOZ_FINAL : public BluetoothDaemonConnection
+{
+public:
+  BluetoothDaemonChannel(BluetoothDaemonInterface* aInterface,
+                         BluetoothDaemonInterface::Channel aChannel,
+                         BluetoothDaemonPDUConsumer* aConsumer);
+
+  
+  
+
+  void OnConnectSuccess() MOZ_OVERRIDE;
+  void OnConnectError() MOZ_OVERRIDE;
+  void OnDisconnect() MOZ_OVERRIDE;
+
+  
+  
+
+  ConnectionOrientedSocketIO* GetIO() MOZ_OVERRIDE;
+
+private:
+  BluetoothDaemonInterface* mInterface;
   BluetoothDaemonInterface::Channel mChannel;
+  BluetoothDaemonPDUConsumer* mConsumer;
 };
 
 BluetoothDaemonChannel::BluetoothDaemonChannel(
-  BluetoothDaemonInterface::Channel aChannel)
-: mInterface(nullptr)
-, mChannel(aChannel)
+  BluetoothDaemonInterface* aInterface,
+  BluetoothDaemonInterface::Channel aChannel,
+  BluetoothDaemonPDUConsumer* aConsumer)
+  : mInterface(aInterface)
+  , mChannel(aChannel)
+  , mConsumer(aConsumer)
 { }
-
-nsresult
-BluetoothDaemonChannel::ConnectSocket(BluetoothDaemonInterface* aInterface,
-                                      BluetoothDaemonPDUConsumer* aConsumer)
-{
-  MOZ_ASSERT(aInterface);
-
-  mInterface = aInterface;
-
-  return BluetoothDaemonConnection::ConnectSocket(aConsumer);
-}
 
 void
 BluetoothDaemonChannel::OnConnectSuccess()
@@ -1744,7 +1802,6 @@ BluetoothDaemonChannel::OnConnectError()
   MOZ_ASSERT(mInterface);
 
   mInterface->OnConnectError(mChannel);
-  mInterface = nullptr;
 }
 
 void
@@ -1754,7 +1811,12 @@ BluetoothDaemonChannel::OnDisconnect()
   MOZ_ASSERT(mInterface);
 
   mInterface->OnDisconnect(mChannel);
-  mInterface = nullptr;
+}
+
+ConnectionOrientedSocketIO*
+BluetoothDaemonChannel::GetIO()
+{
+  return PrepareAccept(mConsumer);
 }
 
 
@@ -1776,38 +1838,13 @@ BluetoothDaemonInterface::GetInstance()
     return sBluetoothInterface;
   }
 
-  
-  
-
-  BluetoothDaemonChannel* cmdChannel =
-    new BluetoothDaemonChannel(BluetoothDaemonInterface::CMD_CHANNEL);
-
-  BluetoothDaemonChannel* ntfChannel =
-    new BluetoothDaemonChannel(BluetoothDaemonInterface::NTF_CHANNEL);
-
-  
-  
-
-  sBluetoothInterface =
-    new BluetoothDaemonInterface(cmdChannel,
-                                 ntfChannel,
-                                 new BluetoothDaemonProtocol(cmdChannel));
+  sBluetoothInterface = new BluetoothDaemonInterface();
 
   return sBluetoothInterface;
 }
 
-BluetoothDaemonInterface::BluetoothDaemonInterface(
-  BluetoothDaemonChannel* aCmdChannel,
-  BluetoothDaemonChannel* aNtfChannel,
-  BluetoothDaemonProtocol* aProtocol)
-: mCmdChannel(aCmdChannel)
-, mNtfChannel(aNtfChannel)
-, mProtocol(aProtocol)
-{
-  MOZ_ASSERT(mCmdChannel);
-  MOZ_ASSERT(mNtfChannel);
-  MOZ_ASSERT(mProtocol);
-}
+BluetoothDaemonInterface::BluetoothDaemonInterface()
+{ }
 
 BluetoothDaemonInterface::~BluetoothDaemonInterface()
 { }
@@ -1867,19 +1904,25 @@ BluetoothDaemonInterface::OnConnectSuccess(enum Channel aChannel)
   MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
 
   switch (aChannel) {
-    case CMD_CHANNEL:
+    case LISTEN_SOCKET:
       
-      if (mNtfChannel->GetConnectionStatus() != SOCKET_CONNECTED) {
-        nsresult rv = mNtfChannel->ConnectSocket(this, mProtocol);
-        if (NS_FAILED(rv)) {
-          OnConnectError(NTF_CHANNEL);
-        }
-      } else {
-        
-        OnConnectSuccess(NTF_CHANNEL);
+      if (NS_WARN_IF(property_set("ctl.start", "bluetoothd") < 0)) {
+        OnConnectError(CMD_CHANNEL);
       }
       break;
-
+    case CMD_CHANNEL:
+      
+      if (!mNtfChannel) {
+        mNtfChannel = new BluetoothDaemonChannel(this, NTF_CHANNEL, mProtocol);
+      } else if (
+        NS_WARN_IF(mNtfChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
+        
+        mNtfChannel->CloseSocket();
+      }
+      if (!mListenSocket->Listen(mNtfChannel)) {
+        OnConnectError(NTF_CHANNEL);
+      }
+      break;
     case NTF_CHANNEL: {
         nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
         mResultHandlerQ.RemoveElementAt(0);
@@ -1907,7 +1950,11 @@ BluetoothDaemonInterface::OnConnectError(enum Channel aChannel)
       
       mCmdChannel->CloseSocket();
       
-    case CMD_CHANNEL: {
+    case CMD_CHANNEL:
+      
+      unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
+      mListenSocket->Close();
+    case LISTEN_SOCKET: {
         
         nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
         mResultHandlerQ.RemoveElementAt(0);
@@ -1927,11 +1974,15 @@ BluetoothDaemonInterface::OnDisconnect(enum Channel aChannel)
   MOZ_ASSERT(!mResultHandlerQ.IsEmpty());
 
   switch (aChannel) {
+    case CMD_CHANNEL:
+      
+      
+      break;
     case NTF_CHANNEL:
       
-      mCmdChannel->CloseSocket();
+      mListenSocket->Close();
       break;
-    case CMD_CHANNEL: {
+    case LISTEN_SOCKET: {
         nsRefPtr<BluetoothResultHandler> res = mResultHandlerQ.ElementAt(0);
         mResultHandlerQ.RemoveElementAt(0);
 
@@ -1944,25 +1995,153 @@ BluetoothDaemonInterface::OnDisconnect(enum Channel aChannel)
   }
 }
 
+class BluetoothDaemonSocketConnector MOZ_FINAL
+  : public mozilla::ipc::UnixSocketConnector
+{
+public:
+  BluetoothDaemonSocketConnector(const nsACString& aSocketName)
+    : mSocketName(aSocketName)
+  { }
+
+  int
+  Create() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    int fd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if (fd < 0) {
+      BT_WARNING("Could not open socket!");
+      return -1;
+    }
+    return fd;
+  }
+
+  bool
+  CreateAddr(bool aIsServer,
+             socklen_t& aAddrSize,
+             sockaddr_any& aAddr,
+             const char* aAddress) MOZ_OVERRIDE
+  {
+    static const size_t sNameOffset = 1;
+
+    size_t namesiz = mSocketName.Length() + 1; 
+
+    if ((sNameOffset + namesiz) > sizeof(aAddr.un.sun_path)) {
+      BT_WARNING("Address too long for socket struct!");
+      return false;
+    }
+
+    memset(aAddr.un.sun_path, '\0', sNameOffset); 
+    memcpy(aAddr.un.sun_path + sNameOffset, mSocketName.get(), namesiz);
+    aAddr.un.sun_family = AF_UNIX;
+
+    aAddrSize = offsetof(struct sockaddr_un, sun_path) + sNameOffset + namesiz;
+
+    return true;
+  }
+
+  bool
+  SetUp(int aFd) MOZ_OVERRIDE
+  {
+    if (TEMP_FAILURE_RETRY(fcntl(aFd, F_SETFL, O_NONBLOCK)) < 0) {
+      BT_WARNING("Failed to set non-blocking I/O.");
+      return false;
+    }
+    return true;
+  }
+
+  bool
+  SetUpListenSocket(int aFd) MOZ_OVERRIDE
+  {
+    return true;
+  }
+
+  void
+  GetSocketAddr(const sockaddr_any& aAddr, nsAString& aAddrStr) MOZ_OVERRIDE
+  {
+    
+    MOZ_CRASH("This should never be called!");
+  }
+
+private:
+  nsCString mSocketName;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 BluetoothDaemonInterface::Init(
   BluetoothNotificationHandler* aNotificationHandler,
   BluetoothResultHandler* aRes)
 {
+  static const char BASE_SOCKET_NAME[] = "bluetoothd";
+
+  
+  
+  unused << NS_WARN_IF(property_set("ctl.stop", "bluetoothd"));
+
   sNotificationHandler = aNotificationHandler;
 
   mResultHandlerQ.AppendElement(aRes);
 
-  
-  if (mCmdChannel->GetConnectionStatus() != SOCKET_CONNECTED) {
-    nsresult rv = mCmdChannel->ConnectSocket(this, mProtocol);
-    if (NS_FAILED(rv)) {
-      OnConnectError(CMD_CHANNEL);
-    }
-  } else {
-    
-    OnConnectSuccess(CMD_CHANNEL);
+  if (!mProtocol) {
+    mProtocol = new BluetoothDaemonProtocol();
   }
+
+  if (!mListenSocket) {
+    mListenSocket = new BluetoothDaemonListenSocket(this);
+  }
+
+  
+
+  if (!mCmdChannel) {
+    mCmdChannel = new BluetoothDaemonChannel(this, CMD_CHANNEL, mProtocol);
+  } else if (
+    NS_WARN_IF(mCmdChannel->GetConnectionStatus() == SOCKET_CONNECTED)) {
+    
+    mCmdChannel->CloseSocket();
+  }
+
+  bool success = mListenSocket->Listen(
+    new BluetoothDaemonSocketConnector(NS_LITERAL_CSTRING(BASE_SOCKET_NAME)),
+    mCmdChannel);
+  if (!success) {
+    OnConnectError(CMD_CHANNEL);
+    return;
+  }
+
+  
+  
+  
+  mProtocol->SetConnection(mCmdChannel);
 }
 
 class BluetoothDaemonInterface::CleanupResultHandler MOZ_FINAL
@@ -1999,13 +2178,38 @@ private:
         BluetoothDaemonCoreModule::SERVICE_ID, this);
     } else {
       
-      mInterface->mNtfChannel->CloseSocket();
+      mInterface->mCmdChannel->CloseSocket();
     }
   }
 
   BluetoothDaemonInterface* mInterface;
   bool mUnregisteredCoreModule;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void
 BluetoothDaemonInterface::Cleanup(BluetoothResultHandler* aRes)
