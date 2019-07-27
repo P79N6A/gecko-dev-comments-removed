@@ -186,6 +186,51 @@ class LSimdExtractElementF : public LInstructionHelper<1, 1, 0>
 };
 
 
+class LSimdBinaryComp: public LInstructionHelper<1, 2, 0>
+{
+  protected:
+    LSimdBinaryComp() {}
+
+public:
+    const LAllocation *lhs() {
+        return getOperand(0);
+    }
+    const LAllocation *rhs() {
+        return getOperand(1);
+    }
+    MSimdBinaryComp::Operation operation() const {
+        return mir_->toSimdBinaryComp()->operation();
+    }
+    const char *extraName() const {
+        switch (operation()) {
+          case MSimdBinaryComp::greaterThan: return "greaterThan";
+          case MSimdBinaryComp::greaterThanOrEqual: return "greaterThanOrEqual";
+          case MSimdBinaryComp::lessThan: return "lessThan";
+          case MSimdBinaryComp::lessThanOrEqual: return "lessThanOrEqual";
+          case MSimdBinaryComp::equal: return "equal";
+          case MSimdBinaryComp::notEqual: return "notEqual";
+        }
+        MOZ_CRASH("unexpected operation");
+    }
+};
+
+
+class LSimdBinaryCompIx4 : public LSimdBinaryComp
+{
+  public:
+    LIR_HEADER(SimdBinaryCompIx4);
+    LSimdBinaryCompIx4() : LSimdBinaryComp() {}
+};
+
+
+class LSimdBinaryCompFx4 : public LSimdBinaryComp
+{
+  public:
+    LIR_HEADER(SimdBinaryCompFx4);
+    LSimdBinaryCompFx4() : LSimdBinaryComp() {}
+};
+
+
 class LSimdBinaryArith : public LInstructionHelper<1, 2, 0>
 {
   public:
