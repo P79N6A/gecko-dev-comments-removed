@@ -292,9 +292,9 @@ inline void TDStretch::overlap(SAMPLETYPE *pOutput, const SAMPLETYPE *pInput, ui
 int TDStretch::seekBestOverlapPositionFull(const SAMPLETYPE *refPos) 
 {
     int bestOffs;
-    double bestCorr, corr;
-    double norm;
+    double bestCorr;
     int i;
+    double norm;
 
     bestCorr = FLT_MIN;
     bestOffs = 0;
@@ -302,14 +302,22 @@ int TDStretch::seekBestOverlapPositionFull(const SAMPLETYPE *refPos)
     
     
     bestCorr = calcCrossCorr(refPos, pMidBuffer, norm);
+
+    #pragma omp parallel for
     for (i = 1; i < seekLength; i ++) 
     {
+        double corr;
         
+#ifdef _OPENMP
+        
+        
+        corr = calcCrossCorr(refPos + channels * i, pMidBuffer, norm);
+#else
         
         
         
         corr = calcCrossCorrAccumulate(refPos + channels * i, pMidBuffer, norm);
-
+#endif
         
         double tmp = (double)(2 * i - seekLength) / (double)seekLength;
         corr = ((corr + 0.1) * (1.0 - 0.25 * tmp * tmp));
@@ -317,8 +325,15 @@ int TDStretch::seekBestOverlapPositionFull(const SAMPLETYPE *refPos)
         
         if (corr > bestCorr) 
         {
-            bestCorr = corr;
-            bestOffs = i;
+            
+            
+            
+            #pragma omp critical
+            if (corr > bestCorr)
+            {
+                bestCorr = corr;
+                bestOffs = i;
+            }
         }
     }
     
@@ -883,9 +898,10 @@ void TDStretch::calculateOverlapLength(int overlapInMsec)
 
 
 
-double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare, double &norm) const
+double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare, double &anorm) const
 {
     double corr;
+    double norm;
     int i;
 
     corr = norm = 0;
@@ -907,6 +923,7 @@ double TDStretch::calcCrossCorr(const float *mixingPos, const float *compare, do
                 mixingPos[i + 3] * mixingPos[i + 3];
     }
 
+    anorm = norm;
     return corr / sqrt((norm < 1e-9 ? 1.0 : norm));
 }
 

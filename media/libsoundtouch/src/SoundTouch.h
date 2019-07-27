@@ -79,10 +79,10 @@ namespace soundtouch
 {
 
 
-#define SOUNDTOUCH_VERSION          "1.8.0"
+#define SOUNDTOUCH_VERSION          "1.9.0"
 
 
-#define SOUNDTOUCH_VERSION_ID       (10800)
+#define SOUNDTOUCH_VERSION_ID       (10900)
 
 
 

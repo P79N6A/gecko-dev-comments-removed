@@ -71,7 +71,7 @@ using namespace soundtouch;
 #include <math.h>
 
 
-double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2, double &norm) const
+double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2, double &anorm) const
 {
     int i;
     const float *pVec1;
@@ -141,7 +141,8 @@ double TDStretchSSE::calcCrossCorr(const float *pV1, const float *pV2, double &n
 
     
     float *pvNorm = (float*)&vNorm;
-    norm = (pvNorm[0] + pvNorm[1] + pvNorm[2] + pvNorm[3]);
+    float norm = (pvNorm[0] + pvNorm[1] + pvNorm[2] + pvNorm[3]);
+    anorm = norm;
 
     float *pvSum = (float*)&vSum;
     return (double)(pvSum[0] + pvSum[1] + pvSum[2] + pvSum[3]) / sqrt(norm < 1e-9 ? 1.0 : norm);
@@ -258,14 +259,17 @@ uint FIRFilterSSE::evaluateFilterStereo(float *dest, const float *source, uint n
     assert(((ulongptr)filterCoeffsAlign) % 16 == 0);
 
     
+    #pragma omp parallel for
     for (j = 0; j < count; j += 2)
     {
         const float *pSrc;
+        float *pDest;
         const __m128 *pFil;
         __m128 sum1, sum2;
         uint i;
 
-        pSrc = (const float*)source;              
+        pSrc = (const float*)source + j * 2;      
+        pDest = dest + j * 2;                     
         pFil = (const __m128*)filterCoeffsAlign;  
                                                   
         sum1 = sum2 = _mm_setzero_ps();
@@ -298,12 +302,10 @@ uint FIRFilterSSE::evaluateFilterStereo(float *dest, const float *source, uint n
         
 
         
-        _mm_storeu_ps(dest, _mm_add_ps(
+        _mm_storeu_ps(pDest, _mm_add_ps(
                     _mm_shuffle_ps(sum1, sum2, _MM_SHUFFLE(1,0,3,2)),   
                     _mm_shuffle_ps(sum1, sum2, _MM_SHUFFLE(3,2,1,0))    
                     ));
-        source += 4;
-        dest += 4;
     }
 
     

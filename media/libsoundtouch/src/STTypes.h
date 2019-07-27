@@ -56,12 +56,8 @@ typedef unsigned long   ulong;
 
 #include "soundtouch_config.h"
 
-#if defined(WIN32) && defined(GKMEDIAS_SHARED_LIBRARY)
-#ifdef BUILDING_SOUNDTOUCH
+#if defined(WIN32)
 #define EXPORT __declspec(dllexport)
-#else
-#define EXPORT __declspec(dllimport)
-#endif
 #else
 #define EXPORT
 #endif
@@ -80,7 +76,7 @@ namespace soundtouch
     
     
 
-    #if (defined(__SOFTFP__))
+    #if (defined(__SOFTFP__) && defined(ANDROID))
         
         
         #undef  SOUNDTOUCH_FLOAT_SAMPLES
@@ -169,7 +165,7 @@ namespace soundtouch
 };
 
 
-#define ST_NO_EXCEPTION_HANDLING    1
+
 #ifdef ST_NO_EXCEPTION_HANDLING
     
     #include <assert.h>
@@ -177,6 +173,7 @@ namespace soundtouch
 #else
     
     #include <stdexcept>
+    #include <string>
     #define ST_THROW_RT_ERROR(x)    {throw std::runtime_error(x);}
 #endif
 

@@ -80,11 +80,6 @@
 #include "RateTransposer.h"
 #include "cpu_detect.h"
 
-#ifdef _MSC_VER
-#include <malloc.h>
-#define alloca _alloca
-#endif
-
 using namespace soundtouch;
     
 
@@ -353,8 +348,8 @@ void SoundTouch::flush()
     int i;
     int nUnprocessed;
     int nOut;
-    SAMPLETYPE *buff=(SAMPLETYPE*)alloca(64*channels*sizeof(SAMPLETYPE));
-
+    SAMPLETYPE *buff = new SAMPLETYPE[64 * channels];
+    
     
     
     nUnprocessed = numUnprocessedSamples();
@@ -382,6 +377,8 @@ void SoundTouch::flush()
             break;  
         }
     }
+
+    delete[] buff;
 
     
     pRateTransposer->clear();
