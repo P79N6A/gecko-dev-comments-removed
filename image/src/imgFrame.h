@@ -14,6 +14,7 @@
 #include "mozilla/VolatileBuffer.h"
 #include "gfxDrawable.h"
 #include "imgIContainer.h"
+#include "MainThreadUtils.h"
 
 namespace mozilla {
 namespace image {
@@ -45,6 +46,65 @@ MOZ_BEGIN_ENUM_CLASS(Opacity, uint8_t)
   SOME_TRANSPARENCY
 MOZ_END_ENUM_CLASS(Opacity)
 
+
+
+
+
+
+
+
+
+
+struct AnimationData
+{
+  AnimationData(uint8_t* aRawData, uint32_t aPaletteDataLength,
+                int32_t aRawTimeout, const nsIntRect& aRect,
+                BlendMethod aBlendMethod, DisposalMethod aDisposalMethod,
+                bool aHasAlpha)
+    : mRawData(aRawData)
+    , mPaletteDataLength(aPaletteDataLength)
+    , mRawTimeout(aRawTimeout)
+    , mRect(aRect)
+    , mBlendMethod(aBlendMethod)
+    , mDisposalMethod(aDisposalMethod)
+    , mHasAlpha(aHasAlpha)
+  { }
+
+  uint8_t* mRawData;
+  uint32_t mPaletteDataLength;
+  int32_t mRawTimeout;
+  nsIntRect mRect;
+  BlendMethod mBlendMethod;
+  DisposalMethod mDisposalMethod;
+  bool mHasAlpha;
+};
+
+
+
+
+
+
+
+
+
+struct ScalingData
+{
+  ScalingData(uint8_t* aRawData,
+              gfx::IntSize aSize,
+              uint32_t aBytesPerRow,
+              gfx::SurfaceFormat aFormat)
+    : mRawData(aRawData)
+    , mSize(aSize)
+    , mBytesPerRow(aBytesPerRow)
+    , mFormat(aFormat)
+  { }
+
+  uint8_t* mRawData;
+  gfx::IntSize mSize;
+  uint32_t mBytesPerRow;
+  gfx::SurfaceFormat mFormat;
+};
+
 class imgFrame
 {
   typedef gfx::Color Color;
@@ -71,7 +131,8 @@ public:
   nsresult InitForDecoder(const nsIntSize& aImageSize,
                           const nsIntRect& aRect,
                           SurfaceFormat aFormat,
-                          uint8_t aPaletteDepth = 0);
+                          uint8_t aPaletteDepth = 0,
+                          bool aNonPremult = false);
 
   nsresult InitForDecoder(const nsIntSize& aSize,
                           SurfaceFormat aFormat,
@@ -118,70 +179,60 @@ public:
 
   nsresult ImageUpdated(const nsIntRect &aUpdateRect);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void Finish(Opacity aFrameOpacity, DisposalMethod aDisposalMethod,
+              int32_t aRawTimeout, BlendMethod aBlendMethod);
+
   IntSize GetImageSize() { return mImageSize; }
   nsIntRect GetRect() const;
   IntSize GetSize() const { return mSize; }
   bool NeedsPadding() const { return mOffset != nsIntPoint(0, 0); }
-  int32_t GetStride() const;
-  SurfaceFormat GetFormat() const;
-  uint32_t GetImageBytesPerRow() const;
-  uint32_t GetImageDataLength() const;
-  bool GetIsPaletted() const;
-  bool GetHasAlpha() const;
   void GetImageData(uint8_t **aData, uint32_t *length) const;
   uint8_t* GetImageData() const;
+
+  bool GetIsPaletted() const;
   void GetPaletteData(uint32_t **aPalette, uint32_t *length) const;
   uint32_t* GetPaletteData() const;
-  uint8_t* GetRawData() const;
+  uint8_t GetPaletteDepth() const { return mPaletteDepth; }
 
-  int32_t GetRawTimeout() const;
-  void SetRawTimeout(int32_t aTimeout);
+  
 
-  DisposalMethod GetDisposalMethod() const { return mDisposalMethod; }
-  void SetDisposalMethod(DisposalMethod aDisposalMethod)
-  {
-    mDisposalMethod = aDisposalMethod;
-  }
 
-  BlendMethod GetBlendMethod() const { return mBlendMethod; }
-  void SetBlendMethod(BlendMethod aBlendMethod) { mBlendMethod = aBlendMethod; }
+
+
+  SurfaceFormat GetFormat() const;
+
+  AnimationData GetAnimationData() const;
+  ScalingData GetScalingData() const;
 
   bool ImageComplete() const;
-
-  void SetHasNoAlpha();
-  void SetAsNonPremult(bool aIsNonPremult);
 
   bool GetCompositingFailed() const;
   void SetCompositingFailed(bool val);
 
   void SetOptimizable();
 
+  Color SinglePixelColor() const;
+  bool IsSinglePixel() const;
+
   TemporaryRef<SourceSurface> GetSurface();
   TemporaryRef<DrawTarget> GetDrawTarget();
 
-  Color
-  SinglePixelColor()
-  {
-    return mSinglePixelColor;
-  }
-
-  bool IsSinglePixel()
-  {
-    return mSinglePixel;
-  }
-
-  TemporaryRef<SourceSurface> CachedSurface();
-
   size_t SizeOfExcludingThis(gfxMemoryLocation aLocation,
                              MallocSizeOf aMallocSizeOf) const;
-
-  uint8_t GetPaletteDepth() const { return mPaletteDepth; }
-  uint32_t PaletteDataLength() const {
-    if (!mPaletteDepth)
-      return 0;
-
-    return ((1 << mPaletteDepth) * sizeof(uint32_t));
-  }
 
 private: 
 
@@ -190,6 +241,23 @@ private:
   nsresult LockImageData();
   nsresult UnlockImageData();
   nsresult Optimize();
+  nsresult Deoptimize();
+
+  void AssertImageDataLocked() const;
+
+  bool ImageCompleteInternal() const;
+  nsresult ImageUpdatedInternal(const nsIntRect& aUpdateRect);
+  void GetImageDataInternal(uint8_t **aData, uint32_t *length) const;
+  uint32_t GetImageBytesPerRow() const;
+  uint32_t GetImageDataLength() const;
+  int32_t GetStride() const;
+  TemporaryRef<SourceSurface> GetSurfaceInternal();
+
+  uint32_t PaletteDataLength() const
+  {
+    return mPaletteDepth ? (1 << mPaletteDepth) * sizeof(uint32_t)
+                         : 0;
+  }
 
   struct SurfaceWithFormat {
     nsRefPtr<gfxDrawable> mDrawable;
@@ -210,46 +278,65 @@ private:
                                       SourceSurface*     aSurface);
 
 private: 
+  friend class DrawableFrameRef;
+  friend class RawAccessFrameRef;
+  friend class UnlockImageDataRunnable;
+
+  
+  
+  
+
+  mutable Mutex mMutex;
+
   RefPtr<DataSourceSurface> mImageSurface;
   RefPtr<SourceSurface> mOptSurface;
+
+  RefPtr<VolatileBuffer> mVBuf;
+  VolatileBufferPtr<uint8_t> mVBufPtr;
+
+  nsIntRect mDecoded;
+
+  
+  int32_t mLockCount;
+
+  
+  int32_t mTimeout; 
+
+  DisposalMethod mDisposalMethod;
+  BlendMethod    mBlendMethod;
+  SurfaceFormat  mFormat;
+
+  bool mHasNoAlpha;
+
+
+  
+  
+  
 
   IntSize      mImageSize;
   IntSize      mSize;
   nsIntPoint   mOffset;
-
-  nsIntRect    mDecoded;
-
-  mutable Mutex mDecodedMutex;
 
   
   
   
   
   uint8_t*     mPalettedImageData;
+  uint8_t      mPaletteDepth;
+
+  bool mNonPremult;
+
+
+  
+  
+  
 
   
   Color        mSinglePixelColor;
 
-  int32_t      mTimeout; 
-
-  
-  int32_t mLockCount;
-
-  RefPtr<VolatileBuffer> mVBuf;
-  VolatileBufferPtr<uint8_t> mVBufPtr;
-
-  SurfaceFormat  mFormat;
-  uint8_t        mPaletteDepth;
-  DisposalMethod mDisposalMethod;
-  BlendMethod    mBlendMethod;
   bool mSinglePixel;
   bool mCompositingFailed;
-  bool mHasNoAlpha;
-  bool mNonPremult;
   bool mOptimizable;
-
-  friend class DrawableFrameRef;
-  friend class RawAccessFrameRef;
 };
 
 

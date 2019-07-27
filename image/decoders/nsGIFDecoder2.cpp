@@ -199,12 +199,6 @@ nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
       NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                    mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,
                    format);
-    } else {
-      
-      
-      if (format == gfx::SurfaceFormat::B8G8R8X8) {
-        currentFrame->SetHasNoAlpha();
-      }
     }
   }
 
@@ -233,8 +227,12 @@ nsGIFDecoder2::EndImageFrame()
                   mGIFStruct.screen_height - realFrameHeight);
       PostInvalidation(r);
     }
+
     
-    if (mGIFStruct.is_transparent && !mSawTransparency) {
+    
+    
+    
+    if (!mGIFStruct.is_transparent || !mSawTransparency) {
       opacity = Opacity::OPAQUE;
     }
   }
