@@ -116,8 +116,9 @@ private:
   union CallbackUnion
   {
     nsTimerCallbackFunc c;
-    nsITimerCallback*   i;
-    nsIObserver*        o;
+    
+    nsITimerCallback* MOZ_OWNING_REF i;
+    nsIObserver* MOZ_OWNING_REF o;
   } mCallback;
 
   
