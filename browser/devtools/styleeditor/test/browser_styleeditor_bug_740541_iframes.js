@@ -1,7 +1,10 @@
 
 
+"use strict";
 
-function test()
+
+
+add_task(function* ()
 {
 
   function makeStylesheet(selector) {
@@ -69,10 +72,8 @@ function test()
 
   const EXPECTED_STYLE_SHEET_COUNT = 12;
 
-  waitForExplicitFinish();
+  let { ui } = yield openStyleEditorForURL(TESTCASE_URI);
 
-  
-  addTabAndOpenStyleEditors(EXPECTED_STYLE_SHEET_COUNT, () => finish());
-
-  content.location = TESTCASE_URI;
-}
+  is(ui.editors.length, EXPECTED_STYLE_SHEET_COUNT,
+    "Got the expected number of style sheets.");
+});
