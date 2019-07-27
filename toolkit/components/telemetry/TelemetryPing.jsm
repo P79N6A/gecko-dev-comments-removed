@@ -247,7 +247,6 @@ let Impl = {
   
   
   _previousBuildID: undefined,
-  _clientID: null,
 
   
 
@@ -702,8 +701,7 @@ let Impl = {
       addonDetails: AddonManagerPrivate.getTelemetryDetails(),
       UIMeasurements: UITelemetry.getUIMeasurements(),
       log: TelemetryLog.entries(),
-      info: info,
-      clientID: this._clientID,
+      info: info
     };
 
     if (Object.keys(this._slowSQLStartup).length != 0 &&
@@ -958,11 +956,6 @@ let Impl = {
 
         this.attachObservers();
         this.gatherMemory();
-
-        let drs = Cc["@mozilla.org/datareporting/service;1"]
-                    .getService(Ci.nsISupports)
-                    .wrappedJSObject;
-        this._clientID = yield drs.getClientID();
 
         Telemetry.asyncFetchTelemetryData(function () {});
         delete this._timer;
