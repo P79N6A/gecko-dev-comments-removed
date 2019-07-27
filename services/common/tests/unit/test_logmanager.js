@@ -31,7 +31,7 @@ add_task(function* test_noPrefs() {
   let log = Log.repository.getLogger("TestLog");
   let [capp, dapp, fapps] = getAppenders(log);
   
-  equal(capp.level, Log.Level.Error);
+  equal(capp.level, Log.Level.Fatal);
   equal(dapp.level, Log.Level.Error);
   
   equal(fapps.length, 1, "only 1 file appender");
@@ -62,7 +62,7 @@ add_task(function* test_PrefChanges() {
   Services.prefs.setCharPref("log-manager.test.log.appender.console", "xxx");
   Services.prefs.setCharPref("log-manager.test.log.appender.dump", "xxx");
   Services.prefs.setCharPref("log-manager.test.log.appender.file.level", "xxx");
-  equal(capp.level, Log.Level.Error);
+  equal(capp.level, Log.Level.Fatal);
   equal(dapp.level, Log.Level.Error);
   equal(fapp.level, Log.Level.Debug);
   lm.finalize();

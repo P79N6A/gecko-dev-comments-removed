@@ -293,7 +293,11 @@ InternalScheduler.prototype = {
       
       prefs.set("lastSync", new Date().toString());
       this.state = this.STATE_OK;
-      this._logManager.resetFileLog();
+      this._logManager.resetFileLog().then(result => {
+        if (result == this._logManager.ERROR_LOG_WRITTEN) {
+          Cu.reportError("Reading List sync encountered an error - see about:sync-log for the log file.");
+        }
+      });
       Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
       this._currentErrorBackoff = 0; 
       return intervals.schedule;
@@ -307,7 +311,11 @@ InternalScheduler.prototype = {
         this._currentErrorBackoff = 0; 
         this.log.info("Can't sync due to FxA account state " + err.message);
         this.state = this.STATE_OK;
-        this._logManager.resetFileLog();
+        this._logManager.resetFileLog().then(result => {
+          if (result == this._logManager.ERROR_LOG_WRITTEN) {
+            Cu.reportError("Reading List sync encountered an error - see about:sync-log for the log file.");
+          }
+        });
         Services.obs.notifyObservers(null, "readinglist:sync:finish", null);
         
         
