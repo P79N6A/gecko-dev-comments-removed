@@ -95,7 +95,7 @@ def list_missing_android_packages(android_tool, packages):
     
     
     lines = check_output([android_tool,
-        'list', 'sdk', '--no-ui', '--extended']).splitlines()
+                          'list', 'sdk', '--no-ui', '--extended']).splitlines()
 
     
     for line in lines:
@@ -203,8 +203,8 @@ def ensure_android_packages(android_tool, packages=None):
     
     print(INSTALLING_ANDROID_PACKAGES % ', '.join(missing))
     subprocess.check_call([android_tool,
-        'update', 'sdk', '--no-ui',
-        '--filter', ','.join(missing)])
+                           'update', 'sdk', '--no-ui',
+                           '--filter', ','.join(missing)])
 
     
     failing = list_missing_android_packages(android_tool, packages=packages)
