@@ -57,6 +57,7 @@ public:
     NO_DATA_EVICTED,
     DATA_EVICTED,
     CANT_EVICT,
+    BUFFER_FULL,
   };
 
   

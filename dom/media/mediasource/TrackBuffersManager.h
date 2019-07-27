@@ -310,6 +310,8 @@ private:
 
   
   Atomic<int64_t> mSizeSourceBuffer;
+  uint32_t mEvictionThreshold;
+  Atomic<bool> mEvictionOccurred;
 
   
   mutable Monitor mMonitor;

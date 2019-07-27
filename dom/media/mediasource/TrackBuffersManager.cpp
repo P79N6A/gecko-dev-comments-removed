@@ -55,6 +55,9 @@ TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSource
   , mMediaSourceDemuxer(mParentDecoder->GetDemuxer())
   , mMediaSourceDuration(mTaskQueue, Maybe<double>(), "TrackBuffersManager::mMediaSourceDuration (Mirror)")
   , mAbort(false)
+  , mEvictionThreshold(Preferences::GetUint("media.mediasource.eviction_threshold",
+                                            100 * (1 << 20)))
+  , mEvictionOccurred(false)
   , mMonitor("TrackBuffersManager")
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be instanciated on the main thread");
@@ -176,6 +179,11 @@ TrackBuffersManager::EvictData(TimeUnit aPlaybackTime,
     
     return EvictDataResult::CANT_EVICT;
   }
+
+  if (mBufferFull && mEvictionOccurred) {
+    return EvictDataResult::BUFFER_FULL;
+  }
+
   MSE_DEBUG("Reaching our size limit, schedule eviction of %lld bytes", toEvict);
 
   nsCOMPtr<nsIRunnable> task =
@@ -572,9 +580,7 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
     
     
   }
-  
-  
-  mBufferFull = false;
+
   {
     MonitorAutoLock mon(mMonitor);
     mVideoBufferedRanges = mVideoTracks.mBufferedRanges;
@@ -592,6 +598,12 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
 
   
   mSizeSourceBuffer = mVideoTracks.mSizeBuffer + mAudioTracks.mSizeBuffer;
+
+  
+  if (mBufferFull && mSizeSourceBuffer < mEvictionThreshold) {
+    mBufferFull = false;
+  }
+  mEvictionOccurred = true;
 
   
   mMediaSourceDemuxer->NotifyTimeRangesChanged();
@@ -1193,8 +1205,10 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
 
   
   
-  
-  mBufferFull = false;
+  if (mSizeSourceBuffer >= mEvictionThreshold) {
+    mBufferFull = true;
+    mEvictionOccurred = false;
+  }
 
   
   if (mParser->MediaSegmentRange().IsNull()) {
