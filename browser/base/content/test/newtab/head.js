@@ -514,8 +514,7 @@ function startAndCompleteDragOperation(aSource, aDest, aCallback) {
     synthesizeNativeMouseDrag(aDest, 10);
     synthesizeNativeMouseDrag(aDest);
     
-    synthesizeNativeMouseLUp(aDest);
-    aCallback();
+    synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
   } else if (isWindows) {
     
     
@@ -527,8 +526,7 @@ function startAndCompleteDragOperation(aSource, aDest, aCallback) {
     
     
     synthesizeNativeMouseLDown(aSource);
-    synthesizeNativeMouseLUp(aDest);
-    aCallback();
+    synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
   } else if (isLinux) {
     
     synthesizeNativeMouseLDown(aSource);
@@ -564,8 +562,7 @@ function startAndCompleteDragOperation(aSource, aDest, aCallback) {
       aDest.removeEventListener("dragenter", onDragEnter);
 
       
-      synthesizeNativeMouseLUp(aDest, null);
-      aCallback();
+      synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
     });
   } else {
     throw "Unsupported platform";
@@ -621,7 +618,7 @@ function synthesizeNativeMouseLDown(aElement) {
 
 function synthesizeNativeMouseLUp(aElement) {
   let msg = isWindows ? 4 : (isMac ? 2 : 7);
-  synthesizeNativeMouseEvent(aElement, msg);
+  return synthesizeNativeMouseEvent(aElement, msg);
 }
 
 
@@ -650,16 +647,25 @@ function synthesizeNativeMouseMove(aElement) {
 
 
 function synthesizeNativeMouseEvent(aElement, aMsg, aOffsetX = 0, aOffsetY = 0) {
-  let rect = aElement.getBoundingClientRect();
-  let win = aElement.ownerDocument.defaultView;
-  let x = aOffsetX + win.mozInnerScreenX + rect.left + rect.width / 2;
-  let y = aOffsetY + win.mozInnerScreenY + rect.top + rect.height / 2;
+  return new Promise((resolve, reject) => {
+    let rect = aElement.getBoundingClientRect();
+    let win = aElement.ownerDocument.defaultView;
+    let x = aOffsetX + win.mozInnerScreenX + rect.left + rect.width / 2;
+    let y = aOffsetY + win.mozInnerScreenY + rect.top + rect.height / 2;
 
-  let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                 .getInterface(Ci.nsIDOMWindowUtils);
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
 
-  let scale = utils.screenPixelsPerCSSPixel;
-  utils.sendNativeMouseEvent(x * scale, y * scale, aMsg, 0, null);
+    let scale = utils.screenPixelsPerCSSPixel;
+    let observer = {
+      observe: function(aSubject, aTopic, aData) {
+        if (aTopic == "mouseevent") {
+          resolve();
+        }
+      }
+    };
+    utils.sendNativeMouseEvent(x * scale, y * scale, aMsg, 0, null, observer);
+  });
 }
 
 
