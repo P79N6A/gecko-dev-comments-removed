@@ -530,9 +530,8 @@ static int nr_ice_component_process_incoming_check(nr_ice_component *comp, nr_tr
 
         if(attr->u.ice_controlling > comp->stream->pctx->tiebreaker){
           
-          r_log(LOG_ICE,LOG_INFO,"ICE-PEER(%s): switching to controlled",comp->stream->pctx->label);
 
-          comp->stream->pctx->controlling=0;
+          nr_ice_peer_ctx_switch_controlling_role(comp->stream->pctx);
         }
         else {
           
@@ -549,10 +548,9 @@ static int nr_ice_component_process_incoming_check(nr_ice_component *comp, nr_tr
         r_log(LOG_ICE,LOG_INFO,"ICE-PEER(%s): role conflict, both controlled",comp->stream->pctx->label);
 
         if(attr->u.ice_controlling < comp->stream->pctx->tiebreaker){
-          r_log(LOG_ICE,LOG_INFO,"ICE-PEER(%s): switching to controlling",comp->stream->pctx->label);
-
           
-          comp->stream->pctx->controlling=1;
+
+          nr_ice_peer_ctx_switch_controlling_role(comp->stream->pctx);
         }
         else {
           

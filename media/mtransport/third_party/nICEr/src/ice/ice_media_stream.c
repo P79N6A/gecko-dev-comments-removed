@@ -874,3 +874,15 @@ int nr_ice_media_stream_disable_component(nr_ice_media_stream *stream, int compo
     return(_status);
   }
 
+void nr_ice_media_stream_role_change(nr_ice_media_stream *stream)
+  {
+    nr_ice_cand_pair *pair;
+    assert(stream->ice_state != NR_ICE_MEDIA_STREAM_UNPAIRED);
+
+    pair=TAILQ_FIRST(&stream->check_list);
+    while(pair){
+      nr_ice_candidate_pair_role_change(pair);
+      pair=TAILQ_NEXT(pair,entry);
+    }
+  }
+
