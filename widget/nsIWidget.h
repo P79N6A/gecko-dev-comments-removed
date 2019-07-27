@@ -617,8 +617,8 @@ struct IMENotification
         break;
       case NOTIFY_IME_OF_TEXT_CHANGE:
         mTextChangeData.mStartOffset = 0;
-        mTextChangeData.mOldEndOffset = 0;
-        mTextChangeData.mNewEndOffset = 0;
+        mTextChangeData.mRemovedEndOffset = 0;
+        mTextChangeData.mAddedEndOffset = 0;
         mTextChangeData.mCausedByComposition = false;
         break;
       case NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
@@ -670,10 +670,10 @@ struct IMENotification
         
         mTextChangeData.mStartOffset =
           aNotification.mTextChangeData.mStartOffset;
-        mTextChangeData.mOldEndOffset =
-          aNotification.mTextChangeData.mOldEndOffset;
-        mTextChangeData.mNewEndOffset =
-          aNotification.mTextChangeData.mNewEndOffset;
+        mTextChangeData.mRemovedEndOffset =
+          aNotification.mTextChangeData.mRemovedEndOffset;
+        mTextChangeData.mAddedEndOffset =
+          aNotification.mTextChangeData.mAddedEndOffset;
         mTextChangeData.mCausedByComposition =
           mTextChangeData.mCausedByComposition &&
             aNotification.mTextChangeData.mCausedByComposition;
@@ -719,33 +719,39 @@ struct IMENotification
     }
   };
 
+  struct TextChangeDataBase
+  {
+    
+    
+    uint32_t mStartOffset;
+    
+    
+    
+    uint32_t mRemovedEndOffset;
+    
+    
+    uint32_t mAddedEndOffset;
+
+    bool mCausedByComposition;
+
+    uint32_t OldLength() const { return mRemovedEndOffset - mStartOffset; }
+    uint32_t NewLength() const { return mAddedEndOffset - mStartOffset; }
+
+    bool IsInInt32Range() const
+    {
+      return mStartOffset <= INT32_MAX &&
+             mRemovedEndOffset <= INT32_MAX &&
+             mAddedEndOffset <= INT32_MAX;
+    }
+  };
+
   union
   {
     
     SelectionChangeData mSelectionChangeData;
 
     
-    struct
-    {
-      uint32_t mStartOffset;
-      uint32_t mOldEndOffset;
-      uint32_t mNewEndOffset;
-
-      bool mCausedByComposition;
-
-      uint32_t OldLength() const { return mOldEndOffset - mStartOffset; }
-      uint32_t NewLength() const { return mNewEndOffset - mStartOffset; }
-      int32_t AdditionalLength() const
-      {
-        return static_cast<int32_t>(mNewEndOffset - mOldEndOffset);
-      }
-      bool IsInInt32Range() const
-      {
-        return mStartOffset <= INT32_MAX &&
-               mOldEndOffset <= INT32_MAX &&
-               mNewEndOffset <= INT32_MAX;
-      }
-    } mTextChangeData;
+    TextChangeDataBase mTextChangeData;
 
     
     struct

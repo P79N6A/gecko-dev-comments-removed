@@ -1737,8 +1737,8 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
             
             
             IMENotification notification(NOTIFY_IME_OF_TEXT_CHANGE);
-            notification.mTextChangeData.mOldEndOffset =
-                notification.mTextChangeData.mNewEndOffset = INT32_MAX / 2;
+            notification.mTextChangeData.mRemovedEndOffset =
+                notification.mTextChangeData.mAddedEndOffset = INT32_MAX / 2;
             NotifyIMEOfTextChange(notification);
             FlushIMEChanges();
         }
@@ -2246,8 +2246,8 @@ nsWindow::NotifyIMEOfTextChange(const IMENotification& aIMENotification)
 
     ALOGIME("IME: NotifyIMEOfTextChange: s=%d, oe=%d, ne=%d",
             aIMENotification.mTextChangeData.mStartOffset,
-            aIMENotification.mTextChangeData.mOldEndOffset,
-            aIMENotification.mTextChangeData.mNewEndOffset);
+            aIMENotification.mTextChangeData.mRemovedEndOffset,
+            aIMENotification.mTextChangeData.mAddedEndOffset);
 
     
     mIMESelectionChanged = false;
