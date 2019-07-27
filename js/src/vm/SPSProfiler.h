@@ -180,8 +180,8 @@ class SPSProfiler
     }
 
     
-    void enterNative(const char *string, void *sp);
-    void exitNative() { pop(); }
+    void enterAsmJS(const char *string, void *sp);
+    void exitAsmJS() { pop(); }
 
     jsbytecode *ipToPC(JSScript *script, size_t ip) { return nullptr; }
 

@@ -223,12 +223,10 @@ void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   TickSample* sample = &sample_obj;
   sample->context = context;
 
-#ifdef ENABLE_SPS_LEAF_DATA
   
   if (Sampler::GetActiveSampler()->IsProfiling()) {
     SetSampleContext(sample, context);
   }
-#endif
   sample->threadProfile = sCurrentThreadProfile;
   sample->timestamp = mozilla::TimeStamp::Now();
   sample->rssMemory = sample->threadProfile->mRssMemory;

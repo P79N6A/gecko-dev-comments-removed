@@ -3,6 +3,7 @@
 
 
 
+#include <algorithm>
 #include <string>
 #include <stdio.h>
 #include <fstream>
@@ -42,6 +43,7 @@
 
 
 #include "js/OldDebugAPI.h"
+#include "js/ProfilingFrameIterator.h"
 
 #if defined(MOZ_PROFILING) && (defined(XP_MACOSX) || defined(XP_WIN))
  #define USE_NS_STACKWALK
@@ -338,9 +340,14 @@ void addDynamicTag(ThreadProfile &aProfile, char aTagName, const char *aStr)
 }
 
 static
-void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
-                     PseudoStack *stack, void *lastpc)
+void addPseudoEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
+                    PseudoStack *stack, void *lastpc)
 {
+  
+  
+  if (entry.hasFlag(StackEntry::ASMJS))
+    return;
+
   int lineno = -1;
 
   
@@ -392,64 +399,156 @@ void addProfileEntry(volatile StackEntry &entry, ThreadProfile &aProfile,
   }
 }
 
-#if defined(USE_NS_STACKWALK) || defined(USE_EHABI_STACKWALK)
-typedef struct {
-  void** array;
+struct NativeStack
+{
+  void** pc_array;
   void** sp_array;
   size_t size;
   size_t count;
-} PCArray;
+};
 
-static void mergeNativeBacktrace(ThreadProfile &aProfile, const PCArray &array) {
+struct JSFrame
+{
+    void* stackAddress;
+    const char* label;
+};
+
+static
+void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, NativeStack& aNativeStack)
+{
+  PseudoStack* pseudoStack = aProfile.GetPseudoStack();
+  volatile StackEntry *pseudoFrames = pseudoStack->mStack;
+  uint32_t pseudoCount = pseudoStack->stackSize();
+
+  
+  
+  
+
+  JSFrame jsFrames[1000];
+  uint32_t jsCount = 0;
+  if (aSample && pseudoStack->mRuntime) {
+    JS::ProfilingFrameIterator::RegisterState registerState;
+    registerState.pc = aSample->pc;
+    registerState.sp = aSample->sp;
+#ifdef ENABLE_ARM_LR_SAVING
+    registerState.lr = aSample->lr;
+#endif
+
+    JS::ProfilingFrameIterator jsIter(pseudoStack->mRuntime, registerState);
+    for (; jsCount < mozilla::ArrayLength(jsFrames) && !jsIter.done(); ++jsCount, ++jsIter) {
+      jsFrames[jsCount].stackAddress = jsIter.stackAddress();
+      jsFrames[jsCount].label = jsIter.label();
+    }
+  }
+
+  
   aProfile.addTag(ProfileEntry('s', "(root)"));
 
-  PseudoStack* stack = aProfile.GetPseudoStack();
-  uint32_t pseudoStackPos = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
   
   
-  for (size_t i = array.count; i > 0; --i) {
-    while (pseudoStackPos < stack->stackSize()) {
-      volatile StackEntry& entry = stack->mStack[pseudoStackPos];
+  
+  
+  uint32_t pseudoIndex = 0;
+  int32_t jsIndex = jsCount - 1;
+  int32_t nativeIndex = aNativeStack.count - 1;
 
-      if (entry.isCpp() && entry.stackAddress() && entry.stackAddress() < array.sp_array[i-1])
-        break;
+  
+  while (pseudoIndex != pseudoCount || jsIndex >= 0 || nativeIndex >= 0) {
+    
+    
+    
+    if (pseudoIndex != pseudoCount) {
+      volatile StackEntry &pseudoFrame = pseudoFrames[pseudoIndex];
 
-      addProfileEntry(entry, aProfile, stack, array.array[0]);
-      pseudoStackPos++;
+      
+      
+      
+      
+      if (pseudoFrame.isJs()) {
+          addPseudoEntry(pseudoFrame, aProfile, pseudoStack, nullptr);
+          pseudoIndex++;
+          continue;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (pseudoFrame.hasFlag(StackEntry::ASMJS)) {
+        void *stopStackAddress = nullptr;
+        for (uint32_t i = pseudoIndex + 1; i != pseudoCount; i++) {
+          if (pseudoFrames[i].isCpp()) {
+            stopStackAddress = pseudoFrames[i].stackAddress();
+            break;
+          }
+        }
+
+        if (nativeIndex >= 0) {
+          stopStackAddress = std::max(stopStackAddress, aNativeStack.sp_array[nativeIndex]);
+        }
+
+        while (jsIndex >= 0 && jsFrames[jsIndex].stackAddress > stopStackAddress) {
+          addDynamicTag(aProfile, 'c', jsFrames[jsIndex].label);
+          jsIndex--;
+        }
+
+        pseudoIndex++;
+        continue;
+      }
+
+      
+      if ((jsIndex < 0 || pseudoFrame.stackAddress() > jsFrames[jsIndex].stackAddress) &&
+          (nativeIndex < 0 || pseudoFrame.stackAddress() > aNativeStack.sp_array[nativeIndex]))
+      {
+        
+        addPseudoEntry(pseudoFrame, aProfile, pseudoStack, nullptr);
+        pseudoIndex++;
+        continue;
+      }
     }
 
-    aProfile.addTag(ProfileEntry('l', (void*)array.array[i-1]));
+    if (jsIndex >= 0) {
+      
+      JSFrame &jsFrame = jsFrames[jsIndex];
+      if ((pseudoIndex == pseudoCount || jsFrame.stackAddress > pseudoFrames[pseudoIndex].stackAddress()) &&
+          (nativeIndex < 0 || jsFrame.stackAddress > aNativeStack.sp_array[nativeIndex]))
+      {
+        
+        addDynamicTag(aProfile, 'c', jsFrame.label);
+        jsIndex--;
+        continue;
+      }
+    }
+
+    
+    
+    MOZ_ASSERT(nativeIndex >= 0);
+    aProfile.addTag(ProfileEntry('l', (void*)aNativeStack.pc_array[nativeIndex]));
+    nativeIndex--;
   }
 }
-
-#endif
 
 #ifdef USE_NS_STACKWALK
 static
 void StackWalkCallback(void* aPC, void* aSP, void* aClosure)
 {
-  PCArray* array = static_cast<PCArray*>(aClosure);
-  MOZ_ASSERT(array->count < array->size);
-  array->sp_array[array->count] = aSP;
-  array->array[array->count] = aPC;
-  array->count++;
+  NativeStack* nativeStack = static_cast<NativeStack*>(aClosure);
+  MOZ_ASSERT(nativeStack->count < nativeStack->size);
+  nativeStack->sp_array[nativeStack->count] = aSP;
+  nativeStack->pc_array[nativeStack->count] = aPC;
+  nativeStack->count++;
 }
 
 void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample)
@@ -460,7 +559,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
 #endif
   void* pc_array[1000];
   void* sp_array[1000];
-  PCArray array = {
+  NativeStack nativeStack = {
     pc_array,
     sp_array,
     mozilla::ArrayLength(pc_array),
@@ -468,9 +567,9 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
   };
 
   
-  StackWalkCallback(aSample->pc, aSample->sp, &array);
+  StackWalkCallback(aSample->pc, aSample->sp, &nativeStack);
 
-  uint32_t maxFrames = uint32_t(array.size - array.count);
+  uint32_t maxFrames = uint32_t(nativeStack.size - nativeStack.count);
 #ifdef XP_MACOSX
   pthread_t pt = GetProfiledThread(aSample->threadProfile->GetPlatformData());
   void *stackEnd = reinterpret_cast<void*>(-1);
@@ -479,7 +578,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
   nsresult rv = NS_OK;
   if (aSample->fp >= aSample->sp && aSample->fp <= stackEnd)
     rv = FramePointerStackWalk(StackWalkCallback,  0,
-                               maxFrames, &array,
+                               maxFrames, &nativeStack,
                                reinterpret_cast<void**>(aSample->fp), stackEnd);
 #else
   void *platformData = nullptr;
@@ -493,10 +592,10 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
 #endif 
 
   nsresult rv = NS_StackWalk(StackWalkCallback,  0, maxFrames,
-                             &array, thread, platformData);
+                             &nativeStack, thread, platformData);
 #endif
   if (NS_SUCCEEDED(rv))
-    mergeNativeBacktrace(aProfile, array);
+    mergeStacksIntoProfile(aProfile, aSample, nativeStack);
 }
 #endif
 
@@ -505,7 +604,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
 {
   void *pc_array[1000];
   void *sp_array[1000];
-  PCArray array = {
+  NativeStack nativeStack = {
     pc_array,
     sp_array,
     mozilla::ArrayLength(pc_array),
@@ -516,7 +615,7 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
   mcontext_t savedContext;
   PseudoStack *pseudoStack = aProfile.GetPseudoStack();
 
-  array.count = 0;
+  nativeStack.count = 0;
   
   
   
@@ -532,11 +631,11 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
       
       uint32_t *vSP = reinterpret_cast<uint32_t*>(entry.stackAddress());
 
-      array.count += EHABIStackWalk(*mcontext,
-                                     vSP,
-                                    sp_array + array.count,
-                                    pc_array + array.count,
-                                    array.size - array.count);
+      nativeStack.count += EHABIStackWalk(*mcontext,
+                                           vSP,
+                                          sp_array + nativeStack.count,
+                                          pc_array + nativeStack.count,
+                                          nativeStack.size - nativeStack.count);
 
       memset(&savedContext, 0, sizeof(savedContext));
       
@@ -557,32 +656,28 @@ void TableTicker::doNativeBacktrace(ThreadProfile &aProfile, TickSample* aSample
 
   
   
-  array.count += EHABIStackWalk(*mcontext,
-                                aProfile.GetStackTop(),
-                                sp_array + array.count,
-                                pc_array + array.count,
-                                array.size - array.count);
+  nativeStack.count += EHABIStackWalk(*mcontext,
+                                      aProfile.GetStackTop(),
+                                      sp_array + nativeStack.count,
+                                      pc_array + nativeStack.count,
+                                      nativeStack.size - nativeStack.count);
 
-  mergeNativeBacktrace(aProfile, array);
+  mergeStacksIntoProfile(aProfile, aSample, nativeStack);
 }
 
 #endif
 
 static
-void doSampleStackTrace(PseudoStack *aStack, ThreadProfile &aProfile, TickSample *sample)
+void doSampleStackTrace(ThreadProfile &aProfile, TickSample *aSample, bool aAddLeafAddresses)
 {
-  
-  
-  
-  aProfile.addTag(ProfileEntry('s', "(root)"));
-  for (uint32_t i = 0; i < aStack->stackSize(); i++) {
-    addProfileEntry(aStack->mStack[i], aProfile, aStack, nullptr);
-  }
+  NativeStack nativeStack = { nullptr, nullptr, 0, 0 };
+  mergeStacksIntoProfile(aProfile, aSample, nativeStack);
+
 #ifdef ENABLE_SPS_LEAF_DATA
-  if (sample) {
-    aProfile.addTag(ProfileEntry('l', (void*)sample->pc));
+  if (aSample && aAddLeafAddresses) {
+    aProfile.addTag(ProfileEntry('l', (void*)aSample->pc));
 #ifdef ENABLE_ARM_LR_SAVING
-    aProfile.addTag(ProfileEntry('L', (void*)sample->lr));
+    aProfile.addTag(ProfileEntry('L', (void*)aSample->lr));
 #endif
   }
 #endif
@@ -652,10 +747,10 @@ void TableTicker::InplaceTick(TickSample* sample)
   if (mUseStackWalk) {
     doNativeBacktrace(currThreadProfile, sample);
   } else {
-    doSampleStackTrace(stack, currThreadProfile, mAddLeafAddresses ? sample : nullptr);
+    doSampleStackTrace(currThreadProfile, sample, mAddLeafAddresses);
   }
 #else
-  doSampleStackTrace(stack, currThreadProfile, mAddLeafAddresses ? sample : nullptr);
+  doSampleStackTrace(currThreadProfile, sample, mAddLeafAddresses);
 #endif
 
   if (recordSample)
@@ -763,7 +858,7 @@ void mozilla_sampler_print_location1()
   }
 
   syncProfile->BeginUnwind();
-  doSampleStackTrace(syncProfile->GetPseudoStack(), *syncProfile, nullptr);
+  doSampleStackTrace(*syncProfile, nullptr, false);
   syncProfile->EndUnwind();
 
   printf_stderr("Backtrace:\n");
