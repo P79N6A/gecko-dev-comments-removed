@@ -302,7 +302,7 @@ SocketIOEventRunnable::Run()
 
   MOZ_ASSERT(io->IsConsumerThread());
 
-  if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+  if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
     
     
     return NS_OK;
@@ -338,7 +338,7 @@ SocketIORequestClosingRunnable::Run()
 
   MOZ_ASSERT(io->IsConsumerThread());
 
-  if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+  if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
     
     
     return NS_OK;

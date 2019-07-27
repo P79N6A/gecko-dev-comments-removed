@@ -143,7 +143,7 @@ public:
     return GetDataSocket();
   }
 
-  bool IsShutdownOnMainThread() const override
+  bool IsShutdownOnConsumerThread() const override
   {
     MOZ_ASSERT(IsConsumerThread());
 
@@ -155,10 +155,11 @@ public:
     return mShuttingDownOnIOThread;
   }
 
-  void ShutdownOnMainThread() override
+  void ShutdownOnConsumerThread() override
   {
     MOZ_ASSERT(IsConsumerThread());
-    MOZ_ASSERT(!IsShutdownOnMainThread());
+    MOZ_ASSERT(!IsShutdownOnConsumerThread());
+
     mConsumer = nullptr;
   }
 
@@ -392,7 +393,7 @@ public:
 
     mozilla::ScopedClose fd(aFd); 
 
-    if (mImpl->IsShutdownOnMainThread()) {
+    if (mImpl->IsShutdownOnConsumerThread()) {
       BT_LOGD("mConsumer is null, aborting receive!");
       return;
     }
@@ -412,7 +413,7 @@ public:
     MOZ_ASSERT(mImpl->IsConsumerThread());
     BT_LOGR("BluetoothSocketInterface::Accept failed: %d", (int)aStatus);
 
-    if (!mImpl->IsShutdownOnMainThread()) {
+    if (!mImpl->IsShutdownOnConsumerThread()) {
       
       
       
@@ -551,7 +552,7 @@ public:
 
     MOZ_ASSERT(io->IsConsumerThread());
 
-    if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+    if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
       
       
       return NS_OK;
@@ -611,7 +612,7 @@ public:
   {
     MOZ_ASSERT(mImpl->IsConsumerThread());
 
-    if (mImpl->IsShutdownOnMainThread()) {
+    if (mImpl->IsShutdownOnConsumerThread()) {
       BT_LOGD("mConsumer is null, aborting send!");
       return;
     }
@@ -631,7 +632,7 @@ public:
     MOZ_ASSERT(mImpl->IsConsumerThread());
     BT_WARNING("Connect failed: %d", (int)aStatus);
 
-    if (!mImpl->IsShutdownOnMainThread()) {
+    if (!mImpl->IsShutdownOnConsumerThread()) {
       
       
       
@@ -772,7 +773,7 @@ BluetoothSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
 {
   MOZ_ASSERT(mImpl);
   MOZ_ASSERT(mImpl->IsConsumerThread());
-  MOZ_ASSERT(!mImpl->IsShutdownOnMainThread());
+  MOZ_ASSERT(!mImpl->IsShutdownOnConsumerThread());
 
   mImpl->GetIOLoop()->PostTask(
     FROM_HERE,
@@ -800,7 +801,7 @@ BluetoothSocket::Close()
   
   
   
-  mImpl->ShutdownOnMainThread();
+  mImpl->ShutdownOnConsumerThread();
   mImpl->GetIOLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mImpl));
   mImpl = nullptr;
 

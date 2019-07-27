@@ -83,10 +83,10 @@ public:
 
   SocketBase* GetSocketBase() override;
 
-  bool IsShutdownOnMainThread() const override;
+  bool IsShutdownOnConsumerThread() const override;
   bool IsShutdownOnIOThread() const override;
 
-  void ShutdownOnMainThread() override;
+  void ShutdownOnConsumerThread() override;
   void ShutdownOnIOThread() override;
 
 private:
@@ -124,6 +124,7 @@ private:
   
 
 
+
   CancelableTask* mDelayedConnectTask;
 
   
@@ -152,7 +153,7 @@ BluetoothSocket::BluetoothSocketIO::BluetoothSocketIO(
 BluetoothSocket::BluetoothSocketIO::~BluetoothSocketIO()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(IsShutdownOnMainThread());
+  MOZ_ASSERT(IsShutdownOnConsumerThread());
 }
 
 void
@@ -422,7 +423,7 @@ public:
 
     MOZ_ASSERT(io->IsConsumerThread());
 
-    if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+    if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
       
       
       return NS_OK;
@@ -462,7 +463,7 @@ BluetoothSocket::BluetoothSocketIO::GetSocketBase()
 }
 
 bool
-BluetoothSocket::BluetoothSocketIO::IsShutdownOnMainThread() const
+BluetoothSocket::BluetoothSocketIO::IsShutdownOnConsumerThread() const
 {
   MOZ_ASSERT(IsConsumerThread());
 
@@ -470,10 +471,10 @@ BluetoothSocket::BluetoothSocketIO::IsShutdownOnMainThread() const
 }
 
 void
-BluetoothSocket::BluetoothSocketIO::ShutdownOnMainThread()
+BluetoothSocket::BluetoothSocketIO::ShutdownOnConsumerThread()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(!IsShutdownOnMainThread());
+  MOZ_ASSERT(!IsShutdownOnConsumerThread());
 
   mConsumer = nullptr;
 }
@@ -551,7 +552,7 @@ public:
     }
 
     BluetoothSocketIO* io = GetIO();
-    if (io->IsShutdownOnMainThread()) {
+    if (io->IsShutdownOnConsumerThread()) {
       return;
     }
 
@@ -730,7 +731,7 @@ BluetoothSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
 {
   MOZ_ASSERT(mIO);
   MOZ_ASSERT(mIO->IsConsumerThread());
-  MOZ_ASSERT(!mIO->IsShutdownOnMainThread());
+  MOZ_ASSERT(!mIO->IsShutdownOnConsumerThread());
 
   mIO->GetIOLoop()->PostTask(
     FROM_HERE,
@@ -753,7 +754,7 @@ BluetoothSocket::Close()
   
   
   
-  mIO->ShutdownOnMainThread();
+  mIO->ShutdownOnConsumerThread();
   mIO->GetIOLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
   mIO = nullptr;
 

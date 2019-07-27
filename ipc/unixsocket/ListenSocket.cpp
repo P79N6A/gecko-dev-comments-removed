@@ -56,10 +56,10 @@ public:
 
   SocketBase* GetSocketBase() override;
 
-  bool IsShutdownOnMainThread() const override;
+  bool IsShutdownOnConsumerThread() const override;
   bool IsShutdownOnIOThread() const override;
 
-  void ShutdownOnMainThread() override;
+  void ShutdownOnConsumerThread() override;
   void ShutdownOnIOThread() override;
 
 private:
@@ -114,7 +114,7 @@ ListenSocketIO::ListenSocketIO(nsIThread* aConsumerThread,
 ListenSocketIO::~ListenSocketIO()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(IsShutdownOnMainThread());
+  MOZ_ASSERT(IsShutdownOnConsumerThread());
 }
 
 UnixSocketConnector*
@@ -232,7 +232,7 @@ ListenSocketIO::GetSocketBase()
 }
 
 bool
-ListenSocketIO::IsShutdownOnMainThread() const
+ListenSocketIO::IsShutdownOnConsumerThread() const
 {
   MOZ_ASSERT(IsConsumerThread());
 
@@ -246,10 +246,10 @@ ListenSocketIO::IsShutdownOnIOThread() const
 }
 
 void
-ListenSocketIO::ShutdownOnMainThread()
+ListenSocketIO::ShutdownOnConsumerThread()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(!IsShutdownOnMainThread());
+  MOZ_ASSERT(!IsShutdownOnConsumerThread());
 
   mListenSocket = nullptr;
 }
@@ -391,7 +391,7 @@ ListenSocket::Close()
   
   
   
-  mIO->ShutdownOnMainThread();
+  mIO->ShutdownOnConsumerThread();
   mIO->GetIOLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
   mIO = nullptr;
 

@@ -88,10 +88,10 @@ public:
 
   SocketBase* GetSocketBase() override;
 
-  bool IsShutdownOnMainThread() const override;
+  bool IsShutdownOnConsumerThread() const override;
   bool IsShutdownOnIOThread() const override;
 
-  void ShutdownOnMainThread() override;
+  void ShutdownOnConsumerThread() override;
   void ShutdownOnIOThread() override;
 
 private:
@@ -125,6 +125,7 @@ private:
   struct sockaddr_storage mAddress;
 
   
+
 
 
   CancelableTask* mDelayedConnectTask;
@@ -171,7 +172,7 @@ StreamSocketIO::StreamSocketIO(nsIThread* aConsumerThread,
 StreamSocketIO::~StreamSocketIO()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(IsShutdownOnMainThread());
+  MOZ_ASSERT(IsShutdownOnConsumerThread());
 }
 
 StreamSocket*
@@ -388,7 +389,7 @@ public:
 
     MOZ_ASSERT(io->IsConsumerThread());
 
-    if (NS_WARN_IF(io->IsShutdownOnMainThread())) {
+    if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
       
       
       return NS_OK;
@@ -428,7 +429,7 @@ StreamSocketIO::GetSocketBase()
 }
 
 bool
-StreamSocketIO::IsShutdownOnMainThread() const
+StreamSocketIO::IsShutdownOnConsumerThread() const
 {
   MOZ_ASSERT(IsConsumerThread());
 
@@ -442,10 +443,10 @@ StreamSocketIO::IsShutdownOnIOThread() const
 }
 
 void
-StreamSocketIO::ShutdownOnMainThread()
+StreamSocketIO::ShutdownOnConsumerThread()
 {
   MOZ_ASSERT(IsConsumerThread());
-  MOZ_ASSERT(!IsShutdownOnMainThread());
+  MOZ_ASSERT(!IsShutdownOnConsumerThread());
 
   mStreamSocket = nullptr;
 }
@@ -498,7 +499,7 @@ public:
     }
 
     StreamSocketIO* io = GetIO();
-    if (io->IsShutdownOnMainThread()) {
+    if (io->IsShutdownOnConsumerThread()) {
       return;
     }
 
@@ -591,7 +592,7 @@ StreamSocket::SendSocketData(UnixSocketIOBuffer* aBuffer)
 {
   MOZ_ASSERT(mIO);
   MOZ_ASSERT(mIO->IsConsumerThread());
-  MOZ_ASSERT(!mIO->IsShutdownOnMainThread());
+  MOZ_ASSERT(!mIO->IsShutdownOnConsumerThread());
 
   mIO->GetIOLoop()->PostTask(
     FROM_HERE,
@@ -611,7 +612,7 @@ StreamSocket::Close()
   
   
   
-  mIO->ShutdownOnMainThread();
+  mIO->ShutdownOnConsumerThread();
   mIO->GetIOLoop()->PostTask(FROM_HERE, new SocketIOShutdownTask(mIO));
   mIO = nullptr;
 

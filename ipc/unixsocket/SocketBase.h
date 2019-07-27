@@ -340,7 +340,7 @@ public:
 
 
 
-  virtual bool IsShutdownOnMainThread() const = 0;
+  virtual bool IsShutdownOnConsumerThread() const = 0;
 
   
 
@@ -351,7 +351,7 @@ public:
 
 
 
-  virtual void ShutdownOnMainThread() = 0;
+  virtual void ShutdownOnConsumerThread() = 0;
 
   
 
