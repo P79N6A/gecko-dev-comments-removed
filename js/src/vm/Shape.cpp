@@ -1504,6 +1504,10 @@ EmptyShape::insertInitialShape(ExclusiveContext* cx, HandleShape shape, HandleOb
     InitialShapeEntry& entry = const_cast<InitialShapeEntry&>(*p);
 
     
+    if (entry.shape == shape)
+        return;
+
+    
 #ifdef DEBUG
     Shape* nshape = shape;
     while (!nshape->isEmptyShape())
