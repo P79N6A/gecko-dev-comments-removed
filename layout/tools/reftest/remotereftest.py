@@ -163,10 +163,6 @@ class RemoteOptions(ReftestOptions):
             options.httpdPath = os.path.join(options.utilityPath, "components")
 
         
-        options.leakThresholds = {}
-        options.ignoreMissingLeaks = []
-
-        
         
         
         return options

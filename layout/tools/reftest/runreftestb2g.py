@@ -203,10 +203,6 @@ class B2GOptions(ReftestOptions):
         if not options.httpdPath:
             options.httpdPath = os.path.join(options.xrePath, "components")
 
-        
-        options.leakThresholds = {}
-        options.ignoreMissingLeaks = []
-
         return options
 
 
