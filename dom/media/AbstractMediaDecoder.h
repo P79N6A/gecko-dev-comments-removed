@@ -66,9 +66,6 @@ public:
   virtual void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) = 0;
 
   
-  virtual int64_t GetTimestampOffset() const { return 0; }
-
-  
   virtual int64_t GetMediaDuration() = 0;
 
   

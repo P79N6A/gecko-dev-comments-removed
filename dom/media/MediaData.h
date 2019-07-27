@@ -84,6 +84,15 @@ public:
     , mRate(aRate)
     , mAudioData(aData) {}
 
+  
+  
+  
+  
+  static already_AddRefed<AudioData>
+  TransferAndUpdateTimestampAndDuration(AudioData* aOther,
+                                        int64_t aTimestamp,
+                                        int64_t aDuration);
+
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
   

@@ -142,8 +142,8 @@ public:
 #endif
 
   virtual bool IsAsync() const MOZ_OVERRIDE {
-    return (!mAudioReader || mAudioReader->IsAsync()) &&
-           (!mVideoReader || mVideoReader->IsAsync());
+    return (!GetAudioReader() || GetAudioReader()->IsAsync()) &&
+           (!GetVideoReader() || GetVideoReader()->IsAsync());
   }
 
   
@@ -157,14 +157,14 @@ private:
   
   
   
-  enum SwitchReaderResult {
-    READER_ERROR = -1,
-    READER_EXISTING = 0,
-    READER_NEW = 1,
+  enum SwitchSourceResult {
+    SOURCE_ERROR = -1,
+    SOURCE_EXISTING = 0,
+    SOURCE_NEW = 1,
   };
 
-  SwitchReaderResult SwitchAudioReader(int64_t aTarget);
-  SwitchReaderResult SwitchVideoReader(int64_t aTarget);
+  SwitchSourceResult SwitchAudioSource(int64_t aTarget);
+  SwitchSourceResult SwitchVideoSource(int64_t aTarget);
 
   void DoAudioRequest();
   void DoVideoRequest();
@@ -193,22 +193,27 @@ private:
     mVideoPromise.Reject(DECODE_ERROR, __func__);
   }
 
+  MediaDecoderReader* GetAudioReader() const;
+  MediaDecoderReader* GetVideoReader() const;
+  int64_t GetReaderAudioTime(int64_t aTime) const;
+  int64_t GetReaderVideoTime(int64_t aTime) const;
+
   
   
   void CheckForWaitOrEndOfStream(MediaData::Type aType, int64_t aTime );
 
   
   
-  already_AddRefed<MediaDecoderReader> SelectReader(int64_t aTarget,
-                                                    int64_t aTolerance,
-                                                    const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
+  already_AddRefed<SourceBufferDecoder> SelectDecoder(int64_t aTarget,
+                                                      int64_t aTolerance,
+                                                      const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
   bool HaveData(int64_t aTarget, MediaData::Type aType);
 
   void AttemptSeek();
   bool IsSeeking() { return mPendingSeekTime != -1; }
 
-  nsRefPtr<MediaDecoderReader> mAudioReader;
-  nsRefPtr<MediaDecoderReader> mVideoReader;
+  nsRefPtr<SourceBufferDecoder> mAudioSourceDecoder;
+  nsRefPtr<SourceBufferDecoder> mVideoSourceDecoder;
 
   nsTArray<nsRefPtr<TrackBuffer>> mTrackBuffers;
   nsTArray<nsRefPtr<TrackBuffer>> mShutdownTrackBuffers;
