@@ -1861,6 +1861,15 @@ RilObject.prototype = {
       options.featureStr = "";
       this.sendCdmaFlashCommand(options);
     } else {
+      
+      if (this._hasConferenceRequest) {
+        options.success = false;
+        options.errorName = "addError";
+        options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
+        this.sendChromeMessage(options);
+        return;
+      }
+
       this._hasConferenceRequest = true;
       this.telephonyRequestQueue.push(REQUEST_CONFERENCE,
                                       this.sendRilRequestConference, options);
