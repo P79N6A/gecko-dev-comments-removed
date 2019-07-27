@@ -238,9 +238,6 @@ typedef uint64_t JSValueShiftedTag;
 typedef enum JSWhyMagic
 {
     JS_ELEMENTS_HOLE,            
-    JS_NATIVE_ENUMERATE,         
-
-
     JS_NO_ITER_VALUE,            
     JS_GENERATOR_CLOSING,        
     JS_NO_CONSTANT,              

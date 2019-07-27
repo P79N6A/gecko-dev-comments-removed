@@ -85,24 +85,6 @@ enum JSProtoKey {
 };
 
 
-
-
-
-enum JSIterateOp {
-    
-    JSENUMERATE_INIT,
-
-    
-    JSENUMERATE_INIT_ALL,
-
-    
-    JSENUMERATE_NEXT,
-
-    
-    JSENUMERATE_DESTROY
-};
-
-
 struct JSClass;
 struct JSCompartment;
 struct JSCrossCompartmentCall;

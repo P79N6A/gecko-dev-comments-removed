@@ -41,6 +41,12 @@ extern JS_FRIEND_DATA(const js::Class* const) FunctionClassPtr;
 
 } 
 
+namespace JS {
+
+class AutoIdVector;
+
+}
+
 
 
 
@@ -87,28 +93,8 @@ typedef bool
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef bool
-(* JSNewEnumerateOp)(JSContext *cx, JS::HandleObject obj, JSIterateOp enum_op,
-                     JS::MutableHandleValue statep, JS::MutableHandleId idp);
+(* JSNewEnumerateOp)(JSContext *cx, JS::HandleObject obj, JS::AutoIdVector &properties);
 
 
 
@@ -421,7 +407,6 @@ struct JSClass {
 };
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  // objects have private slot
-#define JSCLASS_NEW_ENUMERATE           (1<<1)  // has JSNewEnumerateOp hook
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  // private is (nsISupports *)
 #define JSCLASS_IS_DOMJSCLASS           (1<<4)  // objects are DOM
 #define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  // Correctly implements GC read
