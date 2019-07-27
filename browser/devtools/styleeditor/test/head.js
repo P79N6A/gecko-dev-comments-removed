@@ -53,6 +53,21 @@ function addTab(url) {
   return def.promise;
 }
 
+
+
+
+
+
+function navigateTo(url) {
+  let navigating = promise.defer();
+  gBrowser.selectedBrowser.addEventListener("load", function onload() {
+    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+    navigating.resolve();
+  }, true);
+  content.location = url;
+  return navigating.promise;
+}
+
 function* cleanup()
 {
   gPanelWindow = null;
