@@ -1042,3 +1042,6 @@ pref("dom.mapped_arraybuffer.enabled", true);
 
 
 pref("dom.udpsocket.enabled", true);
+
+
+pref("dom.tv.enabled", true);
