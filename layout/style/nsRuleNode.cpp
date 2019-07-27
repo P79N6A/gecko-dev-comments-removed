@@ -1332,7 +1332,6 @@ SetFactor(const nsCSSValue& aValue, float& aField, bool& aCanStoreInRuleTree,
 }
 
 
-
 void*
 nsRuleNode::operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW
 {
@@ -1415,6 +1414,7 @@ nsRuleNode::nsRuleNode(nsPresContext* aContext, nsRuleNode* aParent,
   : mPresContext(aContext),
     mParent(aParent),
     mRule(aRule),
+    mNextSibling(nullptr),
     mDependentBits((uint32_t(aLevel) << NS_RULE_NODE_LEVEL_SHIFT) |
                    (aIsImportant ? NS_RULE_NODE_IS_IMPORTANT : 0)),
     mNoneBits(0),
@@ -8920,18 +8920,8 @@ nsRuleNode::Mark()
     node->mDependentBits |= NS_RULE_NODE_GC_MARK;
 }
 
-static PLDHashOperator
-SweepRuleNodeChildren(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                      uint32_t number, void *arg)
-{
-  ChildrenHashEntry *entry = static_cast<ChildrenHashEntry*>(hdr);
-  if (entry->mRuleNode->Sweep())
-    return PL_DHASH_REMOVE; 
-  return PL_DHASH_NEXT;
-}
-
 bool
-nsRuleNode::Sweep()
+nsRuleNode::DestroyIfNotMarked()
 {
   
   
@@ -8946,36 +8936,92 @@ nsRuleNode::Sweep()
 
   
   mDependentBits &= ~NS_RULE_NODE_GC_MARK;
+  return false;
+}
 
-  
-  
-  if (HaveChildren()) {
-    uint32_t childrenDestroyed;
-    if (ChildrenAreHashed()) {
-      PLDHashTable *children = ChildrenHash();
-      uint32_t oldChildCount = children->entryCount;
-      PL_DHashTableEnumerate(children, SweepRuleNodeChildren, nullptr);
-      childrenDestroyed = oldChildCount - children->entryCount;
-    } else {
-      childrenDestroyed = 0;
-      for (nsRuleNode **children = ChildrenListPtr(); *children; ) {
-        nsRuleNode *next = (*children)->mNextSibling;
-        if ((*children)->Sweep()) {
-          
-          
-          *children = next;
-          ++childrenDestroyed;
-        } else {
-          
-          children = &(*children)->mNextSibling;
-        }
+PLDHashOperator
+nsRuleNode::SweepHashEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                           uint32_t number, void *arg)
+{
+  ChildrenHashEntry *entry = static_cast<ChildrenHashEntry*>(hdr);
+  nsRuleNode* node = entry->mRuleNode;
+  if (node->DestroyIfNotMarked()) {
+    return PL_DHASH_REMOVE; 
+  }
+  if (node->HaveChildren()) {
+    
+    
+    nsRuleNode** headQ = static_cast<nsRuleNode**>(arg);
+    node->mNextSibling = *headQ;
+    *headQ = node;
+  }
+  return PL_DHASH_NEXT;
+}
+
+void
+nsRuleNode::SweepChildren(nsTArray<nsRuleNode*>& aSweepQueue)
+{
+  NS_ASSERTION(!(mDependentBits & NS_RULE_NODE_GC_MARK),
+               "missing DestroyIfNotMarked() call");
+  NS_ASSERTION(HaveChildren(),
+               "why call SweepChildren with no children?");
+  uint32_t childrenDestroyed = 0;
+  nsRuleNode* survivorsWithChildren = nullptr;
+  if (ChildrenAreHashed()) {
+    PLDHashTable* children = ChildrenHash();
+    uint32_t oldChildCount = children->entryCount;
+    PL_DHashTableEnumerate(children, SweepHashEntry, &survivorsWithChildren);
+    childrenDestroyed = oldChildCount - children->entryCount;
+    if (childrenDestroyed == oldChildCount) {
+      PL_DHashTableDestroy(children);
+      mChildren.asVoid = nullptr;
+    }
+  } else {
+    for (nsRuleNode** children = ChildrenListPtr(); *children; ) {
+      nsRuleNode* next = (*children)->mNextSibling;
+      if ((*children)->DestroyIfNotMarked()) {
+        
+        
+        *children = next;
+        ++childrenDestroyed;
+      } else {
+        children = &(*children)->mNextSibling;
       }
     }
-    mRefCnt -= childrenDestroyed;
-    NS_POSTCONDITION(IsRoot() || mRefCnt > 0,
-                     "We didn't get swept, so we'd better have style contexts "
-                     "pointing to us or to one of our descendants, which means "
-                     "we'd better have a nonzero mRefCnt here!");
+    survivorsWithChildren = ChildrenList();
+  }
+  if (survivorsWithChildren) {
+    aSweepQueue.AppendElement(survivorsWithChildren);
+  }
+  NS_ASSERTION(childrenDestroyed <= mRefCnt, "wrong ref count");
+  mRefCnt -= childrenDestroyed;
+  NS_POSTCONDITION(IsRoot() || mRefCnt > 0,
+                   "We didn't get swept, so we'd better have style contexts "
+                   "pointing to us or to one of our descendants, which means "
+                   "we'd better have a nonzero mRefCnt here!");
+}
+
+bool
+nsRuleNode::Sweep()
+{
+  NS_ASSERTION(IsRoot(), "must start sweeping at a root");
+  NS_ASSERTION(!mNextSibling, "root must not have mNextSibling");
+
+  if (DestroyIfNotMarked()) {
+    return true;
+  }
+
+  nsAutoTArray<nsRuleNode*, 70> sweepQueue;
+  sweepQueue.AppendElement(this);
+  while (!sweepQueue.IsEmpty()) {
+    nsTArray<nsRuleNode*>::index_type last = sweepQueue.Length() - 1;
+    nsRuleNode* ruleNode = sweepQueue[last];
+    sweepQueue.RemoveElementAt(last);
+    for (; ruleNode; ruleNode = ruleNode->mNextSibling) {
+      if (ruleNode->HaveChildren()) {
+        ruleNode->SweepChildren(sweepQueue);
+      }
+    }
   }
   return false;
 }

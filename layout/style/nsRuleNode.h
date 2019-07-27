@@ -306,6 +306,12 @@ private:
                          const PLDHashEntryHdr *aHdr,
                          const void *aKey);
 
+  static PLDHashOperator
+  SweepHashEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                 uint32_t number, void *arg);
+  void SweepChildren(nsTArray<nsRuleNode*>& aSweepQueue);
+  bool DestroyIfNotMarked();
+
   static const PLDHashTableOps ChildrenHashOps;
 
   static PLDHashOperator
@@ -401,7 +407,6 @@ private:
   uint32_t mRefCnt;
 
 public:
-  
   
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   void Destroy() { DestroyInternal(nullptr); }
@@ -709,6 +714,8 @@ public:
   #undef STYLE_STRUCT
 
   
+
+
 
 
 
