@@ -636,7 +636,7 @@ AudioManager::SetPhoneState(int32_t aState)
   mPhoneState = aState;
 
   if (mPhoneAudioAgent) {
-    mPhoneAudioAgent->NotifyStoppedPlaying();
+    mPhoneAudioAgent->StopPlaying();
     mPhoneAudioAgent = nullptr;
   }
 
@@ -654,7 +654,7 @@ AudioManager::SetPhoneState(int32_t aState)
     float volume = 0.0;
     bool muted = true;
 
-    nsresult rv = mPhoneAudioAgent->NotifyStartedPlaying(&volume, &muted);
+    nsresult rv = mPhoneAudioAgent->StartPlaying(&volume, &muted);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
