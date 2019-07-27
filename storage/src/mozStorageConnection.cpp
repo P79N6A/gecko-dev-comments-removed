@@ -897,11 +897,13 @@ Connection::internalClose(sqlite3 *aNativeConnection)
   }
 #endif 
 
-  nsAutoCString leafName(":memory");
-  if (mDatabaseFile)
-      (void)mDatabaseFile->GetNativeLeafName(leafName);
-  PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Closing connection to '%s'",
-                                      leafName.get()));
+  if (PR_LOG_TEST(gStorageLog, PR_LOG_NOTICE)) {
+    nsAutoCString leafName(":memory");
+    if (mDatabaseFile)
+        (void)mDatabaseFile->GetNativeLeafName(leafName);
+    PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Closing connection to '%s'",
+                                        leafName.get()));
+  }
 
   
   
