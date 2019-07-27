@@ -1276,7 +1276,7 @@ bool IsOptimizableHistoryQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     return false;
 
   nsNavHistoryQuery *aQuery = aQueries[0];
-
+ 
   if (aOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY)
     return false;
 
@@ -1298,25 +1298,25 @@ bool IsOptimizableHistoryQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries,
   if (aQuery->MinVisits() != -1 || aQuery->MaxVisits() != -1)
     return false;
 
-  if (aQuery->BeginTime() || aQuery->BeginTimeReference())
+  if (aQuery->BeginTime() || aQuery->BeginTimeReference()) 
     return false;
 
-  if (aQuery->EndTime() || aQuery->EndTimeReference())
+  if (aQuery->EndTime() || aQuery->EndTimeReference()) 
     return false;
 
-  if (!aQuery->SearchTerms().IsEmpty())
+  if (!aQuery->SearchTerms().IsEmpty()) 
     return false;
 
-  if (aQuery->OnlyBookmarked())
+  if (aQuery->OnlyBookmarked()) 
     return false;
 
   if (aQuery->DomainIsHost() || !aQuery->Domain().IsEmpty())
     return false;
 
-  if (aQuery->AnnotationIsNot() || !aQuery->Annotation().IsEmpty())
+  if (aQuery->AnnotationIsNot() || !aQuery->Annotation().IsEmpty()) 
     return false;
 
-  if (aQuery->UriIsPrefix() || aQuery->Uri())
+  if (aQuery->UriIsPrefix() || aQuery->Uri()) 
     return false;
 
   if (aQuery->Folders().Length() > 0)
@@ -1332,7 +1332,7 @@ bool IsOptimizableHistoryQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries,
 }
 
 static
-bool NeedToFilterResultSet(const nsCOMArray<nsNavHistoryQuery>& aQueries,
+bool NeedToFilterResultSet(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
                              nsNavHistoryQueryOptions *aOptions)
 {
   uint16_t resultType = aOptions->ResultType();
@@ -1390,8 +1390,8 @@ private:
 };
 
 PlacesSQLQueryBuilder::PlacesSQLQueryBuilder(
-    const nsCString& aConditions,
-    nsNavHistoryQueryOptions* aOptions,
+    const nsCString& aConditions, 
+    nsNavHistoryQueryOptions* aOptions, 
     bool aUseLimit,
     nsNavHistory::StringHash& aAddParams,
     bool aHasSearchTerms)
@@ -1855,7 +1855,7 @@ PlacesSQLQueryBuilder::SelectAsTag()
 
   
   
-  mHasDateColumns = true;
+  mHasDateColumns = true; 
 
   mQueryString = nsPrintfCString(
     "SELECT null, 'place:folder=' || id || '&queryType=%d&type=%ld', "
@@ -2056,8 +2056,8 @@ PlacesSQLQueryBuilder::Limit()
 nsresult
 nsNavHistory::ConstructQueryString(
     const nsCOMArray<nsNavHistoryQuery>& aQueries,
-    nsNavHistoryQueryOptions* aOptions,
-    nsCString& queryString,
+    nsNavHistoryQueryOptions* aOptions, 
+    nsCString& queryString, 
     bool& aParamsPresent,
     nsNavHistory::StringHash& aAddParams)
 {
@@ -2151,7 +2151,7 @@ nsNavHistory::ConstructQueryString(
   return NS_OK;
 }
 
-PLDHashOperator BindAdditionalParameter(nsNavHistory::StringHash::KeyType aParamName,
+PLDHashOperator BindAdditionalParameter(nsNavHistory::StringHash::KeyType aParamName, 
                                         nsCString aParamValue,
                                         void* aStatement)
 {
@@ -2233,7 +2233,7 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
   } else {
     rv = ResultsAsList(statement, aOptions, aResults);
     NS_ENSURE_SUCCESS(rv, rv);
-  }
+  } 
 
   return NS_OK;
 }
@@ -2981,17 +2981,6 @@ nsNavHistory::GetDBConnection(mozIStorageConnection **_DBConnection)
 }
 
 NS_IMETHODIMP
-nsNavHistory::GetShutdownClient(nsIAsyncShutdownClient **_shutdownClient)
-{
-  NS_ENSURE_ARG_POINTER(_shutdownClient);
-  nsRefPtr<nsIAsyncShutdownClient> client = mDB->GetConnectionShutdown();
-  MOZ_ASSERT(client);
-  client.forget(_shutdownClient);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsNavHistory::AsyncExecuteLegacyQueries(nsINavHistoryQuery** aQueries,
                                         uint32_t aQueryCount,
                                         nsINavHistoryQueryOptions* aOptions,
@@ -3088,10 +3077,9 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
                     const char16_t *aData)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
   if (strcmp(aTopic, TOPIC_PROFILE_TEARDOWN) == 0 ||
-      strcmp(aTopic, TOPIC_PROFILE_CHANGE) == 0 ||
-      strcmp(aTopic, TOPIC_SIMULATE_PLACES_MUST_CLOSE_1) == 0 ||
-      strcmp(aTopic, TOPIC_SIMULATE_PLACES_MUST_CLOSE_2) == 0) {
+      strcmp(aTopic, TOPIC_PROFILE_CHANGE) == 0) {
     
     
     mDB->Observe(aSubject, aTopic, aData);
@@ -3271,7 +3259,7 @@ public:
     return *this;
   }
 
-  void GetClauseString(nsCString& aResult)
+  void GetClauseString(nsCString& aResult) 
   {
     aResult = mClause;
   }
@@ -3306,7 +3294,7 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
     clause.Condition("EXISTS (SELECT 1 FROM moz_historyvisits "
                               "WHERE place_id = h.id");
     
-    if (NS_SUCCEEDED(aQuery->GetHasBeginTime(&hasIt)) && hasIt)
+    if (NS_SUCCEEDED(aQuery->GetHasBeginTime(&hasIt)) && hasIt) 
       clause.Condition("visit_date >=").Param(":begin_time");
     
     if (NS_SUCCEEDED(aQuery->GetHasEndTime(&hasIt)) && hasIt)
@@ -3337,7 +3325,7 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
 
   if (aQuery->MaxVisits() >= 0)
     clause.Condition("h.visit_count <=").Param(":max_visits");
-
+  
   
   if (aOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS &&
       aQuery->OnlyBookmarked())
@@ -3641,7 +3629,7 @@ const int64_t UNDEFINED_URN_VALUE = -1;
 
 
 nsresult
-CreatePlacesPersistURN(nsNavHistoryQueryResultNode *aResultNode,
+CreatePlacesPersistURN(nsNavHistoryQueryResultNode *aResultNode, 
                        int64_t aValue, const nsCString& aTitle, nsCString& aURN)
 {
   nsAutoCString uri;
@@ -3675,7 +3663,7 @@ nsNavHistory::GetTagsFolder()
   if (mTagsFolder == -1) {
     nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
     NS_ENSURE_TRUE(bookmarks, -1);
-
+    
     nsresult rv = bookmarks->GetTagsFolder(&mTagsFolder);
     NS_ENSURE_SUCCESS(rv, -1);
   }
