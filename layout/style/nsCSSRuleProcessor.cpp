@@ -2925,8 +2925,24 @@ nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext)
 UniquePtr<nsMediaQueryResultCacheKey>
 nsCSSRuleProcessor::CloneMQCacheKey()
 {
+  MOZ_ASSERT(!(mRuleCascades && mPreviousCacheKey));
+
   RuleCascadeData* c = mRuleCascades;
-  if (!c || !c->mCacheKey.HasFeatureConditions()) {
+  if (!c) {
+    
+    
+    
+    if (mPreviousCacheKey) {
+      NS_ASSERTION(mPreviousCacheKey->HasFeatureConditions(),
+                   "we shouldn't have a previous cache key unless it has "
+                   "feature conditions");
+      return MakeUnique<nsMediaQueryResultCacheKey>(*mPreviousCacheKey);
+    }
+
+    return UniquePtr<nsMediaQueryResultCacheKey>();
+  }
+
+  if (!c->mCacheKey.HasFeatureConditions()) {
     return UniquePtr<nsMediaQueryResultCacheKey>();
   }
 
