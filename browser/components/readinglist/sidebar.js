@@ -57,7 +57,9 @@ let RLSidebar = {
     this.emptyListInfo = document.getElementById("emptyListInfo");
     this.itemTemplate = document.getElementById("item-template");
 
-    this.list.addEventListener("click", event => this.onListClick(event));
+    
+    document.addEventListener("click", event => this.onClick(event));
+
     this.list.addEventListener("mousemove", event => this.onListMouseMove(event));
     this.list.addEventListener("keydown", event => this.onListKeyDown(event), true);
 
@@ -387,7 +389,7 @@ let RLSidebar = {
 
 
 
-  onListClick(event) {
+  onClick(event) {
     let itemNode = this.findParentItemNode(event.target);
     if (!itemNode)
       return;
