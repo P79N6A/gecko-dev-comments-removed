@@ -123,7 +123,6 @@ WrapperFactory::DoubleWrap(JSContext *cx, HandleObject obj, unsigned flags)
 
 
 
-
 static bool
 ForceCOWBehavior(JSObject *obj)
 {
@@ -134,6 +133,11 @@ ForceCOWBehavior(JSObject *obj)
                    "instances modulo this hack");
         return true;
     }
+    
+    
+    if (key == JSProto_Proxy)
+        return true;
+
     return false;
 }
 
