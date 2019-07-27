@@ -338,9 +338,12 @@ public class LoadFaviconTask {
         
         
         
-        LoadFaviconResult uriBitmaps = FaviconDecoder.decodeDataURI(faviconURL);
-        if (uriBitmaps != null) {
-            return pushToCacheAndGetResult(uriBitmaps);
+        final boolean isEmpty = TextUtils.isEmpty(faviconURL);
+        if (!isEmpty) {
+            LoadFaviconResult uriBitmaps = FaviconDecoder.decodeDataURI(faviconURL);
+            if (uriBitmaps != null) {
+                return pushToCacheAndGetResult(uriBitmaps);
+            }
         }
 
         String storedFaviconUrl;
@@ -348,7 +351,7 @@ public class LoadFaviconTask {
 
         
         
-        if (TextUtils.isEmpty(faviconURL)) {
+        if (isEmpty) {
             
             storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(pageUrl);
 
