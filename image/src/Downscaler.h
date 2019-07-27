@@ -9,8 +9,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_DOWNSCALER_H_
-#define MOZILLA_IMAGELIB_DOWNSCALER_H_
+#ifndef mozilla_image_src_Downscaler_h
+#define mozilla_image_src_Downscaler_h
 
 #include "mozilla/UniquePtr.h"
 #include "nsRect.h"
@@ -149,6 +149,6 @@ public:
 } 
 } 
 
-#endif
+#endif 
 
 #endif 
