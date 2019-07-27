@@ -1348,13 +1348,17 @@ class JavaPanZoomController
         GeckoAppShell.sendEventToGecko(e);
     }
 
+    private boolean waitForDoubleTap() {
+        return !mMediumPress && mTarget.getZoomConstraints().getAllowDoubleTapZoom();
+    }
+
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
         
         
         
         
-        if (mMediumPress || !mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
+        if (!waitForDoubleTap()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
@@ -1364,7 +1368,7 @@ class JavaPanZoomController
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
         
-        if (mTarget.getZoomConstraints().getAllowDoubleTapZoom()) {
+        if (waitForDoubleTap()) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         return true;
