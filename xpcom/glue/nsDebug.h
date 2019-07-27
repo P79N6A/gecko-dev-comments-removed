@@ -227,22 +227,6 @@ inline void MOZ_PretendNoReturn()
 
 #endif 
 
-#ifdef XGILL_PLUGIN
-
-
-
-
-
-#undef NS_PRECONDITION
-#undef NS_ASSERTION
-#undef NS_POSTCONDITION
-
-#define NS_PRECONDITION(expr, str)   STATIC_ASSERT_RUNTIME(expr)
-#define NS_ASSERTION(expr, str)      STATIC_ASSERT_RUNTIME(expr)
-#define NS_POSTCONDITION(expr, str)  STATIC_ASSERT_RUNTIME(expr)
-
-#endif 
-
 
 
 
