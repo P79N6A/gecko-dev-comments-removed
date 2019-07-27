@@ -172,29 +172,12 @@ class MozbuildObject(ProcessExecutionMixin):
         
         
         
-        
-        
-        
-        
-
         if topobjdir and config_topobjdir:
-            if not os.path.exists(config_topobjdir):
-                config_topobjdir = MozbuildObject.resolve_mozconfig_topobjdir(
-                    os.path.dirname(topsrcdir), config)
-                if current_project:
-                    config_topobjdir = os.path.join(config_topobjdir,
-                        current_project)
-                config_topobjdir = os.path.join(config_topobjdir,
-                    os.path.basename(topsrcdir))
-            elif current_project:
+            if current_project:
                 config_topobjdir = os.path.join(config_topobjdir, current_project)
 
             _config_topobjdir = config_topobjdir
-            mozilla_dir = os.path.join(_config_topobjdir, 'mozilla')
-            if not samepath(topobjdir, _config_topobjdir) \
-                and (not os.path.exists(mozilla_dir) or not samepath(topobjdir,
-                mozilla_dir)):
-
+            if not samepath(topobjdir, _config_topobjdir):
                 raise ObjdirMismatchException(topobjdir, _config_topobjdir)
 
         topobjdir = topobjdir or config_topobjdir
