@@ -49,7 +49,8 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/EncodingUtils.h"
-#include "nsComputedDOMStyle.h"
+#include "nsContainerFrame.h"
+#include "nsBlockFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -324,7 +325,45 @@ nsDocumentEncoder::IncludeInContext(nsINode *aNode)
 
 static
 bool
-IsInvisibleBreak(nsINode *aNode) {
+LineHasNonEmptyContentWorker(nsIFrame* aFrame)
+{
+  
+  
+  if (aFrame->GetType() == nsGkAtoms::inlineFrame) {
+    nsIFrame* child = aFrame->GetFirstPrincipalChild();
+    while (child) {
+      if (LineHasNonEmptyContentWorker(child)) {
+        return true;
+      }
+      child = child->GetNextSibling();
+    }
+  } else {
+    if (aFrame->GetType() != nsGkAtoms::brFrame &&
+        !aFrame->IsEmpty()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static
+bool
+LineHasNonEmptyContent(nsLineBox* aLine)
+{
+  int32_t count = aLine->GetChildCount();
+  for (nsIFrame* frame = aLine->mFirstChild; count > 0;
+       --count, frame = frame->GetNextSibling()) {
+    if (LineHasNonEmptyContentWorker(frame)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static
+bool
+IsInvisibleBreak(nsINode *aNode)
+{
   if (!aNode->IsElement() || !aNode->IsEditable()) {
     return false;
   }
@@ -333,14 +372,36 @@ IsInvisibleBreak(nsINode *aNode) {
     return false;
   }
 
-  
-  
-  
-  bool visible = frame->GetNextSibling() ||
-                 ((!frame->GetPrevSibling() ||
-                   frame->GetPrevSibling()->GetType() == nsGkAtoms::brFrame) &&
-                  frame->GetRect().Height() != 0);
-  return !visible;
+  nsContainerFrame* f = frame->GetParent();
+  while (f && f->IsFrameOfType(nsBox::eLineParticipant)) {
+    f = f->GetParent();
+  }
+  nsBlockFrame* blockAncestor = do_QueryFrame(f);
+  if (!blockAncestor) {
+    
+    return false;
+  }
+
+  bool valid = false;
+  nsBlockInFlowLineIterator iter(blockAncestor, frame, &valid);
+  if (!valid) {
+    return false;
+  }
+
+  bool lineNonEmpty = LineHasNonEmptyContent(iter.GetLine());
+
+  while (iter.Next()) {
+    auto currentLine = iter.GetLine();
+    
+    if (!currentLine->IsEmpty()) {
+      
+      if (currentLine->IsInline()) {
+        return false;
+      }
+    }
+  }
+
+  return lineNonEmpty;
 }
 
 nsresult
