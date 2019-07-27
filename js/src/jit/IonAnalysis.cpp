@@ -661,7 +661,7 @@ jit::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
 
             
             if (MDefinition *redundant = IsPhiRedundant(*iter)) {
-                iter->replaceAllUsesWith(redundant);
+                iter->justReplaceAllUsesWith(redundant);
                 iter = block->discardPhiAt(iter);
                 continue;
             }
@@ -699,7 +699,7 @@ jit::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
                     }
                 }
             }
-            phi->replaceAllUsesWith(redundant);
+            phi->justReplaceAllUsesWith(redundant);
         } else {
             
             phi->setNotUnused();
@@ -1097,7 +1097,7 @@ TypeAnalyzer::replaceRedundantPhi(MPhi *phi)
     MConstant *c = MConstant::New(alloc(), v);
     
     block->insertBefore(*(block->begin()), c);
-    phi->replaceAllUsesWith(c);
+    phi->justReplaceAllUsesWith(c);
 }
 
 bool

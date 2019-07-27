@@ -668,6 +668,9 @@ class MDefinition : public MNode
     void replaceAllUsesWith(MDefinition *dom);
 
     
+    void justReplaceAllUsesWith(MDefinition *dom);
+
+    
     
     
     virtual bool updateForReplacement(MDefinition *ins) {

@@ -151,7 +151,9 @@ ReplaceAllUsesWith(MDefinition *from, MDefinition *to)
     MOZ_ASSERT(from != to, "GVN shouldn't try to replace a value with itself");
     MOZ_ASSERT(from->type() == to->type(), "Def replacement has different type");
 
-    from->replaceAllUsesWith(to);
+    
+    
+    from->justReplaceAllUsesWith(to);
 }
 
 
@@ -222,7 +224,8 @@ ValueNumberer::deleteDefsRecursively(MDefinition *def)
 
 
 bool
-ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
+ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
+                                  UseRemovedOption useRemovedOption)
 {
     
     for (int o = phi->numOperands() - 1; o >= 0; --o) {
@@ -232,7 +235,8 @@ ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
             if (!deadDefs_.append(op))
                 return false;
         } else {
-            op->setUseRemovedUnchecked();
+            if (useRemovedOption == SetUseRemoved)
+                op->setUseRemovedUnchecked();
         }
     }
     return true;
@@ -241,7 +245,8 @@ ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
 
 
 bool
-ValueNumberer::discardInsOperands(MInstruction *ins)
+ValueNumberer::discardInsOperands(MInstruction *ins,
+                                  UseRemovedOption useRemovedOption)
 {
     for (size_t o = 0, e = ins->numOperands(); o != e; ++o) {
         MDefinition *op = ins->getOperand(o);
@@ -250,14 +255,16 @@ ValueNumberer::discardInsOperands(MInstruction *ins)
             if (!deadDefs_.append(op))
                 return false;
         } else {
-            op->setUseRemovedUnchecked();
+            if (useRemovedOption == SetUseRemoved)
+                op->setUseRemovedUnchecked();
         }
     }
     return true;
 }
 
 bool
-ValueNumberer::deleteDef(MDefinition *def)
+ValueNumberer::deleteDef(MDefinition *def,
+                         UseRemovedOption useRemovedOption)
 {
     JitSpew(JitSpew_GVN, "    Deleting %s%u", def->opName(), def->id());
     MOZ_ASSERT(IsDead(def), "Deleting non-dead definition");
@@ -266,13 +273,13 @@ ValueNumberer::deleteDef(MDefinition *def)
     if (def->isPhi()) {
         MPhi *phi = def->toPhi();
         MBasicBlock *phiBlock = phi->block();
-        if (!discardPhiOperands(phi, phiBlock))
+        if (!discardPhiOperands(phi, phiBlock, useRemovedOption))
              return false;
         MPhiIterator at(phiBlock->phisBegin(phi));
         phiBlock->discardPhiAt(at);
     } else {
         MInstruction *ins = def->toInstruction();
-        if (!discardInsOperands(ins))
+        if (!discardInsOperands(ins, useRemovedOption))
              return false;
         ins->block()->discardIgnoreOperands(ins);
     }
@@ -500,7 +507,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
             if (DeadIfUnused(def)) {
                 
                 
-                mozilla::DebugOnly<bool> r = deleteDef(def);
+                mozilla::DebugOnly<bool> r = deleteDef(def, DontSetUseRemoved);
                 MOZ_ASSERT(r, "deleteDef shouldn't have tried to add anything to the worklist, "
                               "so it shouldn't have failed");
                 MOZ_ASSERT(deadDefs_.empty(),

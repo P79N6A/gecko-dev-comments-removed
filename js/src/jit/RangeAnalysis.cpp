@@ -272,7 +272,7 @@ RangeAnalysis::removeBetaNodes()
                 MDefinition *op = def->getOperand(0);
                 JitSpew(JitSpew_Range, "Removing beta node %d for %d",
                         def->id(), op->id());
-                def->replaceAllUsesWith(op);
+                def->justReplaceAllUsesWith(op);
                 iter = block->discardDefAt(iter);
             } else {
                 
