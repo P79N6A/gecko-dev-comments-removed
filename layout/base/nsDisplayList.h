@@ -2568,6 +2568,9 @@ private:
 
 
 class nsDisplayWrapList : public nsDisplayItem {
+  
+  
+
 public:
   
 
@@ -2577,10 +2580,7 @@ public:
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                     nsDisplayItem* aItem);
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame), mOverrideZIndex(0)
-  {
-    MOZ_COUNT_CTOR(nsDisplayWrapList);
-  }
+    : nsDisplayItem(aBuilder, aFrame), mOverrideZIndex(0) {}
   virtual ~nsDisplayWrapList();
   
 
