@@ -282,7 +282,7 @@ RunTests()
   UseItOrLoseIt(s, seven);
 
   
-  s = (char*) malloc(144);
+  s = (char*) malloc(160);
   UseItOrLoseIt(s, seven);
 
   
