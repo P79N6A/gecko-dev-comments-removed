@@ -296,11 +296,14 @@ png_write_info(png_structrp png_ptr, png_const_inforp info_ptr)
              info_ptr->text[i].lang,
              info_ptr->text[i].lang_key,
              info_ptr->text[i].text);
+         
+         if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
+            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
+         else
+            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
 #else
-          png_warning(png_ptr, "Unable to write international text");
+         png_warning(png_ptr, "Unable to write international text");
 #endif
-          
-          info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
       }
 
       
@@ -309,13 +312,12 @@ png_write_info(png_structrp png_ptr, png_const_inforp info_ptr)
 #ifdef PNG_WRITE_zTXt_SUPPORTED
          
          png_write_zTXt(png_ptr, info_ptr->text[i].key,
-             info_ptr->text[i].text, 0,
-             info_ptr->text[i].compression);
+             info_ptr->text[i].text, info_ptr->text[i].compression);
+         
+         info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
 #else
          png_warning(png_ptr, "Unable to write compressed text");
 #endif
-         
-         info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
       }
 
       else if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
@@ -396,11 +398,14 @@ png_write_end(png_structrp png_ptr, png_inforp info_ptr)
                 info_ptr->text[i].lang,
                 info_ptr->text[i].lang_key,
                 info_ptr->text[i].text);
+            
+            if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
+               info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
+            else
+               info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
 #else
             png_warning(png_ptr, "Unable to write international text");
 #endif
-            
-            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
          }
 
          else if (info_ptr->text[i].compression >= PNG_TEXT_COMPRESSION_zTXt)
@@ -408,13 +413,12 @@ png_write_end(png_structrp png_ptr, png_inforp info_ptr)
 #ifdef PNG_WRITE_zTXt_SUPPORTED
             
             png_write_zTXt(png_ptr, info_ptr->text[i].key,
-                info_ptr->text[i].text, 0,
-                info_ptr->text[i].compression);
+                info_ptr->text[i].text, info_ptr->text[i].compression);
+            
+            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
 #else
             png_warning(png_ptr, "Unable to write compressed text");
 #endif
-            
-            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
          }
 
          else if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
@@ -423,12 +427,11 @@ png_write_end(png_structrp png_ptr, png_inforp info_ptr)
             
             png_write_tEXt(png_ptr, info_ptr->text[i].key,
                 info_ptr->text[i].text, 0);
+            
+            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
 #else
             png_warning(png_ptr, "Unable to write uncompressed text");
 #endif
-
-            
-            info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
          }
       }
 #endif

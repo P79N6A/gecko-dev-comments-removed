@@ -399,6 +399,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -414,9 +417,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.6.13"
+#define PNG_LIBPNG_VER_STRING "1.6.14"
 #define PNG_HEADER_VERSION_STRING \
-     " libpng version 1.6.13 - August 21, 2014\n"
+     " libpng version 1.6.14 - October 23, 2014\n"
 
 #define PNG_LIBPNG_VER_SONUM   16
 #define PNG_LIBPNG_VER_DLLNUM  16
@@ -424,7 +427,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   6
-#define PNG_LIBPNG_VER_RELEASE 13
+#define PNG_LIBPNG_VER_RELEASE 14
 
 
 
@@ -455,7 +458,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10613 /* 1.6.13 */
+#define PNG_LIBPNG_VER 10614 /* 1.6.14 */
 
 
 
@@ -575,7 +578,7 @@ extern "C" {
 
 
 
-typedef char* png_libpng_version_1_6_13;
+typedef char* png_libpng_version_1_6_14;
 
 
 
@@ -2768,6 +2771,8 @@ PNG_EXPORT(207, void, png_save_uint_16, (png_bytep buf, unsigned int i));
 #  endif
 #endif
 
+#if defined(PNG_SIMPLIFIED_READ_SUPPORTED) || \
+    defined(PNG_SIMPLIFIED_WRITE_SUPPORTED)
 
 
 
@@ -3220,6 +3225,7 @@ PNG_EXPORT(240, int, png_image_write_to_stdio, (png_imagep image, FILE *file,
 
 
 
+#endif 
 
 #ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED
 PNG_EXPORT(242, void, png_set_check_for_invalid_index,
@@ -3267,7 +3273,7 @@ PNG_EXPORT(243, int, png_get_palette_max, (png_const_structp png_ptr,
 
 PNG_EXPORT(244, int, png_set_option, (png_structrp png_ptr, int option,
    int onoff));
-#endif
+#endif 
 
 
 
@@ -3341,7 +3347,6 @@ PNG_EXPORT(264, void, png_write_frame_tail, (png_structp png_ptr,
    png_infop info_ptr));
 #endif 
 #endif 
-
 
 
 

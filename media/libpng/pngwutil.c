@@ -181,7 +181,7 @@ png_write_complete_chunk(png_structrp png_ptr, png_uint_32 chunk_name,
 
    
    if (length > PNG_UINT_31_MAX)
-      png_error(png_ptr, "length exceeds PNG maxima");
+      png_error(png_ptr, "length exceeds PNG maximum");
 
    png_write_chunk_header(png_ptr, chunk_name, (png_uint_32)length);
    png_write_chunk_data(png_ptr, data, length);
@@ -297,6 +297,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 {
    if (png_ptr->zowner != 0)
    {
+#     if defined(PNG_WARNINGS_SUPPORTED) || defined(PNG_ERROR_TEXT_SUPPORTED)
       char msg[64];
 
       PNG_STRING_FROM_CHUNK(msg, owner);
@@ -308,6 +309,7 @@ png_deflate_claim(png_structrp png_ptr, png_uint_32 owner,
 
 
       (void)png_safecat(msg, (sizeof msg), 10, " using zstream");
+#     endif
 #     if PNG_LIBPNG_BUILD_BASE_TYPE >= PNG_LIBPNG_BUILD_RC
          png_warning(png_ptr, msg);
 
@@ -728,6 +730,7 @@ png_check_keyword(png_structrp png_ptr, png_const_charp key, png_bytep new_key)
    if (key_len == 0)
       return 0;
 
+#ifdef PNG_WARNINGS_SUPPORTED
    
    if (*key) 
       png_warning(png_ptr, "keyword truncated");
@@ -741,6 +744,7 @@ png_check_keyword(png_structrp png_ptr, png_const_charp key, png_bytep new_key)
 
       png_formatted_warning(png_ptr, p, "keyword \"@1\": bad character '0x@2'");
    }
+#endif 
 
    return key_len;
 }
@@ -1642,14 +1646,13 @@ png_write_tEXt(png_structrp png_ptr, png_const_charp key, png_const_charp text,
 
 void 
 png_write_zTXt(png_structrp png_ptr, png_const_charp key, png_const_charp text,
-    png_size_t text_len, int compression)
+    int compression)
 {
    png_uint_32 key_len;
    png_byte new_key[81];
    compression_state comp;
 
    png_debug(1, "in png_write_zTXt");
-   PNG_UNUSED(text_len) 
 
    if (compression == PNG_TEXT_COMPRESSION_NONE)
    {

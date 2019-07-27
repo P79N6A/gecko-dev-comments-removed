@@ -14,7 +14,7 @@
 #include "pngpriv.h"
 
 
-typedef png_libpng_version_1_6_13 Your_png_h_is_not_version_1_6_13;
+typedef png_libpng_version_1_6_14 Your_png_h_is_not_version_1_6_14;
 
 
 
@@ -773,13 +773,13 @@ png_get_copyright(png_const_structrp png_ptr)
 #else
 #  ifdef __STDC__
    return PNG_STRING_NEWLINE \
-     "libpng version 1.6.13 - August 21, 2014" PNG_STRING_NEWLINE \
+     "libpng version 1.6.14 - October 23, 2014" PNG_STRING_NEWLINE \
      "Copyright (c) 1998-2014 Glenn Randers-Pehrson" PNG_STRING_NEWLINE \
      "Copyright (c) 1996-1997 Andreas Dilger" PNG_STRING_NEWLINE \
      "Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc." \
      PNG_STRING_NEWLINE;
 #  else
-      return "libpng version 1.6.13 - August 21, 2014\
+      return "libpng version 1.6.14 - October 23, 2014\
       Copyright (c) 1998-2014 Glenn Randers-Pehrson\
       Copyright (c) 1996-1997 Andreas Dilger\
       Copyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.";
@@ -2219,10 +2219,12 @@ png_compare_ICC_profile_with_sRGB(png_const_structrp png_ptr,
 #endif
    unsigned int i;
 
+#ifdef PNG_SET_OPTION_SUPPORTED
    
    if (((png_ptr->options >> PNG_SKIP_sRGB_CHECK_PROFILE) & 3) ==
                PNG_OPTION_ON)
       return 0;
+#endif
 
    for (i=0; i < (sizeof png_sRGB_checks) / (sizeof png_sRGB_checks[0]); ++i)
    {
@@ -4181,7 +4183,6 @@ const png_uint_16 png_sRGB_table[256] =
    57105,57646,58190,58737,59287,59840,60396,60955,
    61517,62082,62650,63221,63795,64372,64952,65535
 };
-
 #endif 
 
 

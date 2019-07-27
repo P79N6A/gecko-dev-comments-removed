@@ -476,6 +476,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
    row_info.pixel_depth = png_ptr->pixel_depth;
    row_info.rowbytes = PNG_ROWBYTES(row_info.pixel_depth, row_info.width);
 
+#ifdef PNG_WARNINGS_SUPPORTED
    if (png_ptr->row_number == 0 && png_ptr->pass == 0)
    {
    
@@ -515,6 +516,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
       png_warning(png_ptr, "PNG_READ_SWAP_SUPPORTED is not defined");
 #endif
    }
+#endif 
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
    
