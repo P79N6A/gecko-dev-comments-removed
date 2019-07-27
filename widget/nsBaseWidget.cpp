@@ -953,6 +953,10 @@ private:
   nsRefPtr<APZCTreeManager> mTreeManager;
 };
 
+bool nsBaseWidget::IsMultiProcessWindow()
+{
+  return mMultiProcessWindow;
+}
 
 void nsBaseWidget::ConfigureAPZCTreeManager()
 {
@@ -1145,6 +1149,12 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   mCompositorParent->SetOtherProcessId(base::GetCurrentProcId());
 
   if (gfxPrefs::AsyncPanZoomEnabled() &&
+#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA) || defined(MOZ_WIDGET_GTK)
+      
+      
+      
+      IsMultiProcessWindow() &&
+#endif
       (WindowType() == eWindowType_toplevel || WindowType() == eWindowType_child)) {
     ConfigureAPZCTreeManager();
   }
