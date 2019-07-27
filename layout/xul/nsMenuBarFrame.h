@@ -101,7 +101,7 @@ public:
 #endif
 
 protected:
-  nsMenuBarListener* mMenuBarListener; 
+  nsRefPtr<nsMenuBarListener> mMenuBarListener; 
 
   
   
