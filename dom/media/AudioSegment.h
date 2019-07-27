@@ -168,7 +168,6 @@ struct AudioChunk {
 
 
 
-
 class AudioSegment : public MediaSegmentBase<AudioSegment, AudioChunk> {
 public:
   typedef mozilla::AudioSampleFormat SampleFormat;
@@ -207,17 +206,18 @@ public:
                    "Dropping samples");
       uint32_t outSize = (c.mDuration * aOutRate + aInRate - 1) / aInRate;
       for (uint32_t i = 0; i < channels; i++) {
-        const T* in = static_cast<const T*>(c.mChannelData[i]);
         T* out = output[i].AppendElements(outSize);
         uint32_t outFrames = outSize;
 
 #if !defined(MOZILLA_XPCOMRT_API)
 
+        const T* in = static_cast<const T*>(c.mChannelData[i]);
         dom::WebAudioUtils::SpeexResamplerProcess(aResampler, i,
                                                   in, &inFrames,
                                                   out, &outFrames);
         MOZ_ASSERT(inFrames == c.mDuration);
 #endif 
+
         bufferPtrs[i] = out;
         output[i].SetLength(outFrames);
       }
