@@ -120,6 +120,7 @@ public:
   
   
   
+  
   virtual GMPErr GetName(const char ** aOutName, uint32_t * aOutNameLength) = 0;
 
   
