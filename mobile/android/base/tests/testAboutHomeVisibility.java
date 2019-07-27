@@ -13,20 +13,18 @@ public class testAboutHomeVisibility extends UITest {
         GeckoHelper.blockForReady();
 
         
-        mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE, StringHelper.ABOUT_HOME_URL);
+        mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
                   .assertCurrentPanel(PanelType.TOP_SITES);
 
         
         NavigationHelper.enterAndLoadUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
-        mToolbar.assertTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE,
-                StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        mToolbar.assertTitle(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
         mAboutHome.assertNotVisible();
 
         
         NavigationHelper.enterAndLoadUrl(StringHelper.ROBOCOP_BLANK_PAGE_02_URL);
-        mToolbar.assertTitle(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE,
-                StringHelper.ROBOCOP_BLANK_PAGE_02_URL);
+        mToolbar.assertTitle(StringHelper.ROBOCOP_BLANK_PAGE_02_TITLE);
         mAboutHome.assertNotVisible();
 
         
@@ -40,7 +38,7 @@ public class testAboutHomeVisibility extends UITest {
 
         
         NavigationHelper.enterAndLoadUrl(StringHelper.ABOUT_HOME_URL);
-        mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE, StringHelper.ABOUT_HOME_URL);
+        mToolbar.assertTitle(StringHelper.ABOUT_HOME_TITLE);
         mAboutHome.assertVisible()
                   .assertCurrentPanel(PanelType.TOP_SITES);
 
@@ -51,5 +49,7 @@ public class testAboutHomeVisibility extends UITest {
         mAboutHome.navigateToBuiltinPanelType(PanelType.HISTORY)
                   .assertVisible()
                   .assertCurrentPanel(PanelType.HISTORY);
+
+        
     }
 }

@@ -61,7 +61,7 @@ public class testAddSearchEngine extends AboutHomeTest {
         
         inputAndLoadUrl(searchEngineURL);
         waitForText(StringHelper.ROBOCOP_SEARCH_TITLE);
-        verifyPageTitle(StringHelper.ROBOCOP_SEARCH_TITLE, searchEngineURL);
+        verifyPageTitle(StringHelper.ROBOCOP_SEARCH_TITLE);
 
         
         getInstrumentation().waitForIdleSync();
@@ -99,7 +99,7 @@ public class testAddSearchEngine extends AboutHomeTest {
 
         mAsserter.dumpLog("Search Engines list = " + searchEngines.toString());
         mAsserter.is(searchEngines.size(), initialNumSearchEngines + 1, "Checking the number of Search Engines has increased");
-
+        
         
         verifyDisplayedSearchEnginesCount(initialNumSearchEngines + 1);
         searchEngineDataEventExpector.unregisterListener();
@@ -151,7 +151,7 @@ public class testAddSearchEngine extends AboutHomeTest {
                 return (adapter.getCount() == expectedCount);
             }
         }, MAX_WAIT_TEST_MS);
-
+        
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
         waitForText(StringHelper.ROBOCOP_BLANK_PAGE_01_TITLE);
