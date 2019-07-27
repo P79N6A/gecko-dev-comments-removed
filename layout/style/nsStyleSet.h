@@ -133,11 +133,16 @@ class nsStyleSet
   
   
   
+  enum { 
+    
+    eSkipStartingAnimations = (1<<0),
+  };
   already_AddRefed<nsStyleContext>
   ResolveStyleWithReplacement(mozilla::dom::Element* aElement,
                               nsStyleContext* aNewParentContext,
                               nsStyleContext* aOldStyleContext,
-                              nsRestyleHint aReplacements);
+                              nsRestyleHint aReplacements,
+                              uint32_t aFlags = 0);
 
   
   
