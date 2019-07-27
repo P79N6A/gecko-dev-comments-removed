@@ -21,13 +21,13 @@ public class testAboutPage extends PixelTest {
         blockForGeckoReady();
 
         
-        String url = StringHelper.ABOUT_SCHEME;
+        String url = mStringHelper.ABOUT_SCHEME;
         loadAndPaint(url);
 
         verifyUrlBarTitle(url);
 
         
-        url = getAbsoluteUrl(StringHelper.ROBOCOP_BLANK_PAGE_01_URL);
+        url = getAbsoluteUrl(mStringHelper.ROBOCOP_BLANK_PAGE_01_URL);
         loadUrl(url);
 
         
@@ -37,7 +37,7 @@ public class testAboutPage extends PixelTest {
         Actions.EventExpecter tabEventExpecter = mActions.expectGeckoEvent("Tab:Added");
         Actions.EventExpecter contentEventExpecter = mActions.expectGeckoEvent("DOMContentLoaded");
 
-        selectSettingsItem(StringHelper.MOZILLA_SECTION_LABEL, StringHelper.ABOUT_LABEL);
+        selectSettingsItem(mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.ABOUT_LABEL);
 
         
         tabEventExpecter.blockForEvent();
@@ -47,6 +47,6 @@ public class testAboutPage extends PixelTest {
         contentEventExpecter.unregisterListener();
 
         
-        verifyUrlBarTitle(StringHelper.ABOUT_SCHEME);
+        verifyUrlBarTitle(mStringHelper.ABOUT_SCHEME);
     }
 }

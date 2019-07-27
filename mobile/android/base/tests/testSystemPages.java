@@ -13,26 +13,26 @@ public class testSystemPages extends PixelTest {
     public void testSystemPages() {
         blockForGeckoReady();
 
-        final String urls [] = { StringHelper.ABOUT_FIREFOX_URL, StringHelper.ABOUT_RIGHTS_URL,
-                StringHelper.ABOUT_ADDONS_URL, StringHelper.ABOUT_DOWNLOADS_URL, StringHelper.ABOUT_PASSWORDS_URL,
-                StringHelper.ABOUT_BUILDCONFIG_URL, StringHelper.ABOUT_FEEDBACK_URL,
-                StringHelper.ABOUT_HEALTHREPORT_URL, StringHelper.ABOUT_SCHEME
+        final String urls [] = { mStringHelper.ABOUT_FIREFOX_URL, mStringHelper.ABOUT_RIGHTS_URL,
+                mStringHelper.ABOUT_ADDONS_URL, mStringHelper.ABOUT_DOWNLOADS_URL, StringHelper.ABOUT_PASSWORDS_URL,
+                mStringHelper.ABOUT_BUILDCONFIG_URL, mStringHelper.ABOUT_FEEDBACK_URL,
+                mStringHelper.ABOUT_HEALTHREPORT_URL, mStringHelper.ABOUT_SCHEME
         };
         
-        String menuItems [][][] = {{{ StringHelper.APPS_LABEL }, { StringHelper.ABOUT_APPS_URL }},
-                                  {{ StringHelper.DOWNLOADS_LABEL }, { StringHelper.ABOUT_DOWNLOADS_URL}},
-                                  {{ StringHelper.LOGINS_LABEL}, { StringHelper.ABOUT_PASSWORDS_URL }},
-                                  {{ StringHelper.ADDONS_LABEL }, { StringHelper.ABOUT_ADDONS_URL }},
-                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.ABOUT_LABEL }, { StringHelper.ABOUT_SCHEME }},
-                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.FEEDBACK_LABEL }, { StringHelper.ABOUT_FEEDBACK_URL }},
-                                  {{ StringHelper.SETTINGS_LABEL, StringHelper.MOZILLA_SECTION_LABEL, StringHelper.MY_HEALTH_REPORT_LABEL }, { StringHelper.ABOUT_HEALTHREPORT_URL }}};
+        String menuItems [][][] = {{{ mStringHelper.APPS_LABEL }, { mStringHelper.ABOUT_APPS_URL }},
+                                  {{ mStringHelper.DOWNLOADS_LABEL }, { mStringHelper.ABOUT_DOWNLOADS_URL}},
+                                  {{ mStringHelper.LOGINS_LABEL}, { StringHelper.ABOUT_PASSWORDS_URL }},
+                                  {{ mStringHelper.ADDONS_LABEL }, { mStringHelper.ABOUT_ADDONS_URL }},
+                                  {{ mStringHelper.SETTINGS_LABEL, mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.ABOUT_LABEL }, { mStringHelper.ABOUT_SCHEME }},
+                                  {{ mStringHelper.SETTINGS_LABEL, mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.FEEDBACK_LABEL }, { mStringHelper.ABOUT_FEEDBACK_URL }},
+                                  {{ mStringHelper.SETTINGS_LABEL, mStringHelper.MOZILLA_SECTION_LABEL, mStringHelper.MY_HEALTH_REPORT_LABEL }, { mStringHelper.ABOUT_HEALTHREPORT_URL }}};
 
         
         checkUrl(urls);
 
         
 
-        loadAndPaint(StringHelper.ABOUT_ABOUT_URL);
+        loadAndPaint(mStringHelper.ABOUT_ABOUT_URL);
 
         
         mActions.sendSpecialKey(Actions.SpecialKey.BACK);
@@ -40,8 +40,8 @@ public class testSystemPages extends PixelTest {
         mSolo.sleep(AFTER_BACK_SLEEP_MS);
 
         
-        loadAndPaint(StringHelper.ABOUT_SCHEME);
-        verifyUrl(StringHelper.ABOUT_SCHEME); 
+        loadAndPaint(mStringHelper.ABOUT_SCHEME);
+        verifyUrl(mStringHelper.ABOUT_SCHEME); 
 
         
         loadItemsByLevel(menuItems);
@@ -81,7 +81,7 @@ public class testSystemPages extends PixelTest {
             selectMenuItemByPath(pathToItem);
 
             
-            if (StringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
+            if (mStringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
                 waitForPaint(paintExpecter); 
                 paintExpecter.unregisterListener();
             } else {
@@ -92,7 +92,7 @@ public class testSystemPages extends PixelTest {
             contentEventExpecter.unregisterListener();
 
             verifyUrl(expectedUrl);
-            if (StringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
+            if (mStringHelper.ABOUT_SCHEME.equals(expectedUrl)) {
                 
                 expectedTabCount--;
             }
