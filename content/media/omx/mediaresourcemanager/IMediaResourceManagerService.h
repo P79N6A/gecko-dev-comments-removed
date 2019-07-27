@@ -27,6 +27,7 @@ public:
       HW_VIDEO_DECODER = 0,
       HW_AUDIO_DECODER,  
       HW_VIDEO_ENCODER,
+      HW_AUDIO_ENCODER,  
       HW_CAMERA,          
       NUM_OF_RESOURCE_TYPES,
       INVALID_RESOURCE_TYPE = -1
