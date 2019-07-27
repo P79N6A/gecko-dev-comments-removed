@@ -59,6 +59,8 @@ import org.mozilla.gecko.home.SearchEngine;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.GeckoMenuItem;
 import org.mozilla.gecko.mozglue.ContextUtils;
+import org.mozilla.gecko.mozglue.ContextUtils.SafeIntent;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.preferences.ClearOnShutdownPref;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.prompts.Prompt;
@@ -169,6 +171,9 @@ public class BrowserApp extends GeckoApp
 
     
     private static final int ACTIVITY_REQUEST_PREFERENCES = 1001;
+
+    @RobocopTarget
+    public static final String EXTRA_SKIP_STARTPANE = "skipstartpane";
 
     public static final String PREF_STARTPANE_ENABLED = "startpane_enabled";
 
@@ -688,14 +693,20 @@ public class BrowserApp extends GeckoApp
 
 
 
-    private void checkStartPane(Context context, String intentAction) {
+    private void checkStartPane(Context context, SafeIntent intent) {
+        if (intent.getBooleanExtra(EXTRA_SKIP_STARTPANE, false)) {
+            
+            
+            return;
+        }
+
         final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskReads();
 
         try {
             final SharedPreferences prefs = GeckoSharedPrefs.forProfile(this);
 
             if (prefs.getBoolean(PREF_STARTPANE_ENABLED, false)) {
-                if (!Intent.ACTION_VIEW.equals(intentAction)) {
+                if (!Intent.ACTION_VIEW.equals(intent.getAction())) {
                     final DialogFragment dialog = new StartPane();
                     dialog.show(getSupportFragmentManager(), ONBOARD_STARTPANE_TAG);
                 }
@@ -742,7 +753,7 @@ public class BrowserApp extends GeckoApp
     @Override
     public void onAttachedToWindow() {
         
-        checkStartPane(this, getIntent().getAction());
+        checkStartPane(this, new SafeIntent(getIntent()));
     }
 
     @Override

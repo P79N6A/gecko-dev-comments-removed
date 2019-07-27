@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.Actions;
+import org.mozilla.gecko.BrowserApp;
 import org.mozilla.gecko.Driver;
 import org.mozilla.gecko.Element;
 import org.mozilla.gecko.FennecNativeActions;
@@ -25,7 +26,6 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.GeckoThread.LaunchState;
-import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.RobocopUtils;
 import org.mozilla.gecko.Tab;
@@ -113,7 +113,12 @@ abstract class BaseTest extends BaseRobocopTest {
         
         Intent i = new Intent(Intent.ACTION_MAIN);
         mProfile = mConfig.get("profile");
+
+        
+        i.putExtra(BrowserApp.EXTRA_SKIP_STARTPANE, true);
+
         i.putExtra("args", "-no-remote -profile " + mProfile);
+
         String envString = mConfig.get("envvars");
         if (envString != "") {
             String[] envStrings = envString.split(",");
