@@ -200,6 +200,12 @@
 #include "nsIBrowserSearchService.h"
 #endif
 
+#include "mozIThirdPartyUtil.h"
+
+
+#define COOKIE_BEHAVIOR_ACCEPT 0 // Allow all cookies.
+#define COOKIE_BEHAVIOR_REJECT_FOREIGN 1 // Reject all third-party cookies.
+
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 #if defined(DEBUG_bryner) || defined(DEBUG_chb)
@@ -14049,6 +14055,32 @@ nsDocShell::ShouldPrepareForIntercept(nsIURI* aURI, bool aIsNavigate,
   nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (!swm) {
     return NS_OK;
+  }
+
+  nsresult result;
+  nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+    do_GetService(THIRDPARTYUTIL_CONTRACTID, &result);
+  NS_ENSURE_SUCCESS(result, result);
+
+  if (mCurrentURI) {
+    nsAutoCString uriSpec;
+    mCurrentURI->GetSpec(uriSpec);
+    if (!(uriSpec.EqualsLiteral("about:blank"))) {
+      
+      
+      
+      
+      bool isThirdPartyURI = true;
+      result = thirdPartyUtil->IsThirdPartyURI(mCurrentURI, aURI,
+                                               &isThirdPartyURI);
+      NS_ENSURE_SUCCESS(result, result);
+      if (isThirdPartyURI &&
+          (Preferences::GetInt("network.cookie.cookieBehavior",
+                               COOKIE_BEHAVIOR_ACCEPT) ==
+                               COOKIE_BEHAVIOR_REJECT_FOREIGN)) {
+        return NS_OK;
+      }
+    }
   }
 
   if (aIsNavigate) {
