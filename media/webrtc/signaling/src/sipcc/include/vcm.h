@@ -66,6 +66,11 @@
 #define VCM_DSP_FULLDUPLEX_HW 4 // HW codecs
 #define VCM_DSP_FULLDUPLEX_GMP 5 // GMP-loaded codecs
 
+
+#define VCM_H264_MODE_0     1
+#define VCM_H264_MODE_1     2
+#define VCM_H264_MODE_2     4
+
 #define CC_KFACTOR_STAT_LEN   (256)
 
 
@@ -885,7 +890,8 @@ int vcmGetVideoCodecList(int request_type);
 
 
 
-int vcmGetVideoMaxSupportedPacketizationMode();
+
+int vcmGetH264SupportedPacketizationModes();
 
 
 

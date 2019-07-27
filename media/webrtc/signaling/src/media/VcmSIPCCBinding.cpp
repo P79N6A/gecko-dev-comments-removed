@@ -2797,10 +2797,11 @@ int vcmGetVideoCodecList(int request_type)
 
 
 
-int vcmGetVideoMaxSupportedPacketizationMode()
+
+int vcmGetH264SupportedPacketizationModes()
 {
   
-  return 1;
+  return VCM_H264_MODE_1;
 }
 
 
