@@ -117,6 +117,19 @@ class RootedBase<TaggedProto> : public TaggedProtoOperations<Rooted<TaggedProto>
 
 
 
+inline Handle<TaggedProto>
+AsTaggedProto(HandleObject obj)
+{
+    static_assert(sizeof(JSObject*) == sizeof(TaggedProto),
+                  "TaggedProto must be binary compatible with JSObject");
+    return Handle<TaggedProto>::fromMarkedLocation(
+            reinterpret_cast<TaggedProto const*>(obj.address()));
+}
+
+
+
+
+
 
 
 
