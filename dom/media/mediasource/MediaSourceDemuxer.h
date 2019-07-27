@@ -59,7 +59,7 @@ private:
   ~MediaSourceDemuxer();
   friend class MediaSourceTrackDemuxer;
   
-  void ScanSourceBuffersForContent();
+  bool ScanSourceBuffersForContent();
   nsRefPtr<InitPromise> AttemptInit();
   TrackBuffersManager* GetManager(TrackInfo::TrackType aType);
   TrackInfo* GetTrackInfo(TrackInfo::TrackType);
