@@ -271,7 +271,7 @@ class Node {
     }
 
     
-    explicit Node(JS::Value value);
+    Node(JS::HandleValue value);
     Node(JSGCTraceKind kind, void *ptr);
 
     
