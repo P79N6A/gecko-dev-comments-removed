@@ -1856,13 +1856,6 @@ pref("privacy.trackingprotection.ui.enabled", false);
 pref("browser.tabs.remote.autostart.1", true);
 #endif
 
-
-#ifdef UNIX_BUT_NOT_MAC
-pref("print.enable_e10s_testing", false);
-#else
-pref("print.enable_e10s_testing", true);
-#endif
-
 #ifdef NIGHTLY_BUILD
 
 pref("extensions.interposition.enabled", true);
