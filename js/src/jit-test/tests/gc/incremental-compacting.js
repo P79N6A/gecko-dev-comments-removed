@@ -1,6 +1,9 @@
 
 
 
+if (!("gcstate" in this))
+    quit();
+
 function testCompacting(zoneCount, objectCount, sliceCount)
 {
     
