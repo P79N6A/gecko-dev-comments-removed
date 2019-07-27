@@ -1179,7 +1179,6 @@ struct SelectPointersVisitor
 {
   SelectPointersVisitor(GCGraphBuilder& aBuilder)
     : mBuilder(aBuilder)
-  
   {
   }
 
@@ -2999,30 +2998,28 @@ nsCycleCollector::ScanIncrementalRoots()
   mPurpleBuf.VisitEntries(purpleScanBlackVisitor);
   timeLog.Checkpoint("ScanIncrementalRoots::fix purple");
 
-  
-  
-  
-  
-  
-  if (mJSRuntime) {
-    nsCycleCollectionParticipant* jsParticipant = mJSRuntime->GCThingParticipant();
-    nsCycleCollectionParticipant* zoneParticipant = mJSRuntime->ZoneParticipant();
-    NodePool::Enumerator etor(mGraph.mNodes);
+  bool hasJSRuntime = !!mJSRuntime;
+  nsCycleCollectionParticipant* jsParticipant = hasJSRuntime ? mJSRuntime->GCThingParticipant() : nullptr;
+  nsCycleCollectionParticipant* zoneParticipant = hasJSRuntime ? mJSRuntime->ZoneParticipant() : nullptr;
+  bool hasListener = !!mListener;
 
-    while (!etor.IsDone()) {
-      PtrInfo* pi = etor.GetNext();
+  NodePool::Enumerator etor(mGraph.mNodes);
+  while (!etor.IsDone()) {
+    PtrInfo* pi = etor.GetNext();
 
-      if (!pi->IsGrayJS()) {
-        continue;
-      }
+    
+    
+    
+    if (pi->mColor == black && MOZ_LIKELY(!hasListener)) {
+      continue;
+    }
 
-      
-      
-      
-      if (pi->mColor == black && MOZ_LIKELY(!mListener)) {
-        continue;
-      }
-
+    
+    
+    
+    
+    
+    if (pi->IsGrayJS() && MOZ_LIKELY(hasJSRuntime)) {
       
       
       if (pi->mParticipant == jsParticipant) {
@@ -3037,21 +3034,23 @@ nsCycleCollector::ScanIncrementalRoots()
       } else {
         MOZ_ASSERT(false, "Non-JS thing with 0 refcount? Treating as live.");
       }
-
-      
-
-      
-      
-      
-      if (MOZ_UNLIKELY(mListener)) {
-        mListener->NoteIncrementalRoot((uint64_t)pi->mPointer);
-      }
-
-      FloodBlackNode(mWhiteNodeCount, failed, pi);
+    } else {
+      continue;
     }
 
-    timeLog.Checkpoint("ScanIncrementalRoots::fix JS");
+    
+
+    
+    
+    
+    if (MOZ_UNLIKELY(hasListener)) {
+      mListener->NoteIncrementalRoot((uint64_t)pi->mPointer);
+    }
+
+    FloodBlackNode(mWhiteNodeCount, failed, pi);
   }
+
+  timeLog.Checkpoint("ScanIncrementalRoots::fix JS");
 
   if (failed) {
     NS_ASSERTION(false, "Ran out of memory in ScanIncrementalRoots");
