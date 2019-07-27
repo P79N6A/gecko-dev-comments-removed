@@ -925,6 +925,10 @@ ManifestHelper.prototype = {
     
     
     if ((aStartPoint || "") === "") {
+      
+      if (this._localeProp("start_url")) {
+        return this._baseURI.resolve(this._localeProp("start_url") || "/");
+      }
       return this._baseURI.resolve(this._localeProp("launch_path") || "/");
     }
 
