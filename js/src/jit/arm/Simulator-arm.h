@@ -31,6 +31,8 @@
 
 #ifdef JS_ARM_SIMULATOR
 
+#include "jslock.h"
+
 #include "jit/arm/Architecture-arm.h"
 #include "jit/IonTypes.h"
 
@@ -40,6 +42,7 @@ namespace jit {
 class Simulator;
 class Redirection;
 class CachePage;
+class AutoLockSimulator;
 
 
 
@@ -68,6 +71,7 @@ class SimInstruction;
 class Simulator
 {
     friend class Redirection;
+    friend class AutoLockSimulatorCache;
 
   public:
     friend class ArmDebugger;
@@ -383,8 +387,6 @@ class Simulator
     }
 
   private:
-    Redirection *redirection_;
-
     
     struct ICacheHasher {
         typedef void *Key;
@@ -396,19 +398,34 @@ class Simulator
   public:
     typedef HashMap<void *, CachePage *, ICacheHasher, SystemAllocPolicy> ICacheMap;
 
-  protected:
+  private:
+    
+    
+    
+    PRLock *cacheLock_;
+#ifdef DEBUG
+    PRThread *cacheLockHolder_;
+#endif
+
+    Redirection *redirection_;
     ICacheMap icache_;
 
   public:
     ICacheMap &icache() {
+        
+        
+        
+        MOZ_ASSERT(cacheLockHolder_);
         return icache_;
     }
 
     Redirection *redirection() const {
+        MOZ_ASSERT(cacheLockHolder_);
         return redirection_;
     }
 
     void setRedirection(js::jit::Redirection *redirection) {
+        MOZ_ASSERT(cacheLockHolder_);
         redirection_ = redirection;
     }
 };
