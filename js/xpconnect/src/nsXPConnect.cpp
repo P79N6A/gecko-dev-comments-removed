@@ -1360,17 +1360,14 @@ bool
 SetAddonInterposition(const nsACString& addonIdStr, nsIAddonInterposition* interposition)
 {
     JSAddonId* addonId;
-    {
-        
-        
-        AutoJSAPI jsapi;
-        jsapi.Init(xpc::PrivilegedJunkScope());
-        addonId = NewAddonId(jsapi.cx(), addonIdStr);
-        if (!addonId)
-            return false;
-    }
-
-    return XPCWrappedNativeScope::SetAddonInterposition(addonId, interposition);
+    
+    
+    AutoJSAPI jsapi;
+    jsapi.Init(xpc::PrivilegedJunkScope());
+    addonId = NewAddonId(jsapi.cx(), addonIdStr);
+    if (!addonId)
+        return false;
+    return XPCWrappedNativeScope::SetAddonInterposition(jsapi.cx(), addonId, interposition);
 }
 
 } 
