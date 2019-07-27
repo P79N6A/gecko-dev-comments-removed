@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/TimeStamp.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
@@ -16,62 +17,6 @@
 #include "nsIWidget.h"
 #include "nsString.h"
 #include "Units.h"
-
-namespace mozilla {
-
-
-
-
-typedef uint8_t EventClassIDType;
-enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
-{
-  
-  eBasicEventClass,                  
-  eGUIEventClass,                    
-  eInputEventClass,                  
-  eUIEventClass,                     
-
-  
-  eKeyboardEventClass,               
-  eCompositionEventClass,            
-  eTextEventClass,                   
-  eQueryContentEventClass,           
-  eSelectionEventClass,              
-  eEditorInputEventClass,            
-
-  
-  eMouseEventClass,                  
-  eDragEventClass,                   
-  eMouseScrollEventClass,            
-  eWheelEventClass,                  
-  ePointerEventClass,                
-
-  
-  eGestureNotifyEventClass,          
-  eSimpleGestureEventClass,          
-  eTouchEventClass,                  
-
-  
-  eScrollPortEventClass,             
-  eScrollAreaEventClass,             
-  eFormEventClass,                   
-  eFocusEventClass,                  
-  eClipboardEventClass,              
-  eTransitionEventClass,             
-  eAnimationEventClass,              
-  eSVGZoomEventClass,                
-  eSMILTimeEventClass,               
-
-  
-  eCommandEventClass,                
-  eContentCommandEventClass,         
-  ePluginEventClass,                 
-
-  
-  eMutationEventClass                
-};
-
-} 
 
 
 

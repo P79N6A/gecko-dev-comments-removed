@@ -30,6 +30,22 @@ enum nsEventStatus
 
 namespace mozilla {
 
+typedef uint8_t EventClassIDType;
+
+enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
+{
+  
+  
+  
+#define NS_ROOT_EVENT_CLASS(aPrefix, aName)   eBasic##aName##Class
+#define NS_EVENT_CLASS(aPrefix, aName)      , e##aName##Class
+
+#include "mozilla/EventClassList.h"
+
+#undef NS_EVENT_CLASS
+#undef NS_ROOT_EVENT_CLASS
+};
+
 typedef uint16_t Modifiers;
 
 #define NS_DEFINE_KEYNAME(aCPPName, aDOMKeyName) \

@@ -151,7 +151,7 @@ struct EventNameMapping
   nsIAtom* mAtom;
   uint32_t mId;
   int32_t  mType;
-  uint32_t mStructType;
+  mozilla::EventClassID mEventClassID;
 };
 
 struct nsShortcutCandidate {
@@ -1039,7 +1039,7 @@ public:
 
 
 
-  static uint32_t GetEventCategory(const nsAString& aName);
+  static mozilla::EventClassID GetEventClassID(const nsAString& aName);
 
   
 
@@ -1051,7 +1051,7 @@ public:
 
 
   static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    uint32_t aEventStruct,
+                                    mozilla::EventClassID aEventClassID,
                                     uint32_t* aEventID);
 
   
