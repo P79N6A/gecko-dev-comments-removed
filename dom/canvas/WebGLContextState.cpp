@@ -426,15 +426,17 @@ WebGLContext::GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv)
 
         
         
-        case LOCAL_GL_STENCIL_BACK_VALUE_MASK:
-        case LOCAL_GL_STENCIL_BACK_WRITEMASK:
-        case LOCAL_GL_STENCIL_VALUE_MASK:
+        case LOCAL_GL_STENCIL_BACK_VALUE_MASK: {
+            return JS::DoubleValue(mStencilValueMaskBack); 
+        }
+        case LOCAL_GL_STENCIL_BACK_WRITEMASK: {
+            return JS::DoubleValue(mStencilWriteMaskBack);
+        }
+        case LOCAL_GL_STENCIL_VALUE_MASK: {
+            return JS::DoubleValue(mStencilValueMaskFront);
+        }
         case LOCAL_GL_STENCIL_WRITEMASK: {
-            GLint i = 0; 
-            gl->fGetIntegerv(pname, &i);
-            GLuint i_unsigned(i); 
-            double i_double(i_unsigned); 
-            return JS::DoubleValue(i_double);
+            return JS::DoubleValue(mStencilWriteMaskFront);
         }
 
         
