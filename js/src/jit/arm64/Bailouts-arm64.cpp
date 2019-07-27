@@ -1,0 +1,67 @@
+
+
+
+
+
+
+#include "jit/Bailouts.h"
+
+using namespace js;
+using namespace js::jit;
+
+namespace js {
+namespace jit {
+
+class BailoutStack
+{
+    RegisterDump::FPUArray fpregs_;
+    RegisterDump::GPRArray regs_;
+    uintptr_t frameSize_;
+    uintptr_t snapshotOffset_;
+
+  public:
+    MachineState machineState() {
+        return MachineState::FromBailout(regs_, fpregs_);
+    }
+    uint32_t snapshotOffset() const {
+        return snapshotOffset_;
+    }
+    uint32_t frameSize() const {
+        return frameSize_;
+    }
+    uint8_t* parentStackPointer() {
+        return (uint8_t*)this + sizeof(BailoutStack);
+    }
+};
+
+} 
+} 
+
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   BailoutStack* bailout)
+  : machine_(bailout->machineState())
+{
+    uint8_t* sp = bailout->parentStackPointer();
+    framePointer_ = sp + bailout->frameSize();
+    topFrameSize_ = framePointer_ - sp;
+
+    JSScript* script = ScriptFromCalleeToken(((JitFrameLayout*) framePointer_)->calleeToken());
+    topIonScript_ = script->ionScript();
+
+    attachOnJitActivation(activations);
+    snapshotOffset_ = bailout->snapshotOffset();
+}
+
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   InvalidationBailoutStack* bailout)
+  : machine_(bailout->machine())
+{
+    framePointer_ = (uint8_t*) bailout->fp();
+    topFrameSize_ = framePointer_ - bailout->sp();
+    topIonScript_ = bailout->ionScript();
+    attachOnJitActivation(activations);
+
+    uint8_t* returnAddressToFp_ = bailout->osiPointReturnAddress();
+    const OsiIndex* osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
+    snapshotOffset_ = osiIndex->snapshotOffset();
+}
