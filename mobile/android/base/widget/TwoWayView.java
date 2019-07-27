@@ -23,6 +23,9 @@ package org.mozilla.gecko.widget;
 
 import org.mozilla.gecko.R;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -67,8 +70,7 @@ import android.widget.Checkable;
 import android.widget.ListAdapter;
 import android.widget.Scroller;
 
-import java.util.ArrayList;
-import java.util.List;
+import static android.os.Build.VERSION_CODES.HONEYCOMB;
 
 
 
@@ -136,8 +138,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
     public static enum Orientation {
         HORIZONTAL,
-        VERTICAL;
-    };
+        VERTICAL
+    }
 
     private ListAdapter mAdapter;
 
@@ -388,7 +390,6 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         ViewCompat.setOverScrollMode(this, ViewCompat.OVER_SCROLL_IF_CONTENT_SCROLLS);
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TwoWayView, defStyle, 0);
-        initializeScrollbars(a);
 
         mDrawSelectorOnTop = a.getBoolean(
                 R.styleable.TwoWayView_android_drawSelectorOnTop, false);
@@ -409,19 +410,16 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         a.recycle();
-
-        updateScrollbarsDirection();
     }
 
     public void setOrientation(Orientation orientation) {
-        final boolean isVertical = (orientation.compareTo(Orientation.VERTICAL) == 0);
+        final boolean isVertical = (orientation == Orientation.VERTICAL);
         if (mIsVertical == isVertical) {
             return;
         }
 
         mIsVertical = isVertical;
 
-        updateScrollbarsDirection();
         resetState();
         mRecycler.clear();
 
@@ -441,6 +439,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         requestLayout();
     }
 
+    @SuppressWarnings("unused")
     public int getItemMargin() {
         return mItemMargin;
     }
@@ -451,6 +450,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public void setItemsCanFocus(boolean itemsCanFocus) {
         mItemsCanFocus = itemsCanFocus;
         if (!itemsCanFocus) {
@@ -462,6 +462,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public boolean getItemsCanFocus() {
         return mItemsCanFocus;
     }
@@ -500,6 +501,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public void setDrawSelectorOnTop(boolean drawSelectorOnTop) {
         mDrawSelectorOnTop = drawSelectorOnTop;
     }
@@ -511,6 +513,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public void setSelector(int resID) {
         setSelector(getResources().getDrawable(resID));
     }
@@ -542,6 +545,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public Drawable getSelector() {
         return mSelector;
     }
@@ -575,6 +579,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public int getCheckedItemCount() {
         return mCheckedItemCount;
     }
@@ -591,7 +596,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
     public boolean isItemChecked(int position) {
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) == 0 && mCheckStates != null) {
+        if (mChoiceMode == ChoiceMode.NONE && mCheckStates != null) {
             return mCheckStates.get(position);
         }
 
@@ -608,8 +613,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
     public int getCheckedItemPosition() {
-        if (mChoiceMode.compareTo(ChoiceMode.SINGLE) == 0 &&
-                mCheckStates != null && mCheckStates.size() == 1) {
+        if (mChoiceMode == ChoiceMode.SINGLE && mCheckStates != null && mCheckStates.size() == 1) {
             return mCheckStates.keyAt(0);
         }
 
@@ -626,7 +630,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
     public SparseBooleanArray getCheckedItemPositions() {
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) != 0) {
+        if (mChoiceMode != ChoiceMode.NONE) {
             return mCheckStates;
         }
 
@@ -642,8 +646,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
     public long[] getCheckedItemIds() {
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) == 0 ||
-                mCheckedIdStates == null || mAdapter == null) {
+        if (mChoiceMode == ChoiceMode.NONE || mCheckedIdStates == null || mAdapter == null) {
             return new long[0];
         }
 
@@ -666,12 +669,13 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public void setItemChecked(int position, boolean value) {
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) == 0) {
+        if (mChoiceMode == ChoiceMode.NONE) {
             return;
         }
 
-        if (mChoiceMode.compareTo(ChoiceMode.MULTIPLE) == 0) {
+        if (mChoiceMode == ChoiceMode.MULTIPLE) {
             boolean oldValue = mCheckStates.get(position);
             mCheckStates.put(position, value);
 
@@ -729,6 +733,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     
 
 
+    @SuppressWarnings("unused")
     public void clearChoices() {
         if (mCheckStates != null) {
             mCheckStates.clear();
@@ -746,6 +751,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
 
 
+    @SuppressWarnings("unused")
     public ChoiceMode getChoiceMode() {
         return mChoiceMode;
     }
@@ -762,7 +768,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     public void setChoiceMode(ChoiceMode choiceMode) {
         mChoiceMode = choiceMode;
 
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) != 0) {
+        if (mChoiceMode != ChoiceMode.NONE) {
             if (mCheckStates == null) {
                 mCheckStates = new SparseBooleanArray();
             }
@@ -813,8 +819,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             mHasStableIds = adapter.hasStableIds();
             mAreAllItemsSelectable = adapter.areAllItemsEnabled();
 
-            if (mChoiceMode.compareTo(ChoiceMode.NONE) != 0 && mHasStableIds &&
-                    mCheckedIdStates == null) {
+            if (mChoiceMode != ChoiceMode.NONE && mHasStableIds && mCheckedIdStates == null) {
                 mCheckedIdStates = new LongSparseArray<Integer>();
             }
 
@@ -1268,7 +1273,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (!mIsAttached) {
+        if (!mIsAttached || mAdapter == null) {
             return false;
         }
 
@@ -1329,7 +1334,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             if (maybeStartScrolling(delta)) {
                 return true;
             }
-
+            
             break;
         }
 
@@ -1354,7 +1359,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             return isClickable() || isLongClickable();
         }
 
-        if (!mIsAttached) {
+        if (!mIsAttached || mAdapter == null) {
             return false;
         }
 
@@ -1448,8 +1453,6 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         case MotionEvent.ACTION_CANCEL:
-            
-            
             cancelCheckForTap();
             mTouchMode = TOUCH_MODE_REST;
             reportScrollStateChange(OnScrollListener.SCROLL_STATE_IDLE);
@@ -1479,7 +1482,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 final float x = ev.getX();
                 final float y = ev.getY();
 
-                boolean inList = false;
+                final boolean inList;
                 if (mIsVertical) {
                     inList = x > getPaddingLeft() && x < getWidth() - getPaddingRight();
                 } else {
@@ -1733,7 +1736,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 }
 
                 
-                trackMotionScroll(viewportSize);
+                scrollListItemsBy(viewportSize);
                 return true;
             }
             return false;
@@ -1748,7 +1751,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 }
 
                 
-                trackMotionScroll(-viewportSize);
+                scrollListItemsBy(-viewportSize);
                 return true;
             }
             return false;
@@ -2079,7 +2082,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             newFocus = FocusFinder.getInstance().findNextFocus(this, oldFocus, direction);
         } else {
             if (direction == View.FOCUS_DOWN || direction == View.FOCUS_RIGHT) {
-                final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
+                final int start = getStartEdge();
 
                 final int selectedStart;
                 if (selectedView != null) {
@@ -2090,12 +2093,11 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
                 searchPoint = Math.max(selectedStart, start);
             } else {
-                final int end = (mIsVertical ? getHeight() - getPaddingBottom() :
-                    getWidth() - getPaddingRight());
+                final int end = getEndEdge();
 
                 final int selectedEnd;
                 if (selectedView != null) {
-                    selectedEnd = (mIsVertical ? selectedView.getBottom() : selectedView.getRight());
+                    selectedEnd = getChildEndEdge(selectedView);
                 } else {
                     selectedEnd = end;
                 }
@@ -2244,7 +2246,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         if (amountToScroll > 0) {
-            trackMotionScroll(direction == View.FOCUS_UP || direction == View.FOCUS_LEFT ?
+            scrollListItemsBy(direction == View.FOCUS_UP || direction == View.FOCUS_LEFT ?
                     amountToScroll : -amountToScroll);
             needToRedraw = true;
         }
@@ -2306,8 +2308,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         final int numChildren = getChildCount();
 
         if (direction == View.FOCUS_DOWN || direction == View.FOCUS_RIGHT) {
-            final int end = (mIsVertical ? getHeight() - getPaddingBottom() :
-                getWidth() - getPaddingRight());
+            final int end = getEndEdge();
 
             int indexToMakeVisible = numChildren - 1;
             if (nextSelectedPosition != INVALID_POSITION) {
@@ -2322,10 +2323,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 goalEnd -= getArrowScrollPreviewLength();
             }
 
-            final int viewToMakeVisibleStart =
-                    (mIsVertical ? viewToMakeVisible.getTop() : viewToMakeVisible.getLeft());
-            final int viewToMakeVisibleEnd =
-                    (mIsVertical ? viewToMakeVisible.getBottom() : viewToMakeVisible.getRight());
+            final int viewToMakeVisibleStart = getChildStartEdge(viewToMakeVisible);
+            final int viewToMakeVisibleEnd = getChildEndEdge(viewToMakeVisible);
 
             if (viewToMakeVisibleEnd <= goalEnd) {
                 
@@ -2341,8 +2340,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             int amountToScroll = (viewToMakeVisibleEnd - goalEnd);
 
             if (mFirstPosition + numChildren == mItemCount) {
-                final View lastChild = getChildAt(numChildren - 1);
-                final int lastChildEnd = (mIsVertical ? lastChild.getBottom() : lastChild.getRight());
+                final int lastChildEnd = getChildEndEdge(getChildAt(numChildren - 1));
 
                 
                 final int max = lastChildEnd - end;
@@ -2351,7 +2349,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
             return Math.min(amountToScroll, getMaxScrollAmount());
         } else {
-            final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
+            final int start = getStartEdge();
 
             int indexToMakeVisible = 0;
             if (nextSelectedPosition != INVALID_POSITION) {
@@ -2366,10 +2364,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 goalStart += getArrowScrollPreviewLength();
             }
 
-            final int viewToMakeVisibleStart =
-                    (mIsVertical ? viewToMakeVisible.getTop() : viewToMakeVisible.getLeft());
-            final int viewToMakeVisibleEnd =
-                    (mIsVertical ? viewToMakeVisible.getBottom() : viewToMakeVisible.getRight());
+            final int viewToMakeVisibleStart = getChildStartEdge(viewToMakeVisible);
+            final int viewToMakeVisibleEnd = getChildEndEdge(viewToMakeVisible);
 
             if (viewToMakeVisibleStart >= goalStart) {
                 
@@ -2385,8 +2381,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             int amountToScroll = (goalStart - viewToMakeVisibleStart);
 
             if (mFirstPosition == 0) {
-                final View firstChild = getChildAt(0);
-                final int firstChildStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
+                final int firstChildStart = getChildStartEdge(getChildAt(0));
 
                 
                 final int max = start - firstChildStart;
@@ -2418,7 +2413,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         offsetDescendantRectToMyCoords(newFocus, mTempRect);
 
         if (direction == View.FOCUS_UP || direction == View.FOCUS_LEFT) {
-            final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
+            final int start = getStartEdge();
             final int newFocusStart = (mIsVertical ? mTempRect.top : mTempRect.left);
 
             if (newFocusStart < start) {
@@ -2428,8 +2423,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 }
             }
         } else {
-            final int end = (mIsVertical ? getHeight() - getPaddingBottom() :
-                getWidth() - getPaddingRight());
+            final int end = getEndEdge();
             final int newFocusEnd = (mIsVertical ? mTempRect.bottom : mTempRect.right);
 
             if (newFocusEnd > end) {
@@ -2454,9 +2448,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         descendant.getDrawingRect(mTempRect);
         offsetDescendantRectToMyCoords(descendant, mTempRect);
 
-        final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-        final int end = (mIsVertical ? getHeight() - getPaddingBottom() :
-            getWidth() - getPaddingRight());
+        final int start = getStartEdge();
+        final int end = getEndEdge();
 
         final int viewStart = (mIsVertical ? mTempRect.top : mTempRect.left);
         final int viewEnd = (mIsVertical ? mTempRect.bottom : mTempRect.right);
@@ -2743,7 +2736,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             motionViewPrevStart = (mIsVertical ? motionView.getTop() : motionView.getLeft());
         }
 
-        boolean atEdge = trackMotionScroll(delta);
+        boolean atEdge = scrollListItemsBy(delta);
 
         motionView = this.getChildAt(motionIndex);
         if (motionView != null) {
@@ -2823,7 +2816,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 ViewCompat.postInvalidateOnAnimation(this);
             }
 
-            trackMotionScroll(delta);
+            scrollListItemsBy(delta);
             mTouchMode = TOUCH_MODE_DRAGGING;
 
             
@@ -2903,10 +2896,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         for (int i = 0; i < childCount; i++) {
-            View v = getChildAt(i);
-
-            if ((mIsVertical && motionPos <= v.getBottom()) ||
-                    (!mIsVertical && motionPos <= v.getRight())) {
+            final View v = getChildAt(i);
+            if (motionPos <= getChildEndEdge(v)) {
                 return mFirstPosition + i;
             }
         }
@@ -2937,6 +2928,26 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         return vc.getScaledOverscrollDistance();
     }
 
+    private int getStartEdge() {
+        return (mIsVertical ? getPaddingTop() : getPaddingLeft());
+    }
+
+    private int getEndEdge() {
+        if (mIsVertical) {
+            return (getHeight() - getPaddingBottom());
+        } else {
+            return (getWidth() - getPaddingRight());
+        }
+    }
+
+    private int getChildStartEdge(View child) {
+        return (mIsVertical ? child.getTop() : child.getLeft());
+    }
+
+    private int getChildEndEdge(View child) {
+        return (mIsVertical ? child.getBottom() : child.getRight());
+    }
+
     private boolean contentFits() {
         final int childCount = getChildCount();
         if (childCount == 0) {
@@ -2950,18 +2961,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         View first = getChildAt(0);
         View last = getChildAt(childCount - 1);
 
-        if (mIsVertical) {
-            return first.getTop() >= getPaddingTop() &&
-                    last.getBottom() <= getHeight() - getPaddingBottom();
-        } else {
-            return first.getLeft() >= getPaddingLeft() &&
-                    last.getRight() <= getWidth() - getPaddingRight();
-        }
-    }
-
-    private void updateScrollbarsDirection() {
-        setHorizontalScrollBarEnabled(!mIsVertical);
-        setVerticalScrollBarEnabled(mIsVertical);
+        return (getChildStartEdge(first) >= getStartEdge() &&
+                getChildEndEdge(last) <= getEndEdge());
     }
 
     private void triggerCheckForTap() {
@@ -2999,17 +3000,14 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         removeCallbacks(mPendingCheckForLongPress);
     }
 
-    boolean trackMotionScroll(int incrementalDelta) {
+    private boolean scrollListItemsBy(int incrementalDelta) {
         final int childCount = getChildCount();
         if (childCount == 0) {
             return true;
         }
 
-        final View first = getChildAt(0);
-        final int firstStart = (mIsVertical ? first.getTop() : first.getLeft());
-
-        final View last = getChildAt(childCount - 1);
-        final int lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
+        final int firstStart = getChildStartEdge(getChildAt(0));
+        final int lastEnd = getChildEndEdge(getChildAt(childCount - 1));
 
         final int paddingTop = getPaddingTop();
         final int paddingBottom = getPaddingBottom();
@@ -3019,8 +3017,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         final int paddingStart = (mIsVertical ? paddingTop : paddingLeft);
 
         final int spaceBefore = paddingStart - firstStart;
-        final int end = (mIsVertical ? getHeight() - paddingBottom :
-            getWidth() - paddingRight);
+        final int end = getEndEdge();
         final int spaceAfter = lastEnd - end;
 
         final int size;
@@ -3061,7 +3058,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
             for (int i = 0; i < childCount; i++) {
                 final View child = getChildAt(i);
-                final int childEnd = (mIsVertical ? child.getBottom() : child.getRight());
+                final int childEnd = getChildEndEdge(child);
 
                 if (childEnd >= childrenStart) {
                     break;
@@ -3075,7 +3072,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
             for (int i = childCount - 1; i >= 0; i--) {
                 final View child = getChildAt(i);
-                final int childStart = (mIsVertical ? child.getTop() : child.getLeft());
+                final int childStart = getChildStartEdge(child);
 
                 if (childStart <= childrenEnd) {
                     break;
@@ -3142,11 +3139,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
     @TargetApi(5)
     private boolean awakenScrollbarsInternal() {
-        if (Build.VERSION.SDK_INT >= 5) {
-            return super.awakenScrollBars();
-        } else {
-            return false;
-        }
+        return (Build.VERSION.SDK_INT >= 5) && super.awakenScrollBars();
     }
 
     @Override
@@ -3165,7 +3158,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         final int diff = (int) (pos - mLastTouchPos);
         mLastTouchPos = pos;
 
-        final boolean stopped = trackMotionScroll(diff);
+        final boolean stopped = scrollListItemsBy(diff);
 
         if (!stopped && !mScroller.isFinished()) {
             ViewCompat.postInvalidateOnAnimation(this);
@@ -3212,7 +3205,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         final int restoreCount = canvas.save();
-        final int height = getHeight() - getPaddingTop() - getPaddingBottom();
+        final int height = getHeight();
 
         canvas.translate(0, height);
         canvas.rotate(270);
@@ -3228,8 +3221,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         final int restoreCount = canvas.save();
-        final int width = getWidth() - getPaddingLeft() - getPaddingRight();
-        final int height = getHeight() - getPaddingTop() - getPaddingBottom();
+        final int width = getWidth();
+        final int height = getHeight();
 
         if (mIsVertical) {
             canvas.translate(-width, height);
@@ -3685,6 +3678,10 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
     }
 
+    public void scrollBy(int offset) {
+        scrollListItemsBy(offset);
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         
@@ -3816,9 +3813,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 return;
             }
 
-            final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-            final int end =
-                    (mIsVertical ? getHeight() - getPaddingBottom() : getWidth() - getPaddingRight());
+            final int start = getStartEdge();
+            final int end = getEndEdge();
 
             int childCount = getChildCount();
             int index = 0;
@@ -4086,8 +4082,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             int end) {
         final int selectedPosition = mSelectedPosition;
 
-        final int oldSelectedStart = (mIsVertical ? oldSelected.getTop() : oldSelected.getLeft());
-        final int oldSelectedEnd = (mIsVertical ? oldSelected.getBottom() : oldSelected.getRight());
+        final int oldSelectedStart = getChildStartEdge(oldSelected);
+        final int oldSelectedEnd = getChildEndEdge(oldSelected);
 
         View selected = null;
 
@@ -4120,8 +4116,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             
             selected = makeAndAddView(selectedPosition, oldSelectedEnd + itemMargin, true, true);
 
-            final int selectedStart = (mIsVertical ? selected.getTop() : selected.getLeft());
-            final int selectedEnd = (mIsVertical ? selected.getBottom() : selected.getRight());
+            final int selectedStart = getChildStartEdge(selected);
+            final int selectedEnd = getChildEndEdge(selected);
 
             
             if (selectedEnd > end) {
@@ -4180,8 +4176,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 selected = makeAndAddView(selectedPosition, oldSelectedStart, false, true);
             }
 
-            final int selectedStart = (mIsVertical ? selected.getTop() : selected.getLeft());
-            final int selectedEnd = (mIsVertical ? selected.getBottom() : selected.getRight());
+            final int selectedStart = getChildStartEdge(selected);
+            final int selectedEnd = getChildEndEdge(selected);
 
             
             if (selectedStart < start) {
@@ -4212,8 +4208,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
             selected = makeAndAddView(selectedPosition, oldSelectedStart, true, true);
 
-            final int selectedStart = (mIsVertical ? selected.getTop() : selected.getLeft());
-            final int selectedEnd = (mIsVertical ? selected.getBottom() : selected.getRight());
+            final int selectedStart = getChildStartEdge(selected);
+            final int selectedEnd = getChildEndEdge(selected);
 
             
             if (oldSelectedStart < start) {
@@ -4274,7 +4270,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     }
 
     private void handleDataChanged() {
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) != 0 && mAdapter != null && mAdapter.hasStableIds()) {
+        if (mChoiceMode != ChoiceMode.NONE && mAdapter != null && mAdapter.hasStableIds()) {
             confirmCheckedPositionsById();
         }
 
@@ -4408,9 +4404,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         int selectedStart = 0;
         int selectedPosition;
 
-        final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-        final int end =
-                (mIsVertical ? getHeight() - getPaddingBottom() : getWidth() - getPaddingRight());
+        final int start = getStartEdge();
+        final int end = getEndEdge();
 
         final int firstPosition = mFirstPosition;
         final int toPosition = mResurrectToPosition;
@@ -4447,8 +4442,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
             for (int i = childCount - 1; i >= 0; i--) {
                 final View child = getChildAt(i);
-                final int childStart = (mIsVertical ? child.getTop() : child.getLeft());
-                final int childEnd = (mIsVertical ? child.getBottom() : child.getRight());
+                final int childStart = getChildStartEdge(child);
+                final int childEnd = getChildEndEdge(child);
 
                 if (i == childCount - 1) {
                     selectedStart = childStart;
@@ -4720,7 +4715,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 recycleBin.addScrapView(child, -1);
             }
 
-            returnedWidth += child.getMeasuredHeight();
+            returnedWidth += child.getMeasuredWidth();
 
             if (returnedWidth >= maxWidth) {
                 
@@ -4812,11 +4807,10 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             child.setPressed(isPressed);
         }
 
-        if (mChoiceMode.compareTo(ChoiceMode.NONE) != 0 && mCheckStates != null) {
+        if (mChoiceMode != ChoiceMode.NONE && mCheckStates != null) {
             if (child instanceof Checkable) {
                 ((Checkable) child).setChecked(mCheckStates.get(position));
-            } else if (getContext().getApplicationInfo().targetSdkVersion
-                    >= Build.VERSION_CODES.HONEYCOMB) {
+            } else if (Build.VERSION.SDK_INT >= HONEYCOMB) {
                 child.setActivated(mCheckStates.get(position));
             }
         }
@@ -4849,26 +4843,17 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
 
         if (down) {
             final int paddingStart = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-
-            final int lastEnd;
-            if (mIsVertical) {
-                lastEnd = getChildAt(childCount - 1).getBottom();
-            } else {
-                lastEnd = getChildAt(childCount - 1).getRight();
-            }
+            final int lastEnd = getChildEndEdge(getChildAt(childCount - 1));
 
             final int offset = (childCount > 0 ? lastEnd + mItemMargin : paddingStart);
             fillAfter(mFirstPosition + childCount, offset);
             correctTooHigh(getChildCount());
         } else {
-            final int end;
+            final int end = getEndEdge();
             final int firstStart;
-
             if (mIsVertical) {
-                end = getHeight() - getPaddingBottom();
                 firstStart = getChildAt(0).getTop();
             } else {
-                end = getWidth() - getPaddingRight();
                 firstStart = getChildAt(0).getLeft();
             }
 
@@ -4881,7 +4866,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     private View fillBefore(int pos, int nextOffset) {
         View selectedView = null;
 
-        final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
+        final int start = getStartEdge();
 
         while (nextOffset > start && pos >= 0) {
             boolean isSelected = (pos == mSelectedPosition);
@@ -4908,19 +4893,13 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     private View fillAfter(int pos, int nextOffset) {
         View selectedView = null;
 
-        final int end =
-                (mIsVertical ? getHeight() - getPaddingBottom() : getWidth() - getPaddingRight());
+        final int end = getEndEdge();
 
         while (nextOffset < end && pos < mItemCount) {
             boolean selected = (pos == mSelectedPosition);
 
             View child = makeAndAddView(pos, nextOffset, true, selected);
-
-            if (mIsVertical) {
-                nextOffset = child.getBottom() + mItemMargin;
-            } else {
-                nextOffset = child.getRight() + mItemMargin;
-            }
+            nextOffset = getChildEndEdge(child) + mItemMargin;
 
             if (selected) {
                 selectedView = child;
@@ -4939,25 +4918,13 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         
         mFirstPosition = position;
 
-        final int itemMargin = mItemMargin;
-
-        final int offsetBefore;
-        if (mIsVertical) {
-            offsetBefore = temp.getTop() - itemMargin;
-        } else {
-            offsetBefore = temp.getLeft() - itemMargin;
-        }
+        final int offsetBefore = getChildStartEdge(temp) + mItemMargin;
         final View before = fillBefore(position - 1, offsetBefore);
 
         
         adjustViewsStartOrEnd();
 
-        final int offsetAfter;
-        if (mIsVertical) {
-            offsetAfter = temp.getBottom() + itemMargin;
-        } else {
-            offsetAfter = temp.getRight() + itemMargin;
-        }
+        final int offsetAfter = getChildEndEdge(temp) + mItemMargin;
         final View after = fillAfter(position + 1, offsetAfter);
 
         final int childCount = getChildCount();
@@ -5011,37 +4978,22 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     }
 
     private void fillBeforeAndAfter(View selected, int position) {
-        final int itemMargin = mItemMargin;
-
-        final int offsetBefore;
-        if (mIsVertical) {
-            offsetBefore = selected.getTop() - itemMargin;
-        } else {
-            offsetBefore = selected.getLeft() - itemMargin;
-        }
-
+        final int offsetBefore = getChildStartEdge(selected) + mItemMargin;
         fillBefore(position - 1, offsetBefore);
 
         adjustViewsStartOrEnd();
 
-        final int offsetAfter;
-        if (mIsVertical) {
-            offsetAfter = selected.getBottom() + itemMargin;
-        } else {
-            offsetAfter = selected.getRight() + itemMargin;
-        }
-
+        final int offsetAfter = getChildEndEdge(selected) + mItemMargin;
         fillAfter(position + 1, offsetAfter);
     }
 
     private View fillFromSelection(int selectedTop, int start, int end) {
         final int selectedPosition = mSelectedPosition;
-        View selected;
 
-        selected = makeAndAddView(selectedPosition, selectedTop, true, true);
+        View selected = makeAndAddView(selectedPosition, selectedTop, true, true);
 
-        final int selectedStart = (mIsVertical ? selected.getTop() : selected.getLeft());
-        final int selectedEnd = (mIsVertical ? selected.getBottom() : selected.getRight());
+        final int selectedStart = getChildStartEdge(selected);
+        final int selectedEnd = getChildEndEdge(selected);
 
         
         if (selectedEnd > end) {
@@ -5088,27 +5040,18 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         }
 
         
-        final View lastChild = getChildAt(childCount - 1);
+        final int lastEnd = getChildEndEdge(getChildAt(childCount - 1));
 
         
-        final int lastEnd;
-        if (mIsVertical) {
-            lastEnd = lastChild.getBottom();
-        } else {
-            lastEnd = lastChild.getRight();
-        }
-
-        
-        final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-        final int end =
-                (mIsVertical ? getHeight() - getPaddingBottom() : getWidth() - getPaddingRight());
+        final int start = getStartEdge();
+        final int end = getEndEdge();
 
         
         
         int endOffset = end - lastEnd;
 
         View firstChild = getChildAt(0);
-        int firstStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
+        int firstStart = getChildStartEdge(firstChild);
 
         
         
@@ -5122,7 +5065,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             offsetChildren(endOffset);
 
             if (mFirstPosition > 0) {
-                firstStart = (mIsVertical ? firstChild.getTop() : firstChild.getLeft());
+                firstStart = getChildStartEdge(firstChild);
 
                 
                 
@@ -5144,21 +5087,15 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         final View first = getChildAt(0);
         final int firstStart = (mIsVertical ? first.getTop() : first.getLeft());
 
-        final int start = (mIsVertical ? getPaddingTop() : getPaddingLeft());
-
-        final int end;
-        if (mIsVertical) {
-            end = getHeight() - getPaddingBottom();
-        } else {
-            end = getWidth() - getPaddingRight();
-        }
+        final int start = getStartEdge();
+        final int end = getEndEdge();
 
         
         
         int startOffset = firstStart - start;
 
         View last = getChildAt(childCount - 1);
-        int lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
+        int lastEnd = getChildEndEdge(last);
 
         int lastPosition = mFirstPosition + childCount - 1;
 
@@ -5176,7 +5113,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 offsetChildren(-startOffset);
 
                 if (lastPosition < mItemCount - 1) {
-                    lastEnd = (mIsVertical ? last.getBottom() : last.getRight());
+                    lastEnd = getChildEndEdge(last);
 
                     
                     
@@ -5368,6 +5305,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     }
 
     void resetState() {
+        mScroller.forceFinished(true);
+
         removeAllViewsInLayout();
 
         mSelectedStart = 0;
@@ -5421,7 +5360,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             mSyncPosition = mFirstPosition;
 
             if (child != null) {
-                mSpecificStart = child.getTop();
+                mSpecificStart = (mIsVertical ? child.getTop() : child.getLeft());
             }
 
             mSyncMode = SYNC_FIRST_POSITION;
@@ -5437,16 +5376,13 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
         final int firstPos = mFirstPosition;
         final int count = getChildCount();
 
-        final boolean useActivated = getContext().getApplicationInfo().targetSdkVersion
-                >= Build.VERSION_CODES.HONEYCOMB;
-
         for (int i = 0; i < count; i++) {
             final View child = getChildAt(i);
             final int position = firstPos + i;
 
             if (child instanceof Checkable) {
                 ((Checkable) child).setChecked(mCheckStates.get(position));
-            } else if (useActivated) {
+            } else if (Build.VERSION.SDK_INT >= HONEYCOMB) {
                 child.setActivated(mCheckStates.get(position));
             }
         }
@@ -5456,7 +5392,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
     public boolean performItemClick(View view, int position, long id) {
         boolean checkedStateChanged = false;
 
-        if (mChoiceMode.compareTo(ChoiceMode.MULTIPLE) == 0) {
+        if (mChoiceMode == ChoiceMode.MULTIPLE) {
             boolean checked = !mCheckStates.get(position, false);
             mCheckStates.put(position, checked);
 
@@ -5475,7 +5411,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             }
 
             checkedStateChanged = true;
-        } else if (mChoiceMode.compareTo(ChoiceMode.SINGLE) == 0) {
+        } else if (mChoiceMode == ChoiceMode.SINGLE) {
             boolean checked = !mCheckStates.get(position, false);
             if (checked) {
                 mCheckStates.clear();
@@ -5701,14 +5637,14 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             super(width, height);
 
             if (this.width == MATCH_PARENT) {
-                Log.w(LOGTAG, "Constructing LayoutParams with width MATCH_PARENT " +
+                Log.w(LOGTAG, "Constructing LayoutParams with width FILL_PARENT " +
                         "does not make much sense as the view might change orientation. " +
                         "Falling back to WRAP_CONTENT");
                 this.width = WRAP_CONTENT;
             }
 
             if (this.height == MATCH_PARENT) {
-                Log.w(LOGTAG, "Constructing LayoutParams with height MATCH_PARENT " +
+                Log.w(LOGTAG, "Constructing LayoutParams with height FILL_PARENT " +
                         "does not make much sense as the view might change orientation. " +
                         "Falling back to WRAP_CONTENT");
                 this.height = WRAP_CONTENT;
@@ -5737,7 +5673,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             super(other);
 
             if (this.width == MATCH_PARENT) {
-                Log.w(LOGTAG, "Constructing LayoutParams with height MATCH_PARENT - " +
+                Log.w(LOGTAG, "Constructing LayoutParams with width MATCH_PARENT - " +
                         "does not make much sense as the view might change orientation. " +
                         "Falling back to WRAP_CONTENT");
                 this.width = WRAP_CONTENT;
@@ -5788,11 +5724,8 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             } else {
                 final int typeCount = mViewTypeCount;
                 for (int i = 0; i < typeCount; i++) {
-                    final ArrayList<View> scrap = mScrapViews[i];
-                    final int scrapCount = scrap.size();
-
-                    for (int j = 0; j < scrapCount; j++) {
-                        scrap.get(j).forceLayout();
+                    for (View scrap : mScrapViews[i]) {
+                        scrap.forceLayout();
                     }
                 }
             }
@@ -6122,7 +6055,7 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
             
             
             if (mDataChanged) {
-                onLayout(false, getLeft(), getTop(), getRight(), getBottom());
+                layout(getLeft(), getTop(), getRight(), getBottom());
             }
         } else {
             if (mEmptyView != null) {
@@ -6527,16 +6460,10 @@ public class TwoWayView extends AdapterView<ListAdapter> implements
                 return false;
 
             case AccessibilityNodeInfoCompat.ACTION_CLICK:
-                if (isClickable()) {
-                    return performItemClick(host, position, id);
-                }
-                return false;
+                return isClickable() && performItemClick(host, position, id);
 
             case AccessibilityNodeInfoCompat.ACTION_LONG_CLICK:
-                if (isLongClickable()) {
-                    return performLongPress(host, position, id);
-                }
-                return false;
+                return isLongClickable() && performLongPress(host, position, id);
             }
 
             return false;
