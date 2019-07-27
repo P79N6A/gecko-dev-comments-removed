@@ -533,9 +533,7 @@ struct ArenaHeader
 
 
 
-
-
-    size_t       allocKind          : 8;
+    size_t allocKind : 8;
 
     
 
@@ -561,7 +559,7 @@ struct ArenaHeader
 
 
   public:
-    size_t       hasDelayedMarking  : 1;
+    size_t       hasDelayedMarking : 1;
     size_t       allocatedDuringIncremental : 1;
     size_t       markOverflow : 1;
     size_t       auxNextLink : JS_BITS_PER_WORD - 8 - 1 - 1 - 1;
