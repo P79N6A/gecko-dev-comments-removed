@@ -2244,6 +2244,8 @@ jit::CanEnter(JSContext *cx, RunState &state)
     if (script->hasIonScript() && script->ionScript()->bailoutExpected())
         return Method_Skipped;
 
+    RootedScript rscript(cx, script);
+
     
     
     
@@ -2262,18 +2264,8 @@ jit::CanEnter(JSContext *cx, RunState &state)
             return Method_CantCompile;
         }
 
-        if (invoke.constructing() && invoke.args().thisv().isPrimitive()) {
-            RootedScript scriptRoot(cx, script);
-            RootedObject callee(cx, &invoke.args().callee());
-            RootedObject obj(cx, CreateThisForFunction(cx, callee,
-                                                       invoke.useNewType()
-                                                       ? SingletonObject
-                                                       : GenericObject));
-            if (!obj || !jit::IsIonEnabled(cx)) 
-                return Method_Skipped;
-            invoke.args().setThis(ObjectValue(*obj));
-            script = scriptRoot;
-        }
+        if (!state.maybeCreateThisForConstructor(cx))
+            return Method_Skipped;
     } else if (state.isGenerator()) {
         IonSpew(IonSpew_Abort, "generator frame");
         ForbidCompilation(cx, script);
@@ -2282,7 +2274,6 @@ jit::CanEnter(JSContext *cx, RunState &state)
 
     
     
-    RootedScript rscript(cx, script);
     if (js_JitOptions.eagerCompilation && !rscript->hasBaselineScript()) {
         MethodStatus status = CanEnterBaselineMethod(cx, state);
         if (status != Method_Compiled)
