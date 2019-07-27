@@ -95,6 +95,9 @@ private:
     void ProcessInfoHeader();
 
     
+    bool mProcessedHeader;
+
+    
     
     
     

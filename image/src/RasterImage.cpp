@@ -930,58 +930,18 @@ RasterImage::SizeOfDecoded(gfxMemoryLocation aLocation,
   return n;
 }
 
-RawAccessFrameRef
-RasterImage::InternalAddFrame(uint32_t aFrameNum,
-                              const nsIntRect& aFrameRect,
-                              uint32_t aDecodeFlags,
-                              SurfaceFormat aFormat,
-                              uint8_t aPaletteDepth,
-                              imgFrame* aPreviousFrame)
+void
+RasterImage::OnAddedFrame(uint32_t aNewFrameCount,
+                          const nsIntRect& aNewRefreshArea)
 {
-  
-  
-  
-  MOZ_ASSERT(mDecoder, "Only decoders may add frames!");
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT((mFrameCount == 1 && aNewFrameCount == 1) ||
+             mFrameCount < aNewFrameCount,
+             "Frame count running backwards");
 
-  MOZ_ASSERT(aFrameNum <= GetNumFrames(), "Invalid frame index!");
-  if (aFrameNum > GetNumFrames()) {
-    return RawAccessFrameRef();
-  }
+  mFrameCount = aNewFrameCount;
 
-  if (mSize.width <= 0 || mSize.height <= 0) {
-    NS_WARNING("Trying to add frame with zero or negative size");
-    return RawAccessFrameRef();
-  }
-
-  if (!SurfaceCache::CanHold(mSize.ToIntSize())) {
-    NS_WARNING("Trying to add frame that's too large for the SurfaceCache");
-    return RawAccessFrameRef();
-  }
-
-  nsRefPtr<imgFrame> frame = new imgFrame();
-  if (NS_FAILED(frame->InitForDecoder(mSize, aFrameRect, aFormat,
-                                      aPaletteDepth))) {
-    NS_WARNING("imgFrame::Init should succeed");
-    return RawAccessFrameRef();
-  }
-  frame->SetAsNonPremult(aDecodeFlags & FLAG_DECODE_NO_PREMULTIPLY_ALPHA);
-
-  RawAccessFrameRef ref = frame->RawAccessRef();
-  if (!ref) {
-    return RawAccessFrameRef();
-  }
-
-  bool succeeded =
-    SurfaceCache::Insert(frame, ImageKey(this),
-                         RasterSurfaceKey(mSize.ToIntSize(),
-                                          aDecodeFlags,
-                                          aFrameNum),
-                         Lifetime::Persistent);
-  if (!succeeded) {
-    return RawAccessFrameRef();
-  }
-
-  if (aFrameNum == 1) {
+  if (aNewFrameCount == 2) {
     
     MOZ_ASSERT(!mAnim, "Already have animation state?");
     mAnim = MakeUnique<FrameAnimator>(this, mSize.ToIntSize(), mAnimationMode);
@@ -996,34 +956,14 @@ RasterImage::InternalAddFrame(uint32_t aFrameNum,
     
     LockImage();
 
-    MOZ_ASSERT(aPreviousFrame, "Must provide a previous frame when animated");
-    aPreviousFrame->SetRawAccessOnly();
-
-    
-    
-    
-    DisposalMethod disposalMethod = aPreviousFrame->GetDisposalMethod();
-    if (disposalMethod == DisposalMethod::CLEAR ||
-        disposalMethod == DisposalMethod::CLEAR_ALL ||
-        disposalMethod == DisposalMethod::RESTORE_PREVIOUS) {
-      mAnim->SetFirstFrameRefreshArea(aPreviousFrame->GetRect());
-    }
-
     if (mPendingAnimation && ShouldAnimate()) {
       StartAnimation();
     }
   }
 
-  if (aFrameNum > 0) {
-    ref->SetRawAccessOnly();
-
-    
-    
-    mAnim->UnionFirstFrameRefreshArea(frame->GetRect());
+  if (aNewFrameCount > 1) {
+    mAnim->UnionFirstFrameRefreshArea(aNewRefreshArea);
   }
-
-  mFrameCount++;
-  return ref;
 }
 
 nsresult
@@ -1062,58 +1002,6 @@ RasterImage::SetSize(int32_t aWidth, int32_t aHeight, Orientation aOrientation)
   mHasSize = true;
 
   return NS_OK;
-}
-
-RawAccessFrameRef
-RasterImage::EnsureFrame(uint32_t aFrameNum,
-                         const nsIntRect& aFrameRect,
-                         uint32_t aDecodeFlags,
-                         SurfaceFormat aFormat,
-                         uint8_t aPaletteDepth,
-                         imgFrame* aPreviousFrame)
-{
-  if (mError) {
-    return RawAccessFrameRef();
-  }
-
-  MOZ_ASSERT(aFrameNum <= GetNumFrames(), "Invalid frame index!");
-  if (aFrameNum > GetNumFrames()) {
-    return RawAccessFrameRef();
-  }
-
-  
-  if (aFrameNum == GetNumFrames()) {
-    return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
-                            aPaletteDepth, aPreviousFrame);
-  }
-
-  
-  
-  
-  
-  
-  MOZ_ASSERT(aFrameNum == 0, "Replacing a frame other than the first?");
-  MOZ_ASSERT(GetNumFrames() == 1, "Should have only one frame");
-  MOZ_ASSERT(aPreviousFrame, "Need the previous frame to replace");
-  MOZ_ASSERT(!mAnim, "Shouldn't be animated");
-  if (aFrameNum != 0 || !aPreviousFrame || GetNumFrames() != 1) {
-    return RawAccessFrameRef();
-  }
-
-  MOZ_ASSERT(!aPreviousFrame->GetRect().IsEqualEdges(aFrameRect) ||
-             aPreviousFrame->GetFormat() != aFormat ||
-             aPreviousFrame->GetPaletteDepth() != aPaletteDepth,
-             "Replacing first frame with the same kind of frame?");
-
-  
-  IntSize prevFrameSize = aPreviousFrame->GetImageSize();
-  SurfaceCache::RemoveSurface(ImageKey(this),
-                              RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
-  mFrameCount = 0;
-
-  
-  return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
-                          aPaletteDepth, nullptr);
 }
 
 void
@@ -1631,6 +1519,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
     
     
     
+    mDecoder->SetSize(mSize, mOrientation);
     mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
                            SurfaceFormat::B8G8R8A8);
     mDecoder->AllocateFrame();

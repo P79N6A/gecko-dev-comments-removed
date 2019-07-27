@@ -39,17 +39,22 @@ GetBMPLog()
 #define PIXEL_OFFSET(row, col) (LINE(row) * mBIH.width + col)
 
 nsBMPDecoder::nsBMPDecoder(RasterImage& aImage)
- : Decoder(aImage)
-{
-  mColors = nullptr;
-  mRow = nullptr;
-  mCurPos = mPos = mNumColors = mRowBytes = 0;
-  mOldLine = mCurLine = 1; 
-  mState = eRLEStateInitial;
-  mStateData = 0;
-  mLOH = WIN_V3_HEADER_LENGTH;
-  mUseAlphaData = mHaveAlphaData = false;
-}
+  : Decoder(aImage)
+  , mPos(0)
+  , mLOH(WIN_V3_HEADER_LENGTH)
+  , mNumColors(0)
+  , mColors(nullptr)
+  , mRow(nullptr)
+  , mRowBytes(0)
+  , mCurLine(1)  
+  , mOldLine(1)
+  , mCurPos(0)
+  , mState(eRLEStateInitial)
+  , mStateData(0)
+  , mProcessedHeader(false)
+  , mUseAlphaData(false)
+  , mHaveAlphaData(false)
+{ }
 
 nsBMPDecoder::~nsBMPDecoder()
 {
@@ -330,7 +335,9 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount,
   
   
   
-  if (mPos == mLOH && !HasSize()) {
+  if (mPos == mLOH && !mProcessedHeader) {
+      mProcessedHeader = true;
+
       ProcessInfoHeader();
       PR_LOG(GetBMPLog(), PR_LOG_DEBUG,
              ("BMP is %lix%lix%lu. compression=%lu\n",

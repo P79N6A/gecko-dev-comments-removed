@@ -177,7 +177,12 @@ public:
   
   void Discard();
 
+
   
+  
+  
+
+  void OnAddedFrame(uint32_t aNewFrameCount, const nsIntRect& aNewRefreshArea);
 
   
 
@@ -189,25 +194,15 @@ public:
 
 
 
-
-
-
-
-  RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
-                                const nsIntRect& aFrameRect,
-                                uint32_t aDecodeFlags,
-                                gfx::SurfaceFormat aFormat,
-                                uint8_t aPaletteDepth,
-                                imgFrame* aPreviousFrame);
+  void     SetLoopCount(int32_t aLoopCount);
 
   
   void DecodingComplete(imgFrame* aFinalFrame);
 
+
   
-
-
-
-  void     SetLoopCount(int32_t aLoopCount);
+  
+  
 
   
 
@@ -309,12 +304,6 @@ private:
   size_t SizeOfDecodedWithComputedFallbackIfHeap(gfxMemoryLocation aLocation,
                                                  MallocSizeOf aMallocSizeOf) const;
 
-  RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
-                                     const nsIntRect& aFrameRect,
-                                     uint32_t aDecodeFlags,
-                                     gfx::SurfaceFormat aFormat,
-                                     uint8_t aPaletteDepth,
-                                     imgFrame* aPreviousFrame);
   nsresult DoImageDataComplete();
 
   already_AddRefed<layers::Image> GetCurrentImage();

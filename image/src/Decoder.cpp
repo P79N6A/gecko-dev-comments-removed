@@ -5,11 +5,17 @@
 
 
 #include "Decoder.h"
+
+#include "mozilla/gfx/2D.h"
+#include "imgIContainer.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "GeckoProfiler.h"
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
+
+using mozilla::gfx::IntSize;
+using mozilla::gfx::SurfaceFormat;
 
 namespace mozilla {
 namespace image {
@@ -82,6 +88,7 @@ Decoder::InitSharedDecoder(uint8_t* aImageData, uint32_t aImageDataLength,
 
   
   if (!IsSizeDecode()) {
+    mFrameCount++;
     PostFrameStart();
   }
 
@@ -232,19 +239,19 @@ Decoder::AllocateFrame()
   MOZ_ASSERT(mNeedsNewFrame);
   MOZ_ASSERT(NS_IsMainThread());
 
-  mCurrentFrame = mImage.EnsureFrame(mNewFrameData.mFrameNum,
-                                     mNewFrameData.mFrameRect,
-                                     mDecodeFlags,
-                                     mNewFrameData.mFormat,
-                                     mNewFrameData.mPaletteDepth,
-                                     mCurrentFrame.get());
+  mCurrentFrame = EnsureFrame(mNewFrameData.mFrameNum,
+                              mNewFrameData.mFrameRect,
+                              mDecodeFlags,
+                              mNewFrameData.mFormat,
+                              mNewFrameData.mPaletteDepth,
+                              mCurrentFrame.get());
 
   if (mCurrentFrame) {
     
     mCurrentFrame->GetImageData(&mImageData, &mImageDataLength);
     mCurrentFrame->GetPaletteData(&mColormap, &mColormapSize);
 
-    if (mNewFrameData.mFrameNum == mFrameCount) {
+    if (mNewFrameData.mFrameNum + 1 == mFrameCount) {
       PostFrameStart();
     }
   } else {
@@ -262,6 +269,141 @@ Decoder::AllocateFrame()
   }
 
   return mCurrentFrame ? NS_OK : NS_ERROR_FAILURE;
+}
+
+RawAccessFrameRef
+Decoder::EnsureFrame(uint32_t aFrameNum,
+                     const nsIntRect& aFrameRect,
+                     uint32_t aDecodeFlags,
+                     SurfaceFormat aFormat,
+                     uint8_t aPaletteDepth,
+                     imgFrame* aPreviousFrame)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mDataError || NS_FAILED(mFailCode)) {
+    return RawAccessFrameRef();
+  }
+
+  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
+  if (aFrameNum > mFrameCount) {
+    return RawAccessFrameRef();
+  }
+
+  
+  if (aFrameNum == mFrameCount) {
+    return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
+                            aPaletteDepth, aPreviousFrame);
+  }
+
+  
+  
+  
+  
+  
+  MOZ_ASSERT(aFrameNum == 0, "Replacing a frame other than the first?");
+  MOZ_ASSERT(mFrameCount == 1, "Should have only one frame");
+  MOZ_ASSERT(aPreviousFrame, "Need the previous frame to replace");
+  if (aFrameNum != 0 || !aPreviousFrame || mFrameCount != 1) {
+    return RawAccessFrameRef();
+  }
+
+  MOZ_ASSERT(!aPreviousFrame->GetRect().IsEqualEdges(aFrameRect) ||
+             aPreviousFrame->GetFormat() != aFormat ||
+             aPreviousFrame->GetPaletteDepth() != aPaletteDepth,
+             "Replacing first frame with the same kind of frame?");
+
+  
+  IntSize prevFrameSize = aPreviousFrame->GetImageSize();
+  SurfaceCache::RemoveSurface(ImageKey(&mImage),
+                              RasterSurfaceKey(prevFrameSize, aDecodeFlags, 0));
+  mFrameCount = 0;
+  mInFrame = false;
+
+  
+  return InternalAddFrame(aFrameNum, aFrameRect, aDecodeFlags, aFormat,
+                          aPaletteDepth, nullptr);
+}
+
+RawAccessFrameRef
+Decoder::InternalAddFrame(uint32_t aFrameNum,
+                          const nsIntRect& aFrameRect,
+                          uint32_t aDecodeFlags,
+                          SurfaceFormat aFormat,
+                          uint8_t aPaletteDepth,
+                          imgFrame* aPreviousFrame)
+{
+  MOZ_ASSERT(aFrameNum <= mFrameCount, "Invalid frame index!");
+  if (aFrameNum > mFrameCount) {
+    return RawAccessFrameRef();
+  }
+
+  MOZ_ASSERT(mImageMetadata.HasSize());
+  nsIntSize imageSize(mImageMetadata.GetWidth(), mImageMetadata.GetHeight());
+  if (imageSize.width <= 0 || imageSize.height <= 0 ||
+      aFrameRect.width <= 0 || aFrameRect.height <= 0) {
+    NS_WARNING("Trying to add frame with zero or negative size");
+    return RawAccessFrameRef();
+  }
+
+  if (!SurfaceCache::CanHold(imageSize.ToIntSize())) {
+    NS_WARNING("Trying to add frame that's too large for the SurfaceCache");
+    return RawAccessFrameRef();
+  }
+
+  nsRefPtr<imgFrame> frame = new imgFrame();
+  if (NS_FAILED(frame->InitForDecoder(imageSize, aFrameRect, aFormat,
+                                      aPaletteDepth))) {
+    NS_WARNING("imgFrame::Init should succeed");
+    return RawAccessFrameRef();
+  }
+  frame->SetAsNonPremult(aDecodeFlags &
+                         imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA);
+
+  RawAccessFrameRef ref = frame->RawAccessRef();
+  if (!ref) {
+    return RawAccessFrameRef();
+  }
+
+  bool succeeded =
+    SurfaceCache::Insert(frame, ImageKey(&mImage),
+                         RasterSurfaceKey(imageSize.ToIntSize(),
+                                          aDecodeFlags,
+                                          aFrameNum),
+                         Lifetime::Persistent);
+  if (!succeeded) {
+    return RawAccessFrameRef();
+  }
+
+  nsIntRect refreshArea;
+
+  if (aFrameNum == 1) {
+    MOZ_ASSERT(aPreviousFrame, "Must provide a previous frame when animated");
+    aPreviousFrame->SetRawAccessOnly();
+
+    
+    
+    
+    DisposalMethod disposalMethod = aPreviousFrame->GetDisposalMethod();
+    if (disposalMethod == DisposalMethod::CLEAR ||
+        disposalMethod == DisposalMethod::CLEAR_ALL ||
+        disposalMethod == DisposalMethod::RESTORE_PREVIOUS) {
+      refreshArea = aPreviousFrame->GetRect();
+    }
+  }
+
+  if (aFrameNum > 0) {
+    ref->SetRawAccessOnly();
+
+    
+    
+    refreshArea.UnionRect(refreshArea, frame->GetRect());
+  }
+
+  mFrameCount++;
+  mImage.OnAddedFrame(mFrameCount, refreshArea);
+
+  return ref;
 }
 
 void
@@ -316,7 +458,6 @@ Decoder::PostFrameStart()
   NS_ABORT_IF_FALSE(!mInFrame, "Starting new frame but not done with old one!");
 
   
-  mFrameCount++;
   mInFrame = true;
 
   
@@ -324,12 +465,6 @@ Decoder::PostFrameStart()
     mIsAnimated = true;
     mProgress |= FLAG_IS_ANIMATED;
   }
-
-  
-  
-  
-  MOZ_ASSERT(mFrameCount == mImage.GetNumFrames(),
-             "Decoder frame count doesn't match image's!");
 }
 
 void

@@ -159,6 +159,11 @@ public:
   bool HasSize() const { return mImageMetadata.HasSize(); }
   void SetSizeOnImage();
 
+  void SetSize(const nsIntSize& aSize, const Orientation& aOrientation)
+  {
+    PostSize(aSize.width, aSize.height, aOrientation);
+  }
+
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
 
@@ -265,6 +270,27 @@ protected:
   void PostDataError();
   void PostDecoderError(nsresult aFailCode);
 
+  
+
+
+
+
+
+
+
+  RawAccessFrameRef EnsureFrame(uint32_t aFrameNum,
+                                const nsIntRect& aFrameRect,
+                                uint32_t aDecodeFlags,
+                                gfx::SurfaceFormat aFormat,
+                                uint8_t aPaletteDepth,
+                                imgFrame* aPreviousFrame);
+
+  RawAccessFrameRef InternalAddFrame(uint32_t aFrameNum,
+                                     const nsIntRect& aFrameRect,
+                                     uint32_t aDecodeFlags,
+                                     gfx::SurfaceFormat aFormat,
+                                     uint8_t aPaletteDepth,
+                                     imgFrame* aPreviousFrame);
   
 
 

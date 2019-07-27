@@ -102,11 +102,6 @@ public:
   
 
 
-  void SetFirstFrameRefreshArea(const nsIntRect& aRect);
-
-  
-
-
 
   void UnionFirstFrameRefreshArea(const nsIntRect& aRect);
 
