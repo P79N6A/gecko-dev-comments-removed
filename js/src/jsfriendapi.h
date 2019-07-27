@@ -11,12 +11,14 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TypedEnum.h"
 
+#include "jsapi.h" 
 #include "jsbytecode.h"
 #include "jspubtd.h"
 
 #include "js/CallArgs.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Class.h"
+
 
 
 
@@ -1192,6 +1194,60 @@ namespace js {
 
 extern JS_FRIEND_API(JSString *)
 ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
+
+struct MOZ_STACK_CLASS JS_FRIEND_API(ErrorReport)
+{
+    ErrorReport(JSContext *cx);
+    ~ErrorReport();
+
+    bool init(JSContext *cx, JS::HandleValue exn);
+
+    JSErrorReport *report()
+    {
+        return reportp;
+    }
+
+    const char *message()
+    {
+        return message_;
+    }
+
+  private:
+    
+    
+    
+    void populateUncaughtExceptionReport(JSContext *cx, ...);
+    void populateUncaughtExceptionReportVA(JSContext *cx, va_list ap);
+
+    
+    JSErrorReport *reportp;
+
+    
+    const char *message_;
+
+    
+    JSErrorReport ownedReport;
+
+    
+    
+    char *ownedMessage;
+
+    
+    
+    JS::RootedString str;
+
+    
+    JS::RootedObject exnObject;
+
+    
+    JSAutoByteString bytesStorage;
+
+    
+    JSAutoByteString filename;
+
+    
+    bool ownsMessageAndReport;
+};
 
 } 
 
