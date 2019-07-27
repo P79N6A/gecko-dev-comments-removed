@@ -66,11 +66,7 @@ add_task(function () {
 
   
   ok(entries[0].url.startsWith("data:text/html"), "correct root url");
-  is(entries[0].children[0].url, "about:mozilla", "correct url for static frame");
-
-  
-  is(entries.length, 1, "there is one root entry ...");
-  is(entries[0].children.length, 1, "... with a single child entry");
+  ok(!entries[0].children, "no children collected");
 
   
   browser.messageManager.sendAsyncMessage("ss-test:click", {id: "lnk"});
@@ -82,13 +78,9 @@ add_task(function () {
   
   ok(entries[0].url.startsWith("data:text/html"), "correct 1st root url");
   ok(entries[1].url.startsWith("data:text/html"), "correct 2nd root url");
-  is(entries[0].children[0].url, "about:mozilla", "correct url for 1st static frame");
-  is(entries[1].children[0].url, "about:robots", "correct url for 2ns static frame");
-
-  
-  is(entries.length, 2, "there are two root entries ...");
-  is(entries[0].children.length, 1, "... with a single child entry ...");
-  is(entries[1].children.length, 1, "... each");
+  ok(!entries.children, "no children collected");
+  ok(!entries[0].children, "no children collected");
+  ok(!entries[1].children, "no children collected");
 
   
   gBrowser.removeTab(tab);
