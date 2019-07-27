@@ -88,7 +88,6 @@ public:
     return n;
   }
 
-private:
   
   typedef DeadlockDetector<BlockingResourceBase> DDT;
 
@@ -132,23 +131,6 @@ protected:
 
 
   void Release();             
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static bool PrintCycle(const DDT::ResourceAcquisitionArray* aCycle,
-                         nsACString& aOut);
 
   
 
