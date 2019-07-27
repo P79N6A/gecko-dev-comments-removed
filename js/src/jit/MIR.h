@@ -3361,15 +3361,33 @@ class MNewDerivedTypedObject
 
 
 
+
+struct OperandIndexMap : public TempObject
+{
+    
+    
+    FixedList<uint8_t> map;
+
+    bool init(TempAllocator& alloc, JSObject* templateObject);
+};
+
+
+
 class MObjectState
   : public MVariadicInstruction,
     public NoFloatPolicyAfter<1>::Data
 {
   private:
     uint32_t numSlots_;
-    uint32_t numFixedSlots_;
+    uint32_t numFixedSlots_;        
+    OperandIndexMap* operandIndex_; 
 
-    explicit MObjectState(MDefinition* obj);
+    bool isUnboxed() const {
+        return operandIndex_ != nullptr;
+    }
+
+    MObjectState(JSObject *templateObject, OperandIndexMap* operandIndex);
+    explicit MObjectState(MObjectState* state);
 
     bool init(TempAllocator& alloc, MDefinition* obj);
 
@@ -3380,6 +3398,10 @@ class MObjectState
   public:
     INSTRUCTION_HEADER(ObjectState)
 
+    
+    
+    static JSObject* templateObjectOf(MDefinition* obj);
+
     static MObjectState* New(TempAllocator& alloc, MDefinition* obj, MDefinition* undefinedVal);
     static MObjectState* Copy(TempAllocator& alloc, MObjectState* state);
 
@@ -3388,6 +3410,7 @@ class MObjectState
     }
 
     size_t numFixedSlots() const {
+        MOZ_ASSERT(!isUnboxed());
         return numFixedSlots_;
     }
     size_t numSlots() const {
@@ -3421,6 +3444,18 @@ class MObjectState
     }
     void setDynamicSlot(uint32_t slot, MDefinition* def) {
         setSlot(slot + numFixedSlots(), def);
+    }
+
+    
+    bool hasOffset(uint32_t offset) const {
+        MOZ_ASSERT(isUnboxed());
+        return offset < operandIndex_->map.length() && operandIndex_->map[offset] != 0;
+    }
+    MDefinition* getOffset(uint32_t offset) const {
+        return getOperand(operandIndex_->map[offset]);
+    }
+    void setOffset(uint32_t offset, MDefinition* def) {
+        replaceOperand(operandIndex_->map[offset], def);
     }
 
     bool writeRecoverData(CompactBufferWriter& writer) const override;
