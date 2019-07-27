@@ -188,7 +188,9 @@ public class TabStripItemView extends ThemedLinearLayout
         
         
         View parent = (View) getParent();
-        parent.invalidate();
+        if (parent != null) {
+            parent.invalidate();
+        }
     }
 
     void updateFromTab(Tab tab) {
