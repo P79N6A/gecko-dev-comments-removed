@@ -383,7 +383,8 @@ ChildShrinkWrapISize(nsRenderingContext *aRenderingContext,
 
   
   
-  nsCSSOffsetState offsets(aChildFrame, aRenderingContext, aCBSize.ISize(aWM));
+  nsCSSOffsetState offsets(aChildFrame, aRenderingContext, aWM,
+                           aCBSize.ISize(aWM));
   LogicalSize size =
     aChildFrame->ComputeSize(aRenderingContext,
                   wm, cbSize, aAvailableWidth,

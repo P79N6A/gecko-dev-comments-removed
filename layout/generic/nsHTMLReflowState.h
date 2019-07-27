@@ -124,12 +124,23 @@ public:
   const LogicalMargin ComputedLogicalPadding() const
     { return LogicalMargin(mWritingMode, mComputedPadding); }
 
+  void SetComputedLogicalMargin(mozilla::WritingMode aWM,
+                                const LogicalMargin& aMargin)
+    { mComputedMargin = aMargin.GetPhysicalMargin(aWM); }
   void SetComputedLogicalMargin(const LogicalMargin& aMargin)
-    { mComputedMargin = aMargin.GetPhysicalMargin(mWritingMode); }
+    { SetComputedLogicalMargin(mWritingMode, aMargin); }
+
+  void SetComputedLogicalBorderPadding(mozilla::WritingMode aWM,
+                                       const LogicalMargin& aMargin)
+    { mComputedBorderPadding = aMargin.GetPhysicalMargin(aWM); }
   void SetComputedLogicalBorderPadding(const LogicalMargin& aMargin)
-    { mComputedBorderPadding = aMargin.GetPhysicalMargin(mWritingMode); }
+    { SetComputedLogicalBorderPadding(mWritingMode, aMargin); }
+
+  void SetComputedLogicalPadding(mozilla::WritingMode aWM,
+                                 const LogicalMargin& aMargin)
+    { mComputedPadding = aMargin.GetPhysicalMargin(aWM); }
   void SetComputedLogicalPadding(const LogicalMargin& aMargin)
-    { mComputedPadding = aMargin.GetPhysicalMargin(mWritingMode); }
+    { SetComputedLogicalPadding(mWritingMode, aMargin); }
 
   WritingMode GetWritingMode() const { return mWritingMode; }
 
@@ -159,6 +170,7 @@ public:
   }
 
   nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext,
+                   mozilla::WritingMode aContainingBlockWritingMode,
                    nscoord aContainingBlockISize);
 
 #ifdef DEBUG
@@ -191,7 +203,10 @@ private:
 
 
 
-  bool ComputeMargin(const mozilla::LogicalSize& aPercentBasis);
+
+
+  bool ComputeMargin(mozilla::WritingMode aWM,
+                     const mozilla::LogicalSize& aPercentBasis);
   
   
 
@@ -208,12 +223,16 @@ private:
 
 
 
-  bool ComputePadding(const mozilla::LogicalSize& aPercentBasis,
+
+
+  bool ComputePadding(mozilla::WritingMode aWM,
+                      const mozilla::LogicalSize& aPercentBasis,
                       nsIAtom* aFrameType);
 
 protected:
 
-  void InitOffsets(const mozilla::LogicalSize& aPercentBasis,
+  void InitOffsets(mozilla::WritingMode aWM,
+                   const mozilla::LogicalSize& aPercentBasis,
                    nsIAtom* aFrameType,
                    const nsMargin *aBorder = nullptr,
                    const nsMargin *aPadding = nullptr);
