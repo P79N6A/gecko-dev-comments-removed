@@ -263,6 +263,8 @@ OnSharedPreferenceChangeListener
             return;
         }
 
+        refreshSuggestedSites();
+
         
         
         
