@@ -7,21 +7,20 @@
 #ifndef nsMemoryReporterManager_h__
 #define nsMemoryReporterManager_h__
 
-#include "mozilla/Mutex.h"
-#include "nsHashKeys.h"
 #include "nsIMemoryReporter.h"
 #include "nsITimer.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/Mutex.h"
 #include "nsTHashtable.h"
+#include "nsHashKeys.h"
+
+class nsITimer;
 
 namespace mozilla {
 namespace dom {
-class ContentParent;
 class MemoryReport;
 }
 }
-
-class nsITimer;
 
 class nsMemoryReporterManager final : public nsIMemoryReporterManager
 {
@@ -44,12 +43,9 @@ public:
   typedef nsTHashtable<nsRefPtrHashKey<nsIMemoryReporter>> StrongReportersTable;
   typedef nsTHashtable<nsPtrHashKey<nsIMemoryReporter>> WeakReportersTable;
 
-  
-  
-  
-  
-  
-  
+  void IncrementNumChildProcesses();
+  void DecrementNumChildProcesses();
+
   
   
   
@@ -131,7 +127,7 @@ public:
   
   void HandleChildReport(uint32_t aGeneration,
                          const mozilla::dom::MemoryReport& aChildReport);
-  void EndProcessReport(uint32_t aGeneration, bool aSuccess);
+  void EndChildReport(uint32_t aGeneration, bool aSuccess);
 
   
   
@@ -203,6 +199,7 @@ private:
   StrongReportersTable* mSavedStrongReporters;
   WeakReportersTable* mSavedWeakReporters;
 
+  uint32_t mNumChildProcesses;
   uint32_t mNextGeneration;
 
   struct GetReportsState
@@ -211,13 +208,8 @@ private:
     bool                                 mAnonymize;
     bool                                 mMinimize;
     nsCOMPtr<nsITimer>                   mTimer;
-    
-    
-    
-    nsTArray<nsRefPtr<mozilla::dom::ContentParent>>* mChildrenPending;
-    uint32_t                             mNumProcessesRunning;
-    uint32_t                             mNumProcessesCompleted;
-    uint32_t                             mConcurrencyLimit;
+    uint32_t                             mNumChildProcesses;
+    uint32_t                             mNumChildProcessesCompleted;
     nsCOMPtr<nsIHandleReportCallback>    mHandleReport;
     nsCOMPtr<nsISupports>                mHandleReportData;
     nsCOMPtr<nsIFinishReportingCallback> mFinishReporting;
@@ -225,7 +217,7 @@ private:
     nsString                             mDMDDumpIdent;
 
     GetReportsState(uint32_t aGeneration, bool aAnonymize, bool aMinimize,
-                    uint32_t aConcurrencyLimit,
+                    uint32_t aNumChildProcesses,
                     nsIHandleReportCallback* aHandleReport,
                     nsISupports* aHandleReportData,
                     nsIFinishReportingCallback* aFinishReporting,
@@ -234,10 +226,8 @@ private:
       : mGeneration(aGeneration)
       , mAnonymize(aAnonymize)
       , mMinimize(aMinimize)
-      , mChildrenPending(nullptr)
-      , mNumProcessesRunning(1) 
-      , mNumProcessesCompleted(0)
-      , mConcurrencyLimit(aConcurrencyLimit)
+      , mNumChildProcesses(aNumChildProcesses)
+      , mNumChildProcessesCompleted(0)
       , mHandleReport(aHandleReport)
       , mHandleReportData(aHandleReportData)
       , mFinishReporting(aFinishReporting)
@@ -245,8 +235,6 @@ private:
       , mDMDDumpIdent(aDMDDumpIdent)
     {
     }
-
-    ~GetReportsState();
   };
 
   
@@ -255,12 +243,10 @@ private:
   GetReportsState* mGetReportsState;
 
   GetReportsState* GetStateForGeneration(uint32_t aGeneration);
-  static bool StartChildReport(mozilla::dom::ContentParent* aChild,
-                               const GetReportsState* aState);
 };
 
 #define NS_MEMORY_REPORTER_MANAGER_CID \
 { 0xfb97e4f5, 0x32dd, 0x497a, \
 { 0xba, 0xa2, 0x7d, 0x1e, 0x55, 0x7, 0x99, 0x10 } }
 
-#endif 
+#endif
