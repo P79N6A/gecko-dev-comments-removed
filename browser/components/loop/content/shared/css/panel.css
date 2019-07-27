@@ -2,6 +2,10 @@
 
 
 
+body {
+  background: none;
+}
+
 
 
 .panel {
@@ -26,7 +30,6 @@
   flex-direction: row;
   padding: 10px;
   border-bottom: 1px solid #ccc;
-  background-color: #fbfbfb;
   color: #000;
   border-top-right-radius: 2px;
   border-top-left-radius: 2px;
