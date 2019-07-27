@@ -39,6 +39,172 @@ function LOG(aMsg) {
   }
 }
 
+function CachedRequest(loc, cellInfo, wifiList) {
+  this.location = loc;
+
+  let wifis = new Set();
+  if (wifiList) {
+    for (let i = 0; i < wifiList.length; i++) {
+      wifis.add(wifiList[i].macAddress);
+    }
+  }
+
+  
+  
+  function makeCellKey(cell) {
+    return "" + cell.radio + ":" + cell.mobileCountryCode + ":" +
+    cell.mobileNetworkCode + ":" + cell.locationAreaCode + ":" +
+    cell.cellId;
+  }
+
+  let cells = new Set();
+  if (cellInfo) {
+    for (let i = 0; i < cellInfo.length; i++) {
+      cells.add(makeCellKey(cellInfo[i]));
+    }
+  }
+
+  this.hasCells = () => cells.size > 0;
+
+  this.hasWifis = () => wifis.size > 0;
+
+  
+  this.isCellEqual = function(cellInfo) {
+    if (!this.hasCells()) {
+      return false;
+    }
+
+    let len1 = cells.size;
+    let len2 = cellInfo.length;
+
+    if (len1 != len2) {
+      LOG("cells not equal len");
+      return false;
+    }
+
+    for (let i = 0; i < len2; i++) {
+      if (!cells.has(makeCellKey(cellInfo[i]))) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  
+  this.isWifiApproxEqual = function(wifiList) {
+    if (!this.hasWifis()) {
+      return false;
+    }
+
+    
+    let common = 0;
+    for (let i = 0; i < wifiList.length; i++) {
+      if (wifis.has(wifiList[i].macAddress)) {
+        common++;
+      }
+    }
+    let kPercentMatch = 0.5;
+    return common >= (Math.max(wifis.size, wifiList.length) * kPercentMatch);
+  };
+
+  this.isGeoip = function() {
+    return !this.hasCells() && !this.hasWifis();
+  };
+
+  this.isCellAndWifi = function() {
+    return this.hasCells() && this.hasWifis();
+  };
+
+  this.isCellOnly = function() {
+    return this.hasCells() && !this.hasWifis();
+  };
+
+  this.isWifiOnly = function() {
+    return this.hasWifis() && !this.hasCells();
+  };
+ }
+
+let gCachedRequest = null;
+let gDebugCacheReasoning = ""; 
+
+
+
+
+
+
+
+
+
+
+function isCachedRequestMoreAccurateThanServerRequest(newCell, newWifiList)
+{
+  gDebugCacheReasoning = "";
+  let isNetworkRequestCacheEnabled = true;
+  try {
+    
+    isNetworkRequestCacheEnabled = Services.prefs.getBoolPref("geo.wifi.debug.requestCache.enabled");
+    if (!isNetworkRequestCacheEnabled) {
+      gCachedRequest = null;
+    }
+  } catch (e) {}
+
+  if (!gCachedRequest || !isNetworkRequestCacheEnabled) {
+    gDebugCacheReasoning = "No cached data";
+    return false;
+  }
+
+  if (!newCell && !newWifiList) {
+    gDebugCacheReasoning = "New req. is GeoIP.";
+    return true;
+  }
+
+  if (newCell && newWifiList && (gCachedRequest.isCellOnly() || gCachedRequest.isWifiOnly())) {
+    gDebugCacheReasoning = "New req. is cell+wifi, cache only cell or wifi.";
+    return false;
+  }
+
+  if (newCell && gCachedRequest.isWifiOnly()) {
+    
+    
+    
+    var isHighAccuracyWifi = gCachedRequest.location.coords.accuracy < 5000;
+    gDebugCacheReasoning = "Req. is cell, cache is wifi, isHigh:" + isHighAccuracyWifi;
+    return isHighAccuracyWifi;
+  }
+
+  let hasEqualCells = false;
+  if (newCell) {
+    hasEqualCells = gCachedRequest.isCellEqual(newCell);
+  }
+
+  let hasEqualWifis = false;
+  if (newWifiList) {
+    hasEqualWifis = gCachedRequest.isWifiApproxEqual(newWifiList);
+  }
+
+  gDebugCacheReasoning = "EqualCells:" + hasEqualCells + " EqualWifis:" + hasEqualWifis;
+
+  if (gCachedRequest.isCellOnly()) {
+    gDebugCacheReasoning += ", Cell only.";
+    if (hasEqualCells) {
+      return true;
+    }
+  } else if (gCachedRequest.isWifiOnly() && hasEqualWifis) {
+    gDebugCacheReasoning +=", Wifi only."
+    return true;
+  } else if (gCachedRequest.isCellAndWifi()) {
+     gDebugCacheReasoning += ", Cache has Cell+Wifi.";
+    if ((hasEqualCells && hasEqualWifis) ||
+        (!newWifiList && hasEqualCells) ||
+        (!newCell && hasEqualWifis))
+    {
+     return true;
+    }
+  }
+
+  return false;
+}
+
 function WifiGeoCoordsObject(lat, lon, acc, alt, altacc) {
   this.latitude = lat;
   this.longitude = lon;
@@ -140,7 +306,7 @@ WifiGeoPositionProvider.prototype = {
           }
         }
       },
-      
+
       handleError: function(message) {
         gLoggingEnabled = false;
         LOG("settings callback threw an exception, dropping");
@@ -177,6 +343,10 @@ WifiGeoPositionProvider.prototype = {
     if (this.started == false) {
       return;
     }
+
+    
+    
+    gCachedRequest = null;
 
     if (this.timer) {
       this.timer.cancel();
@@ -232,7 +402,7 @@ WifiGeoPositionProvider.prototype = {
   },
 
   getMobileInfo: function() {
-    LOG("updateMobileInfo called");
+    LOG("getMobileInfo called");
     try {
       let radioService = Cc["@mozilla.org/ril;1"]
                     .getService(Ci.nsIRadioInterfaceLayer);
@@ -269,6 +439,30 @@ WifiGeoPositionProvider.prototype = {
   },
 
   sendLocationRequest: function (wifiData) {
+    let data = {};
+    if (wifiData) {
+      data.wifiAccessPoints = wifiData;
+    }
+
+    if (gCellScanningEnabled) {
+      let cellData = this.getMobileInfo();
+      if (cellData && cellData.length > 0) {
+        data.cellTowers = cellData;
+      }
+    }
+
+    let useCached = isCachedRequestMoreAccurateThanServerRequest(data.cellTowers,
+                                                                 data.wifiAccessPoints);
+
+    LOG("Use request cache:" + useCached + " reason:" + gDebugCacheReasoning);
+
+    if (useCached) {
+      gCachedRequest.location.timestamp = Date.now();
+      this.listener.update(gCachedRequest.location);
+      return;
+    }
+
+    
     let url = Services.urlFormatter.formatURLPref("geo.wifi.uri");
     let listener = this.listener;
     LOG("Sending request: " + url + "\n");
@@ -304,23 +498,12 @@ WifiGeoPositionProvider.prototype = {
                                                   xhr.response.accuracy);
 
       listener.update(newLocation);
+      gCachedRequest = new CachedRequest(newLocation, data.cellTowers, data.wifiAccessPoints);
     };
 
-    let data = {};
-    if (wifiData) {
-      data.wifiAccessPoints = wifiData;
-    }
-
-    if (gCellScanningEnabled) {
-      let cellData = this.getMobileInfo();
-      if (cellData) {
-        data.cellTowers = cellData;
-      }
-    }
-
-    data = JSON.stringify(data);
-    LOG("sending " + data);
-    xhr.send(data);
+    var requestData = JSON.stringify(data);
+    LOG("sending " + requestData);
+    xhr.send(requestData);
   },
 };
 
