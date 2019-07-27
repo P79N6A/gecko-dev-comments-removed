@@ -17,7 +17,6 @@ import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.ThreadUtils.AssertBehavior;
 
-import android.R;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -291,10 +290,10 @@ class GeckoInputConnection
         int selEnd = Selection.getSelectionEnd(editable);
 
         switch (id) {
-            case R.id.selectAll:
+            case android.R.id.selectAll:
                 setSelection(0, editable.length());
                 break;
-            case R.id.cut:
+            case android.R.id.cut:
                 
                 if (selStart == selEnd) {
                     
@@ -308,10 +307,10 @@ class GeckoInputConnection
                     editable.delete(selStart, selEnd);
                 }
                 break;
-            case R.id.paste:
+            case android.R.id.paste:
                 commitText(Clipboard.getText(), 1);
                 break;
-            case R.id.copy:
+            case android.R.id.copy:
                 
                 String copiedText = selStart == selEnd ? "" :
                                     editable.toString().substring(
