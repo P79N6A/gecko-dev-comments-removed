@@ -1095,7 +1095,7 @@ nsTreeSanitizer::SanitizeStyleSheet(const nsAString& aOriginal,
   
   bool didSanitize = false;
   
-  nsRefPtr<CSSStyleSheet> sheet = new CSSStyleSheet(CORS_NONE);
+  nsRefPtr<CSSStyleSheet> sheet = new CSSStyleSheet(CORS_NONE, aDocument->GetReferrerPolicy());
   sheet->SetURIs(aDocument->GetDocumentURI(), nullptr, aBaseURI);
   sheet->SetPrincipal(aDocument->NodePrincipal());
   

@@ -1905,7 +1905,8 @@ public:
 
 
   virtual void PreloadStyle(nsIURI* aURI, const nsAString& aCharset,
-                            const nsAString& aCrossOriginAttr) = 0;
+                            const nsAString& aCrossOriginAttr,
+                            ReferrerPolicy aReferrerPolicy) = 0;
 
   
 

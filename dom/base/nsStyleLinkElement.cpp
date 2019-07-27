@@ -426,7 +426,8 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument* aOldDocument,
     NS_ENSURE_TRUE(clonedURI, NS_ERROR_OUT_OF_MEMORY);
     rv = doc->CSSLoader()->
       LoadStyleLink(thisContent, clonedURI, title, media, isAlternate,
-                    GetCORSMode(), aObserver, &isAlternate);
+                    GetCORSMode(), doc->GetReferrerPolicy(),
+                    aObserver, &isAlternate);
     if (NS_FAILED(rv)) {
       
       
