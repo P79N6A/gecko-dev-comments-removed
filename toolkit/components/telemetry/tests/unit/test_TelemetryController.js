@@ -21,6 +21,7 @@ Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 
 const PING_FORMAT_VERSION = 4;
+const DELETION_PING_TYPE = "deletion";
 const TEST_PING_TYPE = "test-ping-type";
 
 const PLATFORM_VERSION = "1.9.2";
@@ -174,6 +175,25 @@ add_task(function* test_simplePing() {
   checkPingFormat(ping, TEST_PING_TYPE, false, false);
 });
 
+add_task(function* test_deletionPing() {
+  const isUnified = Preferences.get(PREF_UNIFIED, false);
+  if (!isUnified) {
+    
+    
+    return;
+  }
+
+  
+  Preferences.set(PREF_FHR_UPLOAD_ENABLED, false);
+
+  let request = yield gRequestIterator.next();
+  let ping = decodeRequestPayload(request);
+  checkPingFormat(ping, DELETION_PING_TYPE, true, false);
+
+  
+  Preferences.set(PREF_FHR_UPLOAD_ENABLED, true);
+});
+
 add_task(function* test_pingHasClientId() {
   
   yield sendPing(true, false);
@@ -230,6 +250,14 @@ add_task(function* test_archivePings() {
   const isUnified = Preferences.get(PREF_UNIFIED, false);
   const uploadPref = isUnified ? PREF_FHR_UPLOAD_ENABLED : PREF_ENABLED;
   Preferences.set(uploadPref, false);
+
+  
+  
+  if (isUnified) {
+    let request = yield gRequestIterator.next();
+    let ping = decodeRequestPayload(request);
+    checkPingFormat(ping, DELETION_PING_TYPE, true, false);
+  }
 
   
   registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
