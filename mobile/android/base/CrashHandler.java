@@ -16,9 +16,14 @@ class CrashHandler implements Thread.UncaughtExceptionHandler {
     private static final String LOGTAG = "GeckoCrashHandler";
     private static final Thread MAIN_THREAD = Thread.currentThread();
 
+    
+    protected final Context appContext;
+    
+    protected final Thread handlerThread;
     protected final Thread.UncaughtExceptionHandler systemUncaughtHandler;
 
     protected boolean crashing;
+    protected boolean unregistered;
 
     
 
@@ -58,7 +63,18 @@ class CrashHandler implements Thread.UncaughtExceptionHandler {
 
 
     public CrashHandler() {
-        systemUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler();
+        this((Context) null);
+    }
+
+    
+
+
+
+
+    public CrashHandler(final Context appContext) {
+        this.appContext = appContext;
+        this.handlerThread = null;
+        this.systemUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
@@ -68,8 +84,41 @@ class CrashHandler implements Thread.UncaughtExceptionHandler {
 
 
     public CrashHandler(final Thread thread) {
-        systemUncaughtHandler = thread.getUncaughtExceptionHandler();
+        this(thread, null);
+    }
+
+    
+
+
+
+
+
+    public CrashHandler(final Thread thread, final Context appContext) {
+        this.appContext = appContext;
+        this.handlerThread = thread;
+        this.systemUncaughtHandler = thread.getUncaughtExceptionHandler();
         thread.setUncaughtExceptionHandler(this);
+    }
+
+    
+
+
+    public void unregister() {
+        unregistered = true;
+
+        
+        
+        
+
+        if (handlerThread != null) {
+            if (handlerThread.getUncaughtExceptionHandler() == this) {
+                handlerThread.setUncaughtExceptionHandler(systemUncaughtHandler);
+            }
+        } else {
+            if (Thread.getDefaultUncaughtExceptionHandler() == this) {
+                Thread.setDefaultUncaughtExceptionHandler(systemUncaughtHandler);
+            }
+        }
     }
 
     
@@ -125,13 +174,17 @@ class CrashHandler implements Thread.UncaughtExceptionHandler {
         }
 
         try {
-            this.crashing = true;
-            exc = getRootException(exc);
-            logException(thread, exc);
-
-            if (reportException(thread, exc)) {
+            if (!this.unregistered) {
                 
-                return;
+
+                this.crashing = true;
+                exc = getRootException(exc);
+                logException(thread, exc);
+
+                if (reportException(thread, exc)) {
+                    
+                    return;
+                }
             }
 
             if (systemUncaughtHandler != null) {
