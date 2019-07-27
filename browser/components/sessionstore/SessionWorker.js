@@ -114,10 +114,11 @@ let Agent = {
 
 
 
-  write: function (stateString, options = {}) {
+  write: function (state, options = {}) {
     let exn;
     let telemetry = {};
 
+    let stateString = JSON.stringify(state);
     let data = Encoder.encode(stateString);
     let startWriteMs, stopWriteMs;
 
