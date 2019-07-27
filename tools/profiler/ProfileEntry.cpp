@@ -323,6 +323,10 @@ void ThreadProfile::StreamJSObject(JSStreamWriter& b)
     if (XRE_GetProcessType() == GeckoProcessType_Plugin) {
       
       b.NameValue("name", "Plugin");
+    } else if (XRE_GetProcessType() == GeckoProcessType_Content) {
+      
+      
+      b.NameValue("name", "Content");
     } else {
       b.NameValue("name", Name());
     }
