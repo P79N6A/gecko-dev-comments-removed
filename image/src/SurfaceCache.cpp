@@ -306,19 +306,22 @@ public:
 
   Mutex& GetMutex() { return mMutex; }
 
-  bool Insert(imgFrame*         aSurface,
-              const Cost        aCost,
-              const ImageKey    aImageKey,
-              const SurfaceKey& aSurfaceKey,
-              Lifetime          aLifetime)
+  InsertOutcome Insert(imgFrame*         aSurface,
+                       const Cost        aCost,
+                       const ImageKey    aImageKey,
+                       const SurfaceKey& aSurfaceKey,
+                       Lifetime          aLifetime)
   {
-    MOZ_ASSERT(!Lookup(aImageKey, aSurfaceKey),
-               "Inserting a duplicate surface into the SurfaceCache");
+    
+    if (MOZ_UNLIKELY(Lookup(aImageKey, aSurfaceKey))) {
+      return InsertOutcome::FAILURE_ALREADY_PRESENT;
+    }
 
     
     
-    if (!CanHoldAfterDiscarding(aCost))
-      return false;
+    if (MOZ_UNLIKELY(!CanHoldAfterDiscarding(aCost))) {
+      return InsertOutcome::FAILURE;
+    }
 
     
     
@@ -343,7 +346,7 @@ public:
     if (cache->IsLocked() && aLifetime == Lifetime::Persistent) {
       surface->SetLocked(true);
       if (!surface->IsLocked()) {
-        return false;
+        return InsertOutcome::FAILURE;
       }
     }
 
@@ -352,7 +355,7 @@ public:
     cache->Insert(aSurfaceKey, surface);
     StartTracking(surface);
 
-    return true;
+    return InsertOutcome::SUCCESS;
   }
 
   void Remove(CachedSurface* aSurface)
@@ -798,14 +801,14 @@ SurfaceCache::Lookup(const ImageKey    aImageKey,
   return sInstance->Lookup(aImageKey, aSurfaceKey);
 }
 
- bool
+ InsertOutcome
 SurfaceCache::Insert(imgFrame*         aSurface,
                      const ImageKey    aImageKey,
                      const SurfaceKey& aSurfaceKey,
                      Lifetime          aLifetime)
 {
   if (!sInstance) {
-    return false;
+    return InsertOutcome::FAILURE;
   }
 
   MutexAutoLock lock(sInstance->GetMutex());
