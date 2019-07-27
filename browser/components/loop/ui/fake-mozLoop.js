@@ -51,9 +51,12 @@ navigator.mozLoop = {
   ensureRegistered: function() {},
   getAudioBlob: function(){},
   getLoopPref: function(pref) {
-    
-    if (pref === "rooms.enabled") {
-      return true;
+    switch(pref) {
+      
+      case "rooms.enabled":
+      
+      case "gettingStarted.seen":
+        return true;
     }
   },
   setLoopPref: function(){},
