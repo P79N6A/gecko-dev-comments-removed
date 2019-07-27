@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["PageMenuParent", "PageMenuChild"];
+this.EXPORTED_SYMBOLS = ["PageMenu"];
 
 this.PageMenu = function PageMenu() {
 }
@@ -11,71 +11,46 @@ PageMenu.prototype = {
   PAGEMENU_ATTR: "pagemenu",
   GENERATEDITEMID_ATTR: "generateditemid",
 
-  _popup: null,
+  popup: null,
+  builder: null,
 
-  
-  _builder: null,
-  _browser: null,
-
-  
-  getContextMenu: function(aTarget) {
-    let pageMenu = null;
-    let target = aTarget;
+  maybeBuildAndAttachMenu: function(aTarget, aPopup) {
+    var pageMenu = null;
+    var target = aTarget;
     while (target) {
-      let contextMenu = target.contextMenu;
+      var contextMenu = target.contextMenu;
       if (contextMenu) {
-        return contextMenu;
+        pageMenu = contextMenu;
+        break;
       }
       target = target.parentNode;
     }
 
-    return null;
-  },
-
-  
-  
-  maybeBuild: function(aTarget) {
-    let pageMenu = this.getContextMenu(aTarget);
     if (!pageMenu) {
-      return null;
+      return false;
+    }
+
+    var insertionPoint = this.getInsertionPoint(aPopup);
+    if (!insertionPoint) {
+      return false;
     }
 
     pageMenu.QueryInterface(Components.interfaces.nsIHTMLMenu);
     pageMenu.sendShowEvent();
     
 
-    this._builder = pageMenu.createBuilder();
-    if (!this._builder) {
-      return null;
-    }
+    var fragment = aPopup.ownerDocument.createDocumentFragment();
 
-    pageMenu.build(this._builder);
-
-    
-    
-    let menuString = this._builder.toJSONString();
-    if (!menuString) {
-      return null;
-    }
-
-    return JSON.parse(menuString);
-  },
-
-  
-  buildAndAttachMenuWithObject: function(aMenu, aBrowser, aPopup) {
-    if (!aMenu) {
+    var builder = pageMenu.createBuilder();
+    if (!builder) {
       return false;
     }
+    builder.QueryInterface(Components.interfaces.nsIXULContextMenuBuilder);
+    builder.init(fragment, this.GENERATEDITEMID_ATTR);
 
-    let insertionPoint = this.getInsertionPoint(aPopup);
-    if (!insertionPoint) {
-      return false;
-    }
+    pageMenu.build(builder);
 
-    let fragment = aPopup.ownerDocument.createDocumentFragment();
-    this.buildXULMenu(aMenu, fragment);
-
-    let pos = insertionPoint.getAttribute(this.PAGEMENU_ATTR);
+    var pos = insertionPoint.getAttribute(this.PAGEMENU_ATTR);
     if (pos == "start") {
       insertionPoint.insertBefore(fragment,
                                   insertionPoint.firstChild);
@@ -85,101 +60,33 @@ PageMenu.prototype = {
       insertionPoint.appendChild(fragment);
     }
 
-    this._browser = aBrowser;
-    this._popup = aPopup;
+    this.builder = builder;
+    this.popup = aPopup;
 
-    this._popup.addEventListener("command", this);
-    this._popup.addEventListener("popuphidden", this);
+    this.popup.addEventListener("command", this);
+    this.popup.addEventListener("popuphidden", this);
 
     return true;
   },
 
-  
-  buildXULMenu: function(aNode, aElementForAppending) {
-    let document = aElementForAppending.ownerDocument;
-
-    let children = aNode.children;
-    for (let child of children) {
-      let menuitem;
-      switch (child.type) {
-        case "menuitem":
-          if (!child.id) {
-            continue; 
-          }
-
-          menuitem = document.createElement("menuitem");
-          if (child.checkbox) {
-            menuitem.setAttribute("type", "checkbox");
-            if (child.checked) {
-              menuitem.setAttribute("checked", "true");
-            }
-          }
-
-          if (child.label) {
-            menuitem.setAttribute("label", child.label);
-          }
-          if (child.icon) {
-            menuitem.setAttribute("image", child.icon);
-            menuitem.className = "menuitem-iconic";
-          }
-          if (child.disabled) {
-            menuitem.setAttribute("disabled", true);
-          }
-
-          break;
-
-        case "separator":
-          menuitem = document.createElement("menuseparator");
-          break;
-
-        case "menu":
-          menuitem = document.createElement("menu");
-          if (child.label) {
-            menuitem.setAttribute("label", child.label);
-          }
-
-          let menupopup = document.createElement("menupopup");
-          menuitem.appendChild(menupopup);
-
-          this.buildXULMenu(child, menupopup);
-          break;
-      }
-
-      menuitem.setAttribute(this.GENERATEDITEMID_ATTR, child.id ? child.id : 0);
-      aElementForAppending.appendChild(menuitem);
-    }
-  },
-
-  
   handleEvent: function(event) {
-    let type = event.type;
-    let target = event.target;
+    var type = event.type;
+    var target = event.target;
     if (type == "command" && target.hasAttribute(this.GENERATEDITEMID_ATTR)) {
-      
-      
-      
-      if (this._builder) {
-        this._builder.click(target.getAttribute(this.GENERATEDITEMID_ATTR));
-      }
-      else if (this._browser) {
-        this._browser.messageManager.sendAsyncMessage("ContextMenu:DoCustomCommand",
-          target.getAttribute(this.GENERATEDITEMID_ATTR));
-      }
-    } else if (type == "popuphidden" && this._popup == target) {
-      this.removeGeneratedContent(this._popup);
+      this.builder.click(target.getAttribute(this.GENERATEDITEMID_ATTR));
+    } else if (type == "popuphidden" && this.popup == target) {
+      this.removeGeneratedContent(this.popup);
 
-      this._popup.removeEventListener("popuphidden", this);
-      this._popup.removeEventListener("command", this);
+      this.popup.removeEventListener("popuphidden", this);
+      this.popup.removeEventListener("command", this);
 
-      this._popup = null;
-      this._builder = null;
-      this._browser = null;
+      this.popup = null;
+      this.builder = null;
     }
   },
 
-  
   getImmediateChild: function(element, tag) {
-    let child = element.firstChild;
+    var child = element.firstChild;
     while (child) {
       if (child.localName == tag) {
         return child;
@@ -189,19 +96,16 @@ PageMenu.prototype = {
     return null;
   },
 
-  
-  
-  
   getInsertionPoint: function(aPopup) {
     if (aPopup.hasAttribute(this.PAGEMENU_ATTR))
       return aPopup;
 
-    let element = aPopup.firstChild;
+    var element = aPopup.firstChild;
     while (element) {
       if (element.localName == "menu") {
-        let popup = this.getImmediateChild(element, "menupopup");
+        var popup = this.getImmediateChild(element, "menupopup");
         if (popup) {
-          let result = this.getInsertionPoint(popup);
+          var result = this.getInsertionPoint(popup);
           if (result) {
             return result;
           }
@@ -213,101 +117,25 @@ PageMenu.prototype = {
     return null;
   },
 
-  
   removeGeneratedContent: function(aPopup) {
-    let ungenerated = [];
+    var ungenerated = [];
     ungenerated.push(aPopup);
 
-    let count;
+    var count;
     while (0 != (count = ungenerated.length)) {
-      let last = count - 1;
-      let element = ungenerated[last];
+      var last = count - 1;
+      var element = ungenerated[last];
       ungenerated.splice(last, 1);
 
-      let i = element.childNodes.length;
+      var i = element.childNodes.length;
       while (i-- > 0) {
-        let child = element.childNodes[i];
+        var child = element.childNodes[i];
         if (!child.hasAttribute(this.GENERATEDITEMID_ATTR)) {
           ungenerated.push(child);
           continue;
         }
         element.removeChild(child);
       }
-    }
-  }
-}
-
-
-this.PageMenuParent = function PageMenuParent() {
-}
-
-PageMenuParent.prototype = {
-  __proto__ : PageMenu.prototype,
-
-  
-
-
-
-
-
-
-  buildAndAddToPopup: function(aTarget, aPopup) {
-    let menuObject = this.maybeBuild(aTarget);
-    if (!menuObject) {
-      return false;
-    }
-
-    return this.buildAndAttachMenuWithObject(menuObject, null, aPopup);
-  },
-
-  
-
-
-
-
-
-
-
-  addToPopup: function(aMenu, aBrowser, aPopup) {
-    return this.buildAndAttachMenuWithObject(aMenu, aBrowser, aPopup);
-  }
-}
-
-
-this.PageMenuChild = function PageMenuChild() {
-}
-
-PageMenuChild.prototype = {
-  __proto__ : PageMenu.prototype,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  build: function(aTarget) {
-    return this.maybeBuild(aTarget);
-  },
-
-  
-
-
-
-
-  executeMenu: function(aId) {
-    if (this._builder) {
-      this._builder.click(aId);
-      this._builder = null;
     }
   }
 }

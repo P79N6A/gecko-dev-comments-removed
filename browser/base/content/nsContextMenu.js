@@ -24,15 +24,10 @@ nsContextMenu.prototype = {
       return;
 
     this.hasPageMenu = false;
-    if (!aIsShift) {
-      if (this.isRemote) {
-        this.hasPageMenu =
-          PageMenuParent.addToPopup(gContextMenuContentData.customMenuItems,
-                                    this.browser, aXulMenu);
-      }
-      else {
-        this.hasPageMenu = PageMenuParent.buildAndAddToPopup(this.target, aXulMenu);
-      }
+    
+    if (!aIsShift && !this.isRemote) {
+      this.hasPageMenu = PageMenu.maybeBuildAndAttachMenu(this.target,
+                                                          aXulMenu);
     }
 
     this.isFrameImage = document.getElementById("isFrameImage");
@@ -1771,7 +1766,7 @@ nsContextMenu.prototype = {
       }
 
       
-      if (e.target.hasAttribute(PageMenuParent.GENERATEDITEMID_ATTR)) {
+      if (e.target.hasAttribute(PageMenu.GENERATEDITEMID_ATTR)) {
         this._telemetryClickID = "custom-page-item";
       } else {
         this._telemetryClickID = (e.target.id || "unknown").replace(/^context-/i, "");
