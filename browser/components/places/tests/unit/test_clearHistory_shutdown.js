@@ -28,7 +28,7 @@ const UNEXPECTED_NOTIFICATIONS = [
   "xpcom-shutdown"
 ];
 
-const URL = "ftp://localhost/clearHistoryOnShutdown/";
+const FTP_URL = "ftp://localhost/clearHistoryOnShutdown/";
 
 
 
@@ -72,7 +72,7 @@ let notificationsObserver = {
     }
 
     
-    checkCache(URL);
+    checkCache(FTP_URL);
   }
 }
 
@@ -111,7 +111,7 @@ add_task(function test_execute() {
                             transition: PlacesUtils.history.TRANSITION_TYPED})
   }
   print("Add cache.");
-  storeCache(URL, "testData");
+  storeCache(FTP_URL, "testData");
 });
 
 function run_test_continue()
