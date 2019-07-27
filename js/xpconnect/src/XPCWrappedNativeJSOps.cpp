@@ -698,7 +698,7 @@ const XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
         nullptr, 
         nullptr, nullptr, 
         nullptr, 
-        XPC_WN_JSOp_Enumerate,
+        nullptr, 
         XPC_WN_JSOp_ThisObject,
     }
   }
@@ -928,118 +928,48 @@ XPC_WN_Helper_Resolve(JSContext *cx, HandleObject obj, HandleId id, bool *resolv
     return retval;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-XPC_WN_JSOp_Enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
-                      MutableHandleValue statep, MutableHandleId idp)
+static bool
+XPC_WN_Helper_Enumerate(JSContext *cx, HandleObject obj)
 {
-    const js::Class *clazz = js::GetObjectClass(obj);
-    if (!IS_WN_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass.base) {
-        
-        
-        
-
-        return JS_EnumerateState(cx, obj, enum_op, statep, idp);
-    }
-
     XPCCallContext ccx(JS_CALLER, cx, obj);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
     XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
-    if (!si)
+    if (!si || !si->GetFlags().WantEnumerate())
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
+    if (!XPC_WN_Shared_Enumerate(cx, obj))
+        return false;
+
     bool retval = true;
-    nsresult rv;
+    nsresult rv = si->GetCallback()->Enumerate(wrapper, cx, obj, &retval);
+    if (NS_FAILED(rv))
+        return Throw(rv, cx);
+    return retval;
+}
 
-    if (si->GetFlags().WantNewEnumerate()) {
-        
-        
-        
-        
-        if (enum_op == JSENUMERATE_INIT || enum_op == JSENUMERATE_INIT_ALL) {
-            if (wrapper->HasMutatedSet() &&
-                !XPC_WN_Shared_Enumerate(cx, obj)) {
-                statep.set(JSVAL_NULL);
-                return false;
-            }
-        }
 
-        rv = si->GetCallback()->
-            NewEnumerate(wrapper, cx, obj, enum_op, statep.address(), idp.address(), &retval);
 
-        if ((enum_op == JSENUMERATE_INIT || enum_op == JSENUMERATE_INIT_ALL) &&
-            (NS_FAILED(rv) || !retval)) {
-            statep.set(JSVAL_NULL);
-        }
+static bool
+XPC_WN_JSOp_Enumerate(JSContext *cx, HandleObject obj, AutoIdVector &properties)
+{
+    XPCCallContext ccx(JS_CALLER, cx, obj);
+    XPCWrappedNative* wrapper = ccx.GetWrapper();
+    THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
-        if (NS_FAILED(rv))
-            return Throw(rv, cx);
-        return retval;
-    }
+    XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
+    if (!si || !si->GetFlags().WantNewEnumerate())
+        return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
-    if (si->GetFlags().WantEnumerate()) {
-        if (enum_op == JSENUMERATE_INIT || enum_op == JSENUMERATE_INIT_ALL) {
-            if (wrapper->HasMutatedSet() &&
-                !XPC_WN_Shared_Enumerate(cx, obj)) {
-                statep.set(JSVAL_NULL);
-                return false;
-            }
+    if (!XPC_WN_Shared_Enumerate(cx, obj))
+        return false;
 
-            rv = si->GetCallback()->
-                Enumerate(wrapper, cx, obj, &retval);
-
-            if (NS_FAILED(rv) || !retval)
-                statep.set(JSVAL_NULL);
-
-            if (NS_FAILED(rv))
-                return Throw(rv, cx);
-            if (!retval)
-                return false;
-            
-        }
-    }
-
-    
-
-    return JS_EnumerateState(cx, obj, enum_op, statep, idp);
+    bool retval = true;
+    nsresult rv = si->GetCallback()->NewEnumerate(wrapper, cx, obj, properties, &retval);
+    if (NS_FAILED(rv))
+        return Throw(rv, cx);
+    return retval;
 }
 
 JSObject*
@@ -1131,10 +1061,14 @@ XPCNativeScriptableShared::PopulateJSClass()
         setProperty = XPC_WN_CannotModifyStrictPropertyStub;
     mJSClass.base.setProperty = setProperty;
 
-    
+    MOZ_ASSERT_IF(mFlags.WantEnumerate(), !mFlags.WantNewEnumerate());
+    MOZ_ASSERT_IF(mFlags.WantNewEnumerate(), !mFlags.WantEnumerate());
 
-    if (mFlags.WantNewEnumerate() || mFlags.WantEnumerate())
+    
+    if (mFlags.WantNewEnumerate())
         mJSClass.base.enumerate = nullptr;
+    else if (mFlags.WantEnumerate())
+        mJSClass.base.enumerate = XPC_WN_Helper_Enumerate;
     else
         mJSClass.base.enumerate = XPC_WN_Shared_Enumerate;
 
@@ -1152,7 +1086,8 @@ XPCNativeScriptableShared::PopulateJSClass()
         mJSClass.base.finalize = XPC_WN_NoHelper_Finalize;
 
     js::ObjectOps *ops = &mJSClass.base.ops;
-    ops->enumerate = XPC_WN_JSOp_Enumerate;
+    if (mFlags.WantNewEnumerate())
+        ops->enumerate = XPC_WN_JSOp_Enumerate;
     ops->thisObject = XPC_WN_JSOp_ThisObject;
 
 

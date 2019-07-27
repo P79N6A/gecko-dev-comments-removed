@@ -89,67 +89,36 @@ NS_IMETHODIMP
 StatementParams::NewEnumerate(nsIXPConnectWrappedNative *aWrapper,
                               JSContext *aCtx,
                               JSObject *aScopeObj,
-                              uint32_t aEnumOp,
-                              jsval *_statep,
-                              jsid *_idp,
+                              JS::AutoIdVector &aProperties,
                               bool *_retval)
 {
   NS_ENSURE_TRUE(mStatement, NS_ERROR_NOT_INITIALIZED);
+  JS::RootedObject scope(aCtx, aScopeObj);
 
-  switch (aEnumOp) {
-    case JSENUMERATE_INIT:
-    case JSENUMERATE_INIT_ALL:
-    {
-      
-      *_statep = JSVAL_ZERO;
+  if (!aProperties.reserve(mParamCount)) {
+    *_retval = false;
+    return NS_OK;
+  }
 
-      
-      if (_idp)
-        *_idp = INT_TO_JSID(mParamCount);
+  for (uint32_t i = 0; i < mParamCount; i++) {
+    
+    nsAutoCString name;
+    nsresult rv = mStatement->GetParameterName(i, name);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-      break;
+    
+    JS::RootedString jsname(aCtx, ::JS_NewStringCopyN(aCtx, &(name.get()[1]),
+                                                      name.Length() - 1));
+    NS_ENSURE_TRUE(jsname, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    JS::Rooted<jsid> id(aCtx);
+    if (!::JS_StringToId(aCtx, jsname, &id)) {
+      *_retval = false;
+      return NS_OK;
     }
-    case JSENUMERATE_NEXT:
-    {
-      NS_ASSERTION(*_statep != JSVAL_NULL, "Internal state is null!");
 
-      
-      uint32_t index = static_cast<uint32_t>(_statep->toInt32());
-      if (index >= mParamCount) {
-        *_statep = JSVAL_NULL;
-        return NS_OK;
-      }
-
-      
-      nsAutoCString name;
-      nsresult rv = mStatement->GetParameterName(index, name);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      JS::RootedString jsname(aCtx, ::JS_NewStringCopyN(aCtx, &(name.get()[1]),
-                                                        name.Length() - 1));
-      NS_ENSURE_TRUE(jsname, NS_ERROR_OUT_OF_MEMORY);
-
-      
-      JS::Rooted<jsid> id(aCtx);
-      if (!::JS_StringToId(aCtx, jsname, &id)) {
-        *_retval = false;
-        return NS_OK;
-      }
-      *_idp = id;
-
-      
-      *_statep = INT_TO_JSVAL(++index);
-
-      break;
-    }
-    case JSENUMERATE_DESTROY:
-    {
-      
-      *_statep = JSVAL_NULL;
-
-      break;
-    }
+    aProperties.infallibleAppend(id);
   }
 
   return NS_OK;
