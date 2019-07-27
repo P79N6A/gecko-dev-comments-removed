@@ -3048,7 +3048,7 @@ void AsyncPanZoomController::UpdateSharedCompositorFrameMetrics()
   FrameMetrics* frame = mSharedFrameMetricsBuffer ?
       static_cast<FrameMetrics*>(mSharedFrameMetricsBuffer->memory()) : nullptr;
 
-  if (frame && mSharedLock && gfxPrefs::UseProgressiveTilePainting()) {
+  if (frame && mSharedLock && gfxPlatform::GetPlatform()->UseProgressivePaint()) {
     mSharedLock->Lock();
     *frame = mFrameMetrics.MakePODObject();
     mSharedLock->Unlock();
@@ -3062,7 +3062,7 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
   
   
   
-  if (!mSharedFrameMetricsBuffer && compositor && gfxPrefs::UseProgressiveTilePainting()) {
+  if (!mSharedFrameMetricsBuffer && compositor && gfxPlatform::GetPlatform()->UseProgressivePaint()) {
 
     
     mSharedFrameMetricsBuffer = new ipc::SharedMemoryBasic;

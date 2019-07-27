@@ -876,7 +876,7 @@ LayerManagerComposite::ComputeRenderIntegrity()
 {
   
   Layer* root = GetRoot();
-  if (!gfxPrefs::UseProgressiveTilePainting() || !root) {
+  if (!gfxPlatform::GetPlatform()->UseProgressivePaint() || !root) {
     return 1.f;
   }
 

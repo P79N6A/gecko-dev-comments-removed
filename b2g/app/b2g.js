@@ -112,15 +112,7 @@ pref("layout.reflow.synthMouseMove", false);
 pref("layers.enable-tiles", true);
 pref("layers.low-precision-buffer", true);
 pref("layers.low-precision-opacity", "0.5");
-
-
-
-
-#ifdef MOZ_WIDGET_COCOA
-pref("layers.progressive-paint", false);
-#else
 pref("layers.progressive-paint", true);
-#endif
 
 
 pref("browser.download.useDownloadDir", true);

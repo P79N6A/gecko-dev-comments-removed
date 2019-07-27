@@ -411,6 +411,14 @@ gfxPlatformMac::UseTiling()
   return nsCocoaFeatures::OnLionOrLater() && gfxPlatform::UseTiling();
 }
 
+bool
+gfxPlatformMac::UseProgressivePaint()
+{
+  
+  
+  return nsCocoaFeatures::OnLionOrLater() && gfxPlatform::UseProgressivePaint();
+}
+
 void
 gfxPlatformMac::GetPlatformCMSOutputProfile(void* &mem, size_t &size)
 {
