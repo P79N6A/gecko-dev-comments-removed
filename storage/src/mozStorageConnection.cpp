@@ -47,9 +47,7 @@
 
 #define MAX_CACHE_SIZE_KIBIBYTES 2048 // 2 MiB
 
-#ifdef PR_LOGGING
 PRLogModuleInfo* gStorageLog = nullptr;
-#endif
 
 
 
@@ -152,13 +150,11 @@ Module gModules[] = {
 
 
 
-#ifdef PR_LOGGING
 void tracefunc (void *aClosure, const char *aStmt)
 {
   PR_LOG(gStorageLog, PR_LOG_DEBUG, ("sqlite3_trace on %p for '%s'", aClosure,
                                      aStmt));
 }
-#endif
 
 struct FFEArguments
 {
@@ -664,7 +660,6 @@ Connection::initializeInternal(nsIFile* aDatabaseFile)
   
   sharedDBMutex.initWithMutex(sqlite3_db_mutex(mDBConn));
 
-#ifdef PR_LOGGING
   if (!gStorageLog)
     gStorageLog = ::PR_NewLogModule("mozStorage");
 
@@ -679,7 +674,6 @@ Connection::initializeInternal(nsIFile* aDatabaseFile)
     PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Opening connection to '%s' (%p)",
                                         leafName.get(), this));
   }
-#endif
 
   int64_t pageSize = Service::getDefaultPageSize();
 
@@ -903,13 +897,11 @@ Connection::internalClose(sqlite3 *aNativeConnection)
   }
 #endif 
 
-#ifdef PR_LOGGING
   nsAutoCString leafName(":memory");
   if (mDatabaseFile)
       (void)mDatabaseFile->GetNativeLeafName(leafName);
   PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Closing connection to '%s'",
                                       leafName.get()));
-#endif
 
   
   
