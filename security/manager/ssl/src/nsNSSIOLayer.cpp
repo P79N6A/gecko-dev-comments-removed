@@ -866,6 +866,26 @@ nsSSLIOLayerHelpers::rememberTolerantAtVersion(const nsACString& hostName,
   mTLSIntoleranceInfo.Put(key, entry);
 }
 
+void nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
+                                            int16_t port)
+{
+  nsCString key;
+  getSiteKey(hostName, port, key);
+
+  MutexAutoLock lock(mutex);
+
+  IntoleranceEntry entry;
+  if (mTLSIntoleranceInfo.Get(key, &entry)) {
+    entry.AssertInvariant();
+
+    entry.intolerant = 0;
+    entry.intoleranceReason = 0;
+
+    entry.AssertInvariant();
+    mTLSIntoleranceInfo.Put(key, entry);
+  }
+}
+
 
 bool
 nsSSLIOLayerHelpers::rememberIntolerantAtVersion(const nsACString& hostName,
@@ -874,24 +894,16 @@ nsSSLIOLayerHelpers::rememberIntolerantAtVersion(const nsACString& hostName,
                                                  uint16_t intolerant,
                                                  PRErrorCode intoleranceReason)
 {
+  if (intolerant <= minVersion || intolerant <= mVersionFallbackLimit) {
+    
+    forgetIntolerance(hostName, port);
+    return false;
+  }
+
   nsCString key;
   getSiteKey(hostName, port, key);
 
   MutexAutoLock lock(mutex);
-
-  if (intolerant <= minVersion || intolerant <= mVersionFallbackLimit) {
-    
-    IntoleranceEntry entry;
-    if (mTLSIntoleranceInfo.Get(key, &entry)) {
-      entry.AssertInvariant();
-      entry.intolerant = 0;
-      entry.intoleranceReason = 0;
-      entry.AssertInvariant();
-      mTLSIntoleranceInfo.Put(key, entry);
-    }
-
-    return false;
-  }
 
   IntoleranceEntry entry;
   if (mTLSIntoleranceInfo.Get(key, &entry)) {
@@ -1144,7 +1156,6 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
     
     
     
-    
 
     
     
@@ -1155,9 +1166,7 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
                           tlsIntoleranceTelemetryBucket(originalReason));
 
     socketInfo->SharedState().IOLayerHelpers()
-      .rememberTolerantAtVersion(socketInfo->GetHostName(),
-                                 socketInfo->GetPort(),
-                                 range.max + 1);
+      .forgetIntolerance(socketInfo->GetHostName(), socketInfo->GetPort());
 
     return false;
   }
