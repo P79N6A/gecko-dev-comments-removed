@@ -43,7 +43,6 @@
 #include "nsContentUtils.h"             
 #include "nsDOMString.h"                
 #include "nsDebug.h"                    
-#include "nsEditProperty.h"             
 #include "nsEditor.h"
 #include "nsEditorEventListener.h"      
 #include "nsEditorUtils.h"              
@@ -1240,7 +1239,7 @@ nsEditor::MarkNodeDirty(nsIDOMNode* aNode)
   }
   nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
   if (element) {
-    element->SetAttr(kNameSpaceID_None, nsEditProperty::mozdirty,
+    element->SetAttr(kNameSpaceID_None, nsGkAtoms::mozdirty,
                      EmptyString(), false);
   }
   return NS_OK;

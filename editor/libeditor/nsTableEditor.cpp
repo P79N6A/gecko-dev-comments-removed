@@ -12,7 +12,6 @@
 #include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
-#include "nsEditProperty.h"
 #include "nsEditor.h"
 #include "nsEditorUtils.h"
 #include "nsError.h"
@@ -240,18 +239,16 @@ nsHTMLEditor::GetFirstRow(nsIDOMElement* aTableElement, nsIDOMNode** aRowNode)
     {
       nsIAtom *atom = content->Tag();
 
-      if (atom == nsEditProperty::tr)
-      {
+      if (atom == nsGkAtoms::tr) {
         
         *aRowNode = tableChild;
         NS_ADDREF(*aRowNode);
         return NS_OK;
       }
       
-      if (atom == nsEditProperty::tbody ||
-          atom == nsEditProperty::thead ||
-          atom == nsEditProperty::tfoot)
-      {
+      if (atom == nsGkAtoms::tbody ||
+          atom == nsGkAtoms::thead ||
+          atom == nsGkAtoms::tfoot) {
         nsCOMPtr<nsIDOMNode> rowNode;
         res = tableChild->GetFirstChild(getter_AddRefs(rowNode));
         NS_ENSURE_SUCCESS(res, res);
@@ -1958,8 +1955,7 @@ nsHTMLEditor::SwitchTableCellHeaderType(nsIDOMElement *aSourceCell, nsIDOMElemen
 
   
   nsCOMPtr<nsIAtom> atom = nsEditor::GetTag(aSourceCell);
-  nsIAtom* newCellType = atom == nsEditProperty::td
-    ? nsGkAtoms::th : nsGkAtoms::td;
+  nsIAtom* newCellType = atom == nsGkAtoms::td ? nsGkAtoms::th : nsGkAtoms::td;
 
   
   
@@ -3218,23 +3214,18 @@ nsHTMLEditor::GetSelectedOrParentTableElement(nsAString& aTagName,
       {
         nsCOMPtr<nsIAtom> atom = nsEditor::GetTag(selectedNode);
 
-        if (atom == nsEditProperty::td)
-        {
+        if (atom == nsGkAtoms::td) {
           tableOrCellElement = do_QueryInterface(selectedNode);
           aTagName = tdName;
           
           
           res = selection->GetRangeCount(aSelectedCount);
           NS_ENSURE_SUCCESS(res, res);
-        }
-        else if (atom == nsEditProperty::table)
-        {
+        } else if (atom == nsGkAtoms::table) {
           tableOrCellElement = do_QueryInterface(selectedNode);
           aTagName.AssignLiteral("table");
           *aSelectedCount = 1;
-        }
-        else if (atom == nsEditProperty::tr)
-        {
+        } else if (atom == nsGkAtoms::tr) {
           tableOrCellElement = do_QueryInterface(selectedNode);
           aTagName.AssignLiteral("tr");
           *aSelectedCount = 1;

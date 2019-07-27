@@ -10,8 +10,8 @@
 #include "nsCOMPtr.h"
 #include "nsComputedDOMStyle.h"
 #include "nsDebug.h"
-#include "nsEditProperty.h"
 #include "nsError.h"
+#include "nsGkAtoms.h"
 #include "nsHTMLCSSUtils.h"
 #include "nsHTMLEditor.h"
 #include "nsIAtom.h"
@@ -315,20 +315,20 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
     
 
     
-    if (nsEditProperty::img != focusTagAtom) {
+    if (nsGkAtoms::img != focusTagAtom) {
       
       
       nsCOMPtr<nsIDOMNode> tableNode = GetEnclosingTable(cellElement);
       focusElement = do_QueryInterface(tableNode);
-      focusTagAtom = nsEditProperty::table;
+      focusTagAtom = nsGkAtoms::table;
     }
   }
 
   
   
-  if (nsEditProperty::img != focusTagAtom &&
-      nsEditProperty::table != focusTagAtom)
+  if (nsGkAtoms::img != focusTagAtom && nsGkAtoms::table != focusTagAtom) {
     focusElement = absPosElement;
+  }
 
   
   
@@ -365,8 +365,9 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
 
   if (mIsObjectResizingEnabled && focusElement &&
       IsModifiableNode(focusElement) && focusElement != hostNode) {
-    if (nsEditProperty::img == focusTagAtom)
+    if (nsGkAtoms::img == focusTagAtom) {
       mResizedObjectIsAnImage = true;
+    }
     if (mResizedObject)
       res = RefreshResizers();
     else
@@ -414,7 +415,7 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
   if (!isPositioned) {
     
     nsAutoString positionStr;
-    mHTMLCSSUtils->GetComputedProperty(aElement, nsEditProperty::cssPosition,
+    mHTMLCSSUtils->GetComputedProperty(aElement, nsGkAtoms::position,
                                        positionStr);
     isPositioned = positionStr.EqualsLiteral("absolute");
   }

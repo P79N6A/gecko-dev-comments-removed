@@ -13,7 +13,7 @@
 #include "nsCOMArray.h"                 
 #include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
-#include "nsEditProperty.h"             
+#include "nsGkAtoms.h"
 #include "nsIEditor.h"                  
 #include "nsIEditorIMESupport.h"        
 #include "nsIObserver.h"                
@@ -86,7 +86,7 @@ struct IMEState;
 } 
 } 
 
-#define kMOZEditorBogusNodeAttrAtom nsEditProperty::mozEditorBogusNode
+#define kMOZEditorBogusNodeAttrAtom nsGkAtoms::mozeditorbogusnode
 #define kMOZEditorBogusNodeValue NS_LITERAL_STRING("TRUE")
 
 
