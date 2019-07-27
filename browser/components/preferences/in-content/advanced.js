@@ -45,6 +45,7 @@ var gAdvancedPane = {
 #ifdef MOZ_SERVICES_HEALTHREPORT
     this.initSubmitHealthReport();
 #endif
+    this.updateCacheSizeInputField();
     this.updateActualCacheSize();
     this.updateActualAppCacheSize();
 
@@ -416,21 +417,28 @@ var gAdvancedPane = {
 
 
 
-  readCacheSize: function ()
+  updateCacheSizeInputField()
   {
-    var preference = document.getElementById("browser.cache.disk.capacity");
-    return preference.value / 1024;
+    let cacheSizeElem = document.getElementById("cacheSize");
+    let cachePref = document.getElementById("browser.cache.disk.capacity");
+    cacheSizeElem.value = cachePref.value / 1024;
+    if (cachePref.locked)
+      cacheSizeElem.disabled = true;
   },
 
   
 
 
 
-  writeCacheSize: function ()
+
+
+  updateCacheSizePref()
   {
-    var cacheSize = document.getElementById("cacheSize");
-    var intValue = parseInt(cacheSize.value, 10);
-    return isNaN(intValue) ? 0 : intValue * 1024;
+    let cacheSizeElem = document.getElementById("cacheSize");
+    let cachePref = document.getElementById("browser.cache.disk.capacity");
+    
+    let intValue = parseInt(cacheSizeElem.value, 10);
+    cachePref.value = isNaN(intValue) ? 0 : intValue * 1024;
   },
 
   
