@@ -8917,6 +8917,8 @@ class MFunctionEnvironment
         return getOperand(0);
     }
 
+    MDefinition *foldsTo(TempAllocator &alloc);
+
     
     AliasSet getAliasSet() const {
         return AliasSet::None();
