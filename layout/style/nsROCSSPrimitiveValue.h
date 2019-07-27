@@ -120,7 +120,7 @@ private:
     nsDOMCSSRGBColor* MOZ_OWNING_REF mColor;
     nsDOMCSSRect* MOZ_OWNING_REF mRect;
     char16_t*      mString;
-    nsIURI*         mURI;
+    nsIURI* MOZ_OWNING_REF mURI;
     nsCSSKeyword    mKeyword;
   } mValue;
 };
