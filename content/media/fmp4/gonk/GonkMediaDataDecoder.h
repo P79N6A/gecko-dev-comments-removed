@@ -69,6 +69,8 @@ private:
 
   
   
+  
+  
   void ProcessDecode(mp4_demuxer::MP4Sample* aSample);
 
   
@@ -88,6 +90,8 @@ private:
   
   
   int64_t mLastStreamOffset;
+  
+  bool mSignaledEOS;
 };
 
 } 

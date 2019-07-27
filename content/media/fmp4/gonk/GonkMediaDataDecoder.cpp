@@ -31,6 +31,7 @@ GonkMediaDataDecoder::GonkMediaDataDecoder(GonkDecoderManager* aManager,
   : mTaskQueue(aTaskQueue)
   , mCallback(aCallback)
   , mManager(aManager)
+  , mSignaledEOS(false)
 {
   MOZ_COUNT_CTOR(GonkMediaDataDecoder);
 }
@@ -77,8 +78,9 @@ GonkMediaDataDecoder::ProcessDecode(mp4_demuxer::MP4Sample* aSample)
     mCallback->Error();
     return;
   }
-
-  mLastStreamOffset = aSample->byte_offset;
+  if (aSample) {
+    mLastStreamOffset = aSample->byte_offset;
+  }
   ProcessOutput();
 }
 
@@ -91,6 +93,9 @@ GonkMediaDataDecoder::ProcessOutput()
     rv = mManager->Output(mLastStreamOffset, output);
     if (rv == NS_OK) {
       mCallback->Output(output.forget());
+      continue;
+    } else if (rv == NS_ERROR_NOT_AVAILABLE && mSignaledEOS) {
+      
       continue;
     }
     else {
@@ -105,6 +110,15 @@ GonkMediaDataDecoder::ProcessOutput()
   if (rv != NS_OK) {
     NS_WARNING("GonkMediaDataDecoder failed to output data");
     ALOG("Failed to output data");
+    
+    if (rv == NS_ERROR_ABORT) {
+      if (output.get() != nullptr) {
+        mCallback->Output(output.forget());
+      }
+      mCallback->DrainComplete();
+      mSignaledEOS = false;
+      return;
+    }
     mCallback->Error();
   }
 }
@@ -126,8 +140,9 @@ void
 GonkMediaDataDecoder::ProcessDrain()
 {
   
+  ProcessDecode(nullptr);
+  mSignaledEOS = true;
   ProcessOutput();
-  mCallback->DrainComplete();
 }
 
 nsresult
