@@ -41,7 +41,6 @@ namespace mozilla {
 using namespace dom;
 using namespace widget;
 
-#ifdef PR_LOGGING
 
 
 
@@ -177,7 +176,6 @@ GetNotifyIMEMessageName(IMEMessage aMessage)
       return "unacceptable IME notification message";
   }
 }
-#endif 
 
 nsIContent* IMEStateManager::sContent = nullptr;
 nsPresContext* IMEStateManager::sPresContext = nullptr;
@@ -194,11 +192,9 @@ TextCompositionArray* IMEStateManager::sTextCompositions = nullptr;
 void
 IMEStateManager::Init()
 {
-#ifdef PR_LOGGING
   if (!sISMLog) {
     sISMLog = PR_NewLogModule("IMEStateManager");
   }
-#endif
 }
 
 
@@ -232,7 +228,6 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
       
       sTextCompositions->ElementAt(i)->Destroy();
       sTextCompositions->RemoveElementAt(i);
-#if defined DEBUG || PR_LOGGING
       if (sTextCompositions->IndexOf(aPresContext) !=
             TextCompositionArray::NoIndex) {
         PR_LOG(sISMLog, PR_LOG_ERROR,
@@ -240,7 +235,6 @@ IMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
            "TextComposition instance from the array"));
         MOZ_CRASH("Failed to remove TextComposition instance from the array");
       }
-#endif 
     }
   }
 
@@ -513,7 +507,6 @@ IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
   bool consumed =
     sActiveIMEContentObserver->OnMouseButtonEvent(aPresContext, internalEvent);
 
-#ifdef PR_LOGGING
   nsAutoString eventType;
   aMouseEvent->GetType(eventType);
   PR_LOG(sISMLog, PR_LOG_ALWAYS,
@@ -521,7 +514,6 @@ IMEStateManager::OnMouseButtonEventInEditor(nsPresContext* aPresContext,
      "mouse event (type=%s, button=%d) is %s",
      NS_ConvertUTF16toUTF8(eventType).get(), internalEvent->button,
      consumed ? "consumed" : "not consumed"));
-#endif
 
   return consumed;
 }

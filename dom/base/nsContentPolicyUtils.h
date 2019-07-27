@@ -56,7 +56,6 @@ class nsIPrincipal;
   case nsIContentPolicy:: name :   \
     return #name
 
-#ifdef PR_LOGGING
 
 
 
@@ -118,8 +117,6 @@ NS_CP_ContentTypeName(uint32_t contentType)
     return "<Unknown Type>";
   }
 }
-
-#endif 
 
 #undef CASE_RETURN
 

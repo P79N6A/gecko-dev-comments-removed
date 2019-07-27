@@ -16,8 +16,6 @@
 
 namespace mozilla {
 
-#if defined(PR_LOGGING)
-
 
 
 
@@ -48,7 +46,6 @@ GetDirectShowGuidName(const GUID& aGuid)
   }
   return "Unknown";
 }
-#endif 
 
 void
 RemoveGraphFromRunningObjectTable(DWORD aRotRegister)

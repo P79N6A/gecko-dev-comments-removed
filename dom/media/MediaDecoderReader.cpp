@@ -20,13 +20,9 @@ namespace mozilla {
 
 
 
-#ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaDecoderLog;
 #define DECODER_LOG(x, ...) \
   PR_LOG(gMediaDecoderLog, PR_LOG_DEBUG, ("Decoder=%p " x, mDecoder, ##__VA_ARGS__))
-#else
-#define DECODER_LOG(x, ...)
-#endif
 
 
 #define DECODER_WARN_HELPER(a, b) NS_WARNING b

@@ -22,9 +22,7 @@
 
 NS_IMPL_ISUPPORTS(nsContentPolicy, nsIContentPolicy)
 
-#ifdef PR_LOGGING
 static PRLogModuleInfo* gConPolLog;
-#endif
 
 nsresult
 NS_NewContentPolicy(nsIContentPolicy **aResult)
@@ -40,11 +38,9 @@ nsContentPolicy::nsContentPolicy()
     : mPolicies(NS_CONTENTPOLICY_CATEGORY)
     , mSimplePolicies(NS_SIMPLECONTENTPOLICY_CATEGORY)
 {
-#ifdef PR_LOGGING
     if (! gConPolLog) {
         gConPolLog = PR_NewLogModule("nsContentPolicy");
     }
-#endif
 }
 
 nsContentPolicy::~nsContentPolicy()
@@ -187,8 +183,6 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
     return NS_OK;
 }
 
-#ifdef PR_LOGGING
-
 
 
 #define LOG_CHECK(logType)                                                    \
@@ -215,12 +209,6 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
              );                                                               \
     }                                                                         \
   PR_END_MACRO
-
-#else 
-
-#define LOG_CHECK(logType)
-
-#endif 
 
 NS_IMETHODIMP
 nsContentPolicy::ShouldLoad(uint32_t          contentType,
