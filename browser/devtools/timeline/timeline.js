@@ -183,7 +183,17 @@ let TimelineController = {
 
 
   _stopRecordingAndDiscardData: function*() {
+    
+    
+    this._markers.length = 0;
+    this._memory.length = 0;
+
     yield this._stopRecording();
+
+    
+    
+    
+    
     this._markers.length = 0;
     this._memory.length = 0;
   },
