@@ -2,6 +2,30 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
@@ -27,10 +51,38 @@ const DISABLE_MMS_GROUPING_FOR_RECEIVING = true;
 
 const DB_VERSION = 23;
 
+
+
+
+
+
 const MESSAGE_STORE_NAME = "sms";
+
+
+
+
+
+
 const THREAD_STORE_NAME = "thread";
+
+
+
+
+
+
 const PARTICIPANT_STORE_NAME = "participant";
+
+
+
+
+
 const MOST_RECENT_STORE_NAME = "most-recent";
+
+
+
+
+
+
 const SMS_SEGMENT_STORE_NAME = "sms-segment";
 
 const DELIVERY_SENDING = "sending";
@@ -85,6 +137,288 @@ XPCOMUtils.defineLazyGetter(this, "MMS", function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 this.MobileMessageDB = function() {};
 MobileMessageDB.prototype = {
   dbName: null,
@@ -93,15 +427,28 @@ MobileMessageDB.prototype = {
   
 
 
+
+
+
   db: null,
 
   
+
+
+
 
 
   lastMessageId: 0,
 
   
 
+
+
+
+
+
+
+  
 
 
 
@@ -283,6 +630,19 @@ MobileMessageDB.prototype = {
 
 
 
+
+  
+
+
+
+
+
+
+
+
+
+
+
   newTxn: function(txn_type, callback, storeNames) {
     if (!storeNames) {
       storeNames = [MESSAGE_STORE_NAME];
@@ -323,6 +683,13 @@ MobileMessageDB.prototype = {
   },
 
   
+
+
+
+
+
+  
+
 
 
 
@@ -377,6 +744,11 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
   close: function() {
     if (!this.db) {
       return;
@@ -388,6 +760,12 @@ MobileMessageDB.prototype = {
   },
 
   
+
+
+
+
+
+
 
 
 
@@ -1609,6 +1987,21 @@ MobileMessageDB.prototype = {
     }; 
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   matchParsedPhoneNumbers: function(addr1, parsedAddr1, addr2, parsedAddr2) {
     if ((parsedAddr1.internationalNumber &&
          parsedAddr1.internationalNumber === parsedAddr2.internationalNumber) ||
@@ -1631,6 +2024,21 @@ MobileMessageDB.prototype = {
            addr2.length > val &&
            addr1.slice(-val) === addr2.slice(-val);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   matchPhoneNumbers: function(addr1, parsedAddr1, addr2, parsedAddr2) {
     if (parsedAddr1 && parsedAddr2) {
@@ -1655,6 +2063,15 @@ MobileMessageDB.prototype = {
 
     return false;
   },
+
+  
+
+
+
+
+
+
+
 
   createDomMessageFromRecord: function(aMessageRecord) {
     if (DEBUG) {
@@ -1737,6 +2154,24 @@ MobileMessageDB.prototype = {
     }
   },
 
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
   createParticipantRecord: function(aParticipantStore, aAddresses, aCallback) {
     let participantRecord = { addresses: aAddresses };
     let addRequest = aParticipantStore.add(participantRecord);
@@ -1748,6 +2183,21 @@ MobileMessageDB.prototype = {
       aCallback(participantRecord);
     };
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   findParticipantRecordByPlmnAddress: function(aParticipantStore, aAddress,
                                                aCreate, aCallback) {
@@ -1846,6 +2296,22 @@ MobileMessageDB.prototype = {
     }).bind(this);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   findParticipantRecordByOtherAddress: function(aParticipantStore, aAddress,
                                                 aCreate, aCallback) {
     if (DEBUG) {
@@ -1872,6 +2338,28 @@ MobileMessageDB.prototype = {
       aCallback(null);
     }).bind(this);
   },
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   findParticipantRecordByTypedAddress: function(aParticipantStore,
                                                 aTypedAddress, aCreate,
@@ -1930,6 +2418,33 @@ MobileMessageDB.prototype = {
       });
     }) (0, []);
   },
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   findParticipantIdsByTypedAddresses: function(aParticipantStore,
                                                aTypedAddresses, aCreate,
@@ -2009,6 +2524,30 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   findThreadRecordByTypedAddresses: function(aThreadStore, aParticipantStore,
                                              aTypedAddresses,
                                              aCreateParticipants, aCallback) {
@@ -2036,6 +2575,43 @@ MobileMessageDB.prototype = {
       };
     });
   },
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   newTxnWithCallback: function(aCallback, aFunc, aStoreNames) {
     let self = this;
@@ -2069,6 +2645,19 @@ MobileMessageDB.prototype = {
       aFunc(capture, aStores);
     }, aStoreNames);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
 
   saveRecord: function(aMessageRecord, aThreadParticipants, aCallback) {
     if (DEBUG) debug("Going to store " + JSON.stringify(aMessageRecord));
@@ -2114,6 +2703,41 @@ MobileMessageDB.prototype = {
                                      aThreadParticipants, deletedInfo);
     }, [MESSAGE_STORE_NAME, PARTICIPANT_STORE_NAME, THREAD_STORE_NAME]);
   },
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   replaceShortMessageOnSave: function(aTransaction, aMessageStore,
                                       aParticipantStore, aThreadStore,
@@ -2186,6 +2810,26 @@ MobileMessageDB.prototype = {
       };
     });
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   realSaveRecord: function(aTransaction, aMessageStore, aParticipantStore,
                            aThreadStore, aMessageRecord, aThreadParticipants,
@@ -2294,6 +2938,34 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
   forEachMatchedMmsDeliveryInfo: function(aDeliveryInfo, aNeedle, aCallback) {
 
     let typedAddress = {
@@ -2338,6 +3010,33 @@ MobileMessageDB.prototype = {
       }
     }
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   updateMessageDeliveryById: function(id, type, receiver, delivery,
                                       deliveryStatus, envelopeId, callback) {
@@ -2441,6 +3140,16 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
+
+
+
+
+
   fillReceivedMmsThreadParticipants: function(aMessage, threadParticipants) {
     let receivers = aMessage.receivers;
     
@@ -2484,6 +3193,27 @@ MobileMessageDB.prototype = {
         };
       });
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   updateThreadByMessageChange: function(messageStore, threadStore, threadId,
                                         removedMsgIds, ignoredUnreadCount, deletedInfo) {
@@ -2543,6 +3273,13 @@ MobileMessageDB.prototype = {
     };
   },
 
+  
+
+
+
+
+
+
   notifyDeletedInfo: function(info) {
     if (!info ||
         (info.messageIds.length === 0 && info.threadIds.length === 0)) {
@@ -2559,6 +3296,17 @@ MobileMessageDB.prototype = {
   },
 
   
+
+
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -2640,6 +3388,17 @@ MobileMessageDB.prototype = {
     this.saveRecord(aMessage, threadParticipants, aCallback);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
   saveSendingMessage: function(aMessage, aCallback) {
     if ((aMessage.type != "sms" && aMessage.type != "mms") ||
         (aMessage.type == "sms" && aMessage.receiver == undefined) ||
@@ -2705,6 +3464,29 @@ MobileMessageDB.prototype = {
     this.saveRecord(aMessage, threadParticipants, aCallback);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   setMessageDeliveryByMessageId: function(messageId, receiver, delivery,
                                           deliveryStatus, envelopeId, callback) {
     this.updateMessageDeliveryById(messageId, "messageId",
@@ -2713,11 +3495,46 @@ MobileMessageDB.prototype = {
 
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   setMessageDeliveryStatusByEnvelopeId: function(aEnvelopeId, aReceiver,
                                                  aDeliveryStatus, aCallback) {
     this.updateMessageDeliveryById(aEnvelopeId, "envelopeId", aReceiver, null,
                                    aDeliveryStatus, null, aCallback);
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   setMessageReadStatusByEnvelopeId: function(aEnvelopeId, aReceiver,
                                              aReadStatus, aCallback) {
@@ -2769,6 +3586,27 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
   getMessageRecordByTransactionId: function(aTransactionId, aCallback) {
     if (DEBUG) debug("Retrieving message with transaction ID " + aTransactionId);
     let self = this;
@@ -2803,6 +3641,17 @@ MobileMessageDB.prototype = {
       };
     });
   },
+
+  
+
+
+
+
+
+
+
+
+
 
   getMessageRecordById: function(aMessageId, aCallback) {
     if (DEBUG) debug("Retrieving message with ID " + aMessageId);
@@ -2851,6 +3700,16 @@ MobileMessageDB.prototype = {
     });
   },
 
+  
+
+
+
+
+
+
+
+
+
   translateCrErrorToMessageCallbackError: function(aCrError) {
     switch(aCrError) {
       case Cr.NS_OK:
@@ -2865,6 +3724,26 @@ MobileMessageDB.prototype = {
         return Ci.nsIMobileMessageCallback.INTERNAL_ERROR;
     }
   },
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
 
   saveSmsSegment: function(aSmsSegment, aCallback) {
     let completeMessage = null;
@@ -2995,6 +3874,15 @@ MobileMessageDB.prototype = {
 
 
 
+  
+
+
+
+
+
+
+
+
   getMessage: function(aMessageId, aRequest) {
     if (DEBUG) debug("Retrieving message with ID " + aMessageId);
     let self = this;
@@ -3010,6 +3898,17 @@ MobileMessageDB.prototype = {
     };
     this.getMessageRecordById(aMessageId, notifyCallback);
   },
+
+  
+
+
+
+
+
+
+
+
+
 
   deleteMessage: function(messageIds, length, aRequest) {
     if (DEBUG) debug("deleteMessage: message ids " + JSON.stringify(messageIds));
@@ -3108,6 +4007,42 @@ MobileMessageDB.prototype = {
     }, [MESSAGE_STORE_NAME, THREAD_STORE_NAME]);
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   createMessageCursor: function(aHasStartDate, aStartDate, aHasEndDate,
                                 aEndDate, aNumbers, aNumbersCount, aDelivery,
                                 aHasRead, aRead, aThreadId, aReverse, aCallback) {
@@ -3153,6 +4088,20 @@ MobileMessageDB.prototype = {
 
     return cursor;
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
 
   markMessageRead: function(messageId, value, aSendReadReport, aRequest) {
     if (DEBUG) debug("Setting message " + messageId + " read to " + value);
@@ -3249,6 +4198,15 @@ MobileMessageDB.prototype = {
       };
     }, [MESSAGE_STORE_NAME, THREAD_STORE_NAME]);
   },
+
+  
+
+
+
+
+
+
+
 
   createThreadCursor: function(callback) {
     if (DEBUG) debug("Getting thread list");
