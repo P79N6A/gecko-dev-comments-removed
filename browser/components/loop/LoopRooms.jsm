@@ -570,6 +570,27 @@ this.LoopRooms = {
     return LoopRoomsInternal.maybeRefresh(user);
   },
 
+  
+
+
+
+
+
+  stubCache: function(stub) {
+    LoopRoomsInternal.rooms.clear();
+    if (stub) {
+      
+      for (let [key, value] of stub.entries()) {
+        LoopRoomsInternal.rooms.set(key, value);
+      }
+      gDirty = false;
+    } else {
+      
+      
+      gDirty = true;
+    }
+  },
+
   promise: function(method, ...params) {
     return new Promise((resolve, reject) => {
       this[method](...params, (error, result) => {
