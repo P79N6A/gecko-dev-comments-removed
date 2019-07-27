@@ -32,10 +32,8 @@
 
 #include "gfxPDFSurface.h"
 
-#ifdef PR_LOGGING
 static PRLogModuleInfo* DeviceContextSpecQtLM =
     PR_NewLogModule("DeviceContextSpecQt");
-#endif 
 
 #define DO_PR_DEBUG_LOG(x) PR_LOG(DeviceContextSpecQtLM, PR_LOG_DEBUG, x)
 
