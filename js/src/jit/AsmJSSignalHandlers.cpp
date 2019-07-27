@@ -1056,7 +1056,8 @@ js::RequestInterruptForAsmJSCode(JSRuntime *rt, int interruptModeRaw)
     activation->module().protectCode(rt);
 }
 
-#if defined(MOZ_ASAN) && defined(JS_STANDALONE)
+
+#if defined(MOZ_ASAN) && defined(JS_STANDALONE) && !defined(_MSC_VER)
 
 
 
