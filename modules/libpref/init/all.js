@@ -3962,7 +3962,6 @@ pref("signon.autologin.proxy",              false);
 pref("signon.storeWhenAutocompleteOff",     true);
 pref("signon.ui.experimental",              false);
 pref("signon.debug",                        false);
-pref("signon.recipes.path",                 "chrome://passwordmgr/content/recipes.json");
 
 
 pref("browser.formfill.debug",            false);
@@ -4409,6 +4408,10 @@ pref("dom.push.enabled", false);
 pref("dom.push.debug", false);
 pref("dom.push.serverURL", "wss://push.services.mozilla.com/");
 pref("dom.push.userAgentID", "");
+
+
+
+pref("dom.push.maxQuotaPerSubscription", 16);
 
 
 

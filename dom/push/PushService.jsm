@@ -83,6 +83,7 @@ this.PushService = {
   _state: PUSH_SERVICE_UNINIT,
   _db: null,
   _options: null,
+  _alarmID: null,
 
   
   
@@ -181,11 +182,11 @@ this.PushService = {
         
         this._service.disconnect();
       }
-      this._db.getAllKeyIDs()
-        .then(keyIDs => {
-          if (keyIDs.length > 0) {
+      this._db.getAllUnexpired()
+        .then(records => {
+          if (records.length > 0) {
             
-            this._service.connect(keyIDs);
+            this._service.connect(records);
           }
         });
       this._setState(PUSH_SERVICE_RUNNING);
@@ -242,6 +243,10 @@ this.PushService = {
         }
         break;
 
+      case "idle-daily":
+        this._dropExpiredRegistrations();
+        break;
+
       case "webapps-clear-data":
         debug("webapps-clear-data");
 
@@ -259,26 +264,26 @@ this.PushService = {
         this._db.getAllByOriginAttributes(originAttributes)
           .then(records => {
             records.forEach(record => {
-              this._db.delete(this._service.getKeyFromRecord(record))
+              this._db.delete(record.keyID)
                 .then(_ => {
                   
                   
                   if (this._ws) {
                     debug("Had a connection, so telling the server");
-                    this._sendRequest("unregister", {channelID: records.channelID})
+                    this._sendRequest("unregister", {channelID: record.channelID})
                         .catch(function(e) {
                           debug("Unregister errored " + e);
                         });
                   }
                 }, err => {
-                  debug("webapps-clear-data: " + scope +
-                        " Could not delete entry " + records.channelID);
+                  debug("webapps-clear-data: " + record.scope +
+                        " Could not delete entry " + record.channelID);
 
                   
                   
                   if (this._ws) {
                     debug("Had a connection, so telling the server");
-                    this._sendRequest("unregister", {channelID: records.channelID})
+                    this._sendRequest("unregister", {channelID: record.channelID})
                         .catch(function(e) {
                           debug("Unregister errored " + e);
                         });
@@ -437,10 +442,11 @@ this.PushService = {
       }
 
       
-      this._startService(service, uri, false, options);
-      
-      
-      this._changeStateConnectionEnabledEvent(prefs.get("connection.enabled"));
+      this._startService(service, uri, false, options).then(_ => {
+        
+        
+        this._changeStateConnectionEnabledEvent(prefs.get("connection.enabled"));
+      });
 
     } else {
       
@@ -458,8 +464,6 @@ this.PushService = {
     if (this._state != PUSH_SERVICE_ACTIVATING) {
       return;
     }
-
-    this._alarmID = null;
 
     Services.obs.addObserver(this, "webapps-clear-data", false);
 
@@ -486,6 +490,9 @@ this.PushService = {
 
     
     prefs.observe("connection.enabled", this);
+
+    
+    Services.obs.addObserver(this, "idle-daily", false);
   },
 
   _startService: function(service, serverURI, event, options = {}) {
@@ -582,7 +589,8 @@ this.PushService = {
     prefs.ignore("connection.enabled", this);
 
     Services.obs.removeObserver(this, this._networkStateChangeEventName);
-    Services.obs.removeObserver(this, "webapps-clear-data", false);
+    Services.obs.removeObserver(this, "webapps-clear-data");
+    Services.obs.removeObserver(this, "idle-daily");
   },
 
   uninit: function() {
@@ -595,7 +603,7 @@ this.PushService = {
     this._setState(PUSH_SERVICE_UNINIT);
 
     prefs.ignore("serverURL", this);
-    Services.obs.removeObserver(this, "xpcom-shutdown", false);
+    Services.obs.removeObserver(this, "xpcom-shutdown");
 
     this._serverURIProcessEnqueue(_ =>
             this._changeServerURL("", UNINIT_EVENT));
@@ -653,78 +661,108 @@ this.PushService = {
       .then(_ => this._db.drop());
   },
 
+  _notifySubscriptionChangeObservers: function(record) {
+    let globalMM = Cc['@mozilla.org/globalmessagemanager;1']
+                     .getService(Ci.nsIMessageListenerManager);
+    
+    Services.obs.notifyObservers(
+      null,
+      "push-subscription-change",
+      record.scope
+    );
+
+    let data = {
+      originAttributes: record.originAttributes,
+      scope: record.scope
+    };
+
+    globalMM.broadcastAsyncMessage('pushsubscriptionchange', data);
+  },
+
   
   
   _notifyAllAppsRegister: function() {
     debug("notifyAllAppsRegister()");
     
-    return this._db.getAllKeyIDs()
-      .then(records => {
-        let globalMM = Cc['@mozilla.org/globalmessagemanager;1']
-                         .getService(Ci.nsIMessageListenerManager);
-        for (let record of records) {
-          
-          Services.obs.notifyObservers(
-            null,
-            "push-subscription-change",
-            scope
-          );
-
-          let data = {
-            originAttributes: record.originAttributes,
-            scope: record.scope
-          };
-
-          globalMM.broadcastAsyncMessage('pushsubscriptionchange', data);
-        }
-      });
+    return this._db.getAllUnexpired().then(records =>
+      records.forEach(record =>
+        this._notifySubscriptionChangeObservers(record)
+      )
+    );
   },
 
   dropRegistrationAndNotifyApp: function(aKeyId) {
-    return this._db.getByKeyID(aKeyId)
-      .then(record => {
-        let globalMM = Cc['@mozilla.org/globalmessagemanager;1']
-                         .getService(Ci.nsIMessageListenerManager);
-        Services.obs.notifyObservers(
-          null,
-          "push-subscription-change",
-          record.scope
-        );
-
-        let data = {
-          originAttributes: record.originAttributes,
-          scope: record.scope
-        };
-
-        globalMM.broadcastAsyncMessage('pushsubscriptionchange', data);
-      })
-      .then(_ => this._db.delete(aKeyId));
+    return this._db.getByKeyID(aKeyId).then(record => {
+      this._notifySubscriptionChangeObservers(record);
+      return this._db.delete(aKeyId);
+    });
   },
 
   updateRegistrationAndNotifyApp: function(aOldKey, aRecord) {
     return this._db.delete(aOldKey)
-      .then(_ => this._db.put(aRecord)
-        .then(record => {
-          let globalMM = Cc['@mozilla.org/globalmessagemanager;1']
-                           .getService(Ci.nsIMessageListenerManager);
-          Services.obs.notifyObservers(
-            null,
-            "push-subscription-change",
-            record.scope
-          );
-
-          let data = {
-            originAttributes: record.originAttributes,
-            scope: record.scope
-          };
-
-          globalMM.broadcastAsyncMessage('pushsubscriptionchange', data);
-        }));
+      .then(_ => this._db.put(aRecord))
+      .then(record => this._notifySubscriptionChangeObservers(record));
   },
 
-  receivedPushMessage: function(aPushRecord, message) {
-    this._db.put(aPushRecord)
-      .then(_ => this._notifyApp(aPushRecord, message));
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  receivedPushMessage: function(keyID, message, updateFunc) {
+    debug("receivedPushMessage()");
+
+    let shouldNotify = false;
+    this.getByKeyID(keyID).then(record => {
+      if (!record) {
+        throw new Error("No record for key ID " + keyID);
+      }
+      return record.getLastVisit();
+    }).then(lastVisit => {
+      
+      
+      shouldNotify = isFinite(lastVisit);
+      return this._db.update(keyID, record => {
+        let newRecord = updateFunc(record);
+        if (!newRecord) {
+          return null;
+        }
+        if (newRecord.isExpired()) {
+          
+          
+          debug("receivedPushMessage: Ignoring update for expired key ID " + keyID);
+          return null;
+        }
+        newRecord.receivedPush(lastVisit);
+        return newRecord;
+      });
+    }).then(record => {
+      if (!record) {
+        return null;
+      }
+      if (shouldNotify) {
+        this._notifyApp(record, message);
+      }
+      if (record.isExpired()) {
+        
+        
+        
+        this._sendRequest("unregister", record).catch(error => {
+          debug("receivedPushMessage: Unregister error: " + error);
+        });
+      }
+    }).catch(error => {
+      debug("receivedPushMessage: Error notifying app: " + error);
+    });
   },
 
   _notifyApp: function(aPushRecord, message) {
@@ -775,8 +813,8 @@ this.PushService = {
     return this._db.getByKeyID(aKeyID);
   },
 
-  getAllKeyIDs: function() {
-    return this._db.getAllKeyIDs();
+  getAllUnexpired: function() {
+    return this._db.getAllUnexpired();
   },
 
   _sendRequest: function(action, aRecord) {
@@ -796,11 +834,11 @@ this.PushService = {
     debug("registerWithServer()" + JSON.stringify(aPageRecord));
 
     return this._sendRequest("register", aPageRecord)
-      .then(pushRecord => this._onRegisterSuccess(pushRecord),
+      .then(record => this._onRegisterSuccess(record),
             err => this._onRegisterError(err))
-      .then(pushRecord => {
+      .then(record => {
         this._deletePendingRequest(aPageRecord);
-        return pushRecord;
+        return record;
       }, err => {
         this._deletePendingRequest(aPageRecord);
         throw err;
@@ -815,11 +853,23 @@ this.PushService = {
 
     return this._checkActivated()
       .then(_ => this._db.getByIdentifiers(aPageRecord))
-      .then(pushRecord => {
-        if (pushRecord === undefined) {
+      .then(record => {
+        if (!record) {
           return this._lookupOrPutPendingRequest(aPageRecord);
         }
-        return pushRecord;
+        if (record.isExpired()) {
+          return record.getLastVisit().then(lastVisit => {
+            if (lastVisit > record.lastPush) {
+              
+              
+              return this._db.delete(record.keyID).then(_ => {
+                return this._lookupOrPutPendingRequest(aPageRecord);
+              });
+            }
+            throw {state: 0, error: "NotFoundError"};
+          });
+        }
+        return record;
       }, error => {
         debug("getByIdentifiers failed");
         throw error;
@@ -834,7 +884,7 @@ this.PushService = {
     debug("_onRegisterSuccess()");
 
     return this._db.put(aRecord)
-      .then(_ => aRecord, error => {
+      .catch(error => {
         
         this._sendRequest("unregister", aRecord).catch(err => {
           debug("_onRegisterSuccess: Error unregistering stale subscription" +
@@ -877,7 +927,7 @@ this.PushService = {
     if (!principal) {
       debug("No principal passed!");
       let message = {
-        requestID: aPageRecord.requestID,
+        requestID: pageRecord.requestID,
         error: "SecurityError"
       };
       mm.sendAsyncMessage("PushService:Register:KO", message);
@@ -890,7 +940,7 @@ this.PushService = {
     if (!pageRecord.scope || pageRecord.originAttributes === undefined) {
       debug("Incorrect identifier values set! " + JSON.stringify(pageRecord));
       let message = {
-        requestID: aPageRecord.requestID,
+        requestID: pageRecord.requestID,
         error: "SecurityError"
       };
       mm.sendAsyncMessage("PushService:Register:KO", message);
@@ -904,8 +954,8 @@ this.PushService = {
     debug("register(): " + JSON.stringify(aPageRecord));
 
     this._register(aPageRecord)
-      .then(pushRecord => {
-        let message = this._service.prepareRegister(pushRecord);
+      .then(record => {
+        let message = record.toRegister();
         message.requestID = aPageRecord.requestID;
         aMessageManager.sendAsyncMessage("PushService:Register:OK", message);
       }, error => {
@@ -958,7 +1008,7 @@ this.PushService = {
 
         return Promise.all([
           this._sendRequest("unregister", record),
-          this._db.delete(this._service.getKeyFromRecord(record))
+          this._db.delete(record.keyID),
         ]);
       });
   },
@@ -998,11 +1048,19 @@ this.PushService = {
 
     return this._checkActivated()
       .then(_ => this._db.getByIdentifiers(aPageRecord))
-      .then(pushRecord => {
-        if (!pushRecord) {
+      .then(record => {
+        if (!record) {
           return null;
         }
-        return this._service.prepareRegistration(pushRecord);
+        if (record.isExpired()) {
+          return record.getLastVisit().then(lastVisit => {
+            if (lastVisit > record.lastPush) {
+              return this._db.delete(record.keyID).then(_ => null);
+            }
+            throw {state: 0, error: "NotFoundError"};
+          });
+        }
+        return record.toRegistration();
       });
   },
 
@@ -1020,5 +1078,29 @@ this.PushService = {
           error
         })
       );
-  }
+  },
+
+  _dropExpiredRegistrations: function() {
+    debug("dropExpiredRegistrations()");
+
+    this._db.getAllExpired().then(records => {
+      return Promise.all(records.map(record => {
+        return record.getLastVisit().then(lastVisit => {
+          if (lastVisit > record.lastPush) {
+            
+            
+            return this._db.delete(record.keyID).then(() => {
+              this._notifySubscriptionChangeObservers(record);
+            });
+          }
+        }).catch(error => {
+          debug("dropExpiredRegistrations: Error dropping registration " +
+            record.keyID + ": " + error);
+        });
+      }));
+    }).catch(error => {
+      debug("dropExpiredRegistrations: Error dropping registrations: " +
+        error);
+    });
+  },
 };
