@@ -33,8 +33,8 @@ public:
 
   void Shutdown();
 
-  static nsresult
-  Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
+  static nsresult Create(nsISupports* aOuter, const nsIID& aIID,
+                         void** aInstancePtr);
 
   
   

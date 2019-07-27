@@ -14,7 +14,7 @@
 #include "nsDebug.h"
 
 namespace IPC {
-template <typename T> struct ParamTraits;
+template<typename T> struct ParamTraits;
 }
 
 #ifdef XP_WIN
@@ -49,7 +49,8 @@ public:
   
   
   struct _SomethingVeryRandomHere;
-  TimeDuration(_SomethingVeryRandomHere* aZero) : mValue(0) {
+  TimeDuration(_SomethingVeryRandomHere* aZero) : mValue(0)
+  {
     MOZ_ASSERT(!aZero, "Who's playing funny games here?");
   }
   
@@ -59,41 +60,44 @@ public:
   
   
   double ToSecondsSigDigits() const;
-  double ToMilliseconds() const {
-    return ToSeconds() * 1000.0;
-  }
-  double ToMicroseconds() const {
-    return ToMilliseconds() * 1000.0;
-  }
+  double ToMilliseconds() const { return ToSeconds() * 1000.0; }
+  double ToMicroseconds() const { return ToMilliseconds() * 1000.0; }
 
   
   
   
   
   
-  static inline TimeDuration FromSeconds(double aSeconds) {
+  static inline TimeDuration FromSeconds(double aSeconds)
+  {
     return FromMilliseconds(aSeconds * 1000.0);
   }
   static TimeDuration FromMilliseconds(double aMilliseconds);
-  static inline TimeDuration FromMicroseconds(double aMicroseconds) {
+  static inline TimeDuration FromMicroseconds(double aMicroseconds)
+  {
     return FromMilliseconds(aMicroseconds / 1000.0);
   }
 
-  static TimeDuration Forever() {
+  static TimeDuration Forever()
+  {
     return FromTicks(INT64_MAX);
   }
 
-  TimeDuration operator+(const TimeDuration& aOther) const {
+  TimeDuration operator+(const TimeDuration& aOther) const
+  {
     return TimeDuration::FromTicks(mValue + aOther.mValue);
   }
-  TimeDuration operator-(const TimeDuration& aOther) const {
+  TimeDuration operator-(const TimeDuration& aOther) const
+  {
     return TimeDuration::FromTicks(mValue - aOther.mValue);
   }
-  TimeDuration& operator+=(const TimeDuration& aOther) {
+  TimeDuration& operator+=(const TimeDuration& aOther)
+  {
     mValue += aOther.mValue;
     return *this;
   }
-  TimeDuration& operator-=(const TimeDuration& aOther) {
+  TimeDuration& operator-=(const TimeDuration& aOther)
+  {
     mValue -= aOther.mValue;
     return *this;
   }
@@ -104,52 +108,66 @@ private:
   TimeDuration operator*(const double aMultiplier) const MOZ_DELETE;
 
 public:
-  TimeDuration MultDouble(double aMultiplier) const {
+  TimeDuration MultDouble(double aMultiplier) const
+  {
     return TimeDuration::FromTicks(static_cast<int64_t>(mValue * aMultiplier));
   }
-  TimeDuration operator*(const int32_t aMultiplier) const {
+  TimeDuration operator*(const int32_t aMultiplier) const
+  {
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
   }
-  TimeDuration operator*(const uint32_t aMultiplier) const {
+  TimeDuration operator*(const uint32_t aMultiplier) const
+  {
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
   }
-  TimeDuration operator*(const int64_t aMultiplier) const {
+  TimeDuration operator*(const int64_t aMultiplier) const
+  {
     return TimeDuration::FromTicks(mValue * aMultiplier);
   }
-  TimeDuration operator*(const uint64_t aMultiplier) const {
+  TimeDuration operator*(const uint64_t aMultiplier) const
+  {
     if (aMultiplier > INT64_MAX) {
       NS_WARNING("Out-of-range multiplier when multiplying TimeDuration");
       return TimeDuration::Forever();
     }
     return TimeDuration::FromTicks(mValue * int64_t(aMultiplier));
   }
-  TimeDuration operator/(const int64_t aDivisor) const {
+  TimeDuration operator/(const int64_t aDivisor) const
+  {
     return TimeDuration::FromTicks(mValue / aDivisor);
   }
-  double operator/(const TimeDuration& aOther) const {
+  double operator/(const TimeDuration& aOther) const
+  {
     return static_cast<double>(mValue) / aOther.mValue;
   }
-  TimeDuration operator%(const TimeDuration& aOther) const {
+  TimeDuration operator%(const TimeDuration& aOther) const
+  {
     MOZ_ASSERT(aOther.mValue != 0, "Division by zero");
     return TimeDuration::FromTicks(mValue % aOther.mValue);
   }
 
-  bool operator<(const TimeDuration& aOther) const {
+  bool operator<(const TimeDuration& aOther) const
+  {
     return mValue < aOther.mValue;
   }
-  bool operator<=(const TimeDuration& aOther) const {
+  bool operator<=(const TimeDuration& aOther) const
+  {
     return mValue <= aOther.mValue;
   }
-  bool operator>=(const TimeDuration& aOther) const {
+  bool operator>=(const TimeDuration& aOther) const
+  {
     return mValue >= aOther.mValue;
   }
-  bool operator>(const TimeDuration& aOther) const {
+  bool operator>(const TimeDuration& aOther) const
+  {
     return mValue > aOther.mValue;
   }
-  bool operator==(const TimeDuration& aOther) const {
+  bool operator==(const TimeDuration& aOther) const
+  {
     return mValue == aOther.mValue;
   }
-  bool operator!=(const TimeDuration& aOther) const {
+  bool operator!=(const TimeDuration& aOther) const
+  {
     return mValue != aOther.mValue;
   }
 
@@ -170,21 +188,25 @@ private:
   friend class TimeStamp;
   friend struct IPC::ParamTraits<mozilla::TimeDuration>;
 
-  static TimeDuration FromTicks(int64_t aTicks) {
+  static TimeDuration FromTicks(int64_t aTicks)
+  {
     TimeDuration t;
     t.mValue = aTicks;
     return t;
   }
 
-  static TimeDuration FromTicks(double aTicks) {
+  static TimeDuration FromTicks(double aTicks)
+  {
     
     
-    if (aTicks >= double(INT64_MAX))
+    if (aTicks >= double(INT64_MAX)) {
       return TimeDuration::FromTicks(INT64_MAX);
+    }
 
     
-    if (aTicks <= double(INT64_MIN))
+    if (aTicks <= double(INT64_MIN)) {
       return TimeDuration::FromTicks(INT64_MIN);
+    }
 
     return TimeDuration::FromTicks(int64_t(aTicks));
   }
@@ -236,6 +258,7 @@ public:
 
 
   bool IsNull() const { return mValue == 0; }
+
   
 
 
@@ -276,7 +299,8 @@ public:
   
 
 
-  TimeDuration operator-(const TimeStamp& aOther) const {
+  TimeDuration operator-(const TimeStamp& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     static_assert(-INT64_MAX > INT64_MIN, "int64_t sanity check");
@@ -294,52 +318,62 @@ public:
     return TimeDuration::FromTicks(ticks);
   }
 
-  TimeStamp operator+(const TimeDuration& aOther) const {
+  TimeStamp operator+(const TimeDuration& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     return TimeStamp(mValue + aOther.mValue);
   }
-  TimeStamp operator-(const TimeDuration& aOther) const {
+  TimeStamp operator-(const TimeDuration& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     return TimeStamp(mValue - aOther.mValue);
   }
-  TimeStamp& operator+=(const TimeDuration& aOther) {
+  TimeStamp& operator+=(const TimeDuration& aOther)
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     mValue += aOther.mValue;
     return *this;
   }
-  TimeStamp& operator-=(const TimeDuration& aOther) {
+  TimeStamp& operator-=(const TimeDuration& aOther)
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     mValue -= aOther.mValue;
     return *this;
   }
 
-  bool operator<(const TimeStamp& aOther) const {
+  bool operator<(const TimeStamp& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue < aOther.mValue;
   }
-  bool operator<=(const TimeStamp& aOther) const {
+  bool operator<=(const TimeStamp& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue <= aOther.mValue;
   }
-  bool operator>=(const TimeStamp& aOther) const {
+  bool operator>=(const TimeStamp& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue >= aOther.mValue;
   }
-  bool operator>(const TimeStamp& aOther) const {
+  bool operator>(const TimeStamp& aOther) const
+  {
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue > aOther.mValue;
   }
-  bool operator==(const TimeStamp& aOther) const {
+  bool operator==(const TimeStamp& aOther) const
+  {
     
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     return mValue == aOther.mValue;
   }
-  bool operator!=(const TimeStamp& aOther) const {
+  bool operator!=(const TimeStamp& aOther) const
+  {
     
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");

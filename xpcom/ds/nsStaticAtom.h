@@ -20,28 +20,30 @@ typedef char16_t nsStaticAtomStringType;
 
 
 
-struct nsStaticAtom {
-    nsStringBuffer* mStringBuffer;
-    nsIAtom ** mAtom;
+struct nsStaticAtom
+{
+  nsStringBuffer* mStringBuffer;
+  nsIAtom** mAtom;
 };
 
 
 
 
-template <uint32_t size>
-struct nsFakeStringBuffer {
-    int32_t mRefCnt;
-    uint32_t mSize;
-    nsStaticAtomStringType mStringData[size];
+template<uint32_t size>
+struct nsFakeStringBuffer
+{
+  int32_t mRefCnt;
+  uint32_t mSize;
+  nsStaticAtomStringType mStringData[size];
 };
 
 
 template<uint32_t N>
 nsresult
-NS_RegisterStaticAtoms(const nsStaticAtom (&atoms)[N])
+NS_RegisterStaticAtoms(const nsStaticAtom (&aAtoms)[N])
 {
-    extern nsresult RegisterStaticAtoms(const nsStaticAtom*, uint32_t aAtomCount);
-    return RegisterStaticAtoms(atoms, N);
+  extern nsresult RegisterStaticAtoms(const nsStaticAtom*, uint32_t aAtomCount);
+  return RegisterStaticAtoms(aAtoms, N);
 }
 
 #endif

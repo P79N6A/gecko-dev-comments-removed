@@ -19,17 +19,20 @@
 
 
 
-inline double NS_round(double x)
+inline double
+NS_round(double aNum)
 {
-    return x >= 0.0 ? floor(x + 0.5) : ceil(x - 0.5);
+  return aNum >= 0.0 ? floor(aNum + 0.5) : ceil(aNum - 0.5);
 }
-inline float NS_roundf(float x)
+inline float
+NS_roundf(float aNum)
 {
-    return x >= 0.0f ? floorf(x + 0.5f) : ceilf(x - 0.5f);
+  return aNum >= 0.0f ? floorf(aNum + 0.5f) : ceilf(aNum - 0.5f);
 }
-inline int32_t NS_lround(double x)
+inline int32_t
+NS_lround(double aNum)
 {
-    return x >= 0.0 ? int32_t(x + 0.5) : int32_t(x - 0.5);
+  return aNum >= 0.0 ? int32_t(aNum + 0.5) : int32_t(aNum - 0.5);
 }
 
 
@@ -38,39 +41,40 @@ inline int32_t NS_lround(double x)
 #if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__) && !defined(__clang__)
 inline int32_t NS_lroundup30(float x)
 {
-    
-    
+  
+  
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-    
-    
-    
+  
+  
+  
 
-    static const double round_to_nearest = 0.5f;
-    int i;
+  static const double round_to_nearest = 0.5f;
+  int i;
 
-    __asm {
-      fld     x                   ; load fp argument
-      fadd    st, st(0)           ; double it
-      fadd    round_to_nearest    ; add the rounding factor
-      fistp   dword ptr i         ; convert the result to int
-    }
-    return i >> 1;                
+  __asm {
+    fld     x                   ; load fp argument
+    fadd    st, st(0)           ; double it
+    fadd    round_to_nearest    ; add the rounding factor
+    fistp   dword ptr i         ; convert the result to int
+  }
+  return i >> 1;                
 }
 #endif 
 
-inline int32_t NS_lroundf(float x)
+inline int32_t
+NS_lroundf(float aNum)
 {
-    return x >= 0.0f ? int32_t(x + 0.5f) : int32_t(x - 0.5f);
+  return aNum >= 0.0f ? int32_t(aNum + 0.5f) : int32_t(aNum - 0.5f);
 }
 
 
@@ -78,14 +82,15 @@ inline int32_t NS_lroundf(float x)
 
 
 
-inline double NS_hypot(double x, double y)
+inline double
+NS_hypot(double aNum1, double aNum2)
 {
 #ifdef __GNUC__
-    return __builtin_hypot(x, y);
+  return __builtin_hypot(aNum1, aNum2);
 #elif defined _WIN32
-    return _hypot(x, y);
+  return _hypot(aNum1, aNum2);
 #else
-    return hypot(x, y);
+  return hypot(aNum1, aNum2);
 #endif
 }
 
@@ -93,17 +98,18 @@ inline double NS_hypot(double x, double y)
 
 
 
-inline bool NS_finite(double d)
+inline bool
+NS_finite(double aNum)
 {
 #ifdef WIN32
-    
-    return !!_finite(d);
+  
+  return !!_finite(aNum);
 #elif defined(XP_DARWIN)
-    
-    
-    return std::isfinite(d);
+  
+  
+  return std::isfinite(aNum);
 #else
-    return finite(d);
+  return finite(aNum);
 #endif
 }
 
@@ -113,9 +119,10 @@ inline bool NS_finite(double d)
 
 
 
-inline double NS_floorModulo(double x, double y)
+inline double
+NS_floorModulo(double aNum1, double aNum2)
 {
-  return (x - y * floor(x / y));
+  return (aNum1 - aNum2 * floor(aNum1 / aNum2));
 }
 
 #endif

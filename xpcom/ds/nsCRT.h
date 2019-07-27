@@ -60,85 +60,97 @@ extern const char16_t kIsoLatin1ToUCS2[256];
 
 
 
-class nsCRT {
+class nsCRT
+{
 public:
-  enum {
-    LF='\n'   ,
-    VTAB='\v' ,
-    CR='\r'   
+  enum
+  {
+    LF = '\n'   ,
+    VTAB = '\v' ,
+    CR = '\r'   
   };
 
   
-  static int32_t strcmp(const char* s1, const char* s2) {
-    return int32_t(PL_strcmp(s1, s2));
+  static int32_t strcmp(const char* aStr1, const char* aStr2)
+  {
+    return int32_t(PL_strcmp(aStr1, aStr2));
   }
 
-  static int32_t strncmp(const char* s1, const char* s2,
-                         uint32_t aMaxLen) {
-    return int32_t(PL_strncmp(s1, s2, aMaxLen));
-  }
-
-  
-  static int32_t strcasecmp(const char* s1, const char* s2) {
-    return int32_t(PL_strcasecmp(s1, s2));
+  static int32_t strncmp(const char* aStr1, const char* aStr2,
+                         uint32_t aMaxLen)
+  {
+    return int32_t(PL_strncmp(aStr1, aStr2, aMaxLen));
   }
 
   
-  static int32_t strncasecmp(const char* s1, const char* s2, uint32_t aMaxLen) {
-    int32_t result=int32_t(PL_strncasecmp(s1, s2, aMaxLen));
+  static int32_t strcasecmp(const char* aStr1, const char* aStr2)
+  {
+    return int32_t(PL_strcasecmp(aStr1, aStr2));
+  }
+
+  
+  static int32_t strncasecmp(const char* aStr1, const char* aStr2,
+                             uint32_t aMaxLen)
+  {
+    int32_t result = int32_t(PL_strncasecmp(aStr1, aStr2, aMaxLen));
     
     
-    if (result<0) 
-      result=-1;
+    if (result < 0) {
+      result = -1;
+    }
     return result;
   }
 
-  static int32_t strncmp(const char* s1, const char* s2, int32_t aMaxLen) {
+  static int32_t strncmp(const char* aStr1, const char* aStr2, int32_t aMaxLen)
+  {
     
-    int32_t diff = ((const unsigned char*)s1)[0] - ((const unsigned char*)s2)[0];
-    if (diff != 0) return diff;
-    return int32_t(PL_strncmp(s1,s2,unsigned(aMaxLen)));
+    int32_t diff =
+      ((const unsigned char*)aStr1)[0] - ((const unsigned char*)aStr2)[0];
+    if (diff != 0) {
+      return diff;
+    }
+    return int32_t(PL_strncmp(aStr1, aStr2, unsigned(aMaxLen)));
   }
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static char* strtok(char* str, const char* delims, char* *newStr); 
 
   
-  static int32_t strcmp(const char16_t* s1, const char16_t* s2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static char* strtok(char* aStr, const char* aDelims, char** aNewStr);
+
   
-  static int32_t strncmp(const char16_t* s1, const char16_t* s2,
+  static int32_t strcmp(const char16_t* aStr1, const char16_t* aStr2);
+  
+  static int32_t strncmp(const char16_t* aStr1, const char16_t* aStr2,
                          uint32_t aMaxLen);
 
   
   
   
-  static const char* memmem(const char* haystack, uint32_t haystackLen,
-                            const char* needle, uint32_t needleLen);
+  static const char* memmem(const char* aHaystack, uint32_t aHaystackLen,
+                            const char* aNeedle, uint32_t aNeedleLen);
 
   
-  static int64_t atoll(const char *str);
-  
+  static int64_t atoll(const char* aStr);
+
   static char ToUpper(char aChar) { return NS_ToUpper(aChar); }
   static char ToLower(char aChar) { return NS_ToLower(aChar); }
-  
+
   static bool IsUpper(char aChar) { return NS_IsUpper(aChar); }
   static bool IsLower(char aChar) { return NS_IsLower(aChar); }
 
@@ -148,14 +160,17 @@ public:
   static bool IsAsciiDigit(char16_t aChar) { return NS_IsAsciiDigit(aChar); }
   static bool IsAsciiSpace(char16_t aChar) { return NS_IsAsciiWhitespace(aChar); }
   static bool IsAscii(const char* aString) { return NS_IsAscii(aString); }
-  static bool IsAscii(const char* aString, uint32_t aLength) { return NS_IsAscii(aString, aLength); }
+  static bool IsAscii(const char* aString, uint32_t aLength)
+  {
+    return NS_IsAscii(aString, aLength);
+  }
 };
 
 
 inline bool
-NS_IS_SPACE(char16_t c)
+NS_IS_SPACE(char16_t aChar)
 {
-  return ((int(c) & 0x7f) == int(c)) && isspace(int(c));
+  return ((int(aChar) & 0x7f) == int(aChar)) && isspace(int(aChar));
 }
 
 #define NS_IS_CNTRL(i)   ((((unsigned int) (i)) > 0x7f) ? (int) 0 : iscntrl(i))

@@ -16,7 +16,8 @@ namespace mozilla {
 
 
 
-struct TimeStampInitialization {
+struct TimeStampInitialization
+{
   
 
 
@@ -30,12 +31,14 @@ struct TimeStampInitialization {
 
   TimeStamp mProcessCreation;
 
-  TimeStampInitialization() {
+  TimeStampInitialization()
+  {
     TimeStamp::Startup();
     mFirstTimeStamp = TimeStamp::Now();
   };
 
-  ~TimeStampInitialization() {
+  ~TimeStampInitialization()
+  {
     TimeStamp::Shutdown();
   };
 };
@@ -48,7 +51,7 @@ TimeStamp::ProcessCreation(bool& aIsInconsistent)
   aIsInconsistent = false;
 
   if (sInitOnce.mProcessCreation.IsNull()) {
-    char *mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
+    char* mozAppRestart = PR_GetEnv("MOZ_APP_RESTART");
     TimeStamp ts;
 
     
