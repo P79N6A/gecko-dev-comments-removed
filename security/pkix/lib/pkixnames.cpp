@@ -86,9 +86,14 @@ MOZILLA_PKIX_ENUM_CLASS ValidDNSIDMatchType
 {
   ReferenceID = 0,
   PresentedID = 1,
+  NameConstraint = 2,
 };
 
 bool IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType);
+
+bool PresentedDNSIDMatchesReferenceDNSID(
+       Input presentedDNSID, ValidDNSIDMatchType referenceDNSIDMatchType,
+       Input referenceDNSID);
 
 } 
 
@@ -96,8 +101,6 @@ bool IsValidReferenceDNSID(Input hostname);
 bool IsValidPresentedDNSID(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
-bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
-                                         Input referenceDNSID);
 
 
 
@@ -440,8 +443,9 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
 
   switch (nameType) {
     case GeneralNameType::dNSName:
-      foundMatch = PresentedDNSIDMatchesReferenceDNSID(presentedID,
-                                                       referenceID);
+      foundMatch = PresentedDNSIDMatchesReferenceDNSID(
+                     presentedID, ValidDNSIDMatchType::ReferenceID,
+                     referenceID);
       break;
     case GeneralNameType::iPAddress:
       foundMatch = InputsAreEqual(presentedID, referenceID);
@@ -453,7 +457,118 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
   return Success;
 }
 
-} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -469,22 +584,94 @@ MatchPresentedIDWithReferenceID(GeneralNameType nameType,
 
 
 bool
-PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
+PresentedDNSIDMatchesReferenceDNSID(
+  Input presentedDNSID,
+  ValidDNSIDMatchType referenceDNSIDMatchType,
+  Input referenceDNSID)
 {
   if (!IsValidPresentedDNSID(presentedDNSID)) {
     return false;
   }
-  if (!IsValidReferenceDNSID(referenceDNSID)) {
+
+  if (!IsValidDNSID(referenceDNSID, referenceDNSIDMatchType)) {
     return false;
   }
 
   Reader presented(presentedDNSID);
   Reader reference(referenceDNSID);
+
+  switch (referenceDNSIDMatchType)
+  {
+    case ValidDNSIDMatchType::ReferenceID:
+      break;
+
+    case ValidDNSIDMatchType::NameConstraint:
+    {
+      if (presentedDNSID.GetLength() > referenceDNSID.GetLength()) {
+        if (referenceDNSID.GetLength() == 0) {
+          
+          return true;
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (reference.Peek('.')) {
+          if (presented.Skip(static_cast<Input::size_type>(
+                               presentedDNSID.GetLength() -
+                                 referenceDNSID.GetLength())) != Success) {
+            assert(false);
+            return false;
+          }
+        } else {
+          if (presented.Skip(static_cast<Input::size_type>(
+                               presentedDNSID.GetLength() -
+                                 referenceDNSID.GetLength() - 1)) != Success) {
+            assert(false);
+            return false;
+          }
+          uint8_t b;
+          if (presented.Read(b) != Success) {
+            assert(false);
+            return false;
+          }
+          if (b != '.') {
+            return false;
+          }
+        }
+      }
+      break;
+    }
+
+    case ValidDNSIDMatchType::PresentedID: 
+    default:
+      assert(false);
+      return false;
+  }
+
   bool isFirstPresentedByte = true;
   do {
     uint8_t presentedByte;
-    Result rv = presented.Read(presentedByte);
-    if (rv != Success) {
+    if (presented.Read(presentedByte) != Success) {
       return false;
     }
     if (presentedByte == '*') {
@@ -497,8 +684,7 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
       
       do {
         uint8_t referenceByte;
-        rv = reference.Read(referenceByte);
-        if (rv != Success) {
+        if (reference.Read(referenceByte) != Success) {
           return false;
         }
       } while (!reference.Peek('.'));
@@ -521,8 +707,7 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
       }
 
       uint8_t referenceByte;
-      rv = reference.Read(referenceByte);
-      if (rv != Success) {
+      if (reference.Read(referenceByte) != Success) {
         return false;
       }
       if (LocaleInsensitveToLower(presentedByte) !=
@@ -534,14 +719,16 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
   } while (!presented.AtEnd());
 
   
+  
   if (!reference.AtEnd()) {
-    uint8_t referenceByte;
-    Result rv = reference.Read(referenceByte);
-    if (rv != Success) {
-      return false;
-    }
-    if (referenceByte != '.') {
-      return false;
+    if (referenceDNSIDMatchType != ValidDNSIDMatchType::NameConstraint) {
+      uint8_t referenceByte;
+      if (reference.Read(referenceByte) != Success) {
+        return false;
+      }
+      if (referenceByte != '.') {
+        return false;
+      }
     }
     if (!reference.AtEnd()) {
       return false;
@@ -549,6 +736,16 @@ PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID, Input referenceDNSID)
   }
 
   return true;
+}
+
+} 
+
+bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
+                                         Input referenceDNSID)
+{
+  return PresentedDNSIDMatchesReferenceDNSID(presentedDNSID,
+                                             ValidDNSIDMatchType::ReferenceID,
+                                             referenceDNSID);
 }
 
 namespace {
@@ -844,6 +1041,10 @@ IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
 
   Reader input(hostname);
 
+  if (matchType == ValidDNSIDMatchType::NameConstraint && input.AtEnd()) {
+    return true;
+  }
+
   bool allowWildcard = matchType == ValidDNSIDMatchType::PresentedID;
   bool isWildcard = false;
   size_t dotCount = 0;
@@ -852,6 +1053,8 @@ IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
   bool labelIsAllNumeric = false;
   bool labelIsWildcard = false;
   bool labelEndsWithHyphen = false;
+
+  bool isFirstByte = true;
 
   do {
     static const size_t MAX_LABEL_LENGTH = 63;
@@ -938,7 +1141,9 @@ IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
 
       case '.':
         ++dotCount;
-        if (labelLength == 0) {
+        if (labelLength == 0 &&
+            (matchType != ValidDNSIDMatchType::NameConstraint ||
+             !isFirstByte)) {
           return false;
         }
         if (labelEndsWithHyphen) {
@@ -952,6 +1157,7 @@ IsValidDNSID(Input hostname, ValidDNSIDMatchType matchType)
       default:
         return false; 
     }
+    isFirstByte = false;
   } while (!input.AtEnd());
 
   if (labelEndsWithHyphen) {
