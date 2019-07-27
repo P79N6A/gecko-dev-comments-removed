@@ -90,7 +90,7 @@ protected:
   char* processDynamicTag(int readPos, int* tagsConsumed, char* tagBuff);
   int FindLastSampleOfThread(int aThreadId);
 
-  ~ProfileBuffer() {}
+  ~ProfileBuffer();
 
 public:
   

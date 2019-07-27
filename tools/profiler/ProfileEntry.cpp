@@ -105,6 +105,12 @@ ProfileBuffer::ProfileBuffer(int aEntrySize)
 {
 }
 
+ProfileBuffer::~ProfileBuffer()
+{
+  mGeneration = INT_MAX;
+  deleteExpiredStoredMarkers();
+}
+
 
 void ProfileBuffer::addTag(const ProfileEntry& aTag)
 {
