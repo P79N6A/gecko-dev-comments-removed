@@ -80,7 +80,6 @@ namespace dom {
 
 
 
-
 class Request;
 
 #define kFETCH_CLIENT_REFERRER_STR "about:client"
@@ -281,13 +280,7 @@ public:
   RequestContext
   Context() const
   {
-    return mContext;
-  }
-
-  void
-  SetContext(RequestContext aContext)
-  {
-    mContext = aContext;
+    return MapContentPolicyTypeToRequestContext(mContentPolicyType);
   }
 
   bool
@@ -371,13 +364,15 @@ private:
 
   ~InternalRequest();
 
+  static RequestContext
+  MapContentPolicyTypeToRequestContext(nsContentPolicyType aContentPolicyType);
+
   nsCString mMethod;
   nsCString mURL;
   nsRefPtr<InternalHeaders> mHeaders;
   nsCOMPtr<nsIInputStream> mBodyStream;
 
   nsContentPolicyType mContentPolicyType;
-  RequestContext mContext;
 
   
   
