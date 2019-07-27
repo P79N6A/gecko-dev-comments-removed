@@ -1450,8 +1450,10 @@ nsHttpTransaction::HandleContentStart()
                 LOG(("Not Authoritative.\n"));
                 gHttpHandler->ConnMgr()->
                     ClearHostMapping(mConnInfo->GetHost(), mConnInfo->Port());
-                mForceRestart = true;
             }
+            
+            mCaps &= ~NS_HTTP_ALLOW_KEEPALIVE;
+            mForceRestart = true; 
             break;
         }
 
