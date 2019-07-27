@@ -46,9 +46,11 @@ var corsServerPath = "/tests/dom/base/test/file_CrossSiteXHR_server.sjs?";
 function testModeNoCors() {
   
   
-  var r = new Request("http://example.com" + corsServerPath + "status=200&allowOrigin=*", { mode: "no-cors" });
+  var r = new Request("http://example.com" + corsServerPath + "status=200", { mode: "no-cors" });
   return fetch(r).then(function(res) {
     ok(isOpaqueResponse(res), "no-cors Request fetch should result in opaque response");
+  }, function(e) {
+    ok(false, "no-cors Request fetch should not error");
   });
 }
 
@@ -1019,7 +1021,7 @@ function testRedirects() {
              hops: [{ server: "http://example.com",
                       allowOrigin: origin
                     },
-                    { server: "http://test2.mochi.test:8000",
+                    { server: "http://test2.mochi.test:8888",
                       allowOrigin: origin
                     },
                     { server: "http://sub2.xn--lt-uia.mochi.test:8888",
@@ -1035,7 +1037,7 @@ function testRedirects() {
              hops: [{ server: "http://example.com",
                       allowOrigin: origin
                     },
-                    { server: "http://test2.mochi.test:8000",
+                    { server: "http://test2.mochi.test:8888",
                       allowOrigin: origin
                     },
                     { server: "http://sub2.xn--lt-uia.mochi.test:8888",
@@ -1067,7 +1069,7 @@ function testRedirects() {
              hops: [{ server: "http://example.com",
                       allowOrigin: origin
                     },
-                    { server: "http://test2.mochi.test:8000",
+                    { server: "http://test2.mochi.test:8888",
                       allowOrigin: origin
                     },
                     { server: "http://sub2.xn--lt-uia.mochi.test:8888",
@@ -1083,7 +1085,7 @@ function testRedirects() {
              hops: [{ server: "http://example.com",
                       allowOrigin: origin
                     },
-                    { server: "http://test2.mochi.test:8000",
+                    { server: "http://test2.mochi.test:8888",
                       allowOrigin: origin
                     },
                     { server: "http://sub2.xn--lt-uia.mochi.test:8888",
@@ -1099,7 +1101,7 @@ function testRedirects() {
              hops: [{ server: "http://example.com",
                       allowOrigin: origin
                     },
-                    { server: "http://test2.mochi.test:8000",
+                    { server: "http://test2.mochi.test:8888",
                       allowOrigin: origin
                     },
                     { server: "http://sub2.xn--lt-uia.mochi.test:8888",

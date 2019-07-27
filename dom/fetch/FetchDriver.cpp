@@ -485,16 +485,24 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     internalChan->ForceNoIntercept();
   }
 
+  nsCOMPtr<nsIStreamListener> listener = this;
+
   
   
   
-  
-  
-  nsRefPtr<nsCORSListenerProxy> corsListener =
-    new nsCORSListenerProxy(this, mPrincipal, useCredentials);
-  rv = corsListener->Init(chan, true );
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return FailWithNetworkError();
+  if (mRequest->Mode() != RequestMode::No_cors) {
+    
+    
+    
+    
+    
+    nsRefPtr<nsCORSListenerProxy> corsListener =
+      new nsCORSListenerProxy(this, mPrincipal, useCredentials);
+    rv = corsListener->Init(chan, true );
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return FailWithNetworkError();
+    }
+    listener = corsListener.forget();
   }
 
   
@@ -507,12 +515,12 @@ FetchDriver::HttpFetch(bool aCORSFlag, bool aCORSPreflightFlag, bool aAuthentica
     nsAutoTArray<nsCString, 5> unsafeHeaders;
     mRequest->Headers()->GetUnsafeHeaders(unsafeHeaders);
 
-    rv = NS_StartCORSPreflight(chan, corsListener, mPrincipal,
+    rv = NS_StartCORSPreflight(chan, listener, mPrincipal,
                                useCredentials,
                                unsafeHeaders,
                                getter_AddRefs(preflightChannel));
   } else {
-   rv = chan->AsyncOpen(corsListener, nullptr);
+   rv = chan->AsyncOpen(listener, nullptr);
   }
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -775,7 +783,7 @@ FetchDriver::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
   if (!NS_IsInternalSameURIRedirect(aOldChannel, aNewChannel, aFlags)) {
     rv = DoesNotRequirePreflight(aNewChannel);
     if (NS_FAILED(rv)) {
-      NS_WARNING("nsXMLHttpRequest::OnChannelRedirect: "
+      NS_WARNING("FetchDriver::OnChannelRedirect: "
                  "DoesNotRequirePreflight returned failure");
       return rv;
     }
