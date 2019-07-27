@@ -31,12 +31,15 @@ GetNativeFromGeckoAccessible(mozilla::a11y::Accessible* aAccessible)
   return native;
 }
 
+
+static const uintptr_t IS_PROXY = 1;
+
 @interface mozAccessible : NSObject <mozAccessible>
 {
   
 
 
-  mozilla::a11y::AccessibleWrap* mGeckoAccessible;
+  uintptr_t mGeckoAccessible;
   
   
 
