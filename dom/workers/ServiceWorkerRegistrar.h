@@ -54,6 +54,7 @@ public:
   void RegisterServiceWorker(const ServiceWorkerRegistrationData& aData);
   void UnregisterServiceWorker(const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
                                const nsACString& aScope);
+  void RemoveAll();
 
 protected:
   

@@ -307,8 +307,6 @@ public:
 
     virtual bool RecvRemoveServiceWorkerRegistrationsForDomain(const nsString& aDomain) override;
 
-    virtual bool RecvRemoveServiceWorkerRegistrations() override;
-
     virtual bool RecvNotifyVisited(const URIParams& aURI) override;
     
     nsresult AddRemoteAlertObserver(const nsString& aData, nsIObserver* aObserver);
