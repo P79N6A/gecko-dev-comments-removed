@@ -148,7 +148,9 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     for (let docShell of this.docShells) {
       markers = [...markers, ...docShell.popProfileTimelineMarkers()];
     }
+
     if (markers.length > 0) {
+      this._postProcessMarkers(markers);
       events.emit(this, "markers", markers, endTime);
     }
     if (this._memoryActor) {
@@ -161,6 +163,25 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     this._dataPullTimeout = setTimeout(() => {
       this._pullTimelineData();
     }, DEFAULT_TIMELINE_DATA_PULL_TIMEOUT);
+  },
+
+  
+
+
+
+  _postProcessMarkers: function(m) {
+    m.forEach(m => {
+      
+      
+      let split = m.name.match(/ConsoleTime:(.*)/);
+      if (split && split.length > 0) {
+        if (!m.detail) {
+          m.detail = {}
+        }
+        m.detail.causeName = split[1];
+        m.name = "ConsoleTime";
+      }
+    });
   },
 
   

@@ -128,6 +128,9 @@ let TimelineController = {
   _stopRecording: function*() {
     clearInterval(this._updateId);
 
+    
+    this._markers = this._markers.sort((a,b) => (a.start > b.start));
+
     TimelineView.handleMarkersUpdate(this._markers);
     TimelineView.handleRecordingEnded();
     yield gFront.stop();
