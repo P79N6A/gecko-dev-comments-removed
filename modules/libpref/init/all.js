@@ -120,12 +120,6 @@ pref("dom.indexedDB.warningQuota", 50);
 
 pref("dom.indexedDB.experimental", false);
 
-pref("dom.indexedDB.logging.enabled", true);
-
-pref("dom.indexedDB.logging.details", true);
-
-pref("dom.indexedDB.logging.profiler-marks", false);
-
 
 pref("dom.workers.enabled", true);
 
