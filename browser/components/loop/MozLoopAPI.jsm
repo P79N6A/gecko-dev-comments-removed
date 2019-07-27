@@ -102,6 +102,15 @@ const injectObjectAPI = function(api, targetWindow) {
 
 
 
+const toHexString = function(charCode) {
+  return ("0" + charCode.toString(16)).slice(-2);
+};
+
+
+
+
+
+
 
 
 
@@ -508,6 +517,42 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function(histogramId, value) {
         Services.telemetry.getHistogramById(histogramId).add(value);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    getUserAvatar: {
+      enumerable: true,
+      writable: true,
+      value: function(emailAddress, size = 40) {
+        if (!emailAddress) {
+          return "";
+        }
+
+        
+        let hasher = Cc["@mozilla.org/security/hash;1"]
+                       .createInstance(Ci.nsICryptoHash);
+        hasher.init(Ci.nsICryptoHash.MD5);
+        let stringStream = Cc["@mozilla.org/io/string-input-stream;1"]
+                             .createInstance(Ci.nsIStringInputStream);
+        stringStream.data = emailAddress.trim().toLowerCase();
+        hasher.updateFromStream(stringStream, -1);
+        let hash = hasher.finish(false);
+        
+        let md5Email = [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+
+        
+        return "http://www.gravatar.com/avatar/" + md5Email + ".jpg?default=blank&s=" + size;
       }
     },
   };
