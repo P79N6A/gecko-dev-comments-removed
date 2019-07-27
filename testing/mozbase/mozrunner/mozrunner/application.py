@@ -7,7 +7,7 @@ import glob
 import os
 import posixpath
 
-from mozdevice import DeviceManagerADB
+from mozdevice import DeviceManagerADB, DMError
 from mozprofile import (
     Profile,
     FirefoxProfile,
@@ -36,6 +36,7 @@ class B2GContext(object):
     _bindir = None
     _dm = None
     _remote_profile = None
+    _remote_settings_db = None
     profile_class = Profile
 
     def __init__(self, b2g_home=None, adb_path=None):
@@ -49,11 +50,19 @@ class B2GContext(object):
         self._fastboot = None
 
         self.remote_binary = '/system/bin/b2g.sh'
-        self.remote_process = '/system/b2g/b2g'
         self.remote_bundles_dir = '/system/b2g/distribution/bundles'
         self.remote_busybox = '/system/bin/busybox'
+        self.remote_process = '/system/b2g/b2g'
         self.remote_profiles_ini = '/data/b2g/mozilla/profiles.ini'
+        self.remote_settings_json = '/system/b2g/defaults/settings.json'
+        self.remote_idb_dir = '/data/local/storage/persistent/chrome/idb'
         self.remote_test_root = '/data/local/tests'
+        self.remote_webapps_dir = '/data/local/webapps'
+
+        self.remote_backup_files = [
+            self.remote_settings_json,
+            self.remote_webapps_dir,
+        ]
 
     @property
     def fastboot(self):
@@ -100,6 +109,16 @@ class B2GContext(object):
             self._remote_profile = posixpath.join(self.remote_test_root, 'profile')
         return self._remote_profile
 
+    @property
+    def remote_settings_db(self):
+        if not self._remote_settings_db:
+            for filename in self.dm.listFiles(self.remote_idb_dir):
+                if filename.endswith('ssegtnti.sqlite'):
+                    self._remote_settings_db = posixpath.join(self.remote_idb_dir, filename)
+                    break
+            else:
+                raise DMError("Could not find settings db in '%s'!" % self.remote_idb_dir)
+        return self._remote_settings_db
 
     def which(self, binary):
         paths = os.environ.get('PATH', {}).split(os.pathsep)
@@ -112,10 +131,56 @@ class B2GContext(object):
     def stop_application(self):
         self.dm.shellCheckOutput(['stop', 'b2g'])
 
+    def setup_profile(self, profile):
         
         
         self.dm.moveTree(posixpath.join(self.remote_profile, 'user.js'),
                          posixpath.join(self.remote_profile, 'prefs.js'))
+
+        if self.dm.fileExists(posixpath.join(self.remote_profile, 'settings.json')):
+            
+            
+            if self.dm.fileExists(self.remote_settings_json):
+                self.dm.removeFile(self.remote_settings_json)
+
+            
+            
+            self.dm.removeFile(self.remote_settings_db)
+            self.dm.shellCheckOutput(['touch', self.remote_settings_db])
+
+        
+        
+        
+        
+        profile_webapps = posixpath.join(self.remote_profile, 'webapps')
+        if self.dm.dirExists(posixpath.join(profile_webapps, 'system.gaiamobile.org')):
+            self.dm.removeDir(self.remote_webapps_dir)
+            self.dm.moveTree(profile_webapps, self.remote_webapps_dir)
+
+        
+        extension_dir = os.path.join(profile.profile, 'extensions', 'staged')
+        if os.path.isdir(extension_dir):
+            
+            for filename in os.listdir(extension_dir):
+                path = posixpath.join(self.remote_bundles_dir, filename)
+                if self.dm.fileExists(path):
+                    self.dm.removeFile(path)
+            self.dm.pushDir(extension_dir, self.remote_bundles_dir)
+
+    def cleanup_profile(self):
+        
+        extension_dir = posixpath.join(self.remote_profile, 'extensions', 'staged')
+        if self.dm.dirExists(extension_dir):
+            for filename in self.dm.listFiles(extension_dir):
+                try:
+                    self.dm.removeDir(posixpath.join(self.remote_bundles_dir, filename))
+                except DMError:
+                    pass
+
+        if self.dm.fileExists(posixpath.join(self.remote_profile, 'settings.json')):
+            
+            self.dm.removeFile(self.remote_settings_db)
+            self.dm.shellCheckOutput(['touch', self.remote_settings_db])
 
 
 class FirefoxContext(object):
