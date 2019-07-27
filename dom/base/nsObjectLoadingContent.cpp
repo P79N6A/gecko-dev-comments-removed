@@ -3259,7 +3259,8 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
 
   
   
-  uint32_t blocklistState = nsIBlocklistService::STATE_NOT_BLOCKED;
+  
+  uint32_t blocklistState = nsIBlocklistService::STATE_BLOCKED;
   pluginHost->GetBlocklistStateForType(mContentType,
                                        nsPluginHost::eExcludeNone,
                                        &blocklistState);
