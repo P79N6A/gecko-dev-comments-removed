@@ -12,7 +12,7 @@ namespace mozilla {
 namespace gfx {
 
 void
-ConvertBGRXToBGRA(uint8_t* aData, const IntSize &aSize, int32_t aStride);
+ConvertBGRXToBGRA(uint8_t* aData, const IntSize &aSize, const int32_t aStride);
 
 
 
