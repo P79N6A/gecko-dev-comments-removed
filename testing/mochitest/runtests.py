@@ -1146,6 +1146,10 @@ class Mochitest(MochitestUtilsMixin):
 
     browserEnv["XPCOM_MEM_BLOAT_LOG"] = self.leak_report_file
 
+    
+    
+    browserEnv["MOZ_GMP_PATH"] = options.xrePath + "/gmp-fake"
+
     if options.fatalAssertions:
       browserEnv["XPCOM_DEBUG_BREAK"] = "stack-and-abort"
 
