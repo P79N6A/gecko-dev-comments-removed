@@ -49,6 +49,7 @@ RTSPSource::RTSPSource(
       mFinalResult(OK),
       mDisconnectReplyID(0),
       mLatestPausedUnit(0),
+      mPlayPending(false),
       mSeekGeneration(0)
 
 {
@@ -213,11 +214,19 @@ void RTSPSource::performPlay(int64_t playTimeUs) {
         start();
         return;
     }
-    if (mState != CONNECTED && mState != PAUSING) {
+    
+    
+    if (mState == PAUSING) {
+        mPlayPending = true;
         return;
     }
-    if (mState == PAUSING) {
-      playTimeUs = mLatestPausedUnit;
+    
+    if (mState != CONNECTED && mState != PAUSED) {
+        return;
+    }
+    
+    if (mState == PAUSED) {
+        playTimeUs = mLatestPausedUnit;
     }
 
     int64_t duration = 0;
@@ -225,7 +234,7 @@ void RTSPSource::performPlay(int64_t playTimeUs) {
     MOZ_ASSERT(playTimeUs < duration,
                "Should never receive an out of bounds play time!");
     if (playTimeUs >= duration) {
-      return;
+        return;
     }
 
     LOGI("performPlay : duration=%lld playTimeUs=%lld", duration, playTimeUs);
@@ -234,13 +243,14 @@ void RTSPSource::performPlay(int64_t playTimeUs) {
 }
 
 void RTSPSource::performPause() {
+    
     if (mState != PLAYING) {
         return;
     }
     LOGI("performPause :");
     for (size_t i = 0; i < mTracks.size(); ++i) {
-      TrackInfo *info = &mTracks.editItemAt(i);
-      info->mLatestPausedUnit = 0;
+        TrackInfo *info = &mTracks.editItemAt(i);
+        info->mLatestPausedUnit = 0;
     }
     mLatestPausedUnit = 0;
 
@@ -258,15 +268,16 @@ void RTSPSource::performSuspend() {
 
 void RTSPSource::performPlaybackEnded() {
     
-    
     if (mState != PLAYING) {
         return;
     }
+    
+    
     mState = CONNECTED;
 }
 
 void RTSPSource::performSeek(int64_t seekTimeUs) {
-    if (mState != CONNECTED && mState != PLAYING && mState != PAUSING) {
+    if (mState != CONNECTED && mState != PLAYING && mState != PAUSED) {
         return;
     }
 
@@ -275,12 +286,12 @@ void RTSPSource::performSeek(int64_t seekTimeUs) {
     MOZ_ASSERT(seekTimeUs < duration,
                "Should never receive an out of bounds seek time!");
     if (seekTimeUs >= duration) {
-      return;
+        return;
     }
 
     for (size_t i = 0; i < mTracks.size(); ++i) {
-      TrackInfo *info = &mTracks.editItemAt(i);
-      info->mLatestPausedUnit = 0;
+        TrackInfo *info = &mTracks.editItemAt(i);
+        info->mLatestPausedUnit = 0;
     }
     mLatestPausedUnit = 0;
 
@@ -366,6 +377,12 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
 
         case RtspConnectionHandler::kWhatPausedDone:
         {
+            
+            if (mState != PAUSING) {
+                return;
+            }
+            mState = PAUSED;
+
             for (size_t i = 0; i < mTracks.size(); ++i) {
                 TrackInfo *info = &mTracks.editItemAt(i);
                 info->mLatestPausedUnit = info->mLatestReceivedUnit;
@@ -380,6 +397,11 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
                 if (mLatestPausedUnit > info->mLatestReceivedUnit) {
                     mLatestPausedUnit = info->mLatestReceivedUnit;
                 }
+            }
+
+            if (mPlayPending) {
+                mPlayPending = false;
+                performPlay(mLatestPausedUnit);
             }
             break;
         }
@@ -431,7 +453,7 @@ void RTSPSource::onMessageReceived(const sp<AMessage> &msg) {
                 info->mLatestReceivedUnit = nptUs;
                 
                 if (info->mLatestPausedUnit && (int64_t)info->mLatestPausedUnit > nptUs) {
-                  break;
+                    break;
                 }
                 source->queueAccessUnit(accessUnit);
             }
@@ -576,17 +598,17 @@ void RTSPSource::onConnected(bool isSeekable)
         meta->SetDuration(int64Value);
 
         if (isAudio) {
-          CHECK(format->findInt32(kKeyChannelCount, &int32Value));
-          meta->SetChannelCount(int32Value);
+            CHECK(format->findInt32(kKeyChannelCount, &int32Value));
+            meta->SetChannelCount(int32Value);
 
-          CHECK(format->findInt32(kKeySampleRate, &int32Value));
-          meta->SetSampleRate(int32Value);
+            CHECK(format->findInt32(kKeySampleRate, &int32Value));
+            meta->SetSampleRate(int32Value);
         } else {
-          CHECK(format->findInt32(kKeyWidth, &int32Value));
-          meta->SetWidth(int32Value);
+            CHECK(format->findInt32(kKeyWidth, &int32Value));
+            meta->SetWidth(int32Value);
 
-          CHECK(format->findInt32(kKeyHeight, &int32Value));
-          meta->SetHeight(int32Value);
+            CHECK(format->findInt32(kKeyHeight, &int32Value));
+            meta->SetHeight(int32Value);
         }
 
         
@@ -595,15 +617,15 @@ void RTSPSource::onConnected(bool isSeekable)
         size_t length = 0;
 
         if (format->findData(kKeyESDS, &type, &data, &length)) {
-          nsCString esds;
-          esds.Assign((const char *)data, length);
-          meta->SetEsdsData(esds);
+            nsCString esds;
+            esds.Assign((const char *)data, length);
+            meta->SetEsdsData(esds);
         }
 
         if (format->findData(kKeyAVCC, &type, &data, &length)) {
-          nsCString avcc;
-          avcc.Assign((const char *)data, length);
-          meta->SetAvccData(avcc);
+            nsCString avcc;
+            avcc.Assign((const char *)data, length);
+            meta->SetAvccData(avcc);
         }
 
         mListener->OnConnected(i, meta.get());
