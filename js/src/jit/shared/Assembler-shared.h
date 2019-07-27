@@ -215,39 +215,6 @@ class AssemblerShared;
 class ImmGCPtr;
 
 
-class ImmMaybeNurseryPtr
-{
-    friend class AssemblerShared;
-    friend class ImmGCPtr;
-    const gc::Cell* value;
-
-    ImmMaybeNurseryPtr() : value(0) {}
-
-  public:
-    explicit ImmMaybeNurseryPtr(const gc::Cell* ptr) : value(ptr)
-    {
-        
-        MOZ_ASSERT(!IsCompilingAsmJS());
-    }
-};
-
-
-
-class IonNurseryPtr
-{
-    const gc::Cell* ptr;
-
-  public:
-    friend class ImmGCPtr;
-
-    explicit IonNurseryPtr(const gc::Cell* ptr) : ptr(ptr)
-    {
-        MOZ_ASSERT(ptr);
-        MOZ_ASSERT(uintptr_t(ptr) & 0x1);
-    }
-};
-
-
 class ImmGCPtr
 {
   public:
@@ -255,15 +222,10 @@ class ImmGCPtr
 
     explicit ImmGCPtr(const gc::Cell* ptr) : value(ptr)
     {
-        MOZ_ASSERT_IF(ptr, ptr->isTenured());
-
         
-        MOZ_ASSERT(!IsCompilingAsmJS());
-    }
-
-    explicit ImmGCPtr(IonNurseryPtr ptr) : value(ptr.ptr)
-    {
-        MOZ_ASSERT(value);
+        
+        MOZ_ASSERT_IF(ptr && !ptr->isTenured(),
+                      !CurrentThreadIsIonCompilingSafeForMinorGC());
 
         
         MOZ_ASSERT(!IsCompilingAsmJS());
@@ -271,13 +233,6 @@ class ImmGCPtr
 
   private:
     ImmGCPtr() : value(0) {}
-
-    friend class AssemblerShared;
-    explicit ImmGCPtr(ImmMaybeNurseryPtr ptr) : value(ptr.value)
-    {
-        
-        MOZ_ASSERT(!IsCompilingAsmJS());
-    }
 };
 
 
@@ -984,18 +939,6 @@ class AssemblerShared
 
     bool embedsNurseryPointers() const {
         return embedsNurseryPointers_;
-    }
-
-    ImmGCPtr noteMaybeNurseryPtr(ImmMaybeNurseryPtr ptr) {
-        if (ptr.value && gc::IsInsideNursery(ptr.value)) {
-            
-            
-            MOZ_ASSERT(GetJitContext()->runtime->onMainThread());
-            
-            MOZ_ASSERT(!GetJitContext()->runtime->mainThread()->ionCompiling);
-            embedsNurseryPointers_ = true;
-        }
-        return ImmGCPtr(ptr);
     }
 
     void append(const CallSiteDesc& desc, size_t currentOffset, size_t framePushed) {

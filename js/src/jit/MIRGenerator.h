@@ -93,6 +93,13 @@ class MIRGenerator
         return isProfilerInstrumentationEnabled() && !info().isAnalysis();
     }
 
+    bool safeForMinorGC() const {
+        return safeForMinorGC_;
+    }
+    void setNotSafeForMinorGC() {
+        safeForMinorGC_ = false;
+    }
+
     
     bool shouldCancel(const char* why) {
         maybePause();
@@ -194,12 +201,7 @@ class MIRGenerator
 
     bool instrumentedProfiling_;
     bool instrumentedProfilingIsCached_;
-
-    
-    
-    
-    
-    ObjectVector nurseryObjects_;
+    bool safeForMinorGC_;
 
     void addAbortedPreliminaryGroup(ObjectGroup* group);
 
@@ -228,12 +230,6 @@ class MIRGenerator
 
   public:
     const JitCompileOptions options;
-
-    void traceNurseryObjects(JSTracer* trc);
-
-    const ObjectVector& nurseryObjects() const {
-        return nurseryObjects_;
-    }
 
     Label* conversionErrorLabel() const {
         MOZ_ASSERT((conversionErrorLabel_ != nullptr) == compilingAsmJS());

@@ -289,12 +289,6 @@ TraceOneDataRelocation(JSTracer* trc, Instruction* inst)
     void* prior = ptr;
 
     
-    
-    
-    
-    MOZ_ASSERT(!(uintptr_t(ptr) & 0x1));
-
-    
     TraceManuallyBarrieredGenericPointerEdge(trc, reinterpret_cast<gc::Cell**>(&ptr),
                                                  "ion-masm-ptr");
     if (ptr != prior) {
@@ -327,43 +321,6 @@ void
 Assembler::TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     ::TraceDataRelocations(trc, code->raw(), reader);
-}
-
-void
-Assembler::FixupNurseryObjects(JSContext* cx, JitCode* code, CompactBufferReader& reader,
-                               const ObjectVector& nurseryObjects)
-{
-    MOZ_ASSERT(!nurseryObjects.empty());
-
-    uint8_t* buffer = code->raw();
-    bool hasNurseryPointers = false;
-
-    while (reader.more()) {
-        size_t offset = reader.readUnsigned();
-        Instruction* inst = (Instruction*)(buffer + offset);
-
-        void* ptr = (void*)Assembler::ExtractLuiOriValue(inst, inst->next());
-        uintptr_t word = uintptr_t(ptr);
-
-        if (!(word & 0x1))
-            continue;
-
-        uint32_t index = word >> 1;
-        JSObject* obj = nurseryObjects[index];
-
-        Assembler::UpdateLuiOriValue(inst, inst->next(), uint32_t(obj));
-        AutoFlushICache::flush(uintptr_t(inst), 8);
-
-        
-        
-        MOZ_ASSERT_IF(hasNurseryPointers, IsInsideNursery(obj));
-
-        if (!hasNurseryPointers && IsInsideNursery(obj))
-            hasNurseryPointers = true;
-    }
-
-    if (hasNurseryPointers)
-        cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(code);
 }
 
 void
