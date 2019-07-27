@@ -101,5 +101,4 @@ let MemoryCallTreeView = Heritage.extend(DetailsSubview, {
     
     root.toggleCategories(false);
   }
-
 });
