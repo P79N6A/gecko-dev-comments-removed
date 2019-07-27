@@ -197,10 +197,40 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
     if (!aCount || !mCurLine)
         return;
 
+    
+    
+    MOZ_ASSERT(sizeof(mRawBuf) == WIN_V3_INTERNAL_BIH_LENGTH);
+    MOZ_ASSERT(sizeof(mRawBuf) >= BFH_INTERNAL_LENGTH);
+    MOZ_ASSERT(OS2_INTERNAL_BIH_LENGTH < WIN_V3_INTERNAL_BIH_LENGTH);
+    
+    MOZ_ASSERT(sizeof(mRawBuf[0]) == 1);
+
     if (mPos < BFH_INTERNAL_LENGTH) { 
+        
+        
+        
+        
+        
+        
         uint32_t toCopy = BFH_INTERNAL_LENGTH - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
+
+        
+        
+        
+        
+        
+        
+        MOZ_ASSERT(mPos < sizeof(mRawBuf));
+
+        
+        
+        
+        
+        
+        MOZ_ASSERT(mPos + toCopy <= sizeof(mRawBuf));
+
         memcpy(mRawBuf + mPos, aBuffer, toCopy);
         mPos += toCopy;
         aCount -= toCopy;
@@ -216,14 +246,73 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
             mLOH = OS2_HEADER_LENGTH;
     }
     if (mPos >= BFH_INTERNAL_LENGTH && mPos < mLOH) { 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         uint32_t toCopy = mLOH - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
-        memcpy(mRawBuf + (mPos - BFH_INTERNAL_LENGTH), aBuffer, toCopy);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        const uint32_t offset = mPos - BFH_INTERNAL_LENGTH;
+        MOZ_ASSERT(offset < sizeof(mRawBuf));
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        MOZ_ASSERT(offset + toCopy <= sizeof(mRawBuf));
+
+        memcpy(mRawBuf + offset, aBuffer, toCopy);
         mPos += toCopy;
         aCount -= toCopy;
         aBuffer += toCopy;
     }
+
+    
+    
+    MOZ_ASSERT(mPos >= mLOH || aCount == 0);
 
     
     
@@ -378,10 +467,60 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
     else if (aCount && mBIH.compression == BI_BITFIELDS && mPos < (WIN_V3_HEADER_LENGTH + BITFIELD_LENGTH)) {
         
         
+        
+
+        
+        
+        MOZ_ASSERT(mPos >= mLOH);
+        MOZ_ASSERT(mLOH == WIN_V3_HEADER_LENGTH);
+
+        
+        
+        
+        
+        
+        
         uint32_t toCopy = (WIN_V3_HEADER_LENGTH + BITFIELD_LENGTH) - mPos;
         if (toCopy > aCount)
             toCopy = aCount;
-        memcpy(mRawBuf + (mPos - WIN_V3_HEADER_LENGTH), aBuffer, toCopy);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        const uint32_t offset = mPos - WIN_V3_HEADER_LENGTH;
+        MOZ_ASSERT(offset < sizeof(mRawBuf));
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        MOZ_ASSERT(offset + toCopy <= sizeof(mRawBuf));
+
+        memcpy(mRawBuf + offset, aBuffer, toCopy);
         mPos += toCopy;
         aBuffer += toCopy;
         aCount -= toCopy;

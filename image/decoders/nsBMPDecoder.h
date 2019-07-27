@@ -54,11 +54,11 @@ private:
 
     NS_METHOD CalcBitShift();
 
-    uint32_t mPos;
+    uint32_t mPos; 
 
     BMPFILEHEADER mBFH;
     BITMAPV5HEADER mBIH;
-    char mRawBuf[WIN_V3_INTERNAL_BIH_LENGTH];
+    char mRawBuf[WIN_V3_INTERNAL_BIH_LENGTH]; 
 
     uint32_t mLOH; 
 
