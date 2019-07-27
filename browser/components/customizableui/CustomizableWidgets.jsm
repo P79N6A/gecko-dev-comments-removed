@@ -1090,7 +1090,7 @@ if (Services.prefs.getBoolPref("browser.pocket.enabled")) {
     } catch (err) {
       
       
-      url = "chrome://browser/content/browser-pocket.properties";
+      url = "chrome://browser/content/browser-pocket-en-US.properties";
       strings = Services.strings.createBundle(url);
       label = strings.GetStringFromName("pocket-button.label");
       tooltiptext = strings.GetStringFromName("pocket-button.tooltiptext");
