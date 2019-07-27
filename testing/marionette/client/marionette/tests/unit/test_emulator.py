@@ -3,7 +3,8 @@
 
 
 from marionette_test import MarionetteTestCase
-from errors import JavascriptException, MarionetteException
+from marionette_driver.errors import (JavascriptException,
+                                      MarionetteException)
 
 
 class TestEmulatorContent(MarionetteTestCase):

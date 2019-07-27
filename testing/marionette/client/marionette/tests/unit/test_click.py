@@ -2,10 +2,10 @@
 
 
 
-from by import By
-from errors import NoSuchElementException, ElementNotVisibleException
+from marionette_driver.by import By
+from marionette_driver.errors import NoSuchElementException, ElementNotVisibleException
 from marionette_test import MarionetteTestCase
-from wait import Wait
+from marionette_driver.wait import Wait
 
 
 class TestClick(MarionetteTestCase):
