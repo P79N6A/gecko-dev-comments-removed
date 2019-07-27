@@ -7,7 +7,7 @@
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
-  "ProfileCreationTimeAccessor",
+  "ProfileTimesAccessor",
   "ProfileMetadataProvider",
 ];
 
@@ -20,6 +20,7 @@ Cu.import("resource://gre/modules/Metrics.jsm");
 #endif
 
 const DEFAULT_PROFILE_MEASUREMENT_NAME = "age";
+const DEFAULT_PROFILE_MEASUREMENT_VERSION = 2;
 const REQUIRED_UINT32_TYPE = {type: "TYPE_UINT32"};
 
 Cu.import("resource://gre/modules/Promise.jsm");
@@ -31,14 +32,14 @@ Cu.import("resource://services-common/utils.js");
 
 
 
-this.ProfileCreationTimeAccessor = function(profile, log) {
+this.ProfileTimesAccessor = function(profile, log) {
   this.profilePath = profile || OS.Constants.Path.profileDir;
   if (!this.profilePath) {
     throw new Error("No profile directory.");
   }
   this._log = log || {"debug": function (s) { dump(s + "\n"); }};
 }
-this.ProfileCreationTimeAccessor.prototype = {
+this.ProfileTimesAccessor.prototype = {
   
 
 
@@ -52,25 +53,21 @@ this.ProfileCreationTimeAccessor.prototype = {
 
 
   get created() {
-    if (this._created) {
-      return Promise.resolve(this._created);
-    }
-
     function onSuccess(times) {
-      if (times && times.created) {
-        return this._created = times.created;
+      if (times.created) {
+        return times.created;
       }
       return onFailure.call(this, null, times);
     }
 
     function onFailure(err, times) {
-      return this.computeAndPersistTimes(times)
+      return this.computeAndPersistCreated(times)
                  .then(function onSuccess(created) {
-                         return this._created = created;
+                         return created;
                        }.bind(this));
     }
 
-    return this.readTimes()
+    return this.getTimes()
                .then(onSuccess.bind(this),
                      onFailure.bind(this));
   },
@@ -81,6 +78,21 @@ this.ProfileCreationTimeAccessor.prototype = {
 
   getPath: function (file) {
     return OS.Path.join(this.profilePath, file);
+  },
+
+  
+
+
+
+  getTimes: function (file="times.json") {
+    if (this._times) {
+      return Promise.resolve(this._times);
+    }
+    return this.readTimes(file).then(
+      times => {
+        return this.times = times || {};
+      }
+    );
   },
 
   
@@ -103,11 +115,12 @@ this.ProfileCreationTimeAccessor.prototype = {
 
 
 
-  computeAndPersistTimes: function (existingContents, file="times.json") {
+  computeAndPersistCreated: function (existingContents, file="times.json") {
     let path = this.getPath(file);
     function onOldest(oldest) {
       let contents = existingContents || {};
       contents.created = oldest;
+      this._times = contents;
       return this.writeTimes(contents, path)
                  .then(function onSuccess() {
                    return oldest;
@@ -177,7 +190,34 @@ this.ProfileCreationTimeAccessor.prototype = {
 
     return promise.then(onSuccess, onFailure);
   },
+
+  
+
+
+
+
+
+
+  recordProfileReset: function (time=Date.now(), file="times.json") {
+    return this.getTimes(file).then(
+      times => {
+        times.reset = time;
+        return this.writeTimes(times, file);
+      }
+    );
+  },
+
+  
+
+
+  get reset() {
+    return this.getTimes().then(
+      times => times.reset
+    );
+  },
 }
+
+
 
 
 
@@ -198,6 +238,24 @@ ProfileMetadataMeasurement.prototype = {
 };
 
 
+function ProfileMetadataMeasurement2() {
+  Metrics.Measurement.call(this);
+}
+ProfileMetadataMeasurement2.prototype = {
+  __proto__: Metrics.Measurement.prototype,
+
+  name: DEFAULT_PROFILE_MEASUREMENT_NAME,
+  version: DEFAULT_PROFILE_MEASUREMENT_VERSION,
+
+  fields: {
+    
+    profileCreation: {type: Metrics.Storage.FIELD_LAST_NUMERIC},
+    
+    profileReset: {type: Metrics.Storage.FIELD_LAST_NUMERIC},
+  },
+};
+
+
 
 
 
@@ -210,6 +268,7 @@ function truncate(msec) {
 
 
 
+
 this.ProfileMetadataProvider = function() {
   Metrics.Provider.call(this);
 }
@@ -218,25 +277,37 @@ this.ProfileMetadataProvider.prototype = {
 
   name: "org.mozilla.profile",
 
-  measurementTypes: [ProfileMetadataMeasurement],
+  measurementTypes: [ProfileMetadataMeasurement2],
 
   pullOnly: true,
 
-  getProfileCreationDays: function () {
-    let accessor = new ProfileCreationTimeAccessor(null, this._log);
+  getProfileDays: Task.async(function* () {
+    let result = {};
+    let accessor = new ProfileTimesAccessor(null, this._log);
 
-    return accessor.created
-                   .then(truncate);
-  },
+    let created = yield accessor.created;
+    result["profileCreation"] = truncate(created);
+    let reset = yield accessor.reset;
+    if (reset) {
+      result["profileReset"] = truncate(reset);
+    }
+    return result;
+  }),
 
   collectConstantData: function () {
-    let m = this.getMeasurement(DEFAULT_PROFILE_MEASUREMENT_NAME, 1);
+    let m = this.getMeasurement(DEFAULT_PROFILE_MEASUREMENT_NAME,
+                                DEFAULT_PROFILE_MEASUREMENT_VERSION);
 
-    return Task.spawn(function collectConstant() {
-      let createdDays = yield this.getProfileCreationDays();
+    return Task.spawn(function* collectConstants() {
+      let days = yield this.getProfileDays();
 
       yield this.enqueueStorageOperation(function storeDays() {
-        return m.setLastNumeric("profileCreation", createdDays);
+        return Task.spawn(function* () {
+          yield m.setLastNumeric("profileCreation", days["profileCreation"]);
+          if (days["profileReset"]) {
+            yield m.setLastNumeric("profileReset", days["profileReset"]);
+          }
+        });
       });
     }.bind(this));
   },
