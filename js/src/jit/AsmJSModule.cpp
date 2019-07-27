@@ -519,6 +519,8 @@ AddressOf(AsmJSImmKind kind, ExclusiveContext *cx)
     switch (kind) {
       case AsmJSImm_Runtime:
         return cx->runtimeAddressForJit();
+      case AsmJSImm_RuntimeInterrupt:
+        return cx->runtimeAddressOfInterrupt();
       case AsmJSImm_StackLimit:
         return cx->stackLimitAddressForJitCode(StackForUntrustedScript);
       case AsmJSImm_ReportOverRecursed:
@@ -642,7 +644,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
     }
 #elif defined(JS_CODEGEN_X64)
     int32_t heapLength = int32_t(intptr_t(heap->byteLength()));
-    if (usesSignalHandlers())
+    if (usesSignalHandlersForOOB())
         return;
     
     

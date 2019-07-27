@@ -5402,6 +5402,34 @@ class MInterruptCheck : public MNullaryInstruction
 };
 
 
+
+
+class MAsmJSInterruptCheck : public MNullaryInstruction
+{
+    Label *interruptExit_;
+    CallSiteDesc funcDesc_;
+
+    MAsmJSInterruptCheck(Label *interruptExit, const CallSiteDesc &funcDesc)
+      : interruptExit_(interruptExit), funcDesc_(funcDesc)
+    {}
+
+  public:
+    INSTRUCTION_HEADER(AsmJSInterruptCheck)
+
+    static MAsmJSInterruptCheck *New(TempAllocator &alloc, Label *interruptExit,
+                                     const CallSiteDesc &funcDesc)
+    {
+        return new(alloc) MAsmJSInterruptCheck(interruptExit, funcDesc);
+    }
+    Label *interruptExit() const {
+        return interruptExit_;
+    }
+    const CallSiteDesc &funcDesc() const {
+        return funcDesc_;
+    }
+};
+
+
 class MDefVar : public MUnaryInstruction
 {
     CompilerRootPropertyName name_; 

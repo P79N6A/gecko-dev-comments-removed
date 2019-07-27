@@ -260,10 +260,10 @@ LinkModuleToHeap(JSContext *cx, AsmJSModule &module, Handle<ArrayBufferObject*> 
     
     
     
-    if (module.usesSignalHandlers() && !cx->canUseSignalHandlers())
+    if (module.usesSignalHandlersForInterrupt() && !cx->canUseSignalHandlers())
         return LinkFail(cx, "Code generated with signal handlers but signals are deactivated");
 
-    if (!ArrayBufferObject::prepareForAsmJS(cx, heap, module.usesSignalHandlers()))
+    if (!ArrayBufferObject::prepareForAsmJS(cx, heap, module.usesSignalHandlersForOOB()))
         return LinkFail(cx, "Unable to prepare ArrayBuffer for asm.js use");
 
     module.initHeap(heap, cx);

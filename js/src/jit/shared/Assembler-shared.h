@@ -705,6 +705,7 @@ struct AsmJSGlobalAccess
 enum AsmJSImmKind
 {
     AsmJSImm_Runtime,
+    AsmJSImm_RuntimeInterrupt,
     AsmJSImm_StackLimit,
     AsmJSImm_ReportOverRecursed,
     AsmJSImm_HandleExecutionInterrupt,

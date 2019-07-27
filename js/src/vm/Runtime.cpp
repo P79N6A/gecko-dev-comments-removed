@@ -498,7 +498,7 @@ JSRuntime::resetJitStackLimit()
 #if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     mainThread.setJitStackLimit(js::jit::Simulator::StackLimit());
 #endif
- }
+}
 
 void
 JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *rtSizes)
@@ -580,8 +580,10 @@ JSRuntime::requestInterrupt(InterruptMode mode)
 
 
 
-    RequestInterruptForAsmJSCode(this, mode);
-    jit::RequestInterruptForIonCode(this, mode);
+    if (canUseSignalHandlers()) {
+        RequestInterruptForAsmJSCode(this, mode);
+        jit::RequestInterruptForIonCode(this, mode);
+    }
 #endif
 }
 
