@@ -34,6 +34,10 @@ public:
   const nsSMILValue& operator=(const nsSMILValue& aVal);
 
   
+  nsSMILValue(nsSMILValue&& aVal);
+  nsSMILValue& operator=(nsSMILValue&& aVal);
+
+  
   
   bool operator==(const nsSMILValue& aVal) const;
   bool operator!=(const nsSMILValue& aVal) const {

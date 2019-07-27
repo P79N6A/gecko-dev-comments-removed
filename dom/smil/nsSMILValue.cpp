@@ -44,6 +44,35 @@ nsSMILValue::operator=(const nsSMILValue& aVal)
   return *this;
 }
 
+
+nsSMILValue::nsSMILValue(nsSMILValue&& aVal)
+  : mU(aVal.mU), 
+    mType(aVal.mType)
+{
+  
+  
+  aVal.mType = nsSMILNullType::Singleton();
+}
+
+nsSMILValue&
+nsSMILValue::operator=(nsSMILValue&& aVal)
+{
+  if (!IsNull()) {
+    
+    DestroyAndCheckPostcondition();
+  }
+
+  
+  mU = aVal.mU;
+  mType = aVal.mType;
+
+  
+  
+  aVal.mType = nsSMILNullType::Singleton();
+
+  return *this;
+}
+
 bool
 nsSMILValue::operator==(const nsSMILValue& aVal) const
 {
