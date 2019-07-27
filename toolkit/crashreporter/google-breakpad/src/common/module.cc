@@ -105,10 +105,21 @@ void Module::AddStackFrameEntry(StackFrameEntry* stack_frame_entry) {
 }
 
 void Module::AddExtern(Extern *ext) {
-  std::pair<ExternSet::iterator,bool> ret = externs_.insert(ext);
-  if (!ret.second) {
-    
-    
+  Function func;
+  func.name = ext->name;
+  func.address = ext->address;
+
+  
+  
+  
+  if (functions_.find(&func) == functions_.end()) {
+    std::pair<ExternSet::iterator,bool> ret = externs_.insert(ext);
+    if (!ret.second) {
+      
+      
+      delete ext;
+    }
+  } else {
     delete ext;
   }
 }
