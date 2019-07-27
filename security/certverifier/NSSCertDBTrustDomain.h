@@ -20,8 +20,6 @@ void DisableMD5();
 
 extern const char BUILTIN_ROOTS_MODULE_DEFAULT_NAME[];
 
-void PORT_Free_string(char* str);
-
 
 
 

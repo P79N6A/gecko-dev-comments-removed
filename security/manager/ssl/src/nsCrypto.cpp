@@ -9,10 +9,7 @@
 #include "nsNSSComponent.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsServiceManagerUtils.h"
-#include "pkix/ScopedPtr.h"
-#include "secmod.h"
-
-typedef mozilla::pkix::ScopedPtr<SECMODModule, SECMOD_DestroyModule> ScopedSECMODModule;
+#include "ScopedNSSTypes.h"
 
 
 NS_INTERFACE_MAP_BEGIN(nsPkcs11)
