@@ -13,6 +13,7 @@
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
+#include "nsPrintfCString.h"
 
 using namespace mozilla;
 
@@ -459,6 +460,51 @@ nsStyleUtil::ComputeFunctionalAlternates(const nsCSSValueList* aList,
       aAlternateValues.AppendElement(v);
     }
   }
+}
+
+
+static void
+AppendSerializedUnicodePoint(uint32_t aCode, nsACString& aBuf)
+{
+  aBuf.Append(nsPrintfCString("%04X", aCode));
+}
+
+
+
+
+
+ void
+nsStyleUtil::AppendUnicodeRange(const nsCSSValue& aValue, nsAString& aResult)
+{
+  NS_PRECONDITION(aValue.GetUnit() == eCSSUnit_Null ||
+                  aValue.GetUnit() == eCSSUnit_Array,
+                  "improper value unit for unicode-range:");
+  aResult.Truncate();
+  if (aValue.GetUnit() != eCSSUnit_Array)
+    return;
+
+  nsCSSValue::Array const & sources = *aValue.GetArrayValue();
+  nsAutoCString buf;
+
+  NS_ABORT_IF_FALSE(sources.Count() % 2 == 0,
+                    "odd number of entries in a unicode-range: array");
+
+  for (uint32_t i = 0; i < sources.Count(); i += 2) {
+    uint32_t min = sources[i].GetIntValue();
+    uint32_t max = sources[i+1].GetIntValue();
+
+    
+    buf.AppendLiteral("U+");
+    AppendSerializedUnicodePoint(min, buf);
+
+    if (min != max) {
+      buf.Append('-');
+      AppendSerializedUnicodePoint(max, buf);
+    }
+    buf.AppendLiteral(", ");
+  }
+  buf.Truncate(buf.Length() - 2); 
+  CopyASCIItoUTF16(buf, aResult);
 }
 
  float
