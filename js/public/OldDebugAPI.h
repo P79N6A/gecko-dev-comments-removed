@@ -99,10 +99,6 @@ JS_FRIEND_API(bool)
 JS_SetDebugMode(JSContext *cx, bool debug);
 
 
-extern JS_PUBLIC_API(bool)
-JS_SetSingleStepMode(JSContext *cx, JS::HandleScript script, bool singleStep);
-
-
 
 
 

@@ -717,9 +717,6 @@ XDRScriptConst(XDRState<mode> *xdr, MutableHandleValue vp);
 
 class JSScript : public js::gc::BarrieredCell<JSScript>
 {
-    static const uint32_t stepFlagMask = 0x80000000U;
-    static const uint32_t stepCountMask = 0x7fffffffU;
-
     template <js::XDRMode mode>
     friend
     bool
@@ -1585,23 +1582,13 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
-    bool setStepModeFlag(JSContext *cx, bool step);
-
-    
-
-
-
-
-
-
-
     bool incrementStepModeCount(JSContext *cx);
     void decrementStepModeCount(js::FreeOp *fop);
 
     bool stepModeEnabled() { return hasDebugScript_ && !!debugScript()->stepMode; }
 
 #ifdef DEBUG
-    uint32_t stepModeCount() { return hasDebugScript_ ? (debugScript()->stepMode & stepCountMask) : 0; }
+    uint32_t stepModeCount() { return hasDebugScript_ ? debugScript()->stepMode : 0; }
 #endif
 
     void finalize(js::FreeOp *fop);
