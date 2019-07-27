@@ -227,6 +227,7 @@ let gSyncUI = {
   },
 
   onLoginError: function SUI_onLoginError() {
+    this.log.debug("onLoginError: login=${login}, sync=${sync}", Weave.Status);
     
     
     Weave.Notifications.removeAll();
@@ -462,6 +463,14 @@ let gSyncUI = {
   
   
   isProlongedReadingListError() {
+    
+    let enabled = false;
+    try {
+      enabled = Services.prefs.getBoolPref("readinglist.scheduler.enabled");
+    } catch (_) {}
+    if (!enabled) {
+      return false;
+    }
     let lastSync, threshold, prolonged;
     try {
       lastSync = new Date(Services.prefs.getCharPref("readinglist.scheduler.lastSync"));
@@ -520,7 +529,7 @@ let gSyncUI = {
   },
 
   onSyncError: function SUI_onSyncError() {
-    this.log.debug("onSyncError");
+    this.log.debug("onSyncError: login=${login}, sync=${sync}", Weave.Status);
     let title = this._stringBundle.GetStringFromName("error.sync.title");
 
     if (Weave.Status.login != Weave.LOGIN_SUCCEEDED) {

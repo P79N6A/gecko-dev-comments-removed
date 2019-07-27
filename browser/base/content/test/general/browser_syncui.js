@@ -37,6 +37,23 @@ add_task(function* prepare() {
   });
 });
 
+add_task(function* testNotProlongedRLErrorWhenDisabled() {
+  
+  
+  
+  
+  let longAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000); 
+  Services.prefs.setCharPref("readinglist.scheduler.lastSync", longAgo.toString());
+
+  
+  Services.prefs.setBoolPref("readinglist.scheduler.enabled", true);
+  Assert.equal(gSyncUI.isProlongedReadingListError(), true);
+
+  
+  Services.prefs.setBoolPref("readinglist.scheduler.enabled", false);
+  Assert.equal(gSyncUI.isProlongedReadingListError(), false);
+});
+
 add_task(function* testProlongedSyncError() {
   let promiseNotificationAdded = promiseObserver("weave:notification:added");
   Assert.equal(Notifications.notifications.length, 0, "start with no notifications");
@@ -60,6 +77,7 @@ add_task(function* testProlongedSyncError() {
 });
 
 add_task(function* testProlongedRLError() {
+  Services.prefs.setBoolPref("readinglist.scheduler.enabled", true);
   let promiseNotificationAdded = promiseObserver("weave:notification:added");
   Assert.equal(Notifications.notifications.length, 0, "start with no notifications");
 
