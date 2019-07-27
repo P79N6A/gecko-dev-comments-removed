@@ -470,38 +470,30 @@ public class GeckoEvent {
 
             mPoints[index] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
             mPointIndicies[index] = event.getPointerId(eventIndex);
-            
-            if (Build.VERSION.SDK_INT >= 9) {
-                double radians = event.getOrientation(eventIndex);
-                mOrientations[index] = (float) Math.toDegrees(radians);
-                
-                
-                if (mOrientations[index] == 90)
-                    mOrientations[index] = -90;
 
-                
-                
-                
-                
-                
-                
-                
-                if (mOrientations[index] < 0) {
-                    mOrientations[index] += 90;
-                    mPointRadii[index] = new Point((int)event.getToolMajor(eventIndex)/2,
-                                                   (int)event.getToolMinor(eventIndex)/2);
-                } else {
-                    mPointRadii[index] = new Point((int)event.getToolMinor(eventIndex)/2,
-                                                   (int)event.getToolMajor(eventIndex)/2);
-                }
+            double radians = event.getOrientation(eventIndex);
+            mOrientations[index] = (float) Math.toDegrees(radians);
+            
+            
+            if (mOrientations[index] == 90)
+                mOrientations[index] = -90;
+
+            
+            
+            
+            
+            
+            
+            
+            if (mOrientations[index] < 0) {
+                mOrientations[index] += 90;
+                mPointRadii[index] = new Point((int)event.getToolMajor(eventIndex)/2,
+                                               (int)event.getToolMinor(eventIndex)/2);
             } else {
-                float size = event.getSize(eventIndex);
-                Resources resources = GeckoAppShell.getContext().getResources();
-                DisplayMetrics displaymetrics = resources.getDisplayMetrics();
-                size = size*Math.min(displaymetrics.heightPixels, displaymetrics.widthPixels);
-                mPointRadii[index] = new Point((int)size,(int)size);
-                mOrientations[index] = 0;
+                mPointRadii[index] = new Point((int)event.getToolMinor(eventIndex)/2,
+                                               (int)event.getToolMajor(eventIndex)/2);
             }
+
             if (!keepInViewCoordinates) {
                 
                 
