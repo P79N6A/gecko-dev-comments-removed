@@ -15,11 +15,16 @@
 #include "nsSize.h"
 
 class nsICanvasRenderingContextInternal;
-class nsIGlobalObject;
 
 namespace mozilla {
+
+namespace layers {
+class Image;
+}
+
 namespace dom {
 
+class EncodeCompleteCallback;
 class EncodingRunnable;
 
 class ImageEncoder
@@ -44,15 +49,24 @@ public:
   
   
   
+  
+  
   static nsresult ExtractDataAsync(nsAString& aType,
                                    const nsAString& aOptions,
                                    bool aUsingCustomOptions,
                                    uint8_t* aImageBuffer,
                                    int32_t aFormat,
                                    const nsIntSize aSize,
-                                   nsICanvasRenderingContextInternal* aContext,
-                                   nsIGlobalObject* aGlobal,
-                                   FileCallback& aCallback);
+                                   EncodeCompleteCallback* aEncodeCallback);
+
+  
+  
+  
+  static nsresult ExtractDataFromLayersImageAsync(nsAString& aType,
+                                                  const nsAString& aOptions,
+                                                  bool aUsingCustomOptions,
+                                                  layers::Image* aImage,
+                                                  EncodeCompleteCallback* aEncodeCallback);
 
   
   
@@ -73,6 +87,7 @@ private:
                       uint8_t* aImageBuffer,
                       int32_t aFormat,
                       const nsIntSize aSize,
+                      layers::Image* aImage,
                       nsICanvasRenderingContextInternal* aContext,
                       nsIInputStream** aStream,
                       imgIEncoder* aEncoder);
@@ -85,6 +100,21 @@ private:
   static already_AddRefed<imgIEncoder> GetImageEncoder(nsAString& aType);
 
   friend class EncodingRunnable;
+};
+
+
+
+
+
+class EncodeCompleteCallback
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodeCompleteCallback)
+
+  virtual nsresult ReceiveBlob(already_AddRefed<DOMFile> aBlob) = 0;
+
+protected:
+  virtual ~EncodeCompleteCallback() {}
 };
 
 } 
