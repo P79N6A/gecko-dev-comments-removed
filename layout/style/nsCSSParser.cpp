@@ -9651,7 +9651,7 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
           
           
           CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID,
-                                               nsCSSProps::eEnabledForAllContent) {
+                                               PropertyEnabledState()) {
             nsCSSValueTokenStream* tokenStream = new nsCSSValueTokenStream;
             tokenStream->mPropertyID = *p;
             tokenStream->mShorthandPropertyID = aPropID;
