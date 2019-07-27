@@ -12,8 +12,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
                                   "resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Task",
-                                  "resource://gre/modules/Task.jsm");
 
 
 
@@ -1456,76 +1454,74 @@ urlInlineComplete.prototype = {
 
     this._listener = aListener;
 
-    Task.spawn(function* () {
+    
+    
+    
+    
+    if (this._currentSearchString.length == 0 || !this._db ||
+        PlacesUtils.bookmarks.getURIForKeyword(this._currentSearchString)) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    
+    
+    
+    if (/\s/.test(this._currentSearchString)) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
+
+    
+    if (lastSlashIndex != -1) {
       
-      
-      
-      
-      if (this._currentSearchString.length == 0 || !this._db ||
-          (yield PlacesUtils.promiseHrefAndPostDataForKeyword(this._currentSearchString)).href) {
+      if (lastSlashIndex < this._currentSearchString.length - 1)
+        this._queryURL();
+      else
         this._finishSearch();
-        return;
-      }
+      return;
+    }
 
-      
-      
-      
-      
-      if (/\s/.test(this._currentSearchString)) {
-        this._finishSearch();
-        return;
-      }
-
-      
-      let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
-
-      
-      if (lastSlashIndex != -1) {
+    
+    let query = this._hostQuery;
+    query.params.search_string = this._currentSearchString.toLowerCase();
+    
+    TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+    let ac = this;
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        let trimmedHost = row.getResultByIndex(0);
+        let untrimmedHost = row.getResultByIndex(1);
         
-        if (lastSlashIndex < this._currentSearchString.length - 1)
-          this._queryURL();
-        else
-          this._finishSearch();
-        return;
-      }
-
-      
-      let query = this._hostQuery;
-      query.params.search_string = this._currentSearchString.toLowerCase();
-      
-      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
-      let ac = this;
-      let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-        handleResult: function (aResultSet) {
-          let row = aResultSet.getNextRow();
-          let trimmedHost = row.getResultByIndex(0);
-          let untrimmedHost = row.getResultByIndex(1);
-          
-          
-          if (untrimmedHost &&
-              !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
-            untrimmedHost = null;
-          }
-
-          ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
-
-          
-          
-        },
-
-        handleError: function (aError) {
-          Components.utils.reportError(
-            "URL Inline Complete: An async statement encountered an " +
-            "error: " + aError.result + ", '" + aError.message + "'");
-        },
-
-        handleCompletion: function (aReason) {
-          TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
-          ac._finishSearch();
+        
+        if (untrimmedHost &&
+            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+          untrimmedHost = null;
         }
-      }, this._db);
-      this._pendingQuery = wrapper.executeAsync([query]);
-    }.bind(this));
+
+        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, "", "", "", untrimmedHost);
+
+        
+        
+      },
+
+      handleError: function (aError) {
+        Components.utils.reportError(
+          "URL Inline Complete: An async statement encountered an " +
+          "error: " + aError.result + ", '" + aError.message + "'");
+      },
+
+      handleCompletion: function (aReason) {
+        TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+        ac._finishSearch();
+      }
+    }, this._db);
+    this._pendingQuery = wrapper.executeAsync([query]);
   },
 
   

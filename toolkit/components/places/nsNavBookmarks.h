@@ -424,7 +424,18 @@ private:
   
 
 
-  nsresult removeOrphanKeywords();
+
+  nsresult EnsureKeywordsHash();
+  nsDataHashtable<nsTrimInt64HashKey, nsString> mBookmarkToKeywordHash;
+  bool mBookmarkToKeywordHashInitialized;
+
+  
+
+
+
+
+
+  nsresult UpdateKeywordsHashForRemovedBookmark(int64_t aItemId);
 };
 
 #endif 

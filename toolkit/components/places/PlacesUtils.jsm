@@ -839,17 +839,6 @@ this.PlacesUtils = {
 
 
 
-
-
-
-
-  promiseHrefAndPostDataForKeyword(keyword) KeywordsCache.promiseEntry(keyword),
-
-  
-
-
-
-
   getURLAndPostDataForKeyword: function PU_getURLAndPostDataForKeyword(aKeyword) {
     var url = null, postdata = null;
     try {
@@ -1974,114 +1963,6 @@ let GuidHelper = {
       });
     }
   }
-};
-
-
-let KeywordsCache = {
-  
-
-
-
-  _initialized: false,
-  _initialize: Task.async(function* () {
-    
-    yield this._reloadCache();
-
-    
-    PlacesUtils.bookmarks.addObserver(this, false);
-    PlacesUtils.registerShutdownFunction(() => {
-      PlacesUtils.bookmarks.removeObserver(this);
-    });
-
-    this._initialized = true;
-  }),
-
-  
-  
-  
-  
-  
-  onItemChanged(itemId, property, isAnno, val, lastModified, type,
-                parentId, guid, parentGuid) {
-    if (property == "keyword" || property == this.POST_DATA_ANNO ||
-        this._keywordedGuids.has(guid)) {
-      
-      
-      this._reloadCache().catch(Cu.reportError);
-    }
-  },
-  onItemRemoved(itemId, parentId, index, type, uri, guid, parentGuid) {
-    if (this._keywordedGuids.has(guid)) {
-      
-      
-      this._reloadCache().catch(Cu.reportError);
-    }
-  },
-  QueryInterface: XPCOMUtils.generateQI([ Ci.nsINavBookmarkObserver ]),
-  __noSuchMethod__() {}, 
-
-  
-  
-  
-  _urlDataForKeyword: null,
-  
-  _keywordedGuids: null,
-
-  
-
-
-  _reloadPromise: null,
-  _reloadCache() {
-    return this._reloadPromise = Task.spawn(function* () {
-      let db = yield PlacesUtils.promiseDBConnection();
-      let rows = yield db.execute(
-        `/* do not warn (bug no) - there is no index on keyword_id */
-         SELECT b.id, b.guid, h.url, k.keyword FROM moz_bookmarks b
-         JOIN moz_places h ON h.id = b.fk
-         JOIN moz_keywords k ON k.id = b.keyword_id
-         ORDER BY b.lastModified DESC
-        `);
-
-      this._urlDataForKeyword = new Map();
-      this._keywordedGuids = new Set();
-
-      for (let row of rows) {
-        let guid = row.getResultByName("guid");
-        this._keywordedGuids.add(guid);
-
-        let keyword = row.getResultByName("keyword");
-        
-        let urlData = this._urlDataForKeyword.get(keyword);
-        if (urlData)
-          continue;
-
-        let id = row.getResultByName("id");
-        let href = row.getResultByName("url");
-        let postData = PlacesUtils.getPostDataForBookmark(id);
-        this._urlDataForKeyword.set(keyword, { href, postData });
-      }
-    }.bind(this)).then(() => {
-      this._reloadPromise = null;
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  promiseEntry: Task.async(function* (keyword) {
-    
-    
-    if (!this._initialized)
-      yield this._initialize();
-    if (this._reloadPromise)
-      yield this._reloadPromise;
-    return this._urlDataForKeyword.get(keyword) || { href: null, postData: null };
-  }),
 };
 
 
