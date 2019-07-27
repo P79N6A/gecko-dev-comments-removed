@@ -2324,6 +2324,27 @@ IsItemAreaInWindowOpaqueRegion(nsDisplayListBuilder* aBuilder,
   return aBuilder->GetWindowOpaqueRegion().Contains(aComponentAlphaBounds);
 }
 
+
+
+static bool
+IsDisplayItemUniform(nsDisplayListBuilder* aBuilder,
+                     nsDisplayItem* aItem,
+                     const DisplayItemClip& aClip,
+                     nscolor* aUniformColor)
+{
+  bool uniform = aItem->IsUniform(aBuilder, aUniformColor);
+  if (!uniform) {
+    return false;
+  }
+  bool snap;
+  
+  
+  
+  nsRect visibleRect =
+    aItem->GetBounds(aBuilder, &snap).Intersect(aItem->GetVisibleRect());
+  return !aClip.IsRectClippedByRoundedCorner(visibleRect);
+}
+
 void
 PaintedLayerData::Accumulate(ContainerState* aState,
                             nsDisplayItem* aItem,
@@ -2351,7 +2372,16 @@ PaintedLayerData::Accumulate(ContainerState* aState,
   bool clipMatches = mItemClip == aClip;
   mItemClip = aClip;
 
-  if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
+  nscolor uniformColor;
+  
+  
+  
+  
+  bool isUniform = IsDisplayItemUniform(aState->mBuilder, aItem, aClip,
+                                        &uniformColor);
+
+  if (!mIsSolidColorInVisibleRegion && !isUniform &&
+      mOpaqueRegion.Contains(aDrawRect) &&
       mVisibleRegion.Contains(aVisibleRect) && !mImage) {
     
     
@@ -2378,9 +2408,6 @@ PaintedLayerData::Accumulate(ContainerState* aState,
     mImage = nullptr;
   }
 
-  nscolor uniformColor;
-  bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
-
   
   
   
@@ -2395,9 +2422,13 @@ PaintedLayerData::Accumulate(ContainerState* aState,
         isUniform = false;
         FLB_LOG_PAINTED_LAYER_DECISION(this, "  Display item does not cover the visible rect\n");
       }
-    }
-    if (isUniform) {
+
       if (mVisibleRegion.IsEmpty()) {
+        
+        mSolidColor = uniformColor;
+        mIsSolidColorInVisibleRegion = true;
+      } else if (NS_GET_A(uniformColor) == 255 &&
+                 aVisibleRect.Contains(mVisibleRegion.GetBounds())) {
         
         mSolidColor = uniformColor;
         mIsSolidColorInVisibleRegion = true;
