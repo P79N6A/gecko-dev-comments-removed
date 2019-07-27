@@ -111,31 +111,20 @@ let PanelFrame = {
 
 
 
-  showPopup: function(aWindow, aPanelUI, aToolbarButton, aType, aOrigin, aSrc, aSize, aCallback) {
+  showPopup: function(aWindow, aToolbarButton, aType, aOrigin, aSrc, aSize, aCallback) {
     
     let widgetGroup = CustomizableUI.getWidget(aToolbarButton.getAttribute("id"));
     let widget = widgetGroup.forWindow(aWindow);
+    
+    
     let anchorBtn = widget.anchor;
 
-    
-    let panel, showingEvent, hidingEvent;
-    let inMenuPanel = widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL;
-    if (inMenuPanel) {
-      panel = aWindow.document.getElementById("PanelUI-" + aType + "api");
-      PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
-      widget.node.setAttribute("closemenu", "none");
-      showingEvent = "ViewShowing";
-      hidingEvent = "ViewHiding";
-    } else {
-      panel = aWindow.document.getElementById(aType + "-notification-panel");
-      PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
-      showingEvent = "popupshown";
-      hidingEvent = "popuphidden";
-    }
+    let panel = aWindow.document.getElementById(aType + "-notification-panel");
+    PanelFrameInternal._attachNotificatonPanel(aWindow, panel, aToolbarButton, aType, aOrigin, aSrc, aSize);
+
     let notificationFrameId = aToolbarButton.getAttribute("notificationFrameId");
     let notificationFrame = aWindow.document.getElementById(notificationFrameId);
 
-    SharedFrame.setOwner(notificationFrameId, notificationFrame);
 
     
     
@@ -153,21 +142,21 @@ let PanelFrame = {
 
     
     let dynamicResizer;
-    if (!inMenuPanel && notificationFrame.getAttribute("dynamicresizer") == "true") {
+    if (notificationFrame.getAttribute("dynamicresizer") == "true") {
       dynamicResizer = PanelFrameInternal._dynamicResizer;
     }
-    panel.addEventListener(hidingEvent, function onpopuphiding() {
-      panel.removeEventListener(hidingEvent, onpopuphiding);
-      if (!inMenuPanel)
-        anchorBtn.removeAttribute("open");
+    panel.addEventListener("popuphidden", function onpopuphiding() {
+      panel.removeEventListener("popuphidden", onpopuphiding);
+      anchorBtn.removeAttribute("open");
       if (dynamicResizer)
         dynamicResizer.stop();
       notificationFrame.docShell.isActive = false;
       dispatchPanelEvent(aType + "FrameHide");
     });
 
-    panel.addEventListener(showingEvent, function onpopupshown() {
-      panel.removeEventListener(showingEvent, onpopupshown);
+    panel.addEventListener("popupshown", function onpopupshown() {
+      panel.removeEventListener("popupshown", onpopupshown);
+      SharedFrame.setOwner(notificationFrameId, notificationFrame);
       
       
       
@@ -180,8 +169,7 @@ let PanelFrame = {
           dynamicResizer.start(panel, notificationFrame);
         dispatchPanelEvent(aType + "FrameShow");
       };
-      if (!inMenuPanel)
-        anchorBtn.setAttribute("open", "true");
+      anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
           notificationFrame.contentDocument.readyState == "complete") {
         initFrameShow();
@@ -194,19 +182,14 @@ let PanelFrame = {
       }
     });
 
-    if (inMenuPanel) {
-      aPanelUI.showSubView("PanelUI-" + aType + "api", widget.node,
-                           CustomizableUI.AREA_PANEL);
-    } else {
-      
-      let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
-                   aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
-      
-      
-      Services.tm.mainThread.dispatch(function() {
-        panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
-      }, Ci.nsIThread.DISPATCH_NORMAL);
-    }
+    
+    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
+                 aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
+    
+    
+    Services.tm.mainThread.dispatch(function() {
+      panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
+    }, Ci.nsIThread.DISPATCH_NORMAL);
 
     if (aCallback)
       aCallback(notificationFrame);
