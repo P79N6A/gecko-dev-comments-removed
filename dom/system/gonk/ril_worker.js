@@ -447,12 +447,6 @@ RilObject.prototype = {
     
 
 
-
-    this.iccStatus = null;
-
-    
-
-
     this.cardState = GECKO_CARDSTATE_UNINITIALIZED;
 
     
@@ -3453,7 +3447,6 @@ RilObject.prototype = {
       return;
     }
 
-    this.iccStatus = iccStatus;
     let newCardState;
     let index = this._isCdma ? iccStatus.cdmaSubscriptionAppIndex :
                                iccStatus.gsmUmtsSubscriptionAppIndex;
