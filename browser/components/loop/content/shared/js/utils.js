@@ -180,6 +180,12 @@ loop.shared.utils = (function(mozL10n) {
   }
 
   
+  
+  if (!Uint8Array.prototype.slice) {
+    Uint8Array.prototype.slice = Uint8Array.prototype.subarray;
+  }
+
+  
 
 
 
