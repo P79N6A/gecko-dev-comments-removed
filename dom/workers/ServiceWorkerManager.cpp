@@ -916,7 +916,8 @@ ServiceWorkerManager::Install(ServiceWorkerRegistration* aRegistration,
   
   
 
-  
+  FireEventOnServiceWorkerContainers(aRegistration,
+                                     NS_LITERAL_STRING("updatefound"));
 }
 
 class ActivationRunnable : public nsRunnable
