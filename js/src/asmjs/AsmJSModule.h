@@ -830,6 +830,10 @@ class AsmJSModule
     
     mutable bool                          codeIsProtected_;
 
+    void restoreHeapToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer);
+    void restoreToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer, uint8_t *prevCode,
+                               ExclusiveContext *cx);
+
   public:
     explicit AsmJSModule(ScriptSource *scriptSource, uint32_t srcStart, uint32_t srcBodyStart,
                          bool strict, bool canUseSignalHandlers);
@@ -1466,12 +1470,10 @@ class AsmJSModule
     }
 
     void initHeap(Handle<ArrayBufferObjectMaybeShared*> heap, JSContext *cx);
-    void restoreHeapToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer);
-    void restoreToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer,
-                               uint8_t *prevCode,
-                               ExclusiveContext *cx);
-    bool clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const;
     bool changeHeap(Handle<ArrayBufferObject*> newHeap, JSContext *cx);
+    bool detachHeap(JSContext *cx);
+
+    bool clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const;
 
     
     
@@ -1479,6 +1481,10 @@ class AsmJSModule
     AsmJSModule *nextLinked() const {
         MOZ_ASSERT(isDynamicallyLinked());
         return nextLinked_;
+    }
+    bool hasDetachedHeap() const {
+        MOZ_ASSERT(isDynamicallyLinked());
+        return hasArrayView() && !heapDatum();
     }
     CodePtr entryTrampoline(const ExportedFunction &func) const {
         MOZ_ASSERT(isDynamicallyLinked());
@@ -1533,6 +1539,10 @@ LookupAsmJSModuleInCache(ExclusiveContext *cx,
                          AsmJSParser &parser,
                          ScopedJSDeletePtr<AsmJSModule> *module,
                          ScopedJSFreePtr<char> *compilationTimeReport);
+
+
+extern bool
+OnDetachAsmJSArrayBuffer(JSContext *cx, Handle<ArrayBufferObject*> buffer);
 
 
 

@@ -54,6 +54,36 @@ using mozilla::PodEqual;
 using mozilla::Compression::LZ4;
 using mozilla::Swap;
 
+
+
+
+
+
+class AutoUnprotectCode
+{
+    JSRuntime *rt_;
+    JSRuntime::AutoLockForInterrupt lock_;
+    const AsmJSModule &module_;
+    const bool protectedBefore_;
+
+  public:
+    AutoUnprotectCode(JSContext *cx, const AsmJSModule &module)
+      : rt_(cx->runtime()),
+        lock_(rt_),
+        module_(module),
+        protectedBefore_(module_.codeIsProtected(rt_))
+    {
+        if (protectedBefore_)
+            module_.unprotectCode(rt_);
+    }
+
+    ~AutoUnprotectCode()
+    {
+        if (protectedBefore_)
+            module_.protectCode(rt_);
+    }
+};
+
 static uint8_t *
 AllocateExecutableMemory(ExclusiveContext *cx, size_t bytes)
 {
@@ -844,6 +874,35 @@ AsmJSModule::restoreToInitialState(ArrayBufferObjectMaybeShared *maybePrevBuffer
     restoreHeapToInitialState(maybePrevBuffer);
 }
 
+bool
+AsmJSModule::detachHeap(JSContext *cx)
+{
+    MOZ_ASSERT(isDynamicallyLinked());
+    MOZ_ASSERT(maybeHeap_);
+
+    AutoUnprotectCode auc(cx, *this);
+    restoreHeapToInitialState(maybeHeap_);
+
+    MOZ_ASSERT(hasDetachedHeap());
+    return true;
+}
+
+bool
+js::OnDetachAsmJSArrayBuffer(JSContext *cx, Handle<ArrayBufferObject*> buffer)
+{
+    for (AsmJSModule *m = cx->runtime()->linkedAsmJSModules; m; m = m->nextLinked()) {
+        if (buffer == m->maybeHeapBufferObject()) {
+            if (m->active()) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_OUT_OF_MEMORY);
+                return false;
+            }
+            if (!m->detachHeap(cx))
+                return false;
+        }
+    }
+    return true;
+}
+
 static void
 AsmJSModuleObject_finalize(FreeOp *fop, JSObject *obj)
 {
@@ -1485,36 +1544,6 @@ AsmJSModule::deserialize(ExclusiveContext *cx, const uint8_t *cursor)
     return cursor;
 }
 
-
-
-
-
-
-class AutoUnprotectCode
-{
-    JSRuntime *rt_;
-    JSRuntime::AutoLockForInterrupt lock_;
-    const AsmJSModule &module_;
-    const bool protectedBefore_;
-
-  public:
-    AutoUnprotectCode(JSContext *cx, const AsmJSModule &module)
-      : rt_(cx->runtime()),
-        lock_(rt_),
-        module_(module),
-        protectedBefore_(module_.codeIsProtected(rt_))
-    {
-        if (protectedBefore_)
-            module_.unprotectCode(rt_);
-    }
-
-    ~AutoUnprotectCode()
-    {
-        if (protectedBefore_)
-            module_.protectCode(rt_);
-    }
-};
-
 bool
 AsmJSModule::clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) const
 {
@@ -1569,6 +1598,8 @@ AsmJSModule::clone(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *moduleOut) con
 bool
 AsmJSModule::changeHeap(Handle<ArrayBufferObject*> newHeap, JSContext *cx)
 {
+    MOZ_ASSERT(hasArrayView());
+
     
     
     

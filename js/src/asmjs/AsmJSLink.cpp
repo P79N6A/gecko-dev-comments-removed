@@ -587,6 +587,11 @@ ChangeHeap(JSContext *cx, AsmJSModule &module, CallArgs args)
         return true;
     }
 
+    if (!module.hasArrayView()) {
+        args.rval().set(BooleanValue(true));
+        return true;
+    }
+
     MOZ_ASSERT(IsValidAsmJSHeapLength(heapLength));
     MOZ_ASSERT(!IsDeprecatedAsmJSHeapLength(heapLength));
 
@@ -693,11 +698,10 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
     
     
     
-    if (module.maybeHeapBufferObject() &&
-        module.maybeHeapBufferObject()->is<ArrayBufferObject>() &&
-        module.maybeHeapBufferObject()->as<ArrayBufferObject>().isNeutered())
-    {
-        js_ReportOverRecursed(cx);
+    
+    
+    if (module.hasDetachedHeap()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_OUT_OF_MEMORY);
         return false;
     }
 
