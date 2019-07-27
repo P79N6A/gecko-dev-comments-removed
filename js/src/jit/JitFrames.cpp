@@ -11,7 +11,6 @@
 #include "jsfun.h"
 #include "jsobj.h"
 #include "jsscript.h"
-#include "jsutil.h"
 
 #include "gc/Marking.h"
 #include "jit/BaselineDebugModeOSR.h"
@@ -1048,11 +1047,9 @@ MarkThisAndArguments(JSTracer* trc, JitFrameLayout* layout)
 
     size_t nargs = layout->numActualArgs();
     size_t nformals = 0;
-    size_t newTargetOffset = 0;
     if (CalleeTokenIsFunction(layout->calleeToken())) {
         JSFunction* fun = CalleeTokenToFunction(layout->calleeToken());
         nformals = fun->nonLazyScript()->argumentsHasVarBinding() ? 0 : fun->nargs();
-        newTargetOffset = Max(nargs, fun->nargs());
     }
 
     Value* argv = layout->argv();
@@ -1061,13 +1058,9 @@ MarkThisAndArguments(JSTracer* trc, JitFrameLayout* layout)
     TraceRoot(trc, argv, "ion-thisv");
 
     
-    for (size_t i = nformals + 1; i < nargs + 1; i++)
+    bool constructing = CalleeTokenIsConstructing(layout->calleeToken());
+    for (size_t i = nformals + 1; i < nargs + 1 + constructing; i++)
         TraceRoot(trc, &argv[i], "ion-argv");
-
-    
-    
-    if (CalleeTokenIsConstructing(layout->calleeToken()))
-        TraceRoot(trc, &argv[1 + newTargetOffset], "ion-newTarget");
 }
 
 static void
