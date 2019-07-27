@@ -4,7 +4,6 @@
 
 
 #include "GLContext.h"                  
-#include "SurfaceStream.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/TextureClientOGL.h"
@@ -31,15 +30,15 @@ EGLImageTextureClient::EGLImageTextureClient(TextureFlags aFlags,
 {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
              "Can't pass an `EGLImage` between processes.");
-  
+
   
   AddFlags(TextureFlags::DEALLOCATE_CLIENT);
-  
+
   if (aInverted) {
     AddFlags(TextureFlags::NEEDS_Y_FLIP);
   }
 }
-  
+
 EGLImageTextureClient::~EGLImageTextureClient()
 {
   
@@ -65,14 +64,14 @@ EGLImageTextureClient::Lock(OpenMode mode)
     mIsLocked = true;
     return true;
   }
-  
+
 void
 EGLImageTextureClient::Unlock()
 {
   MOZ_ASSERT(mIsLocked);
   mIsLocked = false;
 }
-  
+
 
 
 
@@ -97,7 +96,7 @@ SurfaceTextureClient::SurfaceTextureClient(TextureFlags aFlags,
     AddFlags(TextureFlags::NEEDS_Y_FLIP);
   }
 }
-  
+
 SurfaceTextureClient::~SurfaceTextureClient()
 {
   

@@ -9,8 +9,6 @@
 #include "GeckoProfiler.h"              
 #include "SharedSurfaceEGL.h"           
 #include "SharedSurfaceGL.h"            
-#include "SurfaceStream.h"              
-#include "SurfaceTypes.h"               
 #include "ClientLayerManager.h"         
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/layers/CompositorTypes.h"
@@ -46,9 +44,6 @@ ClientCanvasLayer::~ClientCanvasLayer()
     mCanvasClient->OnDetach();
     mCanvasClient = nullptr;
   }
-  if (mTextureSurface) {
-    mTextureSurface = nullptr;
-  }
 }
 
 void
@@ -58,92 +53,85 @@ ClientCanvasLayer::Initialize(const Data& aData)
 
   mCanvasClient = nullptr;
 
-  if (mGLContext) {
-    GLScreenBuffer* screen = mGLContext->Screen();
+  if (!mGLContext)
+    return;
 
-    SurfaceCaps caps;
-    if (mStream) {
-      
-      caps = aData.mHasAlpha ? SurfaceCaps::ForRGBA() : SurfaceCaps::ForRGB();
-    } else {
-      caps = screen->mCaps;
-    }
-    MOZ_ASSERT(caps.alpha == aData.mHasAlpha);
+  GLScreenBuffer* screen = mGLContext->Screen();
 
-    UniquePtr<SurfaceFactory> factory;
+  SurfaceCaps caps;
+  if (mGLFrontbuffer) {
+    
+    caps = mGLFrontbuffer->mHasAlpha ? SurfaceCaps::ForRGBA()
+                                     : SurfaceCaps::ForRGB();
+  } else {
+    MOZ_ASSERT(screen);
+    caps = screen->mCaps;
+  }
+  MOZ_ASSERT(caps.alpha == aData.mHasAlpha);
 
-    if (!gfxPrefs::WebGLForceLayersReadback()) {
-      switch (ClientManager()->AsShadowForwarder()->GetCompositorBackendType()) {
-        case mozilla::layers::LayersBackend::LAYERS_OPENGL: {
-          if (mGLContext->GetContextType() == GLContextType::EGL) {
+  UniquePtr<SurfaceFactory> factory;
+
+  if (!gfxPrefs::WebGLForceLayersReadback()) {
+    switch (ClientManager()->AsShadowForwarder()->GetCompositorBackendType()) {
+      case mozilla::layers::LayersBackend::LAYERS_OPENGL: {
+        if (mGLContext->GetContextType() == GLContextType::EGL) {
 #ifdef MOZ_WIDGET_GONK
-            TextureFlags flags = TextureFlags::DEALLOCATE_CLIENT |
-                                 TextureFlags::NEEDS_Y_FLIP;
-            if (!aData.mIsGLAlphaPremult) {
-              flags |= TextureFlags::NON_PREMULTIPLIED;
-            }
-            factory = MakeUnique<SurfaceFactory_Gralloc>(mGLContext,
-                                                         caps,
-                                                         flags,
-                                                         ClientManager()->AsShadowForwarder());
+          TextureFlags flags = TextureFlags::DEALLOCATE_CLIENT |
+                               TextureFlags::NEEDS_Y_FLIP;
+          if (!aData.mIsGLAlphaPremult) {
+            flags |= TextureFlags::NON_PREMULTIPLIED;
+          }
+          factory = MakeUnique<SurfaceFactory_Gralloc>(mGLContext,
+                                                       caps,
+                                                       flags,
+                                                       ClientManager()->AsShadowForwarder());
 #else
-            bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
-            if (!isCrossProcess) {
-              
-              factory = SurfaceFactory_EGLImage::Create(mGLContext, caps);
-            } else {
-              
-              NS_NOTREACHED("isCrossProcess but not on native B2G!");
-            }
-#endif
+          bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
+          if (!isCrossProcess) {
+            
+            factory = SurfaceFactory_EGLImage::Create(mGLContext, caps);
           } else {
             
-            
+            NS_NOTREACHED("isCrossProcess but not on native B2G!");
+          }
+#endif
+        } else {
+          
+          
 #ifdef XP_MACOSX
-            factory = SurfaceFactory_IOSurface::Create(mGLContext, caps);
+          factory = SurfaceFactory_IOSurface::Create(mGLContext, caps);
 #else
-            GLContext* nullConsGL = nullptr; 
-            factory = MakeUnique<SurfaceFactory_GLTexture>(mGLContext, nullConsGL, caps);
+          GLContext* nullConsGL = nullptr; 
+          factory = MakeUnique<SurfaceFactory_GLTexture>(mGLContext, nullConsGL, caps);
 #endif
-          }
-          break;
         }
-        case mozilla::layers::LayersBackend::LAYERS_D3D10:
-        case mozilla::layers::LayersBackend::LAYERS_D3D11: {
+        break;
+      }
+      case mozilla::layers::LayersBackend::LAYERS_D3D10:
+      case mozilla::layers::LayersBackend::LAYERS_D3D11: {
 #ifdef XP_WIN
-          if (mGLContext->IsANGLE()) {
-            factory = SurfaceFactory_ANGLEShareHandle::Create(mGLContext, caps);
-          }
-#endif
-          break;
+        if (mGLContext->IsANGLE()) {
+          factory = SurfaceFactory_ANGLEShareHandle::Create(mGLContext, caps);
         }
-        default:
-          break;
+#endif
+        break;
       }
+      default:
+        break;
     }
+  }
 
-    if (mStream) {
+  if (mGLFrontbuffer) {
+    
+    
+    mFactory = Move(factory);
+    if (!mFactory) {
       
-      mFactory = Move(factory);
-      if (!mFactory) {
-        
-        mFactory = MakeUnique<SurfaceFactory_Basic>(mGLContext, caps);
-      }
-
-      gfx::IntSize size = gfx::IntSize(aData.mSize.width, aData.mSize.height);
-      mTextureSurface = SharedSurface_GLTexture::Create(mGLContext, mGLContext,
-                                                        mGLContext->GetGLFormats(),
-                                                        size, caps.alpha, aData.mTexID);
-      SharedSurface* producer = mStream->SwapProducer(mFactory.get(), size);
-      if (!producer) {
-        
-        mFactory = MakeUnique<SurfaceFactory_Basic>(mGLContext, caps);
-        producer = mStream->SwapProducer(mFactory.get(), size);
-        MOZ_ASSERT(producer, "Failed to create initial canvas surface with basic factory");
-      }
-    } else if (factory) {
-      screen->Morph(Move(factory));
+      mFactory = MakeUnique<SurfaceFactory_Basic>(mGLContext, caps);
     }
+  } else {
+    if (factory)
+      screen->Morph(Move(factory));
   }
 }
 
@@ -202,10 +190,7 @@ CanvasClient::CanvasClientType
 ClientCanvasLayer::GetCanvasClientType()
 {
   if (mGLContext) {
-    if (mGLContext->Screen()) {
-      return CanvasClient::CanvasClientTypeShSurf;
-    }
-    return CanvasClient::CanvasClientGLContext;
+    return CanvasClient::CanvasClientTypeShSurf;
   }
   return CanvasClient::CanvasClientSurface;
 }

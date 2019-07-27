@@ -34,7 +34,6 @@ class nsXULElement;
 namespace mozilla {
 namespace gl {
 class SourceSurface;
-class SurfaceStream;
 }
 
 namespace dom {
@@ -764,8 +763,6 @@ protected:
   
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
-
-  RefPtr<gl::SurfaceStream> mStream;
 
   
 

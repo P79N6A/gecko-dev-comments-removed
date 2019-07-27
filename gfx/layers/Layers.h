@@ -59,7 +59,7 @@ class WebGLContext;
 
 namespace gl {
 class GLContext;
-class SurfaceStream;
+class SharedSurface;
 }
 
 namespace gfx {
@@ -2010,8 +2010,7 @@ public:
     Data()
       : mDrawTarget(nullptr)
       , mGLContext(nullptr)
-      , mStream(nullptr)
-      , mTexID(0)
+      , mFrontbufferGLTex(0)
       , mSize(0,0)
       , mHasAlpha(false)
       , mIsGLAlphaPremult(true)
@@ -2022,10 +2021,7 @@ public:
     mozilla::gl::GLContext* mGLContext; 
 
     
-    mozilla::gl::SurfaceStream* mStream;
-
-    
-    uint32_t mTexID;
+    uint32_t mFrontbufferGLTex;
 
     
     nsIntSize mSize;

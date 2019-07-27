@@ -10,8 +10,6 @@
 #include "GLContext.h"                  
 #include "GLScreenBuffer.h"             
 #include "ScopedGLHelpers.h"
-#include "SurfaceStream.h"              
-#include "SurfaceTypes.h"               
 #include "gfx2DGlue.h"                  
 #include "gfxPlatform.h"                
 #include "GLReadTexImageHelper.h"
@@ -49,10 +47,6 @@ CanvasClient::CreateCanvasClient(CanvasClientType aType,
   switch (aType) {
   case CanvasClientTypeShSurf:
     return new CanvasClientSharedSurface(aForwarder, aFlags);
-
-  case CanvasClientGLContext:
-    aFlags |= TextureFlags::DEALLOCATE_CLIENT;
-    return new CanvasClientSurfaceStream(aForwarder, aFlags);
 
   default:
     return new CanvasClient2D(aForwarder, aFlags);
@@ -148,95 +142,90 @@ CanvasClient2D::CreateTextureClientForCanvas(gfx::SurfaceFormat aFormat,
 #endif
 }
 
-CanvasClientSurfaceStream::CanvasClientSurfaceStream(CompositableForwarder* aLayerForwarder,
-                                                     TextureFlags aFlags)
-  : CanvasClient(aLayerForwarder, aFlags)
-{
-}
 
-void
-CanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
-{
-  aLayer->mGLContext->MakeCurrent();
 
-  SurfaceStream* stream = aLayer->mStream;
-  MOZ_ASSERT(stream);
 
-  
-  
-  stream->CopySurfaceToProducer(aLayer->mTextureSurface.get(),
-                                aLayer->mFactory.get());
-  stream->SwapProducer(aLayer->mFactory.get(),
-                       gfx::IntSize(aSize.width, aSize.height));
 
-#ifdef MOZ_WIDGET_GONK
-  SharedSurface* surf = stream->SwapConsumer();
-  if (!surf) {
-    printf_stderr("surf is null post-SwapConsumer!\n");
-    return;
-  }
 
-  if (surf->mType != SharedSurfaceType::Gralloc) {
-    printf_stderr("Unexpected non-Gralloc SharedSurface in IPC path!");
-    MOZ_ASSERT(false);
-    return;
-  }
 
-  SharedSurface_Gralloc* grallocSurf = SharedSurface_Gralloc::Cast(surf);
 
-  RefPtr<GrallocTextureClientOGL> grallocTextureClient =
-    static_cast<GrallocTextureClientOGL*>(grallocSurf->GetTextureClient());
 
-  
-  if (!grallocTextureClient->GetIPDLActor()) {
-    grallocTextureClient->SetTextureFlags(mTextureInfo.mTextureFlags);
-    AddTextureClient(grallocTextureClient);
-  }
 
-  if (grallocTextureClient->GetIPDLActor()) {
-    UseTexture(grallocTextureClient);
-  }
 
-  if (mBuffer) {
-    
-    RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
-    
-    tracker->SetTextureClient(mBuffer);
-    mBuffer->SetRemoveFromCompositableTracker(tracker);
-    
-    GetForwarder()->RemoveTextureFromCompositableAsync(tracker, this, mBuffer);
-  }
-  mBuffer = grallocTextureClient;
-#else
-  bool isCrossProcess = !(XRE_GetProcessType() == GeckoProcessType_Default);
-  if (isCrossProcess) {
-    printf_stderr("isCrossProcess, but not MOZ_WIDGET_GONK! Someone needs to write some code!");
-    MOZ_ASSERT(false);
-  } else {
-    bool bufferCreated = false;
-    if (!mBuffer) {
-      
-      TextureFlags flags = GetTextureFlags() |
-                           TextureFlags::DEALLOCATE_CLIENT;
-      StreamTextureClient* texClient = new StreamTextureClient(flags);
-      texClient->InitWith(stream);
-      mBuffer = texClient;
-      bufferCreated = true;
-    }
 
-    if (bufferCreated && !AddTextureClient(mBuffer)) {
-      mBuffer = nullptr;
-    }
 
-    if (mBuffer) {
-      GetForwarder()->UpdatedTexture(this, mBuffer, nullptr);
-      GetForwarder()->UseTexture(this, mBuffer);
-    }
-  }
-#endif
 
-  aLayer->Painted();
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -423,20 +412,35 @@ TexClientFromReadback(SharedSurface* src, ISurfaceAllocator* allocator,
 
 
 
+static TemporaryRef<gl::ShSurfHandle>
+CloneSurface(gl::SharedSurface* src, gl::SurfaceFactory* factory)
+{
+    RefPtr<gl::ShSurfHandle> dest = factory->NewShSurfHandle(src->mSize);
+    SharedSurface::ProdCopy(src, dest->Surf(), factory);
+    return dest.forget();
+}
+
 void
 CanvasClientSharedSurface::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 {
-  aLayer->mGLContext->MakeCurrent();
-  GLScreenBuffer* screen = aLayer->mGLContext->Screen();
-
   if (mFront) {
     mPrevFront = mFront;
     mFront = nullptr;
   }
 
-  mFront = screen->Front();
-  if (!mFront)
-    return;
+  auto gl = aLayer->mGLContext;
+  gl->MakeCurrent();
+
+  if (aLayer->mGLFrontbuffer) {
+    mFront = CloneSurface(aLayer->mGLFrontbuffer.get(), aLayer->mFactory.get());
+    if (mFront)
+      mFront->Surf()->Fence();
+  } else {
+    mFront = gl->Screen()->Front();
+    if (!mFront)
+      return;
+  }
+  MOZ_ASSERT(mFront);
 
   
   SharedSurface* surf = mFront->Surf();
