@@ -843,11 +843,7 @@ Layer::ComputeEffectiveTransformForMaskLayer(const Matrix4x4& aTransformToSurfac
     
     
     
-    
-    
-    
-    mMaskLayer->mEffectiveTransform = mMaskLayer->GetTransform() *
-      GetTransform().Inverse() * GetLocalTransform() *
+    mMaskLayer->mEffectiveTransform = mMaskLayer->GetLocalTransform() *
       mMaskLayer->mEffectiveTransform;
   }
 }

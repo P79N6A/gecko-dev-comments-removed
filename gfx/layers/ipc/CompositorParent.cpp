@@ -940,6 +940,10 @@ CompositorParent::CompositeCallback(TimeStamp aScheduleTime)
  void
 CompositorParent::SetShadowProperties(Layer* aLayer)
 {
+  if (Layer* maskLayer = aLayer->GetMaskLayer()) {
+    SetShadowProperties(maskLayer);
+  }
+
   
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
   

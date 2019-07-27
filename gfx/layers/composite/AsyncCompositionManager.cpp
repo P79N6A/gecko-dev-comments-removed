@@ -197,6 +197,12 @@ TranslateShadowLayer2D(Layer* aLayer,
   if (aAdjustClipRect) {
     TransformClipRect(aLayer, Matrix4x4::Translation(aTranslation.x, aTranslation.y, 0));
   }
+
+  
+  
+  if (Layer* maskLayer = aLayer->GetMaskLayer()) {
+    TranslateShadowLayer2D(maskLayer, aTranslation, false);
+  }
 }
 
 static bool
