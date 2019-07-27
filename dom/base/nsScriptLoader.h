@@ -18,9 +18,10 @@
 #include "nsIDocument.h"
 #include "nsIStreamLoader.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/LinkedList.h"
 #include "mozilla/net/ReferrerPolicy.h"
 
-class nsScriptLoadRequest;
+class nsScriptLoadRequestList;
 class nsIURI;
 
 namespace JS {
@@ -37,11 +38,19 @@ class AutoJSAPI;
 
 
 
-class nsScriptLoadRequest final : public nsISupports {
+class nsScriptLoadRequest final : public nsISupports,
+                                  private mozilla::LinkedListElement<nsScriptLoadRequest>
+{
   ~nsScriptLoadRequest()
   {
     js_free(mScriptTextBuf);
   }
+
+  typedef LinkedListElement<nsScriptLoadRequest> super;
+
+  
+  friend class mozilla::LinkedListElement<nsScriptLoadRequest>;
+  friend class nsScriptLoadRequestList;
 
 public:
   nsScriptLoadRequest(nsIScriptElement* aElement,
@@ -51,6 +60,10 @@ public:
       mLoading(true),
       mIsInline(true),
       mHasSourceMapURL(false),
+      mIsDefer(false),
+      mIsAsync(false),
+      mIsNonAsyncScriptInserted(false),
+      mIsXSLT(false),
       mScriptTextBuf(nullptr),
       mScriptTextLength(0),
       mJSVersion(aVersion),
@@ -76,10 +89,17 @@ public:
     return mElement == nullptr;
   }
 
+  using super::getNext;
+  using super::isInList;
+
   nsCOMPtr<nsIScriptElement> mElement;
   bool mLoading;          
   bool mIsInline;         
   bool mHasSourceMapURL;  
+  bool mIsDefer;          
+  bool mIsAsync;          
+  bool mIsNonAsyncScriptInserted; 
+  bool mIsXSLT;           
   nsString mSourceMapURL; 
   char16_t* mScriptTextBuf; 
   size_t mScriptTextLength; 
@@ -90,6 +110,44 @@ public:
   int32_t mLineNo;
   const mozilla::CORSMode mCORSMode;
   mozilla::net::ReferrerPolicy mReferrerPolicy;
+};
+
+class nsScriptLoadRequestList : private mozilla::LinkedList<nsScriptLoadRequest>
+{
+  typedef mozilla::LinkedList<nsScriptLoadRequest> super;
+
+public:
+  ~nsScriptLoadRequestList();
+
+  void Clear();
+
+#ifdef DEBUG
+  bool Contains(nsScriptLoadRequest* aElem);
+#endif 
+
+  using super::getFirst;
+  using super::isEmpty;
+
+  void AppendElement(nsScriptLoadRequest* aElem)
+  {
+    MOZ_ASSERT(!aElem->isInList());
+    NS_ADDREF(aElem);
+    insertBack(aElem);
+  }
+
+  MOZ_WARN_UNUSED_RESULT
+  already_AddRefed<nsScriptLoadRequest> Steal(nsScriptLoadRequest* aElem)
+  {
+    aElem->removeFrom(*this);
+    return dont_AddRef(aElem);
+  }
+
+  MOZ_WARN_UNUSED_RESULT
+  already_AddRefed<nsScriptLoadRequest> StealFirst()
+  {
+    MOZ_ASSERT(!isEmpty());
+    return Steal(getFirst());
+  }
 };
 
 
@@ -396,10 +454,10 @@ private:
 
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
-  nsTArray<nsRefPtr<nsScriptLoadRequest> > mNonAsyncExternalScriptInsertedRequests;
-  nsTArray<nsRefPtr<nsScriptLoadRequest> > mAsyncRequests;
-  nsTArray<nsRefPtr<nsScriptLoadRequest> > mDeferRequests;
-  nsTArray<nsRefPtr<nsScriptLoadRequest> > mXSLTRequests;
+  nsScriptLoadRequestList mNonAsyncExternalScriptInsertedRequests;
+  nsScriptLoadRequestList mAsyncRequests;
+  nsScriptLoadRequestList mDeferRequests;
+  nsScriptLoadRequestList mXSLTRequests;
   nsRefPtr<nsScriptLoadRequest> mParserBlockingRequest;
 
   
