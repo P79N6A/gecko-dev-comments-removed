@@ -287,11 +287,11 @@ ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
   size_t vPixStride = horiSubsample * (1 + aSource->mCrSkip);
   size_t lineStride = uvSize.height / uvHeight * aSource->mCbCrStride;
 
-  for (int i = 0; i < uvHeight; i++) {
+  for (size_t i = 0; i < uvHeight; i++) {
     
     uint8_t* uSrc = u;
     uint8_t* vSrc = v;
-    for (int j = 0; j < uvWidth; j++) {
+    for (size_t j = 0; j < uvWidth; j++) {
       *aDestination++ = *uSrc;
       *aDestination++ = *vSrc;
       
@@ -495,10 +495,10 @@ OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
   }
   
   uint8_t length[] = {
-    (aSize >> 24) & 0xFF,
-    (aSize >> 16) & 0xFF,
-    (aSize >> 8) & 0xFF,
-    aSize & 0xFF,
+    uint8_t((aSize >> 24) & 0xFF),
+    uint8_t((aSize >> 16) & 0xFF),
+    uint8_t((aSize >> 8) & 0xFF),
+    uint8_t(aSize & 0xFF),
   };
   aOutputBuf->AppendElements(length, sizeof(length));
   aOutputBuf->AppendElements(aData + sizeof(length), aSize);
@@ -592,8 +592,8 @@ public:
     , mInputFlags(aInputFlags)
     , mIndex(0)
     , mData(nullptr)
-    , mOffset(0)
     , mCapicity(0)
+    , mOffset(0)
   {}
 
   ~InputBufferHelper()
@@ -908,14 +908,14 @@ OMXAudioEncoder::AppendDecoderConfig(nsTArray<uint8_t>* aOutputBuf,
   
   const uint8_t decConfig[] = {
     0x04,                   
-    15 + csdSize,           
+    uint8_t(15 + csdSize),  
     0x40,                   
     0x15,                   
     0x00, 0x03, 0x00,       
     0x00, 0x01, 0x77, 0x00, 
     0x00, 0x01, 0x77, 0x00, 
     0x05,                   
-    csdSize,                
+    uint8_t(csdSize),       
   };
   
   const uint8_t slConfig[] = {
