@@ -44,7 +44,6 @@ class MediaRecorder : public DOMEventTargetHelper,
 
 public:
   MediaRecorder(DOMMediaStream&, nsPIDOMWindow* aOwnerWindow);
-  virtual ~MediaRecorder();
 
   
   virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
@@ -91,6 +90,8 @@ public:
   NS_DECL_NSIDOCUMENTACTIVITY
 
 protected:
+  virtual ~MediaRecorder();
+
   MediaRecorder& operator = (const MediaRecorder& x) MOZ_DELETE;
   
   nsresult CreateAndDispatchBlobEvent(already_AddRefed<nsIDOMBlob>&& aBlob);
