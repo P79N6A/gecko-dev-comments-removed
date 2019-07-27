@@ -33,7 +33,7 @@ public:
   void Shutdown();
 
   
-  void Notify(const hal::BatteryInformation& aBatteryInfo);
+  void Notify(const hal::BatteryInformation& aBatteryInfo) MOZ_OVERRIDE;
 
   
 

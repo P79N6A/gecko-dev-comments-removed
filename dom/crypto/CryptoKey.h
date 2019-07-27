@@ -139,7 +139,7 @@ public:
   SECKEYPublicKey* GetPublicKey() const;
 
   
-  virtual void virtualDestroyNSSReference();
+  virtual void virtualDestroyNSSReference() MOZ_OVERRIDE;
   void destructorSafeDestroyNSSReference();
 
   

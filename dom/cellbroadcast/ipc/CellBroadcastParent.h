@@ -28,7 +28,7 @@ private:
   
   ~CellBroadcastParent() {};
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy);
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 };
 
 } 
