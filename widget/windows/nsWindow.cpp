@@ -1301,6 +1301,19 @@ void nsWindow::SetThemeRegion()
 
 
 
+void nsWindow::ConfigureAPZCTreeManager()
+{
+  nsBaseWidget::ConfigureAPZCTreeManager();
+
+  
+  
+  
+  
+  
+  
+  RegisterTouchWindow();
+}
+
 NS_METHOD nsWindow::RegisterTouchWindow() {
   if (Preferences::GetInt("dom.w3c_touch_events.enabled", 0) ||
       gIsPointerEventsEnabled) {
@@ -6208,13 +6221,13 @@ bool nsWindow::OnTouch(WPARAM wParam, LPARAM lParam)
 
     
     if (touchEventToSend) {
-      DispatchEvent(touchEventToSend, status);
+      status = DispatchAPZAwareEvent(touchEventToSend);
       delete touchEventToSend;
     }
 
     
     if (touchEndEventToSend) {
-      DispatchEvent(touchEndEventToSend, status);
+      status = DispatchAPZAwareEvent(touchEndEventToSend);
       delete touchEndEventToSend;
     }
   }
