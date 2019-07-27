@@ -565,7 +565,11 @@ public:
 
 
 
+
+
+
 template <class StringTable,
+          class StringAlloc,
           class Writer>
 class LocationService
 {
@@ -608,8 +612,8 @@ class LocationService
     ~Entry()
     {
       
-      InfallibleAllocPolicy::free_(mFunction);
-      InfallibleAllocPolicy::free_(mFileName);
+      StringAlloc::free(mFunction);
+      StringAlloc::free(mFileName);
     }
 
     void Replace(const void* aPc, const char* aFunction,
@@ -619,12 +623,12 @@ class LocationService
       mPc = aPc;
 
       
-      InfallibleAllocPolicy::free_(mFunction);
+      StringAlloc::free(mFunction);
       mFunction =
-        !aFunction[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFunction);
-      InfallibleAllocPolicy::free_(mFileName);
+        !aFunction[0] ? nullptr : StringAlloc::copy(aFunction);
+      StringAlloc::free(mFileName);
       mFileName =
-        !aFileName[0] ? nullptr : InfallibleAllocPolicy::strdup_(aFileName);
+        !aFileName[0] ? nullptr : StringAlloc::copy(aFileName);
 
 
       mLibrary = aLibrary;
@@ -800,7 +804,22 @@ private:
   StringHashSet mSet;
 };
 
-typedef LocationService<StringTable, Writer> DMDLocationService;
+class StringAlloc
+{
+public:
+  static char*
+  copy(const char* aString)
+  {
+    return InfallibleAllocPolicy::strdup_(aString);
+  }
+  static void
+  free(char* aString)
+  {
+    InfallibleAllocPolicy::free_(aString);
+  }
+};
+
+typedef LocationService<StringTable, StringAlloc, Writer> DMDLocationService;
 
 
 
