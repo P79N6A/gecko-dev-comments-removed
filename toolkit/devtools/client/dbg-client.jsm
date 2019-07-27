@@ -1455,6 +1455,15 @@ RootClient.prototype = {
 
 
 
+
+
+   protocolDescription: DebuggerClient.requester({ type: "protocolDescription" },
+                                                 { telemetry: "PROTOCOLDESCRIPTION" }),
+
+  
+
+
+
   get _transport() { return this._client._transport; },
   get request()    { return this._client.request;    }
 };

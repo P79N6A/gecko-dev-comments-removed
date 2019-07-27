@@ -122,22 +122,6 @@ function getVersion() {
 
 
 
-function supports(feature) {
-  
-  return false;
-};
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -196,7 +180,109 @@ function TabTarget(tab) {
 TabTarget.prototype = {
   _webProgressListener: null,
 
-  supports: supports,
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getActorDescription: function (actorName) {
+    if (!this.client) {
+      throw new Error("TabTarget#getActorDescription() can only be called on remote tabs.");
+    }
+
+    let deferred = promise.defer();
+
+    if (this._protocolDescription && this._protocolDescription.types[actorName]) {
+      deferred.resolve(this._protocolDescription.types[actorName]);
+    } else {
+      this.client.mainRoot.protocolDescription(description => {
+        this._protocolDescription = description;
+        deferred.resolve(description.types[actorName]);
+      });
+    }
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  hasActor: function (actorName) {
+    if (!this.client) {
+      throw new Error("TabTarget#hasActor() can only be called on remote tabs.");
+    }
+    if (this.form) {
+      return !!this.form[actorName + "Actor"];
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  actorHasMethod: function (actorName, methodName) {
+    if (!this.client) {
+      throw new Error("TabTarget#actorHasMethod() can only be called on remote tabs.");
+    }
+    return this.getActorDescription(actorName).then(desc => {
+      if (desc && desc.methods) {
+        return !!desc.methods.find(method => method.name === methodName);
+      }
+      return false;
+    });
+  },
+
+  
+
+
+
+
+
+  getTrait: function (traitName) {
+    if (!this.client) {
+      throw new Error("TabTarget#getTrait() can only be called on remote tabs.");
+    }
+    return this.client.traits[traitName];
+  },
+
   get version() { return getVersion(); },
 
   get tab() {
@@ -609,7 +695,6 @@ function WindowTarget(window) {
 }
 
 WindowTarget.prototype = {
-  supports: supports,
   get version() { return getVersion(); },
 
   get window() {
