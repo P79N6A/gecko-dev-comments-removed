@@ -117,6 +117,7 @@ class nsLayoutUtils
   typedef mozilla::dom::DOMRectList DOMRectList;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
+  typedef mozilla::IntrinsicSize IntrinsicSize;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::Color Color;
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -1078,6 +1079,32 @@ public:
   static nsRect GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
                                         nsIFrame* aFrame,
                                         uint32_t aFlags = 0);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsRect ComputeObjectDestRect(const nsRect& aConstraintRect,
+                                      const IntrinsicSize& aIntrinsicSize,
+                                      const nsSize& aIntrinsicRatio,
+                                      const nsStylePosition* aStylePos);
 
   
 

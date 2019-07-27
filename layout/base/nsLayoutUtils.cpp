@@ -9,6 +9,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsCharTraits.h"
@@ -3462,6 +3463,218 @@ nsLayoutUtils::GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
     resultRect.UnionRect(resultRect, tmpRect);
   }
   return resultRect;
+}
+
+enum ObjectDimensionType { eWidth, eHeight };
+static nscoord
+ComputeMissingDimension(const nsSize& aDefaultObjectSize,
+                        const nsSize& aIntrinsicRatio,
+                        const Maybe<nscoord>& aSpecifiedWidth,
+                        const Maybe<nscoord>& aSpecifiedHeight,
+                        ObjectDimensionType aDimensionToCompute)
+{
+  
+  
+
+  
+  
+  
+  if (aIntrinsicRatio.width > 0 && aIntrinsicRatio.height > 0) {
+    
+    nscoord knownDimensionSize;
+    float ratio;
+    if (aDimensionToCompute == eWidth) {
+      knownDimensionSize = *aSpecifiedHeight;
+      ratio = aIntrinsicRatio.width / aIntrinsicRatio.height;
+    } else {
+      knownDimensionSize = *aSpecifiedWidth;
+      ratio = aIntrinsicRatio.height / aIntrinsicRatio.width;
+    }
+    return NSCoordSaturatingNonnegativeMultiply(knownDimensionSize, ratio);
+  }
+
+  
+  
+  
+  
+  
+
+  
+  
+  return (aDimensionToCompute == eWidth) ?
+    aDefaultObjectSize.width : aDefaultObjectSize.height;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static Maybe<nsSize>
+MaybeComputeObjectFitNoneSize(const nsSize& aDefaultObjectSize,
+                              const IntrinsicSize& aIntrinsicSize,
+                              const nsSize& aIntrinsicRatio)
+{
+  
+  
+  
+  
+  Maybe<nscoord> specifiedWidth;
+  if (aIntrinsicSize.width.GetUnit() == eStyleUnit_Coord) {
+    specifiedWidth.emplace(aIntrinsicSize.width.GetCoordValue());
+  }
+
+  Maybe<nscoord> specifiedHeight;
+  if (aIntrinsicSize.height.GetUnit() == eStyleUnit_Coord) {
+    specifiedHeight.emplace(aIntrinsicSize.height.GetCoordValue());
+  }
+
+  Maybe<nsSize> noneSize; 
+  if (specifiedWidth || specifiedHeight) {
+    
+    
+    
+    noneSize.emplace();
+
+    noneSize->width = specifiedWidth ?
+      *specifiedWidth :
+      ComputeMissingDimension(aDefaultObjectSize, aIntrinsicRatio,
+                              specifiedWidth, specifiedHeight,
+                              eWidth);
+
+    noneSize->height = specifiedHeight ?
+      *specifiedHeight :
+      ComputeMissingDimension(aDefaultObjectSize, aIntrinsicRatio,
+                              specifiedWidth, specifiedHeight,
+                              eHeight);
+  }
+  
+  
+  
+  
+  return noneSize;
+}
+
+
+
+static nsSize
+ComputeConcreteObjectSize(const nsSize& aConstraintSize,
+                          const IntrinsicSize& aIntrinsicSize,
+                          const nsSize& aIntrinsicRatio,
+                          uint8_t aObjectFit)
+{
+  
+  
+  
+  if (MOZ_LIKELY(aObjectFit == NS_STYLE_OBJECT_FIT_FILL) ||
+      aIntrinsicRatio.width == 0 ||
+      aIntrinsicRatio.height == 0) {
+    return aConstraintSize;
+  }
+
+  
+  Maybe<nsImageRenderer::FitType> fitType;
+
+  Maybe<nsSize> noneSize;
+  if (aObjectFit == NS_STYLE_OBJECT_FIT_NONE ||
+      aObjectFit == NS_STYLE_OBJECT_FIT_SCALE_DOWN) {
+    noneSize = MaybeComputeObjectFitNoneSize(aConstraintSize, aIntrinsicSize,
+                                             aIntrinsicRatio);
+    if (!noneSize || aObjectFit == NS_STYLE_OBJECT_FIT_SCALE_DOWN) {
+      
+      
+      fitType.emplace(nsImageRenderer::CONTAIN);
+    }
+  } else if (aObjectFit == NS_STYLE_OBJECT_FIT_COVER) {
+    fitType.emplace(nsImageRenderer::COVER);
+  } else if (aObjectFit == NS_STYLE_OBJECT_FIT_CONTAIN) {
+    fitType.emplace(nsImageRenderer::CONTAIN);
+  }
+
+  Maybe<nsSize> constrainedSize;
+  if (fitType) {
+    constrainedSize.emplace(
+      nsImageRenderer::ComputeConstrainedSize(aConstraintSize,
+                                              aIntrinsicRatio,
+                                              *fitType));
+  }
+
+  
+  switch (aObjectFit) {
+    
+    case NS_STYLE_OBJECT_FIT_CONTAIN:
+    case NS_STYLE_OBJECT_FIT_COVER:
+      MOZ_ASSERT(constrainedSize);
+      return *constrainedSize;
+
+    case NS_STYLE_OBJECT_FIT_NONE:
+      if (noneSize) {
+        return *noneSize;
+      }
+      MOZ_ASSERT(constrainedSize);
+      return *constrainedSize;
+
+    case NS_STYLE_OBJECT_FIT_SCALE_DOWN:
+      MOZ_ASSERT(constrainedSize);
+      if (noneSize) {
+        constrainedSize->width =
+          std::min(constrainedSize->width, noneSize->width);
+        constrainedSize->height =
+          std::min(constrainedSize->height, noneSize->height);
+      }
+      return *constrainedSize;
+
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected enum value for 'object-fit'");
+      return aConstraintSize; 
+  }
+}
+
+ nsRect
+nsLayoutUtils::ComputeObjectDestRect(const nsRect& aConstraintRect,
+                                     const IntrinsicSize& aIntrinsicSize,
+                                     const nsSize& aIntrinsicRatio,
+                                     const nsStylePosition* aStylePos)
+{
+  
+  
+  nsSize concreteObjectSize =
+    ComputeConcreteObjectSize(aConstraintRect.Size(), aIntrinsicSize,
+                              aIntrinsicRatio, aStylePos->mObjectFit);
+
+  
+  nsPoint imageTopLeftPt, imageAnchorPt;
+  nsImageRenderer::ComputeObjectAnchorPoint(aStylePos->mObjectPosition,
+                                            aConstraintRect.Size(),
+                                            concreteObjectSize,
+                                            &imageTopLeftPt, &imageAnchorPt);
+  
+  
+  
+  imageTopLeftPt += aConstraintRect.TopLeft();
+  imageAnchorPt += aConstraintRect.TopLeft();
+
+  
+  
+  return nsRect(imageTopLeftPt, concreteObjectSize);
 }
 
 nsresult
