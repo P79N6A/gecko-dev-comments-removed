@@ -1,21 +1,21 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=2 et :
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
+/*
+ * Base class for all element classes; this provides an implementation
+ * of DOM Core's nsIDOMElement, implements nsIContent, provides
+ * utility methods for subclasses, and so forth.
+ */
 
 #ifndef mozilla_dom_Element_h__
 #define mozilla_dom_Element_h__
 
-#include "mozilla/dom/FragmentOrElement.h" 
-#include "nsChangeHint.h"                  
-#include "mozilla/EventStates.h"           
+#include "mozilla/dom/FragmentOrElement.h" // for base class
+#include "nsChangeHint.h"                  // for enum
+#include "mozilla/EventStates.h"           // for member
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsIDOMElement.h"
 #include "nsILinkHandler.h"
@@ -61,8 +61,8 @@ namespace mozilla {
 namespace dom {
   struct ScrollIntoViewOptions;
   struct ScrollToOptions;
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 
 already_AddRefed<nsContentList>
@@ -72,44 +72,44 @@ NS_GetContentList(nsINode* aRootNode,
 
 #define ELEMENT_FLAG_BIT(n_) NODE_FLAG_BIT(NODE_TYPE_SPECIFIC_BITS_OFFSET + (n_))
 
-
+// Element-specific flags
 enum {
-  
+  // Set if the element has a pending style change.
   ELEMENT_HAS_PENDING_RESTYLE =                 ELEMENT_FLAG_BIT(0),
 
-  
-  
-  
+  // Set if the element is a potential restyle root (that is, has a style
+  // change pending _and_ that style change will attempt to restyle
+  // descendants).
   ELEMENT_IS_POTENTIAL_RESTYLE_ROOT =           ELEMENT_FLAG_BIT(1),
 
-  
-  
-  
-  
+  // Set if the element has a pending animation-only style change as
+  // part of an animation-only style update (where we update styles from
+  // animation to the current refresh tick, but leave everything else as
+  // it was).
   ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE =  ELEMENT_FLAG_BIT(2),
 
-  
-  
-  
+  // Set if the element is a potential animation-only restyle root (that
+  // is, has an animation-only style change pending _and_ that style
+  // change will attempt to restyle descendants).
   ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT = ELEMENT_FLAG_BIT(3),
 
-  
+  // All of those bits together, for convenience.
   ELEMENT_ALL_RESTYLE_FLAGS = ELEMENT_HAS_PENDING_RESTYLE |
                               ELEMENT_IS_POTENTIAL_RESTYLE_ROOT |
                               ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE |
                               ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT,
 
-  
+  // Just the HAS_PENDING bits, for convenience
   ELEMENT_PENDING_RESTYLE_FLAGS = ELEMENT_HAS_PENDING_RESTYLE |
                                   ELEMENT_HAS_PENDING_ANIMATION_ONLY_RESTYLE,
 
-  
+  // Remaining bits are for subclasses
   ELEMENT_TYPE_SPECIFIC_BITS_OFFSET = NODE_TYPE_SPECIFIC_BITS_OFFSET + 4
 };
 
 #undef ELEMENT_FLAG_BIT
 
-
+// Make sure we have space for our bits
 ASSERT_NODE_FLAGS_SPACE(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET);
 
 namespace mozilla {
@@ -128,7 +128,7 @@ class DOMRect;
 class DOMRectList;
 class DestinationInsertionPointList;
 
-
+// IID for the dom::Element interface
 #define NS_ELEMENT_IID \
 { 0x31d3f3fb, 0xcdf8, 0x4e40, \
  { 0xb7, 0x09, 0x1a, 0x11, 0x43, 0x93, 0x61, 0x71 } }
@@ -145,53 +145,53 @@ public:
                "Bad NodeType in aNodeInfo");
     SetIsElement();
   }
-#endif 
+#endif // MOZILLA_INTERNAL_API
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ELEMENT_IID)
 
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) MOZ_OVERRIDE;
 
-  
-
-
-
+  /**
+   * Method to get the full state of this element.  See mozilla/EventStates.h
+   * for the possible bits that could be set here.
+   */
   EventStates State() const
   {
-    
-    
+    // mState is maintained by having whoever might have changed it
+    // call UpdateState() or one of the other mState mutators.
     return mState;
   }
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Ask this element to update its state.  If aNotify is false, then
+   * state change notifications will not be dispatched; in that
+   * situation it is the caller's responsibility to dispatch them.
+   *
+   * In general, aNotify should only be false if we're guaranteed that
+   * the element can't have a frame no matter what its style is
+   * (e.g. if we're in the middle of adding it to the document or
+   * removing it from the document).
+   */
   void UpdateState(bool aNotify);
   
-  
-
-
+  /**
+   * Method to update mState with link state information.  This does not notify.
+   */
   void UpdateLinkState(EventStates aState);
 
-  
-
-
-
+  /**
+   * Returns true if this element is either a full-screen element or an
+   * ancestor of the full-screen element.
+   */
   bool IsFullScreenAncestor() const {
     return mState.HasAtLeastOneOfStates(NS_EVENT_STATE_FULL_SCREEN_ANCESTOR |
                                         NS_EVENT_STATE_FULL_SCREEN);
   }
 
-  
-
-
-
+  /**
+   * The style state of this element. This is the real state of the element
+   * with any style locks applied for pseudo-class inspecting.
+   */
   EventStates StyleState() const
   {
     if (!HasLockedStyleStates()) {
@@ -200,99 +200,99 @@ public:
     return StyleStateFromLocks();
   }
 
-  
-
-
+  /**
+   * The style state locks applied to this element.
+   */
   EventStates LockedStyleStates() const;
 
-  
-
-
+  /**
+   * Add a style state lock on this element.
+   */
   void LockStyleStates(EventStates aStates);
 
-  
-
-
+  /**
+   * Remove a style state lock on this element.
+   */
   void UnlockStyleStates(EventStates aStates);
 
-  
-
-
+  /**
+   * Clear all style state locks on this element.
+   */
   void ClearStyleStateLocks();
 
-  
-
-
+  /**
+   * Get the inline style rule, if any, for this element.
+   */
   virtual css::StyleRule* GetInlineStyleRule();
 
-  
-
-
-
+  /**
+   * Set the inline style rule for this element. This will send an appropriate
+   * AttributeChanged notification if aNotify is true.
+   */
   virtual nsresult SetInlineStyleRule(css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
                                       bool aNotify);
 
-  
-
-
-
+  /**
+   * Get the SMIL override style rule for this element. If the rule hasn't been
+   * created, this method simply returns null.
+   */
   virtual css::StyleRule* GetSMILOverrideStyleRule();
 
-  
-
-
-
-
+  /**
+   * Set the SMIL override style rule for this element. If aNotify is true, this
+   * method will notify the document's pres context, so that the style changes
+   * will be noticed.
+   */
   virtual nsresult SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
                                             bool aNotify);
 
-  
-
-
-
-
-
+  /**
+   * Returns a new nsISMILAttr that allows the caller to animate the given
+   * attribute on this element.
+   *
+   * The CALLER OWNS the result and is responsible for deleting it.
+   */
   virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName)
   {
     return nullptr;
   }
 
-  
-
-
-
-
-
-
-
+  /**
+   * Get the SMIL override style for this element. This is a style declaration
+   * that is applied *after* the inline style, and it can be used e.g. to store
+   * animated style values.
+   *
+   * Note: This method is analogous to the 'GetStyle' method in
+   * nsGenericHTMLElement and nsStyledElement.
+   */
   virtual nsICSSDeclaration* GetSMILOverrideStyle();
 
-  
-
-
+  /**
+   * Returns if the element is labelable as per HTML specification.
+   */
   virtual bool IsLabelable() const;
 
-  
+  /**
+   * Returns if the element is interactive content as per HTML specification.
+   */
+  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const;
 
-
-  virtual bool IsInteractiveHTMLContent() const;
-
-  
-
-
-
-
-
-
+  /**
+   * Is the attribute named stored in the mapped attributes?
+   *
+   * // XXXbz we use this method in HasAttributeDependentStyle, so svg
+   *    returns true here even though it stores nothing in the mapped
+   *    attributes.
+   */
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-  
-
-
-
-
-
+  /**
+   * Get a hint that tells the style system what to do when
+   * an attribute on this node changes, if something needs to happen
+   * in response to the change *other* than the result of what is
+   * mapped into style data via any type of style rule.
+   */
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                               int32_t aModType) const;
 
@@ -333,11 +333,11 @@ public:
         break;
     }
 
-    
-
-
-
-
+    /* 
+     * Only call UpdateState if we need to notify, because we call
+     * SetDirectionality for every element, and UpdateState is very very slow
+     * for some elements.
+     */
     if (aNotify) {
       UpdateState(true);
     }
@@ -345,10 +345,10 @@ public:
 
   bool GetBindingURL(nsIDocument *aDocument, css::URLValue **aResult);
 
-  
-  
-  
-  
+  // The bdi element defaults to dir=auto if it has no dir attribute set.
+  // Other elements will only have dir=auto if they have an explicit dir=auto,
+  // which will mean that HasValidDir() returns true but HasFixedDir() returns
+  // false
   inline bool HasDirAuto() const {
     return (!HasFixedDir() &&
             (HasValidDir() || IsHTMLElement(nsGkAtoms::bdi)));
@@ -357,58 +357,58 @@ public:
   Directionality GetComputedDirectionality() const;
 
 protected:
-  
-
-
-
-
-
+  /**
+   * Method to get the _intrinsic_ content state of this element.  This is the
+   * state that is independent of the element's presentation.  To get the full
+   * content state, use State().  See mozilla/EventStates.h for
+   * the possible bits that could be set here.
+   */
   virtual EventStates IntrinsicState() const;
 
-  
-
-
-
-
-
+  /**
+   * Method to add state bits.  This should be called from subclass
+   * constructors to set up our event state correctly at construction
+   * time and other places where we don't want to notify a state
+   * change.
+   */
   void AddStatesSilently(EventStates aStates)
   {
     mState |= aStates;
   }
 
-  
-
-
-
-
-
+  /**
+   * Method to remove state bits.  This should be called from subclass
+   * constructors to set up our event state correctly at construction
+   * time and other places where we don't want to notify a state
+   * change.
+   */
   void RemoveStatesSilently(EventStates aStates)
   {
     mState &= ~aStates;
   }
 
 private:
-  
-  
+  // Need to allow the ESM, nsGlobalWindow, and the focus manager to
+  // set our state
   friend class mozilla::EventStateManager;
   friend class ::nsGlobalWindow;
   friend class ::nsFocusManager;
   friend class ::nsDocument;
 
-  
+  // Also need to allow Link to call UpdateLinkState.
   friend class Link;
 
   void NotifyStateChange(EventStates aStates);
 
   void NotifyStyleStateChange(EventStates aStates);
 
-  
+  // Style state computed from element's state and style locks.
   EventStates StyleStateFromLocks() const;
 
 protected:
-  
-  
-  
+  // Methods for the ESM to manage state bits.  These will handle
+  // setting up script blockers when they notify, so no need to do it
+  // in the callers unless desired.
   virtual void AddStates(EventStates aStates)
   {
     NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
@@ -432,16 +432,16 @@ public:
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true) MOZ_OVERRIDE;
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Normalizes an attribute name and returns it as a nodeinfo if an attribute
+   * with that name exists. This method is intended for character case
+   * conversion if the content object is case insensitive (e.g. HTML). Returns
+   * the nodeinfo of the attribute with the specified name if one exists or
+   * null otherwise.
+   *
+   * @param aStr the unparsed attribute string
+   * @return the node info. May be nullptr.
+   */
   already_AddRefed<mozilla::dom::NodeInfo>
   GetExistingAttrNameFromQName(const nsAString& aStr) const;
 
@@ -451,22 +451,22 @@ public:
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
   }
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Helper for SetAttr/SetParsedAttr. This method will return true if aNotify
+   * is true or there are mutation listeners that must be triggered, the
+   * attribute is currently set, and the new value that is about to be set is
+   * different to the current value. As a perf optimization the new and old
+   * values will not actually be compared if we aren't notifying and we don't
+   * have mutation listeners (in which case it's cheap to just return false
+   * and let the caller go ahead and set the value).
+   * @param aOldValue Set to the old value of the attribute, but only if there
+   *   are event listeners. If set, the type of aOldValue will be either
+   *   nsAttrValue::eString or nsAttrValue::eAtom.
+   * @param aModType Set to nsIDOMMutationEvent::MODIFICATION or to
+   *   nsIDOMMutationEvent::ADDITION, but only if this helper returns true
+   * @param aHasListeners Set to true if there are mutation event listeners
+   *   listening for NS_EVENT_BITS_MUTATION_ATTRMODIFIED
+   */
   bool MaybeCheckSameAttrVal(int32_t aNamespaceID, nsIAtom* aName,
                              nsIAtom* aPrefix,
                              const nsAttrValueOrString& aValue,
@@ -483,12 +483,12 @@ public:
                            const nsAString& aValue, bool aNotify) MOZ_OVERRIDE;
   nsresult SetParsedAttr(int32_t aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                          nsAttrValue& aParsedValue, bool aNotify);
-  
-  
+  // GetAttr is not inlined on purpose, to keep down codesize from all
+  // the inlined nsAttrValue bits for C++ callers.
   bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                nsAString& aResult) const;
   inline bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const;
-  
+  // aCaseSensitive == eIgnoreCaase means ASCII case-insensitive matching.
   inline bool AttrValueIs(int32_t aNameSpaceID, nsIAtom* aName,
                           const nsAString& aValue,
                           nsCaseTreatment aCaseSensitive) const;
@@ -517,19 +517,19 @@ public:
 
   void Describe(nsAString& aOutDescription) const MOZ_OVERRIDE;
 
-  
-
-
+  /*
+   * Attribute Mapping Helpers
+   */
   struct MappedAttributeEntry {
     nsIAtom** attribute;
   };
 
-  
-
-
-
-
-
+  /**
+   * A common method where you can just pass in a list of maps to check
+   * for attribute dependence. Most implementations of
+   * IsAttributeMapped should use this function as a default
+   * handler.
+   */
   template<size_t N>
   static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
@@ -562,7 +562,7 @@ protected:
       val->ToString(aResult);
       return true;
     }
-    
+    // else DOMString comes pre-emptied.
     return false;
   }
 
@@ -578,7 +578,7 @@ public:
       val->ToString(aResult);
       return true;
     }
-    
+    // else DOMString comes pre-emptied.
     return false;
   }
 
@@ -695,9 +695,9 @@ public:
     }
     nsIPresShell::PointerCaptureInfo* pointerCaptureInfo = nullptr;
     if (nsIPresShell::gPointerCaptureList->Get(aPointerId, &pointerCaptureInfo) && pointerCaptureInfo) {
-      
-      
-      
+      // Call ReleasePointerCapture only on correct element
+      // (on element that have status pointer capture override
+      // or on element that have status pending pointer capture)
       if (pointerCaptureInfo->mOverrideContent == this) {
         nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
       } else if (pointerCaptureInfo->mPendingContent == this) {
@@ -707,9 +707,9 @@ public:
   }
   void SetCapture(bool aRetargetToElement)
   {
-    
-    
-    
+    // If there is already an active capture, ignore this request. This would
+    // occur if a splitter, frame resizer, etc had already captured and we don't
+    // want to override those.
     if (!nsIPresShell::GetCapturingContent()) {
       nsIPresShell::SetCapturingContent(this, CAPTURE_PREVENTDRAG |
         (aRetargetToElement ? CAPTURE_RETARGETTOELEMENT : 0));
@@ -722,7 +722,7 @@ public:
     }
   }
 
-  
+  // aCx == nullptr is allowed only if aOptions.isNullOrUndefined()
   void MozRequestFullScreen(JSContext* aCx, JS::Handle<JS::Value> aOptions,
                             ErrorResult& aError);
   void MozRequestPointerLock();
@@ -751,10 +751,10 @@ public:
   void ScrollTo(const ScrollToOptions& aOptions);
   void ScrollBy(double aXScrollDif, double aYScrollDif);
   void ScrollBy(const ScrollToOptions& aOptions);
-  
-
-
-
+  /* Scrolls without flushing the layout.
+   * aDx is the x offset, aDy the y offset in CSS pixels.
+   * Returns true if we actually scrolled.
+   */
   bool ScrollByNoFlush(int32_t aDx, int32_t aDy);
   int32_t ScrollTop();
   void SetScrollTop(int32_t aScrollTop);
@@ -817,36 +817,36 @@ public:
   void InsertAdjacentHTML(const nsAString& aPosition, const nsAString& aText,
                           ErrorResult& aError);
 
-  
+  //----------------------------------------
 
-  
-
-
-
-
-
-
+  /**
+   * Add a script event listener with the given event handler name
+   * (like onclick) and with the value as JS
+   * @param aEventName the event listener name
+   * @param aValue the JS to attach
+   * @param aDefer indicates if deferred execution is allowed
+   */
   nsresult SetEventHandler(nsIAtom* aEventName,
                            const nsAString& aValue,
                            bool aDefer = true);
 
-  
-
-
+  /**
+   * Do whatever needs to be done when the mouse leaves a link
+   */
   nsresult LeaveLink(nsPresContext* aPresContext);
 
   static bool ShouldBlur(nsIContent *aContent);
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Method to create and dispatch a left-click event loosely based on
+   * aSourceEvent. If aFullDispatch is true, the event will be dispatched
+   * through the full dispatching of the presshell of the aPresContext; if it's
+   * false the event will be dispatched only as a DOM event.
+   * If aPresContext is nullptr, this does nothing.
+   *
+   * @param aFlags      Extra flags for the dispatching event.  The true flags
+   *                    will be respected.
+   */
   static nsresult DispatchClickEvent(nsPresContext* aPresContext,
                                      WidgetInputEvent* aSourceEvent,
                                      nsIContent* aTarget,
@@ -854,13 +854,13 @@ public:
                                      const EventFlags* aFlags,
                                      nsEventStatus* aStatus);
 
-  
-
-
-
-
-
-
+  /**
+   * Method to dispatch aEvent to aTarget. If aFullDispatch is true, the event
+   * will be dispatched through the full dispatching of the presshell of the
+   * aPresContext; if it's false the event will be dispatched only as a DOM
+   * event.
+   * If aPresContext is nullptr, this does nothing.
+   */
   using nsIContent::DispatchEvent;
   static nsresult DispatchEvent(nsPresContext* aPresContext,
                                 WidgetEvent* aEvent,
@@ -868,21 +868,21 @@ public:
                                 bool aFullDispatch,
                                 nsEventStatus* aStatus);
 
-  
-
-
-
-
-
-
+  /**
+   * Get the primary frame for this content with flushing
+   *
+   * @param aType the kind of flush to do, typically Flush_Frames or
+   *              Flush_Layout
+   * @return the primary frame
+   */
   nsIFrame* GetPrimaryFrame(mozFlushType aType);
-  
+  // Work around silly C++ name hiding stuff
   nsIFrame* GetPrimaryFrame() const { return nsIContent::GetPrimaryFrame(); }
 
-  
-
-
-
+  /**
+   * Struct that stores info on an attribute.  The name and value must
+   * either both be null or both be non-null.
+   */
   struct nsAttrInfo {
     nsAttrInfo(const nsAttrName* aName, const nsAttrValue* aValue) :
       mName(aName), mValue(aValue) {}
@@ -898,11 +898,11 @@ public:
     return mAttrsAndChildren.GetAttr(aAttr);
   }
 
-  
-
-
-
-
+  /**
+   * Returns the attribute map, if there is one.
+   *
+   * @return existing attribute map or nullptr.
+   */
   nsDOMAttributeMap *GetAttributeMap()
   {
     nsDOMSlots *slots = GetExistingDOMSlots();
@@ -914,40 +914,40 @@ public:
   {
   }
 
-  
-
-
-
-
-
-
-
+  /**
+   * Get the attr info for the given namespace ID and attribute name.  The
+   * namespace ID must not be kNameSpaceID_Unknown and the name must not be
+   * null.  Note that this can only return info on attributes that actually
+   * live on this element (and is only virtual to handle XUL prototypes).  That
+   * is, this should only be called from methods that only care about attrs
+   * that effectively live in mAttrsAndChildren.
+   */
   virtual nsAttrInfo GetAttrInfo(int32_t aNamespaceID, nsIAtom* aName) const;
 
   virtual void NodeInfoChanged(mozilla::dom::NodeInfo* aOldNodeInfo)
   {
   }
 
-  
-
-
-
-
+  /**
+   * Parse a string into an nsAttrValue for a CORS attribute.  This
+   * never fails.  The resulting value is an enumerated value whose
+   * GetEnumValue() returns one of the above constants.
+   */
   static void ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult);
 
-  
-
-
+  /**
+   * Return the CORS mode for a given string
+   */
   static CORSMode StringToCORSMode(const nsAString& aValue);
   
-  
-
-
-
+  /**
+   * Return the CORS mode for a given nsAttrValue (which may be null,
+   * but if not should have been parsed via ParseCORSValue).
+   */
   static CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
 
-  
-  
+  // These are just used to implement nsIDOMElement using
+  // NS_FORWARD_NSIDOMELEMENT_TO_GENERIC and for quickstubs.
   void
     GetElementsByTagName(const nsAString& aQualifiedName,
                          nsIDOMHTMLCollection** aResult);
@@ -964,111 +964,111 @@ public:
 
   nsINode* GetScopeChainParent() const MOZ_OVERRIDE;
 
-  
-
-
+  /**
+   * Locate an nsIEditor rooted at this content node, if there is one.
+   */
   nsIEditor* GetEditorInternal();
 
-  
-
-
-
-
-
-
-
+  /**
+   * Helper method for NS_IMPL_BOOL_ATTR macro.
+   * Gets value of boolean attribute. Only works for attributes in null
+   * namespace.
+   *
+   * @param aAttr    name of attribute.
+   * @param aValue   Boolean value of attribute.
+   */
   bool GetBoolAttr(nsIAtom* aAttr) const
   {
     return HasAttr(kNameSpaceID_None, aAttr);
   }
 
-  
-
-
-
-
-
-
-
+  /**
+   * Helper method for NS_IMPL_BOOL_ATTR macro.
+   * Sets value of boolean attribute by removing attribute or setting it to
+   * the empty string. Only works for attributes in null namespace.
+   *
+   * @param aAttr    name of attribute.
+   * @param aValue   Boolean value of attribute.
+   */
   nsresult SetBoolAttr(nsIAtom* aAttr, bool aValue);
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Helper method for NS_IMPL_ENUM_ATTR_DEFAULT_VALUE.
+   * Gets the enum value string of an attribute and using a default value if
+   * the attribute is missing or the string is an invalid enum value.
+   *
+   * @param aType     the name of the attribute.
+   * @param aDefault  the default value if the attribute is missing or invalid.
+   * @param aResult   string corresponding to the value [out].
+   */
   void GetEnumAttr(nsIAtom* aAttr,
                    const char* aDefault,
                    nsAString& aResult) const;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Helper method for NS_IMPL_ENUM_ATTR_DEFAULT_MISSING_INVALID_VALUES.
+   * Gets the enum value string of an attribute and using the default missing
+   * value if the attribute is missing or the default invalid value if the
+   * string is an invalid enum value.
+   *
+   * @param aType            the name of the attribute.
+   * @param aDefaultMissing  the default value if the attribute is missing.  If
+                             null and the attribute is missing, aResult will be
+                             set to the null DOMString; this only matters for
+                             cases in which we're reflecting a nullable string.
+   * @param aDefaultInvalid  the default value if the attribute is invalid.
+   * @param aResult          string corresponding to the value [out].
+   */
   void GetEnumAttr(nsIAtom* aAttr,
                    const char* aDefaultMissing,
                    const char* aDefaultInvalid,
                    nsAString& aResult) const;
 
-  
-
-
+  /**
+   * Unset an attribute.
+   */
   void UnsetAttr(nsIAtom* aAttr, ErrorResult& aError)
   {
     aError = UnsetAttr(kNameSpaceID_None, aAttr, true);
   }
 
-  
-
-
+  /**
+   * Set an attribute in the simplest way possible.
+   */
   void SetAttr(nsIAtom* aAttr, const nsAString& aValue, ErrorResult& aError)
   {
     aError = SetAttr(kNameSpaceID_None, aAttr, aValue, true);
   }
 
-  
-
-
-
-
+  /**
+   * Set a content attribute via a reflecting nullable string IDL
+   * attribute (e.g. a CORS attribute).  If DOMStringIsNull(aValue),
+   * this will actually remove the content attribute.
+   */
   void SetOrRemoveNullableStringAttr(nsIAtom* aName, const nsAString& aValue,
                                      ErrorResult& aError);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Retrieve the ratio of font-size-inflated text font size to computed font
+   * size for this element. This will query the element for its primary frame,
+   * and then use this to get font size inflation information about the frame.
+   *
+   * @returns The font size inflation ratio (inflated font size to uninflated
+   *          font size) for the primary frame of this element. Returns 1.0
+   *          by default if font size inflation is not enabled. Returns -1
+   *          if the element does not have a primary frame.
+   *
+   * @note The font size inflation ratio that is returned is actually the
+   *       font size inflation data for the element's _primary frame_, not the
+   *       element itself, but for most purposes, this should be sufficient.
+   */
   float FontSizeInflation();
 
 protected:
-  
-
-
-
+  /*
+   * Named-bools for use with SetAttrAndNotify to make call sites easier to
+   * read.
+   */
   static const bool kFireMutationEvent           = true;
   static const bool kDontFireMutationEvent       = false;
   static const bool kNotifyDocumentObservers     = true;
@@ -1076,29 +1076,29 @@ protected:
   static const bool kCallAfterSetAttr            = true;
   static const bool kDontCallAfterSetAttr        = false;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Set attribute and (if needed) notify documentobservers and fire off
+   * mutation events.  This will send the AttributeChanged notification.
+   * Callers of this method are responsible for calling AttributeWillChange,
+   * since that needs to happen before the new attr value has been set, and
+   * in particular before it has been parsed.
+   *
+   * For the boolean parameters, consider using the named bools above to aid
+   * code readability.
+   *
+   * @param aNamespaceID  namespace of attribute
+   * @param aAttribute    local-name of attribute
+   * @param aPrefix       aPrefix of attribute
+   * @param aOldValue     previous value of attribute. Only needed if
+   *                      aFireMutation is true or if the element is a
+   *                      custom element (in web components).
+   * @param aParsedValue  parsed new value of attribute
+   * @param aModType      nsIDOMMutationEvent::MODIFICATION or ADDITION.  Only
+   *                      needed if aFireMutation or aNotify is true.
+   * @param aFireMutation should mutation-events be fired?
+   * @param aNotify       should we notify document-observers?
+   * @param aCallAfterSetAttr should we call AfterSetAttr?
+   */
   nsresult SetAttrAndNotify(int32_t aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
@@ -1109,67 +1109,67 @@ protected:
                             bool aNotify,
                             bool aCallAfterSetAttr);
 
-  
-
-
-
-
-
-
-
-
+  /**
+   * Scroll to a new position using behavior evaluated from CSS and
+   * a CSSOM-View DOM method ScrollOptions dictionary.  The scrolling may
+   * be performed asynchronously or synchronously depending on the resolved
+   * scroll-behavior.
+   *
+   * @param aScroll       Destination of scroll, in CSS pixels
+   * @param aOptions      Dictionary of options to be evaluated
+   */
   void Scroll(const CSSIntPoint& aScroll, const ScrollOptions& aOptions);
 
-  
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Convert an attribute string value to attribute type based on the type of
+   * attribute.  Called by SetAttr().  Note that at the moment we only do this
+   * for attributes in the null namespace (kNameSpaceID_None).
+   *
+   * @param aNamespaceID the namespace of the attribute to convert
+   * @param aAttribute the attribute to convert
+   * @param aValue the string value to convert
+   * @param aResult the nsAttrValue [OUT]
+   * @return true if the parsing was successful, false otherwise
+   */
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Try to set the attribute as a mapped attribute, if applicable.  This will
+   * only be called for attributes that are in the null namespace and only on
+   * attributes that returned true when passed to IsAttributeMapped.  The
+   * caller will not try to set the attr in any other way if this method
+   * returns true (the value of aRetval does not matter for that purpose).
+   *
+   * @param aDocument the current document of this node (an optimization)
+   * @param aName the name of the attribute
+   * @param aValue the nsAttrValue to set
+   * @param [out] aRetval the nsresult status of the operation, if any.
+   * @return true if the setting was attempted, false otherwise.
+   */
   virtual bool SetMappedAttribute(nsIDocument* aDocument,
                                     nsIAtom* aName,
                                     nsAttrValue& aValue,
                                     nsresult* aRetval);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
+  /**
+   * Hook that is called by Element::SetAttr to allow subclasses to
+   * deal with attribute sets.  This will only be called after we verify that
+   * we're actually doing an attr set and will be called before
+   * AttributeWillChange and before ParseAttribute and hence before we've set
+   * the new value.
+   *
+   * @param aNamespaceID the namespace of the attr being set
+   * @param aName the localname of the attribute being set
+   * @param aValue the value it's being set to represented as either a string or
+   *        a parsed nsAttrValue. Alternatively, if the attr is being removed it
+   *        will be null.
+   * @param aNotify Whether we plan to notify document observers.
+   */
+  // Note that this is inlined so that when subclasses call it it gets
+  // inlined.  Those calls don't go through a vtable.
   virtual nsresult BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify)
@@ -1177,36 +1177,36 @@ protected:
     return NS_OK;
   }
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  
-  
+  /**
+   * Hook that is called by Element::SetAttr to allow subclasses to
+   * deal with attribute sets.  This will only be called after we have called
+   * SetAndTakeAttr and AttributeChanged (that is, after we have actually set
+   * the attr).  It will always be called under a scriptblocker.
+   *
+   * @param aNamespaceID the namespace of the attr being set
+   * @param aName the localname of the attribute being set
+   * @param aValue the value it's being set to.  If null, the attr is being
+   *        removed.
+   * @param aNotify Whether we plan to notify document observers.
+   */
+  // Note that this is inlined so that when subclasses call it it gets
+  // inlined.  Those calls don't go through a vtable.
   virtual nsresult AfterSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                 const nsAttrValue* aValue, bool aNotify)
   {
     return NS_OK;
   }
 
-  
-
-
-
+  /**
+   * Hook to allow subclasses to produce a different EventListenerManager if
+   * needed for attachment of attribute-defined handlers
+   */
   virtual EventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
 
-  
-
-
+  /**
+   * Internal hook for converting an attribute name-string to an atomized name
+   */
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
   nsIFrame* GetStyledFrame();
@@ -1222,48 +1222,48 @@ protected:
   inline void RegisterActivityObserver();
   inline void UnregisterActivityObserver();
 
-  
-
-
+  /**
+   * Add/remove this element to the documents id cache
+   */
   void AddToIdTable(nsIAtom* aId);
   void RemoveFromIdTable();
 
-  
+  /**
+   * Functions to carry out event default actions for links of all types
+   * (HTML links, XLinks, SVG "XLinks", etc.)
+   */
 
-
-
-
-  
-
-
-
-
-
-
-
+  /**
+   * Check that we meet the conditions to handle a link event
+   * and that we are actually on a link.
+   *
+   * @param aVisitor event visitor
+   * @param aURI the uri of the link, set only if the return value is true [OUT]
+   * @return true if we can handle the link event, false otherwise
+   */
   bool CheckHandleEventForLinksPrecondition(EventChainVisitor& aVisitor,
                                             nsIURI** aURI) const;
 
-  
-
-
+  /**
+   * Handle status bar updates before they can be cancelled.
+   */
   nsresult PreHandleEventForLinks(EventChainPreVisitor& aVisitor);
 
-  
-
-
+  /**
+   * Handle default actions for link event if the event isn't consumed yet.
+   */
   nsresult PostHandleEventForLinks(EventChainPostVisitor& aVisitor);
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Get the target of this link element. Consumers should established that
+   * this element is a link (probably using IsLink) before calling this
+   * function (or else why call it?)
+   *
+   * Note: for HTML this gets the value of the 'target' attribute; for XLink
+   * this gets the value of the xlink:_moz_target attribute, or failing that,
+   * the value of xlink:show, converted to a suitably equivalent named target
+   * (e.g. _blank).
+   */
   virtual void GetLinkTarget(nsAString& aTarget);
 
   nsDOMSettableTokenList* GetTokenList(nsIAtom* aAtom);
@@ -1271,16 +1271,16 @@ protected:
   nsresult SetTokenList(nsIAtom* aAtom, nsIVariant* aValue);
 
 private:
-  
-
-
-
+  /**
+   * Get this element's client area rect in app units.
+   * @return the frame's client area
+   */
   nsRect GetClientAreaRect();
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nullptr,
                                      bool aFlushLayout = true);
 
-  
+  // Data members
   EventStates mState;
 };
 
@@ -1307,10 +1307,10 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(DestinationInsertionPointList)
 
-  
+  // nsIDOMNodeList
   NS_DECL_NSIDOMNODELIST
 
-  
+  // nsINodeList
   virtual nsIContent* Item(uint32_t aIndex) MOZ_OVERRIDE;
   virtual int32_t IndexOf(nsIContent* aContent) MOZ_OVERRIDE;
   virtual nsINode* GetParentObject() MOZ_OVERRIDE { return mParent; }
@@ -1362,8 +1362,8 @@ Element::AttrValueIs(int32_t aNameSpaceID,
   return val && val->Equals(aValue, aCaseSensitive);
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 inline mozilla::dom::Element* nsINode::AsElement()
 {
@@ -1377,10 +1377,10 @@ inline const mozilla::dom::Element* nsINode::AsElement() const
   return static_cast<const mozilla::dom::Element*>(this);
 }
 
-
-
-
-
+/**
+ * Macros to implement Clone(). _elementName is the class for which to implement
+ * Clone.
+ */
 #define NS_IMPL_ELEMENT_CLONE(_elementName)                                 \
 nsresult                                                                    \
 _elementName::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const \
@@ -1427,13 +1427,13 @@ _elementName::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const 
   return rv;                                                                \
 }
 
-
-
-
-
-
-
-
+/**
+ * A macro to implement the getter and setter for a given string
+ * valued content property. The method uses the generic GetAttr and
+ * SetAttr methods.  We use the 5-argument form of SetAttr, because
+ * some consumers only implement that one, hiding superclass
+ * 4-argument forms.
+ */
 #define NS_IMPL_STRING_ATTR(_class, _method, _atom)                     \
   NS_IMETHODIMP                                                         \
   _class::Get##_method(nsAString& aValue)                               \
@@ -1447,11 +1447,11 @@ _elementName::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const 
     return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
   }
 
-
-
-
-
-
+/**
+ * A macro to implement the getter and setter for a given boolean
+ * valued content property. The method uses the GetBoolAttr and
+ * SetBoolAttr methods.
+ */
 #define NS_IMPL_BOOL_ATTR(_class, _method, _atom)                     \
   NS_IMETHODIMP                                                       \
   _class::Get##_method(bool* aValue)                                  \
@@ -1803,4 +1803,4 @@ NS_IMETHOD QuerySelectorAll(const nsAString& aSelector,                       \
   return nsINode::QuerySelectorAll(aSelector, aReturn);                       \
 }
 
-#endif 
+#endif // mozilla_dom_Element_h__

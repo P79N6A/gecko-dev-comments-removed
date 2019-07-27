@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_HTMLIFrameElement_h
 #define mozilla_dom_HTMLIFrameElement_h
@@ -23,19 +23,19 @@ public:
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLIFrameElement, iframe)
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
-  virtual bool IsInteractiveHTMLContent() const MOZ_OVERRIDE
+  // Element
+  virtual bool IsInteractiveHTMLContent(bool aIgnoreTabindex) const MOZ_OVERRIDE
   {
     return true;
   }
 
-  
+  // nsIDOMHTMLIFrameElement
   NS_DECL_NSIDOMHTMLIFRAMEELEMENT
 
-  
+  // nsIContent
   virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
@@ -61,8 +61,8 @@ public:
 
   uint32_t GetSandboxFlags();
 
-  
-  
+  // Web IDL binding methods
+  // The XPCOM GetSrc is fine for our purposes
   void SetSrc(const nsAString& aSrc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::src, aSrc, aError);
@@ -137,7 +137,7 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::frameborder, aFrameBorder, aError);
   }
-  
+  // The XPCOM GetLongDesc is fine
   void SetLongDesc(const nsAString& aLongDesc, ErrorResult& aError)
   {
     SetHTMLAttr(nsGkAtoms::longdesc, aLongDesc, aError);
@@ -171,8 +171,8 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::mozbrowser, aAllow, aError);
   }
   using nsGenericHTMLFrameElement::SetMozbrowser;
-  
-  
+  // nsGenericHTMLFrameElement::GetFrameLoader is fine
+  // nsGenericHTMLFrameElement::GetAppManifestURL is fine
 
 protected:
   virtual ~HTMLIFrameElement();
@@ -187,7 +187,7 @@ private:
                                     nsRuleData* aData);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #endif
