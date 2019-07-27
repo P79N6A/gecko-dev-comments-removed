@@ -1123,4 +1123,17 @@ CertStatus(OCSPResponseContext& context)
   return ByteString();
 }
 
+static const ByteString NO_UNUSED_BITS(1, 0x00);
+
+
+TestKeyPair::TestKeyPair(const TestPublicKeyAlgorithm& publicKeyAlg,
+                         const ByteString& spk)
+  : publicKeyAlg(publicKeyAlg)
+  , subjectPublicKeyInfo(TLV(der::SEQUENCE,
+                             publicKeyAlg.algorithmIdentifier +
+                             TLV(der::BIT_STRING, NO_UNUSED_BITS + spk)))
+  , subjectPublicKey(spk)
+{
+}
+
 } } } 
