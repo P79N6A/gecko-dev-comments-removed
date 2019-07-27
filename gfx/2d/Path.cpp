@@ -437,7 +437,7 @@ FlattenBezier(const BezierControlPoints &aControlPoints,
   FindInflectionPoints(aControlPoints, &t1, &t2, &count);
 
   
-  if (count == 0 || ((t1 < 0 || t1 > 1.0) && ((t2 < 0 || t2 > 1.0) || count == 1)) ) {
+  if (count == 0 || ((t1 < 0 || t1 > 1.0) && (count == 1 || (t2 < 0 || t2 > 1.0))) ) {
     FlattenBezierCurveSegment(aControlPoints, aSink, aTolerance);
     return;
   }
