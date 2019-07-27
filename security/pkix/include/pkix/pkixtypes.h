@@ -158,7 +158,7 @@ public:
   
   
   
-  virtual SECStatus VerifySignedData(const CERTSignedData* signedData,
+  virtual SECStatus VerifySignedData(const CERTSignedData& signedData,
                                      const SECItem& subjectPublicKeyInfo) = 0;
 
   

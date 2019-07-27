@@ -96,55 +96,109 @@ public:
   MOZILLA_PKIX_ENUM_CLASS IncludeCN { No = 0, Yes = 1 };
 
   
-  BackCert(BackCert* childCert, IncludeCN includeCN)
-    : encodedAuthorityInfoAccess(nullptr)
-    , encodedBasicConstraints(nullptr)
-    , encodedCertificatePolicies(nullptr)
-    , encodedExtendedKeyUsage(nullptr)
-    , encodedKeyUsage(nullptr)
-    , encodedNameConstraints(nullptr)
-    , encodedInhibitAnyPolicy(nullptr)
+  BackCert(const SECItem& certDER, const BackCert* childCert,
+           IncludeCN includeCN)
+    : der(certDER)
     , childCert(childCert)
     , includeCN(includeCN)
   {
   }
 
-  Result Init(const SECItem& certDER);
+  Result Init();
 
-  const SECItem& GetDER() const { return nssCert->derCert; }
-  const SECItem& GetIssuer() const { return nssCert->derIssuer; }
-  const SECItem& GetSerialNumber() const { return nssCert->serialNumber; }
-  const SECItem& GetSubject() const { return nssCert->derSubject; }
+  const SECItem& GetDER() const { return der; }
+  const der::Version GetVersion() const { return version; }
+  const CERTSignedData& GetSignedData() const { return signedData; }
+  const SECItem& GetIssuer() const { return issuer; }
+  
+  
+  
+  const SECItem& GetValidity() const { return validity; }
+  const SECItem& GetSerialNumber() const { return serialNumber; }
+  const SECItem& GetSubject() const { return subject; }
   const SECItem& GetSubjectPublicKeyInfo() const
   {
-    return nssCert->derPublicKey;
+    return subjectPublicKeyInfo;
+  }
+  const SECItem* GetAuthorityInfoAccess() const
+  {
+    return MaybeSECItem(authorityInfoAccess);
+  }
+  const SECItem* GetBasicConstraints() const
+  {
+    return MaybeSECItem(basicConstraints);
+  }
+  const SECItem* GetCertificatePolicies() const
+  {
+    return MaybeSECItem(certificatePolicies);
+  }
+  const SECItem* GetExtKeyUsage() const { return MaybeSECItem(extKeyUsage); }
+  const SECItem* GetKeyUsage() const { return MaybeSECItem(keyUsage); }
+  const SECItem* GetInhibitAnyPolicy() const
+  {
+    return MaybeSECItem(inhibitAnyPolicy);
+  }
+  const SECItem* GetNameConstraints() const
+  {
+    return MaybeSECItem(nameConstraints);
   }
 
-  Result VerifyOwnSignatureWithKey(TrustDomain& trustDomain,
-                                   const SECItem& subjectPublicKeyInfo) const;
+private:
+  const SECItem& der;
 
-  der::Version version;
-
-  const SECItem* encodedAuthorityInfoAccess;
-  const SECItem* encodedBasicConstraints;
-  const SECItem* encodedCertificatePolicies;
-  const SECItem* encodedExtendedKeyUsage;
-  const SECItem* encodedKeyUsage;
-  const SECItem* encodedNameConstraints;
-  const SECItem* encodedInhibitAnyPolicy;
-
-  BackCert* const childCert;
+public:
+  BackCert const* const childCert;
   const IncludeCN includeCN;
 
-  
-  
-  
-  
-  
-   CERTCertificate* GetNSSCert() const { return nssCert.get(); }
-
 private:
-  ScopedCERTCertificate nssCert;
+  der::Version version;
+
+  
+  
+  
+  
+  
+  
+  static inline const SECItem* MaybeSECItem(const SECItem& item)
+  {
+    return item.len > 0 ? &item : nullptr;
+  }
+
+  
+  
+  
+  struct NonOwningSECItem : public SECItemStr {
+    NonOwningSECItem()
+    {
+      data = nullptr;
+      len = 0;
+    }
+  };
+  struct NonOwningCERTSignedData : public CERTSignedDataStr {
+    NonOwningCERTSignedData() { memset(this, 0, sizeof(*this)); }
+  };
+
+  NonOwningCERTSignedData signedData;
+  NonOwningSECItem issuer;
+  
+  
+  
+  NonOwningSECItem validity;
+  NonOwningSECItem serialNumber;
+  NonOwningSECItem subject;
+  NonOwningSECItem subjectPublicKeyInfo;
+
+  NonOwningSECItem authorityInfoAccess;
+  NonOwningSECItem basicConstraints;
+  NonOwningSECItem certificatePolicies;
+  NonOwningSECItem extKeyUsage;
+  NonOwningSECItem inhibitAnyPolicy;
+  NonOwningSECItem keyUsage;
+  NonOwningSECItem nameConstraints;
+  NonOwningSECItem subjectAltName;
+
+  der::Result RememberExtension(der::Input& extnID, const SECItem& extnValue,
+                                 bool& understood);
 
   BackCert(const BackCert&) ;
   void operator=(const BackCert&); ;

@@ -333,22 +333,33 @@ TEST_F(pkixder_universal_types_tests, EnumeratedInvalidZeroLength)
                      static_cast<uint8_t>('0' + ((t) % 10u))
 
 
+template <uint16_t LENGTH>
+Result
+TimeChoiceForEquivalentUTCTime(const uint8_t (&generalizedTimeDER)[LENGTH],
+                                PRTime& value)
+{
+  static_assert(LENGTH >= 4,
+                "TimeChoiceForEquivalentUTCTime input too small");
+  uint8_t utcTimeDER[LENGTH - 2];
+  utcTimeDER[0] = 0x17; 
+  utcTimeDER[1] = LENGTH - 1 - 1 - 2;
+  
+  for (size_t i = 2; i < LENGTH - 2; ++i) {
+    utcTimeDER[i] = generalizedTimeDER[i + 2];
+  }
 
-static const uint16_t GT_VALUE_OFFSET = 2;
-
-
-
-
-static const uint16_t UTC_VALUE_OFFSET = 4;
+  Input input;
+  if (input.Init(utcTimeDER, sizeof utcTimeDER) != Success) {
+    return Failure;
+  }
+  return TimeChoice(input, value);
+}
 
 template <uint16_t LENGTH>
 void
 ExpectGoodTime(PRTime expectedValue,
                const uint8_t (&generalizedTimeDER)[LENGTH])
 {
-  static_assert(LENGTH >= UTC_VALUE_OFFSET,
-                "ExpectGoodTime requires input at least UTC_VALUE_OFFSET bytes");
-
   
   {
     Input input;
@@ -361,20 +372,17 @@ ExpectGoodTime(PRTime expectedValue,
   
   {
     Input input;
-    ASSERT_EQ(Success, input.Init(generalizedTimeDER + GT_VALUE_OFFSET,
-                                  LENGTH - GT_VALUE_OFFSET));
+    ASSERT_EQ(Success, input.Init(generalizedTimeDER, LENGTH));
     PRTime value = 0;
-    ASSERT_EQ(Success, TimeChoice(siGeneralizedTime, input, value));
+    ASSERT_EQ(Success, TimeChoice(input, value));
     EXPECT_EQ(expectedValue, value);
   }
 
   
   {
-    Input input;
-    ASSERT_EQ(Success, input.Init(generalizedTimeDER + UTC_VALUE_OFFSET,
-                                  LENGTH - UTC_VALUE_OFFSET));
     PRTime value = 0;
-    ASSERT_EQ(Success, TimeChoice(siUTCTime, input, value));
+    ASSERT_EQ(Success,
+              TimeChoiceForEquivalentUTCTime(generalizedTimeDER, value));
     EXPECT_EQ(expectedValue, value);
   }
 }
@@ -383,9 +391,6 @@ template <uint16_t LENGTH>
 void
 ExpectBadTime(const uint8_t (&generalizedTimeDER)[LENGTH])
 {
-  static_assert(LENGTH >= UTC_VALUE_OFFSET,
-                "ExpectBadTime requires input at least UTC_VALUE_OFFSET bytes");
-
   
   {
     Input input;
@@ -398,23 +403,17 @@ ExpectBadTime(const uint8_t (&generalizedTimeDER)[LENGTH])
   
   {
     Input input;
-    ASSERT_EQ(Success,
-              input.Init(generalizedTimeDER + GT_VALUE_OFFSET,
-                         LENGTH - GT_VALUE_OFFSET));
+    ASSERT_EQ(Success, input.Init(generalizedTimeDER, LENGTH));
     PRTime value;
-    ASSERT_EQ(Failure, TimeChoice(siGeneralizedTime, input, value));
+    ASSERT_EQ(Failure, TimeChoice(input, value));
     EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
   }
 
   
   {
-    Input input;
-    ASSERT_EQ(Success,
-              input.Init(generalizedTimeDER + UTC_VALUE_OFFSET,
-                         LENGTH - UTC_VALUE_OFFSET));
     PRTime value;
-    ASSERT_EQ(Failure, TimeChoice(siUTCTime, input, value));
-    EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
+    ASSERT_EQ(Failure,
+              TimeChoiceForEquivalentUTCTime(generalizedTimeDER, value));
   }
 }
 
@@ -457,18 +456,23 @@ TEST_F(pkixder_universal_types_tests, TimeInvalidZeroLength)
   ASSERT_EQ(Failure, GeneralizedTime(gt, value));
   ASSERT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
 
-  static const uint8_t dummy[1] = { 'X' };
-
   
   Input tc_gt;
-  ASSERT_EQ(Success, tc_gt.Init(dummy, 0));
-  ASSERT_EQ(Failure, TimeChoice(siGeneralizedTime, tc_gt, value));
+  ASSERT_EQ(Success,
+            tc_gt.Init(DER_GENERALIZED_TIME_INVALID_ZERO_LENGTH,
+                       sizeof DER_GENERALIZED_TIME_INVALID_ZERO_LENGTH));
+  ASSERT_EQ(Failure, TimeChoice(tc_gt, value));
   ASSERT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
 
   
+  const uint8_t DER_UTCTIME_INVALID_ZERO_LENGTH[] = {
+    0x17, 
+    0x00  
+  };
   Input tc_utc;
-  ASSERT_EQ(Success, tc_utc.Init(dummy, 0));
-  ASSERT_EQ(Failure, TimeChoice(siUTCTime, tc_utc, value));
+  ASSERT_EQ(Success, tc_utc.Init(DER_UTCTIME_INVALID_ZERO_LENGTH,
+                                 sizeof DER_UTCTIME_INVALID_ZERO_LENGTH));
+  ASSERT_EQ(Failure, TimeChoice(tc_utc, value));
   ASSERT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
 }
 
@@ -494,7 +498,7 @@ TEST_F(pkixder_universal_types_tests, TimeInvalidTruncated)
   ExpectBadTime(DER_GENERALIZED_TIME_INVALID_TRUNCATED);
 }
 
-TEST_F(pkixder_universal_types_tests, GeneralizedTimeNoSeconds)
+TEST_F(pkixder_universal_types_tests, TimeNoSeconds)
 {
   const uint8_t DER_GENERALIZED_TIME_NO_SECONDS[] = {
     0x18,                           
@@ -559,20 +563,17 @@ TEST_F(pkixder_universal_types_tests, GeneralizedTimeYearValidRange)
     
     {
       Input input;
-      ASSERT_EQ(Success, input.Init(DER + GT_VALUE_OFFSET,
-                                    sizeof(DER) - GT_VALUE_OFFSET));
+      ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
       PRTime value = 0;
-      ASSERT_EQ(Success, TimeChoice(siGeneralizedTime, input, value));
+      ASSERT_EQ(Success, TimeChoice(input, value));
       EXPECT_EQ(expectedValue, value);
     }
 
     
     if (i <= 2049) {
       Input input;
-      ASSERT_EQ(Success, input.Init(DER + UTC_VALUE_OFFSET,
-                                    sizeof(DER) - UTC_VALUE_OFFSET));
       PRTime value = 0;
-      ASSERT_EQ(Success, TimeChoice(siUTCTime, input, value));
+      ASSERT_EQ(Success, TimeChoiceForEquivalentUTCTime(DER, value));
       EXPECT_EQ(expectedValue, value);
     }
   }
@@ -718,10 +719,9 @@ TEST_F(pkixder_universal_types_tests, TimeMonthFebLeapYear2400)
   
   {
     Input input;
-    ASSERT_EQ(Success, input.Init(DER + GT_VALUE_OFFSET,
-                                  sizeof(DER) - GT_VALUE_OFFSET));
+    ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
     PRTime value = 0;
-    ASSERT_EQ(Success, TimeChoice(siGeneralizedTime, input, value));
+    ASSERT_EQ(Success, TimeChoice(input, value));
     EXPECT_EQ(expectedValue, value);
   }
 }
@@ -760,11 +760,9 @@ TEST_F(pkixder_universal_types_tests, TimeMonthFebNotLeapYear2100)
   
   {
     Input input;
-    ASSERT_EQ(Success,
-              input.Init(DER + GT_VALUE_OFFSET,
-                         sizeof(DER) - GT_VALUE_OFFSET));
+    ASSERT_EQ(Success, input.Init(DER, sizeof(DER)));
     PRTime value;
-    ASSERT_EQ(Failure, TimeChoice(siGeneralizedTime, input, value));
+    ASSERT_EQ(Failure, TimeChoice(input, value));
     EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
   }
 }
@@ -908,7 +906,7 @@ TEST_F(pkixder_universal_types_tests, TimeInvalidCenturyChar)
               input.Init(DER_GENERALIZED_TIME_INVALID_CENTURY_CHAR,
                          sizeof DER_GENERALIZED_TIME_INVALID_CENTURY_CHAR));
     PRTime value = 0;
-    ASSERT_EQ(Failure, TimeChoice(siGeneralizedTime, input, value));
+    ASSERT_EQ(Failure, TimeChoice(input, value));
     EXPECT_EQ(SEC_ERROR_INVALID_TIME, PR_GetError());
   }
 

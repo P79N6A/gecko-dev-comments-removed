@@ -27,135 +27,11 @@
 #include <limits>
 
 #include "pkixcheck.h"
-#include "pkixder.h"
 
 namespace mozilla { namespace pkix {
 
-
-
-
-
-
-
-Result
-BackCert::Init(const SECItem& certDER)
-{
-  
-  
-  
-  
-  
-  nssCert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
-                                    const_cast<SECItem*>(&certDER),
-                                    nullptr, false, true);
-  if (!nssCert) {
-    return MapSECStatus(SECFailure);
-  }
-
-  if (nssCert->version.len == 1 &&
-      nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v3)) {
-    version = der::Version::v3;
-  } else if (nssCert->version.len == 1 &&
-             nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v2)) {
-    version = der::Version::v2;
-  } else if (nssCert->version.len == 1 &&
-             nssCert->version.data[0] == static_cast<uint8_t>(der::Version::v2)) {
-    
-    
-    version = der::Version::v1;
-  } else if (nssCert->version.len == 0) {
-    version = der::Version::v1;
-  } else {
-    
-    
-    return Fail(RecoverableError, SEC_ERROR_BAD_DER);
-  }
-
-  const CERTCertExtension* const* exts = nssCert->extensions;
-  if (!exts) {
-    return Success;
-  }
-
-  
-  
-  
-  
-  
-  if (version != der::Version::v3) {
-    return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
-  }
-
-  const SECItem* dummyEncodedSubjectKeyIdentifier = nullptr;
-  const SECItem* dummyEncodedAuthorityKeyIdentifier = nullptr;
-  const SECItem* dummyEncodedSubjectAltName = nullptr;
-
-  for (const CERTCertExtension* ext = *exts; ext; ext = *++exts) {
-    const SECItem** out = nullptr;
-
-    
-    static const uint8_t id_ce[] = {
-      0x55, 0x1d
-    };
-
-    
-    static const uint8_t id_pe_authorityInfoAccess[] = {
-      0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x01, 0x01
-    };
-
-    if (ext->id.len == PR_ARRAY_SIZE(id_ce) + 1 &&
-        !memcmp(ext->id.data, id_ce, PR_ARRAY_SIZE(id_ce))) {
-      switch (ext->id.data[ext->id.len - 1]) {
-        case 14: out = &dummyEncodedSubjectKeyIdentifier; break; 
-        case 15: out = &encodedKeyUsage; break;
-        case 17: out = &dummyEncodedSubjectAltName; break; 
-        case 19: out = &encodedBasicConstraints; break;
-        case 30: out = &encodedNameConstraints; break;
-        case 32: out = &encodedCertificatePolicies; break;
-        case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
-        case 37: out = &encodedExtendedKeyUsage; break;
-        case 54: out = &encodedInhibitAnyPolicy; break; 
-      }
-    } else if (ext->id.len == PR_ARRAY_SIZE(id_pe_authorityInfoAccess) &&
-               !memcmp(ext->id.data, id_pe_authorityInfoAccess,
-                       PR_ARRAY_SIZE(id_pe_authorityInfoAccess))) {
-      
-      
-      
-      out = &encodedAuthorityInfoAccess;
-    }
-
-    
-    
-    
-    
-    if (!out && ext->critical.data && ext->critical.len > 0) {
-      return Fail(RecoverableError, SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION);
-    }
-
-    if (out) {
-      
-      
-      if (*out) {
-        
-        return Fail(RecoverableError, SEC_ERROR_EXTENSION_VALUE_INVALID);
-      }
-      *out = &ext->value;
-    }
-  }
-
-  return Success;
-}
-
-Result
-BackCert::VerifyOwnSignatureWithKey(TrustDomain& trustDomain,
-                                    const SECItem& subjectPublicKeyInfo) const
-{
-  return MapSECStatus(trustDomain.VerifySignedData(&nssCert->signatureWrap,
-                                                   subjectPublicKeyInfo));
-}
-
 static Result BuildForward(TrustDomain& trustDomain,
-                           BackCert& subject,
+                           const BackCert& subject,
                            PRTime time,
                            EndEntityOrCA endEntityOrCA,
                            KeyUsage requiredKeyUsageIfPresent,
@@ -168,7 +44,7 @@ static Result BuildForward(TrustDomain& trustDomain,
 
 static Result
 BuildForwardInner(TrustDomain& trustDomain,
-                  BackCert& subject,
+                  const BackCert& subject,
                   PRTime time,
                   KeyPurposeId requiredEKUIfPresent,
                   const CertPolicyId& requiredPolicy,
@@ -176,8 +52,9 @@ BuildForwardInner(TrustDomain& trustDomain,
                   unsigned int subCACount,
                    ScopedCERTCertList& results)
 {
-  BackCert potentialIssuer(&subject, BackCert::IncludeCN::No);
-  Result rv = potentialIssuer.Init(potentialIssuerDER);
+  BackCert potentialIssuer(potentialIssuerDER, &subject,
+                           BackCert::IncludeCN::No);
+  Result rv = potentialIssuer.Init();
   if (rv != Success) {
     return rv;
   }
@@ -189,7 +66,7 @@ BuildForwardInner(TrustDomain& trustDomain,
   
   
   bool loopDetected = false;
-  for (BackCert* prev = potentialIssuer.childCert;
+  for (const BackCert* prev = potentialIssuer.childCert;
        !loopDetected && prev != nullptr; prev = prev->childCert) {
     if (SECITEM_ItemsAreEqual(&potentialIssuer.GetSubjectPublicKeyInfo(),
                               &prev->GetSubjectPublicKeyInfo()) &&
@@ -214,8 +91,14 @@ BuildForwardInner(TrustDomain& trustDomain,
     return rv;
   }
 
-  return subject.VerifyOwnSignatureWithKey(
-                   trustDomain, potentialIssuer.GetSubjectPublicKeyInfo());
+  SECStatus srv = trustDomain.VerifySignedData(
+                                subject.GetSignedData(),
+                                potentialIssuer.GetSubjectPublicKeyInfo());
+  if (srv != SECSuccess) {
+    return MapSECStatus(srv);
+  }
+
+  return Success;
 }
 
 
@@ -226,7 +109,7 @@ BuildForwardInner(TrustDomain& trustDomain,
 
 static Result
 BuildForward(TrustDomain& trustDomain,
-             BackCert& subject,
+             const BackCert& subject,
              PRTime time,
              EndEntityOrCA endEntityOrCA,
              KeyUsage requiredKeyUsageIfPresent,
@@ -265,13 +148,15 @@ BuildForward(TrustDomain& trustDomain,
     if (!results) {
       return MapSECStatus(SECFailure);
     }
-    for (BackCert* cert = &subject; cert; cert = cert->childCert) {
-      CERTCertificate* dup = CERT_DupCertificate(cert->GetNSSCert());
-      if (CERT_AddCertToListHead(results.get(), dup) != SECSuccess) {
-        CERT_DestroyCertificate(dup);
+    for (const BackCert* cert = &subject; cert; cert = cert->childCert) {
+      ScopedCERTCertificate
+        nssCert(CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
+                                        const_cast<SECItem*>(&cert->GetDER()),
+                                        nullptr, false, true));
+      if (CERT_AddCertToListHead(results.get(), nssCert.get()) != SECSuccess) {
         return MapSECStatus(SECFailure);
       }
-      
+      nssCert.release(); 
     }
 
     
@@ -326,7 +211,7 @@ BuildForward(TrustDomain& trustDomain,
       SECStatus srv = trustDomain.CheckRevocation(
                                     endEntityOrCA, certID, time,
                                     stapledOCSPResponse,
-                                    subject.encodedAuthorityInfoAccess);
+                                    subject.GetAuthorityInfoAccess());
       if (srv != SECSuccess) {
         return MapSECStatus(SECFailure);
       }
@@ -365,22 +250,14 @@ BuildForward(TrustDomain& trustDomain,
 }
 
 SECStatus
-BuildCertChain(TrustDomain& trustDomain,
-               const CERTCertificate* nssCert,
-               PRTime time,
-               EndEntityOrCA endEntityOrCA,
+BuildCertChain(TrustDomain& trustDomain, const SECItem& certDER,
+               PRTime time, EndEntityOrCA endEntityOrCA,
                KeyUsage requiredKeyUsageIfPresent,
                KeyPurposeId requiredEKUIfPresent,
                const CertPolicyId& requiredPolicy,
                 const SECItem* stapledOCSPResponse,
                 ScopedCERTCertList& results)
 {
-  if (!nssCert) {
-    PR_NOT_REACHED("null cert passed to BuildCertChain");
-    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
-    return SECFailure;
-  }
-
   
   
   BackCert::IncludeCN includeCN
@@ -389,8 +266,8 @@ BuildCertChain(TrustDomain& trustDomain,
     ? BackCert::IncludeCN::Yes
     : BackCert::IncludeCN::No;
 
-  BackCert cert(nullptr, includeCN);
-  Result rv = cert.Init(nssCert->derCert);
+  BackCert cert(certDER, nullptr, includeCN);
+  Result rv = cert.Init();
   if (rv != Success) {
     return SECFailure;
   }

@@ -174,26 +174,33 @@ daysBeforeYear(int year)
        + ((year - 1) / 400); 
 }
 
+namespace internal {
+
 
 
 
 
 
 Result
-TimeChoice(SECItemType type, Input& input,  PRTime& time)
+TimeChoice(Input& tagged, uint8_t expectedTag,  PRTime& time)
 {
   int days;
 
+  Input input;
+  if (ExpectTagAndGetValue(tagged, expectedTag, input) != Success) {
+    return Failure;
+  }
+
   int yearHi;
   int yearLo;
-  if (type == siGeneralizedTime) {
+  if (expectedTag == GENERALIZED_TIME) {
     if (ReadTwoDigits(input, 0, 99, yearHi) != Success) {
       return Failure;
     }
     if (ReadTwoDigits(input, 0, 99, yearLo) != Success) {
       return Failure;
     }
-  } else if (type == siUTCTime) {
+  } else if (expectedTag == UTCTime) {
     if (ReadTwoDigits(input, 0, 99, yearLo) != Success) {
       return Failure;
     }
@@ -304,5 +311,7 @@ TimeChoice(SECItemType type, Input& input,  PRTime& time)
   time = totalSeconds * PR_USEC_PER_SEC;
   return Success;
 }
+
+} 
 
 } } } 

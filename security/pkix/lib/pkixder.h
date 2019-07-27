@@ -513,6 +513,7 @@ Enumerated(Input& input, uint8_t& value)
   return internal::IntegralValue(input, ENUMERATED | 0, value);
 }
 
+namespace internal {
 
 
 
@@ -520,26 +521,27 @@ Enumerated(Input& input, uint8_t& value)
 
 
 
+Result TimeChoice(Input& input, uint8_t tag,  PRTime& time);
 
-
-
-
-
-
-
-Result TimeChoice(SECItemType type, Input& input,  PRTime& time);
+} 
 
 
 
 
 inline Result
-GeneralizedTime(Input& input, PRTime& time)
+GeneralizedTime(Input& input,  PRTime& time)
 {
-  Input value;
-  if (ExpectTagAndGetValue(input, GENERALIZED_TIME, value) != Success) {
-    return Failure;
-  }
-  return TimeChoice(siGeneralizedTime, value, time);
+  return internal::TimeChoice(input, GENERALIZED_TIME, time);
+}
+
+
+
+
+inline Result
+TimeChoice(Input& input,  PRTime& time)
+{
+  uint8_t expectedTag = input.Peek(UTCTime) ? UTCTime : GENERALIZED_TIME;
+  return internal::TimeChoice(input, expectedTag, time);
 }
 
 
