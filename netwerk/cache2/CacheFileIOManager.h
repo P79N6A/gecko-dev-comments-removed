@@ -376,7 +376,7 @@ private:
   
   
   
-  nsresult UpdateSmartCacheSize();
+  nsresult UpdateSmartCacheSize(int64_t aFreeSpace);
 
   
   size_t SizeOfExcludingThisInternal(mozilla::MallocSizeOf mallocSizeOf) const;
