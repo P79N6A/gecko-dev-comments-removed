@@ -310,8 +310,6 @@ typedef NSInteger NSEventGestureAxis;
 
 - (void)handleMouseMoved:(NSEvent*)aEvent;
 
-- (void)updateWindowDraggableStateOnMouseMove:(NSEvent*)theEvent;
-
 - (void)sendMouseEnterOrExitEvent:(NSEvent*)aEvent
                             enter:(BOOL)aEnter
                              type:(mozilla::WidgetMouseEvent::exitType)aType;
@@ -548,6 +546,9 @@ public:
 
   virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries);
 
+  virtual void UpdateWindowDraggingRegion(const nsIntRegion& aRegion) MOZ_OVERRIDE;
+  const nsIntRegion& GetDraggableRegion() { return mDraggableRegion; }
+
   void              HidePlugin();
   void              UpdatePluginPort();
 
@@ -678,6 +679,8 @@ protected:
   
   
   nsIntRegion           mDirtyTitlebarRegion;
+
+  nsIntRegion           mDraggableRegion;
 
   
   
