@@ -2412,17 +2412,6 @@ public class GeckoAppShell
         });
     }
 
-    
-
-
-
-
-
-
-    public static byte[] decodeBase64(String s, int flags) {
-        return Base64.decode(s.getBytes(), flags);
-    }
-
     @WrapElementForJNI(stubName = "GetScreenOrientationWrapper")
     public static short getScreenOrientation() {
         return GeckoScreenOrientation.getInstance().getScreenOrientation().value;
