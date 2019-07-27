@@ -26,8 +26,8 @@
 #include "mozilla/dom/NameSpaceConstants.h"
 #include "nsStringGlue.h"
 #include "mozilla/Attributes.h"
+#include "nsIAtom.h"
 
-class nsIAtom;
 class nsIDocument;
 class nsNodeInfoManager;
 
@@ -263,14 +263,12 @@ protected:
     {
     }
 
-    
-    
-    nsIAtom* MOZ_NON_OWNING_REF mName;
-    nsIAtom* MOZ_NON_OWNING_REF mPrefix;
+    nsCOMPtr<nsIAtom> mName;
+    nsCOMPtr<nsIAtom> mPrefix;
     int32_t             mNamespaceID;
     uint16_t            mNodeType; 
     const nsAString*    mNameString;
-    nsIAtom* MOZ_NON_OWNING_REF mExtraName; 
+    nsCOMPtr<nsIAtom> mExtraName; 
   };
 
   
