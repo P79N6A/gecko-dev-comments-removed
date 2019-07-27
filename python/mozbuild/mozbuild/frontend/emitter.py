@@ -409,9 +409,8 @@ class TreeMetadataEmitter(LoggingMixin):
         for symbol in ('SOURCES', 'HOST_SOURCES', 'UNIFIED_SOURCES'):
             for src in (sandbox[symbol] or []):
                 if not os.path.exists(mozpath.join(sandbox['SRCDIR'], src)):
-                    raise SandboxValidationError('Reference to a file that '
-                        'doesn\'t exist in %s (%s)'
-                        % (symbol, src), sandbox)
+                    raise SandboxValidationError('File listed in %s does not '
+                        'exist: \'%s\'' % (symbol, src), sandbox)
 
         
         
