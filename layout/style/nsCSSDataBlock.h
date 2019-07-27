@@ -208,8 +208,12 @@ public:
 
 
 
+
+
+
     void Compress(nsCSSCompressedDataBlock **aNormalBlock,
-                  nsCSSCompressedDataBlock **aImportantBlock);
+                  nsCSSCompressedDataBlock **aImportantBlock,
+                  const nsTArray<uint32_t>& aOrder);
 
     
 
