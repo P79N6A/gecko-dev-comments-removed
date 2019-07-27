@@ -84,8 +84,8 @@ struct AVCParamSet {
   {
     
     uint8_t size[] = {
-      uint8_t((mSize & 0xFF00) >> 8), 
-      uint8_t(mSize & 0x00FF),        
+      (mSize & 0xFF00) >> 8, 
+      mSize & 0x00FF,        
     };
     aOutputBuf->AppendElements(size, sizeof(size));
 
@@ -189,6 +189,7 @@ GenerateAVCDescriptorBlob(sp<AMessage>& aConfigData,
     return ERROR_MALFORMED;
   }
 
+  status_t result = OK;
   if (aFormat == OMXVideoEncoder::BlobFormat::AVC_NAL) {
     
     aOutputBuf->AppendElements(sps->data(), sps->size());

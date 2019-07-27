@@ -330,6 +330,32 @@ GetThreadInfo(pthread_t threadID) {
   return tinfo;
 }
 
+
+
+
+
+
+static thread_info_t*
+GetThreadInfo(pid_t threadID) {
+  if (sIsNuwaProcess) {
+    REAL(pthread_mutex_lock)(&sThreadCountLock);
+  }
+  thread_info_t *thrinfo = nullptr;
+  for (thread_info_t *tinfo = sAllThreads.getFirst();
+       tinfo;
+       tinfo = tinfo->getNext()) {
+    if (tinfo->origNativeThreadID == threadID) {
+      thrinfo = tinfo;
+      break;
+    }
+  }
+  if (sIsNuwaProcess) {
+    pthread_mutex_unlock(&sThreadCountLock);
+  }
+
+  return thrinfo;
+}
+
 #if !defined(HAVE_THREAD_TLS_KEYWORD)
 
 
@@ -884,15 +910,10 @@ static int sRecreateGatePassed = 0;
 
 
 
-
-
-
 #define THREAD_FREEZE_POINT1()                                 \
   bool freezeCountChg = false;                                 \
   bool recreated = false;                                      \
-  (void) recreated;                                            \
   volatile bool freezePoint2 = false;                          \
-  (void) freezePoint2;                                         \
   thread_info_t *tinfo;                                        \
   if (sIsNuwaProcess &&                                        \
       (tinfo = CUR_THREAD_INFO) &&                             \
