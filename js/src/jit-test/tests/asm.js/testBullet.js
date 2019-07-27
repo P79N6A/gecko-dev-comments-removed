@@ -2,6 +2,7 @@
 
 
 
+setCachingEnabled(true);
 if (!isAsmJSCompilationAvailable())
     quit();
 
@@ -9,7 +10,7 @@ if (!isAsmJSCompilationAvailable())
 
 
 
-var code = "setIonCheckGraphCoherency(false); load('" + libdir + "bullet.js'); runBullet()";
+var code = "setIonCheckGraphCoherency(false); setCachingEnabled(true); load('" + libdir + "bullet.js'); runBullet()";
 nestedShell("--js-cache", "--no-js-cache-per-process", "--execute=" + code);
 setIonCheckGraphCoherency(false);
 load(libdir + 'bullet.js');
