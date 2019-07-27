@@ -211,23 +211,29 @@ NotificationStorage.prototype = {
     }
 
     
+    
+    
     notifications.forEach(function(notification) {
       try {
-        callback.handle(notification.id,
-                        notification.title,
-                        notification.dir,
-                        notification.lang,
-                        notification.body,
-                        notification.tag,
-                        notification.icon,
-                        notification.data,
-                        notification.mozbehavior);
+        Services.tm.currentThread.dispatch(
+          callback.handle.bind(callback,
+                               notification.id,
+                               notification.title,
+                               notification.dir,
+                               notification.lang,
+                               notification.body,
+                               notification.tag,
+                               notification.icon,
+                               notification.data,
+                               notification.mozbehavior),
+          Ci.nsIThread.DISPATCH_NORMAL);
       } catch (e) {
         if (DEBUG) { debug("Error calling callback handle: " + e); }
       }
     });
     try {
-      callback.done();
+      Services.tm.currentThread.dispatch(callback.done,
+                                         Ci.nsIThread.DISPATCH_NORMAL);
     } catch (e) {
       if (DEBUG) { debug("Error calling callback done: " + e); }
     }
