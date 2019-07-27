@@ -509,9 +509,25 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
 }
 
 Matrix4x4
-CombineWithCSSTransform(const gfx3DMatrix& treeTransform, Layer* aLayer)
+AdjustAndCombineWithCSSTransform(const gfx3DMatrix& asyncTransform, Layer* aLayer)
 {
-  return ToMatrix4x4(treeTransform) * aLayer->GetTransform();
+  Matrix4x4 result = ToMatrix4x4(asyncTransform);
+
+  
+  
+  
+  
+  
+  
+  if (const nsIntRect* shadowClipRect = aLayer->AsLayerComposite()->GetShadowClipRect()) {
+    if (shadowClipRect->TopLeft() != nsIntPoint()) {  
+      result.ChangeBasis(shadowClipRect->x, shadowClipRect->y, 0);
+    }
+  }
+
+  
+  result = result * aLayer->GetTransform();
+  return result;
 }
 
 bool
@@ -535,11 +551,11 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     LayerComposite* layerComposite = aLayer->AsLayerComposite();
     Matrix4x4 oldTransform = aLayer->GetTransform();
 
-    ViewTransform treeTransformWithoutOverscroll, overscrollTransform;
+    ViewTransform asyncTransformWithoutOverscroll, overscrollTransform;
     ScreenPoint scrollOffset;
     *aWantNextFrame |=
       controller->SampleContentTransformForFrame(aCurrentFrame,
-                                                 &treeTransformWithoutOverscroll,
+                                                 &asyncTransformWithoutOverscroll,
                                                  scrollOffset,
                                                  &overscrollTransform);
 
@@ -549,7 +565,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
                         metrics.mDisplayPort : metrics.mCriticalDisplayPort);
     LayerMargin fixedLayerMargins(0, 0, 0, 0);
     ScreenPoint offset(0, 0);
-    SyncFrameMetrics(scrollOffset, treeTransformWithoutOverscroll.mScale.scale,
+    SyncFrameMetrics(scrollOffset, asyncTransformWithoutOverscroll.mScale.scale,
                      metrics.mScrollableRect, mLayersUpdated, displayPort,
                      paintScale, mIsFirstPaint, fixedLayerMargins, offset);
 
@@ -559,8 +575,8 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     
     mLayerManager->GetCompositor()->SetScreenRenderOffset(offset);
 
-    Matrix4x4 transform = CombineWithCSSTransform(
-        treeTransformWithoutOverscroll * overscrollTransform, aLayer);
+    Matrix4x4 transform = AdjustAndCombineWithCSSTransform(
+        asyncTransformWithoutOverscroll * overscrollTransform, aLayer);
 
     
     
@@ -584,8 +600,8 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFram
     
     
     
-    Matrix4x4 transformWithoutOverscroll = CombineWithCSSTransform(
-        treeTransformWithoutOverscroll, aLayer);
+    Matrix4x4 transformWithoutOverscroll = AdjustAndCombineWithCSSTransform(
+        asyncTransformWithoutOverscroll, aLayer);
     AlignFixedAndStickyLayers(aLayer, aLayer, oldTransform,
                               transformWithoutOverscroll, fixedLayerMargins);
 
@@ -654,9 +670,9 @@ ApplyAsyncTransformToScrollbarForContent(TimeStamp aCurrentFrame, ContainerLayer
     
     
     
-    ViewTransform treeTransform;
+    ViewTransform asyncTransform;
     ScreenPoint scrollOffset;
-    apzc->SampleContentTransformForFrame(aCurrentFrame, &treeTransform, scrollOffset);
+    apzc->SampleContentTransformForFrame(aCurrentFrame, &asyncTransform, scrollOffset);
   }
 
   gfx3DMatrix asyncTransform = gfx3DMatrix(apzc->GetCurrentAsyncTransform());
