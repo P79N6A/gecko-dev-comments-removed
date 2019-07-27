@@ -58,12 +58,15 @@ ProgressTracker::ResetImage()
 
 void ProgressTracker::SetIsMultipart()
 {
-  mProgress |= FLAG_IS_MULTIPART;
+  if (mProgress & FLAG_IS_MULTIPART) {
+    return;
+  }
+
+  MOZ_ASSERT(!(mProgress & FLAG_ONLOAD_BLOCKED),
+             "Blocked onload before we knew we were multipart?");
 
   
-  if (!(mProgress & FLAG_ONLOAD_BLOCKED)) {
-    mProgress |= FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
-  }
+  mProgress |= FLAG_IS_MULTIPART | FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
 }
 
 bool
@@ -430,7 +433,8 @@ ProgressTracker::ResetForNewRequest()
 
   
   
-  mProgress &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR;
+  mProgress &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR |
+               FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
 }
 
 void

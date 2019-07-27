@@ -890,9 +890,14 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       if (resniffMimeType) {
-        NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
+        MOZ_ASSERT(mIsMultiPartChannel, "Resniffing a non-multipart image");
 
+        
         nsRefPtr<ProgressTracker> freshTracker = new ProgressTracker(nullptr);
+        freshTracker->SetIsMultipart();
+        freshTracker->SyncNotifyProgress(FLAG_REQUEST_STARTED);
+
+        
         nsRefPtr<ProgressTracker> oldProgressTracker = GetProgressTracker();
         freshTracker->AdoptConsumers(oldProgressTracker);
         mProgressTracker = freshTracker.forget();
