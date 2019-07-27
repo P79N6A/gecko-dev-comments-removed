@@ -247,8 +247,9 @@ DOMSVGPointList::Initialize(nsISVGPoint& aNewItem, ErrorResult& aError)
   
 
   nsCOMPtr<nsISVGPoint> domItem = &aNewItem;
-  if (domItem->HasOwner() || domItem->IsReadonly()) {
-    domItem = domItem->Clone(); 
+  if (domItem->HasOwner() || domItem->IsReadonly() ||
+      domItem->IsTranslatePoint()) {
+    domItem = domItem->Copy(); 
   }
 
   ErrorResult rv;
@@ -298,8 +299,9 @@ DOMSVGPointList::InsertItemBefore(nsISVGPoint& aNewItem, uint32_t aIndex,
   }
 
   nsCOMPtr<nsISVGPoint> domItem = &aNewItem;
-  if (domItem->HasOwner() || domItem->IsReadonly()) {
-    domItem = domItem->Clone(); 
+  if (domItem->HasOwner() || domItem->IsReadonly() ||
+      domItem->IsTranslatePoint()) {
+    domItem = domItem->Copy(); 
   }
 
   
@@ -341,8 +343,9 @@ DOMSVGPointList::ReplaceItem(nsISVGPoint& aNewItem, uint32_t aIndex,
   }
 
   nsCOMPtr<nsISVGPoint> domItem = &aNewItem;
-  if (domItem->HasOwner() || domItem->IsReadonly()) {
-    domItem = domItem->Clone(); 
+  if (domItem->HasOwner() || domItem->IsReadonly() ||
+      domItem->IsTranslatePoint()) {
+    domItem = domItem->Copy(); 
   }
 
   AutoChangePointListNotifier notifier(this);

@@ -18,7 +18,7 @@ class nsSVGElement;
   { 0xd6b6c440, 0xaf8d, 0x40ee, \
     { 0x85, 0x6b, 0x02, 0xa3, 0x17, 0xca, 0xb2, 0x75 } }
 
-#define MOZ_SVG_LIST_INDEX_BIT_COUNT 30
+#define MOZ_SVG_LIST_INDEX_BIT_COUNT 29
 
 namespace mozilla {
 
@@ -48,15 +48,17 @@ public:
     , mListIndex(0)
     , mIsReadonly(false)
     , mIsAnimValItem(false)
+    , mIsTranslatePoint(false)
   {
     SetIsDOMBinding();
   }
 
-  explicit nsISVGPoint(SVGPoint* aPt)
+  explicit nsISVGPoint(SVGPoint* aPt, bool aIsTranslatePoint)
     : mList(nullptr)
     , mListIndex(0)
     , mIsReadonly(false)
     , mIsAnimValItem(false)
+    , mIsTranslatePoint(aIsTranslatePoint)
   {
     SetIsDOMBinding();
     mPt.mX = aPt->GetX();
@@ -78,8 +80,7 @@ public:
   
 
 
-
-  virtual nsISVGPoint* Clone() = 0;
+  virtual DOMSVGPoint* Copy() = 0;
 
   SVGPoint ToSVGPoint() const {
     return HasOwner() ? const_cast<nsISVGPoint*>(this)->InternalItem() : mPt;
@@ -97,6 +98,10 @@ public:
 
   bool HasOwner() const {
     return !!mList;
+  }
+
+  bool IsTranslatePoint() const {
+    return mIsTranslatePoint;
   }
 
   
@@ -158,8 +163,9 @@ protected:
   
 
   uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  uint32_t mIsReadonly:1;    
-  uint32_t mIsAnimValItem:1; 
+  uint32_t mIsReadonly:1;       
+  uint32_t mIsAnimValItem:1;    
+  uint32_t mIsTranslatePoint:1;
 
   
 
