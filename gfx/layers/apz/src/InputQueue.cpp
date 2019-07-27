@@ -208,7 +208,7 @@ InputQueue::MaybeRequestContentResponse(const nsRefPtr<AsyncPanZoomController>& 
     
     
     
-    INPQ_LOG("not waiting for content response on block %p\n", block);
+    INPQ_LOG("not waiting for content response on block %p\n", aBlock);
     aBlock->TimeoutContentResponse();
   }
 }
