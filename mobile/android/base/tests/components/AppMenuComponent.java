@@ -14,6 +14,7 @@ import org.mozilla.gecko.R;
 import org.mozilla.gecko.menu.MenuItemActionBar;
 import org.mozilla.gecko.menu.MenuItemDefault;
 import org.mozilla.gecko.tests.UITestContext;
+import org.mozilla.gecko.tests.helpers.DeviceHelper;
 import org.mozilla.gecko.tests.helpers.WaitHelper;
 import org.mozilla.gecko.util.HardwareUtils;
 
@@ -27,9 +28,12 @@ import com.jayway.android.robotium.solo.Solo;
 
 
 public class AppMenuComponent extends BaseComponent {
+    private Boolean hasLegacyMenu = null;
+
     public enum MenuItem {
         FORWARD(R.string.forward),
         NEW_TAB(R.string.new_tab),
+        PAGE(R.string.page),
         RELOAD(R.string.reload);
 
         private final int resourceID;
@@ -48,12 +52,81 @@ public class AppMenuComponent extends BaseComponent {
         }
     };
 
+    public enum PageMenuItem {
+        SAVE_AS_PDF(R.string.save_as_pdf);
+
+        private static final MenuItem PARENT_MENU = MenuItem.PAGE;
+
+        private final int resourceID;
+        private String stringResource;
+
+        PageMenuItem(final int resourceID) {
+            this.resourceID = resourceID;
+        }
+
+        public String getString(final Solo solo) {
+            if (stringResource == null) {
+                stringResource = solo.getString(resourceID);
+            }
+
+            return stringResource;
+        }
+    };
+
     public AppMenuComponent(final UITestContext testContext) {
         super(testContext);
     }
 
     private void assertMenuIsNotOpen() {
         fAssertFalse("Menu is not open", isMenuOpen());
+    }
+
+    
+
+
+
+
+
+
+
+    private boolean hasLegacyMenu() {
+        if (hasLegacyMenu == null) {
+            hasLegacyMenu = findAppMenuItemView(MenuItem.PAGE.getString(mSolo)) == null;
+        }
+
+        return hasLegacyMenu;
+    }
+
+    public void assertMenuItemIsDisabledAndVisible(PageMenuItem pageMenuItem) {
+        openAppMenu();
+
+        if (!hasLegacyMenu()) {
+            
+            final View parentMenuItemView = findAppMenuItemView(MenuItem.PAGE.getString(mSolo));
+            if (parentMenuItemView.isEnabled()) {
+                fAssertTrue("The parent 'page' menu item is enabled", parentMenuItemView.isEnabled());
+                fAssertEquals("The parent 'page' menu item is visible", View.VISIBLE,
+                        parentMenuItemView.getVisibility());
+
+                
+                pressMenuItem(MenuItem.PAGE.getString(mSolo));
+
+                final View pageMenuItemView = findAppMenuItemView(pageMenuItem.getString(mSolo));
+                fAssertFalse("The page menu item is not enabled", pageMenuItemView.isEnabled());
+                fAssertEquals("The page menu item is visible", View.VISIBLE, pageMenuItemView.getVisibility());
+            } else {
+                fAssertFalse("The parent 'page' menu item is not enabled", parentMenuItemView.isEnabled());
+                fAssertEquals("The parent 'page' menu item is visible", View.VISIBLE, parentMenuItemView.getVisibility());
+            }
+        } else {
+            
+            final View pageMenuItemView = findAppMenuItemView(pageMenuItem.getString(mSolo));
+            fAssertFalse("The page menu item is not enabled", pageMenuItemView.isEnabled());
+            fAssertEquals("The page menu item is visible", View.VISIBLE, pageMenuItemView.getVisibility());
+        }
+
+        
+        mSolo.goBack();
     }
 
     private View getOverflowMenuButtonView() {
@@ -87,32 +160,61 @@ public class AppMenuComponent extends BaseComponent {
         return null;
     }
 
-    public void pressMenuItem(MenuItem menuItem) {
-        openAppMenu();
+    
 
-        final String text = menuItem.getString(mSolo);
-        final View menuItemView = findAppMenuItemView(text);
 
-        if (menuItemView != null) {
-            fAssertTrue("The menu item is enabled", menuItemView.isEnabled());
-            fAssertEquals("The menu item is visible", View.VISIBLE, menuItemView.getVisibility());
+
+
+
+
+    private void pressLegacyMenuItem(final String menuItemTitle) {
+        mSolo.clickOnMenuItem(menuItemTitle, true);
+    }
+
+    private void pressMenuItem(final String menuItemTitle) {
+        fAssertTrue("Menu is open", isMenuOpen(menuItemTitle));
+
+        if (!hasLegacyMenu()) {
+            final View menuItemView = findAppMenuItemView(menuItemTitle);
+
+            fAssertTrue(String.format("The menu item %s is enabled", menuItemTitle), menuItemView.isEnabled());
+            fAssertEquals(String.format("The menu item %s is visible", menuItemTitle), View.VISIBLE,
+                    menuItemView.getVisibility());
 
             mSolo.clickOnView(menuItemView);
         } else {
-            
-            
-            
-            
-            
-            
-            mSolo.clickOnMenuItem(text, true);
+            pressLegacyMenuItem(menuItemTitle);
         }
+    }
+
+    private void pressSubMenuItem(final String parentMenuItemTitle, final String childMenuItemTitle) {
+        openAppMenu();
+
+        if (!hasLegacyMenu()) {
+            pressMenuItem(parentMenuItemTitle);
+
+            
+            pressMenuItem(childMenuItemTitle);
+        } else {
+            pressLegacyMenuItem(childMenuItemTitle);
+        }
+    }
+
+    public void pressMenuItem(MenuItem menuItem) {
+        openAppMenu();
+        pressMenuItem(menuItem.getString(mSolo));
+    }
+
+    public void pressMenuItem(final PageMenuItem pageMenuItem) {
+        pressSubMenuItem(PageMenuItem.PARENT_MENU.getString(mSolo), pageMenuItem.getString(mSolo));
     }
 
     private void openAppMenu() {
         assertMenuIsNotOpen();
 
-        if (HardwareUtils.hasMenuButton()) {
+        
+        
+        if (HardwareUtils.hasMenuButton() || DeviceHelper.isTablet()) {
             mSolo.sendKey(Solo.MENU);
         } else {
             pressOverflowMenuButton();
@@ -130,10 +232,24 @@ public class AppMenuComponent extends BaseComponent {
         mSolo.clickOnView(overflowMenuButton, true);
     }
 
+    
+
+
+
+
     private boolean isMenuOpen() {
-        
-        
-        return mSolo.searchText(MenuItem.NEW_TAB.getString(mSolo));
+        return isMenuOpen(MenuItem.NEW_TAB.getString(mSolo));
+    }
+
+    
+
+
+
+
+
+
+    private boolean isMenuOpen(String menuItemTitle) {
+        return mSolo.searchText(menuItemTitle);
     }
 
     private void waitForMenuOpen() {
