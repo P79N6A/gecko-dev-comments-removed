@@ -8506,6 +8506,24 @@ GsmPDUHelperObject.prototype = {
         msg.body = this.readUCS2String.call(bufAdapter, length);
         break;
     }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!msg.body) {
+      return;
+    }
+    for (let i = msg.body.length - 1; i >= 0; i--) {
+      if (msg.body.charAt(i) !== '\r') {
+        msg.body = msg.body.substring(0, i + 1);
+        break;
+      }
+    }
   },
 
   
