@@ -194,8 +194,7 @@ nsTreeBodyFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
   if (MOZ_UNLIKELY(!baseElement)) {
     desiredRows = 0;
   }
-  else if (baseElement->Tag() == nsGkAtoms::select &&
-           baseElement->IsHTMLElement()) {
+  else if (baseElement->IsHTMLElement(nsGkAtoms::select)) {
     min.width = CalcMaxRowWidth();
     nsAutoString size;
     baseElement->GetAttr(kNameSpaceID_None, nsGkAtoms::size, size);
@@ -1786,8 +1785,7 @@ nsTreeBodyFrame::MarkDirtyIfSelect()
 {
   nsIContent* baseElement = GetBaseElement();
 
-  if (baseElement && baseElement->Tag() == nsGkAtoms::select &&
-      baseElement->IsHTMLElement()) {
+  if (baseElement && baseElement->IsHTMLElement(nsGkAtoms::select)) {
     
     
     
