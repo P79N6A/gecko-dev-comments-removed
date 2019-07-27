@@ -788,11 +788,15 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
     parentIfVisited = aParentContext;
   }
 
+  bool relevantLinkVisited = (aFlags & eIsLink) ?
+    (aFlags & eIsVisitedLink) :
+    (aParentContext && aParentContext->RelevantLinkVisited());
+
   nsRefPtr<nsStyleContext> result;
   if (aParentContext)
     result = aParentContext->FindChildWithRules(aPseudoTag, aRuleNode,
                                                 aVisitedRuleNode,
-                                                aFlags & eIsVisitedLink);
+                                                relevantLinkVisited);
 
 #ifdef NOISY_DEBUG
   if (result)
@@ -815,10 +819,6 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
       }
       resultIfVisited->SetIsStyleIfVisited();
       result->SetStyleIfVisited(resultIfVisited.forget());
-
-      bool relevantLinkVisited = (aFlags & eIsLink) ?
-        (aFlags & eIsVisitedLink) :
-        (aParentContext && aParentContext->RelevantLinkVisited());
 
       if (relevantLinkVisited) {
         result->AddStyleBit(NS_STYLE_RELEVANT_LINK_VISITED);
@@ -1306,9 +1306,13 @@ nsStyleSet::ResolveStyleByAddingRules(nsStyleContext* aBaseContext,
   uint32_t flags = eNoFlags;
   if (aBaseContext->IsLinkContext()) {
     flags |= eIsLink;
-  }
-  if (aBaseContext->RelevantLinkVisited()) {
-    flags |= eIsVisitedLink;
+
+    
+    
+    
+    if (aBaseContext->RelevantLinkVisited()) {
+      flags |= eIsVisitedLink;
+    }
   }
   return GetContext(aBaseContext->GetParent(), ruleNode, visitedRuleNode,
                     aBaseContext->GetPseudo(),
@@ -1869,17 +1873,13 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   uint32_t flags = eNoFlags;
   if (aStyleContext->IsLinkContext()) {
     flags |= eIsLink;
-  }
 
-  
-  
-  
-  bool relevantLinkVisited = aStyleContext->IsLinkContext() ?
-    aStyleContext->RelevantLinkVisited() :
-    aNewParentContext->RelevantLinkVisited();
-
-  if (relevantLinkVisited) {
-    flags |= eIsVisitedLink;
+    
+    
+    
+    if (aStyleContext->RelevantLinkVisited()) {
+      flags |= eIsVisitedLink;
+    }
   }
 
   if (pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
