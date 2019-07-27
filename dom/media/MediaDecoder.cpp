@@ -1609,7 +1609,7 @@ void MediaDecoder::Invalidate()
 
 
 nsresult MediaDecoder::GetBuffered(dom::TimeRanges* aBuffered) {
-  NS_ENSURE_TRUE(mDecoderStateMachine, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(mDecoderStateMachine && !mShuttingDown, NS_ERROR_FAILURE);
   return mDecoderStateMachine->GetBuffered(aBuffered);
 }
 
