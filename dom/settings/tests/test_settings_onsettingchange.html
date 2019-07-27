@@ -22,7 +22,7 @@
 "use strict";
 
 if (SpecialPowers.isMainProcess()) {
-  SpecialPowers.Cu.import("resource://gre/modules/SettingsChangeNotifier.jsm");
+  SpecialPowers.Cu.import("resource://gre/modules/SettingsRequestManager.jsm");
 }
 
 SpecialPowers.addPermission("settings-write", true, document);
