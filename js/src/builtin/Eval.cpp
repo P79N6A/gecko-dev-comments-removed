@@ -466,22 +466,6 @@ js::DirectEvalStringFromIon(JSContext* cx,
 }
 
 bool
-js::DirectEvalValueFromIon(JSContext* cx,
-                           HandleObject scopeobj, HandleScript callerScript,
-                           HandleValue thisValue, HandleValue evalArg,
-                           jsbytecode* pc, MutableHandleValue vp)
-{
-    
-    if (!evalArg.isString()) {
-        vp.set(evalArg);
-        return true;
-    }
-
-    RootedString string(cx, evalArg.toString());
-    return DirectEvalStringFromIon(cx, scopeobj, callerScript, thisValue, string, pc, vp);
-}
-
-bool
 js::IndirectEval(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
