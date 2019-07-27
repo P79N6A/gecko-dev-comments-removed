@@ -1699,7 +1699,7 @@ RasterImage::RequestScale(imgFrame* aFrame,
   }
 }
 
-void
+DrawResult
 RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
                                           gfxContext* aContext,
                                           const nsIntSize& aSize,
@@ -1728,23 +1728,39 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
 
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   ImageRegion region(aRegion);
+  bool frameIsComplete = true;  
   if (!frameRef) {
+    
+    
     frameRef = Move(aFrameRef);
+    frameIsComplete = frameRef->IsImageComplete();
   }
 
   
   
   IntSize finalSize = frameRef->GetImageSize();
+  bool couldRedecodeForBetterFrame = false;
   if (ThebesIntSize(finalSize) != aSize) {
     gfx::Size scale(double(aSize.width) / finalSize.width,
                     double(aSize.height) / finalSize.height);
     aContext->Multiply(gfxMatrix::Scaling(scale.width, scale.height));
     region.Scale(1.0 / scale.width, 1.0 / scale.height);
+
+    couldRedecodeForBetterFrame = mDownscaleDuringDecode &&
+                                  CanDownscaleDuringDecode(aSize, aFlags);
   }
 
   if (!frameRef->Draw(aContext, region, aFilter, aFlags)) {
     RecoverFromLossOfFrames(aSize, aFlags);
+    return DrawResult::TEMPORARY_ERROR;
   }
+  if (!frameIsComplete) {
+    return DrawResult::INCOMPLETE;
+  }
+  if (couldRedecodeForBetterFrame) {
+    return DrawResult::WRONG_SIZE;
+  }
+  return DrawResult::SUCCESS;
 }
 
 
@@ -1757,7 +1773,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(DrawableFrameRef&& aFrameRef,
 
 
 
-NS_IMETHODIMP
+NS_IMETHODIMP_(DrawResult)
 RasterImage::Draw(gfxContext* aContext,
                   const nsIntSize& aSize,
                   const ImageRegion& aRegion,
@@ -1767,18 +1783,20 @@ RasterImage::Draw(gfxContext* aContext,
                   uint32_t aFlags)
 {
   if (aWhichFrame > FRAME_MAX_VALUE)
-    return NS_ERROR_INVALID_ARG;
+    return DrawResult::BAD_ARGS;
 
   if (mError)
-    return NS_ERROR_FAILURE;
+    return DrawResult::BAD_IMAGE;
 
   
   
   
   if (DecodeFlags(aFlags) != DECODE_FLAGS_DEFAULT)
-    return NS_ERROR_FAILURE;
+    return DrawResult::BAD_ARGS;
 
-  NS_ENSURE_ARG_POINTER(aContext);
+  if (!aContext) {
+    return DrawResult::BAD_ARGS;
+  }
 
   if (IsUnlocked() && mProgressTracker) {
     mProgressTracker->OnUnlockedDraw();
@@ -1797,14 +1815,14 @@ RasterImage::Draw(gfxContext* aContext,
     if (mDrawStartTime.IsNull()) {
       mDrawStartTime = TimeStamp::Now();
     }
-    return NS_OK;
+    return DrawResult::NOT_READY;
   }
 
   bool shouldRecordTelemetry = !mDrawStartTime.IsNull() &&
                                ref->IsImageComplete();
 
-  DrawWithPreDownscaleIfNeeded(Move(ref), aContext, aSize,
-                               aRegion, aFilter, flags);
+  auto result = DrawWithPreDownscaleIfNeeded(Move(ref), aContext, aSize,
+                                             aRegion, aFilter, flags);
 
   if (shouldRecordTelemetry) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
@@ -1813,7 +1831,7 @@ RasterImage::Draw(gfxContext* aContext,
       mDrawStartTime = TimeStamp();
   }
 
-  return NS_OK;
+  return result;
 }
 
 
