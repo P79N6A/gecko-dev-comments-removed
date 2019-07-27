@@ -2,35 +2,12 @@
 """Create a "virtual" Python installation
 """
 
-__version__ = "12.0.2"
+__version__ = "12.0.5"
 virtualenv_version = __version__  
 
-
-
+import base64
 import sys
 import os
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if os.environ.get('VIRTUALENV_INTERPRETER_RUNNING'):
-    del sys.path[0]
-
-import base64
 import codecs
 import optparse
 import re
@@ -1108,33 +1085,45 @@ def change_prefix(filename, dst_prefix):
 
 def copy_required_modules(dst_prefix, symlink):
     import imp
-    for modname in REQUIRED_MODULES:
-        if modname in sys.builtin_module_names:
-            logger.info("Ignoring built-in bootstrap module: %s" % modname)
-            continue
-        try:
-            f, filename, _ = imp.find_module(modname)
-        except ImportError:
-            logger.info("Cannot import bootstrap module: %s" % modname)
-        else:
-            if f is not None:
-                f.close()
-            
-            if modname == 'readline' and sys.platform == 'darwin' and not (
-                    is_pypy or filename.endswith(join('lib-dynload', 'readline.so'))):
-                dst_filename = join(dst_prefix, 'lib', 'python%s' % sys.version[:3], 'readline.so')
-            elif modname == 'readline' and sys.platform == 'win32':
-                
-                
-                
-                pass
+    
+    
+    
+    
+    
+    
+    _prev_sys_path = sys.path
+    if os.environ.get('VIRTUALENV_INTERPRETER_RUNNING'):
+        sys.path = sys.path[1:]
+    try:
+        for modname in REQUIRED_MODULES:
+            if modname in sys.builtin_module_names:
+                logger.info("Ignoring built-in bootstrap module: %s" % modname)
+                continue
+            try:
+                f, filename, _ = imp.find_module(modname)
+            except ImportError:
+                logger.info("Cannot import bootstrap module: %s" % modname)
             else:
-                dst_filename = change_prefix(filename, dst_prefix)
-            copyfile(filename, dst_filename, symlink)
-            if filename.endswith('.pyc'):
-                pyfile = filename[:-1]
-                if os.path.exists(pyfile):
-                    copyfile(pyfile, dst_filename[:-1], symlink)
+                if f is not None:
+                    f.close()
+                
+                if modname == 'readline' and sys.platform == 'darwin' and not (
+                        is_pypy or filename.endswith(join('lib-dynload', 'readline.so'))):
+                    dst_filename = join(dst_prefix, 'lib', 'python%s' % sys.version[:3], 'readline.so')
+                elif modname == 'readline' and sys.platform == 'win32':
+                    
+                    
+                    
+                    pass
+                else:
+                    dst_filename = change_prefix(filename, dst_prefix)
+                copyfile(filename, dst_filename, symlink)
+                if filename.endswith('.pyc'):
+                    pyfile = filename[:-1]
+                    if os.path.exists(pyfile):
+                        copyfile(pyfile, dst_filename[:-1], symlink)
+    finally:
+        sys.path = _prev_sys_path
 
 
 def subst_path(prefix_path, prefix, home_dir):
