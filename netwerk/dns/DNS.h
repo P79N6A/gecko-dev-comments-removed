@@ -118,7 +118,7 @@ union NetAddr {
 
 class NetAddrElement : public LinkedListElement<NetAddrElement> {
 public:
-  NetAddrElement(const PRNetAddr *prNetAddr);
+  explicit NetAddrElement(const PRNetAddr *prNetAddr);
   NetAddrElement(const NetAddrElement& netAddr);
   ~NetAddrElement();
 

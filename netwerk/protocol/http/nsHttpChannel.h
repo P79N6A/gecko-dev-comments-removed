@@ -160,7 +160,7 @@ public:
     class AutoCacheWaitFlags
     {
     public:
-      AutoCacheWaitFlags(nsHttpChannel* channel)
+      explicit AutoCacheWaitFlags(nsHttpChannel* channel)
         : mChannel(channel)
         , mKeep(0)
       {
