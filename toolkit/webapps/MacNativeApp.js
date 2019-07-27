@@ -45,17 +45,17 @@ NativeApp.prototype = {
 
 
 
-  install: Task.async(function*(aManifest, aZipPath) {
+  install: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
     
-    if (WebappOSUtils.getInstallPath(this.app)) {
-      return yield this.prepareUpdate(aManifest, aZipPath);
+    if (WebappOSUtils.getInstallPath(aApp)) {
+      return yield this.prepareUpdate(aApp, aManifest, aZipPath);
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
     let localAppDir = getFile(this._rootInstallDir);
     if (!localAppDir.isWritable()) {
@@ -106,14 +106,14 @@ NativeApp.prototype = {
 
 
 
-  prepareUpdate: Task.async(function*(aManifest, aZipPath) {
+  prepareUpdate: Task.async(function*(aApp, aManifest, aZipPath) {
     if (this._dryRun) {
       return;
     }
 
-    this._setData(aManifest);
+    this._setData(aApp, aManifest);
 
-    let [ oldUniqueName, installDir ] = WebappOSUtils.getLaunchTarget(this.app);
+    let [ oldUniqueName, installDir ] = WebappOSUtils.getLaunchTarget(aApp);
     if (!installDir) {
       throw ERR_NOT_INSTALLED;
     }
@@ -147,12 +147,12 @@ NativeApp.prototype = {
   
 
 
-  applyUpdate: Task.async(function*() {
+  applyUpdate: Task.async(function*(aApp) {
     if (this._dryRun) {
       return;
     }
 
-    let installDir = WebappOSUtils.getInstallPath(this.app);
+    let installDir = WebappOSUtils.getInstallPath(aApp);
     let updateDir = OS.Path.join(installDir, "update");
 
     let backupDir = yield this._backupInstallation(installDir);
