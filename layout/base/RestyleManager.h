@@ -140,22 +140,17 @@ public:
   nsresult ReparentStyleContext(nsIFrame* aFrame);
 
 private:
-  void ComputeAndProcessStyleChange(nsIFrame* aFrame,
-                                    nsChangeHint aMinChange,
-                                    RestyleTracker& aRestyleTracker,
-                                    nsRestyleHint aRestyleHint);
-
   
-
-
-
-
-  void
-    ComputeStyleChangeFor(nsIFrame* aFrame,
-                          nsStyleChangeList* aChangeList,
-                          nsChangeHint aMinChange,
-                          RestyleTracker& aRestyleTracker,
-                          nsRestyleHint aRestyleHint);
+  void ComputeAndProcessStyleChange(nsIFrame*       aFrame,
+                                    nsChangeHint    aMinChange,
+                                    RestyleTracker& aRestyleTracker,
+                                    nsRestyleHint   aRestyleHint);
+  
+  void ComputeAndProcessStyleChange(nsStyleContext* aNewContext,
+                                    Element*        aElement,
+                                    nsChangeHint    aMinChange,
+                                    RestyleTracker& aRestyleTracker,
+                                    nsRestyleHint   aRestyleHint);
 
 public:
 
@@ -552,6 +547,15 @@ public:
                   nsIFrame* aFrame);
 
   
+  ElementRestyler(nsPresContext* aPresContext,
+                  nsIContent* aContent,
+                  nsStyleChangeList* aChangeList,
+                  nsChangeHint aHintsHandledByAncestors,
+                  RestyleTracker& aRestyleTracker,
+                  TreeMatchContext& aTreeMatchContext,
+                  nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement);
+
+  
 
 
 
@@ -570,6 +574,26 @@ public:
 
 
   nsChangeHint HintsHandledForFrame() { return mHintsHandled; }
+
+  
+
+
+
+  void RestyleChildrenOfDisplayContentsElement(nsIFrame*       aParentFrame,
+                                               nsStyleContext* aNewContext,
+                                               nsChangeHint    aMinHint,
+                                               RestyleTracker& aRestyleTracker,
+                                               nsRestyleHint   aRestyleHint);
+
+  
+
+
+
+  static void ComputeStyleChangeFor(nsIFrame*          aFrame,
+                                    nsStyleChangeList* aChangeList,
+                                    nsChangeHint       aMinChange,
+                                    RestyleTracker&    aRestyleTracker,
+                                    nsRestyleHint      aRestyleHint);
 
 #ifdef RESTYLE_LOGGING
   bool ShouldLogRestyle() {
@@ -629,17 +653,32 @@ private:
 
 
   void RestyleUndisplayedDescendants(nsRestyleHint aChildRestyleHint);
+  
+
+
+
+
   void DoRestyleUndisplayedDescendants(nsRestyleHint aChildRestyleHint,
-                                       nsIContent* aParent);
+                                       nsIContent* aParent,
+                                       nsStyleContext* aParentStyleContext);
   void RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
                                UndisplayedNode* aUndisplayed,
                                nsIContent*      aUndisplayedParent,
+                               nsStyleContext*  aParentStyleContext,
                                const uint8_t    aDisplay);
   void MaybeReframeForBeforePseudo();
+  void MaybeReframeForBeforePseudo(nsIFrame* aGenConParentFrame,
+                                   nsIFrame* aFrame,
+                                   nsIContent* aContent,
+                                   nsStyleContext* aStyleContext);
   void MaybeReframeForAfterPseudo(nsIFrame* aFrame);
+  void MaybeReframeForAfterPseudo(nsIFrame* aGenConParentFrame,
+                                  nsIFrame* aFrame,
+                                  nsIContent* aContent,
+                                  nsStyleContext* aStyleContext);
   void RestyleContentChildren(nsIFrame* aParent,
                               nsRestyleHint aChildRestyleHint);
-  void InitializeAccessibilityNotifications();
+  void InitializeAccessibilityNotifications(nsStyleContext* aNewContext);
   void SendAccessibilityNotifications();
 
   enum DesiredA11yNotifications {

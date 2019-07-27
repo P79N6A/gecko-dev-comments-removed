@@ -6366,8 +6366,8 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
   if (!sibling && GetDisplayContentsStyleFor(aContent)) {
     
     sibling = aPrevSibling ?
-      nsLayoutUtils::GetAfterFrame(aParentFrame) :
-      nsLayoutUtils::GetBeforeFrame(aParentFrame);
+      nsLayoutUtils::GetAfterFrameForContent(aParentFrame, aContent) :
+      nsLayoutUtils::GetBeforeFrameForContent(aParentFrame, aContent);
     if (!sibling) {
       
       const bool forward = !aPrevSibling;
@@ -6379,8 +6379,8 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
     if (!sibling) {
       
       sibling = aPrevSibling ?
-        nsLayoutUtils::GetBeforeFrame(aParentFrame) :
-        nsLayoutUtils::GetAfterFrame(aParentFrame);
+        nsLayoutUtils::GetBeforeFrameForContent(aParentFrame, aContent) :
+        nsLayoutUtils::GetAfterFrameForContent(aParentFrame, aContent);
     }
     if (!sibling) {
       return nullptr;

@@ -216,7 +216,32 @@ public:
 
 
 
+
+  static nsIFrame* GetBeforeFrameForContent(nsIFrame* aGenConParentFrame,
+                                            nsIContent* aContent);
+
+  
+
+
+
+
+
+
+
   static nsIFrame* GetBeforeFrame(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+
+
+
+  static nsIFrame* GetAfterFrameForContent(nsIFrame* aGenConParentFrame,
+                                           nsIContent* aContent);
 
   
 

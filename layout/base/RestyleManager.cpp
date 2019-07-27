@@ -104,6 +104,33 @@ RestyleManager::NotifyDestroyingFrame(nsIFrame* aFrame)
 static bool gInApplyRenderingChangeToTree = false;
 #endif
 
+static inline nsIFrame*
+GetNextBlockInInlineSibling(FramePropertyTable* aPropTable, nsIFrame* aFrame)
+{
+  NS_ASSERTION(!aFrame->GetPrevContinuation(),
+               "must start with the first continuation");
+  
+  if (!(aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
+    
+    return nullptr;
+  }
+
+  return static_cast<nsIFrame*>
+    (aPropTable->Get(aFrame, nsIFrame::IBSplitSibling()));
+}
+
+static nsIFrame*
+GetNearestAncestorFrame(nsIContent* aContent)
+{
+  nsIFrame* ancestorFrame = nullptr;
+  for (nsIContent* ancestor = aContent->GetParent();
+       ancestor && !ancestorFrame;
+       ancestor = ancestor->GetParent()) {
+    ancestorFrame = ancestor->GetPrimaryFrame();
+  }
+  return ancestorFrame;
+}
+
 static void
 DoApplyRenderingChangeToTree(nsIFrame* aFrame,
                              nsChangeHint aChange);
@@ -948,7 +975,14 @@ RestyleManager::RestyleElement(Element*        aElement,
     
     
     
-    FrameConstructor()->MaybeRecreateFramesForElement(aElement);
+    nsStyleContext* newContext =
+      FrameConstructor()->MaybeRecreateFramesForElement(aElement);
+    if (newContext &&
+        newContext->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_CONTENTS) {
+      
+      ComputeAndProcessStyleChange(newContext, aElement, aMinHint,
+                                   aRestyleTracker, aRestyleHint);
+    }
   }
 }
 
@@ -2424,6 +2458,35 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
 {
 }
 
+ElementRestyler::ElementRestyler(nsPresContext* aPresContext,
+                                 nsIContent* aContent,
+                                 nsStyleChangeList* aChangeList,
+                                 nsChangeHint aHintsHandledByAncestors,
+                                 RestyleTracker& aRestyleTracker,
+                                 TreeMatchContext& aTreeMatchContext,
+                                 nsTArray<nsIContent*>&
+                                 aVisibleKidsOfHiddenElement)
+  : mPresContext(aPresContext)
+  , mFrame(nullptr)
+  , mParentContent(nullptr)
+  , mContent(aContent)
+  , mChangeList(aChangeList)
+  , mHintsHandled(NS_SubtractHint(aHintsHandledByAncestors,
+                  NS_HintsNotHandledForDescendantsIn(aHintsHandledByAncestors)))
+  , mParentFrameHintsNotHandledForDescendants(nsChangeHint(0))
+  , mHintsNotHandledForDescendants(nsChangeHint(0))
+  , mRestyleTracker(aRestyleTracker)
+  , mTreeMatchContext(aTreeMatchContext)
+  , mResolvedChild(nullptr)
+#ifdef ACCESSIBILITY
+  , mDesiredA11yNotifications(eSendAllNotifications)
+  , mKidsDesiredA11yNotifications(mDesiredA11yNotifications)
+  , mOurA11yNotification(eDontNotify)
+  , mVisibleKidsOfHiddenElement(aVisibleKidsOfHiddenElement)
+#endif
+{
+}
+
 void
 ElementRestyler::AddLayerChangesForAnimation()
 {
@@ -2659,7 +2722,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     
     
     if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
-      InitializeAccessibilityNotifications();
+      InitializeAccessibilityNotifications(mFrame->StyleContext());
       SendAccessibilityNotifications();
     }
 
@@ -3325,7 +3388,7 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   
   nsIFrame *lastContinuation;
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
-    InitializeAccessibilityNotifications();
+    InitializeAccessibilityNotifications(mFrame->StyleContext());
 
     for (nsIFrame* f = mFrame; f;
          f = GetNextContinuationWithSameStyle(f, f->StyleContext())) {
@@ -3341,6 +3404,121 @@ ElementRestyler::RestyleChildren(nsRestyleHint aChildRestyleHint)
   if (!(mHintsHandled & nsChangeHint_ReconstructFrame) &&
       mightReframePseudos) {
     MaybeReframeForAfterPseudo(lastContinuation);
+  }
+}
+
+void
+ElementRestyler::RestyleChildrenOfDisplayContentsElement(
+  nsIFrame*       aParentFrame,
+  nsStyleContext* aNewContext,
+  nsChangeHint    aMinHint,
+  RestyleTracker& aRestyleTracker,
+  nsRestyleHint   aRestyleHint)
+{
+  MOZ_ASSERT(!(mHintsHandled & nsChangeHint_ReconstructFrame), "why call me?");
+
+  const bool mightReframePseudos = aRestyleHint & eRestyle_Subtree;
+  DoRestyleUndisplayedDescendants(nsRestyleHint(0), mContent, aNewContext);
+  if (!(mHintsHandled & nsChangeHint_ReconstructFrame) && mightReframePseudos) {
+    MaybeReframeForBeforePseudo(aParentFrame, nullptr, mContent, aNewContext);
+  }
+  if (!(mHintsHandled & nsChangeHint_ReconstructFrame) && mightReframePseudos) {
+    MaybeReframeForAfterPseudo(aParentFrame, nullptr, mContent, aNewContext);
+  }
+  if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
+    InitializeAccessibilityNotifications(aNewContext);
+
+    
+    
+    
+    
+    
+    nsIFrame::ChildListIterator lists(aParentFrame);
+    for ( ; !lists.IsDone(); lists.Next()) {
+      nsFrameList::Enumerator childFrames(lists.CurrentList());
+      for (; !childFrames.AtEnd(); childFrames.Next()) {
+        nsIFrame* f = childFrames.get();
+        if (nsContentUtils::ContentIsDescendantOf(f->GetContent(), mContent) &&
+            !f->GetPrevContinuation()) {
+          if (!(f->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+            ComputeStyleChangeFor(f, mChangeList, aMinHint, aRestyleTracker,
+                                  aRestyleHint);
+          }
+        }
+      }
+    }
+  }
+  if (!(mHintsHandled & nsChangeHint_ReconstructFrame)) {
+    SendAccessibilityNotifications();
+  }
+}
+
+void
+ElementRestyler::ComputeStyleChangeFor(nsIFrame*          aFrame,
+                                       nsStyleChangeList* aChangeList,
+                                       nsChangeHint       aMinChange,
+                                       RestyleTracker&    aRestyleTracker,
+                                       nsRestyleHint      aRestyleHint)
+{
+  PROFILER_LABEL("ElementRestyler", "ComputeStyleChangeFor",
+    js::ProfileEntry::Category::CSS);
+
+  nsIContent* content = aFrame->GetContent();
+  if (aMinChange) {
+    aChangeList->AppendChange(aFrame, content, aMinChange);
+  }
+
+  NS_ASSERTION(!aFrame->GetPrevContinuation(),
+               "must start with the first continuation");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsPresContext* presContext = aFrame->PresContext();
+  FramePropertyTable* propTable = presContext->PropertyTable();
+
+  TreeMatchContext treeMatchContext(true,
+                                    nsRuleWalker::eRelevantLinkUnvisited,
+                                    presContext->Document());
+  Element* parent =
+    content ? content->GetParentElementCrossingShadowRoot() : nullptr;
+  treeMatchContext.InitAncestors(parent);
+  nsTArray<nsIContent*> visibleKidsOfHiddenElement;
+  for (nsIFrame* ibSibling = aFrame; ibSibling;
+       ibSibling = GetNextBlockInInlineSibling(propTable, ibSibling)) {
+    
+    for (nsIFrame* cont = ibSibling; cont; cont = cont->GetNextContinuation()) {
+      if (GetPrevContinuationWithSameStyle(cont)) {
+        
+        
+        continue;
+      }
+
+      
+      ElementRestyler restyler(presContext, cont, aChangeList,
+                               aMinChange, aRestyleTracker,
+                               treeMatchContext,
+                               visibleKidsOfHiddenElement);
+
+      restyler.Restyle(aRestyleHint);
+
+      if (restyler.HintsHandledForFrame() & nsChangeHint_ReconstructFrame) {
+        
+        
+        
+        NS_ASSERTION(!cont->GetPrevContinuation(),
+                     "continuing frame had more severe impact than first-in-flow");
+        return;
+      }
+    }
   }
 }
 
@@ -3361,27 +3539,30 @@ ElementRestyler::RestyleUndisplayedDescendants(nsRestyleHint aChildRestyleHint)
     undisplayedParent = mFrame->GetContent();
   }
   if (checkUndisplayed) {
-    DoRestyleUndisplayedDescendants(aChildRestyleHint, undisplayedParent);
+    DoRestyleUndisplayedDescendants(aChildRestyleHint, undisplayedParent,
+                                    mFrame->StyleContext());
   }
 }
 
 void
 ElementRestyler::DoRestyleUndisplayedDescendants(nsRestyleHint aChildRestyleHint,
-                                                 nsIContent* aParent)
+                                                 nsIContent* aParent,
+                                                 nsStyleContext* aParentContext)
 {
   nsCSSFrameConstructor* fc = mPresContext->FrameConstructor();
   UndisplayedNode* nodes = fc->GetAllUndisplayedContentIn(aParent);
   RestyleUndisplayedNodes(aChildRestyleHint, nodes, aParent,
-                          NS_STYLE_DISPLAY_NONE);
+                          aParentContext, NS_STYLE_DISPLAY_NONE);
   nodes = fc->GetAllDisplayContentsIn(aParent);
   RestyleUndisplayedNodes(aChildRestyleHint, nodes, aParent,
-                          NS_STYLE_DISPLAY_CONTENTS);
+                          aParentContext, NS_STYLE_DISPLAY_CONTENTS);
 }
 
 void
 ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
                                          UndisplayedNode* aUndisplayed,
                                          nsIContent*      aUndisplayedParent,
+                                         nsStyleContext*  aParentContext,
                                          const uint8_t    aDisplay)
 {
   nsIContent* undisplayedParent = aUndisplayedParent;
@@ -3423,9 +3604,7 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
     nsStyleSet* styleSet = mPresContext->StyleSet();
     if (thisChildHint & (eRestyle_Self | eRestyle_Subtree)) {
       undisplayedContext =
-        styleSet->ResolveStyleFor(element,
-                                  mFrame->StyleContext(),
-                                  mTreeMatchContext);
+        styleSet->ResolveStyleFor(element, aParentContext, mTreeMatchContext);
     } else if (thisChildHint ||
                styleSet->IsInRuleTreeReconstruct()) {
       
@@ -3435,13 +3614,13 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
       
       undisplayedContext =
         styleSet->ResolveStyleWithReplacement(element,
-                                              mFrame->StyleContext(),
+                                              aParentContext,
                                               undisplayed->mStyle,
                                               thisChildHint);
     } else {
       undisplayedContext =
         styleSet->ReparentStyleContext(undisplayed->mStyle,
-                                       mFrame->StyleContext(),
+                                       aParentContext,
                                        element, element);
     }
     const nsStyleDisplay* display = undisplayedContext->StyleDisplay();
@@ -3456,7 +3635,8 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
       undisplayed->mStyle = undisplayedContext;
 
       if (aDisplay == NS_STYLE_DISPLAY_CONTENTS) {
-        DoRestyleUndisplayedDescendants(aChildRestyleHint, element);
+        DoRestyleUndisplayedDescendants(aChildRestyleHint, element,
+                                        undisplayed->mStyle);
       }
     }
   }
@@ -3465,30 +3645,38 @@ ElementRestyler::RestyleUndisplayedNodes(nsRestyleHint    aChildRestyleHint,
 void
 ElementRestyler::MaybeReframeForBeforePseudo()
 {
+  MaybeReframeForBeforePseudo(mFrame, mFrame, mFrame->GetContent(),
+                              mFrame->StyleContext());
+}
+
+void
+ElementRestyler::MaybeReframeForBeforePseudo(nsIFrame* aGenConParentFrame,
+                                             nsIFrame* aFrame,
+                                             nsIContent* aContent,
+                                             nsStyleContext* aStyleContext)
+{
   
   
   nsContainerFrame* cif;
-  if (!mFrame->StyleContext()->GetPseudo() &&
-      ((mFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+  if (!aStyleContext->GetPseudo() &&
+      ((aGenConParentFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        
-       ((cif = mFrame->GetContentInsertionFrame()) &&
+       ((cif = aGenConParentFrame->GetContentInsertionFrame()) &&
         (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
-    nsIFrame* prevContinuation = mFrame->GetPrevContinuation();
-    if (!prevContinuation) {
+    if (!aFrame || !aFrame->GetPrevContinuation()) {
       
       
-      if (!nsLayoutUtils::GetBeforeFrame(mFrame) &&
-          nsLayoutUtils::HasPseudoStyle(mFrame->GetContent(),
-                                        mFrame->StyleContext(),
+      if (!nsLayoutUtils::GetBeforeFrameForContent(aGenConParentFrame, aContent) &&
+          nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
                                         nsCSSPseudoElements::ePseudo_before,
                                         mPresContext)) {
         
         LOG_RESTYLE("MaybeReframeForBeforePseudo, appending "
                     "nsChangeHint_ReconstructFrame");
         NS_UpdateHint(mHintsHandled, nsChangeHint_ReconstructFrame);
-        mChangeList->AppendChange(mFrame, mContent,
+        mChangeList->AppendChange(aFrame, aContent,
                                   nsChangeHint_ReconstructFrame);
       }
     }
@@ -3502,26 +3690,34 @@ ElementRestyler::MaybeReframeForBeforePseudo()
 void
 ElementRestyler::MaybeReframeForAfterPseudo(nsIFrame* aFrame)
 {
+  MOZ_ASSERT(aFrame);
+  MaybeReframeForAfterPseudo(aFrame, aFrame, aFrame->GetContent(),
+                             aFrame->StyleContext());
+}
+
+void
+ElementRestyler::MaybeReframeForAfterPseudo(nsIFrame* aGenConParentFrame,
+                                            nsIFrame* aFrame,
+                                            nsIContent* aContent,
+                                            nsStyleContext* aStyleContext)
+{
   
   
   nsContainerFrame* cif;
-  if (!aFrame->StyleContext()->GetPseudo() &&
-      ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+  if (!aStyleContext->GetPseudo() &&
+      ((aGenConParentFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        
-       ((cif = aFrame->GetContentInsertionFrame()) &&
+       ((cif = aGenConParentFrame->GetContentInsertionFrame()) &&
         (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
-    nsIFrame* nextContinuation = aFrame->GetNextContinuation();
-
-    if (!nextContinuation) {
+    if (!aFrame || !aFrame->GetNextContinuation()) {
       
       
-      if (nsLayoutUtils::HasPseudoStyle(aFrame->GetContent(),
-                                        aFrame->StyleContext(),
+      if (!nsLayoutUtils::GetAfterFrameForContent(aGenConParentFrame, aContent) &&
+          nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
                                         nsCSSPseudoElements::ePseudo_after,
-                                        mPresContext) &&
-          !nsLayoutUtils::GetAfterFrame(aFrame)) {
+                                        mPresContext)) {
         
         LOG_RESTYLE("MaybeReframeForAfterPseudo, appending "
                     "nsChangeHint_ReconstructFrame");
@@ -3534,17 +3730,18 @@ ElementRestyler::MaybeReframeForAfterPseudo(nsIFrame* aFrame)
 }
 
 void
-ElementRestyler::InitializeAccessibilityNotifications()
+ElementRestyler::InitializeAccessibilityNotifications(nsStyleContext* aNewContext)
 {
 #ifdef ACCESSIBILITY
   
   
   
   if (nsIPresShell::IsAccessibilityActive() &&
-      !mFrame->GetPrevContinuation() &&
-      !mFrame->FrameIsNonFirstInIBSplit()) {
+      (!mFrame ||
+       (!mFrame->GetPrevContinuation() &&
+        !mFrame->FrameIsNonFirstInIBSplit()))) {
     if (mDesiredA11yNotifications == eSendAllNotifications) {
-      bool isFrameVisible = mFrame->StyleVisibility()->IsVisible();
+      bool isFrameVisible = aNewContext->StyleVisibility()->IsVisible();
       if (isFrameVisible != mWasFrameVisible) {
         if (isFrameVisible) {
           
@@ -3563,10 +3760,10 @@ ElementRestyler::InitializeAccessibilityNotifications()
         }
       }
     } else if (mDesiredA11yNotifications == eNotifyIfShown &&
-               mFrame->StyleVisibility()->IsVisible()) {
+               aNewContext->StyleVisibility()->IsVisible()) {
       
-      
-      mVisibleKidsOfHiddenElement.AppendElement(mFrame->GetContent());
+      nsIContent* c = mFrame ? mFrame->GetContent() : mContent;
+      mVisibleKidsOfHiddenElement.AppendElement(c);
       mKidsDesiredA11yNotifications = eSkipNotifications;
     }
   }
@@ -3654,8 +3851,8 @@ ElementRestyler::SendAccessibilityNotifications()
   if (mOurA11yNotification == eNotifyShown) {
     nsAccessibilityService* accService = nsIPresShell::AccService();
     if (accService) {
-      nsIPresShell* presShell = mFrame->PresContext()->GetPresShell();
-      nsIContent* content = mFrame->GetContent();
+      nsIPresShell* presShell = mPresContext->GetPresShell();
+      nsIContent* content = mFrame ? mFrame->GetContent() : mContent;
 
       accService->ContentRangeInserted(presShell, content->GetParent(),
                                        content,
@@ -3664,8 +3861,8 @@ ElementRestyler::SendAccessibilityNotifications()
   } else if (mOurA11yNotification == eNotifyHidden) {
     nsAccessibilityService* accService = nsIPresShell::AccService();
     if (accService) {
-      nsIPresShell* presShell = mFrame->PresContext()->GetPresShell();
-      nsIContent* content = mFrame->GetContent();
+      nsIPresShell* presShell = mPresContext->GetPresShell();
+      nsIContent* content = mFrame ? mFrame->GetContent() : mContent;
       accService->ContentRemoved(presShell, content);
 
       
@@ -3682,21 +3879,6 @@ ElementRestyler::SendAccessibilityNotifications()
 #endif
 }
 
-static inline nsIFrame*
-GetNextBlockInInlineSibling(FramePropertyTable* aPropTable, nsIFrame* aFrame)
-{
-  NS_ASSERTION(!aFrame->GetPrevContinuation(),
-               "must start with the first continuation");
-  
-  if (!(aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
-    
-    return nullptr;
-  }
-
-  return static_cast<nsIFrame*>
-    (aPropTable->Get(aFrame, nsIFrame::IBSplitSibling()));
-}
-
 void
 RestyleManager::ComputeAndProcessStyleChange(nsIFrame*          aFrame,
                                              nsChangeHint       aMinChange,
@@ -3711,77 +3893,44 @@ RestyleManager::ComputeAndProcessStyleChange(nsIFrame*          aFrame,
   mReframingStyleContexts = &reframingStyleContexts;
 
   nsStyleChangeList changeList;
-  ComputeStyleChangeFor(aFrame, &changeList, aMinChange,
-                        aRestyleTracker, aRestyleHint);
+  ElementRestyler::ComputeStyleChangeFor(aFrame, &changeList, aMinChange,
+                                         aRestyleTracker, aRestyleHint);
   ProcessRestyledFrames(changeList);
 }
 
 void
-RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
-                                      nsStyleChangeList* aChangeList,
-                                      nsChangeHint       aMinChange,
-                                      RestyleTracker&    aRestyleTracker,
-                                      nsRestyleHint      aRestyleHint)
+RestyleManager::ComputeAndProcessStyleChange(nsStyleContext*    aNewContext,
+                                             Element*           aElement,
+                                             nsChangeHint       aMinChange,
+                                             RestyleTracker&    aRestyleTracker,
+                                             nsRestyleHint      aRestyleHint)
 {
-  PROFILER_LABEL("RestyleManager", "ComputeStyleChangeFor",
-    js::ProfileEntry::Category::CSS);
+  
+  
+  MOZ_ASSERT(!mReframingStyleContexts, "shouldn't call recursively");
+  AutoRestore<ReframingStyleContexts*> ar(mReframingStyleContexts);
+  ReframingStyleContexts reframingStyleContexts;
+  mReframingStyleContexts = &reframingStyleContexts;
 
-  nsIContent *content = aFrame->GetContent();
-  if (aMinChange) {
-    aChangeList->AppendChange(aFrame, content, aMinChange);
-  }
-
-  NS_ASSERTION(!aFrame->GetPrevContinuation(),
-               "must start with the first continuation");
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  FramePropertyTable* propTable = mPresContext->PropertyTable();
-
+  MOZ_ASSERT(aNewContext->StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_CONTENTS);
+  nsIFrame* frame = GetNearestAncestorFrame(aElement);
+  MOZ_ASSERT(frame, "display:contents node in map although it's a "
+                    "display:none descendant?");
   TreeMatchContext treeMatchContext(true,
                                     nsRuleWalker::eRelevantLinkUnvisited,
-                                    mPresContext->Document());
-  Element* parent =
-    content ? content->GetParentElementCrossingShadowRoot() : nullptr;
-  treeMatchContext.InitAncestors(parent);
+                                    frame->PresContext()->Document());
+  nsIContent* parent = aElement->GetParent();
+  Element* parentElement =
+    parent && parent->IsElement() ? parent->AsElement() : nullptr;
+  treeMatchContext.InitAncestors(parentElement);
   nsTArray<nsIContent*> visibleKidsOfHiddenElement;
-  for (nsIFrame* ibSibling = aFrame; ibSibling;
-       ibSibling = GetNextBlockInInlineSibling(propTable, ibSibling)) {
-    
-    for (nsIFrame* cont = ibSibling; cont; cont = cont->GetNextContinuation()) {
-      if (GetPrevContinuationWithSameStyle(cont)) {
-        
-        
-        continue;
-      }
-
-      
-      ElementRestyler restyler(mPresContext, cont, aChangeList,
-                               aMinChange, aRestyleTracker,
-                               treeMatchContext,
-                               visibleKidsOfHiddenElement);
-
-      restyler.Restyle(aRestyleHint);
-
-      if (restyler.HintsHandledForFrame() & nsChangeHint_ReconstructFrame) {
-        
-        
-        
-        NS_ASSERTION(!cont->GetPrevContinuation(),
-                     "continuing frame had more severe impact than first-in-flow");
-        return;
-      }
-    }
-  }
+  nsStyleChangeList changeList;
+  ElementRestyler r(frame->PresContext(), aElement, &changeList, aMinChange,
+                    aRestyleTracker, treeMatchContext,
+                    visibleKidsOfHiddenElement);
+  r.RestyleChildrenOfDisplayContentsElement(frame, aNewContext, aMinChange,
+                                            aRestyleTracker, aRestyleHint);
+  ProcessRestyledFrames(changeList);
 }
 
 AutoDisplayContentsAncestorPusher::AutoDisplayContentsAncestorPusher(

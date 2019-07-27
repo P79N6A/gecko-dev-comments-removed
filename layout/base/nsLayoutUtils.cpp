@@ -1060,73 +1060,6 @@ nsLayoutUtils::LastContinuationWithChild(nsContainerFrame* aFrame)
 }
 
 
-
-
-
-
-
-
-static nsIFrame*
-GetFirstChildFrame(nsIFrame*       aFrame,
-                   nsIContent*     aContent)
-{
-  NS_PRECONDITION(aFrame, "NULL frame pointer");
-
-  
-  nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
-
-  
-  
-  
-  if (childFrame &&
-      childFrame->IsPseudoFrame(aContent) &&
-      !childFrame->IsGeneratedContentFrame()) {
-    return GetFirstChildFrame(childFrame, aContent);
-  }
-
-  return childFrame;
-}
-
-
-
-
-
-
-
-
-static nsIFrame*
-GetLastChildFrame(nsContainerFrame* aFrame,
-                  nsIContent*       aContent)
-{
-  NS_PRECONDITION(aFrame, "NULL frame pointer");
-
-  
-  nsContainerFrame* lastParentContinuation =
-    nsLayoutUtils::LastContinuationWithChild(aFrame);
-  nsIFrame* lastChildFrame =
-    lastParentContinuation->GetLastChild(nsIFrame::kPrincipalList);
-  if (lastChildFrame) {
-    
-    
-    lastChildFrame = lastChildFrame->FirstContinuation();
-
-    
-    
-    
-    if (lastChildFrame &&
-        lastChildFrame->IsPseudoFrame(aContent) &&
-        !lastChildFrame->IsGeneratedContentFrame()) {
-      return GetLastChildFrame(static_cast<nsContainerFrame*>(lastChildFrame),
-                               aContent);
-    }
-
-    return lastChildFrame;
-  }
-
-  return nullptr;
-}
-
-
 FrameChildListID
 nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
 {
@@ -1224,44 +1157,79 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
   return id;
 }
 
-
-nsIFrame*
-nsLayoutUtils::GetBeforeFrame(nsIFrame* aFrame)
+ nsIFrame*
+nsLayoutUtils::GetBeforeFrameForContent(nsIFrame* aFrame,
+                                        nsIContent* aContent)
 {
-  NS_PRECONDITION(aFrame, "NULL frame pointer");
-  NS_ASSERTION(!aFrame->GetPrevContinuation(),
-               "aFrame must be first continuation");
-
-  nsIFrame* cif = aFrame->GetContentInsertionFrame();
-  if (!cif) {
+  nsContainerFrame* genConParentFrame = aFrame->GetContentInsertionFrame();
+  if (!genConParentFrame) {
     return nullptr;
   }
-  nsIFrame* firstFrame = GetFirstChildFrame(cif, aFrame->GetContent());
-  if (firstFrame && IsGeneratedContentFor(nullptr, firstFrame,
-                                          nsCSSPseudoElements::before)) {
-    return firstFrame;
+  nsTArray<nsIContent*>* prop = genConParentFrame->GetGenConPseudos();
+  if (prop) {
+    const nsTArray<nsIContent*>& pseudos(*prop);
+    for (uint32_t i = 0; i < pseudos.Length(); ++i) {
+      if (pseudos[i]->GetParent() == aContent &&
+          pseudos[i]->Tag() == nsGkAtoms::mozgeneratedcontentbefore) {
+        return pseudos[i]->GetPrimaryFrame();
+      }
+    }
   }
-
+  
+  
+  
+  nsIFrame* childFrame = genConParentFrame->GetFirstPrincipalChild();
+  if (childFrame &&
+      childFrame->IsPseudoFrame(aContent) &&
+      !childFrame->IsGeneratedContentFrame()) {
+    return GetBeforeFrameForContent(childFrame, aContent);
+  }
   return nullptr;
 }
 
-
-nsIFrame*
-nsLayoutUtils::GetAfterFrame(nsIFrame* aFrame)
+ nsIFrame*
+nsLayoutUtils::GetBeforeFrame(nsIFrame* aFrame)
 {
-  NS_PRECONDITION(aFrame, "NULL frame pointer");
+  return GetBeforeFrameForContent(aFrame, aFrame->GetContent());
+}
 
-  nsContainerFrame* cif = aFrame->GetContentInsertionFrame();
-  if (!cif) {
+ nsIFrame*
+nsLayoutUtils::GetAfterFrameForContent(nsIFrame* aFrame,
+                                       nsIContent* aContent)
+{
+  nsContainerFrame* genConParentFrame = aFrame->GetContentInsertionFrame();
+  if (!genConParentFrame) {
     return nullptr;
   }
-  nsIFrame* lastFrame = GetLastChildFrame(cif, aFrame->GetContent());
-  if (lastFrame && IsGeneratedContentFor(nullptr, lastFrame,
-                                         nsCSSPseudoElements::after)) {
-    return lastFrame;
+  nsTArray<nsIContent*>* prop = genConParentFrame->GetGenConPseudos();
+  if (prop) {
+    const nsTArray<nsIContent*>& pseudos(*prop);
+    for (uint32_t i = 0; i < pseudos.Length(); ++i) {
+      if (pseudos[i]->GetParent() == aContent &&
+          pseudos[i]->Tag() == nsGkAtoms::mozgeneratedcontentafter) {
+        return pseudos[i]->GetPrimaryFrame();
+      }
+    }
   }
-
+  
+  
+  
+  nsIFrame* lastParentContinuation =
+    nsLayoutUtils::LastContinuationWithChild(genConParentFrame);
+  nsIFrame* childFrame =
+    lastParentContinuation->GetLastChild(nsIFrame::kPrincipalList);
+  if (childFrame &&
+      childFrame->IsPseudoFrame(aContent) &&
+      !childFrame->IsGeneratedContentFrame()) {
+    return GetAfterFrameForContent(childFrame->FirstContinuation(), aContent);
+  }
   return nullptr;
+}
+
+ nsIFrame*
+nsLayoutUtils::GetAfterFrame(nsIFrame* aFrame)
+{
+  return GetAfterFrameForContent(aFrame, aFrame->GetContent());
 }
 
 
