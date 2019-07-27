@@ -18,7 +18,7 @@ for (var name in Reflect)
 
 var methods = {
     apply: 3,
-    
+    construct: 2,
     defineProperty: 3,
     deleteProperty: 2,
     

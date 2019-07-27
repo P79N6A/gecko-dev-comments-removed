@@ -3,28 +3,23 @@
 
 
 
-if (Reflect.construct) {
-    throw new Error("Congratulations on implementing Reflect.construct! " +
-                    "Please uncomment the Reflect.construct tests below.");
-}
-
 
 assertThrowsInstanceOf(() => Reflect.apply(Math.min, undefined),  
                        TypeError);
-
-
+assertThrowsInstanceOf(() => Reflect.construct(Object),  
+                       TypeError);
 for (var primitive of SOME_PRIMITIVE_VALUES) {
     assertThrowsInstanceOf(() => Reflect.apply(Math.min, undefined, primitive),
                            TypeError);
-    
-    
+    assertThrowsInstanceOf(() => Reflect.construct(Object, primitive),
+                           TypeError);
 }
 
 
 var BOTH = [
     Reflect.apply,
     
-    
+    (target, thisArgument, argumentList) => Reflect.construct(target, argumentList)
 ];
 
 
@@ -50,7 +45,7 @@ function testLess(a, b, c, d, e) {
 }
 args = [1, true, "three", Symbol.for];
 assertEq(Reflect.apply(testLess, undefined, args), "ok");
-
+assertEq(Reflect.construct(testLess, args) instanceof testLess, true);
 
 
 function testMoar(a) {
@@ -58,7 +53,7 @@ function testMoar(a) {
     return "good";
 }
 assertEq(Reflect.apply(testMoar, undefined, args), "good");
-
+assertEq(Reflect.construct(testMoar, args) instanceof testMoar, true);
 
 
 function getArgs(...args) {
@@ -163,6 +158,6 @@ function testMany(...args) {
     return this;
 }
 assertEq(Reflect.apply(testMany, "pass", args), "pass");
-
+assertEq(Reflect.construct(testMany, args) instanceof testMany, true);
 
 reportCompare(0, 0);

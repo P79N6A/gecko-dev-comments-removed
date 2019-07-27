@@ -81,6 +81,45 @@ Reflect_apply(JSContext* cx, unsigned argc, Value* vp)
 
 
 static bool
+Reflect_construct(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    if (!IsConstructor(args.get(0))) {
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_NOT_CONSTRUCTOR,
+                             "Reflect.construct argument");
+        return false;
+    }
+
+    
+    RootedValue newTarget(cx, args.get(0));
+    if (argc > 2) {
+        newTarget = args[2];
+        if (!IsConstructor(newTarget)) {
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_NOT_CONSTRUCTOR,
+                                 "Reflect.construct argument 3");
+            return false;
+        }
+    }
+
+    
+    InvokeArgs invokeArgs(cx);
+    if (!InitArgsFromArrayLike(cx, args.get(1), &invokeArgs, true))
+        return false;
+    invokeArgs.setCallee(args.get(0));
+    invokeArgs.setThis(MagicValue(JS_THIS_POISON));
+    invokeArgs.newTarget().set(newTarget);
+
+    
+    if (!InvokeConstructor(cx, invokeArgs))
+        return false;
+    args.rval().set(invokeArgs.rval());
+    return true;
+}
+
+
+static bool
 Reflect_defineProperty(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -344,7 +383,7 @@ Reflect_setPrototypeOf(JSContext* cx, unsigned argc, Value* vp)
 
 static const JSFunctionSpec methods[] = {
     JS_FN("apply", Reflect_apply, 3, 0),
-    
+    JS_FN("construct", Reflect_construct, 2, 0),
     JS_FN("defineProperty", Reflect_defineProperty, 3, 0),
     JS_FN("deleteProperty", Reflect_deleteProperty, 2, 0),
     

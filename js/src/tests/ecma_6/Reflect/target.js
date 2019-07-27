@@ -7,7 +7,7 @@
 
 var methodInfo = {
     apply: [undefined, []],
-    
+    construct: [[]],
     defineProperty: ["x", {}],
     deleteProperty: ["x"],
     
