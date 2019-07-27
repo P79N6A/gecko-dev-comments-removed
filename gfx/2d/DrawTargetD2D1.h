@@ -171,6 +171,14 @@ private:
   }
   void AddDependencyOnSource(SourceSurfaceD2D1* aSource);
 
+  
+  
+  
+  
+  TemporaryRef<ID2D1Geometry> GetClippedGeometry(IntRect *aClipBounds);
+
+  bool GetDeviceSpaceClipRect(D2D1_RECT_F& aClipRect, bool& aIsPixelAligned);
+
   void PopAllClips();
   void PushClipsToDC(ID2D1DeviceContext *aDC);
   void PopClipsFromDC(ID2D1DeviceContext *aDC);
@@ -183,6 +191,7 @@ private:
 
   RefPtr<ID3D11Device> mDevice;
   RefPtr<ID3D11Texture2D> mTexture;
+  RefPtr<ID2D1Geometry> mCurrentClippedGeometry;
   
   
   
