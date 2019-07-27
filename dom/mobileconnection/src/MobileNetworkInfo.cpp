@@ -47,29 +47,6 @@ MobileNetworkInfo::WrapObject(JSContext* aCx)
 
 
 
- already_AddRefed<MobileNetworkInfo>
-MobileNetworkInfo::Constructor(const GlobalObject& aGlobal,
-                               const nsAString& aShortName,
-                               const nsAString& aLongName,
-                               const nsAString& aMcc,
-                               const nsAString& aMnc,
-                               const nsAString& aState,
-                               ErrorResult& aRv)
-{
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<MobileNetworkInfo> info = new MobileNetworkInfo(window);
-
-  info->mShortName.Assign(aShortName);
-  info->mLongName.Assign(aLongName);
-  info->mMcc.Assign(aMcc);
-  info->mMnc.Assign(aMnc);
-  info->mState.Assign(aState);
-
-  return info.forget();
-}
-
-
-
 NS_IMETHODIMP
 MobileNetworkInfo::GetShortName(nsAString& aShortName)
 {
