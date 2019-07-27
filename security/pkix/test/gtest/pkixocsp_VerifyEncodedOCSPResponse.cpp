@@ -401,12 +401,12 @@ protected:
   {
     assert(certSubjectName);
 
-    const SECItem* extensions[] = {
+    const ByteString extensions[] = {
       signerEKUDER
-        ? CreateEncodedEKUExtension(arena.get(), *signerEKUDER,
+        ? CreateEncodedEKUExtension(*signerEKUDER,
                                     ExtensionCriticality::NotCritical)
-        : nullptr,
-      nullptr
+        : ByteString(),
+      ByteString()
     };
     ScopedSECKEYPrivateKey signerPrivateKey;
     SECItem* signerDER(CreateEncodedCertificate(
@@ -439,7 +439,7 @@ protected:
                                            time_t notBefore,
                                            time_t notAfter,
                                            const char* subject,
-                               SECItem const* const* extensions,
+                               const ByteString* extensions,
                                SECKEYPrivateKey* signerKey,
                                     ScopedSECKEYPrivateKey& privateKey)
   {
@@ -539,10 +539,10 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder, good_expired)
 {
   static const char* signerName = "good_indirect_expired";
 
-  const SECItem* extensions[] = {
-    CreateEncodedEKUExtension(arena.get(), OCSPSigningEKUDER,
+  const ByteString extensions[] = {
+    CreateEncodedEKUExtension(OCSPSigningEKUDER,
                               ExtensionCriticality::NotCritical),
-    nullptr
+    ByteString()
   };
 
   ScopedSECKEYPrivateKey signerPrivateKey;
@@ -571,10 +571,10 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder, good_future)
 {
   static const char* signerName = "good_indirect_future";
 
-  const SECItem* extensions[] = {
-    CreateEncodedEKUExtension(arena.get(), OCSPSigningEKUDER,
+  const ByteString extensions[] = {
+    CreateEncodedEKUExtension(OCSPSigningEKUDER,
                               ExtensionCriticality::NotCritical),
-    nullptr
+    ByteString()
   };
 
   ScopedSECKEYPrivateKey signerPrivateKey;
@@ -666,10 +666,10 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder, good_unknown_issuer)
   ASSERT_EQ(Success, GenerateKeyPair(unknownPublicKey, unknownPrivateKey));
 
   
-  const SECItem* extensions[] = {
-    CreateEncodedEKUExtension(arena.get(), OCSPSigningEKUDER,
+  const ByteString extensions[] = {
+    CreateEncodedEKUExtension(OCSPSigningEKUDER,
                               ExtensionCriticality::NotCritical),
-    nullptr
+    ByteString()
   };
   ScopedSECKEYPrivateKey signerPrivateKey;
   SECItem* signerDER(CreateEncodedCertificate(arena.get(), 1,
@@ -702,10 +702,9 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder,
   static const char* signerName = "good_indirect_subca_1_first OCSP signer";
 
   
-  const SECItem* subCAExtensions[] = {
-    CreateEncodedBasicConstraints(arena.get(), true, 0,
-                                  ExtensionCriticality::NotCritical),
-    nullptr
+  const ByteString subCAExtensions[] = {
+    CreateEncodedBasicConstraints(true, 0, ExtensionCriticality::NotCritical),
+    ByteString()
   };
   ScopedSECKEYPrivateKey subCAPrivateKey;
   SECItem* subCADER(CreateEncodedCertificate(arena.get(), ++rootIssuedCount,
@@ -717,10 +716,10 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder,
   ASSERT_TRUE(subCADER);
 
   
-  const SECItem* extensions[] = {
-    CreateEncodedEKUExtension(arena.get(), OCSPSigningEKUDER,
+  const ByteString extensions[] = {
+    CreateEncodedEKUExtension(OCSPSigningEKUDER,
                               ExtensionCriticality::NotCritical),
-    nullptr
+    ByteString(),
   };
   ScopedSECKEYPrivateKey signerPrivateKey;
   SECItem* signerDER(CreateEncodedCertificate(arena.get(), 1, subCAName,
@@ -755,10 +754,9 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder,
   static const char* signerName = "good_indirect_subca_1_second OCSP signer";
 
   
-  const SECItem* subCAExtensions[] = {
-    CreateEncodedBasicConstraints(arena.get(), true, 0,
-                                  ExtensionCriticality::NotCritical),
-    nullptr
+  const ByteString subCAExtensions[] = {
+    CreateEncodedBasicConstraints(true, 0, ExtensionCriticality::NotCritical),
+    ByteString()
   };
   ScopedSECKEYPrivateKey subCAPrivateKey;
   SECItem* subCADER(CreateEncodedCertificate(arena.get(), ++rootIssuedCount,
@@ -770,10 +768,10 @@ TEST_F(pkixocsp_VerifyEncodedResponse_DelegatedResponder,
   ASSERT_TRUE(subCADER);
 
   
-  const SECItem* extensions[] = {
-    CreateEncodedEKUExtension(arena.get(), OCSPSigningEKUDER,
+  const ByteString extensions[] = {
+    CreateEncodedEKUExtension(OCSPSigningEKUDER,
                               ExtensionCriticality::NotCritical),
-    nullptr
+    ByteString()
   };
   ScopedSECKEYPrivateKey signerPrivateKey;
   SECItem* signerDER(CreateEncodedCertificate(arena.get(), 1, subCAName,

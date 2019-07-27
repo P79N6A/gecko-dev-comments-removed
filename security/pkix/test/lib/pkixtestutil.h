@@ -137,7 +137,7 @@ SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
                                   const ByteString& issuerNameDER,
                                   std::time_t notBefore, std::time_t notAfter,
                                   const ByteString& subjectNameDER,
-                      SECItem const* const* extensions,
+                      const ByteString* extensions,
                       SECKEYPrivateKey* issuerPrivateKey,
                                   SignatureAlgorithm signatureAlgorithm,
                            ScopedSECKEYPrivateKey& privateKey);
@@ -146,15 +146,13 @@ ByteString CreateEncodedSerialNumber(long value);
 
 MOZILLA_PKIX_ENUM_CLASS ExtensionCriticality { NotCritical = 0, Critical = 1 };
 
-
-SECItem* CreateEncodedBasicConstraints(PLArenaPool* arena, bool isCA,
-                                        long* pathLenConstraint,
-                                       ExtensionCriticality criticality);
-
+ByteString CreateEncodedBasicConstraints(bool isCA,
+                                          long* pathLenConstraint,
+                                         ExtensionCriticality criticality);
 
 
-SECItem* CreateEncodedEKUExtension(PLArenaPool* arena, Input eku,
-                                   ExtensionCriticality criticality);
+ByteString CreateEncodedEKUExtension(Input eku,
+                                     ExtensionCriticality criticality);
 
 
 
@@ -162,9 +160,9 @@ SECItem* CreateEncodedEKUExtension(PLArenaPool* arena, Input eku,
 class OCSPResponseExtension
 {
 public:
-  SECItem id;
+  ByteString id;
   bool critical;
-  SECItem value;
+  ByteString value;
   OCSPResponseExtension* next;
 };
 
