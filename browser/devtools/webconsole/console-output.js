@@ -342,10 +342,6 @@ ConsoleOutput.prototype = {
     this.owner.owner.openLink.apply(this.owner.owner, arguments);
   },
 
-  openLocationInDebugger: function ({url, line}) {
-    return this.owner.owner.viewSourceInDebugger(url, line);
-  },
-
   
 
 
@@ -2500,8 +2496,6 @@ Widgets.JSObject.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
       options.onClick = options.href ? this._onClickAnchor : this._onClick;
     }
 
-    options.onContextMenu = options.onContextMenu || this._onContextMenu;
-
     let anchor = this.el("a", {
       class: options.className,
       draggable: false,
@@ -2509,8 +2503,6 @@ Widgets.JSObject.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
     }, text);
 
     this.message._addLinkCallback(anchor, options.onClick);
-
-    anchor.addEventListener("contextmenu", options.onContextMenu.bind(this));
 
     if (options.appendTo) {
       options.appendTo.appendChild(anchor);
@@ -2521,38 +2513,16 @@ Widgets.JSObject.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
     return anchor;
   },
 
-  openObjectInVariablesView: function()
-  {
-    this.output.openVariablesView({
-      label: VariablesView.getString(this.objectActor, { concise: true }),
-      objectActor: this.objectActor,
-      autofocus: true,
-    });
-  },
-
   
 
 
 
   _onClick: function()
   {
-    this.openObjectInVariablesView();
-  },
-
-  _onContextMenu: function(ev) {
-    
-    
-    
-    let doc = ev.target.ownerDocument;
-    let cmPopup = doc.getElementById("output-contextmenu");
-    let openInVarViewCmd = doc.getElementById("menu_openInVarView");
-    let openVarView = this.openObjectInVariablesView.bind(this);
-    openInVarViewCmd.addEventListener("command", openVarView);
-    openInVarViewCmd.removeAttribute("disabled");
-    cmPopup.addEventListener("popuphiding", function onPopupHiding() {
-      cmPopup.removeEventListener("popuphiding", onPopupHiding);
-      openInVarViewCmd.removeEventListener("command", openVarView);
-      openInVarViewCmd.setAttribute("disabled", "true");
+    this.output.openVariablesView({
+      label: VariablesView.getString(this.objectActor, { concise: true }),
+      objectActor: this.objectActor,
+      autofocus: true,
     });
   },
 
@@ -2720,16 +2690,6 @@ Widgets.ObjectRenderers.add({
 
     this._text(")");
   },
-
-  _onClick: function () {
-    let location = this.objectActor.location;
-    if (location) {
-      this.output.openLocationInDebugger(location);
-    }
-    else {
-      this.openObjectInVariablesView();
-    }
-  }
 }); 
 
 
