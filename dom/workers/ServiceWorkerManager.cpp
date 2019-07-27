@@ -576,8 +576,29 @@ ServiceWorkerManager::Register(const nsAString& aScope,
 
   nsCOMPtr<nsIURI> documentURI = doc->GetBaseURI();
 
+  bool httpsNeeded = true;
+
   
-  if (!Preferences::GetBool("dom.serviceWorkers.testing.enabled")) {
+  if (Preferences::GetBool("dom.serviceWorkers.testing.enabled")) {
+    httpsNeeded = false;
+  }
+
+  
+  if (httpsNeeded) {
+    nsAutoCString host;
+    result = documentURI->GetHost(host);
+    if (NS_WARN_IF(result.Failed())) {
+      return result.ErrorCode();
+    }
+
+    if (host.Equals("127.0.0.1") ||
+        host.Equals("localhost") ||
+        host.Equals("::1")) {
+      httpsNeeded = false;
+    }
+  }
+
+  if (httpsNeeded) {
     bool isHttps;
     result = documentURI->SchemeIs("https", &isHttps);
     if (result.Failed() || !isHttps) {
