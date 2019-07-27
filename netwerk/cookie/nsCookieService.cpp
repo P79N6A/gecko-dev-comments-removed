@@ -91,7 +91,6 @@ static nsCookieService *gCookieService;
 #define IDX_APP_ID 10
 #define IDX_BROWSER_ELEM 11
 
-static const int64_t kCookieStaleThreshold = 60 * PR_USEC_PER_SEC; 
 static const int64_t kCookiePurgeAge =
   int64_t(30 * 24 * 60 * 60) * PR_USEC_PER_SEC; 
 
@@ -2758,8 +2757,9 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
 
     
     foundCookieList.AppendElement(cookie);
-    if (currentTimeInUsec - cookie->LastAccessed() > kCookieStaleThreshold)
+    if (cookie->IsStale()) {
       stale = true;
+    }
   }
 
   int32_t count = foundCookieList.Length();
@@ -2780,8 +2780,9 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
     for (int32_t i = 0; i < count; ++i) {
       cookie = foundCookieList.ElementAt(i);
 
-      if (currentTimeInUsec - cookie->LastAccessed() > kCookieStaleThreshold)
+      if (cookie->IsStale()) {
         UpdateCookieInList(cookie, currentTimeInUsec, paramsArray);
+      }
     }
     
     if (paramsArray) {
@@ -2992,6 +2993,24 @@ nsCookieService::AddInternal(const nsCookieKey             &aKey,
       if (!aFromHttp && oldCookie->IsHttpOnly()) {
         COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
           "previously stored cookie is httponly; coming from script");
+        return;
+      }
+
+      
+      
+      
+      if (oldCookie->Value().Equals(aCookie->Value()) &&
+          oldCookie->Expiry() == aCookie->Expiry() &&
+          oldCookie->IsSecure() == aCookie->IsSecure() &&
+          oldCookie->IsSession() == aCookie->IsSession() &&
+          oldCookie->IsHttpOnly() == aCookie->IsHttpOnly() &&
+          
+          
+          
+          !oldCookie->IsStale()) {
+        
+        oldCookie->SetLastAccessed(aCookie->LastAccessed());
+        UpdateCookieOldestTime(mDBState, oldCookie);
         return;
       }
 
@@ -4235,6 +4254,15 @@ bindCookieParameters(mozIStorageBindingParamsArray *aParamsArray,
 }
 
 void
+nsCookieService::UpdateCookieOldestTime(DBState* aDBState,
+                                        nsCookie* aCookie)
+{
+  if (aCookie->LastAccessed() < aDBState->cookieOldestTime) {
+    aDBState->cookieOldestTime = aCookie->LastAccessed();
+  }
+}
+
+void
 nsCookieService::AddCookieToList(const nsCookieKey             &aKey,
                                  nsCookie                      *aCookie,
                                  DBState                       *aDBState,
@@ -4253,8 +4281,7 @@ nsCookieService::AddCookieToList(const nsCookieKey             &aKey,
   ++aDBState->cookieCount;
 
   
-  if (aCookie->LastAccessed() < aDBState->cookieOldestTime)
-    aDBState->cookieOldestTime = aCookie->LastAccessed();
+  UpdateCookieOldestTime(aDBState, aCookie);
 
   
   if (aWriteToDB && !aCookie->IsSession() && aDBState->dbConn) {

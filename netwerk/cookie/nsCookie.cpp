@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include "nsAutoPtr.h"
 
+static const int64_t kCookieStaleThreshold = 60 * PR_USEC_PER_SEC; 
+
 
 
 
@@ -118,6 +120,14 @@ nsCookie::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     
     
     return aMallocSizeOf(this);
+}
+
+bool
+nsCookie::IsStale() const
+{
+  int64_t currentTimeInUsec = PR_Now();
+
+  return currentTimeInUsec - LastAccessed() > kCookieStaleThreshold;
 }
 
 

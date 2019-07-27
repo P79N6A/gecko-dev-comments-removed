@@ -314,6 +314,7 @@ class nsCookieService final : public nsICookieService
     void                          NotifyChanged(nsISupports *aSubject, const char16_t *aData);
     void                          NotifyPurged(nsICookie2* aCookie);
     already_AddRefed<nsIArray>    CreatePurgeList(nsICookie2* aCookie);
+    void                          UpdateCookieOldestTime(DBState* aDBState, nsCookie* aCookie);
 
     
 
