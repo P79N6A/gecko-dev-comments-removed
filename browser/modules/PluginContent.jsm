@@ -333,20 +333,7 @@ PluginContent.prototype = {
         break;
 
       case "PluginNotFound": {
-        let installable = this.showInstallNotification(plugin, eventType);
-        let contentWindow = plugin.ownerDocument.defaultView;
         
-        
-        
-        if (installable && !(plugin instanceof contentWindow.HTMLObjectElement)) {
-          let installStatus = this.getPluginUI(plugin, "installStatus");
-          installStatus.setAttribute("installable", "true");
-          let iconStatus = this.getPluginUI(plugin, "icon");
-          iconStatus.setAttribute("installable", "true");
-
-          let installLink = this.getPluginUI(plugin, "installPluginLink");
-          this.addLinkClickCallback(installLink, "installSinglePlugin", plugin);
-        }
         break;
       }
 
@@ -472,13 +459,6 @@ PluginContent.prototype = {
   },
 
   
-  installSinglePlugin: function (plugin) {
-    this.global.sendAsyncMessage("PluginContent:InstallSinglePlugin", {
-      pluginInfo: this._getPluginInfo(plugin),
-    });
-  },
-
-  
   forwardCallback: function (name) {
     this.global.sendAsyncMessage("PluginContent:LinkClickCallback", { name: name });
   },
@@ -504,13 +484,6 @@ PluginContent.prototype = {
 
   reloadPage: function () {
     this.global.content.location.reload();
-  },
-
-  showInstallNotification: function (plugin) {
-    let [shown] = this.global.sendSyncMessage("PluginContent:ShowInstallNotification", {
-      pluginInfo: this._getPluginInfo(plugin),
-    });
-    return shown;
   },
 
   
