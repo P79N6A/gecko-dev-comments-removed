@@ -361,17 +361,15 @@ EvalKernel(JSContext* cx, const CallArgs& args, EvalType evalType, AbstractFrame
         esg.setNewScript(compiled);
     }
 
-    
-    Value newTargetVal = NullValue();
-    return ExecuteKernel(cx, esg.script(), *scopeobj, thisv, newTargetVal, ExecuteType(evalType),
+    return ExecuteKernel(cx, esg.script(), *scopeobj, thisv, ExecuteType(evalType),
                          NullFramePtr() , args.rval().address());
 }
 
 bool
 js::DirectEvalStringFromIon(JSContext* cx,
                             HandleObject scopeobj, HandleScript callerScript,
-                            HandleValue thisValue, HandleValue newTargetValue,
-                            HandleString str, jsbytecode* pc, MutableHandleValue vp)
+                            HandleValue thisValue, HandleString str,
+                            jsbytecode* pc, MutableHandleValue vp)
 {
     AssertInnerizedScopeChain(cx, *scopeobj);
 
@@ -463,8 +461,8 @@ js::DirectEvalStringFromIon(JSContext* cx,
         nthisValue = ObjectValue(*obj);
     }
 
-    return ExecuteKernel(cx, esg.script(), *scopeobj, nthisValue, newTargetValue,
-                         ExecuteType(DIRECT_EVAL), NullFramePtr() , vp.address());
+    return ExecuteKernel(cx, esg.script(), *scopeobj, nthisValue, ExecuteType(DIRECT_EVAL),
+                         NullFramePtr() , vp.address());
 }
 
 bool
@@ -536,7 +534,7 @@ js::ExecuteInGlobalAndReturnScope(JSContext* cx, HandleObject global, HandleScri
     RootedValue rval(cx);
     
     
-    if (!ExecuteKernel(cx, script, *scope, thisv, UndefinedValue(), EXECUTE_GLOBAL,
+    if (!ExecuteKernel(cx, script, *scope, thisv, EXECUTE_GLOBAL,
                        NullFramePtr() , rval.address()))
     {
         return false;

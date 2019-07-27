@@ -1,7 +1,4 @@
 
-var func = new Function("new.target");
-
-
 
 function assertNewTarget(expected, unused) { assertEq(new.target, expected); }
 
