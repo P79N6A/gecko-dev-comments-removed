@@ -337,7 +337,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   
   NS_ASSERTION(!(aChange & nsChangeHint_UpdateTransformLayer) ||
                aFrame->IsTransformed() ||
-               aFrame->StyleDisplay()->HasTransformStyle(),
+               aFrame->StylePosition()->HasTransformStyle(),
                "Unexpected UpdateTransformLayer hint");
 
   nsIPresShell *shell = aPresContext->PresShell();
@@ -2605,7 +2605,7 @@ ElementRestyler::AddLayerChangesForAnimation()
       
       
       if (layerInfo[i].mLayerType == nsDisplayItem::TYPE_TRANSFORM &&
-          !mFrame->StyleDisplay()->HasTransformStyle()) {
+          !mFrame->StylePosition()->HasTransformStyle()) {
         continue;
       }
       NS_UpdateHint(hint, layerInfo[i].mChangeHint);
