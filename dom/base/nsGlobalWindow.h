@@ -491,7 +491,7 @@ public:
 
   void GetSupportedNames(nsTArray<nsString>& aNames);
 
-  static bool IsChromeWindow(JSContext* , JSObject* aObj);
+  static bool IsPrivilegedChromeWindow(JSContext* , JSObject* aObj);
 
   static bool IsShowModalDialogEnabled(JSContext*  = nullptr,
                                        JSObject*  = nullptr);
