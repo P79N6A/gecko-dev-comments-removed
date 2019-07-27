@@ -680,12 +680,12 @@ DataChannelConnection::SctpDtlsInput(TransportFlow *flow,
 }
 
 int
-DataChannelConnection::SendPacket(unsigned char data[], size_t len, bool release)
+DataChannelConnection::SendPacket(const unsigned char *data, size_t len, bool release)
 {
   
   int res = mTransportFlow->SendPacket(data, len) < 0 ? 1 : 0;
   if (release)
-    delete [] data;
+    delete data;
   return res;
 }
 
