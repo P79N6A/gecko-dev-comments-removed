@@ -196,6 +196,9 @@ public:
     server->run();
     MTP_LOG("MozMtpServer finished");
 
+    
+    mMtpUsbFd.forget();
+
     rv = NS_DispatchToMainThread(new FreeFileWatcherUpdateRunnable(mMozMtpServer));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
