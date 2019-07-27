@@ -48,6 +48,7 @@
 
 #include "mozilla/dom/HTMLInputElement.h"
 #include "nsIRadioVisitor.h"
+#include "RadioNodeList.h"
 
 #include "nsLayoutUtils.h"
 
@@ -2282,7 +2283,7 @@ HTMLFormElement::AddElementToTableInternal(
 
       
       
-      nsSimpleContentList *list = new nsSimpleContentList(this);
+      RadioNodeList *list = new RadioNodeList(this);
 
       
       
@@ -2306,8 +2307,8 @@ HTMLFormElement::AddElementToTableInternal(
       NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
 
       
-      nsSimpleContentList *list =
-        static_cast<nsSimpleContentList*>(nodeList.get());
+      RadioNodeList *list =
+        static_cast<RadioNodeList*>(nodeList.get());
 
       NS_ASSERTION(list->Length() > 1,
                    "List should have been converted back to a single element");
