@@ -496,11 +496,7 @@ protected:
       return mJustificationInfo.mIsEndJustifiable;
     }
 
-    bool ParticipatesInJustification() const
-    {
-      
-      return !mIsBullet && !mIsEmpty;
-    }
+    bool ParticipatesInJustification() const;
   };
   PerFrameData* mFrameFreeList;
 
