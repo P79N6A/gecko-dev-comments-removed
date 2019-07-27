@@ -33,7 +33,6 @@ namespace a11y {
 
 class DocManager;
 class NotificationController;
-class DocAccessibleChild;
 class RelatedAccIterator;
 template<class Class, class Arg>
 class TNotification;
@@ -524,20 +523,6 @@ protected:
 
 
 
-  DocAccessibleChild* IPCDoc() const { return mIPCDoc; }
-
-  
-
-
-
-  void SetIPCDoc(DocAccessibleChild* aIPCDoc) { mIPCDoc = aIPCDoc; }
-
-  friend class DocAccessibleChild;
-
-  
-
-
-
 
 
   static void ScrollTimerCallback(nsITimer* aTimer, void* aClosure);
@@ -657,9 +642,6 @@ protected:
 private:
 
   nsIPresShell* mPresShell;
-
-  
-  DocAccessibleChild* mIPCDoc;
 };
 
 inline DocAccessible*
