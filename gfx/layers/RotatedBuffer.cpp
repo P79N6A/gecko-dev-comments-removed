@@ -95,6 +95,9 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
 
   gfx::Point quadrantTranslation(quadrantRect.x, quadrantRect.y);
 
+  MOZ_ASSERT(aSource != BUFFER_BOTH);
+  RefPtr<SourceSurface> snapshot = GetSourceSurface(aSource);
+
   
   
   
@@ -102,17 +105,9 @@ RotatedBuffer::DrawBufferQuadrant(gfx::DrawTarget* aTarget,
   
   if (aTarget->GetBackendType() == BackendType::DIRECT2D && aOperator == CompositionOp::OP_SOURCE) {
     aOperator = CompositionOp::OP_OVER;
-    if (mDTBuffer->GetFormat() == SurfaceFormat::B8G8R8A8) {
+    if (snapshot->GetFormat() == SurfaceFormat::B8G8R8A8) {
       aTarget->ClearRect(ToRect(fillRect));
     }
-  }
-
-  RefPtr<gfx::SourceSurface> snapshot;
-  if (aSource == BUFFER_BLACK) {
-    snapshot = mDTBuffer->Snapshot();
-  } else {
-    MOZ_ASSERT(aSource == BUFFER_WHITE);
-    snapshot = mDTBufferOnWhite->Snapshot();
   }
 
   if (aOperator == CompositionOp::OP_SOURCE) {
@@ -179,6 +174,21 @@ RotatedBuffer::DrawBufferWithRotation(gfx::DrawTarget *aTarget, ContextSource aS
   DrawBufferQuadrant(aTarget, RIGHT, TOP, aSource, aOpacity, aOperator, aMask, aMaskTransform);
   DrawBufferQuadrant(aTarget, LEFT, BOTTOM, aSource, aOpacity, aOperator, aMask, aMaskTransform);
   DrawBufferQuadrant(aTarget, RIGHT, BOTTOM, aSource, aOpacity, aOperator,aMask, aMaskTransform);
+}
+
+TemporaryRef<SourceSurface>
+SourceRotatedBuffer::GetSourceSurface(ContextSource aSource) const
+{
+  RefPtr<SourceSurface> surf;
+  if (aSource == BUFFER_BLACK) {
+    surf = mSource;
+  } else {
+    MOZ_ASSERT(aSource == BUFFER_WHITE);
+    surf = mSourceOnWhite;
+  }
+
+  MOZ_ASSERT(surf);
+  return surf;
 }
 
  bool
@@ -735,6 +745,19 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(PaintState& aPaintState,
   }
 
   return result;
+}
+
+TemporaryRef<SourceSurface>
+RotatedContentBuffer::GetSourceSurface(ContextSource aSource) const
+{
+  MOZ_ASSERT(mDTBuffer);
+  if (aSource == BUFFER_BLACK) {
+    return mDTBuffer->Snapshot();
+  } else {
+    MOZ_ASSERT(mDTBufferOnWhite);
+    MOZ_ASSERT(aSource == BUFFER_WHITE);
+    return mDTBufferOnWhite->Snapshot();
+  }
 }
 
 }
