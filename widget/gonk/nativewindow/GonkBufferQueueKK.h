@@ -195,6 +195,16 @@ public:
     
     
     
+    virtual status_t setSynchronousMode(bool enabled);
+
+    
+    
+    
+    
+    
+    
+    
+    
     
     virtual status_t connect(const sp<IBinder>& token,
             int api, bool producerControlledByApp, QueueBufferOutput* output);
@@ -498,6 +508,9 @@ private:
     
     
     sp<IConsumerListener> mConsumerListener;
+
+    
+    bool mSynchronousMode;
 
     
     

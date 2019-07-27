@@ -61,7 +61,7 @@ GonkBufferQueue::GonkBufferQueue(bool allowSynchronousMode,
     mMaxAcquiredBufferCount(1),
     mDefaultMaxBufferCount(2),
     mOverrideMaxBufferCount(0),
-
+    mSynchronousMode(true),
     mConsumerControlledByApp(false),
     mDequeueBufferCannotBlock(false),
     mUseAsyncBuffer(true),
@@ -477,6 +477,22 @@ status_t GonkBufferQueue::dequeueBuffer(int *outBuf, sp<Fence>* outFence, bool a
     return returnFlags;
 }
 
+status_t GonkBufferQueue::setSynchronousMode(bool enabled) {
+    ALOGV("setSynchronousMode: enabled=%d", enabled);
+    Mutex::Autolock lock(mMutex);
+
+    if (mAbandoned) {
+        ALOGE("setSynchronousMode: BufferQueue has been abandoned!");
+        return NO_INIT;
+    }
+
+    if (mSynchronousMode != enabled) {
+        mSynchronousMode = enabled;
+        mDequeueCondition.broadcast();
+    }
+    return OK;
+}
+
 status_t GonkBufferQueue::queueBuffer(int buf,
         const QueueBufferInput& input, QueueBufferOutput* output) {
     ATRACE_CALL();
@@ -586,12 +602,11 @@ status_t GonkBufferQueue::queueBuffer(int buf,
             
             
             mQueue.push_back(item);
-            listener = mConsumerListener;
         } else {
             
             
             Fifo::iterator front(mQueue.begin());
-            if (front->mIsDroppable) {
+            if (front->mIsDroppable || !mSynchronousMode) {
                 
                 if (stillTracking(front)) {
                     mSlots[front->mBuf].mBufferState = BufferSlot::FREE;
@@ -603,9 +618,11 @@ status_t GonkBufferQueue::queueBuffer(int buf,
                 *front = item;
             } else {
                 mQueue.push_back(item);
-                listener = mConsumerListener;
             }
         }
+        
+        
+        listener = mConsumerListener;
 
         mBufferHasBeenQueued = true;
         mDequeueCondition.broadcast();
@@ -1171,7 +1188,7 @@ int GonkBufferQueue::getMinUndequeuedBufferCount(bool async) const {
 
     
     
-    if (mDequeueBufferCannotBlock || async)
+    if (mDequeueBufferCannotBlock || async || !mSynchronousMode)
         return mMaxAcquiredBufferCount + 1;
 
     return mMaxAcquiredBufferCount;

@@ -285,6 +285,7 @@ public:
       mNativeWindow->setNewFrameCallback(this);
       
       sp<GonkBufferQueue> bq = mNativeWindow->getBufferQueue();
+      bq->setSynchronousMode(false);
       
       bq->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
       surface = new Surface(bq);
@@ -436,7 +437,10 @@ public:
   void OnNewFrame() MOZ_OVERRIDE
   {
     RefPtr<layers::TextureClient> buffer = mNativeWindow->getCurrentBuffer();
-    MOZ_ASSERT(buffer != nullptr);
+    if (!buffer) {
+      CODEC_LOGE("Decoder NewFrame: Get null buffer");
+      return;
+    }
 
     layers::GrallocImage::GrallocData grallocData;
     grallocData.mPicSize = buffer->GetSize();

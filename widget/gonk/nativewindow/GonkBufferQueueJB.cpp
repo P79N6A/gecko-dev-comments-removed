@@ -66,7 +66,7 @@ GonkBufferQueue::GonkBufferQueue(bool allowSynchronousMode,
     mMaxAcquiredBufferCount(1),
     mDefaultMaxBufferCount(2),
     mOverrideMaxBufferCount(0),
-    mSynchronousMode(true), 
+    mSynchronousMode(true),
     mAllowSynchronousMode(allowSynchronousMode),
     mConnectedApi(NO_CONNECTED_API),
     mAbandoned(false),
@@ -455,7 +455,19 @@ status_t GonkBufferQueue::dequeueBuffer(int *outBuf, sp<Fence>* outFence,
 }
 
 status_t GonkBufferQueue::setSynchronousMode(bool enabled) {
-    return NO_ERROR;
+    ST_LOGV("setSynchronousMode: enabled=%d", enabled);
+    Mutex::Autolock lock(mMutex);
+
+    if (mAbandoned) {
+        ST_LOGE("setSynchronousMode: BufferQueue has been abandoned!");
+        return NO_INIT;
+    }
+
+    if (mSynchronousMode != enabled) {
+        mSynchronousMode = enabled;
+        mDequeueCondition.broadcast();
+    }
+    return OK;
 }
 
 status_t GonkBufferQueue::queueBuffer(int buf,
@@ -517,19 +529,10 @@ status_t GonkBufferQueue::queueBuffer(int buf,
         if (mSynchronousMode) {
             
             mQueue.push_back(buf);
-
-            
-            
-            listener = mConsumerListener;
         } else {
             
             if (mQueue.empty()) {
                 mQueue.push_back(buf);
-
-                
-                
-                
-                listener = mConsumerListener;
             } else {
                 Fifo::iterator front(mQueue.begin());
                 
@@ -538,6 +541,9 @@ status_t GonkBufferQueue::queueBuffer(int buf,
                 *front = buf;
             }
         }
+        
+        
+        listener = mConsumerListener;
 
         mSlots[buf].mTimestamp = timestamp;
         mSlots[buf].mCrop = crop;

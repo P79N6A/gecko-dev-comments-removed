@@ -230,6 +230,7 @@ public:
     
     
     
+    
     virtual status_t setSynchronousMode(bool enabled);
 
     
