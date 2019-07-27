@@ -100,7 +100,7 @@ private:
   nsThreadManager()
     : mCurThreadIndex(0)
     , mMainPRThread(nullptr)
-    , mLock(nullptr)
+    , mLock("nsThreadManager.mLock")
     , mInitialized(false)
     , mCurrentNumberOfThreads(1)
     , mHighestNumberOfThreads(1)
@@ -113,13 +113,11 @@ private:
   }
 
   nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
-  unsigned             mCurThreadIndex;  
+  unsigned            mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
   PRThread*           mMainPRThread;
-  
-  
-  nsAutoPtr<mozilla::Mutex> mLock;  
-  bool                mInitialized;
+  mozilla::OffTheBooksMutex mLock;  
+  mozilla::Atomic<bool> mInitialized;
 
   
   uint32_t            mCurrentNumberOfThreads;
