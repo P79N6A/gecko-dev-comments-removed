@@ -240,6 +240,11 @@ GlobalObject::create(JSContext *cx, const Class *clasp)
 
     Rooted<GlobalObject *> global(cx, &obj->as<GlobalObject>());
 
+    
+    
+    if (clasp->flags & JSCLASS_HAS_PRIVATE)
+        global->setPrivate(nullptr);
+
     cx->compartment()->initGlobal(*global);
 
     if (!global->setQualifiedVarObj(cx))
