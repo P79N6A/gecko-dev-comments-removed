@@ -458,7 +458,6 @@ Tester.prototype = {
     
     this.waitForWindowsState((function () {
       if (this.done) {
-        let promise = Promise.resolve();
 
         
         
@@ -489,14 +488,7 @@ Tester.prototype = {
           SocialFlyout.unload();
           SocialShare.uninit();
           TabView.uninit();
-
-          
-          promise = ContentSearch.destroy();
         }
-
-        
-        
-        Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
 
         
         
@@ -527,7 +519,19 @@ Tester.prototype = {
           }
         };
 
-        promise.then(() => {
+        let {AsyncShutdown} =
+          Cu.import("resource://gre/modules/AsyncShutdown.jsm", {});
+
+        let barrier = new AsyncShutdown.Barrier(
+          "ShutdownLeaks: Wait for cleanup to be finished before checking for leaks");
+        Services.obs.notifyObservers({wrappedJSObject: barrier},
+          "shutdown-leaks-before-check", null);
+
+        barrier.wait().then(() => {
+          
+          
+          Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
+
           checkForLeakedGlobalWindows(aResults => {
             if (aResults.length == 0) {
               this.finish();
