@@ -300,20 +300,16 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
     ioService->GetProtocolHandler(scheme.get(), getter_AddRefs(ourHandler));
     extHandler = do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"default");
 
-    nsCOMPtr<nsIURI> uri;
     if (ourHandler != extHandler || !PossiblyHostPortUrl(uriString)) {
         
-        rv = NS_NewURI(getter_AddRefs(uri), uriString, nullptr);
-        if (NS_SUCCEEDED(rv)) {
-            info->mFixedURI = uri;
-        }
+        rv = NS_NewURI(getter_AddRefs(info->mFixedURI), uriString, nullptr);
 
-        if (!uri && rv != NS_ERROR_MALFORMED_URI) {
+        if (!info->mFixedURI && rv != NS_ERROR_MALFORMED_URI) {
             return rv;
         }
     }
 
-    if (uri && ourHandler == extHandler && sFixupKeywords &&
+    if (info->mFixedURI && ourHandler == extHandler && sFixupKeywords &&
         (aFixupFlags & FIXUP_FLAG_FIX_SCHEME_TYPOS)) {
         nsCOMPtr<nsIExternalProtocolService> extProtService =
             do_GetService(NS_EXTERNALPROTOCOLSERVICE_CONTRACTID);
@@ -328,18 +324,17 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
             
             
             if (!handlerExists) {
-                nsresult rv = KeywordToURI(uriString, aPostData, getter_AddRefs(uri));
-                if (NS_SUCCEEDED(rv) && uri) {
-                  info->mFixupUsedKeyword = true;
-                }
+                TryKeywordFixupForURIInfo(uriString, info, aPostData);
             }
         }
     }
     
-    if (uri) {
-        if (aFixupFlags & FIXUP_FLAGS_MAKE_ALTERNATE_URI)
-            info->mFixupCreatedAlternateURI = MakeAlternateURI(uri);
-        info->mPreferredURI = uri;
+    if (info->mFixedURI) {
+        if (!info->mPreferredURI) {
+            if (aFixupFlags & FIXUP_FLAGS_MAKE_ALTERNATE_URI)
+                info->mFixupCreatedAlternateURI = MakeAlternateURI(info->mFixedURI);
+            info->mPreferredURI = info->mFixedURI;
+        }
         return NS_OK;
     }
 
@@ -374,9 +369,10 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
     
     if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP) &&
         !inputHadDuffProtocol) {
-        KeywordURIFixup(uriString, info, aPostData);
-        if (info->mPreferredURI)
+        if (NS_SUCCEEDED(KeywordURIFixup(uriString, info, aPostData)) &&
+            info->mPreferredURI) {
             return NS_OK;
+        }
     }
 
     
@@ -415,12 +411,7 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
     
     
     if (sFixupKeywords && (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP)) {
-        rv = KeywordToURI(aStringURI, aPostData, getter_AddRefs(info->mPreferredURI));
-        if (NS_SUCCEEDED(rv) && info->mPreferredURI)
-        {
-            info->mFixupUsedKeyword = true;
-            return NS_OK;
-        }
+        rv = TryKeywordFixupForURIInfo(aStringURI, info, aPostData);
     }
 
     return rv;
@@ -428,9 +419,11 @@ nsDefaultURIFixup::GetFixupURIInfo(const nsACString& aStringURI, uint32_t aFixup
 
 NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                                               nsIInputStream **aPostData,
-                                              nsIURI **aURI)
+                                              nsIURIFixupInfo **aInfo)
 {
-    *aURI = nullptr;
+    nsRefPtr<nsDefaultURIFixupInfo> info = new nsDefaultURIFixupInfo(aKeyword);
+    NS_ADDREF(*aInfo = info);
+
     if (aPostData) {
         *aPostData = nullptr;
     }
@@ -451,9 +444,13 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
 
         ipc::OptionalInputStreamParams postData;
         ipc::OptionalURIParams uri;
-        if (!contentChild->SendKeywordToURI(keyword, &postData, &uri)) {
+        nsAutoString providerName;
+        if (!contentChild->SendKeywordToURI(keyword, &providerName, &postData, &uri)) {
             return NS_ERROR_FAILURE;
         }
+
+        CopyUTF8toUTF16(keyword, info->mKeywordAsSent);
+        info->mKeywordProviderName = providerName;
 
         if (aPostData) {
             nsTArray<ipc::FileDescriptor> fds;
@@ -464,7 +461,7 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
         }
 
         nsCOMPtr<nsIURI> temp = DeserializeURI(uri);
-        temp.forget(aURI);
+        info->mPreferredURI = temp.forget();
         return NS_OK;
     }
 
@@ -486,7 +483,8 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                 responseType.Assign(mozKeywordSearch);
             }
 
-            defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
+            NS_ConvertUTF8toUTF16 keywordW(keyword);
+            defaultEngine->GetSubmission(keywordW,
                                          responseType,
                                          NS_LITERAL_STRING("keyword"),
                                          getter_AddRefs(submission));
@@ -504,21 +502,9 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                   return NS_ERROR_FAILURE;
                 }
 
-                
-                
-                
-                
-                
-                
-                
-                nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-                if (obsSvc) {
-                  
-                  
-                  obsSvc->NotifyObservers(defaultEngine, "keyword-search", NS_ConvertUTF8toUTF16(keyword).get());
-                }
-
-                return submission->GetUri(aURI);
+                defaultEngine->GetName(info->mKeywordProviderName);
+                info->mKeywordAsSent = keywordW;
+                return submission->GetUri(getter_AddRefs(info->mPreferredURI));
             }
         }
     }
@@ -526,6 +512,22 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
 
     
     return NS_ERROR_NOT_AVAILABLE;
+}
+
+
+nsresult
+nsDefaultURIFixup::TryKeywordFixupForURIInfo(const nsACString & aURIString,
+                                             nsDefaultURIFixupInfo* aFixupInfo,
+                                             nsIInputStream **aPostData)
+{
+    nsCOMPtr<nsIURIFixupInfo> keywordInfo;
+    nsresult rv = KeywordToURI(aURIString, aPostData, getter_AddRefs(keywordInfo));
+    if (NS_SUCCEEDED(rv)) {
+        keywordInfo->GetKeywordProviderName(aFixupInfo->mKeywordProviderName);
+        keywordInfo->GetKeywordAsSent(aFixupInfo->mKeywordAsSent);
+        keywordInfo->GetPreferredURI(getter_AddRefs(aFixupInfo->mPreferredURI));
+    }
+    return rv;
 }
 
 bool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
@@ -923,9 +925,10 @@ bool nsDefaultURIFixup::PossiblyByteExpandedFileName(const nsAString& aIn)
     return false;
 }
 
-void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
-                                        nsDefaultURIFixupInfo* aFixupInfo,
-                                        nsIInputStream **aPostData)
+nsresult
+nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
+                                   nsDefaultURIFixupInfo* aFixupInfo,
+                                   nsIInputStream **aPostData)
 {
     
     
@@ -1023,7 +1026,6 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
         looksLikeIpv6 = false;
     }
 
-    nsresult rv;
     nsAutoCString asciiHost;
     nsAutoCString host;
 
@@ -1041,7 +1043,7 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
         ((foundDots + foundDigits == pos - 1) ||
          (foundColons == 1 && firstColonLoc > lastDotLoc &&
           foundDots + foundDigits + foundColons == pos - 1))) {
-        return;
+        return NS_OK;
     }
 
     uint32_t posWithNoTrailingSlash = pos;
@@ -1054,15 +1056,16 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
         ((foundDots + foundDigits == posWithNoTrailingSlash) ||
          (foundColons == 1 && firstColonLoc > lastDotLoc &&
           foundDots + foundDigits + foundColons == posWithNoTrailingSlash))) {
-        return;
+        return NS_OK;
     }
 
     
     
     if (looksLikeIpv6) {
-        return;
+        return NS_OK;
     }
 
+    nsresult rv = NS_OK;
     
     
     
@@ -1073,11 +1076,7 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
         (isValidAsciiHost && isValidHost && !hasAsciiAlpha &&
          host.EqualsIgnoreCase(asciiHost.get()))) {
 
-        rv = KeywordToURI(aFixupInfo->mOriginalInput, aPostData,
-                          getter_AddRefs(aFixupInfo->mPreferredURI));
-        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI) {
-            aFixupInfo->mFixupUsedKeyword = true;
-        }
+        rv = TryKeywordFixupForURIInfo(aFixupInfo->mOriginalInput, aFixupInfo, aPostData);
     }
     
     
@@ -1086,17 +1085,14 @@ void nsDefaultURIFixup::KeywordURIFixup(const nsACString & aURIString,
               firstColonLoc == uint32_t(kNotFound) && firstQMarkLoc == uint32_t(kNotFound)) {
 
         if (isValidAsciiHost && IsDomainWhitelisted(asciiHost, firstDotLoc)) {
-            return;
+            return NS_OK;
         }
 
         
         
-        rv = KeywordToURI(aFixupInfo->mOriginalInput, aPostData,
-                          getter_AddRefs(aFixupInfo->mPreferredURI));
-        if (NS_SUCCEEDED(rv) && aFixupInfo->mPreferredURI) {
-            aFixupInfo->mFixupUsedKeyword = true;
-        }
+        rv = TryKeywordFixupForURIInfo(aFixupInfo->mOriginalInput, aFixupInfo, aPostData);
     }
+    return rv;
 }
 
 bool nsDefaultURIFixup::IsDomainWhitelisted(const nsAutoCString aAsciiHost,
@@ -1134,7 +1130,6 @@ nsresult NS_NewURIFixup(nsIURIFixup **aURIFixup)
 NS_IMPL_ISUPPORTS(nsDefaultURIFixupInfo, nsIURIFixupInfo)
 
 nsDefaultURIFixupInfo::nsDefaultURIFixupInfo(const nsACString& aOriginalInput):
-    mFixupUsedKeyword(false),
     mFixupChangedProtocol(false),
     mFixupCreatedAlternateURI(false)
 {
@@ -1178,9 +1173,16 @@ nsDefaultURIFixupInfo::GetFixedURI(nsIURI** aFixedURI)
 }
 
 NS_IMETHODIMP
-nsDefaultURIFixupInfo::GetFixupUsedKeyword(bool* aOut)
+nsDefaultURIFixupInfo::GetKeywordProviderName(nsAString& aOut)
 {
-    *aOut = mFixupUsedKeyword;
+    aOut = mKeywordProviderName;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDefaultURIFixupInfo::GetKeywordAsSent(nsAString& aOut)
+{
+    aOut = mKeywordAsSent;
     return NS_OK;
 }
 
