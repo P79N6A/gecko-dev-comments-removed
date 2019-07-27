@@ -708,6 +708,23 @@ nsStyleContext::ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup)
   }
 
   
+  
+  if (disp->mDisplay == NS_STYLE_DISPLAY_INLINE && mParent) {
+    
+    
+    bool thisHorizontal =
+      StyleVisibility()->mWritingMode == NS_STYLE_WRITING_MODE_HORIZONTAL_TB;
+    bool parentHorizontal = mParent->StyleVisibility()->mWritingMode ==
+                              NS_STYLE_WRITING_MODE_HORIZONTAL_TB;
+    if (thisHorizontal != parentHorizontal) {
+      nsStyleDisplay *mutable_display =
+        static_cast<nsStyleDisplay*>(GetUniqueStyleData(eStyleStruct_Display));
+      mutable_display->mOriginalDisplay = mutable_display->mDisplay =
+        NS_STYLE_DISPLAY_INLINE_BLOCK;
+    }
+  }
+
+  
   StyleUserInterface();
 }
 
