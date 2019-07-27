@@ -1,10 +1,16 @@
-const Services = require("Services");
+
+
+
+
+"use strict";
+
 const { Ci, Cu } = require("chrome");
+const Services = require("Services");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
+const { dbg_assert, fetch } = DevToolsUtils;
 const EventEmitter = require("devtools/toolkit/event-emitter");
-const { dbg_assert, fetch } = require("devtools/toolkit/DevToolsUtils");
 const { OriginalLocation, GeneratedLocation, getOffsetColumn } = require("devtools/server/actors/common");
-const { resolve } = require("promise");
+const { resolve } = Promise;
 
 loader.lazyRequireGetter(this, "SourceActor", "devtools/server/actors/script", true);
 loader.lazyRequireGetter(this, "isEvalSource", "devtools/server/actors/script", true);
