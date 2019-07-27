@@ -329,7 +329,8 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       tracedGlobals: AUDIO_GLOBALS,
       startRecording: true,
       performReload: reload,
-      holdWeak: true
+      holdWeak: true,
+      storeCalls: false
     });
     
     
