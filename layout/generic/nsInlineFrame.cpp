@@ -895,7 +895,7 @@ nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
         (prev && (prev->mRect.height || prev->mRect.width))) {
       
       
-      skip |= LOGICAL_SIDE_I_START;
+      skip |= eLogicalSideBitsIStart;
     }
     else {
       
@@ -908,7 +908,7 @@ nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
         (next && (next->mRect.height || next->mRect.width))) {
       
       
-      skip |= LOGICAL_SIDE_I_END;
+      skip |= eLogicalSideBitsIEnd;
     }
     else {
       
@@ -922,15 +922,15 @@ nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
     
     
     
-    if (skip != LogicalSides(LOGICAL_SIDES_I_BOTH)) {
+    if (skip != LogicalSides(eLogicalSideBitsIBoth)) {
       
       
       nsIFrame* firstContinuation = FirstContinuation();
       if (firstContinuation->FrameIsNonLastInIBSplit()) {
-        skip |= LOGICAL_SIDE_I_END;
+        skip |= eLogicalSideBitsIEnd;
       }
       if (firstContinuation->FrameIsNonFirstInIBSplit()) {
-        skip |= LOGICAL_SIDE_I_START;
+        skip |= eLogicalSideBitsIStart;
       }
     }
   }
