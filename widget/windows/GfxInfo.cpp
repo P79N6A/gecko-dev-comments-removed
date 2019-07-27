@@ -823,7 +823,7 @@ GfxInfo::GetCountryCode()
   }
   
   mCountryCode.SetLength(numChars);
-  numChars = GetGeoInfoW(geoid, GEO_ISO2, mCountryCode.BeginWriting(),
+  numChars = GetGeoInfoW(geoid, GEO_ISO2, wwc(mCountryCode.BeginWriting()),
                          mCountryCode.Length(), 0);
   if (numChars) {
     
