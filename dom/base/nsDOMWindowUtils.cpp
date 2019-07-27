@@ -1033,12 +1033,6 @@ nsDOMWindowUtils::SendWheelEvent(float aX,
 
   widget->DispatchAPZAwareEvent(&wheelEvent);
 
-  if (gfxPrefs::AsyncPanZoomEnabled()) {
-    
-    
-    return NS_OK;
-  }
-
   bool failedX = false;
   if ((aOptions & WHEEL_EVENT_EXPECTED_OVERFLOW_DELTA_X_ZERO) &&
       wheelEvent.overflowDeltaX != 0) {
