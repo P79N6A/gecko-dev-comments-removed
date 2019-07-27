@@ -756,6 +756,9 @@ class IonBuilder
     InliningStatus inlineRegExpTest(CallInfo &callInfo);
 
     
+    InliningStatus inlineObjectCreate(CallInfo &callInfo);
+
+    
     InliningStatus inlineAtomicsCompareExchange(CallInfo &callInfo);
     InliningStatus inlineAtomicsLoad(CallInfo &callInfo);
     InliningStatus inlineAtomicsStore(CallInfo &callInfo);

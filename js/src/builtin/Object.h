@@ -23,6 +23,13 @@ obj_construct(JSContext *cx, unsigned argc, JS::Value *vp);
 bool
 obj_valueOf(JSContext *cx, unsigned argc, JS::Value *vp);
 
+PlainObject *
+ObjectCreateImpl(JSContext *cx, HandleObject proto, NewObjectKind newKind = GenericObject,
+                 HandleTypeObject type = js::NullPtr());
+
+PlainObject *
+ObjectCreateWithTemplate(JSContext *cx, HandlePlainObject templateObj);
+
 
 bool
 obj_create(JSContext *cx, unsigned argc, JS::Value *vp);
