@@ -52,6 +52,30 @@ def _relpath(path, start=None):
         return os.curdir
     return os.path.join(*rel_list)
 
+
+QUOTE_MAP = {
+    '\\': '\\\\',
+    '\b': '\\b',
+    '\f': '\\f',
+    '\n': '\\n',
+    '\r': '\\r',
+    '\t': '\\t',
+    '\v': '\\v'
+}
+
+
+def js_quote(quote, s):
+    result = quote
+    for c in s:
+        if c == quote:
+            result += '\\' + quote
+        elif c in QUOTE_MAP:
+            result += QUOTE_MAP[c]
+        else:
+            result += c
+    result += quote
+    return result
+
 os.path.relpath = _relpath
 
 class Test:
@@ -178,12 +202,14 @@ class Test:
         
         
         
-        
-        
-        fmt = 'const platform=%r; const libdir=%r; const scriptdir=%r'
         if remote_prefix:
-            fmt = 'const platform="%s"; const libdir="%s"; const scriptdir="%s"'
-        expr = fmt % (sys.platform, libdir, scriptdir_var)
+            quotechar = '"'
+        else:
+            quotechar = "'"
+        expr = ("const platform=%s; const libdir=%s; const scriptdir=%s"
+                % (js_quote(quotechar, sys.platform),
+                   js_quote(quotechar, libdir),
+                   js_quote(quotechar, scriptdir_var)))
 
         
         
