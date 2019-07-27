@@ -29,67 +29,384 @@ using JS::ToInt32;
 using JS::ToUint32;
 
 static bool
-ContainsVarOrConst(ExclusiveContext *cx, ParseNode *pn, ParseNode **resultp)
+ContainsHoistedDeclaration(ExclusiveContext *cx, ParseNode *node, bool *result);
+
+static bool
+ListContainsHoistedDeclaration(ExclusiveContext *cx, ListNode *list, bool *result)
+{
+    for (ParseNode *node = list->pn_head; node; node = node->pn_next) {
+        if (!ContainsHoistedDeclaration(cx, node, result))
+            return false;
+        if (*result)
+            return true;
+    }
+
+    *result = false;
+    return true;
+}
+
+
+
+
+
+
+
+
+
+static bool
+ContainsHoistedDeclaration(ExclusiveContext *cx, ParseNode *node, bool *result)
 {
     JS_CHECK_RECURSION(cx, return false);
 
-    if (!pn) {
-        *resultp = nullptr;
+    
+    
+    
+    
+    
+    
+    switch (node->getKind()) {
+      
+      case PNK_VAR:
+        *result = true;
         return true;
-    }
-    if (pn->isKind(PNK_VAR) || pn->isKind(PNK_CONST)) {
-        *resultp = pn;
+
+      
+      
+      
+      
+      case PNK_LET:
+      case PNK_CONST:
+        *result = false;
         return true;
-    }
-    switch (pn->getArity()) {
-      case PN_LIST:
-        for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-            if (!ContainsVarOrConst(cx, pn2, resultp))
-                return false;
-            if (*resultp)
+
+      
+      
+      
+      
+      
+      
+      case PNK_FUNCTION:
+        *result = false;
+        return true;
+
+      
+      case PNK_NOP: 
+      case PNK_DEBUGGER:
+        *result = false;
+        return true;
+
+      
+      case PNK_SEMI:
+      case PNK_RETURN:
+      case PNK_THROW:
+      
+      
+      case PNK_YIELD_STAR:
+      case PNK_YIELD:
+        *result = false;
+        return true;
+
+      
+      case PNK_BREAK:
+      case PNK_CONTINUE:
+      case PNK_IMPORT:
+      case PNK_IMPORT_SPEC_LIST:
+      case PNK_IMPORT_SPEC:
+      case PNK_EXPORT_FROM:
+      case PNK_EXPORT_SPEC_LIST:
+      case PNK_EXPORT_SPEC:
+      case PNK_EXPORT:
+      case PNK_EXPORT_BATCH_SPEC:
+        *result = false;
+        return true;
+
+      
+      
+      case PNK_DOWHILE:
+        return ContainsHoistedDeclaration(cx, node->pn_left, result);
+
+      
+      
+      
+      case PNK_WHILE:
+      case PNK_WITH:
+        return ContainsHoistedDeclaration(cx, node->pn_right, result);
+
+      case PNK_LABEL:
+        return ContainsHoistedDeclaration(cx, node->pn_expr, result);
+
+      
+
+      
+      
+      case PNK_IF: {
+        MOZ_ASSERT(node->isArity(PN_TERNARY));
+
+        ParseNode *consequent = node->pn_kid2;
+        if (!ContainsHoistedDeclaration(cx, consequent, result))
+            return false;
+        if (*result)
+            return true;
+
+        if (ParseNode *alternative = node->pn_kid3)
+            return ContainsHoistedDeclaration(cx, alternative, result);
+
+        *result = false;
+        return true;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      case PNK_ARRAYPUSH:
+        *result = false;
+        return true;
+
+      
+      
+      case PNK_TRY: {
+        MOZ_ASSERT(node->isArity(PN_TERNARY));
+        MOZ_ASSERT(node->pn_kid2 || node->pn_kid3,
+                   "must have either catch(es) or finally");
+
+        ParseNode *tryBlock = node->pn_kid1;
+        if (!ContainsHoistedDeclaration(cx, tryBlock, result))
+            return false;
+        if (*result)
+            return true;
+
+        if (ParseNode *catchList = node->pn_kid2) {
+            for (ParseNode *lexicalScope = catchList->pn_head;
+                 lexicalScope;
+                 lexicalScope = lexicalScope->pn_next)
+            {
+                MOZ_ASSERT(lexicalScope->isKind(PNK_LEXICALSCOPE));
+
+                ParseNode *catchNode = lexicalScope->pn_expr;
+                MOZ_ASSERT(catchNode->isKind(PNK_CATCH));
+
+                ParseNode *catchStatements = catchNode->pn_kid3;
+                if (!ContainsHoistedDeclaration(cx, catchStatements, result))
+                    return false;
+                if (*result)
+                    return true;
+            }
+        }
+
+        if (ParseNode *finallyBlock = node->pn_kid3)
+            return ContainsHoistedDeclaration(cx, finallyBlock, result);
+
+        *result = false;
+        return true;
+      }
+
+      
+      
+      
+      case PNK_SWITCH:
+        MOZ_ASSERT(node->isArity(PN_BINARY));
+        return ContainsHoistedDeclaration(cx, node->pn_right, result);
+
+      
+      
+      case PNK_DEFAULT:
+        MOZ_ASSERT(!node->pn_left);
+      case PNK_CASE:
+        MOZ_ASSERT(node->isArity(PN_BINARY));
+        return ContainsHoistedDeclaration(cx, node->pn_right, result);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      case PNK_SEQ:
+        return ListContainsHoistedDeclaration(cx, &node->as<ListNode>(), result);
+
+      case PNK_FOR: {
+        MOZ_ASSERT(node->isArity(PN_BINARY));
+
+        ParseNode *loopHead = node->pn_left;
+        MOZ_ASSERT(loopHead->isKind(PNK_FORHEAD) ||
+                   loopHead->isKind(PNK_FORIN) ||
+                   loopHead->isKind(PNK_FOROF));
+
+        if (loopHead->isKind(PNK_FORHEAD)) {
+            
+            
+            
+            
+            
+            MOZ_ASSERT(loopHead->isArity(PN_TERNARY));
+
+            ParseNode *init = loopHead->pn_kid1;
+            if (init && init->isKind(PNK_VAR)) {
+                *result = true;
                 return true;
+            }
+        } else {
+            MOZ_ASSERT(loopHead->isKind(PNK_FORIN) || loopHead->isKind(PNK_FOROF));
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            MOZ_ASSERT(loopHead->isArity(PN_TERNARY));
+
+            ParseNode *decl = loopHead->pn_kid1;
+            if (decl && decl->isKind(PNK_VAR)) {
+                *result = true;
+                return true;
+            }
         }
-        break;
 
-      case PN_TERNARY:
-        if (!ContainsVarOrConst(cx, pn->pn_kid1, resultp))
-            return false;
-        if (*resultp)
-            return true;
-        if (!ContainsVarOrConst(cx, pn->pn_kid2, resultp))
-            return false;
-        if (*resultp)
-            return true;
-        return ContainsVarOrConst(cx, pn->pn_kid3, resultp);
+        ParseNode *loopBody = node->pn_right;
+        return ContainsHoistedDeclaration(cx, loopBody, result);
+      }
 
-      case PN_BINARY:
-      case PN_BINARY_OBJ:
-        
-        
-        if (!pn->isOp(JSOP_NOP)) {
-            *resultp = nullptr;
-            return true;
-        }
-        if (!ContainsVarOrConst(cx, pn->pn_left, resultp))
-            return false;
-        if (*resultp)
-            return true;
-        return ContainsVarOrConst(cx, pn->pn_right, resultp);
+      case PNK_LETBLOCK: {
+        MOZ_ASSERT(node->isArity(PN_BINARY));
+        MOZ_ASSERT(node->pn_left->isKind(PNK_LET));
+        MOZ_ASSERT(node->pn_right->isKind(PNK_LEXICALSCOPE));
+        return ContainsHoistedDeclaration(cx, node->pn_right, result);
+      }
 
-      case PN_UNARY:
-        if (!pn->isOp(JSOP_NOP)) {
-            *resultp = nullptr;
-            return true;
-        }
-        return ContainsVarOrConst(cx, pn->pn_kid, resultp);
+      case PNK_LEXICALSCOPE: {
+        ParseNode *expr = node->pn_expr;
 
-      case PN_NAME:
-        return ContainsVarOrConst(cx, pn->maybeExpr(), resultp);
+        if (expr->isKind(PNK_FOR))
+            return ContainsHoistedDeclaration(cx, expr, result);
 
-      default:;
+        MOZ_ASSERT(expr->isKind(PNK_STATEMENTLIST));
+        return ListContainsHoistedDeclaration(cx, &node->pn_expr->as<ListNode>(), result);
+      }
+
+      
+      case PNK_STATEMENTLIST:
+        return ListContainsHoistedDeclaration(cx, &node->as<ListNode>(), result);
+
+      
+      
+      case PNK_COMPUTED_NAME:
+      case PNK_SPREAD:
+      case PNK_MUTATEPROTO:
+      case PNK_COLON:
+      case PNK_SHORTHAND:
+      case PNK_CONDITIONAL:
+      case PNK_TYPEOF:
+      case PNK_VOID:
+      case PNK_NOT:
+      case PNK_BITNOT:
+      case PNK_DELETE:
+      case PNK_POS:
+      case PNK_NEG:
+      case PNK_PREINCREMENT:
+      case PNK_POSTINCREMENT:
+      case PNK_PREDECREMENT:
+      case PNK_POSTDECREMENT:
+      case PNK_OR:
+      case PNK_AND:
+      case PNK_BITOR:
+      case PNK_BITXOR:
+      case PNK_BITAND:
+      case PNK_STRICTEQ:
+      case PNK_EQ:
+      case PNK_STRICTNE:
+      case PNK_NE:
+      case PNK_LT:
+      case PNK_LE:
+      case PNK_GT:
+      case PNK_GE:
+      case PNK_INSTANCEOF:
+      case PNK_IN:
+      case PNK_LSH:
+      case PNK_RSH:
+      case PNK_URSH:
+      case PNK_ADD:
+      case PNK_SUB:
+      case PNK_STAR:
+      case PNK_DIV:
+      case PNK_MOD:
+      case PNK_ASSIGN:
+      case PNK_ADDASSIGN:
+      case PNK_SUBASSIGN:
+      case PNK_BITORASSIGN:
+      case PNK_BITXORASSIGN:
+      case PNK_BITANDASSIGN:
+      case PNK_LSHASSIGN:
+      case PNK_RSHASSIGN:
+      case PNK_URSHASSIGN:
+      case PNK_MULASSIGN:
+      case PNK_DIVASSIGN:
+      case PNK_MODASSIGN:
+      case PNK_COMMA:
+      case PNK_ARRAY:
+      case PNK_OBJECT:
+      case PNK_DOT:
+      case PNK_ELEM:
+      case PNK_CALL:
+      case PNK_NAME:
+      case PNK_TEMPLATE_STRING:
+      case PNK_TEMPLATE_STRING_LIST:
+      case PNK_TAGGED_TEMPLATE:
+      case PNK_CALLSITEOBJ:
+      case PNK_STRING:
+      case PNK_REGEXP:
+      case PNK_TRUE:
+      case PNK_FALSE:
+      case PNK_NULL:
+      case PNK_THIS:
+      case PNK_LETEXPR:
+      case PNK_ELISION:
+      case PNK_NUMBER:
+      case PNK_NEW:
+      case PNK_GENERATOR:
+      case PNK_GENEXP:
+      case PNK_ARRAYCOMP:
+      case PNK_ARGSBODY:
+      case PNK_CATCHLIST:
+      case PNK_CATCH:
+      case PNK_FORIN:
+      case PNK_FOROF:
+      case PNK_FORHEAD:
+        MOZ_CRASH("ContainsHoistedDeclaration should have indicated false on "
+                  "some parent node without recurring to test this node");
+
+      case PNK_GLOBALCONST:
+        MOZ_CRASH("ContainsHoistedDeclaration is only called on nested nodes where "
+                  "globalconst nodes should never have been generated");
+
+      case PNK_LIMIT: 
+        MOZ_CRASH("unexpected PNK_LIMIT in node");
     }
-    *resultp = nullptr;
-    return true;
+
+    MOZ_CRASH("invalid node kind");
 }
 
 
@@ -432,15 +749,19 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
     switch (pn->getKind()) {
       case PNK_IF:
         {
-            ParseNode *decl;
-            if (!ContainsVarOrConst(cx, pn2, &decl))
-                return false;
-            if (decl)
-                break;
-            if (!ContainsVarOrConst(cx, pn3, &decl))
-                return false;
-            if (decl)
-                break;
+            bool result;
+            if (ParseNode *consequent = pn2) {
+                if (!ContainsHoistedDeclaration(cx, consequent, &result))
+                    return false;
+                if (result)
+                    break;
+            }
+            if (ParseNode *alternative = pn3) {
+                if (!ContainsHoistedDeclaration(cx, alternative, &result))
+                    return false;
+                if (result)
+                    break;
+            }
         }
         
 
