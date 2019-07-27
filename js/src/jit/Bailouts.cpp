@@ -224,15 +224,16 @@ jit::ExceptionHandlerBailout(JSContext* cx, const InlineFrameIterator& frame,
         
         
         
+        
         MOZ_ASSERT(!bailoutInfo);
 
-        if (retval == BAILOUT_RETURN_OVERRECURSED) {
+        if (!excInfo.propagatingIonExceptionForDebugMode())
+            cx->clearPendingException();
+
+        if (retval == BAILOUT_RETURN_OVERRECURSED)
             *overrecursed = true;
-            if (!excInfo.propagatingIonExceptionForDebugMode())
-                cx->clearPendingException();
-        } else {
+        else
             MOZ_ASSERT(retval == BAILOUT_RETURN_FATAL_ERROR);
-        }
     }
 
     
