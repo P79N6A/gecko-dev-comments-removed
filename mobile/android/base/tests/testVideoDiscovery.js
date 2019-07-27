@@ -8,6 +8,7 @@
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/SimpleServiceDiscovery.jsm");
 
 function ok(passed, text) {
   do_report_result(passed, text, Components.stack.caller, false);
@@ -26,14 +27,38 @@ function middle(element) {
   return [x, y];
 }
 
+
+var testTarget = {
+  target: "test:service",
+  factory: function(service) {   },
+  types: ["video/mp4", "video/webm"],
+  extensions: ["mp4", "webm"]
+};
+
 add_test(function setup_browser() {
   chromeWin = Services.wm.getMostRecentWindow("navigator:browser");
   let BrowserApp = chromeWin.BrowserApp;
 
   do_register_cleanup(function cleanup() {
     BrowserApp.closeTab(BrowserApp.getTabForBrowser(browser));
+    SimpleServiceDiscovery.unregisterTarget(testTarget);
   });
 
+  
+  SimpleServiceDiscovery.registerTarget(testTarget);
+
+  
+  let service = {
+    location: "http://mochi.test:8888/tests/robocop/simpleservice.xml",
+    target: "test:service"
+  };
+
+  do_print("Force a detailed ping from a pretend service");
+
+  
+  SimpleServiceDiscovery._processService(service);
+
+  
   let url = "http://mochi.test:8888/tests/robocop/video_discovery.html";
   browser = BrowserApp.addTab(url, { selected: true, parentId: BrowserApp.selectedTab.id }).browser;
   browser.addEventListener("load", function startTests(event) {
