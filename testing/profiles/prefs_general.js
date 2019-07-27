@@ -273,6 +273,10 @@ user_pref("browser.uitour.url", "http://%(server)s/uitour-dummy/tour");
 
 user_pref("browser.search.highlightCount", 0);
 
+
+user_pref("browser.search.isUS", true);
+user_pref("browser.search.countryCode", "US");
+
 user_pref("media.eme.enabled", true);
 
 

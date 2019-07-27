@@ -114,6 +114,26 @@ function removeCache()
 
 
 
+function isUSTimezone() {
+  
+  
+
+  
+  
+
+  
+  
+
+  
+  
+
+  let UTCOffset = (new Date()).getTimezoneOffset();
+  return UTCOffset >= 150 && UTCOffset <= 600;
+}
+
+
+
+
 function afterCommit(callback)
 {
   let obs = function(result, topic, verb) {
@@ -184,6 +204,9 @@ function isSubObjectOf(expectedObj, actualObj) {
 
 
 Services.prefs.setBoolPref("browser.search.log", true);
+
+
+Services.prefs.setCharPref("browser.search.geoip.url", "");
 
 
 

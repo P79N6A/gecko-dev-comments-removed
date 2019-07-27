@@ -49,3 +49,8 @@
     
     
     branch.setIntPref("touchcaret.expiration.time", 0);
+
+    
+    
+    branch.setBoolPref("browser.search.isUS", true);
+    branch.setCharPref("browser.search.countryCode", "US");

@@ -439,6 +439,12 @@ pref("browser.search.official", true);
 
 pref("browser.search.highlightCount", 5);
 
+
+pref("browser.search.geoip.url", "https://location.services.mozilla.com/v1/country?key=%MOZILLA_API_KEY%");
+
+
+pref("browser.search.geoip.timeout", 2000);
+
 pref("browser.sessionhistory.max_entries", 50);
 
 

@@ -5,6 +5,10 @@
 Cu.import("resource://gre/modules/PlacesSearchAutocompleteProvider.jsm");
 
 function run_test() {
+  
+  
+  Services.prefs.setBoolPref("browser.search.isUS", true);
+  Services.prefs.setCharPref("browser.search.countryCode", "US");
   run_next_test();
 }
 
