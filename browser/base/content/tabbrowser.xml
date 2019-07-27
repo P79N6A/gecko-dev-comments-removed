@@ -692,7 +692,7 @@
 
                 if (this.mTab.hasAttribute("busy")) {
                   this.mTab.removeAttribute("busy");
-                  this.mTabBrowser._tabAttrModified(this.mTab, ["busy"]);
+                  this.mTabBrowser._tabAttrModified(this.mTab);
                   if (!this.mTab.selected)
                     this.mTab.setAttribute("unread", "true");
                 }
@@ -892,7 +892,7 @@
                 aTab.setAttribute("image", sizedIconUrl);
               else
                 aTab.removeAttribute("image");
-              this._tabAttrModified(aTab, ["image"]);
+              this._tabAttrModified(aTab);
             }
 
             this._callProgressListeners(browser, "onLinkIconAvailable", [browser.mIconURL]);
@@ -1167,8 +1167,8 @@
               });
               this.mCurrentTab.dispatchEvent(event);
 
-              this._tabAttrModified(oldTab, ["selected"]);
-              this._tabAttrModified(this.mCurrentTab, ["selected"]);
+              this._tabAttrModified(oldTab);
+              this._tabAttrModified(this.mCurrentTab);
 
               if (oldBrowser != newBrowser &&
                   oldBrowser.docShell &&
@@ -1300,18 +1300,14 @@
 
       <method name="_tabAttrModified">
         <parameter name="aTab"/>
-        <parameter name="aChanged"/>
         <body><![CDATA[
           if (aTab.closing)
             return;
 
-          let event = new CustomEvent("TabAttrModified", {
-            bubbles: true,
-            cancelable: false,
-            detail: {
-              changed: aChanged,
-            }
-          });
+          // This event should be dispatched when any of these attributes change:
+          // label, crop, busy, image, selected
+          var event = document.createEvent("Events");
+          event.initEvent("TabAttrModified", true, false);
           aTab.dispatchEvent(event);
         ]]></body>
       </method>
@@ -1322,7 +1318,7 @@
           <![CDATA[
             aTab.label = this.mStringBundle.getString("tabs.connecting");
             aTab.crop = "end";
-            this._tabAttrModified(aTab, ["label", "crop"]);
+            this._tabAttrModified(aTab);
           ]]>
         </body>
       </method>
@@ -1367,7 +1363,7 @@
 
             aTab.label = title;
             aTab.crop = crop;
-            this._tabAttrModified(aTab, ["label", "crop"]);
+            this._tabAttrModified(aTab);
 
             if (aTab.selected)
               this.updateTitlebar();
@@ -1794,13 +1790,6 @@
               b = this._createBrowser({remote, uriIsAboutBlank});
             }
 
-            // A remote browser doesn't initially have the outerWindowID
-            // set. Once a remote browser initializes, it sends the Browser:Init
-            // message, and we map the browser at that point.
-            if (!remote) {
-              this._outerWindowIDBrowserMap.set(b.outerWindowID, b);
-            }
-
             let notificationbox = this.getNotificationBox(b);
             var position = this.tabs.length - 1;
             var uniqueId = this._generateUniquePanelID();
@@ -1889,6 +1878,15 @@
             // We start our browsers out as inactive, and then maintain
             // activeness in the tab switcher.
             b.docShellIsActive = false;
+
+            // When addTab() is called with an URL that is not "about:blank" we
+            // set the "nodefaultsrc" attribute that prevents a frameLoader
+            // from being created as soon as the linked <browser> is inserted
+            // into the DOM. We thus have to register the new outerWindowID
+            // for non-remote browsers after we have called browser.loadURI().
+            if (!remote) {
+              this._outerWindowIDBrowserMap.set(b.outerWindowID, b);
+            }
 
             // Check if we're opening a tab related to the current tab and
             // move it to after the current tab.
@@ -2453,7 +2451,7 @@
               var isBusy = aOtherTab.hasAttribute("busy");
               if (isBusy) {
                 aOurTab.setAttribute("busy", "true");
-                this._tabAttrModified(aOurTab, ["busy"]);
+                this._tabAttrModified(aOurTab);
                 if (aOurTab.selected)
                   this.mIsBusy = true;
               }
