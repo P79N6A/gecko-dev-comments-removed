@@ -63,6 +63,7 @@ private:
 
 void InitScriptSettings();
 void DestroyScriptSettings();
+bool ScriptSettingsInitialized();
 
 
 
