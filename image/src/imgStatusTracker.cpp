@@ -107,14 +107,6 @@ public:
     tracker->RecordStopRequest(aLastPart, aStatus);
   }
 
-  virtual void OnDiscard() MOZ_OVERRIDE
-  {
-    LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnDiscard");
-    nsRefPtr<imgStatusTracker> tracker = mTracker.get();
-    if (!tracker) { return; }
-    tracker->RecordDiscard();
-  }
-
   virtual void OnUnlockedDraw() MOZ_OVERRIDE
   {
     LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnUnlockedDraw");
@@ -716,22 +708,6 @@ imgStatusTracker::SendStopDecode(imgRequestProxy* aProxy,
 }
 
 void
-imgStatusTracker::RecordDiscard()
-{
-  NS_ABORT_IF_FALSE(mImage,
-                    "RecordDiscard called before we have an Image");
-  
-  uint32_t stateBitsToClear = FLAG_DECODE_STOPPED;
-  mState &= ~stateBitsToClear;
-
-  
-  uint32_t statusBitsToClear = imgIRequest::STATUS_DECODE_STARTED |
-                               imgIRequest::STATUS_FRAME_COMPLETE |
-                               imgIRequest::STATUS_DECODE_COMPLETE;
-  mImageStatus &= ~statusBitsToClear;
-}
-
-void
 imgStatusTracker::SendDiscard(imgRequestProxy* aProxy)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -929,7 +905,6 @@ void
 imgStatusTracker::OnDiscard()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  RecordDiscard();
 
   
   ProxyArray::ForwardIterator iter(mConsumers);

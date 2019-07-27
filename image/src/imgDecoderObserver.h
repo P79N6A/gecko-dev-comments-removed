@@ -112,13 +112,6 @@ public:
   
 
 
-
-
-  virtual void OnDiscard() = 0;
-
-  
-
-
   virtual void OnUnlockedDraw() = 0;
 
   
