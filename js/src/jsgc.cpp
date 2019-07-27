@@ -5291,17 +5291,6 @@ GCRuntime::endSweepPhase(bool lastGC)
 
         if (!lastGC)
             sweepZones(&fop, lastGC);
-
-        if (!sweepOnBackgroundThread) {
-            
-
-
-
-
-
-            AutoLockGC lock(rt);
-            expireChunksAndArenas(invocationKind == GC_SHRINK, lock);
-        }
     }
 
     {
@@ -5325,6 +5314,17 @@ GCRuntime::endSweepPhase(bool lastGC)
         gcstats::AutoPhase ap(stats, gcstats::PHASE_DESTROY);
 
         sweepBackgroundThings();
+
+        
+
+
+
+
+
+        {
+            AutoLockGC lock(rt);
+            expireChunksAndArenas(invocationKind == GC_SHRINK, lock);
+        }
 
         freeLifoAlloc.freeAll();
 
@@ -5353,6 +5353,9 @@ GCRuntime::endSweepPhase(bool lastGC)
         }
     }
 #endif
+
+    if (sweepOnBackgroundThread)
+        helperState.startBackgroundSweep(invocationKind == GC_SHRINK);
 }
 
 #ifdef JSGC_COMPACTING
@@ -5750,9 +5753,6 @@ GCRuntime::incrementalCollectSlice(int64_t budget,
             break;
 
         endSweepPhase(lastGC);
-
-        if (sweepOnBackgroundThread)
-            helperState.startBackgroundSweep(invocationKind == GC_SHRINK);
 
 #ifdef JSGC_COMPACTING
         if (shouldCompact()) {
