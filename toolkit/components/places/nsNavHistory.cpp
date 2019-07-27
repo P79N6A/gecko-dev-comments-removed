@@ -3905,16 +3905,7 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
   if (IsQueryURI(url)) {
     
-    nsRefPtr<nsNavHistoryResultNode> resultNode;
-    rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon,
-                          getter_AddRefs(resultNode));
-    NS_ENSURE_SUCCESS(rv,rv);
-
     if (itemId != -1) {
-      rv = aRow->GetUTF8String(nsNavBookmarks::kGetChildrenIndex_Guid,
-                               resultNode->mBookmarkGuid);
-      NS_ENSURE_SUCCESS(rv, rv);
-
       
       
       
@@ -3923,7 +3914,18 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
       nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
-      rv = bookmarks->GetItemTitle(itemId, resultNode->mTitle);
+      rv = bookmarks->GetItemTitle(itemId, title);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    nsRefPtr<nsNavHistoryResultNode> resultNode;
+    rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon,
+                          getter_AddRefs(resultNode));
+    NS_ENSURE_SUCCESS(rv,rv);
+
+    if (itemId != -1) {
+      rv = aRow->GetUTF8String(nsNavBookmarks::kGetChildrenIndex_Guid,
+                               resultNode->mBookmarkGuid);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
