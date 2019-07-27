@@ -165,8 +165,7 @@ NS_IMPL_ISUPPORTS(TabChild::DelayedFireContextMenuEvent,
                   nsITimerCallback)
 
 TabChildBase::TabChildBase()
-  : mContentDocumentIsDisplayed(false)
-  , mTabChildGlobal(nullptr)
+  : mTabChildGlobal(nullptr)
 {
   mozilla::HoldJSObjects(this);
 }
@@ -205,280 +204,6 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TabChildBase)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TabChildBase)
-
-
-
-
-
-
-
-
-CSSToScreenScale ConvertScaleForRoot(CSSToParentLayerScale aScale)
-{
-  return ViewTargetAs<ScreenPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
-}
-CSSToParentLayerScale ConvertScaleForRoot(CSSToScreenScale aScale)
-{
-  return ViewTargetAs<ParentLayerPixel>(aScale, PixelCastJustification::ScreenIsParentLayerForRoot);
-}
-
-
-CSSToScreenScale CalculateIntrinsicScale(const ScreenIntSize& aDisplaySize, const CSSSize& aViewportSize)
-{
-  return MaxScaleRatio(ScreenSize(aDisplaySize), aViewportSize);
-}
-
-void
-TabChildBase::InitializeRootMetrics()
-{
-  
-  
-  
-  mLastRootMetrics.SetViewport(CSSRect(CSSPoint(), kDefaultViewportSize));
-  mLastRootMetrics.SetCompositionBounds(ParentLayerRect(
-      ParentLayerPoint(),
-      ParentLayerSize(
-        ViewAs<ParentLayerPixel>(GetInnerSize(),
-                                 PixelCastJustification::ScreenIsParentLayerForRoot))));
-  mLastRootMetrics.SetZoom(CSSToParentLayerScale2D(
-      ConvertScaleForRoot(CalculateIntrinsicScale(GetInnerSize(), kDefaultViewportSize))));
-  mLastRootMetrics.SetDevPixelsPerCSSPixel(WebWidget()->GetDefaultScale());
-  
-  
-  mLastRootMetrics.SetCumulativeResolution(mLastRootMetrics.GetZoom() / mLastRootMetrics.GetDevPixelsPerCSSPixel() * ParentLayerToLayerScale(1));
-  
-  
-  mLastRootMetrics.SetPresShellResolution(mLastRootMetrics.GetCumulativeResolution().ToScaleFactor().scale);
-
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  if (shell && shell->GetRootScrollFrameAsScrollable()) {
-    
-    
-    nsPoint pos = shell->GetRootScrollFrameAsScrollable()->GetScrollPosition();
-    mLastRootMetrics.SetScrollOffset(CSSPoint::FromAppUnits(pos));
-  } else {
-    mLastRootMetrics.SetScrollOffset(CSSPoint(0, 0));
-  }
-
-  TABC_LOG("After InitializeRootMetrics, mLastRootMetrics is %s\n",
-    Stringify(mLastRootMetrics).c_str());
-}
-
-void
-TabChildBase::SetCSSViewport(const CSSSize& aSize)
-{
-  mOldViewportSize = aSize;
-  TABC_LOG("Setting CSS viewport to %s\n", Stringify(aSize).c_str());
-
-  if (mContentDocumentIsDisplayed) {
-    if (nsCOMPtr<nsIPresShell> shell = GetPresShell()) {
-      nsLayoutUtils::SetCSSViewport(shell, aSize);
-    }
-  }
-}
-
-CSSSize
-TabChildBase::GetPageSize(nsCOMPtr<nsIDocument> aDocument, const CSSSize& aViewport)
-{
-  nsCOMPtr<Element> htmlDOMElement = aDocument->GetHtmlElement();
-  HTMLBodyElement* bodyDOMElement = aDocument->GetBodyElement();
-
-  if (!htmlDOMElement && !bodyDOMElement) {
-    
-    return aViewport;
-  }
-
-  int32_t htmlWidth = 0, htmlHeight = 0;
-  if (htmlDOMElement) {
-    htmlWidth = htmlDOMElement->ScrollWidth();
-    htmlHeight = htmlDOMElement->ScrollHeight();
-  }
-  int32_t bodyWidth = 0, bodyHeight = 0;
-  if (bodyDOMElement) {
-    bodyWidth = bodyDOMElement->ScrollWidth();
-    bodyHeight = bodyDOMElement->ScrollHeight();
-  }
-  return CSSSize(std::max(htmlWidth, bodyWidth),
-                 std::max(htmlHeight, bodyHeight));
-}
-
-bool
-TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
-{
-  PuppetWidget* widget = WebWidget();
-  if (!widget || !widget->AsyncPanZoomEnabled()) {
-    return false;
-  }
-
-  TABC_LOG("HandlePossibleViewportChange aOldScreenSize=%s mInnerSize=%s\n",
-    Stringify(aOldScreenSize).c_str(), Stringify(GetInnerSize()).c_str());
-
-  nsCOMPtr<nsIDocument> document(GetDocument());
-  if (!document) {
-    return false;
-  }
-
-  nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, GetInnerSize());
-  uint32_t presShellId = 0;
-  mozilla::layers::FrameMetrics::ViewID viewId = FrameMetrics::NULL_SCROLL_ID;
-  APZCCallbackHelper::GetOrCreateScrollIdentifiers(
-        document->GetDocumentElement(), &presShellId, &viewId);
-
-  float screenW = GetInnerSize().width;
-  float screenH = GetInnerSize().height;
-  CSSSize viewport(viewportInfo.GetSize());
-
-  
-  
-  if (!screenW || !screenH) {
-    return false;
-  }
-
-  TABC_LOG("HandlePossibleViewportChange mOldViewportSize=%s viewport=%s\n",
-    Stringify(mOldViewportSize).c_str(), Stringify(viewport).c_str());
-  CSSSize oldBrowserSize = mOldViewportSize;
-  mLastRootMetrics.SetViewport(CSSRect(
-    mLastRootMetrics.GetViewport().TopLeft(), viewport));
-  if (oldBrowserSize == CSSSize()) {
-    oldBrowserSize = kDefaultViewportSize;
-  }
-  SetCSSViewport(viewport);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (!mContentDocumentIsDisplayed) {
-    return false;
-  }
-
-  ScreenIntSize oldScreenSize = aOldScreenSize;
-  if (oldScreenSize == ScreenIntSize()) {
-    oldScreenSize = GetInnerSize();
-  }
-
-  FrameMetrics metrics(mLastRootMetrics);
-  metrics.SetViewport(CSSRect(CSSPoint(), viewport));
-
-  
-  
-  ScreenSize compositionSize(GetInnerSize());
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  if (shell) {
-    nsMargin scrollbarsAppUnits =
-        nsLayoutUtils::ScrollbarAreaToExcludeFromCompositionBoundsFor(shell->GetRootScrollFrame());
-    
-    ScreenMargin scrollbars = CSSMargin::FromAppUnits(scrollbarsAppUnits)
-                            * CSSToScreenScale(1.0f);
-    compositionSize.width -= scrollbars.LeftRight();
-    compositionSize.height -= scrollbars.TopBottom();
-  }
-
-  metrics.SetCompositionBounds(ParentLayerRect(
-      ParentLayerPoint(),
-      ParentLayerSize(
-        ViewAs<ParentLayerPixel>(GetInnerSize(),
-                                 PixelCastJustification::ScreenIsParentLayerForRoot))));
-  metrics.SetRootCompositionSize(
-      ScreenSize(compositionSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.GetDevPixelsPerCSSPixel());
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  CSSToScreenScale oldIntrinsicScale = CalculateIntrinsicScale(oldScreenSize, oldBrowserSize);
-  CSSToScreenScale newIntrinsicScale = CalculateIntrinsicScale(GetInnerSize(), viewport);
-  metrics.ZoomBy(newIntrinsicScale.scale / oldIntrinsicScale.scale);
-
-  
-  
-  bool isFirstPaint = true;
-  if (shell) {
-    isFirstPaint = shell->GetIsFirstPaint();
-  }
-  if (isFirstPaint) {
-    
-    
-    
-    if (viewportInfo.GetDefaultZoom().scale < 0.01f) {
-      viewportInfo.SetDefaultZoom(newIntrinsicScale);
-    }
-
-    CSSToScreenScale defaultZoom = viewportInfo.GetDefaultZoom();
-    MOZ_ASSERT(viewportInfo.GetMinZoom() <= defaultZoom &&
-               defaultZoom <= viewportInfo.GetMaxZoom());
-    metrics.SetZoom(CSSToParentLayerScale2D(ConvertScaleForRoot(defaultZoom)));
-
-    metrics.SetPresShellId(presShellId);
-    metrics.SetScrollId(viewId);
-  }
-
-  if (shell) {
-    if (nsPresContext* context = shell->GetPresContext()) {
-      metrics.SetDevPixelsPerCSSPixel(CSSToLayoutDeviceScale(
-        (float)nsPresContext::AppUnitsPerCSSPixel() / context->AppUnitsPerDevPixel()));
-    }
-  }
-
-  metrics.SetCumulativeResolution(metrics.GetZoom()
-                                / metrics.GetDevPixelsPerCSSPixel()
-                                * ParentLayerToLayerScale(1));
-  
-  
-  metrics.SetPresShellResolution(metrics.GetCumulativeResolution().ToScaleFactor().scale);
-  if (shell) {
-    nsLayoutUtils::SetResolutionAndScaleTo(shell, metrics.GetPresShellResolution());
-    nsLayoutUtils::SetScrollPositionClampingScrollPortSize(shell,
-        metrics.CalculateCompositedSizeInCssPixels());
-  }
-
-  
-  
-  
-
-  CSSSize pageSize = GetPageSize(document, viewport);
-  if (!pageSize.width) {
-    
-    return false;
-  }
-  metrics.SetScrollableRect(CSSRect(CSSPoint(), pageSize));
-
-  
-  
-  metrics.SetDisplayPortMargins(APZCTreeManager::CalculatePendingDisplayPort(
-    
-    
-    
-    metrics, ParentLayerPoint(0.0f, 0.0f), 0.0));
-  metrics.SetUseDisplayPortMargins();
-
-  
-  
-  mLastRootMetrics = ProcessUpdateFrame(metrics);
-
-  return true;
-}
-
-already_AddRefed<nsIDOMWindowUtils>
-TabChildBase::GetDOMWindowUtils()
-{
-  nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(WebNavigation());
-  nsCOMPtr<nsIDOMWindowUtils> utils = do_GetInterface(window);
-  return utils.forget();
-}
 
 already_AddRefed<nsIDocument>
 TabChildBase::GetDocument() const
@@ -535,7 +260,7 @@ TabChildBase::UpdateFrameHandler(const FrameMetrics& aFrameMetrics)
       
       
       if (aFrameMetrics.GetPresShellId() == shell->GetPresShellId()) {
-        mLastRootMetrics = ProcessUpdateFrame(aFrameMetrics);
+        ProcessUpdateFrame(aFrameMetrics);
         return true;
       }
     }
@@ -549,11 +274,11 @@ TabChildBase::UpdateFrameHandler(const FrameMetrics& aFrameMetrics)
   return true;
 }
 
-FrameMetrics
+void
 TabChildBase::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
 {
     if (!mGlobal || !mTabChildGlobal) {
-        return aFrameMetrics;
+        return;
     }
 
     FrameMetrics newMetrics = aFrameMetrics;
@@ -591,7 +316,6 @@ TabChildBase::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
     data.AppendLiteral(" }");
 
     DispatchMessageManagerMessage(NS_LITERAL_STRING("Viewport:Change"), data);
-    return newMetrics;
 }
 
 NS_IMETHODIMP
@@ -910,22 +634,6 @@ TabChild::TabChild(nsIContentChild* aManager,
 }
 
 NS_IMETHODIMP
-TabChild::HandleEvent(nsIDOMEvent* aEvent)
-{
-  nsAutoString eventType;
-  aEvent->GetType(eventType);
-  if (eventType.EqualsLiteral("DOMMetaAdded")) {
-    
-    
-    HandlePossibleViewportChange(GetInnerSize());
-  } else if (eventType.EqualsLiteral("FullZoomChange")) {
-    HandlePossibleViewportChange(GetInnerSize());
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TabChild::Observe(nsISupports *aSubject,
                   const char *aTopic,
                   const char16_t *aData)
@@ -957,19 +665,7 @@ TabChild::Observe(nsISupports *aSubject,
           shell->SetIsFirstPaint(true);
         }
 
-        mContentDocumentIsDisplayed = true;
-
-        
-        
-        
-        
-        if (HasValidInnerSize()) {
-          InitializeRootMetrics();
-          if (shell) {
-            nsLayoutUtils::SetResolutionAndScaleTo(shell, mLastRootMetrics.GetPresShellResolution());
-          }
-          HandlePossibleViewportChange(GetInnerSize());
-        }
+        APZCCallbackHelper::InitializeRootDisplayport(shell);
       }
     }
   }
@@ -1024,100 +720,6 @@ TabChild::Observe(nsISupports *aSubject,
     }
   }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TabChild::OnStateChange(nsIWebProgress* aWebProgress,
-                        nsIRequest* aRequest,
-                        uint32_t aStateFlags,
-                        nsresult aStatus)
-{
-  NS_NOTREACHED("not implemented in TabChild");
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TabChild::OnProgressChange(nsIWebProgress* aWebProgress,
-                           nsIRequest* aRequest,
-                           int32_t aCurSelfProgress,
-                           int32_t aMaxSelfProgress,
-                           int32_t aCurTotalProgress,
-                           int32_t aMaxTotalProgress)
-{
-  NS_NOTREACHED("not implemented in TabChild");
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TabChild::OnLocationChange(nsIWebProgress* aWebProgress,
-                           nsIRequest* aRequest,
-                           nsIURI *aLocation,
-                           uint32_t aFlags)
-{
-  if (!AsyncPanZoomEnabled()) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIDOMWindow> window;
-  aWebProgress->GetDOMWindow(getter_AddRefs(window));
-  if (!window) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIDOMDocument> progressDoc;
-  window->GetDocument(getter_AddRefs(progressDoc));
-  if (!progressDoc) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIDOMDocument> domDoc;
-  WebNavigation()->GetDocument(getter_AddRefs(domDoc));
-  if (!domDoc || !SameCOMIdentity(domDoc, progressDoc)) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURIFixup> urifixup(do_GetService(NS_URIFIXUP_CONTRACTID));
-  if (!urifixup) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> exposableURI;
-  urifixup->CreateExposableURI(aLocation, getter_AddRefs(exposableURI));
-  if (!exposableURI) {
-    return NS_OK;
-  }
-
-  if (!(aFlags & nsIWebProgressListener::LOCATION_CHANGE_SAME_DOCUMENT)) {
-    mContentDocumentIsDisplayed = false;
-  } else if (mLastURI != nullptr) {
-    bool exposableEqualsLast, exposableEqualsNew;
-    exposableURI->Equals(mLastURI.get(), &exposableEqualsLast);
-    exposableURI->Equals(aLocation, &exposableEqualsNew);
-    if (exposableEqualsLast && !exposableEqualsNew) {
-      mContentDocumentIsDisplayed = false;
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TabChild::OnStatusChange(nsIWebProgress* aWebProgress,
-                         nsIRequest* aRequest,
-                         nsresult aStatus,
-                         const char16_t* aMessage)
-{
-  NS_NOTREACHED("not implemented in TabChild");
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TabChild::OnSecurityChange(nsIWebProgress* aWebProgress,
-                           nsIRequest* aRequest,
-                           uint32_t aState)
-{
-  NS_NOTREACHED("not implemented in TabChild");
   return NS_OK;
 }
 
@@ -1201,10 +803,6 @@ TabChild::Init()
   loadContext->SetRemoteTabs(
       mChromeFlags & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW);
 
-  nsCOMPtr<nsIWebProgress> webProgress = do_GetInterface(docShell);
-  NS_ENSURE_TRUE(webProgress, NS_ERROR_FAILURE);
-  webProgress->AddProgressListener(this, nsIWebProgress::NOTIFY_LOCATION);
-
   
   
   
@@ -1249,8 +847,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TabChild)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChromeFocus)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIWindowProvider)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
-  NS_INTERFACE_MAP_ENTRY(nsIWebProgressListener)
   NS_INTERFACE_MAP_ENTRY(nsITabChild)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
@@ -1649,12 +1245,6 @@ TabChild::ProvideWindowCommon(nsIDOMWindow* aOpener,
   nsCOMPtr<nsIDOMWindow> win = do_GetInterface(newChild->WebNavigation());
   win.forget(aReturn);
   return NS_OK;
-}
-
-bool
-TabChild::HasValidInnerSize()
-{
-  return mHasValidInnerSize;
 }
 
 void
@@ -2116,40 +1706,25 @@ TabChild::RecvUpdateDimensions(const CSSRect& rect, const CSSSize& size,
     mUnscaledOuterRect = rect;
     mChromeDisp = chromeDisp;
 
-    bool initialSizing = !HasValidInnerSize()
-                      && (size.width != 0 && size.height != 0);
-
     mOrientation = orientation;
-    ScreenIntSize oldScreenSize = GetInnerSize();
     SetUnscaledInnerSize(size);
-    ScreenIntSize screenSize = GetInnerSize();
-    bool sizeChanged = true;
-    if (initialSizing) {
+    if (!mHasValidInnerSize && size.width != 0 && size.height != 0) {
       mHasValidInnerSize = true;
-    } else if (screenSize == oldScreenSize) {
-      sizeChanged = false;
     }
 
+    ScreenIntSize screenSize = GetInnerSize();
     ScreenIntRect screenRect = GetOuterRect();
-    mPuppetWidget->Resize(screenRect.x + chromeDisp.x,
-                          screenRect.y + chromeDisp.y,
-                          screenSize.width, screenSize.height, true);
 
+    
+    
+    
     nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(WebNavigation());
     baseWin->SetPositionAndSize(0, 0, screenSize.width, screenSize.height,
                                 true);
 
-    if (initialSizing && mContentDocumentIsDisplayed) {
-      
-      
-      
-      
-      InitializeRootMetrics();
-    }
-
-    if (sizeChanged) {
-      HandlePossibleViewportChange(oldScreenSize);
-    }
+    mPuppetWidget->Resize(screenRect.x + chromeDisp.x,
+                          screenRect.y + chromeDisp.y,
+                          screenSize.width, screenSize.height, true);
 
     return true;
 }
@@ -2937,7 +2512,7 @@ TabChild::RecvSetIsDocShellActive(const bool& aIsActive)
 }
 
 bool
-TabChild::RecvNavigateDocument(const bool& aForward)
+TabChild::RecvNavigateByKey(const bool& aForward, const bool& aForDocumentNavigation)
 {
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
@@ -2945,9 +2520,20 @@ TabChild::RecvNavigateDocument(const bool& aForward)
     nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(WebNavigation());
 
     
-    fm->MoveFocus(window, nullptr, aForward ? nsIFocusManager::MOVEFOCUS_FIRSTDOC :
-                                              nsIFocusManager::MOVEFOCUS_LASTDOC,
+    uint32_t type = aForward ?
+      (aForDocumentNavigation ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_FIRSTDOC) :
+                                static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_ROOT)) :
+      (aForDocumentNavigation ? static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_LASTDOC) :
+                                static_cast<uint32_t>(nsIFocusManager::MOVEFOCUS_LAST));
+    fm->MoveFocus(window, nullptr, type,
                   nsIFocusManager::FLAG_BYKEY, getter_AddRefs(result));
+
+    
+    if (!result && aForward && !aForDocumentNavigation) {
+      fm->MoveFocus(window, nullptr, nsIFocusManager::MOVEFOCUS_FIRST,
+                  nsIFocusManager::FLAG_BYKEY, getter_AddRefs(result));
+    }
+
     SendRequestFocus(false);
   }
 
@@ -2990,9 +2576,6 @@ TabChild::InitTabChildGlobal(FrameScriptLoading aScriptLoading)
     nsCOMPtr<nsPIWindowRoot> root = do_QueryInterface(chromeHandler);
     NS_ENSURE_TRUE(root, false);
     root->SetParentTarget(scope);
-
-    chromeHandler->AddEventListener(NS_LITERAL_STRING("DOMMetaAdded"), this, false);
-    chromeHandler->AddEventListener(NS_LITERAL_STRING("FullZoomChange"), this, false);
   }
 
   if (aScriptLoading != DONT_LOAD_SCRIPTS && !mTriedBrowserInit) {
