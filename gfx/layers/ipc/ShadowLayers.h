@@ -263,13 +263,6 @@ public:
   
 
 
-  virtual void UpdatedTexture(CompositableClient* aCompositable,
-                              TextureClient* aTexture,
-                              nsIntRegion* aRegion) override;
-
-  
-
-
   virtual void UseTexture(CompositableClient* aCompositable,
                           TextureClient* aClient) override;
   virtual void UseComponentAlphaTextures(CompositableClient* aCompositable,

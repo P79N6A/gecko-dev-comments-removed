@@ -207,13 +207,6 @@ public:
 
   virtual void Connect(CompositableClient* aCompositable) override;
 
-  
-
-
-  virtual void UpdatedTexture(CompositableClient* aCompositable,
-                              TextureClient* aTexture,
-                              nsIntRegion* aRegion) override;
-
   virtual bool IsImageBridgeChild() const override { return true; }
 
   
