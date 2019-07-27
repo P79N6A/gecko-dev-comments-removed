@@ -29,13 +29,14 @@ namespace mozilla {
 
 TextComposition::TextComposition(nsPresContext* aPresContext,
                                  nsINode* aNode,
-                                 WidgetGUIEvent* aEvent)
+                                 WidgetCompositionEvent* aCompositionEvent)
   : mPresContext(aPresContext)
   , mNode(aNode)
-  , mNativeContext(aEvent->widget->GetInputContext().mNativeIMEContext)
+  , mNativeContext(
+      aCompositionEvent->widget->GetInputContext().mNativeIMEContext)
   , mCompositionStartOffset(0)
   , mCompositionTargetOffset(0)
-  , mIsSynthesizedForTests(aEvent->mFlags.mIsSynthesizedForTests)
+  , mIsSynthesizedForTests(aCompositionEvent->mFlags.mIsSynthesizedForTests)
   , mIsComposing(false)
   , mIsEditorHandlingEvent(false)
   , mIsRequestingCommit(false)
@@ -62,24 +63,24 @@ TextComposition::MatchesNativeContext(nsIWidget* aWidget) const
 
 bool
 TextComposition::MaybeDispatchCompositionUpdate(
-                   const WidgetCompositionEvent* aEvent)
+                   const WidgetCompositionEvent* aCompositionEvent)
 {
   if (Destroyed()) {
     return false;
   }
 
-  if (mLastData == aEvent->mData) {
+  if (mLastData == aCompositionEvent->mData) {
     return true;
   }
 
-  WidgetCompositionEvent compositionUpdate(aEvent->mFlags.mIsTrusted,
+  WidgetCompositionEvent compositionUpdate(aCompositionEvent->mFlags.mIsTrusted,
                                            NS_COMPOSITION_UPDATE,
-                                           aEvent->widget);
-  compositionUpdate.time = aEvent->time;
-  compositionUpdate.timeStamp = aEvent->timeStamp;
-  compositionUpdate.mData = aEvent->mData;
+                                           aCompositionEvent->widget);
+  compositionUpdate.time = aCompositionEvent->time;
+  compositionUpdate.timeStamp = aCompositionEvent->timeStamp;
+  compositionUpdate.mData = aCompositionEvent->mData;
   compositionUpdate.mFlags.mIsSynthesizedForTests =
-    aEvent->mFlags.mIsSynthesizedForTests;
+    aCompositionEvent->mFlags.mIsSynthesizedForTests;
 
   nsEventStatus status = nsEventStatus_eConsumeNoDefault;
   mLastData = compositionUpdate.mData;
@@ -89,20 +90,20 @@ TextComposition::MaybeDispatchCompositionUpdate(
 }
 
 void
-TextComposition::OnCompositionEventDiscarded(const WidgetGUIEvent* aEvent)
+TextComposition::OnCompositionEventDiscarded(
+                   const WidgetCompositionEvent* aCompositionEvent)
 {
   
   
 
-  MOZ_ASSERT(aEvent->mFlags.mIsTrusted,
+  MOZ_ASSERT(aCompositionEvent->mFlags.mIsTrusted,
              "Shouldn't be called with untrusted event");
-  MOZ_ASSERT(aEvent->mClass == eCompositionEventClass);
 
   
   
   
   
-  if (aEvent->message != NS_COMPOSITION_END) {
+  if (aCompositionEvent->message != NS_COMPOSITION_END) {
     return;
   }
 
@@ -110,10 +111,11 @@ TextComposition::OnCompositionEventDiscarded(const WidgetGUIEvent* aEvent)
 }
 
 void
-TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
-                               nsEventStatus* aStatus,
-                               EventDispatchingCallback* aCallBack,
-                               bool aIsSynthesized)
+TextComposition::DispatchCompositionEvent(
+                   WidgetCompositionEvent* aCompositionEvent,
+                   nsEventStatus* aStatus,
+                   EventDispatchingCallback* aCallBack,
+                   bool aIsSynthesized)
 {
   if (Destroyed()) {
     *aStatus = nsEventStatus_eConsumeNoDefault;
@@ -144,10 +146,10 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
   
   if (!aIsSynthesized && (mIsRequestingCommit || mIsRequestingCancel)) {
     nsString* committingData = nullptr;
-    switch (aEvent->message) {
+    switch (aCompositionEvent->message) {
       case NS_COMPOSITION_END:
       case NS_COMPOSITION_CHANGE:
-        committingData = &aEvent->AsCompositionEvent()->mData;
+        committingData = &aCompositionEvent->mData;
         break;
       default:
         NS_WARNING("Unexpected event comes during committing or "
@@ -164,14 +166,14 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
     }
   }
 
-  if (aEvent->message == NS_COMPOSITION_CHANGE) {
-    if (!MaybeDispatchCompositionUpdate(aEvent->AsCompositionEvent())) {
+  if (aCompositionEvent->message == NS_COMPOSITION_CHANGE) {
+    if (!MaybeDispatchCompositionUpdate(aCompositionEvent)) {
       return;
     }
   }
 
   EventDispatcher::Dispatch(mNode, mPresContext,
-                            aEvent, nullptr, aStatus, aCallBack);
+                            aCompositionEvent, nullptr, aStatus, aCallBack);
 
   if (NS_WARN_IF(Destroyed())) {
     return;
@@ -179,31 +181,32 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
 
   
   
-  if (aEvent->message == NS_COMPOSITION_CHANGE && !HasEditor()) {
-    EditorWillHandleCompositionChangeEvent(aEvent->AsCompositionEvent());
+  if (aCompositionEvent->message == NS_COMPOSITION_CHANGE && !HasEditor()) {
+    EditorWillHandleCompositionChangeEvent(aCompositionEvent);
     EditorDidHandleCompositionChangeEvent();
   }
 
 #ifdef DEBUG
-  else if (aEvent->message == NS_COMPOSITION_END) {
+  else if (aCompositionEvent->message == NS_COMPOSITION_END) {
     MOZ_ASSERT(!mIsComposing, "Why is the editor still composing?");
     MOZ_ASSERT(!HasEditor(), "Why does the editor still keep to hold this?");
   }
 #endif 
 
   
-  NotityUpdateComposition(aEvent);
+  NotityUpdateComposition(aCompositionEvent);
 }
 
 void
-TextComposition::NotityUpdateComposition(WidgetGUIEvent* aEvent)
+TextComposition::NotityUpdateComposition(
+                   const WidgetCompositionEvent* aCompositionEvent)
 {
   nsEventStatus status;
 
   
   
   
-  if (aEvent->message == NS_COMPOSITION_START) {
+  if (aCompositionEvent->message == NS_COMPOSITION_START) {
     nsCOMPtr<nsIWidget> widget = mPresContext->GetRootWidget();
     
     WidgetQueryContentEvent selectedTextEvent(true,
@@ -218,10 +221,9 @@ TextComposition::NotityUpdateComposition(WidgetGUIEvent* aEvent)
       mCompositionStartOffset = 0;
     }
     mCompositionTargetOffset = mCompositionStartOffset;
-  } else if (aEvent->message == NS_COMPOSITION_CHANGE) {
+  } else if (aCompositionEvent->message == NS_COMPOSITION_CHANGE) {
     mCompositionTargetOffset =
-      mCompositionStartOffset +
-        aEvent->AsCompositionEvent()->TargetClauseOffset();
+      mCompositionStartOffset + aCompositionEvent->TargetClauseOffset();
   } else {
     return;
   }

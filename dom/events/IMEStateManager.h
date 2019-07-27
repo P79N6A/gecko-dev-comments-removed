@@ -97,18 +97,20 @@ public:
 
 
 
-  static void DispatchCompositionEvent(nsINode* aEventTargetNode,
-                                       nsPresContext* aPresContext,
-                                       WidgetEvent* aEvent,
-                                       nsEventStatus* aStatus,
-                                       EventDispatchingCallback* aCallBack,
-                                       bool aIsSynthesized = false);
+  static void DispatchCompositionEvent(
+                nsINode* aEventTargetNode,
+                nsPresContext* aPresContext,
+                WidgetCompositionEvent* aCompositionEvent,
+                nsEventStatus* aStatus,
+                EventDispatchingCallback* aCallBack,
+                bool aIsSynthesized = false);
 
   
 
 
 
-  static void OnCompositionEventDiscarded(WidgetEvent* aEvent);
+  static void OnCompositionEventDiscarded(
+                const WidgetCompositionEvent* aCompositionEvent);
 
   
 
@@ -122,7 +124,7 @@ public:
 
 
   static already_AddRefed<TextComposition>
-    GetTextCompositionFor(WidgetGUIEvent* aEvent);
+    GetTextCompositionFor(WidgetGUIEvent* aGUIEvent);
 
   
 

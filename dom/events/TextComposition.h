@@ -40,7 +40,7 @@ class TextComposition MOZ_FINAL
 public:
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
-                  WidgetGUIEvent* aEvent);
+                  WidgetCompositionEvent* aCompositionEvent);
 
   bool Destroyed() const { return !mPresContext; }
   nsPresContext* GetPresContext() const { return mPresContext; }
@@ -253,10 +253,10 @@ private:
 
 
 
-  void DispatchEvent(WidgetGUIEvent* aEvent,
-                     nsEventStatus* aStatus,
-                     EventDispatchingCallback* aCallBack,
-                     bool aIsSynthesized);
+  void DispatchCompositionEvent(WidgetCompositionEvent* aCompositionEvent,
+                                nsEventStatus* aStatus,
+                                EventDispatchingCallback* aCallBack,
+                                bool aIsSynthesized);
 
   
 
@@ -264,7 +264,8 @@ private:
 
 
 
-  bool MaybeDispatchCompositionUpdate(const WidgetCompositionEvent* aEvent);
+  bool MaybeDispatchCompositionUpdate(
+         const WidgetCompositionEvent* aCompositionEvent);
 
   
 
@@ -280,12 +281,13 @@ private:
 
 
 
-  void OnCompositionEventDiscarded(const WidgetGUIEvent* aEvent);
+  void OnCompositionEventDiscarded(
+         const WidgetCompositionEvent* aCompositionEvent);
 
   
 
 
-  void NotityUpdateComposition(WidgetGUIEvent* aEvent);
+  void NotityUpdateComposition(const WidgetCompositionEvent* aCompositionEvent);
 
   
 
