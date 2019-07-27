@@ -56,6 +56,7 @@ function debug(msg) {
 const EXCITEMENT_THRESHOLD = 500;
 const DEVICE_MOTION_EVENT = "devicemotion";
 const SCREEN_CHANGE_EVENT = "screenchange";
+const CAPTURE_LOGS_CONTENT_EVENT = "requestSystemLogs";
 const CAPTURE_LOGS_START_EVENT = "capture-logs-start";
 const CAPTURE_LOGS_ERROR_EVENT = "capture-logs-error";
 const CAPTURE_LOGS_SUCCESS_EVENT = "capture-logs-success";
@@ -68,6 +69,18 @@ let LogShake = {
 
 
   deviceMotionEnabled: false,
+
+  
+
+
+
+  screenEnabled: true,
+
+  
+
+
+
+  listenToDeviceMotion: true,
 
   
 
@@ -109,6 +122,7 @@ let LogShake = {
       screenEnabled: true
     }});
 
+    SystemAppProxy.addEventListener(CAPTURE_LOGS_CONTENT_EVENT, this, false);
     SystemAppProxy.addEventListener(SCREEN_CHANGE_EVENT, this, false);
 
     Services.obs.addObserver(this, "xpcom-shutdown", false);
@@ -129,6 +143,10 @@ let LogShake = {
     case SCREEN_CHANGE_EVENT:
       this.handleScreenChangeEvent(event);
       break;
+
+    case CAPTURE_LOGS_CONTENT_EVENT:
+      this.startCapture();
+      break;
     }
   },
 
@@ -141,8 +159,20 @@ let LogShake = {
     }
   },
 
+  enableDeviceMotionListener: function() {
+    this.listenToDeviceMotion = true;
+    this.startDeviceMotionListener();
+  },
+
+  disableDeviceMotionListener: function() {
+    this.listenToDeviceMotion = false;
+    this.stopDeviceMotionListener();
+  },
+
   startDeviceMotionListener: function() {
-    if (!this.deviceMotionEnabled) {
+    if (!this.deviceMotionEnabled &&
+        this.listenToDeviceMotion &&
+        this.screenEnabled) {
       SystemAppProxy.addEventListener(DEVICE_MOTION_EVENT, this, false);
       this.deviceMotionEnabled = true;
     }
@@ -169,28 +199,33 @@ let LogShake = {
     var excitement = acc.x * acc.x + acc.y * acc.y + acc.z * acc.z;
 
     if (excitement > EXCITEMENT_THRESHOLD) {
-      if (!this.captureRequested) {
-        this.captureRequested = true;
-        SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_START_EVENT, {});
-        this.captureLogs().then(logResults => {
-          
-          SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_SUCCESS_EVENT, {
-            logFilenames: logResults.logFilenames,
-            logPrefix: logResults.logPrefix
-          });
-          this.captureRequested = false;
-        },
-        error => {
-          
-          SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_ERROR_EVENT, {error: error});
-          this.captureRequested = false;
-        });
-      }
+      this.startCapture();
     }
   },
 
+  startCapture: function() {
+    if (this.captureRequested) {
+      return;
+    }
+    this.captureRequested = true;
+    SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_START_EVENT, {});
+    this.captureLogs().then(logResults => {
+      
+      SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_SUCCESS_EVENT, {
+        logFilenames: logResults.logFilenames,
+        logPrefix: logResults.logPrefix
+      });
+      this.captureRequested = false;
+    }, error => {
+      
+      SystemAppProxy._sendCustomEvent(CAPTURE_LOGS_ERROR_EVENT, {error: error});
+      this.captureRequested = false;
+    });
+  },
+
   handleScreenChangeEvent: function(event) {
-    if (event.detail.screenEnabled) {
+    this.screenEnabled = event.detail.screenEnabled;
+    if (this.screenEnabled) {
       this.startDeviceMotionListener();
     } else {
       this.stopDeviceMotionListener();
