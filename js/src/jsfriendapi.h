@@ -80,7 +80,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JS::HandleObject obj, JS::Mutab
 
 
 extern JS_FRIEND_API(unsigned)
-JS_PCToLineNumber(JSScript *script, jsbytecode *pc);
+JS_PCToLineNumber(JSScript *script, jsbytecode *pc, unsigned *columnp = nullptr);
 
 
 
