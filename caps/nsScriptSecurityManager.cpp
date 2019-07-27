@@ -442,39 +442,6 @@ nsScriptSecurityManager::JSPrincipalsSubsume(JSPrincipals *first,
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CheckSameOrigin(JSContext* cx,
-                                         nsIURI* aTargetURI)
-{
-    MOZ_ASSERT_IF(cx, cx == nsContentUtils::GetCurrentJSContext());
-
-    
-    nsIPrincipal* sourcePrincipal = nsContentUtils::SubjectPrincipal();
-    if (sourcePrincipal == mSystemPrincipal)
-    {
-        
-        return NS_OK;
-    }
-
-    
-    
-    
-    nsCOMPtr<nsIURI> sourceURI;
-    sourcePrincipal->GetDomain(getter_AddRefs(sourceURI));
-    if (!sourceURI) {
-      sourcePrincipal->GetURI(getter_AddRefs(sourceURI));
-      NS_ENSURE_TRUE(sourceURI, NS_ERROR_FAILURE);
-    }
-
-    
-    if (!SecurityCompareURIs(sourceURI, aTargetURI))
-    {
-         ReportError(cx, NS_LITERAL_STRING("CheckSameOriginError"), sourceURI, aTargetURI);
-         return NS_ERROR_DOM_BAD_URI;
-    }
-    return NS_OK;
-}
-
-NS_IMETHODIMP
 nsScriptSecurityManager::CheckSameOriginURI(nsIURI* aSourceURI,
                                             nsIURI* aTargetURI,
                                             bool reportError)
