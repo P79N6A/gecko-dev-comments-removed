@@ -133,6 +133,9 @@ pref("dom.workers.maxPerDomain", 20);
 pref("dom.workers.sharedWorkers.enabled", true);
 
 
+
+
+
 pref("dom.workers.websocket.enabled", true);
 
 
