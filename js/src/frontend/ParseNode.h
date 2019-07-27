@@ -118,7 +118,13 @@ class UpvarCookie
     F(WITH) \
     F(RETURN) \
     F(NEW) \
-    F(DELETE) \
+    /* Delete operations.  These must be sequential. */ \
+    F(DELETENAME) \
+    F(DELETEPROP) \
+    F(DELETESUPERPROP) \
+    F(DELETEELEM) \
+    F(DELETESUPERELEM) \
+    F(DELETEEXPR) \
     F(TRY) \
     F(CATCH) \
     F(CATCHLIST) \
@@ -227,6 +233,21 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+inline bool
+IsDeleteKind(ParseNodeKind kind)
+{
+    return PNK_DELETENAME <= kind && kind <= PNK_DELETEEXPR;
+}
+
+
+
+
+
+
+
+
+
 
 
 
