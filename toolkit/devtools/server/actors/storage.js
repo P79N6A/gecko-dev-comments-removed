@@ -40,7 +40,7 @@ const UPDATE_INTERVAL = 500;
 let illegalFileNameCharacters = [
   "[",
   
-  "\\x00-\\x25",
+  "\\x00-\\x24",
   
   "/:*?\\\"<>|\\\\",
   "]"
@@ -528,6 +528,9 @@ StorageActors.createActor({
     if (cookie.host.startsWith(".")) {
       return host.endsWith(cookie.host);
     }
+    if (cookie.host === "") {
+      return host.startsWith("file://" + cookie.path);
+    }
     return cookie.host == host;
   },
 
@@ -691,6 +694,11 @@ StorageActors.createActor({
 
 let cookieHelpers = {
   getCookiesFromHost: function(host) {
+    
+    if (host.startsWith("file:///")) {
+      host = "";
+    }
+
     let cookies = Services.cookies.getCookiesFromHost(host);
     let store = [];
 
