@@ -5,6 +5,7 @@
 
 
 
+
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
@@ -61,6 +62,7 @@
 #include "perf/jsperf.h"
 #include "shell/jsheaptools.h"
 #include "shell/jsoptparse.h"
+#include "shell/OSObject.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/Debugger.h"
 #include "vm/HelperThreads.h"
@@ -2172,7 +2174,7 @@ DisassFile(JSContext *cx, unsigned argc, jsval *vp)
     Sprinter sprinter(cx);
     if (!sprinter.init())
         return false;
-    bool ok = DisassembleScript(cx, script, NullPtr(), p.lines, p.recursive, &sprinter);
+    bool ok = DisassembleScript(cx, script, JS::NullPtr(), p.lines, p.recursive, &sprinter);
     if (ok)
         fprintf(stdout, "%s\n", sprinter.string());
     if (!ok)
@@ -5925,6 +5927,9 @@ Shell(JSContext *cx, OptionParser *op, char **envp)
     if (!envobj)
         return 1;
     JS_SetPrivate(envobj, envp);
+
+    if (!js::DefineOS(cx, glob))
+        return 1;
 
     int result = ProcessArgs(cx, glob, op);
 
