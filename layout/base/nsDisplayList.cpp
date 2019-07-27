@@ -724,10 +724,10 @@ nsDisplayScrollLayer::ComputeFrameMetrics(nsIFrame* aForFrame,
   
   
   if (aScrollFrame == presShell->GetRootScrollFrame()) {
-    metrics.mResolution = ParentLayerToLayerScale(presShell->GetXResolution(),
+    metrics.mPresShellResolution = ParentLayerToLayerScale(presShell->GetXResolution(),
                                                   presShell->GetYResolution());
   } else {
-    metrics.mResolution = ParentLayerToLayerScale(1.0f);
+    metrics.mPresShellResolution = ParentLayerToLayerScale(1.0f);
   }
   
   

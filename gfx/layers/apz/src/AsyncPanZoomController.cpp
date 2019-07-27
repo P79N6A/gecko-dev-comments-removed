@@ -2588,9 +2588,8 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() const {
     }
   }
 
-  ParentLayerToScreenScale scale = mFrameMetrics.GetZoom()
-        / mLastContentPaintMetrics.mDevPixelsPerCSSPixel
-        / mFrameMetrics.GetParentResolution();
+  ParentLayerToScreenScale scale = mFrameMetrics.mPresShellResolution  
+                                 * mFrameMetrics.GetAsyncZoom();       
   ScreenPoint translation = (currentScrollOffset - lastPaintScrollOffset)
                           * mFrameMetrics.GetZoom();
 
@@ -2599,24 +2598,27 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() const {
 
 Matrix4x4 AsyncPanZoomController::GetNontransientAsyncTransform() const {
   ReentrantMonitorAutoEnter lock(mMonitor);
-  return Matrix4x4::Scaling(mLastContentPaintMetrics.mResolution.scale,
-                            mLastContentPaintMetrics.mResolution.scale,
+  return Matrix4x4::Scaling(mLastContentPaintMetrics.mPresShellResolution.scale,
+                            mLastContentPaintMetrics.mPresShellResolution.scale,
                             1.0f);
 }
 
 Matrix4x4 AsyncPanZoomController::GetTransformToLastDispatchedPaint() const {
   ReentrantMonitorAutoEnter lock(mMonitor);
 
-  
-  
-  
-  
-  
-  
   ParentLayerPoint scrollChange =
     (mLastContentPaintMetrics.GetScrollOffset() - mLastDispatchedPaintMetrics.GetScrollOffset())
     * mLastContentPaintMetrics.mDevPixelsPerCSSPixel
-    * mLastContentPaintMetrics.GetParentResolution();
+    * mLastContentPaintMetrics.mCumulativeResolution
+      
+      
+      
+      
+      
+      
+      
+      
+    / mLastContentPaintMetrics.mPresShellResolution;
 
   float zoomChange = mLastContentPaintMetrics.GetZoom().scale / mLastDispatchedPaintMetrics.GetZoom().scale;
 
@@ -2710,9 +2712,18 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
     if (FuzzyEqualsAdditive(mFrameMetrics.mCompositionBounds.width, aLayerMetrics.mCompositionBounds.width) &&
         mFrameMetrics.mDevPixelsPerCSSPixel == aLayerMetrics.mDevPixelsPerCSSPixel) {
-      float parentResolutionChange = aLayerMetrics.GetParentResolution().scale
-                                   / mFrameMetrics.GetParentResolution().scale;
-      mFrameMetrics.ZoomBy(parentResolutionChange);
+      
+      
+      
+      
+      
+      
+      
+      float totalResolutionChange = aLayerMetrics.mCumulativeResolution.scale
+                                  / mFrameMetrics.mCumulativeResolution.scale;
+      float presShellResolutionChange = aLayerMetrics.mPresShellResolution.scale
+                                      / mFrameMetrics.mPresShellResolution.scale;
+      mFrameMetrics.ZoomBy(totalResolutionChange / presShellResolutionChange);
     } else {
       
       
@@ -2725,7 +2736,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     }
     mFrameMetrics.mCompositionBounds = aLayerMetrics.mCompositionBounds;
     mFrameMetrics.SetRootCompositionSize(aLayerMetrics.GetRootCompositionSize());
-    mFrameMetrics.mResolution = aLayerMetrics.mResolution;
+    mFrameMetrics.mPresShellResolution = aLayerMetrics.mPresShellResolution;
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
     mFrameMetrics.SetHasScrollgrab(aLayerMetrics.GetHasScrollgrab());
 

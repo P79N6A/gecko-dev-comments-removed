@@ -76,7 +76,7 @@ public:
     , mDisplayPort(0, 0, 0, 0)
     , mCriticalDisplayPort(0, 0, 0, 0)
     , mScrollableRect(0, 0, 0, 0)
-    , mResolution(1)
+    , mPresShellResolution(1)
     , mCumulativeResolution(1)
     , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
@@ -114,7 +114,7 @@ public:
            mCriticalDisplayPort.IsEqualEdges(aOther.mCriticalDisplayPort) &&
            mViewport.IsEqualEdges(aOther.mViewport) &&
            mScrollableRect.IsEqualEdges(aOther.mScrollableRect) &&
-           mResolution == aOther.mResolution &&
+           mPresShellResolution == aOther.mPresShellResolution &&
            mCumulativeResolution == aOther.mCumulativeResolution &&
            mDevPixelsPerCSSPixel == aOther.mDevPixelsPerCSSPixel &&
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
@@ -171,14 +171,10 @@ public:
     return mCumulativeResolution * mDevPixelsPerCSSPixel;
   }
 
-  LayerPoint GetScrollOffsetInLayerPixels() const
+  
+  LayerToScreenScale GetAsyncZoom() const
   {
-    return GetScrollOffset() * LayersPixelsPerCSSPixel();
-  }
-
-  LayoutDeviceToParentLayerScale GetParentResolution() const
-  {
-    return mCumulativeResolution / mResolution;
+    return mZoom / LayersPixelsPerCSSPixel();
   }
 
   
@@ -346,8 +342,11 @@ public:
   
   
   
-  ParentLayerToLayerScale mResolution;
+  
+  
+  ParentLayerToLayerScale mPresShellResolution;
 
+  
   
   
   

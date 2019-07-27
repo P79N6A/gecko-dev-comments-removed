@@ -200,9 +200,14 @@ ComputeTouchSensitiveRegion(GeckoContentController* aController,
     
     
     
+    
+    
+    
+    LayoutDeviceToParentLayerScale parentCumulativeResolution =
+        aMetrics.mCumulativeResolution / aMetrics.mPresShellResolution;
     visible = visible.Intersect(touchSensitiveRegion
                                 * aMetrics.mDevPixelsPerCSSPixel
-                                * aMetrics.GetParentResolution());
+                                * parentCumulativeResolution);
   }
 
   
