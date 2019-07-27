@@ -2547,7 +2547,7 @@ int64_t MediaDecoderStateMachine::GetStreamClock() const
   return mStreamStartTime + mDecodedStream->GetPosition();
 }
 
-int64_t MediaDecoderStateMachine::GetVideoStreamPosition() const
+int64_t MediaDecoderStateMachine::GetVideoStreamPosition(TimeStamp aTimeStamp) const
 {
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
@@ -2557,13 +2557,13 @@ int64_t MediaDecoderStateMachine::GetVideoStreamPosition() const
   }
 
   
-  int64_t delta = DurationToUsecs(TimeStamp::Now() - mPlayStartTime);
+  int64_t delta = DurationToUsecs(aTimeStamp - mPlayStartTime);
   
   delta *= mPlaybackRate;
   return mPlayDuration + delta;
 }
 
-int64_t MediaDecoderStateMachine::GetClock() const
+int64_t MediaDecoderStateMachine::GetClock(TimeStamp* aTimeStamp) const
 {
   MOZ_ASSERT(OnTaskQueue());
   AssertCurrentThreadInMonitor();
@@ -2573,6 +2573,7 @@ int64_t MediaDecoderStateMachine::GetClock() const
   
   
   int64_t clock_time = -1;
+  TimeStamp t;
   if (!IsPlaying()) {
     clock_time = mPlayDuration;
   } else {
@@ -2581,10 +2582,14 @@ int64_t MediaDecoderStateMachine::GetClock() const
     } else if (HasAudio() && !mAudioCompleted) {
       clock_time = GetAudioClock();
     } else {
+      t = TimeStamp::Now();
       
-      clock_time = GetVideoStreamPosition();
+      clock_time = GetVideoStreamPosition(t);
     }
     NS_ASSERTION(GetMediaTime() <= clock_time, "Clock should go forwards.");
+  }
+  if (aTimeStamp) {
+    *aTimeStamp = t.IsNull() ? TimeStamp::Now() : t;
   }
 
   return clock_time;
@@ -2605,8 +2610,8 @@ void MediaDecoderStateMachine::UpdateRenderedVideoFrames()
     SendStreamData();
   }
 
-  const int64_t clock_time = GetClock();
-  TimeStamp nowTime = TimeStamp::Now();
+  TimeStamp nowTime;
+  const int64_t clock_time = GetClock(&nowTime);
   
   
   int64_t remainingTime = AUDIO_DURATION_USECS;
@@ -2999,8 +3004,9 @@ MediaDecoderStateMachine::LogicalPlaybackRateChanged()
   if (!HasAudio() && IsPlaying()) {
     
     
-    mPlayDuration = GetVideoStreamPosition();
-    SetPlayStartTime(TimeStamp::Now());
+    TimeStamp now = TimeStamp::Now();
+    mPlayDuration = GetVideoStreamPosition(now);
+    SetPlayStartTime(now);
   }
 
   mPlaybackRate = mLogicalPlaybackRate;

@@ -470,12 +470,14 @@ protected:
   
   
   
-  int64_t GetVideoStreamPosition() const;
+  int64_t GetVideoStreamPosition(TimeStamp aTimeStamp) const;
 
   
   
   
-  int64_t GetClock() const;
+  
+  
+  int64_t GetClock(TimeStamp* aTimeStamp = nullptr) const;
 
   nsresult DropAudioUpToSeekTarget(AudioData* aSample);
   nsresult DropVideoUpToSeekTarget(VideoData* aSample);
