@@ -638,9 +638,10 @@ class Dumper:
                             
                             (x, index, filename) = line.rstrip().split(None, 2)
                             filename = os.path.normpath(self.FixFilenameCase(filename))
+                            
+                            sourcepath = filename
                             if filename in self.file_mapping:
                                 filename = self.file_mapping[filename]
-                            sourcepath = filename
                             if self.vcsinfo:
                                 (filename, rootname) = GetVCSFilename(filename, self.srcdirs)
                                 
