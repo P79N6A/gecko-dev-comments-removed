@@ -156,6 +156,18 @@ let gEMEHandler = {
   },
   showPopupNotificationForSuccess: function(browser, keySystem) {
     
+    var box = gBrowser.getNotificationBox(browser);
+    ["drmContentDisabled",
+     "drmContentCDMNotSupported",
+     "drmContentCDMInsufficientVersion",
+     "drmContentCDMInstalling"
+     ].forEach(function (value) {
+        var notification = box.getNotificationWithValue(value);
+        if (notification)
+          box.removeNotification(notification);
+      });
+
+    
     if (PopupNotifications.getNotification("drmContentPlaying", browser)) {
       return;
     }
