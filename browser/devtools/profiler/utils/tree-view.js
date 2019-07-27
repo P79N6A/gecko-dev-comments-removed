@@ -175,7 +175,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
 
     
-    children.sort((a, b) => a.frame.duration < b.frame.duration ? 1 : -1);
+    children.sort((a, b) => a.frame.samples < b.frame.samples ? 1 : -1);
   },
 
   
