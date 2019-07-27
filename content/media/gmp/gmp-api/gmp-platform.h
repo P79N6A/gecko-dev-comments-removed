@@ -41,7 +41,7 @@
 
 class GMPTask {
 public:
-  virtual void Destroy() = 0;
+  virtual void Destroy() = 0; 
   virtual ~GMPTask() {}
   virtual void Run() = 0;
 };
@@ -58,6 +58,7 @@ public:
   virtual ~GMPMutex() {}
   virtual void Acquire() = 0;
   virtual void Release() = 0;
+  virtual void Destroy() = 0; 
 };
 
 
