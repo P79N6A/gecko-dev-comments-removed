@@ -26,11 +26,15 @@ const GRAPH_WHEEL_ZOOM_SENSITIVITY = 0.00035;
 const GRAPH_WHEEL_SCROLL_SENSITIVITY = 0.5;
 const GRAPH_MIN_SELECTION_WIDTH = 0.001; 
 
+const GRAPH_HORIZONTAL_PAN_THRESHOLD = 10; 
+const GRAPH_VERTICAL_PAN_THRESHOLD = 30; 
+
 const FIND_OPTIMAL_TICK_INTERVAL_MAX_ITERS = 100;
 const TIMELINE_TICKS_MULTIPLE = 5; 
 const TIMELINE_TICKS_SPACING_MIN = 75; 
 
 const OVERVIEW_HEADER_HEIGHT = 16; 
+const OVERVIEW_HEADER_BACKGROUND = "rgba(255,255,255,0.7)";
 const OVERVIEW_HEADER_TEXT_COLOR = "#18191a";
 const OVERVIEW_HEADER_TEXT_FONT_SIZE = 9; 
 const OVERVIEW_HEADER_TEXT_FONT_FAMILY = "sans-serif";
@@ -121,9 +125,11 @@ function FlameGraph(parent, sharpness) {
     this._height = canvas.height = bounds.height * this._pixelRatio;
     this._ctx = canvas.getContext("2d");
 
-    this._bounds = new GraphSelection();
-    this._selection = new GraphSelection();
-    this._selectionDragger = new GraphSelectionDragger();
+    this._bounds = new GraphArea();
+    this._selection = new GraphArea();
+    this._selectionDragger = new GraphAreaDragger();
+    this._verticalOffset = 0;
+    this._verticalOffsetDragger = new GraphAreaDragger(0);
 
     
     
@@ -198,6 +204,8 @@ FlameGraph.prototype = {
     this._bounds = null;
     this._selection = null;
     this._selectionDragger = null;
+    this._verticalOffset = null;
+    this._verticalOffsetDragger = null;
     this._textWidthsCache = null;
 
     this._data = null;
@@ -208,6 +216,7 @@ FlameGraph.prototype = {
   
 
 
+  overviewHeaderBackgroundColor: OVERVIEW_HEADER_BACKGROUND,
   overviewHeaderTextColor: OVERVIEW_HEADER_TEXT_COLOR,
   overviewTimelineStrokes: OVERVIEW_TIMELINE_STROKES,
   blockTextColor: FLAME_GRAPH_BLOCK_TEXT_COLOR,
@@ -218,6 +227,12 @@ FlameGraph.prototype = {
 
   fixedWidth: null,
   fixedHeight: null,
+
+  
+
+
+  horizontalPanThreshold: GRAPH_HORIZONTAL_PAN_THRESHOLD,
+  verticalPanThreshold: GRAPH_VERTICAL_PAN_THRESHOLD,
 
   
 
@@ -281,9 +296,10 @@ FlameGraph.prototype = {
 
 
 
-  setViewRange: function({ startTime, endTime }) {
+  setViewRange: function({ startTime, endTime }, verticalOffset = 0) {
     this._selection.start = startTime * this._pixelRatio;
     this._selection.end = endTime * this._pixelRatio;
+    this._verticalOffset = verticalOffset * this._pixelRatio;
     this._shouldRedraw = true;
   },
 
@@ -305,7 +321,8 @@ FlameGraph.prototype = {
   getViewRange: function() {
     return {
       startTime: this._selection.start / this._pixelRatio,
-      endTime: this._selection.end / this._pixelRatio
+      endTime: this._selection.end / this._pixelRatio,
+      verticalOffset: this._verticalOffset / this._pixelRatio
     };
   },
 
@@ -366,8 +383,8 @@ FlameGraph.prototype = {
     let selection = this._selection;
     let selectionWidth = selection.end - selection.start;
     let selectionScale = canvasWidth / selectionWidth;
+    this._drawPyramid(this._data, this._verticalOffset, selection.start, selectionScale);
     this._drawTicks(selection.start, selectionScale);
-    this._drawPyramid(this._data, selection.start, selectionScale);
 
     this._shouldRedraw = false;
   },
@@ -384,6 +401,9 @@ FlameGraph.prototype = {
     let canvasWidth = this._width;
     let canvasHeight = this._height;
     let scaledOffset = dataOffset * dataScale;
+
+    ctx.fillStyle = this.overviewHeaderBackgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, OVERVIEW_HEADER_HEIGHT * this._pixelRatio);
 
     let fontSize = OVERVIEW_HEADER_TEXT_FONT_SIZE * this._pixelRatio;
     let fontFamily = OVERVIEW_HEADER_TEXT_FONT_FAMILY;
@@ -419,48 +439,53 @@ FlameGraph.prototype = {
 
 
 
-  _drawPyramid: function(dataSource, dataOffset, dataScale) {
+
+
+  _drawPyramid: function(dataSource, verticalOffset, dataOffset, dataScale) {
     let ctx = this._ctx;
 
     let fontSize = FLAME_GRAPH_BLOCK_TEXT_FONT_SIZE * this._pixelRatio;
     let fontFamily = FLAME_GRAPH_BLOCK_TEXT_FONT_FAMILY;
-    let visibleBlocks = this._drawPyramidFill(dataSource, dataOffset, dataScale);
+    let visibleBlocksInfo = this._drawPyramidFill(dataSource, verticalOffset, dataOffset, dataScale);
 
     ctx.textBaseline = "middle";
     ctx.font = fontSize + "px " + fontFamily;
     ctx.fillStyle = this.blockTextColor;
 
-    this._drawPyramidText(visibleBlocks, dataOffset, dataScale);
+    this._drawPyramidText(visibleBlocksInfo, verticalOffset, dataOffset, dataScale);
   },
 
   
 
 
 
-  _drawPyramidFill: function(dataSource, dataOffset, dataScale) {
-    let visibleBlocksStore = [];
+  _drawPyramidFill: function(dataSource, verticalOffset, dataOffset, dataScale) {
+    let visibleBlocksInfoStore = [];
     let minVisibleBlockWidth = this._overflowCharWidth;
 
     for (let { color, blocks } of dataSource) {
       this._drawBlocksFill(
-        color, blocks, dataOffset, dataScale,
-        visibleBlocksStore, minVisibleBlockWidth);
+        color, blocks, verticalOffset, dataOffset, dataScale,
+        visibleBlocksInfoStore, minVisibleBlockWidth);
     }
 
-    return visibleBlocksStore;
+    return visibleBlocksInfoStore;
   },
 
   
 
 
 
-  _drawPyramidText: function(blocks, dataOffset, dataScale) {
-    for (let block of blocks) {
-      this._drawBlockText(block, dataOffset, dataScale);
+  _drawPyramidText: function(blocksInfo, verticalOffset, dataOffset, dataScale) {
+    for (let { block, rect } of blocksInfo) {
+      this._drawBlockText(block, rect, verticalOffset, dataOffset, dataScale);
     }
   },
 
   
+
+
+
 
 
 
@@ -479,8 +504,8 @@ FlameGraph.prototype = {
 
 
   _drawBlocksFill: function(
-    color, blocks, dataOffset, dataScale,
-    visibleBlocksStore, minVisibleBlockWidth)
+    color, blocks, verticalOffset, dataOffset, dataScale,
+    visibleBlocksInfoStore, minVisibleBlockWidth)
   {
     let ctx = this._ctx;
     let canvasWidth = this._width;
@@ -493,13 +518,14 @@ FlameGraph.prototype = {
     for (let block of blocks) {
       let { x, y, width, height } = block;
       let rectLeft = x * this._pixelRatio * dataScale - scaledOffset;
-      let rectTop = (y + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio;
+      let rectTop = (y - verticalOffset + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio;
       let rectWidth = width * this._pixelRatio * dataScale;
       let rectHeight = height * this._pixelRatio;
 
       if (rectLeft > canvasWidth || 
           rectLeft < -rectWidth ||  
-          rectTop > canvasHeight) { 
+          rectTop > canvasHeight || 
+          rectTop < -rectHeight) {  
         continue;
       }
 
@@ -524,7 +550,10 @@ FlameGraph.prototype = {
       
       
       if (rectWidth > minVisibleBlockWidth) {
-        visibleBlocksStore.push(block);
+        visibleBlocksInfoStore.push({
+          block: block,
+          rect: { rectLeft, rectTop, rectWidth, rectHeight }
+        });
       }
     }
 
@@ -541,19 +570,24 @@ FlameGraph.prototype = {
 
 
 
-  _drawBlockText: function(block, dataOffset, dataScale) {
+
+
+
+
+
+
+
+  _drawBlockText: function(block, rect, verticalOffset, dataOffset, dataScale) {
     let ctx = this._ctx;
     let scaledOffset = dataOffset * dataScale;
 
     let { x, y, width, height, text } = block;
+    let { rectLeft, rectTop, rectWidth, rectHeight } = rect;
 
     let paddingTop = FLAME_GRAPH_BLOCK_TEXT_PADDING_TOP * this._pixelRatio;
     let paddingLeft = FLAME_GRAPH_BLOCK_TEXT_PADDING_LEFT * this._pixelRatio;
     let paddingRight = FLAME_GRAPH_BLOCK_TEXT_PADDING_RIGHT * this._pixelRatio;
     let totalHorizontalPadding = paddingLeft + paddingRight;
-
-    let rectLeft = x * this._pixelRatio * dataScale - scaledOffset;
-    let rectWidth = width * this._pixelRatio * dataScale;
 
     
     
@@ -563,7 +597,7 @@ FlameGraph.prototype = {
     }
 
     let textLeft = rectLeft + paddingLeft;
-    let textTop = (y + height / 2 + OVERVIEW_HEADER_HEIGHT) * this._pixelRatio + paddingTop;
+    let textTop = rectTop + rectHeight / 2 + paddingTop;
     let textAvailableWidth = rectWidth - totalHorizontalPadding;
 
     
@@ -672,6 +706,7 @@ FlameGraph.prototype = {
   _onMouseMove: function(e) {
     let offset = this._getContainerOffset();
     let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
 
     let canvasWidth = this._width;
     let canvasHeight = this._height;
@@ -680,13 +715,40 @@ FlameGraph.prototype = {
     let selectionWidth = selection.end - selection.start;
     let selectionScale = canvasWidth / selectionWidth;
 
-    let dragger = this._selectionDragger;
-    if (dragger.origin != null) {
-      selection.start = dragger.anchor.start + (dragger.origin - mouseX) / selectionScale;
-      selection.end = dragger.anchor.end + (dragger.origin - mouseX) / selectionScale;
+    let horizDrag = this._selectionDragger;
+    let vertDrag = this._verticalOffsetDragger;
+
+    
+    
+    
+    if (!this._horizontalDragEnabled && !this._verticalDragEnabled) {
+      let horizDiff = Math.abs(horizDrag.origin - mouseX);
+      if (horizDiff > this.horizontalPanThreshold) {
+        this._horizontalDragDirection = Math.sign(horizDrag.origin - mouseX);
+        this._horizontalDragEnabled = true;
+      }
+      let vertDiff = Math.abs(vertDrag.origin - mouseY);
+      if (vertDiff > this.verticalPanThreshold) {
+        this._verticalDragDirection = Math.sign(vertDrag.origin - mouseY);
+        this._verticalDragEnabled = true;
+      }
+    }
+
+    if (horizDrag.origin != null && this._horizontalDragEnabled) {
+      let relativeX = mouseX + this._horizontalDragDirection * this.horizontalPanThreshold;
+      selection.start = horizDrag.anchor.start + (horizDrag.origin - relativeX) / selectionScale;
+      selection.end = horizDrag.anchor.end + (horizDrag.origin - relativeX) / selectionScale;
       this._normalizeSelectionBounds();
       this._shouldRedraw = true;
       this.emit("selecting");
+    }
+
+    if (vertDrag.origin != null && this._verticalDragEnabled) {
+      let relativeY = mouseY + this._verticalDragDirection * this.verticalPanThreshold;
+      this._verticalOffset = vertDrag.anchor + (vertDrag.origin - relativeY) / this._pixelRatio;
+      this._normalizeVerticalOffset();
+      this._shouldRedraw = true;
+      this.emit("panning-vertically");
     }
   },
 
@@ -696,11 +758,19 @@ FlameGraph.prototype = {
   _onMouseDown: function(e) {
     let offset = this._getContainerOffset();
     let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
 
     this._selectionDragger.origin = mouseX;
     this._selectionDragger.anchor.start = this._selection.start;
     this._selectionDragger.anchor.end = this._selection.end;
-    this._canvas.setAttribute("input", "adjusting-selection-boundary");
+
+    this._verticalOffsetDragger.origin = mouseY;
+    this._verticalOffsetDragger.anchor = this._verticalOffset;
+
+    this._horizontalDragEnabled = false;
+    this._verticalDragEnabled = false;
+
+    this._canvas.setAttribute("input", "adjusting-view-area");
   },
 
   
@@ -708,6 +778,11 @@ FlameGraph.prototype = {
 
   _onMouseUp: function() {
     this._selectionDragger.origin = null;
+    this._verticalOffsetDragger.origin = null;
+    this._horizontalDragEnabled = false;
+    this._horizontalDragDirection = 0;
+    this._verticalDragEnabled = false;
+    this._verticalDragDirection = 0;
     this._canvas.removeAttribute("input");
   },
 
@@ -780,6 +855,14 @@ FlameGraph.prototype = {
 
     this._selection.start = selectionStart;
     this._selection.end = selectionEnd;
+  },
+
+  
+
+
+
+  _normalizeVerticalOffset: function() {
+    this._verticalOffset = Math.max(this._verticalOffset, 0);
   },
 
   
