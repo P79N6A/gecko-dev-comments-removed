@@ -130,9 +130,9 @@ private:
   nsRefPtr<nsContentList> mElements;
 
   
-  nsTArray<nsGenericHTMLFormElement*> mDependentElements;
+  nsTArray<nsRefPtr<nsGenericHTMLFormElement>> mDependentElements;
 
-  nsIContent* mFirstLegend;
+  nsCOMPtr<nsIContent> mFirstLegend;
 
   
 
