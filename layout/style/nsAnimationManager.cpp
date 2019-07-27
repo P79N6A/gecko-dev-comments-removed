@@ -390,7 +390,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
         
         
         
-        newAnim->Cancel();
+        newAnim->CancelFromStyle();
         newAnim = nullptr;
         newAnimations.ReplaceElementAt(newIdx, oldAnim);
         collection->mAnimations.RemoveElementAt(oldIdx);
@@ -410,7 +410,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
 
   
   for (size_t newAnimIdx = newAnimations.Length(); newAnimIdx-- != 0; ) {
-    newAnimations[newAnimIdx]->Cancel();
+    newAnimations[newAnimIdx]->CancelFromStyle();
   }
 
   UpdateCascadeResults(aStyleContext, collection);

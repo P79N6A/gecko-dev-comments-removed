@@ -116,6 +116,11 @@ public:
   
   void PauseFromJS() { Pause(); }
 
+  
+  
+  
+  void CancelFromStyle() { DoCancel(); }
+
   void SetEffect(KeyframeEffectReadonly* aEffect);
   void Tick();
 
@@ -266,6 +271,7 @@ public:
                     bool& aNeedsRefreshes);
 
 protected:
+  void DoCancel();
   void DoPlay(LimitBehavior aLimitBehavior);
   void DoPause();
   void ResumeAt(const TimeDuration& aReadyTime);

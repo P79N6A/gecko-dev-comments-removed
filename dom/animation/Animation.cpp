@@ -219,6 +219,13 @@ Animation::GetFinished(ErrorResult& aRv)
 }
 
 void
+Animation::Cancel()
+{
+  DoCancel();
+  PostUpdate();
+}
+
+void
 Animation::Finish(ErrorResult& aRv)
 {
   
@@ -377,7 +384,7 @@ Animation::GetCurrentOrPendingStartTime() const
 }
 
 void
-Animation::Cancel()
+Animation::DoCancel()
 {
   if (mPendingState != PendingState::NotPending) {
     CancelPendingTasks();

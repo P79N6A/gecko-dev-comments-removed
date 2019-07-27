@@ -339,7 +339,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
           currentValue != segment.mToValue) {
         
         if (!anim->GetEffect()->IsFinishedTransition()) {
-          anim->Cancel();
+          anim->CancelFromStyle();
           collection->UpdateAnimationGeneration(mPresContext);
         }
         animations.RemoveElementAt(i);
@@ -475,7 +475,7 @@ nsTransitionManager::ConsiderStartingTransition(
       
       
       AnimationPtrArray& animations = aElementTransitions->mAnimations;
-      animations[currentIndex]->Cancel();
+      animations[currentIndex]->CancelFromStyle();
       oldPT = nullptr; 
       animations.RemoveElementAt(currentIndex);
       aElementTransitions->UpdateAnimationGeneration(mPresContext);
@@ -593,7 +593,7 @@ nsTransitionManager::ConsiderStartingTransition(
   }
 #endif
   if (haveCurrentTransition) {
-    animations[currentIndex]->Cancel();
+    animations[currentIndex]->CancelFromStyle();
     oldPT = nullptr; 
     animations[currentIndex] = animation;
   } else {
