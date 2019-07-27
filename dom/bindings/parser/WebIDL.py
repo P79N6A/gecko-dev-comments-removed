@@ -204,7 +204,7 @@ class IDLObject(object):
             deps.add(self.filename())
 
         for d in self._getDependentObjects():
-            deps = deps.union(d.getDeps(visited))
+            deps.update(d.getDeps(visited))
 
         return deps
 
@@ -1366,7 +1366,7 @@ class IDLInterface(IDLObjectWithScope):
 
     def _getDependentObjects(self):
         deps = set(self.members)
-        deps.union(self.implementedInterfaces)
+        deps.update(self.implementedInterfaces)
         if self.parent:
             deps.add(self.parent)
         return deps
@@ -2541,6 +2541,13 @@ class IDLWrapperType(IDLType):
         
         
         
+        
+        
+        
+        
+        
+        if self.isDictionary():
+            return set([self.inner])
         return set()
 
 class IDLBuiltinType(IDLType):
@@ -3999,7 +4006,7 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
     def _getDependentObjects(self):
         deps = set()
         for overload in self._overloads:
-            deps.union(overload._getDependentObjects())
+            deps.update(overload._getDependentObjects())
         return deps
 
 class IDLImplementsStatement(IDLObject):
