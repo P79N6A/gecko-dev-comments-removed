@@ -19,7 +19,7 @@ var supportedProps = [
 ];
 
 var isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-var isB2G = !isDesktop && !navigator.userAgent.includes("Android");
+var isB2G = !isDesktop && !navigator.userAgent.contains("Android");
 
 
 

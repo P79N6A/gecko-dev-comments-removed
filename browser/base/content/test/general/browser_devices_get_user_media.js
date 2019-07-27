@@ -154,7 +154,7 @@ function activateSecondaryAction(aAction) {
 
   
   EventUtils.synthesizeKey("VK_DOWN",
-                           { altKey: !navigator.platform.includes("Mac") });
+                           { altKey: !navigator.platform.contains("Mac") });
 }
 
 registerCleanupFunction(function() {

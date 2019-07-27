@@ -2194,8 +2194,8 @@ ElementEditor.prototype = {
     
     
     let editValueDisplayed = aAttr.value || "";
-    let hasDoubleQuote = editValueDisplayed.includes('"');
-    let hasSingleQuote = editValueDisplayed.includes("'");
+    let hasDoubleQuote = editValueDisplayed.contains('"');
+    let hasSingleQuote = editValueDisplayed.contains("'");
     let initial = aAttr.name + '="' + editValueDisplayed + '"';
 
     

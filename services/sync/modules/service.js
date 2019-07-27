@@ -113,7 +113,7 @@ Sync11Service.prototype = {
   get userAPIURI() {
     
     let url = Svc.Prefs.get("userURL");
-    if (!url.includes(":")) {
+    if (!url.contains(":")) {
       url = this.serverURL + url;
     }
 

@@ -362,7 +362,7 @@ this.UITour = {
         
         
         if (typeof data.pageID != "string" ||
-            data.pageID.includes(BrowserUITelemetry.BUCKET_SEPARATOR)) {
+            data.pageID.contains(BrowserUITelemetry.BUCKET_SEPARATOR)) {
           log.warn("registerPageID: Invalid page ID specified");
           break;
         }

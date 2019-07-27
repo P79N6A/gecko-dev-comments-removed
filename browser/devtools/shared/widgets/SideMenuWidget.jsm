@@ -496,7 +496,7 @@ SideMenuGroup.prototype = {
     for (let group of groupsArray) {
       let name = group.getAttribute("name");
       if (sortPredicate(name, identifier) > 0 && 
-          !name.includes(identifier)) { 
+          !name.contains(identifier)) { 
         return groupsArray.indexOf(group);
       }
     }

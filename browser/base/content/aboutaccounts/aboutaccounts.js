@@ -113,7 +113,7 @@ let wrapper = {
     
     let urlParamStr = urlParams.toString();
     if (urlParamStr) {
-      url += (url.includes("?") ? "&" : "?") + urlParamStr;
+      url += (url.contains("?") ? "&" : "?") + urlParamStr;
     }
     iframe.src = url;
   },

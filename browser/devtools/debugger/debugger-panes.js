@@ -1453,7 +1453,7 @@ TracerView.prototype = Heritage.extend(WidgetMethods, {
 
   _onSearch: function() {
     const query = this._search.value.trim().toLowerCase();
-    const predicate = name => name.toLowerCase().includes(query);
+    const predicate = name => name.toLowerCase().contains(query);
     this.filterContents(item => predicate(item.attachment.trace.name));
   },
 
@@ -1586,7 +1586,7 @@ let SourceUtils = {
 
   isJavaScript: function(aUrl, aContentType = "") {
     return (aUrl && /\.jsm?$/.test(this.trimUrlQuery(aUrl))) ||
-           aContentType.includes("javascript");
+           aContentType.contains("javascript");
   },
 
   
@@ -2498,7 +2498,7 @@ EventListenersView.prototype = Heritage.extend(WidgetMethods, {
     
     
     let is = (...args) => args.indexOf(type) != -1;
-    let has = str => type.includes(str);
+    let has = str => type.contains(str);
     let starts = str => type.startsWith(str);
     let group;
 
@@ -2829,7 +2829,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
       }
 
       
-      if (!text.toLowerCase().includes(lowerCaseToken)) {
+      if (!text.toLowerCase().contains(lowerCaseToken)) {
         continue;
       }
       
@@ -2841,7 +2841,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
         let lowerCaseLine = aString.toLowerCase();
 
         
-        if (!lowerCaseLine.includes(lowerCaseToken)) {
+        if (!lowerCaseLine.contains(lowerCaseToken)) {
           return;
         }
         
