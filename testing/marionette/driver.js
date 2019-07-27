@@ -2093,25 +2093,6 @@ GeckoDriver.prototype.getElementValueOfCssProperty = function(cmd, resp) {
 
 
 
-
-GeckoDriver.prototype.submitElement = function(cmd, resp) {
-  switch (this.context) {
-    case Context.CHROME:
-      throw new WebDriverError(
-          "Command 'submitElement' is not available in chrome context");
-
-    case Context.CONTENT:
-      yield this.listener.submitElement({id: cmd.parameters.id});
-      break;
-  }
-};
-
-
-
-
-
-
-
 GeckoDriver.prototype.isElementEnabled = function(cmd, resp) {
   let id = cmd.parameters.id;
 
@@ -2952,7 +2933,6 @@ GeckoDriver.prototype.commands = {
   "getElementTagName": GeckoDriver.prototype.getElementTagName,
   "isElementDisplayed": GeckoDriver.prototype.isElementDisplayed,
   "getElementValueOfCssProperty": GeckoDriver.prototype.getElementValueOfCssProperty,
-  "submitElement": GeckoDriver.prototype.submitElement,
   "getElementSize": GeckoDriver.prototype.getElementSize,  
   "getElementRect": GeckoDriver.prototype.getElementRect,
   "isElementEnabled": GeckoDriver.prototype.isElementEnabled,
