@@ -312,7 +312,6 @@ AutoJSAPI::~AutoJSAPI()
 {
   if (mOwnErrorReporting) {
     MOZ_ASSERT(NS_IsMainThread(), "See corresponding assertion in TakeOwnershipOfErrorReporting()");
-    JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(mOldAutoJSAPIOwnsErrorReporting);
 
     if (HasException()) {
 
@@ -342,6 +341,13 @@ AutoJSAPI::~AutoJSAPI()
         NS_WARNING("OOMed while acquiring uncaught exception from JSAPI");
       }
     }
+
+    
+    
+    
+    
+    
+    JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(mOldAutoJSAPIOwnsErrorReporting);
   }
 
   if (mOldErrorReporter.isSome()) {
@@ -483,7 +489,7 @@ WarningOnlyErrorReporter(JSContext* aCx, const char* aMessage, JSErrorReport* aR
 {
   MOZ_ASSERT(JSREPORT_IS_WARNING(aRep->flags));
   nsRefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-  nsPIDOMWindow* win = xpc::CurrentWindowOrNull(aCx);
+  nsPIDOMWindow* win = xpc::WindowGlobalOrNull(JS::CurrentGlobalOrNull(aCx));
   xpcReport->Init(aRep, aMessage, nsContentUtils::IsCallerChrome(),
                   win ? win->WindowID() : 0);
   xpcReport->LogToConsole();
