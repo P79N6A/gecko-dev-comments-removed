@@ -80,8 +80,10 @@ Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, cons
 
 
 extern bool
-InvokeGetterOrSetter(JSContext *cx, JSObject *obj, Value fval, unsigned argc, Value *argv,
-                     MutableHandleValue rval);
+InvokeGetter(JSContext *cx, JSObject *obj, Value fval, MutableHandleValue rval);
+
+extern bool
+InvokeSetter(JSContext *cx, const Value &thisv, Value fval, HandleValue v);
 
 
 

@@ -478,12 +478,12 @@ class JSObject : public js::gc::Cell
     bool callMethod(JSContext *cx, js::HandleId id, unsigned argc, js::Value *argv,
                     js::MutableHandleValue vp);
 
-    static bool nonNativeSetProperty(JSContext *cx, js::HandleObject obj,
-                                     js::HandleObject receiver, js::HandleId id,
-                                     js::MutableHandleValue vp, JS::ObjectOpResult &result);
-    static bool nonNativeSetElement(JSContext *cx, js::HandleObject obj,
-                                    js::HandleObject receiver, uint32_t index,
-                                    js::MutableHandleValue vp, JS::ObjectOpResult &result);
+    static bool nonNativeSetProperty(JSContext *cx, js::HandleObject obj, js::HandleId id,
+                                     js::HandleValue v, js::HandleValue receiver,
+                                     JS::ObjectOpResult &result);
+    static bool nonNativeSetElement(JSContext *cx, js::HandleObject obj, uint32_t index,
+                                    js::HandleValue v, js::HandleValue receiver,
+                                    JS::ObjectOpResult &result);
 
     static bool swap(JSContext *cx, JS::HandleObject a, JS::HandleObject b);
 
@@ -865,37 +865,40 @@ GetElementNoGC(JSContext *cx, JSObject *obj, JSObject *receiver, uint32_t index,
 
 
 
-
-
+inline bool
+SetProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
+            HandleValue receiver, ObjectOpResult &result);
 
 inline bool
-SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id,
-            MutableHandleValue vp, ObjectOpResult &result);
+SetProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue v)
+{
+    RootedValue receiver(cx, ObjectValue(*obj));
+    ObjectOpResult result;
+    return SetProperty(cx, obj, id, v, receiver, result) &&
+           result.checkStrict(cx, obj, id);
+}
 
 inline bool
-SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, PropertyName *name,
-            MutableHandleValue vp, ObjectOpResult &result)
+SetProperty(JSContext *cx, HandleObject obj, PropertyName *name, HandleValue v,
+            HandleValue receiver, ObjectOpResult &result)
 {
     RootedId id(cx, NameToId(name));
-    return SetProperty(cx, obj, receiver, id, vp, result);
+    return SetProperty(cx, obj, id, v, receiver, result);
 }
 
 inline bool
-SetElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index,
-           MutableHandleValue vp, ObjectOpResult &result);
-
-inline bool
-SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id,
-            MutableHandleValue vp)
+SetProperty(JSContext *cx, HandleObject obj, PropertyName *name, HandleValue v)
 {
+    RootedId id(cx, NameToId(name));
+    RootedValue receiver(cx, ObjectValue(*obj));
     ObjectOpResult result;
-    return SetProperty(cx, obj, receiver, id, vp, result) &&
-           result.checkStrict(cx, receiver, id);
+    return SetProperty(cx, obj, id, v, receiver, result) &&
+           result.checkStrict(cx, obj, id);
 }
 
-extern bool
-SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandlePropertyName name,
-            MutableHandleValue vp);
+inline bool
+SetElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue v,
+           HandleValue receiver, ObjectOpResult &result);
 
 
 
@@ -903,16 +906,13 @@ SetProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandleProper
 
 
 inline bool
-PutProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue value, bool strict)
+PutProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue v, bool strict)
 {
+    RootedValue receiver(cx, ObjectValue(*obj));
     ObjectOpResult result;
-    return SetProperty(cx, obj, obj, id, value, result) &&
+    return SetProperty(cx, obj, id, v, receiver, result) &&
            result.checkStrictErrorOrWarning(cx, obj, id, strict);
 }
-
-extern bool
-PutProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHandleValue value,
-            bool strict);
 
 
 
