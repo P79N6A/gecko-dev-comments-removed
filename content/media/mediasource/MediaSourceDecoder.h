@@ -61,6 +61,10 @@ public:
   
   void NotifyGotData();
 
+  
+  
+  void PrepareReaderInitialization();
+
 private:
   
   

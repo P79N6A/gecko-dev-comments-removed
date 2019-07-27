@@ -90,6 +90,14 @@ public:
   
   void NotifyEvicted(double aStart, double aEnd);
 
+  
+  
+  
+  
+  
+  
+  void QueueInitializationEvent();
+
 private:
   ~MediaSource();
 
@@ -101,6 +109,8 @@ private:
 
   void DurationChange(double aNewDuration, ErrorResult& aRv);
 
+  void InitializationEvent();
+
   double mDuration;
 
   nsRefPtr<SourceBufferList> mSourceBuffers;
@@ -109,6 +119,8 @@ private:
   nsRefPtr<MediaSourceDecoder> mDecoder;
 
   MediaSourceReadyState mReadyState;
+
+  bool mFirstSourceBufferInitialization;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(MediaSource, MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)

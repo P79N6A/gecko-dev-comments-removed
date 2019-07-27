@@ -40,6 +40,10 @@ public:
     return NS_OK;
   }
 
+  
+  
+  void PrepareInitialization();
+
   bool IsWaitingMediaResources() MOZ_OVERRIDE;
 
   void RequestAudioData() MOZ_OVERRIDE;
@@ -105,6 +109,7 @@ private:
   nsRefPtr<MediaDecoderReader> mVideoReader;
 
   nsTArray<nsRefPtr<TrackBuffer>> mTrackBuffers;
+  nsTArray<nsRefPtr<TrackBuffer>> mEssentialTrackBuffers;
   nsRefPtr<TrackBuffer> mAudioTrack;
   nsRefPtr<TrackBuffer> mVideoTrack;
 
@@ -125,6 +130,8 @@ private:
   
   bool mAudioIsSeeking;
   bool mVideoIsSeeking;
+
+  bool mHasEssentialTrackBuffers;
 };
 
 } 
