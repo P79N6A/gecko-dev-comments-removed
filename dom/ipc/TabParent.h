@@ -480,8 +480,6 @@ protected:
     
     static TabParent *mIMETabParent;
     ContentCache mContentCache;
-    uint32_t mIMESelectionAnchor;
-    uint32_t mIMESelectionFocus;
     mozilla::WritingMode mWritingMode;
     bool mIMEComposing;
     bool mIMECompositionEnding;
