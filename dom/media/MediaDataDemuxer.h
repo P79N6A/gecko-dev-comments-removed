@@ -53,6 +53,14 @@ public:
   
   
   
+  
+  
+  
+  virtual bool IsThreadSafe() { return false; }
+
+  
+  
+  
   virtual already_AddRefed<MediaDataDemuxer> Clone() const = 0;
 
   
