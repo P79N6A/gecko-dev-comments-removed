@@ -469,16 +469,16 @@ class ForkJoinContext : public ThreadSafeContext
 
 #ifdef JSGC_FJGENERATIONAL
     
-    gc::ForkJoinNursery &fjNursery() { return fjNursery_; }
+    gc::ForkJoinNursery &nursery() { return nursery_; }
 
     
     
-    void evacuateLiveData() { fjNursery_.evacuatingGC(); }
+    void evacuateLiveData() { nursery_.evacuatingGC(); }
 
     
     
     static size_t offsetOfFJNursery() {
-        return offsetof(ForkJoinContext, fjNursery_);
+        return offsetof(ForkJoinContext, nursery_);
     }
 #endif
 
@@ -492,7 +492,7 @@ class ForkJoinContext : public ThreadSafeContext
 
 #ifdef JSGC_FJGENERATIONAL
     gc::ForkJoinGCShared gcShared_;
-    gc::ForkJoinNursery fjNursery_;
+    gc::ForkJoinNursery nursery_;
 #endif
 
     ThreadPoolWorker *worker_;

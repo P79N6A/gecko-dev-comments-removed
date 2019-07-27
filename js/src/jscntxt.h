@@ -216,18 +216,6 @@ struct ThreadSafeContext : ContextFriendFields,
     ForkJoinContext *asForkJoinContext();
 
     
-#ifdef JSGC_GENERATIONAL
-    inline bool hasNursery() const {
-        return isJSContext();
-    }
-
-    inline js::Nursery &nursery() {
-        JS_ASSERT(hasNursery());
-        return runtime_->gc.nursery;
-    }
-#endif
-
-    
 
 
 
@@ -550,6 +538,13 @@ struct JSContext : public js::ExclusiveContext,
     {
         if (functionCallback)
             functionCallback(fun, scr, this, entering);
+    }
+#endif
+
+    
+#ifdef JSGC_GENERATIONAL
+    inline js::Nursery &nursery() {
+        return runtime_->gc.nursery;
     }
 #endif
 
