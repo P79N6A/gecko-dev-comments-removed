@@ -1211,7 +1211,7 @@ MarionetteServerConnection.prototype = {
     
     
     if (appName == "Firefox") {
-      sendError("Cannot navigate in chrome context", 13, null, command_id);
+      this.sendError("Cannot navigate in chrome context", 13, null, command_id);
       return;
     }
 
