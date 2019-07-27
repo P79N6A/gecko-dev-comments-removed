@@ -28,23 +28,23 @@ function MakeComparator(kind, arr, shared) {
     
     var typedArrayCtor;
     switch (kind) {
-      case 'int8x16':
+      case 'Int8x16':
         sizeOfLaneElem = 1;
         typedArrayCtor = Int8Array;
         break;
-      case 'int16x8':
+      case 'Int16x8':
         sizeOfLaneElem = 2;
         typedArrayCtor = Int16Array;
         break;
-      case 'int32x4':
+      case 'Int32x4':
         sizeOfLaneElem = 4;
         typedArrayCtor = Int32Array;
         break;
-      case 'float32x4':
+      case 'Float32x4':
         sizeOfLaneElem = 4;
         typedArrayCtor = Float32Array;
         break;
-      case 'float64x2':
+      case 'Float64x2':
         sizeOfLaneElem = 8;
         typedArrayCtor = Float64Array;
         break;
@@ -202,7 +202,7 @@ function testSharedArrayBufferCompat() {
                     new SharedFloat64Array(TA.buffer)
                    ])
     {
-        for (var kind of ['int32x4', 'float32x4', 'float64x2']) {
+        for (var kind of ['Int32x4', 'Float32x4', 'Float64x2']) {
             var comp = MakeComparator(kind, ta);
             comp.load(0);
             comp.load1(0);
@@ -215,17 +215,17 @@ function testSharedArrayBufferCompat() {
             comp.load3(3);
         }
 
-        assertThrowsInstanceOf(() => SIMD.int32x4.load(ta, 1024), RangeError);
-        assertThrowsInstanceOf(() => SIMD.float32x4.load(ta, 1024), RangeError);
-        assertThrowsInstanceOf(() => SIMD.float64x2.load(ta, 1024), RangeError);
+        assertThrowsInstanceOf(() => SIMD.Int32x4.load(ta, 1024), RangeError);
+        assertThrowsInstanceOf(() => SIMD.Float32x4.load(ta, 1024), RangeError);
+        assertThrowsInstanceOf(() => SIMD.Float64x2.load(ta, 1024), RangeError);
     }
 }
 
-testLoad('float32x4', new Float32Array(SIZE_32_ARRAY));
-testLoad('float64x2', new Float64Array(SIZE_64_ARRAY));
-testLoad('int8x16', new Int8Array(SIZE_8_ARRAY));
-testLoad('int16x8', new Int16Array(SIZE_16_ARRAY));
-testLoad('int32x4', new Int32Array(SIZE_32_ARRAY));
+testLoad('Float32x4', new Float32Array(SIZE_32_ARRAY));
+testLoad('Float64x2', new Float64Array(SIZE_64_ARRAY));
+testLoad('Int8x16', new Int8Array(SIZE_8_ARRAY));
+testLoad('Int16x8', new Int16Array(SIZE_16_ARRAY));
+testLoad('Int32x4', new Int32Array(SIZE_32_ARRAY));
 testSharedArrayBufferCompat();
 
 if (typeof reportCompare === "function")

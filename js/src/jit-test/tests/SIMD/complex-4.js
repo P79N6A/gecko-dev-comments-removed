@@ -8,7 +8,7 @@ setJitCompilerOption("ion.warmup.trigger", 90);
 var max = 100; 
                
 
-var f4 = SIMD.int32x4; 
+var f4 = SIMD.Int32x4; 
 var f4add = f4.add;
 var f4sub = f4.sub;
 var f4mul = f4.mul;
