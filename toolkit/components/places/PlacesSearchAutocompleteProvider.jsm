@@ -28,6 +28,11 @@ const SearchAutocompleteProviderInternal = {
   
 
 
+  aliasMatches: null,
+
+  
+
+
   defaultMatch: null,
 
   initialize: function () {
@@ -65,6 +70,7 @@ const SearchAutocompleteProviderInternal = {
 
   _refresh: function () {
     this.priorityMatches = [];
+    this.aliasMatches = [];
     this.defaultMatch = null;
 
     let currentEngine = Services.search.currentEngine;
@@ -82,19 +88,25 @@ const SearchAutocompleteProviderInternal = {
   },
 
   _addEngine: function (engine) {
-    let token = engine.getResultDomain();
-    if (!token) {
-      return;
+    if (engine.alias) {
+      this.aliasMatches.push({
+        alias: engine.alias,
+        engineName: engine.name,
+        iconUrl: engine.iconURI ? engine.iconURI.spec : null,
+      });
     }
 
-    this.priorityMatches.push({
-      token: token,
-      
-      
-      url: engine.searchForm,
-      engineName: engine.name,
-      iconUrl: engine.iconURI ? engine.iconURI.spec : null,
-    });
+    let domain = engine.getResultDomain();
+    if (domain) {
+      this.priorityMatches.push({
+        token: domain,
+        
+        
+        url: engine.searchForm,
+        engineName: engine.name,
+        iconUrl: engine.iconURI ? engine.iconURI.spec : null,
+      });
+    }
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
@@ -138,7 +150,30 @@ this.PlacesSearchAutocompleteProvider = Object.freeze({
     
     
     return SearchAutocompleteProviderInternal.priorityMatches
-                 .find(m => m.token.startsWith(searchToken));
+                                             .find(m => m.token.startsWith(searchToken));
+  }),
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  findMatchByAlias: Task.async(function* (searchToken) {
+    yield this.ensureInitialized();
+
+    return SearchAutocompleteProviderInternal.aliasMatches
+                                             .find(m => m.alias == searchToken);
   }),
 
   getDefaultMatch: Task.async(function* () {
