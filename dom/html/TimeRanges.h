@@ -42,10 +42,10 @@ public:
   double GetEndTime();
 
   
-  void Normalize();
+  void Normalize(double aError = 0.0);
 
   
-  void Union(const TimeRanges* aOtherRanges);
+  void Union(const TimeRanges* aOtherRanges, double aError);
 
   
   void Intersection(const TimeRanges* aOtherRanges);
