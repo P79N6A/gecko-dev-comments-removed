@@ -2191,7 +2191,12 @@ CodeGeneratorX86Shared::visitSimdExtractElementF(LSimdExtractElementF *ins)
         uint32_t mask = MacroAssembler::ComputeShuffleMask(lane);
         masm.shuffleFloat32(mask, input, output);
     }
-    masm.canonicalizeFloat(output);
+    
+    
+    
+    
+    if (!gen->compilingAsmJS())
+        masm.canonicalizeFloat(output);
 }
 
 void
