@@ -18,8 +18,7 @@ function runTests() {
   Services.prefs.setBoolPref(CAPTURE_PREF, true);
 
   
-  let siteName = "newtab_background_captures";
-  let url = "http://example.com/#" + siteName;
+  let url = "http://example.com/";
   let path = imports.PageThumbsStorage.getFilePathForURL(url);
   let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
   file.initWithPath(path);
@@ -29,7 +28,7 @@ function runTests() {
   catch (err) {}
 
   
-  yield setLinks(siteName);
+  yield setLinks("-1");
 
   
   
