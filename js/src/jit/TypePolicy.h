@@ -323,6 +323,13 @@ class SimdPolicy MOZ_FINAL : public TypePolicy
     virtual bool adjustInputs(TempAllocator &alloc, MInstruction *ins) MOZ_OVERRIDE;
 };
 
+class SimdSelectPolicy MOZ_FINAL : public TypePolicy
+{
+    public:
+    SPECIALIZATION_DATA_;
+    virtual bool adjustInputs(TempAllocator &alloc, MInstruction *ins) MOZ_OVERRIDE;
+};
+
 
 
 template <unsigned Op>
