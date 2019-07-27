@@ -937,6 +937,7 @@ public:
 
 
 
+
   static bool
   BinarySearchForPosition(nsRenderingContext* acx,
                           const char16_t* aText,
@@ -1411,7 +1412,6 @@ public:
 
 
   
-
 
 
 
