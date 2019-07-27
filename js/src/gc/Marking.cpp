@@ -1801,10 +1801,8 @@ GCMarker::processMarkStackTop(SliceBudget &budget)
             
             
             
-            MOZ_ASSERT_IF(runtime()->gc.isIncrementalGCEnabled() &&
-                          !(clasp->trace == JS_GlobalObjectTraceHook &&
-                            (!obj->compartment()->options().getTrace() ||
-                             !obj->isOwnGlobal())),
+            MOZ_ASSERT_IF(!(clasp->trace == JS_GlobalObjectTraceHook &&
+                            (!obj->compartment()->options().getTrace() || !obj->isOwnGlobal())),
                           clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS);
             if (clasp->trace == InlineTypedObject::obj_trace)
                 goto scan_typed_obj;
