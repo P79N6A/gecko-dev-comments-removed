@@ -841,11 +841,8 @@ nsGeolocationService::HandleMozsettingChanged(nsISupports* aSubject)
     
     
 
-    AutoJSAPI jsapi;
-    jsapi.Init();
-    JSContext* cx = jsapi.cx();
-    RootedDictionary<SettingChangeNotification> setting(cx);
-    if (!WrappedJSToDictionary(cx, aSubject, setting)) {
+    RootedDictionary<SettingChangeNotification> setting(nsContentUtils::RootingCxForThread());
+    if (!WrappedJSToDictionary(aSubject, setting)) {
       return;
     }
     if (!setting.mKey.EqualsASCII(GEO_SETTINGS_ENABLED)) {

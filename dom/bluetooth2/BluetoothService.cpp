@@ -499,11 +499,8 @@ BluetoothService::HandleSettingsChanged(nsISupports* aSubject)
   
   
 
-  AutoJSAPI jsapi;
-  jsapi.Init();
-  JSContext* cx = jsapi.cx();
-  RootedDictionary<SettingChangeNotification> setting(cx);
-  if (!WrappedJSToDictionary(cx, aSubject, setting)) {
+  RootedDictionary<SettingChangeNotification> setting(nsContentUtils::RootingCx());
+  if (!WrappedJSToDictionary(aSubject, setting)) {
     return NS_OK;
   }
   if (!setting.mKey.EqualsASCII(BLUETOOTH_DEBUGGING_SETTING)) {
