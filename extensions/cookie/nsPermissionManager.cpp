@@ -306,7 +306,7 @@ public:
   
 
 
-  DeleteFromMozHostListener(nsPermissionManager* aManager);
+  explicit DeleteFromMozHostListener(nsPermissionManager* aManager);
 
 protected:
   nsRefPtr<nsPermissionManager> mManager;
