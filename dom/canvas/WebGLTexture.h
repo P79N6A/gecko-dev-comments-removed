@@ -67,19 +67,19 @@ public:
     {
     public:
         ImageInfo()
-            : mWebGLInternalFormat(LOCAL_GL_NONE)
-            , mWebGLType(LOCAL_GL_NONE)
+            : mInternalFormat(LOCAL_GL_NONE)
+            , mType(LOCAL_GL_NONE)
             , mImageDataStatus(WebGLImageDataStatus::NoImageData)
         {}
 
         ImageInfo(GLsizei width,
                   GLsizei height,
-                  TexInternalFormat webGLInternalFormat,
-                  TexType webGLType,
+                  TexInternalFormat internalFormat,
+                  TexType type,
                   WebGLImageDataStatus status)
             : WebGLRectangleObject(width, height)
-            , mWebGLInternalFormat(webGLInternalFormat)
-            , mWebGLType(webGLType)
+            , mInternalFormat(internalFormat)
+            , mType(type)
             , mImageDataStatus(status)
         {
             
@@ -90,8 +90,8 @@ public:
             return mImageDataStatus == a.mImageDataStatus &&
                    mWidth == a.mWidth &&
                    mHeight == a.mHeight &&
-                   mWebGLInternalFormat == a.mWebGLInternalFormat &&
-                   mWebGLType == a.mWebGLType;
+                   mInternalFormat == a.mInternalFormat &&
+                   mType == a.mType;
         }
         bool operator!=(const ImageInfo& a) const {
             return !(*this == a);
@@ -114,17 +114,17 @@ public:
 
 
 
-        TexInternalFormat WebGLInternalFormat() const { return mWebGLInternalFormat; }
+        TexInternalFormat InternalFormat() const { return mInternalFormat; }
 
         
 
 
 
-        TexType WebGLType() const { return mWebGLType; }
+        TexType Type() const { return mType; }
 
     protected:
-        TexInternalFormat mWebGLInternalFormat; 
-        TexType mWebGLType;   
+        TexInternalFormat mInternalFormat; 
+        TexType mType;   
         WebGLImageDataStatus mImageDataStatus;
 
         friend class WebGLTexture;
