@@ -161,7 +161,11 @@ CPUInfo::SetSSEVersion()
          );
 # else
     
+    
+    
+    
     asm (
+         "xor %%ecx, %%ecx;"
          "movl $0x1, %%eax;"
          "pushl %%ebx;"
          "cpuid;"
