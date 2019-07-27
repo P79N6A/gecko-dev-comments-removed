@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_DYNAMICIMAGE_H_
-#define MOZILLA_IMAGELIB_DYNAMICIMAGE_H_
+#ifndef mozilla_image_src_DynamicImage_h
+#define mozilla_image_src_DynamicImage_h
 
 #include "mozilla/MemoryReporting.h"
 #include "gfxDrawable.h"
