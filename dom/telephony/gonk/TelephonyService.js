@@ -10,7 +10,6 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/systemlibs.js");
 
 XPCOMUtils.defineLazyGetter(this, "RIL", function () {
   let obj = {};
@@ -48,19 +47,8 @@ const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
 const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
 const DIAL_ERROR_BAD_NUMBER = RIL.GECKO_CALL_ERROR_BAD_NUMBER;
 
-const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
 const TONES_GAP_DURATION = 70;
-
-
-const MMI_MATCH_GROUP_FULL_MMI = 1;
-const MMI_MATCH_GROUP_PROCEDURE = 2;
-const MMI_MATCH_GROUP_SERVICE_CODE = 3;
-const MMI_MATCH_GROUP_SIA = 4;
-const MMI_MATCH_GROUP_SIB = 5;
-const MMI_MATCH_GROUP_SIC = 6;
-const MMI_MATCH_GROUP_PWD_CONFIRM = 7;
-const MMI_MATCH_GROUP_DIALING_NUMBER = 8;
 
 let DEBUG;
 function debug(s) {
@@ -91,6 +79,12 @@ XPCOMUtils.defineLazyGetter(this, "gPhoneNumberUtils", function() {
   let ns = {};
   Cu.import("resource://gre/modules/PhoneNumberUtils.jsm", ns);
   return ns.PhoneNumberUtils;
+});
+
+XPCOMUtils.defineLazyGetter(this, "gDialNumberUtils", function() {
+  let ns = {};
+  Cu.import("resource://gre/modules/DialNumberUtils.jsm", ns);
+  return ns.DialNumberUtils;
 });
 
 function MobileCallForwardingOptions(aOptions) {
@@ -159,8 +153,6 @@ TelephonyCallInfo.prototype = {
 function TelephonyService() {
   this._numClients = gRadioInterfaceLayer.numRadioInterfaces;
   this._listeners = [];
-
-  this._mmiRegExp = null;
 
   this._isDialing = false;
   this._cachedDialRequest = null;
@@ -341,26 +333,6 @@ TelephonyService.prototype = {
         this._currentCalls[aClientId][call.callIndex] = call;
       }
     });
-  },
-
-  
-
-
-
-
-
-
-  _isEmergencyNumber: function(aNumber) {
-    
-    let numbers = libcutils.property_get("ril.ecclist") ||
-                  libcutils.property_get("ro.ril.ecclist");
-    if (numbers) {
-      numbers = numbers.split(",");
-    } else {
-      
-      numbers = DEFAULT_EMERGENCY_NUMBERS;
-    }
-    return numbers.indexOf(aNumber) != -1;
   },
 
   
@@ -553,7 +525,7 @@ TelephonyService.prototype = {
                          isDialEmergency: aIsDialEmergency }, aCallback);
       }
     } else {
-      let mmi = this._parseMMI(aNumber);
+      let mmi = gDialNumberUtils.parseMMI(aNumber);
       if (!mmi) {
         this._dialCall(aClientId,
                        { number: aNumber,
@@ -602,7 +574,7 @@ TelephonyService.prototype = {
       return;
     }
 
-    aOptions.isEmergency = this._isEmergencyNumber(aOptions.number);
+    aOptions.isEmergency = gDialNumberUtils.isEmergency(aOptions.number);
     if (aOptions.isEmergency) {
       
       aClientId = gRadioInterfaceLayer.getClientIdForEmergencyCall() ;
@@ -748,138 +720,6 @@ TelephonyService.prototype = {
 
       aCallback.notifyDialMMISuccess(response.statusMessage);
     });
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _buildMMIRegExp: function() {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    let procedure = "(\\*[*#]?|##?)";
-
-    
-    
-    let serviceCode = "(\\d{2,3})";
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    let si = "\\*([^*#]*)";
-    let allSi = "";
-    for (let i = 0; i < 4; ++i) {
-      allSi = "(?:" + si + allSi + ")?";
-    }
-
-    let fullmmi = "(" + procedure + serviceCode + allSi + "#)";
-
-    
-    let optionalDialString = "([^#]+)?";
-
-    return new RegExp("^" + fullmmi + optionalDialString + "$");
-  },
-
-  
-
-
-  _getMMIRegExp: function() {
-    if (!this._mmiRegExp) {
-      this._mmiRegExp = this._buildMMIRegExp();
-    }
-
-    return this._mmiRegExp;
-  },
-
-  
-
-
-  _isPoundString: function(aMmiString) {
-    return (aMmiString.charAt(aMmiString.length - 1) === "#");
-  },
-
-  
-
-
-  _isShortString: function(aMmiString) {
-    if (aMmiString.length > 2) {
-      return false;
-    }
-
-    
-    
-    
-    if (this._isEmergencyNumber(aMmiString) ||
-        (aMmiString.length == 2) && (aMmiString.charAt(0) === '1')) {
-      return false;
-    }
-
-    return true;
-  },
-
-  
-
-
-  _parseMMI: function(aMmiString) {
-    if (!aMmiString) {
-      return null;
-    }
-
-    let matches = this._getMMIRegExp().exec(aMmiString);
-    if (matches) {
-      return {
-        fullMMI: matches[MMI_MATCH_GROUP_FULL_MMI],
-        procedure: matches[MMI_MATCH_GROUP_PROCEDURE],
-        serviceCode: matches[MMI_MATCH_GROUP_SERVICE_CODE],
-        sia: matches[MMI_MATCH_GROUP_SIA],
-        sib: matches[MMI_MATCH_GROUP_SIB],
-        sic: matches[MMI_MATCH_GROUP_SIC],
-        pwd: matches[MMI_MATCH_GROUP_PWD_CONFIRM],
-        dialNumber: matches[MMI_MATCH_GROUP_DIALING_NUMBER]
-      };
-    }
-
-    if (this._isPoundString(aMmiString) || this._isShortString(aMmiString)) {
-      return {
-        fullMMI: aMmiString
-      };
-    }
-
-    return null;
   },
 
   _serviceCodeToKeyString: function(aServiceCode) {
@@ -1178,7 +1018,7 @@ TelephonyService.prototype = {
 
     aCall.clientId = aClientId;
     aCall.state = nsITelephonyService.CALL_STATE_DISCONNECTED;
-    aCall.isEmergency = this._isEmergencyNumber(aCall.number);
+    aCall.isEmergency = gDialNumberUtils.isEmergency(aCall.number);
     let duration = ("started" in aCall && typeof aCall.started == "number") ?
       new Date().getTime() - aCall.started : 0;
 
@@ -1273,12 +1113,12 @@ TelephonyService.prototype = {
       call.state = aCall.state;
       call.number = aCall.number;
       call.isConference = aCall.isConference;
-      call.isEmergency = this._isEmergencyNumber(aCall.number);
+      call.isEmergency = gDialNumberUtils.isEmergency(aCall.number);
       call.isSwitchable = pick(aCall.isSwitchable, call.isSwitchable);
       call.isMergeable = pick(aCall.isMergeable, call.isMergeable);
     } else {
       call = aCall;
-      call.isEmergency = pick(aCall.isEmergency, this._isEmergencyNumber(aCall.number));
+      call.isEmergency = pick(aCall.isEmergency, gDialNumberUtils.isEmergency(aCall.number));
       call.isSwitchable = pick(aCall.isSwitchable, true);
       call.isMergeable = pick(aCall.isMergeable, true);
       call.name = pick(aCall.name, "");
