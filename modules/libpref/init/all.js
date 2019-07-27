@@ -3072,6 +3072,15 @@ pref("intl.tsf.hack.google_ja_input.do_not_return_no_layout_error_at_caret", tru
 
 
 
+
+
+
+pref("intl.imm.composition_font", "");
+
+
+
+
+
 pref("intl.imm.vertical_writing.always_assume_not_supported", false);
 
 
