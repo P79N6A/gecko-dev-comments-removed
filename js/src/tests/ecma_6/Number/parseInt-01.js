@@ -162,6 +162,8 @@ assertEq(Number.parseInt("0A", 17), 10);
 assertEq(Number.parseInt("00A", 17), 10);
 
 
+assertEq(Number.parseInt, parseInt);
+
 
 
 if (typeof reportCompare === "function")

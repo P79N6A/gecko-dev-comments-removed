@@ -18,6 +18,9 @@ assertEq(Number.parseFloat("infinity"), NaN);
 assertEq(Number.parseFloat("nan"), NaN);
 assertEq(Number.parseFloat("NaN"), NaN);
 
+
+assertEq(Number.parseFloat, parseFloat);
+
 if (typeof reportCompare === "function")
   reportCompare(true, true);
 
