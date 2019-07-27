@@ -27,6 +27,13 @@ BEGIN_TEST(testGCHeapPostBarriers)
     return true;
 }
 
+MOZ_NEVER_INLINE bool
+Passthrough(bool value)
+{
+    
+    return value;
+}
+
 template <typename T>
 bool
 TestHeapPostBarriers(T initialObj)
@@ -37,7 +44,7 @@ TestHeapPostBarriers(T initialObj)
     
     JS::Heap<T> *heapData = new JS::Heap<T>();
     CHECK(heapData);
-    CHECK(heapData->get() == nullptr);
+    CHECK(Passthrough(heapData->get() == nullptr));
     heapData->set(initialObj);
 
     
