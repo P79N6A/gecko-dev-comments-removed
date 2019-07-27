@@ -188,7 +188,8 @@ Toolbox.prototype = {
   _prefs: {
     LAST_HOST: "devtools.toolbox.host",
     LAST_TOOL: "devtools.toolbox.selectedTool",
-    SIDE_ENABLED: "devtools.toolbox.sideEnabled"
+    SIDE_ENABLED: "devtools.toolbox.sideEnabled",
+    PREVIOUS_HOST: "devtools.toolbox.previousHost"
   },
 
   currentToolId: null,
@@ -497,11 +498,15 @@ Toolbox.prototype = {
   _addHostListeners: function() {
     let nextKey = this.doc.getElementById("toolbox-next-tool-key");
     nextKey.addEventListener("command", this.selectNextTool.bind(this), true);
+
     let prevKey = this.doc.getElementById("toolbox-previous-tool-key");
     prevKey.addEventListener("command", this.selectPreviousTool.bind(this), true);
 
     let minimizeKey = this.doc.getElementById("toolbox-minimize-key");
     minimizeKey.addEventListener("command", this._toggleMinimizeMode, true);
+
+    let toggleKey = this.doc.getElementById("toolbox-toggle-host-key");
+    toggleKey.addEventListener("command", this.switchToPreviousHost.bind(this), true);
 
     
     
@@ -1583,6 +1588,26 @@ Toolbox.prototype = {
 
 
 
+  switchToPreviousHost: function() {
+    let hostType = Services.prefs.getCharPref(this._prefs.PREVIOUS_HOST);
+
+    
+    
+    if (hostType === this._host.type) {
+      if (hostType === Toolbox.HostType.BOTTOM) {
+        hostType = Toolbox.HostType.SIDE;
+      } else {
+        hostType = Toolbox.HostType.BOTTOM;
+      }
+    }
+
+    return this.switchHost(hostType);
+  },
+
+  
+
+
+
 
 
 
@@ -1607,10 +1632,12 @@ Toolbox.prototype = {
       this._host.off("window-closed", this.destroy);
       this.destroyHost();
 
+      let prevHostType = this._host.type;
       this._host = newHost;
 
       if (this.hostType != Toolbox.HostType.CUSTOM) {
         Services.prefs.setCharPref(this._prefs.LAST_HOST, this._host.type);
+        Services.prefs.setCharPref(this._prefs.PREVIOUS_HOST, prevHostType);
       }
 
       this._buildDockButtons();

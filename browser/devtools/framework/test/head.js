@@ -109,3 +109,36 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
     return promise.resolve();
   }
 }
+
+
+
+
+
+
+function synthesizeKeyElement(el) {
+  let key = el.getAttribute("key") || el.getAttribute("keycode");
+  let mod = {};
+  el.getAttribute("modifiers").split(" ").forEach((m) => mod[m+"Key"] = true);
+  info(`Synthesizing: key=${key}, mod=${JSON.stringify(mod)}`);
+  EventUtils.synthesizeKey(key, mod, el.ownerDocument.defaultView);
+}
+
+
+
+
+
+
+
+
+
+function checkHostType(toolbox, hostType, previousHostType) {
+  is(toolbox.hostType, hostType, "host type is " + hostType);
+
+  let pref = Services.prefs.getCharPref("devtools.toolbox.host");
+  is(pref, hostType, "host pref is " + hostType);
+
+  if (previousHostType) {
+    is (Services.prefs.getCharPref("devtools.toolbox.previousHost"),
+      previousHostType, "The previous host is correct");
+  }
+}
