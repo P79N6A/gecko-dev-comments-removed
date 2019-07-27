@@ -35,10 +35,6 @@ this.TabState = Object.freeze({
     TabStateInternal.update(browser, data);
   },
 
-  flush: function (browser) {
-    TabStateInternal.flush(browser);
-  },
-
   flushAsync: function (browser) {
     TabStateInternal.flushAsync(browser);
   },
@@ -94,16 +90,6 @@ let TabStateInternal = {
   
 
 
-  flush: function (browser) {
-    if (this._syncHandlers.has(browser.permanentKey)) {
-      let lastID = this._latestMessageID.get(browser.permanentKey);
-      this._syncHandlers.get(browser.permanentKey).flush(lastID);
-    }
-  },
-
-  
-
-
 
 
 
@@ -118,7 +104,10 @@ let TabStateInternal = {
 
   flushWindow: function (window) {
     for (let browser of window.gBrowser.browsers) {
-      this.flush(browser);
+      if (this._syncHandlers.has(browser.permanentKey)) {
+        let lastID = this._latestMessageID.get(browser.permanentKey);
+        this._syncHandlers.get(browser.permanentKey).flush(lastID);
+      }
     }
   },
 
