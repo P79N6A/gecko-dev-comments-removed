@@ -87,14 +87,13 @@ public:
   virtual void WaitForNextIteration() = 0;
   
   virtual void WakeUp() = 0;
-  
-  
-  virtual bool Init(dom::AudioChannel aChannel = dom::AudioChannel::Normal) { return true; }
   virtual void Destroy() {}
   
   virtual void Start() = 0;
   
   virtual void Stop() = 0;
+  
+  virtual void Resume() = 0;
   
   virtual void Revive() = 0;
   
@@ -142,8 +141,6 @@ public:
   virtual void GetAudioBuffer(float** aBuffer, long& aFrames) {
     MOZ_CRASH("This is not an Audio GraphDriver!");
   }
-
-  bool InCallback();
 
   virtual AudioCallbackDriver* AsAudioCallbackDriver() {
     return nullptr;
@@ -281,6 +278,7 @@ public:
   virtual ~ThreadedDriver();
   virtual void Start() MOZ_OVERRIDE;
   virtual void Stop() MOZ_OVERRIDE;
+  virtual void Resume() MOZ_OVERRIDE;
   virtual void Revive() MOZ_OVERRIDE;
   
 
@@ -337,6 +335,41 @@ private:
   GraphTime mSlice;
 };
 
+class AsyncCubebTask : public nsRunnable
+{
+public:
+  enum AsyncCubebOperation {
+    INIT,
+    SHUTDOWN
+  };
+
+
+  AsyncCubebTask(AudioCallbackDriver* aDriver, AsyncCubebOperation aOperation)
+    : mDriver(aDriver),
+      mOperation(aOperation)
+  {}
+
+  nsresult Dispatch()
+  {
+    
+    nsresult rv = NS_NewNamedThread("CubebOperation", getter_AddRefs(mThread));
+    if (NS_SUCCEEDED(rv)) {
+      
+      rv = mThread->Dispatch(this, NS_DISPATCH_NORMAL);
+    }
+    return rv;
+  }
+
+protected:
+  virtual ~AsyncCubebTask() {};
+
+private:
+  NS_IMETHOD Run() MOZ_OVERRIDE MOZ_FINAL;
+  nsCOMPtr<nsIThread> mThread;
+  nsRefPtr<AudioCallbackDriver> mDriver;
+  AsyncCubebOperation mOperation;
+};
+
 
 
 
@@ -361,13 +394,14 @@ class AudioCallbackDriver : public GraphDriver,
                             public MixerCallbackReceiver
 {
 public:
-  AudioCallbackDriver(MediaStreamGraphImpl* aGraphImpl);
+  AudioCallbackDriver(MediaStreamGraphImpl* aGraphImpl,
+                      dom::AudioChannel aChannel = dom::AudioChannel::Normal);
   virtual ~AudioCallbackDriver();
 
-  virtual bool Init(dom::AudioChannel aChannel) MOZ_OVERRIDE;
   virtual void Destroy() MOZ_OVERRIDE;
   virtual void Start() MOZ_OVERRIDE;
   virtual void Stop() MOZ_OVERRIDE;
+  virtual void Resume() MOZ_OVERRIDE;
   virtual void Revive() MOZ_OVERRIDE;
   virtual void GetIntervalForIteration(GraphTime& aFrom,
                                        GraphTime& aTo) MOZ_OVERRIDE;
@@ -406,8 +440,12 @@ public:
     return this;
   }
 
+  bool InCallback();
+
   bool IsStarted();
 private:
+  friend class AsyncCubebTask;
+  void Init();
   
   static const uint32_t ChannelCount = 2;
   
@@ -451,8 +489,12 @@ private:
     AudioCallbackDriver* mDriver;
   };
 
+  
+
+  nsCOMPtr<nsIThread> mInitShutdownThread;
+  dom::AudioChannel mAudioChannel;
 };
 
 }
 
-#endif 
+#endif
