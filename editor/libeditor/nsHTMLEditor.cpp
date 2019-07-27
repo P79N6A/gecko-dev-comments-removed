@@ -3275,7 +3275,7 @@ nsHTMLEditor::GetIsSelectionEditable(bool* aIsSelectionEditable)
   
   
   
-  *aIsSelectionEditable = selection->GetRangeCount() &&
+  *aIsSelectionEditable = selection->RangeCount() &&
                           selection->GetAnchorNode()->IsEditable() &&
                           selection->GetFocusNode()->IsEditable();
 
@@ -4547,7 +4547,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
   {
     
     nsAutoString bgcolor; bgcolor.AssignLiteral("bgcolor");
-    uint32_t rangeCount = selection->GetRangeCount();
+    uint32_t rangeCount = selection->RangeCount();
     for (uint32_t rangeIdx = 0; rangeIdx < rangeCount; ++rangeIdx) {
       nsCOMPtr<nsIDOMNode> cachedBlockParent = nullptr;
       nsRefPtr<nsRange> range = selection->GetRangeAt(rangeIdx);
