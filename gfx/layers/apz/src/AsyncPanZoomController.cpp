@@ -1915,6 +1915,13 @@ void AsyncPanZoomController::HandlePanningWithTouchAction(double aAngle) {
   } else {
     SetState(NOTHING);
   }
+  if (!IsInPanningState()) {
+    
+    
+    
+    mX.SetVelocity(0);
+    mY.SetVelocity(0);
+  }
 }
 
 void AsyncPanZoomController::HandlePanning(double aAngle) {
@@ -1973,11 +1980,6 @@ nsEventStatus AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent
   ParentLayerPoint point = GetFirstTouchPoint(aEvent);
   float dx = mX.PanDistance(point.x);
   float dy = mY.PanDistance(point.y);
-
-  
-  
-  mX.StartTouch(point.x, aEvent.mTime);
-  mY.StartTouch(point.y, aEvent.mTime);
 
   double angle = atan2(dy, dx); 
   angle = fabs(angle); 
