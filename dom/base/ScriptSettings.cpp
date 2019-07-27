@@ -463,14 +463,22 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
               aCx ? aCx : FindJSContext(aGlobalObject))
   , ScriptSettingsStackEntry(aGlobalObject,  true)
   , mWebIDLCallerPrincipal(nullptr)
+  , mIsMainThread(aIsMainThread)
 {
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT_IF(!aCx, aIsMainThread); 
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
+  if (aIsMainThread) {
+    nsContentUtils::EnterMicroTask();
+  }
 }
 
 AutoEntryScript::~AutoEntryScript()
 {
+  if (mIsMainThread) {
+    nsContentUtils::LeaveMicroTask();
+  }
+
   
   
   
