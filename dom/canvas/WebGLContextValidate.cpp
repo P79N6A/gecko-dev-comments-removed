@@ -528,21 +528,35 @@ WebGLContext::ValidateTexImageFormat(GLenum format, WebGLTexImageFunc func)
     }
 
     
+    if (format == LOCAL_GL_DEPTH_COMPONENT ||
+        format == LOCAL_GL_DEPTH_STENCIL)
+    {
+        if (!IsExtensionEnabled(WebGLExtensionID::WEBGL_depth_texture)) {
+            ErrorInvalidEnum("%s: invalid format %s: need WEBGL_depth_texture enabled",
+                             InfoFrom(func), EnumName(format));
+            return false;
+        }
+
+        
+        
+        if (func == WebGLTexImageFunc::TexSubImage ||
+            func == WebGLTexImageFunc::CopyTexImage ||
+            func == WebGLTexImageFunc::CopyTexSubImage)
+        {
+            ErrorInvalidOperation("%s: format %s is not supported", InfoFrom(func), EnumName(format));
+            return false;
+        }
+
+        return true;
+    }
+
+    
+    
+    
     
     if (IsCopyFunc(func)) {
         ErrorInvalidEnumWithName(this, "invalid format", format, func);
         return false;
-    }
-
-    
-    if (format == LOCAL_GL_DEPTH_COMPONENT ||
-        format == LOCAL_GL_DEPTH_STENCIL)
-    {
-        bool validFormat = IsExtensionEnabled(WebGLExtensionID::WEBGL_depth_texture);
-        if (!validFormat)
-            ErrorInvalidEnum("%s: invalid format %s: need WEBGL_depth_texture enabled",
-                             InfoFrom(func), WebGLContext::EnumName(format));
-        return validFormat;
     }
 
     
