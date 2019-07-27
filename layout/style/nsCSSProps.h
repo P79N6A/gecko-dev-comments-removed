@@ -104,6 +104,7 @@
 
 
 
+#define CSS_PROPERTY_LOGICAL                      (1<<0)
 
 #define CSS_PROPERTY_VALUE_LIST_USES_COMMAS       (1<<1) /* otherwise spaces */
 
@@ -208,9 +209,6 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 
 
 #define CSS_PROPERTY_NUMBERS_ARE_PIXELS           (1<<24)
-
-
-#define CSS_PROPERTY_LOGICAL                      (1<<25)
 
 
 
