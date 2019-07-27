@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_power_WakeLock_h
 #define mozilla_dom_power_WakeLock_h
 

@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLSerialize_h__
 #define nsXBLSerialize_h__
 

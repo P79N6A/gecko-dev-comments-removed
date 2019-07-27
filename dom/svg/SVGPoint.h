@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef MOZILLA_SVGPOINT_H__
 #define MOZILLA_SVGPOINT_H__
 

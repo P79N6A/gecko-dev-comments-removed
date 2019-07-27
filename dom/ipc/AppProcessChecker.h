@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef mozilla_AppProcessChecker_h
 #define mozilla_AppProcessChecker_h
 

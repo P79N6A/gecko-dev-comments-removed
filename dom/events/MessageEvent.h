@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_MessageEvent_h_
 #define mozilla_dom_MessageEvent_h_
 

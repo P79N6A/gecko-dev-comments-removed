@@ -7,6 +7,7 @@
 
 
 
+
 #ifndef nsNodeInfoManager_h___
 #define nsNodeInfoManager_h___
 

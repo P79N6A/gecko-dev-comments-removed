@@ -3,6 +3,7 @@
 
 
 
+
 #include "PerformanceEntry.h"
 #include "nsIURI.h"
 #include "mozilla/dom/PerformanceEntryBinding.h"

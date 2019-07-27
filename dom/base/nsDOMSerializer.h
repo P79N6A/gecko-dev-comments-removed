@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsDOMSerializer_h_
 #define nsDOMSerializer_h_
 

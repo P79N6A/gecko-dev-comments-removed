@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsIGlobalObject_h__
 #define nsIGlobalObject_h__
 

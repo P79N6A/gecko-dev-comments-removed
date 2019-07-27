@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_mobilemessage_MobileMessageDatabaseService_h
 #define mozilla_dom_mobilemessage_MobileMessageDatabaseService_h
 

@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef MOZILLA_SMILSTRINGTYPE_H_
 #define MOZILLA_SMILSTRINGTYPE_H_
 

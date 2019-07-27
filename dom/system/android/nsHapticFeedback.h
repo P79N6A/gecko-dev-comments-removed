@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsIHapticFeedback.h"
 
 class nsHapticFeedback final : public nsIHapticFeedback

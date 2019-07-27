@@ -4,7 +4,6 @@
 
 
 
-
 #include "AppProcessChecker.h"
 #include "nsIPermissionManager.h"
 #ifdef MOZ_CHILD_PERMISSIONS

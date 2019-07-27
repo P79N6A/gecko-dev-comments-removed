@@ -3,6 +3,7 @@
 
 
 
+
 #include "js/TypeDecls.h"
 #include "nsGlobalWindow.h"
 #include "nsIPrincipal.h"

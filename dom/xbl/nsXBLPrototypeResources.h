@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLPrototypeResources_h__
 #define nsXBLPrototypeResources_h__
 

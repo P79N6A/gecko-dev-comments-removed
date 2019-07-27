@@ -3,6 +3,7 @@
 
 
 
+
 #include "ImageEncoder.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
 #include "mozilla/gfx/2D.h"

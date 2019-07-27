@@ -3,6 +3,7 @@
 
 
 
+
 #include "ImageDocument.h"
 #include "mozilla/dom/ImageDocumentBinding.h"
 #include "nsRect.h"

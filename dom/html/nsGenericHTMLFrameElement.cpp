@@ -4,7 +4,6 @@
 
 
 
-
 #include "nsGenericHTMLFrameElement.h"
 
 #include "mozilla/dom/ContentChild.h"

@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_xmlhttprequestupload_h__
 #define mozilla_dom_workers_xmlhttprequestupload_h__
 

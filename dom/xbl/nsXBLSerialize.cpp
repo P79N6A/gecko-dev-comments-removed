@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsXBLSerialize.h"
 
 #include "jsfriendapi.h"

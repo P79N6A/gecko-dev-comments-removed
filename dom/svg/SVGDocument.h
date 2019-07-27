@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_SVGDocument_h
 #define mozilla_dom_SVGDocument_h
 

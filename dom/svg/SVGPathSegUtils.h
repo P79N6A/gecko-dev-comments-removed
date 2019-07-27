@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef MOZILLA_SVGPATHSEGUTILS_H__
 #define MOZILLA_SVGPATHSEGUTILS_H__
 

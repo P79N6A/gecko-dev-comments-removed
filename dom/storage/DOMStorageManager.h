@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsDOMStorageManager_h__
 #define nsDOMStorageManager_h__
 

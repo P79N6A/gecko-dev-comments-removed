@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_workerrunnable_h__
 #define mozilla_dom_workers_workerrunnable_h__
 

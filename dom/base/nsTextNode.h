@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsTextNode_h
 #define nsTextNode_h
 

@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_workers_ServiceWorkerRegistrar_h
 #define mozilla_dom_workers_ServiceWorkerRegistrar_h
 

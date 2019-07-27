@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_responsiveimageselector_h__
 #define mozilla_dom_responsiveimageselector_h__
 

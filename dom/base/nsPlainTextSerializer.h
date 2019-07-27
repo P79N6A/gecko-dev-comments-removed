@@ -9,6 +9,7 @@
 
 
 
+
 #ifndef nsPlainTextSerializer_h__
 #define nsPlainTextSerializer_h__
 

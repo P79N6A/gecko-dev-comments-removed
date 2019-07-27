@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsNameSpaceManager_h___
 #define nsNameSpaceManager_h___
 

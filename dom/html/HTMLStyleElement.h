@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_HTMLStyleElement_h
 #define mozilla_dom_HTMLStyleElement_h
 

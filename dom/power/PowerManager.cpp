@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/PowerManager.h"
 
 #include "mozilla/Hal.h"

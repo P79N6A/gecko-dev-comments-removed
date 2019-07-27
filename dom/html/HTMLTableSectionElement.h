@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozilla_dom_HTMLTableSectionElement_h
 #define mozilla_dom_HTMLTableSectionElement_h
 

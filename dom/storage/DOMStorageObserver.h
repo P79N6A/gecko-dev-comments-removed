@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsIDOMStorageObserver_h__
 #define nsIDOMStorageObserver_h__
 

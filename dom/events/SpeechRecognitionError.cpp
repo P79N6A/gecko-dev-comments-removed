@@ -3,6 +3,7 @@
 
 
 
+
 #include "SpeechRecognitionError.h"
 
 namespace mozilla {

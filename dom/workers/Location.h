@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_location_h__
 #define mozilla_dom_workers_location_h__
 

@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsDOMNavigationTiming.h"
 #include "nsPerformance.h"
 #include "nsCOMPtr.h"

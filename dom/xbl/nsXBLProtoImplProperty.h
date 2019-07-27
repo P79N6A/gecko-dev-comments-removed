@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLProtoImplProperty_h__
 #define nsXBLProtoImplProperty_h__
 

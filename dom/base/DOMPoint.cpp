@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/DOMPoint.h"
 
 #include "mozilla/dom/DOMPointBinding.h"

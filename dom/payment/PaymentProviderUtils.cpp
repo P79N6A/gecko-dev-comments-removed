@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "mozilla/dom/NavigatorBinding.h"
 #include "PaymentProviderUtils.h"
 #include "nsGlobalWindow.h"

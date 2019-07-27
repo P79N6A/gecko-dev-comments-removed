@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef mozilla_dom_HTMLHRElement_h
 #define mozilla_dom_HTMLHRElement_h
 

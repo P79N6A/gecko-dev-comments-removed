@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_indexeddb_serializationhelpers_h__
 #define mozilla_dom_indexeddb_serializationhelpers_h__
 

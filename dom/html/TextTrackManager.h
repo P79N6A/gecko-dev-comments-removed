@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef mozilla_dom_TextTrackManager_h
 #define mozilla_dom_TextTrackManager_h
 

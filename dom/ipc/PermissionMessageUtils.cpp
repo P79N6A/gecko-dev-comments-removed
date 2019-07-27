@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "nsISerializable.h"
 #include "nsSerializationHelper.h"

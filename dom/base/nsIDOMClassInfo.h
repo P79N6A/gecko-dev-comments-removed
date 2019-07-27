@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsIDOMClassInfo_h___
 #define nsIDOMClassInfo_h___
 

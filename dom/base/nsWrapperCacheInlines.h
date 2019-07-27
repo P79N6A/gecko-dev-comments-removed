@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsWrapperCacheInline_h___
 #define nsWrapperCacheInline_h___
 

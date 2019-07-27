@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_mobilemessage_MobileMessageCursorCallback_h
 #define mozilla_dom_mobilemessage_MobileMessageCursorCallback_h
 

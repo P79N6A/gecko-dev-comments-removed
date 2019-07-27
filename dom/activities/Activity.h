@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_activities_Activity_h
 #define mozilla_dom_activities_Activity_h
 

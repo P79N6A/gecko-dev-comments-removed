@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_indexeddb_permissionrequestbase_h__
 #define mozilla_dom_indexeddb_permissionrequestbase_h__
 

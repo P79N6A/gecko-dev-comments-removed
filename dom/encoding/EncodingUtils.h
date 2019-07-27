@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_encodingutils_h_
 #define mozilla_dom_encodingutils_h_
 

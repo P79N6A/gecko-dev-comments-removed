@@ -7,6 +7,7 @@
 
 
 
+
 #include "nsTextNode.h"
 #include "mozilla/dom/TextBinding.h"
 #include "nsContentUtils.h"

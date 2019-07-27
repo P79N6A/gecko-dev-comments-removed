@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLPrototypeHandler_h__
 #define nsXBLPrototypeHandler_h__
 

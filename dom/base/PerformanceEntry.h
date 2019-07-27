@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_PerformanceEntry_h___
 #define mozilla_dom_PerformanceEntry_h___
 

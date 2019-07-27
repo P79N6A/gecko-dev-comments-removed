@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_HTMLTemplateElement_h
 #define mozilla_dom_HTMLTemplateElement_h
 

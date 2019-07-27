@@ -4,6 +4,7 @@
 
 
 
+
 DOMCI_CLASS(DOMPrototype)
 DOMCI_CLASS(DOMConstructor)
 

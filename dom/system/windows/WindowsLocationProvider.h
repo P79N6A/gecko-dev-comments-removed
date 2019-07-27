@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_WindowsLocationProvider_h__
 #define mozilla_dom_WindowsLocationProvider_h__
 

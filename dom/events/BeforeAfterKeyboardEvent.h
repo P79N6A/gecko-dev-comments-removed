@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_BeforeAfterKeyboardEvent_h_
 #define mozilla_dom_BeforeAfterKeyboardEvent_h_
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef nsGenericHTMLFrameElement_h
 #define nsGenericHTMLFrameElement_h
 

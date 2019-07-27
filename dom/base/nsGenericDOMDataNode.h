@@ -8,6 +8,7 @@
 
 
 
+
 #ifndef nsGenericDOMDataNode_h___
 #define nsGenericDOMDataNode_h___
 

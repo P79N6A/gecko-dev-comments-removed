@@ -3,6 +3,7 @@
 
 
 
+
 #include "Location.h"
 
 #include "mozilla/dom/WorkerLocationBinding.h"

@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/DebugOnly.h"
 
 #include "nsXBLProtoImpl.h"

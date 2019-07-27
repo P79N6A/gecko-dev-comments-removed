@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsGeoPosition.h"
 
 #include "mozilla/dom/PositionBinding.h"

@@ -4,6 +4,7 @@
 
 
 
+
 #include "ServiceWorkerWindowClient.h"
 
 #include "mozilla/dom/ClientBinding.h"

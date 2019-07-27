@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_DeviceMotionEvent_h_
 #define mozilla_dom_DeviceMotionEvent_h_
 

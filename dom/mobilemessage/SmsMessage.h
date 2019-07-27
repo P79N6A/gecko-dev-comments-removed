@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_mobilemessage_SmsMessage_h
 #define mozilla_dom_mobilemessage_SmsMessage_h
 

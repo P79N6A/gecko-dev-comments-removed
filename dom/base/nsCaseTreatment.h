@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef nsCaseTreatment_h___
 #define nsCaseTreatment_h___
 

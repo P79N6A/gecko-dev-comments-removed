@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsGeolocationSettings_h
 #define nsGeolocationSettings_h
 

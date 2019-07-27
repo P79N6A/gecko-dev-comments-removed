@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef MOZILLA_DOMSVGPATHSEG_H__
 #define MOZILLA_DOMSVGPATHSEG_H__
 

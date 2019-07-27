@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_BrowserElementHelpers_h
 #define mozilla_BrowserElementHelpers_h
 

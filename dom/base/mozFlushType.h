@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozFlushType_h___
 #define mozFlushType_h___
 

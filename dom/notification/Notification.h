@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_notification_h__
 #define mozilla_dom_notification_h__
 

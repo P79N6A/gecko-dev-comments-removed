@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsTextFragmentImpl_h__
 #define nsTextFragmentImpl_h__
 

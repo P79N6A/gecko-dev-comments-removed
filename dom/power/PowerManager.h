@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozilla_dom_power_PowerManager_h
 #define mozilla_dom_power_PowerManager_h
 

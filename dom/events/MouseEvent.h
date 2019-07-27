@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_MouseEvent_h_
 #define mozilla_dom_MouseEvent_h_
 

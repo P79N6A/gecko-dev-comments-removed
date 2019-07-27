@@ -4,6 +4,7 @@
 
 
 
+
 #undef CreateEvent
 
 #include "mozilla/AddonPathService.h"

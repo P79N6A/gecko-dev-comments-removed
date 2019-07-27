@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef mozilla_dom_nfc_MozIsoDepTech_h__
 #define mozilla_dom_nfc_MozIsoDepTech_h__
 

@@ -18,7 +18,6 @@
 
 
 
-
 #include "nsDOMScriptObjectFactory.h"
 #include "nsScriptNameSpaceManager.h"
 #include "nsIObserverService.h"

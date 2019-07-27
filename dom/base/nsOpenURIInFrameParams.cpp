@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsOpenURIInFrameParams.h"
 
 NS_IMPL_ISUPPORTS(nsOpenURIInFrameParams, nsIOpenURIInFrameParams)

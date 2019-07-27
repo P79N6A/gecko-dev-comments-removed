@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "SpeakerManager.h"
 #include "nsIDOMClassInfo.h"
 #include "nsIDOMEvent.h"

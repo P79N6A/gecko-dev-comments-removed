@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozAutoDocUpdate_h_
 #define mozAutoDocUpdate_h_
 

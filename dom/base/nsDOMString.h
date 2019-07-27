@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsDOMString_h___
 #define nsDOMString_h___
 

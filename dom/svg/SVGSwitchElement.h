@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_SVGSwitchElement_h
 #define mozilla_dom_SVGSwitchElement_h
 

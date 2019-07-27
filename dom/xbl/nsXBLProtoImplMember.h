@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLProtoImplMember_h__
 #define nsXBLProtoImplMember_h__
 

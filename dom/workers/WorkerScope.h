@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workerscope_h__
 #define mozilla_dom_workerscope_h__
 

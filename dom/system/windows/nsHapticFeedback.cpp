@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsHapticFeedback.h"
 
 NS_IMPL_ISUPPORTS(nsHapticFeedback, nsIHapticFeedback)

@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsHostObjectProtocolHandler_h
 #define nsHostObjectProtocolHandler_h
 

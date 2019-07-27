@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLImageElementBinding.h"
 #include "nsGkAtoms.h"

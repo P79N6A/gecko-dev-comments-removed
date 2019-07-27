@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsXBLMaybeCompiled_h__
 #define nsXBLMaybeCompiled_h__
 

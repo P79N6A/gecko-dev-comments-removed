@@ -3,6 +3,7 @@
 
 
 
+
 #include "SVGAnimatedBoolean.h"
 #include "mozilla/dom/SVGAnimatedBooleanBinding.h"
 

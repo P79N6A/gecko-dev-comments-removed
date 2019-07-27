@@ -9,6 +9,7 @@
 
 
 
+
 #ifndef nsXMLContentSerializer_h__
 #define nsXMLContentSerializer_h__
 

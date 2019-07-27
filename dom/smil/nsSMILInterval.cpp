@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsSMILInterval.h"
 
 nsSMILInterval::nsSMILInterval()

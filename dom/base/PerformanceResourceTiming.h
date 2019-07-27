@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_PerformanceResourceTiming_h___
 #define mozilla_dom_PerformanceResourceTiming_h___
 

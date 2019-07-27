@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_SVGAnimatedRect_h
 #define mozilla_dom_SVGAnimatedRect_h
 

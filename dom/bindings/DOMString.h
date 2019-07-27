@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_DOMString_h
 #define mozilla_dom_DOMString_h
 

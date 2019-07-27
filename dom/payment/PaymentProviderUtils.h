@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_payment_PaymentProviderEnabler_h
 #define mozilla_dom_payment_PaymentProviderEnabler_h
 

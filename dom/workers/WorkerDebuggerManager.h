@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_workerdebuggermanager_h
 #define mozilla_dom_workers_workerdebuggermanager_h
 

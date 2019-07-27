@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_SVGAltGlyphElement_h
 #define mozilla_dom_SVGAltGlyphElement_h
 

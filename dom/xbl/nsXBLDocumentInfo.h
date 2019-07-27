@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsXBLDocumentInfo_h__
 #define nsXBLDocumentInfo_h__
 

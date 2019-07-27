@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_serviceworkerevents_h__
 #define mozilla_dom_workers_serviceworkerevents_h__
 

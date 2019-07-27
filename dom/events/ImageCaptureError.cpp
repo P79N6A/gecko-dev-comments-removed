@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/ImageCaptureError.h"
 #include "mozilla/dom/ImageCaptureErrorEventBinding.h"
 

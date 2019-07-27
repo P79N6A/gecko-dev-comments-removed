@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef nsDOMCaretPosition_h
 #define nsDOMCaretPosition_h
 

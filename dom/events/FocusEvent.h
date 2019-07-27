@@ -2,6 +2,7 @@
 
 
 
+
 #ifndef mozilla_dom_FocusEvent_h_
 #define mozilla_dom_FocusEvent_h_
 

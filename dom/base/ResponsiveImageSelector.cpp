@@ -3,6 +3,7 @@
 
 
 
+
 #include "mozilla/dom/ResponsiveImageSelector.h"
 #include "nsIURI.h"
 #include "nsIDocument.h"

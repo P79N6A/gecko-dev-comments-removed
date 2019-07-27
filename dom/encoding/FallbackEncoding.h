@@ -2,6 +2,8 @@
 
 
 
+
+
 #ifndef mozilla_dom_FallbackEncoding_h_
 #define mozilla_dom_FallbackEncoding_h_
 
