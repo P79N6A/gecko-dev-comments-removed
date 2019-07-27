@@ -77,7 +77,7 @@ bool
 SecurityWrapper<Base>::defaultValue(JSContext *cx, HandleObject wrapper,
                                     JSType hint, MutableHandleValue vp) const
 {
-    return DefaultValue(cx, wrapper, hint, vp);
+    return OrdinaryToPrimitive(cx, wrapper, hint, vp);
 }
 
 template <class Base>
