@@ -499,6 +499,11 @@ ElfLoader::Init()
   if (dladdr(_DYNAMIC, &info) != 0) {
     self_elf = LoadedElf::Create(info.dli_fname, info.dli_fbase);
   }
+#if defined(ANDROID)
+  if (dladdr(FunctionPtr(syscall), &info) != 0) {
+    libc = LoadedElf::Create(info.dli_fname, info.dli_fbase);
+  }
+#endif
 }
 
 ElfLoader::~ElfLoader()
@@ -507,6 +512,7 @@ ElfLoader::~ElfLoader()
 
   
   self_elf = nullptr;
+  libc = nullptr;
 
   
 

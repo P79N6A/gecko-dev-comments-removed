@@ -463,6 +463,14 @@ private:
 
   mozilla::RefPtr<LibHandle> self_elf;
 
+#if defined(ANDROID)
+  
+
+
+
+  mozilla::RefPtr<LibHandle> libc;
+#endif
+
   
   typedef std::vector<LibHandle *> LibHandleList;
   LibHandleList handles;
