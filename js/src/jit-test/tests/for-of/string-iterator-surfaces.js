@@ -57,7 +57,8 @@ var iterProto = Object.getPrototypeOf(iter);
 assertEq(Object.getPrototypeOf(iterProto), Object.prototype);
 
 
-arraysEqual(Object.getOwnPropertyNames(iterProto).sort(), ["next", std_iterator].sort());
+arraysEqual(Object.getOwnPropertyNames(iterProto), ["next"]);
+assertEq(iterProto.hasOwnProperty(std_iterator), true);
 
 
 assertBuiltinFunction(iterProto, std_iterator, 0);

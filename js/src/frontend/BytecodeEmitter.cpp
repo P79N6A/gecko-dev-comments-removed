@@ -4657,9 +4657,9 @@ EmitIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
     
     if (Emit1(cx, bce, JSOP_DUP) < 0)                          
         return false;
-    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
+    if (Emit2(cx, bce, JSOP_SYMBOL, jsbytecode(JS::SymbolCode::iterator)) < 0) 
         return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                         
+    if (!EmitElemOpBase(cx, bce, JSOP_CALLELEM))               
         return false;
     if (EmitCall(cx, bce, JSOP_CALL, 0) < 0)                   
         return false;
@@ -5478,9 +5478,9 @@ EmitYieldStar(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *iter)
     
     if (Emit1(cx, bce, JSOP_DUP) < 0)                            
         return false;
-    if (!EmitAtomOp(cx, cx->names().std_iterator, JSOP_CALLPROP, bce)) 
+    if (Emit2(cx, bce, JSOP_SYMBOL, jsbytecode(JS::SymbolCode::iterator)) < 0) 
         return false;
-    if (Emit1(cx, bce, JSOP_SWAP) < 0)                           
+    if (!EmitElemOpBase(cx, bce, JSOP_CALLELEM))                 
         return false;
     if (EmitCall(cx, bce, JSOP_CALL, 0, iter) < 0)               
         return false;

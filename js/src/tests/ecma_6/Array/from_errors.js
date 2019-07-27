@@ -132,12 +132,12 @@ assertEq(obj instanceof C, true);
 
 
 for (var primitive of [undefined, null, 17]) {
+    var iterable = {};
+    iterable[Symbol.iterator] = () => {
+        next: () => primitive
+    };
     assertThrowsInstanceOf(
-        () => Array.from({
-            "@@iterator": () => {
-                next: () => primitive
-            }
-        }),
+        () => Array.from(iterable),
         TypeError);
 }
 
