@@ -69,3 +69,15 @@ def pinch(marionette_session, element, x1, y1, x2, y2, x3, y3, x4, y4, duration=
     action1.release()
     action2.release()
     multiAction.add(action1).add(action2).perform()
+
+
+
+
+
+def long_press_without_contextmenu(marionette_session, element, time_in_seconds, x=None, y=None):
+    action = Actions(marionette_session)
+    action.press(element, x, y)
+    action.move_by_offset(0, 0)
+    action.wait(time_in_seconds)
+    action.release()
+    action.perform()
