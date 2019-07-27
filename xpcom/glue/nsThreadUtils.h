@@ -521,9 +521,24 @@ struct NonnsISupportsPointerStorageClass
                          StorePtrPassByPtr<TWithoutPointer>>
 {};
 
+template<typename>
+struct SFINAE1True : mozilla::TrueType
+{};
+
+template<class T>
+static auto HasRefCountMethodsTest(int)
+    -> SFINAE1True<decltype(mozilla::DeclVal<T>().AddRef(),
+                            mozilla::DeclVal<T>().Release())>;
+template<class>
+static auto HasRefCountMethodsTest(long) -> mozilla::FalseType;
+
+template<class T>
+struct HasRefCountMethods : decltype(HasRefCountMethodsTest<T>(0))
+{};
+
 template<typename TWithoutPointer>
 struct PointerStorageClass
-  : mozilla::Conditional<mozilla::IsBaseOf<nsISupports, TWithoutPointer>::value,
+  : mozilla::Conditional<HasRefCountMethods<TWithoutPointer>::value,
                          StorensRefPtrPassByPtr<TWithoutPointer>,
                          typename NonnsISupportsPointerStorageClass<
                            TWithoutPointer
@@ -563,6 +578,7 @@ struct NonParameterStorageClass
                          >::Type,
                          typename NonPointerStorageClass<T>::Type>
 {};
+
 
 
 
