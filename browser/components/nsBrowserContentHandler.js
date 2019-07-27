@@ -742,7 +742,20 @@ nsDefaultCommandLineHandler.prototype = {
         
         
         
-        if (redirectWinSearch && uri.spec.startsWith("https://www.bing.com/search")) {
+        var uriScheme = "", uriHost = "", uriPath = "";
+        try {
+          uriScheme = uri.scheme;
+          uriHost = uri.host;
+          uriPath = uri.path;
+        } catch(e) {
+        }
+
+        
+        
+        
+        if (redirectWinSearch &&
+            (uriScheme == "http" || uriScheme == "https") &&
+            uriHost.endsWith(".bing.com") && uriPath.startsWith("/search")) {
           try {
             var url = uri.QueryInterface(Components.interfaces.nsIURL);
             var params = new URLSearchParams(url.query);
