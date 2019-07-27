@@ -53,8 +53,9 @@ public class LightweightThemeDrawable extends Drawable {
     @Override
     public void draw(Canvas canvas) {
         
-        if (mColorPaint != null)
+        if (mColorPaint != null) {
             canvas.drawPaint(mColorPaint);
+        }
 
         
         canvas.drawPaint(mPaint);
@@ -75,7 +76,7 @@ public class LightweightThemeDrawable extends Drawable {
     @Override
     public void setColorFilter(ColorFilter filter) {
         mPaint.setColorFilter(filter);
-    }		
+    }
 
     
 
@@ -112,17 +113,17 @@ public class LightweightThemeDrawable extends Drawable {
     }
 
     private void initializeBitmapShader() {
-	
         
         
-	BitmapShader bitmapShader = new BitmapShader(mBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        
+        BitmapShader bitmapShader = new BitmapShader(mBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
 
-	
-	LinearGradient gradient = new LinearGradient(0, 0, 0, mBitmap.getHeight(), mStartColor, mEndColor, Shader.TileMode.CLAMP);
-
-	
         
-	
-	mPaint.setShader(new ComposeShader(bitmapShader, gradient, PorterDuff.Mode.DST_IN));
+        LinearGradient gradient = new LinearGradient(0, 0, 0, mBitmap.getHeight(), mStartColor, mEndColor, Shader.TileMode.CLAMP);
+
+        
+        
+        
+        mPaint.setShader(new ComposeShader(bitmapShader, gradient, PorterDuff.Mode.DST_IN));
     }
 }
