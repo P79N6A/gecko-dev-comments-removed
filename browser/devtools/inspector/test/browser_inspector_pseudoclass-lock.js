@@ -48,7 +48,9 @@ function* togglePseudoClass(inspector) {
   
   let onPseudo = inspector.selection.once("pseudoclass");
   let onRefresh = inspector.once("rule-view-refreshed");
-  let onMutations = inspector.walker.once("mutations");
+
+  
+  let onMutations = once(inspector.walker, "mutations");
 
   yield inspector.togglePseudoClass(PSEUDO);
 
