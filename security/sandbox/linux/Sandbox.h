@@ -7,6 +7,8 @@
 #ifndef mozilla_Sandbox_h
 #define mozilla_Sandbox_h
 
+#include "mozilla/Types.h"
+
 namespace mozilla {
 
 
@@ -19,13 +21,13 @@ namespace mozilla {
 
 #ifdef MOZ_CONTENT_SANDBOX
 
-bool CanSandboxContentProcess();
-void SetContentProcessSandbox();
+MFBT_API bool CanSandboxContentProcess();
+MFBT_API void SetContentProcessSandbox();
 #endif
 #ifdef MOZ_GMP_SANDBOX
 
-bool CanSandboxMediaPlugin();
-void SetMediaPluginSandbox(const char *aFilePath);
+MFBT_API bool CanSandboxMediaPlugin();
+MFBT_API void SetMediaPluginSandbox(const char *aFilePath);
 #endif
 
 } 
