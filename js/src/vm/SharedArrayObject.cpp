@@ -94,8 +94,9 @@ SharedArrayRawBuffer::New(JSContext *cx, uint32_t length)
     MOZ_ASSERT(length != (uint32_t)-1);
 
     
-    MOZ_ASSERT(IsValidAsmJSHeapLength(length));
-
+    uint32_t allocSize = (length + 2*AsmJSPageSize - 1) & ~(AsmJSPageSize - 1);
+    if (allocSize <= length)
+        return nullptr;
 #ifdef JS_CODEGEN_X64
     
     
@@ -115,8 +116,7 @@ SharedArrayRawBuffer::New(JSContext *cx, uint32_t length)
         return nullptr;
     }
 
-    size_t validLength = AsmJSPageSize + length;
-    if (!MarkValidRegion(p, validLength)) {
+    if (!MarkValidRegion(p, allocSize)) {
         UnmapMemory(p, SharedArrayMappedSize);
         numLive--;
         return nullptr;
@@ -127,10 +127,6 @@ SharedArrayRawBuffer::New(JSContext *cx, uint32_t length)
                                                    SharedArrayMappedSize-validLength);
 #   endif
 #else
-    uint32_t allocSize = length + AsmJSPageSize;
-    if (allocSize <= length)
-        return nullptr;
-
     void *p = MapMemory(allocSize, true);
     if (!p)
         return nullptr;
@@ -239,18 +235,6 @@ SharedArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *
 SharedArrayBufferObject *
 SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
 {
-    if (!IsValidAsmJSHeapLength(length)) {
-        mozilla::UniquePtr<char[], JS::FreePolicy> msg;
-        if (length > INT32_MAX)
-            msg.reset(JS_smprintf("SharedArrayBuffer byteLength 0x%x is too large", length));
-        else
-            msg.reset(JS_smprintf("SharedArrayBuffer byteLength 0x%x is not a valid length. The next valid "
-                                  "length is 0x%x", length, RoundUpToNextValidAsmJSHeapLength(length)));
-        if (msg)
-            JS_ReportError(cx, msg.get());
-        return nullptr;
-    }
-
     SharedArrayRawBuffer *buffer = SharedArrayRawBuffer::New(cx, length);
     if (!buffer)
         return nullptr;
