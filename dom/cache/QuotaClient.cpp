@@ -110,6 +110,12 @@ public:
   InitOrigin(PersistenceType aPersistenceType, const nsACString& aGroup,
              const nsACString& aOrigin, UsageInfo* aUsageInfo) override
   {
+    
+    
+    if (!aUsageInfo) {
+      return NS_OK;
+    }
+
     return GetUsageForOrigin(aPersistenceType, aGroup, aOrigin, aUsageInfo);
   }
 
@@ -118,6 +124,8 @@ public:
                     const nsACString& aOrigin,
                     UsageInfo* aUsageInfo) override
   {
+    MOZ_ASSERT(aUsageInfo);
+
     QuotaManager* qm = QuotaManager::Get();
     MOZ_ASSERT(qm);
 

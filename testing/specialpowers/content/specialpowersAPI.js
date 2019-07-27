@@ -1889,6 +1889,13 @@ SpecialPowersAPI.prototype = {
     this._quotaManagerRequest('getUsage', uri, appId, inBrowser, callback);
   },
 
+  
+  
+  
+  resetStorageForURI: function(uri, callback, appId, inBrowser) {
+    this._quotaManagerRequest('reset', uri, appId, inBrowser, callback);
+  },
+
   _quotaManagerRequest: function(op, uri, appId, inBrowser, callback) {
     const messageTopic = "SPQuotaManager";
 
