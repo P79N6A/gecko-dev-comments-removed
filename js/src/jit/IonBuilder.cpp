@@ -9026,10 +9026,6 @@ IonBuilder::jsop_getprop(PropertyName *name)
     types::TemporaryTypeSet *types = bytecodeTypes(pc);
 
     
-    if (!getPropTryInferredConstant(&emitted, obj, name, types) || emitted)
-        return emitted;
-
-    
     if (!getPropTryArgumentsLength(&emitted, obj) || emitted)
         return emitted;
 
@@ -9039,6 +9035,12 @@ IonBuilder::jsop_getprop(PropertyName *name)
 
     BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
                                                        obj, name, types);
+
+    
+    if (barrier == BarrierKind::NoBarrier) {
+        if (!getPropTryInferredConstant(&emitted, obj, name, types) || emitted)
+            return emitted;
+    }
 
     
     
