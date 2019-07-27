@@ -493,7 +493,7 @@ class CompileInfo
             return true;
 
         
-        if (slot == thisSlot())
+        if (slot == thisSlot() || slot == scopeChainSlot())
             return true;
 
         if (isObservableFrameSlot(slot))
