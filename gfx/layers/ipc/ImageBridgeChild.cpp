@@ -351,7 +351,7 @@ void ImageBridgeChild::DispatchReleaseImageClient(ImageClient* aClient)
 static void ReleaseTextureClientNow(TextureClient* aClient)
 {
   MOZ_ASSERT(InImageBridgeChildThread());
-  aClient->Release();
+  RELEASE_MANUALLY(aClient);
 }
 
 
@@ -368,7 +368,7 @@ void ImageBridgeChild::DispatchReleaseTextureClient(TextureClient* aClient)
     
     
     MOZ_ASSERT(aClient->GetIPDLActor() == nullptr);
-    aClient->Release();
+    RELEASE_MANUALLY(aClient);
     return;
   }
 
