@@ -53,15 +53,13 @@ public:
     
 
 
-    const gfxMatrix& operator *= (const gfxMatrix& m) {
-        return Multiply(m);
-    }
+    const gfxMatrix& operator *= (const gfxMatrix& m);
 
     
 
 
     gfxMatrix operator * (const gfxMatrix& m) const {
-        return gfxMatrix(*this).Multiply(m);
+        return gfxMatrix(*this) *= m;
     }
 
     
@@ -127,15 +125,6 @@ public:
 
 
     const gfxMatrix& Rotate(gfxFloat radians);
-
-     
-
-
-
-
-
-
-    const gfxMatrix& Multiply(const gfxMatrix& m);
 
     
 

@@ -2623,8 +2623,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
       needScaleReq = !surf;
       if (surf) {
         frame = mScaleResult.frame;
-        userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width,
-                                                         scale.height));
+        userSpaceToImageSpace *= gfxMatrix::Scaling(scale.width, scale.height);
 
         
         

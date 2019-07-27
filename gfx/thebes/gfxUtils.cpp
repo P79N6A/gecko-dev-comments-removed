@@ -501,7 +501,7 @@ DeviceToImageTransform(gfxContext* aContext,
         return gfxMatrix(0, 0, 0, 0, 0, 0); 
     }
     deviceToUser.Translate(-gfxPoint(-deviceX, -deviceY));
-    return gfxMatrix(deviceToUser).Multiply(aUserSpaceToImageSpace);
+    return deviceToUser * aUserSpaceToImageSpace;
 }
 
 

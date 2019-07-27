@@ -388,19 +388,18 @@ ClippedImage::DrawSingleTile(gfxContext* aContext,
   }
 
   
-  gfxMatrix transform(aUserSpaceToImageSpace);
-  transform.Multiply(gfxMatrix().Translate(gfxPoint(mClip.x, mClip.y)));
+  gfxMatrix transform =
+    aUserSpaceToImageSpace * gfxMatrix::Translation(mClip.x, mClip.y);
 
   
   
   gfxRect sourceRect = transform.Transform(aFill);
   if (sourceRect.width > mClip.width || sourceRect.height > mClip.height) {
-    gfxMatrix clampSource;
-    clampSource.Translate(gfxPoint(sourceRect.x, sourceRect.y));
+    gfxMatrix clampSource = gfxMatrix::Translation(sourceRect.TopLeft());
     clampSource.Scale(ClampFactor(sourceRect.width, mClip.width),
                       ClampFactor(sourceRect.height, mClip.height));
-    clampSource.Translate(gfxPoint(-sourceRect.x, -sourceRect.y));
-    transform.Multiply(clampSource);
+    clampSource.Translate(-sourceRect.TopLeft());
+    transform *= clampSource;
   }
 
   return InnerImage()->Draw(aContext, aFilter, transform, aFill, aSubimage,
