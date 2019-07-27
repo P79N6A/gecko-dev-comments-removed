@@ -1284,7 +1284,11 @@ nsStyleSet::ResolveStyleByAddingRules(nsStyleContext* aBaseContext,
   ruleWalker.SetCurrentNode(aBaseContext->RuleNode());
   
   
-  ruleWalker.SetLevel(eDocSheet, false, false);
+  
+  
+  
+  
+  ruleWalker.SetLevel(eTransitionSheet, false, false);
   for (int32_t i = 0; i < aRules.Count(); i++) {
     ruleWalker.ForwardOnPossiblyCSSRule(aRules.ObjectAt(i));
   }

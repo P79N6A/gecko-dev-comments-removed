@@ -115,6 +115,17 @@ class nsStyleSet
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   already_AddRefed<nsStyleContext>
   ResolveStyleByAddingRules(nsStyleContext* aBaseContext,
                             const nsCOMArray<nsIStyleRule> &aRules);
