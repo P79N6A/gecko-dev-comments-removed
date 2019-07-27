@@ -66,49 +66,6 @@ private:
   nsRefPtr<RasterImage> mImage;
 };
 
-class FrameNeededWorker : public nsRunnable
-{
-public:
-  
-
-
-
-
-
-
-  static void Dispatch(RasterImage* aImage)
-  {
-    nsCOMPtr<nsIRunnable> worker = new FrameNeededWorker(aImage);
-    NS_DispatchToMainThread(worker);
-  }
-
-  NS_IMETHOD Run() MOZ_OVERRIDE
-  {
-    ReentrantMonitorAutoEnter lock(mImage->mDecodingMonitor);
-    nsresult rv = NS_OK;
-
-    
-    
-    if (mImage->mDecoder && mImage->mDecoder->NeedsNewFrame()) {
-      rv = mImage->mDecoder->AllocateFrame();
-    }
-
-    if (NS_SUCCEEDED(rv) && mImage->mDecoder) {
-      
-      DecodePool::Singleton()->RequestDecode(mImage);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  explicit FrameNeededWorker(RasterImage* aImage)
-    : mImage(aImage)
-  { }
-
-  nsRefPtr<RasterImage> mImage;
-};
-
 class DecodeWorker : public nsRunnable
 {
 public:
@@ -132,13 +89,6 @@ public:
       return NS_OK;
     }
 
-    
-    
-    
-    if (mImage->mDecoder->NeedsNewFrame()) {
-      return NS_OK;
-    }
-
     mImage->mDecodeStatus = DecodeStatus::ACTIVE;
 
     size_t oldByteCount = mImage->mDecoder->BytesDecoded();
@@ -150,23 +100,18 @@ public:
 
     size_t maxBytes = mImage->mSourceData.Length() -
                       mImage->mDecoder->BytesDecoded();
-    DecodePool::Singleton()->DecodeSomeOfImage(mImage, DecodeStrategy::ASYNC,
-                                               type, maxBytes);
+    DecodePool::Singleton()->DecodeSomeOfImage(mImage, type, maxBytes);
 
     size_t bytesDecoded = mImage->mDecoder->BytesDecoded() - oldByteCount;
 
     mImage->mDecodeStatus = DecodeStatus::WORK_DONE;
 
-    if (mImage->mDecoder && mImage->mDecoder->NeedsNewFrame()) {
-      
-      
-      FrameNeededWorker::Dispatch(mImage);
-    } else if (mImage->mDecoder &&
-               !mImage->mError &&
-               !mImage->mPendingError &&
-               !mImage->IsDecodeFinished() &&
-               bytesDecoded < maxBytes &&
-               bytesDecoded > 0) {
+    if (mImage->mDecoder &&
+        !mImage->mError &&
+        !mImage->mPendingError &&
+        !mImage->IsDecodeFinished() &&
+        bytesDecoded < maxBytes &&
+        bytesDecoded > 0) {
       
       
       DecodePool::Singleton()->RequestDecode(mImage);
@@ -323,30 +268,26 @@ DecodePool::RequestDecode(RasterImage* aImage)
   MOZ_ASSERT(aImage->mDecoder);
   aImage->mDecodingMonitor.AssertCurrentThreadIn();
 
-  
-  
-  if (!aImage->mDecoder->NeedsNewFrame()) {
-    if (aImage->mDecodeStatus == DecodeStatus::PENDING ||
-        aImage->mDecodeStatus == DecodeStatus::ACTIVE) {
-      
-      
-      return;
-    }
+  if (aImage->mDecodeStatus == DecodeStatus::PENDING ||
+      aImage->mDecodeStatus == DecodeStatus::ACTIVE) {
+    
+    
+    return;
+  }
 
-    aImage->mDecodeStatus = DecodeStatus::PENDING;
-    nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aImage);
+  aImage->mDecodeStatus = DecodeStatus::PENDING;
+  nsCOMPtr<nsIRunnable> worker = new DecodeWorker(aImage);
 
-    MutexAutoLock threadPoolLock(mThreadPoolMutex);
-    if (!gfxPrefs::ImageMTDecodingEnabled() || !mThreadPool) {
-      NS_DispatchToMainThread(worker);
-    } else {
-      mThreadPool->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
-    }
+  MutexAutoLock threadPoolLock(mThreadPoolMutex);
+  if (!gfxPrefs::ImageMTDecodingEnabled() || !mThreadPool) {
+    NS_DispatchToMainThread(worker);
+  } else {
+    mThreadPool->Dispatch(worker, nsIEventTarget::DISPATCH_NORMAL);
   }
 }
 
 void
-DecodePool::DecodeABitOf(RasterImage* aImage, DecodeStrategy aStrategy)
+DecodePool::DecodeABitOf(RasterImage* aImage)
 {
   MOZ_ASSERT(NS_IsMainThread());
   aImage->mDecodingMonitor.AssertCurrentThreadIn();
@@ -356,23 +297,17 @@ DecodePool::DecodeABitOf(RasterImage* aImage, DecodeStrategy aStrategy)
     aImage->FinishedSomeDecoding();
   }
 
-  DecodeSomeOfImage(aImage, aStrategy);
+  DecodeSomeOfImage(aImage);
 
   aImage->FinishedSomeDecoding();
 
   
   
-  if (aImage->mDecoder && aImage->mDecoder->NeedsNewFrame()) {
-    FrameNeededWorker::Dispatch(aImage);
-  } else {
-    
-    
-    if (aImage->mDecoder &&
-        !aImage->mError &&
-        !aImage->IsDecodeFinished() &&
-        aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded()) {
-      RequestDecode(aImage);
-    }
+  if (aImage->mDecoder &&
+      !aImage->mError &&
+      !aImage->IsDecodeFinished() &&
+      aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded()) {
+    RequestDecode(aImage);
   }
 }
 
@@ -401,28 +336,16 @@ DecodePool::DecodeUntilSizeAvailable(RasterImage* aImage)
     }
   }
 
-  
-  
-  nsresult rv =
-    DecodeSomeOfImage(aImage, DecodeStrategy::ASYNC, DecodeUntil::SIZE);
+  nsresult rv = DecodeSomeOfImage(aImage, DecodeUntil::SIZE);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  
-  
-  if (aImage->mDecoder && aImage->mDecoder->NeedsNewFrame()) {
-    FrameNeededWorker::Dispatch(aImage);
-  } else {
-    rv = aImage->FinishedSomeDecoding();
-  }
-
-  return rv;
+  return aImage->FinishedSomeDecoding();
 }
 
 nsresult
 DecodePool::DecodeSomeOfImage(RasterImage* aImage,
-                              DecodeStrategy aStrategy,
                               DecodeUntil aDecodeUntil ,
                               uint32_t bytesToDecode )
 {
@@ -445,15 +368,6 @@ DecodePool::DecodeSomeOfImage(RasterImage* aImage,
   
   if (!aImage->mDecoder || aImage->mDecoded) {
     return NS_OK;
-  }
-
-  if (aImage->mDecoder->NeedsNewFrame()) {
-    if (aStrategy == DecodeStrategy::SYNC) {
-      MOZ_ASSERT(NS_IsMainThread());
-      aImage->mDecoder->AllocateFrame();
-    } else {
-      return NS_OK;
-    }
   }
 
   nsRefPtr<Decoder> decoderKungFuDeathGrip = aImage->mDecoder;
@@ -482,16 +396,12 @@ DecodePool::DecodeSomeOfImage(RasterImage* aImage,
   
   
   
-  
-  
-  while ((aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded() &&
-          bytesToDecode > 0 &&
-          !aImage->IsDecodeFinished() &&
-          !(aDecodeUntil == DecodeUntil::SIZE && aImage->mHasSize) &&
-          !aImage->mDecoder->NeedsNewFrame()) ||
-         aImage->mDecoder->NeedsToFlushData()) {
+  while (aImage->mSourceData.Length() > aImage->mDecoder->BytesDecoded() &&
+         bytesToDecode > 0 &&
+         !aImage->IsDecodeFinished() &&
+         !(aDecodeUntil == DecodeUntil::SIZE && aImage->mHasSize)) {
     uint32_t chunkSize = min(bytesToDecode, maxBytes);
-    nsresult rv = aImage->DecodeSomeData(chunkSize, aStrategy);
+    nsresult rv = aImage->DecodeSomeData(chunkSize);
     if (NS_FAILED(rv)) {
       aImage->DoError();
       return rv;

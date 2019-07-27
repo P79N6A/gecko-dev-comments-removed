@@ -25,22 +25,6 @@ namespace image {
 class Decoder;
 class RasterImage;
 
-MOZ_BEGIN_ENUM_CLASS(DecodeStrategy, uint8_t)
-  
-  
-  
-  
-  
-  SYNC,
-
-  
-  
-  
-  
-  
-  ASYNC
-MOZ_END_ENUM_CLASS(DecodeStrategy)
-
 MOZ_BEGIN_ENUM_CLASS(DecodeStatus, uint8_t)
   INACTIVE,
   PENDING,
@@ -92,7 +76,7 @@ public:
 
 
 
-  void DecodeABitOf(RasterImage* aImage, DecodeStrategy aStrategy);
+  void DecodeABitOf(RasterImage* aImage);
 
   
 
@@ -128,7 +112,6 @@ public:
 
 
   nsresult DecodeSomeOfImage(RasterImage* aImage,
-                             DecodeStrategy aStrategy,
                              DecodeUntil aDecodeUntil = DecodeUntil::TIME,
                              uint32_t bytesToDecode = 0);
 

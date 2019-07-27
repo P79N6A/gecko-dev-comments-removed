@@ -56,7 +56,7 @@ public:
 
 
 
-  void Write(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
+  void Write(const char* aBuffer, uint32_t aCount);
 
   
 
@@ -180,13 +180,8 @@ public:
                     uint32_t width, uint32_t height,
                     gfx::SurfaceFormat format,
                     uint8_t palette_depth = 0);
-
   virtual bool NeedsNewFrame() const { return mNeedsNewFrame; }
 
-  
-  
-  
-  bool NeedsToFlushData() const { return mNeedsToFlushData; }
 
   
   
@@ -212,8 +207,7 @@ protected:
 
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
-    DecodeStrategy aStrategy);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
   virtual void FinishInternal();
 
   
@@ -269,6 +263,11 @@ protected:
   
   void PostDataError();
   void PostDecoderError(nsresult aFailCode);
+
+  
+  
+  
+  bool NeedsToFlushData() const { return mNeedsToFlushData; }
 
   
 

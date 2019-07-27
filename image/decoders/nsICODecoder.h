@@ -38,17 +38,17 @@ public:
     return mDirEntry.mHeight == 0 ? 256 : mDirEntry.mHeight;
   }
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
-                             DecodeStrategy aStrategy) MOZ_OVERRIDE;
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount) MOZ_OVERRIDE;
   virtual void FinishInternal() MOZ_OVERRIDE;
-  virtual bool NeedsNewFrame() const MOZ_OVERRIDE;
   virtual nsresult AllocateFrame() MOZ_OVERRIDE;
+
+protected:
+  virtual bool NeedsNewFrame() const MOZ_OVERRIDE;
 
 private:
   
   
-  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount,
-                               DecodeStrategy aStrategy);
+  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount);
 
   
   void ProcessDirEntry(IconDirEntry& aTarget);

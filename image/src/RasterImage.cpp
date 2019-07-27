@@ -1230,7 +1230,7 @@ RasterImage::AddSourceData(const char *aBuffer, uint32_t aCount)
   
   
   if (!StoringSourceData() && mHasSize) {
-    rv = WriteToDecoder(aBuffer, aCount, DecodeStrategy::SYNC);
+    rv = WriteToDecoder(aBuffer, aCount);
     CONTAINER_ENSURE_SUCCESS(rv);
 
     rv = FinishedSomeDecoding();
@@ -1638,7 +1638,7 @@ RasterImage::ShutdownDecoder(ShutdownReason aReason)
 
 
 nsresult
-RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
+RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount)
 {
   mDecodingMonitor.AssertCurrentThreadIn();
 
@@ -1647,7 +1647,7 @@ RasterImage::WriteToDecoder(const char *aBuffer, uint32_t aCount, DecodeStrategy
 
   
   nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
-  mDecoder->Write(aBuffer, aCount, aStrategy);
+  mDecoder->Write(aBuffer, aCount);
 
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
@@ -1715,11 +1715,6 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 
   
   if (mDecoded)
-    return NS_OK;
-
-  
-  
-  if (mDecoder && mDecoder->NeedsNewFrame())
     return NS_OK;
 
   
@@ -1821,7 +1816,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     PROFILER_LABEL_PRINTF("RasterImage", "DecodeABitOf",
       js::ProfileEntry::Category::GRAPHICS, "%s", GetURIString().get());
 
-    DecodePool::Singleton()->DecodeABitOf(this, DecodeStrategy::SYNC);
+    DecodePool::Singleton()->DecodeABitOf(this);
     return NS_OK;
   }
 
@@ -1890,11 +1885,6 @@ RasterImage::SyncDecode()
   }
 
   
-  if (mDecoder && mDecoder->NeedsNewFrame()) {
-    mDecoder->AllocateFrame();
-  }
-
-  
   if (!mDecoder) {
     rv = InitDecoder( false);
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -1903,8 +1893,7 @@ RasterImage::SyncDecode()
   MOZ_ASSERT(mDecoder);
 
   
-  rv = DecodeSomeData(mSourceData.Length() - mDecoder->BytesDecoded(),
-                      DecodeStrategy::SYNC);
+  rv = DecodeSomeData(mSourceData.Length() - mDecoder->BytesDecoded());
   CONTAINER_ENSURE_SUCCESS(rv);
 
   rv = FinishedSomeDecoding();
@@ -2215,21 +2204,11 @@ RasterImage::RequestDiscard()
 
 
 nsresult
-RasterImage::DecodeSomeData(size_t aMaxBytes, DecodeStrategy aStrategy)
+RasterImage::DecodeSomeData(size_t aMaxBytes)
 {
   MOZ_ASSERT(mDecoder, "Should have a decoder");
 
   mDecodingMonitor.AssertCurrentThreadIn();
-
-  
-  
-  
-  if (mDecoder->NeedsToFlushData()) {
-    nsresult rv = WriteToDecoder(nullptr, 0, aStrategy);
-    if (NS_FAILED(rv) || mDecoder->NeedsNewFrame()) {
-      return rv;
-    }
-  }
 
   
   if (mDecoder->BytesDecoded() == mSourceData.Length()) {
@@ -2242,8 +2221,7 @@ RasterImage::DecodeSomeData(size_t aMaxBytes, DecodeStrategy aStrategy)
   size_t bytesToDecode = min(aMaxBytes,
                              mSourceData.Length() - mDecoder->BytesDecoded());
   return WriteToDecoder(mSourceData.Elements() + mDecoder->BytesDecoded(),
-                        bytesToDecode,
-                        aStrategy);
+                        bytesToDecode);
 
 }
 
@@ -2265,13 +2243,6 @@ RasterImage::IsDecodeFinished()
     }
   } else if (mDecoder->GetDecodeDone()) {
     return true;
-  }
-
-  
-  
-  
-  if (mDecoder->NeedsNewFrame() || mDecoder->NeedsToFlushData()) {
-    return false;
   }
 
   
