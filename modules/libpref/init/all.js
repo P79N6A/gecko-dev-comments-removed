@@ -478,10 +478,17 @@ pref("media.video_stats.enabled", true);
 pref("media.audio_data.enabled", false);
 
 
+#ifdef XP_WIN
+pref("layers.async-pan-zoom.enabled", true);
+
+
+pref("layout.event-regions.enabled", true);
+#else
 pref("layers.async-pan-zoom.enabled", false);
 
 
 pref("layout.event-regions.enabled", false);
+#endif
 
 
 
