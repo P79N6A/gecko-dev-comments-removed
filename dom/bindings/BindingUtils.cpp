@@ -20,7 +20,6 @@
 #include "jsfriendapi.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
-#include "nsIDocShell.h"
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
@@ -2382,47 +2381,12 @@ CheckPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[
   return false;
 }
 
-void
-HandlePrerenderingViolation(nsPIDOMWindow* aWindow)
-{
-  
-  aWindow->SuspendTimeouts();
-
-  
-  nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
-  if (doc) {
-    doc->SuppressEventHandling(nsIDocument::eEvents);
-  }
-}
-
 bool
-EnforceNotInPrerendering(JSContext* aCx, JSObject* aObj)
+CheckSafetyInPrerendering(JSContext* aCx, JSObject* aObj)
 {
-  JS::Rooted<JSObject*> thisObj(aCx, js::CheckedUnwrap(aObj));
-  if (!thisObj) {
-    
-    return true;
-  }
-  nsGlobalWindow* window = xpc::WindowGlobalOrNull(thisObj);
-  if (!window) {
-    
-    return true;
-  }
-
-  nsIDocShell* docShell = window->GetDocShell();
-  if (!docShell) {
-    
-    return true;
-  }
-
-  if (docShell->GetIsPrerendered()) {
-    HandlePrerenderingViolation(window);
-    
-    
-    return false;
-  }
-
-  return true;
+  
+  
+  return false;
 }
 
 bool

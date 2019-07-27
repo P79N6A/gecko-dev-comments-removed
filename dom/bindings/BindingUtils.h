@@ -3143,19 +3143,8 @@ bool
 CheckPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[]);
 
 
-
-
-
-
-
 bool
-EnforceNotInPrerendering(JSContext* aCx, JSObject* aObj);
-
-
-
-
-void
-HandlePrerenderingViolation(nsPIDOMWindow* aWindow);
+CheckSafetyInPrerendering(JSContext* aCx, JSObject* aObj);
 
 bool
 CallerSubsumes(JSObject* aObject);
