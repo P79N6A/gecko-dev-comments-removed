@@ -593,7 +593,8 @@ protected:
 
   
   
-  void StartPlayback();
+  
+  void MaybeStartPlayback();
 
   
   
