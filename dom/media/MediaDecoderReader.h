@@ -247,6 +247,8 @@ public:
   
   
   virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
+  
+  virtual void NotifyDataRemoved() {}
   virtual int64_t GetEvictionOffset(double aTime) { return -1; }
 
   virtual MediaQueue<AudioData>& AudioQueue() { return mAudioQueue; }
