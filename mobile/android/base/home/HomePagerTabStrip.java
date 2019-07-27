@@ -132,7 +132,10 @@ class HomePagerTabStrip extends PagerTabStrip {
     private class PreDrawListener implements ViewTreeObserver.OnPreDrawListener {
         @Override
         public boolean onPreDraw() {
-            animateTitles();
+            if (!TransitionsTracker.areTransitionsRunning()) {
+                
+                animateTitles();
+            }
             getViewTreeObserver().removeOnPreDrawListener(this);
             return true;
         }
