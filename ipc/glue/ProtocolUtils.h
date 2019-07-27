@@ -21,6 +21,7 @@
 #include "mozilla/ipc/Transport.h"
 #include "mozilla/ipc/MessageLink.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/Mutex.h"
 #include "MainThreadUtils.h"
 
 #if defined(ANDROID) && defined(DEBUG)
@@ -181,16 +182,13 @@ public:
 
 
 
-class IToplevelProtocol : public LinkedListElement<IToplevelProtocol>
+class IToplevelProtocol : private LinkedListElement<IToplevelProtocol>
 {
-protected:
-    explicit IToplevelProtocol(ProtocolId aProtoId)
-        : mProtocolId(aProtoId)
-        , mTrans(nullptr)
-    {
-        MOZ_ASSERT(NS_IsMainThread() || AllowNonMainThreadUse());
-    }
+    friend class LinkedList<IToplevelProtocol>;
+    friend class LinkedListElement<IToplevelProtocol>;
 
+protected:
+    explicit IToplevelProtocol(ProtocolId aProtoId);
     ~IToplevelProtocol();
 
     
@@ -209,19 +207,13 @@ public:
 
     ProtocolId GetProtocolId() const { return mProtocolId; }
 
+    void GetOpenedActors(nsTArray<IToplevelProtocol*>& aActors);
+
     
-
-
-    IToplevelProtocol* GetFirstOpenedActors()
-    {
-        MOZ_ASSERT(NS_IsMainThread() || AllowNonMainThreadUse());
-        return mOpenActors.getFirst();
-    }
-    const IToplevelProtocol* GetFirstOpenedActors() const
-    {
-        MOZ_ASSERT(NS_IsMainThread() || AllowNonMainThreadUse());
-        return mOpenActors.getFirst();
-    }
+    
+    
+    
+    size_t GetOpenedActorsUnsafe(IToplevelProtocol** aActors, size_t aActorsMax);
 
     virtual IToplevelProtocol*
     CloneToplevel(const InfallibleTArray<ProtocolFdMapping>& aFds,
@@ -233,27 +225,15 @@ public:
                               base::ProcessHandle aPeerProcess,
                               ProtocolCloneContext* aCtx);
 
-#ifdef MOZ_IPDL_TESTS
-    static void SetAllowNonMainThreadUse();
-#endif
-
-    static bool AllowNonMainThreadUse() {
-#ifdef MOZ_IPDL_TESTS
-        return sAllowNonMainThreadUse;
-#else
-        return false;
-#endif
-    }
-
 private:
+    void AddOpenedActorLocked(IToplevelProtocol* aActor);
+    void GetOpenedActorsLocked(nsTArray<IToplevelProtocol*>& aActors);
+
     LinkedList<IToplevelProtocol> mOpenActors; 
+    IToplevelProtocol* mOpener;
 
     ProtocolId mProtocolId;
     Transport* mTrans;
-
-#ifdef MOZ_IPDL_TESTS
-    static bool sAllowNonMainThreadUse;
-#endif
 };
 
 

@@ -140,10 +140,6 @@ IPDLUnitTestMain(void* aData)
     char* testString = reinterpret_cast<char*>(aData);
 
     
-    
-    mozilla::ipc::IToplevelProtocol::SetAllowNonMainThreadUse();
-
-    
     const char *prefix = "thread:";
     const int prefixLen = strlen(prefix);
     if (!strncmp(testString, prefix, prefixLen)) {
@@ -378,10 +374,6 @@ IPDLUnitTestChildInit(IPC::Channel* transport,
                       base::ProcessHandle parent,
                       MessageLoop* worker)
 {
-    
-    
-    mozilla::ipc::IToplevelProtocol::SetAllowNonMainThreadUse();
-
     switch (IPDLUnitTest()) {
 
 
