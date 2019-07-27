@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "ContentEventHandler.h"
 #include "nsContentUtils.h"
@@ -20,9 +20,9 @@ using namespace mozilla::widget;
 
 namespace mozilla {
 
-/******************************************************************************
- * TextComposition
- ******************************************************************************/
+
+
+
 
 TextComposition::TextComposition(nsPresContext* aPresContext,
                                  nsINode* aNode,
@@ -43,8 +43,8 @@ TextComposition::Destroy()
 {
   mPresContext = nullptr;
   mNode = nullptr;
-  // TODO: If the editor is still alive and this is held by it, we should tell
-  //       this being destroyed for cleaning up the stuff.
+  
+  
 }
 
 bool
@@ -69,8 +69,8 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
     return;
   }
 
-  // Emulate editor behavior of text event handler if no editor handles
-  // composition/text events.
+  
+  
   if (aEvent->message == NS_TEXT_TEXT && !HasEditor()) {
     EditorWillHandleTextEvent(aEvent->AsTextEvent());
     EditorDidHandleTextEvent();
@@ -81,9 +81,9 @@ TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
     MOZ_ASSERT(!mIsComposing, "Why is the editor still composing?");
     MOZ_ASSERT(!HasEditor(), "Why does the editor still keep to hold this?");
   }
-#endif // #ifdef DEBUG
+#endif 
 
-  // Notify composition update to widget if possible
+  
   NotityUpdateComposition(aEvent);
 }
 
@@ -92,12 +92,12 @@ TextComposition::NotityUpdateComposition(WidgetGUIEvent* aEvent)
 {
   nsEventStatus status;
 
-  // When compositon start, notify the rect of first offset character.
-  // When not compositon start, notify the rect of selected composition
-  // string if text event.
+  
+  
+  
   if (aEvent->message == NS_COMPOSITION_START) {
     nsCOMPtr<nsIWidget> widget = mPresContext->GetRootWidget();
-    // Update composition start offset
+    
     WidgetQueryContentEvent selectedTextEvent(true,
                                               NS_QUERY_SELECTED_TEXT,
                                               widget);
@@ -105,12 +105,12 @@ TextComposition::NotityUpdateComposition(WidgetGUIEvent* aEvent)
     if (selectedTextEvent.mSucceeded) {
       mCompositionStartOffset = selectedTextEvent.mReply.mOffset;
     } else {
-      // Unknown offset
+      
       NS_WARNING("Cannot get start offset of IME composition");
       mCompositionStartOffset = 0;
     }
     mCompositionTargetOffset = mCompositionStartOffset;
-  } else if (aEvent->mClass != NS_TEXT_EVENT) {
+  } else if (aEvent->mClass != eTextEventClass) {
     return;
   } else {
     mCompositionTargetOffset =
@@ -180,7 +180,7 @@ TextComposition::EndHandlingComposition(nsIEditor* aEditor)
 #ifdef DEBUG
   nsCOMPtr<nsIEditor> editor = GetEditor();
   MOZ_ASSERT(editor == aEditor, "Another editor handled the composition?");
-#endif // #ifdef DEBUG
+#endif 
   mEditorWeak = nullptr;
 }
 
@@ -198,9 +198,9 @@ TextComposition::HasEditor() const
   return !!editor;
 }
 
-/******************************************************************************
- * TextComposition::CompositionEventDispatcher
- ******************************************************************************/
+
+
+
 
 TextComposition::CompositionEventDispatcher::CompositionEventDispatcher(
                                                nsPresContext* aPresContext,
@@ -218,7 +218,7 @@ TextComposition::CompositionEventDispatcher::Run()
 {
   if (!mPresContext->GetPresShell() ||
       mPresContext->GetPresShell()->IsDestroying()) {
-    return NS_OK; // cannot dispatch any events anymore
+    return NS_OK; 
   }
 
   nsEventStatus status = nsEventStatus_eIgnore;
@@ -256,9 +256,9 @@ TextComposition::CompositionEventDispatcher::Run()
   return NS_OK;
 }
 
-/******************************************************************************
- * TextCompositionArray
- ******************************************************************************/
+
+
+
 
 TextCompositionArray::index_type
 TextCompositionArray::IndexOf(nsIWidget* aWidget)
@@ -313,7 +313,7 @@ TextComposition*
 TextCompositionArray::GetCompositionInContent(nsPresContext* aPresContext,
                                               nsIContent* aContent)
 {
-  // There should be only one composition per content object.
+  
   for (index_type i = Length(); i > 0; --i) {
     nsINode* node = ElementAt(i - 1)->GetEventTargetNode();
     if (node && nsContentUtils::ContentIsDescendantOf(node, aContent)) {
@@ -323,4 +323,4 @@ TextCompositionArray::GetCompositionInContent(nsPresContext* aPresContext,
   return nullptr;
 }
 
-} // namespace mozilla
+} 

@@ -34,7 +34,7 @@ enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
   
   eKeyboardEventClass,               
   eCompositionEventClass,            
-  NS_TEXT_EVENT,                     
+  eTextEventClass,                   
   NS_QUERY_CONTENT_EVENT,            
   NS_SELECTION_EVENT,                
   NS_EDITOR_INPUT_EVENT,             
