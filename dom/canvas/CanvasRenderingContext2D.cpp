@@ -4318,7 +4318,10 @@ CanvasRenderingContext2D::DrawImage(const HTMLImageOrCanvasOrVideoElement& image
 
     if (!res.mSourceSurface && !res.mDrawInfo.mImgContainer) {
       
-      if (!res.mIsStillLoading) {
+      
+      
+      
+      if (!res.mIsStillLoading && !res.mHasSize) {
         error.Throw(NS_ERROR_NOT_AVAILABLE);
       }
       return;

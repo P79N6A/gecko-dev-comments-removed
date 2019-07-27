@@ -6611,6 +6611,7 @@ nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
 
   uint32_t status;
   imgRequest->GetImageStatus(&status);
+  result.mHasSize = status & imgIRequest::STATUS_SIZE_AVAILABLE;
   if ((status & imgIRequest::STATUS_LOAD_COMPLETE) == 0) {
     
     
@@ -6731,6 +6732,7 @@ nsLayoutUtils::SurfaceFromElement(HTMLCanvasElement* aElement,
   
   aElement->MarkContextClean();
 
+  result.mHasSize = true;
   result.mSize = size;
   result.mPrincipal = aElement->NodePrincipal();
   result.mIsWriteOnly = aElement->IsWriteOnly();
@@ -6783,6 +6785,7 @@ nsLayoutUtils::SurfaceFromElement(HTMLVideoElement* aElement,
   }
 
   result.mCORSUsed = aElement->GetCORSMode() != CORS_NONE;
+  result.mHasSize = true;
   result.mSize = size;
   result.mPrincipal = principal.forget();
   result.mIsWriteOnly = false;
@@ -7839,6 +7842,7 @@ nsLayoutUtils::SurfaceFromElementResult::SurfaceFromElementResult()
   
   : mIsWriteOnly(true)
   , mIsStillLoading(false)
+  , mHasSize(false)
   , mCORSUsed(false)
   , mIsPremultiplied(true)
 {
