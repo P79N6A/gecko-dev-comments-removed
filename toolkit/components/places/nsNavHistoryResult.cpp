@@ -3611,11 +3611,13 @@ nsNavHistoryFolderResultNode::OnItemRemoved(int64_t aItemId,
                                             const nsACString& aParentGUID)
 {
   
+  MOZ_ASSERT_IF(mItemId != mTargetFolderItemId, aItemId != mTargetFolderItemId);
   
-  MOZ_ASSERT(mItemId == mTargetFolderItemId || aItemId != mItemId);
+  
+  MOZ_ASSERT_IF(mItemId == mTargetFolderItemId, aItemId != mItemId);
 
   
-  if (mTargetFolderItemId == aItemId)
+  if (mTargetFolderItemId == aItemId || mItemId == aItemId)
     return NS_OK;
 
   MOZ_ASSERT(aParentFolder == mTargetFolderItemId, "Got wrong bookmark update");
