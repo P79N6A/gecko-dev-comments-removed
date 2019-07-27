@@ -15,10 +15,7 @@
 #include "Layers.h"
 #include "SharedThreadPool.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/dom/TimeRanges.h"
-#include "mp4_demuxer/AnnexB.h"
-#include "mp4_demuxer/H264.h"
 #include "SharedDecoderManager.h"
 
 #ifdef MOZ_EME
@@ -66,28 +63,6 @@ TrackTypeToStr(TrackType aTrack)
   }
 }
 #endif
-
-bool
-AccumulateSPSTelemetry(const ByteBuffer* aExtradata)
-{
-  SPSData spsdata;
-  if (H264::DecodeSPSFromExtraData(aExtradata, spsdata) &&
-      spsdata.profile_idc && spsdata.level_idc) {
-    
-    Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_PROFILE,
-                          spsdata.profile_idc <= 244 ? spsdata.profile_idc : 0);
-
-    
-    
-    Telemetry::Accumulate(Telemetry::VIDEO_DECODED_H264_SPS_LEVEL,
-                          (spsdata.level_idc >= 10 && spsdata.level_idc <= 52) ?
-                          spsdata.level_idc : 0);
-
-    return true;
-  }
-
-  return false;
-}
 
 
 
@@ -139,7 +114,6 @@ MP4Reader::MP4Reader(AbstractMediaDecoder* aDecoder)
   , mLastReportedNumDecodedFrames(0)
   , mLayersBackendType(layers::LayersBackend::LAYERS_NONE)
   , mDemuxerInitialized(false)
-  , mFoundSPSForTelemetry(false)
   , mIsEncrypted(false)
   , mIndexReady(false)
   , mDemuxerMonitor("MP4 Demuxer")
@@ -491,11 +465,6 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
     nsresult rv = mVideo.mDecoder->Init();
     NS_ENSURE_SUCCESS(rv, rv);
     mInfo.mVideo.mIsHardwareAccelerated = mVideo.mDecoder->IsHardwareAccelerated();
-
-    
-    if (!mFoundSPSForTelemetry) {
-      mFoundSPSForTelemetry = AccumulateSPSTelemetry(video.extra_data);
-    }
   }
 
   
@@ -716,13 +685,6 @@ MP4Reader::Update(TrackType aTrack)
 
   if (needInput) {
     MP4Sample* sample = PopSample(aTrack);
-
-    
-    if (!mFoundSPSForTelemetry && AnnexB::HasSPS(sample)) {
-      nsRefPtr<ByteBuffer> extradata = AnnexB::ExtractExtraData(sample);
-      mFoundSPSForTelemetry = AccumulateSPSTelemetry(extradata);
-    }
-
     if (sample) {
       decoder.mDecoder->Input(sample);
       if (aTrack == kVideo) {

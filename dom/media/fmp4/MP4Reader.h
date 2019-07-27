@@ -261,9 +261,6 @@ private:
   bool mDemuxerInitialized;
 
   
-  bool mFoundSPSForTelemetry;
-
-  
   bool mIsEncrypted;
 
   bool mIndexReady;
