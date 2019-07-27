@@ -134,7 +134,6 @@ JSRuntime::JSRuntime(JSRuntime *parentRuntime)
     localeCallbacks(nullptr),
     defaultLocale(nullptr),
     defaultVersion_(JSVERSION_DEFAULT),
-    futexAPI_(nullptr),
     ownerThread_(nullptr),
     ownerThreadNative_(0),
     tempLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
@@ -326,6 +325,9 @@ JSRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
     if (!spsProfiler.init())
         return false;
 
+    if (!fx.initInstance())
+        return false;
+
     return true;
 }
 
@@ -333,8 +335,7 @@ JSRuntime::~JSRuntime()
 {
     MOZ_ASSERT(!isHeapBusy());
 
-    delete futexAPI_;
-    futexAPI_ = nullptr;
+    fx.destroyInstance();
 
     if (gcInitialized) {
         
@@ -602,8 +603,18 @@ JSRuntime::requestInterrupt(InterruptMode mode)
     interrupt_ = true;
     jitStackLimit_ = UINTPTR_MAX;
 
-    if (mode == JSRuntime::RequestInterruptUrgent)
+    if (mode == JSRuntime::RequestInterruptUrgent) {
+        
+        
+        
+        
+        
+        fx.lock();
+        if (fx.isWaiting())
+            fx.wake(FutexRuntime::WakeForJSInterrupt);
+        fx.unlock();
         InterruptRunningJitCode(this);
+    }
 }
 
 bool

@@ -25,6 +25,7 @@
 #ifdef XP_MACOSX
 # include "asmjs/AsmJSSignalHandlers.h"
 #endif
+#include "builtin/AtomicsObject.h"
 #include "ds/FixedSizeHash.h"
 #include "frontend/ParseMaps.h"
 #include "gc/GCRuntime.h"
@@ -788,7 +789,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSVersion defaultVersion_;
 
     
-    JS::PerRuntimeFutexAPI *futexAPI_;
+    js::FutexRuntime fx;
 
   private:
     
