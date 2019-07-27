@@ -999,6 +999,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
                                      T* value,
                                      JS::MutableHandle<JS::Value> rval)
 {
+  static_assert(IsRefcounted<T>::value, "Don't pass owned classes in here.");
   MOZ_ASSERT(value);
   
   JS::Rooted<JSObject*> obj(cx);
@@ -1037,11 +1038,12 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
 
 template <class T>
 inline bool
-WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
-                                          JS::Handle<JSObject*> scopeArg,
-                                          nsAutoPtr<T>& value,
-                                          JS::MutableHandle<JS::Value> rval)
+WrapNewBindingNonWrapperCachedObject(JSContext* cx,
+                                     JS::Handle<JSObject*> scopeArg,
+                                     nsAutoPtr<T>& value,
+                                     JS::MutableHandle<JS::Value> rval)
 {
+  static_assert(!IsRefcounted<T>::value, "Only pass owned classes in here.");
   
   
   if (!value) {
@@ -1082,7 +1084,8 @@ WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
 }
 
 
-template <template <typename> class SmartPtr, typename T>
+template <template <typename> class SmartPtr, typename T,
+          typename U=typename EnableIf<IsRefcounted<T>::value, T>::Type>
 inline bool
 WrapNewBindingNonWrapperCachedObject(JSContext* cx, JS::Handle<JSObject*> scope,
                                      const SmartPtr<T>& value,
@@ -1666,6 +1669,7 @@ struct GetOrCreateDOMReflectorHelper<T, false>
   static inline bool GetOrCreate(JSContext* cx, T& value,
                                  JS::MutableHandle<JS::Value> rval)
   {
+    static_assert(IsRefcounted<T>::value, "Don't pass owned classes in here.");
     return GetOrCreateDOMReflector(cx, &value, rval);
   }
 };
