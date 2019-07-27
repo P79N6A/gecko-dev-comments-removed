@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 
 const TEST_URI = "http://mochi.test:8888/browser/browser/devtools/framework/" +
@@ -26,39 +27,6 @@ let tabs = [
   desc: "No toolbox",
   startToolbox: false
 }];
-
-add_task(function*() {
-  
-  for (let tab of tabs) {
-    yield initTab(tab, tab.startToolbox);
-  }
-
-  
-  yield checkCacheStateForAllTabs([true, true, true, true]);
-
-  
-  yield setDisableCacheCheckboxChecked(tabs[0], true);
-  yield checkCacheStateForAllTabs([false, false, true, true]);
-
-  
-  tabs[2].toolbox = yield gDevTools.showToolbox(tabs[2].target, "options");
-  yield checkCacheEnabled(tabs[2], false);
-
-  
-  yield tabs[2].toolbox.destroy();
-  tabs[2].target = TargetFactory.forTab(tabs[2].tab);
-  yield checkCacheEnabled(tabs[2], true);
-
-  
-  tabs[2].toolbox = yield gDevTools.showToolbox(tabs[2].target, "options");
-  yield checkCacheEnabled(tabs[2], false);
-
-  
-  yield setDisableCacheCheckboxChecked(tabs[2], false);
-  yield checkCacheStateForAllTabs([true, true, true, true]);
-
-  yield finishUp();
-});
 
 function* initTab(tabX, startToolbox) {
   tabX.tab = yield addTab(TEST_URI);

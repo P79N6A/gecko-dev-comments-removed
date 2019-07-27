@@ -115,6 +115,22 @@ function once(target, eventName, useCapture=false) {
   return deferred.promise;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+function loadHelperScript(filePath) {
+  let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+  Services.scriptloader.loadSubScript(testDir + "/" + filePath, this);
+}
+
 function waitForTick() {
   let deferred = promise.defer();
   executeSoon(deferred.resolve);
