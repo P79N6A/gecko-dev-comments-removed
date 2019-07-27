@@ -245,7 +245,7 @@ class MDefinitionVisitor
 
 
 
-class MDefinitionVisitorWithDefaults : public MDefinitionVisitor
+class MDefinitionVisitorDefaultNYI : public MDefinitionVisitor
 {
   public:
 #define VISIT_INS(op) virtual bool visit##op(M##op *) { MOZ_ASSUME_UNREACHABLE("NYI: " #op); }
