@@ -410,6 +410,10 @@ BaselineCompiler::emitPrologue()
     if (!emitSPSPush())
         return false;
 
+    
+    
+    masm.nop();
+
     return true;
 }
 

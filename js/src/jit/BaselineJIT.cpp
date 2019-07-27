@@ -824,15 +824,28 @@ BaselineScript::pcForNativeOffset(JSScript *script, uint32_t nativeOffset, bool 
         if (b & 0x80)
             curNativeOffset += reader.readUnsigned();
 
-        if (isReturn ? (nativeOffset == curNativeOffset) : (nativeOffset <= curNativeOffset))
-            return curPC;
+        
+        
+        
+        
+        
+        
+        
+        if (curNativeOffset > nativeOffset) {
+            MOZ_ASSERT_IF(isReturn, lastNativeOffset == nativeOffset);
+            return lastPC;
+        }
 
         
         
         
-        if (!isReturn && !reader.more())
+        if (!reader.more()) {
+            MOZ_ASSERT_IF(isReturn, curNativeOffset == nativeOffset);
             return curPC;
+        }
 
+        lastNativeOffset = curNativeOffset;
+        lastPC = curPC;
         curPC += GetBytecodeLength(curPC);
     }
 }
