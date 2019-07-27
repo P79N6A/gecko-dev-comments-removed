@@ -1310,6 +1310,9 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     mY.SetVelocity(0);
     
     
+    
+    
+    StateChangeNotificationBlocker blocker(this);
     SetState(NOTHING);
     APZC_LOG("%p starting a fling animation\n", this);
     
@@ -2467,6 +2470,11 @@ void AsyncPanZoomController::GetOverscrollTransform(Matrix4x4* aTransform) const
 bool AsyncPanZoomController::AdvanceAnimations(const TimeStamp& aSampleTime)
 {
   AssertOnCompositorThread();
+
+  
+  
+  
+  StateChangeNotificationBlocker blocker(this);
 
   
   
