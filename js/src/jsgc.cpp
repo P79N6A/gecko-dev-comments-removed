@@ -2411,23 +2411,18 @@ GCRuntime::sweepZoneAfterCompacting(Zone *zone)
 
 
 
+template <typename T>
 static void
-UpdateCellPointers(MovingTracer *trc, Cell *cell, JSGCTraceKind traceKind) {
-    if (traceKind == JSTRACE_OBJECT) {
-        JSObject *obj = static_cast<JSObject *>(cell);
-        obj->fixupAfterMovingGC();
-    } else if (traceKind == JSTRACE_SHAPE) {
-        Shape *shape = static_cast<Shape *>(cell);
-        shape->fixupAfterMovingGC();
-    } else if (traceKind == JSTRACE_BASE_SHAPE) {
-        BaseShape *base = static_cast<BaseShape *>(cell);
-        base->fixupAfterMovingGC();
-    } else if (traceKind == JSTRACE_TYPE_OBJECT) {
-        types::TypeObject *type = static_cast<types::TypeObject *>(cell);
-        type->fixupAfterMovingGC();
+UpdateCellPointersByKind(MovingTracer *trc, ArenaLists &al, AllocKind thingKind) {
+    JSGCTraceKind traceKind = MapAllocToTraceKind(thingKind);
+    MOZ_ASSERT(MapTypeToTraceKind<T>::kind == traceKind);
+    for (ArenaHeader *arena = al.getFirstArena(thingKind); arena; arena = arena->next) {
+        for (ArenaCellIterUnderGC i(arena); !i.done(); i.next()) {
+            T *cell = reinterpret_cast<T*>(i.getCell());
+            cell->fixupAfterMovingGC();
+            TraceChildren(trc, cell, traceKind);
+        }
     }
-
-    TraceChildren(trc, cell, traceKind);
 }
 
 
@@ -2445,8 +2440,6 @@ GCRuntime::updatePointersToRelocatedCells()
     MovingTracer trc(rt);
 
     
-
-    
     for (GCCompartmentsIter comp(rt); !comp.done(); comp.next())
         comp->fixupAfterMovingGC();
 
@@ -2457,15 +2450,15 @@ GCRuntime::updatePointersToRelocatedCells()
     
     for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
         ArenaLists &al = zone->allocator.arenas;
-        for (unsigned i = 0; i < FINALIZE_LIMIT; ++i) {
-            AllocKind thingKind = static_cast<AllocKind>(i);
-            JSGCTraceKind traceKind = MapAllocToTraceKind(thingKind);
-            for (ArenaHeader *arena = al.getFirstArena(thingKind); arena; arena = arena->next) {
-                for (ArenaCellIterUnderGC i(arena); !i.done(); i.next()) {
-                    UpdateCellPointers(&trc, i.getCell(), traceKind);
-                }
-            }
-        }
+        for (unsigned i = 0; i < FINALIZE_OBJECT_LIMIT; ++i)
+            UpdateCellPointersByKind<JSObject>(&trc, al, AllocKind(i));
+        UpdateCellPointersByKind<JSScript>(&trc, al, FINALIZE_SCRIPT);
+        UpdateCellPointersByKind<LazyScript>(&trc, al, FINALIZE_LAZY_SCRIPT);
+        UpdateCellPointersByKind<Shape>(&trc, al, FINALIZE_SHAPE);
+        UpdateCellPointersByKind<AccessorShape>(&trc, al, FINALIZE_ACCESSOR_SHAPE);
+        UpdateCellPointersByKind<BaseShape>(&trc, al, FINALIZE_BASE_SHAPE);
+        UpdateCellPointersByKind<types::TypeObject>(&trc, al, FINALIZE_TYPE_OBJECT);
+        UpdateCellPointersByKind<jit::JitCode>(&trc, al, FINALIZE_JITCODE);
     }
 
     
