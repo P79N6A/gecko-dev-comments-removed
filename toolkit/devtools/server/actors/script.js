@@ -187,6 +187,27 @@ BreakpointStore.prototype = {
 
 
 
+  moveBreakpoint: function (aBreakpoint, aNewLocation) {
+    const existingBreakpoint = this.getBreakpoint(aBreakpoint);
+    this.removeBreakpoint(existingBreakpoint);
+
+    const { line, column } = aNewLocation;
+    existingBreakpoint.line = line;
+    existingBreakpoint.column = column;
+    this.addBreakpoint(existingBreakpoint);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
   getBreakpoint: function (aLocation) {
     let { url, line, column } = aLocation;
     dbg_assert(url != null);
@@ -1426,6 +1447,70 @@ ThreadActor.prototype = {
     return this._setBreakpoint(aLocation);
   },
 
+
+  
+
+
+
+
+
+
+
+
+
+
+  _getOrCreateBreakpointActor: function (location) {
+    let actor;
+    const storedBp = this.breakpointStore.getBreakpoint(location);
+
+    if (storedBp.actor) {
+      actor = storedBp.actor;
+      actor.condition = location.condition;
+      return actor;
+    }
+
+    storedBp.actor = actor = new BreakpointActor(this, {
+      url: location.url,
+      line: location.line,
+      column: location.column,
+      condition: location.condition
+    });
+    this.threadLifetimePool.addActor(actor);
+    return actor;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _setBreakpointAtColumn: function (scripts, location, actor) {
+    
+    const scriptsAndOffsetMappings = new Map();
+
+    for (let script of scripts) {
+      this._findClosestOffsetMappings(location, script, scriptsAndOffsetMappings);
+    }
+
+    for (let [script, mappings] of scriptsAndOffsetMappings) {
+      for (let offsetMapping of mappings) {
+        script.setBreakpoint(offsetMapping.offset, actor);
+      }
+      actor.addScript(script, this);
+    }
+
+    return {
+      actor: actor.actorID
+    };
+  },
+
   
 
 
@@ -1439,163 +1524,15 @@ ThreadActor.prototype = {
 
 
 
-
-  _setBreakpoint: function (aLocation, aOnlyThisScript=null) {
-    let location = {
-      url: aLocation.url,
-      line: aLocation.line,
-      column: aLocation.column,
-      condition: aLocation.condition
-    };
-
-    let actor;
-    let storedBp = this.breakpointStore.getBreakpoint(location);
-    if (storedBp.actor) {
-      actor = storedBp.actor;
-      actor.condition = location.condition;
-    } else {
-      storedBp.actor = actor = new BreakpointActor(this, {
-        url: location.url,
-        line: location.line,
-        column: location.column,
-        condition: location.condition
-      });
-      this.threadLifetimePool.addActor(actor);
-    }
-
-    
-    let scripts = this.dbg.findScripts(location);
-    if (scripts.length == 0) {
-      
-      
-      
-      
-      return {
-        actor: actor.actorID
-      };
-    }
-
-   
-
-
-
-
-    
-    let scriptsAndOffsetMappings = new Map();
-
+  _findEntryPointsForLine: function (scripts, line) {
+    const entryPoints = [];
     for (let script of scripts) {
-      this._findClosestOffsetMappings(location,
-                                      script,
-                                      scriptsAndOffsetMappings);
-    }
-
-    if (scriptsAndOffsetMappings.size > 0) {
-      for (let [script, mappings] of scriptsAndOffsetMappings) {
-        if (aOnlyThisScript && script !== aOnlyThisScript) {
-          continue;
-        }
-
-        for (let offsetMapping of mappings) {
-          script.setBreakpoint(offsetMapping.offset, actor);
-        }
-        actor.addScript(script, this);
-      }
-
-      return {
-        actor: actor.actorID
-      };
-    }
-
-   
-
-
-
-
-
-
-    
-    scripts = this.dbg.findScripts({
-      url: aLocation.url,
-      line: aLocation.line,
-      innermost: true
-    });
-
-    
-
-
-
-
-    let actualLocation;
-    let found = false;
-    for (let script of scripts) {
-      let offsets = script.getAllOffsets();
-
-      for (let line = location.line; line < offsets.length; ++line) {
-        if (offsets[line]) {
-          if (!aOnlyThisScript || script === aOnlyThisScript) {
-            for (let offset of offsets[line]) {
-              script.setBreakpoint(offset, actor);
-            }
-            actor.addScript(script, this);
-          }
-
-          if (!actualLocation) {
-            actualLocation = {
-              url: location.url,
-              line: line
-            };
-          }
-
-          found = true;
-          break;
-        }
+      const offsets = script.getLineOffsets(line);
+      if (offsets.length) {
+        entryPoints.push({ script, offsets });
       }
     }
-
-    if (found) {
-      let existingBp = this.breakpointStore.hasBreakpoint(actualLocation);
-
-      if (existingBp && existingBp.actor) {
-        
-
-
-
-
-        actor.onDelete();
-        this.breakpointStore.removeBreakpoint(location);
-        return {
-          actor: existingBp.actor.actorID,
-          actualLocation: actualLocation
-        };
-      }
-
-      
-
-
-
-
-      actor.location = actualLocation;
-      this.breakpointStore.addBreakpoint({
-        actor: actor,
-        url: actualLocation.url,
-        line: actualLocation.line,
-        column: actualLocation.column
-      });
-      this.breakpointStore.removeBreakpoint(location);
-      return {
-        actor: actor.actorID,
-        actualLocation: actualLocation
-      };
-    }
-
-    
-
-
-
-    return {
-      error: "noCodeAtLineColumn",
-      actor: actor.actorID
-    };
+    return entryPoints;
   },
 
   
@@ -1614,24 +1551,177 @@ ThreadActor.prototype = {
 
 
 
+
+
+
+  _findNextLineWithOffsets: function (scripts, startLine) {
+    const maxLine = Math.max(...scripts.map(s => s.startLine + s.lineCount));
+
+    for (let line = startLine; line < maxLine; line++) {
+      const entryPoints = this._findEntryPointsForLine(scripts, line);
+      if (entryPoints.length) {
+        return { line, entryPoints };
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _setBreakpoint: function (aLocation, aOnlyThisScript=null) {
+    const location = {
+      url: aLocation.url,
+      line: aLocation.line,
+      column: aLocation.column,
+      condition: aLocation.condition
+    };
+    const actor = location.actor = this._getOrCreateBreakpointActor(location);
+    const scripts = this.dbg.findScripts({
+      url: location.url,
+      
+      
+      
+      
+      line: location.line
+    });
+
+    if (scripts.length === 0) {
+      
+      
+      
+      
+      
+      
+      return {
+        actor: actor.actorID
+      };
+    }
+
+    if (location.column) {
+      return this._setBreakpointAtColumn(scripts, location, actor);
+    }
+
+    
+    
+    
+
+    const result = this._findNextLineWithOffsets(scripts, location.line);
+    if (!result) {
+      return {
+        error: "noCodeAtLineColumn",
+        actor: actor.actorID
+      };
+    }
+
+    const { line, entryPoints } = result;
+    const actualLocation = line !== location.line
+      ? { url: location.url, line }
+      : undefined;
+
+    if (actualLocation) {
+      
+      
+      
+      
+
+      const existingBreakpoint = this.breakpointStore.hasBreakpoint(actualLocation);
+      if (existingBreakpoint && existingBreakpoint.actor) {
+        actor.onDelete();
+        this.breakpointStore.removeBreakpoint(location);
+        return {
+          actor: existingBreakpoint.actor.actorID,
+          actualLocation
+        };
+      } else {
+        actor.location = actualLocation;
+        this.breakpointStore.moveBreakpoint(location, actualLocation);
+      }
+    }
+
+    this._setBreakpointOnEntryPoints(
+      actor,
+      aOnlyThisScript
+        ? entryPoints.filter(o => o.script === aOnlyThisScript)
+        : entryPoints
+    );
+
+    return {
+      actor: actor.actorID,
+      actualLocation
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setBreakpointOnEntryPoints: function (actor, entryPoints) {
+    for (let { script, offsets } of entryPoints) {
+      for (let offset of offsets) {
+        script.setBreakpoint(offset, actor);
+      }
+      actor.addScript(script, this);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   _findClosestOffsetMappings: function (aTargetLocation,
                                         aScript,
                                         aScriptsAndOffsetMappings) {
-    
-    
-
-    if (aTargetLocation.column == null) {
-      let offsetMappings = aScript.getLineOffsets(aTargetLocation.line)
-        .map(o => ({
-          line: aTargetLocation.line,
-          offset: o
-        }));
-      if (offsetMappings.length) {
-        aScriptsAndOffsetMappings.set(aScript, offsetMappings);
-      }
-      return;
-    }
-
     let offsetMappings = aScript.getAllColumnOffsets()
       .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
 

@@ -5,7 +5,9 @@ function secondCall() {
   
   eval("debugger;");
   function foo() {}
-  if (true) {
+  if (x) {
     foo();
   }
 }
+
+var x = true;
