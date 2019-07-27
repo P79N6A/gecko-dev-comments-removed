@@ -330,24 +330,26 @@ abstract class BaseTest extends BaseRobocopTest {
     }
 
     
-    
-    protected final boolean waitForTest(BooleanTest t, int timeout) {
-        long end = SystemClock.uptimeMillis() + timeout;
-        while (SystemClock.uptimeMillis() < end) {
-            if (t.test()) {
-                return true;
+
+
+    @Deprecated
+    protected final boolean waitForTest(final BooleanTest t, final int timeout) {
+        final boolean isSatisfied = mSolo.waitForCondition(new Condition() {
+            @Override
+            public boolean isSatisfied() {
+                return t.test();
             }
-            mSolo.sleep(100);
+        }, timeout);
+
+        if (!isSatisfied) {
+            
+            
+            
+            mAsserter.dumpLog("waitForTest timeout after " + timeout + " ms");
         }
-        
-        
-        
-        mAsserter.dumpLog("waitForTest timeout after "+timeout+" ms");
-        return false;
+        return isSatisfied;
     }
 
-    
-    
     protected interface BooleanTest {
         public boolean test();
     }
