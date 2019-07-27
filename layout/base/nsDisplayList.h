@@ -1680,8 +1680,6 @@ public:
     mForceTransparentSurface = true;
   }
 
-  nsRect GetVisibleRect() const { return mVisibleRect; }
-
 private:
   
   
@@ -1690,8 +1688,6 @@ private:
   nsDisplayItemLink  mSentinel;
   nsDisplayItemLink* mTop;
 
-  
-  nsRect mVisibleRect;
   
   
   
