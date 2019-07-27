@@ -349,12 +349,10 @@ let HighlighterActor = exports.HighlighterActor = protocol.ActorClass({
   }),
 
   _findAndAttachElement: function(event) {
-    let doc = event.target.ownerDocument;
-
-    let x = event.clientX;
-    let y = event.clientY;
-
-    let node = doc.elementFromPoint(x, y);
+    
+    
+    
+    let node = event.originalTarget || event.target;
     return this._walker.attachElement(node);
   },
 
