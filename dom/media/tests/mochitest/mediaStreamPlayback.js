@@ -48,8 +48,9 @@ MediaStreamPlayback.prototype = {
     var canPlayThroughFired = false;
 
     
+    
     if (!isResume) {
-      is(this.mediaStream.currentTime, 0,
+      is(this.mediaElement.currentTime, 0,
          "Before starting the media element, currentTime = 0");
     }
 
