@@ -2420,7 +2420,7 @@ let SessionStoreInternal = {
       delete this._windows[aWindow.__SSi].extData;
     }
     if (winData.cookies) {
-      this.restoreCookies(winData.cookies);
+      SessionCookies.restore(winData.cookies);
     }
     if (winData.extData) {
       if (!this._windows[aWindow.__SSi].extData) {
@@ -2890,25 +2890,6 @@ let SessionStoreInternal = {
     
     if (this.windowToFocus) {
       this.windowToFocus.focus();
-    }
-  },
-
-  
-
-
-
-
-  restoreCookies: function ssi_restoreCookies(aCookies) {
-    
-    var MAX_EXPIRY = Math.pow(2, 62);
-    for (let i = 0; i < aCookies.length; i++) {
-      var cookie = aCookies[i];
-      try {
-        Services.cookies.add(cookie.host, cookie.path || "", cookie.name || "",
-                             cookie.value, !!cookie.secure, !!cookie.httponly, true,
-                             "expiry" in cookie ? cookie.expiry : MAX_EXPIRY);
-      }
-      catch (ex) { console.error(ex); } 
     }
   },
 
