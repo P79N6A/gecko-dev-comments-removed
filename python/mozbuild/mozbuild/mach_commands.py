@@ -401,7 +401,8 @@ class Build(MachCommandBase):
                 self.log(logging.INFO, 'ccache',
                          {'msg': ccache_diff.hit_rate_message()}, "{msg}")
 
-        if monitor.elapsed > 300:
+        moz_nospam = os.environ.get('MOZ_NOSPAM')
+        if monitor.elapsed > 300 and not moz_nospam:
             
             
             
