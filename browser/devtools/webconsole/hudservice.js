@@ -320,7 +320,10 @@ WebConsole.prototype = {
 
 
 
-  get lastFinishedRequestCallback() HUDService.lastFinishedRequest.callback,
+  get lastFinishedRequestCallback()
+  {
+    return HUDService.lastFinishedRequest.callback;
+  },
 
   
 

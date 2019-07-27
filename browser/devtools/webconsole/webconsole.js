@@ -243,7 +243,9 @@ WebConsoleFrame.prototype = {
 
 
 
-  get popupset() this.owner.mainPopupSet,
+  get popupset() {
+    return this.owner.mainPopupSet;
+  },
 
   
 
@@ -356,7 +358,9 @@ WebConsoleFrame.prototype = {
 
 
 
-  get webConsoleClient() this.proxy ? this.proxy.webConsoleClient : null,
+  get webConsoleClient() {
+    return this.proxy ? this.proxy.webConsoleClient : null;
+  },
 
   _destroyer: null,
 
@@ -3200,13 +3204,19 @@ JSTerm.prototype = {
 
 
 
-  get outputNode() this.hud.outputNode,
+  get outputNode()
+  {
+    return this.hud.outputNode;
+  },
 
   
 
 
 
-  get webConsoleClient() this.hud.webConsoleClient,
+  get webConsoleClient()
+  {
+    return this.hud.webConsoleClient;
+  },
 
   COMPLETE_FORWARD: 0,
   COMPLETE_BACKWARD: 1,

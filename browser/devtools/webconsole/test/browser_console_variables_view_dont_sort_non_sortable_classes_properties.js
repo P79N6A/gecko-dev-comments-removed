@@ -80,7 +80,7 @@ function test() {
 
 
 
-  function testNotSorted(aObject) {
+  function* testNotSorted(aObject) {
     info("Testing " + aObject);
     let deferred = promise.defer();
     jsterm.once("variablesview-fetched", (_, aVar) => deferred.resolve(aVar));
@@ -106,7 +106,7 @@ function test() {
 
 
 
-  function testSorted(aObject) {
+  function* testSorted(aObject) {
     info("Testing " + aObject);
     let deferred = promise.defer();
     jsterm.once("variablesview-fetched", (_, aVar) => deferred.resolve(aVar));
