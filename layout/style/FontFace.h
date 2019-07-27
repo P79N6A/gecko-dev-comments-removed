@@ -22,8 +22,6 @@ namespace dom {
 class FontFaceBufferSource;
 struct FontFaceDescriptors;
 class FontFaceSet;
-class FontFaceInitializer;
-class FontFaceStatusSetter;
 class Promise;
 class StringOrArrayBufferOrArrayBufferView;
 }
@@ -36,8 +34,6 @@ class FontFace final : public nsISupports,
                            public nsWrapperCache
 {
   friend class mozilla::dom::FontFaceBufferSource;
-  friend class mozilla::dom::FontFaceInitializer;
-  friend class mozilla::dom::FontFaceStatusSetter;
   friend class Entry;
 
 public:
@@ -98,14 +94,6 @@ public:
                "use DisconnectFromRule instead");
     mInFontFaceSet = aInFontFaceSet;
   }
-
-  
-
-
-
-
-
-  bool IsInitialized() const { return mInitialized; }
 
   FontFaceSet* GetFontFaceSet() const { return mFontFaceSet; }
 
@@ -176,13 +164,7 @@ private:
   FontFace(nsISupports* aParent, nsPresContext* aPresContext);
   ~FontFace();
 
-  
-
-
-
-
-
-  void Initialize(FontFaceInitializer* aInitializer);
+  void InitializeSource(const StringOrArrayBufferOrArrayBufferView& aSource);
 
   
   void DoLoad();
@@ -205,12 +187,6 @@ private:
 
   bool SetDescriptors(const nsAString& aFamily,
                       const FontFaceDescriptors& aDescriptors);
-
-  
-
-
-
-  void OnInitialized();
 
   
 
@@ -273,16 +249,6 @@ private:
 
   
   bool mInFontFaceSet;
-
-  
-  
-  
-  bool mInitialized;
-
-  
-  
-  
-  bool mLoadWhenInitialized;
 };
 
 } 

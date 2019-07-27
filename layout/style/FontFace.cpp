@@ -63,120 +63,6 @@ GetDataFrom(const T& aObject, uint8_t*& aBuffer, uint32_t& aLength)
 
 
 
-
-
-
-class FontFaceInitializer : public nsIRunnable
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  explicit FontFaceInitializer(FontFace* aFontFace)
-    : mFontFace(aFontFace)
-    , mSourceBuffer(nullptr)
-    , mSourceBufferLength(0) {}
-
-  void SetSource(const nsAString& aString);
-  void SetSource(const ArrayBuffer& aArrayBuffer);
-  void SetSource(const ArrayBufferView& aArrayBufferView);
-
-  NS_IMETHOD Run() override;
-  void TakeBuffer(uint8_t*& aBuffer, uint32_t& aLength);
-
-  nsRefPtr<FontFace> mFontFace;
-  FontFace::SourceType mSourceType;
-  nsString mSourceString;
-  uint8_t* mSourceBuffer;  
-  uint32_t mSourceBufferLength;
-
-protected:
-  virtual ~FontFaceInitializer();
-};
-
-NS_IMPL_ISUPPORTS(FontFaceInitializer, nsIRunnable)
-
-FontFaceInitializer::~FontFaceInitializer()
-{
-  if (mSourceBuffer) {
-    NS_Free(mSourceBuffer);
-  }
-}
-
-void
-FontFaceInitializer::SetSource(const nsAString& aString)
-{
-  mSourceType = FontFace::eSourceType_URLs;
-  mSourceString = aString;
-}
-
-void
-FontFaceInitializer::SetSource(const ArrayBuffer& aArrayBuffer)
-{
-  mSourceType = FontFace::eSourceType_Buffer;
-  GetDataFrom(aArrayBuffer, mSourceBuffer, mSourceBufferLength);
-}
-
-void
-FontFaceInitializer::SetSource(const ArrayBufferView& aArrayBufferView)
-{
-  mSourceType = FontFace::eSourceType_Buffer;
-  GetDataFrom(aArrayBufferView, mSourceBuffer, mSourceBufferLength);
-}
-
-NS_IMETHODIMP
-FontFaceInitializer::Run()
-{
-  mFontFace->Initialize(this);
-  return NS_OK;
-}
-
-void
-FontFaceInitializer::TakeBuffer(uint8_t*& aBuffer, uint32_t& aLength)
-{
-  aBuffer = mSourceBuffer;
-  aLength = mSourceBufferLength;
-
-  mSourceBuffer = nullptr;
-  mSourceBufferLength = 0;
-}
-
-
-
-
-
-
-
-class FontFaceStatusSetter : public nsIRunnable
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  FontFaceStatusSetter(FontFace* aFontFace,
-                       FontFaceLoadStatus aStatus)
-    : mFontFace(aFontFace)
-    , mStatus(aStatus) {}
-
-  NS_IMETHOD Run() override;
-
-protected:
-  virtual ~FontFaceStatusSetter() {}
-
-private:
-  nsRefPtr<FontFace> mFontFace;
-  FontFaceLoadStatus mStatus;
-};
-
-NS_IMPL_ISUPPORTS(FontFaceStatusSetter, nsIRunnable)
-
-NS_IMETHODIMP
-FontFaceStatusSetter::Run()
-{
-  mFontFace->SetStatus(mStatus);
-  return NS_OK;
-}
-
-
-
 NS_IMPL_CYCLE_COLLECTION_CLASS(FontFace)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(FontFace)
@@ -219,8 +105,6 @@ FontFace::FontFace(nsISupports* aParent, nsPresContext* aPresContext)
   , mSourceBufferLength(0)
   , mFontFaceSet(aPresContext->Fonts())
   , mInFontFaceSet(false)
-  , mInitialized(false)
-  , mLoadWhenInitialized(false)
 {
   MOZ_COUNT_CTOR(FontFace);
 
@@ -281,7 +165,6 @@ FontFace::CreateForRule(nsISupports* aGlobal,
   nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(aGlobal);
 
   nsRefPtr<FontFace> obj = new FontFace(aGlobal, aPresContext);
-  obj->mInitialized = true;
   obj->mRule = aRule;
   obj->mSourceType = eSourceType_FontFaceRule;
   obj->mInFontFaceSet = true;
@@ -321,31 +204,16 @@ FontFace::Constructor(const GlobalObject& aGlobal,
     return obj.forget();
   }
 
-  nsRefPtr<FontFaceInitializer> task = new FontFaceInitializer(obj);
-
-  if (aSource.IsArrayBuffer()) {
-    task->SetSource(aSource.GetAsArrayBuffer());
-  } else if (aSource.IsArrayBufferView()) {
-    task->SetSource(aSource.GetAsArrayBufferView());
-  } else {
-    MOZ_ASSERT(aSource.IsString());
-    task->SetSource(aSource.GetAsString());
-  }
-
-  NS_DispatchToMainThread(task);
-
+  obj->InitializeSource(aSource);
   return obj.forget();
 }
 
 void
-FontFace::Initialize(FontFaceInitializer* aInitializer)
+FontFace::InitializeSource(const StringOrArrayBufferOrArrayBufferView& aSource)
 {
-  MOZ_ASSERT(!HasRule());
-  MOZ_ASSERT(mSourceType == SourceType(0));
-
-  if (aInitializer->mSourceType == eSourceType_URLs) {
+  if (aSource.IsString()) {
     if (!ParseDescriptor(eCSSFontDesc_Src,
-                         aInitializer->mSourceString,
+                         aSource.GetAsString(),
                          mDescriptors->mSrc)) {
       if (mLoaded) {
         
@@ -355,40 +223,27 @@ FontFace::Initialize(FontFaceInitializer* aInitializer)
         mLoaded->MaybeReject(NS_ERROR_DOM_SYNTAX_ERR);
       }
 
-      
-      nsCOMPtr<nsIRunnable> statusSetterTask =
-        new FontFaceStatusSetter(this, FontFaceLoadStatus::Error);
-      NS_DispatchToMainThread(statusSetterTask);
+      SetStatus(FontFaceLoadStatus::Error);
       return;
     }
 
     mSourceType = eSourceType_URLs;
-
-    
-    OnInitialized();
     return;
   }
 
-  
-  MOZ_ASSERT(aInitializer->mSourceType == eSourceType_Buffer);
+  mSourceType = FontFace::eSourceType_Buffer;
 
-  mSourceType = aInitializer->mSourceType;
-  aInitializer->TakeBuffer(mSourceBuffer, mSourceBufferLength);
+  if (aSource.IsArrayBuffer()) {
+    GetDataFrom(aSource.GetAsArrayBuffer(),
+                mSourceBuffer, mSourceBufferLength);
+  } else {
+    MOZ_ASSERT(aSource.IsArrayBufferView());
+    GetDataFrom(aSource.GetAsArrayBufferView(),
+                mSourceBuffer, mSourceBufferLength);
+  }
 
-  
-  nsCOMPtr<nsIRunnable> statusSetterTask =
-    new FontFaceStatusSetter(this, FontFaceLoadStatus::Loading);
-  NS_DispatchToMainThread(statusSetterTask);
-
-  
-  OnInitialized();
-
-  
-  
-  
-  nsCOMPtr<nsIRunnable> loaderTask =
-    NS_NewRunnableMethod(this, &FontFace::DoLoad);
-  NS_DispatchToMainThread(loaderTask);
+  SetStatus(FontFaceLoadStatus::Loading);
+  DoLoad();
 }
 
 void
@@ -544,13 +399,7 @@ FontFace::Load(ErrorResult& aRv)
   
   SetStatus(FontFaceLoadStatus::Loading);
 
-  if (mInitialized) {
-    DoLoad();
-  } else {
-    
-    
-    mLoadWhenInitialized = true;
-  }
+  DoLoad();
 
   return mLoaded;
 }
@@ -558,8 +407,6 @@ FontFace::Load(ErrorResult& aRv)
 void
 FontFace::DoLoad()
 {
-  MOZ_ASSERT(mInitialized);
-
   if (!mUserFontEntry) {
     MOZ_ASSERT(!HasRule(),
                "Rule backed FontFace objects should already have a user font "
@@ -720,25 +567,6 @@ FontFace::SetDescriptors(const nsAString& aFamily,
   }
 
   return true;
-}
-
-void
-FontFace::OnInitialized()
-{
-  MOZ_ASSERT(!mInitialized);
-
-  mInitialized = true;
-
-  
-  
-  if (mLoadWhenInitialized) {
-    mLoadWhenInitialized = false;
-    DoLoad();
-  }
-
-  if (mInFontFaceSet) {
-    mFontFaceSet->OnFontFaceInitialized(this);
-  }
 }
 
 void

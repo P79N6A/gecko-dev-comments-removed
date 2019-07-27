@@ -139,15 +139,6 @@ public:
 
 
 
-
-
-
-  void OnFontFaceInitialized(FontFace* aFontFace);
-
-  
-
-
-
   void OnFontFaceStatusChanged(FontFace* aFontFace);
 
   
