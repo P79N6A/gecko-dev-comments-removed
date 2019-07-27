@@ -439,37 +439,13 @@ nsIOService::GetProtocolHandler(const char* scheme, nsIProtocolHandler* *result)
             return rv;
         }
 
-#ifdef MOZ_X11
+#ifdef MOZ_ENABLE_GIO
         
         
         
         
 
         rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"moz-gio",
-                            result);
-        if (NS_SUCCEEDED(rv)) {
-            nsAutoCString spec(scheme);
-            spec.Append(':');
-
-            nsIURI *uri;
-            rv = (*result)->NewURI(spec, nullptr, nullptr, &uri);
-            if (NS_SUCCEEDED(rv)) {
-                NS_RELEASE(uri);
-                return rv;
-            }
-
-            NS_RELEASE(*result);
-        }
-
-        
-        
-        
-        
-
-        
-        
-
-        rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"moz-gnomevfs",
                             result);
         if (NS_SUCCEEDED(rv)) {
             nsAutoCString spec(scheme);
