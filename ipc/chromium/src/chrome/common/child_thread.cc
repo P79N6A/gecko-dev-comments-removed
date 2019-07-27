@@ -89,9 +89,9 @@ ChildThread* ChildThread::current() {
 }
 
 void ChildThread::Init() {
-  channel_.reset(new IPC::Channel(channel_name_,
-                                  IPC::Channel::MODE_CLIENT,
-                                  this));
+  channel_ = mozilla::MakeUnique<IPC::Channel>(channel_name_,
+                                               IPC::Channel::MODE_CLIENT,
+                                               this);
 
 #ifdef IPC_MESSAGE_LOG_ENABLED
   IPC::Logging::current()->SetIPCSender(this);
@@ -104,7 +104,7 @@ void ChildThread::CleanUp() {
 #endif
   
   
-  channel_.reset();
+  channel_ = nullptr;
 }
 
 void ChildThread::OnProcessFinalRelease() {
