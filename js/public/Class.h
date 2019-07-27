@@ -122,21 +122,9 @@ typedef bool
 
 
 
-
-
 typedef bool
-(* JSResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
-
-
-
-
-
-
-
-
-typedef bool
-(* JSNewResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                   JS::MutableHandleObject objp);
+(* JSResolveOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                bool *resolvedp);
 
 
 
@@ -400,7 +388,6 @@ struct JSClass {
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  // objects have private slot
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  // has JSNewEnumerateOp hook
-#define JSCLASS_NEW_RESOLVE             (1<<2)  // has JSNewResolveOp hook
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  // private is (nsISupports *)
 #define JSCLASS_IS_DOMJSCLASS           (1<<4)  // objects are DOM
 #define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  // Correctly implements GC read
