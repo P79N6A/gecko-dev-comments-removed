@@ -229,6 +229,10 @@ let FrameSnapshotFront = protocol.FrontClass(FrameSnapshotActor, {
 
 
 let CanvasActor = exports.CanvasActor = protocol.ActorClass({
+  
+  
+  _animationContainsDrawCall: false,
+
   typeName: "canvas",
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
@@ -290,6 +294,16 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
 
 
 
+  isRecording: method(function() {
+    return !!this._callWatcher.isRecording();
+  }, {
+    response: { recording: RetVal("boolean") }
+  }),
+
+  
+
+
+
 
 
 
@@ -300,6 +314,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
       return this._currentAnimationFrameSnapshot.promise;
     }
 
+    this._recordingContainsDrawCall = false;
     this._callWatcher.eraseRecording();
     this._callWatcher.resumeRecording();
 
@@ -340,7 +355,11 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
   _handleAnimationFrame: function(functionCall) {
     if (!this._animationStarted) {
       this._handleAnimationFrameBegin();
-    } else {
+    }
+    
+    
+    
+    else if (this._animationContainsDrawCall) {
       this._handleAnimationFrameEnd(functionCall);
     }
   },
@@ -362,6 +381,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     
     let functionCalls = this._callWatcher.pauseRecording();
     this._callWatcher.eraseRecording();
+    this._animationContainsDrawCall = false;
 
     
     
@@ -409,6 +429,8 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     
     let dimensions = CanvasFront.THUMBNAIL_SIZE;
     let thumbnail;
+
+    this._animationContainsDrawCall = true;
 
     
     
