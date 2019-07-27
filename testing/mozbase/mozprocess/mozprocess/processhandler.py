@@ -3,7 +3,6 @@
 
 
 import os
-import re
 import select
 import signal
 import subprocess
@@ -839,17 +838,10 @@ falling back to not using job objects for managing child processes"""
         PeekNamedPipe = ctypes.windll.kernel32.PeekNamedPipe
         GetLastError = ctypes.windll.kernel32.GetLastError
 
-        @staticmethod
-        def _normalize_newline(line):
-            
-            
-            
-            return re.sub(r'\r+\n?$', '\n', line)
-
         def _readWithTimeout(self, f, timeout):
             if timeout is None:
                 
-                return (self._normalize(f.readline()), False)
+                return (f.readline(), False)
             x = msvcrt.get_osfhandle(f.fileno())
             l = ctypes.c_long()
             done = time.time() + timeout
@@ -863,7 +855,7 @@ falling back to not using job objects for managing child processes"""
                 if l.value > 0:
                     
                     
-                    return (self._normalize(f.readline()), False)
+                    return (f.readline(), False)
                 time.sleep(0.01)
             return ('', True)
 
