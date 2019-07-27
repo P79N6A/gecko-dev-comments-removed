@@ -15,6 +15,16 @@ Cu.import("resource://gre/modules/LoginManagerParent.jsm");
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
+
+
+function setDisabled(element, disabled) {
+  if (disabled) {
+    element.setAttribute("disabled", "true");
+  } else {
+    element.removeAttribute("disabled");
+  }
+}
+
 this.LoginDoorhangers = {};
 
 
@@ -24,10 +34,20 @@ this.LoginDoorhangers = {};
 
 
 this.LoginDoorhangers.FillDoorhanger = function (properties) {
-  this.onFilterInput = this.onFilterInput.bind(this);
-  this.onListDblClick = this.onListDblClick.bind(this);
-  this.onListKeyPress = this.onListKeyPress.bind(this);
-
+  
+  this.el = new Proxy({}, {
+    get: (target, name) => {
+      return this.chromeDocument.getElementById("login-fill-" + name);
+    },
+  });
+  this.eventHandlers = [];
+  for (let elementName of Object.keys(this.events)) {
+    let handlers = this.events[elementName];
+    for (let eventName of Object.keys(handlers)) {
+      let handler = handlers[eventName];
+      this.eventHandlers.push([elementName, eventName, handler.bind(this)]);
+    }
+  };
   for (let name of Object.getOwnPropertyNames(properties)) {
     this[name] = properties[name];
   }
@@ -52,7 +72,7 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
     this._browser = browser;
 
     let doorhanger = this;
-    let PopupNotifications = this.chomeDocument.defaultView.PopupNotifications;
+    let PopupNotifications = this.chromeDocument.defaultView.PopupNotifications;
     let notification = PopupNotifications.show(
       browser,
       "login-fill",
@@ -72,7 +92,6 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
               
               
               
-              doorhanger.bound = true;
               doorhanger.promiseHidden =
                          new Promise(resolve => doorhanger.onUnbind = resolve);
               doorhanger.bind();
@@ -109,7 +128,7 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
 
 
 
-  get chomeDocument() {
+  get chromeDocument() {
     return this.browser.ownerDocument;
   },
 
@@ -117,7 +136,7 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
 
 
   hide() {
-    let PopupNotifications = this.chomeDocument.defaultView.PopupNotifications;
+    let PopupNotifications = this.chromeDocument.defaultView.PopupNotifications;
     if (PopupNotifications.isPanelOpen) {
       PopupNotifications.panel.hidePopup();
     }
@@ -139,36 +158,47 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
 
 
   bind() {
-    this.element = this.chomeDocument.getElementById("login-fill-doorhanger");
-    this.list = this.chomeDocument.getElementById("login-fill-list");
-    this.filter = this.chomeDocument.getElementById("login-fill-filter");
+    
+    if (this.autoDetailLogin) {
+      let formLogins = Services.logins.findLogins({}, this.loginFormOrigin, "",
+                                                  null);
+      if (formLogins.length == 1) {
+        this.detailLogin = formLogins[0];
+      }
+      this.autoDetailLogin = false;
+    }
 
-    this.filter.setAttribute("value", this.filterString);
-
+    this.el.filter.setAttribute("value", this.filterString);
     this.refreshList();
+    this.refreshDetailView();
 
-    this.filter.addEventListener("input", this.onFilterInput);
-    this.list.addEventListener("dblclick", this.onListDblClick);
-    this.list.addEventListener("keypress", this.onListKeyPress);
+    this.eventHandlers.forEach(([elementName, eventName, handler]) => {
+      this.el[elementName].addEventListener(eventName, handler, true);
+    });
 
     
-    this.notification.owner.panel.firstElementChild.appendChild(this.element);
-    this.element.hidden = false;
+    this.notification.owner.panel.firstElementChild.appendChild(this.el.doorhanger);
+    this.el.doorhanger.hidden = false;
+
+    this.bound = true;
   },
 
   
 
 
   unbind() {
-    this.filter.removeEventListener("input", this.onFilterInput);
-    this.list.removeEventListener("dblclick", this.onListDblClick);
-    this.list.removeEventListener("keypress", this.onListKeyPress);
+    this.bound = false;
+
+    this.eventHandlers.forEach(([elementName, eventName, handler]) => {
+      this.el[elementName].removeEventListener(eventName, handler, true);
+    });
 
     this.clearList();
 
     
-    this.element.hidden = true;
-    this.chomeDocument.getElementById("mainPopupSet").appendChild(this.element);
+    this.el.doorhanger.hidden = true;
+    this.chromeDocument.getElementById("mainPopupSet")
+                       .appendChild(this.el.doorhanger);
   },
 
   
@@ -191,9 +221,76 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
   
 
 
-  onFilterInput() {
-    this.filterString = this.filter.value;
-    this.refreshList();
+  autoDetailLogin: false,
+
+  
+
+
+  set detailLogin(detailLogin) {
+    this._detailLogin = detailLogin;
+    if (this.bound) {
+      this.refreshDetailView();
+    }
+  },
+  get detailLogin() {
+    return this._detailLogin;
+  },
+  _detailLogin: null,
+
+  
+
+
+  events: {
+    mainview: {
+      focus(event) {
+        
+        
+        this.detailLogin = null;
+      },
+    },
+    filter: {
+      input(event) {
+        this.filterString = this.el.filter.value;
+        this.refreshList();
+      },
+    },
+    list: {
+      click(event) {
+        if (event.button == 0 && this.el.list.selectedItem) {
+          this.displaySelectedLoginDetails();
+        }
+      },
+      keypress(event) {
+        if (event.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_RETURN &&
+            this.el.list.selectedItem) {
+          this.displaySelectedLoginDetails();
+        }
+      },
+    },
+    clickcapturer: {
+      click(event) {
+        this.detailLogin = null;
+      },
+    },
+    details: {
+      transitionend(event) {
+        
+        
+        
+        if (event.target == this.el.details && this.detailLogin) {
+          if (this.loginFormPresent) {
+            this.el.use.focus();
+          } else {
+            this.el.username.focus();
+          }
+        }
+      },
+    },
+    use: {
+      command(event) {
+        this.fillLogin();
+      },
+    },
   },
 
   
@@ -212,17 +309,14 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
     }
 
     for (let { hostname, username } of formLogins) {
-      let item = this.chomeDocument.createElementNS(XUL_NS, "richlistitem");
+      let item = this.chromeDocument.createElementNS(XUL_NS, "richlistitem");
       item.classList.add("login-fill-item");
       item.setAttribute("hostname", hostname);
       item.setAttribute("username", username);
       if (hostname != this.loginFormOrigin) {
         item.classList.add("different-hostname");
       }
-      if (!this.loginFormPresent) {
-        item.setAttribute("disabled", "true");
-      }
-      this.list.appendChild(item);
+      this.el.list.appendChild(item);
     }
   },
 
@@ -230,45 +324,51 @@ this.LoginDoorhangers.FillDoorhanger.prototype = {
 
 
   clearList() {
-    while (this.list.firstChild) {
-      this.list.removeChild(this.list.firstChild);
+    let list = this.el.list;
+    while (list.firstChild) {
+      list.firstChild.remove();
     }
   },
 
   
 
 
-  onListDblClick(event) {
-    if (event.button != 0 || !this.list.selectedItem) {
-      return;
-    }
-    this.fillLogin();
-  },
-  onListKeyPress(event) {
-    if (event.keyCode != Ci.nsIDOMKeyEvent.DOM_VK_RETURN ||
-        !this.list.selectedItem) {
-      return;
-    }
-    this.fillLogin();
-  },
-  fillLogin() {
-    if (this.list.selectedItem.hasAttribute("disabled")) {
-      return;
-    }
-    let formLogins = Services.logins.findLogins({}, "", "", null);
-    let login = formLogins.find(login => {
-      return login.hostname == this.list.selectedItem.getAttribute("hostname") &&
-             login.username == this.list.selectedItem.getAttribute("username");
-    });
-    if (login) {
-      LoginManagerParent.fillForm({
-        browser: this.browser,
-        loginFormOrigin: this.loginFormOrigin,
-        login,
-      }).catch(Cu.reportError);
+  refreshDetailView() {
+    if (this.detailLogin) {
+      this.el.username.setAttribute("value", this.detailLogin.username);
+      this.el.password.setAttribute("value", this.detailLogin.password);
+      this.el.doorhanger.setAttribute("inDetailView", "true");
+      setDisabled(this.el.username, false);
+      setDisabled(this.el.use, !this.loginFormPresent);
     } else {
-      Cu.reportError("The selected login has been removed in the meantime.");
+      this.el.doorhanger.removeAttribute("inDetailView");
+      
+      
+      setDisabled(this.el.username, true);
+      setDisabled(this.el.use, true);
     }
+  },
+
+  displaySelectedLoginDetails() {
+    let selectedItem = this.el.list.selectedItem;
+    let hostLogins = Services.logins.findLogins({},
+                               selectedItem.getAttribute("hostname"), "", null);
+    let login = hostLogins.find(login => {
+      return login.username == selectedItem.getAttribute("username");
+    });
+    if (!login) {
+      Cu.reportError("The selected login has been removed in the meantime.");
+      return;
+    }
+    this.detailLogin = login;
+  },
+
+  fillLogin() {
+    LoginManagerParent.fillForm({
+      browser: this.browser,
+      loginFormOrigin: this.loginFormOrigin,
+      login: this.detailLogin,
+    }).catch(Cu.reportError);
     this.hide();
   },
 };
