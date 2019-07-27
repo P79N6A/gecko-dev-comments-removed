@@ -819,11 +819,7 @@ BluetoothAdapter::EnableDisable(bool aEnable, ErrorResult& aRv)
   }
 
   
-  nsTArray<nsString> types;
-  BT_APPEND_ENUM_STRING(types,
-                        BluetoothAdapterAttribute,
-                        BluetoothAdapterAttribute::State);
-  DispatchAttributeEvent(types);
+  HandleAdapterStateChanged();
 
   
   nsRefPtr<BluetoothReplyRunnable> result =
@@ -832,8 +828,11 @@ BluetoothAdapter::EnableDisable(bool aEnable, ErrorResult& aRv)
                                    methodName);
 
   if(NS_FAILED(bs->EnableDisable(aEnable, result))) {
+    
     mState = aEnable ? BluetoothAdapterState::Disabled
                      : BluetoothAdapterState::Enabled;
+    HandleAdapterStateChanged();
+
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
   }
 
@@ -892,6 +891,16 @@ BluetoothAdapter::IsAdapterAttributeChanged(BluetoothAdapterAttribute aType,
       BT_WARNING("Type %d is not handled", uint32_t(aType));
       return false;
   }
+}
+
+void
+BluetoothAdapter::HandleAdapterStateChanged()
+{
+  nsTArray<nsString> types;
+  BT_APPEND_ENUM_STRING(types,
+                        BluetoothAdapterAttribute,
+                        BluetoothAdapterAttribute::State);
+  DispatchAttributeEvent(types);
 }
 
 void
