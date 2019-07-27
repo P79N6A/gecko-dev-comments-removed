@@ -297,14 +297,16 @@ final class GeckoEditable
             }
         }
 
+        
+
+
         void poll() {
             if (DEBUG) {
                 ThreadUtils.assertOnGeckoThread();
             }
-            if (mActions.isEmpty()) {
+            if (mActions.poll() == null) {
                 throw new IllegalStateException("empty actions queue");
             }
-            mActions.poll();
 
             synchronized(this) {
                 if (mActions.isEmpty()) {
@@ -313,12 +315,14 @@ final class GeckoEditable
             }
         }
 
+        
+
+
+
+
         Action peek() {
             if (DEBUG) {
                 ThreadUtils.assertOnGeckoThread();
-            }
-            if (mActions.isEmpty()) {
-                throw new IllegalStateException("empty actions queue");
             }
             return mActions.peek();
         }
@@ -669,7 +673,11 @@ final class GeckoEditable
             
             ThreadUtils.assertOnGeckoThread();
         }
+
         final Action action = mActionQueue.peek();
+        if (action == null) {
+            throw new IllegalStateException("empty actions queue");
+        }
 
         if (DEBUG) {
             Log.d(LOGTAG, "reply: Action(" +
@@ -834,8 +842,8 @@ final class GeckoEditable
         
 
 
-        if (!mActionQueue.isEmpty() &&
-            mActionQueue.peek().mType == Action.TYPE_EVENT) {
+        final Action action = mActionQueue.peek();
+        if (action != null && action.mType == Action.TYPE_EVENT) {
             Selection.setSelection(mText, start, end);
             return;
         }
@@ -909,46 +917,45 @@ final class GeckoEditable
         TextUtils.copySpansFrom(mText, start, Math.min(oldEnd, newEnd),
                                 Object.class, mChangedText, 0);
 
-        if (!mActionQueue.isEmpty()) {
-            final Action action = mActionQueue.peek();
-            if ((action.mType == Action.TYPE_REPLACE_TEXT ||
-                    action.mType == Action.TYPE_COMPOSE_TEXT) &&
-                    start <= action.mStart &&
-                    action.mStart + action.mSequence.length() <= newEnd) {
+        final Action action = mActionQueue.peek();
+        if (action != null &&
+                (action.mType == Action.TYPE_REPLACE_TEXT ||
+                action.mType == Action.TYPE_COMPOSE_TEXT) &&
+                start <= action.mStart &&
+                action.mStart + action.mSequence.length() <= newEnd) {
 
-                
-                final int actionNewEnd = action.mStart + action.mSequence.length();
-                int selStart = Selection.getSelectionStart(mText);
-                int selEnd = Selection.getSelectionEnd(mText);
+            
+            final int actionNewEnd = action.mStart + action.mSequence.length();
+            int selStart = Selection.getSelectionStart(mText);
+            int selEnd = Selection.getSelectionEnd(mText);
 
-                
-                mChangedText.replace(action.mStart - start, actionNewEnd - start,
-                                     action.mSequence);
-                geckoReplaceText(start, oldEnd, mChangedText);
+            
+            mChangedText.replace(action.mStart - start, actionNewEnd - start,
+                                 action.mSequence);
+            geckoReplaceText(start, oldEnd, mChangedText);
 
-                
-                
-                
-                if (selStart >= start && selStart <= oldEnd) {
-                    selStart = selStart < action.mStart ? selStart :
-                               selStart < action.mEnd   ? actionNewEnd :
-                                                          selStart + actionNewEnd - action.mEnd;
-                    mText.setSpan(Selection.SELECTION_START, selStart, selStart,
-                                  Spanned.SPAN_POINT_POINT);
-                }
-                if (selEnd >= start && selEnd <= oldEnd) {
-                    selEnd = selEnd < action.mStart ? selEnd :
-                             selEnd < action.mEnd   ? actionNewEnd :
-                                                      selEnd + actionNewEnd - action.mEnd;
-                    mText.setSpan(Selection.SELECTION_END, selEnd, selEnd,
-                                  Spanned.SPAN_POINT_POINT);
-                }
-            } else {
-                geckoReplaceText(start, oldEnd, mChangedText);
+            
+            
+            
+            if (selStart >= start && selStart <= oldEnd) {
+                selStart = selStart < action.mStart ? selStart :
+                           selStart < action.mEnd   ? actionNewEnd :
+                                                      selStart + actionNewEnd - action.mEnd;
+                mText.setSpan(Selection.SELECTION_START, selStart, selStart,
+                              Spanned.SPAN_POINT_POINT);
             }
+            if (selEnd >= start && selEnd <= oldEnd) {
+                selEnd = selEnd < action.mStart ? selEnd :
+                         selEnd < action.mEnd   ? actionNewEnd :
+                                                  selEnd + actionNewEnd - action.mEnd;
+                mText.setSpan(Selection.SELECTION_END, selEnd, selEnd,
+                              Spanned.SPAN_POINT_POINT);
+            }
+
         } else {
             geckoReplaceText(start, oldEnd, mChangedText);
         }
+
         geckoPostToIc(new Runnable() {
             @Override
             public void run() {
