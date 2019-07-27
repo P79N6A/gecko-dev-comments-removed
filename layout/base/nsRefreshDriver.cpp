@@ -27,6 +27,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
+#include "nsHostObjectProtocolHandler.h"
 #include "nsRefreshDriver.h"
 #include "nsITimer.h"
 #include "nsLayoutUtils.h"
@@ -864,9 +865,14 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
 
   if (mPresContext->Document()->IsBeingUsedAsImage()) {
     
-    MOZ_ASSERT(!mActiveTimer,
-               "image document refresh driver should never have its own timer");
-    return;
+    
+    
+    nsIURI* uri = mPresContext->Document()->GetDocumentURI();
+    if (!uri || !IsFontTableURI(uri)) {
+      MOZ_ASSERT(!mActiveTimer,
+                 "image doc refresh driver should never have its own timer");
+      return;
+    }
   }
 
   
