@@ -645,9 +645,16 @@ falling back to not using job objects for managing child processes"""
                 self.kill()
         onTimeout.insert(0, on_timeout)
 
-        self._stderr = subprocess.STDOUT
-        if processStderrLine:
-            self._stderr = subprocess.PIPE
+        
+        
+        
+        self._stderr = subprocess.PIPE
+        if not processStderrLine:
+            
+            
+            
+            processStderrLine = processOutputLine
+
         self.reader = ProcessReader(stdout_callback=processOutputLine,
                                     stderr_callback=processStderrLine,
                                     finished_callback=onFinish,
