@@ -81,6 +81,19 @@ public:
 
   
   
+  static bool ContentOrAncestorHasAnimation(nsIContent* aContent) {
+    do {
+      if (aContent->GetProperty(nsGkAtoms::animationsProperty) ||
+          aContent->GetProperty(nsGkAtoms::transitionsProperty)) {
+        return true;
+      }
+    } while ((aContent = aContent->GetParent()));
+
+    return false;
+  }
+
+  
+  
   void NotifyCollectionUpdated(AnimationPlayerCollection& aCollection);
 
   enum FlushFlags {

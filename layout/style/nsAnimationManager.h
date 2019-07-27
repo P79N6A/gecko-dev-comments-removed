@@ -161,17 +161,6 @@ public:
       aContent, nsGkAtoms::animationsProperty, aProperty);
   }
 
-  
-  static bool ContentOrAncestorHasAnimation(nsIContent* aContent) {
-    do {
-      if (aContent->GetProperty(nsGkAtoms::animationsProperty)) {
-        return true;
-      }
-    } while ((aContent = aContent->GetParent()));
-
-    return false;
-  }
-
   void UpdateStyleAndEvents(mozilla::AnimationPlayerCollection* aEA,
                             mozilla::TimeStamp aRefreshTime,
                             mozilla::EnsureStyleRuleFlags aFlags);

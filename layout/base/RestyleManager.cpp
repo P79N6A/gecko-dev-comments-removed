@@ -878,8 +878,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 #ifdef DEBUG
     
     if (changeData->mContent) {
-      if (!nsAnimationManager::ContentOrAncestorHasAnimation(changeData->mContent) &&
-          !nsTransitionManager::ContentOrAncestorHasTransition(changeData->mContent)) {
+      if (!css::CommonAnimationManager::ContentOrAncestorHasAnimation(changeData->mContent)) {
         nsIFrame* frame = changeData->mContent->GetPrimaryFrame();
         if (frame) {
           DebugVerifyStyleTree(frame);
