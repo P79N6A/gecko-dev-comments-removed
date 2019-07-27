@@ -258,6 +258,171 @@ public class BrowserApp extends GeckoApp
 
     private TilesRecorder mTilesRecorder;
 
+    private DragHelper mDragHelper;
+
+    private class DragHelper implements OuterLayout.DragCallback {
+        private int[] mToolbarLocation = new int[2]; 
+        
+        
+        private int mStatusBarHeight;
+
+        public DragHelper() {
+            
+            
+            ((MainLayout) mMainLayout).setLayoutInterceptor(new LayoutInterceptor() {
+                @Override
+                public void onLayout() {
+                    if (mRootLayout.isMoving()) {
+                        mRootLayout.restoreTargetViewPosition();
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onDragProgress(float progress) {
+            mBrowserToolbar.setToolBarButtonsAlpha(1.0f - progress);
+            mTabsPanel.translateInRange(progress);
+        }
+
+        @Override
+        public View getViewToDrag() {
+            return mMainLayout;
+        }
+
+        
+
+
+
+
+        @Override
+        public void startDrag(boolean wasOpen) {
+            if (wasOpen) {
+                mTabsPanel.setHWLayerEnabled(true);
+                mMainLayout.offsetTopAndBottom(getDragRange());
+                mMainLayout.scrollTo(0, 0);
+            } else {
+                prepareTabsToShow();
+                mBrowserToolbar.hideVirtualKeyboard();
+            }
+            mBrowserToolbar.setContextMenuEnabled(false);
+        }
+
+        @Override
+        public void stopDrag(boolean stoppingToOpen) {
+            if (stoppingToOpen) {
+                mTabsPanel.setHWLayerEnabled(false);
+                mMainLayout.offsetTopAndBottom(-getDragRange());
+                mMainLayout.scrollTo(0, -getDragRange());
+            } else {
+                mTabsPanel.hideImmediately();
+                mTabsPanel.setHWLayerEnabled(false);
+            }
+            
+            if (stoppingToOpen) {
+                mBrowserToolbar.setContextMenuEnabled(false);
+            } else {
+                mBrowserToolbar.setContextMenuEnabled(true);
+            }
+        }
+
+        @Override
+        public int getDragRange() {
+            return mTabsPanel.getVerticalPanelHeight();
+        }
+
+        @Override
+        public int getOrderedChildIndex(int index) {
+            
+            
+            
+            int mainLayoutIndex = mRootLayout.indexOfChild(mMainLayout);
+            if (index > mainLayoutIndex &&  (mToast == null || !mToast.isVisible())) {
+                return mainLayoutIndex;
+            } else {
+                return index;
+            }
+        }
+
+        @Override
+        public boolean canDrag(MotionEvent event) {
+            
+            if (Tabs.getInstance().getSelectedTab() == null) {
+                return false;
+            }
+
+            
+            if (HardwareUtils.isTablet()) {
+                return false;
+            }
+
+            
+            if (mBrowserToolbar.isEditing()) {
+                return false;
+            }
+
+            return isInToolbarBounds((int) event.getRawY());
+        }
+
+        @Override
+        public boolean canInterceptEventWhileOpen(MotionEvent event) {
+            if (event.getActionMasked() != MotionEvent.ACTION_DOWN) {
+                return false;
+            }
+
+            
+            if (mRootLayout.findTopChildUnder(event) == mMainLayout &&
+                isInToolbarBounds((int) event.getRawY())) {
+                return true;
+            }
+            return false;
+        }
+
+        private boolean isInToolbarBounds(int y) {
+            mBrowserToolbar.getLocationOnScreen(mToolbarLocation);
+            final int upperLimit = mToolbarLocation[1] + mBrowserToolbar.getMeasuredHeight();
+            final int lowerLimit = mToolbarLocation[1];
+            return (y > lowerLimit && y < upperLimit);
+        }
+
+        public void prepareTabsToShow() {
+            if (ensureTabsPanelExists()) {
+                
+                
+                
+                final ViewTreeObserver vto = mTabsPanel.getViewTreeObserver();
+                if (vto.isAlive()) {
+                    vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            mTabsPanel.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                            prepareTabsToShow();
+                        }
+                    });
+                }
+            } else {
+                mTabsPanel.prepareToDrag();
+            }
+        }
+
+        public int getLowerLimit() {
+            return getStatusBarHeight();
+        }
+
+        private int getStatusBarHeight() {
+            if (mStatusBarHeight != 0) {
+                return mStatusBarHeight;
+            }
+            final int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resourceId > 0) {
+                mStatusBarHeight = getResources().getDimensionPixelSize(resourceId);
+                return mStatusBarHeight;
+            }
+            Log.e(LOGTAG, "Unable to find statusbar height");
+            return 0;
+        }
+    }
+
     @Override
     public View onCreateView(final String name, final Context context, final AttributeSet attrs) {
         final View view;
@@ -647,6 +812,9 @@ public class BrowserApp extends GeckoApp
                 setDynamicToolbarEnabled(enabled);
             }
         });
+
+        mDragHelper = new DragHelper();
+        mRootLayout.setDraggableCallback(mDragHelper);
 
         
         IconDirectoryEntry.setMaxBPP(GeckoAppShell.getScreenDepth());
@@ -1364,6 +1532,7 @@ public class BrowserApp extends GeckoApp
         invalidateOptionsMenu();
 
         if (mTabsPanel != null) {
+            mRootLayout.reset();
             updateSideBarState();
             mTabsPanel.refresh();
         }
@@ -1387,6 +1556,10 @@ public class BrowserApp extends GeckoApp
         });
     }
 
+    private boolean isSideBar() {
+        return (HardwareUtils.isTablet() && getOrientation() == Configuration.ORIENTATION_LANDSCAPE);
+    }
+
     private void updateSideBarState() {
         if (NewTabletUI.isEnabled(this)) {
             return;
@@ -1395,7 +1568,7 @@ public class BrowserApp extends GeckoApp
         if (mMainLayoutAnimator != null)
             mMainLayoutAnimator.stop();
 
-        boolean isSideBar = (HardwareUtils.isTablet() && getOrientation() == Configuration.ORIENTATION_LANDSCAPE);
+        boolean isSideBar = isSideBar();
         final int sidebarWidth = getResources().getDimensionPixelSize(R.dimen.tabs_sidebar_width);
 
         ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) mTabsPanel.getLayoutParams();
@@ -1407,6 +1580,7 @@ public class BrowserApp extends GeckoApp
         mMainLayout.scrollTo(mainLayoutScrollX, 0);
 
         mTabsPanel.setIsSideBar(isSideBar);
+        mRootLayout.updateDragHelperParameters();
     }
 
     @Override
@@ -1717,7 +1891,7 @@ public class BrowserApp extends GeckoApp
                     @Override
                     public void onGlobalLayout() {
                         mTabsPanel.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                        mTabsPanel.show(panel);
+                        showTabs(panel);
                     }
                 });
             }
@@ -1806,10 +1980,13 @@ public class BrowserApp extends GeckoApp
         if (!areTabsShown()) {
             mTabsPanel.setVisibility(View.INVISIBLE);
             mTabsPanel.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+            mRootLayout.setClosed();
+            mBrowserToolbar.setContextMenuEnabled(true);
         } else {
             
             
             mBrowserToolbar.cancelEdit();
+            mRootLayout.setOpen();
         }
 
         mTabsPanel.finishTabsAnimation();

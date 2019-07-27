@@ -141,6 +141,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     private final int shadowSize;
 
     private final ToolbarPrefs prefs;
+    private boolean contextMenuEnabled = true;
 
     public abstract boolean isAnimating();
 
@@ -245,7 +246,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
             @Override
             public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
                 
-                if (isEditing()) {
+                if (isEditing() || !contextMenuEnabled) {
                     return;
                 }
 
@@ -570,16 +571,19 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         menuButton.setNextFocusDownId(nextId);
     }
 
+    public void hideVirtualKeyboard() {
+        InputMethodManager imm =
+                (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.hideSoftInputFromWindow(tabsButton.getWindowToken(), 0);
+    }
+
     private void toggleTabs() {
         if (activity.areTabsShown()) {
             if (activity.hasTabsSideBar())
                 activity.hideTabs();
         } else {
-            
-            InputMethodManager imm =
-                    (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(tabsButton.getWindowToken(), 0);
 
+            hideVirtualKeyboard();
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
                 if (!tab.isPrivate())
@@ -671,6 +675,13 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
         if (needsNewFocus) {
             requestFocus();
+        }
+    }
+
+    public void setToolBarButtonsAlpha(float alpha) {
+        ViewHelper.setAlpha(tabsCounter, alpha);
+        if (hasSoftMenuButton && !HardwareUtils.isTablet()) {
+            ViewHelper.setAlpha(menuIcon, alpha);
         }
     }
 
@@ -947,6 +958,10 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         }
 
         return drawable;
+    }
+
+    public void setContextMenuEnabled(boolean enabled) {
+        contextMenuEnabled = enabled;
     }
 
     public static class TabEditingState {
