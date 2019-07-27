@@ -25,6 +25,29 @@ public:
   CDMCaps();
   ~CDMCaps();
 
+  struct KeyStatus {
+    KeyStatus(const CencKeyId& aId,
+              const nsString& aSessionId,
+              GMPMediaKeyStatus aStatus)
+      : mId(aId)
+      , mSessionId(aSessionId)
+      , mStatus(aStatus)
+    {}
+    KeyStatus(const KeyStatus& aOther)
+      : mId(aOther.mId)
+      , mSessionId(aOther.mSessionId)
+      , mStatus(aOther.mStatus)
+    {}
+    bool operator==(const KeyStatus& aOther) const {
+      return mId == aOther.mId &&
+             mSessionId == aOther.mSessionId;
+    };
+
+    CencKeyId mId;
+    nsString mSessionId;
+    GMPMediaKeyStatus mStatus;
+  };
+
   
   
   class MOZ_STACK_CLASS AutoLock {
@@ -42,8 +65,8 @@ public:
     
     bool SetKeyStatus(const CencKeyId& aKeyId, const nsString& aSessionId, GMPMediaKeyStatus aStatus);
 
-    void GetUsableKeysForSession(const nsAString& aSessionId,
-                                 nsTArray<CencKeyId>& aOutKeyIds);
+    void GetKeyStatusesForSession(const nsAString& aSessionId,
+                                  nsTArray<KeyStatus>& aOutKeyStatuses);
 
     
     
@@ -82,28 +105,6 @@ private:
 
   Monitor mMonitor;
 
-  struct KeyStatus {
-    KeyStatus(const CencKeyId& aId,
-              const nsString& aSessionId,
-              GMPMediaKeyStatus aStatus)
-      : mId(aId)
-      , mSessionId(aSessionId)
-      , mStatus(aStatus)
-    {}
-    KeyStatus(const KeyStatus& aOther)
-      : mId(aOther.mId)
-      , mSessionId(aOther.mSessionId)
-      , mStatus(aOther.mStatus)
-    {}
-    bool operator==(const KeyStatus& aOther) const {
-      return mId == aOther.mId &&
-             mSessionId == aOther.mSessionId;
-    };
-
-    CencKeyId mId;
-    nsString mSessionId;
-    GMPMediaKeyStatus mStatus;
-  };
   nsTArray<KeyStatus> mKeyStatuses;
 
   nsTArray<WaitForKeys> mWaitForKeys;
