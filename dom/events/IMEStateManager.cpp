@@ -16,7 +16,6 @@
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/HTMLFormElement.h"
-#include "mozilla/dom/TabParent.h"
 
 #include "HTMLInputElement.h"
 #include "IMEContentObserver.h"
@@ -389,27 +388,6 @@ IMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   }
 
   IMEState newState = GetNewIMEState(aPresContext, aContent);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if ((newState.mEnabled == IMEState::DISABLED) && TabParent::GetIMETabParent()) {
-    PR_LOG(sISMLog, PR_LOG_DEBUG,
-      ("ISM:   IMEStateManager::OnChangeFocusInternal(), "
-       "Parent process cancels to set DISABLED state because the content process "
-       "has IME focus and has already sets IME state"));  
-    MOZ_ASSERT(XRE_IsParentProcess(),
-      "TabParent::GetIMETabParent() should never return non-null value "
-      "in the content process");
-    return NS_OK;
-  }
-
   if (!focusActuallyChanging) {
     
     
