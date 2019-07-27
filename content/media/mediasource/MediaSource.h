@@ -85,6 +85,11 @@ public:
     return mDecoder;
   }
 
+  nsIPrincipal* GetPrincipal()
+  {
+    return mPrincipal;
+  }
+
   
   
   
@@ -127,6 +132,8 @@ private:
   nsRefPtr<SourceBufferList> mActiveSourceBuffers;
 
   nsRefPtr<MediaSourceDecoder> mDecoder;
+
+  nsRefPtr<nsIPrincipal> mPrincipal;
 
   MediaSourceReadyState mReadyState;
 
