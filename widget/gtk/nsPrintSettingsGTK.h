@@ -48,70 +48,70 @@ public:
 
   
   
-  NS_IMETHOD GetPrintRange(int16_t *aPrintRange);
-  NS_IMETHOD SetPrintRange(int16_t aPrintRange);
+  NS_IMETHOD GetPrintRange(int16_t *aPrintRange) MOZ_OVERRIDE;
+  NS_IMETHOD SetPrintRange(int16_t aPrintRange) MOZ_OVERRIDE;
 
   
-  NS_IMETHOD GetStartPageRange(int32_t *aStartPageRange);
-  NS_IMETHOD SetStartPageRange(int32_t aStartPageRange);
-  NS_IMETHOD GetEndPageRange(int32_t *aEndPageRange);
-  NS_IMETHOD SetEndPageRange(int32_t aEndPageRange);
-
-  
-  
-  NS_IMETHOD GetPrintReversed(bool *aPrintReversed);
-  NS_IMETHOD SetPrintReversed(bool aPrintReversed);
-
-  NS_IMETHOD GetPrintInColor(bool *aPrintInColor);
-  NS_IMETHOD SetPrintInColor(bool aPrintInColor);
-
-  NS_IMETHOD GetOrientation(int32_t *aOrientation);
-  NS_IMETHOD SetOrientation(int32_t aOrientation);
-
-  NS_IMETHOD GetToFileName(char16_t * *aToFileName);
-  NS_IMETHOD SetToFileName(const char16_t * aToFileName);
+  NS_IMETHOD GetStartPageRange(int32_t *aStartPageRange) MOZ_OVERRIDE;
+  NS_IMETHOD SetStartPageRange(int32_t aStartPageRange) MOZ_OVERRIDE;
+  NS_IMETHOD GetEndPageRange(int32_t *aEndPageRange) MOZ_OVERRIDE;
+  NS_IMETHOD SetEndPageRange(int32_t aEndPageRange) MOZ_OVERRIDE;
 
   
   
-  NS_IMETHOD GetPrinterName(char16_t * *aPrinter);
-  NS_IMETHOD SetPrinterName(const char16_t * aPrinter);
+  NS_IMETHOD GetPrintReversed(bool *aPrintReversed) MOZ_OVERRIDE;
+  NS_IMETHOD SetPrintReversed(bool aPrintReversed) MOZ_OVERRIDE;
+
+  NS_IMETHOD GetPrintInColor(bool *aPrintInColor) MOZ_OVERRIDE;
+  NS_IMETHOD SetPrintInColor(bool aPrintInColor) MOZ_OVERRIDE;
+
+  NS_IMETHOD GetOrientation(int32_t *aOrientation) MOZ_OVERRIDE;
+  NS_IMETHOD SetOrientation(int32_t aOrientation) MOZ_OVERRIDE;
+
+  NS_IMETHOD GetToFileName(char16_t * *aToFileName) MOZ_OVERRIDE;
+  NS_IMETHOD SetToFileName(const char16_t * aToFileName) MOZ_OVERRIDE;
 
   
-  NS_IMETHOD GetNumCopies(int32_t *aNumCopies);
-  NS_IMETHOD SetNumCopies(int32_t aNumCopies);
-
-  NS_IMETHOD GetScaling(double *aScaling);
-  NS_IMETHOD SetScaling(double aScaling);
+  
+  NS_IMETHOD GetPrinterName(char16_t * *aPrinter) MOZ_OVERRIDE;
+  NS_IMETHOD SetPrinterName(const char16_t * aPrinter) MOZ_OVERRIDE;
 
   
-  NS_IMETHOD GetPaperName(char16_t * *aPaperName);
-  NS_IMETHOD SetPaperName(const char16_t * aPaperName);
+  NS_IMETHOD GetNumCopies(int32_t *aNumCopies) MOZ_OVERRIDE;
+  NS_IMETHOD SetNumCopies(int32_t aNumCopies) MOZ_OVERRIDE;
 
-  NS_IMETHOD SetUnwriteableMarginInTwips(nsIntMargin& aUnwriteableMargin);
-  NS_IMETHOD SetUnwriteableMarginTop(double aUnwriteableMarginTop);
-  NS_IMETHOD SetUnwriteableMarginLeft(double aUnwriteableMarginLeft);
-  NS_IMETHOD SetUnwriteableMarginBottom(double aUnwriteableMarginBottom);
-  NS_IMETHOD SetUnwriteableMarginRight(double aUnwriteableMarginRight);
+  NS_IMETHOD GetScaling(double *aScaling) MOZ_OVERRIDE;
+  NS_IMETHOD SetScaling(double aScaling) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetPaperWidth(double *aPaperWidth);
-  NS_IMETHOD SetPaperWidth(double aPaperWidth);
+  
+  NS_IMETHOD GetPaperName(char16_t * *aPaperName) MOZ_OVERRIDE;
+  NS_IMETHOD SetPaperName(const char16_t * aPaperName) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetPaperHeight(double *aPaperHeight);
-  NS_IMETHOD SetPaperHeight(double aPaperHeight);
+  NS_IMETHOD SetUnwriteableMarginInTwips(nsIntMargin& aUnwriteableMargin) MOZ_OVERRIDE;
+  NS_IMETHOD SetUnwriteableMarginTop(double aUnwriteableMarginTop) MOZ_OVERRIDE;
+  NS_IMETHOD SetUnwriteableMarginLeft(double aUnwriteableMarginLeft) MOZ_OVERRIDE;
+  NS_IMETHOD SetUnwriteableMarginBottom(double aUnwriteableMarginBottom) MOZ_OVERRIDE;
+  NS_IMETHOD SetUnwriteableMarginRight(double aUnwriteableMarginRight) MOZ_OVERRIDE;
 
-  NS_IMETHOD SetPaperSizeUnit(int16_t aPaperSizeUnit);
+  NS_IMETHOD GetPaperWidth(double *aPaperWidth) MOZ_OVERRIDE;
+  NS_IMETHOD SetPaperWidth(double aPaperWidth) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetEffectivePageSize(double *aWidth, double *aHeight);
+  NS_IMETHOD GetPaperHeight(double *aPaperHeight) MOZ_OVERRIDE;
+  NS_IMETHOD SetPaperHeight(double aPaperHeight) MOZ_OVERRIDE;
 
-  NS_IMETHOD SetupSilentPrinting();
+  NS_IMETHOD SetPaperSizeUnit(int16_t aPaperSizeUnit) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetPageRanges(nsTArray<int32_t> &aPages);
+  NS_IMETHOD GetEffectivePageSize(double *aWidth, double *aHeight) MOZ_OVERRIDE;
 
-  NS_IMETHOD GetResolution(int32_t *aResolution);
-  NS_IMETHOD SetResolution(int32_t aResolution);
+  NS_IMETHOD SetupSilentPrinting() MOZ_OVERRIDE;
 
-  NS_IMETHOD GetDuplex(int32_t *aDuplex);
-  NS_IMETHOD SetDuplex(int32_t aDuplex);
+  NS_IMETHOD GetPageRanges(nsTArray<int32_t> &aPages) MOZ_OVERRIDE;
+
+  NS_IMETHOD GetResolution(int32_t *aResolution) MOZ_OVERRIDE;
+  NS_IMETHOD SetResolution(int32_t aResolution) MOZ_OVERRIDE;
+
+  NS_IMETHOD GetDuplex(int32_t *aDuplex) MOZ_OVERRIDE;
+  NS_IMETHOD SetDuplex(int32_t aDuplex) MOZ_OVERRIDE;
 
 protected:
   virtual ~nsPrintSettingsGTK();
@@ -119,8 +119,8 @@ protected:
   nsPrintSettingsGTK(const nsPrintSettingsGTK& src);
   nsPrintSettingsGTK& operator=(const nsPrintSettingsGTK& rhs);
 
-  virtual nsresult _Clone(nsIPrintSettings **_retval);
-  virtual nsresult _Assign(nsIPrintSettings *aPS);
+  virtual nsresult _Clone(nsIPrintSettings **_retval) MOZ_OVERRIDE;
+  virtual nsresult _Assign(nsIPrintSettings *aPS) MOZ_OVERRIDE;
 
   GtkUnit GetGTKUnit(int16_t aGeckoUnit);
   void SaveNewPageSize();
