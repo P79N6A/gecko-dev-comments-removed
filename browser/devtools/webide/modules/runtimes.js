@@ -78,6 +78,10 @@ const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/
 
 
 
+
+
+
+
 let RuntimeScanners = {
 
   _enabledCount: 0,
@@ -446,6 +450,8 @@ function WiFiRuntime(deviceName) {
 
 WiFiRuntime.prototype = {
   type: RuntimeTypes.WIFI,
+  
+  prolongedConnection: true,
   connect: function(connection) {
     let service = discovery.getRemoteService("devtools", this.deviceName);
     if (!service) {

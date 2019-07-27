@@ -304,7 +304,6 @@ let UI = {
   busyUntil: function(promise, operationDescription) {
     
     
-    
     this._busyPromise = promise;
     this._busyOperationDescription = operationDescription;
     this.setupBusyTimeout();
@@ -469,7 +468,13 @@ let UI = {
              
              
            });
-    return this.busyUntil(promise, "Connecting to " + name);
+    promise = this.busyUntil(promise, "Connecting to " + name);
+    
+    
+    if (runtime.prolongedConnection) {
+      this.cancelBusyTimeout();
+    }
+    return promise;
   },
 
   updateRuntimeButton: function() {
