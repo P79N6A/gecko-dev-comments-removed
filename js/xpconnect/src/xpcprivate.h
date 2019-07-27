@@ -2844,14 +2844,8 @@ struct XPCJSContextInfo {
 };
 
 namespace xpc {
-
-
-
-
-
-
-bool PushJSContextNoScriptContext(JSContext* aCx);
-void PopJSContextNoScriptContext();
+bool PushNullJSContext();
+void PopNullJSContext();
 
 } 
 
@@ -2892,8 +2886,8 @@ public:
 
 private:
     friend class mozilla::dom::danger::AutoCxPusher;
-    friend bool xpc::PushJSContextNoScriptContext(JSContext* aCx);
-    friend void xpc::PopJSContextNoScriptContext();
+    friend bool xpc::PushNullJSContext();
+    friend void xpc::PopNullJSContext();
 
     
     
