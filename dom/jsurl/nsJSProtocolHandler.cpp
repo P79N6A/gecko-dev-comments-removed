@@ -1223,6 +1223,11 @@ nsJSProtocolHandler::NewChannel2(nsIURI* uri,
     NS_ADDREF(channel);
 
     rv = channel->Init(uri);
+
+    
+    rv = channel->SetLoadInfo(aLoadInfo);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     if (NS_SUCCEEDED(rv)) {
         *result = channel;
         NS_ADDREF(*result);
