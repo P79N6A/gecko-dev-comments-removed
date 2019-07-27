@@ -78,8 +78,19 @@ OpenDeletedDirectory()
   
   
   
-  char path[] = "/tmp/mozsandbox.XXXXXX";
-  if (!mkdtemp(path)) {
+  
+  
+  
+  
+  
+  char tmpPath[] = "/tmp/mozsandbox.XXXXXX";
+  char shmPath[] = "/dev/shm/mozsandbox.XXXXXX";
+  char* path;
+  if (mkdtemp(shmPath)) {
+    path = shmPath;
+  } else if (mkdtemp(tmpPath)) {
+    path = tmpPath;
+  } else {
     SANDBOX_LOG_ERROR("mkdtemp: %s", strerror(errno));
     return -1;
   }
