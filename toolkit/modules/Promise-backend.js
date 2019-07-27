@@ -22,8 +22,16 @@
 
 
 
-Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+if (!isWorker) {
+  Cu.import("resource://gre/modules/Services.jsm");
+  Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+  XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
+                                     "@mozilla.org/toolkit/finalizationwitness;1",
+                                     "nsIFinalizationWitnessService");
+}
 
 const STATUS_PENDING = 0;
 const STATUS_RESOLVED = 1;
@@ -38,7 +46,7 @@ const salt = Math.floor(Math.random() * 100);
 const N_INTERNALS = "{private:internals:" + salt + "}";
 
 
-const DOMPromise = Promise;
+const DOMPromise = isWorker ? null : Promise;
 
 
 
@@ -70,10 +78,6 @@ const DOMPromise = Promise;
 
 
 
-
-XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
-                                   "@mozilla.org/toolkit/finalizationwitness;1",
-                                   "nsIFinalizationWitnessService");
 
 let PendingErrors = {
   
@@ -247,7 +251,13 @@ let PendingErrors = {
     this._observers.clear();
   }
 };
-PendingErrors.init();
+
+
+
+
+if (!isWorker) {
+  PendingErrors.init();
+}
 
 
 PendingErrors.addObserver(function(details) {
@@ -620,6 +630,12 @@ Object.freeze(Promise);
 
 
 
+if (isWorker) {
+  module.exports = Promise;
+}
+
+
+
 
 
 
@@ -669,7 +685,7 @@ this.PromiseWalker = {
     aPromise[N_INTERNALS].value = aValue;
     if (aPromise[N_INTERNALS].handlers.length > 0) {
       this.schedulePromise(aPromise);
-    } else if (aStatus == STATUS_REJECTED) {
+    } else if (!isWorker && aStatus == STATUS_REJECTED) {
       
       
       let id = PendingErrors.register(aValue);
@@ -685,7 +701,11 @@ this.PromiseWalker = {
   scheduleWalkerLoop: function()
   {
     this.walkerLoopScheduled = true;
-    DOMPromise.resolve().then(() => this.walkerLoop());
+    if (isWorker) {
+      setImmediate(this.walkerLoop);
+    } else {
+      DOMPromise.resolve().then(() => this.walkerLoop());
+    }
   },
 
   
