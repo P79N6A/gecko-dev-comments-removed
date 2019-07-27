@@ -18,8 +18,4 @@ function test() {
       EventUtils.synthesizeMouseAtCenter(button, {}, cw);
     }, cw);
   });
-
-  
-  
-  ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
 }

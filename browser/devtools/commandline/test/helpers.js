@@ -1170,11 +1170,6 @@ helpers.audit = function(options, audits) {
             'due to ' + audit.skipRemainingIf.name :
             '';
         assert.log('Skipped ' + name + ' ' + skipReason);
-
-        
-        
-        ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
-
         return Promise.resolve(undefined);
       }
     }

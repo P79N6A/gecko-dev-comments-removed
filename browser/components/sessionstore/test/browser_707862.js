@@ -48,10 +48,6 @@ function test() {
       iframe.setAttribute("src", "about:mozilla");
     });
   });
-
-  
-  
-  ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
 }
 
 function whenChildCount(aEntry, aChildCount, aCallback) {

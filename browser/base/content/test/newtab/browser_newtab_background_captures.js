@@ -37,12 +37,6 @@ function runTests() {
   
   let tab = gWindow.gBrowser.addTab("about:blank");
   yield addNewTabPageTab();
-
-  
-  
-  
-  ok(true, "Each test requires at least one pass, fail or todo so here is a pass.");
-
   let swapWaitCount = 0;
   let swapped = imports.BrowserNewTabPreloader.newTab(tab);
   while (!swapped) {
