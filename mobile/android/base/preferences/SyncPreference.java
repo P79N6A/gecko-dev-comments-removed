@@ -27,6 +27,8 @@ class SyncPreference extends Preference {
     private void openSync11Settings() {
         
         if (SyncAccounts.syncAccountsExist(mContext)) {
+            
+            
             SyncAccounts.openSyncSettings(mContext);
             return;
         }
@@ -51,8 +53,9 @@ class SyncPreference extends Preference {
         
         
         if (SyncAccounts.syncAccountsExist(mContext)) {
-            SyncAccounts.openSyncSettings(mContext);
-            return;
+            if (SyncAccounts.openSyncSettings(mContext) != null) {
+                return;
+            }
         }
 
         

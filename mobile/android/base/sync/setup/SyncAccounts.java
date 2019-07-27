@@ -406,7 +406,14 @@ public class SyncAccounts {
     
     intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
     
-    context.startActivity(intent); 
+    try {
+      context.startActivity(intent); 
+    } catch (ActivityNotFoundException ex) {
+      
+      
+      
+      return null;
+    }
     return intent;
   }
 
