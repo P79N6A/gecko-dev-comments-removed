@@ -27,6 +27,12 @@ class nsIPrefBranch;
 class nsISystemProxySettings;
 class nsPACMan;
 
+
+
+#define NS_PROTOCOL_PROXY_SERVICE_IMPL_CID        \
+{ 0x091eedd8, 0x8bae, 0x4fe3, \
+        { 0xad, 0x62, 0x0c, 0x87, 0x35, 0x1e, 0x64, 0x0d } }
+
 class nsProtocolProxyService MOZ_FINAL : public nsIProtocolProxyService2
                                        , public nsIObserver
 {
@@ -36,9 +42,14 @@ public:
     NS_DECL_NSIPROTOCOLPROXYSERVICE
     NS_DECL_NSIOBSERVER
 
+    NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROTOCOL_PROXY_SERVICE_IMPL_CID)
+
     nsProtocolProxyService();
 
     nsresult Init();
+    nsresult DeprecatedBlockingResolve(nsIChannel *aChannel,
+                                       uint32_t aFlags,
+                                       nsIProxyInfo **retval);
 
 protected:
     friend class nsAsyncResolveRequest;
@@ -204,7 +215,7 @@ protected:
 
 
 
-    nsresult Resolve_Internal(nsIURI *uri,
+    nsresult Resolve_Internal(nsIChannel *channel,
                                           const nsProtocolInfo &info,
                                           uint32_t flags,
                                           bool *usePAC, 
@@ -221,19 +232,19 @@ protected:
 
 
 
-    void ApplyFilters(nsIURI *uri, const nsProtocolInfo &info,
+    void ApplyFilters(nsIChannel *channel, const nsProtocolInfo &info,
                                   nsIProxyInfo **proxyInfo);
 
     
 
 
 
-    inline void ApplyFilters(nsIURI *uri, const nsProtocolInfo &info,
+    inline void ApplyFilters(nsIChannel *channel, const nsProtocolInfo &info,
                              nsCOMPtr<nsIProxyInfo> &proxyInfo)
     {
       nsIProxyInfo *pi = nullptr;
       proxyInfo.swap(pi);
-      ApplyFilters(uri, info, &pi);
+      ApplyFilters(channel, info, &pi);
       proxyInfo.swap(pi);
     }
 
@@ -319,18 +330,26 @@ protected:
     };
 
     
+    
     struct FilterLink {
       struct FilterLink                *next;
       uint32_t                          position;
-      nsCOMPtr<nsIProtocolProxyFilter>  filter;
-
+      nsCOMPtr<nsIProtocolProxyFilter> filter;
+      nsCOMPtr<nsIProtocolProxyChannelFilter> channelFilter;
       FilterLink(uint32_t p, nsIProtocolProxyFilter *f)
-        : next(nullptr), position(p), filter(f) {}
-
+        : next(nullptr), position(p), filter(f), channelFilter(nullptr) {}
+      FilterLink(uint32_t p, nsIProtocolProxyChannelFilter *cf)
+        : next(nullptr), position(p), filter(nullptr), channelFilter(cf) {}
       
       ~FilterLink() { if (next) delete next; }
     };
 
+private:
+    
+    nsresult InsertFilterLink(FilterLink *link, uint32_t position);
+    nsresult RemoveFilterLink(nsISupports *givenObject);
+
+protected:
     
     bool mFilterLocalHosts;
 
@@ -366,11 +385,13 @@ protected:
     int32_t                      mFailedProxyTimeout;
 
 private:
-    nsresult AsyncResolveInternal(nsIURI *uri, uint32_t flags,
+    nsresult AsyncResolveInternal(nsIChannel *channel, uint32_t flags,
                                   nsIProtocolProxyCallback *callback,
                                   nsICancelable **result,
                                   bool isSyncOK);
 
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsProtocolProxyService, NS_PROTOCOL_PROXY_SERVICE_IMPL_CID)
 
 #endif 
