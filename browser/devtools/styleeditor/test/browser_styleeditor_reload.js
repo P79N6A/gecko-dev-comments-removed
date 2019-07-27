@@ -2,6 +2,13 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
+
 const TESTCASE_URI = TEST_BASE_HTTPS + "simple.html";
 const NEW_URI = TEST_BASE_HTTPS + "media.html";
 

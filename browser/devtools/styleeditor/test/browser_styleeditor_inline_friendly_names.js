@@ -2,6 +2,13 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
+
 let gUI;
 
 const FIRST_TEST_PAGE = TEST_BASE + "inline-1.html"

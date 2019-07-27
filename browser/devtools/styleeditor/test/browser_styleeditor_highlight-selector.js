@@ -5,6 +5,13 @@
 
 
 
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
+
+
+
+
 waitForExplicitFinish();
 
 const TEST_URL = "data:text/html;charset=utf8," +
