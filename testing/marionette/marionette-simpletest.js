@@ -175,7 +175,7 @@ Marionette.prototype = {
       }
       var now = new Date();
       var deadline = (timeout instanceof Date) ? timeout :
-                     new Date(now.valueOf + (typeof(timeout) == "undefined" ? this.timeout : timeout))
+                     new Date(now.valueOf() + (typeof(timeout) == "undefined" ? this.timeout : timeout))
       if (deadline <= now) {
         dump("waitFor timeout: " + test.toString() + "\n");
         
