@@ -43,6 +43,19 @@ static const int MAX_VOUCHER_LENGTH = 500000;
 #endif
 
 namespace mozilla {
+
+#undef LOG
+#undef LOGD
+
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* GetGMPLog();
+#define LOG(level, x, ...) PR_LOG(GetGMPLog(), (level), (x, ##__VA_ARGS__))
+#define LOGD(x, ...) LOG(PR_LOG_DEBUG, "GMPChild[pid=%d] " x, (int)base::GetCurrentProcId(), ##__VA_ARGS__)
+#else
+#define LOG(level, x, ...)
+#define LOGD(x, ...)
+#endif
+
 namespace gmp {
 
 GMPChild::GMPChild()
@@ -50,11 +63,13 @@ GMPChild::GMPChild()
   , mGMPMessageLoop(MessageLoop::current())
   , mGMPLoader(nullptr)
 {
+  LOGD("GMPChild ctor");
   nsDebugImpl::SetMultiprocessMode("GMP");
 }
 
 GMPChild::~GMPChild()
 {
+  LOGD("GMPChild dtor");
 }
 
 static bool
@@ -257,7 +272,9 @@ GMPChild::Init(const std::string& aPluginPath,
                MessageLoop* aIOLoop,
                IPC::Channel* aChannel)
 {
-  if (!Open(aChannel, aParentProcessHandle, aIOLoop)) {
+  LOGD("%s pluginPath=%s", __FUNCTION__, aPluginPath.c_str());
+
+  if (NS_WARN_IF(!Open(aChannel, aParentProcessHandle, aIOLoop))) {
     return false;
   }
 
@@ -273,6 +290,8 @@ GMPChild::Init(const std::string& aPluginPath,
 bool
 GMPChild::RecvSetNodeId(const nsCString& aNodeId)
 {
+  LOGD("%s nodeId=%s", __FUNCTION__, aNodeId.Data());
+
   
   
   
@@ -393,6 +412,8 @@ GMPChild::GetLibPath(nsACString& aOutLibPath)
 bool
 GMPChild::RecvStartPlugin()
 {
+  LOGD("%s", __FUNCTION__);
+
 #if defined(XP_WIN)
   PreLoadLibraries(mPluginPath);
 #endif
@@ -447,6 +468,8 @@ GMPChild::GMPMessageLoop()
 void
 GMPChild::ActorDestroy(ActorDestroyReason aWhy)
 {
+  LOGD("%s reason=%d", __FUNCTION__, aWhy);
+
   if (mGMPLoader) {
     mGMPLoader->Shutdown();
   }
@@ -678,6 +701,8 @@ GMPChild::RecvCrashPluginNow()
 bool
 GMPChild::RecvBeginAsyncShutdown()
 {
+  LOGD("%s AsyncShutdown=%d", __FUNCTION__, mAsyncShutdown!=nullptr);
+
   MOZ_ASSERT(mGMPMessageLoop == MessageLoop::current());
   if (mAsyncShutdown) {
     mAsyncShutdown->BeginShutdown();
@@ -690,6 +715,7 @@ GMPChild::RecvBeginAsyncShutdown()
 void
 GMPChild::ShutdownComplete()
 {
+  LOGD("%s", __FUNCTION__);
   MOZ_ASSERT(mGMPMessageLoop == MessageLoop::current());
   SendAsyncShutdownComplete();
 }
@@ -775,3 +801,6 @@ GMPChild::PreLoadSandboxVoucher()
 
 } 
 } 
+
+#undef LOG
+#undef LOGD
