@@ -358,6 +358,8 @@ class IonBuilder
 
     
     
+    MDefinition *addTypeBarrier(MDefinition *def, types::TemporaryTypeSet *observed,
+                                BarrierKind kind, MTypeBarrier **pbarrier = nullptr);
     bool pushTypeBarrier(MDefinition *def, types::TemporaryTypeSet *observed, BarrierKind kind);
 
     
@@ -841,6 +843,7 @@ class IonBuilder
     MDefinition *patchInlinedReturn(CallInfo &callInfo, MBasicBlock *exit, MBasicBlock *bottom);
     MDefinition *patchInlinedReturns(CallInfo &callInfo, MIRGraphReturns &returns,
                                      MBasicBlock *bottom);
+    MDefinition *specializeInlinedReturn(MDefinition *rdef, MBasicBlock *exit);
 
     bool objectsHaveCommonPrototype(types::TemporaryTypeSet *types, PropertyName *name,
                                     bool isGetter, JSObject *foundProto, bool *guardGlobal);

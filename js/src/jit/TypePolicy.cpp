@@ -278,6 +278,8 @@ TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
     
     MUnbox::Mode mode = MUnbox::TypeBarrier;
     MInstruction *replace = MUnbox::New(alloc, ins->getOperand(0), ins->type(), mode);
+    if (!ins->isMovable())
+        replace->setNotMovable();
 
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(0, replace);
