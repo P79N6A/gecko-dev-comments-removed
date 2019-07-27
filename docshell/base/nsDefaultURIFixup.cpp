@@ -967,6 +967,23 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString& aURIString,
         looksLikeIpv6 = false;
       }
     }
+
+    
+    
+    if ((iter.size_forward() == 1 || (lastSlashLoc == uint32_t(kNotFound) && *iter == '/')) &&
+        
+        (foundDots == 2 || foundDots == 3) &&
+        
+        (foundDots + foundDigits == pos ||
+         
+         
+         (foundColons == 1 && firstColonLoc > lastDotLoc &&
+          foundDots + foundDigits + foundColons == pos))) {
+      
+      
+      return NS_OK;
+    }
+
     if (*iter == '.') {
       ++foundDots;
       lastDotLoc = pos;
@@ -1005,6 +1022,12 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString& aURIString,
     looksLikeIpv6 = false;
   }
 
+  
+  
+  if (looksLikeIpv6) {
+    return NS_OK;
+  }
+
   nsAutoCString asciiHost;
   nsAutoCString host;
 
@@ -1017,34 +1040,6 @@ nsDefaultURIFixup::KeywordURIFixup(const nsACString& aURIString,
     aFixupInfo->mFixedURI &&
     NS_SUCCEEDED(aFixupInfo->mFixedURI->GetHost(host)) &&
     !host.IsEmpty();
-
-  
-  
-  if (foundDots == 2 && lastSlashLoc == pos - 1 &&
-      ((foundDots + foundDigits == pos - 1) ||
-       (foundColons == 1 && firstColonLoc > lastDotLoc &&
-        foundDots + foundDigits + foundColons == pos - 1))) {
-    return NS_OK;
-  }
-
-  uint32_t posWithNoTrailingSlash = pos;
-  if (lastSlashLoc == pos - 1) {
-    posWithNoTrailingSlash -= 1;
-  }
-  
-  
-  if (foundDots == 3 &&
-      ((foundDots + foundDigits == posWithNoTrailingSlash) ||
-       (foundColons == 1 && firstColonLoc > lastDotLoc &&
-        foundDots + foundDigits + foundColons == posWithNoTrailingSlash))) {
-    return NS_OK;
-  }
-
-  
-  
-  if (looksLikeIpv6) {
-    return NS_OK;
-  }
 
   nsresult rv = NS_OK;
   
