@@ -6,6 +6,8 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 function test() {
   waitForExplicitFinish();
+  Services.prefs.setBoolPref("browser.preferences.inContent", true);
+  registerCleanupFunction(() => Services.prefs.clearUserPref("browser.preferences.inContent"));
 
   
   var handler = Cc["@mozilla.org/uriloader/web-handler-app;1"].
