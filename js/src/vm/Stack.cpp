@@ -1719,6 +1719,9 @@ JS::ProfilingFrameIterator::ProfilingFrameIterator(JSRuntime *rt, const Register
     activation_(rt->profilingActivation()),
     savedPrevJitTop_(nullptr)
 {
+    
+    MOZ_ASSERT(rt_->spsProfiler.enabled());
+
     if (!activation_)
         return;
 
