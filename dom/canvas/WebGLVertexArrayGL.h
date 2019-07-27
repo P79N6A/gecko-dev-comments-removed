@@ -19,15 +19,19 @@ public:
     virtual void DeleteImpl() override;
     virtual void BindVertexArrayImpl() override;
     virtual void GenVertexArray() override;
+    virtual bool IsVertexArrayImpl() override;
 
 protected:
-    explicit WebGLVertexArrayGL(WebGLContext* webgl)
-        : WebGLVertexArray(webgl)
-    { }
+    explicit WebGLVertexArrayGL(WebGLContext* webgl);
+    ~WebGLVertexArrayGL();
 
-    ~WebGLVertexArrayGL() {
-        DeleteOnce();
-    }
+#if defined(XP_LINUX)
+    
+    
+    
+    
+    bool mIsVAO;
+#endif
 };
 
 } 
