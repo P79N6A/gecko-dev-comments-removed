@@ -2932,7 +2932,13 @@ UpdatePropertyType(ExclusiveContext *cx, HeapTypeSet *types, NativeObject *obj, 
 
 
 
-        if (indexed || !value.isUndefined() || !CanHaveEmptyPropertyTypesForOwnProperty(obj)) {
+
+
+
+        MOZ_ASSERT_IF(value.isMagic(JS_UNINITIALIZED_LEXICAL), obj->is<CallObject>());
+        if ((indexed || !value.isUndefined() || !CanHaveEmptyPropertyTypesForOwnProperty(obj)) &&
+            !value.isMagic(JS_UNINITIALIZED_LEXICAL))
+        {
             Type type = GetValueType(value);
             types->TypeSet::addType(type, &cx->typeLifoAlloc());
         }
