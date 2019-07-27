@@ -140,8 +140,8 @@ public:
   DropJSObjects();
 
   
-  bool
-  WrapObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector);
+  JSObject*
+  WrapObject(JSContext* aCx);
 
   nsISupports*
   GetParentObject() const

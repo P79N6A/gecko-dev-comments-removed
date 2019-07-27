@@ -166,10 +166,10 @@ TimeRanges::Find(double aTime, double aError )
   return NoIndex;
 }
 
-bool
-TimeRanges::WrapObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector)
+JSObject*
+TimeRanges::WrapObject(JSContext* aCx)
 {
-  return TimeRangesBinding::Wrap(aCx, this, aReflector);
+  return TimeRangesBinding::Wrap(aCx, this);
 }
 
 } 

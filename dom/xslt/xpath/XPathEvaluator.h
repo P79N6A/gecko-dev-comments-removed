@@ -42,7 +42,7 @@ public:
     NS_DECL_NSIDOMXPATHEVALUATOR
 
     
-    bool WrapObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector);
+    JSObject* WrapObject(JSContext* aCx);
     nsIDocument* GetParentObject()
     {
         nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);

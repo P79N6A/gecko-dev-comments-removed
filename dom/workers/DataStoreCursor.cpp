@@ -40,11 +40,10 @@ WorkerDataStoreCursor::Constructor(GlobalObject& aGlobal, ErrorResult& aRv)
   return nullptr;
 }
 
-bool
-WorkerDataStoreCursor::WrapObject(JSContext* aCx,
-                                  JS::MutableHandle<JSObject*> aReflector)
+JSObject*
+WorkerDataStoreCursor::WrapObject(JSContext* aCx)
 {
-  return DataStoreCursorBinding_workers::Wrap(aCx, this, aReflector);
+  return DataStoreCursorBinding_workers::Wrap(aCx, this);
 }
 
 
