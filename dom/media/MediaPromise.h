@@ -16,7 +16,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Monitor.h"
-#include "mozilla/unused.h"
 
 
 #ifdef _MSC_VER
@@ -33,14 +32,17 @@ extern PRLogModuleInfo* gMediaPromiseLog;
   PR_LOG(gMediaPromiseLog, PR_LOG_DEBUG, (x, ##__VA_ARGS__))
 
 class MediaTaskQueue;
+class MediaDecoderStateMachineScheduler;
 namespace detail {
 
 nsresult DispatchMediaPromiseRunnable(MediaTaskQueue* aQueue, nsIRunnable* aRunnable);
 nsresult DispatchMediaPromiseRunnable(nsIEventTarget* aTarget, nsIRunnable* aRunnable);
+nsresult DispatchMediaPromiseRunnable(MediaDecoderStateMachineScheduler* aScheduler, nsIRunnable* aRunnable);
 
 #ifdef DEBUG
 void AssertOnThread(MediaTaskQueue* aQueue);
 void AssertOnThread(nsIEventTarget* aTarget);
+void AssertOnThread(MediaDecoderStateMachineScheduler* aScheduler);
 #endif
 
 } 
@@ -106,11 +108,18 @@ public:
   public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Consumer)
 
-    virtual void Disconnect() = 0;
+    void Disconnect()
+    {
+      AssertOnDispatchThread();
+      MOZ_DIAGNOSTIC_ASSERT(!mComplete);
+      mDisconnected = true;
+    }
 
-    
-    
-    bool IsDisconnected() const { return mDisconnected; }
+#ifdef DEBUG
+    virtual void AssertOnDispatchThread() = 0;
+#else
+    void AssertOnDispatchThread() {}
+#endif
 
   protected:
     Consumer() : mComplete(false), mDisconnected(false) {}
@@ -140,7 +149,7 @@ protected:
 
       ~ResolveRunnable()
       {
-        MOZ_DIAGNOSTIC_ASSERT(!mThenValue || mThenValue->IsDisconnected());
+        MOZ_ASSERT(!mThenValue);
       }
 
       NS_IMETHODIMP Run()
@@ -165,7 +174,7 @@ protected:
 
       ~RejectRunnable()
       {
-        MOZ_DIAGNOSTIC_ASSERT(!mThenValue || mThenValue->IsDisconnected());
+        MOZ_ASSERT(!mThenValue);
       }
 
       NS_IMETHODIMP Run()
@@ -243,46 +252,26 @@ protected:
       PROMISE_LOG("%s Then() call made from %s [Runnable=%p, Promise=%p, ThenValue=%p]",
                   resolved ? "Resolving" : "Rejecting", ThenValueBase::mCallSite,
                   runnable.get(), aPromise, this);
-      nsresult rv = detail::DispatchMediaPromiseRunnable(mResponseTarget, runnable);
-      unused << rv;
-
-      
-      
-      
-      
-      
-      
-      MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv) || Consumer::mDisconnected);
+      DebugOnly<nsresult> rv = detail::DispatchMediaPromiseRunnable(mResponseTarget, runnable);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
 
 #ifdef DEBUG
-  void AssertOnDispatchThread()
+  virtual void AssertOnDispatchThread() MOZ_OVERRIDE
   {
     detail::AssertOnThread(mResponseTarget);
   }
-#else
-  void AssertOnDispatchThread() {}
 #endif
-
-  virtual void Disconnect() MOZ_OVERRIDE
-  {
-    AssertOnDispatchThread();
-    MOZ_DIAGNOSTIC_ASSERT(!Consumer::mComplete);
-    Consumer::mDisconnected = true;
-
-    
-    
-    
-    mThisVal = nullptr;
-  }
 
   protected:
     virtual void DoResolve(ResolveValueType aResolveValue) MOZ_OVERRIDE
     {
       Consumer::mComplete = true;
       if (Consumer::mDisconnected) {
-        MOZ_ASSERT(!mThisVal);
         PROMISE_LOG("ThenValue::DoResolve disconnected - bailing out [this=%p]", this);
+        
+        mResponseTarget = nullptr;
+        mThisVal = nullptr;
         return;
       }
       InvokeCallbackMethod(mThisVal.get(), mResolveMethod, aResolveValue);
@@ -291,6 +280,7 @@ protected:
       
       
       
+      mResponseTarget = nullptr;
       mThisVal = nullptr;
     }
 
@@ -298,8 +288,10 @@ protected:
     {
       Consumer::mComplete = true;
       if (Consumer::mDisconnected) {
-        MOZ_ASSERT(!mThisVal);
         PROMISE_LOG("ThenValue::DoReject disconnected - bailing out [this=%p]", this);
+        
+        mResponseTarget = nullptr;
+        mThisVal = nullptr;
         return;
       }
       InvokeCallbackMethod(mThisVal.get(), mRejectMethod, aRejectValue);
@@ -308,12 +300,13 @@ protected:
       
       
       
+      mResponseTarget = nullptr;
       mThisVal = nullptr;
     }
 
   private:
-    nsRefPtr<TargetType> mResponseTarget; 
-    nsRefPtr<ThisType> mThisVal; 
+    nsRefPtr<TargetType> mResponseTarget;
+    nsRefPtr<ThisType> mThisVal;
     ResolveMethodType mResolveMethod;
     RejectMethodType mRejectMethod;
   };
@@ -668,7 +661,7 @@ ProxyInternal(TargetType* aTarget, MethodCallBase<PromiseType>* aMethodCall, con
   nsRefPtr<ProxyRunnable<PromiseType>> r = new ProxyRunnable<PromiseType>(p, aMethodCall);
   nsresult rv = detail::DispatchMediaPromiseRunnable(aTarget, r);
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
-  unused << rv;
+  (void) rv; 
   return Move(p);
 }
 

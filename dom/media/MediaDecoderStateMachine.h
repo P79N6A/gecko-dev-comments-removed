@@ -89,8 +89,8 @@
 #include "MediaDecoderReader.h"
 #include "MediaDecoderOwner.h"
 #include "MediaMetadataManager.h"
+#include "MediaDecoderStateMachineScheduler.h"
 #include "mozilla/RollingMean.h"
-#include "MediaTimer.h"
 
 class nsITimer;
 
@@ -211,8 +211,8 @@ public:
   void Play()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    RefPtr<nsRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::PlayInternal);
-    TaskQueue()->Dispatch(r);
+    nsRefPtr<nsRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::PlayInternal);
+    GetStateMachineThread()->Dispatch(r, NS_DISPATCH_NORMAL);
   }
 
 private:
@@ -312,29 +312,20 @@ public:
   void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
 
   
-  MediaTaskQueue* TaskQueue() const { return mTaskQueue; }
+  nsIEventTarget* GetStateMachineThread() const;
 
   
   
   void ScheduleStateMachineWithLockAndWakeDecoder();
 
   
-  void ScheduleStateMachine();
+  
+  
+  nsresult ScheduleStateMachine(int64_t aUsecs = 0);
 
   
   
-  
-  void ScheduleStateMachineIn(int64_t aMicroseconds);
-
-  void OnDelayedSchedule()
-  {
-    MOZ_ASSERT(OnStateMachineThread());
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mDelayedScheduler.CompleteRequest();
-    ScheduleStateMachine();
-  }
-
-  void NotReached() { MOZ_DIAGNOSTIC_ASSERT(false); }
+  static nsresult TimeoutExpired(void* aClosure);
 
   
   void SetFragmentEndTime(int64_t aEndTime);
@@ -699,6 +690,9 @@ protected:
                        AudioSegment* aOutput);
 
   
+  nsresult CallRunStateMachine();
+
+  
   
   
   nsresult RunStateMachine();
@@ -752,59 +746,8 @@ protected:
   nsRefPtr<MediaDecoder> mDecoder;
 
   
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
-
   
-  bool mRealTime;
-
-  
-  
-  bool mDispatchedStateMachine;
-
-  
-  class DelayedScheduler {
-  public:
-    explicit DelayedScheduler(MediaDecoderStateMachine* aSelf)
-      : mSelf(aSelf), mMediaTimer(new MediaTimer()) {}
-
-    bool IsScheduled() const { return !mTarget.IsNull(); }
-
-    void Reset()
-    {
-      MOZ_ASSERT(mSelf->OnStateMachineThread(),
-                 "Must be on state machine queue to disconnect");
-      if (IsScheduled()) {
-        mRequest.Disconnect();
-        mTarget = TimeStamp();
-      }
-    }
-
-    void Ensure(mozilla::TimeStamp& aTarget)
-    {
-      if (IsScheduled() && mTarget <= aTarget) {
-        return;
-      }
-      Reset();
-      mTarget = aTarget;
-      mRequest.Begin(mMediaTimer->WaitUntil(mTarget, __func__)->RefableThen(
-        mSelf->TaskQueue(), __func__, mSelf,
-        &MediaDecoderStateMachine::OnDelayedSchedule,
-        &MediaDecoderStateMachine::NotReached));
-    }
-
-    void CompleteRequest()
-    {
-      mRequest.Complete();
-      mTarget = TimeStamp();
-    }
-
-  private:
-    MediaDecoderStateMachine* mSelf;
-    nsRefPtr<MediaTimer> mMediaTimer;
-    MediaPromiseConsumerHolder<mozilla::MediaTimerPromise> mRequest;
-    TimeStamp mTarget;
-
-  } mDelayedScheduler;
+  const nsRefPtr<MediaDecoderStateMachineScheduler> mScheduler;
 
   
   
@@ -1012,7 +955,7 @@ protected:
   
   uint32_t AudioPrerollUsecs() const
   {
-    if (IsRealTime()) {
+    if (mScheduler->IsRealTime()) {
       return 0;
     }
 
@@ -1023,7 +966,7 @@ protected:
 
   uint32_t VideoPrerollFrames() const
   {
-    return IsRealTime() ? 0 : GetAmpleVideoFrames() / 2;
+    return mScheduler->IsRealTime() ? 0 : GetAmpleVideoFrames() / 2;
   }
 
   bool DonePrerollingAudio()
