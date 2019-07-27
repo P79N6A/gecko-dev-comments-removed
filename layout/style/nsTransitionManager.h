@@ -26,6 +26,8 @@ struct StyleTransition;
 
 
 
+namespace mozilla {
+
 struct ElementPropertyTransition : public mozilla::ElementAnimation
 {
   virtual ElementPropertyTransition* AsTransition() { return this; }
@@ -53,6 +55,8 @@ struct ElementPropertyTransition : public mozilla::ElementAnimation
   
   double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
 };
+
+} 
 
 class nsTransitionManager MOZ_FINAL
   : public mozilla::css::CommonAnimationManager
