@@ -184,6 +184,7 @@ TCPSocket.prototype = {
   _txBytes: 0,
   _rxBytes: 0,
   _appId: Ci.nsIScriptSecurityManager.NO_APP_ID,
+  _inBrowser: false,
   _activeNetwork: null,
 #endif
 
@@ -476,6 +477,14 @@ TCPSocket.prototype = {
   setAppId: function ts_setAppId(appId) {
 #ifdef MOZ_WIDGET_GONK
     this._appId = appId;
+#else
+    
+#endif
+  },
+
+  setInBrowser: function ts_setInBrowser(inBrowser) {
+#ifdef MOZ_WIDGET_GONK
+    this._inBrowser = inBrowser;
 #else
     
 #endif
