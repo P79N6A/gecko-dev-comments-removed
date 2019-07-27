@@ -74,7 +74,7 @@ SocialUI = {
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
-    PanelUI.panel.addEventListener("popupshown", SocialUI.updatePanelState, true);
+    CustomizableUI.addListener(this);
 
     
     
@@ -107,8 +107,8 @@ SocialUI = {
     Services.obs.removeObserver(this, "social:provider-disabled");
 
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
+    CustomizableUI.removeListener(this);
 
-    PanelUI.panel.removeEventListener("popupshown", SocialUI.updatePanelState, true);
     document.getElementById("viewSidebarMenu").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
     document.getElementById("social-statusarea-popup").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
 
@@ -172,7 +172,6 @@ SocialUI = {
     SocialShare.populateProviderMenu();
     SocialStatus.populateToolbarPalette();
     SocialMarks.populateToolbarPalette();
-    SocialShare.update();
   },
 
   
@@ -230,6 +229,18 @@ SocialUI = {
         if (provider.sidebarURL) {
           SocialSidebar.show(provider.origin);
         }
+        if (provider.shareURL) {
+          
+          
+          
+          
+          let widget = CustomizableUI.getWidget("social-share-button");
+          if (!widget.areaType) {
+            CustomizableUI.addWidgetToArea("social-share-button", CustomizableUI.AREA_NAVBAR);
+            
+            SocialUI.onCustomizeEnd(window);
+          }
+        }
         if (provider.postActivationURL) {
           openUILinkIn(provider.postActivationURL, "tab");
         }
@@ -284,21 +295,49 @@ SocialUI = {
     return Social.providers.length > 0;
   },
 
-  updatePanelState :function(event) {
+  canShareOrMarkPage: function(aURI) {
     
     
-    if (event.target != PanelUI.panel)
+    if (PrivateBrowsingUtils.isWindowPrivate(window))
+      return false;
+
+    return (aURI && (aURI.schemeIs('http') || aURI.schemeIs('https')));
+  },
+
+  onCustomizeEnd: function(aWindow) {
+    if (aWindow != window)
       return;
-    SocialUI.updateState();
+    
+    
+    let canShare = this.canShareOrMarkPage(gBrowser.currentURI);
+    let shareButton = SocialShare.shareButton;
+    if (shareButton) {
+      if (canShare) {
+        shareButton.removeAttribute("disabled")
+      } else {
+        shareButton.setAttribute("disabled", "true")
+      }
+    }
+    
+    for (let node of SocialMarks.nodes) {
+      if (canShare) {
+        node.removeAttribute("disabled")
+      } else {
+        node.setAttribute("disabled", "true")
+      }
+    }
   },
 
   
   
   updateState: function() {
+    if (location == "about:customizing")
+      return;
+    goSetCommandEnabled("Social:PageShareOrMark", this.canShareOrMarkPage(gBrowser.currentURI));
     if (!SocialUI.enabled)
       return;
+    
     SocialMarks.update();
-    SocialShare.update();
   }
 }
 
@@ -495,6 +534,13 @@ SocialShare = {
     return provider;
   },
 
+  createTooltip: function(event) {
+    let tt = event.target;
+    let provider = Social._getProviderFromOrigin(tt.triggerNode.getAttribute("origin"));
+    tt.firstChild.setAttribute("value", provider.name);
+    tt.lastChild.setAttribute("value", provider.origin);
+  },
+
   populateProviderMenu: function() {
     if (!this.iframe)
       return;
@@ -513,7 +559,7 @@ SocialShare = {
       button.setAttribute("type", "radio");
       button.setAttribute("group", "share-providers");
       button.setAttribute("image", provider.iconURL);
-      button.setAttribute("tooltiptext", provider.name);
+      button.setAttribute("tooltip", "share-button-tooltip");
       button.setAttribute("origin", provider.origin);
       button.setAttribute("oncommand", "SocialShare.sharePage(this.getAttribute('origin'));");
       if (provider == selectedProvider) {
@@ -537,42 +583,6 @@ SocialShare = {
     if (!widget || !widget.areaType)
       return null;
     return widget.forWindow(window).node;
-  },
-
-  canSharePage: function(aURI) {
-    
-    if (PrivateBrowsingUtils.isWindowPrivate(window))
-      return false;
-
-    if (!aURI || !(aURI.schemeIs('http') || aURI.schemeIs('https')))
-      return false;
-    return true;
-  },
-
-  update: function() {
-    let widget = CustomizableUI.getWidget("social-share-button");
-    if (!widget)
-      return;
-    let shareButton = widget.forWindow(window).node;
-    
-    
-    shareButton.hidden = !SocialUI.enabled || (widget.areaType &&
-                         [p for (p of Social.providers) if (p.shareURL)].length == 0);
-    let disabled = !widget.areaType || shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
-
-    
-    
-    
-    
-    
-    let cmd = document.getElementById("Social:SharePage");
-    if (disabled) {
-      cmd.setAttribute("disabled", "true");
-      shareButton.setAttribute("disabled", "true");
-    } else {
-      cmd.removeAttribute("disabled");
-      shareButton.removeAttribute("disabled");
-    }
   },
 
   _onclick: function() {
@@ -631,7 +641,7 @@ SocialShare = {
     let pageData = graphData ? graphData : this.currentShare;
     let sharedURI = pageData ? Services.io.newURI(pageData.url, null, null) :
                                 gBrowser.currentURI;
-    if (!this.canSharePage(sharedURI))
+    if (!SocialUI.canShareOrMarkPage(sharedURI))
       return;
 
     
@@ -1334,20 +1344,27 @@ SocialStatus = {
 
 
 SocialMarks = {
-  update: function() {
-    
-    
-    let providers = SocialMarks.getProviders();
+  get nodes() {
+    let providers = [p for (p of Social.providers) if (p.markURL)];
     for (let p of providers) {
       let widgetId = SocialMarks._toolbarHelper.idFromOrigin(p.origin);
       let widget = CustomizableUI.getWidget(widgetId);
       if (!widget)
         continue;
       let node = widget.forWindow(window).node;
+      if (node)
+        yield node;
+    }
+  },
+  update: function() {
+    
+    
+    for (let node of this.nodes) {
       
       
-      if (node && node.update)
+      if (node.update) {
         node.update();
+      }
     }
   },
 
