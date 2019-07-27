@@ -310,6 +310,11 @@ protected:
   
 
 
+  nsresult FixTargetPermissions();
+
+  
+
+
   void SetStartTime(int64_t aStartTime);
 
   

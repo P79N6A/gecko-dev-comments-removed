@@ -615,10 +615,24 @@ this.DownloadIntegration = {
       
       
       
+      
+      
       try {
-        yield OS.File.setPermissions(aDownload.target.path,
-                                     { unixMode: 0o666 });
+        
+        
+        
+        
+        let isTemporaryDownload =
+          aDownload.launchWhenSucceeded && (aDownload.source.isPrivate ||
+          Services.prefs.getBoolPref("browser.helperApps.deleteTempFileOnExit"));
+        
+        
+        let unixMode = isTemporaryDownload ? 0o400 : 0o666;
+        
+        
+        yield OS.File.setPermissions(aDownload.target.path, { unixMode });
       } catch (ex) {
+        
         
         
         Cu.reportError(ex);

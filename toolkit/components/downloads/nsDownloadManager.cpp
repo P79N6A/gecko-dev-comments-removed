@@ -3326,23 +3326,45 @@ nsDownload::ExecuteDesiredAction()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsresult retVal = NS_OK;
+  nsresult rv = NS_OK;
   switch (action) {
     case nsIMIMEInfo::saveToDisk:
       
-      retVal = MoveTempToTarget();
+      rv = MoveTempToTarget();
+      if (NS_SUCCEEDED(rv)) {
+        rv = FixTargetPermissions();
+      }
       break;
     case nsIMIMEInfo::useHelperApp:
     case nsIMIMEInfo::useSystemDefault:
       
       
-      retVal = OpenWithApplication();
+      rv = OpenWithApplication();
       break;
     default:
       break;
   }
 
-  return retVal;
+  return rv;
+}
+
+nsresult
+nsDownload::FixTargetPermissions()
+{
+  nsCOMPtr<nsIFile> target;
+  nsresult rv = GetTargetFile(getter_AddRefs(target));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIPropertyBag2> infoService =
+      do_GetService("@mozilla.org/system-info;1");
+  uint32_t gUserUmask = 0;
+  rv = infoService->GetPropertyAsUint32(NS_LITERAL_STRING("umask"),
+                                        &gUserUmask);
+  if (NS_SUCCEEDED(rv)) {
+    rv = target->SetPermissions(0666 & ~gUserUmask);
+  }
+  return rv;
 }
 
 nsresult
@@ -3368,9 +3390,7 @@ nsDownload::MoveTempToTarget()
   rv = target->GetParent(getter_AddRefs(dir));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mTempFile->MoveTo(dir, fileName);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  return rv;
 }
 
 nsresult
@@ -3384,12 +3404,6 @@ nsDownload::OpenWithApplication()
   
   rv = MoveTempToTarget();
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  nsresult retVal = mMIMEInfo->LaunchWithFile(target);
 
   bool deleteTempFileOnExit;
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
@@ -3409,6 +3423,10 @@ nsDownload::OpenWithApplication()
   
   
   if (deleteTempFileOnExit || mPrivate) {
+
+    
+    target->SetPermissions(0400);
+
     
     
     nsCOMPtr<nsPIExternalAppLauncher> appLauncher(do_GetService
@@ -3425,7 +3443,7 @@ nsDownload::OpenWithApplication()
     }
   }
 
-  return retVal;
+  return mMIMEInfo->LaunchWithFile(target);
 }
 
 void

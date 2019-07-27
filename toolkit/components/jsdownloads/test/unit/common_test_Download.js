@@ -14,6 +14,8 @@
 
 
 
+const kDeleteTempFileOnExit = "browser.helperApps.deleteTempFileOnExit";
+
 
 
 
@@ -170,21 +172,55 @@ add_task(function test_basic_tryToKeepPartialData()
 
 
 
-add_task(function test_basic_unix_permissions()
+add_task(function test_unix_permissions()
 {
   
   if (Services.appinfo.OS != "Darwin" && Services.appinfo.OS != "Linux") {
-    do_print("Skipping test_basic_unix_permissions");
+    do_print("Skipping test.");
     return;
   }
 
-  let download = yield promiseStartDownload(httpUrl("source.txt"));
-  yield promiseDownloadStopped(download);
+  let launcherPath = getTempFile("app-launcher").path;
+
+  for (let autoDelete of [false, true]) {
+    for (let isPrivate of [false, true]) {
+      for (let launchWhenSucceeded of [false, true]) {
+        do_print("Checking " + JSON.stringify({ autoDelete,
+                                                isPrivate,
+                                                launchWhenSucceeded }));
+
+        Services.prefs.setBoolPref(kDeleteTempFileOnExit, autoDelete);
+
+        let download;
+        if (!gUseLegacySaver) {
+          download = yield Downloads.createDownload({
+            source: { url: httpUrl("source.txt"), isPrivate },
+            target: getTempFile(TEST_TARGET_FILE_NAME).path,
+            launchWhenSucceeded,
+            launcherPath,
+          });
+          yield download.start();
+        } else {
+          download = yield promiseStartLegacyDownload(httpUrl("source.txt"), {
+            isPrivate,
+            launchWhenSucceeded,
+            launcherPath: launchWhenSucceeded && launcherPath,
+          });
+          yield promiseDownloadStopped(download);
+        }
+
+        
+        
+        
+        let isTemporary = launchWhenSucceeded && (autoDelete || isPrivate);
+        do_check_eq((yield OS.File.stat(download.target.path)).unixMode,
+                    isTemporary ? 0o400 : (0o666 & ~OS.Constants.Sys.umask));
+      }
+    }
+  }
 
   
-  
-  do_check_eq((yield OS.File.stat(download.target.path)).unixMode,
-              0o666 & ~OS.Constants.Sys.umask);
+  Services.prefs.clearUserPref(kDeleteTempFileOnExit);
 });
 
 
@@ -773,6 +809,13 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   
   do_check_false(download.hasPartialData);
   do_check_true(yield OS.File.exists(download.target.partFilePath));
+
+  
+  
+  if (Services.appinfo.OS == "Darwin" || Services.appinfo.OS == "Linux") {
+    do_check_eq((yield OS.File.stat(download.target.partFilePath)).unixMode,
+                0o600);
+  }
 
   yield download.cancel();
 
