@@ -331,6 +331,9 @@ function init() {
         show("remote");
         wrapper.init(url, entryPoint);
       });
+    } else if (window.location.href.contains("action=migrateToDevEdition") &&
+               user == null) {
+      migrateToDevEdition(user, entryPoint);
     } else {
       
       if (user) {
@@ -370,6 +373,48 @@ function show(id, childId) {
       }
     }
   }
+}
+
+
+function migrateToDevEdition(user, entryPoint) {
+  let migrateSyncCreds = false;
+  try {
+    migrateSyncCreds = Services.prefs.getBoolPref("identity.fxaccounts.migrateToDevEdition");
+  } catch (e) {}
+  if (migrateSyncCreds) {
+    Cu.import("resource://gre/modules/osfile.jsm");
+    let fxAccountsStorage = OS.Path.join(window.getDefaultProfilePath(), fxAccountsCommon.DEFAULT_STORAGE_FILENAME);
+    return OS.File.read(fxAccountsStorage, { encoding: "utf-8" }).then(text => {
+      let accountData = JSON.parse(text).accountData;
+      return fxAccounts.setSignedInUser(accountData);
+    }).then(() => {
+      return fxAccounts.promiseAccountsForceSigninURI().then(url => {
+        show("remote");
+        wrapper.init(url, entryPoint);
+      });
+    }).then(null, error => {
+      log("Failed to migrate FX Account: " + error);
+      show("stage", "intro");
+      
+      wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+    }).then(() => {
+      
+      Services.prefs.setBoolPref("identity.fxaccounts.migrateToDevEdition", false);
+    });
+  } else {
+    show("stage", "intro");
+    
+    wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+  }
+}
+
+
+
+function getDefaultProfilePath() {
+  let defaultProfile = Cc["@mozilla.org/toolkit/profile-service;1"]
+                        .getService(Ci.nsIToolkitProfileService)
+                        .defaultProfile;
+  return defaultProfile.rootDir.path;
 }
 
 document.addEventListener("DOMContentLoaded", function onload() {
