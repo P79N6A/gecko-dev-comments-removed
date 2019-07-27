@@ -118,7 +118,7 @@ public:
     int32_t               mDelay;
     bool                  mRepeat;
     bool                  mMetaRefresh;
-    
+
 protected:
     virtual ~nsRefreshTimer();
 };
@@ -283,15 +283,15 @@ protected:
     nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
                                            nsIURI* aBaseURI,
                                            bool aTryToSaveOldPresentation = true);
-    nsresult CreateContentViewer(const char * aContentType, 
+    nsresult CreateContentViewer(const char * aContentType,
         nsIRequest * request, nsIStreamListener ** aContentHandler);
-    nsresult NewContentViewerObj(const char * aContentType, 
-        nsIRequest * request, nsILoadGroup * aLoadGroup, 
+    nsresult NewContentViewerObj(const char * aContentType,
+        nsIRequest * request, nsILoadGroup * aLoadGroup,
         nsIStreamListener ** aContentHandler, nsIContentViewer ** aViewer);
     nsresult SetupNewViewer(nsIContentViewer * aNewViewer);
 
     void SetupReferrerFromChannel(nsIChannel * aChannel);
-    
+
     nsresult GetEldestPresContext(nsPresContext** aPresContext);
 
     
@@ -325,7 +325,7 @@ protected:
                        const nsAString &aSrcdoc,
                        nsIURI * baseURI,
                        nsContentPolicyType aContentPolicyType);
-    nsresult AddHeadersToChannel(nsIInputStream * aHeadersData, 
+    nsresult AddHeadersToChannel(nsIInputStream * aHeadersData,
                                  nsIChannel * aChannel);
     nsresult DoChannelLoad(nsIChannel * aChannel,
                            nsIURILoader * aURILoader,
@@ -650,12 +650,12 @@ protected:
     
     void DoGetPositionAndSize(int32_t * x, int32_t * y, int32_t * cx,
                               int32_t * cy);
-    
+
     
     
     
     bool IsOKToLoadURI(nsIURI* aURI);
-    
+
     void ReattachEditorToWindow(nsISHEntry *aSHEntry);
 
     nsCOMPtr<nsIDOMStorageManager> mSessionStorageManager;
@@ -916,7 +916,7 @@ protected:
     
     
     bool                       mSavingOldViewer;
-    
+
     
     bool                       mDynamicallyCreated;
 #ifdef DEBUG
@@ -998,7 +998,7 @@ public:
         explicit InterfaceRequestorProxy(nsIInterfaceRequestor* p);
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSIINTERFACEREQUESTOR
- 
+
     protected:
         virtual ~InterfaceRequestorProxy();
         InterfaceRequestorProxy() {}
