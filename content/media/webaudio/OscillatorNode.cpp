@@ -553,7 +553,9 @@ OscillatorNode::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
   size_t amount = AudioNode::SizeOfExcludingThis(aMallocSizeOf);
 
   
-  amount += mPeriodicWave->SizeOfIncludingThisIfNotShared(aMallocSizeOf);
+  if (mPeriodicWave) {
+    amount += mPeriodicWave->SizeOfIncludingThisIfNotShared(aMallocSizeOf);
+  }
   amount += mFrequency->SizeOfIncludingThis(aMallocSizeOf);
   amount += mDetune->SizeOfIncludingThis(aMallocSizeOf);
   return amount;
