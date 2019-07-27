@@ -25,17 +25,6 @@ using namespace JS;
 XPCWrappedNativeScope* XPCWrappedNativeScope::gScopes = nullptr;
 XPCWrappedNativeScope* XPCWrappedNativeScope::gDyingScopes = nullptr;
 
-
-XPCWrappedNativeScope*
-XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JS::HandleObject aGlobal)
-{
-    XPCWrappedNativeScope* scope = GetObjectScope(aGlobal);
-    if (!scope) {
-        scope = new XPCWrappedNativeScope(cx, aGlobal);
-    }
-    return scope;
-}
-
 static bool
 RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal, HandleObject aGlobal)
 {
@@ -96,6 +85,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
 
     
     CompartmentPrivate *priv = EnsureCompartmentPrivate(aGlobal);
+    MOZ_ASSERT(!priv->scope);
     priv->scope = this;
 
     
