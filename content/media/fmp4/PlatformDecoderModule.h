@@ -93,7 +93,7 @@ public:
   
   
   
-  virtual MediaDataDecoder*
+  virtual already_AddRefed<MediaDataDecoder>
   CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
                     layers::LayersBackend aLayersBackend,
                     layers::ImageContainer* aImageContainer,
@@ -110,7 +110,7 @@ public:
   
   
   
-  virtual MediaDataDecoder*
+  virtual already_AddRefed<MediaDataDecoder>
   CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
                    MediaTaskQueue* aAudioTaskQueue,
                    MediaDataDecoderCallback* aCallback) = 0;
