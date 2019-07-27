@@ -121,8 +121,7 @@ public:
                                       uint32_t aFlags) MOZ_OVERRIDE;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() MOZ_OVERRIDE;
 
   
 
@@ -268,12 +267,11 @@ public:
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot) MOZ_OVERRIDE {
+  virtual gfxMatrix GetCanvasTM() MOZ_OVERRIDE {
     
     
     
-    return static_cast<nsSVGOuterSVGFrame*>(GetParent())->GetCanvasTM(aFor, aTransformRoot);
+    return static_cast<nsSVGOuterSVGFrame*>(GetParent())->GetCanvasTM();
   }
 
   virtual bool HasChildrenOnlyTransform(Matrix *aTransform) const MOZ_OVERRIDE;

@@ -319,8 +319,7 @@ public:
 
 
 
-  static gfxMatrix GetCanvasTM(nsIFrame* aFrame, uint32_t aFor,
-                               nsIFrame* aTransformRoot = nullptr);
+  static gfxMatrix GetCanvasTM(nsIFrame* aFrame);
 
   
 
@@ -331,7 +330,7 @@ public:
 
 
 
-  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame, uint32_t aFor);
+  static gfxMatrix GetUserToCanvasTM(nsIFrame* aFrame);
 
   
 

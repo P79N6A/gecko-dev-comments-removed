@@ -103,8 +103,7 @@ private:
   bool mIsStart;  
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() MOZ_OVERRIDE;
 
   
   
@@ -174,11 +173,9 @@ public:
   virtual nsIAtom* GetType() const MOZ_OVERRIDE;
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) MOZ_OVERRIDE
+  virtual gfxMatrix GetCanvasTM() MOZ_OVERRIDE
   {
-    nsSVGMarkerFrame* marker = static_cast<nsSVGMarkerFrame*>(GetParent());
-    return marker->GetCanvasTM(aFor, aTransformRoot);
+    return static_cast<nsSVGMarkerFrame*>(GetParent())->GetCanvasTM();
   }
 };
 #endif

@@ -98,17 +98,6 @@ public:
   virtual void ReflowSVG()=0;
 
   
-
-
-
-
-
-  enum RequestingCanvasTMFor {
-    FOR_PAINTING = 1,
-    FOR_OUTERSVG_TM
-  };
-
-  
   
   
   

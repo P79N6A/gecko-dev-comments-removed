@@ -56,8 +56,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual gfxMatrix GetCanvasTM(uint32_t aFor,
-                                nsIFrame* aTransformRoot = nullptr) {
+  virtual gfxMatrix GetCanvasTM() {
     return gfxMatrix();
   }
 
