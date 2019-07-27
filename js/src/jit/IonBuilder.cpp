@@ -5982,7 +5982,6 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopEntry)
     
     MStart *start = MStart::New(alloc(), MStart::StartType_Osr);
     osrBlock->add(start);
-    graph().setOsrStart(start);
 
     
     
