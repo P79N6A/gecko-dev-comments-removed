@@ -219,7 +219,15 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   aRenderingContext.SetFont(fm);
 
   nscoord defaultRuleThickness, axisHeight;
-  GetRuleThickness(aRenderingContext, fm, defaultRuleThickness);
+  nscoord oneDevPixel = fm->AppUnitsPerDevPixel();
+  gfxFont* mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
+  if (mathFont) {
+    defaultRuleThickness =
+      mathFont->GetMathConstant(gfxFontEntry::FractionRuleThickness,
+                                oneDevPixel);
+  } else {
+    GetRuleThickness(aRenderingContext, fm, defaultRuleThickness);
+  }
   GetAxisHeight(aRenderingContext, fm, axisHeight);
 
   bool outermostEmbellished = false;
@@ -238,6 +246,8 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::bevelled_, value);
   mIsBevelled = value.EqualsLiteral("true");
+
+  bool displayStyle = StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK;
 
   if (!mIsBevelled) {
     mLineRect.height = mLineThickness;
@@ -258,6 +268,8 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
                       coreData.leadingSpace : coreData.trailingSpace;
     }
 
+    nscoord actualRuleThickness =  mLineThickness;
+
     
     
     nscoord numShift = 0;
@@ -269,28 +281,54 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 
     GetNumeratorShifts(fm, numShift1, numShift2, numShift3);
     GetDenominatorShifts(fm, denShift1, denShift2);
-    if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK) {
-      
-      numShift = numShift1;
-      denShift = denShift1;
-    }
-    else {
-      numShift = (0 < mLineRect.height) ? numShift2 : numShift3;
-      denShift = denShift2;
-    }
 
-    nscoord minClearance = 0;
-    nscoord actualClearance = 0;
-
-    nscoord actualRuleThickness =  mLineThickness;
+    if (0 == actualRuleThickness) {
+      numShift = displayStyle ? numShift1 : numShift3;
+      denShift = displayStyle ? denShift1 : denShift2;
+      if (mathFont) {
+        numShift = mathFont->
+          GetMathConstant(displayStyle ?
+                          gfxFontEntry::StackTopDisplayStyleShiftUp :
+                          gfxFontEntry::StackTopShiftUp,
+                          oneDevPixel);
+        denShift = mathFont->
+          GetMathConstant(displayStyle ?
+                          gfxFontEntry::StackBottomDisplayStyleShiftDown :
+                          gfxFontEntry::StackBottomShiftDown,
+                          oneDevPixel);
+      }
+    } else {
+      numShift = displayStyle ? numShift1 : numShift2;
+      denShift = displayStyle ? denShift1 : denShift2;
+      if (mathFont) {
+        numShift = mathFont->
+          GetMathConstant(displayStyle ?
+                          gfxFontEntry::FractionNumeratorDisplayStyleShiftUp :
+                          gfxFontEntry::FractionNumeratorShiftUp,
+                          oneDevPixel);
+        denShift = mathFont->
+          GetMathConstant(
+            displayStyle ?
+            gfxFontEntry::FractionDenominatorDisplayStyleShiftDown :
+            gfxFontEntry::FractionDenominatorShiftDown,
+            oneDevPixel);
+      }
+    }
 
     if (0 == actualRuleThickness) {
       
 
       
-      minClearance = StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK ?
+      nscoord minClearance = displayStyle ?
         7 * defaultRuleThickness : 3 * defaultRuleThickness;
-      actualClearance =
+      if (mathFont) {
+        minClearance =
+          mathFont->GetMathConstant(displayStyle ?
+                                    gfxFontEntry::StackDisplayStyleGapMin :
+                                    gfxFontEntry::StackGapMin,
+                                    oneDevPixel);
+      }
+      nscoord actualClearance =
         (numShift - bmNum.descent) - (bmDen.ascent - denShift);
       
       if (actualClearance < minClearance) {
@@ -313,20 +351,33 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     
     
     
-     minClearance = StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK ?
-      3 * defaultRuleThickness : defaultRuleThickness + onePixel;
+      nscoord minClearanceNum = displayStyle ?
+        3 * defaultRuleThickness : defaultRuleThickness + onePixel;
+      nscoord minClearanceDen = minClearanceNum;
+      if (mathFont) {
+        minClearanceNum = mathFont->
+          GetMathConstant(displayStyle ?
+                          gfxFontEntry::FractionNumDisplayStyleGapMin :
+                          gfxFontEntry::FractionNumeratorGapMin,
+                          oneDevPixel);
+        minClearanceDen = mathFont->
+          GetMathConstant(displayStyle ?
+                          gfxFontEntry::FractionDenomDisplayStyleGapMin :
+                          gfxFontEntry::FractionDenominatorGapMin,
+                          oneDevPixel);
+      }
 
       
-      actualClearance =
+      nscoord actualClearanceNum =
         (numShift - bmNum.descent) - (axisHeight + actualRuleThickness/2);
-      if (actualClearance < minClearance) {
-        numShift += (minClearance - actualClearance);
+      if (actualClearanceNum < minClearanceNum) {
+        numShift += (minClearanceNum - actualClearanceNum);
       }
       
-      actualClearance =
+      nscoord actualClearanceDen =
         (axisHeight - actualRuleThickness/2) - (bmDen.ascent - denShift);
-      if (actualClearance < minClearance) {
-        denShift += (minClearance - actualClearance);
+      if (actualClearanceDen < minClearanceDen) {
+        denShift += (minClearanceDen - actualClearanceDen);
       }
     }
 
