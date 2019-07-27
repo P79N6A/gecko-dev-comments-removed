@@ -64,9 +64,6 @@ JitOptions::JitOptions()
     SET_DEFAULT(checkRangeAnalysis, false);
 
     
-    SET_DEFAULT(compileTryCatch, true);
-
-    
     SET_DEFAULT(disableScalarReplacement, true); 
 
     
