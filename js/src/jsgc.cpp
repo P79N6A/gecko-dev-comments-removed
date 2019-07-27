@@ -6435,6 +6435,7 @@ gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
     
 
     source->clearTables();
+    source->unsetIsDebuggee();
 
     
     
