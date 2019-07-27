@@ -742,7 +742,12 @@ GlobalHelperThreadState::canStartGCParallelTask()
 
 js::GCParallelTask::~GCParallelTask()
 {
-    join();
+    
+    
+    
+    
+    AutoLockHelperThreadState helperLock;
+    MOZ_ASSERT(state == NotStarted);
 }
 
 bool

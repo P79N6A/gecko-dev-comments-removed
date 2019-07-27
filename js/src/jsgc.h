@@ -992,6 +992,9 @@ class GCParallelTask
 
   public:
     GCParallelTask() : state(NotStarted), duration_(0) {}
+
+    
+    
     virtual ~GCParallelTask();
 
     
