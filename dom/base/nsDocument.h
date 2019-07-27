@@ -227,7 +227,7 @@ private:
 
   
   
-  nsTArray<Element*> mIdContentList;
+  nsAutoTArray<Element*, 1> mIdContentList;
   nsRefPtr<nsBaseContentList> mNameContentList;
   nsAutoPtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
   nsRefPtr<Element> mImageElement;
