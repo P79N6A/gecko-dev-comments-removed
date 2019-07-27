@@ -341,6 +341,12 @@ public:
 
 
 
+    virtual void PaintDecorationLine(Rect aPath, nscolor aColor) { }
+
+    
+
+
+
     virtual void NotifyBeforeText(nscolor aColor) { }
 
     
@@ -348,18 +354,6 @@ public:
 
 
     virtual void NotifyAfterText() { }
-
-    
-
-
-
-    virtual void NotifyBeforeDecorationLine(nscolor aColor) { }
-
-    
-
-
-
-    virtual void NotifyDecorationLinePathEmitted() { }
 
     
 
