@@ -40,10 +40,14 @@ const PREF_FHR_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_SESSIONS_BRANCH = "datareporting.sessions.";
 const PREF_UNIFIED = PREF_BRANCH + "unified";
+const PREF_UNIFIED_OPTIN = PREF_BRANCH + "unifiedIsOptIn";
 
 
 
 const IS_UNIFIED_TELEMETRY = Preferences.get(PREF_UNIFIED, false);
+
+
+const IS_UNIFIED_OPTIN = Preferences.get(PREF_UNIFIED_OPTIN, false);
 
 const PING_FORMAT_VERSION = 4;
 
@@ -590,7 +594,7 @@ let Impl = {
     const enabled = Preferences.get(PREF_ENABLED, false);
 
     
-    Telemetry.canRecordBase = enabled || IS_UNIFIED_TELEMETRY;
+    Telemetry.canRecordBase = enabled || (IS_UNIFIED_TELEMETRY && !IS_UNIFIED_OPTIN);
 
 #ifdef MOZILLA_OFFICIAL
     

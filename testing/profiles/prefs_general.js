@@ -232,6 +232,9 @@ user_pref('browser.tiles.reportURL', 'http://%(server)s/tests/robocop/robocop_ti
 user_pref('toolkit.telemetry.server', 'https://%(server)s/telemetry-dummy/');
 
 
+user_pref('toolkit.telemetry.unifiedIsOptIn', false);
+
+
 
 user_pref('toolkit.telemetry.test.pref1', true);
 user_pref('toolkit.telemetry.test.pref2', false);
