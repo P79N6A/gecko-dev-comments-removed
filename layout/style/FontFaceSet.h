@@ -229,8 +229,6 @@ private:
     uint8_t mSheetType;
   };
 
-  FontFace* FontFaceForRule(nsCSSFontFaceRule* aRule);
-
   already_AddRefed<gfxUserFontEntry> FindOrCreateUserFontEntryFromFontFace(
                                                    const nsAString& aFamilyName,
                                                    FontFace* aFontFace,
@@ -238,9 +236,6 @@ private:
 
   
   nsCSSFontFaceRule* FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry);
-
-  
-  gfxUserFontEntry* FindUserFontEntryForRule(nsCSSFontFaceRule* aRule);
 
   nsresult StartLoad(gfxUserFontEntry* aUserFontEntry,
                      const gfxFontFaceSrc* aFontFaceSrc);

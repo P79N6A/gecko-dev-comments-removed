@@ -509,6 +509,16 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   mNonRuleFacesDirty = false;
 
   
+  nsDataHashtable<nsPtrHashKey<nsCSSFontFaceRule>, FontFace*> ruleFaceMap;
+  for (size_t i = 0, i_end = mRuleFaces.Length(); i < i_end; ++i) {
+    FontFace* f = mRuleFaces[i].mFontFace;
+    if (!f) {
+      continue;
+    }
+    ruleFaceMap.Put(f->GetRule(), f);
+  }
+
+  
   
   
   
@@ -538,9 +548,12 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
     if (handledRules.Contains(aRules[i].mRule)) {
       continue;
     }
-    InsertRuleFontFace(FontFaceForRule(aRules[i].mRule),
-                       aRules[i].mSheetType, oldRecords,
-                       modified);
+    nsCSSFontFaceRule* rule = aRules[i].mRule;
+    nsRefPtr<FontFace> f = ruleFaceMap.Get(rule);
+    if (!f.get()) {
+      f = FontFace::CreateForRule(GetParentObject(), mPresContext, rule);
+    }
+    InsertRuleFontFace(f, aRules[i].mSheetType, oldRecords, modified);
     handledRules.PutEntry(aRules[i].mRule);
   }
 
@@ -977,16 +990,6 @@ FontFaceSet::FindRuleForUserFontEntry(gfxUserFontEntry* aUserFontEntry)
   return nullptr;
 }
 
-gfxUserFontEntry*
-FontFaceSet::FindUserFontEntryForRule(nsCSSFontFaceRule* aRule)
-{
-  FontFace* f = aRule->GetFontFace();
-  if (f) {
-    return f->GetUserFontEntry();
-  }
-  return nullptr;
-}
-
 nsresult
 FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
                         const char* aMessage,
@@ -1260,23 +1263,6 @@ FontFaceSet::DoRebuildUserFontSet()
   }
 
   mPresContext->RebuildUserFontSet();
-}
-
-FontFace*
-FontFaceSet::FontFaceForRule(nsCSSFontFaceRule* aRule)
-{
-  FontFace* f = aRule->GetFontFace();
-  if (f) {
-    return f;
-  }
-
-  
-  
-  gfxUserFontEntry* entry = FindUserFontEntryForRule(aRule);
-  nsRefPtr<FontFace> newFontFace =
-    FontFace::CreateForRule(GetParentObject(), mPresContext, aRule, entry);
-  aRule->SetFontFace(newFontFace);
-  return newFontFace;
 }
 
 void
