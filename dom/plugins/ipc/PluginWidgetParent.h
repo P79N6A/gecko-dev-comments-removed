@@ -63,6 +63,7 @@ public:
 
 private:
   void Shutdown(ShutdownType aType);
+  void KillWidget();
 
   
   nsCOMPtr<nsIWidget> mWidget;
