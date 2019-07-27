@@ -3867,7 +3867,12 @@ void
 LIRGenerator::visitSimdReinterpretCast(MSimdReinterpretCast *ins)
 {
     MOZ_ASSERT(IsSimdType(ins->type()) && IsSimdType(ins->input()->type()));
-    redefine(ins, ins->input());
+    MDefinition *input = ins->input();
+    LUse use = useRegisterAtStart(input);
+    
+    
+    
+    define(new(alloc()) LSimdReinterpretCast(use), ins);
 }
 
 void
