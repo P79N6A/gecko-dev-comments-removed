@@ -102,15 +102,6 @@ MediaElementChecker.prototype = {
 
 
 
-function safeInfo(message) {
-  if (typeof info === "function") {
-    info(message);
-  }
-}
-
-
-
-
 function removeVP8(sdp) {
   var updated_sdp = sdp.replace("a=rtpmap:120 VP8/90000\r\n","");
   updated_sdp = updated_sdp.replace("RTP/SAVPF 120 126 97\r\n","RTP/SAVPF 126 97\r\n");
@@ -1525,16 +1516,10 @@ PeerConnectionWrapper.prototype = {
         
         ok(res.id == key, "Coherent stats id");
         var nowish = Date.now() + 1000;        
-        if (twoMachines) {
-          nowish += 10000; 
-        }
         var minimum = this.whenCreated - 1000; 
-        if (twoMachines) {
-          minimum -= 10000; 
-        }
         if (isWinXP) {
           todo(false, "Can't reliably test rtcp timestamps on WinXP (Bug 979649)");
-        } else {
+        } else if (!twoMachines) {
           ok(res.timestamp >= minimum,
              "Valid " + (res.isRemote? "rtcp" : "rtp") + " timestamp " +
                  res.timestamp + " >= " + minimum + " (" +
@@ -1784,7 +1769,10 @@ function createHTML(options) {
 }
 
 function runNetworkTest(testFunction) {
-  return scriptsReady
-    .then(() => startNetworkAndTest())
-    .then(() => runTestWhenReady(testFunction));
+  return scriptsReady.then(() => {
+    return runTestWhenReady(options => {
+      startNetworkAndTest()
+        .then(() => testFunction(options));
+    });
+  });
 }
