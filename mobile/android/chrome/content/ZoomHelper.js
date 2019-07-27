@@ -81,24 +81,16 @@ var ZoomHelper = {
 
   zoomToElement: function(aElement, aClickY = -1, aCanZoomOut = true, aCanScrollHorizontally = true) {
     let rect = ElementTouchHelper.getBoundingContentRect(aElement);
-    ZoomHelper.zoomToRect(rect, aClickY, aCanZoomOut, aCanScrollHorizontally, aElement);
-  },
 
-  zoomToRect: function(aRect, aClickY = -1, aCanZoomOut = true, aCanScrollHorizontally = true, aElement) {
     const margin = 15;
 
-    if(!aRect.h || !aRect.w) {
-      aRect.h = aRect.height;
-      aRect.w = aRect.width;
-    }
-
     let viewport = BrowserApp.selectedTab.getViewport();
-    let bRect = new Rect(aCanScrollHorizontally ? Math.max(viewport.cssPageLeft, aRect.x - margin) : viewport.cssX,
-                         aRect.y,
-                         aCanScrollHorizontally ? aRect.w + 2 * margin : viewport.cssWidth,
-                         aRect.h);
+    rect = new Rect(aCanScrollHorizontally ? Math.max(viewport.cssPageLeft, rect.x - margin) : viewport.cssX,
+                    rect.y,
+                    aCanScrollHorizontally ? rect.w + 2 * margin : viewport.cssWidth,
+                    rect.h);
     
-    bRect.width = Math.min(bRect.width, viewport.cssPageRight - bRect.x);
+    rect.width = Math.min(rect.width, viewport.cssPageRight - rect.x);
 
     
     
@@ -106,29 +98,36 @@ var ZoomHelper = {
       if (BrowserEventHandler.mReflozPref) {
         let zoomFactor = BrowserApp.selectedTab.getZoomToMinFontSize(aElement);
 
-        bRect.width = zoomFactor <= 1.0 ? bRect.width : gScreenWidth / zoomFactor;
-        bRect.height = zoomFactor <= 1.0 ? bRect.height : bRect.height / zoomFactor;
-        if (zoomFactor == 1.0 || ZoomHelper.isRectZoomedIn(bRect, viewport)) {
+        rect.width = zoomFactor <= 1.0 ? rect.width : gScreenWidth / zoomFactor;
+        rect.height = zoomFactor <= 1.0 ? rect.height : rect.height / zoomFactor;
+        if (zoomFactor == 1.0 || ZoomHelper.isRectZoomedIn(rect, viewport)) {
           if (aCanZoomOut) {
             ZoomHelper.zoomOut();
           }
           return;
         }
-      } else if (ZoomHelper.isRectZoomedIn(bRect, viewport)) {
+      } else if (ZoomHelper.isRectZoomedIn(rect, viewport)) {
         if (aCanZoomOut) {
           ZoomHelper.zoomOut();
         }
         return;
       }
-    }
 
-    let rect = {};
+      ZoomHelper.zoomToRect(rect, aClickY);
+    }
+  },
+
+  
+
+
+
+  zoomToRect: function(aRect, aClickY = -1) {
+    let rect = new Rect(aRect.x,
+                        aRect.y,
+                        aRect.width,
+                        Math.min(aRect.width * viewport.cssHeight / viewport.cssWidth, aRect.height));
 
     rect.type = "Browser:ZoomToRect";
-    rect.x = bRect.x;
-    rect.y = bRect.y;
-    rect.w = bRect.width;
-    rect.h = Math.min(bRect.width * viewport.cssHeight / viewport.cssWidth, bRect.height);
 
     if (aClickY >= 0) {
       
@@ -136,7 +135,7 @@ var ZoomHelper = {
       
       
       let cssTapY = viewport.cssY + aClickY;
-      if ((bRect.height > rect.h) && (cssTapY > rect.y + (rect.h * 1.2))) {
+      if ((aRect.height > rect.h) && (cssTapY > rect.y + (rect.h * 1.2))) {
         rect.y = cssTapY - (rect.h / 2);
       }
     }
