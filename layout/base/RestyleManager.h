@@ -95,6 +95,11 @@ public:
   
   
   
+  static uint64_t GetMaxAnimationGenerationForFrame(nsIFrame* aFrame);
+
+  
+  
+  
   
   
   
@@ -600,6 +605,11 @@ private:
 
 
   void RestyleChildren(nsRestyleHint aChildRestyleHint);
+
+  
+
+
+  void AddLayerChangesForAnimation();
 
   
 

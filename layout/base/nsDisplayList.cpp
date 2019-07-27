@@ -62,6 +62,7 @@
 #include "UnitTransforms.h"
 #include "LayersLogging.h"
 #include "FrameLayerBuilder.h"
+#include "RestyleManager.h"
 #include "nsCaret.h"
 #include "nsISelection.h"
 
@@ -440,6 +441,15 @@ nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
     aLayer->ClearAnimations();
   }
 
+  
+  
+  
+  
+  
+  uint64_t animationGeneration =
+    RestyleManager::GetMaxAnimationGenerationForFrame(aFrame);
+  aLayer->SetAnimationGeneration(animationGeneration);
+
   nsIContent* content = aFrame->GetContent();
   if (!content) {
     return;
@@ -507,13 +517,11 @@ nsDisplayListBuilder::AddAnimationsAndTransitionsToLayer(Layer* aLayer,
   if (transitions) {
     AddAnimationsForProperty(aFrame, aProperty, transitions->mPlayers,
                              aLayer, data, pending);
-    aLayer->SetAnimationGeneration(transitions->mAnimationGeneration);
   }
 
   if (animations) {
     AddAnimationsForProperty(aFrame, aProperty, animations->mPlayers,
                              aLayer, data, pending);
-    aLayer->SetAnimationGeneration(animations->mAnimationGeneration);
   }
 }
 

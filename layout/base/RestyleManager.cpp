@@ -8,9 +8,11 @@
 
 
 
+#include <algorithm> 
 #include "RestyleManager.h"
 #include "mozilla/EventStates.h"
 #include "nsLayoutUtils.h"
+#include "FrameLayerBuilder.h"
 #include "GeckoProfiler.h"
 #include "nsStyleChangeList.h"
 #include "nsRuleProcessorData.h"
@@ -1147,6 +1149,27 @@ RestyleManager::AttributeChanged(Element* aElement,
                                                          true);
 
   PostRestyleEvent(aElement, rshint, hint);
+}
+
+ uint64_t
+RestyleManager::GetMaxAnimationGenerationForFrame(nsIFrame* aFrame)
+{
+  nsIContent* content = aFrame->GetContent();
+  if (!content || !content->IsElement()) {
+    return 0;
+  }
+
+  nsCSSPseudoElements::Type pseudoType =
+    aFrame->StyleContext()->GetPseudoType();
+  AnimationPlayerCollection* transitions =
+    aFrame->PresContext()->TransitionManager()->GetAnimationPlayers(
+      content->AsElement(), pseudoType, false );
+  AnimationPlayerCollection* animations =
+    aFrame->PresContext()->AnimationManager()->GetAnimationPlayers(
+      content->AsElement(), pseudoType, false );
+
+  return std::max(transitions ? transitions->mAnimationGeneration : 0,
+                  animations ? animations->mAnimationGeneration : 0);
 }
 
 void
@@ -2409,6 +2432,47 @@ ElementRestyler::ElementRestyler(ParentContextFromChildFrame,
 }
 
 void
+ElementRestyler::AddLayerChangesForAnimation()
+{
+  static const nsDisplayItem::Type sLayerTypes[] =
+                                       { nsDisplayItem::TYPE_TRANSFORM,
+                                         nsDisplayItem::TYPE_OPACITY };
+  static const nsChangeHint sHints[] = { nsChangeHint_UpdateTransformLayer,
+                                         nsChangeHint_UpdateOpacityLayer };
+  static_assert(MOZ_ARRAY_LENGTH(sLayerTypes) == MOZ_ARRAY_LENGTH(sHints),
+                "Parallel layer type and hint arrays should have same length");
+
+  
+  
+  
+  uint64_t frameGeneration =
+    RestyleManager::GetMaxAnimationGenerationForFrame(mFrame);
+
+  nsChangeHint hint = nsChangeHint(0);
+  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(sLayerTypes); i++) {
+    Layer* layer =
+      FrameLayerBuilder::GetDedicatedLayer(mFrame, sLayerTypes[i]);
+    if (layer && frameGeneration > layer->GetAnimationGeneration()) {
+      
+      
+      
+      
+      
+      
+      
+      if (sLayerTypes[i] == nsDisplayItem::TYPE_TRANSFORM &&
+          !mFrame->StyleDisplay()->HasTransformStyle()) {
+        continue;
+      }
+      NS_UpdateHint(hint, sHints[i]);
+    }
+  }
+  if (hint) {
+    mChangeList->AppendChange(mFrame, mContent, hint);
+  }
+}
+
+void
 ElementRestyler::CaptureChange(nsStyleContext* aOldContext,
                                nsStyleContext* aNewContext,
                                nsChangeHint aChangeToAssume,
@@ -2521,6 +2585,12 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
       descendants.SwapElements(restyleData->mDescendants);
     }
   }
+
+  
+  
+  
+  
+  AddLayerChangesForAnimation();
 
   
   
