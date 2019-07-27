@@ -70,9 +70,7 @@ const FRECENCY_DEFAULT = 1000;
 
 
 
-
-
-const SEARCH_SUGGESTION_INSERT_INTERVAL = 2;
+const MINIMUM_LOCAL_MATCHES = 5;
 
 
 
@@ -259,8 +257,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Sqlite",
                                   "resource://gre/modules/Sqlite.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "OS",
                                   "resource://gre/modules/osfile.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
+                                  "resource://gre/modules/PromiseUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesSearchAutocompleteProvider",
@@ -619,7 +617,16 @@ function Search(searchString, searchParam, autocompleteListener,
   this._usedURLs = new Set();
   this._usedPlaceIds = new Set();
 
-  this._searchSuggestionInsertCounter = 0;
+  
+  this._remoteMatchesPromises = [];
+
+  
+  this._remoteMatchesStartIndex = 0;
+
+  
+  this._localMatchesCount = 0;
+  
+  this._remoteMatchesCount = 0;
 }
 
 Search.prototype = {
@@ -668,7 +675,7 @@ Search.prototype = {
     
     if (!this._sleepTimer)
       this._sleepTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this._sleepDeferred = Promise.defer();
+    this._sleepDeferred = PromiseUtils.defer();
     this._sleepTimer.initWithCallback(() => this._sleepDeferred.resolve(),
                                       aTimeMs, Ci.nsITimer.TYPE_ONE_SHOT);
     return this._sleepDeferred.promise;
@@ -718,7 +725,7 @@ Search.prototype = {
 
 
 
-  cancel: function () {
+  stop() {
     if (this._sleepTimer)
       this._sleepTimer.cancel();
     if (this._sleepDeferred) {
@@ -747,9 +754,9 @@ Search.prototype = {
     if (!this.pending)
       return;
 
-    TelemetryStopwatch.start(TELEMETRY_1ST_RESULT);
+    TelemetryStopwatch.start(TELEMETRY_1ST_RESULT, this);
     if (this._searchString)
-      TelemetryStopwatch.start(TELEMETRY_6_FIRST_RESULTS);
+      TelemetryStopwatch.start(TELEMETRY_6_FIRST_RESULTS, this);
 
     
     
@@ -830,28 +837,11 @@ Search.prototype = {
 
     
     
-
-    yield this._sleep(Math.round(Prefs.delay / 2));
+    yield this._sleep(Prefs.delay);
     if (!this.pending)
       return;
 
-    
-    
-    if (this.hasBehavior("searches")) {
-      this._searchSuggestionController =
-        PlacesSearchAutocompleteProvider.getSuggestionController(
-          this._searchTokens.join(" "),
-          this._inPrivateWindow,
-          Prefs.maxRichResults
-        );
-      if (this.hasBehavior("restrict")) {
-        
-        yield this._consumeAllSearchSuggestions();
-        return;
-      }
-    }
-
-    yield this._sleep(Math.round(Prefs.delay / 2));
+    yield this._matchSearchSuggestions();
     if (!this.pending)
       return;
 
@@ -873,7 +863,7 @@ Search.prototype = {
     
     
     if (this._matchBehavior == MATCH_BOUNDARY_ANYWHERE &&
-        this._result.matchCount < Prefs.maxRichResults) {
+        this._localMatchesCount < Prefs.maxRichResults) {
       this._matchBehavior = MATCH_ANYWHERE;
       for (let [query, params] of [ this._adaptiveQuery,
                                     this._searchQuery ]) {
@@ -884,16 +874,39 @@ Search.prototype = {
     }
 
     
-    
-    yield this._consumeAllSearchSuggestions();
+    yield Promise.all(this._remoteMatchesPromises);
   }),
 
-  _consumeAllSearchSuggestions: Task.async(function* () {
-    if (this._searchSuggestionController && this.pending) {
-      yield this._searchSuggestionController.fetchCompletePromise;
-      while (this.pending && this._maybeAddSearchSuggestionMatch());
+  *_matchSearchSuggestions() {
+    if (!this.hasBehavior("searches"))
+      return;
+
+    this._searchSuggestionController =
+      PlacesSearchAutocompleteProvider.getSuggestionController(
+        this._searchTokens.join(" "),
+        this._inPrivateWindow,
+        Prefs.maxRichResults
+      );
+    let promise = this._searchSuggestionController.fetchCompletePromise
+      .then(() => {
+        while (this.pending && this._remoteMatchesCount < Prefs.maxRichResults) {
+          let [match, suggestion] = this._searchSuggestionController.consume();
+          if (!suggestion)
+            break;
+          
+          let searchString = this._searchTokens.join(" ");
+          this._addSearchEngineMatch(match, searchString, suggestion);
+        }
+      });
+
+    if (this.hasBehavior("restrict")) {
+      
+      yield promise;
+      this.stop();
+    } else {
+      this._remoteMatchesPromises.push(promise);
     }
-  }),
+  },
 
   _matchKnownUrl: function* (conn, queries) {
     
@@ -1054,6 +1067,7 @@ Search.prototype = {
       icon: match.iconUrl,
       style: "action searchengine",
       frecency: FRECENCY_DEFAULT,
+      remote: !!suggestion
     });
   },
 
@@ -1137,7 +1151,7 @@ Search.prototype = {
   },
 
   _onResultRow: function (row) {
-    TelemetryStopwatch.finish(TELEMETRY_1ST_RESULT);
+    TelemetryStopwatch.finish(TELEMETRY_1ST_RESULT, this);
     let queryType = row.getResultByIndex(QUERYINDEX_QUERYTYPE);
     let match;
     switch (queryType) {
@@ -1158,7 +1172,7 @@ Search.prototype = {
     this._addMatch(match);
     
     
-    if (!this.pending)
+    if (!this.pending || this._localMatchesCount == Prefs.maxRichResults)
       throw StopIteration;
   },
 
@@ -1186,89 +1200,72 @@ Search.prototype = {
                     parseResult.engineName;
   },
 
-  _maybeAddSearchSuggestionMatch() {
-    if (this._searchSuggestionController) {
-      let [match, suggestion] = this._searchSuggestionController.consume();
-      if (suggestion) {
-        
-        let searchString = this._searchTokens.join(" ");
-        this._addSearchEngineMatch(match, searchString, suggestion);
-        return true;
-      }
-    }
-    return false;
-  },
-
-  _addMatch: function (match) {
+  _addMatch(match) {
     
     
     if (!this.pending)
       return;
 
     
-    
-    
-    if (match.frecency < FRECENCY_DEFAULT) {
-      if (this._searchSuggestionInsertCounter %
-          SEARCH_SUGGESTION_INSERT_INTERVAL == 0) {
-        
-        
-        if (this._maybeAddSearchSuggestionMatch()) {
-          if (!this.pending) {
-            return;
-          }
-          this._searchSuggestionInsertCounter++;
-        }
-      } else {
-        this._searchSuggestionInsertCounter++;
-      }
-    }
-
-    let notifyResults = false;
-
-    
     let urlMapKey = stripHttpAndTrim(match.value);
-    if ((!match.placeId || !this._usedPlaceIds.has(match.placeId)) &&
-        !this._usedURLs.has(urlMapKey)) {
-      
-      
-      
-      
-      
-      
-      if (match.placeId)
-        this._usedPlaceIds.add(match.placeId);
-      this._usedURLs.add(urlMapKey);
-
-      if (!match.style) {
-        match.style = "favicon";
-      }
-
-      
-      if (Prefs.restyleSearches && match.style == "favicon") {
-        this._maybeRestyleSearchMatch(match);
-      }
-
-      this._result.appendMatch(match.value,
-                               match.comment,
-                               match.icon || PlacesUtils.favicons.defaultFavicon.spec,
-                               match.style,
-                               match.finalCompleteValue || "");
-      notifyResults = true;
+    if ((match.placeId && this._usedPlaceIds.has(match.placeId)) ||
+        this._usedURLs.has(urlMapKey)) {
+      return;
     }
+
+    
+    
+    
+    
+    
+    
+    if (match.placeId)
+      this._usedPlaceIds.add(match.placeId);
+    this._usedURLs.add(urlMapKey);
+
+    match.style = match.style || "favicon";
+
+    
+    if (Prefs.restyleSearches && match.style == "favicon") {
+      this._maybeRestyleSearchMatch(match);
+    }
+
+    match.icon = match.icon || PlacesUtils.favicons.defaultFavicon.spec;
+    match.finalCompleteValue = match.finalCompleteValue || "";
+
+    this._result.insertMatchAt(this._getInsertIndexForMatch(match),
+                               match.value,
+                               match.comment,
+                               match.icon,
+                               match.style,
+                               match.finalCompleteValue);
 
     if (this._result.matchCount == 6)
-      TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS);
+      TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS, this);
 
-    if (this._result.matchCount == Prefs.maxRichResults) {
+    this.notifyResults(true);
+  },
+
+  _getInsertIndexForMatch(match) {
+    let index = 0;
+    if (match.remote) {
       
+      index = this._remoteMatchesStartIndex + this._remoteMatchesCount;
+      this._remoteMatchesCount++;
+    } else {
       
-      
-      this.cancel();
-    } else if (notifyResults) {
-      
-      this.notifyResults(true);
+      if (match.frecency > FRECENCY_DEFAULT ||
+          this._localMatchesCount < MINIMUM_LOCAL_MATCHES) {
+        
+        index = this._remoteMatchesStartIndex;
+        this._remoteMatchesStartIndex++
+      } else {
+        
+        index = this._localMatchesCount + this._remoteMatchesCount;
+      }
+      this._localMatchesCount++;
     }
+    return index;
   },
 
   _processHostRow: function (row) {
@@ -1748,7 +1745,7 @@ UnifiedComplete.prototype = {
 
   stopSearch: function () {
     if (this._currentSearch) {
-      this._currentSearch.cancel();
+      this._currentSearch.stop();
     }
     
     
@@ -1763,8 +1760,8 @@ UnifiedComplete.prototype = {
 
 
   finishSearch: function (notify=false) {
-    TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT);
-    TelemetryStopwatch.cancel(TELEMETRY_6_FIRST_RESULTS);
+    TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT, this);
+    TelemetryStopwatch.cancel(TELEMETRY_6_FIRST_RESULTS, this);
     
     let search = this._currentSearch;
     delete this._currentSearch;

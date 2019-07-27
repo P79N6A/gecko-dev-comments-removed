@@ -7,6 +7,8 @@ const Cc = Components.classes;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+const FRECENCY_DEFAULT = 10000;
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://testing-common/httpd.js");
 
@@ -216,8 +218,10 @@ function* check_autocomplete(test) {
         image: controller.getImageAt(i),
       }
       do_print(`Looking for "${result.value}", "${result.comment}" in expected results...`);
-      let j;
-      for (j = firstIndexToCheck; j < matches.length; j++) {
+      let lowerBound = test.checkSorting ? i : firstIndexToCheck;
+      let upperBound = test.checkSorting ? i + 1 : matches.length;
+      let found = false;
+      for (let j = lowerBound; j < upperBound; ++j) {
         
         if (matches[j] == undefined)
           continue;
@@ -225,12 +229,12 @@ function* check_autocomplete(test) {
           do_print("Got a match at index " + j + "!");
           
           matches[j] = undefined;
+          found = true;
           break;
         }
       }
 
-      
-      if (j == matches.length)
+      if (!found)
         do_throw(`Didn't find the current result ("${result.value}", "${result.comment}") in matches`); 
     }
 
