@@ -7,6 +7,7 @@
 #include "TrackBuffersManager.h"
 #include "SourceBufferResource.h"
 #include "SourceBuffer.h"
+#include "MediaSourceDemuxer.h"
 
 #ifdef MOZ_FMP4
 #include "MP4Demuxer.h"
@@ -46,10 +47,10 @@ TrackBuffersManager::TrackBuffersManager(dom::SourceBuffer* aParent, MediaSource
   , mParser(ContainerParser::CreateForMIMEType(aType))
   , mProcessedInput(0)
   , mAppendRunning(false)
-  , mTaskQueue(new MediaTaskQueue(GetMediaThreadPool(MediaThreadType::PLAYBACK),
-                                   true))
+  , mTaskQueue(aParentDecoder->GetDemuxer()->GetTaskQueue())
   , mParent(new nsMainThreadPtrHolder<dom::SourceBuffer>(aParent, false ))
   , mParentDecoder(new nsMainThreadPtrHolder<MediaSourceDecoder>(aParentDecoder, false ))
+  , mMediaSourceDemuxer(mParentDecoder->GetDemuxer())
   , mMediaSourceDuration(mTaskQueue, Maybe<double>(), "TrackBuffersManager::mMediaSourceDuration (Mirror)")
   , mAbort(false)
   , mMonitor("TrackBuffersManager")
@@ -519,6 +520,9 @@ TrackBuffersManager::CodedFrameRemoval(TimeInterval aInterval)
 
   
   mSizeSourceBuffer = mVideoTracks.mSizeBuffer + mAudioTracks.mSizeBuffer;
+
+  
+  mMediaSourceDemuxer->NotifyTimeRangesChanged();
 
   return dataRemoved;
 }
@@ -1094,6 +1098,9 @@ TrackBuffersManager::CompleteCodedFrameProcessing()
   SetAppendState(AppendState::WAITING_FOR_SEGMENT);
 
   
+  mMediaSourceDemuxer->NotifyTimeRangesChanged();
+
+  
   ResolveProcessing(false, __func__);
 }
 
@@ -1451,8 +1458,6 @@ TrackBuffersManager::RestartGroupStartTimestamp()
 
 TrackBuffersManager::~TrackBuffersManager()
 {
-  mTaskQueue->BeginShutdown();
-  mTaskQueue = nullptr;
 }
 
 MediaInfo

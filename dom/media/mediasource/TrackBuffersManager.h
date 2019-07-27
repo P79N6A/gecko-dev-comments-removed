@@ -22,6 +22,7 @@ namespace mozilla {
 class ContainerParser;
 class MediaLargeByteBuffer;
 class MediaRawData;
+class MediaSourceDemuxer;
 class SourceBuffer;
 class SourceBufferResource;
 
@@ -263,6 +264,7 @@ private:
   
   nsMainThreadPtrHandle<dom::SourceBuffer> mParent;
   nsMainThreadPtrHandle<MediaSourceDecoder> mParentDecoder;
+  nsRefPtr<MediaSourceDemuxer> mMediaSourceDemuxer;
 
   
   Mirror<Maybe<double>> mMediaSourceDuration;
