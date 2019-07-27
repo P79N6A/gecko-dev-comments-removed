@@ -26,6 +26,22 @@ PluginWidgetChild::~PluginWidgetChild()
   MOZ_COUNT_DTOR(PluginWidgetChild);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
 {
@@ -33,6 +49,13 @@ PluginWidgetChild::ActorDestroy(ActorDestroyReason aWhy)
     mWidget->ChannelDestroyed();
   }
   mWidget = nullptr;
+}
+
+bool
+PluginWidgetChild::RecvParentShutdown()
+{
+  Send__delete__(this);
+  return true;
 }
 
 bool
@@ -57,6 +80,3 @@ PluginWidgetChild::RecvUpdateWindow(const uintptr_t& aChildId)
 
 } 
 } 
-
-
-

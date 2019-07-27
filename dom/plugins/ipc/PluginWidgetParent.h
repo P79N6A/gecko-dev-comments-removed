@@ -33,6 +33,12 @@ public:
   virtual bool RecvSetFocus(const bool& aRaise) MOZ_OVERRIDE;
   virtual bool RecvGetNativePluginPort(uintptr_t* value) MOZ_OVERRIDE;
 
+  
+  bool ActorDestroyed() { return mActorDestroyed; }
+
+  
+  void ParentDestroy();
+
 private:
   
   mozilla::dom::TabParent* GetTabParent();
@@ -41,6 +47,7 @@ private:
 #if defined(MOZ_WIDGET_GTK)
   UniquePtr<nsPluginNativeWindowGtk> mWrapper;
 #endif
+  bool mActorDestroyed;
 };
 
 } 

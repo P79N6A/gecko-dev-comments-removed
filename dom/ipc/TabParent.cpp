@@ -366,6 +366,15 @@ TabParent::Destroy()
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     Manager()->AsContentParent()->NotifyTabDestroying(this);
   }
+
+  
+  
+  
+  const nsTArray<PPluginWidgetParent*>& kids = ManagedPPluginWidgetParent();
+  for (uint32_t idx = 0; idx < kids.Length(); ++idx) {
+      static_cast<mozilla::plugins::PluginWidgetParent*>(kids[idx])->ParentDestroy();
+  }
+
   mMarkedDestroying = true;
 }
 

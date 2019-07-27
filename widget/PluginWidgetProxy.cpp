@@ -97,9 +97,22 @@ PluginWidgetProxy::Destroy()
   PWLOG("PluginWidgetProxy::Destroy()\n");
 
   if (mActor) {
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
     mActor->SendDestroy();
     mActor->mWidget = nullptr;
-    mActor->Send__delete__(mActor);
     mActor = nullptr;
   }
 
