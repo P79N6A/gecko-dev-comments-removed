@@ -934,7 +934,10 @@ nsHttpChannel::CallOnStartRequest()
 
     LOG(("  calling mListener->OnStartRequest\n"));
     if (mListener) {
+        MOZ_ASSERT(!mOnStartRequestCalled,
+                   "We should not call OsStartRequest twice");
         rv = mListener->OnStartRequest(this, mListenerContext);
+        mOnStartRequestCalled = true;
         if (NS_FAILED(rv))
             return rv;
     } else {
@@ -5519,7 +5522,10 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             
             
             if (mListener) {
+                MOZ_ASSERT(!mOnStartRequestCalled,
+                           "We should not call OnStartRequest twice.");
                 mListener->OnStartRequest(this, mListenerContext);
+                mOnStartRequestCalled = true;
             } else {
                 NS_WARNING("OnStartRequest skipped because of null listener");
             }

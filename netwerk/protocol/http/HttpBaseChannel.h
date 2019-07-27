@@ -424,6 +424,10 @@ protected:
 
   bool mCorsIncludeCredentials;
   uint32_t mCorsMode;
+
+  
+  
+  bool mOnStartRequestCalled;
 };
 
 
