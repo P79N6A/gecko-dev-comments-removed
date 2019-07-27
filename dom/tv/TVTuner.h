@@ -4,12 +4,15 @@
 
 
 
-#ifndef mozilla_dom_TVTuner_h__
-#define mozilla_dom_TVTuner_h__
+#ifndef mozilla_dom_TVTuner_h
+#define mozilla_dom_TVTuner_h
 
 #include "mozilla/DOMEventTargetHelper.h"
 
 #include "mozilla/dom/TVTunerBinding.h"
+
+class nsITVService;
+class nsITVTunerData;
 
 namespace mozilla {
 
@@ -26,11 +29,16 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TVTuner, DOMEventTargetHelper)
 
-  explicit TVTuner(nsPIDOMWindow* aWindow);
+  static already_AddRefed<TVTuner> Create(nsPIDOMWindow* aWindow,
+                                          nsITVTunerData* aData);
 
   
 
   virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
+
+  nsresult SetCurrentSource(TVSourceType aSourceType);
+
+  nsresult DispatchTVEvent(nsIDOMEvent* aEvent);
 
   
 
@@ -51,8 +59,22 @@ public:
   IMPL_EVENT_HANDLER(currentsourcechanged);
 
 private:
+  explicit TVTuner(nsPIDOMWindow* aWindow);
+
   ~TVTuner();
 
+  bool Init(nsITVTunerData* aData);
+
+  nsresult InitMediaStream();
+
+  nsresult DispatchCurrentSourceChangedEvent(TVSource* aSource);
+
+  nsCOMPtr<nsITVService> mTVService;
+  nsRefPtr<DOMMediaStream> mStream;
+  nsRefPtr<TVSource> mCurrentSource;
+  nsTArray<nsRefPtr<TVSource>> mSources;
+  nsString mId;
+  nsTArray<TVSourceType> mSupportedSourceTypes;
 };
 
 } 
