@@ -42,6 +42,12 @@ function test_sockets(serverSocket) {
 }
 
 function run_test() {
+  var ps = Cc["@mozilla.org/preferences-service;1"]
+    .getService(Ci.nsIPrefBranch);
+  
+  
+  ps.setBoolPref("network.notify.changed", false);
+
   let serverSocket = Components.classes["@mozilla.org/network/server-socket;1"]
     .createInstance(Ci.nsIServerSocket);
   serverSocket.init(-1, true, -1);
