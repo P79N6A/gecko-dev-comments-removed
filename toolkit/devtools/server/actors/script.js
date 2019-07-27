@@ -8,7 +8,7 @@
 
 const Services = require("Services");
 const { Cc, Ci, Cu, components, ChromeWorker } = require("chrome");
-const { ActorPool, getOffsetColumn } = require("devtools/server/actors/common");
+const { ActorPool, OriginalLocation, GeneratedLocation, getOffsetColumn } = require("devtools/server/actors/common");
 const { DebuggerServer } = require("devtools/server/main");
 const DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
 const { dbg_assert, dumpn, update, fetch } = DevToolsUtils;
@@ -80,8 +80,6 @@ BreakpointActorMap.prototype = {
 
 
 
-
-
   get size() {
     return this._size;
   },
@@ -93,10 +91,7 @@ BreakpointActorMap.prototype = {
 
 
 
-
-
-
-  findActors: function* (query = {}) {
+  findActors: function* (location = new GeneratedLocation()) {
     function* findKeys(object, key) {
       if (key !== undefined) {
         if (key in object) {
@@ -110,9 +105,12 @@ BreakpointActorMap.prototype = {
       }
     }
 
-    query.sourceActorID = query.sourceActor ? query.sourceActor.actorID : undefined;
-    query.beginColumn = query.column ? query.column : undefined;
-    query.endColumn = query.column ? query.column + 1 : undefined;
+    let query = {
+      sourceActorID: location.generatedSourceActor ? location.generatedSourceActor.actorID : undefined,
+      line: location.generatedLine,
+      beginColumn: location.generatedColumn ? location.generatedColumn : undefined,
+      endColumn: location.generatedColumn ? location.generatedColumn + 1 : undefined
+    };
 
     for (let sourceActorID of findKeys(this._actors, query.sourceActorID))
     for (let line of findKeys(this._actors[sourceActorID], query.line))
@@ -123,9 +121,6 @@ BreakpointActorMap.prototype = {
   },
 
   
-
-
-
 
 
 
@@ -153,15 +148,13 @@ BreakpointActorMap.prototype = {
 
 
 
-
-
-
   setActor: function (location, actor) {
-    let { sourceActor, line, column } = location;
+    let { generatedSourceActor, generatedLine, generatedColumn } = location;
 
-    let sourceActorID = sourceActor.actorID;
-    let beginColumn = column ? column : 0;
-    let endColumn = column ? column + 1 : Infinity;
+    let sourceActorID = generatedSourceActor.actorID;
+    let line = generatedLine;
+    let beginColumn = generatedColumn ? generatedColumn : 0;
+    let endColumn = generatedColumn ? generatedColumn + 1 : Infinity;
 
     if (!this._actors[sourceActorID]) {
       this._actors[sourceActorID] = [];
@@ -185,15 +178,13 @@ BreakpointActorMap.prototype = {
 
 
 
-
-
-
   deleteActor: function (location) {
-    let { sourceActor, line, column } = location;
+    let { generatedSourceActor, generatedLine, generatedColumn } = location;
 
-    let sourceActorID = sourceActor.actorID;
-    let beginColumn = column ? column : 0;
-    let endColumn = column ? column + 1 : Infinity;
+    let sourceActorID = generatedSourceActor.actorID;
+    let line = generatedLine;
+    let beginColumn = generatedColumn ? generatedColumn : 0;
+    let endColumn = generatedColumn ? generatedColumn + 1 : Infinity;
 
     if (this._actors[sourceActorID]) {
       if (this._actors[sourceActorID][line]) {
@@ -742,9 +733,10 @@ ThreadActor.prototype = {
       }
       packet.why = aReason;
 
-      let loc = this.sources.getFrameLocation(aFrame);
-      this.sources.getOriginalLocation(loc).then(aOrigPosition => {
-        if (!aOrigPosition.sourceActor) {
+      let generatedLocation = this.sources.getFrameLocation(aFrame);
+      this.sources.getOriginalLocation(generatedLocation)
+                  .then((originalLocation) => {
+        if (!originalLocation.originalSourceActor) {
           
           
           
@@ -759,9 +751,9 @@ ThreadActor.prototype = {
         }
 
         packet.frame.where = {
-          source: aOrigPosition.sourceActor.form(),
-          line: aOrigPosition.line,
-          column: aOrigPosition.column
+          source: originalLocation.originalSourceActor.form(),
+          line: originalLocation.originalLine,
+          column: originalLocation.originalColumn
         };
         resolve(onPacket(packet))
           .then(null, error => {
@@ -806,9 +798,9 @@ ThreadActor.prototype = {
   _makeOnEnterFrame: function ({ pauseAndRespond }) {
     return aFrame => {
       const generatedLocation = this.sources.getFrameLocation(aFrame);
-      let { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
+      let { originalSourceActor } = this.synchronize(this.sources.getOriginalLocation(
         generatedLocation));
-      let url = sourceActor.url;
+      let url = originalSourceActor.url;
 
       return this.sources.isBlackBoxed(url)
         ? undefined
@@ -821,9 +813,9 @@ ThreadActor.prototype = {
       
 
       const generatedLocation = thread.sources.getFrameLocation(this);
-      const { sourceActor } = thread.synchronize(thread.sources.getOriginalLocation(
+      const { originalSourceActor } = thread.synchronize(thread.sources.getOriginalLocation(
         generatedLocation));
-      const url = sourceActor.url;
+      const url = originalSourceActor.url;
 
       if (thread.sources.isBlackBoxed(url)) {
         return undefined;
@@ -882,15 +874,15 @@ ThreadActor.prototype = {
       
 
       
-      if (newLocation.url == null
-          || thread.sources.isBlackBoxed(newLocation.url)) {
+      if (newLocation.originalUrl == null
+          || thread.sources.isBlackBoxed(newLocation.originalUrl)) {
         return undefined;
       }
 
       
       if (this !== startFrame
-          || startLocation.url !== newLocation.url
-          || startLocation.line !== newLocation.line) {
+          || startLocation.originalUrl !== newLocation.originalUrl
+          || startLocation.originalLine !== newLocation.originalLine) {
         return pauseAndRespond(this);
       }
 
@@ -1288,16 +1280,16 @@ ThreadActor.prototype = {
       form.depth = i;
       frames.push(form);
 
-      let promise = this.sources.getOriginalLocation({
-        sourceActor: this.sources.createNonSourceMappedActor(frame.script.source),
-        line: form.where.line,
-        column: form.where.column
-      }).then((aOrigLocation) => {
-        let sourceForm = aOrigLocation.sourceActor.form();
+      let promise = this.sources.getOriginalLocation(new GeneratedLocation(
+        this.sources.createNonSourceMappedActor(frame.script.source),
+        form.where.line,
+        form.where.column
+      )).then((originalLocation) => {
+        let sourceForm = originalLocation.originalSourceActor.form();
         form.where = {
           source: sourceForm,
-          line: aOrigLocation.line,
-          column: aOrigLocation.column
+          line: originalLocation.originalLine,
+          column: originalLocation.originalColumn
         };
         form.source = sourceForm;
       });
@@ -1903,9 +1895,9 @@ ThreadActor.prototype = {
     
     
     const generatedLocation = this.sources.getFrameLocation(aFrame);
-    const { sourceActor } = this.synchronize(this.sources.getOriginalLocation(
+    const { originalSourceActor } = this.synchronize(this.sources.getOriginalLocation(
       generatedLocation));
-    const url = sourceActor ? sourceActor.url : null;
+    const url = originalSourceActor ? originalSourceActor.url : null;
 
     return this.sources.isBlackBoxed(url) || aFrame.onStep
       ? undefined
@@ -2039,8 +2031,8 @@ ThreadActor.prototype = {
     let source = this.sources.createNonSourceMappedActor(aScript.source);
     for (let bpActor of this.breakpointActorMap.findActors({ sourceActor: source })) {
       
-      if (bpActor.generatedLocation.line >= aScript.startLine
-          && bpActor.generatedLocation.line <= endLine) {
+      if (bpActor.generatedLocation.generatedLine >= aScript.startLine
+          && bpActor.generatedLocation.generatedLine <= endLine) {
         source.setBreakpointForActor(bpActor);
       }
     }
@@ -2751,12 +2743,14 @@ SourceActor.prototype = {
 
 
 
-  _setBreakpointAtColumn: function (scripts, location, actor) {
+  _setBreakpointAtColumn: function (scripts, generatedLocation, actor) {
     
     const scriptsAndOffsetMappings = new Map();
 
     for (let script of scripts) {
-      this._findClosestOffsetMappings(location, script, scriptsAndOffsetMappings);
+      this._findClosestOffsetMappings(generatedLocation,
+                                      script,
+                                      scriptsAndOffsetMappings);
     }
 
     for (let [script, mappings] of scriptsAndOffsetMappings) {
@@ -2832,18 +2826,13 @@ SourceActor.prototype = {
 
 
   setBreakpoint: function (originalLine, originalColumn, condition) {
-    let originalLocation = {
-      sourceActor: this,
-      line: originalLine,
-      column: originalColumn
-    };
-
+    let originalLocation = new OriginalLocation(this, originalLine, originalColumn);
     return this.threadActor.sources.getGeneratedLocation(originalLocation)
                                    .then(generatedLocation => {
       let actor = this._getOrCreateBreakpointActor(originalLocation,
                                                    generatedLocation,
                                                    condition);
-      return generatedLocation.sourceActor.setBreakpointForActor(actor);
+      return generatedLocation.generatedSourceActor.setBreakpointForActor(actor);
     });
   },
 
@@ -2857,13 +2846,13 @@ SourceActor.prototype = {
 
   setBreakpointForActor: function (actor) {
     let originalLocation = actor.originalLocation;
-    let generatedLocation = {
-      sourceActor: this,
-      line: actor.generatedLocation.line,
-      column: actor.generatedLocation.column
-    };
+    let generatedLocation = new GeneratedLocation(
+      this,
+      actor.generatedLocation.generatedLine,
+      actor.generatedLocation.generatedColumn
+    );
 
-    let { line: generatedLine, column: generatedColumn } = generatedLocation;
+    let { generatedLine, generatedColumn } = generatedLocation;
 
     
     
@@ -2889,13 +2878,13 @@ SourceActor.prototype = {
     
     scripts = scripts.filter((script) => !actor.hasScript(script));
 
-    let actualLocation;
+    let actualGeneratedLocation;
 
     
     
     if (generatedColumn) {
       this._setBreakpointAtColumn(scripts, generatedLocation, actor);
-      actualLocation = generatedLocation;
+      actualGeneratedLocation = generatedLocation;
     } else {
       let result;
       if (actor.scripts.size === 0) {
@@ -2925,53 +2914,49 @@ SourceActor.prototype = {
       }
 
       if (result.line !== generatedLine) {
-        actualLocation = {
-          sourceActor: generatedLocation.sourceActor,
-          line: result.line,
-          column: generatedLocation.column
-        };
+        actualGeneratedLocation = new GeneratedLocation(
+          generatedLocation.generatedSourceActor,
+          result.line,
+          generatedLocation.generatedColumn
+        );
 
         
         
         
         
 
-        let existingActor = this.breakpointActorMap.getActor(actualLocation);
+        let existingActor = this.breakpointActorMap.getActor(actualGeneratedLocation);
         if (existingActor) {
           actor.onDelete();
           this.breakpointActorMap.deleteActor(generatedLocation);
           actor = existingActor;
         } else {
-          actor.generatedLocation = actualLocation;
+          actor.generatedLocation = actualGeneratedLocation;
           this.breakpointActorMap.deleteActor(generatedLocation);
-          this.breakpointActorMap.setActor(actualLocation, actor);
+          this.breakpointActorMap.setActor(actualGeneratedLocation, actor);
           setBreakpointOnEntryPoints(this.threadActor, actor, result.entryPoints);
         }
       } else {
         setBreakpointOnEntryPoints(this.threadActor, actor, result.entryPoints);
-        actualLocation = generatedLocation;
+        actualGeneratedLocation = generatedLocation;
       }
     }
 
     return Promise.resolve().then(() => {
-      if (actualLocation.sourceActor.source) {
-        return this.threadActor.sources.getOriginalLocation({
-          sourceActor: actualLocation.sourceActor,
-          line: actualLocation.line,
-          column: actualLocation.column
-        });
+      if (actualGeneratedLocation.generatedSourceActor.source) {
+        return this.threadActor.sources.getOriginalLocation(actualGeneratedLocation);
       } else {
-        return actualLocation;
+        return OriginalLocation.fromGeneratedLocation(actualGeneratedLocation);
       }
-    }).then((actualLocation) => {
+    }).then((actualOriginalLocation) => {
       let response = { actor: actor.actorID };
-      if (actualLocation.sourceActor.url !== originalLocation.sourceActor.url ||
-          actualLocation.line !== originalLocation.line)
+      if (actualOriginalLocation.originalSourceActor.url !== originalLocation.originalSourceActor.url ||
+          actualOriginalLocation.originalLine !== originalLocation.originalLine)
       {
         response.actualLocation = {
-          source: actualLocation.sourceActor.form(),
-          line: actualLocation.line,
-          column: actualLocation.column
+          source: actualOriginalLocation.originalSourceActor.form(),
+          line: actualOriginalLocation.originalLine,
+          column: actualOriginalLocation.originalColumn
         };
       }
       return response;
@@ -3019,7 +3004,7 @@ SourceActor.prototype = {
                                 aScript,
                                 aScriptsAndOffsetMappings) {
     let offsetMappings = aScript.getAllColumnOffsets()
-      .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
+      .filter(({ lineNumber }) => lineNumber === aTargetLocation.generatedLine);
 
     
     
@@ -3028,13 +3013,13 @@ SourceActor.prototype = {
     let closestDistance = Infinity;
     if (aScriptsAndOffsetMappings.size) {
       for (let mappings of aScriptsAndOffsetMappings.values()) {
-        closestDistance = Math.abs(aTargetLocation.column - mappings[0].columnNumber);
+        closestDistance = Math.abs(aTargetLocation.generatedColumn - mappings[0].columnNumber);
         break;
       }
     }
 
     for (let mapping of offsetMappings) {
-      let currentDistance = Math.abs(aTargetLocation.column - mapping.columnNumber);
+      let currentDistance = Math.abs(aTargetLocation.generatedColumn - mapping.columnNumber);
 
       if (currentDistance > closestDistance) {
         continue;
@@ -3329,23 +3314,17 @@ ObjectActor.prototype = {
       };
     }
 
-    const generatedLocation = {
-      sourceActor: this.threadActor.sources.createNonSourceMappedActor(this.obj.script.source),
-      line: this.obj.script.startLine,
-      
-      column: 0
-    };
-
-    return this.threadActor.sources.getOriginalLocation(generatedLocation)
-      .then(({ sourceActor, line, column }) => {
-
-        return {
-          from: this.actorID,
-          source: sourceActor.form(),
-          line: line,
-          column: column
-        };
-      });
+    return this.threadActor.sources.getOriginalLocation(new GeneratedLocation(
+      this.threadActor.sources.createNonSourceMappedActor(this.obj.script.source),
+      this.obj.script.startLine,
+      0 
+    )).then((originalLocation) => {
+      return {
+        source: originalLocation.originalSourceActor.form(),
+        line: originalLocation.originalLine,
+        column: originalLocation.originalColumn
+      };
+    });
   },
 
   
@@ -4573,11 +4552,11 @@ FrameActor.prototype = {
     form.this = threadActor.createValueGrip(this.frame.this);
     form.arguments = this._args();
     if (this.frame.script) {
-      var loc = this.threadActor.sources.getFrameLocation(this.frame);
+      var generatedLocation = this.threadActor.sources.getFrameLocation(this.frame);
       form.where = {
-        source: loc.sourceActor.form(),
-        line: loc.line,
-        column: loc.column
+        source: generatedLocation.generatedSourceActor.form(),
+        line: generatedLocation.generatedLine,
+        column: generatedLocation.generatedColumn
       };
     }
 
@@ -4714,10 +4693,10 @@ BreakpointActor.prototype = {
   hit: function (aFrame) {
     
     
-    let loc = this.threadActor.sources.getFrameLocation(aFrame);
-    let { sourceActor } = this.threadActor.synchronize(
-      this.threadActor.sources.getOriginalLocation(loc));
-    let url = sourceActor.url;
+    let generatedLocation = this.threadActor.sources.getFrameLocation(aFrame);
+    let { originalSourceActor } = this.threadActor.synchronize(
+      this.threadActor.sources.getOriginalLocation(generatedLocation));
+    let url = originalSourceActor.url;
 
     if (this.threadActor.sources.isBlackBoxed(url)
         || aFrame.onStep
@@ -5558,13 +5537,13 @@ ThreadSources.prototype = {
 
   getFrameLocation: function (aFrame) {
     if (!aFrame || !aFrame.script) {
-      return { sourceActor: null, line: null, column: null };
+      return new GeneratedLocation();
     }
-    return {
-      sourceActor: this.createNonSourceMappedActor(aFrame.script.source),
-      line: aFrame.script.getOffsetLine(aFrame.offset),
-      column: getOffsetColumn(aFrame.offset, aFrame.script)
-    }
+    return new GeneratedLocation(
+      this.createNonSourceMappedActor(aFrame.script.source),
+      aFrame.script.getOffsetLine(aFrame.offset),
+      getOffsetColumn(aFrame.offset, aFrame.script)
+    );
   },
 
   
@@ -5574,53 +5553,52 @@ ThreadSources.prototype = {
 
 
 
-  getOriginalLocation: function ({ sourceActor, line, column }) {
-    let source = sourceActor.source;
-    let url = source ? source.url : sourceActor._originalUrl;
+  getOriginalLocation: function (generatedLocation) {
+    let {
+      generatedSourceActor,
+      generatedLine,
+      generatedColumn
+    } = generatedLocation;
+    let source = generatedSourceActor.source;
+    let url = source ? source.url : generatedSourceActor._originalUrl;
 
     
     
     
     
     
-    return this.fetchSourceMap(source).then(sm => {
-      if (sm) {
+    return this.fetchSourceMap(source).then(map => {
+      if (map) {
         let {
-          source: sourceUrl,
-          line: sourceLine,
-          column: sourceCol,
-          name: sourceName
-        } = sm.originalPositionFor({
-          line: line,
-          column: column == null ? Infinity : column
+          source: originalUrl,
+          line: originalLine,
+          column: originalColumn,
+          name: originalName
+        } = map.originalPositionFor({
+          line: generatedLine,
+          column: generatedColumn == null ? Infinity : generatedColumn
         });
 
-        return {
-          
-          
-          
-          
-          
-          
-          
-          sourceActor: (!sourceUrl) ? null : this.source({
-            originalUrl: sourceUrl,
+        
+        
+        
+        
+        
+        
+        
+        return new OriginalLocation(
+          originalUrl ? this.source({
+            originalUrl: originalUrl,
             generatedSource: source
-          }),
-          url: sourceUrl,
-          line: sourceLine,
-          column: sourceCol,
-          name: sourceName
-        };
+          }) : null,
+          originalLine,
+          originalColumn,
+          originalName
+        );
       }
 
       
-      return resolve({
-        sourceActor: sourceActor,
-        url: url,
-        line: line,
-        column: column
-      });
+      return OriginalLocation.fromGeneratedLocation(generatedLocation);
     });
   },
 
@@ -5633,34 +5611,40 @@ ThreadSources.prototype = {
 
 
 
-  getGeneratedLocation: function ({ sourceActor, line, column }) {
-    
-    
-    
-    
-    let source = sourceActor.generatedSource || sourceActor.source;
+  getGeneratedLocation: function (originalLocation) {
+    let { originalSourceActor } = originalLocation;
 
     
-    return this.fetchSourceMap(source).then(sm => {
-      if (sm) {
-        let { line: genLine, column: genColumn } = sm.generatedPositionFor({
-          source: sourceActor.url,
-          line: line,
-          column: column == null ? Infinity : column
+    
+    
+    
+    let source = originalSourceActor.source || originalSourceActor.generatedSource;
+
+    
+    return this.fetchSourceMap(source).then((map) => {
+      if (map) {
+        let {
+          originalLine,
+          originalColumn
+        } = originalLocation;
+
+        let {
+          line: generatedLine,
+          column: generatedColumn
+        } = map.generatedPositionFor({
+          source: originalSourceActor.url,
+          line: originalLine,
+          column: originalColumn == null ? Infinity : originalColumn
         });
 
-        return {
-          sourceActor: this.createNonSourceMappedActor(source),
-          line: genLine,
-          column: genColumn
-        };
+        return new GeneratedLocation(
+          this.createNonSourceMappedActor(source),
+          generatedLine,
+          generatedColumn
+        );
       }
 
-      return resolve({
-        sourceActor: sourceActor,
-        line: line,
-        column: column
-      });
+      return GeneratedLocation.fromOriginalLocation(originalLocation);
     });
   },
 
