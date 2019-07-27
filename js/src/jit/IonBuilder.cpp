@@ -3132,54 +3132,60 @@ bool
 IonBuilder::detectAndOrStructure(MPhi *ins, bool *branchIsAnd)
 {
     
-    return false;
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    if (current->numPredecessors() != 1)
+    if (ins->numOperands() != 2)
         return false;
 
-    MTest *initialTest;
+    MBasicBlock *testBlock = ins->block();
+    MOZ_ASSERT(testBlock->numPredecessors() == 2);
+
     MBasicBlock *initialBlock;
     MBasicBlock *branchBlock;
-    MBasicBlock *testBlock = ins->block();
-
-    
-    *branchIsAnd = true;
-    
-    if (testBlock->numPredecessors() != 2)
-        return false;
-
-    if (testBlock->getPredecessor(0)->lastIns()->isTest())
+    if (testBlock->getPredecessor(0)->lastIns()->isTest()) {
         initialBlock = testBlock->getPredecessor(0);
-    else if (testBlock->getPredecessor(1)->lastIns()->isTest())
+        branchBlock = testBlock->getPredecessor(1);
+    } else if (testBlock->getPredecessor(1)->lastIns()->isTest()) {
         initialBlock = testBlock->getPredecessor(1);
-    else
-        return false;
-
-    initialTest = initialBlock->lastIns()->toTest();
-
-    if (initialTest->ifTrue() == testBlock) {
-        branchBlock = initialTest->ifFalse();
-        *branchIsAnd = false;
+        branchBlock = testBlock->getPredecessor(0);
     } else {
-        branchBlock = initialTest->ifTrue();
+        return false;
     }
 
-    if (branchBlock->numSuccessors() != 1 || branchBlock->getSuccessor(0) != testBlock)
+    if (branchBlock->numSuccessors() != 1)
         return false;
 
-    if (branchBlock->numPredecessors() != 1)
+    if (branchBlock->numPredecessors() != 1 || branchBlock->getPredecessor(0) != initialBlock)
         return false;
 
-    MPhi *phi = ins->toPhi();
+    if (initialBlock->numSuccessors() != 2)
+        return false;
 
-    MDefinition *branchResult = phi->getOperand(testBlock->indexForPredecessor(branchBlock));
-    MDefinition *initialResult = phi->getOperand(testBlock->indexForPredecessor(initialBlock));
+    MDefinition *branchResult = ins->getOperand(testBlock->indexForPredecessor(branchBlock));
+    MDefinition *initialResult = ins->getOperand(testBlock->indexForPredecessor(initialBlock));
 
     if (branchBlock->stackDepth() != initialBlock->stackDepth())
         return false;
     if (branchBlock->stackDepth() != testBlock->stackDepth() + 1)
         return false;
     if (branchResult != branchBlock->peek(-1) || initialResult != initialBlock->peek(-1))
+        return false;
+
+    MTest *initialTest = initialBlock->lastIns()->toTest();
+    bool branchIsTrue = branchBlock == initialTest->ifTrue();
+    if (initialTest->input() == ins->getOperand(0))
+        *branchIsAnd = branchIsTrue != (testBlock->getPredecessor(0) == branchBlock);
+    else if (initialTest->input() == ins->getOperand(1))
+        *branchIsAnd = branchIsTrue != (testBlock->getPredecessor(1) == branchBlock);
+    else
         return false;
 
     return true;
