@@ -48,7 +48,7 @@ public class OverlayActionService extends Service {
     private static final String LOGTAG = "GeckoOverlayService";
 
     
-    private final Map<ShareMethod.Type, ShareMethod> shareTypes = new EnumMap<>(ShareMethod.Type.class);
+    final Map<ShareMethod.Type, ShareMethod> shareTypes = new EnumMap<>(ShareMethod.Type.class);
 
     
     
@@ -88,12 +88,17 @@ public class OverlayActionService extends Service {
     
 
 
-    private void initShareMethods(Context context) {
-        shareTypes.clear();
+    private void initShareMethods(final Context context) {
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                shareTypes.clear();
 
-        shareTypes.put(ShareMethod.Type.ADD_BOOKMARK, new AddBookmark(context));
-        shareTypes.put(ShareMethod.Type.ADD_TO_READING_LIST, new AddToReadingList(context));
-        shareTypes.put(ShareMethod.Type.SEND_TAB, new SendTab(context));
+                shareTypes.put(ShareMethod.Type.ADD_BOOKMARK, new AddBookmark(context));
+                shareTypes.put(ShareMethod.Type.ADD_TO_READING_LIST, new AddToReadingList(context));
+                shareTypes.put(ShareMethod.Type.SEND_TAB, new SendTab(context));
+            }
+        });
     }
 
     public void handleShare(final Intent intent) {
