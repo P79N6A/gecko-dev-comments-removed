@@ -1088,10 +1088,6 @@ CanvasRenderingContext2D::SetIsOpaque(bool isOpaque)
     ClearTarget();
   }
 
-  if (mOpaque) {
-    EnsureTarget();
-  }
-
   return NS_OK;
 }
 
@@ -4259,6 +4255,12 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                          CanvasLayer *aOldLayer,
                                          LayerManager *aManager)
 {
+  if (mOpaque) {
+    
+    
+    EnsureTarget();
+  }
+
   
   
   
