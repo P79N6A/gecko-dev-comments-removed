@@ -1397,6 +1397,7 @@ var gBrowserInit = {
 
       SocialUI.init();
       TabView.init();
+      SearchHighlight.init();
 
       
       
@@ -3555,6 +3556,138 @@ const BrowserSearch = {
 
     let count = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS");
     count.add(countId);
+  },
+};
+
+const SearchHighlight = {
+  eventsReady: false,
+  
+  countPref: "browser.search.highlightCount",
+  
+  currentPos: 0,
+  
+  hideTimer: null,
+
+  
+  highlights: [{
+    id: "SearchHighlight1",
+    anchor: "search-panel-one-offs"
+  }, {
+    id: "SearchHighlight2",
+    anchor: "searchbar-engine",
+  }],
+
+  init: function() {
+    this.panel = document.getElementById("PopupSearchAutoComplete");
+    this.panel.addEventListener("popupshowing", this.searchPanelShown.bind(this), false);
+  },
+
+  initEvents: function() {
+    if (this.eventsReady) {
+      return;
+    }
+
+    this.panel.addEventListener("popuphidden", this.searchPanelHidden.bind(this), false);
+
+    for (let highlight of this.highlights) {
+      highlight.panel = document.getElementById(highlight.id);
+      highlight.panel.addEventListener("popupshowing", this.disablePanelHiding.bind(this), false);
+      highlight.panel.addEventListener("popuphiding", this.enablePanelHiding.bind(this), false);
+
+      highlight.panel.querySelector("button").addEventListener("command", this.highlightButtonClicked.bind(this), false);
+    }
+
+    this.eventsReady = true;
+  },
+
+  get highlightPanel() {
+    return this.highlights[this.currentPos].panel;
+  },
+
+  showHighlight: function() {
+    
+    this.initEvents();
+
+    
+    if (this.highlightPanel.state != "closed") {
+      return;
+    }
+
+    
+    this.currentPos = 0;
+    this.showCurrentHighlight();
+  },
+
+  showCurrentHighlight: function() {
+    let highlight = this.highlights[this.currentPos];
+    let anchor = document.getAnonymousElementByAttribute(this.panel, "anonid", highlight.anchor);
+    highlight.panel.hidden = false;
+    highlight.panel.openPopup(anchor, "leftcenter topright");
+  },
+
+  searchPanelShown: function() {
+    let placement = CustomizableUI.getPlacementOfWidget("search-container");
+    if (placement.area == CustomizableUI.AREA_PANEL) {
+      
+      
+      return;
+    }
+
+    if (!BrowserSearch.searchBar.value) {
+      
+      return;
+    }
+
+    
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+      this.showCurrentHighlight();
+      return;
+    }
+
+    
+    
+    let count = Services.prefs.getIntPref(this.countPref);
+    if (count <= 0)
+      return;
+
+    this.showHighlight();
+    Services.prefs.setIntPref(this.countPref, count - 1);
+  },
+
+  searchPanelHidden: function() {
+    if (this.highlightPanel.state == "closed") {
+      return;
+    }
+
+    this.highlightPanel.hidePopup();
+
+    
+    this.hideTimer = setTimeout(() => {
+      this.hideTimer = null;
+    }, 500);
+  },
+
+  highlightButtonClicked: function() {
+    
+    
+    this.highlightPanel.hidePopup();
+    this.currentPos++;
+    if (this.currentPos < this.highlights.length) {
+      this.showCurrentHighlight();
+    } else {
+      Services.prefs.setIntPref(this.countPref, 0);
+      this.currentPos = 0;
+    }
+  },
+
+  disablePanelHiding: function() {
+    this.panel.setAttribute("noautohide", "true");
+  },
+
+  enablePanelHiding: function() {
+    this.panel.setAttribute("noautohide", "false");
   },
 };
 

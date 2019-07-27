@@ -19,5 +19,7 @@
 #endif
 <!ENTITY % aboutHomeDTD SYSTEM "chrome:
 %aboutHomeDTD;
+<!ENTITY % searchBarDTD SYSTEM "chrome:
+%searchBarDTD;
 ]>
 
