@@ -590,9 +590,9 @@ loop.roomViews = (function(mozL10n) {
 
     propTypes: {
       dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      mozLoop: React.PropTypes.object.isRequired,
       
       localPosterUrl: React.PropTypes.string,
+      mozLoop: React.PropTypes.object.isRequired,
       remotePosterUrl: React.PropTypes.string
     },
 

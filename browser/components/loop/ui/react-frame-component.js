@@ -25,18 +25,18 @@ window.queuedFrames = [];
 
 window.Frame = React.createClass({
   propTypes: {
-    style: React.PropTypes.object,
-    head: React.PropTypes.node,
-    width: React.PropTypes.number,
-    height: React.PropTypes.number,
-    onContentsRendered: React.PropTypes.func,
     className: React.PropTypes.string,
     
 
 
 
 
-    cssClass: React.PropTypes.string
+    cssClass: React.PropTypes.string,
+    head: React.PropTypes.node,
+    height: React.PropTypes.number,
+    onContentsRendered: React.PropTypes.func,
+    style: React.PropTypes.object,
+    width: React.PropTypes.number
   },
   render: function() {
     return React.createElement("iframe", {

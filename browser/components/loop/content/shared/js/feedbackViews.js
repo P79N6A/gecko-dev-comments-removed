@@ -24,8 +24,8 @@ loop.shared.views.FeedbackView = (function(l10n) {
   var FeedbackLayout = React.createClass({displayName: "FeedbackLayout",
     propTypes: {
       children: React.PropTypes.component.isRequired,
-      title: React.PropTypes.string.isRequired,
-      reset: React.PropTypes.func 
+      reset: React.PropTypes.func, 
+      title: React.PropTypes.string.isRequired
     },
 
     render: function() {
@@ -237,10 +237,10 @@ loop.shared.views.FeedbackView = (function(l10n) {
     ],
 
     propTypes: {
-      onAfterFeedbackReceived: React.PropTypes.func,
       
       feedbackState: React.PropTypes.string,
-      noCloseText: React.PropTypes.bool
+      noCloseText: React.PropTypes.bool,
+      onAfterFeedbackReceived: React.PropTypes.func
     },
 
     getInitialState: function() {

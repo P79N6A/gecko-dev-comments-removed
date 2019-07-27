@@ -362,9 +362,9 @@ loop.conversationViews = (function(mozL10n) {
     mixins: [sharedMixins.AudioMixin],
 
     propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       callState: React.PropTypes.string,
       contact: React.PropTypes.object,
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       enableCancelButton: React.PropTypes.bool
     },
 
@@ -426,8 +426,8 @@ loop.conversationViews = (function(mozL10n) {
     ],
 
     propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       contact: React.PropTypes.object.isRequired,
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
       
       emailLinkError: React.PropTypes.bool,
       outgoing: React.PropTypes.bool.isRequired
@@ -571,18 +571,18 @@ loop.conversationViews = (function(mozL10n) {
     ],
 
     propTypes: {
-      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
-      
-      video: React.PropTypes.object,
       
       audio: React.PropTypes.object,
-      remoteVideoEnabled: React.PropTypes.bool,
+      dispatcher: React.PropTypes.instanceOf(loop.Dispatcher).isRequired,
+      
+      localPosterUrl: React.PropTypes.string,
       
       
       mediaConnected: React.PropTypes.bool,
+      remotePosterUrl: React.PropTypes.string,
+      remoteVideoEnabled: React.PropTypes.bool,
       
-      localPosterUrl: React.PropTypes.string,
-      remotePosterUrl: React.PropTypes.string
+      video: React.PropTypes.object
     },
 
     getDefaultProps: function() {
