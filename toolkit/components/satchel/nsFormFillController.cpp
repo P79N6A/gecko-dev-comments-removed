@@ -1187,7 +1187,6 @@ nsFormFillController::StartControllingInput(nsIDOMHTMLInputElement *aInput)
     mListNode = listNode;
   }
 
-  
   mController->SetInput(this);
 }
 
