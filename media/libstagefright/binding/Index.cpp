@@ -86,66 +86,100 @@ Index::Index(const stagefright::Vector<MediaSource::Indice>& aIndex,
 Index::~Index() {}
 
 void
+Index::UpdateMoofIndex(const nsTArray<MediaByteRange>& aByteRanges)
+{
+  if (!mMoofParser) {
+    return;
+  }
+
+  MonitorAutoLock mon(mMonitor);
+  mMoofParser->RebuildFragmentedIndex(aByteRanges);
+}
+
+void
 Index::ConvertByteRangesToTimeRanges(
   const nsTArray<MediaByteRange>& aByteRanges,
   nsTArray<Interval<Microseconds>>* aTimeRanges)
 {
+  MonitorAutoLock mon(mMonitor);
+
   RangeFinder rangeFinder(aByteRanges);
   nsTArray<Interval<Microseconds>> timeRanges;
 
-  nsTArray<stagefright::MediaSource::Indice> moofIndex;
-  nsTArray<stagefright::MediaSource::Indice>* index;
+  nsTArray<nsTArray<stagefright::MediaSource::Indice>*> indexes;
   if (mMoofParser) {
-    {
-      MonitorAutoLock mon(mMonitor);
-      mMoofParser->RebuildFragmentedIndex(aByteRanges);
+    
+    
+    
+    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
+      Moof& moof = mMoofParser->mMoofs[i];
 
       
-      
-      
-      for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
-        Moof& moof = mMoofParser->mMoofs[i];
-        if (rangeFinder.Contains(moof.mRange) &&
-            rangeFinder.Contains(moof.mMdatRange)) {
+      if (rangeFinder.Contains(moof.mRange)) {
+        if (rangeFinder.Contains(moof.mMdatRange)) {
           timeRanges.AppendElements(moof.mTimeRanges);
         } else {
-          moofIndex.AppendElements(mMoofParser->mMoofs[i].mIndex);
+          indexes.AppendElement(&moof.mIndex);
         }
       }
     }
-    index = &moofIndex;
   } else {
-    index = &mIndex;
+    indexes.AppendElement(&mIndex);
   }
 
   bool hasSync = false;
-  for (size_t i = 0; i < index->Length(); i++) {
-    const MediaSource::Indice& indice = (*index)[i];
-    if (!rangeFinder.Contains(MediaByteRange(indice.start_offset,
-                                             indice.end_offset))) {
-      
-      
-      hasSync = false;
-      continue;
-    }
+  for (size_t i = 0; i < indexes.Length(); i++) {
+    nsTArray<stagefright::MediaSource::Indice>* index = indexes[i];
+    for (size_t j = 0; j < index->Length(); j++) {
+      const MediaSource::Indice& indice = (*index)[j];
+      if (!rangeFinder.Contains(
+             MediaByteRange(indice.start_offset, indice.end_offset))) {
+        
+        
+        hasSync = false;
+        continue;
+      }
 
-    hasSync |= indice.sync;
-    if (!hasSync) {
-      continue;
-    }
+      hasSync |= indice.sync;
+      if (!hasSync) {
+        continue;
+      }
 
-    
-    
-    size_t s = timeRanges.Length();
-    if (s && timeRanges[s - 1].end == indice.start_composition) {
-      timeRanges[s - 1].end = indice.end_composition;
-    } else {
-      timeRanges.AppendElement(Interval<Microseconds>(indice.start_composition,
-                                                      indice.end_composition));
+      Interval<Microseconds>::SemiNormalAppend(
+        timeRanges, Interval<Microseconds>(indice.start_composition,
+                                           indice.end_composition));
     }
   }
 
   
   Interval<Microseconds>::Normalize(timeRanges, aTimeRanges);
+}
+
+uint64_t
+Index::GetEvictionOffset(Microseconds aTime)
+{
+  uint64_t offset = std::numeric_limits<uint64_t>::max();
+  if (mMoofParser) {
+    
+    
+    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
+      Moof& moof = mMoofParser->mMoofs[i];
+
+      if (!moof.mTimeRanges.IsEmpty() && moof.mTimeRanges[0].end > aTime) {
+        offset = std::min(offset, uint64_t(std::min(moof.mRange.mStart,
+                                                    moof.mMdatRange.mStart)));
+      }
+    }
+  } else {
+    
+    
+    for (size_t i = 0; i < mIndex.Length(); i++) {
+      const MediaSource::Indice& indice = mIndex[i];
+      if (aTime >= indice.start_composition) {
+        offset = std::min(offset, indice.start_offset);
+      }
+    }
+  }
+  return offset;
 }
 }
