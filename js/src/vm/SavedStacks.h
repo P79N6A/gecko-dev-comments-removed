@@ -14,22 +14,16 @@
 
 namespace js {
 
-class SavedFrame;
-typedef JS::Handle<SavedFrame*> HandleSavedFrame;
-typedef JS::MutableHandle<SavedFrame*> MutableHandleSavedFrame;
-typedef JS::Rooted<SavedFrame*> RootedSavedFrame;
-
 class SavedFrame : public NativeObject {
     friend class SavedStacks;
 
   public:
     static const Class          class_;
     static void finalize(FreeOp *fop, JSObject *obj);
-    static const JSPropertySpec protoAccessors[];
-    static const JSFunctionSpec protoFunctions[];
-    static const JSFunctionSpec staticFunctions[];
 
     
+    static const JSPropertySpec properties[];
+    static const JSFunctionSpec methods[];
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
     static bool sourceProperty(JSContext *cx, unsigned argc, Value *vp);
     static bool lineProperty(JSContext *cx, unsigned argc, Value *vp);
@@ -59,7 +53,6 @@ class SavedFrame : public NativeObject {
     class HandleLookup;
 
   private:
-    static bool finishSavedFrameInit(JSContext *cx, HandleObject ctor, HandleObject proto);
     void initFromLookup(HandleLookup lookup);
 
     enum {
@@ -84,12 +77,15 @@ class SavedFrame : public NativeObject {
     
     
     
-    bool parentMoved();
-    void updatePrivateParent();
+    bool         parentMoved();
+    void         updatePrivateParent();
 
-    static bool checkThis(JSContext *cx, CallArgs &args, const char *fnName,
-                          MutableHandleSavedFrame frame);
+    static SavedFrame *checkThis(JSContext *cx, CallArgs &args, const char *fnName);
 };
+
+typedef JS::Handle<SavedFrame*> HandleSavedFrame;
+typedef JS::MutableHandle<SavedFrame*> MutableHandleSavedFrame;
+typedef JS::Rooted<SavedFrame*> RootedSavedFrame;
 
 struct SavedFrame::HashPolicy
 {
@@ -110,6 +106,7 @@ class SavedStacks {
   public:
     SavedStacks()
       : frames(),
+        savedFrameProto(nullptr),
         allocationSamplingProbability(1.0),
         allocationSkipCount(0),
         
@@ -132,6 +129,7 @@ class SavedStacks {
 
   private:
     SavedFrame::Set     frames;
+    ReadBarrieredObject savedFrameProto;
     double              allocationSamplingProbability;
     uint32_t            allocationSkipCount;
     uint64_t            rngState;
@@ -139,6 +137,9 @@ class SavedStacks {
     bool       insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFrame frame,
                             unsigned maxFrameCount = 0);
     SavedFrame *getOrCreateSavedFrame(JSContext *cx, SavedFrame::HandleLookup lookup);
+    
+    
+    JSObject   *getOrCreateSavedFramePrototype(JSContext *cx);
     SavedFrame *createFrameFromLookup(JSContext *cx, SavedFrame::HandleLookup lookup);
     void       chooseSamplingProbability(JSContext* cx);
 

@@ -61,6 +61,8 @@ using mozilla::PodCopy;
 using mozilla::PodZero;
 using mozilla::RotateLeft;
 
+typedef Rooted<GlobalObject *> RootedGlobalObject;
+
  BindingIter
 Bindings::argumentsBinding(ExclusiveContext *cx, InternalBindingsHandle bindings)
 {
