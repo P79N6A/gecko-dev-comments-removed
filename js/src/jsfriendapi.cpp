@@ -1161,7 +1161,15 @@ js::PrepareScriptEnvironmentAndInvoke(JSRuntime* rt, HandleObject scope, ScriptE
     MOZ_ASSERT(rt->contextList.getFirst() == rt->contextList.getLast());
     JSContext* cx = rt->contextList.getFirst();
     JSAutoCompartment ac(cx, scope);
-    return closure(cx);
+    bool ok = closure(cx);
+
+    
+    
+    if (JS_IsExceptionPending(cx)) {
+        JS_ReportPendingException(cx);
+    }
+
+    return ok;
 }
 
 JS_FRIEND_API(void)

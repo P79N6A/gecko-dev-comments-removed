@@ -6980,11 +6980,9 @@ bool CClosure::ArgClosure::operator()(JSContext* cx)
     
     
     
-
     
     
-    if (JS_IsExceptionPending(cx))
-      JS_ReportPendingException(cx);
+    
 
     if (cinfo->errResult) {
       
@@ -6999,13 +6997,6 @@ bool CClosure::ArgClosure::operator()(JSContext* cx)
     } else {
       
       
-      
-      
-      JS_ReportError(cx, "JavaScript callback failed, and an error sentinel "
-                         "was not specified.");
-      if (JS_IsExceptionPending(cx))
-        JS_ReportPendingException(cx);
-
       return false;
     }
   }
