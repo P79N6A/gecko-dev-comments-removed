@@ -58,9 +58,6 @@ struct BlobPropertyBag;
 struct FilePropertyBag;
 class FileImpl;
 
-
-
-
 class File MOZ_FINAL : public nsIDOMFile
                      , public nsIXHRSendable
                      , public nsIMutable

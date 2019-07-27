@@ -35,7 +35,6 @@
 #include "nsIXPConnect.h"
 #include "xptcall.h"
 #include "nsTArray.h"
-#include "nsDOMBlobBuilder.h"
 
 
 #include "nsGlobalWindow.h"
