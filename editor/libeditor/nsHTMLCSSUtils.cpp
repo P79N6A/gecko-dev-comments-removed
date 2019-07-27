@@ -617,8 +617,15 @@ nsHTMLCSSUtils::GetDefaultLengthUnit(nsAString & aLengthUnit)
 
 
 void
-nsHTMLCSSUtils::ParseLength(const nsAString & aString, float * aValue, nsIAtom ** aUnit)
+nsHTMLCSSUtils::ParseLength(const nsAString& aString, float* aValue,
+                            nsIAtom** aUnit)
 {
+  if (aString.IsEmpty()) {
+    *aValue = 0;
+    *aUnit = NS_NewAtom(aString).take();
+    return;
+  }
+
   nsAString::const_iterator iter;
   aString.BeginReading(iter);
 
