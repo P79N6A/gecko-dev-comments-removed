@@ -89,6 +89,20 @@ NetworkResponseListener.prototype = {
 
 
 
+  _forwardNotification(iid, method, args) {
+    if (!this._wrappedNotificationCallbacks) {
+      return;
+    }
+    try {
+      let impl = this._wrappedNotificationCallbacks.getInterface(iid);
+      impl[method].apply(impl, args);
+    } catch(e if e.result == Cr.NS_ERROR_NO_INTERFACE) {}
+  },
+
+  
+
+
+
 
   _foundOpenResponse: false,
 
@@ -216,9 +230,14 @@ NetworkResponseListener.prototype = {
 
   onProgress: function(request, context, progress, progressMax) {
     this.transferredSize = progress;
+    
+    
+    this._forwardNotification(Ci.nsIProgressEventSink, 'onProgress', arguments);
   },
 
-  onStatus: function () {},
+  onStatus: function () {
+    this._forwardNotification(Ci.nsIProgressEventSink, 'onStatus', arguments);
+  },
 
   
 
