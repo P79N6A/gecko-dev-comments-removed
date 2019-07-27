@@ -269,8 +269,7 @@ public class LocaleListPreference extends ListPreference {
 
         
         
-        final Locale loc = new Locale(value);
-        return loc.getDisplayName(loc);
+        return new LocaleDescriptor(value).getDisplayName();
     }
 
     private void buildList() {
