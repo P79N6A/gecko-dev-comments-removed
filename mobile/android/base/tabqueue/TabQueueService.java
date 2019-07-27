@@ -202,7 +202,13 @@ public class TabQueueService extends Service {
     }
 
     private void removeView() {
-        windowManager.removeView(toastLayout);
+        try {
+            windowManager.removeView(toastLayout);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            
+            
+            Log.e(LOGTAG, "Error removing Tab Queue toast from service", e);
+        }
     }
 
     private void addURLToTabQueue(final Intent intent, final String filename) {
