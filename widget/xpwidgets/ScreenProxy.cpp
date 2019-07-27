@@ -111,7 +111,7 @@ ScreenProxy::EnsureCacheIsValid()
   
   
   ScreenDetails details;
-  unused << mScreenManager->SendScreenRefresh(mId, &details, &success);
+  unused << mScreenManager->CallScreenRefresh(mId, &details, &success);
   if (!success) {
     NS_WARNING("Updating a ScreenProxy in the child process failed on parent side.");
     return false;
