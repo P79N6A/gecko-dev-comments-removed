@@ -75,7 +75,8 @@ public:
 
   bool AdjustDisplacement(ParentLayerCoord aDisplacement,
                            float& aDisplacementOut,
-                           float& aOverscrollAmountOut);
+                           float& aOverscrollAmountOut,
+                          bool forceOverscroll = false);
 
   
 

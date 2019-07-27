@@ -1071,6 +1071,7 @@ ScrollFrameHelper::HandleScrollbarStyleSwitching()
   }
 }
 
+#if defined(MOZ_B2G) || defined(MOZ_WIDGET_ANDROID)
 static bool IsFocused(nsIContent* aContent)
 {
   
@@ -1083,22 +1084,30 @@ static bool IsFocused(nsIContent* aContent)
 
   return aContent ? nsContentUtils::IsFocusedContent(aContent) : false;
 }
+#endif
 
 bool
 ScrollFrameHelper::WantAsyncScroll() const
 {
   nsRect scrollRange = GetScrollRange();
   ScrollbarStyles styles = GetScrollbarStylesFromFrame();
-  bool isFocused = IsFocused(mOuter->GetContent());
+
   bool isVScrollable = (scrollRange.height > 0)
                     && (styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN);
   bool isHScrollable = (scrollRange.width > 0)
                     && (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN);
+
+#if defined(MOZ_B2G) || defined(MOZ_WIDGET_ANDROID)
+  
+  bool canScrollWithoutScrollbars = IsFocused(mOuter->GetContent());
+#else
+  bool canScrollWithoutScrollbars = true;
+#endif
+
   
   
-  
-  bool isVAsyncScrollable = isVScrollable && (mVScrollbarBox || isFocused);
-  bool isHAsyncScrollable = isHScrollable && (mHScrollbarBox || isFocused);
+  bool isVAsyncScrollable = isVScrollable && (mVScrollbarBox || canScrollWithoutScrollbars);
+  bool isHAsyncScrollable = isHScrollable && (mHScrollbarBox || canScrollWithoutScrollbars);
   return isVAsyncScrollable || isHAsyncScrollable;
 }
 

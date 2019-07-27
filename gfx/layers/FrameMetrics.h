@@ -66,6 +66,7 @@ public:
     , mExtraResolution(1)
     , mBackgroundColor(0, 0, 0, 0)
     , mLineScrollAmount(0, 0)
+    , mAllowVerticalScrollWithWheel(false)
   {
   }
 
@@ -98,7 +99,8 @@ public:
            mExtraResolution == aOther.mExtraResolution &&
            mBackgroundColor == aOther.mBackgroundColor &&
            mDoSmoothScroll == aOther.mDoSmoothScroll &&
-           mLineScrollAmount == aOther.mLineScrollAmount;
+           mLineScrollAmount == aOther.mLineScrollAmount &&
+           mAllowVerticalScrollWithWheel == aOther.mAllowVerticalScrollWithWheel;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -520,6 +522,16 @@ public:
     mScrollableRect = aScrollableRect;
   }
 
+  bool AllowVerticalScrollWithWheel() const
+  {
+    return mAllowVerticalScrollWithWheel;
+  }
+
+  void SetAllowVerticalScrollWithWheel()
+  {
+    mAllowVerticalScrollWithWheel = true;
+  }
+
 private:
 
   
@@ -670,6 +682,9 @@ private:
 
   
   LayoutDeviceIntSize mLineScrollAmount;
+
+  
+  bool mAllowVerticalScrollWithWheel;
 };
 
 

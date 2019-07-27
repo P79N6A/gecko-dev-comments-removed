@@ -127,8 +127,13 @@ private:
 
 struct OverscrollHandoffState {
   OverscrollHandoffState(const OverscrollHandoffChain& aChain,
-                         const ScreenPoint& aPanDistance)
-      : mChain(aChain), mChainIndex(0), mPanDistance(aPanDistance) {}
+                         const ScreenPoint& aPanDistance,
+                         ScrollSource aScrollSource)
+    : mChain(aChain),
+      mChainIndex(0),
+      mPanDistance(aPanDistance),
+      mScrollSource(aScrollSource)
+  {}
 
   
   
@@ -144,6 +149,8 @@ struct OverscrollHandoffState {
   
   
   const ScreenPoint mPanDistance;
+
+  ScrollSource mScrollSource;
 };
 
 #undef NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING
