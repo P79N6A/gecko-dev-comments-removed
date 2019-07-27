@@ -34,6 +34,12 @@ class WantsPopupControlCheck;
 #undef GENERATED_EVENT
 
 
+namespace workers {
+class ExtendableEvent;
+class InstallEvent;
+} 
+
+
 
 class EventBase : public nsIDOMEvent
 {
@@ -103,6 +109,18 @@ public:
   }
 #include "mozilla/dom/GeneratedEventList.h"
 #undef GENERATED_EVENT
+
+  
+  
+  virtual workers::ExtendableEvent* AsExtendableEvent()
+  {
+    return nullptr;
+  }
+
+  virtual workers::InstallEvent* AsInstallEvent()
+  {
+    return nullptr;
+  }
 
   
   NS_DECL_NSIDOMEVENT
