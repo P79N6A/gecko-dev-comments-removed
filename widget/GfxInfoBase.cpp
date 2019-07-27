@@ -867,6 +867,11 @@ GfxInfoBase::GetFeatureStatusImpl(int32_t aFeature,
                                   const nsTArray<GfxDriverInfo>& aDriverInfo,
                                   OperatingSystem* aOS )
 {
+  if (aFeature <= 0) {
+    gfxWarning() << "Invalid feature <= 0";
+    return NS_OK;
+  }
+
   if (*aStatus != nsIGfxInfo::FEATURE_STATUS_UNKNOWN) {
     
     
