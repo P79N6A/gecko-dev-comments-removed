@@ -14,26 +14,9 @@
 
 class nsIRunnable;
 
-namespace mozilla {
-class ReentrantMonitor;
-}
-
 class nsThreadManager : public nsIThreadManager
 {
 public:
-#ifdef MOZ_NUWA_PROCESS
-  struct ThreadStatusInfo;
-  class AllThreadsWereIdleListener {
-  public:
-    NS_INLINE_DECL_REFCOUNTING(AllThreadsWereIdleListener);
-    virtual void OnAllThreadsWereIdle() = 0;
-  protected:
-    virtual ~AllThreadsWereIdleListener()
-    {
-    }
-  };
-#endif 
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSITHREADMANAGER
 
@@ -71,31 +54,6 @@ public:
   {
   }
 
-#ifdef MOZ_NUWA_PROCESS
-  void SetIgnoreThreadStatus();
-
-  
-  
-  
-  void SetThreadIdle(nsIRunnable** aReturnRunnable);
-  void SetThreadWorking();
-
-  
-  
-  
-  
-  
-  
-  void SetThreadIsWorking(ThreadStatusInfo* aInfo,
-                          bool aIsWorking,
-                          nsIRunnable** aReturnRunnable);
-  void ResetIsDispatchingToMainThread();
-
-  void AddAllThreadsWereIdleListener(AllThreadsWereIdleListener *listener);
-  void RemoveAllThreadsWereIdleListener(AllThreadsWereIdleListener *listener);
-  ThreadStatusInfo* GetCurrentThreadStatusInfo();
-#endif 
-
 private:
   nsThreadManager()
     : mCurThreadIndex(0)
@@ -104,11 +62,6 @@ private:
     , mInitialized(false)
     , mCurrentNumberOfThreads(1)
     , mHighestNumberOfThreads(1)
-#ifdef MOZ_NUWA_PROCESS
-    , mMonitor(nullptr)
-    , mMainThreadStatusInfo(nullptr)
-    , mDispatchingToMainThread(nullptr)
-#endif
   {
   }
 
@@ -123,19 +76,6 @@ private:
   uint32_t            mCurrentNumberOfThreads;
   
   uint32_t            mHighestNumberOfThreads;
-
-#ifdef MOZ_NUWA_PROCESS
-  static void DeleteThreadStatusInfo(void *aData);
-  unsigned mThreadStatusInfoIndex;
-  nsTArray<nsRefPtr<AllThreadsWereIdleListener>> mThreadsIdledListeners;
-  nsTArray<ThreadStatusInfo*> mThreadStatusInfos;
-  mozilla::UniquePtr<mozilla::ReentrantMonitor> mMonitor;
-  ThreadStatusInfo* mMainThreadStatusInfo;
-  
-  
-  
-  bool mDispatchingToMainThread;
-#endif 
 };
 
 #define NS_THREADMANAGER_CID                       \
