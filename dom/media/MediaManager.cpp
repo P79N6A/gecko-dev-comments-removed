@@ -54,6 +54,13 @@
 #include "MediaPermissionGonk.h"
 #endif
 
+#if defined(XP_MACOSX)
+#include "nsCocoaFeatures.h"
+#endif
+#if defined (XP_WIN)
+#include "mozilla/WindowsVersion.h"
+#endif
+
 
 
 #ifdef GetCurrentTime
@@ -1530,23 +1537,6 @@ MediaManager::GetUserMedia(bool aPrivileged,
   }
 #endif
 
-  if (c.mVideo.IsMediaTrackConstraints() && !aPrivileged) {
-    auto& tc = c.mVideo.GetAsMediaTrackConstraints();
-    
-    if (tc.mBrowserWindow.WasPassed()) {
-      tc.mBrowserWindow.Construct(-1);
-    }
-
-    if (tc.mAdvanced.WasPassed()) {
-      uint32_t length = tc.mAdvanced.Value().Length();
-      for (uint32_t i = 0; i < length; i++) {
-        if (tc.mAdvanced.Value()[i].mBrowserWindow.WasPassed()) {
-          tc.mAdvanced.Value()[i].mBrowserWindow.Construct(-1);
-        }
-      }
-    }
-  }
-
   
   nsRefPtr<GetUserMediaRunnable> runnable;
   if (c.mFake) {
@@ -1565,16 +1555,17 @@ MediaManager::GetUserMedia(bool aPrivileged,
     auto& tc = c.mVideo.GetAsMediaTrackConstraints();
     
     if (tc.mMediaSource != dom::MediaSourceEnum::Camera) {
-      if (tc.mMediaSource == dom::MediaSourceEnum::Browser) {
-        if (!Preferences::GetBool("media.getusermedia.browser.enabled", false)) {
-          return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
-        }
-      } else if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false)) {
-        return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
-      }
-      
+      if (!Preferences::GetBool("media.getusermedia.screensharing.enabled", false) ||
+          
+#if defined(XP_MACOSX)
+          !nsCocoaFeatures::OnLionOrLater() ||
+#endif
+#if defined (XP_WIN)
+          !IsVistaOrLater() ||
+#endif
+          
 
-      if (!aPrivileged && !HostHasPermission(*docURI)) {
+          !HostHasPermission(*docURI)) {
         return runnable->Denied(NS_LITERAL_STRING("PERMISSION_DENIED"));
       }
     }
