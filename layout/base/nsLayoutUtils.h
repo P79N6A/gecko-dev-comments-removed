@@ -127,6 +127,7 @@ class nsLayoutUtils
   typedef mozilla::gfx::Matrix4x4 Matrix4x4;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
   typedef mozilla::gfx::StrokeOptions StrokeOptions;
+  typedef mozilla::image::DrawResult DrawResult;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
@@ -1657,16 +1658,16 @@ public:
 
 
 
-  static nsresult DrawBackgroundImage(gfxContext&         aContext,
-                                      nsPresContext*      aPresContext,
-                                      imgIContainer*      aImage,
-                                      const nsIntSize&    aImageSize,
-                                      GraphicsFilter      aGraphicsFilter,
-                                      const nsRect&       aDest,
-                                      const nsRect&       aFill,
-                                      const nsPoint&      aAnchor,
-                                      const nsRect&       aDirty,
-                                      uint32_t            aImageFlags);
+  static DrawResult DrawBackgroundImage(gfxContext&         aContext,
+                                        nsPresContext*      aPresContext,
+                                        imgIContainer*      aImage,
+                                        const nsIntSize&    aImageSize,
+                                        GraphicsFilter      aGraphicsFilter,
+                                        const nsRect&       aDest,
+                                        const nsRect&       aFill,
+                                        const nsPoint&      aAnchor,
+                                        const nsRect&       aDirty,
+                                        uint32_t            aImageFlags);
 
   
 
@@ -1683,15 +1684,15 @@ public:
 
 
 
-  static nsresult DrawImage(gfxContext&         aContext,
-                            nsPresContext*      aPresContext,
-                            imgIContainer*      aImage,
-                            GraphicsFilter      aGraphicsFilter,
-                            const nsRect&       aDest,
-                            const nsRect&       aFill,
-                            const nsPoint&      aAnchor,
-                            const nsRect&       aDirty,
-                            uint32_t            aImageFlags);
+  static DrawResult DrawImage(gfxContext&         aContext,
+                              nsPresContext*      aPresContext,
+                              imgIContainer*      aImage,
+                              GraphicsFilter      aGraphicsFilter,
+                              const nsRect&       aDest,
+                              const nsRect&       aFill,
+                              const nsPoint&      aAnchor,
+                              const nsRect&       aDirty,
+                              uint32_t            aImageFlags);
 
   static inline void InitDashPattern(StrokeOptions& aStrokeOptions,
                                      uint8_t aBorderStyle) {
@@ -1737,14 +1738,14 @@ public:
 
 
 
-  static nsresult DrawSingleUnscaledImage(gfxContext&          aContext,
-                                          nsPresContext*       aPresContext,
-                                          imgIContainer*       aImage,
-                                          GraphicsFilter       aGraphicsFilter,
-                                          const nsPoint&       aDest,
-                                          const nsRect*        aDirty,
-                                          uint32_t             aImageFlags,
-                                          const nsRect*        aSourceArea = nullptr);
+  static DrawResult DrawSingleUnscaledImage(gfxContext&          aContext,
+                                            nsPresContext*       aPresContext,
+                                            imgIContainer*       aImage,
+                                            GraphicsFilter       aGraphicsFilter,
+                                            const nsPoint&       aDest,
+                                            const nsRect*        aDirty,
+                                            uint32_t             aImageFlags,
+                                            const nsRect*        aSourceArea = nullptr);
 
   
 
@@ -1768,16 +1769,16 @@ public:
 
 
 
-  static nsresult DrawSingleImage(gfxContext&         aContext,
-                                  nsPresContext*      aPresContext,
-                                  imgIContainer*      aImage,
-                                  GraphicsFilter      aGraphicsFilter,
-                                  const nsRect&       aDest,
-                                  const nsRect&       aDirty,
-                                  const mozilla::SVGImageContext* aSVGContext,
-                                  uint32_t            aImageFlags,
-                                  const nsPoint*      aAnchorPoint = nullptr,
-                                  const nsRect*       aSourceArea = nullptr);
+  static DrawResult DrawSingleImage(gfxContext&         aContext,
+                                    nsPresContext*      aPresContext,
+                                    imgIContainer*      aImage,
+                                    GraphicsFilter      aGraphicsFilter,
+                                    const nsRect&       aDest,
+                                    const nsRect&       aDirty,
+                                    const mozilla::SVGImageContext* aSVGContext,
+                                    uint32_t            aImageFlags,
+                                    const nsPoint*      aAnchorPoint = nullptr,
+                                    const nsRect*       aSourceArea = nullptr);
 
   
 
