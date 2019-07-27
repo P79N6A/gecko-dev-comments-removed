@@ -556,6 +556,8 @@ struct PtrInfo
 private:
   EdgePool::Iterator mFirstChild;
 
+  static const uint32_t kInitialRefCount = UINT32_MAX - 1;
+
 public:
 
   PtrInfo(void* aPointer, nsCycleCollectionParticipant* aParticipant)
@@ -563,7 +565,7 @@ public:
       mParticipant(aParticipant),
       mColor(grey),
       mInternalRefs(0),
-      mRefCount(UINT32_MAX - 1),
+      mRefCount(kInitialRefCount),
       mFirstChild()
   {
     MOZ_ASSERT(aParticipant);
@@ -588,6 +590,11 @@ public:
   bool IsBlackJS() const
   {
     return mRefCount == UINT32_MAX;
+  }
+
+  bool WasTraversed() const
+  {
+    return mRefCount != kInitialRefCount;
   }
 
   EdgePool::Iterator FirstChild() const
@@ -1449,7 +1456,7 @@ GraphWalker<Visitor>::DoWalk(nsDeque& aQueue)
   while (aQueue.GetSize() > 0) {
     PtrInfo* pi = static_cast<PtrInfo*>(aQueue.PopFront());
 
-    if (pi->mParticipant && mVisitor.ShouldVisitNode(pi)) {
+    if (pi->WasTraversed() && mVisitor.ShouldVisitNode(pi)) {
       mVisitor.VisitNode(pi);
       for (EdgePool::Iterator child = pi->FirstChild(),
            child_end = pi->LastChild();
@@ -2886,7 +2893,7 @@ static void
 FloodBlackNode(uint32_t& aWhiteNodeCount, bool& aFailed, PtrInfo* aPi)
 {
     GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(aWhiteNodeCount, aFailed)).Walk(aPi);
-    MOZ_ASSERT(aPi->mColor == black || !aPi->mParticipant,
+    MOZ_ASSERT(aPi->mColor == black || !aPi->WasTraversed(),
                "FloodBlackNode should make aPi black");
 }
 
@@ -3034,6 +3041,17 @@ nsCycleCollector::ScanIncrementalRoots()
       } else {
         MOZ_ASSERT(false, "Non-JS thing with 0 refcount? Treating as live.");
       }
+    } else if (!pi->mParticipant && pi->WasTraversed()) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
     } else {
       continue;
     }
@@ -3043,14 +3061,15 @@ nsCycleCollector::ScanIncrementalRoots()
     
     
     
-    if (MOZ_UNLIKELY(hasListener)) {
+    if (MOZ_UNLIKELY(hasListener) && pi->mPointer) {
+      
       mListener->NoteIncrementalRoot((uint64_t)pi->mPointer);
     }
 
     FloodBlackNode(mWhiteNodeCount, failed, pi);
   }
 
-  timeLog.Checkpoint("ScanIncrementalRoots::fix JS");
+  timeLog.Checkpoint("ScanIncrementalRoots::fix nodes");
 
   if (failed) {
     NS_ASSERTION(false, "Ran out of memory in ScanIncrementalRoots");
@@ -3077,9 +3096,10 @@ nsCycleCollector::ScanWhiteNodes(bool aFullySynchGraphBuild)
     }
     MOZ_ASSERT(pi->mColor == grey);
 
-    if (!pi->mParticipant) {
+    if (!pi->WasTraversed()) {
       
       
+      MOZ_ASSERT(!pi->mParticipant, "Live nodes should all have been traversed");
       continue;
     }
 
@@ -3109,7 +3129,7 @@ nsCycleCollector::ScanBlackNodes()
   NodePool::Enumerator nodeEnum(mGraph.mNodes);
   while (!nodeEnum.IsDone()) {
     PtrInfo* pi = nodeEnum.GetNext();
-    if (pi->mColor == grey && pi->mParticipant) {
+    if (pi->mColor == grey && pi->WasTraversed()) {
       FloodBlackNode(mWhiteNodeCount, failed, pi);
     }
   }
@@ -3150,7 +3170,7 @@ nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
     NodePool::Enumerator etor(mGraph.mNodes);
     while (!etor.IsDone()) {
       PtrInfo* pi = etor.GetNext();
-      if (!pi->mParticipant) {
+      if (!pi->WasTraversed()) {
         continue;
       }
       switch (pi->mColor) {
@@ -3165,8 +3185,7 @@ nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
           mListener->DescribeGarbage((uint64_t)pi->mPointer);
           break;
         case grey:
-          
-          
+          MOZ_ASSERT(false, "All traversed objects should be black or white");
           break;
       }
     }
