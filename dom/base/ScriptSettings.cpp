@@ -122,10 +122,44 @@ ScriptSettingsStackEntry::~ScriptSettingsStackEntry()
   ScriptSettingsStack::Pop(this);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static nsIGlobalObject*
+ClampToSubject(nsIGlobalObject* aGlobalOrNull)
+{
+  if (!aGlobalOrNull || !NS_IsMainThread()) {
+    return aGlobalOrNull;
+  }
+
+  nsIPrincipal* globalPrin = aGlobalOrNull->PrincipalOrNull();
+  NS_ENSURE_TRUE(globalPrin, GetCurrentGlobal());
+  if (!nsContentUtils::SubjectPrincipal()->SubsumesConsideringDomain(globalPrin)) {
+    return GetCurrentGlobal();
+  }
+
+  return aGlobalOrNull;
+}
+
 nsIGlobalObject*
 GetEntryGlobal()
 {
-  return ScriptSettingsStack::EntryGlobal();
+  return ClampToSubject(ScriptSettingsStack::EntryGlobal());
 }
 
 nsIDocument*
@@ -163,12 +197,12 @@ GetIncumbentGlobal()
   
   
   if (JSObject *global = JS::GetScriptedCallerGlobal(cx)) {
-    return xpc::NativeGlobal(global);
+    return ClampToSubject(xpc::NativeGlobal(global));
   }
 
   
   
-  return ScriptSettingsStack::IncumbentGlobal();
+  return ClampToSubject(ScriptSettingsStack::IncumbentGlobal());
 }
 
 nsIGlobalObject*
