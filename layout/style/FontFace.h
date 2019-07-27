@@ -101,6 +101,18 @@ private:
   
 
 
+
+  bool ParseDescriptor(nsCSSFontDesc aDescID, const nsAString& aString,
+                       nsCSSValue& aResult);
+
+  
+  void SetDescriptor(nsCSSFontDesc aFontDesc,
+                     const nsAString& aValue,
+                     mozilla::ErrorResult& aRv);
+
+  
+
+
   void SetStatus(mozilla::dom::FontFaceLoadStatus aStatus);
 
   void GetDesc(nsCSSFontDesc aDescID, nsCSSValue& aResult) const;
