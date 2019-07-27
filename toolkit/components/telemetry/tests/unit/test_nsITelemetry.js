@@ -361,6 +361,60 @@ function test_privateMode() {
 }
 
 
+function test_histogramRecording() {
+  
+  Telemetry.canRecordBase = false;
+  Telemetry.canRecordExtended = false;
+
+  let h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTOUT");
+  h.clear();
+  let orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum);
+
+  
+  Telemetry.canRecordBase = true;
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
+
+  
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTIN");
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum,
+               "Histograms should be equal after recording.");
+
+  
+  h = Telemetry.newHistogram("test::runtime_created_boolean", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum, h.snapshot().sum,
+               "Histograms should be equal after recording.");
+
+  
+  Telemetry.canRecordExtended = true;
+
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Runtime histogram value should have incremented by 1 due to recording.");
+
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTIN");
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
+
+  
+  h = Telemetry.getHistogramById("TELEMETRY_TEST_RELEASE_OPTOUT");
+  h.clear();
+  orig = h.snapshot();
+  h.add(1);
+  Assert.equal(orig.sum + 1, h.snapshot().sum,
+               "Histogram value should have incremented by 1 due to recording.");
+}
+
+
 
 function test_extended_stats() {
   var h = Telemetry.getHistogramById("GRADIENT_DURATION");
@@ -528,6 +582,56 @@ function test_keyed_flag_histogram()
   Assert.deepEqual(h.snapshot(), {});
 }
 
+function test_keyed_histogram_recording() {
+  
+  Telemetry.canRecordBase = false;
+  Telemetry.canRecordExtended = false;
+
+  const TEST_KEY = "record_foo";
+  let h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0);
+
+  
+  Telemetry.canRecordBase = true;
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+               "The keyed histogram should record the correct value.");
+
+  
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTIN");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0,
+               "The keyed histograms should not record any data.");
+
+  
+  h = Telemetry.newKeyedHistogram("test::runtime_keyed_boolean", "never", Telemetry.HISTOGRAM_BOOLEAN);
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 0,
+               "The keyed histogram should not record any data.");
+
+  
+  Telemetry.canRecordExtended = true;
+
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+                  "The runtime keyed histogram should record the correct value.");
+
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTIN");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1,
+               "The keyed histogram should record the correct value.");
+
+  
+  h = Telemetry.getKeyedHistogramById("TELEMETRY_TEST_KEYED_RELEASE_OPTOUT");
+  h.clear();
+  h.add(TEST_KEY, 1);
+  Assert.equal(h.snapshot(TEST_KEY).sum, 1);
+}
+
 function test_keyed_histogram() {
   
 
@@ -554,6 +658,7 @@ function test_keyed_histogram() {
   test_keyed_boolean_histogram();
   test_keyed_count_histogram();
   test_keyed_flag_histogram();
+  test_keyed_histogram_recording();
 }
 
 function test_datasets()
@@ -770,6 +875,7 @@ function run_test()
   test_histogramFrom();
   test_getSlowSQL();
   test_privateMode();
+  test_histogramRecording();
   test_addons();
   test_extended_stats();
   test_expired_histogram();
