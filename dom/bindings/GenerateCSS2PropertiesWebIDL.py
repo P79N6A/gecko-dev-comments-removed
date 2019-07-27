@@ -7,7 +7,7 @@ import string
 
 propList = eval(sys.stdin.read())
 props = ""
-for [prop, id, flags, pref] in propList:
+for [name, prop, id, flags, pref] in propList:
     extendedAttrs = ["Throws", "TreatNullAs=EmptyString"]
     
     
