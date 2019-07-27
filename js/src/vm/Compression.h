@@ -7,9 +7,11 @@
 #ifndef vm_Compression_h
 #define vm_Compression_h
 
-#include <zlib.h>
+#include "mozilla/NullPtr.h"
 
 #include "jstypes.h"
+
+struct z_stream_s; 
 
 namespace js {
 
@@ -17,7 +19,7 @@ class Compressor
 {
     
     static const size_t CHUNKSIZE = 2048;
-    z_stream zs;
+    struct z_stream_s *zs;
     const unsigned char *inp;
     size_t inplen;
     size_t outbytes;
@@ -31,9 +33,19 @@ class Compressor
         OOM
     };
 
-    Compressor(const unsigned char *inp, size_t inplen);
+    Compressor()
+      : zs(nullptr),
+        initialized(false)
+    {}
     ~Compressor();
-    bool init();
+    
+
+
+
+
+
+
+    bool prepare(const unsigned char *inp, size_t inplen);
     void setOutput(unsigned char *out, size_t outlen);
     size_t outWritten() const { return outbytes; }
     
