@@ -1438,7 +1438,15 @@ nsHttpChannel::ProcessResponse()
     
     gHttpHandler->OnExamineResponse(this);
 
-    SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
+    
+    
+    
+    if (!mTransaction->ProxyConnectFailed() && (httpStatus != 407)) {
+        SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
+        if (httpStatus < 500) {
+            ProcessAltService();
+        }
+    }
 
     
     if (httpStatus != 401 && httpStatus != 407) {
@@ -1452,10 +1460,6 @@ nsHttpChannel::ProcessResponse()
         mAuthProvider->Disconnect(NS_ERROR_ABORT);
         mAuthProvider = nullptr;
         LOG(("  continuation state has been reset"));
-    }
-
-    if (httpStatus < 500) {
-        ProcessAltService();
     }
 
     bool successfulReval = false;
