@@ -15,6 +15,7 @@
 #include "js/Utility.h"
 
 
+
 #if defined(__ARM_PCS_VFP)
 #define JS_CODEGEN_ARM_HARDFP
 #endif
@@ -260,8 +261,6 @@ class VFPRegister
     
     
     
-    
-    
   public:
     Code code_ : 5;
   protected:
@@ -425,7 +424,6 @@ class VFPRegister
 };
 
 
-
 typedef VFPRegister FloatRegister;
 
 uint32_t GetARMFlags();
@@ -452,6 +450,7 @@ hasMultiAlias()
 }
 
 bool ParseARMHwCapFlags(const char *armHwCap);
+
 
 
 

@@ -17,6 +17,8 @@ namespace jit {
 
 
 
+
+
 class BufferOffset
 {
     int offset;
@@ -84,7 +86,8 @@ template<int SliceSize, class Inst>
 struct AssemblerBuffer
 {
   public:
-    AssemblerBuffer() : head(nullptr), tail(nullptr), m_oom(false), m_bail(false), bufferSize(0), LifoAlloc_(8192) {}
+    AssemblerBuffer() : head(nullptr), tail(nullptr), m_oom(false),
+                        m_bail(false), bufferSize(0), LifoAlloc_(8192) {}
   protected:
     typedef BufferSlice<SliceSize> Slice;
     typedef AssemblerBuffer<SliceSize, Inst> AssemblerBuffer_;
@@ -98,7 +101,7 @@ struct AssemblerBuffer
     uint32_t lastInstSize;
     bool isAligned(int alignment) const {
         
-        JS_ASSERT((alignment & (alignment-1)) == 0);
+        JS_ASSERT(IsPowerOfTwo(alignment));
         return !(size() & (alignment - 1));
     }
     virtual Slice *newSlice(LifoAlloc &a) {
@@ -111,7 +114,7 @@ struct AssemblerBuffer
         return tmp;
     }
     bool ensureSpace(int size) {
-        if (tail != nullptr && tail->size()+size <= SliceSize)
+        if (tail != nullptr && tail->size() + size <= SliceSize)
             return true;
         Slice *tmp = newSlice(LifoAlloc_);
         if (tmp == nullptr)
@@ -180,12 +183,12 @@ struct AssemblerBuffer
         Slice *cur = nullptr;
         int cur_off;
         
+        
         int end_off = bufferSize - local_off;
         
         
-        if (end_off <= 0) {
+        if (end_off <= 0)
             return (Inst*)&tail->instructions[-end_off];
-        }
         bool used_finger = false;
         int finger_off = abs((int)(local_off - finger_offset));
         if (finger_off < Min(local_off, end_off)) {
@@ -228,6 +231,7 @@ struct AssemblerBuffer
             finger = cur;
             finger_offset = cur_off;
         }
+        
         
         JS_ASSERT(local_off < (int)cur->size());
         return (Inst*)&cur->instructions[local_off];
@@ -272,7 +276,7 @@ struct AssemblerBuffer
         AssemblerBufferInstIterator(BufferOffset off, AssemblerBuffer_ *buff) : bo(off), m_buffer(buff) {}
         Inst *next() {
             Inst *i = m_buffer->getInst(bo);
-            bo = BufferOffset(bo.getOffset()+i->size());
+            bo = BufferOffset(bo.getOffset() + i->size());
             return cur();
         };
         Inst *cur() {

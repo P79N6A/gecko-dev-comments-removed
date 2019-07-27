@@ -26,9 +26,11 @@ static const int defaultShift = 3;
 JS_STATIC_ASSERT(1 << defaultShift == sizeof(jsval));
 
 
+
 class MacroAssemblerARM : public Assembler
 {
   protected:
+    
     
     
     
@@ -88,7 +90,6 @@ class MacroAssemblerARM : public Assembler
     
     
     
-    
   private:
     bool alu_dbl(Register src1, Imm32 imm, Register dest, ALUOp op,
                  SetCond_ sc, Condition c);
@@ -107,9 +108,11 @@ class MacroAssemblerARM : public Assembler
                          RelocStyle rs, Instruction *i = nullptr);
     void ma_movPatchable(ImmPtr imm, Register dest, Assembler::Condition c,
                          RelocStyle rs, Instruction *i = nullptr);
+
     
     
     
+
     
     
     void ma_mov(Register src, Register dest,
@@ -263,6 +266,7 @@ class MacroAssemblerARM : public Assembler
 
     
     
+    
     void ma_mod_mask(Register src, Register dest, Register hold, Register tmp,
                      int32_t shift);
 
@@ -390,15 +394,16 @@ class MacroAssemblerARM : public Assembler
 
     BufferOffset ma_vstr(VFPRegister src, Register base, Register index, int32_t shift = defaultShift, Condition cc = Always);
     
+    
     void ma_callIon(const Register reg);
     
     void ma_callIonNoPush(const Register reg);
+    
     
     void ma_callIonHalfPush(const Register reg);
 
     void ma_call(ImmPtr dest);
 
-    
     
     
     
@@ -419,7 +424,6 @@ class MacroAssemblerARM : public Assembler
     }
 
 private:
-    
     
     
     
@@ -505,7 +509,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
   public:
     using MacroAssemblerARM::call;
 
-    
     
     
     void j(Condition code , Label *dest)
@@ -1107,7 +1110,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void storeValue(JSValueType type, Register reg, BaseIndex dest) {
         
         JS_ASSERT(dest.offset == 0);
-        ma_alu(dest.base, lsl(dest.index, dest.scale), ScratchRegister, op_add);
+        ma_alu(dest.base, lsl(dest.index, dest.scale), ScratchRegister, OpAdd);
         storeValue(type, reg, Address(ScratchRegister, 0));
     }
     void storeValue(ValueOperand val, const Address &dest) {
@@ -1131,7 +1134,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void storeValue(const Value &val, BaseIndex dest) {
         
         JS_ASSERT(dest.offset == 0);
-        ma_alu(dest.base, lsl(dest.index, dest.scale), ScratchRegister, op_add);
+        ma_alu(dest.base, lsl(dest.index, dest.scale), ScratchRegister, OpAdd);
         storeValue(val, Address(ScratchRegister, 0));
     }
 
@@ -1533,7 +1536,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_add(address.base, Imm32(address.offset), dest, NoSetCond);
     }
     void computeEffectiveAddress(const BaseIndex &address, Register dest) {
-        ma_alu(address.base, lsl(address.index, address.scale), dest, op_add, NoSetCond);
+        ma_alu(address.base, lsl(address.index, address.scale), dest, OpAdd, NoSetCond);
         if (address.offset)
             ma_add(dest, Imm32(address.offset), dest, NoSetCond);
     }

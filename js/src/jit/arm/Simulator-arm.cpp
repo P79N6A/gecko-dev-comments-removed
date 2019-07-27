@@ -637,6 +637,7 @@ ReadLine(const char *prompt)
         }
         if (!result) {
             
+            
             result = (char *)js_malloc(len + 1);
             if (!result)
                 return nullptr;
@@ -735,6 +736,7 @@ ArmDebugger::debug()
                 sim_->set_pc(sim_->get_pc() + 4);
                 sim_->icount_++;
             } else if ((strcmp(cmd, "c") == 0) || (strcmp(cmd, "cont") == 0)) {
+                
                 
                 sim_->instructionDecode(reinterpret_cast<SimInstruction *>(sim_->get_pc()));
                 sim_->icount_++;
@@ -2145,6 +2147,7 @@ Simulator::softwareInterrupt(SimInstruction *instr)
             
             
             
+            
             bool scratchFloat = target != __aeabi_idivmod && target != __aeabi_uidivmod;
             scratchVolatileRegisters( scratchFloat);
             setCallResult(result);
@@ -2439,6 +2442,7 @@ Simulator::decodeType01(SimInstruction *instr)
                             
                             
                             
+                            
                             int32_t mul_out = rm_val * rs_val;
                             int32_t result = acc_value + mul_out;
                             set_register(rn, result);
@@ -2688,7 +2692,7 @@ Simulator::decodeType01(SimInstruction *instr)
         }
         int32_t alu_out;
         switch (instr->opcodeField()) {
-          case op_and:
+          case OpAnd:
             alu_out = rn_val & shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2696,7 +2700,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setCFlag(shifter_carry_out);
             }
             break;
-          case op_eor:
+          case OpEor:
             alu_out = rn_val ^ shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2704,7 +2708,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setCFlag(shifter_carry_out);
             }
             break;
-          case op_sub:
+          case OpSub:
             alu_out = rn_val - shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2713,7 +2717,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setVFlag(overflowFrom(alu_out, rn_val, shifter_operand, false));
             }
             break;
-          case op_rsb:
+          case OpRsb:
             alu_out = shifter_operand - rn_val;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2722,7 +2726,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setVFlag(overflowFrom(alu_out, shifter_operand, rn_val, false));
             }
             break;
-          case op_add:
+          case OpAdd:
             alu_out = rn_val + shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2731,7 +2735,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setVFlag(overflowFrom(alu_out, rn_val, shifter_operand, true));
             }
             break;
-          case op_adc:
+          case OpAdc:
             alu_out = rn_val + shifter_operand + getCarry();
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2740,11 +2744,11 @@ Simulator::decodeType01(SimInstruction *instr)
                 setVFlag(overflowFrom(alu_out, rn_val, shifter_operand, true));
             }
             break;
-          case op_sbc:
-          case op_rsc:
+          case OpSbc:
+          case OpRsc:
             MOZ_CRASH();
             break;
-          case op_tst:
+          case OpTst:
             if (instr->hasS()) {
                 alu_out = rn_val & shifter_operand;
                 setNZFlags(alu_out);
@@ -2754,7 +2758,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 set_register(rd, alu_out);
             }
             break;
-          case op_teq:
+          case OpTeq:
             if (instr->hasS()) {
                 alu_out = rn_val ^ shifter_operand;
                 setNZFlags(alu_out);
@@ -2765,7 +2769,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 MOZ_CRASH();
             }
             break;
-          case op_cmp:
+          case OpCmp:
             if (instr->hasS()) {
                 alu_out = rn_val - shifter_operand;
                 setNZFlags(alu_out);
@@ -2777,7 +2781,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 set_register(rd, alu_out);
             }
             break;
-          case op_cmn:
+          case OpCmn:
             if (instr->hasS()) {
                 alu_out = rn_val + shifter_operand;
                 setNZFlags(alu_out);
@@ -2789,7 +2793,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 MOZ_CRASH();
             }
             break;
-          case op_orr:
+          case OpOrr:
             alu_out = rn_val | shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2797,7 +2801,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setCFlag(shifter_carry_out);
             }
             break;
-          case op_mov:
+          case OpMov:
             alu_out = shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2805,7 +2809,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setCFlag(shifter_carry_out);
             }
             break;
-          case op_bic:
+          case OpBic:
             alu_out = rn_val & ~shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -2813,7 +2817,7 @@ Simulator::decodeType01(SimInstruction *instr)
                 setCFlag(shifter_carry_out);
             }
             break;
-          case op_mvn:
+          case OpMvn:
             alu_out = ~shifter_operand;
             set_register(rd, alu_out);
             if (instr->hasS()) {
@@ -3149,7 +3153,8 @@ Simulator::decodeType3(SimInstruction *instr)
 void
 Simulator::decodeType4(SimInstruction *instr)
 {
-    MOZ_ASSERT(instr->bit(22) == 0); 
+    
+    MOZ_ASSERT(instr->bit(22) == 0);
     bool load = instr->hasL();
     handleRList(instr, load);
 }
@@ -3589,7 +3594,6 @@ Simulator::decodeVCVTBetweenFloatingPointAndInteger(SimInstruction *instr)
     VFPRegPrecision src_precision = (instr->szValue() == 1) ? kDoublePrecision : kSinglePrecision;
 
     if (to_integer) {
-        
         
         
         

@@ -25,11 +25,9 @@ static MOZ_CONSTEXPR_VAR Register BaselineStackReg = sp;
 
 
 
-
 static MOZ_CONSTEXPR_VAR ValueOperand R0(r3, r2);
 static MOZ_CONSTEXPR_VAR ValueOperand R1(r5, r4);
 static MOZ_CONSTEXPR_VAR ValueOperand R2(r1, r0);
-
 
 
 

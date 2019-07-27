@@ -1862,7 +1862,7 @@ CodeGeneratorMIPS::generateInvalidateEpilogue()
     
     
     
-    for (size_t i = 0; i < sizeof(void *); i += Assembler::nopSize())
+    for (size_t i = 0; i < sizeof(void *); i += Assembler::NopSize())
         masm.nop();
 
     masm.bind(&invalidate_);

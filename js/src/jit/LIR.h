@@ -1428,7 +1428,7 @@ class LSafepoint : public TempObject
         
         
         
-        return osiCallPointOffset_ + Assembler::patchWrite_NearCallSize();
+        return osiCallPointOffset_ + Assembler::PatchWrite_NearCallSize();
     }
     uint32_t osiCallPointOffset() const {
         return osiCallPointOffset_;

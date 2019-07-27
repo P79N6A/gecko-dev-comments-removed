@@ -24,8 +24,6 @@ namespace jit {
 
 
 
-
-
 static MOZ_CONSTEXPR_VAR Register r0  = { Registers::r0 };
 static MOZ_CONSTEXPR_VAR Register r1  = { Registers::r1 };
 static MOZ_CONSTEXPR_VAR Register r2  = { Registers::r2 };
@@ -135,7 +133,6 @@ static MOZ_CONSTEXPR_VAR FloatRegister d15(FloatRegisters::d15);
 
 
 
-
 static const uint32_t StackAlignment = 8;
 static const uint32_t CodeAlignment = 8;
 static const bool StackKeptAligned = true;
@@ -184,7 +181,7 @@ struct ImmType : public ImmTag
 
 enum Index {
     Offset = 0 << 21 | 1<<24,
-    PreIndex = 1<<21 | 1 << 24,
+    PreIndex = 1 << 21 | 1 << 24,
     PostIndex = 0 << 21 | 0 << 24
     
     
@@ -225,8 +222,6 @@ struct ConditionCodes
 };
 
 
-
-
 enum DTMMode {
     A = 0 << 24, 
     B = 1 << 24, 
@@ -254,63 +249,62 @@ enum LoadStore {
 
 
 
-
 enum IsUp_ {
     IsUp   = 1 << 23,
     IsDown = 0 << 23
 };
 enum ALUOp {
-    op_mov = 0xd << 21,
-    op_mvn = 0xf << 21,
-    op_and = 0x0 << 21,
-    op_bic = 0xe << 21,
-    op_eor = 0x1 << 21,
-    op_orr = 0xc << 21,
-    op_adc = 0x5 << 21,
-    op_add = 0x4 << 21,
-    op_sbc = 0x6 << 21,
-    op_sub = 0x2 << 21,
-    op_rsb = 0x3 << 21,
-    op_rsc = 0x7 << 21,
-    op_cmn = 0xb << 21,
-    op_cmp = 0xa << 21,
-    op_teq = 0x9 << 21,
-    op_tst = 0x8 << 21,
-    op_invalid = -1
+    OpMov = 0xd << 21,
+    OpMvn = 0xf << 21,
+    OpAnd = 0x0 << 21,
+    OpBic = 0xe << 21,
+    OpEor = 0x1 << 21,
+    OpOrr = 0xc << 21,
+    OpAdc = 0x5 << 21,
+    OpAdd = 0x4 << 21,
+    OpSbc = 0x6 << 21,
+    OpSub = 0x2 << 21,
+    OpRsb = 0x3 << 21,
+    OpRsc = 0x7 << 21,
+    OpCmn = 0xb << 21,
+    OpCmp = 0xa << 21,
+    OpTeq = 0x9 << 21,
+    OpTst = 0x8 << 21,
+    OpInvalid = -1
 };
 
 
 enum MULOp {
-    opm_mul   = 0 << 21,
-    opm_mla   = 1 << 21,
-    opm_umaal = 2 << 21,
-    opm_mls   = 3 << 21,
-    opm_umull = 4 << 21,
-    opm_umlal = 5 << 21,
-    opm_smull = 6 << 21,
-    opm_smlal = 7 << 21
+    OpmMul   = 0 << 21,
+    OpmMla   = 1 << 21,
+    OpmUmaal = 2 << 21,
+    OpmMls   = 3 << 21,
+    OpmUmull = 4 << 21,
+    OpmUmlal = 5 << 21,
+    OpmSmull = 6 << 21,
+    OpmSmlal = 7 << 21
 };
 enum BranchTag {
-    op_b = 0x0a000000,
-    op_b_mask = 0x0f000000,
-    op_b_dest_mask = 0x00ffffff,
-    op_bl = 0x0b000000,
-    op_blx = 0x012fff30,
-    op_bx  = 0x012fff10
+    OpB = 0x0a000000,
+    OpBMask = 0x0f000000,
+    OpBDestMask = 0x00ffffff,
+    OpBl = 0x0b000000,
+    OpBlx = 0x012fff30,
+    OpBx  = 0x012fff10
 };
 
 
 enum VFPOp {
-    opv_mul  = 0x2 << 20,
-    opv_add  = 0x3 << 20,
-    opv_sub  = 0x3 << 20 | 0x1 << 6,
-    opv_div  = 0x8 << 20,
-    opv_mov  = 0xB << 20 | 0x1 << 6,
-    opv_abs  = 0xB << 20 | 0x3 << 6,
-    opv_neg  = 0xB << 20 | 0x1 << 6 | 0x1 << 16,
-    opv_sqrt = 0xB << 20 | 0x3 << 6 | 0x1 << 16,
-    opv_cmp  = 0xB << 20 | 0x1 << 6 | 0x4 << 16,
-    opv_cmpz  = 0xB << 20 | 0x1 << 6 | 0x5 << 16
+    OpvMul  = 0x2 << 20,
+    OpvAdd  = 0x3 << 20,
+    OpvSub  = 0x3 << 20 | 0x1 << 6,
+    OpvDiv  = 0x8 << 20,
+    OpvMov  = 0xB << 20 | 0x1 << 6,
+    OpvAbs  = 0xB << 20 | 0x3 << 6,
+    OpvNeg  = 0xB << 20 | 0x1 << 6 | 0x1 << 16,
+    OpvSqrt = 0xB << 20 | 0x3 << 6 | 0x1 << 16,
+    OpvCmp  = 0xB << 20 | 0x1 << 6 | 0x4 << 16,
+    OpvCmpz  = 0xB << 20 | 0x1 << 6 | 0x5 << 16
 };
 
 ALUOp ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest);
@@ -371,7 +365,6 @@ struct Reg
 
 
 
-
 struct Imm8mData
 {
   private:
@@ -413,11 +406,10 @@ struct Imm8Data
     uint32_t encode() {
         return imm4L | (imm4H << 8);
     };
-    Imm8Data(uint32_t imm) : imm4L(imm&0xf), imm4H(imm>>4) {
+    Imm8Data(uint32_t imm) : imm4L(imm & 0xf), imm4H(imm >> 4) {
         JS_ASSERT(imm <= 0xff);
     }
 };
-
 
 
 struct Imm8VFPOffData
@@ -450,7 +442,7 @@ struct Imm8VFPImmData
     { }
 
     Imm8VFPImmData(uint32_t imm)
-      : imm4L(imm&0xf), imm4H(imm>>4), isInvalid(0)
+      : imm4L(imm&0xf), imm4H(imm >> 4), isInvalid(0)
     {
         JS_ASSERT(imm <= 0xff);
     }
@@ -553,7 +545,7 @@ class Operand2
 class Imm8 : public Operand2
 {
   public:
-    static datastore::Imm8mData encodeImm(uint32_t imm) {
+    static datastore::Imm8mData EncodeImm(uint32_t imm) {
         
         if (imm == 0)
             return datastore::Imm8mData(0, 0);
@@ -568,7 +560,7 @@ class Imm8 : public Operand2
         
         int no_imm = imm & ~(0xff << (24 - left));
         if (no_imm == 0) {
-            return  datastore::Imm8mData(imm >> (24 - left), ((8+left) >> 1));
+            return  datastore::Imm8mData(imm >> (24 - left), ((8 + left) >> 1));
         }
         
         int right = 32 - (mozilla::CountLeadingZeroes32(no_imm) & 30);
@@ -580,7 +572,7 @@ class Imm8 : public Operand2
         
         unsigned int mask = imm << (8 - right) | imm >> (24 + right);
         if (mask <= 0xff)
-            return datastore::Imm8mData(mask, (8-right) >> 1);
+            return datastore::Imm8mData(mask, (8 - right) >> 1);
         return datastore::Imm8mData();
     }
     
@@ -597,9 +589,9 @@ class Imm8 : public Operand2
         { }
     };
 
-    static TwoImm8mData encodeTwoImms(uint32_t);
+    static TwoImm8mData EncodeTwoImms(uint32_t);
     Imm8(uint32_t imm)
-      : Operand2(encodeImm(imm))
+      : Operand2(EncodeImm(imm))
     { }
 };
 
@@ -791,7 +783,6 @@ class EDtrOffImm : public EDtrOff
 
 
 
-
 class EDtrOffReg : public EDtrOff
 {
   public:
@@ -863,7 +854,7 @@ class VFPImm {
     uint32_t data;
 
   public:
-    static const VFPImm one;
+    static const VFPImm One;
 
     VFPImm(uint32_t topWordOfDouble);
 
@@ -874,6 +865,7 @@ class VFPImm {
         return data != -1U;
     }
 };
+
 
 
 
@@ -893,10 +885,10 @@ class BOffImm
       : data ((offset - 8) >> 2 & 0x00ffffff)
     {
         JS_ASSERT((offset & 0x3) == 0);
-        if (!isInRange(offset))
+        if (!IsInRange(offset))
             CrashAtUnhandlableOOM("BOffImm");
     }
-    static bool isInRange(int offset)
+    static bool IsInRange(int offset)
     {
         if ((offset - 8) < -33554432)
             return false;
@@ -946,10 +938,8 @@ class Imm16
 
 
 
-
 class Operand
 {
-    
     
     
   public:
@@ -1095,6 +1085,7 @@ class Assembler : public AssemblerShared
 
     enum DoubleCondition {
         
+        
         DoubleOrdered = VFP_NotUnordered,
         DoubleEqual = VFP_Equal,
         DoubleNotEqual = VFP_NotEqualOrUnordered | DoubleConditionBitSpecial,
@@ -1132,7 +1123,7 @@ class Assembler : public AssemblerShared
         return BufferOffset(l->bound());
     }
 
-    Instruction * editSrc (BufferOffset bo) {
+    Instruction *editSrc (BufferOffset bo) {
         return m_buffer.getInst(bo);
     }
   public:
@@ -1180,7 +1171,7 @@ class Assembler : public AssemblerShared
     
     
     
-    static Assembler *dummy;
+    static Assembler *Dummy;
     mozilla::Array<Pool, 4> pools_;
     Pool *int32Pool;
     Pool *doublePool;
@@ -1253,11 +1244,11 @@ class Assembler : public AssemblerShared
     
     
     template <class Iter>
-    static const uint32_t * getCF32Target(Iter *iter);
+    static const uint32_t *GetCF32Target(Iter *iter);
 
-    static uintptr_t getPointer(uint8_t *);
+    static uintptr_t GetPointer(uint8_t *);
     template <class Iter>
-    static const uint32_t * getPtr32Target(Iter *iter, Register *dest = nullptr, RelocStyle *rs = nullptr);
+    static const uint32_t *GetPtr32Target(Iter *iter, Register *dest = nullptr, RelocStyle *rs = nullptr);
 
     bool oom() const;
 
@@ -1303,7 +1294,7 @@ class Assembler : public AssemblerShared
 
     
     
-    static void writeInstStatic(uint32_t x, uint32_t *dest);
+    static void WriteInstStatic(uint32_t x, uint32_t *dest);
 
   public:
     void writeCodePointer(AbsoluteLabel *label);
@@ -1379,10 +1370,8 @@ class Assembler : public AssemblerShared
 
     
     
-    
     BufferOffset as_dtr(LoadStore ls, int size, Index mode,
                 Register rt, DTRAddr addr, Condition c = Always, uint32_t *dest = nullptr);
-    
     
     
     BufferOffset as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
@@ -1405,10 +1394,8 @@ class Assembler : public AssemblerShared
     
 
     
-    
     BufferOffset as_bx(Register r, Condition c = Always, bool isPatchable = false);
 
-    
     
     
     BufferOffset as_b(BOffImm off, Condition c, bool isPatchable = false);
@@ -1438,8 +1425,8 @@ class Assembler : public AssemblerShared
   private:
 
     enum vfp_size {
-        isDouble = 1 << 8,
-        isSingle = 0 << 8
+        IsDouble = 1 << 8,
+        IsSingle = 0 << 8
     };
 
     BufferOffset writeVFPInst(vfp_size sz, uint32_t blob, uint32_t *dest=nullptr);
@@ -1659,21 +1646,18 @@ class Assembler : public AssemblerShared
 
   public:
     enum {
-        padForAlign8  = (int)0x00,
-        padForAlign16 = (int)0x0000,
-        padForAlign32 = (int)0xe12fff7f  
+        PadForAlign8  = (int)0x00,
+        PadForAlign16 = (int)0x0000,
+        PadForAlign32 = (int)0xe12fff7f  
     };
 
     
     
-    static void insertTokenIntoTag(uint32_t size, uint8_t *load, int32_t token);
-    
-    
-    static bool patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
+    static void InsertTokenIntoTag(uint32_t size, uint8_t *load, int32_t token);
     
     
     
-    static uint32_t placeConstantPoolBarrier(int offset);
+    static bool PatchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
     
 
     
@@ -1686,34 +1670,34 @@ class Assembler : public AssemblerShared
     
     
     static ptrdiff_t getBranchOffset(const Instruction *i);
-    static void retargetNearBranch(Instruction *i, int offset, Condition cond, bool final = true);
-    static void retargetNearBranch(Instruction *i, int offset, bool final = true);
-    static void retargetFarBranch(Instruction *i, uint8_t **slot, uint8_t *dest, Condition cond);
+    static void RetargetNearBranch(Instruction *i, int offset, Condition cond, bool final = true);
+    static void RetargetNearBranch(Instruction *i, int offset, bool final = true);
+    static void RetargetFarBranch(Instruction *i, uint8_t **slot, uint8_t *dest, Condition cond);
 
-    static void writePoolHeader(uint8_t *start, Pool *p, bool isNatural);
-    static void writePoolFooter(uint8_t *start, Pool *p, bool isNatural);
-    static void writePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
+    static void WritePoolHeader(uint8_t *start, Pool *p, bool isNatural);
+    static void WritePoolFooter(uint8_t *start, Pool *p, bool isNatural);
+    static void WritePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
 
 
-    static uint32_t patchWrite_NearCallSize();
-    static uint32_t nopSize() { return 4; }
-    static void patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall);
-    static void patchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newValue,
+    static uint32_t PatchWrite_NearCallSize();
+    static uint32_t NopSize() { return 4; }
+    static void PatchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall);
+    static void PatchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newValue,
                                         PatchedImmPtr expectedValue);
-    static void patchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue,
+    static void PatchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue,
                                         ImmPtr expectedValue);
-    static void patchWrite_Imm32(CodeLocationLabel label, Imm32 imm);
+    static void PatchWrite_Imm32(CodeLocationLabel label, Imm32 imm);
 
-    static void patchInstructionImmediate(uint8_t *code, PatchedImmPtr imm) {
+    static void PatchInstructionImmediate(uint8_t *code, PatchedImmPtr imm) {
         MOZ_ASSUME_UNREACHABLE("Unused.");
     }
 
-    static uint32_t alignDoubleArg(uint32_t offset) {
-        return (offset+1)&~1;
+    static uint32_t AlignDoubleArg(uint32_t offset) {
+        return (offset + 1) & ~1;
     }
-    static uint8_t *nextInstruction(uint8_t *instruction, uint32_t *count = nullptr);
-    
+    static uint8_t *NextInstruction(uint8_t *instruction, uint32_t *count = nullptr);
 
+    
     static void ToggleToJmp(CodeLocationLabel inst_);
     static void ToggleToCmp(CodeLocationLabel inst_);
 
@@ -1722,9 +1706,9 @@ class Assembler : public AssemblerShared
     static size_t ToggledCallSize(uint8_t *code);
     static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 
-    static void updateBoundsCheck(uint32_t logHeapSize, Instruction *inst);
+    static void UpdateBoundsCheck(uint32_t logHeapSize, Instruction *inst);
     void processCodeLabels(uint8_t *rawCode);
-    static int32_t extractCodeLabelOffset(uint8_t *code) {
+    static int32_t ExtractCodeLabelOffset(uint8_t *code) {
         return *(uintptr_t *)code;
     }
 
@@ -1740,6 +1724,7 @@ class Instruction
     uint32_t data;
 
   protected:
+    
     
     
     Instruction (uint32_t data_, bool fake = false) : data(data_ | 0xf0000000) {
@@ -1758,11 +1743,11 @@ class Instruction
     }
     
     template <class C>
-    bool is() const { return C::isTHIS(*this); }
+    bool is() const { return C::IsTHIS(*this); }
 
     
     template <class C>
-    C *as() const { return C::asTHIS(*this); }
+    C *as() const { return C::AsTHIS(*this); }
 
     const Instruction & operator=(const Instruction &src) {
         data = src.data;
@@ -1806,8 +1791,8 @@ class InstDTR : public Instruction
       : Instruction(ls | ib | mode | RT(rt) | addr.encode() | IsDTR, c)
     { }
 
-    static bool isTHIS(const Instruction &i);
-    static InstDTR *asTHIS(const Instruction &i);
+    static bool IsTHIS(const Instruction &i);
+    static InstDTR *AsTHIS(const Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(Instruction));
@@ -1818,8 +1803,8 @@ class InstLDR : public InstDTR
     InstLDR(Index mode, Register rt, DTRAddr addr, Assembler::Condition c)
         : InstDTR(IsLoad, IsWord, mode, rt, addr, c)
     { }
-    static bool isTHIS(const Instruction &i);
-    static InstLDR *asTHIS(const Instruction &i);
+    static bool IsTHIS(const Instruction &i);
+    static InstLDR *AsTHIS(const Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(InstLDR));
@@ -1833,8 +1818,8 @@ class InstNOP : public Instruction
       : Instruction(NopInst, Assembler::Always)
     { }
 
-    static bool isTHIS(const Instruction &i);
-    static InstNOP *asTHIS(Instruction &i);
+    static bool IsTHIS(const Instruction &i);
+    static InstNOP *AsTHIS(Instruction &i);
 };
 
 
@@ -1851,8 +1836,8 @@ class InstBranchReg : public Instruction
       : Instruction(tag | rm.code(), c)
     { }
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBranchReg *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBranchReg *AsTHIS (const Instruction &i);
     
     void extractDest(Register *dest);
     
@@ -1875,8 +1860,8 @@ class InstBranchImm : public Instruction
     { }
 
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBranchImm *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBranchImm *AsTHIS (const Instruction &i);
     void extractImm(BOffImm *dest);
 };
 JS_STATIC_ASSERT(sizeof(InstBranchImm) == sizeof(Instruction));
@@ -1885,8 +1870,8 @@ JS_STATIC_ASSERT(sizeof(InstBranchImm) == sizeof(Instruction));
 class InstBXReg : public InstBranchReg
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstBXReg *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBXReg *AsTHIS (const Instruction &i);
 };
 class InstBLXReg : public InstBranchReg
 {
@@ -1895,8 +1880,8 @@ class InstBLXReg : public InstBranchReg
       : InstBranchReg(IsBLX, reg, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBLXReg *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBLXReg *AsTHIS (const Instruction &i);
 };
 class InstBImm : public InstBranchImm
 {
@@ -1905,8 +1890,8 @@ class InstBImm : public InstBranchImm
       : InstBranchImm(IsB, off, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBImm *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBImm *AsTHIS (const Instruction &i);
 };
 class InstBLImm : public InstBranchImm
 {
@@ -1915,8 +1900,8 @@ class InstBLImm : public InstBranchImm
       : InstBranchImm(IsBL, off, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstBLImm *asTHIS (Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstBLImm *AsTHIS (Instruction &i);
 };
 
 
@@ -1940,8 +1925,8 @@ class InstMovWT : public Instruction
     bool checkImm(Imm16 dest);
     bool checkDest(Register dest);
 
-    static bool isTHIS (Instruction &i);
-    static InstMovWT *asTHIS (Instruction &i);
+    static bool IsTHIS (Instruction &i);
+    static InstMovWT *AsTHIS (Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstMovWT) == sizeof(Instruction));
@@ -1953,8 +1938,8 @@ class InstMovW : public InstMovWT
       : InstMovWT(rd, imm, IsW, c)
     { }
 
-    static bool isTHIS (const Instruction &i);
-    static InstMovW *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstMovW *AsTHIS (const Instruction &i);
 };
 
 class InstMovT : public InstMovWT
@@ -1963,8 +1948,8 @@ class InstMovT : public InstMovWT
     InstMovT (Register rd, Imm16 imm, Assembler::Condition c)
       : InstMovWT(rd, imm, IsT, c)
     { }
-    static bool isTHIS (const Instruction &i);
-    static InstMovT *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstMovT *AsTHIS (const Instruction &i);
 };
 
 class InstALU : public Instruction
@@ -1974,8 +1959,8 @@ class InstALU : public Instruction
     InstALU (Register rd, Register rn, Operand2 op2, ALUOp op, SetCond_ sc, Assembler::Condition c)
         : Instruction(maybeRD(rd) | maybeRN(rn) | op2.encode() | op | sc, c)
     { }
-    static bool isTHIS (const Instruction &i);
-    static InstALU *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstALU *AsTHIS (const Instruction &i);
     void extractOp(ALUOp *ret);
     bool checkOp(ALUOp op);
     void extractDest(Register *ret);
@@ -1988,15 +1973,15 @@ class InstALU : public Instruction
 class InstCMP : public InstALU
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstCMP *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstCMP *AsTHIS (const Instruction &i);
 };
 
 class InstMOV : public InstALU
 {
   public:
-    static bool isTHIS (const Instruction &i);
-    static InstMOV *asTHIS (const Instruction &i);
+    static bool IsTHIS (const Instruction &i);
+    static InstMOV *AsTHIS (const Instruction &i);
 };
 
 
@@ -2127,15 +2112,14 @@ class DoubleEncoder {
         
         
         
-        
         bool a = value >> 7;
         bool b = value >> 6 & 1;
         bool B = !b;
         uint32_t cdefgh = value & 0x3f;
-        return a << 31 |
-            B << 30 |
-            rep(b, 8) << 22 |
-            cdefgh << 16;
+        return         a << 31 |
+                       B << 30 |
+               rep(b, 8) << 22 |
+                  cdefgh << 16;
     }
 
     struct DoubleEntry

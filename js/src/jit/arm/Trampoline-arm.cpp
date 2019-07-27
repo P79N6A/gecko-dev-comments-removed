@@ -59,7 +59,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
     
     masm.transferReg(pc);
     masm.finishDataTransfer();
-    masm.dumpPool();
+    masm.flushBuffer();
 }
 
 struct EnterJITStack
@@ -155,6 +155,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.unboxInt32(Address(r10, 0), r10);
 
     
+    
     aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); 
     
     aasm->as_sub(sp, r4, Imm8(16)); 
@@ -235,6 +236,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.mov(sp, framePtr);
 
 #ifdef XP_WIN
+        
         
         masm.ma_lsl(Imm32(3), numStackValues, scratch);
         masm.subPtr(scratch, framePtr);
@@ -328,7 +330,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     
-    
 
     
     GenerateReturn(masm, true, &cx->runtime()->spsProfiler);
@@ -386,6 +387,7 @@ JitRuntime::generateInvalidator(JSContext *cx)
     masm.ma_ldr(Address(sp, sizeOfBailoutInfo), r1);
     
     
+    
     masm.ma_add(sp, Imm32(sizeof(InvalidationBailoutStack) + sizeOfRetval + sizeOfBailoutInfo), sp);
     
     
@@ -441,7 +443,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     
 
-    masm.ma_alu(r3, lsl(r8, 3), r3, op_add); 
+    masm.ma_alu(r3, lsl(r8, 3), r3, OpAdd); 
     masm.ma_add(r3, Imm32(sizeof(IonRectifierFrameLayout)), r3);
 
     
@@ -495,7 +497,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     
 
     
-    masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, op_add);
+    masm.ma_alu(sp, lsr(r4, FRAMESIZE_SHIFT), sp, OpAdd);
 
     masm.ret();
     Linker linker(masm);
@@ -578,7 +580,6 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 
     
     
-    
 
     
     masm.passABIArg(r0);
@@ -607,9 +608,14 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
         masm.as_add(sp, sp, O2Reg(r4));
     } else {
         uint32_t frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-        masm.ma_add(Imm32(frameSize 
-                          + sizeof(void*) 
-                          + bailoutFrameSize) 
+        masm.ma_add(Imm32(
+                          
+                          frameSize
+                          
+                          
+                          + sizeof(void*)
+                          
+                          + bailoutFrameSize)
                     , sp);
     }
 
@@ -627,6 +633,7 @@ GenerateParallelBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
 
     PushBailoutFrame(masm, frameClass, r0);
 
+    
     
     
     const int sizeOfEntryFramePointer = sizeof(uint8_t *) * 2;

@@ -92,7 +92,7 @@ CodeGeneratorARM::generateEpilogue()
         masm.freeStack(frameSize());
     JS_ASSERT(masm.framePushed() == 0);
     masm.pop(pc);
-    masm.dumpPool();
+    masm.flushBuffer();
     return true;
 }
 
@@ -275,18 +275,22 @@ CodeGeneratorARM::visitMinMaxD(LMinMaxD *ins)
     Label nan, equal, returnSecond, done;
 
     masm.compareDouble(first, second);
-    masm.ma_b(&nan, Assembler::VFP_Unordered); 
-    masm.ma_b(&equal, Assembler::VFP_Equal); 
+    
+    masm.ma_b(&nan, Assembler::VFP_Unordered);
+    
+    masm.ma_b(&equal, Assembler::VFP_Equal);
     masm.ma_b(&returnSecond, cond);
     masm.ma_b(&done);
 
     
     masm.bind(&equal);
     masm.compareDouble(first, InvalidFloatReg);
-    masm.ma_b(&done, Assembler::VFP_NotEqualOrUnordered); 
+    
+    masm.ma_b(&done, Assembler::VFP_NotEqualOrUnordered);
     
     if (ins->mir()->isMax()) {
-        masm.ma_vadd(second, first, first); 
+        
+        masm.ma_vadd(second, first, first);
     } else {
         masm.ma_vneg(first, first);
         masm.ma_vsub(first, second, first);
@@ -422,10 +426,12 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
                     uint32_t shift = FloorLog2(constant);
                     uint32_t rest = constant - (1 << shift);
                     
+                    
                     if ((1 << shift) == constant) {
                         masm.ma_lsl(Imm32(shift), src, ToRegister(dest));
                         handled = true;
                     } else {
+                        
                         
                         
                         uint32_t shift_rest = FloorLog2(rest);
@@ -502,8 +508,11 @@ CodeGeneratorARM::divICommon(MDiv *mir, Register lhs, Register rhs, Register out
     if (mir->canBeNegativeOverflow()) {
         
         
-        masm.ma_cmp(lhs, Imm32(INT32_MIN)); 
-        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+
+        
+        masm.ma_cmp(lhs, Imm32(INT32_MIN));
+        
+        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal);
         if (mir->canTruncateOverflow()) {
             
             Label skip;
@@ -675,6 +684,7 @@ CodeGeneratorARM::modICommon(MMod *mir, Register lhs, Register rhs, Register out
     
     
     
+    
     if (mir->canBeDivideByZero() || mir->canBeNegativeDividend()) {
         masm.ma_cmp(rhs, Imm32(0));
         masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
@@ -750,8 +760,10 @@ CodeGeneratorARM::visitSoftModI(LSoftModI *ins)
     
     
     if (mir->canBeNegativeDividend()) {
-        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
-        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+        
+        masm.ma_cmp(lhs, Imm32(INT_MIN));
+        
+        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal);
         if (mir->isTruncated()) {
             
             Label skip;
@@ -803,10 +815,11 @@ CodeGeneratorARM::visitModPowTwoI(LModPowTwoI *ins)
     MMod *mir = ins->mir();
     Label fin;
     
+    
     masm.ma_mov(in, out, SetCond);
     masm.ma_b(&fin, Assembler::Zero);
     masm.ma_rsb(Imm32(0), out, NoSetCond, Assembler::Signed);
-    masm.ma_and(Imm32((1<<ins->shift())-1), out);
+    masm.ma_and(Imm32((1 << ins->shift()) - 1), out);
     masm.ma_rsb(Imm32(0), out, SetCond, Assembler::Signed);
     if (mir->canBeNegativeDividend()) {
         if (!mir->isTruncated()) {
@@ -846,7 +859,6 @@ CodeGeneratorARM::visitBitNotI(LBitNotI *ins)
 {
     const LAllocation *input = ins->getOperand(0);
     const LDefinition *dest = ins->getDef(0);
-    
     
     
     JS_ASSERT(!input->isConstant());
@@ -995,6 +1007,7 @@ CodeGeneratorARM::visitPowHalfD(LPowHalfD *ins)
     masm.ma_b(&done, Assembler::Equal);
 
     
+    
     masm.ma_vimm(0.0, ScratchDoubleReg);
     masm.ma_vadd(ScratchDoubleReg, input, output);
     masm.ma_vsqrt(output, output);
@@ -1074,6 +1087,7 @@ CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, Register index, Reg
     
     
 
+    
     
     
     
@@ -1415,7 +1429,6 @@ CodeGeneratorARM::visitTestDAndBranch(LTestDAndBranch *test)
     MBasicBlock *ifTrue = test->ifTrue();
     MBasicBlock *ifFalse = test->ifFalse();
     
-    
     jumpToBlock(ifFalse, Assembler::Zero);
     
     
@@ -1433,7 +1446,6 @@ CodeGeneratorARM::visitTestFAndBranch(LTestFAndBranch *test)
 
     MBasicBlock *ifTrue = test->ifTrue();
     MBasicBlock *ifFalse = test->ifFalse();
-    
     
     jumpToBlock(ifFalse, Assembler::Zero);
     
@@ -1632,7 +1644,6 @@ CodeGeneratorARM::visitNotD(LNotD *ins)
     
     
     
-    
     FloatRegister opd = ToFloatRegister(ins->input());
     Register dest = ToRegister(ins->output());
 
@@ -1644,7 +1655,8 @@ CodeGeneratorARM::visitNotD(LNotD *ins)
         
         masm.as_vmrs(dest);
         masm.ma_lsr(Imm32(28), dest, dest);
-        masm.ma_alu(dest, lsr(dest, 2), dest, op_orr); 
+        
+        masm.ma_alu(dest, lsr(dest, 2), dest, OpOrr);
         masm.ma_and(Imm32(1), dest);
     } else {
         masm.as_vmrs(pc);
@@ -1661,7 +1673,6 @@ CodeGeneratorARM::visitNotF(LNotF *ins)
     
     
     
-    
     FloatRegister opd = ToFloatRegister(ins->input());
     Register dest = ToRegister(ins->output());
 
@@ -1673,7 +1684,8 @@ CodeGeneratorARM::visitNotF(LNotF *ins)
         
         masm.as_vmrs(dest);
         masm.ma_lsr(Imm32(28), dest, dest);
-        masm.ma_alu(dest, lsr(dest, 2), dest, op_orr); 
+        
+        masm.ma_alu(dest, lsr(dest, 2), dest, OpOrr);
         masm.ma_and(Imm32(1), dest);
     } else {
         masm.as_vmrs(pc);
@@ -1728,8 +1740,7 @@ CodeGeneratorARM::generateInvalidateEpilogue()
 {
     
     
-    
-    for (size_t i = 0; i < sizeof(void *); i+= Assembler::nopSize())
+    for (size_t i = 0; i < sizeof(void *); i += Assembler::NopSize())
         masm.nop();
 
     masm.bind(&invalidate_);
