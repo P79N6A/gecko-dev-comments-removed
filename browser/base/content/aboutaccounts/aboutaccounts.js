@@ -18,6 +18,8 @@ Cu.import("resource://services-sync/util.js");
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
 const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
 
+const ACTION_URL_PARAM = "action";
+
 const OBSERVER_TOPICS = [
   fxAccountsCommon.ONVERIFIED_NOTIFICATION,
   fxAccountsCommon.ONLOGOUT_NOTIFICATION,
@@ -96,7 +98,7 @@ function shouldAllowRelink(acctName) {
 let wrapper = {
   iframe: null,
 
-  init: function (url, entryPoint) {
+  init: function (url, urlParams) {
     let weave = Cc["@mozilla.org/weave/service;1"]
                   .getService(Ci.nsISupports)
                   .wrappedJSObject;
@@ -116,14 +118,14 @@ let wrapper = {
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
     iframe.addEventListener("load", this);
-    try {
-      if (entryPoint) {
-        url += (url.indexOf("?") >= 0 ? "&" : "?") + entryPoint;
-      }
-      iframe.src = url;
-    } catch (e) {
-      error("Couldn't init Firefox Account wrapper: " + e.message);
+
+    
+    
+    let urlParamStr = urlParams.toString();
+    if (urlParamStr) {
+      url += (url.contains("?") ? "&" : "?") + urlParamStr;
     }
+    iframe.src = url;
   },
 
   handleEvent: function (evt) {
@@ -295,46 +297,49 @@ function init() {
     if (window.closed) {
       return;
     }
+
     
     
-    
-    
-    
-    let entryPointQParam = "entrypoint=";
-    let entryPointPos = window.location.href.indexOf(entryPointQParam);
-    let entryPoint = "";
-    if (entryPointPos >= 0) {
-      entryPoint = window.location.href.substring(entryPointPos).split("&")[0];
-    }
-    if (window.location.href.contains("action=signin")) {
+    let urlParams = new URLSearchParams(document.URL.split("?")[1] || "");
+    let action = urlParams.get(ACTION_URL_PARAM);
+    urlParams.delete(ACTION_URL_PARAM);
+
+    switch (action) {
+    case "signin":
       if (user) {
         
         show("stage", "manage");
       } else {
         show("remote");
-        wrapper.init(fxAccounts.getAccountsSignInURI(), entryPoint);
+        wrapper.init(fxAccounts.getAccountsSignInURI(), urlParams);
       }
-    } else if (window.location.href.contains("action=signup")) {
+      break;
+    case "signup":
       if (user) {
         
         show("stage", "manage");
       } else {
         show("remote");
-        wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+        wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
       }
-    } else if (window.location.href.contains("action=reauth")) {
+      break;
+    case "reauth":
       
       
       
       
       fxAccounts.promiseAccountsForceSigninURI().then(url => {
         show("remote");
-        wrapper.init(url, entryPoint);
+        wrapper.init(url, urlParams);
       });
-    } else if (window.location.href.contains("action=migrateToDevEdition") &&
-               user == null) {
-      migrateToDevEdition(user, entryPoint);
-    } else {
+      break;
+    case "migrateToDevEdition":
+      if (user == null) {
+        migrateToDevEdition(user, urlParams);
+        break;
+      }
+      
+    default:
       
       if (user) {
         show("stage", "manage");
@@ -343,8 +348,9 @@ function init() {
       } else {
         show("stage", "intro");
         
-        wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+        wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
       }
+      break;
     }
   });
 }
@@ -376,7 +382,7 @@ function show(id, childId) {
 }
 
 
-function migrateToDevEdition(user, entryPoint) {
+function migrateToDevEdition(user, urlParams) {
   let migrateSyncCreds = false;
   try {
     migrateSyncCreds = Services.prefs.getBoolPref("identity.fxaccounts.migrateToDevEdition");
@@ -390,13 +396,13 @@ function migrateToDevEdition(user, entryPoint) {
     }).then(() => {
       return fxAccounts.promiseAccountsForceSigninURI().then(url => {
         show("remote");
-        wrapper.init(url, entryPoint);
+        wrapper.init(url, urlParams);
       });
     }).then(null, error => {
       log("Failed to migrate FX Account: " + error);
       show("stage", "intro");
       
-      wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+      wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
     }).then(() => {
       
       Services.prefs.setBoolPref("identity.fxaccounts.migrateToDevEdition", false);
@@ -404,7 +410,7 @@ function migrateToDevEdition(user, entryPoint) {
   } else {
     show("stage", "intro");
     
-    wrapper.init(fxAccounts.getAccountsSignUpURI(), entryPoint);
+    wrapper.init(fxAccounts.getAccountsSignUpURI(), urlParams);
   }
 }
 
