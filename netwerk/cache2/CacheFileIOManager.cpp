@@ -507,24 +507,12 @@ CacheFileHandles::Log(CacheFileHandlesEntry *entry)
 
 
 
-namespace { 
-
-size_t
-CollectHandlesMemory(CacheFileHandles::HandleHashKey* key,
-                     mozilla::MallocSizeOf mallocSizeOf,
-                     void *arg)
-{
-  return key->SizeOfExcludingThis(mallocSizeOf);
-}
-
-} 
-
 size_t
 CacheFileHandles::SizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const
 {
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
 
-  return mTable.SizeOfExcludingThis(&CollectHandlesMemory, mallocSizeOf);
+  return mTable.SizeOfExcludingThis(mallocSizeOf);
 }
 
 

@@ -190,16 +190,12 @@ private:
     {
       NS_NOTREACHED("Do not call me!");
     }
+    size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+    {
+      return array.SizeOfExcludingThis(aMallocSizeOf);
+    }
     ObserverArray array;
   };
-
-  
-
-
-
-  static size_t SizeOfEntryExcludingThis(KeyClass* aEntry,
-                                         mozilla::MallocSizeOf aMallocSizeOf,
-                                         void*);
 
   nsTHashtable<KeyClass> mObservers;
 
