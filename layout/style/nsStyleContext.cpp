@@ -75,6 +75,9 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
   , mCachedResetData(nullptr)
   , mBits(((uint64_t)aPseudoType) << NS_STYLE_CONTEXT_TYPE_SHIFT)
   , mRefCnt(0)
+#ifdef DEBUG
+  , mComputingStruct(nsStyleStructID_None)
+#endif
 {
   
   

@@ -23,6 +23,7 @@ enum nsStyleStructID {
 
 
 
+nsStyleStructID_None = -1,
 nsStyleStructID_Inherited_Start = 0,
 
 nsStyleStructID_DUMMY1 = nsStyleStructID_Inherited_Start - 1,
