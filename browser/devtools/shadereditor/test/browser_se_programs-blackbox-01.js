@@ -5,6 +5,13 @@
 
 
 
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Shader Editor is still waiting for a WebGL context to be created.");
+
+
+
+
+
 function ifWebGLSupported() {
   let { target, debuggee, panel } = yield initShaderEditor(MULTIPLE_CONTEXTS_URL);
   let { gFront, EVENTS, ShadersListView, ShadersEditorsView } = panel.panelWin;

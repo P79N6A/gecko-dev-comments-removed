@@ -2,6 +2,13 @@
 
 
 
+
+
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Unknown sheet source");
+
 const TESTCASE_URI = TEST_BASE + "four.html";
 
 let gUI;

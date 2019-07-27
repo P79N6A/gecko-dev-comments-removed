@@ -4,6 +4,13 @@
 
 
 
+
+
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Connection closed");
+
+
+
 const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-result-format-as-string.html";
 
 function test()

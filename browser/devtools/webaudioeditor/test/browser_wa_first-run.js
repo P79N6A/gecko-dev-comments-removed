@@ -5,6 +5,13 @@
 
 
 
+
+thisTestLeaksUncaughtRejectionsAndShouldBeFixed("Error: Connection closed");
+
+
+
+
+
 function spawnTest() {
   let { target, panel } = yield initWebAudioEditor(SIMPLE_CONTEXT_URL);
   let { gFront, $ } = panel.panelWin;
