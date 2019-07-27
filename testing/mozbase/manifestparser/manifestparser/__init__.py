@@ -2,4 +2,6 @@
 
 
 
-from manifestparser import *
+from .manifestparser import *
+from .expression import *
+from .ini import *
