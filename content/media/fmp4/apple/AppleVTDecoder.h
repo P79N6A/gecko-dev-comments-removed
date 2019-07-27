@@ -36,7 +36,7 @@ public:
   virtual nsresult Shutdown() MOZ_OVERRIDE;
   
   nsresult OutputFrame(CVPixelBufferRef aImage,
-                       FrameRef* frameRef);
+                       nsAutoPtr<FrameRef> frameRef);
 private:
   const mp4_demuxer::VideoDecoderConfig& mConfig;
   RefPtr<MediaTaskQueue> mTaskQueue;
