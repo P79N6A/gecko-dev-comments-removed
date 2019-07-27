@@ -38,11 +38,8 @@ function* playStateIsUpdatedDynamically(walker, front) {
 
   let [player] = yield front.getAnimationPlayersForNode(node);
 
-  
-  
-  ok(player.initialState.playState == "running" ||
-     player.initialState.playState == "pending",
-    "The playState is running or pending while the transition is running");
+  is(player.initialState.playState, "running",
+    "The playState is running while the transition is running");
 
   info("Wait until the animation stops (more than 1000ms)");
   yield wait(1500); 

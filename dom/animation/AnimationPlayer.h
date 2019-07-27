@@ -96,26 +96,7 @@ public:
   void Tick();
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
   void StartNow();
   void Cancel();
 

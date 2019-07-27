@@ -2640,6 +2640,12 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
   
   
   
+  AddLayerChangesForAnimation();
+
+  
+  
+  
+  
   nsRestyleHint childRestyleHint =
     nsRestyleHint(aRestyleHint & (eRestyle_Subtree |
                                   eRestyle_ChangeAnimationPhaseDescendants |
@@ -2687,19 +2693,6 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
 
     f = GetNextContinuationWithSameStyle(f, oldContext, &haveMoreContinuations);
   }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  AddLayerChangesForAnimation();
 
   if (haveMoreContinuations && hintToRestore) {
     
