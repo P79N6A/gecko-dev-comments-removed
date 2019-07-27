@@ -224,19 +224,15 @@ Interpolate(int start, int end, TimeDuration aFrameDiff, TimeDuration aTouchDiff
 static const SingleTouchData&
 GetTouchByID(const SingleTouchData& aCurrentTouch, MultiTouchInput& aOtherTouch)
 {
-  int32_t id = aCurrentTouch.mIdentifier;
-  for (size_t i = 0; i < aOtherTouch.mTouches.Length(); i++) {
-    SingleTouchData& touch = aOtherTouch.mTouches[i];
-    if (touch.mIdentifier == id) {
-      return touch;
-    }
+  int32_t index = aOtherTouch.IndexOfTouch(aCurrentTouch.mIdentifier);
+  if (index < 0) {
+    
+    
+    
+    
+    return aCurrentTouch;
   }
-
-  
-  
-  
-  
-  return aCurrentTouch;
+  return aOtherTouch.mTouches[index];
 }
 
 

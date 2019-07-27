@@ -90,6 +90,12 @@ public:
     void DispatchTouchInputViaAPZ(mozilla::MultiTouchInput& aInput);
     NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
                              nsEventStatus& aStatus);
+    virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                                TouchPointerState aPointerState,
+                                                nsIntPoint aPointerScreenPoint,
+                                                double aPointerPressure,
+                                                uint32_t aPointerOrientation) MOZ_OVERRIDE;
+
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener *aListener,
                                    bool aDoCapture)
     {
@@ -147,6 +153,11 @@ protected:
     
     
     void UserActivity();
+
+private:
+    
+    
+    nsAutoPtr<mozilla::MultiTouchInput> mSynthesizedTouchInput;
 };
 
 #endif 

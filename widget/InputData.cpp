@@ -158,6 +158,17 @@ MultiTouchInput::ToWidgetMouseEvent(nsIWidget* aWidget) const
   return event;
 }
 
+int32_t
+MultiTouchInput::IndexOfTouch(int32_t aTouchIdentifier)
+{
+  for (size_t i = 0; i < mTouches.Length(); i++) {
+    if (mTouches[i].mIdentifier == aTouchIdentifier) {
+      return (int32_t)i;
+    }
+  }
+  return -1;
+}
+
 
 
 

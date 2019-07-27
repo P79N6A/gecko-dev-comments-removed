@@ -224,6 +224,10 @@ public:
 
   
   
+  int32_t IndexOfTouch(int32_t aTouchIdentifier);
+
+  
+  
   
   
   
