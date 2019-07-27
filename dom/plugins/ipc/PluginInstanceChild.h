@@ -245,6 +245,8 @@ public:
     void UnscheduleTimer(uint32_t id);
 
     void AsyncCall(PluginThreadCallback aFunc, void* aUserData);
+    
+    void PostChildAsyncCall(ChildAsyncCall* aTask);
 
     int GetQuirks();
 
