@@ -7,8 +7,6 @@
 
 #include "jsapi-tests/tests.h"
 
-#ifdef JSGC_GENERATIONAL
-
 BEGIN_TEST(testIsInsideNursery)
 {
     
@@ -30,5 +28,3 @@ BEGIN_TEST(testIsInsideNursery)
     return true;
 }
 END_TEST(testIsInsideNursery)
-
-#endif

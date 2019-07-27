@@ -4,8 +4,6 @@
 
 
 
-#ifdef JSGC_GENERATIONAL
-
 #include "gc/StoreBuffer.h"
 
 #include "mozilla/Assertions.h"
@@ -256,5 +254,3 @@ template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::ValueEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::CellPtrEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::SlotsEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::WholeCellEdges>;
-
-#endif 

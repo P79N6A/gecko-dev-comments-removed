@@ -349,7 +349,7 @@ WasIncrementalGC(JSRuntime *rt);
 class JS_FRIEND_API(AutoDisableGenerationalGC)
 {
     js::gc::GCRuntime *gc;
-#if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
+#ifdef JS_GC_ZEAL
     bool restartVerifier;
 #endif
 
@@ -499,7 +499,6 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
     MOZ_ASSERT(thing.kind() != JSTRACE_SHAPE);
 
     JS::shadow::Runtime *rt = GetGCThingRuntime(thing.asCell());
-#ifdef JSGC_GENERATIONAL
     
 
 
@@ -507,7 +506,6 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
 
     if (IsInsideNursery(thing.asCell()))
         return;
-#endif
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
         JS::IncrementalReferenceBarrier(thing);
     else if (JS::GCThingIsMarkedGray(thing.asCell()))
@@ -518,13 +516,11 @@ static MOZ_ALWAYS_INLINE void
 MarkGCThingAsLive(JSRuntime *aRt, JS::GCCellPtr thing)
 {
     JS::shadow::Runtime *rt = JS::shadow::Runtime::asShadowRuntime(aRt);
-#ifdef JSGC_GENERATIONAL
     
 
 
     if (IsInsideNursery(thing.asCell()))
         return;
-#endif
     if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
         JS::IncrementalReferenceBarrier(thing);
 }

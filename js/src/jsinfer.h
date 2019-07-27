@@ -1333,7 +1333,6 @@ struct TypeObjectWithNewScriptEntry
           : clasp(clasp), hashProto(proto), matchProto(proto), newFunction(newFunction)
         {}
 
-#ifdef JSGC_GENERATIONAL
         
 
 
@@ -1341,7 +1340,6 @@ struct TypeObjectWithNewScriptEntry
         Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto, JSFunction *newFunction)
             : clasp(clasp), hashProto(hashProto), matchProto(matchProto), newFunction(newFunction)
         {}
-#endif
 
     };
 

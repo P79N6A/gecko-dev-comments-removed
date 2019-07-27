@@ -5,8 +5,6 @@
 
 
 
-#ifdef JSGC_GENERATIONAL
-
 #include "gc/Nursery-inl.h"
 
 #include "mozilla/IntegerPrintfMacros.h"
@@ -978,5 +976,3 @@ js::Nursery::shrinkAllocableSpace()
     numActiveChunks_ = Max(numActiveChunks_ - 1, 1);
     updateDecommittedRegion();
 }
-
-#endif 

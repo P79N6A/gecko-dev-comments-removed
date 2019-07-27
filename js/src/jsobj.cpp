@@ -2294,11 +2294,9 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
 
 
 
-#ifdef JSGC_GENERATIONAL
     MOZ_ASSERT(!IsInsideNursery(a) && !IsInsideNursery(b));
     cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(a);
     cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(b);
-#endif
 
     unsigned r = NotifyGCPreSwap(a, b);
 

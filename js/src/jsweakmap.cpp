@@ -353,12 +353,10 @@ TryPreserveReflector(JSContext *cx, HandleObject obj)
 static inline void
 WeakMapPostWriteBarrier(JSRuntime *rt, ObjectValueMap *weakMap, JSObject *key)
 {
-#ifdef JSGC_GENERATIONAL
     
     
     if (key && IsInsideNursery(key))
         rt->gc.storeBuffer.putGeneric(UnbarrieredRef(weakMap, key));
-#endif
 }
 
 static MOZ_ALWAYS_INLINE bool

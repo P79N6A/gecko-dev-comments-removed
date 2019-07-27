@@ -10,13 +10,9 @@
 #include "jsgc.h"
 
 #include "gc/Heap.h"
-#ifdef JSGC_GENERATIONAL
-# include "gc/Nursery.h"
-#endif
+#include "gc/Nursery.h"
 #include "gc/Statistics.h"
-#ifdef JSGC_GENERATIONAL
-# include "gc/StoreBuffer.h"
-#endif
+#include "gc/StoreBuffer.h"
 #include "gc/Tracer.h"
 
 
@@ -374,9 +370,7 @@ class GCRuntime
         allocTask.cancel(GCParallelTask::CancelAndWait);
     }
 
-#ifdef JSGC_GENERATIONAL
     void requestMinorGC(JS::gcreason::Reason reason);
-#endif
 
 #ifdef DEBUG
 
@@ -643,10 +637,8 @@ class GCRuntime
     
     js::gc::ZoneVector zones;
 
-#ifdef JSGC_GENERATIONAL
     js::Nursery nursery;
     js::gc::StoreBuffer storeBuffer;
-#endif
 
     js::gcstats::Statistics stats;
 
@@ -708,10 +700,8 @@ class GCRuntime
     volatile uintptr_t majorGCRequested;
     JS::gcreason::Reason majorGCTriggerReason;
 
-#ifdef JSGC_GENERATIONAL
     bool minorGCRequested;
     JS::gcreason::Reason minorGCTriggerReason;
-#endif
 
     
     uint64_t majorGCNumber;

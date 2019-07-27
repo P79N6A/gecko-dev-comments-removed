@@ -923,7 +923,6 @@ class AssemblerShared
     }
 
     ImmGCPtr noteMaybeNurseryPtr(ImmMaybeNurseryPtr ptr) {
-#ifdef JSGC_GENERATIONAL
         if (ptr.value && gc::IsInsideNursery(ptr.value)) {
             
             
@@ -931,7 +930,6 @@ class AssemblerShared
             MOZ_ASSERT(GetJitContext()->runtime->onMainThread());
             embedsNurseryPointers_ = true;
         }
-#endif
         return ImmGCPtr(ptr);
     }
 

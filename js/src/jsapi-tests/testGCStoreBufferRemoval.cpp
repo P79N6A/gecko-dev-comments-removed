@@ -5,8 +5,6 @@
 
 
 
-#ifdef JSGC_GENERATIONAL
-
 #include "gc/Barrier.h"
 #include "jsapi-tests/tests.h"
 
@@ -121,5 +119,3 @@ JSObject *NurseryObject()
     return JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
 }
 END_TEST(testGCStoreBufferRemoval)
-
-#endif

@@ -1590,8 +1590,6 @@ InitialShapeEntry::match(const InitialShapeEntry &key, const Lookup &lookup)
         && lookup.baseFlags == shape->getObjectFlags();
 }
 
-#ifdef JSGC_GENERATIONAL
-
 
 
 
@@ -1655,8 +1653,6 @@ class InitialShapeSetRef : public BufferableRef
                      *p);
     }
 };
-
-#endif 
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
@@ -1745,7 +1741,7 @@ EmptyShape::getInitialShape(ExclusiveContext *cx, const Class *clasp, TaggedProt
     if (!p.add(cx, table, lookup, InitialShapeEntry(ReadBarrieredShape(shape), protoRoot)))
         return nullptr;
 
-#ifdef JSGC_GENERATIONAL
+    
     if (cx->isJSContext()) {
         if ((protoRoot.isObject() && IsInsideNursery(protoRoot.toObject())) ||
             IsInsideNursery(parentRoot.get()) ||
@@ -1756,7 +1752,6 @@ EmptyShape::getInitialShape(ExclusiveContext *cx, const Class *clasp, TaggedProt
             cx->asJSContext()->runtime()->gc.storeBuffer.putGeneric(ref);
         }
     }
-#endif
 
     return shape;
 }

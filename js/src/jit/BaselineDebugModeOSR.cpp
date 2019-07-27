@@ -819,10 +819,8 @@ jit::RecompileOnStackBaselineScriptsForDebugMode(JSContext *cx,
     if (entries.empty())
         return true;
 
-#ifdef JSGC_GENERATIONAL
     
     cx->runtime()->gc.evictNursery();
-#endif
 
     
     

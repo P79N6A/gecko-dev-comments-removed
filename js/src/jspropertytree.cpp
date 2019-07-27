@@ -347,7 +347,6 @@ Shape::fixupAfterMovingGC()
 
 #endif 
 
-#ifdef JSGC_GENERATIONAL
 void
 ShapeGetterSetterRef::mark(JSTracer *trc)
 {
@@ -376,7 +375,6 @@ ShapeGetterSetterRef::mark(JSTracer *trc)
     *objp = obj;
     MOZ_ALWAYS_TRUE(kh->putNew(StackShape(shape), shape));
 }
-#endif
 
 #ifdef DEBUG
 

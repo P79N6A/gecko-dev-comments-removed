@@ -22,9 +22,7 @@
 #include "vm/ForkJoin.h"
 #include "vm/TraceLogging.h"
 
-#ifdef JSGC_GENERATIONAL
-# include "jsgcinlines.h"
-#endif
+#include "jsgcinlines.h"
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 #include "vm/Interpreter-inl.h"
@@ -639,16 +637,12 @@ MacroAssembler::checkAllocatorState(Label *fail)
 bool
 MacroAssembler::shouldNurseryAllocate(gc::AllocKind allocKind, gc::InitialHeap initialHeap)
 {
-#ifdef JSGC_GENERATIONAL
     
     
     
     
     
     return IsNurseryAllocable(allocKind) && initialHeap != gc::TenuredHeap;
-#else
-    return false;
-#endif
 }
 
 
@@ -656,7 +650,6 @@ void
 MacroAssembler::nurseryAllocate(Register result, Register slots, gc::AllocKind allocKind,
                                 size_t nDynamicSlots, gc::InitialHeap initialHeap, Label *fail)
 {
-#ifdef JSGC_GENERATIONAL
     MOZ_ASSERT(IsNurseryAllocable(allocKind));
     MOZ_ASSERT(initialHeap != gc::TenuredHeap);
 
@@ -681,7 +674,6 @@ MacroAssembler::nurseryAllocate(Register result, Register slots, gc::AllocKind a
 
     if (nDynamicSlots)
         computeEffectiveAddress(Address(result, thingSize), slots);
-#endif 
 }
 
 

@@ -296,7 +296,7 @@ NativeObject::initDenseElementsUnbarriered(uint32_t dstStart, const Value *src, 
 
     MOZ_ASSERT(dstStart + count <= getDenseCapacity());
     MOZ_ASSERT(!denseElementsAreCopyOnWrite());
-#if defined(DEBUG) && defined(JSGC_GENERATIONAL)
+#ifdef DEBUG
     
 
 

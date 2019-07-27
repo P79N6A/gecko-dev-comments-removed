@@ -263,7 +263,6 @@ namespace gc {
 void MergeCompartments(JSCompartment *source, JSCompartment *target);
 }
 
-#ifdef JSGC_GENERATIONAL
 
 
 class ShapeGetterSetterRef : public gc::BufferableRef
@@ -278,28 +277,23 @@ class ShapeGetterSetterRef : public gc::BufferableRef
 
     void mark(JSTracer *trc);
 };
-#endif
 
 static inline void
 GetterSetterWriteBarrierPost(AccessorShape *shape, JSObject **objp)
 {
-#ifdef JSGC_GENERATIONAL
     MOZ_ASSERT(shape);
     MOZ_ASSERT(objp);
     MOZ_ASSERT(*objp);
     gc::Cell **cellp = reinterpret_cast<gc::Cell **>(objp);
     if (gc::StoreBuffer *sb = (*cellp)->storeBuffer())
         sb->putGeneric(ShapeGetterSetterRef(shape, objp));
-#endif
 }
 
 static inline void
 GetterSetterWriteBarrierPostRemove(JSRuntime *rt, JSObject **objp)
 {
-#ifdef JSGC_GENERATIONAL
     JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
     shadowRuntime->gcStoreBufferPtr()->removeRelocatableCellFromAnyThread(reinterpret_cast<gc::Cell **>(objp));
-#endif
 }
 
 class BaseShape : public gc::TenuredCell
@@ -1176,7 +1170,6 @@ struct InitialShapeEntry
             nfixed(nfixed), baseFlags(baseFlags)
         {}
 
-#ifdef JSGC_GENERATIONAL
         
 
 
@@ -1192,7 +1185,6 @@ struct InitialShapeEntry
             hashMetadata(hashMetadata), matchMetadata(matchMetadata),
             nfixed(nfixed), baseFlags(baseFlags)
         {}
-#endif
     };
 
     inline InitialShapeEntry();

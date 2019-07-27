@@ -5,8 +5,6 @@
 
 
 
-#ifdef JSGC_GENERATIONAL
-
 #include "js/RootingAPI.h"
 #include "jsapi-tests/tests.h"
 
@@ -85,5 +83,3 @@ JSFunction *NurseryFunction()
 }
 
 END_TEST(testGCHeapPostBarriers)
-
-#endif

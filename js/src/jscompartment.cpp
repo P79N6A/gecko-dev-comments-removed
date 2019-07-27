@@ -182,8 +182,6 @@ JSCompartment::ensureJitCompartmentExists(JSContext *cx)
     return true;
 }
 
-#ifdef JSGC_GENERATIONAL
-
 
 
 
@@ -238,8 +236,6 @@ JSCompartment::checkWrapperMapAfterMovingGC()
 }
 #endif
 
-#endif
-
 bool
 JSCompartment::putWrapper(JSContext *cx, const CrossCompartmentKey &wrapped, const js::Value &wrapper)
 {
@@ -251,7 +247,6 @@ JSCompartment::putWrapper(JSContext *cx, const CrossCompartmentKey &wrapped, con
     MOZ_ASSERT_IF(wrapped.kind != CrossCompartmentKey::StringWrapper, wrapper.isObject());
     bool success = crossCompartmentWrappers.put(wrapped, ReadBarriered<Value>(wrapper));
 
-#ifdef JSGC_GENERATIONAL
     
     MOZ_ASSERT(!IsInsideNursery(static_cast<gc::Cell *>(wrapper.toGCThing())));
 
@@ -259,7 +254,6 @@ JSCompartment::putWrapper(JSContext *cx, const CrossCompartmentKey &wrapped, con
         WrapperMapRef ref(&crossCompartmentWrappers, wrapped);
         cx->runtime()->gc.storeBuffer.putGeneric(ref);
     }
-#endif
 
     return success;
 }
