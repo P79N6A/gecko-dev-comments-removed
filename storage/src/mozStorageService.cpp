@@ -347,22 +347,32 @@ Service::minimizeMemory()
 
   for (uint32_t i = 0; i < connections.Length(); i++) {
     nsRefPtr<Connection> conn = connections[i];
-    if (conn->connectionReady()) {
-      NS_NAMED_LITERAL_CSTRING(shrinkPragma, "PRAGMA shrink_memory");
-      nsCOMPtr<mozIStorageConnection> syncConn = do_QueryInterface(
-        NS_ISUPPORTS_CAST(mozIStorageAsyncConnection*, conn));
-      DebugOnly<nsresult> rv;
+    if (!conn->connectionReady())
+      continue;
 
-      if (!syncConn) {
-        nsCOMPtr<mozIStoragePendingStatement> ps;
-        rv = connections[i]->ExecuteSimpleSQLAsync(shrinkPragma, nullptr,
-          getter_AddRefs(ps));
-      } else {
-        rv = connections[i]->ExecuteSimpleSQL(shrinkPragma);
-      }
+    NS_NAMED_LITERAL_CSTRING(shrinkPragma, "PRAGMA shrink_memory");
+    nsCOMPtr<mozIStorageConnection> syncConn = do_QueryInterface(
+      NS_ISUPPORTS_CAST(mozIStorageAsyncConnection*, conn));
+    bool onOpenedThread = false;
 
-      MOZ_ASSERT(NS_SUCCEEDED(rv),
-        "Should have been able to purge sqlite caches");
+    if (!syncConn) {
+      
+      
+      nsCOMPtr<mozIStoragePendingStatement> ps;
+      DebugOnly<nsresult> rv =
+        conn->ExecuteSimpleSQLAsync(shrinkPragma, nullptr, getter_AddRefs(ps));
+      MOZ_ASSERT(NS_SUCCEEDED(rv), "Should have purged sqlite caches");
+    } else if (NS_SUCCEEDED(conn->threadOpenedOn->IsOnCurrentThread(&onOpenedThread)) &&
+               onOpenedThread) {
+      
+      conn->ExecuteSimpleSQL(shrinkPragma);
+    } else {
+      
+      
+      nsCOMPtr<nsIRunnable> event =
+        NS_NewRunnableMethodWithArg<const nsCString>(
+          conn, &Connection::ExecuteSimpleSQL, shrinkPragma);
+      conn->threadOpenedOn->Dispatch(event, NS_DISPATCH_NORMAL);
     }
   }
 }
