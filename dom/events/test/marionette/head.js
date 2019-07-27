@@ -116,14 +116,10 @@ function waitForWindowEvent(aEventName) {
 
 
 function cleanUp() {
-  waitFor(function() {
-    SpecialPowers.flushPermissions(function() {
-      
-      ok(true, "permissions flushed");
+  
+  ok(true, ":: CLEANING UP ::");
 
-      finish();
-    });
-  }, function() {
+  waitFor(finish, function() {
     return _pendingEmulatorCmdCount === 0;
   });
 }
