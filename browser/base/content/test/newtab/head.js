@@ -520,9 +520,9 @@ function synthesizeNativeMouseLUp(aElement) {
 
 
 
-function synthesizeNativeMouseDrag(aElement, aOffsetX) {
+function synthesizeNativeMouseDrag(aElement, aOffsetY) {
   let msg = isMac ? 6 : 1;
-  synthesizeNativeMouseEvent(aElement, msg, aOffsetX);
+  synthesizeNativeMouseEvent(aElement, msg, 0, aOffsetY);
 }
 
 
