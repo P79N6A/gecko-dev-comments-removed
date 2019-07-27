@@ -10015,6 +10015,14 @@ IonBuilder::jsop_getprop(PropertyName* name)
     }
 
     
+    
+    
+    
+    trackOptimizationAttempt(TrackedStrategy::GetProp_Innerize);
+    if (!getPropTryInnerize(&emitted, obj, name, types) || emitted)
+        return emitted;
+
+    
     trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
     if (!getPropTryConstant(&emitted, obj, name, types) || emitted)
         return emitted;
@@ -10047,11 +10055,6 @@ IonBuilder::jsop_getprop(PropertyName* name)
     
     trackOptimizationAttempt(TrackedStrategy::GetProp_InlineAccess);
     if (!getPropTryInlineAccess(&emitted, obj, name, barrier, types) || emitted)
-        return emitted;
-
-    
-    trackOptimizationAttempt(TrackedStrategy::GetProp_Innerize);
-    if (!getPropTryInnerize(&emitted, obj, name, types) || emitted)
         return emitted;
 
     
@@ -11051,12 +11054,20 @@ IonBuilder::getPropTryInnerize(bool* emitted, MDefinition* obj, PropertyName* na
     
     
 
+    
+    
+    
+    
+
+    trackOptimizationAttempt(TrackedStrategy::GetProp_Constant);
     if (!getPropTryConstant(emitted, inner, name, types) || *emitted)
         return *emitted;
 
+    trackOptimizationAttempt(TrackedStrategy::GetProp_StaticName);
     if (!getStaticName(&script()->global(), name, emitted) || *emitted)
         return *emitted;
 
+    trackOptimizationAttempt(TrackedStrategy::GetProp_CommonGetter);
     if (!getPropTryCommonGetter(emitted, inner, name, types) || *emitted)
         return *emitted;
 
@@ -11064,6 +11075,7 @@ IonBuilder::getPropTryInnerize(bool* emitted, MDefinition* obj, PropertyName* na
     
     BarrierKind barrier = PropertyReadNeedsTypeBarrier(analysisContext, constraints(),
                                                        inner, name, types);
+    trackOptimizationAttempt(TrackedStrategy::GetProp_InlineCache);
     if (!getPropTryCache(emitted, inner, name, barrier, types) || *emitted)
         return *emitted;
 
