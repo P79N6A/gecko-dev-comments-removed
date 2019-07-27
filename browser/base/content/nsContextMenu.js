@@ -600,6 +600,7 @@ nsContextMenu.prototype = {
     this.focusedElement = elt;
 
     let ownerDoc = this.target.ownerDocument;
+    this.ownerDoc = ownerDoc;
 
     
     
@@ -1311,9 +1312,8 @@ nsContextMenu.prototype = {
 
   
   saveLink: function() {
-    var doc =  this.target.ownerDocument;
     urlSecurityCheck(this.linkURL, this.principal);
-    this.saveHelper(this.linkURL, this.linkText, null, true, doc);
+    this.saveHelper(this.linkURL, this.linkText, null, true, this.ownerDoc);
   },
 
   
