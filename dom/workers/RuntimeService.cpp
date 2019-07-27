@@ -803,12 +803,6 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
   JS_SetSecurityCallbacks(aRuntime, &securityCallbacks);
 
   
-  static js::DOMCallbacks DOMCallbacks = {
-    InstanceClassHasProtoAtDepth
-  };
-  SetDOMCallbacks(aRuntime, &DOMCallbacks);
-
-  
   static JS::AsmJSCacheOps asmJSCacheOps = {
     AsmJSCacheOpenEntryForRead,
     asmjscache::CloseEntryForRead,

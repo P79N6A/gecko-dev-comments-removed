@@ -2951,11 +2951,6 @@ nsJSContext::EnsureStatics()
   };
   JS_SetStructuredCloneCallbacks(sRuntime, &cloneCallbacks);
 
-  static js::DOMCallbacks DOMcallbacks = {
-    InstanceClassHasProtoAtDepth
-  };
-  SetDOMCallbacks(sRuntime, &DOMcallbacks);
-
   
   static JS::AsmJSCacheOps asmJSCacheOps = {
     AsmJSCacheOpenEntryForRead,
