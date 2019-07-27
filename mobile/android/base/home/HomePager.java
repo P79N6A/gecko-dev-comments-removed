@@ -223,7 +223,7 @@ public class HomePager extends ViewPager {
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
         adapter.setOnAddPanelListener(mAddPanelListener);
-        adapter.setCanLoadHint(true);
+        adapter.setCanLoadHint(!shouldAnimate);
         setAdapter(adapter);
 
         
@@ -243,6 +243,7 @@ public class HomePager extends ViewPager {
                 @Override
                 public void onPropertyAnimationEnd() {
                     setLayerType(View.LAYER_TYPE_NONE, null);
+                    adapter.setCanLoadHint(true);
                 }
             });
 
@@ -373,6 +374,8 @@ public class HomePager extends ViewPager {
 
         
         
+        
+        final boolean canLoadHint = adapter.getCanLoadHint();
         adapter.setCanLoadHint(false);
 
         
@@ -435,13 +438,17 @@ public class HomePager extends ViewPager {
 
         
         
-        
-        ThreadUtils.getUiHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                adapter.setCanLoadHint(true);
-            }
-        });
+        if (canLoadHint) {
+            
+            
+            
+            ThreadUtils.getUiHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    adapter.setCanLoadHint(true);
+                }
+            });
+        }
     }
 
     public void setOnPanelChangeListener(OnPanelChangeListener listener) {
