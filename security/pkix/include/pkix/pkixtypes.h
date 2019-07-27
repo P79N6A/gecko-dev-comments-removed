@@ -255,6 +255,11 @@ public:
   
   
   
+  
+  
+  
+  
+  
   virtual Result FindIssuer(Input encodedIssuerName,
                             IssuerChecker& checker, Time time) = 0;
 

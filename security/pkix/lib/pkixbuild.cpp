@@ -141,6 +141,15 @@ PathBuildingStep::Check(Input potentialIssuerDER,
 
   
   
+  
+  
+  
+  
+  
+  if (!InputsAreEqual(potentialIssuer.GetSubject(), subject.GetIssuer())) {
+    keepGoing = true;
+    return Success;
+  }
 
   
   
