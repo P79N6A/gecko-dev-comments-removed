@@ -131,7 +131,7 @@ png_read_sig(png_structrp png_ptr, png_inforp info_ptr)
    png_read_data(png_ptr, &(info_ptr->signature[num_checked]), num_to_check);
    png_ptr->sig_bytes = 8;
 
-   if (png_sig_cmp(info_ptr->signature, num_checked, num_to_check) != 0)
+   if (png_sig_cmp(info_ptr->signature, num_checked, num_to_check))
    {
       if (num_checked < 4 &&
           png_sig_cmp(info_ptr->signature, num_checked, num_to_check - 4))
@@ -217,11 +217,11 @@ png_crc_finish(png_structrp png_ptr, png_uint_32 skip)
       png_crc_read(png_ptr, tmpbuf, len);
    }
 
-   if (png_crc_error(png_ptr) != 0)
+   if (png_crc_error(png_ptr))
    {
-      if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name) != 0 ?
-          (png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN) == 0 :
-          (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_USE) != 0)
+      if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name) ?
+          !(png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN) :
+          (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_USE))
       {
          png_chunk_warning(png_ptr, "CRC error");
       }
@@ -245,7 +245,7 @@ png_crc_error(png_structrp png_ptr)
    png_uint_32 crc;
    int need_crc = 1;
 
-   if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name) != 0)
+   if (PNG_CHUNK_ANCILLARY(png_ptr->chunk_name))
    {
       if ((png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_MASK) ==
           (PNG_FLAG_CRC_ANCILLARY_USE | PNG_FLAG_CRC_ANCILLARY_NOWARN))
@@ -254,7 +254,7 @@ png_crc_error(png_structrp png_ptr)
 
    else 
    {
-      if ((png_ptr->flags & PNG_FLAG_CRC_CRITICAL_IGNORE) != 0)
+      if (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_IGNORE)
          need_crc = 0;
    }
 
@@ -388,7 +388,7 @@ png_inflate_claim(png_structrp png_ptr, png_uint_32 owner)
       png_ptr->zstream.next_out = NULL;
       png_ptr->zstream.avail_out = 0;
 
-      if ((png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED) != 0)
+      if (png_ptr->flags & PNG_FLAG_ZSTREAM_INITIALIZED)
       {
 #if PNG_ZLIB_VERNUM < 0x1240
          ret = inflateReset(&png_ptr->zstream);
@@ -670,7 +670,6 @@ png_decompress_chunk(png_structrp png_ptr,
 
 
                   png_free(png_ptr, text);
-                  text = NULL;
 
                   
 
@@ -798,7 +797,7 @@ png_handle_IHDR(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_IHDR");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) != 0)
+   if (png_ptr->mode & PNG_HAVE_IHDR)
       png_chunk_error(png_ptr, "out of place");
 
    
@@ -879,7 +878,7 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_PLTE");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
    
@@ -887,10 +886,10 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
 
 
-   else if ((png_ptr->mode & PNG_HAVE_PLTE) != 0)
+   else if (png_ptr->mode & PNG_HAVE_PLTE)
       png_chunk_error(png_ptr, "duplicate");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       
 
@@ -902,7 +901,7 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_ptr->mode |= PNG_HAVE_PLTE;
 
-   if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) == 0)
+   if (!(png_ptr->color_type & PNG_COLOR_MASK_COLOR))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "ignored in grayscale PNG");
@@ -969,7 +968,7 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 
 #ifndef PNG_READ_OPT_PLTE_SUPPORTED
-   else if (png_crc_error(png_ptr) != 0)  
+   else if (png_crc_error(png_ptr))  
    {
       
 
@@ -980,9 +979,9 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
 
 
-      if ((png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_USE) == 0)
+      if (!(png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_USE))
       {
-         if ((png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN) != 0)
+         if (png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN)
             return;
 
          else
@@ -990,7 +989,7 @@ png_handle_PLTE(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       }
 
       
-      else if ((png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN) == 0)
+      else if (!(png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN))
          png_chunk_warning(png_ptr, "CRC error");
    }
 #endif
@@ -1047,8 +1046,7 @@ png_handle_IEND(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 {
    png_debug(1, "in png_handle_IEND");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0 ||
-       (png_ptr->mode & PNG_HAVE_IDAT) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR) || !(png_ptr->mode & PNG_HAVE_IDAT))
       png_chunk_error(png_ptr, "out of place");
 
    png_ptr->mode |= (PNG_AFTER_IDAT | PNG_HAVE_IEND);
@@ -1070,10 +1068,10 @@ png_handle_gAMA(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_gAMA");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE)) != 0)
+   else if (png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
@@ -1089,7 +1087,7 @@ png_handle_gAMA(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, 4);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    igamma = png_get_fixed_point(NULL, buf);
@@ -1109,17 +1107,17 @@ png_handle_sBIT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_sBIT");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE)) != 0)
+   else if (png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_sBIT) != 0)
+   if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_sBIT))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -1148,7 +1146,7 @@ png_handle_sBIT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    buf[0] = buf[1] = buf[2] = buf[3] = sample_depth;
    png_crc_read(png_ptr, buf, truelen);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    for (i=0; i<truelen; ++i)
@@ -1158,7 +1156,7 @@ png_handle_sBIT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
          return;
       }
 
-   if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
+   if (png_ptr->color_type & PNG_COLOR_MASK_COLOR)
    {
       png_ptr->sig_bit.red = buf[0];
       png_ptr->sig_bit.green = buf[1];
@@ -1188,10 +1186,10 @@ png_handle_cHRM(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_cHRM");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE)) != 0)
+   else if (png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
@@ -1207,7 +1205,7 @@ png_handle_cHRM(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, 32);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    xy.whitex = png_get_fixed_point(NULL, buf);
@@ -1233,10 +1231,10 @@ png_handle_cHRM(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 
    
-   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID) != 0)
+   if (png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID)
       return;
 
-   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_FROM_cHRM) != 0)
+   if (png_ptr->colorspace.flags & PNG_COLORSPACE_FROM_cHRM)
    {
       png_ptr->colorspace.flags |= PNG_COLORSPACE_INVALID;
       png_colorspace_sync(png_ptr, info_ptr);
@@ -1259,10 +1257,10 @@ png_handle_sRGB(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_sRGB");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE)) != 0)
+   else if (png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
@@ -1278,17 +1276,17 @@ png_handle_sRGB(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, &intent, 1);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    
-   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID) != 0)
+   if (png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID)
       return;
 
    
 
 
-   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_INTENT) != 0)
+   if (png_ptr->colorspace.flags & PNG_COLORSPACE_HAVE_INTENT)
    {
       png_ptr->colorspace.flags |= PNG_COLORSPACE_INVALID;
       png_colorspace_sync(png_ptr, info_ptr);
@@ -1311,10 +1309,10 @@ png_handle_iCCP(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_iCCP");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE)) != 0)
+   else if (png_ptr->mode & (PNG_HAVE_IDAT|PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
@@ -1337,7 +1335,7 @@ png_handle_iCCP(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 
    
-   if ((png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID) != 0)
+   if (png_ptr->colorspace.flags & PNG_COLORSPACE_INVALID)
    {
       png_crc_finish(png_ptr, length);
       return;
@@ -1397,14 +1395,14 @@ png_handle_iCCP(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
                      png_get_uint_32(profile_header);
 
                   if (png_icc_check_length(png_ptr, &png_ptr->colorspace,
-                     keyword, profile_length) != 0)
+                     keyword, profile_length))
                   {
                      
 
 
                      if (png_icc_check_header(png_ptr, &png_ptr->colorspace,
                         keyword, profile_length, profile_header,
-                        png_ptr->color_type) != 0)
+                        png_ptr->color_type))
                      {
                         
 
@@ -1434,7 +1432,7 @@ png_handle_iCCP(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
                            {
                               if (png_icc_check_tag_table(png_ptr,
                                  &png_ptr->colorspace, keyword, profile_length,
-                                 profile) != 0)
+                                 profile))
                               {
                                  
 
@@ -1608,10 +1606,10 @@ png_handle_sPLT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 #endif
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
@@ -1642,7 +1640,7 @@ png_handle_sPLT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buffer, length);
 
-   if (png_crc_finish(png_ptr, skip) != 0)
+   if (png_crc_finish(png_ptr, skip))
       return;
 
    buffer[length] = 0;
@@ -1667,7 +1665,7 @@ png_handle_sPLT(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    data_length = length - (png_uint_32)(entry_start - buffer);
 
    
-   if ((data_length % entry_size) != 0)
+   if (data_length % entry_size)
    {
       png_warning(png_ptr, "sPLT chunk has bad length");
       return;
@@ -1759,17 +1757,17 @@ png_handle_tRNS(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_tRNS");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_tRNS) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_tRNS))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -1812,7 +1810,7 @@ png_handle_tRNS(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    else if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
    {
-      if ((png_ptr->mode & PNG_HAVE_PLTE) == 0)
+      if (!(png_ptr->mode & PNG_HAVE_PLTE))
       {
          
          png_crc_finish(png_ptr, length);
@@ -1839,7 +1837,7 @@ png_handle_tRNS(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       return;
    }
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
    {
       png_ptr->num_trans = 0;
       return;
@@ -1864,19 +1862,19 @@ png_handle_bKGD(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_bKGD");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0 ||
-       (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
-       (png_ptr->mode & PNG_HAVE_PLTE) == 0))
+   else if ((png_ptr->mode & PNG_HAVE_IDAT) ||
+      (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
+       !(png_ptr->mode & PNG_HAVE_PLTE)))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_bKGD) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_bKGD))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -1886,7 +1884,7 @@ png_handle_bKGD(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       truelen = 1;
 
-   else if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
+   else if (png_ptr->color_type & PNG_COLOR_MASK_COLOR)
       truelen = 6;
 
    else
@@ -1901,7 +1899,7 @@ png_handle_bKGD(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, truelen);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    
@@ -1913,7 +1911,7 @@ png_handle_bKGD(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    {
       background.index = buf[0];
 
-      if (info_ptr != NULL && info_ptr->num_palette != 0)
+      if (info_ptr && info_ptr->num_palette)
       {
          if (buf[0] >= info_ptr->num_palette)
          {
@@ -1932,7 +1930,7 @@ png_handle_bKGD(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       background.gray = 0;
    }
 
-   else if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) == 0) 
+   else if (!(png_ptr->color_type & PNG_COLOR_MASK_COLOR)) 
    {
       background.index = 0;
       background.red =
@@ -1963,18 +1961,17 @@ png_handle_hIST(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_hIST");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0 ||
-       (png_ptr->mode & PNG_HAVE_PLTE) == 0)
+   else if ((png_ptr->mode & PNG_HAVE_IDAT) || !(png_ptr->mode & PNG_HAVE_PLTE))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_hIST) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_hIST))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -1998,7 +1995,7 @@ png_handle_hIST(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       readbuf[i] = png_get_uint_16(buf);
    }
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    png_set_hIST(png_ptr, info_ptr, readbuf);
@@ -2015,17 +2012,17 @@ png_handle_pHYs(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_pHYs");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_pHYs) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_pHYs))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -2041,7 +2038,7 @@ png_handle_pHYs(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, 9);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    res_x = png_get_uint_32(buf);
@@ -2061,17 +2058,17 @@ png_handle_oFFs(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_oFFs");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_oFFs) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_oFFs))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -2087,7 +2084,7 @@ png_handle_oFFs(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, 9);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    offset_x = png_get_int_32(buf);
@@ -2110,17 +2107,17 @@ png_handle_pCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_pCAL");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_pCAL) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_pCAL))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -2141,7 +2138,7 @@ png_handle_pCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buffer, length);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    buffer[length] = 0; 
@@ -2237,17 +2234,17 @@ png_handle_sCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_sCAL");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "out of place");
       return;
    }
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_sCAL) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_sCAL))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
@@ -2277,7 +2274,7 @@ png_handle_sCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    png_crc_read(png_ptr, buffer, length);
    buffer[length] = 0; 
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    
@@ -2293,11 +2290,11 @@ png_handle_sCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    i = 1;
    state = 0;
 
-   if (png_check_fp_number((png_const_charp)buffer, length, &state, &i) == 0 ||
+   if (!png_check_fp_number((png_const_charp)buffer, length, &state, &i) ||
        i >= length || buffer[i++] != 0)
       png_chunk_benign_error(png_ptr, "bad width format");
 
-   else if (PNG_FP_IS_POSITIVE(state) == 0)
+   else if (!PNG_FP_IS_POSITIVE(state))
       png_chunk_benign_error(png_ptr, "non-positive width");
 
    else
@@ -2305,11 +2302,11 @@ png_handle_sCAL(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
       png_size_t heighti = i;
 
       state = 0;
-      if (png_check_fp_number((png_const_charp)buffer, length,
-          &state, &i) == 0 || i != length)
+      if (!png_check_fp_number((png_const_charp)buffer, length, &state, &i) ||
+         i != length)
          png_chunk_benign_error(png_ptr, "bad height format");
 
-      else if (PNG_FP_IS_POSITIVE(state) == 0)
+      else if (!PNG_FP_IS_POSITIVE(state))
          png_chunk_benign_error(png_ptr, "non-positive height");
 
       else
@@ -2329,17 +2326,17 @@ png_handle_tIME(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_debug(1, "in png_handle_tIME");
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_tIME) != 0)
+   else if (info_ptr != NULL && (info_ptr->valid & PNG_INFO_tIME))
    {
       png_crc_finish(png_ptr, length);
       png_chunk_benign_error(png_ptr, "duplicate");
       return;
    }
 
-   if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   if (png_ptr->mode & PNG_HAVE_IDAT)
       png_ptr->mode |= PNG_AFTER_IDAT;
 
    if (length != 7)
@@ -2351,7 +2348,7 @@ png_handle_tIME(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buf, 7);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    mod_time.second = buf[6];
@@ -2396,10 +2393,10 @@ png_handle_tEXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 #endif
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   if (png_ptr->mode & PNG_HAVE_IDAT)
       png_ptr->mode |= PNG_AFTER_IDAT;
 
 #ifdef PNG_MAX_MALLOC_64K
@@ -2421,7 +2418,7 @@ png_handle_tEXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buffer, length);
 
-   if (png_crc_finish(png_ptr, skip) != 0)
+   if (png_crc_finish(png_ptr, skip))
       return;
 
    key = (png_charp)buffer;
@@ -2441,7 +2438,7 @@ png_handle_tEXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    text_info.text = text;
    text_info.text_length = strlen(text);
 
-   if (png_set_text_2(png_ptr, info_ptr, &text_info, 1) != 0)
+   if (png_set_text_2(png_ptr, info_ptr, &text_info, 1))
       png_warning(png_ptr, "Insufficient memory to process text chunk");
 }
 #endif
@@ -2475,10 +2472,10 @@ png_handle_zTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 #endif
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   if (png_ptr->mode & PNG_HAVE_IDAT)
       png_ptr->mode |= PNG_AFTER_IDAT;
 
    buffer = png_read_buffer(png_ptr, length, 2);
@@ -2492,7 +2489,7 @@ png_handle_zTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buffer, length);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    
@@ -2542,7 +2539,7 @@ png_handle_zTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
          text.lang = NULL;
          text.lang_key = NULL;
 
-         if (png_set_text_2(png_ptr, info_ptr, &text, 1) != 0)
+         if (png_set_text_2(png_ptr, info_ptr, &text, 1))
             errmsg = "insufficient memory";
       }
 
@@ -2584,10 +2581,10 @@ png_handle_iTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
    }
 #endif
 
-   if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_chunk_error(png_ptr, "missing IHDR");
 
-   if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+   if (png_ptr->mode & PNG_HAVE_IDAT)
       png_ptr->mode |= PNG_AFTER_IDAT;
 
    buffer = png_read_buffer(png_ptr, length+1, 1);
@@ -2601,7 +2598,7 @@ png_handle_iTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
    png_crc_read(png_ptr, buffer, length);
 
-   if (png_crc_finish(png_ptr, 0) != 0)
+   if (png_crc_finish(png_ptr, 0))
       return;
 
    
@@ -2651,10 +2648,10 @@ png_handle_iTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
 
       ++prefix_length;
 
-      if (compressed == 0 && prefix_length <= length)
+      if (!compressed && prefix_length <= length)
          uncompressed_length = length - prefix_length;
 
-      else if (compressed != 0 && prefix_length < length)
+      else if (compressed && prefix_length < length)
       {
          uncompressed_length = PNG_SIZE_MAX;
 
@@ -2692,7 +2689,7 @@ png_handle_iTXt(png_structrp png_ptr, png_inforp info_ptr, png_uint_32 length)
          text.text_length = 0;
          text.itxt_length = uncompressed_length;
 
-         if (png_set_text_2(png_ptr, info_ptr, &text, 1) != 0)
+         if (png_set_text_2(png_ptr, info_ptr, &text, 1))
             errmsg = "insufficient memory";
       }
    }
@@ -2716,17 +2713,17 @@ png_handle_acTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
     png_debug(1, "in png_handle_acTL");
 
-    if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+    if (!(png_ptr->mode & PNG_HAVE_IHDR))
     {
         png_error(png_ptr, "Missing IHDR before acTL");
     }
-    else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+    else if (png_ptr->mode & PNG_HAVE_IDAT)
     {
         png_warning(png_ptr, "Invalid acTL after IDAT skipped");
         png_crc_finish(png_ptr, length);
         return;
     }
-    else if ((png_ptr->mode & PNG_HAVE_acTL) != 0)
+    else if (png_ptr->mode & PNG_HAVE_acTL)
     {
         png_warning(png_ptr, "Duplicate acTL skipped");
         png_crc_finish(png_ptr, length);
@@ -2747,7 +2744,7 @@ png_handle_acTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
     
     didSet = png_set_acTL(png_ptr, info_ptr, num_frames, num_plays);
-    if (didSet != 0)
+    if(didSet)
         png_ptr->mode |= PNG_HAVE_acTL;
 }
 
@@ -2768,11 +2765,11 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
     png_ensure_sequence_number(png_ptr, length);
 
-    if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+    if (!(png_ptr->mode & PNG_HAVE_IHDR))
     {
         png_error(png_ptr, "Missing IHDR before fcTL");
     }
-    else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+    else if (png_ptr->mode & PNG_HAVE_IDAT)
     {
         
 
@@ -2781,7 +2778,7 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
         png_crc_finish(png_ptr, length-4);
         return;
     }
-    else if ((png_ptr->mode & PNG_HAVE_fcTL) != 0)
+    else if (png_ptr->mode & PNG_HAVE_fcTL)
     {
         png_warning(png_ptr, "Duplicate fcTL within one frame skipped");
         png_crc_finish(png_ptr, length-4);
@@ -2836,8 +2833,7 @@ png_handle_fcTL(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 void 
 png_have_info(png_structp png_ptr, png_infop info_ptr)
 {
-    if ((info_ptr->valid & PNG_INFO_acTL) != 0 &&
-        (info_ptr->valid & PNG_INFO_fcTL) == 0)
+    if((info_ptr->valid & PNG_INFO_acTL) && !(info_ptr->valid & PNG_INFO_fcTL))
     {
         png_ptr->apng_flags |= PNG_FIRST_FRAME_HIDDEN;
         info_ptr->num_frames++;
@@ -2894,7 +2890,7 @@ png_cache_unknown_chunk(png_structrp png_ptr, png_uint_32 length)
 
 #  ifdef PNG_SET_CHUNK_MALLOC_LIMIT_SUPPORTED
       if (png_ptr->user_chunk_malloc_max > 0 &&
-          png_ptr->user_chunk_malloc_max < limit)
+         png_ptr->user_chunk_malloc_max < limit)
          limit = png_ptr->user_chunk_malloc_max;
 
 #  elif PNG_USER_CHUNK_MALLOC_MAX > 0
@@ -2976,7 +2972,7 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
 
       if (png_ptr->read_user_chunk_fn != NULL)
       {
-         if (png_cache_unknown_chunk(png_ptr, length) != 0)
+         if (png_cache_unknown_chunk(png_ptr, length))
          {
             
             int ret = (*(png_ptr->read_user_chunk_fn))(png_ptr,
@@ -3053,7 +3049,7 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
             (keep == PNG_HANDLE_CHUNK_IF_SAFE &&
              PNG_CHUNK_ANCILLARY(png_ptr->chunk_name)))
          {
-            if (png_cache_unknown_chunk(png_ptr, length) == 0)
+            if (!png_cache_unknown_chunk(png_ptr, length))
                keep = PNG_HANDLE_CHUNK_NEVER;
          }
 
@@ -3136,7 +3132,7 @@ png_handle_unknown(png_structrp png_ptr, png_inforp info_ptr,
 #endif 
 
    
-   if (handled == 0 && PNG_CHUNK_CRITICAL(png_ptr->chunk_name))
+   if (!handled && PNG_CHUNK_CRITICAL(png_ptr->chunk_name))
       png_chunk_error(png_ptr, "unhandled critical chunk");
 }
 
@@ -3219,8 +3215,7 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
       end_ptr = dp + PNG_ROWBYTES(pixel_depth, row_width) - 1;
       end_byte = *end_ptr;
 #     ifdef PNG_READ_PACKSWAP_SUPPORTED
-         if ((png_ptr->transformations & PNG_PACKSWAP) != 0)
-            
+         if (png_ptr->transformations & PNG_PACKSWAP) 
             end_mask = 0xff << end_mask;
 
          else 
@@ -3236,11 +3231,10 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
 
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
-   if (png_ptr->interlaced != 0 &&
-       (png_ptr->transformations & PNG_INTERLACE) != 0 &&
-       pass < 6 && (display == 0 ||
-       
-       (display == 1 && (pass & 1) != 0)))
+   if (png_ptr->interlaced && (png_ptr->transformations & PNG_INTERLACE) &&
+      pass < 6 && (display == 0 ||
+      
+      (display == 1 && (pass & 1) != 0)))
    {
       
 
@@ -3383,7 +3377,7 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
          png_uint_32 mask;
 
 #        ifdef PNG_READ_PACKSWAP_SUPPORTED
-            if ((png_ptr->transformations & PNG_PACKSWAP) != 0)
+            if (png_ptr->transformations & PNG_PACKSWAP)
                mask = MASK(pass, pixel_depth, display, 0);
 
             else
@@ -3534,24 +3528,24 @@ png_combine_row(png_const_structrp png_ptr, png_bytep dp, int display)
 
 
                if (bytes_to_copy < 16  &&
-                   png_isaligned(dp, png_uint_16) &&
-                   png_isaligned(sp, png_uint_16) &&
-                   bytes_to_copy % (sizeof (png_uint_16)) == 0 &&
-                   bytes_to_jump % (sizeof (png_uint_16)) == 0)
+                  png_isaligned(dp, png_uint_16) &&
+                  png_isaligned(sp, png_uint_16) &&
+                  bytes_to_copy % (sizeof (png_uint_16)) == 0 &&
+                  bytes_to_jump % (sizeof (png_uint_16)) == 0)
                {
                   
 
 
-                  if (png_isaligned(dp, png_uint_32) != 0 &&
-                      png_isaligned(sp, png_uint_32) != 0 &&
-                      bytes_to_copy % (sizeof (png_uint_32)) == 0 &&
-                      bytes_to_jump % (sizeof (png_uint_32)) == 0)
+                  if (png_isaligned(dp, png_uint_32) &&
+                     png_isaligned(sp, png_uint_32) &&
+                     bytes_to_copy % (sizeof (png_uint_32)) == 0 &&
+                     bytes_to_jump % (sizeof (png_uint_32)) == 0)
                   {
                      png_uint_32p dp32 = png_aligncast(png_uint_32p,dp);
                      png_const_uint_32p sp32 = png_aligncastconst(
-                         png_const_uint_32p, sp);
+                        png_const_uint_32p, sp);
                      size_t skip = (bytes_to_jump-bytes_to_copy) /
-                         (sizeof (png_uint_32));
+                        (sizeof (png_uint_32));
 
                      do
                      {
@@ -3690,7 +3684,7 @@ png_do_read_interlace(png_row_infop row_info, png_bytep row, int pass,
             int j;
 
 #ifdef PNG_READ_PACKSWAP_SUPPORTED
-            if ((transformations & PNG_PACKSWAP) != 0)
+            if (transformations & PNG_PACKSWAP)
             {
                 sshift = (int)((row_info->width + 7) & 0x07);
                 dshift = (int)((final_width + 7) & 0x07);
@@ -3750,7 +3744,7 @@ png_do_read_interlace(png_row_infop row_info, png_bytep row, int pass,
             png_uint_32 i;
 
 #ifdef PNG_READ_PACKSWAP_SUPPORTED
-            if ((transformations & PNG_PACKSWAP) != 0)
+            if (transformations & PNG_PACKSWAP)
             {
                sshift = (int)(((row_info->width + 3) & 0x03) << 1);
                dshift = (int)(((final_width + 3) & 0x03) << 1);
@@ -3813,7 +3807,7 @@ png_do_read_interlace(png_row_infop row_info, png_bytep row, int pass,
             int jstop = png_pass_inc[pass];
 
 #ifdef PNG_READ_PACKSWAP_SUPPORTED
-            if ((transformations & PNG_PACKSWAP) != 0)
+            if (transformations & PNG_PACKSWAP)
             {
                sshift = (int)(((row_info->width + 1) & 0x01) << 2);
                dshift = (int)(((final_width + 1) & 0x01) << 2);
@@ -4290,7 +4284,7 @@ png_read_finish_IDAT(png_structrp png_ptr)
 
 
 
-   if ((png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED) == 0)
+   if (!(png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED))
    {
       
 
@@ -4302,7 +4296,7 @@ png_read_finish_IDAT(png_structrp png_ptr)
       
 
 
-      if ((png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED) == 0)
+      if (!(png_ptr->flags & PNG_FLAG_ZSTREAM_ENDED))
       {
          png_ptr->mode |= PNG_AFTER_IDAT;
          png_ptr->flags |= PNG_FLAG_ZSTREAM_ENDED;
@@ -4352,7 +4346,7 @@ png_read_finish_row(png_structrp png_ptr)
    if (png_ptr->row_number < png_ptr->num_rows)
       return;
 
-   if (png_ptr->interlaced != 0)
+   if (png_ptr->interlaced)
    {
       png_ptr->row_number = 0;
 
@@ -4373,7 +4367,7 @@ png_read_finish_row(png_structrp png_ptr)
             png_pass_start[png_ptr->pass]) /
             png_pass_inc[png_ptr->pass];
 
-         if ((png_ptr->transformations & PNG_INTERLACE) == 0)
+         if (!(png_ptr->transformations & PNG_INTERLACE))
          {
             png_ptr->num_rows = (png_ptr->height +
                 png_pass_yinc[png_ptr->pass] - 1 -
@@ -4420,9 +4414,9 @@ png_read_start_row(png_structrp png_ptr)
 #ifdef PNG_READ_TRANSFORMS_SUPPORTED
    png_init_read_transformations(png_ptr);
 #endif
-   if (png_ptr->interlaced != 0)
+   if (png_ptr->interlaced)
    {
-      if ((png_ptr->transformations & PNG_INTERLACE) == 0)
+      if (!(png_ptr->transformations & PNG_INTERLACE))
          png_ptr->num_rows = (png_ptr->height + png_pass_yinc[0] - 1 -
              png_pass_ystart[0]) / png_pass_yinc[0];
 
@@ -4454,16 +4448,16 @@ png_read_start_row(png_structrp png_ptr)
 
 
 #ifdef PNG_READ_PACK_SUPPORTED
-   if ((png_ptr->transformations & PNG_PACK) != 0 && png_ptr->bit_depth < 8)
+   if ((png_ptr->transformations & PNG_PACK) && png_ptr->bit_depth < 8)
       max_pixel_depth = 8;
 #endif
 
 #ifdef PNG_READ_EXPAND_SUPPORTED
-   if ((png_ptr->transformations & PNG_EXPAND) != 0)
+   if (png_ptr->transformations & PNG_EXPAND)
    {
       if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       {
-         if (png_ptr->num_trans != 0)
+         if (png_ptr->num_trans)
             max_pixel_depth = 32;
 
          else
@@ -4475,13 +4469,13 @@ png_read_start_row(png_structrp png_ptr)
          if (max_pixel_depth < 8)
             max_pixel_depth = 8;
 
-         if (png_ptr->num_trans != 0)
+         if (png_ptr->num_trans)
             max_pixel_depth *= 2;
       }
 
       else if (png_ptr->color_type == PNG_COLOR_TYPE_RGB)
       {
-         if (png_ptr->num_trans != 0)
+         if (png_ptr->num_trans)
          {
             max_pixel_depth *= 4;
             max_pixel_depth /= 3;
@@ -4491,13 +4485,13 @@ png_read_start_row(png_structrp png_ptr)
 #endif
 
 #ifdef PNG_READ_EXPAND_16_SUPPORTED
-   if ((png_ptr->transformations & PNG_EXPAND_16) != 0)
+   if (png_ptr->transformations & PNG_EXPAND_16)
    {
 #     ifdef PNG_READ_EXPAND_SUPPORTED
          
 
 
-         if ((png_ptr->transformations & PNG_EXPAND) != 0)
+         if (png_ptr->transformations & PNG_EXPAND)
          {
             if (png_ptr->bit_depth < 16)
                max_pixel_depth *= 2;
@@ -4509,7 +4503,7 @@ png_read_start_row(png_structrp png_ptr)
 #endif
 
 #ifdef PNG_READ_FILLER_SUPPORTED
-   if ((png_ptr->transformations & (PNG_FILLER)) != 0)
+   if (png_ptr->transformations & (PNG_FILLER))
    {
       if (png_ptr->color_type == PNG_COLOR_TYPE_GRAY)
       {
@@ -4533,15 +4527,14 @@ png_read_start_row(png_structrp png_ptr)
 #endif
 
 #ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
-   if ((png_ptr->transformations & PNG_GRAY_TO_RGB) != 0)
+   if (png_ptr->transformations & PNG_GRAY_TO_RGB)
    {
       if (
 #ifdef PNG_READ_EXPAND_SUPPORTED
-          (png_ptr->num_trans != 0 &&
-          (png_ptr->transformations & PNG_EXPAND) != 0) ||
+          (png_ptr->num_trans && (png_ptr->transformations & PNG_EXPAND)) ||
 #endif
 #ifdef PNG_READ_FILLER_SUPPORTED
-          (png_ptr->transformations & (PNG_FILLER)) != 0 ||
+          (png_ptr->transformations & (PNG_FILLER)) ||
 #endif
           png_ptr->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
       {
@@ -4574,7 +4567,7 @@ png_read_start_row(png_structrp png_ptr)
 
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) && \
 defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
-   if ((png_ptr->transformations & PNG_USER_TRANSFORM) != 0)
+   if (png_ptr->transformations & PNG_USER_TRANSFORM)
    {
       int user_pixel_depth = png_ptr->user_transform_depth *
          png_ptr->user_transform_channels;
@@ -4610,7 +4603,7 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
      png_free(png_ptr, png_ptr->big_row_buf);
      png_free(png_ptr, png_ptr->big_prev_row);
 
-     if (png_ptr->interlaced != 0)
+     if (png_ptr->interlaced)
         png_ptr->big_row_buf = (png_bytep)png_calloc(png_ptr,
             row_bytes + 48);
 
@@ -4667,7 +4660,7 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
 
 
 
-   if (png_ptr->read_buffer != 0)
+   if (png_ptr->read_buffer)
    {
       png_bytep buffer = png_ptr->read_buffer;
 
@@ -4708,7 +4701,7 @@ png_read_reinit(png_structp png_ptr, png_infop info_ptr)
     png_ptr->rowbytes = PNG_ROWBYTES(png_ptr->pixel_depth,png_ptr->width);
     png_ptr->info_rowbytes = PNG_ROWBYTES(info_ptr->pixel_depth,
         png_ptr->width);
-    if (png_ptr->prev_row != NULL)
+    if (png_ptr->prev_row)
         memset(png_ptr->prev_row, 0, png_ptr->rowbytes + 1);
 }
 
@@ -4732,9 +4725,9 @@ png_progressive_read_reset(png_structp png_ptr)
     
     static PNG_CONST png_byte png_pass_yinc[] = {8, 8, 8, 4, 4, 2, 2};
 
-    if (png_ptr->interlaced != 0)
+    if (png_ptr->interlaced)
     {
-        if ((png_ptr->transformations & PNG_INTERLACE) == 0)
+        if (!(png_ptr->transformations & PNG_INTERLACE))
             png_ptr->num_rows = (png_ptr->height + png_pass_yinc[0] - 1 -
                                 png_pass_ystart[0]) / png_pass_yinc[0];
         else

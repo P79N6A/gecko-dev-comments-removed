@@ -113,20 +113,20 @@ png_read_info(png_structrp png_ptr, png_inforp info_ptr)
 
       if (chunk_name == png_IDAT)
       {
-         if ((png_ptr->mode & PNG_HAVE_IHDR) == 0)
+         if (!(png_ptr->mode & PNG_HAVE_IHDR))
             png_chunk_error(png_ptr, "Missing IHDR before IDAT");
 
          else if (png_ptr->color_type == PNG_COLOR_TYPE_PALETTE &&
-             (png_ptr->mode & PNG_HAVE_PLTE) == 0)
+             !(png_ptr->mode & PNG_HAVE_PLTE))
             png_chunk_error(png_ptr, "Missing PLTE before IDAT");
 
-         else if ((png_ptr->mode & PNG_AFTER_IDAT) != 0)
+         else if (png_ptr->mode & PNG_AFTER_IDAT)
             png_chunk_benign_error(png_ptr, "Too many IDATs found");
 
          png_ptr->mode |= PNG_HAVE_IDAT;
       }
 
-      else if ((png_ptr->mode & PNG_HAVE_IDAT) != 0)
+      else if (png_ptr->mode & PNG_HAVE_IDAT)
          png_ptr->mode |= PNG_AFTER_IDAT;
 
       
@@ -276,7 +276,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
 
     png_debug(0, "Reading frame head");
 
-    if ((png_ptr->mode & PNG_HAVE_acTL) == 0)
+    if (!(png_ptr->mode & PNG_HAVE_acTL))
         png_error(png_ptr, "attempt to png_read_frame_head() but "
                            "no acTL present");
 
@@ -296,7 +296,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
         if (png_ptr->chunk_name == png_IDAT)
         {
             
-            if (have_chunk_after_DAT != 0 || png_ptr->num_frames_read > 1)
+            if (have_chunk_after_DAT || png_ptr->num_frames_read > 1)
                 png_error(png_ptr, "png_read_frame_head(): out of place IDAT");
             png_crc_finish(png_ptr, length);
         }
@@ -312,7 +312,7 @@ png_read_frame_head(png_structp png_ptr, png_infop info_ptr)
             png_ensure_sequence_number(png_ptr, length);
 
             
-            if (have_chunk_after_DAT == 0 && png_ptr->num_frames_read > 1)
+            if (!have_chunk_after_DAT && png_ptr->num_frames_read > 1)
                 png_crc_finish(png_ptr, length - 4);
             else if(png_ptr->mode & PNG_HAVE_fcTL)
             {
@@ -395,7 +395,7 @@ png_do_read_intrapixel(png_row_infop row_info, png_bytep row)
    png_debug(1, "in png_do_read_intrapixel");
 
    if (
-       (row_info->color_type & PNG_COLOR_MASK_COLOR) != 0)
+       (row_info->color_type & PNG_COLOR_MASK_COLOR))
    {
       int bytes_per_pixel;
       png_uint_32 row_width = row_info->width;
@@ -465,7 +465,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
    
 
 
-   if ((png_ptr->flags & PNG_FLAG_ROW_INIT) == 0)
+   if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
       png_read_start_row(png_ptr);
 
    
@@ -481,38 +481,38 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
    {
    
 #if defined(PNG_WRITE_INVERT_SUPPORTED) && !defined(PNG_READ_INVERT_SUPPORTED)
-   if ((png_ptr->transformations & PNG_INVERT_MONO) != 0)
+   if (png_ptr->transformations & PNG_INVERT_MONO)
       png_warning(png_ptr, "PNG_READ_INVERT_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_FILLER_SUPPORTED) && !defined(PNG_READ_FILLER_SUPPORTED)
-   if ((png_ptr->transformations & PNG_FILLER) != 0)
+   if (png_ptr->transformations & PNG_FILLER)
       png_warning(png_ptr, "PNG_READ_FILLER_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_PACKSWAP_SUPPORTED) && \
     !defined(PNG_READ_PACKSWAP_SUPPORTED)
-   if ((png_ptr->transformations & PNG_PACKSWAP) != 0)
+   if (png_ptr->transformations & PNG_PACKSWAP)
       png_warning(png_ptr, "PNG_READ_PACKSWAP_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_PACK_SUPPORTED) && !defined(PNG_READ_PACK_SUPPORTED)
-   if ((png_ptr->transformations & PNG_PACK) != 0)
+   if (png_ptr->transformations & PNG_PACK)
       png_warning(png_ptr, "PNG_READ_PACK_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_SHIFT_SUPPORTED) && !defined(PNG_READ_SHIFT_SUPPORTED)
-   if ((png_ptr->transformations & PNG_SHIFT) != 0)
+   if (png_ptr->transformations & PNG_SHIFT)
       png_warning(png_ptr, "PNG_READ_SHIFT_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_BGR_SUPPORTED) && !defined(PNG_READ_BGR_SUPPORTED)
-   if ((png_ptr->transformations & PNG_BGR) != 0)
+   if (png_ptr->transformations & PNG_BGR)
       png_warning(png_ptr, "PNG_READ_BGR_SUPPORTED is not defined");
 #endif
 
 #if defined(PNG_WRITE_SWAP_SUPPORTED) && !defined(PNG_READ_SWAP_SUPPORTED)
-   if ((png_ptr->transformations & PNG_SWAP_BYTES) != 0)
+   if (png_ptr->transformations & PNG_SWAP_BYTES)
       png_warning(png_ptr, "PNG_READ_SWAP_SUPPORTED is not defined");
 #endif
    }
@@ -525,8 +525,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
 
 
 
-   if (png_ptr->interlaced != 0 &&
-       (png_ptr->transformations & PNG_INTERLACE) != 0)
+   if (png_ptr->interlaced && (png_ptr->transformations & PNG_INTERLACE))
    {
       switch (png_ptr->pass)
       {
@@ -597,7 +596,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
 
          default:
          case 6:
-            if ((png_ptr->row_number & 1) == 0)
+            if (!(png_ptr->row_number & 1))
             {
                png_read_finish_row(png_ptr);
                return;
@@ -607,7 +606,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
    }
 #endif
 
-   if ((png_ptr->mode & PNG_HAVE_IDAT) == 0)
+   if (!(png_ptr->mode & PNG_HAVE_IDAT))
       png_error(png_ptr, "Invalid attempt to read row data");
 
    
@@ -630,7 +629,7 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
    memcpy(png_ptr->prev_row, png_ptr->row_buf, row_info.rowbytes + 1);
 
 #ifdef PNG_MNG_FEATURES_SUPPORTED
-   if ((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) != 0 &&
+   if ((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
        (png_ptr->filter_type == PNG_INTRAPIXEL_DIFFERENCING))
    {
       
@@ -656,8 +655,8 @@ png_read_row(png_structrp png_ptr, png_bytep row, png_bytep dsp_row)
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
    
-   if (png_ptr->interlaced != 0 &&
-      (png_ptr->transformations & PNG_INTERLACE) != 0)
+   if (png_ptr->interlaced &&
+      (png_ptr->transformations & PNG_INTERLACE))
    {
       if (png_ptr->pass < 6)
          png_do_read_interlace(&row_info, png_ptr->row_buf + 1, png_ptr->pass,
@@ -780,7 +779,7 @@ png_read_image(png_structrp png_ptr, png_bytepp image)
       return;
 
 #ifdef PNG_READ_INTERLACING_SUPPORTED
-   if ((png_ptr->flags & PNG_FLAG_ROW_INIT) == 0)
+   if (!(png_ptr->flags & PNG_FLAG_ROW_INIT))
    {
       pass = png_set_interlace_handling(png_ptr);
       
@@ -788,8 +787,7 @@ png_read_image(png_structrp png_ptr, png_bytepp image)
    }
    else
    {
-      if (png_ptr->interlaced != 0 &&
-          (png_ptr->transformations & PNG_INTERLACE) == 0)
+      if (png_ptr->interlaced && !(png_ptr->transformations & PNG_INTERLACE))
       {
          
 
@@ -849,7 +847,7 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
 
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-   if (png_chunk_unknown_handling(png_ptr, png_IDAT) == 0)
+   if (!png_chunk_unknown_handling(png_ptr, png_IDAT))
 #endif
       png_read_finish_IDAT(png_ptr);
 
@@ -879,8 +877,7 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
       {
          if (chunk_name == png_IDAT)
          {
-            if ((length > 0) ||
-                (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
+            if ((length > 0) || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT))
                png_benign_error(png_ptr, "Too many IDATs found");
          }
          png_handle_unknown(png_ptr, info_ptr, length, keep);
@@ -894,8 +891,7 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
          
 
 
-         if ((length > 0) ||
-             (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT) != 0)
+         if ((length > 0) || (png_ptr->mode & PNG_HAVE_CHUNK_AFTER_IDAT))
             png_benign_error(png_ptr, "Too many IDATs found");
 
          png_crc_finish(png_ptr, length);
@@ -991,7 +987,7 @@ png_read_end(png_structrp png_ptr, png_inforp info_ptr)
       else
          png_handle_unknown(png_ptr, info_ptr, length,
             PNG_HANDLE_CHUNK_AS_DEFAULT);
-   } while ((png_ptr->mode & PNG_HAVE_IEND) == 0);
+   } while (!(png_ptr->mode & PNG_HAVE_IEND));
 }
 #endif 
 
@@ -1006,33 +1002,22 @@ png_read_destroy(png_structrp png_ptr)
 #endif
 
    png_free(png_ptr, png_ptr->big_row_buf);
-   png_ptr->big_row_buf = NULL;
    png_free(png_ptr, png_ptr->big_prev_row);
-   png_ptr->big_prev_row = NULL;
    png_free(png_ptr, png_ptr->read_buffer);
-   png_ptr->read_buffer = NULL;
 
 #ifdef PNG_READ_QUANTIZE_SUPPORTED
    png_free(png_ptr, png_ptr->palette_lookup);
-   png_ptr->palette_lookup = NULL;
    png_free(png_ptr, png_ptr->quantize_index);
-   png_ptr->quantize_index = NULL;
 #endif
 
-   if ((png_ptr->free_me & PNG_FREE_PLTE) != 0)
-   {
+   if (png_ptr->free_me & PNG_FREE_PLTE)
       png_zfree(png_ptr, png_ptr->palette);
-      png_ptr->palette = NULL;
-   }
    png_ptr->free_me &= ~PNG_FREE_PLTE;
 
 #if defined(PNG_tRNS_SUPPORTED) || \
     defined(PNG_READ_EXPAND_SUPPORTED) || defined(PNG_READ_BACKGROUND_SUPPORTED)
-   if ((png_ptr->free_me & PNG_FREE_TRNS) != 0)
-   {
+   if (png_ptr->free_me & PNG_FREE_TRNS)
       png_free(png_ptr, png_ptr->trans_alpha);
-      png_ptr->trans_alpha = NULL;
-   }
    png_ptr->free_me &= ~PNG_FREE_TRNS;
 #endif
 
@@ -1040,18 +1025,15 @@ png_read_destroy(png_structrp png_ptr)
 
 #ifdef PNG_PROGRESSIVE_READ_SUPPORTED
    png_free(png_ptr, png_ptr->save_buffer);
-   png_ptr->save_buffer = NULL;
 #endif
 
 #if defined(PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED) && \
    defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
    png_free(png_ptr, png_ptr->unknown_chunk.data);
-   png_ptr->unknown_chunk.data = NULL;
 #endif
 
 #ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
    png_free(png_ptr, png_ptr->chunk_list);
-   png_ptr->chunk_list = NULL;
 #endif
 
    
@@ -1123,7 +1105,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
    
 
-   if ((transforms & PNG_TRANSFORM_SCALE_16) != 0)
+   if (transforms & PNG_TRANSFORM_SCALE_16)
      
 
 
@@ -1137,7 +1119,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
 
 
-   if ((transforms & PNG_TRANSFORM_STRIP_16) != 0)
+   if (transforms & PNG_TRANSFORM_STRIP_16)
 #ifdef PNG_READ_STRIP_16_TO_8_SUPPORTED
       png_set_strip_16(png_ptr);
 #else
@@ -1147,7 +1129,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
    
 
 
-   if ((transforms & PNG_TRANSFORM_STRIP_ALPHA) != 0)
+   if (transforms & PNG_TRANSFORM_STRIP_ALPHA)
 #ifdef PNG_READ_STRIP_ALPHA_SUPPORTED
       png_set_strip_alpha(png_ptr);
 #else
@@ -1157,7 +1139,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
    
 
 
-   if ((transforms & PNG_TRANSFORM_PACKING) != 0)
+   if (transforms & PNG_TRANSFORM_PACKING)
 #ifdef PNG_READ_PACK_SUPPORTED
       png_set_packing(png_ptr);
 #else
@@ -1167,7 +1149,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
    
 
 
-   if ((transforms & PNG_TRANSFORM_PACKSWAP) != 0)
+   if (transforms & PNG_TRANSFORM_PACKSWAP)
 #ifdef PNG_READ_PACKSWAP_SUPPORTED
       png_set_packswap(png_ptr);
 #else
@@ -1179,7 +1161,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
 
 
-   if ((transforms & PNG_TRANSFORM_EXPAND) != 0)
+   if (transforms & PNG_TRANSFORM_EXPAND)
 #ifdef PNG_READ_EXPAND_SUPPORTED
       png_set_expand(png_ptr);
 #else
@@ -1191,7 +1173,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
    
 
-   if ((transforms & PNG_TRANSFORM_INVERT_MONO) != 0)
+   if (transforms & PNG_TRANSFORM_INVERT_MONO)
 #ifdef PNG_READ_INVERT_SUPPORTED
       png_set_invert_mono(png_ptr);
 #else
@@ -1202,16 +1184,16 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
 
 
-   if ((transforms & PNG_TRANSFORM_SHIFT) != 0)
+   if (transforms & PNG_TRANSFORM_SHIFT)
 #ifdef PNG_READ_SHIFT_SUPPORTED
-      if ((info_ptr->valid & PNG_INFO_sBIT) != 0)
+      if (info_ptr->valid & PNG_INFO_sBIT)
          png_set_shift(png_ptr, &info_ptr->sig_bit);
 #else
       png_app_error(png_ptr, "PNG_TRANSFORM_SHIFT not supported");
 #endif
 
    
-   if ((transforms & PNG_TRANSFORM_BGR) != 0)
+   if (transforms & PNG_TRANSFORM_BGR)
 #ifdef PNG_READ_BGR_SUPPORTED
       png_set_bgr(png_ptr);
 #else
@@ -1219,7 +1201,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 #endif
 
    
-   if ((transforms & PNG_TRANSFORM_SWAP_ALPHA) != 0)
+   if (transforms & PNG_TRANSFORM_SWAP_ALPHA)
 #ifdef PNG_READ_SWAP_ALPHA_SUPPORTED
       png_set_swap_alpha(png_ptr);
 #else
@@ -1227,7 +1209,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 #endif
 
    
-   if ((transforms & PNG_TRANSFORM_SWAP_ENDIAN) != 0)
+   if (transforms & PNG_TRANSFORM_SWAP_ENDIAN)
 #ifdef PNG_READ_SWAP_SUPPORTED
       png_set_swap(png_ptr);
 #else
@@ -1236,7 +1218,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
 
    
-   if ((transforms & PNG_TRANSFORM_INVERT_ALPHA) != 0)
+   if (transforms & PNG_TRANSFORM_INVERT_ALPHA)
 #ifdef PNG_READ_INVERT_ALPHA_SUPPORTED
       png_set_invert_alpha(png_ptr);
 #else
@@ -1245,7 +1227,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 
 
    
-   if ((transforms & PNG_TRANSFORM_GRAY_TO_RGB) != 0)
+   if (transforms & PNG_TRANSFORM_GRAY_TO_RGB)
 #ifdef PNG_READ_GRAY_TO_RGB_SUPPORTED
       png_set_gray_to_rgb(png_ptr);
 #else
@@ -1253,7 +1235,7 @@ png_read_png(png_structrp png_ptr, png_inforp info_ptr,
 #endif
 
 
-   if ((transforms & PNG_TRANSFORM_EXPAND_16) != 0)
+   if (transforms & PNG_TRANSFORM_EXPAND_16)
 #ifdef PNG_READ_EXPAND_16_SUPPORTED
       png_set_expand_16(png_ptr);
 #else
@@ -1411,10 +1393,10 @@ png_image_format(png_structrp png_ptr)
 {
    png_uint_32 format = 0;
 
-   if ((png_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
+   if (png_ptr->color_type & PNG_COLOR_MASK_COLOR)
       format |= PNG_FORMAT_FLAG_COLOR;
 
-   if ((png_ptr->color_type & PNG_COLOR_MASK_ALPHA) != 0)
+   if (png_ptr->color_type & PNG_COLOR_MASK_ALPHA)
       format |= PNG_FORMAT_FLAG_ALPHA;
 
    
@@ -1428,7 +1410,7 @@ png_image_format(png_structrp png_ptr)
    if (png_ptr->bit_depth == 16)
       format |= PNG_FORMAT_FLAG_LINEAR;
 
-   if ((png_ptr->color_type & PNG_COLOR_MASK_PALETTE) != 0)
+   if (png_ptr->color_type & PNG_COLOR_MASK_PALETTE)
       format |= PNG_FORMAT_FLAG_COLORMAP;
 
    return format;
@@ -1528,7 +1510,7 @@ png_image_begin_read_from_stdio(png_imagep image, FILE* file)
    {
       if (file != NULL)
       {
-         if (png_image_read_init(image) != 0)
+         if (png_image_read_init(image))
          {
             
 
@@ -1562,7 +1544,7 @@ png_image_begin_read_from_file(png_imagep image, const char *file_name)
 
          if (fp != NULL)
          {
-            if (png_image_read_init(image) != 0)
+            if (png_image_read_init(image))
             {
                image->opaque->png_ptr->io_ptr = fp;
                image->opaque->owned_file = 1;
@@ -1627,7 +1609,7 @@ int PNGAPI png_image_begin_read_from_memory(png_imagep image,
    {
       if (memory != NULL && size > 0)
       {
-         if (png_image_read_init(image) != 0)
+         if (png_image_read_init(image))
          {
             
 
@@ -1699,7 +1681,7 @@ png_image_skip_unused_chunks(png_structrp png_ptr)
 
        
        png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_AS_DEFAULT,
-         chunks_to_process, (int)(sizeof chunks_to_process)/5);
+         chunks_to_process, (sizeof chunks_to_process)/5);
     }
 }
 
@@ -1719,9 +1701,9 @@ static void
 set_file_encoding(png_image_read_control *display)
 {
    png_fixed_point g = display->image->opaque->png_ptr->colorspace.gamma;
-   if (png_gamma_significant(g) != 0)
+   if (png_gamma_significant(g))
    {
-      if (png_gamma_not_sRGB(g) != 0)
+      if (png_gamma_not_sRGB(g))
       {
          display->file_encoding = P_FILE;
          display->gamma_to_linear = png_reciprocal(g);
@@ -1816,7 +1798,7 @@ png_create_colormap_entry(png_image_read_control *display,
    png_uint_32 alpha, int encoding)
 {
    png_imagep image = display->image;
-   const int output_encoding = (image->format & PNG_FORMAT_FLAG_LINEAR) != 0 ?
+   const int output_encoding = (image->format & PNG_FORMAT_FLAG_LINEAR) ?
       P_LINEAR : P_sRGB;
    const int convert_to_Y = (image->format & PNG_FORMAT_FLAG_COLOR) == 0 &&
       (red != green || green != blue);
@@ -1846,7 +1828,7 @@ png_create_colormap_entry(png_image_read_control *display,
       green = png_gamma_16bit_correct(green*257, g);
       blue = png_gamma_16bit_correct(blue*257, g);
 
-      if (convert_to_Y != 0 || output_encoding == P_LINEAR)
+      if (convert_to_Y || output_encoding == P_LINEAR)
       {
          alpha *= 257;
          encoding = P_LINEAR;
@@ -1873,8 +1855,7 @@ png_create_colormap_entry(png_image_read_control *display,
       encoding = P_LINEAR;
    }
 
-   else if (encoding == P_sRGB &&
-       (convert_to_Y  != 0 || output_encoding == P_LINEAR))
+   else if (encoding == P_sRGB && (convert_to_Y || output_encoding == P_LINEAR))
    {
       
 
@@ -1932,7 +1913,7 @@ png_create_colormap_entry(png_image_read_control *display,
 #        define afirst 0
 #     endif
 #     ifdef PNG_FORMAT_BGR_SUPPORTED
-         const int bgr = (image->format & PNG_FORMAT_FLAG_BGR) != 0 ? 2 : 0;
+         const int bgr = (image->format & PNG_FORMAT_FLAG_BGR) ? 2 : 0;
 #     else
 #        define bgr 0
 #     endif
@@ -2144,7 +2125,7 @@ png_image_read_colormap(png_voidp argument)
 
    const png_structrp png_ptr = image->opaque->png_ptr;
    const png_uint_32 output_format = image->format;
-   const int output_encoding = (output_format & PNG_FORMAT_FLAG_LINEAR) != 0 ?
+   const int output_encoding = (output_format & PNG_FORMAT_FLAG_LINEAR) ?
       P_LINEAR : P_sRGB;
 
    unsigned int cmap_entries;
@@ -2183,7 +2164,7 @@ png_image_read_colormap(png_voidp argument)
       else
       {
          back_g = display->background->green;
-         if ((output_format & PNG_FORMAT_FLAG_COLOR) != 0)
+         if (output_format & PNG_FORMAT_FLAG_COLOR)
          {
             back_r = display->background->red;
             back_b = display->background->blue;
@@ -2325,7 +2306,7 @@ png_image_read_colormap(png_voidp argument)
             {
                unsigned int back_alpha;
 
-               if ((output_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+               if (output_format & PNG_FORMAT_FLAG_ALPHA)
                   back_alpha = 0;
 
                else
@@ -2406,7 +2387,7 @@ png_image_read_colormap(png_voidp argument)
 
          data_encoding = P_sRGB;
 
-         if ((output_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+         if (output_format & PNG_FORMAT_FLAG_ALPHA)
          {
             if (PNG_GA_COLORMAP_ENTRIES > image->colormap_entries)
                png_error(png_ptr, "gray+alpha color-map: too few entries");
@@ -2601,7 +2582,7 @@ png_image_read_colormap(png_voidp argument)
 
                if ((png_ptr->color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
                   png_ptr->num_trans > 0) &&
-                  png_gamma_not_sRGB(png_ptr->colorspace.gamma) != 0)
+                  png_gamma_not_sRGB(png_ptr->colorspace.gamma))
                {
                   cmap_entries = make_gray_file_colormap(display);
                   data_encoding = P_FILE;
@@ -2689,7 +2670,7 @@ png_image_read_colormap(png_voidp argument)
                
 
 
-               if ((output_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+               if (output_format & PNG_FORMAT_FLAG_ALPHA)
                {
                   png_uint_32 r;
 
@@ -2863,7 +2844,7 @@ png_image_read_colormap(png_voidp argument)
 
             for (i=0; i < cmap_entries; ++i)
             {
-               if (do_background != 0 && i < num_trans && trans[i] < 255)
+               if (do_background && i < num_trans && trans[i] < 255)
                {
                   if (trans[i] == 0)
                      png_create_colormap_entry(display, i, back_r, back_g,
@@ -2908,8 +2889,8 @@ png_image_read_colormap(png_voidp argument)
    }
 
    
-   if (expand_tRNS != 0 && png_ptr->num_trans > 0 &&
-       (png_ptr->color_type & PNG_COLOR_MASK_ALPHA) == 0)
+   if (expand_tRNS && png_ptr->num_trans > 0 &&
+      (png_ptr->color_type & PNG_COLOR_MASK_ALPHA) == 0)
       png_set_tRNS_to_alpha(png_ptr);
 
    switch (data_encoding)
@@ -3325,8 +3306,7 @@ png_image_read_composite(png_voidp argument)
       png_uint_32  height = image->height;
       png_uint_32  width = image->width;
       ptrdiff_t    step_row = display->row_bytes;
-      unsigned int channels =
-         (image->format & PNG_FORMAT_FLAG_COLOR) != 0 ? 3 : 1;
+      unsigned int channels = (image->format & PNG_FORMAT_FLAG_COLOR) ? 3 : 1;
       int pass;
 
       for (pass = 0; pass < passes; ++pass)
@@ -3624,8 +3604,7 @@ png_image_read_background(png_voidp argument)
             int swap_alpha = 0;
 
 #           ifdef PNG_SIMPLIFIED_READ_AFIRST_SUPPORTED
-               if (preserve_alpha != 0 &&
-                   (image->format & PNG_FORMAT_FLAG_AFIRST) != 0)
+               if (preserve_alpha && (image->format & PNG_FORMAT_FLAG_AFIRST))
                   swap_alpha = 1;
 #           endif
 
@@ -3734,10 +3713,10 @@ png_image_read_direct(png_voidp argument)
       int mode; 
 
       
-      if ((change & PNG_FORMAT_FLAG_COLOR) != 0)
+      if (change & PNG_FORMAT_FLAG_COLOR)
       {
          
-         if ((format & PNG_FORMAT_FLAG_COLOR) != 0)
+         if (format & PNG_FORMAT_FLAG_COLOR)
             png_set_gray_to_rgb(png_ptr);
 
          else
@@ -3755,7 +3734,7 @@ png_image_read_direct(png_voidp argument)
 
 
 
-            if ((base_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+            if (base_format & PNG_FORMAT_FLAG_ALPHA)
                do_local_background = 1;
 
             png_set_rgb_to_gray_fixed(png_ptr, PNG_ERROR_ACTION_NONE,
@@ -3770,8 +3749,8 @@ png_image_read_direct(png_voidp argument)
       {
          png_fixed_point input_gamma_default;
 
-         if ((base_format & PNG_FORMAT_FLAG_LINEAR) != 0 &&
-             (image->flags & PNG_IMAGE_FLAG_16BIT_sRGB) == 0)
+         if ((base_format & PNG_FORMAT_FLAG_LINEAR) &&
+            (image->flags & PNG_IMAGE_FLAG_16BIT_sRGB) == 0)
             input_gamma_default = PNG_GAMMA_LINEAR;
          else
             input_gamma_default = PNG_DEFAULT_sRGB;
@@ -3787,7 +3766,7 @@ png_image_read_direct(png_voidp argument)
          
 
 
-         if ((base_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+         if (base_format & PNG_FORMAT_FLAG_ALPHA)
             mode = PNG_ALPHA_STANDARD; 
 
          else
@@ -3818,7 +3797,7 @@ png_image_read_direct(png_voidp argument)
 
 
          if (png_muldiv(&gtest, output_gamma, png_ptr->colorspace.gamma,
-               PNG_FP_1) != 0 && png_gamma_significant(gtest) == 0)
+               PNG_FP_1) && !png_gamma_significant(gtest))
             do_local_background = 0;
 
          else if (mode == PNG_ALPHA_STANDARD)
@@ -3831,9 +3810,9 @@ png_image_read_direct(png_voidp argument)
       }
 
       
-      if ((change & PNG_FORMAT_FLAG_LINEAR) != 0)
+      if (change & PNG_FORMAT_FLAG_LINEAR)
       {
-         if (linear != 0 )
+         if (linear )
             png_set_expand_16(png_ptr);
 
          else 
@@ -3843,13 +3822,13 @@ png_image_read_direct(png_voidp argument)
       }
 
       
-      if ((change & PNG_FORMAT_FLAG_ALPHA) != 0)
+      if (change & PNG_FORMAT_FLAG_ALPHA)
       {
          
 
 
 
-         if ((base_format & PNG_FORMAT_FLAG_ALPHA) != 0)
+         if (base_format & PNG_FORMAT_FLAG_ALPHA)
          {
             
 
@@ -3914,7 +3893,7 @@ png_image_read_direct(png_voidp argument)
                filler = 255;
 
 #           ifdef PNG_FORMAT_AFIRST_SUPPORTED
-               if ((format & PNG_FORMAT_FLAG_AFIRST) != 0)
+               if (format & PNG_FORMAT_FLAG_AFIRST)
                {
                   where = PNG_FILLER_BEFORE;
                   change &= ~PNG_FORMAT_FLAG_AFIRST;
@@ -3938,12 +3917,12 @@ png_image_read_direct(png_voidp argument)
       png_set_alpha_mode_fixed(png_ptr, mode, output_gamma);
 
 #     ifdef PNG_FORMAT_BGR_SUPPORTED
-         if ((change & PNG_FORMAT_FLAG_BGR) != 0)
+         if (change & PNG_FORMAT_FLAG_BGR)
          {
             
 
 
-            if ((format & PNG_FORMAT_FLAG_COLOR) != 0)
+            if (format & PNG_FORMAT_FLAG_COLOR)
                png_set_bgr(png_ptr);
 
             else
@@ -3954,14 +3933,14 @@ png_image_read_direct(png_voidp argument)
 #     endif
 
 #     ifdef PNG_FORMAT_AFIRST_SUPPORTED
-         if ((change & PNG_FORMAT_FLAG_AFIRST) != 0)
+         if (change & PNG_FORMAT_FLAG_AFIRST)
          {
             
 
 
 
 
-            if ((format & PNG_FORMAT_FLAG_ALPHA) != 0)
+            if (format & PNG_FORMAT_FLAG_ALPHA)
             {
                
 
@@ -3984,7 +3963,7 @@ png_image_read_direct(png_voidp argument)
       {
          PNG_CONST png_uint_16 le = 0x0001;
 
-         if ((*(png_const_bytep) & le) != 0)
+         if (*(png_const_bytep)&le)
             png_set_swap(png_ptr);
       }
 
@@ -4009,10 +3988,10 @@ png_image_read_direct(png_voidp argument)
    {
       png_uint_32 info_format = 0;
 
-      if ((info_ptr->color_type & PNG_COLOR_MASK_COLOR) != 0)
+      if (info_ptr->color_type & PNG_COLOR_MASK_COLOR)
          info_format |= PNG_FORMAT_FLAG_COLOR;
 
-      if ((info_ptr->color_type & PNG_COLOR_MASK_ALPHA) != 0)
+      if (info_ptr->color_type & PNG_COLOR_MASK_ALPHA)
       {
          
          if (do_local_compose == 0)
@@ -4031,14 +4010,14 @@ png_image_read_direct(png_voidp argument)
          info_format |= PNG_FORMAT_FLAG_LINEAR;
 
 #     ifdef PNG_FORMAT_BGR_SUPPORTED
-         if ((png_ptr->transformations & PNG_BGR) != 0)
+         if (png_ptr->transformations & PNG_BGR)
             info_format |= PNG_FORMAT_FLAG_BGR;
 #     endif
 
 #     ifdef PNG_FORMAT_AFIRST_SUPPORTED
          if (do_local_background == 2)
          {
-            if ((format & PNG_FORMAT_FLAG_AFIRST) != 0)
+            if (format & PNG_FORMAT_FLAG_AFIRST)
                info_format |= PNG_FORMAT_FLAG_AFIRST;
          }
 
@@ -4167,7 +4146,7 @@ png_image_finish_read(png_imagep image, png_const_colorp background,
             
 
 
-            if ((image->format & PNG_FORMAT_FLAG_COLORMAP) != 0)
+            if (image->format & PNG_FORMAT_FLAG_COLORMAP)
                result =
                   png_safe_execute(image, png_image_read_colormap, &display) &&
                   png_safe_execute(image, png_image_read_colormapped, &display);
