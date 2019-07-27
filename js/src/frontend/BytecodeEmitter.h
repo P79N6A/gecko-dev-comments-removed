@@ -248,10 +248,6 @@ struct BytecodeEmitter
     bool isInLoop();
     bool checkSingletonContext();
 
-    
-    
-    bool checkRunOnceContext();
-
     bool needsImplicitThis();
 
     void tellDebuggerAboutCompiledScript(ExclusiveContext* cx);

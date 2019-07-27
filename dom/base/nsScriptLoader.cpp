@@ -1073,7 +1073,7 @@ nsScriptLoader::FillCompileOptionsForRequest(const AutoJSAPI &jsapi,
   aOptions->setIntroductionType("scriptElement");
   aOptions->setFileAndLine(aRequest->mURL.get(), aRequest->mLineNo);
   aOptions->setVersion(JSVersion(aRequest->mJSVersion));
-  aOptions->setIsRunOnce(true);
+  aOptions->setCompileAndGo(JS_IsGlobalObject(aScopeChain));
   
   
   aOptions->setNoScriptRval(true);

@@ -928,6 +928,9 @@ class JSScript : public js::gc::TenuredCell
     bool explicitUseStrict_:1;
 
     
+    bool compileAndGo_:1;
+
+    
     
     
     bool hasPollutedGlobalScope_:1;
@@ -949,8 +952,6 @@ class JSScript : public js::gc::TenuredCell
     
     bool hasSingletons_:1;
 
-    
-    
     
     bool treatAsRunOnce_:1;
 
@@ -1158,6 +1159,10 @@ class JSScript : public js::gc::TenuredCell
 
     bool explicitUseStrict() const { return explicitUseStrict_; }
 
+    bool compileAndGo() const {
+        return compileAndGo_;
+    }
+
     bool hasPollutedGlobalScope() const {
         return hasPollutedGlobalScope_;
     }
@@ -1193,10 +1198,6 @@ class JSScript : public js::gc::TenuredCell
         MOZ_ASSERT(isActiveEval() && !isCachedEval());
         isActiveEval_ = false;
         isCachedEval_ = true;
-        
-        
-        
-        hasRunOnce_ = false;
     }
 
     void uncacheForEval() {
