@@ -3070,6 +3070,11 @@ pref("intl.tsf.hack.google_ja_input.do_not_return_no_layout_error_at_caret", tru
 #endif
 
 
+
+
+pref("intl.imm.vertical_writing.always_assume_not_supported", false);
+
+
 pref("ui.panel.default_level_parent", false);
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
@@ -4559,22 +4564,6 @@ pref("selectioncaret.inflatesize.threshold", 40);
 
 
 pref("selectioncaret.detects.longtap", true);
-
-
-pref("selectioncaret.visibility.affectscaret", false);
-
-
-
-pref("selectioncaret.observes.compositions", false);
-
-
-
-
-pref("touchcaret.extendedvisibility", false);
-
-
-
-pref("caret.manages-android-actionbar", false);
 
 
 pref("layout.accessiblecaret.enabled", false);
