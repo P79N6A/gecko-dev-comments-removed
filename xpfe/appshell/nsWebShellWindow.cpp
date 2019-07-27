@@ -450,7 +450,7 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  NS_IMETHOD Notify(nsITimer* aTimer)
+  NS_IMETHOD Notify(nsITimer* aTimer) MOZ_OVERRIDE
   {
     
     
