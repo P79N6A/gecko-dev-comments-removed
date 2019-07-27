@@ -1773,12 +1773,12 @@ UnpackPDU(BluetoothDaemonPDU& aPDU, BluetoothGattReadParam& aOut)
     return rv;
   }
   
-  rv = UnpackPDU(aPDU, aOut.mValueType);
+  rv = UnpackPDU(aPDU, aOut.mStatus);
   if (NS_FAILED(rv)) {
     return rv;
   }
   
-  rv = UnpackPDU(aPDU, aOut.mStatus);
+  rv = UnpackPDU(aPDU, aOut.mValueType);
   if (NS_FAILED(rv)) {
     return rv;
   }
