@@ -347,6 +347,30 @@ function* test_basics() {
 
 
   
+  connectedPromise = waitForConnection(listeningServer);
+  clientSocket = TCPSocket.open('127.0.0.1', serverPort,
+                                { binaryType: 'string' });
+  clientQueue = listenForEventsOnSocket(clientSocket, 'client');
+  is((yield clientQueue.waitForEvent()).type, 'open', 'got open event');
+
+  connectedResult = yield connectedPromise;
+  
+  serverSocket = connectedResult.socket;
+  serverQueue = connectedResult.queue;
+
+  
+  is(clientSocket.send(bigUint8Array), true,
+     'Client sending a large non-string should only send a small string.');
+  clientSocket.close();
+  
+  serverReceived = yield serverQueue.waitForDataWithAtLeastLength(
+    bigUint8Array.toString().length);
+  
+  is((yield clientQueue.waitForEvent()).type, 'close',
+     'The close event should fire after the drain event.');
+
+
+  
   
   
   listeningServer.close();
