@@ -122,9 +122,19 @@ moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI *aURI,
   nsresult rv;
   nsCOMPtr<nsIStringInputStream> stream =
     do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    NS_Free(buf);
+    return rv;
+  }
+
+  
+  
   rv = stream->AdoptData((char*)buf, buf_size);
+
+  
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = NS_NewInputStreamChannel(aChannel, aURI, stream,
