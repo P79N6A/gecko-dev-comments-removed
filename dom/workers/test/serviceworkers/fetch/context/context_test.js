@@ -101,6 +101,8 @@ self.addEventListener("fetch", function(event) {
   
   try {
     event.respondWith(Promise.reject(event.request.url));
+    dump("Fetch event received invalid context value " + event.request.context +
+         " for " + event.request.url + "\n");
   } catch(e) {
     
     
