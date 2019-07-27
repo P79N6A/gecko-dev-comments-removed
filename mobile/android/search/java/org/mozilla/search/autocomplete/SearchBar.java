@@ -53,6 +53,8 @@ public class SearchBar extends FrameLayout {
         public void onFocusChange(boolean hasFocus);
     }
 
+    
+    @SuppressWarnings("deprecation")
     public SearchBar(Context context, AttributeSet attrs) {
         super(context, attrs);
 
