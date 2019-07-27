@@ -688,6 +688,7 @@ public:
       NS_NewRunnableMethod(this, &MediaDecoderStateMachine::OnAudioSinkComplete);
     TaskQueue()->Dispatch(runnable.forget());
   }
+private:
 
   
   void OnAudioSinkError();
@@ -943,8 +944,11 @@ public:
 
   
   
-  media::NullableTimeUnit mDuration;
-  media::TimeUnit Duration() const { MOZ_ASSERT(OnTaskQueue()); return mDuration.ref(); }
+  Canonical<media::NullableTimeUnit> mDuration;
+  media::TimeUnit Duration() const { MOZ_ASSERT(OnTaskQueue()); return mDuration.Ref().ref(); }
+public:
+  AbstractCanonical<media::NullableTimeUnit>* CanonicalDuration() { return &mDuration; }
+protected:
 
   
   void RecomputeDuration();
