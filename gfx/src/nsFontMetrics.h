@@ -8,7 +8,7 @@
 
 #include <stdint.h>                     
 #include <sys/types.h>                  
-#include "gfxFont.h"                    
+#include "gfxTextRun.h"                 
 #include "mozilla/Assertions.h"         
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   

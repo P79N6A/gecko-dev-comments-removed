@@ -6,7 +6,7 @@
 #include "nsLineBreaker.h"
 #include "nsContentUtils.h"
 #include "nsILineBreaker.h"
-#include "gfxFont.h" 
+#include "gfxTextRun.h" 
 #include "nsHyphenationManager.h"
 #include "nsHyphenator.h"
 #include "mozilla/gfx/2D.h"
