@@ -115,8 +115,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_ID            105
 
 #define NS_IWIDGET_IID \
-{ 0x316E4600, 0x15DB, 0x47AE, \
-  { 0xBF, 0xE4, 0x5B, 0xCD, 0xFF, 0x80, 0x80, 0x83 } };
+{ 0x53376F57, 0xF081, 0x4949, \
+  { 0xB5, 0x5E, 0x87, 0xEF, 0x6A, 0xE9, 0xE3, 0x5A } };
 
 
 
@@ -1572,6 +1572,19 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD HideWindowChrome(bool aShouldHide) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+    virtual void PrepareForDOMFullscreenTransition() = 0;
 
     
 
