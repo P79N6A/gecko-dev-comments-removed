@@ -777,6 +777,14 @@ function updateBrowserSpecificIndicator(aBrowser) {
         perms.remove(uri.host, "microphone");
 
       Services.obs.notifyObservers(null, "getUserMedia:revoke", windowId);
+
+      
+      
+      let outerWindowID = Services.wm.getCurrentInnerWindowWithId(windowId)
+                                     .QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIDOMWindowUtils)
+                                     .outerWindowID;
+      removeBrowserSpecificIndicator(null, null, outerWindowID);
     }
   }];
   let options = {
@@ -819,13 +827,6 @@ function updateBrowserSpecificIndicator(aBrowser) {
       return aTopic == "swapping";
     }
   };
-  secondaryActions = [{
-    label: stringBundle.getString("getUserMedia.stopSharing.label"),
-    accessKey: stringBundle.getString("getUserMedia.stopSharing.accesskey"),
-    callback: function () {
-      Services.obs.notifyObservers(null, "getUserMedia:revoke", "screen:" + windowId);
-    }
-  }];
   
   let stringId = "getUserMedia.sharing" + (screen.value ? "Screen" : "Window") + ".message";
   chromeWin.PopupNotifications.show(aBrowser, "webRTC-sharingScreen",
