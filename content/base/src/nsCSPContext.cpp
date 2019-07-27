@@ -601,7 +601,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
     nsCOMPtr<nsIURI> uri = do_QueryInterface(aBlockedContentSource);
     
     if (uri) {
-      uri->GetSpec(reportBlockedURI);
+      uri->GetSpecIgnoringRef(reportBlockedURI);
     } else {
       nsCOMPtr<nsISupportsCString> cstr = do_QueryInterface(aBlockedContentSource);
       if (cstr) {
@@ -619,7 +619,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
   
   if (aOriginalURI) {
     nsAutoCString reportDocumentURI;
-    aOriginalURI->GetSpec(reportDocumentURI);
+    aOriginalURI->GetSpecIgnoringRef(reportDocumentURI);
     report.mCsp_report.mDocument_uri = NS_ConvertUTF8toUTF16(reportDocumentURI);
   }
 
@@ -641,6 +641,14 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
   
   if (!aSourceFile.IsEmpty()) {
+    
+    nsCOMPtr<nsIURI> sourceURI;
+    NS_NewURI(getter_AddRefs(sourceURI), aSourceFile);
+    if (sourceURI) {
+      nsAutoCString spec;
+      sourceURI->GetSpecIgnoringRef(spec);
+      aSourceFile = NS_ConvertUTF8toUTF16(spec);
+    }
     report.mCsp_report.mSource_file.Construct();
     report.mCsp_report.mSource_file.Value() = aSourceFile;
   }
