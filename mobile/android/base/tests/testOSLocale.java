@@ -7,6 +7,8 @@ package org.mozilla.gecko.tests;
 import java.util.Locale;
 
 import org.mozilla.gecko.BrowserLocaleManager;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.PrefsHelper;
 
@@ -42,6 +44,8 @@ public class testOSLocale extends BaseTest {
         private final Object waiter = new Object();
 
         public void fetch() throws InterruptedException {
+            
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createNoOpEvent());
             synchronized (waiter) {
                 PrefsHelper.getPrefs(TO_FETCH, this);
                 waiter.wait(MAX_WAIT_MS);
@@ -112,7 +116,6 @@ public class testOSLocale extends BaseTest {
 
         
         final String SELECTED_LOCALES = "es-es,fr,";
-
 
         
         final String EXPECTED = SELECTED_LOCALES +
