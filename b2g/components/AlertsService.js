@@ -42,6 +42,7 @@ const kMessageAppNotificationReturn  = "app-notification-return";
 const kMessageAlertNotificationSend  = "alert-notification-send";
 const kMessageAlertNotificationClose = "alert-notification-close";
 
+const kTopicAlertShow          = "alertshow";
 const kTopicAlertFinished      = "alertfinished";
 const kTopicAlertClickCallback = "alertclickcallback";
 
@@ -136,21 +137,26 @@ AlertsService.prototype = {
       
       
       if (data.target) {
-        gSystemMessenger.sendMessage(kNotificationSystemMessageName, {
-            clicked: (topic === kTopicAlertClickCallback),
-            title: listener.title,
-            body: listener.text,
-            imageURL: listener.imageURL,
-            lang: listener.lang,
-            dir: listener.dir,
-            id: listener.id,
-            tag: listener.tag,
-            dbId: listener.dbId,
-            timestamp: listener.timestamp
-          },
-          Services.io.newURI(data.target, null, null),
-          Services.io.newURI(listener.manifestURL, null, null)
-        );
+        if (topic !== kTopicAlertShow) {
+          
+          
+          
+          gSystemMessenger.sendMessage(kNotificationSystemMessageName, {
+              clicked: (topic === kTopicAlertClickCallback),
+              title: listener.title,
+              body: listener.text,
+              imageURL: listener.imageURL,
+              lang: listener.lang,
+              dir: listener.dir,
+              id: listener.id,
+              tag: listener.tag,
+              dbId: listener.dbId,
+              timestamp: listener.timestamp
+            },
+            Services.io.newURI(data.target, null, null),
+            Services.io.newURI(listener.manifestURL, null, null)
+          );
+        }
       }
     }
 
