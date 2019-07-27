@@ -83,6 +83,12 @@ void StartSandboxCallback()
 int
 content_process_main(int argc, char* argv[])
 {
+    
+    
+    if (argc < 1)
+      return 3;
+    XRE_SetProcessType(argv[--argc]);
+
     bool isNuwa = false;
     for (int i = 1; i < argc; i++) {
         isNuwa |= strcmp(argv[i], "-nuwa") == 0;
@@ -114,17 +120,11 @@ content_process_main(int argc, char* argv[])
 #endif
 #endif
 
-    
-    
-    if (argc < 1)
-      return 3;
-    GeckoProcessType proctype = XRE_StringToChildProcessType(argv[--argc]);
-
 #ifdef XP_WIN
     
     
     
-    if (proctype != GeckoProcessType_Plugin) {
+    if (XRE_GetProcessType() != GeckoProcessType_Plugin) {
         mozilla::SanitizeEnvironmentVariables();
         SetDllDirectory(L"");
     }
@@ -144,7 +144,7 @@ content_process_main(int argc, char* argv[])
     }
 #endif
 
-    nsresult rv = XRE_InitChildProcess(argc, argv, proctype);
+    nsresult rv = XRE_InitChildProcess(argc, argv);
     NS_ENSURE_SUCCESS(rv, 1);
 
     return 0;
