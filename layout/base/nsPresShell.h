@@ -522,7 +522,6 @@ protected:
   nsresult CreatePreferenceStyleSheet(void);
   nsresult SetPrefLinkRules(void);
   nsresult SetPrefFocusRules(void);
-  nsresult SetPrefNoScriptRule();
   nsresult SetPrefNoFramesRule(void);
 
   
