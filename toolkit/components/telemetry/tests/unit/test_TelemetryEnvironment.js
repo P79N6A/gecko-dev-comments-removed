@@ -1103,6 +1103,15 @@ add_task(function* test_defaultSearchEngine() {
   data = TelemetryEnvironment.currentEnvironment;
   checkEnvironmentData(data);
   Assert.equal(data.settings.defaultSearchEngine, EXPECTED_SEARCH_ENGINE);
+
+  
+  Assert.equal(data.settings.searchCohort, undefined);
+
+  
+  Services.prefs.setCharPref("browser.search.cohort", "testcohort");
+  Services.obs.notifyObservers(null, "browser-search-service", "init-complete");
+  data = TelemetryEnvironment.currentEnvironment;
+  Assert.equal(data.settings.searchCohort, "testcohort");
 });
 
 add_task(function*() {
