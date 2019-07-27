@@ -85,7 +85,7 @@ private:
     
     
     
-    MOZ_ASSERT(mTarget == NS_GetCurrentThread());
+    MOZ_ASSERT_IF(mConnection, mTarget == NS_GetCurrentThread());
   }
 
   nsCOMPtr<nsIThread> mTarget;
