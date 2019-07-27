@@ -13,6 +13,7 @@
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/FenceUtils.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "nsISupportsImpl.h"            
 #include "nsRegion.h"
@@ -352,6 +353,11 @@ public:
   virtual void EndFrame() = 0;
 
   virtual void SetFBAcquireFence(Layer* aLayer) {}
+
+  virtual FenceHandle GetReleaseFence()
+  {
+    return FenceHandle();
+  }
 
   
 

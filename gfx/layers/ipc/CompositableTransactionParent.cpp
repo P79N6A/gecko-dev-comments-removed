@@ -162,7 +162,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->RemoveTextureHost(tex);
       
-      TextureHost::SendFenceHandleIfPresent(op.textureParent());
+      SendFenceHandleIfPresent(op.textureParent(), compositable);
       break;
     }
     case CompositableOperation::TOpRemoveTextureAsync: {
@@ -179,7 +179,8 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
                              GetChildProcessId(),
                              op.holderId(),
                              op.transactionId(),
-                             op.textureParent());
+                             op.textureParent(),
+                             compositable);
 
         
         
@@ -190,7 +191,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
                                                   op.transactionId()));
       } else {
         
-        TextureHost::SendFenceHandleIfPresent(op.textureParent());
+        SendFenceHandleIfPresent(op.textureParent(), compositable);
 
         ReplyRemoveTexture(OpReplyRemoveTexture(false, 
                                                 op.holderId(),
@@ -256,6 +257,42 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
   }
 
   return true;
+}
+
+void
+CompositableParentManager::SendPendingAsyncMessges()
+{
+  if (mPendingAsyncMessage.empty()) {
+    return;
+  }
+
+  
+  
+  
+  
+#if defined(OS_POSIX)
+  static const uint32_t kMaxMessageNumber = FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE;
+#else
+  
+  static const uint32_t kMaxMessageNumber = 250;
+#endif
+
+  InfallibleTArray<AsyncParentMessageData> messages;
+  messages.SetCapacity(mPendingAsyncMessage.size());
+  for (size_t i = 0; i < mPendingAsyncMessage.size(); i++) {
+    messages.AppendElement(mPendingAsyncMessage[i]);
+    
+    if (messages.Length() >= kMaxMessageNumber) {
+      SendAsyncMessage(messages);
+      
+      messages.Clear();
+    }
+  }
+
+  if (messages.Length() > 0) {
+    SendAsyncMessage(messages);
+  }
+  mPendingAsyncMessage.clear();
 }
 
 } 
