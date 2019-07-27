@@ -534,19 +534,6 @@ struct JSContext : public js::ExclusiveContext,
     inline JSScript *currentScript(jsbytecode **pc = nullptr,
                                    MaybeAllowCrossCompartment = DONT_ALLOW_CROSS_COMPARTMENT) const;
 
-#ifdef MOZ_TRACE_JSCALLS
-    
-    JSFunctionCallback    functionCallback;
-
-    void doFunctionCallback(const JSFunction *fun,
-                            const JSScript *scr,
-                            int entering) const
-    {
-        if (functionCallback)
-            functionCallback(fun, scr, this, entering);
-    }
-#endif
-
     
 #ifdef JSGC_GENERATIONAL
     inline js::Nursery &nursery() {
