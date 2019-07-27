@@ -77,7 +77,7 @@ class MediaPipeline : public sigslot::has_slots<> {
                 nsCOMPtr<nsIEventTarget> main_thread,
                 nsCOMPtr<nsIEventTarget> sts_thread,
                 MediaStream *stream,
-                TrackID track_id,
+                const std::string& track_id,
                 int level,
                 RefPtr<MediaSessionConduit> conduit,
                 RefPtr<TransportFlow> rtp_transport,
@@ -130,9 +130,9 @@ class MediaPipeline : public sigslot::has_slots<> {
       nsAutoPtr<MediaPipelineFilter> filter);
 
   virtual Direction direction() const { return direction_; }
-  virtual TrackID trackid() const { return track_id_; }
+  virtual const std::string& trackid() const { return track_id_; }
   virtual int level() const { return level_; }
-  virtual bool IsVideo() const { return false; }
+  virtual bool IsVideo() const = 0;
 
   bool IsDoingRtcpMux() const {
     return (rtp_.type_ == MUX);
@@ -233,7 +233,7 @@ class MediaPipeline : public sigslot::has_slots<> {
                                 
                                 
                                 
-  TrackID track_id_;            
+  std::string track_id_;        
                                 
                                 
   int level_; 
@@ -352,6 +352,7 @@ public:
                         nsCOMPtr<nsIEventTarget> main_thread,
                         nsCOMPtr<nsIEventTarget> sts_thread,
                         DOMMediaStream *domstream,
+                        const std::string& track_id,
                         int level,
                         bool is_video,
                         RefPtr<MediaSessionConduit> conduit,
@@ -359,7 +360,7 @@ public:
                         RefPtr<TransportFlow> rtcp_transport,
                         nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipeline(pc, TRANSMIT, main_thread, sts_thread,
-                    domstream->GetStream(), TRACK_INVALID, level,
+                    domstream->GetStream(), track_id, level,
                     conduit, rtp_transport, rtcp_transport, filter),
       listener_(new PipelineListener(conduit)),
       domstream_(domstream),
@@ -369,7 +370,7 @@ public:
   
   virtual nsresult Init() MOZ_OVERRIDE;
 
-  virtual void AttachToTrack(TrackID track_id);
+  virtual void AttachToTrack(const std::string& track_id);
 
   
   
@@ -403,7 +404,7 @@ public:
   
   
   virtual nsresult ReplaceTrack(DOMMediaStream *domstream,
-                                TrackID track_id);
+                                const std::string& track_id);
 
 
   
@@ -518,7 +519,7 @@ class MediaPipelineReceive : public MediaPipeline {
                        nsCOMPtr<nsIEventTarget> main_thread,
                        nsCOMPtr<nsIEventTarget> sts_thread,
                        MediaStream *stream,
-                       TrackID track_id,
+                       const std::string& track_id,
                        int level,
                        RefPtr<MediaSessionConduit> conduit,
                        RefPtr<TransportFlow> rtp_transport,
@@ -547,17 +548,23 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
                             nsCOMPtr<nsIEventTarget> main_thread,
                             nsCOMPtr<nsIEventTarget> sts_thread,
                             MediaStream *stream,
-                            TrackID track_id,
+                            
+                            
+                            const std::string& media_stream_track_id,
+                            
+                            
+                            
+                            TrackID numeric_track_id,
                             int level,
                             RefPtr<AudioSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport,
                             nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
-                           stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, filter),
+                           stream, media_stream_track_id, level, conduit,
+                           rtp_transport, rtcp_transport, filter),
       listener_(new PipelineListener(stream->AsSourceStream(),
-                                     track_id, conduit)) {
+                                     numeric_track_id, conduit)) {
   }
 
   virtual void DetachMediaStream() MOZ_OVERRIDE {
@@ -568,6 +575,7 @@ class MediaPipelineReceiveAudio : public MediaPipelineReceive {
   }
 
   virtual nsresult Init() MOZ_OVERRIDE;
+  virtual bool IsVideo() const MOZ_OVERRIDE { return false; }
 
  private:
   
@@ -610,17 +618,24 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
                             nsCOMPtr<nsIEventTarget> main_thread,
                             nsCOMPtr<nsIEventTarget> sts_thread,
                             MediaStream *stream,
-                            TrackID track_id,
+                            
+                            
+                            const std::string& media_stream_track_id,
+                            
+                            
+                            
+                            TrackID numeric_track_id,
                             int level,
                             RefPtr<VideoSessionConduit> conduit,
                             RefPtr<TransportFlow> rtp_transport,
                             RefPtr<TransportFlow> rtcp_transport,
                             nsAutoPtr<MediaPipelineFilter> filter) :
       MediaPipelineReceive(pc, main_thread, sts_thread,
-                           stream, track_id, level, conduit, rtp_transport,
-                           rtcp_transport, filter),
+                           stream, media_stream_track_id, level, conduit,
+                           rtp_transport, rtcp_transport, filter),
       renderer_(new PipelineRenderer(this)),
-      listener_(new PipelineListener(stream->AsSourceStream(), track_id)) {
+      listener_(new PipelineListener(stream->AsSourceStream(),
+                                     numeric_track_id)) {
   }
 
   
@@ -638,6 +653,7 @@ class MediaPipelineReceiveVideo : public MediaPipelineReceive {
   }
 
   virtual nsresult Init() MOZ_OVERRIDE;
+  virtual bool IsVideo() const MOZ_OVERRIDE { return true; }
 
  private:
   class PipelineRenderer : public VideoRenderer {
