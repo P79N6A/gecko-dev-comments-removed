@@ -3714,6 +3714,12 @@ FrameLayerBuilder::PaintItems(nsTArray<ClippedDisplayItem>& aItems,
     if (paintRect.IsEmpty())
       continue;
 
+#ifdef MOZ_DUMP_PAINTING
+    PROFILER_LABEL_PRINTF("DisplayList", "Draw", js::ProfileEntry::Category::GRAPHICS, "%s %p", cdi->mItem->Name(), cdi->mItem);
+#else
+    PROFILER_LABEL_PRINTF("DisplayList", "Draw", js::ProfileEntry::Category::GRAPHICS, "%p", cdi->mItem);
+#endif
+
     
     
     const DisplayItemClip* clip = &cdi->mItem->GetClip();
