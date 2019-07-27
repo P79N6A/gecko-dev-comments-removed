@@ -823,7 +823,13 @@ MediaDecoderStateMachine::OnNotDecoded(MediaData::Type aType,
 
   
   
+  
   if (aReason == RequestSampleCallback::WAITING_FOR_DATA) {
+    bool outOfSamples = isAudio ? !AudioQueue().GetSize() : !VideoQueue().GetSize();
+    if (outOfSamples) {
+      StartBuffering();
+    }
+
     return;
   }
 
