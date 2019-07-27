@@ -605,72 +605,69 @@ class nsOuterWindowProxy : public js::Wrapper
 public:
   nsOuterWindowProxy() : js::Wrapper(0) { }
 
-  virtual bool finalizeInBackground(JS::Value priv) const MOZ_OVERRIDE {
+  virtual bool finalizeInBackground(JS::Value priv) {
     return false;
   }
 
   virtual const char *className(JSContext *cx,
-                                JS::Handle<JSObject*> wrapper) const MOZ_OVERRIDE;
-  virtual void finalize(JSFreeOp *fop, JSObject *proxy) const MOZ_OVERRIDE;
+                                JS::Handle<JSObject*> wrapper) MOZ_OVERRIDE;
+  virtual void finalize(JSFreeOp *fop, JSObject *proxy) MOZ_OVERRIDE;
 
   
   virtual bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
-                            const MOZ_OVERRIDE;
+                           MOZ_OVERRIDE;
   virtual bool preventExtensions(JSContext *cx,
-                                 JS::Handle<JSObject*> proxy) const MOZ_OVERRIDE;
+                                 JS::Handle<JSObject*> proxy) MOZ_OVERRIDE;
   virtual bool getPropertyDescriptor(JSContext* cx,
                                      JS::Handle<JSObject*> proxy,
                                      JS::Handle<jsid> id,
-                                     JS::MutableHandle<JSPropertyDescriptor> desc)
-                                     const MOZ_OVERRIDE;
+                                     JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
   virtual bool getOwnPropertyDescriptor(JSContext* cx,
                                         JS::Handle<JSObject*> proxy,
                                         JS::Handle<jsid> id,
-                                        JS::MutableHandle<JSPropertyDescriptor> desc)
-                                        const MOZ_OVERRIDE;
+                                        JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
   virtual bool defineProperty(JSContext* cx,
                               JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
-                              JS::MutableHandle<JSPropertyDescriptor> desc)
-                              const MOZ_OVERRIDE;
+                              JS::MutableHandle<JSPropertyDescriptor> desc) MOZ_OVERRIDE;
   virtual bool getOwnPropertyNames(JSContext *cx,
                                    JS::Handle<JSObject*> proxy,
-                                   JS::AutoIdVector &props) const MOZ_OVERRIDE;
+                                   JS::AutoIdVector &props) MOZ_OVERRIDE;
   virtual bool delete_(JSContext *cx, JS::Handle<JSObject*> proxy,
                        JS::Handle<jsid> id,
-                       bool *bp) const MOZ_OVERRIDE;
+                       bool *bp) MOZ_OVERRIDE;
   virtual bool enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
-                         JS::AutoIdVector &props) const MOZ_OVERRIDE;
+                         JS::AutoIdVector &props) MOZ_OVERRIDE;
 
   virtual bool watch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                     JS::Handle<jsid> id, JS::Handle<JSObject*> callable) const MOZ_OVERRIDE;
+                     JS::Handle<jsid> id, JS::Handle<JSObject*> callable) MOZ_OVERRIDE;
   virtual bool unwatch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                       JS::Handle<jsid> id) const MOZ_OVERRIDE;
+                       JS::Handle<jsid> id) MOZ_OVERRIDE;
 
   
   virtual bool has(JSContext *cx, JS::Handle<JSObject*> proxy,
-                   JS::Handle<jsid> id, bool *bp) const MOZ_OVERRIDE;
+                   JS::Handle<jsid> id, bool *bp) MOZ_OVERRIDE;
   virtual bool hasOwn(JSContext *cx, JS::Handle<JSObject*> proxy,
-                      JS::Handle<jsid> id, bool *bp) const MOZ_OVERRIDE;
+                      JS::Handle<jsid> id, bool *bp) MOZ_OVERRIDE;
   virtual bool get(JSContext *cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<JSObject*> receiver,
                    JS::Handle<jsid> id,
-                   JS::MutableHandle<JS::Value> vp) const MOZ_OVERRIDE;
+                   JS::MutableHandle<JS::Value> vp) MOZ_OVERRIDE;
   virtual bool set(JSContext *cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<JSObject*> receiver,
                    JS::Handle<jsid> id,
                    bool strict,
-                   JS::MutableHandle<JS::Value> vp) const MOZ_OVERRIDE;
+                   JS::MutableHandle<JS::Value> vp) MOZ_OVERRIDE;
   virtual bool keys(JSContext *cx, JS::Handle<JSObject*> proxy,
-                    JS::AutoIdVector &props) const MOZ_OVERRIDE;
+                    JS::AutoIdVector &props) MOZ_OVERRIDE;
   virtual bool iterate(JSContext *cx, JS::Handle<JSObject*> proxy,
                        unsigned flags,
-                       JS::MutableHandle<JS::Value> vp) const MOZ_OVERRIDE;
+                       JS::MutableHandle<JS::Value> vp) MOZ_OVERRIDE;
 
   static const nsOuterWindowProxy singleton;
 
 protected:
-  nsGlobalWindow* GetWindow(JSObject *proxy) const
+  nsGlobalWindow* GetWindow(JSObject *proxy)
   {
     return nsGlobalWindow::FromSupports(
       static_cast<nsISupports*>(js::GetProxyExtra(proxy, 0).toPrivate()));
@@ -681,16 +678,16 @@ protected:
   bool GetSubframeWindow(JSContext *cx, JS::Handle<JSObject*> proxy,
                          JS::Handle<jsid> id,
                          JS::MutableHandle<JS::Value> vp,
-                         bool &found) const;
+                         bool &found);
 
   
   
   already_AddRefed<nsIDOMWindow> GetSubframeWindow(JSContext *cx,
                                                    JS::Handle<JSObject*> proxy,
-                                                   JS::Handle<jsid> id) const;
+                                                   JS::Handle<jsid> id);
 
   bool AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
-                                  JS::AutoIdVector &props) const;
+                                  JS::AutoIdVector &props);
 };
 
 const js::Class OuterWindowProxyClass =
@@ -709,7 +706,7 @@ const js::Class OuterWindowProxyClass =
 
 bool
 nsOuterWindowProxy::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy,
-                                 bool *extensible) const
+                                 bool *extensible)
 {
   
   
@@ -720,7 +717,7 @@ nsOuterWindowProxy::isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::preventExtensions(JSContext *cx,
-                                      JS::Handle<JSObject*> proxy) const
+                                      JS::Handle<JSObject*> proxy)
 {
   
   JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
@@ -729,7 +726,7 @@ nsOuterWindowProxy::preventExtensions(JSContext *cx,
 }
 
 const char *
-nsOuterWindowProxy::className(JSContext *cx, JS::Handle<JSObject*> proxy) const
+nsOuterWindowProxy::className(JSContext *cx, JS::Handle<JSObject*> proxy)
 {
     MOZ_ASSERT(js::IsProxy(proxy));
 
@@ -737,7 +734,7 @@ nsOuterWindowProxy::className(JSContext *cx, JS::Handle<JSObject*> proxy) const
 }
 
 void
-nsOuterWindowProxy::finalize(JSFreeOp *fop, JSObject *proxy) const
+nsOuterWindowProxy::finalize(JSFreeOp *fop, JSObject *proxy)
 {
   nsGlobalWindow* global = GetWindow(proxy);
   if (global) {
@@ -755,7 +752,7 @@ bool
 nsOuterWindowProxy::getPropertyDescriptor(JSContext* cx,
                                           JS::Handle<JSObject*> proxy,
                                           JS::Handle<jsid> id,
-                                          JS::MutableHandle<JSPropertyDescriptor> desc) const
+                                          JS::MutableHandle<JSPropertyDescriptor> desc)
 {
   
   
@@ -777,7 +774,6 @@ nsOuterWindowProxy::getOwnPropertyDescriptor(JSContext* cx,
                                              JS::Handle<JSObject*> proxy,
                                              JS::Handle<jsid> id,
                                              JS::MutableHandle<JSPropertyDescriptor> desc)
-                                             const
 {
   bool found;
   if (!GetSubframeWindow(cx, proxy, id, desc.value(), found)) {
@@ -797,7 +793,6 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
                                    JS::Handle<JSObject*> proxy,
                                    JS::Handle<jsid> id,
                                    JS::MutableHandle<JSPropertyDescriptor> desc)
-                                   const
 {
   int32_t index = GetArrayIndexFromId(cx, id);
   if (IsArrayIndex(index)) {
@@ -814,7 +809,7 @@ nsOuterWindowProxy::defineProperty(JSContext* cx,
 bool
 nsOuterWindowProxy::getOwnPropertyNames(JSContext *cx,
                                         JS::Handle<JSObject*> proxy,
-                                        JS::AutoIdVector &props) const
+                                        JS::AutoIdVector &props)
 {
   
   if (!AppendIndexedPropertyNames(cx, proxy, props)) {
@@ -830,7 +825,7 @@ nsOuterWindowProxy::getOwnPropertyNames(JSContext *cx,
 
 bool
 nsOuterWindowProxy::delete_(JSContext *cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id, bool *bp) const
+                            JS::Handle<jsid> id, bool *bp)
 {
   if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
     
@@ -851,7 +846,7 @@ nsOuterWindowProxy::delete_(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
-                              JS::AutoIdVector &props) const
+                              JS::AutoIdVector &props)
 {
   
   if (!AppendIndexedPropertyNames(cx, proxy, props)) {
@@ -867,7 +862,7 @@ nsOuterWindowProxy::enumerate(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::has(JSContext *cx, JS::Handle<JSObject*> proxy,
-                        JS::Handle<jsid> id, bool *bp) const
+                        JS::Handle<jsid> id, bool *bp)
 {
   if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
     *bp = true;
@@ -879,7 +874,7 @@ nsOuterWindowProxy::has(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::hasOwn(JSContext *cx, JS::Handle<JSObject*> proxy,
-                           JS::Handle<jsid> id, bool *bp) const
+                           JS::Handle<jsid> id, bool *bp)
 {
   if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
     *bp = true;
@@ -893,7 +888,7 @@ bool
 nsOuterWindowProxy::get(JSContext *cx, JS::Handle<JSObject*> proxy,
                         JS::Handle<JSObject*> receiver,
                         JS::Handle<jsid> id,
-                        JS::MutableHandle<JS::Value> vp) const
+                        JS::MutableHandle<JS::Value> vp)
 {
   if (id == nsDOMClassInfo::sWrappedJSObject_id &&
       xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
@@ -918,7 +913,7 @@ nsOuterWindowProxy::set(JSContext *cx, JS::Handle<JSObject*> proxy,
                         JS::Handle<JSObject*> receiver,
                         JS::Handle<jsid> id,
                         bool strict,
-                        JS::MutableHandle<JS::Value> vp) const
+                        JS::MutableHandle<JS::Value> vp)
 {
   int32_t index = GetArrayIndexFromId(cx, id);
   if (IsArrayIndex(index)) {
@@ -934,7 +929,7 @@ nsOuterWindowProxy::set(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::keys(JSContext *cx, JS::Handle<JSObject*> proxy,
-                         JS::AutoIdVector &props) const
+                         JS::AutoIdVector &props)
 {
   
   
@@ -943,7 +938,7 @@ nsOuterWindowProxy::keys(JSContext *cx, JS::Handle<JSObject*> proxy,
 
 bool
 nsOuterWindowProxy::iterate(JSContext *cx, JS::Handle<JSObject*> proxy,
-                            unsigned flags, JS::MutableHandle<JS::Value> vp) const
+                            unsigned flags, JS::MutableHandle<JS::Value> vp)
 {
   
   
@@ -955,7 +950,7 @@ nsOuterWindowProxy::GetSubframeWindow(JSContext *cx,
                                       JS::Handle<JSObject*> proxy,
                                       JS::Handle<jsid> id,
                                       JS::MutableHandle<JS::Value> vp,
-                                      bool& found) const
+                                      bool& found)
 {
   nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id);
   if (!frame) {
@@ -982,7 +977,7 @@ nsOuterWindowProxy::GetSubframeWindow(JSContext *cx,
 already_AddRefed<nsIDOMWindow>
 nsOuterWindowProxy::GetSubframeWindow(JSContext *cx,
                                       JS::Handle<JSObject*> proxy,
-                                      JS::Handle<jsid> id) const
+                                      JS::Handle<jsid> id)
 {
   int32_t index = GetArrayIndexFromId(cx, id);
   if (!IsArrayIndex(index)) {
@@ -996,7 +991,7 @@ nsOuterWindowProxy::GetSubframeWindow(JSContext *cx,
 
 bool
 nsOuterWindowProxy::AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
-                                               JS::AutoIdVector &props) const
+                                               JS::AutoIdVector &props)
 {
   uint32_t length = GetWindow(proxy)->Length();
   MOZ_ASSERT(int32_t(length) >= 0);
@@ -1012,14 +1007,14 @@ nsOuterWindowProxy::AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
 
 bool
 nsOuterWindowProxy::watch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                          JS::Handle<jsid> id, JS::Handle<JSObject*> callable) const
+                          JS::Handle<jsid> id, JS::Handle<JSObject*> callable)
 {
   return js::WatchGuts(cx, proxy, id, callable);
 }
 
 bool
 nsOuterWindowProxy::unwatch(JSContext *cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id) const
+                            JS::Handle<jsid> id)
 {
   return js::UnwatchGuts(cx, proxy, id);
 }
@@ -1032,14 +1027,14 @@ class nsChromeOuterWindowProxy : public nsOuterWindowProxy
 public:
   nsChromeOuterWindowProxy() : nsOuterWindowProxy() {}
 
-  virtual const char *className(JSContext *cx, JS::Handle<JSObject*> wrapper) const MOZ_OVERRIDE;
+  virtual const char *className(JSContext *cx, JS::Handle<JSObject*> wrapper) MOZ_OVERRIDE;
 
   static const nsChromeOuterWindowProxy singleton;
 };
 
 const char *
 nsChromeOuterWindowProxy::className(JSContext *cx,
-                                    JS::Handle<JSObject*> proxy) const
+                                    JS::Handle<JSObject*> proxy)
 {
     MOZ_ASSERT(js::IsProxy(proxy));
 

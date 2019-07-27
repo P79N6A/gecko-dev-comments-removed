@@ -72,7 +72,7 @@ bool
 ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
                                            HandleObject wrapper,
                                            HandleId id,
-                                           JS::MutableHandle<JSPropertyDescriptor> desc) const
+                                           JS::MutableHandle<JSPropertyDescriptor> desc)
 {
     assertEnteredPolicy(cx, wrapper, id, GET | SET);
     
@@ -103,7 +103,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx,
 
 bool
 ChromeObjectWrapper::has(JSContext *cx, HandleObject wrapper,
-                         HandleId id, bool *bp) const
+                         HandleId id, bool *bp)
 {
     assertEnteredPolicy(cx, wrapper, id, GET);
     
@@ -132,7 +132,7 @@ ChromeObjectWrapper::has(JSContext *cx, HandleObject wrapper,
 bool
 ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
                          HandleObject receiver, HandleId id,
-                         MutableHandleValue vp) const
+                         MutableHandleValue vp)
 {
     assertEnteredPolicy(cx, wrapper, id, GET);
     vp.setUndefined();
@@ -167,7 +167,7 @@ ChromeObjectWrapper::get(JSContext *cx, HandleObject wrapper,
 
 bool
 ChromeObjectWrapper::objectClassIs(HandleObject obj, js::ESClassValue classValue,
-                                   JSContext *cx) const
+                                   JSContext *cx)
 {
   return CrossCompartmentWrapper::objectClassIs(obj, classValue, cx);
 }
@@ -178,7 +178,7 @@ ChromeObjectWrapper::objectClassIs(HandleObject obj, js::ESClassValue classValue
 
 bool
 ChromeObjectWrapper::enter(JSContext *cx, HandleObject wrapper,
-                           HandleId id, js::Wrapper::Action act, bool *bp) const
+                           HandleId id, js::Wrapper::Action act, bool *bp)
 {
     if (AllowedByBase(cx, wrapper, id, act))
         return true;
