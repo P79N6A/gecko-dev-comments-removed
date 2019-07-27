@@ -390,6 +390,12 @@ LiveInterval::nextUseAfter(CodePosition after)
     return nullptr;
 }
 
+UsePosition *
+LiveInterval::popUse()
+{
+    return uses_.popFront();
+}
+
 
 
 
