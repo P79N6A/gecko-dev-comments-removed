@@ -325,6 +325,28 @@ loop.shared.actions = (function() {
 
 
     LeaveRoom: Action.define("leaveRoom", {
+    }),
+
+    
+
+
+    RequireFeedbackDetails: Action.define("requireFeedbackDetails", {
+    }),
+
+    
+
+
+    SendFeedback: Action.define("sendFeedback", {
+      happy: Boolean,
+      category: String,
+      description: String
+    }),
+
+    
+
+
+    SendFeedbackError: Action.define("sendFeedbackError", {
+      error: Error
     })
   };
 })();
