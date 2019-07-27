@@ -4,7 +4,6 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
-const Cu = Components.utils;
 
 var gStateObject;
 var gTreeData;
@@ -20,19 +19,7 @@ window.onload = function() {
     return;
   }
 
-  
-  if (sessionData.value.charAt(0) == '(')
-    sessionData.value = sessionData.value.slice(1, -1);
-  try {
-    gStateObject = JSON.parse(sessionData.value);
-  }
-  catch (exJSON) {
-    var s = new Cu.Sandbox("about:blank", {sandboxName: 'aboutSessionRestore'});
-    gStateObject = Cu.evalInSandbox("(" + sessionData.value + ")", s);
-    
-    
-    sessionData.value = JSON.stringify(gStateObject);
-  }
+  gStateObject = JSON.parse(sessionData.value);
 
   
   var event = document.createEvent("UIEvents");
