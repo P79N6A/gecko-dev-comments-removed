@@ -1596,6 +1596,7 @@ struct nsStyleText {
   uint8_t mWordBreak;                   
   uint8_t mWordWrap;                    
   uint8_t mHyphens;                     
+  uint8_t mRubyPosition;                
   uint8_t mTextSizeAdjust;              
   uint8_t mTextCombineUpright;          
   uint8_t mControlCharacterVisibility;  

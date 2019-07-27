@@ -4369,6 +4369,13 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
               NS_STYLE_HYPHENS_MANUAL, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForRubyPosition(),
+              text->mRubyPosition, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INHERIT,
+              parentText->mRubyPosition,
+              NS_STYLE_RUBY_POSITION_INITIAL, 0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForTextSizeAdjust(), text->mTextSizeAdjust,
               canStoreInRuleTree,
               SETDSC_NONE | SETDSC_AUTO | SETDSC_UNSET_INHERIT,

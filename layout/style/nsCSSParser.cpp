@@ -795,6 +795,7 @@ protected:
   bool ParseOverflow();
   bool ParsePadding();
   bool ParseQuotes();
+  bool ParseRubyPosition(nsCSSValue& aValue);
   bool ParseSize();
   bool ParseTextAlign(nsCSSValue& aValue,
                       const KTableValue aTable[]);
@@ -10009,6 +10010,8 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
         return ParseListStyleType(aValue);
       case eCSSProperty_marks:
         return ParseMarks(aValue);
+      case eCSSProperty_ruby_position:
+        return ParseRubyPosition(aValue);
       case eCSSProperty_text_align:
         return ParseTextAlign(aValue);
       case eCSSProperty_text_align_last:
@@ -13123,6 +13126,34 @@ CSSParserImpl::ParseQuotes()
   }
   AppendValue(eCSSProperty_quotes, value);
   return true;
+}
+
+static const int32_t gRubyPositionMask[] = {
+  
+  NS_STYLE_RUBY_POSITION_OVER |
+    NS_STYLE_RUBY_POSITION_UNDER |
+    NS_STYLE_RUBY_POSITION_INTER_CHARACTER,
+  
+  NS_STYLE_RUBY_POSITION_RIGHT |
+    NS_STYLE_RUBY_POSITION_LEFT,
+  
+  MASK_END_VALUE
+};
+
+bool
+CSSParserImpl::ParseRubyPosition(nsCSSValue& aValue)
+{
+  if (ParseVariant(aValue, VARIANT_INHERIT, nullptr)) {
+    return true;
+  }
+  if (!ParseBitmaskValues(aValue, nsCSSProps::kRubyPositionKTable,
+                          gRubyPositionMask)) {
+    return false;
+  }
+  auto value = aValue.GetIntValue();
+  
+  
+  return (value & gRubyPositionMask[0]) && (value & gRubyPositionMask[1]);
 }
 
 bool
