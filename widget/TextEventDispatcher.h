@@ -58,6 +58,17 @@ public:
 
 
 
+
+
+
+  nsresult GetState() const;
+
+  
+
+
+
+
+
   nsresult SetPendingCompositionString(const nsAString& aString)
   {
     return mPendingComposition.SetString(aString);
@@ -142,6 +153,12 @@ private:
 
   bool mInitialized;
   bool mForTests;
+
+  
+
+
+
+  void InitEvent(WidgetCompositionEvent& aEvent) const;
 };
 
 } 
