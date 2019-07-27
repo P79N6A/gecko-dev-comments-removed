@@ -635,9 +635,21 @@ AsyncFetchAndSetIconFromNetwork::OnStopRequest(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, aRequest,
-                  TO_INTBUFFER(mIcon.data), mIcon.data.Length(),
-                  mIcon.mimeType);
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  
+  
+  MOZ_ASSERT(channel);
+
+  nsAutoCString contentType;
+  channel->GetContentType(contentType);
+  
+  if (contentType.EqualsLiteral("image/svg+xml")) {
+    mIcon.mimeType.AssignLiteral("image/svg+xml");
+  } else {
+    NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, aRequest,
+                    TO_INTBUFFER(mIcon.data), mIcon.data.Length(),
+                    mIcon.mimeType);
+  }
 
   
   if (mIcon.mimeType.IsEmpty()) {
@@ -649,10 +661,6 @@ AsyncFetchAndSetIconFromNetwork::OnStopRequest(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-  
-  
-  MOZ_ASSERT(channel);
   mIcon.expiration = GetExpirationTimeFromChannel(channel);
 
   
