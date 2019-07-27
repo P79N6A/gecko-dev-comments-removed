@@ -92,6 +92,16 @@ public:
 
 
 
+  void SetIsInFontFaceSet(bool aInFontFaceSet) {
+    MOZ_ASSERT(!(!aInFontFaceSet && IsConnected()),
+               "use DisconnectFromRule instead");
+    mInFontFaceSet = aInFontFaceSet;
+  }
+
+  
+
+
+
 
 
   bool IsInitialized() const { return mInitialized; }
