@@ -223,25 +223,6 @@ WebGLFramebuffer::Attachment::RectangleObject() const
 
 
 
-static inline bool
-IsValidFBOTextureColorFormat(TexInternalFormat internalformat)
-{
-    
-
-
-
-
-
-
-    TexInternalFormat unsizedformat = UnsizedInternalFormatFromInternalFormat(internalformat);
-    return unsizedformat == LOCAL_GL_ALPHA ||
-           unsizedformat == LOCAL_GL_LUMINANCE ||
-           unsizedformat == LOCAL_GL_LUMINANCE_ALPHA ||
-           unsizedformat == LOCAL_GL_RGB ||
-           unsizedformat == LOCAL_GL_RGBA ||
-           unsizedformat == LOCAL_GL_SRGB ||
-           unsizedformat == LOCAL_GL_SRGB_ALPHA;
-}
 
 static inline bool
 IsValidFBOTextureDepthFormat(GLenum internalformat)
@@ -258,14 +239,6 @@ IsValidFBOTextureDepthStencilFormat(GLenum internalformat)
 
 
 
-static inline bool
-IsValidFBORenderbufferColorFormat(GLenum internalFormat)
-{
-    return  internalFormat == LOCAL_GL_RGB565 ||
-            internalFormat == LOCAL_GL_RGB5_A1 ||
-            internalFormat == LOCAL_GL_RGBA4 ||
-            internalFormat == LOCAL_GL_SRGB8_ALPHA8_EXT;
-}
 
 static inline bool
 IsValidFBORenderbufferDepthFormat(GLenum internalFormat)
@@ -702,7 +675,6 @@ WebGLFramebuffer::HasDefinedAttachments() const
     return hasAttachments;
 }
 
-
 static bool
 IsIncomplete(const WebGLFramebuffer::Attachment& cur)
 {
@@ -781,7 +753,6 @@ WebGLFramebuffer::AllImageRectsMatch() const
 
     return imageRectsMatch;
 }
-
 
 const WebGLRectangleObject&
 WebGLFramebuffer::RectangleObject() const
