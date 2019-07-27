@@ -1255,6 +1255,12 @@ public:
   bool IsScrollbarContainer() { return mIsScrollbarContainer; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
 
+  
+
+
+
+
+  Maybe<ParentLayerIntRect> GetCombinedClipRect() const;
 
   
 
