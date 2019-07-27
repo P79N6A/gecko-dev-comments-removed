@@ -2237,16 +2237,24 @@ void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultF
   
   
   
+  nsIFile* fileToUse;
   nsRefPtr<nsExternalAppHandler> kungFuDeathGrip(this);
   nsCOMPtr<nsIHelperAppLauncherDialog> dlg(mDialog);
+  rv = mDialog->PromptForSaveToFile(this,
+                                    GetDialogParent(),
+                                    aDefaultFile.get(),
+                                    aFileExtension.get(),
+                                    mForceSave, &fileToUse);
 
-  rv = mDialog->PromptForSaveToFileAsync(this,
-                                         GetDialogParent(),
-                                         aDefaultFile.get(),
-                                         aFileExtension.get(),
-                                         mForceSave);
-  if (NS_FAILED(rv)) {
-    Cancel(NS_BINDING_ABORTED);
+  if (rv == NS_ERROR_NOT_AVAILABLE) {
+    
+    rv = mDialog->PromptForSaveToFileAsync(this, 
+                                           GetDialogParent(),
+                                           aDefaultFile.get(),
+                                           aFileExtension.get(),
+                                           mForceSave);
+  } else {
+    SaveDestinationAvailable(rv == NS_OK ? fileToUse : nullptr);
   }
 }
 
