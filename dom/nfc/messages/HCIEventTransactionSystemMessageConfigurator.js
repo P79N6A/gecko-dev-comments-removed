@@ -13,6 +13,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "appsService",
                                    "@mozilla.org/AppsService;1",
                                    "nsIAppsService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "aceService",
+                                   "@mozilla.org/secureelement/access-control/ace;1",
+                                   "nsIAccessControlEnforcer");
+
 XPCOMUtils.defineLazyModuleGetter(this, "SEUtils",
                                   "resource://gre/modules/SEUtils.jsm");
 
@@ -50,27 +54,26 @@ HCIEventTransactionSystemMessageConfigurator.prototype = {
       return Promise.resolve(false);
     }
 
+    let appId = appsService.getAppLocalIdByManifestURL(aManifestURL);
+    if (appId === Ci.nsIScriptSecurityManager.NO_APP_ID) {
+      return Promise.resolve(false);
+    }
+
     return new Promise((resolve, reject) => {
       appsService.getManifestFor(aManifestURL)
       .then((aManifest) => this._checkAppManifest(aMessage.origin, aMessage.aid, aManifest))
-      .then(() => {
-        
-        
-        
-        debug("dispatching message");
-        resolve(true);
+      .then(() => aceService.isAccessAllowed(appId, aMessage.origin, aMessage.aid))
+      .then((allowed) => {
+        debug("dispatching message: " + allowed);
+        resolve(allowed);
       })
       .catch(() => {
-        
         debug("not dispatching");
         resolve(false);
       });
     });
   },
 
-  
-  
-  
   _checkAppManifest: function _checkAppManifest(aOrigin, aAid, aManifest) {
     DEBUG && debug("aManifest " + JSON.stringify(aManifest));
 
