@@ -287,6 +287,11 @@ public:
 
   
   void SetAllowIceLoopback(bool val) { mAllowIceLoopback = val; }
+  bool GetAllowIceLoopback() const { return mAllowIceLoopback; }
+
+  
+  void SetAllowIceLinkLocal(bool val) { mAllowIceLinkLocal = val; }
+  bool GetAllowIceLinkLocal() const { return mAllowIceLinkLocal; }
 
   
   virtual const std::string& GetHandle();
@@ -739,6 +744,7 @@ private:
 #endif
 
   bool mAllowIceLoopback;
+  bool mAllowIceLinkLocal;
   nsRefPtr<PeerConnectionMedia> mMedia;
 
   

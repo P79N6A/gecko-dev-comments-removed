@@ -375,6 +375,7 @@ pref("media.navigator.permission.disabled", false);
 pref("media.peerconnection.default_iceservers", "[]");
 pref("media.peerconnection.ice.loopback", false); 
 pref("media.peerconnection.ice.tcp", false);
+pref("media.peerconnection.ice.link_local", false); 
 pref("media.peerconnection.use_document_iceservers", true);
 pref("media.peerconnection.identity.enabled", true);
 pref("media.peerconnection.identity.timeout", 10000);

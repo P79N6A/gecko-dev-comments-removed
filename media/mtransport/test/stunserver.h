@@ -24,12 +24,13 @@ class TestStunServer {
  public:
   
   
-  static TestStunServer *GetInstance();
+  static TestStunServer *GetInstance(int address_family = AF_INET);
   static void ShutdownInstance();
   
   
   static void ConfigurePort(uint16_t port);
-  static TestStunServer *Create();
+  
+  static TestStunServer *Create(int address_family);
 
   virtual ~TestStunServer();
 
@@ -59,7 +60,7 @@ class TestStunServer {
         timer_handle_(nullptr) {}
 
   int SetInternalPort(nr_local_addr* addr, uint16_t port);
-  int Initialize();
+  int Initialize(int address_family);
   static void readable_cb(NR_SOCKET sock, int how, void *cb_arg);
 
  private:
@@ -82,12 +83,13 @@ class TestStunServer {
   std::map<std::string, uint32_t> received_ct_;
 
   static TestStunServer* instance;
+  static TestStunServer* instance6;
   static uint16_t instance_port;
 };
 
 class TestStunTcpServer: public TestStunServer {
  public:
-  static TestStunTcpServer *GetInstance();
+  static TestStunTcpServer *GetInstance(int address_family);
   static void ShutdownInstance();
   static void ConfigurePort(uint16_t port);
   virtual ~TestStunTcpServer();
@@ -98,9 +100,10 @@ class TestStunTcpServer: public TestStunServer {
   nsRefPtr<NrIceCtx> ice_ctx_;
  private:
   virtual int TryOpenListenSocket(nr_local_addr* addr, uint16_t port);
-  static TestStunTcpServer *Create();
+  static TestStunTcpServer *Create(int address_family);
 
   static TestStunTcpServer* instance;
+  static TestStunTcpServer* instance6;
   static uint16_t instance_port;
 };
 } 

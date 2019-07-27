@@ -224,13 +224,10 @@ int nr_ice_media_stream_get_attributes(nr_ice_media_stream *stream, char ***attr
   }
 
 
-
 int nr_ice_media_stream_get_default_candidate(nr_ice_media_stream *stream, int component, nr_ice_candidate **candp)
   {
-    int _status;
+    int r,_status;
     nr_ice_component *comp;
-    nr_ice_candidate *cand;
-    nr_ice_candidate *best_cand = NULL;
 
     comp=STAILQ_FIRST(&stream->components);
     while(comp){
@@ -244,34 +241,10 @@ int nr_ice_media_stream_get_default_candidate(nr_ice_media_stream *stream, int c
       ABORT(R_NOT_FOUND);
 
     
-
-
-
-
-    cand=TAILQ_FIRST(&comp->candidates);
-    while(cand){
-      if (cand->state == NR_ICE_CAND_STATE_INITIALIZED) {
-        if (!best_cand) {
-          best_cand = cand;
-        }
-        else {
-          if (best_cand->type < cand->type) {
-            best_cand = cand;
-          } else if (best_cand->type == cand->type) {
-            if (best_cand->priority < cand->priority)
-              best_cand = cand;
-          }
-        }
-      }
-
-      cand=TAILQ_NEXT(cand,entry_comp);
+    if((r=nr_ice_component_get_default_candidate(comp, candp, NR_IPV4)) &&
+       (r=nr_ice_component_get_default_candidate(comp, candp, NR_IPV6))) {
+      ABORT(r);
     }
-
-    
-    if (!best_cand)
-      ABORT(R_NOT_FOUND);
-
-    *candp = best_cand;
 
     _status=0;
   abort:

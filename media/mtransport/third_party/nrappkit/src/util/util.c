@@ -724,6 +724,31 @@ inet_ntop6(const unsigned char *src, char *dst, size_t size)
 }
 #endif 
 
+#ifdef WIN32
+
+int inet_pton(int af, const char *src, void *dst)
+{
+  struct sockaddr_storage ss;
+  int addrlen = sizeof(ss);
+
+  if (af != AF_INET && af != AF_INET6) {
+    return -1;
+  }
+
+  if (!WSAStringToAddressA(src, af, NULL, (struct sockaddr*)&ss, &addrlen)) {
+    if (af == AF_INET) {
+      struct sockaddr_in *in = (struct sockaddr_in*)&ss;
+      memcpy(dst, &in->sin_addr, sizeof(struct in_addr));
+    } else {
+      struct sockaddr_in6 *in6 = (struct sockaddr_in6*)&ss;
+      memcpy(dst, &in6->sin6_addr, sizeof(struct in6_addr));
+    }
+    return 1;
+  }
+  return 0;
+}
+#endif 
+
 #endif
 
 #ifdef WIN32
