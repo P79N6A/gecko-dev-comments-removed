@@ -141,7 +141,12 @@ protected:
   
   
   
-  RefPtr<nsIThread> mRunningThread;
+  
+  
+  
+  
+  
+  Atomic<nsIThread*> mRunningThread;
 
   
   class AutoTaskGuard : public AutoTaskDispatcher
@@ -157,10 +162,15 @@ protected:
       MOZ_ASSERT(sCurrentQueueTLS.get() == nullptr);
       sCurrentQueueTLS.set(aQueue);
 
+      MOZ_ASSERT(mQueue->mRunningThread == nullptr);
+      mQueue->mRunningThread = NS_GetCurrentThread();
     }
 
     ~AutoTaskGuard()
     {
+      MOZ_ASSERT(mQueue->mRunningThread == NS_GetCurrentThread());
+      mQueue->mRunningThread = nullptr;
+
       sCurrentQueueTLS.set(nullptr);
       mQueue->mTailDispatcher = nullptr;
     }
@@ -169,7 +179,6 @@ protected:
   MediaTaskQueue* mQueue;
   };
 
-  friend class TaskDispatcher;
   TaskDispatcher* mTailDispatcher;
 
   
