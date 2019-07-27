@@ -110,9 +110,10 @@ BreakpointStore.prototype = {
 
 
 
+
+
   addBreakpoint: function (aBreakpoint) {
     let { url, line, column } = aBreakpoint;
-    let updating = false;
 
     if (column != null) {
       if (!this._breakpoints[url]) {
@@ -121,16 +122,22 @@ BreakpointStore.prototype = {
       if (!this._breakpoints[url][line]) {
         this._breakpoints[url][line] = [];
       }
-      this._breakpoints[url][line][column] = aBreakpoint;
+      if (!this._breakpoints[url][line][column]) {
+        this._breakpoints[url][line][column] = aBreakpoint;
+        this._size++;
+      }
+      return this._breakpoints[url][line][column];
     } else {
       
       if (!this._wholeLineBreakpoints[url]) {
         this._wholeLineBreakpoints[url] = [];
       }
-      this._wholeLineBreakpoints[url][line] = aBreakpoint;
+      if (!this._wholeLineBreakpoints[url][line]) {
+        this._wholeLineBreakpoints[url][line] = aBreakpoint;
+        this._size++;
+      }
+      return this._wholeLineBreakpoints[url][line];
     }
-
-    this._size++;
   },
 
   
@@ -1439,9 +1446,7 @@ ThreadActor.prototype = {
 
     let locationPromise = this.sources.getGeneratedLocation(aRequest.location);
     return locationPromise.then(({url, line, column}) => {
-      if (line == null ||
-          line < 0 ||
-          this.dbg.findScripts({ url: url }).length == 0) {
+      if (line == null || line < 0) {
         return {
           error: "noScript",
           message: "Requested setting a breakpoint on "
@@ -1537,12 +1542,11 @@ ThreadActor.prototype = {
     
     let scripts = this.dbg.findScripts(aLocation);
     if (scripts.length == 0) {
+      
+      
+      
+      
       return {
-        error: "noScript",
-        message: "Requested setting a breakpoint on "
-          + aLocation.url + ":" + aLocation.line
-          + (aLocation.column != null ? ":" + aLocation.column : "")
-          + " but there is no Debugger.Script at that location",
         actor: actor.actorID
       };
     }

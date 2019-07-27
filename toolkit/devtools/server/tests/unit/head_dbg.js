@@ -516,6 +516,17 @@ function resume(threadClient) {
 
 
 
+function interrupt(threadClient) {
+  dumpn("Interrupting.");
+  return rdpRequest(threadClient, threadClient.interrupt);
+}
+
+
+
+
+
+
+
 
 
 function resumeAndWaitForPause(client, threadClient) {
