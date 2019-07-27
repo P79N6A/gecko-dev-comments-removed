@@ -371,14 +371,6 @@ public:
   {
     mStreamOrderDirty = true;
   }
-  
-
-
-  void PauseAllAudioOutputs();
-  
-
-
-  void ResumeAllAudioOutputs();
 
   TrackRate AudioSampleRate() const { return mSampleRate; }
   TrackRate GraphRate() const { return mSampleRate; }
@@ -633,12 +625,6 @@ private:
 
 
   bool mNeedsMemoryReport;
-
-  
-
-
-
-  bool mAudioOutputsPaused;
 
 #ifdef DEBUG
   
