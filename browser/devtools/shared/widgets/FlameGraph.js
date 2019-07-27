@@ -731,9 +731,7 @@ FlameGraph.prototype = {
 
 
   _onMouseMove: function(e) {
-    let offset = this._getContainerOffset();
-    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
-    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
+    let {mouseX, mouseY} = this._getRelativeEventCoordinates(e);
 
     let canvasWidth = this._width;
     let canvasHeight = this._height;
@@ -783,9 +781,7 @@ FlameGraph.prototype = {
 
 
   _onMouseDown: function(e) {
-    let offset = this._getContainerOffset();
-    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
-    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
+    let {mouseX, mouseY} = this._getRelativeEventCoordinates(e);
 
     this._selectionDragger.origin = mouseX;
     this._selectionDragger.anchor.start = this._selection.start;
@@ -817,8 +813,7 @@ FlameGraph.prototype = {
 
 
   _onMouseWheel: function(e) {
-    let offset = this._getContainerOffset();
-    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let {mouseX} = this._getRelativeEventCoordinates(e);
 
     let canvasWidth = this._width;
     let canvasHeight = this._height;
@@ -939,6 +934,27 @@ FlameGraph.prototype = {
     }
 
     return { left: x, top: y };
+  },
+
+  
+
+
+
+  _getRelativeEventCoordinates: function(e) {
+    
+    
+    if ("testX" in e && "testY" in e) {
+      return {
+        mouseX: e.testX * this._pixelRatio,
+        mouseY: e.testY * this._pixelRatio
+      };
+    }
+
+    let offset = this._getContainerOffset();
+    let mouseX = (e.clientX - offset.left) * this._pixelRatio;
+    let mouseY = (e.clientY - offset.top) * this._pixelRatio;
+
+    return {mouseX,mouseY};
   },
 
   
