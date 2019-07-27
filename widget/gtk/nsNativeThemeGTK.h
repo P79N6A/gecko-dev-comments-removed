@@ -81,7 +81,6 @@ private:
                                nsIntMargin* aExtra);
 
   void RefreshWidgetWindow(nsIFrame* aFrame);
-  gint GdkScaleFactor();
 
   uint8_t mDisabledWidgetTypes[32];
   uint8_t mSafeWidgetStates[1024];    

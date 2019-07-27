@@ -6,6 +6,7 @@
 #include "nsNativeThemeGTK.h"
 #include "nsThemeConstants.h"
 #include "gtkdrawing.h"
+#include "nsScreenGtk.h"
 
 #include "gfx2DGlue.h"
 #include "nsIObserverService.h"
@@ -88,23 +89,6 @@ nsNativeThemeGTK::RefreshWidgetWindow(nsIFrame* aFrame)
     return;
  
   vm->InvalidateAllViews();
-}
-
-gint
-nsNativeThemeGTK::GdkScaleFactor()
-{
-#if (MOZ_WIDGET_GTK >= 3)
-  
-  static auto sGdkScreenGetMonitorScaleFactorPtr = (gint (*)(GdkScreen*, gint))
-      dlsym(RTLD_DEFAULT, "gdk_screen_get_monitor_scale_factor");
-  if (sGdkScreenGetMonitorScaleFactorPtr) {
-      
-      
-      GdkScreen *screen = gdk_screen_get_default();
-      return sGdkScreenGetMonitorScaleFactorPtr(screen, 0);
-  }
-#endif
-    return 1;
 }
 
 
@@ -795,10 +779,11 @@ nsNativeThemeGTK::GetExtraSizeForWidget(nsIFrame* aFrame, uint8_t aWidgetType,
   default:
     return false;
   }
-  aExtra->top *= GdkScaleFactor();
-  aExtra->right *= GdkScaleFactor();
-  aExtra->bottom *= GdkScaleFactor();
-  aExtra->left *= GdkScaleFactor();
+  gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+  aExtra->top *= scale;
+  aExtra->right *= scale;
+  aExtra->bottom *= scale;
+  aExtra->left *= scale;
   return true;
 }
 
@@ -826,7 +811,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
 
   gfxRect rect = presContext->AppUnitsToGfxUnits(aRect);
   gfxRect dirtyRect = presContext->AppUnitsToGfxUnits(aDirtyRect);
-  gint scaleFactor = GdkScaleFactor();
+  gint scaleFactor = nsScreenGtk::GetGtkMonitorScaleFactor();
 
   
   
@@ -1065,10 +1050,11 @@ nsNativeThemeGTK::GetWidgetPadding(nsDeviceContext* aContext,
         aResult->left += horizontal_padding;
         aResult->right += horizontal_padding;
 
-        aResult->top *= GdkScaleFactor();
-        aResult->right *= GdkScaleFactor();
-        aResult->bottom *= GdkScaleFactor();
-        aResult->left *= GdkScaleFactor();
+        gint scale = nsScreenGtk::GetGtkMonitorScaleFactor();
+        aResult->top *= scale;
+        aResult->right *= scale;
+        aResult->bottom *= scale;
+        aResult->left *= scale;
 
         return true;
       }
@@ -1332,7 +1318,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsPresContext* aPresContext,
     break;
   }
 
-  *aResult = *aResult * GdkScaleFactor();
+  *aResult = *aResult * nsScreenGtk::GetGtkMonitorScaleFactor();
 
   return NS_OK;
 }
