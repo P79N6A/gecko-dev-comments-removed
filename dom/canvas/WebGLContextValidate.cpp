@@ -1214,7 +1214,7 @@ WebGLContext::ValidateTexInputData(GLenum type, js::Scalar::Type jsArrayType,
 {
     
     
-    if (jsArrayType == js::Scalar::TypeMax)
+    if (jsArrayType == js::Scalar::MaxTypedArrayViewType)
         return true;
 
     const char invalidTypedArray[] = "%s: Invalid typed array type for given"

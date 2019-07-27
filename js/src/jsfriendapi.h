@@ -1417,6 +1417,10 @@ namespace js {
 namespace Scalar {
 
 
+
+
+
+
 enum Type {
     Int8 = 0,
     Uint8,
@@ -1433,7 +1437,13 @@ enum Type {
 
     Uint8Clamped,
 
-    TypeMax
+    
+
+
+    MaxTypedArrayViewType,
+
+    Float32x4,
+    Int32x4
 };
 
 static inline size_t
@@ -1453,6 +1463,9 @@ byteSize(Type atype)
         return 4;
       case Float64:
         return 8;
+      case Int32x4:
+      case Float32x4:
+        return 16;
       default:
         MOZ_CRASH("invalid scalar type");
     }
