@@ -1158,6 +1158,7 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this._onSelectAll = this._onSelectAll.bind(this);
   this._onCopy = this._onCopy.bind(this);
   this._onCopyColor = this._onCopyColor.bind(this);
+  this._onCopyUrl = this._onCopyUrl.bind(this);
   this._onCopyImageDataUrl = this._onCopyImageDataUrl.bind(this);
   this._onCopyLocation = this._onCopyLocation.bind(this);
   this._onCopyPropertyDeclaration = this._onCopyPropertyDeclaration.bind(this);
@@ -1272,6 +1273,12 @@ CssRuleView.prototype = {
       label: "ruleView.contextmenu.copyColor",
       accesskey: "ruleView.contextmenu.copyColor.accessKey",
       command: this._onCopyColor
+    });
+
+    this.menuitemCopyUrl = createMenuItem(this._contextmenu, {
+      label: "styleinspector.contextmenu.copyUrl",
+      accesskey: "styleinspector.contextmenu.copyUrl.accessKey",
+      command: this._onCopyUrl
     });
 
     this.menuitemCopyImageDataUrl = createMenuItem(this._contextmenu, {
@@ -1469,6 +1476,7 @@ CssRuleView.prototype = {
 
     this.menuitemCopy.hidden = !copy;
     this.menuitemCopyColor.hidden = !this._isColorPopup();
+    this.menuitemCopyUrl.hidden = !this._isImageUrlPopup();
     this.menuitemCopyImageDataUrl.hidden = !this._isImageUrlPopup();
 
     this.menuitemCopyLocation.hidden = true;
@@ -1711,6 +1719,13 @@ CssRuleView.prototype = {
 
   _onCopyColor: function() {
     clipboardHelper.copyString(this._colorToCopy);
+  },
+
+  
+
+
+  _onCopyUrl: function() {
+    clipboardHelper.copyString(this._imageUrlToCopy);
   },
 
   
@@ -2011,6 +2026,11 @@ CssRuleView.prototype = {
       
       this.menuitemCopyColor.removeEventListener("command", this._onCopyColor);
       this.menuitemCopyColor = null;
+
+      
+      this.menuitemCopyUrl.removeEventListener("command",
+        this._onCopyUrl);
+      this.menuitemCopyUrl = null;
 
       
       this.menuitemCopyImageDataUrl.removeEventListener("command",
