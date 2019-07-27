@@ -20,16 +20,27 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIURICLASSIFIERCALLBACK
 
-    nsresult Start(nsIChannel *aChannel);
+    
+    
+    
+    
+    void Start(nsIChannel *aChannel);
 
 private:
-    nsCOMPtr<nsIChannel> mSuspendedChannel;
     
     bool mIsAllowListed;
+    
+    bool mSuspendedChannel;
+    nsCOMPtr<nsIChannel> mChannel;
 
     ~nsChannelClassifier() {}
+    
     void MarkEntryClassified(nsresult status);
     bool HasBeenClassified(nsIChannel *aChannel);
+    
+    
+    
+    nsresult StartInternal(nsIChannel *aChannel);
     
     nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
 
