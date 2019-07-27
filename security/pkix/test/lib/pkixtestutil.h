@@ -78,6 +78,16 @@ const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
 
 
 
+
+
+
+
+SECStatus TamperOnce(SECItem& item, const uint8_t* from, size_t fromLen,
+                     const uint8_t* to, size_t toLen);
+
+
+
+
 enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
