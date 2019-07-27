@@ -136,8 +136,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   addSource: function(aSource, aOptions = {}) {
-    if (!(aSource.url || aSource.introductionUrl)) {
-      
+    if (!aSource.url) {
       
       return;
     }
@@ -170,21 +169,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   _parseUrl: function(aSource) {
-    let fullUrl = aSource.url || aSource.introductionUrl;
+    let fullUrl = aSource.url;
     let url = fullUrl.split(" -> ").pop();
     let label = aSource.addonPath ? aSource.addonPath : SourceUtils.getSourceLabel(url);
-    let group;
-
-    if (!aSource.url && aSource.introductionUrl) {
-      label += ' > ' + aSource.introductionType;
-      group = L10N.getStr("evalGroupLabel");
-    }
-    else if(aSource.addonID) {
-      group = aSource.addonID;
-    }
-    else {
-      group = SourceUtils.getSourceGroup(url);
-    }
+    let group = aSource.addonID ? aSource.addonID : SourceUtils.getSourceGroup(url);
 
     return {
       label: label,
