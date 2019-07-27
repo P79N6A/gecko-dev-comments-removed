@@ -499,13 +499,16 @@ nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aN
   }
 
   
+  
+  
+  
   char_type* oldData;
   uint32_t oldFlags;
   if (!MutatePrep(XPCOM_MAX(mLength, newLength), &oldData, &oldFlags))
     return;
   if (oldData) {
     
-    char_traits::copy(mData, oldData, XPCOM_MAX(mLength, newLength));
+    char_traits::copy(mData, oldData, mLength);
     ::ReleaseData(oldData, oldFlags);
   }
 
