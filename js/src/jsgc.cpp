@@ -1986,6 +1986,7 @@ ArenaLists::allocateFromArena(JS::Zone *zone, AllocKind thingKind,
     if (!aheader)
         return nullptr;
 
+    MOZ_ASSERT(!maybeLock->wasUnlocked());
     MOZ_ASSERT(al.isCursorAtEnd());
     al.insertAtCursor(aheader);
 
@@ -3274,7 +3275,6 @@ GCRuntime::maybeAllocTriggerZoneGC(Zone *zone, const AutoLockGC &lock)
     if (usedBytes >= thresholdBytes) {
         
         
-        AutoUnlockGC unlock(rt);
         triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
     } else if (usedBytes >= igcThresholdBytes) {
         
@@ -3288,7 +3288,6 @@ GCRuntime::maybeAllocTriggerZoneGC(Zone *zone, const AutoLockGC &lock)
             
             
             
-            AutoUnlockGC unlock(rt);
             triggerZoneGC(zone, JS::gcreason::ALLOC_TRIGGER);
 
             
@@ -3414,7 +3413,7 @@ GCRuntime::decommitAllWithoutUnlocking(const AutoLockGC &lock)
 }
 
 void
-GCRuntime::decommitArenas(const AutoLockGC &lock)
+GCRuntime::decommitArenas(AutoLockGC &lock)
 {
     
     for (ChunkPool::Iter chunk(emptyChunks(lock)); !chunk.done(); chunk.next())
@@ -3445,7 +3444,7 @@ GCRuntime::decommitArenas(const AutoLockGC &lock)
             ArenaHeader *aheader = chunk->allocateArena(rt, nullptr, FINALIZE_OBJECT0, lock);
             bool ok;
             {
-                AutoUnlockGC unlock(rt);
+                AutoUnlockGC unlock(lock);
                 ok = MarkPagesUnused(aheader->getArena(), ArenaSize);
             }
             chunk->releaseArena(rt, aheader, lock, Chunk::ArenaDecommitState(ok));
@@ -3460,14 +3459,14 @@ GCRuntime::decommitArenas(const AutoLockGC &lock)
 }
 
 void
-GCRuntime::expireChunksAndArenas(bool shouldShrink, const AutoLockGC &lock)
+GCRuntime::expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock)
 {
 #ifdef JSGC_FJGENERATIONAL
     rt->threadPool.pruneChunkCache();
 #endif
 
     if (Chunk *toFree = expireEmptyChunkPool(shouldShrink, lock)) {
-        AutoUnlockGC unlock(rt);
+        AutoUnlockGC unlock(lock);
         freeChunkList(toFree);
     }
 
@@ -3644,7 +3643,7 @@ BackgroundAllocTask::run()
     while (!cancel_ && runtime->gc.wantBackgroundAllocation(lock)) {
         Chunk *chunk;
         {
-            AutoUnlockGC unlock(runtime);
+            AutoUnlockGC unlock(lock);
             chunk = Chunk::allocate(runtime);
             if (!chunk)
                 break;
@@ -3697,11 +3696,11 @@ GCHelperState::waitBackgroundSweepEnd()
 }
 
 void
-GCHelperState::doSweep(const AutoLockGC &lock)
+GCHelperState::doSweep(AutoLockGC &lock)
 {
     if (sweepFlag) {
         sweepFlag = false;
-        AutoUnlockGC unlock(rt);
+        AutoUnlockGC unlock(lock);
 
         rt->gc.sweepBackgroundThings();
 
