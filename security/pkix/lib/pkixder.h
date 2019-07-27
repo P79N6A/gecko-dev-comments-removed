@@ -41,8 +41,7 @@
 #include "pkix/nullptr.h"
 
 #include "prerror.h"
-#include "prlog.h"
-#include "secder.h"
+#include "prtime.h"
 #include "secerr.h"
 #include "secoidt.h"
 #include "stdint.h"
@@ -73,6 +72,7 @@ enum Tag
   NULLTag = UNIVERSAL | 0x05,
   OIDTag = UNIVERSAL | 0x06,
   ENUMERATED = UNIVERSAL | 0x0a,
+  UTCTime = UNIVERSAL | 0x17,
   GENERALIZED_TIME = UNIVERSAL | 0x18,
   SEQUENCE = UNIVERSAL | CONSTRUCTED | 0x30,
 };
@@ -497,17 +497,33 @@ Enumerated(Input& input, uint8_t& value)
   return internal::IntegralValue(input, ENUMERATED | 0, value);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Result TimeChoice(SECItemType type, Input& input,  PRTime& time);
+
+
+
+
 inline Result
 GeneralizedTime(Input& input, PRTime& time)
 {
-  SECItem encoded;
-  if (ExpectTagAndGetValue(input, GENERALIZED_TIME, encoded) != Success) {
+  Input value;
+  if (ExpectTagAndGetValue(input, GENERALIZED_TIME, value) != Success) {
     return Failure;
   }
-  if (DER_GeneralizedTimeToTime(&time, &encoded) != SECSuccess) {
-    return Failure;
-  }
-  return Success;
+  return TimeChoice(siGeneralizedTime, value, time);
 }
 
 
