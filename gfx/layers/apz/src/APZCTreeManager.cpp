@@ -1320,6 +1320,10 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
 
     
     
+    MOZ_ASSERT(apzc->GetScrollHandoffParentId() != apzc->GetGuid().mScrollId);
+
+    
+    
     
     
     AsyncPanZoomController* scrollParent = nullptr;
