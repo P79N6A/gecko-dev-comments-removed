@@ -870,18 +870,21 @@ nsSSLIOLayerHelpers::rememberTolerantAtVersion(const nsACString& hostName,
   mTLSIntoleranceInfo.Put(key, entry);
 }
 
-void nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
-                                            int16_t port)
+uint16_t
+nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
+                                       int16_t port)
 {
   nsCString key;
   getSiteKey(hostName, port, key);
 
   MutexAutoLock lock(mutex);
 
+  uint16_t tolerant = 0;
   IntoleranceEntry entry;
   if (mTLSIntoleranceInfo.Get(key, &entry)) {
     entry.AssertInvariant();
 
+    tolerant = entry.tolerant;
     entry.intolerant = 0;
     entry.intoleranceReason = 0;
     if (entry.strongCipherStatus != StrongCiphersWorked) {
@@ -891,6 +894,8 @@ void nsSSLIOLayerHelpers::forgetIntolerance(const nsACString& hostName,
     entry.AssertInvariant();
     mTLSIntoleranceInfo.Put(key, entry);
   }
+
+  return tolerant;
 }
 
 
@@ -903,7 +908,47 @@ nsSSLIOLayerHelpers::rememberIntolerantAtVersion(const nsACString& hostName,
 {
   if (intolerant <= minVersion || intolerant <= mVersionFallbackLimit) {
     
-    forgetIntolerance(hostName, port);
+    uint32_t tolerant = forgetIntolerance(hostName, port);
+    
+    
+    if (intolerant <= tolerant) {
+      return false;
+    }
+
+    uint32_t fallbackLimitBucket = 0;
+    
+    if (intolerant <= minVersion) {
+      switch (minVersion) {
+        case SSL_LIBRARY_VERSION_TLS_1_0:
+          fallbackLimitBucket += 1;
+          break;
+        case SSL_LIBRARY_VERSION_TLS_1_1:
+          fallbackLimitBucket += 2;
+          break;
+        case SSL_LIBRARY_VERSION_TLS_1_2:
+          fallbackLimitBucket += 3;
+          break;
+      }
+    }
+    
+    if (intolerant <= mVersionFallbackLimit) {
+      switch (mVersionFallbackLimit) {
+        case SSL_LIBRARY_VERSION_TLS_1_0:
+          fallbackLimitBucket += 4;
+          break;
+        case SSL_LIBRARY_VERSION_TLS_1_1:
+          fallbackLimitBucket += 8;
+          break;
+        case SSL_LIBRARY_VERSION_TLS_1_2:
+          fallbackLimitBucket += 12;
+          break;
+      }
+    }
+    if (fallbackLimitBucket) {
+      Telemetry::Accumulate(Telemetry::SSL_FALLBACK_LIMIT_REACHED,
+                            fallbackLimitBucket);
+    }
+
     return false;
   }
 

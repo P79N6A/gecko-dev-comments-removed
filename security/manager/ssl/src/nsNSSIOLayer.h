@@ -225,7 +225,9 @@ public:
                                    PRErrorCode intoleranceReason);
   bool rememberStrongCiphersFailed(const nsACString& hostName, int16_t port,
                                    PRErrorCode intoleranceReason);
-  void forgetIntolerance(const nsACString& hostname, int16_t port);
+  
+  
+  uint16_t forgetIntolerance(const nsACString& hostname, int16_t port);
   void adjustForTLSIntolerance(const nsACString& hostname, int16_t port,
                                 SSLVersionRange& range,
                                 StrongCipherStatus& strongCipherStatus);
