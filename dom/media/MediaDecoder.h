@@ -670,7 +670,7 @@ public:
 
   bool OnStateMachineTaskQueue() const override;
 
-  bool OnDecodeThread() const override;
+  bool OnDecodeTaskQueue() const override;
 
   
   

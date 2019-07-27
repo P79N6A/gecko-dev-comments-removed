@@ -56,7 +56,7 @@ public:
 
   virtual bool OnStateMachineTaskQueue() const = 0;
 
-  virtual bool OnDecodeThread() const = 0;
+  virtual bool OnDecodeTaskQueue() const = 0;
 
   
   

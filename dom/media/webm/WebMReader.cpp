@@ -332,7 +332,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
   
   
   
-  MOZ_ASSERT(mDecoder->OnDecodeThread());
+  MOZ_ASSERT(mDecoder->OnDecodeTaskQueue());
 
   nestegg_io io;
   io.read = webm_read;
