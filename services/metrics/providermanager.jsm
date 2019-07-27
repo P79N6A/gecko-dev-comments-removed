@@ -2,9 +2,9 @@
 
 
 
+#ifndef MERGED_COMPARTMENT
 "use strict";
 
-#ifndef MERGED_COMPARTMENT
 this.EXPORTED_SYMBOLS = ["ProviderManager"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
