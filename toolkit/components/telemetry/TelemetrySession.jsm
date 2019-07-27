@@ -47,7 +47,9 @@ const REASON_SHUTDOWN = "shutdown";
 
 const ENVIRONMENT_CHANGE_LISTENER = "TelemetrySession::onEnvironmentChange";
 
-const MS_IN_ONE_HOUR  = 60 * 60 * 1000;
+const SEC_IN_ONE_DAY  = 24 * 60 * 60;
+const MS_IN_ONE_DAY   = SEC_IN_ONE_DAY * 1000;
+
 const MIN_SUBSESSION_LENGTH_MS = 10 * 60 * 1000;
 
 
@@ -84,8 +86,6 @@ const TELEMETRY_DELAY = 60000;
 const TELEMETRY_TEST_DELAY = 100;
 
 const SCHEDULER_TICK_INTERVAL_MS = 5 * 60 * 1000;
-
-const SCHEDULER_TICK_IDLE_INTERVAL_MS = 60 * 60 * 1000;
 
 const SCHEDULER_RETRY_ATTEMPTS = 3;
 
@@ -199,17 +199,6 @@ function areTimesClose(t1, t2, tolerance) {
 
 
 
-function getNextMidnight(date) {
-  let nextMidnight = new Date(truncateToDays(date));
-  nextMidnight.setDate(nextMidnight.getDate() + 1);
-  return nextMidnight;
-}
-
-
-
-
-
-
 
 function getNearestMidnight(date) {
   let lastMidnight = truncateToDays(date);
@@ -217,7 +206,8 @@ function getNearestMidnight(date) {
     return lastMidnight;
   }
 
-  const nextMidnightDate = getNextMidnight(date);
+  let nextMidnightDate = new Date(lastMidnight);
+  nextMidnightDate.setDate(nextMidnightDate.getDate() + 1);
   if (areTimesClose(date.getTime(), nextMidnightDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
     return nextMidnightDate;
   }
@@ -426,10 +416,7 @@ let TelemetryScheduler = {
 
   
   _schedulerTimer: null,
-  
-  _schedulerInterval: 0,
   _shuttingDown: true,
-  _isUserIdle: false,
 
   
 
@@ -438,21 +425,19 @@ let TelemetryScheduler = {
     this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, "TelemetryScheduler::");
     this._log.trace("init");
     this._shuttingDown = false;
-    this._isUserIdle = false;
     
     
     let now = Policy.now();
     this._lastDailyPingTime = now.getTime();
     this._lastSessionCheckpointTime = now.getTime();
     this._rescheduleTimeout();
-    idleService.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
   },
 
   
 
 
   _rescheduleTimeout: function() {
-    this._log.trace("_rescheduleTimeout - isUserIdle: " + this._isUserIdle);
+    this._log.trace("_rescheduleTimeout");
     if (this._shuttingDown) {
       this._log.warn("_rescheduleTimeout - already shutdown");
       return;
@@ -462,31 +447,8 @@ let TelemetryScheduler = {
       Policy.clearSchedulerTickTimeout(this._schedulerTimer);
     }
 
-    const now = Policy.now();
-    let timeout = SCHEDULER_TICK_INTERVAL_MS;
-
-    
-    if (this._isUserIdle) {
-      timeout = SCHEDULER_TICK_IDLE_INTERVAL_MS;
-      
-      
-      const nextMidnight = getNextMidnight(now);
-      timeout = Math.min(timeout, nextMidnight.getTime() - now.getTime());
-    }
-
-    this._log.trace("_rescheduleTimeout - scheduling next tick for " + new Date(now.getTime() + timeout));
     this._schedulerTimer =
-      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), timeout);
-  },
-
-  _sentDailyPingToday: function(nowDate) {
-    
-    const todayDate = truncateToDays(nowDate);
-    const nearestMidnight = getNearestMidnight(nowDate);
-    
-    const checkDate = nearestMidnight || todayDate;
-    
-    return (this._lastDailyPingTime >= (checkDate.getTime() - SCHEDULER_MIDNIGHT_TOLERANCE_MS));
+      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), SCHEDULER_TICK_INTERVAL_MS);
   },
 
   
@@ -495,37 +457,31 @@ let TelemetryScheduler = {
 
 
   _isDailyPingDue: function(nowDate) {
-    const sentPingToday = this._sentDailyPingToday(nowDate);
-
-    
-    if (sentPingToday) {
-      this._log.trace("_isDailyPingDue - already sent one today");
-      return false;
-    }
-
-    const nearestMidnight = getNearestMidnight(nowDate);
-    if (!sentPingToday && !nearestMidnight) {
-      
-      this._log.trace("_isDailyPingDue - daily ping is overdue... computer went to sleep?");
+    let nearestMidnight = getNearestMidnight(nowDate);
+    if (nearestMidnight) {
+      let subsessionLength = Math.abs(nowDate.getTime() - this._lastDailyPingTime);
+      if (subsessionLength < MIN_SUBSESSION_LENGTH_MS) {
+        
+        return false;
+      } else if (areTimesClose(this._lastDailyPingTime, nearestMidnight.getTime(),
+                               SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+        
+        return false;
+      }
       return true;
     }
 
+    let lastDailyPingDate = truncateToDays(new Date(this._lastDailyPingTime));
     
-    const timeSinceLastDaily = nowDate.getTime() - this._lastDailyPingTime;
-    if (timeSinceLastDaily < MIN_SUBSESSION_LENGTH_MS) {
-      this._log.trace("_isDailyPingDue - delaying daily to keep minimum session length");
-      return false;
+    let todayDate = truncateToDays(nowDate);
+    
+    
+    if ((lastDailyPingDate.getTime() != todayDate.getTime()) &&
+        !areTimesClose(this._lastDailyPingTime, todayDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
+      
+      return true;
     }
-
-    
-    
-    if (!this._isUserIdle && (nowDate.getTime() < nearestMidnight.getTime())) {
-      this._log.trace("_isDailyPingDue - waiting for user idle period");
-      return false;
-    }
-
-    this._log.trace("_isDailyPingDue - is due");
-    return true;
+    return false;
   },
 
   
@@ -545,31 +501,12 @@ let TelemetryScheduler = {
   
 
 
-  observe: function(aSubject, aTopic, aData) {
-    this._log.trace("observe - aTopic: " + aTopic);
-    switch(aTopic) {
-      case "idle":
-        
-        this._isUserIdle = true;
-        return this._onSchedulerTick();
-        break;
-      case "active":
-        
-        this._isUserIdle = false;
-        return this._onSchedulerTick();
-        break;
-    }
-  },
-
-  
-
-
 
 
   _onSchedulerTick: function() {
     if (this._shuttingDown) {
       this._log.warn("_onSchedulerTick - already shutdown.");
-      return Promise.reject(new Error("Already shutdown."));
+      return;
     }
 
     let promise = Promise.resolve();
@@ -712,8 +649,6 @@ let TelemetryScheduler = {
       Policy.clearSchedulerTickTimeout(this._schedulerTimer);
       this._schedulerTimer = null;
     }
-
-    idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
 
     this._shuttingDown = true;
   }
@@ -1582,7 +1517,7 @@ let Impl = {
         yield this._checkAbortedSessionPing();
 
         TelemetryEnvironment.registerChangeListener(ENVIRONMENT_CHANGE_LISTENER,
-                                                    (reason, data) => this._onEnvironmentChange(reason, data));
+                                                    () => this._onEnvironmentChange());
         
         
         
@@ -1596,7 +1531,7 @@ let Impl = {
 
         this._delayedInitTaskDeferred.resolve();
       } catch (e) {
-        this._delayedInitTaskDeferred.reject(e);
+        this._delayedInitTaskDeferred.reject();
       } finally {
         this._delayedInitTask = null;
         this._delayedInitTaskDeferred = null;
@@ -1987,8 +1922,7 @@ let Impl = {
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
     
     if (saveAsAborted) {
-      let abortedPromise = this._saveAbortedSessionPing(payload);
-      promise = promise.then(() => abortedPromise);
+      return promise.then(() => this._saveAbortedSessionPing(payload));
     }
 #endif
     return promise;
@@ -2049,8 +1983,8 @@ let Impl = {
     }
   }),
 
-  _onEnvironmentChange: function(reason, oldEnvironment) {
-    this._log.trace("_onEnvironmentChange", reason);
+  _onEnvironmentChange: function() {
+    this._log.trace("_onEnvironmentChange");
     let payload = this.getSessionPayload(REASON_ENVIRONMENT_CHANGE, true);
 
     let clonedPayload = Cu.cloneInto(payload, myScope);
@@ -2060,7 +1994,6 @@ let Impl = {
       retentionDays: RETENTION_DAYS,
       addClientId: true,
       addEnvironment: true,
-      overrideEnvironment: oldEnvironment,
     };
     TelemetryPing.send(getPingType(payload), payload, options);
   },
@@ -2095,13 +2028,8 @@ let Impl = {
     const FILE_PATH = OS.Path.join(OS.Constants.Path.profileDir, DATAREPORTING_DIRECTORY,
                                    ABORTED_SESSION_FILE_NAME);
     try {
-      this._log.trace("_removeAbortedSessionPing - success");
       return OS.File.remove(FILE_PATH);
-    } catch (ex if ex.becauseNoSuchFile) {
-      this._log.trace("_removeAbortedSessionPing - no such file");
-    } catch (ex) {
-      this._log.error("_removeAbortedSessionPing - error removing ping", ex)
-    }
+    } catch (ex if ex.becauseNoSuchFile) { }
     return Promise.resolve();
   },
 
