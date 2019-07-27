@@ -282,6 +282,36 @@ function setUpdateTrackingId() {
 }
 setUpdateTrackingId();
 
+(function syncUpdatePrefs() {
+  
+  
+  
+  let defaultBranch = Services.prefs.getDefaultBranch(null);
+
+  function syncCharPref(prefName) {
+    SettingsListener.observe(prefName, null, function(value) {
+      
+      if (value) {
+        defaultBranch.setCharPref(prefName, value);
+        return;
+      }
+      
+      try {
+        let value = defaultBranch.getCharPref(prefName);
+        if (value) {
+          let setting = {};
+          setting[prefName] = value;
+          window.navigator.mozSettings.createLock().set(setting);
+        }
+      } catch(e) {
+        console.log('Unable to read pref ' + prefName + ': ' + e);
+      }
+    });
+  }
+
+  syncCharPref('app.update.url');
+  syncCharPref('app.update.channel');
+})();
 
 
 (function Composer2DSettingToPref() {
@@ -467,13 +497,7 @@ let settingsToObserve = {
     resetToPref: true,
     defaultValue: 0
   },
-  'app.update.channel': {
-    resetToPref: true
-  },
   'app.update.interval': 86400,
-  'app.update.url': {
-    resetToPref: true
-  },
   'apz.force-enable': {
     prefName: 'dom.browser_frames.useAsyncPanZoom',
     defaultValue: false
