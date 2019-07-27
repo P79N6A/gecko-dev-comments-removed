@@ -28,6 +28,8 @@ class MP4Stream;
 
 class MP4Reader : public MediaDecoderReader
 {
+  typedef mp4_demuxer::TrackType TrackType;
+
 public:
   explicit MP4Reader(AbstractMediaDecoder* aDecoder);
 
@@ -35,9 +37,10 @@ public:
 
   virtual nsresult Init(MediaDecoderReader* aCloneDonor) MOZ_OVERRIDE;
 
-  virtual bool DecodeAudioData() MOZ_OVERRIDE;
-  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
+  virtual void RequestVideoData(bool aSkipToNextKeyframe,
                                 int64_t aTimeThreshold) MOZ_OVERRIDE;
+
+  virtual void RequestAudioData() MOZ_OVERRIDE;
 
   virtual bool HasAudio() MOZ_OVERRIDE;
   virtual bool HasVideo() MOZ_OVERRIDE;
@@ -72,6 +75,17 @@ public:
 
 private:
 
+  void ReturnEOS(TrackType aTrack);
+  void ReturnOutput(MediaData* aData, TrackType aTrack);
+
+  
+  
+  void Update(TrackType aTrack);
+
+  
+  
+  void ScheduleUpdate(TrackType aTrack);
+
   void ExtractCryptoInitData(nsTArray<uint8_t>& aInitData);
 
   
@@ -83,10 +97,11 @@ private:
 
   bool SkipVideoDemuxToNextKeyFrame(int64_t aTimeThreshold, uint32_t& parsed);
 
+  
+  
   void Output(mp4_demuxer::TrackType aType, MediaData* aSample);
   void InputExhausted(mp4_demuxer::TrackType aTrack);
   void Error(mp4_demuxer::TrackType aTrack);
-  bool Decode(mp4_demuxer::TrackType aTrack);
   void Flush(mp4_demuxer::TrackType aTrack);
   void DrainComplete(mp4_demuxer::TrackType aTrack);
   void UpdateIndex();
@@ -141,7 +156,10 @@ private:
       , mError(false)
       , mIsFlushing(false)
       , mDrainComplete(false)
+      , mOutputRequested(false)
+      , mUpdateScheduled(false)
       , mEOS(false)
+      , mDiscontinuity(false)
     {
     }
 
@@ -151,6 +169,10 @@ private:
     
     nsRefPtr<MediaTaskQueue> mTaskQueue;
     
+    
+    
+    std::queue<MediaData*> mOutput;
+
     nsAutoPtr<DecoderCallback> mCallback;
     
     
@@ -164,7 +186,10 @@ private:
     bool mError;
     bool mIsFlushing;
     bool mDrainComplete;
+    bool mOutputRequested;
+    bool mUpdateScheduled;
     bool mEOS;
+    bool mDiscontinuity;
   };
   DecoderData mAudio;
   DecoderData mVideo;
@@ -174,12 +199,15 @@ private:
 
   
   
+  bool NeedInput(DecoderData& aDecoder);
+
+  
+  
   
   
   uint64_t mLastReportedNumDecodedFrames;
 
   DecoderData& GetDecoderData(mp4_demuxer::TrackType aTrack);
-  MediaDataDecoder* Decoder(mp4_demuxer::TrackType aTrack);
 
   layers::LayersBackend mLayersBackendType;
 
