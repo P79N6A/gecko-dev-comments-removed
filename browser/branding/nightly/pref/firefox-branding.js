@@ -30,3 +30,7 @@ pref("browser.search.param.yahoo-fr-ja", "mozff");
 #ifdef MOZ_METRO
 pref("browser.search.param.yahoo-fr-metro", "");
 #endif
+
+
+
+pref("devtools.selfxss.count", 5);
