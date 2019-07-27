@@ -30,6 +30,7 @@ import android.content.SharedPreferences.Editor;
 public class RemoteTabsExpandableListState {
     private static final String PREF_COLLAPSED_CLIENT_GUIDS = "remote_tabs_collapsed_client_guids";
     private static final String PREF_HIDDEN_CLIENT_GUIDS = "remote_tabs_hidden_client_guids";
+    private static final String PREF_SELECTED_CLIENT_GUID = "remote_tabs_selected_client_guid";
 
     protected final SharedPreferences sharedPrefs;
 
@@ -43,6 +44,10 @@ public class RemoteTabsExpandableListState {
     
     protected final Set<String> hiddenClients;
 
+    
+    
+    protected String selectedClient;
+
     public RemoteTabsExpandableListState(SharedPreferences sharedPrefs) {
         if (null == sharedPrefs) {
             throw new IllegalArgumentException("sharedPrefs must not be null");
@@ -51,6 +56,7 @@ public class RemoteTabsExpandableListState {
 
         this.collapsedClients = getStringSet(PREF_COLLAPSED_CLIENT_GUIDS);
         this.hiddenClients = getStringSet(PREF_HIDDEN_CLIENT_GUIDS);
+        this.selectedClient = sharedPrefs.getString(PREF_SELECTED_CLIENT_GUID, null);
     }
 
     
@@ -114,6 +120,24 @@ public class RemoteTabsExpandableListState {
 
     protected synchronized boolean setClientCollapsed(String clientGuid, boolean collapsed) {
         return updateClientMembership(PREF_COLLAPSED_CLIENT_GUIDS, collapsedClients, clientGuid, collapsed);
+    }
+
+    
+
+
+
+
+
+    protected synchronized void setClientAsSelected(String clientGuid) {
+        if (hiddenClients.contains(clientGuid)) {
+            selectedClient = null;
+        } else {
+            selectedClient = clientGuid;
+        }
+
+        final Editor editor = sharedPrefs.edit();
+        editor.putString(PREF_SELECTED_CLIENT_GUID, selectedClient);
+        editor.apply();
     }
 
     public synchronized boolean isClientCollapsed(String clientGuid) {
