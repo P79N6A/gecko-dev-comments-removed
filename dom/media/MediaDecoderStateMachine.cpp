@@ -2895,7 +2895,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       
       if (VideoQueue().GetSize() > 0 ||
           (HasAudio() && !mAudioCompleted) ||
-          (mDecoder->GetDecodedStream() && !mDecoder->GetDecodedStream()->IsFinished()))
+          (mAudioCaptured && !mDecoder->GetDecodedStream()->IsFinished()))
       {
         AdvanceFrame();
         NS_ASSERTION(mDecoder->GetState() != MediaDecoder::PLAY_STATE_PLAYING ||
@@ -2917,10 +2917,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
       }
 
       StopAudioThread();
-      
-      
-      if (mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING &&
-          !mDecoder->GetDecodedStream()) {
+
+      if (mDecoder->GetState() == MediaDecoder::PLAY_STATE_PLAYING) {
         int64_t clockTime = std::max(mAudioEndTime, mVideoFrameEndTime);
         clockTime = std::max(int64_t(0), std::max(clockTime, mEndTime));
         UpdatePlaybackPosition(clockTime);
