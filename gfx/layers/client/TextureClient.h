@@ -155,6 +155,26 @@ public:
                        size_t aSize,
                        TextureFlags aTextureFlags);
 
+  
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
+                TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags flags = ALLOC_DEFAULT)
+  {
+    return false;
+  }
+
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
   
@@ -379,22 +399,6 @@ protected:
 
 
 
-
-  virtual bool AllocateForSurface(gfx::IntSize aSize,
-                                  TextureAllocationFlags flags = ALLOC_DEFAULT)
-  {
-    return false;
-  }
-
-
-  
-
-
-
-
-
-
-
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
 
   void AddFlags(TextureFlags  aFlags)
@@ -498,6 +502,10 @@ public:
   virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return true; }
 
   ISurfaceAllocator* GetAllocator() const;
+
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
+                TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const MOZ_OVERRIDE;
 
 protected:
   RefPtr<gfx::DrawTarget> mDrawTarget;
@@ -606,6 +614,12 @@ public:
   {
     return gfx::SurfaceFormat::UNKNOWN;
   }
+
+  
+  
+  
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags, TextureAllocationFlags) const MOZ_OVERRIDE { return nullptr; }
 
   virtual bool AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlags aFlags) MOZ_OVERRIDE
   {

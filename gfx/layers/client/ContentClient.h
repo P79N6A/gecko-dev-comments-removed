@@ -279,9 +279,6 @@ protected:
   
   virtual void DestroyFrontBuffer() {}
 
-  bool CreateAndAllocateTextureClient(RefPtr<TextureClient>& aClient,
-                                      TextureFlags aFlags = TextureFlags::NO_FLAGS);
-
   virtual void AbortTextureClientCreation()
   {
     mTextureClient = nullptr;

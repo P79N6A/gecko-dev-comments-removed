@@ -114,6 +114,10 @@ public:
     return mMediaBuffer;
   }
 
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
+                TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const MOZ_OVERRIDE;
+
 protected:
   
 

@@ -60,6 +60,12 @@ public:
     return gfx::SurfaceFormat::UNKNOWN;
   }
 
+  
+  
+  
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags, TextureAllocationFlags) const MOZ_OVERRIDE { return nullptr; }
+
   virtual bool AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlags aFlags) MOZ_OVERRIDE
   {
     return false;

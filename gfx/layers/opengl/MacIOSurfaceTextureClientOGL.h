@@ -36,6 +36,12 @@ public:
 
   virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
 
+  
+  
+  
+  virtual TemporaryRef<TextureClient>
+  CreateSimilar(TextureFlags, TextureAllocationFlags) const MOZ_OVERRIDE { return nullptr; }
+
 protected:
   RefPtr<MacIOSurface> mSurface;
   bool mIsLocked;
