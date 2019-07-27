@@ -474,6 +474,11 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+  dirty: false,
+
+  
+
+
 
 
 
@@ -556,7 +561,7 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
   _onScroll: function() {
     
-    if (!DebuggerController.activeThread.moreFrames) {
+    if (!this.dirty) {
       return;
     }
     
@@ -567,20 +572,14 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _afterScroll: function() {
-    
-    
-    
-    if (!DebuggerController.activeThread.moreFrames) {
-      return;
-    }
     let scrollPosition = this.widget.getAttribute("scrollPosition");
     let scrollWidth = this.widget.getAttribute("scrollWidth");
 
     
     
     if (scrollPosition - scrollWidth / 10 < 1) {
-      let index = Math.min(CALL_STACK_PAGE_SIZE - 1, this.items.length - 1);
-      this.ensureIndexIsVisible(index);
+      this.ensureIndexIsVisible(CALL_STACK_PAGE_SIZE - 1);
+      this.dirty = false;
 
       
       DebuggerController.StackFrames.addMoreFrames();
