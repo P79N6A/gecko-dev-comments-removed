@@ -119,6 +119,9 @@ public:
     };
     static DnsPriority GetPriority(uint16_t aFlags);
 
+    bool RemoveOrRefresh(); 
+                            
+
 private:
     friend class nsHostResolver;
 
@@ -140,6 +143,10 @@ private:
     
     
     uint32_t mBlacklistedCount;
+
+    
+    
+    bool    mResolveAgain;
 
     
     
@@ -278,6 +285,11 @@ public:
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+    
+
+
+    void FlushCache();
+
 private:
    explicit nsHostResolver(uint32_t maxCacheEntries,
                            uint32_t defaultCacheEntryLifetime,
@@ -287,7 +299,13 @@ private:
     nsresult Init();
     nsresult IssueLookup(nsHostRecord *);
     bool     GetHostToLookup(nsHostRecord **m);
-    void     OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
+
+    enum LookupStatus {
+      LOOKUP_OK,
+      LOOKUP_RESOLVEAGAIN,
+    };
+
+    LookupStatus OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
