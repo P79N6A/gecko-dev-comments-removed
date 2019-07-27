@@ -99,8 +99,6 @@ public:
   
   virtual bool IsWaitingOnCDMResource() { return false; }
   
-  virtual bool IsDormantNeeded() { return false; }
-  
   
   virtual void ReleaseMediaResources() {};
   virtual void SetSharedDecoderManager(SharedDecoderManager* aManager) {}

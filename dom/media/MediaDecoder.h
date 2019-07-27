@@ -903,6 +903,9 @@ protected:
 
 
   
+  bool mDormantSupported;
+
+  
   
   
   

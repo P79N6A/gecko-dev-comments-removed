@@ -150,8 +150,6 @@ public:
   void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
 
   
-  bool IsDormantNeeded();
-  
   void SetDormant(bool aDormant);
 
 private:

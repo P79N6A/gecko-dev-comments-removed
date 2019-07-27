@@ -63,9 +63,6 @@ public:
   virtual nsresult Init(MediaDecoderReader* aCloneDonor);
 
   
-  virtual bool IsDormantNeeded() { return true;}
-
-  
   virtual void ReleaseMediaResources();
 
   

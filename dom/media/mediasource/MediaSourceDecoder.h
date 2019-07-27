@@ -43,6 +43,14 @@ public:
   virtual media::TimeIntervals GetSeekable() override;
   media::TimeIntervals GetBuffered() override;
 
+  
+  
+  void NotifyDormantSupported(bool aSupported)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    mDormantSupported = aSupported;
+  }
+
   virtual void Shutdown() override;
 
   static already_AddRefed<MediaResource> CreateResource(nsIPrincipal* aPrincipal = nullptr);
