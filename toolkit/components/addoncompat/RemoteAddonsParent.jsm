@@ -571,6 +571,17 @@ ContentDocShellTreeItemInterposition.getters.rootTreeItem =
       .QueryInterface(Ci.nsIDocShellTreeItem);
   };
 
+function chromeGlobalForContentWindow(window)
+{
+    return window
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIWebNavigation)
+      .QueryInterface(Ci.nsIDocShellTreeItem)
+      .rootTreeItem
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIContentFrameMessageManager);
+}
+
 
 
 
@@ -578,16 +589,7 @@ ContentDocShellTreeItemInterposition.getters.rootTreeItem =
 let SandboxParent = {
   componentsMap: new WeakMap(),
 
-  makeContentSandbox: function(principal, ...rest) {
-    
-    let chromeGlobal = principal
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIWebNavigation)
-      .QueryInterface(Ci.nsIDocShellTreeItem)
-      .rootTreeItem
-      .QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIContentFrameMessageManager);
-
+  makeContentSandbox: function(chromeGlobal, principals, ...rest) {
     if (rest.length) {
       
       
@@ -606,7 +608,7 @@ let SandboxParent = {
 
     
     let cu = chromeGlobal.Components.utils;
-    let sandbox = cu.Sandbox(principal, ...rest);
+    let sandbox = cu.Sandbox(principals, ...rest);
 
     
     
@@ -632,14 +634,31 @@ let SandboxParent = {
 let ComponentsUtilsInterposition = new Interposition("ComponentsUtilsInterposition");
 
 ComponentsUtilsInterposition.methods.Sandbox =
-  function(addon, target, principal, ...rest) {
-    if (principal &&
-        typeof(principal) == "object" &&
-        Cu.isCrossProcessWrapper(principal) &&
-        principal instanceof Ci.nsIDOMWindow) {
-      return SandboxParent.makeContentSandbox(principal, ...rest);
+  function(addon, target, principals, ...rest) {
+    
+    
+    if (principals &&
+        typeof(principals) == "object" &&
+        Cu.isCrossProcessWrapper(principals) &&
+        principals instanceof Ci.nsIDOMWindow) {
+      let chromeGlobal = chromeGlobalForContentWindow(principals);
+      return SandboxParent.makeContentSandbox(chromeGlobal, principals, ...rest);
+    } else if (principals &&
+               typeof(principals) == "object" &&
+               "every" in principals &&
+               principals.length &&
+               principals.every(e => Cu.isCrossProcessWrapper(e) && e instanceof Ci.nsIDOMWindow)) {
+      let chromeGlobal = chromeGlobalForContentWindow(principals[0]);
+
+      
+      
+      let array = new chromeGlobal.Array();
+      for (let i = 0; i < principals.length; i++) {
+        array[i] = principals[i];
+      }
+      return SandboxParent.makeContentSandbox(chromeGlobal, array, ...rest);
     } else {
-      return Components.utils.Sandbox(principal, ...rest);
+      return Components.utils.Sandbox(principals, ...rest);
     }
   };
 
