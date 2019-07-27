@@ -2252,7 +2252,7 @@ MarkupElementContainer.prototype = Heritage.extend(MarkupContainer.prototype, {
     
     this.node.getImageData().then(data => {
       data.data.string().then(str => {
-        clipboardHelper.copyString(str, this.markup.doc);
+        clipboardHelper.copyString(str);
       });
     });
   },
