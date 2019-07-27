@@ -3184,10 +3184,8 @@ CreateTraceList(JSContext *cx, HandleTypeDescr descr)
     
     
     
-    if ((size_t) descr->size() > InlineTypedObject::MaximumSize || descr->transparent()) {
-        descr->initReservedSlot(JS_DESCR_SLOT_TRACE_LIST, PrivateValue(nullptr));
+    if ((size_t) descr->size() > InlineTypedObject::MaximumSize || descr->transparent())
         return true;
-    }
 
     TraceListVisitor visitor;
     visitReferences(*descr, nullptr, visitor);
@@ -3198,10 +3196,8 @@ CreateTraceList(JSContext *cx, HandleTypeDescr descr)
 
     
     MOZ_ASSERT(entries.length() >= 3);
-    if (entries.length() == 3) {
-        descr->initReservedSlot(JS_DESCR_SLOT_TRACE_LIST, PrivateValue(nullptr));
+    if (entries.length() == 3)
         return true;
-    }
 
     int32_t *list = cx->pod_malloc<int32_t>(entries.length());
     if (!list)
@@ -3216,5 +3212,6 @@ CreateTraceList(JSContext *cx, HandleTypeDescr descr)
  void
 TypeDescr::finalize(FreeOp *fop, JSObject *obj)
 {
-    js_free(const_cast<int32_t *>(obj->as<TypeDescr>().traceList()));
+    if (obj->as<TypeDescr>().hasTraceList())
+        js_free(const_cast<int32_t *>(obj->as<TypeDescr>().traceList()));
 }

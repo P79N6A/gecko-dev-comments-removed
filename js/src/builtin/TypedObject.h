@@ -183,8 +183,12 @@ class TypeDescr : public NativeObject
     
     
     
+    bool hasTraceList() const {
+        return !getFixedSlot(JS_DESCR_SLOT_TRACE_LIST).isUndefined();
+    }
     const int32_t *traceList() const {
-        return reinterpret_cast<int32_t *>(getReservedSlot(JS_DESCR_SLOT_TRACE_LIST).toPrivate());
+        MOZ_ASSERT(hasTraceList());
+        return reinterpret_cast<int32_t *>(getFixedSlot(JS_DESCR_SLOT_TRACE_LIST).toPrivate());
     }
 
     void initInstances(const JSRuntime *rt, uint8_t *mem, size_t length);
