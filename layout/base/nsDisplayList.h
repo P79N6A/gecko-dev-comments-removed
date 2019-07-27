@@ -132,7 +132,6 @@ public:
 
 
 
-
   enum Mode {
     PAINTING,
     EVENT_DELIVERY,
