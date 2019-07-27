@@ -282,12 +282,9 @@ loop.shared.mixins = (function() {
 
 
   var MediaSetupMixin = {
-    _videoDimensionsCache: {
-      local: {},
-      remote: {}
-    },
 
     componentDidMount: function() {
+      this.resetDimensionsCache();
       rootObject.addEventListener("orientationchange", this.updateVideoContainer);
       rootObject.addEventListener("resize", this.updateVideoContainer);
     },
