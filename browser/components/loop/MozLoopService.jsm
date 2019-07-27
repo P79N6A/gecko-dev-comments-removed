@@ -60,6 +60,7 @@ let gLocalizedStrings =  null;
 let gInitializeTimer = null;
 let gFxAOAuthClientPromise = null;
 let gFxAOAuthClient = null;
+let gFxAOAuthTokenData = null;
 
 
 
@@ -195,7 +196,10 @@ let MozLoopServiceInternal = {
                                           2 * 32, true);
     }
 
-    return gHawkClient.request(path, method, credentials, payloadObj);
+    return gHawkClient.request(path, method, credentials, payloadObj).catch(error => {
+      console.error("Loop hawkRequest error:", error);
+      throw error;
+    });
   },
 
   
@@ -492,7 +496,7 @@ let MozLoopServiceInternal = {
       },
       error => {
         gFxAOAuthClientPromise = null;
-        return error;
+        throw error;
       }
     );
 
@@ -500,6 +504,8 @@ let MozLoopServiceInternal = {
   }),
 
   
+
+
 
 
   promiseFxAOAuthAuthorization: function() {
@@ -510,11 +516,36 @@ let MozLoopServiceInternal = {
         client.launchWebFlow();
       },
       error => {
-        Cu.reportError(error);
+        console.error(error);
         deferred.reject(error);
       }
     );
     return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  promiseFxAOAuthToken: function(code, state) {
+    if (!code || !state) {
+      throw new Error("promiseFxAOAuthToken: code and state are required.");
+    }
+
+    let payload = {
+      code: code,
+      state: state,
+    };
+    return this.hawkRequest("/fxa-oauth/token", "POST", payload).then(response => {
+      return JSON.parse(response.body);
+    });
   },
 
   
@@ -558,8 +589,14 @@ this.MozLoopService = {
     return MozLoopServiceInternal;
   },
 
+  get gFxAOAuthTokenData() {
+    return gFxAOAuthTokenData;
+  },
+
   resetFxA: function() {
     gFxAOAuthClientPromise = null;
+    gFxAOAuthClient = null;
+    gFxAOAuthTokenData = null;
   },
 #endif
 
@@ -740,6 +777,13 @@ this.MozLoopService = {
   logInToFxA: function() {
     return MozLoopServiceInternal.promiseFxAOAuthAuthorization().then(response => {
       return MozLoopServiceInternal.promiseFxAOAuthToken(response.code, response.state);
+    }).then(tokenData => {
+      gFxAOAuthTokenData = tokenData;
+      return tokenData;
+    },
+    error => {
+      gFxAOAuthTokenData = null;
+      throw error;
     });
   },
 
