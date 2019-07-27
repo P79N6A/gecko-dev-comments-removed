@@ -64,11 +64,8 @@ public:
 
 
 
-
-
-  bool ConnectSocket(BluetoothUnixSocketConnector* aConnector,
-                     const char* aAddress,
-                     int aDelayMs = 0);
+  nsresult Connect(BluetoothUnixSocketConnector* aConnector,
+                   int aDelayMs = 0);
 
   
 
@@ -77,8 +74,7 @@ public:
 
 
 
-
-  bool ListenSocket(BluetoothUnixSocketConnector* aConnector);
+  nsresult Listen(BluetoothUnixSocketConnector* aConnector);
 
   
 
