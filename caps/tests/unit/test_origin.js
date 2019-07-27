@@ -94,6 +94,10 @@ function run_test() {
   do_check_eq(exampleOrg_addon.origin, 'http://example.org!addonId=dummy');
 
   
+  var simplePrin = ssm.getSimpleCodebasePrincipal(makeURI('http://example.com'));
+  try { simplePrin.origin; do_check_true(false); } catch (e) { do_check_true(true); }
+
+  
   checkCrossOrigin(exampleOrg_app, exampleOrg);
   checkCrossOrigin(exampleOrg_app, nullPrin_app);
   checkCrossOrigin(exampleOrg_browser, exampleOrg_app);
