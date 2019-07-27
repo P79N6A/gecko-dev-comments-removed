@@ -464,7 +464,7 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                           &aSuccessCallback, failureCallback));
   mDecoder.AsyncDecodeMedia(contentType.get(), data, length, *job);
   
-  mDecodeJobs.AppendElement(job);
+  mDecodeJobs.AppendElement(job.forget());
 }
 
 void
