@@ -85,41 +85,6 @@ BluetoothAvrcpInterface::~BluetoothAvrcpInterface()
 
 
 
-
-
-
-
-BluetoothGattClientNotificationHandler::~BluetoothGattClientNotificationHandler()
-{ }
-
-BluetoothGattServerNotificationHandler::~BluetoothGattServerNotificationHandler()
-{ }
-
-BluetoothGattNotificationHandler::~BluetoothGattNotificationHandler()
-{ }
-
-
-
-
-BluetoothGattClientInterface::BluetoothGattClientInterface()
-{ }
-
-BluetoothGattClientInterface::~BluetoothGattClientInterface()
-{ }
-
-BluetoothGattInterface::BluetoothGattInterface()
-{ }
-
-BluetoothGattInterface::~BluetoothGattInterface()
-{ }
-
-
-
-
-
-
-
-
 BluetoothNotificationHandler::~BluetoothNotificationHandler()
 { }
 
@@ -133,32 +98,52 @@ BluetoothInterface::GetInstance()
   
 
 
-#ifdef MOZ_B2G_BT_BLUEDROID
-  static const char sDefaultBackend[] = "bluedroid";
-#else
+
+
+
+
+  static const char* const sDefaultBackend[] = {
 #ifdef MOZ_B2G_BT_DAEMON
-  static const char sDefaultBackend[] = "bluetoothd";
-#else
-  static const char* const sDefaultBackend = nullptr;
+    "bluetoothd",
 #endif
+#ifdef MOZ_B2G_BT_BLUEDROID
+    "bluedroid",
 #endif
+    nullptr 
+  };
 
-  
+  const char* defaultBackend;
 
+  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(sDefaultBackend); ++i) {
 
+    
+    defaultBackend = sDefaultBackend[i];
 
-
+    if (defaultBackend) {
+      if (!strcmp(defaultBackend, "bluetoothd") &&
+          access("/init.bluetooth.rc", F_OK) == -1) {
+        continue; 
+      }
+    }
+    break;
+  }
 
   char value[PROPERTY_VALUE_MAX];
   int len;
 
-  len = property_get("ro.moz.bluetooth.backend", value, sDefaultBackend);
+  len = property_get("ro.moz.bluetooth.backend", value, defaultBackend);
   if (len < 0) {
     BT_WARNING("No Bluetooth backend available.");
     return nullptr;
   }
 
   const nsDependentCString backend(value, len);
+
+  
+
+
+
+
 
 #ifdef MOZ_B2G_BT_BLUEDROID
   if (backend.LowerCaseEqualsLiteral("bluedroid")) {
