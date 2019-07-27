@@ -187,11 +187,11 @@ function updateCertStatus() {
   if(gCert) {
     if(gBroken) { 
       var mms = "addExceptionDomainMismatchShort";
-      var mml = "addExceptionDomainMismatchLong";
+      var mml = "addExceptionDomainMismatchLong2";
       var exs = "addExceptionExpiredShort";
-      var exl = "addExceptionExpiredLong";
+      var exl = "addExceptionExpiredLong2";
       var uts = "addExceptionUnverifiedOrBadSignatureShort";
-      var utl = "addExceptionUnverifiedOrBadSignatureLong";
+      var utl = "addExceptionUnverifiedOrBadSignatureLong2";
       var use1 = false;
       if (gSSLStatus.isDomainMismatch) {
         bucketId += gNsISecTel.WARNING_BAD_CERT_TOP_ADD_EXCEPTION_FLAG_DOMAIN;
@@ -263,7 +263,7 @@ function updateCertStatus() {
   }
   else if (gChecking) {
     shortDesc = "addExceptionCheckingShort";
-    longDesc  = "addExceptionCheckingLong";
+    longDesc  = "addExceptionCheckingLong2";
     
     
     
@@ -274,7 +274,7 @@ function updateCertStatus() {
   }
   else {
     shortDesc = "addExceptionNoCertShort";
-    longDesc  = "addExceptionNoCertLong";
+    longDesc  = "addExceptionNoCertLong2";
     
     document.getElementById("checkCertButton").disabled = false;
     document.getElementById("viewCertButton").disabled = true;
