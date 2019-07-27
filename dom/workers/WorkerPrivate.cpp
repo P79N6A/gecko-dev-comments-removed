@@ -6745,10 +6745,6 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
       }
     }
 
-    
-    
-    Promise::PerformMicroTaskCheckpoint();
-
     NS_ASSERTION(mRunningExpiredTimeouts, "Someone changed this!");
   }
 
