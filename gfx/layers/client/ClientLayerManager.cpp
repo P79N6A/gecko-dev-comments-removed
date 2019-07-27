@@ -166,11 +166,9 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   }
 
   
-  if (!mIsRepeatTransaction) {
+  if (!mIsRepeatTransaction && gfxPrefs::APZTestLoggingEnabled()) {
     ++mPaintSequenceNumber;
-    if (gfxPrefs::APZTestLoggingEnabled()) {
-      mApzTestData.StartNewPaint(mPaintSequenceNumber);
-    }
+    mApzTestData.StartNewPaint(mPaintSequenceNumber);
   }
 }
 
