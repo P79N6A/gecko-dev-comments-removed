@@ -75,7 +75,10 @@ IDService.prototype = {
   shutdown: function shutdown() {
     log("shutdown");
     Services.obs.removeObserver(this, "identity-auth-complete");
-    Services.obs.removeObserver(this, "quit-application-granted");
+    
+    try {
+      Services.obs.removeObserver(this, "quit-application-granted");
+    } catch(e) {}
   },
 
   
