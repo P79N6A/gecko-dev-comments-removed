@@ -92,20 +92,6 @@ public class SiteIdentityPopup extends ArrowPopup {
             init();
         }
 
-        final MixedMode mixedMode = siteIdentity.getMixedMode();
-        final TrackingMode trackingMode = siteIdentity.getTrackingMode();
-        if (mixedMode != MixedMode.UNKNOWN || trackingMode != TrackingMode.UNKNOWN) {
-            
-            
-            
-            mContent.setPadding(0, (int) mContext.getResources().getDimension(R.dimen.identity_padding_top), 0, 0);
-            mIdentity.setVisibility(View.GONE);
-            return;
-        }
-
-        mIdentity.setVisibility(View.VISIBLE);
-        mContent.setPadding(0, 0, 0, 0);
-
         final boolean isIdentityKnown = (siteIdentity.getSecurityMode() != SecurityMode.UNKNOWN);
         toggleIdentityKnownContainerVisibility(isIdentityKnown);
 
