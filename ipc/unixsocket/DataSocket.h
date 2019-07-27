@@ -101,6 +101,37 @@ class DataSocketIO : public SocketIOBase
 public:
   virtual ~DataSocketIO();
 
+  
+
+
+
+
+
+
+
+
+
+  virtual nsresult QueryReceiveBuffer(UnixSocketIOBuffer** aBuffer) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual void ConsumeBuffer() = 0;
+
+  
+
+
+
+
+
+  virtual void DiscardBuffer() = 0;
+
   void EnqueueData(UnixSocketIOBuffer* aBuffer);
   bool HasPendingData() const;
 
@@ -110,17 +141,25 @@ public:
     MOZ_ASSERT(aFd >= 0);
     MOZ_ASSERT(aIO);
 
-    nsAutoPtr<UnixSocketRawData> incoming(
-      new UnixSocketRawData(mMaxReadSize));
+    UnixSocketIOBuffer* incoming;
+    nsresult rv = QueryReceiveBuffer(&incoming);
+    if (NS_FAILED(rv)) {
+      
+      nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
+      NS_DispatchToMainThread(r);
+      return -1;
+    }
 
     ssize_t res = incoming->Receive(aFd);
     if (res < 0) {
       
+      DiscardBuffer();
       nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
       NS_DispatchToMainThread(r);
       return -1;
     } else if (!res) {
       
+      DiscardBuffer();
       nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
       NS_DispatchToMainThread(r);
       return 0;
@@ -132,9 +171,7 @@ public:
     AutoSourceEvent taskTracerEvent(SourceEventType::Unixsocket);
 #endif
 
-    nsRefPtr<nsRunnable> r =
-      new SocketIOReceiveRunnable<T>(aIO, incoming.forget());
-    NS_DispatchToMainThread(r);
+    ConsumeBuffer();
 
     return res;
   }
@@ -168,11 +205,9 @@ public:
   }
 
 protected:
-  DataSocketIO(size_t aMaxReadSize);
+  DataSocketIO();
 
 private:
-  const size_t mMaxReadSize;
-
   
 
 
