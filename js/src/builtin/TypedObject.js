@@ -647,25 +647,6 @@ function TypedObjectArrayMap(a, b) {
 }
 
 
-function TypedObjectArrayMapPar(a, b) {
-  
-
-  
-  
-  if (!IsObject(this) || !ObjectIsTypedObject(this))
-    return callFunction(TypedObjectArrayMap, this, a, b);
-  var thisType = TypedObjectTypeDescr(this);
-  if (!TypeDescrIsArrayType(thisType))
-    return callFunction(TypedObjectArrayMap, this, a, b);
-
-  if (typeof a === "number" && IsCallable(b))
-    return MapTypedParImpl(this, a, thisType, b);
-  else if (IsCallable(a))
-    return MapTypedParImpl(this, 1, thisType, a);
-  return callFunction(TypedObjectArrayMap, this, a, b);
-}
-
-
 function TypedObjectArrayReduce(a, b) {
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
@@ -682,24 +663,6 @@ function TypedObjectArrayReduce(a, b) {
 }
 
 
-function TypedObjectArrayScatter(a, b, c, d) {
-  
-  if (!IsObject(this) || !ObjectIsTypedObject(this))
-    ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  var thisType = TypedObjectTypeDescr(this);
-  if (!TypeDescrIsArrayType(thisType))
-    ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-
-  if (!IsObject(a) || !ObjectIsTypeDescr(a) || !TypeDescrIsArrayType(a))
-    ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-
-  if (d !== undefined && typeof d !== "function")
-    ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-
-  return ScatterTypedSeqImpl(this, a, b, c, d);
-}
-
-
 function TypedObjectArrayFilter(func) {
   
   if (!IsObject(this) || !ObjectIsTypedObject(this))
@@ -712,47 +675,6 @@ function TypedObjectArrayFilter(func) {
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
 
   return FilterTypedSeqImpl(this, func);
-}
-
-
-
-
-function TypedObjectArrayTypeBuildPar(a,b,c) {
-  return callFunction(TypedObjectArrayTypeBuild, this, a, b, c);
-}
-
-
-function TypedObjectArrayTypeFromPar(a,b,c) {
-  
-
-  
-  
-  if (!IsObject(this) || !ObjectIsTypeDescr(this) || !TypeDescrIsArrayType(this))
-    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
-  if (!IsObject(a) || !ObjectIsTypedObject(a))
-    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
-
-  
-  if (typeof b === "number" && IsCallable(c))
-    return MapTypedParImpl(a, b, this, c);
-  if (IsCallable(b))
-    return MapTypedParImpl(a, 1, this, b);
-  return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
-}
-
-
-function TypedObjectArrayReducePar(a, b) {
-  return callFunction(TypedObjectArrayReduce, this, a, b);
-}
-
-
-function TypedObjectArrayScatterPar(a, b, c, d) {
-  return callFunction(TypedObjectArrayScatter, this, a, b, c, d);
-}
-
-
-function TypedObjectArrayFilterPar(func) {
-  return callFunction(TypedObjectArrayFilter, this, func);
 }
 
 
@@ -1025,208 +947,6 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   return DoMapTypedSeqDepthN();
 }
 
-
-function MapTypedParImpl(inArray, depth, outputType, func) {
-  assert(IsObject(outputType) && ObjectIsTypeDescr(outputType),
-         "Map/From called on non-type-object outputType");
-  assert(IsObject(inArray) && ObjectIsTypedObject(inArray),
-         "Map/From called on non-object or untyped input array.");
-  assert(TypeDescrIsArrayType(outputType),
-         "Map/From called on non array-type outputType");
-  assert(typeof depth === "number",
-         "Map/From called with non-numeric depth");
-  assert(IsCallable(func),
-         "Map/From called on something not callable");
-
-  var inArrayType = TypeOfTypedObject(inArray);
-
-  if (ShouldForceSequential() ||
-      depth <= 0 ||
-      TO_INT32(depth) !== depth ||
-      !TypeDescrIsArrayType(inArrayType) ||
-      !TypeDescrIsArrayType(outputType))
-  {
-    
-    return MapTypedSeqImpl(inArray, depth, outputType, func);
-  }
-
-  switch (depth) {
-  case 1:
-    return MapTypedParImplDepth1(inArray, inArrayType, outputType, func);
-  default:
-    return MapTypedSeqImpl(inArray, depth, outputType, func);
-  }
-}
-
-function RedirectPointer(typedObj, offset, outputIsScalar) {
-  if (!outputIsScalar || !InParallelSection()) {
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    typedObj = NewDerivedTypedObject(TypedObjectTypeDescr(typedObj),
-                                     typedObj, 0);
-  }
-
-  SetTypedObjectOffset(typedObj, offset);
-  return typedObj;
-}
-SetScriptHints(RedirectPointer,         { inline: true });
-
-function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
-  assert(IsObject(inArrayType) && ObjectIsTypeDescr(inArrayType) &&
-         TypeDescrIsArrayType(inArrayType),
-         "DoMapTypedParDepth1: invalid inArrayType");
-  assert(IsObject(outArrayType) && ObjectIsTypeDescr(outArrayType) &&
-         TypeDescrIsArrayType(outArrayType),
-         "DoMapTypedParDepth1: invalid outArrayType");
-  assert(IsObject(inArray) && ObjectIsTypedObject(inArray),
-         "DoMapTypedParDepth1: invalid inArray");
-
-  if (!TypedObjectIsAttached(inArray))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
-
-  
-  const inGrainType = inArrayType.elementType;
-  const outGrainType = outArrayType.elementType;
-  const inGrainTypeSize = DESCR_SIZE(inGrainType);
-  const outGrainTypeSize = DESCR_SIZE(outGrainType);
-  const inGrainTypeIsComplex = !TypeDescrIsSimpleType(inGrainType);
-  const outGrainTypeIsComplex = !TypeDescrIsSimpleType(outGrainType);
-
-  const length = inArray.length;
-  const mode = undefined;
-
-  const outArray = new outArrayType();
-  if (length === 0)
-    return outArray;
-
-  if (outArray.length != length)
-    ThrowError(JSMSG_TYPEDOBJECT_ARRAYTYPE_BAD_ARGS);
-
-  const outGrainTypeIsTransparent = ObjectIsTransparentTypedObject(outArray);
-
-  
-  const slicesInfo = ComputeSlicesInfo(length);
-  const numWorkers = ForkJoinNumWorkers();
-  assert(numWorkers > 0, "Should have at least the main thread");
-  const pointers = [];
-  for (var i = 0; i < numWorkers; i++) {
-    const inTypedObject = TypedObjectGetDerivedIf(inGrainType, inArray, 0,
-                                                  inGrainTypeIsComplex);
-    const outTypedObject = TypedObjectGetOpaqueIf(outGrainType, outArray, 0,
-                                                  outGrainTypeIsComplex);
-    ARRAY_PUSH(pointers, ({ inTypedObject: inTypedObject,
-                            outTypedObject: outTypedObject }));
-  }
-
-  
-  
-  
-  const inBaseOffset = TypedObjectByteOffset(inArray);
-
-  ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode), outArray);
-  return outArray;
-
-  function mapThread(workerId, sliceStart, sliceEnd) {
-    assert(TO_INT32(workerId) === workerId,
-           "workerId not int: " + workerId);
-    assert(workerId < pointers.length,
-           "workerId too large: " + workerId + " >= " + pointers.length);
-
-    var pointerIndex = InParallelSection() ? workerId : 0;
-    assert(!!pointers[pointerIndex],
-          "no pointer data for workerId: " + workerId);
-
-    const { inTypedObject, outTypedObject } = pointers[pointerIndex];
-    const sliceShift = slicesInfo.shift;
-    var sliceId;
-
-    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
-      const indexStart = SLICE_START_INDEX(sliceShift, sliceId);
-      const indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
-
-      var inOffset = inBaseOffset + std_Math_imul(inGrainTypeSize, indexStart);
-      var outOffset = std_Math_imul(outGrainTypeSize, indexStart);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      const endOffset = std_Math_imul(outGrainTypeSize, indexEnd);
-      SetForkJoinTargetRegion(outArray, outOffset, endOffset);
-
-      for (var i = indexStart; i < indexEnd; i++) {
-        var inVal = (inGrainTypeIsComplex
-                     ? RedirectPointer(inTypedObject, inOffset,
-                                       outGrainTypeIsTransparent)
-                     : inArray[i]);
-        var outVal = (outGrainTypeIsComplex
-                      ? RedirectPointer(outTypedObject, outOffset,
-                                        outGrainTypeIsTransparent)
-                      : undefined);
-        const r = func(inVal, i, inArray, outVal);
-        if (r !== undefined) {
-          if (outGrainTypeIsComplex)
-            SetTypedObjectValue(outGrainType, outArray, outOffset, r);
-          else
-            UnsafePutElements(outArray, i, r);
-        }
-        inOffset += inGrainTypeSize;
-        outOffset += outGrainTypeSize;
-
-#ifndef JSGC_FJGENERATIONAL
-        
-        
-        
-        
-        
-        
-        
-        if (outGrainTypeIsTransparent)
-          ClearThreadLocalArenas();
-#endif
-      }
-    }
-
-    return sliceId;
-  }
-
-  return undefined;
-}
-SetScriptHints(MapTypedParImplDepth1,         { cloneAtCallsite: true });
-
 function ReduceTypedSeqImpl(array, outputType, func, initial) {
   assert(IsObject(array) && ObjectIsTypedObject(array), "Reduce called on non-object or untyped input array.");
   assert(IsObject(outputType) && ObjectIsTypeDescr(outputType), "Reduce called on non-type-object outputType");
@@ -1266,36 +986,6 @@ function ReduceTypedSeqImpl(array, outputType, func, initial) {
   }
 
   return value;
-}
-
-function ScatterTypedSeqImpl(array, outputType, indices, defaultValue, conflictFunc) {
-  assert(IsObject(array) && ObjectIsTypedObject(array), "Scatter called on non-object or untyped input array.");
-  assert(IsObject(outputType) && ObjectIsTypeDescr(outputType), "Scatter called on non-type-object outputType");
-  assert(TypeDescrIsArrayType(outputType), "Scatter called on non-array type");
-  assert(conflictFunc === undefined || typeof conflictFunc === "function", "Scatter called with invalid conflictFunc");
-
-  var result = new outputType();
-  var bitvec = new Uint8Array(result.length);
-  var elemType = outputType.elementType;
-  var i, j;
-  if (defaultValue !== elemType(undefined)) {
-    for (i = 0; i < result.length; i++) {
-      result[i] = defaultValue;
-    }
-  }
-
-  for (i = 0; i < indices.length; i++) {
-    j = indices[i];
-    if (!GET_BIT(bitvec, j)) {
-      result[j] = array[i];
-      SET_BIT(bitvec, j);
-    } else if (conflictFunc === undefined) {
-      ThrowError(JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
-    } else {
-      result[j] = conflictFunc(result[j], elemType(array[i]));
-    }
-  }
-  return result;
 }
 
 function FilterTypedSeqImpl(array, func) {

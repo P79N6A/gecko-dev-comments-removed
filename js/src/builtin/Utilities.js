@@ -107,34 +107,3 @@ function ToLength(v) {
 function SameValueZero(x, y) {
     return x === y || (x !== x && y !== y);
 }
-
-
-
-#ifdef ENABLE_PARALLEL_JS
-
-
-
-
-
-function AssertSequentialIsOK(mode) {
-  if (mode && mode.mode && mode.mode !== "seq" && ParallelTestsShouldPass())
-    ThrowError(JSMSG_WRONG_VALUE, "parallel execution", "sequential was forced");
-}
-
-function ForkJoinMode(mode) {
-  
-  if (!mode || !mode.mode) {
-    return 0;
-  } else if (mode.mode === "compile") {
-    return 1;
-  } else if (mode.mode === "par") {
-    return 2;
-  } else if (mode.mode === "recover") {
-    return 3;
-  } else if (mode.mode === "bailout") {
-    return 4;
-  }
-  ThrowError(JSMSG_PAR_ARRAY_BAD_ARG);
-}
-
-#endif

@@ -304,122 +304,6 @@ intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-#ifdef DEBUG
-
-
-
-bool
-intrinsic_Dump(ThreadSafeContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    js_DumpValue(args[0]);
-    if (args[0].isObject()) {
-        fprintf(stderr, "\n");
-        js_DumpObject(&args[0].toObject());
-    }
-    args.rval().setUndefined();
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_Dump_jitInfo, intrinsic_Dump_jitInfo,
-                                      intrinsic_Dump);
-
-bool
-intrinsic_ParallelSpew(ThreadSafeContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    MOZ_ASSERT(args.length() == 1);
-    MOZ_ASSERT(args[0].isString());
-
-    AutoCheckCannotGC nogc;
-    ScopedThreadSafeStringInspector inspector(args[0].toString());
-    if (!inspector.ensureChars(cx, nogc))
-        return false;
-
-    ScopedJSFreePtr<char> bytes;
-    if (inspector.hasLatin1Chars())
-        bytes = JS::CharsToNewUTF8CharsZ(cx, inspector.latin1Range()).c_str();
-    else
-        bytes = JS::CharsToNewUTF8CharsZ(cx, inspector.twoByteRange()).c_str();
-
-    parallel::Spew(parallel::SpewOps, bytes);
-
-    args.rval().setUndefined();
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_ParallelSpew_jitInfo, intrinsic_ParallelSpew_jitInfo,
-                                      intrinsic_ParallelSpew);
-#endif
-
-
-
-
-
-
-
-
-
-
-static bool
-intrinsic_ForkJoin(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return ForkJoin(cx, args);
-}
-
-
-
-
-
-static bool
-intrinsic_ForkJoinNumWorkers(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setInt32(cx->runtime()->threadPool.numWorkers());
-    return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-js::intrinsic_ForkJoinGetSlice(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    MOZ_ASSERT(args.length() == 1);
-    MOZ_ASSERT(args[0].isInt32());
-    args.rval().set(args[0]);
-    return true;
-}
-
-static bool
-intrinsic_ForkJoinGetSlicePar(ForkJoinContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    MOZ_ASSERT(args.length() == 1);
-    MOZ_ASSERT(args[0].isInt32());
-
-    uint16_t sliceId;
-    if (cx->getSlice(&sliceId))
-        args.rval().setInt32(sliceId);
-    else
-        args.rval().setInt32(ThreadPool::MAX_SLICE_ID);
-
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL(intrinsic_ForkJoinGetSlice_jitInfo,
-                           intrinsic_ForkJoinGetSlicePar);
-
 
 
 
@@ -900,59 +784,6 @@ intrinsic_IsWeakSet(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
-
-
-
-
-
-
-
-static bool
-intrinsic_ParallelTestsShouldPass(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setBoolean(ParallelTestsShouldPass(cx));
-    return true;
-}
-
-
-
-
-
-bool
-js::intrinsic_ShouldForceSequential(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setBoolean(cx->runtime()->forkJoinWarmup ||
-                           InParallelSection());
-    return true;
-}
-
-bool
-js::intrinsic_InParallelSection(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setBoolean(false);
-    return true;
-}
-
-static bool
-intrinsic_InParallelSectionPar(ForkJoinContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    args.rval().setBoolean(true);
-    return true;
-}
-
-JS_JITINFO_NATIVE_PARALLEL(intrinsic_InParallelSection_jitInfo,
-                           intrinsic_InParallelSectionPar);
-
-
-
-
-
 bool
 js::intrinsic_ObjectIsTypedObject(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -1159,23 +990,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
 
     JS_FN("IsWeakSet",               intrinsic_IsWeakSet,               1,0),
 
-    JS_FN("ForkJoin",                intrinsic_ForkJoin,                5,0),
-    JS_FN("ForkJoinNumWorkers",      intrinsic_ForkJoinNumWorkers,      0,0),
     JS_FN("NewDenseArray",           intrinsic_NewDenseArray,           1,0),
-    JS_FN("ShouldForceSequential",   intrinsic_ShouldForceSequential,   0,0),
-    JS_FN("ParallelTestsShouldPass", intrinsic_ParallelTestsShouldPass, 0,0),
-    JS_FNINFO("ClearThreadLocalArenas",
-              intrinsic_ClearThreadLocalArenas,
-              &intrinsic_ClearThreadLocalArenasInfo, 0,0),
-    JS_FNINFO("SetForkJoinTargetRegion",
-              intrinsic_SetForkJoinTargetRegion,
-              &intrinsic_SetForkJoinTargetRegionInfo, 2, 0),
-    JS_FNINFO("ForkJoinGetSlice",
-              intrinsic_ForkJoinGetSlice,
-              &intrinsic_ForkJoinGetSlice_jitInfo, 1, 0),
-    JS_FNINFO("InParallelSection",
-              intrinsic_InParallelSection,
-              &intrinsic_InParallelSection_jitInfo, 0, 0),
 
     
     JS_FN("NewOpaqueTypedObject",
@@ -1263,16 +1078,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     
     JS_FN("regexp_exec_no_statics", regexp_exec_no_statics, 2,0),
     JS_FN("regexp_test_no_statics", regexp_test_no_statics, 2,0),
-
-#ifdef DEBUG
-    JS_FNINFO("Dump",
-              JSNativeThreadSafeWrapper<intrinsic_Dump>,
-              &intrinsic_Dump_jitInfo, 1,0),
-
-    JS_FNINFO("ParallelSpew",
-              JSNativeThreadSafeWrapper<intrinsic_ParallelSpew>,
-              &intrinsic_ParallelSpew_jitInfo, 1,0),
-#endif
 
     JS_FS_END
 };
