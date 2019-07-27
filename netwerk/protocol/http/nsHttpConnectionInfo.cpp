@@ -205,7 +205,7 @@ nsHttpConnectionInfo::Clone() const
     
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
-    clone->SetRelaxed(GetRelaxed());
+    clone->SetInsecureScheme(GetInsecureScheme());
     clone->SetNoSpdy(GetNoSpdy());
     MOZ_ASSERT(clone->Equals(this));
 
@@ -226,7 +226,7 @@ nsHttpConnectionInfo::CloneAsDirectRoute(nsHttpConnectionInfo **outCI)
     
     clone->SetAnonymous(GetAnonymous());
     clone->SetPrivate(GetPrivate());
-    clone->SetRelaxed(GetRelaxed());
+    clone->SetInsecureScheme(GetInsecureScheme());
     clone->SetNoSpdy(GetNoSpdy());
     if (!mNetworkInterfaceId.IsEmpty()) {
         clone->SetNetworkInterfaceId(mNetworkInterfaceId);

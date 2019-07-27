@@ -2186,7 +2186,7 @@ Http2Session::RecvAltSvc(Http2Session *self)
     nsAutoCString specifiedOriginHost;
     if (origin.EqualsIgnoreCase("https://", 8)) {
       specifiedOriginHost.Assign(origin.get() + 8, origin.Length() - 8);
-      if (ci->GetRelaxed()) {
+      if (ci->GetInsecureScheme()) {
         
         
         okToReroute = false;
