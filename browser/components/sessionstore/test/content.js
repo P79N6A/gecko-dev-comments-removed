@@ -82,7 +82,7 @@ addEventListener("MozStorageChanged", function () {
   
   
   
-  executeSoon(() => sendSyncMessage("ss-test:MozStorageChanged"));
+  executeSoon(() => sendAsyncMessage("ss-test:MozStorageChanged"));
 }, true);
 
 addMessageListener("ss-test:modifySessionStorage", function (msg) {
