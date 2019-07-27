@@ -145,6 +145,9 @@ user_pref("layout.css.report_errors", true);
 user_pref("layout.css.grid.enabled", true);
 
 
+user_pref("layout.css.object-fit-and-position.enabled", true);
+
+
 user_pref("layout.css.ruby.enabled", true);
 
 

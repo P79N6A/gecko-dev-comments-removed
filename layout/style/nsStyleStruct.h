@@ -1353,6 +1353,7 @@ struct nsStylePosition {
   uint8_t       mFlexDirection;         
   uint8_t       mFlexWrap;              
   uint8_t       mJustifyContent;        
+  uint8_t       mObjectFit;             
   int32_t       mOrder;                 
   float         mFlexGrow;              
   float         mFlexShrink;            

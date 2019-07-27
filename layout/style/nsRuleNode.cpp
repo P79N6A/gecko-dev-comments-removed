@@ -7660,6 +7660,13 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               NS_STYLE_JUSTIFY_CONTENT_FLEX_START, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForObjectFit(),
+              pos->mObjectFit, canStoreInRuleTree,
+              SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
+              parentPos->mObjectFit,
+              NS_STYLE_OBJECT_FIT_FILL, 0, 0, 0, 0);
+
+  
   const nsCSSValue& gridAutoFlow = *aRuleData->ValueForGridAutoFlow();
   switch (gridAutoFlow.GetUnit()) {
     case eCSSUnit_Null:

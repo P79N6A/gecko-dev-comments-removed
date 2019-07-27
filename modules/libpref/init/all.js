@@ -2030,6 +2030,9 @@ pref("layout.css.background-blend-mode.enabled", true);
 pref("layout.css.vertical-text.enabled", false);
 
 
+pref("layout.css.object-fit-and-position.enabled", false);
+
+
 
 #ifdef XP_MACOSX
 pref("layout.css.osx-font-smoothing.enabled", true);
