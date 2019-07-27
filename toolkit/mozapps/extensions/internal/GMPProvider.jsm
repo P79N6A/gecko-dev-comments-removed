@@ -52,7 +52,7 @@ const GMP_PLUGINS = [
   {
     id:              "gmp-gmpopenh264",
     name:            "openH264_name",
-    description:     "openH264_description",
+    description:     "openH264_description2",
     
     
     
