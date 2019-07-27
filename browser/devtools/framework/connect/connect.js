@@ -52,12 +52,16 @@ function submit() {
   
   document.body.classList.add("connecting");
 
-  
   let host = document.getElementById("host").value;
-  Services.prefs.setCharPref("devtools.debugger.remote-host", host);
-
   let port = document.getElementById("port").value;
-  Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+
+  
+  try {
+    Services.prefs.setCharPref("devtools.debugger.remote-host", host);
+    Services.prefs.setIntPref("devtools.debugger.remote-port", port);
+  } catch(e) {
+    
+  }
 
   
   let transport;
