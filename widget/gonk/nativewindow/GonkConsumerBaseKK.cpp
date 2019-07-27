@@ -29,13 +29,6 @@
 
 #include "GonkConsumerBaseKK.h"
 
-
-#define CB_LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
-#define CB_LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define CB_LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define CB_LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
-#define CB_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
 namespace android {
 
 
@@ -59,7 +52,7 @@ GonkConsumerBase::GonkConsumerBase(const sp<GonkBufferQueue>& bufferQueue, bool 
 
     status_t err = mConsumer->consumerConnect(proxy, controlledByApp);
     if (err != NO_ERROR) {
-        CB_LOGE("GonkConsumerBase: error connecting to GonkBufferQueue: %s (%d)",
+        ALOGE("GonkConsumerBase: error connecting to GonkBufferQueue: %s (%d)",
                 strerror(-err), err);
     } else {
         mConsumer->setConsumerName(mName);
@@ -67,7 +60,7 @@ GonkConsumerBase::GonkConsumerBase(const sp<GonkBufferQueue>& bufferQueue, bool 
 }
 
 GonkConsumerBase::~GonkConsumerBase() {
-    CB_LOGV("~GonkConsumerBase");
+    ALOGV("~GonkConsumerBase");
     Mutex::Autolock lock(mMutex);
 
     
@@ -83,7 +76,7 @@ void GonkConsumerBase::onLastStrongRef(const void* id) {
 }
 
 void GonkConsumerBase::freeBufferLocked(int slotIndex) {
-    CB_LOGV("freeBufferLocked: slotIndex=%d", slotIndex);
+    ALOGV("freeBufferLocked: slotIndex=%d", slotIndex);
     mSlots[slotIndex].mGraphicBuffer = 0;
     mSlots[slotIndex].mFence = Fence::NO_FENCE;
     mSlots[slotIndex].mFrameNumber = 0;
@@ -96,7 +89,7 @@ sp<GonkBufferQueue> GonkConsumerBase::getBufferQueue() const {
 }
 
 void GonkConsumerBase::onFrameAvailable() {
-    CB_LOGV("onFrameAvailable");
+    ALOGV("onFrameAvailable");
 
     sp<FrameAvailableListener> listener;
     { 
@@ -105,7 +98,7 @@ void GonkConsumerBase::onFrameAvailable() {
     }
 
     if (listener != NULL) {
-        CB_LOGV("actually calling onFrameAvailable");
+        ALOGV("actually calling onFrameAvailable");
         listener->onFrameAvailable();
     }
 }
@@ -113,7 +106,7 @@ void GonkConsumerBase::onFrameAvailable() {
 void GonkConsumerBase::onBuffersReleased() {
     Mutex::Autolock lock(mMutex);
 
-    CB_LOGV("onBuffersReleased");
+    ALOGV("onBuffersReleased");
 
     if (mAbandoned) {
         
@@ -130,7 +123,7 @@ void GonkConsumerBase::onBuffersReleased() {
 }
 
 void GonkConsumerBase::abandon() {
-    CB_LOGV("abandon");
+    ALOGV("abandon");
     Mutex::Autolock lock(mMutex);
 
     if (!mAbandoned) {
@@ -140,7 +133,7 @@ void GonkConsumerBase::abandon() {
 }
 
 void GonkConsumerBase::abandonLocked() {
-	CB_LOGV("abandonLocked");
+	ALOGV("abandonLocked");
     for (int i =0; i < GonkBufferQueue::NUM_BUFFER_SLOTS; i++) {
         freeBufferLocked(i);
     }
@@ -151,7 +144,7 @@ void GonkConsumerBase::abandonLocked() {
 
 void GonkConsumerBase::setFrameAvailableListener(
         const wp<FrameAvailableListener>& listener) {
-    CB_LOGV("setFrameAvailableListener");
+    ALOGV("setFrameAvailableListener");
     Mutex::Autolock lock(mMutex);
     mFrameAvailableListener = listener;
 }
@@ -187,7 +180,7 @@ status_t GonkConsumerBase::acquireBufferLocked(IGonkGraphicBufferConsumer::Buffe
     mSlots[item->mBuf].mFrameNumber = item->mFrameNumber;
     mSlots[item->mBuf].mFence = item->mFence;
 
-    CB_LOGV("acquireBufferLocked: -> slot=%d", item->mBuf);
+    ALOGV("acquireBufferLocked: -> slot=%d", item->mBuf);
 
     return OK;
 }
@@ -200,7 +193,7 @@ status_t GonkConsumerBase::addReleaseFence(int slot,
 
 status_t GonkConsumerBase::addReleaseFenceLocked(int slot,
         const sp<GraphicBuffer> graphicBuffer, const sp<Fence>& fence) {
-    CB_LOGV("addReleaseFenceLocked: slot=%d", slot);
+    ALOGV("addReleaseFenceLocked: slot=%d", slot);
 
     
     
@@ -215,7 +208,7 @@ status_t GonkConsumerBase::addReleaseFenceLocked(int slot,
                 String8::format("%.28s:%d", mName.string(), slot),
                 mSlots[slot].mFence, fence);
         if (!mergedFence.get()) {
-            CB_LOGE("failed to merge release fences");
+            ALOGE("failed to merge release fences");
             
             
             mSlots[slot].mFence = fence;
@@ -235,7 +228,7 @@ status_t GonkConsumerBase::releaseBufferLocked(int slot, const sp<GraphicBuffer>
         return OK;
     }
 
-    CB_LOGV("releaseBufferLocked: slot=%d/%llu",
+    ALOGV("releaseBufferLocked: slot=%d/%llu",
             slot, mSlots[slot].mFrameNumber);
     status_t err = mConsumer->releaseBuffer(slot, mSlots[slot].mFrameNumber, mSlots[slot].mFence);
     if (err == GonkBufferQueue::STALE_BUFFER_SLOT) {
