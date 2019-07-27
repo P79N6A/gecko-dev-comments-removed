@@ -582,16 +582,6 @@ void mergeStacksIntoProfile(ThreadProfile& aProfile, TickSample* aSample, Native
     if (jsStackAddr > nativeStackAddr) {
       MOZ_ASSERT(jsIndex >= 0);
       addDynamicTag(aProfile, 'c', jsFrames[jsIndex].label);
-
-      
-      
-      
-      
-      if (jsFrames[jsIndex].hasTrackedOptimizations) {
-        aProfile.addTag(ProfileEntry('J', jsFrames[jsIndex].returnAddress));
-        aProfile.addTag(ProfileEntry('o', jsFrames[jsIndex].trackedOptimizationIndex));
-      }
-
       jsIndex--;
       continue;
     }

@@ -777,7 +777,7 @@ CodeGeneratorShared::verifyCompactNativeToBytecodeMap(JitCode *code)
 
 bool
 CodeGeneratorShared::generateCompactTrackedOptimizationsMap(JSContext *cx, JitCode *code,
-                                                            IonTrackedTypeVector *allTypes)
+                                                            types::TypeSet::TypeList *allTypes)
 {
     MOZ_ASSERT(trackedOptimizationsMap_ == nullptr);
     MOZ_ASSERT(trackedOptimizationsMapSize_ == 0);
@@ -848,57 +848,15 @@ CodeGeneratorShared::generateCompactTrackedOptimizationsMap(JSContext *cx, JitCo
             data, data + trackedOptimizationsMapSize_, trackedOptimizationsMapSize_);
     JitSpew(JitSpew_OptimizationTracking,
             "     with type list of length %u, size %u",
-            allTypes->length(), allTypes->length() * sizeof(IonTrackedTypeWithAddendum));
+            allTypes->length(), allTypes->length() * sizeof(types::Type));
 
     return true;
 }
 
-#ifdef DEBUG
-
-
-
-class ReadTempAttemptsVectorOp : public JS::ForEachTrackedOptimizationAttemptOp
-{
-    TempOptimizationAttemptsVector *attempts_;
-
-  public:
-    explicit ReadTempAttemptsVectorOp(TempOptimizationAttemptsVector *attempts)
-      : attempts_(attempts)
-    { }
-
-    void operator()(JS::TrackedStrategy strategy, JS::TrackedOutcome outcome) MOZ_OVERRIDE {
-        MOZ_ALWAYS_TRUE(attempts_->append(OptimizationAttempt(strategy, outcome)));
-    }
-};
-
-struct ReadTempTypeInfoVectorOp : public IonTrackedOptimizationsTypeInfo::ForEachOp
-{
-    TempOptimizationTypeInfoVector *types_;
-    types::TypeSet::TypeList accTypes_;
-
-  public:
-    explicit ReadTempTypeInfoVectorOp(TempOptimizationTypeInfoVector *types)
-      : types_(types)
-    { }
-
-    void readType(const IonTrackedTypeWithAddendum &tracked) MOZ_OVERRIDE {
-        MOZ_ALWAYS_TRUE(accTypes_.append(tracked.type));
-    }
-
-    void operator()(JS::TrackedTypeSite site, MIRType mirType) MOZ_OVERRIDE {
-        OptimizationTypeInfo ty(site, mirType);
-        for (uint32_t i = 0; i < accTypes_.length(); i++)
-            MOZ_ALWAYS_TRUE(ty.trackType(accTypes_[i]));
-        MOZ_ALWAYS_TRUE(types_->append(mozilla::Move(ty)));
-        accTypes_.clear();
-    }
-};
-#endif
-
 void
 CodeGeneratorShared::verifyCompactTrackedOptimizationsMap(JitCode *code, uint32_t numRegions,
                                                           const UniqueTrackedOptimizations &unique,
-                                                          const IonTrackedTypeVector *allTypes)
+                                                          const types::TypeSet::TypeList *allTypes)
 {
 #ifdef DEBUG
     MOZ_ASSERT(trackedOptimizationsMap_ != nullptr);
@@ -957,15 +915,13 @@ CodeGeneratorShared::verifyCompactTrackedOptimizationsMap(JitCode *code, uint32_
             
             
             IonTrackedOptimizationsTypeInfo typeInfo = typesTable->entry(index);
-            TempOptimizationTypeInfoVector tvec(alloc());
-            ReadTempTypeInfoVectorOp top(&tvec);
-            typeInfo.forEach(top, allTypes);
+            TempTrackedTypeInfoVector tvec(alloc());
+            MOZ_ALWAYS_TRUE(typeInfo.readVector(&tvec, allTypes));
             MOZ_ASSERT(entry.optimizations->matchTypes(tvec));
 
             IonTrackedOptimizationsAttempts attempts = attemptsTable->entry(index);
-            TempOptimizationAttemptsVector avec(alloc());
-            ReadTempAttemptsVectorOp aop(&avec);
-            attempts.forEach(aop);
+            TempAttemptsVector avec(alloc());
+            MOZ_ALWAYS_TRUE(attempts.readVector(&avec));
             MOZ_ASSERT(entry.optimizations->matchAttempts(avec));
         }
     }
