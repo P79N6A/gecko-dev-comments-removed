@@ -4882,15 +4882,26 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(WritingMode aWM,
         tentBSize = nsPresContext::CSSPixelsToAppUnits(150);
       }
 
-      nsSize autoSize =
-        ComputeAutoSizeWithIntrinsicDimensions(minISize, minBSize,
-                                               maxISize, maxBSize,
-                                               tentISize, tentBSize);
-      
-      
-      
-      
-      return LogicalSize(aWM, autoSize.width, autoSize.height);
+      if (aIntrinsicRatio != nsSize(0, 0)) {
+        nsSize autoSize =
+          ComputeAutoSizeWithIntrinsicDimensions(minISize, minBSize,
+                                                 maxISize, maxBSize,
+                                                 tentISize, tentBSize);
+        
+        
+        
+        
+        iSize = autoSize.width;
+        bSize = autoSize.height;
+      } else {
+        
+        
+        
+        
+        
+        iSize = NS_CSS_MINMAX(tentISize, minISize, maxISize);
+        bSize = NS_CSS_MINMAX(tentBSize, minBSize, maxBSize);
+      }
     } else {
 
       
