@@ -28,7 +28,7 @@ public:
   NS_IMETHOD Run() {
     
     nsCountedRef<nsMainThreadSourceSurfaceRef> surface;
-    surface.own(mImage->GetAsSourceSurface().drop());
+    surface.own(mImage->GetAsSourceSurface().take());
 
     if (surface->GetFormat() == gfx::SurfaceFormat::B8G8R8A8) {
       mDataSourceSurface = surface->GetDataSurface();
