@@ -27,7 +27,6 @@ const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryStorage::";
 
 const Telemetry = Services.telemetry;
-const Utils = TelemetryUtils;
 
 
 const DATAREPORTING_DIR = "datareporting";
@@ -59,9 +58,6 @@ const MAX_ARCHIVED_PINGS_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 
 
 const ARCHIVE_QUOTA_BYTES = 120 * 1024 * 1024; 
-
-
-const ARCHIVE_SIZE_PROBE_SPECIAL_VALUE = 300;
 
 
 
@@ -517,8 +513,6 @@ let TelemetryStorageImpl = {
       timestampCreated: creationDate.getTime(),
       type: ping.type,
     });
-
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SESSION_PING_COUNT").add();
   }),
 
   
@@ -593,15 +587,12 @@ let TelemetryStorageImpl = {
   _purgeOldPings: Task.async(function*() {
     this._log.trace("_purgeOldPings");
 
-    const nowDate = Policy.now();
-    const now = nowDate.getTime();
+    const now = Policy.now().getTime();
     let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
     let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
 
     
-    let newestRemovedMonthTimestamp = null;
-    let evictedDirsCount = 0;
-    let maxDirAgeInMonths = 0;
+    let newestRemovedMonth = null;
 
     
     for (let dir of subdirs) {
@@ -622,20 +613,18 @@ let TelemetryStorageImpl = {
       }
 
       
-      if ((now - archiveDate.getTime()) > MAX_ARCHIVED_PINGS_RETENTION_MS) {
+      if (!TelemetryUtils.areTimesClose(archiveDate.getTime(), now,
+                                        MAX_ARCHIVED_PINGS_RETENTION_MS)) {
         try {
           yield OS.File.removeDir(dir.path);
-          evictedDirsCount++;
 
           
-          newestRemovedMonthTimestamp = Math.max(archiveDate, newestRemovedMonthTimestamp);
+          if (archiveDate > newestRemovedMonth) {
+            newestRemovedMonth = archiveDate;
+          }
         } catch (ex) {
           this._log.error("_purgeOldPings - Unable to remove " + dir.path, ex);
         }
-      } else {
-        
-        const dirAgeInMonths = Utils.getElapsedTimeInMonths(archiveDate, nowDate);
-        maxDirAgeInMonths = Math.max(dirAgeInMonths, maxDirAgeInMonths);
       }
     }
 
@@ -644,27 +633,17 @@ let TelemetryStorageImpl = {
 
     
     
-    if (newestRemovedMonthTimestamp) {
+    if (newestRemovedMonth) {
       
       for (let [id, info] of this._archivedPings) {
         const timestampCreated = new Date(info.timestampCreated);
-        if (timestampCreated.getTime() > newestRemovedMonthTimestamp) {
+        if (timestampCreated.getTime() > newestRemovedMonth.getTime()) {
           continue;
         }
         
         this._archivedPings.delete(id);
       }
     }
-
-    const endTimestamp = Policy.now().getTime();
-
-    
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTED_OLD_DIRS")
-             .add(evictedDirsCount);
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTING_DIRS_MS")
-             .add(Math.ceil(endTimestamp - now));
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_OLDEST_DIRECTORY_AGE")
-             .add(maxDirAgeInMonths);
   }),
 
   
@@ -673,7 +652,6 @@ let TelemetryStorageImpl = {
 
   _enforceArchiveQuota: Task.async(function*() {
     this._log.trace("_enforceArchiveQuota");
-    const now = Policy.now().getTime();
 
     
     let pingList = [for (p of this._archivedPings) {
@@ -721,18 +699,7 @@ let TelemetryStorageImpl = {
     }
 
     
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_CHECKING_OVER_QUOTA_MS")
-             .add(Math.round(Policy.now().getTime() - now));
-
-    let submitProbes = (sizeInMB, evictedPings, elapsedMs) => {
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SIZE_MB").add(sizeInMB);
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTED_OVER_QUOTA").add(evictedPings);
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTING_OVER_QUOTA_MS").add(elapsedMs);
-    };
-
-    
     if (archiveSizeInBytes < Policy.getArchiveQuota()) {
-      submitProbes(Math.round(archiveSizeInBytes / 1024 / 1024), 0, 0);
       return;
     }
 
@@ -755,10 +722,6 @@ let TelemetryStorageImpl = {
       
       this._archivedPings.delete(ping.id);
     }
-
-    const endTimestamp = Policy.now().getTime();
-    submitProbes(ARCHIVE_SIZE_PROBE_SPECIAL_VALUE, pingsToPurge.length,
-                 Math.ceil(endTimestamp - now));
   }),
 
   _cleanArchive: Task.async(function*() {
@@ -819,24 +782,20 @@ let TelemetryStorageImpl = {
   _scanArchive: Task.async(function*() {
     this._log.trace("_scanArchive");
 
-    let submitProbes = (pingCount, dirCount) => {
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SCAN_PING_COUNT")
-               .add(pingCount);
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_DIRECTORIES_COUNT")
-               .add(dirCount);
-    };
-
     if (!(yield OS.File.exists(gPingsArchivePath))) {
-      submitProbes(0, 0);
       return new Map();
     }
 
     let dirIterator = new OS.File.DirectoryIterator(gPingsArchivePath);
-    let subdirs =
-      (yield dirIterator.nextBatch()).filter(e => e.isDir).filter(e => isValidArchiveDir(e.name));
+    let subdirs = (yield dirIterator.nextBatch()).filter(e => e.isDir);
 
     
     for (let dir of subdirs) {
+      if (!isValidArchiveDir(dir.name)) {
+        this._log.warn("_scanArchive - skipping invalidly named subdirectory " + dir.path);
+        continue;
+      }
+
       this._log.trace("_scanArchive - checking in subdir: " + dir.path);
       let pingIterator = new OS.File.DirectoryIterator(dir.path);
       let pings = (yield pingIterator.nextBatch()).filter(e => !e.isDir);
@@ -871,8 +830,6 @@ let TelemetryStorageImpl = {
 
     
     this._scannedArchiveDirectory = true;
-    
-    submitProbes(this._archivedPings.size, subdirs.length);
     return this._archivedPings;
   }),
 
