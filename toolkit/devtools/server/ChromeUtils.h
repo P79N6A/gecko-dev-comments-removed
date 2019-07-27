@@ -39,7 +39,7 @@ public:
   
   
   
-  virtual bool writeNode(const JS::ubi::Node &node,
+  virtual bool writeNode(const JS::ubi::Node& node,
                          EdgePolicy includeEdges) = 0;
 };
 
@@ -49,12 +49,12 @@ public:
 
 
 bool
-WriteHeapGraph(JSContext *cx,
-               const JS::ubi::Node &node,
-               CoreDumpWriter &writer,
+WriteHeapGraph(JSContext* cx,
+               const JS::ubi::Node& node,
+               CoreDumpWriter& writer,
                bool wantNames,
-               JS::ZoneSet *zones,
-               JS::AutoCheckCannotGC &noGC);
+               JS::ZoneSet* zones,
+               JS::AutoCheckCannotGC& noGC);
 
 
 class HeapSnapshot;
@@ -63,16 +63,16 @@ class HeapSnapshot;
 class ChromeUtils
 {
 public:
-  static void SaveHeapSnapshot(dom::GlobalObject &global,
-                               JSContext *cx,
-                               const nsAString &filePath,
-                               const dom::HeapSnapshotBoundaries &boundaries,
-                               ErrorResult &rv);
+  static void SaveHeapSnapshot(dom::GlobalObject& global,
+                               JSContext* cx,
+                               const nsAString& filePath,
+                               const dom::HeapSnapshotBoundaries& boundaries,
+                               ErrorResult& rv);
 
-  static already_AddRefed<HeapSnapshot> ReadHeapSnapshot(dom::GlobalObject &global,
-                                                         JSContext *cx,
-                                                         const nsAString &filePath,
-                                                         ErrorResult &rv);
+  static already_AddRefed<HeapSnapshot> ReadHeapSnapshot(dom::GlobalObject& global,
+                                                         JSContext* cx,
+                                                         const nsAString& filePath,
+                                                         ErrorResult& rv);
 };
 
 } 
