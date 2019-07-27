@@ -1939,24 +1939,6 @@ nsContentUtils::InProlog(nsINode *aNode)
   return !root || doc->IndexOf(aNode) < doc->IndexOf(root);
 }
 
-JSContext *
-nsContentUtils::GetContextFromDocument(nsIDocument *aDocument)
-{
-  nsCOMPtr<nsIScriptGlobalObject> sgo =  do_QueryInterface(aDocument->GetScopeObject());
-  if (!sgo) {
-    
-    return nullptr;
-  }
-
-  nsIScriptContext *scx = sgo->GetContext();
-  if (!scx) {
-    
-    return nullptr;
-  }
-
-  return scx->GetNativeContext();
-}
-
 
 void
 nsContentUtils::TraceSafeJSContext(JSTracer* aTrc)
