@@ -3871,7 +3871,7 @@ pref("image.decode-only-on-draw.enabled", true);
 pref("image.decode-immediately.enabled", false);
 
 
-pref("image.downscale-during-decode.enabled", true);
+pref("image.downscale-during-decode.enabled", false);
 
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
@@ -4749,3 +4749,13 @@ pref("dom.secureelement.enabled", false);
 
 
 pref("dom.compositionevent.allow_control_characters", false);
+
+#ifdef MOZ_WIDGET_GONK
+
+
+
+pref("memory.report_concurrency", 1);
+#else
+
+pref("memory.report_concurrency", 10);
+#endif
