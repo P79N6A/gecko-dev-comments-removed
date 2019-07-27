@@ -65,6 +65,7 @@ static GtkWidget* gScrolledWindowWidget;
 static style_prop_t style_prop_func;
 static gboolean have_arrow_scaling;
 static gboolean checkbox_check_state;
+static gboolean notebook_has_tab_gap;
 static gboolean is_initialized;
 
 #define ARROW_UP      0
@@ -724,6 +725,14 @@ moz_gtk_init()
         checkbox_check_state = GTK_STATE_FLAG_CHECKED;
     else
         checkbox_check_state = GTK_STATE_FLAG_ACTIVE;
+
+    if(!gtk_check_version(3, 12, 0)) {
+        ensure_tab_widget();
+        gtk_widget_style_get(gTabWidget, "has-tab-gap", &notebook_has_tab_gap, NULL);
+    }
+    else {
+        notebook_has_tab_gap = TRUE;
+    }
 
     
 
@@ -2012,6 +2021,9 @@ moz_gtk_get_tab_thickness(void)
     GtkStyleContext * style;
 
     ensure_tab_widget();
+    if (!notebook_has_tab_gap)
+      return 0; 
+
     style = gtk_widget_get_style_context(gTabWidget);
     gtk_style_context_add_class(style, GTK_STYLE_CLASS_NOTEBOOK);
     gtk_style_context_get_border(style, 0, &border);
@@ -2057,7 +2069,7 @@ moz_gtk_tab_paint(cairo_t *cr, GdkRectangle* rect,
     ensure_tab_widget();
     gtk_widget_set_direction(gTabWidget, direction);
 
-    style = gtk_widget_get_style_context(gTabWidget);    
+    style = gtk_widget_get_style_context(gTabWidget);
     gtk_style_context_save(style);
     moz_gtk_tab_prepare_style_context(style, flags);
 
@@ -2074,143 +2086,155 @@ moz_gtk_tab_paint(cairo_t *cr, GdkRectangle* rect,
 
     focusRect = backRect = tabRect;
 
-    if ((flags & MOZ_GTK_TAB_SELECTED) == 0) {
-        
-        gtk_render_extension(style, cr,
-                             tabRect.x, tabRect.y, tabRect.width, tabRect.height,
-                            (flags & MOZ_GTK_TAB_BOTTOM) ?
-                                GTK_POS_TOP : GTK_POS_BOTTOM );
-    } else {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        gint gap_loffset, gap_roffset, gap_voffset, gap_height;
-
-        
-        gap_height = moz_gtk_get_tab_thickness();
-
-        
-        gap_voffset = flags & MOZ_GTK_TAB_MARGIN_MASK;
-        if (gap_voffset > gap_height)
-            gap_voffset = gap_height;
-
-        
-        gap_loffset = gap_roffset = 20; 
-        if (flags & MOZ_GTK_TAB_FIRST) {
-            if (direction == GTK_TEXT_DIR_RTL)
-                gap_roffset = initial_gap;
-            else
-                gap_loffset = initial_gap;
-        }
-
-        if (flags & MOZ_GTK_TAB_BOTTOM) {
+    if (notebook_has_tab_gap) {
+        if ((flags & MOZ_GTK_TAB_SELECTED) == 0) {
             
-            focusRect.y += gap_voffset;
-            focusRect.height -= gap_voffset;
-
             gtk_render_extension(style, cr,
-                                 tabRect.x, tabRect.y + gap_voffset, tabRect.width,
-                                 tabRect.height - gap_voffset, GTK_POS_TOP);
-
-            gtk_style_context_remove_region(style, GTK_STYLE_REGION_TAB);
-
-            backRect.y += (gap_voffset - gap_height);
-            backRect.height = gap_height;
-
-            
-
-            gtk_render_background(style, cr, backRect.x, backRect.y,
-                                 backRect.width, backRect.height);
-            cairo_save(cr);
-            cairo_rectangle(cr, backRect.x, backRect.y, backRect.width, backRect.height);
-            cairo_clip(cr);
-
-            gtk_render_frame_gap(style, cr,
-                                 tabRect.x - gap_loffset,
-                                 tabRect.y + gap_voffset - 3 * gap_height,
-                                 tabRect.width + gap_loffset + gap_roffset,
-                                 3 * gap_height, GTK_POS_BOTTOM,
-                                 gap_loffset, gap_loffset + tabRect.width);
-            cairo_restore(cr);
+                                 tabRect.x, tabRect.y, tabRect.width, tabRect.height,
+                                (flags & MOZ_GTK_TAB_BOTTOM) ?
+                                    GTK_POS_TOP : GTK_POS_BOTTOM );
         } else {
             
-            focusRect.height -= gap_voffset;
-            gtk_render_extension(style, cr,
-                                 tabRect.x, tabRect.y, tabRect.width,
-                                 tabRect.height - gap_voffset, GTK_POS_BOTTOM);
 
-            gtk_style_context_remove_region(style, GTK_STYLE_REGION_TAB);
 
-            backRect.y += (tabRect.height - gap_voffset);
-            backRect.height = gap_height;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            gint gap_loffset, gap_roffset, gap_voffset, gap_height;
 
             
+            gap_height = moz_gtk_get_tab_thickness();
 
-            gtk_render_background(style, cr, backRect.x, backRect.y,
-                                  backRect.width, backRect.height);
+            
+            gap_voffset = flags & MOZ_GTK_TAB_MARGIN_MASK;
+            if (gap_voffset > gap_height)
+                gap_voffset = gap_height;
 
-            cairo_save(cr);
-            cairo_rectangle(cr, backRect.x, backRect.y, backRect.width, backRect.height);
-            cairo_clip(cr);
+            
+            gap_loffset = gap_roffset = 20; 
+            if (flags & MOZ_GTK_TAB_FIRST) {
+                if (direction == GTK_TEXT_DIR_RTL)
+                    gap_roffset = initial_gap;
+                else
+                    gap_loffset = initial_gap;
+            }
 
-            gtk_render_frame_gap(style, cr,
-                                 tabRect.x - gap_loffset,
-                                 tabRect.y + tabRect.height - gap_voffset,
-                                 tabRect.width + gap_loffset + gap_roffset,
-                                 3 * gap_height, GTK_POS_TOP,
-                                 gap_loffset, gap_loffset + tabRect.width);
-            cairo_restore(cr);
+            if (flags & MOZ_GTK_TAB_BOTTOM) {
+                
+                focusRect.y += gap_voffset;
+                focusRect.height -= gap_voffset;
+
+                gtk_render_extension(style, cr,
+                                     tabRect.x, tabRect.y + gap_voffset, tabRect.width,
+                                     tabRect.height - gap_voffset, GTK_POS_TOP);
+
+                gtk_style_context_remove_region(style, GTK_STYLE_REGION_TAB);
+
+                backRect.y += (gap_voffset - gap_height);
+                backRect.height = gap_height;
+
+                
+
+                gtk_render_background(style, cr, backRect.x, backRect.y,
+                                     backRect.width, backRect.height);
+                cairo_save(cr);
+                cairo_rectangle(cr, backRect.x, backRect.y, backRect.width, backRect.height);
+                cairo_clip(cr);
+
+                gtk_render_frame_gap(style, cr,
+                                     tabRect.x - gap_loffset,
+                                     tabRect.y + gap_voffset - 3 * gap_height,
+                                     tabRect.width + gap_loffset + gap_roffset,
+                                     3 * gap_height, GTK_POS_BOTTOM,
+                                     gap_loffset, gap_loffset + tabRect.width);
+                cairo_restore(cr);
+            } else {
+                
+                focusRect.height -= gap_voffset;
+                gtk_render_extension(style, cr,
+                                     tabRect.x, tabRect.y, tabRect.width,
+                                     tabRect.height - gap_voffset, GTK_POS_BOTTOM);
+
+                gtk_style_context_remove_region(style, GTK_STYLE_REGION_TAB);
+
+                backRect.y += (tabRect.height - gap_voffset);
+                backRect.height = gap_height;
+
+                
+
+                gtk_render_background(style, cr, backRect.x, backRect.y,
+                                      backRect.width, backRect.height);
+
+                cairo_save(cr);
+                cairo_rectangle(cr, backRect.x, backRect.y, backRect.width, backRect.height);
+                cairo_clip(cr);
+
+                gtk_render_frame_gap(style, cr,
+                                     tabRect.x - gap_loffset,
+                                     tabRect.y + tabRect.height - gap_voffset,
+                                     tabRect.width + gap_loffset + gap_roffset,
+                                     3 * gap_height, GTK_POS_TOP,
+                                     gap_loffset, gap_loffset + tabRect.width);
+                cairo_restore(cr);
+            }
         }
-    }
-
-    if (state->focused) {
-      
-      GtkBorder border;
-      gtk_style_context_get_border(style, GetStateFlagsFromGtkWidgetState(state), &border);
-
-      focusRect.x += border.left;
-      focusRect.width -= (border.left + border.right);
-      focusRect.y += border.top;
-      focusRect.height -= (border.top + border.bottom);
-
-      gtk_render_focus(style, cr,
-                      focusRect.x, focusRect.y, focusRect.width, focusRect.height);
+    } else {
+        gtk_render_background(style, cr, tabRect.x, tabRect.y, tabRect.width, tabRect.height);
+        gtk_render_frame(style, cr, tabRect.x, tabRect.y, tabRect.width, tabRect.height);
     }
 
     gtk_style_context_restore(style);
+
+    if (state->focused) {
+      
+      GtkBorder padding;
+
+      gtk_style_context_save(style);
+      moz_gtk_tab_prepare_style_context(style, flags);
+
+      gtk_style_context_get_padding(style, GetStateFlagsFromGtkWidgetState(state), &padding);
+
+      focusRect.x += padding.left;
+      focusRect.width -= (padding.left + padding.right);
+      focusRect.y += padding.top;
+      focusRect.height -= (padding.top + padding.bottom);
+
+      gtk_render_focus(style, cr,
+                      focusRect.x, focusRect.y, focusRect.width, focusRect.height);
+
+      gtk_style_context_restore(style);
+    }
+
 
     return MOZ_GTK_SUCCESS;
 }
@@ -2831,11 +2855,7 @@ moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom,
     gtk_style_context_save(style);
     moz_gtk_tab_prepare_style_context(style, flags);
 
-    
-    
-    
     *left = *top = *right = *bottom = 0;
-    moz_gtk_add_style_border(style, left, top, right, bottom);
     moz_gtk_add_style_padding(style, left, top, right, bottom);
 
     gtk_widget_style_get (gTabWidget, "tab-curvature", &tab_curvature, NULL);
@@ -2846,16 +2866,9 @@ moz_gtk_get_tab_border(gint* left, gint* top, gint* right, gint* bottom,
       int initial_gap;
       gtk_widget_style_get (gTabWidget, "initial-gap", &initial_gap, NULL);
       if (direction == GTK_TEXT_DIR_RTL)
-      	*right += initial_gap;
+        *right += initial_gap;
       else
-      	*left += initial_gap;
-    }
-
-    
-    if (flags & MOZ_GTK_TAB_BOTTOM) {
-      *top = 0;
-    } else {
-      *bottom = 0;
+        *left += initial_gap;
     }
 
     gtk_style_context_restore(style);
