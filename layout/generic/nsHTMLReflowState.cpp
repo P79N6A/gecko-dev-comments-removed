@@ -507,8 +507,10 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType)
 {
-  bool isHResize = (frame->GetSize().width !=
-                     ComputedWidth() + ComputedPhysicalBorderPadding().LeftRight()) ||
+  const WritingMode wm = mWritingMode; 
+  bool isIResize = (frame->ISize(wm) !=
+                     ComputedISize() +
+                       ComputedLogicalBorderPadding().IStartEnd(wm)) ||
                      aPresContext->PresShell()->IsReflowOnZoomPending();
 
   if ((frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) &&
@@ -522,7 +524,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
                  
                  !mFlags.mDummyParentReflowState;
 
-    if (dirty || (!frame->GetParent() && isHResize)) {
+    if (dirty || (!frame->GetParent() && isIResize)) {
       
       
       
@@ -597,8 +599,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     }
   }
 
-  SetHResize(!(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-             isHResize);
+  SetIResize(!(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
+             isIResize);
 
   
   
@@ -606,39 +608,39 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       (mFlags.mSpecialHeightReflow ||
        (frame->FirstInFlow()->GetStateBits() &
          NS_TABLE_CELL_HAD_SPECIAL_REFLOW)) &&
-      (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+      (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
     
     
     
-    SetVResize(true);
+    SetBResize(true);
   } else if (mCBReflowState && !nsLayoutUtils::IsNonWrapperBlock(frame)) {
     
     
     
     
-    SetVResize(mCBReflowState->IsVResize());
-  } else if (ComputedHeight() == NS_AUTOHEIGHT) {
+    SetBResize(mCBReflowState->IsBResize());
+  } else if (ComputedBSize() == NS_AUTOHEIGHT) {
     if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
         mCBReflowState) {
-      SetVResize(mCBReflowState->IsVResize());
+      SetBResize(mCBReflowState->IsBResize());
     } else {
-      SetVResize(IsHResize());
+      SetBResize(IsIResize());
     }
-    SetVResize(IsVResize() || NS_SUBTREE_DIRTY(frame));
+    SetBResize(IsBResize() || NS_SUBTREE_DIRTY(frame));
   } else {
     
-    SetVResize(frame->GetSize().height !=
-               ComputedHeight() + ComputedPhysicalBorderPadding().TopBottom());
+    SetBResize(frame->BSize(wm) !=
+               ComputedBSize() + ComputedLogicalBorderPadding().BStartEnd(wm));
   }
 
-  bool dependsOnCBHeight =
-    (mStylePosition->HeightDependsOnContainer() &&
+  bool dependsOnCBBSize =
+    (mStylePosition->BSizeDependsOnContainer(wm) &&
      
-     mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) ||
-    mStylePosition->MinHeightDependsOnContainer() ||
-    mStylePosition->MaxHeightDependsOnContainer() ||
-    mStylePosition->OffsetHasPercent(NS_SIDE_TOP) ||
-    mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
+     mStylePosition->BSize(wm).GetUnit() != eStyleUnit_Auto) ||
+    mStylePosition->MinBSizeDependsOnContainer(wm) ||
+    mStylePosition->MaxBSizeDependsOnContainer(wm) ||
+    mStylePosition->OffsetHasPercent(wm.PhysicalSide(eLogicalSideBStart)) ||
+    mStylePosition->mOffset.GetBEndUnit(wm) != eStyleUnit_Auto ||
     frame->IsBoxFrame();
 
   if (mStyleText->mLineHeight.GetUnit() == eStyleUnit_Enumerated) {
@@ -647,9 +649,9 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
                  "bad line-height value");
 
     
-    frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+    frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
     
-    dependsOnCBHeight |= !nsLayoutUtils::IsNonWrapperBlock(frame);
+    dependsOnCBBSize |= !nsLayoutUtils::IsNonWrapperBlock(frame);
   }
 
   
@@ -658,12 +660,12 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   
   
   
-  if (!IsVResize() && mCBReflowState &&
+  if (!IsBResize() && mCBReflowState &&
       (IS_TABLE_CELL(mCBReflowState->frame->GetType()) || 
        mCBReflowState->mFlags.mHeightDependsOnAncestorCell) &&
       !mCBReflowState->mFlags.mSpecialHeightReflow && 
-      dependsOnCBHeight) {
-    SetVResize(true);
+      dependsOnCBBSize) {
+    SetBResize(true);
     mFlags.mHeightDependsOnAncestorCell = true;
   }
 
@@ -676,7 +678,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   
   
   
-  if (dependsOnCBHeight && mCBReflowState) {
+  if (dependsOnCBBSize && mCBReflowState) {
     const nsHTMLReflowState *rs = this;
     bool hitCBReflowState = false;
     do {
@@ -685,9 +687,9 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
         break;
       }
         
-      if (rs->frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)
+      if (rs->frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)
         break; 
-      rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+      rs->frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
       
       
       
@@ -695,6 +697,9 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
         hitCBReflowState = true;
       }
 
+      
+      
+      
     } while (!hitCBReflowState ||
              (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
               !IsQuirkContainingBlockHeight(rs, rs->frame->GetType())));
@@ -708,7 +713,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   if (frame->GetStateBits() & NS_FRAME_IS_DIRTY) {
     
     
-    frame->RemoveStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+    frame->RemoveStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
   }
 }
 

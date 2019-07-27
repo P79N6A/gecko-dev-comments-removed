@@ -656,11 +656,11 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       kidReflowState(aPresContext, aReflowState, kidFrame,
                      aReflowState.AvailableSize(kidFrame->GetWritingMode()));
 
-    if (aReflowState.IsVResize() &&
-        (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+    if (aReflowState.IsBResize() &&
+        (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
       
       
-      kidReflowState.SetVResize(true);
+      kidReflowState.SetBResize(true);
     }
 
     WritingMode wm = aReflowState.GetWritingMode();

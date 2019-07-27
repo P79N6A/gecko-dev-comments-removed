@@ -185,7 +185,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+  AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
 
   
   

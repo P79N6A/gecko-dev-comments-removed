@@ -778,9 +778,9 @@ public:
     
     
     return (frame->GetStateBits() & NS_FRAME_IS_DIRTY) ||
-           IsHResize() ||
-           (IsVResize() && 
-            (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
+           IsIResize() ||
+           (IsBResize() && 
+            (frame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE));
   }
 
   

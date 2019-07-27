@@ -2047,7 +2047,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
   bool selfDirty = (GetStateBits() & NS_FRAME_IS_DIRTY) ||
                      (aState.mReflowState.IsBResize() &&
-                      (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
+                      (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE));
 
   
   

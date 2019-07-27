@@ -3555,13 +3555,15 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
+  WritingMode wm = aReflowState.GetWritingMode();
   const nsStylePosition* stylePos = StylePosition();
-  if (stylePos->mHeight.HasPercent() ||
+  const nsStyleCoord& bsize = stylePos->BSize(wm);
+  if (bsize.HasPercent() ||
       (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
-       eStyleUnit_Auto == stylePos->mHeight.GetUnit() &&
-       eStyleUnit_Auto != stylePos->mOffset.GetTopUnit() &&
-       eStyleUnit_Auto != stylePos->mOffset.GetBottomUnit())) {
-    AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+       eStyleUnit_Auto == bsize.GetUnit() &&
+       eStyleUnit_Auto != stylePos->mOffset.GetBStartUnit(wm) &&
+       eStyleUnit_Auto != stylePos->mOffset.GetBEndUnit(wm))) {
+    AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
   }
 
 #ifdef DEBUG
@@ -3596,7 +3598,6 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   nscoord availableBSizeForContent = aReflowState.AvailableBSize();
   if (availableBSizeForContent != NS_UNCONSTRAINEDSIZE &&
       !(GetLogicalSkipSides(&aReflowState).BStart())) {
-    WritingMode wm = aReflowState.GetWritingMode();
     availableBSizeForContent -=
       aReflowState.ComputedLogicalBorderPadding().BStart(wm);
     
@@ -3862,7 +3863,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
           
           
           if (!(item->Frame()->GetStateBits() &
-                NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+                NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
             
             
             
@@ -4018,7 +4019,7 @@ nsFlexContainerFrame::ReflowFlexItem(nsPresContext* aPresContext,
       didOverrideComputedWidth = true;
     } else {
       
-      aItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+      aItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
       childReflowState.SetComputedHeight(aItem.GetCrossSize());
       didOverrideComputedHeight = true;
     }

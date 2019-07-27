@@ -830,7 +830,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
     }
     if (aReflowState.mFlags.mSpecialHeightReflow) {
       if (!isPaginated && !(cellFrame->GetStateBits() &
-                            NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
+                            NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
         continue;
       }
     }
@@ -880,7 +880,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
           isPaginated                                               ||
           NS_SUBTREE_DIRTY(cellFrame)                               ||
           
-          (cellFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT) ||
+          (cellFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE) ||
           HasPctHeight()) {
         
         

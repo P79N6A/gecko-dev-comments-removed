@@ -409,15 +409,18 @@ nsHTMLScrollFrame::TryLayout(ScrollReflowState* aState,
   return true;
 }
 
+
+
+
 bool
 nsHTMLScrollFrame::ScrolledContentDependsOnHeight(ScrollReflowState* aState)
 {
   
   
-  return (mHelper.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT) ||
-    aState->mReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
-    aState->mReflowState.ComputedMinHeight() > 0 ||
-    aState->mReflowState.ComputedMaxHeight() != NS_UNCONSTRAINEDSIZE;
+  return (mHelper.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE) ||
+    aState->mReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE ||
+    aState->mReflowState.ComputedMinBSize() > 0 ||
+    aState->mReflowState.ComputedMaxBSize() != NS_UNCONSTRAINEDSIZE;
 }
 
 void
