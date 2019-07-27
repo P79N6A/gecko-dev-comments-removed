@@ -896,6 +896,12 @@ protected:
   Mirror<media::TimeIntervals> mBuffered;
 
   
+  Mirror<bool> mStateMachineIsShutdown;
+
+  
+  virtual void ShutdownBitChanged() {}
+
+  
   Mirror<MediaDecoderOwner::NextFrameStatus> mNextFrameStatus;
 
   

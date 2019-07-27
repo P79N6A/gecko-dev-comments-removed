@@ -124,12 +124,6 @@ public:
 
   virtual void BreakCycles() override;
 
-  bool IsShutdown()
-  {
-    ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
-    return mDecoder->IsShutdown();
-  }
-
   
   bool TrackBuffersContainTime(int64_t aTime);
 

@@ -983,6 +983,12 @@ protected:
   }
 
   
+  Canonical<bool> mIsShutdown;
+public:
+  AbstractCanonical<bool>* CanonicalIsShutdown() { return &mIsShutdown; }
+protected:
+
+  
   
   Canonical<NextFrameStatus> mNextFrameStatus;
 public:
