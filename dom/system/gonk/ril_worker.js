@@ -530,11 +530,6 @@ RilObject.prototype = {
 
     this._ussdSession = null;
 
-   
-
-
-    this._mmiRegExp = null;
-
     
 
 
@@ -2743,7 +2738,7 @@ RilObject.prototype = {
       return;
     }
 
-    this.sendUSSD(options);
+    this.sendUSSD(options, false);
   },
 
   
@@ -2758,10 +2753,8 @@ RilObject.prototype = {
 
 
 
-
-
-  sendUSSD: function(options) {
-    if (options.checkSession && !this._ussdSession) {
+  sendUSSD: function(options, checkSession = true) {
+    if (checkSession && !this._ussdSession) {
       options.success = false;
       options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
       this.sendChromeMessage(options);
