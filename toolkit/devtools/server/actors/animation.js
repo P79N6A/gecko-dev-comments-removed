@@ -113,6 +113,14 @@ let AnimationPlayerActor = ActorClass({
     return data;
   },
 
+  isAnimation: function(player=this.player) {
+    return player instanceof this.tabActor.window.CSSAnimation;
+  },
+
+  isTransition: function(player=this.player) {
+    return player instanceof this.tabActor.window.CSSTransition;
+  },
+
   
 
 
@@ -140,11 +148,28 @@ let AnimationPlayerActor = ActorClass({
 
     
     
+    let playerName = this.getName();
     names = names.split(",").map(n => n.trim());
     for (let i = 0; i < names.length; i++) {
-      if (names[i] === this.player.effect.name) {
+      if (names[i] === playerName) {
         return i;
       }
+    }
+  },
+
+  
+
+
+
+
+
+  getName: function() {
+    if (this.isAnimation()) {
+      return this.player.animationName;
+    } else if (this.isTransition()) {
+      return this.player.transitionProperty;
+    } else {
+      return  "";
     }
   },
 
@@ -234,7 +259,7 @@ let AnimationPlayerActor = ActorClass({
       currentTime: this.player.currentTime,
       playState: this.player.playState,
       playbackRate: this.player.playbackRate,
-      name: this.player.effect.name,
+      name: this.getName(),
       duration: this.getDuration(),
       delay: this.getDelay(),
       iterationCount: this.getIterationCount(),
@@ -627,8 +652,11 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
         
         
         let index = this.actors.findIndex(a => {
-          return a.player.effect.name === player.effect.name &&
-                 a.player.effect.target === player.effect.target;
+          return a.player.constructor === player.constructor &&
+                 ((a.isAnimation() &&
+                   a.player.animationName === player.animationName) ||
+                  (a.isTransition() &&
+                   a.player.transitionProperty === player.transitionProperty));
         });
         if (index !== -1) {
           eventData.push({
