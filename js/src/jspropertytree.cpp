@@ -310,32 +310,26 @@ Shape::fixupAfterMovingGC()
 }
 
 void
-ShapeGetterSetterRef::mark(JSTracer* trc)
+Shape::fixupGetterSetterForBarrier(JSTracer *trc)
 {
     
     
-    
-
-    JSObject* obj = *objp;
-    JSObject* prior = obj;
-    if (!prior)
-        return;
-
-    trc->setTracingLocation(&*prior);
-    TraceManuallyBarrieredEdge(trc, &obj, "AccessorShape getter or setter");
-    if (obj == *objp)
-        return;
-
-    Shape* parent = shape->parent;
-    if (shape->inDictionary() || !parent->kids.isHash()) {
-        *objp = obj;
-        return;
+    if (parent && !parent->inDictionary() && parent->kids.isHash()) {
+        KidsHash* kh = parent->kids.toHash();
+        MOZ_ASSERT(kh->lookup(StackShape(this)));
+        kh->remove(StackShape(this));
     }
 
-    KidsHash* kh = parent->kids.toHash();
-    kh->remove(StackShape(shape));
-    *objp = obj;
-    MOZ_ALWAYS_TRUE(kh->putNew(StackShape(shape), shape));
+    if (hasGetterObject())
+        TraceManuallyBarrieredEdge(trc, &asAccessorShape().getterObj, "getterObj");
+    if (hasSetterObject())
+        TraceManuallyBarrieredEdge(trc, &asAccessorShape().setterObj, "setterObj");
+
+    if (parent && !parent->inDictionary() && parent->kids.isHash()) {
+        KidsHash* kh = parent->kids.toHash();
+        MOZ_ASSERT(!kh->lookup(StackShape(this)));
+        MOZ_ALWAYS_TRUE(kh->putNew(StackShape(this), this));
+    }
 }
 
 #ifdef DEBUG
