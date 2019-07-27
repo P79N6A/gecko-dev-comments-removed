@@ -862,6 +862,9 @@ pref("dom.identity.enabled", true);
 pref("layers.orientation.sync.timeout", 1000);
 
 
+pref("b2g.orientation.animate", true);
+
+
 
 pref("webgl.can-lose-context-in-foreground", false);
 
