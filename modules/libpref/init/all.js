@@ -3024,6 +3024,10 @@ pref("intl.tsf.hack.atok.create_native_caret", true);
 pref("intl.tsf.hack.free_chang_jie.do_not_return_no_layout_error", true);
 
 pref("intl.tsf.hack.easy_changjei.do_not_return_no_layout_error", true);
+
+
+
+pref("intl.tsf.hack.google_ja_input.do_not_return_no_layout_error_at_first_char", true);
 #endif
 
 
