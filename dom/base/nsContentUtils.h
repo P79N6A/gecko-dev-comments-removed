@@ -103,6 +103,7 @@ class nsTextFragment;
 class nsViewportInfo;
 class nsWrapperCache;
 class nsAttrValue;
+class nsITransferable;
 
 struct JSPropertyDescriptor;
 struct JSRuntime;
@@ -127,6 +128,10 @@ class nsIContentChild;
 class nsIContentParent;
 class Selection;
 class TabParent;
+} 
+
+namespace gfx {
+class DataSourceSurface;
 } 
 
 namespace layers {
@@ -2295,6 +2300,21 @@ public:
                                               nsTArray<mozilla::dom::IPCDataTransfer>& aIPC,
                                               mozilla::dom::nsIContentChild* aChild,
                                               mozilla::dom::nsIContentParent* aParent);
+
+  static void TransferableToIPCTransferable(nsITransferable* aTransferable,
+                                            mozilla::dom::IPCDataTransfer* aIPCDataTransfer,
+                                            mozilla::dom::nsIContentChild* aChild,
+                                            mozilla::dom::nsIContentParent* aParent);
+
+  
+
+
+
+
+
+  static const uint8_t* GetSurfaceData(mozilla::gfx::DataSourceSurface* aSurface,
+                                       size_t* aLength, int32_t* aStride);
+
 private:
   static bool InitializeEventTable();
 
