@@ -10,6 +10,7 @@
 #include "VideoUtils.h"
 #include "ImageContainer.h"
 
+#include "nsPrintfCString.h"
 #include "mozilla/mozalloc.h"
 #include <stdint.h>
 #include <algorithm>
@@ -26,6 +27,12 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 #else
 #define DECODER_LOG(x, ...)
 #endif
+
+
+#define DECODER_WARN_HELPER(a, b) NS_WARNING b
+#define DECODER_WARN(x, ...) \
+  DECODER_WARN_HELPER(0, (nsPrintfCString("Decoder=%p " x, mDecoder, ##__VA_ARGS__).get()))
+
 
 PRLogModuleInfo* gMediaPromiseLog;
 
@@ -181,6 +188,43 @@ MediaDecoderReader::ComputeStartTime(const VideoData* aVideo, const AudioData* a
   DECODER_LOG("ComputeStartTime first audio frame start %lld", aAudio ? aAudio->mTime : -1);
   NS_ASSERTION(startTime >= 0, "Start time is negative");
   return startTime;
+}
+
+nsRefPtr<MediaDecoderReader::MetadataPromise>
+MediaDecoderReader::CallReadMetadata()
+{
+  typedef ReadMetadataFailureReason Reason;
+
+  MOZ_ASSERT(OnDecodeThread());
+  mDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
+  DECODER_LOG("MediaDecoderReader::CallReadMetadata");
+
+  
+  
+  PreReadMetadata();
+  if (IsWaitingMediaResources()) {
+    return MetadataPromise::CreateAndReject(Reason::WAITING_FOR_RESOURCES, __func__);
+  }
+
+  
+  nsRefPtr<MetadataHolder> metadata = new MetadataHolder();
+  nsresult rv = ReadMetadata(&metadata->mInfo, getter_Transfers(metadata->mTags));
+
+  
+  
+  if (IsWaitingMediaResources()) {
+    return MetadataPromise::CreateAndReject(Reason::WAITING_FOR_RESOURCES, __func__);
+  }
+
+  
+  
+  if (NS_FAILED(rv) || !metadata->mInfo.HasValidMedia()) {
+    DECODER_WARN("ReadMetadata failed, rv=%x HasValidMedia=%d", rv, metadata->mInfo.HasValidMedia());
+    return MetadataPromise::CreateAndReject(Reason::METADATA_ERROR, __func__);
+  }
+
+  
+  return MetadataPromise::CreateAndResolve(metadata, __func__);
 }
 
 class ReRequestVideoWithSkipTask : public nsRunnable
@@ -357,3 +401,7 @@ MediaDecoderReader::Shutdown()
 }
 
 } 
+
+#undef DECODER_LOG
+#undef DECODER_WARN
+#undef DECODER_WARN_HELPER

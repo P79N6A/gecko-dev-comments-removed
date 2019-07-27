@@ -465,8 +465,6 @@ protected:
 
   nsresult FinishDecodeFirstFrame();
 
-  nsAutoPtr<MetadataTags> mMetadataTags;
-
   
   
   bool NeedToDecodeAudio();
@@ -590,8 +588,6 @@ protected:
   
   void DecodeError();
 
-  void StartWaitForResources();
-
   
   
   
@@ -660,11 +656,8 @@ protected:
   int64_t GetDecodedAudioDuration();
 
   
-  
-  nsresult DecodeMetadata();
-
-  
-  void CallDecodeMetadata();
+  void OnMetadataRead(MetadataHolder* aMetadata);
+  void OnMetadataNotRead(ReadMetadataFailureReason aReason);
 
   
   
@@ -1187,8 +1180,13 @@ protected:
   int64_t mCurrentTimeBeforeSeek;
 
   
+  MediaPromiseConsumerHolder<MediaDecoderReader::MetadataPromise> mMetadataRequest;
+
+  
   
   MediaInfo mInfo;
+
+  nsAutoPtr<MetadataTags> mMetadataTags;
 
   mozilla::MediaMetadataManager mMetadataManager;
 

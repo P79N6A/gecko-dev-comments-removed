@@ -22,7 +22,8 @@ class TimeRanges;
 class MediaDecoderReader;
 class SharedDecoderManager;
 
-struct WaitForDataRejectValue {
+struct WaitForDataRejectValue
+{
   enum Reason {
     SHUTDOWN,
     CANCELED
@@ -32,6 +33,23 @@ struct WaitForDataRejectValue {
     :mType(aType), mReason(aReason) {}
   MediaData::Type mType;
   Reason mReason;
+};
+
+class MetadataHolder
+{
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MetadataHolder)
+  MediaInfo mInfo;
+  nsAutoPtr<MetadataTags> mTags;
+
+private:
+  virtual ~MetadataHolder() {}
+};
+
+enum class ReadMetadataFailureReason : int8_t
+{
+  WAITING_FOR_RESOURCES,
+  METADATA_ERROR
 };
 
 
@@ -49,6 +67,7 @@ public:
     CANCELED
   };
 
+  typedef MediaPromise<nsRefPtr<MetadataHolder>, ReadMetadataFailureReason,  true> MetadataPromise;
   typedef MediaPromise<nsRefPtr<AudioData>, NotDecodedReason,  true> AudioDataPromise;
   typedef MediaPromise<nsRefPtr<VideoData>, NotDecodedReason,  true> VideoDataPromise;
   typedef MediaPromise<int64_t, nsresult,  true> SeekPromise;
@@ -147,6 +166,11 @@ public:
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
+
+  
+  
+  
+  nsRefPtr<MetadataPromise> CallReadMetadata();
 
   
   virtual void PreReadMetadata() {};
