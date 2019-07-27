@@ -361,7 +361,7 @@ public:
   
 
 
-  static bool IsHTMLBlock(nsIAtom* aLocalName);
+  static bool IsHTMLBlock(nsIContent* aContent);
 
   enum ParseHTMLIntegerResultFlags {
     eParseHTMLInteger_NoFlags               = 0,

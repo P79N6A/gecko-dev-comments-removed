@@ -1812,7 +1812,7 @@ nsPlainTextSerializer::IsElementBlock(Element* aElement)
     return displayStyle->IsBlockOutsideStyle();
   }
   
-  return nsContentUtils::IsHTMLBlock(GetIdForContent(aElement));
+  return nsContentUtils::IsHTMLBlock(aElement);
 }
 
 
