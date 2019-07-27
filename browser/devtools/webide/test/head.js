@@ -13,9 +13,6 @@ const {Promise: promise} = Cu.import("resource://gre/modules/devtools/deprecated
 const {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 const {require} = devtools;
 const {AppProjects} = require("devtools/app-manager/app-projects");
-const Telemetry = devtools.require("devtools/shared/telemetry");
-
-let oldCanRecord = Services.telemetry.canRecord;
 
 let TEST_BASE;
 if (window.location === "chrome://browser/content/browser.xul") {
@@ -35,14 +32,6 @@ Services.prefs.setCharPref("devtools.webide.templatesURL", TEST_BASE + "template
 
 
 SimpleTest.registerCleanupFunction(() => {
-  _stopTelemetry();
-
-  
-  for (let histId in Services.telemetry.histogramSnapshots) {
-    let histogram = Services.telemetry.getHistogramById(histId);
-    histogram.clear();
-  }
-
   Services.prefs.clearUserPref("devtools.webide.enabled");
   Services.prefs.clearUserPref("devtools.webide.enableLocalRuntime");
   Services.prefs.clearUserPref("devtools.webide.autoinstallADBHelper");
@@ -208,111 +197,4 @@ function connectToLocalRuntime(aWindow) {
 function handleError(aError) {
   ok(false, "Got an error: " + aError.message + "\n" + aError.stack);
   finish();
-}
-
-function startTelemetry() {
-  Services.telemetry.canRecord = true;
-}
-
-
-
-
-function _stopTelemetry() {
-  let telemetry = new Telemetry();
-  telemetry.clearToolsOpenedPref();
-
-  Services.telemetry.canRecord = oldCanRecord;
-
-  
-  for (let histId in Services.telemetry.histogramSnapshots) {
-    try {
-      let histogram = Services.telemetry.getHistogramById(histId);
-      histogram.clear();
-    } catch(e) {
-      
-    }
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function checkTelemetry(histId, expected, checkType="array") {
-  let actual = Services.telemetry.getHistogramById(histId).snapshot().counts;
-
-  switch (checkType) {
-    case "array":
-      is(JSON.stringify(actual), JSON.stringify(expected), histId + " correct.");
-    break;
-    case "hasentries":
-      let hasEntry = actual.some(num => num > 0);
-      ok(hasEntry, histId + " has at least one entry.");
-    break;
-  }
-}
-
-
-
-
-
-
-
-
-
-function generateTelemetryTests(prefix="") {
-  dump("=".repeat(80) + "\n");
-  for (let histId in Services.telemetry.histogramSnapshots) {
-    if (!histId.startsWith(prefix)) {
-      continue;
-    }
-
-    let snapshot = Services.telemetry.histogramSnapshots[histId];
-    let actual = snapshot.counts;
-
-    switch (snapshot.histogram_type) {
-      case Services.telemetry.HISTOGRAM_EXPONENTIAL:
-      case Services.telemetry.HISTOGRAM_LINEAR:
-        let total = 0;
-        for (let val of actual) {
-          total += val;
-        }
-
-        if (histId.endsWith("_ENUMERATED")) {
-          if (total > 0) {
-            dump("checkTelemetry(\"" + histId + "\", " + JSON.stringify(actual) + ");\n");
-          }
-          continue;
-        }
-
-        dump("checkTelemetry(\"" + histId + "\", null, \"hasentries\");\n");
-      break;
-      case Services.telemetry.HISTOGRAM_BOOLEAN:
-        actual = JSON.stringify(actual);
-
-        if (actual !== "[0,0,0]") {
-          dump("checkTelemetry(\"" + histId + "\", " + actual + ");\n");
-        }
-      break;
-      case Services.telemetry.HISTOGRAM_FLAG:
-        actual = JSON.stringify(actual);
-
-        if (actual !== "[1,0,0]") {
-          dump("checkTelemetry(\"" + histId + "\", " + actual + ");\n");
-        }
-      break;
-      case Services.telemetry.HISTOGRAM_COUNT:
-        dump("checkTelemetry(\"" + histId + "\", " + actual + ");\n");
-      break;
-    }
-  }
-  dump("=".repeat(80) + "\n");
 }
