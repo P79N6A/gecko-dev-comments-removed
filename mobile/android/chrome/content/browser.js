@@ -4430,7 +4430,11 @@ Tab.prototype = {
     this.clickToPlayPluginsActivated = false;
     
     let documentURI = contentWin.document.documentURIObject.spec
-    let matchedURL = documentURI.match(/^((?:[a-z]+:\/\/)?(?:[^\/]+@)?)(.+?)(?::\d+)?(?:\/|$)/);
+
+    
+    let strippedURI = this._stripAboutReaderURL(documentURI);
+
+    let matchedURL = strippedURI.match(/^((?:[a-z]+:\/\/)?(?:[^\/]+@)?)(.+?)(?::\d+)?(?:\/|$)/);
     let baseDomain = "";
     if (matchedURL) {
       var domain = "";
@@ -4486,6 +4490,19 @@ Tab.prototype = {
     } else {
       this.sendViewportUpdate();
     }
+  },
+
+  _stripAboutReaderURL: function (url) {
+    if (!url.startsWith("about:reader")) {
+      return url;
+    }
+
+    
+    let searchParams = new URLSearchParams(url.substring("about:reader?".length));
+    if (!searchParams.has("url")) {
+        return url;
+    }
+    return decodeURIComponent(searchParams.get("url"));
   },
 
   

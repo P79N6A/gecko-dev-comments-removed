@@ -179,6 +179,10 @@ public class Tab {
         return mUrl;
     }
 
+    
+
+
+
     public String getBaseDomain() {
         return mBaseDomain;
     }
