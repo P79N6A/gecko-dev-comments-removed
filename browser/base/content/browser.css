@@ -1033,6 +1033,9 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 
 #ContentSelectDropdown > menupopup {
   max-height: 350px;
+  
+
+  direction: ltr;
 }
 
 .contentSelectDropdown-optgroup {
