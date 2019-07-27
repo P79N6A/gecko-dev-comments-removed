@@ -1,57 +1,52 @@
-"use strict";
+function test()
+{
+  waitForExplicitFinish();
 
-const ROOT = getRootDirectory(gTestPath);
-const URI = ROOT + "browser_tab_dragdrop2_frame1.xul";
+  var level1 = false;
+  var level2 = false;
+  function test1() {
+    
+    
+    
+    
+    
+    
+    var chromeroot = getRootDirectory(gTestPath);
+    var uri = chromeroot + "browser_tab_dragdrop2_frame1.xul";
+    let window_B = openDialog(location, "_blank", "chrome,all,dialog=no,left=200,top=200,width=200,height=200", uri);
+    window_B.addEventListener("load", function(aEvent) {
+      window_B.removeEventListener("load", arguments.callee, false);
+      if (level1) return; level1=true;
+      executeSoon(function () {
+        window_B.gBrowser.addEventListener("load", function(aEvent) {
+          window_B.removeEventListener("load", arguments.callee, true);
+          if (level2) return; level2=true;
+          is(window_B.gBrowser.getBrowserForTab(window_B.gBrowser.tabs[0]).contentWindow.location, uri, "sanity check");
+          
+          var windowB_tab2 = window_B.gBrowser.addTab("about:blank", {skipAnimation: true});
+          setTimeout(function () {
+            
+            window_B.gBrowser.addEventListener("pagehide", function(aEvent) {
+              window_B.gBrowser.removeEventListener("pagehide", arguments.callee, true);
+              executeSoon(function () {
+                
+                
+                window_B.close();
 
+                var doc = window_C.gBrowser.getBrowserForTab(window_C.gBrowser.tabs[0])
+                            .docShell.contentViewer.DOMDocument;
+                var calls = doc.defaultView.test_panels();
+                window_C.close();
+                finish();
+              });
+            }, true);
+            window_B.gBrowser.selectedTab = window_B.gBrowser.tabs[0];
+            var window_C = window_B.gBrowser.replaceTabWithWindow(window_B.gBrowser.tabs[0]);
+            }, 1000);  
+        }, true);
+      });
+    }, false);
+  }
 
-
-
-
-add_task(function* () {
-  
-  let args = "chrome,all,dialog=no";
-  let win = window.openDialog(getBrowserURL(), "_blank", args, URI);
-
-  
-  yield promiseTestsDone(win);
-  ok(true, "tests succeeded");
-
-  
-  win.gBrowser.addTab("about:blank", {skipAnimation: true});
-
-  
-  let browser = win.gBrowser.selectedBrowser;
-  let tabClosed = promiseWaitForEvent(browser, "pagehide", true);
-  let win2 = win.gBrowser.replaceTabWithWindow(win.gBrowser.tabs[0]);
-
-  
-  
-  
-  let onTestsDone = () => ok(false, "shouldn't run tests when tearing off");
-  win2.addEventListener("TestsDone", onTestsDone);
-
-  
-  yield Promise.all([tabClosed, promiseDelayedStartupFinished(win2)]);
-
-  
-  
-  win2.removeEventListener("TestsDone", onTestsDone);
-
-  
-  let promise = promiseTestsDone(win2);
-  win2.content.test_panels();
-  yield promise;
-  ok(true, "tests succeeded a second time");
-
-  
-  yield promiseWindowClosed(win2);
-  yield promiseWindowClosed(win);
-});
-
-function promiseTestsDone(win) {
-  return promiseWaitForEvent(win, "TestsDone");
-}
-
-function promiseDelayedStartupFinished(win) {
-  return new Promise(resolve => whenDelayedStartupFinished(win, resolve));
+  test1();
 }
