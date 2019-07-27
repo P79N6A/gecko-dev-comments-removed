@@ -17,8 +17,6 @@ public:
   nsScreenWin ( HMONITOR inScreen );
   ~nsScreenWin();
 
-  NS_IMETHOD GetId(uint32_t* aId);
-
   
   NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
   NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
@@ -36,7 +34,6 @@ public:
 private:
 
   HMONITOR mScreen;
-  uint32_t mId;
 };
 
 #endif  
