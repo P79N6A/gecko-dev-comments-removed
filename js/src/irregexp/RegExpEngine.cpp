@@ -192,29 +192,42 @@ GetCaseIndependentLetters(jschar character,
                           bool ascii_subject,
                           jschar *letters)
 {
-    jschar lower = unicode::ToLowerCase(character);
-    jschar upper = unicode::ToUpperCase(character);
+    jschar choices[] = {
+        character,
+        unicode::ToLowerCase(character),
+        unicode::ToUpperCase(character)
+    };
 
-    
-    
-    if (ascii_subject && character > kMaxOneByteCharCode)
-        return 0;
+    size_t count = 0;
+    for (size_t i = 0; i < ArrayLength(choices); i++) {
+        jschar c = choices[i];
 
-    letters[0] = character;
+        
+        
+        
+        static const unsigned kMaxAsciiCharCode = 127;
+        if (character > kMaxAsciiCharCode && c <= kMaxAsciiCharCode)
+            continue;
 
-    if (lower != character) {
-        letters[1] = lower;
-        if (upper != character && upper != lower) {
-            letters[2] = upper;
-            return 3;
+        
+        if (ascii_subject && c > kMaxOneByteCharCode)
+            continue;
+
+        
+        bool found = false;
+        for (size_t j = 0; j < count; j++) {
+            if (letters[j] == c) {
+                found = true;
+                break;
+            }
         }
-        return 2;
+        if (found)
+            continue;
+
+        letters[count++] = c;
     }
-    if (upper != character) {
-        letters[1] = upper;
-        return 2;
-    }
-    return 1;
+
+    return count;
 }
 
 static jschar
