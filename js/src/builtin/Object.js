@@ -12,59 +12,30 @@ function ObjectStaticAssign(target, firstSource) {
         return to;
 
     
-    var i = 1;
-    do {
-        
-        
-        
+    for (var i = 1; i < arguments.length; i++) {
         
         var nextSource = arguments[i];
         if (nextSource === null || nextSource === undefined)
             continue;
 
+        
         var from = ToObject(nextSource);
 
         
-        var keysArray = OwnPropertyKeys(from);
+        var keys = OwnPropertyKeys(from);
 
         
-        var len = keysArray.length;
-
-        
-        var nextIndex = 0;
-
-        
-        
-        const MISSING = {};
-        var pendingException = MISSING;
-
-        
-        while (nextIndex < len) {
-            
-            var nextKey = keysArray[nextIndex];
+        for (var nextIndex = 0, len = keys.length; nextIndex < len; nextIndex++) {
+            var nextKey = keys[nextIndex];
 
             
-            try {
+            
+            if (callFunction(std_Object_propertyIsEnumerable, from, nextKey)) {
                 
-                
-                
-                
-                var desc = std_Object_getOwnPropertyDescriptor(from, nextKey);
-                if (desc !== undefined && desc.enumerable)
-                    to[nextKey] = from[nextKey];
-            } catch (e) {
-                if (pendingException === MISSING)
-                    pendingException = e;
+                to[nextKey] = from[nextKey];
             }
-
-            
-            nextIndex++;
         }
-
-        
-        if (pendingException !== MISSING)
-            throw pendingException;
-    } while (++i < arguments.length);
+    }
 
     
     return to;

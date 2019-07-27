@@ -47,8 +47,8 @@ js::obj_construct(JSContext *cx, unsigned argc, Value *vp)
 }
 
 
-static bool
-obj_propertyIsEnumerable(JSContext *cx, unsigned argc, Value *vp)
+bool
+js::obj_propertyIsEnumerable(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
