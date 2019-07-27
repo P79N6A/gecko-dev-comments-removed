@@ -553,17 +553,21 @@ function run_test_9() {
 function check_test_9(install) {
   prepare_test({}, [
     "onDownloadCancelled"
-  ]);
+  ], function() {
+    let file = install.file;
+
+    
+    do_execute_soon(function() {
+      AddonManager.getAllInstalls(function(activeInstalls) {
+        do_check_eq(activeInstalls.length, 0);
+        do_check_false(file.exists());
+
+        run_test_10();
+      });
+    });
+  });
 
   install.cancel();
-
-  ensure_test_completed();
-
-  AddonManager.getAllInstalls(function(activeInstalls) {
-    do_check_eq(activeInstalls.length, 0);
-
-    run_test_10();
-  });
 }
 
 
@@ -1004,28 +1008,31 @@ function run_test_14() {
 function check_test_14(install) {
   prepare_test({ }, [
     "onDownloadCancelled"
-  ]);
+  ], function() {
+    let file = install.file;
 
-  install.cancel();
+    install.addListener({
+      onDownloadProgress: function() {
+        do_throw("Download should not have continued");
+      },
+      onDownloadEnded: function() {
+        do_throw("Download should not have continued");
+      }
+    });
 
-  ensure_test_completed();
+    
+    
+    
+    do_execute_soon(function() {
+      do_check_false(file.exists());
 
-  install.addListener({
-    onDownloadProgress: function() {
-      do_throw("Download should not have continued");
-    },
-    onDownloadEnded: function() {
-      do_throw("Download should not have continued");
-    }
+      run_test_15();
+    });
   });
 
   
-  
-  
   do_execute_soon(function() {
-    do_check_eq(install.file, null);
-
-    run_test_15();
+    install.cancel();
   });
 }
 
@@ -1624,7 +1631,10 @@ function check_test_27(aInstall) {
     "onInstallEnded"
   ], finish_test_27);
 
+  let file = aInstall.file;
   aInstall.install();
+  do_check_neq(file.path, aInstall.file.path);
+  do_check_false(file.exists());
 }
 
 function finish_test_27(aInstall) {
