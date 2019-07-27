@@ -785,7 +785,7 @@ this.AppsUtils = {
 
 
 
-this.ManifestHelper = function(aManifest, aOrigin, aManifestURL) {
+this.ManifestHelper = function(aManifest, aOrigin, aManifestURL, aLang) {
   
   
 
@@ -801,10 +801,15 @@ this.ManifestHelper = function(aManifest, aOrigin, aManifestURL) {
   this._manifestURL = Services.io.newURI(aManifestURL, null, null);
 
   this._manifest = aManifest;
-  let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIXULChromeRegistry)
-                 .QueryInterface(Ci.nsIToolkitChromeRegistry);
-  let locale = chrome.getSelectedLocale("global").toLowerCase();
+
+  let locale = aLang;
+  if (!locale) {
+    let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                   .getService(Ci.nsIXULChromeRegistry)
+                   .QueryInterface(Ci.nsIToolkitChromeRegistry);
+    locale = chrome.getSelectedLocale("global").toLowerCase();
+  }
+
   this._localeRoot = this._manifest;
 
   if (this._manifest.locales && this._manifest.locales[locale]) {
