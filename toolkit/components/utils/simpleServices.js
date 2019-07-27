@@ -71,9 +71,35 @@ AddonPolicyService.prototype = {
 
 
 
+
+  extensionURILoadableByAnyone(aURI) {
+    if (aURI.scheme != "moz-extension") {
+      throw new TypeError("non-extension URI passed");
+    }
+
+    let cb = this.extensionURILoadCallback;
+    return cb ? cb(aURI) : false;
+  },
+
+  
+
+
+
+
   setAddonLoadURICallback(aAddonId, aCallback) {
     this.mayLoadURICallbacks[aAddonId] = aCallback;
   },
+
+  
+
+
+
+
+  setExtensionURILoadCallback(aCallback) {
+    var old = this.extensionURILoadCallback;
+    this.extensionURILoadCallback = aCallback;
+    return old;
+  }
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RemoteTagServiceService, AddonPolicyService]);

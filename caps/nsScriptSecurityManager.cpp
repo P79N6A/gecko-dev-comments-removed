@@ -746,6 +746,16 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     
 
     
+    
+    if (targetScheme.EqualsLiteral("moz-extension") && GetAddonPolicyService()) {
+      bool loadable = false;
+      rv = GetAddonPolicyService()->ExtensionURILoadableByAnyone(targetBaseURI, &loadable);
+      if (NS_SUCCEEDED(rv) && loadable) {
+        return NS_OK;
+      }
+    }
+
+    
     rv = DenyAccessIfURIHasFlags(targetBaseURI,
                                  nsIProtocolHandler::URI_DANGEROUS_TO_LOAD);
     if (NS_FAILED(rv)) {

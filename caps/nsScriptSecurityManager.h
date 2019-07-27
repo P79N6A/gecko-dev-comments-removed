@@ -8,10 +8,15 @@
 #define nsScriptSecurityManager_h__
 
 #include "nsIScriptSecurityManager.h"
+
+#include "nsIAddonPolicyService.h"
+#include "mozilla/Maybe.h"
+#include "nsIAddonPolicyService.h"
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 #include "nsIChannelEventSink.h"
 #include "nsIObserver.h"
+#include "nsServiceManagerUtils.h"
 #include "plstr.h"
 #include "js/TypeDecls.h"
 
@@ -123,6 +128,17 @@ private:
     
     
     nsCOMPtr<nsIDomainPolicy> mDomainPolicy;
+
+    
+    
+    mozilla::Maybe<nsCOMPtr<nsIAddonPolicyService>> mAddonPolicyService;
+    nsIAddonPolicyService* GetAddonPolicyService()
+    {
+        if (mAddonPolicyService.isNothing()) {
+            mAddonPolicyService.emplace(do_GetService("@mozilla.org/addons/policy-service;1"));
+        }
+        return mAddonPolicyService.ref();
+    }
 
     static bool sStrictFileOriginPolicy;
 
