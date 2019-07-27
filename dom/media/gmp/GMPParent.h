@@ -115,6 +115,8 @@ public:
   void SetNodeId(const nsACString& aNodeId);
   const nsACString& GetNodeId() const { return mNodeId; }
 
+  const nsCString& GetVersion() const;
+
   
   bool CanBeSharedCrossNodeIds() const;
 
