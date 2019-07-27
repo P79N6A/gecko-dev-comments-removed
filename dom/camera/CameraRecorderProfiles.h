@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef DOM_CAMERA_CAMERA_RECORDER_PROFILES_H
 #define DOM_CAMERA_CAMERA_RECORDER_PROFILES_H
@@ -44,14 +44,14 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // Get a representation of this video profile that can be returned
+  // to JS, possibly as a child member of another object.
+  //
+  // Return values:
+  //  - NS_OK on success;
+  //  - NS_ERROR_INVALID_ARG if 'aObject' is null;
+  //  - NS_ERROR_OUT_OF_MEMORY if a new object could not be allocated;
+  //  - NS_ERROR_FAILURE if construction of the JS object fails.
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject);
 
 protected:
@@ -92,14 +92,14 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // Get a representation of this audio profile that can be returned
+  // to JS, possibly as a child member of another object.
+  //
+  // Return values:
+  //  - NS_OK on success;
+  //  - NS_ERROR_INVALID_ARG if 'aObject' is null;
+  //  - NS_ERROR_OUT_OF_MEMORY if a new object could not be allocated;
+  //  - NS_ERROR_FAILURE if construction of the JS object fails.
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject);
 
 protected:
@@ -145,14 +145,14 @@ public:
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // Get a representation of this recorder profile that can be returned
+  // to JS, possibly as a child member of another object.
+  //
+  // Return values:
+  //  - NS_OK on success;
+  //  - NS_ERROR_INVALID_ARG if 'aObject' is null;
+  //  - NS_ERROR_OUT_OF_MEMORY if a new object could not be allocated;
+  //  - NS_ERROR_FAILURE if construction of the JS object fails.
   virtual nsresult GetJsObject(JSContext* aCx, JSObject** aObject) = 0;
 
 protected:
@@ -184,15 +184,15 @@ public:
   const RecorderVideoProfile* GetVideoProfile() const { return &mVideo; }
   const RecorderAudioProfile* GetAudioProfile() const { return &mAudio; }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // Get a representation of this recorder profile that can be returned
+  // to JS, possibly as a child member of another object.
+  //
+  // Return values:
+  //  - NS_OK on success;
+  //  - NS_ERROR_INVALID_ARG if 'aObject' is null;
+  //  - NS_ERROR_OUT_OF_MEMORY if a new object could not be allocated;
+  //  - NS_ERROR_NOT_AVAILABLE if the profile has no file format name;
+  //  - NS_ERROR_FAILURE if construction of the JS object fails.
   nsresult
   GetJsObject(JSContext* aCx, JSObject** aObject)
   {
@@ -200,7 +200,7 @@ public:
 
     const char* format = GetFileFormatName();
     if (!format) {
-      
+      // the profile must have a file format
       return NS_ERROR_NOT_AVAILABLE;
     }
 
@@ -250,25 +250,25 @@ public:
 
   uint32_t GetMaxQualityIndex() const { return mMaxQualityIndex; }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // Get a representation of all supported recorder profiles that can be
+  // returned to JS.
+  //
+  // Return values:
+  //  - NS_OK on success;
+  //  - NS_ERROR_INVALID_ARG if 'aObject' is null;
+  //  - NS_ERROR_OUT_OF_MEMORY if a new object could not be allocated;
+  //  - NS_ERROR_NOT_AVAILABLE if the profile has no file format name;
+  //  - NS_ERROR_FAILURE if construction of the JS object fails.
   nsresult GetJsObject(JSContext* aCx, JSObject** aObject) const;
 
 protected:
-  RecorderProfileManager(uint32_t aCameraId);
+  explicit RecorderProfileManager(uint32_t aCameraId);
   virtual ~RecorderProfileManager();
 
   uint32_t mCameraId;
   uint32_t mMaxQualityIndex;
 };
 
-} 
+} // namespace mozilla
 
-#endif 
+#endif // DOM_CAMERA_CAMERA_RECORDER_PROFILES_H

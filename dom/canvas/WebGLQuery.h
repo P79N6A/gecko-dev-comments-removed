@@ -27,7 +27,7 @@ public:
     
     
 
-    WebGLQuery(WebGLContext *context);
+    explicit WebGLQuery(WebGLContext* aContext);
 
     
     

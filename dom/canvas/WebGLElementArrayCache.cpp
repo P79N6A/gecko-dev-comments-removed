@@ -144,8 +144,8 @@ public:
   
   
   
-  WebGLElementArrayCacheTree(WebGLElementArrayCache& p)
-    : mParent(p)
+  explicit WebGLElementArrayCacheTree(WebGLElementArrayCache& aValue)
+    : mParent(aValue)
   {
   }
 

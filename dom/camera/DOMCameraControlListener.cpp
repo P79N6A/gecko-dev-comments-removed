@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this file,
+* You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DOMCameraControlListener.h"
 #include "nsThreadUtils.h"
@@ -27,11 +27,11 @@ DOMCameraControlListener::~DOMCameraControlListener()
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 }
 
-
+// Boilerplate callback runnable
 class DOMCameraControlListener::DOMCallback : public nsRunnable
 {
 public:
-  DOMCallback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
+  explicit DOMCallback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
     : mDOMCameraControl(aDOMCameraControl)
   {
     MOZ_COUNT_CTOR(DOMCameraControlListener::DOMCallback);
@@ -62,7 +62,7 @@ protected:
   nsMainThreadPtrHandle<nsDOMCameraControl> mDOMCameraControl;
 };
 
-
+// Specific callback handlers
 void
 DOMCameraControlListener::OnHardwareStateChange(HardwareState aState)
 {
@@ -112,19 +112,19 @@ DOMCameraControlListener::OnPreviewStateChange(PreviewState aState)
 
   switch (aState) {
     case kPreviewStopped:
-      
-      
-      
-      
+      // Clear the current frame right away, without dispatching a
+      //  runnable. This is an ugly coupling between the camera's
+      //  SurfaceTextureClient and the MediaStream/ImageContainer,
+      //  but without it, the preview can fail to start.
       DOM_CAMERA_LOGI("Preview stopped, clearing current frame\n");
       mStream->ClearCurrentFrame();
       break;
 
     case kPreviewPaused:
-      
-      
-      
-      
+      // In the paused state, we still want to reflect the change
+      //  in preview state, but we don't want to clear the current
+      //  frame as above, since doing so seems to cause genlock
+      //  problems when we restart the preview. See bug 957749.
       DOM_CAMERA_LOGI("Preview paused\n");
       break;
 
@@ -204,7 +204,7 @@ DOMCameraControlListener::OnConfigurationChange(const CameraListenerConfiguratio
           return;
       }
 
-      
+      // Map CameraControl parameters to their DOM-facing equivalents
       config->mRecorderProfile = mConfiguration.mRecorderProfile;
       config->mPreviewSize.mWidth = mConfiguration.mPreviewSize.width;
       config->mPreviewSize.mHeight = mConfiguration.mPreviewSize.height;
@@ -276,7 +276,7 @@ DOMCameraControlListener::OnShutter()
   class Callback : public DOMCallback
   {
   public:
-    Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
+    explicit Callback(nsMainThreadPtrHandle<nsDOMCameraControl> aDOMCameraControl)
       : DOMCallback(aDOMCameraControl)
     { }
 

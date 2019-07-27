@@ -40,7 +40,7 @@ public:
   
   static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
 
-  CameraCapabilities(nsPIDOMWindow* aWindow);
+  explicit CameraCapabilities(nsPIDOMWindow* aWindow);
 
   
   

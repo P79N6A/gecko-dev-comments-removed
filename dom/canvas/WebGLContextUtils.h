@@ -36,7 +36,7 @@ struct GLComponents
         : mComponents(0)
     { }
 
-    GLComponents(GLenum format);
+    explicit GLComponents(GLenum aFormat);
 
     
     

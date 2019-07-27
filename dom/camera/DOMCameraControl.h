@@ -145,7 +145,7 @@ protected:
     NS_INLINE_DECL_REFCOUNTING(DOMCameraConfiguration)
 
     DOMCameraConfiguration();
-    DOMCameraConfiguration(const dom::CameraConfiguration& aConfiguration);
+    explicit DOMCameraConfiguration(const dom::CameraConfiguration& aConfiguration);
 
     
     uint32_t mMaxFocusAreas;

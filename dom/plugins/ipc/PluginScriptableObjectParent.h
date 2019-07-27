@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=2 et :
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef dom_plugins_PluginScriptableObjectParent_h
 #define dom_plugins_PluginScriptableObjectParent_h 1
@@ -25,8 +25,8 @@ struct ParentNPObject : NPObject
   ParentNPObject()
     : NPObject(), parent(nullptr), invalidated(false) { }
 
-  // |parent| is always valid as long as the actor is alive. Once the actor is
-  // destroyed this will be set to null.
+  
+  
   PluginScriptableObjectParent* parent;
   bool invalidated;
 };
@@ -36,7 +36,7 @@ class PluginScriptableObjectParent : public PPluginScriptableObjectParent
   friend class PluginInstanceParent;
 
 public:
-  PluginScriptableObjectParent(ScriptableObjectType aType);
+  explicit PluginScriptableObjectParent(ScriptableObjectType aType);
   virtual ~PluginScriptableObjectParent();
 
   void
@@ -116,23 +116,23 @@ public:
   NPObject*
   GetObject(bool aCanResurrect);
 
-  // Protect only affects LocalObject actors. It is called by the
-  // ProtectedVariant/Actor helper classes before the actor is used as an
-  // argument to an IPC call and when the child process resurrects a
-  // proxy object to the NPObject associated with this actor.
+  
+  
+  
+  
   void Protect();
 
-  // Unprotect only affects LocalObject actors. It is called by the
-  // ProtectedVariant/Actor helper classes after the actor is used as an
-  // argument to an IPC call and when the child process is no longer using this
-  // actor.
+  
+  
+  
+  
   void Unprotect();
 
-  // DropNPObject is only used for Proxy actors and is called when the parent
-  // process is no longer using the NPObject associated with this actor. The
-  // child process may subsequently use this actor again in which case a new
-  // NPObject will be created and associated with this actor (see
-  // ResurrectProxyObject).
+  
+  
+  
+  
+  
   void DropNPObject();
 
   ScriptableObjectType
@@ -205,16 +205,16 @@ private:
   NPObject*
   CreateProxyObject();
 
-  // ResurrectProxyObject is only used with Proxy actors. It is called when the
-  // child process uses an actor whose NPObject was deleted by the parent
-  // process.
+  
+  
+  
   bool ResurrectProxyObject();
 
 private:
   PluginInstanceParent* mInstance;
 
-  // This may be a ParentNPObject or some other kind depending on who created
-  // it. Have to check its class to find out.
+  
+  
   NPObject* mObject;
   int mProtectCount;
 
@@ -223,7 +223,7 @@ private:
   static const NPClass sNPClass;
 };
 
-} /* namespace plugins */
-} /* namespace mozilla */
+} 
+} 
 
-#endif /* dom_plugins_PluginScriptableObjectParent_h */
+#endif 

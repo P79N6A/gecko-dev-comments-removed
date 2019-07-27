@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "CanvasImageCache.h"
 #include "nsIImageLoadingContent.h"
@@ -35,7 +35,7 @@ struct ImageCacheEntryData {
     , mSourceSurface(aOther.mSourceSurface)
     , mSize(aOther.mSize)
   {}
-  ImageCacheEntryData(const ImageCacheKey& aKey)
+  explicit ImageCacheEntryData(const ImageCacheKey& aKey)
     : mImage(aKey.mImage)
     , mILC(nullptr)
     , mCanvas(aKey.mCanvas)
@@ -45,11 +45,11 @@ struct ImageCacheEntryData {
 
   size_t SizeInBytes() { return mSize.width * mSize.height * 4; }
 
-  
+  // Key
   nsRefPtr<Element> mImage;
   nsIImageLoadingContent* mILC;
   nsRefPtr<HTMLCanvasElement> mCanvas;
-  
+  // Value
   nsCOMPtr<imgIRequest> mRequest;
   RefPtr<SourceSurface> mSourceSurface;
   gfxIntSize mSize;
@@ -61,8 +61,8 @@ public:
   typedef ImageCacheKey KeyType;
   typedef const ImageCacheKey* KeyTypePointer;
 
-  ImageCacheEntry(const KeyType *key) :
-      mData(new ImageCacheEntryData(*key)) {}
+  explicit ImageCacheEntry(const KeyType* aKey) :
+      mData(new ImageCacheEntryData(*aKey)) {}
   ImageCacheEntry(const ImageCacheEntry &toCopy) :
       mData(new ImageCacheEntryData(*toCopy.mData)) {}
   ~ImageCacheEntry() {}
@@ -89,7 +89,7 @@ class ImageCacheObserver;
 
 class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
 public:
-  
+  // We use 3 generations of 1 second each to get a 2-3 seconds timeout.
   enum { GENERATION_MS = 1000 };
   ImageCache();
   ~ImageCache();
@@ -98,7 +98,7 @@ public:
   {
     mTotal -= aObject->SizeInBytes();
     RemoveObject(aObject);
-    
+    // Deleting the entry will delete aObject since the entry owns aObject
     mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas));
   }
 
@@ -109,13 +109,13 @@ public:
 
 static ImageCache* gImageCache = nullptr;
 
-
+// Listen memory-pressure event for image cache purge
 class ImageCacheObserver MOZ_FINAL : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
 
-  ImageCacheObserver(ImageCache* aImageCache)
+  explicit ImageCacheObserver(ImageCache* aImageCache)
     : mImageCache(aImageCache)
   {
     RegisterMemoryPressureEvent();
@@ -161,9 +161,9 @@ private:
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
 
-    
-    
-    
+    // Do not assert on observerService here. This might be triggered by
+    // the cycle collector at a late enough time, that XPCOM services are
+    // no longer available. See bug 1029504.
     if (observerService) {
         observerService->RemoveObserver(this, "memory-pressure");
     }
@@ -214,7 +214,7 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
   ImageCacheEntry* entry = gImageCache->mCache.PutEntry(ImageCacheKey(aImage, aCanvas));
   if (entry) {
     if (entry->mData->mSourceSurface) {
-      
+      // We are overwriting an existing entry.
       gImageCache->mTotal -= entry->mData->SizeInBytes();
       gImageCache->RemoveObject(entry->mData);
     }
@@ -235,7 +235,7 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
   if (!sCanvasImageCacheLimit)
     return;
 
-  
+  // Expire the image cache early if its larger than we want it to be.
   while (gImageCache->mTotal > size_t(sCanvasImageCacheLimit))
     gImageCache->AgeOneGeneration();
 }
@@ -280,4 +280,4 @@ CanvasImageCacheShutdownObserver::Observe(nsISupports *aSubject,
   return NS_OK;
 }
 
-} 
+} // namespace mozilla
