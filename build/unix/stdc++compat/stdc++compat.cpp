@@ -24,26 +24,15 @@
 
 
 
+
+
+
+
+
+
 #define GLIBCXX_VERSION(a, b, c) (((a) << 16) | ((b) << 8) | (c))
 
 namespace std {
-#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 9)
-    
-    template ostream& ostream::_M_insert(double);
-    template ostream& ostream::_M_insert(long);
-    template ostream& ostream::_M_insert(unsigned long);
-    template ostream& ostream::_M_insert(long long);
-    template ostream& ostream::_M_insert(unsigned long long);
-    template ostream& ostream::_M_insert(bool);
-    template ostream& ostream::_M_insert(const void*);
-    template ostream& __ostream_insert(ostream&, const char*, streamsize);
-    template istream& istream::_M_extract(double&);
-    template istream& istream::_M_extract(float&);
-    template istream& istream::_M_extract(unsigned int&);
-    template istream& istream::_M_extract(unsigned long&);
-    template istream& istream::_M_extract(unsigned short&);
-    template istream& istream::_M_extract(unsigned long long&);
-#endif
 #if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     
 
