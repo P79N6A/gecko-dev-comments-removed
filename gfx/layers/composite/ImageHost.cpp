@@ -95,6 +95,9 @@ ImageHost::UseTextureHost(const nsTArray<TimedTexture>& aTextures)
       img.mTextureSource = mImages.LastElement().mTextureSource;
       mImages.RemoveElementAt(mImages.Length() - 1);
     }
+    
+    
+    img.mFrontBuffer->SetCropRect(img.mPictureRect);
     img.mFrontBuffer->Updated();
     img.mFrontBuffer->PrepareTextureSource(img.mTextureSource);
   }

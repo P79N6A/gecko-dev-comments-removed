@@ -420,6 +420,11 @@ public:
   
 
 
+  virtual void SetCropRect(nsIntRect aCropRect) {}
+
+  
+
+
 
   virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() = 0;
 
