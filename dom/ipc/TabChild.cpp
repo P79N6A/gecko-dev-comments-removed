@@ -2488,6 +2488,11 @@ TabChild::RecvRealKeyEvent(const WidgetKeyboardEvent& event,
   AutoCacheNativeKeyCommands autoCache(widget);
 
   if (event.message == NS_KEY_PRESS) {
+    
+    
+    if (mIgnoreKeyPressEvent) {
+      return true;
+    }
     if (aBindings.type() == MaybeNativeKeyBinding::TNativeKeyBinding) {
       const NativeKeyBinding& bindings = aBindings;
       autoCache.Cache(bindings.singleLineCommands(),
@@ -2496,11 +2501,6 @@ TabChild::RecvRealKeyEvent(const WidgetKeyboardEvent& event,
     } else {
       autoCache.CacheNoCommands();
     }
-  }
-  
-  
-  if (event.message == NS_KEY_PRESS && mIgnoreKeyPressEvent) {
-    return true;
   }
 
   WidgetKeyboardEvent localEvent(event);
