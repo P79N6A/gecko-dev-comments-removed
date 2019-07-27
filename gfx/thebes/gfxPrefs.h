@@ -68,9 +68,14 @@ static const char* Get##Name##PrefName() { return Pref; }                     \
 static Type Get##Name##PrefDefault() { return Default; }                      \
 PrefTemplate<UpdatePolicy::Update, Type, Get##Name##PrefDefault, Get##Name##PrefName> mPref##Name
 
+class PreferenceAccessImpl;
 class gfxPrefs;
 class gfxPrefs MOZ_FINAL
 {
+private:
+  
+  PreferenceAccessImpl* mMoz2DPrefAccess;
+
 private:
   
   MOZ_BEGIN_NESTED_ENUM_CLASS(UpdatePolicy)

@@ -157,7 +157,30 @@ namespace mozilla {
 namespace gfx {
 
 
-GFX2D_API int sGfxLogLevel = LOG_DEBUG;
+
+int32_t PreferenceAccess::sGfxLogLevel = LOG_DEFAULT;
+
+PreferenceAccess* PreferenceAccess::sAccess = nullptr;
+PreferenceAccess::~PreferenceAccess()
+{
+}
+
+
+
+void PreferenceAccess::LivePref(const char* aName, int32_t* aVar, int32_t aDef)
+{
+  *aVar = aDef;
+}
+
+
+
+void PreferenceAccess::SetAccess(PreferenceAccess* aAccess) {
+  sAccess = aAccess;
+  if (sAccess) {
+    RegisterAll();
+  }
+}
+
 
 #ifdef WIN32
 ID3D10Device1 *Factory::mD3D10Device;
