@@ -4410,7 +4410,7 @@ SearchService.prototype = {
     
     var currentTime = Date.now();
     LOG("currentTime: " + currentTime);
-    for each (engine in this._engines) {
+    for each (let engine in this._engines) {
       engine = engine.wrappedJSObject;
       if (!engine._hasUpdates)
         continue;
