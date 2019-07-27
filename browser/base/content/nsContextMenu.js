@@ -1288,8 +1288,6 @@ nsContextMenu.prototype = {
     }
 
     
-    
-    
     var ioService = Cc["@mozilla.org/network/io-service;1"].
                     getService(Ci.nsIIOService);
     var channel = ioService.newChannelFromURI2(makeURI(linkURL),
@@ -1297,7 +1295,7 @@ nsContextMenu.prototype = {
                                                this.principal, 
                                                null, 
                                                Ci.nsILoadInfo.SEC_NORMAL,
-                                               Ci.nsIContentPolicy.TYPE_DOCUMENT);
+                                               Ci.nsIContentPolicy.TYPE_OTHER);
     if (linkDownload)
       channel.contentDispositionFilename = linkDownload;
     if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
