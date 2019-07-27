@@ -30,7 +30,7 @@ public class BrowserTestCase extends ActivityInstrumentationTestCase2<Activity> 
     static {
         Class<? extends Activity> cl;
         try {
-            cl = (Class<? extends Activity>) Class.forName(AppConstants.BROWSER_INTENT_CLASS_NAME);
+            cl = (Class<? extends Activity>) Class.forName(AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
         } catch (ClassNotFoundException e) {
             
             cl = Activity.class;
