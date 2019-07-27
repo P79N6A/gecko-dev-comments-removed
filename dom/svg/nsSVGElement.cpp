@@ -1249,7 +1249,7 @@ nsSVGElement::UpdateContentStyleRule()
       continue; 
     }
 
-    if (Tag() == nsGkAtoms::svg) {
+    if (IsSVGElement(nsGkAtoms::svg)) {
       
       
       
@@ -1517,11 +1517,10 @@ nsSVGElement::GetCtx() const
   nsIContent* ancestor = GetFlattenedTreeParent();
 
   while (ancestor && ancestor->IsSVGElement()) {
-    nsIAtom* tag = ancestor->Tag();
-    if (tag == nsGkAtoms::foreignObject) {
+    if (ancestor->IsSVGElement(nsGkAtoms::foreignObject)) {
       return nullptr;
     }
-    if (tag == nsGkAtoms::svg) {
+    if (ancestor->IsSVGElement(nsGkAtoms::svg)) {
       return static_cast<SVGSVGElement*>(ancestor);
     }
     ancestor = ancestor->GetFlattenedTreeParent();
