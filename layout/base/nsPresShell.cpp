@@ -984,12 +984,9 @@ PresShell::Init(nsIDocument* aDocument,
   if (mPresContext->IsRootContentDocument()) {
     mZoomConstraintsClient = new ZoomConstraintsClient();
     mZoomConstraintsClient->Init(this, mDocument);
-#ifndef MOZ_WIDGET_ANDROID
-    
     if (gfxPrefs::MetaViewportEnabled()) {
       mMobileViewportManager = new MobileViewportManager(this, mDocument);
     }
-#endif
   }
 }
 
