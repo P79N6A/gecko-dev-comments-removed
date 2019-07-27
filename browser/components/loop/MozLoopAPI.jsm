@@ -377,13 +377,14 @@ function injectLoopAPI(targetWindow) {
 
 
 
+
     ensureRegistered: {
       enumerable: true,
       writable: true,
-      value: function(callback) {
+      value: function(sessionType, callback) {
         
         
-        MozLoopService.promiseRegisteredWithServers().then(() => {
+        MozLoopService.promiseRegisteredWithServers(sessionType).then(() => {
           callback(null);
         }, err => {
           callback(cloneValueInto(err, targetWindow));

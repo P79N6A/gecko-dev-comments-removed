@@ -89,8 +89,9 @@ loop.Client = (function($) {
 
 
 
-    _ensureRegistered: function(cb) {
-      this.mozLoop.ensureRegistered(function(error) {
+
+    _ensureRegistered: function(sessionType, cb) {
+      this.mozLoop.ensureRegistered(sessionType, function(error) {
         if (error) {
           console.log("Error registering with Loop server, code: " + error);
           cb(error);
@@ -113,14 +114,8 @@ loop.Client = (function($) {
 
 
 
-    _requestCallUrlInternal: function(nickname, cb) {
-      var sessionType;
-      if (this.mozLoop.userProfile) {
-        sessionType = this.mozLoop.LOOP_SESSION_TYPE.FXA;
-      } else {
-        sessionType = this.mozLoop.LOOP_SESSION_TYPE.GUEST;
-      }
 
+    _requestCallUrlInternal: function(sessionType, nickname, cb) {
       this.mozLoop.hawkRequest(sessionType, "/call-url/", "POST",
                                {callerId: nickname},
         function (error, responseText) {
@@ -159,7 +154,7 @@ loop.Client = (function($) {
 
 
     deleteCallUrl: function(token, sessionType, cb) {
-      this._ensureRegistered(function(err) {
+      this._ensureRegistered(sessionType, function(err) {
         if (err) {
           cb(err);
           return;
@@ -206,13 +201,20 @@ loop.Client = (function($) {
 
 
     requestCallUrl: function(nickname, cb) {
-      this._ensureRegistered(function(err) {
+      var sessionType;
+      if (this.mozLoop.userProfile) {
+        sessionType = this.mozLoop.LOOP_SESSION_TYPE.FXA;
+      } else {
+        sessionType = this.mozLoop.LOOP_SESSION_TYPE.GUEST;
+      }
+
+      this._ensureRegistered(sessionType, function(err) {
         if (err) {
           cb(err);
           return;
         }
 
-        this._requestCallUrlInternal(nickname, cb);
+        this._requestCallUrlInternal(sessionType, nickname, cb);
       }.bind(this));
     },
 
