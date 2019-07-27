@@ -64,7 +64,7 @@ public:
 
   
   
-  void CloseActive();
+  void CloseActive(bool aDieWhenUnloaded);
 
   
   void Shutdown();
@@ -132,6 +132,7 @@ private:
   nsCString mVersion;
   nsTArray<nsAutoPtr<GMPCapability>> mCapabilities;
   GMPProcessParent* mProcess;
+  bool mDeleteProcessOnUnload;
 
   nsTArray<nsRefPtr<GMPVideoDecoderParent>> mVideoDecoders;
   nsTArray<nsRefPtr<GMPVideoEncoderParent>> mVideoEncoders;
