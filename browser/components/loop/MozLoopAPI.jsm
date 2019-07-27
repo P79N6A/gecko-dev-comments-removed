@@ -712,6 +712,19 @@ function injectLoopAPI(targetWindow) {
 
 
 
+    openURL: {
+      enumerable: true,
+      writable: true,
+      value: function(url) {
+        return MozLoopService.openURL(url);
+      }
+    },
+
+    
+
+
+
+
     copyString: {
       enumerable: true,
       writable: true,
