@@ -221,7 +221,7 @@ class MochitestRunner(MozbuildObject):
 
         
         if test_paths:
-            test_paths = [self._wrap_path_argument(p).relpath() for p in test_paths]
+            test_paths = [self._wrap_path_argument(p).relpath() if os.path.isabs(p) else p for p in test_paths]
 
         failure_file_path = os.path.join(self.statedir, 'mochitest_failures.json')
 
