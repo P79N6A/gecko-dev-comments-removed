@@ -93,6 +93,8 @@ class UpvarCookie
     F(STRING) \
     F(TEMPLATE_STRING_LIST) \
     F(TEMPLATE_STRING) \
+    F(TAGGED_TEMPLATE) \
+    F(CALLSITEOBJ) \
     F(REGEXP) \
     F(TRUE) \
     F(FALSE) \
@@ -213,6 +215,14 @@ enum ParseNodeKind
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
+
+
+
+
+
+
+
 
 
 
@@ -818,7 +828,7 @@ class ParseNode
 #endif
     ;
 
-    bool getConstantValue(ExclusiveContext *cx, bool strictChecks, MutableHandleValue vp);
+    bool getConstantValue(ExclusiveContext *cx, MutableHandleValue vp);
     inline bool isConstant();
 
     template <class NodeType>
@@ -1250,6 +1260,23 @@ class PropertyByValue : public ParseNode
     }
 };
 
+#ifdef JS_HAS_TEMPLATE_STRINGS
+
+
+
+struct CallSiteNode : public ListNode {
+    explicit CallSiteNode(uint32_t begin): ListNode(PNK_CALLSITEOBJ, TokenPos(begin, begin + 1)) {}
+
+    static bool test(const ParseNode &node) {
+        return node.isKind(PNK_CALLSITEOBJ);
+    }
+
+    bool getRawArrayValue(ExclusiveContext *cx, MutableHandleValue vp) {
+        return pn_head->getConstantValue(cx, vp);
+    }
+};
+#endif
+
 #ifdef DEBUG
 void DumpParseTree(ParseNode *pn, int indent = 0);
 #endif
@@ -1445,6 +1472,9 @@ ParseNode::isConstant()
     switch (pn_type) {
       case PNK_NUMBER:
       case PNK_STRING:
+#ifdef JS_HAS_TEMPLATE_STRINGS
+      case PNK_TEMPLATE_STRING:
+#endif
       case PNK_NULL:
       case PNK_FALSE:
       case PNK_TRUE:

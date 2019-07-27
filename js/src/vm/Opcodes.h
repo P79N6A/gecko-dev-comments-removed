@@ -883,7 +883,17 @@
  \
     macro(JSOP_INITELEM_SETTER, 100, "initelem_setter",   NULL, 1,  3,  1, JOF_BYTE|JOF_ELEM|JOF_SET|JOF_DETECTING) \
     \
-    macro(JSOP_UNUSED101,  101, "unused101",   NULL,         1,  0,  0,  JOF_BYTE) \
+    
+
+
+
+
+
+
+
+ \
+    macro(JSOP_CALLSITEOBJ,     101, "callsiteobj",     NULL,         5,  0,  1,  JOF_OBJECT) \
+    \
     macro(JSOP_UNUSED102,  102, "unused102",   NULL,         1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED103,  103, "unused103",   NULL,         1,  0,  0,  JOF_BYTE) \
     macro(JSOP_UNUSED104,  104, "unused104",   NULL,         1,  0,  0,  JOF_BYTE) \

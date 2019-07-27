@@ -470,6 +470,36 @@ class MOZ_STACK_CLASS TokenStream
     
     void reportAsmJSError(uint32_t offset, unsigned errorNumber, ...);
 
+#ifdef JS_HAS_TEMPLATE_STRINGS
+    JSAtom *getRawTemplateStringAtom() {
+        JS_ASSERT(currentToken().type == TOK_TEMPLATE_HEAD ||
+                  currentToken().type == TOK_NO_SUBS_TEMPLATE);
+        const jschar *cur = userbuf.base() + currentToken().pos.begin + 1;
+        const jschar *end;
+        if (currentToken().type == TOK_TEMPLATE_HEAD) {
+            
+            end = userbuf.base() + currentToken().pos.end - 2;
+        } else {
+            
+            end = userbuf.base() + currentToken().pos.end - 1;
+        }
+
+        CharBuffer charbuf(cx);
+        while (cur < end) {
+            int32_t ch = *cur;
+            if (ch == '\r') {
+                ch = '\n';
+                if ((cur + 1 < end) && (*(cur + 1) == '\n'))
+                    cur++;
+            }
+            if (!charbuf.append(ch))
+                return nullptr;
+            cur++;
+        }
+        return AtomizeChars(cx, charbuf.begin(), charbuf.length());
+    }
+#endif
+
   private:
     
     
