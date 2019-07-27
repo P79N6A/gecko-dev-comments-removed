@@ -323,7 +323,8 @@ public:
 
   
 
-  enum OCSPResponseStatus {
+  enum OCSPResponseStatus
+  {
     successful = 0,
     malformedRequest = 1,
     internalError = 2,
@@ -353,7 +354,8 @@ public:
 
   
   
-  enum CertStatus {
+  enum CertStatus
+  {
     good = 0,
     revoked = 1,
     unknown = 2,

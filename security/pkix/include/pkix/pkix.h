@@ -122,7 +122,7 @@ Result CheckCertHostname(Input cert, Input hostname);
 
 static const size_t OCSP_REQUEST_MAX_LENGTH = 127;
 Result CreateEncodedOCSPRequest(TrustDomain& trustDomain,
-                                const struct CertID& certID,
+                                const CertID& certID,
                                  uint8_t (&out)[OCSP_REQUEST_MAX_LENGTH],
                                  size_t& outLen);
 
