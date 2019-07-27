@@ -165,11 +165,22 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
 
 
 
+class UnboxedExpandoObject : public NativeObject
+{
+  public:
+    static const Class class_;
+};
+
+
+
+
 
 class UnboxedPlainObject : public JSObject
 {
     
-    void *dummy_;
+    
+    
+    UnboxedExpandoObject *expando_;
 
     
     uint8_t data_[1];
@@ -214,6 +225,18 @@ class UnboxedPlainObject : public JSObject
         return &data_[0];
     }
 
+    UnboxedExpandoObject *maybeExpando() const {
+        return expando_;
+    }
+
+    void initExpando() {
+        expando_ = nullptr;
+    }
+
+    bool containsUnboxedOrExpandoProperty(ExclusiveContext *cx, jsid id) const;
+
+    static UnboxedExpandoObject *ensureExpando(JSContext *cx, Handle<UnboxedPlainObject *> obj);
+
     bool setValue(ExclusiveContext *cx, const UnboxedLayout::Property &property, const Value &v);
     Value getValue(const UnboxedLayout::Property &property);
 
@@ -224,6 +247,10 @@ class UnboxedPlainObject : public JSObject
                                           NewObjectKind newKind, IdValuePair *properties);
 
     static void trace(JSTracer *trc, JSObject *object);
+
+    static size_t offsetOfExpando() {
+        return offsetof(UnboxedPlainObject, expando_);
+    }
 
     static size_t offsetOfData() {
         return offsetof(UnboxedPlainObject, data_[0]);
