@@ -31,6 +31,7 @@ const PREF_ENABLED = PREF_BRANCH + "enabled";
 const PREF_ARCHIVE_ENABLED = PREF_BRANCH + "archive.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_FHR_SERVICE_ENABLED = "datareporting.healthreport.service.enabled";
+const PREF_UNIFIED = PREF_BRANCH + "unified";
 
 const Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
 
@@ -223,7 +224,11 @@ add_task(function* test_archivePings() {
   fakeNow(now);
 
   
-  Preferences.set(PREF_FHR_UPLOAD_ENABLED, false);
+  
+  
+  const isUnified = Preferences.get(PREF_UNIFIED, false);
+  const uploadPref = isUnified ? PREF_FHR_UPLOAD_ENABLED : PREF_ENABLED;
+  Preferences.set(uploadPref, false);
 
   
   registerPingHandler(() => Assert.ok(false, "Telemetry must not send pings if not allowed to."));
@@ -231,7 +236,7 @@ add_task(function* test_archivePings() {
 
   
   let ping = yield TelemetryArchive.promiseArchivedPingById(pingId);
-  Assert.equal(ping.id, pingId, "TelemetryController must archive pings if FHR is enabled.");
+  Assert.equal(ping.id, pingId, "TelemetryController should still archive pings.");
 
   
   now = new Date(2010, 10, 18, 12, 0, 0);
@@ -240,10 +245,10 @@ add_task(function* test_archivePings() {
   pingId = yield sendPing(true, true);
   let promise = TelemetryArchive.promiseArchivedPingById(pingId);
   Assert.ok((yield promiseRejects(promise)),
-            "TelemetryController must not archive pings if the archive pref is disabled.");
+    "TelemetryController should not archive pings if the archive pref is disabled.");
 
   
-  Preferences.set(PREF_FHR_UPLOAD_ENABLED, true);
+  Preferences.set(uploadPref, true);
   Preferences.set(PREF_ARCHIVE_ENABLED, true);
 
   now = new Date(2014, 06, 18, 22, 0, 0);
@@ -255,7 +260,8 @@ add_task(function* test_archivePings() {
   
   yield gRequestIterator.next();
   ping = yield TelemetryArchive.promiseArchivedPingById(pingId);
-  Assert.equal(ping.id, pingId, "TelemetryController must archive pings if FHR is enabled.");
+  Assert.equal(ping.id, pingId,
+    "TelemetryController should still archive pings if ping upload is enabled.");
 });
 
 

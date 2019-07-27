@@ -1185,10 +1185,21 @@ let Impl = {
 
 
 
+
   _canSend: function() {
-    return (Telemetry.isOfficialTelemetry || this._testMode) &&
-           Preferences.get(PREF_FHR_UPLOAD_ENABLED, false) &&
-           (IS_UNIFIED_TELEMETRY || Preferences.get(PREF_ENABLED));
+    
+    if (!Telemetry.isOfficialTelemetry && !this._testMode) {
+      return false;
+    }
+
+    
+    
+    if (IS_UNIFIED_TELEMETRY) {
+      return Preferences.get(PREF_FHR_UPLOAD_ENABLED, false);
+    }
+
+    
+    return Preferences.get(PREF_ENABLED, false);
   },
 
   
