@@ -199,7 +199,7 @@ private:
   
   nsAutoPtr<OpusParser> mOpusParser;
   OpusMSDecoder *mOpusDecoder;
-  int mSkip;        
+  uint16_t mSkip;        
   uint64_t mSeekPreroll; 
 #endif
 
@@ -244,6 +244,13 @@ private:
   
   bool mHasVideo;
   bool mHasAudio;
+
+#ifdef MOZ_OPUS
+  
+  
+  
+  bool mPaddingDiscarded;
+#endif
 };
 
 } 
