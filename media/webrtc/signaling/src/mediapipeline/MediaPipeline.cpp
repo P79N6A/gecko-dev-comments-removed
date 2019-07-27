@@ -1175,15 +1175,36 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
   if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
     layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(img);
     android::sp<android::GraphicBuffer> graphicBuffer = nativeImage->GetGraphicBuffer();
+    int pixelFormat = graphicBuffer->getPixelFormat(); 
+    mozilla::VideoType destFormat;
+    switch (pixelFormat) {
+      case HAL_PIXEL_FORMAT_YV12:
+        
+        destFormat = mozilla::kVideoYV12;
+        break;
+      case layers::GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP:
+        destFormat = mozilla::kVideoNV21;
+        break;
+      case layers::GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_P:
+        destFormat = mozilla::kVideoI420;
+        break;
+      default:
+        
+        
+        
+        MOZ_MTLOG(ML_ERROR, "Un-handled GRALLOC buffer type:" << pixelFormat);
+        MOZ_CRASH();
+    }
     void *basePtr;
     graphicBuffer->lock(android::GraphicBuffer::USAGE_SW_READ_MASK, &basePtr);
     uint32_t width = graphicBuffer->getWidth();
     uint32_t height = graphicBuffer->getHeight();
+    
     conduit->SendVideoFrame(static_cast<unsigned char*>(basePtr),
                             I420SIZE(width, height),
                             width,
                             height,
-                            mozilla::kVideoNV21, 0);
+                            destFormat, 0);
     graphicBuffer->unlock();
   } else
 #endif
