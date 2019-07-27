@@ -3,6 +3,22 @@
 
 
 
+function TypedArrayEntries() {
+    
+    var O = this;
+
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayEntries");
+    }
+
+    
+
+    
+    return CreateArrayIterator(O, ITEM_KIND_KEY_AND_VALUE);
+}
+
+
 function TypedArrayEvery(callbackfn, thisArg = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
@@ -252,6 +268,22 @@ function TypedArrayJoin(separator) {
 }
 
 
+function TypedArrayKeys() {
+    
+    var O = this;
+
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayKeys");
+    }
+
+    
+
+    
+    return CreateArrayIterator(O, ITEM_KIND_KEY);
+}
+
+
 function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
@@ -441,6 +473,22 @@ function TypedArraySome(callbackfn, thisArg = undefined) {
 
     
     return false;
+}
+
+
+function TypedArrayValues() {
+    
+    var O = this;
+
+    
+    if (!IsObject(O) || !IsTypedArray(O)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayValues");
+    }
+
+    
+
+    
+    return CreateArrayIterator(O, ITEM_KIND_VALUE);
 }
 
 
