@@ -2623,9 +2623,6 @@ void imgCacheValidator::AddProxy(imgRequestProxy *aProxy)
 NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt)
 {
   
-  nsCOMPtr<nsISupports> context = mContext.forget();
-
-  
   
   if (!mRequest) {
     MOZ_ASSERT_UNREACHABLE("OnStartRequest delivered more than once?");
@@ -2673,7 +2670,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       
       aRequest->Cancel(NS_BINDING_ABORTED);
 
-      mRequest->SetLoadId(context);
+      mRequest->SetLoadId(mContext);
       mRequest->SetValidator(nullptr);
 
       mRequest = nullptr;
@@ -2714,7 +2711,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
   mNewRequest->Init(originalURI, uri, mHadInsecureRedirect, aRequest, channel,
-                    mNewEntry, context, loadingPrincipal, corsmode, refpol);
+                    mNewEntry, mContext, loadingPrincipal, corsmode, refpol);
 
   mDestListener = new ProxyListener(mNewRequest);
 
@@ -2743,9 +2740,6 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
 
 NS_IMETHODIMP imgCacheValidator::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt, nsresult status)
 {
-  
-  mContext = nullptr;
-
   if (!mDestListener)
     return NS_OK;
 
