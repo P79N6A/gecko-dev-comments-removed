@@ -7,13 +7,10 @@
 #define MOZSTORAGEHELPER_H
 
 #include "nsAutoPtr.h"
-#include "nsStringGlue.h"
-#include "mozilla/DebugOnly.h"
 
 #include "mozIStorageAsyncConnection.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
-#include "mozIStoragePendingStatement.h"
 #include "nsError.h"
 
 
@@ -35,73 +32,29 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class mozStorageTransaction
+template<typename T, typename U>
+class mozStorageTransactionBase
 {
 public:
-  mozStorageTransaction(mozIStorageConnection* aConnection,
-                        bool aCommitOnComplete,
-                        int32_t aType = mozIStorageConnection::TRANSACTION_DEFERRED,
-                        bool aAsyncCommit = false)
+  mozStorageTransactionBase(T* aConnection,
+                            bool aCommitOnComplete,
+                            int32_t aType = mozIStorageConnection::TRANSACTION_DEFERRED)
     : mConnection(aConnection),
       mHasTransaction(false),
       mCommitOnComplete(aCommitOnComplete),
-      mCompleted(false),
-      mAsyncCommit(aAsyncCommit)
+      mCompleted(false)
   {
-    if (mConnection) {
-      nsAutoCString query("BEGIN");
-      switch(aType) {
-        case mozIStorageConnection::TRANSACTION_IMMEDIATE:
-          query.AppendLiteral(" IMMEDIATE");
-          break;
-        case mozIStorageConnection::TRANSACTION_EXCLUSIVE:
-          query.AppendLiteral(" EXCLUSIVE");
-          break;
-        case mozIStorageConnection::TRANSACTION_DEFERRED:
-          query.AppendLiteral(" DEFERRED");
-          break;
-        default:
-          MOZ_ASSERT(false, "Unknown transaction type");
-      }
-      
-      
-      mHasTransaction = NS_SUCCEEDED(mConnection->ExecuteSimpleSQL(query));
-    }
+    
+    if (mConnection)
+      mHasTransaction = NS_SUCCEEDED(mConnection->BeginTransactionAs(aType));
   }
-
-  ~mozStorageTransaction()
+  ~mozStorageTransactionBase()
   {
-    if (mConnection && mHasTransaction && !mCompleted) {
-      if (mCommitOnComplete) {
-        mozilla::DebugOnly<nsresult> rv = Commit();
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                         "A transaction didn't commit correctly");
-      }
-      else {
-        mozilla::DebugOnly<nsresult> rv = Rollback();
-        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                         "A transaction didn't rollback correctly");
-      }
+    if (mConnection && mHasTransaction && ! mCompleted) {
+      if (mCommitOnComplete)
+        mConnection->CommitTransaction();
+      else
+        mConnection->RollbackTransaction();
     }
   }
 
@@ -112,22 +65,12 @@ public:
 
   nsresult Commit()
   {
-    if (!mConnection || mCompleted || !mHasTransaction)
-      return NS_OK;
+    if (!mConnection || mCompleted)
+      return NS_OK; 
     mCompleted = true;
-
-    
-    
-    nsresult rv;
-    if (mAsyncCommit) {
-      nsCOMPtr<mozIStoragePendingStatement> ps;
-      rv = mConnection->ExecuteSimpleSQLAsync(NS_LITERAL_CSTRING("COMMIT"),
-                                              nullptr, getter_AddRefs(ps));
-    }
-    else {
-      rv = mConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING("COMMIT"));
-    }
-
+    if (! mHasTransaction)
+      return NS_OK; 
+    nsresult rv = mConnection->CommitTransaction();
     if (NS_SUCCEEDED(rv))
       mHasTransaction = false;
 
@@ -141,15 +84,16 @@ public:
 
   nsresult Rollback()
   {
-    if (!mConnection || mCompleted || !mHasTransaction)
-      return NS_OK;
+    if (!mConnection || mCompleted)
+      return NS_OK; 
     mCompleted = true;
+    if (! mHasTransaction)
+      return NS_ERROR_FAILURE;
 
-    
     
     nsresult rv = NS_OK;
     do {
-      rv = mConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING("ROLLBACK"));
+      rv = mConnection->RollbackTransaction();
       if (rv == NS_ERROR_STORAGE_BUSY)
         (void)PR_Sleep(PR_INTERVAL_NO_WAIT);
     } while (rv == NS_ERROR_STORAGE_BUSY);
@@ -160,13 +104,41 @@ public:
     return rv;
   }
 
+  
+
+
+
+
+  bool HasTransaction()
+  {
+    return mHasTransaction;
+  }
+
+  
+
+
+
+  void SetDefaultAction(bool aCommitOnComplete)
+  {
+    mCommitOnComplete = aCommitOnComplete;
+  }
+
 protected:
-  nsCOMPtr<mozIStorageConnection> mConnection;
+  U mConnection;
   bool mHasTransaction;
   bool mCommitOnComplete;
   bool mCompleted;
-  bool mAsyncCommit;
 };
+
+
+
+
+
+typedef mozStorageTransactionBase<mozIStorageConnection,
+                                  nsCOMPtr<mozIStorageConnection> >
+mozStorageTransaction;
+
+
 
 
 
