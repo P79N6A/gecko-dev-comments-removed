@@ -231,6 +231,72 @@ static bool test_pldhash_Iterator()
   return true;
 }
 
+static bool test_pldhash_RemovingIterator()
+{
+  PLDHashTable t(&trivialOps, sizeof(PLDHashEntryStub));
+
+  
+  
+  
+  {
+    PLDHashTable::Iterator iter1(&t);
+    PLDHashTable::Iterator iter2(mozilla::Move(iter1));
+  }
+
+  
+  
+  for (intptr_t i = 0; i < 64; i++) {
+    PL_DHashTableAdd(&t, (const void*)i);
+  }
+  if (t.EntryCount() != 64 || t.Capacity() != 128) {
+    return false;
+  }
+
+  
+  
+  for (PLDHashTable::RemovingIterator iter(&t); !iter.Done(); iter.Next()) {
+    (void) iter.Get();
+  }
+  if (t.EntryCount() != 64 || t.Capacity() != 128) {
+    return false;
+  }
+
+  
+  
+  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<PLDHashEntryStub*>(iter.Get());
+    if ((intptr_t)(entry->key) % 4 == 0) {
+      iter.Remove();
+    }
+  }
+  if (t.EntryCount() != 48 || t.Capacity() != 128) {
+    return false;
+  }
+
+  
+  
+  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<PLDHashEntryStub*>(iter.Get());
+    if ((intptr_t)(entry->key) % 2 == 0) {
+      iter.Remove();
+    }
+  }
+  if (t.EntryCount() != 32 || t.Capacity() != 64) {
+    return false;
+  }
+
+  
+  
+  for (auto iter = t.RemovingIter(); !iter.Done(); iter.Next()) {
+    iter.Remove();
+  }
+  if (t.EntryCount() != 0 || t.Capacity() != PL_DHASH_MIN_CAPACITY) {
+    return false;
+  }
+
+  return true;
+}
+
 
 #ifndef MOZ_WIDGET_ANDROID
 static bool test_pldhash_grow_to_max_capacity()
@@ -274,6 +340,7 @@ static const struct Test {
   DECL_TEST(test_pldhash_move_semantics),
   DECL_TEST(test_pldhash_Clear),
   DECL_TEST(test_pldhash_Iterator),
+  DECL_TEST(test_pldhash_RemovingIterator),
 
 
 #ifndef MOZ_WIDGET_ANDROID

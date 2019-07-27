@@ -978,6 +978,39 @@ PLDHashTable::Iterator::Next()
   } while (IsOnNonLiveEntry());
 }
 
+PLDHashTable::RemovingIterator::RemovingIterator(RemovingIterator&& aOther)
+  : Iterator(mozilla::Move(aOther.mTable))
+  , mHaveRemoved(aOther.mHaveRemoved)
+{
+}
+
+PLDHashTable::RemovingIterator::RemovingIterator(PLDHashTable* aTable)
+  : Iterator(aTable)
+  , mHaveRemoved(false)
+{
+}
+
+PLDHashTable::RemovingIterator::~RemovingIterator()
+{
+  if (mHaveRemoved) {
+    
+    
+    
+    
+    const_cast<PLDHashTable*>(mTable)->ShrinkIfAppropriate();
+  }
+}
+
+void
+PLDHashTable::RemovingIterator::Remove()
+{
+  METER(mStats.mRemoveEnums++);
+
+  
+  const_cast<PLDHashTable*>(mTable)->RawRemove(Get());
+  mHaveRemoved = true;
+}
+
 #ifdef DEBUG
 MOZ_ALWAYS_INLINE void
 PLDHashTable::MarkImmutable()

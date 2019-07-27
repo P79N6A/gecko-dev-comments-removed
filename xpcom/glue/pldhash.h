@@ -323,8 +323,10 @@ public:
     PLDHashEntryHdr* Get() const;     
     void Next();                      
 
-  private:
+  protected:
     const PLDHashTable* mTable;       
+
+  private:
     char* mCurrent;                   
     char* mLimit;                     
 
@@ -337,6 +339,35 @@ public:
   };
 
   Iterator Iter() const { return Iterator(this); }
+
+  
+  
+  
+  
+  class RemovingIterator : public Iterator
+  {
+  public:
+    explicit RemovingIterator(PLDHashTable* aTable);
+    RemovingIterator(RemovingIterator&& aOther);
+    ~RemovingIterator();
+
+    
+    
+    void Remove();
+
+  private:
+    bool mHaveRemoved;      
+
+    RemovingIterator() = delete;
+    RemovingIterator(const RemovingIterator&) = delete;
+    RemovingIterator& operator=(const RemovingIterator&) = delete;
+    RemovingIterator& operator=(const RemovingIterator&&) = delete;
+  };
+
+  RemovingIterator RemovingIter() const
+  {
+    return RemovingIterator(const_cast<PLDHashTable*>(this));
+  }
 
 private:
   static bool EntryIsFree(PLDHashEntryHdr* aEntry);
