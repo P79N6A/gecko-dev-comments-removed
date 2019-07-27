@@ -591,7 +591,7 @@ class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
                 .setViewportOrigin(offsetX, offsetY)
                 .setZoomFactor(zoom)
                 .setPageRect(pageRect, cssPageRect)
-                .setIsRTL(tab.getIsRTL());
+                .setIsRTL(tab != null ? tab.getIsRTL() : false);
             
             
             
@@ -605,8 +605,10 @@ class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
             setViewportMetrics(newMetrics);
 
-            mView.setBackgroundColor(tab.getBackgroundColor());
-            setZoomConstraints(tab.getZoomConstraints());
+            if (tab != null) {
+                mView.setBackgroundColor(tab.getBackgroundColor());
+                setZoomConstraints(tab.getZoomConstraints());
+            }
 
             
             
