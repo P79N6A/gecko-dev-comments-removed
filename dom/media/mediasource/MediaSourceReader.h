@@ -191,7 +191,6 @@ private:
   
   MediaPromiseHolder<SeekPromise> mSeekPromise;
   int64_t mPendingSeekTime;
-  int64_t mPendingEndTime;
   bool mWaitingForSeekData;
 
   int64_t mTimeThreshold;
