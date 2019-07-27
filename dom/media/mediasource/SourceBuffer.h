@@ -137,6 +137,12 @@ private:
 
   
   
+  
+  
+  void AppendError(bool aDecoderError);
+
+  
+  
   bool PrepareAppend(ErrorResult& aRv);
 
   nsRefPtr<MediaSource> mMediaSource;

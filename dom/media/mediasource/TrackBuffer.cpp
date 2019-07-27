@@ -611,6 +611,12 @@ TrackBuffer::ResetDecode()
   }
 }
 
+void
+TrackBuffer::ResetParserState()
+{
+  
+}
+
 const nsTArray<nsRefPtr<SourceBufferDecoder>>&
 TrackBuffer::Decoders()
 {

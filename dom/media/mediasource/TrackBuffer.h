@@ -83,6 +83,11 @@ public:
   
   
   
+  void ResetParserState();
+
+  
+  
+  
   const nsTArray<nsRefPtr<SourceBufferDecoder>>& Decoders();
 
 #ifdef MOZ_EME
