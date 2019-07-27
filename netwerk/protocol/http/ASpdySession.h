@@ -50,12 +50,26 @@ public:
   
   const static uint32_t kInitialRwin = 256 * 1024 * 1024;
 
+  
+  
+  
   bool SoftStreamError(nsresult code)
   {
     if (NS_SUCCEEDED(code)) {
       return false;
     }
 
+    
+    
+    if (code == NS_ERROR_FAILURE) {
+      return false;
+    }
+
+    if (NS_ERROR_GET_MODULE(code) != NS_ERROR_MODULE_NETWORK) {
+      return true;
+    }
+
+    
     return (code == NS_BASE_STREAM_CLOSED || code == NS_BINDING_FAILED ||
             code == NS_BINDING_ABORTED || code == NS_BINDING_REDIRECTED ||
             code == NS_ERROR_INVALID_CONTENT_ENCODING ||

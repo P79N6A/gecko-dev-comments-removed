@@ -931,7 +931,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
         
         
         
-        this->Cancel(NS_ERROR_FAILURE);
+        this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
         return NS_BINDING_ABORTED;
       }
 
