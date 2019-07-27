@@ -77,16 +77,20 @@ public:
     MOZ_ASSERT(mMediaStream);
   }
 
+  virtual ~SourceStreamInfo() {}
+
   DOMMediaStream* GetMediaStream() const {
     return mMediaStream;
   }
 
-  nsresult StorePipeline(
-      const std::string& trackId,
-      const mozilla::RefPtr<mozilla::MediaPipeline>& aPipeline);
+  nsresult StorePipeline(const std::string& trackId,
+                         const RefPtr<MediaPipeline>& aPipeline);
 
-  void AddTrack(const std::string& trackId) { mTracks.insert(trackId); }
-  void RemoveTrack(const std::string& trackId) { mTracks.erase(trackId); }
+  nsresult StoreConduit(const std::string& trackId,
+                        RefPtr<MediaSessionConduit> aConduit);
+
+  virtual void AddTrack(const std::string& trackId) { mTracks.insert(trackId); }
+  void RemoveTrack(const std::string& trackId);
   bool HasTrack(const std::string& trackId) const
   {
     return !!mTracks.count(trackId);
@@ -95,10 +99,10 @@ public:
 
   
   
-  const std::map<std::string, mozilla::RefPtr<mozilla::MediaPipeline>>&
+  const std::map<std::string, RefPtr<MediaPipeline>>&
   GetPipelines() const { return mPipelines; }
-  mozilla::RefPtr<mozilla::MediaPipeline> GetPipelineByTrackId_m(
-      const std::string& trackId);
+  RefPtr<MediaPipeline> GetPipelineByTrackId_m(const std::string& trackId);
+  RefPtr<MediaSessionConduit> GetConduitByTrackId_m(const std::string& trackId);
   const std::string& GetId() const { return mId; }
 
   void DetachTransport_s();
@@ -111,8 +115,8 @@ protected:
   
   
   std::set<std::string> mTracks;
-  
-  std::map<std::string, mozilla::RefPtr<mozilla::MediaPipeline>> mPipelines;
+  std::map<std::string, RefPtr<MediaPipeline>> mPipelines;
+  std::map<std::string, RefPtr<MediaSessionConduit>> mConduits;
 };
 
 
@@ -136,7 +140,7 @@ public:
 
 #ifdef MOZILLA_INTERNAL_API
   void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal,
-                            const mozilla::PeerIdentity* aSinkIdentity);
+                            const PeerIdentity* aSinkIdentity);
 #endif
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(LocalSourceStreamInfo)
@@ -159,6 +163,43 @@ class RemoteSourceStreamInfo : public SourceStreamInfo {
 #endif
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteSourceStreamInfo)
+
+  virtual void AddTrack(const std::string& track) MOZ_OVERRIDE
+  {
+    mTrackIdMap.push_back(track);
+    SourceStreamInfo::AddTrack(track);
+  }
+
+  TrackID GetNumericTrackId(const std::string& trackId) const
+  {
+    for (size_t i = 0; i < mTrackIdMap.size(); ++i) {
+      if (mTrackIdMap[i] == trackId) {
+        return static_cast<TrackID>(i + 1);
+      }
+    }
+    return TRACK_INVALID;
+  }
+
+  nsresult GetTrackId(TrackID numericTrackId, std::string* trackId) const
+  {
+    if (numericTrackId <= 0 ||
+        static_cast<size_t>(numericTrackId) > mTrackIdMap.size()) {
+      return NS_ERROR_INVALID_ARG;;
+    }
+
+    *trackId = mTrackIdMap[numericTrackId - 1];
+    return NS_OK;
+  }
+
+ private:
+  
+  
+  
+  
+  
+  
+  
+  std::vector<std::string> mTrackIdMap;
 };
 
 class PeerConnectionMedia : public sigslot::has_slots<> {
@@ -168,17 +209,17 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   explicit PeerConnectionMedia(PeerConnectionImpl *parent);
 
   PeerConnectionImpl* GetPC() { return mParent; }
-  nsresult Init(const std::vector<mozilla::NrIceStunServer>& stun_servers,
-                const std::vector<mozilla::NrIceTurnServer>& turn_servers);
+  nsresult Init(const std::vector<NrIceStunServer>& stun_servers,
+                const std::vector<NrIceTurnServer>& turn_servers);
   
   void SelfDestruct();
 
   
   void SetAllowIceLoopback(bool val) { mAllowIceLoopback = val; }
 
-  mozilla::RefPtr<mozilla::NrIceCtx> ice_ctx() const { return mIceCtx; }
+  RefPtr<NrIceCtx> ice_ctx() const { return mIceCtx; }
 
-  mozilla::RefPtr<mozilla::NrIceMediaStream> ice_media_stream(size_t i) const {
+  RefPtr<NrIceMediaStream> ice_media_stream(size_t i) const {
     
     
     if (i >= mIceStreams.size()) {
@@ -192,17 +233,17 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
 
   
-  void UpdateTransports(const mozilla::JsepSession& session);
+  void UpdateTransports(const JsepSession& session);
 
   
-  void StartIceChecks(const mozilla::JsepSession& session);
+  void StartIceChecks(const JsepSession& session);
 
   
   void AddIceCandidate(const std::string& candidate, const std::string& mid,
                        uint32_t aMLine);
 
   
-  nsresult UpdateMediaPipelines(const mozilla::JsepSession& session);
+  nsresult UpdateMediaPipelines(const JsepSession& session);
 
   
   
@@ -211,11 +252,14 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
                     std::string* streamId,
                     const std::string& trackId);
 
-  
-  
-  
-  nsresult RemoveTrack(DOMMediaStream* aMediaStream,
-                       const std::string& trackId);
+  nsresult RemoveLocalTrack(const std::string& streamId,
+                            const std::string& trackId);
+  nsresult RemoveRemoteTrack(const std::string& streamId,
+                            const std::string& trackId);
+
+  nsresult GetRemoteTrackId(DOMMediaStream* mediaStream,
+                            TrackID numericTrackId,
+                            std::string* trackId) const;
 
   
   uint32_t LocalStreamsLength()
@@ -238,11 +282,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   RemoteSourceStreamInfo* GetRemoteStreamByDomStream(
       const DOMMediaStream& stream);
 
-
-  bool UpdateFilterFromRemoteDescription_m(
-      const std::string& trackId,
-      nsAutoPtr<mozilla::MediaPipelineFilter> filter);
-
   
   nsresult AddRemoteStream(nsRefPtr<RemoteSourceStreamInfo> aInfo);
 
@@ -251,7 +290,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   
   void UpdateSinkIdentity_m(nsIPrincipal* aPrincipal,
-                            const mozilla::PeerIdentity* aSinkIdentity);
+                            const PeerIdentity* aSinkIdentity);
   
   bool AnyLocalStreamHasPeerIdentity() const;
   
@@ -266,7 +305,7 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
   
   
-  mozilla::RefPtr<mozilla::TransportFlow> GetTransportFlow(int aStreamIndex,
+  RefPtr<TransportFlow> GetTransportFlow(int aStreamIndex,
                                                            bool aIsRtcp) {
     int index_inner = aStreamIndex * 2 + (aIsRtcp ? 1 : 0);
 
@@ -278,35 +317,55 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
   
   void AddTransportFlow(int aIndex, bool aRtcp,
-                        const mozilla::RefPtr<mozilla::TransportFlow> &aFlow);
-  void ConnectDtlsListener_s(const mozilla::RefPtr<mozilla::TransportFlow>& aFlow);
-  void DtlsConnected_s(mozilla::TransportLayer* aFlow,
-                       mozilla::TransportLayer::State state);
+                        const RefPtr<TransportFlow> &aFlow);
+  void ConnectDtlsListener_s(const RefPtr<TransportFlow>& aFlow);
+  void DtlsConnected_s(TransportLayer* aFlow,
+                       TransportLayer::State state);
   static void DtlsConnected_m(const std::string& aParentHandle,
                               bool aPrivacyRequested);
 
-  mozilla::RefPtr<mozilla::MediaSessionConduit> GetConduit(int aStreamIndex, bool aReceive) {
-    int index_inner = aStreamIndex * 2 + (aReceive ? 0 : 1);
+  RefPtr<MediaSessionConduit> GetConduit(const std::string& streamId,
+                                         const std::string& trackId,
+                                         bool aReceive) {
+    SourceStreamInfo* info;
+    if (aReceive) {
+      info = GetRemoteStreamById(streamId);
+    } else {
+      info = GetLocalStreamById(streamId);
+    }
 
-    if (mConduits.find(index_inner) == mConduits.end())
+    if (!info) {
+      MOZ_ASSERT(false);
       return nullptr;
+    }
 
-    return mConduits[index_inner];
+    return info->GetConduitByTrackId_m(trackId);
   }
 
   
-  void AddConduit(int aIndex, bool aReceive,
-                  const mozilla::RefPtr<mozilla::MediaSessionConduit> &aConduit) {
-    int index_inner = aIndex * 2 + (aReceive ? 0 : 1);
+  void AddConduit(const std::string& streamId,
+                  const std::string& trackId,
+                  bool aReceive,
+                  const RefPtr<MediaSessionConduit> &aConduit) {
+    SourceStreamInfo* info;
+    if (aReceive) {
+      info = GetRemoteStreamById(streamId);
+    } else {
+      info = GetLocalStreamById(streamId);
+    }
 
-    MOZ_ASSERT(!mConduits[index_inner]);
-    mConduits[index_inner] = aConduit;
+    if (!info) {
+      MOZ_ASSERT(false);
+      return;
+    }
+
+    info->StoreConduit(trackId, aConduit);
   }
 
   
-  sigslot::signal2<mozilla::NrIceCtx*, mozilla::NrIceCtx::GatheringState>
+  sigslot::signal2<NrIceCtx*, NrIceCtx::GatheringState>
       SignalIceGatheringStateChange;
-  sigslot::signal2<mozilla::NrIceCtx*, mozilla::NrIceCtx::ConnectionState>
+  sigslot::signal2<NrIceCtx*, NrIceCtx::ConnectionState>
       SignalIceConnectionStateChange;
   
   sigslot::signal2<const std::string&, uint16_t> SignalCandidate;
@@ -359,21 +418,21 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
 
 
   
-  void IceGatheringStateChange_s(mozilla::NrIceCtx* ctx,
-                               mozilla::NrIceCtx::GatheringState state);
-  void IceConnectionStateChange_s(mozilla::NrIceCtx* ctx,
-                                mozilla::NrIceCtx::ConnectionState state);
-  void IceStreamReady_s(mozilla::NrIceMediaStream *aStream);
-  void OnCandidateFound_s(mozilla::NrIceMediaStream *aStream,
+  void IceGatheringStateChange_s(NrIceCtx* ctx,
+                               NrIceCtx::GatheringState state);
+  void IceConnectionStateChange_s(NrIceCtx* ctx,
+                                NrIceCtx::ConnectionState state);
+  void IceStreamReady_s(NrIceMediaStream *aStream);
+  void OnCandidateFound_s(NrIceMediaStream *aStream,
                         const std::string &candidate);
   void EndOfLocalCandidates(const std::string& aDefaultAddr,
                             uint16_t aDefaultPort,
                             uint16_t aMLine);
 
-  void IceGatheringStateChange_m(mozilla::NrIceCtx* ctx,
-                                 mozilla::NrIceCtx::GatheringState state);
-  void IceConnectionStateChange_m(mozilla::NrIceCtx* ctx,
-                                  mozilla::NrIceCtx::ConnectionState state);
+  void IceGatheringStateChange_m(NrIceCtx* ctx,
+                                 NrIceCtx::GatheringState state);
+  void IceConnectionStateChange_m(NrIceCtx* ctx,
+                                  NrIceCtx::ConnectionState state);
   void OnCandidateFound_m(const std::string &candidate, uint16_t aMLine);
   void EndOfLocalCandidates_m(const std::string& aDefaultAddr,
                               uint16_t aDefaultPort,
@@ -381,7 +440,6 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   bool IsIceCtxReady() const {
     return mProxyResolveCompleted;
   }
-
 
   
   PeerConnectionImpl *mParent;
@@ -401,21 +459,17 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   bool mAllowIceLoopback;
 
   
-  mozilla::RefPtr<mozilla::NrIceCtx> mIceCtx;
-  std::vector<mozilla::RefPtr<mozilla::NrIceMediaStream> > mIceStreams;
+  RefPtr<NrIceCtx> mIceCtx;
+  std::vector<RefPtr<NrIceMediaStream> > mIceStreams;
 
   
-  nsRefPtr<mozilla::NrIceResolver> mDNSResolver;
+  nsRefPtr<NrIceResolver> mDNSResolver;
 
   
-  std::map<int, mozilla::RefPtr<mozilla::TransportFlow> > mTransportFlows;
+  std::map<int, RefPtr<TransportFlow> > mTransportFlows;
 
   
-  
-  std::map<int, mozilla::RefPtr<mozilla::MediaSessionConduit> > mConduits;
-
-  
-  mozilla::UniquePtr<PCUuidGenerator> mUuidGen;
+  UniquePtr<PCUuidGenerator> mUuidGen;
 
   
   nsCOMPtr<nsIThread> mMainThread;

@@ -68,16 +68,17 @@ void MediaPipelineFilter::SetCorrelator(uint32_t correlator) {
   correlator_ = correlator;
 }
 
-void MediaPipelineFilter::IncorporateRemoteDescription(
-    const MediaPipelineFilter& remote_filter) {
+void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update) {
   
   
-  if (!remote_filter.remote_ssrc_set_.empty()) {
-    remote_ssrc_set_ = remote_filter.remote_ssrc_set_;
+  
+  if (!filter_update.remote_ssrc_set_.empty()) {
+    remote_ssrc_set_ = filter_update.remote_ssrc_set_;
   }
 
-  
-  
+  local_ssrc_set_ = filter_update.local_ssrc_set_;
+  payload_type_set_ = filter_update.payload_type_set_;
+  correlator_ = filter_update.correlator_;
 }
 
 MediaPipelineFilter::Result

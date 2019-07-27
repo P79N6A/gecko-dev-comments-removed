@@ -77,6 +77,52 @@ JsepSessionImpl::Init()
   return NS_OK;
 }
 
+
+template <class T>
+typename std::vector<T>::iterator
+FindTrackByLevel(std::vector<T>& tracks, size_t level)
+{
+  for (auto t = tracks.begin(); t != tracks.end(); ++t) {
+    if (t->mAssignedMLine.isSome() &&
+        (*t->mAssignedMLine == level)) {
+      return t;
+    }
+  }
+
+  return tracks.end();
+}
+
+template <class T>
+typename std::vector<T>::iterator
+FindTrackByIds(std::vector<T>& tracks,
+               const std::string& streamId,
+               const std::string& trackId)
+{
+  for (auto t = tracks.begin(); t != tracks.end(); ++t) {
+    if (t->mTrack->GetStreamId() == streamId &&
+        (t->mTrack->GetTrackId() == trackId)) {
+      return t;
+    }
+  }
+
+  return tracks.end();
+}
+
+template <class T>
+typename std::vector<T>::iterator
+FindUnassignedTrackByType(std::vector<T>& tracks,
+                          SdpMediaSection::MediaType type)
+{
+  for (auto t = tracks.begin(); t != tracks.end(); ++t) {
+    if (!t->mAssignedMLine.isSome() &&
+        (t->mTrack->GetMediaType() == type)) {
+      return t;
+    }
+  }
+
+  return tracks.end();
+}
+
 nsresult
 JsepSessionImpl::AddTrack(const RefPtr<JsepTrack>& track)
 {
@@ -100,9 +146,29 @@ JsepSessionImpl::AddTrack(const RefPtr<JsepTrack>& track)
 
   JsepSendingTrack strack;
   strack.mTrack = track;
+  strack.mSetInLocalDescription = false;
 
   mLocalTracks.push_back(strack);
 
+  return NS_OK;
+}
+
+nsresult
+JsepSessionImpl::RemoveTrack(const std::string& streamId,
+                             const std::string& trackId)
+{
+  if (mState != kJsepStateStable) {
+    JSEP_SET_ERROR("Removing tracks outside of stable is unsupported.");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  auto track = FindTrackByIds(mLocalTracks, streamId, trackId);
+
+  if (track == mLocalTracks.end()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  mLocalTracks.erase(track);
   return NS_OK;
 }
 
@@ -173,80 +239,251 @@ JsepSessionImpl::AddVideoRtpExtension(const std::string& extensionName)
   return NS_OK;
 }
 
-nsresult
-JsepSessionImpl::GetLocalTrack(size_t index, RefPtr<JsepTrack>* track) const
+template<class T>
+std::vector<RefPtr<JsepTrack>>
+GetTracks(const std::vector<T>& wrappedTracks)
 {
-  if (index >= mLocalTracks.size()) {
-    return NS_ERROR_INVALID_ARG;
+  std::vector<RefPtr<JsepTrack>> result;
+  for (auto i = wrappedTracks.begin(); i != wrappedTracks.end(); ++i) {
+    result.push_back(i->mTrack);
   }
-
-  *track = mLocalTracks[index].mTrack;
-
-  return NS_OK;
+  return result;
 }
 
-nsresult
-JsepSessionImpl::GetRemoteTrack(size_t index, RefPtr<JsepTrack>* track) const
+std::vector<RefPtr<JsepTrack>>
+JsepSessionImpl::GetLocalTracks() const
 {
-  if (index >= mRemoteTracks.size()) {
-    return NS_ERROR_INVALID_ARG;
+  return GetTracks(mLocalTracks);
+}
+
+std::vector<RefPtr<JsepTrack>>
+JsepSessionImpl::GetRemoteTracks() const
+{
+  return GetTracks(mRemoteTracks);
+}
+
+std::vector<RefPtr<JsepTrack>>
+JsepSessionImpl::GetRemoteTracksAdded() const
+{
+  return GetTracks(mRemoteTracksAdded);
+}
+
+std::vector<RefPtr<JsepTrack>>
+JsepSessionImpl::GetRemoteTracksRemoved() const
+{
+  return GetTracks(mRemoteTracksRemoved);
+}
+
+static SdpMediaSection::Protocol
+GetProtocolForMediaType(SdpMediaSection::MediaType type)
+{
+  if (type == SdpMediaSection::kApplication) {
+    return SdpMediaSection::kDtlsSctp;
   }
 
-  *track = mRemoteTracks[index].mTrack;
-
-  return NS_OK;
+  
+  return SdpMediaSection::kRtpSavpf;
 }
 
 nsresult
 JsepSessionImpl::AddOfferMSectionsByType(SdpMediaSection::MediaType mediatype,
-                                         Maybe<size_t> offerToReceive,
+                                         Maybe<size_t> offerToReceiveCount,
                                          Sdp* sdp)
 {
+  size_t numRecv = 0;
 
   
-  SdpMediaSection::Protocol proto = SdpMediaSection::kRtpSavpf;
-
-  if (mediatype == SdpMediaSection::kApplication) {
-    proto = SdpMediaSection::kDtlsSctp;
-  }
-
-  size_t added = 0;
-
   for (auto track = mLocalTracks.begin(); track != mLocalTracks.end();
        ++track) {
     if (mediatype != track->mTrack->GetMediaType()) {
       continue;
     }
 
-    SdpDirectionAttribute::Direction dir = SdpDirectionAttribute::kSendrecv;
+    SdpMediaSection* msection;
 
-    ++added;
-
-    
-    
-    if (offerToReceive.isSome() && added > *offerToReceive) {
-      dir = SdpDirectionAttribute::kSendonly;
+    if (track->mAssignedMLine.isSome()) {
+      
+      msection = &sdp->GetMediaSection(*track->mAssignedMLine);
+    } else {
+      nsresult rv = GetFreeMsectionForSend(track->mTrack->GetMediaType(),
+                                           sdp,
+                                           &msection);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    nsresult rv = CreateOfferMSection(mediatype, dir, proto, sdp);
-
+    nsresult rv = BindTrackToMsection(&(*track), msection);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    track->mAssignedMLine = Some(sdp->GetMediaSectionCount() - 1);
-
-    AddLocalSsrcs(*track->mTrack,
-                  &sdp->GetMediaSection(*track->mAssignedMLine));
-
-    AddLocalIds(*track->mTrack,
-                &sdp->GetMediaSection(*track->mAssignedMLine));
   }
 
-  while (offerToReceive.isSome() && added < *offerToReceive) {
+  
+  
+  for (auto track = mRemoteTracks.begin(); track != mRemoteTracks.end();
+       ++track) {
+    if (mediatype != track->mTrack->GetMediaType()) {
+      continue;
+    }
+
+    if (!track->mAssignedMLine.isSome()) {
+      MOZ_ASSERT(false);
+      continue;
+    }
+
+    auto& msection = sdp->GetMediaSection(*track->mAssignedMLine);
+
+    if (MsectionIsDisabled(msection)) {
+      
+      
+      continue;
+    }
+
+    msection.SetReceiving(true);
+    ++numRecv;
+  }
+
+  
+  
+  for (size_t i = 0; i < sdp->GetMediaSectionCount(); ++i) {
+    auto& msection = sdp->GetMediaSection(i);
+
+    if (MsectionIsDisabled(msection) ||
+        msection.GetMediaType() != mediatype ||
+        msection.IsReceiving()) {
+      continue;
+    }
+
+    if (offerToReceiveCount.isSome() && numRecv < *offerToReceiveCount) {
+      msection.SetReceiving(true);
+      ++numRecv;
+      continue;
+    }
+
+    if (msection.IsSending()) {
+      if (!offerToReceiveCount.isSome()) {
+        
+        
+        msection.SetReceiving(true);
+        ++numRecv;
+      }
+    } else {
+      
+      DisableMsection(sdp, &msection);
+    }
+  }
+
+  
+  while (offerToReceiveCount.isSome() && numRecv < *offerToReceiveCount) {
     nsresult rv = CreateOfferMSection(
-        mediatype, SdpDirectionAttribute::kRecvonly, proto, sdp);
+        mediatype, SdpDirectionAttribute::kRecvonly, sdp);
 
     NS_ENSURE_SUCCESS(rv, rv);
-    ++added;
+    ++numRecv;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+JsepSessionImpl::BindTrackToMsection(
+    JsepSendingTrack* track,
+    SdpMediaSection* msection)
+{
+  if (msection->GetMediaType() != SdpMediaSection::kApplication) {
+    AddLocalSsrcs(*track->mTrack, msection);
+    AddLocalIds(*track->mTrack, msection);
+  }
+  msection->SetSending(true);
+  track->mAssignedMLine = Some(msection->GetLevel());
+  track->mSetInLocalDescription = false;
+  return NS_OK;
+}
+
+
+
+nsresult
+JsepSessionImpl::CreateReoffer(const Sdp& oldLocalSdp,
+                               const Sdp& oldAnswer,
+                               Sdp* newSdp)
+{
+  nsresult rv;
+
+  
+  
+  std::set<std::string> bundleMids;
+  const SdpMediaSection* bundleMsection;
+  rv = GetBundleInfo(oldAnswer, &bundleMids, &bundleMsection);
+  if (NS_FAILED(rv)) {
+    MOZ_ASSERT(false);
+    mLastError += " (This should have been caught sooner!)";
+    return NS_ERROR_FAILURE;
+  }
+
+  for (size_t i = 0; i < oldLocalSdp.GetMediaSectionCount(); ++i) {
+    auto& msection = oldLocalSdp.GetMediaSection(i);
+
+    if (MsectionIsDisabled(oldAnswer.GetMediaSection(i))) {
+        rv = CreateOfferMSection(
+            msection.GetMediaType(),
+            msection.GetAttributeList().GetDirection(),
+            newSdp);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        DisableMsection(newSdp, &newSdp->GetMediaSection(i));
+        continue;
+    }
+
+    
+    
+    rv = CreateOfferMSection(msection.GetMediaType(),
+                             SdpDirectionAttribute::kInactive,
+                             newSdp);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    auto& newMsection = newSdp->GetMediaSection(i);
+
+    auto& answerAttrs = oldAnswer.GetMediaSection(i).GetAttributeList();
+    auto& newAttrs = newMsection.GetAttributeList();
+
+    const SdpMediaSection* msectionWithTransportParams = &msection;
+
+    if (answerAttrs.HasAttribute(SdpAttribute::kMidAttribute) &&
+        bundleMids.count(answerAttrs.GetMid())) {
+      msectionWithTransportParams = bundleMsection;
+    }
+
+    auto& transportAttrs = msectionWithTransportParams->GetAttributeList();
+
+    
+    newMsection.SetPort(msectionWithTransportParams->GetPort());
+    newMsection.GetConnection() = msectionWithTransportParams->GetConnection();
+
+    
+    if (transportAttrs.HasAttribute(SdpAttribute::kCandidateAttribute)) {
+      auto* candidateAttrs =
+        new SdpMultiStringAttribute(SdpAttribute::kCandidateAttribute);
+      candidateAttrs->mValues = transportAttrs.GetCandidate();
+      newAttrs.SetAttribute(candidateAttrs);
+    }
+
+    if (transportAttrs.HasAttribute(SdpAttribute::kEndOfCandidatesAttribute)) {
+      newAttrs.SetAttribute(
+          new SdpFlagAttribute(SdpAttribute::kEndOfCandidatesAttribute));
+    }
+
+    
+    if (answerAttrs.HasAttribute(SdpAttribute::kRtcpMuxAttribute)) {
+      newAttrs.SetAttribute(
+          new SdpFlagAttribute(SdpAttribute::kRtcpMuxAttribute));
+    } else if (transportAttrs.HasAttribute(SdpAttribute::kRtcpAttribute)) {
+      
+      newAttrs.SetAttribute(new SdpRtcpAttribute(transportAttrs.GetRtcp()));
+    }
+
+    
+    if (answerAttrs.HasAttribute(SdpAttribute::kMidAttribute)) {
+      newAttrs.SetAttribute(
+          new SdpStringAttribute(SdpAttribute::kMidAttribute,
+                                 answerAttrs.GetMid()));
+    }
   }
 
   return NS_OK;
@@ -319,15 +556,11 @@ JsepSessionImpl::GetIdsFromMsid(const Sdp& sdp,
 
   for (auto i = allMsids.begin(); i != allMsids.end(); ++i) {
     if (allMsidsAreWebrtc || webrtcMsids.count(i->identifier)) {
-      
-      
-      
       if (!found) {
         *streamId = i->identifier;
         *trackId = i->appdata;
         found = true;
       } else if ((*streamId != i->identifier) || (*trackId != i->appdata)) {
-        
         JSEP_SET_ERROR("Found multiple different webrtc msids in m-section "
                        << msection.GetLevel() << ". The behavior here is "
                        "undefined.");
@@ -341,6 +574,40 @@ JsepSessionImpl::GetIdsFromMsid(const Sdp& sdp,
   }
 
   return NS_OK;
+}
+
+nsresult
+JsepSessionImpl::GetRemoteIds(const Sdp& sdp,
+                              const SdpMediaSection& msection,
+                              std::string* streamId,
+                              std::string* trackId)
+{
+  nsresult rv = GetIdsFromMsid(sdp, msection, streamId, trackId);
+  if (rv == NS_ERROR_NOT_AVAILABLE) {
+      *streamId = mDefaultRemoteStreamId;
+
+    if (!mDefaultRemoteTrackIdsByLevel.count(msection.GetLevel())) {
+      
+      if (!mUuidGen->Generate(trackId)) {
+        JSEP_SET_ERROR("Failed to generate UUID for JsepTrack");
+        return NS_ERROR_FAILURE;
+      }
+
+      mDefaultRemoteTrackIdsByLevel[msection.GetLevel()] = *trackId;
+    } else {
+      *trackId = mDefaultRemoteTrackIdsByLevel[msection.GetLevel()];
+    }
+    return NS_OK;
+  }
+
+  if (NS_SUCCEEDED(rv)) {
+    
+    
+    
+    mDefaultRemoteTrackIdsByLevel.erase(msection.GetLevel());
+  }
+
+  return rv;
 }
 
 nsresult
@@ -417,10 +684,32 @@ JsepSessionImpl::CreateOffer(const JsepOfferOptions& options,
   
   nsresult rv = CreateGenericSDP(&sdp);
   NS_ENSURE_SUCCESS(rv, rv);
+  ++mSessionVersion;
+
+  if (mCurrentLocalDescription) {
+    rv = CreateReoffer(*mCurrentLocalDescription,
+                       mIsOfferer ?
+                         *mCurrentRemoteDescription :
+                         *mCurrentLocalDescription,
+                       sdp.get());
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   
+  if (NS_SUCCEEDED(rv)) {
+    for (auto i = mLocalTracks.begin(); i != mLocalTracks.end(); ++i) {
+      if (!i->mSetInLocalDescription) {
+        i->mAssignedMLine.reset();
+      }
+    }
+  }
 
+  
+  
+  
+  
+  
   
   
   rv = AddOfferMSectionsByType(
@@ -482,6 +771,7 @@ JsepSessionImpl::GetRemoteDescription() const
 void
 JsepSessionImpl::AddCodecs(SdpMediaSection* msection) const
 {
+  msection->ClearCodecs();
   for (auto c = mCodecs.begin(); c != mCodecs.end(); ++c) {
     (*c)->AddToMediaSection(*msection);
   }
@@ -665,6 +955,24 @@ JsepSessionImpl::CreateAnswer(const JsepAnswerOptions& options,
     sdp->GetAttributeList().SetAttribute(groupAttr.release());
   }
 
+  
+  
+  for (auto i = mLocalTracks.begin(); i != mLocalTracks.end(); ++i) {
+    if (!i->mAssignedMLine.isSome()) {
+      continue;
+    }
+
+    
+    
+    if (!i->mSetInLocalDescription) {
+      i->mAssignedMLine.reset();
+    }
+
+    if (!offer.GetMediaSection(*i->mAssignedMLine).IsReceiving()) {
+      i->mAssignedMLine.reset();
+    }
+  }
+
   size_t numMsections = offer.GetMediaSectionCount();
 
   for (size_t i = 0; i < numMsections; ++i) {
@@ -739,34 +1047,53 @@ HasRtcp(SdpMediaSection::Protocol proto)
 nsresult
 JsepSessionImpl::CreateOfferMSection(SdpMediaSection::MediaType mediatype,
                                      SdpDirectionAttribute::Direction dir,
-                                     SdpMediaSection::Protocol proto,
                                      Sdp* sdp)
 {
-
-  nsresult rv;
+  SdpMediaSection::Protocol proto = GetProtocolForMediaType(mediatype);
 
   SdpMediaSection* msection =
-      &sdp->AddMediaSection(mediatype, dir, 9, proto, sdp::kIPv4, "0.0.0.0");
+      &sdp->AddMediaSection(mediatype, dir, 0, proto, sdp::kIPv4, "0.0.0.0");
 
-  
-  
-  if (HasRtcp(proto)) {
+  return EnableMsection(msection);
+}
+
+nsresult
+JsepSessionImpl::GetFreeMsectionForSend(
+    SdpMediaSection::MediaType type,
+    Sdp* sdp,
+    SdpMediaSection** msectionOut)
+{
+  for (size_t i = 0; i < sdp->GetMediaSectionCount(); ++i) {
+    SdpMediaSection& msection = sdp->GetMediaSection(i);
     
-    msection->GetAttributeList().SetAttribute(
-        new SdpFlagAttribute(SdpAttribute::kRtcpMuxAttribute));
+    
+    
+    if (msection.GetMediaType() != type) {
+      continue;
+    }
+
+    if (FindTrackByLevel(mLocalTracks, i) != mLocalTracks.end()) {
+      
+      continue;
+    }
+
+    if (MsectionIsDisabled(msection)) {
+      
+      nsresult rv = EnableMsection(&msection);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    *msectionOut = &msection;
+    return NS_OK;
   }
 
-  rv = AddTransportAttributes(msection, SdpSetupAttribute::kActpass);
+  
+  nsresult rv = CreateOfferMSection(type,
+                                    SdpDirectionAttribute::kInactive,
+                                    sdp);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  AddCodecs(msection);
-
-  AddExtmap(msection);
-
-  std::ostringstream osMid;
-  osMid << "sdparta_" << msection->GetLevel();
-  AddMid(osMid.str(), msection);
-
+  *msectionOut = &sdp->GetMediaSection(sdp->GetMediaSectionCount() - 1);
   return NS_OK;
 }
 
@@ -777,10 +1104,8 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
                                       SdpMediaSection* msection,
                                       Sdp* sdp)
 {
-  if (remoteMsection.GetPort() == 0 &&
-      !remoteMsection.GetAttributeList().HasAttribute(
-        SdpAttribute::kBundleOnlyAttribute)) {
-    DisableMsection(*sdp, *msection);
+  if (MsectionIsDisabled(remoteMsection)) {
+    DisableMsection(sdp, msection);
     return NS_OK;
   }
 
@@ -791,35 +1116,20 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
   rv = AddTransportAttributes(msection, role);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  SdpDirectionAttribute::Direction remoteDirection =
-      remoteMsection.GetDirectionAttribute().mValue;
   SdpDirectionAttribute::Direction localDirection =
       SdpDirectionAttribute::kInactive;
 
   
   
-  if (remoteDirection & SdpDirectionAttribute::kRecvFlag) {
-    bool found = false;
-    for (auto track = mLocalTracks.begin(); track != mLocalTracks.end();
-         ++track) {
-      if (track->mAssignedMLine.isSome())
-        continue;
+  if (remoteMsection.IsReceiving()) {
+    auto track = FindTrackByLevel(mLocalTracks, mlineIndex);
 
-      
-      if (track->mTrack->GetMediaType() != remoteMsection.GetMediaType())
-        continue;
-
-      AddLocalSsrcs(*track->mTrack, msection);
-
-      AddLocalIds(*track->mTrack, msection);
-
-      localDirection = SdpDirectionAttribute::kSendonly;
-      track->mAssignedMLine = Some(mlineIndex);
-      found = true;
-      break;
+    if (track == mLocalTracks.end()) {
+      track = FindUnassignedTrackByType(mLocalTracks,
+                                        remoteMsection.GetMediaType());
     }
 
-    if (!found &&
+    if (track == mLocalTracks.end() &&
         remoteMsection.GetMediaType() == SdpMediaSection::kApplication) {
       
       
@@ -833,13 +1143,19 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
 
       AddTrack(RefPtr<JsepTrack>(
           new JsepTrack(SdpMediaSection::kApplication, streamId, trackId)));
+      track = FindUnassignedTrackByType(mLocalTracks,
+                                        remoteMsection.GetMediaType());
+      MOZ_ASSERT(track != mLocalTracks.end());
+    }
+
+    if (track != mLocalTracks.end()) {
       localDirection = SdpDirectionAttribute::kSendonly;
-      mLocalTracks.back().mAssignedMLine = Some(mlineIndex);
-      found = true;
+      rv = BindTrackToMsection(&(*track), msection);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
-  if (remoteDirection & SdpDirectionAttribute::kSendFlag) {
+  if (remoteMsection.IsSending()) {
     localDirection = static_cast<SdpDirectionAttribute::Direction>(
         localDirection | SdpDirectionAttribute::kRecvFlag);
   }
@@ -869,7 +1185,7 @@ JsepSessionImpl::CreateAnswerMSection(const JsepAnswerOptions& options,
 
   if (msection->GetFormats().empty()) {
     
-    DisableMsection(*sdp, *msection);
+    DisableMsection(sdp, msection);
   }
 
   return NS_OK;
@@ -994,6 +1310,15 @@ JsepSessionImpl::SetLocalDescription(JsepSdpType type, const std::string& sdp)
       break;
   }
 
+  
+  if (NS_SUCCEEDED(rv)) {
+    for (auto i = mLocalTracks.begin(); i != mLocalTracks.end(); ++i) {
+      if (i->mAssignedMLine.isSome()) {
+        i->mSetInLocalDescription = true;
+      }
+    }
+  }
+
   return rv;
 }
 
@@ -1028,6 +1353,8 @@ nsresult
 JsepSessionImpl::SetRemoteDescription(JsepSdpType type, const std::string& sdp)
 {
   mLastError.clear();
+  mRemoteTracksAdded.clear();
+  mRemoteTracksRemoved.clear();
 
   MOZ_MTLOG(ML_DEBUG, "SetRemoteDescription type=" << type << "\nSDP=\n"
                                                    << sdp);
@@ -1059,6 +1386,9 @@ JsepSessionImpl::SetRemoteDescription(JsepSdpType type, const std::string& sdp)
   nsresult rv = ParseSdp(sdp, &parsed);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = ValidateRemoteDescription(*parsed);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   bool iceLite =
       parsed->GetAttributeList().HasAttribute(SdpAttribute::kIceLiteAttribute);
 
@@ -1086,25 +1416,6 @@ JsepSessionImpl::SetRemoteDescription(JsepSdpType type, const std::string& sdp)
   return rv;
 }
 
-
-template <class T>
-nsresult
-FindTrackForMSection(const SdpMediaSection& msection,
-                     const std::vector<T>& tracks,
-                     size_t mLine,
-                     RefPtr<JsepTrack>* mst)
-{
-  for (auto t = tracks.begin(); t != tracks.end(); ++t) {
-    if (t->mAssignedMLine.isSome() &&
-        (*t->mAssignedMLine == msection.GetLevel())) {
-      *mst = t->mTrack;
-      return NS_OK;
-    }
-  }
-
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
 nsresult
 JsepSessionImpl::HandleNegotiatedSession(const UniquePtr<Sdp>& local,
                                          const UniquePtr<Sdp>& remote)
@@ -1126,27 +1437,9 @@ JsepSessionImpl::HandleNegotiatedSession(const UniquePtr<Sdp>& local,
 
   std::set<std::string> bundleMids;
   const SdpMediaSection* bundleMsection = nullptr;
-
   
-  auto* group = FindBundleGroup(answer);
-  if (group && !group->tags.empty()) {
-    bundleMids.insert(group->tags.begin(), group->tags.end());
-    bundleMsection = FindMsectionByMid(answer, group->tags[0]);
-
-    if (!bundleMsection) {
-      JSEP_SET_ERROR("mid specified for bundle transport in group attribute"
-          " does not exist in the SDP. (mid="
-          << group->tags[0] << ")");
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    if (!bundleMsection->GetPort()) {
-      JSEP_SET_ERROR("mid specified for bundle transport in group attribute"
-          " points at a disabled m-section. (mid="
-          << group->tags[0] << ")");
-      return NS_ERROR_INVALID_ARG;
-    }
-  }
+  nsresult rv = GetBundleInfo(answer, &bundleMids, &bundleMsection);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   std::vector<JsepTrackPair> trackPairs;
 
@@ -1166,89 +1459,45 @@ JsepSessionImpl::HandleNegotiatedSession(const UniquePtr<Sdp>& local,
     }
 
     
-    
     if (answerMsection.GetPort() == 0) {
       
       continue;
     }
 
+    if (!offerMsection.IsSending() && answerMsection.IsReceiving()) {
+      JSEP_SET_ERROR("Answer tried to set recv when offer did not set send");
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    if (!offerMsection.IsReceiving() && answerMsection.IsSending()) {
+      JSEP_SET_ERROR("Answer tried to set send when offer did not set recv");
+      return NS_ERROR_INVALID_ARG;
+    }
+
     bool sending;
     bool receiving;
 
-    nsresult rv = DetermineSendingDirection(
-        offerMsection.GetDirectionAttribute().mValue,
-        answerMsection.GetDirectionAttribute().mValue, &sending, &receiving);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    MOZ_MTLOG(ML_DEBUG, "Negotiated m= line"
-                            << " index=" << i << " type=" << lm.GetMediaType()
-                            << " sending=" << sending
-                            << " receiving=" << receiving);
-
-    JsepTrackPair jpair;
-
-    jpair.mLevel = i;
-
-    if (answerMsection.GetAttributeList().HasAttribute(
-          SdpAttribute::kMidAttribute)) {
-      if (bundleMids.count(answerMsection.GetAttributeList().GetMid())) {
-        jpair.mBundleLevel = Some(bundleMsection->GetLevel());
-      }
+    if (mIsOfferer) {
+      receiving = answerMsection.IsSending();
+      sending = answerMsection.IsReceiving();
+    } else {
+      sending = answerMsection.IsSending();
+      receiving = answerMsection.IsReceiving();
     }
-
-    RefPtr<JsepTrack> track;
-    if (sending) {
-      rv = FindTrackForMSection(lm, mLocalTracks, i, &track);
-      if (NS_FAILED(rv)) {
-        JSEP_SET_ERROR("Failed to find local track for level " << i
-                       << " in local SDP. This should never happen.");
-        NS_ASSERTION(false, "Failed to find local track for level");
-        return NS_ERROR_FAILURE;
-      }
-
-      rv = NegotiateTrack(rm, lm, JsepTrack::kJsepTrackSending, &track);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      jpair.mSending = track;
-    }
-
-    if (receiving) {
-      rv = FindTrackForMSection(lm, mRemoteTracks, i, &track);
-      if (NS_FAILED(rv)) {
-        JSEP_SET_ERROR("Failed to find remote track for level " << i
-                       << " in remote SDP. This should never happen.");
-        NS_ASSERTION(false, "Failed to find remote track for level");
-        return NS_ERROR_FAILURE;
-      }
-
-      rv = NegotiateTrack(rm, lm, JsepTrack::kJsepTrackReceiving, &track);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      if (rm.GetAttributeList().HasAttribute(SdpAttribute::kSsrcAttribute)) {
-        auto& ssrcs = rm.GetAttributeList().GetSsrc().mSsrcs;
-        for (auto i = ssrcs.begin(); i != ssrcs.end(); ++i) {
-          track->AddSsrc(i->ssrc);
-        }
-      }
-
-      if (jpair.mBundleLevel.isSome() &&
-          track->GetSsrcs().empty() &&
-          track->GetMediaType() != SdpMediaSection::kApplication) {
-        MOZ_MTLOG(ML_ERROR, "Bundled m-section has no ssrc attributes. "
-                            "This may cause media packets to be dropped.");
-      }
-
-      jpair.mReceiving = track;
-    }
-
-    RefPtr<JsepTransport> transport;
 
     
     
     size_t transportLevel = i;
-    if (jpair.mBundleLevel.isSome()) {
-      transportLevel = *jpair.mBundleLevel;
+    bool usingBundle = false;
+    if (answerMsection.GetAttributeList().HasAttribute(
+          SdpAttribute::kMidAttribute)) {
+      if (bundleMids.count(answerMsection.GetAttributeList().GetMid())) {
+        transportLevel = bundleMsection->GetLevel();
+        usingBundle = true;
+      }
     }
+
+    RefPtr<JsepTransport> transport;
 
     
     MOZ_ASSERT(mTransports.size() > transportLevel);
@@ -1272,6 +1521,76 @@ JsepSessionImpl::HandleNegotiatedSession(const UniquePtr<Sdp>& local,
     rv = SetupTransport(
         remoteTransportAttrs, answerTransportAttrs, transport);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!sending && !receiving) {
+      MOZ_MTLOG(ML_DEBUG, "Inactive m-section, skipping creation of negotiated "
+                          "track pair.");
+      continue;
+    }
+
+    MOZ_MTLOG(ML_DEBUG, "Negotiated m= line"
+                            << " index=" << i << " type=" << lm.GetMediaType()
+                            << " sending=" << sending
+                            << " receiving=" << receiving);
+
+    JsepTrackPair jpair;
+
+    jpair.mLevel = i;
+
+    if (usingBundle) {
+      jpair.mBundleLevel = Some(transportLevel);
+    }
+
+    if (sending) {
+      auto sendTrack = FindTrackByLevel(mLocalTracks, i);
+      if (sendTrack == mLocalTracks.end()) {
+        JSEP_SET_ERROR("Failed to find local track for level " << i
+                       << " in local SDP. This should never happen.");
+        NS_ASSERTION(false, "Failed to find local track for level");
+        return NS_ERROR_FAILURE;
+      }
+
+      rv = NegotiateTrack(rm,
+                          lm,
+                          JsepTrack::kJsepTrackSending,
+                          &sendTrack->mTrack);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      jpair.mSending = sendTrack->mTrack;
+    }
+
+    if (receiving) {
+      auto recvTrack = FindTrackByLevel(mRemoteTracks, i);
+      if (recvTrack == mRemoteTracks.end()) {
+        JSEP_SET_ERROR("Failed to find remote track for level " << i
+                       << " in remote SDP. This should never happen.");
+        NS_ASSERTION(false, "Failed to find remote track for level");
+        return NS_ERROR_FAILURE;
+      }
+
+      rv = NegotiateTrack(rm,
+                          lm,
+                          JsepTrack::kJsepTrackReceiving,
+                          &recvTrack->mTrack);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (rm.GetAttributeList().HasAttribute(SdpAttribute::kSsrcAttribute)) {
+        auto& ssrcs = rm.GetAttributeList().GetSsrc().mSsrcs;
+        for (auto i = ssrcs.begin(); i != ssrcs.end(); ++i) {
+          recvTrack->mTrack->AddSsrc(i->ssrc);
+        }
+      }
+
+      if (jpair.mBundleLevel.isSome() &&
+          recvTrack->mTrack->GetSsrcs().empty() &&
+          recvTrack->mTrack->GetMediaType() != SdpMediaSection::kApplication) {
+        MOZ_MTLOG(ML_ERROR, "Bundled m-section has no ssrc attributes. "
+                            "This may cause media packets to be dropped.");
+      }
+
+      jpair.mReceiving = recvTrack->mTrack;
+    }
+
     jpair.mRtpTransport = transport;
 
     if (HasRtcp(lm.GetProtocol())) {
@@ -1290,7 +1609,7 @@ JsepSessionImpl::HandleNegotiatedSession(const UniquePtr<Sdp>& local,
     trackPairs.push_back(jpair);
   }
 
-  nsresult rv = SetUniquePayloadTypes();
+  rv = SetUniquePayloadTypes();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1386,7 +1705,16 @@ JsepSessionImpl::CreateTransport(const SdpMediaSection& msection,
     components = 1;
   }
 
-  *transport = new JsepTransport("transport-id", components);
+  std::string id;
+  if (msection.GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute)) {
+    id = msection.GetAttributeList().GetMid();
+  } else {
+    std::ostringstream os;
+    os << "level_" << msection.GetLevel() << "(no mid)";
+    id = os.str();
+  }
+
+  *transport = new JsepTransport(id, components);
 
   return NS_OK;
 }
@@ -1448,35 +1776,6 @@ JsepSessionImpl::SetupTransport(const SdpAttributeList& remote,
 }
 
 nsresult
-JsepSessionImpl::DetermineSendingDirection(
-    SdpDirectionAttribute::Direction offer,
-    SdpDirectionAttribute::Direction answer, bool* sending, bool* receiving)
-{
-
-  if (!(offer & SdpDirectionAttribute::kSendFlag) &&
-      answer & SdpDirectionAttribute::kRecvFlag) {
-    JSEP_SET_ERROR("Answer tried to set recv when offer did not set send");
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (!(offer & SdpDirectionAttribute::kRecvFlag) &&
-      answer & SdpDirectionAttribute::kSendFlag) {
-    JSEP_SET_ERROR("Answer tried to set send when offer did not set recv");
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  if (mIsOfferer) {
-    *receiving = answer & SdpDirectionAttribute::kSendFlag;
-    *sending = answer & SdpDirectionAttribute::kRecvFlag;
-  } else {
-    *sending = answer & SdpDirectionAttribute::kSendFlag;
-    *receiving = answer & SdpDirectionAttribute::kRecvFlag;
-  }
-
-  return NS_OK;
-}
-
-nsresult
 JsepSessionImpl::AddTransportAttributes(SdpMediaSection* msection,
                                         SdpSetupAttribute::Role dtlsRole)
 {
@@ -1516,7 +1815,7 @@ JsepSessionImpl::ParseSdp(const std::string& sdp, UniquePtr<Sdp>* parsedp)
   std::set<std::string> trackIds;
 
   for (size_t i = 0; i < parsed->GetMediaSectionCount(); ++i) {
-    if (parsed->GetMediaSection(i).GetPort() == 0) {
+    if (MsectionIsDisabled(parsed->GetMediaSection(i))) {
       
       continue;
     }
@@ -1604,6 +1903,7 @@ JsepSessionImpl::SetRemoteDescriptionAnswer(JsepSdpType type,
 {
   MOZ_ASSERT(mState == kJsepStateHaveLocalOffer ||
              mState == kJsepStateHaveRemotePranswer);
+
   mPendingRemoteDescription = Move(answer);
 
   
@@ -1625,17 +1925,59 @@ JsepSessionImpl::SetRemoteDescriptionAnswer(JsepSdpType type,
 nsresult
 JsepSessionImpl::SetRemoteTracksFromDescription(const Sdp& remoteDescription)
 {
-  size_t numMlines = remoteDescription.GetMediaSectionCount();
+  
+  for (auto i = mRemoteTracks.begin(); i != mRemoteTracks.end(); ++i) {
+    i->mAssignedMLine.reset();
+  }
 
+  size_t numMlines = remoteDescription.GetMediaSectionCount();
+  nsresult rv;
+
+  
   for (size_t i = 0; i < numMlines; ++i) {
     const SdpMediaSection& msection = remoteDescription.GetMediaSection(i);
-    auto direction = msection.GetDirectionAttribute().mValue;
 
-    
-    
-    if (direction & SdpDirectionAttribute::kSendFlag) {
-      nsresult rv = CreateReceivingTrack(i, remoteDescription, msection);
+    if (MsectionIsDisabled(msection) || !msection.IsSending()) {
+      continue;
+    }
+
+    std::vector<JsepReceivingTrack>::iterator track;
+
+    if (msection.GetMediaType() == SdpMediaSection::kApplication) {
+      
+      track = FindUnassignedTrackByType(mRemoteTracks,
+                                        msection.GetMediaType());
+    } else {
+      std::string streamId;
+      std::string trackId;
+      rv = GetRemoteIds(remoteDescription, msection, &streamId, &trackId);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      track = FindTrackByIds(mRemoteTracks, streamId, trackId);
+    }
+
+    if (track == mRemoteTracks.end()) {
+      RefPtr<JsepTrack> track;
+      rv = CreateReceivingTrack(i, remoteDescription, msection, &track);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      JsepReceivingTrack rtrack;
+      rtrack.mTrack = track;
+      rtrack.mAssignedMLine = Some(i);
+      mRemoteTracks.push_back(rtrack);
+      mRemoteTracksAdded.push_back(rtrack);
+    } else {
+      track->mAssignedMLine = Some(i);
+    }
+  }
+
+  
+  for (size_t i = 0; i < mRemoteTracks.size();) {
+    if (!mRemoteTracks[i].mAssignedMLine.isSome()) {
+      mRemoteTracksRemoved.push_back(mRemoteTracks[i]);
+      mRemoteTracks.erase(mRemoteTracks.begin() + i);
+    } else {
+      ++i;
     }
   }
 
@@ -1662,16 +2004,19 @@ JsepSessionImpl::ValidateLocalDescription(const Sdp& description)
       return NS_ERROR_INVALID_ARG;
     }
 
-    if (finalMsection.GetAttributeList().HasAttribute(
-            SdpAttribute::kCandidateAttribute)) {
-      JSEP_SET_ERROR("Adding your own candidate attributes is not supported");
-      return NS_ERROR_INVALID_ARG;
-    }
+    
+    if (!mCurrentLocalDescription) {
+      if (finalMsection.GetAttributeList().HasAttribute(
+              SdpAttribute::kCandidateAttribute)) {
+        JSEP_SET_ERROR("Adding your own candidate attributes is not supported");
+        return NS_ERROR_INVALID_ARG;
+      }
 
-    if (finalMsection.GetAttributeList().HasAttribute(
-            SdpAttribute::kEndOfCandidatesAttribute)) {
-      JSEP_SET_ERROR("Why are you trying to set a=end-of-candidates?");
-      return NS_ERROR_INVALID_ARG;
+      if (finalMsection.GetAttributeList().HasAttribute(
+              SdpAttribute::kEndOfCandidatesAttribute)) {
+        JSEP_SET_ERROR("Why are you trying to set a=end-of-candidates?");
+        return NS_ERROR_INVALID_ARG;
+      }
     }
 
     
@@ -1692,41 +2037,92 @@ JsepSessionImpl::ValidateLocalDescription(const Sdp& description)
 }
 
 nsresult
+JsepSessionImpl::ValidateRemoteDescription(const Sdp& description)
+{
+  if (!mCurrentRemoteDescription || !mCurrentLocalDescription) {
+    
+    
+    return NS_OK;
+  }
+
+  if (mCurrentRemoteDescription->GetMediaSectionCount() >
+      description.GetMediaSectionCount()) {
+    JSEP_SET_ERROR("New remote description has fewer m-sections than the "
+                   "previous remote description.");
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  std::set<std::string> oldBundleMids;
+  const SdpMediaSection* oldBundleMsection;
+  nsresult rv = GetNegotiatedBundleInfo(&oldBundleMids, &oldBundleMsection);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  std::set<std::string> newBundleMids;
+  const SdpMediaSection* newBundleMsection;
+  rv = GetBundleInfo(description, &newBundleMids, &newBundleMsection);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  for (size_t i = 0;
+       i < mCurrentRemoteDescription->GetMediaSectionCount();
+       ++i) {
+    if (MsectionIsDisabled(description.GetMediaSection(i))) {
+      continue;
+    }
+
+    const SdpAttributeList& newAttrs(
+        description.GetMediaSection(i).GetAttributeList());
+    const SdpAttributeList& oldAttrs(
+        mCurrentRemoteDescription->GetMediaSection(i).GetAttributeList());
+
+    
+    if (newAttrs.GetMid() != oldAttrs.GetMid()) {
+      JSEP_SET_ERROR("New remote description changes mid for level " << i
+                     << ", was \'" << oldAttrs.GetMid()
+                     << "\" now \'" << newAttrs.GetMid() << "\'");
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    if (oldBundleMids.count(newAttrs.GetMid()) &&
+        !newBundleMids.count(newAttrs.GetMid())) {
+      JSEP_SET_ERROR("Removing m-sections from a bundle group is unsupported "
+                     "at this time.");
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    if ((newAttrs.GetIceUfrag() != oldAttrs.GetIceUfrag()) ||
+        (newAttrs.GetIcePwd() != oldAttrs.GetIcePwd())) {
+      JSEP_SET_ERROR("ICE restart is unsupported at this time "
+                     "(new remote description changes either the ice-ufrag "
+                     "or ice-pwd)" <<
+                     "ice-ufrag (old): " << oldAttrs.GetIceUfrag() <<
+                     "ice-ufrag (new): " << newAttrs.GetIceUfrag() <<
+                     "ice-pwd (old): " << oldAttrs.GetIcePwd() <<
+                     "ice-pwd (new): " << newAttrs.GetIcePwd());
+      return NS_ERROR_INVALID_ARG;
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
 JsepSessionImpl::CreateReceivingTrack(size_t mline,
                                       const Sdp& sdp,
-                                      const SdpMediaSection& msection)
+                                      const SdpMediaSection& msection,
+                                      RefPtr<JsepTrack>* track)
 {
   std::string streamId;
   std::string trackId;
 
-  nsresult rv = GetIdsFromMsid(sdp, msection, &streamId, &trackId);
+  nsresult rv = GetRemoteIds(sdp, msection, &streamId, &trackId);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  if (NS_FAILED(rv)) {
-    if (rv != NS_ERROR_NOT_AVAILABLE) {
-      
-      return rv;
-    }
+  *track = new JsepTrack(msection.GetMediaType(),
+                            streamId,
+                            trackId,
+                            JsepTrack::kJsepTrackReceiving);
 
-    streamId = mDefaultRemoteStreamId;
-
-    
-    if (!mUuidGen->Generate(&trackId)) {
-      JSEP_SET_ERROR("Failed to generate UUID for JsepTrack");
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  JsepTrack* remote = new JsepTrack(msection.GetMediaType(),
-                                    streamId,
-                                    trackId,
-                                    JsepTrack::kJsepTrackReceiving);
-
-  remote->SetCNAME(GetCNAME(msection));
-
-  JsepReceivingTrack rtrack;
-  rtrack.mTrack = remote;
-  rtrack.mAssignedMLine = Some(mline);
-  mRemoteTracks.push_back(rtrack);
+  (*track)->SetCNAME(GetCNAME(msection));
 
   return NS_OK;
 }
@@ -1946,7 +2342,8 @@ JsepSessionImpl::AddRemoteIceCandidate(const std::string& candidate,
 nsresult
 JsepSessionImpl::AddLocalIceCandidate(const std::string& candidate,
                                       const std::string& mid,
-                                      uint16_t level)
+                                      uint16_t level,
+                                      bool* skipped)
 {
   mLastError.clear();
 
@@ -1960,6 +2357,21 @@ JsepSessionImpl::AddLocalIceCandidate(const std::string& candidate,
     JSEP_SET_ERROR("Cannot add ICE candidate in state " << GetStateStr(mState));
     return NS_ERROR_UNEXPECTED;
   }
+
+  if (sdp->GetMediaSectionCount() <= level) {
+    
+    *skipped = true;
+    return NS_OK;
+  }
+
+  if (IsBundleSlave(*sdp, level)) {
+    
+    
+    *skipped = true;
+    return NS_OK;
+  }
+
+  *skipped = false;
 
   return AddCandidateToSdp(sdp, candidate, mid, level);
 }
@@ -1982,16 +2394,44 @@ JsepSessionImpl::EndOfLocalCandidates(const std::string& defaultCandidateAddr,
     return NS_ERROR_UNEXPECTED;
   }
 
+  std::set<std::string> bundleMids;
+  const SdpMediaSection* bundleMsection;
+  nsresult rv = GetNegotiatedBundleInfo(&bundleMids, &bundleMsection);
+  if (NS_FAILED(rv)) {
+    MOZ_ASSERT(false);
+    mLastError += " (This should have been caught sooner!)";
+    return NS_ERROR_FAILURE;
+  }
+
   if (level < sdp->GetMediaSectionCount()) {
     SdpMediaSection& msection = sdp->GetMediaSection(level);
+
+    if (msection.GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute) &&
+        bundleMids.count(msection.GetAttributeList().GetMid())) {
+      if (msection.GetLevel() != bundleMsection->GetLevel()) {
+        
+        return NS_OK;
+      }
+
+      
+      
+      for (auto i = bundleMids.begin(); i != bundleMids.end(); ++i) {
+        SdpMediaSection* bundledMsection = FindMsectionByMid(*sdp, *i);
+        if (!bundledMsection) {
+          MOZ_ASSERT(false);
+          continue;
+        }
+        bundledMsection->GetConnection().SetAddress(defaultCandidateAddr);
+        bundledMsection->SetPort(defaultCandidatePort);
+      }
+    }
+
     msection.GetConnection().SetAddress(defaultCandidateAddr);
     msection.SetPort(defaultCandidatePort);
 
     
 
     SdpAttributeList& attrs = msection.GetAttributeList();
-    
-    MOZ_ASSERT(!attrs.HasAttribute(SdpAttribute::kEndOfCandidatesAttribute));
     attrs.SetAttribute(
         new SdpFlagAttribute(SdpAttribute::kEndOfCandidatesAttribute));
     if (!mIsOfferer) {
@@ -2000,6 +2440,20 @@ JsepSessionImpl::EndOfLocalCandidates(const std::string& defaultCandidateAddr,
   }
 
   return NS_OK;
+}
+
+SdpMediaSection*
+JsepSessionImpl::FindMsectionByMid(Sdp& sdp,
+                                   const std::string& mid) const
+{
+  for (size_t i = 0; i < sdp.GetMediaSectionCount(); ++i) {
+    auto& attrs = sdp.GetMediaSection(i).GetAttributeList();
+    if (attrs.HasAttribute(SdpAttribute::kMidAttribute) &&
+        attrs.GetMid() == mid) {
+      return &sdp.GetMediaSection(i);
+    }
+  }
+  return nullptr;
 }
 
 const SdpMediaSection*
@@ -2031,32 +2485,160 @@ JsepSessionImpl::FindBundleGroup(const Sdp& sdp) const
   return nullptr;
 }
 
+nsresult
+JsepSessionImpl::GetNegotiatedBundleInfo(
+    std::set<std::string>* bundleMids,
+    const SdpMediaSection** bundleMsection)
+{
+  mozilla::Sdp* answerSdp = 0;
+  *bundleMsection = nullptr;
+
+  if (IsOfferer()) {
+    if (!mCurrentRemoteDescription) {
+      
+      return NS_OK;
+    }
+
+    answerSdp = mCurrentRemoteDescription.get();
+  } else {
+    if (mPendingLocalDescription) {
+      answerSdp = mPendingLocalDescription.get();
+    } else if (mCurrentLocalDescription) {
+      answerSdp = mCurrentLocalDescription.get();
+    } else {
+      MOZ_ASSERT(false);
+      JSEP_SET_ERROR("Is answerer, but no local description. This is a bug.");
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  return GetBundleInfo(*answerSdp, bundleMids, bundleMsection);
+}
+
+nsresult
+JsepSessionImpl::GetBundleInfo(const Sdp& sdp,
+                               std::set<std::string>* bundleMids,
+                               const SdpMediaSection** bundleMsection)
+{
+  *bundleMsection = nullptr;
+
+  auto* group = FindBundleGroup(sdp);
+  if (group && !group->tags.empty()) {
+    bundleMids->insert(group->tags.begin(), group->tags.end());
+    *bundleMsection = FindMsectionByMid(sdp, group->tags[0]);
+  }
+
+  if (!bundleMids->empty()) {
+    if (!bundleMsection) {
+      JSEP_SET_ERROR("mid specified for bundle transport in group attribute"
+          " does not exist in the SDP. (mid="
+          << group->tags[0] << ")");
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    if (MsectionIsDisabled(**bundleMsection)) {
+      JSEP_SET_ERROR("mid specified for bundle transport in group attribute"
+          " points at a disabled m-section. (mid="
+          << group->tags[0] << ")");
+      return NS_ERROR_INVALID_ARG;
+    }
+  }
+
+  return NS_OK;
+}
+
+bool
+JsepSessionImpl::IsBundleSlave(const Sdp& localSdp, uint16_t level)
+{
+  auto& localMsection = localSdp.GetMediaSection(level);
+
+  if (!localMsection.GetAttributeList().HasAttribute(
+        SdpAttribute::kMidAttribute)) {
+    
+    return false;
+  }
+
+  std::set<std::string> bundleMids;
+  const SdpMediaSection* bundleMsection;
+  nsresult rv = GetNegotiatedBundleInfo(&bundleMids, &bundleMsection);
+  if (NS_FAILED(rv)) {
+    
+    MOZ_ASSERT(false);
+    return false;
+  }
+
+  if (!bundleMsection) {
+    return false;
+  }
+
+  std::string mid(localMsection.GetAttributeList().GetMid());
+
+  if (bundleMids.count(mid) && level != bundleMsection->GetLevel()) {
+    
+    return true;
+  }
+
+  return false;
+}
+
 void
-JsepSessionImpl::DisableMsection(Sdp& sdp, SdpMediaSection& msection) const
+JsepSessionImpl::DisableMsection(Sdp* sdp, SdpMediaSection* msection) const
 {
   
-  if (msection.GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute)) {
-    std::string mid = msection.GetAttributeList().GetMid();
-    if (sdp.GetAttributeList().HasAttribute(SdpAttribute::kGroupAttribute)) {
+  if (msection->GetAttributeList().HasAttribute(SdpAttribute::kMidAttribute)) {
+    std::string mid = msection->GetAttributeList().GetMid();
+    if (sdp->GetAttributeList().HasAttribute(SdpAttribute::kGroupAttribute)) {
       UniquePtr<SdpGroupAttributeList> newGroupAttr(new SdpGroupAttributeList(
-            sdp.GetAttributeList().GetGroup()));
+            sdp->GetAttributeList().GetGroup()));
       newGroupAttr->RemoveMid(mid);
-      sdp.GetAttributeList().SetAttribute(newGroupAttr.release());
+      sdp->GetAttributeList().SetAttribute(newGroupAttr.release());
     }
   }
 
   
-  msection.GetAttributeList().Clear();
+  msection->GetAttributeList().Clear();
+  msection->ClearCodecs();
 
   
   
   
-  msection.AddCodec("111", "NULL", 0, 0);
+  msection->AddCodec("111", "NULL", 0, 0);
 
   auto* direction =
     new SdpDirectionAttribute(SdpDirectionAttribute::kInactive);
-  msection.GetAttributeList().SetAttribute(direction);
-  msection.SetPort(0);
+  msection->GetAttributeList().SetAttribute(direction);
+  msection->SetPort(0);
+}
+
+nsresult
+JsepSessionImpl::EnableMsection(SdpMediaSection* msection)
+{
+  
+  
+  MOZ_ASSERT(MsectionIsDisabled(*msection));
+
+  msection->SetPort(9);
+
+  
+  
+  if (HasRtcp(msection->GetProtocol())) {
+    
+    msection->GetAttributeList().SetAttribute(
+        new SdpFlagAttribute(SdpAttribute::kRtcpMuxAttribute));
+  }
+
+  nsresult rv = AddTransportAttributes(msection, SdpSetupAttribute::kActpass);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  AddCodecs(msection);
+
+  AddExtmap(msection);
+
+  std::ostringstream osMid;
+  osMid << "sdparta_" << msection->GetLevel();
+  AddMid(osMid.str(), msection);
+
+  return NS_OK;
 }
 
 nsresult
@@ -2163,6 +2745,14 @@ JsepSessionImpl::GetCNAME(const SdpMediaSection& msection) const
   return "";
 }
 
+bool
+JsepSessionImpl::MsectionIsDisabled(const SdpMediaSection& msection) const
+{
+  return !msection.GetPort() &&
+         !msection.GetAttributeList().HasAttribute(
+             SdpAttribute::kBundleOnlyAttribute);
+}
+
 nsresult
 JsepSessionImpl::Close()
 {
@@ -2175,6 +2765,18 @@ const std::string
 JsepSessionImpl::GetLastError() const
 {
   return mLastError;
+}
+
+bool
+JsepSessionImpl::AllLocalTracksAreAssigned() const
+{
+  for (auto i = mLocalTracks.begin(); i != mLocalTracks.end(); ++i) {
+    if (!i->mAssignedMLine.isSome()) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 } 

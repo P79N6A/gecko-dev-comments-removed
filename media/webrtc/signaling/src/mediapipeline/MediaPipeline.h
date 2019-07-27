@@ -126,8 +126,15 @@ class MediaPipeline : public sigslot::has_slots<> {
 
   virtual nsresult Init();
 
-  MediaPipelineFilter* UpdateFilterFromRemoteDescription_s(
-      nsAutoPtr<MediaPipelineFilter> filter);
+  void UpdateTransport_m(int level,
+                         RefPtr<TransportFlow> rtp_transport,
+                         RefPtr<TransportFlow> rtcp_transport,
+                         nsAutoPtr<MediaPipelineFilter> filter);
+
+  void UpdateTransport_s(int level,
+                         RefPtr<TransportFlow> rtp_transport,
+                         RefPtr<TransportFlow> rtcp_transport,
+                         nsAutoPtr<MediaPipelineFilter> filter);
 
   virtual Direction direction() const { return direction_; }
   virtual const std::string& trackid() const { return track_id_; }
@@ -160,6 +167,8 @@ class MediaPipeline : public sigslot::has_slots<> {
  protected:
   virtual ~MediaPipeline();
   virtual void DetachMediaStream() {}
+  nsresult AttachTransport_s();
+  void DetachTransport_s();
 
   
   class PipelineTransport : public TransportInterface {
@@ -236,7 +245,10 @@ class MediaPipeline : public sigslot::has_slots<> {
   std::string track_id_;        
                                 
                                 
-  int level_; 
+  
+  
+  
+  Atomic<int> level_;
   RefPtr<MediaSessionConduit> conduit_;  
                                          
 

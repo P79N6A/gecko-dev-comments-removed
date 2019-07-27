@@ -72,6 +72,7 @@ class MediaPipeline;
 
 #ifdef USE_FAKE_MEDIA_STREAMS
 typedef Fake_DOMMediaStream DOMMediaStream;
+typedef Fake_MediaStreamTrack MediaStreamTrack;
 #else
 class DOMMediaStream;
 #endif
@@ -596,6 +597,10 @@ public:
   
   
   virtual void PrincipalChanged(DOMMediaStream* aMediaStream) MOZ_OVERRIDE;
+
+  nsresult GetRemoteTrackId(DOMMediaStream* mediaStream,
+                            TrackID numericTrackId,
+                            std::string* trackId) const;
 #endif
 
   static std::string GetTrackId(const dom::MediaStreamTrack& track);
@@ -668,6 +673,8 @@ private:
   
   
   void RecordLongtermICEStatistics();
+
+  void OnNegotiationNeeded();
 
   
   
@@ -753,6 +760,8 @@ private:
   unsigned int mAddCandidateErrorCount;
 
   bool mTrickle;
+
+  bool mShouldSuppressNegotiationNeeded;
 
 public:
   

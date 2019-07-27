@@ -225,13 +225,18 @@ class NrIceCtx {
 
   
   RefPtr<NrIceMediaStream> CreateStream(const std::string& name,
-                                                 int components);
+                                        int components);
 
   RefPtr<NrIceMediaStream> GetStream(size_t index) {
     if (index < streams_.size()) {
       return streams_[index];
     }
     return nullptr;
+  }
+
+  void RemoveStream(size_t index)
+  {
+    streams_[index] = nullptr;
   }
 
   
@@ -325,7 +330,7 @@ class NrIceCtx {
   DISALLOW_COPY_ASSIGN(NrIceCtx);
 
   
-  static void initialized_cb(NR_SOCKET s, int h, void *arg);  
+  static void gather_cb(NR_SOCKET s, int h, void *arg);  
 
   
   static int select_pair(void *obj,nr_ice_media_stream *stream,
