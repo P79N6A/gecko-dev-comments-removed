@@ -1068,6 +1068,12 @@ FxAccountsInternal.prototype = {
   pollEmailStatus: function pollEmailStatus(currentState, sessionToken, why) {
     log.debug("entering pollEmailStatus: " + why);
     if (why == "start") {
+      if (this.currentTimer) {
+        log.debug("pollEmailStatus starting while existing timer is running");
+        clearTimeout(this.currentTimer);
+        this.currentTimer = null;
+      }
+
       
       
       
