@@ -126,64 +126,63 @@ BackCert::Init()
 
   
   
-  
-  
-  
-  
-  
+  if (version != der::Version::v1) {
 
-  
-  if (tbsCertificate.Peek(CSC | 1)) {
-    rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 1);
-    if (rv != Success) {
-      return rv;
+    
+    if (tbsCertificate.Peek(CSC | 1)) {
+      rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 1);
+      if (rv != Success) {
+        return rv;
+      }
+    }
+
+    
+    if (tbsCertificate.Peek(CSC | 2)) {
+      rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 2);
+      if (rv != Success) {
+        return rv;
+      }
     }
   }
 
   
-  if (tbsCertificate.Peek(CSC | 2)) {
-    rv = der::ExpectTagAndSkipValue(tbsCertificate, CSC | 2);
+  
+  
+  
+  if (version == der::Version::v3 || version == der::Version::v4) {
+    rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
+                                 bind(&BackCert::RememberExtension, this, _1,
+                                      _2, _3, _4));
     if (rv != Success) {
       return rv;
     }
-  }
-
-  
-  
-  
-  rv = der::OptionalExtensions(tbsCertificate, CSC | 3,
-                               bind(&BackCert::RememberExtension, this, _1,
-                                    _2, _3, _4));
-  if (rv != Success) {
-    return rv;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (criticalNetscapeCertificateType.GetLength() > 0 &&
-      (basicConstraints.GetLength() == 0 || extKeyUsage.GetLength() == 0)) {
-    return Result::ERROR_UNKNOWN_CRITICAL_EXTENSION;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (criticalNetscapeCertificateType.GetLength() > 0 &&
+        (basicConstraints.GetLength() == 0 || extKeyUsage.GetLength() == 0)) {
+      return Result::ERROR_UNKNOWN_CRITICAL_EXTENSION;
+    }
   }
 
   return der::End(tbsCertificate);
