@@ -70,4 +70,6 @@ addResourceAlias();
 
 
 
-let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
+let _ = function(some, debug, text, to) {
+  print(Array.slice(arguments).join(" "));
+};

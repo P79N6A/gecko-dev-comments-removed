@@ -84,7 +84,7 @@ add_task(function test_MPLocked() {
   };
 
   
-  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", function() false);
+  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", () => false);
   yield fxa.setSignedInUser(creds);
 
   
@@ -173,7 +173,7 @@ add_task(function test_migrationMPLocked() {
   yield CommonUtils.writeJSON(toWrite, path);
 
   
-  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", function() false);
+  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", () => false);
 
   
   
@@ -186,7 +186,7 @@ add_task(function test_migrationMPLocked() {
   Assert.deepEqual(data, toWrite);
 
   
-  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", function() true);
+  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", () => true);
   data = yield fxa.getSignedInUser();
   
   Assert.strictEqual(data.kA, creds.kA);
@@ -240,7 +240,7 @@ add_task(function test_consistentWithMPEdgeCases() {
 
   
   
-  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", function() false);
+  fxa.internal.signedInUserStorage.__defineGetter__("_isLoggedIn", () => false);
 
   
   yield fxa.setSignedInUser(creds2);

@@ -159,7 +159,7 @@ add_test(function test_login_on_sync() {
     
     let mpLockedF = Utils.mpLocked;
     let mpLocked = true;
-    Utils.mpLocked = function() mpLocked;
+    Utils.mpLocked = () => mpLocked;
 
     
     

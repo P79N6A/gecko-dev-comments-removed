@@ -15,9 +15,9 @@ Cu.import("resource://services-sync/util.js");
 
 this.Notifications = {
   
-  get PRIORITY_INFO()     1, 
-  get PRIORITY_WARNING()  4, 
-  get PRIORITY_ERROR()    7, 
+  get PRIORITY_INFO()     { return 1; },  
+  get PRIORITY_WARNING()  { return 4; },  
+  get PRIORITY_ERROR()    { return 7; },  
 
   
   
@@ -68,8 +68,8 @@ this.Notifications = {
 
 
   removeAll: function Notifications_removeAll(title) {
-    this.notifications.filter(function(old) old.title == title || !title).
-      forEach(function(old) this.remove(old), this);
+    this.notifications.filter(old => (old.title == title || !title)).
+      forEach(old => { this.remove(old); }, this);
   },
 
   

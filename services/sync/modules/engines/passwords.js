@@ -99,15 +99,18 @@ PasswordStore.prototype = {
   __proto__: Store.prototype,
 
   _nsLoginInfoFromRecord: function (record) {
+    function nullUndefined(x) {
+      return (x == undefined) ? null : x;
+    }
+
     if (record.formSubmitURL && record.httpRealm) {
       this._log.warn("Record " + record.id + " has both formSubmitURL and httpRealm. Skipping.");
       return null;
     }
+
     
     
     
-    
-    function nullUndefined(x) (x == undefined) ? null : x;
     let info = new this._nsLoginInfo(record.hostname,
                                      nullUndefined(record.formSubmitURL),
                                      nullUndefined(record.httpRealm),

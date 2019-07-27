@@ -64,7 +64,9 @@ function do_check_throws_message(aFunc, aResult) {
 
 
 
-let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
+let _ = function(some, debug, text, to) {
+  print(Array.slice(arguments).join(" "));
+};
 
 function httpd_setup (handlers, port=-1) {
   let server = new HttpServer();
