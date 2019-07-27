@@ -348,6 +348,11 @@ XPCWrappedNativeScope::EnsureAddonScope(JSContext *cx, JSAddonId *addonId)
 
     
     
+    
+    
+    
+    
+    
     if (AddonIdOfObject(global) == addonId)
         return global;
 
