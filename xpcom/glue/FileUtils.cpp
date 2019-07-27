@@ -394,7 +394,11 @@ mozilla::ReadAheadLib(mozilla::pathstr_t aFilePath)
   if ((read(fd, elf.buf, bufsize) <= 0) ||
       (memcmp(elf.buf, ELFMAG, 4)) ||
       (elf.ehdr.e_ident[EI_CLASS] != ELFCLASS) ||
-      (elf.ehdr.e_phoff + elf.ehdr.e_phentsize * elf.ehdr.e_phnum >= bufsize)) {
+      
+      
+      
+      (elf.ehdr.e_phoff + (static_cast<Elf_Off>(elf.ehdr.e_phentsize) *
+                           elf.ehdr.e_phnum) >= bufsize)) {
     close(fd);
     return;
   }
