@@ -727,11 +727,11 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(PaintState& aPaintState,
   }
 
   if (aPaintState.mMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
-    MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
     if (!mDTBuffer || !mDTBufferOnWhite) {
       
       
       
+      MOZ_ASSERT(false);
       return nullptr;
     }
     nsIntRegionRectIterator iter(*drawPtr);
