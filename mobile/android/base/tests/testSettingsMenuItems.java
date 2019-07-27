@@ -160,6 +160,10 @@ public class testSettingsMenuItems extends PixelTest {
             settingsMap.get(PATH_DISPLAY).add(textReflowUi);
 
             
+            String[] newTabletUi = { StringHelper.NEW_TABLET_UI };
+            settingsMap.get(PATH_DISPLAY).add(newTabletUi);
+
+            
             String[] networkReportingUi = { "Mozilla Location Service", "Receives Wi-Fi and cellular location data when running in the background and shares it with Mozilla to improve our geolocation service" };
             settingsMap.get(PATH_MOZILLA).add(networkReportingUi);
 
