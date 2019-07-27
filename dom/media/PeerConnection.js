@@ -323,13 +323,24 @@ RTCPeerConnection.prototype = {
   init: function(win) { this._win = win; },
 
   __init: function(rtcConfig) {
+    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
+    .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+
     if (!rtcConfig.iceServers ||
         !Services.prefs.getBoolPref("media.peerconnection.use_document_iceservers")) {
       rtcConfig.iceServers =
         JSON.parse(Services.prefs.getCharPref("media.peerconnection.default_iceservers"));
     }
-    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+    
+    rtcConfig.iceServers.forEach(server => {
+      if (typeof server.urls === "string") {
+        server.urls = [server.urls];
+      } else if (!server.urls && server.url) {
+        
+        server.urls = [server.url];
+        this.logWarning("RTCIceServer.url is deprecated! Use urls instead.", null, 0);
+      }
+    });
     this._mustValidateRTCConfiguration(rtcConfig,
         "RTCPeerConnection constructor passed invalid RTCConfiguration");
     if (_globalPCList._networkdown || !this._win.navigator.onLine) {
@@ -443,6 +454,7 @@ RTCPeerConnection.prototype = {
 
 
 
+
   _mustValidateRTCConfiguration: function(rtcConfig, msg) {
     let ios = Cc['@mozilla.org/network/io-service;1'].getService(Ci.nsIIOService);
 
@@ -456,27 +468,29 @@ RTCPeerConnection.prototype = {
     };
 
     rtcConfig.iceServers.forEach(server => {
-      if (!server.url) {
-        throw new this._win.DOMException(msg + " - missing url", "InvalidAccessError");
+      if (!server.urls) {
+        throw new this._win.DOMException(msg + " - missing urls", "InvalidAccessError");
       }
-      let url = nicerNewURI(server.url);
-      if (url.scheme in { turn:1, turns:1 }) {
-        if (!server.username) {
-          throw new this._win.DOMException(msg + " - missing username: " + server.url,
-                                           "InvalidAccessError");
+      server.urls.forEach(urlStr => {
+        let url = nicerNewURI(urlStr);
+        if (url.scheme in { turn:1, turns:1 }) {
+          if (!server.username) {
+            throw new this._win.DOMException(msg + " - missing username: " + urlStr,
+                                             "InvalidAccessError");
+          }
+          if (!server.credential) {
+            throw new this._win.DOMException(msg + " - missing credential: " + urlStr,
+                                             "InvalidAccessError");
+          }
         }
-        if (!server.credential) {
-          throw new this._win.DOMException(msg + " - missing credential: " + server.url,
-                                           "InvalidAccessError");
+        else if (!(url.scheme in { stun:1, stuns:1 })) {
+          throw new this._win.DOMException(msg + " - improper scheme: " + url.scheme,
+                                           "SyntaxError");
         }
-      }
-      else if (!(url.scheme in { stun:1, stuns:1 })) {
-        throw new this._win.DOMException(msg + " - improper scheme: " + url.scheme,
-                                         "SyntaxError");
-      }
-      if (url.scheme in { stuns:1, turns:1 }) {
-        this.logWarning(url.scheme.toUpperCase() + " is not yet supported.", null, 0);
-      }
+        if (url.scheme in { stuns:1, turns:1 }) {
+          this.logWarning(url.scheme.toUpperCase() + " is not yet supported.", null, 0);
+        }
+      });
     });
   },
 
