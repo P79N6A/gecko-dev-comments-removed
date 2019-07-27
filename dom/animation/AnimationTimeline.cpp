@@ -60,14 +60,8 @@ AnimationTimeline::FastForward(const TimeStamp& aTimeStamp)
     return;
   }
 
-  
-  
-  
-  if (refreshDriver &&
-      aTimeStamp < refreshDriver->MostRecentRefresh()) {
-    mFastForwardTime = refreshDriver->MostRecentRefresh();
-    return;
-  }
+  MOZ_ASSERT(!refreshDriver || aTimeStamp >= refreshDriver->MostRecentRefresh(),
+             "aTimeStamp must be >= the refresh driver time");
 
   
   

@@ -761,14 +761,14 @@ void
 nsRefreshDriver::RestoreNormalRefresh()
 {
   mTestControllingRefreshes = false;
-  EnsureTimerStarted(false);
+  EnsureTimerStarted(eAllowTimeToGoBackwards);
   mCompletedTransaction = mPendingTransaction;
 }
 
 TimeStamp
 nsRefreshDriver::MostRecentRefresh() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
+  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
 
   return mMostRecentRefresh;
 }
@@ -776,7 +776,7 @@ nsRefreshDriver::MostRecentRefresh() const
 int64_t
 nsRefreshDriver::MostRecentRefreshEpochTime() const
 {
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted(false);
+  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
 
   return mMostRecentRefreshEpochTime;
 }
@@ -787,7 +787,7 @@ nsRefreshDriver::AddRefreshObserver(nsARefreshObserver* aObserver,
 {
   ObserverArray& array = ArrayFor(aFlushType);
   bool success = array.AppendElement(aObserver) != nullptr;
-  EnsureTimerStarted(false);
+  EnsureTimerStarted();
   return success;
 }
 
@@ -828,7 +828,7 @@ nsRefreshDriver::AddImageRequest(imgIRequest* aRequest)
     start->mEntries.PutEntry(aRequest);
   }
 
-  EnsureTimerStarted(false);
+  EnsureTimerStarted();
 
   return true;
 }
@@ -849,13 +849,13 @@ nsRefreshDriver::RemoveImageRequest(imgIRequest* aRequest)
 }
 
 void
-nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
+nsRefreshDriver::EnsureTimerStarted(EnsureTimerStartedFlags aFlags)
 {
   if (mTestControllingRefreshes)
     return;
 
   
-  if (mActiveTimer && !aAdjustingTimer)
+  if (mActiveTimer && !(aFlags & eAdjustingTimer))
     return;
 
   if (IsFrozen() || !mPresContext) {
@@ -891,11 +891,19 @@ nsRefreshDriver::EnsureTimerStarted(bool aAdjustingTimer)
   
   
   
+  
+  
+  
+  
   mMostRecentRefresh =
-    std::max(mActiveTimer->MostRecentRefresh(), mMostRecentRefresh);
+    aFlags & eAllowTimeToGoBackwards
+    ? mActiveTimer->MostRecentRefresh()
+    : std::max(mActiveTimer->MostRecentRefresh(), mMostRecentRefresh);
   mMostRecentRefreshEpochTime =
-    std::max(mActiveTimer->MostRecentRefreshEpochTime(),
-             mMostRecentRefreshEpochTime);
+    aFlags & eAllowTimeToGoBackwards
+    ? mActiveTimer->MostRecentRefreshEpochTime()
+    : std::max(mActiveTimer->MostRecentRefreshEpochTime(),
+               mMostRecentRefreshEpochTime);
 }
 
 void
@@ -1503,7 +1511,7 @@ nsRefreshDriver::Thaw()
       
       
       NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, &nsRefreshDriver::DoRefresh));
-      EnsureTimerStarted(false);
+      EnsureTimerStarted();
     }
   }
 }
@@ -1631,7 +1639,7 @@ nsRefreshDriver::SetThrottled(bool aThrottled)
     if (mActiveTimer) {
       
       
-      EnsureTimerStarted(true);
+      EnsureTimerStarted(eAdjustingTimer);
     }
   }
 }
@@ -1661,7 +1669,7 @@ nsRefreshDriver::ScheduleViewManagerFlush()
   NS_ASSERTION(mPresContext->IsRoot(),
                "Should only schedule view manager flush on root prescontexts");
   mViewManagerFlushIsPending = true;
-  EnsureTimerStarted(false);
+  EnsureTimerStarted();
 }
 
 void
@@ -1674,7 +1682,7 @@ nsRefreshDriver::ScheduleFrameRequestCallbacks(nsIDocument* aDocument)
 
   
   ConfigureHighPrecision();
-  EnsureTimerStarted(false);
+  EnsureTimerStarted();
 }
 
 void
