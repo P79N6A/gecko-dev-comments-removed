@@ -10,7 +10,11 @@
 
 #include <stdint.h>
 
+#include "mozilla/Assertions.h"
+#include "mozilla/EventForwards.h"
 #include "nsString.h"
+
+class nsIWidget;
 
 namespace mozilla {
 
@@ -23,11 +27,36 @@ namespace mozilla {
 class ContentCache final
 {
 public:
+  ContentCache();
+
   void Clear();
 
   void SetText(const nsAString& aText);
   const nsString& Text() const { return mText; }
   uint32_t TextLength() const { return mText.Length(); }
+
+  
+
+
+
+  bool OnCompositionEvent(const WidgetCompositionEvent& aCompositionEvent);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  uint32_t RequestToCommitComposition(nsIWidget* aWidget,
+                                      bool aCancel,
+                                      nsAString& aLastString);
 
   void SetSelection(uint32_t aCaretOffset)
   {
@@ -49,6 +78,13 @@ public:
 private:
   
   nsString mText;
+  
+  nsString mCommitStringByRequest;
+  
+  uint32_t mCompositionStart;
+  
+  
+  uint32_t mCompositionEventsDuringRequest;
 
   struct Selection final
   {
@@ -71,6 +107,9 @@ private:
       return Reversed() ? mAnchor - mFocus : mFocus - mAnchor;
     }
   } mSelection;
+
+  bool mIsComposing;
+  bool mRequestedToCommitOrCancelComposition;
 };
 
 } 
