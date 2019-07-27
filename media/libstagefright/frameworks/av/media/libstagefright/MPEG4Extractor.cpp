@@ -2503,7 +2503,7 @@ static bool ValidInputSize(int32_t size) {
   
   
   
-  return (size > 0 && size < 4 * (1920 * 1080) * 3 / 2);
+  return (size > 0 && size <= 4 * (1920 * 1080) * 3 / 2);
 }
 
 status_t MPEG4Source::start(MetaData *params) {
