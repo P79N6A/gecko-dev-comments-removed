@@ -1592,8 +1592,6 @@ ReloadPrefsCallback(const char* pref, void* data)
 
     sDiscardSystemSource = Preferences::GetBool(JS_OPTIONS_DOT_STR "discardSystemSource");
 
-    bool useAsyncStack = Preferences::GetBool(JS_OPTIONS_DOT_STR "asyncstack");
-
     bool werror = Preferences::GetBool(JS_OPTIONS_DOT_STR "werror");
 
     bool extraWarnings = Preferences::GetBool(JS_OPTIONS_DOT_STR "strict");
@@ -1605,7 +1603,6 @@ ReloadPrefsCallback(const char* pref, void* data)
                              .setIon(useIon)
                              .setAsmJS(useAsmJS)
                              .setNativeRegExp(useNativeRegExp)
-                             .setAsyncStack(useAsyncStack)
                              .setWerror(werror)
                              .setExtraWarnings(extraWarnings);
 
@@ -3109,6 +3106,12 @@ AccumulateTelemetryCallback(int id, uint32_t sample, const char* key)
         break;
       case JS_TELEMETRY_GC_MS:
         Telemetry::Accumulate(Telemetry::GC_MS, sample);
+        break;
+      case JS_TELEMETRY_GC_BUDGET_MS:
+        Telemetry::Accumulate(Telemetry::GC_BUDGET_MS, sample);
+        break;
+      case JS_TELEMETRY_GC_ANIMATION_MS:
+        Telemetry::Accumulate(Telemetry::GC_ANIMATION_MS, sample);
         break;
       case JS_TELEMETRY_GC_MAX_PAUSE_MS:
         Telemetry::Accumulate(Telemetry::GC_MAX_PAUSE_MS, sample);

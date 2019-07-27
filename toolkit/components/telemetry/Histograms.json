@@ -275,6 +275,22 @@
     "n_buckets": 50,
     "description": "Time spent running JS GC (ms)"
   },
+  "GC_BUDGET_MS": {
+    "alert_emails": ["dev-telemetry-gc-alerts@mozilla.org"],
+    "expires_in_version": "never",
+    "kind": "linear",
+    "high": "100",
+    "n_buckets": 10,
+    "description": "Requested GC slice budget (ms)"
+  },
+  "GC_ANIMATION_MS": {
+    "alert_emails": ["dev-telemetry-gc-alerts@mozilla.org"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": 50,
+    "description": "Time spent running JS GC when animating (ms)"
+  },
   "GC_MAX_PAUSE_MS": {
     "alert_emails": ["dev-telemetry-gc-alerts@mozilla.org"],
     "expires_in_version": "never",
@@ -6771,48 +6787,6 @@
     "kind": "boolean",
     "description": "Was WebIDE's debug button used during this runtime connection?"
   },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_TYPE": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime type did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_ID": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime ID did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_PROCESSOR": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime processor did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_OS": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime OS did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_PLATFORM_VERSION": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime platform version did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_APP_TYPE": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime app type did WebIDE connect to?"
-  },
-  "DEVTOOLS_WEBIDE_CONNECTED_RUNTIME_VERSION": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "What runtime version did WebIDE connect to?"
-  },
   "DEVTOOLS_OS_ENUMERATED_PER_USER": {
     "expires_in_version": "never",
     "kind": "enumerated",
@@ -7672,20 +7646,6 @@
     "kind": "count",
     "keyed": true,
     "description": "Counts of plugin and content process crashes which are reported with a crash dump."
-  },
-  "PROCESS_CRASH_SUBMIT_ATTEMPT": {
-    "expires_in_version": "never",
-    "kind": "count",
-    "keyed": true,
-    "releaseChannelCollection": "opt-out",
-    "description": "An attempt to submit a crash. Keyed on the CrashManager Crash.type."
-  },
-  "PROCESS_CRASH_SUBMIT_SUCCESS": {
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "releaseChannelCollection": "opt-out",
-    "description": "The submission status when main/plugin/content crashes are submitted. 1 is success, 0 is failure. Keyed on the CrashManager Crash.type."
   },
   "STUMBLER_TIME_BETWEEN_UPLOADS_SEC": {
     "expires_in_version": "45",
