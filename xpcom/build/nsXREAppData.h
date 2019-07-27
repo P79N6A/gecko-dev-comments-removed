@@ -31,7 +31,7 @@ struct nsXREAppData
 
 
 
-  nsIFile* MOZ_WEAK_REF directory;
+  nsIFile* MOZ_NON_OWNING_REF directory;
 
   
 
@@ -93,7 +93,7 @@ struct nsXREAppData
 
 
 
-  nsIFile* MOZ_WEAK_REF xreDirectory;
+  nsIFile* MOZ_NON_OWNING_REF xreDirectory;
 
   
 
