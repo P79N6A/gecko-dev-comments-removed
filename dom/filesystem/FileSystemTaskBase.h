@@ -19,7 +19,6 @@ namespace dom {
 class BlobParent;
 class FileSystemBase;
 class FileSystemParams;
-class Promise;
 
 
 

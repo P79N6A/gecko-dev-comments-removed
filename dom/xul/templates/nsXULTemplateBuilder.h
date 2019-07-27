@@ -33,7 +33,6 @@ extern PRLogModuleInfo* gXULTemplateLog;
 class nsIContent;
 class nsIObserverService;
 class nsIRDFCompositeDataSource;
-class nsIXULDocument;
 
 
 

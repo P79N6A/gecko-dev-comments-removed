@@ -13,7 +13,6 @@
 #include "nsContentUtils.h" 
 #include "nsCycleCollectionParticipant.h"
 
-class nsIContent;
 class nsIObjectOutputStream;
 
 struct nsXBLTextWithLineNumber
