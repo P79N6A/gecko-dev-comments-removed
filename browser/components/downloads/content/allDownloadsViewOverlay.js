@@ -65,8 +65,6 @@ const NOT_AVAILABLE = Number.MAX_VALUE;
 
 
 
-
-
 function DownloadElementShell(aDataItem, aPlacesNode, aAnnotations) {
   this._element = document.createElement("richlistitem");
   this._element._shell = this;
@@ -484,12 +482,6 @@ DownloadElementShell.prototype = {
     }
   },
 
-  _updateDisplayNameAndIcon() {
-    let metaData = this.getDownloadMetaData();
-    this._element.setAttribute("displayName", metaData.displayName);
-    this._element.setAttribute("image", this._getIcon());
-  },
-
   _updateUI() {
     if (!this.active) {
       throw new Error("Trying to _updateUI on an inactive download shell");
@@ -498,7 +490,9 @@ DownloadElementShell.prototype = {
     this._metaData = null;
     this._targetFileInfoFetched = false;
 
-    this._updateDisplayNameAndIcon();
+    let metaData = this.getDownloadMetaData();
+    this._element.setAttribute("displayName", metaData.displayName);
+    this._element.setAttribute("image", this._getIcon());
 
     
     
@@ -507,44 +501,6 @@ DownloadElementShell.prototype = {
       this._updateDownloadStatusUI();
     } else {
       this._fetchTargetFileInfo(true);
-    }
-  },
-
-  placesNodeAnnotationChanged(aAnnoName) {
-    this._annotations.delete(aAnnoName);
-    if (!this._dataItem && this.active) {
-      if (aAnnoName == DOWNLOAD_META_DATA_ANNO) {
-        let metaData = this.getDownloadMetaData();
-        let annotatedMetaData = this._getAnnotatedMetaData();
-        metaData.endTime = annotatedMetaData.endTime;
-        if ("fileSize" in annotatedMetaData) {
-          metaData.fileSize = annotatedMetaData.fileSize;
-        } else {
-          delete metaData.fileSize;
-        }
-
-        if (metaData.state != annotatedMetaData.state) {
-          metaData.state = annotatedMetaData.state;
-          if (this._element.selected) {
-            goUpdateDownloadCommands();
-          }
-        }
-
-        this._updateDownloadStatusUI();
-      } else if (aAnnoName == DESTINATION_FILE_URI_ANNO) {
-        let metaData = this.getDownloadMetaData();
-        let targetFileURI = this._getAnnotation(DESTINATION_FILE_URI_ANNO);
-        [metaData.filePath, metaData.fileName] =
-            this._extractFilePathAndNameFromFileURI(targetFileURI);
-        metaData.displayName = metaData.fileName;
-        this._updateDisplayNameAndIcon();
-
-        if (this._targetFileInfoFetched) {
-          
-          this._targetFileInfoFetched = false;
-          this._fetchTargetFileInfo();
-        }
-      }
     }
   },
 
@@ -814,15 +770,6 @@ DownloadsPlacesView.prototype = {
     if (this._active)
       this._ensureVisibleElementsAreActive();
     return this._active;
-  },
-
-  _forEachDownloadElementShellForURI(aURI, aCallback) {
-    if (this._downloadElementsShellsForURI.has(aURI)) {
-      let downloadElementShells = this._downloadElementsShellsForURI.get(aURI);
-      for (let des of downloadElementShells) {
-        aCallback(des);
-      }
-    }
   },
 
   _getAnnotationsFor(aURI) {
@@ -1256,11 +1203,7 @@ DownloadsPlacesView.prototype = {
     this._removeHistoryDownloadFromView(aPlacesNode);
   },
 
-  nodeAnnotationChanged(aNode, aAnnoName) {
-    this._forEachDownloadElementShellForURI(aNode.uri,
-                                            des => des.placesNodeAnnotationChanged(aAnnoName));
-  },
-
+  nodeAnnotationChanged() {},
   nodeIconChanged() {},
   nodeTitleChanged() {},
   nodeKeywordChanged() {},
