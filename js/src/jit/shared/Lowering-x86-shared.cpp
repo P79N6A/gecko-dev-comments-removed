@@ -308,6 +308,31 @@ LIRGeneratorX86Shared::visitForkJoinGetSlice(MForkJoinGetSlice *ins)
 }
 
 bool
+LIRGeneratorX86Shared::visitSimdTernaryBitwise(MSimdTernaryBitwise *ins)
+{
+    MOZ_ASSERT(IsSimdType(ins->type()));
+
+    if (ins->type() == MIRType_Int32x4 || ins->type() == MIRType_Float32x4) {
+        LSimdSelect *lins = new(alloc()) LSimdSelect;
+
+        
+        lins->setOperand(0, useRegisterAtStart(ins->getOperand(0)));
+        
+        lins->setOperand(1, useRegisterAtStart(ins->getOperand(1)));
+        
+        
+        lins->setOperand(2, useRegisterAtStart(ins->getOperand(2)));
+        
+        
+        
+        return defineReuseInput(lins, ins, 1);
+    }
+
+    MOZ_CRASH("Unknown SIMD kind when doing bitwise operations");
+    return false;
+}
+
+bool
 LIRGeneratorX86Shared::visitSimdSplatX4(MSimdSplatX4 *ins)
 {
     LAllocation x = useRegisterAtStart(ins->getOperand(0));
