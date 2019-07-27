@@ -74,6 +74,7 @@ class Element;
 class EventHandlerNonNull;
 class OnErrorEventHandlerNonNull;
 template<typename T> class Optional;
+class Text;
 class TextOrElementOrDocument;
 struct DOMPointInit;
 } 
@@ -425,6 +426,13 @@ public:
   {
     return const_cast<nsINode*>(this)->AsContent();
   }
+
+  
+
+
+
+  mozilla::dom::Text* GetAsText();
+  const mozilla::dom::Text* GetAsText() const;
 
   virtual nsIDOMNode* AsDOMNode() = 0;
 
