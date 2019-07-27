@@ -472,7 +472,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
   
   
   LogicalPoint oPt(wm);
-  WritingMode oldWM = mFloatManager->Translate(wm, oPt);
+  WritingMode oldWM = mFloatManager->Translate(wm, oPt, ContainerWidth());
   if (aLine->HasFloats()) {
     
     
@@ -512,7 +512,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
     nsBlockFrame::RecoverFloatsFor(aLine->mFirstChild, *mFloatManager, wm,
                                    ContainerWidth());
   }
-  mFloatManager->Untranslate(oldWM, oPt);
+  mFloatManager->Untranslate(oldWM, oPt, ContainerWidth());
 }
 
 
@@ -711,7 +711,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   LogicalPoint oPt(wm);
-  WritingMode oldWM = mFloatManager->Translate(wm, oPt);
+  WritingMode oldWM = mFloatManager->Translate(wm, oPt, ContainerWidth());
   mBCoord = std::max(mFloatManager->GetLowestFloatTop(wm, ContainerWidth()),
                      mBCoord);
 
@@ -1001,7 +1001,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   }
 #endif
 
-  mFloatManager->Untranslate(oldWM, oPt);
+  mFloatManager->Untranslate(oldWM, oPt, ContainerWidth());
 
   return true;
 }

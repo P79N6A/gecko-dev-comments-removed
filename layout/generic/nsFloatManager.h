@@ -88,12 +88,12 @@ public:
   struct SavedState {
     explicit SavedState(mozilla::WritingMode aWM)
       : mWritingMode(aWM)
-      , mOffset(aWM)
+      , mOrigin(aWM)
     {}
   private:
     uint32_t mFloatInfoCount;
     mozilla::WritingMode mWritingMode;
-    mozilla::LogicalPoint mOffset;
+    mozilla::LogicalPoint mOrigin;
     bool mPushedLeftFloatPastBreak;
     bool mPushedRightFloatPastBreak;
     bool mSplitLeftFloatAcrossBreak;
@@ -109,12 +109,13 @@ public:
 
 
   mozilla::WritingMode Translate(mozilla::WritingMode aWM,
-                                 mozilla::LogicalPoint aDOffset)
+                                 mozilla::LogicalPoint aDOrigin,
+                                 nscoord aContainerWidth)
   {
     mozilla::WritingMode oldWM = mWritingMode;
-    mOffset = mOffset.ConvertTo(aWM, oldWM, 0);
+    mOrigin = mOrigin.ConvertTo(aWM, oldWM, aContainerWidth);
     mWritingMode = aWM;
-    mOffset += aDOffset;
+    mOrigin += aDOrigin;
     return oldWM;
   }
 
@@ -123,17 +124,18 @@ public:
 
 
   void SetTranslation(mozilla::WritingMode aWM,
-                      mozilla::LogicalPoint aOffset)
+                      mozilla::LogicalPoint aOrigin)
   {
     mWritingMode = aWM;
-    mOffset = aOffset;
+    mOrigin = aOrigin;
   }
 
   void Untranslate(mozilla::WritingMode aWM,
-                   mozilla::LogicalPoint aDOffset)
+                   mozilla::LogicalPoint aDOrigin,
+                   nscoord aContainerWidth)
   {
-    mOffset -= aDOffset;
-    mOffset = mOffset.ConvertTo(aWM, mWritingMode, 0);
+    mOrigin -= aDOrigin;
+    mOrigin = mOrigin.ConvertTo(aWM, mWritingMode, aContainerWidth);
     mWritingMode = aWM;
   }
 
@@ -143,10 +145,10 @@ public:
 
 
   void GetTranslation(mozilla::WritingMode& aWM,
-                      mozilla::LogicalPoint& aOffset) const
+                      mozilla::LogicalPoint& aOrigin) const
   {
     aWM = mWritingMode;
-    aOffset = mOffset;
+    aOrigin = mOrigin;
   }
 
   
@@ -255,15 +257,15 @@ public:
   void IncludeInDamage(mozilla::WritingMode aWM,
                        nscoord aIntervalBegin, nscoord aIntervalEnd)
   {
-    mFloatDamage.IncludeInterval(aIntervalBegin + mOffset.B(aWM),
-                                 aIntervalEnd + mOffset.B(aWM));
+    mFloatDamage.IncludeInterval(aIntervalBegin + mOrigin.B(aWM),
+                                 aIntervalEnd + mOrigin.B(aWM));
   }
 
   bool IntersectsDamage(mozilla::WritingMode aWM,
                         nscoord aIntervalBegin, nscoord aIntervalEnd) const
   {
-    return mFloatDamage.Intersects(aIntervalBegin + mOffset.B(aWM),
-                                   aIntervalEnd + mOffset.B(aWM));
+    return mFloatDamage.Intersects(aIntervalBegin + mOrigin.B(aWM),
+                                   aIntervalEnd + mOrigin.B(aWM));
   }
 
   
@@ -318,7 +320,7 @@ public:
   void AssertStateMatches(SavedState *aState) const
   {
     NS_ASSERTION(aState->mWritingMode == mWritingMode &&
-                 aState->mOffset == mOffset &&
+                 aState->mOrigin == mOrigin &&
                  aState->mPushedLeftFloatPastBreak ==
                    mPushedLeftFloatPastBreak &&
                  aState->mPushedRightFloatPastBreak ==
@@ -357,7 +359,7 @@ private:
   };
 
   mozilla::WritingMode mWritingMode;
-  mozilla::LogicalPoint mOffset;  
+  mozilla::LogicalPoint mOrigin;  
                                   
 
   nsTArray<FloatInfo> mFloats;
