@@ -250,13 +250,8 @@ public class Favicons {
 
     public static String getFaviconURLForPageURL(Context context, String pageURL) {
         
-        String targetURL = getFaviconURLForPageURLFromCache(pageURL);
-        if (targetURL != null) {
-            return targetURL;
-        }
-
         
-        
+        String targetURL;
         Tab theTab = Tabs.getInstance().getFirstTabForUrl(pageURL);
         if (theTab != null) {
             targetURL = theTab.getFaviconURL();
@@ -269,7 +264,6 @@ public class Favicons {
         final ContentResolver resolver = context.getContentResolver();
         targetURL = BrowserDB.getFaviconURLFromPageURL(resolver, pageURL);
         if (targetURL != null) {
-            putFaviconURLForPageURLInCache(pageURL, targetURL);
             return targetURL;
         }
 
