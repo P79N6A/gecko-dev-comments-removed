@@ -243,30 +243,24 @@ assertEq(fooDesc.configurable, true);
 
 
 
+function strict() { "use strict"; }
+function nonstrict() {}
 
+function testBound(fun)
+{
+  var boundf = fun.bind();
 
+  assertEq(Object.getOwnPropertyDescriptor(boundf, "arguments"), undefined,
+           "should be no arguments property");
+  assertEq(Object.getOwnPropertyDescriptor(boundf, "caller"), undefined,
+           "should be no caller property");
 
+  expectThrowTypeError(function() { return boundf.arguments; });
+  expectThrowTypeError(function() { return boundf.caller; });
+}
 
-function f() { "use strict"; }
-var canonicalTTE = Object.getOwnPropertyDescriptor(f, "caller").get;
-
-var tte;
-
-var boundf = f.bind();
-
-var boundfCaller = Object.getOwnPropertyDescriptor(boundf, "caller");
-assertEq("get" in boundfCaller, true);
-assertEq("set" in boundfCaller, true);
-tte = boundfCaller.get;
-assertEq(tte, canonicalTTE);
-assertEq(tte, boundfCaller.set);
-
-var boundfArguments = Object.getOwnPropertyDescriptor(boundf, "arguments");
-assertEq("get" in boundfArguments, true);
-assertEq("set" in boundfArguments, true);
-tte = boundfArguments.get;
-assertEq(tte, canonicalTTE);
-assertEq(tte, boundfArguments.set);
+testBound(strict);
+testBound(nonstrict);
 
 
 

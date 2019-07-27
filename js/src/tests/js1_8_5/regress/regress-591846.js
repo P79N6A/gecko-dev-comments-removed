@@ -51,9 +51,6 @@ function check(obj, name, value, readonly) {
     assertEq(obj[name], value);
 }
 
-check(Object, 'caller', null, false);
-check(Object, 'arguments', null, false);
-
 
 /x/.test('x');
 
