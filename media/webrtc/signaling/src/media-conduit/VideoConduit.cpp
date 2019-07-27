@@ -1071,10 +1071,6 @@ WebrtcVideoConduit::SendVideoFrame(unsigned char* video_frame,
     return kMediaConduitSessionNotInited;
   }
 
-  
-  MOZ_ASSERT(!(width & 1));
-  MOZ_ASSERT(!(height & 1));
-
   if (!SelectSendResolution(width, height))
   {
     return kMediaConduitCaptureError;
