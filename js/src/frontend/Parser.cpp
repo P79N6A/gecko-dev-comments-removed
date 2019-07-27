@@ -698,9 +698,8 @@ Parser<ParseHandler>::parse(JSObject* chain)
 
 
     Directives directives(options().strictOption);
-    GlobalSharedContext globalsc(context, directives,
-                                  nullptr,
-                                 options().extraWarningsOption);
+    GlobalSharedContext globalsc(context, directives, options().extraWarningsOption,
+                                  false);
     ParseContext<ParseHandler> globalpc(this,  nullptr, ParseHandler::null(),
                                         &globalsc,  nullptr,
                                          0,  0,

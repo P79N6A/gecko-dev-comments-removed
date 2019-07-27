@@ -549,7 +549,7 @@ class InterpreterFrame
     unsigned numActualArgs() const { MOZ_ASSERT(hasArgs()); return u.nactual; }
 
     
-    Value* argv() const { MOZ_ASSERT(hasArgs()); return argv_; }
+    Value* argv() const { return argv_; }
 
     
 

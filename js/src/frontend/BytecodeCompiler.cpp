@@ -283,8 +283,11 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
         return nullptr;
 
     bool savedCallerFun = evalCaller && evalCaller->functionOrCallerFunction();
+    bool allowSuperProperty = savedCallerFun &&
+                              evalCaller->functionOrCallerFunction()->allowSuperProperty();
+
     Directives directives(options.strictOption);
-    GlobalSharedContext globalsc(cx, directives, evalStaticScope, options.extraWarningsOption);
+    GlobalSharedContext globalsc(cx, directives, options.extraWarningsOption, allowSuperProperty);
 
     Rooted<JSScript*> script(cx, JSScript::Create(cx, evalStaticScope, savedCallerFun,
                                                   options, staticLevel, sourceObject, 0,
@@ -298,7 +301,7 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
         options.selfHostingMode ? BytecodeEmitter::SelfHosting : BytecodeEmitter::Normal;
     BytecodeEmitter bce( nullptr, &parser, &globalsc, script,
                          nullptr, options.forEval,
-                        evalCaller, insideNonGlobalEval,
+                        evalCaller, evalStaticScope, insideNonGlobalEval,
                         options.lineno, emitterMode);
     if (!bce.init())
         return nullptr;
@@ -521,6 +524,7 @@ frontend::CompileLazyFunction(JSContext* cx, Handle<LazyScript*> lazy, const cha
     MOZ_ASSERT(!options.forEval);
     BytecodeEmitter bce( nullptr, &parser, pn->pn_funbox, script, lazy,
                          false,  nullptr,
+                         nullptr,
                          false, options.lineno,
                         BytecodeEmitter::LazyFunction);
     if (!bce.init())
@@ -647,6 +651,7 @@ CompileFunctionBody(JSContext* cx, MutableHandleFunction fun, const ReadOnlyComp
 
         BytecodeEmitter funbce( nullptr, &parser, fn->pn_funbox, script,
                                 nullptr,  false,
+                                nullptr,
                                 nullptr,
                                 false, options.lineno);
         if (!funbce.init())

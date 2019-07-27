@@ -136,6 +136,8 @@ struct BytecodeEmitter
     Parser<FullParseHandler>* const parser;
 
     HandleScript    evalCaller;     
+    Handle<StaticEvalObject*> evalStaticScope;
+                                   
 
     StmtInfoBCE*    topStmt;       
     StmtInfoBCE*    topScopeStmt;  
@@ -220,7 +222,8 @@ struct BytecodeEmitter
     BytecodeEmitter(BytecodeEmitter* parent, Parser<FullParseHandler>* parser, SharedContext* sc,
                     HandleScript script, Handle<LazyScript*> lazyScript,
                     bool insideEval, HandleScript evalCaller,
-                    bool insideNonGlobalEval, uint32_t lineNum, EmitterMode emitterMode = Normal);
+                    Handle<StaticEvalObject*> evalStaticScope, bool insideNonGlobalEval,
+                    uint32_t lineNum, EmitterMode emitterMode = Normal);
     bool init();
     bool updateLocalsToFrameSlots();
 

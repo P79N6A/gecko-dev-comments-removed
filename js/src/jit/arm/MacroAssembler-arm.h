@@ -55,15 +55,6 @@ class MacroAssemblerARM : public Assembler
         return ToType(Operand(base)).toAddress();
     }
 
-    Operand ToPayloadAfterStackPush(Operand base) {
-        Register baseReg = Register::FromCode(base.base());
-        
-        if (baseReg == StackPointer)
-            return Operand(Register::FromCode(base.base()), base.disp() + sizeof(void*));
-        else
-            return ToPayload(base);
-    }
-
   public:
     MacroAssemblerARM()
       : secondScratchReg_(lr)
