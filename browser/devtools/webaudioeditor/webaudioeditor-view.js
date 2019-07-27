@@ -161,7 +161,7 @@ let WebAudioGraphView = {
       
       
       
-      AudioNodeConnections.get(node, []).forEach(dest => edges.push([node, dest]));
+      AudioNodeConnections.get(node, new Set()).forEach(dest => edges.push([node, dest]));
     });
 
     edges.forEach(([node, dest]) => graph.addEdge(null, node.id, dest.id, {

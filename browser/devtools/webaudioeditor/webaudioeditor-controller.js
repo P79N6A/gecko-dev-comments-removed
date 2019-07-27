@@ -95,18 +95,23 @@ AudioNodeView.prototype.getType = Task.async(function* () {
 
 
 
+
+
 AudioNodeView.prototype.connect = function (destination) {
-  let connections = AudioNodeConnections.get(this);
-  if (!connections) {
-    connections = [];
-    AudioNodeConnections.set(this, connections);
+  let connections = AudioNodeConnections.get(this) || new Set();
+  AudioNodeConnections.set(this, connections);
+
+  
+  if (!connections.has(destination)) {
+    connections.add(destination);
+    return true;
   }
-  connections.push(destination);
+  return false;
 };
 
 
 AudioNodeView.prototype.disconnect = function () {
-  AudioNodeConnections.set(this, []);
+  AudioNodeConnections.set(this, new Set());
 };
 
 
@@ -293,8 +298,10 @@ let WebAudioEditorController = {
     
     let [source, dest] = yield waitForNodeCreation(sourceActor, destActor);
 
-    source.connect(dest);
-    window.emit(EVENTS.CONNECT_NODE, source.id, dest.id);
+    
+    if (source.connect(dest)) {
+      window.emit(EVENTS.CONNECT_NODE, source.id, dest.id);
+    }
 
     function waitForNodeCreation (sourceActor, destActor) {
       let deferred = defer();
