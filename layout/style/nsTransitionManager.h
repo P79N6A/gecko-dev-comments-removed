@@ -85,11 +85,17 @@ public:
   virtual CSSTransition* AsCSSTransition() override { return this; }
 
   virtual dom::AnimationPlayState PlayStateFromJS() const override;
-  virtual void PlayFromJS() override;
+  virtual void PlayFromJS(ErrorResult& aRv) override;
 
   
   
-  void PlayFromStyle() { DoPlay(Animation::LimitBehavior::Continue); }
+  void PlayFromStyle()
+  {
+    ErrorResult rv;
+    DoPlay(rv, Animation::LimitBehavior::Continue);
+    
+    MOZ_ASSERT(!rv.Failed(), "Unexpected exception playing transition");
+  }
 
 protected:
   virtual ~CSSTransition() { }

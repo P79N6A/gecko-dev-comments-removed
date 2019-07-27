@@ -37,10 +37,10 @@ CSSAnimation::GetReady(ErrorResult& aRv)
 }
 
 void
-CSSAnimation::Play(LimitBehavior aLimitBehavior)
+CSSAnimation::Play(ErrorResult &aRv, LimitBehavior aLimitBehavior)
 {
   mPauseShouldStick = false;
-  Animation::Play(aLimitBehavior);
+  Animation::Play(aRv, aLimitBehavior);
 }
 
 void
@@ -60,12 +60,12 @@ CSSAnimation::PlayStateFromJS() const
 }
 
 void
-CSSAnimation::PlayFromJS()
+CSSAnimation::PlayFromJS(ErrorResult& aRv)
 {
   
   
   FlushStyle();
-  Animation::PlayFromJS();
+  Animation::PlayFromJS(aRv);
 }
 
 void
@@ -73,7 +73,10 @@ CSSAnimation::PlayFromStyle()
 {
   mIsStylePaused = false;
   if (!mPauseShouldStick) {
-    DoPlay(Animation::LimitBehavior::Continue);
+    ErrorResult rv;
+    DoPlay(rv, Animation::LimitBehavior::Continue);
+    
+    MOZ_ASSERT(!rv.Failed(), "Unexpected exception playing animation");
   }
 }
 
