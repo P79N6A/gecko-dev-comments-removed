@@ -1954,22 +1954,3 @@ JS::ProfilingFrameIterator::isJit() const
 {
     return activation_->isJit();
 }
-
-JS_PUBLIC_API(void)
-JS::ForEachProfiledFrame(JSRuntime* rt, void* addr, ForEachProfiledFrameOp& op)
-{
-    jit::JitcodeGlobalTable* table = rt->jitRuntime()->getJitcodeGlobalTable();
-    jit::JitcodeGlobalEntry entry;
-    table->lookupInfallible(addr, &entry, rt);
-
-    
-    const char* labels[64];
-    uint32_t depth = entry.callStackAtAddr(rt, addr, labels, 64);
-    MOZ_ASSERT(depth < 64);
-    for (uint32_t i = depth; i != 0; i--) {
-        
-        
-        
-        op(labels[i - 1], i == 1 && entry.hasTrackedOptimizations());
-    }
-}

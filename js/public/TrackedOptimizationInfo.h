@@ -182,11 +182,6 @@ struct ForEachTrackedOptimizationAttemptOp
     virtual void operator()(TrackedStrategy strategy, TrackedOutcome outcome) = 0;
 };
 
-JS_PUBLIC_API(void)
-ForEachTrackedOptimizationAttempt(JSRuntime* rt, void* addr, uint8_t index,
-                                  ForEachTrackedOptimizationAttemptOp& op,
-                                  JSScript** scriptOut, jsbytecode** pcOut);
-
 struct ForEachTrackedOptimizationTypeInfoOp
 {
     
@@ -227,13 +222,6 @@ struct ForEachTrackedOptimizationTypeInfoOp
     
     virtual void operator()(TrackedTypeSite site, const char* mirType) = 0;
 };
-
-JS_PUBLIC_API(void)
-ForEachTrackedOptimizationTypeInfo(JSRuntime* rt, void* addr, uint8_t index,
-                                   ForEachTrackedOptimizationTypeInfoOp& op);
-
-JS_PUBLIC_API(mozilla::Maybe<uint8_t>)
-TrackedOptimizationIndexAtAddr(JSRuntime* rt, void* addr, void** entryAddr);
 
 } 
 

@@ -10,11 +10,11 @@
 #include "mozilla/Alignment.h"
 #include "mozilla/Maybe.h"
 
-#include <stdint.h>
-
+#include "jsbytecode.h"
 #include "js/Utility.h"
 
 struct JSRuntime;
+class JSScript;
 
 namespace js {
     class Activation;
@@ -27,6 +27,9 @@ namespace js {
 }
 
 namespace JS {
+
+struct ForEachTrackedOptimizationAttemptOp;
+struct ForEachTrackedOptimizationTypeInfoOp;
 
 
 
@@ -128,9 +131,6 @@ class JS_PUBLIC_API(ProfilingFrameIterator)
     bool iteratorDone();
 };
 
-extern JS_PUBLIC_API(ProfilingFrameIterator::FrameKind)
-GetProfilingFrameKindFromNativeAddr(JSRuntime* runtime, void* pc);
-
 JS_FRIEND_API(bool)
 IsProfilingEnabledForRuntime(JSRuntime* runtime);
 
@@ -149,7 +149,39 @@ UpdateJSRuntimeProfilerSampleBufferGen(JSRuntime* runtime, uint32_t generation,
 struct ForEachProfiledFrameOp
 {
     
-    virtual void operator()(const char* label, bool mightHaveTrackedOptimizations) = 0;
+    
+    class MOZ_STACK_CLASS FrameHandle
+    {
+        friend JS_PUBLIC_API(void) JS::ForEachProfiledFrame(JSRuntime* rt, void* addr,
+                                                            ForEachProfiledFrameOp& op);
+
+        JSRuntime* rt_;
+        js::jit::JitcodeGlobalEntry& entry_;
+        void* addr_;
+        void* canonicalAddr_;
+        const char* label_;
+        uint32_t depth_;
+        mozilla::Maybe<uint8_t> optsIndex_;
+
+        FrameHandle(JSRuntime* rt, js::jit::JitcodeGlobalEntry& entry, void* addr,
+                    const char* label, uint32_t depth);
+
+        void updateHasTrackedOptimizations();
+
+      public:
+        const char* label() const { return label_; }
+        uint32_t depth() const { return depth_; }
+        bool hasTrackedOptimizations() const { return optsIndex_.isSome(); }
+        void* canonicalAddress() const { return canonicalAddr_; }
+
+        ProfilingFrameIterator::FrameKind frameKind() const;
+        void forEachOptimizationAttempt(ForEachTrackedOptimizationAttemptOp& op,
+                                        JSScript** scriptOut, jsbytecode** pcOut) const;
+        void forEachOptimizationTypeInfo(ForEachTrackedOptimizationTypeInfoOp& op) const;
+    };
+
+    
+    virtual void operator()(const FrameHandle& frame) = 0;
 };
 
 JS_PUBLIC_API(void)
