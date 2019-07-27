@@ -21,7 +21,7 @@ let gClient, gActor, gActorFront;
 
 function connect(onDone) {
   
-  DebuggerServer.init(function () { return true; });
+  DebuggerServer.init();
   
   
   DebuggerServer.addBrowserActors();

@@ -35,7 +35,7 @@ function connect(onDone) {
     Services.obs.addObserver(observer, "debugger-server-started", false);
   } else {
     
-    DebuggerServer.init(function () { return true; });
+    DebuggerServer.init();
     
     
     DebuggerServer.addBrowserActors();

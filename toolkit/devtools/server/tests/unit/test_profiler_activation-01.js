@@ -26,7 +26,7 @@ function run_test()
   
   Profiler.StopProfiler();
 
-  DebuggerServer.init(() => true);
+  DebuggerServer.init();
   DebuggerServer.addBrowserActors();
 
   connect_client((client1, actor1) => {

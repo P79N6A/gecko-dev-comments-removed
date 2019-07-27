@@ -196,7 +196,7 @@ function initTestDebuggerServer() {
   });
   DebuggerServer.registerModule("xpcshell-test/testactors");
   
-  DebuggerServer.init(function () { return true; });
+  DebuggerServer.init();
 }
 
 function finishClient(aClient) {

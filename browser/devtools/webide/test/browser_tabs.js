@@ -15,7 +15,7 @@ function test() {
     
     
     DebuggerServer.destroy();
-    DebuggerServer.init(function () { return true; });
+    DebuggerServer.init();
     DebuggerServer.addBrowserActors();
 
     let tab = yield addTab(TEST_URI);
