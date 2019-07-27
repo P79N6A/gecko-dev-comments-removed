@@ -312,6 +312,8 @@ class SEGVHandler
 {
 public:
   bool hasRegisteredHandler() {
+    if (! initialized)
+      FinishInitialization();
     return registeredHandler;
   }
 
@@ -326,6 +328,12 @@ protected:
 private:
   static int __wrap_sigaction(int signum, const struct sigaction *act,
                               struct sigaction *oldact);
+
+  
+
+
+
+  void FinishInitialization();
 
   
 
@@ -359,6 +367,7 @@ private:
 
   MappedPtr stackPtr;
 
+  bool initialized;
   bool registeredHandler;
   bool signalHandlingBroken;
   bool signalHandlingSlow;

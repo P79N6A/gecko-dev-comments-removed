@@ -965,18 +965,18 @@ struct TmpData {
 };
 
 SEGVHandler::SEGVHandler()
-: registeredHandler(false), signalHandlingBroken(false)
-, signalHandlingSlow(false)
+: initialized(false), registeredHandler(false), signalHandlingBroken(true)
+, signalHandlingSlow(true)
 {
   
 
 
+
   oldStack.ss_flags = SS_ONSTACK;
-  if (!Divert(sigaction, __wrap_sigaction))
-    return;
 
   
-  sys_sigaction(SIGSEGV, nullptr, &this->action);
+  struct sigaction old_action;
+  sys_sigaction(SIGSEGV, nullptr, &old_action);
 
   
 
@@ -1005,9 +1005,21 @@ SEGVHandler::SEGVHandler()
   mprotect(stackPtr, stackPtr.GetLength(), PROT_NONE);
   data->crash_int = 123;
   
-  sys_sigaction(SIGSEGV, &this->action, nullptr);
+  sys_sigaction(SIGSEGV, &old_action, nullptr);
   stackPtr.Assign(MAP_FAILED, 0);
+}
+
+void
+SEGVHandler::FinishInitialization()
+{
+  
+
+  initialized = true;
+
   if (signalHandlingBroken || signalHandlingSlow)
+    return;
+
+  if (!Divert(sigaction, __wrap_sigaction))
     return;
 
   
@@ -1033,7 +1045,7 @@ SEGVHandler::SEGVHandler()
 
   action.sa_sigaction = &SEGVHandler::handler;
   action.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
-  registeredHandler = !sys_sigaction(SIGSEGV, &action, nullptr);
+  registeredHandler = !sys_sigaction(SIGSEGV, &action, &this->action);
 }
 
 SEGVHandler::~SEGVHandler()
@@ -1053,9 +1065,9 @@ SEGVHandler::~SEGVHandler()
 void SEGVHandler::test_handler(int signum, siginfo_t *info, void *context)
 {
   SEGVHandler &that = ElfLoader::Singleton;
-  if (signum != SIGSEGV ||
-      info == nullptr || info->si_addr != that.stackPtr.get())
-    that.signalHandlingBroken = true;
+  if (signum == SIGSEGV && info &&
+      info->si_addr == that.stackPtr.get())
+    that.signalHandlingBroken = false;
   mprotect(that.stackPtr, that.stackPtr.GetLength(), PROT_READ | PROT_WRITE);
   TmpData *data = reinterpret_cast<TmpData*>(that.stackPtr.get());
   uint64_t latency = ProcessTimeStamp_Now() - data->crash_timestamp;
@@ -1063,8 +1075,8 @@ void SEGVHandler::test_handler(int signum, siginfo_t *info, void *context)
   
 
 
-  if (latency > 150000)
-    that.signalHandlingSlow = true;
+  if (latency <= 150000)
+    that.signalHandlingSlow = false;
 }
 
 
