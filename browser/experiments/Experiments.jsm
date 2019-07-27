@@ -359,7 +359,7 @@ Experiments.Experiments = function (policy=new Experiments.Policy()) {
   
   
   this._forensicsLogs = [];
-  this._forensicsLogs.length = 3;
+  this._forensicsLogs.length = 10;
   this._log = Object.create(log);
   this._log.log = (level, string, params) => {
     this._forensicsLogs.shift();
