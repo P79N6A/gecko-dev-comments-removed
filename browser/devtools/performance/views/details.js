@@ -36,7 +36,7 @@ let DetailsView = {
     }
 
     yield this.selectView(DEFAULT_DETAILS_SUBVIEW);
-    this.setAvailableViews();
+    yield this.setAvailableViews();
 
     PerformanceController.on(EVENTS.PREF_CHANGED, this.setAvailableViews);
   }),
@@ -61,7 +61,7 @@ let DetailsView = {
 
 
 
-  setAvailableViews: function () {
+  setAvailableViews: Task.async(function* () {
     for (let [name, { view, pref }] of Iterator(this.components)) {
       if (!pref) {
         continue;
@@ -72,10 +72,10 @@ let DetailsView = {
       
       
       if (!value && this.isViewSelected(view)) {
-        this.selectView(DEFAULT_DETAILS_SUBVIEW);
+        yield this.selectView(DEFAULT_DETAILS_SUBVIEW);
       }
     }
-  },
+  }),
 
   
 
