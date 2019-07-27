@@ -37,6 +37,8 @@
 
 
 
+#include <cassert>
+
 #include "pkix/Input.h"
 #include "pkix/pkixtypes.h"
 
@@ -74,8 +76,8 @@ MOZILLA_PKIX_ENUM_CLASS EmptyAllowed { No = 0, Yes = 1 };
 inline Result
 ExpectTagAndLength(Reader& input, uint8_t expectedTag, uint8_t expectedLength)
 {
-  PR_ASSERT((expectedTag & 0x1F) != 0x1F); 
-  PR_ASSERT(expectedLength < 128); 
+  assert((expectedTag & 0x1F) != 0x1F); 
+  assert(expectedLength < 128); 
 
   uint16_t tagAndLength;
   Result rv = input.Read(tagAndLength);

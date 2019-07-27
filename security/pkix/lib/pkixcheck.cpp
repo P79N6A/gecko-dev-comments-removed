@@ -63,7 +63,7 @@ CheckValidity(Input encodedValidity, Time time)
 
 inline uint8_t KeyUsageToBitMask(KeyUsage keyUsage)
 {
-  PR_ASSERT(keyUsage != KeyUsage::noParticularKeyUsageRequired);
+  assert(keyUsage != KeyUsage::noParticularKeyUsageRequired);
   return 0x80u >> static_cast<uint8_t>(keyUsage);
 }
 

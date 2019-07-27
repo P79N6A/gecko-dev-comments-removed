@@ -392,7 +392,7 @@ protected:
               SECOidTag signerEKU = SEC_OID_OCSP_RESPONDER,
                Input* signerDEROut = nullptr)
   {
-    PR_ASSERT(certSubjectName);
+    assert(certSubjectName);
 
     const SECItem* extensions[] = {
       signerEKU != SEC_OID_UNKNOWN
