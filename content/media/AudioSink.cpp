@@ -55,18 +55,10 @@ AudioSink::Init()
                                   nullptr,
                                   MEDIA_THREAD_STACK_SIZE);
   if (NS_FAILED(rv)) {
-    mStateMachine->OnAudioSinkError();
     return rv;
   }
-
   nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &AudioSink::AudioLoop);
-  rv =  mThread->Dispatch(event, NS_DISPATCH_NORMAL);
-  if (NS_FAILED(rv)) {
-    mStateMachine->OnAudioSinkError();
-    return rv;
-  }
-
-  return NS_OK;
+  return mThread->Dispatch(event, NS_DISPATCH_NORMAL);
 }
 
 int64_t
@@ -146,8 +138,6 @@ AudioSink::AudioLoop()
 
   if (NS_FAILED(InitializeAudioStream())) {
     NS_WARNING("Initializing AudioStream failed.");
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    mStateMachine->OnAudioSinkError();
     return;
   }
 
@@ -207,13 +197,10 @@ AudioSink::InitializeAudioStream()
   
   
   RefPtr<AudioStream> audioStream(new AudioStream());
-  nsresult rv = audioStream->Init(mInfo.mChannels, mInfo.mRate,
-                                  mChannel, AudioStream::HighLatency);
-  if (NS_FAILED(rv)) {
-    audioStream->Shutdown();
-    return rv;
-  }
-
+  audioStream->Init(mInfo.mChannels, mInfo.mRate,
+                    mChannel, AudioStream::HighLatency);
+  
+  
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   mAudioStream = audioStream;
   UpdateStreamSettings();
