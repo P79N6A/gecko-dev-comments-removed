@@ -786,6 +786,17 @@ nsCSPParser::directiveName()
 
   
   
+  
+  
+  if (CSP_IsDirective(mCurToken, CSP_REFLECTED_XSS)) {
+    const char16_t* params[] = { mCurToken.get() };
+    logWarningErrorToConsole(nsIScriptError::warningFlag, "notSupportingDirective",
+                             params, ArrayLength(params));
+    return nullptr;
+  }
+
+  
+  
   if (mPolicy->directiveExists(CSP_DirectiveToEnum(mCurToken))) {
     const char16_t* params[] = { mCurToken.get() };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "duplicateDirective",

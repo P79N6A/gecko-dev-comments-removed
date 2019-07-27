@@ -70,23 +70,25 @@ enum CSPDirective {
   CSP_CONNECT_SRC,
   CSP_REPORT_URI,
   CSP_FRAME_ANCESTORS,
+  CSP_REFLECTED_XSS,
   
   
   CSP_LAST_DIRECTIVE_VALUE
 };
 
 static const char* CSPStrDirectives[] = {
-  "default-src",    
-  "script-src",     
-  "object-src",     
-  "style-src",      
-  "img-src",        
-  "media-src",      
-  "frame-src",      
-  "font-src",       
-  "connect-src",    
-  "report-uri",     
-  "frame-ancestors" 
+  "default-src",     
+  "script-src",      
+  "object-src",      
+  "style-src",       
+  "img-src",         
+  "media-src",       
+  "frame-src",       
+  "font-src",        
+  "connect-src",     
+  "report-uri",      
+  "frame-ancestors", 
+  "reflected-xss"    
 };
 
 inline const char* CSP_EnumToDirective(enum CSPDirective aDir)
