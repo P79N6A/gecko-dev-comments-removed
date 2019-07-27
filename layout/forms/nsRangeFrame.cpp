@@ -517,7 +517,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
     
     nsPresContext *presContext = PresContext();
     bool notUsedCanOverride;
-    LayoutDeviceIntSize size;
+    nsIntSize size;
     presContext->GetTheme()->
       GetMinimumWidgetSize(presContext, this, NS_THEME_RANGE_THUMB, &size,
                            &notUsedCanOverride);
