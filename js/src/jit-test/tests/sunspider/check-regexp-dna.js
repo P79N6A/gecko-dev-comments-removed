@@ -1708,7 +1708,7 @@ for(i in seqs)
  
 
 for(k in subs)
- dnaInput = dnaInput.replace(k, subs[k], "g")
+ dnaInput = dnaInput.replace(k, subs[k]) 
  
 
 assertEq(dnaOutputString, "agggtaaa|tttaccct 0\n[cgt]gggtaaa|tttaccc[acg] 9\na[act]ggtaaa|tttacc[agt]t 27\nag[act]gtaaa|tttac[agt]ct 24\nagg[act]taaa|ttta[agt]cct 30\naggg[acg]aaa|ttt[cgt]ccct 9\nagggt[cgt]aa|tt[acg]accct 12\nagggta[cgt]a|t[acg]taccct 9\nagggtaa[cgt]|[acg]ttaccct 15\n")
