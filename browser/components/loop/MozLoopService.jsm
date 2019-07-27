@@ -106,7 +106,7 @@ function getJSONPref(aName) {
 }
 
 let gHawkClient = null;
-let gLocalizedStrings = null;
+let gLocalizedStrings = new Map();
 let gFxAEnabled = true;
 let gFxAOAuthClientPromise = null;
 let gFxAOAuthClient = null;
@@ -295,12 +295,12 @@ let MozLoopServiceInternal = {
       messageString = "generic_failure_title";
     }
 
-    error.friendlyMessage = this.localizedStrings[messageString].textContent;
+    error.friendlyMessage = this.localizedStrings.get(messageString);
     error.friendlyDetails = detailsString ?
-                              this.localizedStrings[detailsString].textContent :
+                              this.localizedStrings.get(detailsString) :
                               null;
     error.friendlyDetailsButtonLabel = detailsButtonLabelString ?
-                                         this.localizedStrings[detailsButtonLabelString].textContent :
+                                         this.localizedStrings.get(detailsButtonLabelString) :
                                          null;
 
     error.friendlyDetailsButtonCallback = actionCallback || detailsButtonCallback || null;
@@ -685,30 +685,19 @@ let MozLoopServiceInternal = {
 
 
   get localizedStrings() {
-    if (gLocalizedStrings)
+    if (gLocalizedStrings.size)
       return gLocalizedStrings;
 
-    var stringBundle =
-      Services.strings.createBundle('chrome://browser/locale/loop/loop.properties');
+    let stringBundle =
+      Services.strings.createBundle("chrome://browser/locale/loop/loop.properties");
 
-    var map = {};
-    var enumerator = stringBundle.getSimpleEnumeration();
+    let enumerator = stringBundle.getSimpleEnumeration();
     while (enumerator.hasMoreElements()) {
-      var string = enumerator.getNext().QueryInterface(Ci.nsIPropertyElement);
-
-      
-      var key = string.key, property = 'textContent';
-      var i = key.lastIndexOf('.');
-      if (i >= 0) {
-        property = key.substring(i + 1);
-        key = key.substring(0, i);
-      }
-      if (!(key in map))
-        map[key] = {};
-      map[key][property] = string.value;
+      let string = enumerator.getNext().QueryInterface(Ci.nsIPropertyElement);
+      gLocalizedStrings.set(string.key, string.value);
     }
 
-    return gLocalizedStrings = map;
+    return gLocalizedStrings;
   },
 
   
@@ -1158,15 +1147,14 @@ this.MozLoopService = {
 
 
 
-
   getStrings: function(key) {
-      var stringData = MozLoopServiceInternal.localizedStrings;
-      if (!(key in stringData)) {
-        log.error("No string found for key: ", key);
-        return "";
-      }
+    var stringData = MozLoopServiceInternal.localizedStrings;
+    if (!stringData.has(key)) {
+      log.error("No string found for key: ", key);
+      return "";
+    }
 
-      return JSON.stringify(stringData[key]);
+    return JSON.stringify({ textContent: stringData.get(key) });
   },
 
   
