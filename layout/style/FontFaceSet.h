@@ -116,18 +116,6 @@ public:
 
 
 
-  void AddUnavailableFontFace(FontFace* aFontFace);
-
-  
-
-
-
-  void RemoveUnavailableFontFace(FontFace* aFontFace);
-
-  
-
-
-
   already_AddRefed<gfxUserFontEntry>
     FindOrCreateUserFontEntryFromFontFace(FontFace* aFontFace);
 
@@ -307,10 +295,6 @@ private:
   
   
   nsTArray<FontFaceRecord> mNonRuleFaces;
-
-  
-  
-  nsTArray<FontFace*> mUnavailableFaces;
 
   
   mozilla::dom::FontFaceSetLoadStatus mStatus;
