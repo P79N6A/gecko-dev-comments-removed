@@ -133,35 +133,6 @@ ReleaseData(void* aData)
   static_cast<DataSourceSurface*>(aData)->Release();
 }
 
-cairo_surface_t*
-CopyToImageSurface(unsigned char *aData,
-                   const IntSize &aSize,
-                   int32_t aStride,
-                   SurfaceFormat aFormat)
-{
-  cairo_surface_t* surf = cairo_image_surface_create(GfxFormatToCairoFormat(aFormat),
-                                                     aSize.width,
-                                                     aSize.height);
-  
-  
-  
-  
-  if (cairo_surface_status(surf)) {
-    return nullptr;
-  }
-
-  unsigned char* surfData = cairo_image_surface_get_data(surf);
-  int surfStride = cairo_image_surface_get_stride(surf);
-
-  for (int32_t y = 0; y < aSize.height; ++y) {
-    memcpy(surfData + y * surfStride,
-           aData + y * aStride,
-           aSize.width * aPixelWidth);
-  }
-  cairo_surface_mark_dirty(surf);
-  return surf;
-}
-
 
 
 
@@ -206,16 +177,7 @@ GetCairoSurfaceForSourceSurface(SourceSurface *aSurface, bool aExistingOnly = fa
   
   
   if (cairo_surface_status(surf)) {
-    if (cairo_surface_status(surf) == CAIRO_STATUS_INVALID_STRIDE) {
-      
-      
-      
-      
-      return CopyToImageSurface(data->GetData(),
-                                data->GetSize(),
-                                data->Stride(),
-                                data->GetFormat());
-    }
+    cairo_surface_destroy(surf);
     return nullptr;
   }
 
@@ -1094,13 +1056,52 @@ DrawTargetCairo::CreateFilter(FilterType aType)
   return FilterNodeSoftware::Create(aType);
 }
 
+
+
+
+
+static void
+CopyDataToCairoSurface(cairo_surface_t* aSurface,
+                       unsigned char *aData,
+                       const IntSize &aSize,
+                       int32_t aStride,
+                       int32_t aPixelWidth)
+{
+  unsigned char* surfData = cairo_image_surface_get_data(aSurface);
+  int surfStride = cairo_image_surface_get_stride(aSurface);
+  
+  
+  
+  
+  if (!surfData) {
+    return;
+  }
+  for (int32_t y = 0; y < aSize.height; ++y) {
+    memcpy(surfData + y * surfStride,
+           aData + y * aStride,
+           aSize.width * aPixelWidth);
+  }
+  cairo_surface_mark_dirty(aSurface);
+}
+
 TemporaryRef<SourceSurface>
 DrawTargetCairo::CreateSourceSurfaceFromData(unsigned char *aData,
                                              const IntSize &aSize,
                                              int32_t aStride,
                                              SurfaceFormat aFormat) const
 {
-  cairo_surface_t* surf = CopyToImageSurface(aData, aSize, aStride, aFormat);
+  cairo_surface_t* surf = cairo_image_surface_create(GfxFormatToCairoFormat(aFormat),
+                                                     aSize.width,
+                                                     aSize.height);
+  
+  
+  
+  
+  if (cairo_surface_status(surf)) {
+    return nullptr;
+  }
+
+  CopyDataToCairoSurface(surf, aData, aSize, aStride, BytesPerPixel(aFormat));
 
   RefPtr<SourceSurfaceCairo> source_surf = new SourceSurfaceCairo(surf, aSize, aFormat);
   cairo_surface_destroy(surf);
