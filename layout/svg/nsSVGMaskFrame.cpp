@@ -270,8 +270,7 @@ nsSVGMaskFrame::GetMaskForMaskedFrame(gfxContext* aContext,
   maskSurface->Unmap();
 
   
-  maskSurfaceMatrix.Invert();
-  if (maskSurfaceMatrix.IsSingular()) {
+  if (!maskSurfaceMatrix.Invert()) {
     return nullptr;
   }
   nsRefPtr<gfxPattern> retval =

@@ -98,7 +98,7 @@ public:
 
 
 
-    const gfxMatrix& Invert();
+    bool Invert();
 
     
 

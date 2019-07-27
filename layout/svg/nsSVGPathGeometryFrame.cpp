@@ -302,7 +302,9 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
       
       
       
-      nonScalingStrokeMatrix.Invert();
+      if (!nonScalingStrokeMatrix.Invert()) {
+        return nullptr;
+      }
       userSpacePoint = ToMatrix(hitTestingTM) * nonScalingStrokeMatrix * userSpacePoint;
       RefPtr<PathBuilder> builder =
         path->TransformedCopyToBuilder(nonScalingStrokeMatrix, fillRule);
