@@ -1324,6 +1324,9 @@ public:
                          nsPoint               aPoint,
                          nsStyleContext*       aStyleContext = nullptr);
 
+  
+
+
   static void DrawUniDirString(const char16_t* aString,
                                uint32_t aLength,
                                nsPoint aPoint,
