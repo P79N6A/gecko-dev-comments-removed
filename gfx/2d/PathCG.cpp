@@ -20,12 +20,19 @@ PathBuilderCG::~PathBuilderCG()
 void
 PathBuilderCG::MoveTo(const Point &aPoint)
 {
+  if (!aPoint.IsFinite()) {
+    return;
+  }
   CGPathMoveToPoint(mCGPath, nullptr, aPoint.x, aPoint.y);
 }
 
 void
 PathBuilderCG::LineTo(const Point &aPoint)
 {
+  if (!aPoint.IsFinite()) {
+    return;
+  }
+
   if (CGPathIsEmpty(mCGPath))
     MoveTo(aPoint);
   else
@@ -37,6 +44,9 @@ PathBuilderCG::BezierTo(const Point &aCP1,
                          const Point &aCP2,
                          const Point &aCP3)
 {
+  if (!aCP1.IsFinite() || !aCP2.IsFinite() || !aCP3.IsFinite()) {
+    return;
+  }
 
   if (CGPathIsEmpty(mCGPath))
     MoveTo(aCP1);
@@ -49,13 +59,17 @@ PathBuilderCG::BezierTo(const Point &aCP1,
 
 void
 PathBuilderCG::QuadraticBezierTo(const Point &aCP1,
-                                  const Point &aCP2)
+                                 const Point &aCP2)
 {
+  if (!aCP1.IsFinite() || !aCP2.IsFinite()) {
+    return;
+  }
+
   if (CGPathIsEmpty(mCGPath))
     MoveTo(aCP1);
   CGPathAddQuadCurveToPoint(mCGPath, nullptr,
-                              aCP1.x, aCP1.y,
-                              aCP2.x, aCP2.y);
+                            aCP1.x, aCP1.y,
+                            aCP2.x, aCP2.y);
 }
 
 void
@@ -69,6 +83,11 @@ void
 PathBuilderCG::Arc(const Point &aOrigin, Float aRadius, Float aStartAngle,
                  Float aEndAngle, bool aAntiClockwise)
 {
+  if (!aOrigin.IsFinite() || !IsFinite(aRadius) ||
+      !IsFinite(aStartAngle) || !IsFinite(aEndAngle)) {
+    return;
+  }
+
   
   
   
