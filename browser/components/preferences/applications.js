@@ -13,6 +13,7 @@ var Ci = Components.interfaces;
 var Cr = Components.results;
 
 Components.utils.import('resource://gre/modules/Services.jsm');
+Components.utils.import('resource://gre/modules/AppConstants.jsm');
 
 const TYPE_MAYBE_FEED = "application/vnd.mozilla.maybe.feed";
 const TYPE_MAYBE_VIDEO_FEED = "application/vnd.mozilla.maybe.video.feed";
@@ -73,17 +74,9 @@ const PREF_AUDIO_FEED_SELECTED_READER = "browser.audioFeeds.handler.default";
 
 const kActionUsePlugin = 5;
 
-
-
-
-const ICON_URL_APP      = "moz-icon://dummy.exe?size=16";
-
-
-
-const ICON_URL_APP      = "chrome://browser/skin/preferences/application.png";
-
-
-
+const ICON_URL_APP = AppConstants.platform == "linux" ?
+                     "moz-icon://dummy.exe?size=16" :
+                     "chrome://browser/skin/preferences/application.png";
 
 
 
