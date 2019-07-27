@@ -193,6 +193,20 @@ DaysBeforeYear(unsigned int year)
        + ((year - 1u) / 400u); 
 }
 
+
+
+inline Result
+WrappedVerifySignedData(TrustDomain& trustDomain,
+                        const SignedDataWithSignature& signedData,
+                        Input subjectPublicKeyInfo)
+{
+  if (signedData.algorithm == SignatureAlgorithm::unsupported_algorithm) {
+    return Result::ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED;
+  }
+
+  return trustDomain.VerifySignedData(signedData, subjectPublicKeyInfo);
+}
+
 } } 
 
 #endif 
