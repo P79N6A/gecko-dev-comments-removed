@@ -97,12 +97,14 @@ public:
       if (eventSink) {
         
         if (rootDoc->GetHasMixedDisplayContentLoaded()) {
-          eventSink->OnSecurityChange(mContext, (nsIWebProgressListener::STATE_IS_BROKEN |
-          nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT |
-          nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
+          eventSink->OnSecurityChange(mContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
         } else {
-          eventSink->OnSecurityChange(mContext, (nsIWebProgressListener::STATE_IS_BROKEN |
-          nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
+          eventSink->OnSecurityChange(mContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
         }
       }
 
@@ -118,9 +120,10 @@ public:
       if (eventSink) {
         
         if (rootDoc->GetHasMixedActiveContentLoaded()) {
-          eventSink->OnSecurityChange(mContext, (nsIWebProgressListener::STATE_IS_BROKEN |
-          nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT |
-          nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
+          eventSink->OnSecurityChange(mContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
         } else {
           eventSink->OnSecurityChange(mContext, (nsIWebProgressListener::STATE_IS_BROKEN |
           nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
@@ -656,10 +659,31 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
     if (allowMixedContent) {
       LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
       *aDecision = nsIContentPolicy::ACCEPT;
-      rootDoc->SetHasMixedActiveContentLoaded(true);
-      if (!rootDoc->GetHasMixedDisplayContentLoaded() && NS_SUCCEEDED(stateRV)) {
-        rootDoc->SetHasMixedDisplayContentLoaded(true);
-        eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
+      
+      
+      if (rootDoc->GetHasMixedDisplayContentLoaded()) {
+        return NS_OK;
+      }
+      rootDoc->SetHasMixedDisplayContentLoaded(true);
+
+      if (rootHasSecureConnection) {
+        if (rootDoc->GetHasMixedActiveContentLoaded()) {
+          
+          eventSink->OnSecurityChange(aRequestingContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
+        } else {
+          eventSink->OnSecurityChange(aRequestingContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
+        }
+      } else {
+        
+        
+        if (NS_SUCCEEDED(stateRV)) {
+          eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
+         }
       }
     } else {
       *aDecision = nsIContentPolicy::REJECT_REQUEST;
@@ -675,50 +699,52 @@ nsMixedContentBlocker::ShouldLoad(bool aHadInsecureImageRedirect,
     
     
     if (allowMixedContent) {
-       LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
-       *aDecision = nsIContentPolicy::ACCEPT;
-       
-       if (rootDoc->GetHasMixedActiveContentLoaded()) {
-         return NS_OK;
-       }
-       rootDoc->SetHasMixedActiveContentLoaded(true);
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
+      *aDecision = nsIContentPolicy::ACCEPT;
+      
+      if (rootDoc->GetHasMixedActiveContentLoaded()) {
+        return NS_OK;
+      }
+      rootDoc->SetHasMixedActiveContentLoaded(true);
 
-       if (rootHasSecureConnection) {
-         
-         if (rootDoc->GetHasMixedDisplayContentLoaded()) {
-           
-           eventSink->OnSecurityChange(aRequestingContext, (nsIWebProgressListener::STATE_IS_BROKEN |
-           nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT |
-           nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
-         } else {
-           eventSink->OnSecurityChange(aRequestingContext, (nsIWebProgressListener::STATE_IS_BROKEN |
-           nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
-         }
-         return NS_OK;
-       } else {
-         
-         
-         if (NS_SUCCEEDED(stateRV)) {
-           eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
-         }
-         return NS_OK;
-       }
+      if (rootHasSecureConnection) {
+        
+        if (rootDoc->GetHasMixedDisplayContentLoaded()) {
+          
+          eventSink->OnSecurityChange(aRequestingContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_DISPLAY_CONTENT));
+        } else {
+          eventSink->OnSecurityChange(aRequestingContext,
+                                      (nsIWebProgressListener::STATE_IS_BROKEN |
+                                       nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
+        }
+        return NS_OK;
+      } else {
+        
+        
+        if (NS_SUCCEEDED(stateRV)) {
+          eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_LOADED_MIXED_ACTIVE_CONTENT));
+        }
+        return NS_OK;
+      }
     } else {
-       
-       *aDecision = nsIContentPolicy::REJECT_REQUEST;
-       LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
-       
-       if (rootDoc->GetHasMixedActiveContentBlocked()) {
-         return NS_OK;
-       }
-       rootDoc->SetHasMixedActiveContentBlocked(true);
+      
+      *aDecision = nsIContentPolicy::REJECT_REQUEST;
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
+      
+      if (rootDoc->GetHasMixedActiveContentBlocked()) {
+        return NS_OK;
+      }
+      rootDoc->SetHasMixedActiveContentBlocked(true);
 
-       
-       
-       if (NS_SUCCEEDED(stateRV)) {
-          eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_BLOCKED_MIXED_ACTIVE_CONTENT));
-       }
-       return NS_OK;
+      
+      
+      if (NS_SUCCEEDED(stateRV)) {
+         eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_BLOCKED_MIXED_ACTIVE_CONTENT));
+      }
+      return NS_OK;
     }
 
   } else {
