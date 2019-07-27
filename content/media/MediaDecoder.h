@@ -309,9 +309,6 @@ public:
   nsresult OpenResource(nsIStreamListener** aStreamListener);
 
   
-  virtual void ResourceLoaded();
-
-  
   virtual void NetworkError();
 
   
@@ -1158,11 +1155,6 @@ protected:
   
   
   SeekTarget mRequestedSeekTarget;
-
-  
-  
-  
-  bool mCalledResourceLoaded;
 
   
   
