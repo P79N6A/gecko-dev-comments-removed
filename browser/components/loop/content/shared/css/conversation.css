@@ -1176,9 +1176,16 @@ html[dir="rtl"] .room-context-btn-edit {
   height: calc(100% - 300px);
 }
 
+
+
 .media-wrapper > .text-chat-view > .text-chat-entries {
   
   height: calc(100% - 40px);
+}
+
+.media-wrapper > .text-chat-disabled > .text-chat-entries {
+  
+  height: 100%;
 }
 
 .media-wrapper > .local {
@@ -1230,10 +1237,17 @@ html[dir="rtl"] .room-context-btn-edit {
     height: 50%;
   }
 
+  
+
   .media-wrapper > .text-chat-view > .text-chat-entries {
     
     height: calc(100% - 40px);
     width: 100%;
+  }
+
+  .media-wrapper > .text-chat-disabled > .text-chat-entries {
+    
+    height: 100%;
   }
 
   .media-wrapper > .local {
