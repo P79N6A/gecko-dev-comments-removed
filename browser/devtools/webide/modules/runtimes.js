@@ -82,6 +82,8 @@ const Strings = Services.strings.createBundle("chrome://browser/locale/devtools/
 
 
 
+
+
 let RuntimeScanners = {
 
   _enabledCount: 0,
