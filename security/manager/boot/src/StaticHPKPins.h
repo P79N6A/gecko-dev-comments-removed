@@ -769,6 +769,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "code.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "codereview.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "codereview.chromium.org", true, false, false, -1, &kPinset_google_root_pems },
+  { "contributor.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "dev.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "developers.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "dist.torproject.org", true, false, false, -1, &kPinset_tor },
@@ -1092,4 +1093,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1440238853731000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1440843695456000);
