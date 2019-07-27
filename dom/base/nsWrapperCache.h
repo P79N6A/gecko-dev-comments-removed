@@ -8,7 +8,6 @@
 
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Assertions.h"
-#include "js/Class.h"
 #include "js/Id.h"          
 #include "js/Value.h"       
 #include "js/RootingAPI.h"
@@ -19,14 +18,6 @@ class XPCWrappedNativeScope;
 #define NS_WRAPPERCACHE_IID \
 { 0x6f3179a1, 0x36f7, 0x4a5c, \
   { 0x8c, 0xf1, 0xad, 0xc8, 0x7c, 0xde, 0x3e, 0x87 } }
-
-
-
-
-
-
-
-
 
 
 
@@ -98,8 +89,6 @@ public:
   {
     MOZ_ASSERT(!PreservingWrapper(), "Clearing a preserved wrapper!");
     MOZ_ASSERT(aWrapper, "Use ClearWrapper!");
-    MOZ_ASSERT(js::HasObjectMovedOp(aWrapper),
-               "Object has not provided the hook to update the wrapper if it is moved");
 
     SetWrapperJSObject(aWrapper);
   }
@@ -113,18 +102,6 @@ public:
     MOZ_ASSERT(!PreservingWrapper(), "Clearing a preserved wrapper!");
 
     SetWrapperJSObject(nullptr);
-  }
-
-  
-
-
-
-
-
-  void UpdateWrapper(JSObject* aNewObject, const JSObject* aOldObject)
-  {
-    MOZ_ASSERT(mWrapper == aOldObject);
-    mWrapper = aNewObject;
   }
 
   bool PreservingWrapper()
