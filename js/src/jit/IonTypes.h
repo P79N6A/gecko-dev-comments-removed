@@ -533,6 +533,16 @@ IsSimdType(MIRType type)
     return type == MIRType_Int32x4 || type == MIRType_Float32x4;
 };
 
+static inline bool
+IsMagicType(MIRType type)
+{
+    return type == MIRType_MagicHole ||
+           type == MIRType_MagicOptimizedOut ||
+           type == MIRType_MagicIsConstructing ||
+           type == MIRType_MagicOptimizedArguments ||
+           type == MIRType_MagicUninitializedLexical;
+}
+
 
 
 static inline unsigned

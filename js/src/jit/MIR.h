@@ -596,6 +596,16 @@ class MDefinition : public MNode
         return !resultTypeSet() || resultTypeSet()->mightBeMIRType(type);
     }
 
+    bool mightBeMagicType() const {
+        if (IsMagicType(type()))
+            return true;
+
+        if (MIRType_Value != type())
+            return false;
+
+        return !resultTypeSet() || resultTypeSet()->hasType(types::Type::MagicArgType());
+    }
+
     
     
     virtual bool isFloat32Commutative() const { return false; }
