@@ -145,11 +145,6 @@ public:
     DECODER_STATE_ERROR
   };
 
-  State GetState() {
-    AssertCurrentThreadInMonitor();
-    return mState;
-  }
-
   DecodedStreamData* GetDecodedStream() const;
 
   void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
@@ -224,6 +219,7 @@ public:
   
   
   bool HasAudio() const {
+    MOZ_ASSERT(OnTaskQueue());
     AssertCurrentThreadInMonitor();
     return mInfo.HasAudio();
   }
@@ -231,6 +227,7 @@ public:
   
   
   bool HasVideo() const {
+    MOZ_ASSERT(OnTaskQueue());
     AssertCurrentThreadInMonitor();
     return mInfo.HasVideo();
   }
@@ -589,6 +586,7 @@ protected:
   
   
   int64_t GetMediaTime() const {
+    MOZ_ASSERT(OnTaskQueue());
     AssertCurrentThreadInMonitor();
     return mCurrentPosition;
   }
