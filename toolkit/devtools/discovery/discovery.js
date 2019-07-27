@@ -134,12 +134,111 @@ Transport.prototype = {
 
 };
 
+
+
+
+
+
+
+function LocalDevice() {
+  this._name = LocalDevice.UNKNOWN;
+  if ("@mozilla.org/settingsService;1" in Cc) {
+    this._settings =
+      Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+    Services.obs.addObserver(this, "mozsettings-changed", false);
+  }
+  this._get(); 
+}
+
+LocalDevice.SETTING = "devtools.discovery.device";
+LocalDevice.UNKNOWN = "unknown";
+
+LocalDevice.prototype = {
+
+  _get: function() {
+    if (!this._settings) {
+      
+      
+      this._generate();
+      return;
+    }
+    
+    this._settings.createLock().get(LocalDevice.SETTING, {
+      handle: (_, name) => {
+        if (name && name !== LocalDevice.UNKNOWN) {
+          this._name = name;
+          log("Device: " + this._name);
+          return;
+        }
+        
+        this._generate();
+      },
+      handleError: () => log("Failed to get device name setting")
+    });
+  },
+
+  
+
+
+
+  _generate: function() {
+    if (Services.appinfo.widgetToolkit == "gonk") {
+      
+      
+      
+      
+      let name = libcutils.property_get("ro.product.device");
+      
+      let randomID = Math.floor(Math.random() * Math.pow(2, 32));
+      
+      randomID = ("00000000" + randomID.toString(16)).slice(-8);
+      this.name = name + "-" + randomID;
+    } else {
+      this.name = sysInfo.get("host");
+    }
+  },
+
+  
+
+
+  observe: function(subject, topic, data) {
+    if (topic !== "mozsettings-changed") {
+      return;
+    }
+    let setting = JSON.parse(data);
+    if (setting.key !== LocalDevice.SETTING) {
+      return;
+    }
+    this._name = setting.value;
+    log("Device: " + this._name);
+  },
+
+  get name() {
+    return this._name;
+  },
+
+  set name(name) {
+    if (!this._settings) {
+      this._name = name;
+      log("Device: " + this._name);
+      return;
+    }
+    
+    
+    this._settings.createLock().set(LocalDevice.SETTING, name, {
+      handle: () => {},
+      handleError: () => log("Failed to set device name setting")
+    });
+  }
+
+};
+
 function Discovery() {
   EventEmitter.decorate(this);
 
   this.localServices = {};
   this.remoteServices = {};
-  this.device = { name: "unknown" };
+  this.device = new LocalDevice();
   this.replyTimeout = REPLY_TIMEOUT;
 
   
@@ -158,8 +257,6 @@ function Discovery() {
   this._purgeMissingDevices = this._purgeMissingDevices.bind(this);
 
   Services.obs.addObserver(this, "network-active-changed", false);
-
-  this._getSystemInfo();
 }
 
 Discovery.prototype = {
@@ -236,24 +333,6 @@ Discovery.prototype = {
     this._expectingReplies.from = new Set(this.getRemoteDevices());
     this._expectingReplies.timer =
       setTimeout(this._purgeMissingDevices, this.replyTimeout);
-  },
-
-  
-
-
-  _getSystemInfo: function() {
-    
-    try {
-      if (Services.appinfo.widgetToolkit == "gonk") {
-        this.device.name = libcutils.property_get("ro.product.device");
-      } else {
-        this.device.name = sysInfo.get("host");
-      }
-      log("Device: " + this.device.name);
-    } catch(e) {
-      log("Failed to get system info");
-      this.device.name = "unknown";
-    }
   },
 
   get Transport() {

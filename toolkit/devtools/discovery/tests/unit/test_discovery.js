@@ -69,7 +69,13 @@ TestTransport.prototype = {
 
 
 discovery._factories.Transport = TestTransport;
-discovery.device.name = "test-device";
+
+
+Object.defineProperty(discovery.device, "name", {
+  get: function() {
+    return "test-device";
+  }
+});
 
 function run_test() {
   run_next_test();
