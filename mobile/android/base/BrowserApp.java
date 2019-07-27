@@ -68,6 +68,7 @@ import org.mozilla.gecko.tabs.TabHistoryController.OnShowTabHistory;
 import org.mozilla.gecko.tiles.TilesRecorder;
 import org.mozilla.gecko.toolbar.AutocompleteHandler;
 import org.mozilla.gecko.toolbar.BrowserToolbar;
+import org.mozilla.gecko.toolbar.BrowserToolbar.TabEditingState;
 import org.mozilla.gecko.toolbar.ToolbarProgressView;
 import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.EventCallback;
@@ -245,6 +246,8 @@ public class BrowserApp extends GeckoApp
     
     private Integer mTargetTabForEditingMode;
 
+    private final TabEditingState mLastTabEditingState = new TabEditingState();
+
     
     
     
@@ -313,15 +316,59 @@ public class BrowserApp extends GeckoApp
             case BOOKMARK_REMOVED:
                 showBookmarkRemovedToast();
                 break;
+
+            case UNSELECTED:
+                
+                
+                if (tab.isEditing()) {
+                    
+                    tab.getEditingState().copyFrom(mLastTabEditingState);
+                }
+                break;
         }
 
         if (NewTabletUI.isEnabled(this) && msg == TabEvents.SELECTED) {
-            
-            
-            mBrowserToolbar.cancelEdit();
+            updateEditingModeForTab(tab);
         }
 
         super.onTabChanged(tab, msg, data);
+    }
+
+    private void updateEditingModeForTab(final Tab selectedTab) {
+        
+        
+        
+        
+        
+        if (!Tabs.getInstance().isSelectedTab(selectedTab)) {
+            Log.w(LOGTAG, "updateEditingModeForTab: Given tab is expected to be selected tab");
+        }
+
+        saveTabEditingState(mLastTabEditingState);
+
+        if (selectedTab.isEditing()) {
+            enterEditingMode();
+            restoreTabEditingState(selectedTab.getEditingState());
+        } else {
+            mBrowserToolbar.cancelEdit();
+        }
+    }
+
+    private void saveTabEditingState(final TabEditingState editingState) {
+        mBrowserToolbar.saveTabEditingState(editingState);
+        editingState.setIsBrowserSearchShown(mBrowserSearch.getUserVisibleHint());
+    }
+
+    private void restoreTabEditingState(final TabEditingState editingState) {
+        mBrowserToolbar.restoreTabEditingState(editingState);
+
+        
+        
+        if (editingState.isBrowserSearchShown()) {
+            showBrowserSearch();
+        } else {
+            hideBrowserSearch();
+        }
     }
 
     private void showBookmarkAddedToast() {
@@ -838,6 +885,11 @@ public class BrowserApp extends GeckoApp
         mBrowserToolbar.setOnStartEditingListener(new BrowserToolbar.OnStartEditingListener() {
             @Override
             public void onStartEditing() {
+                final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+                if (selectedTab != null) {
+                    selectedTab.setIsEditing(true);
+                }
+
                 
                 mDoorHangerPopup.disable();
             }
@@ -846,6 +898,11 @@ public class BrowserApp extends GeckoApp
         mBrowserToolbar.setOnStopEditingListener(new BrowserToolbar.OnStopEditingListener() {
             @Override
             public void onStopEditing() {
+                final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+                if (selectedTab != null) {
+                    selectedTab.setIsEditing(false);
+                }
+
                 selectTargetTabForEditingMode();
 
                 
@@ -1815,6 +1872,11 @@ public class BrowserApp extends GeckoApp
 
         if (tab == null) {
             return false;
+        }
+
+        final Tab oldTab = tabs.getSelectedTab();
+        if (oldTab != null) {
+            oldTab.setIsEditing(false);
         }
 
         
