@@ -23,6 +23,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 CSS_PROP_LOGICAL_GROUP_SHORTHAND(BorderColor)
 CSS_PROP_LOGICAL_GROUP_SHORTHAND(BorderStyle)
 CSS_PROP_LOGICAL_GROUP_SHORTHAND(BorderWidth)
