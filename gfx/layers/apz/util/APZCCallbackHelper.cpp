@@ -292,6 +292,15 @@ public:
             sf->ResetScrollInfoIfGeneration(mScrollGeneration);
         }
 
+        
+        
+        
+        nsCOMPtr<nsIContent> content = nsLayoutUtils::FindContentFor(mScrollId);
+        if (content) {
+            content->SetProperty(nsGkAtoms::apzCallbackTransform, new CSSPoint(),
+                                 nsINode::DeleteProperty<CSSPoint>);
+        }
+
         return NS_OK;
     }
 
