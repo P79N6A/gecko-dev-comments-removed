@@ -1586,8 +1586,6 @@ MediaDecoderStateMachine::InitiateSeek()
 
   mDropAudioUntilNextDiscontinuity = HasAudio();
   mDropVideoUntilNextDiscontinuity = HasVideo();
-
-  mDecoder->StopProgressUpdates();
   mCurrentTimeBeforeSeek = GetMediaTime();
 
   
@@ -1927,8 +1925,6 @@ MediaDecoderStateMachine::OnMetadataRead(MetadataHolder* aMetadata)
                 GetAmpleVideoFrames());
   }
 
-  mDecoder->StartProgressUpdates();
-
   
   
   
@@ -2148,8 +2144,6 @@ MediaDecoderStateMachine::SeekCompleted()
     newCurrentTime = video ? video->mTime : seekTime;
   }
   mPlayDuration = newCurrentTime;
-
-  mDecoder->StartProgressUpdates();
 
   
   

@@ -547,15 +547,6 @@ public:
 
   
   
-  
-  virtual void StopProgressUpdates();
-
-  
-  
-  virtual void StartProgressUpdates();
-
-  
-  
   virtual void UpdatePlaybackRate();
 
   
@@ -649,6 +640,14 @@ public:
     mLogicallySeeking = false;
   }
   void OnSeekResolved(SeekResolveValue aVal);
+
+  void SeekingChanged()
+  {
+    
+    
+    MOZ_ASSERT(NS_IsMainThread());
+    mIgnoreProgressData = mLogicallySeeking;
+  }
 
   
   
@@ -990,7 +989,6 @@ protected:
 
   MozPromiseRequestHolder<SeekPromise> mSeekRequest;
 
-  
   
   
   
