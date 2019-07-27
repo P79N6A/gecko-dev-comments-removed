@@ -1618,24 +1618,62 @@ RilObject.prototype = {
 
 
 
-  dialNonEmergencyNumber: function(options) {
+
+
+
+
+  dial: function(options) {
     let onerror = (function onerror(options, errorMsg) {
       options.success = false;
       options.errorMsg = errorMsg;
       this.sendChromeMessage(options);
     }).bind(this, options);
 
-    if (this.radioState == GECKO_RADIOSTATE_OFF) {
+    let isRadioOff = (this.radioState === GECKO_RADIOSTATE_OFF);
+
+    if (options.isEmergency) {
+      if (isRadioOff) {
+        if (DEBUG) {
+          this.context.debug("Automatically enable radio for an emergency call.");
+        }
+
+        this.cachedDialRequest = {
+          callback: this.dialEmergencyNumber.bind(this, options),
+          onerror: onerror
+        };
+        this.setRadioEnabled({enabled: true});
+        return;
+      }
+
+      this.dialEmergencyNumber(options);
+    } else {
       
-      onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
-      return;
-    }
+      if (isRadioOff) {
+        onerror(GECKO_ERROR_RADIO_NOT_AVAILABLE);
+        return;
+      }
 
-    if (this.voiceRegistrationState.emergencyCallsOnly) {
-      onerror(RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[CALL_FAIL_UNOBTAINABLE_NUMBER]);
-      return;
-    }
+      
+      if (options.isDialEmergency || this.voiceRegistrationState.emergencyCallsOnly) {
+        onerror(GECKO_CALL_ERROR_BAD_NUMBER);
+        return;
+      }
 
+      this.dialNonEmergencyNumber(options);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  dialNonEmergencyNumber: function(options) {
     
     if (this._isInEmergencyCbMode) {
       this.exitEmergencyCbMode();
@@ -1656,7 +1694,6 @@ RilObject.prototype = {
     }
 
     options.request = REQUEST_DIAL;
-    options.isEmergency = false;
     this.sendDialRequest(options);
   },
 
@@ -1671,30 +1708,8 @@ RilObject.prototype = {
 
 
   dialEmergencyNumber: function(options) {
-    let onerror = (function onerror(options, errorMsg) {
-      options.success = false;
-      options.errorMsg = errorMsg;
-      this.sendChromeMessage(options);
-    }).bind(this, options);
-
     options.request = RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL ?
                       REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
-    options.isEmergency = true;
-
-    if (this.radioState == GECKO_RADIOSTATE_OFF) {
-      if (DEBUG) {
-        this.context.debug("Automatically enable radio for an emergency call.");
-      }
-
-      if (!this.cachedDialRequest) {
-        this.cachedDialRequest = {};
-      }
-      this.cachedDialRequest.onerror = onerror;
-      this.cachedDialRequest.callback = this.sendDialRequest.bind(this, options);
-      this.setRadioEnabled({enabled: true});
-      return;
-    }
-
     this.sendDialRequest(options);
   },
 
@@ -8703,7 +8718,7 @@ GsmPDUHelperObject.prototype = {
         }
       }
       return text;
-    }
+    };
 
     let totalLength = 0, length, pageLengths = [];
     for (let i = 0; i < numOfPages; i++) {

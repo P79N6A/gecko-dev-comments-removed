@@ -467,17 +467,17 @@ TelephonyService.prototype = {
     }
 
     
-    
-    if (this._hasCallsOnOtherClient(aClientId)) {
-      if (DEBUG) debug("Error: Already has a call on other sim.");
-      aCallback.notifyDialError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
+    if (this._numCallsOnLine(aClientId) >= 2) {
+      if (DEBUG) debug("Error: Already has more than 2 calls on line.");
+      aCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
       return;
     }
 
     
-    if (this._numCallsOnLine(aClientId) >= 2) {
-      if (DEBUG) debug("Error: Has more than 2 calls on line.");
-      aCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
+    
+    if (this._hasCallsOnOtherClient(aClientId)) {
+      if (DEBUG) debug("Error: Already has a call on other sim.");
+      aCallback.notifyDialError(DIAL_ERROR_OTHER_CONNECTION_IN_USE);
       return;
     }
 
@@ -495,33 +495,27 @@ TelephonyService.prototype = {
       return;
     }
 
-    if (this._isEmergencyNumber(aNumber)) {
+    let isEmergencyNumber = this._isEmergencyNumber(aNumber);
+
+    if (isEmergencyNumber) {
       
       aClientId = gRadioInterfaceLayer.getClientIdForEmergencyCall() ;
-
       if (aClientId === -1) {
         if (DEBUG) debug("Error: No client is avaialble for emergency call.");
         aCallback.notifyDialError(DIAL_ERROR_INVALID_STATE_ERROR);
         return;
       }
-
-      this._dialInternal(aClientId, "dialEmergencyNumber", aNumber, aCallback);
-    } else {
-      
-      if (aIsDialEmergency) {
-        if (DEBUG) debug("Error: dialEmergency with a non-emergency number");
-        aCallback.notifyDialError(DIAL_ERROR_BAD_NUMBER);
-        return;
-      }
-
-      this._dialInternal(aClientId, "dialNonEmergencyNumber", aNumber, aCallback);
     }
-  },
 
-  _dialInternal: function(aClientId, aMsg, aNumber, aCallback) {
     this.isDialing = true;
-    this._getClient(aClientId).sendWorkerMessage(aMsg,
-                                                 {number: aNumber},
+
+    let options = {
+      isDialEmergency: aIsDialEmergency,
+      isEmergency: isEmergencyNumber,
+      number: aNumber
+    };
+
+    this._getClient(aClientId).sendWorkerMessage("dial", options,
                                                  (function(response) {
       this.isDialing = false;
       if (!response.success) {
