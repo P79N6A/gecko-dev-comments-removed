@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsWebNavigationInfo_h__
 #define nsWebNavigationInfo_h__
 
