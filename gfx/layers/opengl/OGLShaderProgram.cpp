@@ -261,12 +261,23 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
       fs << "  COLOR_PRECISION float y = texture2D(uYTexture, coord).r;" << endl;
       fs << "  COLOR_PRECISION float cb = texture2D(uCbTexture, coord).r;" << endl;
       fs << "  COLOR_PRECISION float cr = texture2D(uCrTexture, coord).r;" << endl;
-      fs << "  y = (y - 0.0625) * 1.164;" << endl;
-      fs << "  cb = cb - 0.5;" << endl;
-      fs << "  cr = cr - 0.5;" << endl;
-      fs << "  color.r = y + cr * 1.596;" << endl;
-      fs << "  color.g = y - 0.813 * cr - 0.391 * cb;" << endl;
-      fs << "  color.b = y + cb * 2.018;" << endl;
+
+      
+
+
+
+
+
+
+
+
+
+      fs << "  y = (y - 0.06275) * 1.16438;" << endl;
+      fs << "  cb = cb - 0.50196;" << endl;
+      fs << "  cr = cr - 0.50196;" << endl;
+      fs << "  color.r = y + 1.59603*cr;" << endl;
+      fs << "  color.g = y - 0.39176*cb - 0.81297*cr;" << endl;
+      fs << "  color.b = y + 2.01723*cb;" << endl;
       fs << "  color.a = 1.0;" << endl;
     } else if (aConfig.mFeatures & ENABLE_TEXTURE_COMPONENT_ALPHA) {
       fs << "  COLOR_PRECISION vec3 onBlack = texture2D(uBlackTexture, coord).rgb;" << endl;
