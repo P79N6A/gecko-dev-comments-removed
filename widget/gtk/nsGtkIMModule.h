@@ -16,13 +16,16 @@
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsIWidget.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h"
+#include "WritingModes.h"
 
 class nsWindow;
 
 class nsGtkIMModule
 {
 protected:
+    typedef mozilla::widget::IMENotification IMENotification;
     typedef mozilla::widget::InputContext InputContext;
     typedef mozilla::widget::InputContextAction InputContextAction;
 
@@ -48,7 +51,8 @@ public:
     void OnFocusChangeInGecko(bool aFocus);
     
     
-    void OnSelectionChange(nsWindow* aCaller);
+    void OnSelectionChange(nsWindow* aCaller,
+                           const IMENotification& aIMENotification);
 
     
     
@@ -177,6 +181,44 @@ protected:
         }
     }
 
+    struct Selection final
+    {
+        uint32_t mOffset;
+        uint32_t mLength;
+        WritingMode mWritingMode;
+
+        Selection()
+            : mOffset(UINT32_MAX)
+            , mLength(UINT32_MAX)
+        {
+        }
+
+        void Clear()
+        {
+            mOffset = UINT32_MAX;
+            mLength = UINT32_MAX;
+            mWritingMode = WritingMode();
+        }
+
+        void Assign(const IMENotification& aIMENotification);
+        void Assign(const WidgetQueryContentEvent& aSelectedTextEvent);
+
+        bool IsValid() const { return mOffset != UINT32_MAX; }
+        bool Collapsed() const { return !mLength; }
+        uint32_t EndOffset() const
+        {
+            if (NS_WARN_IF(!IsValid())) {
+                return UINT32_MAX;
+            }
+            CheckedInt<uint32_t> endOffset =
+                CheckedInt<uint32_t>(mOffset) + mLength;
+            if (NS_WARN_IF(!endOffset.isValid())) {
+                return UINT32_MAX;
+            }
+            return endOffset.value();
+        }
+    } mSelection;
+    bool EnsureToCacheSelection(nsAString* aSelectedString = nullptr);
 
     
     
