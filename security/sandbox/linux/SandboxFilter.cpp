@@ -29,6 +29,7 @@ class SandboxFilterImpl : public SandboxAssembler
 public:
   virtual void Build() = 0;
   virtual ~SandboxFilterImpl() { }
+  void AllowThreadClone();
 };
 
 
@@ -71,6 +72,26 @@ public:
 #else
 #define SYSVIPCCALL(name, NAME) SYSCALL(name)
 #endif
+
+void SandboxFilterImpl::AllowThreadClone() {
+  
+  
+  
+  
+  
+  
+  
+  
+  static const int flags_common = CLONE_VM | CLONE_FS | CLONE_FILES |
+    CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM;
+  Allow(SYSCALL_WITH_ARG(clone, 0,
+#ifdef ANDROID
+                         flags_common | CLONE_DETACHED, 
+                         flags_common, 
+#endif
+                         flags_common | CLONE_SETTLS 
+                         | CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID));
+}
 
 #ifdef MOZ_CONTENT_SANDBOX
 class SandboxFilterImplContent : public SandboxFilterImpl {
@@ -134,7 +155,7 @@ SandboxFilterImplContent::Build() {
   Allow(SYSCALL(munmap));
   Allow(SYSCALL(mprotect));
   Allow(SYSCALL(writev));
-  Allow(SYSCALL(clone));
+  AllowThreadClone();
   Allow(SYSCALL(brk));
 #if SYSCALL_EXISTS(set_thread_area)
   Allow(SYSCALL(set_thread_area));
@@ -354,23 +375,7 @@ void SandboxFilterImplGMP::Build() {
   Allow(SYSCALL(getpid));
   Allow(SYSCALL(gettid));
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static const int new_thread_flags = CLONE_VM | CLONE_FS | CLONE_FILES |
-    CLONE_SIGHAND | CLONE_THREAD | CLONE_SYSVSEM | CLONE_SETTLS |
-    CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID;
-  Allow(SYSCALL_WITH_ARG(clone, 0, new_thread_flags));
+  AllowThreadClone();
 
   Allow(SYSCALL_WITH_ARG(prctl, 0, PR_GET_SECCOMP, PR_SET_NAME));
 
