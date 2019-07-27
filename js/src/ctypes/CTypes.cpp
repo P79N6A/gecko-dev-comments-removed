@@ -4429,7 +4429,7 @@ ArrayType::GetSafeLength(JSObject* obj, size_t* result)
   
   
   if (length.isInt32()) {
-    *result = length.toInt32();;
+    *result = length.toInt32();
     return true;
   }
   if (length.isDouble()) {
@@ -4455,7 +4455,7 @@ ArrayType::GetLength(JSObject* obj)
   
   
   if (length.isInt32())
-    return length.toInt32();;
+    return length.toInt32();
   return Convert<size_t>(length.toDouble());
 }
 

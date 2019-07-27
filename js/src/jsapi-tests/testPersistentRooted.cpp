@@ -41,7 +41,7 @@ const JSClass BarkWhenTracedClass::class_ = {
 struct Kennel {
     PersistentRootedObject obj;
     explicit Kennel(JSContext *cx) : obj(cx) { }
-    Kennel(JSContext *cx, const HandleObject &woof) : obj(cx, woof) { };
+    Kennel(JSContext *cx, const HandleObject &woof) : obj(cx, woof) { }
 };
 
 
