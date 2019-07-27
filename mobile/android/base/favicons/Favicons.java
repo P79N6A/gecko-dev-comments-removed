@@ -498,7 +498,10 @@ public class Favicons {
 
 
     private static String getBrandingBitmapPath(Context context, String name) {
-        return GeckoJarReader.getJarURL(context, "chrome/chrome/content/branding/" + name);
+        final String apkPath = context.getPackageResourcePath();
+        return "jar:jar:" + new File(apkPath).toURI() + "!/" +
+               AppConstants.OMNIJAR_NAME + "!/" +
+               "chrome/chrome/content/branding/" + name;
     }
 
     private static Bitmap loadBrandingBitmap(Context context, String name) {
