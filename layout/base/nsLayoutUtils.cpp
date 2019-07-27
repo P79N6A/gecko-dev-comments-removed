@@ -1171,7 +1171,10 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
 nsLayoutUtils::GetBeforeFrameForContent(nsIFrame* aFrame,
                                         nsIContent* aContent)
 {
-  nsContainerFrame* genConParentFrame = aFrame->GetContentInsertionFrame();
+  
+  
+  nsContainerFrame* genConParentFrame =
+    FirstContinuationOrIBSplitSibling(aFrame)->GetContentInsertionFrame();
   if (!genConParentFrame) {
     return nullptr;
   }
@@ -1207,7 +1210,10 @@ nsLayoutUtils::GetBeforeFrame(nsIFrame* aFrame)
 nsLayoutUtils::GetAfterFrameForContent(nsIFrame* aFrame,
                                        nsIContent* aContent)
 {
-  nsContainerFrame* genConParentFrame = aFrame->GetContentInsertionFrame();
+  
+  
+  nsContainerFrame* genConParentFrame =
+    FirstContinuationOrIBSplitSibling(aFrame)->GetContentInsertionFrame();
   if (!genConParentFrame) {
     return nullptr;
   }
@@ -1224,8 +1230,13 @@ nsLayoutUtils::GetAfterFrameForContent(nsIFrame* aFrame,
   
   
   
+  genConParentFrame = aFrame->GetContentInsertionFrame();
+  if (!genConParentFrame) {
+    return nullptr;
+  }
   nsIFrame* lastParentContinuation =
-    nsLayoutUtils::LastContinuationWithChild(genConParentFrame);
+    LastContinuationWithChild(static_cast<nsContainerFrame*>(
+      LastContinuationOrIBSplitSibling(genConParentFrame)));
   nsIFrame* childFrame =
     lastParentContinuation->GetLastChild(nsIFrame::kPrincipalList);
   if (childFrame &&
