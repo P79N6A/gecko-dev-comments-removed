@@ -5,7 +5,7 @@
 package org.mozilla.gecko.background.common;
 
 import org.mozilla.gecko.AppConstants;
-
+import org.mozilla.gecko.AppConstants.Versions;
 
 
 
@@ -35,4 +35,26 @@ public class GlobalConstants {
   
   public static final long MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
   public static final long MILLISECONDS_PER_SIX_MONTHS = 180 * MILLISECONDS_PER_DAY;
+
+  
+  
+
+
+
+  public static final String[] DEFAULT_CIPHER_SUITES;
+  public static final String[] DEFAULT_PROTOCOLS;
+
+  static {
+    DEFAULT_CIPHER_SUITES = new String[]
+        {
+          "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+          "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+          "SSL_RSA_WITH_RC4_128_SHA", 
+        };
+    DEFAULT_PROTOCOLS = new String[]
+        {
+          "SSLv3",
+          "TLSv1",
+        };
+  }
 }
