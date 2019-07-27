@@ -19,7 +19,7 @@ namespace mozilla {
 
 class GonkDecoderManager {
 public:
-  GonkDecoderManager();
+  GonkDecoderManager(MediaTaskQueue* aTaskQueue);
 
   virtual ~GonkDecoderManager() {}
 
@@ -48,9 +48,15 @@ public:
 
   virtual void ReleaseMediaResources() {}
 
+  
   bool HasQueuedSample() {
-    ReentrantMonitorAutoEnter mon(mMonitor);
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
     return mQueueSample.Length();
+  }
+
+  void ClearQueuedSample() {
+    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
+    mQueueSample.Clear();
   }
 
 protected:
@@ -62,15 +68,11 @@ protected:
   virtual android::status_t SendSampleToOMX(mp4_demuxer::MP4Sample* aSample) = 0;
 
   
-  ReentrantMonitor mMonitor;
-
-  
   
   
   nsTArray<nsAutoPtr<mp4_demuxer::MP4Sample>> mQueueSample;
 
-  
-  bool mInputEOS;
+  RefPtr<MediaTaskQueue> mTaskQueue;
 };
 
 

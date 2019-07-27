@@ -24,16 +24,15 @@ using namespace android;
 
 namespace mozilla {
 
-GonkDecoderManager::GonkDecoderManager()
-  : mMonitor("GonkDecoderManager")
-  , mInputEOS(false)
+GonkDecoderManager::GonkDecoderManager(MediaTaskQueue* aTaskQueue)
+  : mTaskQueue(aTaskQueue)
 {
 }
 
 nsresult
 GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
 {
-  ReentrantMonitorAutoEnter mon(mMonitor);
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
   
   
@@ -51,16 +50,10 @@ GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
   }
 
   
-  if (mInputEOS) {
-    return NS_OK;
-  }
-
-  
   
   nsAutoPtr<mp4_demuxer::MP4Sample> sample;
   if (!aSample) {
     sample = new mp4_demuxer::MP4Sample();
-    mInputEOS = true;
   }
 
   
@@ -99,8 +92,22 @@ GonkDecoderManager::Input(mp4_demuxer::MP4Sample* aSample)
 nsresult
 GonkDecoderManager::Flush()
 {
-  ReentrantMonitorAutoEnter mon(mMonitor);
-  mQueueSample.Clear();
+  class ClearQueueRunnable : public nsRunnable
+  {
+  public:
+    explicit ClearQueueRunnable(GonkDecoderManager* aManager)
+      : mManager(aManager) {}
+
+    NS_IMETHOD Run()
+    {
+      mManager->ClearQueuedSample();
+      return NS_OK;
+    }
+
+    GonkDecoderManager* mManager;
+  };
+
+  mTaskQueue->SyncDispatch(new ClearQueueRunnable(this));
   return NS_OK;
 }
 
