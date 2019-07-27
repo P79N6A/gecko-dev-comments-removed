@@ -1578,6 +1578,9 @@ pref("devtools.browserconsole.filter.secwarn", true);
 pref("devtools.webconsole.fontSize", 0);
 
 
+pref("devtools.webconsole.inputHistoryCount", 50);
+
+
 
 
 pref("devtools.webconsole.persistlog", false);
