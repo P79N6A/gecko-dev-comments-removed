@@ -2626,27 +2626,9 @@ CodeGeneratorX86Shared::visitSimdBinaryArithIx4(LSimdBinaryArithIx4 *ins)
       case MSimdBinaryArith::Sub:
         masm.packedSubInt32(rhs, lhs);
         return;
-      case MSimdBinaryArith::Mul: {
-        if (AssemblerX86Shared::HasSSE41()) {
-            masm.pmulld(rhs, lhs);
-            return;
-        }
-
-        masm.loadAlignedInt32x4(rhs, ScratchSimdReg);
-        masm.pmuludq(lhs, ScratchSimdReg);
+      case MSimdBinaryArith::Mul:
         
-
-        FloatRegister temp = ToFloatRegister(ins->temp());
-        masm.pshufd(MacroAssembler::ComputeShuffleMask(LaneY, LaneY, LaneW, LaneW), lhs, lhs);
-        masm.pshufd(MacroAssembler::ComputeShuffleMask(LaneY, LaneY, LaneW, LaneW), rhs, temp);
-        masm.pmuludq(temp, lhs);
         
-
-        masm.shufps(MacroAssembler::ComputeShuffleMask(LaneX, LaneZ, LaneX, LaneZ), ScratchSimdReg, lhs);
-        
-        masm.shufps(MacroAssembler::ComputeShuffleMask(LaneZ, LaneX, LaneW, LaneY), lhs, lhs);
-        return;
-      }
       case MSimdBinaryArith::Div:
         
         break;

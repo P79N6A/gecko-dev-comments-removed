@@ -14,63 +14,6 @@
 using namespace js;
 using namespace jit;
 
-bool
-LIRGeneratorShared::ShouldReorderCommutative(MDefinition *lhs, MDefinition *rhs, MInstruction *ins)
-{
-    
-    MOZ_ASSERT(lhs->hasDefUses());
-    MOZ_ASSERT(rhs->hasDefUses());
-
-    
-    if (rhs->isConstant())
-        return false;
-    if (lhs->isConstant())
-        return true;
-
-    
-    
-    
-    
-    bool rhsSingleUse = rhs->hasOneDefUse();
-    bool lhsSingleUse = lhs->hasOneDefUse();
-    if (rhsSingleUse) {
-        if (!lhsSingleUse)
-            return true;
-    } else {
-        if (lhsSingleUse)
-            return false;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (rhsSingleUse &&
-        rhs->isPhi() &&
-        rhs->block()->isLoopHeader() &&
-        ins == rhs->toPhi()->getLoopBackedgeOperand())
-    {
-        return true;
-    }
-
-    return false;
-}
-
-void
-LIRGeneratorShared::ReorderCommutative(MDefinition **lhsp, MDefinition **rhsp, MInstruction *ins)
-{
-    MDefinition *lhs = *lhsp;
-    MDefinition *rhs = *rhsp;
-
-    if (ShouldReorderCommutative(lhs, rhs, ins)) {
-        *rhsp = lhs;
-        *lhsp = rhs;
-    }
-}
-
 void
 LIRGeneratorShared::visitConstant(MConstant *ins)
 {
