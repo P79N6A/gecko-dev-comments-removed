@@ -712,6 +712,10 @@ protected:
 
   
   
+  bool NeedToSkipToNextKeyframe();
+
+  
+  
   
   
   
@@ -842,6 +846,10 @@ protected:
   
   
   int64_t mVideoFrameEndTime;
+
+  
+  
+  int64_t mDecodedVideoEndTime;
 
   
   
