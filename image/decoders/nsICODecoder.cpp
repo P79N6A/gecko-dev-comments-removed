@@ -638,12 +638,12 @@ nsICODecoder::NeedsNewFrame() const
 }
 
 nsresult
-nsICODecoder::AllocateFrame()
+nsICODecoder::AllocateFrame(const nsIntSize& aTargetSize )
 {
   nsresult rv;
 
   if (mContainedDecoder) {
-    rv = mContainedDecoder->AllocateFrame();
+    rv = mContainedDecoder->AllocateFrame(aTargetSize);
     mCurrentFrame = mContainedDecoder->GetCurrentFrameRef();
     mProgress |= mContainedDecoder->TakeProgress();
     mInvalidRect.Union(mContainedDecoder->TakeInvalidRect());
@@ -652,7 +652,7 @@ nsICODecoder::AllocateFrame()
 
   
   
-  rv = Decoder::AllocateFrame();
+  rv = Decoder::AllocateFrame(aTargetSize);
   mRefForContainedDecoder = GetCurrentFrameRef();
   return rv;
 }
