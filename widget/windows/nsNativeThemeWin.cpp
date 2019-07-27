@@ -67,6 +67,12 @@ GetTopLevelWindowActiveState(nsIFrame *aFrame)
 {
   
   
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return mozilla::widget::themeconst::FS_INACTIVE;
+  }
+  
+  
   nsIWidget* widget = aFrame->GetNearestWidget();
   nsWindowBase * window = static_cast<nsWindowBase*>(widget);
   if (!window)
