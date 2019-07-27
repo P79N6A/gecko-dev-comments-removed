@@ -289,10 +289,8 @@ AppleVDADecoder::OutputFrame(CVPixelBufferRef aImage,
   
   
   mReorderQueue.Push(data);
-  
   while (mReorderQueue.Length() > mMaxRefFrames) {
-    nsRefPtr<VideoData> readyData = mReorderQueue.Pop();
-      mCallback->Output(readyData);
+    mCallback->Output(mReorderQueue.Pop());
   }
   LOG("%llu decoded frames queued",
       static_cast<unsigned long long>(mReorderQueue.Length()));
