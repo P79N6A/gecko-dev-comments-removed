@@ -120,6 +120,8 @@ let gConversationWindowData = new Map();
 
 
 let MozLoopServiceInternal = {
+  conversationContexts: new Map(),
+
   mocks: {
     pushHandler: undefined,
     webSocket: undefined,
@@ -817,6 +819,22 @@ let MozLoopServiceInternal = {
           if (winID != ourID) {
             return;
           }
+
+          
+          let windowId = window.location.hash.slice(1);
+          var context = this.conversationContexts.get(windowId);
+          var exists = pc.id.match(/session=(\S+)/);
+          if (context && !exists) {
+            
+            
+            
+            var pair = pc.id.split("(");  
+            if (pair.length == 2) {
+              pc.id = pair[0] + "(session=" + context.sessionId +
+                  (context.callId? " call=" + context.callId : "") + " " + pair[1]; 
+            }
+          }
+
           if (type == "iceconnectionstatechange") {
             switch(pc.iceConnectionState) {
               case "failed":
@@ -1485,5 +1503,13 @@ this.MozLoopService = {
 
     log.error("Window data was already fetched before. Possible race condition!");
     return null;
+  },
+
+  getConversationContext: function(winId) {
+    return MozLoopServiceInternal.conversationContexts.get(winId);
+  },
+
+  addConversationContext: function(windowId, context) {
+    MozLoopServiceInternal.conversationContexts.set(windowId, context);
   }
 };

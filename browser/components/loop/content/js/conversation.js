@@ -675,10 +675,10 @@ loop.conversation = (function(mozL10n) {
 
     
     
-    var conversation = new sharedModels.ConversationModel(
-      {},                
-      {sdk: window.OT}   
-    );
+    var conversation = new sharedModels.ConversationModel({}, {
+      sdk: window.OT,
+      mozLoop: navigator.mozLoop
+    });
 
     
     var helper = new loop.shared.utils.Helper();

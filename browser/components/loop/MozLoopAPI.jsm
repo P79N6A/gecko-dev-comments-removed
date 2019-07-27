@@ -707,6 +707,24 @@ function injectLoopAPI(targetWindow) {
 
         request.send();
       }
+    },
+
+    
+
+
+
+
+
+
+    addConversationContext: {
+      enumerable: true,
+      writable: true,
+      value: function(windowId, sessionId, callid) {
+        MozLoopService.addConversationContext(windowId, {
+          sessionId: sessionId,
+          callId: callid
+        });
+      }
     }
   };
 

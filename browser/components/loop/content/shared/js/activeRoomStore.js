@@ -161,7 +161,8 @@ loop.store.ActiveRoomStore = (function() {
       this._registerPostSetupActions();
 
       this.setStoreState({
-        roomState: ROOM_STATES.GATHER
+        roomState: ROOM_STATES.GATHER,
+        windowId: actionData.windowId
       });
 
       
@@ -306,6 +307,9 @@ loop.store.ActiveRoomStore = (function() {
 
       this._setRefreshTimeout(actionData.expires);
       this._sdkDriver.connectSession(actionData);
+
+      this._mozLoop.addConversationContext(this._storeState.windowId,
+                                           actionData.sessionId, "");
 
       
       
