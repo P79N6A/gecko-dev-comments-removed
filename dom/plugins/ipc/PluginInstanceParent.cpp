@@ -1739,10 +1739,17 @@ PluginInstanceParent::RecvAsyncNPP_NewResult(const NPError& aResult)
         mSurrogate->SetAcceptingCalls(true);
     }
 
+    
+    
+    
     nsPluginInstanceOwner* owner = GetOwner();
-    
-    
-    if (aResult != NPERR_NO_ERROR || !owner) {
+    if (!owner) {
+        
+        
+        return true;
+    }
+
+    if (aResult != NPERR_NO_ERROR) {
         mSurrogate->NotifyAsyncInitFailed();
         return true;
     }
