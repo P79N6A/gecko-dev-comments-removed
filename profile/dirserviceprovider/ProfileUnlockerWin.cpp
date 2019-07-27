@@ -171,8 +171,12 @@ ProfileUnlockerWin::Unlock(uint32_t aSeverity)
   if (error != ERROR_SUCCESS) {
     return NS_ERROR_FAILURE;
   }
+  if (numEntries == 0) {
+    
+    return NS_OK;
+  }
 
-  nsresult rv;
+  nsresult rv = NS_ERROR_FAILURE;
   for (UINT i = 0; i < numEntries; ++i) {
     rv = TryToTerminate(info[i].Process);
     if (NS_SUCCEEDED(rv)) {
@@ -188,6 +192,12 @@ ProfileUnlockerWin::Unlock(uint32_t aSeverity)
 nsresult
 ProfileUnlockerWin::TryToTerminate(RM_UNIQUE_PROCESS& aProcess)
 {
+  
+  
+  
+  
+  
+  
   DWORD accessRights = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE;
   nsAutoHandle otherProcess(::OpenProcess(accessRights, FALSE,
                                           aProcess.dwProcessId));
@@ -207,7 +217,19 @@ ProfileUnlockerWin::TryToTerminate(RM_UNIQUE_PROCESS& aProcess)
   WCHAR imageName[MAX_PATH];
   DWORD imageNameLen = MAX_PATH;
   if (!mQueryFullProcessImageName(otherProcess, 0, imageName, &imageNameLen)) {
-    return NS_ERROR_FAILURE;
+    
+    
+    
+    
+    DWORD otherProcessExitCode;
+    if (!::GetExitCodeProcess(otherProcess, &otherProcessExitCode) ||
+        otherProcessExitCode == STILL_ACTIVE) {
+      
+      return NS_ERROR_FAILURE;
+    }
+    
+    
+    return NS_OK;
   }
   nsCOMPtr<nsIFile> otherProcessImageName;
   if (NS_FAILED(NS_NewLocalFile(nsDependentString(imageName, imageNameLen),
@@ -241,7 +263,11 @@ ProfileUnlockerWin::TryToTerminate(RM_UNIQUE_PROCESS& aProcess)
 
   
   
-  if (!::TerminateProcess(otherProcess, 1)) {
+  
+  
+  
+  if (!::TerminateProcess(otherProcess, 1) &&
+      ::GetLastError() != ERROR_ACCESS_DENIED) {
     return NS_ERROR_FAILURE;
   }
 
