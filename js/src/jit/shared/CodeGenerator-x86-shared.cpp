@@ -2441,11 +2441,8 @@ CodeGeneratorX86Shared::visitSimdShuffle(LSimdShuffle *ins)
     uint32_t mask;
 
     
-    if (numLanesFromLHS == 4) {
-        mask = MacroAssembler::ComputeShuffleMask(x, y, z, w);
-        masm.shufps(mask, lhs, out);
-        return true;
-    }
+    
+    MOZ_ASSERT(numLanesFromLHS < 4);
 
     
     if (numLanesFromLHS == 3) {
