@@ -1,77 +1,62 @@
-
-
-
-
 "use strict";
 
 let rootDir = getRootDirectory(gTestPath);
-const gTestRoot = rootDir;
-const gHttpTestRoot = rootDir.replace("chrome://mochitests/content/",
-                                      "http://127.0.0.1:8888/");
+const gTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
 
 let gTestBrowser = null;
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-
-function test() {
-  waitForExplicitFinish();
-  registerCleanupFunction(() => {
-    FullZoom.reset();
+add_task(function* () {
+  registerCleanupFunction(function () {
     clearAllPluginPermissions();
+    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
+    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Second Test Plug-in");
+    Services.prefs.clearUserPref("plugins.click_to_play");
     Services.prefs.clearUserPref("extensions.blocklist.suppressUI");
+    FullZoom.reset(); 
+    gBrowser.removeCurrentTab();
+    window.focus();
+    gTestBrowser = null;
   });
+});
+
+add_task(function* () {
+  Services.prefs.setBoolPref("plugins.click_to_play", true);
   Services.prefs.setBoolPref("extensions.blocklist.suppressUI", true);
 
-  Services.prefs.setBoolPref("plugins.click_to_play", true);
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
-
-  let newTab = gBrowser.addTab();
-  gBrowser.selectedTab = newTab;
+  gBrowser.selectedTab = gBrowser.addTab();
   gTestBrowser = gBrowser.selectedBrowser;
-  gTestBrowser.addEventListener("load", pageLoad, true);
-  gTestBrowser.contentWindow.location = gHttpTestRoot + "plugin_zoom.html"
-}
 
-function finishTest() {
-  clearAllPluginPermissions();
-  gTestBrowser.removeEventListener("load", pageLoad, true);
-  gBrowser.removeCurrentTab();
-  window.focus();
-  finish();
-}
+  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
 
-function pageLoad() {
+  let popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  ok(!popupNotification, "Test 1, Should not have a click-to-play notification");
+
+  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_zoom.html");
+
   
-  
-  
-  
-  let doc = gTestBrowser.contentDocument;
-  let elems = doc.getElementsByTagName('embed');
-  if (elems.length < 1) {
-    elems = doc.getElementsByTagName('object');
-  }
-  elems[0].clientTop;
-  executeSoon(testOverlay);
-}
+  yield promiseUpdatePluginBindings(gTestBrowser);
 
-let enlargeCount = 4;
+  yield promisePopupNotification("click-to-play-plugins");
+});
 
 
 
-function testOverlay() {
-  let plugin = gTestBrowser.contentDocument.getElementById("test");
-  let doc = gTestBrowser.contentDocument;
-  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-  ok(overlay, "Overlay should exist");
-  ok(overlay.classList.contains("visible"), "Overlay should be visible");
+add_task(function* () {
+  for (let count = 0; count < 4; count++) {
 
-  if (enlargeCount > 0) {
-    --enlargeCount;
     FullZoom.enlarge();
-    gTestBrowser.contentWindow.location.reload();
-  } else {
-    FullZoom.reset();
-    clearAllPluginPermissions();
-    finishTest();
+
+    
+    yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_zoom.html");
+    yield promiseUpdatePluginBindings(gTestBrowser);
+    let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
+      let doc = content.document;
+      let plugin = doc.getElementById("test");
+      let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+      return overlay && overlay.classList.contains("visible");
+    });
+    ok(result, "Overlay should be visible for zoom change count " + count);
   }
-}
+});
+
+

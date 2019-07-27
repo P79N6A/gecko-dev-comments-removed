@@ -1,7 +1,3 @@
-
-
-
-
 var rootDir = getRootDirectory(gTestPath);
 const gTestRoot = rootDir;
 

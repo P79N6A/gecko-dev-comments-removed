@@ -7,33 +7,120 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
 
-function whenDelayedStartupFinished(aWindow, aCallback) {
-  Services.obs.addObserver(function observer(aSubject, aTopic) {
-    if (aWindow == aSubject) {
-      Services.obs.removeObserver(observer, aTopic);
-      executeSoon(aCallback);
+
+
+
+
+function promiseInitContentBlocklistSvc(aBrowser)
+{
+  return ContentTask.spawn(aBrowser, {}, function* () {
+    try {
+      let bls = Cc["@mozilla.org/extensions/blocklist;1"]
+                          .getService(Ci.nsIBlocklistService);
+    } catch (ex) {
+      return ex.message;
     }
-  }, "browser-delayed-startup-finished", false);
+    return null;
+  });
 }
 
-function findChromeWindowByURI(aURI) {
-  let windows = Services.wm.getEnumerator(null);
-  while (windows.hasMoreElements()) {
-    let win = windows.getNext();
-    if (win.location.href == aURI)
-      return win;
+
+
+
+
+
+
+
+
+
+
+function waitForMs(aMs) {
+  let deferred = Promise.defer();
+  let startTime = Date.now();
+  setTimeout(done, aMs);
+  function done() {
+    deferred.resolve(true);
   }
-  return null;
+  return deferred.promise;
+}
+
+
+
+
+function waitForEvent(subject, eventName, checkFn, useCapture, useUntrusted) {
+  return new Promise((resolve, reject) => {
+    subject.addEventListener(eventName, function listener(event) {
+      try {
+        if (checkFn && !checkFn(event)) {
+          return;
+        }
+        subject.removeEventListener(eventName, listener, useCapture);
+        resolve(event);
+      } catch (ex) {
+        try {
+          subject.removeEventListener(eventName, listener, useCapture);
+        } catch (ex2) {
+          
+        }
+        reject(ex);
+      }
+    }, useCapture, useUntrusted);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseTabLoadEvent(tab, url, eventType="load") {
+  let deferred = Promise.defer();
+  info("Wait tab event: " + eventType);
+
+  function handle(event) {
+    if (event.originalTarget != tab.linkedBrowser.contentDocument ||
+        event.target.location.href == "about:blank" ||
+        (url && event.target.location.href != url)) {
+      info("Skipping spurious '" + eventType + "'' event" +
+            " for " + event.target.location.href);
+      return;
+    }
+    clearTimeout(timeout);
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    info("Tab event received: " + eventType);
+    deferred.resolve(event);
+  }
+
+  let timeout = setTimeout(() => {
+    tab.linkedBrowser.removeEventListener(eventType, handle, true);
+    deferred.reject(new Error("Timed out while waiting for a '" + eventType + "'' event"));
+  }, 30000);
+
+  tab.linkedBrowser.addEventListener(eventType, handle, true, true);
+  if (url) {
+    tab.linkedBrowser.loadURI(url);
+  }
+  return deferred.promise;
 }
 
 function waitForCondition(condition, nextTest, errorMsg) {
-  var tries = 0;
-  var interval = setInterval(function() {
-    if (tries >= 30) {
+  let tries = 0;
+  let interval = setInterval(function() {
+    if (tries >= 100) {
       ok(false, errorMsg);
       moveOn();
     }
-    var conditionPassed;
+    let conditionPassed;
     try {
       conditionPassed = condition();
     } catch (e) {
@@ -45,16 +132,24 @@ function waitForCondition(condition, nextTest, errorMsg) {
     }
     tries++;
   }, 100);
-  var moveOn = function() { clearInterval(interval); nextTest(); };
+  let moveOn = function() { clearInterval(interval); nextTest(); };
 }
 
+
+function promiseForCondition(aConditionFn) {
+  let deferred = Promise.defer();
+  waitForCondition(aConditionFn, deferred.resolve, "Condition didn't pass.");
+  return deferred.promise;
+}
+
+
 function getTestPlugin(aName) {
-  var pluginName = aName || "Test Plug-in";
-  var ph = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
-  var tags = ph.getPluginTags();
+  let pluginName = aName || "Test Plug-in";
+  let ph = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
+  let tags = ph.getPluginTags();
 
   
-  for (var i = 0; i < tags.length; i++) {
+  for (let i = 0; i < tags.length; i++) {
     if (tags[i].name == pluginName)
       return tags[i];
   }
@@ -64,13 +159,71 @@ function getTestPlugin(aName) {
 
 
 
-
 function setTestPluginEnabledState(newEnabledState, pluginName) {
-  var plugin = getTestPlugin(pluginName);
-  var oldEnabledState = plugin.enabledState;
+  let name = pluginName || "Test Plug-in";
+  let plugin = getTestPlugin(name);
   plugin.enabledState = newEnabledState;
-  SimpleTest.registerCleanupFunction(function() {
-    getTestPlugin(pluginName).enabledState = oldEnabledState;
+}
+
+
+
+function getTestPluginEnabledState(pluginName) {
+  let name = pluginName || "Test Plug-in";
+  let plugin = getTestPlugin(name);
+  return plugin.enabledState;
+}
+
+
+function promiseForPluginInfo(aId, aBrowser) {
+  let browser = aBrowser || gTestBrowser;
+  return ContentTask.spawn(browser, aId, function* (aId) {
+    let plugin = content.document.getElementById(aId);
+    if (!(plugin instanceof Ci.nsIObjectLoadingContent))
+      throw new Error("no plugin found");
+    return {
+      pluginFallbackType: plugin.pluginFallbackType,
+      activated: plugin.activated,
+      hasRunningPlugin: plugin.hasRunningPlugin,
+      displayedType: plugin.displayedType,
+    };
+  });
+}
+
+
+
+function promisePlayObject(aId, aBrowser) {
+  let browser = aBrowser || gTestBrowser;
+  return ContentTask.spawn(browser, aId, function* (aId) {
+    let plugin = content.document.getElementById(aId);
+    let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+    objLoadingContent.playPlugin();
+  });
+}
+
+function promiseCrashObject(aId, aBrowser) {
+  let browser = aBrowser || gTestBrowser;
+  return ContentTask.spawn(browser, aId, function* (aId) {
+    let plugin = content.document.getElementById(aId);
+    let objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
+    Components.utils.waiveXrays(plugin).crash();
+  });
+}
+
+
+function promiseObjectValueResult(aId, aBrowser) {
+  let browser = aBrowser || gTestBrowser;
+  return ContentTask.spawn(browser, aId, function* (aId) {
+    let plugin = content.document.getElementById(aId);
+    return Components.utils.waiveXrays(plugin).getObjectValue();
+  });
+}
+
+
+function promiseReloadPlugin(aId, aBrowser) {
+  let browser = aBrowser || gTestBrowser;
+  return ContentTask.spawn(browser, aId, function* (aId) {
+    let plugin = content.document.getElementById(aId);
+    plugin.src = plugin.src;
   });
 }
 
@@ -81,15 +234,16 @@ function clearAllPluginPermissions() {
   while (perms.hasMoreElements()) {
     let perm = perms.getNext();
     if (perm.type.startsWith('plugin')) {
+      info("removing permission:" + perm.host + " " + perm.type + "\n");
       Services.perms.remove(perm.host, perm.type);
     }
   }
 }
 
 function updateBlocklist(aCallback) {
-  var blocklistNotifier = Cc["@mozilla.org/extensions/blocklist;1"]
+  let blocklistNotifier = Cc["@mozilla.org/extensions/blocklist;1"]
                           .getService(Ci.nsITimerCallback);
-  var observer = function() {
+  let observer = function() {
     Services.obs.removeObserver(observer, "blocklist-updated");
     SimpleTest.executeSoon(aCallback);
   };
@@ -97,28 +251,77 @@ function updateBlocklist(aCallback) {
   blocklistNotifier.notify(null);
 }
 
-var _originalTestBlocklistURL = null;
+let _originalTestBlocklistURL = null;
 function setAndUpdateBlocklist(aURL, aCallback) {
-  if (!_originalTestBlocklistURL)
+  if (!_originalTestBlocklistURL) {
     _originalTestBlocklistURL = Services.prefs.getCharPref("extensions.blocklist.url");
+  }
   Services.prefs.setCharPref("extensions.blocklist.url", aURL);
   updateBlocklist(aCallback);
 }
+
+
+
+function* asyncSetAndUpdateBlocklist(aURL, aBrowser) {
+  info("*** loading new blocklist: " + aURL);
+  let doTestRemote = aBrowser ? aBrowser.isRemoteBrowser : false;
+  if (!_originalTestBlocklistURL) {
+    _originalTestBlocklistURL = Services.prefs.getCharPref("extensions.blocklist.url");
+  }
+  Services.prefs.setCharPref("extensions.blocklist.url", aURL);
+  let localPromise = TestUtils.topicObserved("blocklist-updated");
+  let remotePromise;
+  if (doTestRemote) {
+    remotePromise = TestUtils.topicObserved("content-blocklist-updated");
+  }
+  let blocklistNotifier = Cc["@mozilla.org/extensions/blocklist;1"]
+                            .getService(Ci.nsITimerCallback);
+  blocklistNotifier.notify(null);
+  info("*** waiting on local load");
+  yield localPromise;
+  if (doTestRemote) {
+    info("*** waiting on remote load");
+    yield remotePromise;
+  }
+  info("*** blocklist loaded.");
+}
+
 
 function resetBlocklist() {
   Services.prefs.setCharPref("extensions.blocklist.url", _originalTestBlocklistURL);
 }
 
-function waitForNotificationPopup(notificationID, browser, callback) {
-  let notification;
-  waitForCondition(
-    () => (notification = PopupNotifications.getNotification(notificationID, browser)),
-    () => {
-      ok(notification, `Successfully got the ${notificationID} notification popup`);
-      callback(notification);
-    },
-    `Waited too long for the ${notificationID} notification popup`
-  );
+
+
+function promisePopupNotification(aName, aBrowser) {
+  let deferred = Promise.defer();
+
+  waitForCondition(() => PopupNotifications.getNotification(aName, aBrowser),
+                   () => {
+    ok(!!PopupNotifications.getNotification(aName, aBrowser),
+       aName + " notification appeared");
+
+    deferred.resolve();
+  }, "timeout waiting for popup notification " + aName);
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseWaitForFocus(aWindow) {
+  return new Promise((resolve) => {
+    waitForFocus(resolve, aWindow);
+  });
 }
 
 
@@ -153,6 +356,11 @@ function waitForNotificationBar(notificationID, browser, callback) {
   });
 }
 
+function promiseForNotificationBar(notificationID, browser) {
+  let deferred = Promise.defer();
+  waitForNotificationBar(notificationID, browser, deferred.resolve);
+  return deferred.promise;
+}
 
 
 
@@ -160,8 +368,8 @@ function waitForNotificationBar(notificationID, browser, callback) {
 
 
 
-function waitForNotificationShown(notification, callback)
-{
+
+function waitForNotificationShown(notification, callback) {
   if (PopupNotifications.panel.state == "open") {
     executeSoon(callback);
     return;
@@ -173,26 +381,10 @@ function waitForNotificationShown(notification, callback)
   notification.reshow();
 }
 
-
-
-
-
-
-
-
-
-
-
-function forcePluginBindingAttached(browser) {
-  return new Promise((resolve, reject) => {
-    let doc = browser.contentDocument;
-    let elems = doc.getElementsByTagName('embed');
-    if (elems.length < 1) {
-      elems = doc.getElementsByTagName('object');
-    }
-    elems[0].clientTop;
-    executeSoon(resolve);
-  });
+function promiseForNotificationShown(notification) {
+  let deferred = Promise.defer();
+  waitForNotificationShown(notification, deferred.resolve);
+  return deferred.promise;
 }
 
 
@@ -204,15 +396,15 @@ function forcePluginBindingAttached(browser) {
 
 
 
-
-
-
-function loadPage(browser, uri) {
-  return new Promise((resolve, reject) => {
-    browser.addEventListener("load", function onLoad(event) {
-      browser.removeEventListener("load", onLoad, true);
-      resolve();
-    }, true);
-    browser.loadURI(uri);
+function promiseUpdatePluginBindings(browser) {
+  return ContentTask.spawn(browser, {}, function* () {
+    let doc = content.document;
+    let elems = doc.getElementsByTagName('embed');
+    if (!elems || elems.length < 1) {
+      elems = doc.getElementsByTagName('object');
+    }
+    if (elems && elems.length > 0) {
+      elems[0].clientTop;
+    }
   });
 }

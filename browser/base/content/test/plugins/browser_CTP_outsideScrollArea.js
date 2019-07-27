@@ -1,125 +1,120 @@
-var rootDir = getRootDirectory(gTestPath);
-const gTestRoot = rootDir;
-const gHttpTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
+let rootDir = getRootDirectory(gTestPath);
+const gTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
+let gTestBrowser = null;
+let gPluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
 
-var gTestBrowser = null;
-var gNextTest = null;
-var gPluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
-var gRunNextTestAfterPluginRemoved = false;
-
-Components.utils.import("resource://gre/modules/Services.jsm");
-
-function test() {
-  waitForExplicitFinish();
-  registerCleanupFunction(function() {
+add_task(function* () {
+  registerCleanupFunction(function () {
     clearAllPluginPermissions();
+    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Test Plug-in");
+    setTestPluginEnabledState(Ci.nsIPluginTag.STATE_ENABLED, "Second Test Plug-in");
+    Services.prefs.clearUserPref("plugins.click_to_play");
     Services.prefs.clearUserPref("extensions.blocklist.suppressUI");
+    gBrowser.removeCurrentTab();
+    window.focus();
+    gTestBrowser = null;
   });
+});
+
+add_task(function* () {
+  Services.prefs.setBoolPref("plugins.click_to_play", true);
   Services.prefs.setBoolPref("extensions.blocklist.suppressUI", true);
 
-  var newTab = gBrowser.addTab();
+  let newTab = gBrowser.addTab();
   gBrowser.selectedTab = newTab;
   gTestBrowser = gBrowser.selectedBrowser;
-  gTestBrowser.addEventListener("load", pageLoad, true);
 
-  Services.prefs.setBoolPref("plugins.click_to_play", true);
-  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY);
+  setTestPluginEnabledState(Ci.nsIPluginTag.STATE_CLICKTOPLAY, "Test Plug-in");
 
-  prepareTest(test1, gHttpTestRoot + "plugin_outsideScrollArea.html");
-}
+  let popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  ok(!popupNotification, "Test 1, Should not have a click-to-play notification");
+});
 
-function finishTest() {
-  clearAllPluginPermissions();
-  gTestBrowser.removeEventListener("load", pageLoad, true);
-  gBrowser.removeCurrentTab();
-  window.focus();
-  finish();
-}
 
-function pageLoad() {
+
+
+add_task(function* () {
+  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_outsideScrollArea.html");
+
+  yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let doc = content.document;
+    let p = doc.createElement('embed');
+
+    p.setAttribute('id', 'test');
+    p.setAttribute('type', 'application/x-test');
+    p.style.left = "0";
+    p.style.bottom = "200px";
+
+    doc.getElementById('container').appendChild(p);
+  });
+
   
+  yield promiseUpdatePluginBindings(gTestBrowser);
+
+  yield promisePopupNotification("click-to-play-plugins");
+
+  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let plugin = content.document.getElementById("test");
+    let doc = content.document;
+    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+    return overlay && overlay.classList.contains("visible");
+  });
+  ok(result, "Test 2, overlay should be visible.");
+});
+
+add_task(function* () {
+  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_outsideScrollArea.html");
+
+  yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let doc = content.document;
+    let p = doc.createElement('embed');
+
+    p.setAttribute('id', 'test');
+    p.setAttribute('type', 'application/x-test');
+    p.style.left = "0";
+    p.style.bottom = "-410px";
+
+    doc.getElementById('container').appendChild(p);
+  });
+
   
-  executeSoon(gNextTest);
-}
+  yield promiseUpdatePluginBindings(gTestBrowser);
 
-function prepareTest(nextTest, url) {
-  gNextTest = nextTest;
-  gTestBrowser.contentWindow.location = url;
-}
+  yield promisePopupNotification("click-to-play-plugins");
 
+  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let plugin = content.document.getElementById("test");
+    let doc = content.document;
+    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+    return overlay && overlay.classList.contains("visible");
+  });
+  ok(result, "Test 3, overlay should be visible.");
+});
 
+add_task(function* () {
+  yield promiseTabLoadEvent(gBrowser.selectedTab, gTestRoot + "plugin_outsideScrollArea.html");
 
+  yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let doc = content.document;
+    let p = doc.createElement('embed');
 
+    p.setAttribute('id', 'test');
+    p.setAttribute('type', 'application/x-test');
+    p.style.left = "-600px";
+    p.style.bottom = "0";
 
-function runAfterPluginBindingAttached(func) {
-  return function() {
-    let doc = gTestBrowser.contentDocument;
-    let elems = doc.getElementsByTagName('embed');
-    if (elems.length < 1) {
-      elems = doc.getElementsByTagName('object');
-    }
-    elems[0].clientTop;
-    executeSoon(func);
-  };
-}
+    doc.getElementById('container').appendChild(p);
+  });
 
+  
+  yield promiseUpdatePluginBindings(gTestBrowser);
 
-function addPlugin(x, y) {
-  let doc = gTestBrowser.contentDocument;
-  let p = doc.createElement('embed');
-
-  p.setAttribute('id', 'test');
-  p.setAttribute('type', 'application/x-test');
-  p.style.left = x.toString() + 'px';
-  p.style.bottom = y.toString() + 'px';
-
-  doc.getElementById('container').appendChild(p);
-}
-
-
-
-
-function test1() {
-  addPlugin(0, -200);
-  executeSoon(runAfterPluginBindingAttached(test2));
-}
-
-function test2() {
-  let doc = gTestBrowser.contentDocument;
-  let plugin = doc.getElementById("test");
-  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-  ok(overlay, "Test 2, Should have an overlay.");
-  ok(overlay.classList.contains("visible"), "Test 2, Overlay should be visible");
-
-  prepareTest(test3, gHttpTestRoot + "plugin_outsideScrollArea.html");
-}
-
-function test3() {
-  addPlugin(0, -410);
-  executeSoon(runAfterPluginBindingAttached(test4));
-}
-
-function test4() {
-  let doc = gTestBrowser.contentDocument;
-  let plugin = doc.getElementById("test");
-  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-  ok(overlay, "Test 4, Should have an overlay.");
-  ok(overlay.classList.contains("visible"), "Test 4, Overlay should be visible");
-
-  prepareTest(test5, gHttpTestRoot + "plugin_outsideScrollArea.html");
-}
-
-function test5() {
-  addPlugin(-600, 0);
-  executeSoon(runAfterPluginBindingAttached(test6));
-}
-
-function test6() {
-  let doc = gTestBrowser.contentDocument;
-  let plugin = doc.getElementById("test");
-  let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
-  ok(overlay, "Test 6, Should have an overlay.");
-  ok(!overlay.classList.contains("visible"), "Test 6, Overlay should be hidden");
-
-  finishTest();
-}
+  yield promisePopupNotification("click-to-play-plugins");
+  let result = yield ContentTask.spawn(gTestBrowser, {}, function* () {
+    let plugin = content.document.getElementById("test");
+    let doc = content.document;
+    let overlay = doc.getAnonymousElementByAttribute(plugin, "anonid", "main");
+    return overlay && overlay.classList.contains("visible");
+  });
+  ok(!result, "Test 4, overlay should be hidden.");
+});
