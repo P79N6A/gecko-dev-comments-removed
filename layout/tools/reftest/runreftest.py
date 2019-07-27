@@ -179,6 +179,9 @@ class RefTest(object):
     prefs['general.useragent.updates.enabled'] = False
     
     prefs['browser.webapps.checkForUpdates'] = 0
+    
+    prefs['browser.newtabpage.directory.source'] = 'data:application/json,{"reftest":1}'
+    prefs['browser.newtabpage.directory.ping'] = ''
 
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
