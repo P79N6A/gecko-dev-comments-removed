@@ -60,8 +60,8 @@ let tests = [
     let shell = Components.classes["@mozilla.org/browser/shell-service;1"]
                           .getService(Components.interfaces.nsIShellService);
     let isDefault = shell.isDefaultBrowser(false);
-    gContentAPI.isDefaultBrowser(function(data) {
-      is(data.value, isDefault, "gContentAPI.isDefaultBrowser should match shellService.isDefaultBrowser");
+    gContentAPI.getConfiguration("appinfo", (data) => {
+      is(data.value, data.defaultBrowser, "gContentAPI result should match shellService.isDefaultBrowser");
       done();
     });
   })
