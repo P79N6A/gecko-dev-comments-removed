@@ -10,57 +10,27 @@
 
 
 
-function test() {
-  
-  waitForExplicitFinish();
-  let windowsToClose = [];
+add_task(function test() {
   let testURI = "about:blank";
   let prefix = 'http://mochi.test:8888/browser/browser/components/privatebrowsing/test/browser/';
 
-  function doTest(aIsPrivateMode, aWindow, aCallback) {
-    aWindow.gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
-      aWindow.gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+  
+  let privateWin = yield BrowserTestUtils.openNewBrowserWindow({private: true});
+  let privateBrowser = privateWin.gBrowser.addTab(
+    prefix + 'browser_privatebrowsing_localStorage_before_after_page.html').linkedBrowser;
+  yield BrowserTestUtils.browserLoaded(privateBrowser);
 
-      if (aIsPrivateMode) {
-        
-        is(aWindow.gBrowser.contentWindow.document.title, '1', "localStorage should contain 1 item");
-      } else {
-        
-        is(aWindow.gBrowser.contentWindow.document.title, 'null|0', 'localStorage should contain 0 items');
-      }
-
-      aCallback();
-    }, true);
-
-    aWindow.gBrowser.selectedBrowser.loadURI(testURI);
-  }
-
-  function testOnWindow(aOptions, aCallback) {
-    whenNewWindowLoaded(aOptions, function(aWin) {
-      windowsToClose.push(aWin);
-      
-      
-      
-      executeSoon(function() aCallback(aWin));
-    });
-  };
-
-   
-  registerCleanupFunction(function() {
-    windowsToClose.forEach(function(aWin) {
-      aWin.close();
-    });
-  });
+  is(privateBrowser.contentTitle, '1', "localStorage should contain 1 item");
 
   
-  testOnWindow({private: true}, function(aWin) {
-    testURI = prefix + 'browser_privatebrowsing_localStorage_before_after_page.html';
-    doTest(true, aWin, function() {
-      
-      testOnWindow({}, function(aWin) {
-        testURI = prefix + 'browser_privatebrowsing_localStorage_before_after_page2.html';
-        doTest(false, aWin, finish);
-      });
-    });
-  });
-}
+  let win = yield BrowserTestUtils.openNewBrowserWindow();
+  let browser = win.gBrowser.addTab(
+    prefix + 'browser_privatebrowsing_localStorage_before_after_page2.html').linkedBrowser;
+  yield BrowserTestUtils.browserLoaded(browser);
+
+  is(browser.contentTitle, 'null|0', 'localStorage should contain 0 items');
+
+  
+  yield BrowserTestUtils.closeWindow(privateWin);
+  yield BrowserTestUtils.closeWindow(win);
+});
