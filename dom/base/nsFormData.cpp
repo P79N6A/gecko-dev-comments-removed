@@ -8,6 +8,8 @@
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/HTMLFormElement.h"
 
+#include "MultipartFileImpl.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -16,6 +18,41 @@ nsFormData::nsFormData(nsISupports* aOwner)
   , mOwner(aOwner)
 {
 }
+
+namespace {
+
+File*
+CreateNewFileInstance(File& aBlob, const Optional<nsAString>& aFilename)
+{
+  
+  
+  
+  
+  
+  
+  nsAutoString filename;
+  if (aFilename.WasPassed()) {
+    filename = aFilename.Value();
+  } else if (aBlob.IsFile()) {
+    
+    
+    return &aBlob;
+  } else {
+    filename = NS_LITERAL_STRING("blob");
+  }
+
+  nsAutoTArray<nsRefPtr<FileImpl>, 1> blobImpls;
+  blobImpls.AppendElement(aBlob.Impl());
+
+  nsAutoString contentType;
+  aBlob.GetType(contentType);
+
+  nsRefPtr<MultipartFileImpl> impl =
+    new MultipartFileImpl(blobImpls, filename, contentType);
+
+  return new File(aBlob.GetParentObject(), impl);
+}
+} 
 
 
 
@@ -75,13 +112,8 @@ void
 nsFormData::Append(const nsAString& aName, File& aBlob,
                    const Optional<nsAString>& aFilename)
 {
-  nsString filename;
-  if (aFilename.WasPassed()) {
-    filename = aFilename.Value();
-  } else {
-    filename.SetIsVoid(true);
-  }
-  AddNameFilePair(aName, &aBlob, filename);
+  nsRefPtr<File> file = CreateNewFileInstance(aBlob, aFilename);
+  AddNameFilePair(aName, file);
 }
 
 void
@@ -173,14 +205,8 @@ nsFormData::Set(const nsAString& aName, File& aBlob,
 {
   FormDataTuple* tuple = RemoveAllOthersAndGetFirstFormDataTuple(aName);
   if (tuple) {
-    nsAutoString filename;
-    if (aFilename.WasPassed()) {
-      filename = aFilename.Value();
-    } else {
-      filename.SetIsVoid(true);
-    }
-
-    SetNameFilePair(tuple, aName, &aBlob, filename);
+    nsRefPtr<File> file = CreateNewFileInstance(aBlob, aFilename);
+    SetNameFilePair(tuple, aName, file);
   } else {
     Append(aName, aBlob, aFilename);
   }
@@ -266,8 +292,7 @@ nsFormData::GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
 
   for (uint32_t i = 0; i < mFormData.Length(); ++i) {
     if (mFormData[i].valueIsFile) {
-      fs.AddNameFilePair(mFormData[i].name, mFormData[i].fileValue,
-                         mFormData[i].filename);
+      fs.AddNameFilePair(mFormData[i].name, mFormData[i].fileValue);
     }
     else {
       fs.AddNameValuePair(mFormData[i].name, mFormData[i].stringValue);

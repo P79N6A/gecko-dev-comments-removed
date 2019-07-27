@@ -79,8 +79,7 @@ public:
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   File* aBlob,
-                                   const nsString& aFilename);
+                                   File* aBlob);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 
@@ -166,8 +165,7 @@ nsFSURLEncoded::AddIsindex(const nsAString& aValue)
 
 nsresult
 nsFSURLEncoded::AddNameFilePair(const nsAString& aName,
-                                File* aBlob,
-                                const nsString& aFilename)
+                                File* aBlob)
 {
   if (!mWarnedFileControl) {
     SendJSWarning(mDocument, "ForgotFileEnctypeWarning", nullptr, 0);
@@ -441,8 +439,7 @@ nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
 
 nsresult
 nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
-                                       File* aBlob,
-                                       const nsString& aFilename)
+                                       File* aBlob)
 {
   
   nsAutoCString nameStr;
@@ -453,32 +450,27 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
   nsCOMPtr<nsIInputStream> fileStream;
   if (aBlob) {
     
-    if (!aFilename.IsVoid()) {
-      rv = EncodeVal(aFilename, filename, true);
-      NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-      
-      nsAutoString filename16;
-      if (aBlob->IsFile()) {
-        rv = aBlob->GetName(filename16);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      if (filename16.IsEmpty()) {
-        filename16.AssignLiteral("blob");
-      } else {
-        nsAutoString filepath16;
-        rv = aBlob->GetPath(filepath16);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (!filepath16.IsEmpty()) {
-          
-          filename16 = filepath16 + filename16;
-        }
-      }
-
-      rv = EncodeVal(filename16, filename, true);
-      NS_ENSURE_SUCCESS(rv, rv);
+    
+    MOZ_ASSERT(aBlob->IsFile());
+    nsAutoString filename16;
+    rv = aBlob->GetName(filename16);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
     }
+
+    nsAutoString filepath16;
+    rv = aBlob->GetPath(filepath16);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+
+    if (!filepath16.IsEmpty()) {
+      
+      filename16 = filepath16 + filename16;
+    }
+
+    rv = EncodeVal(filename16, filename, true);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     nsAutoString contentType16;
@@ -597,8 +589,7 @@ public:
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   File* aBlob,
-                                   const nsString& aFilename);
+                                   File* aBlob);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 
@@ -621,8 +612,7 @@ nsFSTextPlain::AddNameValuePair(const nsAString& aName,
 
 nsresult
 nsFSTextPlain::AddNameFilePair(const nsAString& aName,
-                               File* aBlob,
-                               const nsString& aFilename)
+                               File* aBlob)
 {
   nsAutoString filename;
   if (aBlob && aBlob->IsFile()) {
