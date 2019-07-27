@@ -143,7 +143,7 @@
         parent.addEventListener("click", parentClickTest);
         child.addEventListener("click", childClickTest);
         SimpleTest.executeSoon(function () {
-          synthesizeMouseAtCenter(child, {type: "click"}, window);
+          synthesizeMouseAtCenter(child, {}, window);
         });
       };
 
