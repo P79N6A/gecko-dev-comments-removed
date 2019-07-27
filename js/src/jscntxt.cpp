@@ -496,7 +496,7 @@ checkReportFlags(JSContext *cx, unsigned *flags)
     }
 
     
-    if (JSREPORT_IS_WARNING(*flags) && cx->options().werror())
+    if (JSREPORT_IS_WARNING(*flags) && cx->runtime()->options().werror())
         *flags &= ~JSREPORT_WARNING;
 
     return false;
