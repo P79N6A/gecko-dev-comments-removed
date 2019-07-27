@@ -16,6 +16,7 @@
 #include "nsIRemoteOpenFileListener.h"
 #include "nsProxyRelease.h"
 #include "SerializedLoadContext.h"
+#include "nsNetUtil.h"
 
 
 #include "private/pprio.h"

@@ -18,6 +18,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIRequest.h"
 #include "nsNetCID.h"
+#include "nsNetUtil.h"
 
 #define ASYNC_TEST
 

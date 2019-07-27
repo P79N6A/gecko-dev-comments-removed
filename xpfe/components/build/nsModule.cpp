@@ -4,7 +4,6 @@
 
 
 #include "mozilla/ModuleUtils.h"
-#include "nsNetUtil.h"
 #include "nsDirectoryViewer.h"
 #include "rdf.h"
 #include "nsRDFCID.h"

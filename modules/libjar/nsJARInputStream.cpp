@@ -9,7 +9,6 @@
 #include "zipstruct.h"         
 #include "nsZipArchive.h"
 
-#include "nsNetUtil.h"
 #include "nsEscape.h"
 #include "nsIFile.h"
 #include "nsDebug.h"

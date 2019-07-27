@@ -9,6 +9,7 @@
 #include "nsISafeOutputStream.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Logging.h"
+#include "nsNetUtil.h"
 #include "prprf.h"
 
 
