@@ -33,6 +33,25 @@ PRLogModuleInfo* GetLayoutLog();
   PR_END_MACRO
 #endif
 
+
+
+
+
+
+
+#ifdef DEBUG
+#define LAYOUT_WARNING(_msg)                                                \
+  PR_BEGIN_MACRO                                                            \
+    if (MOZ_LOG_TEST(GetLayoutLog(), mozilla::LogLevel::Warning)) {         \
+      mozilla::detail::LayoutLogWarning(_msg, nullptr, __FILE__, __LINE__); \
+    }                                                                       \
+  PR_END_MACRO
+#else
+#define LAYOUT_WARNING(_msg) \
+  PR_BEGIN_MACRO             \
+  PR_END_MACRO
+#endif
+
 namespace mozilla {
 namespace detail {
 
