@@ -223,6 +223,22 @@ private:
 
 public:
   
+  
+  MOZ_CONSTEXPR PLDHashTable()
+    : ops(nullptr)
+    , mHashShift(0)
+    , mRecursionLevel(0)
+    , mEntrySize(0)
+    , mEntryCount(0)
+    , mRemovedCount(0)
+    , mGeneration(0)
+    , mEntryStore(nullptr)
+#ifdef PL_DHASHMETER
+    , mStats()
+#endif
+  {}
+
+  
 
 
 

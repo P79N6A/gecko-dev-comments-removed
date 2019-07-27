@@ -16,35 +16,70 @@ namespace TestPLDHash {
 
 static bool test_pldhash_Init_capacity_ok()
 {
-  
-  
-  
   PLDHashTable t;
-  bool ok = PL_DHashTableInit(&t, PL_DHashGetStubOps(),
-                              sizeof(PLDHashEntryStub),
-                              mozilla::fallible_t(),
-                              PL_DHASH_MAX_INITIAL_LENGTH);
-  if (ok)
-    PL_DHashTableFinish(&t);
 
-  return ok;
+  
+  if (t.ops) {
+    return false;
+  }
+
+  
+  
+  
+  if (!PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(PLDHashEntryStub),
+                         mozilla::fallible_t(), PL_DHASH_MAX_INITIAL_LENGTH)) {
+    return false;
+  }
+
+  
+  if (!t.ops) {
+    return false;
+  }
+
+  
+  PL_DHashTableFinish(&t);
+  if (t.ops) {
+    return false;
+  }
+
+  return true;
 }
 
 static bool test_pldhash_Init_capacity_too_large()
 {
-  
   PLDHashTable t;
-  bool ok = PL_DHashTableInit(&t, PL_DHashGetStubOps(),
-                              sizeof(PLDHashEntryStub),
-                              mozilla::fallible_t(),
-                              PL_DHASH_MAX_INITIAL_LENGTH + 1);
+
+  
+  if (t.ops) {
+    return false;
+  }
+
+  
+  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(),
+                        sizeof(PLDHashEntryStub),
+                        mozilla::fallible_t(),
+                        PL_DHASH_MAX_INITIAL_LENGTH + 1)) {
+    return false;   
+  }
   
 
-  return !ok;   
+  
+  if (t.ops) {
+    return false;
+  }
+
+  return true;
 }
 
 static bool test_pldhash_Init_overflow()
 {
+  PLDHashTable t;
+
+  
+  if (t.ops) {
+    return false;
+  }
+
   
   
   
@@ -57,13 +92,18 @@ static bool test_pldhash_Init_overflow()
       char buf[1024 - sizeof(PLDHashEntryHdr)];
   };
 
+  if (PL_DHashTableInit(&t, PL_DHashGetStubOps(), sizeof(OneKBEntry),
+                        mozilla::fallible_t(), PL_DHASH_MAX_INITIAL_LENGTH)) {
+    return false;   
+  }
   
-  PLDHashTable t;
-  bool ok = PL_DHashTableInit(&t, nullptr,
-                              sizeof(OneKBEntry), mozilla::fallible_t(),
-                              PL_DHASH_MAX_INITIAL_LENGTH);
 
-  return !ok;   
+  
+  if (t.ops) {
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -87,16 +127,18 @@ static bool test_pldhash_grow_to_max_capacity()
     nullptr
   };
 
-  PLDHashTable t;
-  bool ok = PL_DHashTableInit(&t, &ops, sizeof(PLDHashEntryStub),
-                              mozilla::fallible_t(), 128);
-  if (!ok)
+  
+  PLDHashTable* t = PL_NewDHashTable(&ops, sizeof(PLDHashEntryStub), 128);
+
+  
+  if (!t->ops) {
     return false;
+  }
 
   
   size_t numInserted = 0;
   while (true) {
-    if (!PL_DHashTableAdd(&t, (const void*)numInserted)) {
+    if (!PL_DHashTableAdd(t, (const void*)numInserted)) {
       break;
     }
     numInserted++;
@@ -104,7 +146,13 @@ static bool test_pldhash_grow_to_max_capacity()
 
   
   
-  return numInserted == PL_DHASH_MAX_CAPACITY - (PL_DHASH_MAX_CAPACITY >> 5);
+  if (numInserted != PL_DHASH_MAX_CAPACITY - (PL_DHASH_MAX_CAPACITY >> 5)) {
+    return false;
+  }
+
+  PL_DHashTableDestroy(t);
+
+  return true;
 }
 #endif
 

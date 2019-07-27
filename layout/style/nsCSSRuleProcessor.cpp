@@ -455,7 +455,6 @@ protected:
 
   int32_t     mRuleCount;
   
-  
   PLDHashTable mIdTable;
   PLDHashTable mClassTable;
   PLDHashTable mTagTable;
@@ -514,11 +513,6 @@ RuleHash::RuleHash(bool aQuirksMode)
 #endif
 {
   MOZ_COUNT_CTOR(RuleHash);
-
-  mTagTable.ops = nullptr;
-  mIdTable.ops = nullptr;
-  mClassTable.ops = nullptr;
-  mNameSpaceTable.ops = nullptr;
 }
 
 RuleHash::~RuleHash()
@@ -3362,9 +3356,8 @@ struct CascadeEnumData {
       mCacheKey(aKey),
       mSheetType(aSheetType)
   {
-    if (!PL_DHashTableInit(&mRulesByWeight, &gRulesByWeightOps,
-                           sizeof(RuleByWeightEntry), fallible_t(), 32))
-      mRulesByWeight.ops = nullptr;
+    PL_DHashTableInit(&mRulesByWeight, &gRulesByWeightOps,
+                      sizeof(RuleByWeightEntry), 32);
 
     
     PL_INIT_ARENA_POOL(&mArena, "CascadeEnumDataArena",

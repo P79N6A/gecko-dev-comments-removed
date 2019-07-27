@@ -132,11 +132,6 @@ nsLoadGroup::nsLoadGroup(nsISupports* outer)
 #endif
 
     LOG(("LOADGROUP [%x]: Created.\n", this));
-
-    
-    
-    
-    mRequests.ops = nullptr;
 }
 
 nsLoadGroup::~nsLoadGroup()
