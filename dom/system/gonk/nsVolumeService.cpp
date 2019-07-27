@@ -368,7 +368,7 @@ nsVolumeService::FindVolumeByMountLockName(const nsAString& aMountLockName)
 }
 
 already_AddRefed<nsVolume>
-nsVolumeService::FindVolumeByName(const nsAString& aName)
+nsVolumeService::FindVolumeByName(const nsAString& aName, nsVolume::Array::index_type* aIndex)
 {
   mArrayMonitor.AssertCurrentThreadOwns();
 
@@ -377,51 +377,33 @@ nsVolumeService::FindVolumeByName(const nsAString& aName)
   for (volIndex = 0; volIndex < numVolumes; volIndex++) {
     nsRefPtr<nsVolume> vol = mVolumeArray[volIndex];
     if (vol->Name().Equals(aName)) {
+      if (aIndex) {
+        *aIndex = volIndex;
+      }
       return vol.forget();
     }
   }
   return nullptr;
 }
 
-
-already_AddRefed<nsVolume>
-nsVolumeService::CreateOrFindVolumeByName(const nsAString& aName, bool aIsFake )
-{
-  MonitorAutoLock autoLock(mArrayMonitor);
-
-  nsRefPtr<nsVolume> vol;
-  vol = FindVolumeByName(aName);
-  if (vol) {
-    return vol.forget();
-  }
-  
-  vol = new nsVolume(aName);
-  vol->SetIsFake(aIsFake);
-  mVolumeArray.AppendElement(vol);
-  return vol.forget();
-}
-
 void
-nsVolumeService::UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers)
+nsVolumeService::UpdateVolume(nsVolume* aVolume, bool aNotifyObservers)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsString volName;
-  aVolume->GetName(volName);
-  bool aIsFake;
-  aVolume->GetIsFake(&aIsFake);
-  nsRefPtr<nsVolume> vol = CreateOrFindVolumeByName(volName, aIsFake);
-  if (vol->Equals(aVolume)) {
-    
-    return;
+  {
+    MonitorAutoLock autoLock(mArrayMonitor);
+    nsVolume::Array::index_type volIndex;
+    nsRefPtr<nsVolume> vol = FindVolumeByName(aVolume->Name(), &volIndex);
+    if (!vol) {
+      mVolumeArray.AppendElement(aVolume);
+    } else if (vol->Equals(aVolume) || (!vol->IsFake() && aVolume->IsFake())) {
+      
+      return;
+    } else {
+      mVolumeArray.ReplaceElementAt(volIndex, aVolume);
+    }
   }
-
-  if (!vol->IsFake() && aIsFake) {
-    
-    return;
-  }
-
-  vol->Set(aVolume);
 
   if (!aNotifyObservers) {
     return;
@@ -431,8 +413,8 @@ nsVolumeService::UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers)
   if (!obs) {
     return;
   }
-  NS_ConvertUTF8toUTF16 stateStr(vol->StateStr());
-  obs->NotifyObservers(vol, NS_VOLUME_STATE_CHANGED, stateStr.get());
+  NS_ConvertUTF8toUTF16 stateStr(aVolume->StateStr());
+  obs->NotifyObservers(aVolume, NS_VOLUME_STATE_CHANGED, stateStr.get());
 }
 
 NS_IMETHODIMP
@@ -472,8 +454,6 @@ nsVolumeService::SetFakeVolumeState(const nsAString& name, int32_t state)
     }
 
     
-    
-    
     nsRefPtr<nsVolume> volume = new nsVolume(name);
     volume->Set(vol);
     volume->SetState(state);
@@ -502,15 +482,15 @@ nsVolumeService::RemoveFakeVolume(const nsAString& name)
 void
 nsVolumeService::RemoveVolumeByName(const nsAString& aName)
 {
-  nsRefPtr<nsVolume> vol;
   {
     MonitorAutoLock autoLock(mArrayMonitor);
-    vol = FindVolumeByName(aName);
+    nsVolume::Array::index_type volIndex;
+    nsRefPtr<nsVolume> vol = FindVolumeByName(aName, &volIndex);
+    if (!vol) {
+      return;
+    }
+    mVolumeArray.RemoveElementAt(volIndex);
   }
-  if (!vol) {
-    return;
-  }
-  mVolumeArray.RemoveElement(vol);
 
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
