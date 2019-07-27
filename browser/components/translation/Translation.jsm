@@ -222,12 +222,19 @@ TranslationUI.prototype = {
     
     let neverForLangs =
       Services.prefs.getCharPref("browser.translation.neverForLanguages");
-    if (neverForLangs.split(",").indexOf(this.detectedLanguage) != -1)
+    if (neverForLangs.split(",").indexOf(this.detectedLanguage) != -1) {
+      TranslationHealthReport.recordAutoRejectedTranslationOffer();
       return false;
+    }
 
     
     let perms = Services.perms;
-    return perms.testExactPermission(aURI, "translate") != perms.DENY_ACTION;
+    if (perms.testExactPermission(aURI, "translate") ==  perms.DENY_ACTION) {
+      TranslationHealthReport.recordAutoRejectedTranslationOffer();
+      return false;
+    }
+
+    return true;
   },
 
   showTranslationUI: function(aDetectedLanguage) {
