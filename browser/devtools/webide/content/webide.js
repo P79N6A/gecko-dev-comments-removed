@@ -72,6 +72,9 @@ let UI = {
 
     AppProjects.load().then(() => {
       this.autoSelectProject();
+    }, e => {
+      console.error(e);
+      this.reportError("error_appProjectsLoadFailed");
     });
 
     
