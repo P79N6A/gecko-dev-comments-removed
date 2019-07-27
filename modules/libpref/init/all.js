@@ -35,6 +35,8 @@ pref("general.warnOnAboutConfig", true);
 pref("browser.bookmarks.max_backups",       5);
 
 
+pref("browser.cache.auto_delete_cache_version", 0);
+
 
 
 pref("browser.cache.use_new_backend",       0);
