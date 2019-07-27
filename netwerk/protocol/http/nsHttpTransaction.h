@@ -277,6 +277,8 @@ private:
     bool                            mResponseTimeoutEnabled;
     bool                            mForceRestart;
     bool                            mReuseOnRestart;
+    bool                            mContentDecoding;
+    bool                            mContentDecodingCheck;
 
     
     

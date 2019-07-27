@@ -1362,7 +1362,8 @@ pref("network.http.tcp_keepalive.short_lived_idle_time", 10);
 pref("network.http.tcp_keepalive.long_lived_connections", true);
 pref("network.http.tcp_keepalive.long_lived_idle_time", 600);
 
-pref("network.http.enforce-framing.http1", false);
+pref("network.http.enforce-framing.http1", false); 
+pref("network.http.enforce-framing.soft", true);
 
 
 
