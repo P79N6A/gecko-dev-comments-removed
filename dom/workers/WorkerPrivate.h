@@ -339,6 +339,9 @@ public:
     return Notify(aCx, Killing);
   }
 
+  
+  
+  
   bool
   Suspend(JSContext* aCx, nsPIDOMWindow* aWindow);
 
@@ -346,8 +349,7 @@ public:
   Resume(JSContext* aCx, nsPIDOMWindow* aWindow);
 
   bool
-  SynchronizeAndResume(JSContext* aCx, nsPIDOMWindow* aWindow,
-                       nsIScriptContext* aScriptContext);
+  SynchronizeAndResume(JSContext* aCx, nsPIDOMWindow* aWindow);
 
   bool
   Terminate(JSContext* aCx)
