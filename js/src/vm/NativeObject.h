@@ -1348,12 +1348,6 @@ bool
 NativeGet(JSContext *cx, HandleObject obj, HandleNativeObject pobj,
           HandleShape shape, MutableHandle<Value> vp);
 
-template <ExecutionMode mode>
-bool
-NativeSet(typename ExecutionModeTraits<mode>::ContextType cx,
-          HandleNativeObject obj, HandleObject receiver,
-          HandleShape shape, bool strict, MutableHandleValue vp);
-
 
 
 
