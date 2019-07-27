@@ -32,6 +32,10 @@ nsGridLayout2::nsGridLayout2(nsIPresShell* aPresShell):nsStackLayout()
 {
 }
 
+nsGridLayout2::~nsGridLayout2()
+{
+}
+
 
 void
 nsGridLayout2::AddOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsSize& aSize)
