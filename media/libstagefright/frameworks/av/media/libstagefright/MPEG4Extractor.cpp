@@ -3611,7 +3611,7 @@ status_t MPEG4Source::fragmentedRead(
 
                     
                     if (chunk_type != FOURCC('m', 'o', 'o', 'f')) {
-                        moofOffset += chunk_size;
+                        mNextMoofOffset += chunk_size;
                         continue;
                     }
                     mCurrentMoofOffset = moofOffset;
