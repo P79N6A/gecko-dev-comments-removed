@@ -56,7 +56,7 @@ public:
                        OCSPCache& ocspCache, void* pinArg,
                        CertVerifier::OcspGetConfig ocspGETConfig,
                        CertVerifier::PinningMode pinningMode,
-                       bool forEV,
+                       unsigned int minimumNonECCKeyBits,
            const char* hostname = nullptr,
        ScopedCERTCertList* builtChain = nullptr);
 

@@ -15,6 +15,14 @@ namespace mozilla { namespace psm {
 
 struct ChainValidationCallbackState;
 
+
+enum class KeySizeStatus {
+  NeverChecked = 0,
+  LargeMinimumSucceeded = 1,
+  CompatibilityRisk = 2,
+  AlreadyBad = 3,
+};
+
 class CertVerifier
 {
 public:
@@ -44,7 +52,8 @@ public:
         const SECItem* stapledOCSPResponse = nullptr,
        ScopedCERTCertList* builtChain = nullptr,
        SECOidTag* evOidPolicy = nullptr,
-       OCSPStaplingStatus* ocspStaplingStatus = nullptr);
+       OCSPStaplingStatus* ocspStaplingStatus = nullptr,
+       KeySizeStatus* keySizeStatus = nullptr);
 
   SECStatus VerifySSLServerCert(
                     CERTCertificate* peerCert,
@@ -56,7 +65,8 @@ public:
                     Flags flags = 0,
     ScopedCERTCertList* builtChain = nullptr,
     SECOidTag* evOidPolicy = nullptr,
-    OCSPStaplingStatus* ocspStaplingStatus = nullptr);
+    OCSPStaplingStatus* ocspStaplingStatus = nullptr,
+    KeySizeStatus* keySizeStatus = nullptr);
 
   enum PinningMode {
     pinningDisabled = 0,
@@ -94,4 +104,4 @@ mozilla::pkix::Result CertListContainsExpectedKeys(
 
 } } 
 
-#endif 
+#endif

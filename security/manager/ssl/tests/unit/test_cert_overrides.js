@@ -67,6 +67,16 @@ function check_telemetry() {
   do_check_eq(histogram.counts[14], 2); 
   do_check_eq(histogram.counts[15], 1); 
   do_check_eq(histogram.counts[16], 2); 
+
+  let keySizeHistogram = Cc["@mozilla.org/base/telemetry;1"]
+                           .getService(Ci.nsITelemetry)
+                           .getHistogramById("CERT_CHAIN_KEY_SIZE_STATUS")
+                           .snapshot();
+  do_check_eq(keySizeHistogram.counts[0], 0);
+  do_check_eq(keySizeHistogram.counts[1], 0); 
+  do_check_eq(keySizeHistogram.counts[2], 4); 
+  do_check_eq(keySizeHistogram.counts[3], 47); 
+
   run_next_test();
 }
 
