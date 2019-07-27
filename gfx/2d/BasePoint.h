@@ -17,13 +17,13 @@ namespace gfx {
 
 
 
-template <class T, class Sub, class Coord = T>
+template <class T, class Sub>
 struct BasePoint {
-  Coord x, y;
+  T x, y;
 
   
   MOZ_CONSTEXPR BasePoint() : x(0), y(0) {}
-  MOZ_CONSTEXPR BasePoint(Coord aX, Coord aY) : x(aX), y(aY) {}
+  MOZ_CONSTEXPR BasePoint(T aX, T aY) : x(aX), y(aY) {}
 
   void MoveTo(T aX, T aY) { x = aX; y = aY; }
   void MoveBy(T aDx, T aDy) { x += aDx; y += aDy; }
@@ -67,15 +67,15 @@ struct BasePoint {
   }
 
   T Length() const {
-    return hypot(x.value, y.value);
+    return hypot(x, y);
   }
 
   
   
   
   Sub& Round() {
-    x = Coord(floor(T(x) + T(0.5)));
-    y = Coord(floor(T(y) + T(0.5)));
+    x = static_cast<T>(floor(x + 0.5));
+    y = static_cast<T>(floor(y + 0.5));
     return *static_cast<Sub*>(this);
   }
 

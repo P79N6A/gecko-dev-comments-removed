@@ -790,7 +790,7 @@ protected:
     
     
     return NS_GET_A(state.shadowColor) != 0 &&
-      (state.shadowBlur != 0.f || state.shadowOffset.x != 0.f || state.shadowOffset.y != 0.f);
+      (state.shadowBlur != 0 || state.shadowOffset.x != 0 || state.shadowOffset.y != 0);
   }
 
   mozilla::gfx::CompositionOp UsedOperation()

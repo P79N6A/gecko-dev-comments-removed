@@ -378,8 +378,8 @@ static bool IsCloseToVertical(float aAngle, float aThreshold)
 template <typename Units>
 static bool IsZero(const gfx::PointTyped<Units>& aPoint)
 {
-  return FuzzyEqualsMultiplicative(aPoint.x.value, 0.0f)
-      && FuzzyEqualsMultiplicative(aPoint.y.value, 0.0f);
+  return FuzzyEqualsMultiplicative(aPoint.x, 0.0f)
+      && FuzzyEqualsMultiplicative(aPoint.y, 0.0f);
 }
 
 static inline void LogRendertraceRect(const ScrollableLayerGuid& aGuid, const char* aDesc, const char* aColor, const CSSRect& aRect)
@@ -529,9 +529,9 @@ public:
         
         
         
-        if (FuzzyEqualsAdditive(overscroll.x.value, 0.0f, COORDINATE_EPSILON)) {
+        if (FuzzyEqualsAdditive(overscroll.x, 0.0f, COORDINATE_EPSILON)) {
           velocity.x = 0;
-        } else if (FuzzyEqualsAdditive(overscroll.y.value, 0.0f, COORDINATE_EPSILON)) {
+        } else if (FuzzyEqualsAdditive(overscroll.y, 0.0f, COORDINATE_EPSILON)) {
           velocity.y = 0;
         }
 
@@ -599,7 +599,7 @@ public:
 
     
     
-    float sampledPosition = gComputedTimingFunction->GetValue(animPosition);
+    double sampledPosition = gComputedTimingFunction->GetValue(animPosition);
 
     
     
@@ -1357,8 +1357,8 @@ AsyncPanZoomController::ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut
 nsEventStatus AsyncPanZoomController::OnPanMayBegin(const PanGestureInput& aEvent) {
   APZC_LOG("%p got a pan-maybegin in state %d\n", this, mState);
 
-  mX.StartTouch(aEvent.mPanStartPoint.x.Truncated(), aEvent.mTime);
-  mY.StartTouch(aEvent.mPanStartPoint.y.Truncated(), aEvent.mTime);
+  mX.StartTouch(aEvent.mPanStartPoint.x, aEvent.mTime);
+  mY.StartTouch(aEvent.mPanStartPoint.y, aEvent.mTime);
   CancelAnimationForHandoffChain();
 
   return nsEventStatus_eConsumeNoDefault;
@@ -1377,8 +1377,8 @@ nsEventStatus AsyncPanZoomController::OnPanCancelled(const PanGestureInput& aEve
 nsEventStatus AsyncPanZoomController::OnPanBegin(const PanGestureInput& aEvent) {
   APZC_LOG("%p got a pan-begin in state %d\n", this, mState);
 
-  mX.StartTouch(aEvent.mPanStartPoint.x.Truncated(), aEvent.mTime);
-  mY.StartTouch(aEvent.mPanStartPoint.y.Truncated(), aEvent.mTime);
+  mX.StartTouch(aEvent.mPanStartPoint.x, aEvent.mTime);
+  mY.StartTouch(aEvent.mPanStartPoint.y, aEvent.mTime);
 
   if (GetAxisLockMode() == FREE) {
     SetState(PANNING);
@@ -1401,8 +1401,8 @@ nsEventStatus AsyncPanZoomController::OnPan(const PanGestureInput& aEvent, bool 
   
   
   
-  mX.UpdateWithTouchAtDevicePoint(aEvent.mPanStartPoint.x.Truncated(), aEvent.mTime);
-  mY.UpdateWithTouchAtDevicePoint(aEvent.mPanStartPoint.y.Truncated(), aEvent.mTime);
+  mX.UpdateWithTouchAtDevicePoint(aEvent.mPanStartPoint.x, aEvent.mTime);
+  mY.UpdateWithTouchAtDevicePoint(aEvent.mPanStartPoint.y, aEvent.mTime);
 
   HandlePanningUpdate(aEvent.mPanDisplacement.x, aEvent.mPanDisplacement.y);
 
@@ -2906,7 +2906,7 @@ void AsyncPanZoomController::ShareCompositorFrameMetrics() {
 
 ParentLayerPoint AsyncPanZoomController::ToParentLayerCoords(const ScreenPoint& aPoint)
 {
-  return TransformTo<ParentLayerPixel>(GetNontransientAsyncTransform() * GetCSSTransform(), aPoint);
+  return TransformTo<ParentLayerPixel>(To3DMatrix(GetNontransientAsyncTransform() * GetCSSTransform()), aPoint);
 }
 
 void AsyncPanZoomController::UpdateTransformScale()
