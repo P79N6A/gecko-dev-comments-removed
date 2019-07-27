@@ -9,6 +9,7 @@
 
 class nsIFrame;
 class nsIContent;
+class nsDisplayListBuilder;
 
 namespace mozilla {
 
@@ -59,7 +60,8 @@ public:
 
 
 
-  static bool IsStyleAnimated(nsIFrame* aFrame, nsCSSProperty aProperty);
+  static bool IsStyleAnimated(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                              nsCSSProperty aProperty);
   
 
 
