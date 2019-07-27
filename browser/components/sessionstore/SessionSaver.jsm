@@ -19,6 +19,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
   "resource:///modules/sessionstore/PrivacyFilter.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "RevivableWindows",
+  "resource:///modules/sessionstore/RevivableWindows.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
@@ -205,23 +207,24 @@ let SessionSaverInternal = {
       delete state.deferredInitialState;
     }
 
-#ifndef XP_MACOSX
     
     
     
-    while (state._closedWindows.length) {
-      let i = state._closedWindows.length - 1;
+    
+    let windowsToRevive = RevivableWindows.get();
+    state.windows.unshift(...windowsToRevive);
+    let revivedWindows = state._closedWindows.splice(0, windowsToRevive.length);
+#ifdef DEBUG
+    
+    
+    let match = revivedWindows.every((win, idx) => {
+      return win == windowsToRevive[windowsToRevive.length - 1 - idx];
+    });
 
-      if (!state._closedWindows[i]._shouldRestore) {
-        
-        
-        break;
-      }
-
-      delete state._closedWindows[i]._shouldRestore;
-      state.windows.unshift(state._closedWindows.pop());
+    if (!match) {
+      throw new Error("SessionStore: revived windows didn't match closed windows");
     }
-#endif
+#endif DEBUG
 
     stopWatchFinish("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
     return this._writeState(state);
