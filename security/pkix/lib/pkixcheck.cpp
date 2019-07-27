@@ -181,48 +181,22 @@ CheckKeyUsage(EndEntityOrCA endEntityOrCA, const Input* encodedKeyUsage,
 
 
 
-
-
- const CertPolicyId CertPolicyId::anyPolicy = {
-  4, { (40*2)+5, 29, 32, 0 }
+static const uint8_t anyPolicy[] = {
+  0x55, 0x1d, 0x20, 0x00
 };
 
-bool CertPolicyId::IsAnyPolicy() const
-{
-  return this == &anyPolicy ||
-         (numBytes == anyPolicy.numBytes &&
-          !memcmp(bytes, anyPolicy.bytes, anyPolicy.numBytes));
-}
+ const CertPolicyId CertPolicyId::anyPolicy = {
+  4, { 0x55, 0x1d, 0x20, 0x00 }
+};
 
-
-
-
-
-inline Result
-CheckPolicyInformation(Reader& input, EndEntityOrCA endEntityOrCA,
-                       const CertPolicyId& requiredPolicy,
-                        bool& found)
-{
-  if (input.MatchTLV(der::OIDTag, requiredPolicy.numBytes,
-                     requiredPolicy.bytes)) {
-    found = true;
-  } else if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-             input.MatchTLV(der::OIDTag, CertPolicyId::anyPolicy.numBytes,
-                            CertPolicyId::anyPolicy.bytes)) {
-    found = true;
+bool
+CertPolicyId::IsAnyPolicy() const {
+  if (this == &CertPolicyId::anyPolicy) {
+    return true;
   }
-
-  
-  
-  
-  
-  
-  
-
-  
-  input.SkipToEnd();
-
-  return Success;
+  return numBytes == PR_ARRAY_SIZE(::mozilla::pkix::anyPolicy) &&
+         !memcmp(bytes, ::mozilla::pkix::anyPolicy,
+                 PR_ARRAY_SIZE(::mozilla::pkix::anyPolicy));
 }
 
 
@@ -238,17 +212,14 @@ CheckCertificatePolicies(EndEntityOrCA endEntityOrCA,
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
 
-  
-  
-  
-  if (requiredPolicy.IsAnyPolicy()) {
+  bool requiredPolicyFound = requiredPolicy.IsAnyPolicy();
+  if (requiredPolicyFound) {
     return Success;
   }
 
   
   
-  
-  if (encodedInhibitAnyPolicy) {
+  if (!requiredPolicyFound && encodedInhibitAnyPolicy) {
     return Result::ERROR_POLICY_VALIDATION_FAILED;
   }
 
@@ -258,25 +229,63 @@ CheckCertificatePolicies(EndEntityOrCA endEntityOrCA,
   
   if (trustLevel == TrustLevel::TrustAnchor &&
       endEntityOrCA == EndEntityOrCA::MustBeCA) {
-    return Success;
+    requiredPolicyFound = true;
   }
 
-  if (!encodedCertificatePolicies) {
-    return Result::ERROR_POLICY_VALIDATION_FAILED;
+  Input requiredPolicyDER;
+  if (requiredPolicyDER.Init(requiredPolicy.bytes, requiredPolicy.numBytes)
+        != Success) {
+    return Result::FATAL_ERROR_INVALID_ARGS;
   }
 
-  bool found = false;
+  if (encodedCertificatePolicies) {
+    Reader extension(*encodedCertificatePolicies);
+    Reader certificatePolicies;
+    Result rv = der::ExpectTagAndGetValue(extension, der::SEQUENCE,
+                                          certificatePolicies);
+    if (rv != Success) {
+      return Result::ERROR_POLICY_VALIDATION_FAILED;
+    }
+    if (!extension.AtEnd()) {
+      return Result::ERROR_POLICY_VALIDATION_FAILED;
+    }
 
-  Reader input(*encodedCertificatePolicies);
-  if (der::NestedOf(input, der::SEQUENCE, der::SEQUENCE, der::EmptyAllowed::No,
-                    bind(CheckPolicyInformation, _1, endEntityOrCA,
-                         requiredPolicy, ref(found))) != Success) {
-    return Result::ERROR_POLICY_VALIDATION_FAILED;
+    do {
+      
+      
+      
+      
+      Reader policyInformation;
+      rv = der::ExpectTagAndGetValue(certificatePolicies, der::SEQUENCE,
+                                     policyInformation);
+      if (rv != Success) {
+        return Result::ERROR_POLICY_VALIDATION_FAILED;
+      }
+
+      Reader policyIdentifier;
+      rv = der::ExpectTagAndGetValue(policyInformation, der::OIDTag,
+                                     policyIdentifier);
+      if (rv != Success) {
+        return rv;
+      }
+
+      if (policyIdentifier.MatchRest(requiredPolicyDER)) {
+        requiredPolicyFound = true;
+      } else if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
+                 policyIdentifier.MatchRest(anyPolicy)) {
+        requiredPolicyFound = true;
+      }
+
+      
+      
+      
+      
+      
+      
+    } while (!requiredPolicyFound && !certificatePolicies.AtEnd());
   }
-  if (der::End(input) != Success) {
-    return Result::ERROR_POLICY_VALIDATION_FAILED;
-  }
-  if (!found) {
+
+  if (!requiredPolicyFound) {
     return Result::ERROR_POLICY_VALIDATION_FAILED;
   }
 
