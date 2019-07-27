@@ -104,6 +104,7 @@ namespace jit {
     _(SimdBox)                                  \
     _(ObjectState)                              \
     _(ArrayState)                               \
+    _(AtomicIsLockFree)                         \
     _(AssertRecoveredOnBailout)
 
 class RResumePoint;
@@ -768,6 +769,18 @@ class RArrayState final : public RInstruction
         
         
         return numElements() + 2;
+    }
+
+    bool recover(JSContext* cx, SnapshotIterator& iter) const;
+};
+
+class RAtomicIsLockFree final : public RInstruction
+{
+  public:
+    RINSTRUCTION_HEADER_(AtomicIsLockFree)
+
+    virtual uint32_t numOperands() const {
+        return 1;
     }
 
     bool recover(JSContext* cx, SnapshotIterator& iter) const;

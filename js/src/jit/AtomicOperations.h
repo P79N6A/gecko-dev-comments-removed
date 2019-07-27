@@ -36,7 +36,13 @@ class AtomicOperations
   public:
 
     
-    static inline void fenceSeqCst();
+    
+    
+    
+    
+    
+    
+    static inline bool isLockfree(int32_t n);
 
     
     
@@ -44,6 +50,9 @@ class AtomicOperations
     
     
     static inline bool isLockfree8();
+
+    
+    static inline void fenceSeqCst();
 
     
     
