@@ -1689,9 +1689,8 @@ GLContext::InitExtensions()
         
         
         
-        
         if (nsCocoaFeatures::OSXVersionMajor() == 10 &&
-            nsCocoaFeatures::OSXVersionMinor() >= 9 &&
+            nsCocoaFeatures::OSXVersionMinor() == 9 &&
             Renderer() == GLRenderer::IntelHD3000)
         {
             MarkExtensionUnsupported(EXT_texture_compression_s3tc);
