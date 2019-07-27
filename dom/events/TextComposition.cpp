@@ -463,6 +463,21 @@ TextComposition::EditorWillHandleCompositionChangeEvent(
 }
 
 void
+TextComposition::OnEditorDestroyed()
+{
+  MOZ_ASSERT(!mIsEditorHandlingEvent,
+             "The editor should have stopped listening events");
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (NS_WARN_IF(!widget)) {
+    
+    return;
+  }
+
+  
+  RequestToCommit(widget, true);
+}
+
+void
 TextComposition::EditorDidHandleCompositionChangeEvent()
 {
   mString = mLastData;

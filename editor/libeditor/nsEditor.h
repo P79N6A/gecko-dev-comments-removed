@@ -589,6 +589,10 @@ public:
 
 
   bool IsIMEComposing() const;
+  
+
+
+  bool ShouldHandleIMEComposition() const;
 
   
   static nsresult GetTagString(nsIDOMNode *aNode, nsAString& outString);

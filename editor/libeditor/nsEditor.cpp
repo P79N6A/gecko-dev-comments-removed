@@ -152,6 +152,10 @@ nsEditor::~nsEditor()
 {
   NS_ASSERTION(!mDocWeak || mDidPreDestroy, "Why PreDestroy hasn't been called?");
 
+  if (mComposition) {
+    mComposition->OnEditorDestroyed();
+    mComposition = nullptr;
+  }
   mTxnMgr = nullptr;
 
   delete mPhonetic;
@@ -345,7 +349,12 @@ nsEditor::InstallEventListeners()
 
   nsEditorEventListener* listener =
     reinterpret_cast<nsEditorEventListener*>(mEventListener.get());
-  return listener->Connect(this);
+  nsresult rv = listener->Connect(this);
+  if (mComposition) {
+    
+    mComposition->StartHandlingComposition(this);
+  }
+  return rv;
 }
 
 void
@@ -356,8 +365,9 @@ nsEditor::RemoveEventListeners()
   }
   reinterpret_cast<nsEditorEventListener*>(mEventListener.get())->Disconnect();
   if (mComposition) {
+    
+    
     mComposition->EndHandlingComposition(this);
-    mComposition = nullptr;
   }
   mEventTarget = nullptr;
 }
@@ -2268,7 +2278,7 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
 
   NS_ENSURE_TRUE(aInOutNode && *aInOutNode && aInOutOffset && aDoc,
                  NS_ERROR_NULL_POINTER);
-  if (!mComposition && aStringToInsert.IsEmpty()) {
+  if (!ShouldHandleIMEComposition() && aStringToInsert.IsEmpty()) {
     return NS_OK;
   }
 
@@ -2307,7 +2317,7 @@ nsEditor::InsertTextImpl(const nsAString& aStringToInsert,
   }
 
   nsresult res;
-  if (mComposition) {
+  if (ShouldHandleIMEComposition()) {
     if (!node->IsNodeOfType(nsINode::eTEXT)) {
       
       nsRefPtr<nsTextNode> newNode = aDoc->CreateTextNode(EmptyString());
@@ -2356,7 +2366,7 @@ nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
   
   
   
-  if (mComposition && !aSuppressIME) {
+  if (ShouldHandleIMEComposition() && !aSuppressIME) {
     if (!mIMETextNode) {
       mIMETextNode = &aTextNode;
       mIMETextOffset = aOffset;
@@ -4021,6 +4031,15 @@ bool
 nsEditor::IsIMEComposing() const
 {
   return mComposition && mComposition->IsComposing();
+}
+
+bool
+nsEditor::ShouldHandleIMEComposition() const
+{
+  
+  
+  
+  return mComposition && mDidPostCreate;
 }
 
 nsresult
