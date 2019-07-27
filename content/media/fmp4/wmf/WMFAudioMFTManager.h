@@ -29,6 +29,9 @@ public:
   
   virtual HRESULT Output(int64_t aStreamOffset,
                          nsAutoPtr<MediaData>& aOutput) MOZ_OVERRIDE;
+
+  virtual void Shutdown() MOZ_OVERRIDE;
+
 private:
 
   HRESULT UpdateOutputType();

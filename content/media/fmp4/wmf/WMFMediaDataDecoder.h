@@ -43,6 +43,9 @@ public:
   
   virtual HRESULT Output(int64_t aStreamOffset,
                          nsAutoPtr<MediaData>& aOutput) = 0;
+
+  
+  virtual void Shutdown() = 0;
 };
 
 
@@ -80,6 +83,8 @@ private:
   
   
   void ProcessDrain();
+
+  void ProcessShutdown();
 
   RefPtr<MediaTaskQueue> mTaskQueue;
   MediaDataDecoderCallback* mCallback;
