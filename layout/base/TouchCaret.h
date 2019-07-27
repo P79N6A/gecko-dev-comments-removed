@@ -121,6 +121,12 @@ private:
 
 
 
+  bool IsCaretShowingInScrollFrame();
+
+  
+
+
+
   nsPoint ClampPositionToScrollFrame(const nsPoint& aPosition);
 
   
