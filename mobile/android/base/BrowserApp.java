@@ -1600,7 +1600,7 @@ public class BrowserApp extends GeckoApp
         }
 
         mTabsPanel.prepareTabsAnimation(mMainLayoutAnimator);
-        mBrowserToolbar.prepareTabsAnimation(mMainLayoutAnimator, areTabsShown());
+        mBrowserToolbar.triggerTabsPanelTransition(mMainLayoutAnimator, areTabsShown());
 
         
         
