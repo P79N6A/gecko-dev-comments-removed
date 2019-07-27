@@ -214,7 +214,15 @@ WrapperPromiseCallback::Call(JSContext* aCx,
   if (rv.Failed()) {
     JS::Rooted<JS::Value> value(aCx);
     if (rv.IsJSException()) {
-      rv.StealJSException(aCx, &value);
+      { 
+        
+        
+        
+        
+        
+        JSAutoCompartment ac(aCx, mNextPromise->GlobalJSObject());
+        rv.StealJSException(aCx, &value);
+      }
 
       if (!JS_WrapValue(aCx, &value)) {
         NS_WARNING("Failed to wrap value into the right compartment.");

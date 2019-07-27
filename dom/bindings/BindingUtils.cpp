@@ -237,17 +237,8 @@ ErrorResult::ReportJSExceptionFromJSImplementation(JSContext* aCx)
     
     
     
-    nsString message;
-    domException->GetMessageMoz(message);
-    nsString name;
-    domException->GetName(name);
-    nsRefPtr<dom::DOMException> newException =
-      new dom::DOMException(nsresult(domException->Result()),
-                            NS_ConvertUTF16toUTF8(message),
-                            NS_ConvertUTF16toUTF8(name),
-                            domException->Code());
     JS::Rooted<JS::Value> reflector(aCx);
-    if (!GetOrCreateDOMReflector(aCx, newException, &reflector)) {
+    if (!domException->Sanitize(aCx, &reflector)) {
       
       
       
@@ -301,6 +292,17 @@ ErrorResult::StealJSException(JSContext* cx,
   value.set(mJSException);
   js::RemoveRawValueRoot(cx, &mJSException);
   mResult = NS_OK;
+
+  if (value.isObject()) {
+    
+    dom::DOMException* domException;
+    nsresult rv =
+      UNWRAP_OBJECT(DOMException, &value.toObject(), domException);
+    if (NS_SUCCEEDED(rv) && !domException->Sanitize(cx, value)) {
+      JS_GetPendingException(cx, value);
+      JS_ClearPendingException(cx);
+    }
+  }
 }
 
 void

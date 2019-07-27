@@ -156,6 +156,15 @@ public:
   static already_AddRefed<DOMException>
   Create(nsresult aRv);
 
+  
+  
+  
+  
+  
+  
+  
+  bool Sanitize(JSContext* aCx, JS::MutableHandle<JS::Value> aSanitizedValue);
+
 protected:
 
   virtual ~DOMException() {}
