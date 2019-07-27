@@ -181,7 +181,6 @@ public class BrowserApp extends GeckoApp
     private HomePager mHomePager;
     private TabsPanel mTabsPanel;
     private ViewGroup mHomePagerContainer;
-    protected Telemetry.Timer mAboutHomeStartupTimer;
     private ActionModeCompat mActionMode;
     private boolean mHideDynamicToolbarOnActionModeEnd;
     private TabHistoryController tabHistoryController;
@@ -657,8 +656,6 @@ public class BrowserApp extends GeckoApp
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        mAboutHomeStartupTimer = new Telemetry.UptimeTimer("FENNEC_STARTUP_TIME_ABOUTHOME");
-
         final Intent intent = getIntent();
 
         
@@ -1376,16 +1373,6 @@ public class BrowserApp extends GeckoApp
 
         
         Telemetry.sendUIEvent(TelemetryContract.Event.SHARE, TelemetryContract.Method.LIST);
-    }
-
-    @Override
-    protected void loadStartupTab(String url, int flags) {
-        
-        if (url != null || mShouldRestore) {
-            mAboutHomeStartupTimer.cancel();
-        }
-
-        super.loadStartupTab(url, flags);
     }
 
     private void setToolbarMargin(int margin) {
