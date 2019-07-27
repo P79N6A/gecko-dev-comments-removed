@@ -150,12 +150,15 @@ this.TelemetryPing = Object.freeze({
 
 let Impl = {
   _initialized: false,
+  _initStarted: false, 
   _log: null,
   _prevValues: {},
   
   
   _previousBuildID: undefined,
   _clientID: null,
+  
+  _delayedInitTask: null,
 
   popPayloads: function popPayloads(reason, externalPayload) {
     function payloadIter() {
@@ -319,12 +322,30 @@ let Impl = {
   
 
 
+
+
+
+
+
+
+
   setupTelemetry: function setupTelemetry(testing) {
+    this._initStarted = true;
     if (testing && !this._log) {
       this._log = Log.repository.getLoggerWithMessagePrefix(LOGGER_NAME, LOGGER_PREFIX);
     }
 
     this._log.trace("setupTelemetry");
+
+    if (this._delayedInitTask) {
+      this._log.error("setupTelemetry - init task already running");
+      return this._delayedInitTask;
+    }
+
+    if (this._initialized && !testing) {
+      this._log.error("setupTelemetry - already initialized");
+      return Promise.resolve();
+    }
 
     
     this._thirdPartyCookies = new ThirdPartyCookieProbe();
@@ -345,49 +366,87 @@ let Impl = {
     
     
     let deferred = Promise.defer();
-    let delayedTask = new DeferredTask(function* () {
-      this._initialized = true;
+    this._delayedInitTask = new DeferredTask(function* () {
+      try {
+        this._initialized = true;
 
-      yield TelemetryEnvironment.init();
+        yield TelemetryEnvironment.init();
 
-      yield TelemetryFile.loadSavedPings();
-      
-      
-      if (TelemetryFile.pingsOverdue > 0) {
-        this._log.trace("setupChromeProcess - Sending " + TelemetryFile.pingsOverdue +
-                        " overdue pings now.");
+        yield TelemetryFile.loadSavedPings();
         
         
-        
-        yield this.send("overdue-flush");
+        if (TelemetryFile.pingsOverdue > 0) {
+          this._log.trace("setupChromeProcess - Sending " + TelemetryFile.pingsOverdue +
+                          " overdue pings now.");
+          
+          
+          
+          yield this.send("overdue-flush");
+        }
+
+        if ("@mozilla.org/datareporting/service;1" in Cc) {
+          let drs = Cc["@mozilla.org/datareporting/service;1"]
+                      .getService(Ci.nsISupports)
+                      .wrappedJSObject;
+          this._clientID = yield drs.getClientID();
+          
+          Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
+        } else {
+          
+          Preferences.reset(PREF_CACHED_CLIENTID);
+        }
+
+        Telemetry.asyncFetchTelemetryData(function () {});
+        deferred.resolve();
+      } catch (e) {
+        deferred.reject(e);
+      } finally {
+        this._delayedInitTask = null;
       }
-
-      if ("@mozilla.org/datareporting/service;1" in Cc) {
-        let drs = Cc["@mozilla.org/datareporting/service;1"]
-                    .getService(Ci.nsISupports)
-                    .wrappedJSObject;
-        this._clientID = yield drs.getClientID();
-        
-        Preferences.set(PREF_CACHED_CLIENTID, this._clientID);
-      } else {
-        
-        Preferences.reset(PREF_CACHED_CLIENTID);
-      }
-
-      Telemetry.asyncFetchTelemetryData(function () {});
-      deferred.resolve();
-
     }.bind(this), testing ? TELEMETRY_TEST_DELAY : TELEMETRY_DELAY);
 
     AsyncShutdown.sendTelemetry.addBlocker("TelemetryPing: shutting down",
                                            () => this.shutdown());
 
-    delayedTask.arm();
+    this._delayedInitTask.arm();
     return deferred.promise;
   },
 
   shutdown: function() {
-    return TelemetryEnvironment.shutdown();
+    this._log.trace("shutdown");
+
+    let cleanup = () => {
+      if (!this._initialized) {
+        return;
+      }
+      let reset = () => {
+        this._initialized = false;
+        this._initStarted = false;
+      };
+      return TelemetryEnvironment.shutdown().then(reset, reset);
+    };
+
+    
+    
+    
+    
+    
+    
+
+    
+    if (!this._initStarted) {
+      return Promise.resolve();
+    }
+
+    
+    if (!this._delayedInitTask) {
+      
+      return cleanup();
+    }
+
+    
+    this._delayedInitTask.disarm();
+    return this._delayedInitTask.finalize().then(cleanup);
   },
 
   
