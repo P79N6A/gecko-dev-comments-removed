@@ -58,7 +58,6 @@ public:
   void OnNuwaReady();
   bool PreallocatedProcessReady();
   already_AddRefed<ContentParent> GetSpareProcess();
-  void RunAfterPreallocatedProcessReady(nsIRunnable* aRunnable);
 
 private:
   void NuwaFork();
@@ -69,8 +68,6 @@ private:
   
   
   nsAutoTArray<nsRefPtr<ContentParent>, 4> mSpareProcesses;
-
-  nsTArray<nsCOMPtr<nsIRunnable> > mDelayedContentParentRequests;
 
   
   bool mIsNuwaReady;
@@ -225,16 +222,6 @@ PreallocatedProcessManagerImpl::AllocateNow()
 #ifdef MOZ_NUWA_PROCESS
 
 void
-PreallocatedProcessManagerImpl::RunAfterPreallocatedProcessReady(nsIRunnable* aRequest)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  mDelayedContentParentRequests.AppendElement(aRequest);
-
-  
-  DelayedNuwaFork();
-}
-
-void
 PreallocatedProcessManagerImpl::ScheduleDelayedNuwaFork()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -311,25 +298,12 @@ PreallocatedProcessManagerImpl::PublishSpareProcess(ContentParent* aContent)
   }
 
   mSpareProcesses.AppendElement(aContent);
-
-  if (!mDelayedContentParentRequests.IsEmpty()) {
-    nsCOMPtr<nsIRunnable> runnable = mDelayedContentParentRequests[0];
-    mDelayedContentParentRequests.RemoveElementAt(0);
-    NS_DispatchToMainThread(runnable);
-  }
 }
 
 void
 PreallocatedProcessManagerImpl::MaybeForgetSpare(ContentParent* aContent)
 {
   MOZ_ASSERT(NS_IsMainThread());
-
-  if (!mDelayedContentParentRequests.IsEmpty()) {
-    if (!mPreallocateAppProcessTask) {
-      
-      DelayedNuwaFork();
-    }
-  }
 
   if (mSpareProcesses.RemoveElement(aContent)) {
     return;
@@ -505,12 +479,6 @@ PreallocatedProcessManager::IsNuwaReady()
 PreallocatedProcessManager::PreallocatedProcessReady()
 {
   return GetPPMImpl()->PreallocatedProcessReady();
-}
-
- void
-PreallocatedProcessManager::RunAfterPreallocatedProcessReady(nsIRunnable* aRequest)
-{
-  GetPPMImpl()->RunAfterPreallocatedProcessReady(aRequest);
 }
 
 #endif
