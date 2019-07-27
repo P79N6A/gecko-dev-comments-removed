@@ -133,7 +133,9 @@ function runTest(aCallback) {
       ['media.peerconnection.enabled', true],
       ['media.peerconnection.identity.enabled', true],
       ['media.peerconnection.identity.timeout', 12000],
-      ['media.navigator.permission.disabled', true]]
+      ['media.navigator.permission.disabled', true],
+      ['media.getusermedia.screensharing.enabled', true],
+      ['media.getusermedia.screensharing.allowed_domains', "mochi.test"]]
     }, function () {
       try {
         aCallback();
@@ -270,3 +272,19 @@ function unexpectedEventAndFinish(message, eventName) {
     SimpleTest.finish();
   }
 }
+
+function IsMacOSX10_6orOlder() {
+    var is106orOlder = false;
+
+    if (navigator.platform.indexOf("Mac") == 0) {
+        var version = Cc["@mozilla.org/system-info;1"]
+                        .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                        .getProperty("version");
+        
+        
+        
+        is106orOlder = (parseFloat(version) < 11.0);
+    }
+    return is106orOlder;
+}
+
