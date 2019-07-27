@@ -491,14 +491,25 @@ var gUnseekableTests = [
   { name:"bogus.duh", type:"bogus/duh"}
 ];
 
-var androidVersion = SpecialPowers.Cc['@mozilla.org/system-info;1']
-                                  .getService(SpecialPowers.Ci.nsIPropertyBag2)
-                                  .getProperty('version');
 
-if (manifestNavigator().userAgent.indexOf("Mobile") != -1 && androidVersion >= 18) {
-  gUnseekableTests = gUnseekableTests.concat([
-    { name:"street.mp4", type:"video/mp4" }
-  ]);
+if (manifestNavigator().userAgent.indexOf("Mobile") != -1) {
+  
+  
+  var androidVersion;
+  if (navigator.userAgent.indexOf("Android") != -1) {
+    androidSDKVer = SpecialPowers.Cc['@mozilla.org/system-info;1']
+                                 .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                                 .getProperty('version');
+  } else if (navigator.userAgent.indexOf("Android") == -1) {
+    androidSDKVer = SpecialPowers.Cc['@mozilla.org/system-info;1']
+                                 .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                                 .getProperty('sdk_version');
+  }
+  if (androidVersion >= 18) {
+    gUnseekableTests = gUnseekableTests.concat([
+      { name:"street.mp4", type:"video/mp4" }
+    ]);
+  }
 }
 
 
