@@ -21,8 +21,12 @@
 #endif
 
 struct JSContext;
+class nsCSSPropertySet;
 
 namespace mozilla {
+namespace css {
+class AnimValuesStyleRule;
+} 
 
 class CSSAnimationPlayer;
 
@@ -99,6 +103,17 @@ public:
   
   
   bool CanThrottle() const;
+
+  
+  
+  
+  
+  
+  
+  
+  void ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
+                    nsCSSPropertySet& aSetProperties,
+                    bool& aNeedsRefreshes);
 
   
   Nullable<TimeDuration> mStartTime; 

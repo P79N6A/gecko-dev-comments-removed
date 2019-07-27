@@ -21,8 +21,12 @@
 #include "nsStyleStruct.h" 
 
 struct JSContext;
+class nsCSSPropertySet;
 
 namespace mozilla {
+namespace css {
+class AnimValuesStyleRule;
+} 
 
 
 
@@ -258,6 +262,13 @@ public:
   InfallibleTArray<AnimationProperty>& Properties() {
     return mProperties;
   }
+
+  
+  
+  
+  
+  void ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
+                    nsCSSPropertySet& aSetProperties);
 
 protected:
   virtual ~Animation() { }

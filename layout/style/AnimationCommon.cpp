@@ -515,105 +515,12 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
     
     
     
+    
     nsCSSPropertySet properties;
 
     for (size_t playerIdx = mPlayers.Length(); playerIdx-- != 0; ) {
-      AnimationPlayer* player = mPlayers[playerIdx];
-
-      if (!player->GetSource() || player->GetSource()->IsFinishedTransition()) {
-        continue;
-      }
-
-      
-      
-      ComputedTiming computedTiming = player->GetSource()->GetComputedTiming();
-
-      if ((computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
-           computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) &&
-          !player->IsPaused()) {
-        mNeedsRefreshes = true;
-      }
-
-      
-      
-      
-      if (computedTiming.mTimeFraction == ComputedTiming::kNullTimeFraction) {
-        continue;
-      }
-
-      NS_ABORT_IF_FALSE(0.0 <= computedTiming.mTimeFraction &&
-                        computedTiming.mTimeFraction <= 1.0,
-                        "timing fraction should be in [0-1]");
-
-      const Animation* anim = player->GetSource();
-      for (size_t propIdx = 0, propEnd = anim->Properties().Length();
-           propIdx != propEnd; ++propIdx)
-      {
-        const AnimationProperty& prop = anim->Properties()[propIdx];
-
-        NS_ABORT_IF_FALSE(prop.mSegments[0].mFromKey == 0.0,
-                          "incorrect first from key");
-        NS_ABORT_IF_FALSE(prop.mSegments[prop.mSegments.Length() - 1].mToKey
-                            == 1.0,
-                          "incorrect last to key");
-
-        if (properties.HasProperty(prop.mProperty)) {
-          
-          continue;
-        }
-        properties.AddProperty(prop.mProperty);
-
-        NS_ABORT_IF_FALSE(prop.mSegments.Length() > 0,
-                          "property should not be in animations if it "
-                          "has no segments");
-
-        
-        const AnimationPropertySegment *segment = prop.mSegments.Elements(),
-                               *segmentEnd = segment + prop.mSegments.Length();
-        while (segment->mToKey < computedTiming.mTimeFraction) {
-          NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
-                            "incorrect keys");
-          ++segment;
-          if (segment == segmentEnd) {
-            NS_ABORT_IF_FALSE(false, "incorrect time fraction");
-            break; 
-          }
-          NS_ABORT_IF_FALSE(segment->mFromKey == (segment-1)->mToKey,
-                            "incorrect keys");
-        }
-        if (segment == segmentEnd) {
-          continue;
-        }
-        NS_ABORT_IF_FALSE(segment->mFromKey < segment->mToKey,
-                          "incorrect keys");
-        NS_ABORT_IF_FALSE(segment >= prop.mSegments.Elements() &&
-                          size_t(segment - prop.mSegments.Elements()) <
-                            prop.mSegments.Length(),
-                          "out of array bounds");
-
-        if (!mStyleRule) {
-          
-          mStyleRule = new css::AnimValuesStyleRule();
-        }
-
-        double positionInSegment =
-          (computedTiming.mTimeFraction - segment->mFromKey) /
-          (segment->mToKey - segment->mFromKey);
-        double valuePosition =
-          segment->mTimingFunction.GetValue(positionInSegment);
-
-        StyleAnimationValue *val =
-          mStyleRule->AddEmptyValue(prop.mProperty);
-
-#ifdef DEBUG
-        bool result =
-#endif
-          StyleAnimationValue::Interpolate(prop.mProperty,
-                                           segment->mFromValue,
-                                           segment->mToValue,
-                                           valuePosition, *val);
-        NS_ABORT_IF_FALSE(result, "interpolate must succeed now");
-      }
+      mPlayers[playerIdx]->ComposeStyle(mStyleRule, properties,
+                                        mNeedsRefreshes);
     }
   }
 }
