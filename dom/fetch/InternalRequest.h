@@ -283,6 +283,24 @@ public:
   already_AddRefed<InternalRequest>
   GetRequestConstructorCopy(nsIGlobalObject* aGlobal, ErrorResult& aRv) const;
 
+  bool
+  WasCreatedByFetchEvent() const
+  {
+    return mCreatedByFetchEvent;
+  }
+
+  void
+  SetCreatedByFetchEvent()
+  {
+    mCreatedByFetchEvent = true;
+  }
+
+  void
+  ClearCreatedByFetchEvent()
+  {
+    mCreatedByFetchEvent = false;
+  }
+
 private:
   
   explicit InternalRequest(const InternalRequest& aOther);
@@ -317,6 +335,10 @@ private:
   bool mSynchronous;
   bool mUnsafeRequest;
   bool mUseURLCredentials;
+  
+  
+  
+  bool mCreatedByFetchEvent = false;
 };
 
 } 
