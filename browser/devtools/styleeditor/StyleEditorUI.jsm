@@ -540,11 +540,11 @@ StyleEditorUI.prototype = {
 
               if (data.reports.length > 0) {
                 
-                let text = editor.sourceEditor.getText() + "\r";
                 
-                
-                
-                if (!/}\s*\S+\s*\r/.test(text)) {
+                let text = editor.sourceEditor.getText();
+                let lineCount = text.split("\n").length;
+                let ruleCount = editor.styleSheet.ruleCount;
+                if (lineCount >= ruleCount) {
                   editor.addUnusedRegions(data.reports);
                 }
                 else {
