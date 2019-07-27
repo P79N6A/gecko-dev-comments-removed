@@ -319,10 +319,12 @@ static const GLenum kLegacyLuminanceAlphaSwizzle[4] = {
 void
 SetLegacyTextureSwizzle(gl::GLContext* gl, GLenum target, GLenum internalformat)
 {
-    MOZ_RELEASE_ASSERT(gl->IsSupported(gl::GLFeature::texture_swizzle));
-    
     if (!gl->IsCoreProfile())
         return;
+
+    
+    
+    
 
     switch (internalformat) {
     case LOCAL_GL_ALPHA:
