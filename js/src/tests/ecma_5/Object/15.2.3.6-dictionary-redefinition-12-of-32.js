@@ -3,4 +3,4 @@
 
 
 load("ecma_5/Object/defineProperty-setup.js");
-runDictionaryPropertyPresentTestsFraction(7, 8);
+runDictionaryPropertyPresentTestsFraction(12, 32);
