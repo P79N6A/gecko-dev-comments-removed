@@ -10,6 +10,11 @@ const SETTINGS_KEY_DATA_APN_SETTINGS = "ril.data.apnSettings";
 const PREF_KEY_RIL_DEBUGGING_ENABLED = "ril.debugging.enabled";
 
 
+const DEFAULT_PIN = "0000";
+
+const DEFAULT_PUK = "12345678";
+
+
 Promise.defer = function() { return new Deferred(); };
 function Deferred() {
   this.promise = new Promise(function(resolve, reject) {
@@ -305,6 +310,29 @@ function getMozMobileConnectionByServiceId(aServiceId) {
 
 
 
+function getMozIccManager() {
+  return workingFrame.contentWindow.navigator.mozIccManager;
+}
+
+
+
+
+
+
+
+
+
+function getMozIccByIccId(aIccId) {
+  let iccManager = getMozIccManager();
+
+  aIccId = aIccId || iccManager.iccIds[0];
+  if (!aIccId) {
+    ok(true, "iccManager.iccIds[0] is " + aIccId);
+    return null;
+  }
+
+  return iccManager.getIccById(aIccId);
+}
 
 
 
@@ -315,19 +343,47 @@ function getMozMobileConnectionByServiceId(aServiceId) {
 
 
 
-function waitForManagerEvent(aEventName, aServiceId) {
+
+
+
+
+
+
+
+function waitForTargetEvent(aEventTarget, aEventName, aMatchFun) {
   let deferred = Promise.defer();
 
-  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
-
-  mobileConn.addEventListener(aEventName, function onevent(aEvent) {
-    mobileConn.removeEventListener(aEventName, onevent);
-
-    ok(true, "MobileConnection event '" + aEventName + "' got.");
-    deferred.resolve(aEvent);
+  aEventTarget.addEventListener(aEventName, function onevent(aEvent) {
+    if (!aMatchFun || aMatchFun(aEvent)) {
+      aEventTarget.removeEventListener(aEventName, onevent);
+      ok(true, "Event '" + aEventName + "' got.");
+      deferred.resolve(aEvent);
+    }
   });
 
   return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForManagerEvent(aEventName, aServiceId, aMatchFun) {
+  let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
+  return waitForTargetEvent(mobileConn, aEventName, aMatchFun);
 }
 
 
@@ -678,26 +734,15 @@ function setRadioEnabled(aEnabled, aServiceId) {
 
 
 function setRadioEnabledAndWait(aEnabled, aServiceId) {
-  let deferred = Promise.defer();
-
   let promises = [];
-  promises.push(waitForManagerEvent("radiostatechange", aServiceId));
-  promises.push(setRadioEnabled(aEnabled, aServiceId));
-  Promise.all(promises).then(function keepWaiting() {
+
+  promises.push(waitForManagerEvent("radiostatechange", aServiceId, function() {
     let mobileConn = getMozMobileConnectionByServiceId(aServiceId);
-    
-    
-    let state = mobileConn.radioState;
-    aEnabled = aEnabled ? "enabled" : "disabled";
-    if (state == aEnabled) {
-      deferred.resolve();
-      return;
-    }
+    return mobileConn.radioState === aEnabled ? "enabled" : "disabled";
+  }));
+  promises.push(setRadioEnabled(aEnabled, aServiceId));
 
-    return waitForManagerEvent("radiostatechange", aServiceId).then(keepWaiting);
-  });
-
-  return deferred.promise;
+  return Promise.all(promises);
 }
 
 
@@ -1123,16 +1168,16 @@ function startTestBase(aTestCaseMain) {
   let debugPref = SpecialPowers.getBoolPref(PREF_KEY_RIL_DEBUGGING_ENABLED);
   SpecialPowers.setBoolPref(PREF_KEY_RIL_DEBUGGING_ENABLED, true);
 
-  Promise.resolve()
+  return Promise.resolve()
     .then(aTestCaseMain)
+    .catch((aError) => {
+      ok(false, "promise rejects during test: " + aError);
+    })
     .then(() => {
       
       SpecialPowers.setBoolPref(PREF_KEY_RIL_DEBUGGING_ENABLED, debugPref);
-    })
-    .then(cleanUp, function() {
-      ok(false, 'promise rejects during test.');
       cleanUp();
-    });
+    })
 }
 
 
