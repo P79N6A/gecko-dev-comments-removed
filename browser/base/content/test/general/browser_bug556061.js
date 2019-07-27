@@ -31,7 +31,8 @@ let tests = [
     setup: function() {
       gURLBar.value = testActionURL;
       gURLBar.valueIsTyped = true;
-      is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
+    is(gURLBar._value, testActionURL, "gURLBar starts with the correct real value");
+    is(gURLBar.value, testURL, "gURLBar starts with the correct display value");
 
       
       gURLBar.focus();
@@ -39,7 +40,7 @@ let tests = [
       goDoCommand("cmd_copy");
     },
     success: function() {
-      is(gURLBar.value, testActionURL, "gURLBar.value didn't change when copying");
+      is(gURLBar._value, testActionURL, "gURLBar.value didn't change when copying");
     }
   },
   {
@@ -51,7 +52,7 @@ let tests = [
       goDoCommand("cmd_copy");
     },
     success: function() {
-      is(gURLBar.value, testActionURL, "gURLBar.value didn't change when copying");
+      is(gURLBar._value, testActionURL, "gURLBar.value didn't change when copying");
     }
   },
   {
@@ -73,7 +74,8 @@ let tests = [
       gURLBar.value = testActionURL;
       gURLBar.valueIsTyped = true;
       
-      is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
+      is(gURLBar._value, testActionURL, "gURLBar starts with the correct real value");
+      is(gURLBar.value, testURL, "gURLBar starts with the correct display value");
 
       
       gURLBar.selectionStart = testURL.length - 10;
