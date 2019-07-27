@@ -111,22 +111,22 @@ public:
   void RestyleTable();
 
   
-  nscoord GetCellSpacingX(int32_t aColIndex) MOZ_OVERRIDE;
+  nscoord GetColSpacing(int32_t aColIndex) MOZ_OVERRIDE;
 
   
 
 
-  nscoord GetCellSpacingX(int32_t aStartColIndex,
-                          int32_t aEndColIndex) MOZ_OVERRIDE;
+  nscoord GetColSpacing(int32_t aStartColIndex,
+                        int32_t aEndColIndex) MOZ_OVERRIDE;
 
   
-  nscoord GetCellSpacingY(int32_t aRowIndex) MOZ_OVERRIDE;
+  nscoord GetRowSpacing(int32_t aRowIndex) MOZ_OVERRIDE;
 
   
 
 
-  nscoord GetCellSpacingY(int32_t aStartRowIndex,
-                          int32_t aEndRowIndex) MOZ_OVERRIDE;
+  nscoord GetRowSpacing(int32_t aStartRowIndex,
+                        int32_t aEndRowIndex) MOZ_OVERRIDE;
 
   void SetColSpacingArray(const nsTArray<nscoord>& aColSpacing)
   {

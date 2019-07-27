@@ -395,7 +395,7 @@ public:
 
 
 
-  virtual nscoord GetCellSpacingX(int32_t aColIndex);
+  virtual nscoord GetColSpacing(int32_t aColIndex);
 
   
 
@@ -410,8 +410,8 @@ public:
 
 
 
-  virtual nscoord GetCellSpacingX(int32_t aStartColIndex,
-                                  int32_t aEndColIndex);
+  virtual nscoord GetColSpacing(int32_t aStartColIndex,
+                                int32_t aEndColIndex);
 
   
 
@@ -422,7 +422,7 @@ public:
 
 
 
-  virtual nscoord GetCellSpacingY(int32_t aRowIndex);
+  virtual nscoord GetRowSpacing(int32_t aRowIndex);
 
   
 
@@ -437,15 +437,15 @@ public:
 
 
 
-  virtual nscoord GetCellSpacingY(int32_t aStartRowIndex,
+  virtual nscoord GetRowSpacing(int32_t aStartRowIndex,
                                   int32_t aEndRowIndex);
 
 private:
   
 
 
-  nscoord GetCellSpacingX();
-  nscoord GetCellSpacingY();
+  nscoord GetColSpacing();
+  nscoord GetRowSpacing();
 
 public:
   virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode) const MOZ_OVERRIDE;
