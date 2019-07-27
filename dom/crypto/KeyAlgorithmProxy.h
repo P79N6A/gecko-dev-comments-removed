@@ -38,13 +38,32 @@ struct RsaHashedKeyAlgorithmStorage {
 
 
 
+struct DhKeyAlgorithmStorage {
+  nsString mName;
+  CryptoBuffer mPrime;
+  CryptoBuffer mGenerator;
+
+  void
+  ToKeyAlgorithm(JSContext* aCx, DhKeyAlgorithm& aDh) const
+  {
+    aDh.mName = mName;
+    aDh.mPrime.Init(mPrime.ToUint8Array(aCx));
+    aDh.mPrime.ComputeLengthAndData();
+    aDh.mGenerator.Init(mGenerator.ToUint8Array(aCx));
+    aDh.mGenerator.ComputeLengthAndData();
+  }
+};
+
+
+
 struct KeyAlgorithmProxy
 {
   enum KeyAlgorithmType {
     AES,
     HMAC,
     RSA,
-    EC
+    EC,
+    DH,
   };
   KeyAlgorithmType mType;
 
@@ -55,6 +74,7 @@ struct KeyAlgorithmProxy
   HmacKeyAlgorithm mHmac;
   RsaHashedKeyAlgorithmStorage mRsa;
   EcKeyAlgorithm mEc;
+  DhKeyAlgorithmStorage mDh;
 
   
   bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
@@ -108,6 +128,17 @@ struct KeyAlgorithmProxy
     mName = aName;
     mEc.mName = aName;
     mEc.mNamedCurve = aNamedCurve;
+  }
+
+  void
+  MakeDh(const nsString& aName, const CryptoBuffer& aPrime,
+         const CryptoBuffer& aGenerator)
+  {
+    mType = DH;
+    mName = aName;
+    mDh.mName = aName;
+    mDh.mPrime.Assign(aPrime);
+    mDh.mGenerator.Assign(aGenerator);
   }
 };
 
