@@ -134,7 +134,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   
 
-  StreamTime delta = aDesiredTime - aLastEndTime;
+  StreamTime delta = aDesiredTime - aSource->GetEndOfAppendedData(aID);
   LOGFRAME(("NotifyPull, desired = %ld, delta = %ld %s", (int64_t) aDesiredTime,
             (int64_t) delta, mImage.get() ? "" : "<null>"));
 
