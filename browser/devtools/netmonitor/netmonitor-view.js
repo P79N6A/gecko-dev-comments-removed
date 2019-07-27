@@ -75,6 +75,8 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
 const NETWORK_ANALYSIS_PIE_CHART_DIAMETER = 200; 
 const FREETEXT_FILTER_SEARCH_DELAY = 200; 
 
+const {DeferredTask} = Cu.import("resource://gre/modules/DeferredTask.jsm", {});
+
 
 
 
@@ -95,6 +97,7 @@ let NetMonitorView = {
 
 
   destroy: function() {
+    this._isDestroyed = true;
     this.Toolbar.destroy();
     this.RequestsMenu.destroy();
     this.NetworkDetails.destroy();
@@ -394,6 +397,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     this._onContextToggleRawHeadersCommand = this.toggleRawHeaders.bind(this);
     this._onContextPerfCommand = () => NetMonitorView.toggleFrontendMode();
     this._onReloadCommand = () => NetMonitorView.reloadPage();
+    this._flushRequestsTask = new DeferredTask(this._flushRequests, REQUESTS_REFRESH_RATE);
 
     this.sendCustomRequestEvent = this.sendCustomRequest.bind(this);
     this.closeCustomRequestEvent = this.closeCustomRequest.bind(this);
@@ -470,7 +474,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     $("#requests-menu-clear-button").removeEventListener("click", this.reqeustsMenuClearEvent, false);
     this.freetextFilterBox.removeEventListener("input", this.requestsFreetextFilterEvent, false);
     this.freetextFilterBox.removeEventListener("command", this.requestsFreetextFilterEvent, false);
+
     this.userInputTimer.cancel();
+    this._flushRequestsTask.disarm();
+
     $("#network-request-popup").removeEventListener("popupshowing", this._onContextShowing, false);
     $("#request-menu-context-newtab").removeEventListener("command", this._onContextNewTabCommand, false);
     $("#request-menu-context-copy-url").removeEventListener("command", this._onContextCopyUrlCommand, false);
@@ -496,6 +503,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   reset: function() {
     this.empty();
+    this._addQueue = [];
+    this._updateQueue = [];
     this._firstRequestStartedMillis = -1;
     this._lastRequestEndedMillis = -1;
   },
@@ -503,7 +512,18 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  lazyUpdate: true,
+  _lazyUpdate: true,
+
+  get lazyUpdate() {
+    return this._lazyUpdate;
+  },
+
+  set lazyUpdate(value) {
+    this._lazyUpdate = value;
+    if (!value) {
+      this._flushRequests();
+    }
+  },
 
   
 
@@ -523,47 +543,14 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   addRequest: function(aId, aStartedDateTime, aMethod, aUrl, aIsXHR, aFromCache) {
-    
-    let unixTime = Date.parse(aStartedDateTime);
+    this._addQueue.push([aId, aStartedDateTime, aMethod, aUrl, aIsXHR, aFromCache]);
 
     
-    let menuView = this._createMenuView(aMethod, aUrl);
-
-    
-    this._registerFirstRequestStart(unixTime);
-    this._registerLastRequestEnd(unixTime);
-
-    
-    let requestItem = this.push([menuView, aId], {
-      attachment: {
-        startedDeltaMillis: unixTime - this._firstRequestStartedMillis,
-        startedMillis: unixTime,
-        method: aMethod,
-        url: aUrl,
-        isXHR: aIsXHR,
-        fromCache: aFromCache
-      }
-    });
-
-    
-    let requestTooltip = requestItem.attachment.tooltip = new Tooltip(document, {
-      closeOnEvents: [{
-        emitter: $("#requests-menu-contents"),
-        event: "scroll",
-        useCapture: true
-      }]
-    });
-
-    $("#details-pane-toggle").disabled = false;
-    $("#requests-menu-empty-notice").hidden = true;
-
-    this.refreshSummary();
-    this.refreshZebra();
-    this.refreshTooltip(requestItem);
-
-    if (aId == this._preferredItemId) {
-      this.selectedItem = requestItem;
+    if (!this.lazyUpdate) {
+      return void this._flushRequests();
     }
+
+    this._flushRequestsTask.arm();
   },
 
   
@@ -1327,20 +1314,17 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
-  updateRequest: function(aId, aData) {
-    
-    if (NetMonitorView._isDestroyed) {
-      return;
-    }
-    this._updateQueue.push([aId, aData]);
+
+
+  updateRequest: function(aId, aData, aCallback) {
+    this._updateQueue.push([aId, aData, aCallback]);
 
     
     if (!this.lazyUpdate) {
       return void this._flushRequests();
     }
-    
-    setNamedTimeout(
-      "update-requests", REQUESTS_REFRESH_RATE, () => this._flushRequests());
+
+    this._flushRequestsTask.arm();
   },
 
   
@@ -1348,8 +1332,55 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
   _flushRequests: function() {
     
+    if (NetMonitorView._isDestroyed) {
+      return;
+    }
+
+    for (let [id, startedDateTime, method, url, isXHR, fromCache] of this._addQueue) {
+      
+      let unixTime = Date.parse(startedDateTime);
+
+      
+      let menuView = this._createMenuView(method, url);
+
+      
+      this._registerFirstRequestStart(unixTime);
+      this._registerLastRequestEnd(unixTime);
+
+      
+      let requestItem = this.push([menuView, id], {
+        attachment: {
+          startedDeltaMillis: unixTime - this._firstRequestStartedMillis,
+          startedMillis: unixTime,
+          method: method,
+          url: url,
+          isXHR: isXHR,
+          fromCache: fromCache
+        }
+      });
+
+      
+      let requestTooltip = requestItem.attachment.tooltip = new Tooltip(document, {
+        closeOnEvents: [{
+          emitter: $("#requests-menu-contents"),
+          event: "scroll",
+          useCapture: true
+        }]
+      });
+
+      this.refreshTooltip(requestItem);
+
+      if (id == this._preferredItemId) {
+        this.selectedItem = requestItem;
+      }
+
+      window.emit(EVENTS.REQUEST_ADDED, id);
+    }
+
+
     
-    for (let [id, data] of this._updateQueue) {
+    
+    for (let [id, data, callback] of this._updateQueue) {
       let requestItem = this.getItemByValue(id);
       if (!requestItem) {
         
@@ -1482,6 +1513,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         }
       }
       refreshNetworkDetailsPaneIfNecessary(requestItem);
+
+      if (callback) {
+        callback();
+      }
     }
 
     
@@ -1502,6 +1537,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     
     this._updateQueue = [];
+    this._addQueue = [];
+
+    $("#details-pane-toggle").disabled = !this.itemCount;
+    $("#requests-menu-empty-notice").hidden = !!this.itemCount;
 
     
     
@@ -1650,9 +1689,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       }
       case "responseContent": {
         let { mimeType } = aItem.attachment;
-        let { text, encoding } = aValue.content;
 
         if (mimeType.includes("image/")) {
+          let { text, encoding } = aValue.content;
           let responseBody = yield gNetwork.getString(text);
           let node = $(".requests-menu-icon", aItem.target);
           node.src = "data:" + mimeType + ";" + encoding + "," + responseBody;
@@ -2158,6 +2197,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   _firstRequestStartedMillis: -1,
   _lastRequestEndedMillis: -1,
   _updateQueue: [],
+  _addQueue: [],
   _updateTimeout: null,
   _resizeTimeout: null,
   _activeFilters: ["all"],
