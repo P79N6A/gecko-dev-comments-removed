@@ -87,6 +87,12 @@ class MochitestOptions(optparse.OptionParser):
           "help": "which chunk to run",
           "default": None,
           }],
+        [["--chunk-by-runtime"],
+         {"action": "store_true",
+          "dest": "chunkByRuntime",
+          "help": "group tests such that each chunk has roughly the same runtime",
+          "default": False,
+          }],
         [["--chunk-by-dir"],
          {"type": "int",
           "dest": "chunkByDir",
@@ -507,6 +513,10 @@ class MochitestOptions(optparse.OptionParser):
             if not 1 <= options.thisChunk <= options.totalChunks:
                 self.error("thisChunk must be between 1 and totalChunks")
 
+        if options.chunkByDir and options.chunkByRuntime:
+            self.error(
+                "can only use one of --chunk-by-dir or --chunk-by-runtime")
+
         if options.xrePath is None:
             
             
@@ -578,6 +588,7 @@ class MochitestOptions(optparse.OptionParser):
         if options.jsdebugger:
             options.extraPrefs += [
                 "devtools.debugger.remote-enabled=true",
+                "devtools.debugger.chrome-enabled=true",
                 "devtools.chrome.enabled=true",
                 "devtools.debugger.prompt-connection=false"
             ]

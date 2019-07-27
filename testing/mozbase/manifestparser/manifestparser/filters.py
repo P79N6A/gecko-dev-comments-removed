@@ -247,16 +247,18 @@ class chunk_by_runtime(InstanceFilter):
     :param total_chunks: the total number of chunks
     :param runtimes: dictionary of test runtime data, of the form
                      {<test path>: <average runtime>}
+    :param default_runtime: value in seconds to assign tests that don't exist
+                            in the runtimes file
     """
 
-    def __init__(self, this_chunk, total_chunks, runtimes):
+    def __init__(self, this_chunk, total_chunks, runtimes, default_runtime=0):
         self.this_chunk = this_chunk
         self.total_chunks = total_chunks
 
         
         
         
-        self.runtimes = defaultdict(int)
+        self.runtimes = defaultdict(lambda: default_runtime)
         self.runtimes.update(runtimes)
 
     def __call__(self, tests, values):
