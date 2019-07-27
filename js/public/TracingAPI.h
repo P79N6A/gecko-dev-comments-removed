@@ -10,7 +10,6 @@
 #include "mozilla/NullPtr.h"
 
 #include "jsalloc.h"
-#include "jspubtd.h"
 
 #include "js/HashTable.h"
 
@@ -19,6 +18,49 @@ class JS_PUBLIC_API(JSTracer);
 namespace JS {
 template <typename T> class Heap;
 template <typename T> class TenuredHeap;
+}
+
+
+
+
+
+
+
+
+
+
+enum JSGCTraceKind
+{
+    
+    
+    
+    JSTRACE_OBJECT = 0x00,
+    JSTRACE_STRING = 0x01,
+    JSTRACE_SYMBOL = 0x02,
+    JSTRACE_SCRIPT = 0x03,
+
+    
+    JSTRACE_SHAPE = 0x04,
+
+    
+    JSTRACE_NULL = 0x06,
+
+    
+    JSTRACE_OUTOFLINE = 0x07,
+
+    
+    JSTRACE_BASE_SHAPE = 0x0F,
+    JSTRACE_JITCODE = 0x1F,
+    JSTRACE_LAZY_SCRIPT = 0x2F,
+    JSTRACE_TYPE_OBJECT = 0x3F,
+
+    JSTRACE_LAST = JSTRACE_TYPE_OBJECT
+};
+
+namespace JS {
+
+JS_FRIEND_API(const char *)
+GCTraceKindToAscii(JSGCTraceKind kind);
 }
 
 

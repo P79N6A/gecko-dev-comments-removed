@@ -428,74 +428,6 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         break;
       }
 
-      case JSTRACE_STRING: {
-        JSString *str = static_cast<JSString *>(thing);
-
-        JS::StringInfo info;
-        if (str->hasLatin1Chars()) {
-            info.gcHeapLatin1 = thingSize;
-            info.mallocHeapLatin1 = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
-        } else {
-            info.gcHeapTwoByte = thingSize;
-            info.mallocHeapTwoByte = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
-        }
-        info.numCopies = 1;
-
-        zStats->stringInfo.add(info);
-
-        
-        
-        
-        if (granularity == FineGrained && !closure->anonymize) {
-            ZoneStats::StringsHashMap::AddPtr p = zStats->allStrings->lookupForAdd(str);
-            if (!p) {
-                
-                (void)zStats->allStrings->add(p, str, info);
-            } else {
-                p->value().add(info);
-            }
-        }
-        break;
-      }
-
-      case JSTRACE_SYMBOL:
-        zStats->symbolsGCHeap += thingSize;
-        break;
-
-      case JSTRACE_SHAPE: {
-        Shape *shape = static_cast<Shape *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(shape->compartment());
-        JS::ClassInfo info;        
-        if (shape->inDictionary())
-            info.shapesGCHeapDict += thingSize;
-        else
-            info.shapesGCHeapTree += thingSize;
-        shape->addSizeOfExcludingThis(rtStats->mallocSizeOf_, &info);
-        cStats->classInfo.add(info);
-
-        const BaseShape *base = shape->base();
-        const Class *clasp = base->clasp();
-        const char *className = clasp->name;
-        AddClassInfo(granularity, cStats, className, info);
-        break;
-      }
-
-      case JSTRACE_BASE_SHAPE: {
-        BaseShape *base = static_cast<BaseShape *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(base->compartment());
-
-        JS::ClassInfo info;        
-        info.shapesGCHeapBase += thingSize;
-        
-
-        cStats->classInfo.add(info);
-
-        const Class *clasp = base->clasp();
-        const char *className = clasp->name;
-        AddClassInfo(granularity, cStats, className, info);
-        break;
-      }
-
       case JSTRACE_SCRIPT: {
         JSScript *script = static_cast<JSScript *>(thing);
         CompartmentStats *cStats = GetCompartmentStats(script->compartment());
@@ -536,6 +468,62 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         break;
       }
 
+      case JSTRACE_STRING: {
+        JSString *str = static_cast<JSString *>(thing);
+
+        JS::StringInfo info;
+        if (str->hasLatin1Chars()) {
+            info.gcHeapLatin1 = thingSize;
+            info.mallocHeapLatin1 = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+        } else {
+            info.gcHeapTwoByte = thingSize;
+            info.mallocHeapTwoByte = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+        }
+        info.numCopies = 1;
+
+        zStats->stringInfo.add(info);
+
+        
+        
+        
+        if (granularity == FineGrained && !closure->anonymize) {
+            ZoneStats::StringsHashMap::AddPtr p = zStats->allStrings->lookupForAdd(str);
+            if (!p) {
+                
+                (void)zStats->allStrings->add(p, str, info);
+            } else {
+                p->value().add(info);
+            }
+        }
+        break;
+      }
+
+      case JSTRACE_SYMBOL:
+        zStats->symbolsGCHeap += thingSize;
+        break;
+
+      case JSTRACE_BASE_SHAPE: {
+        BaseShape *base = static_cast<BaseShape *>(thing);
+        CompartmentStats *cStats = GetCompartmentStats(base->compartment());
+
+        JS::ClassInfo info;        
+        info.shapesGCHeapBase += thingSize;
+        
+
+        cStats->classInfo.add(info);
+
+        const Class *clasp = base->clasp();
+        const char *className = clasp->name;
+        AddClassInfo(granularity, cStats, className, info);
+        break;
+      }
+
+      case JSTRACE_JITCODE: {
+        zStats->jitCodesGCHeap += thingSize;
+        
+        break;
+      }
+
       case JSTRACE_LAZY_SCRIPT: {
         LazyScript *lazy = static_cast<LazyScript *>(thing);
         zStats->lazyScriptsGCHeap += thingSize;
@@ -543,9 +531,21 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         break;
       }
 
-      case JSTRACE_JITCODE: {
-        zStats->jitCodesGCHeap += thingSize;
-        
+      case JSTRACE_SHAPE: {
+        Shape *shape = static_cast<Shape *>(thing);
+        CompartmentStats *cStats = GetCompartmentStats(shape->compartment());
+        JS::ClassInfo info;        
+        if (shape->inDictionary())
+            info.shapesGCHeapDict += thingSize;
+        else
+            info.shapesGCHeapTree += thingSize;
+        shape->addSizeOfExcludingThis(rtStats->mallocSizeOf_, &info);
+        cStats->classInfo.add(info);
+
+        const BaseShape *base = shape->base();
+        const Class *clasp = base->clasp();
+        const char *className = clasp->name;
+        AddClassInfo(granularity, cStats, className, info);
         break;
       }
 
@@ -557,7 +557,7 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
       }
 
       default:
-        MOZ_CRASH("invalid traceKind");
+        MOZ_CRASH("invalid traceKind in StatsCellCallback");
     }
 
     

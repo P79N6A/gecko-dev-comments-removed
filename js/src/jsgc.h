@@ -62,10 +62,6 @@ enum State {
 };
 
 
-const char *
-TraceKindAsAscii(JSGCTraceKind kind);
-
-
 template <typename T> struct MapTypeToFinalizeKind {};
 template <> struct MapTypeToFinalizeKind<JSScript>          { static const AllocKind kind = FINALIZE_SCRIPT; };
 template <> struct MapTypeToFinalizeKind<LazyScript>        { static const AllocKind kind = FINALIZE_LAZY_SCRIPT; };

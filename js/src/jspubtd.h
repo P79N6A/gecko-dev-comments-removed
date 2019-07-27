@@ -103,25 +103,6 @@ enum JSIterateOp {
 };
 
 
-enum JSGCTraceKind {
-    JSTRACE_OBJECT,
-    JSTRACE_STRING,
-    JSTRACE_SYMBOL,
-    JSTRACE_SCRIPT,
-
-    
-
-
-
-    JSTRACE_LAZY_SCRIPT,
-    JSTRACE_JITCODE,
-    JSTRACE_SHAPE,
-    JSTRACE_BASE_SHAPE,
-    JSTRACE_TYPE_OBJECT,
-    JSTRACE_LAST = JSTRACE_TYPE_OBJECT
-};
-
-
 struct JSClass;
 struct JSCompartment;
 struct JSCrossCompartmentCall;
