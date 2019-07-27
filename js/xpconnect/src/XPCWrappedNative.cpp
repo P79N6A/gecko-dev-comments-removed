@@ -1074,9 +1074,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
 {
     
     
-    
     AutoJSContext cx;
-    JS_CHECK_RECURSION_CONSERVATIVE(cx, return NS_ERROR_FAILURE);
+    JS_CHECK_RECURSION(cx, return NS_ERROR_FAILURE);
 
     XPCNativeInterface* iface = XPCNativeInterface::GetISupports();
     if (!iface)
