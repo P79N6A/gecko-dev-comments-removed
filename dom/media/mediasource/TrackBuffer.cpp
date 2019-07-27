@@ -243,11 +243,11 @@ TrackBuffer::AppendData(LargeDataBuffer* aData, int64_t aTimestampOffset)
     
     
     return p;
+  } else if (gotMedia) {
+    
+    
+    mParentDecoder->GetReader()->MaybeNotifyHaveData();
   }
-  
-  
-  mParentDecoder->GetReader()->MaybeNotifyHaveData();
-
   mInitializationPromise.Resolve(gotMedia, __func__);
   return p;
 }
