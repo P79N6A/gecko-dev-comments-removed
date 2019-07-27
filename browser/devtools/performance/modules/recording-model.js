@@ -107,6 +107,8 @@ RecordingModel.prototype = {
       totalSize: info.totalSize,
       generation: info.generation
     };
+    
+    this._bufferPercent = info.position !== void 0 ? 0 : null;
 
     this._recording = true;
 

@@ -25,7 +25,7 @@ loader.lazyImporter(this, "Promise",
 const CONNECTION_PIPE_EVENTS = [
   "timeline-data", "profiler-already-active", "profiler-activated",
   "recording-starting", "recording-started", "recording-stopping", "recording-stopped",
-  "buffer-status"
+  "profiler-status"
 ];
 
 
@@ -76,7 +76,7 @@ function PerformanceActorsConnection(target) {
   this._onTimelineData = this._onTimelineData.bind(this);
   this._onConsoleProfileStart = this._onConsoleProfileStart.bind(this);
   this._onConsoleProfileEnd = this._onConsoleProfileEnd.bind(this);
-  this._onBufferStatus = this._onBufferStatus.bind(this);
+  this._onProfilerStatus = this._onProfilerStatus.bind(this);
   this._onProfilerUnexpectedlyStopped = this._onProfilerUnexpectedlyStopped.bind(this);
 
   Services.obs.notifyObservers(null, "performance-actors-connection-created", null);
@@ -171,7 +171,7 @@ PerformanceActorsConnection.prototype = {
     this._profiler.on("profiler-stopped", this._onProfilerUnexpectedlyStopped);
     this._profiler.on("profiler-already-active", this._pipeToConnection);
     this._profiler.on("profiler-activated", this._pipeToConnection);
-    this._profiler.on("buffer-status", this._onBufferStatus);
+    this._profiler.on("profiler-status", this._onProfilerStatus);
   },
 
   
@@ -185,7 +185,7 @@ PerformanceActorsConnection.prototype = {
     this._profiler.off("profiler-stopped", this._onProfilerUnexpectedlyStopped);
     this._profiler.off("profiler-already-active", this._pipeToConnection);
     this._profiler.off("profiler-activated", this._pipeToConnection);
-    this._profiler.off("buffer-status", this._onBufferStatus);
+    this._profiler.off("profiler-status", this._onProfilerStatus);
   },
 
   
@@ -296,16 +296,18 @@ PerformanceActorsConnection.prototype = {
   
 
 
-  _onBufferStatus: function (_, data) {
+  _onProfilerStatus: function (_, data) {
     
     
-    
-    
-    if (!data || data.position === void 0) {
+    if (!data) {
       return;
     }
-    this._recordings.forEach(e => e._addBufferStatusData.call(e, data));
-    this.emit("buffer-status", data);
+    
+    
+    if (data.position !== void 0) {
+      this._recordings.forEach(e => e._addBufferStatusData.call(e, data));
+    }
+    this.emit("profiler-status", data);
   },
 
   

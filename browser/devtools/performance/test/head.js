@@ -196,6 +196,7 @@ function initBackend(aUrl, targetOps={}) {
     
     
     
+    
     merge(target, targetOps);
 
     let connection = getPerformanceActorsConnection(target);
@@ -206,7 +207,7 @@ function initBackend(aUrl, targetOps={}) {
   });
 }
 
-function initPerformance(aUrl, selectedTool="performance", targetOps={}) {
+function initPerformance(aUrl, tool="performance", targetOps={}) {
   info("Initializing a performance pane.");
 
   return Task.spawn(function*() {
@@ -220,9 +221,11 @@ function initPerformance(aUrl, selectedTool="performance", targetOps={}) {
     
     
     
+    
+    
     merge(target, targetOps);
 
-    let toolbox = yield gDevTools.showToolbox(target, selectedTool);
+    let toolbox = yield gDevTools.showToolbox(target, tool);
     let panel = toolbox.getCurrentPanel();
     return { target, panel, toolbox };
   });

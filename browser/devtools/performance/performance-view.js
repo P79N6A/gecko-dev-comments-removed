@@ -9,6 +9,9 @@
 let PerformanceView = {
 
   _state: null,
+  
+  
+  _bufferStatusSupported: false,
 
   
   
@@ -46,6 +49,7 @@ let PerformanceView = {
     this._onRecordingSelected = this._onRecordingSelected.bind(this);
     this._onRecordingStopped = this._onRecordingStopped.bind(this);
     this._onRecordingStarted = this._onRecordingStarted.bind(this);
+    this._onProfilerStatusUpdated = this._onProfilerStatusUpdated.bind(this);
 
     for (let button of $$(".record-button")) {
       button.addEventListener("click", this._onRecordButtonClick);
@@ -57,6 +61,7 @@ let PerformanceView = {
     PerformanceController.on(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
+    PerformanceController.on(EVENTS.PROFILER_STATUS_UPDATED, this._onProfilerStatusUpdated);
 
     this.setState("empty");
 
@@ -81,6 +86,7 @@ let PerformanceView = {
     PerformanceController.off(EVENTS.RECORDING_STARTED, this._onRecordingStarted);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
+    PerformanceController.off(EVENTS.PROFILER_STATUS_UPDATED, this._onProfilerStatusUpdated);
 
     yield ToolbarView.destroy();
     yield RecordingsView.destroy();
@@ -115,6 +121,8 @@ let PerformanceView = {
       startCommand.value = `console.profile(${label})`;
       stopCommand.value = `console.profileEnd(${label})`;
     }
+
+    this.updateBufferStatus();
     this.emit(EVENTS.UI_STATE_CHANGED, state);
   },
 
@@ -123,6 +131,41 @@ let PerformanceView = {
 
   getState: function () {
     return this._state;
+  },
+
+  
+
+
+  updateBufferStatus: function () {
+    
+    
+    if (!this._bufferStatusSupported) {
+      return;
+    }
+
+    let recording = PerformanceController.getCurrentRecording();
+    if (!recording || !recording.isRecording()) {
+      return;
+    }
+
+    let bufferUsage = recording.getBufferUsage();
+
+    
+    let percent = Math.floor(bufferUsage * 100);
+
+    let $container = $("#details-pane-container");
+    let $bufferLabel = $(".buffer-status-message", $container.selectedPanel);
+
+    
+    
+    if (percent >= 99) {
+      $container.setAttribute("buffer-status", "full");
+    } else {
+      $container.setAttribute("buffer-status", "in-progress");
+    }
+
+    $bufferLabel.value = L10N.getFormatStr("profiler.bufferStatus", percent);
+    this.emit(EVENTS.UI_BUFFER_UPDATED, percent);
   },
 
   
@@ -152,6 +195,9 @@ let PerformanceView = {
     
     if (!recording.isConsole()) {
       this._unlockRecordButtons();
+    }
+    if (recording.isRecording()) {
+      this.updateBufferStatus();
     }
   },
 
@@ -225,6 +271,29 @@ let PerformanceView = {
     } else {
       this.setState("recorded");
     }
+  },
+
+  
+
+
+
+  _onProfilerStatusUpdated: function (_, data) {
+    
+    
+    if (!data || data.position === void 0) {
+      return;
+    }
+    
+    if (!this._bufferStatusSupported) {
+      this._bufferStatusSupported = true;
+      $("#details-pane-container").setAttribute("buffer-status", "in-progress");
+    }
+
+    if (!this.getState("recording") && !this.getState("console-recording")) {
+      return;
+    }
+
+    this.updateBufferStatus();
   },
 
   toString: () => "[object PerformanceView]"
