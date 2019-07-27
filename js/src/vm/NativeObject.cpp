@@ -1077,8 +1077,8 @@ UpdateShapeTypeAndValue(ExclusiveContext *cx, NativeObject *obj, Shape *shape, c
 }
 
 static bool
-NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
-          HandleShape shape, MutableHandleValue vp, ObjectOpResult &result);
+NativeSetExistingDataProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
+                              HandleShape shape, MutableHandleValue vp, ObjectOpResult &result);
 
 static inline bool
 DefinePropertyOrElement(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
@@ -1167,10 +1167,12 @@ DefinePropertyOrElement(ExclusiveContext *cx, HandleNativeObject obj, HandleId i
         return false;
 
     if (callSetterAfterwards && setter) {
+        MOZ_ASSERT(!(attrs & JSPROP_GETTER));
+        MOZ_ASSERT(!(attrs & JSPROP_SETTER));
         if (!cx->shouldBeJSContext())
             return false;
         RootedValue nvalue(cx, value);
-        return NativeSet(cx->asJSContext(), obj, obj, shape, &nvalue, result);
+        return NativeSetExistingDataProperty(cx->asJSContext(), obj, obj, shape, &nvalue, result);
     }
 
     return result.succeed();
@@ -1604,6 +1606,7 @@ js::NativeHasProperty(JSContext *cx, HandleNativeObject obj, HandleId id, bool *
 
 
 
+
 static inline bool
 CallGetter(JSContext* cx, HandleObject receiver, HandleShape shape, MutableHandleValue vp)
 {
@@ -1929,6 +1932,7 @@ js::GetPropertyForNameLookup(JSContext *cx, HandleObject obj, HandleId id, Mutab
 
 
 
+
 static bool
 MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 {
@@ -2102,14 +2106,16 @@ SetDenseOrTypedArrayElement(JSContext *cx, HandleNativeObject obj, uint32_t inde
 
 
 static bool
-NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
-          HandleShape shape, MutableHandleValue vp, ObjectOpResult &result)
+NativeSetExistingDataProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
+                              HandleShape shape, MutableHandleValue vp, ObjectOpResult &result)
 {
     MOZ_ASSERT(obj->isNative());
+    MOZ_ASSERT(shape->isDataDescriptor());
 
-    if (shape->hasSlot()) {
-        
-        if (shape->hasDefaultSetter()) {
+    if (shape->hasDefaultSetter()) {
+        if (shape->hasSlot()) {
+            
+
             
             
             
@@ -2117,29 +2123,22 @@ NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
             obj->setSlotWithType(cx, shape, vp, overwriting);
             return result.succeed();
         }
-    }
 
-    if (!shape->hasSlot()) {
         
-
-
-
-
-
-        if (!shape->hasGetterValue() && shape->hasDefaultSetter())
-            return result.fail(JSMSG_GETTER_ONLY);
+        
+        
+        return result.fail(JSMSG_GETTER_ONLY);
     }
 
-    RootedValue ovp(cx, vp);
+    MOZ_ASSERT(!obj->is<DynamicWithObject>());  
 
     uint32_t sample = cx->runtime()->propertyRemovals;
-    if (!shape->set(cx, obj, receiver, vp, result))
+    RootedId id(cx, shape->propid());
+    if (!CallJSSetterOp(cx, shape->setterOp(), obj, id, vp, result))
         return false;
 
     
-
-
-
+    
     if (shape->hasSlot() &&
         (MOZ_LIKELY(cx->runtime()->propertyRemovals == sample) ||
          obj->contains(cx, shape)))
@@ -2193,7 +2192,7 @@ SetExistingProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver
                 Rooted<ArrayObject*> arr(cx, &pobj->as<ArrayObject>());
                 return ArraySetLength(cx, arr, id, shape->attributes(), vp, result);
             }
-            return NativeSet(cx, obj, receiver, shape, vp, result);
+            return NativeSetExistingDataProperty(cx, obj, receiver, shape, vp, result);
         }
 
         
@@ -2209,7 +2208,7 @@ SetExistingProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver
             if (shape->hasDefaultSetter())
                 return result.succeed();
 
-            return shape->set(cx, obj, receiver, vp, result);
+            return CallJSSetterOp(cx, shape->setterOp(), obj, id, vp, result);
         }
 
         
