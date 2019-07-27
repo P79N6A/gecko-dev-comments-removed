@@ -2120,8 +2120,6 @@ baseops::SetPropertyHelper(JSContext *cx, HandleNativeObject obj, HandleObject r
         
         
         
-        
-        
         RootedObject proto(cx, done ? nullptr : pobj->getProto());
         if (!proto) {
             

@@ -608,12 +608,6 @@ PerThreadData::initJitStackLimit()
 }
 
 void
-PerThreadData::initJitStackLimitPar(uintptr_t limit)
-{
-    jitStackLimit_ = limit;
-}
-
-void
 JSRuntime::requestInterrupt(InterruptMode mode)
 {
     interrupt_ = true;

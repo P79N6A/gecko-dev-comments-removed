@@ -927,6 +927,7 @@ class AssemblerShared
             
             
             
+            
             MOZ_ASSERT(GetJitContext()->runtime->onMainThread());
             embedsNurseryPointers_ = true;
         }

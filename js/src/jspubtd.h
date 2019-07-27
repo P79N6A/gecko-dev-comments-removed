@@ -280,14 +280,6 @@ class JS_PUBLIC_API(AutoGCRooter)
 
 namespace js {
 
-
-
-
-
-
-
-enum ParallelResult { TP_SUCCESS, TP_RETRY_SEQUENTIALLY, TP_RETRY_AFTER_GC, TP_FATAL };
-
 class ExclusiveContext;
 
 enum ThingRootKind
