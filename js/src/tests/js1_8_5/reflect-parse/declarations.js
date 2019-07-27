@@ -33,6 +33,12 @@ assertDecl("function foo(a=(function () {})) { function a() {} }",
                    [funExpr(null, [], blockStmt([]))]));
 
 
+assertDecl("function f(a=1, [x,y]=[2,3]) { }",
+           funDecl(ident("f"),
+                   [ident("a"), arrPatt([ident("x"), ident("y")])],
+                   blockStmt([]),
+                   [lit(1), arrExpr([lit(2), lit(3)])]));
+
 
 assertDecl("function f(a) { function a() { } }",
            funDecl(ident("f"), [ident("a")], blockStmt([funDecl(ident("a"), [], blockStmt([]))])));
