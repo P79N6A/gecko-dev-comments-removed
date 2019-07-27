@@ -35,7 +35,7 @@ function setupTestMultipleEntries(headers) {
   return new Promise(function(resolve, reject) {
     var response, responseText, cache;
     Promise.all(headers.map(function(h) {
-      return fetch(new Request(requestURL, {headers: h}));
+      return fetch(requestURL, {headers: h});
     })).then(function(r) {
         response = r;
         return Promise.all(response.map(function(r) {
@@ -59,7 +59,7 @@ function setupTestMultipleEntries(headers) {
 
 function testBasics() {
   var test;
-  return setupTest({"WhatToVary": "Cookie"})
+  return setupTest({"WhatToVary": "Custom"})
     .then(function(t) {
       test = t;
       
@@ -68,11 +68,11 @@ function testBasics() {
       return checkResponse(r, test.response, test.responseText);
     }).then(function() {
       
-      return test.cache.match(new Request(requestURL, {headers: {"Cookie": "foo=bar"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom": "foo=bar"}}));
     }).then(function(r) {
       is(typeof r, "undefined", "Searching for a request with an unknown Vary header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"Cookie": "foo=bar"}}),
+      return test.cache.match(new Request(requestURL, {headers: {"Custom": "foo=bar"}}),
                               {ignoreVary: true});
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
@@ -83,10 +83,10 @@ function testBasicKeys() {
   function checkRequest(reqs) {
     is(reqs.length, 1, "One request expected");
     ok(reqs[0].url.indexOf(requestURL) >= 0, "The correct request expected");
-    ok(reqs[0].headers.get("WhatToVary"), "Cookie", "The correct request headers expected");
+    ok(reqs[0].headers.get("WhatToVary"), "Custom", "The correct request headers expected");
   }
   var test;
-  return setupTest({"WhatToVary": "Cookie"})
+  return setupTest({"WhatToVary": "Custom"})
     .then(function(t) {
       test = t;
       
@@ -95,11 +95,11 @@ function testBasicKeys() {
       return checkRequest(r);
     }).then(function() {
       
-      return test.cache.keys(new Request(requestURL, {headers: {"Cookie": "foo=bar"}}));
+      return test.cache.keys(new Request(requestURL, {headers: {"Custom": "foo=bar"}}));
     }).then(function(r) {
       is(r.length, 0, "Searching for a request with an unknown Vary header should not succeed");
       
-      return test.cache.keys(new Request(requestURL, {headers: {"Cookie": "foo=bar"}}),
+      return test.cache.keys(new Request(requestURL, {headers: {"Custom": "foo=bar"}}),
                              {ignoreVary: true});
     }).then(function(r) {
       return checkRequest(r);
@@ -164,15 +164,15 @@ function testStar() {
 
 function testMatch() {
   var test;
-  return setupTest({"WhatToVary": "Cookie", "Cookie": "foo=bar"})
+  return setupTest({"WhatToVary": "Custom", "Custom": "foo=bar"})
     .then(function(t) {
       test = t;
       
-      return test.cache.match(new Request(requestURL, {headers: {"Cookie": "bar=baz"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom": "bar=baz"}}));
     }).then(function(r) {
-      is(typeof r, "undefined", "Searching for a request with a non-matching Cookie header should not succeed");
+      is(typeof r, "undefined", "Searching for a request with a non-matching Custom header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"Cookie": "foo=bar"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom": "foo=bar"}}));
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
     });
@@ -180,15 +180,15 @@ function testMatch() {
 
 function testInvalidHeaderName() {
   var test;
-  return setupTest({"WhatToVary": "Foo/Bar, User-Agent"})
+  return setupTest({"WhatToVary": "Foo/Bar, Custom-User-Agent"})
     .then(function(t) {
       test = t;
       
-      return test.cache.match(new Request(requestURL, {headers: {"User-Agent": "MyUA"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-User-Agent": "MyUA"}}));
     }).then(function(r) {
-      is(typeof r, "undefined", "Searching for a request with a non-matching User-Agent header should not succeed");
+      is(typeof r, "undefined", "Searching for a request with a non-matching Custom-User-Agent header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"User-Agent": "MyUA"}}),
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-User-Agent": "MyUA"}}),
                               {ignoreVary: true});
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
@@ -202,47 +202,47 @@ function testInvalidHeaderName() {
 
 function testMultipleHeaders() {
   var test;
-  return setupTest({"WhatToVary": "Referer,\tAccept-Encoding"})
+  return setupTest({"WhatToVary": "Custom-Referer,\tCustom-Accept-Encoding"})
     .then(function(t) {
       test = t;
       
-      return test.cache.match(new Request(requestURL, {headers: {"Referer": "https://somesite.com/"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Referer": "https://somesite.com/"}}));
     }).then(function(r) {
-      is(typeof r, "undefined", "Searching for a request with a non-matching Referer header should not succeed");
+      is(typeof r, "undefined", "Searching for a request with a non-matching Custom-Referer header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"Referer": "https://somesite.com/"}}),
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Referer": "https://somesite.com/"}}),
                               {ignoreVary: true});
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
     }).then(function() {
       
-      return test.cache.match(new Request(requestURL, {headers: {"Accept-Encoding": "myencoding"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Accept-Encoding": "myencoding"}}));
     }).then(function(r) {
-      is(typeof r, "undefined", "Searching for a request with a non-matching Accept-Encoding header should not succeed");
+      is(typeof r, "undefined", "Searching for a request with a non-matching Custom-Accept-Encoding header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"Accept-Encoding": "myencoding"}}),
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Accept-Encoding": "myencoding"}}),
                               {ignoreVary: true});
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
     }).then(function() {
       
-      return test.cache.match(new Request(requestURL, {headers: {"Referer": ""}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Referer": ""}}));
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
     }).then(function() {
       
-      return test.cache.match(new Request(requestURL, {headers: {"Accept-Encoding": ""}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Accept-Encoding": ""}}));
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
     }).then(function() {
       
-      return test.cache.match(new Request(requestURL, {headers: {"Referer": "",
-                                                                 "Accept-Encoding": "myencoding"}}));
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Referer": "",
+                                                                 "Custom-Accept-Encoding": "myencoding"}}));
     }).then(function(r) {
-      is(typeof r, "undefined", "Searching for a request with a non-matching Accept-Encoding header should not succeed");
+      is(typeof r, "undefined", "Searching for a request with a non-matching Custom-Accept-Encoding header should not succeed");
       
-      return test.cache.match(new Request(requestURL, {headers: {"Referer": "",
-                                                                 "Accept-Encoding": "myencoding"}}),
+      return test.cache.match(new Request(requestURL, {headers: {"Custom-Referer": "",
+                                                                 "Custom-Accept-Encoding": "myencoding"}}),
                               {ignoreVary: true});
     }).then(function(r) {
       return checkResponse(r, test.response, test.responseText);
