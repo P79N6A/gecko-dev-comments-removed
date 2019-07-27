@@ -361,7 +361,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
                 
                 
                 
-                CommitCompositionBy(EmptyString());
+                DispatchCompositionEventsForCommit(EmptyString());
                 filterThisEvent = false;
             }
         } else {
@@ -921,20 +921,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     }
 
     NS_ConvertUTF8toUTF16 str(commitString);
-    CommitCompositionBy(str); 
-}
-
-bool
-nsGtkIMModule::CommitCompositionBy(const nsAString& aString)
-{
-    PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): CommitCompositionBy, aString=\"%s\", "
-         "mDispatchedCompositionString=\"%s\"",
-         this, NS_ConvertUTF16toUTF8(aString).get(),
-         NS_ConvertUTF16toUTF8(mDispatchedCompositionString).get()));
-
-     
-     return DispatchCompositionEventsForCommit(aString);
+    DispatchCompositionEventsForCommit(str); 
 }
 
 void

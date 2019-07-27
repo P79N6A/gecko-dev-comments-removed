@@ -308,10 +308,6 @@ protected:
 
 
 
-
-    
-    bool CommitCompositionBy(const nsAString& aString);
-
     
 
 
