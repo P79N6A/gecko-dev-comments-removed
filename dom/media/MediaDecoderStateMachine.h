@@ -197,7 +197,18 @@ public:
   
   
   
-  void Play();
+  void Play()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    nsRefPtr<nsRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::PlayInternal);
+    GetStateMachineThread()->Dispatch(r, NS_DISPATCH_NORMAL);
+  }
+
+private:
+  
+  
+  void PlayInternal();
+public:
 
   
   

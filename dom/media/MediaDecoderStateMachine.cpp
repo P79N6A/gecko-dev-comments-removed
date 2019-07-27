@@ -1502,13 +1502,29 @@ void MediaDecoderStateMachine::DoNotifyWaitingForResourcesStatusChanged()
   ScheduleStateMachine();
 }
 
-void MediaDecoderStateMachine::Play()
+void MediaDecoderStateMachine::PlayInternal()
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  
-  
-  
+  NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
+
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+
+  
+  
+  
+  
+  
+  
+  
+  if (mState != DECODER_STATE_DECODING && mState != DECODER_STATE_BUFFERING &&
+      mState != DECODER_STATE_COMPLETED)
+  {
+    DECODER_LOG("Unexpected state - Bailing out of PlayInternal()");
+    return;
+  }
+
+  
+  
+  
   if (mState == DECODER_STATE_BUFFERING) {
     DECODER_LOG("Changed state from BUFFERING to DECODING");
     SetState(DECODER_STATE_DECODING);
@@ -2682,8 +2698,8 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         MOZ_ASSERT(mReader->IsWaitForDataSupported(),
                    "Don't yet have a strategy for non-heuristic + non-WaitForData");
         DispatchDecodeTasksIfNeeded();
-        MOZ_ASSERT_IF(OutOfDecodedAudio(), mAudioRequestStatus != RequestStatus::Idle);
-        MOZ_ASSERT_IF(OutOfDecodedVideo(), mVideoRequestStatus != RequestStatus::Idle);
+        MOZ_ASSERT_IF(!mMinimizePreroll && OutOfDecodedAudio(), mAudioRequestStatus != RequestStatus::Idle);
+        MOZ_ASSERT_IF(!mMinimizePreroll && OutOfDecodedVideo(), mVideoRequestStatus != RequestStatus::Idle);
         DECODER_LOG("In buffering mode, waiting to be notified: outOfAudio: %d, "
                     "mAudioStatus: %d, outOfVideo: %d, mVideoStatus: %d",
                     OutOfDecodedAudio(), mAudioRequestStatus,
