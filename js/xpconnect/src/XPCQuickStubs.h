@@ -22,27 +22,6 @@ xpc_qsThrow(JSContext *cx, nsresult rv);
 
 
 
-bool
-xpc_qsThrowMethodFailed(JSContext *cx, nsresult rv, jsval *vp);
-
-
-
-
-void
-xpc_qsThrowBadArg(JSContext *cx, nsresult rv, jsval *vp, unsigned paramnum);
-
-void
-xpc_qsThrowBadArgWithCcx(XPCCallContext &ccx, nsresult rv, unsigned paramnum);
-
-void
-xpc_qsThrowBadArgWithDetails(JSContext *cx, nsresult rv, unsigned paramnum,
-                             const char *ifaceName, const char *memberName);
-
-bool
-xpc_qsGetterOnlyNativeStub(JSContext *cx, unsigned argc, jsval *vp);
-
-
-
 inline bool
 xpc_qsInt64ToJsval(JSContext *cx, int64_t i, JS::MutableHandleValue rv)
 {
