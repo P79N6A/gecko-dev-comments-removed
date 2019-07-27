@@ -867,6 +867,11 @@ GetDisplayPortFromMarginsData(nsIContent* aContent,
     
     
     frame = frame->PresContext()->PresShell()->GetRootScrollFrame();
+    if (!frame) {
+      
+      return ApplyRectMultiplier(base, aMultiplier);
+    }
+
     isRoot = true;
   }
 
