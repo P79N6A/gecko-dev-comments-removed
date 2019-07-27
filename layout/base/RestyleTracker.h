@@ -15,6 +15,7 @@
 #include "nsClassHashtable.h"
 #include "nsContainerFrame.h"
 #include "mozilla/SplayTree.h"
+#include "mozilla/RestyleLogging.h"
 
 namespace mozilla {
 
@@ -233,9 +234,9 @@ public:
 
   friend class ElementRestyler; 
 
-  explicit RestyleTracker(Element::FlagsType aRestyleBits) :
-    mRestyleBits(aRestyleBits),
-    mHaveLaterSiblingRestyles(false)
+  explicit RestyleTracker(Element::FlagsType aRestyleBits)
+    : mRestyleBits(aRestyleBits)
+    , mHaveLaterSiblingRestyles(false)
   {
     NS_PRECONDITION((mRestyleBits & ~ELEMENT_ALL_RESTYLE_FLAGS) == 0,
                     "Why do we have these bits set?");
@@ -341,6 +342,12 @@ public:
 
 
   inline nsIDocument* Document() const;
+
+#ifdef RESTYLE_LOGGING
+  
+  inline bool ShouldLogRestyle();
+  inline int32_t& LoggingDepth();
+#endif
 
 private:
   bool AddPendingRestyleToTable(Element* aElement, nsRestyleHint aRestyleHint,
