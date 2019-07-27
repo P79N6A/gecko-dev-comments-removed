@@ -39,9 +39,11 @@
 #include "gmp-video-frame-encoded.h"
 #include "gmp-video-codec.h"
 
+
 class GMPVideoHost
 {
 public:
+  
   
   
   virtual GMPErr CreateFrame(GMPVideoFrameFormat aFormat, GMPVideoFrame** aFrame) = 0;
