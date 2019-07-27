@@ -19,7 +19,7 @@ BEGIN_TEST(testLookup_bug522590)
 
     
     EVAL("mkobj().f !== mkobj().f", &x);
-    CHECK_SAME(x, JSVAL_TRUE);
+    CHECK(x.isTrue());
 
     
     EVAL("mkobj()", &x);
@@ -86,9 +86,9 @@ BEGIN_TEST(testLookup_bug570195)
     CHECK(JS_DefineProperty(cx, global, "document", obj, 0));
     JS::RootedValue v(cx);
     EVAL("document.all ? true : false", &v);
-    CHECK_SAME(v, JSVAL_FALSE);
+    CHECK(v.isFalse());
     EVAL("document.hasOwnProperty('all')", &v);
-    CHECK_SAME(v, JSVAL_TRUE);
+    CHECK(v.isTrue());
     return true;
 }
 END_TEST(testLookup_bug570195)

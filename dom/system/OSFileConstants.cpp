@@ -915,7 +915,7 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
 #endif 
 
 #if defined(DEBUG)
-  JS::Rooted<JS::Value> valDebug(cx, JSVAL_TRUE);
+  JS::Rooted<JS::Value> valDebug(cx, JS::TrueValue());
   if (!JS_SetProperty(cx, objSys, "DEBUG", valDebug)) {
     return false;
   }

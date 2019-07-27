@@ -1889,7 +1889,8 @@ InitTypeClasses(JSContext* cx, HandleObject ctypesObj)
   
   RootedObject typeObj(cx,
     CType::DefineBuiltin(cx, ctypesObj, "void_t", CTypeProto, CDataProto, "void",
-                         TYPE_void_t, JSVAL_VOID, JSVAL_VOID, &ffi_type_void));
+                         TYPE_void_t, JS::UndefinedValue(), JS::UndefinedValue(),
+                         &ffi_type_void));
   if (!typeObj)
     return false;
 
@@ -4218,6 +4219,7 @@ CType::GetSize(JSObject* obj)
   
   
   
+  
   if (size.isInt32())
     return size.toInt32();
   return Convert<size_t>(size.toDouble());
@@ -4709,7 +4711,7 @@ PointerType::ConstructData(JSContext* cx,
   
   
   
-  jsval errVal = JSVAL_VOID;
+  Value errVal = JS::UndefinedValue();
   if (args.length() == 3)
     errVal = args[2];
 
@@ -4930,8 +4932,8 @@ ArrayType::CreateInternal(JSContext* cx,
     return nullptr;
   }
 
-  RootedValue sizeVal(cx, JSVAL_VOID);
-  RootedValue lengthVal(cx, JSVAL_VOID);
+  RootedValue sizeVal(cx, JS::UndefinedValue());
+  RootedValue lengthVal(cx, JS::UndefinedValue());
   if (lengthDefined) {
     
     size_t size = length * baseSize;
@@ -5109,6 +5111,7 @@ ArrayType::GetLength(JSObject* obj)
 
   MOZ_ASSERT(!length.isUndefined());
 
+  
   
   
   
@@ -5441,7 +5444,8 @@ StructType::Create(JSContext* cx, unsigned argc, jsval* vp)
   
   
   RootedObject result(cx, CType::Create(cx, typeProto, nullptr, TYPE_struct,
-                                        name.toString(), JSVAL_VOID, JSVAL_VOID, nullptr));
+                                        name.toString(), JS::UndefinedValue(),
+                                        JS::UndefinedValue(), nullptr));
   if (!result)
     return false;
 
@@ -6426,7 +6430,8 @@ FunctionType::CreateInternal(JSContext* cx,
 
   
   RootedObject typeObj(cx, CType::Create(cx, typeProto, dataProto, TYPE_function,
-                                         nullptr, JSVAL_VOID, JSVAL_VOID, nullptr));
+                                         nullptr, JS::UndefinedValue(),
+                                         JS::UndefinedValue(), nullptr));
   if (!typeObj)
     return nullptr;
 
@@ -7951,7 +7956,7 @@ CDataFinalizer::Methods::Dispose(JSContext* cx, unsigned argc, jsval* vp)
   MOZ_ASSERT(CType::GetTypeCode(objCodeType) == TYPE_function);
 
   RootedObject resultType(cx, FunctionType::GetFunctionInfo(objCodeType)->mReturnType);
-  RootedValue result(cx, JSVAL_VOID);
+  RootedValue result(cx, JS::UndefinedValue());
 
   int errnoStatus;
 #if defined(XP_WIN)
@@ -8029,7 +8034,7 @@ CDataFinalizer::Cleanup(CDataFinalizer::Private* p, JSObject* obj)
 
   JS_SetPrivate(obj, nullptr);
   for (int i = 0; i < CDATAFINALIZER_SLOTS; ++i) {
-    JS_SetReservedSlot(obj, i, JSVAL_NULL);
+    JS_SetReservedSlot(obj, i, JS::NullValue());
   }
 }
 
