@@ -492,6 +492,7 @@ typedef mozilla::Vector<SimpleEdge, 8, js::TempAllocPolicy> SimpleEdgeVector;
 
 class MOZ_STACK_CLASS RootList {
     Maybe<AutoCheckCannotGC> &noGC;
+    JSContext                *cx;
 
   public:
     SimpleEdgeVector edges;
@@ -500,11 +501,16 @@ class MOZ_STACK_CLASS RootList {
     RootList(JSContext *cx, Maybe<AutoCheckCannotGC> &noGC, bool wantNames = false);
 
     
-    bool init(JSContext *cx);
+    bool init();
     
-    bool init(JSContext *cx, ZoneSet &debuggees);
+    bool init(ZoneSet &debuggees);
     
-    bool init(JSContext *cx, HandleObject debuggees);
+    bool init(HandleObject debuggees);
+
+    
+    
+    
+    bool addRoot(Node node, const char16_t *edgeName = nullptr);
 };
 
 
