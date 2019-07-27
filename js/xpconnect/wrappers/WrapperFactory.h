@@ -46,8 +46,7 @@ class WrapperFactory {
     
     static JSObject *Rewrap(JSContext *cx,
                             JS::HandleObject existing,
-                            JS::HandleObject obj,
-                            JS::HandleObject parent);
+                            JS::HandleObject obj);
 
     
     static bool WaiveXrayAndWrap(JSContext *cx, JS::MutableHandleValue vp);
