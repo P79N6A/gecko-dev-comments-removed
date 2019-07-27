@@ -1116,7 +1116,7 @@ function CssRuleView(aInspector, aDoc, aStore, aPageStyle) {
   this.store = aStore || {};
   this.pageStyle = aPageStyle;
 
-  this._highlightedElements = [];
+  this._editorsExpandedForFilter = [];
   this._outputParser = new OutputParser();
 
   this._buildContextMenu = this._buildContextMenu.bind(this);
@@ -1640,6 +1640,7 @@ CssRuleView.prototype = {
         this.searchField.removeAttribute("filled");
       }
 
+      this._clearHighlights();
       this._clearRules();
       this._createEditors();
 
@@ -1701,7 +1702,7 @@ CssRuleView.prototype = {
     this._prefObserver.destroy();
 
     this._outputParser = null;
-    this._highlightedElements = null;
+    this._editorsExpandedForFilter = null;
 
     
     if (this._contextmenu) {
@@ -1995,10 +1996,6 @@ CssRuleView.prototype = {
       return;
     }
 
-    if (this._highlightedElements.length > 0) {
-      this.clearHighlight();
-    }
-
     for (let rule of this._elementStyle.rules) {
       if (rule.domRule.system) {
         continue;
@@ -2087,7 +2084,6 @@ CssRuleView.prototype = {
     for (let selectorNode of selectorNodes) {
       if (selectorNode.textContent.toLowerCase().includes(aValue)) {
         selectorNode.classList.add("ruleview-highlight");
-        this._highlightedElements.push(selectorNode);
         isHighlighted = true;
       }
     }
@@ -2105,22 +2101,44 @@ CssRuleView.prototype = {
       let propertyValue = textProp.editor.valueSpan.textContent.toLowerCase();
       let propertyName = textProp.name.toLowerCase();
 
+      let editor = textProp.editor;
+
+      let isPropertyHighlighted = this._highlightMatches(editor.container, {
+        searchName: name,
+        searchValue: value,
+        propertyName: propertyName,
+        propertyValue: propertyValue,
+        propertyMatch: propertyMatch
+      });
+
+      let isComputedHighlighted = false;
+
       
-      
-      
-      let matches = false;
-      if (propertyMatch && name && value) {
-        matches = propertyName.includes(name) && propertyValue.includes(value);
-      } else {
-        matches = (name && propertyName.includes(name)) ||
-                  (value && propertyValue.includes(value));
+      for (let computed of textProp.computed) {
+        if (computed.element) {
+          let computedName = computed.name;
+          let computedValue = computed.value;
+
+          isComputedHighlighted = this._highlightMatches(computed.element, {
+            searchName: name,
+            searchValue: value,
+            propertyName: computedName,
+            propertyValue: computedValue,
+            propertyMatch: propertyMatch
+          }) ? true : isComputedHighlighted;
+        }
       }
 
-      if (matches) {
-      
-        textProp.editor.element.classList.add("ruleview-highlight");
-        this._highlightedElements.push(textProp.editor.element);
+      if (isPropertyHighlighted || isComputedHighlighted) {
         isHighlighted = true;
+      }
+
+      
+      
+      if (!isPropertyHighlighted && isComputedHighlighted &&
+          !editor.computed.classList.contains("styleinspector-open")) {
+        editor.expandForFilter();
+        this._editorsExpandedForFilter.push(editor);
       }
     }
 
@@ -2130,12 +2148,59 @@ CssRuleView.prototype = {
   
 
 
-  clearHighlight: function() {
-    for (let element of this._highlightedElements) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _highlightMatches: function(aElement, { searchName, searchValue, propertyName,
+      propertyValue, propertyMatch }) {
+    let matches = false;
+
+    
+    
+    
+    
+    if (propertyMatch && searchName && searchValue) {
+      matches = propertyName.includes(searchName) &&
+                propertyValue.includes(searchValue);
+    } else {
+      matches = (searchName && propertyName.includes(searchName)) ||
+                (searchValue && propertyValue.includes(searchValue));
+    }
+
+    if (matches) {
+      aElement.classList.add("ruleview-highlight");
+    }
+
+    return matches;
+  },
+
+  
+
+
+
+  _clearHighlights: function() {
+    for (let element of this.element.querySelectorAll(".ruleview-highlight")) {
       element.classList.remove("ruleview-highlight");
     }
 
-    this._highlightedElements = [];
+    for (let editor of this._editorsExpandedForFilter) {
+      editor.collapseForFilter();
+    }
+
+    this._editorsExpandedForFilter = [];
   }
 };
 
@@ -2593,19 +2658,23 @@ TextPropertyEditor.prototype = {
     this.element = this.doc.createElementNS(HTML_NS, "li");
     this.element.classList.add("ruleview-property");
 
+    this.container = createChild(this.element, "div", {
+      class: "ruleview-propertycontainer"
+    });
+
     
-    this.enable = createChild(this.element, "div", {
+    this.enable = createChild(this.container, "div", {
       class: "ruleview-enableproperty theme-checkbox",
       tabindex: "-1"
     });
 
     
-    this.expander = createChild(this.element, "span", {
+    this.expander = createChild(this.container, "span", {
       class: "ruleview-expander theme-twisty"
     });
     this.expander.addEventListener("click", this._onExpandClicked, true);
 
-    this.nameContainer = createChild(this.element, "span", {
+    this.nameContainer = createChild(this.container, "span", {
       class: "ruleview-namecontainer"
     });
 
@@ -2621,8 +2690,8 @@ TextPropertyEditor.prototype = {
     
     
     
-    let propertyContainer = createChild(this.element, "span", {
-      class: "ruleview-propertycontainer"
+    let propertyContainer = createChild(this.container, "span", {
+      class: "ruleview-propertyvaluecontainer"
     });
 
 
@@ -2655,7 +2724,7 @@ TextPropertyEditor.prototype = {
 
     appendText(propertyContainer, ";");
 
-    this.warning = createChild(this.element, "div", {
+    this.warning = createChild(this.container, "div", {
       class: "ruleview-warning",
       hidden: "",
       title: CssLogic.l10n("rule.warning.title"),
@@ -2948,6 +3017,10 @@ TextPropertyEditor.prototype = {
       });
 
       appendText(li, ";");
+
+      
+      
+      computed.element = li;
     }
 
     
@@ -2975,14 +3048,44 @@ TextPropertyEditor.prototype = {
   
 
 
+
+
+
+
   _onExpandClicked: function(aEvent) {
-    this.computed.classList.toggle("styleinspector-open");
-    if (this.computed.classList.contains("styleinspector-open")) {
-      this.expander.setAttribute("open", "true");
+    if (this.computed.classList.contains("filter-open") ||
+        this.computed.classList.contains("styleinspector-open")) {
+      this.expander.removeAttribute("open");
+      this.computed.classList.remove("filter-open");
+      this.computed.classList.remove("styleinspector-open");
     } else {
+      this.expander.setAttribute("open", "true");
+      this.computed.classList.add("styleinspector-open");
+    }
+
+    aEvent.stopPropagation();
+  },
+
+  
+
+
+
+
+  expandForFilter: function() {
+    if (!this.computed.classList.contains("styleinspector-open")) {
+      this.computed.classList.add("filter-open");
+      this.expander.setAttribute("open", "true");
+    }
+  },
+
+  
+
+
+  collapseForFilter: function() {
+    this.computed.classList.remove("filter-open");
+    if (!this.computed.classList.contains("styleinspector-open")) {
       this.expander.removeAttribute("open");
     }
-    aEvent.stopPropagation();
   },
 
   
