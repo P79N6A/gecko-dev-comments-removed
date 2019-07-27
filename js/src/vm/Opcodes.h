@@ -1776,6 +1776,7 @@
 
 
 
+
  \
     macro(JSOP_BINDGNAME,     214, "bindgname",    NULL,  5,  0,  1,  JOF_ATOM|JOF_NAME|JOF_SET|JOF_GNAME) \
     \
