@@ -301,6 +301,9 @@ class MacroAssemblerMIPS : public Assembler
     
     void ma_callIonHalfPush(const Register reg);
 
+    
+    void ma_callAndStoreRet(const Register reg, uint32_t stackArgBytes);
+
     void ma_call(ImmPtr dest);
 
     void ma_jump(ImmPtr dest);
@@ -412,13 +415,38 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
         ma_liPatchable(ScratchRegister, Imm32((uint32_t)c->raw()));
         ma_callIonHalfPush(ScratchRegister);
     }
+
+    void appendCallSite(const CallSiteDesc &desc) {
+        
+        
+        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_ + AsmJSFrameSize));
+    }
+
     void call(const CallSiteDesc &desc, const Register reg) {
         call(reg);
-        enoughMemory_ &= append(desc, currentOffset(), framePushed_);
+        appendCallSite(desc);
     }
     void call(const CallSiteDesc &desc, Label *label) {
         call(label);
-        enoughMemory_ &= append(desc, currentOffset(), framePushed_);
+        appendCallSite(desc);
+    }
+    void call(const CallSiteDesc &desc, AsmJSImmPtr imm) {
+        call(imm);
+        appendCallSite(desc);
+    }
+    void callExit(AsmJSImmPtr imm, uint32_t stackArgBytes) {
+        movePtr(imm, CallReg);
+        ma_callAndStoreRet(CallReg, stackArgBytes);
+        appendCallSite(CallSiteDesc::Exit());
+    }
+    void callIonFromAsmJS(const Register reg) {
+        ma_callIonNoPush(reg);
+        appendCallSite(CallSiteDesc::Exit());
+
+        
+        
+        
+        subPtr(Imm32(sizeof(void*)), StackPointer);
     }
 
     void branch(JitCode *c) {
@@ -965,7 +993,6 @@ public:
     
     
     void callIon(Register callee);
-    void callIonFromAsmJS(Register callee);
 
     void reserveStack(uint32_t amount);
     void freeStack(uint32_t amount);

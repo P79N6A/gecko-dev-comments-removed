@@ -1790,17 +1790,6 @@ MacroAssemblerARMCompat::callIon(Register callee)
 }
 
 void
-MacroAssemblerARMCompat::callIonFromAsmJS(Register callee)
-{
-    ma_callIonNoPush(callee);
-
-    
-    
-    
-    subPtr(Imm32(sizeof(void*)), sp);
-}
-
-void
 MacroAssemblerARMCompat::reserveStack(uint32_t amount)
 {
     if (amount)
@@ -3633,6 +3622,19 @@ MacroAssemblerARM::ma_call(ImmPtr dest)
 
     ma_movPatchable(dest, CallReg, Always, rs);
     as_blx(CallReg);
+}
+
+void
+MacroAssemblerARM::ma_callAndStoreRet(const Register r, uint32_t stackArgBytes)
+{
+    
+    
+    
+    
+    JS_ASSERT(stackArgBytes == 0);
+    AutoForbidPools afp(this);
+    as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
+    as_blx(r);
 }
 
 void

@@ -100,6 +100,18 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void call(ImmPtr target) {
         call(ImmWord(uintptr_t(target.value)));
     }
+    void call(AsmJSImmPtr target) {
+        mov(target, rax);
+        call(rax);
+    }
+
+    void call(const CallSiteDesc &desc, AsmJSImmPtr target) {
+        call(target);
+        appendCallSite(desc);
+    }
+    void callExit(AsmJSImmPtr target, uint32_t stackArgBytes) {
+        call(CallSiteDesc::Exit(), target);
+    }
 
     
     

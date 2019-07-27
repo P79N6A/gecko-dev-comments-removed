@@ -1525,16 +1525,6 @@ MacroAssemblerMIPSCompat::callIon(Register callee)
         ma_callIon(callee);
     }
 }
-void
-MacroAssemblerMIPSCompat::callIonFromAsmJS(Register callee)
-{
-    ma_callIonNoPush(reg);
-
-    
-    
-    
-    subPtr(Imm32(sizeof(void*)), StackPointer);
-}
 
 void
 MacroAssemblerMIPSCompat::reserveStack(uint32_t amount)
@@ -2968,6 +2958,21 @@ MacroAssemblerMIPS::ma_callIonHalfPush(const Register r)
     as_addiu(StackPointer, StackPointer, -sizeof(intptr_t));
     as_jalr(r);
     as_sw(ra, StackPointer, 0);
+}
+
+void
+MacroAssemblerMIPS::ma_callAndStoreRet(const Register r, uint32_t stackArgBytes)
+{
+    
+    
+    
+    
+    
+    JS_ASSERT(stackArgBytes == 4 * sizeof(uintptr_t));
+
+    
+    as_jalr(r);
+    as_sw(ra, StackPointer, 4 * sizeof(uintptr_t));
 }
 
 void
