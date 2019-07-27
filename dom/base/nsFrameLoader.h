@@ -78,7 +78,9 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   nsresult CheckForRecursiveLoad(nsIURI* aURI);
   nsresult ReallyStartLoading();
-  void Finalize();
+  void StartDestroy();
+  void DestroyDocShell();
+  void DestroyComplete();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
   mozilla::dom::EventTarget* GetTabChildGlobalAsEventTarget();
   nsresult CreateStaticClone(nsIFrameLoader* aDest);
@@ -318,6 +320,11 @@ private:
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   mozilla::dom::Element* mOwnerContent; 
+
+  
+  
+  
+  nsRefPtr<mozilla::dom::Element> mOwnerContentStrong;
 
   
   uint32_t mAppIdSentToPermissionManager;
