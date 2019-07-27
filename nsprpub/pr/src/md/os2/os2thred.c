@@ -272,7 +272,7 @@ PR_EXTERN(PRInt32)
 _PR_MD_SETTHREADAFFINITYMASK(PRThread *thread, PRUint32 mask )
 {
    
-   PR_ASSERT(!"Not implemented");
+   PR_NOT_REACHED("Not implemented");
    return 0;
 
  
@@ -288,7 +288,7 @@ PR_EXTERN(PRInt32)
 _PR_MD_GETTHREADAFFINITYMASK(PRThread *thread, PRUint32 *mask)
 {
    
-   PR_ASSERT(!"Not implemented");
+   PR_NOT_REACHED("Not implemented");
    return 0;
 
  
