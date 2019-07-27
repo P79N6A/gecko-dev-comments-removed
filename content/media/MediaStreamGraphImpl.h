@@ -237,7 +237,7 @@ public:
 
 
   void UpdateStreamOrderForStream(mozilla::LinkedList<MediaStream>* aStack,
-                                  already_AddRefed<MediaStream> aStream);
+                                  MediaStream* aStream);
   
 
 
@@ -426,12 +426,17 @@ public:
   
   
 
-  nsTArray<nsRefPtr<MediaStream> > mStreams;
   
 
 
 
-  nsTArray<nsRefPtr<MediaStream> > mOldStreams;
+
+  nsTArray<MediaStream*> mStreams;
+  
+
+
+
+  nsTArray<MediaStream*> mOldStreams;
   
 
 
