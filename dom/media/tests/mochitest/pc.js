@@ -231,20 +231,6 @@ CommandChain.prototype = {
 
 
 
-
-
-  replace : function (id, commands) {
-    this.insertBefore(id, commands);
-    return this.remove(id);
-  },
-
-  
-
-
-
-
-
-
   replaceAfter : function (id, commands) {
     var oldCommands = this.removeAfter(id);
     this.append(commands);
@@ -2099,22 +2085,18 @@ PeerConnectionWrapper.prototype = {
 
 
 
-  setupIceCandidateHandler : function
-    PCW_setupIceCandidateHandler(test, candidateHandler, endHandler) {
+  setupIceCandidateHandler : function PCW_setupIceCandidateHandler(test) {
     var self = this;
     self._local_ice_candidates = [];
     self._remote_ice_candidates = [];
     self._ice_candidates_to_add = [];
-
-    candidateHandler = candidateHandler || test.iceCandidateHandler.bind(test);
-    endHandler = endHandler || test.signalEndOfTrickleIce.bind(test);
 
     function iceCandidateCallback (anEvent) {
       info(self.label + ": received iceCandidateEvent");
       if (!anEvent.candidate) {
         info(self.label + ": received end of trickle ICE event");
         self.endOfTrickleIce = true;
-        endHandler(self.label);
+        test.signalEndOfTrickleIce(self.label);
       } else {
         if (self.endOfTrickleIce) {
           ok(false, "received ICE candidate after end of trickle");
@@ -2125,7 +2107,7 @@ PeerConnectionWrapper.prototype = {
         ok(anEvent.candidate.sdpMid.length === 0, "SDP MID has length zero");
         ok(typeof anEvent.candidate.sdpMLineIndex === 'number', "SDP MLine Index needs to exist");
         self._local_ice_candidates.push(anEvent.candidate);
-        candidateHandler(self.label, anEvent.candidate);
+        test.iceCandidateHandler(self.label, anEvent.candidate);
       }
     }
 
