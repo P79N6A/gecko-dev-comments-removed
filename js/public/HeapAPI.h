@@ -75,12 +75,8 @@ static const uint32_t GRAY = 1;
 
 const uintptr_t ChunkLocationBitNursery = 1;       
 const uintptr_t ChunkLocationBitTenuredHeap = 2;   
-const uintptr_t ChunkLocationBitPJSNewspace = 4;   
-const uintptr_t ChunkLocationBitPJSFromspace = 8;  
 
-const uintptr_t ChunkLocationAnyNursery = ChunkLocationBitNursery |
-                                          ChunkLocationBitPJSNewspace |
-                                          ChunkLocationBitPJSFromspace;
+const uintptr_t ChunkLocationAnyNursery = ChunkLocationBitNursery;
 
 #ifdef JS_DEBUG
 

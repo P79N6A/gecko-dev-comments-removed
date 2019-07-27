@@ -221,13 +221,6 @@ struct JSCompartment
 
   public:
     
-
-
-
-
-    void adoptWorkerAllocator(js::Allocator *workerAllocator);
-
-    
     js::types::TypeCompartment   types;
 
     void                         *data;

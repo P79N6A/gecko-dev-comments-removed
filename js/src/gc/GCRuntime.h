@@ -520,7 +520,7 @@ class GCRuntime
 #endif
 
     template <AllowGC allowGC>
-    static void *refillFreeListFromAnyThread(ThreadSafeContext *cx, AllocKind thingKind);
+    static void *refillFreeListFromAnyThread(ExclusiveContext *cx, AllocKind thingKind);
     static void *refillFreeListInGC(Zone *zone, AllocKind thingKind);
 
     
@@ -543,7 +543,6 @@ class GCRuntime
     template <AllowGC allowGC>
     static void *refillFreeListFromMainThread(JSContext *cx, AllocKind thingKind);
     static void *refillFreeListOffMainThread(ExclusiveContext *cx, AllocKind thingKind);
-    static void *refillFreeListPJS(ForkJoinContext *cx, AllocKind thingKind);
 
     
 
@@ -813,8 +812,7 @@ class GCRuntime
 
 
 
-
-    mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> compactingDisabled;
+    unsigned compactingDisabled;
 #endif
 
     

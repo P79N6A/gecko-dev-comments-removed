@@ -550,11 +550,6 @@ FinalizeTypedArenas(FreeOp *fop,
     
     MOZ_ASSERT_IF(fop->onBackgroundThread(), keepArenas == ArenaLists::KEEP_ARENAS);
 
-    
-    
-    
-    MOZ_ASSERT_IF(InParallelSection(), keepArenas == ArenaLists::KEEP_ARENAS);
-
     size_t thingSize = Arena::thingSize(thingKind);
     size_t thingsPerArena = Arena::thingsPerArena(thingSize);
 
@@ -1886,7 +1881,7 @@ ArenaLists::allocateFromArena(JS::Zone *zone, AllocKind thingKind,
     ArenaHeader *aheader = al.takeNextArena();
     if (aheader) {
         
-        MOZ_ASSERT_IF(aheader->isEmpty(), InParallelSection());
+        MOZ_ASSERT(!aheader->isEmpty());
 
         return allocateFromArenaInner<HasFreeThings>(zone, aheader, thingKind);
     }
@@ -1938,41 +1933,6 @@ ArenaLists::allocateFromArenaInner(JS::Zone *zone, ArenaHeader *aheader, AllocKi
     return thing;
 }
 
-void
-ArenaLists::wipeDuringParallelExecution(JSRuntime *rt)
-{
-    MOZ_ASSERT(InParallelSection());
-
-    
-    
-    
-    
-    
-    
-    
-    
-    for (unsigned i = 0; i < FINALIZE_LAST; i++) {
-        AllocKind thingKind = AllocKind(i);
-        if (!IsBackgroundFinalized(thingKind) && !arenaLists[thingKind].isEmpty())
-            return;
-    }
-
-    
-    
-    FreeOp fop(rt);
-    for (unsigned i = 0; i < FINALIZE_OBJECT_LAST; i++) {
-        AllocKind thingKind = AllocKind(i);
-
-        if (!IsBackgroundFinalized(thingKind))
-            continue;
-
-        if (!arenaLists[i].isEmpty()) {
-            purge(thingKind);
-            forceFinalizeNow(&fop, thingKind, KEEP_ARENAS);
-        }
-    }
-}
-
 
 
 bool
@@ -1990,12 +1950,14 @@ GCRuntime::shouldCompact()
 void
 GCRuntime::disableCompactingGC()
 {
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
     ++rt->gc.compactingDisabled;
 }
 
 void
 GCRuntime::enableCompactingGC()
 {
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
     MOZ_ASSERT(compactingDisabled > 0);
     --compactingDisabled;
 }
@@ -2003,6 +1965,7 @@ GCRuntime::enableCompactingGC()
 bool
 GCRuntime::isCompactingGCEnabled()
 {
+    MOZ_ASSERT(CurrentThreadCanAccessRuntime(rt));
     return rt->gc.compactingDisabled == 0;
 }
 
@@ -2859,7 +2822,6 @@ ArenaLists::queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind)
 ArenaLists::backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, ArenaHeader **empty)
 {
     MOZ_ASSERT(listHead);
-    MOZ_ASSERT(!InParallelSection());
     MOZ_ASSERT(empty);
 
     AllocKind thingKind = listHead->getAllocKind();
@@ -2972,12 +2934,6 @@ ArenaLists::queueForegroundThingsForSweep(FreeOp *fop)
 static void *
 RunLastDitchGC(JSContext *cx, JS::Zone *zone, AllocKind thingKind)
 {
-    
-
-
-
-    MOZ_ASSERT(!InParallelSection());
-
     PrepareZoneForGC(zone);
 
     JSRuntime *rt = cx->runtime();
@@ -3076,36 +3032,23 @@ GCRuntime::refillFreeListOffMainThread(ExclusiveContext *cx, AllocKind thingKind
     return nullptr;
 }
 
- void *
-GCRuntime::refillFreeListPJS(ForkJoinContext *cx, AllocKind thingKind)
-{
-    Allocator *allocator = cx->allocator();
-    Zone *zone = allocator->zone_;
-
-    AutoMaybeStartBackgroundAllocation maybeStartBGAlloc;
-    return allocator->arenas.allocateFromArena(zone, thingKind, maybeStartBGAlloc);
-}
-
 template <AllowGC allowGC>
  void *
-GCRuntime::refillFreeListFromAnyThread(ThreadSafeContext *cx, AllocKind thingKind)
+GCRuntime::refillFreeListFromAnyThread(ExclusiveContext *cx, AllocKind thingKind)
 {
     MOZ_ASSERT(cx->allocator()->arenas.freeLists[thingKind].isEmpty());
 
     if (cx->isJSContext())
         return refillFreeListFromMainThread<allowGC>(cx->asJSContext(), thingKind);
 
-    if (cx->isExclusiveContext())
-        return refillFreeListOffMainThread(cx->asExclusiveContext(), thingKind);
-
-    return refillFreeListPJS(cx->asForkJoinContext(), thingKind);
+    return refillFreeListOffMainThread(cx, thingKind);
 }
 
 template void *
-GCRuntime::refillFreeListFromAnyThread<NoGC>(ThreadSafeContext *cx, AllocKind thingKind);
+GCRuntime::refillFreeListFromAnyThread<NoGC>(ExclusiveContext *cx, AllocKind thingKind);
 
 template void *
-GCRuntime::refillFreeListFromAnyThread<CanGC>(ThreadSafeContext *cx, AllocKind thingKind);
+GCRuntime::refillFreeListFromAnyThread<CanGC>(ExclusiveContext *cx, AllocKind thingKind);
 
  void *
 GCRuntime::refillFreeListInGC(Zone *zone, AllocKind thingKind)
@@ -3191,12 +3134,6 @@ bool
 GCRuntime::triggerGC(JS::gcreason::Reason reason)
 {
     
-    if (InParallelSection()) {
-        ForkJoinContext::current()->requestGC(reason);
-        return true;
-    }
-
-    
 
 
 
@@ -3247,15 +3184,6 @@ GCRuntime::maybeAllocTriggerZoneGC(Zone *zone, const AutoLockGC &lock)
 bool
 GCRuntime::triggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
 {
-    
-
-
-
-    if (InParallelSection()) {
-        ForkJoinContext::current()->requestZoneGC(zone, reason);
-        return true;
-    }
-
     
     if (zone->usedByExclusiveThread)
         return false;
@@ -3823,9 +3751,6 @@ GCRuntime::shouldPreserveJITCode(JSCompartment *comp, int64_t currentTime,
     if (comp->lastAnimationTime + PRMJ_USEC_PER_SEC >= currentTime)
         return true;
     if (reason == JS::gcreason::DEBUG_GC)
-        return true;
-
-    if (comp->jitCompartment() && comp->jitCompartment()->hasRecentParallelActivity())
         return true;
 
     return false;
@@ -5236,8 +5161,6 @@ bool
 ArenaLists::foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
                                SortedArenaList &sweepList)
 {
-    MOZ_ASSERT(!InParallelSection());
-
     if (!arenaListsToSweep[thingKind] && incrementalSweptArenas.isEmpty())
         return true;
 
@@ -6234,9 +6157,6 @@ GCRuntime::scanZonesBeforeGC()
 void
 GCRuntime::collect(bool incremental, SliceBudget budget, JS::gcreason::Reason reason)
 {
-    
-    MOZ_ALWAYS_TRUE(!InParallelSection());
-
     JS_AbortIfWrongThread(rt);
 
     
@@ -6841,8 +6761,6 @@ void
 ArenaLists::adoptArenas(JSRuntime *rt, ArenaLists *fromArenaLists)
 {
     
-    
-    
     AutoLockGC lock(rt);
 
     fromArenaLists->purge();
@@ -6863,14 +6781,8 @@ ArenaLists::adoptArenas(JSRuntime *rt, ArenaLists *fromArenaLists)
             
             next = fromHeader->next;
 
-            
-            
-            
-            
-            if (fromHeader->isEmpty())
-                rt->gc.releaseArena(fromHeader, lock);
-            else
-                toList->insertAtCursor(fromHeader);
+            MOZ_ASSERT(!fromHeader->isEmpty());
+            toList->insertAtCursor(fromHeader);
         }
         fromList->clear();
         toList->check();

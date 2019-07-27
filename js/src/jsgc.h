@@ -769,10 +769,6 @@ class ArenaLists
     
 
 
-
-
-
-
     void adoptArenas(JSRuntime *runtime, ArenaLists *fromArenaLists);
 
     
@@ -801,8 +797,6 @@ class ArenaLists
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
                             SortedArenaList &sweepList);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, ArenaHeader **empty);
-
-    void wipeDuringParallelExecution(JSRuntime *rt);
 
     
     

@@ -483,9 +483,6 @@ class StoreBuffer
     void markGenericEntries(JSTracer *trc)    { bufferGeneric.mark(this, trc); }
 
     
-    bool inParallelSection() const;
-
-    
     void setAboutToOverflow();
 
     
