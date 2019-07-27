@@ -642,11 +642,6 @@ nsBlockReflowState::CanPlaceFloat(nscoord aFloatISize,
       aFloatISize;
 }
 
-
-
-
-
-
 static nscoord
 FloatMarginISize(const nsHTMLReflowState& aCBReflowState,
                  nscoord aFloatAvailableISize,
@@ -668,17 +663,9 @@ FloatMarginISize(const nsHTMLReflowState& aCBReflowState,
               aFloatOffsetState.ComputedLogicalPadding().Size(wm),
               nsIFrame::ComputeSizeFlags::eShrinkWrap);
 
-  WritingMode cbwm = aCBReflowState.GetWritingMode();
-  nscoord floatISize = floatSize.ConvertTo(cbwm, wm).ISize(cbwm);
-  if (floatISize == NS_UNCONSTRAINEDSIZE) {
-    return NS_UNCONSTRAINEDSIZE; 
-  }
-
-  return floatISize +
-         aFloatOffsetState.ComputedLogicalMargin().Size(wm).
-           ConvertTo(cbwm, wm).ISize(cbwm) +
-         aFloatOffsetState.ComputedLogicalBorderPadding().Size(wm).
-           ConvertTo(cbwm, wm).ISize(cbwm);
+  return floatSize.ISize(wm) +
+         aFloatOffsetState.ComputedLogicalMargin().IStartEnd(wm) +
+         aFloatOffsetState.ComputedLogicalBorderPadding().IStartEnd(wm);
 }
 
 bool
@@ -734,20 +721,14 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   
   
-  
-  
-  
-  bool earlyFloatReflow =
-    aFloat->GetType() == nsGkAtoms::letterFrame ||
-    floatMarginISize == NS_UNCONSTRAINEDSIZE;
-  if (earlyFloatReflow) {
+  bool isLetter = aFloat->GetType() == nsGkAtoms::letterFrame;
+  if (isLetter) {
     mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat, floatMargin,
                         floatOffsets, false, reflowStatus);
     floatMarginISize = aFloat->ISize(wm) + floatMargin.IStartEnd(wm);
     NS_ASSERTION(NS_FRAME_IS_COMPLETE(reflowStatus),
-                 "letter frames and orthogonal floats with auto block-size "
-                 "shouldn't break, and if they do now, then they're breaking "
-                 "at the wrong point");
+                 "letter frames shouldn't break, and if they do now, "
+                 "then they're breaking at the wrong point");
   }
 
   
@@ -872,7 +853,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   
-  if (!earlyFloatReflow) {
+  if (!isLetter) {
     bool pushedDown = mBCoord != saveBCoord;
     mBlock->ReflowFloat(*this, adjustedAvailableSpace, aFloat, floatMargin,
                         floatOffsets, pushedDown, reflowStatus);
