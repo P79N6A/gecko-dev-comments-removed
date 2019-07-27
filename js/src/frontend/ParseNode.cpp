@@ -79,7 +79,6 @@ class NodeStack {
         pn->pn_next = top;
         top = pn;
     }
-    void pushUnlessNull(ParseNode *pn) { if (pn) push(pn); }
     
     void pushList(ParseNode *pn) {
         
@@ -123,7 +122,8 @@ PushCodeNodeChildren(ParseNode *node, NodeStack *stack)
 
 
     node->pn_funbox = nullptr;
-    stack->pushUnlessNull(node->pn_body);
+    if (node->pn_body)
+        stack->push(node->pn_body);
     node->pn_body = nullptr;
 
     return PushResult::CleanUpLater;
@@ -146,7 +146,8 @@ PushNameNodeChildren(ParseNode *node, NodeStack *stack)
 
 
     if (!node->isUsed()) {
-        stack->pushUnlessNull(node->pn_expr);
+        if (node->pn_expr)
+            stack->push(node->pn_expr);
         node->pn_expr = nullptr;
     }
 
