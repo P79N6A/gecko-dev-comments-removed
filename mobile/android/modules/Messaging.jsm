@@ -58,8 +58,6 @@ let Messaging = {
 
 
 
-
-
   addListener: function (aListener, aMessage) {
     requestHandler.addListener(aListener, aMessage);
   },
