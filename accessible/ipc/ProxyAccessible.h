@@ -21,9 +21,8 @@ class ProxyAccessible
 public:
 
   ProxyAccessible(uint64_t aID, ProxyAccessible* aParent,
-                  DocAccessibleParent* aDoc, role aRole,
-                  const nsString& aName) :
-     mParent(aParent), mDoc(aDoc), mID(aID), mRole(aRole), mOuterDoc(false), mName(aName)
+                  DocAccessibleParent* aDoc, role aRole) :
+     mParent(aParent), mDoc(aDoc), mID(aID), mRole(aRole), mOuterDoc(false)
   {
     MOZ_COUNT_CTOR(ProxyAccessible);
   }
@@ -62,6 +61,11 @@ public:
   
 
 
+  void Name(nsString& aName) const;
+
+  
+
+
   uintptr_t GetWrapper() const { return mWrapper; }
   void SetWrapper(uintptr_t aWrapper) { mWrapper = aWrapper; }
 
@@ -85,7 +89,6 @@ private:
   uint64_t mID;
   role mRole : 31;
   bool mOuterDoc : 1;
-  nsString mName;
 };
 
 }
