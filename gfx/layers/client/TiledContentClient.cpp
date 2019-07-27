@@ -1108,14 +1108,6 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   }
   aTile.SetCompositableClient(mCompositableClient);
 
-  
-  
-  
-  if (HasFormatChanged()) {
-    aTile.DiscardBackBuffer();
-    aTile.DiscardFrontBuffer();
-  }
-
   bool createdTextureClient = false;
   nsIntRegion offsetScaledDirtyRegion = aDirtyRegion.MovedBy(-aTileOrigin);
   offsetScaledDirtyRegion.ScaleRoundOut(mResolution, mResolution);
