@@ -1181,12 +1181,7 @@ gfxPlatform::CreateOffscreenCanvasDrawTarget(const IntSize& aSize, SurfaceFormat
     return target.forget();
   }
 
-#ifdef XP_WIN
-  
-  return Factory::CreateDrawTarget(mFallbackCanvasBackend, aSize, aFormat);
-#else
   return CreateDrawTargetForBackend(mFallbackCanvasBackend, aSize, aFormat);
-#endif
 }
 
 TemporaryRef<DrawTarget>
