@@ -171,9 +171,7 @@ private:
   nsTArray<nsRefPtr<GMPVideoEncoderParent>> mVideoEncoders;
   nsTArray<nsRefPtr<GMPDecryptorParent>> mDecryptors;
   nsTArray<nsRefPtr<GMPAudioDecoderParent>> mAudioDecoders;
-#ifdef DEBUG
   nsCOMPtr<nsIThread> mGMPThread;
-#endif
   
   
   nsAutoString mOrigin;
