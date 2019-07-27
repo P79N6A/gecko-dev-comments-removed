@@ -383,10 +383,10 @@ pref("media.getusermedia.screensharing.enabled", true);
 #endif
 
 #ifdef RELEASE_BUILD
-pref("media.getusermedia.screensharing.allowed_domains", "");
+pref("media.getusermedia.screensharing.allowed_domains", "webex.com,*.webex.com,collaborate.com,*.collaborate.com");
 #else
  
-pref("media.getusermedia.screensharing.allowed_domains", "mozilla.github.io");
+pref("media.getusermedia.screensharing.allowed_domains", "mozilla.github.io,webex.com,*.webex.com,collaborate.com,*.collaborate.com");
 #endif
 
 pref("media.getusermedia.screensharing.allow_on_old_platforms", false);
