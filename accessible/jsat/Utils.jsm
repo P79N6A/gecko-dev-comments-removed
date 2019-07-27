@@ -749,7 +749,9 @@ PivotContext.prototype = {
       if (this._includeInvisible) {
         include = true;
       } else {
-        include = !(Utils.getState(child).contains(States.INVISIBLE));
+        
+        
+        include = Utils.getAttributes(child).hidden !== 'true';
       }
       if (include) {
         if (aPreorder) {
