@@ -281,8 +281,7 @@ class MozbuildSandbox(Sandbox):
         data.is_library = True
         return data
 
-    def _add_tier_directory(self, tier, reldir, static=False, external=False,
-            trigger=None):
+    def _add_tier_directory(self, tier, reldir, external=False, trigger=None):
         """Register a tier directory with the build."""
         if isinstance(reldir, text_type):
             reldir = [reldir]
@@ -290,15 +289,10 @@ class MozbuildSandbox(Sandbox):
         if not tier in self['TIERS']:
             self['TIERS'][tier] = {
                 'regular': [],
-                'static': [],
                 'external': [],
             }
 
-        key = 'static' if static else 'external' if external else 'regular'
-        if external and static:
-            raise Exception('Only one of external or static can be set at the '
-                'same time')
-
+        key = 'external' if external else 'regular'
         for path in reldir:
             if path in self['TIERS'][tier][key]:
                 raise Exception('Directory has already been registered with '
