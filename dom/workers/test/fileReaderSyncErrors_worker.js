@@ -61,7 +61,6 @@ onmessage = function(event) {
   writeProperty(file, "size");
   writeProperty(file, "type");
   writeProperty(file, "name");
-  writeProperty(file, "mozFullPath");
 
   
   fileReaderJunkArgument(undefined);
