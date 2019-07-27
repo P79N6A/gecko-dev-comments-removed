@@ -77,11 +77,6 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     aElements.AppendElement(mTouchCaretElement);
 
     
-    mTouchCaretElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
-                                     NS_LITERAL_STRING("mozTouchCaret"), er);
-    NS_ENSURE_SUCCESS(er.ErrorCode(), er.ErrorCode());
-
-    
     nsAutoString classValue;
     classValue.AppendLiteral("moz-touchcaret hidden");
     rv = mTouchCaretElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
