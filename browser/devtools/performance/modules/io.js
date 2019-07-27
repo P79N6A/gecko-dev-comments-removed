@@ -18,7 +18,8 @@ loader.lazyImporter(this, "NetUtil",
 
 
 const PERF_TOOL_SERIALIZER_IDENTIFIER = "Recorded Performance Data";
-const PERF_TOOL_SERIALIZER_VERSION = 1;
+const PERF_TOOL_SERIALIZER_LEGACY_VERSION = 1;
+const PERF_TOOL_SERIALIZER_CURRENT_VERSION = 2;
 
 
 
@@ -51,7 +52,7 @@ let PerformanceIO = {
     let deferred = promise.defer();
 
     recordingData.fileType = PERF_TOOL_SERIALIZER_IDENTIFIER;
-    recordingData.version = PERF_TOOL_SERIALIZER_VERSION;
+    recordingData.version = PERF_TOOL_SERIALIZER_CURRENT_VERSION;
 
     let string = JSON.stringify(recordingData);
     let inputStream = this.getUnicodeConverter().convertToInputStream(string);
@@ -88,9 +89,12 @@ let PerformanceIO = {
         deferred.reject(new Error("Unrecognized recording data file."));
         return;
       }
-      if (recordingData.version != PERF_TOOL_SERIALIZER_VERSION) {
+      if (!isValidSerializerVersion(recordingData.version)) {
         deferred.reject(new Error("Unsupported recording data file version."));
         return;
+      }
+      if (recordingData.version === PERF_TOOL_SERIALIZER_LEGACY_VERSION) {
+        recordingData = convertLegacyData(recordingData);
       }
       deferred.resolve(recordingData);
     });
@@ -100,3 +104,49 @@ let PerformanceIO = {
 };
 
 exports.PerformanceIO = PerformanceIO;
+
+
+
+
+
+
+
+
+function isValidSerializerVersion (version) {
+  return !!~[
+    PERF_TOOL_SERIALIZER_LEGACY_VERSION,
+    PERF_TOOL_SERIALIZER_CURRENT_VERSION
+  ].indexOf(version);
+}
+
+
+
+
+
+
+
+
+
+
+function convertLegacyData (legacyData) {
+  let { profilerData, ticksData, recordingDuration } = legacyData;
+
+  
+  
+  let data = {
+    markers: [],
+    frames: [],
+    memory: [],
+    ticks: ticksData,
+    profilerData: profilerData,
+    
+    
+    
+    interval: {
+      startTime: profilerData.currentTime - recordingDuration,
+      endTime: profilerData.currentTime
+    }
+  };
+
+  return data;
+}
