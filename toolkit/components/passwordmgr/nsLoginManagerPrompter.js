@@ -863,8 +863,19 @@ LoginManagerPrompter.prototype = {
       updateButtonLabel();
     };
 
-    let onPasswordFocus = () => {
-      chromeDoc.getElementById("password-notification-password").type = "";
+    let onPasswordFocus = (focusEvent) => {
+      let passwordField = chromeDoc.getElementById("password-notification-password");
+      
+      let selectionStart = passwordField.selectionStart;
+      let selectionEnd = passwordField.selectionEnd;
+      if (focusEvent.rangeParent != null) {
+        
+        selectionStart = passwordField.value.length;
+        selectionEnd = passwordField.value.length;
+      }
+      passwordField.type = "";
+      passwordField.selectionStart = selectionStart;
+      passwordField.selectionEnd = selectionEnd;
     };
 
     let onPasswordBlur = () => {
