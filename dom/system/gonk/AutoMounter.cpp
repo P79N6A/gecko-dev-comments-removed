@@ -845,6 +845,16 @@ AutoMounter::UpdateState()
       break;
 
     case STATE_UMS_CONFIGURING:
+      if (mtpEnabled) {
+        
+        SetState(STATE_MTP_CONFIGURING);
+        SetUsbFunction(USB_FUNC_MTP);
+        break;
+      }
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
+      }
       
       
       
@@ -853,17 +863,7 @@ AutoMounter::UpdateState()
       
       
       if (umsConfigured) {
-        if (mtpEnabled) {
-          
-          SetState(STATE_MTP_CONFIGURING);
-          SetUsbFunction(USB_FUNC_MTP);
-          break;
-        }
         SetState(STATE_UMS_CONFIGURED);
-      }
-      if (rndisConfigured) {
-        SetState(STATE_RNDIS_CONFIGURED);
-        break;
       }
       break;
 
@@ -1119,6 +1119,7 @@ void AutoMounter::GetStatus(bool& umsAvail, bool& umsConfigured, bool& umsEnable
                             bool& mtpAvail, bool& mtpConfigured, bool& mtpEnabled,
                             bool& rndisConfigured)
 {
+  umsAvail = false;
   umsConfigured = false;
   umsEnabled = false;
   mtpAvail = false;
