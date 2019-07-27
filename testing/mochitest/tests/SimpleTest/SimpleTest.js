@@ -684,6 +684,8 @@ SimpleTest.promiseFocus = function *(targetWindow, expectBlankPage)
 
 
 
+
+
 SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     
     
@@ -817,43 +819,61 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     
     
     var Cu = Components.utils || SpecialPowers.Cu;
-    if (Cu.isCrossProcessWrapper(targetWindow)) {
-        
-        
-        var tabBrowser = document.getElementsByTagName("tabbrowser")[0] || null;
-        var remoteBrowser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
-        if (!remoteBrowser) {
-            SimpleTest.info("child process window cannot be focused");
-            return;
+    var Ci = Components.interfaces || SpecialPowers.Ci;
+
+    var browser = null;
+    if (typeof(XULElement) != "undefined" &&
+        targetWindow instanceof XULElement &&
+        targetWindow.localName == "browser") {
+        browser = targetWindow;
+    }
+
+    var isWrapper = Cu.isCrossProcessWrapper(targetWindow);
+    if (isWrapper || (browser && browser.isRemoteBrowser)) {
+        var mustFocusSubframe = false;
+        if (isWrapper) {
+            
+            
+            var tabBrowser = document.getElementsByTagName("tabbrowser")[0] || null;
+            browser = tabBrowser ? tabBrowser.getBrowserForContentWindow(targetWindow.top) : null;
+            if (!browser) {
+                SimpleTest.info("child process window cannot be focused");
+                return;
+            }
+
+            mustFocusSubframe = (targetWindow != targetWindow.top);
         }
 
         
         
         
-        var mustFocusSubframe = (targetWindow != targetWindow.top);
-        remoteBrowser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
+        browser.messageManager.addMessageListener("WaitForFocus:ChildFocused", function waitTest(msg) {
             if (mustFocusSubframe) {
                 mustFocusSubframe = false;
                 var mm = gBrowser.selectedBrowser.messageManager;
                 mm.sendAsyncMessage("WaitForFocus:FocusChild", {}, { child: targetWindow } );
             }
             else {
-                remoteBrowser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
-                setTimeout(callback, 0, targetWindow);
+                browser.messageManager.removeMessageListener("WaitForFocus:ChildFocused", waitTest);
+                setTimeout(callback, 0, browser ? browser.contentWindowAsCPOW : targetWindow);
             }
         });
 
         
         var frameScript = "data:,(" + waitForFocusInner.toString() +
                           ")(content, true, " + expectBlankPage + ");";
-        remoteBrowser.messageManager.loadFrameScript(frameScript, true);
-        remoteBrowser.focus();
-        return;
+        browser.messageManager.loadFrameScript(frameScript, true);
+        browser.focus();
     }
+    else {
+        
+        
+        if (browser) {
+          targetWindow = browser.contentWindow;
+        }
 
-    
-    
-    waitForFocusInner(targetWindow, false, expectBlankPage);
+        waitForFocusInner(targetWindow, false, expectBlankPage);
+    }
 };
 
 SimpleTest.waitForClipboard_polls = 0;
