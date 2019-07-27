@@ -181,8 +181,16 @@ public:
 
   typedef nsRefPtrHashtable<nsRefPtrHashKey<nsIContent>, nsStyleContext>
             ReframingStyleContextTable;
-  class ReframingStyleContexts {
+  class MOZ_STACK_CLASS ReframingStyleContexts {
   public:
+    
+
+
+
+
+
+    explicit ReframingStyleContexts(RestyleManager* aRestyleManager);
+
     void Put(nsIContent* aContent, nsStyleContext* aStyleContext) {
       MOZ_ASSERT(aContent);
       nsCSSPseudoElements::Type pseudoType = aStyleContext->GetPseudoType();
@@ -215,6 +223,7 @@ public:
       return nullptr;
     }
   private:
+    RestyleManager* mRestyleManager;
     ReframingStyleContextTable mElementContexts;
     ReframingStyleContextTable mBeforePseudoContexts;
     ReframingStyleContextTable mAfterPseudoContexts;
