@@ -151,7 +151,12 @@ struct BaselineScript
 
         
         
-        DEBUG_MODE = 1 << 3
+        DEBUG_MODE = 1 << 3,
+
+        
+        
+        
+        ION_COMPILED_OR_INLINED = 1 << 4
     };
 
   private:
@@ -227,6 +232,16 @@ struct BaselineScript
     }
     bool debugMode() const {
         return flags_ & DEBUG_MODE;
+    }
+
+    void setIonCompiledOrInlined() {
+        flags_ |= ION_COMPILED_OR_INLINED;
+    }
+    void clearIonCompiledOrInlined() {
+        flags_ &= ~ION_COMPILED_OR_INLINED;
+    }
+    bool ionCompiledOrInlined() const {
+        return flags_ & ION_COMPILED_OR_INLINED;
     }
 
     uint32_t prologueOffset() const {

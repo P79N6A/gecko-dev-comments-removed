@@ -891,6 +891,10 @@ jit::FinishDiscardBaselineScript(FreeOp *fop, JSScript *script)
         
         
         script->baselineScript()->resetActive();
+
+        
+        
+        script->baselineScript()->clearIonCompiledOrInlined();
         return;
     }
 
