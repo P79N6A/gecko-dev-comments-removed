@@ -107,6 +107,7 @@ function buildOptionListForChildren(node) {
       let info = {
         tagName: child.tagName,
         textContent: textContent,
+        disabled: child.disabled,
         
         
         textDirection: win.getComputedStyle(child).getPropertyValue("direction"),
