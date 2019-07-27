@@ -745,6 +745,7 @@ opensl_stream_set_volume(cubeb_stream * stm, float volume)
 {
   SLresult res;
   SLmillibel max_level, millibels;
+  float unclamped_millibels;
 
   res = (*stm->volume)->GetMaxVolumeLevel(stm->volume, &max_level);
 
@@ -752,12 +753,15 @@ opensl_stream_set_volume(cubeb_stream * stm, float volume)
     return CUBEB_ERROR;
   }
 
-  millibels = SL_MILLIBEL_MIN + (float)(max_level - SL_MILLIBEL_MIN) * volume;
-
   
-  if (millibels > max_level) {
-   millibels = max_level;
-  }
+
+
+
+  unclamped_millibels = 100.0f * 20.0f * log10f(fmaxf(volume, 0.0f));
+  unclamped_millibels = fmaxf(unclamped_millibels, SL_MILLIBEL_MIN);
+  unclamped_millibels = fminf(unclamped_millibels, max_level);
+
+  millibels = lroundf(unclamped_millibels);
 
   res = (*stm->volume)->SetVolumeLevel(stm->volume, millibels);
 
