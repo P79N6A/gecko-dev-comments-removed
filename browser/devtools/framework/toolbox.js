@@ -295,6 +295,12 @@ Toolbox.prototype = {
     let responsiveModeActive = this._isResponsiveModeActive();
     if (e.keyCode === e.DOM_VK_ESCAPE && !responsiveModeActive) {
       this.toggleSplitConsole();
+      
+      
+      let jsdebugger = this.getPanel("jsdebugger");
+      if (jsdebugger && jsdebugger.panelWin.gThreadClient.state == "paused") {
+        e.preventDefault();
+      }
     }
   },
 
