@@ -460,7 +460,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
         break;
     }
     case nsXPTType::T_JSVAL :
-        *((jsval*)d) = s;
+        *((Value*)d) = s;
         break;
     case nsXPTType::T_VOID:
         XPC_LOG_ERROR(("XPCConvert::JSData2Native : void* params not supported"));
@@ -969,7 +969,7 @@ XPCConvert::ConstructException(nsresult rv, const char* message,
                                nsISupports* data,
                                nsIException** exceptn,
                                JSContext* cx,
-                               jsval* jsExceptionPtr)
+                               Value* jsExceptionPtr)
 {
     MOZ_ASSERT(!cx == !jsExceptionPtr, "Expected cx and jsExceptionPtr to cooccur.");
 

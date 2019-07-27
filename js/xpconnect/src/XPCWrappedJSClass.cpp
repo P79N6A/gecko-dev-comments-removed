@@ -943,8 +943,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
                                 const XPTMethodDescriptor* info_,
                                 nsXPTCMiniVariant* nativeParams)
 {
-    jsval* sp = nullptr;
-    jsval* argv = nullptr;
+    Value* sp = nullptr;
+    Value* argv = nullptr;
     uint8_t i;
     nsresult retval = NS_ERROR_FAILURE;
     bool success;
