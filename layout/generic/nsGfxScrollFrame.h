@@ -460,6 +460,7 @@ public:
 
   
   const DisplayItemClip* mAncestorClip;
+  const DisplayItemClip* mAncestorClipForCaret;
 
   bool mNeverHasVerticalScrollbar:1;
   bool mNeverHasHorizontalScrollbar:1;
