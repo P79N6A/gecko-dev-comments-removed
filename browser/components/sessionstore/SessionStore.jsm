@@ -688,7 +688,6 @@ let SessionStoreInternal = {
             Services.obs.notifyObservers(browser, NOTIFY_TAB_RESTORED, null);
           }
 
-          delete browser.__SS_restore_data;
           delete browser.__SS_data;
 
           SessionStoreInternal._resetLocalTabRestoringState(tab);
@@ -2690,19 +2689,9 @@ let SessionStoreInternal = {
 
 
 
-
-
-
-
-
-
-
-
-
   restoreTabContent: function (aTab, aLoadArguments = null) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
-    let tabData = browser.__SS_data;
 
     
     TabRestoreQueue.remove(aTab);
@@ -2714,17 +2703,6 @@ let SessionStoreInternal = {
     browser.__SS_restoreState = TAB_STATE_RESTORING;
     browser.removeAttribute("pending");
     aTab.removeAttribute("pending");
-
-    let activeIndex = tabData.index - 1;
-
-    
-    if (tabData.entries.length) {
-      
-      
-      browser.__SS_restore_data = tabData.entries[activeIndex] || {};
-    } else {
-      browser.__SS_restore_data = {};
-    }
 
     browser.messageManager.sendAsyncMessage("SessionStore:restoreTabContent",
       {loadArguments: aLoadArguments});
