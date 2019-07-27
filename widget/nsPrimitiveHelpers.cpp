@@ -69,11 +69,11 @@ nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, const void* 
     nsCOMPtr<nsISupportsString> primitive =
         do_CreateInstance(NS_SUPPORTS_STRING_CONTRACTID);
     if (primitive ) {
-      if (aDataLen % 2) { 
+      if (aDataLen % 2) {
         nsAutoArrayPtr<char> buffer(new char[aDataLen + 1]);
         if (!MOZ_LIKELY(buffer))
           return;
-      
+
         memcpy(buffer, aDataBuff, aDataLen);
         buffer[aDataLen] = 0;
         const char16_t* start = reinterpret_cast<const char16_t*>(buffer.get());
@@ -85,7 +85,7 @@ nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, const void* 
         primitive->SetData(Substring(start, start + (aDataLen / 2)));
       }
       NS_ADDREF(*aPrimitive = primitive);
-    }  
+    }
   }
 
 } 
@@ -99,7 +99,7 @@ nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, const void* 
 
 
 void
-nsPrimitiveHelpers :: CreateDataFromPrimitive ( const char* aFlavor, nsISupports* aPrimitive, 
+nsPrimitiveHelpers :: CreateDataFromPrimitive ( const char* aFlavor, nsISupports* aPrimitive,
                                                    void** aDataBuff, uint32_t aDataLen )
 {
   if ( !aDataBuff )
@@ -136,7 +136,7 @@ nsPrimitiveHelpers :: CreateDataFromPrimitive ( const char* aFlavor, nsISupports
 
 
 nsresult
-nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, int32_t inUnicodeLen, 
+nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, int32_t inUnicodeLen,
                                                             char** outPlainTextData, int32_t* outPlainTextLen )
 {
   if ( !outPlainTextData || !outPlainTextLen )
@@ -160,14 +160,14 @@ nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, i
   rv = converter->Init(platformCharset.get(),
                   nsISaveAsCharset::attr_EntityAfterCharsetConv +
                   nsISaveAsCharset::attr_FallbackQuestionMark,
-                  nsIEntityConverter::transliterate);
+                  0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = converter->Convert(inUnicode, outPlainTextData);
   *outPlainTextLen = *outPlainTextData ? strlen(*outPlainTextData) : 0;
 
   NS_ASSERTION ( NS_SUCCEEDED(rv), "Error converting unicode to plain text" );
-  
+
   return rv;
 } 
 
@@ -181,7 +181,7 @@ nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, i
 
 
 nsresult
-nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, int32_t inTextLen, 
+nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, int32_t inTextLen,
                                                             char16_t** outUnicode, int32_t* outUnicodeLen )
 {
   if ( !outUnicode || !outUnicodeLen )
@@ -200,12 +200,12 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, in
       rv = platformCharsetService->GetCharset(kPlatformCharsetSel_PlainTextInClipboard, platformCharset);
     if (NS_FAILED(rv))
       platformCharset.AssignLiteral("windows-1252");
-      
+
     decoder = EncodingUtils::DecoderForEncoding(platformCharset);
 
     hasConverter = true;
   }
-  
+
   
   
   decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
@@ -234,20 +234,20 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, in
 
 
 nsresult
-nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, void** ioData, 
+nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, void** ioData,
                                                           int32_t* ioLengthInBytes )
 {
   NS_ASSERTION ( ioData && *ioData && ioLengthInBytes, "Bad Params");
   if ( !(ioData && *ioData && ioLengthInBytes) )
     return NS_ERROR_INVALID_ARG;
-    
+
   nsresult retVal = NS_OK;
-  
+
   if ( strcmp(inFlavor, "text/plain") == 0 ) {
     char* buffAsChars = reinterpret_cast<char*>(*ioData);
     char* oldBuffer = buffAsChars;
-    retVal = nsLinebreakConverter::ConvertLineBreaksInSitu ( &buffAsChars, nsLinebreakConverter::eLinebreakAny, 
-                                                              nsLinebreakConverter::eLinebreakContent, 
+    retVal = nsLinebreakConverter::ConvertLineBreaksInSitu ( &buffAsChars, nsLinebreakConverter::eLinebreakAny,
+                                                              nsLinebreakConverter::eLinebreakContent,
                                                               *ioLengthInBytes, ioLengthInBytes );
     if ( NS_SUCCEEDED(retVal) ) {
       if ( buffAsChars != oldBuffer )             
@@ -258,12 +258,12 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
   else if ( strcmp(inFlavor, "image/jpeg") == 0 ) {
     
   }
-  else {       
+  else {
     char16_t* buffAsUnichar = reinterpret_cast<char16_t*>(*ioData);
     char16_t* oldBuffer = buffAsUnichar;
     int32_t newLengthInChars;
-    retVal = nsLinebreakConverter::ConvertUnicharLineBreaksInSitu ( &buffAsUnichar, nsLinebreakConverter::eLinebreakAny, 
-                                                                     nsLinebreakConverter::eLinebreakContent, 
+    retVal = nsLinebreakConverter::ConvertUnicharLineBreaksInSitu ( &buffAsUnichar, nsLinebreakConverter::eLinebreakAny,
+                                                                     nsLinebreakConverter::eLinebreakContent,
                                                                      *ioLengthInBytes / sizeof(char16_t), &newLengthInChars );
     if ( NS_SUCCEEDED(retVal) ) {
       if ( buffAsUnichar != oldBuffer )           
@@ -272,7 +272,7 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
       *ioLengthInBytes = newLengthInChars * sizeof(char16_t);
     }
   }
-  
+
   return retVal;
 
 } 
