@@ -89,18 +89,12 @@ XPCOMUtils.defineLazyServiceGetter(this, "gGonkMobileConnectionService",
                                    "nsIGonkMobileConnectionService");
 
 
-XPCOMUtils.defineLazyGetter(this, "gPhoneNumberUtils", function() {
-  let ns = {};
-  Cu.import("resource://gre/modules/PhoneNumberUtils.jsm", ns);
-  return ns.PhoneNumberUtils;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "PhoneNumberUtils",
+                                  "resource://gre/modules/PhoneNumberUtils.jsm");
 
 
-XPCOMUtils.defineLazyGetter(this, "gDialNumberUtils", function() {
-  let ns = {};
-  Cu.import("resource://gre/modules/DialNumberUtils.jsm", ns);
-  return ns.DialNumberUtils;
-});
+XPCOMUtils.defineLazyModuleGetter(this, "DialNumberUtils",
+                                  "resource://gre/modules/DialNumberUtils.jsm");
 
 function MobileCallForwardingOptions(aOptions) {
   for (let key in aOptions) {
@@ -574,18 +568,18 @@ TelephonyService.prototype = {
     
     
     if (!aIsDialEmergency) {
-      aNumber = gPhoneNumberUtils.normalize(aNumber);
+      aNumber = PhoneNumberUtils.normalize(aNumber);
     }
 
     
     
-    if (!gPhoneNumberUtils.isPlainPhoneNumber(aNumber)) {
+    if (!PhoneNumberUtils.isPlainPhoneNumber(aNumber)) {
       if (DEBUG) debug("Error: Number '" + aNumber + "' is not viable. Drop.");
       aCallback.notifyError(DIAL_ERROR_BAD_NUMBER);
       return;
     }
 
-    let isEmergencyNumber = gDialNumberUtils.isEmergency(aNumber);
+    let isEmergencyNumber = DialNumberUtils.isEmergency(aNumber);
 
     
     if (aIsDialEmergency && !isEmergencyNumber) {
@@ -611,7 +605,7 @@ TelephonyService.prototype = {
       return;
     }
 
-    let mmi = gDialNumberUtils.parseMMI(aNumber);
+    let mmi = DialNumberUtils.parseMMI(aNumber);
     if (mmi) {
       if (this._isTemporaryCLIR(mmi)) {
         this._dialCall(aClientId, mmi.dialNumber,
@@ -689,7 +683,7 @@ TelephonyService.prototype = {
       return;
     }
 
-    let isEmergency = gDialNumberUtils.isEmergency(aNumber);
+    let isEmergency = DialNumberUtils.isEmergency(aNumber);
 
     if (!isEmergency) {
       if (!this._isRadioOn(aClientId)) {
@@ -805,7 +799,7 @@ TelephonyService.prototype = {
       childCall.state = nsITelephonyService.CALL_STATE_DIALING;
       childCall.number = aNumber;
       childCall.isOutgoing = true;
-      childCall.isEmergency = gDialNumberUtils.isEmergency(aNumber);
+      childCall.isEmergency = DialNumberUtils.isEmergency(aNumber);
       childCall.isConference = false;
       childCall.isSwitchable = false;
       childCall.isMergeable = true;
@@ -1019,7 +1013,7 @@ TelephonyService.prototype = {
     }
 
     aCall.isOutgoing = !aRilCall.isMT;
-    aCall.isEmergency = gDialNumberUtils.isEmergency(aCall.number);
+    aCall.isEmergency = DialNumberUtils.isEmergency(aCall.number);
 
     if (!aCall.started &&
         aCall.state == nsITelephonyService.CALL_STATE_CONNECTED) {
