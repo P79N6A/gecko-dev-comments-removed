@@ -197,6 +197,10 @@ GLBlitTextureImageHelper::SetBlitFramebufferForDestTexture(GLuint aTexture)
 void
 GLBlitTextureImageHelper::UseBlitProgram()
 {
+    
+    
+    mCompositor->ResetProgram();
+
     GLContext *gl = mCompositor->gl();
     if (mBlitProgram) {
         gl->fUseProgram(mBlitProgram);
