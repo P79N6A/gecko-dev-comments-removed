@@ -1317,6 +1317,9 @@ protected:
   bool mIsEncrypted;
 
   
+  EncryptionInfo mPendingEncryptedInitData;
+
+  
   bool mDownloadSuspendedByCache;
 
   
