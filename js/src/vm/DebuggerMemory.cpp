@@ -6,8 +6,14 @@
 
 #include "vm/DebuggerMemory.h"
 
+#include "mozilla/Maybe.h"
+#include "mozilla/Move.h"
+
 #include "jscompartment.h"
+
 #include "gc/Marking.h"
+#include "js/UbiNode.h"
+#include "js/UbiNodeTraverse.h"
 #include "vm/Debugger.h"
 #include "vm/GlobalObject.h"
 #include "vm/SavedStacks.h"
@@ -15,6 +21,13 @@
 #include "vm/Debugger-inl.h"
 
 using namespace js;
+
+using JS::ubi::BreadthFirst;
+using JS::ubi::Edge;
+using JS::ubi::Node;
+
+using mozilla::Maybe;
+using mozilla::Move;
 
  DebuggerMemory *
 DebuggerMemory::create(JSContext *cx, Debugger *dbg)
@@ -229,6 +242,179 @@ DebuggerMemory::setMaxAllocationsLogLength(JSContext *cx, unsigned argc, Value *
     return true;
 }
 
+
+
+
+
+namespace js {
+namespace dbg {
+
+
+struct Census {
+    JSContext * const cx;
+    Zone::ZoneSet debuggeeZones;
+    Zone *atomsZone;
+
+    Census(JSContext *cx) : cx(cx), atomsZone(nullptr) { }
+
+    bool init() {
+        AutoLockForExclusiveAccess lock(cx);
+        atomsZone = cx->runtime()->atomsCompartment()->zone();
+        return debuggeeZones.init();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Tally {
+    size_t counter;
+
+  public:
+    Tally(Census &census) : counter(0) { }
+    Tally(Tally &&rhs) : counter(rhs.counter) { }
+    Tally &operator=(Tally &&rhs) { counter = rhs.counter; return *this; }
+
+    bool init(Census &census) { return true; }
+
+    bool count(Census &census, const Node &node) {
+        counter++;
+        return true;
+    }
+
+    bool report(Census &census, MutableHandleValue report) {
+        RootedObject obj(census.cx, NewBuiltinClassInstance(census.cx, &JSObject::class_));
+        RootedValue countValue(census.cx, NumberValue(counter));
+        if (!obj ||
+            !JSObject::defineProperty(census.cx, obj, census.cx->names().count, countValue))
+        {
+            return false;
+        }
+        report.setObject(*obj);
+        return true;
+    }
+};
+
+
+
+template<typename Assorter>
+class CensusHandler {
+    Census &census;
+    Assorter assorter;
+
+  public:
+    CensusHandler(Census &census) : census(census), assorter(census) { }
+
+    bool init(Census &census) { return assorter.init(census); }
+    bool report(Census &census, MutableHandleValue report) {
+        return assorter.report(census, report);
+    }
+
+    
+    class NodeData { };
+
+    bool operator() (BreadthFirst<CensusHandler> &traversal,
+                     Node origin, const Edge &edge,
+                     NodeData *referentData, bool first)
+    {
+        
+        
+        if (!first)
+            return true;
+
+        
+        
+        
+        
+        
+        
+        const Node &referent = edge.referent;
+        Zone *zone = referent.zone();
+
+        if (census.debuggeeZones.has(zone)) {
+            return assorter.count(census, referent);
+        }
+
+        if (zone == census.atomsZone) {
+            traversal.abandonReferent();
+            return assorter.count(census, referent);
+        }
+
+        traversal.abandonReferent();
+        return true;
+    }
+};
+
+
+
+typedef CensusHandler<Tally> TallyingHandler;
+typedef BreadthFirst<TallyingHandler> TallyingTraversal;
+
+} 
+} 
+
+bool
+DebuggerMemory::takeCensus(JSContext *cx, unsigned argc, Value *vp)
+{
+    THIS_DEBUGGER_MEMORY(cx, argc, vp, "Debugger.Memory.prototype.census", args, memory);
+    Debugger *debugger = memory->getDebugger();
+
+    dbg::Census census(cx);
+    if (!census.init())
+        return false;
+    dbg::TallyingHandler handler(census);
+    if (!handler.init(census))
+        return false;
+
+    {
+        JS::AutoCheckCannotGC noGC;
+
+        dbg::TallyingTraversal traversal(cx, handler, noGC);
+        if (!traversal.init())
+            return false;
+
+        
+        
+        
+        for (GlobalObjectSet::Range r = debugger->debuggees.all(); !r.empty(); r.popFront()) {
+            if (!census.debuggeeZones.put(r.front()->zone()) ||
+                !traversal.addStart(static_cast<JSObject *>(r.front())))
+                return false;
+        }
+
+        if (!traversal.traverse())
+            return false;
+    }
+
+    return handler.report(census, args.rval());
+}
+
+
+
+
+
+
  const JSPropertySpec DebuggerMemory::properties[] = {
     JS_PSGS("trackingAllocationSites", getTrackingAllocationSites, setTrackingAllocationSites, 0),
     JS_PSGS("maxAllocationsLogLength", getMaxAllocationsLogLength, setMaxAllocationsLogLength, 0),
@@ -237,5 +423,6 @@ DebuggerMemory::setMaxAllocationsLogLength(JSContext *cx, unsigned argc, Value *
 
  const JSFunctionSpec DebuggerMemory::methods[] = {
     JS_FN("drainAllocationsLog", DebuggerMemory::drainAllocationsLog, 0, 0),
+    JS_FN("takeCensus", takeCensus, 0, 0),
     JS_FS_END
 };

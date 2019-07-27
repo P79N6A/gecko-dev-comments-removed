@@ -67,6 +67,13 @@ namespace ubi {
 
 
 
+
+
+
+
+
+
+
 template<typename Handler>
 struct BreadthFirst {
 
@@ -78,7 +85,7 @@ struct BreadthFirst {
     
     BreadthFirst(JSContext *cx, Handler &handler, const JS::AutoCheckCannotGC &noGC)
       : cx(cx), visited(cx), handler(handler), pending(cx),
-        traversalBegun(false), stopRequested(false)
+        traversalBegun(false), stopRequested(false), abandonRequested(false)
     { }
 
     
@@ -121,11 +128,8 @@ struct BreadthFirst {
                 if (first) {
                     
                     
-                    
-                    if (!visited.add(a, edge.referent, typename Handler::NodeData()) ||
-                        !pending.append(edge.referent)) {
+                    if (!visited.add(a, edge.referent, typename Handler::NodeData()))
                         return false;
-                    }
                 }
 
                 MOZ_ASSERT(a);
@@ -136,6 +140,16 @@ struct BreadthFirst {
 
                 if (stopRequested)
                     return true;
+
+                
+                
+                if (abandonRequested) {
+                    
+                    abandonRequested = false;
+                } else if (first) {
+                    if (!pending.append(edge.referent))
+                        return false;
+                }
             }
         }
 
@@ -148,6 +162,11 @@ struct BreadthFirst {
     
     
     void stop() { stopRequested = true; }
+
+    
+    
+    
+    void abandonReferent() { abandonRequested = true; }
 
     
     JSContext *cx;
@@ -200,6 +219,9 @@ struct BreadthFirst {
 
     
     bool stopRequested;
+
+    
+    bool abandonRequested;
 };
 
 } 
