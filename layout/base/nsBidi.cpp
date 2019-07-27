@@ -669,7 +669,7 @@ void nsBidi::ResolveExplicitLevels(nsBidiDirection *aDirection)
 
     uint16_t stack[NSBIDI_MAX_EXPLICIT_LEVEL + 2];   
 
-    uint32_t stackLast = 0;
+    int32_t stackLast = 0;
     int32_t overflowIsolateCount = 0;
     int32_t overflowEmbeddingCount = 0;
     int32_t validIsolateCount = 0;
@@ -773,8 +773,14 @@ void nsBidi::ResolveExplicitLevels(nsBidiDirection *aDirection)
               
               
               stackLast--;
+
+              
+              
+              
+              MOZ_ASSERT(stackLast > 0);
             }
             stackLast--;  
+            MOZ_ASSERT(stackLast >= 0);  
             validIsolateCount--;
           } else {
             dirProps[i] |= IGNORE_CC;
