@@ -175,6 +175,11 @@ public:
 
 #ifndef MOZ_B2G_CAMERA
   NS_DECL_THREADSAFE_ISUPPORTS
+
+  nsresult TakePhoto(PhotoCallback* aCallback)
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
 #else
   
   
@@ -193,6 +198,9 @@ public:
   void SnapshotImpl();
   void RotateImage(layers::Image* aImage, uint32_t aWidth, uint32_t aHeight);
   void Notify(const mozilla::hal::ScreenConfiguration& aConfiguration);
+
+  nsresult TakePhoto(PhotoCallback* aCallback) MOZ_OVERRIDE;
+
 #endif
 
   
@@ -230,6 +238,7 @@ private:
   
   nsRefPtr<ICameraControl> mCameraControl;
   nsCOMPtr<nsIDOMFile> mLastCapture;
+  nsTArray<nsRefPtr<PhotoCallback>> mPhotoCallbacks;
 
   
   int mRotation;
@@ -328,6 +337,11 @@ public:
 
   virtual const MediaSourceType GetMediaSource() {
     return MediaSourceType::Microphone;
+  }
+
+  virtual nsresult TakePhoto(PhotoCallback* aCallback)
+  {
+    return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   

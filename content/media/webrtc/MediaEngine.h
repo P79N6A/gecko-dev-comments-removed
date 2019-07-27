@@ -10,8 +10,13 @@
 #include "DOMMediaStream.h"
 #include "MediaStreamGraph.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
+#include "mozilla/dom/VideoStreamTrack.h"
 
 namespace mozilla {
+
+namespace dom {
+class DOMFile;
+}
 
 struct VideoTrackConstraintsN;
 struct AudioTrackConstraintsN;
@@ -136,6 +141,29 @@ public:
 
   
   virtual const MediaSourceType GetMediaSource() = 0;
+
+  
+  
+  class PhotoCallback {
+  public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(PhotoCallback)
+
+    
+    
+    virtual nsresult PhotoComplete(already_AddRefed<dom::DOMFile> aBlob) = 0;
+
+    
+    virtual nsresult PhotoError(nsresult aRv) = 0;
+
+  protected:
+    virtual ~PhotoCallback() {}
+  };
+
+  
+
+
+
+  virtual nsresult TakePhoto(PhotoCallback* aCallback) = 0;
 
   
   bool IsAvailable() {

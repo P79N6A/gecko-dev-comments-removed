@@ -877,18 +877,95 @@ MediaEngineWebRTCVideoSource::GetRotation()
 void
 MediaEngineWebRTCVideoSource::OnUserError(UserContext aContext, nsresult aError)
 {
-  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-  mCallbackMonitor.Notify();
+  {
+    
+    
+    ReentrantMonitorAutoEnter sync(mCallbackMonitor);
+    mCallbackMonitor.Notify();
+  }
+
+  
+  class TakePhotoError : public nsRunnable {
+  public:
+    TakePhotoError(nsTArray<nsRefPtr<PhotoCallback>>& aCallbacks,
+                   nsresult aRv)
+      : mRv(aRv)
+    {
+      mCallbacks.SwapElements(aCallbacks);
+    }
+
+    NS_IMETHOD Run()
+    {
+      uint32_t callbackNumbers = mCallbacks.Length();
+      for (uint8_t i = 0; i < callbackNumbers; i++) {
+        mCallbacks[i]->PhotoError(mRv);
+      }
+      
+      mCallbacks.Clear();
+      return NS_OK;
+    }
+
+  protected:
+    nsTArray<nsRefPtr<PhotoCallback>> mCallbacks;
+    nsresult mRv;
+  };
+
+  if (aContext == UserContext::kInTakePicture) {
+    MonitorAutoLock lock(mMonitor);
+    if (mPhotoCallbacks.Length()) {
+      NS_DispatchToMainThread(new TakePhotoError(mPhotoCallbacks, aError));
+    }
+  }
 }
 
 void
 MediaEngineWebRTCVideoSource::OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType)
 {
-  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
-  mLastCapture = dom::DOMFile::CreateMemoryFile(static_cast<void*>(aData),
-                                                static_cast<uint64_t>(aLength),
-                                                aMimeType);
-  mCallbackMonitor.Notify();
+  
+  
+  mCameraControl->StartPreview();
+
+  
+  
+  class GenerateBlobRunnable : public nsRunnable {
+  public:
+    GenerateBlobRunnable(nsTArray<nsRefPtr<PhotoCallback>>& aCallbacks,
+                         uint8_t* aData,
+                         uint32_t aLength,
+                         const nsAString& aMimeType)
+    {
+      mCallbacks.SwapElements(aCallbacks);
+      mPhoto.AppendElements(aData, aLength);
+      mMimeType = aMimeType;
+    }
+
+    NS_IMETHOD Run()
+    {
+      nsRefPtr<dom::DOMFile> blob =
+        dom::DOMFile::CreateMemoryFile(mPhoto.Elements(), mPhoto.Length(), mMimeType);
+      uint32_t callbackCounts = mCallbacks.Length();
+      for (uint8_t i = 0; i < callbackCounts; i++) {
+        nsRefPtr<dom::DOMFile> tempBlob = blob;
+        mCallbacks[i]->PhotoComplete(tempBlob.forget());
+      }
+      
+      mCallbacks.Clear();
+      return NS_OK;
+    }
+
+    nsTArray<nsRefPtr<PhotoCallback>> mCallbacks;
+    nsTArray<uint8_t> mPhoto;
+    nsString mMimeType;
+  };
+
+  
+  
+  
+  MonitorAutoLock lock(mMonitor);
+  if (mPhotoCallbacks.Length()) {
+    NS_DispatchToMainThread(
+      new GenerateBlobRunnable(mPhotoCallbacks, aData, aLength, aMimeType));
+  }
 }
 
 void
@@ -976,6 +1053,28 @@ MediaEngineWebRTCVideoSource::OnNewPreviewFrame(layers::Image* aImage, uint32_t 
 
   return true; 
 }
+
+nsresult
+MediaEngineWebRTCVideoSource::TakePhoto(PhotoCallback* aCallback)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  MonitorAutoLock lock(mMonitor);
+
+  
+  
+  if (!mPhotoCallbacks.Length()) {
+    nsresult rv = mCameraControl->TakePicture();
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+  }
+
+  mPhotoCallbacks.AppendElement(aCallback);
+
+  return NS_OK;
+}
+
 #endif
 
 }

@@ -43,6 +43,11 @@ class VideoStreamTrack;
 
 
 
+
+
+
+
+
 class ImageCapture MOZ_FINAL : public DOMEventTargetHelper
 {
 public:
@@ -85,6 +90,10 @@ public:
 
 protected:
   virtual ~ImageCapture();
+
+  
+  
+  nsresult TakePhotoByMediaEngine();
 
   nsRefPtr<VideoStreamTrack> mVideoStreamTrack;
 };
