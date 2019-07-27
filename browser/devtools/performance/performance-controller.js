@@ -495,29 +495,18 @@ let PerformanceController = {
 
 
 
+  isFeatureSupported: function (features) {
+    if (!features) {
+      return true;
+    }
 
-
-
-
-
-
-
-  isFeatureSupported: function ({ features, actors, mustBeCompleted }, recording) {
-    recording = recording || this.getCurrentRecording();
-    let recordingConfig = recording ? recording.getConfiguration() : {};
-    let currentCompletedState = recording ? recording.isCompleted() : void 0;
-    let actorsSupported = gFront.getActorSupport();
-
-    if (mustBeCompleted != null && mustBeCompleted !== currentCompletedState) {
+    let recording = this.getCurrentRecording();
+    if (!recording) {
       return false;
     }
-    if (actors && !actors.every(a => actorsSupported[a])) {
-      return false;
-    }
-    if (features && !features.every(f => recordingConfig[f])) {
-      return false;
-    }
-    return true;
+
+    let config = recording.getConfiguration();
+    return [].concat(features).every(f => config[f]);
   },
 
   

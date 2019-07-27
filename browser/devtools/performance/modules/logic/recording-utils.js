@@ -4,11 +4,44 @@
 "use strict";
 
 const { Cc, Ci, Cu, Cr } = require("chrome");
+loader.lazyRequireGetter(this, "extend",
+  "sdk/util/object", true);
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function normalizePerformanceFeatures (options, support) {
+  let supportOptions = Object.create(null);
+
+  
+  
+  
+  if (!support.memory) {
+    supportOptions.withMemory = false;
+    supportOptions.withAllocations = false;
+  }
+  if (!support.timeline) {
+    supportOptions.withMarkers = false;
+    supportOptions.withTicks = false;
+  }
+
+  return extend(options, supportOptions);
+}
 
 
 
@@ -531,6 +564,7 @@ UniqueStacks.prototype.getOrAddStringIndex = function(s) {
   return this._uniqueStrings.getOrAddStringIndex(s);
 };
 
+exports.normalizePerformanceFeatures = normalizePerformanceFeatures;
 exports.filterSamples = filterSamples;
 exports.offsetSampleTimes = offsetSampleTimes;
 exports.offsetMarkerTimes = offsetMarkerTimes;
