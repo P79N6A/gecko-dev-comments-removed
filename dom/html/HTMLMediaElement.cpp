@@ -945,7 +945,7 @@ void HTMLMediaElement::NotifyMediaStreamTracksAvailable(DOMMediaStream* aStream)
   if (videoHasChanged) {
     
     
-    NotifyOwnerDocumentActivityChanged();
+    NotifyOwnerDocumentActivityChangedInternal();
   }
 
   mWatchManager.ManualNotify(&HTMLMediaElement::UpdateReadyStateInternal);
@@ -2110,7 +2110,7 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<mozilla::dom::NodeInfo>& aNo
   mPaused.SetOuter(this);
 
   RegisterActivityObserver();
-  NotifyOwnerDocumentActivityChanged();
+  NotifyOwnerDocumentActivityChangedInternal();
 
   MOZ_ASSERT(NS_IsMainThread());
   mWatchManager.Watch(mDownloadSuspendedByCache, &HTMLMediaElement::UpdateReadyStateInternal);
@@ -2866,7 +2866,7 @@ nsresult HTMLMediaElement::FinishDecoderSetup(MediaDecoder* aDecoder,
 
   
   
-  NotifyOwnerDocumentActivityChanged();
+  NotifyOwnerDocumentActivityChangedInternal();
 
   if (!mPaused) {
     SetPlayedOrSeeked(true);
@@ -3279,7 +3279,7 @@ void HTMLMediaElement::MetadataLoaded(const MediaInfo* aInfo,
 
   if (IsVideo() && aInfo->HasVideo()) {
     
-    NotifyOwnerDocumentActivityChanged();
+    NotifyOwnerDocumentActivityChangedInternal();
   }
 }
 
@@ -4037,6 +4037,17 @@ bool HTMLMediaElement::IsBeingDestroyed()
 
 void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
+  bool pauseElement = NotifyOwnerDocumentActivityChangedInternal();
+  if (pauseElement && mAudioChannelAgent) {
+    
+    
+    NotifyAudioChannelAgent(false);
+  }
+}
+
+bool
+HTMLMediaElement::NotifyOwnerDocumentActivityChangedInternal()
+{
   nsIDocument* ownerDoc = OwnerDoc();
   if (mDecoder && !IsBeingDestroyed()) {
     mDecoder->SetElementVisibility(!ownerDoc->Hidden());
@@ -4063,6 +4074,8 @@ void HTMLMediaElement::NotifyOwnerDocumentActivityChanged()
   }
 
   AddRemoveSelfReference();
+
+  return pauseElement;
 }
 
 void HTMLMediaElement::AddRemoveSelfReference()
@@ -4536,19 +4549,25 @@ void HTMLMediaElement::UpdateAudioChannelPlayingState()
       mAudioChannelAgent->SetVisibilityState(!OwnerDoc()->Hidden());
     }
 
-    
-    
-    
-    AutoNoJSAPI nojsapi;
+    NotifyAudioChannelAgent(mPlayingThroughTheAudioChannel);
+  }
+}
 
-    if (mPlayingThroughTheAudioChannel) {
-      int32_t canPlay;
-      mAudioChannelAgent->StartPlaying(&canPlay);
-      CanPlayChanged(canPlay);
-    } else {
-      mAudioChannelAgent->StopPlaying();
-      mAudioChannelAgent = nullptr;
-    }
+void
+HTMLMediaElement::NotifyAudioChannelAgent(bool aPlaying)
+{
+  
+  
+  
+  AutoNoJSAPI nojsapi;
+
+  if (aPlaying) {
+    int32_t canPlay;
+    mAudioChannelAgent->StartPlaying(&canPlay);
+    CanPlayChanged(canPlay);
+  } else {
+    mAudioChannelAgent->StopPlaying();
+    mAudioChannelAgent = nullptr;
   }
 }
 
