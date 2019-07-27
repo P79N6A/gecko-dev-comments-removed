@@ -75,7 +75,7 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
     
     
     const FrameMetrics& metrics = iter.Metrics();
-    transform.PostScale(metrics.mPresShellResolution.scale, metrics.mPresShellResolution.scale, 1.f);
+    transform.PostScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1.f);
   }
   return transform;
 }
@@ -151,14 +151,8 @@ ClientTiledPaintedLayer::BeginPaint()
 
   
   
-  
-  
-  
-
-  
-  
   ParentLayerRect criticalDisplayPort =
-    (displayportMetrics.mCriticalDisplayPort * displayportMetrics.GetZoomToParent())
+    (displayportMetrics.mCriticalDisplayPort * displayportMetrics.GetZoom())
     + displayportMetrics.mCompositionBounds.TopLeft();
   mPaintData.mCriticalDisplayPort = RoundedOut(
     ApplyParentLayerToLayerTransform(transformDisplayPortToLayer, criticalDisplayPort));
@@ -166,7 +160,7 @@ ClientTiledPaintedLayer::BeginPaint()
 
   
   
-  mPaintData.mResolution = displayportMetrics.GetZoomToParent();
+  mPaintData.mResolution = displayportMetrics.GetZoom();
   TILING_LOG("TILING %p: Resolution %f\n", this, mPaintData.mPresShellResolution.scale);
 
   
@@ -179,7 +173,7 @@ ClientTiledPaintedLayer::BeginPaint()
   TILING_LOG("TILING %p: Composition bounds %s\n", this, Stringify(mPaintData.mCompositionBounds).c_str());
 
   
-  mPaintData.mScrollOffset = displayportMetrics.GetScrollOffset() * displayportMetrics.GetZoomToParent();
+  mPaintData.mScrollOffset = displayportMetrics.GetScrollOffset() * displayportMetrics.GetZoom();
   TILING_LOG("TILING %p: Scroll offset %s\n", this, Stringify(mPaintData.mScrollOffset).c_str());
 }
 
