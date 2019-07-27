@@ -23,6 +23,7 @@
 #ifdef MOZ_EME
 #include "mozilla/dom/MediaKeys.h"
 #endif
+#include "StateWatching.h"
 #include "nsGkAtoms.h"
 
 
@@ -647,6 +648,17 @@ protected:
   class StreamListener;
   class StreamSizeListener;
 
+  void SetDecoder(MediaDecoder* aDecoder)
+  {
+    if (mDecoder) {
+      mReadyStateUpdater->Unwatch(mDecoder->ReadyStateWatchTarget());
+    }
+    mDecoder = aDecoder;
+    if (mDecoder) {
+      mReadyStateUpdater->Watch(mDecoder->ReadyStateWatchTarget());
+    }
+  }
+
   virtual void GetItemValueText(DOMString& text) override;
   virtual void SetItemValueText(const nsAString& text) override;
 
@@ -1013,6 +1025,9 @@ protected:
   
   TextTrackManager* GetOrCreateTextTrackManager();
 
+  
+  void UpdateReadyStateInternal();
+
   class nsAsyncEventRunner;
   using nsGenericHTMLElement::DispatchEvent;
   
@@ -1090,10 +1105,12 @@ protected:
   
   
   nsMediaNetworkState mNetworkState;
-  nsMediaReadyState mReadyState;
+  Watchable<nsMediaReadyState> mReadyState;
+
+  WatcherHolder mReadyStateUpdater;
 
   
-  NextFrameStatus mLastNextFrameStatus;
+  Watchable<NextFrameStatus> mNextFrameStatus;
 
   enum LoadAlgorithmState {
     
@@ -1328,7 +1345,7 @@ protected:
 #endif 
 
   
-  bool mDownloadSuspendedByCache;
+  Watchable<bool> mDownloadSuspendedByCache;
 
   
   AudioChannel mAudioChannel;

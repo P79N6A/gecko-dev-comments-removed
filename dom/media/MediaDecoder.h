@@ -196,6 +196,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "MediaStreamGraph.h"
 #include "AbstractMediaDecoder.h"
+#include "StateWatching.h"
 #include "necko-config.h"
 #ifdef MOZ_EME
 #include "mozilla/CDMProxy.h"
@@ -1040,6 +1041,8 @@ public:
     GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded, aDropped);
   }
 
+  WatchTarget& ReadyStateWatchTarget() { return *mReadyStateWatchTarget; }
+
 protected:
   virtual ~MediaDecoder();
   void SetStateMachineParameters();
@@ -1054,6 +1057,8 @@ protected:
 
   
   bool IsEnded() const;
+
+  WatcherHolder mReadyStateWatchTarget;
 
   
 
@@ -1137,7 +1142,7 @@ protected:
   
   
   
-  PlayState mPlayState;
+  Watchable<PlayState> mPlayState;
 
   
   
