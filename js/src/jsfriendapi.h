@@ -473,6 +473,9 @@ IsSystemZone(JS::Zone* zone);
 extern JS_FRIEND_API(bool)
 IsAtomsCompartment(JSCompartment* comp);
 
+extern JS_FRIEND_API(bool)
+IsAtomsZone(JS::Zone *zone);
+
 
 
 

@@ -262,7 +262,13 @@ class BuilderOrigin : public Builder {
 
 
 
-void SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSizeOf);
+JS_PUBLIC_API(void)
+SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSizeOf);
+
+
+
+JS_PUBLIC_API(mozilla::MallocSizeOf)
+GetDebuggerMallocSizeOf(JSRuntime* runtime);
 
 
 
@@ -316,7 +322,12 @@ onPromiseSettled(JSContext* cx, HandleObject promise);
 
 
 JS_PUBLIC_API(bool)
-IsDebugger(JS::Value val);
+IsDebugger(const JSObject &obj);
+
+
+
+JS_PUBLIC_API(bool)
+GetDebuggeeGlobals(JSContext *cx, const JSObject &dbgObj, AutoObjectVector &vector);
 
 } 
 } 
