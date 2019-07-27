@@ -689,31 +689,10 @@ TileClient::DiscardBackBuffer()
        mManager->ReportClientLost(*mBackBufferOnWhite);
      }
     } else {
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-      
-      
-      MOZ_ASSERT(!mBackBufferOnWhite);
-      if (mBackBuffer->GetIPDLActor() &&
-          mCompositableClient && mCompositableClient->GetIPDLActor()) {
-        
-        RefPtr<AsyncTransactionTracker> tracker = new RemoveTextureFromCompositableTracker();
-        
-        tracker->SetTextureClient(mBackBuffer);
-        mBackBuffer->SetRemoveFromCompositableTracker(tracker);
-        
-        mManager->AsShadowForwarder()->RemoveTextureFromCompositableAsync(tracker,
-                                                                          mCompositableClient,
-                                                                          mBackBuffer);
-      }
-      
-      
-      mManager->ReturnTextureClientDeferred(*mBackBuffer);
-#else
       mManager->ReturnTextureClient(*mBackBuffer);
       if (mBackBufferOnWhite) {
         mManager->ReturnTextureClient(*mBackBufferOnWhite);
       }
-#endif
     }
     mBackLock->ReadUnlock();
     if (mBackBuffer->IsLocked()) {
