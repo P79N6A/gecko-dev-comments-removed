@@ -3875,6 +3875,10 @@ pref("layers.enable-tiles", true);
 pref("layers.tiled-drawtarget.enabled", true);
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+pref("layers.tiled-drawtarget.enabled", true);
+#endif
+
 
 #ifdef ANDROID
 pref("layers.offmainthreadcomposition.enabled", true);
