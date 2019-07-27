@@ -2883,9 +2883,13 @@ date_toString(JSContext* cx, unsigned argc, Value* vp)
         if (ObjectClassIs(obj, ESClass_Date, cx)) {
             
             RootedValue unboxed(cx);
-            Unbox(cx, obj, &unboxed);
+            if (!Unbox(cx, obj, &unboxed))
+                return false;
             tv = unboxed.toNumber();
         }
+        
+        if (cx->isExceptionPending())
+            return false;
     }
     
     return date_format(cx, tv, FORMATSPEC_FULL, args.rval());
