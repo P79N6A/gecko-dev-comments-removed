@@ -379,6 +379,21 @@ class Node {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    typedef uintptr_t Id;
+    Id identifier() const { return reinterpret_cast<Id>(base()->ptr); }
+
+    
+    
+    
     class HashPolicy {
         typedef js::PointerHasher<void*, mozilla::tl::FloorLog2<sizeof(void*)>::value> PtrHash;
 
@@ -499,6 +514,33 @@ typedef mozilla::Vector<SimpleEdge, 8, js::TempAllocPolicy> SimpleEdgeVector;
 
 
 
+class PreComputedEdgeRange : public EdgeRange {
+    SimpleEdgeVector& edges;
+    size_t            i;
+
+    void settle() {
+        front_ = i < edges.length() ? &edges[i] : nullptr;
+    }
+
+  public:
+    explicit PreComputedEdgeRange(JSContext* cx, SimpleEdgeVector& edges)
+      : edges(edges),
+        i(0)
+    {
+        settle();
+    }
+
+    void popFront() override {
+        MOZ_ASSERT(!empty());
+        i++;
+        settle();
+    }
+};
+
+
+
+
+
 
 
 
@@ -540,6 +582,10 @@ class MOZ_STACK_CLASS RootList {
     bool init(ZoneSet& debuggees);
     
     bool init(HandleObject debuggees);
+
+    
+    
+    bool initialized() { return noGC.isSome(); }
 
     
     
