@@ -2575,13 +2575,14 @@ nsHTMLEditor::CreateElementWithDefaults(const nsAString& aTagName)
   
 
   
-  ErrorResult rv;
-  nsCOMPtr<dom::Element> newElement = CreateHTMLContent(realTagName, rv);
-  if (rv.Failed() || !newElement) {
+  nsCOMPtr<Element> newElement =
+    CreateHTMLContent(nsCOMPtr<nsIAtom>(do_GetAtom(realTagName)));
+  if (!newElement) {
     return nullptr;
   }
 
   
+  ErrorResult rv;
   newElement->SetAttribute(NS_LITERAL_STRING("_moz_dirty"), EmptyString(), rv);
 
   

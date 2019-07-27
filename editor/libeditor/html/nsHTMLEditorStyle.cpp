@@ -312,10 +312,9 @@ nsHTMLEditor::IsSimpleModifiableNode(nsIContent* aContent,
   
   
   
-  ErrorResult rv;
-  nsCOMPtr<Element> newSpan = CreateHTMLContent(NS_LITERAL_STRING("span"), rv);
-  NS_ASSERTION(!rv.Failed(), "CreateHTMLContent failed");
-  NS_ENSURE_SUCCESS(rv.ErrorCode(), false);
+  nsCOMPtr<Element> newSpan = CreateHTMLContent(nsGkAtoms::span);
+  NS_ASSERTION(newSpan, "CreateHTMLContent failed");
+  NS_ENSURE_TRUE(newSpan, false);
   mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(newSpan, aProperty,
                                              aAttribute, aValue,
                                               true);

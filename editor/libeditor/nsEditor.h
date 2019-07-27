@@ -257,8 +257,7 @@ public:
 
 
 
-  already_AddRefed<mozilla::dom::Element>
-    CreateHTMLContent(const nsAString& aTag, mozilla::ErrorResult& rv);
+  already_AddRefed<mozilla::dom::Element> CreateHTMLContent(nsIAtom* aTag);
 
   
   virtual nsresult BeginIMEComposition(mozilla::WidgetCompositionEvent* aEvent);
