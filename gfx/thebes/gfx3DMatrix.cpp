@@ -818,7 +818,6 @@ gfxRect gfx3DMatrix::ProjectRectBounds(const gfxRect& aRect) const
       
       
       gfxPointH3D intercept = ComputePerspectivePlaneIntercept(points[i], points[next]);
-      MOZ_ASSERT(intercept.HasPositiveWCoord());
 
       gfxPoint point2d = intercept.As2DPoint();
       min_x = min(point2d.x, min_x);
