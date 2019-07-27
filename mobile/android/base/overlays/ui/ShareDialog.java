@@ -91,6 +91,19 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
         super.onDestroy();
     }
 
+    
+
+
+    private void abortDueToNoURL() {
+        Log.e(LOGTAG, "Unable to process shared intent. No URL found!");
+
+        
+        
+        Toast toast = Toast.makeText(this, getResources().getText(R.string.overlay_share_no_url), Toast.LENGTH_SHORT);
+        toast.show();
+        finish();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,17 +115,14 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
 
         
         final String extraText = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (TextUtils.isEmpty(extraText)) {
+            abortDueToNoURL();
+            return;
+        }
+
         final String pageUrl = new WebURLFinder(extraText).bestWebURL();
-
         if (TextUtils.isEmpty(pageUrl)) {
-            Log.e(LOGTAG, "Unable to process shared intent. No URL found!");
-
-            
-            
-            Toast toast = Toast.makeText(this, resources.getText(R.string.overlay_share_no_url), Toast.LENGTH_SHORT);
-            toast.show();
-            finish();
-
+            abortDueToNoURL();
             return;
         }
 
