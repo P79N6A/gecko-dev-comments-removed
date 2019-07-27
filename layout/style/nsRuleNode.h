@@ -18,7 +18,7 @@ class nsStyleContext;
 struct nsRuleData;
 class nsIStyleRule;
 struct nsCSSValueList;
-
+class nsCSSPropertySet;
 class nsCSSValue;
 struct nsCSSRect;
 
@@ -737,6 +737,17 @@ public:
     HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
                             uint32_t ruleTypeMask,
                             bool aAuthorColorsAllowed);
+
+  
+
+
+
+
+  static void
+  ComputePropertiesOverridingAnimation(
+                              const nsTArray<nsCSSProperty>& aProperties,
+                              nsStyleContext* aStyleContext,
+                              nsCSSPropertySet& aPropertiesOverridden);
 
   
   static nscoord CalcLengthWithInitialFont(nsPresContext* aPresContext,
