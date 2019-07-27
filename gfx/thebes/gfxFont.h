@@ -1408,6 +1408,16 @@ public:
 
     
     
+    
+    bool AlwaysNeedsMaskForShadow() {
+        return mFontEntry->TryGetColorGlyphs() ||
+               mFontEntry->TryGetSVGData(this) ||
+               mFontEntry->HasFontTable(TRUETYPE_TAG('C','B','D','T')) ||
+               mFontEntry->HasFontTable(TRUETYPE_TAG('s','b','i','x'));
+    }
+
+    
+    
     bool SupportsFeature(int32_t aScript, uint32_t aFeatureTag);
 
     
