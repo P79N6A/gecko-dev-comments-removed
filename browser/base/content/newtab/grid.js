@@ -28,13 +28,13 @@ let gGrid = {
   
 
 
-  _cells: null,
+  _cells: [],
   get cells() this._cells,
 
   
 
 
-  get sites() [cell.site for each (cell in this.cells)],
+  get sites() [for (cell of this.cells) cell.site],
 
   
   get ready() !!this._ready,
