@@ -48,6 +48,59 @@ namespace {
 
 
 
+
+
+
+
+
+
+nsresult
+ReadStream(const nsCOMPtr<nsIInputStream>& stream,  SECItem& buf)
+{
+  
+  
+  
+  uint64_t length;
+  nsresult rv = stream->Available(&length);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  
+  
+  
+  
+  
+  static const uint32_t MAX_LENGTH = 1024 * 1024;
+  if (length > MAX_LENGTH) {
+    return NS_ERROR_FILE_TOO_BIG;
+  }
+
+  
+  
+  SECITEM_AllocItem(buf, static_cast<uint32_t>(length + 1));
+
+  
+  
+  
+  uint32_t bytesRead;
+  rv = stream->Read(char_ptr_cast(buf.data), buf.len, &bytesRead);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+  if (bytesRead != length) {
+    return NS_ERROR_FILE_CORRUPTED;
+  }
+
+  buf.data[buf.len - 1] = 0; 
+
+  return NS_OK;
+}
+
+
+
+
+
 nsresult
 FindAndLoadOneEntry(nsIZipReader * zip,
                     const nsACString & searchPattern,
@@ -82,38 +135,10 @@ FindAndLoadOneEntry(nsIZipReader * zip,
   rv = zip->GetInputStream(filename, getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  uint64_t len64;
-  rv = stream->Available(&len64);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  static const uint32_t MAX_LENGTH = 1024 * 1024;
-  static_assert(MAX_LENGTH < UINT32_MAX, "MAX_LENGTH < UINT32_MAX");
-  NS_ENSURE_TRUE(len64 < MAX_LENGTH, NS_ERROR_FILE_CORRUPTED);
-  NS_ENSURE_TRUE(len64 < UINT32_MAX, NS_ERROR_FILE_CORRUPTED); 
-  SECITEM_AllocItem(buf, static_cast<uint32_t>(len64 + 1));
-
-  
-  
-  
-  uint32_t bytesRead;
-  rv = stream->Read(char_ptr_cast(buf.data), buf.len, &bytesRead);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (bytesRead != len64) {
+  rv = ReadStream(stream, buf);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     return NS_ERROR_SIGNED_JAR_ENTRY_INVALID;
   }
-
-  buf.data[buf.len - 1] = 0; 
 
   if (bufDigest) {
     rv = bufDigest->DigestBuf(SEC_OID_SHA1, buf.data, buf.len - 1);
