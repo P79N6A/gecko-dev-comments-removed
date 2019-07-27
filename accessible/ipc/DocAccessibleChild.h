@@ -33,6 +33,11 @@ public:
 
   void ShowEvent(AccShowEvent* aShowEvent);
 
+  
+
+
+  virtual bool RecvState(const uint64_t& aID, uint64_t* aState) MOZ_OVERRIDE;
+
 private:
   DocAccessible* mDoc;
 };
