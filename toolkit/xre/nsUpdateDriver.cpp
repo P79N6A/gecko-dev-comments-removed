@@ -422,9 +422,8 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 
 
 
-
 static void
-SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
+SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir,
                    nsIFile *appDir, int appArgc, char **appArgv)
 {
   nsresult rv;
@@ -433,11 +432,10 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   
   
 
-  nsCOMPtr<nsIFile> tmpDir;
-  GetSpecialSystemDirectory(OS_TemporaryDirectory,
-                            getter_AddRefs(tmpDir));
-  if (!tmpDir) {
-    LOG(("failed getting a temp dir\n"));
+  nsCOMPtr<nsIFile> mozUpdaterDir;
+  rv = updateDir->Clone(getter_AddRefs(mozUpdaterDir));
+  if (NS_FAILED(rv)) {
+    LOG(("failed cloning update dir\n"));
     return;
   }
 
@@ -447,13 +445,12 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
   
   
   
-  
-  tmpDir->Append(NS_LITERAL_STRING("MozUpdater"));
-  tmpDir->Append(NS_LITERAL_STRING("bgupdate"));
-  tmpDir->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
+  mozUpdaterDir->Append(NS_LITERAL_STRING("MozUpdater"));
+  mozUpdaterDir->Append(NS_LITERAL_STRING("bgupdate"));
+  mozUpdaterDir->CreateUnique(nsIFile::DIRECTORY_TYPE, 0755);
 
   nsCOMPtr<nsIFile> updater;
-  if (!CopyUpdaterIntoUpdateDir(greDir, appDir, tmpDir, updater)) {
+  if (!CopyUpdaterIntoUpdateDir(greDir, appDir, mozUpdaterDir, updater)) {
     LOG(("failed copying updater\n"));
     return;
   }
@@ -1012,8 +1009,7 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
   case eAppliedService:
     
     
-    SwitchToUpdatedApp(greDir, updatesDir, statusFile,
-                       appDir, argc, argv);
+    SwitchToUpdatedApp(greDir, updatesDir, appDir, argc, argv);
     break;
   case eNoUpdateAction:
     

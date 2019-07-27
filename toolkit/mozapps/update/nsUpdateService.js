@@ -1217,7 +1217,20 @@ function writeVersionFile(dir, version) {
 
 
 
+
 function cleanUpMozUpdaterDirs() {
+  try {
+    
+    var mozUpdaterDir = getUpdatesDir();
+    mozUpdaterDir.append("MozUpdater");
+    if (mozUpdaterDir.exists()) {
+      LOG("cleanUpMozUpdaterDirs - removing MozUpdater directory");
+      mozUpdaterDir.remove(true);
+    }
+  } catch (e) {
+    LOG("cleanUpMozUpdaterDirs - Exception: " + e);
+  }
+
   try {
     var tmpDir = Cc["@mozilla.org/file/directory_service;1"].
                  getService(Ci.nsIProperties).
@@ -1231,7 +1244,8 @@ function cleanUpMozUpdaterDirs() {
     
     
     if (mozUpdaterDir1.exists()) {
-      LOG("cleanUpMozUpdaterDirs - Cleaning top level MozUpdater-i folders");
+      LOG("cleanUpMozUpdaterDirs - Removing top level tmp MozUpdater-i " +
+          "directories");
       let i = 0;
       let dirEntries = tmpDir.directoryEntries;
       while (dirEntries.hasMoreElements() && i < 10) {
@@ -1246,15 +1260,6 @@ function cleanUpMozUpdaterDirs() {
       if (i < 10) {
         mozUpdaterDir1.remove(true);
       }
-    }
-
-    
-    
-    var mozUpdaterDir = tmpDir.clone();
-    mozUpdaterDir.append("MozUpdater");
-    if (mozUpdaterDir.exists()) {
-      LOG("cleanUpMozUpdaterDirs - Cleaning MozUpdater folder");
-      mozUpdaterDir.remove(true);
     }
   } catch (e) {
     LOG("cleanUpMozUpdaterDirs - Exception: " + e);
@@ -2298,6 +2303,7 @@ UpdateService.prototype = {
       prompter.showUpdateError(update);
     }
 
+    
     
     cleanUpMozUpdaterDirs();
   },
