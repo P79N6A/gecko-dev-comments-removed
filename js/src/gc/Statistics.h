@@ -122,6 +122,9 @@ struct Statistics
 
     JS::GCSliceCallback setSliceCallback(JS::GCSliceCallback callback);
 
+    int64_t clearMaxGCPauseAccumulator();
+    int64_t getMaxGCPauseSinceClear();
+
   private:
     JSRuntime *runtime;
 
@@ -172,6 +175,9 @@ struct Statistics
 
     
     size_t preBytes;
+
+    
+    int64_t maxPauseInInterval;
 
 #ifdef DEBUG
     
