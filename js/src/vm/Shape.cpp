@@ -1204,6 +1204,44 @@ StackBaseShape::match(UnownedBaseShape* key, const Lookup& lookup)
     return key->flags == lookup.flags && key->clasp_ == lookup.clasp;
 }
 
+inline
+BaseShape::BaseShape(const StackBaseShape& base)
+  : clasp_(base.clasp),
+    compartment_(base.compartment),
+    flags(base.flags),
+    slotSpan_(0),
+    unowned_(nullptr),
+    table_(nullptr)
+{
+}
+
+ void
+BaseShape::copyFromUnowned(BaseShape& dest, UnownedBaseShape& src)
+{
+    dest.clasp_ = src.clasp_;
+    dest.slotSpan_ = src.slotSpan_;
+    dest.compartment_ = src.compartment_;
+    dest.unowned_ = &src;
+    dest.flags = src.flags | OWNED_SHAPE;
+}
+
+inline void
+BaseShape::adoptUnowned(UnownedBaseShape* other)
+{
+    
+    
+    MOZ_ASSERT(isOwned());
+
+    uint32_t span = slotSpan();
+    ShapeTable* table = &this->table();
+
+    BaseShape::copyFromUnowned(*this, *other);
+    setTable(table);
+    setSlotSpan(span);
+
+    assertConsistency();
+}
+
  UnownedBaseShape*
 BaseShape::getUnowned(ExclusiveContext* cx, StackBaseShape& base)
 {
