@@ -120,7 +120,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   }
 
   
-  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecord()) {
+  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecordExtended()) {
     return;
   }
 

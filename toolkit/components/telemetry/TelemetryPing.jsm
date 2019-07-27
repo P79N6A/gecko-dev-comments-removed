@@ -613,13 +613,22 @@ let Impl = {
 
 
   enableTelemetryRecording: function enableTelemetryRecording(testing) {
+    
+#if !defined(MOZ_WIDGET_ANDROID)
+    Telemetry.canRecordBase =
+      Preferences.get("datareporting.healthreport.service.enabled", false) ||
+      Preferences.get("browser.selfsupport.enabled", false);
+#else
+    
+    Telemetry.canRecordBase = true;
+#endif
 
 #ifdef MOZILLA_OFFICIAL
-    if (!Telemetry.canSend && !testing) {
+    if (!Telemetry.isOfficialTelemetry && !testing) {
       
       
       
-      Telemetry.canRecord = false;
+      Telemetry.canRecordExtended = false;
       this._log.config("enableTelemetryRecording - Can't send data, disabling Telemetry recording.");
       return false;
     }
@@ -627,10 +636,10 @@ let Impl = {
 
     let enabled = Preferences.get(PREF_ENABLED, false);
     this._server = Preferences.get(PREF_SERVER, undefined);
-    if (!enabled) {
+    if (!enabled || !Telemetry.canRecordBase) {
       
       
-      Telemetry.canRecord = false;
+      Telemetry.canRecordExtended = false;
       this._log.config("enableTelemetryRecording - Telemetry is disabled, turning off Telemetry recording.");
       return false;
     }

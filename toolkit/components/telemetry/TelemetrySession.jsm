@@ -1378,22 +1378,14 @@ let Impl = {
   enableTelemetryRecording: function enableTelemetryRecording(testing) {
 
 #ifdef MOZILLA_OFFICIAL
-    if (!Telemetry.canSend && !testing) {
-      
-      
-      
-      Telemetry.canRecord = false;
+    if (!Telemetry.isOfficialTelemetry && !testing) {
       this._log.config("enableTelemetryRecording - Can't send data, disabling Telemetry recording.");
       return false;
     }
 #endif
 
     let enabled = Preferences.get(PREF_ENABLED, false);
-    this._server = Preferences.get(PREF_SERVER, undefined);
     if (!enabled) {
-      
-      
-      Telemetry.canRecord = false;
       this._log.config("enableTelemetryRecording - Telemetry is disabled, turning off Telemetry recording.");
       return false;
     }
@@ -1709,7 +1701,7 @@ let Impl = {
     }
     if (aTest) {
       return this.send(REASON_TEST_PING);
-    } else if (Telemetry.canSend) {
+    } else if (Telemetry.isOfficialTelemetry) {
       return this.send(REASON_IDLE_DAILY);
     }
   },
@@ -1740,7 +1732,7 @@ let Impl = {
       Services.obs.removeObserver(this, "content-child-shutdown");
       this.uninstall();
 
-      if (Telemetry.canSend) {
+      if (Telemetry.isOfficialTelemetry) {
         this.sendContentProcessPing(REASON_SAVED_SESSION);
       }
       break;
@@ -1801,7 +1793,7 @@ let Impl = {
     
     
     case "application-background":
-      if (Telemetry.canSend) {
+      if (Telemetry.isOfficialTelemetry) {
         let payload = this.getSessionPayload(REASON_SAVED_SESSION, false);
         let options = {
           retentionDays: RETENTION_DAYS,
@@ -1836,7 +1828,7 @@ let Impl = {
         this._initialized = false;
       };
 
-      if (Telemetry.canSend || testing) {
+      if (Telemetry.isOfficialTelemetry || testing) {
         return this.savePendingPings()
                 .then(() => this._stateSaveSerializer.flushTasks())
 #if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)

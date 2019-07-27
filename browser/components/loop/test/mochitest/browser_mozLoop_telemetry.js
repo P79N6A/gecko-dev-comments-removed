@@ -12,10 +12,10 @@ add_task(loadLoopPanel);
 
 
 add_task(function* test_initialize() {
-  let oldCanRecord = Services.telemetry.canRecord;
-  Services.telemetry.canRecord = true;
+  let oldCanRecord = Services.telemetry.canRecordExtended;
+  Services.telemetry.canRecordExtended = true;
   registerCleanupFunction(function () {
-    Services.telemetry.canRecord = oldCanRecord;
+    Services.telemetry.canRecordExtended = oldCanRecord;
   });
 });
 
