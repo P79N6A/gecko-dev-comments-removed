@@ -489,9 +489,6 @@ pref("media.audio_data.enabled", false);
 pref("layers.async-pan-zoom.enabled", false);
 
 
-pref("layout.async-containerless-scrolling.enabled", true);
-
-
 pref("layout.event-regions.enabled", false);
 
 

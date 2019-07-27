@@ -64,22 +64,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layout;
 
-static bool
-BuildScrollContainerLayers()
-{
-  static bool sContainerlessScrollingEnabled;
-  static bool sContainerlessScrollingPrefCached = false;
-
-  if (!sContainerlessScrollingPrefCached) {
-    sContainerlessScrollingPrefCached = true;
-    Preferences::AddBoolVarCache(&sContainerlessScrollingEnabled,
-                                 "layout.async-containerless-scrolling.enabled",
-                                 true);
-  }
-
-  return !sContainerlessScrollingEnabled;
-}
-
 static uint32_t
 GetOverflowChange(const nsRect& aCurScrolledRect, const nsRect& aPrevScrolledRect)
 {
@@ -3121,29 +3105,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
 
-    if (mShouldBuildScrollableLayer && BuildScrollContainerLayers()) {
-      DisplayListClipState::AutoSaveRestore clipState(aBuilder);
-
-      
-      
-      
-      
-      
-      if (!(mIsRoot && mOuter->PresContext()->PresShell()->GetIsViewportOverridden())) {
-        nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
-        if (mClipAllDescendants) {
-          clipState.ClipContentDescendants(clip);
-        } else {
-          clipState.ClipContainingBlockDescendants(clip);
-        }
-      }
-
-      
-      
-      
-      wrapper.WrapListsInPlace(aBuilder, mOuter, scrolledContent);
-    }
-
     
     
     nsDisplayLayerEventRegions* inactiveRegionItem = nullptr;
@@ -3164,24 +3125,13 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     nsDisplayList* positionedDescendants = scrolledContent.PositionedDescendants();
     nsDisplayList* destinationList = nullptr;
-    if (BuildScrollContainerLayers()) {
-      
-      
-      if (!positionedDescendants->IsEmpty()) {
-        layerItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
-        destinationList = positionedDescendants;
-      } else {
-        destinationList = aLists.Outlines();
-      }
+    int32_t zindex =
+      MaxZIndexInListOfItemsContainedInFrame(positionedDescendants, mOuter);
+    if (zindex >= 0) {
+      layerItem->SetOverrideZIndex(zindex);
+      destinationList = positionedDescendants;
     } else {
-      int32_t zindex =
-        MaxZIndexInListOfItemsContainedInFrame(positionedDescendants, mOuter);
-      if (zindex >= 0) {
-        layerItem->SetOverrideZIndex(zindex);
-        destinationList = positionedDescendants;
-      } else {
-        destinationList = scrolledContent.Outlines();
-      }
+      destinationList = scrolledContent.Outlines();
     }
     if (inactiveRegionItem) {
       destinationList->AppendNewToTop(inactiveRegionItem);
@@ -3209,7 +3159,7 @@ ScrollFrameHelper::ComputeFrameMetrics(Layer* aLayer,
     *aClipRect = scrollport;
   }
 
-  if (!mShouldBuildScrollableLayer || BuildScrollContainerLayers()) {
+  if (!mShouldBuildScrollableLayer) {
     return;
   }
 
