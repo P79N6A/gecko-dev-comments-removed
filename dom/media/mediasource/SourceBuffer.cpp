@@ -295,6 +295,9 @@ SourceBuffer::Ended()
   MOZ_ASSERT(IsAttached());
   MSE_DEBUG("Ended");
   mContentManager->Ended();
+  
+  
+  mMediaSource->GetDecoder()->NotifyDataArrived(nullptr, 1, mReportedOffset++);
 }
 
 SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
