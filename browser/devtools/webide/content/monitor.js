@@ -6,6 +6,7 @@ const Cu = Components.utils;
 Cu.import('resource:///modules/devtools/gDevTools.jsm');
 const {require} = Cu.import('resource://gre/modules/devtools/Loader.jsm', {}).devtools;
 const {Services} = Cu.import('resource://gre/modules/Services.jsm');
+const {Devices} = Cu.import("resource://gre/modules/devtools/Devices.jsm");
 const {AppManager} = require('devtools/webide/app-manager');
 const {AppActorFront} = require('devtools/app-actor-front');
 const {Connection} = require('devtools/client/connection-manager');
@@ -45,7 +46,8 @@ let Monitor = {
   front: null,
   socket: null,
   wstimeout: null,
-  loaded: false,
+  b2ginfo: false,
+  b2gtimeout: null,
 
   
 
@@ -53,6 +55,12 @@ let Monitor = {
   update: function(data, fallback) {
     if (Array.isArray(data)) {
       data.forEach(d => Monitor.update(d, fallback));
+      return;
+    }
+
+    if (Monitor.b2ginfo && data.graph === 'USS') {
+      
+      
       return;
     }
 
@@ -84,7 +92,6 @@ let Monitor = {
     AppManager.on('app-manager-update', Monitor.onAppManagerUpdate);
     Monitor.connectToRuntime();
     Monitor.connectToWebSocket();
-    Monitor.loaded = true;
   },
 
   
@@ -125,6 +132,7 @@ let Monitor = {
 
 
   connectToRuntime: function() {
+    Monitor.pollB2GInfo();
     let client = AppManager.connection && AppManager.connection.client;
     let resp = AppManager._listTabsResponse;
     if (client && resp && !Monitor.front) {
@@ -137,6 +145,7 @@ let Monitor = {
 
 
   disconnectFromRuntime: function() {
+    Monitor.unpollB2GInfo();
     if (Monitor.front) {
       Monitor.front.unwatchApps(Monitor.onRuntimeAppEvent);
       Monitor.front = null;
@@ -206,6 +215,66 @@ let Monitor = {
       fallback.curve = app.manifest.name
     }
     Monitor.update(packet.data, fallback);
+  },
+
+  
+
+
+
+
+
+
+
+  pollB2GInfo: function() {
+    if (AppManager.selectedRuntime) {
+      let id = AppManager.selectedRuntime.id;
+      let device = Devices.getByName(id);
+      if (device && device.shell) {
+        device.shell('b2g-info').then(s => {
+          let lines = s.split('\n');
+          let line = '';
+
+          
+          
+          while (line.indexOf('NAME') < 0) {
+            if (lines.length < 1) {
+              
+              Monitor.unpollB2GInfo();
+              return;
+            }
+            line = lines.shift();
+          }
+          let namelength = line.indexOf('NAME') + 'NAME'.length;
+          let ussindex = line.slice(namelength).split(/\s+/).indexOf('USS');
+
+          
+          
+          while (lines.length > 0 && lines[0].length > namelength) {
+            line = lines.shift();
+            let name = line.slice(0, namelength);
+            let uss = line.slice(namelength).split(/\s+/)[ussindex];
+            Monitor.update({
+              curve: name.trim(),
+              value: 1024 * 1024 * parseFloat(uss) 
+            }, {
+              
+              
+              graph: 'USS'
+            });
+          }
+        });
+      }
+    }
+    Monitor.b2ginfo = true;
+    Monitor.b2gtimeout = setTimeout(Monitor.pollB2GInfo, 350);
+  },
+
+  
+
+
+  unpollB2GInfo: function() {
+    clearTimeout(Monitor.b2gtimeout);
+    Monitor.b2ginfo = false;
   }
 
 };
