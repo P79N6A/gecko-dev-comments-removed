@@ -925,7 +925,8 @@ class StoreScalar##T {                                                        \
 #define JS_STORE_REFERENCE_CLASS_DEFN(_constant, T, _name)                    \
 class StoreReference##T {                                                     \
   private:                                                                    \
-    static void store(T* heap, const Value &v);                               \
+    static bool store(ThreadSafeContext *cx, T* heap, const Value &v,         \
+                      TypedObject *obj, jsid id);                             \
                                                                               \
   public:                                                                     \
     static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \

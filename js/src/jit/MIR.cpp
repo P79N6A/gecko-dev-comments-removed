@@ -4275,9 +4275,29 @@ jit::AddObjectsForPropertyRead(MDefinition *obj, PropertyName *name,
 }
 
 static bool
+PropertyTypeIncludes(TempAllocator &alloc, types::HeapTypeSetKey property,
+                     MDefinition *value, MIRType implicitType)
+{
+    
+    
+    
+    types::TypeSet *types = property.maybeTypes();
+    if (implicitType != MIRType_None) {
+        types::Type newType = types::Type::PrimitiveType(ValueTypeFromMIRType(implicitType));
+        if (types)
+            types = types->clone(alloc.lifoAlloc());
+        else
+            types = alloc.lifoAlloc()->new_<types::TemporaryTypeSet>();
+        types->addType(newType, alloc.lifoAlloc());
+    }
+
+    return TypeSetIncludes(types, value->type(), value->resultTypeSet());
+}
+
+static bool
 TryAddTypeBarrierForWrite(TempAllocator &alloc, types::CompilerConstraintList *constraints,
                           MBasicBlock *current, types::TemporaryTypeSet *objTypes,
-                          PropertyName *name, MDefinition **pvalue)
+                          PropertyName *name, MDefinition **pvalue, MIRType implicitType)
 {
     
     
@@ -4301,7 +4321,7 @@ TryAddTypeBarrierForWrite(TempAllocator &alloc, types::CompilerConstraintList *c
         if (!property.maybeTypes() || property.couldBeConstant(constraints))
             return false;
 
-        if (TypeSetIncludes(property.maybeTypes(), (*pvalue)->type(), (*pvalue)->resultTypeSet()))
+        if (PropertyTypeIncludes(alloc, property, *pvalue, implicitType))
             return false;
 
         
@@ -4384,18 +4404,20 @@ AddTypeGuard(TempAllocator &alloc, MBasicBlock *current, MDefinition *obj,
 
 
 bool
-jit::CanWriteProperty(types::CompilerConstraintList *constraints,
-                      types::HeapTypeSetKey property, MDefinition *value)
+jit::CanWriteProperty(TempAllocator &alloc, types::CompilerConstraintList *constraints,
+                      types::HeapTypeSetKey property, MDefinition *value,
+                      MIRType implicitType )
 {
     if (property.couldBeConstant(constraints))
         return false;
-    return TypeSetIncludes(property.maybeTypes(), value->type(), value->resultTypeSet());
+    return PropertyTypeIncludes(alloc, property, value, implicitType);
 }
 
 bool
 jit::PropertyWriteNeedsTypeBarrier(TempAllocator &alloc, types::CompilerConstraintList *constraints,
                                    MBasicBlock *current, MDefinition **pobj,
-                                   PropertyName *name, MDefinition **pvalue, bool canModify)
+                                   PropertyName *name, MDefinition **pvalue,
+                                   bool canModify, MIRType implicitType)
 {
     
     
@@ -4425,14 +4447,15 @@ jit::PropertyWriteNeedsTypeBarrier(TempAllocator &alloc, types::CompilerConstrai
 
         jsid id = name ? NameToId(name) : JSID_VOID;
         types::HeapTypeSetKey property = object->property(id);
-        if (!CanWriteProperty(constraints, property, *pvalue)) {
+        if (!CanWriteProperty(alloc, constraints, property, *pvalue, implicitType)) {
             
             
             
             
             if (!canModify)
                 return true;
-            success = TryAddTypeBarrierForWrite(alloc, constraints, current, types, name, pvalue);
+            success = TryAddTypeBarrierForWrite(alloc, constraints, current, types, name, pvalue,
+                                                implicitType);
             break;
         }
     }
@@ -4457,7 +4480,7 @@ jit::PropertyWriteNeedsTypeBarrier(TempAllocator &alloc, types::CompilerConstrai
 
         jsid id = name ? NameToId(name) : JSID_VOID;
         types::HeapTypeSetKey property = object->property(id);
-        if (CanWriteProperty(constraints, property, *pvalue))
+        if (CanWriteProperty(alloc, constraints, property, *pvalue, implicitType))
             continue;
 
         if ((property.maybeTypes() && !property.maybeTypes()->empty()) || excluded)

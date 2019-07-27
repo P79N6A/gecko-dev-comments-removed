@@ -1163,6 +1163,14 @@ struct TypeObject : public gc::TenuredCell
 
 
 
+
+
+
+
+
+
+
+
     Property **propertySet;
   public:
 
