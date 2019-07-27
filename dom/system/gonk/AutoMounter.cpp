@@ -1056,18 +1056,23 @@ AutoMounter::UpdateState()
           LOG("UpdateState: Volume %s is %s", vol->NameStr(), vol->StateStr());
           if (vol->IsFormatting() && !vol->IsFormatRequested()) {
             vol->SetFormatRequested(false);
-            LOG("UpdateState: Mounting %s", vol->NameStr());
-            vol->StartMount(mResponseCallback);
-            break;
+            if (!(tryToShare && vol->IsSharingEnabled()) && volState == nsIVolume::STATE_IDLE) {
+              LOG("UpdateState: Mounting %s", vol->NameStr());
+              vol->StartMount(mResponseCallback);
+              break;
+            }
           }
-          if (tryToShare && vol->IsSharingEnabled() && volState == nsIVolume::STATE_IDLE) {
-            
-            LOG("UpdateState: Sharing %s", vol->NameStr());
-            vol->StartShare(mResponseCallback);
-          } else if (vol->IsFormatRequested()){
+
+          
+          
+          if (vol->IsFormatRequested()) {
             
             LOG("UpdateState: Formatting %s", vol->NameStr());
             vol->StartFormat(mResponseCallback);
+          } else if (tryToShare && vol->IsSharingEnabled() && volState == nsIVolume::STATE_IDLE) {
+            
+            LOG("UpdateState: Sharing %s", vol->NameStr());
+            vol->StartShare(mResponseCallback);
           }
           return; 
         }
