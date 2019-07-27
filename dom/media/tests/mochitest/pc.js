@@ -723,6 +723,39 @@ DataChannelWrapper.prototype = {
 
 
 
+function AudioStreamAnalyser(stream) {
+  if (stream.getAudioTracks().length === 0) {
+    throw new Error("No audio track in stream");
+  }
+  this.stream = stream;
+  this.audioContext = new AudioContext();
+  this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
+  this.analyser = this.audioContext.createAnalyser();
+  this.sourceNode.connect(this.analyser);
+  this.data = new Uint8Array(this.analyser.frequencyBinCount);
+}
+
+AudioStreamAnalyser.prototype = {
+  
+
+
+
+
+  getByteFrequencyData: function() {
+    this.analyser.getByteFrequencyData(this.data);
+    return this.data;
+  }
+};
+
+
+
+
+
+
+
+
+
+
 
 function PeerConnectionWrapper(label, configuration, h264) {
   this.configuration = configuration;
@@ -1494,6 +1527,58 @@ PeerConnectionWrapper.prototype = {
 
   checkMediaFlowPresent : function() {
     return Promise.all(this.mediaCheckers.map(checker => checker.waitForMediaFlow()));
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  checkReceivingToneFrom : function(from) {
+    var inputElem = from.localMediaElements[0];
+
+    
+    var inputSenderTracks = from._pc.getSenders().map(sn => sn.track);
+    var inputAudioStream = from._pc.getLocalStreams()
+      .find(s => s.getAudioTracks().some(t => inputSenderTracks.includes(t)));
+    var inputAnalyser = new AudioStreamAnalyser(inputAudioStream);
+
+    
+    
+    var outputAudioStream = this._pc.getRemoteStreams()
+      .find(s => s.getAudioTracks().length > 0);
+    var outputAnalyser = new AudioStreamAnalyser(outputAudioStream);
+
+    var maxWithIndex = (a, b, i) => (b >= a.value) ? { value: b, index: i } : a;
+    var initial = { value: -1, index: -1 };
+
+    return new Promise((resolve, reject) => inputElem.ontimeupdate = () => {
+      var inputData = inputAnalyser.getByteFrequencyData();
+      var outputData = outputAnalyser.getByteFrequencyData();
+
+      var inputMax = inputData.reduce(maxWithIndex, initial);
+      var outputMax = outputData.reduce(maxWithIndex, initial);
+      info("Comparing maxima; input[" + inputMax.index + "] = " + inputMax.value +
+           ", output[" + outputMax.index + "] = " + outputMax.value);
+      if (!inputMax.value || !outputMax.value) {
+        return;
+      }
+
+      
+      
+      
+      if (Math.abs(inputMax.index - outputMax.index) < 10) {
+        ok(true, "input and output audio data matches");
+        inputElem.ontimeupdate = null;
+        resolve();
+      }
+    });
   },
 
   
