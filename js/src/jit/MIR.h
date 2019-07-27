@@ -322,10 +322,10 @@ class MDefinition : public MNode
     InlineList<MUse> uses_;        
     uint32_t id_;                  
                                    
+    uint32_t flags_;               
     Range *range_;                 
     MIRType resultType_;           
     types::TemporaryTypeSet *resultTypeSet_; 
-    uint32_t flags_;                 
     union {
         MDefinition *dependency_;  
                                    
@@ -365,10 +365,10 @@ class MDefinition : public MNode
   public:
     MDefinition()
       : id_(0),
+        flags_(0),
         range_(nullptr),
         resultType_(MIRType_None),
         resultTypeSet_(nullptr),
-        flags_(0),
         dependency_(nullptr),
         trackedSite_()
     { }
@@ -2043,18 +2043,20 @@ class MCall
 
   protected:
     
-    bool construct_;
-    
     CompilerRootFunction target_;
+
     
     uint32_t numActualArgs_;
+
+    
+    bool construct_;
 
     bool needsArgCheck_;
 
     MCall(JSFunction *target, uint32_t numActualArgs, bool construct)
-      : construct_(construct),
-        target_(target),
+      : target_(target),
         numActualArgs_(numActualArgs),
+        construct_(construct),
         needsArgCheck_(true)
     {
         setResultType(MIRType_Value);
@@ -6504,14 +6506,14 @@ class MLoadElementHole
 
 class MStoreElementCommon
 {
-    bool needsBarrier_;
     MIRType elementType_;
+    bool needsBarrier_;
     bool racy_; 
 
   protected:
     MStoreElementCommon()
-      : needsBarrier_(false),
-        elementType_(MIRType_Value),
+      : elementType_(MIRType_Value),
+        needsBarrier_(false),
         racy_(false)
     { }
 
