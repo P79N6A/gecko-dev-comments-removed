@@ -444,7 +444,7 @@ nsCSPParser::path(nsCSPHostSrc* aCspHost)
   }
   
   
-  if (!hostChar()) {
+  if (peek(SLASH)) {
     const char16_t* params[] = { mCurToken.get() };
     logWarningErrorToConsole(nsIScriptError::warningFlag, "couldntParseInvalidSource",
                              params, ArrayLength(params));
