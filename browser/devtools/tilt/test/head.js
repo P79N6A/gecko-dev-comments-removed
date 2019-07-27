@@ -13,7 +13,6 @@ let tempScope = {};
 Components.utils.import("resource://gre/modules/devtools/LayoutHelpers.jsm", tempScope);
 let LayoutHelpers = tempScope.LayoutHelpers;
 
-
 const DEFAULT_HTML = "data:text/html," +
   "<DOCTYPE html>" +
   "<html>" +
@@ -207,4 +206,10 @@ function getPickablePoint(presenter) {
   let viewport = [0, 0, renderer.width, renderer.height];
 
   return vec3.project(center, viewport, renderer.mvMatrix, renderer.projMatrix);
+}
+
+function aborting() {
+  
+  
+  ok(true, "Test aborted early.");
 }
