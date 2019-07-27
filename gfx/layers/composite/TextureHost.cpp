@@ -407,7 +407,7 @@ BufferTextureHost::UpdatedInternal(const nsIntRegion* aRegion)
   
   
   if (aRegion && !mNeedsFullUpdate) {
-    mMaybeUpdatedRegion = mMaybeUpdatedRegion.Or(mMaybeUpdatedRegion, *aRegion);
+    mMaybeUpdatedRegion.OrWith(*aRegion);
   } else {
     mNeedsFullUpdate = true;
   }
