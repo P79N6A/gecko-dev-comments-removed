@@ -148,7 +148,7 @@ let FrameSnapshotActor = protocol.ActorClass({
     
     
     
-    let { replayContext, lastDrawCallIndex } = ContextUtils.replayAnimationFrame({
+    let replayData = ContextUtils.replayAnimationFrame({
       contextType: global,
       canvas: canvas,
       calls: calls,
@@ -156,21 +156,22 @@ let FrameSnapshotActor = protocol.ActorClass({
       last: index
     });
 
+    let { replayContext, lastDrawCallIndex, doCleanup } = replayData;
     let screenshot;
 
     
     
-    
     if (global == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
       screenshot = ContextUtils.getPixelsForWebGL(replayContext);
-      replayContext.bindFramebuffer(replayContext.FRAMEBUFFER, null);
       screenshot.flipped = true;
-    }
-    
-    else if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
+    } else if (global == CallWatcherFront.CANVAS_2D_CONTEXT) {
       screenshot = ContextUtils.getPixelsFor2D(replayContext);
       screenshot.flipped = false;
     }
+
+    
+    
+    doCleanup();
 
     screenshot.index = lastDrawCallIndex;
     return screenshot;
@@ -368,7 +369,7 @@ let CanvasActor = exports.CanvasActor = protocol.ActorClass({
     let index = this._lastDrawCallIndex;
     let width = this._lastContentCanvasWidth;
     let height = this._lastContentCanvasHeight;
-    let flipped = this._lastThumbnailFlipped;
+    let flipped = !!this._lastThumbnailFlipped; 
     let pixels = ContextUtils.getPixelStorage()["32bit"];
     let lastDrawCallScreenshot = {
       index: index,
@@ -587,26 +588,32 @@ let ContextUtils = {
 
 
 
+
   replayAnimationFrame: function({ contextType, canvas, calls, first, last }) {
     let w = canvas.width;
     let h = canvas.height;
 
-    let replayCanvas;
     let replayContext;
     let customFramebuffer;
     let lastDrawCallIndex = -1;
+    let doCleanup = () => {};
 
     
     
+    
+    
+    
+    
     if (contextType == CallWatcherFront.CANVAS_WEBGL_CONTEXT) {
-      replayCanvas = canvas;
-      replayContext = this.getWebGLContext(replayCanvas);
-      customFramebuffer = this.createBoundFramebuffer(replayContext, w, h);
+      let gl = replayContext = this.getWebGLContext(canvas);
+      let { newFramebuffer, oldFramebuffer } = this.createBoundFramebuffer(gl, w, h);
+      customFramebuffer = newFramebuffer;
+      doCleanup = () => gl.bindFramebuffer(gl.FRAMEBUFFER, oldFramebuffer);
     }
     
     else if (contextType == CallWatcherFront.CANVAS_2D_CONTEXT) {
       let contentDocument = canvas.ownerDocument;
-      replayCanvas = contentDocument.createElement("canvas");
+      let replayCanvas = contentDocument.createElement("canvas");
       replayCanvas.width = w;
       replayCanvas.height = h;
       replayContext = replayCanvas.getContext("2d");
@@ -621,23 +628,24 @@ let ContextUtils = {
       
       if (name == "bindFramebuffer" && args[1] == null) {
         replayContext.bindFramebuffer(replayContext.FRAMEBUFFER, customFramebuffer);
+        continue;
+      }
+      if (type == CallWatcherFront.METHOD_FUNCTION) {
+        replayContext[name].apply(replayContext, args);
+      } else if (type == CallWatcherFront.SETTER_FUNCTION) {
+        replayContext[name] = args;
       } else {
-        if (type == CallWatcherFront.METHOD_FUNCTION) {
-          replayContext[name].apply(replayContext, args);
-        } else if (type == CallWatcherFront.SETTER_FUNCTION) {
-          replayContext[name] = args;
-        } else {
-          
-        }
-        if (CanvasFront.DRAW_CALLS.has(name)) {
-          lastDrawCallIndex = i;
-        }
+        
+      }
+      if (CanvasFront.DRAW_CALLS.has(name)) {
+        lastDrawCallIndex = i;
       }
     }
 
     return {
       replayContext: replayContext,
-      lastDrawCallIndex: lastDrawCallIndex
+      lastDrawCallIndex: lastDrawCallIndex,
+      doCleanup: doCleanup
     };
   },
 
@@ -692,8 +700,12 @@ let ContextUtils = {
 
 
   createBoundFramebuffer: function(gl, width, height) {
-    let framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    let oldFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    let oldRenderbufferBinding = gl.getParameter(gl.RENDERBUFFER_BINDING);
+    let oldTextureBinding = gl.getParameter(gl.TEXTURE_BINDING_2D);
+
+    let newFramebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, newFramebuffer);
 
     
     
@@ -701,7 +713,8 @@ let ContextUtils = {
     gl.bindTexture(gl.TEXTURE_2D, colorBuffer);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     let depthBuffer = gl.createRenderbuffer();
@@ -711,10 +724,10 @@ let ContextUtils = {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, colorBuffer, 0);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, oldTextureBinding);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, oldRenderbufferBinding);
 
-    return framebuffer;
+    return { oldFramebuffer, newFramebuffer };
   }
 };
 
