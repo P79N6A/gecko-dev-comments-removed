@@ -21,6 +21,10 @@ class nsIWidget;
 
 namespace mozilla {
 
+namespace widget {
+struct IMENotification;
+}
+
 
 
 
@@ -31,6 +35,7 @@ class ContentCache final
 {
 public:
   typedef InfallibleTArray<LayoutDeviceIntRect> RectArray;
+  typedef widget::IMENotification IMENotification;
 
   ContentCache();
 
@@ -41,14 +46,8 @@ public:
 
 
 
-  void AssignContent(const ContentCache& aOther)
-  {
-    mText = aOther.mText;
-    mSelection = aOther.mSelection;
-    mCaret = aOther.mCaret;
-    mTextRectArray = aOther.mTextRectArray;
-    mEditorRect = aOther.mEditorRect;
-  }
+  void AssignContent(const ContentCache& aOther,
+                     const IMENotification* aNotification = nullptr);
 
   
 
@@ -77,12 +76,17 @@ public:
   
 
 
-  bool CacheEditorRect(nsIWidget* aWidget);
-  bool CacheSelection(nsIWidget* aWidget);
-  bool CacheText(nsIWidget* aWidget);
-  bool CacheTextRects(nsIWidget* aWidget);
+  bool CacheEditorRect(nsIWidget* aWidget,
+                       const IMENotification* aNotification = nullptr);
+  bool CacheSelection(nsIWidget* aWidget,
+                      const IMENotification* aNotification = nullptr);
+  bool CacheText(nsIWidget* aWidget,
+                 const IMENotification* aNotification = nullptr);
+  bool CacheTextRects(nsIWidget* aWidget,
+                      const IMENotification* aNotification = nullptr);
 
-  bool CacheAll(nsIWidget* aWidget);
+  bool CacheAll(nsIWidget* aWidget,
+                const IMENotification* aNotification = nullptr);
 
   
 
@@ -112,11 +116,7 @@ public:
 
 
 
-
-
-
-  void NotifyIMEOfSelectionChange(nsIWidget* aWidget,
-                                  bool aCausedByComposition) const;
+  void InitNotification(IMENotification& aNotification) const;
 
   void SetSelection(uint32_t aCaretOffset, const WritingMode& aWritingMode)
   {
