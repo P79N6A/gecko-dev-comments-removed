@@ -105,6 +105,22 @@ private:
   bool SwitchAudioReader(double aTarget);
   bool SwitchVideoReader(double aTarget);
 
+  
+  
+  
+  
+  
+  already_AddRefed<MediaDecoderReader> SelectReader(double aTarget,
+                                                    bool (MediaSourceReader::*aCanSelectReader)(MediaDecoderReader*),
+                                                    const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders);
+
+  
+  
+  
+  
+  bool CanSelectAudioReader(MediaDecoderReader* aNewReader);
+  bool CanSelectVideoReader(MediaDecoderReader* aNewReader);
+
   nsRefPtr<MediaDecoderReader> mAudioReader;
   nsRefPtr<MediaDecoderReader> mVideoReader;
 

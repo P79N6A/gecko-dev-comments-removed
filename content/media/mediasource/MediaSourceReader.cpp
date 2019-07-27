@@ -234,6 +234,72 @@ MediaSourceReader::BreakCycles()
 }
 
 bool
+MediaSourceReader::CanSelectAudioReader(MediaDecoderReader* aNewReader)
+{
+  AudioInfo currentInfo = mAudioReader->GetMediaInfo().mAudio;
+  AudioInfo newInfo = aNewReader->GetMediaInfo().mAudio;
+
+  
+  if (currentInfo.mRate != newInfo.mRate ||
+      currentInfo.mChannels != newInfo.mChannels) {
+    MSE_DEBUGV("MediaSourceReader(%p)::CanSelectAudioReader(%p) skip reader due to format mismatch",
+               this, aNewReader);
+    return false;
+  }
+
+  if (aNewReader->AudioQueue().AtEndOfStream()) {
+    MSE_DEBUGV("MediaSourceReader(%p)::CanSelectAudioReader(%p) skip reader due to queue EOS",
+               this, aNewReader);
+    return false;
+  }
+
+  return true;
+}
+
+bool
+MediaSourceReader::CanSelectVideoReader(MediaDecoderReader* aNewReader)
+{
+  if (aNewReader->VideoQueue().AtEndOfStream()) {
+    MSE_DEBUGV("MediaSourceReader(%p)::CanSelectVideoReader(%p) skip reader due to queue EOS",
+               this, aNewReader);
+    return false;
+  }
+
+  return true;
+}
+
+already_AddRefed<MediaDecoderReader>
+MediaSourceReader::SelectReader(double aTarget,
+                                bool (MediaSourceReader::*aCanSelectReader)(MediaDecoderReader*),
+                                const nsTArray<nsRefPtr<SourceBufferDecoder>>& aTrackDecoders)
+{
+  mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+
+  for (uint32_t i = 0; i < aTrackDecoders.Length(); ++i) {
+    nsRefPtr<MediaDecoderReader> newReader = aTrackDecoders[i]->GetReader();
+
+    
+    
+    
+    if (!(this->*aCanSelectReader)(newReader)) {
+      continue;
+    }
+
+    nsRefPtr<dom::TimeRanges> ranges = new dom::TimeRanges();
+    aTrackDecoders[i]->GetBuffered(ranges);
+    if (ranges->Find(aTarget) == dom::TimeRanges::NoIndex) {
+      MSE_DEBUGV("MediaSourceReader(%p)::SelectReader(%f) newReader=%p target not in ranges=%s",
+                 this, aTarget, newReader.get(), DumpTimeRanges(ranges).get());
+      continue;
+    }
+
+    return newReader.forget();
+  }
+
+  return nullptr;
+}
+
+bool
 MediaSourceReader::SwitchAudioReader(double aTarget)
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
@@ -241,39 +307,14 @@ MediaSourceReader::SwitchAudioReader(double aTarget)
   if (!mAudioTrack) {
     return false;
   }
-  auto& decoders = mAudioTrack->Decoders();
-  for (uint32_t i = 0; i < decoders.Length(); ++i) {
-    nsRefPtr<dom::TimeRanges> ranges = new dom::TimeRanges();
-    decoders[i]->GetBuffered(ranges);
-
-    MediaDecoderReader* newReader = decoders[i]->GetReader();
-    MSE_DEBUGV("MediaDecoderReader(%p)::SwitchAudioReader(%f) audioReader=%p reader=%p ranges=%s",
-               this, aTarget, mAudioReader.get(), newReader, DumpTimeRanges(ranges).get());
-
-    AudioInfo targetInfo = newReader->GetMediaInfo().mAudio;
-    AudioInfo currentInfo = mAudioReader->GetMediaInfo().mAudio;
-
-    
-    if (currentInfo.mRate != targetInfo.mRate ||
-        currentInfo.mChannels != targetInfo.mChannels) {
-      continue;
-    }
-
-    if (ranges->Find(aTarget) != dom::TimeRanges::NoIndex) {
-      if (newReader->AudioQueue().AtEndOfStream()) {
-        continue;
-      }
-      if (mAudioReader) {
-        mAudioReader->SetIdle();
-      }
-      mAudioReader = newReader;
-      MSE_DEBUG("MediaDecoderReader(%p)::SwitchAudioReader(%f) switching to audio reader %p",
-                this, aTarget, mAudioReader.get());
-      return true;
-    }
+  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget,
+                                                        &MediaSourceReader::CanSelectAudioReader,
+                                                        mAudioTrack->Decoders());
+  if (newReader) {
+    mAudioReader->SetIdle();
+    mAudioReader = newReader;
   }
-
-  return false;
+  return newReader != nullptr;
 }
 
 bool
@@ -284,30 +325,14 @@ MediaSourceReader::SwitchVideoReader(double aTarget)
   if (!mVideoTrack) {
     return false;
   }
-  auto& decoders = mVideoTrack->Decoders();
-  for (uint32_t i = 0; i < decoders.Length(); ++i) {
-    nsRefPtr<dom::TimeRanges> ranges = new dom::TimeRanges();
-    decoders[i]->GetBuffered(ranges);
-
-    MediaDecoderReader* newReader = decoders[i]->GetReader();
-    MSE_DEBUGV("MediaDecoderReader(%p)::SwitchVideoReader(%f) videoReader=%p reader=%p ranges=%s",
-               this, aTarget, mVideoReader.get(), newReader, DumpTimeRanges(ranges).get());
-
-    if (ranges->Find(aTarget) != dom::TimeRanges::NoIndex) {
-      if (newReader->VideoQueue().AtEndOfStream()) {
-        continue;
-      }
-      if (mVideoReader) {
-        mVideoReader->SetIdle();
-      }
-      mVideoReader = newReader;
-      MSE_DEBUG("MediaDecoderReader(%p)::SwitchVideoReader(%f) switching to video reader %p",
-                this, aTarget, mVideoReader.get());
-      return true;
-    }
+  nsRefPtr<MediaDecoderReader> newReader = SelectReader(aTarget,
+                                                        &MediaSourceReader::CanSelectVideoReader,
+                                                        mVideoTrack->Decoders());
+  if (newReader) {
+    mVideoReader->SetIdle();
+    mVideoReader = newReader;
   }
-
-  return false;
+  return newReader != nullptr;
 }
 
 MediaDecoderReader*
