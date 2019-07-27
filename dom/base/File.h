@@ -552,7 +552,7 @@ public:
         sDataOwners = nullptr;
       }
 
-      moz_free(mData);
+      free(mData);
     }
 
   public:

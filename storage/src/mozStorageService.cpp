@@ -429,7 +429,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF_ON_FREE(SqliteMallocSizeOfOnFree)
 
 static void *sqliteMemMalloc(int n)
 {
-  void* p = ::moz_malloc(n);
+  void* p = ::malloc(n);
 #ifdef MOZ_DMD
   gSqliteMemoryUsed += SqliteMallocSizeOfOnAlloc(p);
 #endif
@@ -441,14 +441,14 @@ static void sqliteMemFree(void *p)
 #ifdef MOZ_DMD
   gSqliteMemoryUsed -= SqliteMallocSizeOfOnFree(p);
 #endif
-  ::moz_free(p);
+  ::free(p);
 }
 
 static void *sqliteMemRealloc(void *p, int n)
 {
 #ifdef MOZ_DMD
   gSqliteMemoryUsed -= SqliteMallocSizeOfOnFree(p);
-  void *pnew = ::moz_realloc(p, n);
+  void *pnew = ::realloc(p, n);
   if (pnew) {
     gSqliteMemoryUsed += SqliteMallocSizeOfOnAlloc(pnew);
   } else {
@@ -457,7 +457,7 @@ static void *sqliteMemRealloc(void *p, int n)
   }
   return pnew;
 #else
-  return ::moz_realloc(p, n);
+  return ::realloc(p, n);
 #endif
 }
 

@@ -84,7 +84,7 @@ public:
     
     
     void operator delete(void* p) {
-        moz_free(p);
+        free(p);
     }
 
     virtual ~gfxTextRun();

@@ -161,7 +161,7 @@ imgFrame::~imgFrame()
   MOZ_ASSERT(mAborted || IsImageCompleteInternal());
 #endif
 
-  moz_free(mPalettedImageData);
+  free(mPalettedImageData);
   mPalettedImageData = nullptr;
 }
 
@@ -213,7 +213,7 @@ imgFrame::ReinitForDecoder(const nsIntSize& aImageSize,
   mOptSurface = nullptr;
   mVBuf = nullptr;
   mVBufPtr = nullptr;
-  moz_free(mPalettedImageData);
+  free(mPalettedImageData);
   mPalettedImageData = nullptr;
 
   
@@ -274,10 +274,10 @@ imgFrame::InitForDecoder(const nsIntSize& aImageSize,
     
     
     mPalettedImageData =
-      static_cast<uint8_t*>(moz_malloc(PaletteDataLength() +
-                                       (mSize.width * mSize.height)));
+      static_cast<uint8_t*>(malloc(PaletteDataLength() +
+                                   (mSize.width * mSize.height)));
     if (!mPalettedImageData)
-      NS_WARNING("moz_malloc for paletted image data should succeed");
+      NS_WARNING("malloc for paletted image data should succeed");
     NS_ENSURE_TRUE(mPalettedImageData, NS_ERROR_OUT_OF_MEMORY);
   } else {
     MOZ_ASSERT(!mImageSurface, "Called imgFrame::InitForDecoder() twice?");

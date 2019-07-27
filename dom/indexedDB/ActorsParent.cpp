@@ -14792,7 +14792,7 @@ ObjectStoreAddOrPutRequestOp::DoDatabaseWork(TransactionBase* aTransaction)
 
     
     
-    char* compressed = static_cast<char*>(moz_malloc(compressedLength));
+    char* compressed = static_cast<char*>(malloc(compressedLength));
     if (NS_WARN_IF(!compressed)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -14808,7 +14808,7 @@ ObjectStoreAddOrPutRequestOp::DoDatabaseWork(TransactionBase* aTransaction)
     rv = stmt->BindAdoptedBlobByName(NS_LITERAL_CSTRING("data"), dataBuffer,
                                      dataBufferLength);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      moz_free(compressed);
+      free(compressed);
       return rv;
     }
   }

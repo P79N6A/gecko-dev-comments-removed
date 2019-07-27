@@ -60,7 +60,7 @@ nsBMPDecoder::~nsBMPDecoder()
 {
   delete[] mColors;
   if (mRow) {
-      moz_free(mRow);
+      free(mRow);
   }
 }
 
@@ -430,7 +430,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, uint32_t aCount)
       if (mBIH.compression != BI_RLE8 && mBIH.compression != BI_RLE4 &&
           mBIH.compression != BI_ALPHABITFIELDS) {
         
-        mRow = (uint8_t*)moz_malloc((mBIH.width * mBIH.bpp) / 8 + 4);
+        mRow = (uint8_t*)malloc((mBIH.width * mBIH.bpp) / 8 + 4);
         
         
         

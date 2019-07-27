@@ -67,7 +67,7 @@ AudioOutputObserver::AudioOutputObserver()
 AudioOutputObserver::~AudioOutputObserver()
 {
   Clear();
-  moz_free(mSaved);
+  free(mSaved);
   mSaved = nullptr;
 }
 
@@ -75,7 +75,7 @@ void
 AudioOutputObserver::Clear()
 {
   while (mPlayoutFifo->size() > 0) {
-    moz_free(mPlayoutFifo->Pop());
+    free(mPlayoutFifo->Pop());
   }
   
 }
@@ -544,7 +544,7 @@ MediaEngineWebRTCAudioSource::Process(int channel,
   if (!mStarted) {
     mStarted  = true;
     while (gFarendObserver->Size() > 1) {
-      moz_free(gFarendObserver->Pop()); 
+      free(gFarendObserver->Pop()); 
     }
   }
 
@@ -557,7 +557,7 @@ MediaEngineWebRTCAudioSource::Process(int channel,
                                                 gFarendObserver->PlayoutChannels(),
                                                 mPlayoutDelay,
                                                 length);
-      moz_free(buffer);
+      free(buffer);
       if (res == -1) {
         return;
       }

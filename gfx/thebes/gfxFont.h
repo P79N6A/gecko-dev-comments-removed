@@ -1152,7 +1152,7 @@ public:
         uint32_t size =
             offsetof(gfxShapedWord, mCharGlyphsStorage) +
             aLength * (sizeof(CompressedGlyph) + sizeof(uint8_t));
-        void *storage = moz_malloc(size);
+        void *storage = malloc(size);
         if (!storage) {
             return nullptr;
         }
@@ -1183,7 +1183,7 @@ public:
         uint32_t size =
             offsetof(gfxShapedWord, mCharGlyphsStorage) +
             aLength * (sizeof(CompressedGlyph) + sizeof(char16_t));
-        void *storage = moz_malloc(size);
+        void *storage = malloc(size);
         if (!storage) {
             return nullptr;
         }
@@ -1195,7 +1195,7 @@ public:
     
     
     void operator delete(void* p) {
-        moz_free(p);
+        free(p);
     }
 
     virtual CompressedGlyph *GetCharacterGlyphs() override {

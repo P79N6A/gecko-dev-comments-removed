@@ -95,7 +95,7 @@ TryAllocAlignedBytes(size_t aSize)
              nullptr : ptr;
 #else
     
-    return moz_malloc(aSize);
+    return malloc(aSize);
 #endif
 }
 

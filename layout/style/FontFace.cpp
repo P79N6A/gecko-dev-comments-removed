@@ -53,7 +53,7 @@ GetDataFrom(const T& aObject, uint8_t*& aBuffer, uint32_t& aLength)
   
   
   
-  aBuffer = (uint8_t*) moz_malloc(aObject.Length());
+  aBuffer = (uint8_t*) malloc(aObject.Length());
   if (!aBuffer) {
     return;
   }

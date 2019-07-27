@@ -675,7 +675,7 @@ gfxUserFontEntry::LoadPlatformFont(const uint8_t* aFontData, uint32_t& aLength)
 
     
     
-    moz_free((void*)aFontData);
+    free((void*)aFontData);
 
     return fe != nullptr;
 }
@@ -718,7 +718,7 @@ gfxUserFontEntry::FontDataDownloadComplete(const uint8_t* aFontData,
     }
 
     if (aFontData) {
-        moz_free((void*)aFontData);
+        free((void*)aFontData);
     }
 
     
