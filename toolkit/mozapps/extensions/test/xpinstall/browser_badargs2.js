@@ -10,11 +10,13 @@ function test() {
     }
   }));
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-    
-    executeSoon(page_loaded);
-  }, true);
+
+  function loadListener() {
+    gBrowser.selectedBrowser.removeEventListener("load", loadListener, true);
+    gBrowser.contentWindow.addEventListener("InstallTriggered", page_loaded, false);
+  }
+
+  gBrowser.selectedBrowser.addEventListener("load", loadListener, true);
 
   
   if (!gMultiProcessBrowser)
@@ -24,9 +26,16 @@ function test() {
 }
 
 function page_loaded() {
+  gBrowser.contentWindow.removeEventListener("InstallTriggered", page_loaded, false);
   var doc = gBrowser.contentDocument;
   is(doc.getElementById("return").textContent, "exception", "installTrigger should have failed");
-  gBrowser.removeCurrentTab();
-  finish();
+
+  
+  
+  
+  executeSoon(() => {
+    gBrowser.removeCurrentTab();
+    finish();
+  });
 }
 
