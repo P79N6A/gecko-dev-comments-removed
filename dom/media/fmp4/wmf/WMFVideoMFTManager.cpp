@@ -241,12 +241,6 @@ WMFVideoMFTManager::Input(mp4_demuxer::MP4Sample* aSample)
     
     return E_FAIL;
   }
-  if (mStreamType != VP8 && mStreamType != VP9) {
-    
-    if (!mp4_demuxer::AnnexB::ConvertSampleToAnnexB(aSample)) {
-      return E_FAIL;
-    }
-  }
   
   const uint8_t* data = reinterpret_cast<const uint8_t*>(aSample->data);
   uint32_t length = aSample->size;

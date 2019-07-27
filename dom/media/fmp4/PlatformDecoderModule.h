@@ -14,6 +14,7 @@
 #include <queue>
 
 namespace mp4_demuxer {
+class TrackConfig;
 class VideoDecoderConfig;
 class AudioDecoderConfig;
 class MP4Sample;
@@ -88,6 +89,43 @@ public:
 
   
   
+  virtual already_AddRefed<MediaDataDecoder>
+  CreateDecoder(const mp4_demuxer::TrackConfig& aConfig,
+                FlushableMediaTaskQueue* aTaskQueue,
+                MediaDataDecoderCallback* aCallback,
+                layers::LayersBackend aLayersBackend = layers::LayersBackend::LAYERS_NONE,
+                layers::ImageContainer* aImageContainer = nullptr);
+
+  
+  
+  
+  
+  virtual bool SupportsMimeType(const nsACString& aMimeType);
+
+  enum ConversionRequired {
+    kNeedNone,
+    kNeedAVCC,
+    kNeedAnnexB,
+  };
+
+  
+  
+  
+  virtual ConversionRequired DecoderNeedsConversion(const mp4_demuxer::TrackConfig& aConfig) const = 0;
+
+  virtual void DisableHardwareAcceleration() {}
+
+  virtual bool SupportsSharedDecoders(const mp4_demuxer::VideoDecoderConfig& aConfig) const {
+    return true;
+  }
+
+protected:
+  PlatformDecoderModule() {}
+  virtual ~PlatformDecoderModule() {}
+
+  friend class H264Converter;
+  
+  
   
   
   
@@ -99,10 +137,10 @@ public:
   
   virtual already_AddRefed<MediaDataDecoder>
   CreateVideoDecoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
-                    layers::LayersBackend aLayersBackend,
-                    layers::ImageContainer* aImageContainer,
-                    FlushableMediaTaskQueue* aVideoTaskQueue,
-                    MediaDataDecoderCallback* aCallback) = 0;
+                     layers::LayersBackend aLayersBackend,
+                     layers::ImageContainer* aImageContainer,
+                     FlushableMediaTaskQueue* aVideoTaskQueue,
+                     MediaDataDecoderCallback* aCallback) = 0;
 
   
   
@@ -119,24 +157,6 @@ public:
                      FlushableMediaTaskQueue* aAudioTaskQueue,
                      MediaDataDecoderCallback* aCallback) = 0;
 
-  
-  
-  
-  virtual bool SupportsAudioMimeType(const nsACString& aMimeType);
-  virtual bool SupportsVideoMimeType(const nsACString& aMimeType);
-
-  
-  virtual bool DecoderNeedsAVCC(const mp4_demuxer::VideoDecoderConfig& aConfig);
-
-  virtual void DisableHardwareAcceleration() {}
-
-  virtual bool SupportsSharedDecoders(const mp4_demuxer::VideoDecoderConfig& aConfig) const {
-    return true;
-  }
-
-protected:
-  PlatformDecoderModule() {}
-  virtual ~PlatformDecoderModule() {}
   
   static bool sUseBlankDecoder;
   static bool sFFmpegDecoderEnabled;
@@ -213,7 +233,6 @@ public:
   
   virtual nsresult Flush() = 0;
 
-
   
   
   
@@ -244,6 +263,15 @@ public:
   virtual void AllocateMediaResources() {}
   virtual void ReleaseMediaResources() {}
   virtual bool IsHardwareAccelerated() const { return false; }
+
+  
+  
+  
+  
+  virtual nsresult ConfigurationChanged(const mp4_demuxer::TrackConfig& aConfig)
+  {
+    return NS_OK;
+  }
 };
 
 } 

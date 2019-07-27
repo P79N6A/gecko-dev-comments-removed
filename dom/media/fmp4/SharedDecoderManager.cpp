@@ -87,11 +87,12 @@ SharedDecoderManager::CreateVideoDecoder(
     
     
     
-    mDecoder = aPDM->CreateVideoDecoder(aConfig,
-                                        aLayersBackend,
-                                        aImageContainer,
-                                        mTaskQueue,
-                                        mCallback);
+    mDecoder =
+      aPDM->CreateDecoder(aConfig,
+                          mTaskQueue,
+                          mCallback,
+                          aLayersBackend,
+                          aImageContainer);
     if (!mDecoder) {
       mPDM = nullptr;
       return nullptr;
@@ -119,11 +120,11 @@ SharedDecoderManager::Recreate(const mp4_demuxer::VideoDecoderConfig& aConfig,
 {
   mDecoder->Flush();
   mDecoder->Shutdown();
-  mDecoder = mPDM->CreateVideoDecoder(aConfig,
-                                      aLayersBackend,
-                                      aImageContainer,
-                                      mTaskQueue,
-                                      mCallback);
+  mDecoder = mPDM->CreateDecoder(aConfig,
+                                 mTaskQueue,
+                                 mCallback,
+                                 aLayersBackend,
+                                 aImageContainer);
   if (!mDecoder) {
     return false;
   }
