@@ -274,7 +274,10 @@ nsUDPSocket::nsUDPSocket()
 
 nsUDPSocket::~nsUDPSocket()
 {
-  Close(); 
+  if (mFD) {
+    PR_Close(mFD);
+    mFD = nullptr;
+  }
 
   MOZ_COUNT_DTOR(nsUDPSocket);
 }
