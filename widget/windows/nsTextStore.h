@@ -51,10 +51,11 @@ struct MSGResult;
 
 
 
-class nsTextStore MOZ_FINAL : public ITextStoreACP,
-                              public ITfContextOwnerCompositionSink,
-                              public ITfActiveLanguageProfileNotifySink,
-                              public ITfInputProcessorProfileActivationSink
+class nsTextStore MOZ_FINAL : public ITextStoreACP
+                            , public ITfContextOwnerCompositionSink
+                            , public ITfActiveLanguageProfileNotifySink
+                            , public ITfInputProcessorProfileActivationSink
+                            , public ITfMouseTrackerACP
 {
 public: 
   STDMETHODIMP          QueryInterface(REFIID, void**);
@@ -106,6 +107,10 @@ public:
 public: 
   STDMETHODIMP OnActivated(DWORD, LANGID, REFCLSID, REFGUID, REFGUID,
                            HKL, DWORD);
+
+public: 
+  STDMETHODIMP AdviseMouseSink(ITfRangeACP*, ITfMouseSink*, DWORD*);
+  STDMETHODIMP UnadviseMouseSink(DWORD);
 
 protected:
   typedef mozilla::widget::IMENotification IMENotification;
@@ -670,6 +675,31 @@ protected:
   
   
   bool GetCurrentText(nsAString& aTextContent);
+
+  class MouseTracker MOZ_FINAL
+  {
+  public:
+    static const DWORD kInvalidCookie = static_cast<DWORD>(-1);
+
+    MouseTracker();
+
+    HRESULT Init(nsTextStore* aTextStore);
+    HRESULT AdviseSink(nsTextStore* aTextStore,
+                       ITfRangeACP* aTextRange, ITfMouseSink* aMouseSink);
+    void UnadviseSink();
+
+    bool IsUsing() const { return mSink != nullptr; }
+    DWORD Cookie() const { return mCookie; }
+  
+  private:
+    nsRefPtr<ITfMouseSink> mSink;
+    LONG mStart;
+    LONG mLength;
+    DWORD mCookie;
+  };
+  
+  
+  nsTArray<MouseTracker> mMouseTrackers;
 
   
   nsTArray<InputScope>         mInputScopes;
