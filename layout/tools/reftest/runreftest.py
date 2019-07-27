@@ -207,9 +207,6 @@ class RefTest(object):
     
     prefs['toolkit.telemetry.enabled'] = False
     
-    
-    prefs['toolkit.telemetry.server'] = 'http://%(server)s/telemetry-dummy/'
-    
     prefs['browser.safebrowsing.enabled'] = False
     prefs['browser.safebrowsing.malware.enabled'] = False
     
