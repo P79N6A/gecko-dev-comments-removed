@@ -1163,19 +1163,27 @@ nsSVGUtils::PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
                                           nsSVGPathGeometryFrame* aFrame,
                                           const gfxMatrix& aMatrix)
 {
-  double styleExpansionFactor = 0.5;
+  const nsIAtom* tag = aFrame->GetContent()->Tag();
 
-  if (static_cast<nsSVGPathGeometryElement*>(aFrame->GetContent())->IsMarkable()) {
+  bool strokeMayHaveCorners = (tag != nsGkAtoms::circle &&
+                               tag != nsGkAtoms::ellipse);
+
+  
+  
+  
+  
+  double styleExpansionFactor = strokeMayHaveCorners ? M_SQRT1_2 : 0.5;
+
+  
+  
+  bool affectedByMiterlimit = (tag == nsGkAtoms::path ||
+                               tag == nsGkAtoms::polyline ||
+                               tag == nsGkAtoms::polygon);
+  if (affectedByMiterlimit) {
     const nsStyleSVG* style = aFrame->StyleSVG();
-
-    if (style->mStrokeLinecap == NS_STYLE_STROKE_LINECAP_SQUARE) {
-      styleExpansionFactor = M_SQRT1_2;
-    }
-
     if (style->mStrokeLinejoin == NS_STYLE_STROKE_LINEJOIN_MITER &&
-        styleExpansionFactor < style->mStrokeMiterlimit &&
-        aFrame->GetContent()->Tag() != nsGkAtoms::line) {
-      styleExpansionFactor = style->mStrokeMiterlimit;
+        styleExpansionFactor < style->mStrokeMiterlimit / 2.0) {
+      styleExpansionFactor = style->mStrokeMiterlimit / 2.0;
     }
   }
 
