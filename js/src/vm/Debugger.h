@@ -304,6 +304,39 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
+    static bool cannotTrackAllocations(const GlobalObject& global);
+
+    
+
+
+
+    static bool isObservedByDebuggerTrackingAllocations(const GlobalObject& global);
+
+    
+
+
+
+
+    static bool addAllocationsTracking(JSContext* cx, GlobalObject& debuggee);
+
+    
+
+
+
+
+    static void removeAllocationsTracking(GlobalObject& global);
+
+    
+
+
+    bool addAllocationsTrackingForAllDebuggees(JSContext* cx);
+    void removeAllocationsTrackingForAllDebuggees();
+
+    
+
+
+
+
 
     JSCList onNewGlobalObjectWatchersLink;
 
