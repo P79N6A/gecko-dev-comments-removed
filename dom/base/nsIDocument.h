@@ -1941,6 +1941,12 @@ public:
 
 
 
+  void UnlinkOriginalDocumentIfStatic();
+
+  
+
+
+
 
 
 
@@ -2860,6 +2866,9 @@ protected:
 
 
   int32_t mFrameRequestCallbackCounter;
+
+  
+  uint32_t mStaticCloneCount;
 
   
   
