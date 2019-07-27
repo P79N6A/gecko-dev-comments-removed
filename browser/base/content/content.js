@@ -501,8 +501,6 @@ let AboutReaderListener = {
         break;
 
       case "pagehide":
-        
-        this._savedArticle = null;
         sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
         break;
 
@@ -510,6 +508,9 @@ let AboutReaderListener = {
         if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader) {
           return;
         }
+
+        
+        this._savedArticle = null;
 
         ReaderMode.parseDocument(content.document).then(article => {
           
