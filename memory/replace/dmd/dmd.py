@@ -10,6 +10,7 @@ from __future__ import print_function, division
 
 import argparse
 import collections
+import gzip
 import json
 import os
 import platform
@@ -104,7 +105,7 @@ def parseCommandLine():
 
     description = '''
 Analyze heap data produced by DMD.
-If no files are specified, read from stdin.
+If no files are specified, read from stdin; input can be gzipped.
 Write to stdout unless -o/--output is specified.
 Stack traces are fixed to show function names, filenames and line numbers
 unless --no-fix-stacks is specified; stack fixing modifies the original file
@@ -139,14 +140,14 @@ variable is used to find breakpad symbols for stack fixing.
     p.add_argument('--filter-stacks-for-testing', action='store_true',
                    help='filter stack traces; only useful for testing purposes')
 
-    p.add_argument('input_file', type=argparse.FileType('r'))
+    p.add_argument('input_file')
 
     return p.parse_args(sys.argv[1:])
 
 
 
 
-def fixStackTraces(args):
+def fixStackTraces(inputFilename, isZipped, opener):
     
     
     sys.path.append(os.path.dirname(__file__))
@@ -168,22 +169,45 @@ def fixStackTraces(args):
     if fix:
         
         
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            for line in args.input_file:
-                tmp.write(fix(line))
-            shutil.move(tmp.name, args.input_file.name)
+        tmpFile = tempfile.NamedTemporaryFile(delete=False)
 
-        args.input_file = open(args.input_file.name)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        tmpFilename = tmpFile.name
+        if isZipped:
+            tmpFile = gzip.GzipFile(filename='', fileobj=tmpFile)
+
+        with opener(inputFilename, 'rb') as inputFile:
+            for line in inputFile:
+                tmpFile.write(fix(line))
+
+        tmpFile.close()
+
+        shutil.move(tmpFilename, inputFilename)
 
 
 def main():
     args = parseCommandLine()
 
     
-    if not args.no_fix_stacks:
-        fixStackTraces(args)
+    isZipped = args.input_file.endswith('.gz')
+    opener = gzip.open if isZipped else open
 
-    j = json.load(args.input_file)
+    
+    if not args.no_fix_stacks:
+        fixStackTraces(args.input_file, isZipped, opener)
+
+    with opener(args.input_file, 'rb') as f:
+        j = json.load(f)
 
     if j['version'] != outputVersion:
         raise Exception("'version' property isn't '{:d}'".format(outputVersion))

@@ -103,7 +103,8 @@ function run_test() {
 
   
   
-  jsonFile = FileUtils.getFile("CurWorkD", ["script-sort-by.json"]);
+  
+  jsonFile = FileUtils.getFile("CurWorkD", ["script-sort-by.json.gz"]);
   test(jsonFile, "script-sort-by-usable", ["-r", "--sort-by=usable"]);
   test(jsonFile, "script-sort-by-req",    ["-r", "--sort-by=req",
                                            "--no-fix-stacks"]);
