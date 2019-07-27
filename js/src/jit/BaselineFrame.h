@@ -77,8 +77,7 @@ class BaselineFrame
         
         
         
-        
-        DEBUGGER_HANDLING_EXCEPTION = 1 << 12
+        HANDLING_EXCEPTION = 1 << 12
     };
 
   protected: 
@@ -290,14 +289,14 @@ class BaselineFrame
     }
     inline void unsetIsDebuggee();
 
-    bool isDebuggerHandlingException() const {
-        return flags_ & DEBUGGER_HANDLING_EXCEPTION;
+    bool isHandlingException() const {
+        return flags_ & HANDLING_EXCEPTION;
     }
-    void setIsDebuggerHandlingException() {
-        flags_ |= DEBUGGER_HANDLING_EXCEPTION;
+    void setIsHandlingException() {
+        flags_ |= HANDLING_EXCEPTION;
     }
-    void unsetIsDebuggerHandlingException() {
-        flags_ &= ~DEBUGGER_HANDLING_EXCEPTION;
+    void unsetIsHandlingException() {
+        flags_ &= ~HANDLING_EXCEPTION;
     }
 
     JSScript *evalScript() const {

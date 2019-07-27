@@ -207,7 +207,7 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                 
                 if (!entries.append(DebugModeOSREntry(script, info)))
                     return false;
-            } else if (frame->isDebuggerHandlingException()) {
+            } else if (frame->isHandlingException()) {
                 
                 
                 uint32_t offset = script->pcToOffset(frame->overridePc());
@@ -335,7 +335,7 @@ SpewPatchStubFrame(ICStub *oldStub, ICStub *newStub)
 {
     JitSpew(JitSpew_BaselineDebugModeOSR,
             "Patch   stub %p -> %p on BaselineStub frame (%s)",
-            oldStub, newStub, ICStub::KindString(newStub->kind()));
+            oldStub, newStub, newStub ? ICStub::KindString(newStub->kind()) : "exception handler");
 }
 
 static void
@@ -431,7 +431,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
-                MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
+                MOZ_ASSERT(iter.baselineFrame()->isHandlingException());
                 MOZ_ASSERT(iter.baselineFrame()->overridePc() == pc);
                 uint8_t *retAddr = nullptr;
                 SpewPatchBaselineFrameFromExceptionHandler(prev->returnAddress(), retAddr,
@@ -592,7 +592,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
             
             
             if (layout->maybeStubPtr()) {
-                MOZ_ASSERT(entry.newStub);
+                MOZ_ASSERT(entry.newStub || prevFrame->isHandlingException());
                 SpewPatchStubFrame(entry.oldStub, entry.newStub);
                 layout->setStubPtr(entry.newStub);
             }
@@ -709,6 +709,16 @@ CloneOldBaselineStub(JSContext *cx, DebugModeOSREntryVector &entries, size_t ent
     ICStub *oldStub = entry.oldStub;
     MOZ_ASSERT(ICStub::CanMakeCalls(oldStub->kind()));
 
+    if (entry.frameKind == ICEntry::Kind_Invalid) {
+        
+        
+        
+        
+        
+        entry.newStub = nullptr;
+        return true;
+    }
+
     
     ICFallbackStub *fallbackStub = entry.fallbackStub();
 
@@ -722,8 +732,10 @@ CloneOldBaselineStub(JSContext *cx, DebugModeOSREntryVector &entries, size_t ent
     }
 
     
+    
+    
     for (size_t i = 0; i < entryIndex; i++) {
-        if (oldStub == entries[i].oldStub) {
+        if (oldStub == entries[i].oldStub && entries[i].frameKind != ICEntry::Kind_Invalid) {
             MOZ_ASSERT(entries[i].newStub);
             entry.newStub = entries[i].newStub;
             return true;
