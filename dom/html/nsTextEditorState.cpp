@@ -1397,7 +1397,8 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     rv = newEditor->EnableUndo(false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    SetValue(defaultValue, false, false);
+    bool success = SetValue(defaultValue, false, false);
+    NS_ENSURE_TRUE(success, NS_ERROR_OUT_OF_MEMORY);
 
     rv = newEditor->EnableUndo(true);
     NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
@@ -1655,7 +1656,9 @@ nsTextEditorState::UnbindFromFrame(nsTextControlFrame* aFrame)
   
   
   if (!mValueTransferInProgress) {
-    SetValue(value, false, false);
+    bool success = SetValue(value, false, false);
+    
+    NS_ENSURE_TRUE_VOID(success);
   }
 
   if (mRootNode && mMutationObserver) {
@@ -1868,10 +1871,12 @@ nsTextEditorState::GetValue(nsAString& aValue, bool aIgnoreWrap) const
   }
 }
 
-void
+bool
 nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
                             bool aSetValueChanged)
 {
+  mozilla::fallible_t fallible;
+
   if (mEditor && mBoundFrame) {
     
     
@@ -1901,16 +1906,21 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
       
       
       
-      nsString newValue(aValue);
+      nsString newValue;
+      if (!newValue.Assign(aValue, fallible)) {
+        return false;
+      }
       if (aValue.FindChar(char16_t('\r')) != -1) {
-        nsContentUtils::PlatformToDOMLineBreaks(newValue);
+        if (!nsContentUtils::PlatformToDOMLineBreaks(newValue, fallible)) {
+          return false;
+        }
       }
 
       nsCOMPtr<nsIDOMDocument> domDoc;
       mEditor->GetDocument(getter_AddRefs(domDoc));
       if (!domDoc) {
         NS_WARNING("Why don't we have a document?");
-        return;
+        return true;
       }
 
       
@@ -1947,7 +1957,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
         nsCOMPtr<nsIPlaintextEditor> plaintextEditor = do_QueryInterface(mEditor);
         if (!plaintextEditor || !weakFrame.IsAlive()) {
           NS_WARNING("Somehow not a plaintext editor?");
-          return;
+          return true;
         }
 
         valueSetter.Init();
@@ -1986,13 +1996,15 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
           
           
           if (!mBoundFrame) {
-            SetValue(newValue, false, aSetValueChanged);
+            return SetValue(newValue, false, aSetValueChanged);
           }
-          return;
+          return true;
         }
 
         if (!IsSingleLineTextControl()) {
-          mCachedValue = newValue;
+          if (!mCachedValue.Assign(newValue, fallible)) {
+            return false;
+          }
         }
 
         plaintextEditor->SetMaxTextLength(savedMaxLength);
@@ -2005,9 +2017,16 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
     if (!mValue) {
       mValue = new nsCString;
     }
-    nsString value(aValue);
-    nsContentUtils::PlatformToDOMLineBreaks(value);
-    CopyUTF16toUTF8(value, *mValue);
+    nsString value;
+    if (!value.Assign(aValue, fallible)) {
+      return false;
+    }
+    if (!nsContentUtils::PlatformToDOMLineBreaks(value, fallible)) {
+      return false;
+    }
+    if (!CopyUTF16toUTF8(value, *mValue, fallible)) {
+      return false;
+    }
 
     
     if (mBoundFrame) {
@@ -2020,6 +2039,8 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
   ValueWasChanged(!!mRootNode);
 
   mTextCtrlElement->OnValueChanged(!!mRootNode);
+
+  return true;
 }
 
 void

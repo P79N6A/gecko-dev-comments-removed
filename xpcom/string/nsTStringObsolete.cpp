@@ -454,17 +454,41 @@ nsTString_CharT::ReplaceChar( const char* aSet, char_type aNewChar )
 void ReleaseData(void* aData, uint32_t aFlags);
 
 void
-nsTString_CharT::ReplaceSubstring( const char_type* aTarget, const char_type* aNewValue )
+nsTString_CharT::ReplaceSubstring(const char_type* aTarget,
+                                  const char_type* aNewValue)
 {
   ReplaceSubstring(nsTDependentString_CharT(aTarget),
                    nsTDependentString_CharT(aNewValue));
 }
 
+bool
+nsTString_CharT::ReplaceSubstring(const char_type* aTarget,
+                                  const char_type* aNewValue,
+                                  const fallible_t& fallible)
+{
+  return ReplaceSubstring(nsTDependentString_CharT(aTarget),
+                          nsTDependentString_CharT(aNewValue),
+                          fallible);
+}
+
 void
-nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aNewValue )
+nsTString_CharT::ReplaceSubstring(const self_type& aTarget,
+                                  const self_type& aNewValue)
+{
+  if (!ReplaceSubstring(aTarget, aNewValue, fallible_t())) {
+    
+    
+    AllocFailed(mLength + (aNewValue.Length() - aTarget.Length()));
+  }
+}
+
+bool
+nsTString_CharT::ReplaceSubstring(const self_type& aTarget,
+                                  const self_type& aNewValue,
+                                  const fallible_t&)
 {
   if (aTarget.Length() == 0)
-    return;
+    return true;
 
   
   nsAutoTArray<Segment, 16> nonMatching;
@@ -495,7 +519,7 @@ nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aN
   if (nonMatching.Length() == 1) {
     MOZ_ASSERT(nonMatching[0].mBegin == 0 && nonMatching[0].mLength == mLength,
                "We should have the correct non-matching segment.");
-    return;
+    return true;
   }
 
   
@@ -505,7 +529,7 @@ nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aN
   char_type* oldData;
   uint32_t oldFlags;
   if (!MutatePrep(XPCOM_MAX(mLength, newLength), &oldData, &oldFlags))
-    return;
+    return false;
   if (oldData) {
     
     char_traits::copy(mData, oldData, mLength);
@@ -549,6 +573,8 @@ nsTString_CharT::ReplaceSubstring( const self_type& aTarget, const self_type& aN
   
   mLength = newLength;
   mData[mLength] = char_type(0);
+
+  return true;
 }
 
 

@@ -1271,7 +1271,8 @@ HTMLInputElement::Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) co
         nsAutoString value;
         GetValueInternal(value);
         
-        it->SetValueInternal(value, false, true);
+        rv = it->SetValueInternal(value, false, true);
+        NS_ENSURE_SUCCESS(rv, rv);
       }
       break;
     case VALUE_MODE_FILENAME:
@@ -1446,7 +1447,8 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
         
         nsAutoString value;
         GetValue(value);
-        SetValueInternal(value, false, false);
+        nsresult rv = SetValueInternal(value, false, false);
+        NS_ENSURE_SUCCESS(rv, rv);
         MOZ_ASSERT(!GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW),
                    "HTML5 spec does not allow this");
       }
@@ -1458,7 +1460,8 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
         
         nsAutoString value;
         GetValue(value);
-        SetValueInternal(value, false, false);
+        nsresult rv = SetValueInternal(value, false, false);
+        NS_ENSURE_SUCCESS(rv, rv);
         MOZ_ASSERT(!GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW),
                    "HTML5 spec does not allow this");
       }
@@ -1468,7 +1471,8 @@ HTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
         
         nsAutoString value;
         GetValue(value);
-        SetValueInternal(value, false, false);
+        nsresult rv = SetValueInternal(value, false, false);
+        NS_ENSURE_SUCCESS(rv, rv);
         MOZ_ASSERT(!GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW),
                    "HTML5 spec does not allow this");
       }
@@ -1838,13 +1842,21 @@ HTMLInputElement::SetValue(const nsAString& aValue, ErrorResult& aRv)
       nsAutoString currentValue;
       GetValue(currentValue);
 
-      SetValueInternal(aValue, false, true);
+      nsresult rv = SetValueInternal(aValue, false, true);
+      if (NS_FAILED(rv)) {
+        aRv.Throw(rv);
+        return;
+      }
 
       if (mFocusedValue.Equals(currentValue)) {
         GetValue(mFocusedValue);
       }
     } else {
-      SetValueInternal(aValue, false, true);
+      nsresult rv = SetValueInternal(aValue, false, true);
+      if (NS_FAILED(rv)) {
+        aRv.Throw(rv);
+        return;
+      }
     }
   }
 }
@@ -2413,7 +2425,8 @@ HTMLInputElement::SetUserInput(const nsAString& aValue)
     MozSetFileNameArray(list);
     return NS_OK;
   } else {
-    SetValueInternal(aValue, true, true);
+    nsresult rv = SetValueInternal(aValue, true, true);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
@@ -2839,7 +2852,9 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
       }
 
       if (IsSingleLineTextControl(false)) {
-        mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
+        if (!mInputData.mState->SetValue(value, aUserInput, aSetValueChanged)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         if (mType == NS_FORM_INPUT_EMAIL) {
           UpdateAllValidityStates(mParserCreating);
         }
@@ -3434,7 +3449,8 @@ HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
     if (IsExperimentalMobileType(mType)) {
       nsAutoString aValue;
       GetValueInternal(aValue);
-      SetValueInternal(aValue, false, false);
+      nsresult rv = SetValueInternal(aValue, false, false);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
     FireChangeEventIfNeeded();
   }
@@ -3554,7 +3570,8 @@ HTMLInputElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
         numberControlFrame->GetValueOfAnonTextControl(value);
         numberControlFrame->HandlingInputEvent(true);
         nsWeakFrame weakNumberControlFrame(numberControlFrame);
-        SetValueInternal(value, true, true);
+        rv = SetValueInternal(value, true, true);
+        NS_ENSURE_SUCCESS(rv, rv);
         if (weakNumberControlFrame.IsAlive()) {
           numberControlFrame->HandlingInputEvent(false);
         }
@@ -3628,6 +3645,8 @@ HTMLInputElement::CancelRangeThumbDrag(bool aIsForUserEvent)
     
     nsAutoString val;
     ConvertNumberToString(mRangeThumbDragStartValue, val);
+    
+    
     SetValueInternal(val, true, true);
     nsRangeFrame* frame = do_QueryFrame(GetPrimaryFrame());
     if (frame) {
@@ -3646,6 +3665,8 @@ HTMLInputElement::SetValueOfRangeForUserEvent(Decimal aValue)
 
   nsAutoString val;
   ConvertNumberToString(aValue, val);
+  
+  
   SetValueInternal(val, true, true);
   nsRangeFrame* frame = do_QueryFrame(GetPrimaryFrame());
   if (frame) {
@@ -3737,6 +3758,8 @@ HTMLInputElement::StepNumberControlForUserEvent(int32_t aDirection)
 
   nsAutoString newVal;
   ConvertNumberToString(newValue, newVal);
+  
+  
   SetValueInternal(newVal, true, true);
 
   nsContentUtils::DispatchTrustedEvent(OwnerDoc(),
@@ -4533,6 +4556,9 @@ HTMLInputElement::HandleTypeChange(uint8_t aNewType)
         } else {
           value = aOldValue;
         }
+        
+        
+        
         SetValueInternal(value, false, false);
       }
       break;
@@ -5216,7 +5242,11 @@ HTMLInputElement::SetRangeText(const nsAString& aReplacement, uint32_t aStart,
 
   if (aStart <= aEnd) {
     value.Replace(aStart, aEnd - aStart, aReplacement);
-    SetValueInternal(value, false, false);
+    nsresult rv = SetValueInternal(value, false, false);
+    if (NS_FAILED(rv)) {
+      aRv.Throw(rv);
+      return;
+    }
   }
 
   uint32_t newEnd = aStart + aReplacement.Length();
@@ -5775,6 +5805,9 @@ HTMLInputElement::DoneCreatingElement()
   if (GetValueMode() == VALUE_MODE_VALUE) {
     nsAutoString aValue;
     GetValue(aValue);
+    
+    
+    
     SetValueInternal(aValue, false, false);
   }
 
@@ -5929,8 +5962,10 @@ HTMLInputElement::RestoreState(nsPresState* aState)
           break;
         }
 
+        
+        
+        
         SetValueInternal(inputState->GetValue(), false, true);
-        break;
         break;
     }
   }

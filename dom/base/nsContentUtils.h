@@ -1715,6 +1715,8 @@ public:
 
 
   static void PlatformToDOMLineBreaks(nsString &aString);
+  static NS_WARN_UNUSED_RESULT bool PlatformToDOMLineBreaks(nsString &aString,
+                                                            const mozilla::fallible_t&);
 
   
 
