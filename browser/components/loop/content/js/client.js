@@ -156,18 +156,20 @@ loop.Client = (function($) {
 
 
 
-    deleteCallUrl: function(token, cb) {
+
+
+    deleteCallUrl: function(token, sessionType, cb) {
       this._ensureRegistered(function(err) {
         if (err) {
           cb(err);
           return;
         }
 
-        this._deleteCallUrlInternal(token, cb);
+        this._deleteCallUrlInternal(token, sessionType, cb);
       }.bind(this));
     },
 
-    _deleteCallUrlInternal: function(token, cb) {
+    _deleteCallUrlInternal: function(token, sessionType, cb) {
       function deleteRequestCallback(error, responseText) {
         if (error) {
           this._failureHandler(cb, error);
@@ -182,8 +184,7 @@ loop.Client = (function($) {
         }
       }
 
-      
-      this.mozLoop.hawkRequest(this.mozLoop.LOOP_SESSION_TYPE.GUEST,
+      this.mozLoop.hawkRequest(sessionType,
                                "/call-url/" + token, "DELETE", null,
                                deleteRequestCallback.bind(this));
     },

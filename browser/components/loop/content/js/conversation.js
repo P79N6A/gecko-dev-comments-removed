@@ -499,12 +499,14 @@ loop.conversation = (function(mozL10n) {
     declineAndBlock: function() {
       navigator.mozLoop.stopAlerting();
       var token = this.props.conversation.get("callToken");
-      this.props.client.deleteCallUrl(token, function(error) {
-        
-        
-        
-        console.log(error);
-      });
+      this.props.client.deleteCallUrl(token,
+        this.props.conversation.get("sessionType"),
+        function(error) {
+          
+          
+          
+          console.log(error);
+        });
       this._declineCall();
     },
 
