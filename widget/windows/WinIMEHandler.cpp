@@ -289,7 +289,7 @@ IMEHandler::SetInputContext(nsWindow* aWindow,
   if (sIsInTSFMode) {
     nsTextStore::SetInputContext(aWindow, aInputContext, aAction);
     if (IsTSFAvailable()) {
-      aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+      aInputContext.mNativeIMEContext = nsTextStore::GetThreadManager();
       if (sIsIMMEnabled) {
         
         AssociateIMEContext(aWindow, enable);
@@ -354,7 +354,7 @@ IMEHandler::InitInputContext(nsWindow* aWindow, InputContext& aInputContext)
     nsTextStore::SetInputContext(aWindow, aInputContext,
       InputContextAction(InputContextAction::CAUSE_UNKNOWN,
                          InputContextAction::GOT_FOCUS));
-    aInputContext.mNativeIMEContext = nsTextStore::GetTextStore();
+    aInputContext.mNativeIMEContext = nsTextStore::GetThreadManager();
     MOZ_ASSERT(aInputContext.mNativeIMEContext);
     
     if (!sIsIMMEnabled) {

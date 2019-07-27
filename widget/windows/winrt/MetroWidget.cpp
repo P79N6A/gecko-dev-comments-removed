@@ -1542,6 +1542,7 @@ NS_IMETHODIMP_(void)
 MetroWidget::SetInputContext(const InputContext& aContext,
                              const InputContextAction& aAction)
 {
+  
   mInputContext = aContext;
   nsTextStore::SetInputContext(this, mInputContext, aAction);
   bool enable = (mInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
