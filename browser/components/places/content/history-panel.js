@@ -3,6 +3,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/TelemetryStopwatch.jsm");
+
 var gHistoryTree;
 var gSearchBox;
 var gHistoryGrouping = "";
@@ -79,10 +81,16 @@ function searchHistory(aInput)
   options.resultType = resultType;
   options.includeHidden = !!aInput;
 
+  if (gHistoryGrouping == "lastvisited")
+    this.TelemetryStopwatch.start("HISTORY_LASTVISITED_TREE_QUERY_TIME_MS");
+
   
   
   
   gHistoryTree.load([query], options);
+
+  if (gHistoryGrouping == "lastvisited")
+    this.TelemetryStopwatch.finish("HISTORY_LASTVISITED_TREE_QUERY_TIME_MS");
 }
 
 window.addEventListener("SidebarFocused",

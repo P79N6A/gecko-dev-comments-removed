@@ -67,7 +67,7 @@ const TITLE_SEARCH_ENGINE_SEPARATOR = " \u00B7\u2013\u00B7 ";
 
 
 const TELEMETRY_1ST_RESULT = "PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS";
-
+const TELEMETRY_6_FIRST_RESULTS = "PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS";
 
 const FRECENCY_SEARCHENGINES_DEFAULT = 1000;
 
@@ -642,6 +642,8 @@ Search.prototype = {
       return;
 
     TelemetryStopwatch.start(TELEMETRY_1ST_RESULT);
+    if (this._searchString)
+      TelemetryStopwatch.start(TELEMETRY_6_FIRST_RESULTS);
 
     
     
@@ -844,6 +846,9 @@ Search.prototype = {
                                match.finalCompleteValue);
       notifyResults = true;
     }
+
+    if (this._result.matchCount == 6)
+      TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS);
 
     if (this._result.matchCount == Prefs.maxRichResults || !this.pending) {
       
@@ -1337,6 +1342,7 @@ UnifiedComplete.prototype = {
 
   finishSearch: function (notify=false) {
     TelemetryStopwatch.cancel(TELEMETRY_1ST_RESULT);
+    TelemetryStopwatch.cancel(TELEMETRY_6_FIRST_RESULTS);
     
     let search = this._currentSearch;
     delete this._currentSearch;
