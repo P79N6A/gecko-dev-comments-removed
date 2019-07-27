@@ -81,6 +81,7 @@ AccountState.prototype = {
   whenVerifiedDeferred: null,
   whenKeysReadyDeferred: null,
   profile: null,
+  promiseInitialAccountData: null,
 
   get isCurrent() this.fxaInternal && this.fxaInternal.currentAccountState === this,
 
@@ -110,12 +111,20 @@ AccountState.prototype = {
   },
 
   getUserAccountData: function() {
+    if (!this.isCurrent) {
+      return this.reject(new Error("Another user has signed in"));
+    }
+    if (this.promiseInitialAccountData) {
+      
+      return this.promiseInitialAccountData;
+    }
     
     if (this.signedInUser) {
       return this.resolve(this.signedInUser.accountData);
     }
 
-    return this.fxaInternal.signedInUserStorage.get().then(
+    
+    return this.promiseInitialAccountData = this.fxaInternal.signedInUserStorage.get().then(
       user => {
         if (logPII) {
           
@@ -126,9 +135,11 @@ AccountState.prototype = {
           log.debug("setting signed in user");
           this.signedInUser = user;
         }
+        this.promiseInitialAccountData = null;
         return this.resolve(user ? user.accountData : null);
       },
       err => {
+        this.promiseInitialAccountData = null;
         if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
           
           
@@ -140,15 +151,17 @@ AccountState.prototype = {
   },
 
   setUserAccountData: function(accountData) {
-    return this.fxaInternal.signedInUserStorage.get().then(record => {
-      if (!this.isCurrent) {
-        return this.reject(new Error("Another user has signed in"));
-      }
-      record.accountData = accountData;
-      this.signedInUser = record;
-      return this.fxaInternal.signedInUserStorage.set(record)
+    if (!this.isCurrent) {
+      return this.reject(new Error("Another user has signed in"));
+    }
+    if (this.promiseInitialAccountData) {
+      throw new Error("Can't set account data before it's been read.");
+    }
+    
+    
+    this.signedInUser = {version: DATA_FORMAT_VERSION, accountData: accountData};
+    return this.fxaInternal.signedInUserStorage.set(this.signedInUser)
         .then(() => this.resolve(accountData));
-    });
   },
 
 
