@@ -84,6 +84,7 @@ public:
 
 private:
 
+  bool InitDemuxer();
   void ReturnOutput(MediaData* aData, TrackType aTrack);
 
   
@@ -123,6 +124,8 @@ private:
 
   size_t SizeOfQueue(TrackType aTrack);
 
+  nsRefPtr<MP4Stream> mStream;
+  int64_t mTimestampOffset;
   nsAutoPtr<mp4_demuxer::MP4Demuxer> mDemuxer;
   nsRefPtr<PlatformDecoderModule> mPlatform;
 

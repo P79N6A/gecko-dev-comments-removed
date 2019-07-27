@@ -63,6 +63,45 @@ TrackTypeToStr(TrackType aTrack)
 }
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename ThisType, typename ReturnType>
+ReturnType
+InvokeAndRetry(ThisType* aThisVal, ReturnType(ThisType::*aMethod)(), MP4Stream* aStream, Monitor* aMonitor)
+{
+  AutoPinned<MP4Stream> stream(aStream);
+  MP4Stream::ReadRecord prevFailure(-1, 0);
+  while (true) {
+    ReturnType result = ((*aThisVal).*aMethod)();
+    if (result) {
+      return result;
+    }
+    MP4Stream::ReadRecord failure(-1, 0);
+    if (!stream->LastReadFailed(&failure) || failure == prevFailure) {
+      return result;
+    }
+    prevFailure = failure;
+    nsAutoArrayPtr<uint8_t> dummyBuffer(new uint8_t[failure.mCount]);
+    size_t ignored;
+    MonitorAutoUnlock unlock(*aMonitor);
+    if (!stream->BlockingReadAt(failure.mOffset, dummyBuffer, failure.mCount, &ignored)) {
+      return result;
+    }
+  }
+}
+
+
 MP4Reader::MP4Reader(AbstractMediaDecoder* aDecoder)
   : MediaDecoderReader(aDecoder)
   , mAudio(MediaData::AUDIO_DATA, Preferences::GetUint("media.mp4-audio-decode-ahead", 2))
@@ -157,7 +196,8 @@ MP4Reader::Init(MediaDecoderReader* aCloneDonor)
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
   PlatformDecoderModule::Init();
-  mDemuxer = new MP4Demuxer(new MP4Stream(mDecoder->GetResource(), &mDemuxerMonitor), GetDecoder()->GetTimestampOffset(), &mDemuxerMonitor);
+  mStream = new MP4Stream(mDecoder->GetResource());
+  mTimestampOffset = GetDecoder()->GetTimestampOffset();
 
   InitLayersBackendType();
 
@@ -289,13 +329,20 @@ MP4Reader::PreReadMetadata()
   }
 }
 
+bool
+MP4Reader::InitDemuxer()
+{
+  mDemuxer = new MP4Demuxer(mStream, mTimestampOffset, &mDemuxerMonitor);
+  return mDemuxer->Init();
+}
+
 nsresult
 MP4Reader::ReadMetadata(MediaInfo* aInfo,
                         MetadataTags** aTags)
 {
   if (!mDemuxerInitialized) {
     MonitorAutoLock mon(mDemuxerMonitor);
-    bool ok = mDemuxer->Init();
+    bool ok = InvokeAndRetry(this, &MP4Reader::InitDemuxer, mStream, &mDemuxerMonitor);
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     mIndexReady = true;
 
@@ -649,13 +696,12 @@ MP4Reader::PopSampleLocked(TrackType aTrack)
   mDemuxerMonitor.AssertCurrentThreadOwns();
   switch (aTrack) {
     case kAudio:
-      return mDemuxer->DemuxAudioSample();
-
+      return InvokeAndRetry(mDemuxer.get(), &MP4Demuxer::DemuxAudioSample, mStream, &mDemuxerMonitor);
     case kVideo:
       if (mQueuedVideoSample) {
         return mQueuedVideoSample.forget();
       }
-      return mDemuxer->DemuxVideoSample();
+      return InvokeAndRetry(mDemuxer.get(), &MP4Demuxer::DemuxVideoSample, mStream, &mDemuxerMonitor);
 
     default:
       return nullptr;

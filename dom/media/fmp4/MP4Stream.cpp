@@ -9,9 +9,8 @@
 
 namespace mozilla {
 
-MP4Stream::MP4Stream(MediaResource* aResource, Monitor* aDemuxerMonitor)
+MP4Stream::MP4Stream(MediaResource* aResource)
   : mResource(aResource)
-  , mDemuxerMonitor(aDemuxerMonitor)
 {
   MOZ_COUNT_CTOR(MP4Stream);
   MOZ_ASSERT(aResource);
@@ -23,15 +22,9 @@ MP4Stream::~MP4Stream()
 }
 
 bool
-MP4Stream::ReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
-                  size_t* aBytesRead)
+MP4Stream::BlockingReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
+                          size_t* aBytesRead)
 {
-  
-  
-  
-  mDemuxerMonitor->AssertCurrentThreadOwns();
-  MonitorAutoUnlock unlock(*mDemuxerMonitor);
-
   uint32_t sum = 0;
   uint32_t bytesRead = 0;
   do {
@@ -48,15 +41,29 @@ MP4Stream::ReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
   return true;
 }
 
+
+
+
+bool
+MP4Stream::ReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
+                  size_t* aBytesRead)
+{
+  if (mFailedRead.isSome()) {
+    mFailedRead.reset();
+  }
+
+  if (!CachedReadAt(aOffset, aBuffer, aCount, aBytesRead)) {
+    mFailedRead.emplace(aOffset, aCount);
+    return false;
+  }
+
+  return true;
+}
+
 bool
 MP4Stream::CachedReadAt(int64_t aOffset, void* aBuffer, size_t aCount,
                         size_t* aBytesRead)
 {
-  
-  
-  
-  mDemuxerMonitor->AssertCurrentThreadOwns();
-  MonitorAutoUnlock unlock(*mDemuxerMonitor);
 
   nsresult rv = mResource->ReadFromCache(reinterpret_cast<char*>(aBuffer),
                                          aOffset, aCount);

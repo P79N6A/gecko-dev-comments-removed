@@ -95,7 +95,15 @@ MP4Demuxer::Init()
 {
   mMonitor->AssertCurrentThreadOwns();
   sp<MediaExtractor> e = mPrivate->mExtractor;
-  for (size_t i = 0; i < e->countTracks(); i++) {
+
+  
+  
+  size_t trackCount = e->countTracks();
+  if (trackCount == 0) {
+    return false;
+  }
+
+  for (size_t i = 0; i < trackCount; i++) {
     sp<MetaData> metaData = e->getTrackMetaData(i);
 
     const char* mimeType;
