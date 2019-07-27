@@ -192,7 +192,10 @@ var ShellDeck = Class({
       this.deck.selectedPanel = shell.elt;
       this._activeShell = shell;
 
-      shell.load();
+      
+      if (shell.editor.isClean()) {
+        shell.load();
+      }
       shell.editorLoaded.then(() => {
         
         

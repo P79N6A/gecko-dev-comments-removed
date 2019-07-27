@@ -41,6 +41,11 @@ var ItchEditor = Class({
   },
 
   
+  isClean: function() {
+    return true;
+  },
+
+  
 
 
 
@@ -143,6 +148,13 @@ var TextEditor = Class({
     });
 
     return extraKeys;
+  },
+
+  isClean: function() {
+    if (!this.editor.isAppended()) {
+      return true;
+    }
+    return this.editor.isClean();
   },
 
   initialize: function(document, mode=Editor.modes.text) {

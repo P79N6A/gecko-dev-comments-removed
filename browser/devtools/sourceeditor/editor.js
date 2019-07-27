@@ -348,6 +348,14 @@ Editor.prototype = {
 
 
 
+  isAppended: function() {
+    return editors.has(this);
+  },
+
+  
+
+
+
   getMode: function () {
     return this.getOption("mode");
   },

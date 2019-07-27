@@ -22,9 +22,8 @@ var DirtyPlugin = Class({
 
     
     let priv = this.priv(editor);
-    let clean = editor.editor.isClean();
+    let clean = editor.isClean()
     if (priv.isClean !== clean) {
-
       let resource = editor.shell.resource;
       emit(resource, "label-change", resource);
       priv.isClean = clean;
