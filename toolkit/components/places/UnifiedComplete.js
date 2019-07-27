@@ -1286,9 +1286,7 @@ Search.prototype = {
       
       
       if (showTags) {
-        
-        
-        match.style = this.hasBehavior("bookmark") ? "bookmark-tag" : "tag";
+        match.style = "tag";
       }
       else if (bookmarked) {
         match.style = "bookmark";
