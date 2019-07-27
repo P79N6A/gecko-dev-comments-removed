@@ -3172,7 +3172,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayerData* aLayerData,
         layerBuilder->DidBeginRetainedLayerTransaction(tempManager);
       }
 
-      UniquePtr<LayerProperties> props(LayerProperties::CloneFrom(tempManager->GetRoot()));
+      nsAutoPtr<LayerProperties> props(LayerProperties::CloneFrom(tempManager->GetRoot()));
       nsRefPtr<Layer> tmpLayer =
         aItem->BuildLayer(mDisplayListBuilder, tempManager, ContainerLayerParameters());
       

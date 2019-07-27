@@ -19,7 +19,6 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -268,7 +267,7 @@ private:
   void WorldTransformRect(nsIntRect& aRect);
 
   RefPtr<Compositor> mCompositor;
-  UniquePtr<LayerProperties> mClonedLayerTreeProperties;
+  nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
 
   
 
@@ -278,7 +277,7 @@ private:
 
   gfx::Matrix mWorldMatrix;
   nsIntRegion mInvalidRegion;
-  UniquePtr<FPSState> mFPS;
+  nsAutoPtr<FPSState> mFPS;
 
   bool mInTransaction;
   bool mIsCompositorReady;
