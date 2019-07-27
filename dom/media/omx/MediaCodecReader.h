@@ -432,6 +432,9 @@ private:
   VideoTrack mVideoTrack;
   AudioTrack mAudioOffloadTrack; 
 
+  MediaPromiseHolder<AudioDataPromise> mAudioPromise;
+  MediaPromiseHolder<VideoDataPromise> mVideoPromise;
+
   
   android::I420ColorConverterHelper mColorConverter;
   nsAutoArrayPtr<uint8_t> mColorConverterBuffer;
