@@ -2100,81 +2100,53 @@ function loadURI(uri, referrer, postData, allowThirdPartyFixup, referrerPolicy) 
   } catch (e) {}
 }
 
+function getShortcutOrURIAndPostData(aURL, aCallback) {
+  let mayInheritPrincipal = false;
+  let postData = null;
+  let shortcutURL = null;
+  let keyword = aURL;
+  let param = "";
 
+  
+  
+  
+  let originalCallback = aCallback;
+  aCallback = data => setTimeout(() => originalCallback(data));
 
-
-
-
-
-
-
-
-
-
-function getShortcutOrURIAndPostData(url, callback = null) {
-  if (callback) {
-    Deprecated.warning("Please use the Promise returned by " +
-                       "getShortcutOrURIAndPostData() instead of passing a " +
-                       "callback",
-                       "https://bugzilla.mozilla.org/show_bug.cgi?id=1100294");
+  let offset = aURL.indexOf(" ");
+  if (offset > 0) {
+    keyword = aURL.substr(0, offset);
+    param = aURL.substr(offset + 1);
   }
 
-  return Task.spawn(function* () {
-    let mayInheritPrincipal = false;
-    let postData = null;
-    let shortcutURL = null;
-    let keyword = url;
-    let param = "";
+  let engine = Services.search.getEngineByAlias(keyword);
+  if (engine) {
+    let submission = engine.getSubmission(param, null, "keyword");
+    postData = submission.postData;
+    aCallback({ postData: submission.postData, url: submission.uri.spec,
+                mayInheritPrincipal: mayInheritPrincipal });
+    return;
+  }
 
-    let offset = url.indexOf(" ");
-    if (offset > 0) {
-      keyword = url.substr(0, offset);
-      param = url.substr(offset + 1);
-    }
+  [shortcutURL, postData] =
+    PlacesUtils.getURLAndPostDataForKeyword(keyword);
 
-    let engine = Services.search.getEngineByAlias(keyword);
-    if (engine) {
-      let submission = engine.getSubmission(param, null, "keyword");
-      postData = submission.postData;
-      return { postData: submission.postData, url: submission.uri.spec,
-               mayInheritPrincipal };
-    }
+  if (!shortcutURL) {
+    aCallback({ postData: postData, url: aURL,
+                mayInheritPrincipal: mayInheritPrincipal });
+    return;
+  }
 
-    let entry = yield PlacesUtils.keywords.fetch(keyword);
-    if (entry) {
-      shortcutURL = entry.url.href;
-      postData = entry.postData;
-    }
+  let escapedPostData = "";
+  if (postData)
+    escapedPostData = unescape(postData);
 
-    if (!shortcutURL) {
-      return { postData, url, mayInheritPrincipal };
-    }
+  if (/%s/i.test(shortcutURL) || /%s/i.test(escapedPostData)) {
+    let charset = "";
+    const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
+    let matches = shortcutURL.match(re);
 
-    let escapedPostData = "";
-    if (postData)
-      escapedPostData = unescape(postData);
-
-    if (/%s/i.test(shortcutURL) || /%s/i.test(escapedPostData)) {
-      let charset = "";
-      const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
-      let matches = shortcutURL.match(re);
-
-      if (matches) {
-        [, shortcutURL, charset] = matches;
-      } else {
-        let uri;
-        try {
-          
-          uri = makeURI(shortcutURL);
-        } catch (ex) {}
-
-        if (uri) {
-          
-          
-          charset = yield PlacesUtils.getCharsetForURI(uri);
-        }
-      }
-
+    let continueOperation = function () {
       
       
       
@@ -2197,29 +2169,40 @@ function getShortcutOrURIAndPostData(url, callback = null) {
       
       mayInheritPrincipal = true;
 
-      return { postData, url: shortcutURL, mayInheritPrincipal };
+      aCallback({ postData: postData, url: shortcutURL,
+                  mayInheritPrincipal: mayInheritPrincipal });
     }
 
-    if (param) {
+    if (matches) {
+      [, shortcutURL, charset] = matches;
+      continueOperation();
+    } else {
       
       
-      postData = null;
-
-      return { postData, url, mayInheritPrincipal };
+      
+      try {
+        PlacesUtils.getCharsetForURI(makeURI(shortcutURL))
+                   .then(c => { charset = c; continueOperation(); });
+      } catch (ex) {
+        continueOperation();
+      }
     }
+  }
+  else if (param) {
+    
+    
+    postData = null;
 
+    aCallback({ postData: postData, url: aURL,
+                mayInheritPrincipal: mayInheritPrincipal });
+  } else {
     
     
     mayInheritPrincipal = true;
 
-    return { postData, url: shortcutURL, mayInheritPrincipal };
-  }).then(data => {
-    if (callback) {
-      callback(data);
-    }
-
-    return data;
-  });
+    aCallback({ postData: postData, url: shortcutURL,
+                mayInheritPrincipal: mayInheritPrincipal });
+  }
 }
 
 function getPostDataStream(aStringData, aKeyword, aEncKeyword, aType) {
@@ -3269,7 +3252,7 @@ var newTabButtonObserver = {
   onDrop: function (aEvent)
   {
     let url = browserDragAndDrop.drop(aEvent, { });
-    getShortcutOrURIAndPostData(url).then(data => {
+    getShortcutOrURIAndPostData(url, data => {
       if (data.url) {
         
         openNewTabWith(data.url, null, data.postData, aEvent, true);
@@ -3289,7 +3272,7 @@ var newWindowButtonObserver = {
   onDrop: function (aEvent)
   {
     let url = browserDragAndDrop.drop(aEvent, { });
-    getShortcutOrURIAndPostData(url).then(data => {
+    getShortcutOrURIAndPostData(url, data => {
       if (data.url) {
         
         openNewWindowWith(data.url, null, data.postData, true);
@@ -5625,7 +5608,7 @@ function middleMousePaste(event) {
     lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
   }
 
-  getShortcutOrURIAndPostData(clipboard).then(data => {
+  getShortcutOrURIAndPostData(clipboard, data => {
     try {
       makeURI(data.url);
     } catch (ex) {
@@ -5662,7 +5645,7 @@ function handleDroppedLink(event, url, name)
 {
   let lastLocationChange = gBrowser.selectedBrowser.lastLocationChange;
 
-  getShortcutOrURIAndPostData(url).then(data => {
+  getShortcutOrURIAndPostData(url, data => {
     if (data.url &&
         lastLocationChange == gBrowser.selectedBrowser.lastLocationChange)
       loadURI(data.url, null, data.postData, false);
