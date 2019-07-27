@@ -1885,19 +1885,27 @@ void
 nsPresContext::MediaFeatureValuesChanged(StyleRebuildType aShouldRebuild,
                                          nsChangeHint aChangeHint)
 {
-  NS_ASSERTION(aShouldRebuild == eAlwaysRebuildStyle || aChangeHint == 0,
-               "If you don't know if we need a rebuild, how can you provide a hint?");
-
   mPendingMediaFeatureValuesChanged = false;
 
-  
-  bool mediaFeaturesDidChange = mShell ? mShell->StyleSet()->MediumFeaturesChanged(this)
-                                       : false;
+  nsRestyleHint aRestyleHint = nsRestyleHint(0);
 
-  if (aShouldRebuild == eAlwaysRebuildStyle ||
-      mediaFeaturesDidChange ||
-      (mUsesViewportUnits && mPendingViewportChange)) {
-    RebuildAllStyleData(aChangeHint, eRestyle_Subtree);
+  if (aShouldRebuild == eAlwaysRebuildStyle) {
+    
+    aRestyleHint |= eRestyle_Subtree;
+  }
+
+  
+  if (mShell && mShell->StyleSet()->MediumFeaturesChanged(this)) {
+    aRestyleHint |= eRestyle_Subtree;
+  }
+
+  if (mUsesViewportUnits && mPendingViewportChange) {
+    
+    aRestyleHint |= eRestyle_ForceDescendants;
+  }
+
+  if (aRestyleHint || aChangeHint) {
+    RebuildAllStyleData(aChangeHint, aRestyleHint);
   }
 
   mPendingViewportChange = false;
