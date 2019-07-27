@@ -62,6 +62,7 @@ function check_telemetry() {
   do_check_eq(histogram.counts[ 9], 5); 
   do_check_eq(histogram.counts[10], 5); 
   do_check_eq(histogram.counts[11], 2); 
+  do_check_eq(histogram.counts[12], 1); 
   run_next_test();
 }
 
@@ -126,6 +127,28 @@ function add_simple_tests() {
   add_cert_override_test("ca-used-as-end-entity.example.com",
                          Ci.nsICertOverrideService.ERROR_UNTRUSTED,
                          getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY));
+
+  
+  
+  add_cert_override_test("end-entity-issued-by-v1-cert.example.com",
+                         Ci.nsICertOverrideService.ERROR_UNTRUSTED,
+                         getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA));
+  
+  add_test(function() {
+    certOverrideService.clearValidityOverride("end-entity-issued-by-v1-cert.example.com", 8443);
+    let v1Cert = constructCertFromFile("tlsserver/v1Cert.der");
+    setCertTrust(v1Cert, "CTu,,");
+    clearSessionCache();
+    run_next_test();
+  });
+  add_connection_test("end-entity-issued-by-v1-cert.example.com", Cr.NS_OK);
+  
+  add_test(function() {
+    let v1Cert = constructCertFromFile("tlsserver/v1Cert.der");
+    setCertTrust(v1Cert, ",,");
+    clearSessionCache();
+    run_next_test();
+  });
 }
 
 function add_combo_tests() {

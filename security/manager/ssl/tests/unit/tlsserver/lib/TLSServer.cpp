@@ -197,6 +197,47 @@ ConfigSecureServerWithNamedCert(PRFileDesc *fd, const char *certName,
     PrintPRError("PK11_FindCertFromNickname failed");
     return SECFailure;
   }
+  
+  
+  
+  
+  ScopedCERTCertificateList certList;
+  ScopedCERTCertificate issuerCert(
+    CERT_FindCertByName(CERT_GetDefaultCertDB(), &cert->derIssuer));
+  
+  if (issuerCert) {
+    
+    
+    
+    
+    ScopedPLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
+    if (!arena) {
+      PrintPRError("PORT_NewArena failed");
+      return SECFailure;
+    }
+    certList = reinterpret_cast<CERTCertificateList*>(
+      PORT_ArenaAlloc(arena, sizeof(CERTCertificateList)));
+    if (!certList) {
+      PrintPRError("PORT_ArenaAlloc failed");
+      return SECFailure;
+    }
+    certList->arena = arena.forget();
+    
+    
+    certList->certs = reinterpret_cast<SECItem*>(
+      PORT_ArenaAlloc(certList->arena, 2 * sizeof(SECItem)));
+    if (SECITEM_CopyItem(certList->arena, certList->certs, &cert->derCert)
+          != SECSuccess) {
+      PrintPRError("SECITEM_CopyItem failed");
+      return SECFailure;
+    }
+    if (SECITEM_CopyItem(certList->arena, certList->certs + 1,
+                         &issuerCert->derCert) != SECSuccess) {
+      PrintPRError("SECITEM_CopyItem failed");
+      return SECFailure;
+    }
+    certList->len = 2;
+  }
 
   ScopedSECKEYPrivateKey key(PK11_FindKeyByAnyCert(cert, nullptr));
   if (!key) {
@@ -206,7 +247,8 @@ ConfigSecureServerWithNamedCert(PRFileDesc *fd, const char *certName,
 
   SSLKEAType certKEA = NSS_FindCertKEAType(cert);
 
-  if (SSL_ConfigSecureServer(fd, cert, key, certKEA) != SECSuccess) {
+  if (SSL_ConfigSecureServerWithCertChain(fd, cert, certList, key, certKEA)
+        != SECSuccess) {
     PrintPRError("SSL_ConfigSecureServer failed");
     return SECFailure;
   }
