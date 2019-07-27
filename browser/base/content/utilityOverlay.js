@@ -309,8 +309,6 @@ function openLinkIn(url, where, params) {
   
   w.focus();
 
-  let newTab;
-
   switch (where) {
   case "current":
     let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -333,7 +331,7 @@ function openLinkIn(url, where, params) {
     loadInBackground = !loadInBackground;
     
   case "tab":
-    newTab = w.gBrowser.loadOneTab(url, {
+    w.gBrowser.loadOneTab(url, {
       referrerURI: aReferrerURI,
       charset: aCharset,
       postData: aPostData,
@@ -349,12 +347,6 @@ function openLinkIn(url, where, params) {
   w.gBrowser.selectedBrowser.focus();
 
   if (!loadInBackground && w.isBlankPageURL(url)) {
-    if (newTab && gMultiProcessBrowser) {
-      
-      
-      
-      newTab._skipContentFocus = true;
-    }
     w.focusAndSelectUrlBar();
   }
 }
