@@ -4,10 +4,20 @@
 
 
 
-#include "BluetoothDaemonConnectionConsumer.h"
+#include "DaemonSocketConsumer.h"
 
 namespace mozilla {
 namespace ipc {
+
+
+
+
+
+DaemonSocketIOConsumer::DaemonSocketIOConsumer()
+{ }
+
+DaemonSocketIOConsumer::~DaemonSocketIOConsumer()
+{ }
 
 
 
