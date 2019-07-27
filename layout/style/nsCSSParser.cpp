@@ -38,6 +38,7 @@
 #include "nsIMediaList.h"
 #include "nsStyleUtil.h"
 #include "nsIPrincipal.h"
+#include "nsICSSUnprefixingService.h"
 #include "prprf.h"
 #include "nsContentUtils.h"
 #include "nsAutoPtr.h"
@@ -56,6 +57,7 @@ typedef nsCSSProps::KTableValue KTableValue;
 
 
 static bool sOpentypeSVGEnabled;
+static bool sUnprefixingServiceEnabled;
 
 const uint32_t
 nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
@@ -416,6 +418,103 @@ protected:
                    nsIURI* aSheetURI, nsIURI* aBaseURI,
                    nsIPrincipal* aSheetPrincipal);
   void ReleaseScanner(void);
+
+  
+
+
+
+
+
+  class MOZ_STACK_CLASS nsAutoCSSParserInputStateRestorer {
+    public:
+      explicit nsAutoCSSParserInputStateRestorer(CSSParserImpl* aParser
+                                                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+        : mParser(aParser),
+          mShouldRestore(true)
+      {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        mParser->SaveInputState(mSavedState);
+      }
+
+      void DoNotRestore()
+      {
+        mShouldRestore = false;
+      }
+
+      ~nsAutoCSSParserInputStateRestorer()
+      {
+        if (mShouldRestore) {
+          mParser->RestoreSavedInputState(mSavedState);
+        }
+      }
+
+    private:
+      MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+      CSSParserImpl* mParser;
+      CSSParserInputState mSavedState;
+      bool mShouldRestore;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  class MOZ_STACK_CLASS nsAutoScannerChanger {
+    public:
+      nsAutoScannerChanger(CSSParserImpl* aParser,
+                           const nsAString& aStringToScan
+                           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+        : mParser(aParser),
+          mOriginalScanner(aParser->mScanner),
+          mStringScanner(aStringToScan, 0),
+          mParserStateRestorer(aParser),
+          mErrorSuppresser(aParser)
+      {
+        MOZ_ASSERT(mOriginalScanner,
+                   "Shouldn't use nsAutoScannerChanger unless we already "
+                   "have a scanner");
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+
+        
+        mParser->mScanner = &mStringScanner;
+        mStringScanner.SetErrorReporter(mParser->mReporter);
+
+        
+        
+        
+        mParser->mHavePushBack = false;
+      }
+
+      ~nsAutoScannerChanger()
+      {
+        
+        mParser->mScanner = mOriginalScanner;
+      }
+
+    private:
+      MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+      CSSParserImpl* mParser;
+      nsCSSScanner *mOriginalScanner;
+      nsCSSScanner mStringScanner;
+      nsAutoCSSParserInputStateRestorer mParserStateRestorer;
+      nsAutoSuppressErrors mErrorSuppresser;
+  };
+
+
   bool IsSVGMode() const {
     return mScanner->IsSVGMode();
   }
@@ -605,8 +704,10 @@ protected:
   bool ParseSelector(nsCSSSelectorList* aList, char16_t aPrevCombinator);
 
   enum {
-    eParseDeclaration_InBraces       = 1 << 0,
-    eParseDeclaration_AllowImportant = 1 << 1
+    eParseDeclaration_InBraces           = 1 << 0,
+    eParseDeclaration_AllowImportant     = 1 << 1,
+    
+    eParseDeclaration_FromUnprefixingSvc = 1 << 2
   };
   enum nsCSSContextType {
     eCSSContext_General,
@@ -620,6 +721,14 @@ protected:
                         bool aMustCallValueAppended,
                         bool* aChanged,
                         nsCSSContextType aContext = eCSSContext_General);
+
+  bool ShouldUseUnprefixingService();
+  bool ParsePropertyWithUnprefixingService(const nsAString& aPropertyName,
+                                           css::Declaration* aDeclaration,
+                                           uint32_t aFlags,
+                                           bool aMustCallValueAppended,
+                                           bool* aChanged,
+                                           nsCSSContextType aContext);
 
   bool ParseProperty(nsCSSProperty aPropID);
   bool ParsePropertyByFunction(nsCSSProperty aPropID);
@@ -6441,6 +6550,73 @@ CSSParserImpl::ParseTreePseudoElement(nsAtomList **aPseudoElementArgs)
 }
 #endif
 
+bool
+CSSParserImpl::ShouldUseUnprefixingService()
+{
+  if (!sUnprefixingServiceEnabled) {
+    return false;
+  }
+
+  
+  return true;
+}
+
+bool
+CSSParserImpl::ParsePropertyWithUnprefixingService(
+  const nsAString& aPropertyName,
+  css::Declaration* aDeclaration,
+  uint32_t aFlags,
+  bool aMustCallValueAppended,
+  bool* aChanged,
+  nsCSSContextType aContext)
+{
+  MOZ_ASSERT(ShouldUseUnprefixingService(),
+             "Caller should've checked ShouldUseUnprefixingService()");
+
+  nsCOMPtr<nsICSSUnprefixingService> unprefixingSvc =
+    do_GetService(NS_CSSUNPREFIXINGSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(unprefixingSvc, false);
+
+  
+  
+  nsAutoCSSParserInputStateRestorer parserStateBeforeTryingToUnprefix(this);
+
+  
+  
+  
+  
+  
+  bool checkForBraces = (aFlags & eParseDeclaration_InBraces) != 0;
+  nsAutoString rightHalfOfDecl;
+  mScanner->StartRecording();
+  SkipDeclaration(checkForBraces);
+  mScanner->StopRecording(rightHalfOfDecl);
+
+  
+  bool success;
+  nsAutoString unprefixedDecl;
+  nsresult rv =
+    unprefixingSvc->GenerateUnprefixedDeclaration(aPropertyName,
+                                                  rightHalfOfDecl,
+                                                  unprefixedDecl, &success);
+  if (NS_FAILED(rv) || !success) {
+    return false;
+  }
+
+  
+  nsAutoScannerChanger scannerChanger(this, unprefixedDecl);
+  success = ParseDeclaration(aDeclaration,
+                             aFlags | eParseDeclaration_FromUnprefixingSvc,
+                             aMustCallValueAppended, aChanged, aContext);
+  if (success) {
+    
+    
+    parserStateBeforeTryingToUnprefix.DoNotRestore();
+  }
+
+  return success;
+}
+
 
 
 bool
@@ -6530,7 +6706,19 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
         (aContext == eCSSContext_Page &&
          !nsCSSProps::PropHasFlags(propID,
                                    CSS_PROPERTY_APPLIES_TO_PAGE_RULE))) { 
-      if (!NonMozillaVendorIdentifier(propertyName)) {
+      if (NonMozillaVendorIdentifier(propertyName)) {
+        if (!mInSupportsCondition &&
+            aContext == eCSSContext_General &&
+            !(aFlags & eParseDeclaration_FromUnprefixingSvc) && 
+            ShouldUseUnprefixingService()) {
+          if (ParsePropertyWithUnprefixingService(propertyName,
+                                                  aDeclaration, aFlags,
+                                                  aMustCallValueAppended,
+                                                  aChanged, aContext)) {
+            return true;
+          }
+        }
+      } else {
         REPORT_UNEXPECTED_P(PEUnknownProperty, propertyName);
         REPORT_UNEXPECTED(PEDeclDropped);
         OUTPUT_ERROR();
@@ -15060,6 +15248,8 @@ nsCSSParser::Startup()
 {
   Preferences::AddBoolVarCache(&sOpentypeSVGEnabled,
                                "gfx.font_rendering.opentype_svg.enabled");
+  Preferences::AddBoolVarCache(&sUnprefixingServiceEnabled,
+                               "layout.css.unprefixing-service.enabled");
 }
 
 nsCSSParser::nsCSSParser(mozilla::css::Loader* aLoader,

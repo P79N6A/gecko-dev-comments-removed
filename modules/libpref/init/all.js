@@ -2155,6 +2155,10 @@ pref("layout.css.prefixes.box-sizing", true);
 pref("layout.css.prefixes.font-features", true);
 
 
+
+pref("layout.css.unprefixing-service.enabled", false);
+
+
 pref("layout.css.scope-pseudo.enabled", true);
 
 
