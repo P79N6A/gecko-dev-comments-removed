@@ -20,6 +20,7 @@
 
 
 
+
 import errno
 import sys
 import platform
@@ -535,7 +536,7 @@ class Dumper:
         return ""
 
     
-    def CopyDebug(self, file, debug_file, guid):
+    def CopyDebug(self, file, debug_file, guid, code_file, code_id):
         pass
 
     def Finish(self, stop_pool=True):
@@ -609,6 +610,7 @@ class Dumper:
         result = { 'status' : False, 'after' : after, 'after_arg' : after_arg, 'files' : files }
 
         sourceFileStream = ''
+        code_id, code_file = None, None
         for file in files:
             
             try:
@@ -653,6 +655,14 @@ class Dumper:
                                 (ver, checkout, source_file, revision) = filename.split(":", 3)
                                 sourceFileStream += sourcepath + "*" + source_file + '*' + revision + "\r\n"
                             f.write("FILE %s %s\n" % (index, filename))
+                        elif line.startswith("INFO CODE_ID "):
+                            
+                            
+                            
+                            bits = line.rstrip().split(None, 3)
+                            if len(bits) == 4:
+                                code_id, code_file = bits[2:]
+                            f.write(line)
                         else:
                             
                             f.write(line)
@@ -668,7 +678,8 @@ class Dumper:
                         self.SourceServerIndexing(file, guid, sourceFileStream, vcs_root)
                     
                     if self.copy_debug and arch_num == 0:
-                        self.CopyDebug(file, debug_file, guid)
+                        self.CopyDebug(file, debug_file, guid,
+                                       code_file, code_id)
             except StopIteration:
                 pass
             except Exception as e:
@@ -720,26 +731,53 @@ class Dumper_Win32(Dumper):
         self.fixedFilenameCaseCache[file] = result
         return result
 
-    def CopyDebug(self, file, debug_file, guid):
+    def CopyDebug(self, file, debug_file, guid, code_file, code_id):
+        def compress(path):
+            compressed_file = path[:-1] + '_'
+            
+            success = subprocess.call(["makecab.exe", "/D",
+                                       "CompressionType=LZX", "/D",
+                                       "CompressionMemory=21",
+                                       path, compressed_file],
+                                      stdout=open("NUL:","w"),
+                                      stderr=subprocess.STDOUT)
+            if success == 0 and os.path.exists(compressed_file):
+                os.unlink(path)
+                return True
+            return False
+
         rel_path = os.path.join(debug_file,
                                 guid,
                                 debug_file).replace("\\", "/")
         full_path = os.path.normpath(os.path.join(self.symbol_path,
                                                   rel_path))
         shutil.copyfile(file, full_path)
-        
-        compressed_file = os.path.splitext(full_path)[0] + ".pd_"
-        
-        success = subprocess.call(["makecab.exe", "/D", "CompressionType=LZX", "/D",
-                                   "CompressionMemory=21",
-                                   full_path, compressed_file],
-                                  stdout=open("NUL:","w"), stderr=subprocess.STDOUT)
-        if success == 0 and os.path.exists(compressed_file):
-            os.unlink(full_path)
-            self.output(sys.stdout, os.path.splitext(rel_path)[0] + ".pd_")
+        if compress(full_path):
+            self.output(sys.stdout, rel_path[:-1] + '_')
         else:
             self.output(sys.stdout, rel_path)
+
         
+        if code_file and code_id:
+            full_code_path = os.path.join(os.path.dirname(file),
+                                          code_file)
+            if os.path.exists(full_code_path):
+                rel_path = os.path.join(code_file,
+                                        code_id,
+                                        code_file).replace("\\", "/")
+                full_path = os.path.normpath(os.path.join(self.symbol_path,
+                                                          rel_path))
+                try:
+                    os.makedirs(os.path.dirname(full_path))
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise
+                shutil.copyfile(full_code_path, full_path)
+                if compress(full_path):
+                    self.output(sys.stdout, rel_path[:-1] + '_')
+                else:
+                    self.output(sys.stdout, rel_path)
+
     def SourceServerIndexing(self, debug_file, guid, sourceFileStream, vcs_root):
         
         debug_file = os.path.abspath(debug_file)
@@ -770,7 +808,7 @@ class Dumper_Linux(Dumper):
             return self.RunFileCommand(file).startswith("ELF")
         return False
 
-    def CopyDebug(self, file, debug_file, guid):
+    def CopyDebug(self, file, debug_file, guid, code_file, code_id):
         
         
         
@@ -881,7 +919,7 @@ class Dumper_Mac(Dumper):
         result['files'] = (dsymbundle, file)
         return result
 
-    def CopyDebug(self, file, debug_file, guid):
+    def CopyDebug(self, file, debug_file, guid, code_file, code_id):
         """ProcessFiles has already produced a dSYM bundle, so we should just
         copy that to the destination directory. However, we'll package it
         into a .tar.bz2 because the debug symbols are pretty huge, and
