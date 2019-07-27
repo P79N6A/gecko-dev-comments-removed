@@ -341,4 +341,19 @@ ExposedPropertiesOnly::check(JSContext *cx, HandleObject wrapper, HandleId id, W
     return true;
 }
 
+bool
+ExposedPropertiesOnly::deny(js::Wrapper::Action act, HandleId id)
+{
+    
+    if (act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE ||
+        act == js::Wrapper::GET_PROPERTY_DESCRIPTOR)
+    {
+        AutoJSContext cx;
+        return ReportWrapperDenial(cx, id, WrapperDenialForCOW,
+                                   "Access to privileged JS object not permitted");
+    }
+
+    return false;
+}
+
 }
