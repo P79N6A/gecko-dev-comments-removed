@@ -1907,7 +1907,14 @@ this.DownloadCopySaver.prototype = {
 
           
           
-          let channel = NetUtil.newChannel(NetUtil.newURI(download.source.url));
+          let channel = NetUtil.newChannel2(download.source.url,
+                                            null,
+                                            null,
+                                            null,      
+                                            Services.scriptSecurityManager.getSystemPrincipal(),
+                                            null,      
+                                            Ci.nsILoadInfo.SEC_NORMAL,
+                                            Ci.nsIContentPolicy.TYPE_OTHER);
           if (channel instanceof Ci.nsIPrivateBrowsingChannel) {
             channel.setPrivate(download.source.isPrivate);
           }
