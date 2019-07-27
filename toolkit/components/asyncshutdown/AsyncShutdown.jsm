@@ -117,7 +117,11 @@ function safeGetState(fetchState) {
   try {
     
     
-    string = JSON.stringify(fetchState());
+    let state = fetchState();
+    if (!state) {
+      return "(none)";
+    }
+    string = JSON.stringify(state);
     data = JSON.parse(string);
     
     
@@ -128,6 +132,10 @@ function safeGetState(fetchState) {
     }
     return data;
   } catch (ex) {
+
+    
+    Promise.reject(ex);
+
     if (string) {
       return string;
     }
@@ -243,8 +251,18 @@ function getPhase(topic) {
 
 
 
-    addBlocker: function(name, condition, fetchState = null) {
-      spinner.addBlocker(name, condition, fetchState);
+
+
+
+
+
+
+
+
+
+
+    addBlocker: function(name, condition, details = null) {
+      spinner.addBlocker(name, condition, details);
     },
     
 
@@ -261,6 +279,11 @@ function getPhase(topic) {
     removeBlocker: function(condition) {
       return spinner.removeBlocker(condition);
     },
+
+    get name() {
+      return spinner.name;
+    },
+
     
 
 
@@ -301,15 +324,8 @@ Spinner.prototype = {
 
 
 
-
-
-
-
-
-
-
-  addBlocker: function(name, condition, fetchState) {
-    this._barrier.client.addBlocker(name, condition, fetchState);
+  addBlocker: function(name, condition, details) {
+    this._barrier.client.addBlocker(name, condition, details);
   },
   
 
@@ -322,9 +338,12 @@ Spinner.prototype = {
 
 
 
-
   removeBlocker: function(condition) {
     return this._barrier.client.removeBlocker(condition);
+  },
+
+  get name() {
+    return this._barrier.client.name;
   },
 
   
@@ -368,7 +387,12 @@ Spinner.prototype = {
 
 
 function Barrier(name) {
+  if (!name) {
+    throw new TypeError("Instances of Barrier need a (non-empty) name");
+  }
+
   
+
 
 
 
@@ -408,6 +432,11 @@ function Barrier(name) {
     
 
 
+    get name() {
+      return name;
+    },
+
+    
 
 
 
@@ -424,12 +453,31 @@ function Barrier(name) {
 
 
 
-    addBlocker: function(name, condition, fetchState) {
+
+
+
+
+
+
+
+
+
+
+
+
+    addBlocker: function(name, condition, details) {
       if (typeof name != "string") {
         throw new TypeError("Expected a human-readable name as first argument");
       }
-      if (fetchState && typeof fetchState != "function") {
-        throw new TypeError("Expected nothing or a function as third argument");
+      if (details && typeof details == "function") {
+        details = {
+          fetchState: details
+        };
+      } else if (!details) {
+        details = {};
+      }
+      if (typeof details != "object") {
+        throw new TypeError("Expected an object as third argument to `addBlocker`, got " + details);
       }
       if (!this._conditions) {
 	throw new Error("Phase " + this._name +
@@ -437,23 +485,37 @@ function Barrier(name) {
 			" completion condition '" + name + "'.");
       }
 
-      
-      let leaf = Components.stack;
-      let frame;
-      for (frame = leaf; frame != null && frame.filename == leaf.filename; frame = frame.caller) {
-        
-      }
-      let filename = frame ? frame.filename : "?";
-      let lineNumber = frame ? frame.lineNumber : -1;
+      let fetchState = details.fetchState || null;
+      let filename = details.filename || "?";
+      let lineNumber = details.lineNumber || -1;
+      let stack = details.stack || undefined;
 
-      
-      
-      let frames = [];
-      while (frame != null) {
-        frames.push(frame.filename + ":" + frame.name + ":" + frame.lineNumber);
-        frame = frame.caller;
+      if (filename == "?" || lineNumber == -1 || stack === undefined) {
+        
+        let leaf = Components.stack;
+        let frame;
+        for (frame = leaf; frame != null && frame.filename == leaf.filename; frame = frame.caller) {
+          
+        }
+
+        if (filename == "?") {
+          filename = frame ? frame.filename : "?";
+        }
+        if (lineNumber == -1) {
+          lineNumber = frame ? frame.lineNumber : -1;
+        }
+
+        
+        
+        let frames = [];
+        while (frame != null) {
+          frames.push(frame.filename + ":" + frame.name + ":" + frame.lineNumber);
+          frame = frame.caller;
+        }
+        if (stack === undefined) {
+          stack = Task.Debugging.generateReadableStack(frames.join("\n")).split("\n");
+        }
       }
-      let stack = Task.Debugging.generateReadableStack(frames.join("\n")).split("\n");
 
       let set = this._conditions.get(condition);
       if (!set) {
@@ -492,7 +554,6 @@ function Barrier(name) {
         }
         return this._indirections.delete(condition);
       }
-
       
       return false;
     }.bind(this),
@@ -775,6 +836,7 @@ this.AsyncShutdown.profileChangeTeardown = getPhase("profile-change-teardown");
 this.AsyncShutdown.profileBeforeChange = getPhase("profile-before-change");
 this.AsyncShutdown.sendTelemetry = getPhase("profile-before-change2");
 this.AsyncShutdown.webWorkersShutdown = getPhase("web-workers-shutdown");
+this.AsyncShutdown.xpcomThreadsShutdown = getPhase("xpcom-threads-shutdown");
 
 this.AsyncShutdown.Barrier = Barrier;
 
