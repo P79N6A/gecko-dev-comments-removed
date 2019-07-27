@@ -2078,6 +2078,14 @@ UpdateService.prototype = {
       Services.obs.removeObserver(this, topic);
       Services.prefs.removeObserver(PREF_APP_UPDATE_LOG, this);
 
+#ifdef XP_WIN
+      
+      
+      
+      if (gUpdateMutexHandle) {
+        closeHandle(gUpdateMutexHandle);
+      }
+#endif
       if (this._retryTimer) {
         this._retryTimer.cancel();
       }
