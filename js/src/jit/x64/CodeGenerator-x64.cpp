@@ -262,7 +262,7 @@ CodeGeneratorX64::visitAsmJSLoadHeap(LAsmJSLoadHeap *ins)
     if (!mir->skipBoundsCheck()) {
         bool isFloat32Load = vt == Scalar::Float32;
         ool = new(alloc()) OutOfLineLoadTypedArrayOutOfBounds(ToAnyRegister(out), isFloat32Load);
-        if (!addOutOfLineCode(ool))
+        if (!addOutOfLineCode(ool, ins->mir()))
             return false;
 
         CodeOffsetLabel cmp = masm.cmplWithPatch(ToRegister(ptr), Imm32(0));
@@ -416,7 +416,7 @@ CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
     
     
     
-    return emitTruncateDouble(input, output);
+    return emitTruncateDouble(input, output, ins->mir());
 }
 
 bool
@@ -428,5 +428,5 @@ CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32 *ins)
     
     
     
-    return emitTruncateFloat32(input, output);
+    return emitTruncateFloat32(input, output, ins->mir());
 }

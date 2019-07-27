@@ -420,8 +420,12 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
     
     
     
+    
+    
+    
+    InlineScriptTree *tree = snapshot->mir()->block()->trackedTree();
     OutOfLineBailout *ool = new(alloc()) OutOfLineBailout(snapshot);
-    if (!addOutOfLineCode(ool))
+    if (!addOutOfLineCode(ool, BytecodeSite(tree, tree->script()->code())))
         return false;
 
     binder(masm, ool->entry());
@@ -623,7 +627,7 @@ CodeGeneratorX86Shared::visitAddI(LAddI *ins)
     if (ins->snapshot()) {
         if (ins->recoversInput()) {
             OutOfLineUndoALUOperation *ool = new(alloc()) OutOfLineUndoALUOperation(ins);
-            if (!addOutOfLineCode(ool))
+            if (!addOutOfLineCode(ool, ins->mir()))
                 return false;
             masm.j(Assembler::Overflow, ool->entry());
         } else {
@@ -645,7 +649,7 @@ CodeGeneratorX86Shared::visitSubI(LSubI *ins)
     if (ins->snapshot()) {
         if (ins->recoversInput()) {
             OutOfLineUndoALUOperation *ool = new(alloc()) OutOfLineUndoALUOperation(ins);
-            if (!addOutOfLineCode(ool))
+            if (!addOutOfLineCode(ool, ins->mir()))
                 return false;
             masm.j(Assembler::Overflow, ool->entry());
         } else {
@@ -763,7 +767,7 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
         if (mul->canBeNegativeZero()) {
             
             MulNegativeZeroCheck *ool = new(alloc()) MulNegativeZeroCheck(ins);
-            if (!addOutOfLineCode(ool))
+            if (!addOutOfLineCode(ool, mul))
                 return false;
 
             masm.testl(ToRegister(lhs), ToRegister(lhs));
@@ -843,7 +847,7 @@ CodeGeneratorX86Shared::visitUDivOrMod(LUDivOrMod *ins)
     }
 
     if (ool) {
-        if (!addOutOfLineCode(ool))
+        if (!addOutOfLineCode(ool, ins->mir()))
             return false;
         masm.bind(ool->rejoin());
     }
@@ -1090,7 +1094,7 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     masm.bind(&done);
 
     if (ool) {
-        if (!addOutOfLineCode(ool))
+        if (!addOutOfLineCode(ool, mir))
             return false;
         masm.bind(ool->rejoin());
     }
@@ -1276,13 +1280,13 @@ CodeGeneratorX86Shared::visitModI(LModI *ins)
     masm.bind(&done);
 
     if (overflow) {
-        if (!addOutOfLineCode(overflow))
+        if (!addOutOfLineCode(overflow, ins->mir()))
             return false;
         masm.bind(overflow->done());
     }
 
     if (ool) {
-        if (!addOutOfLineCode(ool))
+        if (!addOutOfLineCode(ool, ins->mir()))
             return false;
         masm.bind(ool->rejoin());
     }
@@ -1488,7 +1492,7 @@ CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch *mir, Register inde
     
     
     OutOfLineTableSwitch *ool = new(alloc()) OutOfLineTableSwitch(mir);
-    if (!addOutOfLineCode(ool))
+    if (!addOutOfLineCode(ool, mir))
         return false;
 
     

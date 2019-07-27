@@ -123,6 +123,13 @@ CodeGeneratorShared::generateOutOfLineCode()
 {
     JSScript *topScript = sps_.getPushed();
     for (size_t i = 0; i < outOfLineCode_.length(); i++) {
+        
+        
+        if (!gen->compilingAsmJS()) {
+            if (!addNativeToBytecodeEntry(outOfLineCode_[i]->bytecodeSite()))
+                return false;
+        }
+
         if (!gen->alloc().ensureBallast())
             return false;
 
@@ -147,18 +154,132 @@ CodeGeneratorShared::generateOutOfLineCode()
 }
 
 bool
-CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code)
+CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code, const MInstruction *mir)
+{
+    JS_ASSERT(mir);
+    return addOutOfLineCode(code, mir->trackedSite());
+}
+
+bool
+CodeGeneratorShared::addOutOfLineCode(OutOfLineCode *code, const BytecodeSite &site)
 {
     code->setFramePushed(masm.framePushed());
-    
-    
-    
-    if (oolIns)
-        code->setSource(oolIns->script(), oolIns->pc());
-    else
-        code->setSource(current ? current->mir()->info().script() : nullptr, lastPC_);
-    JS_ASSERT_IF(code->script(), code->script()->containsPC(code->pc()));
+    code->setBytecodeSite(site);
+    JS_ASSERT_IF(!gen->compilingAsmJS(), code->script()->containsPC(code->pc()));
     return outOfLineCode_.append(code);
+}
+
+bool
+CodeGeneratorShared::addNativeToBytecodeEntry(const BytecodeSite &site)
+{
+    JS_ASSERT(site.tree());
+    JS_ASSERT(site.pc());
+
+    
+    if (!sps_.enabled())
+        return true;
+
+    InlineScriptTree *tree = site.tree();
+    jsbytecode *pc = site.pc();
+    uint32_t nativeOffset = masm.currentOffset();
+
+    JS_ASSERT_IF(nativeToBytecodeList_.empty(), nativeOffset == 0);
+
+    if (!nativeToBytecodeList_.empty()) {
+        size_t lastIdx = nativeToBytecodeList_.length() - 1;
+        NativeToBytecode &lastEntry = nativeToBytecodeList_[lastIdx];
+
+        JS_ASSERT(nativeOffset >= lastEntry.nativeOffset.offset());
+
+        
+        
+        
+        if (lastEntry.tree == tree && lastEntry.pc == pc) {
+            IonSpew(IonSpew_Profiling, " => In-place update [%u-%u]",
+                    lastEntry.nativeOffset.offset(), nativeOffset);
+            return true;
+        }
+
+        
+        
+        
+        if (lastEntry.nativeOffset.offset() == nativeOffset) {
+            lastEntry.tree = tree;
+            lastEntry.pc = pc;
+            IonSpew(IonSpew_Profiling, " => Overwriting zero-length native region.");
+
+            
+            
+            if (lastIdx > 0) {
+                NativeToBytecode &nextToLastEntry = nativeToBytecodeList_[lastIdx - 1];
+                if (nextToLastEntry.tree == lastEntry.tree && nextToLastEntry.pc == lastEntry.pc) {
+                    IonSpew(IonSpew_Profiling, " => Merging with previous region");
+                    nativeToBytecodeList_.erase(&lastEntry);
+                }
+            }
+
+            dumpNativeToBytecodeEntry(nativeToBytecodeList_.length() - 1);
+            return true;
+        }
+    }
+
+    
+    
+    NativeToBytecode entry;
+    entry.nativeOffset = CodeOffsetLabel(nativeOffset);
+    entry.tree = tree;
+    entry.pc = pc;
+    if (!nativeToBytecodeList_.append(entry))
+        return false;
+
+    IonSpew(IonSpew_Profiling, " => Push new entry.");
+    dumpNativeToBytecodeEntry(nativeToBytecodeList_.length() - 1);
+    return true;
+}
+
+void
+CodeGeneratorShared::dumpNativeToBytecodeEntries()
+{
+#ifdef DEBUG
+    InlineScriptTree *topTree = gen->info().inlineScriptTree();
+    IonSpewStart(IonSpew_Profiling, "Native To Bytecode Map for %s:%d\n",
+                 topTree->script()->filename(), topTree->script()->lineno());
+    for (unsigned i = 0; i < nativeToBytecodeList_.length(); i++)
+        dumpNativeToBytecodeEntry(i);
+#endif
+}
+
+void
+CodeGeneratorShared::dumpNativeToBytecodeEntry(uint32_t idx)
+{
+#ifdef DEBUG
+    NativeToBytecode &ref = nativeToBytecodeList_[idx];
+    InlineScriptTree *tree = ref.tree;
+    JSScript *script = tree->script();
+    uint32_t nativeOffset = ref.nativeOffset.offset();
+    unsigned nativeDelta = 0;
+    unsigned pcDelta = 0;
+    if (idx + 1 < nativeToBytecodeList_.length()) {
+        NativeToBytecode *nextRef = &ref + 1;
+        nativeDelta = nextRef->nativeOffset.offset() - nativeOffset;
+        if (nextRef->tree == ref.tree)
+            pcDelta = nextRef->pc - ref.pc;
+    }
+    IonSpewStart(IonSpew_Profiling, "    %08x [+%-6d] => %-6d [%-4d] {%-10s} (%s:%d",
+                 ref.nativeOffset.offset(),
+                 nativeDelta,
+                 ref.pc - script->code(),
+                 pcDelta,
+                 js_CodeName[JSOp(*ref.pc)],
+                 script->filename(), script->lineno());
+
+    for (tree = tree->caller(); tree; tree = tree->caller()) {
+        IonSpewCont(IonSpew_Profiling, " <= %s:%d", tree->script()->filename(),
+                                                    tree->script()->lineno());
+    }
+    IonSpewCont(IonSpew_Profiling, ")");
+    IonSpewFin(IonSpew_Profiling);
+#endif
 }
 
 
@@ -766,18 +887,18 @@ class OutOfLineTruncateSlow : public OutOfLineCodeBase<CodeGeneratorShared>
 };
 
 OutOfLineCode *
-CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest)
+CodeGeneratorShared::oolTruncateDouble(FloatRegister src, Register dest, MInstruction *mir)
 {
     OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest);
-    if (!addOutOfLineCode(ool))
+    if (!addOutOfLineCode(ool, mir))
         return nullptr;
     return ool;
 }
 
 bool
-CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest)
+CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest, MInstruction *mir)
 {
-    OutOfLineCode *ool = oolTruncateDouble(src, dest);
+    OutOfLineCode *ool = oolTruncateDouble(src, dest, mir);
     if (!ool)
         return false;
 
@@ -787,10 +908,10 @@ CodeGeneratorShared::emitTruncateDouble(FloatRegister src, Register dest)
 }
 
 bool
-CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest)
+CodeGeneratorShared::emitTruncateFloat32(FloatRegister src, Register dest, MInstruction *mir)
 {
     OutOfLineTruncateSlow *ool = new(alloc()) OutOfLineTruncateSlow(src, dest, true);
-    if (!addOutOfLineCode(ool))
+    if (!addOutOfLineCode(ool, mir))
         return false;
 
     masm.branchTruncateFloat32(src, dest, ool->entry());

@@ -1095,6 +1095,24 @@ class MStart : public MNullaryInstruction
     }
 };
 
+class MPcOffset : public MNullaryInstruction
+{
+  private:
+    MPcOffset() {
+        setGuard();
+    }
+
+  public:
+    INSTRUCTION_HEADER(PcOffset)
+    static MPcOffset *New(TempAllocator &alloc) {
+        return new(alloc) MPcOffset();
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
 
 
 

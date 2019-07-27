@@ -76,7 +76,11 @@ class MIRGenerator
     }
 
     bool instrumentedProfiling() {
-        return GetIonContext()->runtime->spsProfiler().enabled();
+        if (!instrumentedProfilingIsCached_) {
+            instrumentedProfiling_ = GetIonContext()->runtime->spsProfiler().enabled();
+            instrumentedProfilingIsCached_ = true;
+        }
+        return instrumentedProfiling_;
     }
 
     
@@ -166,6 +170,9 @@ class MIRGenerator
     
     
     bool modifiesFrameArguments_;
+
+    bool instrumentedProfiling_;
+    bool instrumentedProfilingIsCached_;
 
 #if defined(JS_ION_PERF)
     AsmJSPerfSpewer asmJSPerfSpewer_;
