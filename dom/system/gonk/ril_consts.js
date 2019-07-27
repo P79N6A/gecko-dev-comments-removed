@@ -1695,6 +1695,31 @@ this.PDU_NL_IDENTIFIER_URDU       = 13;
 
 
 
+
+
+
+
+
+
+
+
+
+
+this.PDU_MCC_NL_TABLE_TUPLES_MAPPING = {
+  
+  
+  
+  
+  
+  
+  
+  
+  286: [[PDU_NL_IDENTIFIER_TURKISH, PDU_NL_IDENTIFIER_DEFAULT]]
+};
+
+
+
+
 this.PDU_NL_GSM_DEFAULT_ALPHABET =
   
     "@\u00a3$\u00a5\u00e8\u00e9\u00f9\u00ec\u00f2\u00c7\n\u00d8\u00f8\r\u00c5\u00e5"
