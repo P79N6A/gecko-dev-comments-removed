@@ -26,7 +26,8 @@
 #define mozilla_pkix_test__pkixtestutils_h
 
 #include <ctime>
-#include <stdint.h>
+#include <stdint.h> 
+#include <string>
 
 #include "keyhi.h"
 #include "pkix/enumclass.h"
@@ -35,6 +36,8 @@
 #include "seccomon.h"
 
 namespace mozilla { namespace pkix { namespace test {
+
+typedef std::basic_string<uint8_t> ByteString;
 
 
 
@@ -78,6 +81,18 @@ typedef mozilla::pkix::ScopedPtr<SECKEYPrivateKey, SECKEY_DestroyPrivateKey>
   ScopedSECKEYPrivateKey;
 
 
+static const uint8_t tlv_id_kp_OCSPSigning[] = {
+  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x09
+};
+
+
+static const uint8_t tlv_id_kp_serverAuth[] = {
+  0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01
+};
+
+extern const Input sha256WithRSAEncryption;
+
+
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
                            int16_t hour, int16_t minutes, int16_t seconds);
 
@@ -95,9 +110,8 @@ const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
 
 
 
-
-Result TamperOnce(SECItem& item, const uint8_t* from, size_t fromLen,
-                  const uint8_t* to, size_t toLen);
+Result TamperOnce( ByteString& item, const ByteString& from,
+                  const ByteString& to);
 
 Result InitInputFromSECItem(const SECItem* secItem,  Input& input);
 
@@ -118,15 +132,16 @@ enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
 
 
+
 SECItem* CreateEncodedCertificate(PLArenaPool* arena, long version,
-                                  SECOidTag signature,
+                                  Input signature,
                                   const SECItem* serialNumber,
                                   const SECItem* issuerNameDER,
                                   std::time_t notBefore, std::time_t notAfter,
                                   const SECItem* subjectNameDER,
                       SECItem const* const* extensions,
                       SECKEYPrivateKey* issuerPrivateKey,
-                                  SECOidTag signatureHashAlg,
+                                  SignatureAlgorithm signatureAlgorithm,
                            ScopedSECKEYPrivateKey& privateKey);
 
 SECItem* CreateEncodedSerialNumber(PLArenaPool* arena, long value);
@@ -140,11 +155,7 @@ SECItem* CreateEncodedBasicConstraints(PLArenaPool* arena, bool isCA,
 
 
 
-
-
-
-SECItem* CreateEncodedEKUExtension(PLArenaPool* arena,
-                                   const SECOidTag* ekus, size_t ekusCount,
+SECItem* CreateEncodedEKUExtension(PLArenaPool* arena, Input eku,
                                    ExtensionCriticality criticality);
 
 
@@ -199,7 +210,6 @@ public:
 
   
   
-  SECOidTag certIDHashAlg;
   enum CertStatus {
     good = 0,
     revoked = 1,
