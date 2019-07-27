@@ -48,6 +48,16 @@ private:
   
   int64_t mAudioFrameSum;
 
+  enum StreamType {
+    Unknown,
+    AAC,
+    MP3
+  };
+  StreamType mStreamType;
+
+  const GUID& GetMFTGUID();
+  const GUID& GetMediaSubtypeGUID();
+
   
   
   
