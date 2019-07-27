@@ -129,6 +129,11 @@ public:
 
     static bool IsKeyPressEventNecessary(GdkEventKey* aGdkKeyEvent);
 
+    
+
+
+    static void Shutdown();
+
 protected:
 
     
@@ -245,8 +250,6 @@ protected:
 
 
     static void OnKeysChanged(GdkKeymap* aKeymap, KeymapWrapper* aKeymapWrapper);
-    static void OnDestroyKeymap(KeymapWrapper* aKeymapWrapper,
-                                GdkKeymap *aGdkKeymap);
 
     
 
