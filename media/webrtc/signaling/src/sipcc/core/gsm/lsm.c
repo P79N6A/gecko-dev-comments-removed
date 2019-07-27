@@ -917,7 +917,11 @@ lsm_rx_start (lsm_lcb_t *lcb, const char *fname, fsmdef_media_t *media)
 
 
 
+        
+        
+
         pc_stream_id = 0;
+        
         pc_track_id = media->level;
 
         

@@ -1586,7 +1586,31 @@ PeerConnectionImpl::ReplaceTrack(MediaStreamTrack& aThisTrack,
   
 
   
-  bool success = true;
+  
+  
+  
+
+  
+  
+  
+  
+  TrackID withID = aWithTrack.GetTrackID();
+
+  bool success = false;
+  for(uint32_t i = 0; i < media()->LocalStreamsLength(); ++i) {
+    LocalSourceStreamInfo *info = media()->GetLocalStream(i);
+    
+    int pipeline = info->HasTrackType(&aStream, !!(aThisTrack.AsVideoStreamTrack()));
+    if (pipeline >= 0) {
+      
+      info->ReplaceTrack(pipeline, aWithTrack.GetStream(), withID);
+      success = true;
+      break;
+    }
+  }
+  if (!success) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsRefPtr<PeerConnectionObserver> pco = do_QueryObjectReferent(mPCObserver);
   if (!pco) {

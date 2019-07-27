@@ -627,11 +627,17 @@ void MediaPipeline::PacketReceived(TransportLayer *layer,
 }
 
 nsresult MediaPipelineTransmit::Init() {
+  AttachToTrack(track_id_);
+
+  return MediaPipeline::Init();
+}
+
+void MediaPipelineTransmit::AttachToTrack(TrackID track_id) {
   char track_id_string[11];
   ASSERT_ON_THREAD(main_thread_);
 
   
-  PR_snprintf(track_id_string, sizeof(track_id_string), "%d", track_id_);
+  PR_snprintf(track_id_string, sizeof(track_id_string), "%d", track_id);
 
   description_ = pc_ + "| ";
   description_ += conduit_->type() == MediaSessionConduit::AUDIO ?
@@ -657,8 +663,6 @@ nsresult MediaPipelineTransmit::Init() {
   
   listener_->SetEnabled(true);
 #endif
-
-  return MediaPipeline::Init();
 }
 
 #ifdef MOZILLA_INTERNAL_API
@@ -691,6 +695,23 @@ nsresult MediaPipelineTransmit::TransportReady_s(TransportInfo &info) {
     listener_->SetActive(true);
   }
 
+  return NS_OK;
+}
+
+nsresult MediaPipelineTransmit::ReplaceTrack(DOMMediaStream *domstream,
+                                             TrackID track_id) {
+  
+  MOZ_MTLOG(ML_DEBUG, "Reattaching pipeline to stream "
+            << static_cast<void *>(domstream->GetStream()) << " conduit type=" <<
+            (conduit_->type() == MediaSessionConduit::AUDIO ?"audio":"video"));
+
+  if (domstream_) { 
+    DetachMediaStream();
+  }
+  domstream_ = domstream; 
+  stream_ = domstream->GetStream();
+  
+  AttachToTrack(track_id);
   return NS_OK;
 }
 
@@ -947,6 +968,10 @@ NotifyQueuedTrackChanges(MediaStreamGraph* graph, TrackID tid,
 #define CRSIZE(x,y) ((((x)+1) >> 1) * (((y)+1) >> 1))
 #define I420SIZE(x,y) (YSIZE((x),(y)) + 2 * CRSIZE((x),(y)))
 
+
+
+
+
 void MediaPipelineTransmit::PipelineListener::
 NewData(MediaStreamGraph* graph, TrackID tid,
         TrackRate rate,
@@ -958,15 +983,25 @@ NewData(MediaStreamGraph* graph, TrackID tid,
     return;
   }
 
+  if (track_id_ != TRACK_INVALID) {
+    if (tid != track_id_) {
+      return;
+    }
+  } else if (conduit_->type() !=
+             (media.GetType() == MediaSegment::AUDIO ? MediaSessionConduit::AUDIO :
+                                                       MediaSessionConduit::VIDEO)) {
+    
+    return;
+  } else {
+    
+    MutexAutoLock lock(mMutex);
+    track_id_ = track_id_external_ = tid;
+  }
+
   
   
   
   if (media.GetType() == MediaSegment::AUDIO) {
-    if (conduit_->type() != MediaSessionConduit::AUDIO) {
-      
-      return;
-    }
-
     AudioSegment* audio = const_cast<AudioSegment *>(
         static_cast<const AudioSegment *>(&media));
 
@@ -978,11 +1013,6 @@ NewData(MediaStreamGraph* graph, TrackID tid,
     }
   } else if (media.GetType() == MediaSegment::VIDEO) {
 #ifdef MOZILLA_INTERNAL_API
-    if (conduit_->type() != MediaSessionConduit::VIDEO) {
-      
-      return;
-    }
-
     VideoSegment* video = const_cast<VideoSegment *>(
         static_cast<const VideoSegment *>(&media));
 

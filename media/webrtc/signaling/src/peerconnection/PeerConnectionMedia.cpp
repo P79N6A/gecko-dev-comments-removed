@@ -102,6 +102,51 @@ void LocalSourceStreamInfo::DetachMedia_m()
   mMediaStream = nullptr;
 }
 
+#if 0
+
+
+int LocalSourceStreamInfo::HasTrack(DOMMediaStream* aStream, TrackID aTrack)
+{
+  if (aStream != mMediaStream) {
+    return -1;
+  }
+  for (auto it = mPipelines.begin(); it != mPipelines.end(); ++it) {
+    if (it->second->trackid_locked() == aTrack) {
+      return it->first;
+    }
+  }
+  return -1;
+}
+#endif
+
+
+int LocalSourceStreamInfo::HasTrackType(DOMMediaStream* aStream, bool aIsVideo)
+{
+  if (aStream != mMediaStream) {
+    return -1;
+  }
+  for (auto it = mPipelines.begin(); it != mPipelines.end(); ++it) {
+    if (it->second->IsVideo() == aIsVideo) {
+      return it->first;
+    }
+  }
+  return -1;
+}
+
+
+nsresult LocalSourceStreamInfo::ReplaceTrack(int aIndex,
+                                             DOMMediaStream* aNewStream,
+                                             TrackID aNewTrack)
+{
+  
+  mozilla::RefPtr<mozilla::MediaPipeline> pipeline = mPipelines[aIndex];
+  MOZ_ASSERT(pipeline);
+  if (NS_SUCCEEDED(static_cast<mozilla::MediaPipelineTransmit*>(pipeline.get())->ReplaceTrack(aNewStream, aNewTrack))) {
+    return NS_OK;
+  }
+  return NS_ERROR_FAILURE;
+}
+
 void RemoteSourceStreamInfo::DetachTransport_s()
 {
   ASSERT_ON_THREAD(mParent->GetSTSThread());
