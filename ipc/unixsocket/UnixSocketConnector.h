@@ -76,6 +76,14 @@ public:
                                       socklen_t* aAddressLength,
                                       int& aStreamFd) = 0;
 
+  
+
+
+
+
+
+  virtual nsresult Duplicate(UnixSocketConnector*& aConnector) = 0;
+
 protected:
   UnixSocketConnector();
 };
