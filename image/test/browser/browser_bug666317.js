@@ -14,7 +14,11 @@ var gWaitingForDiscard = false;
 var gScriptedObserver;
 var gClonedRequest;
 
-function ImageDiscardObserver(callback) {
+function ImageObserver(decodeCallback, discardCallback) {
+  this.decodeComplete = function onDecodeComplete(aRequest) {
+    decodeCallback();
+  }
+
   this.discard = function onDiscard(request)
   {
     if (!gWaitingForDiscard) {
@@ -22,7 +26,7 @@ function ImageDiscardObserver(callback) {
     }
 
     this.synchronous = false;
-    callback();
+    discardCallback();
   }
 
   this.synchronous = true;
@@ -37,7 +41,7 @@ function currentRequest() {
 
 function isImgDecoded() {
   let request = currentRequest();
-  return request.imageStatus & Ci.imgIRequest.STATUS_FRAME_COMPLETE ? true : false;
+  return request.imageStatus & Ci.imgIRequest.STATUS_DECODE_COMPLETE ? true : false;
 }
 
 
@@ -83,7 +87,9 @@ function test() {
 
 function step2() {
   
-  var observer = new ImageDiscardObserver(() => runAfterAsyncEvents(step5));
+  var observer =
+    new ImageObserver(() => runAfterAsyncEvents(step3),   
+                      () => runAfterAsyncEvents(step5));  
   gScriptedObserver = Cc["@mozilla.org/image/tools;1"]
                         .getService(Ci.imgITools)
                         .createScriptedObserver(observer);
@@ -97,7 +103,6 @@ function step2() {
 
   
   
-  runAfterAsyncEvents(step3);
 }
 
 function step3() {
