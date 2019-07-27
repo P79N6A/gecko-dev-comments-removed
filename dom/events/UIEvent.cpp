@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "base/basictypes.h"
 #include "ipc/IPCMessageUtils.h"
@@ -44,10 +44,10 @@ UIEvent::UIEvent(EventTarget* aOwner,
     mEvent->time = PR_Now();
   }
   
-  // Fill mDetail and mView according to the mEvent (widget-generated
-  // event) we've got
+  
+  
   switch(mEvent->mClass) {
-    case NS_UI_EVENT:
+    case eUIEventClass:
     {
       mDetail = mEvent->AsUIEvent()->detail;
       break;
@@ -76,7 +76,7 @@ UIEvent::UIEvent(EventTarget* aOwner,
   }
 }
 
-// static
+
 already_AddRefed<UIEvent>
 UIEvent::Constructor(const GlobalObject& aGlobal,
                      const nsAString& aType,
@@ -128,7 +128,7 @@ UIEvent::GetMovementPoint()
     return nsIntPoint(0, 0);
   }
 
-  // Calculate the delta between the last screen point and the current one.
+  
   nsIntPoint current = DevPixelsToCSSPixels(mEvent->refPoint, mPresContext);
   nsIntPoint last = DevPixelsToCSSPixels(mEvent->lastRefPoint, mPresContext);
   return current - last;
@@ -307,7 +307,7 @@ UIEvent::GetLayerPoint() const
       mEventIsInternal) {
     return mLayerPoint;
   }
-  // XXX I'm not really sure this is correct; it's my best shot, though
+  
   nsIFrame* targetFrame = mPresContext->EventStateManager()->GetEventTarget();
   if (!targetFrame)
     return mLayerPoint;
@@ -361,7 +361,7 @@ UIEvent::DuplicatePrivateData()
   mLayerPoint = GetLayerPoint();
   mPagePoint =
     Event::GetPageCoords(mPresContext, mEvent, mEvent->refPoint, mClientPoint);
-  // GetScreenPoint converts mEvent->refPoint to right coordinates.
+  
   nsIntPoint screenPoint =
     Event::GetScreenCoords(mPresContext, mEvent, mEvent->refPoint);
   nsresult rv = Event::DuplicatePrivateData();
@@ -393,9 +393,9 @@ UIEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
   return true;
 }
 
-// XXX Following struct and array are used only in
-//     UIEvent::ComputeModifierState(), but if we define them in it,
-//     we fail to build on Mac at calling mozilla::ArrayLength().
+
+
+
 struct ModifierPair
 {
   Modifier modifier;
@@ -415,7 +415,7 @@ static const ModifierPair kPairs[] = {
   { MODIFIER_OS,         NS_DOM_KEYNAME_OS }
 };
 
-// static
+
 Modifiers
 UIEvent::ComputeModifierState(const nsAString& aModifiersList)
 {
@@ -423,9 +423,9 @@ UIEvent::ComputeModifierState(const nsAString& aModifiersList)
     return 0;
   }
 
-  // Be careful about the performance.  If aModifiersList is too long,
-  // parsing it needs too long time.
-  // XXX Should we abort if aModifiersList is too long?
+  
+  
+  
 
   Modifiers modifiers = 0;
 
@@ -496,8 +496,8 @@ UIEvent::GetModifierStateInternal(const nsAString& aKey)
   return false;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 using namespace mozilla;
 using namespace mozilla::dom;
