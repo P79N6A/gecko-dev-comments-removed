@@ -1724,7 +1724,7 @@ GetPropertyIC::update(JSContext *cx, size_t cacheIndex,
     RootedPropertyName name(cx, cache.name());
 
     
-    AutoDetectInvalidation adi(cx, vp.address(), ion);
+    AutoDetectInvalidation adi(cx, vp, ion);
 
     
     if (cache.idempotent())
@@ -3461,7 +3461,7 @@ GetElementIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
     cache.getScriptedLocation(&script, &pc);
 
     
-    AutoDetectInvalidation adi(cx, res.address(), ion);
+    AutoDetectInvalidation adi(cx, res, ion);
 
     if (cache.isDisabled()) {
         if (!GetObjectElementOperation(cx, JSOp(*pc), obj, true, idval, res))
