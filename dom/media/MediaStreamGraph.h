@@ -756,6 +756,13 @@ public:
 
 
 
+  StreamTime GetEndOfAppendedData(TrackID aID);
+  
+
+
+
+
+
   void DispatchWhenNotEnoughBuffered(TrackID aID,
       nsIEventTarget* aSignalThread, nsIRunnable* aSignalRunnable);
   
@@ -849,12 +856,14 @@ protected:
 #endif
     StreamTime mStart;
     
-    
-    uint32_t mCommands;
+    StreamTime mEndOfFlushedData;
     
     
     nsAutoPtr<MediaSegment> mData;
     nsTArray<ThreadAndRunnable> mDispatchWhenNotEnough;
+    
+    
+    uint32_t mCommands;
     bool mHaveEnough;
   };
 
