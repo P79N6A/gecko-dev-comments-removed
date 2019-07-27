@@ -410,6 +410,9 @@ ToMarkable(Cell *cell)
 void
 TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
+bool
+UnmarkGrayShapeRecursively(Shape *shape);
+
 } 
 
 #endif 
