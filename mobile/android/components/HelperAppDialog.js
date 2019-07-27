@@ -153,6 +153,15 @@ HelperAppLauncherDialog.prototype = {
       }
     });
 
+    let callback = function(app) {
+      aLauncher.MIMEInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
+      if (!app.launch(aLauncher.source)) {
+        
+        
+        aLauncher.cancel(Cr.NS_BINDING_ABORTED);
+      }
+    }
+
     
     
     let preferredApp = this._getPreferredApp(aLauncher);
@@ -162,15 +171,8 @@ HelperAppLauncherDialog.prototype = {
       });
 
       if (pref.length > 0) {
-        pref[0].launch(aLauncher.source);
+        callback(pref[0]);
         return;
-      }
-    }
-
-    let callback = function(app) {
-      aLauncher.MIMEInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
-      if (!app.launch(aLauncher.source)) {
-        aLauncher.cancel(Cr.NS_BINDING_ABORTED);
       }
     }
 
