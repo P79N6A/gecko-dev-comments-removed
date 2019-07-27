@@ -4219,11 +4219,6 @@ Tab.prototype = {
 
           this.browser.addEventListener("pagehide", listener, true);
         }
-
-        if (docURI.startsWith("about:reader")) {
-          
-          Reader.updatePageAction(this);
-        }
         break;
       }
 
@@ -4544,6 +4539,13 @@ Tab.prototype = {
     let sameDocument = (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) != 0 ||
                        ((this.browser.lastURI != null) && fixedURI.equals(this.browser.lastURI) && !fixedURI.equals(aLocationURI));
     this.browser.lastURI = fixedURI;
+
+    
+    
+    
+    if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
+      this.browser.messageManager.sendAsyncMessage("Reader:PushState", {isArticle: gBrowser.selectedBrowser.isArticle});
+    }
 
     
     clearTimeout(this.pluginDoorhangerTimeout);

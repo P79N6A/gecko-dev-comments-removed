@@ -16,19 +16,29 @@ let dump = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog.d.b
 
 let global = this;
 
+
 let AboutReaderListener = {
-  _savedArticle: null,
+
+  _articlePromise: null,
 
   init: function() {
     addEventListener("AboutReaderContentLoaded", this, false, true);
+    addEventListener("DOMContentLoaded", this, false);
     addEventListener("pageshow", this, false);
-    addMessageListener("Reader:SavedArticleGet", this);
+    addEventListener("pagehide", this, false);
+    addMessageListener("Reader:ParseDocument", this);
+    addMessageListener("Reader:PushState", this);
   },
 
   receiveMessage: function(message) {
     switch (message.name) {
-      case "Reader:SavedArticleGet":
-        sendAsyncMessage("Reader:SavedArticleData", { article: this._savedArticle });
+      case "Reader:ParseDocument":
+        this._articlePromise = ReaderMode.parseDocument(content.document).catch(Cu.reportError);
+        content.document.location = "about:reader?url=" + encodeURIComponent(message.data.url);
+        break;
+
+      case "Reader:PushState":
+        this.updateReaderButton(!!(message.data && message.data.isArticle));
         break;
     }
   },
@@ -37,12 +47,12 @@ let AboutReaderListener = {
     return content.document.documentURI.startsWith("about:reader");
   },
 
-  handleEvent: function(event) {
-    if (event.originalTarget.defaultView != content) {
+  handleEvent: function(aEvent) {
+    if (aEvent.originalTarget.defaultView != content) {
       return;
     }
 
-    switch (event.type) {
+    switch (aEvent.type) {
       case "AboutReaderContentLoaded":
         if (!this.isAboutReader) {
           return;
@@ -53,39 +63,41 @@ let AboutReaderListener = {
         
         
         if (content.document.body) {
-          new AboutReader(global, content);
+          new AboutReader(global, content, this._articlePromise);
+          this._articlePromise = null;
         }
+        break;
+
+      case "pagehide":
+        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
         break;
 
       case "pageshow":
-        if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader) {
-          return;
-        }
-
         
-        this._savedArticle = null;
-        sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
-
-        ReaderMode.parseDocument(content.document).then(article => {
-          
-          if (article === null || content === null) {
-            return;
-          }
-
-          
-          
-          let url = Services.io.newURI(content.document.documentURI, null, null).spec;
-          if (article.url !== url) {
-            return;
-          }
-
-          this._savedArticle = article;
-          sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
-
-        }).catch(e => Cu.reportError("Error parsing document: " + e));
+        
+        if (aEvent.persisted) {
+          this.updateReaderButton();
+        }
+        break;
+      case "DOMContentLoaded":
+        this.updateReaderButton();
         break;
     }
-  }
+  },
+  updateReaderButton: function(forceNonArticle) {
+    if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
+        !(content.document instanceof content.HTMLDocument) ||
+        content.document.mozSyntheticDocument) {
+      return;
+    }
+    
+    
+    if (ReaderMode.isProbablyReaderable(content.document)) {
+      sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: true });
+    } else if (forceNonArticle) {
+      sendAsyncMessage("Reader:UpdateReaderButton", { isArticle: false });
+    }
+  },
 };
 AboutReaderListener.init();
 
