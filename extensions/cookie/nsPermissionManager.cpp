@@ -20,6 +20,7 @@
 #include "nsILineInputStream.h"
 #include "nsIIDNService.h"
 #include "nsAppDirectoryServiceDefs.h"
+#include "nsDirectoryServiceDefs.h"
 #include "prprf.h"
 #include "mozilla/storage.h"
 #include "mozilla/Attributes.h"
@@ -33,6 +34,8 @@
 #include "nsPIDOMWindow.h"
 #include "nsIDocument.h"
 #include "mozilla/net/NeckoMessageUtils.h"
+#include "mozilla/Preferences.h"
+#include "nsReadLine.h"
 
 static nsPermissionManager *gPermissionManager = nullptr;
 
@@ -358,6 +361,12 @@ static const char kPermissionsFileName[] = "permissions.sqlite";
 
 static const char kHostpermFileName[] = "hostperm.1";
 
+
+
+static const char kDefaultsUrlPrefName[] = "permissions.manager.defaultsUrl";
+
+static const char kDefaultsUrl[] = "resource://app/chrome/browser/default_permissions";
+
 static const char kPermissionChangeNotification[] = PERM_CHANGE_NOTIFICATION;
 
 NS_IMPL_ISUPPORTS(nsPermissionManager, nsIPermissionManager, nsIObserver, nsISupportsWeakReference)
@@ -590,6 +599,8 @@ nsPermissionManager::InitDB(bool aRemoveFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  ImportDefaults();
+  
   if (tableExists)
     return Read();
 
@@ -743,6 +754,12 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
         (aExpireType == nsIPermissionManager::EXPIRE_NEVER ||
          aExpireTime == oldPermissionEntry.mExpireTime))
       op = eOperationNone;
+    else if (oldPermissionEntry.mID == cIDPermissionIsDefault)
+      
+      
+      
+      
+      op = eOperationReplacingDefault;
     else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
       op = eOperationRemoving;
     else
@@ -869,6 +886,62 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
 
       break;
     }
+  case eOperationReplacingDefault:
+    {
+      
+      
+      
+      
+      
+
+      
+      
+      
+
+      
+      
+      id = ++mLargestID;
+
+      
+      NS_ENSURE_TRUE(entry->GetPermissions()[index].mExpireType != nsIPermissionManager::EXPIRE_SESSION,
+                     NS_ERROR_UNEXPECTED);
+      
+      
+      
+      NS_ENSURE_TRUE(aExpireType == EXPIRE_NEVER, NS_ERROR_UNEXPECTED);
+
+      
+      entry->GetPermissions()[index].mID = id;
+      entry->GetPermissions()[index].mPermission = aPermission;
+      entry->GetPermissions()[index].mExpireType = aExpireType;
+      entry->GetPermissions()[index].mExpireTime = aExpireTime;
+
+      
+      if (aDBOperation == eWriteToDB) {
+        uint32_t appId;
+        rv = aPrincipal->GetAppId(&appId);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        bool isInBrowserElement;
+        rv = aPrincipal->GetIsInBrowserElement(&isInBrowserElement);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        UpdateDB(eOperationAdding, mStmtInsert, id, host, aType, aPermission, aExpireType, aExpireTime, appId, isInBrowserElement);
+      }
+
+      if (aNotifyOperation == eNotify) {
+        NotifyObserversWithPermission(host,
+                                      entry->GetKey()->mAppId,
+                                      entry->GetKey()->mIsInBrowserElement,
+                                      mTypeArray[typeIndex],
+                                      aPermission,
+                                      aExpireType,
+                                      aExpireTime,
+                                      MOZ_UTF16("changed"));
+      }
+
+    }
+    break;
   }
 
   return NS_OK;
@@ -944,6 +1017,10 @@ nsPermissionManager::RemoveAllInternal(bool aNotifyObservers)
   
   
   RemoveAllFromMemory();
+
+  
+  ImportDefaults();
+
   if (aNotifyObservers) {
     NotifyObservers(nullptr, MOZ_UTF16("cleared"));
   }
@@ -1261,6 +1338,13 @@ AddPermissionsToList(nsPermissionManager::PermissionHashKey* entry, void *arg)
 
   for (uint32_t i = 0; i < entry->GetPermissions().Length(); ++i) {
     nsPermissionManager::PermissionEntry& permEntry = entry->GetPermissions()[i];
+
+    
+    
+    
+    if (permEntry.mPermission == nsIPermissionManager::UNKNOWN_ACTION) {
+      continue;
+    }
 
     nsPermission *perm = new nsPermission(entry->GetKey()->mHost,
                                           entry->GetKey()->mAppId,
@@ -1633,11 +1717,12 @@ nsPermissionManager::Read()
 
 static const char kMatchTypeHost[] = "host";
 
+
+
+
 nsresult
 nsPermissionManager::Import()
 {
-  ENSURE_NOT_CHILD_PROCESS;
-
   nsresult rv;
 
   nsCOMPtr<nsIFile> permissionsFile;
@@ -1650,14 +1735,73 @@ nsPermissionManager::Import()
   nsCOMPtr<nsIInputStream> fileInputStream;
   rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
                                   permissionsFile);
-  if (NS_FAILED(rv)) return rv;
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(fileInputStream, &rv);
+  rv = _DoImport(fileInputStream, mDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  permissionsFile->Remove(false);
+  return NS_OK;
+}
+
+
+
+nsresult
+nsPermissionManager::ImportDefaults()
+{
   
-  mozStorageTransaction transaction(mDBConn, true);
+  
+  nsCString defaultsURL;
+  if (mozilla::Preferences::HasUserValue(kDefaultsUrlPrefName)) {
+    defaultsURL = mozilla::Preferences::GetCString(kDefaultsUrlPrefName);
+  } else {
+    defaultsURL = NS_LITERAL_CSTRING(kDefaultsUrl);
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsIIOService> ioservice =
+    do_GetService("@mozilla.org/network/io-service;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> defaultsURI;
+  rv = NS_NewURI(getter_AddRefs(defaultsURI), defaultsURL,
+                 nullptr, nullptr, ioservice);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIChannel> channel;
+  rv = ioservice->NewChannelFromURI(defaultsURI, getter_AddRefs(channel));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInputStream> inputStream;
+  rv = channel->Open(getter_AddRefs(inputStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = _DoImport(inputStream, nullptr);
+  inputStream->Close();
+  return rv;
+}
+
+
+
+
+
+nsresult
+nsPermissionManager::_DoImport(nsIInputStream *inputStream, mozIStorageConnection *conn)
+{
+  ENSURE_NOT_CHILD_PROCESS;
+
+  nsresult rv;
+  
+  
+  
+  mozStorageTransaction transaction(conn, true);
+
+  
+  DBOperationType operation = conn ? eWriteToDB : eNoDBOperation;
+  
+  
+  int64_t id = conn ? 0 : cIDPermissionIsDefault;
 
   
 
@@ -1666,17 +1810,24 @@ nsPermissionManager::Import()
 
 
 
-  nsAutoCString buffer;
+  
+  
+  
+  nsLineBuffer<char> lineBuffer;
+  nsCString line;
   bool isMore = true;
-  while (isMore && NS_SUCCEEDED(lineInputStream->ReadLine(buffer, &isMore))) {
-    if (buffer.IsEmpty() || buffer.First() == '#') {
+  do {
+    rv = NS_ReadLine(inputStream, &lineBuffer, line, &isMore);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (line.IsEmpty() || line.First() == '#') {
       continue;
     }
 
     nsTArray<nsCString> lineArray;
 
     
-    ParseString(buffer, '\t', lineArray);
+    ParseString(line, '\t', lineArray);
 
     if (lineArray[0].EqualsLiteral(kMatchTypeHost) &&
         lineArray.Length() == 4) {
@@ -1697,14 +1848,12 @@ nsPermissionManager::Import()
       nsresult rv = GetPrincipal(lineArray[3], getter_AddRefs(principal));
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = AddInternal(principal, lineArray[1], permission, 0,
-                       nsIPermissionManager::EXPIRE_NEVER, 0, eDontNotify, eWriteToDB);
+      rv = AddInternal(principal, lineArray[1], permission, id,
+                       nsIPermissionManager::EXPIRE_NEVER, 0, eDontNotify, operation);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-  }
 
-  
-  permissionsFile->Remove(false);
+  } while (isMore);
 
   return NS_OK;
 }
