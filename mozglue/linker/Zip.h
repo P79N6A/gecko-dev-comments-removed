@@ -155,17 +155,17 @@ public:
 
 
 
-  static mozilla::TemporaryRef<Zip> Create(const char *filename);
+  static already_AddRefed<Zip> Create(const char *filename);
 
   
 
 
-  static mozilla::TemporaryRef<Zip> Create(void *buffer, size_t size) {
+  static already_AddRefed<Zip> Create(void *buffer, size_t size) {
     return Create(nullptr, buffer, size);
   }
 
 private:
-  static mozilla::TemporaryRef<Zip> Create(const char *filename,
+  static already_AddRefed<Zip> Create(const char *filename,
                                            void *buffer, size_t size);
 
   
@@ -455,7 +455,7 @@ public:
 
 
 
-  static mozilla::TemporaryRef<Zip> GetZip(const char *path);
+  static already_AddRefed<Zip> GetZip(const char *path);
 
 protected:
   friend class Zip;

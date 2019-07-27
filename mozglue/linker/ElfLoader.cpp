@@ -252,7 +252,7 @@ LibHandle::MappableMUnmap(void *addr, size_t length) const
 
 
 
-TemporaryRef<LibHandle>
+already_AddRefed<LibHandle>
 SystemElf::Load(const char *path, int flags)
 {
   
@@ -331,7 +331,7 @@ SystemElf::FindExidx(int *pcount) const
 
 ElfLoader ElfLoader::Singleton;
 
-TemporaryRef<LibHandle>
+already_AddRefed<LibHandle>
 ElfLoader::Load(const char *path, int flags, LibHandle *parent)
 {
   
@@ -406,7 +406,7 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
   return handle.forget();
 }
 
-mozilla::TemporaryRef<LibHandle>
+already_AddRefed<LibHandle>
 ElfLoader::GetHandleByPtr(void *addr)
 {
   

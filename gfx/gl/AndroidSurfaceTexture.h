@@ -41,13 +41,13 @@ public:
 
   
   
-  static TemporaryRef<AndroidSurfaceTexture> Create(GLContext* aGLContext, GLuint aTexture);
+  static already_AddRefed<AndroidSurfaceTexture> Create(GLContext* aGLContext, GLuint aTexture);
 
   
   
   
   
-  static TemporaryRef<AndroidSurfaceTexture> Create();
+  static already_AddRefed<AndroidSurfaceTexture> Create();
 
   static AndroidSurfaceTexture* Find(int id);
 

@@ -62,7 +62,7 @@ public:
 
     
     
-    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
+    already_AddRefed<TextureClient> getCurrentBuffer();
 
     
     
@@ -138,7 +138,7 @@ public:
     
     void abandon();
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    already_AddRefed<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
 
     static void RecycleCallback(TextureClient* client, void* closure);
 

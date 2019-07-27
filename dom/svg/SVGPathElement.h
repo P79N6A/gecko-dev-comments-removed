@@ -51,14 +51,14 @@ public:
   virtual bool AttributeDefinesGeometry(const nsIAtom *aName) override;
   virtual bool IsMarkable() override;
   virtual void GetMarkPoints(nsTArray<nsSVGMark> *aMarks) override;
-  virtual TemporaryRef<Path> BuildPath(PathBuilder* aBuilder) override;
+  virtual already_AddRefed<Path> BuildPath(PathBuilder* aBuilder) override;
 
   
 
 
 
 
-  virtual TemporaryRef<Path> GetOrBuildPathForMeasuring() override;
+  virtual already_AddRefed<Path> GetOrBuildPathForMeasuring() override;
 
   
   virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const override;

@@ -79,7 +79,7 @@ public:
 
 
 
-  static TemporaryRef<CompositingRenderTargetOGL>
+  static already_AddRefed<CompositingRenderTargetOGL>
   RenderTargetForWindow(CompositorOGL* aCompositor,
                         const gfx::IntSize& aSize)
   {
@@ -146,7 +146,7 @@ public:
   }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor) override;
+  virtual already_AddRefed<gfx::DataSourceSurface> Dump(Compositor* aCompositor) override;
 #endif
 
   const gfx::IntSize& GetInitSize() const {

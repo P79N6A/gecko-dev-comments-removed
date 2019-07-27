@@ -90,7 +90,7 @@ AddActiveBlockInfo(const nsACString& baseUserName,
 
 
 
-static TemporaryRef<const webgl::LinkedProgramInfo>
+static already_AddRefed<const webgl::LinkedProgramInfo>
 QueryProgramInfo(WebGLProgram* prog, gl::GLContext* gl)
 {
     RefPtr<webgl::LinkedProgramInfo> info(new webgl::LinkedProgramInfo(prog));

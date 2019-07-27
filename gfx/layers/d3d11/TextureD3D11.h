@@ -33,7 +33,7 @@ public:
   virtual ~TextureClientD3D11();
 
   
-  static TemporaryRef<TextureClientD3D11>
+  static already_AddRefed<TextureClientD3D11>
   Create(ISurfaceAllocator* aAllocator,
          gfx::SurfaceFormat aFormat,
          TextureFlags aFlags,
@@ -67,7 +67,7 @@ public:
   virtual bool AllocateForSurface(gfx::IntSize aSize,
                                   TextureAllocationFlags aFlags = ALLOC_DEFAULT) override;
 
-  virtual TemporaryRef<TextureClient>
+  virtual already_AddRefed<TextureClient>
   CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
                 TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const override;
 
@@ -93,7 +93,7 @@ public:
   virtual ~DXGIYCbCrTextureClient();
 
   
-  static TemporaryRef<DXGIYCbCrTextureClient>
+  static already_AddRefed<DXGIYCbCrTextureClient>
   Create(ISurfaceAllocator* aAllocator,
          TextureFlags aFlags,
          IUnknown* aTextureY,
@@ -128,7 +128,7 @@ public:
     
     
     
-    virtual TemporaryRef<TextureClient>
+    virtual already_AddRefed<TextureClient>
     CreateSimilar(TextureFlags, TextureAllocationFlags) const override{ return nullptr; }
 
 private:
@@ -257,7 +257,7 @@ public:
 
   virtual gfx::IntSize GetSize() const override { return mSize; }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override
   {
     return nullptr;
   }
@@ -296,7 +296,7 @@ public:
 
   virtual gfx::IntSize GetSize() const override{ return mSize; }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override
   {
     return nullptr;
   }

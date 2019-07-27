@@ -146,7 +146,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<Path> GetOrBuildPath(const DrawTarget& aDrawTarget,
+  virtual already_AddRefed<Path> GetOrBuildPath(const DrawTarget& aDrawTarget,
                                                      FillRule fillRule);
 
   
@@ -154,7 +154,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<Path> BuildPath(PathBuilder* aBuilder) = 0;
+  virtual already_AddRefed<Path> BuildPath(PathBuilder* aBuilder) = 0;
 
   
 
@@ -171,7 +171,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<Path> GetOrBuildPathForMeasuring();
+  virtual already_AddRefed<Path> GetOrBuildPathForMeasuring();
 
   
 

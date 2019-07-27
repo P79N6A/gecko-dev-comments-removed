@@ -152,7 +152,7 @@ public:
 
   virtual bool AreComponentAlphaLayersEnabled() override;
 
-  virtual TemporaryRef<DrawTarget>
+  virtual already_AddRefed<DrawTarget>
     CreateOptimalMaskDrawTarget(const IntSize &aSize) override;
 
   virtual const char* Name() const override { return ""; }
@@ -186,7 +186,7 @@ public:
 
 
 
-  virtual TemporaryRef<mozilla::gfx::DrawTarget>
+  virtual already_AddRefed<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize& aSize,
                      mozilla::gfx::SurfaceFormat aFormat) override;
 

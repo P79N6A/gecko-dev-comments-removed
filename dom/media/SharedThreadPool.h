@@ -32,7 +32,7 @@ public:
   
   
   
-  static TemporaryRef<SharedThreadPool> Get(const nsCString& aName,
+  static already_AddRefed<SharedThreadPool> Get(const nsCString& aName,
                                             uint32_t aThreadLimit = 4);
 
   

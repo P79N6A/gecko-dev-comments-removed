@@ -271,7 +271,7 @@ nsCertTree::GetCertAtIndex(int32_t index, int32_t *outAbsoluteCertOffset)
 }
 
 
-TemporaryRef<nsCertTreeDispInfo>
+already_AddRefed<nsCertTreeDispInfo>
 nsCertTree::GetDispInfoAtIndex(int32_t index, 
                                int32_t *outAbsoluteCertOffset)
 {

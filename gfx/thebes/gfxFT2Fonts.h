@@ -60,7 +60,7 @@ public:
                                         FontCacheSizes* aSizes) const;
 
 #ifdef USE_SKIA
-    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
+    virtual already_AddRefed<mozilla::gfx::GlyphRenderingOptions>
         GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams = nullptr) override;
 #endif
 

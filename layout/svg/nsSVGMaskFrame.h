@@ -53,7 +53,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  mozilla::TemporaryRef<SourceSurface>
+  already_AddRefed<SourceSurface>
   GetMaskForMaskedFrame(gfxContext* aContext,
                         nsIFrame* aMaskedFrame,
                         const gfxMatrix &aMatrix,

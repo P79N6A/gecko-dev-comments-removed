@@ -85,7 +85,7 @@ public:
   virtual bool HaveBuffer() const = 0;
   virtual bool HaveBufferOnWhite() const = 0;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const = 0;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const = 0;
 
 protected:
 
@@ -140,7 +140,7 @@ public:
     , mSourceOnWhite(aSourceOnWhite)
   { }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
 
   virtual bool HaveBuffer() const { return !!mSource; }
   virtual bool HaveBufferOnWhite() const { return !!mSourceOnWhite; }
@@ -319,7 +319,7 @@ public:
   gfx::DrawTarget* GetDTBuffer() { return mDTBuffer; }
   gfx::DrawTarget* GetDTBufferOnWhite() { return mDTBufferOnWhite; }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
 
   
 

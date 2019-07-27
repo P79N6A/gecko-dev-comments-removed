@@ -129,13 +129,13 @@ public:
 
   LayersBackend GetCompositorBackendType() const;
 
-  TemporaryRef<BufferTextureClient>
+  already_AddRefed<BufferTextureClient>
   CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
                             gfx::IntSize aSize,
                             gfx::BackendType aMoz2dBackend = gfx::BackendType::NONE,
                             TextureFlags aFlags = TextureFlags::DEFAULT);
 
-  TemporaryRef<TextureClient>
+  already_AddRefed<TextureClient>
   CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
                                 gfx::IntSize aSize,
                                 gfx::BackendType aMoz2DBackend,

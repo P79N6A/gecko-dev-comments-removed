@@ -164,9 +164,9 @@ public:
 
 
 
-  TemporaryRef<Path> BuildPathForMeasuring() const;
+  already_AddRefed<Path> BuildPathForMeasuring() const;
 
-  TemporaryRef<Path> BuildPath(PathBuilder* aBuilder,
+  already_AddRefed<Path> BuildPath(PathBuilder* aBuilder,
                                uint8_t aCapStyle,
                                Float aStrokeWidth) const;
 

@@ -221,7 +221,7 @@ enum class MediaThreadType {
 };
 
 
-TemporaryRef<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType);
+already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType);
 
 enum H264_PROFILE {
   H264_PROFILE_UNKNOWN                     = 0,

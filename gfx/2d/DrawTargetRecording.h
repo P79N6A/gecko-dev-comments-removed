@@ -22,7 +22,7 @@ public:
   virtual DrawTargetType GetType() const override { return mFinalDT->GetType(); }
   virtual BackendType GetBackendType() const override { return mFinalDT->GetBackendType(); }
 
-  virtual TemporaryRef<SourceSurface> Snapshot() override;
+  virtual already_AddRefed<SourceSurface> Snapshot() override;
 
   virtual IntSize GetSize() override { return mFinalDT->GetSize(); }
 
@@ -210,7 +210,7 @@ public:
 
 
 
-  virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
+  virtual already_AddRefed<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                                   const IntSize &aSize,
                                                                   int32_t aStride,
                                                                   SurfaceFormat aFormat) const override;
@@ -220,20 +220,20 @@ public:
 
 
 
-  virtual TemporaryRef<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override;
+  virtual already_AddRefed<SourceSurface> OptimizeSourceSurface(SourceSurface *aSurface) const override;
 
   
 
 
 
 
-  virtual TemporaryRef<SourceSurface>
+  virtual already_AddRefed<SourceSurface>
     CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const override;
 
   
 
 
-  virtual TemporaryRef<DrawTarget>
+  virtual already_AddRefed<DrawTarget>
     CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const override;
 
   
@@ -243,7 +243,7 @@ public:
 
 
 
-  virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const override;
+  virtual already_AddRefed<PathBuilder> CreatePathBuilder(FillRule aFillRule = FillRule::FILL_WINDING) const override;
 
   
 
@@ -255,12 +255,12 @@ public:
 
 
 
-  virtual TemporaryRef<GradientStops>
+  virtual already_AddRefed<GradientStops>
     CreateGradientStops(GradientStop *aStops,
                         uint32_t aNumStops,
                         ExtendMode aExtendMode = ExtendMode::CLAMP) const override;
 
-  virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) override;
+  virtual already_AddRefed<FilterNode> CreateFilter(FilterType aType) override;
 
   
 

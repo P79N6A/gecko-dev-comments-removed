@@ -284,7 +284,7 @@ MatchUnconnectedPin(IPin* aPin,
 }
 
 
-TemporaryRef<IPin>
+already_AddRefed<IPin>
 GetUnconnectedPin(IBaseFilter* aFilter, PIN_DIRECTION aPinDir)
 {
   RefPtr<IEnumPins> enumPins;

@@ -76,7 +76,7 @@ SkTypeface* ScaledFontMac::GetSkTypeface()
 
 
 
-TemporaryRef<Path>
+already_AddRefed<Path>
 ScaledFontMac::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget)
 {
   if (aTarget->GetBackendType() == BackendType::COREGRAPHICS ||

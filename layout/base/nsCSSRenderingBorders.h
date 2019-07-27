@@ -165,7 +165,7 @@ private:
   
   
   
-  mozilla::TemporaryRef<Path> GetSideClipSubPath(mozilla::css::Side aSide);
+  already_AddRefed<Path> GetSideClipSubPath(mozilla::css::Side aSide);
 
   
   
@@ -212,7 +212,7 @@ private:
   bool AllBordersSolid(bool *aHasCompositeColors);
 
   
-  mozilla::TemporaryRef<mozilla::gfx::GradientStops>
+  already_AddRefed<mozilla::gfx::GradientStops>
   CreateCornerGradient(mozilla::css::Corner aCorner, nscolor aFirstColor,
                        nscolor aSecondColor, mozilla::gfx::DrawTarget *aDT,
                        mozilla::gfx::Point &aPoint1, mozilla::gfx::Point &aPoint2);

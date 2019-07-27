@@ -245,7 +245,7 @@ struct EffectChain
 
 
 
-inline TemporaryRef<TexturedEffect>
+inline already_AddRefed<TexturedEffect>
 CreateTexturedEffect(gfx::SurfaceFormat aFormat,
                      TextureSource* aSource,
                      const gfx::Filter& aFilter,
@@ -281,7 +281,7 @@ CreateTexturedEffect(gfx::SurfaceFormat aFormat,
 
 
 
-inline TemporaryRef<TexturedEffect>
+inline already_AddRefed<TexturedEffect>
 CreateTexturedEffect(TextureSource* aSource,
                      TextureSource* aSourceOnWhite,
                      const gfx::Filter& aFilter,
@@ -308,7 +308,7 @@ CreateTexturedEffect(TextureSource* aSource,
 
 
 
-inline TemporaryRef<TexturedEffect>
+inline already_AddRefed<TexturedEffect>
 CreateTexturedEffect(TextureSource *aTexture,
                      const gfx::Filter& aFilter,
                      const LayerRenderState &state = LayerRenderState())

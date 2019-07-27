@@ -116,7 +116,7 @@ public:
 
 
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
+  virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; }
 
   bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
   void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }

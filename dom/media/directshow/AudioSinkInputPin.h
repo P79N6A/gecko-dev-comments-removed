@@ -54,7 +54,7 @@ public:
   
   
   
-  TemporaryRef<IMediaSeeking> GetConnectedPinSeeking();
+  already_AddRefed<IMediaSeeking> GetConnectedPinSeeking();
 
   SampleSink* GetSampleSink();
 

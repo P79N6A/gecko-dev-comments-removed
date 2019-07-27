@@ -48,7 +48,7 @@ public:
     
     
     
-    static mozilla::TemporaryRef<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
+    static already_AddRefed<HRTFDatabaseLoader> createAndLoadAsynchronouslyIfNecessary(float sampleRate);
 
     
     void AddRef()

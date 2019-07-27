@@ -114,7 +114,7 @@ public:
 
 
 
-    virtual mozilla::TemporaryRef<mozilla::gfx::DataSourceSurface> CopyToB8G8R8A8DataSourceSurface();
+    virtual already_AddRefed<mozilla::gfx::DataSourceSurface> CopyToB8G8R8A8DataSourceSurface();
 
     
 

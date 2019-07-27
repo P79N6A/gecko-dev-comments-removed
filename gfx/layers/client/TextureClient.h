@@ -79,7 +79,7 @@ public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SyncObject)
   virtual ~SyncObject() { }
 
-  static TemporaryRef<SyncObject> CreateSyncObject(SyncHandle aHandle);
+  static already_AddRefed<SyncObject> CreateSyncObject(SyncHandle aHandle);
 
   enum class SyncType {
     D3D11,
@@ -170,7 +170,7 @@ public:
   virtual ~TextureClient();
 
   
-  static TemporaryRef<TextureClient>
+  static already_AddRefed<TextureClient>
   CreateForDrawing(ISurfaceAllocator* aAllocator,
                    gfx::SurfaceFormat aFormat,
                    gfx::IntSize aSize,
@@ -179,7 +179,7 @@ public:
                    TextureAllocationFlags flags = ALLOC_DEFAULT);
 
   
-  static TemporaryRef<BufferTextureClient>
+  static already_AddRefed<BufferTextureClient>
   CreateForYCbCr(ISurfaceAllocator* aAllocator,
                  gfx::IntSize aYSize,
                  gfx::IntSize aCbCrSize,
@@ -188,7 +188,7 @@ public:
 
   
   
-  static TemporaryRef<BufferTextureClient>
+  static already_AddRefed<BufferTextureClient>
   CreateForRawBufferAccess(ISurfaceAllocator* aAllocator,
                            gfx::SurfaceFormat aFormat,
                            gfx::IntSize aSize,
@@ -199,14 +199,14 @@ public:
   
   
   
-  static TemporaryRef<BufferTextureClient>
+  static already_AddRefed<BufferTextureClient>
   CreateWithBufferSize(ISurfaceAllocator* aAllocator,
                        gfx::SurfaceFormat aFormat,
                        size_t aSize,
                        TextureFlags aTextureFlags);
 
   
-  virtual TemporaryRef<TextureClient>
+  virtual already_AddRefed<TextureClient>
   CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
                 TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const = 0;
 
@@ -278,7 +278,7 @@ public:
 
 
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() {
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() {
     Lock(OpenMode::OPEN_READ);
     RefPtr<gfx::SourceSurface> surf = BorrowDrawTarget()->Snapshot();
     RefPtr<gfx::DataSourceSurface> data = surf->GetDataSurface();
@@ -611,7 +611,7 @@ public:
 
   virtual bool HasInternalBuffer() const override { return true; }
 
-  virtual TemporaryRef<TextureClient>
+  virtual already_AddRefed<TextureClient>
   CreateSimilar(TextureFlags aFlags = TextureFlags::DEFAULT,
                 TextureAllocationFlags aAllocFlags = ALLOC_DEFAULT) const override;
 

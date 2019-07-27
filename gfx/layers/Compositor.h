@@ -191,7 +191,7 @@ public:
   {
   }
 
-  virtual TemporaryRef<DataTextureSource> CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) = 0;
+  virtual already_AddRefed<DataTextureSource> CreateDataTextureSource(TextureFlags aFlags = TextureFlags::NO_FLAGS) = 0;
   virtual bool Initialize() = 0;
   virtual void Destroy() = 0;
 
@@ -253,7 +253,7 @@ public:
 
 
 
-  virtual TemporaryRef<CompositingRenderTarget>
+  virtual already_AddRefed<CompositingRenderTarget>
   CreateRenderTarget(const gfx::IntRect& aRect, SurfaceInitMode aInit) = 0;
 
   
@@ -263,7 +263,7 @@ public:
 
 
 
-  virtual TemporaryRef<CompositingRenderTarget>
+  virtual already_AddRefed<CompositingRenderTarget>
   CreateRenderTargetFromSource(const gfx::IntRect& aRect,
                                const CompositingRenderTarget* aSource,
                                const gfx::IntPoint& aSourcePoint) = 0;

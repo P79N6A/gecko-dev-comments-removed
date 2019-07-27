@@ -22,7 +22,7 @@ namespace dom {
 
 class SurfaceHelper : public nsRunnable {
 public:
-  explicit SurfaceHelper(TemporaryRef<layers::Image> aImage) : mImage(aImage) {}
+  explicit SurfaceHelper(already_AddRefed<layers::Image> aImage) : mImage(aImage) {}
 
   
   
@@ -41,7 +41,7 @@ public:
     return NS_OK;
   }
 
-  TemporaryRef<gfx::DataSourceSurface> GetDataSurfaceSafe() {
+  already_AddRefed<gfx::DataSourceSurface> GetDataSurfaceSafe() {
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     MOZ_ASSERT(mainThread);
     SyncRunnable::DispatchToThread(mainThread, this, false);
@@ -59,10 +59,10 @@ private:
 
 
 
-TemporaryRef<DataSourceSurface>
-GetBRGADataSourceSurfaceSync(TemporaryRef<layers::Image> aImage)
+already_AddRefed<DataSourceSurface>
+GetBRGADataSourceSurfaceSync(already_AddRefed<layers::Image> aImage)
 {
-  nsRefPtr<SurfaceHelper> helper = new SurfaceHelper(aImage);
+  nsRefPtr<SurfaceHelper> helper = new SurfaceHelper(Move(aImage));
   return helper->GetDataSurfaceSafe();
 }
 

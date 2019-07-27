@@ -172,7 +172,7 @@ WMFVideoMFTManager::InitializeDXVA(bool aForceD3D9)
   return mDXVA2Manager != nullptr;
 }
 
-TemporaryRef<MFTDecoder>
+already_AddRefed<MFTDecoder>
 WMFVideoMFTManager::Init()
 {
   RefPtr<MFTDecoder> decoder = InitInternal( false);
@@ -187,7 +187,7 @@ WMFVideoMFTManager::Init()
   return decoder.forget();
 }
 
-TemporaryRef<MFTDecoder>
+already_AddRefed<MFTDecoder>
 WMFVideoMFTManager::InitInternal(bool aForceD3D9)
 {
   mUseHwAccel = false; 

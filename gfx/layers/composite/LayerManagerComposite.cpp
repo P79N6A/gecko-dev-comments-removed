@@ -330,7 +330,7 @@ LayerManagerComposite::EndTransaction(DrawPaintedLayerCallback aCallback,
 #endif
 }
 
-TemporaryRef<DrawTarget>
+already_AddRefed<DrawTarget>
 LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
 {
   NS_RUNTIMEABORT("Should only be called on the drawing side");
@@ -1254,7 +1254,7 @@ LayerManagerComposite::AutoAddMaskEffect::~AutoAddMaskEffect()
   mCompositable->RemoveMaskEffect();
 }
 
-TemporaryRef<DrawTarget>
+already_AddRefed<DrawTarget>
 LayerManagerComposite::CreateDrawTarget(const IntSize &aSize,
                                         SurfaceFormat aFormat)
 {

@@ -177,7 +177,7 @@ public:
 
 
 
-  TemporaryRef<gfx::DataSourceSurface> ToDataSourceSurface();
+  already_AddRefed<gfx::DataSourceSurface> ToDataSourceSurface();
 };
 
 } 

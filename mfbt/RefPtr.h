@@ -278,11 +278,11 @@ public:
     return *this;
   }
 
-  TemporaryRef<T> forget()
+  already_AddRefed<T> forget()
   {
     T* tmp = mPtr;
     mPtr = nullptr;
-    return TemporaryRef<T>(tmp, DontRef());
+    return already_AddRefed<T>(tmp);
   }
 
   T* get() const { return mPtr; }
@@ -416,13 +416,8 @@ byRef(RefPtr<T>& aPtr)
 
 
 
-
-
-
-
-
 template<typename T, typename... Args>
-TemporaryRef<T>
+already_AddRefed<T>
 MakeAndAddRef(Args&&... aArgs)
 {
   RefPtr<T> p(new T(Forward<Args>(aArgs)...));

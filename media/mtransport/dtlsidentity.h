@@ -24,7 +24,7 @@ class DtlsIdentity {
 
  public:
   
-  static TemporaryRef<DtlsIdentity> Generate();
+  static already_AddRefed<DtlsIdentity> Generate();
 
   
   

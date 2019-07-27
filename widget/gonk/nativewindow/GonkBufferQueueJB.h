@@ -385,7 +385,7 @@ public:
     
     status_t setTransformHint(uint32_t hint);
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    already_AddRefed<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
 
     int getSlotFromTextureClientLocked(TextureClient* client) const;
 

@@ -42,7 +42,7 @@ public:
 
 
 
-  static TemporaryRef<ImageClient> CreateImageClient(CompositableType aImageHostType,
+  static already_AddRefed<ImageClient> CreateImageClient(CompositableType aImageHostType,
                                                      CompositableForwarder* aFwd,
                                                      TextureFlags aFlags);
 
@@ -66,7 +66,7 @@ public:
   
 
 
-  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() { return nullptr; }
+  virtual already_AddRefed<AsyncTransactionTracker> PrepareFlushAllImages() { return nullptr; }
 
   
 
@@ -109,7 +109,7 @@ public:
 
   virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat) override;
 
-  virtual TemporaryRef<AsyncTransactionTracker> PrepareFlushAllImages() override;
+  virtual already_AddRefed<AsyncTransactionTracker> PrepareFlushAllImages() override;
 
   virtual void FlushAllImages(bool aExceptFront,
                               AsyncTransactionTracker* aAsyncTransactionTracker) override;

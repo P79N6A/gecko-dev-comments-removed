@@ -24,7 +24,7 @@ public:
 
   
   
-  virtual TemporaryRef<MFTDecoder> Init() = 0;
+  virtual already_AddRefed<MFTDecoder> Init() = 0;
 
   
   

@@ -26,7 +26,7 @@ protected:
                                               already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
 
   
-  virtual mozilla::TemporaryRef<Path> BuildPath(PathBuilder* aBuilder) override;
+  virtual already_AddRefed<Path> BuildPath(PathBuilder* aBuilder) override;
 
 public:
   

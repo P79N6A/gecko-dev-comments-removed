@@ -279,7 +279,7 @@ public:
 
 
 
-  static mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags);
+  static already_AddRefed<LibHandle> Load(const char *path, int flags);
 
   
 
@@ -412,7 +412,7 @@ public:
 
 
 
-  mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags,
+  already_AddRefed<LibHandle> Load(const char *path, int flags,
                                         LibHandle *parent = nullptr);
 
   
@@ -421,7 +421,7 @@ public:
 
 
 
-  mozilla::TemporaryRef<LibHandle> GetHandleByPtr(void *addr);
+  already_AddRefed<LibHandle> GetHandleByPtr(void *addr);
 
   
 

@@ -57,14 +57,14 @@ public:
                 const gfx::Point& aCP2,
                 const gfx::Point& aCP3);
 
-  TemporaryRef<gfx::Path> GetPath(const CanvasWindingRule& aWinding,
+  already_AddRefed<gfx::Path> GetPath(const CanvasWindingRule& aWinding,
                                   const gfx::DrawTarget* aTarget) const;
 
   explicit CanvasPath(nsISupports* aParent);
   
   
   CanvasPath(nsISupports* aParent,
-             TemporaryRef<gfx::PathBuilder> aPathBuilder);
+             already_AddRefed<gfx::PathBuilder> aPathBuilder);
 
   void AddPath(CanvasPath& aCanvasPath,
                const Optional<NonNull<SVGMatrix>>& aMatrix);

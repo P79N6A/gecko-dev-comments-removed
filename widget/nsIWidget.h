@@ -1703,7 +1703,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() = 0;
+    virtual already_AddRefed<mozilla::gfx::DrawTarget> StartRemoteDrawing() = 0;
 
     
 
@@ -2123,7 +2123,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    mozilla::TemporaryRef<mozilla::gfx::SourceSurface> SnapshotWidgetOnScreen();
+    already_AddRefed<mozilla::gfx::SourceSurface> SnapshotWidgetOnScreen();
 
     
 

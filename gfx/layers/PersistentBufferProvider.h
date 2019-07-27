@@ -48,7 +48,7 @@ public:
 
   virtual bool ReturnAndUseDT(gfx::DrawTarget* aDT) = 0;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSnapshot() = 0;
+  virtual already_AddRefed<gfx::SourceSurface> GetSnapshot() = 0;
 protected:
 };
 
@@ -64,7 +64,7 @@ public:
   virtual LayersBackend GetType() { return LayersBackend::LAYERS_BASIC; }
   gfx::DrawTarget* GetDT(const gfx::IntRect& aPersistedRect) { return mDrawTarget; }
   bool ReturnAndUseDT(gfx::DrawTarget* aDT) { MOZ_ASSERT(mDrawTarget == aDT); return true; }
-  virtual TemporaryRef<gfx::SourceSurface> GetSnapshot() { return mDrawTarget->Snapshot(); }
+  virtual already_AddRefed<gfx::SourceSurface> GetSnapshot() { return mDrawTarget->Snapshot(); }
 private:
   RefPtr<gfx::DrawTarget> mDrawTarget;
 };

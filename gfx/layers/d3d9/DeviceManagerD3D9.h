@@ -194,7 +194,7 @@ public:
 
 
 
-  TemporaryRef<IDirect3DTexture9> CreateTexture(const gfx::IntSize &aSize,
+  already_AddRefed<IDirect3DTexture9> CreateTexture(const gfx::IntSize &aSize,
                                                 _D3DFORMAT aFormat,
                                                 D3DPOOL aPool,
                                                 TextureSourceD3D9* aTextureHostIDirect3DTexture9);

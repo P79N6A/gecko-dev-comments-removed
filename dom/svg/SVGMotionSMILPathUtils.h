@@ -62,7 +62,7 @@ public:
     
     inline bool HaveReceivedCommands() { return mHaveReceivedCommands; }
     
-    mozilla::TemporaryRef<Path> GetResultingPath();
+    already_AddRefed<Path> GetResultingPath();
 
   protected:
     

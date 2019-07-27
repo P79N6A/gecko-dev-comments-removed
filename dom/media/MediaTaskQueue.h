@@ -31,14 +31,7 @@ typedef MediaPromise<bool, bool, false> ShutdownPromise;
 
 class MediaTaskQueue : public AbstractThread {
 public:
-  explicit MediaTaskQueue(TemporaryRef<SharedThreadPool> aPool, bool aSupportsTailDispatch = false);
-
-  void Dispatch(TemporaryRef<nsIRunnable> aRunnable,
-                DispatchFailureHandling aFailureHandling = AssertDispatchSuccess)
-  {
-    nsCOMPtr<nsIRunnable> r = dont_AddRef(aRunnable.take());
-    return Dispatch(r.forget(), aFailureHandling);
-  }
+  explicit MediaTaskQueue(already_AddRefed<SharedThreadPool> aPool, bool aSupportsTailDispatch = false);
 
   TaskDispatcher& TailDispatcher() override;
 
@@ -56,7 +49,7 @@ public:
 
   
   
-  void SyncDispatch(TemporaryRef<nsIRunnable> aRunnable);
+  void SyncDispatch(already_AddRefed<nsIRunnable> aRunnable);
 
   
   
@@ -183,8 +176,8 @@ protected:
 class FlushableMediaTaskQueue : public MediaTaskQueue
 {
 public:
-  explicit FlushableMediaTaskQueue(TemporaryRef<SharedThreadPool> aPool) : MediaTaskQueue(aPool) {}
-  nsresult FlushAndDispatch(TemporaryRef<nsIRunnable> aRunnable);
+  explicit FlushableMediaTaskQueue(already_AddRefed<SharedThreadPool> aPool) : MediaTaskQueue(Move(aPool)) {}
+  nsresult FlushAndDispatch(already_AddRefed<nsIRunnable> aRunnable);
   void Flush();
 
   bool IsDispatchReliable() override { return false; }

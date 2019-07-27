@@ -268,7 +268,7 @@ public:
 
 
 
-  virtual TemporaryRef<gfx::DataSourceSurface> ReadBack() { return nullptr; };
+  virtual already_AddRefed<gfx::DataSourceSurface> ReadBack() { return nullptr; };
 #endif
 
 private:
@@ -325,7 +325,7 @@ public:
   
 
 
-  static TemporaryRef<TextureHost> Create(const SurfaceDescriptor& aDesc,
+  static already_AddRefed<TextureHost> Create(const SurfaceDescriptor& aDesc,
                                           ISurfaceAllocator* aDeallocator,
                                           TextureFlags aFlags);
 
@@ -421,7 +421,7 @@ public:
 
 
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() = 0;
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() = 0;
 
   
 
@@ -589,7 +589,7 @@ public:
 
   virtual gfx::IntSize GetSize() const override { return mSize; }
 
-  virtual TemporaryRef<gfx::DataSourceSurface> GetAsSurface() override;
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override;
 
   virtual bool HasInternalBuffer() const override { return true; }
 
@@ -715,7 +715,7 @@ public:
   virtual ~CompositingRenderTarget() {}
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor) { return nullptr; }
+  virtual already_AddRefed<gfx::DataSourceSurface> Dump(Compositor* aCompositor) { return nullptr; }
 #endif
 
   
@@ -740,7 +740,7 @@ private:
 
 
 
-TemporaryRef<TextureHost>
+already_AddRefed<TextureHost>
 CreateBackendIndependentTextureHost(const SurfaceDescriptor& aDesc,
                                     ISurfaceAllocator* aDeallocator,
                                     TextureFlags aFlags);

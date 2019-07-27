@@ -1111,7 +1111,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<SourceSurface>
+  virtual already_AddRefed<SourceSurface>
   RenderNode(nsIDOMNode* aNode,
              nsIntRegion* aRegion,
              nsIntPoint& aPoint,
@@ -1132,7 +1132,7 @@ public:
 
 
 
-  virtual mozilla::TemporaryRef<SourceSurface>
+  virtual already_AddRefed<SourceSurface>
   RenderSelection(nsISelection* aSelection,
                   nsIntPoint& aPoint,
                   nsIntRect* aScreenRect) = 0;

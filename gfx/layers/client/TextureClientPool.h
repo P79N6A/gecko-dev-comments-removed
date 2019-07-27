@@ -39,7 +39,7 @@ public:
 
 
 
-  TemporaryRef<TextureClient> GetTextureClient();
+  already_AddRefed<TextureClient> GetTextureClient();
 
   
 

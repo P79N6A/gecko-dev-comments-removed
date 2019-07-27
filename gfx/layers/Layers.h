@@ -461,7 +461,7 @@ public:
 
 
 
-  virtual TemporaryRef<DrawTarget>
+  virtual already_AddRefed<DrawTarget>
     CreateOptimalDrawTarget(const IntSize &aSize,
                             SurfaceFormat imageFormat);
 
@@ -471,14 +471,14 @@ public:
 
 
 
-  virtual TemporaryRef<DrawTarget>
+  virtual already_AddRefed<DrawTarget>
     CreateOptimalMaskDrawTarget(const IntSize &aSize);
 
   
 
 
 
-  virtual TemporaryRef<mozilla::gfx::DrawTarget>
+  virtual already_AddRefed<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
@@ -486,7 +486,7 @@ public:
 
 
 
-  virtual TemporaryRef<PersistentBufferProvider>
+  virtual already_AddRefed<PersistentBufferProvider>
     CreatePersistentBufferProvider(const mozilla::gfx::IntSize &aSize,
                                    mozilla::gfx::SurfaceFormat aFormat);
 

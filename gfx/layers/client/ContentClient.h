@@ -78,7 +78,7 @@ public:
 
 
 
-  static TemporaryRef<ContentClient> CreateContentClient(CompositableForwarder* aFwd);
+  static already_AddRefed<ContentClient> CreateContentClient(CompositableForwarder* aFwd);
 
   explicit ContentClient(CompositableForwarder* aForwarder)
   : CompositableClient(aForwarder)

@@ -321,7 +321,7 @@ public:
 
 
 
-  static mozilla::TemporaryRef<mozilla::gfx::Path>
+  static already_AddRefed<mozilla::gfx::Path>
   GetPath(const nsAString& aPathString);
 
   

@@ -28,7 +28,7 @@ public:
 
 
 
-  static mozilla::TemporaryRef<LibHandle> Load(Mappable *mappable,
+  static already_AddRefed<LibHandle> Load(Mappable *mappable,
                                                const char *path, int flags);
 
   

@@ -112,13 +112,13 @@ class GonkNativeWindow: public GonkConsumerBase
     status_t setDefaultBufferFormat(uint32_t defaultFormat);
 
     
-    mozilla::TemporaryRef<TextureClient> getCurrentBuffer();
+    already_AddRefed<TextureClient> getCurrentBuffer();
 
     
     
     void returnBuffer(TextureClient* client);
 
-    mozilla::TemporaryRef<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
+    already_AddRefed<TextureClient> getTextureClientFromBuffer(ANativeWindowBuffer* buffer);
 
     void setNewFrameCallback(GonkNativeWindowNewFrameCallback* callback);
 

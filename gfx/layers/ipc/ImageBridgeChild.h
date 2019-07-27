@@ -192,8 +192,8 @@ public:
   virtual bool
   RecvParentAsyncMessages(InfallibleTArray<AsyncParentMessageData>&& aMessages) override;
 
-  TemporaryRef<ImageClient> CreateImageClient(CompositableType aType);
-  TemporaryRef<ImageClient> CreateImageClientNow(CompositableType aType);
+  already_AddRefed<ImageClient> CreateImageClient(CompositableType aType);
+  already_AddRefed<ImageClient> CreateImageClientNow(CompositableType aType);
 
   static void DispatchReleaseImageClient(ImageClient* aClient);
   static void DispatchReleaseTextureClient(TextureClient* aClient);

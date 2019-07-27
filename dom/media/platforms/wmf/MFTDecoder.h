@@ -43,7 +43,7 @@ public:
                         void* aData = nullptr);
 
   
-  TemporaryRef<IMFAttributes> GetAttributes();
+  already_AddRefed<IMFAttributes> GetAttributes();
 
   
   

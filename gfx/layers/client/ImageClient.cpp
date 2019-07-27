@@ -41,7 +41,7 @@ namespace layers {
 
 using namespace mozilla::gfx;
 
- TemporaryRef<ImageClient>
+ already_AddRefed<ImageClient>
 ImageClient::CreateImageClient(CompositableType aCompositableHostType,
                                CompositableForwarder* aForwarder,
                                TextureFlags aFlags)
@@ -117,7 +117,7 @@ TextureInfo ImageClientSingle::GetTextureInfo() const
   return TextureInfo(CompositableType::IMAGE);
 }
 
-TemporaryRef<AsyncTransactionTracker>
+already_AddRefed<AsyncTransactionTracker>
 ImageClientSingle::PrepareFlushAllImages()
 {
   return MakeAndAddRef<RemoveTextureFromCompositableTracker>();
