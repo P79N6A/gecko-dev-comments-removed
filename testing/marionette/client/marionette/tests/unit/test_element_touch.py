@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from marionette_driver.errors import MarionetteException
+from errors import MarionetteException
 
 class testElementTouch(MarionetteTestCase):
     def test_touch(self):

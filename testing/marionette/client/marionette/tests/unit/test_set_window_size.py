@@ -2,7 +2,7 @@
 
 
 
-from marionette_driver.errors import MarionetteException
+from errors import MarionetteException
 from marionette_test import MarionetteTestCase
 
 class TestSetWindowSize(MarionetteTestCase):

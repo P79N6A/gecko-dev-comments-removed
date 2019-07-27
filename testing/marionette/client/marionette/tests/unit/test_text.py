@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase
-from marionette_driver.keys import Keys
+from keys import Keys
 
 
 class TestText(MarionetteTestCase):

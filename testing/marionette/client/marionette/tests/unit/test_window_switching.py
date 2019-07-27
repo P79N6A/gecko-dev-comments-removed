@@ -2,11 +2,10 @@
 
 
 
+from by import By
+from errors import NoSuchElementException
 from marionette_test import MarionetteTestCase
-
-from marionette_driver.by import By
-from marionette_driver.errors import NoSuchElementException
-from marionette_driver.wait import Wait
+from wait import Wait
 
 
 class TestWindowSwitching(MarionetteTestCase):

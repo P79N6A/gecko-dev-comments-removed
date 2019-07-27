@@ -3,7 +3,7 @@
 
 
 from marionette_test import MarionetteTestCase, skip_if_e10s
-from marionette_driver.keys import Keys
+from marionette import Keys
 
 
 class TestWindowHandles(MarionetteTestCase):
@@ -92,8 +92,6 @@ class TestWindowHandles(MarionetteTestCase):
         self.assertEqual(len(self.marionette.window_handles), 1)
         self.marionette.switch_to_window(start_tab)
 
-    
-    @skip_if_e10s
     def test_tab_and_window_handles(self):
         start_tab = self.marionette.current_window_handle
         start_chrome_window = self.marionette.current_chrome_window_handle
