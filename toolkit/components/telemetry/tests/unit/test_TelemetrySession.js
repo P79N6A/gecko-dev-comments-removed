@@ -29,6 +29,7 @@ Cu.import("resource://gre/modules/osfile.jsm", this);
 
 const PING_FORMAT_VERSION = 4;
 const PING_TYPE_MAIN = "main";
+const PING_TYPE_SAVED_SESSION = "saved-session";
 
 const REASON_SAVED_SESSION = "saved-session";
 const REASON_TEST_PING = "test-ping";
@@ -634,17 +635,18 @@ add_task(function* test_saveLoadPing() {
   let ping1 = decodeRequestPayload(request1);
   let ping2 = decodeRequestPayload(request2);
 
-  checkPingFormat(ping1, PING_TYPE_MAIN, true, true);
-  checkPingFormat(ping2, PING_TYPE_MAIN, true, true);
-
   
-  if (ping1.payload.info.reason === REASON_TEST_PING) {
-    
-    
+  
+  let requestTypeComponent = request1.path.split("/")[4];
+  if (requestTypeComponent === PING_TYPE_MAIN) {
+    checkPingFormat(ping1, PING_TYPE_MAIN, true, true);
     checkPayload(ping1.payload, REASON_TEST_PING, 1);
+    checkPingFormat(ping2, PING_TYPE_SAVED_SESSION, true, true);
     checkPayload(ping2.payload, REASON_SAVED_SESSION, 1);
   } else {
+    checkPingFormat(ping1, PING_TYPE_SAVED_SESSION, true, true);
     checkPayload(ping1.payload, REASON_SAVED_SESSION, 1);
+    checkPingFormat(ping2, PING_TYPE_MAIN, true, true);
     checkPayload(ping2.payload, REASON_TEST_PING, 1);
   }
 });
