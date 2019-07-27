@@ -38,7 +38,12 @@ function testSourceIsUgly() {
 }
 
 function clickPrettyPrintButton() {
-  gDebugger.document.getElementById("pretty-print").click();
+  
+  
+  return new Promise(resolve => {
+    gDebugger.document.getElementById("pretty-print").click();
+    resolve();
+  });
 }
 
 function testSourceIsStillUgly() {
