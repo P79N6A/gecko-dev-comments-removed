@@ -1122,9 +1122,18 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
                 return false;
             ReplaceNode(pnp, expr);
 
-            pn->pn_left = nullptr;
-            pn->pn_right = nullptr;
+            
+            
+            
+            
+            
+            
+            
+            pn->setKind(PNK_TYPEOF);
+            pn->setArity(PN_UNARY);
+            pn->pn_kid = pn2;
             handler.freeTree(pn);
+
             pn = expr;
         }
         break;
