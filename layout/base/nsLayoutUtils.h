@@ -2475,12 +2475,6 @@ public:
 
 
 
-  static bool WantSubAPZC();
-
-  
-
-
-
   static bool UsesAsyncScrolling();
 
   

@@ -59,7 +59,6 @@ pref("apz.min_skate_speed", "10.0");
 
 pref("apz.axis_lock.mode", 2);
 pref("apz.cross_slide.enabled", true);
-pref("apz.subframe.enabled", true);
 
 
 pref("intl.tsf.enable", true);

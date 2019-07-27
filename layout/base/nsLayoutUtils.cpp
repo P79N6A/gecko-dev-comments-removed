@@ -2892,7 +2892,8 @@ nsLayoutUtils::GetOrMaybeCreateDisplayPort(nsDisplayListBuilder& aBuilder,
   
   
   
-  if (aBuilder.IsPaintingToWindow() && WantSubAPZC() &&
+  if (aBuilder.IsPaintingToWindow() &&
+      gfxPrefs::AsyncPanZoomEnabled() &&
       !aBuilder.HaveScrollableDisplayPort() &&
       scrollableFrame->WantAsyncScroll()) {
 
@@ -7650,13 +7651,6 @@ nsLayoutUtils::CalculateExpandedScrollableRect(nsIFrame* aFrame)
     scrollableRect.height = compSize.height;
   }
   return scrollableRect;
-}
-
- bool
-nsLayoutUtils::WantSubAPZC()
-{
-  return gfxPrefs::AsyncPanZoomEnabled() &&
-         gfxPrefs::APZSubframeEnabled();
 }
 
  bool

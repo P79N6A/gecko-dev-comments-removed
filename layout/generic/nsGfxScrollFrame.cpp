@@ -3007,7 +3007,7 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     shouldBuildLayer = true;
   } else {
     shouldBuildLayer =
-      nsLayoutUtils::WantSubAPZC() &&
+      gfxPrefs::AsyncPanZoomEnabled() &&
       WantAsyncScroll() &&
       
       
