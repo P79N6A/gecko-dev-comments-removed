@@ -206,7 +206,35 @@ AppendDistroSearchDirs(nsIProperties* aDirSvc, nsCOMArray<nsIFile> &array)
 NS_IMETHODIMP
 DirectoryProvider::GetFiles(const char *aKey, nsISimpleEnumerator* *aResult)
 {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult rv;
+
+  if (!strcmp(aKey, NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)) {
+    nsCOMPtr<nsIProperties> dirSvc
+      (do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+    if (!dirSvc)
+      return NS_ERROR_FAILURE;
+
+    nsCOMArray<nsIFile> distroFiles;
+    AppendDistroSearchDirs(dirSvc, distroFiles);
+
+    return NS_NewArrayEnumerator(aResult, distroFiles);
+  }
 
   if (!strcmp(aKey, NS_APP_SEARCH_DIR_LIST)) {
     nsCOMPtr<nsIProperties> dirSvc
@@ -216,16 +244,6 @@ DirectoryProvider::GetFiles(const char *aKey, nsISimpleEnumerator* *aResult)
 
     nsCOMArray<nsIFile> baseFiles;
 
-    
-
-
-
-
-
-
-
-
-    AppendDistroSearchDirs(dirSvc, baseFiles);
     AppendFileKey(NS_APP_USER_SEARCH_DIR, dirSvc, baseFiles);
     AppendFileKey(NS_APP_SEARCH_DIR, dirSvc, baseFiles);
 

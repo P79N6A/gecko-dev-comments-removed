@@ -51,6 +51,7 @@ const MODE_TRUNCATE = 0x20;
 
 
 const NS_APP_SEARCH_DIR_LIST  = "SrchPluginsDL";
+const NS_APP_DISTRIBUTION_SEARCH_DIR_LIST = "SrchPluginsDistDL";
 const NS_APP_USER_SEARCH_DIR  = "UsrSrchPlugns";
 const NS_APP_SEARCH_DIR       = "SrchPlugns";
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
@@ -3485,8 +3486,7 @@ SearchService.prototype = {
         cache = this._readCacheFile(cacheFile);
     }
 
-    let loadDirs = [], chromeURIs = [], chromeFiles = [];
-
+    let chromeURIs = [], chromeFiles = [];
     let loadFromJARs = false;
     try {
       loadFromJARs = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF)
@@ -3496,16 +3496,33 @@ SearchService.prototype = {
     if (loadFromJARs)
       [chromeFiles, chromeURIs] = this._findJAREngines();
 
-    let locations = getDir(NS_APP_SEARCH_DIR_LIST, Ci.nsISimpleEnumerator);
+    let distDirs = [];
+    let locations;
+    try {
+      locations = getDir(NS_APP_DISTRIBUTION_SEARCH_DIR_LIST,
+                         Ci.nsISimpleEnumerator);
+    } catch (e) {
+      
+      
+      locations = {hasMoreElements: () => false};
+    }
+    while (locations.hasMoreElements()) {
+      let dir = locations.getNext().QueryInterface(Ci.nsIFile);
+      if (dir.directoryEntries.hasMoreElements())
+        distDirs.push(dir);
+    }
+
+    let otherDirs = [];
+    locations = getDir(NS_APP_SEARCH_DIR_LIST, Ci.nsISimpleEnumerator);
     while (locations.hasMoreElements()) {
       let dir = locations.getNext().QueryInterface(Ci.nsIFile);
       if (loadFromJARs && dir.equals(getDir(NS_APP_SEARCH_DIR)))
         continue;
       if (dir.directoryEntries.hasMoreElements())
-        loadDirs.push(dir);
+        otherDirs.push(dir);
     }
 
-    let toLoad = chromeFiles.concat(loadDirs);
+    let toLoad = chromeFiles.concat(distDirs, otherDirs);
 
     function modifiedDir(aDir) {
       return (!cache.directories || !cache.directories[aDir.path] ||
@@ -3528,9 +3545,11 @@ SearchService.prototype = {
 
     if (!cacheEnabled || rebuildCache) {
       LOG("_loadEngines: Absent or outdated cache. Loading engines from disk.");
-      loadDirs.forEach(this._loadEnginesFromDir, this);
+      distDirs.forEach(this._loadEnginesFromDir, this);
 
       this._loadFromChromeURLs(chromeURIs);
+
+      otherDirs.forEach(this._loadEnginesFromDir, this);
 
       if (cacheEnabled)
         this._buildCache();
@@ -3561,8 +3580,7 @@ SearchService.prototype = {
         cache = yield checkForSyncCompletion(this._asyncReadCacheFile(cacheFilePath));
       }
 
-      let loadDirs = [], chromeURIs = [], chromeFiles = [];
-
+      let chromeURIs = [], chromeFiles = [];
       let loadFromJARs = false;
       try {
         loadFromJARs = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF)
@@ -3576,10 +3594,39 @@ SearchService.prototype = {
       }
 
       
-      
-      let locations = getDir(NS_APP_SEARCH_DIR_LIST, Ci.nsISimpleEnumerator);
+      let distDirs = [];
+      let locations;
+      try {
+        locations = getDir(NS_APP_DISTRIBUTION_SEARCH_DIR_LIST,
+                           Ci.nsISimpleEnumerator);
+      } catch (e) {
+        
+        
+        locations = {hasMoreElements: () => false};
+      }
       while (locations.hasMoreElements()) {
         let dir = locations.getNext().QueryInterface(Ci.nsIFile);
+        let iterator = new OS.File.DirectoryIterator(dir.path,
+                                                     { winPattern: "*.xml" });
+        try {
+          
+          yield checkForSyncCompletion(iterator.next());
+          distDirs.push(dir);
+        } catch (ex if ex.result != Cr.NS_ERROR_ALREADY_INITIALIZED) {
+          
+        } finally {
+          iterator.close();
+        }
+      }
+
+      
+      
+      let otherDirs = [];
+      locations = getDir(NS_APP_SEARCH_DIR_LIST, Ci.nsISimpleEnumerator);
+      while (locations.hasMoreElements()) {
+        let dir = locations.getNext().QueryInterface(Ci.nsIFile);
+        
+        
         
         if (loadFromJARs && dir.equals(getDir(NS_APP_SEARCH_DIR)))
           continue;
@@ -3589,7 +3636,7 @@ SearchService.prototype = {
         try {
           
           yield checkForSyncCompletion(iterator.next());
-          loadDirs.push(dir);
+          otherDirs.push(dir);
         } catch (ex if ex.result != Cr.NS_ERROR_ALREADY_INITIALIZED) {
           
         } finally {
@@ -3597,7 +3644,7 @@ SearchService.prototype = {
         }
       }
 
-      let toLoad = chromeFiles.concat(loadDirs);
+      let toLoad = chromeFiles.concat(distDirs, otherDirs);
       function hasModifiedDir(aList) {
         return Task.spawn(function() {
           let modifiedDir = false;
@@ -3636,7 +3683,7 @@ SearchService.prototype = {
       if (!cacheEnabled || rebuildCache) {
         LOG("_asyncLoadEngines: Absent or outdated cache. Loading engines from disk.");
         let engines = [];
-        for (let loadDir of loadDirs) {
+        for (let loadDir of distDirs) {
           let enginesFromDir =
             yield checkForSyncCompletion(this._asyncLoadEnginesFromDir(loadDir));
           engines = engines.concat(enginesFromDir);
@@ -3644,6 +3691,11 @@ SearchService.prototype = {
         let enginesFromURLs =
            yield checkForSyncCompletion(this._asyncLoadFromChromeURLs(chromeURIs));
         engines = engines.concat(enginesFromURLs);
+        for (let loadDir of otherDirs) {
+          let enginesFromDir =
+            yield checkForSyncCompletion(this._asyncLoadEnginesFromDir(loadDir));
+          engines = engines.concat(enginesFromDir);
+        }
 
         for (let engine of engines) {
           this._addEngineToStore(engine);
