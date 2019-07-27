@@ -614,12 +614,6 @@ nsMemoryInfoDumper::DumpMemoryInfoToTempDir(const nsAString& aIdentifier,
   nsString identifier(aIdentifier);
   EnsureNonEmptyIdentifier(identifier);
 
-#ifdef MOZ_DMD
-  
-  
-  dmd::ClearReports();
-#endif
-
   
   
   
