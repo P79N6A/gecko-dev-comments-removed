@@ -115,34 +115,37 @@ StyleEditorUI.prototype = {
 
 
 
-  initialize: function() {
-    return Task.spawn(function*() {
-      let toolbox = gDevTools.getToolbox(this._target);
-      yield toolbox.initInspector();
-      this._walker = toolbox.walker;
+  initialize: Task.async(function* () {
+    yield this.initializeHighlighter();
 
-      let hUtils = toolbox.highlighterUtils;
-      if (hUtils.supportsCustomHighlighters()) {
-        try {
-          this._highlighter =
-            yield hUtils.getHighlighterByType(SELECTOR_HIGHLIGHTER_TYPE);
-        } catch (e) {
-          
-          
-          
-          console.warn("The selectorHighlighter couldn't be instantiated, " +
-            "elements matching hovered selectors will not be highlighted");
-        }
+    this.createUI();
+
+    let styleSheets = yield this._debuggee.getStyleSheets();
+    yield this._resetStyleSheetList(styleSheets);
+
+    this._target.on("will-navigate", this._clear);
+    this._target.on("navigate", this._onNewDocument);
+  }),
+
+  initializeHighlighter: Task.async(function* () {
+    let toolbox = gDevTools.getToolbox(this._target);
+    yield toolbox.initInspector();
+    this._walker = toolbox.walker;
+
+    let hUtils = toolbox.highlighterUtils;
+    if (hUtils.supportsCustomHighlighters()) {
+      try {
+        this._highlighter =
+          yield hUtils.getHighlighterByType(SELECTOR_HIGHLIGHTER_TYPE);
+      } catch (e) {
+        
+        
+        
+        console.warn("The selectorHighlighter couldn't be instantiated, " +
+          "elements matching hovered selectors will not be highlighted");
       }
-    }.bind(this)).then(() => {
-      this.createUI();
-      this._debuggee.getStyleSheets().then((styleSheets) => {
-        this._resetStyleSheetList(styleSheets); 
-        this._target.on("will-navigate", this._clear);
-        this._target.on("navigate", this._onNewDocument);
-      }, Cu.reportError);
-    });
-  },
+    }
+  }),
 
   
 
@@ -207,8 +210,8 @@ StyleEditorUI.prototype = {
 
   _onNewDocument: function() {
     this._debuggee.getStyleSheets().then((styleSheets) => {
-      this._resetStyleSheetList(styleSheets);
-    }, Cu.reportError);
+      return this._resetStyleSheetList(styleSheets);
+    }).then(null, Cu.reportError);
   },
 
   
@@ -217,17 +220,17 @@ StyleEditorUI.prototype = {
 
 
 
-  _resetStyleSheetList: function(styleSheets) {
+  _resetStyleSheetList: Task.async(function* (styleSheets) {
     this._clear();
 
     for (let sheet of styleSheets) {
-      this._addStyleSheet(sheet);
+      yield this._addStyleSheet(sheet);
     }
 
     this._root.classList.remove("loading");
 
     this.emit("stylesheets-reset");
-  },
+  }),
 
   
 
@@ -268,26 +271,26 @@ StyleEditorUI.prototype = {
 
 
 
-  _addStyleSheet: function(styleSheet) {
-    let editor = this._addStyleSheetEditor(styleSheet);
+  _addStyleSheet: Task.async(function* (styleSheet) {
+    let editor = yield this._addStyleSheetEditor(styleSheet);
 
     if (!Services.prefs.getBoolPref(PREF_ORIG_SOURCES)) {
       return;
     }
 
-    styleSheet.getOriginalSources().then((sources) => {
-      if (sources && sources.length) {
-        this._removeStyleSheetEditor(editor);
-        sources.forEach((source) => {
-          
-          source.styleSheetIndex = styleSheet.styleSheetIndex;
-          source.relatedStyleSheet = styleSheet;
+    let sources = yield styleSheet.getOriginalSources();
+    if (sources && sources.length) {
+      this._removeStyleSheetEditor(editor);
 
-          this._addStyleSheetEditor(source);
-        });
+      for (let source of sources) {
+        
+        source.styleSheetIndex = styleSheet.styleSheetIndex;
+        source.relatedStyleSheet = styleSheet;
+
+        yield this._addStyleSheetEditor(source);
       }
-    }, Cu.reportError);
-  },
+    }
+  }),
 
   
 
@@ -299,7 +302,9 @@ StyleEditorUI.prototype = {
 
 
 
-  _addStyleSheetEditor: function(styleSheet, file, isNew) {
+
+
+  _addStyleSheetEditor: Task.async(function* (styleSheet, file, isNew) {
     
     let identifier = this.getStyleSheetIdentifier(styleSheet);
     let savedFile = this.savedLocations[identifier];
@@ -318,10 +323,11 @@ StyleEditorUI.prototype = {
 
     this.editors.push(editor);
 
-    editor.fetchSource(this._sourceLoaded.bind(this, editor))
-          .then(null, Cu.reportError);
+    yield editor.fetchSource();
+    this._sourceLoaded(editor);
+
     return editor;
-  },
+  }),
 
   
 
