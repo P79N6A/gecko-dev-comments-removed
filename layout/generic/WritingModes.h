@@ -20,20 +20,6 @@
 
 
 
-#ifndef RELEASE_BUILD
-#define WRITING_MODE_VERTICAL_ENABLED 1
-#endif
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -190,11 +176,7 @@ public:
 
 
 
-#ifdef WRITING_MODE_VERTICAL_ENABLED
   bool IsVertical() const { return !!(mWritingMode & eOrientationMask); }
-#else
-  bool IsVertical() const { return false; }
-#endif
 
   
 
@@ -202,11 +184,7 @@ public:
 
 
 
-#ifdef WRITING_MODE_VERTICAL_ENABLED
   bool IsLineInverted() const { return !!(mWritingMode & eLineOrientMask); }
-#else
-  bool IsLineInverted() const { return false; }
-#endif
 
   
 
@@ -227,11 +205,7 @@ public:
 
 
 
-#ifdef WRITING_MODE_VERTICAL_ENABLED
   bool IsSideways() const { return !!(mWritingMode & eSidewaysMask); }
-#else
-  bool IsSideways() const { return false; }
-#endif
 
   
 
@@ -251,7 +225,6 @@ public:
 
     const nsStyleVisibility* styleVisibility = aStyleContext->StyleVisibility();
 
-#ifdef WRITING_MODE_VERTICAL_ENABLED
     switch (styleVisibility->mWritingMode) {
       case NS_STYLE_WRITING_MODE_HORIZONTAL_TB:
         mWritingMode = 0;
@@ -294,9 +267,6 @@ public:
         mWritingMode = 0;
         break;
     }
-#else
-    mWritingMode = 0;
-#endif
 
     if (NS_STYLE_DIRECTION_RTL == styleVisibility->mDirection) {
       mWritingMode |= eInlineFlowMask | 
