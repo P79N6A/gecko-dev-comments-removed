@@ -131,7 +131,16 @@ GetEntryGlobal()
 nsIDocument*
 GetEntryDocument()
 {
-  nsCOMPtr<nsPIDOMWindow> entryWin = do_QueryInterface(GetEntryGlobal());
+  nsIGlobalObject* global = GetEntryGlobal();
+  nsCOMPtr<nsPIDOMWindow> entryWin = do_QueryInterface(global);
+
+  
+  
+  
+  if (!entryWin) {
+    entryWin = xpc::AddonWindowOrNull(global->GetGlobalJSObject());
+  }
+
   return entryWin ? entryWin->GetExtantDoc() : nullptr;
 }
 
