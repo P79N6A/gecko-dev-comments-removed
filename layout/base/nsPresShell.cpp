@@ -7585,6 +7585,7 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
         isHandlingUserInput = true;
         break;
       case NS_TOUCH_START: {
+        isHandlingUserInput = true;
         WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
         
         
@@ -7609,8 +7610,10 @@ PresShell::HandleEventInternal(WidgetEvent* aEvent, nsEventStatus* aStatus)
         }
         break;
       }
-      case NS_TOUCH_CANCEL:
-      case NS_TOUCH_END: {
+      case NS_TOUCH_END:
+        isHandlingUserInput = true;
+        
+      case NS_TOUCH_CANCEL: {
         
         
         WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent();
@@ -8743,11 +8746,6 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   PROFILER_LABEL_PRINTF("PresShell", "DoReflow",
     js::ProfileEntry::Category::GRAPHICS, "(%s)", docURL.get());
 
-  nsDocShell* docShell = static_cast<nsDocShell*>(GetPresContext()->GetDocShell());
-  if (docShell) {
-    docShell->AddProfileTimelineMarker("Reflow", TRACING_INTERVAL_START);
-  }
-
   if (mReflowContinueTimer) {
     mReflowContinueTimer->Cancel();
     mReflowContinueTimer = nullptr;
@@ -8911,9 +8909,6 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   }
 #endif
 
-  if (docShell) {
-    docShell->AddProfileTimelineMarker("Reflow", TRACING_INTERVAL_END);
-  }
   return !interrupted;
 }
 
