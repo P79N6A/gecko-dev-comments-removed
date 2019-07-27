@@ -97,15 +97,69 @@ mozilla::plugins::SetupBridge(uint32_t aPluginId, dom::ContentParent* aContentPa
     return PPluginModule::Bridge(aContentParent, chromeParent);
 }
 
-PluginModuleContentParent* PluginModuleContentParent::sSavedModuleParent;
+
+
+
+
+struct MOZ_STACK_CLASS SavedPluginModule
+{
+    SavedPluginModule() : mModule(nullptr), mNext(sSavedModuleStack)
+    {
+        sSavedModuleStack = this;
+    }
+    ~SavedPluginModule()
+    {
+        MOZ_ASSERT(sSavedModuleStack == this);
+        sSavedModuleStack = mNext;
+    }
+
+    PluginModuleContentParent* GetModule() { return mModule; }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static void SaveModule(PluginModuleContentParent* module)
+    {
+        SavedPluginModule* saved = sSavedModuleStack;
+        SavedPluginModule* prev = nullptr;
+        while (saved && !saved->mModule) {
+            prev = saved;
+            saved = saved->mNext;
+        }
+        MOZ_ASSERT(prev);
+        MOZ_ASSERT(!prev->mModule);
+        prev->mModule = module;
+    }
+
+private:
+    PluginModuleContentParent* mModule;
+    SavedPluginModule* mNext;
+
+    static SavedPluginModule* sSavedModuleStack;
+};
+
+SavedPluginModule* SavedPluginModule::sSavedModuleStack;
 
  PluginLibrary*
 PluginModuleContentParent::LoadModule(uint32_t aPluginId)
 {
-    MOZ_ASSERT(!sSavedModuleParent);
+    SavedPluginModule saved;
+
     MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content);
 
     
+
 
 
 
@@ -117,9 +171,8 @@ PluginModuleContentParent::LoadModule(uint32_t aPluginId)
         return nullptr;
     }
 
-    PluginModuleContentParent* parent = sSavedModuleParent;
+    PluginModuleContentParent* parent = saved.GetModule();
     MOZ_ASSERT(parent);
-    sSavedModuleParent = nullptr;
 
     return parent;
 }
@@ -135,8 +188,7 @@ PluginModuleContentParent::Create(mozilla::ipc::Transport* aTransport,
         return nullptr;
     }
 
-    MOZ_ASSERT(!sSavedModuleParent);
-    sSavedModuleParent = parent;
+    SavedPluginModule::SaveModule(parent);
 
     DebugOnly<bool> ok = parent->Open(aTransport, handle, XRE_GetIOMessageLoop(),
                                       mozilla::ipc::ParentSide);
