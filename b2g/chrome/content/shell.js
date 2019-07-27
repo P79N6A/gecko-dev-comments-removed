@@ -371,33 +371,9 @@ var shell = {
   
   
   
-  
-  filterHardwareKeys: function shell_filterHardwareKeys(evt) {
-    var type;
-    switch (evt.keyCode) {
-      case evt.DOM_VK_HOME:         
-        type = 'home-button';
-        break;
-      case evt.DOM_VK_SLEEP:        
-      case evt.DOM_VK_END:          
-        type = 'sleep-button';
-        break;
-      case evt.DOM_VK_VOLUME_UP:      
-        type = 'volume-up-button';
-        break;
-      case evt.DOM_VK_VOLUME_DOWN:    
-        type = 'volume-down-button';
-        break;
-      case evt.DOM_VK_ESCAPE:       
-        type = 'back-button';
-        break;
-      case evt.DOM_VK_CONTEXT_MENU: 
-        type = 'menu-button';
-        break;
-      case evt.DOM_VK_F1: 
-        type = 'headset-button';
-        break;
-    }
+  broadcastHardwareKeys: function shell_broadcastHardwareKeys(evt) {
+    let type;
+    let message;
 
     let mediaKeys = {
       'MediaTrackNext': 'media-next-track-button',
@@ -410,53 +386,33 @@ var shell = {
       'MediaFastForward': 'media-fast-forward-button'
     };
 
-    let isMediaKey = false;
-    if (mediaKeys[evt.key]) {
-      isMediaKey = true;
-      type = mediaKeys[evt.key];
-    }
-
-    
-    if (!type) {
+    if (evt.keyCode == evt.DOM_VK_F1) {
+      type = 'headset-button';
+      message = 'headset-button';
+    } else if (mediaKeys[evt.key]) {
+      type = 'media-button';
+      message = mediaKeys[evt.key];
+    } else {
       return;
     }
 
     switch (evt.type) {
       case 'keydown':
-        type = type + '-press';
+        message = message + '-press';
         break;
       case 'keyup':
-        type = type + '-release';
+        message = message + '-release';
         break;
     }
 
     
-    if (evt.keyCode == evt.DOM_VK_F1 && type !== this.lastHardwareButtonEventType) {
-      this.lastHardwareButtonEventType = type;
-      gSystemMessenger.broadcastMessage('headset-button', type);
-      return;
-    }
-
-    if (isMediaKey) {
-      this.lastHardwareButtonEventType = type;
-      gSystemMessenger.broadcastMessage('media-button', type);
-      return;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (type !== this.lastHardwareButtonEventType) {
-      this.lastHardwareButtonEventType = type;
-      this.sendChromeEvent({type: type});
+    if (message !== this.lastHardwareButtonMessage) {
+      this.lastHardwareButtonMessage = message;
+      gSystemMessenger.broadcastMessage(type, message);
     }
   },
 
-  lastHardwareButtonEventType: null, 
+  lastHardwareButtonMessage: null, 
   visibleNormalAudioActive: false,
 
   handleEvent: function shell_handleEvent(evt) {
@@ -464,7 +420,7 @@ var shell = {
     switch (evt.type) {
       case 'keydown':
       case 'keyup':
-        this.filterHardwareKeys(evt);
+        this.broadcastHardwareKeys(evt);
         break;
       case 'mozfullscreenchange':
         
