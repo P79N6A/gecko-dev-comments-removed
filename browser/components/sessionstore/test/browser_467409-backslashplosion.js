@@ -37,18 +37,15 @@ add_task(function test_nested_about_sessionrestore() {
   yield promiseBrowserLoaded(browser);
 
   
-  ss.setTabState(tab, JSON.stringify(STATE));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, STATE);
   checkState("test1", tab);
 
   
-  ss.setTabState(tab, JSON.stringify(STATE2));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, STATE2);
   checkState("test2", tab);
 
   
-  ss.setTabState(tab, JSON.stringify(STATE3));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, STATE3);
   checkState("test3", tab);
 
   

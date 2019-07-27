@@ -73,8 +73,7 @@ add_task(function test_old_format() {
 
   
   let state = {entries: [{url: URL, formdata: {id: {input: VALUE}}}]};
-  ss.setTabState(tab, JSON.stringify(state));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, state);
   is((yield getInputValue(browser, "input")), VALUE, "form data restored");
 
   
@@ -97,8 +96,7 @@ add_task(function test_old_format_inner_html() {
 
   
   let state = {entries: [{url: URL, innerHTML: VALUE}]};
-  ss.setTabState(tab, JSON.stringify(state));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, state);
 
   
   let html = yield getInnerHTML(browser);
@@ -130,8 +128,7 @@ add_task(function test_url_check() {
       state.formdata.url = url;
     }
 
-    ss.setTabState(tab, JSON.stringify(state));
-    return promiseTabRestored(tab).then(() => getInputValue(browser, "input"));
+    return promiseTabState(tab, state).then(() => getInputValue(browser, "input"));
   }
 
   

@@ -4,11 +4,7 @@
 
 const PREF_RESTORE_ON_DEMAND = "browser.sessionstore.restore_on_demand";
 
-function test() {
-  TestRunner.run();
-}
-
-function runTests() {
+add_task(function* test() {
   Services.prefs.setBoolPref(PREF_RESTORE_ON_DEMAND, true);
   registerCleanupFunction(function () {
     Services.prefs.clearUserPref(PREF_RESTORE_ON_DEMAND);
@@ -25,29 +21,36 @@ function runTests() {
   ], selected: 5 }] };
 
   let loadCount = 0;
-  gProgressListener.setCallback(function (aBrowser, aNeedRestore, aRestoring, aRestored) {
-    loadCount++;
+  let promiseRestoringTabs = new Promise(resolve => {
+    gProgressListener.setCallback(function (aBrowser, aNeedRestore, aRestoring, aRestored) {
+      loadCount++;
 
-    
-    
+      
+      
 
-    
-    let tab;
-    for (let i = 0; i < window.gBrowser.tabs.length; i++) {
-      if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser)
-        tab = window.gBrowser.tabs[i];
-    }
+      
+      let tab;
+      for (let i = 0; i < window.gBrowser.tabs.length; i++) {
+        if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser)
+          tab = window.gBrowser.tabs[i];
+      }
 
-    ok(tab.pinned || tab.selected,
-       "load came from pinned or selected tab");
+      ok(tab.pinned || tab.selected,
+         "load came from pinned or selected tab");
 
-    
-    if (loadCount < 4)
-      return;
+      
+      if (loadCount < 4)
+        return;
 
-    gProgressListener.unsetCallback();
-    executeSoon(next);
+      gProgressListener.unsetCallback();
+      resolve();
+    });
   });
 
-  yield ss.setBrowserState(JSON.stringify(state));
-}
+  let backupState = ss.getBrowserState();
+  ss.setBrowserState(JSON.stringify(state));
+  yield promiseRestoringTabs;
+
+  
+  yield promiseBrowserState(backupState);
+});

@@ -20,7 +20,7 @@ add_task(function test_load_start() {
   
   tab = ss.undoCloseTab(window, 0);
   browser = tab.linkedBrowser;
-  yield promiseBrowserLoaded(browser);
+  yield promiseTabRestored(tab);
 
   
   is(browser.currentURI.spec, "about:mozilla", "url is correct");

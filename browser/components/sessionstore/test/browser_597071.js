@@ -7,9 +7,7 @@
 
 add_task(function test_close_last_nonpopup_window() {
   
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
 
   let oldState = ss.getWindowState(window);
 

@@ -18,9 +18,6 @@ const TEST_STATE = {
   }]
 };
 
-function test() {
-  TestRunner.run();
-}
 
 
 
@@ -31,20 +28,20 @@ function test() {
 
 
 
-
-function runTests() {
-  let win;
-
+add_task(function* test() {
   
-  Services.obs.addObserver(function onOpened(subject) {
-    Services.obs.removeObserver(onOpened, "domwindowopened");
-    win = subject;
-    executeSoon(next);
-  }, "domwindowopened", false);
+  let promiseWindow = new Promise(resolve => {
+    Services.obs.addObserver(function onOpened(subject) {
+      Services.obs.removeObserver(onOpened, "domwindowopened");
+      resolve(subject);
+    }, "domwindowopened", false);
+  });
 
   
   
-  yield SessionStore.setBrowserState(JSON.stringify(TEST_STATE));
+  let backupState = SessionStore.getBrowserState();
+  SessionStore.setBrowserState(JSON.stringify(TEST_STATE));
+  let win = yield promiseWindow;
 
   
   
@@ -53,10 +50,14 @@ function runTests() {
 
   
   
-  yield whenDelayedStartupFinished(win, next);
+  yield new Promise(resolve => whenDelayedStartupFinished(win, resolve));
   info("the delayed startup has finished");
   checkWindows();
-}
+
+  
+  yield promiseWindowClosed(win);
+  yield promiseBrowserState(backupState);
+});
 
 function checkWindows() {
   let state = JSON.parse(SessionStore.getBrowserState());

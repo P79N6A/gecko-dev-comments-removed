@@ -47,7 +47,7 @@ function test() {
 
   
   let tab = gBrowser.addTab(TEST_URL);
-  whenBrowserLoaded(tab.linkedBrowser, function() {
+  promiseBrowserLoaded(tab.linkedBrowser).then(() => {
     
     
     setTimeout(function step1(e) {

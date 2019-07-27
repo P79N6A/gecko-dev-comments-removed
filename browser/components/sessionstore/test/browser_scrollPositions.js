@@ -115,8 +115,7 @@ add_task(function test_scroll_old_format() {
   yield promiseBrowserLoaded(browser);
 
   
-  ss.setTabState(tab, JSON.stringify(TAB_STATE));
-  yield promiseTabRestored(tab);
+  yield promiseTabState(tab, TAB_STATE);
 
   
   let scroll = yield sendMessage(browser, "ss-test:getScrollPosition");

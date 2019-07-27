@@ -20,9 +20,7 @@ function test() {
   let uniqueText = "pi != " + Math.random();
 
   
-  while (SessionStore.getClosedWindowCount()) {
-    SessionStore.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
 
   provideWindow(function onTestURLLoaded(newWin) {
     newWin.gBrowser.addTab().linkedBrowser.stop();

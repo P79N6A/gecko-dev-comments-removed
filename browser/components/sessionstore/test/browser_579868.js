@@ -3,12 +3,12 @@
 
 
 function test() {
-  let tab1 = gBrowser.addTab("about:rights");
-  let tab2 = gBrowser.addTab("about:mozilla");
-  whenBrowserLoaded(tab1.linkedBrowser, mainPart);
   waitForExplicitFinish();
 
-  function mainPart() {
+  let tab1 = gBrowser.addTab("about:rights");
+  let tab2 = gBrowser.addTab("about:mozilla");
+
+  promiseBrowserLoaded(tab1.linkedBrowser).then(() => {
     
     let newTabState = '{"entries":[{"url":"about:rights"}],"pinned":true,"userTypedValue":"Hello World!"}';
     ss.setTabState(tab1, newTabState);
@@ -26,5 +26,5 @@ function test() {
     gBrowser.removeTab(tab1);
     gBrowser.removeTab(tab2);
     finish();
-  }
+  });
 }

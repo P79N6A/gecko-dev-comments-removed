@@ -17,9 +17,7 @@ add_task(function* setup() {
 
   
   
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
   is(ss.getClosedWindowCount(), 0, "starting with no closed windows");
 });
 
@@ -79,8 +77,6 @@ add_task(function* done() {
   
   
 
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
   Services.prefs.clearUserPref("browser.sessionstore.interval");
 });

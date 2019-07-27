@@ -8,8 +8,7 @@ function test() {
   waitForExplicitFinish();
 
   
-  while(ss.getClosedWindowCount() > 0)
-    ss.forgetClosedWindow(0);
+  forgetClosedWindows();
 
   
   

@@ -1,29 +1,24 @@
 
 
 
-function test() {
-  TestRunner.run();
-}
 
 
 
 
 
 
-
-function runTests() {
+add_task(function* test() {
   
-  let win = OpenBrowserWindow();
-  yield whenDelayedStartupFinished(win, next);
+  let win = yield promiseNewWindowLoaded();
 
   
   let flags = Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY;
   win.gBrowser.selectedBrowser.loadURIWithFlags("about:robots", flags);
-  yield whenBrowserLoaded(win.gBrowser.selectedBrowser);
+  yield promiseBrowserLoaded(win.gBrowser.selectedBrowser);
 
   
   let tab = win.gBrowser.addTab("about:mozilla");
-  yield whenBrowserLoaded(tab.linkedBrowser);
+  yield promiseBrowserLoaded(tab.linkedBrowser);
   TabState.flush(tab.linkedBrowser);
   win.gBrowser.removeTab(win.gBrowser.tabs[0]);
 
@@ -37,8 +32,7 @@ function runTests() {
   let closedTabData = ss.getClosedTabData(win);
 
   
-  whenWindowClosed(win);
-  yield win.close();
+  yield promiseWindowClosed(win);
 
   
   
@@ -46,11 +40,11 @@ function runTests() {
   checkWindowState(win);
 
   
-  ok(shouldThrow(() => ss.setWindowState(win, {})),
-     "we're not allowed to modify state data anymore");
-  ok(shouldThrow(() => ss.setWindowValue(win, "foo", "baz")),
-     "we're not allowed to modify state data anymore");
-}
+  Assert.throws(() => ss.setWindowState(win, {}),
+    "we're not allowed to modify state data anymore");
+  Assert.throws(() => ss.setWindowValue(win, "foo", "baz"),
+    "we're not allowed to modify state data anymore");
+});
 
 function checkWindowState(window) {
   let {windows: [{tabs}]} = JSON.parse(ss.getWindowState(window));
@@ -70,11 +64,4 @@ function shouldThrow(f) {
   } catch (e) {
     return true;
   }
-}
-
-function whenWindowClosed(window) {
-  window.addEventListener("SSWindowClosing", function onClosing() {
-    window.removeEventListener("SSWindowClosing", onClosing);
-    executeSoon(next);
-  });
 }

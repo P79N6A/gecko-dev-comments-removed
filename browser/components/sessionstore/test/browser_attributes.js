@@ -1,10 +1,6 @@
 
 
 
-function test() {
-  TestRunner.run();
-}
-
 
 
 
@@ -13,13 +9,13 @@ function test() {
 
 const PREF = "browser.sessionstore.restore_on_demand";
 
-function runTests() {
+add_task(function* test() {
   Services.prefs.setBoolPref(PREF, true)
   registerCleanupFunction(() => Services.prefs.clearUserPref(PREF));
 
   
   let tab = gBrowser.addTab("about:robots");
-  yield whenBrowserLoaded(tab.linkedBrowser);
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
   
   ok(tab.hasAttribute("image"), "tab.image exists");
@@ -44,15 +40,16 @@ function runTests() {
   };
 
   
-  whenTabRestoring(tab);
-  yield ss.setTabState(tab, JSON.stringify(state));
+  let promise = promiseTabRestoring(tab);
+  ss.setTabState(tab, JSON.stringify(state));
+  yield promise;
 
   ok(tab.hasAttribute("pending"), "tab is pending");
   is(gBrowser.getIcon(tab), state.attributes.image, "tab has correct icon");
 
   
   gBrowser.selectedTab = tab;
-  yield whenTabRestored(tab);
+  yield promiseTabRestored(tab);
 
   
   ({attributes} = JSON.parse(ss.getTabState(tab)));
@@ -62,11 +59,13 @@ function runTests() {
 
   
   gBrowser.removeTab(tab);
-}
+});
 
-function whenTabRestoring(tab) {
-  tab.addEventListener("SSTabRestoring", function onRestoring() {
-    tab.removeEventListener("SSTabRestoring", onRestoring);
-    executeSoon(next);
+function promiseTabRestoring(tab) {
+  return new Promise(resolve => {
+    tab.addEventListener("SSTabRestoring", function onRestoring() {
+      tab.removeEventListener("SSTabRestoring", onRestoring);
+      resolve();
+    });
   });
 }

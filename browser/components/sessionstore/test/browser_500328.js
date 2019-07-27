@@ -42,9 +42,9 @@ function checkState(tab) {
       
       
       
-      runInContent(tab.linkedBrowser, function(win, state) {
-        return Cu.waiveXrays(state).obj3.toString();
-      }, aEvent.state).then(function(stateStr) {
+      runInContent(tab.linkedBrowser, function(win, event) {
+        return Cu.waiveXrays(event.state).obj3.toString();
+      }, aEvent).then(function(stateStr) {
         is(stateStr, '/^a$/', "second popstate object.");
 
         
@@ -83,10 +83,10 @@ function test() {
   let tab = gBrowser.addTab("about:blank");
   let browser = tab.linkedBrowser;
 
-  whenBrowserLoaded(browser, function() {
+  promiseBrowserLoaded(browser).then(() => {
     browser.loadURI("http://example.com", null, null);
 
-    whenBrowserLoaded(browser, function() {
+    promiseBrowserLoaded(browser).then(() => {
       
       
       
@@ -109,9 +109,7 @@ function test() {
         ss.setTabState(tab2, state, true);
 
         
-        whenTabRestored(tab2, function() {
-          checkState(tab2);
-        });
+        promiseTabRestored(tab2).then(() => checkState(tab2));
       });
     });
   });

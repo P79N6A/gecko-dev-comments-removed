@@ -100,7 +100,7 @@ function test() {
     
     let tab_A = aWin.gBrowser.addTab(testURL);
     ss.setTabState(tab_A, JSON.stringify(state));
-    whenBrowserLoaded(tab_A.linkedBrowser, function() {
+    promiseBrowserLoaded(tab_A.linkedBrowser).then(() => {
       
       Services.prefs.setIntPref(
         "browser.sessionstore.max_tabs_undo", max_tabs_undo + 1)
@@ -119,7 +119,7 @@ function test() {
       
       let tab_A_restored = test(function() ss.undoCloseTab(aWin, 0));
       ok(tab_A_restored, "a tab is in undo list");
-      whenTabRestored(tab_A_restored, function() {
+      promiseTabRestored(tab_A_restored).then(() => {
         is(testURL, tab_A_restored.linkedBrowser.currentURI.spec,
            "it's the same tab that we expect");
         aWin.gBrowser.removeTab(tab_A_restored);
@@ -136,15 +136,14 @@ function test() {
           };
 
           let tab_B = aWin.gBrowser.addTab(testURL2);
-          ss.setTabState(tab_B, JSON.stringify(state1));
-          whenTabRestored(tab_B, function() {
+          promiseTabState(tab_B, state1).then(() => {
             
             for (let item in fieldList)
               setFormValue(tab_B, item, fieldList[item]);
 
             
             let tab_C = aWin.gBrowser.duplicateTab(tab_B);
-            whenTabRestored(tab_C, function() {
+            promiseTabRestored(tab_C).then(() => {
               
               is(ss.getTabValue(tab_C, key1), value1,
                 "tab successfully duplicated - correct state");

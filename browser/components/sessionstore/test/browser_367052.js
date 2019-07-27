@@ -14,12 +14,11 @@ function test() {
 
   
   let tab = gBrowser.addTab("about:");
-  whenBrowserLoaded(tab.linkedBrowser, function() {
+  promiseBrowserLoaded(tab.linkedBrowser).then(() => {
     let history = tab.linkedBrowser.webNavigation.sessionHistory;
     ok(history.count >= 1, "the new tab does have at least one history entry");
 
-    ss.setTabState(tab, JSON.stringify({ entries: [] }));
-    whenTabRestored(tab, function() {
+    promiseTabState(tab, {entries: []}).then(() => {
       
       
       history = tab.linkedBrowser.webNavigation.sessionHistory;
