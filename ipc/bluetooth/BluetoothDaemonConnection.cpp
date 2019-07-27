@@ -11,6 +11,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include "mozilla/ipc/DataSocket.h"
+#include "mozilla/ipc/UnixSocketConnector.h"
 #include "mozilla/ipc/UnixSocketWatcher.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
@@ -442,30 +443,28 @@ BluetoothDaemonConnection::BluetoothDaemonConnection(
 BluetoothDaemonConnection::~BluetoothDaemonConnection()
 { }
 
-ConnectionOrientedSocketIO*
-BluetoothDaemonConnection::PrepareAccept()
+
+
+nsresult
+BluetoothDaemonConnection::PrepareAccept(UnixSocketConnector* aConnector,
+                                         ConnectionOrientedSocketIO*& aIO)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mIO);
+
+  
+  
+  
+  nsAutoPtr<UnixSocketConnector> connector(aConnector);
 
   SetConnectionStatus(SOCKET_CONNECTING);
 
   mIO = new BluetoothDaemonConnectionIO(
     XRE_GetIOMessageLoop(), -1, UnixSocketWatcher::SOCKET_IS_CONNECTING,
     this, mConsumer);
+  aIO = mIO;
 
-  return mIO;
-}
-
-
-
-ConnectionOrientedSocketIO*
-BluetoothDaemonConnection::GetIO()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mIO); 
-
-  return mIO;
+  return NS_OK;
 }
 
 

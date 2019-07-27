@@ -41,6 +41,12 @@ public:
   
   
 
+  nsresult PrepareAccept(UnixSocketConnector* aConnector,
+                         ConnectionOrientedSocketIO*& aIO) override;
+
+  
+  
+
   void SendSocketData(UnixSocketIOBuffer* aBuffer) override;
 
   
@@ -50,11 +56,6 @@ public:
 
 protected:
   virtual ~StreamSocket();
-
-  
-  
-  
-  ConnectionOrientedSocketIO* PrepareAccept(UnixSocketConnector* aConnector);
 
 private:
   StreamSocketIO* mIO;

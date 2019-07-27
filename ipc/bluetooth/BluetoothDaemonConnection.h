@@ -119,7 +119,8 @@ public:
   
   
 
-  virtual ConnectionOrientedSocketIO* GetIO() override;
+  nsresult PrepareAccept(UnixSocketConnector* aConnector,
+                         ConnectionOrientedSocketIO*& aIO) override;
 
   
   
@@ -130,13 +131,6 @@ public:
   
 
   void Close() override;
-
-protected:
-
-  
-  
-  
-  ConnectionOrientedSocketIO* PrepareAccept();
 
 private:
   BluetoothDaemonPDUConsumer* mConsumer;
