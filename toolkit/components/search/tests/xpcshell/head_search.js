@@ -22,6 +22,8 @@ const MODE_CREATE = FileUtils.MODE_CREATE;
 const MODE_TRUNCATE = FileUtils.MODE_TRUNCATE;
 
 
+var XULRuntime = Components.classesByID["{95d89e3e-a169-41a3-8e56-719978e15b12}"]
+                           .getService(Ci.nsIXULRuntime);
 var XULAppInfo = {
   vendor: "Mozilla",
   name: "XPCShell",
@@ -34,6 +36,8 @@ var XULAppInfo = {
   logConsoleErrors: true,
   OS: "XPCShell",
   XPCOMABI: "noarch-spidermonkey",
+  
+  processType: XULRuntime.processType,
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIXULAppInfo, Ci.nsIXULRuntime,
                                          Ci.nsISupports])
@@ -47,13 +51,18 @@ var XULAppInfoFactory = {
   }
 };
 
+var isChild = XULRuntime.processType == XULRuntime.PROCESS_TYPE_CONTENT;
+
 Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
           .registerFactory(Components.ID("{ecff8849-cee8-40a7-bd4a-3f4fdfeddb5c}"),
                            "XULAppInfo", "@mozilla.org/xre/app-info;1",
                            XULAppInfoFactory);
 
-
-var gProfD = do_get_profile();
+var gProfD;
+if (!isChild) {
+  
+  gProfD = do_get_profile();
+}
 
 function dumpn(text)
 {
@@ -203,14 +212,18 @@ function isSubObjectOf(expectedObj, actualObj) {
 }
 
 
-Services.prefs.setBoolPref("browser.search.log", true);
 
+if (!isChild) {
+  
+  Services.prefs.setBoolPref("browser.search.log", true);
 
-
-Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
-Services.prefs.setIntPref("browser.search.geoip.timeout", 2000);
-
-Services.prefs.setCharPref("browser.search.geoip.url", "");
+  
+  
+  Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", true);
+  Services.prefs.setIntPref("browser.search.geoip.timeout", 2000);
+  
+  Services.prefs.setCharPref("browser.search.geoip.url", "");
+}
 
 
 
