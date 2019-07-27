@@ -26,9 +26,9 @@ let bookmarksObserver = {
 
     
     let stmt = DBConn().createStatement(
-      "SELECT guid "
-    + "FROM moz_bookmarks "
-    + "WHERE id = :item_id "
+      `SELECT guid
+       FROM moz_bookmarks
+       WHERE id = :item_id`
     );
     stmt.params.item_id = id;
     do_check_true(stmt.executeStep());
