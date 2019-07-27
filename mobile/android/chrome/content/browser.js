@@ -2270,14 +2270,9 @@ var NativeWindow = {
   contextmenus: {
     items: {}, 
     DEFAULT_HTML5_ORDER: -1, 
-    _isLongPressEnabled: 1, 
 
     init: function() {
       BrowserApp.deck.addEventListener("contextmenu", this.show.bind(this), false);
-
-      Messaging.addListener((data) => {
-        return {result: (this._isLongPressEnabled = data.isLongPressEnabled)};
-      }, "ContextMenu:SetIsLongpressEnabled");
     },
 
     add: function() {
@@ -2570,11 +2565,6 @@ var NativeWindow = {
 
 
     show: function(event) {
-      if (!this._isLongPressEnabled) {
-        dump("Longpress Event is ignored by request");
-        return;
-      }
-
       
       
       if (!event.clientX || !event.clientY) {
