@@ -142,6 +142,10 @@ function setupEnvironment() {
       ['media.getusermedia.screensharing.allowed_domains', "mochi.test"]
     ]
   }, setTestOptions);
+
+  
+  
+  SpecialPowers.exactGC(window);
 }
 
 
