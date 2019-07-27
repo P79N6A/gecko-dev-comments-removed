@@ -436,25 +436,10 @@ js::SetLengthProperty(JSContext* cx, HandleObject obj, double length)
     return SetProperty(cx, obj, cx->names().length, v);
 }
 
-
-
-
-
-
-
-
 static bool
-array_length_getter(JSContext* cx, HandleObject obj_, HandleId id, MutableHandleValue vp)
+array_length_getter(JSContext* cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 {
-    RootedObject obj(cx, obj_);
-    do {
-        if (obj->is<ArrayObject>()) {
-            vp.setNumber(obj->as<ArrayObject>().length());
-            return true;
-        }
-        if (!GetPrototype(cx, obj, &obj))
-            return false;
-    } while (obj);
+    vp.setNumber(obj->as<ArrayObject>().length());
     return true;
 }
 

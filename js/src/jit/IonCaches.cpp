@@ -1039,10 +1039,9 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
         masm.adjustStack(IonOOLNativeExitFrameLayout::Size(0));
     } else if (IsCacheableGetPropCallPropertyOp(obj, holder, shape)) {
         Register argJSContextReg = regSet.takeAnyGeneral();
-        Register argUintNReg     = regSet.takeAnyGeneral();
-        Register argVpReg        = regSet.takeAnyGeneral();
-        Register argObjReg       = argUintNReg;
+        Register argObjReg       = regSet.takeAnyGeneral();
         Register argIdReg        = regSet.takeAnyGeneral();
+        Register argVpReg        = regSet.takeAnyGeneral();
 
         GetterOp target = shape->getterOp();
         MOZ_ASSERT(target);
@@ -1060,7 +1059,18 @@ EmitGetterCall(JSContext* cx, MacroAssembler& masm,
         masm.Push(shape->propid(), scratchReg);
         masm.moveStackPtrTo(argIdReg);
 
-        masm.Push(object);
+        
+        if (obj == holder) {
+            
+            
+            
+            masm.Push(object);
+        } else {
+            
+            
+            masm.movePtr(ImmMaybeNurseryPtr(holder), scratchReg);
+            masm.Push(scratchReg);
+        }
         masm.moveStackPtrTo(argObjReg);
 
         masm.loadJSContext(argJSContextReg);
