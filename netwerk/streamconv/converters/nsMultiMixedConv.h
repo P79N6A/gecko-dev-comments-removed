@@ -179,6 +179,9 @@ protected:
 
     
     
+    bool                mHasAppContentType;
+    
+    
     
     bool                mPackagedApp;
     nsAutoPtr<nsHttpResponseHead> mResponseHead;
