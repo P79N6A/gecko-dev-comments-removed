@@ -255,19 +255,6 @@ SCOPED_TEMPLATE(ScopedDeletePtr, ScopedDeletePtrTraits)
 
 
 
-template<typename T>
-struct ScopedDeleteArrayTraits : public ScopedFreePtrTraits<T>
-{
-  static void release(T* aPtr) { delete [] aPtr; }
-};
-SCOPED_TEMPLATE(ScopedDeleteArray, ScopedDeleteArrayTraits)
-
-
-
-
-
-
-
 
 
 
