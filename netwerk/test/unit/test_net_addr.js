@@ -25,7 +25,7 @@ function TestServer() {
   
   this.listener = ServerSocket(-1, true, -1);
   this.port = this.listener.port;
-  do_print('server: listening on', this.port);
+  do_print('server: listening on ' + this.port);
   this.listener.asyncListen(this);
 }
 

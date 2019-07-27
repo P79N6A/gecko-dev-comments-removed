@@ -107,6 +107,8 @@ StructuredLogger.prototype.suiteEnd = function () {
 
 
 
+
+
 StructuredLogger.prototype.log = function (level, message, extra=null) {
   let data = {
     level: level,
@@ -115,6 +117,9 @@ StructuredLogger.prototype.log = function (level, message, extra=null) {
 
   if (extra !== null) {
     data.extra = extra;
+    if ("stack" in extra) {
+      data.stack = extra.stack;
+    }
   }
 
   this._logData("log", data);
