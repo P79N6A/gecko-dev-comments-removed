@@ -992,6 +992,35 @@ public:
 
 
 
+  void GetEnumAttr(nsIAtom* aAttr,
+                   const char* aDefault,
+                   nsAString& aResult) const;
+
+  
+
+
+
+
+
+
+
+
+
+
+  void GetEnumAttr(nsIAtom* aAttr,
+                   const char* aDefaultMissing,
+                   const char* aDefaultInvalid,
+                   nsAString& aResult) const;
+
+  
+
+
+
+
+
+
+
+
 
 
 
