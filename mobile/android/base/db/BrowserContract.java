@@ -167,17 +167,6 @@ public class BrowserContract {
         public static final int TYPE_LIVEMARK = 3;
         public static final int TYPE_QUERY = 4;
 
-        
-
-
-
-        public static final int FLAG_SUCCESS  = 1 << 1;   
-        public static final int FLAG_BOOKMARK = 1 << 2;
-        public static final int FLAG_PINNED   = 1 << 3;
-        public static final int FLAG_READING  = 1 << 4;
-
-        public static final Uri FLAGS_URI = Uri.withAppendedPath(AUTHORITY_URI, "flags");
-
         public static final Uri CONTENT_URI = Uri.withAppendedPath(AUTHORITY_URI, "bookmarks");
         public static final Uri PARENTS_CONTENT_URI = Uri.withAppendedPath(CONTENT_URI, "parents");
         
