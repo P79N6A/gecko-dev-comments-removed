@@ -434,6 +434,10 @@ exports.defineLazyGetter(this, "TextDecoder", () => {
   return Cu.import("resource://gre/modules/osfile.jsm", {}).TextDecoder;
 });
 
+exports.defineLazyGetter(this, "NetworkHelper", () => {
+  return require("devtools/toolkit/webconsole/network-helper");
+});
+
 
 
 
@@ -491,15 +495,27 @@ function mainThreadFetch(aURL, aOptions={ loadFromCache: true,
     }
 
     try {
-      let charset = channel.contentCharset || aOptions.charset || "UTF-8";
+      
+      
+      
+      
 
       
       let available = stream.available();
-      let source = NetUtil.readInputStreamToString(stream, available, {charset});
+      let source = NetUtil.readInputStreamToString(stream, available);
       stream.close();
 
+      
+      
+      
+      
+      
+      
+      let charset = channel.contentCharset || aOptions.charset || "UTF-8";
+      let unicodeSource = NetworkHelper.convertToUnicode(source, charset);
+
       deferred.resolve({
-        content: source,
+        content: unicodeSource,
         contentType: request.contentType
       });
     } catch (ex) {

@@ -8,7 +8,13 @@
 const { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm");
 const { OS } = Cu.import("resource://gre/modules/osfile.jsm", {});
 
-const TEST_CONTENT = "let a = 1 + 1";
+const TEST_CONTENT = "aéd";
+
+
+const UTF8_TEST_BUFFER = new Uint8Array([0x61, 0xc3, 0xa9, 0x64]);
+
+
+const ISO_8859_1_BUFFER = new Uint8Array([0x61, 0xe9, 0x64]);
 
 
 
@@ -20,7 +26,7 @@ add_task(function* test_arrow_urls() {
   let url = "resource://gre/modules/XPIProvider.jsm -> file://" + path;
 
   yield OS.File.writeAtomic(path, TEST_CONTENT, { encoding: "utf-8" });
-  let { content }Â = yield DevToolsUtils.fetch(url);
+  let { content } = yield DevToolsUtils.fetch(url);
 
   deepEqual(content, TEST_CONTENT, "The file contents were correctly read.");
 });
@@ -37,6 +43,30 @@ add_task(function* test_empty() {
 
 
 
+add_task(function* test_encoding_utf8() {
+  let { path } = createTemporaryFile();
+  yield OS.File.writeAtomic(path, UTF8_TEST_BUFFER);
+
+  let { content } = yield DevToolsUtils.fetch(path);
+  deepEqual(content, TEST_CONTENT,
+    "The UTF-8 encoded file was correctly read.");
+});
+
+
+
+
+add_task(function* test_encoding_iso_8859_1() {
+  let { path } = createTemporaryFile();
+  yield OS.File.writeAtomic(path, ISO_8859_1_BUFFER);
+
+  let { content } = yield DevToolsUtils.fetch(path);
+  deepEqual(content, TEST_CONTENT,
+    "The ISO 8859-1 encoded file was correctly read.");
+});
+
+
+
+
 add_task(function* test_missing() {
   yield DevToolsUtils.fetch("file:///file/not/found.right").then(result => {
     do_print(result);
@@ -44,18 +74,6 @@ add_task(function* test_missing() {
   }, () => {
     ok(true, "Fetch rejected as expected because the file was not found.");
   });
-});
-
-
-
-
-add_task(function* test_normal() {
-  let { path } = createTemporaryFile(".js");
-
-  yield OS.File.writeAtomic(path, TEST_CONTENT, { encoding: "utf-8" });
-
-  let { content } = yield DevToolsUtils.fetch("file://" + path);
-  deepEqual(content, TEST_CONTENT, "The file contents were correctly read.");
 });
 
 
