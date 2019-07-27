@@ -802,6 +802,7 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
     
     strncpy(aResult->mContentDescription, contentDescription,
             sizeof(aResult->mContentDescription));
+    aResult->mContentDescription[sizeof(aResult->mContentDescription) - 1] = '\0';
     return true;
   }
 };
