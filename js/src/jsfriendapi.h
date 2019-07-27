@@ -225,9 +225,18 @@ JS_CopyPropertiesFrom(JSContext *cx, JS::HandleObject target, JS::HandleObject o
 
 
 
+
+
+
+typedef enum  {
+    MakeNonConfigurableIntoConfigurable,
+    CopyNonConfigurableAsIs
+} PropertyCopyBehavior;
+
 extern JS_FRIEND_API(bool)
 JS_CopyPropertyFrom(JSContext *cx, JS::HandleId id, JS::HandleObject target,
-                    JS::HandleObject obj);
+                    JS::HandleObject obj,
+                    PropertyCopyBehavior copyBehavior = CopyNonConfigurableAsIs);
 
 extern JS_FRIEND_API(bool)
 JS_WrapPropertyDescriptor(JSContext *cx, JS::MutableHandle<JSPropertyDescriptor> desc);
