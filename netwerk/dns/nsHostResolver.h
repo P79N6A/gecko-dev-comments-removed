@@ -101,6 +101,7 @@ public:
     
     void SetExpiration(const mozilla::TimeStamp& now, unsigned int valid,
                        unsigned int grace);
+    void CopyExpirationTimesFrom(const nsHostRecord *aFromHostRecord);
 
     
     bool HasUsableResult(const mozilla::TimeStamp& now, uint16_t queryFlags = 0) const;
