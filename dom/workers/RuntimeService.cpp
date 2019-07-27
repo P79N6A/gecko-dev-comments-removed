@@ -85,6 +85,9 @@ using mozilla::Preferences;
 #define WORKER_DEFAULT_RUNTIME_HEAPSIZE 32 * 1024 * 1024
 
 
+#define WORKER_DEFAULT_NURSERY_SIZE JS::DefaultNurseryBytes
+
+
 #define WORKER_DEFAULT_ALLOCATION_THRESHOLD 30
 
 
@@ -862,7 +865,8 @@ public:
   
   WorkerJSRuntime(JSRuntime* aParentRuntime, WorkerPrivate* aWorkerPrivate)
     : CycleCollectedJSRuntime(aParentRuntime,
-                              WORKER_DEFAULT_RUNTIME_HEAPSIZE),
+                              WORKER_DEFAULT_RUNTIME_HEAPSIZE,
+                              WORKER_DEFAULT_NURSERY_SIZE),
     mWorkerPrivate(aWorkerPrivate)
   {
   }
