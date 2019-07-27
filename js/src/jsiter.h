@@ -170,6 +170,9 @@ bool
 EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props,
                              MutableHandleValue vp);
 
+bool
+NewEmptyPropertyIterator(JSContext *cx, unsigned flags, MutableHandleValue vp);
+
 
 
 
