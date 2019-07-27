@@ -64,6 +64,8 @@ private:
   
   Mutex mTouchQueueLock;
   std::vector<MultiTouchInput> mTouchMoveEvents;
+  bool mHavePendingTouchMoves;
+  
 
   bool mResamplingEnabled;
   bool mTouchEventsFiltered;
