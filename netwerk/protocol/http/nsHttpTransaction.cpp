@@ -2166,36 +2166,41 @@ nsHttpTransaction::RestartVerifier::Set(int64_t contentLength,
     
 
     
-    if (head->Status() != 200)
+    if (!head || (head->Status() != 200)) {
         return;
+    }
 
     mContentLength = contentLength;
 
-    if (head) {
-        const char *val;
-        val = head->PeekHeader(nsHttp::ETag);
-        if (val)
-            mETag.Assign(val);
-        val = head->PeekHeader(nsHttp::Last_Modified);
-        if (val)
-            mLastModified.Assign(val);
-        val = head->PeekHeader(nsHttp::Content_Range);
-        if (val)
-            mContentRange.Assign(val);
-        val = head->PeekHeader(nsHttp::Content_Encoding);
-        if (val)
-            mContentEncoding.Assign(val);
-        val = head->PeekHeader(nsHttp::Transfer_Encoding);
-        if (val)
-            mTransferEncoding.Assign(val);
-
-        
-        
-        if (mETag.IsEmpty() && mLastModified.IsEmpty())
-            return;
-
-        mSetup = true;
+    const char *val;
+    val = head->PeekHeader(nsHttp::ETag);
+    if (val) {
+        mETag.Assign(val);
     }
+    val = head->PeekHeader(nsHttp::Last_Modified);
+    if (val) {
+        mLastModified.Assign(val);
+    }
+    val = head->PeekHeader(nsHttp::Content_Range);
+    if (val) {
+        mContentRange.Assign(val);
+    }
+    val = head->PeekHeader(nsHttp::Content_Encoding);
+    if (val) {
+        mContentEncoding.Assign(val);
+    }
+    val = head->PeekHeader(nsHttp::Transfer_Encoding);
+    if (val) {
+        mTransferEncoding.Assign(val);
+    }
+
+    
+    
+    if (mETag.IsEmpty() && mLastModified.IsEmpty()) {
+        return;
+    }
+
+    mSetup = true;
 }
 
 } 
