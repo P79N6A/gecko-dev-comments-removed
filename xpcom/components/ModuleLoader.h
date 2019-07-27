@@ -34,7 +34,7 @@ public:
 
 
 
-  virtual const Module* LoadModule(mozilla::FileLocation &aFile) = 0;
+  virtual const Module* LoadModule(mozilla::FileLocation& aFile) = 0;
 };
 NS_DEFINE_STATIC_IID_ACCESSOR(ModuleLoader, MOZILLA_MODULELOADER_PSEUDO_IID)
 
