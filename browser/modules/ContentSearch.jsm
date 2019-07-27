@@ -278,7 +278,7 @@ this.ContentSearch = {
     
     
     if (!msg.target.contentWindow ||
-        PrivateBrowsingUtils.isWindowPrivate(msg.target.contentWindow)) {
+        PrivateBrowsingUtils.isBrowserPrivate(msg.target)) {
       return Promise.resolve();
     }
     let browserData = this._suggestionDataForBrowser(msg.target, true);

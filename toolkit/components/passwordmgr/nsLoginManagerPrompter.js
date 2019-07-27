@@ -253,7 +253,7 @@ LoginManagerPrompter.prototype = {
     
     get _inPrivateBrowsing() {
       if (this._window) {
-        return PrivateBrowsingUtils.isWindowPrivate(this._window);
+        return PrivateBrowsingUtils.isContentWindowPrivate(this._window);
       } else {
         
         

@@ -19,6 +19,17 @@ this.PrivateBrowsingUtils = {
   
   
   isWindowPrivate: function pbu_isWindowPrivate(aWindow) {
+    if (!(aWindow instanceof Components.interfaces.nsIDOMChromeWindow)) {
+      dump("WARNING: content window passed to PrivateBrowsingUtils.isWindowPrivate. " +
+           "Use isContentWindowPrivate instead (but only for frame scripts).\n"
+           + new Error().stack);
+    }
+
+    return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
+  },
+
+  
+  isContentWindowPrivate: function pbu_isWindowPrivate(aWindow) {
     return this.privacyContextFromWindow(aWindow).usePrivateBrowsing;
   },
 
