@@ -829,11 +829,11 @@ pref("devtools.dump.emit", false);
 
 pref("devtools.discovery.log", false);
 
-pref("devtools.remote.wifi.scan", true);
+pref("devtools.remote.wifi.scan", false);
 
 
 
-pref("devtools.remote.wifi.visible", true);
+pref("devtools.remote.wifi.visible", false);
 
 pref("devtools.remote.tls-handshake-timeout", 10000);
 
@@ -4639,7 +4639,12 @@ pref("media.gmp.insecure.allow", false);
 #if defined(XP_MACOSX) || defined(XP_WIN)
 pref("gfx.vsync.hw-vsync.enabled", true);
 pref("gfx.vsync.compositor", true);
+#endif
+
+#if defined(XP_MACOSX)
 pref("gfx.vsync.refreshdriver", true);
+#else
+pref("gfx.vsync.refreshdriver", false);
 #endif
 
 
