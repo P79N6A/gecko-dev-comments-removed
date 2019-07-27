@@ -1314,9 +1314,9 @@ const gfxFontUtils::MacFontNameCharsetMapping gfxFontUtils::gMacFontNameCharsets
 
 const char* gfxFontUtils::gISOFontNameCharsets[] = 
 {
-     "us-ascii"   ,
+     "windows-1252", 
      nullptr       , 
-     "ISO-8859-1"
+     "windows-1252"  
 };
 
 const char* gfxFontUtils::gMSFontNameCharsets[] =
