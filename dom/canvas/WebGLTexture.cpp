@@ -14,6 +14,7 @@
 #include "WebGLContext.h"
 #include "WebGLContextUtils.h"
 #include "WebGLTexelConversions.h"
+#include "mozilla/gfx/Logging.h"
 
 namespace mozilla {
 
@@ -689,6 +690,7 @@ WebGLTexture::EnsureNoUninitializedImageData(TexImageTarget imageTarget,
     if (error) {
         
         
+        gfxCriticalError() << "GL context GetAndFlushUnderlyingGLErrors " << gfx::hexa(error);
         printf_stderr("Error: 0x%4x\n", error);
         MOZ_CRASH(); 
                      
