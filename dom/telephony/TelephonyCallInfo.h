@@ -1,0 +1,53 @@
+
+
+
+
+#ifndef mozilla_dom_TelephonyCallInfo_h
+#define mozilla_dom_TelephonyCallInfo_h
+
+#include "nsITelephonyCallInfo.h"
+#include "nsString.h"
+#include "mozilla/Attributes.h"
+
+namespace mozilla {
+namespace dom {
+namespace telephony {
+
+class TelephonyCallInfo MOZ_FINAL : public nsITelephonyCallInfo
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSITELEPHONYCALLINFO
+
+  TelephonyCallInfo(uint32_t aClientId, uint32_t aCallIndex,
+                    uint16_t aCallState, const nsAString& aNumber,
+                    uint16_t aNumberPresentation, const nsAString& aName,
+                    uint16_t aNamePresentation, bool aIsOutgoing,
+                    bool aIsEmergency, bool aIsConference,
+                    bool aIsSwitchable, bool aIsMergeable);
+
+private:
+  
+  TelephonyCallInfo() {}
+
+  ~TelephonyCallInfo() {}
+
+  uint32_t mClientId;
+  uint32_t mCallIndex;
+  uint16_t mCallState;
+  nsString mNumber;
+  uint16_t mNumberPresentation;
+  nsString mName;
+  uint16_t mNamePresentation;
+  bool mIsOutgoing;
+  bool mIsEmergency;
+  bool mIsConference;
+  bool mIsSwitchable;
+  bool mIsMergeable;
+};
+
+} 
+} 
+} 
+
+#endif 
