@@ -615,6 +615,7 @@ public:
     }
 
 protected:
+    ~nsXULElement();
 
     
     friend class nsNSElementTearoff;
