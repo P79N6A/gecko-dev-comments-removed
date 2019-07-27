@@ -806,6 +806,10 @@ function gKeywordURIFixup(fixupInfo, topic, data) {
     asciiHost = asciiHost.slice(0, -1);
   }
 
+  
+  if (/^\d+$/.test(asciiHost))
+    return;
+
   let onLookupComplete = (request, record, status) => {
     let browser = weakBrowser.get();
     if (!Components.isSuccessCode(status) || !browser)
