@@ -399,7 +399,7 @@ class TypeSet
       : flags(0), objectSet(nullptr)
     {}
 
-    void print();
+    void print(FILE *fp = stderr);
 
     
     inline bool hasType(Type type) const;
