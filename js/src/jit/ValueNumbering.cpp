@@ -145,15 +145,6 @@ IsDead(const MDefinition *def)
 }
 
 
-
-
-static bool
-WillBecomeDead(const MDefinition *def)
-{
-    return def->hasOneUse() && DeadIfUnused(def);
-}
-
-
 static void
 ReplaceAllUsesWith(MDefinition *from, MDefinition *to)
 {
@@ -231,14 +222,13 @@ ValueNumberer::deleteDefsRecursively(MDefinition *def)
 
 
 bool
-ValueNumberer::pushDeadPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
+ValueNumberer::discardPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
 {
-    for (size_t o = 0, e = phi->numOperands(); o != e; ++o) {
+    
+    for (int o = phi->numOperands() - 1; o >= 0; --o) {
         MDefinition *op = phi->getOperand(o);
-        if (WillBecomeDead(op) && !op->isInWorklist() &&
-            !phiBlock->dominates(phiBlock->getPredecessor(o)))
-        {
-            op->setInWorklist();
+        phi->removeOperand(o);
+        if (IsDead(op) && !phiBlock->dominates(op->block())) {
             if (!deadDefs_.append(op))
                 return false;
         } else {
@@ -249,13 +239,14 @@ ValueNumberer::pushDeadPhiOperands(MPhi *phi, const MBasicBlock *phiBlock)
 }
 
 
+
 bool
-ValueNumberer::pushDeadInsOperands(MInstruction *ins)
+ValueNumberer::discardInsOperands(MInstruction *ins)
 {
     for (size_t o = 0, e = ins->numOperands(); o != e; ++o) {
         MDefinition *op = ins->getOperand(o);
-        if (WillBecomeDead(op) && !op->isInWorklist()) {
-            op->setInWorklist();
+        ins->discardOperand(o);
+        if (IsDead(op)) {
             if (!deadDefs_.append(op))
                 return false;
         } else {
@@ -275,15 +266,15 @@ ValueNumberer::deleteDef(MDefinition *def)
     if (def->isPhi()) {
         MPhi *phi = def->toPhi();
         MBasicBlock *phiBlock = phi->block();
-        if (!pushDeadPhiOperands(phi, phiBlock))
+        if (!discardPhiOperands(phi, phiBlock))
              return false;
         MPhiIterator at(phiBlock->phisBegin(phi));
         phiBlock->discardPhiAt(at);
     } else {
         MInstruction *ins = def->toInstruction();
-        if (!pushDeadInsOperands(ins))
+        if (!discardInsOperands(ins))
              return false;
-        ins->block()->discard(ins);
+        ins->block()->discardIgnoreOperands(ins);
     }
     return true;
 }
@@ -294,7 +285,6 @@ ValueNumberer::processDeadDefs()
 {
     while (!deadDefs_.empty()) {
         MDefinition *def = deadDefs_.popCopy();
-        MOZ_ASSERT(def->isInWorklist(), "Deleting value not on the worklist");
 
         values_.forget(def);
         if (!deleteDef(def))
@@ -414,7 +404,6 @@ ValueNumberer::leader(MDefinition *def)
             MDefinition *rep = *p;
             if (rep->block()->dominates(def->block())) {
                 
-                MOZ_ASSERT(!rep->isInWorklist(), "Dead value in set");
                 return rep;
             }
 
@@ -564,9 +553,9 @@ ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *do
         }
     }
 
-    if (!pushDeadInsOperands(control))
+    if (!discardInsOperands(control))
         return false;
-    block->discardLastIns();
+    block->discardIgnoreOperands(control);
     block->end(newControl);
     return processDeadDefs();
 }

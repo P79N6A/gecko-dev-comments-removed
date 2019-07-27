@@ -243,6 +243,10 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void discardAllResumePoints(bool discardEntry = true);
 
     
+    
+    void discardIgnoreOperands(MInstruction *ins);
+
+    
     MPhiIterator discardPhiAt(MPhiIterator &at);
 
     
