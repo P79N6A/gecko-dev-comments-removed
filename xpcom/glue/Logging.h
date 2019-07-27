@@ -15,6 +15,7 @@
 
 
 #define PR_LOG_INFO PR_LOG_DEBUG
+#define PR_LOG_VERBOSE (PR_LOG_DEBUG + 1)
 
 #define MOZ_LOG PR_LOG
 
