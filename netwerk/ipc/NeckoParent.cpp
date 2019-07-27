@@ -397,8 +397,12 @@ NeckoParent::DeallocPRtspChannelParent(PRtspChannelParent* actor)
 }
 
 PTCPSocketParent*
-NeckoParent::AllocPTCPSocketParent()
+NeckoParent::AllocPTCPSocketParent(const nsString& ,
+                                   const uint16_t& )
 {
+  
+  
+  
   TCPSocketParent* p = new TCPSocketParent();
   p->AddIPDLReference();
   return p;
