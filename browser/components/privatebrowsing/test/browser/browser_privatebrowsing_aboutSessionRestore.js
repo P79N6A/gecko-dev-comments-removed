@@ -4,46 +4,21 @@
 
 
 
+add_task(function* testNoSessionRestoreButton() {
+  
+  (yield BrowserTestUtils.openNewBrowserWindow({private: true})).close();
 
-function test() {
-  waitForExplicitFinish();
+  let win = yield BrowserTestUtils.openNewBrowserWindow({private: true});
+  let tab = win.gBrowser.addTab("about:sessionrestore");
+  let browser = tab.linkedBrowser;
 
-  function testNoSessionRestoreButton() {
-    let win = OpenBrowserWindow({private: true});
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad, false);
-      executeSoon(function() {
-        info("The second private window got loaded");
-        let newTab = win.gBrowser.addTab("about:sessionrestore");
-        win.gBrowser.selectedTab = newTab;
-        let tabBrowser = win.gBrowser.getBrowserForTab(newTab);
-        tabBrowser.addEventListener("load", function tabLoadListener() {
-          if (win.gBrowser.contentWindow.location != "about:sessionrestore") {
-            win.gBrowser.selectedBrowser.loadURI("about:sessionrestore");
-            return;
-          }
-          tabBrowser.removeEventListener("load", tabLoadListener, true);
-          executeSoon(function() {
-            info("about:sessionrestore got loaded");
-            let restoreButton = win.gBrowser.contentDocument
-                                            .getElementById("errorTryAgain");
-            ok(restoreButton.disabled,
-               "The Restore about:sessionrestore button should be disabled");
-            win.close();
-            finish();
-          });
-        }, true);
-      });
-    }, false);
-  }
+  yield BrowserTestUtils.browserLoaded(browser);
 
-  let win = OpenBrowserWindow({private: true});
-  win.addEventListener("load", function onload() {
-    win.removeEventListener("load", onload, false);
-    executeSoon(function() {
-      info("The first private window got loaded");
-      win.close();
-      testNoSessionRestoreButton();
-    });
-  }, false);
-}
+  let disabled = yield ContentTask.spawn(browser, {}, function* (){
+    return content.document.getElementById("errorTryAgain").disabled;
+  });
+
+  ok(disabled, "The Restore about:sessionrestore button should be disabled");
+
+  win.close();
+});
