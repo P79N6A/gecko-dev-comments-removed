@@ -4,7 +4,7 @@
 
 
 
-function spawnTest () {
+function* spawnTest() {
   let { panel, target } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, PerformanceController } = panel.panelWin;
 

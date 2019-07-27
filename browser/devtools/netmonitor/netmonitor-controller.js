@@ -368,7 +368,9 @@ function TargetEventsHandler() {
 }
 
 TargetEventsHandler.prototype = {
-  get target() NetMonitorController._target,
+  get target() {
+    return NetMonitorController._target;
+  },
 
   
 
@@ -448,8 +450,13 @@ function NetworkEventsHandler() {
 }
 
 NetworkEventsHandler.prototype = {
-  get client() NetMonitorController._target.client,
-  get webConsoleClient() NetMonitorController.webConsoleClient,
+  get client() {
+    return NetMonitorController._target.client;
+  },
+
+  get webConsoleClient() {
+    return NetMonitorController.webConsoleClient;
+  },
 
   
 
@@ -763,7 +770,9 @@ NetMonitorController.NetworkEventsHandler = new NetworkEventsHandler();
 
 Object.defineProperties(window, {
   "gNetwork": {
-    get: function() NetMonitorController.NetworkEventsHandler,
+    get: function() {
+      return NetMonitorController.NetworkEventsHandler;
+    },
     configurable: true
   }
 });

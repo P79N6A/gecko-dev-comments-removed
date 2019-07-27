@@ -5,7 +5,7 @@
 
 
 
-function ifWebGLSupported() {
+function* ifWebGLSupported() {
   let { target, front } = yield initBackend(SIMPLE_CANVAS_URL);
 
   ok(target, "Should have a target available.");

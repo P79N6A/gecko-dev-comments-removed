@@ -404,7 +404,7 @@ function testFilterButtons(aMonitor, aFilterType) {
   let buttons = doc.querySelectorAll(".requests-menu-footer-button");
 
   
-  let checkStatus = [(button == target) ? 1 : 0 for (button of buttons)]
+  let checkStatus = [...buttons].map(button => button == target ? 1 : 0);
   testFilterButtonsCustom(aMonitor, checkStatus);
 }
 

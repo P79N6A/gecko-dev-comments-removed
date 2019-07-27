@@ -5,7 +5,7 @@
 
 
 
-function spawnTest () {
+function* spawnTest() {
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, PerformanceController, $, gFront } = panel.panelWin;
   Services.prefs.setBoolPref(MEMORY_PREF, true);

@@ -6,7 +6,7 @@
 
 
 
-function ifWebGLSupported() {
+function* ifWebGLSupported() {
   let { target, panel } = yield initShaderEditor(SIMPLE_CANVAS_URL);
 
   ok(target, "Should have a target available.");

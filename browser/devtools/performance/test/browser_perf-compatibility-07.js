@@ -5,7 +5,7 @@
 
 
 
-function spawnTest () {
+function* spawnTest() {
   let { panel } = yield initPerformance(SIMPLE_URL, void 0, {
     TEST_MOCK_PROFILER_CHECK_TIMER: 10,
     TEST_PROFILER_FILTER_STATUS: ["position", "totalSize", "generation"]

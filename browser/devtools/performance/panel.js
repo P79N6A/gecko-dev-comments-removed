@@ -56,7 +56,9 @@ PerformancePanel.prototype = {
 
   
 
-  get target() this._toolbox.target,
+  get target() {
+    return this._toolbox.target;
+  },
 
   destroy: Task.async(function*() {
     

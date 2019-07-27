@@ -5,7 +5,7 @@
 
 
 
-function ifWebGLSupported() {
+function* ifWebGLSupported() {
   let { target, debuggee, panel } = yield initShaderEditor(MULTIPLE_CONTEXTS_URL);
   let { EVENTS, gFront, ShadersListView, ShadersEditorsView } = panel.panelWin;
 
