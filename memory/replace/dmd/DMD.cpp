@@ -785,7 +785,7 @@ class Block
   
   
   TaggedPtr<const StackTrace* const>
-    mAllocStackTrace_mSampled;
+    mAllocStackTrace_mIsSampled;
 
   
   
@@ -801,10 +801,10 @@ class Block
 
 public:
   Block(const void* aPtr, size_t aReqSize, const StackTrace* aAllocStackTrace,
-        bool aSampled)
+        bool aIsSampled)
     : mPtr(aPtr),
       mReqSize(aReqSize),
-      mAllocStackTrace_mSampled(aAllocStackTrace, aSampled),
+      mAllocStackTrace_mIsSampled(aAllocStackTrace, aIsSampled),
       mReportStackTrace_mReportedOnAlloc()     
   {
     MOZ_ASSERT(aAllocStackTrace);
@@ -827,12 +827,12 @@ public:
 
   bool IsSampled() const
   {
-    return mAllocStackTrace_mSampled.Tag();
+    return mAllocStackTrace_mIsSampled.Tag();
   }
 
   const StackTrace* AllocStackTrace() const
   {
-    return mAllocStackTrace_mSampled.Ptr();
+    return mAllocStackTrace_mIsSampled.Ptr();
   }
 
   const StackTrace* ReportStackTrace1() const
