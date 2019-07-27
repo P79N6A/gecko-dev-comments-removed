@@ -1554,11 +1554,11 @@ AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
     fp_(nullptr),
     exitReason_(AsmJSExit::None)
 {
+    (void) entrySP_;  
+
+    
+    
     if (cx->runtime()->spsProfiler.enabled()) {
-        
-        
-        
-        
         profiler_ = &cx->runtime()->spsProfiler;
         profiler_->enterAsmJS("asm.js code :0", this);
     }
@@ -1568,14 +1568,21 @@ AsmJSActivation::AsmJSActivation(JSContext *cx, AsmJSModule &module)
 
     prevAsmJS_ = cx->mainThread().asmJSActivationStack_;
 
-    JSRuntime::AutoLockForInterrupt lock(cx->runtime());
-    cx->mainThread().asmJSActivationStack_ = this;
+    {
+        JSRuntime::AutoLockForInterrupt lock(cx->runtime());
+        cx->mainThread().asmJSActivationStack_ = this;
+    }
 
-    (void) entrySP_;  
+    
+    
+    registerProfiling();
 }
 
 AsmJSActivation::~AsmJSActivation()
 {
+    
+    unregisterProfiling();
+
     if (profiler_)
         profiler_->exitAsmJS();
 
