@@ -195,6 +195,7 @@ private:
     OrderingEntry(const T* aResource)
       : mFirstSeen(CallStack::kNone)
       , mOrderedLT()        
+      , mExternalRefs()
       , mResource(aResource)
     {
     }
@@ -207,12 +208,14 @@ private:
     {
       size_t n = aMallocSizeOf(this);
       n += mOrderedLT.SizeOfExcludingThis(aMallocSizeOf);
+      n += mExternalRefs.SizeOfExcludingThis(aMallocSizeOf);
       n += mResource->SizeOfIncludingThis(aMallocSizeOf);
       return n;
     }
 
     CallStack mFirstSeen; 
     HashEntryArray mOrderedLT; 
+    HashEntryArray mExternalRefs; 
     const T* mResource;
   };
 
@@ -286,12 +289,28 @@ public:
     mOrdering.Put(aResource, new OrderingEntry(aResource));
   }
 
-  
-  
-  
-  
-  
-  
+  void Remove(T* aResource)
+  {
+    PRAutoLock _(mLock);
+
+    OrderingEntry* entry = mOrdering.Get(aResource);
+
+    
+    HashEntryArray& refs = entry->mExternalRefs;
+    for (index_type i = 0; i < refs.Length(); i++) {
+      refs[i]->mOrderedLT.RemoveElementSorted(entry);
+    }
+
+    
+    HashEntryArray& orders = entry->mOrderedLT;
+    for (index_type i = 0; i < orders.Length(); i++) {
+      orders[i]->mExternalRefs.RemoveElementSorted(entry);
+    }
+
+    
+    mOrdering.Remove(aResource);
+    delete aResource;
+  }
 
   
 
@@ -372,6 +391,7 @@ public:
     
     
     current->mOrderedLT.InsertElementSorted(proposed);
+    proposed->mExternalRefs.InsertElementSorted(current);
     return 0;
   }
 
