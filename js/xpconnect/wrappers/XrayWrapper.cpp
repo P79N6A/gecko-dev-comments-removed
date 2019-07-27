@@ -2059,13 +2059,13 @@ template <typename Base, typename Traits>
 bool
 XrayWrapper<Base, Traits>::set(JSContext *cx, HandleObject wrapper,
                                HandleObject receiver, HandleId id,
-                               bool strict, MutableHandleValue vp) const
+                               MutableHandleValue vp, ObjectOpResult &result) const
 {
     MOZ_ASSERT(!Traits::HasPrototype);
     
     
     
-    return js::BaseProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
+    return js::BaseProxyHandler::set(cx, wrapper, wrapper, id, vp, result);
 }
 
 template <typename Base, typename Traits>

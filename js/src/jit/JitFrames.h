@@ -494,7 +494,8 @@ enum ExitFrameTokenValues
     IonDOMMethodExitFrameLayoutToken      = 0x3,
     IonOOLNativeExitFrameLayoutToken      = 0x4,
     IonOOLPropertyOpExitFrameLayoutToken  = 0x5,
-    IonOOLProxyExitFrameLayoutToken       = 0x6,
+    IonOOLSetterOpExitFrameLayoutToken    = 0x6,
+    IonOOLProxyExitFrameLayoutToken       = 0x7,
     ExitFrameLayoutBareToken              = 0xFF
 };
 
@@ -627,7 +628,7 @@ class IonOOLNativeExitFrameLayout
 
 class IonOOLPropertyOpExitFrameLayout
 {
-  protected: 
+  protected:
     ExitFooterFrame footer_;
     ExitFrameLayout exit_;
 
@@ -652,6 +653,10 @@ class IonOOLPropertyOpExitFrameLayout
         return sizeof(IonOOLPropertyOpExitFrameLayout);
     }
 
+    static size_t offsetOfId() {
+        return offsetof(IonOOLPropertyOpExitFrameLayout, id_);
+    }
+
     static size_t offsetOfResult() {
         return offsetof(IonOOLPropertyOpExitFrameLayout, vp0_);
     }
@@ -670,6 +675,23 @@ class IonOOLPropertyOpExitFrameLayout
     }
 };
 
+class IonOOLSetterOpExitFrameLayout : public IonOOLPropertyOpExitFrameLayout
+{
+  protected: 
+    JS::ObjectOpResult result_;
+
+  public:
+    static JitCode *Token() { return (JitCode *)IonOOLSetterOpExitFrameLayoutToken; }
+
+    static size_t offsetOfObjectOpResult() {
+        return offsetof(IonOOLSetterOpExitFrameLayout, result_);
+    }
+
+    static size_t Size() {
+        return sizeof(IonOOLSetterOpExitFrameLayout);
+    }
+};
+
 
 
 
@@ -679,6 +701,9 @@ class IonOOLProxyExitFrameLayout
   protected: 
     ExitFooterFrame footer_;
     ExitFrameLayout exit_;
+
+    
+    JS::ObjectOpResult result_;
 
     
     JSObject *proxy_;
@@ -706,6 +731,14 @@ class IonOOLProxyExitFrameLayout
 
     static size_t offsetOfResult() {
         return offsetof(IonOOLProxyExitFrameLayout, vp0_);
+    }
+
+    static size_t offsetOfId() {
+        return offsetof(IonOOLProxyExitFrameLayout, id_);
+    }
+
+    static size_t offsetOfObjectOpResult() {
+        return offsetof(IonOOLProxyExitFrameLayout, result_);
     }
 
     inline JitCode **stubCode() {

@@ -314,18 +314,19 @@ SetNameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, HandleObject s
     RootedValue valCopy(cx, val);
 
     
-
-
-
-
+    
+    
+    bool ok;
+    ObjectOpResult result;
+    RootedId id(cx, NameToId(name));
     if (scope->isUnqualifiedVarObj()) {
         MOZ_ASSERT(!scope->getOps()->setProperty);
-        RootedId id(cx, NameToId(name));
-        return NativeSetProperty(cx, scope.as<NativeObject>(), scope.as<NativeObject>(), id,
-                                 Unqualified, &valCopy, strict);
+        ok = NativeSetProperty(cx, scope.as<NativeObject>(), scope.as<NativeObject>(), id,
+                               Unqualified, &valCopy, result);
+    } else {
+        ok = SetProperty(cx, scope, scope, id, &valCopy, result);
     }
-
-    return SetProperty(cx, scope, scope, name, &valCopy, strict);
+    return ok && result.checkStrictErrorOrWarning(cx, scope, id, strict);
 }
 
 inline bool
@@ -339,7 +340,7 @@ InitPropertyOperation(JSContext *cx, JSOp op, HandleObject obj, HandleId id, Han
 
     MOZ_ASSERT(obj->as<UnboxedPlainObject>().layout().lookup(id));
     RootedValue v(cx, rhs);
-    return SetProperty(cx, obj, obj, id, &v, false);
+    return PutProperty(cx, obj, id, &v, false);
 }
 
 inline bool

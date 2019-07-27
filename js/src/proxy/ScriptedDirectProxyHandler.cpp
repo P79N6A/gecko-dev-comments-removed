@@ -935,7 +935,7 @@ ScriptedDirectProxyHandler::get(JSContext *cx, HandleObject proxy, HandleObject 
 
 bool
 ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject receiver,
-                                HandleId id, bool strict, MutableHandleValue vp) const
+                                HandleId id, MutableHandleValue vp, ObjectOpResult &result) const
 {
     
     RootedObject handler(cx, GetDirectProxyHandlerObject(proxy));
@@ -956,7 +956,7 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
 
     
     if (trap.isUndefined())
-        return DirectProxyHandler::set(cx, proxy, receiver, id, strict, vp);
+        return DirectProxyHandler::set(cx, proxy, receiver, id, vp, result);
 
     
     RootedValue value(cx);
@@ -972,6 +972,8 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     if (!Invoke(cx, ObjectValue(*handler), trap, ArrayLength(argv), argv, &trapResult))
         return false;
 
+    
+    
     
     bool success = ToBoolean(trapResult);
 
@@ -1001,8 +1003,9 @@ ScriptedDirectProxyHandler::set(JSContext *cx, HandleObject proxy, HandleObject 
     }
 
     
+    
     vp.setBoolean(success);
-    return true;
+    return result.succeed();
 }
 
 
