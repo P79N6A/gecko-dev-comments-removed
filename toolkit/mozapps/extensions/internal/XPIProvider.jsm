@@ -58,6 +58,7 @@ const nsIFile = Components.Constructor("@mozilla.org/file/local;1", "nsIFile",
 
 const PREF_DB_SCHEMA                  = "extensions.databaseSchema";
 const PREF_INSTALL_CACHE              = "extensions.installCache";
+const PREF_XPI_STATE                  = "extensions.xpiState";
 const PREF_BOOTSTRAP_ADDONS           = "extensions.bootstrappedAddons";
 const PREF_PENDING_OPERATIONS         = "extensions.pendingOperations";
 const PREF_MATCH_OS_LOCALE            = "intl.locale.matchOS";
@@ -224,6 +225,7 @@ function loadLazyObjects() {
   let scope = {};
   scope.AddonInternal = AddonInternal;
   scope.XPIProvider = XPIProvider;
+  scope.XPIStates = XPIStates;
   Services.scriptloader.loadSubScript("resource://gre/modules/addons/XPIProviderUtils.js",
                                       scope);
 
@@ -659,10 +661,6 @@ function isUsableAddon(aAddon) {
   }
 
   return true;
-}
-
-function isAddonDisabled(aAddon) {
-  return aAddon.appDisabled || aAddon.softDisabled || aAddon.userDisabled;
 }
 
 XPCOMUtils.defineLazyServiceGetter(this, "gRDF", "@mozilla.org/rdf/rdf-service;1",
@@ -1420,48 +1418,6 @@ function getDirectoryEntries(aDir, aSortEntries) {
 
 
 
-function directoryStateDiffers(aState, aCache)
-{
-  
-  function addonsMismatch(aNew, aOld) {
-    for (let [id, val] of aNew) {
-      if (!id in aOld)
-        return true;
-      if (val.descriptor != aOld[id].descriptor ||
-          val.mtime != aOld[id].mtime)
-        return true;
-      delete aOld[id];
-    }
-    
-    for (let id in aOld)
-      return true;
-    return false;
-  }
-
-  if (!aCache)
-    return true;
-  try {
-    let old = JSON.parse(aCache);
-    if (aState.length != old.length)
-      return true;
-    for (let i = 0; i < aState.length; i++) {
-      
-      
-      if (aState[i].name != old[i].name)
-        return true;
-      if (addonsMismatch(aState[i].addons, old[i].addons))
-        return true;
-    }
-  }
-  catch (e) {
-    return true;
-  }
-  return false;
-}
-
-
-
-
 
 
 
@@ -1483,14 +1439,352 @@ function makeSafe(aFunction) {
 
 
 function recordAddonTelemetry(aAddon) {
-  let loc = aAddon.defaultLocale;
-  if (loc) {
-    if (loc.name)
-      XPIProvider.setTelemetry(aAddon.id, "name", loc.name);
-    if (loc.creator)
-      XPIProvider.setTelemetry(aAddon.id, "creator", loc.creator);
+  let locale = aAddon.defaultLocale;
+  if (locale) {
+    if (locale.name)
+      XPIProvider.setTelemetry(aAddon.id, "name", locale.name);
+    if (locale.creator)
+      XPIProvider.setTelemetry(aAddon.id, "creator", locale.creator);
   }
 }
+
+
+
+
+
+function XPIState(saved) {
+  for (let [short, long] of XPIState.prototype.fields) {
+    if (short in saved) {
+      this[long] = saved[short];
+    }
+  }
+}
+
+XPIState.prototype = {
+  fields: [['d', 'descriptor'],
+           ['e', 'enabled'],
+           ['v', 'version'],
+           ['st', 'scanTime'],
+           ['mt', 'manifestTime']],
+  
+
+
+  get mtime() {
+    if (!this.enabled && ('manifestTime' in this) && this.manifestTime > this.scanTime) {
+      return this.manifestTime;
+    }
+    return this.scanTime;
+  },
+
+  toJSON() {
+    let json = {};
+    for (let [short, long] of XPIState.prototype.fields) {
+      if (long in this) {
+        json[short] = this[long];
+      }
+    }
+    return json;
+  },
+
+  
+
+
+
+
+
+  getModTime(aFile, aId) {
+    let changed = false;
+    let scanStarted = Date.now();
+    
+    if (!('scanTime' in this) || this.enabled) {
+      logger.debug('getModTime: Recursive scan of ' + aId);
+      let [modFile, modTime, items] = recursiveLastModifiedTime(aFile);
+      XPIProvider._mostRecentlyModifiedFile[aId] = modFile;
+      XPIProvider.setTelemetry(aId, "scan_items", items);
+      if (modTime != this.scanTime) {
+        this.scanTime = modTime;
+        changed = true;
+      }
+    }
+    
+    
+    
+    try {
+      
+      
+      
+      let maniFile = aFile.clone();
+      maniFile.append(FILE_INSTALL_MANIFEST);
+      if (!(aId in XPIProvider._mostRecentlyModifiedFile)) {
+        XPIProvider._mostRecentlyModifiedFile[aId] = maniFile.leafName;
+      }
+      let maniTime = maniFile.lastModifiedTime;
+      if (maniTime != this.manifestTime) {
+        this.manifestTime = maniTime;
+        changed = true;
+      }
+    } catch (e) {
+      
+      delete this.manifestTime;
+      try {
+        let dtime = aFile.lastModifiedTime;
+        if (dtime != this.scanTime) {
+          changed = true;
+          this.scanTime = dtime;
+        }
+      } catch (e) {
+        logger.warn("Can't get modified time of ${file}: ${e}", {file: aFile.path, e: e});
+        changed = true;
+        this.scanTime = 0;
+      }
+    }
+    
+    XPIProvider.setTelemetry(aId, "scan_MS", Date.now() - scanStarted);
+
+    return changed;
+  },
+
+  
+
+
+
+
+
+
+
+  syncWithDB(aDBAddon, aUpdated = false) {
+    logger.debug("Updating XPIState for " + JSON.stringify(aDBAddon));
+    
+    
+    
+    
+    let mustGetMod = (aDBAddon.visible && !aDBAddon.disabled && !this.enabled);
+    this.enabled = (aDBAddon.visible && !aDBAddon.disabled);
+    this.version = aDBAddon.version;
+    
+    if (aUpdated || mustGetMod) {
+      this.getModTime(new nsIFile(this.descriptor), aDBAddon.id);
+      if (this.scanTime != aDBAddon.updateDate) {
+        aDBAddon.updateDate = this.scanTime;
+        XPIDatabase.saveChanges();
+      }
+    }
+  },
+};
+
+
+
+function SerializableMap() {
+  let m = new Map();
+  m.toJSON = function() {
+    let out = {}
+    for (let [key, val] of m) {
+      out[key] = val;
+    }
+    return out;
+  };
+  return m;
+}
+
+
+
+
+this.XPIStates = {
+  
+  db: null,
+
+  get size() {
+    if (!this.db) {
+      return 0;
+    }
+    let count = 0;
+    for (let location of this.db.values()) {
+      count += location.size;
+    }
+    return count;
+  },
+
+  
+
+
+  loadExtensionState() {
+    let state = {};
+
+    
+    Preferences.reset(PREF_INSTALL_CACHE);
+
+    let cache = Preferences.get(PREF_XPI_STATE, "{}");
+    try {
+      state = JSON.parse(cache);
+    } catch (e) {
+      logger.warn("Error parsing extensions.xpiState ${state}: ${error}",
+          {state: cache, error: e});
+    }
+    logger.debug("Loaded add-on state from prefs: ${}", state);
+    return state;
+  },
+
+  
+
+
+
+
+  getInstallState() {
+    let oldState = this.loadExtensionState();
+    let changed = false;
+    this.db = new SerializableMap();
+
+    for (let location of XPIProvider.installLocations) {
+      
+      let addons = location.addonLocations;
+      
+      let foundAddons = new SerializableMap();
+
+      
+      let locState = {};
+      if (location.name in oldState) {
+        locState = oldState[location.name];
+        
+        delete oldState[location.name];
+      }
+
+      for (let file of addons) {
+        let id = location.getIDForLocation(file);
+
+        if (!(id in locState)) {
+          logger.debug("New add-on ${id} in ${location}", {id: id, location: location.name});
+          let xpiState = new XPIState({d: file.persistentDescriptor});
+          changed = xpiState.getModTime(file, id) || changed;
+          foundAddons.set(id, xpiState);
+        } else {
+          let xpiState = new XPIState(locState[id]);
+          
+          delete locState[id];
+
+          changed = xpiState.getModTime(file, id) || changed;
+
+          if (file.persistentDescriptor != xpiState.descriptor) {
+            xpiState.descriptor = file.persistentDescriptor;
+            changed = true;
+          }
+          if (changed) {
+            logger.debug("Changed add-on ${id} in ${location}", {id: id, location: location.name});
+          }
+          foundAddons.set(id, xpiState);
+        }
+        XPIProvider.setTelemetry(id, "location", location.name);
+      }
+
+      
+      for (let id in locState) {
+        changed = true;
+        break;
+      }
+      
+      if (foundAddons.size != 0) {
+        this.db.set(location.name, foundAddons);
+      }
+    }
+
+    
+    
+    for (let location in oldState) {
+      changed = true;
+      break;
+    }
+
+    logger.debug("getInstallState changed: ${rv}, state: ${state}",
+        {rv: changed, state: this.db});
+    return changed;
+  },
+
+  
+
+
+
+
+  getLocation(aLocation) {
+    return this.db.get(aLocation);
+  },
+
+  
+
+
+
+
+
+
+  getAddon(aLocation, aId) {
+    let location = this.db.get(aLocation);
+    if (!location) {
+      return null;
+    }
+    return location.get(aId);
+  },
+
+  
+
+
+
+
+
+
+  findAddon(aId) {
+    
+    
+    for (let [name, location] of this.db) {
+      if (location.has(aId)) {
+        return [name, location.get(aId)];
+      }
+    }
+    return [undefined, undefined];
+  },
+
+  
+
+
+
+  addAddon(aAddon) {
+    let location = this.db.get(aAddon.location);
+    if (!location) {
+      
+      location = new SerializableMap();
+      this.db.set(aAddon.location, location);
+    }
+    logger.debug("XPIStates adding add-on ${id} in ${location}: ${descriptor}", aAddon);
+    let xpiState = new XPIState({d: aAddon.descriptor});
+    location.set(aAddon.id, xpiState);
+    xpiState.syncWithDB(aAddon, true);
+    XPIProvider.setTelemetry(aAddon.id, "location", aAddon.location);
+  },
+
+  
+
+
+
+  save() {
+    let cache = JSON.stringify(this.db);
+    Services.prefs.setCharPref(PREF_XPI_STATE, cache);
+  },
+
+  
+
+
+
+
+  removeAddon(aLocation, aId) {
+    logger.debug("Removing XPIState for " + aLocation + ":" + aId);
+    let location = this.db.get(aLocation);
+    if (!location) {
+      return;
+    }
+    location.delete(aId);
+    if (location.size == 0) {
+      this.db.delete(aLocation);
+    }
+    this.save();
+  },
+};
 
 this.XPIProvider = {
   
@@ -1517,8 +1811,6 @@ this.XPIProvider = {
   bootstrapScopes: {},
   
   extensionsActive: false,
-  
-  installStates: [],
   
   
   allAppGlobal: true,
@@ -1727,18 +2019,21 @@ this.XPIProvider = {
                                           AddonManager.SCOPE_ALL);
 
       
-      if (enabledScopes & AddonManager.SCOPE_SYSTEM) {
+      
+      
+      addDirectoryInstallLocation(KEY_APP_PROFILE, KEY_PROFILEDIR,
+                                  [DIR_EXTENSIONS],
+                                  AddonManager.SCOPE_PROFILE, false);
+
+      if (enabledScopes & AddonManager.SCOPE_USER) {
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_USER, "XREUSysExt",
+                                    [Services.appinfo.ID],
+                                    AddonManager.SCOPE_USER, true);
         if (hasRegistry) {
-          addRegistryInstallLocation("winreg-app-global",
-                                     Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
-                                     AddonManager.SCOPE_SYSTEM);
+          addRegistryInstallLocation("winreg-app-user",
+                                     Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                                     AddonManager.SCOPE_USER);
         }
-        addDirectoryInstallLocation(KEY_APP_SYSTEM_LOCAL, "XRESysLExtPD",
-                                    [Services.appinfo.ID],
-                                    AddonManager.SCOPE_SYSTEM, true);
-        addDirectoryInstallLocation(KEY_APP_SYSTEM_SHARE, "XRESysSExtPD",
-                                    [Services.appinfo.ID],
-                                    AddonManager.SCOPE_SYSTEM, true);
       }
 
       if (enabledScopes & AddonManager.SCOPE_APPLICATION) {
@@ -1747,21 +2042,19 @@ this.XPIProvider = {
                                     AddonManager.SCOPE_APPLICATION, true);
       }
 
-      if (enabledScopes & AddonManager.SCOPE_USER) {
-        if (hasRegistry) {
-          addRegistryInstallLocation("winreg-app-user",
-                                     Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
-                                     AddonManager.SCOPE_USER);
-        }
-        addDirectoryInstallLocation(KEY_APP_SYSTEM_USER, "XREUSysExt",
+      if (enabledScopes & AddonManager.SCOPE_SYSTEM) {
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_SHARE, "XRESysSExtPD",
                                     [Services.appinfo.ID],
-                                    AddonManager.SCOPE_USER, true);
+                                    AddonManager.SCOPE_SYSTEM, true);
+        addDirectoryInstallLocation(KEY_APP_SYSTEM_LOCAL, "XRESysLExtPD",
+                                    [Services.appinfo.ID],
+                                    AddonManager.SCOPE_SYSTEM, true);
+        if (hasRegistry) {
+          addRegistryInstallLocation("winreg-app-global",
+                                     Ci.nsIWindowsRegKey.ROOT_KEY_LOCAL_MACHINE,
+                                     AddonManager.SCOPE_SYSTEM);
+        }
       }
-
-      
-      addDirectoryInstallLocation(KEY_APP_PROFILE, KEY_PROFILEDIR,
-                                  [DIR_EXTENSIONS],
-                                  AddonManager.SCOPE_PROFILE, false);
 
       let defaultPrefs = new Preferences({ defaultBranch: true });
       this.defaultSkin = defaultPrefs.get(PREF_GENERAL_SKINS_SELECTEDSKIN,
@@ -2099,72 +2392,6 @@ this.XPIProvider = {
     catch (e) { }
 
     Cu.import("resource://gre/modules/TelemetryPing.jsm", {}).TelemetryPing.setAddOns(data);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getAddonStates: function XPI_getAddonStates(aLocation) {
-    let addonStates = {};
-    for (let file of aLocation.addonLocations) {
-      let scanStarted = Date.now();
-      let id = aLocation.getIDForLocation(file);
-      let unpacked = 0;
-      let [modFile, modTime, items] = recursiveLastModifiedTime(file);
-      addonStates[id] = {
-        descriptor: file.persistentDescriptor,
-        mtime: modTime
-      };
-      try {
-        
-        file.append(FILE_INSTALL_MANIFEST);
-        let rdfTime = file.lastModifiedTime;
-        addonStates[id].rdfTime = rdfTime;
-        unpacked = 1;
-      }
-      catch (e) { }
-      this._mostRecentlyModifiedFile[id] = modFile;
-      this.setTelemetry(id, "unpacked", unpacked);
-      this.setTelemetry(id, "location", aLocation.name);
-      this.setTelemetry(id, "scan_MS", Date.now() - scanStarted);
-      this.setTelemetry(id, "scan_items", items);
-    }
-
-    return addonStates;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getInstallLocationStates: function XPI_getInstallLocationStates() {
-    let states = [];
-    this.installLocations.forEach(function(aLocation) {
-      let addons = aLocation.addonLocations;
-      if (addons.length == 0)
-        return;
-
-      let locationState = {
-        name: aLocation.name,
-        addons: this.getAddonStates(aLocation)
-      };
-
-      states.push(locationState);
-    }, this);
-    return states;
   },
 
   
@@ -2601,8 +2828,7 @@ this.XPIProvider = {
 
 
 
-
-  processFileChanges: function XPI_processFileChanges(aState, aManifests,
+  processFileChanges: function XPI_processFileChanges(aManifests,
                                                       aUpdateCompatibility,
                                                       aOldAppVersion,
                                                       aOldPlatformVersion) {
@@ -2653,6 +2879,7 @@ this.XPIProvider = {
       catch (e) {
         logger.warn("updateMetadata: Add-on " + aOldAddon.id + " is invalid", e);
         XPIDatabase.removeAddonMetadata(aOldAddon);
+        XPIStates.removeAddon(aOldAddon.location, aOldAddon.id);
         if (!aInstallLocation.locked)
           aInstallLocation.uninstallAddon(aOldAddon.id);
         else
@@ -2680,7 +2907,7 @@ this.XPIProvider = {
 
         
         
-        if (aOldAddon.active && isAddonDisabled(newDBAddon))
+        if (aOldAddon.active && newDBAddon.disabled)
           XPIProvider.enableDefaultTheme();
 
         
@@ -2781,7 +3008,7 @@ this.XPIProvider = {
 
             
             
-            if (!isAddonDisabled(aOldAddon)) {
+            if (!aOldAddon.disabled) {
               XPIDatabase.updateAddonActive(aOldAddon, true);
             }
             else {
@@ -2797,7 +3024,7 @@ this.XPIProvider = {
 
       
       if (aUpdateCompatibility) {
-        let wasDisabled = isAddonDisabled(aOldAddon);
+        let wasDisabled = aOldAddon.disabled;
         let wasAppDisabled = aOldAddon.appDisabled;
         let wasUserDisabled = aOldAddon.userDisabled;
         let wasSoftDisabled = aOldAddon.softDisabled;
@@ -2807,7 +3034,7 @@ this.XPIProvider = {
                               aOldPlatformVersion);
         aOldAddon.appDisabled = !isUsableAddon(aOldAddon);
 
-        let isDisabled = isAddonDisabled(aOldAddon);
+        let isDisabled = aOldAddon.disabled;
 
         
         if (wasAppDisabled != aOldAddon.appDisabled ||
@@ -2999,8 +3226,11 @@ this.XPIProvider = {
         
         
         let disablingScopes = Preferences.get(PREF_EM_AUTO_DISABLED_SCOPES, 0);
-        if (aInstallLocation.scope & disablingScopes)
+        if (aInstallLocation.scope & disablingScopes) {
+          logger.warn("Disabling foreign installed add-on " + newAddon.id + " in "
+              + aInstallLocation.name);
           newAddon.userDisabled = true;
+        }
       }
 
       
@@ -3014,7 +3244,7 @@ this.XPIProvider = {
 
         
         
-        if (!newAddon.active && newAddon.visible && !isAddonDisabled(newAddon)) {
+        if (!newAddon.active && newAddon.visible && !newAddon.disabled) {
           
           if (newAddon.blocklistState == Blocklist.STATE_SOFTBLOCKED)
             newAddon.softDisabled = true;
@@ -3023,7 +3253,7 @@ this.XPIProvider = {
         }
       }
       else {
-        newAddon.active = (newAddon.visible && !isAddonDisabled(newAddon))
+        newAddon.active = (newAddon.visible && !newAddon.disabled);
       }
 
       let newDBAddon = XPIDatabase.addAddonMetadata(newAddon, aAddonState.descriptor);
@@ -3054,6 +3284,9 @@ this.XPIProvider = {
         let extraParams = {};
 
         
+        aAddonState.syncWithDB(newDBAddon);
+
+        
         if (newDBAddon.id in oldBootstrappedAddons) {
           let oldBootstrap = oldBootstrappedAddons[newDBAddon.id];
           extraParams.oldVersion = oldBootstrap.version;
@@ -3062,8 +3295,11 @@ this.XPIProvider = {
           
           
           
-          if (sameVersion || !isNewInstall)
+          if (sameVersion || !isNewInstall) {
+            logger.debug("addMetadata: early return, sameVersion " + sameVersion
+                + ", isNewInstall " + isNewInstall);
             return false;
+          }
 
           installReason = Services.vc.compare(oldBootstrap.version, newDBAddon.version) < 0 ?
                           BOOTSTRAP_REASONS.ADDON_UPGRADE :
@@ -3101,25 +3337,33 @@ this.XPIProvider = {
     }
 
     let changed = false;
-    let knownLocations = XPIDatabase.getInstallLocations();
 
     
-    
-    
-    for (let aSt of aState.reverse()) {
+    let allDBAddons = new Map();
+    for (let a of XPIDatabase.getAddons()) {
+      let locationSet = allDBAddons.get(a.location);
+      if (!locationSet) {
+        locationSet = new Set();
+        allDBAddons.set(a.location, locationSet);
+      }
+      locationSet.add(a);
+    }
 
+    for (let installLocation of this.installLocations) {
       
       
-      let installLocation = this.installLocationsByName[aSt.name];
-      let addonStates = aSt.addons;
-
+      let states = XPIStates.getLocation(installLocation.name);
+      let seen = new Set();
       
-      if (knownLocations.has(installLocation.name)) {
-        knownLocations.delete(installLocation.name);
-        let addons = XPIDatabase.getAddonsInLocation(installLocation.name);
+      
+      let dbAddons = allDBAddons.get(installLocation.name);
+      if (dbAddons) {
         
-        
-        for (let aOldAddon of addons) {
+        allDBAddons.delete(installLocation.name);
+
+        logger.debug("processFileChanges reconciling DB for location ${l} state ${s} db ${d}",
+            {l: installLocation.name, s: states, d: [for (a of dbAddons) a.id]});
+        for (let aOldAddon of dbAddons) {
           
           
           if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
@@ -3129,35 +3373,25 @@ this.XPIProvider = {
           }
 
           
-          if (aOldAddon.id in addonStates) {
-            let addonState = addonStates[aOldAddon.id];
-            delete addonStates[aOldAddon.id];
+          let xpiState = states && states.get(aOldAddon.id);
+          if (xpiState) {
+            
+            seen.add(xpiState);
 
             recordAddonTelemetry(aOldAddon);
 
             
-            if (aOldAddon.updateDate != addonState.mtime) {
+            if (aOldAddon.updateDate != xpiState.mtime) {
               
-              if (addonState.mtime < aOldAddon.updateDate) {
+              if (xpiState.mtime < aOldAddon.updateDate) {
                 this.setTelemetry(aOldAddon.id, "olderFile", {
                   name: this._mostRecentlyModifiedFile[aOldAddon.id],
-                  mtime: addonState.mtime,
+                  mtime: xpiState.mtime,
                   oldtime: aOldAddon.updateDate
                 });
-              }
-              
-              else if (addonState.rdfTime) {
-                
-                if (addonState.rdfTime > aOldAddon.updateDate) {
-                  this.setTelemetry(aOldAddon.id, "modifiedInstallRDF", 1);
-                }
-                else {
+              } else {
                   this.setTelemetry(aOldAddon.id, "modifiedFile",
                                     this._mostRecentlyModifiedFile[aOldAddon.id]);
-                }
-              }
-              else {
-                this.setTelemetry(aOldAddon.id, "modifiedXPI", 1);
               }
             }
 
@@ -3166,56 +3400,61 @@ this.XPIProvider = {
             
             
             if (aOldAddon.id in aManifests[installLocation.name] ||
-                aOldAddon.updateDate != addonState.mtime ||
+                aOldAddon.updateDate != xpiState.mtime ||
                 (aUpdateCompatibility && installLocation.name == KEY_APP_GLOBAL)) {
-              changed = updateMetadata(installLocation, aOldAddon, addonState) ||
+              changed = updateMetadata(installLocation, aOldAddon, xpiState) ||
                         changed;
             }
-            else if (aOldAddon.descriptor != addonState.descriptor) {
-              changed = updateDescriptor(installLocation, aOldAddon, addonState) ||
+            else if (aOldAddon.descriptor != xpiState.descriptor) {
+              changed = updateDescriptor(installLocation, aOldAddon, xpiState) ||
                         changed;
             }
             else {
               changed = updateVisibilityAndCompatibility(installLocation,
-                                                         aOldAddon, addonState) ||
+                                                         aOldAddon, xpiState) ||
                         changed;
             }
             if (aOldAddon.visible && aOldAddon._installLocation.name != KEY_APP_GLOBAL)
               XPIProvider.allAppGlobal = false;
+            
+            xpiState.syncWithDB(aOldAddon);
           }
           else {
+            
             changed = removeMetadata(aOldAddon) || changed;
           }
         }
       }
 
       
-
+      
+      
       
       let locMigrateData = {};
       if (XPIDatabase.migrateData && installLocation.name in XPIDatabase.migrateData)
         locMigrateData = XPIDatabase.migrateData[installLocation.name];
-      for (let id in addonStates) {
-        changed = addMetadata(installLocation, id, addonStates[id],
-                              (locMigrateData[id] || null)) || changed;
+      if (states) {
+        for (let [id, xpiState] of states) {
+          if (!seen.has(xpiState)) {
+            changed = addMetadata(installLocation, id, xpiState,
+                                  (locMigrateData[id] || null)) || changed;
+          }
+        }
       }
     }
 
     
     
     
-    
-    for (let location of knownLocations) {
-      let addons = XPIDatabase.getAddonsInLocation(location);
-      for (let aOldAddon of addons) {
-        changed = removeMetadata(aOldAddon) || changed;
+    for (let [locationName, addons] of allDBAddons) {
+      logger.debug("Removing orphaned DB add-on entries from " + locationName);
+      for (let a of addons) {
+        logger.debug("Remove ${location}:${id}", a);
+        changed = removeMetadata(a) || changed;
       }
     }
 
-    
-    this.installStates = this.getInstallLocationStates();
-    let cache = JSON.stringify(this.installStates);
-    Services.prefs.setCharPref(PREF_INSTALL_CACHE, cache);
+    XPIStates.save();
     this.persistBootstrappedAddons();
 
     
@@ -3264,6 +3503,7 @@ this.XPIProvider = {
 
     
     
+    
     try {
       this.bootstrappedAddons = JSON.parse(Preferences.get(PREF_BOOTSTRAP_ADDONS,
                                            "{}"));
@@ -3300,30 +3540,20 @@ this.XPIProvider = {
 
     
     let telemetryCaptureTime = Date.now();
-    this.installStates = this.getInstallLocationStates();
+    let installChanged = XPIStates.getInstallState();
     let telemetry = Services.telemetry;
     telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(Date.now() - telemetryCaptureTime);
-
-    
-    let cache = Preferences.get(PREF_INSTALL_CACHE, "[]");
-    
-    
-    let newState = JSON.stringify(this.installStates);
-    if (cache != newState) {
-      logger.debug("Directory state JSON differs: cache " + cache + " state " + newState);
-      if (directoryStateDiffers(this.installStates, cache)) {
-        updateReasons.push("directoryState");
-      }
-      else {
-        AddonManagerPrivate.recordSimpleMeasure("XPIDB_startup_state_badCompare", 1);
-      }
+    if (installChanged) {
+      updateReasons.push("directoryState");
     }
+
+    let haveAnyAddons = (XPIStates.size > 0);
 
     
     if (DB_SCHEMA != Preferences.get(PREF_DB_SCHEMA, 0)) {
       
       
-      if (this.installStates.length == 0) {
+      if (!haveAnyAddons) {
         logger.debug("Empty XPI database, setting schema version preference to " + DB_SCHEMA);
         Services.prefs.setIntPref(PREF_DB_SCHEMA, DB_SCHEMA);
       }
@@ -3336,24 +3566,24 @@ this.XPIProvider = {
     
     
     let dbFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
-    if (!dbFile.exists() && this.installStates.length > 0) {
+    if (!dbFile.exists() && haveAnyAddons) {
       updateReasons.push("needNewDatabase");
     }
 
+    
     if (updateReasons.length == 0) {
-      let bootstrapDescriptors = [this.bootstrappedAddons[b].descriptor
-                                  for (b in this.bootstrappedAddons)];
+      let bootstrapDescriptors = new Set([for (b of Object.keys(this.bootstrappedAddons))
+                                          this.bootstrappedAddons[b].descriptor]);
 
-      this.installStates.forEach(function(aInstallLocationState) {
-        for (let id in aInstallLocationState.addons) {
-          let pos = bootstrapDescriptors.indexOf(aInstallLocationState.addons[id].descriptor);
-          if (pos != -1)
-            bootstrapDescriptors.splice(pos, 1);
+      for (let location of XPIStates.db.values()) {
+        for (let state of location.values()) {
+          bootstrapDescriptors.delete(state.descriptor);
         }
-      });
+      }
 
-      if (bootstrapDescriptors.length > 0) {
-        logger.warn("Bootstrap state is invalid (missing add-ons: " + bootstrapDescriptors.toSource() + ")");
+      if (bootstrapDescriptors.size > 0) {
+        logger.warn("Bootstrap state is invalid (missing add-ons: "
+            + [for (b of bootstrapDescriptors) b] + ")");
         updateReasons.push("missingBootstrapAddon");
       }
     }
@@ -3367,7 +3597,7 @@ this.XPIProvider = {
         AddonManagerPrivate.recordSimpleMeasure("XPIDB_startup_load_reasons", updateReasons);
         XPIDatabase.syncLoadDB(false);
         try {
-          extensionListChanged = this.processFileChanges(this.installStates, manifests,
+          extensionListChanged = this.processFileChanges(manifests,
                                                          aAppChanged,
                                                          aOldAppVersion,
                                                          aOldPlatformVersion);
@@ -3382,7 +3612,7 @@ this.XPIProvider = {
         
         if (this.currentSkin != this.defaultSkin) {
           let oldSkin = XPIDatabase.getVisibleAddonForInternalName(this.currentSkin);
-          if (!oldSkin || isAddonDisabled(oldSkin))
+          if (!oldSkin || oldSkin.disabled)
             this.enableDefaultTheme();
         }
 
@@ -3419,7 +3649,8 @@ this.XPIProvider = {
     
     let addonsList = FileUtils.getFile(KEY_PROFILEDIR, [FILE_XPI_ADDONS_LIST],
                                        true);
-    if (addonsList.exists() == (this.installStates.length == 0)) {
+    
+    if (addonsList.exists() != haveAnyAddons) {
       logger.debug("Add-ons list is invalid, rebuilding");
       XPIDatabase.writeAddonsList();
     }
@@ -3977,7 +4208,7 @@ this.XPIProvider = {
 
     
     
-    if (isAddonDisabled(aAddon))
+    if (aAddon.disabled)
       return false;
 
     
@@ -4173,7 +4404,7 @@ this.XPIProvider = {
       
       if (!(aAddon.id in this.bootstrapScopes))
         this.loadBootstrapScope(aAddon.id, aFile, aAddon.version, aAddon.type,
-                                aAddon.multiprocessCompatible);
+                                aAddon.multiprocessCompatible || false);
 
       
       if (aAddon.type == "locale")
@@ -4260,7 +4491,7 @@ this.XPIProvider = {
         aAddon.softDisabled == aSoftDisabled)
       return;
 
-    let wasDisabled = isAddonDisabled(aAddon);
+    let wasDisabled = aAddon.disabled;
     let isDisabled = aUserDisabled || aSoftDisabled || appDisabled;
 
     
@@ -4332,6 +4563,16 @@ this.XPIProvider = {
     }
 
     
+    let xpiState = XPIStates.getAddon(aAddon.location, aAddon.id);
+    if (xpiState) {
+      xpiState.syncWithDB(aAddon);
+      XPIStates.save();
+    } else {
+      
+      logger.warn("No XPIState for ${id} in ${location}", aAddon);
+    }
+
+    
     if (aAddon.type == "theme" && !isDisabled)
       AddonManagerPrivate.notifyAddonChanged(aAddon.id, aAddon.type, needsRestart);
   },
@@ -4376,6 +4617,13 @@ this.XPIProvider = {
         pendingUninstall: true
       });
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
+      let xpiState = XPIStates.getAddon(aAddon.location, aAddon.id);
+      if (xpiState) {
+        xpiState.enabled = false;
+        XPIStates.save();
+      } else {
+        logger.warn("Can't find XPI state while uninstalling ${id} from ${location}", aAddon);
+      }
     }
 
     
@@ -4393,7 +4641,7 @@ this.XPIProvider = {
       let wrappedAddon = createWrapper(aAddon);
       AddonManagerPrivate.callAddonListeners("onInstalling", wrappedAddon, false);
 
-      if (!isAddonDisabled(aAddon) && !XPIProvider.enableRequiresRestart(aAddon)) {
+      if (!aAddon.disabled && !XPIProvider.enableRequiresRestart(aAddon)) {
         XPIDatabase.updateAddonActive(aAddon, true);
       }
 
@@ -4416,18 +4664,11 @@ this.XPIProvider = {
       AddonManagerPrivate.callAddonListeners("onInstalled", wrappedAddon);
     }
 
-    function checkInstallLocation(aPos) {
-      if (aPos < 0)
-        return;
-
-      let location = XPIProvider.installLocations[aPos];
-      XPIDatabase.getAddonInLocation(aAddon.id, location.name,
-        function checkInstallLocation_getAddonInLocation(aNewAddon) {
-        if (aNewAddon)
-          revealAddon(aNewAddon);
-        else
-          checkInstallLocation(aPos - 1);
-      })
+    function findAddonAndReveal(aId) {
+      let [locationName, ] = XPIStates.findAddon(aId);
+      if (locationName) {
+        XPIDatabase.getAddonInLocation(aId, locationName, revealAddon);
+      }
     }
 
     if (!requiresRestart) {
@@ -4445,9 +4686,10 @@ this.XPIProvider = {
       }
       aAddon._installLocation.uninstallAddon(aAddon.id);
       XPIDatabase.removeAddonMetadata(aAddon);
+      XPIStates.removeAddon(aAddon.location, aAddon.id);
       AddonManagerPrivate.callAddonListeners("onUninstalled", wrapper);
 
-      checkInstallLocation(this.installLocations.length - 1);
+      findAddonAndReveal(aAddon.id);
     }
 
     
@@ -5535,20 +5777,26 @@ AddonInstall.prototype = {
         
         this.addon._sourceBundle = file;
         this.addon._installLocation = this.installLocation;
-        let scanStarted = Date.now();
-        let [, mTime, scanItems] = recursiveLastModifiedTime(file);
-        let scanTime = Date.now() - scanStarted;
-        this.addon.updateDate = mTime;
         this.addon.visible = true;
+
         if (isUpgrade) {
           this.addon =  XPIDatabase.updateAddonMetadata(this.existingAddon, this.addon,
                                                         file.persistentDescriptor);
+          let state = XPIStates.getAddon(this.installLocation.name, this.addon.id);
+          if (state) {
+            state.syncWithDB(this.addon, true);
+          } else {
+            logger.warn("Unexpected missing XPI state for add-on ${id}", this.addon);
+          }
         }
         else {
-          this.addon.installDate = this.addon.updateDate;
-          this.addon.active = (this.addon.visible && !isAddonDisabled(this.addon))
+          this.addon.active = (this.addon.visible && !this.addon.disabled);
           this.addon = XPIDatabase.addAddonMetadata(this.addon, file.persistentDescriptor);
+          XPIStates.addAddon(this.addon);
+          this.addon.installDate = this.addon.updateDate;
+          XPIDatabase.saveChanges();
         }
+        XPIStates.save();
 
         let extraParams = {};
         if (this.existingAddon) {
@@ -5581,9 +5829,6 @@ AddonInstall.prototype = {
           }
         }
         XPIProvider.setTelemetry(this.addon.id, "unpacked", installedUnpacked);
-        XPIProvider.setTelemetry(this.addon.id, "location", this.installLocation.name);
-        XPIProvider.setTelemetry(this.addon.id, "scan_MS", scanTime);
-        XPIProvider.setTelemetry(this.addon.id, "scan_items", scanItems);
         recordAddonTelemetry(this.addon);
       }
     }).bind(this)).then(null, (e) => {
@@ -6014,6 +6259,10 @@ AddonInternal.prototype = {
     return this.isCompatibleWith();
   },
 
+  get disabled() {
+    return (this.userDisabled || this.appDisabled || this.softDisabled);
+  },
+
   get isPlatformCompatible() {
     if (this.targetPlatforms.length == 0)
       return true;
@@ -6391,11 +6640,11 @@ function AddonWrapper(aAddon) {
   }, this);
 
   this.__defineGetter__("iconURL", function AddonWrapper_iconURLGetter() {
-    return this.icons[32];
+    return this.icons[32] || undefined;
   }, this);
 
   this.__defineGetter__("icon64URL", function AddonWrapper_icon64URLGetter() {
-    return this.icons[64];
+    return this.icons[64] || undefined;
   }, this);
 
   this.__defineGetter__("icons", function AddonWrapper_iconsGetter() {
@@ -6576,9 +6825,9 @@ function AddonWrapper(aAddon) {
     
     
     if (aAddon.type != "experiment") {
-      if (aAddon.active && isAddonDisabled(aAddon))
+      if (aAddon.active && aAddon.disabled)
         pending |= AddonManager.PENDING_DISABLE;
-      else if (!aAddon.active && !isAddonDisabled(aAddon))
+      else if (!aAddon.active && !aAddon.disabled)
         pending |= AddonManager.PENDING_ENABLE;
     }
 

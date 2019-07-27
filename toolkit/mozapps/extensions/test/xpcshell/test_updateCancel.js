@@ -19,13 +19,6 @@ const profileDir = gProfD.clone();
 profileDir.append("extensions");
 
 
-
-function promiseGetAddon(aID) {
-  let p = Promise.defer();
-  AddonManager.getAddonByID(aID, p.resolve);
-  return p.promise;
-}
-
 function run_test() {
   
   run_next_test();
@@ -85,7 +78,7 @@ writeInstallRDFForExtension({
 add_task(function cancel_during_check() {
   startupManager();
 
-  let a1 = yield promiseGetAddon("addon1@tests.mozilla.org");
+  let a1 = yield promiseAddonByID("addon1@tests.mozilla.org");
   do_check_neq(a1, null);
 
   let listener = makeCancelListener();
@@ -120,7 +113,7 @@ add_task(function shutdown_during_check() {
   
   httpReceived = Promise.defer();
 
-  let a1 = yield promiseGetAddon("addon1@tests.mozilla.org");
+  let a1 = yield promiseAddonByID("addon1@tests.mozilla.org");
   do_check_neq(a1, null);
 
   let listener = makeCancelListener();

@@ -663,11 +663,19 @@ function createInstallRDF(aData) {
 
 
 
-function writeInstallRDFToDir(aData, aDir, aExtraFile) {
+
+
+
+function writeInstallRDFToDir(aData, aDir, aId, aExtraFile) {
+  var id = aId ? aId : aData.id
+
+  var dir = aDir.clone();
+  dir.append(id);
+
   var rdf = createInstallRDF(aData);
-  if (!aDir.exists())
-    aDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
-  var file = aDir.clone();
+  if (!dir.exists())
+    dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+  var file = dir.clone();
   file.append("install.rdf");
   if (file.exists())
     file.remove(true);
@@ -680,11 +688,12 @@ function writeInstallRDFToDir(aData, aDir, aExtraFile) {
   fos.close();
 
   if (!aExtraFile)
-    return;
+    return dir;
 
-  file = aDir.clone();
+  file = dir.clone();
   file.append(aExtraFile);
   file.create(AM_Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+  return dir;
 }
 
 
@@ -705,15 +714,33 @@ function writeInstallRDFToDir(aData, aDir, aExtraFile) {
 
 
 function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
+  if (TEST_UNPACKED) {
+    return writeInstallRDFToDir(aData, aDir, aId, aExtraFile);
+  }
+  return writeInstallRDFToXPI(aData, aDir, aId, aExtraFile);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function writeInstallRDFToXPI(aData, aDir, aId, aExtraFile) {
   var id = aId ? aId : aData.id
 
   var dir = aDir.clone();
-
-  if (TEST_UNPACKED) {
-    dir.append(id);
-    writeInstallRDFToDir(aData, dir, aExtraFile);
-    return dir;
-  }
 
   if (!dir.exists())
     dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
