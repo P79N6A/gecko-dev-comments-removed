@@ -87,8 +87,6 @@ const TELEMETRY_TEST_DELAY = 100;
 
 const SCHEDULER_TICK_INTERVAL_MS = 5 * 60 * 1000;
 
-const SCHEDULER_TICK_IDLE_INTERVAL_MS = 60 * 60 * 1000;
-
 const SCHEDULER_RETRY_ATTEMPTS = 3;
 
 
@@ -418,8 +416,6 @@ let TelemetryScheduler = {
 
   
   _schedulerTimer: null,
-  
-  _schedulerInterval: 0,
   _shuttingDown: true,
 
   
@@ -434,16 +430,14 @@ let TelemetryScheduler = {
     let now = Policy.now();
     this._lastDailyPingTime = now.getTime();
     this._lastSessionCheckpointTime = now.getTime();
-    this._schedulerInterval = SCHEDULER_TICK_INTERVAL_MS;
     this._rescheduleTimeout();
-    idleService.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
   },
 
   
 
 
   _rescheduleTimeout: function() {
-    this._log.trace("_rescheduleTimeout - timeout: " + this._schedulerInterval);
+    this._log.trace("_rescheduleTimeout");
     if (this._shuttingDown) {
       this._log.warn("_rescheduleTimeout - already shutdown");
       return;
@@ -454,7 +448,7 @@ let TelemetryScheduler = {
     }
 
     this._schedulerTimer =
-      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), this._schedulerInterval);
+      Policy.setSchedulerTickTimeout(() => this._onSchedulerTick(), SCHEDULER_TICK_INTERVAL_MS);
   },
 
   
@@ -502,25 +496,6 @@ let TelemetryScheduler = {
     this._lastSessionCheckpointTime = now;
     return Impl._saveAbortedSessionPing(competingPayload)
                 .catch(e => this._log.error("_saveAbortedPing - Failed", e));
-  },
-
-  
-
-
-  observe: function(aSubject, aTopic, aData) {
-    this._log.trace("observe - aTopic: " + aTopic);
-    switch(aTopic) {
-      case "idle":
-        
-        this._schedulerInterval = SCHEDULER_TICK_IDLE_INTERVAL_MS;
-        this._rescheduleTimeout();
-        break;
-      case "active":
-        
-        this._schedulerInterval = SCHEDULER_TICK_INTERVAL_MS;
-        this._rescheduleTimeout();
-        break;
-    }
   },
 
   
@@ -674,8 +649,6 @@ let TelemetryScheduler = {
       Policy.clearSchedulerTickTimeout(this._schedulerTimer);
       this._schedulerTimer = null;
     }
-
-    idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
 
     this._shuttingDown = true;
   }
