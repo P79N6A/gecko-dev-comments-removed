@@ -48,7 +48,6 @@ import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.NativeJSContainer;
 import org.mozilla.gecko.util.ProxySelector;
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.webapp.Allocator;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -1149,9 +1148,29 @@ public class GeckoAppShell
         final Intent intent = getIntentForActionString(action);
         intent.setData(uri);
 
-        if ("vnd.youtube".equals(scheme) && !hasHandlersForIntent(intent)) {
+        if ("vnd.youtube".equals(scheme) &&
+            !hasHandlersForIntent(intent) &&
+            !TextUtils.isEmpty(uri.getSchemeSpecificPart())) {
+
             
             
+            final Class<?> c;
+            final String browserClassName = AppConstants.BROWSER_INTENT_CLASS_NAME;
+            try {
+                c = Class.forName(browserClassName);
+            } catch (ClassNotFoundException e) {
+                
+                Log.wtf(LOGTAG, "Class " + browserClassName + " not found!");
+                return null;
+            }
+
+            final Uri youtubeURI = getYouTubeHTML5URI(uri);
+            if (youtubeURI != null) {
+                
+                
+                final Intent view = new Intent(GeckoApp.ACTION_LOAD, youtubeURI, context, c);
+                return view;
+            }
         }
 
         
@@ -1192,6 +1211,30 @@ public class GeckoAppShell
         intent.setData(pruned);
 
         return intent;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    private static Uri getYouTubeHTML5URI(final Uri uri) {
+        if (uri == null) {
+            return null;
+        }
+
+        final String ssp = uri.getSchemeSpecificPart();
+        if (TextUtils.isEmpty(ssp)) {
+            return null;
+        }
+
+        return Uri.parse("https://www.youtube.com/embed/" + ssp);
     }
 
     
@@ -1634,7 +1677,7 @@ public class GeckoAppShell
 
         try {
             String filter = GeckoProfile.get(getContext()).getDir().toString();
-            Log.i(LOGTAG, "[OPENFILE] Filter: " + filter);
+            Log.d(LOGTAG, "[OPENFILE] Filter: " + filter);
 
             
             java.lang.Process lsof = Runtime.getRuntime().exec("lsof");
@@ -1667,7 +1710,7 @@ public class GeckoAppShell
                 }
                 String file = split[nameColumn];
                 if (!TextUtils.isEmpty(name) && !TextUtils.isEmpty(file) && file.startsWith(filter))
-                    Log.i(LOGTAG, "[OPENFILE] " + name + "(" + split[pidColumn] + ") : " + file);
+                    Log.d(LOGTAG, "[OPENFILE] " + name + "(" + split[pidColumn] + ") : " + file);
             }
             in.close();
         } catch (Exception e) { }
