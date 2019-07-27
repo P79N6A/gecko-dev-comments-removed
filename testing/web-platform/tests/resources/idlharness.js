@@ -946,13 +946,25 @@ IdlInterface.prototype.has_constants = function()
 };
 
 
+IdlInterface.prototype.is_global = function()
+
+{
+    return this.extAttrs.some(function(attribute) {
+        return attribute.name === "Global" ||
+               attribute.name === "PrimaryGlobal";
+    });
+};
+
+
 IdlInterface.prototype.test_self = function()
 
 {
     test(function()
     {
         
+        
 
+        
         
         
         
@@ -993,8 +1005,6 @@ IdlInterface.prototype.test_self = function()
 
         
         
-        assert_equals(Object.getPrototypeOf(self[this.name]), Function.prototype,
-                      "prototype of self's property " + format_value(this.name) + " is not Function.prototype");
 
         
         
@@ -1013,6 +1023,33 @@ IdlInterface.prototype.test_self = function()
         
         
         assert_class_string(self[this.name], "Function", "class string of " + this.name);
+
+        
+        
+        var prototype = Object.getPrototypeOf(self[this.name]);
+        if (this.base) {
+            
+            
+            
+            var has_interface_object =
+                !this.array
+                     .members[this.base]
+                     .has_extended_attribute("NoInterfaceObject");
+            if (has_interface_object) {
+                assert_own_property(self, this.base,
+                                    'should inherit from ' + this.base +
+                                    ', but self has no such property');
+                assert_equals(prototype, self[this.base],
+                              'prototype of ' + this.name + ' is not ' +
+                              this.base);
+            }
+        } else {
+            
+            
+            
+            assert_equals(prototype, Function.prototype,
+                          "prototype of self's property " + format_value(this.name) + " is not Function.prototype");
+        }
 
         if (!this.has_extended_attribute("Constructor")) {
             
@@ -1264,9 +1301,15 @@ IdlInterface.prototype.test_member_attribute = function(member)
             assert_own_property(self[this.name], member.name,
                 "The interface object must have a property " +
                 format_value(member.name));
-        }
-        else
-        {
+        } else if (this.is_global()) {
+            assert_own_property(self, member.name,
+                "The global object must have a property " +
+                format_value(member.name));
+            assert_false(member.name in self[this.name].prototype,
+                "The prototype object must not have a property " +
+                format_value(member.name));
+            do_interface_attribute_asserts(self, member);
+        } else {
             assert_true(member.name in self[this.name].prototype,
                 "The prototype object must have a property " +
                 format_value(member.name));
@@ -1310,20 +1353,22 @@ IdlInterface.prototype.test_member_operation = function(member)
         
         
         
-        var prototypeOrInterfaceObject;
+        var memberHolderObject;
         if (member["static"]) {
             assert_own_property(self[this.name], member.name,
                     "interface prototype object missing static operation");
-            prototypeOrInterfaceObject = self[this.name];
-        }
-        else
-        {
+            memberHolderObject = self[this.name];
+        } else if (this.is_global()) {
+            assert_own_property(self, member.name,
+                    "global object missing non-static operation");
+            memberHolderObject = self;
+        } else {
             assert_own_property(self[this.name].prototype, member.name,
                     "interface prototype object missing non-static operation");
-            prototypeOrInterfaceObject = self[this.name].prototype;
+            memberHolderObject = self[this.name].prototype;
         }
 
-        var desc = Object.getOwnPropertyDescriptor(prototypeOrInterfaceObject, member.name);
+        var desc = Object.getOwnPropertyDescriptor(memberHolderObject, member.name);
         
         
         assert_false("get" in desc, "property has getter");
@@ -1333,7 +1378,7 @@ IdlInterface.prototype.test_member_operation = function(member)
         assert_true(desc.configurable, "property is not configurable");
         
         
-        assert_equals(typeof prototypeOrInterfaceObject[member.name], "function",
+        assert_equals(typeof memberHolderObject[member.name], "function",
                       "property must be a function");
         
         
@@ -1342,7 +1387,7 @@ IdlInterface.prototype.test_member_operation = function(member)
         
         
         
-        assert_equals(prototypeOrInterfaceObject[member.name].length,
+        assert_equals(memberHolderObject[member.name].length,
             member.arguments.filter(function(arg) {
                 return !arg.optional;
             }).length,
@@ -1680,11 +1725,16 @@ function do_interface_attribute_asserts(obj, member)
 {
     
     
+
+    
+    
+    
+
     
     
     
     
-    
+
     
     assert_own_property(obj, member.name);
 
@@ -1707,50 +1757,70 @@ function do_interface_attribute_asserts(obj, member)
         assert_true(desc.configurable, "property must be configurable");
     }
 
-    
-    
-    
+
     
     
     assert_equals(typeof desc.get, "function", "getter must be Function");
-    assert_equals(desc.get.length, 0, "getter length must be 0");
-    if (!member.has_extended_attribute("LenientThis")) {
-        assert_throws(new TypeError(), function() {
-            desc.get.call({});
-        }.bind(this), "calling getter on wrong object type must throw TypeError");
-    } else {
-        assert_equals(desc.get.call({}), undefined,
-                      "calling getter on wrong object type must return undefined");
+
+    
+    if (!member["static"]) {
+        
+        
+        
+        
+        if (!member.has_extended_attribute("LenientThis")) {
+            assert_throws(new TypeError(), function() {
+                desc.get.call({});
+            }.bind(this), "calling getter on wrong object type must throw TypeError");
+        } else {
+            assert_equals(desc.get.call({}), undefined,
+                          "calling getter on wrong object type must return undefined");
+        }
     }
 
     
     
-    
-    
-    
-    
-    
-    
+    assert_equals(desc.get.length, 0, "getter length must be 0");
+
+
     
     
     if (member.readonly
     && !member.has_extended_attribute("PutForwards")
     && !member.has_extended_attribute("Replaceable"))
     {
+        
+        
+        
         assert_equals(desc.set, undefined, "setter must be undefined for readonly attributes");
     }
     else
     {
+        
+        
         assert_equals(typeof desc.set, "function", "setter must be function for PutForwards, Replaceable, or non-readonly attributes");
-        assert_equals(desc.set.length, 1, "setter length must be 1");
-        if (!member.has_extended_attribute("LenientThis")) {
-            assert_throws(new TypeError(), function() {
-                desc.set.call({});
-            }.bind(this), "calling setter on wrong object type must throw TypeError");
-        } else {
-            assert_equals(desc.set.call({}), undefined,
-                          "calling setter on wrong object type must return undefined");
+
+        
+        if (!member["static"]) {
+            
+            
+            
+            
+            
+            
+            if (!member.has_extended_attribute("LenientThis")) {
+                assert_throws(new TypeError(), function() {
+                    desc.set.call({});
+                }.bind(this), "calling setter on wrong object type must throw TypeError");
+            } else {
+                assert_equals(desc.set.call({}), undefined,
+                              "calling setter on wrong object type must return undefined");
+            }
         }
+
+        
+        
+        assert_equals(desc.set.length, 1, "setter length must be 1");
     }
 }
 
