@@ -1174,6 +1174,19 @@ public:
 
   
   
+  elem_type* InsertElementAt(index_type aIndex, elem_type&& aItem)
+  {
+    if (!Alloc::Successful(this->EnsureCapacity(Length() + 1,
+                                                sizeof(elem_type))))
+      return nullptr;
+    this->ShiftData(aIndex, 0, 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
+    elem_type* elem = Elements() + aIndex;
+    nsTArrayElementTraits<elem_type>::Construct(elem, mozilla::Forward<elem_type>(aItem));
+    return elem;
+  }
+
+  
+  
   
   
   
