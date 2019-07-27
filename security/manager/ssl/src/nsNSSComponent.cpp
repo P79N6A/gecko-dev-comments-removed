@@ -183,9 +183,9 @@ bool EnsureNSSInitialized(EnsureNSSOperator op)
 }
 
 static void
-GetOCSPBehaviorFromPrefs( CertVerifier::ocsp_download_config* odc,
-                          CertVerifier::ocsp_strict_config* osc,
-                          CertVerifier::ocsp_get_config* ogc,
+GetOCSPBehaviorFromPrefs( CertVerifier::OcspDownloadConfig* odc,
+                          CertVerifier::OcspStrictConfig* osc,
+                          CertVerifier::OcspGetConfig* ogc,
                          const MutexAutoLock& )
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -195,17 +195,17 @@ GetOCSPBehaviorFromPrefs( CertVerifier::ocsp_download_config* odc,
 
   
   *odc = Preferences::GetInt("security.OCSP.enabled", 1)
-       ? CertVerifier::ocsp_on
-       : CertVerifier::ocsp_off;
+       ? CertVerifier::ocspOn
+       : CertVerifier::ocspOff;
 
   *osc = Preferences::GetBool("security.OCSP.require", false)
-       ? CertVerifier::ocsp_strict
-       : CertVerifier::ocsp_relaxed;
+       ? CertVerifier::ocspStrict
+       : CertVerifier::ocspRelaxed;
 
   
   *ogc = Preferences::GetBool("security.OCSP.GET.enabled", false)
-       ? CertVerifier::ocsp_get_enabled
-       : CertVerifier::ocsp_get_disabled;
+       ? CertVerifier::ocspGetEnabled
+       : CertVerifier::ocspGetDisabled;
 
   SSL_ClearSessionCache();
 }
@@ -875,9 +875,9 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
     pinningMode = CertVerifier::pinningDisabled;
   }
 
-  CertVerifier::ocsp_download_config odc;
-  CertVerifier::ocsp_strict_config osc;
-  CertVerifier::ocsp_get_config ogc;
+  CertVerifier::OcspDownloadConfig odc;
+  CertVerifier::OcspStrictConfig osc;
+  CertVerifier::OcspGetConfig ogc;
 
   GetOCSPBehaviorFromPrefs(&odc, &osc, &ogc, lock);
   mDefaultCertVerifier = new SharedCertVerifier(odc, osc, ogc, pinningMode);

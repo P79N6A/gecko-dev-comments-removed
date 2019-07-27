@@ -54,7 +54,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(SECTrustType certDBTrustType,
                                            OCSPFetching ocspFetching,
                                            OCSPCache& ocspCache,
               void* pinArg,
-                                           CertVerifier::ocsp_get_config ocspGETConfig,
+                                           CertVerifier::OcspGetConfig ocspGETConfig,
                                            CertVerifier::PinningMode pinningMode,
                                            bool forEV,
                                const char* hostname,
@@ -570,7 +570,7 @@ NSSCertDBTrustDomain::CheckRevocation(EndEntityOrCA endEntityOrCA,
     const SECItem* responseSECItem =
       DoOCSPRequest(arena.get(), url, &ocspRequestItem,
                     OCSPFetchingTypeToTimeoutTime(mOCSPFetching),
-                    mOCSPGetConfig == CertVerifier::ocsp_get_enabled);
+                    mOCSPGetConfig == CertVerifier::ocspGetEnabled);
     if (!responseSECItem) {
       rv = MapPRErrorCodeToResult(PR_GetError());
     } else if (response.Init(responseSECItem->data, responseSECItem->len)
