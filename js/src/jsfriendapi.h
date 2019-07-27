@@ -1367,8 +1367,11 @@ struct MOZ_STACK_CLASS JS_FRIEND_API(ErrorReport)
     
     
     
-    void populateUncaughtExceptionReport(JSContext *cx, ...);
-    void populateUncaughtExceptionReportVA(JSContext *cx, va_list ap);
+    
+    
+    
+    bool populateUncaughtExceptionReport(JSContext *cx, ...);
+    bool populateUncaughtExceptionReportVA(JSContext *cx, va_list ap);
 
     
     JSErrorReport *reportp;

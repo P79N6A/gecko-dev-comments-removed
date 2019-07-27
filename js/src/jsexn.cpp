@@ -854,7 +854,11 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
         
         
         
-        populateUncaughtExceptionReport(cx, message_);
+        if (!populateUncaughtExceptionReport(cx, message_)) {
+            
+            
+            return false;
+        }
     } else {
         
         reportp->flags |= JSREPORT_EXCEPTION;
@@ -863,16 +867,17 @@ ErrorReport::init(JSContext *cx, HandleValue exn)
     return true;
 }
 
-void
+bool
 ErrorReport::populateUncaughtExceptionReport(JSContext *cx, ...)
 {
     va_list ap;
     va_start(ap, cx);
-    populateUncaughtExceptionReportVA(cx, ap);
+    bool ok = populateUncaughtExceptionReportVA(cx, ap);
     va_end(ap);
+    return ok;
 }
 
-void
+bool
 ErrorReport::populateUncaughtExceptionReportVA(JSContext *cx, va_list ap)
 {
     new (&ownedReport) JSErrorReport();
@@ -891,12 +896,13 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext *cx, va_list ap)
     if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, nullptr,
                                  JSMSG_UNCAUGHT_EXCEPTION, &ownedMessage,
                                  &ownedReport, ArgumentsAreASCII, ap)) {
-        return;
+        return false;
     }
 
     reportp = &ownedReport;
     message_ = ownedMessage;
     ownsMessageAndReport = true;
+    return true;
 }
 
 JSObject *
