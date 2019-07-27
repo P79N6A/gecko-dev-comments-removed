@@ -180,7 +180,12 @@ AboutWeaveLog.prototype = {
   newChannel: function(aURI) {
     let dir = FileUtils.getDir("ProfD", ["weave", "logs"], true);
     let uri = Services.io.newFileURI(dir);
-    let channel = Services.io.newChannelFromURI(uri);
+    let channel = Services.io.newChannelFromURI2(uri,
+                                                 null,      
+                                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                                 null,      
+                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                 Ci.nsIContentPolicy.TYPE_OTHER);
     channel.originalURI = aURI;
 
     
