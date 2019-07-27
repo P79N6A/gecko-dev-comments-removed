@@ -144,7 +144,7 @@ NativeRegExpMacroAssembler::GenerateCode(JSContext *cx)
 #endif
 
     size_t frameSize = sizeof(FrameData) + num_registers_ * sizeof(void *);
-    frameSize = JS_ROUNDUP(frameSize + masm.framePushed(), ABIStackAlignment) - masm.framePushed();
+    frameSize = JS_ROUNDUP(frameSize + masm.framePushed(), StackAlignment) - masm.framePushed();
 
     
     masm.reserveStack(frameSize);

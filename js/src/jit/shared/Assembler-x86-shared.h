@@ -926,7 +926,6 @@ class AssemblerX86Shared : public AssemblerShared
     static bool HasSSE3() { return CPUInfo::IsSSE3Present(); }
     static bool HasSSE41() { return CPUInfo::IsSSE41Present(); }
     static bool SupportsFloatingPoint() { return CPUInfo::IsSSE2Present(); }
-    static bool SupportsSimd() { return CPUInfo::IsSSE2Present(); }
 
     
     

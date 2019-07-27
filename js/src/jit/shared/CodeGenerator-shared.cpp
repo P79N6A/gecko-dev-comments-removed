@@ -69,25 +69,25 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
     if (!gen->compilingAsmJS())
         masm.setInstrumentation(&sps_);
 
+    
+    
+    
     if (gen->compilingAsmJS()) {
-        
-        
-        
         JS_ASSERT(graph->argumentSlotCount() == 0);
         frameDepth_ += gen->maxAsmJSStackArgBytes();
 
         
         
-        if (gen->usesSimd()) {
-            frameInitialAdjustment_ = ComputeByteAlignment(sizeof(AsmJSFrame), AsmJSStackAlignment);
-            frameDepth_ += frameInitialAdjustment_;
-        }
+        
+        if (StackKeptAligned || gen->performsCall() || gen->usesSimd()) {
+            unsigned alignmentAtCall = sizeof(AsmJSFrame) + frameDepth_;
+            unsigned firstFixup = 0;
+            if (unsigned rem = alignmentAtCall % StackAlignment)
+                frameDepth_ += (firstFixup = StackAlignment - rem);
 
-        
-        
-        
-        if (gen->performsCall())
-            frameDepth_ += ComputeByteAlignment(sizeof(AsmJSFrame) + frameDepth_, AsmJSStackAlignment);
+            if (gen->usesSimd())
+                setupSimdAlignment(firstFixup);
+        }
 
         
         
@@ -95,6 +95,38 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
     } else {
         frameClass_ = FrameSizeClass::FromDepth(frameDepth_);
     }
+}
+
+void
+CodeGeneratorShared::setupSimdAlignment(unsigned fixup)
+{
+    JS_STATIC_ASSERT(SimdStackAlignment % StackAlignment == 0);
+    
+    
+    
+
+    
+    
+    
+    
+    frameInitialAdjustment_ = frameDepth_ % SimdStackAlignment;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (frameInitialAdjustment_ > int32_t(fixup))
+        frameDepth_ += SimdStackAlignment;
 }
 
 bool
