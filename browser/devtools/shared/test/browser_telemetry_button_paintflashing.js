@@ -1,6 +1,8 @@
 
 
 
+"use strict";
+
 const TEST_URI = "data:text/html;charset=utf-8," +
   "<p>browser_telemetry_button_paintflashing.js</p>";
 
@@ -30,27 +32,28 @@ function* testButton(toolbox, Telemetry) {
   let button = toolbox.doc.querySelector("#command-button-paintflashing");
   ok(button, "Captain, we have the button");
 
-  yield delayedClicks(button, 4);
+  yield* delayedClicks(toolbox, button, 4);
   checkResults("_PAINTFLASHING_", Telemetry);
 }
 
-function delayedClicks(node, clicks) {
-  return new Promise(resolve => {
-    let clicked = 0;
+function* delayedClicks(toolbox, node, clicks) {
+  for (let i = 0; i < clicks; i++) {
+    yield new Promise(resolve => {
+      
+      setTimeout(() => resolve(), TOOL_DELAY);
+    });
 
     
-    setTimeout(function delayedClick() {
-      info("Clicking button " + node.id);
-      node.click();
-      clicked++;
+    
+    let clicked = toolbox._requisition.commandOutputManager.onOutput.once();
 
-      if (clicked >= clicks) {
-        resolve(node);
-      } else {
-        setTimeout(delayedClick, TOOL_DELAY);
-      }
-    }, TOOL_DELAY);
-  });
+    info("Clicking button " + node.id);
+    node.click();
+
+    let outputEvent = yield clicked;
+    
+    yield outputEvent.output.promise;
+  }
 }
 
 function checkResults(histIdFocus, Telemetry) {
