@@ -605,7 +605,10 @@ ThreadStackHelper::FillStackBuffer()
     }
 #endif
     const char* const label = entry->label();
-    if (mStackToFill->IsSameAsEntry(prevLabel, label)) {
+    if (mStackToFill->IsSameAsEntry(prevLabel, label) ||
+        !strcmp(label, "js::RunScript")) {
+      
+      
       continue;
     }
     mStackToFill->infallibleAppend(label);
