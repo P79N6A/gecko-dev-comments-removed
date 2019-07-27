@@ -60,6 +60,7 @@ public class FxAccountStatusFragment
   
   
   private static final long DELAY_IN_MILLISECONDS_BEFORE_REQUESTING_SYNC = 5 * 1000;
+  private static final long LAST_SYNCED_TIME_UPDATE_INTERVAL_IN_MILLISECONDS = 60 * 1000;
 
   
   
@@ -104,6 +105,9 @@ public class FxAccountStatusFragment
   
   
   protected Runnable requestSyncRunnable;
+
+  
+  protected Runnable lastSyncedTimeUpdateRunnable;
 
   protected final InnerSyncStatusDelegate syncStatusDelegate = new InnerSyncStatusDelegate();
 
@@ -425,6 +429,7 @@ public class FxAccountStatusFragment
     
     
     requestSyncRunnable = new RequestSyncRunnable();
+    lastSyncedTimeUpdateRunnable = new LastSyncTimeUpdateRunnable();
 
     
     
@@ -441,6 +446,11 @@ public class FxAccountStatusFragment
   public void onPause() {
     super.onPause();
     FxAccountSyncStatusHelper.getInstance().stopObserving(syncStatusDelegate);
+
+    
+    if (lastSyncedTimeUpdateRunnable != null) {
+      handler.removeCallbacks(lastSyncedTimeUpdateRunnable);
+    }
   }
 
   protected void hardRefresh() {
@@ -535,8 +545,13 @@ public class FxAccountStatusFragment
     } else {
       syncNowPreference.setTitle(R.string.fxaccount_status_sync_now);
     }
+    scheduleAndUpdateLastSyncedTime();
+  }
+
+  private void scheduleAndUpdateLastSyncedTime() {
     final String lastSynced = getLastSyncedString(fxAccount.getLastSyncedTimestamp());
     syncNowPreference.setSummary(lastSynced);
+    handler.postDelayed(lastSyncedTimeUpdateRunnable, LAST_SYNCED_TIME_UPDATE_INTERVAL_IN_MILLISECONDS);
   }
 
   protected void updateAuthServerPreference() {
@@ -695,6 +710,16 @@ public class FxAccountStatusFragment
       }
       Logger.info(LOG_TAG, "Requesting a sync sometime soon.");
       fxAccount.requestSync();
+    }
+  }
+
+  
+
+
+  protected class LastSyncTimeUpdateRunnable implements Runnable  {
+    @Override
+    public void run() {
+      scheduleAndUpdateLastSyncedTime();
     }
   }
 
