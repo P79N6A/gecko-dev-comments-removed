@@ -154,6 +154,15 @@ private:
 
 
 
+
+  void SetSelectionDragState(bool aState);
+
+  
+
+
+
+
+
   nsPoint GetEventPosition(WidgetMouseEvent* aEvent);
 
   
