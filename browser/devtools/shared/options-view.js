@@ -20,7 +20,7 @@ const OptionsView = function (options={}) {
   this.window = this.menupopup.ownerDocument.defaultView;
   let { document } = this.window;
   this.$ = document.querySelector.bind(document);
-  this.$$ = document.querySelectorAll.bind(document);
+  this.$$ = (selector, parent=document) => parent.querySelectorAll(selector);
   
   
   this.button = this.$(`[popup=${this.menupopup.getAttribute("id")}]`);

@@ -23,12 +23,18 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
     this._onPrefChanged = this._onPrefChanged.bind(this);
     this._onLink = this._onLink.bind(this);
+
+    this.container = $("#js-calltree-view .call-tree-cells-container");
+
+    JITOptimizationsView.initialize();
   },
 
   
 
 
   destroy: function () {
+    this.container = null;
+    JITOptimizationsView.destroy();
     DetailsSubview.destroy.call(this);
   },
 
@@ -38,9 +44,11 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
 
 
-
-
-  render: function (interval={}, options={}) {
+  render: function (interval={}) {
+    let options = {
+      contentOnly: !PerformanceController.getOption("show-platform-data"),
+      invertTree: PerformanceController.getOption("invert-call-tree")
+    };
     let recording = PerformanceController.getCurrentRecording();
     let profile = recording.getProfile();
     let threadNode = this._prepareCallTree(profile, interval, options);
@@ -64,16 +72,11 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
   _prepareCallTree: function (profile, { startTime, endTime }, options) {
     let threadSamples = profile.threads[0].samples;
-    let contentOnly = !PerformanceController.getOption("show-platform-data");
-    let invertTree = PerformanceController.getOption("invert-call-tree");
+    let optimizations = profile.threads[0].optimizations;
+    let { contentOnly, invertTree } = options;
 
     let threadNode = new ThreadNode(threadSamples,
-      { startTime, endTime, contentOnly, invertTree });
-
-    
-    
-    
-    options.inverted = invertTree && threadNode.samples > 0;
+      { startTime, endTime, contentOnly, invertTree, optimizations });
 
     return threadNode;
   },
@@ -82,31 +85,38 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
 
   _populateCallTree: function (frameNode, options={}) {
+    
+    
+    
+    let inverted = options.invertTree && frameNode.samples > 0;
+
     let root = new CallView({
       frame: frameNode,
-      inverted: options.inverted,
+      inverted: inverted,
       
-      hidden: options.inverted,
+      hidden: inverted,
       
       
-      autoExpandDepth: options.inverted ? 0 : undefined,
+      autoExpandDepth: inverted ? 0 : undefined
     });
 
     
     root.on("link", this._onLink);
 
     
-    root.on("focus", () => this.emit("focus"));
+    
+    root.on("focus", (_, node) => this.emit("focus", node));
 
     
-    let container = $("#js-calltree-view > .call-tree-cells-container");
-    container.innerHTML = "";
-    root.attachTo(container);
+    this.container.innerHTML = "";
+    root.attachTo(this.container);
 
     
     
-    let contentOnly = !PerformanceController.getOption("show-platform-data");
-    root.toggleCategories(!contentOnly);
+    root.toggleCategories(options.contentOnly);
+
+    
+    return root;
   },
 
   toString: () => "[object JsCallTreeView]"

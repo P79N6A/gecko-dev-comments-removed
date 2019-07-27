@@ -12,6 +12,8 @@ loader.lazyRequireGetter(this, "CATEGORY_MAPPINGS",
   "devtools/shared/profiler/global", true);
 loader.lazyRequireGetter(this, "CATEGORY_JIT",
   "devtools/shared/profiler/global", true);
+loader.lazyRequireGetter(this, "JITOptimizations",
+  "devtools/shared/profiler/jit", true);
 
 const CHROME_SCHEMES = ["chrome://", "resource://", "jar:file://"];
 const CONTENT_SCHEMES = ["http://", "https://", "file://", "app://"];
@@ -19,6 +21,8 @@ const CONTENT_SCHEMES = ["http://", "https://", "file://", "app://"];
 exports.ThreadNode = ThreadNode;
 exports.FrameNode = FrameNode;
 exports.FrameNode.isContent = isContent;
+
+
 
 
 
@@ -77,9 +81,11 @@ ThreadNode.prototype = {
 
 
 
+
   insert: function(sample, options = {}) {
     let startTime = options.startTime || 0;
     let endTime = options.endTime || Infinity;
+    let optimizations = options.optimizations;
     let sampleTime = sample.time;
     if (!sampleTime || sampleTime < startTime || sampleTime > endTime) {
       return;
@@ -112,7 +118,7 @@ ThreadNode.prototype = {
     this.duration += sampleDuration;
 
     FrameNode.prototype.insert(
-      sampleFrames, 0, sampleTime, sampleDuration, this.calls);
+      sampleFrames, optimizations, 0, sampleTime, sampleDuration, this.calls);
   },
 
   
@@ -125,6 +131,19 @@ ThreadNode.prototype = {
       functionName: L10N.getStr("table.root"),
       categoryData: {}
     };
+  },
+
+  
+
+
+
+
+
+
+
+
+  hasOptimizations: function () {
+    return null;
   }
 };
 
@@ -153,6 +172,7 @@ function FrameNode({ location, line, column, category, allocations }) {
   this.samples = 0;
   this.duration = 0;
   this.calls = {};
+  this._optimizations = null;
 }
 
 FrameNode.prototype = {
@@ -175,7 +195,9 @@ FrameNode.prototype = {
 
 
 
-  insert: function(frames, index, time, duration, _store = this.calls) {
+
+
+  insert: function(frames, optimizations, index, time, duration, _store = this.calls) {
     let frame = frames[index];
     if (!frame) {
       return;
@@ -185,7 +207,11 @@ FrameNode.prototype = {
     child.sampleTimes.push({ start: time, end: time + duration });
     child.samples++;
     child.duration += duration;
-    child.insert(frames, ++index, time, duration);
+    if (optimizations && frame.optsIndex != null) {
+      let opts = child._optimizations || (child._optimizations = new JITOptimizations(optimizations));
+      opts.addOptimizationSite(frame.optsIndex);
+    }
+    child.insert(frames, optimizations, index + 1, time, duration);
   },
 
   
@@ -197,6 +223,14 @@ FrameNode.prototype = {
 
 
   getInfo: function() {
+    return this._data || this._computeInfo();
+  },
+
+  
+
+
+
+  _computeInfo: function() {
     
     if (this.location == "EnterJIT") {
       this.category = CATEGORY_JIT;
@@ -230,7 +264,7 @@ FrameNode.prototype = {
       url = null;
     }
 
-    return {
+    return this._data = {
       nodeType: "Frame",
       functionName: functionName,
       fileName: fileName,
@@ -241,6 +275,25 @@ FrameNode.prototype = {
       categoryData: categoryData,
       isContent: !!isContent(this)
     };
+  },
+
+  
+
+
+
+
+  hasOptimizations: function () {
+    return !!this._optimizations;
+  },
+
+  
+
+
+
+
+
+  getOptimizations: function () {
+    return this._optimizations;
   }
 };
 
