@@ -393,17 +393,14 @@ SavedStacks::init()
 
     return frames.init();
 }
-
 bool
 SavedStacks::saveCurrentStack(JSContext *cx, MutableHandleSavedFrame frame)
 {
     JS_ASSERT(initialized());
     JS_ASSERT(&cx->compartment()->savedStacks() == this);
-
-    ScriptFrameIter iter(cx);
+    FrameIter iter(cx);
     return insertFrames(cx, iter, frame);
 }
-
 void
 SavedStacks::sweep(JSRuntime *rt)
 {
@@ -462,7 +459,7 @@ SavedStacks::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf)
 }
 
 bool
-SavedStacks::insertFrames(JSContext *cx, ScriptFrameIter &iter, MutableHandleSavedFrame frame)
+SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFrame frame)
 {
     if (iter.done()) {
         frame.set(nullptr);
@@ -477,26 +474,43 @@ SavedStacks::insertFrames(JSContext *cx, ScriptFrameIter &iter, MutableHandleSav
     
     JS_CHECK_RECURSION_DONT_REPORT(cx, return false);
 
-    RootedScript script(cx, iter.script());
-    jsbytecode *pc = iter.pc();
-    RootedFunction callee(cx, iter.maybeCallee());
+
+    JSPrincipals* principals = iter.compartment()->principals;
+    RootedAtom name(cx, iter.isNonEvalFunctionFrame() ? iter.functionDisplayAtom() : nullptr);
+
     
-    JSCompartment *compartment = iter.compartment();
+    
+    
+    
+    
+    LocationValue location;+    if (iter.hasScript()) {
+        JSScript *script = iter.script();
+        jsbytecode *pc = iter.pc();
+        if (!getLocation(cx, script, pc, &location))
+            return false;
+    } else {
+        const char *filename = iter.scriptFilename();
+        if (!filename)
+            filename = "";
+        location.source.set(Atomize(cx, filename, strlen(filename)));
+        if (!location.source)
+            return false;
+        uint32_t column;
+        location.line = iter.computeLine(&column);
+        location.column = column;
+    }
+
     RootedSavedFrame parentFrame(cx);
     if (!insertFrames(cx, ++iter, &parentFrame))
-        return false;
-
-    LocationValue location;
-    if (!getLocation(cx, script, pc, &location))
         return false;
 
     SavedFrame::AutoLookupRooter lookup(cx,
                                         location.source,
                                         location.line,
                                         location.column,
-                                        callee ? callee->displayAtom() : nullptr,
+                                        name,
                                         parentFrame,
-                                        compartment->principals);
+                                        principals);
 
     frame.set(getOrCreateSavedFrame(cx, lookup));
     return frame.get() != nullptr;
