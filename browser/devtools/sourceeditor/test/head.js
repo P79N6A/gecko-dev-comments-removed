@@ -57,6 +57,22 @@ function teardown(ed, win) {
 
 
 
+
+
+
+
+
+
+
+function loadHelperScript(filePath) {
+  let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+  Services.scriptloader.loadSubScript(testDir + "/" + filePath, this);
+}
+
+
+
+
+
 function limit(source, [line, ch]) {
   line++;
   let list = source.split("\n");
