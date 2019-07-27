@@ -162,6 +162,8 @@ static const uint32_t EXHAUSTED_DATA_MARGIN_USECS = 60000;
 
 static const uint32_t QUICK_BUFFER_THRESHOLD_USECS = 2000000;
 
+namespace detail {
+
 
 
 static const uint32_t QUICK_BUFFERING_LOW_DATA_USECS = 1000000;
@@ -170,8 +172,10 @@ static const uint32_t QUICK_BUFFERING_LOW_DATA_USECS = 1000000;
 
 
 
-static_assert(QUICK_BUFFERING_LOW_DATA_USECS <= detail::AMPLE_AUDIO_USECS,
+static_assert(QUICK_BUFFERING_LOW_DATA_USECS <= AMPLE_AUDIO_USECS,
               "QUICK_BUFFERING_LOW_DATA_USECS is too large");
+
+} 
 
 
 
@@ -215,6 +219,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAmpleVideoFrames(2),
   mLowAudioThresholdUsecs(detail::LOW_AUDIO_USECS),
   mAmpleAudioThresholdUsecs(detail::AMPLE_AUDIO_USECS),
+  mQuickBufferingLowDataThresholdUsecs(detail::QUICK_BUFFERING_LOW_DATA_USECS),
   mIsAudioPrerolling(false),
   mIsVideoPrerolling(false),
   mAudioRequestStatus(RequestStatus::Idle),
@@ -2347,6 +2352,7 @@ MediaDecoderStateMachine::FinishDecodeFirstFrame()
     
     mAmpleAudioThresholdUsecs /= NO_VIDEO_AMPLE_AUDIO_DIVISOR;
     mLowAudioThresholdUsecs /= NO_VIDEO_AMPLE_AUDIO_DIVISOR;
+    mQuickBufferingLowDataThresholdUsecs /= NO_VIDEO_AMPLE_AUDIO_DIVISOR;
   }
 
   
@@ -2814,7 +2820,7 @@ nsresult MediaDecoderStateMachine::RunStateMachine()
         bool isLiveStream = resource->GetLength() == -1;
         if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
               elapsed < TimeDuration::FromSeconds(mBufferingWait * mPlaybackRate) &&
-              (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
+              (mQuickBuffering ? HasLowDecodedData(mQuickBufferingLowDataThresholdUsecs)
                                : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
               mDecoder->IsExpectingMoreData())
         {

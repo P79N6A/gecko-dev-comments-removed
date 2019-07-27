@@ -957,6 +957,10 @@ protected:
 
   
   
+  int64_t mQuickBufferingLowDataThresholdUsecs;
+
+  
+  
   
   
   
