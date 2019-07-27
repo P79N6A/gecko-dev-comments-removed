@@ -17,6 +17,9 @@ describe("loop.webapp", function() {
 
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
+    
+    
+    sandbox.useFakeTimers();
     notifier = {
       notify: sandbox.spy(),
       warn: sandbox.spy(),
