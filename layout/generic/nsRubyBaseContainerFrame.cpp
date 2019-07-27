@@ -518,8 +518,9 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
   
   
   
-  MOZ_ASSERT(NS_INLINE_IS_BREAK(aStatus) ||
-             isize == lineSpanSize || mFrames.IsEmpty());
+  
+  NS_WARN_IF_FALSE(NS_INLINE_IS_BREAK(aStatus) ||
+                   isize == lineSpanSize || mFrames.IsEmpty(), "bad isize");
 
   
   
