@@ -33,9 +33,6 @@ class WrapperOwner : public virtual JavaScriptShared
 
     
     
-    bool preventExtensions(JSContext *cx, JS::HandleObject proxy);
-    bool getPropertyDescriptor(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
-                               JS::MutableHandle<JSPropertyDescriptor> desc);
     bool getOwnPropertyDescriptor(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
                                   JS::MutableHandle<JSPropertyDescriptor> desc);
     bool defineProperty(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
@@ -43,25 +40,26 @@ class WrapperOwner : public virtual JavaScriptShared
     bool ownPropertyKeys(JSContext *cx, JS::HandleObject proxy, JS::AutoIdVector &props);
     bool delete_(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, bool *bp);
     bool enumerate(JSContext *cx, JS::HandleObject proxy, JS::AutoIdVector &props);
-
-    
+    bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible);
+    bool preventExtensions(JSContext *cx, JS::HandleObject proxy);
     bool has(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, bool *bp);
-    bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, bool *bp);
     bool get(JSContext *cx, JS::HandleObject proxy, JS::HandleObject receiver,
              JS::HandleId id, JS::MutableHandleValue vp);
     bool set(JSContext *cx, JS::HandleObject proxy, JS::HandleObject receiver,
              JS::HandleId id, bool strict, JS::MutableHandleValue vp);
-    bool keys(JSContext *cx, JS::HandleObject proxy, JS::AutoIdVector &props);
-    
-
-    
-    bool isExtensible(JSContext *cx, JS::HandleObject proxy, bool *extensible);
-    bool regexp_toShared(JSContext *cx, JS::HandleObject proxy, js::RegExpGuard *g);
     bool callOrConstruct(JSContext *cx, JS::HandleObject proxy, const JS::CallArgs &args,
                          bool construct);
+
+    
+    bool getPropertyDescriptor(JSContext *cx, JS::HandleObject proxy, JS::HandleId id,
+                               JS::MutableHandle<JSPropertyDescriptor> desc);
+    bool hasOwn(JSContext *cx, JS::HandleObject proxy, JS::HandleId id, bool *bp);
+    bool keys(JSContext *cx, JS::HandleObject proxy, JS::AutoIdVector &props);
+    
     bool hasInstance(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleValue v, bool *bp);
     bool objectClassIs(JSContext *cx, JS::HandleObject obj, js::ESClassValue classValue);
     const char* className(JSContext *cx, JS::HandleObject proxy);
+    bool regexp_toShared(JSContext *cx, JS::HandleObject proxy, js::RegExpGuard *g);
     bool isCallable(JSObject *obj);
     bool isConstructor(JSObject *obj);
 

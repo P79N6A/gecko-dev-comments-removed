@@ -52,27 +52,29 @@ public:
 
   
   
-  bool enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
-                 JS::AutoIdVector& props) const MOZ_OVERRIDE;
-  bool getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy,
-                             JS::Handle<jsid> id,
-                             JS::MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
   bool getOwnPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy,
                                 JS::Handle<jsid> id,
                                 JS::MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
-
-  bool watch(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-             JS::Handle<JSObject*> callable) const MOZ_OVERRIDE;
-  bool unwatch(JSContext* cx, JS::Handle<JSObject*> proxy,
-               JS::Handle<jsid> id) const MOZ_OVERRIDE;
   virtual bool ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> proxy,
                                JS::AutoIdVector &props) const MOZ_OVERRIDE;
+  bool enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
+                 JS::AutoIdVector& props) const MOZ_OVERRIDE;
+
+  bool getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> proxy,
+                             JS::Handle<jsid> id,
+                             JS::MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE;
+
   
   
   
   
   virtual bool keys(JSContext* cx, JS::Handle<JSObject*> proxy,
                     JS::AutoIdVector &props) const MOZ_OVERRIDE;
+
+  bool watch(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+             JS::Handle<JSObject*> callable) const MOZ_OVERRIDE;
+  bool unwatch(JSContext* cx, JS::Handle<JSObject*> proxy,
+               JS::Handle<jsid> id) const MOZ_OVERRIDE;
 
 protected:
   
@@ -100,7 +102,6 @@ public:
     : BaseDOMProxyHandler(&family)
   {}
 
-  bool preventExtensions(JSContext *cx, JS::Handle<JSObject*> proxy) const MOZ_OVERRIDE;
   bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                       JS::MutableHandle<JSPropertyDescriptor> desc) const MOZ_OVERRIDE
   {
@@ -110,15 +111,16 @@ public:
   virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                               JS::MutableHandle<JSPropertyDescriptor> desc, bool* defined)
                               const;
+  bool delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
+               JS::Handle<jsid> id, bool* bp) const MOZ_OVERRIDE;
+  bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
+                    const MOZ_OVERRIDE;
+  bool preventExtensions(JSContext *cx, JS::Handle<JSObject*> proxy) const MOZ_OVERRIDE;
+  bool has(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+           bool* bp) const MOZ_OVERRIDE;
   bool set(JSContext *cx, JS::Handle<JSObject*> proxy, JS::Handle<JSObject*> receiver,
            JS::Handle<jsid> id, bool strict, JS::MutableHandle<JS::Value> vp)
            const MOZ_OVERRIDE;
-  bool delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
-               JS::Handle<jsid> id, bool* bp) const MOZ_OVERRIDE;
-  bool has(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-           bool* bp) const MOZ_OVERRIDE;
-  bool isExtensible(JSContext *cx, JS::Handle<JSObject*> proxy, bool *extensible)
-                    const MOZ_OVERRIDE;
 
   
 
