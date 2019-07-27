@@ -2164,11 +2164,14 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
       
       
+      
       if (isBlock &&
           ((aFrameType == nsGkAtoms::legendFrame &&
             frame->StyleContext()->GetPseudo() != nsCSSAnonBoxes::scrolledContent) ||
            (aFrameType == nsGkAtoms::scrollFrame &&
-            frame->GetContentInsertionFrame()->GetType() == nsGkAtoms::legendFrame))) {
+            frame->GetContentInsertionFrame()->GetType() == nsGkAtoms::legendFrame) ||
+           (mCBReflowState &&
+            mCBReflowState->GetWritingMode().IsOrthogonalTo(mWritingMode)))) {
         computeSizeFlags =
           ComputeSizeFlags(computeSizeFlags | ComputeSizeFlags::eShrinkWrap);
       }
