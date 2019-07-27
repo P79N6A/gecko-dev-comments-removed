@@ -17,8 +17,7 @@ import android.util.AttributeSet;
 
 
 
-
-class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
+class BrowserToolbarTablet extends BrowserToolbarTabletBase {
 
     private static final int FORWARD_ANIMATION_DURATION = 450;
 
@@ -34,7 +33,7 @@ class BrowserToolbarNewTablet extends BrowserToolbarTabletBase {
 
     private boolean backButtonWasEnabledOnStartEditing;
 
-    public BrowserToolbarNewTablet(final Context context, final AttributeSet attrs) {
+    public BrowserToolbarTablet(final Context context, final AttributeSet attrs) {
         super(context, attrs);
 
         forwardButtonTranslationWidth =
