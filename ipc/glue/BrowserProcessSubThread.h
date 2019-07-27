@@ -9,7 +9,7 @@
 #define mozilla_ipc_BrowserProcessSubThread_h
 
 #include "base/thread.h"
-#include "base/lock.h"
+#include "mozilla/StaticMutex.h"
 
 #include "nsDebug.h"
 
@@ -60,9 +60,7 @@ private:
   
   
 
-  
-  
-  static Lock sLock;
+  static StaticMutex sLock;
 
   
   
