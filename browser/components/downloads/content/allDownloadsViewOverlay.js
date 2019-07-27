@@ -46,18 +46,16 @@ HistoryDownload.prototype = {
   
 
 
-  updateFromMetaData(aPlacesMetaData) {
+  updateFromMetaData(metaData) {
     try {
       this.target.path = Cc["@mozilla.org/network/protocol;1?name=file"]
                            .getService(Ci.nsIFileProtocolHandler)
-                           .getFileFromURLSpec(aPlacesMetaData.
-                                               targetFileURISpec).path;
+                           .getFileFromURLSpec(metaData.targetFileSpec).path;
     } catch (ex) {
       this.target.path = undefined;
     }
 
-    try {
-      let metaData = JSON.parse(aPlacesMetaData.jsonDetails);
+    if ("state" in metaData) {
       this.succeeded = metaData.state == nsIDM.DOWNLOAD_FINISHED;
       this.error = metaData.state == nsIDM.DOWNLOAD_FAILED
                    ? { message: "History download failed." }
@@ -74,7 +72,7 @@ HistoryDownload.prototype = {
       
       this.target.exists = true;
       this.target.size = metaData.fileSize;
-    } catch (ex) {
+    } else {
       
       
       
@@ -524,9 +522,6 @@ DownloadsPlacesView.prototype = {
 
 
 
-  _cachedPlacesMetaData: null,
-
-  
 
 
 
@@ -547,44 +542,34 @@ DownloadsPlacesView.prototype = {
 
 
 
-
-
-  _getCachedPlacesMetaDataFor(url) {
-    if (!this._cachedPlacesMetaData) {
-      this._cachedPlacesMetaData = new Map();
-
-      
-      for (let result of PlacesUtils.annotations.getAnnotationsWithName(
-                                                 DESTINATION_FILE_URI_ANNO)) {
-        this._cachedPlacesMetaData.set(result.uri.spec, {
-          targetFileURISpec: result.annotationValue,
-        });
-      }
+  get _cachedPlacesMetaData() {
+    if (!this.__cachedPlacesMetaData) {
+      this.__cachedPlacesMetaData = new Map();
 
       
       for (let result of PlacesUtils.annotations.getAnnotationsWithName(
                                                  DOWNLOAD_META_DATA_ANNO)) {
-        let metadata = this._cachedPlacesMetaData.get(result.uri.spec);
+        try {
+          this.__cachedPlacesMetaData.set(result.uri.spec,
+                                          JSON.parse(result.annotationValue));
+        } catch (ex) {}
+      }
 
-        
-        
-        
-        if (metadata) {
-          metadata.jsonDetails = result.annotationValue;
+      
+      for (let result of PlacesUtils.annotations.getAnnotationsWithName(
+                                                 DESTINATION_FILE_URI_ANNO)) {
+        let metaData = this.__cachedPlacesMetaData.get(result.uri.spec);
+        if (!metaData) {
+          metaData = {};
+          this.__cachedPlacesMetaData.set(result.uri.spec, metaData);
         }
+        metaData.targetFileSpec = result.annotationValue;
       }
     }
 
-    let metadata = this._cachedPlacesMetaData.get(url);
-    this._cachedPlacesMetaData.delete(url);
-
-    
-    
-    
-    
-    
-    return metadata || this._getPlacesMetaDataFor(url);
+    return this.__cachedPlacesMetaData;
   },
+  __cachedPlacesMetaData: null,
 
   
 
@@ -595,20 +580,21 @@ DownloadsPlacesView.prototype = {
 
 
 
-  _getPlacesMetaDataFor(url) {
-    let metadata = {};
+
+  _getPlacesMetaDataFor(spec) {
+    let metaData = {};
 
     try {
-      let uri = NetUtil.newURI(url);
-      metadata = {
-        targetFileURISpec: PlacesUtils.annotations.getPageAnnotation(
-                                       uri, DESTINATION_FILE_URI_ANNO),
-      };
-      metadata.jsonDetails = PlacesUtils.annotations.getPageAnnotation(
-                                         uri, DOWNLOAD_META_DATA_ANNO);
+      let uri = NetUtil.newURI(spec);
+      try {
+        metaData = JSON.parse(PlacesUtils.annotations.getPageAnnotation(
+                                          uri, DOWNLOAD_META_DATA_ANNO));
+      } catch (ex) {}
+      metaData.targetFileSpec = PlacesUtils.annotations.getPageAnnotation(
+                                            uri, DESTINATION_FILE_URI_ANNO);
     } catch (ex) {}
 
-    return metadata;
+    return metaData;
   },
 
   
@@ -644,6 +630,18 @@ DownloadsPlacesView.prototype = {
     if (!shellsForURI) {
       shellsForURI = new Set();
       this._downloadElementsShellsForURI.set(downloadURI, shellsForURI);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (sessionDownload) {
+      this._cachedPlacesMetaData.delete(sessionDownload.source.url);
     }
 
     let newOrUpdatedShell = null;
@@ -689,7 +687,8 @@ DownloadsPlacesView.prototype = {
       
       let historyDownload = null;
       if (aPlacesNode) {
-        let metaData = this._getCachedPlacesMetaDataFor(aPlacesNode.uri);
+        let metaData = this._cachedPlacesMetaData.get(aPlacesNode.uri) ||
+                       this._getPlacesMetaDataFor(aPlacesNode.uri);
         historyDownload = new HistoryDownload(aPlacesNode);
         historyDownload.updateFromMetaData(metaData);
       }
@@ -962,12 +961,6 @@ DownloadsPlacesView.prototype = {
     if (!aContainer.containerOpen) {
       throw new Error("Root container for the downloads query cannot be closed");
     }
-
-    
-    
-    
-    
-    this._cachedPlacesMetaData = null;
 
     let suppressOnSelect = this._richlistbox.suppressOnSelect;
     this._richlistbox.suppressOnSelect = true;
