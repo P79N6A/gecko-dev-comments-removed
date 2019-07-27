@@ -5,9 +5,27 @@ MARIONETTE_TIMEOUT = 90000;
 MARIONETTE_HEAD_JS = "head.js";
 
 let TEST_ADD_DATA = [{
-    name: ["add"],
+    
+    name: ["add1"],
     tel: [{value: "0912345678"}],
-    email:[]
+  }, {
+    
+    name: ["add2"],
+    tel: [{value: "012345678901234567890123456789"}],
+  }, {
+    
+    name: ["add3"],
+    tel: [{value: "01234567890123456789"}],
+    email:[{value: "test@mozilla.com"}],
+  }, {
+    
+    name: ["add4"],
+    tel: [{value: "01234567890123456789"}, {value: "123456"}, {value: "123"}],
+  }, {
+    
+    name: ["add5"],
+    tel: [{value: "01234567890123456789"}, {value: "123456"}, {value: "123"}],
+    email:[{value: "test@mozilla.com"}],
   }];
 
 function testAddContact(aIcc, aType, aMozContact, aPin2) {
@@ -17,7 +35,11 @@ function testAddContact(aIcc, aType, aMozContact, aPin2) {
   return aIcc.updateContact(aType, contact, aPin2)
     .then((aResult) => {
       is(aResult.name[0], aMozContact.name[0]);
-      is(aResult.tel[0].value, aMozContact.tel[0].value);
+      
+      is(aResult.tel[0].value, aMozContact.tel[0].value.substring(0, 20));
+      
+      ok(aResult.tel.length == 1);
+      ok(!aResult.email);
 
       
       return aIcc.readContacts(aType)
@@ -25,7 +47,8 @@ function testAddContact(aIcc, aType, aMozContact, aPin2) {
           let contact = aResult[aResult.length - 1];
 
           is(contact.name[0], aMozContact.name[0]);
-          is(contact.tel[0].value, aMozContact.tel[0].value);
+          
+          is(contact.tel[0].value, aMozContact.tel[0].value.substring(0, 20));
           is(contact.id, aIcc.iccInfo.iccid + aResult.length);
 
           return contact.id;
