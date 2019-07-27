@@ -144,9 +144,6 @@ GetStrokeDashData(SVGContentUtils::AutoStrokeOptions* aStrokeOptions,
   
   
   
-  if (totalLengthOfDashes <= 0 && totalLengthOfGaps <= 0) {
-    return eNoStroke;
-  }
   if (totalLengthOfGaps <= 0) {
     return eContinuousStroke;
   }
