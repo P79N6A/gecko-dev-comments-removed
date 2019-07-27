@@ -4553,8 +4553,12 @@ var TabsProgressListener = {
                               aFlags) {
     
     
-    if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)
+    if (aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) {
+      
+      let mm = gBrowser.selectedBrowser.messageManager;
+      mm.sendAsyncMessage("Reader:PushState");
       return;
+    }
 
     
     if (!aWebProgress.isTopLevel)
