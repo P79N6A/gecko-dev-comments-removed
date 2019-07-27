@@ -690,6 +690,42 @@ nsXPConnect::GetWrappedNativeOfNativeObject(JSContext * aJSContext,
     return NS_OK;
 }
 
+static PLDHashOperator
+MoveableWrapperFinder(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                      uint32_t number, void *arg)
+{
+    nsTArray<nsRefPtr<XPCWrappedNative> > *array =
+        static_cast<nsTArray<nsRefPtr<XPCWrappedNative> > *>(arg);
+    XPCWrappedNative *wn = ((Native2WrappedNativeMap::Entry*)hdr)->value;
+
+    
+    
+    if (!wn->IsWrapperExpired())
+        array->AppendElement(wn);
+    return PL_DHASH_NEXT;
+}
+
+
+NS_IMETHODIMP
+nsXPConnect::RescueOrphansInScope(JSContext *aJSContext, JSObject *aScopeArg)
+{
+    RootedObject aScope(aJSContext, aScopeArg);
+
+    XPCWrappedNativeScope *scope = ObjectScope(aScope);
+    if (!scope)
+        return UnexpectedFailure(NS_ERROR_FAILURE);
+
+    
+    
+    nsTArray<nsRefPtr<XPCWrappedNative> > wrappersToMove;
+
+    Native2WrappedNativeMap *map = scope->GetWrappedNativeMap();
+    wrappersToMove.SetCapacity(map->Count());
+    map->Enumerate(MoveableWrapperFinder, &wrappersToMove);
+
+    return NS_OK;
+}
+
 
 NS_IMETHODIMP
 nsXPConnect::CreateStackFrameLocation(uint32_t aLanguage,
