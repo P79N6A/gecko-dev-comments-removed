@@ -20,11 +20,7 @@ import sys
 
 from buildconfig import substs
 
-
-url = 'https://crash-stats.allizom.org/symbols/upload'
-
-
-
+url = 'https://crash-stats.mozilla.com/symbols/upload'
 
 def main():
     if len(sys.argv) != 2:
