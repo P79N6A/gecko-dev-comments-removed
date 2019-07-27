@@ -4902,11 +4902,15 @@ nsHttpChannel::BeginConnect()
             nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
             bool tp = false;
             channelClassifier->ShouldEnableTrackingProtection(this, &tp);
-            nsresult response = NS_OK;
-            classifier->ClassifyLocal(principal, tp, &response);
-            if (NS_FAILED(response)) {
-                LOG(("nsHttpChannel::Found principal on local blocklist [this=%p]", this));
-                mLocalBlocklist = true;
+            
+            if (tp) {
+                nsresult response = NS_OK;
+                classifier->ClassifyLocal(principal, tp, &response);
+                if (NS_FAILED(response)) {
+                    LOG(("nsHttpChannel::Found principal on local blocklist "
+                         "[this=%p]", this));
+                    mLocalBlocklist = true;
+                }
             }
         }
     }
@@ -4973,16 +4977,26 @@ nsHttpChannel::BeginConnect()
         }
         mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
     }
+    
+    
+    
+    bool callContinueBeginConnect = true;
     if (mCanceled || !mLocalBlocklist) {
-        return ContinueBeginConnect();
+        rv = ContinueBeginConnect();
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+        callContinueBeginConnect = false;
     }
-    MOZ_ASSERT(!mCanceled && mLocalBlocklist);
     
     
     
-    LOG(("nsHttpChannel::Starting nsChannelClassifier %p [this=%p]",
-         channelClassifier.get(), this));
-    channelClassifier->Start(this);
+    
+    if (!mCanceled) {
+      LOG(("nsHttpChannel::Starting nsChannelClassifier %p [this=%p]",
+           channelClassifier.get(), this));
+      channelClassifier->Start(this, callContinueBeginConnect);
+    }
     return NS_OK;
 }
 

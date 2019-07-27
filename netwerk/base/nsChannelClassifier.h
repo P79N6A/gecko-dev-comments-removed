@@ -10,7 +10,7 @@
 #include "mozilla/Attributes.h"
 
 class nsIChannel;
-
+class nsIHttpChannelInternal;
 
 class nsChannelClassifier MOZ_FINAL : public nsIURIClassifierCallback
 {
@@ -24,7 +24,7 @@ public:
     
     
     
-    void Start(nsIChannel *aChannel);
+    void Start(nsIChannel *aChannel, bool aContinueBeginConnect);
     
     nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
 
@@ -34,6 +34,7 @@ private:
     
     bool mSuspendedChannel;
     nsCOMPtr<nsIChannel> mChannel;
+    nsCOMPtr<nsIHttpChannelInternal> mChannelInternal;
 
     ~nsChannelClassifier() {}
     
@@ -42,7 +43,7 @@ private:
     
     
     
-    nsresult StartInternal(nsIChannel *aChannel);
+    nsresult StartInternal();
 
 public:
     

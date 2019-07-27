@@ -211,10 +211,14 @@ nsChannelClassifier::NotifyTrackingProtectionDisabled(nsIChannel *aChannel)
 }
 
 void
-nsChannelClassifier::Start(nsIChannel *aChannel)
+nsChannelClassifier::Start(nsIChannel *aChannel, bool aContinueBeginConnect)
 {
   mChannel = aChannel;
-  nsresult rv = StartInternal(aChannel);
+  if (aContinueBeginConnect) {
+    mChannelInternal = do_QueryInterface(aChannel);
+  }
+
+  nsresult rv = StartInternal();
   if (NS_FAILED(rv)) {
     
     
@@ -223,7 +227,7 @@ nsChannelClassifier::Start(nsIChannel *aChannel)
 }
 
 nsresult
-nsChannelClassifier::StartInternal(nsIChannel *aChannel)
+nsChannelClassifier::StartInternal()
 {
     
     MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
@@ -231,18 +235,18 @@ nsChannelClassifier::StartInternal(nsIChannel *aChannel)
     
     
     nsresult status;
-    aChannel->GetStatus(&status);
+    mChannel->GetStatus(&status);
     if (NS_FAILED(status))
         return status;
 
     
     
-    if (HasBeenClassified(aChannel)) {
+    if (HasBeenClassified(mChannel)) {
         return NS_ERROR_UNEXPECTED;
     }
 
     nsCOMPtr<nsIURI> uri;
-    nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
+    nsresult rv = mChannel->GetURI(getter_AddRefs(uri));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -285,13 +289,13 @@ nsChannelClassifier::StartInternal(nsIChannel *aChannel)
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIPrincipal> principal;
-    rv = securityManager->GetChannelResultPrincipal(aChannel,
+    rv = securityManager->GetChannelResultPrincipal(mChannel,
                                                     getter_AddRefs(principal));
     NS_ENSURE_SUCCESS(rv, rv);
 
     bool expectCallback;
     bool trackingProtectionEnabled = false;
-    (void)ShouldEnableTrackingProtection(aChannel, &trackingProtectionEnabled);
+    (void)ShouldEnableTrackingProtection(mChannel, &trackingProtectionEnabled);
 
     rv = uriClassifier->Classify(principal, trackingProtectionEnabled, this,
                                  &expectCallback);
@@ -302,7 +306,7 @@ nsChannelClassifier::StartInternal(nsIChannel *aChannel)
     if (expectCallback) {
         
         
-        rv = aChannel->Suspend();
+        rv = mChannel->Suspend();
         if (NS_FAILED(rv)) {
             
             
@@ -460,7 +464,7 @@ nsChannelClassifier::OnClassifyComplete(nsresult aErrorCode)
     
     MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
-    LOG(("nsChannelClassifier[%p]:OnClassifyComplete", this));
+    LOG(("nsChannelClassifier[%p]:OnClassifyComplete %d", this, aErrorCode));
     if (mSuspendedChannel) {
         MarkEntryClassified(aErrorCode);
 
@@ -488,14 +492,14 @@ nsChannelClassifier::OnClassifyComplete(nsresult aErrorCode)
              "OnClassifyComplete", this, mChannel.get()));
         mChannel->Resume();
     }
-    nsresult rv;
-    nsCOMPtr<nsIHttpChannelInternal> channel = do_QueryInterface(mChannel, &rv);
+
     
     
-    if (NS_SUCCEEDED(rv)) {
-        channel->ContinueBeginConnect();
+    if (mChannelInternal) {
+        mChannelInternal->ContinueBeginConnect();
     }
     mChannel = nullptr;
+    mChannelInternal = nullptr;
 
     return NS_OK;
 }
