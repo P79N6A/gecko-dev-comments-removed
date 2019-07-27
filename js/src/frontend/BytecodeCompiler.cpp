@@ -312,32 +312,19 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     if (evalCaller && evalCaller->strict())
         globalsc.strict = true;
 
-    if (options.compileAndGo) {
-        if (source) {
-            
-
-
-
-            JSAtom *atom = AtomizeString(cx, source);
-            jsatomid _;
-            if (!atom || !bce.makeAtomIndex(atom, &_))
-                return nullptr;
-        }
-
-        if (evalCaller && evalCaller->functionOrCallerFunction()) {
-            
+    if (options.compileAndGo && evalCaller && evalCaller->functionOrCallerFunction()) {
+        
 
 
 
 
-            JSFunction *fun = evalCaller->functionOrCallerFunction();
-            Directives directives( fun->strict());
-            ObjectBox *funbox = parser.newFunctionBox( nullptr, fun, pc.ptr(),
-                                                      directives, fun->generatorKind());
-            if (!funbox)
-                return nullptr;
-            bce.objectList.add(funbox);
-        }
+        JSFunction *fun = evalCaller->functionOrCallerFunction();
+        Directives directives( fun->strict());
+        ObjectBox *funbox = parser.newFunctionBox( nullptr, fun, pc.ptr(),
+                                                  directives, fun->generatorKind());
+        if (!funbox)
+            return nullptr;
+        bce.objectList.add(funbox);
     }
 
     bool canHaveDirectives = true;
