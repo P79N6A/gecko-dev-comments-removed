@@ -104,10 +104,21 @@ const injectObjectAPI = function(api, targetWindow) {
   
   Object.keys(api).forEach(func => {
     injectedAPI[func] = function(...params) {
-      let callback = params.pop();
-      api[func](...params, function(...results) {
-        callback(...[cloneValueInto(r, targetWindow) for (r of results)]);
-      });
+      let lastParam = params.pop();
+
+      
+      
+      if (lastParam && typeof lastParam === "function") {
+        api[func](...params, function(...results) {
+          lastParam(...[cloneValueInto(r, targetWindow) for (r of results)]);
+        });
+      } else {
+        try {
+          return cloneValueInto(api[func](...params, lastParam), targetWindow);
+        } catch (ex) {
+          return cloneValueInto(ex, targetWindow);
+        }
+      }
     };
   });
 
@@ -135,6 +146,7 @@ function injectLoopAPI(targetWindow) {
   let appVersionInfo;
   let contactsAPI;
   let roomsAPI;
+  let callsAPI;
 
   let api = {
     
@@ -214,26 +226,12 @@ function injectLoopAPI(targetWindow) {
 
 
 
-    getCallData: {
+    getConversationWindowData: {
       enumerable: true,
       writable: true,
       value: function(conversationWindowId) {
-        return Cu.cloneInto(LoopCalls.getCallData(conversationWindowId), targetWindow);
-      }
-    },
-
-    
-
-
-
-
-
-
-    releaseCallData: {
-      enumerable: true,
-      writable: true,
-      value: function(conversationWindowId) {
-        LoopCalls.releaseCallData(conversationWindowId);
+        return Cu.cloneInto(MozLoopService.getConversationWindowData(conversationWindowId),
+          targetWindow);
       }
     },
 
@@ -270,6 +268,22 @@ function injectLoopAPI(targetWindow) {
           return roomsAPI;
         }
         return roomsAPI = injectObjectAPI(LoopRooms, targetWindow);
+      }
+    },
+
+    
+
+
+
+
+    calls: {
+      enumerable: true,
+      get: function() {
+        if (callsAPI) {
+          return callsAPI;
+        }
+
+        return callsAPI = injectObjectAPI(LoopCalls, targetWindow);
       }
     },
 
@@ -668,21 +682,6 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function() {
         return MozLoopService.generateUUID();
-      }
-    },
-
-    
-
-
-
-
-
-
-    startDirectCall: {
-      enumerable: true,
-      writable: true,
-      value: function(contact, callType) {
-        LoopCalls.startDirectCall(contact, callType);
       }
     },
   };

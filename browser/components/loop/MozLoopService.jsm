@@ -116,6 +116,8 @@ let gFxAEnabled = true;
 let gFxAOAuthClientPromise = null;
 let gFxAOAuthClient = null;
 let gErrors = new Map();
+let gLastWindowId = 0;
+let gConversationWindowData = new Map();
 
 
 
@@ -697,11 +699,16 @@ let MozLoopServiceInternal = {
 
 
 
-
-  openChatWindow: function(contentWindow, title, url) {
+  openChatWindow: function(conversationWindowData) {
     
     let origin = this.loopServerUri;
-    url = url.spec || url;
+    let windowId = gLastWindowId++;
+    
+    windowId = windowId.toString();
+
+    gConversationWindowData.set(windowId, conversationWindowData);
+
+    let url = "about:loopconversation#" + windowId;
 
     let callback = chatbox => {
       
@@ -749,7 +756,8 @@ let MozLoopServiceInternal = {
       }.bind(this), true);
     };
 
-    Chat.open(contentWindow, origin, title, url, undefined, undefined, callback);
+    Chat.open(null, origin, "", url, undefined, undefined, callback);
+    return windowId;
   },
 
   
@@ -1000,9 +1008,8 @@ this.MozLoopService = {
 
 
 
-
-  openChatWindow: function(contentWindow, title, url) {
-    MozLoopServiceInternal.openChatWindow(contentWindow, title, url);
+  openChatWindow: function(conversationWindowData) {
+    return MozLoopServiceInternal.openChatWindow(conversationWindowData);
   },
 
   
@@ -1416,4 +1423,24 @@ this.MozLoopService = {
     return MozLoopServiceInternal.hawkRequest(sessionType, path, method, payloadObj).catch(
       error => {MozLoopServiceInternal._hawkRequestError(error);});
   },
+
+  
+
+
+
+
+
+
+
+
+  getConversationWindowData: function(conversationWindowId) {
+    if (gConversationWindowData.has(conversationWindowId)) {
+      var conversationData = gConversationWindowData.get(conversationWindowId);
+      gConversationWindowData.delete(conversationWindowId);
+      return conversationData;
+    }
+
+    log.error("Window data was already fetched before. Possible race condition!");
+    return null;
+  }
 };

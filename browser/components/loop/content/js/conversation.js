@@ -218,7 +218,9 @@ loop.conversation = (function(mozL10n) {
       client: React.PropTypes.instanceOf(loop.Client).isRequired,
       conversation: React.PropTypes.instanceOf(sharedModels.ConversationModel)
                          .isRequired,
-      sdk: React.PropTypes.object.isRequired
+      sdk: React.PropTypes.object.isRequired,
+      conversationAppStore: React.PropTypes.instanceOf(
+        loop.store.ConversationAppStore).isRequired
     },
 
     getInitialState: function() {
@@ -352,13 +354,9 @@ loop.conversation = (function(mozL10n) {
     setupIncomingCall: function() {
       navigator.mozLoop.startAlerting();
 
-      var callData = navigator.mozLoop.getCallData(this.props.conversation.get("windowId"));
-      if (!callData) {
-        
-        
-        console.error("Failed to get the call data");
-        return;
-      }
+      
+      var callData = this.props.conversationAppStore.getStoreState().windowData;
+
       this.props.conversation.setIncomingSessionData(callData);
       this._setupWebSocket();
     },
@@ -374,7 +372,8 @@ loop.conversation = (function(mozL10n) {
 
 
     endCall: function() {
-      navigator.mozLoop.releaseCallData(this.props.conversation.get("windowId"));
+      navigator.mozLoop.calls.clearCallInProgress(
+        this.props.conversation.get("windowId"));
       this.setState({callStatus: "end"});
     },
 
@@ -475,7 +474,8 @@ loop.conversation = (function(mozL10n) {
 
     _declineCall: function() {
       this._websocket.decline();
-      navigator.mozLoop.releaseCallData(this.props.conversation.get("windowId"));
+      navigator.mozLoop.calls.clearCallInProgress(
+        this.props.conversation.get("windowId"));
       this._websocket.close();
       
       
@@ -565,7 +565,8 @@ loop.conversation = (function(mozL10n) {
           return (IncomingConversationView({
             client: this.props.client, 
             conversation: this.props.conversation, 
-            sdk: this.props.sdk}
+            sdk: this.props.sdk, 
+            conversationAppStore: this.props.conversationAppStore}
           ));
         }
         case "outgoing": {
@@ -582,7 +583,7 @@ loop.conversation = (function(mozL10n) {
         }
         case "failed": {
           return (GenericFailureView({
-            cancelCall: this.closeWindow.bind(this)}
+            cancelCall: this.closeWindow}
           ));
         }
         default: {
@@ -657,7 +658,7 @@ loop.conversation = (function(mozL10n) {
 
     window.addEventListener("unload", function(event) {
       
-      navigator.mozLoop.releaseCallData(windowId);
+      navigator.mozLoop.calls.clearCallInProgress(windowId);
     });
 
     React.renderComponent(AppControllerView({

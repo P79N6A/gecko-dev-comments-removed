@@ -100,16 +100,16 @@ loop.store.LocalRoomStore = (function() {
 
 
     setupWindowData: function(actionData) {
-      if (actionData.windowData.type !== "room") {
+      if (actionData.type !== "room") {
         
         return;
       }
 
-      this._fetchRoomData(actionData.windowData.localRoomId,
+      this._fetchRoomData(actionData.localRoomId,
         function(error, roomData) {
           this.setStoreState({
             error: error,
-            localRoomId: actionData.windowData.localRoomId,
+            localRoomId: actionData.localRoomId,
             serverData: roomData
           });
         }.bind(this));
