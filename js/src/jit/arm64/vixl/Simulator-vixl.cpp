@@ -26,7 +26,7 @@
 
 #include "js-config.h"
 
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
 
 #include "jit/arm64/vixl/Simulator-vixl.h"
 

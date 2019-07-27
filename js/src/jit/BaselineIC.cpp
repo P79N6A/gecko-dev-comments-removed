@@ -10797,7 +10797,7 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler& masm)
     masm.passABIArg(argcReg);
     masm.passABIArg(vpReg);
 
-#if defined(JS_ARM_SIMULATOR) || defined(JS_ARM64_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     
     
     
@@ -12416,7 +12416,7 @@ ICCall_Native::ICCall_Native(JitCode* stubCode, ICStub* firstMonitorStub,
     templateObject_(templateObject),
     pcOffset_(pcOffset)
 {
-#if defined(JS_ARM_SIMULATOR) || defined(JS_ARM64_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     
     
     
@@ -12442,7 +12442,7 @@ ICCall_ClassHook::ICCall_ClassHook(JitCode* stubCode, ICStub* firstMonitorStub,
     templateObject_(templateObject),
     pcOffset_(pcOffset)
 {
-#if defined(JS_ARM_SIMULATOR) || defined(JS_ARM64_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     
     
     

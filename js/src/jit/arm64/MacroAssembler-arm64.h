@@ -3264,7 +3264,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
 
     
     void simulatorMarkSP() {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
         svc(vixl::kMarkStackPointer);
 #endif
     }
@@ -3272,7 +3272,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler
     
     
     void simulatorCheckSP() {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
         svc(vixl::kCheckStackPointer);
 #endif
     }

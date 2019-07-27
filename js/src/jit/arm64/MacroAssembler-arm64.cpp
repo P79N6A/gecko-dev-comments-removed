@@ -388,7 +388,7 @@ MacroAssemblerCompat::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result)
     
 }
 
-#if defined(DEBUG) && defined(JS_ARM64_SIMULATOR)
+#if defined(DEBUG) && defined(JS_SIMULATOR_ARM64)
 static void
 AssertValidABIFunctionType(uint32_t passedArgTypes)
 {
@@ -423,7 +423,7 @@ AssertValidABIFunctionType(uint32_t passedArgTypes)
 void
 MacroAssemblerCompat::callWithABI(void* fun, MoveOp::Type result)
 {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
     MOZ_ASSERT(passedIntArgs_ + passedFloatArgs_ <= 15);
     passedArgTypes_ <<= ArgType_Shift;
     switch (result) {

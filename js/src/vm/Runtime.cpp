@@ -161,7 +161,7 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
 #endif
     gc(thisFromCtor()),
     gcInitialized(false),
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     simulator_(nullptr),
 #endif
     scriptAndCountsVector(nullptr),
@@ -320,7 +320,7 @@ JSRuntime::init(uint32_t maxbytes, uint32_t maxNurseryBytes)
 
     dateTimeInfo.updateTimeZoneAdjustment();
 
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     simulator_ = js::jit::Simulator::Create();
     if (!simulator_)
         return false;
@@ -441,7 +441,7 @@ JSRuntime::~JSRuntime()
     gc.storeBuffer.disable();
     gc.nursery.disable();
 
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     js::jit::Simulator::Destroy(simulator_);
 #endif
 
@@ -597,7 +597,7 @@ JSRuntime::resetJitStackLimit()
     
     
     
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     jitStackLimit_ = jit::Simulator::StackLimit();
 #else
     jitStackLimit_ = mainThread.nativeStackLimit[StackForUntrustedScript];

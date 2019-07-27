@@ -91,7 +91,7 @@ CheckOverRecursed(JSContext* cx)
     
     
     
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, 0, return false);
 #else
     JS_CHECK_RECURSION(cx, return false);
@@ -121,7 +121,7 @@ CheckOverRecursedWithExtra(JSContext* cx, BaselineFrame* frame,
     uint8_t spDummy;
     uint8_t* checkSp = (&spDummy) - extra;
     if (earlyCheck) {
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
         (void)checkSp;
         JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, frame->setOverRecursed());
 #else
@@ -135,7 +135,7 @@ CheckOverRecursedWithExtra(JSContext* cx, BaselineFrame* frame,
     if (frame->overRecursed())
         return false;
 
-#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
+#ifdef JS_SIMULATOR
     JS_CHECK_SIMULATOR_RECURSION_WITH_EXTRA(cx, extra, return false);
 #else
     JS_CHECK_RECURSION_WITH_SP(cx, checkSp, return false);

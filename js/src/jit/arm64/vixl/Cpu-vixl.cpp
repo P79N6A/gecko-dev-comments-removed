@@ -63,7 +63,7 @@ CPU::SetUp()
 uint32_t
 CPU::GetCacheType()
 {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
     
     
     return 0;
@@ -80,7 +80,7 @@ CPU::GetCacheType()
 void
 CPU::EnsureIAndDCacheCoherency(void* address, size_t length)
 {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
     USE(address);
     USE(length);
 #else

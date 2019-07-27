@@ -5,7 +5,7 @@
 
 
 
-#if defined(JS_ARM_SIMULATOR)
+#if defined(JS_SIMULATOR_ARM)
 #include "jit/arm/Assembler-arm.h"
 #include "jit/arm/MoveEmitter-arm.h"
 #include "jit/arm/Simulator-arm.h"

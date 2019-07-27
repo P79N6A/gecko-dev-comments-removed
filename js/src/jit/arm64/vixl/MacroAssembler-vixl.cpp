@@ -1222,7 +1222,7 @@ void MacroAssembler::PrintfNoPreserve(const char * format, const CPURegister& ar
   
   
   
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
   {
     InstructionAccurateScope scope(this, kPrintfLength / kInstructionSize);
     hlt(kPrintfOpcode);
@@ -1319,7 +1319,7 @@ void MacroAssembler::Printf(const char * format, CPURegister arg0, CPURegister a
 
 
 void MacroAssembler::Trace(TraceParameters parameters, TraceCommand command) {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
   
   
   InstructionAccurateScope scope(this, kTraceLength / kInstructionSize);
@@ -1343,7 +1343,7 @@ void MacroAssembler::Trace(TraceParameters parameters, TraceCommand command) {
 
 
 void MacroAssembler::Log(TraceParameters parameters) {
-#ifdef JS_ARM64_SIMULATOR
+#ifdef JS_SIMULATOR_ARM64
   
   
   InstructionAccurateScope scope(this, kLogLength / kInstructionSize);

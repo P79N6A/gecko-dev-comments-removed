@@ -29,7 +29,7 @@
 #ifndef jit_arm_Simulator_arm_h
 #define jit_arm_Simulator_arm_h
 
-#ifdef JS_ARM_SIMULATOR
+#ifdef JS_SIMULATOR_ARM
 
 #include "jslock.h"
 
