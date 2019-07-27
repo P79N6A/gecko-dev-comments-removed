@@ -1547,7 +1547,7 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD Callback(nsresult rv) {
+  NS_IMETHOD Callback(nsresult rv) override {
     if (NS_FAILED(rv)) {
       callback->Callback(rv);
       return NS_OK;
@@ -1569,7 +1569,7 @@ public:
   }
 
   
-  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites)
+  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites) override
   {
     
     nsresult rv = host->EnumerateSiteData(domain, sites, matches, false);
@@ -1655,7 +1655,7 @@ public:
   : domain(domain), host(host), keepWaiting(true)
   {
   }
-  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites) {
+  NS_IMETHOD SitesWithData(InfallibleTArray<nsCString>& sites) override {
     retVal = HandleGetSites(sites);
     keepWaiting = false;
     return NS_OK;
