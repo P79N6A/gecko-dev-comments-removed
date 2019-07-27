@@ -86,16 +86,17 @@ NotificationTracker.init();
 
 
 
-function Interposition(base)
+function Interposition(name, base)
 {
+  this.name = name;
   if (base) {
     this.methods = Object.create(base.methods);
     this.getters = Object.create(base.getters);
     this.setters = Object.create(base.setters);
   } else {
-    this.methods = {};
-    this.getters = {};
-    this.setters = {};
+    this.methods = Object.create(null);
+    this.getters = Object.create(null);
+    this.setters = Object.create(null);
   }
 }
 
@@ -157,7 +158,7 @@ ContentPolicyParent.init();
 
 
 
-let CategoryManagerInterposition = new Interposition();
+let CategoryManagerInterposition = new Interposition("CategoryManagerInterposition");
 
 CategoryManagerInterposition.methods.addCategoryEntry =
   function(addon, target, category, entry, value, persist, replace) {
@@ -248,7 +249,7 @@ let AboutProtocolParent = {
 };
 AboutProtocolParent.init();
 
-let ComponentRegistrarInterposition = new Interposition();
+let ComponentRegistrarInterposition = new Interposition("ComponentRegistrarInterposition");
 
 ComponentRegistrarInterposition.methods.registerFactory =
   function(addon, target, class_, className, contractID, factory) {
@@ -319,7 +320,7 @@ let TOPIC_WHITELIST = ["content-document-global-created",
 
 
 
-let ObserverInterposition = new Interposition();
+let ObserverInterposition = new Interposition("ObserverInterposition");
 
 ObserverInterposition.methods.addObserver =
   function(addon, target, observer, topic, ownsWeak) {
@@ -457,7 +458,7 @@ let EventTargetParent = {
 
   dispatch: function(browser, type, isTrusted, event) {
     let targets = this.getTargets(browser);
-    for (target of targets) {
+    for (let target of targets) {
       let listeners = this._listeners.get(target);
       if (!listeners) {
         continue;
@@ -483,7 +484,7 @@ EventTargetParent.init();
 
 
 
-let EventTargetInterposition = new Interposition();
+let EventTargetInterposition = new Interposition("EventTargetInterposition");
 
 EventTargetInterposition.methods.addEventListener =
   function(addon, target, type, listener, useCapture, wantsUntrusted) {
@@ -501,7 +502,7 @@ EventTargetInterposition.methods.removeEventListener =
 
 
 
-let ContentDocShellTreeItemInterposition = new Interposition();
+let ContentDocShellTreeItemInterposition = new Interposition("ContentDocShellTreeItemInterposition");
 
 ContentDocShellTreeItemInterposition.getters.rootTreeItem =
   function(addon, target) {
@@ -569,7 +570,7 @@ let SandboxParent = {
 
 
 
-let ComponentsUtilsInterposition = new Interposition();
+let ComponentsUtilsInterposition = new Interposition("ComponentsUtilsInterposition");
 
 ComponentsUtilsInterposition.methods.Sandbox =
   function(addon, target, principal, ...rest) {
@@ -596,7 +597,7 @@ ComponentsUtilsInterposition.methods.evalInSandbox =
 
 
 
-let ContentDocumentInterposition = new Interposition();
+let ContentDocumentInterposition = new Interposition("ContentDocumentInterposition");
 
 ContentDocumentInterposition.methods.importNode =
   function(addon, target, node, deep) {
@@ -614,7 +615,8 @@ ContentDocumentInterposition.methods.importNode =
 
 
 
-let RemoteBrowserElementInterposition = new Interposition(EventTargetInterposition);
+let RemoteBrowserElementInterposition = new Interposition("RemoteBrowserElementInterposition",
+                                                          EventTargetInterposition);
 
 RemoteBrowserElementInterposition.getters.docShell = function(addon, target) {
   let remoteChromeGlobal = RemoteAddonsParent.browserToGlobal.get(target);
@@ -633,7 +635,8 @@ RemoteBrowserElementInterposition.getters.contentDocument = function(addon, targ
   return target.contentDocumentAsCPOW;
 };
 
-let ChromeWindowInterposition = new Interposition(EventTargetInterposition);
+let ChromeWindowInterposition = new Interposition("ChromeWindowInterposition",
+                                                  EventTargetInterposition);
 
 ChromeWindowInterposition.getters.content = function(addon, target) {
   return target.gBrowser.selectedBrowser.contentWindowAsCPOW;
