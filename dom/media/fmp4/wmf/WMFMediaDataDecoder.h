@@ -74,9 +74,9 @@ public:
 
 private:
 
-  
-  
-  void ProcessDecode(MediaRawData* aSample);
+  void Decode();
+  void EnsureDecodeTaskDispatched();
+  void PurgeInputQueue();
 
   
   
@@ -97,6 +97,11 @@ private:
   
   
   int64_t mLastStreamOffset;
+
+  Monitor mMonitor;
+  std::queue<nsRefPtr<MediaRawData>> mInput;
+  bool mIsDecodeTaskDispatched;
+  bool mIsFlushing;
 };
 
 } 
