@@ -2406,7 +2406,29 @@ var WalkerActor = protocol.ActorClass({
       this._orphaned = new Set();
     }
 
-    return pending;
+
+    
+    
+    let targetMap = {};
+    let filtered = pending.reverse().filter(mutation => {
+      if (mutation.type === "attributes") {
+        if (!targetMap[mutation.target]) {
+          targetMap[mutation.target] = {};
+        }
+        let attributesForTarget = targetMap[mutation.target];
+
+        if (attributesForTarget[mutation.attributeName]) {
+          
+          
+          return false;
+        }
+
+        attributesForTarget[mutation.attributeName] = true;
+      }
+      return true;
+    }).reverse();
+
+    return filtered;
   }, {
     request: {
       cleanup: Option(0)
