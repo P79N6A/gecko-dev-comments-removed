@@ -108,6 +108,13 @@ public:
   {
   }
 
+  template <typename I>
+  nsRefPtr(nsRefPtr<I>&& aSmartPtr)
+    : mRawPtr(aSmartPtr.forget().take())
+    
+  {
+  }
+
   MOZ_IMPLICIT nsRefPtr(const nsCOMPtr_helper& aHelper);
 
   
