@@ -147,6 +147,9 @@ def main(argv):
     test_list = []
     read_all = True
 
+    
+    options.can_test_also_noasmjs = not options.debug
+
     if test_args:
         read_all = False
         for arg in test_args:
