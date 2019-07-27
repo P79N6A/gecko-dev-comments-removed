@@ -440,7 +440,6 @@ function TargetEventsHandler() {
 
 TargetEventsHandler.prototype = {
   get target() NetMonitorController._target,
-  get webConsoleClient() NetMonitorController.webConsoleClient,
 
   
 
