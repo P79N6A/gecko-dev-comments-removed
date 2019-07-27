@@ -71,6 +71,26 @@ struct already_AddRefed
 
   already_AddRefed(already_AddRefed<T>&& aOther) : mRawPtr(aOther.take()) {}
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  template <typename U>
+  already_AddRefed(already_AddRefed<U>&& aOther) : mRawPtr(aOther.take()) {}
+
   ~already_AddRefed() { MOZ_ASSERT(!mRawPtr); }
 
   
@@ -89,31 +109,6 @@ struct already_AddRefed
     T* rawPtr = mRawPtr;
     mRawPtr = nullptr;
     return rawPtr;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  template<class U>
-  operator already_AddRefed<U>()
-  {
-    U* tmp = mRawPtr;
-    mRawPtr = nullptr;
-    return already_AddRefed<U>(tmp);
   }
 
   
