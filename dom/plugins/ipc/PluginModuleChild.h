@@ -287,7 +287,6 @@ public:
         
         
         
-        
         QUIRK_FLASH_HIDE_HIDPI_SUPPORT                  = 1 << 11,
     };
 

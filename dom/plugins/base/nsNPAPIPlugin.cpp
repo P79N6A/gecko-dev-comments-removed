@@ -2176,7 +2176,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     
     
     
-    
     if (inst) {
       const char *mimeType;
       inst->GetMIMEType(&mimeType);
