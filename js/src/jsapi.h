@@ -2273,9 +2273,6 @@ JS_GetExternalStringFinalizer(JSString *str);
 
 
 
-
-
-
 extern JS_PUBLIC_API(void)
 JS_SetNativeStackQuota(JSRuntime *cx, size_t systemCodeStackSize,
                        size_t trustedScriptStackSize = 0,
