@@ -122,6 +122,7 @@ private:
   ~SourceBuffer();
 
   friend class AsyncEventRunner<SourceBuffer>;
+  friend class AppendDataRunnable;
   void DispatchSimpleEvent(const char* aName);
   void QueueAsyncSimpleEvent(const char* aName);
 
@@ -137,6 +138,8 @@ private:
 
   
   void AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aRv);
+  void AppendData(const uint8_t* aData, uint32_t aLength,
+                  double aTimestampOffset);
 
   
   
