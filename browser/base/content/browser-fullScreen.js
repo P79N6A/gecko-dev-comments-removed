@@ -126,12 +126,14 @@ var FullScreen = {
         } else {
           let topWin = event.target.ownerDocument.defaultView.top;
           browser = gBrowser.getBrowserForContentWindow(topWin);
-          if (!browser) {
-            document.mozCancelFullScreen();
-            break;
-          }
         }
-        if (!this.enterDomFullscreen(browser)) {
+        if (!browser || !this.enterDomFullscreen(browser)) {
+          if (document.mozFullScreen) {
+            
+            
+            
+            setTimeout(() => document.mozCancelFullScreen(), 0);
+          }
           break;
         }
         
@@ -176,7 +178,6 @@ var FullScreen = {
     
     
     if (gBrowser.selectedBrowser != aBrowser) {
-      document.mozCancelFullScreen();
       return false;
     }
 
@@ -184,7 +185,6 @@ var FullScreen = {
     if (focusManager.activeWindow != window) {
       
       
-      document.mozCancelFullScreen();
       return false;
     }
 

@@ -11170,11 +11170,10 @@ ExitFullscreenInDocTree(nsIDocument* aMaybeNotARootDoc)
   
   
   
-  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
-    new AsyncEventDispatcher(changed.LastElement(),
-                             NS_LITERAL_STRING("MozDOMFullscreen:Exited"),
-                             true, true);
-  asyncDispatcher->PostDOMEvent();
+  nsContentUtils::DispatchEventOnlyToChrome(
+    changed.LastElement(), ToSupports(changed.LastElement()),
+    NS_LITERAL_STRING("MozDOMFullscreen:Exited"),
+     true,  false,  nullptr);
   
   FullscreenRoots::Remove(root);
   SetWindowFullScreen(root, false);
@@ -11253,9 +11252,10 @@ nsDocument::RestorePreviousFullScreenState()
     
     
     if (XRE_GetProcessType() == GeckoProcessType_Content) {
-      (new AsyncEventDispatcher(
-        this, NS_LITERAL_STRING("MozDOMFullscreen:Exit"),
-         true,  true))->PostDOMEvent();
+      nsContentUtils::DispatchEventOnlyToChrome(
+        this, ToSupports(this), NS_LITERAL_STRING("MozDOMFullscreen:Exit"),
+         true,  false,
+         nullptr);
     } else {
       SetWindowFullScreen(this, false);
     }
@@ -11694,9 +11694,9 @@ nsDocument::RequestFullScreen(UniquePtr<FullscreenRequest>&& aRequest)
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
     
-    (new AsyncEventDispatcher(
-       this, NS_LITERAL_STRING("MozDOMFullscreen:Request"),
-        true,  true))->PostDOMEvent();
+    nsContentUtils::DispatchEventOnlyToChrome(
+      this, ToSupports(this), NS_LITERAL_STRING("MozDOMFullscreen:Request"),
+       true,  false,  nullptr);
   } else {
     
     FullscreenRequest* lastRequest = sPendingFullscreenRequests.getLast();
@@ -11843,11 +11843,9 @@ nsDocument::ApplyFullscreen(const FullscreenRequest& aRequest)
   
   
   if (!previousFullscreenDoc) {
-    nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
-      new AsyncEventDispatcher(
-        elem, NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
-         true,  true);
-    asyncDispatcher->PostDOMEvent();
+    nsContentUtils::DispatchEventOnlyToChrome(
+      this, ToSupports(elem), NS_LITERAL_STRING("MozDOMFullscreen:Entered"),
+       true,  false,  nullptr);
   }
 
   
