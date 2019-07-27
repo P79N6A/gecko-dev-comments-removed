@@ -5943,6 +5943,9 @@ IonBuilder::jsop_eval(uint32_t argc)
         if (!info().funMaybeLazy())
             return abort("Direct eval in global code");
 
+        if (info().funMaybeLazy()->isArrow())
+            return abort("Direct eval from arrow function");
+
         
         
         
