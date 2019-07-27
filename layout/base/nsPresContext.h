@@ -707,8 +707,9 @@ public:
   
 
 
-  bool StyleUpdateForAllAnimationsIsUpToDate();
+  bool StyleUpdateForAllAnimationsIsUpToDate() const;
   void TickLastStyleUpdateForAllAnimations();
+  void ClearLastStyleUpdateForAllAnimations();
 
   
 
