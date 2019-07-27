@@ -5763,8 +5763,15 @@ GCRuntime::resetIncrementalGC(const char *reason)
 
         
         abortSweepAfterCurrentGroup = true;
+
+        
+        JSGCInvocationKind oldInvocationKind = invocationKind;
+        invocationKind = GC_NORMAL;
+
         SliceBudget budget;
         incrementalCollectSlice(budget, JS::gcreason::RESET);
+
+        invocationKind = oldInvocationKind;
 
         {
             gcstats::AutoPhase ap(stats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
