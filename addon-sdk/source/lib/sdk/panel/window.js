@@ -35,10 +35,14 @@ function getWindow(anchor) {
       }
 
       
-      let browser = enumWindow.gBrowser.getBrowserForDocument(anchorDocument);
-      if (browser) {
-        window = enumWindow;
-        break;
+      try {
+        let browser = enumWindow.gBrowser.getBrowserForDocument(anchorDocument);
+        if (browser) {
+          window = enumWindow;
+          break;
+        }
+      }
+      catch (e) {
       }
 
       
