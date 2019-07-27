@@ -20,20 +20,21 @@ class nsTableFrame;
 class FixedTableLayoutStrategy : public nsITableLayoutStrategy
 {
 public:
-    explicit FixedTableLayoutStrategy(nsTableFrame *aTableFrame);
-    virtual ~FixedTableLayoutStrategy();
+  explicit FixedTableLayoutStrategy(nsTableFrame *aTableFrame);
+  virtual ~FixedTableLayoutStrategy();
 
-    
-    virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
-    virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
-                                 bool aComputingSize) override;
-    virtual void MarkIntrinsicISizesDirty() override;
-    virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState) override;
+  
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) override;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext,
+                               bool aComputingSize) override;
+  virtual void MarkIntrinsicISizesDirty() override;
+  virtual void ComputeColumnISizes(const nsHTMLReflowState& aReflowState)
+               override;
 
 private:
-    nsTableFrame *mTableFrame;
-    nscoord mMinISize;
-    nscoord mLastCalcISize;
+  nsTableFrame *mTableFrame;
+  nscoord mMinISize;
+  nscoord mLastCalcISize;
 };
 
 #endif 
