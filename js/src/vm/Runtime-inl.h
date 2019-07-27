@@ -38,15 +38,14 @@ NewObjectCache::fillGlobal(EntryIndex entry, const Class *clasp, js::GlobalObjec
     return fill(entry, clasp, global, kind, obj);
 }
 
-template <AllowGC allowGC>
 inline JSObject *
-NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::InitialHeap heap)
+NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entryIndex, js::gc::InitialHeap heap)
 {
     
     MOZ_ASSERT(!cx->compartment()->hasObjectMetadataCallback());
 
-    MOZ_ASSERT(unsigned(entry_) < mozilla::ArrayLength(entries));
-    Entry *entry = &entries[entry_];
+    MOZ_ASSERT(unsigned(entryIndex) < mozilla::ArrayLength(entries));
+    Entry *entry = &entries[entryIndex];
 
     JSObject *templateObj = reinterpret_cast<JSObject *>(&entry->templateObject);
 
@@ -60,16 +59,6 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
     if (cx->runtime()->gc.upcomingZealousGC())
         return nullptr;
 
-    
-    
-    if (allowGC) {
-        mozilla::DebugOnly<JSObject *> obj =
-            js::gc::AllocateObjectForCacheHit<allowGC>(cx, entry->kind, heap, group->clasp());
-        MOZ_ASSERT(!obj);
-        return nullptr;
-    }
-
-    MOZ_ASSERT(allowGC == NoGC);
     JSObject *obj = js::gc::AllocateObjectForCacheHit<NoGC>(cx, entry->kind, heap, group->clasp());
     if (obj) {
         copyCachedToObject(obj, templateObj, entry->kind);
@@ -78,6 +67,11 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
         return obj;
     }
 
+    
+    
+    mozilla::DebugOnly<JSObject *> obj2 =
+        js::gc::AllocateObjectForCacheHit<CanGC>(cx, entry->kind, heap, group->clasp());
+    MOZ_ASSERT(!obj2);
     return nullptr;
 }
 
