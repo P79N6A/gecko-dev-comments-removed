@@ -10,12 +10,13 @@ const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 const PREF_STORAGE_VERSION = "browser.pagethumbnails.storage_version";
 const LATEST_STORAGE_VERSION = 3;
 
 const EXPIRATION_MIN_CHUNK_SIZE = 50;
 const EXPIRATION_INTERVAL_SECS = 3600;
+
+var gRemoteThumbId = 0;
 
 
 
@@ -26,11 +27,6 @@ const MAX_THUMBNAIL_AGE_SECS = 172800;
 
 
 const THUMBNAIL_DIRECTORY = "thumbnails";
-
-
-
-
-const THUMBNAIL_BG_COLOR = "#fff";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
@@ -69,6 +65,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
   "resource://gre/modules/AsyncShutdown.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PageThumbUtils",
+  "resource://gre/modules/PageThumbUtils.jsm");
 
 
 
@@ -174,46 +172,21 @@ this.PageThumbs = {
 
 
 
-  capture: function PageThumbs_capture(aWindow, aCallback) {
-    if (!this._prefEnabled()) {
-      return;
-    }
 
-    let canvas = this.createCanvas();
-    this.captureToCanvas(aWindow, canvas);
-
-    
-    
-    
-    Services.tm.currentThread.dispatch(function () {
-      canvas.mozFetchAsStream(aCallback, this.contentType);
-    }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
-  },
-
-
-  
-
-
-
-
-
-
-  captureToBlob: function PageThumbs_captureToBlob(aWindow) {
+  captureToBlob: function PageThumbs_captureToBlob(aBrowser) {
     if (!this._prefEnabled()) {
       return null;
     }
 
-    let canvas = this.createCanvas();
-    this.captureToCanvas(aWindow, canvas);
-
     let deferred = Promise.defer();
-    let type = this.contentType;
-    
-    
-    
-    canvas.toBlob(function asBlob(blob) {
-      deferred.resolve(blob, type);
+
+    let canvas = this.createCanvas();
+    this.captureToCanvas(aBrowser, canvas, () => {
+      canvas.toBlob(blob => {
+        deferred.resolve(blob, this.contentType);
+      });
     });
+
     return deferred.promise;
   },
 
@@ -222,18 +195,47 @@ this.PageThumbs = {
 
 
 
-  captureToCanvas: function PageThumbs_captureToCanvas(aWindow, aCanvas) {
+
+
+
+
+
+  captureToCanvas: function PageThumbs_captureToCanvas(aBrowser, aCanvas, aCallback) {
     let telemetryCaptureTime = new Date();
-    this._captureToCanvas(aWindow, aCanvas);
-    let telemetry = Services.telemetry;
-    telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
-      .add(new Date() - telemetryCaptureTime);
+    this._captureToCanvas(aBrowser, aCanvas, function () {
+      Services.telemetry
+              .getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
+              .add(new Date() - telemetryCaptureTime);
+      if (aCallback) {
+        aCallback(aCanvas);
+      }
+    });
   },
 
   
   
-  _captureToCanvas: function PageThumbs__captureToCanvas(aWindow, aCanvas) {
-    let [sw, sh, scale] = this._determineCropSize(aWindow, aCanvas);
+  _captureToCanvas: function (aBrowser, aCanvas, aCallback) {
+    if (aBrowser.isRemoteBrowser) {
+      let [sw, sh, scale] =
+        PageThumbUtils.determineCropSize(aBrowser.contentWindowAsCPOW, aCanvas);
+      Task.spawn(function () {
+        let data =
+          yield this._captureRemoteThumbnail(aBrowser, sw, sh, scale,
+                                             PageThumbUtils.THUMBNAIL_BG_COLOR);
+        let canvas = data.thumbnail;
+        let ctx = canvas.getContext("2d");
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        aCanvas.getContext("2d").putImageData(imgData, 0, 0);
+        if (aCallback) {
+          aCallback(aCanvas);
+        }
+      }.bind(this));
+      return;
+    }
+
+    
+    let [sw, sh, scale] =
+      PageThumbUtils.determineCropSize(aBrowser.contentWindow, aCanvas);
     let ctx = aCanvas.getContext("2d");
 
     
@@ -242,13 +244,86 @@ this.PageThumbs = {
 
     try {
       
-      ctx.drawWindow(aWindow, 0, 0, sw, sh, THUMBNAIL_BG_COLOR,
+      ctx.drawWindow(aBrowser.contentWindow, 0, 0, sw, sh,
+                     PageThumbUtils.THUMBNAIL_BG_COLOR,
                      ctx.DRAWWINDOW_DO_NOT_FLUSH);
     } catch (e) {
       
     }
-
     ctx.restore();
+
+    if (aCallback) {
+      aCallback(aCanvas);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _captureRemoteThumbnail: function (aBrowser,  aWidth, aHeight,
+                                     aScaleFactor, aCssBackground) {
+    let deferred = Promise.defer();
+
+    
+    
+    let index = gRemoteThumbId++;
+
+    
+    let mm = aBrowser.messageManager;
+
+    
+    let thumbFunc = function (aMsg) {
+      
+      if (aMsg.data.id != index) {
+        return;
+      }
+
+      mm.removeMessageListener("Browser:Thumbnail:Response", thumbFunc);
+      let imageBlob = aMsg.data.thumbnail;
+      let doc = aBrowser.parentElement.ownerDocument;
+      let reader = Cc["@mozilla.org/files/filereader;1"].
+                   createInstance(Ci.nsIDOMFileReader);
+      reader.addEventListener("loadend", function() {
+        let image = doc.createElementNS(PageThumbUtils.HTML_NAMESPACE, "img");
+        image.onload = function () {
+          let thumbnail = doc.createElementNS(PageThumbUtils.HTML_NAMESPACE, "canvas");
+          thumbnail.width = image.naturalWidth;
+          thumbnail.height = image.naturalHeight;
+          let ctx = thumbnail.getContext("2d");
+          ctx.drawImage(image, 0, 0);
+          deferred.resolve({
+            thumbnail: thumbnail
+          });
+        }
+        image.src = reader.result;
+      });
+      
+      reader.readAsDataURL(imageBlob);
+    }
+    mm.addMessageListener("Browser:Thumbnail:Response", thumbFunc);
+
+    
+    let width = aWidth || 0;
+    let height = aHeight || 0;
+    let scale = aScaleFactor || 1.0;
+    let background = aCssBackground || "#fff";
+    mm.sendAsyncMessage("Browser:Thumbnail:Request", {
+      width: width,
+      height: height,
+      scale: scale,
+      background: background,
+      id: index
+    });
+
+    return deferred.promise;
   },
 
   
@@ -262,19 +337,27 @@ this.PageThumbs = {
     }
 
     let url = aBrowser.currentURI.spec;
-    let channel = aBrowser.docShell.currentDocumentChannel;
-    let originalURL = channel.originalURI.spec;
+    let originalURL;
+    let channelError = false;
 
-    
-    let wasError = this._isChannelErrorResponse(channel);
+    if (!aBrowser.isRemoteBrowser) {
+      let channel = aBrowser.docShell.currentDocumentChannel;
+      originalURL = channel.originalURI.spec;
+      
+      channelError = this._isChannelErrorResponse(channel);
+    } else {
+      
+      originalURL = url;
+    }
 
     Task.spawn((function task() {
       let isSuccess = true;
       try {
-        let blob = yield this.captureToBlob(aBrowser.contentWindow);
+        let blob = yield this.captureToBlob(aBrowser);
         let buffer = yield TaskUtils.readBlob(blob);
-        yield this._store(originalURL, url, buffer, wasError);
-      } catch (_) {
+        yield this._store(originalURL, url, buffer, channelError);
+      } catch (ex) {
+        Components.utils.reportError("Exception thrown during thumbnail capture: '" + ex + "'");
         isSuccess = false;
       }
       if (aCallback) {
