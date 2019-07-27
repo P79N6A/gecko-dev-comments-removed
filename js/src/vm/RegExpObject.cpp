@@ -694,8 +694,10 @@ RegExpShared::execute(JSContext* cx, HandleLinearString input, size_t start,
 
 
 
-    if (matches && !matches->allocOrExpandArray(pairCount()))
+    if (matches && !matches->allocOrExpandArray(pairCount())) {
+        ReportOutOfMemory(cx);
         return RegExpRunStatus_Error;
+    }
 
     
 
