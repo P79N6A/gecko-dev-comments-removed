@@ -1997,17 +1997,17 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     
     uint32_t count = newContent->GetChildCount();
 
-    fragChildren.construct();
+    fragChildren.emplace();
 
     
     
-    fragChildren.ref().SetCapacity(count);
+    fragChildren->SetCapacity(count);
     for (nsIContent* child = newContent->GetFirstChild();
          child;
          child = child->GetNextSibling()) {
       NS_ASSERTION(child->GetCurrentDoc() == nullptr,
                    "How did we get a child with a current doc?");
-      fragChildren.ref().AppendElement(child);
+      fragChildren->AppendElement(child);
     }
 
     
@@ -2040,7 +2040,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
       
       for (uint32_t i = 0; i < count; ++i) {
-        if (fragChildren.ref().ElementAt(i)->GetParentNode()) {
+        if (fragChildren->ElementAt(i)->GetParentNode()) {
           aError.Throw(NS_ERROR_DOM_HIERARCHY_REQUEST_ERR);
           return nullptr;
         }
@@ -2071,7 +2071,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       if (IsNodeOfType(nsINode::eDOCUMENT)) {
         bool sawElement = false;
         for (uint32_t i = 0; i < count; ++i) {
-          nsIContent* child = fragChildren.ref().ElementAt(i);
+          nsIContent* child = fragChildren->ElementAt(i);
           if (child->IsElement()) {
             if (sawElement) {
               
@@ -2159,7 +2159,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       mutationBatch->SetNextSibling(GetChildAt(insPos));
     }
 
-    uint32_t count = fragChildren.ref().Length();
+    uint32_t count = fragChildren->Length();
     if (!count) {
       return result;
     }
@@ -2167,14 +2167,14 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     bool appending =
       !IsNodeOfType(eDOCUMENT) && uint32_t(insPos) == GetChildCount();
     int32_t firstInsPos = insPos;
-    nsIContent* firstInsertedContent = fragChildren.ref().ElementAt(0);
+    nsIContent* firstInsertedContent = fragChildren->ElementAt(0);
 
     
     
     for (uint32_t i = 0; i < count; ++i, ++insPos) {
       
       
-      aError = InsertChildAt(fragChildren.ref().ElementAt(i), insPos,
+      aError = InsertChildAt(fragChildren->ElementAt(i), insPos,
                              !appending);
       if (aError.Failed()) {
         
@@ -2201,7 +2201,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       
       if (nsContentUtils::
             HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
-        Element::FireNodeInserted(doc, this, fragChildren.ref());
+        Element::FireNodeInserted(doc, this, *fragChildren);
       }
     }
   }

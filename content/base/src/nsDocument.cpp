@@ -1566,10 +1566,10 @@ nsDocument::nsDocument(const char* aContentType)
   
   SetDOMStringToNull(mLastStyleSheetSet);
 
-  if (sProcessingStack.empty()) {
-    sProcessingStack.construct();
+  if (!sProcessingStack) {
+    sProcessingStack.emplace();
     
-    sProcessingStack.ref().AppendElement((CustomElementData*) nullptr);
+    sProcessingStack->AppendElement((CustomElementData*) nullptr);
   }
 }
 
@@ -5633,7 +5633,7 @@ nsDocument::EnqueueLifecycleCallback(nsIDocument::ElementCallbackType aType,
 
   if (!elementData->mElementIsBeingCreated) {
     CustomElementData* lastData =
-      sProcessingStack.ref().SafeLastElement(nullptr);
+      sProcessingStack->SafeLastElement(nullptr);
 
     
     
@@ -5649,10 +5649,10 @@ nsDocument::EnqueueLifecycleCallback(nsIDocument::ElementCallbackType aType,
     if (shouldPushElementQueue) {
       
       
-      sProcessingStack.ref().AppendElement((CustomElementData*) nullptr);
+      sProcessingStack->AppendElement((CustomElementData*) nullptr);
     }
 
-    sProcessingStack.ref().AppendElement(elementData);
+    sProcessingStack->AppendElement(elementData);
     elementData->mAssociatedMicroTask =
       static_cast<int32_t>(nsContentUtils::MicroTaskLevel());
 
@@ -5674,7 +5674,7 @@ nsDocument::ProcessBaseElementQueue()
 {
   
   
-  if (sProcessingBaseElementQueue || sProcessingStack.empty()) {
+  if (sProcessingBaseElementQueue || !sProcessingStack) {
     return;
   }
 
@@ -5689,7 +5689,7 @@ nsDocument::ProcessTopElementQueue(bool aIsBaseQueue)
 {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
 
-  nsTArray<CustomElementData*>& stack = sProcessingStack.ref();
+  nsTArray<CustomElementData*>& stack = *sProcessingStack;
   uint32_t firstQueue = stack.LastIndexOf((CustomElementData*) nullptr);
 
   if (aIsBaseQueue && firstQueue != 0) {
@@ -11813,7 +11813,7 @@ void
 nsDocument::XPCOMShutdown()
 {
   gPendingPointerLockRequest = nullptr;
-  sProcessingStack.destroyIfConstructed();
+  sProcessingStack.reset();
 }
 
 void

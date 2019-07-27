@@ -1162,8 +1162,8 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
       
       
       
-      masterScriptUpdater.construct(master->ScriptLoader(),
-                                    aRequest->mElement);
+      masterScriptUpdater.emplace(master->ScriptLoader(),
+                                  aRequest->mElement);
     }
 
     JS::CompileOptions options(entryScript.cx());
