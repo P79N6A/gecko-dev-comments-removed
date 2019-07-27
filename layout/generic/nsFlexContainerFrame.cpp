@@ -3679,6 +3679,10 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       LogicalPoint framePos(outerWM, physicalPosn,
                             containerWidth - item->Frame()->GetRect().width);
 
+      
+      
+      const nscoord itemNormalBPos = framePos.B(outerWM);
+
       WritingMode wm = item->Frame()->GetWritingMode();
       LogicalSize availSize = aReflowState.ComputedSize(wm);
       availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -3776,13 +3780,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       if (item->Frame() == mFrames.FirstChild() &&
           flexContainerAscent == nscoord_MIN) {
-        
-        
-        
-        flexContainerAscent = item->Frame()->GetLogicalNormalPosition(
-                                outerWM,
-                                childDesiredSize.Width()).B(outerWM) +
-                              item->ResolvedAscent();
+        flexContainerAscent = itemNormalBPos + item->ResolvedAscent();
       }
     }
   }
