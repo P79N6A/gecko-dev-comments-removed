@@ -410,9 +410,6 @@ public:
   
   void Reset();
 
-private:
-  void AcquireMonitorAndInvokeDecodeError();
-
 protected:
   virtual ~MediaDecoderStateMachine();
 
