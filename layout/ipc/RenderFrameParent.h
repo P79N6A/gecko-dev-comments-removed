@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=8 et :
- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef mozilla_layout_RenderFrameParent_h
 #define mozilla_layout_RenderFrameParent_h
@@ -53,11 +53,11 @@ class RenderFrameParent : public PRenderFrameParent
 public:
 
 
-  /**
-   * Select the desired scrolling behavior.  If ASYNC_PAN_ZOOM is
-   * chosen, then RenderFrameParent will watch input events and use
-   * them to asynchronously pan and zoom.
-   */
+  
+
+
+
+
   RenderFrameParent(nsFrameLoader* aFrameLoader,
                     TextureFactoryIdentifier* aTextureFactoryIdentifier,
                     uint64_t* aId, bool* aSuccess);
@@ -117,50 +117,52 @@ private:
 
   uint64_t GetLayerTreeId() const;
 
-  // When our child frame is pushing transactions directly to the
-  // compositor, this is the ID of its layer tree in the compositor's
-  // context.
+  
+  
+  
   uint64_t mLayersId;
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsRefPtr<ContainerLayer> mContainer;
-  // When our scrolling behavior is ASYNC_PAN_ZOOM, we have a nonnull
-  // APZCTreeManager. It's used to manipulate the shadow layer tree
-  // on the compositor thread.
+  
+  
+  
   nsRefPtr<layers::APZCTreeManager> mApzcTreeManager;
   nsRefPtr<RemoteContentController> mContentController;
 
   layers::APZCTreeManager* GetApzcTreeManager();
 
-  // True after Destroy() has been called, which is triggered
-  // originally by nsFrameLoader::Destroy().  After this point, we can
-  // no longer safely ask the frame loader to find its nearest layer
-  // manager, because it may have been disconnected from the DOM.
-  // It's still OK to *tell* the frame loader that we've painted after
-  // it's destroyed; it'll just ignore us, and we won't be able to
-  // find an nsIFrame to invalidate.  See ShadowLayersUpdated().
-  //
-  // Prefer the extra bit of state to null'ing out mFrameLoader in
-  // Destroy() so that less code needs to be special-cased for after
-  // Destroy().
-  // 
-  // It's possible for mFrameLoader==null and
-  // mFrameLoaderDestroyed==false.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   bool mFrameLoaderDestroyed;
-  // this is gfxRGBA because that's what ColorLayer wants.
+  
   gfxRGBA mBackgroundColor;
 
   nsRegion mTouchRegion;
+
+  bool mAsyncPanZoomEnabled;
 };
 
-} // namespace layout
-} // namespace mozilla
+} 
+} 
 
-/**
- * A DisplayRemote exists solely to graft a child process's shadow
- * layer tree (for a given RenderFrameParent) into its parent
- * process's layer tree.
- */
+
+
+
+
+
 class nsDisplayRemote : public nsDisplayItem
 {
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
@@ -189,4 +191,4 @@ private:
 };
 
 
-#endif  // mozilla_layout_RenderFrameParent_h
+#endif  

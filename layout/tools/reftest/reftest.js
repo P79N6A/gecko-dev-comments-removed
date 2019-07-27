@@ -1,8 +1,8 @@
-/* -*- indent-tabs-mode: nil; js-indent-level: 4 -*- /
-/* vim: set shiftwidth=4 tabstop=8 autoindent cindent expandtab: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #if BOOTSTRAP
 this.EXPORTED_SYMBOLS = ["OnRefTestLoad"];
@@ -54,37 +54,37 @@ const FOCUS_FILTER_NEEDS_FOCUS_TESTS = "needs-focus";
 const FOCUS_FILTER_NON_NEEDS_FOCUS_TESTS = "non-needs-focus";
 var gFocusFilterMode = FOCUS_FILTER_ALL_TESTS;
 
-// "<!--CLEAR-->"
+
 const BLANK_URL_FOR_CLEARING = "data:text/html;charset=UTF-8,%3C%21%2D%2DCLEAR%2D%2D%3E";
 
 var gBrowser;
-// Are we testing web content loaded in a separate process?
-var gBrowserIsRemote;           // bool
-var gB2GisMulet;                // bool
-// Are we using <iframe mozbrowser>?
-var gBrowserIsIframe;           // bool
+
+var gBrowserIsRemote;           
+var gB2GisMulet;                
+
+var gBrowserIsIframe;           
 var gBrowserMessageManager;
 var gCanvas1, gCanvas2;
-// gCurrentCanvas is non-null between InitCurrentCanvasWithSnapshot and the next
-// RecordResult.
+
+
 var gCurrentCanvas = null;
 var gURLs;
-// Map from URI spec to the number of times it remains to be used
+
 var gURIUseCounts;
-// Map from URI spec to the canvas rendered for that URI
+
 var gURICanvases;
 var gTestResults = {
-  // Successful...
+  
   Pass: 0,
   LoadOnly: 0,
-  // Unexpected...
+  
   Exception: 0,
   FailedLoad: 0,
   UnexpectedFail: 0,
   UnexpectedPass: 0,
   AssertionUnexpected: 0,
   AssertionUnexpectedFixed: 0,
-  // Known problems...
+  
   KnownFail : 0,
   AssertionKnown: 0,
   Random : 0,
@@ -118,28 +118,28 @@ var gFailedOpaqueLayerMessages = [];
 var gFailedAssignedLayer = false;
 var gFailedAssignedLayerMessages = [];
 
-// The enabled-state of the test-plugins, stored so they can be reset later
+
 var gTestPluginEnabledStates = null;
 
 const TYPE_REFTEST_EQUAL = '==';
 const TYPE_REFTEST_NOTEQUAL = '!=';
-const TYPE_LOAD = 'load';     // test without a reference (just test that it does
-                              // not assert, crash, hang, or leak)
-const TYPE_SCRIPT = 'script'; // test contains individual test results
+const TYPE_LOAD = 'load';     
+                              
+const TYPE_SCRIPT = 'script'; 
 
-// The order of these constants matters, since when we have a status
-// listed for a *manifest*, we combine the status with the status for
-// the test by using the *larger*.
-// FIXME: In the future, we may also want to use this rule for combining
-// statuses that are on the same line (rather than making the last one
-// win).
+
+
+
+
+
+
 const EXPECTED_PASS = 0;
 const EXPECTED_FAIL = 1;
 const EXPECTED_RANDOM = 2;
-const EXPECTED_DEATH = 3;  // test must be skipped to avoid e.g. crash/hang
+const EXPECTED_DEATH = 3;  
 const EXPECTED_FUZZY = 4;
 
-// types of preference value we might want to set for a specific test
+
 const PREF_BOOLEAN = 0;
 const PREF_STRING  = 1;
 const PREF_INTEGER = 2;
@@ -151,20 +151,20 @@ const gPrefItemRE = /^(|test-|ref-)pref\((.+?),(.*)\)$/;
 
 var gHttpServerPort = -1;
 
-// whether to run slow tests or not
+
 var gRunSlowTests = true;
 
-// whether we should skip caching canvases
+
 var gNoCanvasCache = false;
 
 var gRecycledCanvases = new Array();
 
-// By default we just log to stdout
+
 var gDumpLog = dump;
 var gVerbose = false;
 
-// Only dump the sandbox once, because it doesn't depend on the
-// manifest URL (yet!).
+
+
 var gDumpedConditionSandbox = false;
 
 function LogWarning(str)
@@ -183,7 +183,7 @@ function LogInfo(str)
 function FlushTestLog()
 {
     if (!gVerbose) {
-        // In verbose mode, we've dumped all these messages already.
+        
         for (var i = 0; i < gTestLog.length; ++i) {
             gDumpLog("REFTEST INFO | Saved log: " + gTestLog[i] + "\n");
         }
@@ -206,7 +206,7 @@ function AllocateCanvas()
 
 function ReleaseCanvas(canvas)
 {
-    // store a maximum of 2 canvases, if we're not caching
+    
     if (!gNoCanvasCache || gRecycledCanvases.length < 2)
         gRecycledCanvases.push(canvas);
 }
@@ -224,7 +224,7 @@ function getTestPlugin(aName) {
   var ph = CC["@mozilla.org/plugin/host;1"].getService(CI.nsIPluginHost);
   var tags = ph.getPluginTags();
 
-  // Find the test plugin
+  
   for (var i = 0; i < tags.length; i++) {
     if (tags[i].name == aName)
       return tags[i];
@@ -282,8 +282,8 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     gBrowser.setAttribute("id", "browser");
     gBrowser.setAttribute("type", "content-primary");
     gBrowser.setAttribute("remote", gBrowserIsRemote ? "true" : "false");
-    // Make sure the browser element is exactly 800x1000, no matter
-    // what size our window is
+    
+    
     gBrowser.setAttribute("style", "padding: 0px; margin: 0px; border:none; min-width: 800px; min-height: 1000px; max-width: 800px; max-height: 1000px");
 
 #ifdef BOOTSTRAP
@@ -300,7 +300,7 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
     document.getElementById("reftest-window").appendChild(gBrowser);
 #endif
 
-    // reftests should have the test plugins enabled, not click-to-play
+    
     let plugin1 = getTestPlugin("Test Plug-in");
     let plugin2 = getTestPlugin("Second Test Plug-in");
     if (plugin1 && plugin2) {
@@ -313,14 +313,14 @@ this.OnRefTestLoad = function OnRefTestLoad(win)
 
     gBrowserMessageManager = gBrowser.QueryInterface(CI.nsIFrameLoaderOwner)
                                      .frameLoader.messageManager;
-    // The content script waits for the initial onload, then notifies
-    // us.
+    
+    
     RegisterMessageListenersAndLoadContentScript();
 }
 
 function InitAndStartRefTests()
 {
-    /* These prefs are optional, so we don't need to spit an error to the log */
+    
     try {
         var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                     getService(Components.interfaces.nsIPrefBranch);
@@ -332,27 +332,27 @@ function InitAndStartRefTests()
       prefs.setBoolPref("android.widget_paints_background", false);
     } catch (e) {}
 
-    /* set the gLoadTimeout */
+    
     try {
         gLoadTimeout = prefs.getIntPref("reftest.timeout");
     } catch(e) {
-        gLoadTimeout = 5 * 60 * 1000; //5 minutes as per bug 479518
+        gLoadTimeout = 5 * 60 * 1000; 
     }
 
-    /* Get the logfile for android tests */
+    
     try {
         var logFile = prefs.getCharPref("reftest.logFile");
         if (logFile) {
             try {
                 var f = FileUtils.File(logFile);
                 var mfl = FileUtils.openFileOutputStream(f, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE);
-                // Set to mirror to stdout as well as the file
+                
                 gDumpLog = function (msg) {
 #ifdef BOOTSTRAP
 #ifdef REFTEST_B2G
                     dump(msg);
 #else
-                    //NOTE: on android-xul, we have a libc crash if we do a dump with %7s in the string
+                    
 #endif
 #else
                     dump(msg);
@@ -361,7 +361,7 @@ function InitAndStartRefTests()
                 };
             }
             catch(e) {
-                // If there is a problem, just use stdout
+                
                 gDumpLog = dump;
             }
         }
@@ -379,7 +379,7 @@ function InitAndStartRefTests()
         gIgnoreWindowSize = false;
     }
 
-    /* Support for running a chunk (subset) of tests.  In separate try as this is optional */
+    
     try {
         gTotalChunks = prefs.getIntPref("reftest.totalChunks");
         gThisChunk = prefs.getIntPref("reftest.thisChunk");
@@ -415,13 +415,13 @@ function InitAndStartRefTests()
         if (gServer)
             StartHTTPServer();
     } catch (ex) {
-        //gBrowser.loadURI('data:text/plain,' + ex);
+        
         ++gTestResults.Exception;
         gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + ex + "\n");
         DoneTests();
     }
 
-    // Focus the content browser.
+    
     if (gFocusFilterMode != FOCUS_FILTER_NON_NEEDS_FOCUS_TESTS) {
         gBrowser.focus();
     }
@@ -436,7 +436,7 @@ function StartHTTPServer()
     gHttpServerPort = gServer.identity.primaryPort;
 }
 
-// Perform a Fisher-Yates shuffle of the array.
+
 function Shuffle(array)
 {
     for (var i = array.length - 1; i > 0; i--) {
@@ -451,7 +451,7 @@ function StartTests()
 {
     var uri;
 #if BOOTSTRAP
-    /* These prefs are optional, so we don't need to spit an error to the log */
+    
     try {
         var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                     getService(Components.interfaces.nsIPrefBranch);
@@ -489,7 +489,7 @@ function StartTests()
     }
 #else
     try {
-        // Need to read the manifest once we have gHttpServerPort..
+        
         var args = window.arguments[0].wrappedJSObject;
 
         if ("nocache" in args && args["nocache"])
@@ -514,8 +514,8 @@ function StartTests()
         ReadTopManifest(uri);
         BuildUseCounts();
 
-        // Filter tests which will be skipped to get a more even distribution when chunking
-        // tURLs is a temporary array containing all active tests
+        
+        
         var tURLs = new Array();
         for (var i = 0; i < gURLs.length; ++i) {
             if (gURLs[i].expected == EXPECTED_DEATH)
@@ -533,14 +533,14 @@ function StartTests()
         gDumpLog("REFTEST INFO | Discovered " + gURLs.length + " tests, after filtering SKIP tests, we have " + tURLs.length + "\n");
 
         if (gTotalChunks > 0 && gThisChunk > 0) {
-            // Calculate start and end indices of this chunk if tURLs array were
-            // divided evenly
+            
+            
             var testsPerChunk = tURLs.length / gTotalChunks;
             var start = Math.round((gThisChunk-1) * testsPerChunk);
             var end = Math.round(gThisChunk * testsPerChunk);
 
-            // Map these indices onto the gURLs array. This avoids modifying the
-            // gURLs array which prevents skipped tests from showing up in the log
+            
+            
             start = gThisChunk == 1 ? 0 : gURLs.indexOf(tURLs[start]);
             end = gThisChunk == gTotalChunks ? gURLs.length : gURLs.indexOf(tURLs[end + 1]) - 1;
             gURLs = gURLs.slice(start, end);
@@ -561,7 +561,7 @@ function StartTests()
         gURICanvases = {};
         StartCurrentTest();
     } catch (ex) {
-        //gBrowser.loadURI('data:text/plain,' + ex);
+        
         ++gTestResults.Exception;
         gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | | EXCEPTION: " + ex + "\n");
         DoneTests();
@@ -580,8 +580,8 @@ function OnRefTestUnload()
   }
 }
 
-// Read all available data from an input stream and return it
-// as a string.
+
+
 function getStreamContent(inputStream)
 {
     var streamBuf = "";
@@ -597,15 +597,15 @@ function getStreamContent(inputStream)
     return streamBuf;
 }
 
-// Build the sandbox for fails-if(), etc., condition evaluation.
+
 function BuildConditionSandbox(aURL) {
     var sandbox = new Components.utils.Sandbox(aURL.spec);
     var xr = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULRuntime);
     var appInfo = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULAppInfo);
     sandbox.isDebugBuild = gDebug.isDebugBuild;
 
-    // xr.XPCOMABI throws exception for configurations without full ABI
-    // support (mobile builds on ARM)
+    
+    
     var XPCOMABI = "";
     try {
         XPCOMABI = xr.XPCOMABI;
@@ -629,8 +629,8 @@ function BuildConditionSandbox(aURL) {
     sandbox.azureQuartz = info.AzureCanvasBackend == "quartz";
     sandbox.azureSkia = info.AzureCanvasBackend == "skia";
     sandbox.skiaContent = info.AzureContentBackend == "skia";
-    sandbox.azureSkiaGL = info.AzureSkiaAccelerated; // FIXME: assumes GL right now
-    // true if we are using the same Azure backend for rendering canvas and content
+    sandbox.azureSkiaGL = info.AzureSkiaAccelerated; 
+    
     sandbox.contentSameGfxBackendAsCanvas = info.AzureContentBackend == info.AzureCanvasBackend
                                             || (info.AzureContentBackend == "none" && info.AzureCanvasBackend == "cairo");
 
@@ -641,7 +641,7 @@ function BuildConditionSandbox(aURL) {
     sandbox.layersOMTC =
       gWindowUtils.layerManagerRemote == true;
 
-    // Shortcuts for widget toolkits.
+    
     sandbox.B2G = xr.widgetToolkit == "gonk";
     sandbox.B2GDT = appInfo.name.toLowerCase() == "b2g" && !sandbox.B2G;
     sandbox.Android = xr.OS == "Android" && !sandbox.B2G;
@@ -653,8 +653,8 @@ function BuildConditionSandbox(aURL) {
     if (sandbox.Android) {
         var sysInfo = CC["@mozilla.org/system-info;1"].getService(CI.nsIPropertyBag2);
 
-        // This is currently used to distinguish Android 4.0.3 (SDK version 15)
-        // and later from Android 2.x
+        
+        
         sandbox.AndroidVersion = sysInfo.getPropertyAsInt32("version");
     }
 
@@ -678,20 +678,20 @@ function BuildConditionSandbox(aURL) {
     sandbox.http = new sandbox.Object();
     httpProps.forEach((x) => sandbox.http[x] = hh[x]);
 
-    // Set OSX to be the Mac OS X version, as an integer, or undefined
-    // for other platforms.  The integer is formed by 100 times the
-    // major version plus the minor version, so 1006 for 10.6, 1010 for
-    // 10.10, etc.
+    
+    
+    
+    
     var osxmatch = /Mac OS X (\d+).(\d+)$/.exec(hh.oscpu);
     sandbox.OSX = osxmatch ? parseInt(osxmatch[1]) * 100 + parseInt(osxmatch[2]) : undefined;
 
-    // see if we have the test plugin available,
-    // and set a sandox prop accordingly
+    
+    
     var navigator = gContainingWindow.navigator;
     var testPlugin = navigator.plugins["Test Plug-in"];
     sandbox.haveTestPlugin = !!testPlugin;
 
-    // Set a flag on sandbox if the windows default theme is active
+    
     sandbox.windowsDefaultTheme = gContainingWindow.matchMedia("(-moz-windows-default-theme)").matches;
 
     var prefs = CC["@mozilla.org/preferences-service;1"].
@@ -738,13 +738,13 @@ function BuildConditionSandbox(aURL) {
         return testPluginIsOOP;
     };
 
-    // Tests shouldn't care about this except for when they need to
-    // crash the content process
+    
+    
     sandbox.browserIsRemote = gBrowserIsRemote;
     sandbox.Mulet = gB2GisMulet;
 
     try {
-        sandbox.asyncPanZoom = prefs.getBoolPref("layers.async-pan-zoom.enabled");
+        sandbox.asyncPanZoom = gContainingWindow.document.docShell.asyncPanZoomEnabled;
     } catch (e) {
         sandbox.asyncPanZoom = false;
     }
@@ -755,7 +755,7 @@ function BuildConditionSandbox(aURL) {
         gDumpedConditionSandbox = true;
     }
 
-    // Graphics features
+    
     sandbox.supportsRepeatResampling = !sandbox.cocoaWidget;
     return sandbox;
 }
@@ -808,8 +808,8 @@ function AddTestItem(aTest)
     gURLs.push(aTest);
 }
 
-// Note: If you materially change the reftest manifest parsing,
-// please keep the parser in print-manifest-dirs.py in sync.
+
+
 function ReadManifest(aURL, inherited_status)
 {
     var secMan = CC[NS_SCRIPTSECURITYMANAGER_CONTRACTID]
@@ -817,9 +817,9 @@ function ReadManifest(aURL, inherited_status)
 
     var listURL = aURL;
     var channel = gIOService.newChannelFromURI2(aURL,
-                                                null,      // aLoadingNode
+                                                null,      
                                                 Services.scriptSecurityManager.getSystemPrincipal(),
-                                                null,      // aTriggeringPrincipal
+                                                null,      
                                                 CI.nsILoadInfo.SEC_NORMAL,
                                                 CI.nsIContentPolicy.TYPE_OTHER);
     var inputStream = channel.open();
@@ -832,7 +832,7 @@ function ReadManifest(aURL, inherited_status)
     inputStream.close();
     var lines = streamBuf.split(/\n|\r|\r\n/);
 
-    // Build the sandbox for fails-if(), etc., condition evaluation.
+    
     var sandbox = BuildConditionSandbox(aURL);
     var lineNo = 0;
     var urlprefix = "";
@@ -840,15 +840,15 @@ function ReadManifest(aURL, inherited_status)
     for each (var str in lines) {
         ++lineNo;
         if (str.charAt(0) == "#")
-            continue; // entire line was a comment
+            continue; 
         var i = str.search(/\s+#/);
         if (i >= 0)
             str = str.substring(0, i);
-        // strip leading and trailing whitespace
+        
         str = str.replace(/^\s*/, '').replace(/\s*$/, '');
         if (!str || str == "")
             continue;
-        var items = str.split(/\s+/); // split on whitespace
+        var items = str.split(/\s+/); 
 
         if (items[0] == "url-prefix") {
             if (items.length != 2)
@@ -892,7 +892,7 @@ function ReadManifest(aURL, inherited_status)
             var m = item.match(/^(fails|random|skip|silentfail)-if(\(.*\))$/);
             if (m) {
                 stat = m[1];
-                // Note: m[2] contains the parentheses, and we want them.
+                
                 cond = Components.utils.evalInSandbox(m[2], sandbox);
             } else if (item.match(/^(fails|random|skip)$/)) {
                 stat = item;
@@ -926,15 +926,15 @@ function ReadManifest(aURL, inherited_status)
                 cond = false;
                 for each (var precondition in preconditions) {
                     if (precondition === "debugMode") {
-                        // Currently unimplemented. Requires asynchronous
-                        // JSD call + getting an event while no JS is running
+                        
+                        
                         stat = fallback_action;
                         cond = true;
                         break;
                     } else if (precondition === "true") {
-                        // For testing
+                        
                     } else {
-                        // Unknown precondition. Assume it is unimplemented.
+                        
                         stat = fallback_action;
                         cond = true;
                         break;
@@ -990,20 +990,20 @@ function ReadManifest(aURL, inherited_status)
         var runHttp = false;
         var httpDepth;
         if (items[0] == "HTTP") {
-            runHttp = (aURL.scheme == "file"); // We can't yet run the local HTTP server
-                                               // for non-local reftests.
+            runHttp = (aURL.scheme == "file"); 
+                                               
             httpDepth = 0;
             items.shift();
         } else if (items[0].match(/HTTP\(\.\.(\/\.\.)*\)/)) {
-            // Accept HTTP(..), HTTP(../..), HTTP(../../..), etc.
-            runHttp = (aURL.scheme == "file"); // We can't yet run the local HTTP server
-                                               // for non-local reftests.
+            
+            runHttp = (aURL.scheme == "file"); 
+                                               
             httpDepth = (items[0].length - 5) / 3;
             items.shift();
         }
 
-        // do not prefix the url for include commands or urls specifying
-        // a protocol
+        
+        
         if (urlprefix && items[0] != "include") {
             if (items.length > 1 && !items[1].match(gProtocolRE)) {
                 items[1] = urlprefix + items[1];
@@ -1150,8 +1150,8 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
     var listURL = aURL.QueryInterface(CI.nsIFileURL);
     var directory = listURL.file.parent;
 
-    // Allow serving a tree that's an ancestor of the directory containing
-    // the files so that they can use resources in ../ (etc.).
+    
+    
     var dirPath = "/";
     while (depth > 0) {
         dirPath = "/" + directory.leafName + dirPath;
@@ -1171,11 +1171,11 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
 
     function FileToURI(file)
     {
-        // Only serve relative URIs via the HTTP server, not absolute
-        // ones like about:blank.
+        
+        
         var testURI = gIOService.newURI(file, null, testbase);
 
-        // XXX necessary?  manifestURL guaranteed to be file, others always HTTP
+        
         secMan.checkLoadURIWithPrincipal(manifestPrincipal, testURI,
                                          CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
 
@@ -1185,7 +1185,7 @@ function ServeFiles(manifestPrincipal, depth, aURL, files)
     return files.map(FileToURI);
 }
 
-// Return true iff this window is focused when this function returns.
+
 function Focus()
 {
     var fm = CC["@mozilla.org/focus-manager;1"].getService(CI.nsIFocusManager);
@@ -1196,16 +1196,16 @@ function Focus()
         dock.activateApplication(true);
     } catch(ex) {
     }
-#endif // XP_MACOSX
+#endif 
     return true;
 }
 
 function Blur()
 {
-    // On non-remote reftests, this will transfer focus to the dummy window
-    // we created to hold focus for non-needs-focus tests.  Buggy tests
-    // (ones which require focus but don't request needs-focus) will then
-    // fail.
+    
+    
+    
+    
     gContainingWindow.blur();
 }
 
@@ -1213,7 +1213,7 @@ function StartCurrentTest()
 {
     gTestLog = [];
 
-    // make sure we don't run tests that are expected to kill the browser
+    
     while (gURLs.length > 0) {
         var test = gURLs[0];
         if (test.expected == EXPECTED_DEATH) {
@@ -1221,8 +1221,8 @@ function StartCurrentTest()
             gDumpLog("REFTEST TEST-KNOWN-FAIL | " + test.url1.spec + " | (SKIP)\n");
             gURLs.shift();
         } else if (test.needsFocus && !Focus()) {
-            // FIXME: Marking this as a known fail is dangerous!  What
-            // if it starts failing all the time?
+            
+            
             ++gTestResults.Skip;
             gDumpLog("REFTEST TEST-KNOWN-FAIL | " + test.url1.spec + " | (SKIPPED; COULDN'T GET FOCUS)\n");
             gURLs.shift();
@@ -1323,7 +1323,7 @@ function StartCurrentURI(aState)
             }
         }
         if (badPref != undefined) {
-            // skip the test that had a bad preference
+            
             gURLs.shift();
 
             StartCurrentTest();
@@ -1336,8 +1336,8 @@ function StartCurrentURI(aState)
         (gURLs[0].type == TYPE_REFTEST_EQUAL ||
          gURLs[0].type == TYPE_REFTEST_NOTEQUAL) &&
         gURLs[0].maxAsserts == 0) {
-        // Pretend the document loaded --- RecordResult will notice
-        // there's already a canvas for this URL
+        
+        
         gContainingWindow.setTimeout(RecordResult, 0);
     } else {
         var currentTest = gTotalTests - gURLs.length;
@@ -1414,11 +1414,11 @@ function UpdateCanvasCache(url, canvas)
     }
 }
 
-// Recompute drawWindow flags for every drawWindow operation.
-// We have to do this every time since our window can be
-// asynchronously resized (e.g. by the window manager, to make
-// it fit on screen) at unpredictable times.
-// Fortunately this is pretty cheap.
+
+
+
+
+
 function DoDrawWindow(ctx, x, y, w, h)
 {
     var flags = ctx.DRAWWINDOW_DRAW_CARET | ctx.DRAWWINDOW_DRAW_VIEW;
@@ -1428,9 +1428,9 @@ function DoDrawWindow(ctx, x, y, w, h)
          0 <= testRect.top &&
          gContainingWindow.innerWidth >= testRect.right &&
          gContainingWindow.innerHeight >= testRect.bottom)) {
-        // We can use the window's retained layer manager
-        // because the window is big enough to display the entire
-        // browser element
+        
+        
+        
         flags |= ctx.DRAWWINDOW_USE_WIDGET_LAYERS;
     } else if (gBrowserIsRemote) {
         gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " + gCurrentURL + " | can't drawWindow remote content\n");
@@ -1438,14 +1438,14 @@ function DoDrawWindow(ctx, x, y, w, h)
     }
 
     if (gDrawWindowFlags != flags) {
-        // Every time the flags change, dump the new state.
+        
         gDrawWindowFlags = flags;
         var flagsStr = "DRAWWINDOW_DRAW_CARET | DRAWWINDOW_DRAW_VIEW";
         if (flags & ctx.DRAWWINDOW_USE_WIDGET_LAYERS) {
             flagsStr += " | DRAWWINDOW_USE_WIDGET_LAYERS";
         } else {
-            // Output a special warning because we need to be able to detect
-            // this whenever it happens.
+            
+            
             gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | WARNING: USE_WIDGET_LAYERS disabled\n");
         }
         gDumpLog("REFTEST INFO | drawWindow flags = " + flagsStr +
@@ -1464,7 +1464,7 @@ function InitCurrentCanvasWithSnapshot()
     LogInfo("Initializing canvas snapshot");
 
     if (gURLs[0].type == TYPE_LOAD || gURLs[0].type == TYPE_SCRIPT) {
-        // We don't want to snapshot this kind of test
+        
         return false;
     }
 
@@ -1488,13 +1488,13 @@ function UpdateCurrentCanvasForInvalidation(rects)
     var ctx = gCurrentCanvas.getContext("2d");
     for (var i = 0; i < rects.length; ++i) {
         var r = rects[i];
-        // Set left/top/right/bottom to pixel boundaries
+        
         var left = Math.floor(r.left);
         var top = Math.floor(r.top);
         var right = Math.ceil(r.right);
         var bottom = Math.ceil(r.bottom);
 
-        // Clamp the values to the canvas size
+        
         left = Math.max(0, Math.min(left, gCurrentCanvas.width));
         top = Math.max(0, Math.min(top, gCurrentCanvas.height));
         right = Math.max(0, Math.min(right, gCurrentCanvas.width));
@@ -1523,13 +1523,13 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
 {
     LogInfo("RecordResult fired");
 
-    // Keep track of which test was slowest, and how long it took.
+    
     if (testRunTime > gSlowestTestTime) {
         gSlowestTestTime = testRunTime;
         gSlowestTestURL  = gCurrentURL;
     }
 
-    // Not 'const ...' because of 'EXPECTED_*' value dependency.
+    
     var outputs = {};
     const randomMsg = "(EXPECTED RANDOM)";
     outputs[EXPECTED_PASS] = {
@@ -1559,12 +1559,12 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
         var expected = gURLs[0].expected;
 
         if (errorMsg) {
-            // Force an unexpected failure to alert the test author to fix the test.
+            
             expected = EXPECTED_PASS;
         } else if (scriptResults.length == 0) {
-             // This failure may be due to a JavaScript Engine bug causing
-             // early termination of the test. If we do not allow silent
-             // failure, report an error.
+             
+             
+             
              if (!gURLs[0].allowSilentFail)
                  errorMsg = "No test results reported. (SCRIPT)\n";
              else
@@ -1575,7 +1575,7 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
             output = outputs[expected][false];
             ++gTestResults[output.n];
             var result = "REFTEST " + output.s + " | " +
-                gURLs[0].prettyPath + " | " + // the URL being tested
+                gURLs[0].prettyPath + " | " + 
                 errorMsg;
 
             gDumpLog(result);
@@ -1586,10 +1586,10 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
         var anyFailed = scriptResults.some(function(result) { return !result.passed; });
         var outputPair;
         if (anyFailed && expected == EXPECTED_FAIL) {
-            // If we're marked as expected to fail, and some (but not all) tests
-            // passed, treat those tests as though they were marked random
-            // (since we can't tell whether they were really intended to be
-            // marked failing or not).
+            
+            
+            
+            
             outputPair = { true: outputs[EXPECTED_RANDOM][true],
                            false: outputs[expected][false] };
         } else {
@@ -1601,7 +1601,7 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
 
                 ++gTestResults[output.n];
                 result = "REFTEST " + output.s + " | " +
-                    gURLs[0].prettyPath + " | " + // the URL being tested
+                    gURLs[0].prettyPath + " | " + 
                     result.description + " item " + (++index) + "\n";
                 gDumpLog(result);
             });
@@ -1633,27 +1633,27 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
 
     switch (gState) {
         case 1:
-            // First document has been loaded.
-            // Proceed to load the second document.
+            
+            
 
             CleanUpCrashDumpFiles();
             StartCurrentURI(2);
             break;
         case 2:
-            // Both documents have been loaded. Compare the renderings and see
-            // if the comparison result matches the expected result specified
-            // in the manifest.
+            
+            
+            
 
-            // number of different pixels
+            
             var differences;
-            // whether the two renderings match:
+            
             var equal;
             var maxDifference = {};
 
             differences = gWindowUtils.compareCanvases(gCanvas1, gCanvas2, maxDifference);
             equal = (differences == 0);
 
-            // what is expected on this platform (PASS, FAIL, or RANDOM)
+            
             var expected = gURLs[0].expected;
 
             if (maxDifference.value > 0 && maxDifference.value <= gURLs[0].fuzzyMaxDelta &&
@@ -1667,21 +1667,21 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
 
             var failedExtraCheck = gFailedNoPaint || gFailedOpaqueLayer || gFailedAssignedLayer;
 
-            // whether the comparison result matches what is in the manifest
+            
             var test_passed = (equal == (gURLs[0].type == TYPE_REFTEST_EQUAL)) && !failedExtraCheck;
 
             output = outputs[expected][test_passed];
 
             ++gTestResults[output.n];
 
-            // It's possible that we failed both an "extra check" and the normal comparison, but we don't
-            // have a way to annotate these separately, so just print an error for the extra check failures.
+            
+            
             if (failedExtraCheck) {
                 var failures = [];
                 if (gFailedNoPaint) {
                     failures.push("failed reftest-no-paint");
                 }
-                // The gFailed*Messages arrays will contain messages from both the test and the reference.
+                
                 if (gFailedOpaqueLayer) {
                     failures.push("failed reftest-opaque-layer: " + gFailedOpaqueLayerMessages.join(", "));
                 }
@@ -1696,7 +1696,7 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
                 }
             } else {
                 var result = "REFTEST " + output.s + " | " +
-                             gURLs[0].prettyPath + " | "; // the URL being tested
+                             gURLs[0].prettyPath + " | "; 
                 switch (gURLs[0].type) {
                     case TYPE_REFTEST_NOTEQUAL:
                         result += "image comparison (!=)";
@@ -1746,8 +1746,8 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
 function LoadFailed(why)
 {
     ++gTestResults.FailedLoad;
-    // Once bug 896840 is fixed, this can go away, but for now it will give log
-    // output that is TBPL starable for bug 789751 and bug 720452.
+    
+    
     if (!why) {
         gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | load failed with unknown reason\n");
     }
@@ -1809,11 +1809,11 @@ function CleanUpCrashDumpFiles()
 
 function FinishTestItem()
 {
-    // Replace document with BLANK_URL_FOR_CLEARING in case there are
-    // assertions when unloading.
+    
+    
     gDumpLog("REFTEST INFO | Loading a blank page\n");
-    // After clearing, content will notify us of the assertion count
-    // and tests will continue.
+    
+    
     SendClear();
     gFailedNoPaint = false;
     gFailedOpaqueLayer = false;
@@ -1826,8 +1826,8 @@ function DoAssertionCheck(numAsserts)
 {
     if (gDebug.isDebugBuild) {
         if (gBrowserIsRemote) {
-            // Count chrome-process asserts too when content is out of
-            // process.
+            
+            
             var newAssertionCount = gDebug.assertionCount;
             var numLocalAsserts = newAssertionCount - gAssertionCount;
             gAssertionCount = newAssertionCount;
@@ -1864,7 +1864,7 @@ function DoAssertionCheck(numAsserts)
 
     gDumpLog("REFTEST TEST-END | " + gURLs[0].prettyPath + "\n");
 
-    // And start the next test.
+    
     gURLs.shift();
     StartCurrentTest();
 }
@@ -1872,7 +1872,7 @@ function DoAssertionCheck(numAsserts)
 function ResetRenderingState()
 {
     SendResetRenderingState();
-    // We would want to clear any viewconfig here, if we add support for it
+    
 }
 
 function RestoreChangedPreferences()
