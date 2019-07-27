@@ -572,7 +572,12 @@ AboutReader.prototype = {
 
     if (article && article.url == url) {
       this._showContent(article);
+    } else if (this._articlePromise) {
+      
+      this._showError();
     } else {
+      
+      
       this._win.location.href = url;
     }
   }),
@@ -664,14 +669,17 @@ AboutReader.prototype = {
     this._headerElement.setAttribute("dir", article.dir);
   },
 
-  _showError: function Reader_showError(error) {
+  _showError: function() {
     this._headerElement.style.display = "none";
     this._contentElement.style.display = "none";
 
-    this._messageElement.innerHTML = error;
+    let errorMessage = gStrings.GetStringFromName("aboutReader.loadError");
+    this._messageElement.textContent = errorMessage;
     this._messageElement.style.display = "block";
 
-    this._doc.title = error;
+    this._doc.title = errorMessage;
+
+    this._error = true;
   },
 
   
@@ -731,14 +739,15 @@ AboutReader.prototype = {
     this._win.setTimeout(function() {
       
       
-      if (this._article || this._windowUnloaded) {
+      
+      if (this._article || this._windowUnloaded || this._error) {
         return;
       }
 
       this._headerElement.style.display = "none";
       this._contentElement.style.display = "none";
 
-      this._messageElement.innerHTML = gStrings.GetStringFromName("aboutReader.loading");
+      this._messageElement.textContent = gStrings.GetStringFromName("aboutReader.loading");
       this._messageElement.style.display = "block";
     }.bind(this), 300);
   },
