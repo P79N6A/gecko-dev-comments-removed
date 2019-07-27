@@ -173,6 +173,9 @@ nsCSPContext::ShouldLoad(nsContentPolicyType aContentType,
     if (!mPolicies[p]->permits(aContentType,
                                aContentLocation,
                                nonce,
+                               
+                               
+                               (aExtra != nullptr),
                                violatedDirective)) {
       
       
@@ -792,7 +795,8 @@ class CSPReportSenderRunnable MOZ_FINAL : public nsRunnable
                             uint64_t aInnerWindowID,
                             nsCSPContext* aCSPContext)
       : mBlockedContentSource(aBlockedContentSource)
-      , mOriginalURI(aOriginalURI) , mViolatedPolicyIndex(aViolatedPolicyIndex)
+      , mOriginalURI(aOriginalURI)
+      , mViolatedPolicyIndex(aViolatedPolicyIndex)
       , mReportOnlyFlag(aReportOnlyFlag)
       , mViolatedDirective(aViolatedDirective)
       , mSourceFile(aSourceFile)
@@ -1024,6 +1028,7 @@ nsCSPContext::PermitsAncestry(nsIDocShell* aDocShell, bool* outPermitsAncestry)
       if (!mPolicies[i]->permits(nsIContentPolicy::TYPE_DOCUMENT,
                                  ancestorsArray[a],
                                  EmptyString(), 
+                                 false, 
                                  violatedDirective)) {
         
         
