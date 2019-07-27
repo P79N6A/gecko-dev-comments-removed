@@ -88,8 +88,6 @@ var interfaceNamesInGlobalScope =
 
     "Blob",
 
-    { name: "BroadcastChannel", pref: "dom.broadcastChannel.enabled" },
-
     "DedicatedWorkerGlobalScope",
 
     { name: "DataStore", b2g: true },

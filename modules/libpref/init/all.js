@@ -4343,13 +4343,6 @@ pref("dom.voicemail.enabled", false);
 pref("dom.voicemail.defaultServiceId", 0);
 
 
-#ifdef RELEASE_BUILD
-pref("dom.broadcastChannel.enabled", false);
-#else
-pref("dom.broadcastChannel.enabled", true);
-#endif
-
-
 pref("dom.inter-app-communication-api.enabled", false);
 
 
