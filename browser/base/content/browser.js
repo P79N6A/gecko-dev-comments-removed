@@ -7112,7 +7112,9 @@ var gIdentityHandler = {
     let elem = document.activeElement;
     let position = elem.compareDocumentPosition(this._identityPopup);
 
-    if (!(position & Node.DOCUMENT_POSITION_CONTAINS)) {
+    if (!(position & (Node.DOCUMENT_POSITION_CONTAINS |
+                      Node.DOCUMENT_POSITION_CONTAINED_BY))) {
+      
       
       this._identityPopup.hidePopup();
     }
