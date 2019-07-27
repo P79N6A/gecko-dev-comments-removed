@@ -1032,14 +1032,6 @@ protected:
   
   void UpdateReadyStateInternal();
 
-  
-  void NotifyAudioChannelAgent(bool aPlaying);
-
-  
-  
-  
-  bool NotifyOwnerDocumentActivityChangedInternal();
-
   class nsAsyncEventRunner;
   using nsGenericHTMLElement::DispatchEvent;
   
