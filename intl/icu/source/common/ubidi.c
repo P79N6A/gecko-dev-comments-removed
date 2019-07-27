@@ -107,17 +107,17 @@
 
 
 
-
-
 static const Flags flagLR[2]={ DIRPROP_FLAG(L), DIRPROP_FLAG(R) };
 static const Flags flagE[2]={ DIRPROP_FLAG(LRE), DIRPROP_FLAG(RLE) };
 static const Flags flagO[2]={ DIRPROP_FLAG(LRO), DIRPROP_FLAG(RLO) };
 
 #define DIRPROP_FLAG_LR(level) flagLR[(level)&1]
-#define DIRPROP_FLAG_E(level) flagE[(level)&1]
-#define DIRPROP_FLAG_O(level) flagO[(level)&1]
+#define DIRPROP_FLAG_E(level)  flagE[(level)&1]
+#define DIRPROP_FLAG_O(level)  flagO[(level)&1]
 
 #define DIR_FROM_STRONG(strong) ((strong)==L ? L : R)
+
+#define NO_OVERRIDE(level)  ((level)&~UBIDI_LEVEL_OVERRIDE)
 
 
 
@@ -403,12 +403,12 @@ static UBool
 checkParaCount(UBiDi *pBiDi) {
     int32_t count=pBiDi->paraCount;
     if(pBiDi->paras==pBiDi->simpleParas) {
-        if(count<=SIMPLE_PARAS_SIZE)
+        if(count<=SIMPLE_PARAS_COUNT)
             return TRUE;
-        if(!getInitialParasMemory(pBiDi, SIMPLE_PARAS_SIZE * 2))
+        if(!getInitialParasMemory(pBiDi, SIMPLE_PARAS_COUNT * 2))
             return FALSE;
         pBiDi->paras=pBiDi->parasMemory;
-        uprv_memcpy(pBiDi->parasMemory, pBiDi->simpleParas, SIMPLE_PARAS_SIZE * sizeof(Para));
+        uprv_memcpy(pBiDi->parasMemory, pBiDi->simpleParas, SIMPLE_PARAS_COUNT * sizeof(Para));
         return TRUE;
     }
     if(!getInitialParasMemory(pBiDi, count * 2))
@@ -416,6 +416,9 @@ checkParaCount(UBiDi *pBiDi) {
     pBiDi->paras=pBiDi->parasMemory;
     return TRUE;
 }
+
+
+
 
 
 
@@ -508,7 +511,8 @@ getDirProps(UBiDi *pBiDi) {
             }
             else if(state==SEEKING_STRONG_FOR_FSI) {
                 if(stackLast<=UBIDI_MAX_EXPLICIT_LEVEL) {
-                    dirProps[isolateStartStack[stackLast]]=LRI;
+                    
+                    
                     flags|=DIRPROP_FLAG(LRI);
                 }
                 state=LOOKING_FOR_PDI;
@@ -539,8 +543,10 @@ getDirProps(UBiDi *pBiDi) {
                 isolateStartStack[stackLast]=i-1;
                 previousStateStack[stackLast]=state;
             }
-            if(dirProp==FSI)
+            if(dirProp==FSI) {
+                dirProps[i-1]=LRI;      
                 state=SEEKING_STRONG_FOR_FSI;
+            }
             else
                 state=LOOKING_FOR_PDI;
             continue;
@@ -548,7 +554,8 @@ getDirProps(UBiDi *pBiDi) {
         if(dirProp==PDI) {
             if(state==SEEKING_STRONG_FOR_FSI) {
                 if(stackLast<=UBIDI_MAX_EXPLICIT_LEVEL) {
-                    dirProps[isolateStartStack[stackLast]]=LRI;
+                    
+                    
                     flags|=DIRPROP_FLAG(LRI);
                 }
             }
@@ -591,14 +598,15 @@ getDirProps(UBiDi *pBiDi) {
     
     if(stackLast>UBIDI_MAX_EXPLICIT_LEVEL) {
         stackLast=UBIDI_MAX_EXPLICIT_LEVEL;
-        if(dirProps[previousStateStack[UBIDI_MAX_EXPLICIT_LEVEL]]!=FSI)
-            state=LOOKING_FOR_PDI;
+        state=SEEKING_STRONG_FOR_FSI;   
     }
     
     while(stackLast>=0) {
         if(state==SEEKING_STRONG_FOR_FSI) {
-            dirProps[isolateStartStack[stackLast]]=LRI;
+            
+            
             flags|=DIRPROP_FLAG(LRI);
+            break;
         }
         state=previousStateStack[stackLast];
         stackLast--;
@@ -667,14 +675,14 @@ bracketInit(UBiDi *pBiDi, BracketData *bd) {
     bd->isoRuns[0].start=0;
     bd->isoRuns[0].limit=0;
     bd->isoRuns[0].level=GET_PARALEVEL(pBiDi, 0);
-    bd->isoRuns[0].lastStrong=bd->isoRuns[0].contextDir=GET_PARALEVEL(pBiDi, 0)&1;
-    bd->isoRuns[0].lastStrongPos=bd->isoRuns[0].contextPos=0;
+    bd->isoRuns[0].lastStrong=bd->isoRuns[0].lastBase=bd->isoRuns[0].contextDir=GET_PARALEVEL(pBiDi, 0)&1;
+    bd->isoRuns[0].contextPos=0;
     if(pBiDi->openingsMemory) {
         bd->openings=pBiDi->openingsMemory;
-        bd->openingsSize=pBiDi->openingsSize;
+        bd->openingsCount=pBiDi->openingsSize / sizeof(Opening);
     } else {
         bd->openings=bd->simpleOpenings;
-        bd->openingsSize=SIMPLE_OPENINGS_SIZE;
+        bd->openingsCount=SIMPLE_OPENINGS_COUNT;
     }
     bd->isNumbersSpecial=bd->pBiDi->reorderingMode==UBIDI_REORDER_NUMBERS_SPECIAL ||
                          bd->pBiDi->reorderingMode==UBIDI_REORDER_INVERSE_FOR_NUMBERS_SPECIAL;
@@ -686,8 +694,8 @@ bracketProcessB(BracketData *bd, UBiDiLevel level) {
     bd->isoRunLast=0;
     bd->isoRuns[0].limit=0;
     bd->isoRuns[0].level=level;
-    bd->isoRuns[0].lastStrong=bd->isoRuns[0].contextDir=level&1;
-    bd->isoRuns[0].lastStrongPos=bd->isoRuns[0].contextPos=0;
+    bd->isoRuns[0].lastStrong=bd->isoRuns[0].lastBase=bd->isoRuns[0].contextDir=level&1;
+    bd->isoRuns[0].contextPos=0;
 }
 
 
@@ -698,13 +706,12 @@ bracketProcessBoundary(BracketData *bd, int32_t lastCcPos,
     DirProp *dirProps=bd->pBiDi->dirProps;
     if(DIRPROP_FLAG(dirProps[lastCcPos])&MASK_ISO)  
         return;
-    if((embeddingLevel&~UBIDI_LEVEL_OVERRIDE)>
-       (contextLevel&~UBIDI_LEVEL_OVERRIDE))        
+    if(NO_OVERRIDE(embeddingLevel)>NO_OVERRIDE(contextLevel))   
         contextLevel=embeddingLevel;
     pLastIsoRun->limit=pLastIsoRun->start;
     pLastIsoRun->level=embeddingLevel;
-    pLastIsoRun->lastStrong=pLastIsoRun->contextDir=contextLevel&1;
-    pLastIsoRun->lastStrongPos=pLastIsoRun->contextPos=lastCcPos;
+    pLastIsoRun->lastStrong=pLastIsoRun->lastBase=pLastIsoRun->contextDir=contextLevel&1;
+    pLastIsoRun->contextPos=lastCcPos;
 }
 
 
@@ -712,19 +719,23 @@ static void
 bracketProcessLRI_RLI(BracketData *bd, UBiDiLevel level) {
     IsoRun *pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
     int16_t lastLimit;
+    pLastIsoRun->lastBase=ON;
     lastLimit=pLastIsoRun->limit;
     bd->isoRunLast++;
     pLastIsoRun++;
     pLastIsoRun->start=pLastIsoRun->limit=lastLimit;
     pLastIsoRun->level=level;
-    pLastIsoRun->lastStrong=pLastIsoRun->contextDir=level&1;
-    pLastIsoRun->lastStrongPos=pLastIsoRun->contextPos=0;
+    pLastIsoRun->lastStrong=pLastIsoRun->lastBase=pLastIsoRun->contextDir=level&1;
+    pLastIsoRun->contextPos=0;
 }
 
 
 static void
 bracketProcessPDI(BracketData *bd) {
+    IsoRun *pLastIsoRun;
     bd->isoRunLast--;
+    pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
+    pLastIsoRun->lastBase=ON;
 }
 
 
@@ -732,15 +743,15 @@ static UBool
 bracketAddOpening(BracketData *bd, UChar match, int32_t position) {
     IsoRun *pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
     Opening *pOpening;
-    if(pLastIsoRun->limit>=bd->openingsSize) {  
+    if(pLastIsoRun->limit>=bd->openingsCount) {  
         UBiDi *pBiDi=bd->pBiDi;
         if(!getInitialOpeningsMemory(pBiDi, pLastIsoRun->limit * 2))
             return FALSE;
         if(bd->openings==bd->simpleOpenings)
             uprv_memcpy(pBiDi->openingsMemory, bd->simpleOpenings,
-                        SIMPLE_OPENINGS_SIZE * sizeof(Opening));
+                        SIMPLE_OPENINGS_COUNT * sizeof(Opening));
         bd->openings=pBiDi->openingsMemory;     
-        bd->openingsSize=pBiDi->openingsSize;
+        bd->openingsCount=pBiDi->openingsSize / sizeof(Opening);
     }
     pOpening=&bd->openings[pLastIsoRun->limit];
     pOpening->position=position;
@@ -770,159 +781,220 @@ fixN0c(BracketData *bd, int32_t openingIndex, int32_t newPropPosition, DirProp n
         if(newProp==qOpening->contextDir)
             break;
         openingPosition=qOpening->position;
-        dirProps[openingPosition]=dirProps[newPropPosition];
+        dirProps[openingPosition]=newProp;
         closingPosition=-(qOpening->match);
-        dirProps[closingPosition]= newProp; 
-        qOpening->match=0;                  
+        dirProps[closingPosition]=newProp;
+        qOpening->match=0;                      
         fixN0c(bd, k, openingPosition, newProp);
         fixN0c(bd, k, closingPosition, newProp);
     }
 }
 
 
-static UBool                            
-bracketProcessChar(BracketData *bd, int32_t position, DirProp dirProp) {
-    IsoRun *pLastIsoRun;
+static DirProp              
+bracketProcessClosing(BracketData *bd, int32_t openIdx, int32_t position) {
+    IsoRun *pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
     Opening *pOpening, *qOpening;
-    DirProp *dirProps, newProp;
     UBiDiDirection direction;
-    uint16_t flag;
-    int32_t i, k;
     UBool stable;
-    UChar c, match;
-    dirProps=bd->pBiDi->dirProps;
-    if(DIRPROP_FLAG(dirProp)&MASK_STRONG_EN_AN) { 
-        pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
-        
-        if(dirProp==AN && (pLastIsoRun->lastStrong==R || pLastIsoRun->lastStrong==AL))
-            dirProp=pLastIsoRun->lastStrong;
-        
-        if(dirProp==EN) {
-            if(pLastIsoRun->lastStrong==L || pLastIsoRun->lastStrong==AN) {
-                dirProp=L;
-                if(!bd->isNumbersSpecial)
-                    dirProps[position]=ENL;
-            }
-            else {
-                dirProp=pLastIsoRun->lastStrong;    
-                if(!bd->isNumbersSpecial)
-                    dirProps[position]= dirProp==AL ? AN : ENR;
-            }
-        }
-        pLastIsoRun->lastStrong=dirProp;
-        pLastIsoRun->contextDir=DIR_FROM_STRONG(dirProp);
-        pLastIsoRun->lastStrongPos=pLastIsoRun->contextPos=position;
-        if(dirProp==AL || dirProp==AN)
-            dirProp=R;
-        flag=DIRPROP_FLAG(dirProp);
-        
+    DirProp newProp;
+    pOpening=&bd->openings[openIdx];
+    direction=pLastIsoRun->level&1;
+    stable=TRUE;            
 
-        for(i=pLastIsoRun->start; i<pLastIsoRun->limit; i++)
-            bd->openings[i].flags|=flag;
-        return TRUE;
-    }
-    if(dirProp!=ON)
-        return TRUE;
     
 
-    c=bd->pBiDi->text[position];
-    pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
-    for(i=pLastIsoRun->limit-1; i>=pLastIsoRun->start; i--) {
-        if(bd->openings[i].match!=c)
-            continue;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if((direction==0 && pOpening->flags&FOUND_L) ||
+       (direction==1 && pOpening->flags&FOUND_R)) { 
+        newProp=direction;
+    }
+    else if(pOpening->flags&(FOUND_L|FOUND_R)) {    
         
-        pOpening=&bd->openings[i];
-        direction=pLastIsoRun->level&1;
-        stable=TRUE;            
 
+        stable=(openIdx==pLastIsoRun->start);
+        if(direction!=pOpening->contextDir)
+            newProp=pOpening->contextDir;           
+        else
+            newProp=direction;                      
+    } else {
+        
+        pLastIsoRun->limit=openIdx;
+        return ON;                                  
+    }
+    bd->pBiDi->dirProps[pOpening->position]=newProp;
+    bd->pBiDi->dirProps[position]=newProp;
+    
+    fixN0c(bd, openIdx, pOpening->position, newProp);
+    if(stable) {
+        pLastIsoRun->limit=openIdx; 
+        
+        while(pLastIsoRun->limit>pLastIsoRun->start &&
+              bd->openings[pLastIsoRun->limit-1].position==pOpening->position)
+            pLastIsoRun->limit--;
+    } else {
+        int32_t k;
+        pOpening->match=-position;
+        
+        k=openIdx-1;
+        while(k>=pLastIsoRun->start &&
+              bd->openings[k].position==pOpening->position)
+            bd->openings[k--].match=0;
         
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if((direction==0 && pOpening->flags&FOUND_L) ||
-           (direction==1 && pOpening->flags&FOUND_R)) { 
-            newProp=direction;
+        for(k=openIdx+1; k<pLastIsoRun->limit; k++) {
+            qOpening=&bd->openings[k];
+            if(qOpening->position>=position)
+                break;
+            if(qOpening->match>0)
+                qOpening->match=0;
         }
-        else if(pOpening->flags&(FOUND_L|FOUND_R)) {    
-            if(direction!=pOpening->contextDir) {
-                newProp=pOpening->contextDir;           
-                
+    }
+    return newProp;
+}
 
-                stable=(i==pLastIsoRun->start);
+
+static UBool                            
+bracketProcessChar(BracketData *bd, int32_t position) {
+    IsoRun *pLastIsoRun=&bd->isoRuns[bd->isoRunLast];
+    DirProp *dirProps, dirProp, newProp;
+    UBiDiLevel level;
+    dirProps=bd->pBiDi->dirProps;
+    dirProp=dirProps[position];
+    if(dirProp==ON) {
+        UChar c, match;
+        int32_t idx;
+        
+
+        c=bd->pBiDi->text[position];
+        for(idx=pLastIsoRun->limit-1; idx>=pLastIsoRun->start; idx--) {
+            if(bd->openings[idx].match!=c)
+                continue;
+            
+            newProp=bracketProcessClosing(bd, idx, position);
+            if(newProp==ON) {           
+                c=0;        
+                break;
             }
-            else
-                newProp=direction;                      
-        }
-        else {
-            newProp=BN;                                 
-        }
-        if(newProp!=BN) {
-            dirProps[pOpening->position]=newProp;
-            dirProps[position]=newProp;
+            pLastIsoRun->lastBase=ON;
             pLastIsoRun->contextDir=newProp;
             pLastIsoRun->contextPos=position;
+            level=bd->pBiDi->levels[position];
+            if(level&UBIDI_LEVEL_OVERRIDE) {    
+                uint16_t flag;
+                int32_t i;
+                newProp=level&1;
+                pLastIsoRun->lastStrong=newProp;
+                flag=DIRPROP_FLAG(newProp);
+                for(i=pLastIsoRun->start; i<idx; i++)
+                    bd->openings[i].flags|=flag;
+                
+                bd->pBiDi->levels[position]&=~UBIDI_LEVEL_OVERRIDE;
+            }
+            
+            bd->pBiDi->levels[bd->openings[idx].position]&=~UBIDI_LEVEL_OVERRIDE;
+            return TRUE;
         }
         
-        if(newProp==direction)
-            fixN0c(bd, i, pOpening->position, newProp);
-        if(stable) {
-            pLastIsoRun->limit=i;   
+
+        
+        if(c)
+            match=u_getBidiPairedBracket(c);    
+        else
+            match=0;
+        if(match!=c &&                  
+           ubidi_getPairedBracketType(bd->pBiDi->bdp, c)==U_BPT_OPEN) { 
             
-            while(pLastIsoRun->limit>pLastIsoRun->start &&
-                  bd->openings[pLastIsoRun->limit-1].position==pOpening->position)
-                pLastIsoRun->limit--;
+
+            if(match==0x232A) {     
+                if(!bracketAddOpening(bd, 0x3009, position))
+                    return FALSE;
+            }
+            else if(match==0x3009) {         
+                if(!bracketAddOpening(bd, 0x232A, position))
+                    return FALSE;
+            }
+            if(!bracketAddOpening(bd, match, position))
+                return FALSE;
+        }
+    }
+    level=bd->pBiDi->levels[position];
+    if(level&UBIDI_LEVEL_OVERRIDE) {    
+        newProp=level&1;
+        if(dirProp!=S && dirProp!=WS && dirProp!=ON)
+            dirProps[position]=newProp;
+        pLastIsoRun->lastBase=newProp;
+        pLastIsoRun->lastStrong=newProp;
+        pLastIsoRun->contextDir=newProp;
+        pLastIsoRun->contextPos=position;
+    }
+    else if(dirProp<=R || dirProp==AL) {
+        newProp=DIR_FROM_STRONG(dirProp);
+        pLastIsoRun->lastBase=dirProp;
+        pLastIsoRun->lastStrong=dirProp;
+        pLastIsoRun->contextDir=newProp;
+        pLastIsoRun->contextPos=position;
+    }
+    else if(dirProp==EN) {
+        pLastIsoRun->lastBase=EN;
+        if(pLastIsoRun->lastStrong==L) {
+            newProp=L;                  
+            if(!bd->isNumbersSpecial)
+                dirProps[position]=ENL;
+            pLastIsoRun->contextDir=L;
+            pLastIsoRun->contextPos=position;
         }
         else {
-            pOpening->match=-position;
-            
-            k=i-1;
-            while(k>=pLastIsoRun->start &&
-                  bd->openings[k].position==pOpening->position)
-                bd->openings[k--].match=0;
-            
-
-            for(k=i+1; k<pLastIsoRun->limit; k++) {
-                qOpening=&bd->openings[k];
-                if(qOpening->position>=position)
-                    break;
-                if(qOpening->match>0)
-                    qOpening->match=0;
-            }
+            newProp=R;                  
+            if(pLastIsoRun->lastStrong==AL)
+                dirProps[position]=AN;  
+            else
+                dirProps[position]=ENR;
+            pLastIsoRun->contextDir=R;
+            pLastIsoRun->contextPos=position;
         }
-        return TRUE;
     }
-    
-    
-    match=u_getBidiPairedBracket(c);    
-    if(match==c)                        
-        return TRUE;
-    if(ubidi_getPairedBracketType(bd->pBiDi->bdp, c)!=U_BPT_OPEN)
-        return TRUE;                    
-    
+    else if(dirProp==AN) {
+        newProp=R;                      
+        pLastIsoRun->lastBase=AN;
+        pLastIsoRun->contextDir=R;
+        pLastIsoRun->contextPos=position;
+    }
+    else if(dirProp==NSM) {
+        
 
-    if(match==0x232A) {     
-        if(!bracketAddOpening(bd, 0x3009, position))
-            return FALSE;
+
+        newProp=pLastIsoRun->lastBase;
+        if(newProp==ON)
+            dirProps[position]=newProp;
     }
-    else if(match==0x3009) {         
-        if(!bracketAddOpening(bd, 0x232A, position))
-            return FALSE;
+    else {
+        newProp=dirProp;
+        pLastIsoRun->lastBase=dirProp;
     }
-    return bracketAddOpening(bd, match, position);
+    if(newProp<=R || newProp==AL) {
+        int32_t i;
+        uint16_t flag=DIRPROP_FLAG(DIR_FROM_STRONG(newProp));
+        for(i=pLastIsoRun->start; i<pLastIsoRun->limit; i++)
+            if(position>bd->openings[i].position)
+                bd->openings[i].flags|=flag;
+    }
+    return TRUE;
 }
 
 
@@ -940,6 +1012,9 @@ directionFromFlags(UBiDi *pBiDi) {
         return UBIDI_MIXED;
     }
 }
+
+
+
 
 
 
@@ -1044,6 +1119,8 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
             for(i=start; i<limit; i++) {
                 levels[i]=level;
                 dirProp=dirProps[i];
+                if(dirProp==BN)
+                    continue;
                 if(dirProp==B) {
                     if((i+1)<length) {
                         if(text[i]==CR && text[i+1]==LF)
@@ -1052,7 +1129,7 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
                     }
                     continue;
                 }
-                if(!bracketProcessChar(&bracketData, i, dirProp)) {
+                if(!bracketProcessChar(&bracketData, i)) {
                     *pErrorCode=U_MEMORY_ALLOCATION_ERROR;
                     return UBIDI_LTR;
                 }
@@ -1068,6 +1145,8 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
         UBiDiLevel embeddingLevel=level, newLevel;
         UBiDiLevel previousLevel=level;     
         int32_t lastCcPos=0;                
+
+        
 
         uint16_t stack[UBIDI_MAX_EXPLICIT_LEVEL+2];   
 
@@ -1091,10 +1170,13 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
             case RLO:
                 
                 flags|=DIRPROP_FLAG(BN);
+                levels[i]=previousLevel;
                 if (dirProp==LRE || dirProp==LRO)
-                    newLevel=(UBiDiLevel)((embeddingLevel+2)&~(UBIDI_LEVEL_OVERRIDE|1)); 
+                    
+                    newLevel=(UBiDiLevel)((embeddingLevel+2)&~(UBIDI_LEVEL_OVERRIDE|1));
                 else
-                    newLevel=(UBiDiLevel)(((embeddingLevel&~UBIDI_LEVEL_OVERRIDE)+1)|1); 
+                    
+                    newLevel=(UBiDiLevel)((NO_OVERRIDE(embeddingLevel)+1)|1);
                 if(newLevel<=UBIDI_MAX_EXPLICIT_LEVEL && overflowIsolateCount==0 &&
                                                          overflowEmbeddingCount==0) {
                     lastCcPos=i;
@@ -1108,7 +1190,6 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
 
 
                 } else {
-                    dirProps[i]|=IGNORE_CC;
                     if(overflowIsolateCount==0)
                         overflowEmbeddingCount++;
                 }
@@ -1116,13 +1197,12 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
             case PDF:
                 
                 flags|=DIRPROP_FLAG(BN);
+                levels[i]=previousLevel;
                 
                 if(overflowIsolateCount) {
-                    dirProps[i]|=IGNORE_CC;
                     break;
                 }
                 if(overflowEmbeddingCount) {
-                    dirProps[i]|=IGNORE_CC;
                     overflowEmbeddingCount--;
                     break;
                 }
@@ -1130,50 +1210,58 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
                     lastCcPos=i;
                     stackLast--;
                     embeddingLevel=(UBiDiLevel)stack[stackLast];
-                } else
-                    dirProps[i]|=IGNORE_CC;
+                }
                 break;
             case LRI:
             case RLI:
-                if(embeddingLevel!=previousLevel) {
+                flags|=(DIRPROP_FLAG(ON)|DIRPROP_FLAG_LR(embeddingLevel));
+                levels[i]=NO_OVERRIDE(embeddingLevel);
+                if(NO_OVERRIDE(embeddingLevel)!=NO_OVERRIDE(previousLevel)) {
                     bracketProcessBoundary(&bracketData, lastCcPos,
                                            previousLevel, embeddingLevel);
-                    previousLevel=embeddingLevel;
+                    flags|=DIRPROP_FLAG_MULTI_RUNS;
                 }
+                previousLevel=embeddingLevel;
                 
-                flags|= DIRPROP_FLAG(ON) | DIRPROP_FLAG(BN) | DIRPROP_FLAG_LR(embeddingLevel);
-                level=embeddingLevel;
                 if(dirProp==LRI)
-                    newLevel=(UBiDiLevel)((embeddingLevel+2)&~(UBIDI_LEVEL_OVERRIDE|1)); 
+                    
+                    newLevel=(UBiDiLevel)((embeddingLevel+2)&~(UBIDI_LEVEL_OVERRIDE|1));
                 else
-                    newLevel=(UBiDiLevel)(((embeddingLevel&~UBIDI_LEVEL_OVERRIDE)+1)|1); 
+                    
+                    newLevel=(UBiDiLevel)((NO_OVERRIDE(embeddingLevel)+1)|1);
                 if(newLevel<=UBIDI_MAX_EXPLICIT_LEVEL && overflowIsolateCount==0 &&
                                                          overflowEmbeddingCount==0) {
+                    flags|=DIRPROP_FLAG(dirProp);
                     lastCcPos=i;
-                    previousLevel=embeddingLevel;
                     validIsolateCount++;
                     if(validIsolateCount>pBiDi->isolateCount)
                         pBiDi->isolateCount=validIsolateCount;
                     embeddingLevel=newLevel;
+                    
+
                     stackLast++;
                     stack[stackLast]=embeddingLevel+ISOLATE;
                     bracketProcessLRI_RLI(&bracketData, embeddingLevel);
                 } else {
-                    dirProps[i]|=IGNORE_CC;
+                    
+                    dirProps[i]=WS;
                     overflowIsolateCount++;
                 }
                 break;
             case PDI:
-                if(embeddingLevel!=previousLevel) {
+                if(NO_OVERRIDE(embeddingLevel)!=NO_OVERRIDE(previousLevel)) {
                     bracketProcessBoundary(&bracketData, lastCcPos,
                                            previousLevel, embeddingLevel);
+                    flags|=DIRPROP_FLAG_MULTI_RUNS;
                 }
                 
                 if(overflowIsolateCount) {
-                    dirProps[i]|=IGNORE_CC;
                     overflowIsolateCount--;
+                    
+                    dirProps[i]=WS;
                 }
                 else if(validIsolateCount) {
+                    flags|=DIRPROP_FLAG(PDI);
                     lastCcPos=i;
                     overflowEmbeddingCount=0;
                     while(stack[stackLast]<ISOLATE) 
@@ -1182,71 +1270,57 @@ resolveExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
                     validIsolateCount--;
                     bracketProcessPDI(&bracketData);
                 } else
-                    dirProps[i]|=IGNORE_CC;
+                    
+                    dirProps[i]=WS;
                 embeddingLevel=(UBiDiLevel)stack[stackLast]&~ISOLATE;
-                previousLevel=level=embeddingLevel;
-                flags|= DIRPROP_FLAG(ON) | DIRPROP_FLAG(BN) | DIRPROP_FLAG_LR(embeddingLevel);
+                flags|=(DIRPROP_FLAG(ON)|DIRPROP_FLAG_LR(embeddingLevel));
+                previousLevel=embeddingLevel;
+                levels[i]=NO_OVERRIDE(embeddingLevel);
                 break;
             case B:
-                level=GET_PARALEVEL(pBiDi, i);
+                flags|=DIRPROP_FLAG(B);
+                levels[i]=GET_PARALEVEL(pBiDi, i);
                 if((i+1)<length) {
                     if(text[i]==CR && text[i+1]==LF)
                         break;          
                     overflowEmbeddingCount=overflowIsolateCount=0;
                     validIsolateCount=0;
                     stackLast=0;
-                    stack[0]=level; 
                     previousLevel=embeddingLevel=GET_PARALEVEL(pBiDi, i+1);
+                    stack[0]=embeddingLevel; 
                     bracketProcessB(&bracketData, embeddingLevel);
                 }
-                flags|=DIRPROP_FLAG(B);
                 break;
             case BN:
                 
                 
+                levels[i]=previousLevel;
                 flags|=DIRPROP_FLAG(BN);
                 break;
             default:
                 
-                level=embeddingLevel;
-                if(embeddingLevel!=previousLevel) {
+                if(NO_OVERRIDE(embeddingLevel)!=NO_OVERRIDE(previousLevel)) {
                     bracketProcessBoundary(&bracketData, lastCcPos,
                                            previousLevel, embeddingLevel);
-                    previousLevel=embeddingLevel;
+                    flags|=DIRPROP_FLAG_MULTI_RUNS;
+                    if(embeddingLevel&UBIDI_LEVEL_OVERRIDE)
+                        flags|=DIRPROP_FLAG_O(embeddingLevel);
+                    else
+                        flags|=DIRPROP_FLAG_E(embeddingLevel);
                 }
-                if(level&UBIDI_LEVEL_OVERRIDE)
-                    flags|=DIRPROP_FLAG_LR(level);
-                else
-                    flags|=DIRPROP_FLAG(dirProp);
-                if(!bracketProcessChar(&bracketData, i, dirProp))
+                previousLevel=embeddingLevel;
+                levels[i]=embeddingLevel;
+                if(!bracketProcessChar(&bracketData, i))
                     return -1;
+                
+                flags|=DIRPROP_FLAG(dirProps[i]);
                 break;
             }
-
-            
-
-
-
-            levels[i]=level;
-            if(i>0 && levels[i-1]!=level) {
-                flags|=DIRPROP_FLAG_MULTI_RUNS;
-                if(level&UBIDI_LEVEL_OVERRIDE)
-                    flags|=DIRPROP_FLAG_O(level);
-                else
-                    flags|=DIRPROP_FLAG_E(level);
-            }
-            if(DIRPROP_FLAG(dirProp)&MASK_ISO)
-                level=embeddingLevel;
         }
-        if(flags&MASK_EMBEDDING) {
+        if(flags&MASK_EMBEDDING)
             flags|=DIRPROP_FLAG_LR(pBiDi->paraLevel);
-        }
-        if(pBiDi->orderParagraphsLTR && (flags&DIRPROP_FLAG(B))) {
+        if(pBiDi->orderParagraphsLTR && (flags&DIRPROP_FLAG(B)))
             flags|=DIRPROP_FLAG(L);
-        }
-
-        
-
         
         pBiDi->flags=flags;
         direction=directionFromFlags(pBiDi);
@@ -1304,10 +1378,8 @@ checkExplicitLevels(UBiDi *pBiDi, UErrorCode *pErrorCode) {
             return UBIDI_LTR;
         }
     }
-    if(flags&MASK_EMBEDDING) {
+    if(flags&MASK_EMBEDDING)
         flags|=DIRPROP_FLAG_LR(pBiDi->paraLevel);
-    }
-
     
     pBiDi->flags=flags;
     return directionFromFlags(pBiDi);
@@ -1495,8 +1567,8 @@ static const ImpTab impTabL_DEFAULT =
  {     0 ,     1 ,     3 ,     3 , s(1,4), s(1,4),     0 ,  1 },
  {     0 ,     1 ,     0 ,     2 , s(1,5), s(1,5),     0 ,  2 },
  {     0 ,     1 ,     3 ,     3 , s(1,4), s(1,4),     0 ,  2 },
- { s(2,0),     1 ,     3 ,     3 ,     4 ,     4 , s(2,0),  1 },
- { s(2,0),     1 , s(2,0),     2 ,     5 ,     5 , s(2,0),  1 }
+ {     0 , s(2,1), s(3,3), s(3,3),     4 ,     4 ,     0 ,  0 },
+ {     0 , s(2,1),     0 , s(3,2),     5 ,     5 ,     0 ,  0 }
 };
 static const ImpTab impTabR_DEFAULT =   
 
@@ -1511,7 +1583,7 @@ static const ImpTab impTabR_DEFAULT =
  { s(2,1),     0 , s(2,1),     3 ,     4 ,     4 ,     0 ,  0 },
  {     1 ,     0 ,     1 ,     3 ,     5 ,     5 ,     0 ,  0 }
 };
-static const ImpAct impAct0 = {0,1,2,3,4,5,6};
+static const ImpAct impAct0 = {0,1,2,3,4};
 static const ImpTabPair impTab_DEFAULT = {{&impTabL_DEFAULT,
                                            &impTabR_DEFAULT},
                                           {&impAct0, &impAct0}};
@@ -1522,12 +1594,12 @@ static const ImpTab impTabL_NUMBERS_SPECIAL =
 
 {
 
- {     0 ,     2 ,    1 ,      1 ,     0 ,     0 ,     0 ,  0 },
- {     0 ,     2 ,    1 ,      1 ,     0 ,     0 ,     0 ,  2 },
- {     0 ,     2 ,    4 ,      4 , s(1,3),     0 ,     0 ,  1 },
- { s(2,0),     2 ,    4 ,      4 ,     3 ,     3 , s(2,0),  1 },
- {     0 ,     2 ,    4 ,      4 , s(1,3), s(1,3),     0 ,  2 }
-  };
+ {     0 ,     2 , s(1,1), s(1,1),     0 ,     0 ,     0 ,  0 },
+ {     0 , s(4,2),     1 ,     1 ,     0 ,     0 ,     0 ,  0 },
+ {     0 ,     2 ,     4 ,     4 , s(1,3), s(1,3),     0 ,  1 },
+ {     0 , s(2,2), s(3,4), s(3,4),     3 ,     3 ,     0 ,  0 },
+ {     0 ,     2 ,     4 ,     4 , s(1,3), s(1,3),     0 ,  2 }
+};
 static const ImpTabPair impTab_NUMBERS_SPECIAL = {{&impTabL_NUMBERS_SPECIAL,
                                                    &impTabR_DEFAULT},
                                                   {&impAct0, &impAct0}};
@@ -1608,7 +1680,7 @@ static const ImpTab impTabR_INVERSE_LIKE_DIRECT =
  { s(2,1), s(3,0),     6 ,     4 ,     5 ,     5 , s(3,0),  2 },
  { s(2,1), s(3,0),     6 ,     4 ,     3 ,     3 , s(3,0),  1 }
 };
-static const ImpAct impAct1 = {0,1,11,12};
+static const ImpAct impAct1 = {0,1,13,14};
 
 
 static const ImpTabPair impTab_INVERSE_LIKE_DIRECT = {
@@ -1643,11 +1715,12 @@ static const ImpTab impTabR_INVERSE_LIKE_DIRECT_WITH_MARKS =
  { s(5,3), s(4,0),     5 , s(3,6),     4 , s(4,0), s(4,0),  1 },
  { s(5,3), s(4,0),     6 ,     6 ,     4 , s(4,0), s(4,0),  3 }
 };
-static const ImpAct impAct2 = {0,1,7,8,9,10};
+static const ImpAct impAct2 = {0,1,2,5,6,7,8};
+static const ImpAct impAct3 = {0,1,9,10,11,12};
 static const ImpTabPair impTab_INVERSE_LIKE_DIRECT_WITH_MARKS = {
                         {&impTabL_INVERSE_LIKE_DIRECT_WITH_MARKS,
                          &impTabR_INVERSE_LIKE_DIRECT_WITH_MARKS},
-                        {&impAct0, &impAct2}};
+                        {&impAct2, &impAct3}};
 
 static const ImpTabPair impTab_INVERSE_FOR_NUMBERS_SPECIAL = {
                         {&impTabL_NUMBERS_SPECIAL,
@@ -1668,7 +1741,7 @@ static const ImpTab impTabL_INVERSE_FOR_NUMBERS_SPECIAL_WITH_MARKS =
 static const ImpTabPair impTab_INVERSE_FOR_NUMBERS_SPECIAL_WITH_MARKS = {
                         {&impTabL_INVERSE_FOR_NUMBERS_SPECIAL_WITH_MARKS,
                          &impTabR_INVERSE_LIKE_DIRECT_WITH_MARKS},
-                        {&impAct0, &impAct2}};
+                        {&impAct2, &impAct3}};
 
 #undef s
 
@@ -1725,6 +1798,23 @@ addPoint(UBiDi *pBiDi, int32_t pos, int32_t flag)
 #undef FIRSTALLOC
 }
 
+static void
+setLevelsOutsideIsolates(UBiDi *pBiDi, int32_t start, int32_t limit, UBiDiLevel level)
+{
+    DirProp *dirProps=pBiDi->dirProps, dirProp;
+    UBiDiLevel *levels=pBiDi->levels;
+    int32_t isolateCount=0, k;
+    for(k=start; k<limit; k++) {
+        dirProp=dirProps[k];
+        if(dirProp==PDI)
+            isolateCount--;
+        if(isolateCount==0)
+            levels[k]=level;
+        if(dirProp==LRI || dirProp==RLI)
+            isolateCount++;
+    }
+}
+
 
 
 
@@ -1769,6 +1859,16 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             break;
 
         case 3:                         
+            level=pLevState->runLevel+1;
+            setLevelsOutsideIsolates(pBiDi, pLevState->startON, start0, level);
+            break;
+
+        case 4:                         
+            level=pLevState->runLevel+2;
+            setLevelsOutsideIsolates(pBiDi, pLevState->startON, start0, level);
+            break;
+
+        case 5:                         
             
             if (pLevState->startL2EN >= 0) {
                 addPoint(pBiDi, pLevState->startL2EN, LRM_BEFORE);
@@ -1809,7 +1909,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             }
             break;
 
-        case 4:                         
+        case 6:                         
             
             pInsertPoints=&(pBiDi->insertPoints);
             if (pInsertPoints->capacity > 0)
@@ -1820,7 +1920,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             pLevState->lastStrongRTL=limit - 1;
             break;
 
-        case 5:                         
+        case 7:                         
             
             if ((_prop == DirProp_AN) && (pBiDi->dirProps[start0] == AN) &&
                 (pBiDi->reorderingMode!=UBIDI_REORDER_INVERSE_FOR_NUMBERS_SPECIAL))
@@ -1847,12 +1947,12 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             }
             break;
 
-        case 6:                         
+        case 8:                         
             pLevState->lastStrongRTL=limit - 1;
             pLevState->startON=-1;
             break;
 
-        case 7:                         
+        case 9:                         
             
             for (k=start0-1; k>=0 && !(levels[k]&1); k--);
             if(k>=0) {
@@ -1863,14 +1963,14 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             pLevState->startON=start0;
             break;
 
-        case 8:                         
+        case 10:                        
             
             
             addPoint(pBiDi, start0, LRM_BEFORE);    
             addPoint(pBiDi, start0, LRM_AFTER);     
             break;
 
-        case 9:                         
+        case 11:                        
             
             pInsertPoints=&(pBiDi->insertPoints);
             pInsertPoints->size=pInsertPoints->confirmed;
@@ -1881,7 +1981,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             }
             break;
 
-        case 10:                        
+        case 12:                        
             level=pLevState->runLevel + addLevel;
             for(k=pLevState->startON; k<start0; k++) {
                 if (levels[k]<level)
@@ -1892,7 +1992,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             pLevState->startON=start0;
             break;
 
-        case 11:                        
+        case 13:                        
             level=pLevState->runLevel;
             for(k=start0-1; k>=pLevState->startON; k--) {
                 if(levels[k]==level+3) {
@@ -1911,7 +2011,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
             }
             break;
 
-        case 12:                        
+        case 14:                        
             level=pLevState->runLevel+1;
             for(k=start0-1; k>=pLevState->startON; k--) {
                 if(levels[k]>level) {
@@ -1932,17 +2032,7 @@ processPropertySeq(UBiDi *pBiDi, LevState *pLevState, uint8_t _prop,
                 levels[k]=level;
             }
         } else {
-            DirProp *dirProps=pBiDi->dirProps, dirProp;
-            int32_t isolateCount=0;
-            for(k=start; k<limit; k++) {
-                dirProp=dirProps[k];
-                if(dirProp==PDI)
-                    isolateCount--;
-                if(isolateCount==0)
-                    levels[k]=level;
-                if(dirProp==LRI || dirProp==RLI)
-                    isolateCount++;
-            }
+            setLevelsOutsideIsolates(pBiDi, start, limit, level);
         }
     }
 }
@@ -2033,7 +2123,6 @@ resolveImplicitLevels(UBiDi *pBiDi,
           pBiDi->reorderingMode==UBIDI_REORDER_INVERSE_FOR_NUMBERS_SPECIAL));
 
     
-    levState.startON=-1;
     levState.startL2EN=-1;              
     levState.lastStrongRTL=-1;          
     levState.runStart=start;
@@ -2049,12 +2138,14 @@ resolveImplicitLevels(UBiDi *pBiDi,
     
 
 
-    if(dirProps[start]==PDI) {
+    if(dirProps[start]==PDI  && pBiDi->isolateCount >= 0) {
+        levState.startON=pBiDi->isolates[pBiDi->isolateCount].startON;
         start1=pBiDi->isolates[pBiDi->isolateCount].start1;
         stateImp=pBiDi->isolates[pBiDi->isolateCount].stateImp;
         levState.state=pBiDi->isolates[pBiDi->isolateCount].state;
         pBiDi->isolateCount--;
     } else {
+        levState.startON=-1;
         start1=start;
         if(dirProps[start]==NSM)
             stateImp = 1 + sor;
@@ -2063,19 +2154,22 @@ resolveImplicitLevels(UBiDi *pBiDi,
         levState.state=0;
         processPropertySeq(pBiDi, &levState, sor, start, start);
     }
-    start2=start;
+    start2=start;                       
 
     for(i=start; i<=limit; i++) {
         if(i>=limit) {
-            if(limit>start) {
-                dirProp=pBiDi->dirProps[limit-1];
-                if(dirProp==LRI || dirProp==RLI)
-                    break;  
-            }
+            int32_t k;
+            for(k=limit-1; k>start&&(DIRPROP_FLAG(dirProps[k])&MASK_BN_EXPLICIT); k--);
+            dirProp=dirProps[k];
+            if(dirProp==LRI || dirProp==RLI)
+                break;      
             gprop=eor;
         } else {
             DirProp prop, prop1;
-            prop=PURE_DIRPROP(dirProps[i]);
+            prop=dirProps[i];
+            if(prop==B) {
+                pBiDi->isolateCount=-1; 
+            }
             if(inverseRTL) {
                 if(prop==AL) {
                     
@@ -2145,12 +2239,15 @@ resolveImplicitLevels(UBiDi *pBiDi,
         }
     }
 
-    dirProp=dirProps[limit-1];
+    
+    for(i=limit-1; i>start&&(DIRPROP_FLAG(dirProps[i])&MASK_BN_EXPLICIT); i--);
+    dirProp=dirProps[i];
     if((dirProp==LRI || dirProp==RLI) && limit<pBiDi->length) {
         pBiDi->isolateCount++;
         pBiDi->isolates[pBiDi->isolateCount].stateImp=stateImp;
         pBiDi->isolates[pBiDi->isolateCount].state=levState.state;
         pBiDi->isolates[pBiDi->isolateCount].start1=start1;
+        pBiDi->isolates[pBiDi->isolateCount].startON=levState.startON;
     }
     else
         processPropertySeq(pBiDi, &levState, eor, limit, limit);
@@ -2177,7 +2274,7 @@ adjustWSLevels(UBiDi *pBiDi) {
         i=pBiDi->trailingWSStart;
         while(i>0) {
             
-            while(i>0 && (flag=DIRPROP_FLAG(PURE_DIRPROP(dirProps[--i])))&MASK_WS) {
+            while(i>0 && (flag=DIRPROP_FLAG(dirProps[--i]))&MASK_WS) {
                 if(orderParagraphsLTR&&(flag&DIRPROP_FLAG(B))) {
                     levels[i]=0;
                 } else {
@@ -2188,7 +2285,7 @@ adjustWSLevels(UBiDi *pBiDi) {
             
             
             while(i>0) {
-                flag=DIRPROP_FLAG(PURE_DIRPROP(dirProps[--i]));
+                flag=DIRPROP_FLAG(dirProps[--i]);
                 if(flag&MASK_BN_EXPLICIT) {
                     levels[i]=levels[i+1];
                 } else if(orderParagraphsLTR&&(flag&DIRPROP_FLAG(B))) {
@@ -2243,7 +2340,7 @@ setParaSuccess(UBiDi *pBiDi) {
 static void
 setParaRunsOnly(UBiDi *pBiDi, const UChar *text, int32_t length,
                 UBiDiLevel paraLevel, UErrorCode *pErrorCode) {
-    void *runsOnlyMemory;
+    void *runsOnlyMemory = NULL;
     int32_t *visualMap;
     UChar *visualText;
     int32_t saveLength, saveTrailingWSStart;
@@ -2417,12 +2514,13 @@ setParaRunsOnly(UBiDi *pBiDi, const UChar *text, int32_t length,
     }
     uprv_memcpy(pBiDi->levels, saveLevels, saveLength*sizeof(UBiDiLevel));
     pBiDi->trailingWSStart=saveTrailingWSStart;
-    
-    uprv_free(runsOnlyMemory);
     if(pBiDi->runCount>1) {
         pBiDi->direction=UBIDI_MIXED;
     }
   cleanup3:
+    
+    uprv_free(runsOnlyMemory);
+
     pBiDi->reorderingMode=UBIDI_REORDER_RUNS_ONLY;
 }
 
@@ -2433,6 +2531,7 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
               UBiDiLevel paraLevel, UBiDiLevel *embeddingLevels,
               UErrorCode *pErrorCode) {
     UBiDiDirection direction;
+    DirProp *dirProps;
 
     
     RETURN_VOID_IF_NULL_OR_FAILING_ERRCODE(pErrorCode);
@@ -2511,6 +2610,7 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
         *pErrorCode=U_MEMORY_ALLOCATION_ERROR;
         return;
     }
+    dirProps=pBiDi->dirProps;
     
     length= pBiDi->length;
     pBiDi->trailingWSStart=length;  
@@ -2538,10 +2638,10 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
     }
 
     
-    if(pBiDi->isolateCount<=SIMPLE_ISOLATES_SIZE)
+    if(pBiDi->isolateCount<=SIMPLE_ISOLATES_COUNT)
         pBiDi->isolates=pBiDi->simpleIsolates;
     else
-        if(pBiDi->isolateCount<=pBiDi->isolatesSize)
+        if((int32_t)(pBiDi->isolateCount*sizeof(Isolate))<=pBiDi->isolatesSize)
             pBiDi->isolates=pBiDi->isolatesMemory;
         else {
             if(getInitialIsolatesMemory(pBiDi, pBiDi->isolateCount)) {
@@ -2561,15 +2661,9 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
     switch(direction) {
     case UBIDI_LTR:
         
-        pBiDi->paraLevel=(UBiDiLevel)((pBiDi->paraLevel+1)&~1);
-
-        
         pBiDi->trailingWSStart=0;
         break;
     case UBIDI_RTL:
-        
-        pBiDi->paraLevel|=1;
-
         
         pBiDi->trailingWSStart=0;
         break;
@@ -2647,7 +2741,7 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
                 
                 start=limit;
                 level=nextLevel;
-                if((start>0) && (pBiDi->dirProps[start-1]==B)) {
+                if((start>0) && (dirProps[start-1]==B)) {
                     
                     sor=GET_LR_FROM_LEVEL(GET_PARALEVEL(pBiDi, start));
                 } else {
@@ -2655,7 +2749,9 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
                 }
 
                 
-                while(++limit<length && levels[limit]==level) {}
+                while((++limit<length) &&
+                      ((levels[limit]==level) ||
+                       (DIRPROP_FLAG(dirProps[limit])&MASK_BN_EXPLICIT))) {}
 
                 
                 if(limit<length) {
@@ -2665,7 +2761,7 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
                 }
 
                 
-                if((level&~UBIDI_LEVEL_OVERRIDE)<(nextLevel&~UBIDI_LEVEL_OVERRIDE)) {
+                if(NO_OVERRIDE(level)<NO_OVERRIDE(nextLevel)) {
                     eor=GET_LR_FROM_LEVEL(nextLevel);
                 } else {
                     eor=GET_LR_FROM_LEVEL(level);
@@ -2710,10 +2806,10 @@ ubidi_setPara(UBiDi *pBiDi, const UChar *text, int32_t length,
                 continue;           
             start= i==0 ? 0 : pBiDi->paras[i-1].limit;
             for(j=last; j>=start; j--) {
-                dirProp=pBiDi->dirProps[j];
+                dirProp=dirProps[j];
                 if(dirProp==L) {
                     if(j<last) {
-                        while(pBiDi->dirProps[last]==B) {
+                        while(dirProps[last]==B) {
                             last--;
                         }
                     }

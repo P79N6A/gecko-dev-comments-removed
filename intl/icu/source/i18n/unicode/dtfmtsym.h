@@ -76,7 +76,7 @@ class Hashtable;
 
 
 
-class U_I18N_API DateFormatSymbols : public UObject {
+class U_I18N_API DateFormatSymbols U_FINAL : public UObject  {
 public:
     
 
@@ -283,13 +283,11 @@ public:
          ABBREVIATED,
          WIDE,
          NARROW,
-#ifndef U_HIDE_DRAFT_API
          
 
 
 
          SHORT,
-#endif 
          
 
          DT_WIDTH_COUNT = 4
@@ -416,6 +414,91 @@ public:
 
 
 
+    static const UChar DEFAULT_TIME_SEPARATOR = 0x003a;  
+
+    
+
+
+
+    static const UChar ALTERNATE_TIME_SEPARATOR = 0x002e;  
+#endif  
+
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+    UnicodeString& getTimeSeparatorString(UnicodeString& result) const;
+
+    
+
+
+
+
+    void setTimeSeparatorString(const UnicodeString& newTimeSeparator);
+#endif  
+
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+    const UnicodeString* getYearNames(int32_t& count,
+                            DtContextType context, DtWidthType width) const;
+
+    
+
+
+
+
+
+
+
+
+    void setYearNames(const UnicodeString* yearNames, int32_t count,
+                            DtContextType context, DtWidthType width);
+
+    
+
+
+
+
+
+
+
+
+
+    const UnicodeString* getZodiacNames(int32_t& count,
+                            DtContextType context, DtWidthType width) const;
+
+    
+
+
+
+
+
+
+
+
+    void setZodiacNames(const UnicodeString* zodiacNames, int32_t count,
+                            DtContextType context, DtWidthType width);
+
+#endif  
+
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+
 
 
 
@@ -506,12 +589,15 @@ public:
     Locale getLocale(ULocDataLocaleType type, UErrorCode& status) const;
 
     
+ 
+    
 
 
 
     enum ECapitalizationContextUsageType
     {
-        kCapContextUsageOther,
+#ifndef U_HIDE_INTERNAL_API
+        kCapContextUsageOther = 0,
         kCapContextUsageMonthFormat,     
         kCapContextUsageMonthStandalone, 
         kCapContextUsageMonthNarrow,
@@ -525,7 +611,8 @@ public:
         kCapContextUsageZoneShort,
         kCapContextUsageMetazoneLong,
         kCapContextUsageMetazoneShort,
-        kCapContextUsageTypeCount
+#endif 
+        kCapContextUsageTypeCount = 14
     };
 
     
@@ -658,6 +745,17 @@ private:
     
 
 
+    UnicodeString*  fNarrowAmPms;
+    int32_t         fNarrowAmPmsCount;
+
+    
+
+
+    UnicodeString   fTimeSeparator;
+
+    
+
+
     UnicodeString  *fQuarters;
     int32_t         fQuartersCount;
 
@@ -688,8 +786,18 @@ private:
     
 
 
-    UnicodeString*  fShortYearNames;
+
+
+    UnicodeString  *fShortYearNames;
     int32_t         fShortYearNamesCount;
+
+    
+
+
+
+
+    UnicodeString  *fShortZodiacNames;
+    int32_t         fShortZodiacNamesCount;
 
     
 
@@ -837,11 +945,27 @@ private:
 
 
     static UBool U_EXPORT2 isNumericPatternChar(UChar c, int32_t count);
+public:
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+
+
+
+
+
+
+
+    static DateFormatSymbols * U_EXPORT2 createForLocale(
+            const Locale &locale, UErrorCode &status);
+#endif  
 };
 
 U_NAMESPACE_END
 
 #endif 
 
-#endif 
+#endif
 

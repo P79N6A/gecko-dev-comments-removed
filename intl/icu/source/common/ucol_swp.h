@@ -37,16 +37,6 @@ ucol_looksLikeCollationBinary(const UDataSwapper *ds,
 
 
 
-
-U_CAPI int32_t U_EXPORT2
-ucol_swapBinary(const UDataSwapper *ds,
-                const void *inData, int32_t length, void *outData,
-                UErrorCode *pErrorCode);
-
-
-
-
-
 U_CAPI int32_t U_EXPORT2
 ucol_swap(const UDataSwapper *ds,
           const void *inData, int32_t length, void *outData,

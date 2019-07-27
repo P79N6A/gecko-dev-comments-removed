@@ -57,8 +57,8 @@ enum {
     LRI=U_LEFT_TO_RIGHT_ISOLATE,        
     RLI=U_RIGHT_TO_LEFT_ISOLATE,        
     PDI=U_POP_DIRECTIONAL_ISOLATE,      
-    ENL,                                
-    ENR,                                
+    ENL,               
+    ENR,      
     dirPropCount
 };
 
@@ -67,14 +67,14 @@ enum {
 
 
 
-
 #define DIRPROP_FLAG(dir) (1UL<<(dir))
+#define PURE_DIRPROP(prop)  ((prop)&~0xE0)    ?????????????????????????
 
 
 #define DIRPROP_FLAG_MULTI_RUNS (1UL<<31)
 
 
-#define MASK_LTR (DIRPROP_FLAG(L)|DIRPROP_FLAG(EN)|DIRPROP_FLAG(AN)|DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO)|DIRPROP_FLAG(LRI))
+#define MASK_LTR (DIRPROP_FLAG(L)|DIRPROP_FLAG(EN)|DIRPROP_FLAG(ENL)|DIRPROP_FLAG(ENR)|DIRPROP_FLAG(AN)|DIRPROP_FLAG(LRE)|DIRPROP_FLAG(LRO)|DIRPROP_FLAG(LRI))
 #define MASK_RTL (DIRPROP_FLAG(R)|DIRPROP_FLAG(AL)|DIRPROP_FLAG(RLE)|DIRPROP_FLAG(RLO)|DIRPROP_FLAG(RLI))
 #define MASK_R_AL (DIRPROP_FLAG(R)|DIRPROP_FLAG(AL))
 #define MASK_STRONG_EN_AN (DIRPROP_FLAG(L)|DIRPROP_FLAG(R)|DIRPROP_FLAG(AL)|DIRPROP_FLAG(EN)|DIRPROP_FLAG(AN))
@@ -112,15 +112,6 @@ enum {
 
 
 
-
-#define IGNORE_CC   0x40
-
-#define PURE_DIRPROP(prop)  ((prop)&~IGNORE_CC)
-
-
-
-
-
 #define ISOLATE  0x0100
 
 U_CFUNC UBiDiLevel
@@ -131,11 +122,11 @@ ubidi_getParaLevelAtIndex(const UBiDi *pBiDi, int32_t index);
                          (ubidi)->paraLevel : ubidi_getParaLevelAtIndex((ubidi), (index))))
 
 
-#define SIMPLE_PARAS_SIZE   10
+#define SIMPLE_PARAS_COUNT      10
 
-#define SIMPLE_ISOLATES_SIZE 5
+#define SIMPLE_ISOLATES_COUNT   5
 
-#define SIMPLE_OPENINGS_SIZE 20
+#define SIMPLE_OPENINGS_COUNT   20
 
 #define CR  0x000D
 #define LF  0x000A
@@ -168,22 +159,21 @@ typedef struct Opening {
 } Opening;
 
 typedef struct IsoRun {
-    int32_t  lastStrongPos;             
     int32_t  contextPos;                
     uint16_t start;                     
     uint16_t limit;                     
     UBiDiLevel level;                   
     DirProp lastStrong;                 
+    DirProp lastBase;                   
     UBiDiDirection contextDir;          
-    uint8_t filler;                     
 } IsoRun;
 
 typedef struct BracketData {
     UBiDi   *pBiDi;
     
-    Opening simpleOpenings[SIMPLE_OPENINGS_SIZE];
+    Opening simpleOpenings[SIMPLE_OPENINGS_COUNT];
     Opening *openings;                  
-    int32_t openingsSize;               
+    int32_t openingsCount;              
     int32_t isoRunLast;                 
     
 
@@ -192,9 +182,10 @@ typedef struct BracketData {
 } BracketData;
 
 typedef struct Isolate {
+    int32_t startON;
     int32_t start1;
+    int32_t state;
     int16_t stateImp;
-    int16_t state;
 } Isolate;
 
 typedef struct Run {
@@ -354,7 +345,7 @@ struct UBiDi {
     Para *paras;
 
     
-    Para simpleParas[SIMPLE_PARAS_SIZE];
+    Para simpleParas[SIMPLE_PARAS_COUNT];
 
     
     int32_t runCount;     
@@ -372,7 +363,7 @@ struct UBiDi {
     Isolate *isolates;
 
     
-    Isolate simpleIsolates[SIMPLE_ISOLATES_SIZE];
+    Isolate simpleIsolates[SIMPLE_ISOLATES_COUNT];
 
     
     InsertPoints insertPoints;

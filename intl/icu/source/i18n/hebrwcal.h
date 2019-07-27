@@ -362,6 +362,13 @@ public:
                                                    UBool useMonth) const;
 
 
+    
+
+
+
+
+
+    virtual void validateField(UCalendarDateFields field, UErrorCode &status);
 
  protected:
 

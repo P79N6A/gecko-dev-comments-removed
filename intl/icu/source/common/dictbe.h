@@ -17,6 +17,7 @@
 U_NAMESPACE_BEGIN
 
 class DictionaryMatcher;
+class Normalizer2;
 
 
 
@@ -253,6 +254,62 @@ class LaoBreakEngine : public DictionaryBreakEngine {
 
 
  
+class BurmeseBreakEngine : public DictionaryBreakEngine { 
+ private: 
+    
+
+
+ 
+ 
+  UnicodeSet                fBurmeseWordSet; 
+  UnicodeSet                fEndWordSet; 
+  UnicodeSet                fBeginWordSet; 
+  UnicodeSet                fMarkSet; 
+  DictionaryMatcher  *fDictionary; 
+ 
+ public: 
+ 
+  
+
+
+
+
+ 
+  BurmeseBreakEngine(DictionaryMatcher *adoptDictionary, UErrorCode &status); 
+ 
+  
+
+ 
+  virtual ~BurmeseBreakEngine(); 
+ 
+ protected: 
+ 
+
+
+
+
+
+
+
+ 
+  virtual int32_t divideUpDictionaryRange( UText *text, 
+                                           int32_t rangeStart, 
+                                           int32_t rangeEnd, 
+                                           UStack &foundBreaks ) const; 
+ 
+}; 
+ 
+
+
+ 
+ 
+
+
+
+
+
+
+ 
 class KhmerBreakEngine : public DictionaryBreakEngine { 
  private: 
     
@@ -326,7 +383,8 @@ class CjkBreakEngine : public DictionaryBreakEngine {
   UnicodeSet                fKatakanaWordSet;
   UnicodeSet                fHiraganaWordSet;
 
-  DictionaryMatcher  *fDictionary;
+  DictionaryMatcher        *fDictionary;
+  const Normalizer2        *nfkcNorm2;
 
  public:
 

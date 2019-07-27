@@ -22,6 +22,7 @@
 #include "unicode/parseerr.h"
 #include "uhash.h"
 #include "uvector.h"
+#include "uvectr32.h"
 
 
 
@@ -37,7 +38,7 @@ struct  RegexTableEl;
 class   RegexPattern;
 
 
-class RegexCompile : public UMemory {
+class U_I18N_API RegexCompile : public UMemory {
 public:
 
     enum {
@@ -103,6 +104,13 @@ private:
     void        fixLiterals(UBool split=FALSE);      
     void        insertOp(int32_t where);             
                                                      
+    void        appendOp(int32_t op);                
+    void        appendOp(int32_t type, int32_t val); 
+    int32_t     buildOp(int32_t type, int32_t val);  
+    int32_t     allocateData(int32_t size);          
+                                                     
+    int32_t     allocateStackData(int32_t size);     
+                                                     
     int32_t     minMatchLength(int32_t start,
                                int32_t end);
     int32_t     maxMatchLength(int32_t start,
@@ -114,6 +122,10 @@ private:
     void        setPushOp(int32_t op);
     UChar32     scanNamedChar();
     UnicodeSet *createSetForProperty(const UnicodeString &propName, UBool negated);
+
+public:   
+    static void U_EXPORT2 findCaseInsensitiveStarters(UChar32 c, UnicodeSet *starterChars);
+private:
 
 
     UErrorCode                    *fStatus;
@@ -183,6 +195,8 @@ private:
                                                      
                                                      
                                                      
+                                                     
+
     int32_t                       fMatchCloseParen;  
                                                      
                                                      
@@ -205,6 +219,9 @@ private:
 
     UChar32                       fLastSetLiteral;   
                                                      
+                                                     
+
+    UnicodeString                *fCaptureName;      
                                                      
 };
 

@@ -273,6 +273,23 @@ public:
     static const UnicodeString U_EXPORT2 getEquivalentID(const UnicodeString& id,
                                                int32_t index);
 
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static TimeZone* U_EXPORT2 detectHostTimeZone();
+#endif
+
     
 
 
@@ -358,7 +375,6 @@ public:
     static UnicodeString& U_EXPORT2 getCanonicalID(const UnicodeString& id,
         UnicodeString& canonicalID, UBool& isSystemID, UErrorCode& status);
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -412,8 +428,6 @@ public:
 
     static UnicodeString& U_EXPORT2 getIDForWindowsID(const UnicodeString& winid, const char* region,
         UnicodeString& id, UErrorCode& status);
-
-#endif 
 
     
 

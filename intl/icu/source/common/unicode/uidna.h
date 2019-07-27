@@ -39,6 +39,8 @@
 
 
 
+
+
 enum {
     
 
@@ -46,6 +48,7 @@ enum {
 
 
     UIDNA_DEFAULT=0,
+#ifndef U_HIDE_DEPRECATED_API
     
 
 
@@ -54,6 +57,7 @@ enum {
 
 
     UIDNA_ALLOW_UNASSIGNED=1,
+#endif  
     
 
 
@@ -503,6 +507,7 @@ enum {
     UIDNA_ERROR_CONTEXTO_DIGITS=0x4000
 };
 
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
@@ -564,7 +569,8 @@ enum {
 
 
 
-U_STABLE int32_t U_EXPORT2
+
+U_DEPRECATED int32_t U_EXPORT2
 uidna_toASCII(const UChar* src, int32_t srcLength, 
               UChar* dest, int32_t destCapacity,
               int32_t options,
@@ -612,7 +618,7 @@ uidna_toASCII(const UChar* src, int32_t srcLength,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 uidna_toUnicode(const UChar* src, int32_t srcLength,
                 UChar* dest, int32_t destCapacity,
                 int32_t options,
@@ -663,7 +669,7 @@ uidna_toUnicode(const UChar* src, int32_t srcLength,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 uidna_IDNToASCII(  const UChar* src, int32_t srcLength,
                    UChar* dest, int32_t destCapacity,
                    int32_t options,
@@ -710,7 +716,7 @@ uidna_IDNToASCII(  const UChar* src, int32_t srcLength,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 uidna_IDNToUnicode(  const UChar* src, int32_t srcLength,
                      UChar* dest, int32_t destCapacity,
                      int32_t options,
@@ -751,11 +757,13 @@ uidna_IDNToUnicode(  const UChar* src, int32_t srcLength,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 uidna_compare(  const UChar *s1, int32_t length1,
                 const UChar *s2, int32_t length2,
                 int32_t options,
                 UErrorCode* status);
+
+#endif  
 
 #endif 
 

@@ -35,6 +35,8 @@
 
 #include "unicode/datefmt.h"
 #include "unicode/udisplaycontext.h"
+#include "unicode/tzfmt.h"  
+#include "unicode/brkiter.h"
 
 U_NAMESPACE_BEGIN
 
@@ -43,6 +45,16 @@ class DateFormat;
 class MessageFormat;
 class FieldPositionHandler;
 class TimeZoneFormat;
+class SharedNumberFormat;
+class SimpleDateFormatMutableNFs;
+
+
+
+
+
+
+
+
 
 
 
@@ -1091,31 +1103,6 @@ public:
 
 
 
-
-
-    virtual void setContext(UDisplayContext value, UErrorCode& status);
-
-    
-    
-
-
-
-
-
-
-
-
-
-    virtual UDisplayContext getContext(UDisplayContextType type, UErrorCode& status) const;
-
-    
-    
-
-
-
-
-
-
     virtual void adoptTimeZoneFormat(TimeZoneFormat* timeZoneFormatToAdopt);
 
     
@@ -1131,6 +1118,53 @@ public:
 
 
     virtual const TimeZoneFormat* getTimeZoneFormat(void) const;
+
+    
+
+
+
+
+
+
+
+
+
+    virtual void setContext(UDisplayContext value, UErrorCode& status);
+    
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+    void adoptNumberFormat(NumberFormat *formatToAdopt);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void adoptNumberFormat(const UnicodeString& fields, NumberFormat *formatToAdopt, UErrorCode &status);
+
+    
+
+
+
+
+    const NumberFormat * getNumberFormatForField(UChar field) const;
+#endif  
 
 #ifndef U_HIDE_INTERNAL_API
     
@@ -1175,6 +1209,8 @@ private:
     friend class DateFormat;
 
     void initializeDefaultCentury(void);
+
+    void initializeBooleanAttributes(void);
 
     SimpleDateFormat(); 
 
@@ -1226,6 +1262,7 @@ private:
                    int32_t fieldNum,
                    FieldPositionHandler& handler,
                    Calendar& cal,
+                   SimpleDateFormatMutableNFs &mutableNFs,
                    UErrorCode& status) const; 
 
     
@@ -1271,14 +1308,6 @@ private:
 
 
     Calendar *initializeCalendar(TimeZone* adoptZone, const Locale& locale, UErrorCode& status);
-
-    
-
-
-
-
-
-    void initializeSymbols(const Locale& locale, Calendar* calendar, UErrorCode& status);
 
     
 
@@ -1344,10 +1373,15 @@ private:
 
 
 
+
+
     static UBool matchLiterals(const UnicodeString &pattern, int32_t &patternOffset,
-                               const UnicodeString &text, int32_t &textOffset, UBool lenient);
+                               const UnicodeString &text, int32_t &textOffset, 
+                               UBool whitespaceLenient, UBool partialMatchLenient, UBool oldLeniency);
     
     
+
+
 
 
 
@@ -1367,7 +1401,7 @@ private:
 
     int32_t subParse(const UnicodeString& text, int32_t& start, UChar ch, int32_t count,
                      UBool obeyCount, UBool allowNegative, UBool ambiguousYear[], int32_t& saveHebrewMonth, Calendar& cal,
-                     int32_t patLoc, MessageFormat * numericLeapMonthFormatter) const;
+                     int32_t patLoc, MessageFormat * numericLeapMonthFormatter, UTimeZoneFormatTimeType *tzTimeType, SimpleDateFormatMutableNFs &mutableNFs) const;
 
     void parseInt(const UnicodeString& text,
                   Formattable& number,
@@ -1445,11 +1479,6 @@ private:
     
 
 
-     NumberFormat * getNumberFormatByIndex(UDateFormatField index) const;
-
-    
-
-
     void processOverrideString(const Locale &locale, const UnicodeString &str, int8_t type, UErrorCode &status);
 
     
@@ -1467,6 +1496,8 @@ private:
 
     TimeZoneFormat *tzFormat() const;
 
+    const NumberFormat* getNumberFormatByIndex(UDateFormatField index) const;
+
     
 
 
@@ -1474,7 +1505,16 @@ private:
 
 
     static const int32_t fgCalendarFieldToLevel[];
-    static const int32_t fgPatternCharToLevel[];
+
+    
+
+
+    static int32_t getLevelFromChar(UChar ch);
+
+    
+
+
+    static UBool isSyntaxChar(UChar ch);
 
     
 
@@ -1523,21 +1563,25 @@ private:
 
      int32_t   fDefaultCenturyStartYear;
 
-    int32_t tztype; 
-
-    typedef struct NSOverride {
-        NumberFormat *nf;
+    struct NSOverride : public UMemory {
+        const SharedNumberFormat *snf;
         int32_t hash;
         NSOverride *next;
-    } NSOverride;
+        void free();
+        NSOverride() : snf(NULL), hash(0), next(NULL) {
+        }
+        ~NSOverride();
+    };
 
-    NumberFormat    **fNumberFormatters;
+    
 
-    NSOverride      *fOverrideList;
+
+
+    const SharedNumberFormat    **fSharedNumberFormatters;
 
     UBool fHaveDefaultCentury;
 
-    UDisplayContext fCapitalizationContext;
+    BreakIterator* fCapitalizationBrkIter;
 };
 
 inline UDate

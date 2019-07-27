@@ -56,11 +56,6 @@ static const UChar gRuleSet_rule_char_pattern[]       = {
     0x5c, 0x7b,0x5c, 0x7d, 0x5c, 0x5e, 0x5c, 0x24, 0x5c, 0x7c, 0x5c, 0x5c, 0x5c, 0x2e, 0x5d, 0};
 
 
-static const UChar gRuleSet_digit_char_pattern[] = {
-
-    0x5b, 0x30, 0x2d, 0x39, 0x5d, 0};
-
-
 
 
 
@@ -213,23 +208,29 @@ fEmptyText(NULL)
 
     
     fRuleSets[kRuleSet_rule_char-128]   = UnicodeSet(UnicodeString(TRUE, gRuleSet_rule_char_pattern, -1),   *status);
-    fRuleSets[kRuleSet_digit_char-128]  = UnicodeSet(UnicodeString(TRUE, gRuleSet_digit_char_pattern, -1),  *status);
+    fRuleSets[kRuleSet_digit_char-128].add((UChar)0x30, (UChar)0x39);    
+    fRuleSets[kRuleSet_ascii_letter-128].add((UChar)0x41, (UChar)0x5A);  
+    fRuleSets[kRuleSet_ascii_letter-128].add((UChar)0x61, (UChar)0x7A);  
     fRuleDigitsAlias = &fRuleSets[kRuleSet_digit_char-128];
-    for (i=0; i<(int32_t)(sizeof(fRuleSets)/sizeof(fRuleSets[0])); i++) {
+    for (i=0; i<UPRV_LENGTHOF(fRuleSets); i++) {
         fRuleSets[i].compact();
     }
     
     
     fEmptyText = utext_openUChars(NULL, NULL, 0, status);
     
-    return; 
+    if (U_SUCCESS(*status)) {
+        return;
+    }
 
 ExitConstrDeleteAll: 
     for (i=0; i<URX_LAST_SET; i++) {
         delete fPropSets[i];
         fPropSets[i] = NULL;
     }
-    *status = U_MEMORY_ALLOCATION_ERROR;
+    if (U_SUCCESS(*status)) {
+        *status = U_MEMORY_ALLOCATION_ERROR;
+    }
 }
 
 

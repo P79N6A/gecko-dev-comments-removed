@@ -34,8 +34,6 @@
 
 
 
-#ifndef U_HIDE_DRAFT_API
-
 
 
 
@@ -54,7 +52,7 @@ typedef struct UNumberingSystem UNumberingSystem;
 
 
 
-U_DRAFT UNumberingSystem * U_EXPORT2
+U_STABLE UNumberingSystem * U_EXPORT2
 unumsys_open(const char *locale, UErrorCode *status);
 
 
@@ -75,7 +73,7 @@ unumsys_open(const char *locale, UErrorCode *status);
 
 
 
-U_DRAFT UNumberingSystem * U_EXPORT2
+U_STABLE UNumberingSystem * U_EXPORT2
 unumsys_openByName(const char *name, UErrorCode *status);
 
 
@@ -83,7 +81,7 @@ unumsys_openByName(const char *name, UErrorCode *status);
 
 
 
-U_DRAFT void U_EXPORT2
+U_STABLE void U_EXPORT2
 unumsys_close(UNumberingSystem *unumsys);
 
 #if U_SHOW_CPLUSPLUS_API
@@ -110,7 +108,7 @@ U_NAMESPACE_END
 
 
 
-U_DRAFT UEnumeration * U_EXPORT2
+U_STABLE UEnumeration * U_EXPORT2
 unumsys_openAvailableNames(UErrorCode *status);
 
 
@@ -122,7 +120,7 @@ unumsys_openAvailableNames(UErrorCode *status);
 
 
 
-U_DRAFT const char * U_EXPORT2
+U_STABLE const char * U_EXPORT2
 unumsys_getName(const UNumberingSystem *unumsys);
 
 
@@ -133,7 +131,7 @@ unumsys_getName(const UNumberingSystem *unumsys);
 
 
 
-U_DRAFT UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 unumsys_isAlgorithmic(const UNumberingSystem *unumsys);
 
 
@@ -144,7 +142,7 @@ unumsys_isAlgorithmic(const UNumberingSystem *unumsys);
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 unumsys_getRadix(const UNumberingSystem *unumsys);
 
 
@@ -163,11 +161,9 @@ unumsys_getRadix(const UNumberingSystem *unumsys);
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 unumsys_getDescription(const UNumberingSystem *unumsys, UChar *result,
                        int32_t resultLength, UErrorCode *status);
-
-#endif  
 
 #endif 
 

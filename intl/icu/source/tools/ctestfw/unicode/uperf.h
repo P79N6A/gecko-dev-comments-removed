@@ -36,25 +36,44 @@ U_NAMESPACE_USE
 
 
 
-#if 0
+
 #define TESTCASE(id,test)                       \
     case id:                                    \
         name = #test;                           \
         if (exec) {                             \
-            fprintf(stdout,#test "---");        \
-            fprintf(stdout,"\n");               \
             return test();                      \
         }                                       \
         break
 
-#endif
-#define TESTCASE(id,test)                       \
-    case id:                                    \
-        name = #test;                           \
-        if (exec) {                             \
-            return test();                      \
-        }                                       \
-        break
+
+
+
+
+
+
+
+
+
+
+
+
+#define TESTCASE_AUTO_BEGIN \
+    for(;;) { \
+        int32_t testCaseAutoNumber = 0
+
+#define TESTCASE_AUTO(test) \
+        if (index == testCaseAutoNumber++) { \
+            name = #test; \
+            if (exec) { \
+                return test(); \
+            } \
+            break; \
+        }
+
+#define TESTCASE_AUTO_END \
+        name = ""; \
+        break; \
+    }
 
 
 

@@ -46,6 +46,7 @@
 
 
 
+
 #ifndef COLL_H
 #define COLL_H
 
@@ -77,21 +78,6 @@ class CollatorFactory;
 
 
 class CollationKey;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -320,34 +306,17 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
     static Collator* U_EXPORT2 createInstance(const Locale& loc, UErrorCode& err);
-
-#ifdef U_USE_COLLATION_OBSOLETE_2_6
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static Collator *createInstance(const Locale &loc, UVersionInfo version, UErrorCode &err);
-#endif
 
     
 
@@ -517,11 +486,17 @@ public:
 
 
 
+
+
+
     virtual CollationKey& getCollationKey(const UnicodeString&  source,
                                           CollationKey& key,
                                           UErrorCode& status) const = 0;
 
     
+
+
+
 
 
 
@@ -661,11 +636,14 @@ public:
 
 
 
+
      virtual void setReorderCodes(const int32_t* reorderCodes,
                                   int32_t reorderCodesLength,
                                   UErrorCode& status) ;
 
     
+
+
 
 
 
@@ -817,6 +795,9 @@ public:
 
 
 
+
+
+
     static URegistryKey U_EXPORT2 registerInstance(Collator* toAdopt, const Locale& locale, UErrorCode& status);
 
     
@@ -826,9 +807,15 @@ public:
 
 
 
+
+
+
     static URegistryKey U_EXPORT2 registerFactory(CollatorFactory* toAdopt, UErrorCode& status);
 
     
+
+
+
 
 
 
@@ -892,9 +879,51 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+    virtual Collator &setMaxVariable(UColReorderCode group, UErrorCode &errorCode);
+
+    
+
+
+
+
+
+
+
+    virtual UColReorderCode getMaxVariable() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     virtual uint32_t setVariableTop(const UChar *varTop, int32_t len, UErrorCode &status) = 0;
 
     
+
+
+
+
+
+
 
 
 
@@ -912,9 +941,14 @@ public:
 
 
 
+
+
+
+
     virtual void setVariableTop(uint32_t varTop, UErrorCode &status) = 0;
 
     
+
 
 
 
@@ -954,11 +988,19 @@ public:
 
 
 
+
+
+
+
     virtual int32_t getSortKey(const UnicodeString& source,
                               uint8_t* result,
                               int32_t resultLength) const = 0;
 
     
+
+
+
+
 
 
 
@@ -1058,9 +1100,7 @@ protected:
 
     Collator(const Collator& other);
 
-    
-
-
+public:
    
 
 
@@ -1069,17 +1109,6 @@ protected:
 
 
     virtual void setLocales(const Locale& requestedLocale, const Locale& validLocale, const Locale& actualLocale);
-
-public:
-#if !UCONFIG_NO_SERVICE
-#ifndef U_HIDE_INTERNAL_API
-    
-
-
-
-    static UCollator* createUCollator(const char* loc, UErrorCode* status);
-#endif  
-#endif
 
     
 
@@ -1108,9 +1137,46 @@ public:
                                                      char *buffer,
                                                      int32_t capacity,
                                                      UErrorCode &status) const;
-private:
+
     
 
+
+
+    virtual UCollationResult internalCompareUTF8(
+            const char *left, int32_t leftLength,
+            const char *right, int32_t rightLength,
+            UErrorCode &errorCode) const;
+
+    
+
+
+
+    virtual int32_t
+    internalNextSortKeyPart(
+            UCharIterator *iter, uint32_t state[2],
+            uint8_t *dest, int32_t count, UErrorCode &errorCode) const;
+
+#ifndef U_HIDE_INTERNAL_API
+    
+    static inline Collator *fromUCollator(UCollator *uc) {
+        return reinterpret_cast<Collator *>(uc);
+    }
+    
+    static inline const Collator *fromUCollator(const UCollator *uc) {
+        return reinterpret_cast<const Collator *>(uc);
+    }
+    
+    inline UCollator *toUCollator() {
+        return reinterpret_cast<UCollator *>(this);
+    }
+    
+    inline const UCollator *toUCollator() const {
+        return reinterpret_cast<const UCollator *>(this);
+    }
+#endif  
+
+private:
+    
 
 
     Collator& operator=(const Collator& other);
@@ -1121,16 +1187,6 @@ private:
     friend class ICUCollatorService;
     static Collator* makeInstance(const Locale& desiredLocale,
                                   UErrorCode& status);
-
-    
-
-    
-
-
-
-
-    
-
 };
 
 #if !UCONFIG_NO_SERVICE

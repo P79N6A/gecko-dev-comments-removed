@@ -306,7 +306,7 @@ void readzoneinfo(ifstream& file, ZoneInfo& info, bool is64bitData) {
     file.read(buf, 1);
     
     
-    if(buf[0]!=0 && buf[0]!='2') {
+    if(buf[0]!=0 && buf[0]!='2' && buf[0]!='3') {
       throw invalid_argument("Bad Olson version info");
     }
 
@@ -829,7 +829,7 @@ struct FinalRulePart {
         if (mode != DOM && (dow < 0 || dow >= 7)) {
             os << "Invalid input day of week " << dow;
         }
-        if (offset < 0 || offset > HOUR) {
+        if (offset < 0 || offset > (2 * HOUR)) {
             os << "Invalid input offset " << offset;
         }
         if (isgmt && !isstd) {
@@ -1581,8 +1581,36 @@ int main(int argc, char *argv[]) {
     }
 
     
+    map<string, string> icuRegions;        
     map<string, set<string> > countryMap;  
     map<string, string> reverseCountryMap; 
+
+    try {
+        
+        ifstream frg(ICU_REGIONS);
+        if (frg) {
+            string line;
+            while (getline(frg, line)) {
+                if (line[0] == '#') continue;
+
+                string zone, country;
+                istringstream is(line);
+                is >> zone >> country;
+                if (zone.size() == 0) continue;
+                if (country.size() < 2) {
+                    cerr << "Error: Can't parse " << line << " in " << ICU_REGIONS << endl;
+                    return 1;
+                }
+                icuRegions[zone] = country;
+            }
+        } else {
+            cout << "No custom region map [icuregions]" << endl;
+        }
+    } catch (const exception& error) {
+        cerr << "Error: While reading " << ICU_REGIONS << ": " << error.what() << endl;
+        return 1;
+    }
+
     try {
         ifstream f(zonetab.c_str());
         if (!f) {
@@ -1609,6 +1637,13 @@ int main(int argc, char *argv[]) {
                      << " in " << zonetab << endl;
                 return 1;
             }
+            if (icuRegions.find(zone) != icuRegions.end()) {
+                
+                string customCountry = icuRegions[zone];
+                cout << "Region Mapping: custom override for " << zone
+                    << " " << country << " -> " << customCountry << endl;
+                country = customCountry;
+            }
             countryMap[country].insert(zone);
             reverseCountryMap[zone] = country;
             
@@ -1619,6 +1654,20 @@ int main(int argc, char *argv[]) {
     } catch (const exception& error) {
         cerr << "Error: While reading " << zonetab << ": " << error.what() << endl;
         return 1;
+    }
+
+    
+    for (map<string,string>::const_iterator i = icuRegions.begin();
+        i != icuRegions.end(); ++i) {
+        const string& zid(i->first);
+        if (reverseCountryMap.find(zid) != reverseCountryMap.end()) {
+            continue;
+        }
+        cout << "Region Mapping: custom data zone=" << zid
+            << ", region=" << i->second << endl;
+
+        reverseCountryMap[zid] = i->second;
+        countryMap[i->second].insert(zid);
     }
 
     
@@ -1671,10 +1720,10 @@ int main(int argc, char *argv[]) {
         file << ", International Business Machines" << endl
              << "// Corporation and others.  All Rights Reserved." << endl
              << "//---------------------------------------------------------" << endl
-             << "// Build tool: tz2icu" << endl
-             << "// Build date: " << asctime(now) 
-             << "// Olson source: ftp://elsie.nci.nih.gov/pub/" << endl
-             << "// Olson version: " << version << endl
+             << "// Build tool:  tz2icu" << endl
+             << "// Build date:  " << asctime(now) 
+             << "// tz database: ftp://ftp.iana.org/tz/" << endl
+             << "// tz version:  " << version << endl
              << "// ICU version: " << U_ICU_VERSION << endl
              << "//---------------------------------------------------------" << endl
              << "// >> !!! >>   THIS IS A MACHINE-GENERATED FILE   << !!! <<" << endl

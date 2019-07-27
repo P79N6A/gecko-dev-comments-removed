@@ -38,6 +38,7 @@ U_NAMESPACE_BEGIN
 
 
 class RuleBasedCollator;
+class CollationKeyByteSink;
 
 
 

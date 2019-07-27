@@ -18,6 +18,7 @@
 
 
 
+#include "unicode/platform.h"
 #if U_PLATFORM == U_PF_MINGW
 
 #ifdef __STRICT_ANSI__
@@ -161,7 +162,10 @@ findBasename(const char *filename) {
     const char *basename=uprv_strrchr(filename, U_FILE_SEP_CHAR);
 
 #if U_FILE_ALT_SEP_CHAR!=U_FILE_SEP_CHAR
-    if(basename==NULL) {
+#if !(U_PLATFORM == U_PF_CYGWIN && U_PLATFORM_USES_ONLY_WIN32_API)
+    if(basename==NULL)
+#endif
+    {
         
 
 

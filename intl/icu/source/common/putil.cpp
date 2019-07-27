@@ -52,6 +52,7 @@
 #include "cstring.h"
 #include "locmap.h"
 #include "ucln_cmn.h"
+#include "charstr.h"
 
 
 #include <stdio.h>
@@ -87,14 +88,6 @@
 #   include <qusrjobi.h>
 #   include <qliept.h>      
 #   include <mih/testptr.h> 
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-#   include <Files.h>
-#   include <IntlResources.h>
-#   include <Script.h>
-#   include <Folders.h>
-#   include <MacTypes.h>
-#   include <TextUtils.h>
-#   define ICU_NO_USER_DATA_OVERRIDE 1
 #elif U_PLATFORM == U_PF_OS390
 #   include "unicode/ucnv.h"   
 #elif U_PLATFORM_IS_DARWIN_BASED || U_PLATFORM_IS_LINUX_BASED || U_PLATFORM == U_PF_BSD || U_PLATFORM == U_PF_SOLARIS
@@ -158,7 +151,7 @@
 #   define HAVE_GETTIMEOFDAY 0
 #endif
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
+U_NAMESPACE_USE
 
 
 #define DATA_TYPE "dat"
@@ -187,7 +180,7 @@ static const BitPatternConversion gInf = { (int64_t) INT64_C(0x7FF0000000000000)
 
 
 
-#if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CLASSIC_MACOS || U_PLATFORM == U_PF_OS400
+#if U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_OS400
 #   undef U_POSIX_LOCALE
 #else
 #   define U_POSIX_LOCALE    1
@@ -306,21 +299,7 @@ uprv_getUTCtime()
 U_CAPI UDate U_EXPORT2
 uprv_getRawUTCtime()
 {
-#if U_PLATFORM == U_PF_CLASSIC_MACOS
-    time_t t, t1, t2;
-    struct tm tmrec;
-
-    uprv_memset( &tmrec, 0, sizeof(tmrec) );
-    tmrec.tm_year = 70;
-    tmrec.tm_mon = 0;
-    tmrec.tm_mday = 1;
-    t1 = mktime(&tmrec);    
-
-    time(&t);
-    uprv_memcpy( &tmrec, gmtime(&t), sizeof(tmrec) );
-    t2 = mktime(&tmrec);    
-    return (UDate)(t2 - t1) * U_MILLIS_PER_SECOND;         
-#elif U_PLATFORM_USES_ONLY_WIN32_API
+#if U_PLATFORM_USES_ONLY_WIN32_API
 
     FileTimeConversion winTime;
     GetSystemTimeAsFileTime(&winTime.fileTime);
@@ -838,7 +817,7 @@ static const char* remapShortTimeZone(const char *stdID, const char *dstID, int3
 #ifdef DEBUG_TZNAME
     fprintf(stderr, "TZ=%s std=%s dst=%s daylight=%d offset=%d\n", getenv("TZ"), stdID, dstID, daylightType, offset);
 #endif
-    for (idx = 0; idx < LENGTHOF(OFFSET_ZONE_MAPPINGS); idx++)
+    for (idx = 0; idx < UPRV_LENGTHOF(OFFSET_ZONE_MAPPINGS); idx++)
     {
         if (offset == OFFSET_ZONE_MAPPINGS[idx].offsetSeconds
             && daylightType == OFFSET_ZONE_MAPPINGS[idx].daylightType
@@ -1134,7 +1113,12 @@ uprv_tzname(int n)
 
 
 
+static icu::UInitOnce gDataDirInitOnce = U_INITONCE_INITIALIZER;
 static char *gDataDirectory = NULL;
+
+UInitOnce gTimeZoneFilesInitOnce = U_INITONCE_INITIALIZER;
+static CharString *gTimeZoneFilesDirectory = NULL;
+
 #if U_POSIX_LOCALE || U_PLATFORM_USES_ONLY_WIN32_API
  static char *gCorrectedPOSIXLocale = NULL; 
 #endif
@@ -1145,6 +1129,12 @@ static UBool U_CALLCONV putil_cleanup(void)
         uprv_free(gDataDirectory);
     }
     gDataDirectory = NULL;
+    gDataDirInitOnce.reset();
+
+    delete gTimeZoneFilesDirectory;
+    gTimeZoneFilesDirectory = NULL;
+    gTimeZoneFilesInitOnce.reset();
+
 #if U_POSIX_LOCALE || U_PLATFORM_USES_ONLY_WIN32_API
     if (gCorrectedPOSIXLocale) {
         uprv_free(gCorrectedPOSIXLocale);
@@ -1232,17 +1222,18 @@ uprv_pathIsAbsolute(const char *path)
 # endif
 #endif
 
-U_CAPI const char * U_EXPORT2
-u_getDataDirectory(void) {
+static void U_CALLCONV dataDirectoryInitFn() {
+    
+
+
+    if (gDataDirectory) {
+        return;
+    }
+
     const char *path = NULL;
 #if defined(ICU_DATA_DIR_PREFIX_ENV_VAR)
     char datadir_path_buffer[PATH_MAX];
 #endif
-
-    
-    if(gDataDirectory) {
-        return gDataDirectory;
-    }
 
     
 
@@ -1294,117 +1285,69 @@ u_getDataDirectory(void) {
     }
 
     u_setDataDirectory(path);
+    return;
+}
+
+U_CAPI const char * U_EXPORT2
+u_getDataDirectory(void) {
+    umtx_initOnce(gDataDirInitOnce, &dataDirectoryInitFn);
     return gDataDirectory;
 }
 
-
-
-
-
-
-#if U_PLATFORM == U_PF_CLASSIC_MACOS
-
-typedef struct {
-    int32_t script;
-    int32_t region;
-    int32_t lang;
-    int32_t date_region;
-    const char* posixID;
-} mac_lc_rec;
-
-
-
-#define MAC_LC_MAGIC_NUMBER -5
-#define MAC_LC_INIT_NUMBER -9
-
-static const mac_lc_rec mac_lc_recs[] = {
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 0, "en_US",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 1, "fr_FR",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 2, "en_GB",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 3, "de_DE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 4, "it_IT",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 5, "nl_NL",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 6, "fr_BE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 7, "sv_SE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 9, "da_DK",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 10, "pt_PT",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 11, "fr_CA",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 13, "is_IS",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 14, "ja_JP",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 15, "en_AU",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 16, "ar_AE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 17, "fi_FI",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 18, "fr_CH",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 19, "de_CH",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 20, "el_GR",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 21, "is_IS",
-    
-    
-    
-    
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 24, "tr_TR",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 25, "sh_YU",
-    
-    
-    
-    
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 41, "lt_LT",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 42, "pl_PL",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 43, "hu_HU",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 44, "et_EE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 45, "lv_LV",
-    
-    
-    
-    
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 48, "fa_IR",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 49, "ru_RU",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 50, "en_IE",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 51, "ko_KR",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 52, "zh_CN",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 53, "zh_TW",
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, 54, "th_TH",
-    
-
-    
-    MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER, MAC_LC_MAGIC_NUMBER,
-    MAC_LC_MAGIC_NUMBER, "en_US"
-};
-
+static void setTimeZoneFilesDir(const char *path, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        return;
+    }
+    gTimeZoneFilesDirectory->clear();
+    gTimeZoneFilesDirectory->append(path, status);
+#if (U_FILE_SEP_CHAR != U_FILE_ALT_SEP_CHAR)
+    char *p = gTimeZoneFilesDirectory->data();
+    while (p = uprv_strchr(p, U_FILE_ALT_SEP_CHAR)) {
+        *p = U_FILE_SEP_CHAR;
+    }
 #endif
+}
+
+#define TO_STRING(x) TO_STRING_2(x) 
+#define TO_STRING_2(x) #x
+
+static void U_CALLCONV TimeZoneDataDirInitFn(UErrorCode &status) {
+    U_ASSERT(gTimeZoneFilesDirectory == NULL);
+    ucln_common_registerCleanup(UCLN_COMMON_PUTIL, putil_cleanup);
+    gTimeZoneFilesDirectory = new CharString();
+    if (gTimeZoneFilesDirectory == NULL) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+        return;
+    }
+    const char *dir = getenv("ICU_TIMEZONE_FILES_DIR");
+#if defined(U_TIMEZONE_FILES_DIR)
+    if (dir == NULL) {
+        dir = TO_STRING(U_TIMEZONE_FILES_DIR);
+    }
+#endif
+    if (dir == NULL) {
+        dir = "";
+    }
+    setTimeZoneFilesDir(dir, status);
+}
+
+
+U_CAPI const char * U_EXPORT2
+u_getTimeZoneFilesDirectory(UErrorCode *status) {
+    umtx_initOnce(gTimeZoneFilesInitOnce, &TimeZoneDataDirInitFn, *status);
+    return U_SUCCESS(*status) ? gTimeZoneFilesDirectory->data() : "";
+}
+
+U_CAPI void U_EXPORT2
+u_setTimeZoneFilesDirectory(const char *path, UErrorCode *status) {
+    umtx_initOnce(gTimeZoneFilesInitOnce, &TimeZoneDataDirInitFn, *status);
+    setTimeZoneFilesDir(path, *status);
+
+    
+    
+    
+}
+
 
 #if U_POSIX_LOCALE
 
@@ -1640,41 +1583,6 @@ uprv_getDefaultLocaleID()
         return "en_US";
     }
     return gCorrectedPOSIXLocale;
-
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-    int32_t script = MAC_LC_INIT_NUMBER;
-    
-    int32_t region = MAC_LC_INIT_NUMBER;
-    
-    int32_t lang = MAC_LC_INIT_NUMBER;
-    
-    int32_t date_region = MAC_LC_INIT_NUMBER;
-    const char* posixID = 0;
-    int32_t count = sizeof(mac_lc_recs) / sizeof(mac_lc_rec);
-    int32_t i;
-    Intl1Hndl ih;
-
-    ih = (Intl1Hndl) GetIntlResource(1);
-    if (ih)
-        date_region = ((uint16_t)(*ih)->intl1Vers) >> 8;
-
-    for (i = 0; i < count; i++) {
-        if (   ((mac_lc_recs[i].script == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].script == script))
-            && ((mac_lc_recs[i].region == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].region == region))
-            && ((mac_lc_recs[i].lang == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].lang == lang))
-            && ((mac_lc_recs[i].date_region == MAC_LC_MAGIC_NUMBER)
-             || (mac_lc_recs[i].date_region == date_region))
-            )
-        {
-            posixID = mac_lc_recs[i].posixID;
-            break;
-        }
-    }
-
-    return posixID;
 
 #elif U_PLATFORM == U_PF_OS400
     
@@ -1957,9 +1865,6 @@ int_getDefaultCodepage()
 
     return codepage;
 
-#elif U_PLATFORM == U_PF_CLASSIC_MACOS
-    return "macintosh"; 
-
 #elif U_PLATFORM_USES_ONLY_WIN32_API
     static char codepage[64];
     sprintf(codepage, "windows-%d", GetACP());
@@ -2136,6 +2041,7 @@ u_versionToString(const UVersionInfo versionArray, char *versionString) {
 
 U_CAPI void U_EXPORT2
 u_getVersion(UVersionInfo versionArray) {
+    (void)copyright;   
     u_versionFromString(versionArray, U_ICU_VERSION);
 }
 

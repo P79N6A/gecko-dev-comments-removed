@@ -28,6 +28,7 @@
 #include "cstring.h"
 #include "decNumber.h"
 #include "digitlst.h"
+#include "fmtableimp.h"
 
 
 
@@ -37,7 +38,6 @@ U_NAMESPACE_BEGIN
 
 UOBJECT_DEFINE_RTTI_IMPLEMENTATION(Formattable)
 
-#include "fmtableimp.h"
 
 
 

@@ -49,12 +49,6 @@
 
 
 
-
-
-
-
-
-
 struct UCollator;
 
 
@@ -301,6 +295,10 @@ typedef enum {
 
 
 
+
+
+
+
      UCOL_STRENGTH,  
 #ifndef U_HIDE_DEPRECATED_API
      
@@ -313,9 +311,19 @@ typedef enum {
 
 
 
+
      UCOL_HIRAGANA_QUATERNARY_MODE = UCOL_STRENGTH + 1,
 #endif  
      
+
+
+
+
+
+
+
+
+
 
 
 
@@ -351,6 +359,14 @@ typedef enum {
 
   UCOL_FULL_RULES 
 } UColRuleOption ;
+
+
+
+
+
+
+
+
 
 
 
@@ -405,6 +421,7 @@ ucol_openRules( const UChar        *rules,
                 UParseError        *parseError,
                 UErrorCode         *status);
 
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
@@ -438,12 +455,12 @@ ucol_openRules( const UChar        *rules,
 
 
 
-
-U_STABLE UCollator* U_EXPORT2
+U_DEPRECATED UCollator* U_EXPORT2
 ucol_openFromShortString( const char *definition,
                           UBool forceDefaults,
                           UParseError *parseError,
                           UErrorCode *status);
+#endif  
 
 #ifndef U_HIDE_DEPRECATED_API
 
@@ -717,12 +734,20 @@ ucol_getReorderCodes(const UCollator* coll,
 
 
 
+
+
+
+
+
  
 U_STABLE void U_EXPORT2 
 ucol_setReorderCodes(UCollator* coll,
                     const int32_t* reorderCodes,
                     int32_t reorderCodesLength,
                     UErrorCode *pErrorCode);
+
+
+
 
 
 
@@ -879,6 +904,7 @@ ucol_getKeywordValuesForLocale(const char* key,
 
 
 
+
 U_STABLE int32_t U_EXPORT2
 ucol_getFunctionalEquivalent(char* result, int32_t resultCapacity,
                              const char* keyword, const char* locale,
@@ -896,6 +922,7 @@ U_STABLE const UChar* U_EXPORT2
 ucol_getRules(    const    UCollator    *coll, 
         int32_t            *length);
 
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
@@ -916,7 +943,7 @@ ucol_getRules(    const    UCollator    *coll,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 ucol_getShortDefinitionString(const UCollator *coll,
                               const char *locale,
                               char *buffer,
@@ -943,12 +970,16 @@ ucol_getShortDefinitionString(const UCollator *coll,
 
 
 
-U_STABLE int32_t U_EXPORT2
+U_DEPRECATED int32_t U_EXPORT2
 ucol_normalizeShortDefinitionString(const char *source,
                                     char *destination,
                                     int32_t capacity,
                                     UParseError *parseError,
                                     UErrorCode *status);
+#endif  
+
+
+
 
 
 
@@ -1125,6 +1156,17 @@ ucol_getUCAVersion(const UCollator* coll, UVersionInfo info);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 U_STABLE int32_t U_EXPORT2 
 ucol_mergeSortkeys(const uint8_t *src1, int32_t src1Length,
                    const uint8_t *src2, int32_t src2Length,
@@ -1174,13 +1216,45 @@ ucol_getAttribute(const UCollator *coll, UColAttribute attr, UErrorCode *status)
 
 
 
+U_STABLE void U_EXPORT2
+ucol_setMaxVariable(UCollator *coll, UColReorderCode group, UErrorCode *pErrorCode);
 
 
 
-U_STABLE uint32_t U_EXPORT2 
+
+
+
+
+
+U_STABLE UColReorderCode U_EXPORT2
+ucol_getMaxVariable(const UCollator *coll);
+
+#ifndef U_HIDE_DEPRECATED_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DEPRECATED uint32_t U_EXPORT2 
 ucol_setVariableTop(UCollator *coll, 
                     const UChar *varTop, int32_t len, 
                     UErrorCode *status);
+#endif  
 
 
 
@@ -1206,7 +1280,9 @@ U_STABLE uint32_t U_EXPORT2 ucol_getVariableTop(const UCollator *coll, UErrorCod
 
 
 
-U_STABLE void U_EXPORT2 
+
+
+U_DEPRECATED void U_EXPORT2 
 ucol_restoreVariableTop(UCollator *coll, const uint32_t varTop, UErrorCode *status);
 
 
@@ -1326,41 +1402,10 @@ ucol_getTailoredSet(const UCollator *coll, UErrorCode *status);
 
 
 
-U_INTERNAL UColAttributeValue  U_EXPORT2
-ucol_getAttributeOrDefault(const UCollator *coll, UColAttribute attr, UErrorCode *status);
-
-
-
-
-
-
-
-
-
-U_INTERNAL UBool U_EXPORT2
-ucol_equals(const UCollator *source, const UCollator *target);
-
-
-
-
-
-
-
-
-
-
-
-
 U_INTERNAL int32_t U_EXPORT2
 ucol_getUnsafeSet( const UCollator *coll,
                   USet *unsafe,
                   UErrorCode *status);
-
-
-
-
-U_INTERNAL void U_EXPORT2
-ucol_forgetUCA(void);
 
 
 

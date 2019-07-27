@@ -162,6 +162,7 @@ protected:
 
 
     Node *registerFinalValue(int32_t value, UErrorCode &errorCode);
+#endif  
 
     
 
@@ -183,6 +184,7 @@ protected:
     
     UHashtable *nodes;
 
+#ifndef U_HIDE_INTERNAL_API
     
     class Node : public UObject {
     public:

@@ -21,7 +21,13 @@
 
 
 
- 
+
+
+
+
+
+
+
 
 
 
@@ -279,7 +285,6 @@ typedef enum UScriptCode {
       USCRIPT_UNKNOWN                       = 103, 
 
       
-      
       USCRIPT_CARIAN                        = 104,
       
       USCRIPT_JAPANESE                      = 105,
@@ -304,7 +309,6 @@ typedef enum UScriptCode {
       
       USCRIPT_MEITEI_MAYEK                  = 115,
 
-      
       
       USCRIPT_IMPERIAL_ARAMAIC              = 116,
       
@@ -335,7 +339,6 @@ typedef enum UScriptCode {
       USCRIPT_SYMBOLS                       = 129,
 
       
-      
       USCRIPT_BAMUM                         = 130,
       
       USCRIPT_LISU                          = 131,
@@ -345,10 +348,13 @@ typedef enum UScriptCode {
       USCRIPT_OLD_SOUTH_ARABIAN             = 133,
 
       
-      
       USCRIPT_BASSA_VAH                     = 134,
       
-      USCRIPT_DUPLOYAN_SHORTAND             = 135,
+      USCRIPT_DUPLOYAN                      = 135,
+#ifndef U_HIDE_DEPRECATED_API
+      
+      USCRIPT_DUPLOYAN_SHORTAND             = USCRIPT_DUPLOYAN,
+#endif  
       
       USCRIPT_ELBASAN                       = 136,
       
@@ -368,7 +374,9 @@ typedef enum UScriptCode {
       
       USCRIPT_PALMYRENE                     = 144,
       
-      USCRIPT_SINDHI                        = 145,
+      USCRIPT_KHUDAWADI                     = 145,
+      
+      USCRIPT_SINDHI                        = USCRIPT_KHUDAWADI,
       
       USCRIPT_WARANG_CITI                   = 146,
 
@@ -404,10 +412,32 @@ typedef enum UScriptCode {
       USCRIPT_MAHAJANI                      = 160,
 
       
+      USCRIPT_AHOM                          = 161,
+      
+      USCRIPT_HATRAN                        = 162,
+      
+      USCRIPT_MODI                          = 163,
+      
+      USCRIPT_MULTANI                       = 164,
+      
+      USCRIPT_PAU_CIN_HAU                   = 165,
+      
+      USCRIPT_SIDDHAM                       = 166,
 
       
-      USCRIPT_CODE_LIMIT    = 161
+
+
+
+
+
+
+
+
+
+
+      USCRIPT_CODE_LIMIT    = 167
 } UScriptCode;
+
 
 
 
@@ -438,8 +468,11 @@ uscript_getCode(const char* nameOrAbbrOrLocale,UScriptCode* fillIn,int32_t capac
 
 
 
+
+
 U_STABLE const char*  U_EXPORT2 
 uscript_getName(UScriptCode scriptCode);
+
 
 
 
@@ -517,8 +550,6 @@ uscript_getScriptExtensions(UChar32 c,
                             UScriptCode *scripts, int32_t capacity,
                             UErrorCode *errorCode);
 
-#ifndef U_HIDE_DRAFT_API
-
 
 
 
@@ -553,7 +584,7 @@ typedef enum UScriptUsage {
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 uscript_getSampleString(UScriptCode script, UChar *dest, int32_t capacity, UErrorCode *pErrorCode);
 
 #if U_SHOW_CPLUSPLUS_API
@@ -585,7 +616,7 @@ uscript_getSampleUnicodeString(UScriptCode script);
 
 
 
-U_DRAFT UScriptUsage U_EXPORT2
+U_STABLE UScriptUsage U_EXPORT2
 uscript_getUsage(UScriptCode script);
 
 
@@ -596,7 +627,7 @@ uscript_getUsage(UScriptCode script);
 
 
 
-U_DRAFT UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 uscript_isRightToLeft(UScriptCode script);
 
 
@@ -608,7 +639,7 @@ uscript_isRightToLeft(UScriptCode script);
 
 
 
-U_DRAFT UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 uscript_breaksBetweenLetters(UScriptCode script);
 
 
@@ -619,9 +650,7 @@ uscript_breaksBetweenLetters(UScriptCode script);
 
 
 
-U_DRAFT UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 uscript_isCased(UScriptCode script);
-
-#endif  
 
 #endif

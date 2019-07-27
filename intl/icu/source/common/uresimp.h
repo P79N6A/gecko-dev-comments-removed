@@ -32,17 +32,6 @@
 
 #define EMPTY_SET 0x2205
 
-
-
-
-
-
-
-
-
-
-
-
 struct UResourceDataEntry;
 typedef struct UResourceDataEntry UResourceDataEntry;
 
@@ -90,6 +79,17 @@ struct UResourceBundle {
 };
 
 U_CAPI void U_EXPORT2 ures_initStackObject(UResourceBundle* resB);
+
+
+
+
+
+
+
+
+
+U_CAPI UResourceBundle* U_EXPORT2
+ures_openNoDefault(const char* path, const char* localeID, UErrorCode* status);
 
 
 U_CFUNC const char* ures_getName(const UResourceBundle* resB);

@@ -31,6 +31,7 @@ class DateTimeMatcher;
 class DistanceInfo;
 class PatternMap;
 class PtnSkeleton;
+class SharedDateTimePatternGenerator;
 
 
 
@@ -64,6 +65,17 @@ public:
 
 
     static DateTimePatternGenerator* U_EXPORT2 createInstance(const Locale& uLocale, UErrorCode& status);
+
+#ifndef U_HIDE_INTERNAL_API
+
+    
+
+
+
+
+    static DateTimePatternGenerator* U_EXPORT2 internalMakeInstance(const Locale& uLocale, UErrorCode& status);
+
+#endif 
 
     
 
@@ -215,6 +227,8 @@ public:
     const UnicodeString& getAppendItemName(UDateTimePatternField field) const;
 
     
+
+
 
 
 

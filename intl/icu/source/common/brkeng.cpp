@@ -232,6 +232,9 @@ ICULanguageBreakFactory::loadEngineFor(UChar32 c, int32_t breakType) {
             case USCRIPT_LAO:
                 engine = new LaoBreakEngine(m, status);
                 break;
+            case USCRIPT_MYANMAR:
+                engine = new BurmeseBreakEngine(m, status);
+                break;
             case USCRIPT_KHMER:
                 engine = new KhmerBreakEngine(m, status);
                 break;

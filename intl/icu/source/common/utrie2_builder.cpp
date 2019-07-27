@@ -33,8 +33,6 @@
 
 #include "utrie.h" 
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 
 
@@ -476,7 +474,7 @@ allocIndex2Block(UNewTrie2 *trie) {
 
     newBlock=trie->index2Length;
     newTop=newBlock+UTRIE2_INDEX_2_BLOCK_LENGTH;
-    if(newTop>LENGTHOF(trie->index2)) {
+    if(newTop>UPRV_LENGTHOF(trie->index2)) {
         
 
 
@@ -1415,35 +1413,6 @@ utrie2_freeze(UTrie2 *trie, UTrie2ValueBits valueBits, UErrorCode *pErrorCode) {
     uprv_free(newTrie->data);
     uprv_free(newTrie);
     trie->newTrie=NULL;
-}
-
-U_CAPI UBool U_EXPORT2
-utrie2_isFrozen(const UTrie2 *trie) {
-    return (UBool)(trie->newTrie==NULL);
-}
-
-U_CAPI int32_t U_EXPORT2
-utrie2_serialize(UTrie2 *trie,
-                 void *data, int32_t capacity,
-                 UErrorCode *pErrorCode) {
-    
-    if(U_FAILURE(*pErrorCode)) {
-        return 0;
-    }
-
-    if( trie==NULL || trie->memory==NULL || trie->newTrie!=NULL ||
-        capacity<0 || (capacity>0 && (data==NULL || (U_POINTER_MASK_LSB(data, 3)!=0)))
-    ) {
-        *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    if(capacity>=trie->length) {
-        uprv_memcpy(data, trie->memory, trie->length);
-    } else {
-        *pErrorCode=U_BUFFER_OVERFLOW_ERROR;
-    }
-    return trie->length;
 }
 
 

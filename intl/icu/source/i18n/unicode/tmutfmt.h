@@ -17,6 +17,7 @@
 
 
 #if !UCONFIG_NO_FORMATTING
+#ifndef U_HIDE_DEPRECATED_API
 
 #include "unicode/unistr.h"
 #include "unicode/tmunit.h"
@@ -24,6 +25,7 @@
 #include "unicode/measfmt.h"
 #include "unicode/numfmt.h"
 #include "unicode/plurrule.h"
+
 
 
 
@@ -41,6 +43,7 @@ enum UTimeUnitFormatStyle {
     UTMUTFMT_FORMAT_STYLE_COUNT
 };
 typedef enum UTimeUnitFormatStyle UTimeUnitFormatStyle; 
+
 
 U_NAMESPACE_BEGIN
 
@@ -125,16 +128,6 @@ public:
 
     TimeUnitFormat& operator=(const TimeUnitFormat& other);
 
-
-    
-
-
-
-
-
-
-    virtual UBool operator==(const Format& other) const;
-
     
 
 
@@ -160,22 +153,6 @@ public:
 
 
     void setNumberFormat(const NumberFormat& format, UErrorCode& status);
-
-
-    using MeasureFormat::format;
-
-    
-
-
-
-
-
-
-
-    virtual UnicodeString& format(const Formattable& obj,
-                                  UnicodeString& toAppendTo,
-                                  FieldPosition& pos,
-                                  UErrorCode& status) const;
 
     
 
@@ -213,13 +190,10 @@ public:
     virtual UClassID getDynamicClassID(void) const;
 
 private:
-    NumberFormat* fNumberFormat;
-    Locale        fLocale;
     Hashtable*    fTimeUnitToCountToPatterns[TimeUnit::UTIMEUNIT_FIELD_COUNT];
-    PluralRules*  fPluralRules;
     UTimeUnitFormatStyle fStyle;
 
-    void create(const Locale& locale, UTimeUnitFormatStyle style, UErrorCode& status);
+    void create(UTimeUnitFormatStyle style, UErrorCode& status);
 
     
     
@@ -255,17 +229,14 @@ private:
 
 };
 
-
-
 inline UBool
 TimeUnitFormat::operator!=(const Format& other) const  {
     return !operator==(other);
 }
 
-
-
 U_NAMESPACE_END
 
+#endif 
 #endif 
 
 #endif 

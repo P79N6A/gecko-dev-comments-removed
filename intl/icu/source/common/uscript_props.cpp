@@ -17,8 +17,7 @@
 #include "unicode/uscript.h"
 #include "unicode/utf16.h"
 #include "ustr_imp.h"
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
+#include "cmemory.h"
 
 namespace {
 
@@ -43,7 +42,7 @@ const int32_t CASED = 1 << 26;
 const int32_t SCRIPT_PROPS[] = {
     
     
-    0x0040 | UNKNOWN,  
+    0x0040 | RECOMMENDED,  
     0x0308 | UNKNOWN,  
     0x0628 | RECOMMENDED | RTL,  
     0x0531 | RECOMMENDED | CASED,  
@@ -105,7 +104,7 @@ const int32_t SCRIPT_PROPS[] = {
     0x1980 | LIMITED_USE | LB_LETTERS,  
     0x2D30 | ASPIRATIONAL,  
     0x103A0 | EXCLUSION,  
-    0x1B05 | LIMITED_USE | LB_LETTERS,  
+    0x1B05 | LIMITED_USE,  
     0x1BC0 | LIMITED_USE,  
     0,
     0x11005 | EXCLUSION,  
@@ -118,21 +117,21 @@ const int32_t SCRIPT_PROPS[] = {
     0,
     0x5B57 | RECOMMENDED | LB_LETTERS,  
     0x5B57 | RECOMMENDED | LB_LETTERS,  
+    0x16B1C | EXCLUSION,  
     0,
     0,
-    0,
-    0xA984 | LIMITED_USE | LB_LETTERS,  
+    0xA984 | LIMITED_USE,  
     0xA90A | LIMITED_USE,  
     0,
     0,
     0x1C00 | LIMITED_USE,  
-    0,
+    0x10647 | EXCLUSION,  
     0x0840 | LIMITED_USE | RTL,  
     0,
     0x10980 | EXCLUSION | RTL,  
     0x07CA | LIMITED_USE | RTL,  
     0x10C00 | EXCLUSION | RTL,  
-    0,
+    0x1036B | EXCLUSION,  
     0xA840 | EXCLUSION,  
     0x10900 | EXCLUSION | RTL,  
     0x16F00 | ASPIRATIONAL,  
@@ -164,9 +163,9 @@ const int32_t SCRIPT_PROPS[] = {
     0x11103 | LIMITED_USE,  
     0xAC00 | RECOMMENDED,  
     0x11083 | EXCLUSION,  
-    0,
+    0x10AD8 | EXCLUSION | RTL,  
     0x10B60 | EXCLUSION | RTL,  
-    0,
+    0x10B8F | EXCLUSION | RTL,  
     0,
     0x10B40 | EXCLUSION | RTL,  
     0x0800 | EXCLUSION | RTL,  
@@ -177,22 +176,22 @@ const int32_t SCRIPT_PROPS[] = {
     0xA4D0 | LIMITED_USE,  
     0,
     0x10A60 | EXCLUSION | RTL,  
+    0x16AE6 | EXCLUSION,  
+    0x1BC20 | EXCLUSION,  
+    0x10500 | EXCLUSION,  
+    0x11315 | EXCLUSION,  
     0,
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0x1E802 | EXCLUSION | RTL,  
     0x109A0 | EXCLUSION | RTL,  
+    0x10A95 | EXCLUSION | RTL,  
+    0x10896 | EXCLUSION | RTL,  
+    0x10873 | EXCLUSION | RTL,  
+    0x112BE | EXCLUSION,  
+    0x118B4 | EXCLUSION | CASED,  
     0,
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0x16A4F | EXCLUSION,  
     0,
     0x11183 | EXCLUSION,  
     0x110D0 | EXCLUSION,  
@@ -200,15 +199,21 @@ const int32_t SCRIPT_PROPS[] = {
     0,
     0,
     0,
+    0x11208 | EXCLUSION,  
+    0x11484 | EXCLUSION,  
+    0x10537 | EXCLUSION,  
+    0x11152 | EXCLUSION,  
     0,
     0,
+    0x1160E | EXCLUSION,  
     0,
-    0,
+    0x11AC0 | EXCLUSION,  
+    0x1158E | EXCLUSION,  
     
 };
 
 int32_t getScriptProps(UScriptCode script) {
-    if (0 <= script && script < LENGTHOF(SCRIPT_PROPS)) {
+    if (0 <= script && script < UPRV_LENGTHOF(SCRIPT_PROPS)) {
         return SCRIPT_PROPS[script];
     } else {
         return 0;

@@ -38,7 +38,6 @@
 #include "umutex.h"
 #include "cstring.h"
 #include "cmemory.h"
-#include "ucln_cmn.h"
 #include "locmap.h"
 #include "uarrsort.h"
 #include "uenumimp.h"
@@ -2523,6 +2522,106 @@ uloc_acceptLanguage(char *result, int32_t resultAvailable,
     }
     uprv_free(fallbackList);
     return -1;
+}
+
+U_CAPI const char* U_EXPORT2
+uloc_toUnicodeLocaleKey(const char* keyword)
+{
+    const char* bcpKey = ulocimp_toBcpKey(keyword);
+    if (bcpKey == NULL && ultag_isUnicodeLocaleKey(keyword, -1)) {
+        
+        return keyword;
+    }
+    return bcpKey;
+}
+
+U_CAPI const char* U_EXPORT2
+uloc_toUnicodeLocaleType(const char* keyword, const char* value)
+{
+    const char* bcpType = ulocimp_toBcpType(keyword, value, NULL, NULL);
+    if (bcpType == NULL && ultag_isUnicodeLocaleType(value, -1)) {
+        
+        return value;
+    }
+    return bcpType;
+}
+
+#define UPRV_ISDIGIT(c) (((c) >= '0') && ((c) <= '9'))
+#define UPRV_ISALPHANUM(c) (uprv_isASCIILetter(c) || UPRV_ISDIGIT(c) )
+
+static UBool
+isWellFormedLegacyKey(const char* legacyKey)
+{
+    const char* p = legacyKey;
+    while (*p) {
+        if (!UPRV_ISALPHANUM(*p)) {
+            return FALSE;
+        }
+        p++;
+    }
+    return TRUE;
+}
+
+static UBool
+isWellFormedLegacyType(const char* legacyType)
+{
+    const char* p = legacyType;
+    int32_t alphaNumLen = 0;
+    while (*p) {
+        if (*p == '_' || *p == '/' || *p == '-') {
+            if (alphaNumLen == 0) {
+                return FALSE;
+            }
+            alphaNumLen = 0;
+        } else if (UPRV_ISALPHANUM(*p)) {
+            alphaNumLen++;
+        } else {
+            return FALSE;
+        }
+        p++;
+    }
+    return (alphaNumLen != 0);
+}
+
+U_CAPI const char* U_EXPORT2
+uloc_toLegacyKey(const char* keyword)
+{
+    const char* legacyKey = ulocimp_toLegacyKey(keyword);
+    if (legacyKey == NULL) {
+        
+        
+        
+        
+        
+        
+        
+        
+        if (isWellFormedLegacyKey(keyword)) {
+            return keyword;
+        }
+    }
+    return legacyKey;
+}
+
+U_CAPI const char* U_EXPORT2
+uloc_toLegacyType(const char* keyword, const char* value)
+{
+    const char* legacyType = ulocimp_toLegacyType(keyword, value, NULL, NULL);
+    if (legacyType == NULL) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (isWellFormedLegacyType(value)) {
+            return value;
+        }
+    }
+    return legacyType;
 }
 
 

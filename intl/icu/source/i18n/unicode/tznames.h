@@ -60,13 +60,11 @@ typedef enum UTimeZoneNameType {
 
 
     UTZNM_SHORT_DAYLIGHT    = 0x20,
-#ifndef U_HIDE_DRAFT_API
     
 
 
 
     UTZNM_EXEMPLAR_LOCATION = 0x40
-#endif 
 } UTimeZoneNameType;
 
 U_CDECL_END
@@ -168,6 +166,20 @@ public:
 
 
     static TimeZoneNames* U_EXPORT2 createInstance(const Locale& locale, UErrorCode& status);
+
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+     static TimeZoneNames* U_EXPORT2 createTZDBInstance(const Locale& locale, UErrorCode& status);
+#endif 
 
     
 

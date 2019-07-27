@@ -16,6 +16,7 @@
 #include "unicode/ucal.h"
 #include "unicode/unum.h"
 #include "unicode/udisplaycontext.h"
+#include "unicode/ufieldpositer.h"
 
 
 
@@ -186,8 +187,10 @@ typedef enum UDateFormatStyle {
 
     UDAT_PATTERN = -2,
 
+#ifndef U_HIDE_INTERNAL_API
     
     UDAT_IGNORE = UDAT_PATTERN
+#endif 
 } UDateFormatStyle;
 
 
@@ -197,7 +200,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_YEAR                       "y"
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -208,7 +210,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_QUARTER               "QQQ"
-#endif  
 
 
 
@@ -272,7 +273,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_YEAR_NUM_MONTH_DAY         "yMd"
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -283,7 +283,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_WEEKDAY               "E"
-#endif  
 
 
 
@@ -346,7 +345,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_HOUR                       "j"
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -357,7 +355,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_MINUTE                     "m"
-#endif  
 
 
 
@@ -370,13 +367,11 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_HOUR24_MINUTE              "Hm"
-#ifndef U_HIDE_DRAFT_API
 
 
 
 
 #define UDAT_SECOND                     "s"
-#endif  
 
 
 
@@ -400,7 +395,6 @@ typedef enum UDateFormatStyle {
 
 
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -449,7 +443,6 @@ typedef enum UDateFormatStyle {
 
 
 #define UDAT_ABBR_UTC_TZ "ZZZZ"
-#endif  
 
 
 
@@ -735,7 +728,6 @@ typedef enum UDateFormatField {
 
     UDAT_YEAR_NAME_FIELD = 30,
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -759,17 +751,34 @@ typedef enum UDateFormatField {
 
 
     UDAT_TIMEZONE_ISO_LOCAL_FIELD = 33,
-#endif  
 
+#ifndef U_HIDE_INTERNAL_API
     
 
 
 
 
+    UDAT_RELATED_YEAR_FIELD = 34,
+#endif 
+
+#ifndef U_HIDE_DRAFT_API
+    
 
 
 
-    UDAT_FIELD_COUNT = 34
+
+    UDAT_TIME_SEPARATOR_FIELD = 35,
+#endif  
+
+   
+
+
+
+
+
+
+
+    UDAT_FIELD_COUNT = 36
 
 } UDateFormatField;
 
@@ -839,26 +848,39 @@ udat_close(UDateFormat* format);
 
 
 
+
 typedef enum UDateFormatBooleanAttribute {
+   
+
+
+
+    UDAT_PARSE_ALLOW_WHITESPACE = 0,
     
 
 
 
-    UDAT_PARSE_ALLOW_WHITESPACE,
+
+    UDAT_PARSE_ALLOW_NUMERIC = 1,
+#ifndef U_HIDE_DRAFT_API
     
 
 
 
-
-    UDAT_PARSE_ALLOW_NUMERIC,
+    UDAT_PARSE_PARTIAL_MATCH = 2,
     
 
 
 
-    UDAT_BOOLEAN_ATTRIBUTE_COUNT
+ 
+    UDAT_PARSE_MULTIPLE_PATTERNS_FOR_MATCH = 3,
+#endif 
+    
+
+
+
+    UDAT_BOOLEAN_ATTRIBUTE_COUNT = 4
 } UDateFormatBooleanAttribute;
 
-#ifndef U_HIDE_INTERNAL_API
 
 
 
@@ -869,7 +891,7 @@ typedef enum UDateFormatBooleanAttribute {
 
 
 
-U_INTERNAL UBool U_EXPORT2
+U_STABLE UBool U_EXPORT2
 udat_getBooleanAttribute(const UDateFormat* fmt, UDateFormatBooleanAttribute attr, UErrorCode* status);
 
 
@@ -882,10 +904,8 @@ udat_getBooleanAttribute(const UDateFormat* fmt, UDateFormatBooleanAttribute att
 
 
 
-U_INTERNAL void U_EXPORT2
-udat_setBooleanAttribute(UDateFormat *fmt, UDateFormatBooleanAttribute attr, UBool, UErrorCode* status);
-
-#endif  
+U_STABLE void U_EXPORT2
+udat_setBooleanAttribute(UDateFormat *fmt, UDateFormatBooleanAttribute attr, UBool newValue, UErrorCode* status);
 
 
 
@@ -945,6 +965,112 @@ udat_format(    const    UDateFormat*    format,
                         int32_t         resultLength,
                         UFieldPosition* position,
                         UErrorCode*     status);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+udat_formatCalendar(    const UDateFormat*  format,
+                        UCalendar*      calendar,
+                        UChar*          result,
+                        int32_t         capacity,
+                        UFieldPosition* position,
+                        UErrorCode*     status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2 
+udat_formatForFields(   const UDateFormat* format,
+                        UDate           dateToFormat,
+                        UChar*          result,
+                        int32_t         resultLength,
+                        UFieldPositionIterator* fpositer,
+                        UErrorCode*     status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+udat_formatCalendarForFields( const UDateFormat* format,
+                        UCalendar*      calendar,
+                        UChar*          result,
+                        int32_t         capacity,
+                        UFieldPositionIterator* fpositer,
+                        UErrorCode*     status);
+
+#endif  
 
 
 
@@ -1069,6 +1195,44 @@ udat_setCalendar(            UDateFormat*    fmt,
 U_STABLE const UNumberFormat* U_EXPORT2 
 udat_getNumberFormat(const UDateFormat* fmt);
 
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+U_DRAFT const UNumberFormat* U_EXPORT2 
+udat_getNumberFormatForField(const UDateFormat* fmt, UChar field);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT void U_EXPORT2 
+udat_adoptNumberFormatForFields(  UDateFormat* fmt,
+                            const UChar* fields,
+                                  UNumberFormat*  numberFormatToSet,
+                                  UErrorCode* status);
+#endif  
+
+
+
+
 
 
 
@@ -1081,6 +1245,21 @@ udat_getNumberFormat(const UDateFormat* fmt);
 U_STABLE void U_EXPORT2 
 udat_setNumberFormat(            UDateFormat*    fmt,
                         const   UNumberFormat*  numberFormatToSet);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+U_DRAFT void U_EXPORT2 
+udat_adoptNumberFormat(            UDateFormat*    fmt,
+                                   UNumberFormat*  numberFormatToAdopt);
+#endif  
 
 
 
@@ -1217,7 +1396,6 @@ typedef enum UDateFormatSymbolType {
     
     UDAT_STANDALONE_QUARTERS,
     UDAT_STANDALONE_SHORT_QUARTERS,
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -1231,6 +1409,42 @@ typedef enum UDateFormatSymbolType {
 
 
     UDAT_STANDALONE_SHORTER_WEEKDAYS
+#ifndef U_HIDE_DRAFT_API
+    ,
+    
+
+
+
+
+    UDAT_CYCLIC_YEARS_WIDE,
+    
+
+
+
+    UDAT_CYCLIC_YEARS_ABBREVIATED,
+    
+
+
+
+
+    UDAT_CYCLIC_YEARS_NARROW,
+    
+
+
+
+
+    UDAT_ZODIAC_NAMES_WIDE,
+    
+
+
+
+    UDAT_ZODIAC_NAMES_ABBREVIATED,
+    
+
+
+
+
+    UDAT_ZODIAC_NAMES_NARROW
 #endif  
 } UDateFormatSymbolType;
 
@@ -1318,7 +1532,6 @@ udat_getLocaleByType(const UDateFormat *fmt,
                      ULocDataLocaleType type,
                      UErrorCode* status); 
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -1339,10 +1552,8 @@ udat_setContext(UDateFormat* fmt, UDisplayContext value, UErrorCode* status);
 
 
 
-U_DRAFT UDisplayContext U_EXPORT2
-udat_getContext(UDateFormat* fmt, UDisplayContextType type, UErrorCode* status);
-
-#endif  
+U_STABLE UDisplayContext U_EXPORT2
+udat_getContext(const UDateFormat* fmt, UDisplayContextType type, UErrorCode* status);
 
 #ifndef U_HIDE_INTERNAL_API
 

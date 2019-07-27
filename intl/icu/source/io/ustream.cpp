@@ -13,6 +13,9 @@
 
 
 #include "unicode/utypes.h"
+
+#if !UCONFIG_NO_CONVERSION
+
 #include "unicode/uobject.h"
 #include "unicode/ustream.h"
 #include "unicode/ucnv.h"
@@ -164,4 +167,5 @@ STOP_READING:
 
 U_NAMESPACE_END
 
+#endif
 #endif

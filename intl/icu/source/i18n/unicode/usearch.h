@@ -137,6 +137,11 @@
 
 
 
+
+
+
+
+
 #define USEARCH_DONE -1
 
 
@@ -155,20 +160,39 @@ typedef struct UStringSearch UStringSearch;
 
 typedef enum {
     
-    USEARCH_OVERLAP,
+
+
+
+    USEARCH_OVERLAP = 0,
+#ifndef U_HIDE_DEPRECATED_API
     
 
 
 
-    USEARCH_CANONICAL_MATCH,
+
+
+
+
+
+
+
+
+
+
+    USEARCH_CANONICAL_MATCH = 1,
+#endif  
     
 
 
 
 
-    USEARCH_ELEMENT_COMPARISON,
+    USEARCH_ELEMENT_COMPARISON = 2,
 
-    USEARCH_ATTRIBUTE_COUNT
+    
+
+
+
+    USEARCH_ATTRIBUTE_COUNT = 3
 } USearchAttribute;
 
 
@@ -176,10 +200,19 @@ typedef enum {
 
 typedef enum {
     
+
+
+
     USEARCH_DEFAULT = -1,
     
+
+
+
     USEARCH_OFF, 
     
+
+
+
     USEARCH_ON,
     
 
@@ -189,6 +222,11 @@ typedef enum {
 
     USEARCH_STANDARD_ELEMENT_COMPARISON,
     
+
+
+
+
+
 
 
 
@@ -215,7 +253,18 @@ typedef enum {
 
 
 
+
+
+
+
+
+
+
     USEARCH_ANY_BASE_WEIGHT_IS_WILDCARD,
+
+    
+
+
 
     USEARCH_ATTRIBUTE_VALUE_COUNT
 } USearchAttributeValue;

@@ -413,8 +413,13 @@ private:
 
  public:
 
+#if U_OVERRIDE_CXX_ALLOCATION
     using UMemory::operator new;
     using UMemory::operator delete;
+#else
+    static inline void * U_EXPORT2 operator new(size_t size) U_NO_THROW { return ::operator new(size); };
+    static inline void U_EXPORT2 operator delete(void *ptr )  U_NO_THROW { ::operator delete(ptr); };
+#endif
 
     
 

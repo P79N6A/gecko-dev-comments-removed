@@ -434,7 +434,7 @@ TZGNCore::initialize(const Locale& locale, UErrorCode& status) {
     TimeZone *tz = TimeZone::createDefault();
     const UChar *tzID = ZoneMeta::getCanonicalCLDRID(*tz);
     if (tzID != NULL) {
-        loadStrings(UnicodeString(tzID));
+        loadStrings(UnicodeString(TRUE, tzID, -1));
     }
     delete tz;
 }
@@ -467,7 +467,7 @@ TZGNCore::getDisplayName(const TimeZone& tz, UTimeZoneGenericNameType type, UDat
         {
             const UChar* tzCanonicalID = ZoneMeta::getCanonicalCLDRID(tz);
             if (tzCanonicalID != NULL) {
-                getGenericLocationName(UnicodeString(tzCanonicalID), name);
+                getGenericLocationName(UnicodeString(TRUE, tzCanonicalID, -1), name);
             }
         }
         break;
@@ -477,7 +477,7 @@ TZGNCore::getDisplayName(const TimeZone& tz, UTimeZoneGenericNameType type, UDat
         if (name.isEmpty()) {
             const UChar* tzCanonicalID = ZoneMeta::getCanonicalCLDRID(tz);
             if (tzCanonicalID != NULL) {
-                getGenericLocationName(UnicodeString(tzCanonicalID), name);
+                getGenericLocationName(UnicodeString(TRUE, tzCanonicalID, -1), name);
             }
         }
         break;
@@ -620,7 +620,7 @@ TZGNCore::formatGenericNonLocationName(const TimeZone& tz, UTimeZoneGenericNameT
         return name;
     }
 
-    UnicodeString tzID(uID);
+    UnicodeString tzID(TRUE, uID, -1);
 
     
     UTimeZoneNameType nameType = (type == UTZGNM_LONG) ? UTZNM_LONG_GENERIC : UTZNM_SHORT_GENERIC;
@@ -631,12 +631,14 @@ TZGNCore::formatGenericNonLocationName(const TimeZone& tz, UTimeZoneGenericNameT
     }
 
     
-    UnicodeString mzID;
+    UChar mzIDBuf[32];
+    UnicodeString mzID(mzIDBuf, 0, UPRV_LENGTHOF(mzIDBuf));
     fTimeZoneNames->getMetaZoneID(tzID, date, mzID);
     if (!mzID.isEmpty()) {
         UErrorCode status = U_ZERO_ERROR;
         UBool useStandard = FALSE;
         int32_t raw, sav;
+        UChar tmpNameBuf[64];
 
         tz.getOffset(date, FALSE, raw, sav, status);
         if (U_FAILURE(status)) {
@@ -694,7 +696,7 @@ TZGNCore::formatGenericNonLocationName(const TimeZone& tz, UTimeZoneGenericNameT
         if (useStandard) {
             UTimeZoneNameType stdNameType = (nameType == UTZNM_LONG_GENERIC)
                 ? UTZNM_LONG_STANDARD : UTZNM_SHORT_STANDARD;
-            UnicodeString stdName;
+            UnicodeString stdName(tmpNameBuf, 0, UPRV_LENGTHOF(tmpNameBuf));
             fTimeZoneNames->getDisplayName(tzID, stdNameType, date, stdName);
             if (!stdName.isEmpty()) {
                 name.setTo(stdName);
@@ -704,7 +706,8 @@ TZGNCore::formatGenericNonLocationName(const TimeZone& tz, UTimeZoneGenericNameT
                 
                 
                 
-                UnicodeString mzGenericName;
+                UChar genNameBuf[64];
+                UnicodeString mzGenericName(genNameBuf, 0, UPRV_LENGTHOF(genNameBuf));
                 fTimeZoneNames->getMetaZoneDisplayName(mzID, nameType, mzGenericName);
                 if (stdName.caseCompare(mzGenericName, 0) == 0) {
                     name.setToBogus();
@@ -713,13 +716,14 @@ TZGNCore::formatGenericNonLocationName(const TimeZone& tz, UTimeZoneGenericNameT
         }
         if (name.isEmpty()) {
             
-            UnicodeString mzName;
+            UnicodeString mzName(tmpNameBuf, 0, UPRV_LENGTHOF(tmpNameBuf));
             fTimeZoneNames->getMetaZoneDisplayName(mzID, nameType, mzName);
             if (!mzName.isEmpty()) {
                 
                 
                 
-                UnicodeString goldenID;
+                UChar idBuf[32];
+                UnicodeString goldenID(idBuf, 0, UPRV_LENGTHOF(idBuf));
                 fTimeZoneNames->getReferenceZoneID(mzID, fTargetRegion, goldenID);
                 if (!goldenID.isEmpty() && goldenID != tzID) {
                     TimeZone *goldenZone = TimeZone::createTimeZone(goldenID);
@@ -1185,7 +1189,7 @@ U_CDECL_END
 
 
 static void sweepCache() {
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement* elem;
     double now = (double)uprv_getUTCtime();
 

@@ -17,8 +17,6 @@
 
 
 
-
-
 #include "unicode/utypes.h"
 #include "unicode/udata.h"
 #include "unicode/ustring.h"
@@ -32,8 +30,6 @@
 #include "uresdata.h"
 #include "uresimp.h"
 #include "uassert.h"
-
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 
 
 
@@ -751,11 +747,11 @@ ures_swapResource(const UDataSwapper *ds,
             (key!=gUnknownKey ?
                 
                 0==ds->compareInvChars(ds, key, -1,
-                                       gCollationBinKey, LENGTHOF(gCollationBinKey)-1) :
+                                       gCollationBinKey, UPRV_LENGTHOF(gCollationBinKey)-1) :
                 
                 ucol_looksLikeCollationBinary(ds, p+1, count))
         ) {
-            ucol_swapBinary(ds, p+1, count, q+1, pErrorCode);
+            ucol_swap(ds, p+1, count, q+1, pErrorCode);
         }
 #endif
         break;

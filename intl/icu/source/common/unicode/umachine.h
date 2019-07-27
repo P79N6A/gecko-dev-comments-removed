@@ -120,6 +120,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__cplusplus) && __cplusplus>=201103L
+
+#ifndef U_OVERRIDE
+#define U_OVERRIDE override
+#endif
+#ifndef U_FINAL
+#define U_FINAL final
+#endif
+#else
+
+#ifndef U_OVERRIDE
+#define U_OVERRIDE
+#endif
+#ifndef U_FINAL
+#define U_FINAL
+#endif
+#endif
+
+
+
+
+
 #ifndef INT8_MIN
 
 #   define INT8_MIN        ((int8_t)(-128))

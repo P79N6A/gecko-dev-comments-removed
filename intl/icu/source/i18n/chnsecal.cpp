@@ -51,8 +51,11 @@ static void debug_chnsecal_msg(const char *pat, ...)
 
 static UMutex astroLock = U_MUTEX_INITIALIZER;  
 static icu::CalendarAstronomer *gChineseCalendarAstro = NULL;
+
+
 static icu::CalendarCache *gChineseCalendarWinterSolsticeCache = NULL;
 static icu::CalendarCache *gChineseCalendarNewYearCache = NULL;
+
 static icu::TimeZone *gChineseCalendarZoneAstroCalc = NULL;
 static icu::UInitOnce gChineseCalendarZoneAstroCalcInitOnce = U_INITONCE_INITIALIZER;
 

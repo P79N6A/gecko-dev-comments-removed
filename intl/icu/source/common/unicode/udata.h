@@ -103,6 +103,11 @@ U_CDECL_BEGIN
 
 
 
+
+
+
+
+
 typedef struct {
     
 
@@ -282,6 +287,9 @@ U_NAMESPACE_END
 
 
 
+
+
+
 U_STABLE const void * U_EXPORT2
 udata_getMemory(UDataMemory *pData);
 
@@ -346,8 +354,14 @@ udata_getInfo(UDataMemory *pData, UDataInfo *pInfo);
 
 
 
+
+
+
 U_STABLE void U_EXPORT2
 udata_setCommonData(const void *data, UErrorCode *err);
+
+
+
 
 
 

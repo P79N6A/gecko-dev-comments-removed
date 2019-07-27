@@ -598,7 +598,6 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID();
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -632,7 +631,6 @@ public:
 
 
     inline const UFormattable *toUFormattable() const;
-#endif  
 
 #ifndef U_HIDE_DEPRECATED_API
     
@@ -738,7 +736,6 @@ inline int32_t Formattable::getLong(UErrorCode* status) const {
 }
 #endif  
 
-#ifndef U_HIDE_DRAFT_API
 inline UFormattable* Formattable::toUFormattable() {
   return reinterpret_cast<UFormattable*>(this);
 }
@@ -754,7 +751,6 @@ inline Formattable* Formattable::fromUFormattable(UFormattable *fmt) {
 inline const Formattable* Formattable::fromUFormattable(const UFormattable *fmt) {
   return reinterpret_cast<const Formattable *>(fmt);
 }
-#endif  
 
 U_NAMESPACE_END
 

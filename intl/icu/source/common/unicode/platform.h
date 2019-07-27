@@ -122,9 +122,15 @@
 
 #define U_PF_LINUX 4000
 
+
+
+
+
+
+#define U_PF_BROWSER_NATIVE_CLIENT 4020
+
 #define U_PF_ANDROID 4050
 
-#define U_PF_CLASSIC_MACOS 8000
 
 #define U_PF_OS390 9000
 
@@ -142,6 +148,8 @@
 #   define U_PLATFORM U_PF_ANDROID
     
 #   include <android/api-level.h>
+#elif defined(__native_client__)
+#   define U_PLATFORM U_PF_BROWSER_NATIVE_CLIENT
 #elif defined(linux) || defined(__linux__) || defined(__linux)
 #   define U_PLATFORM U_PF_LINUX
 #elif defined(__APPLE__) && defined(__MACH__)
@@ -169,8 +177,6 @@
 #   define U_PLATFORM U_PF_HPUX
 #elif defined(sgi) || defined(__sgi)
 #   define U_PLATFORM U_PF_IRIX
-#elif defined(macintosh)
-#   define U_PLATFORM U_PF_CLASSIC_MACOS
 #elif defined(__QNX__) || defined(__QNXNTO__)
 #   define U_PLATFORM U_PF_QNX
 #elif defined(__TOS_MVS__)
@@ -230,7 +236,7 @@
 
 #ifdef U_PLATFORM_IMPLEMENTS_POSIX
     
-#elif U_PLATFORM_USES_ONLY_WIN32_API || U_PLATFORM == U_PF_CLASSIC_MACOS
+#elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_PLATFORM_IMPLEMENTS_POSIX 0
 #else
 #   define U_PLATFORM_IMPLEMENTS_POSIX 1
@@ -243,7 +249,7 @@
 
 #ifdef U_PLATFORM_IS_LINUX_BASED
     
-#elif U_PF_LINUX <= U_PLATFORM && U_PLATFORM <= U_PF_ANDROID
+#elif U_PF_LINUX <= U_PLATFORM && U_PLATFORM <= 4499
 #   define U_PLATFORM_IS_LINUX_BASED 1
 #else
 #   define U_PLATFORM_IS_LINUX_BASED 0
@@ -579,7 +585,7 @@
 
 #ifdef U_SIZEOF_WCHAR_T
     
-#elif (U_PLATFORM == U_PF_ANDROID && __ANDROID_API__ < 9) || U_PLATFORM == U_PF_CLASSIC_MACOS
+#elif (U_PLATFORM == U_PF_ANDROID && __ANDROID_API__ < 9)
     
 
 

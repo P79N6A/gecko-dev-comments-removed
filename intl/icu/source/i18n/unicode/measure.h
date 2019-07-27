@@ -38,10 +38,6 @@ class MeasureUnit;
 
 
 
-
-
-
-
 class U_I18N_API Measure: public UObject {
  public:
     
@@ -74,7 +70,7 @@ class U_I18N_API Measure: public UObject {
 
 
 
-    virtual UObject* clone() const = 0;
+    virtual UObject* clone() const;
 
     
 
@@ -102,6 +98,32 @@ class U_I18N_API Measure: public UObject {
 
 
     inline const MeasureUnit& getUnit() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+    static UClassID U_EXPORT2 getStaticClassID(void);
+
+    
+
+
+
+
+
+
+
+
+
+
+    virtual UClassID getDynamicClassID(void) const;
 
  protected:
     

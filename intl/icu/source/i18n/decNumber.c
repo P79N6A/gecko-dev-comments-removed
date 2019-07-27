@@ -215,7 +215,9 @@ static const Unit uarrone[1]={1};
 
 
 
+#if 0
 static const uByte DECSTICKYTAB[10]={1,1,2,3,4,6,6,7,8,9}; 
+#endif
 
 
 

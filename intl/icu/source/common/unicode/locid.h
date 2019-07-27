@@ -493,6 +493,23 @@ public:
 
     uint32_t        getLCID(void) const;
 
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    UBool isRightToLeft() const;
+#endif  
+
     
 
 
@@ -733,7 +750,7 @@ private:
     char fullNameBuffer[ULOC_FULLNAME_CAPACITY];
     
     char* baseName;
-    char baseNameBuffer[ULOC_FULLNAME_CAPACITY];
+    void initBaseName(UErrorCode& status);
 
     UBool fIsBogus;
 
@@ -748,7 +765,7 @@ private:
     
 
 
-    friend void locale_available_init();
+    friend void U_CALLCONV locale_available_init();
 };
 
 inline UBool
@@ -778,7 +795,6 @@ Locale::getScript() const
 inline const char *
 Locale::getVariant() const
 {
-    getBaseName(); 
     return &baseName[variantBegin];
 }
 

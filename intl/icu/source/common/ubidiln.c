@@ -110,7 +110,7 @@ setTrailingWSStart(UBiDi *pBiDi) {
         return;
     }
     
-    while(start>0 && DIRPROP_FLAG(PURE_DIRPROP(dirProps[start-1]))&MASK_WS) {
+    while(start>0 && DIRPROP_FLAG(dirProps[start-1])&MASK_WS) {
         --start;
     }
 

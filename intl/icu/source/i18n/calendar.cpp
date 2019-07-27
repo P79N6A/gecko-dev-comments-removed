@@ -57,6 +57,8 @@
 #include "ustrenum.h"
 #include "uassert.h"
 #include "olsontz.h"
+#include "sharedcalendar.h"
+#include "unifiedcache.h"
 
 #if !UCONFIG_NO_SERVICE
 static icu::ICULocaleService* gService = NULL;
@@ -106,7 +108,7 @@ U_CDECL_END
 
 
 const char* fldName(UCalendarDateFields f) {
-	return udbg_enumName(UDBG_UCalendarDateFields, (int32_t)f);
+    return udbg_enumName(UDBG_UCalendarDateFields, (int32_t)f);
 }
 
 #if UCAL_DEBUG_DUMP
@@ -198,6 +200,27 @@ typedef enum ECalType {
 } ECalType;
 
 U_NAMESPACE_BEGIN
+
+SharedCalendar::~SharedCalendar() {
+    delete ptr;
+}
+
+template<> U_I18N_API
+const SharedCalendar *LocaleCacheKey<SharedCalendar>::createObject(
+        const void * , UErrorCode &status) const {
+    Calendar *calendar = Calendar::makeInstance(fLoc, status);
+    if (U_FAILURE(status)) {
+        return NULL; 
+    }
+    SharedCalendar *shared = new SharedCalendar(calendar);
+    if (shared == NULL) {
+        delete calendar;
+        status = U_MEMORY_ALLOCATION_ERROR;
+        return NULL;
+    }
+    shared->addRef();
+    return shared;
+}
 
 static ECalType getCalendarType(const char *s) {
     for (int i = 0; gCalTypes[i] != NULL; i++) {
@@ -612,8 +635,8 @@ static const int32_t kCalendarLimits[UCAL_FIELD_COUNT][4] = {
     {           1,            1,             7,             7  }, 
     {-1,       -1,     -1,       -1}, 
     { -0x7F000000,  -0x7F000000,    0x7F000000,    0x7F000000  }, 
-    {           0,            0, 24*kOneHour-1, 24*kOneHour-1  },  
-    {           0,            0,             1,             1  },  
+    {           0,            0, 24*kOneHour-1, 24*kOneHour-1  }, 
+    {           0,            0,             1,             1  }, 
 };
 
 
@@ -680,11 +703,14 @@ fAreFieldsVirtuallySet(FALSE),
 fNextStamp((int32_t)kMinimumUserStamp),
 fTime(0),
 fLenient(TRUE),
-fZone(0),
+fZone(NULL),
 fRepeatedWallTime(UCAL_WALLTIME_LAST),
 fSkippedWallTime(UCAL_WALLTIME_LAST)
 {
     clear();
+    if (U_FAILURE(success)) {
+        return;
+    }
     fZone = TimeZone::createDefault();
     if (fZone == NULL) {
         success = U_MEMORY_ALLOCATION_ERROR;
@@ -703,10 +729,13 @@ fAreFieldsVirtuallySet(FALSE),
 fNextStamp((int32_t)kMinimumUserStamp),
 fTime(0),
 fLenient(TRUE),
-fZone(0),
+fZone(NULL),
 fRepeatedWallTime(UCAL_WALLTIME_LAST),
 fSkippedWallTime(UCAL_WALLTIME_LAST)
 {
+    if (U_FAILURE(success)) {
+        return;
+    }
     if(zone == 0) {
 #if defined (U_DEBUG_CAL)
         fprintf(stderr, "%s:%d: ILLEGAL ARG because timezone cannot be 0\n",
@@ -718,7 +747,6 @@ fSkippedWallTime(UCAL_WALLTIME_LAST)
 
     clear();    
     fZone = zone;
-
     setWeekData(aLocale, NULL, success);
 }
 
@@ -733,14 +761,17 @@ fAreFieldsVirtuallySet(FALSE),
 fNextStamp((int32_t)kMinimumUserStamp),
 fTime(0),
 fLenient(TRUE),
-fZone(0),
+fZone(NULL),
 fRepeatedWallTime(UCAL_WALLTIME_LAST),
 fSkippedWallTime(UCAL_WALLTIME_LAST)
 {
+    if (U_FAILURE(success)) {
+        return;
+    }
     clear();
     fZone = zone.clone();
     if (fZone == NULL) {
-    	success = U_MEMORY_ALLOCATION_ERROR;
+        success = U_MEMORY_ALLOCATION_ERROR;
     }
     setWeekData(aLocale, NULL, success);
 }
@@ -757,7 +788,7 @@ Calendar::~Calendar()
 Calendar::Calendar(const Calendar &source)
 :   UObject(source)
 {
-    fZone = 0;
+    fZone = NULL;
     *this = source;
 }
 
@@ -778,9 +809,8 @@ Calendar::operator=(const Calendar &right)
         fLenient                 = right.fLenient;
         fRepeatedWallTime        = right.fRepeatedWallTime;
         fSkippedWallTime         = right.fSkippedWallTime;
-        if (fZone != NULL) {
-            delete fZone;
-        }
+        delete fZone;
+        fZone = NULL;
         if (right.fZone != NULL) {
             fZone                = right.fZone->clone();
         }
@@ -826,9 +856,8 @@ Calendar::createInstance(const Locale& aLocale, UErrorCode& success)
 
 
 
-Calendar* U_EXPORT2
-Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& success)
-{
+Calendar * U_EXPORT2
+Calendar::makeInstance(const Locale& aLocale, UErrorCode& success) {
     if (U_FAILURE(success)) {
         return NULL;
     }
@@ -848,7 +877,6 @@ Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& succ
     Calendar* c = NULL;
 
     if(U_FAILURE(success) || !u) {
-        delete zone;
         if(U_SUCCESS(success)) { 
             success = U_INTERNAL_PROGRAM_ERROR;
         }
@@ -877,7 +905,6 @@ Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& succ
         c = (Calendar*)getCalendarService(success)->get(l, LocaleKey::KIND_ANY, &actualLoc2, success);
 
         if(U_FAILURE(success) || !c) {
-            delete zone;
             if(U_SUCCESS(success)) { 
                 success = U_INTERNAL_PROGRAM_ERROR; 
             }
@@ -903,7 +930,6 @@ Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& succ
 #endif
             success = U_MISSING_RESOURCE_ERROR;  
             delete c;
-            delete zone;
             return NULL;
         }
 #ifdef U_DEBUG_CALSVC
@@ -926,8 +952,27 @@ Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& succ
         c = (Calendar*)u;
     }
 
+    return c;
+}
+
+Calendar* U_EXPORT2
+Calendar::createInstance(TimeZone* zone, const Locale& aLocale, UErrorCode& success)
+{
+    LocalPointer<TimeZone> zonePtr(zone);
+    const SharedCalendar *shared = NULL;
+    UnifiedCache::getByLocale(aLocale, shared, success);
+    if (U_FAILURE(success)) {
+        return NULL;
+    }
+    Calendar *c = (*shared)->clone();
+    shared->removeRef();
+    if (c == NULL) {
+        success = U_MEMORY_ALLOCATION_ERROR;
+        return NULL;
+    }
+
     
-    c->adoptTimeZone(zone); 
+    c->adoptTimeZone(zonePtr.orphan()); 
     c->setTimeInMillis(getNow(), success); 
 
     return c;
@@ -946,6 +991,24 @@ Calendar::createInstance(const TimeZone& zone, const Locale& aLocale, UErrorCode
 }
 
 
+
+void U_EXPORT2
+Calendar::getCalendarTypeFromLocale(
+        const Locale &aLocale,
+        char *typeBuffer,
+        int32_t typeBufferSize,
+        UErrorCode &success) {
+    const SharedCalendar *shared = NULL;
+    UnifiedCache::getByLocale(aLocale, shared, success);
+    if (U_FAILURE(success)) {
+        return;
+    }
+    uprv_strncpy(typeBuffer, (*shared)->getType(), typeBufferSize);
+    shared->removeRef();
+    if (typeBuffer[typeBufferSize - 1]) {
+        success = U_BUFFER_OVERFLOW_ERROR;
+    }
+}
 
 UBool
 Calendar::operator==(const Calendar& that) const
@@ -1161,6 +1224,135 @@ Calendar::set(int32_t year, int32_t month, int32_t date, int32_t hour, int32_t m
     set(UCAL_HOUR_OF_DAY, hour);
     set(UCAL_MINUTE, minute);
     set(UCAL_SECOND, second);
+}
+
+
+
+
+
+
+static int32_t gregoYearFromIslamicStart(int32_t year) {
+    
+    
+    
+    int cycle, offset, shift = 0;
+    if (year >= 1397) {
+        cycle = (year - 1397) / 67;
+        offset = (year - 1397) % 67;
+        shift = 2*cycle + ((offset >= 33)? 1: 0);
+    } else {
+        cycle = (year - 1396) / 67 - 1;
+        offset = -(year - 1396) % 67;
+        shift = 2*cycle + ((offset <= 33)? 1: 0);
+    }
+    return year + 579 - shift;
+}
+
+int32_t Calendar::getRelatedYear(UErrorCode &status) const
+{
+    if (U_FAILURE(status)) {
+        return 0;
+    }
+    int32_t year = get(UCAL_EXTENDED_YEAR, status);
+    if (U_FAILURE(status)) {
+        return 0;
+    }
+    
+    ECalType type = getCalendarType(getType());
+    switch (type) {
+        case CALTYPE_PERSIAN:
+            year += 622; break;
+        case CALTYPE_HEBREW:
+            year -= 3760; break;
+        case CALTYPE_CHINESE:
+            year -= 2637; break;
+        case CALTYPE_INDIAN:
+            year += 79; break;
+        case CALTYPE_COPTIC:
+            year += 284; break;
+        case CALTYPE_ETHIOPIC:
+            year += 8; break;
+        case CALTYPE_ETHIOPIC_AMETE_ALEM:
+            year -=5492; break;
+        case CALTYPE_DANGI:
+            year -= 2333; break;
+        case CALTYPE_ISLAMIC_CIVIL:
+        case CALTYPE_ISLAMIC:
+        case CALTYPE_ISLAMIC_UMALQURA:
+        case CALTYPE_ISLAMIC_TBLA:
+        case CALTYPE_ISLAMIC_RGSA:
+            year = gregoYearFromIslamicStart(year); break;
+        default:
+            
+            
+            
+            
+            
+            
+            break;
+    }
+    return year;
+}
+
+
+
+
+
+
+static int32_t firstIslamicStartYearFromGrego(int32_t year) {
+    
+    
+    
+    int cycle, offset, shift = 0;
+    if (year >= 1977) {
+        cycle = (year - 1977) / 65;
+        offset = (year - 1977) % 65;
+        shift = 2*cycle + ((offset >= 32)? 1: 0);
+    } else {
+        cycle = (year - 1976) / 65 - 1;
+        offset = -(year - 1976) % 65;
+        shift = 2*cycle + ((offset <= 32)? 1: 0);
+    }
+    return year - 579 + shift;
+}
+void Calendar::setRelatedYear(int32_t year)
+{
+    
+    ECalType type = getCalendarType(getType());
+    switch (type) {
+        case CALTYPE_PERSIAN:
+            year -= 622; break;
+        case CALTYPE_HEBREW:
+            year += 3760; break;
+        case CALTYPE_CHINESE:
+            year += 2637; break;
+        case CALTYPE_INDIAN:
+            year -= 79; break;
+        case CALTYPE_COPTIC:
+            year -= 284; break;
+        case CALTYPE_ETHIOPIC:
+            year -= 8; break;
+        case CALTYPE_ETHIOPIC_AMETE_ALEM:
+            year +=5492; break;
+        case CALTYPE_DANGI:
+            year += 2333; break;
+        case CALTYPE_ISLAMIC_CIVIL:
+        case CALTYPE_ISLAMIC:
+        case CALTYPE_ISLAMIC_UMALQURA:
+        case CALTYPE_ISLAMIC_TBLA:
+        case CALTYPE_ISLAMIC_RGSA:
+            year = firstIslamicStartYearFromGrego(year); break;
+        default:
+            
+            
+            
+            
+            
+            
+            break;
+    }
+    
+    set(UCAL_EXTENDED_YEAR, year);
 }
 
 
@@ -1912,7 +2104,7 @@ void Calendar::add(UCalendarDateFields field, int32_t amount, UErrorCode& status
     
 
     double delta = amount; 
-    UBool keepHourInvariant = TRUE;
+    UBool keepWallTimeInvariant = TRUE;
 
     switch (field) {
     case UCAL_ERA:
@@ -1974,22 +2166,22 @@ void Calendar::add(UCalendarDateFields field, int32_t amount, UErrorCode& status
     case UCAL_HOUR_OF_DAY:
     case UCAL_HOUR:
         delta *= kOneHour;
-        keepHourInvariant = FALSE;
+        keepWallTimeInvariant = FALSE;
         break;
 
     case UCAL_MINUTE:
         delta *= kOneMinute;
-        keepHourInvariant = FALSE;
+        keepWallTimeInvariant = FALSE;
         break;
 
     case UCAL_SECOND:
         delta *= kOneSecond;
-        keepHourInvariant = FALSE;
+        keepWallTimeInvariant = FALSE;
         break;
 
     case UCAL_MILLISECOND:
     case UCAL_MILLISECONDS_IN_DAY:
-        keepHourInvariant = FALSE;
+        keepWallTimeInvariant = FALSE;
         break;
 
     default:
@@ -2008,36 +2200,56 @@ void Calendar::add(UCalendarDateFields field, int32_t amount, UErrorCode& status
     
     
     int32_t prevOffset = 0;
-    int32_t hour = 0;
-    if (keepHourInvariant) {
+    int32_t prevWallTime = 0;
+    if (keepWallTimeInvariant) {
         prevOffset = get(UCAL_DST_OFFSET, status) + get(UCAL_ZONE_OFFSET, status);
-        hour = internalGet(UCAL_HOUR_OF_DAY);
+        prevWallTime = get(UCAL_MILLISECONDS_IN_DAY, status);
     }
 
     setTimeInMillis(getTimeInMillis(status) + delta, status);
 
-    if (keepHourInvariant) {
-        int32_t newOffset = get(UCAL_DST_OFFSET, status) + get(UCAL_ZONE_OFFSET, status);
-        if (newOffset != prevOffset) {
+    if (keepWallTimeInvariant) {
+        int32_t newWallTime = get(UCAL_MILLISECONDS_IN_DAY, status);
+        if (newWallTime != prevWallTime) {
             
             
             
-            
-            
-            
-            
-
-            
-            
-            
-            
-            int32_t adjAmount = prevOffset - newOffset;
-            adjAmount = adjAmount >= 0 ? adjAmount % (int32_t)kOneDay : -(-adjAmount % (int32_t)kOneDay);
-            if (adjAmount != 0) {
-                double t = internalGetTime();
-                setTimeInMillis(t + adjAmount, status);
-                if (get(UCAL_HOUR_OF_DAY, status) != hour) {
-                    setTimeInMillis(t, status);
+            UDate t = internalGetTime();
+            int32_t newOffset = get(UCAL_DST_OFFSET, status) + get(UCAL_ZONE_OFFSET, status);
+            if (newOffset != prevOffset) {
+                
+                
+                
+                
+                int32_t adjAmount = prevOffset - newOffset;
+                adjAmount = adjAmount >= 0 ? adjAmount % (int32_t)kOneDay : -(-adjAmount % (int32_t)kOneDay);
+                if (adjAmount != 0) {
+                    setTimeInMillis(t + adjAmount, status);
+                    newWallTime = get(UCAL_MILLISECONDS_IN_DAY, status);
+                }
+                if (newWallTime != prevWallTime) {
+                    
+                    
+                    switch (fSkippedWallTime) {
+                    case UCAL_WALLTIME_FIRST:
+                        if (adjAmount > 0) {
+                            setTimeInMillis(t, status);
+                        }
+                        break;
+                    case UCAL_WALLTIME_LAST:
+                        if (adjAmount < 0) {
+                            setTimeInMillis(t, status);
+                        }
+                        break;
+                    case UCAL_WALLTIME_NEXT_VALID:
+                        UDate tmpT = adjAmount > 0 ? internalGetTime() : t;
+                        UDate immediatePrevTrans;
+                        UBool hasTransition = getImmediatePreviousZoneTransition(tmpT, &immediatePrevTrans, status);
+                        if (U_SUCCESS(status) && hasTransition) {
+                            setTimeInMillis(immediatePrevTrans, status);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -2158,7 +2370,7 @@ Calendar::adoptTimeZone(TimeZone* zone)
     if (zone == NULL) return;
 
     
-    if (fZone != NULL) delete fZone;
+    delete fZone;
     fZone = zone;
 
     
@@ -2177,6 +2389,7 @@ Calendar::setTimeZone(const TimeZone& zone)
 const TimeZone&
 Calendar::getTimeZone() const
 {
+    U_ASSERT(fZone != NULL);
     return *fZone;
 }
 
@@ -2185,9 +2398,14 @@ Calendar::getTimeZone() const
 TimeZone*
 Calendar::orphanTimeZone()
 {
-    TimeZone *z = fZone;
     
-    fZone = TimeZone::createDefault();
+    TimeZone *defaultZone = TimeZone::createDefault();
+    if (defaultZone == NULL) {
+        
+        return NULL;
+    }
+    TimeZone *z = fZone;
+    fZone = defaultZone;
     return z;
 }
 
@@ -2306,11 +2524,11 @@ Calendar::getDayOfWeekType(UCalendarDaysOfWeek dayOfWeek, UErrorCode &status) co
         status = U_ILLEGAL_ARGUMENT_ERROR;
         return UCAL_WEEKDAY;
     }
-	if (fWeekendOnset == fWeekendCease) {
-		if (dayOfWeek != fWeekendOnset)
-			return UCAL_WEEKDAY;
-		return (fWeekendOnsetMillis == 0) ? UCAL_WEEKEND : UCAL_WEEKEND_ONSET;
-	}
+    if (fWeekendOnset == fWeekendCease) {
+        if (dayOfWeek != fWeekendOnset)
+            return UCAL_WEEKDAY;
+        return (fWeekendOnsetMillis == 0) ? UCAL_WEEKEND : UCAL_WEEKEND_ONSET;
+    }
     if (fWeekendOnset < fWeekendCease) {
         if (dayOfWeek < fWeekendOnset || dayOfWeek > fWeekendCease) {
             return UCAL_WEEKDAY;
@@ -2818,22 +3036,10 @@ void Calendar::computeTime(UErrorCode& status) {
                         
                         
                         
-
-                        BasicTimeZone *btz = getBasicTimeZone();
-                        if (btz) {
-                            TimeZoneTransition transition;
-                            UBool hasTransition = btz->getPreviousTransition(tmpTime, TRUE, transition);
-                            if (hasTransition) {
-                                t = transition.getTime();
-                            } else {
-                                
-                                
-                                status = U_INTERNAL_PROGRAM_ERROR;
-                            }
-                        } else {
-                            
-                            
-                            status = U_UNSUPPORTED_ERROR;
+                        UDate immediatePrevTransition;
+                        UBool hasTransition = getImmediatePreviousZoneTransition(tmpTime, &immediatePrevTransition, status);
+                        if (U_SUCCESS(status) && hasTransition) {
+                            t = immediatePrevTransition;
                         }
                     }
                 } else {
@@ -2847,6 +3053,30 @@ void Calendar::computeTime(UErrorCode& status) {
     if (U_SUCCESS(status)) {
         internalSetTime(t);
     }
+}
+
+
+
+
+UBool Calendar::getImmediatePreviousZoneTransition(UDate base, UDate *transitionTime, UErrorCode& status) const {
+    BasicTimeZone *btz = getBasicTimeZone();
+    if (btz) {
+        TimeZoneTransition trans;
+        UBool hasTransition = btz->getPreviousTransition(base, TRUE, trans);
+        if (hasTransition) {
+            *transitionTime = trans.getTime();
+            return TRUE;
+        } else {
+            
+            
+            status = U_INTERNAL_PROGRAM_ERROR;
+        }
+    } else {
+        
+        
+        status = U_UNSUPPORTED_ERROR;
+    }
+    return FALSE;
 }
 
 
@@ -3236,10 +3466,12 @@ int32_t Calendar::handleGetExtendedYearFromWeekFields(int32_t yearWoy, int32_t w
     if (first < 0) {
         first += 7;
     }
-    int32_t nextFirst = julianDayToDayOfWeek(nextJan1Start + 1) - firstDayOfWeek;
-    if (nextFirst < 0) {
-        nextFirst += 7;
-    }
+
+    
+    
+    
+    
+    
 
     int32_t minDays = getMinimalDaysInFirstWeek();
     UBool jan1InPrevYear = FALSE;  

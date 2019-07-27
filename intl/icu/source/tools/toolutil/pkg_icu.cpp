@@ -17,9 +17,6 @@
 #include <string.h>
 
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
-
 
 U_NAMESPACE_USE
 
@@ -38,7 +35,7 @@ isListTextFile(const char *listname) {
     const char *listNameEnd=strchr(listname, 0);
     const char *suffix;
     int32_t i, length;
-    for(i=0; i<LENGTHOF(listFileSuffixes); ++i) {
+    for(i=0; i<UPRV_LENGTHOF(listFileSuffixes); ++i) {
         suffix=listFileSuffixes[i].suffix;
         length=listFileSuffixes[i].length;
         if((listNameEnd-listname)>length && 0==memcmp(listNameEnd-length, suffix, length)) {

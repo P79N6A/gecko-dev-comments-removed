@@ -592,6 +592,7 @@ int32_t RuleBasedBreakIterator::next(void) {
     }
 
     int32_t startPos = current();
+    fDictionaryCharCount = 0;
     int32_t result = handleNext(fData->fForwardTable);
     if (fDictionaryCharCount > 0) {
         result = checkDictionary(startPos, result, FALSE);
@@ -646,7 +647,6 @@ int32_t RuleBasedBreakIterator::previous(void) {
     
     
     
-
     
 
     int32_t start = current();
@@ -704,6 +704,22 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
     
     
     
+    if (fText == NULL || offset >= utext_nativeLength(fText)) {
+        last();
+        return next();
+    }
+    else if (offset < 0) {
+        return first();
+    }
+
+    
+    
+    utext_setNativeIndex(fText, offset);
+    offset = utext_getNativeIndex(fText);
+
+    
+    
+    
     
     if (fCachedBreakPositions != NULL) {
         if (offset >= fCachedBreakPositions[0]
@@ -725,25 +741,13 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
     
     
     
-    fLastRuleStatusIndex  = 0;
-    fLastStatusIndexValid = TRUE;
-    if (fText == NULL || offset >= utext_nativeLength(fText)) {
-        last();
-        return next();
-    }
-    else if (offset < 0) {
-        return first();
-    }
-
-    
-    
-    
 
     int32_t result = 0;
 
     if (fData->fSafeRevTable != NULL) {
         
         utext_setNativeIndex(fText, offset);
+        
         
         
         
@@ -811,6 +815,21 @@ int32_t RuleBasedBreakIterator::following(int32_t offset) {
 int32_t RuleBasedBreakIterator::preceding(int32_t offset) {
     
     
+    
+    if (fText == NULL || offset > utext_nativeLength(fText)) {
+        return last();
+    }
+    else if (offset < 0) {
+        return first();
+    }
+
+    
+    
+    utext_setNativeIndex(fText, offset);
+    offset = utext_getNativeIndex(fText);
+
+    
+    
     if (fCachedBreakPositions != NULL) {
         
         
@@ -832,17 +851,6 @@ int32_t RuleBasedBreakIterator::preceding(int32_t offset) {
         else {
             reset();
         }
-    }
-
-    
-    
-    
-    if (fText == NULL || offset > utext_nativeLength(fText)) {
-        
-        return last();
-    }
-    else if (offset < 0) {
-        return first();
     }
 
     
@@ -1581,30 +1589,6 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    static const void *utext_utf8Funcs;
-    if (utext_utf8Funcs == NULL) {
-        
-        UErrorCode status = U_ZERO_ERROR;
-        UText tempUText = UTEXT_INITIALIZER; 
-        utext_openUTF8(&tempUText, NULL, 0, &status);
-        utext_utf8Funcs = tempUText.pFuncs;
-        utext_close(&tempUText);
-    }
-    if (fText->pFuncs == utext_utf8Funcs) {
-        return (reverse ? startPos : endPos);
-    }
-
-    
-    
-    
     utext_setNativeIndex(fText, reverse ? endPos : startPos);
     if (reverse) {
         UTEXT_PREVIOUS32(fText);
@@ -1703,6 +1687,7 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
     
     
     if (foundBreakCount > 0) {
+        U_ASSERT(foundBreakCount == breaks.size());
         int32_t totalBreaks = foundBreakCount;
         if (startPos < breaks.elementAti(0)) {
             totalBreaks += 1;
@@ -1741,8 +1726,6 @@ int32_t RuleBasedBreakIterator::checkDictionary(int32_t startPos,
     utext_setNativeIndex(fText, reverse ? startPos : endPos);
     return (reverse ? startPos : endPos);
 }
-
-
 
 U_NAMESPACE_END
 

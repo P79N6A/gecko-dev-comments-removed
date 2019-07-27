@@ -272,7 +272,7 @@
 
 
 
-#define ULOC_KEYWORDS_CAPACITY 50
+#define ULOC_KEYWORDS_CAPACITY 96
 
 
 
@@ -886,6 +886,25 @@ uloc_setKeywordValue(const char* keywordName,
                      char* buffer, int32_t bufferCapacity,
                      UErrorCode* status);
 
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT UBool U_EXPORT2
+uloc_isRightToLeft(const char *locale);
+#endif  
+
 
 
 
@@ -1131,5 +1150,107 @@ uloc_toLanguageTag(const char* localeID,
                    int32_t langtagCapacity,
                    UBool strict,
                    UErrorCode* err);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT const char* U_EXPORT2
+uloc_toUnicodeLocaleKey(const char* keyword);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT const char* U_EXPORT2
+uloc_toUnicodeLocaleType(const char* keyword, const char* value);
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT const char* U_EXPORT2
+uloc_toLegacyKey(const char* keyword);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT const char* U_EXPORT2
+uloc_toLegacyType(const char* keyword, const char* value);
+
+#endif  
 
 #endif 

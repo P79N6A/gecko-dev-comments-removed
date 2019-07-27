@@ -42,8 +42,6 @@ static const int32_t kItemsChunk = 256;
 
 
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 static const UDataInfo dataInfo={
     (uint16_t)sizeof(UDataInfo),
@@ -594,7 +592,7 @@ Package::readPackage(const char *filename) {
                 exit(U_INVALID_FORMAT_ERROR);
             }
             prefixLength=(int32_t)(prefixLimit-s);
-            if(prefixLength==0 || prefixLength>=LENGTHOF(pkgPrefix)) {
+            if(prefixLength==0 || prefixLength>=UPRV_LENGTHOF(pkgPrefix)) {
                 fprintf(stderr,
                         "icupkg: --auto_toc_prefix[_with_type] but "
                         "the prefix of the first entry \"%s\" is empty or too long\n",
@@ -609,6 +607,7 @@ Package::readPackage(const char *filename) {
                 exit(U_INVALID_FORMAT_ERROR);
             }
             memcpy(pkgPrefix, s, prefixLength);
+            pkgPrefix[prefixLength]=0;
             memcpy(prefix, s, ++prefixLength);  
         } else {
             

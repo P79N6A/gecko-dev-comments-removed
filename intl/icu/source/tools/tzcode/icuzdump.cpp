@@ -196,9 +196,6 @@ private:
         hi = gcal->getTime(status);
     }
 
-    void dumpZone(ostream& out, const char* linesep, UnicodeString tzid, int32_t low, int32_t high) {
-    }
-
     TimeZone*   timezone;
     int32_t     loyear;
     int32_t     hiyear;

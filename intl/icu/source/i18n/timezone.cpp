@@ -427,15 +427,90 @@ TimeZone::createTimeZone(const UnicodeString& ID)
 
     TimeZone* result = createSystemTimeZone(ID);
 
-    if (result == 0) {
+    if (result == NULL) {
         U_DEBUG_TZ_MSG(("failed to load system time zone with id - falling to custom"));
         result = createCustomTimeZone(ID);
     }
-    if (result == 0) {
+    if (result == NULL) {
         U_DEBUG_TZ_MSG(("failed to load time zone with id - falling to Etc/Unknown(GMT)"));
-        result = getUnknown().clone();
+        const TimeZone& unknown = getUnknown();
+        if (_UNKNOWN_ZONE == NULL) {                   
+          U_DEBUG_TZ_MSG(("failed to getUnknown()"));  
+        } else {
+          result = unknown.clone();
+        }
     }
     return result;
+}
+
+
+
+TimeZone* U_EXPORT2
+TimeZone::detectHostTimeZone()
+{
+    
+    
+    int32_t rawOffset = 0;
+    const char *hostID;
+
+    
+    
+
+    uprv_tzset(); 
+
+    
+    
+    
+    
+    hostID = uprv_tzname(0);
+
+    
+    rawOffset = uprv_timezone() * -U_MILLIS_PER_SECOND;
+
+    TimeZone* hostZone = NULL;
+
+    
+    UnicodeString hostStrID(hostID, -1, US_INV);
+    hostStrID.append((UChar)0);
+    hostStrID.truncate(hostStrID.length()-1);
+    hostZone = createSystemTimeZone(hostStrID);
+
+#if U_PLATFORM_USES_ONLY_WIN32_API
+    
+    uprv_free(const_cast<char *>(hostID));
+#endif
+
+    int32_t hostIDLen = hostStrID.length();
+    if (hostZone != NULL && rawOffset != hostZone->getRawOffset()
+        && (3 <= hostIDLen && hostIDLen <= 4))
+    {
+        
+        
+        delete hostZone;
+        hostZone = NULL;
+    }
+
+    
+    
+    if (hostZone == NULL) {
+        hostZone = new SimpleTimeZone(rawOffset, hostStrID);
+    }
+
+    
+    
+    
+    
+    
+    if (hostZone == NULL) {
+        const TimeZone* temptz = TimeZone::getGMT();
+        
+        if (temptz == NULL) {
+            return NULL;
+        }
+        hostZone = temptz->clone();
+    }
+
+    return hostZone;
 }
 
 
@@ -457,14 +532,6 @@ static void U_CALLCONV initDefault()
     
     
     
-    int32_t rawOffset = 0;
-    const char *hostID;
-
-    
-    
-
-    
-    
     
     
     
@@ -473,55 +540,10 @@ static void U_CALLCONV initDefault()
     
     
 
-    uprv_tzset(); 
+    
+    
 
-    
-    
-    
-    
-    hostID = uprv_tzname(0);
-
-    
-    rawOffset = uprv_timezone() * -U_MILLIS_PER_SECOND;
-
-    TimeZone* default_zone = NULL;
-
-    
-    UnicodeString hostStrID(hostID, -1, US_INV);
-    hostStrID.append((UChar)0);
-    hostStrID.truncate(hostStrID.length()-1);
-    default_zone = createSystemTimeZone(hostStrID);
-
-#if U_PLATFORM_USES_ONLY_WIN32_API
-    
-    uprv_free(const_cast<char *>(hostID));
-#endif
-
-    int32_t hostIDLen = hostStrID.length();
-    if (default_zone != NULL && rawOffset != default_zone->getRawOffset()
-        && (3 <= hostIDLen && hostIDLen <= 4))
-    {
-        
-        
-        delete default_zone;
-        default_zone = NULL;
-    }
-
-    
-    
-    if (default_zone == NULL) {
-        default_zone = new SimpleTimeZone(rawOffset, hostStrID);
-    }
-
-    
-    if (default_zone == NULL) {
-        const TimeZone* temptz = TimeZone::getGMT();
-        
-        if (temptz == NULL) {
-            return;
-        }
-        default_zone = temptz->clone();
-    }
+    TimeZone *default_zone = TimeZone::detectHostTimeZone();
 
     
     
@@ -1293,6 +1315,8 @@ TimeZone::getCustomID(const UnicodeString& id, UnicodeString& normalized, UError
     int32_t sign, hour, min, sec;
     if (parseCustomID(id, sign, hour, min, sec)) {
         formatCustomID(hour, min, sec, (sign < 0), normalized);
+    } else {
+        status = U_ILLEGAL_ARGUMENT_ERROR;
     }
     return normalized;
 }
@@ -1523,7 +1547,6 @@ TimeZone::getCanonicalID(const UnicodeString& id, UnicodeString& canonicalID, UB
     return canonicalID;
 }
 
-#ifndef U_HIDE_DRAFT_API
 UnicodeString&
 TimeZone::getWindowsID(const UnicodeString& id, UnicodeString& winid, UErrorCode& status) {
     winid.remove();
@@ -1538,6 +1561,11 @@ TimeZone::getWindowsID(const UnicodeString& id, UnicodeString& winid, UErrorCode
     getCanonicalID(id, canonicalID, isSystemID, status);
     if (U_FAILURE(status) || !isSystemID) {
         
+        if (status == U_ILLEGAL_ARGUMENT_ERROR) {
+            
+            
+            status = U_ZERO_ERROR;
+        }
         return winid;
     }
 
@@ -1659,7 +1687,6 @@ TimeZone::getIDForWindowsID(const UnicodeString& winid, const char* region, Unic
     ures_close(zones);
     return id;
 }
-#endif 
 
 
 U_NAMESPACE_END

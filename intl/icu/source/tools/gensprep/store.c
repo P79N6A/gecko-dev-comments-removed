@@ -236,7 +236,7 @@ static UBool U_CALLCONV compareEntries(const UHashTok p1, const UHashTok p2) {
 static void 
 storeMappingData(){
 
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement* element = NULL;
     ValueStruct* value  = NULL;
     int32_t codepoint = 0;

@@ -16,7 +16,6 @@
 #include "servloc.h"
 #include "ustrfmt.h"
 #include "charstr.h"
-#include "ucln_cmn.h"
 #include "uassert.h"
 
 #define UNDERSCORE_CHAR ((UChar)0x005f)

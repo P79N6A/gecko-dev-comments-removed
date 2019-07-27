@@ -32,13 +32,13 @@ typedef unsigned char ICUZoneinfoVersion;
 #define ICU_ZONE_FILE "icu_zone.txt"
 
 
-#define ICU_TZ_ALIAS  "tz.alias"
-
-
 
 
 
 #define ICU_TZ_RESOURCE_OLD "zoneinfo"
 #define ICU_TZ_RESOURCE "zoneinfo64"
+
+
+#define ICU_REGIONS "icuregions"
 
 #endif

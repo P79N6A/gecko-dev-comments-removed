@@ -1106,7 +1106,7 @@ void TransliteratorParser::parseRules(const UnicodeString& rule,
             }
             
             data->variableNames.removeAll();
-            int32_t pos = -1;
+            int32_t pos = UHASH_FIRST;
             const UHashElement* he = variableNames.nextElement(pos);
             while (he != NULL) {
                 UnicodeString* tempus = (UnicodeString*)(((UnicodeString*)(he->value.pointer))->clone());

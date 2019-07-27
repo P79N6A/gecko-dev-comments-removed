@@ -22,6 +22,9 @@
 #include <exception>
 using std::exception;
 #endif
+#if !defined(_MSC_VER)
+namespace std { class type_info; } 
+#endif
 #include <typeinfo>  
 
 #endif

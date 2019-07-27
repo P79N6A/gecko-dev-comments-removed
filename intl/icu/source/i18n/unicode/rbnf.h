@@ -27,18 +27,21 @@
 #else
 #define U_HAVE_RBNF 1
 
-#include "unicode/coll.h"
 #include "unicode/dcfmtsym.h"
 #include "unicode/fmtable.h"
 #include "unicode/locid.h"
 #include "unicode/numfmt.h"
 #include "unicode/unistr.h"
 #include "unicode/strenum.h"
+#include "unicode/brkiter.h"
+#include "unicode/upluralrules.h"
 
 U_NAMESPACE_BEGIN
 
 class NFRuleSet;
 class LocalizationInfo;
+class PluralFormat;
+class RuleBasedCollator;
 
 
 
@@ -53,9 +56,25 @@ enum URBNFRuleSetTag {
     URBNF_COUNT
 };
 
-#if UCONFIG_NO_COLLATION
-class Collator;
-#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -894,6 +913,18 @@ public:
 
   virtual UnicodeString getDefaultRuleSetName() const;
 
+  
+
+
+
+
+
+
+
+
+
+  virtual void setContext(UDisplayContext value, UErrorCode& status);
+
 public:
     
 
@@ -939,6 +970,7 @@ private:
               const Locale& locale, UParseError& perror, UErrorCode& status);
 
     void init(const UnicodeString& rules, LocalizationInfo* localizations, UParseError& perror, UErrorCode& status);
+    void initCapitalizationContextInfo(const Locale& thelocale);
     void dispose();
     void stripWhitespace(UnicodeString& src);
     void initDefaultRuleSet();
@@ -951,8 +983,10 @@ private:
     friend class FractionalPartSubstitution;
 
     inline NFRuleSet * getDefaultRuleSet() const;
-    Collator * getCollator() const;
+    const RuleBasedCollator * getCollator() const;
     DecimalFormatSymbols * getDecimalFormatSymbols() const;
+    PluralFormat *createPluralFormat(UPluralType pluralType, const UnicodeString &pattern, UErrorCode& status) const;
+    UnicodeString& adjustForCapitalizationContext(int32_t startPos, UnicodeString& currentResult) const;
 
 private:
     NFRuleSet **ruleSets;
@@ -960,11 +994,16 @@ private:
     int32_t numRuleSets;
     NFRuleSet *defaultRuleSet;
     Locale locale;
-    Collator* collator;
+    RuleBasedCollator* collator;
     DecimalFormatSymbols* decimalFormatSymbols;
     UBool lenient;
     UnicodeString* lenientParseRules;
     LocalizationInfo* localizations;
+    UnicodeString originalDescription;
+    UBool capitalizationInfoSet;
+    UBool capitalizationForUIListMenu;
+    UBool capitalizationForStandAlone;
+    BreakIterator* capitalizationBrkIter;
 };
 
 

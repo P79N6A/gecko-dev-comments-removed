@@ -641,13 +641,19 @@ typedef enum UErrorCode {
     U_REGEX_INVALID_FLAG,                 
     U_REGEX_LOOK_BEHIND_LIMIT,            
     U_REGEX_SET_CONTAINS_STRING,          
+#ifndef U_HIDE_DEPRECATED_API
     U_REGEX_OCTAL_TOO_BIG,                
-    U_REGEX_MISSING_CLOSE_BRACKET,        
+#endif  
+    U_REGEX_MISSING_CLOSE_BRACKET=U_REGEX_SET_CONTAINS_STRING+2, 
     U_REGEX_INVALID_RANGE,                
     U_REGEX_STACK_OVERFLOW,               
     U_REGEX_TIME_OUT,                     
     U_REGEX_STOPPED_BY_CALLER,            
-    U_REGEX_ERROR_LIMIT,                  
+#ifndef U_HIDE_DRAFT_API
+    U_REGEX_PATTERN_TOO_BIG,              
+    U_REGEX_INVALID_CAPTURE_GROUP_NAME,   
+#endif  
+    U_REGEX_ERROR_LIMIT=U_REGEX_STOPPED_BY_CALLER+3, 
 
     
 

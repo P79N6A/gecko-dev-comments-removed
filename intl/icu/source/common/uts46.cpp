@@ -27,8 +27,6 @@
 #include "ubidi_props.h"
 #include "ustr_imp.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 
 
@@ -321,9 +319,7 @@ UTS46::process(const UnicodeString &src,
     info.reset();
     int32_t srcLength=src.length();
     if(srcLength==0) {
-        if(toASCII) {
-            info.errors|=UIDNA_ERROR_EMPTY_LABEL;
-        }
+        info.errors|=UIDNA_ERROR_EMPTY_LABEL;
         return dest;
     }
     UChar *destArray=dest.getBuffer(srcLength);
@@ -381,13 +377,11 @@ UTS46::process(const UnicodeString &src,
                     ++i;  
                     break;
                 }
-                if(toASCII) {
-                    
-                    if(i==labelStart && i<(srcLength-1)) {
-                        info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
-                    } else if((i-labelStart)>63) {
-                        info.labelErrors|=UIDNA_ERROR_LABEL_TOO_LONG;
-                    }
+                if(i==labelStart) {
+                    info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
+                }
+                if(toASCII && (i-labelStart)>63) {
+                    info.labelErrors|=UIDNA_ERROR_LABEL_TOO_LONG;
                 }
                 info.errors|=info.labelErrors;
                 info.labelErrors=0;
@@ -423,9 +417,7 @@ UTS46::processUTF8(const StringPiece &src,
     
     info.reset();
     if(srcLength==0) {
-        if(toASCII) {
-            info.errors|=UIDNA_ERROR_EMPTY_LABEL;
-        }
+        info.errors|=UIDNA_ERROR_EMPTY_LABEL;
         dest.Flush();
         return;
     }
@@ -436,7 +428,7 @@ UTS46::processUTF8(const StringPiece &src,
         char stackArray[256];
         int32_t destCapacity;
         char *destArray=dest.GetAppendBuffer(srcLength, srcLength+20,
-                                             stackArray, LENGTHOF(stackArray), &destCapacity);
+                                             stackArray, UPRV_LENGTHOF(stackArray), &destCapacity);
         UBool disallowNonLDHDot=(options&UIDNA_USE_STD3_RULES)!=0;
         int32_t i;
         for(i=0;; ++i) {
@@ -483,13 +475,11 @@ UTS46::processUTF8(const StringPiece &src,
                     if(isLabel) {
                         break;  
                     }
-                    if(toASCII) {
-                        
-                        if(i==labelStart && i<(srcLength-1)) {
-                            info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
-                        } else if((i-labelStart)>63) {
-                            info.labelErrors|=UIDNA_ERROR_LABEL_TOO_LONG;
-                        }
+                    if(i==labelStart) {
+                        info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
+                    }
+                    if(toASCII && (i-labelStart)>63) {
+                        info.labelErrors|=UIDNA_ERROR_LABEL_TOO_LONG;
                     }
                     info.errors|=info.labelErrors;
                     info.labelErrors=0;
@@ -748,9 +738,7 @@ UTS46::processLabel(UnicodeString &dest,
     }
     
     if(labelLength==0) {
-        if(toASCII) {
-            info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
-        }
+        info.labelErrors|=UIDNA_ERROR_EMPTY_LABEL;
         return replaceLabel(dest, destLabelStart, destLabelLength, *labelString, labelLength);
     }
     

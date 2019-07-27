@@ -533,12 +533,18 @@ public:
 
 
 
+
+
+
     static URegistryKey U_EXPORT2 registerInstance(BreakIterator* toAdopt,
                                         const Locale& locale,
                                         UBreakIteratorType kind,
                                         UErrorCode& status);
 
     
+
+
+
 
 
 
@@ -617,7 +623,8 @@ protected:
     BreakIterator();
     
     BreakIterator (const BreakIterator &other) : UObject(other) {}
-
+    
+    BreakIterator (const Locale& valid, const Locale& actual);
 private:
 
     

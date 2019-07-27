@@ -57,7 +57,6 @@ typedef enum UTimeZoneFormatStyle {
 
 
     UTZFMT_STYLE_LOCALIZED_GMT,
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -149,7 +148,6 @@ typedef enum UTimeZoneFormatStyle {
 
 
     UTZFMT_STYLE_EXEMPLAR_LOCATION
-#endif 
 } UTimeZoneFormatStyle;
 
 
@@ -177,7 +175,6 @@ typedef enum UTimeZoneFormatGMTOffsetPatternType {
 
 
     UTZFMT_PAT_NEGATIVE_HMS,
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -188,8 +185,8 @@ typedef enum UTimeZoneFormatGMTOffsetPatternType {
 
 
     UTZFMT_PAT_NEGATIVE_H,
-#endif 
 
+    
     
 
 
@@ -237,6 +234,17 @@ typedef enum UTimeZoneFormatParseOption {
 
 
     UTZFMT_PARSE_OPTION_ALL_STYLES  = 0x01
+#ifndef U_HIDE_DRAFT_API
+    ,
+     
+
+
+
+
+
+
+    UTZFMT_PARSE_OPTION_TZ_DATABASE_ABBREVIATIONS = 0x02
+#endif  
 } UTimeZoneFormatParseOption;
 
 U_CDECL_END
@@ -244,6 +252,7 @@ U_CDECL_END
 U_NAMESPACE_BEGIN
 
 class TimeZoneGenericNames;
+class TZDBTimeZoneNames;
 class UVector;
 
 
@@ -433,7 +442,6 @@ public:
 
     void setDefaultParseOptions(uint32_t flags);
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -469,7 +477,6 @@ public:
 
     UnicodeString& formatOffsetISO8601Extended(int32_t offset, UBool useUtcIndicator, UBool isShort, UBool ignoreSeconds,
         UnicodeString& result, UErrorCode& status) const;
-#endif 
 
     
 
@@ -492,7 +499,6 @@ public:
 
     UnicodeString& formatOffsetLocalizedGMT(int32_t offset, UnicodeString& result, UErrorCode& status) const;
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -513,7 +519,6 @@ public:
 
 
     UnicodeString& formatOffsetShortLocalizedGMT(int32_t offset, UnicodeString& result, UErrorCode& status) const;
-#endif 
 
     using Format::format;
 
@@ -563,7 +568,6 @@ public:
 
     int32_t parseOffsetLocalizedGMT(const UnicodeString& text, ParsePosition& pos) const;
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -577,7 +581,6 @@ public:
 
 
     int32_t parseOffsetShortLocalizedGMT(const UnicodeString& text, ParsePosition& pos) const;
-#endif 
 
     
 
@@ -707,6 +710,9 @@ private:
     UBool fAbuttingOffsetHoursAndMinutes;
 
     
+    TZDBTimeZoneNames* fTZDBTimeZoneNames;
+
+    
 
 
 
@@ -735,6 +741,13 @@ private:
 
 
     const TimeZoneGenericNames* getTimeZoneGenericNames(UErrorCode& status) const;
+
+    
+
+
+
+
+    const TZDBTimeZoneNames* getTZDBTimeZoneNames(UErrorCode& status) const;
 
     
 

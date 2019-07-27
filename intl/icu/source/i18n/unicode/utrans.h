@@ -19,6 +19,7 @@
 #include "unicode/urep.h"
 #include "unicode/parseerr.h"
 #include "unicode/uenum.h"
+#include "unicode/uset.h"
 
 
 
@@ -507,6 +508,54 @@ utrans_transIncrementalUChars(const UTransliterator* trans,
                               int32_t textCapacity,
                               UTransPosition* pos,
                               UErrorCode* status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_STABLE int32_t U_EXPORT2
+utrans_toRules(     const UTransliterator* trans,
+                    UBool escapeUnprintable,
+                    UChar* result, int32_t resultLength,
+                    UErrorCode* status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_STABLE USet* U_EXPORT2
+utrans_getSourceSet(const UTransliterator* trans,
+                    UBool ignoreFilter,
+                    USet* fillIn,
+                    UErrorCode* status);
 
 
 

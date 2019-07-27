@@ -151,6 +151,7 @@ u_setMemoryFunctions(const void *context, UMemAllocFn *a, UMemReallocFn *r, UMem
                     UErrorCode *status);
 
 
+#ifndef U_HIDE_DEPRECATED_API
 
 
 
@@ -251,6 +252,7 @@ U_DEPRECATED void U_EXPORT2
 u_setAtomicIncDecFunctions(const void *context, UMtxAtomicFn *inc, UMtxAtomicFn *dec,
                     UErrorCode *status);
 
+#endif  
 #endif  
 
 #endif

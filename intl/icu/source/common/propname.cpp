@@ -16,7 +16,6 @@
 #include "umutex.h"
 #include "cmemory.h"
 #include "cstring.h"
-#include "ucln_cmn.h"
 #include "uarrsort.h"
 #include "uinvchar.h"
 

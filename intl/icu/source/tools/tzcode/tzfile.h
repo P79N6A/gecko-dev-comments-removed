@@ -19,16 +19,6 @@
 
 
 
-#ifndef lint
-#ifndef NOID
-static char	tzfilehid[] = "@(#)tzfile.h	8.1";
-#endif 
-#endif 
-
-
-
-
-
 #ifndef TZDIR
 #define TZDIR	"/usr/local/etc/zoneinfo" /* Time zone object file directory */
 #endif 
@@ -99,21 +89,20 @@ struct tzhead {
 
 
 
+
+
+
+
+
+
+
 #ifndef TZ_MAX_TIMES
-#define TZ_MAX_TIMES	1200
+#define TZ_MAX_TIMES	2000
 #endif 
 
 #ifndef TZ_MAX_TYPES
-#ifndef NOSOLAR
+
 #define TZ_MAX_TYPES	256 /* Limited by what (unsigned char)'s can hold */
-#endif 
-#ifdef NOSOLAR
-
-
-
-
-#define TZ_MAX_TYPES	20	/* Maximum number of local time types */
-#endif 
 #endif 
 
 #ifndef TZ_MAX_CHARS
@@ -132,7 +121,7 @@ struct tzhead {
 #define DAYSPERNYEAR	365
 #define DAYSPERLYEAR	366
 #define SECSPERHOUR	(SECSPERMIN * MINSPERHOUR)
-#define SECSPERDAY	((long) SECSPERHOUR * HOURSPERDAY)
+#define SECSPERDAY	((int_fast32_t) SECSPERHOUR * HOURSPERDAY)
 #define MONSPERYEAR	12
 
 #define TM_SUNDAY	0

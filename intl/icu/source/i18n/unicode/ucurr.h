@@ -21,6 +21,34 @@
 
 
 
+enum UCurrencyUsage {
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+    UCURR_USAGE_STANDARD=0,
+    
+
+
+
+
+    UCURR_USAGE_CASH=1,
+#endif  
+    
+
+
+
+    UCURR_USAGE_COUNT=2
+};
+typedef enum UCurrencyUsage UCurrencyUsage; 
+
+
+
+
+
 
 
 
@@ -171,9 +199,28 @@ ucurr_getPluralName(const UChar* currency,
 
 
 
+
 U_STABLE int32_t U_EXPORT2
 ucurr_getDefaultFractionDigits(const UChar* currency,
                                UErrorCode* ec);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+ucurr_getDefaultFractionDigitsForUsage(const UChar* currency, 
+                                       const UCurrencyUsage usage,
+                                       UErrorCode* ec);
+#endif  
+
 
 
 
@@ -187,6 +234,23 @@ ucurr_getDefaultFractionDigits(const UChar* currency,
 U_STABLE double U_EXPORT2
 ucurr_getRoundingIncrement(const UChar* currency,
                            UErrorCode* ec);
+
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+U_DRAFT double U_EXPORT2
+ucurr_getRoundingIncrementForUsage(const UChar* currency,
+                                   const UCurrencyUsage usage,
+                                   UErrorCode* ec);
+#endif  
 
 
 

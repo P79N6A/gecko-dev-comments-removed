@@ -23,7 +23,6 @@
 #include "unicode/utypes.h"
 #include "uassert.h"
 #include "cmemory.h"
-#include "ucln_cmn.h"
 
 
 
@@ -98,11 +97,6 @@ U_COMMON_API UBool U_EXPORT2 umtx_initImplPreInit(UInitOnce &uio) {
 
 
 
-
-
-
-
-
 U_COMMON_API void U_EXPORT2 umtx_initImplPostInit(UInitOnce &uio) {
     umtx_storeRelease(uio.fState, 2);
 }
@@ -132,6 +126,63 @@ umtx_unlock(UMutex* mutex)
     }
     LeaveCriticalSection(&mutex->fCS);
 }
+
+
+U_CAPI void U_EXPORT2
+umtx_condBroadcast(UConditionVar *condition) {
+    
+    
+    
+    if (condition->fWaitCount == 0) {
+        return;
+    }
+    ResetEvent(condition->fExitGate);
+    SetEvent(condition->fEntryGate);
+}
+
+U_CAPI void U_EXPORT2
+umtx_condSignal(UConditionVar *condition) {
+    
+    
+    
+    
+    U_ASSERT(FALSE);
+}
+
+U_CAPI void U_EXPORT2
+umtx_condWait(UConditionVar *condition, UMutex *mutex) {
+    if (condition->fEntryGate == NULL) {
+        
+        
+        
+        
+        U_ASSERT(condition->fExitGate == NULL);
+        condition->fEntryGate = CreateEvent(NULL,   
+                                            TRUE,   
+                                            FALSE,  
+                                            NULL);  
+        U_ASSERT(condition->fEntryGate != NULL);
+        condition->fExitGate = CreateEvent(NULL, TRUE, TRUE, NULL);
+        U_ASSERT(condition->fExitGate != NULL);
+    }
+
+    condition->fWaitCount++;
+    umtx_unlock(mutex);
+    WaitForSingleObject(condition->fEntryGate, INFINITE); 
+    umtx_lock(mutex);
+    condition->fWaitCount--;
+    if (condition->fWaitCount == 0) {
+        
+        
+        ResetEvent(condition->fEntryGate);
+        SetEvent(condition->fExitGate);
+    } else {
+        umtx_unlock(mutex);
+        WaitForSingleObject(condition->fExitGate, INFINITE);
+        umtx_lock(mutex);
+    }
+}
+
 
 #elif U_PLATFORM_IMPLEMENTS_POSIX
 
@@ -168,6 +219,33 @@ umtx_unlock(UMutex* mutex)
     (void)sysErr;   
     U_ASSERT(sysErr == 0);
 }
+
+
+U_CAPI void U_EXPORT2
+umtx_condWait(UConditionVar *cond, UMutex *mutex) {
+    if (mutex == NULL) {
+        mutex = &globalMutex;
+    }
+    int sysErr = pthread_cond_wait(&cond->fCondition, &mutex->fMutex);
+    (void)sysErr;
+    U_ASSERT(sysErr == 0);
+}
+
+U_CAPI void U_EXPORT2
+umtx_condBroadcast(UConditionVar *cond) {
+    int sysErr = pthread_cond_broadcast(&cond->fCondition);
+    (void)sysErr;
+    U_ASSERT(sysErr == 0);
+}
+
+U_CAPI void U_EXPORT2
+umtx_condSignal(UConditionVar *cond) {
+    int sysErr = pthread_cond_signal(&cond->fCondition);
+    (void)sysErr;
+    U_ASSERT(sysErr == 0);
+}
+
+
 
 U_NAMESPACE_BEGIN
 

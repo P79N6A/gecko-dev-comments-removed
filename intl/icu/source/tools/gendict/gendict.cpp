@@ -43,42 +43,6 @@ static int elapsedTime() {
   return (int)uprv_floor((uprv_getRawUTCtime()-startTime)/1000.0);
 }
 
-#if U_PLATFORM_IMPLEMENTS_POSIX && !U_PLATFORM_HAS_WIN32_API
-
-#include <signal.h>
-#include <unistd.h>
-
-const char *wToolname="gendict";
-const char *wOutname="(some file)";
-
-const int firstSeconds = 5; 
-const int nextSeconds = 15; 
-
-static void alarm_fn(int ) {
-  printf("%s: still writing\t%s (%ds)\t...\n",    wToolname, wOutname, elapsedTime());
-  
-  signal(SIGALRM, &alarm_fn);
-  alarm(nextSeconds); 
-}
-
-static void install_watchdog(const char *toolName, const char *outFileName) {
-  wToolname=toolName;
-  wOutname=outFileName;
-
-  signal(SIGALRM, &alarm_fn);
-
-  alarm(firstSeconds); 
-}
-
-#else
-static void install_watchdog(const char*, const char*) {
-  
-}
-#endif
-
-
-
-
 U_NAMESPACE_USE
 
 static char *progName;
@@ -300,10 +264,8 @@ int  main(int argc, char **argv) {
     const char *wordFileName = argv[1];
 
     startTime = uprv_getRawUTCtime(); 
-    
-    install_watchdog(progName, outFileName);
 
-    if (options[ARG_ICUDATADIR].doesOccur) {
+	if (options[ARG_ICUDATADIR].doesOccur) {
         u_setDataDirectory(options[ARG_ICUDATADIR].value);
     }
 

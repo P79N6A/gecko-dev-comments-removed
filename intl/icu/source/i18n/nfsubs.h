@@ -112,7 +112,7 @@ public:
 
 
 
-    virtual void doSubstitution(int64_t number, UnicodeString& toInsertInto, int32_t pos) const;
+    virtual void doSubstitution(int64_t number, UnicodeString& toInsertInto, int32_t pos, UErrorCode& status) const;
 
     
 
@@ -124,7 +124,7 @@ public:
 
 
 
-    virtual void doSubstitution(double number, UnicodeString& toInsertInto, int32_t pos) const;
+    virtual void doSubstitution(double number, UnicodeString& toInsertInto, int32_t pos, UErrorCode& status) const;
     
 protected:
     

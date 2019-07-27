@@ -146,7 +146,7 @@ highBit(int32_t value)
     }
 
     if (value >= 1 << 1) {
-        value >>= 1;
+        
         bit += 1;
     }
 

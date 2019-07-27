@@ -1713,6 +1713,16 @@ protected:
 
     virtual int32_t handleGetExtendedYearFromWeekFields(int32_t yearWoy, int32_t woy);
 
+    
+
+
+
+
+
+
+
+    virtual void validateField(UCalendarDateFields field, UErrorCode &status);
+
 #ifndef U_HIDE_INTERNAL_API
     
 
@@ -2300,16 +2310,6 @@ private:
 
 
 
-    virtual void validateField(UCalendarDateFields field, UErrorCode &status);
-
-    
-
-
-
-
-
-
-
     void validateField(UCalendarDateFields field, int32_t min, int32_t max, UErrorCode& status);
 
  protected:
@@ -2353,9 +2353,19 @@ private:
 
 
 
+
+
+
+
+
     static URegistryKey registerFactory(ICUServiceFactory* toAdopt, UErrorCode& status);
 
     
+
+
+
+
+
 
 
 
@@ -2412,6 +2422,20 @@ private:
 
     Locale getLocale(ULocDataLocaleType type, UErrorCode &status) const;
 
+    
+
+
+
+
+    virtual int32_t getRelatedYear(UErrorCode &status) const;
+
+    
+
+
+
+
+    virtual void setRelatedYear(int32_t year);
+
 #ifndef U_HIDE_INTERNAL_API
     
 
@@ -2428,6 +2452,45 @@ private:
 
 
     BasicTimeZone* getBasicTimeZone() const;
+
+    
+
+
+
+
+
+
+    UBool getImmediatePreviousZoneTransition(UDate base, UDate *transitionTime, UErrorCode& status) const;
+
+public:
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+
+
+
+
+    static Calendar * U_EXPORT2 makeInstance(
+            const Locale &locale, UErrorCode &status);
+
+    
+
+
+
+
+
+
+
+
+
+    static void U_EXPORT2 getCalendarTypeFromLocale(
+            const Locale &locale,
+            char *typeBuffer,
+            int32_t typeBufferSize,
+            UErrorCode &status);
+#endif  
 };
 
 
@@ -2453,7 +2516,7 @@ Calendar::roll(EDateFields field, UBool up, UErrorCode& status)
 {
     roll((UCalendarDateFields) field, up, status);
 }
-#endif
+#endif  
 
 
 
@@ -2477,7 +2540,7 @@ inline int32_t  Calendar::weekNumber(int32_t dayOfPeriod, int32_t dayOfWeek)
 {
   return weekNumber(dayOfPeriod, dayOfPeriod, dayOfWeek);
 }
-#endif
+#endif  
 
 U_NAMESPACE_END
 

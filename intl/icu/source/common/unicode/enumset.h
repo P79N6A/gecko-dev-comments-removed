@@ -26,12 +26,14 @@ U_NAMESPACE_BEGIN
 
 
 
+
 template<typename T, uint32_t minValue, uint32_t limitValue>
 class EnumSet {
 public:
     inline EnumSet() : fBools(0) {}
     inline EnumSet(const EnumSet<T,minValue,limitValue>& other) : fBools(other.fBools) {}
     inline ~EnumSet() {}
+#ifndef U_HIDE_INTERNAL_API
     inline void clear() { fBools=0; }
     inline void add(T toAdd) { set(toAdd, 1); }
     inline void remove(T toRemove) { set(toRemove, 0); }
@@ -48,6 +50,7 @@ public:
     inline uint32_t getAll() const {
         return fBools; 
     }
+#endif 
 
 private:
     inline uint32_t flag(T toCheck) const { return (1<<(toCheck-minValue)); }

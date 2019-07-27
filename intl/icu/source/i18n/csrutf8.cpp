@@ -55,12 +55,7 @@ UBool CharsetRecog_UTF8::match(InputText* input, CharsetMatch *results) const {
             trailBytes = 3;
         } else {
             numInvalid += 1;
-
-            if (numInvalid > 5) {
-                break;
-            }
-
-            trailBytes = 0;
+            continue;
         }
 
         
@@ -99,7 +94,8 @@ UBool CharsetRecog_UTF8::match(InputText* input, CharsetMatch *results) const {
         confidence = 80;
     } else if (numValid == 0 && numInvalid == 0) {
         
-        confidence = 10;
+        
+        confidence = 15;
     } else if (numValid > numInvalid*10) {
         
         confidence = 25;

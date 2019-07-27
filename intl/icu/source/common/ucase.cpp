@@ -29,7 +29,6 @@
 #include "cmemory.h"
 #include "utrie2.h"
 #include "ucase.h"
-#include "ucln_cmn.h"
 
 struct UCaseProps {
     UDataMemory *mem;

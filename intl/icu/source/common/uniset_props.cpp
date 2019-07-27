@@ -47,8 +47,6 @@
 
 U_NAMESPACE_USE
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 
 #define START_EXTRA 16

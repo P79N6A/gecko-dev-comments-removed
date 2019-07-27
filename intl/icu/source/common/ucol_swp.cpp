@@ -18,6 +18,7 @@
 
 #include "unicode/udata.h" 
 #include "utrie.h"
+#include "utrie2.h"
 #include "udataswp.h"
 #include "cmemory.h"
 #include "ucol_data.h"
@@ -102,18 +103,28 @@ utrie_swap(const UDataSwapper *ds,
 
 #if !UCONFIG_NO_COLLATION
 
-
 U_CAPI UBool U_EXPORT2
 ucol_looksLikeCollationBinary(const UDataSwapper *ds,
                               const void *inData, int32_t length) {
-    const UCATableHeader *inHeader;
-    UCATableHeader header;
-
     if(ds==NULL || inData==NULL || length<-1) {
         return FALSE;
     }
 
-    inHeader=(const UCATableHeader *)inData;
+    
+    UErrorCode errorCode=U_ZERO_ERROR;
+    (void)udata_swapDataHeader(ds, inData, -1, NULL, &errorCode);
+    if(U_SUCCESS(errorCode)) {
+        const UDataInfo &info=*(const UDataInfo *)((const char *)inData+4);
+        if(info.dataFormat[0]==0x55 &&   
+                info.dataFormat[1]==0x43 &&
+                info.dataFormat[2]==0x6f &&
+                info.dataFormat[3]==0x6c) {
+            return TRUE;
+        }
+    }
+
+    
+    const UCATableHeader *inHeader=(const UCATableHeader *)inData;
 
     
 
@@ -121,6 +132,7 @@ ucol_looksLikeCollationBinary(const UDataSwapper *ds,
 
 
 
+    UCATableHeader header;
     uprv_memset(&header, 0, sizeof(header));
     if(length<0) {
         header.size=udata_readInt32(ds, inHeader->size);
@@ -144,11 +156,13 @@ ucol_looksLikeCollationBinary(const UDataSwapper *ds,
     return TRUE;
 }
 
+namespace {
 
-U_CAPI int32_t U_EXPORT2
-ucol_swapBinary(const UDataSwapper *ds,
-                const void *inData, int32_t length, void *outData,
-                UErrorCode *pErrorCode) {
+
+int32_t
+swapFormatVersion3(const UDataSwapper *ds,
+                   const void *inData, int32_t length, void *outData,
+                   UErrorCode *pErrorCode) {
     const uint8_t *inBytes;
     uint8_t *outBytes;
 
@@ -159,7 +173,7 @@ ucol_swapBinary(const UDataSwapper *ds,
     uint32_t count;
 
     
-    if(pErrorCode==NULL || U_FAILURE(*pErrorCode)) {
+    if(U_FAILURE(*pErrorCode)) {
         return 0;
     }
     if(ds==NULL || inData==NULL || length<-1 || (length>0 && outData==NULL)) {
@@ -183,7 +197,7 @@ ucol_swapBinary(const UDataSwapper *ds,
     if(length<0) {
         header.size=udata_readInt32(ds, inHeader->size);
     } else if((length<(42*4) || length<(header.size=udata_readInt32(ds, inHeader->size)))) {
-        udata_printError(ds, "ucol_swapBinary(): too few bytes (%d after header) for collation data\n",
+        udata_printError(ds, "ucol_swap(formatVersion=3): too few bytes (%d after header) for collation data\n",
                          length);
         *pErrorCode=U_INDEX_OUTOFBOUNDS_ERROR;
         return 0;
@@ -195,7 +209,7 @@ ucol_swapBinary(const UDataSwapper *ds,
         inHeader->formatVersion[0]==3 
 
     )) {
-        udata_printError(ds, "ucol_swapBinary(): magic 0x%08x or format version %02x.%02x is not a collation binary\n",
+        udata_printError(ds, "ucol_swap(formatVersion=3): magic 0x%08x or format version %02x.%02x is not a collation binary\n",
                          header.magic,
                          inHeader->formatVersion[0], inHeader->formatVersion[1]);
         *pErrorCode=U_UNSUPPORTED_ERROR;
@@ -203,7 +217,7 @@ ucol_swapBinary(const UDataSwapper *ds,
     }
 
     if(inHeader->isBigEndian!=ds->inIsBigEndian || inHeader->charSetFamily!=ds->inCharset) {
-        udata_printError(ds, "ucol_swapBinary(): endianness %d or charset %d does not match the swapper\n",
+        udata_printError(ds, "ucol_swap(formatVersion=3): endianness %d or charset %d does not match the swapper\n",
                          inHeader->isBigEndian, inHeader->charSetFamily);
         *pErrorCode=U_INVALID_FORMAT_ERROR;
         return 0;
@@ -293,7 +307,6 @@ ucol_swapBinary(const UDataSwapper *ds,
 
 
 
-            count=header.contractionUCACombos-header.UCAConsts;
             ds->swapArray32(ds, inBytes+header.UCAConsts, header.contractionUCACombos-header.UCAConsts,
                                outBytes+header.UCAConsts, pErrorCode);
         }
@@ -328,43 +341,251 @@ ucol_swapBinary(const UDataSwapper *ds,
 }
 
 
+
+
+
+
+
+enum {
+    IX_INDEXES_LENGTH,  
+    IX_OPTIONS,
+    IX_RESERVED2,
+    IX_RESERVED3,
+
+    IX_JAMO_CE32S_START,  
+    IX_REORDER_CODES_OFFSET,
+    IX_REORDER_TABLE_OFFSET,
+    IX_TRIE_OFFSET,
+
+    IX_RESERVED8_OFFSET,  
+    IX_CES_OFFSET,
+    IX_RESERVED10_OFFSET,
+    IX_CE32S_OFFSET,
+
+    IX_ROOT_ELEMENTS_OFFSET,  
+    IX_CONTEXTS_OFFSET,
+    IX_UNSAFE_BWD_OFFSET,
+    IX_FAST_LATIN_TABLE_OFFSET,
+
+    IX_SCRIPTS_OFFSET,  
+    IX_COMPRESSIBLE_BYTES_OFFSET,
+    IX_RESERVED18_OFFSET,
+    IX_TOTAL_SIZE
+};
+
+int32_t
+swapFormatVersion4(const UDataSwapper *ds,
+                   const void *inData, int32_t length, void *outData,
+                   UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return 0; }
+
+    const uint8_t *inBytes=(const uint8_t *)inData;
+    uint8_t *outBytes=(uint8_t *)outData;
+
+    const int32_t *inIndexes=(const int32_t *)inBytes;
+    int32_t indexes[IX_TOTAL_SIZE+1];
+
+    
+    if(0<=length && length<8) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): too few bytes "
+                         "(%d after header) for collation data\n",
+                         length);
+        errorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+        return 0;
+    }
+
+    int32_t indexesLength=indexes[0]=udata_readInt32(ds, inIndexes[0]);
+    if(0<=length && length<(indexesLength*4)) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): too few bytes "
+                         "(%d after header) for collation data\n",
+                         length);
+        errorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+        return 0;
+    }
+
+    for(int32_t i=1; i<=IX_TOTAL_SIZE && i<indexesLength; ++i) {
+        indexes[i]=udata_readInt32(ds, inIndexes[i]);
+    }
+    for(int32_t i=indexesLength; i<=IX_TOTAL_SIZE; ++i) {
+        indexes[i]=-1;
+    }
+    inIndexes=NULL;  
+
+    
+    int32_t size;
+    if(indexesLength>IX_TOTAL_SIZE) {
+        size=indexes[IX_TOTAL_SIZE];
+    } else if(indexesLength>IX_REORDER_CODES_OFFSET) {
+        size=indexes[indexesLength-1];
+    } else {
+        size=indexesLength*4;
+    }
+    if(length<0) { return size; }
+
+    if(length<size) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): too few bytes "
+                         "(%d after header) for collation data\n",
+                         length);
+        errorCode=U_INDEX_OUTOFBOUNDS_ERROR;
+        return 0;
+    }
+
+    
+    if(inBytes!=outBytes) {
+        uprv_memcpy(outBytes, inBytes, size);
+    }
+
+    
+    ds->swapArray32(ds, inBytes, indexesLength * 4, outBytes, &errorCode);
+
+    
+    
+    
+    int32_t index;  
+    int32_t offset;  
+    
+
+    index = IX_REORDER_CODES_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray32(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    
+
+    index = IX_TRIE_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        utrie2_swap(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_RESERVED8_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): unknown data at IX_RESERVED8_OFFSET\n", length);
+        errorCode = U_UNSUPPORTED_ERROR;
+        return 0;
+    }
+
+    index = IX_CES_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray64(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_RESERVED10_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): unknown data at IX_RESERVED10_OFFSET\n", length);
+        errorCode = U_UNSUPPORTED_ERROR;
+        return 0;
+    }
+
+    index = IX_CE32S_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray32(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_ROOT_ELEMENTS_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray32(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_CONTEXTS_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray16(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_UNSAFE_BWD_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray16(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_FAST_LATIN_TABLE_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray16(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    index = IX_SCRIPTS_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        ds->swapArray16(ds, inBytes + offset, length, outBytes + offset, &errorCode);
+    }
+
+    
+
+    index = IX_RESERVED18_OFFSET;
+    offset = indexes[index];
+    length = indexes[index + 1] - offset;
+    if(length > 0) {
+        udata_printError(ds, "ucol_swap(formatVersion=4): unknown data at IX_RESERVED18_OFFSET\n", length);
+        errorCode = U_UNSUPPORTED_ERROR;
+        return 0;
+    }
+
+    return size;
+}
+
+}  
+
+
 U_CAPI int32_t U_EXPORT2
 ucol_swap(const UDataSwapper *ds,
           const void *inData, int32_t length, void *outData,
           UErrorCode *pErrorCode) {
-          
-    const UDataInfo *pInfo;
-    int32_t headerSize, collationSize;
+    if(U_FAILURE(*pErrorCode)) { return 0; }
 
     
-    headerSize=udata_swapDataHeader(ds, inData, length, outData, pErrorCode);
-    if(pErrorCode==NULL || U_FAILURE(*pErrorCode)) {
-        return 0;
+    int32_t headerSize=udata_swapDataHeader(ds, inData, length, outData, pErrorCode);
+    if(U_FAILURE(*pErrorCode)) {
+        
+        *pErrorCode=U_ZERO_ERROR;
+        return swapFormatVersion3(ds, inData, length, outData, pErrorCode);
     }
 
     
-    pInfo=(const UDataInfo *)((const char *)inData+4);
+    const UDataInfo &info=*(const UDataInfo *)((const char *)inData+4);
     if(!(
-        pInfo->dataFormat[0]==0x55 &&   
-        pInfo->dataFormat[1]==0x43 &&
-        pInfo->dataFormat[2]==0x6f &&
-        pInfo->dataFormat[3]==0x6c &&
-        pInfo->formatVersion[0]==3 
-
+        info.dataFormat[0]==0x55 &&   
+        info.dataFormat[1]==0x43 &&
+        info.dataFormat[2]==0x6f &&
+        info.dataFormat[3]==0x6c &&
+        (3<=info.formatVersion[0] && info.formatVersion[0]<=5)
     )) {
-        udata_printError(ds, "ucol_swap(): data format %02x.%02x.%02x.%02x (format version %02x.%02x) is not a collation file\n",
-                         pInfo->dataFormat[0], pInfo->dataFormat[1],
-                         pInfo->dataFormat[2], pInfo->dataFormat[3],
-                         pInfo->formatVersion[0], pInfo->formatVersion[1]);
+        udata_printError(ds, "ucol_swap(): data format %02x.%02x.%02x.%02x "
+                         "(format version %02x.%02x) is not recognized as collation data\n",
+                         info.dataFormat[0], info.dataFormat[1],
+                         info.dataFormat[2], info.dataFormat[3],
+                         info.formatVersion[0], info.formatVersion[1]);
         *pErrorCode=U_UNSUPPORTED_ERROR;
         return 0;
     }
 
-    collationSize=ucol_swapBinary(ds,
-                        (const char *)inData+headerSize,
-                        length>=0 ? length-headerSize : -1,
-                        (char *)outData+headerSize,
-                        pErrorCode);
+    inData=(const char *)inData+headerSize;
+    if(length>=0) { length-=headerSize; }
+    outData=(char *)outData+headerSize;
+    int32_t collationSize;
+    if(info.formatVersion[0]>=4) {
+        collationSize=swapFormatVersion4(ds, inData, length, outData, *pErrorCode);
+    } else {
+        collationSize=swapFormatVersion3(ds, inData, length, outData, pErrorCode);
+    }
     if(U_SUCCESS(*pErrorCode)) {
         return headerSize+collationSize;
     } else {

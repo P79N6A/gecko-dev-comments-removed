@@ -26,7 +26,7 @@ U_NAMESPACE_BEGIN
 
 
 
-#ifdef REGEX_DEBUG   
+#ifdef REGEX_DEBUG
 
 
 
@@ -44,19 +44,6 @@ U_NAMESPACE_BEGIN
 #define REGEX_SCAN_DEBUG_PRINTF(a) printf a
 #else
 #define REGEX_SCAN_DEBUG_PRINTF(a)
-#endif
-
-#ifdef REGEX_DUMP_DEBUG
-#define REGEX_DUMP_DEBUG_PRINTF(a) printf a
-#else
-#define REGEX_DUMP_DEBUG_PRINTF(a)
-#endif
-
-#ifdef REGEX_RUN_DEBUG
-#define REGEX_RUN_DEBUG_PRINTF(a) printf a
-#define REGEX_DUMP_DEBUG_PRINTF(a) printf a
-#else
-#define REGEX_RUN_DEBUG_PRINTF(a)
 #endif
 
 
@@ -186,7 +173,10 @@ enum {
      URX_BACKSLASH_BU  = 53,   
                                
      URX_DOLLAR_D      = 54,   
-     URX_DOLLAR_MD     = 55    
+     URX_DOLLAR_MD     = 55,   
+     URX_BACKSLASH_H   = 56,   
+     URX_BACKSLASH_R   = 57,   
+     URX_BACKSLASH_V   = 58    
 
 };
 
@@ -248,13 +238,15 @@ enum {
         "LOOP_DOT_I",          \
         "BACKSLASH_BU",        \
         "DOLLAR_D",            \
-        "DOLLAR_MD"
+        "DOLLAR_MD",           \
+        "URX_BACKSLASH_H",     \
+        "URX_BACKSLASH_R",     \
+        "URX_BACKSLASH_V" 
 
 
 
 
 
-#define URX_BUILD(type, val) (int32_t)((type << 24) | (val))
 #define URX_TYPE(x)          ((uint32_t)(x) >> 24)
 #define URX_VAL(x)           ((x) & 0xffffff)
 

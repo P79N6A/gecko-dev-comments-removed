@@ -15,6 +15,7 @@
 #include "unicode/utypes.h"
 #include "cmemory.h"
 #include "messageimpl.h"
+#include "nfrule.h"
 #include "plurrule_impl.h"
 #include "uassert.h"
 #include "uhash.h"
@@ -479,6 +480,77 @@ int32_t PluralFormat::findSubMessage(const MessagePattern& pattern, int32_t part
         partIndex=pattern.getLimitPartIndex(partIndex);
     } while(++partIndex<count);
     return msgStart;
+}
+
+void PluralFormat::parseType(const UnicodeString& source, const NFRule *rbnfLenientScanner, Formattable& result, FieldPosition& pos) const {
+    
+    if (msgPattern.countParts() == 0) {
+        pos.setBeginIndex(-1);
+        pos.setEndIndex(-1);
+        return;
+    }
+    int partIndex = 0;
+    int currMatchIndex;
+    int count=msgPattern.countParts();
+    int startingAt = pos.getBeginIndex();
+    if (startingAt < 0) {
+        startingAt = 0;
+    }
+
+    
+    
+    
+    
+    UnicodeString keyword;
+    UnicodeString matchedWord;
+    const UnicodeString& pattern = msgPattern.getPatternString();
+    int matchedIndex = -1;
+    
+    
+    while (partIndex < count) {
+        const MessagePattern::Part* partSelector = &msgPattern.getPart(partIndex++);
+        if (partSelector->getType() != UMSGPAT_PART_TYPE_ARG_SELECTOR) {
+            
+            continue;
+        }
+
+        const MessagePattern::Part* partStart = &msgPattern.getPart(partIndex++);
+        if (partStart->getType() != UMSGPAT_PART_TYPE_MSG_START) {
+            
+            continue;
+        }
+
+        const MessagePattern::Part* partLimit = &msgPattern.getPart(partIndex++);
+        if (partLimit->getType() != UMSGPAT_PART_TYPE_MSG_LIMIT) {
+            
+            continue;
+        }
+
+        UnicodeString currArg = pattern.tempSubString(partStart->getLimit(), partLimit->getIndex() - partStart->getLimit());
+        if (rbnfLenientScanner != NULL) {
+            
+            int32_t length = -1;
+            currMatchIndex = rbnfLenientScanner->findTextLenient(source, currArg, startingAt, &length);
+        }
+        else {
+            currMatchIndex = source.indexOf(currArg, startingAt);
+        }
+        if (currMatchIndex >= 0 && currMatchIndex >= matchedIndex && currArg.length() > matchedWord.length()) {
+            matchedIndex = currMatchIndex;
+            matchedWord = currArg;
+            keyword = pattern.tempSubString(partStart->getLimit(), partLimit->getIndex() - partStart->getLimit());
+        }
+    }
+    if (matchedIndex >= 0) {
+        pos.setBeginIndex(matchedIndex);
+        pos.setEndIndex(matchedIndex + matchedWord.length());
+        result.setString(keyword);
+        return;
+    }
+
+    
+    pos.setBeginIndex(-1);
+    pos.setEndIndex(-1);
 }
 
 PluralFormat::PluralSelector::~PluralSelector() {}

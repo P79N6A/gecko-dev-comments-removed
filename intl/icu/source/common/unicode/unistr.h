@@ -3370,6 +3370,9 @@ private:
   inline UChar* getArrayStart(void);
   inline const UChar* getArrayStart(void) const;
 
+  inline UBool hasShortLength() const;
+  inline int32_t getShortLength() const;
+
   
   
   inline UBool isWritable() const;
@@ -3378,10 +3381,13 @@ private:
   inline UBool isBufferWritable() const;
 
   
-  inline void setLength(int32_t len);        
-  inline void setToEmpty();                  
+  inline void setZeroLength();
+  inline void setShortLength(int32_t len);
+  inline void setLength(int32_t len);
+  inline void setToEmpty();
   inline void setArray(UChar *array, int32_t len, int32_t capacity); 
 
+  
   
   
   
@@ -3483,6 +3489,12 @@ private:
     kBufferIsReadonly=8,
     kOpenGetBuffer=16,  
                         
+    kAllStorageFlags=0x1f,
+
+    kLengthShift=5,     
+    kLength1=1<<kLengthShift,
+    kMaxShortLength=0x3ff,  
+    kLengthIsLarge=0xffe0,  
 
     
     kShortString=kUsingStackBuffer,
@@ -3531,20 +3543,26 @@ private:
 
 
 
+
+
+
+
+
   
   union StackBufferOrFields {
     
     
-    UChar fStackBuffer[8];  
     struct {
+      int16_t fLengthAndFlags;          
+      UChar fBuffer[US_STACKBUF_SIZE];  
+    } fStackFields;
+    struct {
+      int16_t fLengthAndFlags;          
       UChar   *fArray;    
       int32_t fCapacity;  
       int32_t fLength;    
     } fFields;
   } fUnion;
-  UChar fRestOfStackBuffer[US_STACKBUF_SIZE-8];
-  int8_t fShortLength;  
-  uint8_t fFlags;       
 };
 
 
@@ -3596,33 +3614,51 @@ UnicodeString::pinIndices(int32_t& start,
 }
 
 inline UChar*
-UnicodeString::getArrayStart()
-{ return (fFlags&kUsingStackBuffer) ? fUnion.fStackBuffer : fUnion.fFields.fArray; }
+UnicodeString::getArrayStart() {
+  return (fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) ?
+    fUnion.fStackFields.fBuffer : fUnion.fFields.fArray;
+}
 
 inline const UChar*
-UnicodeString::getArrayStart() const
-{ return (fFlags&kUsingStackBuffer) ? fUnion.fStackBuffer : fUnion.fFields.fArray; }
+UnicodeString::getArrayStart() const {
+  return (fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) ?
+    fUnion.fStackFields.fBuffer : fUnion.fFields.fArray;
+}
 
 
 
 
 
 inline
-UnicodeString::UnicodeString()
-  : fShortLength(0),
-    fFlags(kShortString)
-{}
+UnicodeString::UnicodeString() {
+  fUnion.fStackFields.fLengthAndFlags=kShortString;
+}
 
 
 
+
+inline UBool
+UnicodeString::hasShortLength() const {
+  return fUnion.fFields.fLengthAndFlags>=0;
+}
 
 inline int32_t
-UnicodeString::length() const
-{ return fShortLength>=0 ? fShortLength : fUnion.fFields.fLength; }
+UnicodeString::getShortLength() const {
+  
+  
+  return fUnion.fFields.fLengthAndFlags>>kLengthShift;
+}
 
 inline int32_t
-UnicodeString::getCapacity() const
-{ return (fFlags&kUsingStackBuffer) ? US_STACKBUF_SIZE : fUnion.fFields.fCapacity; }
+UnicodeString::length() const {
+  return hasShortLength() ? getShortLength() : fUnion.fFields.fLength;
+}
+
+inline int32_t
+UnicodeString::getCapacity() const {
+  return (fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) ?
+    US_STACKBUF_SIZE : fUnion.fFields.fCapacity;
+}
 
 inline int32_t
 UnicodeString::hashCode() const
@@ -3630,26 +3666,26 @@ UnicodeString::hashCode() const
 
 inline UBool
 UnicodeString::isBogus() const
-{ return (UBool)(fFlags & kIsBogus); }
+{ return (UBool)(fUnion.fFields.fLengthAndFlags & kIsBogus); }
 
 inline UBool
 UnicodeString::isWritable() const
-{ return (UBool)!(fFlags&(kOpenGetBuffer|kIsBogus)); }
+{ return (UBool)!(fUnion.fFields.fLengthAndFlags&(kOpenGetBuffer|kIsBogus)); }
 
 inline UBool
 UnicodeString::isBufferWritable() const
 {
   return (UBool)(
-      !(fFlags&(kOpenGetBuffer|kIsBogus|kBufferIsReadonly)) &&
-      (!(fFlags&kRefCounted) || refCount()==1));
+      !(fUnion.fFields.fLengthAndFlags&(kOpenGetBuffer|kIsBogus|kBufferIsReadonly)) &&
+      (!(fUnion.fFields.fLengthAndFlags&kRefCounted) || refCount()==1));
 }
 
 inline const UChar *
 UnicodeString::getBuffer() const {
-  if(fFlags&(kIsBogus|kOpenGetBuffer)) {
+  if(fUnion.fFields.fLengthAndFlags&(kIsBogus|kOpenGetBuffer)) {
     return 0;
-  } else if(fFlags&kUsingStackBuffer) {
-    return fUnion.fStackBuffer;
+  } else if(fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) {
+    return fUnion.fStackFields.fBuffer;
   } else {
     return fUnion.fFields.fArray;
   }
@@ -4250,26 +4286,38 @@ UnicodeString::operator[] (int32_t offset) const
 
 inline UBool
 UnicodeString::isEmpty() const {
-  return fShortLength == 0;
+  
+  return (fUnion.fFields.fLengthAndFlags>>kLengthShift) == 0;
 }
 
 
 
 
 inline void
+UnicodeString::setZeroLength() {
+  fUnion.fFields.fLengthAndFlags &= kAllStorageFlags;
+}
+
+inline void
+UnicodeString::setShortLength(int32_t len) {
+  
+  fUnion.fFields.fLengthAndFlags =
+    (int16_t)((fUnion.fFields.fLengthAndFlags & kAllStorageFlags) | (len << kLengthShift));
+}
+
+inline void
 UnicodeString::setLength(int32_t len) {
-  if(len <= 127) {
-    fShortLength = (int8_t)len;
+  if(len <= kMaxShortLength) {
+    setShortLength(len);
   } else {
-    fShortLength = (int8_t)-1;
+    fUnion.fFields.fLengthAndFlags |= kLengthIsLarge;
     fUnion.fFields.fLength = len;
   }
 }
 
 inline void
 UnicodeString::setToEmpty() {
-  fShortLength = 0;
-  fFlags = kShortString;
+  fUnion.fFields.fLengthAndFlags = kShortString;
 }
 
 inline void
@@ -4414,7 +4462,7 @@ UnicodeString::remove()
   if(isBogus()) {
     setToEmpty();
   } else {
-    fShortLength = 0;
+    setZeroLength();
   }
   return *this;
 }

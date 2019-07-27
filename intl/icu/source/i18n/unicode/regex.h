@@ -55,6 +55,8 @@
 
 
 
+struct UHashtable;
+
 U_NAMESPACE_BEGIN
 
 struct Regex8BitSet;
@@ -68,19 +70,6 @@ class  UVector;
 class  UVector32;
 class  UVector64;
 
-#ifndef U_HIDE_INTERNAL_API
-
-
-
-
-#ifdef REGEX_DEBUG
-U_INTERNAL void U_EXPORT2
-    RegexPatternDump(const RegexPattern *pat);
-#else
-    #undef RegexPatternDump
-    #define RegexPatternDump(pat)
-#endif
-#endif  
 
 
 
@@ -93,9 +82,7 @@ U_INTERNAL void U_EXPORT2
 
 
 
-
-
-class U_I18N_API RegexPattern: public UObject {
+class U_I18N_API RegexPattern U_FINAL : public UObject {
 public:
 
     
@@ -465,6 +452,41 @@ public:
 
 
 
+    virtual int32_t groupNumberFromName(const UnicodeString &groupName, UErrorCode &status) const;
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual int32_t groupNumberFromName(const char *groupName, int32_t nameLength, UErrorCode &status) const;
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -588,8 +610,6 @@ private:
     UVector32       *fGroupMap;    
                                    
 
-    int32_t         fMaxCaptureDigits;
-
     UnicodeSet     **fStaticSets;  
                                    
 
@@ -604,6 +624,8 @@ private:
     Regex8BitSet   *fInitialChars8;
     UBool           fNeedsAltInput;
 
+    UHashtable     *fNamedCaptureMap;  
+
     friend class RegexCompile;
     friend class RegexMatcher;
     friend class RegexCImpl;
@@ -613,11 +635,17 @@ private:
     
     void        init();            
     void        zap();             
-#ifdef REGEX_DEBUG
-    void        dumpOp(int32_t index) const;
-    friend     void U_EXPORT2 RegexPatternDump(const RegexPattern *);
-#endif
 
+    void        dumpOp(int32_t index) const;
+
+  public:
+#ifndef U_HIDE_INTERNAL_API
+    
+
+
+
+    void        dumpPattern() const;
+#endif  
 };
 
 
@@ -631,7 +659,7 @@ private:
 
 
 
-class U_I18N_API RegexMatcher: public UObject {
+class U_I18N_API RegexMatcher U_FINAL : public UObject {
 public:
 
     
@@ -819,6 +847,21 @@ public:
 
 
 
+
+
+
+
+    virtual UBool find(UErrorCode &status);
+
+   
+
+
+
+
+
+
+
+
     virtual UBool find(int64_t start, UErrorCode &status);
 
 
@@ -847,7 +890,6 @@ public:
 
 
     virtual UnicodeString group(int32_t groupNum, UErrorCode &status) const;
-
 
    
 
@@ -897,24 +939,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-    virtual UText *group(int32_t groupNum, UText *dest, UErrorCode &status) const;
-
-
-   
-
-
-
-
-
-
     virtual int32_t start(UErrorCode &status) const;
 
    
@@ -956,7 +980,6 @@ public:
 
 
     virtual int64_t start64(int32_t group, UErrorCode &status) const;
-
 
    
 
@@ -1026,7 +1049,6 @@ public:
 
 
     virtual int64_t end64(int32_t group, UErrorCode &status) const;
-
 
    
 
@@ -1753,11 +1775,13 @@ private:
     REStackFrame        *resetStack();
     inline REStackFrame *StateSave(REStackFrame *fp, int64_t savePatIdx, UErrorCode &status);
     void                 IncrementTime(UErrorCode &status);
-    UBool                ReportFindProgress(int64_t matchIndex, UErrorCode &status);
+
+    
+    inline UBool         findProgressInterrupt(int64_t matchIndex, UErrorCode &status);
     
     int64_t              appendGroup(int32_t groupNum, UText *dest, UErrorCode &status) const;
     
-    UBool                findUsingChunk();
+    UBool                findUsingChunk(UErrorCode &status);
     void                 MatchChunkAt(int32_t startIdx, UBool toEnd, UErrorCode &status);
     UBool                isChunkWordBoundary(int32_t pos);
 

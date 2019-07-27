@@ -68,6 +68,25 @@ u_strcmpFold(const UChar *s1, int32_t length1,
 
 
 
+
+
+
+
+
+
+U_CAPI void
+u_caseInsensitivePrefixMatch(const UChar *s1, int32_t length1,
+                             const UChar *s2, int32_t length2,
+                             uint32_t options,
+                             int32_t *matchLen1, int32_t *matchLen2,
+                             UErrorCode *pErrorCode);
+
+
+
+
+
+
+
 U_CFUNC UBool
 uprv_haveProperties(UErrorCode *pErrorCode);
 

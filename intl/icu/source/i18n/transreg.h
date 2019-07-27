@@ -456,6 +456,8 @@ class TransliteratorRegistry : public UMemory {
 
 U_NAMESPACE_END
 
+U_CFUNC UBool utrans_transliterator_cleanup(void);
+
 #endif 
 
 #endif

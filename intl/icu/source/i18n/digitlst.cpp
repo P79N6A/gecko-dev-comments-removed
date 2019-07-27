@@ -58,10 +58,6 @@
 
 
 
-static const uint8_t DIGIT_HAVE_NONE=0;
-static const uint8_t DIGIT_HAVE_DOUBLE=1;
-static const uint8_t DIGIT_HAVE_INT64=2;
-
 U_NAMESPACE_BEGIN
 
 
@@ -708,7 +704,7 @@ DigitList::set(int64_t source)
     U_ASSERT(uprv_strlen(str) < sizeof(str));
 
     uprv_decNumberFromString(fDecNumber, str, &fContext);
-    internalSetDouble(source);
+    internalSetDouble(static_cast<double>(source));
 }
 
 

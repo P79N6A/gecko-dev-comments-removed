@@ -185,7 +185,8 @@
 #ifdef U_LIB_SUFFIX_C_NAME_STRING
     
 #elif defined(U_LIB_SUFFIX_C_NAME)
-#   define U_LIB_SUFFIX_C_NAME_STRING #U_LIB_SUFFIX_C_NAME
+#   define CONVERT_TO_STRING(s) #s
+#   define U_LIB_SUFFIX_C_NAME_STRING CONVERT_TO_STRING(U_LIB_SUFFIX_C_NAME)
 #else
 #   define U_LIB_SUFFIX_C_NAME_STRING ""
 #endif
@@ -245,6 +246,10 @@
 #   define UCONFIG_NO_FILE_IO 0
 #endif
 
+#if UCONFIG_NO_FILE_IO && defined(U_TIMEZONE_FILES_DIR) 
+#   error Contradictory file io switches in uconfig.h.
+#endif
+
 
 
 
@@ -262,6 +267,21 @@
 
 #if UCONFIG_NO_CONVERSION
 #   define UCONFIG_NO_LEGACY_CONVERSION 1
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef UCONFIG_ONLY_HTML_CONVERSION
+#   define UCONFIG_ONLY_HTML_CONVERSION 0
 #endif
 
 
@@ -407,6 +427,19 @@
 
 #ifndef UCONFIG_FORMAT_FASTPATHS_49
 #   define UCONFIG_FORMAT_FASTPATHS_49 1
+#endif
+
+
+
+
+
+
+
+#ifndef UCONFIG_NO_FILTERED_BREAK_ITERATION
+#   define UCONFIG_NO_FILTERED_BREAK_ITERATION 0
+
+
+
 #endif
 
 #endif

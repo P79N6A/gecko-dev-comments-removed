@@ -66,10 +66,32 @@ public:
 
 class U_COMMON_API DictionaryMatcher : public UMemory {
 public:
+    DictionaryMatcher() {};
     virtual ~DictionaryMatcher();
     
-    virtual int32_t matches(UText *text, int32_t maxLength, int32_t *lengths, int32_t &count,
-                            int32_t limit, int32_t *values = NULL) const = 0;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual int32_t matches(UText *text, int32_t maxLength, int32_t limit,
+                            int32_t *lengths, int32_t *cpLengths, int32_t *values,
+                            int32_t *prefix) const = 0;
+
     
     virtual int32_t getType() const = 0;
 };
@@ -81,8 +103,9 @@ public:
     
     UCharsDictionaryMatcher(const UChar *c, UDataMemory *f) : characters(c), file(f) { }
     virtual ~UCharsDictionaryMatcher();
-    virtual int32_t matches(UText *text, int32_t maxLength, int32_t *lengths, int32_t &count,
-                            int32_t limit, int32_t *values = NULL) const;
+    virtual int32_t matches(UText *text, int32_t maxLength, int32_t limit,
+                            int32_t *lengths, int32_t *cpLengths, int32_t *values,
+                            int32_t *prefix) const;
     virtual int32_t getType() const;
 private:
     const UChar *characters;
@@ -98,8 +121,9 @@ public:
     BytesDictionaryMatcher(const char *c, int32_t t, UDataMemory *f)
             : characters(c), transformConstant(t), file(f) { }
     virtual ~BytesDictionaryMatcher();
-    virtual int32_t matches(UText *text, int32_t maxLength, int32_t *lengths, int32_t &count,
-                            int32_t limit, int32_t *values = NULL) const;
+    virtual int32_t matches(UText *text, int32_t maxLength, int32_t limit,
+                            int32_t *lengths, int32_t *cpLengths, int32_t *values,
+                            int32_t *prefix) const;
     virtual int32_t getType() const;
 private:
     UChar32 transform(UChar32 c) const;

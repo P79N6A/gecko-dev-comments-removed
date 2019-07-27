@@ -238,6 +238,7 @@ ures_countArrayItems(const UResourceBundle* resourceBundle,
 
 
 
+
 U_STABLE void U_EXPORT2 
 ures_close(UResourceBundle* resourceBundle);
 

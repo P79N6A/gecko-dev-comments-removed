@@ -27,6 +27,7 @@
 
 
 struct UMutex;
+struct UConditionVar;
 
 U_NAMESPACE_BEGIN
 struct UInitOnce;
@@ -329,6 +330,14 @@ typedef struct UMutex {
 
 #define U_MUTEX_INITIALIZER {U_INITONCE_INITIALIZER}
 
+struct UConditionVar {
+    HANDLE           fEntryGate;
+    HANDLE           fExitGate;
+    int32_t          fWaitCount;
+};
+
+#define U_CONDITION_INITIALIZER {NULL, NULL, 0}
+    
 
 
 #elif U_PLATFORM_IMPLEMENTS_POSIX
@@ -344,6 +353,11 @@ struct UMutex {
 };
 typedef struct UMutex UMutex;
 #define U_MUTEX_INITIALIZER  {PTHREAD_MUTEX_INITIALIZER}
+
+struct UConditionVar {
+    pthread_cond_t   fCondition;
+};
+#define U_CONDITION_INITIALIZER {PTHREAD_COND_INITIALIZER}
 
 #else
 
@@ -378,6 +392,33 @@ U_INTERNAL void U_EXPORT2 umtx_lock(UMutex* mutex);
 
 
 U_INTERNAL void U_EXPORT2 umtx_unlock (UMutex* mutex);
+
+
+
+
+
+
+
+
+
+
+U_INTERNAL void U_EXPORT2 umtx_condWait(UConditionVar *cond, UMutex *mutex);
+
+
+
+
+
+
+
+
+
+U_INTERNAL void U_EXPORT2 umtx_condBroadcast(UConditionVar *cond);
+
+
+
+
+
+U_INTERNAL void U_EXPORT2 umtx_condSignal(UConditionVar *cond);
 
 #endif 
 

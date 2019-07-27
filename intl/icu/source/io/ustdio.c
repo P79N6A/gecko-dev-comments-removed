@@ -18,6 +18,9 @@
 
 
 #include "unicode/ustdio.h"
+
+#if !UCONFIG_NO_CONVERSION
+
 #include "unicode/putil.h"
 #include "cmemory.h"
 #include "cstring.h"
@@ -724,3 +727,4 @@ u_file_read(    UChar        *chars,
 
     return read;
 }
+#endif

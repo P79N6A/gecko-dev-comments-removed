@@ -22,9 +22,7 @@
 
 
 
-
 enum UDisplayContextType {
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -38,7 +36,15 @@ enum UDisplayContextType {
 
 
     UDISPCTX_TYPE_CAPITALIZATION = 1
-#endif 
+#ifndef U_HIDE_DRAFT_API
+    ,
+    
+
+
+
+
+    UDISPCTX_TYPE_DISPLAY_LENGTH = 2
+#endif  
 };
 
 
@@ -50,9 +56,7 @@ typedef enum UDisplayContextType UDisplayContextType;
 
 
 
-
 enum UDisplayContext {
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -112,7 +116,29 @@ enum UDisplayContext {
 
 
     UDISPCTX_CAPITALIZATION_FOR_STANDALONE = (UDISPCTX_TYPE_CAPITALIZATION<<8) + 4
-#endif 
+#ifndef U_HIDE_DRAFT_API
+    ,
+    
+
+
+
+
+
+    
+
+
+
+
+
+    UDISPCTX_LENGTH_FULL = (UDISPCTX_TYPE_DISPLAY_LENGTH<<8) + 0,
+    
+
+
+
+
+
+    UDISPCTX_LENGTH_SHORT = (UDISPCTX_TYPE_DISPLAY_LENGTH<<8) + 1
+#endif  
 };
 
 

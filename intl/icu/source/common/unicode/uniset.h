@@ -23,7 +23,7 @@
 U_NAMESPACE_BEGIN
 
 
-void UnicodeSet_initInclusion(int32_t src, UErrorCode &status); 
+void U_CALLCONV UnicodeSet_initInclusion(int32_t src, UErrorCode &status); 
 
 class BMPSet;
 class ParsePosition;
@@ -273,7 +273,7 @@ class RuleCharacterIterator;
 
 
 
-class U_COMMON_API UnicodeSet : public UnicodeFilter {
+class U_COMMON_API UnicodeSet U_FINAL : public UnicodeFilter {
 
     int32_t len; 
     int32_t capacity; 
@@ -1589,7 +1589,7 @@ private:
                               UnicodeString& rebuiltPat,
                               UErrorCode& ec);
 
-    friend void UnicodeSet_initInclusion(int32_t src, UErrorCode &status);
+    friend void U_CALLCONV UnicodeSet_initInclusion(int32_t src, UErrorCode &status);
     static const UnicodeSet* getInclusions(int32_t src, UErrorCode &status);
 
     

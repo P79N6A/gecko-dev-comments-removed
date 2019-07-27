@@ -71,7 +71,7 @@ CanonicalIterator::CanonicalIterator(const UnicodeString &sourceStr, UErrorCode 
     pieces_lengths(NULL),
     current(NULL),
     current_length(0),
-    nfd(*Normalizer2Factory::getNFDInstance(status)),
+    nfd(*Normalizer2::getNFDInstance(status)),
     nfcImpl(*Normalizer2Factory::getNFCImpl(status))
 {
     if(U_SUCCESS(status) && nfcImpl.ensureCanonIterData(status)) {
@@ -294,7 +294,7 @@ void U_EXPORT2 CanonicalIterator::permute(UnicodeString &source, UBool skipZeros
     for (i = 0; i < source.length(); i += U16_LENGTH(cp)) {
         cp = source.char32At(i);
         const UHashElement *ne = NULL;
-        int32_t el = -1;
+        int32_t el = UHASH_FIRST;
         UnicodeString subPermuteString = source;
 
         
@@ -359,7 +359,7 @@ UnicodeString* CanonicalIterator::getEquivalents(const UnicodeString &segment, i
     
 
     const UHashElement *ne = NULL;
-    int32_t el = -1;
+    int32_t el = UHASH_FIRST;
     
     ne = basic.nextElement(el);
     
@@ -370,7 +370,7 @@ UnicodeString* CanonicalIterator::getEquivalents(const UnicodeString &segment, i
         permutations.removeAll();
         permute(item, CANITER_SKIP_ZEROES, &permutations, status);
         const UHashElement *ne2 = NULL;
-        int32_t el2 = -1;
+        int32_t el2 = UHASH_FIRST;
         
         ne2 = permutations.nextElement(el2);
         
@@ -416,7 +416,7 @@ UnicodeString* CanonicalIterator::getEquivalents(const UnicodeString &segment, i
     }
     
     result_len = 0;
-    el = -1;
+    el = UHASH_FIRST;
     ne = result.nextElement(el);
     while(ne != NULL) {
         finalResult[result_len++] = *((UnicodeString *)(ne->value.pointer));
@@ -463,7 +463,7 @@ Hashtable *CanonicalIterator::getEquivalents2(Hashtable *fillinResult, const UCh
             UnicodeString prefix(segment, i);
             prefix += cp2;
 
-            int32_t el = -1;
+            int32_t el = UHASH_FIRST;
             const UHashElement *ne = remainder.nextElement(el);
             while (ne != NULL) {
                 UnicodeString item = *((UnicodeString *)(ne->value.pointer));

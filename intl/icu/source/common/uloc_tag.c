@@ -17,8 +17,6 @@
 #include "ulocimp.h"
 #include "uassert.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 typedef struct VariantListEntry {
     const char              *variant;
@@ -410,8 +408,8 @@ _isPrivateuseValueSubtags(const char* s, int32_t len) {
     return _isPrivateuseValueSubtag(pSubtag, (int32_t)(p - pSubtag));
 }
 
-static UBool
-_isLDMLKey(const char* s, int32_t len) {
+U_CFUNC UBool
+ultag_isUnicodeLocaleKey(const char* s, int32_t len) {
     if (len < 0) {
         len = (int32_t)uprv_strlen(s);
     }
@@ -421,17 +419,33 @@ _isLDMLKey(const char* s, int32_t len) {
     return FALSE;
 }
 
-static UBool
-_isLDMLType(const char* s, int32_t len) {
+U_CFUNC UBool
+ultag_isUnicodeLocaleType(const char*s, int32_t len) {
+    const char* p;
+    int32_t subtagLen = 0;
+
     if (len < 0) {
         len = (int32_t)uprv_strlen(s);
     }
-    if (len >= 3 && len <= 8 && _isAlphaNumericString(s, len)) {
-        return TRUE;
-    }
-    return FALSE;
-}
 
+    for (p = s; len > 0; p++, len--) {
+        if (*p == SEP) {
+            if (subtagLen < 3) {
+                return FALSE;
+            }
+            subtagLen = 0;
+        } else if (ISALPHA(*p) || ISNUMERIC(*p)) {
+            subtagLen++;
+            if (subtagLen > 8) {
+                return FALSE;
+            }
+        } else {
+            return FALSE;
+        }
+    }
+
+    return (subtagLen >= 3);
+}
 
 
 
@@ -610,386 +624,6 @@ _initializeULanguageTag(ULanguageTag* langtag) {
     langtag->privateuse = EMPTY;
 }
 
-#define KEYTYPEDATA     "keyTypeData"
-#define KEYMAP          "keyMap"
-#define TYPEMAP         "typeMap"
-#define TYPEALIAS       "typeAlias"
-#define MAX_BCP47_SUBTAG_LEN    9   /* including null terminator */
-#define MAX_LDML_KEY_LEN        22
-#define MAX_LDML_TYPE_LEN       32
-
-static int32_t
-_ldmlKeyToBCP47(const char* key, int32_t keyLen,
-                char* bcpKey, int32_t bcpKeyCapacity,
-                UErrorCode *status) {
-    UResourceBundle *rb;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char bcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    const UChar *uBcpKey;
-    int32_t bcpKeyLen;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-
-    if (keyLen >= sizeof(keyBuf)) {
-        
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, KEYMAP, rb, status);
-
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    uBcpKey = ures_getStringByKey(rb, keyBuf, &bcpKeyLen, &tmpStatus);
-    if (U_SUCCESS(tmpStatus)) {
-        u_UCharsToChars(uBcpKey, bcpKeyBuf, bcpKeyLen);
-        bcpKeyBuf[bcpKeyLen] = 0;
-        resultLen = bcpKeyLen;
-    } else {
-        if (_isLDMLKey(key, keyLen)) {
-            uprv_memcpy(bcpKeyBuf, key, keyLen);
-            bcpKeyBuf[keyLen] = 0;
-            resultLen = keyLen;
-        } else {
-            
-            *status = U_ILLEGAL_ARGUMENT_ERROR;
-        }
-    }
-    ures_close(rb);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    uprv_memcpy(bcpKey, bcpKeyBuf, uprv_min(resultLen, bcpKeyCapacity));
-    return u_terminateChars(bcpKey, bcpKeyCapacity, resultLen, status);
-}
-
-static int32_t
-_bcp47ToLDMLKey(const char* bcpKey, int32_t bcpKeyLen,
-                char* key, int32_t keyCapacity,
-                UErrorCode *status) {
-    UResourceBundle *rb;
-    char bcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    const char *resKey = NULL;
-    UResourceBundle *mapData;
-
-    if (bcpKeyLen < 0) {
-        bcpKeyLen = (int32_t)uprv_strlen(bcpKey);
-    }
-
-    if (bcpKeyLen >= sizeof(bcpKeyBuf)) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    uprv_memcpy(bcpKeyBuf, bcpKey, bcpKeyLen);
-    bcpKeyBuf[bcpKeyLen] = 0;
-
-    
-    for (i = 0; i < bcpKeyLen; i++) {
-        bcpKeyBuf[i] = uprv_tolower(bcpKeyBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, KEYMAP, rb, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    mapData = ures_getNextResource(rb, NULL, status);
-    while (U_SUCCESS(*status)) {
-        const UChar *uBcpKey;
-        char tmpBcpKeyBuf[MAX_BCP47_SUBTAG_LEN];
-        int32_t tmpBcpKeyLen;
-
-        uBcpKey = ures_getString(mapData, &tmpBcpKeyLen, status);
-        if (U_FAILURE(*status)) {
-            break;
-        }
-        u_UCharsToChars(uBcpKey, tmpBcpKeyBuf, tmpBcpKeyLen);
-        tmpBcpKeyBuf[tmpBcpKeyLen] = 0;
-        if (uprv_compareInvCharsAsAscii(bcpKeyBuf, tmpBcpKeyBuf) == 0) {
-            
-            resKey = ures_getKey(mapData);
-            resultLen = (int32_t)uprv_strlen(resKey);
-            break;
-        }
-        if (!ures_hasNext(rb)) {
-            break;
-        }
-        ures_getNextResource(rb, mapData, status);
-    }
-    ures_close(mapData);
-    ures_close(rb);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    if (resKey == NULL) {
-        resKey = bcpKeyBuf;
-        resultLen = bcpKeyLen;
-    }
-
-    uprv_memcpy(key, resKey, uprv_min(resultLen, keyCapacity));
-    return u_terminateChars(key, keyCapacity, resultLen, status);
-}
-
-static int32_t
-_ldmlTypeToBCP47(const char* key, int32_t keyLen,
-                 const char* type, int32_t typeLen,
-                 char* bcpType, int32_t bcpTypeCapacity,
-                 UErrorCode *status) {
-    UResourceBundle *rb, *keyTypeData, *typeMapForKey;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char typeBuf[MAX_LDML_TYPE_LEN];
-    char bcpTypeBuf[MAX_BCP47_SUBTAG_LEN];
-    int32_t resultLen = 0;
-    int32_t i;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    const UChar *uBcpType, *uCanonicalType;
-    int32_t bcpTypeLen, canonicalTypeLen;
-    UBool isTimezone = FALSE;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-    if (keyLen >= sizeof(keyBuf)) {
-        
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-    if (uprv_compareInvCharsAsAscii(keyBuf, "timezone") == 0) {
-        isTimezone = TRUE;
-    }
-
-    if (typeLen < 0) {
-        typeLen = (int32_t)uprv_strlen(type);
-    }
-    if (typeLen >= sizeof(typeBuf)) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    if (isTimezone) {
-        
-        for (i = 0; i < typeLen; i++) {
-            if (*(type + i) == '/') {
-                typeBuf[i] = ':';
-            } else {
-                typeBuf[i] = *(type + i);
-            }
-        }
-        typeBuf[typeLen] = 0;
-        type = &typeBuf[0];
-    }
-
-    keyTypeData = ures_openDirect(NULL, KEYTYPEDATA, status);
-    rb = ures_getByKey(keyTypeData, TYPEMAP, NULL, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        ures_close(keyTypeData);
-        return 0;
-    }
-
-    typeMapForKey = ures_getByKey(rb, keyBuf, NULL, &tmpStatus);
-    uBcpType = ures_getStringByKey(typeMapForKey, type, &bcpTypeLen, &tmpStatus);
-    if (U_SUCCESS(tmpStatus)) {
-        u_UCharsToChars(uBcpType, bcpTypeBuf, bcpTypeLen);
-        resultLen = bcpTypeLen;
-    } else if (tmpStatus == U_MISSING_RESOURCE_ERROR) {
-        
-        tmpStatus = U_ZERO_ERROR;
-        ures_getByKey(keyTypeData, TYPEALIAS, rb, &tmpStatus);
-        ures_getByKey(rb, keyBuf, rb, &tmpStatus);
-        uCanonicalType = ures_getStringByKey(rb, type, &canonicalTypeLen, &tmpStatus);
-        if (U_SUCCESS(tmpStatus)) {
-            u_UCharsToChars(uCanonicalType, typeBuf, canonicalTypeLen);
-            if (isTimezone) {
-                
-                for (i = 0; i < canonicalTypeLen; i++) {
-                    if (typeBuf[i] == '/') {
-                        typeBuf[i] = ':';
-                    }
-                }
-            }
-            typeBuf[canonicalTypeLen] = 0;
-
-            
-            uBcpType = ures_getStringByKey(typeMapForKey, typeBuf, &bcpTypeLen, &tmpStatus);
-            if (U_SUCCESS(tmpStatus)) {
-                u_UCharsToChars(uBcpType, bcpTypeBuf, bcpTypeLen);
-                resultLen = bcpTypeLen;
-            }
-        }
-        if (tmpStatus == U_MISSING_RESOURCE_ERROR) {
-            if (_isLDMLType(type, typeLen)) {
-                uprv_memcpy(bcpTypeBuf, type, typeLen);
-                resultLen = typeLen;
-            } else {
-                
-                *status = U_ILLEGAL_ARGUMENT_ERROR;
-            }
-        }
-    } else {
-        *status = tmpStatus;
-    }
-    ures_close(rb);
-    ures_close(typeMapForKey);
-    ures_close(keyTypeData);
-
-    if (U_FAILURE(*status)) {
-        return 0;
-    }
-
-    uprv_memcpy(bcpType, bcpTypeBuf, uprv_min(resultLen, bcpTypeCapacity));
-    return u_terminateChars(bcpType, bcpTypeCapacity, resultLen, status);
-}
-
-static int32_t
-_bcp47ToLDMLType(const char* key, int32_t keyLen,
-                 const char* bcpType, int32_t bcpTypeLen,
-                 char* type, int32_t typeCapacity,
-                 UErrorCode *status) {
-    UResourceBundle *rb;
-    char keyBuf[MAX_LDML_KEY_LEN];
-    char bcpTypeBuf[ULOC_KEYWORDS_CAPACITY]; 
-    int32_t resultLen = 0;
-    int32_t i, typeSize;
-    const char *resType = NULL;
-    UResourceBundle *mapData;
-    UErrorCode tmpStatus = U_ZERO_ERROR;
-    int32_t copyLen;
-
-    if (keyLen < 0) {
-        keyLen = (int32_t)uprv_strlen(key);
-    }
-
-    if (keyLen >= sizeof(keyBuf)) {
-        
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    uprv_memcpy(keyBuf, key, keyLen);
-    keyBuf[keyLen] = 0;
-
-    
-    for (i = 0; i < keyLen; i++) {
-        keyBuf[i] = uprv_tolower(keyBuf[i]);
-    }
-
-
-    if (bcpTypeLen < 0) {
-        bcpTypeLen = (int32_t)uprv_strlen(bcpType);
-    }
-
-    typeSize = 0;
-    for (i = 0; i < bcpTypeLen; i++) {
-        if (bcpType[i] == SEP) {
-            if (typeSize >= MAX_BCP47_SUBTAG_LEN) {
-                *status = U_ILLEGAL_ARGUMENT_ERROR;
-                return 0;
-            }
-            typeSize = 0;
-        } else {
-            typeSize++;
-        }
-    }
-
-    uprv_memcpy(bcpTypeBuf, bcpType, bcpTypeLen);
-    bcpTypeBuf[bcpTypeLen] = 0;
-
-    
-    for (i = 0; i < bcpTypeLen; i++) {
-        bcpTypeBuf[i] = uprv_tolower(bcpTypeBuf[i]);
-    }
-
-    rb = ures_openDirect(NULL, KEYTYPEDATA, status);
-    ures_getByKey(rb, TYPEMAP, rb, status);
-    if (U_FAILURE(*status)) {
-        ures_close(rb);
-        return 0;
-    }
-
-    ures_getByKey(rb, keyBuf, rb, &tmpStatus);
-    mapData = ures_getNextResource(rb, NULL, &tmpStatus);
-    while (U_SUCCESS(tmpStatus)) {
-        const UChar *uBcpType;
-        char tmpBcpTypeBuf[MAX_BCP47_SUBTAG_LEN];
-        int32_t tmpBcpTypeLen;
-
-        uBcpType = ures_getString(mapData, &tmpBcpTypeLen, &tmpStatus);
-        if (U_FAILURE(tmpStatus)) {
-            break;
-        }
-        u_UCharsToChars(uBcpType, tmpBcpTypeBuf, tmpBcpTypeLen);
-        tmpBcpTypeBuf[tmpBcpTypeLen] = 0;
-        if (uprv_compareInvCharsAsAscii(bcpTypeBuf, tmpBcpTypeBuf) == 0) {
-            
-            resType = ures_getKey(mapData);
-            resultLen = (int32_t)uprv_strlen(resType);
-            break;
-        }
-        if (!ures_hasNext(rb)) {
-            break;
-        }
-        ures_getNextResource(rb, mapData, &tmpStatus);
-    }
-    ures_close(mapData);
-    ures_close(rb);
-
-    if (U_FAILURE(tmpStatus) && tmpStatus != U_MISSING_RESOURCE_ERROR) {
-        *status = tmpStatus;
-        return 0;
-    }
-
-    if (resType == NULL) {
-        resType = bcpTypeBuf;
-        resultLen = bcpTypeLen;
-    }
-
-    copyLen = uprv_min(resultLen, typeCapacity);
-    uprv_memcpy(type, resType, copyLen);
-
-    if (uprv_compareInvCharsAsAscii(keyBuf, "timezone") == 0) {
-        for (i = 0; i < copyLen; i++) {
-            if (*(type + i) == ':') {
-                *(type + i) = '/';
-            }
-        }
-    }
-
-    return u_terminateChars(type, typeCapacity, resultLen, status);
-}
-
 static int32_t
 _appendLanguageToLanguageTag(const char* localeID, char* appendAt, int32_t capacity, UBool strict, UErrorCode* status) {
     char buf[ULOC_LANG_CAPACITY];
@@ -1029,7 +663,7 @@ _appendLanguageToLanguageTag(const char* localeID, char* appendAt, int32_t capac
         reslen += LANG_UND_LEN;
     } else {
         
-        for (i = 0; i < LENGTHOF(DEPRECATEDLANGS); i += 2) {
+        for (i = 0; i < UPRV_LENGTHOF(DEPRECATEDLANGS); i += 2) {
             if (uprv_compareInvCharsAsAscii(buf, DEPRECATEDLANGS[i]) == 0) {
                 uprv_strcpy(buf, DEPRECATEDLANGS[i + 1]);
                 len = (int32_t)uprv_strlen(buf);
@@ -1282,7 +916,7 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
         const char *bcpKey, *bcpValue;
         UErrorCode tmpStatus = U_ZERO_ERROR;
         int32_t keylen;
-        UBool isLDMLKeyword;
+        UBool isBcpUExt;
 
         while (TRUE) {
             isAttribute = FALSE;
@@ -1291,7 +925,8 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                 break;
             }
             len = uloc_getKeywordValue(localeID, key, buf, sizeof(buf), &tmpStatus);
-            if (U_FAILURE(tmpStatus)) {
+            
+            if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
                 if (strict) {
                     *status = U_ILLEGAL_ARGUMENT_ERROR;
                     break;
@@ -1302,7 +937,7 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
             }
 
             keylen = (int32_t)uprv_strlen(key);
-            isLDMLKeyword = (keylen > 1);
+            isBcpUExt = (keylen > 1);
 
             
             if (uprv_strcmp(key, LOCALE_ATTRIBUTE_KEY) == 0) {
@@ -1350,36 +985,49 @@ _appendKeywordsToLanguageTag(const char* localeID, char* appendAt, int32_t capac
                         }
                     }
                 }
-            } else if (isLDMLKeyword) {
-                int32_t modKeyLen;
+            } else if (isBcpUExt) {
+                bcpKey = uloc_toUnicodeLocaleKey(key);
+                if (bcpKey == NULL) {
+                    if (strict) {
+                        *status = U_ILLEGAL_ARGUMENT_ERROR;
+                        break;
+                    }
+                    continue;
+                }
 
                 
-                modKeyLen = _ldmlKeyToBCP47(key, keylen, pExtBuf, extBufCapacity, &tmpStatus);
-                if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
+                bcpValue = uloc_toUnicodeLocaleType(key, buf);
+                if (bcpValue == NULL) {
                     if (strict) {
                         *status = U_ILLEGAL_ARGUMENT_ERROR;
                         break;
                     }
-                    tmpStatus = U_ZERO_ERROR;
                     continue;
                 }
+                if (bcpValue == buf) {
+                    
 
-                bcpKey = pExtBuf;
-                pExtBuf += (modKeyLen + 1);
-                extBufCapacity -= (modKeyLen + 1);
 
-                len = _ldmlTypeToBCP47(key, keylen, buf, len, pExtBuf, extBufCapacity, &tmpStatus);
-                if (U_FAILURE(tmpStatus) || tmpStatus == U_STRING_NOT_TERMINATED_WARNING) {
-                    if (strict) {
-                        *status = U_ILLEGAL_ARGUMENT_ERROR;
-                        break;
+
+
+
+                    int32_t bcpValueLen = uprv_strlen(bcpValue);
+                    if (bcpValueLen < extBufCapacity) {
+                        uprv_strcpy(pExtBuf, bcpValue);
+                        T_CString_toLowerCase(pExtBuf);
+
+                        bcpValue = pExtBuf;
+
+                        pExtBuf += (bcpValueLen + 1);
+                        extBufCapacity -= (bcpValueLen + 1);
+                    } else {
+                        if (strict) {
+                            *status = U_ILLEGAL_ARGUMENT_ERROR;
+                            break;
+                        }
+                        continue;
                     }
-                    tmpStatus = U_ZERO_ERROR;
-                    continue;
                 }
-                bcpValue = pExtBuf;
-                pExtBuf += (len + 1);
-                extBufCapacity -= (len + 1);
             } else {
                 if (*key == PRIVATEUSE) {
                     if (!_isPrivateuseValueSubtags(buf, len)) {
@@ -1571,7 +1219,7 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
         
         for (len = 0; *(pTag + len) && *(pTag + len) != SEP; len++);
 
-        if (_isLDMLKey(pTag, len)) {
+        if (ultag_isUnicodeLocaleKey(pTag, len)) {
             pKwds = pTag;
             break;
         }
@@ -1672,14 +1320,14 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
         
         while (!isDone) {
             const char *pNextBcpKey = NULL;
-            int32_t nextBcpKeyLen;
+            int32_t nextBcpKeyLen = 0;
             UBool emitKeyword = FALSE;
 
             if (*pTag) {
                 
                 for (len = 0; *(pTag + len) && *(pTag + len) != SEP; len++);
 
-                if (_isLDMLKey(pTag, len)) {
+                if (ultag_isUnicodeLocaleKey(pTag, len)) {
                     if (pBcpKey) {
                         emitKeyword = TRUE;
                         pNextBcpKey = pTag;
@@ -1715,28 +1363,78 @@ _appendLDMLExtensionAsKeywords(const char* ldmlext, ExtensionListEntry** appendT
                 const char *pKey = NULL;    
                 const char *pType = NULL;   
 
+                char bcpKeyBuf[9];          
+
                 U_ASSERT(pBcpKey != NULL);
 
-                
-                len = _bcp47ToLDMLKey(pBcpKey, bcpKeyLen, buf + bufIdx, bufSize - bufIdx - 1, status);
-                if (U_FAILURE(*status)) {
+                if (bcpKeyLen >= sizeof(bcpKeyBuf)) {
+                    
+                    *status = U_ILLEGAL_ARGUMENT_ERROR;
                     goto cleanup;
                 }
-                pKey = buf + bufIdx;
-                bufIdx += len;
-                *(buf + bufIdx) = 0;
-                bufIdx++;
 
-                if (pBcpType) {
+                uprv_strncpy(bcpKeyBuf, pBcpKey, bcpKeyLen);
+                bcpKeyBuf[bcpKeyLen] = 0;
+
+                
+                pKey = uloc_toLegacyKey(bcpKeyBuf);
+                if (pKey == NULL) {
+                    *status = U_ILLEGAL_ARGUMENT_ERROR;
+                    goto cleanup;
+                }
+                if (pKey == bcpKeyBuf) {
                     
-                    len = _bcp47ToLDMLType(pKey, -1, pBcpType, bcpTypeLen, buf + bufIdx, bufSize - bufIdx - 1, status);
-                    if (U_FAILURE(*status)) {
+
+
+
+                    T_CString_toLowerCase(bcpKeyBuf);
+                    if (bufSize - bufIdx - 1 >= bcpKeyLen) {
+                        uprv_memcpy(buf + bufIdx, bcpKeyBuf, bcpKeyLen);
+                        pKey = buf + bufIdx;
+                        bufIdx += bcpKeyLen;
+                        *(buf + bufIdx) = 0;
+                        bufIdx++;
+                    } else {
+                        *status = U_BUFFER_OVERFLOW_ERROR;
                         goto cleanup;
                     }
-                    pType = buf + bufIdx;
-                    bufIdx += len;
-                    *(buf + bufIdx) = 0;
-                    bufIdx++;
+                }
+
+                if (pBcpType) {
+                    char bcpTypeBuf[128];       
+                    if (bcpTypeLen >= sizeof(bcpTypeBuf)) {
+                        
+                        *status = U_ILLEGAL_ARGUMENT_ERROR;
+                        goto cleanup;
+                    }
+
+                    uprv_strncpy(bcpTypeBuf, pBcpType, bcpTypeLen);
+                    bcpTypeBuf[bcpTypeLen] = 0;
+
+                    
+                    pType = uloc_toLegacyType(pKey, bcpTypeBuf);
+                    if (pType == NULL) {
+                        *status = U_ILLEGAL_ARGUMENT_ERROR;
+                        goto cleanup;
+                    }
+                    if (pType == bcpTypeBuf) {
+                        
+
+
+
+                        
+                        T_CString_toLowerCase(bcpTypeBuf);
+                        if (bufSize - bufIdx - 1 >= bcpTypeLen) {
+                            uprv_memcpy(buf + bufIdx, bcpTypeBuf, bcpTypeLen);
+                            pType = buf + bufIdx;
+                            bufIdx += bcpTypeLen;
+                            *(buf + bufIdx) = 0;
+                            bufIdx++;
+                        } else {
+                            *status = U_BUFFER_OVERFLOW_ERROR;
+                            goto cleanup;
+                        }
+                    }
                 } else {
                     
                     pType = LOCALE_TYPE_YES;

@@ -14,8 +14,7 @@
 #include "unicode/uobject.h"
 #include "unicode/locid.h"
 
-
-#if !UCONFIG_NO_COLLATION && !UCONFIG_NO_NORMALIZATION
+#if !UCONFIG_NO_COLLATION
 
 
 
@@ -186,9 +185,6 @@ class UVector;
 
 class U_I18N_API AlphabeticIndex: public UObject {
 public:
-#ifdef U_HIDE_DRAFT_API
-    class Bucket;
-#else
      
 
 
@@ -290,7 +286,6 @@ public:
         BucketList *buckets_;
         Collator *collatorPrimaryOnly_;
     };
-#endif  
 
     
 
@@ -306,7 +301,6 @@ public:
 
      AlphabeticIndex(const Locale &locale, UErrorCode &status);
 
-#ifndef U_HIDE_DRAFT_API
    
 
 
@@ -322,7 +316,6 @@ public:
 
 
     AlphabeticIndex(RuleBasedCollator *collator, UErrorCode &status);
-#endif  
 
     
 
@@ -357,7 +350,6 @@ public:
 
     virtual ~AlphabeticIndex();
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -365,7 +357,6 @@ public:
 
 
     ImmutableIndex *buildImmutableIndex(UErrorCode &errorCode);
-#endif  
 
     
 
@@ -757,5 +748,5 @@ private:
 
 U_NAMESPACE_END
 
-#endif 
+#endif  
 #endif

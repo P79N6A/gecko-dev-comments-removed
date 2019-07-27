@@ -179,6 +179,8 @@ struct UDataSwapper {
     
     UDataSwapFn *swapArray32;
     
+    UDataSwapFn *swapArray64;
+    
     UDataSwapFn *swapInvChars;
 
     

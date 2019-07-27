@@ -34,8 +34,6 @@
 #include "ustr_imp.h"
 #include "uassert.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 U_CAPI UChar* U_EXPORT2 
 u_strFromUTF32WithSub(UChar *dest,
                int32_t destCapacity,
@@ -383,7 +381,7 @@ utf8_nextCharSafeBodyPointer(const uint8_t **ps, const uint8_t *limit, UChar32 c
 
     
     
-    U_ASSERT(illegal || count<LENGTHOF(utf8_minLegal));
+    U_ASSERT(illegal || count<UPRV_LENGTHOF(utf8_minLegal));
     if(illegal || c<utf8_minLegal[count] || U_IS_SURROGATE(c)) {
         
         

@@ -59,6 +59,14 @@ U_CAPI void uprv_checkValidMemory(const void *p, size_t n);
 
 #endif  
 
+
+
+
+
+
+
+
+#define UPRV_LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
 #define uprv_memset(buffer, mark, size) U_STANDARD_CPP_NAMESPACE memset(buffer, mark, size)
 #define uprv_memcmp(buffer1, buffer2, size) U_STANDARD_CPP_NAMESPACE memcmp(buffer1, buffer2,size)
 
@@ -106,13 +114,6 @@ typedef union {
 
 
 #define U_ALIGNMENT_OFFSET_UP(ptr) (sizeof(UAlignedMemory) - U_ALIGNMENT_OFFSET(ptr))
-
-
-
-
-
-U_CFUNC UBool 
-cmemory_inUse(void);
 
 
 

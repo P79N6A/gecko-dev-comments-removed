@@ -47,7 +47,7 @@ public:
     }
 
     virtual UnicodeString& debugClass(UnicodeString& result) const {
-      return result.append("Key");
+      return result.append((UnicodeString)"Key");
     }
 #endif
 };

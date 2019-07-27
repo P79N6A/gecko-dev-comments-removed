@@ -67,8 +67,6 @@ U_NAMESPACE_USE
 
 
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 
 static int32_t U_CALLCONV
@@ -503,6 +501,8 @@ ubidi_swap(const UDataSwapper *ds,
         
         count=indexes[UBIDI_IX_JG_LIMIT]-indexes[UBIDI_IX_JG_START];
         offset+=count;
+        count=indexes[UBIDI_IX_JG_LIMIT2]-indexes[UBIDI_IX_JG_START2];
+        offset+=count;
 
         U_ASSERT(offset==size);
     }
@@ -790,7 +790,7 @@ udata_swap(const UDataSwapper *ds,
     }
 
     
-    for(i=0; i<LENGTHOF(swapFns); ++i) {
+    for(i=0; i<UPRV_LENGTHOF(swapFns); ++i) {
         if(0==memcmp(swapFns[i].dataFormat, pInfo->dataFormat, 4)) {
             swappedLength=swapFns[i].swapFn(ds, inData, length, outData, pErrorCode);
 

@@ -335,7 +335,7 @@ NFRuleSet::operator==(const NFRuleSet& rhs) const
 #define RECURSION_LIMIT 50
 
 void
-NFRuleSet::format(int64_t number, UnicodeString& toAppendTo, int32_t pos) const
+NFRuleSet::format(int64_t number, UnicodeString& toAppendTo, int32_t pos, UErrorCode& status) const
 {
     NFRule *rule = findNormalRule(number);
     if (rule) { 
@@ -344,14 +344,14 @@ NFRuleSet::format(int64_t number, UnicodeString& toAppendTo, int32_t pos) const
             
             ncThis->fRecursionCount = 0;
         } else {
-            rule->doFormat(number, toAppendTo, pos);
+            rule->doFormat(number, toAppendTo, pos, status);
             ncThis->fRecursionCount--;
         }
     }
 }
 
 void
-NFRuleSet::format(double number, UnicodeString& toAppendTo, int32_t pos) const
+NFRuleSet::format(double number, UnicodeString& toAppendTo, int32_t pos, UErrorCode& status) const
 {
     NFRule *rule = findDoubleRule(number);
     if (rule) { 
@@ -360,7 +360,7 @@ NFRuleSet::format(double number, UnicodeString& toAppendTo, int32_t pos) const
             
             ncThis->fRecursionCount = 0;
         } else {
-            rule->doFormat(number, toAppendTo, pos);
+            rule->doFormat(number, toAppendTo, pos, status);
             ncThis->fRecursionCount--;
         }
     }

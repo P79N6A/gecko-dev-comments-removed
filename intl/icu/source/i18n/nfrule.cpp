@@ -17,8 +17,11 @@
 
 #if U_HAVE_RBNF
 
+#include "unicode/localpointer.h"
 #include "unicode/rbnf.h"
 #include "unicode/tblcoll.h"
+#include "unicode/plurfmt.h"
+#include "unicode/upluralrules.h"
 #include "unicode/coleitr.h"
 #include "unicode/uchar.h"
 #include "nfrs.h"
@@ -36,13 +39,17 @@ NFRule::NFRule(const RuleBasedNumberFormat* _rbnf)
   , sub1(NULL)
   , sub2(NULL)
   , formatter(_rbnf)
+  , rulePatternFormat(NULL)
 {
 }
 
 NFRule::~NFRule()
 {
-  delete sub1;
-  delete sub2;
+    if (sub1 != sub2) {
+        delete sub2;
+    }
+    delete sub1;
+    delete rulePatternFormat;
 }
 
 static const UChar gLeftBracket = 0x005b;
@@ -64,6 +71,9 @@ static const UChar gMinusX[] =                  {0x2D, 0x78, 0};
 static const UChar gXDotX[] =                   {0x78, 0x2E, 0x78, 0}; 
 static const UChar gXDotZero[] =                {0x78, 0x2E, 0x30, 0}; 
 static const UChar gZeroDotX[] =                {0x30, 0x2E, 0x78, 0}; 
+
+static const UChar gDollarOpenParenthesis[] =   {0x24, 0x28, 0}; 
+static const UChar gClosedParenthesisDollar[] = {0x29, 0x24, 0}; 
 
 static const UChar gLessLess[] =                {0x3C, 0x3C, 0};    
 static const UChar gLessPercent[] =             {0x3C, 0x25, 0};    
@@ -116,8 +126,7 @@ NFRule::makeRules(UnicodeString& description,
     if (brack1 == -1 || brack2 == -1 || brack1 > brack2
         || rule1->getType() == kProperFractionRule
         || rule1->getType() == kNegativeNumberRule) {
-        rule1->ruleText = description;
-        rule1->extractSubstitutions(ruleSet, predecessor, rbnf, status);
+        rule1->extractSubstitutions(ruleSet, description, predecessor, status);
         rules.add(rule1);
     } else {
         
@@ -177,8 +186,7 @@ NFRule::makeRules(UnicodeString& description,
             if (brack2 + 1 < description.length()) {
                 sbuf.append(description, brack2 + 1, description.length() - brack2 - 1);
             }
-            rule2->ruleText.setTo(sbuf);
-            rule2->extractSubstitutions(ruleSet, predecessor, rbnf, status);
+            rule2->extractSubstitutions(ruleSet, sbuf, predecessor, status);
         }
 
         
@@ -189,8 +197,7 @@ NFRule::makeRules(UnicodeString& description,
         if (brack2 + 1 < description.length()) {
             sbuf.append(description, brack2 + 1, description.length() - brack2 - 1);
         }
-        rule1->ruleText.setTo(sbuf);
-        rule1->extractSubstitutions(ruleSet, predecessor, rbnf, status);
+        rule1->extractSubstitutions(ruleSet, sbuf, predecessor, status);
 
         
         
@@ -369,13 +376,45 @@ NFRule::parseRuleDescriptor(UnicodeString& description, UErrorCode& status)
 
 void
 NFRule::extractSubstitutions(const NFRuleSet* ruleSet,
+                             const UnicodeString &ruleText,
                              const NFRule* predecessor,
-                             const RuleBasedNumberFormat* rbnf,
                              UErrorCode& status)
 {
-    if (U_SUCCESS(status)) {
-        sub1 = extractSubstitution(ruleSet, predecessor, rbnf, status);
-        sub2 = extractSubstitution(ruleSet, predecessor, rbnf, status);
+    if (U_FAILURE(status)) {
+        return;
+    }
+    this->ruleText = ruleText;
+    this->rulePatternFormat = NULL;
+    sub1 = extractSubstitution(ruleSet, predecessor, status);
+    if (sub1 == NULL || sub1->isNullSubstitution()) {
+        
+        sub2 = sub1;
+    }
+    else {
+        sub2 = extractSubstitution(ruleSet, predecessor, status);
+    }
+    int32_t pluralRuleStart = this->ruleText.indexOf(gDollarOpenParenthesis, -1, 0);
+    int32_t pluralRuleEnd = (pluralRuleStart >= 0 ? this->ruleText.indexOf(gClosedParenthesisDollar, -1, pluralRuleStart) : -1);
+    if (pluralRuleEnd >= 0) {
+        int32_t endType = this->ruleText.indexOf(gComma, pluralRuleStart);
+        if (endType < 0) {
+            status = U_PARSE_ERROR;
+            return;
+        }
+        UnicodeString type(this->ruleText.tempSubString(pluralRuleStart + 2, endType - pluralRuleStart - 2));
+        UPluralType pluralType;
+        if (type.startsWith(UNICODE_STRING_SIMPLE("cardinal"))) {
+            pluralType = UPLURAL_TYPE_CARDINAL;
+        }
+        else if (type.startsWith(UNICODE_STRING_SIMPLE("ordinal"))) {
+            pluralType = UPLURAL_TYPE_ORDINAL;
+        }
+        else {
+            status = U_ILLEGAL_ARGUMENT_ERROR;
+            return;
+        }
+        rulePatternFormat = formatter->createPluralFormat(pluralType,
+                this->ruleText.tempSubString(endType + 1, pluralRuleEnd - endType - 1), status);
     }
 }
 
@@ -394,7 +433,6 @@ NFRule::extractSubstitutions(const NFRuleSet* ruleSet,
 NFSubstitution *
 NFRule::extractSubstitution(const NFRuleSet* ruleSet,
                             const NFRule* predecessor,
-                            const RuleBasedNumberFormat* rbnf,
                             UErrorCode& status)
 {
     NFSubstitution* result = NULL;
@@ -408,7 +446,7 @@ NFRule::extractSubstitution(const NFRuleSet* ruleSet,
     
     if (subStart == -1) {
         return NFSubstitution::makeSubstitution(ruleText.length(), this, predecessor,
-            ruleSet, rbnf, UnicodeString(), status);
+            ruleSet, this->formatter, UnicodeString(), status);
     }
 
     
@@ -436,7 +474,7 @@ NFRule::extractSubstitution(const NFRuleSet* ruleSet,
     
     if (subEnd == -1) {
         return NFSubstitution::makeSubstitution(ruleText.length(), this, predecessor,
-            ruleSet, rbnf, UnicodeString(), status);
+            ruleSet, this->formatter, UnicodeString(), status);
     }
 
     
@@ -445,7 +483,7 @@ NFRule::extractSubstitution(const NFRuleSet* ruleSet,
     UnicodeString subToken;
     subToken.setTo(ruleText, subStart, subEnd + 1 - subStart);
     result = NFSubstitution::makeSubstitution(subStart, this, predecessor, ruleSet,
-        rbnf, subToken, status);
+        this->formatter, subToken, status);
 
     
     ruleText.removeBetween(subStart, subEnd+1);
@@ -644,16 +682,39 @@ NFRule::_appendRuleText(UnicodeString& result) const
 
 
 void
-NFRule::doFormat(int64_t number, UnicodeString& toInsertInto, int32_t pos) const
+NFRule::doFormat(int64_t number, UnicodeString& toInsertInto, int32_t pos, UErrorCode& status) const
 {
     
     
     
     
     
-    toInsertInto.insert(pos, ruleText);
-    sub2->doSubstitution(number, toInsertInto, pos);
-    sub1->doSubstitution(number, toInsertInto, pos);
+    int32_t pluralRuleStart = ruleText.length();
+    int32_t lengthOffset = 0;
+    if (!rulePatternFormat) {
+        toInsertInto.insert(pos, ruleText);
+    }
+    else {
+        pluralRuleStart = ruleText.indexOf(gDollarOpenParenthesis, -1, 0);
+        int pluralRuleEnd = ruleText.indexOf(gClosedParenthesisDollar, -1, pluralRuleStart);
+        int initialLength = toInsertInto.length();
+        if (pluralRuleEnd < ruleText.length() - 1) {
+            toInsertInto.insert(pos, ruleText.tempSubString(pluralRuleEnd + 2));
+        }
+        toInsertInto.insert(pos,
+            rulePatternFormat->format((int32_t)(number/uprv_pow(radix, exponent)), status));
+        if (pluralRuleStart > 0) {
+            toInsertInto.insert(pos, ruleText.tempSubString(0, pluralRuleStart));
+        }
+        lengthOffset = ruleText.length() - (toInsertInto.length() - initialLength);
+    }
+
+    if (!sub2->isNullSubstitution()) {
+        sub2->doSubstitution(number, toInsertInto, pos - (sub2->getPos() > pluralRuleStart ? lengthOffset : 0), status);
+    }
+    if (!sub1->isNullSubstitution()) {
+        sub1->doSubstitution(number, toInsertInto, pos - (sub1->getPos() > pluralRuleStart ? lengthOffset : 0), status);
+    }
 }
 
 
@@ -666,7 +727,7 @@ NFRule::doFormat(int64_t number, UnicodeString& toInsertInto, int32_t pos) const
 
 
 void
-NFRule::doFormat(double number, UnicodeString& toInsertInto, int32_t pos) const
+NFRule::doFormat(double number, UnicodeString& toInsertInto, int32_t pos, UErrorCode& status) const
 {
     
     
@@ -674,9 +735,32 @@ NFRule::doFormat(double number, UnicodeString& toInsertInto, int32_t pos) const
     
     
     
-    toInsertInto.insert(pos, ruleText);
-    sub2->doSubstitution(number, toInsertInto, pos);
-    sub1->doSubstitution(number, toInsertInto, pos);
+    int32_t pluralRuleStart = ruleText.length();
+    int32_t lengthOffset = 0;
+    if (!rulePatternFormat) {
+        toInsertInto.insert(pos, ruleText);
+    }
+    else {
+        pluralRuleStart = ruleText.indexOf(gDollarOpenParenthesis, -1, 0);
+        int pluralRuleEnd = ruleText.indexOf(gClosedParenthesisDollar, -1, pluralRuleStart);
+        int initialLength = toInsertInto.length();
+        if (pluralRuleEnd < ruleText.length() - 1) {
+            toInsertInto.insert(pos, ruleText.tempSubString(pluralRuleEnd + 2));
+        }
+        toInsertInto.insert(pos,
+            rulePatternFormat->format((int32_t)(number/uprv_pow(radix, exponent)), status));
+        if (pluralRuleStart > 0) {
+            toInsertInto.insert(pos, ruleText.tempSubString(0, pluralRuleStart));
+        }
+        lengthOffset = ruleText.length() - (toInsertInto.length() - initialLength);
+    }
+
+    if (!sub2->isNullSubstitution()) {
+        sub2->doSubstitution(number, toInsertInto, pos - (sub2->getPos() > pluralRuleStart ? lengthOffset : 0), status);
+    }
+    if (!sub1->isNullSubstitution()) {
+        sub1->doSubstitution(number, toInsertInto, pos - (sub1->getPos() > pluralRuleStart ? lengthOffset : 0), status);
+    }
 }
 
 
@@ -1136,16 +1220,17 @@ NFRule::prefixLength(const UnicodeString& str, const UnicodeString& prefix, UErr
         
         
         
-        RuleBasedCollator* collator = (RuleBasedCollator*)formatter->getCollator();
-        CollationElementIterator* strIter = collator->createCollationElementIterator(str);
-        CollationElementIterator* prefixIter = collator->createCollationElementIterator(prefix);
+        const RuleBasedCollator* collator = formatter->getCollator();
+        if (collator == NULL) {
+            status = U_MEMORY_ALLOCATION_ERROR;
+            return 0;
+        }
+        LocalPointer<CollationElementIterator> strIter(collator->createCollationElementIterator(str));
+        LocalPointer<CollationElementIterator> prefixIter(collator->createCollationElementIterator(prefix));
         
-        if (collator == NULL || strIter == NULL || prefixIter == NULL) {
-        	delete collator;
-        	delete strIter;
-        	delete prefixIter;
-        	status = U_MEMORY_ALLOCATION_ERROR;
-        	return 0;
+        if (strIter.isNull() || prefixIter.isNull()) {
+            status = U_MEMORY_ALLOCATION_ERROR;
+            return 0;
         }
 
         UErrorCode err = U_ZERO_ERROR;
@@ -1197,8 +1282,6 @@ NFRule::prefixLength(const UnicodeString& str, const UnicodeString& prefix, UErr
             
             
             if (oStr == CollationElementIterator::NULLORDER) {
-                delete prefixIter;
-                delete strIter;
                 return 0;
             }
 
@@ -1207,8 +1290,6 @@ NFRule::prefixLength(const UnicodeString& str, const UnicodeString& prefix, UErr
             
             if (CollationElementIterator::primaryOrder(oStr)
                 != CollationElementIterator::primaryOrder(oPrefix)) {
-                delete prefixIter;
-                delete strIter;
                 return 0;
 
                 
@@ -1228,9 +1309,6 @@ NFRule::prefixLength(const UnicodeString& str, const UnicodeString& prefix, UErr
 #ifdef RBNF_DEBUG
         fprintf(stderr, "prefix length: %d\n", result);
 #endif
-        delete prefixIter;
-        delete strIter;
-
         return result;
 #if 0
         
@@ -1314,107 +1392,84 @@ NFRule::findText(const UnicodeString& str,
                  int32_t startingAt,
                  int32_t* length) const
 {
-#if !UCONFIG_NO_COLLATION
-    
-    
-    if (!formatter->isLenient()) {
-        *length = key.length();
-        return str.indexOf(key, startingAt);
-
-        
-        
-    } else
-#endif
-    {
-        
-        
-
-        
-        
-        
-        
-        
-        int32_t p = startingAt;
-        int32_t keyLen = 0;
-
-        
-        
-        
-        
-        
-        
-        
-        UnicodeString temp;
-        UErrorCode status = U_ZERO_ERROR;
-        while (p < str.length() && keyLen == 0) {
-            temp.setTo(str, p, str.length() - p);
-            keyLen = prefixLength(temp, key, status);
-            if (U_FAILURE(status)) {
-            	break;
+    if (rulePatternFormat) {
+        Formattable result;
+        FieldPosition position(UNUM_INTEGER_FIELD);
+        position.setBeginIndex(startingAt);
+        rulePatternFormat->parseType(str, this, result, position);
+        int start = position.getBeginIndex();
+        if (start >= 0) {
+            int32_t pluralRuleStart = ruleText.indexOf(gDollarOpenParenthesis, -1, 0);
+            int32_t pluralRuleSuffix = ruleText.indexOf(gClosedParenthesisDollar, -1, pluralRuleStart) + 2;
+            int32_t matchLen = position.getEndIndex() - start;
+            UnicodeString prefix(ruleText.tempSubString(0, pluralRuleStart));
+            UnicodeString suffix(ruleText.tempSubString(pluralRuleSuffix));
+            if (str.compare(start - prefix.length(), prefix.length(), prefix, 0, prefix.length()) == 0
+                    && str.compare(start + matchLen, suffix.length(), suffix, 0, suffix.length()) == 0)
+            {
+                *length = matchLen + prefix.length() + suffix.length();
+                return start - prefix.length();
             }
-            if (keyLen != 0) {
-                *length = keyLen;
-                return p;
-            }
-            ++p;
         }
-        
-        
-        
         *length = 0;
         return -1;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
     }
+    if (!formatter->isLenient()) {
+        
+        
+        *length = key.length();
+        return str.indexOf(key, startingAt);
+    }
+    else {
+        
+        
+        return findTextLenient(str, key, startingAt, length);
+    }
+}
+
+int32_t
+NFRule::findTextLenient(const UnicodeString& str,
+                 const UnicodeString& key,
+                 int32_t startingAt,
+                 int32_t* length) const
+{
+    
+    
+
+    
+    
+    
+    
+    
+    int32_t p = startingAt;
+    int32_t keyLen = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    UnicodeString temp;
+    UErrorCode status = U_ZERO_ERROR;
+    while (p < str.length() && keyLen == 0) {
+        temp.setTo(str, p, str.length() - p);
+        keyLen = prefixLength(temp, key, status);
+        if (U_FAILURE(status)) {
+            break;
+        }
+        if (keyLen != 0) {
+            *length = keyLen;
+            return p;
+        }
+        ++p;
+    }
+    
+    
+    
+    *length = 0;
+    return -1;
 }
 
 
@@ -1438,15 +1493,17 @@ NFRule::allIgnorable(const UnicodeString& str, UErrorCode& status) const
     
     
     if (formatter->isLenient()) {
-        RuleBasedCollator* collator = (RuleBasedCollator*)(formatter->getCollator());
-        CollationElementIterator* iter = collator->createCollationElementIterator(str);
+        const RuleBasedCollator* collator = formatter->getCollator();
+        if (collator == NULL) {
+            status = U_MEMORY_ALLOCATION_ERROR;
+            return FALSE;
+        }
+        LocalPointer<CollationElementIterator> iter(collator->createCollationElementIterator(str));
+
         
-        
-        if (collator == NULL || iter == NULL) {
-        	delete collator;
-        	delete iter;
-        	status = U_MEMORY_ALLOCATION_ERROR;
-        	return FALSE;
+        if (iter.isNull()) {
+            status = U_MEMORY_ALLOCATION_ERROR;
+            return FALSE;
         }
 
         UErrorCode err = U_ZERO_ERROR;
@@ -1456,7 +1513,6 @@ NFRule::allIgnorable(const UnicodeString& str, UErrorCode& status) const
             o = iter->next(err);
         }
 
-        delete iter;
         return o == CollationElementIterator::NULLORDER;
     }
 #endif
@@ -1470,5 +1526,3 @@ U_NAMESPACE_END
 
 
 #endif
-
-

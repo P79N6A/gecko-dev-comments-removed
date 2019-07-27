@@ -31,8 +31,6 @@
 #include "uprops.h"
 #include "ustr_imp.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array)/sizeof((array)[0]))
-
 
 #define INCLUDED_FROM_UCHAR_C
 #include "uchar_props_data.h"

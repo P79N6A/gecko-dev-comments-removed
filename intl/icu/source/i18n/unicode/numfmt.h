@@ -37,10 +37,13 @@
 #include "unicode/locid.h"
 #include "unicode/stringpiece.h"
 #include "unicode/curramt.h"
+#include "unicode/udisplaycontext.h"
 
 class NumberFormatTest;
 
 U_NAMESPACE_BEGIN
+
+class SharedNumberFormat;
 
 #if !UCONFIG_NO_SERVICE
 class NumberFormatFactory;
@@ -705,6 +708,30 @@ public:
                                                   UNumberFormatStyle style,
                                                   UErrorCode& errorCode);
 
+#ifndef U_HIDE_INTERNAL_API
+
+    
+
+
+
+
+    static NumberFormat* internalCreateInstance(
+            const Locale& desiredLocale,
+            UNumberFormatStyle style,
+            UErrorCode& errorCode);
+
+    
+
+
+
+
+
+
+    static const SharedNumberFormat* U_EXPORT2 createSharedInstance(
+            const Locale& inLocale, UNumberFormatStyle style, UErrorCode& status);
+
+#endif  
+
     
 
 
@@ -762,9 +789,15 @@ public:
 
 
 
+
+
+
     static URegistryKey U_EXPORT2 registerFactory(NumberFormatFactory* toAdopt, UErrorCode& status);
 
     
+
+
+
 
 
 
@@ -915,6 +948,29 @@ public:
 
 
     const UChar* getCurrency() const;
+	
+    
+
+
+
+
+
+
+
+
+    virtual void setContext(UDisplayContext value, UErrorCode& status);
+
+    
+
+
+
+
+
+
+
+
+
+    virtual UDisplayContext getContext(UDisplayContextType type, UErrorCode& status) const;
 
 public:
 
@@ -999,7 +1055,7 @@ private:
                                       UNumberFormatStyle style,
                                       UErrorCode& errorCode);
 
-    UBool      fGroupingUsed;
+    UBool       fGroupingUsed;
     int32_t     fMaxIntegerDigits;
     int32_t     fMinIntegerDigits;
     int32_t     fMaxFractionDigits;
@@ -1015,6 +1071,8 @@ private:
 
     
     UChar      fCurrency[4];
+
+    UDisplayContext fCapitalizationContext;
 
     friend class ICUNumberFormatFactory; 
     friend class ICUNumberFormatService;

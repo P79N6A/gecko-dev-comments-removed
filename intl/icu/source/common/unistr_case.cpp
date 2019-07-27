@@ -100,11 +100,11 @@ UnicodeString::caseMap(const UCaseMap *csm,
   UChar *oldArray;
   int32_t oldLength;
 
-  if(fFlags&kUsingStackBuffer) {
+  if(fUnion.fFields.fLengthAndFlags&kUsingStackBuffer) {
     
-    u_memcpy(oldStackBuffer, fUnion.fStackBuffer, fShortLength);
     oldArray = oldStackBuffer;
-    oldLength = fShortLength;
+    oldLength = getShortLength();
+    u_memcpy(oldStackBuffer, fUnion.fStackFields.fBuffer, oldLength);
   } else {
     oldArray = getArrayStart();
     oldLength = length();

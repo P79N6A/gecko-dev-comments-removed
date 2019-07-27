@@ -19,6 +19,7 @@
 
 #include "unicode/datefmt.h"
 #include "unicode/smpdtfmt.h"
+#include "unicode/brkiter.h"
 
 U_NAMESPACE_BEGIN
 
@@ -232,6 +233,18 @@ public:
 
     virtual const DateFormatSymbols* getDateFormatSymbols(void) const;
 
+    
+    
+
+
+
+
+
+
+
+
+
+    virtual void setContext(UDisplayContext value, UErrorCode& status);
 
 private:
     SimpleDateFormat *fDateTimeFormatter;
@@ -247,6 +260,11 @@ private:
     int32_t fDatesLen;    
     URelativeString *fDates; 
 
+    UBool fCombinedHasDateAtStart;
+    UBool fCapitalizationInfoSet;
+    UBool fCapitalizationOfRelativeUnitsForUIListMenu;
+    UBool fCapitalizationOfRelativeUnitsForStandAlone;
+    BreakIterator* fCapitalizationBrkIter;
 
     
 
@@ -260,6 +278,11 @@ private:
 
 
     void loadDates(UErrorCode &status);
+
+    
+
+
+    void initCapitalizationContextInfo(const Locale& thelocale);
 
     
 

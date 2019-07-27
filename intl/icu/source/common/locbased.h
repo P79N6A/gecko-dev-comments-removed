@@ -75,6 +75,14 @@ class U_COMMON_API LocaleBased : public UMemory {
 
     void setLocaleIDs(const char* valid, const char* actual);
 
+    
+
+
+
+
+
+    void setLocaleIDs(const Locale& valid, const Locale& actual);
+
  private:
 
     char* valid;

@@ -32,6 +32,7 @@ struct UBiDiProps {
     const int32_t *indexes;
     const uint32_t *mirrors;
     const uint8_t *jgArray;
+    const uint8_t *jgArray2;
 
     UTrie2 trie;
     uint8_t formatVersion[4];
@@ -84,18 +85,28 @@ ubidi_addPropertyStarts(const UBiDiProps *bdp, const USetAdder *sa, UErrorCode *
     start=bdp->indexes[UBIDI_IX_JG_START];
     limit=bdp->indexes[UBIDI_IX_JG_LIMIT];
     jgArray=bdp->jgArray;
-    prev=0;
-    while(start<limit) {
-        jg=*jgArray++;
-        if(jg!=prev) {
-            sa->add(sa->set, start);
-            prev=jg;
+    for(;;) {
+        prev=0;
+        while(start<limit) {
+            jg=*jgArray++;
+            if(jg!=prev) {
+                sa->add(sa->set, start);
+                prev=jg;
+            }
+            ++start;
         }
-        ++start;
-    }
-    if(prev!=0) {
-        
-        sa->add(sa->set, limit);
+        if(prev!=0) {
+            
+            sa->add(sa->set, limit);
+        }
+        if(limit==bdp->indexes[UBIDI_IX_JG_LIMIT]) {
+            
+            start=bdp->indexes[UBIDI_IX_JG_START2];
+            limit=bdp->indexes[UBIDI_IX_JG_LIMIT2];
+            jgArray=bdp->jgArray2;
+        } else {
+            break;
+        }
     }
 
     
@@ -204,9 +215,13 @@ ubidi_getJoiningGroup(const UBiDiProps *bdp, UChar32 c) {
     limit=bdp->indexes[UBIDI_IX_JG_LIMIT];
     if(start<=c && c<limit) {
         return (UJoiningGroup)bdp->jgArray[c-start];
-    } else {
-        return U_JG_NO_JOINING_GROUP;
     }
+    start=bdp->indexes[UBIDI_IX_JG_START2];
+    limit=bdp->indexes[UBIDI_IX_JG_LIMIT2];
+    if(start<=c && c<limit) {
+        return (UJoiningGroup)bdp->jgArray2[c-start];
+    }
+    return U_JG_NO_JOINING_GROUP;
 }
 
 U_CFUNC UBidiPairedBracketType

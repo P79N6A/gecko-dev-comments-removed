@@ -81,20 +81,6 @@ public:
 
 
 
-    virtual UBool operator==(const UObject& other) const;
-
-    
-
-
-
-
-    UBool operator!=(const UObject& other) const;
-
-    
-
-
-
-
 
 
 
@@ -132,12 +118,6 @@ private:
     TimeUnit(UTimeUnitFields timeUnitField);
 
 };
-
-
-inline UBool 
-TimeUnit::operator!=(const UObject& other) const {
-    return !operator==(other);
-}
 
 
 U_NAMESPACE_END

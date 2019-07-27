@@ -61,7 +61,6 @@ public:
     static LocaleDisplayNames* U_EXPORT2 createInstance(const Locale& locale,
                             UDialectHandling dialectHandling);
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -75,7 +74,6 @@ public:
 
     static LocaleDisplayNames* U_EXPORT2 createInstance(const Locale& locale,
                             UDisplayContext *contexts, int32_t length);
-#endif  
 
     
     

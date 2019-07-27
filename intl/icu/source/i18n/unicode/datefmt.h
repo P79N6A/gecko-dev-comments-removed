@@ -29,6 +29,7 @@
 #include "unicode/format.h"
 #include "unicode/locid.h"
 #include "unicode/enumset.h"
+#include "unicode/udisplaycontext.h"
 
 
 
@@ -570,6 +571,100 @@ public:
                                               EStyle timeStyle = kDefault,
                                               const Locale& aLocale = Locale::getDefault());
 
+#ifndef U_HIDE_DRAFT_API
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static DateFormat* U_EXPORT2 createInstanceForSkeleton(
+            const UnicodeString& skeleton,
+            UErrorCode &status);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static DateFormat* U_EXPORT2 createInstanceForSkeleton(
+            const UnicodeString& skeleton,
+            const Locale &locale,
+            UErrorCode &status);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static DateFormat* U_EXPORT2 createInstanceForSkeleton(
+            Calendar *calendarToAdopt,
+            const UnicodeString& skeleton,
+            const Locale &locale,
+            UErrorCode &status);
+
+#endif 
+
+#ifndef U_HIDE_INTERNAL_API 
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static DateFormat* U_EXPORT2 internalCreateInstanceForSkeleton(
+            const UnicodeString& skeleton,
+            const Locale &locale,
+            DateTimePatternGenerator &dpng,
+            UErrorCode &status);
+
+#endif 
+
     
 
 
@@ -580,6 +675,7 @@ public:
     static const Locale* U_EXPORT2 getAvailableLocales(int32_t& count);
 
     
+
 
 
 
@@ -598,9 +694,39 @@ public:
 
 
 
+
+
+
+
+
+
+
     virtual void setLenient(UBool lenient);
 
+
     
+
+
+
+    virtual UBool isCalendarLenient(void) const;
+
+
+    
+
+
+
+
+
+
+
+
+    virtual void setCalendarLenient(UBool lenient);
+
+
+    
+
+
+
 
 
 
@@ -672,6 +798,29 @@ public:
 
 
     virtual void setTimeZone(const TimeZone& zone);
+
+    
+
+
+
+
+
+
+
+
+    virtual void setContext(UDisplayContext value, UErrorCode& status);
+
+    
+
+
+
+
+
+
+
+
+
+    virtual UDisplayContext getContext(UDisplayContextType type, UErrorCode& status) const;
 
    
 
@@ -754,6 +903,9 @@ private:
 
     EnumSet<UDateFormatBooleanAttribute, 0, UDAT_BOOLEAN_ATTRIBUTE_COUNT> fBoolFlags;
 
+
+    UDisplayContext fCapitalizationContext;
+    friend class DateFmtKeyByStyle;
 
 public:
 #ifndef U_HIDE_OBSOLETE_API

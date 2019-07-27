@@ -27,16 +27,6 @@
 
 #define UCOL_NULLORDER        ((int32_t)0xFFFFFFFF)
 
-#ifndef U_HIDE_INTERNAL_API
-
-
-
-
-
-
-#define UCOL_PROCESSED_NULLORDER        ((int64_t)U_INT64_MAX)
-#endif  
-
 #include "unicode/ucol.h"
 
 
@@ -155,22 +145,6 @@ ucol_closeElements(UCollationElements *elems);
 U_STABLE void U_EXPORT2 
 ucol_reset(UCollationElements *elems);
 
-#ifndef U_HIDE_INTERNAL_API
-
-
-
-
-
-
-
-
-
-
-
-U_INTERNAL void U_EXPORT2
-ucol_forceHanImplicit(UCollationElements *elems, UErrorCode *status);
-#endif  
-
 
 
 
@@ -196,52 +170,8 @@ ucol_next(UCollationElements *elems, UErrorCode *status);
 
 
 
-
-
-
 U_STABLE int32_t U_EXPORT2 
 ucol_previous(UCollationElements *elems, UErrorCode *status);
-
-#ifndef U_HIDE_INTERNAL_API
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_INTERNAL int64_t U_EXPORT2
-ucol_nextProcessed(UCollationElements *elems, int32_t *ixLow, int32_t *ixHigh, UErrorCode *status);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_INTERNAL int64_t U_EXPORT2
-ucol_previousProcessed(UCollationElements *elems, int32_t *ixLow, int32_t *ixHigh, UErrorCode *status);
-#endif  
 
 
 

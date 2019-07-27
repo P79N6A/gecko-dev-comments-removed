@@ -16,6 +16,7 @@
 #include "unicode/utypes.h"
 #include "cmemory.h"
 #include "uelement.h"
+#include "unicode/localpointer.h"
 
 
 
@@ -489,6 +490,13 @@ uhash_find(const UHashtable *hash, const void* key);
 
 
 
+#define UHASH_FIRST (-1)
+
+
+
+
+
+
 
 
 
@@ -662,5 +670,25 @@ uhash_deleteHashtable(void *obj);
 
 U_CAPI UBool U_EXPORT2 
 uhash_equals(const UHashtable* hash1, const UHashtable* hash2);
+
+
+#if U_SHOW_CPLUSPLUS_API
+
+U_NAMESPACE_BEGIN
+
+
+
+
+
+
+
+
+
+
+U_DEFINE_LOCAL_OPEN_POINTER(LocalUHashtablePointer, UHashtable, uhash_close);
+
+U_NAMESPACE_END
+
+#endif
 
 #endif

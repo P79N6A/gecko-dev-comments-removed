@@ -130,6 +130,22 @@ StringEnumeration::operator!=(const StringEnumeration& that)const {
 
 
 
+UStringEnumeration * U_EXPORT2
+UStringEnumeration::fromUEnumeration(
+        UEnumeration *uenumToAdopt, UErrorCode &status) {
+    if (U_FAILURE(status)) {
+        uenum_close(uenumToAdopt);
+        return NULL;
+    }
+    UStringEnumeration *result = new UStringEnumeration(uenumToAdopt);
+    if (result == NULL) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+        uenum_close(uenumToAdopt);
+        return NULL;
+    }
+    return result;
+}
+
 UStringEnumeration::UStringEnumeration(UEnumeration* _uenum) :
     uenum(_uenum) {
     U_ASSERT(_uenum != 0);

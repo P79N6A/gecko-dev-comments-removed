@@ -9,9 +9,6 @@
 
 
 
-
-
-
 #ifndef GENRB_H
 #define GENRB_H
 
@@ -40,8 +37,6 @@
 #define GENRB_VERSION "3.3"
 
 U_CDECL_BEGIN
-
-extern UBool gIncludeUnihanColl;
 
 U_CAPI void processFile(
     const char *filename,

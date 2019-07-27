@@ -266,7 +266,6 @@ uldn_keyValueDisplayName(const ULocaleDisplayNames *ldn,
                          int32_t maxResultSize,
                          UErrorCode *pErrorCode);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -281,7 +280,7 @@ uldn_keyValueDisplayName(const ULocaleDisplayNames *ldn,
 
 
 
-U_DRAFT ULocaleDisplayNames * U_EXPORT2
+U_STABLE ULocaleDisplayNames * U_EXPORT2
 uldn_openForContext(const char * locale, UDisplayContext *contexts,
                     int32_t length, UErrorCode *pErrorCode);
 
@@ -295,11 +294,9 @@ uldn_openForContext(const char * locale, UDisplayContext *contexts,
 
 
 
-U_DRAFT UDisplayContext U_EXPORT2
+U_STABLE UDisplayContext U_EXPORT2
 uldn_getContext(const ULocaleDisplayNames *ldn, UDisplayContextType type,
                 UErrorCode *pErrorCode);
-
-#endif  
 
 #endif  
 #endif  

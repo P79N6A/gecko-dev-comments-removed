@@ -27,10 +27,14 @@
 
 #include "locmap.h"
 #include "unicode/ustdio.h"
+
+#if !UCONFIG_NO_CONVERSION
+
 #include "ufile.h"
 #include "unicode/uloc.h"
 #include "unicode/ures.h"
 #include "unicode/ucnv.h"
+#include "unicode/ustring.h"
 #include "cstring.h"
 #include "cmemory.h"
 
@@ -43,7 +47,7 @@ static UFILE*
 finit_owner(FILE         *f,
               const char *locale,
               const char *codepage,
-              UBool       take
+              UBool       takeOwnership
               )
 {
     UErrorCode status = U_ZERO_ERROR;
@@ -94,7 +98,7 @@ finit_owner(FILE         *f,
     
 
     if(U_SUCCESS(status)) {
-        result->fOwnFile = take;
+        result->fOwnFile = takeOwnership;
     }
     else {
 #if !UCONFIG_NO_FORMATTING
@@ -144,6 +148,35 @@ u_fopen(const char    *filename,
         fclose(systemFile);
     }
 
+    return result; 
+}
+
+U_CAPI UFILE* U_EXPORT2
+u_fopen_u(const UChar   *filename,
+        const char    *perm,
+        const char    *locale,
+        const char    *codepage)
+{
+    UFILE     *result;
+    char buffer[256];
+
+    u_austrcpy(buffer, filename);
+
+    result = u_fopen(buffer, perm, locale, codepage);
+#if U_PLATFORM_USES_ONLY_WIN32_API
+    
+    if (!result) {
+        FILE *systemFile = _wfopen(filename, (UChar*)perm);
+        if (systemFile) {
+            result = finit_owner(systemFile, locale, codepage, TRUE);
+        }
+        if (!result) {
+            
+
+            fclose(systemFile);
+        }
+    }
+#endif
     return result; 
 }
 
@@ -312,3 +345,4 @@ U_CAPI const UNumberFormat* U_EXPORT2 u_fgetNumberFormat(UFILE *file)
 }
 #endif
 
+#endif

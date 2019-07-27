@@ -74,13 +74,6 @@ class U_I18N_API CurrencyUnit: public MeasureUnit {
 
 
 
-    UBool operator==(const UObject& other) const;
-
-    
-
-
-
-
 
 
 

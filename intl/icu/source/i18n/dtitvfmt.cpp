@@ -513,20 +513,9 @@ DateIntervalFormat::createSDFPatternInstance(const UnicodeString& skeleton,
                                              DateTimePatternGenerator* dtpng,
                                              UErrorCode& status)
 {
-    if ( U_FAILURE(status) ) {
-        return NULL;
-    }
-
-    const UnicodeString pattern = dtpng->getBestPattern(skeleton, status);
-    if ( U_FAILURE(status) ) {
-        return NULL;
-    }
-    SimpleDateFormat* dtfmt = new SimpleDateFormat(pattern, locale, status);
-    if ( U_FAILURE(status) ) {
-        delete dtfmt;
-        return NULL;
-    }
-    return dtfmt;
+    DateFormat *df = DateFormat::internalCreateInstanceForSkeleton(
+            skeleton, locale, *dtpng, status);
+    return static_cast<SimpleDateFormat *>(df);
 }
 
 
@@ -820,6 +809,8 @@ DateIntervalFormat::getDateTimeSkeleton(const UnicodeString& skeleton,
           case LOW_G:
           case LOW_E:
           case LOW_C:
+          case CAP_U:
+          case LOW_R:
             normalizedDateSkeleton.append(ch);
             dateSkeleton.append(ch);
             break;
@@ -1470,7 +1461,10 @@ DateIntervalFormat::fgCalendarFieldToPatternLetter[] =
      LOW_W, CAP_W, LOW_D,
      CAP_D, CAP_E, CAP_F,
      LOW_A, LOW_H, CAP_H,
-     LOW_M,
+     LOW_M, LOW_S, CAP_S, 
+     LOW_Z, SPACE, CAP_Y, 
+     LOW_E, LOW_U, LOW_G, 
+     CAP_A, SPACE, SPACE, 
 };
 
 

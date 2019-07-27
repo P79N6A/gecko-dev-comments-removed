@@ -78,9 +78,9 @@ utf8_countTrailBytes[256];
 
 
 #define U8_COUNT_TRAIL_BYTES(leadByte) \
-    ((leadByte)<0xf0 ? \
-        ((leadByte)>=0xc0)+((leadByte)>=0xe0) : \
-        (leadByte)<0xfe ? 3+((leadByte)>=0xf8)+((leadByte)>=0xfc) : 0)
+    ((uint8_t)(leadByte)<0xf0 ? \
+        ((uint8_t)(leadByte)>=0xc0)+((uint8_t)(leadByte)>=0xe0) : \
+        (uint8_t)(leadByte)<0xfe ? 3+((uint8_t)(leadByte)>=0xf8)+((uint8_t)(leadByte)>=0xfc) : 0)
 
 
 
@@ -253,7 +253,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
     U8_NEXT(s, _u8_get_index, length, c); \
 }
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -284,7 +283,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
     U8_SET_CP_START(s, start, _u8_get_index); \
     U8_NEXT_OR_FFFD(s, _u8_get_index, length, c); \
 }
-#endif 
 
 
 
@@ -368,7 +366,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
     } \
 }
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -419,7 +416,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
         } \
     } \
 }
-#endif 
 
 
 
@@ -676,7 +672,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
     } \
 }
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -707,7 +702,6 @@ utf8_back1SafeBody(const uint8_t *s, int32_t start, int32_t i);
         (c)=utf8_prevCharSafeBody((const uint8_t *)s, start, &(i), c, -3); \
     } \
 }
-#endif 
 
 
 

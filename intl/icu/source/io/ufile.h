@@ -20,6 +20,9 @@
 #define UFILE_H
 
 #include "unicode/utypes.h"
+
+#if !UCONFIG_NO_CONVERSION
+
 #include "unicode/ucnv.h"
 #include "unicode/utrans.h"
 #include "locbund.h"
@@ -129,4 +132,5 @@ void
 ufile_flush_io(UFILE *f);
 
 
+#endif
 #endif

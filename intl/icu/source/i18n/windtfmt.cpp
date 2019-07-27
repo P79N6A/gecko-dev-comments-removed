@@ -124,7 +124,7 @@ Win32DateFormat &Win32DateFormat::operator=(const Win32DateFormat &other)
 
 
 
-    this->fDateTimeMsg = other.fDateTimeMsg;
+    this->fDateTimeMsg = other.fDateTimeMsg == NULL ? NULL : new UnicodeString(*other.fDateTimeMsg);
     this->fTimeStyle   = other.fTimeStyle;
     this->fDateStyle   = other.fDateStyle;
     this->fLocale      = other.fLocale;

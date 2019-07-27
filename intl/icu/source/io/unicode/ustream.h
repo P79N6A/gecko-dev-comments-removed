@@ -17,6 +17,7 @@
 
 #include "unicode/unistr.h"
 
+#if !UCONFIG_NO_CONVERSION  
 
 
 
@@ -25,6 +26,11 @@
 
 
 
+
+
+#if !defined(_MSC_VER)
+namespace std { class type_info; } 
+#endif
 
 #if U_IOSTREAM_SOURCE >= 199711
 #if (__GNUC__ == 2)
@@ -58,4 +64,5 @@ U_NAMESPACE_END
 
 
 
+#endif
 #endif

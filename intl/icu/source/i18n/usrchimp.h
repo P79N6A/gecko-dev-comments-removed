@@ -18,6 +18,112 @@
 #include "unicode/ucoleitr.h"
 #include "unicode/ubrk.h"
 
+
+#define UCOL_PRIMARYORDERMASK 0xffff0000
+
+#define UCOL_SECONDARYORDERMASK 0x0000ff00
+
+#define UCOL_TERTIARYORDERMASK 0x000000ff
+
+#define UCOL_PRIMARYORDERSHIFT 16
+
+#define UCOL_SECONDARYORDERSHIFT 8
+
+#define UCOL_IGNORABLE 0
+
+
+#define UCOL_PRIMARYORDER(order) (((order) >> 16) & 0xffff)
+#define UCOL_SECONDARYORDER(order) (((order) & UCOL_SECONDARYORDERMASK)>> UCOL_SECONDARYORDERSHIFT)
+#define UCOL_TERTIARYORDER(order) ((order) & UCOL_TERTIARYORDERMASK)
+
+#define UCOL_CONTINUATION_MARKER 0xC0
+
+#define isContinuation(CE) (((CE) & UCOL_CONTINUATION_MARKER) == UCOL_CONTINUATION_MARKER)
+
+
+
+
+
+#define UCOL_PROCESSED_NULLORDER        ((int64_t)U_INT64_MAX)
+
+U_NAMESPACE_BEGIN
+
+class CollationElementIterator;
+class Collator;
+
+struct PCEI
+{
+    uint64_t ce;
+    int32_t  low;
+    int32_t  high;
+};
+
+struct PCEBuffer
+{
+    PCEI    defaultBuffer[16];
+    PCEI   *buffer;
+    int32_t bufferIndex;
+    int32_t bufferSize;
+
+    PCEBuffer();
+    ~PCEBuffer();
+
+    void  reset();
+    UBool empty() const;
+    void  put(uint64_t ce, int32_t ixLow, int32_t ixHigh);
+    const PCEI *get();
+};
+
+class UCollationPCE : public UMemory {
+private:
+    PCEBuffer          pceBuffer;
+    CollationElementIterator *cei;
+    UCollationStrength strength;
+    UBool              toShift;
+    UBool              isShifted;
+    uint32_t           variableTop;
+
+public:
+    UCollationPCE(UCollationElements *elems);
+    UCollationPCE(CollationElementIterator *iter);
+    ~UCollationPCE();
+
+    void init(UCollationElements *elems);
+    void init(CollationElementIterator *iter);
+
+    
+
+
+
+
+
+
+
+
+
+    int64_t nextProcessed(int32_t *ixLow, int32_t *ixHigh, UErrorCode *status);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    int64_t previousProcessed(int32_t *ixLow, int32_t *ixHigh, UErrorCode *status);
+
+private:
+    void init(const Collator &coll);
+    uint64_t processCE(uint32_t ce);
+};
+
+U_NAMESPACE_END
+
 #define INITIAL_ARRAY_SIZE_       256
 #define MAX_TABLE_SIZE_           257
 
@@ -44,12 +150,12 @@ struct UPattern {
     const UChar              *text;
           int32_t             textLength; 
           
-          int32_t             CELength; 
-          int32_t            *CE;
-          int32_t             CEBuffer[INITIAL_ARRAY_SIZE_];
-          int32_t             PCELength;
-          int64_t            *PCE;
-          int64_t             PCEBuffer[INITIAL_ARRAY_SIZE_];
+          int32_t             cesLength;
+          int32_t            *ces;
+          int32_t             cesBuffer[INITIAL_ARRAY_SIZE_];
+          int32_t             pcesLength;
+          int64_t            *pces;
+          int64_t             pcesBuffer[INITIAL_ARRAY_SIZE_];
           UBool               hasPrefixAccents;
           UBool               hasSuffixAccents;
           int16_t             defaultShiftSize;
@@ -65,6 +171,7 @@ struct UStringSearch {
     
     
            UCollationElements *textIter;
+           icu::UCollationPCE *textProcessedIter;
     
     
            UCollationElements *utilIter;

@@ -141,7 +141,6 @@ private:
     virtual int32_t getMinLinearMatch() const { return BytesTrie::kMinLinearMatch; }
     virtual int32_t getMaxLinearMatchLength() const { return BytesTrie::kMaxLinearMatchLength; }
 
-#ifndef U_HIDE_INTERNAL_API
     
 
 
@@ -153,7 +152,6 @@ private:
     private:
         const char *s;
     };
-#endif  
 
     virtual Node *createLinearMatchNode(int32_t i, int32_t byteIndex, int32_t length,
                                         Node *nextNode) const;

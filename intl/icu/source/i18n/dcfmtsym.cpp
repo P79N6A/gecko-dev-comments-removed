@@ -189,6 +189,7 @@ DecimalFormatSymbols::initialize(const Locale& loc, UErrorCode& status, UBool us
         NULL, 
         NULL, 
         NULL, 
+        "superscriptingExponent", 
     };
 
     static const char *gLatn =  "latn";
@@ -420,6 +421,7 @@ DecimalFormatSymbols::initialize() {
     fSymbols[kNaNSymbol] = (UChar)0xfffd;               
     fSymbols[kSignificantDigitSymbol] = (UChar)0x0040;  
     fSymbols[kMonetaryGroupingSeparatorSymbol].remove(); 
+    fSymbols[kExponentMultiplicationSymbol] = (UChar)0xd7; 
 }
 
 Locale

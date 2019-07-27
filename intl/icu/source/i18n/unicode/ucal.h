@@ -422,7 +422,7 @@ enum UCalendarDateFields {
 
 
   UCAL_IS_LEAP_MONTH,
-  
+
   
 
 
@@ -745,7 +745,6 @@ ucal_setTimeZone(UCalendar*    cal,
                  int32_t       len,
                  UErrorCode*   status);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -756,12 +755,11 @@ ucal_setTimeZone(UCalendar*    cal,
 
 
  
-U_DRAFT int32_t U_EXPORT2 
+U_STABLE int32_t U_EXPORT2 
 ucal_getTimeZoneID(const UCalendar *cal,
                    UChar *result,
                    int32_t resultLength,
                    UErrorCode *status);
-#endif 
 
 
 
@@ -1493,11 +1491,10 @@ typedef enum UTimeZoneTransitionType UTimeZoneTransitionType;
 
 
 
-U_DRAFT UBool U_EXPORT2 
+U_STABLE UBool U_EXPORT2 
 ucal_getTimeZoneTransitionDate(const UCalendar* cal, UTimeZoneTransitionType type,
                                UDate* transition, UErrorCode* status);
 
-#ifndef U_HIDE_DRAFT_API
 
 
 
@@ -1522,7 +1519,7 @@ ucal_getTimeZoneTransitionDate(const UCalendar* cal, UTimeZoneTransitionType typ
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 ucal_getWindowsTimeZoneID(const UChar* id, int32_t len,
                             UChar* winid, int32_t winidCapacity, UErrorCode* status);
 
@@ -1554,11 +1551,9 @@ ucal_getWindowsTimeZoneID(const UChar* id, int32_t len,
 
 
 
-U_DRAFT int32_t U_EXPORT2
+U_STABLE int32_t U_EXPORT2
 ucal_getTimeZoneIDForWindowsID(const UChar* winid, int32_t len, const char* region,
                                 UChar* id, int32_t idCapacity, UErrorCode* status);
-
-#endif  
 
 #endif 
 

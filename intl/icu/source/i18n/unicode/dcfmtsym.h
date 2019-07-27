@@ -163,8 +163,14 @@ public:
 
 
         kNineDigitSymbol,
+#ifndef U_HIDE_DRAFT_API
         
-        kFormatSymbolCount
+
+
+        kExponentMultiplicationSymbol,
+#endif  
+        
+        kFormatSymbolCount = kNineDigitSymbol + 2
     };
 
     
@@ -189,7 +195,6 @@ public:
 
     DecimalFormatSymbols(UErrorCode& status);
 
-#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -206,7 +211,6 @@ public:
 
 
     static DecimalFormatSymbols* createWithLastResortData(UErrorCode& status);
-#endif  
 
     
 
@@ -352,8 +356,8 @@ private:
     void setCurrencyForSymbols();
 
 public:
-#ifndef U_HIDE_INTERNAL_API
     
+
 
 
 
@@ -366,6 +370,7 @@ public:
 
     inline const UnicodeString &getConstSymbol(ENumberFormatSymbol symbol) const;
 
+#ifndef U_HIDE_INTERNAL_API
     
 
 
@@ -420,7 +425,7 @@ DecimalFormatSymbols::getSymbol(ENumberFormatSymbol symbol) const {
     return *strPtr;
 }
 
-#ifndef U_HIDE_INTERNAL_API
+
 
 inline const UnicodeString &
 DecimalFormatSymbols::getConstSymbol(ENumberFormatSymbol symbol) const {
@@ -433,7 +438,7 @@ DecimalFormatSymbols::getConstSymbol(ENumberFormatSymbol symbol) const {
     return *strPtr;
 }
 
-#endif  
+
 
 
 

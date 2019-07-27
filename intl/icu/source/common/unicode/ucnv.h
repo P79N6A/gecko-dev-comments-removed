@@ -116,7 +116,7 @@ typedef enum {
     
     UCNV_LMBCS_1 = 11,
     
-    UCNV_LMBCS_2, 
+    UCNV_LMBCS_2,
     
     UCNV_LMBCS_3,
     
@@ -361,7 +361,7 @@ ucnv_compareNames(const char *name1, const char *name2);
 
 
 
-U_STABLE UConverter* U_EXPORT2 
+U_STABLE UConverter* U_EXPORT2
 ucnv_open(const char *converterName, UErrorCode *err);
 
 
@@ -391,7 +391,7 @@ ucnv_open(const char *converterName, UErrorCode *err);
 
 
 
-U_STABLE UConverter* U_EXPORT2 
+U_STABLE UConverter* U_EXPORT2
 ucnv_openU(const UChar *name,
            UErrorCode *err);
 
@@ -494,7 +494,7 @@ ucnv_openCCSID(int32_t codepage,
 
 
 
-U_STABLE UConverter* U_EXPORT2 
+U_STABLE UConverter* U_EXPORT2
 ucnv_openPackage(const char *packageName, const char *converterName, UErrorCode *err);
 
 
@@ -536,10 +536,10 @@ ucnv_openPackage(const char *packageName, const char *converterName, UErrorCode 
 
 
 
-U_STABLE UConverter * U_EXPORT2 
-ucnv_safeClone(const UConverter *cnv, 
+U_STABLE UConverter * U_EXPORT2
+ucnv_safeClone(const UConverter *cnv,
                void             *stackBuffer,
-               int32_t          *pBufferSize, 
+               int32_t          *pBufferSize,
                UErrorCode       *status);
 
 #ifndef U_HIDE_DEPRECATED_API
@@ -724,7 +724,7 @@ ucnv_reset(UConverter *converter);
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_resetToUnicode(UConverter *converter);
 
 
@@ -735,8 +735,10 @@ ucnv_resetToUnicode(UConverter *converter);
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_resetFromUnicode(UConverter *converter);
+
+
 
 
 
@@ -853,7 +855,7 @@ ucnv_getDisplayName(const UConverter *converter,
 
 
 
-U_STABLE const char * U_EXPORT2 
+U_STABLE const char * U_EXPORT2
 ucnv_getName(const UConverter *converter, UErrorCode *err);
 
 
@@ -924,7 +926,7 @@ ucnv_getType(const UConverter * converter);
 
 
 U_STABLE void U_EXPORT2
-ucnv_getStarters(const UConverter* converter, 
+ucnv_getStarters(const UConverter* converter,
                  UBool starters[256],
                  UErrorCode* err);
 
@@ -1131,7 +1133,7 @@ ucnv_setFromUCallBack (UConverter * converter,
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_fromUnicode (UConverter * converter,
                   char **target,
                   const char *targetLimit,
@@ -1200,7 +1202,7 @@ ucnv_fromUnicode (UConverter * converter,
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_toUnicode(UConverter *converter,
                UChar **target,
                const UChar *targetLimit,
@@ -1724,7 +1726,7 @@ ucnv_openAllNames(UErrorCode *pErrorCode);
 
 
 
-U_STABLE uint16_t U_EXPORT2 
+U_STABLE uint16_t U_EXPORT2
 ucnv_countAliases(const char *alias, UErrorCode *pErrorCode);
 
 
@@ -1739,7 +1741,7 @@ ucnv_countAliases(const char *alias, UErrorCode *pErrorCode);
 
 
 
-U_STABLE const char * U_EXPORT2 
+U_STABLE const char * U_EXPORT2
 ucnv_getAlias(const char *alias, uint16_t n, UErrorCode *pErrorCode);
 
 
@@ -1755,7 +1757,7 @@ ucnv_getAlias(const char *alias, uint16_t n, UErrorCode *pErrorCode);
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_getAliases(const char *alias, const char **aliases, UErrorCode *pErrorCode);
 
 
@@ -1932,7 +1934,7 @@ ucnv_isAmbiguous(const UConverter *cnv);
 
 
 
-U_STABLE void U_EXPORT2 
+U_STABLE void U_EXPORT2
 ucnv_setFallback(UConverter *cnv, UBool usesFallback);
 
 
@@ -1944,7 +1946,7 @@ ucnv_setFallback(UConverter *cnv, UBool usesFallback);
 
 
 
-U_STABLE UBool U_EXPORT2 
+U_STABLE UBool U_EXPORT2
 ucnv_usesFallback(const UConverter *cnv);
 
 

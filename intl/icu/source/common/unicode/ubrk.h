@@ -384,7 +384,6 @@ ubrk_previous(UBreakIterator *bi);
 
 
 
-
 U_STABLE int32_t U_EXPORT2
 ubrk_first(UBreakIterator *bi);
 

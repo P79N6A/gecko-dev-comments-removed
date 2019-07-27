@@ -17,7 +17,6 @@
 #include "unicode/uregion.h"
 
 #if !UCONFIG_NO_FORMATTING
-#ifndef U_HIDE_DRAFT_API
 
 #include "unicode/uobject.h"
 #include "unicode/uniset.h"
@@ -102,11 +101,13 @@ public:
 
     static const Region* U_EXPORT2 getInstance (int32_t code, UErrorCode &status);
 
+#ifndef U_HIDE_DRAFT_API
     
 
 
 
-    static StringEnumeration* U_EXPORT2 getAvailable(URegionType type);
+    static StringEnumeration* U_EXPORT2 getAvailable(URegionType type, UErrorCode &status);
+#endif 
    
     
 
@@ -126,6 +127,7 @@ public:
 
     const Region* getContainingRegion(URegionType type) const;
 
+#ifndef U_HIDE_DRAFT_API
     
 
 
@@ -135,7 +137,7 @@ public:
 
 
 
-    StringEnumeration* getContainedRegions() const;
+    StringEnumeration* getContainedRegions(UErrorCode &status) const;
 
     
 
@@ -144,7 +146,8 @@ public:
 
 
 
-    StringEnumeration* getContainedRegions( URegionType type ) const;
+    StringEnumeration* getContainedRegions( URegionType type, UErrorCode &status ) const;
+#endif 
  
     
 
@@ -152,14 +155,15 @@ public:
 
     UBool contains(const Region &other) const;
 
+#ifndef U_HIDE_DRAFT_API
     
 
 
 
 
 
-    StringEnumeration* getPreferredValues() const;
- 
+    StringEnumeration* getPreferredValues(UErrorCode &status) const;
+#endif 
 
     
 
@@ -212,13 +216,12 @@ private:
 
 
 
-    static void loadRegionData();
+    static void loadRegionData(UErrorCode &status);
 
 };
 
 U_NAMESPACE_END
 
-#endif  
 #endif 
 #endif 
 

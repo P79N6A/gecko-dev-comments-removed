@@ -62,7 +62,7 @@ struct RBBIStateTable;
 
 
 
-class U_COMMON_API RuleBasedBreakIterator : public BreakIterator {
+class U_COMMON_API RuleBasedBreakIterator  : public BreakIterator {
 
 protected:
     

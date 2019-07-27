@@ -28,6 +28,7 @@
 U_NAMESPACE_BEGIN
 
 class Hashtable;
+class NFRule;
 
 
 
@@ -599,7 +600,11 @@ private:
          const MessagePattern& pattern, int32_t partIndex,
          const PluralSelector& selector, void *context, double number, UErrorCode& ec); 
 
+    void parseType(const UnicodeString& source, const NFRule *rbnfLenientScanner,
+        Formattable& result, FieldPosition& pos) const;
+
     friend class MessageFormat;
+    friend class NFRule;
 };
 
 U_NAMESPACE_END

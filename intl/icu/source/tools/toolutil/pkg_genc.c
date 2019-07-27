@@ -119,7 +119,10 @@ static const struct AssemblyType {
         ".globl %s\n"
         "\t.section .note.GNU-stack,\"\",%%progbits\n"
         "\t.section .rodata\n"
-        "\t.balign 16\n" 
+        "\t.balign 16\n"
+        "#ifdef U_HIDE_DATA_SYMBOL\n"
+        "\t.hidden %s\n"
+        "#endif\n"
         "\t.type %s,%%object\n"
         "%s:\n\n",
 
@@ -129,6 +132,9 @@ static const struct AssemblyType {
         
 
         ".globl _%s\n"
+        "#ifdef U_HIDE_DATA_SYMBOL\n"
+        "\t.private_extern _%s\n"
+        "#endif\n"
         "\t.data\n"
         "\t.const\n"
         "\t.balign 16\n"
@@ -264,7 +270,7 @@ writeAssemblyCode(const char *filename, const char *destdir, const char *optEntr
         exit(U_FILE_ACCESS_ERROR);
     }
 
-    getOutFilename(filename, destdir, bufferStr, entry, ".s", optFilename);
+    getOutFilename(filename, destdir, bufferStr, entry, ".S", optFilename);
     out=T_FileStream_open(bufferStr, "w");
     if(out==NULL) {
         fprintf(stderr, "genccode: unable to open output file %s\n", bufferStr);
@@ -761,7 +767,7 @@ getArchitecture(uint16_t *pCPU, uint16_t *pBits, UBool *pIsBigEndian, const char
 U_CAPI void U_EXPORT2
 writeObjectCode(const char *filename, const char *destdir, const char *optEntryPoint, const char *optMatchArch, const char *optFilename, char *outFilePath) {
     
-    char buffer[4096], entry[40]={ 0 };
+    char buffer[4096], entry[96]={ 0 };
     FileStream *in, *out;
     const char *newSuffix;
     int32_t i, entryLength, length, size, entryOffset=0, entryLengthOffset=0;

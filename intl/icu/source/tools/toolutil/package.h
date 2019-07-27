@@ -26,7 +26,7 @@
 
 
 #define STRING_STORE_SIZE 100000
-#define MAX_PKG_NAME_LENGTH 32
+#define MAX_PKG_NAME_LENGTH 64
 
 typedef void CheckDependency(void *context, const char *itemName, const char *targetName);
 

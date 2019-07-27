@@ -607,6 +607,54 @@ U_STABLE int32_t U_EXPORT2
 uregex_groupCount(URegularExpression *regexp,
                   UErrorCode         *status);
 
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+uregex_groupNumberFromName(URegularExpression *regexp,
+                           const UChar        *groupName,
+                           int32_t             nameLength,
+                           UErrorCode          *status);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT int32_t U_EXPORT2
+uregex_groupNumberFromCName(URegularExpression *regexp,
+                            const char         *groupName,
+                            int32_t             nameLength,
+                            UErrorCode          *status);
+#endif  
+
 
 
 
@@ -658,31 +706,6 @@ uregex_groupUText(URegularExpression *regexp,
                   UText              *dest,
                   int64_t            *groupLength,
                   UErrorCode         *status);
-
-#ifndef U_HIDE_INTERNAL_API
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_INTERNAL UText * U_EXPORT2 
-uregex_groupUTextDeep(URegularExpression *regexp,
-                  int32_t             groupNum,
-                  UText              *dest,
-                  UErrorCode         *status);
-#endif  
 
 
 

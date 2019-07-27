@@ -36,11 +36,18 @@ const char* LocaleBased::getLocaleID(ULocDataLocaleType type, UErrorCode& status
 
 void LocaleBased::setLocaleIDs(const char* validID, const char* actualID) {
     if (validID != 0) {
-        uprv_strcpy(valid, validID);
+      uprv_strncpy(valid, validID, ULOC_FULLNAME_CAPACITY);
+      valid[ULOC_FULLNAME_CAPACITY-1] = 0; 
     }
     if (actualID != 0) {
-        uprv_strcpy(actual, actualID);
+      uprv_strncpy(actual, actualID, ULOC_FULLNAME_CAPACITY);
+      actual[ULOC_FULLNAME_CAPACITY-1] = 0; 
     }
+}
+
+void LocaleBased::setLocaleIDs(const Locale& validID, const Locale& actualID) {
+  uprv_strcpy(valid, validID.getName());
+  uprv_strcpy(actual, actualID.getName());
 }
 
 U_NAMESPACE_END

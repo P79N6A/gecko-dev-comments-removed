@@ -230,7 +230,7 @@ void RBBISymbolTable::rbbiSymtablePrint() const {
            "Name               Node Val     String Val\n"
            "----------------------------------------------------------------------\n");
 
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     const UHashElement  *e   = NULL;
     for (;;) {
         e = uhash_nextElement(fHashTable,  &pos);

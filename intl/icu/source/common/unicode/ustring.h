@@ -1344,7 +1344,6 @@ u_strFromUTF8(UChar *dest,
 
 
 
-
 U_STABLE char* U_EXPORT2
 u_strToUTF8WithSub(char *dest,
             int32_t destCapacity,
@@ -1353,7 +1352,6 @@ u_strToUTF8WithSub(char *dest,
             int32_t srcLength,
             UChar32 subchar, int32_t *pNumSubstitutions,
             UErrorCode *pErrorCode);
-
 
 
 
@@ -1554,7 +1552,6 @@ u_strFromUTF32(UChar   *dest,
 
 
 
-
 U_STABLE UChar32* U_EXPORT2
 u_strToUTF32WithSub(UChar32 *dest,
              int32_t destCapacity,
@@ -1563,7 +1560,6 @@ u_strToUTF32WithSub(UChar32 *dest,
              int32_t srcLength,
              UChar32 subchar, int32_t *pNumSubstitutions,
              UErrorCode *pErrorCode);
-
 
 
 
@@ -1649,6 +1645,7 @@ u_strToJavaModifiedUTF8(
         const UChar *src, 
         int32_t srcLength,
         UErrorCode *pErrorCode);
+
 
 
 

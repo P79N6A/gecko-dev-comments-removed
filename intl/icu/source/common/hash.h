@@ -85,6 +85,10 @@ public:
 
     const UHashElement* find(const UnicodeString& key) const;
 
+    
+
+
+
     const UHashElement* nextElement(int32_t& pos) const;
     
     UKeyComparator* setKeyComparator(UKeyComparator*keyComp);

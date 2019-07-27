@@ -73,6 +73,8 @@ public:
 
     static UClassID U_EXPORT2 getStaticClassID();
 
+    static UStringEnumeration * U_EXPORT2 fromUEnumeration(
+            UEnumeration *enumToAdopt, UErrorCode &status);
 private:
     UEnumeration *uenum; 
 };

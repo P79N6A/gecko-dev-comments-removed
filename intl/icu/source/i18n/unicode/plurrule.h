@@ -43,6 +43,7 @@ class RuleChain;
 class PluralRuleParser;
 class PluralKeywordEnumeration;
 class AndConstraint;
+class SharedPluralRules;
 
 
 
@@ -297,6 +298,25 @@ public:
 
 
     static UBool hasOverride(const Locale &locale);
+
+    
+
+
+
+
+    static PluralRules* U_EXPORT2 internalForLocale(const Locale& locale, UPluralType type, UErrorCode& status);
+
+    
+
+
+
+
+
+
+    static const SharedPluralRules* U_EXPORT2 createSharedInstance(
+            const Locale& locale, UPluralType type, UErrorCode& status);
+
+
 #endif  
 
     
@@ -340,6 +360,7 @@ public:
 
     StringEnumeration* getKeywords(UErrorCode& status) const;
 
+#ifndef U_HIDE_DEPRECATED_API
     
 
 
@@ -370,9 +391,12 @@ public:
 
 
 
+
+
     int32_t getAllKeywordValues(const UnicodeString &keyword,
                                 double *dest, int32_t destCapacity,
                                 UErrorCode& status);
+#endif  
 
     
 

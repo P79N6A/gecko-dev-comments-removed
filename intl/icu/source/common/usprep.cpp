@@ -20,7 +20,7 @@
 
 #include "unicode/usprep.h"
 
-#include "unicode/unorm.h"
+#include "unicode/normalizer2.h"
 #include "unicode/ustring.h"
 #include "unicode/uchar.h"
 #include "unicode/uversion.h"
@@ -33,6 +33,7 @@
 #include "udataswp.h"
 #include "ucln_cmn.h"
 #include "ubidi_props.h"
+#include "uprops.h"
 
 U_NAMESPACE_USE
 
@@ -135,7 +136,7 @@ static int32_t
 usprep_internal_flushCache(UBool noRefCount){
     UStringPrepProfile *profile = NULL;
     UStringPrepKey  *key  = NULL;
-    int32_t pos = -1;
+    int32_t pos = UHASH_FIRST;
     int32_t deletedNum = 0;
     const UHashElement *e;
 
@@ -503,7 +504,6 @@ getValues(uint16_t trieWord, int16_t& value, UBool& isIndex){
 }
 
 
-
 static int32_t 
 usprep_map(  const UStringPrepProfile* profile, 
              const UChar* src, int32_t srcLength, 
@@ -599,19 +599,6 @@ usprep_map(  const UStringPrepProfile* profile,
 }
 
 
-static int32_t 
-usprep_normalize(   const UChar* src, int32_t srcLength, 
-                    UChar* dest, int32_t destCapacity,
-                    UErrorCode* status ){
-    return unorm_normalize(
-        src, srcLength,
-        UNORM_NFKC, UNORM_UNICODE_3_2,
-        dest, destCapacity,
-        status);
-}
-
-
- 
 
 
 
@@ -647,10 +634,6 @@ usprep_normalize(   const UChar* src, int32_t srcLength,
 
 
 
-
-
-
-#define MAX_STACK_BUFFER_SIZE 300
 
 
 U_CAPI int32_t U_EXPORT2
@@ -662,100 +645,91 @@ usprep_prepare(   const UStringPrepProfile* profile,
                   UErrorCode* status ){
 
     
-    if(status == NULL || U_FAILURE(*status)){
+    if(U_FAILURE(*status)){
         return 0;
     }
+
     
-    
-    if(profile==NULL || src==NULL || srcLength<-1 || (dest==NULL && destCapacity!=0)) {
+    if(profile==NULL ||
+            (src==NULL ? srcLength!=0 : srcLength<-1) ||
+            (dest==NULL ? destCapacity!=0 : destCapacity<0)) {
         *status=U_ILLEGAL_ARGUMENT_ERROR;
         return 0;
     }
 
-    UChar b1Stack[MAX_STACK_BUFFER_SIZE], b2Stack[MAX_STACK_BUFFER_SIZE];
-    UChar *b1 = b1Stack, *b2 = b2Stack;
-    int32_t b1Len, b2Len=0,
-            b1Capacity = MAX_STACK_BUFFER_SIZE , 
-            b2Capacity = MAX_STACK_BUFFER_SIZE;
-    uint16_t result;
-    int32_t b2Index = 0;
-    UCharDirection direction=U_CHAR_DIRECTION_COUNT, firstCharDir=U_CHAR_DIRECTION_COUNT;
-    UBool leftToRight=FALSE, rightToLeft=FALSE;
-    int32_t rtlPos =-1, ltrPos =-1;
-
     
-    if(srcLength == -1){
+    if(srcLength < 0){
         srcLength = u_strlen(src);
     }
     
-    b1Len = usprep_map(profile, src, srcLength, b1, b1Capacity, options, parseError, status);
+    UnicodeString s1;
+    UChar *b1 = s1.getBuffer(srcLength);
+    if(b1==NULL){
+        *status = U_MEMORY_ALLOCATION_ERROR;
+        return 0;
+    }
+    int32_t b1Len = usprep_map(profile, src, srcLength,
+                               b1, s1.getCapacity(), options, parseError, status);
+    s1.releaseBuffer(U_SUCCESS(*status) ? b1Len : 0);
 
     if(*status == U_BUFFER_OVERFLOW_ERROR){
         
         
-        b1 = (UChar*) uprv_malloc(b1Len * U_SIZEOF_UCHAR);
+        b1 = s1.getBuffer(b1Len);
         if(b1==NULL){
             *status = U_MEMORY_ALLOCATION_ERROR;
-            goto CLEANUP;
+            return 0;
         }
 
         *status = U_ZERO_ERROR; 
-        
-        b1Len = usprep_map(profile, src, srcLength, b1, b1Len, options, parseError, status);
-        
+        b1Len = usprep_map(profile, src, srcLength,
+                           b1, s1.getCapacity(), options, parseError, status);
+        s1.releaseBuffer(U_SUCCESS(*status) ? b1Len : 0);
     }
-
-    
-    if(profile->doNFKC == TRUE){
-        b2Len = usprep_normalize(b1,b1Len, b2,b2Capacity,status);
-        
-        if(*status == U_BUFFER_OVERFLOW_ERROR){
-            
-            
-            b2 = (UChar*) uprv_malloc(b2Len * U_SIZEOF_UCHAR);
-            if(b2==NULL){
-                *status = U_MEMORY_ALLOCATION_ERROR;
-                goto CLEANUP;
-            }
-
-            *status = U_ZERO_ERROR; 
-        
-            b2Len = usprep_normalize(b1,b1Len, b2,b2Len,status);
-        
-        }
-
-    }else{
-        b2 = b1;
-        b2Len = b1Len;
-    }
-    
-
     if(U_FAILURE(*status)){
-        goto CLEANUP;
+        return 0;
     }
 
-    UChar32 ch;
-    UStringPrepType type;
-    int16_t value;
-    UBool isIndex;
     
-    
-    for(b2Index=0; b2Index<b2Len;){
-        
-        ch = 0;
+    UnicodeString s2;
+    if(profile->doNFKC){
+        const Normalizer2 *n2 = Normalizer2::getNFKCInstance(*status);
+        FilteredNormalizer2 fn2(*n2, *uniset_getUnicode32Instance(*status));
+        if(U_FAILURE(*status)){
+            return 0;
+        }
+        fn2.normalize(s1, s2, *status);
+    }else{
+        s2.fastCopyFrom(s1);
+    }
+    if(U_FAILURE(*status)){
+        return 0;
+    }
 
+    
+    const UChar *b2 = s2.getBuffer();
+    int32_t b2Len = s2.length();
+    UCharDirection direction=U_CHAR_DIRECTION_COUNT, firstCharDir=U_CHAR_DIRECTION_COUNT;
+    UBool leftToRight=FALSE, rightToLeft=FALSE;
+    int32_t rtlPos =-1, ltrPos =-1;
+
+    for(int32_t b2Index=0; b2Index<b2Len;){
+        UChar32 ch = 0;
         U16_NEXT(b2, b2Index, b2Len, ch);
 
+        uint16_t result;
         UTRIE_GET16(&profile->sprepTrie,ch,result);
-        
-        type = getValues(result, value, isIndex);
+
+        int16_t value;
+        UBool isIndex;
+        UStringPrepType type = getValues(result, value, isIndex);
 
         if( type == USPREP_PROHIBITED || 
             ((result < _SPREP_TYPE_THRESHOLD) && (result & 0x01) )
            ){
             *status = U_STRINGPREP_PROHIBITED_ERROR;
             uprv_syntaxError(b1, b2Index-U16_LENGTH(ch), b2Len, parseError);
-            goto CLEANUP;
+            return 0;
         }
 
         if(profile->checkBiDi) {
@@ -772,13 +746,13 @@ usprep_prepare(   const UStringPrepProfile* profile,
                 rtlPos = b2Index-1;
             }
         }
-    }           
+    }
     if(profile->checkBiDi == TRUE){
         
         if( leftToRight == TRUE && rightToLeft == TRUE){
             *status = U_STRINGPREP_CHECK_BIDI_ERROR;
             uprv_syntaxError(b2,(rtlPos>ltrPos) ? rtlPos : ltrPos, b2Len, parseError);
-            goto CLEANUP;
+            return 0;
         }
 
         
@@ -791,21 +765,7 @@ usprep_prepare(   const UStringPrepProfile* profile,
             return FALSE;
         }
     }
-    if(b2Len>0 && b2Len <= destCapacity){
-        uprv_memmove(dest,b2, b2Len*U_SIZEOF_UCHAR);
-    }
-
-CLEANUP:
-    if(b1!=b1Stack){
-        uprv_free(b1);
-        b1=NULL;
-    }
-
-    if(b2!=b1Stack && b2!=b2Stack && b2!=b1 ){
-        uprv_free(b2);
-        b2=NULL;
-    }
-    return u_terminateUChars(dest, destCapacity, b2Len, status);
+    return s2.extract(dest, destCapacity, *status);
 }
 
 
@@ -903,7 +863,7 @@ usprep_swap(const UDataSwapper *ds,
         
         count=indexes[_SPREP_INDEX_MAPPING_DATA_SIZE];
         ds->swapArray16(ds, inBytes+offset, count, outBytes+offset, pErrorCode);
-        offset+=count;
+        
     }
 
     return headerSize+size;

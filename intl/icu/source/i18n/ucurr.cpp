@@ -119,6 +119,8 @@ static icu::UInitOnce gIsoCodesInitOnce = U_INITONCE_INITIALIZER;
 static const icu::Hashtable* gCurrSymbolsEquiv = NULL;
 static icu::UInitOnce gCurrSymbolsEquivInitOnce = U_INITONCE_INITIALIZER;
 
+U_NAMESPACE_BEGIN
+
 
 
 class EquivIterator : icu::UMemory {
@@ -154,6 +156,8 @@ EquivIterator::next() {
     return _next;
 }
 
+U_NAMESPACE_END
+
 
 
 static void makeEquivalent(
@@ -167,8 +171,8 @@ static void makeEquivalent(
         
         return;
     }
-    EquivIterator leftIter(*hash, lhs);
-    EquivIterator rightIter(*hash, rhs);
+    icu::EquivIterator leftIter(*hash, lhs);
+    icu::EquivIterator rightIter(*hash, rhs);
     const icu::UnicodeString *firstLeft = leftIter.next();
     const icu::UnicodeString *firstRight = rightIter.next();
     const icu::UnicodeString *nextLeft = firstLeft;
@@ -220,7 +224,7 @@ static void makeEquivalent(
 
 static int32_t countEquivalent(const icu::Hashtable &hash, const icu::UnicodeString &s) {
     int32_t result = 0;
-    EquivIterator iter(hash, s);
+    icu::EquivIterator iter(hash, s);
     while (iter.next() != NULL) {
         ++result;
     }
@@ -1003,6 +1007,12 @@ collectCurrencyNames(const char* locale,
     *currencySymbols = (CurrencyNameStruct*)uprv_malloc
         (sizeof(CurrencyNameStruct) * (*total_currency_symbol_count));
 
+    if(currencyNames == NULL || currencySymbols == NULL) {
+      ec = U_MEMORY_ALLOCATION_ERROR;
+    }
+
+    if (U_FAILURE(ec)) return;
+
     const UChar* s = NULL;  
     char* iso = NULL;  
 
@@ -1067,7 +1077,7 @@ collectCurrencyNames(const char* locale,
                 (*currencySymbols)[(*total_currency_symbol_count)++].currencyNameLen = len;
                 
                 if (currencySymbolsEquiv != NULL) {
-                    EquivIterator iter(*currencySymbolsEquiv, UnicodeString(TRUE, s, len));
+                  icu::EquivIterator iter(*currencySymbolsEquiv, UnicodeString(TRUE, s, len));
                     const UnicodeString *symbol;
                     while ((symbol = iter.next()) != NULL) {
                         (*currencySymbols)[*total_currency_symbol_count].IsoCode = iso;
@@ -1170,6 +1180,15 @@ collectCurrencyNames(const char* locale,
         printf("len: %d\n", (*currencySymbols)[index].currencyNameLen);
     }
 #endif
+    
+    if (U_FAILURE(ec3)) {
+      ec = ec3;
+      return;
+    }
+    if (U_FAILURE(ec4)) {
+      ec = ec4;
+      return;
+    }
 }
 
 
@@ -1616,30 +1635,68 @@ uprv_getStaticCurrencyName(const UChar* iso, const char* loc,
 
 U_CAPI int32_t U_EXPORT2
 ucurr_getDefaultFractionDigits(const UChar* currency, UErrorCode* ec) {
-    return (_findMetaData(currency, *ec))[0];
+    return ucurr_getDefaultFractionDigitsForUsage(currency,UCURR_USAGE_STANDARD,ec);
+}
+
+U_DRAFT int32_t U_EXPORT2
+ucurr_getDefaultFractionDigitsForUsage(const UChar* currency, const UCurrencyUsage usage, UErrorCode* ec) {
+    int32_t fracDigits = 0;
+    if (U_SUCCESS(*ec)) {
+        switch (usage) {
+            case UCURR_USAGE_STANDARD:
+                fracDigits = (_findMetaData(currency, *ec))[0];
+                break;
+            case UCURR_USAGE_CASH:
+                fracDigits = (_findMetaData(currency, *ec))[2];
+                break;
+            default:
+                *ec = U_UNSUPPORTED_ERROR;
+        }
+    }
+    return fracDigits;
 }
 
 U_CAPI double U_EXPORT2
 ucurr_getRoundingIncrement(const UChar* currency, UErrorCode* ec) {
+    return ucurr_getRoundingIncrementForUsage(currency, UCURR_USAGE_STANDARD, ec);
+}
+
+U_DRAFT double U_EXPORT2
+ucurr_getRoundingIncrementForUsage(const UChar* currency, const UCurrencyUsage usage, UErrorCode* ec) {
+    double result = 0.0;
+
     const int32_t *data = _findMetaData(currency, *ec);
-
-    
-    if (data[0] < 0 || data[0] > MAX_POW10) {
-        if (U_SUCCESS(*ec)) {
-            *ec = U_INVALID_FORMAT_ERROR;
+    if (U_SUCCESS(*ec)) {
+        int32_t fracDigits;
+        int32_t increment;
+        switch (usage) {
+            case UCURR_USAGE_STANDARD:
+                fracDigits = data[0];
+                increment = data[1];
+                break;
+            case UCURR_USAGE_CASH:
+                fracDigits = data[2];
+                increment = data[3];
+                break;
+            default:
+                *ec = U_UNSUPPORTED_ERROR;
+                return result;
         }
-        return 0.0;
+
+        
+        if (fracDigits < 0 || fracDigits > MAX_POW10) {
+            *ec = U_INVALID_FORMAT_ERROR;
+        } else {
+            
+            if (increment >= 2) {
+                
+                
+                result = double(increment) / POW10[fracDigits];
+            }
+        }
     }
 
-    
-    
-    if (data[1] < 2) {
-        return 0.0;
-    }
-
-    
-    
-    return double(data[1]) / POW10[data[0]];
+    return result;
 }
 
 U_CDECL_BEGIN
@@ -2491,7 +2548,7 @@ U_CAPI UEnumeration *U_EXPORT2 ucurr_getKeywordValuesForLocale(const char *key, 
         char loc[ULOC_FULLNAME_CAPACITY] = "";
         uloc_addLikelySubtags(locale, loc, sizeof(loc), status);
         
-        prefRegionLength = uloc_getCountry(loc, prefRegion, sizeof(prefRegion), status);
+         uloc_getCountry(loc, prefRegion, sizeof(prefRegion), status);
     }
     
     

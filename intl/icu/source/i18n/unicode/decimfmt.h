@@ -63,7 +63,7 @@ class FixedDecimal;
 
 #if defined (_MSC_VER)
 template class U_I18N_API    EnumSet<UNumberFormatAttribute,
-            UNUM_MAX_NONBOOLEAN_ATTRIBUTE+1, 
+            UNUM_MAX_NONBOOLEAN_ATTRIBUTE+1,
             UNUM_LIMIT_BOOLEAN_ATTRIBUTE>;
 #endif
 
@@ -803,7 +803,34 @@ public:
     virtual int32_t getAttribute( UNumberFormatAttribute attr,
                                   UErrorCode &status) const;
 
+    
+    
 
+
+
+
+
+    virtual void setGroupingUsed(UBool newValue);
+
+    
+
+
+
+
+
+
+    virtual void setParseIntegerOnly(UBool value);
+
+    
+
+
+
+
+
+
+
+
+    virtual void setContext(UDisplayContext value, UErrorCode& status);
 
     
 
@@ -1603,6 +1630,28 @@ public:
 
     virtual void setDecimalSeparatorAlwaysShown(UBool newValue);
 
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+    UBool isDecimalPatternMatchRequired(void) const;
+#endif  
+
+    
+
+
+
+
+
+
+
+
+    virtual void setDecimalPatternMatchRequired(UBool newValue);
+
+
     
 
 
@@ -1844,12 +1893,32 @@ public:
 
     virtual void setCurrency(const UChar* theCurrency);
 
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+    void setCurrencyUsage(UCurrencyUsage newUsage, UErrorCode* ec);
+
+    
+
+
+
+    UCurrencyUsage getCurrencyUsage() const;
+#endif  
+
+
+#ifndef U_HIDE_DEPRECATED_API
     
 
 
 
 
     static const char fgNumberPatterns[];
+#endif  
 
 #ifndef U_HIDE_INTERNAL_API
     
@@ -1988,7 +2057,7 @@ private:
     UnicodeString& subformat(UnicodeString& appendTo,
                              FieldPositionHandler& handler,
                              DigitList&     digits,
-                             UBool          isInteger, 
+                             UBool          isInteger,
                              UErrorCode &status) const;
 
 
@@ -2137,6 +2206,14 @@ private:
                               UBool setupForCurrentPattern,
                               UBool setupForPluralPattern,
                               UErrorCode& status);
+	
+    
+    double getCurrencyRounding(const UChar* currency,
+                               UErrorCode* ec) const;
+	
+    
+    int getCurrencyFractionDigits(const UChar* currency,
+                                  UErrorCode* ec) const;
 
     
     Hashtable* initHashForAffixPattern(UErrorCode& status);
@@ -2164,14 +2241,6 @@ private:
                            UErrorCode &status) const;
 
     
-    enum {
-        fgCurrencySignCountZero,
-        fgCurrencySignCountInSymbolFormat,
-        fgCurrencySignCountInISOFormat,
-        fgCurrencySignCountInPluralFormat
-    } CurrencySignCount;
-
-    
 
 
 
@@ -2192,7 +2261,7 @@ private:
     ChoiceFormat*           fCurrencyChoice;
 
     DigitList *             fMultiplier;   
-    int32_t                 fScale;        
+    int32_t                 fScale;
     int32_t                 fGroupingSize;
     int32_t                 fGroupingSize2;
     UBool                   fDecimalSeparatorAlwaysShown;
@@ -2207,8 +2276,8 @@ private:
     UBool                   fExponentSignAlwaysShown;
 
     EnumSet<UNumberFormatAttribute,
-            UNUM_MAX_NONBOOLEAN_ATTRIBUTE+1, 
-            UNUM_LIMIT_BOOLEAN_ATTRIBUTE>  
+            UNUM_MAX_NONBOOLEAN_ATTRIBUTE+1,
+            UNUM_LIMIT_BOOLEAN_ATTRIBUTE>
                             fBoolFlags;
 
     DigitList*              fRoundingIncrement;  
@@ -2335,7 +2404,9 @@ private:
 
     
     const DecimalFormatStaticSets *fStaticSets;
-
+	
+    
+    UCurrencyUsage fCurrencyUsage;
 
 protected:
 

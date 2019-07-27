@@ -191,6 +191,26 @@ public:
 
 
     explicit LocalPointer(T *p=NULL) : LocalPointerBase<T>(p) {}
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    LocalPointer(T *p, UErrorCode &errorCode) : LocalPointerBase<T>(p) {
+        if(p==NULL && U_SUCCESS(errorCode)) {
+            errorCode=U_MEMORY_ALLOCATION_ERROR;
+        }
+    }
+#endif  
     
 
 
@@ -208,6 +228,34 @@ public:
         delete LocalPointerBase<T>::ptr;
         LocalPointerBase<T>::ptr=p;
     }
+#ifndef U_HIDE_DRAFT_API
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void adoptInsteadAndCheckErrorCode(T *p, UErrorCode &errorCode) {
+        if(U_SUCCESS(errorCode)) {
+            delete LocalPointerBase<T>::ptr;
+            LocalPointerBase<T>::ptr=p;
+            if(p==NULL) {
+                errorCode=U_MEMORY_ALLOCATION_ERROR;
+            }
+        } else {
+            delete p;
+        }
+    }
+#endif  
 };
 
 

@@ -129,13 +129,7 @@ U_NAMESPACE_BEGIN
 
 
 
-
-
-
-
-
-
-class U_I18N_API StringSearch : public SearchIterator
+class U_I18N_API StringSearch U_FINAL : public SearchIterator
 {
 public:
 
@@ -377,12 +371,9 @@ public:
 
 
 
-
-
     void setCollator(RuleBasedCollator *coll, UErrorCode &status);
     
     
-
 
 
 
@@ -492,11 +483,6 @@ private :
 
     
 
-    
-
-
-
-    RuleBasedCollator  m_collator_;
     
 
 

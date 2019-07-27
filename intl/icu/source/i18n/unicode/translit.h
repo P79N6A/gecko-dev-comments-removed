@@ -973,11 +973,20 @@ public:
 
 
 
+
+
+
+
+
     static void U_EXPORT2 registerFactory(const UnicodeString& id,
                                 Factory factory,
                                 Token context);
 
     
+
+
+
+
 
 
 
@@ -1080,6 +1089,10 @@ protected:
 public:
 
     
+
+
+
+
 
 
 

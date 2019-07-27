@@ -21,322 +21,481 @@
 
 
 
+
 #include "unicode/utypes.h"
 
 #if !UCONFIG_NO_COLLATION
-#include "unicode/uloc.h"
-#include "unicode/coll.h"
-#include "unicode/tblcoll.h"
-#include "unicode/caniter.h"
-#include "unicode/uscript.h"
-#include "unicode/ustring.h"
 
-#include "ucol_bld.h"
-#include "ucol_imp.h"
-#include "ucol_tok.h"
-#include "ucol_elm.h"
-#include "uresimp.h"
-#include "ustr_imp.h"
-#include "cstring.h"
-#include "umutex.h"
-#include "ucln_in.h"
-#include "ustrenum.h"
-#include "putilimp.h"
-#include "utracimp.h"
+#include "unicode/coll.h"
+#include "unicode/localpointer.h"
+#include "unicode/locid.h"
+#include "unicode/tblcoll.h"
+#include "unicode/ucol.h"
+#include "unicode/uloc.h"
+#include "unicode/unistr.h"
+#include "unicode/ures.h"
 #include "cmemory.h"
+#include "cstring.h"
+#include "collationdatareader.h"
+#include "collationroot.h"
+#include "collationtailoring.h"
+#include "putilimp.h"
 #include "uassert.h"
+#include "ucln_in.h"
+#include "ucol_imp.h"
 #include "uenumimp.h"
 #include "ulist.h"
+#include "umutex.h"
+#include "unifiedcache.h"
+#include "uresimp.h"
+#include "ustrenum.h"
+#include "utracimp.h"
 
-U_NAMESPACE_USE
+U_NAMESPACE_BEGIN
 
-static void ucol_setReorderCodesFromParser(UCollator *coll, UColTokenParser *parser, UErrorCode *status);
+namespace {
 
+static const UChar *rootRules = NULL;
+static int32_t rootRulesLength = 0;
+static UResourceBundle *rootBundle = NULL;
+static UInitOnce gInitOnce = U_INITONCE_INITIALIZER;
 
-
-static UCollator* _staticUCA = NULL;
-static icu::UInitOnce gStaticUCAInitOnce = U_INITONCE_INITIALIZER;
-
-
-static UDataMemory* UCA_DATA_MEM = NULL;
+}  
 
 U_CDECL_BEGIN
+
 static UBool U_CALLCONV
-ucol_res_cleanup(void)
-{
-    if (UCA_DATA_MEM) {
-        udata_close(UCA_DATA_MEM);
-        UCA_DATA_MEM = NULL;
-    }
-    if (_staticUCA) {
-        ucol_close(_staticUCA);
-        _staticUCA = NULL;
-    }
-    gStaticUCAInitOnce.reset();
+ucol_res_cleanup() {
+    rootRules = NULL;
+    rootRulesLength = 0;
+    ures_close(rootBundle);
+    rootBundle = NULL;
+    gInitOnce.reset();
     return TRUE;
 }
 
-static UBool U_CALLCONV
-isAcceptableUCA(void * ,
-             const char * , const char * ,
-             const UDataInfo *pInfo){
-  
-    if( pInfo->size>=20 &&
-        pInfo->isBigEndian==U_IS_BIG_ENDIAN &&
-        pInfo->charsetFamily==U_CHARSET_FAMILY &&
-        pInfo->dataFormat[0]==UCA_DATA_FORMAT_0 &&   
-        pInfo->dataFormat[1]==UCA_DATA_FORMAT_1 &&
-        pInfo->dataFormat[2]==UCA_DATA_FORMAT_2 &&
-        pInfo->dataFormat[3]==UCA_DATA_FORMAT_3 &&
-        pInfo->formatVersion[0]==UCA_FORMAT_VERSION_0
-#if UCA_FORMAT_VERSION_1!=0
-        && pInfo->formatVersion[1]>=UCA_FORMAT_VERSION_1
-#endif
-        
-        
-        
-        ) {
-        return TRUE;
-        
-        
-        
-        
-        
-        
-    } else {
-        return FALSE;
-    }
-}
 U_CDECL_END
 
-static void U_CALLCONV ucol_initStaticUCA(UErrorCode &status) {
-    U_ASSERT(_staticUCA == NULL);
-    U_ASSERT(UCA_DATA_MEM == NULL);
-    ucln_i18n_registerCleanup(UCLN_I18N_UCOL_RES, ucol_res_cleanup);
-
-    UDataMemory *result = udata_openChoice(U_ICUDATA_COLL, UCA_DATA_TYPE, UCA_DATA_NAME, isAcceptableUCA, NULL, &status);
-    if(U_FAILURE(status)){
-        udata_close(result);
+void
+CollationLoader::loadRootRules(UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return; }
+    rootBundle = ures_open(U_ICUDATA_COLL, kRootLocaleName, &errorCode);
+    if(U_FAILURE(errorCode)) { return; }
+    rootRules = ures_getStringByKey(rootBundle, "UCARules", &rootRulesLength, &errorCode);
+    if(U_FAILURE(errorCode)) {
+        ures_close(rootBundle);
+        rootBundle = NULL;
         return;
     }
+    ucln_i18n_registerCleanup(UCLN_I18N_UCOL_RES, ucol_res_cleanup);
+}
 
-    _staticUCA = ucol_initCollator((const UCATableHeader *)udata_getMemory(result), NULL, NULL, &status);
-    if(U_SUCCESS(status)){
-        
-        uprv_uca_initImplicitConstants(&status);
-        UCA_DATA_MEM = result;
-
-    }else{
-        ucol_close(_staticUCA);
-        _staticUCA = NULL;
-        udata_close(result);
+void
+CollationLoader::appendRootRules(UnicodeString &s) {
+    UErrorCode errorCode = U_ZERO_ERROR;
+    umtx_initOnce(gInitOnce, CollationLoader::loadRootRules, errorCode);
+    if(U_SUCCESS(errorCode)) {
+        s.append(rootRules, rootRulesLength);
     }
 }
 
+void
+CollationLoader::loadRules(const char *localeID, const char *collationType,
+                           UnicodeString &rules, UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return; }
+    U_ASSERT(collationType != NULL && *collationType != 0);
+    
+    char type[16];
+    int32_t typeLength = uprv_strlen(collationType);
+    if(typeLength >= UPRV_LENGTHOF(type)) {
+        errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+        return;
+    }
+    uprv_memcpy(type, collationType, typeLength + 1);
+    T_CString_toLowerCase(type);
 
-
-UCollator *
-ucol_initUCA(UErrorCode *status) {
-    umtx_initOnce(gStaticUCAInitOnce, &ucol_initStaticUCA, *status);
-    return _staticUCA;
-}
-
-U_CAPI void U_EXPORT2
-ucol_forgetUCA(void)
-{
-    _staticUCA = NULL;
-    UCA_DATA_MEM = NULL;
-    gStaticUCAInitOnce.reset();
-}
-
-
-
-
-
-static UCollator*
-tryOpeningFromRules(UResourceBundle *collElem, UErrorCode *status) {
-    int32_t rulesLen = 0;
-    const UChar *rules = ures_getStringByKey(collElem, "Sequence", &rulesLen, status);
-    return ucol_openRules(rules, rulesLen, UCOL_DEFAULT, UCOL_DEFAULT, NULL, status);
-}
-
-
-
-
-U_CFUNC UCollator*
-ucol_open_internal(const char *loc,
-                   UErrorCode *status)
-{
-    UErrorCode intStatus = U_ZERO_ERROR;
-    const UCollator* UCA = ucol_initUCA(status);
+    LocalUResourceBundlePointer bundle(ures_open(U_ICUDATA_COLL, localeID, &errorCode));
+    LocalUResourceBundlePointer collations(
+            ures_getByKey(bundle.getAlias(), "collations", NULL, &errorCode));
+    LocalUResourceBundlePointer data(
+            ures_getByKeyWithFallback(collations.getAlias(), type, NULL, &errorCode));
+    int32_t length;
+    const UChar *s =  ures_getStringByKey(data.getAlias(), "Sequence", &length, &errorCode);
+    if(U_FAILURE(errorCode)) { return; }
 
     
-    if(U_FAILURE(*status)) return 0;
+    rules.setTo(s, length);
+    if(rules.isBogus()) {
+        errorCode = U_MEMORY_ALLOCATION_ERROR;
+    }
+}
 
+template<> U_I18N_API
+const CollationCacheEntry *
+LocaleCacheKey<CollationCacheEntry>::createObject(const void *creationContext,
+                                                  UErrorCode &errorCode) const {
+    CollationLoader *loader =
+            reinterpret_cast<CollationLoader *>(
+                    const_cast<void *>(creationContext));
+    return loader->createCacheEntry(errorCode);
+}
 
+const CollationCacheEntry *
+CollationLoader::loadTailoring(const Locale &locale, UErrorCode &errorCode) {
+    const CollationCacheEntry *rootEntry = CollationRoot::getRootCacheEntry(errorCode);
+    if(U_FAILURE(errorCode)) { return NULL; }
+    const char *name = locale.getName();
+    if(*name == 0 || uprv_strcmp(name, "root") == 0) {
 
-    UCollator *result = NULL;
-    UResourceBundle *b = ures_open(U_ICUDATA_COLL, loc, status);
-
-    
-    UResourceBundle *collations = ures_getByKey(b, "collations", NULL, status);
-    UResourceBundle *collElem = NULL;
-    char keyBuffer[256];
-    
-    if(!uloc_getKeywordValue(loc, "collation", keyBuffer, 256, status) ||
-        !uprv_strcmp(keyBuffer,"default")) { 
         
-        intStatus = U_ZERO_ERROR;
+        rootEntry->addRef();
+        return rootEntry;
+    }
+
+    
+    errorCode = U_ZERO_ERROR;
+    CollationLoader loader(rootEntry, locale, errorCode);
+
+    
+    return loader.getCacheEntry(errorCode);
+}
+
+CollationLoader::CollationLoader(const CollationCacheEntry *re, const Locale &requested,
+                                 UErrorCode &errorCode)
+        : cache(UnifiedCache::getInstance(errorCode)), rootEntry(re),
+          validLocale(re->validLocale), locale(requested),
+          typesTried(0), typeFallback(FALSE),
+          bundle(NULL), collations(NULL), data(NULL) {
+    type[0] = 0;
+    defaultType[0] = 0;
+    if(U_FAILURE(errorCode)) { return; }
+
+    
+    const char *baseName = locale.getBaseName();
+    if(uprv_strcmp(locale.getName(), baseName) != 0) {
+        locale = Locale(baseName);
+
         
-        UResourceBundle *defaultColl = ures_getByKeyWithFallback(collations, "default", NULL, &intStatus);
-        if(U_SUCCESS(intStatus)) {
-            int32_t defaultKeyLen = 0;
-            const UChar *defaultKey = ures_getString(defaultColl, &defaultKeyLen, &intStatus);
-            u_UCharsToChars(defaultKey, keyBuffer, defaultKeyLen);
-            keyBuffer[defaultKeyLen] = 0;
+        int32_t typeLength = requested.getKeywordValue("collation",
+                type, UPRV_LENGTHOF(type) - 1, errorCode);
+        if(U_FAILURE(errorCode)) {
+            errorCode = U_ILLEGAL_ARGUMENT_ERROR;
+            return;
+        }
+        type[typeLength] = 0;  
+        if(typeLength == 0) {
+            
+        } else if(uprv_stricmp(type, "default") == 0) {
+            
+            type[0] = 0;
         } else {
-            *status = U_INTERNAL_PROGRAM_ERROR;
-            return NULL;
+            
+            T_CString_toLowerCase(type);
+            locale.setKeywordValue("collation", type, errorCode);
         }
-        ures_close(defaultColl);
     }
-    collElem = ures_getByKeyWithFallback(collations, keyBuffer, collations, status);
-    collations = NULL; 
-
-    UResourceBundle *binary = NULL;
-    UResourceBundle *reorderRes = NULL;
-    
-    if(*status == U_MISSING_RESOURCE_ERROR) { 
-        *status = U_USING_DEFAULT_WARNING;
-        result = ucol_initCollator(UCA->image, result, UCA, status);
-        if (U_FAILURE(*status)) {
-            goto clean;
-        }
-        
-        ures_close(b);
-        b = ures_open(U_ICUDATA_COLL, "", status);
-        ures_close(collElem);
-        collElem = ures_open(U_ICUDATA_COLL, "", status);
-        if(U_FAILURE(*status)) {
-            goto clean;
-        }
-        result->hasRealData = FALSE;
-    } else if(U_SUCCESS(*status)) {
-        intStatus = U_ZERO_ERROR;
-
-        binary = ures_getByKey(collElem, "%%CollationBin", NULL, &intStatus);
-
-        if(intStatus == U_MISSING_RESOURCE_ERROR) { 
-            binary = NULL;
-            result = tryOpeningFromRules(collElem, status);
-            if(U_FAILURE(*status)) {
-                goto clean;
-            }
-        } else if(U_SUCCESS(intStatus)) { 
-            int32_t len = 0;
-            const uint8_t *inData = ures_getBinary(binary, &len, status);
-            if(U_FAILURE(*status)) {
-                goto clean;
-            }
-            UCATableHeader *colData = (UCATableHeader *)inData;
-            if(uprv_memcmp(colData->UCAVersion, UCA->image->UCAVersion, sizeof(UVersionInfo)) != 0 ||
-                uprv_memcmp(colData->UCDVersion, UCA->image->UCDVersion, sizeof(UVersionInfo)) != 0 ||
-                colData->version[0] != UCOL_BUILDER_VERSION)
-            {
-                *status = U_DIFFERENT_UCA_VERSION;
-                result = tryOpeningFromRules(collElem, status);
-            } else {
-                if(U_FAILURE(*status)){
-                    goto clean;
-                }
-                if((uint32_t)len > (paddedsize(sizeof(UCATableHeader)) + paddedsize(sizeof(UColOptionSet)))) {
-                    result = ucol_initCollator((const UCATableHeader *)inData, result, UCA, status);
-                    if(U_FAILURE(*status)){
-                        goto clean;
-                    }
-                    result->hasRealData = TRUE;
-                } else {
-                    result = ucol_initCollator(UCA->image, result, UCA, status);
-                    ucol_setOptionsFromHeader(result, (UColOptionSet *)(inData+((const UCATableHeader *)inData)->options), status);
-                    if(U_FAILURE(*status)){
-                        goto clean;
-                    }
-                    result->hasRealData = FALSE;
-                }
-                result->freeImageOnClose = FALSE;
-                
-                reorderRes = ures_getByKey(collElem, "%%ReorderCodes", NULL, &intStatus);
-                if (U_SUCCESS(intStatus)) {
-                    int32_t reorderCodesLen = 0;
-                    const int32_t* reorderCodes = ures_getIntVector(reorderRes, &reorderCodesLen, status);
-                    if (reorderCodesLen > 0) {
-                        ucol_setReorderCodes(result, reorderCodes, reorderCodesLen, status);
-                        
-                        result->defaultReorderCodesLength = result->reorderCodesLength;
-                        result->defaultReorderCodes =  (int32_t*) uprv_malloc(result->defaultReorderCodesLength * sizeof(int32_t));
-                        uprv_memcpy(result->defaultReorderCodes, result->reorderCodes, result->defaultReorderCodesLength * sizeof(int32_t));
-                        result->freeDefaultReorderCodesOnClose = TRUE;
-                    }
-                    if (U_FAILURE(*status)) {
-                        goto clean;
-                    }
-                }
-            }
-
-        } else { 
-            if(U_SUCCESS(*status)) {
-                *status = intStatus; 
-            }
-            goto clean;
-        }
-        intStatus = U_ZERO_ERROR;
-        result->rules = ures_getStringByKey(collElem, "Sequence", &result->rulesLength, &intStatus);
-        result->freeRulesOnClose = FALSE;
-    } else { 
-        goto clean;
-    }
-
-    intStatus = U_ZERO_ERROR;
-    result->ucaRules = ures_getStringByKey(b,"UCARules",NULL,&intStatus);
-
-    if(loc == NULL) {
-        loc = ures_getLocaleByType(b, ULOC_ACTUAL_LOCALE, status);
-    }
-    result->requestedLocale = uprv_strdup(loc);
-    
-    if (result->requestedLocale == NULL) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        goto clean;
-    }
-    loc = ures_getLocaleByType(collElem, ULOC_ACTUAL_LOCALE, status);
-    result->actualLocale = uprv_strdup(loc);
-    
-    if (result->actualLocale == NULL) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        goto clean;
-    }
-    loc = ures_getLocaleByType(b, ULOC_ACTUAL_LOCALE, status);
-    result->validLocale = uprv_strdup(loc);
-    
-    if (result->validLocale == NULL) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        goto clean;
-    }
-
-    ures_close(b);
-    ures_close(collElem);
-    ures_close(binary);
-    ures_close(reorderRes);
-    return result;
-
-clean:
-    ures_close(b);
-    ures_close(collElem);
-    ures_close(binary);
-    ures_close(reorderRes);
-    ucol_close(result);
-    return NULL;
 }
+
+CollationLoader::~CollationLoader() {
+    ures_close(data);
+    ures_close(collations);
+    ures_close(bundle);
+}
+
+const CollationCacheEntry *
+CollationLoader::createCacheEntry(UErrorCode &errorCode) {
+    
+    
+    
+    
+    
+    if(bundle == NULL) {
+        return loadFromLocale(errorCode);
+    } else if(collations == NULL) {
+        return loadFromBundle(errorCode);
+    } else if(data == NULL) {
+        return loadFromCollations(errorCode);
+    } else {
+        return loadFromData(errorCode);
+    }
+}
+
+const CollationCacheEntry *
+CollationLoader::loadFromLocale(UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return NULL; }
+    U_ASSERT(bundle == NULL);
+    bundle = ures_openNoDefault(U_ICUDATA_COLL, locale.getBaseName(), &errorCode);
+    if(errorCode == U_MISSING_RESOURCE_ERROR) {
+        errorCode = U_USING_DEFAULT_WARNING;
+
+        
+        rootEntry->addRef();
+        return rootEntry;
+    }
+    Locale requestedLocale(locale);
+    const char *vLocale = ures_getLocaleByType(bundle, ULOC_ACTUAL_LOCALE, &errorCode);
+    if(U_FAILURE(errorCode)) { return NULL; }
+    locale = validLocale = Locale(vLocale);  
+    if(type[0] != 0) {
+        locale.setKeywordValue("collation", type, errorCode);
+    }
+    if(locale != requestedLocale) {
+        return getCacheEntry(errorCode);
+    } else {
+        return loadFromBundle(errorCode);
+    }
+}
+
+const CollationCacheEntry *
+CollationLoader::loadFromBundle(UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return NULL; }
+    U_ASSERT(collations == NULL);
+    
+    collations = ures_getByKey(bundle, "collations", NULL, &errorCode);
+    if(errorCode == U_MISSING_RESOURCE_ERROR) {
+        errorCode = U_USING_DEFAULT_WARNING;
+        
+        return makeCacheEntryFromRoot(validLocale, errorCode);
+    }
+    if(U_FAILURE(errorCode)) { return NULL; }
+
+    
+    {
+        UErrorCode internalErrorCode = U_ZERO_ERROR;
+        LocalUResourceBundlePointer def(
+                ures_getByKeyWithFallback(collations, "default", NULL, &internalErrorCode));
+        int32_t length;
+        const UChar *s = ures_getString(def.getAlias(), &length, &internalErrorCode);
+        if(U_SUCCESS(internalErrorCode) && 0 < length && length < UPRV_LENGTHOF(defaultType)) {
+            u_UCharsToChars(s, defaultType, length + 1);
+        } else {
+            uprv_strcpy(defaultType, "standard");
+        }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if(type[0] == 0) {
+        uprv_strcpy(type, defaultType);
+        typesTried |= TRIED_DEFAULT;
+        if(uprv_strcmp(type, "search") == 0) {
+            typesTried |= TRIED_SEARCH;
+        }
+        if(uprv_strcmp(type, "standard") == 0) {
+            typesTried |= TRIED_STANDARD;
+        }
+        locale.setKeywordValue("collation", type, errorCode);
+        return getCacheEntry(errorCode);
+    } else {
+        if(uprv_strcmp(type, defaultType) == 0) {
+            typesTried |= TRIED_DEFAULT;
+        }
+        if(uprv_strcmp(type, "search") == 0) {
+            typesTried |= TRIED_SEARCH;
+        }
+        if(uprv_strcmp(type, "standard") == 0) {
+            typesTried |= TRIED_STANDARD;
+        }
+        return loadFromCollations(errorCode);
+    }
+}
+
+const CollationCacheEntry *
+CollationLoader::loadFromCollations(UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return NULL; }
+    U_ASSERT(data == NULL);
+    
+    LocalUResourceBundlePointer localData(
+            ures_getByKeyWithFallback(collations, type, NULL, &errorCode));
+    int32_t typeLength = uprv_strlen(type);
+    if(errorCode == U_MISSING_RESOURCE_ERROR) {
+        errorCode = U_USING_DEFAULT_WARNING;
+        typeFallback = TRUE;
+        if((typesTried & TRIED_SEARCH) == 0 &&
+                typeLength > 6 && uprv_strncmp(type, "search", 6) == 0) {
+            
+            typesTried |= TRIED_SEARCH;
+            type[6] = 0;
+        } else if((typesTried & TRIED_DEFAULT) == 0) {
+            
+            typesTried |= TRIED_DEFAULT;
+            uprv_strcpy(type, defaultType);
+        } else if((typesTried & TRIED_STANDARD) == 0) {
+            
+            typesTried |= TRIED_STANDARD;
+            uprv_strcpy(type, "standard");
+        } else {
+            
+            return makeCacheEntryFromRoot(validLocale, errorCode);
+        }
+        locale.setKeywordValue("collation", type, errorCode);
+        return getCacheEntry(errorCode);
+    }
+    if(U_FAILURE(errorCode)) { return NULL; }
+
+    data = localData.orphan();
+    const char *actualLocale = ures_getLocaleByType(data, ULOC_ACTUAL_LOCALE, &errorCode);
+    if(U_FAILURE(errorCode)) { return NULL; }
+    const char *vLocale = validLocale.getBaseName();
+    UBool actualAndValidLocalesAreDifferent = uprv_strcmp(actualLocale, vLocale) != 0;
+
+    
+    
+    
+    if(uprv_strcmp(type, defaultType) != 0) {
+        validLocale.setKeywordValue("collation", type, errorCode);
+        if(U_FAILURE(errorCode)) { return NULL; }
+    }
+
+    
+    if((*actualLocale == 0 || uprv_strcmp(actualLocale, "root") == 0) &&
+            uprv_strcmp(type, "standard") == 0) {
+        if(typeFallback) {
+            errorCode = U_USING_DEFAULT_WARNING;
+        }
+        return makeCacheEntryFromRoot(validLocale, errorCode);
+    }
+
+    locale = Locale(actualLocale);
+    if(actualAndValidLocalesAreDifferent) {
+        locale.setKeywordValue("collation", type, errorCode);
+        const CollationCacheEntry *entry = getCacheEntry(errorCode);
+        return makeCacheEntry(validLocale, entry, errorCode);
+    } else {
+        return loadFromData(errorCode);
+    }
+}
+
+const CollationCacheEntry *
+CollationLoader::loadFromData(UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode)) { return NULL; }
+    LocalPointer<CollationTailoring> t(new CollationTailoring(rootEntry->tailoring->settings));
+    if(t.isNull() || t->isBogus()) {
+        errorCode = U_MEMORY_ALLOCATION_ERROR;
+        return NULL;
+    }
+
+    
+    LocalUResourceBundlePointer binary(ures_getByKey(data, "%%CollationBin", NULL, &errorCode));
+    
+    
+    int32_t length;
+    const uint8_t *inBytes = ures_getBinary(binary.getAlias(), &length, &errorCode);
+    CollationDataReader::read(rootEntry->tailoring, inBytes, length, *t, errorCode);
+    
+    
+    if(U_FAILURE(errorCode)) { return NULL; }
+
+    
+    {
+        UErrorCode internalErrorCode = U_ZERO_ERROR;
+        int32_t length;
+        const UChar *s = ures_getStringByKey(data, "Sequence", &length,
+                                             &internalErrorCode);
+        if(U_SUCCESS(internalErrorCode)) {
+            t->rules.setTo(TRUE, s, length);
+        }
+    }
+
+    const char *actualLocale = locale.getBaseName();  
+    const char *vLocale = validLocale.getBaseName();
+    UBool actualAndValidLocalesAreDifferent = uprv_strcmp(actualLocale, vLocale) != 0;
+
+    
+    
+    
+    
+    
+    if(actualAndValidLocalesAreDifferent) {
+        
+        LocalUResourceBundlePointer actualBundle(
+                ures_open(U_ICUDATA_COLL, actualLocale, &errorCode));
+        if(U_FAILURE(errorCode)) { return NULL; }
+        UErrorCode internalErrorCode = U_ZERO_ERROR;
+        LocalUResourceBundlePointer def(
+                ures_getByKeyWithFallback(actualBundle.getAlias(), "collations/default", NULL,
+                                          &internalErrorCode));
+        int32_t length;
+        const UChar *s = ures_getString(def.getAlias(), &length, &internalErrorCode);
+        if(U_SUCCESS(internalErrorCode) && length < UPRV_LENGTHOF(defaultType)) {
+            u_UCharsToChars(s, defaultType, length + 1);
+        } else {
+            uprv_strcpy(defaultType, "standard");
+        }
+    }
+    t->actualLocale = locale;
+    if(uprv_strcmp(type, defaultType) != 0) {
+        t->actualLocale.setKeywordValue("collation", type, errorCode);
+    } else if(uprv_strcmp(locale.getName(), locale.getBaseName()) != 0) {
+        
+        t->actualLocale.setKeywordValue("collation", NULL, errorCode);
+    }
+    if(U_FAILURE(errorCode)) { return NULL; }
+
+    if(typeFallback) {
+        errorCode = U_USING_DEFAULT_WARNING;
+    }
+    t->bundle = bundle;
+    bundle = NULL;
+    const CollationCacheEntry *entry = new CollationCacheEntry(validLocale, t.getAlias());
+    if(entry == NULL) {
+        errorCode = U_MEMORY_ALLOCATION_ERROR;
+    } else {
+        t.orphan();
+    }
+    
+    entry->addRef();
+    return entry;
+}
+
+const CollationCacheEntry *
+CollationLoader::getCacheEntry(UErrorCode &errorCode) {
+    LocaleCacheKey<CollationCacheEntry> key(locale);
+    const CollationCacheEntry *entry = NULL;
+    cache->get(key, this, entry, errorCode);
+    return entry;
+}
+
+const CollationCacheEntry *
+CollationLoader::makeCacheEntryFromRoot(
+        const Locale &,
+        UErrorCode &errorCode) const {
+    if (U_FAILURE(errorCode)) {
+        return NULL;
+    }
+    rootEntry->addRef();
+    return makeCacheEntry(validLocale, rootEntry, errorCode);
+}
+
+const CollationCacheEntry *
+CollationLoader::makeCacheEntry(
+        const Locale &loc,
+        const CollationCacheEntry *entryFromCache,
+        UErrorCode &errorCode) {
+    if(U_FAILURE(errorCode) || loc == entryFromCache->validLocale) {
+        return entryFromCache;
+    }
+    CollationCacheEntry *entry = new CollationCacheEntry(loc, entryFromCache->tailoring);
+    if(entry == NULL) {
+        errorCode = U_MEMORY_ALLOCATION_ERROR;
+        entryFromCache->removeRef();
+        return NULL;
+    }
+    entry->addRef();
+    entryFromCache->removeRef();
+    return entry;
+}
+
+U_NAMESPACE_END
+
+U_NAMESPACE_USE
 
 U_CAPI UCollator*
 ucol_open(const char *loc,
@@ -348,360 +507,14 @@ ucol_open(const char *loc,
     UTRACE_DATA1(UTRACE_INFO, "locale = \"%s\"", loc);
     UCollator *result = NULL;
 
-#if !UCONFIG_NO_SERVICE
-    result = Collator::createUCollator(loc, status);
-    if (result == NULL)
-#endif
-    {
-        result = ucol_open_internal(loc, status);
+    Collator *coll = Collator::createInstance(loc, *status);
+    if(U_SUCCESS(*status)) {
+        result = coll->toUCollator();
     }
     UTRACE_EXIT_PTR_STATUS(result, *status);
     return result;
 }
 
-
-UCollator*
-ucol_openRulesForImport( const UChar        *rules,
-                         int32_t            rulesLength,
-                         UColAttributeValue normalizationMode,
-                         UCollationStrength strength,
-                         UParseError        *parseError,
-                         GetCollationRulesFunction  importFunc,
-                         void* context,
-                         UErrorCode         *status)
-{
-    UColTokenParser src;
-    UColAttributeValue norm;
-    UParseError tErr;
-
-    if(status == NULL || U_FAILURE(*status)){
-        return 0;
-    }
-
-    if(rules == NULL || rulesLength < -1) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    if(rulesLength == -1) {
-        rulesLength = u_strlen(rules);
-    }
-
-    if(parseError == NULL){
-        parseError = &tErr;
-    }
-
-    switch(normalizationMode) {
-    case UCOL_OFF:
-    case UCOL_ON:
-    case UCOL_DEFAULT:
-        norm = normalizationMode;
-        break;
-    default:
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-
-    UCollator *result = NULL;
-    UCATableHeader *table = NULL;
-    UCollator *UCA = ucol_initUCA(status);
-
-    if(U_FAILURE(*status)){
-        return NULL;
-    }
-
-    ucol_tok_initTokenList(&src, rules, rulesLength, UCA, importFunc, context, status);
-    ucol_tok_assembleTokenList(&src,parseError, status);
-
-    if(U_FAILURE(*status)) {
-        
-        
-        
-#ifdef UCOL_DEBUG
-        if(*status == U_ILLEGAL_ARGUMENT_ERROR) {
-            fprintf(stderr, "bad option starting at offset %i\n", (int)(src.current-src.source));
-        } else {
-            fprintf(stderr, "invalid rule just before offset %i\n", (int)(src.current-src.source));
-        }
-#endif
-        goto cleanup;
-    }
-
-     
-    if(src.resultLen > 0 || src.removeSet != NULL) {
-        
-        table = ucol_assembleTailoringTable(&src, status);
-        if(U_SUCCESS(*status)) {
-            
-            table->version[0] = UCOL_BUILDER_VERSION;
-            
-            table->version[1] = table->version[2] = table->version[3] = 0;
-            
-            u_getUnicodeVersion(table->UCDVersion);
-            
-            uprv_memcpy(table->UCAVersion, UCA->image->UCAVersion, sizeof(UVersionInfo));
-            result = ucol_initCollator(table, 0, UCA, status);
-            if (U_FAILURE(*status)) {
-                goto cleanup;
-            }
-            result->hasRealData = TRUE;
-            result->freeImageOnClose = TRUE;
-        } else {
-            goto cleanup;
-        }
-    } else { 
-        
-        
-        result = ucol_initCollator(UCA->image, 0, UCA, status);
-        
-        if (U_FAILURE(*status)) {
-            goto cleanup;
-        }
-        
-        UColOptionSet *opts = (UColOptionSet *)uprv_malloc(sizeof(UColOptionSet));
-        
-        if (opts == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            goto cleanup;
-        }
-        uprv_memcpy(opts, src.opts, sizeof(UColOptionSet));
-        ucol_setOptionsFromHeader(result, opts, status);
-        result->freeOptionsOnClose = TRUE;
-        result->hasRealData = FALSE;
-        result->freeImageOnClose = FALSE;
-    }
-
-    ucol_setReorderCodesFromParser(result, &src, status);
-
-    if(U_SUCCESS(*status)) {
-        UChar *newRules;
-        result->dataVersion[0] = UCOL_BUILDER_VERSION;
-        if(rulesLength > 0) {
-            newRules = (UChar *)uprv_malloc((rulesLength+1)*U_SIZEOF_UCHAR);
-            
-            if (newRules == NULL) {
-                *status = U_MEMORY_ALLOCATION_ERROR;
-                goto cleanup;
-            }
-            uprv_memcpy(newRules, rules, rulesLength*U_SIZEOF_UCHAR);
-            newRules[rulesLength]=0;
-            result->rules = newRules;
-            result->rulesLength = rulesLength;
-            result->freeRulesOnClose = TRUE;
-        }
-        result->ucaRules = NULL;
-        result->actualLocale = NULL;
-        result->validLocale = NULL;
-        result->requestedLocale = NULL;
-        ucol_buildPermutationTable(result, status);
-        ucol_setAttribute(result, UCOL_STRENGTH, strength, status);
-        ucol_setAttribute(result, UCOL_NORMALIZATION_MODE, norm, status);
-    } else {
-cleanup:
-        if(result != NULL) {
-            ucol_close(result);
-        } else {
-            if(table != NULL) {
-                uprv_free(table);
-            }
-        }
-        result = NULL;
-    }
-
-    ucol_tok_closeTokenList(&src);
-
-    return result;
-}
-
-U_CAPI UCollator* U_EXPORT2
-ucol_openRules( const UChar        *rules,
-               int32_t            rulesLength,
-               UColAttributeValue normalizationMode,
-               UCollationStrength strength,
-               UParseError        *parseError,
-               UErrorCode         *status)
-{
-    return ucol_openRulesForImport(rules,
-                                   rulesLength,
-                                   normalizationMode,
-                                   strength,
-                                   parseError,
-                                   ucol_tok_getRulesFromBundle,
-                                   NULL,
-                                   status);
-}
-
-U_CAPI int32_t U_EXPORT2
-ucol_getRulesEx(const UCollator *coll, UColRuleOption delta, UChar *buffer, int32_t bufferLen) {
-    UErrorCode status = U_ZERO_ERROR;
-    int32_t len = 0;
-    int32_t UCAlen = 0;
-    const UChar* ucaRules = 0;
-    const UChar *rules = ucol_getRules(coll, &len);
-    if(delta == UCOL_FULL_RULES) {
-        
-        
-        ucaRules = coll->ucaRules;
-        if (ucaRules) {
-            UCAlen = u_strlen(ucaRules);
-        }
-        
-
-
-
-
-
-
-
-    }
-    if(U_FAILURE(status)) {
-        return 0;
-    }
-    if(buffer!=0 && bufferLen>0){
-        *buffer=0;
-        if(UCAlen > 0) {
-            u_memcpy(buffer, ucaRules, uprv_min(UCAlen, bufferLen));
-        }
-        if(len > 0 && bufferLen > UCAlen) {
-            u_memcpy(buffer+UCAlen, rules, uprv_min(len, bufferLen-UCAlen));
-        }
-    }
-    return u_terminateUChars(buffer, bufferLen, len+UCAlen, &status);
-}
-
-static const UChar _NUL = 0;
-
-U_CAPI const UChar* U_EXPORT2
-ucol_getRules(    const    UCollator       *coll,
-              int32_t            *length)
-{
-    if(coll->rules != NULL) {
-        *length = coll->rulesLength;
-        return coll->rules;
-    }
-    else {
-        *length = 0;
-        return &_NUL;
-    }
-}
-
-U_CAPI UBool U_EXPORT2
-ucol_equals(const UCollator *source, const UCollator *target) {
-    UErrorCode status = U_ZERO_ERROR;
-    
-    if(source == target) {
-        return TRUE;
-    }
-    int32_t i = 0, j = 0;
-    
-    for(i = 0; i < UCOL_ATTRIBUTE_COUNT; i++) {
-        if(ucol_getAttribute(source, (UColAttribute)i, &status) != ucol_getAttribute(target, (UColAttribute)i, &status) || U_FAILURE(status)) {
-            return FALSE;
-        }
-    }
-    if (source->reorderCodesLength != target->reorderCodesLength){
-        return FALSE;
-    }
-    for (i = 0; i < source->reorderCodesLength; i++) {
-        if(source->reorderCodes[i] != target->reorderCodes[i]) {
-            return FALSE;
-        }
-    }
-
-    int32_t sourceRulesLen = 0, targetRulesLen = 0;
-    const UChar *sourceRules = ucol_getRules(source, &sourceRulesLen);
-    const UChar *targetRules = ucol_getRules(target, &targetRulesLen);
-
-    if(sourceRulesLen == targetRulesLen && u_strncmp(sourceRules, targetRules, sourceRulesLen) == 0) {
-        
-        return(TRUE);
-    }
-    
-    UBool result = TRUE;
-    UParseError parseError;
-    UColTokenParser sourceParser, targetParser;
-    int32_t sourceListLen = 0, targetListLen = 0;
-    ucol_tok_initTokenList(&sourceParser, sourceRules, sourceRulesLen, source->UCA, ucol_tok_getRulesFromBundle, NULL, &status);
-    ucol_tok_initTokenList(&targetParser, targetRules, targetRulesLen, target->UCA, ucol_tok_getRulesFromBundle, NULL, &status);
-    sourceListLen = ucol_tok_assembleTokenList(&sourceParser, &parseError, &status);
-    targetListLen = ucol_tok_assembleTokenList(&targetParser, &parseError, &status);
-
-    if(sourceListLen != targetListLen) {
-        
-        result = FALSE;
-    } else {
-        UColToken *sourceReset = NULL, *targetReset = NULL;
-        UChar *sourceResetString = NULL, *targetResetString = NULL;
-        int32_t sourceStringLen = 0, targetStringLen = 0;
-        for(i = 0; i < sourceListLen; i++) {
-            sourceReset = sourceParser.lh[i].reset;
-            sourceResetString = sourceParser.source+(sourceReset->source & 0xFFFFFF);
-            sourceStringLen = sourceReset->source >> 24;
-            for(j = 0; j < sourceListLen; j++) {
-                targetReset = targetParser.lh[j].reset;
-                targetResetString = targetParser.source+(targetReset->source & 0xFFFFFF);
-                targetStringLen = targetReset->source >> 24;
-                if(sourceStringLen == targetStringLen && (u_strncmp(sourceResetString, targetResetString, sourceStringLen) == 0)) {
-                    sourceReset = sourceParser.lh[i].first;
-                    targetReset = targetParser.lh[j].first;
-                    while(sourceReset != NULL && targetReset != NULL) {
-                        sourceResetString = sourceParser.source+(sourceReset->source & 0xFFFFFF);
-                        sourceStringLen = sourceReset->source >> 24;
-                        targetResetString = targetParser.source+(targetReset->source & 0xFFFFFF);
-                        targetStringLen = targetReset->source >> 24;
-                        if(sourceStringLen != targetStringLen || (u_strncmp(sourceResetString, targetResetString, sourceStringLen) != 0)) {
-                            result = FALSE;
-                            goto returnResult;
-                        }
-                        
-                        if(sourceReset->expansion) {
-                            if(!targetReset->expansion) {
-                                result = FALSE;
-                                goto returnResult;
-                            } else {
-                                
-                                sourceResetString = sourceParser.source+(sourceReset->expansion& 0xFFFFFF);
-                                sourceStringLen = sourceReset->expansion >> 24;
-                                targetResetString = targetParser.source+(targetReset->expansion & 0xFFFFFF);
-                                targetStringLen = targetReset->expansion >> 24;
-                                if(sourceStringLen != targetStringLen || (u_strncmp(sourceResetString, targetResetString, sourceStringLen) != 0)) {
-                                    result = FALSE;
-                                    goto returnResult;
-                                }
-                            }
-                        } else {
-                            if(targetReset->expansion) {
-                                result = FALSE;
-                                goto returnResult;
-                            }
-                        }
-                        sourceReset = sourceReset->next;
-                        targetReset = targetReset->next;
-                    }
-                    if(sourceReset != targetReset) { 
-                        
-                        result = FALSE;
-                        goto returnResult;
-                    }
-
-
-                    break;
-                }
-            }
-            
-            if(j == sourceListLen) {
-                result = FALSE;
-                goto returnResult;
-            }
-        }
-    }
-
-returnResult:
-    ucol_tok_closeTokenList(&sourceParser);
-    ucol_tok_closeTokenList(&targetParser);
-    return result;
-
-}
 
 U_CAPI int32_t U_EXPORT2
 ucol_getDisplayName(    const    char        *objLoc,
@@ -766,7 +579,7 @@ static const char RESOURCE_NAME[] = "collations";
 
 static const char* const KEYWORDS[] = { "collation" };
 
-#define KEYWORD_COUNT (sizeof(KEYWORDS)/sizeof(KEYWORDS[0]))
+#define KEYWORD_COUNT UPRV_LENGTHOF(KEYWORDS)
 
 U_CAPI UEnumeration* U_EXPORT2
 ucol_getKeywords(UErrorCode *status) {
@@ -874,7 +687,7 @@ ucol_getKeywordValuesForLocale(const char* , const char* locale,
 
                     ulist_addItemBeginList(results, defcoll, TRUE, status);
                 }
-            } else {
+            } else if (uprv_strncmp(key, "private-", 8) != 0) {
                 ulist_addItemEndList(values, key, FALSE, status);
             }
         }
@@ -927,458 +740,6 @@ ucol_getFunctionalEquivalent(char* result, int32_t resultCapacity,
     return ures_getFunctionalEquivalent(result, resultCapacity, U_ICUDATA_COLL,
         "collations", keyword, locale,
         isAvailable, TRUE, status);
-}
-
-
-U_CAPI const char * U_EXPORT2
-ucol_getLocale(const UCollator *coll, ULocDataLocaleType type, UErrorCode *status) {
-    return ucol_getLocaleByType(coll, type, status);
-}
-
-U_CAPI const char * U_EXPORT2
-ucol_getLocaleByType(const UCollator *coll, ULocDataLocaleType type, UErrorCode *status) {
-    const char *result = NULL;
-    if(status == NULL || U_FAILURE(*status)) {
-        return NULL;
-    }
-    UTRACE_ENTRY(UTRACE_UCOL_GETLOCALE);
-    UTRACE_DATA1(UTRACE_INFO, "coll=%p", coll);
-
-    if(coll->delegate!=NULL) {
-      return ((const Collator*)coll->delegate)->getLocale(type, *status).getName();
-    }
-    switch(type) {
-    case ULOC_ACTUAL_LOCALE:
-        result = coll->actualLocale;
-        break;
-    case ULOC_VALID_LOCALE:
-        result = coll->validLocale;
-        break;
-    case ULOC_REQUESTED_LOCALE:
-        result = coll->requestedLocale;
-        break;
-    default:
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-    }
-    UTRACE_DATA1(UTRACE_INFO, "result = %s", result);
-    UTRACE_EXIT_STATUS(*status);
-    return result;
-}
-
-U_CFUNC void U_EXPORT2
-ucol_setReqValidLocales(UCollator *coll, char *requestedLocaleToAdopt, char *validLocaleToAdopt, char *actualLocaleToAdopt)
-{
-    if (coll) {
-        if (coll->validLocale) {
-            uprv_free(coll->validLocale);
-        }
-        coll->validLocale = validLocaleToAdopt;
-        if (coll->requestedLocale) { 
-            uprv_free(coll->requestedLocale);
-        }
-        coll->requestedLocale = requestedLocaleToAdopt;
-        if (coll->actualLocale) {
-            uprv_free(coll->actualLocale);
-        }
-        coll->actualLocale = actualLocaleToAdopt;
-    }
-}
-
-U_CAPI USet * U_EXPORT2
-ucol_getTailoredSet(const UCollator *coll, UErrorCode *status)
-{
-    U_NAMESPACE_USE
-
-    if(status == NULL || U_FAILURE(*status)) {
-        return NULL;
-    }
-    if(coll == NULL || coll->UCA == NULL) {
-        *status = U_ILLEGAL_ARGUMENT_ERROR;
-        return NULL;
-    }
-    UParseError parseError;
-    UColTokenParser src;
-    int32_t rulesLen = 0;
-    const UChar *rules = ucol_getRules(coll, &rulesLen);
-    UBool startOfRules = TRUE;
-    
-    
-    
-    
-    UnicodeSet *tailored = new UnicodeSet();
-    UnicodeString pattern;
-    UnicodeString empty;
-    CanonicalIterator it(empty, *status);
-
-
-    
-    
-    ucol_tok_initTokenList(&src, rules, rulesLen, coll->UCA, ucol_tok_getRulesFromBundle, NULL, status);
-    while (ucol_tok_parseNextToken(&src, startOfRules, &parseError, status) != NULL) {
-        startOfRules = FALSE;
-        if(src.parsedToken.strength != UCOL_TOK_RESET) {
-            const UChar *stuff = src.source+(src.parsedToken.charsOffset);
-            it.setSource(UnicodeString(stuff, src.parsedToken.charsLen), *status);
-            pattern = it.next();
-            while(!pattern.isBogus()) {
-                if(Normalizer::quickCheck(pattern, UNORM_FCD, *status) != UNORM_NO) {
-                    tailored->add(pattern);
-                }
-                pattern = it.next();
-            }
-        }
-    }
-    ucol_tok_closeTokenList(&src);
-    return (USet *)tailored;
-}
-
-
-
-
- 
-void ucol_setReorderCodesFromParser(UCollator *coll, UColTokenParser *parser, UErrorCode *status) {
-    if (U_FAILURE(*status)) {
-        return;
-    }
-    
-    if (parser->reorderCodesLength == 0 || parser->reorderCodes == NULL) {
-        return;
-    }
-    
-    coll->reorderCodesLength = 0;
-    if (coll->reorderCodes != NULL && coll->freeReorderCodesOnClose == TRUE) {
-        uprv_free(coll->reorderCodes);
-    }
-    coll->reorderCodes = NULL;
-    coll->freeReorderCodesOnClose = FALSE;
-
-    if (coll->defaultReorderCodes != NULL && coll->freeDefaultReorderCodesOnClose == TRUE) {
-        uprv_free(coll->defaultReorderCodes);
-    }
-    coll->freeDefaultReorderCodesOnClose = FALSE;
-    coll->defaultReorderCodesLength = parser->reorderCodesLength;
-    coll->defaultReorderCodes =  (int32_t*) uprv_malloc(coll->defaultReorderCodesLength * sizeof(int32_t));
-    if (coll->defaultReorderCodes == NULL) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-    uprv_memcpy(coll->defaultReorderCodes, parser->reorderCodes, coll->defaultReorderCodesLength * sizeof(int32_t));
-    coll->freeDefaultReorderCodesOnClose = TRUE;
-    
-    coll->reorderCodesLength = parser->reorderCodesLength;
-    coll->reorderCodes = (int32_t*) uprv_malloc(coll->reorderCodesLength * sizeof(int32_t));
-    if (coll->reorderCodes == NULL) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        return;
-    }
-    uprv_memcpy(coll->reorderCodes, parser->reorderCodes, coll->reorderCodesLength * sizeof(int32_t));
-    coll->freeReorderCodesOnClose = TRUE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-U_CFUNC int U_EXPORT2
-ucol_getLeadBytesForReorderCode(const UCollator *uca, int reorderCode, uint16_t* returnLeadBytes, int returnCapacity) {
-    uint16_t reorderCodeIndexLength = *((uint16_t*) ((uint8_t *)uca->image + uca->image->scriptToLeadByte));
-    uint16_t* reorderCodeIndex = (uint16_t*) ((uint8_t *)uca->image + uca->image->scriptToLeadByte + 2 *sizeof(uint16_t));
-    
-    
-    for (int i = 0; i < reorderCodeIndexLength; i++) {
-        if (reorderCode == reorderCodeIndex[i*2]) {
-            uint16_t dataOffset = reorderCodeIndex[(i*2) + 1];
-            if ((dataOffset & 0x8000) == 0x8000) {
-                
-                if (returnCapacity >= 1) {
-                    returnLeadBytes[0] = dataOffset & ~0x8000;
-                    return 1;
-                }
-                return 0;
-            }
-            uint16_t* dataOffsetBase = (uint16_t*) ((uint8_t *)reorderCodeIndex + reorderCodeIndexLength * (2 * sizeof(uint16_t)));
-            uint16_t leadByteCount = *(dataOffsetBase + dataOffset);
-            leadByteCount = leadByteCount > returnCapacity ? returnCapacity : leadByteCount;
-            uprv_memcpy(returnLeadBytes, dataOffsetBase + dataOffset + 1, leadByteCount * sizeof(uint16_t));
-            return leadByteCount;
-        }
-    }
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-U_CFUNC int U_EXPORT2
-ucol_getReorderCodesForLeadByte(const UCollator *uca, int leadByte, int16_t* returnReorderCodes, int returnCapacity) {
-    uint16_t* leadByteTable = ((uint16_t*) ((uint8_t *)uca->image + uca->image->leadByteToScript));
-    uint16_t leadByteIndexLength = *leadByteTable;
-    if (leadByte >= leadByteIndexLength) {
-        return 0;
-    }
-    uint16_t leadByteIndex = *(leadByteTable + (2 + leadByte));
-
-    if ((leadByteIndex & 0x8000) == 0x8000) {
-        
-        if (returnCapacity >= 1) {
-            returnReorderCodes[0] = leadByteIndex & ~0x8000;
-            return 1;
-        }
-        return 0;
-    }
-    
-    uint16_t* reorderCodeData = leadByteTable + (2 + leadByteIndexLength) + leadByteIndex;
-    uint16_t reorderCodeCount = *reorderCodeData > returnCapacity ? returnCapacity : *reorderCodeData;
-    uprv_memcpy(returnReorderCodes, reorderCodeData + 1, reorderCodeCount * sizeof(uint16_t));
-    return reorderCodeCount;
-}
-
-
-static const int32_t UCOL_REORDER_CODE_IGNORE = UCOL_REORDER_CODE_LIMIT + 1;
-
-U_CFUNC void U_EXPORT2
-ucol_buildPermutationTable(UCollator *coll, UErrorCode *status) {
-    uint16_t leadBytesSize = 256;
-    uint16_t leadBytes[256];
-
-    
-    int toBottom = 0x03;
-    
-    int toTop = 0xe4;
-
-    
-    bool fromTheBottom = true;
-    int32_t reorderCodesIndex = -1;
-    
-    
-    bool newLeadByteUsed[256];
-    
-    bool permutationSlotFilled[256];
-
-    
-    if(U_FAILURE(*status) || coll == NULL) {
-        return;
-    }
-    
-    
-    if (coll->reorderCodes == NULL || coll->reorderCodesLength == 0 
-            || (coll->reorderCodesLength == 1 && coll->reorderCodes[0] == UCOL_REORDER_CODE_NONE)) {
-        if (coll->leadBytePermutationTable != NULL) {
-            if (coll->freeLeadBytePermutationTableOnClose) {
-                uprv_free(coll->leadBytePermutationTable);
-            }
-            coll->leadBytePermutationTable = NULL;
-            coll->freeLeadBytePermutationTableOnClose = FALSE;
-            coll->reorderCodesLength = 0;
-        }
-        return;
-    }
-
-    
-    if (coll->reorderCodes[0] == UCOL_REORDER_CODE_DEFAULT) {
-        if (coll->reorderCodesLength != 1) {
-            *status = U_ILLEGAL_ARGUMENT_ERROR;
-            return;
-        }
-        if (coll->freeReorderCodesOnClose == TRUE) {
-            uprv_free(coll->reorderCodes);
-        }
-        coll->reorderCodes = NULL;
-        coll->freeReorderCodesOnClose = FALSE;
-
-        if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
-            uprv_free(coll->leadBytePermutationTable);
-        }
-        coll->leadBytePermutationTable = NULL;
-        coll->freeLeadBytePermutationTableOnClose = FALSE;
-
-        if (coll->defaultReorderCodesLength == 0) {
-            return;
-        }
-        
-        coll->reorderCodes = (int32_t*)uprv_malloc(coll->defaultReorderCodesLength * sizeof(int32_t));
-        if (coll->reorderCodes == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
-        coll->freeReorderCodesOnClose = TRUE;
-        coll->reorderCodesLength = coll->defaultReorderCodesLength;
-        uprv_memcpy(coll->reorderCodes, coll->defaultReorderCodes, coll->reorderCodesLength * sizeof(int32_t));
-    }
-
-    if (coll->leadBytePermutationTable == NULL) {
-        coll->leadBytePermutationTable = (uint8_t*)uprv_malloc(256*sizeof(uint8_t));
-        if (coll->leadBytePermutationTable == NULL) {
-            *status = U_MEMORY_ALLOCATION_ERROR;
-            return;
-        }
-        coll->freeLeadBytePermutationTableOnClose = TRUE;
-    }
-
-    int32_t internalReorderCodesLength = coll->reorderCodesLength + (UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST);
-    LocalMemory<int32_t> internalReorderCodes((int32_t*)uprv_malloc(internalReorderCodesLength * sizeof(int32_t)));
-    if (internalReorderCodes.isNull()) {
-        *status = U_MEMORY_ALLOCATION_ERROR;
-        if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
-            uprv_free(coll->leadBytePermutationTable);
-        }
-        coll->leadBytePermutationTable = NULL;
-        coll->freeLeadBytePermutationTableOnClose = FALSE;
-        return;
-    }
-
-    
-    for (uint32_t codeIndex = 0; codeIndex < (UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST); codeIndex++) {
-        internalReorderCodes[codeIndex] = UCOL_REORDER_CODE_FIRST + codeIndex;
-    }
-    for (int32_t codeIndex = 0; codeIndex < coll->reorderCodesLength; codeIndex++) {
-        uint32_t reorderCodesCode = coll->reorderCodes[codeIndex];
-        internalReorderCodes[codeIndex + (UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST)] = reorderCodesCode;
-        if (reorderCodesCode >= UCOL_REORDER_CODE_FIRST && reorderCodesCode < UCOL_REORDER_CODE_LIMIT) {
-            internalReorderCodes[reorderCodesCode - UCOL_REORDER_CODE_FIRST] = UCOL_REORDER_CODE_IGNORE;
-        }
-    }
-
-    for (int i = 0; i < 256; i++) {
-        if (i < toBottom || i > toTop) {
-            permutationSlotFilled[i] = true;
-            newLeadByteUsed[i] = true;
-            coll->leadBytePermutationTable[i] = i;
-        } else {
-            permutationSlotFilled[i] = false;
-            newLeadByteUsed[i] = false;
-            coll->leadBytePermutationTable[i] = 0;
-        }
-    }
-    
-    
-
-
-
-
-
-    for (int reorderCodesCount = 0; reorderCodesCount < internalReorderCodesLength; reorderCodesCount++) {
-        reorderCodesIndex += fromTheBottom ? 1 : -1;
-        int32_t next = internalReorderCodes[reorderCodesIndex];
-        if (next == UCOL_REORDER_CODE_IGNORE) {
-            continue;
-        }
-        if (next == USCRIPT_UNKNOWN) {
-            if (fromTheBottom == false) {
-                
-                *status = U_ILLEGAL_ARGUMENT_ERROR;
-                if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
-                    uprv_free(coll->leadBytePermutationTable);
-                }
-                coll->leadBytePermutationTable = NULL;
-                coll->freeLeadBytePermutationTableOnClose = FALSE;
-                coll->reorderCodesLength = 0;
-                return;
-            }
-            fromTheBottom = false;
-            reorderCodesIndex = internalReorderCodesLength;
-            continue;
-        }
-        
-        uint16_t leadByteCount = ucol_getLeadBytesForReorderCode(coll->UCA, next, leadBytes, leadBytesSize);
-        if (fromTheBottom) {
-            for (int leadByteIndex = 0; leadByteIndex < leadByteCount; leadByteIndex++) {
-                
-                if (permutationSlotFilled[leadBytes[leadByteIndex]]) {
-                    
-                    *status = U_ILLEGAL_ARGUMENT_ERROR;
-                    if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
-                        uprv_free(coll->leadBytePermutationTable);
-                    }
-                    coll->leadBytePermutationTable = NULL;
-                    coll->freeLeadBytePermutationTableOnClose = FALSE;
-                    coll->reorderCodesLength = 0;
-                    return;
-                }
-   
-                coll->leadBytePermutationTable[leadBytes[leadByteIndex]] = toBottom;
-                newLeadByteUsed[toBottom] = true;
-                permutationSlotFilled[leadBytes[leadByteIndex]] = true;
-                toBottom++;
-            }
-        } else {
-            for (int leadByteIndex = leadByteCount - 1; leadByteIndex >= 0; leadByteIndex--) {
-                
-                if (permutationSlotFilled[leadBytes[leadByteIndex]]) {
-                    
-                    *status = U_ILLEGAL_ARGUMENT_ERROR;
-                    if (coll->leadBytePermutationTable != NULL && coll->freeLeadBytePermutationTableOnClose == TRUE) {
-                        uprv_free(coll->leadBytePermutationTable);
-                    }
-                    coll->leadBytePermutationTable = NULL;
-                    coll->freeLeadBytePermutationTableOnClose = FALSE;
-                    coll->reorderCodesLength = 0;
-                    return;
-                }
-
-                coll->leadBytePermutationTable[leadBytes[leadByteIndex]] = toTop;
-                newLeadByteUsed[toTop] = true;
-                permutationSlotFilled[leadBytes[leadByteIndex]] = true;
-                toTop--;
-            }
-        }
-    }
-    
-#ifdef REORDER_DEBUG
-    fprintf(stdout, "\n@@@@ Partial Script Reordering Table\n");
-    for (int i = 0; i < 256; i++) {
-        fprintf(stdout, "\t%02x = %02x\n", i, coll->leadBytePermutationTable[i]);
-    }
-    fprintf(stdout, "\n@@@@ Lead Byte Used Table\n");
-    for (int i = 0; i < 256; i++) {
-        fprintf(stdout, "\t%02x = %02x\n", i, newLeadByteUsed[i]);
-    }
-    fprintf(stdout, "\n@@@@ Permutation Slot Filled Table\n");
-    for (int i = 0; i < 256; i++) {
-        fprintf(stdout, "\t%02x = %02x\n", i, permutationSlotFilled[i]);
-    }
-#endif
-
-    
-    int reorderCode = 0;
-    for (int i = 0; i < 256; i++) {
-        if (!permutationSlotFilled[i]) {
-            while (reorderCode < 256 && newLeadByteUsed[reorderCode]) {
-                reorderCode++;
-            }
-            coll->leadBytePermutationTable[i] = reorderCode;
-            permutationSlotFilled[i] = true;
-            newLeadByteUsed[reorderCode] = true;
-        }
-    } 
-    
-#ifdef REORDER_DEBUG
-    fprintf(stdout, "\n@@@@ Script Reordering Table\n");
-    for (int i = 0; i < 256; i++) {
-        fprintf(stdout, "\t%02x = %02x\n", i, coll->leadBytePermutationTable[i]);
-    } 
-#endif
-
-    
-    coll->latinOneRegenTable = TRUE;
-    ucol_updateInternalState(coll, status);
 }
 
 #endif 

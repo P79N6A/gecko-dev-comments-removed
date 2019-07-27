@@ -26,8 +26,6 @@
 #include "unicode/ures.h"
 #include "uresimp.h"
 
-#define LENGTHOF(array) (int32_t)(sizeof(array) / sizeof((array)[0]))
-
 
 static UHashtable* gCompactDecimalData = NULL;
 static UMutex gCompactDecimalMetaLock = U_MUTEX_INITIALIZER;
@@ -768,13 +766,13 @@ static int32_t populatePrefixSuffix(
   if (U_FAILURE(status)) {
     return 0;
   }
-  int32_t firstIdx = formatStr.indexOf(kZero, LENGTHOF(kZero), 0);
+  int32_t firstIdx = formatStr.indexOf(kZero, UPRV_LENGTHOF(kZero), 0);
   
   if (firstIdx == -1) {
     status = U_INTERNAL_PROGRAM_ERROR;
     return 0;
   }
-  int32_t lastIdx = formatStr.lastIndexOf(kZero, LENGTHOF(kZero), firstIdx);
+  int32_t lastIdx = formatStr.lastIndexOf(kZero, UPRV_LENGTHOF(kZero), firstIdx);
   CDFUnit* unit = createCDFUnit(variant, log10Value, result, status);
   if (U_FAILURE(status)) {
     return 0;
@@ -870,7 +868,7 @@ static void fillInMissing(CDFLocaleStyleData* result) {
     }
   }
   
-  int32_t pos = -1;
+  int32_t pos = UHASH_FIRST;
   const UHashElement* element = uhash_nextElement(result->unitsByVariant, &pos);
   for (;element != NULL; element = uhash_nextElement(result->unitsByVariant, &pos)) {
     CDFUnit* units = (CDFUnit*) element->value.pointer;

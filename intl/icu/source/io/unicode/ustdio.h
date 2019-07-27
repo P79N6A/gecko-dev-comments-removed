@@ -31,6 +31,8 @@
 #include "unicode/localpointer.h"
 #include "unicode/unum.h"
 
+#if !UCONFIG_NO_CONVERSION
+
 
 
 
@@ -241,6 +243,31 @@ u_fopen(const char    *filename,
     const char    *locale,
     const char    *codepage);
 
+#ifndef U_HIDE_DRAFT_API
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+U_DRAFT UFILE* U_EXPORT2
+u_fopen_u(const UChar    *filename,
+    const char    *perm,
+    const char    *locale,
+    const char    *codepage);
+#endif  
+
 
 
 
@@ -439,15 +466,13 @@ u_fsetcodepage(const char   *codepage,
 U_STABLE UConverter* U_EXPORT2 u_fgetConverter(UFILE *f);
 
 #if !UCONFIG_NO_FORMATTING
-#ifndef U_HIDE_DRAFT_API
 
 
 
 
 
 
- U_DRAFT const UNumberFormat* U_EXPORT2 u_fgetNumberFormat(UFILE *f);
-#endif 
+ U_STABLE const UNumberFormat* U_EXPORT2 u_fgetNumberFormat(UFILE *f);
 
 
 
@@ -985,6 +1010,8 @@ u_vsscanf_u(const UChar *buffer,
         const UChar     *patternSpecification,
         va_list         ap);
 
+
+#endif
 #endif
 #endif
 

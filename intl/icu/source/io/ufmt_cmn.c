@@ -25,6 +25,9 @@
 #include "unicode/ucnv.h"
 #include "ustr_cnv.h"
 
+#if !UCONFIG_NO_CONVERSION
+
+
 #define DIGIT_0     0x0030
 #define DIGIT_9     0x0039
 #define LOWERCASE_A 0x0061
@@ -251,3 +254,4 @@ ufmt_defaultCPToUnicode(const char *s, int32_t sSize,
 }
 
 
+#endif
