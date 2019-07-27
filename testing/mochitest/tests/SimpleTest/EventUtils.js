@@ -21,6 +21,7 @@
 
 
 
+
 window.__defineGetter__('_EU_Ci', function() {
   
   
@@ -428,6 +429,50 @@ function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
                        aEvent.deltaX, aEvent.deltaY, aEvent.deltaZ,
                        aEvent.deltaMode, modifiers,
                        lineOrPageDeltaX, lineOrPageDeltaY, options);
+}
+
+
+
+
+
+
+
+
+
+function sendWheelAndPaint(aTarget, aOffsetX, aOffsetY, aEvent, aCallback, aWindow) {
+  aWindow = aWindow || window;
+
+  var utils = _getDOMWindowUtils(aWindow);
+  if (!utils)
+    return;
+
+  if (utils.isMozAfterPaintPending) {
+    
+    
+    
+    
+    aWindow.waitForAllPaintsFlushed(function() {
+      sendWheelAndPaint(aTarget, aOffsetX, aOffsetY, aEvent, aCallback, aWindow);
+    });
+    return;
+  }
+
+  var onwheel = function() {
+    window.removeEventListener("wheel", onwheel);
+
+    
+    
+    setTimeout(function() {
+      utils.advanceTimeAndRefresh(1000);
+      aWindow.waitForAllPaintsFlushed(function() {
+        utils.restoreNormalRefresh();
+        aCallback();
+      });
+    }, 0);
+  };
+
+  aWindow.addEventListener("wheel", onwheel);
+  synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow);
 }
 
 function _computeKeyCodeFromChar(aChar)
