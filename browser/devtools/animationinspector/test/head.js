@@ -331,6 +331,26 @@ let getAnimationPlayerState = Task.async(function*(selector, animationIndex=0) {
 
 
 
+
+
+let checkPausedAt = Task.async(function*(widget, time) {
+  info("Wait for the next auto-refresh");
+
+  yield waitForStateCondition(widget.player, state => {
+    return state.playState === "paused";
+  }, "waiting for the player to pause");
+
+  ok(widget.el.classList.contains("paused"), "The widget is in paused mode");
+  is(widget.player.state.currentTime, time,
+    "The player front's currentTime was set to " + time);
+  is(widget.currentTimeEl.value, time, "The input's value was set to " + time);
+});
+
+
+
+
+
+
 function isNodeVisible(node) {
   return !!node.getClientRects().length;
 }
