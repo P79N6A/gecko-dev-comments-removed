@@ -43,7 +43,7 @@
      {0x93, 0xb6, 0x6d, 0x23, 0x06, 0x9c, 0x06, 0xf2} \
  }
 
-class nsDocLoader : public nsIDocumentLoader, 
+class nsDocLoader : public nsIDocumentLoader,
                     public nsIRequestObserver,
                     public nsSupportsWeakReference,
                     public nsIProgressEventSink,
@@ -71,7 +71,7 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIDOCUMENTLOADER
-    
+
     
     NS_DECL_NSIPROGRESSEVENTSINK
 
@@ -96,7 +96,7 @@ public:
     nsDocLoader* GetParent() const { return mParent; }
 
     struct nsListenerInfo {
-      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask) 
+      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask)
         : mWeakListener(aListener),
           mNotifyMask(aNotifyMask)
       {
@@ -199,7 +199,7 @@ protected:
     void ChildDoneWithOnload(nsIDocumentLoader* aChild) {
         mChildrenInOnload.RemoveObject(aChild);
         DocLoaderIsEmpty(true);
-    }        
+    }
 
 protected:
     struct nsStatusInfo : public mozilla::LinkedListElement<nsStatusInfo>
@@ -255,7 +255,7 @@ protected:
     
     
     
-  
+
     nsCOMPtr<nsIRequest>       mDocumentRequest;       
 
     nsDocLoader*               mParent;                
@@ -308,7 +308,7 @@ private:
     
     
     nsCOMArray<nsIDocumentLoader> mChildrenInOnload;
-    
+
     
     
     
@@ -329,7 +329,7 @@ private:
 
 
     
-    void ClearInternalProgress(); 
+    void ClearInternalProgress();
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocLoader, NS_THIS_DOCLOADER_IMPL_CID)
