@@ -1125,8 +1125,20 @@ public:
     : mRepaintInterval(aRepaintInterval)
   { }
 
-  virtual bool Sample(FrameMetrics& aFrameMetrics,
-                      const TimeDuration& aDelta) = 0;
+  virtual bool DoSample(FrameMetrics& aFrameMetrics,
+                        const TimeDuration& aDelta) = 0;
+
+  bool Sample(FrameMetrics& aFrameMetrics,
+              const TimeDuration& aDelta) {
+    
+    
+    
+    if (aDelta.ToMilliseconds() <= 0) {
+      return true;
+    }
+
+    return DoSample(aFrameMetrics, aDelta);
+  }
 
   
 
