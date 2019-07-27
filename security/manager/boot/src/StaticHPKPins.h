@@ -1029,6 +1029,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "mbasic.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "mobile.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "mtouch.facebook.com", true, false, false, -1, &kPinset_facebook },
+  { "myaccount.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "oauth.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "passwords.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "pinningtest.appspot.com", true, false, false, -1, &kPinset_test },
@@ -1091,4 +1092,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1439634142984000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1440238853731000);
