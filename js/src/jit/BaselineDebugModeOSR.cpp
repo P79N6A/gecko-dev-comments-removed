@@ -205,11 +205,7 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                 
                 if (!entries.append(DebugModeOSREntry(script, info)))
                     return false;
-            } else if (frame->isDebuggerHandlingException() && frame->maybeOverridePc()) {
-                
-                
-                
-                
+            } else if (frame->isDebuggerHandlingException()) {
                 
                 
                 uint32_t offset = script->pcToOffset(frame->overridePc());
