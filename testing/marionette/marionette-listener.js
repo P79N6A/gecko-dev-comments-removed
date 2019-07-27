@@ -2103,10 +2103,20 @@ function takeScreenshot(msg) {
   if (node == curFrame) {
     
     win = node;
-    width = document.body.scrollWidth;
-    height = document.body.scrollHeight;
-    top = 0;
-    left = 0;
+    if (msg.json.full) {
+      
+      width = document.body.scrollWidth;
+      height = document.body.scrollHeight;
+      top = 0;
+      left = 0;
+    }
+    else {
+      
+      width = document.documentElement.clientWidth;
+      height = document.documentElement.clientHeight;
+      left = curFrame.pageXOffset;
+      top = curFrame.pageYOffset;
+    }
   }
   else {
     
