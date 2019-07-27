@@ -523,9 +523,7 @@ loop.panel = (function(_, mozL10n) {
     
     mozL10n.initialize(navigator.mozLoop);
 
-    var client = new loop.Client({
-      baseServerUrl: navigator.mozLoop.serverUrl
-    });
+    var client = new loop.Client();
     var notifications = new sharedModels.NotificationCollection()
 
     React.renderComponent(PanelView({
