@@ -74,6 +74,16 @@ function createAppInfo(id, name, version, platformVersion) {
 }
 
 
+function fakeDailyTimers(set, clear) {
+  let session = Components.utils.import("resource://gre/modules/TelemetrySession.jsm");
+  session.Policy.setDailyTimeout = set;
+  session.Policy.clearDailyTimeout = clear;
+}
+
+
 Services.prefs.setCharPref("toolkit.telemetry.log.level", "Trace");
 Services.prefs.setBoolPref("toolkit.telemetry.log.dump", true);
 TelemetryPing.initLogging();
+
+
+fakeDailyTimers(() => {}, () => {});
