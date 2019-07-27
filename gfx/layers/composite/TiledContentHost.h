@@ -164,9 +164,9 @@ public:
   static void RecycleCallback(TextureHost* textureHost, void* aClosure);
 
 protected:
-  TileHost ValidateTile(TileHost aTile,
-                        const nsIntPoint& aTileRect,
-                        const nsIntRegion& dirtyRect);
+  void ValidateTile(TileHost& aTile,
+                    const nsIntPoint& aTileRect,
+                    const nsIntRegion& dirtyRect);
 
   
   void ReleaseTile(TileHost aTile) {}
