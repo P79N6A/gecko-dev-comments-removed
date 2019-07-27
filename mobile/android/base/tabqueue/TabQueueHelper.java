@@ -201,9 +201,7 @@ public class TabQueueHelper {
     public static void openQueuedUrls(final Context context, final GeckoProfile profile, final String filename, boolean shouldPerformJavaScriptCallback) {
         ThreadUtils.assertNotOnUiThread();
 
-        
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel(TAB_QUEUE_NOTIFICATION_ID);
+        removeNotification(context);
 
         
         if (getTabQueueLength(context) < 1) {
@@ -233,6 +231,11 @@ public class TabQueueHelper {
         
         final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
         prefs.edit().remove(PREF_TAB_QUEUE_COUNT).apply();
+    }
+
+    protected static void removeNotification(Context context) {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(TAB_QUEUE_NOTIFICATION_ID);
     }
 
     public static void processTabQueuePromptResponse(int resultCode, Context context) {
