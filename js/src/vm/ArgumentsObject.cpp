@@ -186,8 +186,9 @@ ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction calle
                         numDeletedWords * sizeof(size_t) +
                         numArgs * sizeof(Value);
 
+    
     ArgumentsData *data = reinterpret_cast<ArgumentsData *>(
-            cx->zone()->pod_malloc<uint8_t>(numBytes));
+            cx->zone()->pod_calloc<uint8_t>(numBytes));
     if (!data)
         return nullptr;
 
@@ -207,16 +208,15 @@ ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction calle
 
     
     
-    HeapValue *dst = data->args, *dstEnd = data->args + numArgs;
-    for (HeapValue *iter = dst; iter != dstEnd; iter++)
-        iter->init(UndefinedValue());
-
+    
+    MOZ_ASSERT(DoubleValue(0).asRawBits() == 0x0);
+    MOZ_ASSERT_IF(numArgs > 0, data->args[0].asRawBits() == 0x0);
     obj->initFixedSlot(DATA_SLOT, PrivateValue(data));
 
     
-    copy.copyArgs(cx, dst, numArgs);
+    copy.copyArgs(cx, data->args, numArgs);
 
-    data->deletedBits = reinterpret_cast<size_t *>(dstEnd);
+    data->deletedBits = reinterpret_cast<size_t *>(data->args + numArgs);
     ClearAllBitArrayElements(data->deletedBits, numDeletedWords);
 
     obj->initFixedSlot(INITIAL_LENGTH_SLOT, Int32Value(numActuals << PACKED_BITS_COUNT));
