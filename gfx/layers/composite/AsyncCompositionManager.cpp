@@ -637,13 +637,6 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     
-    LayoutDeviceToLayerScale resolution = bottom.GetCumulativeResolution();
-    oldTransform.PreScale(resolution.scale, resolution.scale, 1);
-
-    
-    
-    
-    
     
     
     
@@ -966,10 +959,6 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   SetShadowTransform(aLayer, oldTransform * treeTransform);
   NS_ASSERTION(!aLayer->AsLayerComposite()->GetShadowTransformSetByAnimation(),
                "overwriting animated transform!");
-
-  
-  
-  oldTransform.PreScale(metrics.mPresShellResolution, metrics.mPresShellResolution, 1);
 
   
   
