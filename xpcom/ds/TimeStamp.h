@@ -181,11 +181,6 @@ private:
   
   BaseTimeDuration operator*(const double aMultiplier) const = delete;
 
-  
-  
-  
-  BaseTimeDuration operator/(const double aDivisor) const = delete;
-
 public:
   BaseTimeDuration MultDouble(double aMultiplier) const
   {
