@@ -6,7 +6,6 @@ FIREFOX_PREFERENCES = {
     "loop.server": LOOP_SERVER_URL + "/v0",
     "browser.dom.window.dump.enabled": True,
     
-    "media.peerconnection.default_iceservers": "[]",
     "media.peerconnection.use_document_iceservers": False,
     "media.peerconnection.ice.loopback": True,
     "devtools.chrome.enabled": True,
