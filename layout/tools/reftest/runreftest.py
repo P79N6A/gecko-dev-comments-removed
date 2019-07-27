@@ -820,7 +820,7 @@ class ReftestOptions(OptionParser):
 
     options.leakThresholds = {
         "default": options.defaultLeakThreshold,
-        "tab": 25000,  
+        "tab": 5000,  
     }
 
     return options
