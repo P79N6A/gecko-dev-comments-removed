@@ -48,10 +48,11 @@ gfxFT2Font::ShapeText(gfxContext     *aContext,
                       uint32_t        aOffset,
                       uint32_t        aLength,
                       int32_t         aScript,
+                      bool            aVertical,
                       gfxShapedText  *aShapedText)
 {
     if (!gfxFont::ShapeText(aContext, aText, aOffset, aLength, aScript,
-                            aShapedText)) {
+                            aVertical, aShapedText)) {
         
         AddRange(aText, aOffset, aLength, aShapedText);
         PostShapingFixup(aContext, aText, aOffset, aLength, aShapedText);

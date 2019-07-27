@@ -610,6 +610,7 @@ public:
                            uint32_t        aOffset,
                            uint32_t        aLength,
                            int32_t         aScript,
+                           bool            aVertical,
                            gfxShapedText  *aShapedText) = 0;
 
     gfxFont *GetFont() const { return mFont; }
@@ -1630,7 +1631,8 @@ public:
                              const T *aString,
                              uint32_t aRunStart,
                              uint32_t aRunLength,
-                             int32_t aRunScript);
+                             int32_t aRunScript,
+                             bool aVertical);
 
     
     
@@ -1640,6 +1642,7 @@ public:
                                  uint32_t aLength,
                                  uint32_t aHash,
                                  int32_t aRunScript,
+                                 bool aVertical,
                                  int32_t aAppUnitsPerDevUnit,
                                  uint32_t aFlags,
                                  gfxTextPerfMetrics *aTextPerf);
@@ -1816,6 +1819,7 @@ protected:
                    uint32_t       aOffset, 
                    uint32_t       aLength,
                    int32_t        aScript,
+                   bool           aVertical,
                    gfxShapedText *aShapedText); 
 
     
@@ -1825,6 +1829,7 @@ protected:
                            uint32_t         aOffset,
                            uint32_t         aLength,
                            int32_t          aScript,
+                           bool             aVertical,
                            gfxShapedText   *aShapedText);
 
     
@@ -1849,6 +1854,7 @@ protected:
                                    uint32_t    aOffset,
                                    uint32_t    aLength,
                                    int32_t     aScript,
+                                   bool        aVertical,
                                    gfxTextRun *aTextRun);
 
     
@@ -1862,6 +1868,7 @@ protected:
                                        uint32_t    aOffset,
                                        uint32_t    aLength,
                                        int32_t     aScript,
+                                       bool        aVertical,
                                        gfxTextRun *aTextRun);
 
     void CheckForFeaturesInvolvingSpace();

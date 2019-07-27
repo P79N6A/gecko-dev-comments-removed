@@ -553,7 +553,10 @@ struct PostTable {
     AutoSwap_PRUint32    maxMemType1;
 };
 
-struct HheaTable {
+
+
+
+struct MetricsHeader {
     AutoSwap_PRUint32    version;
     AutoSwap_PRInt16     ascender;
     AutoSwap_PRInt16     descender;
@@ -570,7 +573,7 @@ struct HheaTable {
     AutoSwap_PRInt16     reserved3;
     AutoSwap_PRInt16     reserved4;
     AutoSwap_PRInt16     metricDataFormat;
-    AutoSwap_PRUint16    numOfLongHorMetrics;
+    AutoSwap_PRUint16    numOfLongMetrics;
 };
 
 struct MaxpTableHeader {
