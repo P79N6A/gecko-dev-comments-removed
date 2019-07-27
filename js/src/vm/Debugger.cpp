@@ -607,6 +607,13 @@ Debugger::slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame, bool frame
     Handle<GlobalObject*> global = cx->global();
 
     
+    
+    
+    FrameRange frameRange(frame, global);
+    if (frameRange.empty())
+        return frameOk;
+
+    
     JSTrapStatus status;
     RootedValue value(cx);
     Debugger::resultToCompletion(cx, frameOk, frame.returnValue(), &status, &value);
@@ -618,8 +625,8 @@ Debugger::slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame, bool frame
     if (!cx->isThrowingOverRecursed() && !cx->isThrowingOutOfMemory()) {
         
         AutoObjectVector frames(cx);
-        for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
-            if (!frames.append(r.frontFrame())) {
+        for (; !frameRange.empty(); frameRange.popFront()) {
+            if (!frames.append(frameRange.frontFrame())) {
                 cx->clearPendingException();
                 return false;
             }
