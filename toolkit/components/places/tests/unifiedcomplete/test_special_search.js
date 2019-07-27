@@ -359,6 +359,10 @@ add_task(function* test_special_searches() {
   });
 
   
+  
+  Services.prefs.setBoolPref("browser.urlbar.autoFill", false);
+
+  
   do_log_info("foo -> default history");
   Services.prefs.setIntPref("browser.urlbar.default.behavior", 1);
   yield check_autocomplete({

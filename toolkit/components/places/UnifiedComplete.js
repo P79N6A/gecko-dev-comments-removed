@@ -198,10 +198,30 @@ const SQL_HOST_QUERY = sql(
 
 const SQL_TYPED_HOST_QUERY = SQL_HOST_QUERY.replace("/*CONDITIONS*/",
                                                     "AND typed = 1");
+
+const SQL_BOOKMARKED_HOST_QUERY = sql(
+  "/* do not warn (bug NA): not worth to index on (typed, frecency) */",
+  "SELECT :query_type, host || '/', IFNULL(prefix, '') || host || '/',",
+         "NULL, (",
+            "SELECT foreign_count > 0 FROM moz_places ",
+            "WHERE rev_host = get_unreversed_host(host || '.') || '.'",
+                "OR rev_host = get_unreversed_host(host || '.') || '.www.'",
+          ") AS bookmarked, NULL, NULL, NULL, NULL, NULL, NULL, frecency",
+  "FROM moz_hosts",
+  "WHERE host BETWEEN :searchString AND :searchString || X'FFFF'",
+  "AND bookmarked",
+  "AND frecency <> 0",
+  "/*CONDITIONS*/",
+  "ORDER BY frecency DESC",
+  "LIMIT 1");
+
+const SQL_BOOKMARKED_TYPED_HOST_QUERY =
+  SQL_BOOKMARKED_HOST_QUERY.replace("/*CONDITIONS*/", "AND typed = 1");
+
 const SQL_URL_QUERY = sql(
   "/* do not warn (bug no): cannot use an index */",
   "SELECT :query_type, h.url, NULL,",
-         "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, h.frecency",
+         "NULL, foreign_count > 0 AS bookmarked, NULL, NULL, NULL, NULL, NULL, NULL, h.frecency",
   "FROM moz_places h",
   "WHERE h.frecency <> 0",
   "/*CONDITIONS*/",
@@ -214,6 +234,13 @@ const SQL_URL_QUERY = sql(
 
 const SQL_TYPED_URL_QUERY = SQL_URL_QUERY.replace("/*CONDITIONS*/",
                                                   "AND typed = 1");
+
+
+const SQL_BOOKMARKED_URL_QUERY =
+  SQL_URL_QUERY.replace("/*CONDITIONS*/", "AND bookmarked");
+
+const SQL_BOOKMARKED_TYPED_URL_QUERY =
+  SQL_URL_QUERY.replace("/*CONDITIONS*/", "AND bookmarked AND typed = 1");
 
 
 
@@ -784,7 +811,8 @@ Search.prototype = {
     }
 
     match.value = this._strippedPrefix + trimmedHost;
-    match.comment = trimmedHost;
+    
+    match.comment = stripHttpAndTrim(trimmedHost);
     match.finalCompleteValue = untrimmedHost;
     match.frecency = frecency;
     return match;
@@ -1020,8 +1048,18 @@ Search.prototype = {
     
     
     
-    if (Prefs.defaultBehavior != DEFAULT_BEHAVIOR)
-      return false;
+    if (Prefs.defaultBehavior != DEFAULT_BEHAVIOR) {
+      
+      
+      if (!this.hasBehavior("typed") &&
+          !this.hasBehavior("history") &&
+          !this.hasBehavior("bookmark"))
+        return false;
+
+      
+      if (this.hasBehavior("title") || this.hasBehavior("tags"))
+        return false;
+    }
 
     
     
@@ -1049,13 +1087,21 @@ Search.prototype = {
 
 
 
-  get _hostQuery() [
-    Prefs.autofillTyped ? SQL_TYPED_HOST_QUERY : SQL_HOST_QUERY,
-    {
-      query_type: QUERYTYPE_AUTOFILL_HOST,
-      searchString: this._searchString.toLowerCase()
-    }
-  ],
+  get _hostQuery() {
+    let typed = Prefs.autofillTyped || this.hasBehavior("typed");
+    let bookmarked =  this.hasBehavior("bookmark");
+
+    return [
+      bookmarked ? typed ? SQL_BOOKMARKED_TYPED_HOST_QUERY
+                         : SQL_BOOKMARKED_HOST_QUERY
+                 : typed ? SQL_TYPED_HOST_QUERY
+                         : SQL_HOST_QUERY,
+      {
+        query_type: QUERYTYPE_AUTOFILL_HOST,
+        searchString: this._searchString.toLowerCase()
+      }
+    ];
+  },
 
   
 
@@ -1063,15 +1109,23 @@ Search.prototype = {
 
 
 
-  get _urlQuery() [
-    Prefs.autofillTyped ? SQL_TYPED_URL_QUERY : SQL_URL_QUERY,
-    {
-      query_type: QUERYTYPE_AUTOFILL_URL,
-      searchString: this._autofillUrlSearchString,
-      matchBehavior: MATCH_BEGINNING_CASE_SENSITIVE,
-      searchBehavior: Ci.mozIPlacesAutoComplete.BEHAVIOR_URL
-    }
-  ],
+  get _urlQuery()  {
+    let typed = Prefs.autofillTyped || this.hasBehavior("typed");
+    let bookmarked =  this.hasBehavior("bookmark");
+
+    return [
+      bookmarked ? typed ? SQL_BOOKMARKED_TYPED_URL_QUERY
+                         : SQL_BOOKMARKED_URL_QUERY
+                 : typed ? SQL_TYPED_URL_QUERY
+                         : SQL_URL_QUERY,
+      {
+        query_type: QUERYTYPE_AUTOFILL_URL,
+        searchString: this._autofillUrlSearchString,
+        matchBehavior: MATCH_BEGINNING_CASE_SENSITIVE,
+        searchBehavior: Ci.mozIPlacesAutoComplete.BEHAVIOR_URL
+      }
+    ];
+  },
 
  
 
