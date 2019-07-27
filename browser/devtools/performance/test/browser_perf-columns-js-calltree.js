@@ -5,6 +5,9 @@
 
 
 function* spawnTest() {
+  
+  requestLongerTimeout(2);
+
   let { panel } = yield initPerformance(SIMPLE_URL);
   let { EVENTS, $, $$, DetailsView, JsCallTreeView } = panel.panelWin;
 
