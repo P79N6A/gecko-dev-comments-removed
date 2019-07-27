@@ -1421,7 +1421,9 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   
-  DoRebuildAllStyleData(mPendingRestyles, aExtraHint, eRestyle_Subtree);
+  DoRebuildAllStyleData(mPendingRestyles, aExtraHint,
+                        nsRestyleHint(eRestyle_Subtree |
+                                      eRestyle_ForceDescendants));
 
   mPresContext->SetProcessingRestyles(false);
 
@@ -1444,7 +1446,8 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
     return;
   }
 
-  if (aRestyleHint & ~eRestyle_Subtree) {
+  if ((aRestyleHint & (eRestyle_Subtree | eRestyle_ForceDescendants)) !=
+      (eRestyle_Subtree | eRestyle_ForceDescendants)) {
     
     
     
