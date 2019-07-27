@@ -689,6 +689,10 @@ const char** mozilla_sampler_get_features()
     "mainthreadio",
     
     "memory",
+#ifdef MOZ_TASK_TRACER
+    
+    "tasktracer",
+#endif
 #if defined(XP_WIN)
     
     "power",
