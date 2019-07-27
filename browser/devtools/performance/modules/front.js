@@ -398,7 +398,7 @@ PerformanceActorsConnection.prototype = {
     let model = new RecordingModel(options);
     
     
-    let profilerStartTime = yield this._startProfiler();
+    let profilerStartTime = yield this._startProfiler(options);
     let timelineStartTime = yield this._startTimeline(options);
     let memoryStartTime = yield this._startMemory(options);
 
@@ -483,7 +483,7 @@ PerformanceActorsConnection.prototype = {
   
 
 
-  _startProfiler: Task.async(function *() {
+  _startProfiler: Task.async(function *(options={}) {
     
     
     
@@ -496,8 +496,11 @@ PerformanceActorsConnection.prototype = {
 
     
     
-    
-    let profilerOptions = this._customProfilerOptions || {};
+    let profilerOptions = {
+      entries: options.bufferSize,
+      interval: options.sampleFrequency ? (1000 / (options.sampleFrequency * 1000)) : void 0
+    };
+
     yield this._request("profiler", "startProfiler", profilerOptions);
 
     this.emit("profiler-activated");
