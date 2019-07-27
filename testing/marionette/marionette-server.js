@@ -1259,6 +1259,45 @@ MarionetteServerConnection.prototype = {
   
 
 
+  getWindowPosition: function MDA_getWindowPosition() {
+    this.command_id = this.getCommandId();
+    let curWindow = this.getCurrentWindow();
+    this.sendResponse({ x: curWindow.screenX, y: curWindow.screenY}, this.command_id);
+  },
+
+  
+
+
+
+
+
+
+
+
+  setWindowPosition: function MDA_setWindowPosition(aRequest) {
+    let command_id = this.command_id = this.getCommandId();
+    if (appName !== "Firefox") {
+      this.sendError("Unable to set the window position on mobile", 61, null,
+                      command_id);
+
+    }
+    else {
+      let x = parseInt(aRequest.parameters.x);;
+      let y  = parseInt(aRequest.parameters.y);
+
+      if (isNaN(x) || isNaN(y)) {
+        this.sendError("x and y arguments should be integers", 13, null, command_id);
+        return;
+      }
+      let curWindow = this.getCurrentWindow();
+      curWindow.moveTo(x, y);
+      this.sendOk(command_id);
+    }
+  },
+
+  
+
+
 
 
 
@@ -2590,6 +2629,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "getWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,
   "getCurrentWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,  
   "getWindows":  MarionetteServerConnection.prototype.getWindowHandles,  
+  "getWindowPosition": MarionetteServerConnection.prototype.getWindowPosition,
+  "setWindowPosition": MarionetteServerConnection.prototype.setWindowPosition,
   "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
   "switchToWindow": MarionetteServerConnection.prototype.switchToWindow,
