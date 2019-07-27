@@ -43,10 +43,6 @@ function SystemMessageManager() {
   this._registerManifestURLReady = false;
 
   
-  this._isHandling = false;
-  this._promise = null;
-
-  
   let appInfo = Cc["@mozilla.org/xre/app-info;1"];
   this._isParentProcess =
     !appInfo || appInfo.getService(Ci.nsIXULRuntime)
@@ -61,7 +57,7 @@ function SystemMessageManager() {
 SystemMessageManager.prototype = {
   __proto__: DOMRequestIpcHelper.prototype,
 
-  _dispatchMessage: function(aType, aDispatcher, aMessage, aMessageID) {
+  _dispatchMessage: function(aType, aDispatcher, aMessage) {
     if (aDispatcher.isHandling) {
       
       
@@ -70,12 +66,11 @@ SystemMessageManager.prototype = {
       
       
       
-      aDispatcher.messages.push({ message: aMessage, messageID: aMessageID });
+      aDispatcher.messages.push(aMessage);
       return;
     }
 
     aDispatcher.isHandling = true;
-    this._isHandling = true;
 
     
     
@@ -95,46 +90,22 @@ SystemMessageManager.prototype = {
       }
     }
 
-    let message = wrapped ? aMessage : Cu.cloneInto(aMessage, this._window);
+    aDispatcher.handler
+      .handleMessage(wrapped ? aMessage
+                             : Cu.cloneInto(aMessage, this._window));
 
-    let rejectPromise = false;
-    try {
-      aDispatcher.handler.handleMessage(message);
-    } catch(e) {
-      rejectPromise = true;
-    }
+    
+    
+    cpmm.sendAsyncMessage("SystemMessageManager:HandleMessagesDone",
+                          { type: aType,
+                            manifestURL: this._manifestURL,
+                            pageURL: this._pageURL,
+                            handledCount: 1 });
 
     aDispatcher.isHandling = false;
-    this._isHandling = false;
-
-    let self = this;
-    function sendResponse() {
-      
-      
-      
-      cpmm.sendAsyncMessage("SystemMessageManager:HandleMessageDone",
-                            { type: aType,
-                              manifestURL: self._manifestURL,
-                              pageURL: self._pageURL,
-                              msgID: aMessageID,
-                              rejected: rejectPromise });
-    }
-
-    if (!this._promise) {
-      debug("No promise set, sending the response immediately");
-      sendResponse();
-    } else {
-      debug("Using the promise to postpone the response.");
-      this._promise.then(sendResponse, function() {
-        rejectPromise = true;
-        sendResponse();
-      });
-      this._promise = null;
-    }
 
     if (aDispatcher.messages.length > 0) {
-      let msg = aDispatcher.messages.shift();
-      this._dispatchMessage(aType, aDispatcher, msg.message, msg.messageID);
+      this._dispatchMessage(aType, aDispatcher, aDispatcher.messages.shift());
     } else {
       
       
@@ -199,25 +170,9 @@ SystemMessageManager.prototype = {
                                   manifestURL: this._manifestURL })[0];
   },
 
-  mozIsHandlingMessage: function() {
-    debug("is handling message: " + this._isHandling);
-    return this._isHandling;
-  },
-
-  mozSetMessageHandlerPromise: function(aPromise) {
-    debug("setting a promise");
-
-    if (!this._isHandling) {
-      throw "Not in a handleMessage method";
-    }
-
-    this._promise = aPromise;
-  },
-
   uninit: function()  {
     this._dispatchers = null;
     this._pendings = null;
-    this._promise = null;
 
     if (this._isParentProcess) {
       Services.obs.removeObserver(this, kSystemMessageInternalReady);
@@ -281,9 +236,8 @@ SystemMessageManager.prototype = {
       }
 
       messages.forEach(function(aMsg) {
-        this._dispatchMessage(msg.type, dispatcher, aMsg, msg.msgID);
+        this._dispatchMessage(msg.type, dispatcher, aMsg);
       }, this);
-
     } else {
       
       
