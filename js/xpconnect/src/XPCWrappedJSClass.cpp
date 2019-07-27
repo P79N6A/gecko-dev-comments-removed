@@ -724,8 +724,8 @@ nsXPCWrappedJSClass::CleanupOutparams(JSContext* cx, uint16_t methodIndex,
         const nsXPTType& type = param.GetType();
         if (!type.deprecated_IsPointer())
             continue;
-        void* p;
-        if (!(p = nativeParams[i].val.p))
+        void* p = nativeParams[i].val.p;
+        if (!p)
             continue;
 
         
@@ -733,9 +733,8 @@ nsXPCWrappedJSClass::CleanupOutparams(JSContext* cx, uint16_t methodIndex,
         
         if (!inOutOnly || param.IsIn()) {
             if (type.IsArray()) {
-                void** pp;
-                if (nullptr != (pp = *((void***)p))) {
-
+                void** pp = *static_cast<void***>(p);
+                if (pp) {
                     
                     uint32_t array_count;
                     nsXPTType datum_type;
@@ -753,10 +752,11 @@ nsXPCWrappedJSClass::CleanupOutparams(JSContext* cx, uint16_t methodIndex,
                     
                     free(pp);
                 }
-            } else
-                CleanupPointerTypeObject(type, (void**)p);
+            } else {
+                CleanupPointerTypeObject(type, static_cast<void**>(p));
+            }
         }
-        *((void**)p) = nullptr;
+        *static_cast<void**>(p) = nullptr;
     }
 }
 
