@@ -362,6 +362,12 @@ nsFrameSelection::nsFrameSelection()
   
   mDelayedMouseEventIsShift = false;
   mDelayedMouseEventClickCount = 0;
+
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
+  if (observerService) {
+    observerService->NotifyObservers(this, "selection-object-created", nullptr);
+  }
 }
 
 
