@@ -7454,11 +7454,6 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
            aContext, mPresContext, canStoreInRuleTree);
 
   
-  if (pos->mMinHeight.GetUnit() == eStyleUnit_Auto) {
-    pos->mMinHeight.SetCoordValue(0);
-  }
-
-  
   SetDiscrete(*aRuleData->ValueForBoxSizing(),
               pos->mBoxSizing, canStoreInRuleTree,
               SETDSC_ENUMERATED | SETDSC_UNSET_INITIAL,
