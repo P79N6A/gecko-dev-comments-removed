@@ -245,7 +245,7 @@ this.Langpacks = {
 
     
     
-    this._appFromManifestURL(aData.manifestURL, aData.entryPoint, aData.lang)
+    this._appFromManifestURL(aData.manifestURL, aData.entryPoint)
       .then(aApp => {
         let manifest = aApp.manifest;
 
