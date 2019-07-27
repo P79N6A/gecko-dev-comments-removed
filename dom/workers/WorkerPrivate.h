@@ -173,9 +173,6 @@ private:
   nsTArray<nsCOMPtr<nsIRunnable>> mQueuedRunnables;
 
   
-  nsTArray<nsCString> mHostObjectURIs;
-
-  
   JSSettings mJSSettings;
 
   
@@ -732,15 +729,6 @@ public:
 
   void
   CloseSharedWorkersForWindow(nsPIDOMWindow* aWindow);
-
-  void
-  RegisterHostObjectURI(const nsACString& aURI);
-
-  void
-  UnregisterHostObjectURI(const nsACString& aURI);
-
-  void
-  StealHostObjectURIs(nsTArray<nsCString>& aArray);
 
   void
   UpdateOverridenLoadGroup(nsILoadGroup* aBaseLoadGroup);
