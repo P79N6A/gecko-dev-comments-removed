@@ -137,6 +137,11 @@ function add_tests(certDB, otherTestCA) {
   
   
   
+
+  
+  
+  add_ocsp_test("keysize-ocsp-delegated.example.com",
+                getXPCOMStatusFromNSS(SEC_ERROR_INVALID_KEY), true);
 }
 
 function check_ocsp_stapling_telemetry() {
@@ -148,7 +153,7 @@ function check_ocsp_stapling_telemetry() {
   do_check_eq(histogram.counts[1], 5); 
   do_check_eq(histogram.counts[2], 18); 
   do_check_eq(histogram.counts[3], 0); 
-  do_check_eq(histogram.counts[4], 19); 
+  do_check_eq(histogram.counts[4], 20); 
   run_next_test();
 }
 
