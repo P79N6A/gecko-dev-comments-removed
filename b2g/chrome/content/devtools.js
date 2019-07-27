@@ -58,7 +58,7 @@ let developerHUD = {
       return;
 
     if (!DebuggerServer.initialized) {
-      RemoteDebugger.start();
+      RemoteDebugger.initServer();
     }
 
     

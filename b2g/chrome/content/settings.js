@@ -351,7 +351,7 @@ let AdbController = {
 
     
     
-    let isDebugging = RemoteDebugger.isDebugging;
+    let isDebugging = USBRemoteDebugger.isDebugging;
     if (this.DEBUG) {
       this.debug("isDebugging=" + isDebugging);
     }
@@ -432,45 +432,78 @@ SettingsListener.observe("lockscreen.enabled", false,
                          AdbController.setLockscreenEnabled.bind(AdbController));
 #endif
 
-
-
-SettingsListener.observe('devtools.debugger.remote-enabled', false, function(value) {
-  Services.prefs.setBoolPref('devtools.debugger.remote-enabled', value);
+(function() {
   
-  Services.prefs.savePrefFile(null);
-  try {
-    value ? RemoteDebugger.start() : RemoteDebugger.stop();
-  } catch(e) {
-    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
-  }
+  
+  
+  let devtoolsUSB = false;
+  let devtoolsWiFi = false;
+
+  
+  
+  SettingsListener.observe('devtools.debugger.remote-enabled', false,
+                           function(value) {
+    devtoolsUSB = value;
+    Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
+                               devtoolsUSB || devtoolsWiFi);
+    
+    Services.prefs.savePrefFile(null);
+    try {
+      value ? USBRemoteDebugger.start() : USBRemoteDebugger.stop();
+    } catch(e) {
+      dump("Error while initializing USB devtools: "
+           + e + "\n" + e.stack + "\n");
+    }
 
 #ifdef MOZ_WIDGET_GONK
-  AdbController.setRemoteDebuggerState(value);
+    AdbController.setRemoteDebuggerState(value);
 #endif
-});
+  });
 
-SettingsListener.observe('debugger.remote-mode', false, function(value) {
-  if (['disabled', 'adb-only', 'adb-devtools'].indexOf(value) == -1) {
-    dump('Illegal value for debugger.remote-mode: ' + value + '\n');
-    return;
-  }
+  SettingsListener.observe('debugger.remote-mode', false, function(value) {
+    if (['disabled', 'adb-only', 'adb-devtools'].indexOf(value) == -1) {
+      dump('Illegal value for debugger.remote-mode: ' + value + '\n');
+      return;
+    }
 
-  Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
-                             value == 'adb-devtools');
-  
-  Services.prefs.savePrefFile(null);
+    devtoolsUSB = value == 'adb-devtools';
+    Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
+                               devtoolsUSB || devtoolsWiFi);
+    
+    Services.prefs.savePrefFile(null);
 
-  try {
-    (value == 'adb-devtools') ? RemoteDebugger.start()
-                              : RemoteDebugger.stop();
-  } catch(e) {
-    dump("Error while initializing devtools: " + e + "\n" + e.stack + "\n");
-  }
+    try {
+      (value == 'adb-devtools') ? USBRemoteDebugger.start()
+                                : USBRemoteDebugger.stop();
+    } catch(e) {
+      dump("Error while initializing USB devtools: "
+           + e + "\n" + e.stack + "\n");
+    }
 
 #ifdef MOZ_WIDGET_GONK
-  AdbController.setRemoteDebuggerState(value != 'disabled');
+    AdbController.setRemoteDebuggerState(value != 'disabled');
 #endif
-});
+  });
+
+  SettingsListener.observe('devtools.remote.wifi.enabled', false,
+                           function(value) {
+    devtoolsWiFi = value;
+    Services.prefs.setBoolPref('devtools.debugger.remote-enabled',
+                               devtoolsUSB || devtoolsWiFi);
+    
+    
+    Services.prefs.setBoolPref('devtools.debugger.force-local', !value);
+    
+    Services.prefs.savePrefFile(null);
+
+    try {
+      value ? WiFiRemoteDebugger.start() : WiFiRemoteDebugger.stop();
+    } catch(e) {
+      dump("Error while initializing WiFi devtools: "
+           + e + "\n" + e.stack + "\n");
+    }
+  });
+})();
 
 
 SettingsListener.observe('device.storage.writable.name', 'sdcard', function(value) {
