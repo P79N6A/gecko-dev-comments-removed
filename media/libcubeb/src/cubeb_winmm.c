@@ -27,6 +27,16 @@
 #define MEMORY_ALLOCATION_ALIGNMENT 16
 #endif
 
+
+#ifndef WAVE_FORMAT_48S16
+#define WAVE_FORMAT_48S16      0x00008000       /* 48     kHz, Stereo, 16-bit */
+#endif
+
+
+#ifndef STACK_SIZE_PARAM_IS_A_RESERVATION
+#define STACK_SIZE_PARAM_IS_A_RESERVATION   0x00010000    // Threads only
+#endif
+
 #define CUBEB_STREAM_MAX 32
 #define NBUFS 4
 
