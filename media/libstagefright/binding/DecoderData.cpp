@@ -216,8 +216,6 @@ MP4Sample::Update()
 void
 MP4Sample::Pad(size_t aPaddingBytes)
 {
-  MOZ_ASSERT(data == mMediaBuffer->data());
-
   size_t newSize = size + aPaddingBytes;
 
   

@@ -124,6 +124,7 @@ WMFMediaDataDecoder::ProcessDrain()
   }
   
   ProcessOutput();
+  mCallback->DrainComplete();
 }
 
 nsresult

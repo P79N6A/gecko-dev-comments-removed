@@ -117,7 +117,7 @@ FFmpegAACDecoder<LIBAV_VER>::Input(MP4Sample* aSample)
 nsresult
 FFmpegAACDecoder<LIBAV_VER>::Drain()
 {
-  
+  mCallback->DrainComplete();
   return NS_OK;
 }
 
