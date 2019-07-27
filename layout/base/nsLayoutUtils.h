@@ -1455,14 +1455,14 @@ public:
 
 
   static nsresult DrawImage(nsRenderingContext* aRenderingContext,
-                            nsPresContext*       aPresContext,
-                            imgIContainer*       aImage,
-                            GraphicsFilter       aGraphicsFilter,
-                            const nsRect&        aDest,
-                            const nsRect&        aFill,
-                            const nsPoint&       aAnchor,
-                            const nsRect&        aDirty,
-                            uint32_t             aImageFlags);
+                            nsPresContext*      aPresContext,
+                            imgIContainer*      aImage,
+                            GraphicsFilter      aGraphicsFilter,
+                            const nsRect&       aDest,
+                            const nsRect&       aFill,
+                            const nsPoint&      aAnchor,
+                            const nsRect&       aDirty,
+                            uint32_t            aImageFlags);
 
   
 
@@ -1515,15 +1515,15 @@ public:
 
 
 
-  static nsresult DrawSingleImage(nsRenderingContext*    aRenderingContext,
-                                  nsPresContext*         aPresContext,
-                                  imgIContainer*         aImage,
-                                  GraphicsFilter         aGraphicsFilter,
-                                  const nsRect&          aDest,
-                                  const nsRect&          aDirty,
+  static nsresult DrawSingleImage(nsRenderingContext* aRenderingContext,
+                                  nsPresContext*      aPresContext,
+                                  imgIContainer*      aImage,
+                                  GraphicsFilter      aGraphicsFilter,
+                                  const nsRect&       aDest,
+                                  const nsRect&       aDirty,
                                   const mozilla::SVGImageContext* aSVGContext,
-                                  uint32_t               aImageFlags,
-                                  const nsRect*          aSourceArea = nullptr);
+                                  uint32_t            aImageFlags,
+                                  const nsRect*       aSourceArea = nullptr);
 
   
 
@@ -1546,6 +1546,17 @@ public:
                                     nsSize&        aIntrinsicRatio,
                                     bool&          aGotWidth,
                                     bool&          aGotHeight);
+
+  
+
+
+
+
+
+
+
+  static nsIntSize ComputeSizeForDrawingWithFallback(imgIContainer* aImage,
+                                                     const nsSize&  aFallbackSize);
 
   
 

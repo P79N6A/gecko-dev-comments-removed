@@ -401,11 +401,12 @@ private:
 class MOZ_STACK_CLASS AutoSVGRenderingState
 {
 public:
-  AutoSVGRenderingState(const SVGImageContext* aSVGContext,
+  AutoSVGRenderingState(const Maybe<SVGImageContext>& aSVGContext,
                         float aFrameTime,
                         dom::SVGSVGElement* aRootElem
                         MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : mHaveOverrides(!!aSVGContext)
+    : mHaveOverrides(aSVGContext.isSome() &&
+                     aSVGContext->GetPreserveAspectRatio().isSome())
     , mRootElem(aRootElem)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -415,7 +416,7 @@ public:
       
       
       mRootElem->SetImageOverridePreserveAspectRatio(
-          aSVGContext->GetPreserveAspectRatio());
+          *aSVGContext->GetPreserveAspectRatio());
     }
 
     mOriginalTime = mRootElem->GetCurrentTime();

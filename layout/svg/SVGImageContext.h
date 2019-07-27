@@ -6,9 +6,12 @@
 #ifndef MOZILLA_SVGCONTEXT_H_
 #define MOZILLA_SVGCONTEXT_H_
 
+#include "mozilla/Maybe.h"
 #include "SVGPreserveAspectRatio.h"
 
 namespace mozilla {
+
+
 
 
 
@@ -18,16 +21,23 @@ class SVGImageContext
 public:
   SVGImageContext() { }
 
-  SVGImageContext(SVGPreserveAspectRatio aPreserveAspectRatio)
-    : mPreserveAspectRatio(aPreserveAspectRatio)
+  SVGImageContext(nsIntSize aViewportSize,
+                  Maybe<SVGPreserveAspectRatio> aPreserveAspectRatio)
+    : mViewportSize(aViewportSize)
+    , mPreserveAspectRatio(aPreserveAspectRatio)
   { }
 
-  const SVGPreserveAspectRatio& GetPreserveAspectRatio() const {
+  const nsIntSize& GetViewportSize() const {
+    return mViewportSize;
+  }
+
+  const Maybe<SVGPreserveAspectRatio>& GetPreserveAspectRatio() const {
     return mPreserveAspectRatio;
   }
 
   bool operator==(const SVGImageContext& aOther) const {
-    return mPreserveAspectRatio == aOther.mPreserveAspectRatio;
+    return mViewportSize == aOther.mViewportSize &&
+           mPreserveAspectRatio == aOther.mPreserveAspectRatio;
   }
 
   bool operator!=(const SVGImageContext& aOther) const {
@@ -35,11 +45,18 @@ public:
   }
 
   uint32_t Hash() const {
-    return mPreserveAspectRatio.Hash();
+    return HashGeneric(mViewportSize.width,
+                       mViewportSize.height,
+                       mPreserveAspectRatio.map(HashPAR).valueOr(0));
   }
 
 private:
-  SVGPreserveAspectRatio mPreserveAspectRatio;
+  static uint32_t HashPAR(const SVGPreserveAspectRatio& aPAR) {
+    return aPAR.Hash();
+  }
+
+  nsIntSize                     mViewportSize;
+  Maybe<SVGPreserveAspectRatio> mPreserveAspectRatio;
 };
 
 } 

@@ -377,7 +377,8 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
     if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
       
       
-      SVGImageContext context(imgElem->mPreserveAspectRatio.GetAnimValue());
+      SVGImageContext context(nsIntSize(width, height),
+                              Some(imgElem->mPreserveAspectRatio.GetAnimValue()));
 
       nsRect destRect(0, 0,
                       appUnitsPerDevPx * width,

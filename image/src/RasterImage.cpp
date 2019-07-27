@@ -18,6 +18,7 @@
 #include "prenv.h"
 #include "prsystem.h"
 #include "ImageContainer.h"
+#include "ImageRegion.h"
 #include "Layers.h"
 #include "nsPresContext.h"
 #include "nsIThreadPool.h"
@@ -185,21 +186,19 @@ DiscardingEnabled()
 class ScaleRequest
 {
 public:
-  ScaleRequest(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
-    : scale(aScale)
+  ScaleRequest(RasterImage* aImage,
+               const nsIntSize& aSize,
+               imgFrame* aSrcFrame)
+    : dstSize(aSize)
     , dstLocked(false)
     , done(false)
     , stopped(false)
   {
     MOZ_ASSERT(!aSrcFrame->GetIsPaletted());
-    MOZ_ASSERT(aScale.width > 0 && aScale.height > 0);
+    MOZ_ASSERT(aSize.width > 0 && aSize.height > 0);
 
     weakImage = aImage;
     srcRect = aSrcFrame->GetRect();
-
-    nsIntRect dstRect = srcRect;
-    dstRect.ScaleRoundOut(scale.width, scale.height);
-    dstSize = dstRect.Size();
   }
 
   
@@ -277,11 +276,10 @@ public:
   RefPtr<SourceSurface> dstSurface;
 
   
-  gfxSize scale;
   uint8_t* srcData;
   uint8_t* dstData;
   nsIntRect srcRect;
-  gfxIntSize dstSize;
+  nsIntSize dstSize;
   uint32_t srcStride;
   uint32_t dstStride;
   SurfaceFormat srcFormat;
@@ -328,9 +326,11 @@ private:
 class ScaleRunner : public nsRunnable
 {
 public:
-  ScaleRunner(RasterImage* aImage, const gfxSize& aScale, imgFrame* aSrcFrame)
+  ScaleRunner(RasterImage* aImage,
+              const nsIntSize& aSize,
+              imgFrame* aSrcFrame)
   {
-    nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aScale, aSrcFrame));
+    nsAutoPtr<ScaleRequest> request(new ScaleRequest(aImage, aSize, aSrcFrame));
 
     
     
@@ -2508,7 +2508,7 @@ RasterImage::SyncDecode()
 }
 
 bool
-RasterImage::CanQualityScale(const gfxSize& scale)
+RasterImage::CanQualityScale(const gfx::Size& scale)
 {
   
   if (scale.width == 1.0 && scale.height == 1.0)
@@ -2525,8 +2525,7 @@ RasterImage::CanQualityScale(const gfxSize& scale)
 }
 
 bool
-RasterImage::CanScale(GraphicsFilter aFilter,
-                      gfxSize aScale, uint32_t aFlags)
+RasterImage::CanScale(GraphicsFilter aFilter, gfx::Size aScale, uint32_t aFlags)
 {
 
 #ifdef MOZ_ENABLE_SKIA
@@ -2550,7 +2549,7 @@ void
 RasterImage::ScalingStart(ScaleRequest* request)
 {
   MOZ_ASSERT(request);
-  mScaleResult.scale = request->scale;
+  mScaleResult.scaledSize = request->dstSize;
   mScaleResult.status = SCALE_PENDING;
   mScaleRequest = request;
 }
@@ -2573,7 +2572,7 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
 
     mScaleResult.status = SCALE_DONE;
     mScaleResult.frame = scaledFrame;
-    mScaleResult.scale = request->scale;
+    mScaleResult.scaledSize = request->dstSize;
   } else {
     mScaleResult.status = SCALE_INVALID;
     mScaleResult.frame = nullptr;
@@ -2588,7 +2587,7 @@ RasterImage::ScalingDone(ScaleRequest* request, ScaleStatus status)
 }
 
 void
-RasterImage::RequestScale(imgFrame* aFrame, gfxSize aScale)
+RasterImage::RequestScale(imgFrame* aFrame, nsIntSize aSize)
 {
   
   
@@ -2607,7 +2606,7 @@ RasterImage::RequestScale(imgFrame* aFrame, gfxSize aScale)
     mScaleRequest->stopped = true;
   }
 
-  nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, aScale, aFrame);
+  nsRefPtr<ScaleRunner> runner = new ScaleRunner(this, aSize, aFrame);
   if (runner->IsOK()) {
     if (!sScaleWorkerThread) {
       NS_NewNamedThread("Image Scaler", getter_AddRefs(sScaleWorkerThread));
@@ -2623,22 +2622,18 @@ RasterImage::RequestScale(imgFrame* aFrame, gfxSize aScale)
 bool
 RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                           gfxContext *aContext,
+                                          const nsIntSize& aSize,
+                                          const ImageRegion& aRegion,
                                           GraphicsFilter aFilter,
-                                          const gfxMatrix &aUserSpaceToImageSpace,
-                                          const gfxRect &aFill,
-                                          const nsIntRect &aSubimage,
                                           uint32_t aFlags)
 {
   imgFrame *frame = aFrame;
   nsIntRect framerect = frame->GetRect();
-  gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
-  gfxMatrix imageSpaceToUserSpace = aUserSpaceToImageSpace;
-  if (!imageSpaceToUserSpace.Invert()) {
-    return false;
-  }
-  gfxSize scale = imageSpaceToUserSpace.ScaleFactors(true);
-  nsIntRect subimage = aSubimage;
+
+  gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   RefPtr<SourceSurface> surf;
+  gfx::Size scale(double(aSize.width) / mSize.width,
+                  double(aSize.height) / mSize.height);
 
   if (CanScale(aFilter, scale, aFlags) && !frame->IsSinglePixel()) {
     
@@ -2650,29 +2645,33 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
     
     
     bool needScaleReq;
-    if (mScaleResult.status == SCALE_DONE && mScaleResult.scale == scale) {
+    if (mScaleResult.status == SCALE_DONE && mScaleResult.scaledSize == aSize) {
       
       surf = mScaleResult.frame->GetSurface();
       needScaleReq = !surf;
       if (surf) {
         frame = mScaleResult.frame;
-        userSpaceToImageSpace *= gfxMatrix::Scaling(scale.width, scale.height);
-
-        
-        
-        
-        subimage.ScaleRoundOut(scale.width, scale.height);
       }
     } else {
       needScaleReq = !(mScaleResult.status == SCALE_PENDING &&
-                       mScaleResult.scale == scale);
+                       mScaleResult.scaledSize == aSize);
     }
 
     
     
     if (needScaleReq) {
-      RequestScale(frame, scale);
+      RequestScale(frame, aSize);
     }
+  }
+
+  ImageRegion region(aRegion);
+
+  
+  
+  nsIntSize finalFrameSize(frame->GetRect().Size());
+  if (finalFrameSize != aSize) {
+    aContext->Multiply(gfxMatrix::Scaling(scale.width, scale.height));
+    region.Scale(1.0 / scale.width, 1.0 / scale.height);
   }
 
   nsIntMargin padding(framerect.y,
@@ -2680,8 +2679,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                       mSize.height - framerect.YMost(),
                       framerect.x);
 
-  return frame->Draw(aContext, aFilter, userSpaceToImageSpace,
-                     aFill, padding, subimage, aFlags);
+  return frame->Draw(aContext, region, padding, aFilter, aFlags);
 }
 
 
@@ -2695,14 +2693,12 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
 
 NS_IMETHODIMP
-RasterImage::Draw(gfxContext *aContext,
-                  GraphicsFilter aFilter,
-                  const gfxMatrix &aUserSpaceToImageSpace,
-                  const gfxRect &aFill,
-                  const nsIntRect &aSubimage,
-                  const nsIntSize& ,
-                  const SVGImageContext* ,
+RasterImage::Draw(gfxContext* aContext,
+                  const nsIntSize& aSize,
+                  const ImageRegion& aRegion,
                   uint32_t aWhichFrame,
+                  GraphicsFilter aFilter,
+                  const Maybe<SVGImageContext>& ,
                   uint32_t aFlags)
 {
   if (aWhichFrame > FRAME_MAX_VALUE)
@@ -2773,9 +2769,8 @@ RasterImage::Draw(gfxContext *aContext,
     return NS_OK; 
   }
 
-  bool drawn = DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter,
-                                            aUserSpaceToImageSpace, aFill,
-                                            aSubimage, aFlags);
+  bool drawn = DrawWithPreDownscaleIfNeeded(frame, aContext, aSize,
+                                            aRegion, aFilter, aFlags);
   if (!drawn) {
     
     ForceDiscard();
@@ -3684,11 +3679,11 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
   }
 
   nsIntSize destSize(ceil(aDest.width), ceil(aDest.height));
-  gfxSize scale(double(destSize.width) / mSize.width,
-                double(destSize.height) / mSize.height);
+  gfx::Size scale(double(destSize.width) / mSize.width,
+                  double(destSize.height) / mSize.height);
 
   if (CanScale(aFilter, scale, aFlags)) {
-    if (mScaleResult.scale == scale) {
+    if (mScaleResult.scaledSize == destSize) {
       if (mScaleResult.status == SCALE_DONE) {
         return destSize;  
       } else if (mScaleResult.status == SCALE_PENDING) {
@@ -3702,7 +3697,7 @@ RasterImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
 
     imgFrame* frame = GetDrawableImgFrame(frameIndex);
     if (frame) {
-      RequestScale(frame, scale);
+      RequestScale(frame, destSize);
     }
   }
 

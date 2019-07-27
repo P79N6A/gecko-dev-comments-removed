@@ -4,13 +4,13 @@
 
 
 
+#include "ImageLogging.h"
 #include "imgStatusTracker.h"
 
 #include "imgIContainer.h"
 #include "imgRequestProxy.h"
 #include "imgDecoderObserver.h"
 #include "Image.h"
-#include "ImageLogging.h"
 #include "nsNetUtil.h"
 #include "nsIObserverService.h"
 

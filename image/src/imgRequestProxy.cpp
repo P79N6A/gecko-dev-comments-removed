@@ -4,13 +4,13 @@
 
 
 
+#include "ImageLogging.h"
 #include "imgRequestProxy.h"
 #include "imgIOnloadBlocker.h"
 
 #include "Image.h"
 #include "ImageOps.h"
 #include "nsError.h"
-#include "ImageLogging.h"
 #include "nsCRTGlue.h"
 #include "imgINotificationObserver.h"
 #include "nsNetUtil.h"

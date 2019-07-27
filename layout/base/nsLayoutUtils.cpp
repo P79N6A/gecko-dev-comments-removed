@@ -8,6 +8,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsPresContext.h"
 #include "nsIContent.h"
@@ -31,6 +32,7 @@
 #include "nsBidiPresUtils.h"
 #include "imgIContainer.h"
 #include "ImageOps.h"
+#include "ImageRegion.h"
 #include "gfxRect.h"
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -66,6 +68,7 @@
 #include "nsFontFaceList.h"
 #include "nsFontInflationData.h"
 #include "nsSVGUtils.h"
+#include "SVGImageContext.h"
 #include "SVGTextFrame.h"
 #include "nsStyleStructInlines.h"
 #include "nsStyleTransformMatrix.h"
@@ -103,14 +106,10 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::image;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
 using namespace mozilla::gfx;
-
-using mozilla::image::Angle;
-using mozilla::image::Flip;
-using mozilla::image::ImageOps;
-using mozilla::image::Orientation;
 
 #define GRID_ENABLED_PREF_NAME "layout.css.grid.enabled"
 #define RUBY_ENABLED_PREF_NAME "layout.css.ruby.enabled"
@@ -4929,35 +4928,48 @@ nsLayoutUtils::RectToGfxRect(const nsRect& aRect, int32_t aAppUnitsPerDevPixel)
 
 struct SnappedImageDrawingParameters {
   
-  
-  gfxMatrix mUserSpaceToImageSpace;
-  
-  gfxRect mFillRect;
+  gfxMatrix imageSpaceToDeviceSpace;
   
   
-  nsIntRect mSubimage;
-  
-  bool mShouldDraw;
+  nsIntSize size;
   
   
-  bool mResetCTM;
+  ImageRegion region;
+  
+  bool shouldDraw;
 
   SnappedImageDrawingParameters()
-   : mShouldDraw(false)
-   , mResetCTM(false)
+   : region(ImageRegion::Empty())
+   , shouldDraw(false)
   {}
 
-  SnappedImageDrawingParameters(const gfxMatrix& aUserSpaceToImageSpace,
-                                const gfxRect&   aFillRect,
-                                const nsIntRect& aSubimage,
-                                bool             aResetCTM)
-   : mUserSpaceToImageSpace(aUserSpaceToImageSpace)
-   , mFillRect(aFillRect)
-   , mSubimage(aSubimage)
-   , mShouldDraw(true)
-   , mResetCTM(aResetCTM)
+  SnappedImageDrawingParameters(const gfxMatrix&   aImageSpaceToDeviceSpace,
+                                const nsIntSize&   aSize,
+                                const ImageRegion& aRegion)
+   : imageSpaceToDeviceSpace(aImageSpaceToDeviceSpace)
+   , size(aSize)
+   , region(aRegion)
+   , shouldDraw(true)
   {}
 };
+
+
+
+
+
+
+
+
+static gfxMatrix
+TransformBetweenRects(const gfxRect& aFrom, const gfxRect& aTo)
+{
+  gfxSize scale(aTo.width / aFrom.width,
+                aTo.height / aFrom.height);
+  gfxPoint translation(aTo.x - aFrom.x * scale.width,
+                       aTo.y - aFrom.y * scale.height);
+  return gfxMatrix(scale.width, 0, 0, scale.height,
+                   translation.x, translation.y);
+}
 
 static nsRect
 TileNearRect(const nsRect& aAnyTile, const nsRect& aTargetRect)
@@ -4981,10 +4993,11 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
                                      const nsRect    aFill,
                                      const nsPoint   aAnchor,
                                      const nsRect    aDirty,
-                                     const nsIntSize aImageSize)
-
+                                     imgIContainer*  aImage,
+                                     GraphicsFilter  aGraphicsFilter,
+                                     uint32_t        aImageFlags)
 {
-  if (aDest.IsEmpty() || aFill.IsEmpty() || !aImageSize.width || !aImageSize.height)
+  if (aDest.IsEmpty() || aFill.IsEmpty())
     return SnappedImageDrawingParameters();
 
   
@@ -5017,68 +5030,97 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
     fill = devPixelFill;
   }
 
-  gfxSize imageSize(aImageSize.width, aImageSize.height);
+  gfxSize destScale = didSnap ? gfxSize(currentMatrix._11, currentMatrix._22)
+                              : gfxSize(1.0, 1.0);
+  gfxSize snappedDest(NSAppUnitsToIntPixels(dest.width * destScale.width,
+                                            aAppUnitsPerDevPixel),
+                      NSAppUnitsToIntPixels(dest.height * destScale.height,
+                                            aAppUnitsPerDevPixel));
+
+  nsIntSize intImageSize =
+    aImage->OptimalImageSizeForDest(snappedDest,
+                                    imgIContainer::FRAME_CURRENT,
+                                    aGraphicsFilter, aImageFlags);
+  gfxSize imageSize(intImageSize.width, intImageSize.height);
 
   
   gfxPoint subimageTopLeft =
     MapToFloatImagePixels(imageSize, devPixelDest, devPixelFill.TopLeft());
   gfxPoint subimageBottomRight =
     MapToFloatImagePixels(imageSize, devPixelDest, devPixelFill.BottomRight());
-  nsIntRect intSubimage;
-  intSubimage.MoveTo(NSToIntFloor(subimageTopLeft.x),
-                     NSToIntFloor(subimageTopLeft.y));
-  intSubimage.SizeTo(NSToIntCeil(subimageBottomRight.x) - intSubimage.x,
-                     NSToIntCeil(subimageBottomRight.y) - intSubimage.y);
+  gfxRect subimage;
+  subimage.MoveTo(NSToIntFloor(subimageTopLeft.x),
+                  NSToIntFloor(subimageTopLeft.y));
+  subimage.SizeTo(NSToIntCeil(subimageBottomRight.x) - subimage.x,
+                  NSToIntCeil(subimageBottomRight.y) - subimage.y);
+
+  gfxMatrix transform;
+  gfxMatrix invTransform;
+
+  bool anchorAtUpperLeft = anchor.x == dest.x && anchor.y == dest.y;
+  bool exactlyOneImageCopy = aFill.IsEqualEdges(dest);
+  if (anchorAtUpperLeft && exactlyOneImageCopy) {
+    
+    
+    
+    
+    transform = TransformBetweenRects(subimage, fill);
+    invTransform = TransformBetweenRects(fill, subimage);
+  } else {
+    
+    
+    
+
+    
+    
+    gfxPoint anchorPoint(gfxFloat(anchor.x)/aAppUnitsPerDevPixel,
+                         gfxFloat(anchor.y)/aAppUnitsPerDevPixel);
+    gfxPoint imageSpaceAnchorPoint =
+      MapToFloatImagePixels(imageSize, devPixelDest, anchorPoint);
+
+    if (didSnap) {
+      imageSpaceAnchorPoint.Round();
+      anchorPoint = imageSpaceAnchorPoint;
+      anchorPoint = MapToFloatUserPixels(imageSize, devPixelDest, anchorPoint);
+      anchorPoint = currentMatrix.Transform(anchorPoint);
+      anchorPoint.Round();
+    }
+
+    gfxRect anchoredDestRect(anchorPoint, snappedDest);
+    gfxRect anchoredImageRect(imageSpaceAnchorPoint, imageSize);
+    transform = TransformBetweenRects(anchoredImageRect, anchoredDestRect);
+    invTransform = TransformBetweenRects(anchoredDestRect, anchoredImageRect);
+  }
 
   
   
   
-  gfxPoint anchorPoint(gfxFloat(anchor.x)/aAppUnitsPerDevPixel,
-                       gfxFloat(anchor.y)/aAppUnitsPerDevPixel);
-  gfxPoint imageSpaceAnchorPoint =
-    MapToFloatImagePixels(imageSize, devPixelDest, anchorPoint);
-
-  if (didSnap) {
-    imageSpaceAnchorPoint.Round();
-    anchorPoint = imageSpaceAnchorPoint;
-    anchorPoint = MapToFloatUserPixels(imageSize, devPixelDest, anchorPoint);
-    anchorPoint = currentMatrix.Transform(anchorPoint);
-    anchorPoint.Round();
-
+  
+  
+  
+  if (didSnap && !invTransform.HasNonIntegerTranslation()) {
     
     
     devPixelDirty = currentMatrix.Transform(devPixelDirty);
-  }
-
-  gfxFloat scaleX = imageSize.width*aAppUnitsPerDevPixel/aDest.width;
-  gfxFloat scaleY = imageSize.height*aAppUnitsPerDevPixel/aDest.height;
-  if (didSnap) {
-    
-    
-    scaleX /= currentMatrix._11;
-    scaleY /= currentMatrix._22;
-  }
-  gfxFloat translateX = imageSpaceAnchorPoint.x - anchorPoint.x*scaleX;
-  gfxFloat translateY = imageSpaceAnchorPoint.y - anchorPoint.y*scaleY;
-  gfxMatrix transform(scaleX, 0, 0, scaleY, translateX, translateY);
-
-  gfxRect finalFillRect = fill;
-  
-  
-  
-  
-  
-  
-  
-  if (didSnap && !transform.HasNonIntegerTranslation()) {
     devPixelDirty.RoundOut();
-    finalFillRect = fill.Intersect(devPixelDirty);
+    fill = fill.Intersect(devPixelDirty);
   }
-  if (finalFillRect.IsEmpty())
+  if (fill.IsEmpty())
     return SnappedImageDrawingParameters();
 
-  return SnappedImageDrawingParameters(transform, finalFillRect, intSubimage,
-                                       didSnap);
+  gfxRect imageSpaceFill(didSnap ? invTransform.Transform(fill)
+                                 : invTransform.TransformBounds(fill));
+
+  
+  
+  
+  if (!didSnap) {
+    transform = transform * currentMatrix;
+  }
+
+  ImageRegion region =
+    ImageRegion::CreateWithSamplingRestriction(imageSpaceFill, subimage);
+  return SnappedImageDrawingParameters(transform, intImageSize, region);
 }
 
 
@@ -5091,7 +5133,6 @@ DrawImageInternal(nsRenderingContext*    aRenderingContext,
                   const nsRect&          aFill,
                   const nsPoint&         aAnchor,
                   const nsRect&          aDirty,
-                  const nsIntSize&       aImageSize,
                   const SVGImageContext* aSVGContext,
                   uint32_t               aImageFlags)
 {
@@ -5107,21 +5148,20 @@ DrawImageInternal(nsRenderingContext*    aRenderingContext,
    aPresContext->AppUnitsPerDevPixel();
   gfxContext* ctx = aRenderingContext->ThebesContext();
 
-  SnappedImageDrawingParameters drawingParams =
-    ComputeSnappedImageDrawingParameters(ctx, appUnitsPerDevPixel, aDest, aFill,
-                                         aAnchor, aDirty, aImageSize);
+  SnappedImageDrawingParameters params =
+    ComputeSnappedImageDrawingParameters(ctx, appUnitsPerDevPixel, aDest,
+                                         aFill, aAnchor, aDirty, aImage,
+                                         aGraphicsFilter, aImageFlags);
 
-  if (!drawingParams.mShouldDraw)
+  if (!params.shouldDraw)
     return NS_OK;
 
-  gfxContextMatrixAutoSaveRestore saveMatrix(ctx);
-  if (drawingParams.mResetCTM) {
-    ctx->IdentityMatrix();
-  }
+  gfxContextMatrixAutoSaveRestore contextMatrixRestorer(ctx);
+  ctx->SetMatrix(params.imageSpaceToDeviceSpace);
 
-  aImage->Draw(ctx, aGraphicsFilter, drawingParams.mUserSpaceToImageSpace,
-               drawingParams.mFillRect, drawingParams.mSubimage, aImageSize,
-               aSVGContext, imgIContainer::FRAME_CURRENT, aImageFlags);
+  aImage->Draw(ctx, params.size, params.region, imgIContainer::FRAME_CURRENT,
+               aGraphicsFilter, ToMaybe(aSVGContext), aImageFlags);
+
   return NS_OK;
 }
 
@@ -5160,7 +5200,7 @@ nsLayoutUtils::DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
   return DrawImageInternal(aRenderingContext, aPresContext,
                            aImage, aGraphicsFilter,
                            dest, fill, aDest, aDirty ? *aDirty : dest,
-                           imageSize, nullptr, aImageFlags);
+                           nullptr, aImageFlags);
 }
 
  nsresult
@@ -5174,29 +5214,21 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
                                uint32_t               aImageFlags,
                                const nsRect*          aSourceArea)
 {
-  nsIntSize imageSize;
-  if (aImage->GetType() == imgIContainer::TYPE_VECTOR) {
-    
-    
-    
-    nscoord appUnitsPerDevPx =
-      aPresContext->AppUnitsPerDevPixel();
-    imageSize.width = NSAppUnitsToIntPixels(aDest.width, appUnitsPerDevPx);
-    imageSize.height = NSAppUnitsToIntPixels(aDest.height, appUnitsPerDevPx);
-  } else {
-    
-    aImage->GetWidth(&imageSize.width);
-    aImage->GetHeight(&imageSize.height);
-  }
+  nsIntSize imageSize(ComputeSizeForDrawingWithFallback(aImage, aDest.Size()));
   NS_ENSURE_TRUE(imageSize.width > 0 && imageSize.height > 0, NS_ERROR_FAILURE);
 
   nsRect source;
+  nsCOMPtr<imgIContainer> image;
   if (aSourceArea) {
     source = *aSourceArea;
+    nsIntRect subRect(source.x, source.y, source.width, source.height);
+    subRect.ScaleInverseRoundOut(nsDeviceContext::AppUnitsPerCSSPixel());
+    image = ImageOps::Clip(aImage, subRect);
   } else {
     nscoord appUnitsPerCSSPixel = nsDeviceContext::AppUnitsPerCSSPixel();
     source.SizeTo(imageSize.width*appUnitsPerCSSPixel,
                   imageSize.height*appUnitsPerCSSPixel);
+    image = aImage;
   }
 
   nsRect dest = nsLayoutUtils::GetWholeImageDestination(imageSize, source,
@@ -5207,8 +5239,8 @@ nsLayoutUtils::DrawSingleImage(nsRenderingContext*    aRenderingContext,
   nsRect fill;
   fill.IntersectRect(aDest, dest);
   return DrawImageInternal(aRenderingContext, aPresContext, aImage,
-                           aGraphicsFilter, dest, fill,
-                           fill.TopLeft(), aDirty, imageSize, aSVGContext, aImageFlags);
+                           aGraphicsFilter, dest, fill, fill.TopLeft(),
+                           aDirty, aSVGContext, aImageFlags);
 }
 
  void
@@ -5231,42 +5263,9 @@ nsLayoutUtils::ComputeSizeForDrawing(imgIContainer *aImage,
   }
 }
 
-
- nsresult
-nsLayoutUtils::DrawBackgroundImage(nsRenderingContext* aRenderingContext,
-                                   nsPresContext*      aPresContext,
-                                   imgIContainer*      aImage,
-                                   const nsIntSize&    aImageSize,
-                                   GraphicsFilter      aGraphicsFilter,
-                                   const nsRect&       aDest,
-                                   const nsRect&       aFill,
-                                   const nsPoint&      aAnchor,
-                                   const nsRect&       aDirty,
-                                   uint32_t            aImageFlags)
-{
-  PROFILER_LABEL("nsLayoutUtils", "DrawBackgroundImage",
-    js::ProfileEntry::Category::GRAPHICS);
-
-  if (UseBackgroundNearestFiltering()) {
-    aGraphicsFilter = GraphicsFilter::FILTER_NEAREST;
-  }
-
-  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
-                           aGraphicsFilter,
-                           aDest, aFill, aAnchor, aDirty,
-                           aImageSize, nullptr, aImageFlags);
-}
-
- nsresult
-nsLayoutUtils::DrawImage(nsRenderingContext* aRenderingContext,
-                         nsPresContext*       aPresContext,
-                         imgIContainer*       aImage,
-                         GraphicsFilter       aGraphicsFilter,
-                         const nsRect&        aDest,
-                         const nsRect&        aFill,
-                         const nsPoint&       aAnchor,
-                         const nsRect&        aDirty,
-                         uint32_t             aImageFlags)
+ nsIntSize
+nsLayoutUtils::ComputeSizeForDrawingWithFallback(imgIContainer* aImage,
+                                                 const nsSize&  aFallbackSize)
 {
   nsIntSize imageSize;
   nsSize imageRatio;
@@ -5295,17 +5294,58 @@ nsLayoutUtils::DrawImage(nsRenderingContext* aRenderingContext,
     }
   }
 
+  
+  
   if (!gotWidth) {
-    imageSize.width = nsPresContext::AppUnitsToIntCSSPixels(aFill.width);
+    imageSize.width = nsPresContext::AppUnitsToIntCSSPixels(aFallbackSize.width);
   }
   if (!gotHeight) {
-    imageSize.height = nsPresContext::AppUnitsToIntCSSPixels(aFill.height);
+    imageSize.height = nsPresContext::AppUnitsToIntCSSPixels(aFallbackSize.height);
   }
 
+  return imageSize;
+}
+
+ nsresult
+nsLayoutUtils::DrawBackgroundImage(nsRenderingContext* aRenderingContext,
+                                   nsPresContext*      aPresContext,
+                                   imgIContainer*      aImage,
+                                   const nsIntSize&    aImageSize,
+                                   GraphicsFilter      aGraphicsFilter,
+                                   const nsRect&       aDest,
+                                   const nsRect&       aFill,
+                                   const nsPoint&      aAnchor,
+                                   const nsRect&       aDirty,
+                                   uint32_t            aImageFlags)
+{
+  PROFILER_LABEL("layout", "nsLayoutUtils::DrawBackgroundImage",
+                 js::ProfileEntry::Category::GRAPHICS);
+
+  if (UseBackgroundNearestFiltering()) {
+    aGraphicsFilter = GraphicsFilter::FILTER_NEAREST;
+  }
+
+  SVGImageContext svgContext(aImageSize, Nothing());
+
   return DrawImageInternal(aRenderingContext, aPresContext, aImage,
-                           aGraphicsFilter,
-                           aDest, aFill, aAnchor, aDirty,
-                           imageSize, nullptr, aImageFlags);
+                           aGraphicsFilter, aDest, aFill, aAnchor,
+                           aDirty, &svgContext, aImageFlags);
+}
+
+ nsresult
+nsLayoutUtils::DrawImage(nsRenderingContext* aRenderingContext,
+                         nsPresContext*      aPresContext,
+                         imgIContainer*      aImage,
+                         GraphicsFilter      aGraphicsFilter,
+                         const nsRect&       aDest,
+                         const nsRect&       aFill,
+                         const nsPoint&      aAnchor,
+                         const nsRect&       aDirty,
+                         uint32_t            aImageFlags)
+{
+  return DrawImageInternal(aRenderingContext, aPresContext, aImage,
+                           aGraphicsFilter, aDest, aFill, aAnchor,
+                           aDirty, nullptr, aImageFlags);
 }
 
  nsRect

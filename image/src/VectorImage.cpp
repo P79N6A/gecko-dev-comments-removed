@@ -26,6 +26,7 @@
 #include "nsStubDocumentObserver.h"
 #include "nsSVGEffects.h" 
 #include "nsWindowMemoryReporter.h"
+#include "ImageRegion.h"
 #include "Orientation.h"
 #include "SVGDocumentWrapper.h"
 #include "nsIDOMEventListener.h"
@@ -241,12 +242,12 @@ class SVGDrawingCallback : public gfxDrawingCallback {
 public:
   SVGDrawingCallback(SVGDocumentWrapper* aSVGDocumentWrapper,
                      const nsIntRect& aViewport,
-                     const gfxSize& aScale,
-                     uint32_t aImageFlags) :
-    mSVGDocumentWrapper(aSVGDocumentWrapper),
-    mViewport(aViewport),
-    mScale(aScale),
-    mImageFlags(aImageFlags)
+                     const IntSize& aSize,
+                     uint32_t aImageFlags)
+    : mSVGDocumentWrapper(aSVGDocumentWrapper)
+    , mViewport(aViewport)
+    , mSize(aSize)
+    , mImageFlags(aImageFlags)
   {}
   virtual bool operator()(gfxContext* aContext,
                             const gfxRect& aFillRect,
@@ -254,9 +255,9 @@ public:
                             const gfxMatrix& aTransform);
 private:
   nsRefPtr<SVGDocumentWrapper> mSVGDocumentWrapper;
-  const nsIntRect mViewport;
-  const gfxSize   mScale;
-  uint32_t        mImageFlags;
+  const nsIntRect              mViewport;
+  const IntSize                mSize;
+  uint32_t                     mImageFlags;
 };
 
 
@@ -283,13 +284,13 @@ SVGDrawingCallback::operator()(gfxContext* aContext,
   aContext->Rectangle(aFillRect);
   aContext->Clip();
 
-  gfxContextMatrixAutoSaveRestore contextMatrixRestorer(aContext);
   gfxMatrix matrix = aTransform;
   if (!matrix.Invert()) {
     return false;
   }
   aContext->Multiply(matrix);
-  aContext->Scale(1.0 / mScale.width, 1.0 / mScale.height);
+  aContext->Scale(double(mSize.width) / mViewport.width,
+                  double(mSize.height) / mViewport.height);
 
   nsPresContext* presContext = presShell->GetPresContext();
   MOZ_ASSERT(presContext, "pres shell w/out pres context");
@@ -741,11 +742,10 @@ VectorImage::GetFrame(uint32_t aWhichFrame,
 
   nsRefPtr<gfxContext> context = new gfxContext(dt);
 
-  nsresult rv = Draw(context, GraphicsFilter::FILTER_NEAREST, gfxMatrix(),
-                     gfxRect(gfxPoint(0,0), gfxIntSize(imageIntSize.width,
-                                                       imageIntSize.height)),
-                     nsIntRect(nsIntPoint(0,0), imageIntSize),
-                     imageIntSize, nullptr, aWhichFrame, aFlags);
+  nsresult rv = Draw(context, imageIntSize,
+                     ImageRegion::Create(imageIntSize),
+                     aWhichFrame, GraphicsFilter::FILTER_NEAREST,
+                     Nothing(), aFlags);
 
   NS_ENSURE_SUCCESS(rv, nullptr);
   return dt->Snapshot();
@@ -764,60 +764,32 @@ VectorImage::GetImageContainer(LayerManager* aManager,
 struct SVGDrawingParameters
 {
   SVGDrawingParameters(gfxContext* aContext,
+                       const nsIntSize& aSize,
+                       const ImageRegion& aRegion,
                        GraphicsFilter aFilter,
-                       const gfxMatrix& aUserSpaceToImageSpace,
-                       const gfxRect& aFill,
-                       const nsIntRect& aSubimage,
-                       const nsIntSize& aViewportSize,
-                       const SVGImageContext* aSVGContext,
+                       const Maybe<SVGImageContext>& aSVGContext,
                        float aAnimationTime,
                        uint32_t aFlags)
     : context(aContext)
+    , size(aSize.width, aSize.height)
+    , imageRect(0, 0, aSize.width, aSize.height)
+    , region(aRegion)
     , filter(aFilter)
-    , fill(aFill)
-    , viewportSize(aViewportSize)
-    , animationTime(aAnimationTime)
     , svgContext(aSVGContext)
+    , viewportSize(aSVGContext ? aSVGContext->GetViewportSize() : aSize)
+    , animationTime(aAnimationTime)
     , flags(aFlags)
-  {
-    
-    
-    
-    
-    
-    
-    scale = aUserSpaceToImageSpace.ScaleFactors(true);
-    gfxPoint translation(aUserSpaceToImageSpace.GetTranslation());
+  { }
 
-    
-    gfxMatrix unscale;
-    unscale.Translate(gfxPoint(translation.x / scale.width,
-                               translation.y / scale.height));
-    unscale.Scale(1.0 / scale.width, 1.0 / scale.height);
-    unscale.Translate(-translation);
-    userSpaceToImageSpace = aUserSpaceToImageSpace * unscale;
-
-    
-    IntSize drawableSize(aViewportSize.width / scale.width,
-                         aViewportSize.height / scale.height);
-    sourceRect = userSpaceToImageSpace.Transform(aFill);
-    imageRect = IntRect(IntPoint(0, 0), drawableSize);
-    subimage = gfxRect(aSubimage.x, aSubimage.y, aSubimage.width, aSubimage.height);
-    subimage.ScaleRoundOut(1.0 / scale.width, 1.0 / scale.height);
-  }
-
-  gfxContext* context;
-  GraphicsFilter filter;
-  gfxMatrix userSpaceToImageSpace;
-  gfxRect fill;
-  gfxRect subimage;
-  gfxRect sourceRect;
-  IntRect imageRect;
-  nsIntSize viewportSize;
-  gfxSize scale;
-  float animationTime;
-  const SVGImageContext* svgContext;
-  uint32_t flags;
+  gfxContext*                   context;
+  IntSize                       size;
+  IntRect                       imageRect;
+  ImageRegion                   region;
+  GraphicsFilter                filter;
+  const Maybe<SVGImageContext>& svgContext;
+  nsIntSize                     viewportSize;
+  float                         animationTime;
+  uint32_t                      flags;
 };
 
 
@@ -832,13 +804,11 @@ struct SVGDrawingParameters
 
 NS_IMETHODIMP
 VectorImage::Draw(gfxContext* aContext,
-                  GraphicsFilter aFilter,
-                  const gfxMatrix& aUserSpaceToImageSpace,
-                  const gfxRect& aFill,
-                  const nsIntRect& aSubimage,
-                  const nsIntSize& aViewportSize,
-                  const SVGImageContext* aSVGContext,
+                  const nsIntSize& aSize,
+                  const ImageRegion& aRegion,
                   uint32_t aWhichFrame,
+                  GraphicsFilter aFilter,
+                  const Maybe<SVGImageContext>& aSVGContext,
                   uint32_t aFlags)
 {
   if (aWhichFrame > FRAME_MAX_VALUE)
@@ -866,19 +836,18 @@ VectorImage::Draw(gfxContext* aContext,
                                      mSVGDocumentWrapper->GetRootSVGElem());
 
   
-  SVGDrawingParameters params(aContext, aFilter, aUserSpaceToImageSpace, aFill,
-                              aSubimage, aViewportSize, aSVGContext, animTime, aFlags);
+  SVGDrawingParameters params(aContext, aSize, aRegion, aFilter,
+                              aSVGContext, animTime, aFlags);
 
-  
-  
-  
-  nsRefPtr<gfxDrawable> drawable;
-  if (!(aFlags & FLAG_BYPASS_SURFACE_CACHE)) {
-    drawable =
-      SurfaceCache::Lookup(ImageKey(this),
-                           SurfaceKey(params.imageRect.Size(), params.scale,
-                                      aSVGContext, animTime, aFlags));
+  if (aFlags & FLAG_BYPASS_SURFACE_CACHE) {
+    CreateDrawableAndShow(params);
+    return NS_OK;
   }
+
+  nsRefPtr<gfxDrawable> drawable =
+    SurfaceCache::Lookup(ImageKey(this),
+                         SurfaceKey(params.size, aSVGContext,
+                                    animTime, aFlags));
 
   
   if (drawable) {
@@ -899,24 +868,26 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
   nsRefPtr<gfxDrawingCallback> cb =
     new SVGDrawingCallback(mSVGDocumentWrapper,
                            nsIntRect(nsIntPoint(0, 0), aParams.viewportSize),
-                           aParams.scale,
+                           aParams.size,
                            aParams.flags);
 
   nsRefPtr<gfxDrawable> svgDrawable =
-    new gfxCallbackDrawable(cb, ThebesIntSize(aParams.imageRect.Size()));
+    new gfxCallbackDrawable(cb, ThebesIntSize(aParams.size));
 
   bool bypassCache = bool(aParams.flags & FLAG_BYPASS_SURFACE_CACHE) ||
                      
                      
                      mHaveAnimations ||
                      
-                     !SurfaceCache::CanHold(aParams.imageRect.Size());
+                     !SurfaceCache::CanHold(aParams.size);
   if (bypassCache)
     return Show(svgDrawable, aParams);
 
   
   RefPtr<gfx::DrawTarget> target =
-   gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aParams.imageRect.Size(), gfx::SurfaceFormat::B8G8R8A8);
+    gfxPlatform::GetPlatform()->
+      CreateOffscreenContentDrawTarget(aParams.size,
+                                       gfx::SurfaceFormat::B8G8R8A8);
 
   
   
@@ -927,28 +898,25 @@ VectorImage::CreateDrawableAndShow(const SVGDrawingParameters& aParams)
   nsRefPtr<gfxContext> ctx = new gfxContext(target);
 
   
-  gfxUtils::DrawPixelSnapped(ctx, svgDrawable, gfxMatrix(),
-                             ThebesIntRect(aParams.imageRect),
-                             ThebesIntRect(aParams.imageRect),
-                             ThebesIntRect(aParams.imageRect),
-                             ThebesIntRect(aParams.imageRect),
+  nsIntRect imageRect(ThebesIntRect(aParams.imageRect));
+  gfxUtils::DrawPixelSnapped(ctx, svgDrawable,
+                             ThebesIntSize(aParams.size),
+                             ImageRegion::Create(imageRect),
                              SurfaceFormat::B8G8R8A8,
                              GraphicsFilter::FILTER_NEAREST, aParams.flags);
 
   RefPtr<SourceSurface> surface = target->Snapshot();
 
   
-  SurfaceCache::Insert(surface,
-                       ImageKey(this),
-                       SurfaceKey(aParams.imageRect.Size(), aParams.scale,
-                                  aParams.svgContext, aParams.animationTime,
-                                  aParams.flags));
+  SurfaceCache::Insert(surface, ImageKey(this),
+                       SurfaceKey(aParams.size, aParams.svgContext,
+                                  aParams.animationTime, aParams.flags));
 
   
   
   
   nsRefPtr<gfxDrawable> drawable =
-    new gfxSurfaceDrawable(surface, ThebesIntSize(aParams.imageRect.Size()));
+    new gfxSurfaceDrawable(surface, ThebesIntSize(aParams.size));
   Show(drawable, aParams);
 }
 
@@ -958,9 +926,8 @@ VectorImage::Show(gfxDrawable* aDrawable, const SVGDrawingParameters& aParams)
 {
   MOZ_ASSERT(aDrawable, "Should have a gfxDrawable by now");
   gfxUtils::DrawPixelSnapped(aParams.context, aDrawable,
-                             aParams.userSpaceToImageSpace,
-                             aParams.subimage, aParams.sourceRect,
-                             ThebesIntRect(aParams.imageRect), aParams.fill,
+                             ThebesIntSize(aParams.size),
+                             aParams.region,
                              SurfaceFormat::B8G8R8A8,
                              aParams.filter, aParams.flags);
 
