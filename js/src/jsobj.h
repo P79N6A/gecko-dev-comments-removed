@@ -118,7 +118,7 @@ class JSObject : public js::gc::Cell
                                           bool *succeeded);
 
     
-    static js::types::ObjectGroup *makeLazyGroup(JSContext *cx, js::HandleObject obj);
+    static js::ObjectGroup *makeLazyGroup(JSContext *cx, js::HandleObject obj);
 
   public:
     js::Shape * lastProperty() const {
@@ -143,12 +143,12 @@ class JSObject : public js::gc::Cell
         return &getClass()->ops;
     }
 
-    js::types::ObjectGroup *group() const {
+    js::ObjectGroup *group() const {
         MOZ_ASSERT(!hasLazyGroup());
         return groupRaw();
     }
 
-    js::types::ObjectGroup *groupRaw() const {
+    js::ObjectGroup *groupRaw() const {
         return group_;
     }
 
@@ -323,9 +323,7 @@ class JSObject : public js::gc::Cell
 
     static inline bool setSingleton(js::ExclusiveContext *cx, js::HandleObject obj);
 
-    
-    inline js::types::ObjectGroup* getGroup(JSContext *cx);
-    js::types::ObjectGroup* uninlinedGetGroup(JSContext *cx);
+    inline js::ObjectGroup* getGroup(JSContext *cx);
 
     const js::HeapPtrObjectGroup &groupFromGC() const {
         
@@ -390,13 +388,7 @@ class JSObject : public js::gc::Cell
         return lastProperty()->hasObjectFlag(js::BaseShape::IMMUTABLE_PROTOTYPE);
     }
 
-    
-    inline void setGroup(js::types::ObjectGroup *group);
-    void uninlinedSetGroup(js::types::ObjectGroup *group);
-
-#ifdef DEBUG
-    bool hasNewGroup(const js::Class *clasp, js::types::ObjectGroup *group);
-#endif
+    inline void setGroup(js::ObjectGroup *group);
 
     
 

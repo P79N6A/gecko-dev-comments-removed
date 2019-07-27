@@ -154,7 +154,7 @@ class MIRGenerator
         return modifiesFrameArguments_;
     }
 
-    typedef Vector<types::ObjectGroup *, 0, JitAllocPolicy> ObjectGroupVector;
+    typedef Vector<ObjectGroup *, 0, JitAllocPolicy> ObjectGroupVector;
 
     
     
@@ -199,7 +199,7 @@ class MIRGenerator
     
     ObjectVector nurseryObjects_;
 
-    void addAbortedNewScriptPropertiesGroup(types::ObjectGroup *type);
+    void addAbortedNewScriptPropertiesGroup(ObjectGroup *type);
     void setForceAbort() {
         shouldForceAbort_ = true;
     }

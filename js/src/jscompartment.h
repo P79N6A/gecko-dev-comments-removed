@@ -220,9 +220,6 @@ struct JSCompartment
     inline void initGlobal(js::GlobalObject &global);
 
   public:
-    
-    js::types::TypeCompartment   types;
-
     void                         *data;
 
   private:
@@ -277,13 +274,9 @@ struct JSCompartment
     void sweepInitialShapeTable();
 
     
-    js::types::NewObjectGroupTable newObjectGroups;
-    js::types::NewObjectGroupTable lazyObjectGroups;
-    void sweepNewObjectGroupTable(js::types::NewObjectGroupTable &table);
+    js::ObjectGroupCompartment   objectGroups;
 
 #ifdef JSGC_HASH_TABLE_CHECKS
-    void checkObjectGroupTablesAfterMovingGC();
-    void checkObjectGroupTableAfterMovingGC(js::types::NewObjectGroupTable &table);
     void checkInitialShapesTableAfterMovingGC();
     void checkWrapperMapAfterMovingGC();
     void checkBaseShapeTableAfterMovingGC();
@@ -386,7 +379,6 @@ struct JSCompartment
 
     void sweepInnerViews();
     void sweepCrossCompartmentWrappers();
-    void sweepObjectGroupTables();
     void sweepSavedStacks();
     void sweepGlobalObject(js::FreeOp *fop);
     void sweepSelfHostingScriptSource();
@@ -400,7 +392,6 @@ struct JSCompartment
     void clearTables();
 
     void fixupInitialShapeTable();
-    void fixupNewObjectGroupTable(js::types::NewObjectGroupTable &table);
     void fixupAfterMovingGC();
     void fixupGlobal();
     void fixupBaseShapeTable();

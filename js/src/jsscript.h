@@ -875,13 +875,6 @@ class JSScript : public js::gc::TenuredCell
 
 
 
-#ifdef DEBUG
-    
-    
-    uint32_t        id_;
-    uint32_t        idpad;
-#endif
-
     
 
     uint16_t        version;    
@@ -1458,12 +1451,6 @@ class JSScript : public js::gc::TenuredCell
 
     
     bool isForEval() { return isCachedEval() || isActiveEval(); }
-
-#ifdef DEBUG
-    unsigned id();
-#else
-    unsigned id() { return 0; }
-#endif
 
     
     inline bool ensureHasTypes(JSContext *cx);

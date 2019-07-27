@@ -345,7 +345,7 @@ template <> struct TypeToArgProperties<HandleShape> {
     static const uint32_t result = TypeToArgProperties<Shape *>::result | VMFunction::ByRef;
 };
 template <> struct TypeToArgProperties<HandleObjectGroup> {
-    static const uint32_t result = TypeToArgProperties<types::ObjectGroup *>::result | VMFunction::ByRef;
+    static const uint32_t result = TypeToArgProperties<ObjectGroup *>::result | VMFunction::ByRef;
 };
 
 
@@ -759,7 +759,7 @@ void MarkValueFromIon(JSRuntime *rt, Value *vp);
 void MarkStringFromIon(JSRuntime *rt, JSString **stringp);
 void MarkObjectFromIon(JSRuntime *rt, JSObject **objp);
 void MarkShapeFromIon(JSRuntime *rt, Shape **shapep);
-void MarkObjectGroupFromIon(JSRuntime *rt, types::ObjectGroup **groupp);
+void MarkObjectGroupFromIon(JSRuntime *rt, ObjectGroup **groupp);
 
 
 inline void *

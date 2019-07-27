@@ -23,99 +23,9 @@
 #include "js/UbiNode.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
+#include "vm/ObjectGroup.h"
 
 namespace js {
-
-class TypeDescr;
-class UnboxedLayout;
-
-class TaggedProto
-{
-  public:
-    static JSObject * const LazyProto;
-
-    TaggedProto() : proto(nullptr) {}
-    explicit TaggedProto(JSObject *proto) : proto(proto) {}
-
-    uintptr_t toWord() const { return uintptr_t(proto); }
-
-    bool isLazy() const {
-        return proto == LazyProto;
-    }
-    bool isObject() const {
-        
-        return uintptr_t(proto) > uintptr_t(TaggedProto::LazyProto);
-    }
-    JSObject *toObject() const {
-        MOZ_ASSERT(isObject());
-        return proto;
-    }
-    JSObject *toObjectOrNull() const {
-        MOZ_ASSERT(!proto || isObject());
-        return proto;
-    }
-    JSObject *raw() const { return proto; }
-
-    bool operator ==(const TaggedProto &other) { return proto == other.proto; }
-    bool operator !=(const TaggedProto &other) { return proto != other.proto; }
-
-  private:
-    JSObject *proto;
-};
-
-template <>
-struct RootKind<TaggedProto>
-{
-    static ThingRootKind rootKind() { return THING_ROOT_OBJECT; }
-};
-
-template <> struct GCMethods<const TaggedProto>
-{
-    static TaggedProto initial() { return TaggedProto(); }
-    static bool poisoned(const TaggedProto &v) { return IsPoisonedPtr(v.raw()); }
-};
-
-template <> struct GCMethods<TaggedProto>
-{
-    static TaggedProto initial() { return TaggedProto(); }
-    static bool poisoned(const TaggedProto &v) { return IsPoisonedPtr(v.raw()); }
-};
-
-template<class Outer>
-class TaggedProtoOperations
-{
-    const TaggedProto *value() const {
-        return static_cast<const Outer*>(this)->extract();
-    }
-
-  public:
-    uintptr_t toWord() const { return value()->toWord(); }
-    inline bool isLazy() const { return value()->isLazy(); }
-    inline bool isObject() const { return value()->isObject(); }
-    inline JSObject *toObject() const { return value()->toObject(); }
-    inline JSObject *toObjectOrNull() const { return value()->toObjectOrNull(); }
-    JSObject *raw() const { return value()->raw(); }
-};
-
-template <>
-class HandleBase<TaggedProto> : public TaggedProtoOperations<Handle<TaggedProto> >
-{
-    friend class TaggedProtoOperations<Handle<TaggedProto> >;
-    const TaggedProto * extract() const {
-        return static_cast<const Handle<TaggedProto>*>(this)->address();
-    }
-};
-
-template <>
-class RootedBase<TaggedProto> : public TaggedProtoOperations<Rooted<TaggedProto> >
-{
-    friend class TaggedProtoOperations<Rooted<TaggedProto> >;
-    const TaggedProto *extract() const {
-        return static_cast<const Rooted<TaggedProto> *>(this)->address();
-    }
-};
-
-class CallObject;
 
 namespace jit {
     struct IonScript;
@@ -351,85 +261,6 @@ enum : uint32_t {
 };
 typedef uint32_t TypeFlags;
 
-
-enum : uint32_t {
-    
-    OBJECT_FLAG_FROM_ALLOCATION_SITE  = 0x1,
-
-    
-
-
-
-    OBJECT_FLAG_NURSERY_PROTO         = 0x2,
-
-    
-    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff8,
-    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 3,
-    OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
-        OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
-
-    
-    OBJECT_FLAG_SPARSE_INDEXES        = 0x00010000,
-
-    
-    OBJECT_FLAG_NON_PACKED            = 0x00020000,
-
-    
-
-
-
-    OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
-
-    
-    OBJECT_FLAG_ITERATED              = 0x00080000,
-
-    
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00100000,
-
-    
-
-
-
-    OBJECT_FLAG_RUNONCE_INVALIDATED   = 0x00200000,
-
-    
-
-
-
-    OBJECT_FLAG_TYPED_OBJECT_NEUTERED = 0x00400000,
-
-    
-
-
-
-    OBJECT_FLAG_PRE_TENURE            = 0x00800000,
-
-    
-    OBJECT_FLAG_COPY_ON_WRITE         = 0x01000000,
-
-    
-    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x02000000,
-
-    
-
-
-
-    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x04000000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x07ff0000,
-
-    
-    OBJECT_FLAG_ADDENDUM_MASK         = 0x38000000,
-    OBJECT_FLAG_ADDENDUM_SHIFT        = 27,
-
-    
-    
-    OBJECT_FLAG_GENERATION_MASK       = 0x40000000,
-    OBJECT_FLAG_GENERATION_SHIFT      = 30,
-};
-typedef uint32_t ObjectGroupFlags;
-
 class StackTypeSet;
 class HeapTypeSet;
 class TemporaryTypeSet;
@@ -647,8 +478,6 @@ class HeapTypeSet : public ConstraintTypeSet
     inline void setNonConstantProperty(ExclusiveContext *cx);
 };
 
-class CompilerConstraintList;
-
 CompilerConstraintList *
 NewCompilerConstraintList(jit::TempAllocator &alloc);
 
@@ -772,30 +601,6 @@ AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, ObjectGroup *group,
 bool
 AddClearDefiniteFunctionUsesInScript(JSContext *cx, ObjectGroup *group,
                                      JSScript *script, JSScript *calleeScript);
-
-
-inline bool isInlinableCall(jsbytecode *pc);
-
-
-struct Property
-{
-    
-    HeapId id;
-
-    
-    HeapTypeSet types;
-
-    explicit Property(jsid id)
-      : id(id)
-    {}
-
-    Property(const Property &o)
-      : id(o.id.get()), types(o.types)
-    {}
-
-    static uint32_t keyBits(jsid id) { return uint32_t(JSID_BITS(id)); }
-    static jsid getKey(Property *p) { return p->id; }
-};
 
 
 
@@ -965,6 +770,7 @@ class TypeNewScript
 };
 
 
+inline bool isInlinableCall(jsbytecode *pc);
 
 
 
@@ -985,399 +791,46 @@ class TypeNewScript
 
 
 
-struct ObjectGroup : public gc::TenuredCell
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct Property
 {
-  private:
     
-    const Class *clasp_;
-
-    
-    HeapPtrObject proto_;
+    HeapId id;
 
     
+    HeapTypeSet types;
 
-
-
-
-    HeapPtrObject singleton_;
-
-  public:
-
-    const Class *clasp() const {
-        return clasp_;
-    }
-
-    void setClasp(const Class *clasp) {
-        clasp_ = clasp;
-    }
-
-    TaggedProto proto() const {
-        return TaggedProto(proto_);
-    }
-
-    JSObject *singleton() const {
-        return singleton_;
-    }
-
-    
-    HeapPtrObject &protoRaw() { return proto_; }
-    HeapPtrObject &singletonRaw() { return singleton_; }
-
-    void setProto(JSContext *cx, TaggedProto proto);
-    void setProtoUnchecked(TaggedProto proto) {
-        proto_ = proto.raw();
-    }
-
-    void initSingleton(JSObject *singleton) {
-        singleton_ = singleton;
-    }
-
-    
-
-
-
-    static const size_t LAZY_SINGLETON = 1;
-    bool lazy() const { return singleton() == (JSObject *) LAZY_SINGLETON; }
-
-  private:
-    
-    ObjectGroupFlags flags_;
-
-    
-    enum AddendumKind {
-        Addendum_None,
-
-        
-        
-        Addendum_InterpretedFunction,
-
-        
-        
-        Addendum_NewScript,
-
-        
-        
-        
-        Addendum_UnboxedLayout,
-
-        
-        Addendum_TypeDescr
-    };
-
-    
-    
-    void *addendum_;
-
-    void setAddendum(AddendumKind kind, void *addendum, bool writeBarrier = true);
-
-    AddendumKind addendumKind() const {
-        return (AddendumKind)
-            ((flags_ & OBJECT_FLAG_ADDENDUM_MASK) >> OBJECT_FLAG_ADDENDUM_SHIFT);
-    }
-
-    TypeNewScript *newScriptDontCheckGeneration() const {
-        if (addendumKind() == Addendum_NewScript)
-            return reinterpret_cast<TypeNewScript *>(addendum_);
-        return nullptr;
-    }
-
-    UnboxedLayout *maybeUnboxedLayoutDontCheckGeneration() const {
-        if (addendumKind() == Addendum_UnboxedLayout)
-            return reinterpret_cast<UnboxedLayout *>(addendum_);
-        return nullptr;
-    }
-
-    TypeNewScript *anyNewScript();
-    void detachNewScript(bool writeBarrier);
-
-  public:
-
-    ObjectGroupFlags flags() {
-        maybeSweep(nullptr);
-        return flags_;
-    }
-
-    void addFlags(ObjectGroupFlags flags) {
-        maybeSweep(nullptr);
-        flags_ |= flags;
-    }
-
-    void clearFlags(ObjectGroupFlags flags) {
-        maybeSweep(nullptr);
-        flags_ &= ~flags;
-    }
-
-    TypeNewScript *newScript() {
-        maybeSweep(nullptr);
-        return newScriptDontCheckGeneration();
-    }
-
-    void setNewScript(TypeNewScript *newScript) {
-        setAddendum(Addendum_NewScript, newScript);
-    }
-
-    UnboxedLayout *maybeUnboxedLayout() {
-        maybeSweep(nullptr);
-        return maybeUnboxedLayoutDontCheckGeneration();
-    }
-
-    UnboxedLayout &unboxedLayout() {
-        MOZ_ASSERT(addendumKind() == Addendum_UnboxedLayout);
-        return *maybeUnboxedLayout();
-    }
-
-    void setUnboxedLayout(UnboxedLayout *layout) {
-        setAddendum(Addendum_UnboxedLayout, layout);
-    }
-
-    TypeDescr *maybeTypeDescr() {
-        
-        
-        if (addendumKind() == Addendum_TypeDescr)
-            return reinterpret_cast<TypeDescr *>(addendum_);
-        return nullptr;
-    }
-
-    TypeDescr &typeDescr() {
-        MOZ_ASSERT(addendumKind() == Addendum_TypeDescr);
-        return *maybeTypeDescr();
-    }
-
-    void setTypeDescr(TypeDescr *descr) {
-        setAddendum(Addendum_TypeDescr, descr);
-    }
-
-    JSFunction *maybeInterpretedFunction() {
-        
-        
-        if (addendumKind() == Addendum_InterpretedFunction)
-            return reinterpret_cast<JSFunction *>(addendum_);
-        return nullptr;
-    }
-
-    void setInterpretedFunction(JSFunction *fun) {
-        setAddendum(Addendum_InterpretedFunction, fun);
-    }
-
-  private:
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    Property **propertySet;
-  public:
-
-    inline ObjectGroup(const Class *clasp, TaggedProto proto, ObjectGroupFlags initialFlags);
-
-    bool hasAnyFlags(ObjectGroupFlags flags) {
-        MOZ_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
-        return !!(this->flags() & flags);
-    }
-    bool hasAllFlags(ObjectGroupFlags flags) {
-        MOZ_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
-        return (this->flags() & flags) == flags;
-    }
-
-    bool unknownProperties() {
-        MOZ_ASSERT_IF(flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES,
-                      hasAllFlags(OBJECT_FLAG_DYNAMIC_MASK));
-        return !!(flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES);
-    }
-
-    bool shouldPreTenure() {
-        return hasAnyFlags(OBJECT_FLAG_PRE_TENURE) && !unknownProperties();
-    }
-
-    bool hasTenuredProto() {
-        return !(flags() & OBJECT_FLAG_NURSERY_PROTO);
-    }
-
-    gc::InitialHeap initialHeap(CompilerConstraintList *constraints);
-
-    bool canPreTenure() {
-        return !unknownProperties();
-    }
-
-    bool fromAllocationSite() {
-        return flags() & OBJECT_FLAG_FROM_ALLOCATION_SITE;
-    }
-
-    void setShouldPreTenure(ExclusiveContext *cx) {
-        MOZ_ASSERT(canPreTenure());
-        setFlags(cx, OBJECT_FLAG_PRE_TENURE);
-    }
-
-    
-
-
-
-    inline HeapTypeSet *getProperty(ExclusiveContext *cx, jsid id);
-
-    
-    inline HeapTypeSet *maybeGetProperty(jsid id);
-
-    inline unsigned getPropertyCount();
-    inline Property *getProperty(unsigned i);
-
-    
-
-    void updateNewPropertyTypes(ExclusiveContext *cx, jsid id, HeapTypeSet *types);
-    bool addDefiniteProperties(ExclusiveContext *cx, Shape *shape);
-    bool matchDefiniteProperties(HandleObject obj);
-    void markPropertyNonData(ExclusiveContext *cx, jsid id);
-    void markPropertyNonWritable(ExclusiveContext *cx, jsid id);
-    void markStateChange(ExclusiveContext *cx);
-    void setFlags(ExclusiveContext *cx, ObjectGroupFlags flags);
-    void markUnknown(ExclusiveContext *cx);
-    void maybeClearNewScriptOnOOM();
-    void clearNewScript(ExclusiveContext *cx);
-    bool isPropertyNonData(jsid id);
-    bool isPropertyNonWritable(jsid id);
-
-    void print();
-
-    inline void clearProperties();
-    void maybeSweep(AutoClearTypeInferenceStateOnOOM *oom);
-
-  private:
-#ifdef DEBUG
-    bool needsSweep();
-#endif
-
-    uint32_t generation() {
-        return (flags_ & OBJECT_FLAG_GENERATION_MASK) >> OBJECT_FLAG_GENERATION_SHIFT;
-    }
-
-  public:
-    void setGeneration(uint32_t generation) {
-        MOZ_ASSERT(generation <= (OBJECT_FLAG_GENERATION_MASK >> OBJECT_FLAG_GENERATION_SHIFT));
-        flags_ &= ~OBJECT_FLAG_GENERATION_MASK;
-        flags_ |= generation << OBJECT_FLAG_GENERATION_SHIFT;
-    }
-
-    size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
-
-    inline void finalize(FreeOp *fop);
-    void fixupAfterMovingGC() {}
-
-    static inline ThingRootKind rootKind() { return THING_ROOT_OBJECT_GROUP; }
-
-    static inline uint32_t offsetOfClasp() {
-        return offsetof(ObjectGroup, clasp_);
-    }
-
-    static inline uint32_t offsetOfProto() {
-        return offsetof(ObjectGroup, proto_);
-    }
-
-    static inline uint32_t offsetOfAddendum() {
-        return offsetof(ObjectGroup, addendum_);
-    }
-
-    static inline uint32_t offsetOfFlags() {
-        return offsetof(ObjectGroup, flags_);
-    }
-
-  private:
-    inline uint32_t basePropertyCount();
-    inline void setBasePropertyCount(uint32_t count);
-
-    static void staticAsserts() {
-        JS_STATIC_ASSERT(offsetof(ObjectGroup, proto_) == offsetof(js::shadow::ObjectGroup, proto));
-    }
-};
-
-
-
-
-
-
-
-
-
-
-struct NewObjectGroupEntry
-{
-    ReadBarrieredObjectGroup group;
-
-    
-    JSObject *associated;
-
-    NewObjectGroupEntry(ObjectGroup *group, JSObject *associated)
-      : group(group), associated(associated)
+    explicit Property(jsid id)
+      : id(id)
     {}
 
-    struct Lookup {
-        const Class *clasp;
-        TaggedProto hashProto;
-        TaggedProto matchProto;
-        JSObject *associated;
+    Property(const Property &o)
+      : id(o.id.get()), types(o.types)
+    {}
 
-        Lookup(const Class *clasp, TaggedProto proto, JSObject *associated)
-          : clasp(clasp), hashProto(proto), matchProto(proto), associated(associated)
-        {}
-
-        
-
-
-
-        Lookup(const Class *clasp, TaggedProto hashProto, TaggedProto matchProto, JSObject *associated)
-            : clasp(clasp), hashProto(hashProto), matchProto(matchProto), associated(associated)
-        {}
-
-    };
-
-    static inline HashNumber hash(const Lookup &lookup);
-    static inline bool match(const NewObjectGroupEntry &key, const Lookup &lookup);
-    static void rekey(NewObjectGroupEntry &k, const NewObjectGroupEntry& newKey) { k = newKey; }
+    static uint32_t keyBits(jsid id) { return uint32_t(JSID_BITS(id)); }
+    static jsid getKey(Property *p) { return p->id; }
 };
-typedef HashSet<NewObjectGroupEntry, NewObjectGroupEntry, SystemAllocPolicy> NewObjectGroupTable;
-
-
-bool
-UseSingletonForNewObject(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-
-bool
-UseSingletonForClone(JSFunction *fun);
 
 
 
@@ -1427,10 +880,6 @@ class TypeScript
                                          uint32_t *hint, TYPESET *typeArray);
 
     
-    static inline ObjectGroup *InitGroup(JSContext *cx, JSScript *script, jsbytecode *pc,
-                                         JSProtoKey kind);
-
-    
 
 
 
@@ -1477,12 +926,6 @@ class TypeScript
 void
 FillBytecodeTypeMap(JSScript *script, uint32_t *bytecodeMap);
 
-ArrayObject *
-GetOrFixupCopyOnWriteObject(JSContext *cx, HandleScript script, jsbytecode *pc);
-
-ArrayObject *
-GetCopyOnWriteObject(JSScript *script, jsbytecode *pc);
-
 class RecompileInfo;
 
 
@@ -1496,22 +939,6 @@ FinishCompilation(JSContext *cx, HandleScript script, CompilerConstraintList *co
 
 void
 FinishDefinitePropertiesAnalysis(JSContext *cx, CompilerConstraintList *constraints);
-
-struct ArrayTableKey;
-typedef HashMap<ArrayTableKey,
-                ReadBarrieredObjectGroup,
-                ArrayTableKey,
-                SystemAllocPolicy> ArrayTypeTable;
-
-struct ObjectTableKey;
-struct ObjectTableEntry;
-typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy> ObjectTypeTable;
-
-struct AllocationSiteKey;
-typedef HashMap<AllocationSiteKey,
-                ReadBarrieredObjectGroup,
-                AllocationSiteKey,
-                SystemAllocPolicy> AllocationSiteTable;
 
 class HeapTypeSetKey;
 
@@ -1683,55 +1110,6 @@ class RecompileInfo
 
 typedef Vector<RecompileInfo, 0, SystemAllocPolicy> RecompileInfoVector;
 
-
-struct TypeCompartment
-{
-    
-    unsigned scriptCount;
-
-    
-    AllocationSiteTable *allocationSiteTable;
-
-    
-    ArrayTypeTable *arrayTypeTable;
-    ObjectTypeTable *objectTypeTable;
-
-  private:
-    void setTypeToHomogenousArray(ExclusiveContext *cx, JSObject *obj, Type type);
-
-  public:
-    void fixArrayGroup(ExclusiveContext *cx, ArrayObject *obj);
-    void fixObjectGroup(ExclusiveContext *cx, PlainObject *obj);
-    void fixRestArgumentsType(ExclusiveContext *cx, ArrayObject *obj);
-
-    JSObject *newTypedObject(JSContext *cx, IdValuePair *properties, size_t nproperties);
-
-    TypeCompartment();
-    ~TypeCompartment();
-
-    inline JSCompartment *compartment();
-
-    
-    void print(JSContext *cx, bool force);
-
-    ObjectGroup *newObjectGroup(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
-                                ObjectGroupFlags initialFlags = 0);
-
-    
-    ObjectGroup *addAllocationSiteObjectGroup(JSContext *cx, AllocationSiteKey key);
-
-    void clearTables();
-    void sweep(FreeOp *fop);
-    void finalizeObjects();
-
-    void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
-                                size_t *allocationSiteTables,
-                                size_t *arrayTypeTables,
-                                size_t *objectTypeTables);
-};
-
-void FixRestArgumentsType(ExclusiveContext *cxArg, ArrayObject *obj);
-
 struct AutoEnterAnalysis;
 
 struct TypeZone
@@ -1819,6 +1197,10 @@ inline const char * ObjectGroupString(ObjectGroup *group) { return nullptr; }
 
 MOZ_NORETURN MOZ_COLD void TypeFailure(JSContext *cx, const char *fmt, ...);
 
+
+void
+PrintTypes(JSContext *cx, JSCompartment *comp, bool force);
+
 } 
 } 
 
@@ -1826,7 +1208,7 @@ MOZ_NORETURN MOZ_COLD void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 namespace JS {
 namespace ubi {
-template<> struct Concrete<js::types::ObjectGroup> : TracerConcrete<js::types::ObjectGroup> { };
+template<> struct Concrete<js::ObjectGroup> : TracerConcrete<js::ObjectGroup> { };
 }
 }
 

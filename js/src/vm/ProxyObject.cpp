@@ -66,7 +66,7 @@ ProxyObject::New(JSContext *cx, const BaseProxyHandler *handler, HandleValue pri
 
     
     if (newKind != SingletonObject && !clasp->isDOMClass())
-        MarkObjectGroupUnknownProperties(cx, proxy->group());
+        types::MarkObjectGroupUnknownProperties(cx, proxy->group());
 
     return proxy;
 }

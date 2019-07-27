@@ -52,7 +52,7 @@ NewObjectCache::newObjectFromHit(JSContext *cx, EntryIndex entry_, js::gc::Initi
 
     
     
-    types::ObjectGroup *group = templateObj->group_;
+    ObjectGroup *group = templateObj->group_;
 
     if (group->shouldPreTenure())
         heap = gc::TenuredHeap;

@@ -4295,7 +4295,7 @@ ParseNode::getConstantValue(ExclusiveContext *cx, AllowConstantObjects allowObje
         }
         MOZ_ASSERT(idx == count);
 
-        types::FixArrayGroup(cx, obj);
+        ObjectGroup::fixArrayGroup(cx, obj);
         vp.setObject(*obj);
         return true;
       }
@@ -4358,7 +4358,7 @@ ParseNode::getConstantValue(ExclusiveContext *cx, AllowConstantObjects allowObje
             }
         }
 
-        types::FixObjectGroup(cx, obj);
+        ObjectGroup::fixPlainObjectGroup(cx, obj);
         vp.setObject(*obj);
         return true;
       }

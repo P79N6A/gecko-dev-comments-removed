@@ -585,8 +585,8 @@ JSONParserBase::createFinishedObject(PropertyVector &properties)
 
 
     {
-        JSObject *obj = cx->compartment()->types.newTypedObject(cx, properties.begin(),
-                                                                properties.length());
+        JSObject *obj = ObjectGroup::newPlainObject(cx, properties.begin(),
+                                                    properties.length());
         if (obj)
             return obj;
     }
@@ -615,7 +615,7 @@ JSONParserBase::createFinishedObject(PropertyVector &properties)
 
 
 
-    cx->compartment()->types.fixObjectGroup(cx, obj);
+    ObjectGroup::fixPlainObjectGroup(cx, obj);
 
     return obj;
 }
@@ -646,7 +646,7 @@ JSONParserBase::finishArray(MutableHandleValue vp, ElementVector &elements)
         return false;
 
     
-    cx->compartment()->types.fixArrayGroup(cx, obj);
+    ObjectGroup::fixArrayGroup(cx, obj);
 
     vp.setObject(*obj);
     if (!freeElements.append(&elements))
