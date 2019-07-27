@@ -74,8 +74,8 @@ const l10n = exports.l10n = {
 
 
 
-let UsageReportActor = protocol.ActorClass({
-  typeName: "usageReport",
+let CSSUsageActor = protocol.ActorClass({
+  typeName: "cssUsage",
 
   events: {
     "state-change" : {
@@ -477,7 +477,7 @@ let UsageReportActor = protocol.ActorClass({
   }),
 });
 
-exports.UsageReportActor = UsageReportActor;
+exports.CSSUsageActor = CSSUsageActor;
 
 
 
@@ -733,10 +733,10 @@ let chromeWindow;
 
 
 
-const UsageReportFront = protocol.FrontClass(UsageReportActor, {
+const CSSUsageFront = protocol.FrontClass(CSSUsageActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
-    this.actorID = form.usageReportActor;
+    this.actorID = form.cssUsageActor;
     this.manage(this);
   },
 
@@ -806,19 +806,19 @@ const UsageReportFront = protocol.FrontClass(UsageReportActor, {
   }
 });
 
-exports.UsageReportFront = UsageReportFront;
+exports.CSSUsageFront = CSSUsageFront;
 
 
 
 
 exports.register = function(handle) {
-  handle.addGlobalActor(UsageReportActor, "usageReportActor");
-  handle.addTabActor(UsageReportActor, "usageReportActor");
+  handle.addGlobalActor(CSSUsageActor, "cssUsageActor");
+  handle.addTabActor(CSSUsageActor, "cssUsageActor");
 };
 
 exports.unregister = function(handle) {
-  handle.removeGlobalActor(UsageReportActor, "usageReportActor");
-  handle.removeTabActor(UsageReportActor, "usageReportActor");
+  handle.removeGlobalActor(CSSUsageActor, "cssUsageActor");
+  handle.removeTabActor(CSSUsageActor, "cssUsageActor");
 };
 
 const knownFronts = new WeakMap();
@@ -831,8 +831,8 @@ const knownFronts = new WeakMap();
 const getUsage = exports.getUsage = function(target) {
   return target.makeRemote().then(() => {
     let front = knownFronts.get(target.client)
-    if (front == null && target.form.usageReportActor != null) {
-      front = new UsageReportFront(target.client, target.form);
+    if (front == null && target.form.cssUsageActor != null) {
+      front = new CSSUsageFront(target.client, target.form);
       knownFronts.set(target.client, front);
     }
     return front;
