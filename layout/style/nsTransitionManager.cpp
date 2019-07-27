@@ -341,7 +341,9 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
     }
   }
 
-  collection->mStyleRule = nullptr;
+  
+  
+  collection->mStyleRuleRefreshTime = TimeStamp();
 
   return coverRule.forget();
 }
