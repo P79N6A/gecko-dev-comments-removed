@@ -247,6 +247,10 @@ public:
 
   
   
+  bool IsCORSSameOrigin();
+
+  
+  
   bool IsPotentiallyPlaying() const;
 
   

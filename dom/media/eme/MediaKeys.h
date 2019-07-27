@@ -117,10 +117,6 @@ public:
   
   bool IsBoundToMediaElement() const;
 
-  
-  
-  nsresult CheckPrincipals();
-
 private:
 
   bool IsInPrivateBrowsing();
