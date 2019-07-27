@@ -819,3 +819,129 @@ CodeGeneratorX64::visitTruncateFToInt32(LTruncateFToInt32* ins)
     
     emitTruncateFloat32(input, output, ins->mir());
 }
+
+namespace js {
+namespace jit {
+
+
+class OutOfLineRandom : public OutOfLineCodeBase<CodeGeneratorX64>
+{
+    LRandom* lir_;
+
+  public:
+    explicit OutOfLineRandom(LRandom* lir)
+      : lir_(lir)
+    { }
+
+    void accept(CodeGeneratorX64* codegen) {
+        codegen->visitOutOfLineRandom(this);
+    }
+
+    LRandom* lir() const {
+        return lir_;
+    }
+};
+
+} 
+} 
+
+static const double RNG_DSCALE_INV = 1 / RNG_DSCALE;
+
+void
+CodeGeneratorX64::visitRandom(LRandom* ins)
+{
+    FloatRegister output = ToFloatRegister(ins->output());
+
+    Register JSCompartmentReg = ToRegister(ins->temp());
+    Register rngStateReg = ToRegister(ins->temp2());
+    Register highReg = ToRegister(ins->temp3());
+    Register lowReg = ToRegister(ins->temp4());
+    Register rngMaskReg = ToRegister(ins->temp5());
+
+    
+    masm.loadJSContext(JSCompartmentReg);
+    masm.loadPtr(Address(JSCompartmentReg, JSContext::offsetOfCompartment()), JSCompartmentReg);
+    masm.loadPtr(Address(JSCompartmentReg, JSCompartment::offsetOfRngState()), rngStateReg);
+
+    
+    
+    OutOfLineRandom* ool = new(alloc()) OutOfLineRandom(ins);
+    addOutOfLineCode(ool, ins->mir());
+    masm.branchTestPtr(Assembler::Zero, rngStateReg, rngStateReg, ool->entry());
+
+    
+    Register& rngMultiplierReg = lowReg;
+    masm.movq(ImmWord(RNG_MULTIPLIER), rngMultiplierReg);
+    masm.imulq(rngMultiplierReg, rngStateReg);
+
+    
+    masm.addq(Imm32(RNG_ADDEND), rngStateReg);
+
+    
+    masm.movq(ImmWord(RNG_MASK), rngMaskReg);
+    masm.andq(rngMaskReg, rngStateReg);
+
+    
+
+    
+    
+    masm.j(Assembler::Zero, ool->entry());
+
+    
+    masm.movq(rngStateReg, highReg);
+    masm.shrq(Imm32(RNG_STATE_WIDTH - RNG_HIGH_BITS), highReg);
+    masm.shlq(Imm32(RNG_LOW_BITS), highReg);
+
+    
+    masm.imulq(rngMultiplierReg, rngStateReg);
+
+    
+    masm.addq(Imm32(RNG_ADDEND), rngStateReg);
+
+    
+    masm.andq(rngMaskReg, rngStateReg);
+
+    
+    masm.movq(rngStateReg, lowReg);
+    masm.shrq(Imm32(RNG_STATE_WIDTH - RNG_LOW_BITS), lowReg);
+
+    
+    masm.orq(highReg, lowReg);
+    masm.vcvtsi2sdq(lowReg, output);
+
+    
+    Register& rngDscaleInvReg = lowReg;
+    masm.movq(ImmPtr(&RNG_DSCALE_INV), rngDscaleInvReg);
+    masm.vmulsd(Operand(rngDscaleInvReg, 0), output, output);
+
+    
+    masm.storePtr(rngStateReg, Address(JSCompartmentReg, JSCompartment::offsetOfRngState()));
+
+    masm.bind(ool->rejoin());
+}
+
+void
+CodeGeneratorX64::visitOutOfLineRandom(OutOfLineRandom* ool)
+{
+    LRandom* ins = ool->lir();
+    Register temp = ToRegister(ins->temp());
+    Register temp2 = ToRegister(ins->temp2());
+    MOZ_ASSERT(ToFloatRegister(ins->output()) == ReturnDoubleReg);
+
+    LiveRegisterSet regs;
+    regs.add(ReturnFloat32Reg);
+    regs.add(ReturnDoubleReg);
+    regs.add(ReturnInt32x4Reg);
+    regs.add(ReturnFloat32x4Reg);
+    saveVolatile(regs);
+
+    masm.loadJSContext(temp);
+
+    masm.setupUnalignedABICall(1, temp2);
+    masm.passABIArg(temp);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, math_random_no_outparam), MoveOp::DOUBLE);
+
+    restoreVolatile(regs);
+
+    masm.jump(ool->rejoin());
+}

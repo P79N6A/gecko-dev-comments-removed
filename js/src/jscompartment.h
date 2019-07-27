@@ -455,6 +455,10 @@ struct JSCompartment
     
     uint64_t rngState;
 
+    static size_t offsetOfRngState() {
+        return offsetof(JSCompartment, rngState);
+    }
+
   private:
     JSCompartment* thisForCtor() { return this; }
 
