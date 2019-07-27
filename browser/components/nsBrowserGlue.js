@@ -1320,7 +1320,7 @@ BrowserGlue.prototype = {
 
   _migrateUI: function BG__migrateUI() {
     const UI_VERSION = 23;
-    const BROWSER_DOCURL = "chrome://browser/content/browser.xul";
+    const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
       currentUIVersion = Services.prefs.getIntPref("browser.migration.version");
@@ -1328,22 +1328,28 @@ BrowserGlue.prototype = {
     if (currentUIVersion >= UI_VERSION)
       return;
 
-    let xulStore = Cc["@mozilla.org/xul/xulstore;1"].getService(Ci.nsIXULStore);
+    this._rdf = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+    this._dataSource = this._rdf.GetDataSource("rdf:local-store");
+    this._dirty = false;
 
     if (currentUIVersion < 2) {
       
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset &&
           currentset.indexOf("bookmarks-menu-button-container") == -1) {
         currentset += ",bookmarks-menu-button-container";
-        xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+        this._setPersist(toolbarResource, currentsetResource, currentset);
       }
     }
 
     if (currentUIVersion < 3) {
       
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset &&
           currentset.indexOf("reload-button") != -1 &&
@@ -1354,13 +1360,15 @@ BrowserGlue.prototype = {
                                .replace(/(^|,)stop-button($|,)/, "$1$2")
                                .replace(/(^|,)urlbar-container($|,)/,
                                         "$1urlbar-container,reload-button,stop-button$2");
-        xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+        this._setPersist(toolbarResource, currentsetResource, currentset);
       }
     }
 
     if (currentUIVersion < 4) {
       
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset &&
           currentset.indexOf("home-button") != -1 &&
@@ -1368,21 +1376,24 @@ BrowserGlue.prototype = {
         currentset = currentset.replace(/(^|,)home-button($|,)/, "$1$2")
                                .replace(/(^|,)bookmarks-menu-button-container($|,)/,
                                         "$1home-button,bookmarks-menu-button-container$2");
-        xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+        this._setPersist(toolbarResource, currentsetResource, currentset);
       }
     }
 
     if (currentUIVersion < 5) {
       
       
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "PersonalToolbar");
+      let collapsedResource = this._rdf.GetResource("collapsed");
+      let collapsed = this._getPersist(toolbarResource, collapsedResource);
       
       
-      
-      if (!xulStore.hasValue(BROWSER_DOCURL, "PersonalToolbar", "collapsed")) {
+      if (collapsed === null) {
         
         
-        let toolbarIsCustomized = xulStore.hasValue(BROWSER_DOCURL,
-                                                    "PersonalToolbar", "currentset");
+        let currentsetResource = this._rdf.GetResource("currentset");
+        let toolbarIsCustomized = !!this._getPersist(toolbarResource,
+                                                     currentsetResource);
         let getToolbarFolderCount = function () {
           let toolbarFolder =
             PlacesUtils.getFolderContents(PlacesUtils.toolbarFolderId).root;
@@ -1392,7 +1403,7 @@ BrowserGlue.prototype = {
         };
 
         if (toolbarIsCustomized || getToolbarFolderCount() > 3) {
-          xulStore.setValue(BROWSER_DOCURL, "PersonalToolbar", "collapsed", "false");
+          this._setPersist(toolbarResource, collapsedResource, "false");
         }
       }
     }
@@ -1408,7 +1419,9 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 9) {
       
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
 
       
       
@@ -1429,7 +1442,7 @@ BrowserGlue.prototype = {
           currentset = currentset.replace(/(^|,)window-controls($|,)/,
                                           "$1downloads-button,window-controls$2")
         }
-        xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+        this._setPersist(toolbarResource, currentsetResource, currentset);
       }
     }
 
@@ -1459,13 +1472,15 @@ BrowserGlue.prototype = {
     if (currentUIVersion < 12) {
       
       
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset) {
         if (currentset.contains("bookmarks-menu-button-container")) {
           currentset = currentset.replace(/(^|,)bookmarks-menu-button-container($|,)/,
                                           "$1bookmarks-menu-button$2");
-          xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+          this._setPersist(toolbarResource, currentsetResource, currentset);
         }
       }
     }
@@ -1486,16 +1501,20 @@ BrowserGlue.prototype = {
     }
 
     if (currentUIVersion < 16) {
-      let isCollapsed = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "collapsed");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let collapsedResource = this._rdf.GetResource("collapsed");
+      let isCollapsed = this._getPersist(toolbarResource, collapsedResource);
       if (isCollapsed == "true") {
-        xulStore.setValue(BROWSER_DOCURL, "nav-bar", "collapsed", "false");
+        this._setPersist(toolbarResource, collapsedResource, "false");
       }
     }
 
     
     
     if (currentUIVersion < 17) {
-      let currentset = xulStore.getValue(BROWSER_DOCURL, "nav-bar", "currentset");
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
       
       if (currentset) {
         if (!currentset.contains("bookmarks-menu-button")) {
@@ -1512,7 +1531,7 @@ BrowserGlue.prototype = {
             currentset = currentset.replace(/(^|,)window-controls($|,)/,
                                             "$1bookmarks-menu-button,window-controls$2")
           }
-          xulStore.setValue(BROWSER_DOCURL, "nav-bar", "currentset", currentset);
+          this._setPersist(toolbarResource, currentsetResource, currentset);
         }
       }
     }
@@ -1522,8 +1541,12 @@ BrowserGlue.prototype = {
       let toolbars = ["navigator-toolbox", "nav-bar", "PersonalToolbar",
                       "addon-bar", "TabsToolbar", "toolbar-menubar"];
       for (let resourceName of ["mode", "iconsize"]) {
+        let resource = this._rdf.GetResource(resourceName);
         for (let toolbarId of toolbars) {
-          xulStore.removeValue(BROWSER_DOCURL, toolbarId, resourceName);
+          let toolbar = this._rdf.GetResource(BROWSER_DOCURL + toolbarId);
+          if (this._getPersist(toolbar, resource)) {
+            this._setPersist(toolbar, resource);
+          }
         }
       }
     }
@@ -1546,13 +1569,21 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 20) {
       
-      xulStore.removeValue(BROWSER_DOCURL, "TabsToolbar", "collapsed");
+      let resource = this._rdf.GetResource("collapsed");
+      let toolbar = this._rdf.GetResource(BROWSER_DOCURL + "TabsToolbar");
+      if (this._getPersist(toolbar, resource)) {
+        this._setPersist(toolbar, resource);
+      }
     }
 
     if (currentUIVersion < 21) {
       
       
-      xulStore.removeValue(BROWSER_DOCURL, "bookmarks-menu-button", "class");
+      let button = this._rdf.GetResource(BROWSER_DOCURL + "bookmarks-menu-button");
+      let classResource = this._rdf.GetResource("class");
+      if (this._getPersist(button, classResource)) {
+        this._setPersist(button, classResource);
+      }
     }
 
     if (currentUIVersion < 22) {
@@ -1572,8 +1603,47 @@ BrowserGlue.prototype = {
       }
     }
 
+    if (this._dirty)
+      this._dataSource.QueryInterface(Ci.nsIRDFRemoteDataSource).Flush();
+
+    delete this._rdf;
+    delete this._dataSource;
+
     
     Services.prefs.setIntPref("browser.migration.version", UI_VERSION);
+  },
+
+  _getPersist: function BG__getPersist(aSource, aProperty) {
+    var target = this._dataSource.GetTarget(aSource, aProperty, true);
+    if (target instanceof Ci.nsIRDFLiteral)
+      return target.Value;
+    return null;
+  },
+
+  _setPersist: function BG__setPersist(aSource, aProperty, aTarget) {
+    this._dirty = true;
+    try {
+      var oldTarget = this._dataSource.GetTarget(aSource, aProperty, true);
+      if (oldTarget) {
+        if (aTarget)
+          this._dataSource.Change(aSource, aProperty, oldTarget, this._rdf.GetLiteral(aTarget));
+        else
+          this._dataSource.Unassert(aSource, aProperty, oldTarget);
+      }
+      else {
+        this._dataSource.Assert(aSource, aProperty, this._rdf.GetLiteral(aTarget), true);
+      }
+
+      
+      
+      let docURL = aSource.ValueUTF8.split("#")[0];
+      let docResource = this._rdf.GetResource(docURL);
+      let persistResource = this._rdf.GetResource("http://home.netscape.com/NC-rdf#persist");
+      if (!this._dataSource.HasAssertion(docResource, persistResource, aSource, true)) {
+        this._dataSource.Assert(docResource, persistResource, aSource, true);
+      }
+    }
+    catch(ex) {}
   },
 
   

@@ -8,6 +8,7 @@
 #include "nsIContent.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "nsIDOMElement.h"
+#include "nsILocalStore.h"
 #include "nsIBoxObject.h"
 #include "nsITreeBoxObject.h"
 #include "nsITreeSelection.h"
@@ -30,7 +31,6 @@
 #include "nsDOMClassInfoID.h"
 #include "nsWhitespaceTokenizer.h"
 #include "nsTreeContentView.h"
-#include "nsIXULStore.h"
 
 
 #include "nsIDocument.h"
@@ -141,8 +141,11 @@ protected:
     
 
 
-    bool
-    IsContainerOpen(nsIXULTemplateResult* aResource);
+    nsresult
+    IsContainerOpen(nsIXULTemplateResult *aResult, bool* aOpen);
+
+    nsresult
+    IsContainerOpen(nsIRDFResource* aResource, bool* aOpen);
 
     
 
@@ -239,11 +242,6 @@ protected:
 
 
     nsCOMArray<nsIXULTreeBuilderObserver> mObservers;
-
-    
-
-
-    nsCOMPtr<nsIXULStore> mLocalStore;
 };
 
 
@@ -280,7 +278,6 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(nsXULTreeBuilder, nsXULTemplateBuilder,
                                    mBoxObject,
                                    mSelection,
                                    mPersistStateStore,
-                                   mLocalStore,
                                    mObservers)
 
 DOMCI_DATA(XULTreeBuilder, nsXULTreeBuilder)
@@ -531,7 +528,8 @@ nsXULTreeBuilder::IsContainerOpen(int32_t aIndex, bool* aOpen)
     nsTreeRows::iterator iter = mRows[aIndex];
 
     if (iter->mContainerState == nsTreeRows::eContainerState_Unknown) {
-        bool isOpen = IsContainerOpen(iter->mMatch->mResult);
+        bool isOpen;
+        IsContainerOpen(iter->mMatch->mResult, &isOpen);
 
         iter->mContainerState = isOpen
             ? nsTreeRows::eContainerState_Open
@@ -763,11 +761,37 @@ nsXULTreeBuilder::SetTree(nsITreeBoxObject* aTree)
     bool isTrusted = false;
     nsresult rv = IsSystemPrincipal(mRoot->NodePrincipal(), &isTrusted);
     if (NS_SUCCEEDED(rv) && isTrusted) {
-        mLocalStore = do_GetService("@mozilla.org/xul/xulstore;1");
-        if(NS_WARN_IF(!mLocalStore)){
-            return NS_ERROR_NOT_INITIALIZED;
+        
+        nsAutoString datasourceStr;
+        mRoot->GetAttr(kNameSpaceID_None, nsGkAtoms::statedatasource, datasourceStr);
+
+        
+        
+        
+        if (! datasourceStr.IsEmpty()) {
+            gRDFService->GetDataSource(NS_ConvertUTF16toUTF8(datasourceStr).get(),
+                                       getter_AddRefs(mPersistStateStore));
+        }
+        else {
+            gRDFService->GetDataSource("rdf:local-store",
+                                       getter_AddRefs(mPersistStateStore));
         }
     }
+
+    
+    
+    
+    
+    
+    
+    if (! mPersistStateStore) {
+        mPersistStateStore =
+            do_CreateInstance("@mozilla.org/rdf/datasource;1?name=in-memory-datasource");
+    }
+
+    NS_ASSERTION(mPersistStateStore, "failed to get a persistent state store");
+    if (! mPersistStateStore)
+        return NS_ERROR_FAILURE;
 
     Rebuild();
 
@@ -806,36 +830,34 @@ nsXULTreeBuilder::ToggleOpenState(int32_t aIndex)
             observer->OnToggleOpenState(aIndex);
     }
 
-    if (mLocalStore && mRoot) {
+    if (mPersistStateStore) {
         bool isOpen;
         IsContainerOpen(aIndex, &isOpen);
 
-        nsIDocument* doc = mRoot->GetDocument();
-        if (!doc) {
+        nsCOMPtr<nsIRDFResource> container;
+        GetResourceFor(aIndex, getter_AddRefs(container));
+        if (! container)
             return NS_ERROR_FAILURE;
-        }
 
-        nsIURI* docURI = doc->GetDocumentURI();
-        nsTreeRows::Row& row = *(mRows[aIndex]);
-        nsAutoString nodeid;
-        nsresult rv = row.mMatch->mResult->GetId(nodeid);
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
-
-        nsAutoCString utf8uri;
-        rv = docURI->GetSpec(utf8uri);
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-            return rv;
-        }
-        NS_ConvertUTF8toUTF16 uri(utf8uri);
+        bool hasProperty;
+        IsContainerOpen(container, &hasProperty);
 
         if (isOpen) {
-            mLocalStore->RemoveValue(uri, nodeid, NS_LITERAL_STRING("open"));
+            if (hasProperty) {
+                mPersistStateStore->Unassert(container,
+                                             nsXULContentUtils::NC_open,
+                                             nsXULContentUtils::true_);
+            }
+
             CloseContainer(aIndex);
-        } else {
-            mLocalStore->SetValue(uri, nodeid, NS_LITERAL_STRING("open"),
-                NS_LITERAL_STRING("true"));
+        }
+        else {
+            if (! hasProperty) {
+                mPersistStateStore->Assert(container,
+                                           nsXULContentUtils::NC_open,
+                                           nsXULContentUtils::true_,
+                                           true);
+            }
 
             OpenContainer(aIndex, result);
         }
@@ -1203,9 +1225,10 @@ nsXULTreeBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
                 if (NS_FAILED(rv) || ! mayProcessChildren) return NS_OK;
             }
 
-            if (IsContainerOpen(result)) {
+            bool open;
+            IsContainerOpen(result, &open);
+            if (open)
                 OpenContainer(iter.GetRowIndex(), result);
-            }
         }
     }
 
@@ -1613,7 +1636,9 @@ nsXULTreeBuilder::OpenSubtreeForQuerySet(nsTreeRows::Subtree* aSubtree,
 
                 
                 
-                if (IsContainerOpen(nextresult)) {
+                bool isOpen = false;
+                IsContainerOpen(nextresult, &isOpen);
+                if (isOpen) {
                     if (open.AppendElement(count) == nullptr)
                         return NS_ERROR_OUT_OF_MEMORY;
                 }
@@ -1697,42 +1722,36 @@ nsXULTreeBuilder::RemoveMatchesFor(nsTreeRows::Subtree& subtree)
     return NS_OK;
 }
 
-
-bool
-nsXULTreeBuilder::IsContainerOpen(nsIXULTemplateResult *aResult)
+nsresult
+nsXULTreeBuilder::IsContainerOpen(nsIXULTemplateResult *aResult, bool* aOpen)
 {
-  
-  if ((mFlags & eDontRecurse) && aResult != mRootResult) {
-    return false;
-  }
+    
+    if ((mFlags & eDontRecurse) && aResult != mRootResult) {
+        *aOpen = false;
+        return NS_OK;
+    }
 
-  if (!mLocalStore) {
-    return false;
-  }
+    nsCOMPtr<nsIRDFResource> id;
+    nsresult rv = GetResultResource(aResult, getter_AddRefs(id));
+    if (NS_FAILED(rv))
+        return rv;
 
-  nsIDocument* doc = mRoot->GetDocument();
-  if (!doc) {
-    return false;
-  }
+    return IsContainerOpen(id, aOpen);
+}
 
-  nsIURI* docURI = doc->GetDocumentURI();
+nsresult
+nsXULTreeBuilder::IsContainerOpen(nsIRDFResource* aResource, bool* aOpen)
+{
+    if (mPersistStateStore)
+        mPersistStateStore->HasAssertion(aResource,
+                                         nsXULContentUtils::NC_open,
+                                         nsXULContentUtils::true_,
+                                         true,
+                                         aOpen);
+    else
+        *aOpen = false;
 
-  nsAutoString nodeid;
-  nsresult rv = aResult->GetId(nodeid);
-  if (NS_FAILED(rv)) {
-    return false;
-  }
-
-  nsAutoCString utf8uri;
-  rv = docURI->GetSpec(utf8uri);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-      return false;
-  }
-  NS_ConvertUTF8toUTF16 uri(utf8uri);
-
-  nsAutoString val;
-  mLocalStore->GetValue(uri, nodeid, NS_LITERAL_STRING("open"), val);
-  return val.EqualsLiteral("true");
+    return NS_OK;
 }
 
 int
