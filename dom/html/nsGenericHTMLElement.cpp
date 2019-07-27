@@ -3194,7 +3194,7 @@ nsGenericHTMLElement::IsEventAttributeName(nsIAtom *aName)
 
 
 nsresult
-nsGenericHTMLElement::NewURIFromString(const nsAutoString& aURISpec,
+nsGenericHTMLElement::NewURIFromString(const nsAString& aURISpec,
                                        nsIURI** aURI)
 {
   NS_ENSURE_ARG_POINTER(aURI);

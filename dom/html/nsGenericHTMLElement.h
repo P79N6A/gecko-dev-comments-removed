@@ -1011,7 +1011,7 @@ protected:
 
 
 
-  nsresult NewURIFromString(const nsAutoString& aURISpec, nsIURI** aURI);
+  nsresult NewURIFromString(const nsAString& aURISpec, nsIURI** aURI);
 
   void GetHTMLAttr(nsIAtom* aName, nsAString& aResult) const
   {
