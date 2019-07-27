@@ -1496,6 +1496,11 @@ Toolbox.prototype = {
       iframe.QueryInterface(Ci.nsIFrameLoaderOwner);
       iframe.swapFrameLoaders(this.frame);
 
+      
+      
+      
+      this.frame.contentWindow.focus();
+
       this._host.off("window-closed", this.destroy);
       this.destroyHost();
 
@@ -1507,6 +1512,10 @@ Toolbox.prototype = {
 
       this._buildDockButtons();
       this._addKeysToWindow();
+
+      
+      
+      this.frame.contentWindow.focus();
 
       this.emit("host-changed");
     });
