@@ -2638,7 +2638,8 @@ ContainerState::ComputeOpaqueRect(nsDisplayItem* aItem,
     
     
     
-    if (!mContainerLayer->GetParent()) {
+    
+    if (!nsLayoutUtils::GetCrossDocParentFrame(mContainerFrame)) {
       mBuilder->AddWindowOpaqueRegion(opaqueClipped);
     }
     opaquePixels = ScaleRegionToInsidePixels(opaqueClipped, snapOpaque);
