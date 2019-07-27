@@ -3084,6 +3084,39 @@ function Tab(aURL, aParams) {
   this.create(aURL, aParams);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+const MAX_URI_LENGTH = 25000;
+
+
+
+
+const MAX_TITLE_LENGTH = 255;
+
+
+
+
+function truncate(text, max) {
+  if (!text || !max) {
+    return text;
+  }
+
+  if (text.length <= max) {
+    return text;
+  }
+
+  return text.slice(0, max) + "â€¦";
+}
+
 Tab.prototype = {
   create: function(aURL, aParams) {
     if (this.browser)
@@ -3154,12 +3187,12 @@ Tab.prototype = {
       let message = {
         type: "Tab:Added",
         tabID: this.id,
-        uri: uri,
+        uri: truncate(uri, MAX_URI_LENGTH),
         parentId: ("parentId" in aParams) ? aParams.parentId : -1,
         tabIndex: ("tabIndex" in aParams) ? aParams.tabIndex : -1,
         external: ("external" in aParams) ? aParams.external : false,
         selected: ("selected" in aParams) ? aParams.selected : true,
-        title: title,
+        title: truncate(title, MAX_TITLE_LENGTH),
         delayLoad: aParams.delayLoad || false,
         desktopMode: this.desktopMode,
         isPrivate: isPrivate,
@@ -3208,7 +3241,7 @@ Tab.prototype = {
       this.browser.__SS_data = {
         entries: [{
           url: aURL,
-          title: title
+          title: truncate(title, MAX_TITLE_LENGTH)
         }],
         index: 1
       };
@@ -3947,7 +3980,7 @@ Tab.prototype = {
         sendMessageToJava({
           type: "DOMTitleChanged",
           tabID: this.id,
-          title: aEvent.target.title.substring(0, 255)
+          title: truncate(aEvent.target.title, MAX_TITLE_LENGTH)
         });
         break;
       }
@@ -4136,7 +4169,7 @@ Tab.prototype = {
       let message = {
         type: "Content:StateChange",
         tabID: this.id,
-        uri: uri,
+        uri: truncate(uri, MAX_URI_LENGTH),
         state: aStateFlags,
         restoring: restoring,
         success: success
@@ -4202,7 +4235,7 @@ Tab.prototype = {
     let message = {
       type: "Content:LocationChange",
       tabID: this.id,
-      uri: fixedURI.spec,
+      uri: truncate(fixedURI.spec, MAX_URI_LENGTH),
       userSearch: this.userSearch || "",
       baseDomain: baseDomain,
       contentType: (contentType ? contentType : ""),
@@ -7405,8 +7438,8 @@ let Reader = {
           sendMessageToJava({
             type: "Reader:Added",
             result: result,
-            title: article.title,
-            url: url,
+            title: truncate(article.title, MAX_TITLE_LENGTH),
+            url: truncate(url, MAX_URI_LENGTH),
             length: article.length,
             excerpt: article.excerpt
           });
