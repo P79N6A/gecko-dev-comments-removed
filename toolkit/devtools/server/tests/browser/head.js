@@ -1,17 +1,22 @@
 
 
 
-let tempScope = {};
-Cu.import("resource://gre/modules/devtools/Loader.jsm", tempScope);
-Cu.import("resource://gre/modules/devtools/Console.jsm", tempScope);
-const require = tempScope.devtools.require;
-const console = tempScope.console;
-tempScope = null;
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
+const {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+const {devtools: {require}} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+const {DebuggerClient} = Cu.import("resource://gre/modules/devtools/dbg-client.jsm", {});
+const {DebuggerServer} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
+
 const PATH = "browser/toolkit/devtools/server/tests/browser/";
 const MAIN_DOMAIN = "http://test1.example.org/" + PATH;
 const ALT_DOMAIN = "http://sectest1.example.org/" + PATH;
 const ALT_DOMAIN_SECURED = "https://sectest1.example.org:443/" + PATH;
-const { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 
 
 waitForExplicitFinish();
@@ -46,6 +51,43 @@ let addTab = Task.async(function* (url) {
 
   return tab.linkedBrowser.contentWindow.document;
 });
+
+function initDebuggerServer() {
+  try {
+    
+    
+    DebuggerServer.destroy();
+  } catch (ex) { }
+  DebuggerServer.init(() => true);
+  DebuggerServer.addBrowserActors();
+}
+
+
+
+
+
+
+
+function connectDebuggerClient(client) {
+  let def = promise.defer();
+  client.connect(() => {
+    client.listTabs(tabs => {
+      def.resolve(tabs.tabs[tabs.selected]);
+    });
+  });
+  return def.promise;
+}
+
+
+
+
+
+
+function closeDebuggerClient(client) {
+  let def = promise.defer();
+  client.close(def.resolve);
+  return def.promise;
+}
 
 
 

@@ -1,17 +1,13 @@
 
-let Cu = Components.utils;
-let Cc = Components.classes;
-let Ci = Components.interfaces;
+
+
+
+"use strict";
 
 const URL1 = MAIN_DOMAIN + "navigate-first.html";
 const URL2 = MAIN_DOMAIN + "navigate-second.html";
 
-let { DebuggerClient } = Cu.import("resource://gre/modules/devtools/dbg-client.jsm", {});
-let { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
-
-let devtools = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
-let events = devtools.require("sdk/event/core");
-
+let events = require("sdk/event/core");
 let client;
 
 
@@ -97,24 +93,18 @@ function onLoad() {
 
 function getServerTabActor(callback) {
   
-  if (!DebuggerServer.initialized) {
-    DebuggerServer.init(function () { return true; });
-    DebuggerServer.addBrowserActors();
-  }
+  initDebuggerServer();
 
   
   let transport = DebuggerServer.connectPipe();
   client = new DebuggerClient(transport);
-  client.connect(function onConnect() {
-    client.listTabs(function onListTabs(aResponse) {
+  connectDebuggerClient(client).then(form => {
+    let actorID = form.actor;
+    client.attachTab(actorID, function(aResponse, aTabClient) {
       
-      let actorID = aResponse.tabs[aResponse.selected].actor;
-      client.attachTab(actorID, function(aResponse, aTabClient) {
-        
-        let conn = transport._serverConnection;
-        let tabActor = conn.getActor(actorID);
-        callback(tabActor);
-      });
+      let conn = transport._serverConnection;
+      let tabActor = conn.getActor(actorID);
+      callback(tabActor);
     });
   });
 

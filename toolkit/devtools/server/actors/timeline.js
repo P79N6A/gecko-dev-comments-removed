@@ -21,15 +21,16 @@
 
 
 
-
 const {Ci, Cu} = require("chrome");
 const protocol = require("devtools/server/protocol");
 const {method, Arg, RetVal} = protocol;
 const events = require("sdk/event/core");
 const {setTimeout, clearTimeout} = require("sdk/timers");
 
-const DEFAULT_TIMELINE_DATA_PULL_TIMEOUT = 200; 
 
+
+
+const DEFAULT_TIMELINE_DATA_PULL_TIMEOUT = 200; 
 
 
 
@@ -45,6 +46,7 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
 
+
     "markers" : {
       type: "markers",
       markers: Arg(0, "array:json")
@@ -53,7 +55,13 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
   initialize: function(conn, tabActor) {
     protocol.Actor.prototype.initialize.call(this, conn);
-    this.docshell = tabActor.docShell;
+    this.tabActor = tabActor;
+
+    this._isRecording = false;
+
+    
+    this._onWindowReady = this._onWindowReady.bind(this);
+    events.on(this.tabActor, "window-ready", this._onWindowReady);
   },
 
   
@@ -67,7 +75,10 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
   destroy: function() {
     this.stop();
-    this.docshell = null;
+
+    events.off(this.tabActor, "window-ready", this._onWindowReady);
+    this.tabActor = null;
+
     protocol.Actor.prototype.destroy.call(this);
   },
 
@@ -75,11 +86,36 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
 
+
+  toDocShell: win => win.QueryInterface(Ci.nsIInterfaceRequestor)
+                        .getInterface(Ci.nsIWebNavigation)
+                        .QueryInterface(Ci.nsIDocShell),
+
+  
+
+
+
+  get docShells() {
+    return this.tabActor.windows.map(this.toDocShell);
+  },
+
+  
+
+
+
   _pullTimelineData: function() {
-    let markers = this.docshell.popProfileTimelineMarkers();
+    if (!this._isRecording) {
+      return;
+    }
+
+    let markers = [];
+    for (let docShell of this.docShells) {
+      markers = [...markers, ...docShell.popProfileTimelineMarkers()];
+    }
     if (markers.length > 0) {
       events.emit(this, "markers", markers);
     }
+
     this._dataPullTimeout = setTimeout(() => {
       this._pullTimelineData();
     }, DEFAULT_TIMELINE_DATA_PULL_TIMEOUT);
@@ -89,7 +125,7 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
   isRecording: method(function() {
-    return this.docshell.recordProfileTimelineMarkers;
+    return this._isRecording;
   }, {
     request: {},
     response: {
@@ -101,18 +137,43 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
 
 
   start: method(function() {
-    if (!this.docshell.recordProfileTimelineMarkers) {
-      this.docshell.recordProfileTimelineMarkers = true;
-      this._pullTimelineData();
+    if (this._isRecording) {
+      return;
     }
+    this._isRecording = true;
+
+    for (let docShell of this.docShells) {
+      docShell.recordProfileTimelineMarkers = true;
+    }
+
+    this._pullTimelineData();
   }, {}),
 
+  
+
+
   stop: method(function() {
-    if (this.docshell.recordProfileTimelineMarkers) {
-      this.docshell.recordProfileTimelineMarkers = false;
-      clearTimeout(this._dataPullTimeout);
+    if (!this._isRecording) {
+      return;
     }
+    this._isRecording = false;
+
+    for (let docShell of this.docShells) {
+      docShell.recordProfileTimelineMarkers = false;
+    }
+
+    clearTimeout(this._dataPullTimeout);
   }, {}),
+
+  
+
+
+
+  _onWindowReady: function({window}) {
+    if (this._isRecording) {
+      this.toDocShell(window).recordProfileTimelineMarkers = true;
+    }
+  }
 });
 
 exports.TimelineFront = protocol.FrontClass(TimelineActor, {

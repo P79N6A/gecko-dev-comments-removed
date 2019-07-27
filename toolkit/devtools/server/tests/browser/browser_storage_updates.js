@@ -1,11 +1,8 @@
-const Cu = Components.utils;
-Cu.import("resource://gre/modules/Services.jsm");
-let tempScope = {};
-Cu.import("resource://gre/modules/devtools/dbg-client.jsm", tempScope);
-Cu.import("resource://gre/modules/devtools/dbg-server.jsm", tempScope);
-Cu.import("resource://gre/modules/Promise.jsm", tempScope);
-let {DebuggerServer, DebuggerClient, Promise} = tempScope;
-tempScope = null;
+
+
+
+
+"use strict";
 
 const {StorageFront} = require("devtools/server/actors/storage");
 let gTests;
@@ -25,7 +22,7 @@ function finishTests(client) {
     forceCollections();
     DebuggerServer.destroy();
     forceCollections();
-    DebuggerClient = DebuggerServer = gTests = null;
+    gTests = null;
     finish();
   });
 }
@@ -232,24 +229,15 @@ function* UpdateTests(front, win, client) {
 
 function test() {
   addTab(MAIN_DOMAIN + "storage-updates.html").then(function(doc) {
-    try {
-      
-      
-      DebuggerServer.destroy();
-    } catch (ex) { }
-    DebuggerServer.init(function () { return true; });
-    DebuggerServer.addBrowserActors();
+    initDebuggerServer();
 
     let client = new DebuggerClient(DebuggerServer.connectPipe());
-    client.connect(function onConnect() {
-      client.listTabs(function onListTabs(aResponse) {
-        let form = aResponse.tabs[aResponse.selected];
-        let front = StorageFront(client, form);
-        gTests = UpdateTests(front, doc.defaultView.wrappedJSObject,
-                             client);
-        
-        front.listStores().then(() => gTests.next());
-      });
+    connectDebuggerClient(client).then(form => {
+      let front = StorageFront(client, form);
+      gTests = UpdateTests(front, doc.defaultView.wrappedJSObject,
+                           client);
+      
+      front.listStores().then(() => gTests.next());
     });
   })
 }
