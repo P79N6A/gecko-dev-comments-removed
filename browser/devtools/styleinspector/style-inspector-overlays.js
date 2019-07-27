@@ -341,13 +341,13 @@ TooltipsOverlay.prototype = {
     let nodeInfo = this.view.getNodeInfo(target);
     if (!nodeInfo) {
       
-      return promise.reject();
+      return promise.reject(false);
     }
 
     let type = this._getTooltipType(nodeInfo);
     if (!type) {
       
-      return promise.reject();
+      return promise.reject(false);
     }
 
     if (this.isRuleView && this.colorPicker.tooltip.isShown()) {

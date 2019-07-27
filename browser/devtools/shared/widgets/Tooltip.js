@@ -375,6 +375,8 @@ Tooltip.prototype = {
 
 
 
+
+
   startTogglingOnHover: function(baseNode, targetNodeCb, showDelay=this.defaultShowDelay) {
     if (this._basedNode) {
       this.stopTogglingOnHover();
