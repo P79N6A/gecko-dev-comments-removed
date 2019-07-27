@@ -1337,7 +1337,7 @@ LoginManagerPrompter.prototype = {
 
         
         
-        port = uri.port;
+        var port = uri.port;
         if (port != -1) {
             var handler = Services.io.getProtocolHandler(scheme);
             if (port != handler.defaultPort)
