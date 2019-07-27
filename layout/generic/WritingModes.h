@@ -372,13 +372,13 @@ public:
 
 
 
-  mozilla::Side PhysicalSide(LineRelativeDir aDir) const
+  LogicalSide LogicalSideForLineRelativeDir(LineRelativeDir aDir) const
   {
-    LogicalSide side = static_cast<LogicalSide>(aDir);
-    if (IsLineInverted()) {
-      side = GetOppositeSide(side);
+    auto side = static_cast<LogicalSide>(aDir);
+    if (IsInline(side)) {
+      return IsBidiLTR() ? side : GetOppositeSide(side);
     }
-    return PhysicalSide(side);
+    return !IsLineInverted() ? side : GetOppositeSide(side);
   }
 
   
