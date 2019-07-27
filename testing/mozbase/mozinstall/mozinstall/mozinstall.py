@@ -2,10 +2,6 @@
 
 
 
-"""Module to handle the installation and uninstallation of Gecko based
-applications across platforms.
-
-"""
 from optparse import OptionParser
 import os
 import shutil
