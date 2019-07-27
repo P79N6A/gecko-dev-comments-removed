@@ -35,6 +35,35 @@ exports.getMarkerLabel = getMarkerLabel;
 
 
 
+function getMarkerClassName (type) {
+  let blueprint = TIMELINE_BLUEPRINT[type];
+  
+  
+  let className = typeof blueprint.label === "function" ? blueprint.label() : blueprint.label;
+
+  
+  
+  if (!className) {
+    let message = `Could not find marker class name for "${type}".`;
+    if (typeof blueprint.label === "function") {
+      message += ` The following function must return a class name string when no marker passed: ${blueprint.label}`;
+    } else {
+      message += ` ${type}.label must be defined in the marker blueprint.`;
+    }
+    throw new Error(message);
+  }
+
+  return className;
+}
+exports.getMarkerClassName = getMarkerClassName;
+
+
+
+
+
+
+
+
 function getMarkerFields (marker) {
   let blueprint = TIMELINE_BLUEPRINT[marker.name];
   return (blueprint.fields || []).reduce((fields, field) => {
