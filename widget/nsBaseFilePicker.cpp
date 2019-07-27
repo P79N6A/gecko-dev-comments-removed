@@ -75,9 +75,11 @@ public:
   NS_DECL_ISUPPORTS
 
   explicit nsBaseFilePickerEnumerator(nsPIDOMWindow* aParent,
-                                      nsISimpleEnumerator* iterator)
+                                      nsISimpleEnumerator* iterator,
+                                      int16_t aMode)
     : mIterator(iterator)
     , mParent(aParent)
+    , mMode(aMode)
   {}
 
   NS_IMETHOD
@@ -96,8 +98,31 @@ public:
       return NS_ERROR_FAILURE;
     }
 
-    nsCOMPtr<nsIDOMBlob> domFile = File::CreateFromFile(mParent, localFile);
-    domFile.forget(aResult);
+    nsRefPtr<File> domFile = File::CreateFromFile(mParent, localFile);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+#ifdef DEBUG
+    bool isDir;
+    localFile->IsDirectory(&isDir);
+    MOZ_ASSERT(isDir == (mMode == nsIFilePicker::modeGetFolder));
+#endif
+    domFile->Impl()->SetIsDirectory(mMode == nsIFilePicker::modeGetFolder);
+
+    nsCOMPtr<nsIDOMBlob>(domFile).forget(aResult);
     return NS_OK;
   }
 
@@ -114,6 +139,7 @@ protected:
 private:
   nsCOMPtr<nsISimpleEnumerator> mIterator;
   nsCOMPtr<nsPIDOMWindow> mParent;
+  int16_t mMode;
 };
 
 NS_IMPL_ISUPPORTS(nsBaseFilePickerEnumerator, nsISimpleEnumerator)
@@ -335,7 +361,7 @@ nsBaseFilePicker::GetDomfiles(nsISimpleEnumerator** aDomfiles)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<nsBaseFilePickerEnumerator> retIter =
-    new nsBaseFilePickerEnumerator(mParent, iter);
+    new nsBaseFilePickerEnumerator(mParent, iter, mMode);
 
   retIter.forget(aDomfiles);
   return NS_OK;
