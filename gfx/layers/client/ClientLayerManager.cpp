@@ -28,7 +28,6 @@
 #include "nsXULAppAPI.h"                
 #include "TiledLayerBuffer.h"
 #include "mozilla/dom/WindowBinding.h"  
-#include "gfxPrefs.h"
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #endif
@@ -166,7 +165,7 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   }
 
   
-  if (gfxPrefs::APZTestLoggingEnabled() && !mIsRepeatTransaction) {
+  if (!mIsRepeatTransaction) {
     ++mPaintSequenceNumber;
     mApzTestData.StartNewPaint(mPaintSequenceNumber);
   }
@@ -322,14 +321,6 @@ ClientLayerManager::GetCompositorSideAPZTestData(APZTestData* aData) const
     if (!mForwarder->GetShadowManager()->SendGetAPZTestData(aData)) {
       NS_WARNING("Call to PLayerTransactionChild::SendGetAPZTestData() failed");
     }
-  }
-}
-
-void
-ClientLayerManager::StartNewRepaintRequest(SequenceNumber aSequenceNumber)
-{
-  if (gfxPrefs::APZTestLoggingEnabled()) {
-    mApzTestData.StartNewRepaintRequest(aSequenceNumber);
   }
 }
 

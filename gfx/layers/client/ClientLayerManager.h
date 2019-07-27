@@ -203,8 +203,10 @@ public:
   
   
   
-  void StartNewRepaintRequest(SequenceNumber aSequenceNumber);
-
+  void StartNewRepaintRequest(SequenceNumber aSequenceNumber)
+  {
+    mApzTestData.StartNewRepaintRequest(aSequenceNumber);
+  }
   
   
   
