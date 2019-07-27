@@ -370,7 +370,7 @@ Migrator.prototype = {
   
   
   createFxAccount: Task.async(function* (win) {
-    let {url, options} = yield this.getFxAccountOptions();
+    let {url, options} = yield this.getFxAccountCreationOptions();
     win.switchToTabHavingURI(url, true, options);
     
     
@@ -386,10 +386,10 @@ Migrator.prototype = {
   
   
   
-  getFxAccountOptions: Task.async(function* (win) {
+  getFxAccountCreationOptions: Task.async(function* (win) {
     
     if (this._state != this.STATE_USER_FXA) {
-      this.log.warn("createFxAccount called in an unexpected state: ${}", this._state);
+      this.log.warn("getFxAccountCreationOptions called in an unexpected state: ${}", this._state);
     }
     
     
@@ -425,7 +425,7 @@ Migrator.prototype = {
   resendVerificationMail: Task.async(function * (win) {
     
     if (this._state != this.STATE_USER_FXA_VERIFIED) {
-      this.log.warn("createFxAccount called in an unexpected state: ${}", this._state);
+      this.log.warn("resendVerificationMail called in an unexpected state: ${}", this._state);
     }
     let ok = true;
     try {
@@ -460,7 +460,7 @@ Migrator.prototype = {
   forgetFxAccount: Task.async(function * () {
     
     if (this._state != this.STATE_USER_FXA_VERIFIED) {
-      this.log.warn("createFxAccount called in an unexpected state: ${}", this._state);
+      this.log.warn("forgetFxAccount called in an unexpected state: ${}", this._state);
     }
     return fxAccounts.signOut();
   }),
