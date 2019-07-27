@@ -79,7 +79,6 @@ MobileConnectionInfo::MobileConnectionInfo(const nsAString& aState,
   
   
   
-  
 
   
   CONVERT_STRING_TO_NULLABLE_ENUM(aState, MobileConnectionState, mState);
@@ -166,7 +165,6 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
 JSObject*
 MobileConnectionInfo::WrapObject(JSContext* aCx)
 {
-  MOZ_ASSERT(IsDOMBinding());
   return MozMobileConnectionInfoBinding::Wrap(aCx, this);
 }
 

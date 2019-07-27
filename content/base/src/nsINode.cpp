@@ -2674,8 +2674,6 @@ nsINode::GetElementById(const nsAString& aId)
 JSObject*
 nsINode::WrapObject(JSContext *aCx)
 {
-  MOZ_ASSERT(IsDOMBinding());
-
   
   
   

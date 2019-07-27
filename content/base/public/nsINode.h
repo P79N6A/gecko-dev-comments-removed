@@ -381,11 +381,7 @@ protected:
 
 
 
-  virtual JSObject* WrapNode(JSContext *aCx)
-  {
-    MOZ_ASSERT(!IsDOMBinding(), "Someone forgot to override WrapNode");
-    return nullptr;
-  }
+  virtual JSObject* WrapNode(JSContext *aCx) = 0;
 
   
   

@@ -51,7 +51,6 @@ MobileCellInfo::MobileCellInfo(int32_t aGsmLocationAreaCode,
   
   
   
-  
 }
 
 void
@@ -73,7 +72,6 @@ MobileCellInfo::Update(nsIMobileCellInfo* aInfo)
 JSObject*
 MobileCellInfo::WrapObject(JSContext* aCx)
 {
-  MOZ_ASSERT(IsDOMBinding());
   return MozMobileCellInfoBinding::Wrap(aCx, this);
 }
 
