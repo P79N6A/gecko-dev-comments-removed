@@ -7476,6 +7476,7 @@ function switchToTabHavingURI(aURI, aOpenNew, aOpenParams={}) {
   
   
   const kPrivateBrowsingWhitelist = new Set([
+    "about:addons",
     "about:customizing",
   ]);
 
