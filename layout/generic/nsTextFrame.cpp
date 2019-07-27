@@ -2671,16 +2671,10 @@ nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
   return offsets;
 }
 
-
-
-
-
-
-
-
 static bool IsJustifiableCharacter(const nsTextFragment* aFrag, int32_t aPos,
-                                     bool aLangIsCJ)
+                                   bool aLangIsCJ)
 {
+  NS_ASSERTION(aPos >= 0, "negative position?!");
   char16_t ch = aFrag->CharAt(aPos);
   if (ch == '\n' || ch == '\t' || ch == '\r')
     return true;
@@ -2693,24 +2687,37 @@ static bool IsJustifiableCharacter(const nsTextFragment* aFrag, int32_t aPos,
   }
   if (ch < 0x2150u)
     return false;
-  if (aLangIsCJ && (
-       (0x2150u <= ch && ch <= 0x22ffu) || 
-       (0x2460u <= ch && ch <= 0x24ffu) || 
-       (0x2580u <= ch && ch <= 0x27bfu) || 
-       (0x27f0u <= ch && ch <= 0x2bffu) || 
-                                           
-                                           
-       (0x2e80u <= ch && ch <= 0x312fu) || 
-                                           
-                                           
-       (0x3190u <= ch && ch <= 0xabffu) || 
-                                           
-                                           
-                                           
-       (0xf900u <= ch && ch <= 0xfaffu) || 
-       (0xff5eu <= ch && ch <= 0xff9fu)    
-     ))
-    return true;
+  if (aLangIsCJ) {
+    if ((0x2150u <= ch && ch <= 0x22ffu) || 
+        (0x2460u <= ch && ch <= 0x24ffu) || 
+        (0x2580u <= ch && ch <= 0x27bfu) || 
+        (0x27f0u <= ch && ch <= 0x2bffu) || 
+                                            
+                                            
+        (0x2e80u <= ch && ch <= 0x312fu) || 
+                                            
+                                            
+        (0x3190u <= ch && ch <= 0xabffu) || 
+                                            
+                                            
+                                            
+        (0xf900u <= ch && ch <= 0xfaffu) || 
+        (0xff5eu <= ch && ch <= 0xff9fu)    
+       ) {
+      return true;
+    }
+    char16_t ch2;
+    if (NS_IS_HIGH_SURROGATE(ch) && aFrag->GetLength() > uint32_t(aPos) + 1 &&
+        NS_IS_LOW_SURROGATE(ch2 = aFrag->CharAt(aPos + 1))) {
+      uint32_t u = SURROGATE_TO_UCS4(ch, ch2);
+      if (0x20000u <= u && u <= 0x2ffffu) { 
+                                            
+                                            
+                                            
+        return true;
+      }
+    }
+  }
   return false;
 }
 
