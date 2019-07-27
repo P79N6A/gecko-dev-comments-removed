@@ -14,6 +14,7 @@ this.EXPORTED_SYMBOLS = ["XPIProvider"];
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
+Components.utils.import("resource://gre/modules/Preferences.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
                                   "resource://gre/modules/addons/AddonRepository.jsm");
@@ -487,12 +488,15 @@ SafeInstallOperation.prototype = {
 
 
 function getLocale() {
-  if (Prefs.getBoolPref(PREF_MATCH_OS_LOCALE, false))
+  if (Preferences.get(PREF_MATCH_OS_LOCALE, false))
     return Services.locale.getLocaleComponentForUserAgent();
-  let locale = Prefs.getComplexValue(PREF_SELECTED_LOCALE, Ci.nsIPrefLocalizedString);
-  if (locale)
-    return locale;
-  return Prefs.getCharPref(PREF_SELECTED_LOCALE, "en-US");
+  try {
+    let locale = Preferences.get(PREF_SELECTED_LOCALE, null, Ci.nsIPrefLocalizedString);
+    if (locale)
+      return locale;
+  }
+  catch (e) {}
+  return Preferences.get(PREF_SELECTED_LOCALE, "en-US");
 }
 
 
@@ -1416,116 +1420,6 @@ function getDirectoryEntries(aDir, aSortEntries) {
 
 
 
-
-var Prefs = {
-  
-
-
-
-
-
-
-
-
-
-  getDefaultCharPref: function Prefs_getDefaultCharPref(aName, aDefaultValue) {
-    try {
-      return Services.prefs.getDefaultBranch("").getCharPref(aName);
-    }
-    catch (e) {
-    }
-    return aDefaultValue;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getCharPref: function Prefs_getCharPref(aName, aDefaultValue) {
-    try {
-      return Services.prefs.getCharPref(aName);
-    }
-    catch (e) {
-    }
-    return aDefaultValue;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getComplexValue: function Prefs_getComplexValue(aName, aType, aDefaultValue) {
-    try {
-      return Services.prefs.getComplexValue(aName, aType).data;
-    }
-    catch (e) {
-    }
-    return aDefaultValue;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getBoolPref: function Prefs_getBoolPref(aName, aDefaultValue) {
-    try {
-      return Services.prefs.getBoolPref(aName);
-    }
-    catch (e) {
-    }
-    return aDefaultValue;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getIntPref: function Prefs_getIntPref(aName, defaultValue) {
-    try {
-      return Services.prefs.getIntPref(aName);
-    }
-    catch (e) {
-    }
-    return defaultValue;
-  },
-
-  
-
-
-
-
-
-  clearUserPref: function Prefs_clearUserPref(aName) {
-    if (Services.prefs.prefHasUserValue(aName))
-      Services.prefs.clearUserPref(aName);
-  }
-}
-
-
-
-
 function directoryStateDiffers(aState, aCache)
 {
   
@@ -1827,8 +1721,8 @@ this.XPIProvider = {
 
       let hasRegistry = ("nsIWindowsRegKey" in Ci);
 
-      let enabledScopes = Prefs.getIntPref(PREF_EM_ENABLED_SCOPES,
-                                           AddonManager.SCOPE_ALL);
+      let enabledScopes = Preferences.get(PREF_EM_ENABLED_SCOPES,
+                                          AddonManager.SCOPE_ALL);
 
       
       if (enabledScopes & AddonManager.SCOPE_SYSTEM) {
@@ -1867,17 +1761,18 @@ this.XPIProvider = {
                                   [DIR_EXTENSIONS],
                                   AddonManager.SCOPE_PROFILE, false);
 
-      this.defaultSkin = Prefs.getDefaultCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
-                                                  "classic/1.0");
-      this.currentSkin = Prefs.getCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
-                                           this.defaultSkin);
+      let defaultPrefs = new Preferences({ defaultBranch: true });
+      this.defaultSkin = defaultPrefs.get(PREF_GENERAL_SKINS_SELECTEDSKIN,
+                                          "classic/1.0");
+      this.currentSkin = Preferences.get(PREF_GENERAL_SKINS_SELECTEDSKIN,
+                                         this.defaultSkin);
       this.selectedSkin = this.currentSkin;
       this.applyThemeChange();
 
-      this.minCompatibleAppVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_APP_VERSION,
-                                                       null);
-      this.minCompatiblePlatformVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
-                                                            null);
+      this.minCompatibleAppVersion = Preferences.get(PREF_EM_MIN_COMPAT_APP_VERSION,
+                                                     null);
+      this.minCompatiblePlatformVersion = Preferences.get(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
+                                                          null);
       this.enabledAddons = "";
 
       Services.prefs.addObserver(PREF_EM_MIN_COMPAT_APP_VERSION, this, false);
@@ -1906,8 +1801,8 @@ this.XPIProvider = {
         Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
       }
       else if (aAppChanged && !this.allAppGlobal &&
-               Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
-        if (!Prefs.getBoolPref(PREF_SHOWN_SELECTION_UI, false)) {
+               Preferences.get(PREF_EM_SHOW_MISMATCH_UI, true)) {
+        if (!Preferences.get(PREF_SHOWN_SELECTION_UI, false)) {
           
           Services.startup.interrupted = true;
           
@@ -1937,7 +1832,7 @@ this.XPIProvider = {
         Services.obs.notifyObservers(null, "chrome-flush-caches", null);
       }
 
-      this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
+      this.enabledAddons = Preferences.get(PREF_EM_ENABLED_ADDONS, "");
 
       if ("nsICrashReporter" in Ci &&
           Services.appinfo instanceof Ci.nsICrashReporter) {
@@ -2033,7 +1928,7 @@ this.XPIProvider = {
 
     
     
-    if (Prefs.getBoolPref(PREF_PENDING_OPERATIONS, false)) {
+    if (Preferences.get(PREF_PENDING_OPERATIONS, false)) {
       XPIDatabase.updateActiveAddons();
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS,
                                  !XPIDatabase.writeAddonsList());
@@ -2072,12 +1967,12 @@ this.XPIProvider = {
 
 
   applyThemeChange: function XPI_applyThemeChange() {
-    if (!Prefs.getBoolPref(PREF_DSS_SWITCHPENDING, false))
+    if (!Preferences.get(PREF_DSS_SWITCHPENDING, false))
       return;
 
     
     try {
-      this.selectedSkin = Prefs.getCharPref(PREF_DSS_SKIN_TO_SELECT);
+      this.selectedSkin = Preferences.get(PREF_DSS_SKIN_TO_SELECT);
       Services.prefs.setCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
                                  this.selectedSkin);
       Services.prefs.clearUserPref(PREF_DSS_SKIN_TO_SELECT);
@@ -2332,7 +2227,7 @@ this.XPIProvider = {
 
           logger.debug("Migrating staged install of " + addon.id + " in " + aLocation.name);
 
-          if (addon.unpack || Prefs.getBoolPref(PREF_XPI_UNPACK, false)) {
+          if (addon.unpack || Preferences.get(PREF_XPI_UNPACK, false)) {
             let targetDir = stagingDir.clone();
             targetDir.append(addon.id);
             try {
@@ -2651,7 +2546,7 @@ this.XPIProvider = {
                "manifest at " + existingEntry.path + ", overwriting", e);
         }
       }
-      else if (Prefs.getBoolPref(PREF_BRANCH_INSTALLED_ADDON + id, false)) {
+      else if (Preferences.get(PREF_BRANCH_INSTALLED_ADDON + id, false)) {
         continue;
       }
 
@@ -3099,7 +2994,7 @@ this.XPIProvider = {
       if (isDetectedInstall && newAddon.foreignInstall) {
         
         
-        let disablingScopes = Prefs.getIntPref(PREF_EM_AUTO_DISABLED_SCOPES, 0);
+        let disablingScopes = Preferences.get(PREF_EM_AUTO_DISABLED_SCOPES, 0);
         if (aInstallLocation.scope & disablingScopes)
           newAddon.userDisabled = true;
       }
@@ -3366,7 +3261,7 @@ this.XPIProvider = {
     
     
     try {
-      this.bootstrappedAddons = JSON.parse(Prefs.getCharPref(PREF_BOOTSTRAP_ADDONS,
+      this.bootstrappedAddons = JSON.parse(Preferences.get(PREF_BOOTSTRAP_ADDONS,
                                            "{}"));
     } catch (e) {
       logger.warn("Error parsing enabled bootstrapped extensions cache", e);
@@ -3384,14 +3279,14 @@ this.XPIProvider = {
     
     
     
-    let hasPendingChanges = Prefs.getBoolPref(PREF_PENDING_OPERATIONS);
+    let hasPendingChanges = Preferences.get(PREF_PENDING_OPERATIONS);
     if (hasPendingChanges) {
       updateReasons.push("hasPendingChanges");
     }
 
     
     if (aAppChanged !== false &&
-        Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
+        Preferences.get(PREF_INSTALL_DISTRO_ADDONS, true))
     {
       updated = this.installDistributionAddons(manifests);
       if (updated) {
@@ -3406,7 +3301,7 @@ this.XPIProvider = {
     telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(Date.now() - telemetryCaptureTime);
 
     
-    let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, "[]");
+    let cache = Preferences.get(PREF_INSTALL_CACHE, "[]");
     
     
     let newState = JSON.stringify(this.installStates);
@@ -3421,7 +3316,7 @@ this.XPIProvider = {
     }
 
     
-    if (DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0)) {
+    if (DB_SCHEMA != Preferences.get(PREF_DB_SCHEMA, 0)) {
       
       
       if (this.installStates.length == 0) {
@@ -3547,7 +3442,7 @@ this.XPIProvider = {
 
   isInstallEnabled: function XPI_isInstallEnabled() {
     
-    return Prefs.getBoolPref(PREF_XPI_ENABLED, true);
+    return Preferences.get(PREF_XPI_ENABLED, true);
   },
 
   
@@ -3558,7 +3453,7 @@ this.XPIProvider = {
 
   isDirectRequestWhitelisted: function XPI_isDirectRequestWhitelisted() {
     
-    return Prefs.getBoolPref(PREF_XPI_DIRECT_WHITELISTED, true);
+    return Preferences.get(PREF_XPI_DIRECT_WHITELISTED, true);
   },
 
   
@@ -3569,7 +3464,7 @@ this.XPIProvider = {
 
   isFileRequestWhitelisted: function XPI_isFileRequestWhitelisted() {
     
-    return Prefs.getBoolPref(PREF_XPI_FILE_WHITELISTED, true);
+    return Preferences.get(PREF_XPI_FILE_WHITELISTED, true);
   },
 
   
@@ -3598,7 +3493,7 @@ this.XPIProvider = {
     if (permission == Ci.nsIPermissionManager.DENY_ACTION)
       return false;
 
-    let requireWhitelist = Prefs.getBoolPref(PREF_XPI_WHITELIST_REQUIRED, true);
+    let requireWhitelist = Preferences.get(PREF_XPI_WHITELIST_REQUIRED, true);
     if (requireWhitelist && (permission != Ci.nsIPermissionManager.ALLOW_ACTION))
       return false;
 
@@ -3903,8 +3798,8 @@ this.XPIProvider = {
         Services.prefs.setCharPref(PREF_GENERAL_SKINS_SELECTEDSKIN,
                                    addon.internalName);
         this.currentSkin = this.selectedSkin = addon.internalName;
-        Prefs.clearUserPref(PREF_DSS_SKIN_TO_SELECT);
-        Prefs.clearUserPref(PREF_DSS_SWITCHPENDING);
+        Preferences.reset(PREF_DSS_SKIN_TO_SELECT);
+        Preferences.reset(PREF_DSS_SWITCHPENDING);
       }
       else {
         logger.warn("Attempting to activate an already active default theme");
@@ -3947,10 +3842,10 @@ this.XPIProvider = {
       switch (aData) {
       case PREF_EM_MIN_COMPAT_APP_VERSION:
       case PREF_EM_MIN_COMPAT_PLATFORM_VERSION:
-        this.minCompatibleAppVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_APP_VERSION,
-                                                         null);
-        this.minCompatiblePlatformVersion = Prefs.getCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
-                                                              null);
+        this.minCompatibleAppVersion = Preferences.get(PREF_EM_MIN_COMPAT_APP_VERSION,
+                                                       null);
+        this.minCompatiblePlatformVersion = Preferences.get(PREF_EM_MIN_COMPAT_PLATFORM_VERSION,
+                                                            null);
         this.updateAddonAppDisabledStates();
         break;
       }
@@ -3982,7 +3877,7 @@ this.XPIProvider = {
     if (aAddon.type == "theme") {
       
       
-      if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED))
+      if (Preferences.get(PREF_EM_DSS_ENABLED))
         return false;
 
       
@@ -4019,7 +3914,7 @@ this.XPIProvider = {
     if (aAddon.type == "theme") {
       
       
-      if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED))
+      if (Preferences.get(PREF_EM_DSS_ENABLED))
         return false;
 
       
@@ -5238,7 +5133,7 @@ AddonInstall.prototype = {
     listener.init(this, this.stream);
     try {
       Components.utils.import("resource://gre/modules/CertUtils.jsm");
-      let requireBuiltIn = Prefs.getBoolPref(PREF_INSTALL_REQUIREBUILTINCERTS, true);
+      let requireBuiltIn = Preferences.get(PREF_INSTALL_REQUIREBUILTINCERTS, true);
       this.badCertHandler = new BadCertHandler(!requireBuiltIn);
 
       this.channel = NetUtil.newChannel(this.sourceURI);
@@ -5375,7 +5270,7 @@ AddonInstall.prototype = {
         if (!this.hash && (aRequest instanceof Ci.nsIChannel)) {
           try {
             checkCert(aRequest,
-                      !Prefs.getBoolPref(PREF_INSTALL_REQUIREBUILTINCERTS, true));
+                      !Preferences.get(PREF_INSTALL_REQUIREBUILTINCERTS, true));
           }
           catch (e) {
             this.downloadFailed(AddonManager.ERROR_NETWORK_FAILURE, e);
@@ -5538,7 +5433,7 @@ AddonInstall.prototype = {
       yield this.installLocation.requestStagingDir();
 
       
-      if (this.addon.unpack || Prefs.getBoolPref(PREF_XPI_UNPACK, false)) {
+      if (this.addon.unpack || Preferences.get(PREF_XPI_UNPACK, false)) {
         logger.debug("Addon " + this.addon.id + " will be installed as " +
             "an unpacked directory");
         stagedAddon.append(this.addon.id);
@@ -6533,10 +6428,9 @@ function AddonWrapper(aAddon) {
       if (aAddon.active) {
         try {
           let pref = PREF_EM_EXTENSION_FORMAT + aAddon.id + "." + aProp;
-          let value = Services.prefs.getComplexValue(pref,
-                                                     Ci.nsIPrefLocalizedString);
-          if (value.data)
-            result = value.data;
+          let value = Preferences.get(pref, null, Ci.nsIPrefLocalizedString);
+          if (value)
+            result = value;
         }
         catch (e) {
         }
@@ -6565,10 +6459,9 @@ function AddonWrapper(aAddon) {
           list.sort();
           results = [];
           list.forEach(function(aPref) {
-            let value = Services.prefs.getComplexValue(aPref,
-                                                       Ci.nsIPrefLocalizedString);
-            if (value.data)
-              results.push(value.data);
+            let value = Preferences.get(aPref, null, Ci.nsIPrefLocalizedString);
+            if (value)
+              results.push(value);
           });
         }
       }
@@ -7544,7 +7437,7 @@ let addonTypes = [
 
 
 
-if (Prefs.getBoolPref("experiments.supported", false)) {
+if (Preferences.get("experiments.supported", false)) {
   addonTypes.push(
     new AddonManagerPrivate.AddonType("experiment",
                                       URI_EXTENSION_STRINGS,
