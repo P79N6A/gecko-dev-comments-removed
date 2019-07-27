@@ -300,6 +300,8 @@ struct WorkerStructuredCloneCallbacks
   Read(JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
        uint32_t aData, void* aClosure)
   {
+    JS::Rooted<JSObject*> result(aCx);
+
     
     if (aTag == DOMWORKER_SCTAG_FILE) {
       MOZ_ASSERT(!aData);
@@ -318,9 +320,12 @@ struct WorkerStructuredCloneCallbacks
         }
 #endif
 
-        nsRefPtr<DOMFile> file = new DOMFile(fileImpl);
-        JSObject* jsFile = file::CreateFile(aCx, file);
-        return jsFile;
+        {
+          
+          nsRefPtr<DOMFile> file = new DOMFile(fileImpl);
+          result = file::CreateFile(aCx, file);
+        }
+        return result;
       }
     }
     
@@ -341,9 +346,12 @@ struct WorkerStructuredCloneCallbacks
         }
 #endif
 
-        nsRefPtr<DOMFile> blob = new DOMFile(blobImpl);
-        JSObject* jsBlob = file::CreateBlob(aCx, blob);
-        return jsBlob;
+        {
+          
+          nsRefPtr<DOMFile> blob = new DOMFile(blobImpl);
+          result = file::CreateBlob(aCx, blob);
+        }
+        return result;
       }
     }
     
@@ -360,11 +368,14 @@ struct WorkerStructuredCloneCallbacks
       }
       MOZ_ASSERT(dataArray.isObject());
 
-      
-      nsRefPtr<ImageData> imageData = new ImageData(width, height,
-                                                    dataArray.toObject());
-      
-      return imageData->WrapObject(aCx);
+      {
+        
+        nsRefPtr<ImageData> imageData = new ImageData(width, height,
+                                                      dataArray.toObject());
+        
+        result = imageData->WrapObject(aCx);
+      }
+      return result;
     }
 
     Error(aCx, 0);
