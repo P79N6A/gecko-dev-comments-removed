@@ -113,15 +113,27 @@ function* testBreadcrumbs(selector, inspector) {
 }
 
 function* clickOnInspectMenuItem(node) {
-  info("Clicking on 'Inspect Element' context menu item of " + node);
-  document.popupNode = node;
-  var contentAreaContextMenu = getNode("#contentAreaContextMenu", { document });
-  var contextMenu = new nsContextMenu(contentAreaContextMenu);
-
-  info("Triggering inspect action.");
-  yield contextMenu.inspectNode();
+  info("Showing the contextual menu on node " + node);
+  yield executeInContent("Test:SynthesizeMouse", {
+    center: true,
+    options: {type: "contextmenu", button: 2}
+  }, {node});
 
   
+  
+  
+  try {
+    document.popupNode = node;
+  } catch (e) {}
+
+  let contentAreaContextMenu = document.querySelector("#contentAreaContextMenu");
+  let contextMenu = new nsContextMenu(contentAreaContextMenu);
+
+  info("Triggering inspect action and hiding the menu.");
+  yield contextMenu.inspectNode();
+
+  contentAreaContextMenu.hidden = true;
+  contentAreaContextMenu.hidePopup();
   contextMenu.hiding();
 
   info("Waiting for inspector to update.");
