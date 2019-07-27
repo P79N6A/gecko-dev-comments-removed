@@ -319,10 +319,13 @@ DroidSocketImpl::OnSocketCanReceiveWithoutBlocking(int aFd)
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(!mShuttingDownOnIOThread);
 
-  nsresult rv = ReceiveData(aFd, this);
-  if (NS_FAILED(rv)) {
+  ssize_t res = ReceiveData(aFd, this);
+  if (res < 0) {
+    
     RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-    return;
+  } else if (!res) {
+    
+    RemoveWatchers(READ_WATCHER);
   }
 }
 

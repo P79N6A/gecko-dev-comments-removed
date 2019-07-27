@@ -323,46 +323,42 @@ public:
   bool HasPendingData() const;
 
   template <typename T>
-  nsresult ReceiveData(int aFd, T* aIO)
+  ssize_t ReceiveData(int aFd, T* aIO)
   {
     MOZ_ASSERT(aFd >= 0);
     MOZ_ASSERT(aIO);
 
-    do {
-      nsAutoPtr<UnixSocketRawData> incoming(
-        new UnixSocketRawData(mMaxReadSize));
+    nsAutoPtr<UnixSocketRawData> incoming(
+      new UnixSocketRawData(mMaxReadSize));
 
-      ssize_t res =
-        TEMP_FAILURE_RETRY(read(aFd, incoming->mData, incoming->mSize));
+    ssize_t res =
+      TEMP_FAILURE_RETRY(read(aFd, incoming->mData, incoming->mSize));
 
-      if (res < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          return NS_OK; 
-        }
-        
-        nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
-        NS_DispatchToMainThread(r);
-        return NS_ERROR_FAILURE;
-      } else if (!res) {
-        
-        nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
-        NS_DispatchToMainThread(r);
-        return NS_OK;
-      }
+    if (res < 0) {
+      
+      nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
+      NS_DispatchToMainThread(r);
+      return -1;
+    } else if (!res) {
+      
+      nsRefPtr<nsRunnable> r = new SocketIORequestClosingRunnable<T>(aIO);
+      NS_DispatchToMainThread(r);
+      return 0;
+    }
+
+    incoming->mSize = res;
 
 #ifdef MOZ_TASK_TRACER
-      
-      
-      AutoSourceEvent taskTracerEvent(SourceEventType::UNIXSOCKET);
+    
+    
+    AutoSourceEvent taskTracerEvent(SourceEventType::UNIXSOCKET);
 #endif
 
-      incoming->mSize = res;
-      nsRefPtr<nsRunnable> r =
-        new SocketIOReceiveRunnable<T>(aIO, incoming.forget());
-      NS_DispatchToMainThread(r);
-    } while (true);
+    nsRefPtr<nsRunnable> r =
+      new SocketIOReceiveRunnable<T>(aIO, incoming.forget());
+    NS_DispatchToMainThread(r);
 
-    return NS_OK;
+    return res;
   }
 
   template <typename T>
