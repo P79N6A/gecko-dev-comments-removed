@@ -10,7 +10,6 @@
 #include "jsprf.h"
 
 #include "builtin/TypedObject.h"
-#include "gc/GCTrace.h"
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
@@ -438,16 +437,12 @@ template void MacroAssembler::loadFromTypedArray(int arrayType, const BaseIndex 
 void
 MacroAssembler::checkAllocatorState(Label *fail)
 {
-    
-    if (js::gc::TraceEnabled())
-        jump(fail);
-
-# ifdef JS_GC_ZEAL
+#ifdef JS_GC_ZEAL
     
     branch32(Assembler::NotEqual,
              AbsoluteAddress(GetIonContext()->runtime->addressOfGCZeal()), Imm32(0),
              fail);
-# endif
+#endif
 
     
     
@@ -885,21 +880,6 @@ MacroAssembler::initGCThing(Register obj, Register slots, JSObject *templateObj,
                      Address(obj, JSObject::getPrivateDataOffset(nfixed)));
         }
     }
-
-#ifdef JS_GC_TRACE
-    RegisterSet regs = RegisterSet::Volatile();
-    PushRegsInMask(regs);
-    regs.takeUnchecked(obj);
-    Register temp = regs.takeGeneral();
-
-    setupUnalignedABICall(2, temp);
-    passABIArg(obj);
-    movePtr(ImmGCPtr(templateObj->type()), temp);
-    passABIArg(temp);
-    callWithABI(JS_FUNC_TO_DATA_PTR(void *, js::gc::TraceCreateObject));
-
-    PopRegsInMask(RegisterSet::Volatile());
-#endif
 }
 
 void
