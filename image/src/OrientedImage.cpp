@@ -251,6 +251,23 @@ OrientedImage::Draw(gfxContext* aContext,
                             aWhichFrame, aFlags);
 }
 
+nsIntSize
+OrientedImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
+                                       GraphicsFilter aFilter, uint32_t aFlags)
+{
+  if (!mOrientation.SwapsWidthAndHeight()) {
+    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter, aFlags);
+  }
+
+  
+  gfxSize destSize(aDest.height, aDest.width);
+  nsIntSize innerImageSize(InnerImage()->OptimalImageSizeForDest(destSize,
+                                                                 aWhichFrame,
+                                                                 aFilter,
+                                                                 aFlags));
+  return nsIntSize(innerImageSize.height, innerImageSize.width);
+}
+
 NS_IMETHODIMP_(nsIntRect)
 OrientedImage::GetImageSpaceInvalidationRect(const nsIntRect& aRect)
 {

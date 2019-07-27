@@ -3,6 +3,8 @@
 
 
 
+#include <cmath>
+
 #include "gfxDrawable.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
@@ -19,6 +21,7 @@ namespace mozilla {
 using namespace gfx;
 using layers::LayerManager;
 using layers::ImageContainer;
+using std::modf;
 
 namespace image {
 
@@ -422,6 +425,44 @@ ClippedImage::GetOrientation()
   
   
   return InnerImage()->GetOrientation();
+}
+
+nsIntSize
+ClippedImage::OptimalImageSizeForDest(const gfxSize& aDest, uint32_t aWhichFrame,
+                                      GraphicsFilter aFilter, uint32_t aFlags)
+{
+  if (!ShouldClip()) {
+    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter, aFlags);
+  }
+
+  int32_t imgWidth, imgHeight;
+  if (NS_SUCCEEDED(InnerImage()->GetWidth(&imgWidth)) &&
+      NS_SUCCEEDED(InnerImage()->GetHeight(&imgHeight))) {
+    
+    
+
+    
+    
+    nsIntSize scale(ceil(aDest.width / mClip.width),
+                    ceil(aDest.height / mClip.height));
+
+    
+    
+    gfxSize desiredSize(imgWidth * scale.width, imgHeight * scale.height);
+    nsIntSize innerDesiredSize =
+      InnerImage()->OptimalImageSizeForDest(desiredSize, aWhichFrame,
+                                            aFilter, aFlags);
+
+    
+    
+    
+    nsIntSize finalScale(ceil(double(innerDesiredSize.width) / imgWidth),
+                         ceil(double(innerDesiredSize.height) / imgHeight));
+    return mClip.Size() * finalScale;
+  } else {
+    MOZ_ASSERT(false, "If ShouldClip() led us to draw then we should never get here");
+    return InnerImage()->OptimalImageSizeForDest(aDest, aWhichFrame, aFilter, aFlags);
+  }
 }
 
 NS_IMETHODIMP_(nsIntRect)
