@@ -4,8 +4,8 @@
 
 
 
-#ifndef imgRequest_h__
-#define imgRequest_h__
+#ifndef mozilla_image_src_imgRequest_h
+#define mozilla_image_src_imgRequest_h
 
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
@@ -64,12 +64,12 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
 
-  nsresult Init(nsIURI *aURI,
-                nsIURI *aCurrentURI,
+  nsresult Init(nsIURI* aURI,
+                nsIURI* aCurrentURI,
                 bool aHadInsecureRedirect,
-                nsIRequest *aRequest,
-                nsIChannel *aChannel,
-                imgCacheEntry *aCacheEntry,
+                nsIRequest* aRequest,
+                nsIChannel* aChannel,
+                imgCacheEntry* aCacheEntry,
                 nsISupports* aCX,
                 nsIPrincipal* aLoadingPrincipal,
                 int32_t aCORSMode,
@@ -78,9 +78,9 @@ public:
   void ClearLoader();
 
   
-  void AddProxy(imgRequestProxy *proxy);
+  void AddProxy(imgRequestProxy* proxy);
 
-  nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus);
+  nsresult RemoveProxy(imgRequestProxy* proxy, nsresult aStatus);
 
   
   
@@ -147,8 +147,8 @@ public:
   void ResetCacheEntry();
 
   
-  nsresult GetURI(ImageURL **aURI);
-  nsresult GetCurrentURI(nsIURI **aURI);
+  nsresult GetURI(ImageURL** aURI);
+  nsresult GetCurrentURI(nsIURI** aURI);
 
   nsresult GetImageErrorCode(void);
 
@@ -228,6 +228,7 @@ private:
   
   nsCOMPtr<nsIURI> mCurrentURI;
   
+  
   nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -241,11 +242,12 @@ private:
 
   nsCString mContentType;
 
-  nsRefPtr<imgCacheEntry> mCacheEntry; 
+  
+  nsRefPtr<imgCacheEntry> mCacheEntry;
 
-  void *mLoadId;
+  void* mLoadId;
 
-  imgCacheValidator *mValidator;
+  imgCacheValidator* mValidator;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
@@ -276,4 +278,4 @@ private:
   bool mHadInsecureRedirect : 1;
 };
 
-#endif
+#endif 
