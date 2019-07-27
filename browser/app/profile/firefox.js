@@ -1601,3 +1601,6 @@ pref("experiments.manifest.certs.1.commonName", "*.cdn.mozilla.net");
 pref("experiments.manifest.certs.1.issuerName", "CN=Cybertrust Public SureServer SV CA,O=Cybertrust Inc");
 
 pref("experiments.supported", true);
+
+
+pref("media.openh264.providerEnabled", true);
