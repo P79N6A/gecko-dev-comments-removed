@@ -916,62 +916,64 @@ XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
   nsCOMPtr<nsIDocument> doc(do_QueryReferent(mDocument));
 
   
-  if (langID != nsIProgrammingLanguage::UNKNOWN) {
-      nsCOMPtr<nsIScriptGlobalObject> globalObject;
-      if (doc)
-          globalObject = do_QueryInterface(doc->GetWindow());
-      nsRefPtr<nsXULPrototypeScript> script =
-          new nsXULPrototypeScript(aLineNumber, version);
-      if (! script)
-          return NS_ERROR_OUT_OF_MEMORY;
+  if (langID == nsIProgrammingLanguage::UNKNOWN) {
+      return NS_OK;
+  }
+
+  nsCOMPtr<nsIScriptGlobalObject> globalObject;
+  if (doc)
+      globalObject = do_QueryInterface(doc->GetWindow());
+  nsRefPtr<nsXULPrototypeScript> script =
+      new nsXULPrototypeScript(aLineNumber, version);
+  if (! script)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  if (! src.IsEmpty()) {
+      
+      rv = NS_NewURI(getter_AddRefs(script->mSrcURI), src, nullptr, mDocumentURL);
 
       
-      if (! src.IsEmpty()) {
-          
-          rv = NS_NewURI(getter_AddRefs(script->mSrcURI), src, nullptr, mDocumentURL);
-
-          
-          
-          
+      
+      
+      if (NS_SUCCEEDED(rv)) {
+          if (!mSecMan)
+              mSecMan = do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
           if (NS_SUCCEEDED(rv)) {
-              if (!mSecMan)
-                  mSecMan = do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-              if (NS_SUCCEEDED(rv)) {
-                  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument, &rv);
+              nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument, &rv);
 
-                  if (NS_SUCCEEDED(rv)) {
-                      rv = mSecMan->
-                          CheckLoadURIWithPrincipal(doc->NodePrincipal(),
-                                                    script->mSrcURI,
-                                                    nsIScriptSecurityManager::ALLOW_CHROME);
-                  }
+              if (NS_SUCCEEDED(rv)) {
+                  rv = mSecMan->
+                      CheckLoadURIWithPrincipal(doc->NodePrincipal(),
+                                                script->mSrcURI,
+                                                nsIScriptSecurityManager::ALLOW_CHROME);
               }
           }
-
-          if (NS_FAILED(rv)) {
-              return rv;
-          }
-
-          
-          
-          
-          
-          script->DeserializeOutOfLine(nullptr, mPrototype);
       }
 
-      nsPrototypeArray* children = nullptr;
-      rv = mContextStack.GetTopChildren(&children);
       if (NS_FAILED(rv)) {
           return rv;
       }
 
-      children->AppendElement(script);
-
-      mConstrainSize = false;
-
-      mContextStack.Push(script, mState);
-      mState = eInScript;
+      
+      
+      
+      
+      script->DeserializeOutOfLine(nullptr, mPrototype);
   }
+
+  nsPrototypeArray* children = nullptr;
+  rv = mContextStack.GetTopChildren(&children);
+  if (NS_FAILED(rv)) {
+      return rv;
+  }
+
+  children->AppendElement(script);
+
+  mConstrainSize = false;
+
+  mContextStack.Push(script, mState);
+  mState = eInScript;
 
   return NS_OK;
 }
