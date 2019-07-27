@@ -1035,7 +1035,7 @@ nsMathMLmoFrame::MarkIntrinsicISizesDirty()
 }
 
  void
-nsMathMLmoFrame::GetIntrinsicISizeMetrics(nsRenderingContext *aRenderingContext,
+nsMathMLmoFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext,
                                           nsHTMLReflowMetrics& aDesiredSize)
 {
   ProcessOperatorData();

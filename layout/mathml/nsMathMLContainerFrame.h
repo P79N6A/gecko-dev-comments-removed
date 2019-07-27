@@ -99,8 +99,8 @@ public:
 
 
 
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetMinISize(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
+  virtual nscoord GetPrefISize(nsRenderingContext* aRenderingContext) MOZ_OVERRIDE;
 
   
 
@@ -399,7 +399,7 @@ protected:
   
 
 
-  void UpdateIntrinsicWidth(nsRenderingContext *aRenderingContext);
+  void UpdateIntrinsicWidth(nsRenderingContext* aRenderingContext);
 
   nscoord mIntrinsicWidth;
 
