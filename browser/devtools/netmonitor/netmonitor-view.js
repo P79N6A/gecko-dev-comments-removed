@@ -416,6 +416,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       $("#requests-menu-network-summary-button").hidden = true;
       $("#requests-menu-network-summary-label").hidden = true;
     }
+
+    if (!NetMonitorController.supportsTransferredResponseSize) {
+      $("#requests-menu-transferred-header-box").hidden = true;
+      $("#requests-menu-item-template .requests-menu-transferred").hidden = true;
+    }
   },
 
   
@@ -861,6 +866,13 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
           this.sortContents((a, b) => !this._byType(a, b));
         }
         break;
+      case "transferred":
+        if (direction == "ascending") {
+          this.sortContents(this._byTransferred);
+        } else {
+          this.sortContents((a, b) => !this._byTransferred(a, b));
+        }
+        break;
       case "size":
         if (direction == "ascending") {
           this.sortContents(this._bySize);
@@ -993,8 +1005,13 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       : firstType > secondType;
   },
 
-  _bySize: function({ attachment: first }, { attachment: second })
-    first.contentSize > second.contentSize,
+  _byTransferred: function({ attachment: first }, { attachment: second }) {
+    return first.transferredSize > second.transferredSize;
+  },
+
+  _bySize: function({ attachment: first }, { attachment: second }) {
+    return first.contentSize > second.contentSize;
+  },
 
   
 
@@ -1159,6 +1176,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             requestItem.attachment.contentSize = value;
             this.updateMenuView(requestItem, key, value);
             break;
+          case "transferredSize":
+            requestItem.attachment.transferredSize = value;
+            this.updateMenuView(requestItem, key, value);
+            break;
           case "mimeType":
             requestItem.attachment.mimeType = value;
             this.updateMenuView(requestItem, key, value);
@@ -1303,6 +1324,20 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         let size = L10N.numberWithDecimals(kb, CONTENT_SIZE_DECIMALS);
         let node = $(".requests-menu-size", target);
         let text = L10N.getFormatStr("networkMenu.sizeKB", size);
+        node.setAttribute("value", text);
+        node.setAttribute("tooltiptext", text);
+        break;
+      }
+      case "transferredSize": {
+        let text;
+        if (aValue === null) {
+          text = L10N.getStr("networkMenu.sizeUnavailable");
+        } else {
+          let kb = aValue / 1024;
+          let size = L10N.numberWithDecimals(kb, CONTENT_SIZE_DECIMALS);
+          text = L10N.getFormatStr("networkMenu.sizeKB", size);
+        }
+        let node = $(".requests-menu-transferred", target);
         node.setAttribute("value", text);
         node.setAttribute("tooltiptext", text);
         break;
