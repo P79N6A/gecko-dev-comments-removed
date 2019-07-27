@@ -222,7 +222,7 @@ let FunctionCallActor = protocol.ActorClass({
       
       
       if (enumArgs && enumArgs.indexOf(i) !== -1) {
-        return getEnumsLookupTable(global, caller)[arg] || arg;
+        return getBitToEnumValue(global, caller, arg);
       }
       return arg;
     });
@@ -641,19 +641,48 @@ CallWatcherFront.ENUM_METHODS[CallWatcherFront.CANVAS_WEBGL_CONTEXT] = {
 var gEnumRegex = /^[A-Z_]+$/;
 var gEnumsLookupTable = {};
 
-function getEnumsLookupTable(type, object) {
-  let cachedEnum = gEnumsLookupTable[type];
-  if (cachedEnum) {
-    return cachedEnum;
-  }
 
-  let table = gEnumsLookupTable[type] = {};
 
-  for (let key in object) {
-    if (key.match(gEnumRegex)) {
-      table[object[key]] = key;
+var INVALID_ENUMS = [
+  "INVALID_ENUM", "NO_ERROR", "INVALID_VALUE", "OUT_OF_MEMORY", "NONE"
+];
+
+function getBitToEnumValue(type, object, arg) {
+  let table = gEnumsLookupTable[type];
+
+  
+  if (!table) {
+    table = gEnumsLookupTable[type] = {};
+
+    for (let key in object) {
+      if (key.match(gEnumRegex)) {
+        
+        table[object[key]] = key;
+      }
     }
   }
 
-  return table;
+  
+  if (table[arg]) {
+    return table[arg];
+  }
+
+  
+  
+  let flags = [];
+  for (let flag in table) {
+    if (INVALID_ENUMS.indexOf(table[flag]) !== -1) {
+      continue;
+    }
+
+    
+    
+    flag = flag | 0;
+    if (flag && (arg & flag) === flag) {
+      flags.push(table[flag]);
+    }
+  }
+
+  
+  return table[arg] = flags.join(" | ") || arg;
 }
