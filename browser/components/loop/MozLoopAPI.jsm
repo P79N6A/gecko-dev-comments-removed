@@ -13,6 +13,8 @@ Cu.import("resource:///modules/loop/LoopContacts.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "hookWindowCloseForPanelClose",
                                         "resource://gre/modules/MozSocialAPI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
+                                        "resource://gre/modules/PluralForm.jsm");
 XPCOMUtils.defineLazyGetter(this, "appInfo", function() {
   return Cc["@mozilla.org/xre/app-info;1"]
            .getService(Ci.nsIXULAppInfo)
@@ -147,6 +149,23 @@ function injectLoopAPI(targetWindow) {
       writable: true,
       value: function(key) {
         return MozLoopService.getStrings(key);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+    getPluralForm: {
+      enumerable: true,
+      writable: true,
+      value: function(num, str) {
+        return PluralForm.get(num, str);
       }
     },
 
