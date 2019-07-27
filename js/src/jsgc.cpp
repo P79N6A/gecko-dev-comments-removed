@@ -5056,8 +5056,10 @@ GCRuntime::collect(bool incremental, int64_t budget, JSGCInvocationKind gckind,
     
     MOZ_ASSERT(!rt->isHeapBusy());
 
+#ifdef JS_THREADSAFE
     
     MOZ_ASSERT(!rt->currentThreadHasExclusiveAccess());
+#endif
 
     if (rt->mainThread.suppressGC)
         return;
