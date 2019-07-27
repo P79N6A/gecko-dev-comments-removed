@@ -1302,7 +1302,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
     
     
     
-    int32_t factor = devContext->UnscaledAppUnitsPerDevPixel();
+    int32_t factor = devContext->AppUnitsPerDevPixelAtUnitFullZoom();
 
     
     

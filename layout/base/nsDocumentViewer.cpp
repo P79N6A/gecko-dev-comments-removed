@@ -121,7 +121,6 @@ static const char sPrintOptionsContractID[] =
 #include <stdio.h>
 
 #include "mozilla/dom/Element.h"
-#include "mozilla/Telemetry.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -666,7 +665,8 @@ nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow)
 
   
   int32_t p2a = mPresContext->AppUnitsPerDevPixel();
-  MOZ_ASSERT(p2a == mPresContext->DeviceContext()->UnscaledAppUnitsPerDevPixel());
+  MOZ_ASSERT(p2a ==
+             mPresContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom());
   nscoord width = p2a * mBounds.width;
   nscoord height = p2a * mBounds.height;
 
@@ -1199,7 +1199,6 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
 
       nsAutoSyncOperation sync(mDocument);
       mInPermitUnloadPrompt = true;
-      mozilla::Telemetry::Accumulate(mozilla::Telemetry::ONBEFOREUNLOAD_PROMPT_COUNT, 1);
       rv = prompt->ConfirmEx(title, message, buttonFlags,
                              leaveLabel, stayLabel, nullptr, nullptr,
                              &dummy, &buttonPressed);
@@ -1214,15 +1213,12 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
       
       
       if (NS_FAILED(rv)) {
-        mozilla::Telemetry::Accumulate(mozilla::Telemetry::ONBEFOREUNLOAD_PROMPT_ACTION, 2);
         *aPermitUnload = false;
         return NS_OK;
       }
 
       
       *aPermitUnload = (buttonPressed == 0);
-      mozilla::Telemetry::Accumulate(mozilla::Telemetry::ONBEFOREUNLOAD_PROMPT_ACTION,
-        (*aPermitUnload ? 1 : 0));
       
       
       if (*aPermitUnload) {
