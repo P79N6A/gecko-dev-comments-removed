@@ -44,7 +44,7 @@ function notSoEmpty1() {
     assertRecoveredOnBailout(unused, true);
     
     
-    assertRecoveredOnBailout(res, false);
+    assertRecoveredOnBailout(res, true);
 }
 
 
@@ -69,7 +69,7 @@ function notSoEmpty2(i) {
     assertRecoveredOnBailout(unused, true);
     
     
-    assertRecoveredOnBailout(res, false);
+    assertRecoveredOnBailout(res, true);
 }
 
 

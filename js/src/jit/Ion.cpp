@@ -1350,16 +1350,14 @@ OptimizeMIR(MIRGenerator* mir)
             return false;
     }
 
-    if (mir->optimizationInfo().scalarReplacementEnabled()) {
-        AutoTraceLog log(logger, TraceLogger_ScalarReplacement);
-        if (!ScalarReplacement(mir, graph))
-            return false;
-        gs.spewPass("Scalar Replacement");
-        AssertGraphCoherency(graph);
+    ValueNumberer gvn(mir, graph);
+    if (!gvn.init())
+        return false;
 
-        if (mir->shouldCancel("Scalar Replacement"))
-            return false;
-    }
+    size_t doRepeatOptimizations = 0;
+  repeatOptimizations:
+    doRepeatOptimizations++;
+    MOZ_ASSERT(doRepeatOptimizations <= 2);
 
     if (!mir->compilingAsmJS()) {
         AutoTraceLog log(logger, TraceLogger_ApplyTypes);
@@ -1394,10 +1392,6 @@ OptimizeMIR(MIRGenerator* mir)
         if (mir->shouldCancel("Alignment Mask Analysis"))
             return false;
     }
-
-    ValueNumberer gvn(mir, graph);
-    if (!gvn.init())
-        return false;
 
     
     
@@ -1452,6 +1446,26 @@ OptimizeMIR(MIRGenerator* mir)
             if (mir->shouldCancel("LICM"))
                 return false;
         }
+    }
+
+    if (mir->optimizationInfo().scalarReplacementEnabled() && doRepeatOptimizations <= 1) {
+        AutoTraceLog log(logger, TraceLogger_ScalarReplacement);
+        bool success = false;
+        if (!ScalarReplacement(mir, graph, &success))
+            return false;
+        gs.spewPass("Scalar Replacement");
+        AssertGraphCoherency(graph);
+
+        if (mir->shouldCancel("Scalar Replacement"))
+            return false;
+
+        
+        
+        
+        
+        
+        if (success)
+            goto repeatOptimizations;
     }
 
     if (mir->optimizationInfo().rangeAnalysisEnabled()) {
