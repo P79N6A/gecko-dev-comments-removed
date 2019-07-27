@@ -36,7 +36,8 @@
 namespace mozilla { namespace pkix { namespace test {
 
 typedef std::basic_string<uint8_t> ByteString;
-extern const ByteString ENCODING_FAILED;
+
+inline bool ENCODING_FAILED(const ByteString& bs) { return bs.empty(); }
 
 
 
@@ -78,7 +79,6 @@ extern const Input sha256WithRSAEncryption;
 
 mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
                            int16_t hour, int16_t minutes, int16_t seconds);
-
 
 ByteString CNToDERName(const char* cn);
 
