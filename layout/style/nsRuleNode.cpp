@@ -7191,6 +7191,13 @@ nsRuleNode::ComputeListData(void* aStartStruct,
       list->SetListStyleType(typeIdent, mPresContext);
       break;
     }
+    case eCSSUnit_String: {
+      nsString str;
+      typeValue->GetStringValue(str);
+      list->SetListStyleType(NS_LITERAL_STRING(""),
+                             new AnonymousCounterStyle(str));
+      break;
+    }
     case eCSSUnit_Enumerated: {
       
       
