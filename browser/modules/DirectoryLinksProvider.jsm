@@ -670,6 +670,7 @@ let DirectoryLinksProvider = {
 
 
   reportSitesAction: function DirectoryLinksProvider_reportSitesAction(sites, action, triggeringSiteIndex) {
+    let pastImpressions;
     
     if (action == "view") {
       sites.slice(0, triggeringSiteIndex + 1).forEach(site => {
@@ -687,6 +688,13 @@ let DirectoryLinksProvider = {
       
       let {frecent_sites, targetedSite, url} = sites[triggeringSiteIndex].link;
       if (frecent_sites || targetedSite) {
+        
+        if (this._frequencyCaps[url] && action != "unpin") {
+          pastImpressions = {
+            total: this._frequencyCaps[url].totalViews,
+            daily: this._frequencyCaps[url].dailyViews
+          };
+        }
         this._setFrequencyCapClick(url);
       }
     }
@@ -724,6 +732,7 @@ let DirectoryLinksProvider = {
             id: id || site.enhancedId,
             pin: site.isPinned() ? 1 : undefined,
             pos: pos != tilesIndex ? pos : undefined,
+            past_impressions: pos == triggeringSiteIndex ? pastImpressions : undefined,
             score: Math.round(link.frecency / PING_SCORE_DIVISOR) || undefined,
             url: site.enhancedId && "",
           });
@@ -1336,7 +1345,7 @@ let DirectoryLinksProvider = {
 
 
 
-  _setFrequencyCapClick: function DirectoryLinksProvider_reportFrequencyCapClick(url) {
+  _setFrequencyCapClick(url) {
     let capObject = this._frequencyCaps[url];
     
     if (!capObject) {
