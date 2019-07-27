@@ -16,6 +16,7 @@
 #ifdef JS_ION_PERF
 # include "jit/PerfSpewer.h"
 #endif
+#include "jit/ParallelFunctions.h"
 #include "jit/VMFunctions.h"
 
 #include "jit/ExecutionMode-inl.h"
@@ -524,6 +525,11 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
 
 
+static const uint32_t bailoutDataSize = sizeof(BailoutStack) - 2 * sizeof(uintptr_t);
+static const uint32_t bailoutInfoOutParamSize = 2 * sizeof(uintptr_t);
+
+
+
 
 
 
@@ -540,13 +546,8 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
 
 static void
-GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
+PushBailoutFrame(MacroAssembler &masm, uint32_t frameClass, Register spArg)
 {
-    
-    
-    static const uint32_t bailoutDataSize = sizeof(BailoutStack) - 2 * sizeof(uintptr_t);
-    static const uint32_t bailoutInfoOutParamSize = 2 * sizeof(uintptr_t);
-
     
     masm.checkStackAlignment();
 
@@ -577,7 +578,14 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.storePtr(ImmWord(frameClass), Address(StackPointer, BailoutStack::offsetOfFrameClass()));
 
     
-    masm.movePtr(StackPointer, a0);
+    masm.movePtr(StackPointer, spArg);
+}
+
+static void
+GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
+{
+    PushBailoutFrame(masm, frameClass, a0);
+
     
     masm.subPtr(Imm32(bailoutInfoOutParamSize), StackPointer);
     masm.storePtr(ImmPtr(nullptr), Address(StackPointer, 0));
@@ -610,6 +618,32 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     
     JitCode *bailoutTail = cx->runtime()->jitRuntime()->getBailoutTail();
     masm.branch(bailoutTail);
+}
+
+static void
+GenerateParallelBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
+{
+    
+    
+    
+
+    PushBailoutFrame(masm, frameClass, a0);
+
+    
+    
+    const int sizeOfEntryFramePointer = sizeof(uint8_t *) * 2;
+    masm.reserveStack(sizeOfEntryFramePointer);
+    masm.movePtr(sp, a1);
+
+    masm.setupAlignedABICall(2);
+    masm.passABIArg(a0);
+    masm.passABIArg(a1);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, BailoutPar));
+
+    
+    masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+    masm.loadPtr(Address(sp, 0), sp);
+    masm.ret();
 }
 
 JitCode *
