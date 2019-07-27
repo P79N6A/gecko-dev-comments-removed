@@ -312,8 +312,8 @@ MediaSourceReader::Shutdown()
   mVideoTrack = nullptr;
   mVideoReader = nullptr;
 
-  MOZ_ASSERT(mAudioPromise.IsEmpty());
-  MOZ_ASSERT(mVideoPromise.IsEmpty());
+  
+  
 
   MediaDecoderReader::Shutdown();
 }
