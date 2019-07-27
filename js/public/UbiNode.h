@@ -10,7 +10,6 @@
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 
 #include "jspubtd.h"
@@ -138,8 +137,14 @@
 
 
 namespace js {
+class LazyScript;
+class Shape;
+class BaseShape;
 namespace jit {
 class JitCode;
+}
+namespace types {
+struct TypeObject;
 }
 }
 
@@ -187,9 +192,7 @@ class Base {
 
     
     
-    
-    
-    virtual size_t size(mozilla::MallocSizeOf mallocSizeof) const = 0;
+    virtual size_t size() const = 0;
 
     
     
@@ -282,7 +285,7 @@ class Node {
     }
 
     
-    Node(JS::HandleValue value);
+    explicit Node(JS::Value value);
     Node(JSGCTraceKind kind, void *ptr);
 
     
@@ -332,13 +335,9 @@ class Node {
     JS::Value exposeToJS() const;
 
     const jschar *typeName()        const { return base()->typeName(); }
+    size_t size()                   const { return base()->size(); }
     JS::Zone *zone()                const { return base()->zone(); }
     JSCompartment *compartment()    const { return base()->compartment(); }
-
-    size_t size(mozilla::MallocSizeOf mallocSizeof) const {
-        return base()->size(mallocSizeof);
-    }
-
     EdgeRange *edges(JSContext *cx, bool wantNames = true) const {
         return base()->edges(cx, wantNames);
     }
@@ -434,9 +433,7 @@ class EdgeRange {
 template<typename Referent>
 class TracerConcrete : public Base {
     const jschar *typeName() const MOZ_OVERRIDE { return concreteTypeName; }
-    size_t size(mozilla::MallocSizeOf mallocSizeof) const MOZ_OVERRIDE {
-        return 0; 
-    }
+    size_t size() const MOZ_OVERRIDE { return 0; } 
     EdgeRange *edges(JSContext *, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE { return get().zone(); }
     JSCompartment *compartment() const MOZ_OVERRIDE { return nullptr; }
@@ -470,13 +467,17 @@ template<> struct Concrete<JSObject> : TracerConcreteWithCompartment<JSObject> {
 template<> struct Concrete<JSString> : TracerConcrete<JSString> { };
 template<> struct Concrete<JS::Symbol> : TracerConcrete<JS::Symbol> { };
 template<> struct Concrete<JSScript> : TracerConcreteWithCompartment<JSScript> { };
+template<> struct Concrete<js::LazyScript> : TracerConcrete<js::LazyScript> { };
 template<> struct Concrete<js::jit::JitCode> : TracerConcrete<js::jit::JitCode> { };
+template<> struct Concrete<js::Shape> : TracerConcreteWithCompartment<js::Shape> { };
+template<> struct Concrete<js::BaseShape> : TracerConcreteWithCompartment<js::BaseShape> { };
+template<> struct Concrete<js::types::TypeObject> : TracerConcrete<js::types::TypeObject> { };
 
 
 template<>
 class Concrete<void> : public Base {
     const jschar *typeName() const MOZ_OVERRIDE;
-    size_t size(mozilla::MallocSizeOf mallocSizeOf) const MOZ_OVERRIDE;
+    size_t size() const MOZ_OVERRIDE;
     EdgeRange *edges(JSContext *cx, bool wantNames) const MOZ_OVERRIDE;
     JS::Zone *zone() const MOZ_OVERRIDE;
     JSCompartment *compartment() const MOZ_OVERRIDE;

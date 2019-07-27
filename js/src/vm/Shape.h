@@ -28,7 +28,6 @@
 #include "js/HashTable.h"
 #include "js/MemoryMetrics.h"
 #include "js/RootingAPI.h"
-#include "js/UbiNode.h"
 #include "vm/PropDesc.h"
 
 #ifdef _MSC_VER
@@ -1456,16 +1455,6 @@ IsImplicitDenseOrTypedArrayElement(Shape *prop)
 namespace JS {
 template<> class AnchorPermitted<js::Shape *> { };
 template<> class AnchorPermitted<const js::Shape *> { };
-
-namespace ubi {
-
-
-
-
-template<> struct Concrete<js::Shape> : TracerConcreteWithCompartment<js::Shape> { };
-template<> struct Concrete<js::BaseShape> : TracerConcreteWithCompartment<js::BaseShape> { };
-
-} 
-} 
+}
 
 #endif 

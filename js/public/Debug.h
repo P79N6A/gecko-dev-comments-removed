@@ -11,7 +11,6 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 
 #include "jspubtd.h"
@@ -249,19 +248,6 @@ class BuilderOrigin : public Builder {
 
     JSObject *unwrap(Object &object) { return unwrapAny(object); }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSizeOf);
 
 } 
 } 

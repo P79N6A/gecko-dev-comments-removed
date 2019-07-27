@@ -22,7 +22,6 @@
 #include "gc/Barrier.h"
 #include "gc/Rooting.h"
 #include "jit/IonCode.h"
-#include "js/UbiNode.h"
 #include "vm/Shape.h"
 
 namespace JS {
@@ -2036,17 +2035,6 @@ NormalizeOriginPrincipals(JSPrincipals *principals, JSPrincipals *originPrincipa
     return originPrincipals ? originPrincipals : principals;
 }
 
-} 
-
-namespace JS {
-namespace ubi {
-
-
-
-
-template<> struct Concrete<js::LazyScript> : TracerConcrete<js::LazyScript> { };
-
-} 
 } 
 
 #endif 

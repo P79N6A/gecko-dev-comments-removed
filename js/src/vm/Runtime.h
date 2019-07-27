@@ -1427,12 +1427,6 @@ struct JSRuntime : public JS::shadow::Runtime,
         }
         return (T *)onOutOfMemoryCanGC(p, newSize * sizeof(T));
     }
-
-    
-
-
-
-    mozilla::MallocSizeOf debuggerMallocSizeOf;
 };
 
 namespace js {
