@@ -239,7 +239,9 @@ GLLibraryEGL::EnsureInitialized()
         { nullptr, { nullptr } }
     };
 
-    GLLibraryLoader::LoadSymbols(mEGLLibrary, &optionalSymbols[0]);
+    
+    GLLibraryLoader::LoadSymbols(mEGLLibrary, &optionalSymbols[0],
+				 nullptr, nullptr, false);
 
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 18
     MOZ_RELEASE_ASSERT(mSymbols.fQueryStringImplementationANDROID,
