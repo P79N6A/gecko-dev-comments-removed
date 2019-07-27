@@ -61,6 +61,8 @@ public:
   
   
   void DiscardDecoder();
+  
+  void EndCurrentDecoder();
 
   void Detach();
 
