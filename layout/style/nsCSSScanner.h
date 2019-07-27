@@ -363,7 +363,7 @@ struct MOZ_STACK_CLASS nsCSSGridTemplateAreaToken {
 
 class nsCSSGridTemplateAreaScanner {
 public:
-  nsCSSGridTemplateAreaScanner(const nsAString& aBuffer);
+  explicit nsCSSGridTemplateAreaScanner(const nsAString& aBuffer);
 
   
   

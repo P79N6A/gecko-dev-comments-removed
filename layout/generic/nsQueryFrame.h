@@ -77,7 +77,13 @@ public:
 class do_QueryFrame
 {
 public:
-  do_QueryFrame(nsQueryFrame *s) : mRawPtr(s) { }
+  explicit do_QueryFrame(nsQueryFrame *s) : mRawPtr(s) { }
+
+  
+  
+  typedef void (do_QueryFrame::* MatchNullptr)(double, float);
+  
+  MOZ_IMPLICIT do_QueryFrame(MatchNullptr aRawPtr) : mRawPtr(nullptr) {}
 
   template<class Dest>
   operator Dest*() {
