@@ -335,6 +335,9 @@ public:
   {
     BT_WARNING("BluetoothAvrcpInterface::Cleanup failed: %d",
                (int)aStatus);
+
+    sBtAvrcpInterface = nullptr;
+
     if (mRes) {
       if (aStatus == STATUS_UNSUPPORTED) {
         
@@ -371,6 +374,9 @@ public:
   {
     BT_WARNING("BluetoothA2dpInterface::Cleanup failed: %d",
                (int)aStatus);
+
+    sBtA2dpInterface = nullptr;
+
     if (mRes) {
       mRes->OnError(NS_ERROR_FAILURE);
     }

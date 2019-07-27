@@ -310,7 +310,8 @@ public:
 
     BT_LOGR("BluetoothInterface::Disable failed: %d", aStatus);
 
-    BluetoothService::AcknowledgeToggleBt(true);
+    
+    BluetoothService::AcknowledgeToggleBt(false);
   }
 };
 
