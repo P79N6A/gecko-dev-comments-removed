@@ -36,9 +36,8 @@ enum {
   FLAG_ONLOAD_UNBLOCKED   = 1u << 6,
   FLAG_IS_ANIMATED        = 1u << 7,  
   FLAG_HAS_TRANSPARENCY   = 1u << 8,  
-  FLAG_IS_MULTIPART       = 1u << 9,
-  FLAG_LAST_PART_COMPLETE = 1u << 10,
-  FLAG_HAS_ERROR          = 1u << 11  
+  FLAG_LAST_PART_COMPLETE = 1u << 9,
+  FLAG_HAS_ERROR          = 1u << 10  
 };
 
 typedef uint32_t Progress;
@@ -88,9 +87,6 @@ public:
     nsRefPtr<Image> image = mImage;
     return image.forget();
   }
-
-  
-  void SetIsMultipart();
 
   
   
@@ -166,12 +162,6 @@ public:
   
   
   bool FirstObserverIs(IProgressObserver* aObserver);
-
-  void AdoptObservers(ProgressTracker* aTracker) {
-    MOZ_ASSERT(NS_IsMainThread(), "Use mObservers on main thread only");
-    MOZ_ASSERT(aTracker);
-    mObservers = aTracker->mObservers;
-  }
 
 private:
   typedef nsTObserverArray<mozilla::WeakPtr<IProgressObserver>> ObserverArray;
