@@ -61,6 +61,7 @@ class nsIObserver;
 class nsIPresShell;
 class nsIPrincipal;
 class nsIRequest;
+class nsIRunnable;
 class nsIStreamListener;
 class nsIStructuredCloneContainer;
 class nsIStyleRule;
@@ -1652,11 +1653,9 @@ public:
   virtual nsresult InitializeFrameLoader(nsFrameLoader* aLoader) = 0;
   
   
-  virtual nsresult FinalizeFrameLoader(nsFrameLoader* aLoader) = 0;
+  virtual nsresult FinalizeFrameLoader(nsFrameLoader* aLoader, nsIRunnable* aFinalizer) = 0;
   
   virtual void TryCancelFrameLoaderInitialization(nsIDocShell* aShell) = 0;
-  
-  virtual bool FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell) = 0;
 
   
 
