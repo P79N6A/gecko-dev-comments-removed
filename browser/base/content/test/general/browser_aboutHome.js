@@ -389,17 +389,17 @@ let gTests = [
       
       let input = gBrowser.contentDocument.getElementById("searchText");
       input.focus();
-      EventUtils.synthesizeComposition({ type: "compositionstart", data: "" });
-      EventUtils.synthesizeComposition({ type: "compositionupdate", data: "x" });
+      EventUtils.synthesizeComposition({ type: "compositionstart", data: "" },
+                                       gBrowser.contentWindow);
       EventUtils.synthesizeCompositionChange({
         composition: {
           string: "x",
           clauses: [
-            { length: 1, attr: EventUtils.COMPOSITION_ATTR_RAWINPUT }
+            { length: 1, attr: EventUtils.COMPOSITION_ATTR_RAW_CLAUSE }
           ]
         },
         caret: { start: 1, length: 0 }
-      });
+      }, gBrowser.contentWindow);
 
       
       let table =
