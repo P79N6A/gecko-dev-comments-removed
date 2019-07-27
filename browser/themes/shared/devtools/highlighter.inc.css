@@ -52,6 +52,8 @@ svg|line.box-model-guide-left {
   
 
   min-width: 75px;
+   
+  text-shadow: none;
 }
 
 
