@@ -437,6 +437,95 @@ gfxWindowsPlatform::CanUseHardwareVideoDecoding()
 }
 
 void
+gfxWindowsPlatform::InitD2DSupport()
+{
+#ifdef CAIRO_HAS_D2D_SURFACE
+  bool d2dBlocked = false;
+  nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
+  if (gfxInfo) {
+    int32_t status;
+    if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT2D, &status))) {
+      if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
+        d2dBlocked = true;
+      }
+    }
+    if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS, &status))) {
+      if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
+        d2dBlocked = true;
+      }
+    }
+  }
+
+  
+  
+  if ((d2dBlocked || gfxPrefs::LayersPreferD3D9()) && !gfxPrefs::Direct2DForceEnabled()) {
+    return;
+  }
+
+  
+  
+  if (gfxPrefs::Direct2DDisabled() || mUsingGDIFonts) {
+    return;
+  }
+
+  ID3D11Device* device = GetD3D11Device();
+  if (IsVistaOrLater() &&
+      !InSafeMode() &&
+      device &&
+      mDoesD3D11TextureSharingWork)
+  {
+    VerifyD2DDevice(gfxPrefs::Direct2DForceEnabled());
+    if (mD3D10Device && GetD3D11Device()) {
+      mRenderMode = RENDER_DIRECT2D;
+      mUseDirectWrite = true;
+    }
+  } else {
+    mD3D10Device = nullptr;
+  }
+#endif
+}
+
+void
+gfxWindowsPlatform::InitDWriteSupport()
+{
+#ifdef CAIRO_HAS_DWRITE_FONT
+  
+  
+  if (mDWriteFactory || (!mUseDirectWrite || !IsVistaOrLater())) {
+    return;
+  }
+
+  mozilla::ScopedGfxFeatureReporter reporter("DWrite");
+  decltype(DWriteCreateFactory)* createDWriteFactory = (decltype(DWriteCreateFactory)*)
+      GetProcAddress(LoadLibraryW(L"dwrite.dll"), "DWriteCreateFactory");
+
+  if (!createDWriteFactory) {
+    return;
+  }
+
+  
+  
+  IDWriteFactory *factory;
+  HRESULT hr = createDWriteFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown**>(&factory));
+
+  if (SUCCEEDED(hr) && factory) {
+    mDWriteFactory = factory;
+    factory->Release();
+    hr = mDWriteFactory->CreateTextAnalyzer(getter_AddRefs(mDWriteAnalyzer));
+  }
+
+  SetupClearTypeParams();
+
+  if (hr == S_OK) {
+    reporter.SetSuccessful();
+  }
+#endif
+}
+
+void
 gfxWindowsPlatform::UpdateRenderMode()
 {
 
@@ -461,92 +550,10 @@ gfxWindowsPlatform::UpdateRenderMode()
     }
 
     mRenderMode = RENDER_GDI;
+    mUseDirectWrite = gfxPrefs::DirectWriteFontRenderingEnabled();
 
-    bool isVistaOrHigher = IsVistaOrLater();
-
-    mUseDirectWrite = Preferences::GetBool("gfx.font_rendering.directwrite.enabled", false);
-
-#ifdef CAIRO_HAS_D2D_SURFACE
-    bool d2dDisabled = false;
-    bool d2dForceEnabled = false;
-    bool d2dBlocked = false;
-
-    nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
-    if (gfxInfo) {
-        int32_t status;
-        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT2D, &status))) {
-            if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-                d2dBlocked = true;
-            }
-        }
-        if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS, &status))) {
-            if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-                d2dBlocked = true;
-            }
-        }
-    }
-
-    
-    
-    d2dDisabled = gfxPrefs::Direct2DDisabled();
-    d2dForceEnabled = gfxPrefs::Direct2DForceEnabled();
-
-    bool tryD2D = d2dForceEnabled || (!d2dBlocked && !gfxPrefs::LayersPreferD3D9());
-
-    
-    
-    if (d2dDisabled || mUsingGDIFonts) {
-        tryD2D = false;
-    }
-
-    ID3D11Device *device = GetD3D11Device();
-    if (isVistaOrHigher && !InSafeMode() && tryD2D && device &&
-        mDoesD3D11TextureSharingWork) {
-
-        VerifyD2DDevice(d2dForceEnabled);
-        if (mD3D10Device && GetD3D11Device()) {
-            mRenderMode = RENDER_DIRECT2D;
-            mUseDirectWrite = true;
-        }
-    } else {
-        mD3D10Device = nullptr;
-    }
-#endif
-
-#ifdef CAIRO_HAS_DWRITE_FONT
-    
-    
-    if (!mDWriteFactory && (mUseDirectWrite && isVistaOrHigher)) {
-        mozilla::ScopedGfxFeatureReporter reporter("DWrite");
-        decltype(DWriteCreateFactory)* createDWriteFactory = (decltype(DWriteCreateFactory)*)
-            GetProcAddress(LoadLibraryW(L"dwrite.dll"), "DWriteCreateFactory");
-
-        if (createDWriteFactory) {
-            
-
-
-
-
-            IDWriteFactory *factory;
-            HRESULT hr = createDWriteFactory(
-                DWRITE_FACTORY_TYPE_SHARED,
-                __uuidof(IDWriteFactory),
-                reinterpret_cast<IUnknown**>(&factory));
-
-            if (SUCCEEDED(hr) && factory) {
-                mDWriteFactory = factory;
-                factory->Release();
-                hr = mDWriteFactory->CreateTextAnalyzer(
-                    getter_AddRefs(mDWriteAnalyzer));
-            }
-
-            SetupClearTypeParams();
-
-            if (hr == S_OK)
-              reporter.SetSuccessful();
-        }
-    }
-#endif
+    InitD2DSupport();
+    InitDWriteSupport();
 
     uint32_t canvasMask = BackendTypeBit(BackendType::CAIRO);
     uint32_t contentMask = BackendTypeBit(BackendType::CAIRO);
@@ -1911,6 +1918,11 @@ gfxWindowsPlatform::InitD3D11Devices()
   }
 
   bool useWARP = false;
+  bool allowWARP = false;
+
+  if (IsWin8OrLater()) {
+    allowWARP = true;
+  }
 
   nsCOMPtr<nsIGfxInfo> gfxInfo = services::GetGfxInfo();
   if (gfxInfo) {
@@ -1934,7 +1946,7 @@ gfxWindowsPlatform::InitD3D11Devices()
             }
         }
 
-        useWARP = true;
+        useWARP = allowWARP;
       }
     }
   }
@@ -1970,7 +1982,7 @@ gfxWindowsPlatform::InitD3D11Devices()
       if (!gfxPrefs::LayersD3D11DisableWARP()) {
         return;
       }
-      useWARP = true;
+      useWARP = allowWARP;
     }
   }
 
@@ -1992,7 +2004,7 @@ gfxWindowsPlatform::InitD3D11Devices()
         return;
       }
 
-      useWARP = true;
+      useWARP = allowWARP;
       adapter = nullptr;
     }
 
@@ -2002,7 +2014,7 @@ gfxWindowsPlatform::InitD3D11Devices()
         return;
       }
 
-      useWARP = true;
+      useWARP = allowWARP;
       adapter = nullptr;
     }
 
