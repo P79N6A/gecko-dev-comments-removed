@@ -180,7 +180,7 @@ int VP8EncoderImpl::InitEncode(const VideoCodec* inst,
   
   
   
-  raw_ = vpx_img_wrap(NULL, IMG_FMT_I420, codec_.width, codec_.height,
+  raw_ = vpx_img_wrap(NULL, VPX_IMG_FMT_I420, codec_.width, codec_.height,
                       1, NULL);
   
   if (vpx_codec_enc_config_default(vpx_codec_vp8_cx(), config_, 0)) {
