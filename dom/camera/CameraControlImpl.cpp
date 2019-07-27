@@ -178,6 +178,19 @@ CameraControlImpl::OnTakePictureComplete(const uint8_t* aData, uint32_t aLength,
 }
 
 void
+CameraControlImpl::OnPoster(dom::BlobImpl* aBlobImpl)
+{
+  
+  
+  RwLockAutoEnterRead lock(mListenerLock);
+
+  for (uint32_t i = 0; i < mListeners.Length(); ++i) {
+    CameraControlListener* l = mListeners[i];
+    l->OnPoster(aBlobImpl);
+  }
+}
+
+void
 CameraControlImpl::OnShutter()
 {
   
