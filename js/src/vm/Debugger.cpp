@@ -93,11 +93,6 @@ enum {
     JSSLOT_DEBUGSOURCE_COUNT
 };
 
-static void DebuggerObject_trace(JSTracer *trc, JSObject *obj);
-static void DebuggerEnv_trace(JSTracer *trc, JSObject *obj);
-static void DebuggerScript_trace(JSTracer *trc, JSObject *obj);
-static void DebuggerSource_trace(JSTracer *trc, JSObject *obj);
-
 
 
 
@@ -2078,12 +2073,17 @@ Debugger::setObservesAllExecution(JSContext *cx, IsObserving observing)
 
 
 void
-Debugger::markCrossCompartmentEdges(JSTracer *trc)
+Debugger::markKeysInCompartment(JSTracer *trc)
 {
-    objects.markCrossCompartmentEdges<DebuggerObject_trace>(trc);
-    environments.markCrossCompartmentEdges<DebuggerEnv_trace>(trc);
-    scripts.markCrossCompartmentEdges<DebuggerScript_trace>(trc);
-    sources.markCrossCompartmentEdges<DebuggerSource_trace>(trc);
+    
+
+
+
+
+    objects.markKeys(trc);
+    environments.markKeys(trc);
+    scripts.markKeys(trc);
+    sources.markKeys(trc);
 }
 
 
@@ -2107,14 +2107,19 @@ Debugger::markCrossCompartmentEdges(JSTracer *trc)
 
 
 
+
  void
-Debugger::markAllCrossCompartmentEdges(JSTracer *trc)
+Debugger::markCrossCompartmentDebuggerObjectReferents(JSTracer *trc)
 {
     JSRuntime *rt = trc->runtime();
 
+    
+
+
+
     for (Debugger *dbg = rt->debuggerList.getFirst(); dbg; dbg = dbg->getNext()) {
         if (!dbg->object->zone()->isCollecting())
-            dbg->markCrossCompartmentEdges(trc);
+            dbg->markKeysInCompartment(trc);
     }
 }
 
@@ -2208,6 +2213,7 @@ Debugger::markAll(JSTracer *trc)
         GlobalObjectSet &debuggees = dbg->debuggees;
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
             GlobalObject *global = e.front();
+
             MarkObjectUnbarriered(trc, &global, "Global Object");
             if (global != e.front())
                 e.rekeyFront(global);
