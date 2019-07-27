@@ -185,8 +185,8 @@ IdpSandbox.prototype = {
   
   
   
-  _populateSandbox: function() {
-    this.sandbox.location = Cu.cloneInto(createLocationFromURI(this.source),
+  _populateSandbox: function(uri) {
+    this.sandbox.location = Cu.cloneInto(createLocationFromURI(uri),
                                          this.sandbox,
                                          { cloneFunctions: true });
   },
@@ -205,12 +205,14 @@ IdpSandbox.prototype = {
         'rtcIdentityProvider'
       ]
     });
-    this._populateSandbox();
-
     let registrar = this.sandbox.rtcIdentityProvider;
     if (!Cu.isXrayWrapper(registrar)) {
       throw new Error('IdP setup failed');
     }
+
+    
+    
+    this._populateSandbox(result.request.URI);
     
     Cu.evalInSandbox(result.data, this.sandbox,
                      '1.8', result.request.URI.spec, 1);

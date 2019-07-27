@@ -12,36 +12,18 @@ Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'IdpSandbox',
   'resource://gre/modules/media/IdpSandbox.jsm');
 
-function TimerResolver(resolve) {
-  this.notify = resolve;
-}
-TimerResolver.prototype = {
-  getInterface: function(iid) {
-    return this.QueryInterface(iid);
-  },
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsITimerCallback])
-}
-function delay(t) {
-  return new Promise(resolve => {
-    let timer = Cc['@mozilla.org/timer;1'].getService(Ci.nsITimer);
-    timer.initWithCallback(new TimerResolver(resolve), t, 0); 
-  });
-}
 
 
 
 
 
 
-
-
-function PeerConnectionIdp(timeout, warningFunc, dispatchErrorFunc) {
+function PeerConnectionIdp(win, timeout) {
+  this._win = win;
   this._timeout = timeout || 5000;
-  this._warning = warningFunc;
-  this._dispatchError = dispatchErrorFunc;
 
-  this.assertion = null;
   this.provider = null;
+  this._resetAssertion();
 }
 
 (function() {
@@ -58,7 +40,13 @@ PeerConnectionIdp.prototype = {
     return !!this._idp;
   },
 
+  _resetAssertion: function() {
+    this.assertion = null;
+    this.idpLoginUrl = null;
+  },
+
   setIdentityProvider: function(provider, protocol, username) {
+    this._resetAssertion();
     this.provider = provider;
     this.protocol = protocol || 'default';
     this.username = username;
@@ -71,38 +59,22 @@ PeerConnectionIdp.prototype = {
     this._idp = new IdpSandbox(provider, protocol);
   },
 
+  
+  start: function() {
+    return this._idp.start()
+      .catch(e => {
+        throw new this._win.DOMException(e.message, 'IdpError');
+      });
+  },
+
   close: function() {
-    this.assertion = null;
+    this._resetAssertion();
     this.provider = null;
     this.protocol = null;
     if (this._idp) {
       this._idp.stop();
       this._idp = null;
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  reportError: function(type, message, extra) {
-    let args = {
-      idp: this.provider,
-      protocol: this.protocol
-    };
-    if (extra) {
-      Object.keys(extra).forEach(function(k) {
-        args[k] = extra[k];
-      });
-    }
-    this._warning('RTC identity: ' + message, null, 0);
-    this._dispatchError('idp' + type + 'error', args);
   },
 
   _getFingerprintsFromSdp: function(sdp) {
@@ -131,7 +103,7 @@ PeerConnectionIdp.prototype = {
     let mLineMatch = sdp.match(PeerConnectionIdp._mLinePattern);
     if (mLineMatch) {
       let sessionLevel = sdp.substring(0, mLineMatch.index);
-      let idMatch = sessionLevel.match(PeerConnectionIdp._identityPattern);
+      idMatch = sessionLevel.match(PeerConnectionIdp._identityPattern);
     }
     if (!idMatch) {
       return; 
@@ -141,12 +113,12 @@ PeerConnectionIdp.prototype = {
     try {
       assertion = JSON.parse(atob(idMatch[1]));
     } catch (e) {
-      this.reportError('validation',
-                       'invalid identity assertion: ' + e);
+      throw new this._win.DOMException('invalid identity assertion: ' + e,
+                                       'InvalidSessionDescriptionError');
     }
     if (!this._isValidAssertion(assertion)) {
-      this.reportError('validation', 'assertion missing' +
-                       ' idp/idp.domain/assertion');
+      throw new this._win.DOMException('assertion missing idp/idp.domain/assertion',
+                                       'InvalidSessionDescriptionError');
     }
     return assertion;
   },
@@ -165,7 +137,7 @@ PeerConnectionIdp.prototype = {
     let identity = this._getIdentityFromSdp(sdp);
     let fingerprints = this._getFingerprintsFromSdp(sdp);
     if (!identity || fingerprints.length <= 0) {
-      return Promise.resolve();
+      return this._win.Promise.resolve(); 
     }
 
     this.setIdentityProvider(identity.idp.domain, identity.idp.protocol);
@@ -178,14 +150,18 @@ PeerConnectionIdp.prototype = {
 
 
 
+  _validateName: function(name) {
+    let error = msg => {
+        throw new this._win.DOMException('assertion name error: ' + msg,
+                                         'IdpError');
+    };
 
-  _validateName: function(error, name) {
     if (typeof name !== 'string') {
-      return error('name not a string');
+      error('name not a string');
     }
     let atIdx = name.indexOf('@');
     if (atIdx <= 0) {
-      return error('missing authority in name from IdP');
+      error('missing authority in name from IdP');
     }
 
     
@@ -197,14 +173,13 @@ PeerConnectionIdp.prototype = {
     if (providerPortIdx > 0) {
       provider = provider.substring(0, providerPortIdx);
     }
-    let idnService = Components.classes['@mozilla.org/network/idn-service;1'].
-      getService(Components.interfaces.nsIIDNService);
+    let idnService = Components.classes['@mozilla.org/network/idn-service;1']
+        .getService(Components.interfaces.nsIIDNService);
     if (idnService.convertUTF8toACE(tail) !==
         idnService.convertUTF8toACE(provider)) {
-      return error('name "' + identity.name +
+      error('name "' + identity.name +
             '" doesn\'t match IdP: "' + this.provider + '"');
     }
-    return true;
   },
 
   
@@ -212,33 +187,38 @@ PeerConnectionIdp.prototype = {
 
 
 
-  _isValidVerificationResponse: function(validation, sdpFingerprints) {
+  _checkValidation: function(validation, sdpFingerprints) {
     let error = msg => {
-      this.reportError('validation', 'assertion validation failure: ' + msg);
-      return false;
+      throw new this._win.DOMException('IdP validation error: ' + msg,
+                                       'IdpError');
     };
+
+    if (!this.provider) {
+      error('IdP closed');
+    }
 
     if (typeof validation !== 'object' ||
         typeof validation.contents !== 'string' ||
         typeof validation.identity !== 'string') {
-      return error('no payload in validation response');
+      error('no payload in validation response');
     }
 
     let fingerprints;
     try {
       fingerprints = JSON.parse(validation.contents).fingerprint;
     } catch (e) {
-      return error('idp returned invalid JSON');
+      error('invalid JSON');
     }
 
     let isFingerprint = f =>
         (typeof f.digest === 'string') &&
         (typeof f.algorithm === 'string');
     if (!Array.isArray(fingerprints) || !fingerprints.every(isFingerprint)) {
-      return error('fingerprints must be an array of objects' +
-                   ' with digest and algorithm attributes');
+      error('fingerprints must be an array of objects' +
+            ' with digest and algorithm attributes');
     }
 
+    
     let isSubsetOf = (outerSet, innerSet, comparator) => {
       return innerSet.every(i => {
         return outerSet.some(o => comparator(i, o));
@@ -248,25 +228,22 @@ PeerConnectionIdp.prototype = {
       return (a.digest === b.digest) && (a.algorithm === b.algorithm);
     };
     if (!isSubsetOf(fingerprints, sdpFingerprints, compareFingerprints)) {
-      return error('the fingerprints in SDP aren\'t covered by the assertion');
+      error('the fingerprints must be covered by the assertion');
     }
-    return this._validateName(error, validation.identity);
+    this._validateName(validation.identity);
+    return validation;
   },
 
   
 
 
   _verifyIdentity: function(assertion, fingerprints, origin) {
-    let validationPromise = this._idp.start()
-        .then(idp => idp.validateAssertion(assertion, origin));
+    let p = this.start()
+        .then(idp => this._wrapCrossCompartmentPromise(
+          idp.validateAssertion(assertion, origin)))
+        .then(validation => this._checkValidation(validation, fingerprints));
 
-    return this._safetyNet('validation', validationPromise)
-      .then(validation => {
-        if (validation &&
-            this._isValidVerificationResponse(validation, fingerprints)) {
-          return validation;
-        }
-      });
+    return this._applyTimeout(p);
   },
 
   
@@ -289,11 +266,12 @@ PeerConnectionIdp.prototype = {
 
 
 
-  getIdentityAssertion: function(fingerprint) {
+
+
+  getIdentityAssertion: function(fingerprint, origin) {
     if (!this.enabled) {
-      this.reportError('assertion', 'no IdP set,' +
-                       ' call setIdentityProvider() to set one');
-      return Promise.resolve();
+      throw new this._win.DOMException(
+        'no IdP set, call setIdentityProvider() to set one', 'InvalidStateError');
     }
 
     let [algorithm, digest] = fingerprint.split(' ', 2);
@@ -303,27 +281,23 @@ PeerConnectionIdp.prototype = {
         digest: digest
       }]
     };
-    let origin = Cu.getWebIDLCallerPrincipal().origin;
 
-    let assertionPromise = this._idp.start()
-        .then(idp => idp.generateAssertion(JSON.stringify(content),
-                                           origin, this.username));
-
-    return this._safetyNet('assertion', assertionPromise)
-      .then(assertion => {
-        if (this._isValidAssertion(assertion)) {
+    this._resetAssertion();
+    let p = this.start()
+        .then(idp => this._wrapCrossCompartmentPromise(
+          idp.generateAssertion(JSON.stringify(content),
+                                origin, this.username)))
+        .then(assertion => {
+          if (!this._isValidAssertion(assertion)) {
+            throw new this._win.DOMException('IdP generated invalid assertion',
+                                             'IdpError');
+          }
           
           this.assertion = btoa(JSON.stringify(assertion));
-        } else {
-          if (assertion) {
-            
-            
-            this.reportError('assertion', 'invalid assertion generated');
-          }
-          this.assertion = null;
-        }
-        return this.assertion;
-      });
+          return this.assertion;
+        });
+
+    return this._applyTimeout(p);
   },
 
   
@@ -331,23 +305,36 @@ PeerConnectionIdp.prototype = {
 
 
 
-  _safetyNet: function(type, p) {
-    let done = false; 
-    let timeoutPromise = delay(this._timeout)
-        .then(() => {
-          if (!done) {
-            this.reportError(type, 'IdP timed out');
+  _wrapCrossCompartmentPromise: function(sandboxPromise) {
+    return new this._win.Promise((resolve, reject) => {
+      sandboxPromise.then(
+        result => resolve(Cu.cloneInto(result, this._win)),
+        e => {
+          let message = '' + (e.message || JSON.stringify(e) || 'IdP error');
+          if (e.name === 'IdpLoginError') {
+            if (typeof e.loginUrl === 'string') {
+              this.idpLoginUrl = e.loginUrl;
+            }
+            reject(new this._win.DOMException(message, 'IdpLoginError'));
+          } else {
+            reject(new this._win.DOMException(message, 'IdpError'));
           }
         });
-    let realPromise = p
-        .catch(e => this.reportError(type, 'error reported by IdP: ' + e.message))
-        .then(result => {
-          done = true;
-          return result;
+    });
+  },
+
+  
+
+
+
+
+  _applyTimeout: function(p) {
+    let timeout = new this._win.Promise(
+      r => this._win.setTimeout(r, this._timeout))
+        .then(() => {
+          throw new this._win.DOMException('IdP timed out', 'IdpError');
         });
-    
-    
-    return Promise.race([realPromise, timeoutPromise]);
+    return this._win.Promise.race([ timeout, p ]);
   }
 };
 
