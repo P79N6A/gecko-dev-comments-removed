@@ -504,27 +504,32 @@ XDRRelazificationInfo(XDRState<mode>* xdr, HandleFunction fun, HandleScript scri
             MOZ_ASSERT(end == lazy->end());
             MOZ_ASSERT(lineno == lazy->lineno());
             MOZ_ASSERT(column == lazy->column());
+            
+            
+            
+            MOZ_ASSERT(lazy->numInnerFunctions() == 0);
         }
 
         if (!xdr->codeUint64(&packedFields))
             return false;
 
         if (mode == XDR_DECODE) {
-            lazy.set(LazyScript::Create(cx, fun, packedFields, begin, end, lineno, column));
+            lazy.set(LazyScript::Create(cx, fun, script, enclosingScope, script,
+                                        packedFields, begin, end, lineno, column));
 
             
             
             
             lazy->initRuntimeFields(packedFields);
-
-            MOZ_ASSERT(!lazy->sourceObject());
-            lazy->setParent(enclosingScope, &script->scriptSourceUnwrap());
         }
     }
 
     
     if (!XDRLazyFreeVariables(xdr, lazy))
         return false;
+
+    
+    
 
     return true;
 }
@@ -1143,7 +1148,8 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript
         }
 
         if (mode == XDR_DECODE)
-            lazy.set(LazyScript::Create(cx, fun, packedFields, begin, end, lineno, column));
+            lazy.set(LazyScript::Create(cx, fun, NullPtr(), enclosingScope, enclosingScript,
+                                        packedFields, begin, end, lineno, column));
     }
 
     
@@ -1165,15 +1171,6 @@ js::XDRLazyScript(XDRState<mode>* xdr, HandleObject enclosingScope, HandleScript
             if (mode == XDR_DECODE)
                 innerFunctions[i] = func;
         }
-    }
-
-    if (mode == XDR_DECODE) {
-        MOZ_ASSERT(!lazy->sourceObject());
-        ScriptSourceObject* sourceObject = &enclosingScript->scriptSourceUnwrap();
-
-        
-        
-        lazy->setParent(enclosingScope, sourceObject);
     }
 
     return true;
@@ -3826,6 +3823,8 @@ LazyScript::CreateRaw(ExclusiveContext* cx, HandleFunction fun,
 
  LazyScript*
 LazyScript::Create(ExclusiveContext* cx, HandleFunction fun,
+                   HandleScript script, HandleObject enclosingScope,
+                   HandleScript sourceObjectScript,
                    uint64_t packedFields, uint32_t begin, uint32_t end,
                    uint32_t lineno, uint32_t column)
 {
@@ -3850,6 +3849,15 @@ LazyScript::Create(ExclusiveContext* cx, HandleFunction fun,
     HeapPtrFunction* functions = res->innerFunctions();
     for (i = 0, num = res->numInnerFunctions(); i < num; i++)
         functions[i].init(dummyFun);
+
+    
+    
+    MOZ_ASSERT(!res->sourceObject());
+    res->setParent(enclosingScope, &sourceObjectScript->scriptSourceUnwrap());
+
+    MOZ_ASSERT(!res->maybeScript());
+    if (script)
+        res->initScript(script);
 
     return res;
 }
