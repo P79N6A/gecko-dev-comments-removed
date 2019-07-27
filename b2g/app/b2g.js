@@ -827,7 +827,10 @@ pref("network.gonk.manage-offline-status", true);
 
 
 #ifndef MOZ_MULET
+
+#ifndef DEBUG
 pref("jsloader.reuseGlobal", true);
+#endif
 #endif
 
 
