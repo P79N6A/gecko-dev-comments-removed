@@ -162,6 +162,11 @@ pref("dom.gamepad.non_standard_events.enabled", true);
 pref("dom.keyboardevent.code.enabled", true);
 
 
+
+
+pref("dom.keyboardevent.dispatch_during_composition", false);
+
+
 pref("dom.webcrypto.enabled", true);
 
 

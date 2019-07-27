@@ -235,6 +235,10 @@ private:
   
   bool mIsComposing;
 
+  
+  
+  static bool sDispatchKeyEventsDuringComposition;
+
   nsresult BeginInputTransactionInternal(
              TextEventDispatcherListener* aListener,
              bool aForTests);

@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "nsIDocShell.h"
@@ -19,12 +20,23 @@ namespace widget {
 
 
 
+bool TextEventDispatcher::sDispatchKeyEventsDuringComposition = false;
+
 TextEventDispatcher::TextEventDispatcher(nsIWidget* aWidget)
   : mWidget(aWidget)
   , mForTests(false)
   , mIsComposing(false)
 {
   MOZ_RELEASE_ASSERT(mWidget, "aWidget must not be nullptr");
+
+  static bool sInitialized = false;
+  if (!sInitialized) {
+    Preferences::AddBoolVarCache(
+      &sDispatchKeyEventsDuringComposition,
+      "dom.keyboardevent.dispatch_during_composition",
+      false);
+    sInitialized = true;
+  }
 }
 
 nsresult
@@ -251,6 +263,19 @@ TextEventDispatcher::DispatchKeyboardEventInternal(
   
   if (aMessage == NS_KEY_PRESS && !aKeyboardEvent.ShouldCauseKeypressEvents()) {
     return false;
+  }
+
+  
+  if (IsComposing()) {
+    
+    
+    
+    if (!sDispatchKeyEventsDuringComposition || aMessage == NS_KEY_PRESS) {
+      return false;
+    }
+    
+    
+    
   }
 
   nsCOMPtr<nsIWidget> widget(mWidget);
