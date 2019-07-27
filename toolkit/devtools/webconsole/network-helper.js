@@ -275,27 +275,36 @@ let NetworkHelper = {
 
   loadFromCache: function NH_loadFromCache(aUrl, aCharset, aCallback)
   {
-    let channel = NetUtil.newChannel(aUrl);
+    let channel = NetUtil.newChannel2(aUrl,
+                                      null,
+                                      null,
+                                      null,      
+                                      Services.scriptSecurityManager.getSystemPrincipal(),
+                                      null,      
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
 
     
     channel.loadFlags = Ci.nsIRequest.LOAD_FROM_CACHE |
       Ci.nsICachingChannel.LOAD_ONLY_FROM_CACHE |
       Ci.nsICachingChannel.LOAD_BYPASS_LOCAL_CACHE_IF_BUSY;
 
-    NetUtil.asyncFetch(channel, (aInputStream, aStatusCode, aRequest) => {
-      if (!components.isSuccessCode(aStatusCode)) {
-        aCallback(null);
-        return;
-      }
+    NetUtil.asyncFetch2(
+      channel,
+      (aInputStream, aStatusCode, aRequest) => {
+        if (!components.isSuccessCode(aStatusCode)) {
+          aCallback(null);
+          return;
+        }
 
-      
-      
-      let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
-      let contentCharset = aChannel.contentCharset || aCharset;
+        
+        
+        let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
+        let contentCharset = aChannel.contentCharset || aCharset;
 
-      
-      aCallback(this.readAndConvertFromStream(aInputStream, contentCharset));
-    });
+        
+        aCallback(this.readAndConvertFromStream(aInputStream, contentCharset));
+      });
   },
 
   
