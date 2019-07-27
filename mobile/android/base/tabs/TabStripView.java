@@ -11,10 +11,15 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.ViewTreeObserver.OnPreDrawListener;
+
+import com.nineoldandroids.animation.Animator;
+import com.nineoldandroids.animation.AnimatorSet;
+import com.nineoldandroids.animation.ObjectAnimator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +31,10 @@ import org.mozilla.gecko.widget.TwoWayView;
 
 public class TabStripView extends TwoWayView {
     private static final String LOGTAG = "GeckoTabStrip";
+
+    private static final int ANIM_TIME_MS = 200;
+    private static final AccelerateDecelerateInterpolator ANIM_INTERPOLATOR =
+            new AccelerateDecelerateInterpolator();
 
     private final TabStripAdapter adapter;
     private final Drawable divider;
@@ -71,12 +80,108 @@ public class TabStripView extends TwoWayView {
         setItemChecked(selected, true);
     }
 
-    private void updateSelectedPosition() {
+    private void updateSelectedPosition(boolean ensureVisible) {
         final int selected = getPositionForSelectedTab();
         if (selected != -1) {
             updateSelectedStyle(selected);
-            ensurePositionIsVisible(selected);
+
+            if (ensureVisible) {
+                ensurePositionIsVisible(selected);
+            }
         }
+    }
+
+    private void animateRemoveTab(Tab removedTab) {
+        final int removedPosition = adapter.getPositionForTab(removedTab);
+
+        final View removedView = getViewForTab(removedTab);
+
+        
+        
+        if (removedView == null) {
+            return;
+        }
+
+        
+        
+        
+        final int removedSize = removedView.getWidth() + getItemMargin();
+
+        getViewTreeObserver().addOnPreDrawListener(new OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                getViewTreeObserver().removeOnPreDrawListener(this);
+
+                final int firstPosition = getFirstVisiblePosition();
+                final List<Animator> childAnimators = new ArrayList<Animator>();
+
+                final int childCount = getChildCount();
+                for (int i = removedPosition - firstPosition; i < childCount; i++) {
+                    final View child = getChildAt(i);
+
+                    
+                    final ObjectAnimator animator =
+                            ObjectAnimator.ofFloat(child, "translationX", removedSize, 0);
+                    childAnimators.add(animator);
+                }
+
+                final AnimatorSet animatorSet = new AnimatorSet();
+                animatorSet.playTogether(childAnimators);
+                animatorSet.setDuration(ANIM_TIME_MS);
+                animatorSet.setInterpolator(ANIM_INTERPOLATOR);
+                animatorSet.start();
+
+                return true;
+            }
+        });
+    }
+
+    private void animateNewTab(Tab newTab) {
+        final int newPosition = adapter.getPositionForTab(newTab);
+        if (newPosition < 0) {
+            return;
+        }
+
+        getViewTreeObserver().addOnPreDrawListener(new OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                getViewTreeObserver().removeOnPreDrawListener(this);
+
+                final int firstPosition = getFirstVisiblePosition();
+
+                final View newChild = getChildAt(newPosition - firstPosition);
+                if (newChild == null) {
+                    return true;
+                }
+
+                final List<Animator> childAnimators = new ArrayList<Animator>();
+                childAnimators.add(
+                        ObjectAnimator.ofFloat(newChild, "translationY", newChild.getHeight(), 0));
+
+                
+                
+                
+                
+
+                final int tabSize = newChild.getWidth();
+                final int newIndex = newPosition - firstPosition;
+                final int childCount = getChildCount();
+                for (int i = newIndex + 1; i < childCount; i++) {
+                    final View child = getChildAt(i);
+
+                    childAnimators.add(
+                        ObjectAnimator.ofFloat(child, "translationX", -tabSize, 0));
+                }
+
+                final AnimatorSet animatorSet = new AnimatorSet();
+                animatorSet.playTogether(childAnimators);
+                animatorSet.setDuration(ANIM_TIME_MS);
+                animatorSet.setInterpolator(ANIM_INTERPOLATOR);
+                animatorSet.start();
+
+                return true;
+            }
+        });
     }
 
     private void ensurePositionIsVisible(final int position) {
@@ -111,16 +216,24 @@ public class TabStripView extends TwoWayView {
         }
 
         adapter.refresh(tabs);
-        updateSelectedPosition();
+        updateSelectedPosition(true);
     }
 
     void clearTabs() {
         adapter.clear();
     }
 
+    void addTab(Tab tab) {
+        
+        
+        refreshTabs();
+        animateNewTab(tab);
+    }
+
     void removeTab(Tab tab) {
+        animateRemoveTab(tab);
         adapter.removeTab(tab);
-        updateSelectedPosition();
+        updateSelectedPosition(false);
     }
 
     void selectTab(Tab tab) {
@@ -128,7 +241,7 @@ public class TabStripView extends TwoWayView {
             isPrivate = tab.isPrivate();
             refreshTabs();
         } else {
-            updateSelectedPosition();
+            updateSelectedPosition(true);
         }
     }
 
