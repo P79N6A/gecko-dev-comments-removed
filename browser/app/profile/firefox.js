@@ -509,6 +509,13 @@ pref("dom.disable_window_flip",                   true);
 
 pref("dom.w3c_touch_events.enabled",        0);
 
+#ifdef NIGHTLY_BUILD
+
+pref("dom.w3c_pointer_events.enabled", true);
+
+pref("layout.css.touch_action.enabled", true);
+#endif
+
 
 pref("privacy.popups.policy",               1);
 pref("privacy.popups.usecustom",            true);
@@ -1462,7 +1469,7 @@ pref("devtools.performance.ui.show-idle-blocks", true);
 pref("devtools.performance.ui.enable-memory", false);
 pref("devtools.performance.ui.enable-allocations", false);
 pref("devtools.performance.ui.enable-framerate", true);
-pref("devtools.performance.ui.enable-jit-optimizations", false);
+pref("devtools.performance.ui.show-jit-optimizations", false);
 
 
 #if defined(NIGHTLY_BUILD)
