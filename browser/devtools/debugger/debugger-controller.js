@@ -1719,7 +1719,10 @@ EventListeners.prototype = {
 
       
       for (let listener of aResponse.listeners) {
-        let definitionSite = yield this._getDefinitionSite(listener.function);
+        let definitionSite;
+        if (listener.function.class == "Function") {
+          definitionSite = yield this._getDefinitionSite(listener.function);
+        }
         listener.function.url = definitionSite;
         DebuggerView.EventListeners.addListener(listener, { staged: true });
       }
@@ -1742,16 +1745,16 @@ EventListeners.prototype = {
 
 
 
-
   _getDefinitionSite: function(aFunction) {
     let deferred = promise.defer();
 
     gThreadClient.pauseGrip(aFunction).getDefinitionSite(aResponse => {
       if (aResponse.error) {
-        deferred.reject("Error getting function definition site: " + aResponse.message);
-      } else {
-        deferred.resolve(aResponse.url);
+        
+        const msg = "Error getting function definition site: " + aResponse.message;
+        DevToolsUtils.reportException("_getDefinitionSite", msg);
       }
+      deferred.resolve(aResponse.url);
     });
 
     return deferred.promise;

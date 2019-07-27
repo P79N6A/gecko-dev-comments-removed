@@ -1257,7 +1257,29 @@ ThreadActor.prototype = {
         let l = Object.create(null);
         l.type = handler.type;
         let listener = handler.listenerObject;
-        l.script = this.globalDebugObject.makeDebuggeeValue(listener).script;
+        let listenerDO = this.globalDebugObject.makeDebuggeeValue(listener);
+        
+        if (listenerDO.class == "Object" || listenerDO.class == "XULElement") {
+          
+          
+          if (!listenerDO.unwrap()) {
+            continue;
+          }
+          let heDesc;
+          while (!heDesc && listenerDO) {
+            heDesc = listenerDO.getOwnPropertyDescriptor("handleEvent");
+            listenerDO = listenerDO.proto;
+          }
+          if (heDesc && heDesc.value) {
+            listenerDO = heDesc.value;
+          }
+        }
+        
+        
+        while (listenerDO.isBoundFunction) {
+          listenerDO = listenerDO.boundTargetFunction;
+        }
+        l.script = listenerDO.script;
         
         
         if (!l.script)
@@ -1827,9 +1849,32 @@ ThreadActor.prototype = {
         listenerForm.capturing = handler.capturing;
         listenerForm.allowsUntrusted = handler.allowsUntrusted;
         listenerForm.inSystemEventGroup = handler.inSystemEventGroup;
-        listenerForm.isEventHandler = !!node["on" + listenerForm.type];
+        let handlerName = "on" + listenerForm.type;
+        listenerForm.isEventHandler = false;
+        if (typeof node.hasAttribute !== "undefined") {
+          listenerForm.isEventHandler = !!node.hasAttribute(handlerName);
+        }
+        if (!!node[handlerName]) {
+          listenerForm.isEventHandler = !!node[handlerName];
+        }
         
         let listenerDO = this.globalDebugObject.makeDebuggeeValue(listener);
+        
+        if (listenerDO.class == "Object" || listenerDO.class == "XULElement") {
+          let heDesc;
+          while (!heDesc && listenerDO) {
+            heDesc = listenerDO.getOwnPropertyDescriptor("handleEvent");
+            listenerDO = listenerDO.proto;
+          }
+          if (heDesc && heDesc.value) {
+            listenerDO = heDesc.value;
+          }
+        }
+        
+        
+        while (listenerDO.isBoundFunction) {
+          listenerDO = listenerDO.boundTargetFunction;
+        }
         listenerForm.function = this.createValueGrip(listenerDO);
         listeners.push(listenerForm);
       }
