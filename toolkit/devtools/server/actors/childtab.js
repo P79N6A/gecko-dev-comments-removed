@@ -22,13 +22,9 @@ let { TabActor } = require("devtools/server/actors/webbrowser");
 
 
 
-
-
-
-function ContentActor(connection, chromeGlobal, prefix)
+function ContentActor(connection, chromeGlobal)
 {
   this._chromeGlobal = chromeGlobal;
-  this._prefix = prefix;
   TabActor.call(this, connection, chromeGlobal);
   this.traits.reconfigure = false;
   this._sendForm = this._sendForm.bind(this);
@@ -53,11 +49,32 @@ Object.defineProperty(ContentActor.prototype, "title", {
 });
 
 ContentActor.prototype.exit = function() {
-  if (this._sendForm) {
-    this._chromeGlobal.removeMessageListener("debug:form", this._sendForm);
-    this._sendForm = null;
+  this._chromeGlobal.removeMessageListener("debug:form", this._sendForm);
+  this._sendForm = null;
+  TabActor.prototype.exit.call(this);
+};
+
+
+
+
+
+ContentActor.prototype.form = function () {
+  let response = {
+    "actor": this.actorID,
+    "title": this.title,
+    "url": this.url
+  };
+
+  
+  let actorPool = new ActorPool(this.conn);
+  this._createExtraActors(DebuggerServer.tabActorFactories, actorPool);
+  if (!actorPool.isEmpty()) {
+    this._tabActorPool2 = actorPool;
+    this.conn.addActorPool(this._tabActorPool2);
   }
-  return TabActor.prototype.exit.call(this);
+
+  this._appendExtraActors(response);
+  return response;
 };
 
 
