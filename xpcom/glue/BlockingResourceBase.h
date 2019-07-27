@@ -59,81 +59,38 @@ public:
         sDeadlockDetector->SizeOfIncludingThis(aMallocSizeOf) : 0;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool Print(nsACString& aOut) const;
+
+  size_t
+  SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+  {
+    
+    
+    
+    size_t n = aMallocSizeOf(this);
+    return n;
+  }
+
 private:
   
-  struct DeadlockDetectorEntry;
-
-  
-  typedef DeadlockDetector<DeadlockDetectorEntry> DDT;
-
-  
-
-
-
-
-
-
-
-
-  struct DeadlockDetectorEntry
-  {
-    DeadlockDetectorEntry(const char* aName,
-                          BlockingResourceType aType)
-      : mName(aName)
-      , mType(aType)
-      , mAcquired(false)
-    {
-      NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
-    }
-
-    size_t
-    SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
-    {
-      
-      
-      
-      size_t n = aMallocSizeOf(this);
-      return n;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool Print(const DeadlockDetectorEntry* aFirstSeen,
-               nsACString& aOut) const;
-
-    
-
-
-
-
-    const char* mName;
-    
-
-
-
-
-    BlockingResourceType mType;
-    
-
-
-
-    bool mAcquired;
-  };
+  typedef DeadlockDetector<BlockingResourceBase> DDT;
 
 protected:
   
@@ -251,7 +208,7 @@ protected:
 
   bool GetAcquisitionState()
   {
-    return mDDEntry->mAcquired;
+    return mAcquired;
   }
 
   
@@ -262,7 +219,7 @@ protected:
 
   void SetAcquisitionState(bool aAcquisitionState)
   {
-    mDDEntry->mAcquired = aAcquisitionState;
+    mAcquired = aAcquisitionState;
   }
 
   
@@ -278,7 +235,21 @@ private:
 
 
 
-  DeadlockDetectorEntry* mDDEntry;
+
+  const char* mName;
+
+  
+
+
+
+
+  BlockingResourceType mType;
+
+  
+
+
+
+  bool mAcquired;
 
   
 

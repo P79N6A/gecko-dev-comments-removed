@@ -99,7 +99,6 @@ private:
       size_t n = aMallocSizeOf(this);
       n += mOrderedLT.SizeOfExcludingThis(aMallocSizeOf);
       n += mExternalRefs.SizeOfExcludingThis(aMallocSizeOf);
-      n += mResource->SizeOfIncludingThis(aMallocSizeOf);
       return n;
     }
 
@@ -203,7 +202,6 @@ public:
 
     
     mOrdering.Remove(aResource);
-    delete aResource;
   }
 
   
