@@ -811,16 +811,16 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
             }
         }
 
-        
-        
         NS_ProcessPendingEvents(thread);
-        gfxPlatform::ShutdownLayersIPC();
-
         mozilla::scache::StartupCache::DeleteSingleton();
         if (observerService)
             (void) observerService->
                 NotifyObservers(nullptr, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID,
                                 nullptr);
+
+        
+        
+        gfxPlatform::ShutdownLayersIPC();
 
         gXPCOMThreadsShutDown = true;
         NS_ProcessPendingEvents(thread);
