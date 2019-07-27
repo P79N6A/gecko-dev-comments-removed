@@ -426,7 +426,7 @@ public:
   
   static nsOpenTypeTable* Create(gfxFont* aFont)
   {
-    if (!aFont->GetFontEntry()->TryGetMathTable(aFont)) {
+    if (!aFont->GetFontEntry()->TryGetMathTable()) {
       return nullptr;
     }
     return new nsOpenTypeTable(aFont->GetFontEntry());
@@ -1121,26 +1121,27 @@ StretchEnumContext::TryVariants(nsGlyphTable* aGlyphTable,
     ch = aGlyphTable->BigOf(mThebesContext, oneDevPixel, *aFontGroup, uchar,
                             isVertical, 0);
     if (ch.IsGlyphID()) {
-      gfxFont* mathFont = aFontGroup->get()->GetFontAt(0);
+      gfxFont* mathFont = aFontGroup->get()->GetFirstMathFont();
       
       
       
-      displayOperatorMinHeight =
-        NSToCoordRound(mathFont->GetFontEntry()->
-                       GetMathConstant(gfxFontEntry::DisplayOperatorMinHeight) *
-                       mathFont->GetAdjustedSize() * oneDevPixel);
-      nsAutoPtr<gfxTextRun> textRun;
-      textRun = aGlyphTable->MakeTextRun(mThebesContext, oneDevPixel,
-                                         *aFontGroup, ch);
-      nsBoundingMetrics bm = MeasureTextRun(mThebesContext, textRun);
-      float largeopFactor = kLargeOpFactor;
-      if (NS_STRETCH_INTEGRAL & mStretchHint) {
-        
-        largeopFactor = kIntegralFactor;
-      }
-      nscoord minHeight = largeopFactor * (bm.ascent + bm.descent);
-      if (displayOperatorMinHeight < minHeight) {
-        displayOperatorMinHeight = minHeight;
+      if (mathFont) {
+        displayOperatorMinHeight =
+          mathFont->GetMathConstant(gfxFontEntry::DisplayOperatorMinHeight,
+                                    oneDevPixel);
+        nsAutoPtr<gfxTextRun> textRun;
+        textRun = aGlyphTable->MakeTextRun(mThebesContext, oneDevPixel,
+                                           *aFontGroup, ch);
+        nsBoundingMetrics bm = MeasureTextRun(mThebesContext, textRun);
+        float largeopFactor = kLargeOpFactor;
+        if (NS_STRETCH_INTEGRAL & mStretchHint) {
+          
+          largeopFactor = kIntegralFactor;
+        }
+        nscoord minHeight = largeopFactor * (bm.ascent + bm.descent);
+        if (displayOperatorMinHeight < minHeight) {
+          displayOperatorMinHeight = minHeight;
+        }
       }
     }
   }
@@ -1164,8 +1165,8 @@ StretchEnumContext::TryVariants(nsGlyphTable* aGlyphTable,
                                        *aFontGroup, ch);
     nsBoundingMetrics bm = MeasureTextRun(mThebesContext, textRun);
     if (ch.IsGlyphID()) {
-      gfxFont* mathFont = aFontGroup->get()->GetFontAt(0);
-      if (mathFont->GetFontEntry()->TryGetMathTable(mathFont)) {
+      gfxFont* mathFont = aFontGroup->get()->GetFirstMathFont();
+      if (mathFont) {
         
         
         

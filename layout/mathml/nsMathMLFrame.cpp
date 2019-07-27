@@ -176,6 +176,14 @@ nsMathMLFrame::GetAxisHeight(nsRenderingContext& aRenderingContext,
                              nsFontMetrics*      aFontMetrics,
                              nscoord&             aAxisHeight)
 {
+  gfxFont* mathFont = aFontMetrics->GetThebesFontGroup()->GetFirstMathFont();
+  if (mathFont) {
+    aAxisHeight =
+      mathFont->GetMathConstant(gfxFontEntry::AxisHeight,
+                                aFontMetrics->AppUnitsPerDevPixel());
+    return;
+  }
+
   
   
   NS_ASSERTION(aRenderingContext.FontMetrics()->Font().

@@ -399,7 +399,7 @@ public:
     
     
     
-    bool     TryGetMathTable(gfxFont* aFont);
+    bool     TryGetMathTable();
     gfxFloat GetMathConstant(MathConstant aConstant);
     bool     GetMathItalicsCorrection(uint32_t aGlyphID,
                                       gfxFloat* aItalicCorrection);
@@ -1958,6 +1958,24 @@ public:
     static void DestroySingletons() {
         delete sScriptTagToCode;
         delete sDefaultFeatures;
+    }
+
+    
+    
+    
+    nscoord GetMathConstant(gfxFontEntry::MathConstant aConstant,
+                            uint32_t aAppUnitsPerDevPixel)
+    {
+        return NSToCoordRound(mFontEntry->GetMathConstant(aConstant) *
+                              GetAdjustedSize() * aAppUnitsPerDevPixel);
+    }
+
+    
+    
+    
+    float GetMathConstant(gfxFontEntry::MathConstant aConstant)
+    {
+        return mFontEntry->GetMathConstant(aConstant);
     }
 
 protected:
@@ -3556,6 +3574,11 @@ public:
 
         return mFonts[i].Font();
     }
+
+    
+    
+    
+    gfxFont *GetFirstMathFont();
 
     uint32_t FontListLength() const {
         return mFonts.Length();
