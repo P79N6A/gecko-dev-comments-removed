@@ -221,6 +221,11 @@ protected:
                         AudioChannelAgentData* aUnused,
                         void *aPtr);
 
+  static PLDHashOperator
+  WindowDestroyedEnumerator(AudioChannelAgent* aAgent,
+                            nsAutoPtr<AudioChannelAgentData>& aData,
+                            void *aPtr);
+
   
   uint32_t CountWindow(nsIDOMWindow* aWindow);
 
