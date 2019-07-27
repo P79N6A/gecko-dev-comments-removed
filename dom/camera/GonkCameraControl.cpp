@@ -349,11 +349,19 @@ nsGonkCameraControl::SetConfigurationInternal(const Configuration& aConfig)
     if (NS_FAILED(rv)) {
       DOM_CAMERA_LOGE("Failed to set recording hint (0x%x)\n", rv);
     }
-  }
 
-  mCurrentConfiguration.mMode = config.mMode;
-  mCurrentConfiguration.mRecorderProfile = config.mRecorderProfile;
-  mCurrentConfiguration.mPictureSize = config.mPictureSize;
+    mCurrentConfiguration.mMode = config.mMode;
+    mCurrentConfiguration.mRecorderProfile = config.mRecorderProfile;
+    
+    if (config.mMode == kPictureMode) {
+      mCurrentConfiguration.mPictureSize = config.mPictureSize;
+    } else  {
+      
+      
+      
+      SetPictureSizeImpl(config.mPictureSize);
+    }
+  }
   return NS_OK;
 }
 
