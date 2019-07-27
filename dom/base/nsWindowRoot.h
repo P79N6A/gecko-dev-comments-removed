@@ -69,6 +69,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsWindowRoot,
                                                          nsIDOMEventTarget)
 
+  virtual void AddBrowser(mozilla::dom::TabParent* aBrowser);
+  virtual void RemoveBrowser(mozilla::dom::TabParent* aBrowser);
+  virtual void EnumerateBrowsers(BrowserEnumerator aEnumFunc, void *aArg);
+
 protected:
   virtual ~nsWindowRoot();
 
@@ -84,6 +88,10 @@ protected:
   nsCOMPtr<nsIDOMNode> mPopupNode; 
 
   nsCOMPtr<mozilla::dom::EventTarget> mParent;
+
+  
+  typedef nsTHashtable<nsRefPtrHashKey<nsIWeakReference>> WeakBrowserTable;
+  WeakBrowserTable mWeakBrowsers;
 };
 
 extern already_AddRefed<mozilla::dom::EventTarget>

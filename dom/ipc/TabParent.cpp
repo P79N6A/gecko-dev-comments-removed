@@ -335,7 +335,25 @@ TabParent::SetOwnerElement(Element* aElement)
   RemoveWindowListeners();
 
   
+  
+  nsRefPtr<nsPIWindowRoot> curTopLevelWin, newTopLevelWin;
+  if (mFrameElement) {
+    curTopLevelWin = nsContentUtils::GetWindowRoot(mFrameElement->OwnerDoc());
+  }
+  if (aElement) {
+    newTopLevelWin = nsContentUtils::GetWindowRoot(aElement->OwnerDoc());
+  }
+  bool isSameTopLevelWin = curTopLevelWin == newTopLevelWin;
+  if (curTopLevelWin && !isSameTopLevelWin) {
+    curTopLevelWin->RemoveBrowser(this);
+  }
+
+  
   mFrameElement = aElement;
+
+  if (newTopLevelWin && !isSameTopLevelWin) {
+    newTopLevelWin->AddBrowser(this);
+  }
 
   AddWindowListeners();
   TryCacheDPIAndScale();
@@ -1001,6 +1019,7 @@ TabParent::UIResolutionChanged()
     
     
     mDPI = -1;
+    TryCacheDPIAndScale();
     unused << SendUIResolutionChanged();
   }
 }
