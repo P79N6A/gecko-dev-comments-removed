@@ -992,6 +992,14 @@ NS_NewLoadGroup(nsILoadGroup      **result,
     return rv;
 }
 
+
+nsresult
+NS_NewLoadGroup(nsILoadGroup** aResult, nsIPrincipal* aPrincipal);
+
+bool
+NS_LoadGroupMatchesPrincipal(nsILoadGroup* aLoadGroup,
+                             nsIPrincipal* aPrincipal);
+
 inline nsresult
 NS_NewDownloader(nsIStreamListener   **result,
                  nsIDownloadObserver  *observer,
