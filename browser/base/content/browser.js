@@ -1193,13 +1193,29 @@ var gBrowserInit = {
       else if (uriToLoad instanceof XULElement) {
         
         
+        let tabToOpen = uriToLoad;
 
         
         gBrowser.stop();
         
         gBrowser.docShell;
 
-        gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, uriToLoad);
+        
+        
+        
+        try {
+          if (tabToOpen.linkedBrowser.isRemoteBrowser) {
+            if (!gMultiProcessBrowser) {
+              throw new Error("Cannot drag a remote browser into a window " +
+                              "without the remote tabs load context.");
+            }
+
+            gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, true);
+          }
+          gBrowser.swapBrowsersAndCloseOther(gBrowser.selectedTab, tabToOpen);
+        } catch(e) {
+          Cu.reportError(e);
+        }
       }
       
       
