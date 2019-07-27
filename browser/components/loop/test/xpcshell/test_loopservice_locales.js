@@ -16,8 +16,8 @@ function test_getStrings() {
 
   
   
-  Assert.equal(MozLoopService.getStrings("get_link_to_share"),
-               '{"textContent":"Get a link and invite someone to talk"}');
+  Assert.equal(MozLoopService.getStrings("share_link_header_text"),
+               '{"textContent":"Share this link to invite someone to talk:"}');
 }
 
 function run_test()
