@@ -901,7 +901,6 @@ public:
   
 
 
-
   bool HasNoParentWithSameLayersId() const {
     return !mParent || (mParent->mLayersId != mLayersId);
   }
