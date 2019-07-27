@@ -1753,7 +1753,8 @@ Toolbox.prototype = {
 
     
     
-    if (this.target.activeTab) {
+    
+    if (this.target.activeTab && !this.target.activeTab.traits.noTabReconfigureOnClose) {
       this.target.activeTab.reconfigure({
         "cacheDisabled": false,
         "serviceWorkersTestingEnabled": false

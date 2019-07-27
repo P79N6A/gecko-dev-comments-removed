@@ -3,15 +3,7 @@
 
 
 function test() {
-  Cu.import("resource://gre/modules/Services.jsm");
-  let temp = {}
-  Cu.import("resource:///modules/devtools/gDevTools.jsm", temp);
-  let DevTools = temp.DevTools;
-  Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm", temp);
-  let LayoutHelpers = temp.LayoutHelpers;
-
-  Cu.import("resource://gre/modules/devtools/Loader.jsm", temp);
-  let devtools = temp.devtools;
+  let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
   let Toolbox = devtools.Toolbox;
 
@@ -40,19 +32,27 @@ function test() {
     let json = JSON.parse(event.data);
     if (json.name == "toolbox-close") {
       ok("Got the `toolbox-close` message");
+      window.removeEventListener("message", onMessage);
       cleanup();
     }
   }
 
-  function testCustomHost(toolbox) {
+  function testCustomHost(t) {
+    toolbox = t;
     is(toolbox.doc.defaultView.top, window, "Toolbox is included in browser.xul");
     is(toolbox.doc, iframe.contentDocument, "Toolbox is in the custom iframe");
     executeSoon(() => gBrowser.removeCurrentTab());
   }
 
   function cleanup() {
-    window.removeEventListener("message", onMessage);
     iframe.remove();
-    finish();
+
+    
+    
+    
+    toolbox.destroy().then(() => {
+      toolbox = iframe = target = tab = null;
+      finish();
+    });
   }
 }

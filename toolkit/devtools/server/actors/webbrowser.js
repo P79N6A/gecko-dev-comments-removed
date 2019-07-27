@@ -725,7 +725,15 @@ function TabActor(aConnection)
   
   this.listenForNewDocShells = Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
 
-  this.traits = { reconfigure: true, frames: true };
+  this.traits = {
+    reconfigure: true,
+    
+    
+    frames: true,
+    
+    
+    noTabReconfigureOnClose: true
+  };
 
   this._workerActorList = null;
   this._workerActorPool = null;
@@ -1300,6 +1308,7 @@ TabActor.prototype = {
     
     if (this.docShell) {
       this._progressListener.unwatch(this.docShell);
+      this._restoreDocumentSettings();
     }
     if (this._progressListener) {
       this._progressListener.destroy();
@@ -1390,14 +1399,19 @@ TabActor.prototype = {
   onReconfigure: function (aRequest) {
     let options = aRequest.options || {};
 
-    this._toggleDevtoolsSettings(options);
+    if (!this.docShell) {
+      
+      return {};
+    }
+    this._toggleDevToolsSettings(options);
+
     return {};
   },
 
   
 
 
-  _toggleDevtoolsSettings: function(options) {
+  _toggleDevToolsSettings: function(options) {
     
     
     let reload = false;
@@ -1432,34 +1446,61 @@ TabActor.prototype = {
   
 
 
+
+  _restoreDocumentSettings: function () {
+    this._restoreJavascript();
+    this._setCacheDisabled(false);
+    this._setServiceWorkersTestingEnabled(false);
+  },
+
+  
+
+
   _setCacheDisabled: function(disabled) {
     let enable =  Ci.nsIRequest.LOAD_NORMAL;
     let disable = Ci.nsIRequest.LOAD_BYPASS_CACHE |
                   Ci.nsIRequest.INHIBIT_CACHING;
 
-    if (this.docShell) {
-      this.docShell.defaultLoadFlags = disabled ? disable : enable;
+    this.docShell.defaultLoadFlags = disabled ? disable : enable;
+  },
+
+  
+
+
+  _wasJavascriptEnabled: null,
+  _setJavascriptEnabled: function(allow) {
+    if (this._wasJavascriptEnabled === null) {
+      this._wasJavascriptEnabled = this.docShell.allowJavascript;
+    }
+    this.docShell.allowJavascript = allow;
+  },
+
+  
+
+
+  _restoreJavascript: function () {
+    if (this._wasJavascriptEnabled !== null) {
+      this._setJavascriptEnabled(this._wasJavascriptEnabled);
+      this._wasJavascriptEnabled = null;
     }
   },
 
   
 
 
-  _setJavascriptEnabled: function(allow) {
-    if (this.docShell) {
-      this.docShell.allowJavascript = allow;
+  _getJavascriptEnabled: function() {
+    if (!this.docShell) {
+      
+      return null;
     }
+
+    return this.docShell.allowJavascript;
   },
 
   
 
 
   _setServiceWorkersTestingEnabled: function(enabled) {
-    if (!this.docShell) {
-      
-      return null;
-    }
-
     let windowUtils = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
                                  .getInterface(Ci.nsIDOMWindowUtils);
     windowUtils.serviceWorkersTestingEnabled = enabled;
@@ -1477,18 +1518,6 @@ TabActor.prototype = {
     let disable = Ci.nsIRequest.LOAD_BYPASS_CACHE |
                   Ci.nsIRequest.INHIBIT_CACHING;
     return this.docShell.defaultLoadFlags === disable;
-  },
-
-  
-
-
-  _getJavascriptEnabled: function() {
-    if (!this.docShell) {
-      
-      return null;
-    }
-
-    return this.docShell.allowJavascript;
   },
 
   
