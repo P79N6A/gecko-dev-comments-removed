@@ -42,6 +42,7 @@ let WebAudioEditorController = {
 
 
   initialize: Task.async(function* () {
+    telemetry.toolOpened("webaudioeditor");
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onThemeChange = this._onThemeChange.bind(this);
 
@@ -75,6 +76,7 @@ let WebAudioEditorController = {
 
 
   destroy: function() {
+    telemetry.toolClosed("webaudioeditor");
     gTarget.off("will-navigate", this._onTabNavigated);
     gTarget.off("navigate", this._onTabNavigated);
     gFront.off("start-context", this._onStartContext);
