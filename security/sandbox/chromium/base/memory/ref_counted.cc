@@ -3,53 +3,11 @@
 
 
 #include "base/memory/ref_counted.h"
-
-#include "base/logging.h"
 #include "base/threading/thread_collision_warner.h"
 
 namespace base {
 
 namespace subtle {
-
-RefCountedBase::RefCountedBase()
-    : ref_count_(0)
-#ifndef NDEBUG
-    , in_dtor_(false)
-#endif
-    {
-}
-
-RefCountedBase::~RefCountedBase() {
-#ifndef NDEBUG
-  DCHECK(in_dtor_) << "RefCounted object deleted without calling Release()";
-#endif
-}
-
-void RefCountedBase::AddRef() const {
-  
-  
-  
-#ifndef NDEBUG
-  DCHECK(!in_dtor_);
-#endif
-  ++ref_count_;
-}
-
-bool RefCountedBase::Release() const {
-  
-  
-  
-#ifndef NDEBUG
-  DCHECK(!in_dtor_);
-#endif
-  if (--ref_count_ == 0) {
-#ifndef NDEBUG
-    in_dtor_ = true;
-#endif
-    return true;
-  }
-  return false;
-}
 
 bool RefCountedThreadSafeBase::HasOneRef() const {
   return AtomicRefCountIsOne(

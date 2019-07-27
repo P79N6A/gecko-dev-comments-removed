@@ -8,6 +8,7 @@
 #include <list>
 
 #include "base/basictypes.h"
+#include "base/strings/string16.h"
 #include "sandbox/win/src/ipc_tags.h"
 #include "sandbox/win/src/policy_engine_params.h"
 #include "sandbox/win/src/policy_engine_opcodes.h"
@@ -163,7 +164,7 @@ class PolicyRule {
   
   bool GenStringOpcode(RuleType rule_type, StringMatchOptions match_opts,
                        uint16 parameter, int state, bool last_call,
-                       int* skip_count, std::wstring* fragment);
+                       int* skip_count, base::string16* fragment);
 
   
   

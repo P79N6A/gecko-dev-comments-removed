@@ -22,7 +22,7 @@ void Die::ExitGroup() {
   
   
   
-  SandboxSyscall(__NR_exit_group, 1);
+  Syscall::Call(__NR_exit_group, 1);
 
   
   
@@ -30,7 +30,7 @@ void Die::ExitGroup() {
   
   
   signal(SIGSEGV, SIG_DFL);
-  SandboxSyscall(__NR_prctl, PR_SET_DUMPABLE, (void*)0, (void*)0, (void*)0);
+  Syscall::Call(__NR_prctl, PR_SET_DUMPABLE, (void*)0, (void*)0, (void*)0);
   if (*(volatile char*)0) {
   }
 
@@ -40,7 +40,7 @@ void Die::ExitGroup() {
   
   
   for (;;) {
-    SandboxSyscall(__NR_exit_group, 1);
+    Syscall::Call(__NR_exit_group, 1);
   }
 }
 
@@ -75,7 +75,7 @@ void Die::LogToStderr(const char* msg, const char* file, int line) {
     
     
     ignore_result(
-        HANDLE_EINTR(SandboxSyscall(__NR_write, 2, s.c_str(), s.length())));
+        HANDLE_EINTR(Syscall::Call(__NR_write, 2, s.c_str(), s.length())));
   }
 }
 

@@ -2,8 +2,12 @@
 
 
 
-#ifndef SANDBOX_LINUX_SANDBOX_EXPORT_H_
-#define SANDBOX_LINUX_SANDBOX_EXPORT_H_
+#ifndef SANDBOX_SANDBOX_EXPORT_H_
+#define SANDBOX_SANDBOX_EXPORT_H_
+
+#if defined(WIN32)
+#error "sandbox_export.h does not support WIN32."
+#endif
 
 #if defined(COMPONENT_BUILD)
 
@@ -16,8 +20,10 @@
 #endif  
 
 #else  
+
 #define SANDBOX_EXPORT
 #define SANDBOX_EXPORT_PRIVATE
+
 #endif  
 
 #endif  

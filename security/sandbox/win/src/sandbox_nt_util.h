@@ -45,6 +45,8 @@ void __cdecl operator delete(void* memory, void* buffer,
 #define VERIFY_SUCCESS(action) (action)
 #endif
 
+#define CHECK_NT(condition) { (condition) ? (void)0 : __debugbreak(); }
+
 #define NOTREACHED_NT() DCHECK_NT(false)
 
 namespace sandbox {
@@ -93,7 +95,6 @@ enum RequiredAccess {
 
 
 bool ValidParameter(void* buffer, size_t size, RequiredAccess intent);
-
 
 
 NTSTATUS CopyData(void* destination, const void* source, size_t bytes);

@@ -8,6 +8,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <utility>
 #include "base/basictypes.h"
 #include "base/compiler_specific.h"
 #include "base/win/scoped_handle.h"
@@ -36,8 +37,8 @@ class PolicyBase;
 
 
 
-class BrokerServicesBase : public BrokerServices,
-                           public SingletonBase<BrokerServicesBase>  {
+class BrokerServicesBase FINAL : public BrokerServices,
+                                 public SingletonBase<BrokerServicesBase> {
  public:
   BrokerServicesBase();
 
@@ -104,6 +105,9 @@ class BrokerServicesBase : public BrokerServices,
   
   
   std::set<DWORD> child_process_ids_;
+
+  typedef std::map<uint32_t, std::pair<HANDLE, HANDLE>> TokenCacheMap;
+  TokenCacheMap token_cache_;
 
   DISALLOW_COPY_AND_ASSIGN(BrokerServicesBase);
 };

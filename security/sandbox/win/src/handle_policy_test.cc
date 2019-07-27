@@ -54,8 +54,8 @@ TEST(HandlePolicyTest, DuplicateHandle) {
   EXPECT_EQ(SBOX_TEST_SUCCEEDED, target.RunTest(L"Handle_WaitProcess 30000"));
 
   
-  std::wstring cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
-                                             target.process_id());
+  base::string16 cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
+                                               target.process_id());
   EXPECT_EQ(SBOX_TEST_DENIED, runner.RunTest(cmd_line.c_str()));
 
   
@@ -76,8 +76,8 @@ TEST(HandlePolicyTest, DuplicatePeerHandle) {
   EXPECT_EQ(SBOX_TEST_SUCCEEDED, target.RunTest(L"Handle_WaitProcess 30000"));
 
   
-  std::wstring cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
-                                             target.process_id());
+  base::string16 cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
+                                               target.process_id());
   EXPECT_EQ(SBOX_TEST_DENIED, runner.RunTest(cmd_line.c_str()));
 
   
@@ -92,7 +92,7 @@ TEST(HandlePolicyTest, DuplicateBrokerHandle) {
   TestRunner runner;
 
   
-  std::wstring cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
+  base::string16 cmd_line = base::StringPrintf(L"Handle_DuplicateEvent %d",
                                              ::GetCurrentProcessId());
   EXPECT_EQ(SBOX_TEST_DENIED, runner.RunTest(cmd_line.c_str()));
 

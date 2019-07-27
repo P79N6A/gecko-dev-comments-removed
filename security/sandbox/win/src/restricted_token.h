@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "base/basictypes.h"
+#include "base/strings/string16.h"
 #include "sandbox/win/src/restricted_token_utils.h"
 #include "sandbox/win/src/security_level.h"
 #include "sandbox/win/src/sid.h"
@@ -123,7 +124,7 @@ class RestrictedToken {
   
   
   unsigned DeleteAllPrivileges(
-      const std::vector<std::wstring> *exceptions);
+      const std::vector<base::string16> *exceptions);
 
   
   

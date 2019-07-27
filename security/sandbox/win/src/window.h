@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <string>
 
+#include "base/strings/string16.h"
 #include "sandbox/win/src/sandbox_types.h"
 
 namespace sandbox {
@@ -26,13 +27,13 @@ namespace sandbox {
   ResultCode CreateAltDesktop(HWINSTA winsta, HDESK* desktop);
 
   
-  std::wstring GetWindowObjectName(HANDLE handle);
+  base::string16 GetWindowObjectName(HANDLE handle);
 
   
   
   
   
-  std::wstring GetFullDesktopName(HWINSTA winsta, HDESK desktop);
+  base::string16 GetFullDesktopName(HWINSTA winsta, HDESK desktop);
 
 }  
 

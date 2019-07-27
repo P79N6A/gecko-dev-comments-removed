@@ -19,14 +19,15 @@ namespace sandbox {
 
 
 
-typedef std::map<const string16, std::set<const string16> > HandleMap;
+typedef std::map<const base::string16, std::set<const base::string16> >
+    HandleMap;
 
 
 struct HandleListEntry {
   size_t record_bytes;       
   size_t offset_to_names;    
   size_t name_count;
-  char16 handle_type[1];
+  base::char16 handle_type[1];
 };
 
 
@@ -46,13 +47,11 @@ class HandleCloser {
   
   
   
-  ResultCode AddHandle(const char16* handle_type, const char16* handle_name);
+  ResultCode AddHandle(const base::char16* handle_type,
+                       const base::char16* handle_name);
 
   
   bool InitializeTargetHandles(TargetProcess* target);
-
-  
-  bool SetupHandleInterceptions(InterceptionManager* manager);
 
  private:
   
@@ -68,7 +67,7 @@ class HandleCloser {
 };
 
 
-bool GetHandleName(HANDLE handle, string16* handle_name);
+bool GetHandleName(HANDLE handle, base::string16* handle_name);
 
 }  
 

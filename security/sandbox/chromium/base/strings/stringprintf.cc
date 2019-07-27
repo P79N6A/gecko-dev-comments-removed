@@ -66,19 +66,17 @@ static void StringAppendVT(StringType* dst,
   int mem_length = arraysize(stack_buf);
   while (true) {
     if (result < 0) {
-#if !defined(OS_WIN)
+#if defined(OS_WIN)
       
       
       
+      return;
+#else
       if (errno != 0 && errno != EOVERFLOW)
-#endif
-      {
-        
-        DLOG(WARNING) << "Unable to printf the requested string due to error.";
         return;
-      }
       
       mem_length *= 2;
+#endif
     } else {
       
       mem_length = result + 1;

@@ -33,6 +33,16 @@ enum Version {
 
 
 
+enum VersionType {
+  SUITE_HOME,
+  SUITE_PROFESSIONAL,
+  SUITE_SERVER,
+  SUITE_LAST,
+};
+
+
+
+
 class BASE_EXPORT OSInfo {
  public:
   struct VersionNumber {
@@ -74,6 +84,7 @@ class BASE_EXPORT OSInfo {
   Version version() const { return version_; }
   
   VersionNumber version_number() const { return version_number_; }
+  VersionType version_type() const { return version_type_; }
   ServicePack service_pack() const { return service_pack_; }
   WindowsArchitecture architecture() const { return architecture_; }
   int processors() const { return processors_; }
@@ -91,6 +102,7 @@ class BASE_EXPORT OSInfo {
 
   Version version_;
   VersionNumber version_number_;
+  VersionType version_type_;
   ServicePack service_pack_;
   WindowsArchitecture architecture_;
   int processors_;

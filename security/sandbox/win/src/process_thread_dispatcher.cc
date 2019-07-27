@@ -29,20 +29,20 @@ namespace {
 
 
 
-std::wstring GetPathFromCmdLine(const std::wstring &cmd_line) {
-  std::wstring exe_name;
+base::string16 GetPathFromCmdLine(const base::string16 &cmd_line) {
+  base::string16 exe_name;
   
   if (cmd_line[0] == L'\"') {
     
-    std::wstring::size_type pos = cmd_line.find(L'\"', 1);
-    if (std::wstring::npos == pos)
+    base::string16::size_type pos = cmd_line.find(L'\"', 1);
+    if (base::string16::npos == pos)
       return cmd_line;
     exe_name = cmd_line.substr(1, pos - 1);
   } else {
     
     
-    std::wstring::size_type pos = cmd_line.find(L' ');
-    if (std::wstring::npos == pos) {
+    base::string16::size_type pos = cmd_line.find(L' ');
+    if (base::string16::npos == pos) {
       
       exe_name = cmd_line;
     } else {
@@ -55,7 +55,7 @@ std::wstring GetPathFromCmdLine(const std::wstring &cmd_line) {
 
 
 
-bool IsPathRelative(const std::wstring &path) {
+bool IsPathRelative(const base::string16 &path) {
   
   
   if (path.find(L"\\\\") == 0 || path.find(L":\\") == 1)
@@ -64,8 +64,8 @@ bool IsPathRelative(const std::wstring &path) {
 }
 
 
-bool ConvertToAbsolutePath(const std::wstring& child_current_directory,
-                           bool use_env_path, std::wstring *path) {
+bool ConvertToAbsolutePath(const base::string16& child_current_directory,
+                           bool use_env_path, base::string16 *path) {
   wchar_t file_buffer[MAX_PATH];
   wchar_t *file_part = NULL;
 
@@ -145,7 +145,7 @@ bool ThreadProcessDispatcher::SetupService(InterceptionManager* manager,
       return false;
 
     case IPC_CREATEPROCESSW_TAG:
-      return INTERCEPT_EAT(manager, L"kernel32.dll", CreateProcessW,
+      return INTERCEPT_EAT(manager, kKerneldllName, CreateProcessW,
                            CREATE_PROCESSW_ID, 44) &&
              INTERCEPT_EAT(manager, L"kernel32.dll", CreateProcessA,
                            CREATE_PROCESSA_ID, 44);
@@ -201,15 +201,15 @@ bool ThreadProcessDispatcher::NtOpenProcessTokenEx(IPCInfo* ipc, HANDLE process,
   return true;
 }
 
-bool ThreadProcessDispatcher::CreateProcessW(IPCInfo* ipc, std::wstring* name,
-                                             std::wstring* cmd_line,
-                                             std::wstring* cur_dir,
+bool ThreadProcessDispatcher::CreateProcessW(IPCInfo* ipc, base::string16* name,
+                                             base::string16* cmd_line,
+                                             base::string16* cur_dir,
                                              CountedBuffer* info) {
   if (sizeof(PROCESS_INFORMATION) != info->Size())
     return false;
 
   
-  std::wstring exe_name;
+  base::string16 exe_name;
   if (!name->empty())
     exe_name = *name;
   else

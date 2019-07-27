@@ -17,7 +17,6 @@
 struct AtomicOps_x86CPUFeatureStruct {
   bool has_amd_lock_mb_bug; 
                             
-  bool has_sse2;            
 };
 BASE_EXPORT extern struct AtomicOps_x86CPUFeatureStruct
     AtomicOps_Internalx86CPUFeatures;
@@ -92,10 +91,6 @@ inline void NoBarrier_Store(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
 }
 
-#if defined(__x86_64__)
-
-
-
 inline void MemoryBarrier() {
   __asm__ __volatile__("mfence" : : : "memory");
 }
@@ -104,28 +99,6 @@ inline void Acquire_Store(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
   MemoryBarrier();
 }
-
-#else
-
-inline void MemoryBarrier() {
-  if (AtomicOps_Internalx86CPUFeatures.has_sse2) {
-    __asm__ __volatile__("mfence" : : : "memory");
-  } else { 
-    Atomic32 x = 0;
-    NoBarrier_AtomicExchange(&x, 0);  
-  }
-}
-
-inline void Acquire_Store(volatile Atomic32* ptr, Atomic32 value) {
-  if (AtomicOps_Internalx86CPUFeatures.has_sse2) {
-    *ptr = value;
-    __asm__ __volatile__("mfence" : : : "memory");
-  } else {
-    NoBarrier_AtomicExchange(ptr, value);
-                          
-  }
-}
-#endif
 
 inline void Release_Store(volatile Atomic32* ptr, Atomic32 value) {
   ATOMICOPS_COMPILER_BARRIER();

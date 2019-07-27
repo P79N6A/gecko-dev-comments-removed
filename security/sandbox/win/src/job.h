@@ -29,7 +29,10 @@ class Job {
   
   
   
-  DWORD Init(JobLevel security_level, wchar_t *job_name, DWORD ui_exceptions);
+  DWORD Init(JobLevel security_level,
+             const wchar_t* job_name,
+             DWORD ui_exceptions,
+             size_t memory_limit);
 
   
   
