@@ -671,7 +671,7 @@ public class ContactService implements GeckoEventListener {
         if (typeConstant == BaseTypes.TYPE_CUSTOM) {
             type = cursor.getString(cursor.getColumnIndex(typeLabelColumn));
         } else {
-            type = getKeyFromMapValue(typeMap, Integer.valueOf(typeConstant));
+            type = getKeyFromMapValue(typeMap, typeConstant);
         }
 
         
@@ -712,7 +712,7 @@ public class ContactService implements GeckoEventListener {
         if (typeConstant == Phone.TYPE_CUSTOM) {
             type = cursor.getString(cursor.getColumnIndex(Phone.LABEL));
         } else {
-            type = getKeyFromMapValue(mPhoneTypesMap, Integer.valueOf(typeConstant));
+            type = getKeyFromMapValue(mPhoneTypesMap, typeConstant);
         }
 
         
@@ -759,7 +759,7 @@ public class ContactService implements GeckoEventListener {
         if (typeConstant == StructuredPostal.TYPE_CUSTOM) {
             type = cursor.getString(cursor.getColumnIndex(StructuredPostal.LABEL));
         } else {
-            type = getKeyFromMapValue(mAddressTypesMap, Integer.valueOf(typeConstant));
+            type = getKeyFromMapValue(mAddressTypesMap, typeConstant);
         }
 
         
@@ -984,7 +984,7 @@ public class ContactService implements GeckoEventListener {
         }
 
         String returnStatus = "KO";
-        Long newRawContactId = new Long(-1);
+        Long newRawContactId = -1L;
 
         
         ContentProviderResult[] insertResults = applyBatch(newContactOptions);
@@ -1476,7 +1476,7 @@ public class ContactService implements GeckoEventListener {
 
     private void getContactsCount(final String requestID) {
         Cursor cursor = getAllRawContactIdsCursor();
-        Integer numContacts = Integer.valueOf(cursor.getCount());
+        Integer numContacts = cursor.getCount();
         cursor.close();
 
         sendCallbackToJavascript("Android:Contacts:Count", requestID, new String[] {"count"},

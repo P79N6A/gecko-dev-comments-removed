@@ -1065,7 +1065,7 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
                     Long additional = values.getAsLong(History.VISITS);
 
                     
-                    values.put(History.VISITS, existing + ((additional != null) ? additional.longValue() : 1));
+                    values.put(History.VISITS, existing + ((additional != null) ? additional : 1));
                 }
 
                 updated += db.update(TABLE_HISTORY, values, "_id = ?",

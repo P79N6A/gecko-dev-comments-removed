@@ -92,7 +92,7 @@ class DatabaseHelper {
     
     protected long getFolderIdFromGuid(String guid) {
         ContentResolver resolver = mActivity.getContentResolver();
-        long folderId = Long.valueOf(-1);
+        long folderId = -1L;
         Uri bookmarksUri = buildUri(BrowserDataType.BOOKMARKS);
         Cursor c = null;
         try {
