@@ -11070,6 +11070,10 @@ Factory::Create(const LoggingInfo& aLoggingInfo)
 
   
   if (!sFactoryInstanceCount) {
+    if (!gConnectionPool) {
+      gConnectionPool = new ConnectionPool();
+    }
+
     MOZ_ASSERT(!gLiveDatabaseHashtable);
     gLiveDatabaseHashtable = new DatabaseActorHashtable();
 
@@ -11899,10 +11903,6 @@ Database::RecvPBackgroundIDBTransactionConstructor(
     
     
     return true;
-  }
-
-  if (!gConnectionPool) {
-    gConnectionPool = new ConnectionPool();
   }
 
   auto* transaction = static_cast<NormalTransaction*>(aActor);
@@ -17773,10 +17773,6 @@ OpenDatabaseOp::DispatchToWorkThread()
 
   if (NS_WARN_IF(!mDatabase->RegisterTransaction(mVersionChangeTransaction))) {
     return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  if (!gConnectionPool) {
-    gConnectionPool = new ConnectionPool();
   }
 
   nsRefPtr<VersionChangeOp> versionChangeOp = new VersionChangeOp(this);
