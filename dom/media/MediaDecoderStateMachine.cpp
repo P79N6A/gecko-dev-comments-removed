@@ -2114,6 +2114,13 @@ bool MediaDecoderStateMachine::HasLowUndecodedData(int64_t aUsecs)
   NS_ASSERTION(mState > DECODER_STATE_DECODING_FIRSTFRAME,
                "Must have loaded first frame for GetBuffered() to work");
 
+  
+  
+  
+  if (GetDuration() < 0) {
+    return false;
+  }
+
   nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
   nsresult rv = mReader->GetBuffered(buffered.get());
   NS_ENSURE_SUCCESS(rv, false);
