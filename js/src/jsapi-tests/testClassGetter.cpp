@@ -25,13 +25,10 @@ static const JSClass ptestClass = {
     "PTest",
     JSCLASS_HAS_PRIVATE,
 
-    JS_PropertyStub,       
-    JS_DeletePropertyStub, 
+    nullptr,               
+    nullptr,               
     test_prop_get,         
-    JS_StrictPropertyStub, 
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JS_StrictPropertyStub  
 };
 
 static bool

@@ -1307,9 +1307,8 @@ FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject pro
     self->setIntrinsicsHolder(intrinsicsHolder);
     
     RootedValue global(cx, ObjectValue(*self));
-    if (!JSObject::defineProperty(cx, intrinsicsHolder, cx->names().global,
-                                  global, JS_PropertyStub, JS_StrictPropertyStub,
-                                  JSPROP_PERMANENT | JSPROP_READONLY))
+    if (!JSObject::defineProperty(cx, intrinsicsHolder, cx->names().global, global,
+                                  nullptr, nullptr, JSPROP_PERMANENT | JSPROP_READONLY))
     {
         return false;
     }
@@ -1340,13 +1339,13 @@ FinishObjectClassInit(JSContext *cx, JS::HandleObject ctor, JS::HandleObject pro
 const Class PlainObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    JS_PropertyStub,         
-    JS_DeletePropertyStub,   
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 

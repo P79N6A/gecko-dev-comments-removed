@@ -229,9 +229,9 @@ NPObjectMember_Trace(JSTracer *trc, JSObject *obj);
 static const JSClass sNPObjectMemberClass =
   {
     "NPObject Ambiguous Member class", JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS,
-    JS_PropertyStub, JS_DeletePropertyStub,
-    JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub,
-    JS_ResolveStub, NPObjectMember_Convert,
+    nullptr, nullptr,
+    JS_PropertyStub, JS_StrictPropertyStub, nullptr,
+    nullptr, NPObjectMember_Convert,
     NPObjectMember_Finalize, NPObjectMember_Call,
     nullptr, nullptr, NPObjectMember_Trace
   };

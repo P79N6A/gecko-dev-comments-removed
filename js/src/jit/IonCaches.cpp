@@ -2732,12 +2732,11 @@ IsPropertyAddInlineable(NativeObject *obj, HandleId id, ConstantOrRegister val, 
     MOZ_ASSERT(shape == obj->lastProperty());
 
     
-    if (obj->getClass()->resolve != JS_ResolveStub)
+    if (obj->getClass()->resolve)
         return false;
 
     
-    
-    if (obj->getClass()->addProperty != JS_PropertyStub)
+    if (obj->getClass()->addProperty)
         return false;
 
     if (!obj->nonProxyIsExtensible() || !shape->writable())
@@ -2759,7 +2758,7 @@ IsPropertyAddInlineable(NativeObject *obj, HandleId id, ConstantOrRegister val, 
         
         
         
-        if (proto->getClass()->resolve != JS_ResolveStub)
+        if (proto->getClass()->resolve)
              return false;
     }
 

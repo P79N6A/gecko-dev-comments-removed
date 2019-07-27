@@ -536,7 +536,13 @@ LookupOwnPropertyInline(ExclusiveContext *cx,
     }
 
     
-    if (obj->getClass()->resolve != JS_ResolveStub) {
+    if (obj->getClass()->resolve
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 4
+        
+        && obj->getClass()->resolve != JS_ResolveStub
+#endif
+        )
+    {
         if (!cx->shouldBeJSContext() || !allowGC)
             return false;
 

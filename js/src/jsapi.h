@@ -1158,6 +1158,17 @@ ToString(JSContext *cx, HandleValue v)
     return js::ToStringSlow(cx, v);
 }
 
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+OrdinaryToPrimitive(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp);
+
 } 
 
 extern JS_PUBLIC_API(bool)
@@ -2367,19 +2378,16 @@ extern JS_PUBLIC_API(bool)
 JS_StrictPropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict,
                       JS::MutableHandleValue vp);
 
-extern JS_PUBLIC_API(bool)
-JS_DeletePropertyStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                      bool *succeeded);
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ == 4
 
-extern JS_PUBLIC_API(bool)
-JS_EnumerateStub(JSContext *cx, JS::HandleObject obj);
+
+
+
+
 
 extern JS_PUBLIC_API(bool)
 JS_ResolveStub(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool *resolvedp);
-
-extern JS_PUBLIC_API(bool)
-JS_ConvertStub(JSContext *cx, JS::HandleObject obj, JSType type,
-               JS::MutableHandleValue vp);
+#endif  
 
 template<typename T>
 struct JSConstScalarSpec {

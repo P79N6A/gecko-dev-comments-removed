@@ -292,26 +292,20 @@ CallObject::createForStrictEval(JSContext *cx, AbstractFramePtr frame)
 const Class CallObject::class_ = {
     "Call",
     JSCLASS_IS_ANONYMOUS | JSCLASS_HAS_RESERVED_SLOTS(CallObject::RESERVED_SLOTS),
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    nullptr                  
+    JS_StrictPropertyStub    
 };
 
 const Class DeclEnvObject::class_ = {
     js_Object_str,
     JSCLASS_HAS_RESERVED_SLOTS(DeclEnvObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JS_StrictPropertyStub    
 };
 
 
@@ -588,26 +582,23 @@ const Class StaticWithObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(StaticWithObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JS_StrictPropertyStub    
 };
 
 const Class DynamicWithObject::class_ = {
     "With",
     JSCLASS_HAS_RESERVED_SLOTS(DynamicWithObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
-    JS_PropertyStub,         
-    JS_DeletePropertyStub,   
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 
@@ -745,13 +736,10 @@ const Class BlockObject::class_ = {
     JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(BlockObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JS_StrictPropertyStub    
 };
 
 template<XDRMode mode>
@@ -1041,13 +1029,13 @@ const Class UninitializedLexicalObject::class_ = {
     "UninitializedLexical",
     JSCLASS_HAS_RESERVED_SLOTS(UninitializedLexicalObject::RESERVED_SLOTS) |
     JSCLASS_IS_ANONYMOUS,
-    JS_PropertyStub,         
-    JS_DeletePropertyStub,   
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 

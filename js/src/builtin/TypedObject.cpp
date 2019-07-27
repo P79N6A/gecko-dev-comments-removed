@@ -37,13 +37,10 @@ const Class js::TypedObjectModuleObject::class_ = {
     "TypedObject",
     JSCLASS_HAS_RESERVED_SLOTS(SlotCount) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_TypedObject),
+    nullptr,                 
+    nullptr,                 
     JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JS_StrictPropertyStub    
 };
 
 static const JSFunctionSpec TypedObjectMethods[] = {
@@ -210,18 +207,10 @@ GetPrototype(JSContext *cx, HandleObject obj)
 const Class js::TypedProto::class_ = {
     "TypedProto",
     JSCLASS_HAS_RESERVED_SLOTS(JS_TYPROTO_SLOTS),
+    nullptr,               
+    nullptr,               
     JS_PropertyStub,       
-    JS_DeletePropertyStub, 
-    JS_PropertyStub,       
-    JS_StrictPropertyStub, 
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
+    JS_StrictPropertyStub  
 };
 
 
@@ -236,18 +225,15 @@ const Class js::TypedProto::class_ = {
 const Class js::ScalarTypeDescr::class_ = {
     "Scalar",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    JS_PropertyStub,       
-    JS_DeletePropertyStub, 
+    nullptr,               
+    nullptr,               
     JS_PropertyStub,       
     JS_StrictPropertyStub, 
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,               
+    nullptr,               
+    nullptr,               
     TypeDescr::finalize,
-    ScalarTypeDescr::call,
-    nullptr,
-    nullptr,
-    nullptr
+    ScalarTypeDescr::call
 };
 
 const JSFunctionSpec js::ScalarTypeDescr::typeObjectMethods[] = {
@@ -336,18 +322,15 @@ ScalarTypeDescr::call(JSContext *cx, unsigned argc, Value *vp)
 const Class js::ReferenceTypeDescr::class_ = {
     "Reference",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    JS_PropertyStub,       
-    JS_DeletePropertyStub, 
+    nullptr,               
+    nullptr,               
     JS_PropertyStub,       
     JS_StrictPropertyStub, 
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,               
+    nullptr,               
+    nullptr,               
     TypeDescr::finalize,
-    ReferenceTypeDescr::call,
-    nullptr,
-    nullptr,
-    nullptr
+    ReferenceTypeDescr::call
 };
 
 const JSFunctionSpec js::ReferenceTypeDescr::typeObjectMethods[] = {
@@ -518,13 +501,13 @@ CreatePrototypeObjectForComplexTypeInstance(JSContext *cx,
 const Class ArrayTypeDescr::class_ = {
     "ArrayType",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    JS_PropertyStub,
-    JS_DeletePropertyStub,
+    nullptr,               
+    nullptr,               
     JS_PropertyStub,
     JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr,               
+    nullptr,               
+    nullptr,               
     TypeDescr::finalize,
     nullptr,
     nullptr,
@@ -752,13 +735,13 @@ js::IsTypedObjectArray(JSObject &obj)
 const Class StructTypeDescr::class_ = {
     "StructType",
     JSCLASS_HAS_RESERVED_SLOTS(JS_DESCR_SLOTS) | JSCLASS_BACKGROUND_FINALIZE,
-    JS_PropertyStub,
-    JS_DeletePropertyStub,
+    nullptr, 
+    nullptr, 
     JS_PropertyStub,
     JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub,
+    nullptr, 
+    nullptr, 
+    nullptr, 
     TypeDescr::finalize,
     nullptr, 
     nullptr, 
@@ -2438,13 +2421,13 @@ LazyArrayBufferTable::sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf)
     const Class Name::class_ = {                         \
         # Name,                                          \
         Class::NON_NATIVE | JSCLASS_IMPLEMENTS_BARRIERS, \
-        JS_PropertyStub,                                 \
-        JS_DeletePropertyStub,                           \
+        nullptr,        /* addProperty */                \
+        nullptr,        /* delProperty */                \
         JS_PropertyStub,                                 \
         JS_StrictPropertyStub,                           \
-        JS_EnumerateStub,                                \
-        JS_ResolveStub,                                  \
-        JS_ConvertStub,                                  \
+        nullptr,        /* enumerate   */                \
+        nullptr,        /* resolve     */                \
+        nullptr,        /* convert     */                \
         nullptr,        /* finalize    */                \
         nullptr,        /* call        */                \
         nullptr,        /* hasInstance */                \
