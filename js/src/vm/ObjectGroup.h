@@ -173,6 +173,7 @@ enum NewObjectKind {
 
 
 
+
 class ObjectGroup : public gc::TenuredCell
 {
     friend void gc::MergeCompartments(JSCompartment* source, JSCompartment* target);

@@ -507,8 +507,20 @@ ObjectGroup::defaultNewGroup(ExclusiveContext* cx, const Class* clasp,
             clasp = &PlainObject::class_;
     }
 
-    if (proto.isObject() && !proto.toObject()->setDelegate(cx))
-        return nullptr;
+    if (proto.isObject() && !proto.toObject()->isDelegate()) {
+        RootedObject protoObj(cx, proto.toObject());
+        if (!protoObj->setDelegate(cx))
+            return nullptr;
+
+        
+        
+        
+        
+        if (protoObj->is<PlainObject>() && !protoObj->isSingleton()) {
+            if (!JSObject::changeToSingleton(cx->asJSContext(), protoObj))
+                return nullptr;
+        }
+    }
 
     ObjectGroupCompartment::NewTable::AddPtr p =
         table->lookupForAdd(ObjectGroupCompartment::NewEntry::Lookup(clasp, proto, associated));

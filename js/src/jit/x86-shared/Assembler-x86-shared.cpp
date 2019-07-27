@@ -69,12 +69,6 @@ TraceDataRelocations(JSTracer* trc, uint8_t* buffer, CompactBufferReader& reader
 #endif
 
         
-        
-        
-        
-        MOZ_ASSERT(!(*reinterpret_cast<uintptr_t*>(ptr) & 0x1));
-
-        
         TraceManuallyBarrieredGenericPointerEdge(trc, reinterpret_cast<gc::Cell**>(ptr),
                                                  "ion-masm-ptr");
     }
@@ -85,45 +79,6 @@ void
 AssemblerX86Shared::TraceDataRelocations(JSTracer* trc, JitCode* code, CompactBufferReader& reader)
 {
     ::TraceDataRelocations(trc, code->raw(), reader);
-}
-
-void
-AssemblerX86Shared::FixupNurseryObjects(JSContext* cx, JitCode* code, CompactBufferReader& reader,
-                                        const ObjectVector& nurseryObjects)
-{
-    MOZ_ASSERT(!nurseryObjects.empty());
-
-    uint8_t* buffer = code->raw();
-    bool hasNurseryPointers = false;
-
-    while (reader.more()) {
-        size_t offset = reader.readUnsigned();
-        void** ptr = X86Encoding::GetPointerRef(buffer + offset);
-
-        uintptr_t* word = reinterpret_cast<uintptr_t*>(ptr);
-
-#ifdef JS_PUNBOX64
-        if (*word >> JSVAL_TAG_SHIFT)
-            continue; 
-#endif
-
-        if (!(*word & 0x1))
-            continue;
-
-        uint32_t index = *word >> 1;
-        JSObject* obj = nurseryObjects[index];
-        *word = uintptr_t(obj);
-
-        
-        
-        MOZ_ASSERT_IF(hasNurseryPointers, IsInsideNursery(obj));
-
-        if (!hasNurseryPointers && IsInsideNursery(obj))
-            hasNurseryPointers = true;
-    }
-
-    if (hasNurseryPointers)
-        cx->runtime()->gc.storeBuffer.putWholeCellFromMainThread(code);
 }
 
 void
