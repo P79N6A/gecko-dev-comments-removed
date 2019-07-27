@@ -35,23 +35,6 @@
 
 using namespace mozilla;
 
-
-class GlobalNameMapEntry : public PLDHashEntryHdr
-{
-public:
-  
-  nsString mKey;
-  nsGlobalNameStruct mGlobalName;
-
-  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) {
-    
-    
-    
-    return mKey.SizeOfExcludingThisMustBeUnshared(aMallocSizeOf);
-  }
-};
-
-
 static PLDHashNumber
 GlobalNameHashHashKey(PLDHashTable *table, const void *key)
 {
@@ -740,36 +723,6 @@ nsScriptNameSpaceManager::RegisterNavigatorDOMConstructor(
     s->mConstructNavigatorProperty = aNavConstructor;
     s->mConstructorEnabled = aConstructorEnabled;
   }
-}
-
-struct NameClosure
-{
-  nsScriptNameSpaceManager::NameEnumerator enumerator;
-  void* closure;
-};
-
-static PLDHashOperator
-EnumerateName(PLDHashTable*, PLDHashEntryHdr *hdr, uint32_t, void* aClosure)
-{
-  GlobalNameMapEntry *entry = static_cast<GlobalNameMapEntry *>(hdr);
-  NameClosure* closure = static_cast<NameClosure*>(aClosure);
-  return closure->enumerator(entry->mKey, entry->mGlobalName, closure->closure);
-}
-
-void
-nsScriptNameSpaceManager::EnumerateGlobalNames(NameEnumerator aEnumerator,
-                                               void* aClosure)
-{
-  NameClosure closure = { aEnumerator, aClosure };
-  PL_DHashTableEnumerate(&mGlobalNames, EnumerateName, &closure);
-}
-
-void
-nsScriptNameSpaceManager::EnumerateNavigatorNames(NameEnumerator aEnumerator,
-                                                  void* aClosure)
-{
-  NameClosure closure = { aEnumerator, aClosure };
-  PL_DHashTableEnumerate(&mNavigatorNames, EnumerateName, &closure);
 }
 
 static size_t
