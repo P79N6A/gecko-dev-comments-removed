@@ -295,39 +295,4 @@ cc_boolean CCAPI_CallInfo_isAudioMuted(cc_callinfo_ref_t handle);
 
 cc_boolean CCAPI_CallInfo_isVideoMuted(cc_callinfo_ref_t handle);
 
-
-
-
-
-
-cc_string_t CCAPI_CallInfo_getSDP(cc_callinfo_ref_t handle);
-
-
-
-
-
-
-cc_string_t CCAPI_CallInfo_getCandidate(cc_callinfo_ref_t handle);
-
-
-
-
-
-
-cc_int32_t  CCAPI_CallInfo_getStatusCode(cc_callinfo_ref_t handle);
-
-
-
-
-
-
-MediaStreamTable* CCAPI_CallInfo_getMediaStreams(cc_callinfo_ref_t handle);
-
-
-
-
-
-
-Timecard* CCAPI_CallInfo_takeTimecard(cc_callinfo_ref_t handle);
-
 #endif 

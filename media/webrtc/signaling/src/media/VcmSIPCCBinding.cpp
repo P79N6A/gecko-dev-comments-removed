@@ -48,9 +48,10 @@
 
 extern "C" {
 #include "ccsdp.h"
-#include "vcm.h"
+#include "ccapi.h"
 #include "cip_mmgr_mediadefinitions.h"
 #include "cip_Sipcc_CodecMask.h"
+#include "peer_connection_types.h"
 
 extern void lsm_start_multipart_tone_timer (vcm_tones_t tone,
                                             uint32_t delay,
@@ -70,13 +71,6 @@ static int vcmEnsureExternalCodec(
 }
 
 static const char* logTag = "VcmSipccBinding";
-
-
-typedef enum {
-    CC_AUDIO_1,
-    CC_VIDEO_1,
-    CC_DATACHANNEL_1
-} cc_media_cap_name;
 
 #define SIPSDP_ILBC_MODE20 20
 
@@ -1101,6 +1095,31 @@ int vcmRxStart(cc_mcapid_t mcap_id,
     return VCM_ERROR;
 }
 
+
+void vcmOnRemoteStreamAdded(cc_call_handle_t call_handle,
+                            const char* peer_connection_handle,
+                            vcm_media_remote_track_table_t *sipcc_stream_table) {
+  sipcc::PeerConnectionWrapper wrapper(peer_connection_handle);
+
+  if (wrapper.impl()) {
+    
+    
+    MediaStreamTable pc_stream_table;
+    memset(&pc_stream_table, 0, sizeof(pc_stream_table));
+    pc_stream_table.media_stream_id = sipcc_stream_table->media_stream_id;
+
+    
+    pc_stream_table.num_tracks = sipcc_stream_table->num_tracks;
+    for (size_t i = 0; i < pc_stream_table.num_tracks; ++i) {
+      pc_stream_table.track[i].media_stream_track_id =
+        sipcc_stream_table->track[i].media_stream_track_id;
+      
+      pc_stream_table.track[i].video = sipcc_stream_table->track[i].video;
+    }
+
+    wrapper.impl()->OnRemoteStreamAdded(pc_stream_table);
+  }
+}
 
 
 

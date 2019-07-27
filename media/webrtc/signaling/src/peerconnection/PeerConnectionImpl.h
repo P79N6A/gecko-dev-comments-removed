@@ -109,6 +109,8 @@ void func (__VA_ARGS__, rv)
 NS_IMETHODIMP func(__VA_ARGS__, resulttype **result);                  \
 already_AddRefed<resulttype> func (__VA_ARGS__, rv)
 
+struct MediaStreamTable;
+
 namespace sipcc {
 
 using mozilla::dom::PeerConnectionObserver;
@@ -128,7 +130,6 @@ using mozilla::PeerIdentity;
 class PeerConnectionWrapper;
 class PeerConnectionMedia;
 class RemoteSourceStreamInfo;
-class OnCallEventArgs;
 
 class IceConfiguration
 {
@@ -245,9 +246,6 @@ public:
   nsresult CreateRemoteSourceStreamInfo(nsRefPtr<RemoteSourceStreamInfo>* aInfo);
 
   
-  void onCallEvent(const OnCallEventArgs &args);
-
-  
   void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel);
 
   
@@ -362,6 +360,8 @@ public:
     rv = AddIceCandidate(NS_ConvertUTF16toUTF8(aCandidate).get(),
                          NS_ConvertUTF16toUTF8(aMid).get(), aLevel);
   }
+
+  void OnRemoteStreamAdded(const MediaStreamTable& aStream);
 
   NS_IMETHODIMP CloseStreams();
 
@@ -567,6 +567,9 @@ public:
   
   void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState);
 
+  
+  void UpdateSignalingState();
+
   bool IsClosed() const;
   
   nsresult SetDtlsConnected(bool aPrivacyRequested);
@@ -634,7 +637,10 @@ private:
 
   void CandidateReady_s(const std::string& candidate, uint16_t level);
   nsresult CandidateReady_m(const std::string& candidate, uint16_t level);
-  void SendEndOfCandidates();
+  void SendLocalIceCandidateToContent(uint16_t level,
+                                      const std::string& mid,
+                                      const std::string& candidate);
+  void FoundIceCandidate(const std::string& candidate, uint16_t level);
 
   NS_IMETHOD FingerprintSplitHelper(
       std::string& fingerprint, size_t& spaceIdx) const;

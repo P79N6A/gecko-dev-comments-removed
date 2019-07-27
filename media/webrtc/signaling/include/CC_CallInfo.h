@@ -335,37 +335,5 @@ namespace CSF
 
         virtual int getVolume() = 0;
 
-        
-
-
-
-
-        virtual std::string getSDP() = 0;
-
-        
-
-
-
-
-        virtual cc_int32_t getStatusCode() = 0;
-
-        
-
-
-
-
-
-        virtual MediaStreamTable* getMediaStreams() const = 0;
-
-        
-
-
-
-        virtual Timecard *takeTimecard() = 0;
-
-	
-
-
-	virtual std::string getCandidate() = 0;
     };
 };
