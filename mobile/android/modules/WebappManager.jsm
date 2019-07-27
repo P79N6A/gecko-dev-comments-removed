@@ -234,8 +234,7 @@ this.WebappManager = {
 
     
     
-    let apkVersions = yield this._getAPKVersions([ app.apkPackageName ]);
-    if (app.apkPackageName in apkVersions) {
+    if (app.apkPackageName && app.apkPackageName in (yield this._getAPKVersions([ app.apkPackageName ]))) {
       debug("APK is installed; requesting uninstallation");
       Messaging.sendRequest({
         type: "Webapps:UninstallApk",
@@ -259,7 +258,7 @@ this.WebappManager = {
       
       
       debug("APK not installed; proceeding directly to removal from registry");
-      DOMApplicationRegistry.doUninstall(aData, aMessageManager);
+      DOMApplicationRegistry.uninstall(aData.manifestURL);
     }
 
   }),
