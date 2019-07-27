@@ -10,7 +10,6 @@
 #include "CrossProcessMutex.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/APZCTreeManager.h"
-#include "mozilla/layers/AsyncPanZoomAnimation.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Monitor.h"
@@ -1075,6 +1074,61 @@ private:
   
   
   bool mAsyncTransformAppliedToContent;
+};
+
+class AsyncPanZoomAnimation {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomAnimation)
+
+public:
+  explicit AsyncPanZoomAnimation(const TimeDuration& aRepaintInterval =
+                                 TimeDuration::Forever())
+    : mRepaintInterval(aRepaintInterval)
+  { }
+
+  virtual bool DoSample(FrameMetrics& aFrameMetrics,
+                        const TimeDuration& aDelta) = 0;
+
+  bool Sample(FrameMetrics& aFrameMetrics,
+              const TimeDuration& aDelta) {
+    
+    
+    
+    if (aDelta.ToMilliseconds() <= 0) {
+      return true;
+    }
+
+    return DoSample(aFrameMetrics, aDelta);
+  }
+
+  
+
+
+
+
+  Vector<Task*> TakeDeferredTasks() {
+    Vector<Task*> result;
+    mDeferredTasks.swap(result);
+    return result;
+  }
+
+  
+
+
+
+
+  TimeDuration mRepaintInterval;
+
+protected:
+  
+  virtual ~AsyncPanZoomAnimation()
+  { }
+
+  
+
+
+
+
+  Vector<Task*> mDeferredTasks;
 };
 
 }
