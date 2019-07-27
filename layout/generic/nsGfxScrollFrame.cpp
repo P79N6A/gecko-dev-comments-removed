@@ -2096,6 +2096,16 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
           mLastSmoothScrollOrigin = aOrigin;
           mScrollGeneration = ++sScrollGenerationCounter;
 
+          if (!nsLayoutUtils::GetDisplayPort(mOuter->GetContent())) {
+            
+            
+            
+            
+            nsLayoutUtils::CalculateAndSetDisplayPortMargins(
+              mOuter->GetScrollTargetFrame(),
+              nsLayoutUtils::RepaintMode::DoNotRepaint);
+          }
+
           
           
           mOuter->SchedulePaint();
