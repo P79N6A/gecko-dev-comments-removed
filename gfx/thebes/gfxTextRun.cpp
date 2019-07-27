@@ -2644,6 +2644,15 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh, uint32_t aNextCh,
 {
     
     
+    
+    if (aPrevMatchedFont && IsClusterExtender(aCh) &&
+        aPrevMatchedFont->HasCharacter(aCh)) {
+        nsRefPtr<gfxFont> ret = aPrevMatchedFont;
+        return ret.forget();
+    }
+
+    
+    
     uint32_t nextIndex = 0;
     bool isJoinControl = gfxFontUtils::IsJoinControl(aCh);
     bool wasJoinCauser = gfxFontUtils::IsJoinCauser(aPrevCh);
