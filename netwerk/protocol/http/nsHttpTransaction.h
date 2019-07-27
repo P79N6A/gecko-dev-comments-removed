@@ -97,6 +97,10 @@ public:
     nsHttpResponseHead *TakeResponseHead();
 
     
+    
+    already_AddRefed<nsAHttpConnection> GetConnectionReference();
+
+    
     bool ResponseIsComplete() { return mResponseIsComplete; }
 
     bool      ProxyConnectFailed() { return mProxyConnectFailed; }
@@ -181,7 +185,7 @@ private:
         nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     };
 
-    Mutex mCallbacksLock;
+    Mutex mLock;
 
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsITransportEventSink> mTransportSink;
