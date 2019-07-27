@@ -117,6 +117,30 @@ struct AtomHasher
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
 
+
+
+
+class FrozenAtomSet
+{
+    AtomSet *mSet;
+
+public:
+    
+    explicit FrozenAtomSet(AtomSet *set) { mSet = set; }
+
+    ~FrozenAtomSet() { js_delete(mSet); }
+
+    AtomSet::Ptr readonlyThreadsafeLookup(const AtomSet::Lookup &l) const;
+
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mSet->sizeOfIncludingThis(mallocSizeOf);
+    }
+
+    typedef AtomSet::Range Range;
+
+    AtomSet::Range all() const { return mSet->all(); }
+};
+
 class PropertyName;
 
 }  

@@ -1254,9 +1254,11 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSAtomState *commonNames;
 
     
-    js::AtomSet *permanentAtoms;
+    
+    
+    js::FrozenAtomSet *permanentAtoms;
 
-    bool transformToPermanentAtoms();
+    bool transformToPermanentAtoms(JSContext *cx);
 
     
     

@@ -97,6 +97,10 @@ const char js_with_str[]            = "with";
 
 static const uint32_t JS_STRING_HASH_COUNT = 64;
 
+AtomSet::Ptr js::FrozenAtomSet::readonlyThreadsafeLookup(const AtomSet::Lookup &l) const {
+    return mSet->readonlyThreadsafeLookup(l);
+}
+
 struct CommonNameInfo
 {
     const char *str;
@@ -110,6 +114,9 @@ JSRuntime::initializeAtoms(JSContext *cx)
     if (!atoms_ || !atoms_->init(JS_STRING_HASH_COUNT))
         return false;
 
+    
+    MOZ_ASSERT(!permanentAtoms);
+
     if (parentRuntime) {
         staticStrings = parentRuntime->staticStrings;
         commonNames = parentRuntime->commonNames;
@@ -118,10 +125,6 @@ JSRuntime::initializeAtoms(JSContext *cx)
         wellKnownSymbols = parentRuntime->wellKnownSymbols;
         return true;
     }
-
-    permanentAtoms = cx->new_<AtomSet>();
-    if (!permanentAtoms || !permanentAtoms->init(JS_STRING_HASH_COUNT))
-        return false;
 
     staticStrings = cx->new_<StaticStrings>();
     if (!staticStrings || !staticStrings->init(cx))
@@ -221,8 +224,8 @@ js::MarkPermanentAtoms(JSTracer *trc)
         rt->staticStrings->trace(trc);
 
     if (rt->permanentAtoms) {
-        for (AtomSet::Enum e(*rt->permanentAtoms); !e.empty(); e.popFront()) {
-            const AtomStateEntry &entry = e.front();
+        for (FrozenAtomSet::Range r(rt->permanentAtoms->all()); !r.empty(); r.popFront()) {
+            const AtomStateEntry &entry = r.front();
 
             JSAtom *atom = entry.asPtr();
             MarkPermanentAtom(trc, atom, "permanent_table");
@@ -264,21 +267,22 @@ JSRuntime::sweepAtoms()
 }
 
 bool
-JSRuntime::transformToPermanentAtoms()
+JSRuntime::transformToPermanentAtoms(JSContext *cx)
 {
     MOZ_ASSERT(!parentRuntime);
 
     
     
 
-    MOZ_ASSERT(permanentAtoms && permanentAtoms->empty());
+    MOZ_ASSERT(!permanentAtoms);
+    permanentAtoms = cx->new_<FrozenAtomSet>(atoms_);   
 
-    AtomSet *temp = atoms_;
-    atoms_ = permanentAtoms;
-    permanentAtoms = temp;
+    atoms_ = cx->new_<AtomSet>();
+    if (!atoms_ || !atoms_->init(JS_STRING_HASH_COUNT))
+        return false;
 
-    for (AtomSet::Enum e(*permanentAtoms); !e.empty(); e.popFront()) {
-        AtomStateEntry entry = e.front();
+    for (FrozenAtomSet::Range r(permanentAtoms->all()); !r.empty(); r.popFront()) {
+        AtomStateEntry entry = r.front();
         JSAtom *atom = entry.asPtr();
         atom->morphIntoPermanentAtom();
     }
@@ -296,6 +300,7 @@ AtomIsInterned(JSContext *cx, JSAtom *atom)
     AtomHasher::Lookup lookup(atom);
 
     
+    MOZ_ASSERT(cx->isPermanentAtomsInitialized());
     AtomSet::Ptr p = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
     if (p)
         return true;
@@ -320,9 +325,16 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const CharT *tbchars, size_t length, I
 
     AtomHasher::Lookup lookup(tbchars, length);
 
-    AtomSet::Ptr pp = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
-    if (pp)
-        return pp->asPtr();
+    
+    
+    
+    
+    
+    if (cx->isPermanentAtomsInitialized()) {
+        AtomSet::Ptr pp = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
+        if (pp)
+            return pp->asPtr();
+    }
 
     AutoLockForExclusiveAccess lock(cx);
 
@@ -377,6 +389,7 @@ js::AtomizeString(ExclusiveContext *cx, JSString *str,
         AtomHasher::Lookup lookup(&atom);
 
         
+        MOZ_ASSERT(cx->isPermanentAtomsInitialized());
         AtomSet::Ptr p = cx->permanentAtoms().readonlyThreadsafeLookup(lookup);
         if (p)
             return &atom;
