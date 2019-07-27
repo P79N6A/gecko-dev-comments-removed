@@ -215,7 +215,15 @@ protected:
   
   void InitLayersBackendType();
 
+  bool ShouldSkipVideoFrame(int64_t aTimeThreshold);
+
 private:
+  
+  int64_t GetNextKeyframeTime(int64_t aTimeThreshold);
+  
+  
+  bool FilterPacketByTime(int64_t aEndTime, WebMPacketQueue& aOutput);
+
   
   
   nestegg* mContext;
