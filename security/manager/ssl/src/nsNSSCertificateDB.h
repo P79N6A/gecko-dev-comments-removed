@@ -14,7 +14,6 @@
 
 class nsCString;
 class nsIArray;
-class nsRecentBadCerts;
 
 class nsNSSCertificateDB : public nsIX509CertDB
                          , public nsIX509CertDB2
@@ -25,8 +24,6 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIX509CERTDB
   NS_DECL_NSIX509CERTDB2
-
-  nsNSSCertificateDB(); 
 
   
   
@@ -64,10 +61,6 @@ private:
   nsresult handleCACertDownload(nsIArray *x509Certs, 
                                 nsIInterfaceRequestor *ctx,
                                 const nsNSSShutDownPreventionLock &proofOfLock);
-
-  mozilla::Mutex mBadCertsLock;
-  mozilla::RefPtr<nsRecentBadCerts> mPublicRecentBadCerts;
-  mozilla::RefPtr<nsRecentBadCerts> mPrivateRecentBadCerts;
 
   
   virtual void virtualDestroyNSSReference() { };
