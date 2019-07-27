@@ -75,7 +75,7 @@ add_task(function* test_archivedPings() {
   yield checkLoadingPings();
 
   
-  TelemetryArchive._testReset();
+  TelemetryController.reset();
 
   let pingList = yield TelemetryArchive.promiseArchivedPingList();
   Assert.deepEqual(expectedPingList, pingList,
@@ -129,7 +129,7 @@ add_task(function* test_archivedPings() {
   expectedPingList.sort((a, b) => a.timestampCreated - b.timestampCreated);
 
   
-  yield TelemetryArchive._testReset();
+  yield TelemetryController.reset();
 
   
   
@@ -142,6 +142,53 @@ add_task(function* test_archivedPings() {
             "Should have rejected invalid ping");
   Assert.ok((yield promiseRejects(TelemetryArchive.promiseArchivedPingById(FAKE_ID2))),
             "Should have rejected invalid ping");
+});
+
+add_task(function* test_archiveCleanup() {
+  const PING_TYPE = "foo";
+
+  
+  fakeNow(2010, 1, 1, 1, 0, 0);
+  const PING_ID1 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  
+  fakeNow(2010, 2, 1, 1, 0, 0);
+  const PING_ID2 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+  
+  fakeNow(2010, 3, 1, 1, 0, 0);
+  const PING_ID3 = yield TelemetryController.submitExternalPing(PING_TYPE, {}, {});
+
+  
+  fakeNow(2010, 7, 1, 1, 0, 0);
+  
+  yield TelemetryController.reset();
+  
+  yield TelemetryStorage.testCleanupTaskPromise();
+  
+  let pingList = yield TelemetryArchive.promiseArchivedPingList();
+
+  
+  Assert.ok((yield promiseRejects(TelemetryArchive.promiseArchivedPingById(PING_ID1))),
+            "Old pings should be removed from the archive");
+  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID2)),
+            "Recent pings should be kept in the archive");
+  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID3)),
+            "Recent pings should be kept in the archive");
+
+  
+  fakeNow(2010, 8, 1, 1, 0, 0);
+  
+  
+  yield TelemetryController.reset();
+  
+  yield TelemetryStorage.testCleanupTaskPromise();
+  
+  pingList = yield TelemetryArchive.promiseArchivedPingList();
+
+  
+  Assert.ok((yield promiseRejects(TelemetryArchive.promiseArchivedPingById(PING_ID2))),
+            "Old pings should be removed from the archive");
+  Assert.ok((yield TelemetryArchive.promiseArchivedPingById(PING_ID3)),
+            "Recent pings should be kept in the archive");
 });
 
 add_task(function* test_clientId() {
