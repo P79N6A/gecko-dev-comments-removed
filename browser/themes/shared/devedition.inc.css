@@ -303,15 +303,20 @@ window:not([chromehidden~="toolbar"]) #urlbar-wrapper {
 }
 
 
-#TabsToolbar > #new-tab-button,
 .tabs-newtab-button {
-  background-image: none !important;
-  margin: 0 !important;
-  width: 35px !important;
+  width: 36px;
+}
+
+
+#TabsToolbar .toolbarbutton-1,
+.tabbrowser-arrowscrollbox > .scrollbutton-up,
+.tabbrowser-arrowscrollbox > .scrollbutton-down {
+  margin-bottom: 0;
 }
 
 #TabsToolbar > #new-tab-button:hover,
 .tabs-newtab-button:hover {
   
   background-color: var(--tab-hover-background-color) !important;
+  background-image: none;
 }
