@@ -394,12 +394,98 @@ class PreBarriered : public BarrieredBase<T>
 
 
 
+
 template <class T>
 class HeapPtr : public BarrieredBase<T>
 {
   public:
     HeapPtr() : BarrieredBase<T>(GCMethods<T>::initial()) {}
-    explicit HeapPtr(T v) : BarrieredBase<T>(v) {
+    explicit HeapPtr(T v) : BarrieredBase<T>(v) { post(GCMethods<T>::initial(), v); }
+    explicit HeapPtr(const HeapPtr<T>& v) : BarrieredBase<T>(v) { post(GCMethods<T>::initial(), v); }
+#ifdef DEBUG
+    ~HeapPtr() {
+        
+        
+        MOZ_ASSERT(CurrentThreadIsGCSweeping() || CurrentThreadIsHandlingInitFailure());
+    }
+#endif
+
+    void init(T v) {
+        this->value = v;
+        post(GCMethods<T>::initial(), v);
+    }
+
+    DECLARE_POINTER_ASSIGN_OPS(HeapPtr, T);
+
+  protected:
+    void post(T prev, T next) { InternalGCMethods<T>::postBarrier(&this->value, prev, next); }
+
+  private:
+    void set(const T& v) {
+        this->pre();
+        T tmp = this->value;
+        this->value = v;
+        post(tmp, this->value);
+    }
+
+    
+
+
+
+
+
+
+    HeapPtr(HeapPtr<T>&&) = delete;
+    HeapPtr<T>& operator=(HeapPtr<T>&&) = delete;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename T>
+class ImmutableTenuredPtr
+{
+    T value;
+
+  public:
+    operator T() const { return value; }
+    T operator->() const { return value; }
+
+    operator Handle<T>() const {
+        return Handle<T>::fromMarkedLocation(&value);
+    }
+
+    void init(T ptr) {
+        MOZ_ASSERT(ptr->isTenured());
+        value = ptr;
+    }
+
+    T get() const { return value; }
+    const T* address() { return &value; }
+};
+
+
+
+
+
+
+
+
+template <class T>
+class RelocatablePtr : public BarrieredBase<T>
+{
+  public:
+    RelocatablePtr() : BarrieredBase<T>(GCMethods<T>::initial()) {}
+    explicit RelocatablePtr(T v) : BarrieredBase<T>(v) {
         post(GCMethods<T>::initial(), this->value);
     }
 
@@ -409,28 +495,23 @@ class HeapPtr : public BarrieredBase<T>
 
 
 
-    HeapPtr(const HeapPtr<T>& v) : BarrieredBase<T>(v) {
+    RelocatablePtr(const RelocatablePtr<T>& v) : BarrieredBase<T>(v) {
         post(GCMethods<T>::initial(), this->value);
     }
 
-    ~HeapPtr() {
+    ~RelocatablePtr() {
         this->pre();
         post(this->value, GCMethods<T>::initial());
     }
 
-    void init(T v) {
-        this->value = v;
-        post(GCMethods<T>::initial(), this->value);
-    }
-
-    DECLARE_POINTER_ASSIGN_OPS(HeapPtr, T);
+    DECLARE_POINTER_ASSIGN_OPS(RelocatablePtr, T);
 
     
     template <class T1, class T2>
     friend inline void
     BarrieredSetPair(Zone* zone,
-                     HeapPtr<T1*>& v1, T1* val1,
-                     HeapPtr<T2*>& v2, T2* val2);
+                     RelocatablePtr<T1*>& v1, T1* val1,
+                     RelocatablePtr<T2*>& v2, T2* val2);
 
   protected:
     void set(const T& v) {
@@ -448,13 +529,6 @@ class HeapPtr : public BarrieredBase<T>
         InternalGCMethods<T>::postBarrier(&this->value, prev, next);
     }
 };
-
-
-
-
-
-template <typename T>
-using RelocatablePtr = HeapPtr<T>;
 
 
 
@@ -561,40 +635,6 @@ struct ReadBarrieredHasher
 
 template <class T>
 struct DefaultHasher<ReadBarriered<T>> : ReadBarrieredHasher<T> { };
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename T>
-class ImmutableTenuredPtr
-{
-    T value;
-
-  public:
-    operator T() const { return value; }
-    T operator->() const { return value; }
-
-    operator Handle<T>() const {
-        return Handle<T>::fromMarkedLocation(&value);
-    }
-
-    void init(T ptr) {
-        MOZ_ASSERT(ptr->isTenured());
-        value = ptr;
-    }
-
-    T get() const { return value; }
-    const T* address() { return &value; }
-};
 
 class ArrayObject;
 class ArrayBufferObject;
