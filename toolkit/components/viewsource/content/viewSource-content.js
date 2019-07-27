@@ -14,6 +14,14 @@ XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask",
 
 const BUNDLE_URL = "chrome://global/locale/viewSource.properties";
 
+
+
+
+
+
+const MARK_SELECTION_START = '\uFDD0';
+const MARK_SELECTION_END = '\uFDEF';
+
 let global = this;
 
 
@@ -39,7 +47,15 @@ let ViewSourceContent = {
     "ViewSource:ToggleWrapping",
     "ViewSource:ToggleSyntaxHighlighting",
     "ViewSource:SetCharacterSet",
+    "ViewSource:ScheduleDrawSelection",
   ],
+
+  
+
+
+
+
+  needsDrawSelection: false,
 
   
 
@@ -124,6 +140,9 @@ let ViewSourceContent = {
       case "ViewSource:SetCharacterSet":
         this.setCharacterSet(data.charset, data.doPageLoad);
         break;
+      case "ViewSource:ScheduleDrawSelection":
+        this.scheduleDrawSelection();
+        break;
     }
   },
 
@@ -170,6 +189,14 @@ let ViewSourceContent = {
     return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
                    .getInterface(Ci.nsISelectionDisplay)
                    .QueryInterface(Ci.nsISelectionController);
+  },
+
+  
+
+
+  get webBrowserFind() {
+    return docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIWebBrowserFind);
   },
 
   
@@ -365,6 +392,15 @@ let ViewSourceContent = {
       this.selectionListenerAttached = true;
     }
     content.focus();
+
+    
+    
+    if (this.needsDrawSelection &&
+        content.document.documentURI.startsWith("view-source:")) {
+      this.needsDrawSelection = false;
+      this.drawSelection();
+    }
+
     sendAsyncMessage("ViewSource:SourceLoaded");
   },
 
@@ -716,6 +752,110 @@ let ViewSourceContent = {
     }
 
     this.updateStatusTask.arm();
+  },
+
+  
+
+
+
+
+  scheduleDrawSelection() {
+    this.needsDrawSelection = true;
+  },
+
+  
+
+
+
+
+  drawSelection() {
+    content.document.title =
+      this.bundle.GetStringFromName("viewSelectionSourceTitle");
+
+    
+    
+    var findService = null;
+    try {
+      
+      findService = Cc["@mozilla.org/find/find_service;1"]
+                    .getService(Ci.nsIFindService);
+    } catch(e) { }
+    if (!findService)
+      return;
+
+    
+    var matchCase     = findService.matchCase;
+    var entireWord    = findService.entireWord;
+    var wrapFind      = findService.wrapFind;
+    var findBackwards = findService.findBackwards;
+    var searchString  = findService.searchString;
+    var replaceString = findService.replaceString;
+
+    
+    var findInst = this.webBrowserFind;
+    findInst.matchCase = true;
+    findInst.entireWord = false;
+    findInst.wrapFind = true;
+    findInst.findBackwards = false;
+
+    
+    findInst.searchString = MARK_SELECTION_START;
+    var startLength = MARK_SELECTION_START.length;
+    findInst.findNext();
+
+    var selection = content.getSelection();
+    if (!selection.rangeCount)
+      return;
+
+    var range = selection.getRangeAt(0);
+
+    var startContainer = range.startContainer;
+    var startOffset = range.startOffset;
+
+    
+    findInst.searchString = MARK_SELECTION_END;
+    var endLength = MARK_SELECTION_END.length;
+    findInst.findNext();
+
+    var endContainer = selection.anchorNode;
+    var endOffset = selection.anchorOffset;
+
+    
+    selection.removeAllRanges();
+
+    
+    endContainer.deleteData(endOffset, endLength);
+    startContainer.deleteData(startOffset, startLength);
+    if (startContainer == endContainer)
+      endOffset -= startLength; 
+    range.setEnd(endContainer, endOffset);
+
+    
+    selection.addRange(range);
+    
+    
+    
+    try {
+      this.selectionController.scrollSelectionIntoView(
+                                 Ci.nsISelectionController.SELECTION_NORMAL,
+                                 Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
+                                 true);
+    }
+    catch(e) { }
+
+    
+    findService.matchCase     = matchCase;
+    findService.entireWord    = entireWord;
+    findService.wrapFind      = wrapFind;
+    findService.findBackwards = findBackwards;
+    findService.searchString  = searchString;
+    findService.replaceString = replaceString;
+
+    findInst.matchCase     = matchCase;
+    findInst.entireWord    = entireWord;
+    findInst.wrapFind      = wrapFind;
+    findInst.findBackwards = findBackwards;
+    findInst.searchString  = searchString;
   },
 };
 ViewSourceContent.init();
