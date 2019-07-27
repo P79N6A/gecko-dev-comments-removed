@@ -101,6 +101,7 @@ public class GlobalConstants {
           {
            "TLSv1.2",
            "TLSv1.1",
+           "TLSv1",             
           };
     } else {
       
