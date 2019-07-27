@@ -641,8 +641,8 @@ class DeviceManagerADB(DeviceManager):
         
         
         
-        data = self._runCmd(["shell", "id"]).output[0]
-        if data.find('uid=0(root)') >= 0:
+        proc = self._runCmd(["shell", "id"])
+        if proc.output and 'uid=0(root)' in proc.output[0]:
             self._haveRootShell = True
             
             return
@@ -660,8 +660,7 @@ class DeviceManagerADB(DeviceManager):
         if retcode is None: 
             proc.kill()
 
-        data = proc.output[0]
-        if data.find('uid=0(root)') >= 0:
+        if proc.output and 'uid=0(root)' in proc.output[0]:
             self._haveSu = True
 
         if self._runAdbAsRoot:
