@@ -299,6 +299,19 @@ namespace js {
 
 class ExclusiveContext;
 
+
+
+
+
+
+enum StackKind
+{
+    StackForSystemCode,      
+    StackForTrustedScript,   
+    StackForUntrustedScript, 
+    StackKindCount
+};
+
 enum ThingRootKind
 {
     THING_ROOT_OBJECT,
@@ -316,20 +329,8 @@ enum ThingRootKind
     THING_ROOT_BINDINGS,
     THING_ROOT_PROPERTY_DESCRIPTOR,
     THING_ROOT_PROP_DESC,
+    THING_ROOT_STATIC_TRACEABLE,
     THING_ROOT_LIMIT
-};
-
-
-
-
-
-
-enum StackKind
-{
-    StackForSystemCode,      
-    StackForTrustedScript,   
-    StackForUntrustedScript, 
-    StackKindCount
 };
 
 template <typename T>

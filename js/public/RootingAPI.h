@@ -104,7 +104,9 @@
 namespace js {
 
 template <typename T>
-struct GCMethods {};
+struct GCMethods {
+    static T initial() { return T(); }
+};
 
 template <typename T>
 class RootedBase {};
@@ -631,6 +633,54 @@ namespace JS {
 
 
 
+class StaticTraceable
+{
+  public:
+    static js::ThingRootKind rootKind() { return js::THING_ROOT_STATIC_TRACEABLE; }
+};
+
+} 
+
+namespace js {
+
+template <typename T>
+class DispatchWrapper
+{
+    static_assert(mozilla::IsBaseOf<JS::StaticTraceable, T>::value,
+                  "DispatchWrapper is intended only for usage with a StaticTraceable");
+
+    using TraceFn = void (*)(T*, JSTracer*);
+    TraceFn tracer;
+#if JS_BITS_PER_WORD == 32
+    uint32_t padding; 
+#endif
+    T storage;
+
+  public:
+    
+    MOZ_IMPLICIT DispatchWrapper(const T& initial) : tracer(&T::trace), storage(initial) {}
+    T* operator &() { return &storage; }
+    const T* operator &() const { return &storage; }
+    operator T&() { return storage; }
+    operator const T&() const { return storage; }
+
+    
+    
+    static void TraceWrapped(JSTracer* trc, JS::StaticTraceable* thingp, const char* name) {
+        auto wrapper = reinterpret_cast<DispatchWrapper*>(
+                           uintptr_t(thingp) - offsetof(DispatchWrapper, storage));
+        wrapper->tracer(&wrapper->storage, trc);
+    }
+};
+
+} 
+
+namespace JS {
+
+
+
+
+
 
 
 
@@ -746,7 +796,15 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 
 
 
-    T ptr;
+
+
+
+
+    using MaybeWrapped = typename mozilla::Conditional<
+        mozilla::IsBaseOf<StaticTraceable, T>::value,
+        js::DispatchWrapper<T>,
+        T>::Type;
+    MaybeWrapped ptr;
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
