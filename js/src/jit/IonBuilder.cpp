@@ -11389,6 +11389,7 @@ IonBuilder::storeReferenceTypedObjectValue(MDefinition *typedObj,
         if (NeedsPostBarrier(info(), value))
             current->add(MPostWriteBarrier::New(alloc(), typedObj, value));
         store = MStoreElement::New(alloc(), elements, scaledOffset, value, false, adjustment);
+        store->toStoreElement()->setNeedsBarrier();
         break;
       case ReferenceTypeDescr::TYPE_OBJECT:
         
