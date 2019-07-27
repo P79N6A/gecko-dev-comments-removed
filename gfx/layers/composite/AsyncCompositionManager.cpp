@@ -174,9 +174,9 @@ TranslateShadowLayer2D(Layer* aLayer,
   
   Matrix4x4 layerTransform3D = Matrix4x4::From2D(layerTransform);
   if (ContainerLayer* c = aLayer->AsContainerLayer()) {
-    layerTransform3D.Scale(1.0f/c->GetPreXScale(),
-                           1.0f/c->GetPreYScale(),
-                           1);
+    layerTransform3D.PreScale(1.0f/c->GetPreXScale(),
+                              1.0f/c->GetPreYScale(),
+                              1);
   }
   layerTransform3D.PostScale(1.0f/aLayer->GetPostXScale(),
                              1.0f/aLayer->GetPostYScale(),
@@ -620,9 +620,9 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     if (ContainerLayer* container = aLayer->AsContainerLayer()) {
-      transform.Scale(1.0f/container->GetPreXScale(),
-                      1.0f/container->GetPreYScale(),
-                      1);
+      transform.PreScale(1.0f/container->GetPreXScale(),
+                         1.0f/container->GetPreYScale(),
+                         1);
     }
     transform.PostScale(1.0f/aLayer->GetPostXScale(),
                         1.0f/aLayer->GetPostYScale(),
@@ -639,7 +639,7 @@ AsyncCompositionManager::ApplyAsyncContentTransformToTree(Layer *aLayer)
     
     
     LayoutDeviceToLayerScale resolution = bottom.mCumulativeResolution;
-    oldTransform.Scale(resolution.scale, resolution.scale, 1);
+    oldTransform.PreScale(resolution.scale, resolution.scale, 1);
 
     
     
@@ -767,9 +767,9 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   
   
   if (ContainerLayer* container = aScrollbar->AsContainerLayer()) {
-    transform.Scale(1.0f/container->GetPreXScale(),
-                    1.0f/container->GetPreYScale(),
-                    1);
+    transform.PreScale(1.0f/container->GetPreXScale(),
+                       1.0f/container->GetPreYScale(),
+                        1);
   }
   transform.PostScale(1.0f/aScrollbar->GetPostXScale(),
                       1.0f/aScrollbar->GetPostYScale(),
@@ -914,9 +914,9 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   Matrix4x4 computedTransform = oldTransform * treeTransform;
   if (ContainerLayer* container = aLayer->AsContainerLayer()) {
-    computedTransform.Scale(1.0f/container->GetPreXScale(),
-                            1.0f/container->GetPreYScale(),
-                            1);
+    computedTransform.PreScale(1.0f/container->GetPreXScale(),
+                               1.0f/container->GetPreYScale(),
+                               1);
   }
   computedTransform.PostScale(1.0f/aLayer->GetPostXScale(),
                               1.0f/aLayer->GetPostYScale(),
@@ -927,7 +927,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 
   
   
-  oldTransform.Scale(metrics.mResolution.scale, metrics.mResolution.scale, 1);
+  oldTransform.PreScale(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
   
   
@@ -948,9 +948,9 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
     overscrollTranslation.y = contentScreenRect.YMost() -
       (userScroll.y + metrics.mCompositionBounds.height);
   }
-  oldTransform.Translate(overscrollTranslation.x,
-                         overscrollTranslation.y,
-                         overscrollTranslation.z);
+  oldTransform.PreTranslate(overscrollTranslation.x,
+                            overscrollTranslation.y,
+                            overscrollTranslation.z);
 
   gfx::Size underZoomScale(1.0f, 1.0f);
   if (mContentRect.width * userZoom.scale < metrics.mCompositionBounds.width) {
@@ -961,7 +961,7 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
     underZoomScale.height = (mContentRect.height * userZoom.scale) /
       metrics.mCompositionBounds.height;
   }
-  oldTransform.Scale(underZoomScale.width, underZoomScale.height, 1);
+  oldTransform.PreScale(underZoomScale.width, underZoomScale.height, 1);
 
   
   
