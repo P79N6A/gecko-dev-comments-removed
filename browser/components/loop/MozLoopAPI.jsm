@@ -616,11 +616,14 @@ function injectLoopAPI(targetWindow) {
     
 
 
+
+
+
     openGettingStartedTour: {
       enumerable: true,
       writable: true,
-      value: function() {
-        return MozLoopService.openGettingStartedTour();
+      value: function(aSrc) {
+        return MozLoopService.openGettingStartedTour(aSrc);
       },
     },
 
