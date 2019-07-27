@@ -183,7 +183,14 @@ HighlightersOverlay.prototype = {
   _hideCurrent: function() {
     if (this.highlighterShown) {
       this._getHighlighter(this.highlighterShown).then(highlighter => {
-        highlighter.hide();
+        
+        
+        
+        
+        let promise = highlighter.hide();
+        if (promise) {
+          promise.then(null, Cu.reportError);
+        }
         this.highlighterShown = null;
       });
     }
