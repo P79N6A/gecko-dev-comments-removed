@@ -46,6 +46,8 @@ protected:
 
   bool mAddToRecentDocs;
   nsCOMPtr<nsIFile> mDisplayDirectory;
+
+  
   nsCOMPtr<nsPIDOMWindow> mParent;
   int16_t mMode;
 };
