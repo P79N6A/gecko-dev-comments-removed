@@ -437,7 +437,7 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
 
     
     if (!PossiblyFail()) {
-        js_ReportOutOfMemory(cx->asJSContext());
+        js_ReportOutOfMemory(ncx);
         return false;
     }
 
@@ -446,7 +446,6 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
         if (rt->gc.needZealousGC())
             rt->gc.runDebugGC();
 #endif
-
         if (rt->hasPendingInterrupt()) {
             
             
