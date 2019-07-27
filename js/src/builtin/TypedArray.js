@@ -287,6 +287,84 @@ function TypedArrayLastIndexOf(searchElement, fromIndex = undefined) {
 }
 
 
+function TypedArrayReduce(callbackfn) {
+    
+    if (!IsObject(this) || !IsTypedArray(this))
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, "TypedArrayReduce");
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.reduce");
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    if (len === 0 && arguments.length === 1)
+        ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
+
+    
+    var k = 0;
+
+    
+    
+    var accumulator = arguments.length > 1 ? arguments[1] : O[k++];
+
+    
+    
+    for (; k < len; k++) {
+        accumulator = callFunction(callbackfn, undefined, accumulator, O[k], k, O);
+    }
+
+    
+    return accumulator;
+}
+
+
+function TypedArrayReduceRight(callbackfn) {
+    
+    if (!IsObject(this) || !IsTypedArray(this))
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, "TypedArrayReduceRight");
+
+    
+    var O = this;
+
+    
+    var len = TypedArrayLength(O);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.reduceRight");
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    if (len === 0 && arguments.length === 1)
+        ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
+
+    
+    var k = len - 1;
+
+    
+    
+    var accumulator = arguments.length > 1 ? arguments[1] : O[k--];
+
+    
+    
+    for (; k >= 0; k--) {
+        accumulator = callFunction(callbackfn, undefined, accumulator, O[k], k, O);
+    }
+
+    
+    return accumulator;
+}
+
+
 function TypedArrayReverse() {
     
     if (!IsObject(this) || !IsTypedArray(this)) {
