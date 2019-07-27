@@ -173,9 +173,12 @@ private:
   
   TemporaryRef<ID2D1Geometry> GetClippedGeometry(IntRect *aClipBounds);
 
+  TemporaryRef<ID2D1Geometry> GetInverseClippedGeometry();
+
   bool GetDeviceSpaceClipRect(D2D1_RECT_F& aClipRect, bool& aIsPixelAligned);
 
   void PopAllClips();
+  void PushAllClips();
   void PushClipsToDC(ID2D1DeviceContext *aDC);
   void PopClipsFromDC(ID2D1DeviceContext *aDC);
 
