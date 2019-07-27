@@ -51,7 +51,6 @@
 #include "ImportManager.h"
 #include "mozilla/dom/EncodingUtils.h"
 
-#include "mozilla/CORSMode.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/unused.h"
 
@@ -61,65 +60,6 @@ static PRLogModuleInfo* gCspPRLog;
 
 using namespace mozilla;
 using namespace mozilla::dom;
-
-
-
-
-
-class nsScriptLoadRequest final : public nsISupports {
-  ~nsScriptLoadRequest()
-  {
-    js_free(mScriptTextBuf);
-  }
-
-public:
-  nsScriptLoadRequest(nsIScriptElement* aElement,
-                      uint32_t aVersion,
-                      CORSMode aCORSMode)
-    : mElement(aElement),
-      mLoading(true),
-      mIsInline(true),
-      mHasSourceMapURL(false),
-      mScriptTextBuf(nullptr),
-      mScriptTextLength(0),
-      mJSVersion(aVersion),
-      mLineNo(1),
-      mCORSMode(aCORSMode),
-      mReferrerPolicy(mozilla::net::RP_Default)
-  {
-  }
-
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  void FireScriptAvailable(nsresult aResult)
-  {
-    mElement->ScriptAvailable(aResult, mElement, mIsInline, mURI, mLineNo);
-  }
-  void FireScriptEvaluated(nsresult aResult)
-  {
-    mElement->ScriptEvaluated(aResult, mElement, mIsInline);
-  }
-
-  bool IsPreload()
-  {
-    return mElement == nullptr;
-  }
-
-  nsCOMPtr<nsIScriptElement> mElement;
-  bool mLoading;          
-  bool mIsInline;         
-  bool mHasSourceMapURL;  
-  nsString mSourceMapURL; 
-  char16_t* mScriptTextBuf; 
-  size_t mScriptTextLength; 
-  uint32_t mJSVersion;
-  nsCOMPtr<nsIURI> mURI;
-  nsCOMPtr<nsIPrincipal> mOriginPrincipal;
-  nsAutoCString mURL;   
-  int32_t mLineNo;
-  const CORSMode mCORSMode;
-  mozilla::net::ReferrerPolicy mReferrerPolicy;
-};
 
 
 
