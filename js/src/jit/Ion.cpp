@@ -1732,8 +1732,12 @@ MarkOffThreadNurseryObjects::mark(JSTracer *trc)
 {
     JSRuntime *rt = trc->runtime();
 
-    MOZ_ASSERT(rt->jitRuntime()->hasIonNurseryObjects());
-    rt->jitRuntime()->setHasIonNurseryObjects(false);
+    if (trc->runtime()->isHeapMinorCollecting()) {
+        
+        
+        MOZ_ASSERT(rt->jitRuntime()->hasIonNurseryObjects());
+        rt->jitRuntime()->setHasIonNurseryObjects(false);
+    }
 
     AutoLockHelperThreadState lock;
     if (!HelperThreadState().threads)
