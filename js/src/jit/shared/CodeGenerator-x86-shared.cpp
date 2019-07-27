@@ -2129,6 +2129,8 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
 
     
     
+    
+    
     if (cx->runtime()->threadPool.workStealing()) {
         Label stealWorkLoopHead;
         masm.bind(&stealWorkLoopHead);
@@ -2196,6 +2198,8 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
 #endif
         
         masm.movzwl(output, output);
+    } else {
+        masm.jump(&noMoreWork);
     }
 
     
