@@ -41,7 +41,7 @@ public:
 
 
 
-  ReentrantMonitor(const char* aName)
+  explicit ReentrantMonitor(const char* aName)
     : BlockingResourceBase(aName, eReentrantMonitor)
 #ifdef DEBUG
     , mEntryCount(0)
@@ -173,7 +173,7 @@ public:
 
 
 
-  ReentrantMonitorAutoEnter(mozilla::ReentrantMonitor& aReentrantMonitor)
+  explicit ReentrantMonitorAutoEnter(mozilla::ReentrantMonitor& aReentrantMonitor)
     : mReentrantMonitor(&aReentrantMonitor)
   {
     NS_ASSERTION(mReentrantMonitor, "null monitor");
@@ -222,7 +222,7 @@ public:
 
 
 
-  ReentrantMonitorAutoExit(ReentrantMonitor& aReentrantMonitor)
+  explicit ReentrantMonitorAutoExit(ReentrantMonitor& aReentrantMonitor)
     : mReentrantMonitor(&aReentrantMonitor)
   {
     NS_ASSERTION(mReentrantMonitor, "null monitor");

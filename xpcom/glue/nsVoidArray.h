@@ -30,7 +30,7 @@ class NS_COM_GLUE nsVoidArray
 {
 public:
   nsVoidArray();
-  nsVoidArray(int32_t aCount);  
+  explicit nsVoidArray(int32_t aCount);  
   ~nsVoidArray();
 
   nsVoidArray& operator=(const nsVoidArray& aOther);

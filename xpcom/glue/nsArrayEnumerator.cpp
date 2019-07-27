@@ -24,7 +24,7 @@ public:
   NS_DECL_NSISIMPLEENUMERATOR
 
   
-  nsSimpleArrayEnumerator(nsIArray* aValueArray)
+  explicit nsSimpleArrayEnumerator(nsIArray* aValueArray)
     : mValueArray(aValueArray)
     , mIndex(0)
   {

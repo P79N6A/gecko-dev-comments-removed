@@ -416,8 +416,8 @@ protected:
 
     
     nsRefPtr<DataStoreCursor> cursor = mBackingStore->Sync(mRevisionId, mRv);
-    nsMainThreadPtrHandle<DataStoreCursor> backingCursor =
-      new nsMainThreadPtrHolder<DataStoreCursor>(cursor);
+    nsMainThreadPtrHandle<DataStoreCursor> backingCursor(
+      new nsMainThreadPtrHolder<DataStoreCursor>(cursor));
     mWorkerCursor->SetBackingDataStoreCursor(backingCursor);
 
     return true;

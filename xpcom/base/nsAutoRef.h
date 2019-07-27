@@ -321,7 +321,7 @@ public:
   
   
   
-  explicit nsReturnRef(RawRefOnly aRefToRelease)
+  MOZ_IMPLICIT nsReturnRef(RawRefOnly aRefToRelease)
     : BaseClass(aRefToRelease)
   {
   }
@@ -332,7 +332,7 @@ public:
   {
   }
 
-  nsReturnRef(const nsReturningRef<T>& aReturning)
+  MOZ_IMPLICIT nsReturnRef(const nsReturningRef<T>& aReturning)
     : BaseClass(aReturning)
   {
   }
@@ -513,7 +513,7 @@ protected:
   }
   
   
-  nsSimpleRef(RawRef aRawRef)
+  explicit nsSimpleRef(RawRef aRawRef)
     : mRawRef(aRawRef)
   {
   }
@@ -567,7 +567,7 @@ protected:
   class RawRefOnly
   {
   public:
-    RawRefOnly(RawRef aRawRef)
+    MOZ_IMPLICIT RawRefOnly(RawRef aRawRef)
       : mRawRef(aRawRef)
     {
     }
