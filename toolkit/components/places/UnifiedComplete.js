@@ -711,18 +711,19 @@ Search.prototype = {
       
       hasFirstResult = yield this._matchSearchEngineAlias();
     }
-    let shouldAutofill = this._shouldAutofill;
-    if (this.pending && !hasFirstResult && shouldAutofill) {
-      
-      hasFirstResult = yield this._matchSearchEngineUrl();
-    }
 
+    let shouldAutofill = this._shouldAutofill;
     if (this.pending && !hasFirstResult && shouldAutofill) {
       
       
       
       
       hasFirstResult = yield this._matchKnownUrl(conn, queries);
+    }
+
+    if (this.pending && !hasFirstResult && shouldAutofill) {
+      
+      hasFirstResult = yield this._matchSearchEngineUrl();
     }
 
     if (this.pending && this._enableActions && !hasFirstResult) {
