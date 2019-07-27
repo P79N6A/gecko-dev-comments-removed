@@ -949,7 +949,8 @@ RestyleManager::RestyleElement(Element*        aElement,
           newContext->StyleFont()->mFont.size) {
         
         newContext = nullptr;
-        DoRebuildAllStyleData(aRestyleTracker, nsChangeHint(0), aRestyleHint);
+        mRebuildAllRestyleHint |= aRestyleHint;
+        DoRebuildAllStyleData(aRestyleTracker);
         if (aMinHint == 0) {
           return;
         }
@@ -1478,10 +1479,8 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
                "Use ReconstructDocElementHierarchy instead.");
 
   mRebuildAllStyleData = false;
-  NS_UpdateHint(aExtraHint, mRebuildAllExtraHint);
-  aRestyleHint |= mRebuildAllRestyleHint;
-  mRebuildAllExtraHint = nsChangeHint(0);
-  mRebuildAllRestyleHint = nsRestyleHint(0);
+  NS_UpdateHint(mRebuildAllExtraHint, aExtraHint);
+  mRebuildAllRestyleHint |= aRestyleHint;
 
   nsIPresShell* presShell = mPresContext->GetPresShell();
   if (!presShell || !presShell->GetRootFrame())
@@ -1512,7 +1511,7 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
   mSkipAnimationRules = true;
   mPostAnimationRestyles = true;
 
-  DoRebuildAllStyleData(mPendingRestyles, aExtraHint, aRestyleHint);
+  DoRebuildAllStyleData(mPendingRestyles);
 
   mPostAnimationRestyles = false;
   mSkipAnimationRules = false;
@@ -1528,9 +1527,7 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 }
 
 void
-RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                                      nsChangeHint aExtraHint,
-                                      nsRestyleHint aRestyleHint)
+RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker)
 {
   
   
@@ -1539,15 +1536,20 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
     return;
   }
 
-  
-  
-  
-  aRestyleHint |= eRestyle_ChangeAnimationPhaseDescendants;
+  nsRestyleHint restyleHint = mRebuildAllRestyleHint;
+  nsChangeHint changeHint = mRebuildAllExtraHint;
+  mRebuildAllExtraHint = nsChangeHint(0);
+  mRebuildAllRestyleHint = nsRestyleHint(0);
 
-  aRestyleHint = aRestyleHint | eRestyle_ForceDescendants;
+  
+  
+  
+  restyleHint |= eRestyle_ChangeAnimationPhaseDescendants;
 
-  if (!(aRestyleHint & eRestyle_Subtree) &&
-      (aRestyleHint & ~(eRestyle_Force | eRestyle_ForceDescendants))) {
+  restyleHint |= eRestyle_ForceDescendants;
+
+  if (!(restyleHint & eRestyle_Subtree) &&
+      (restyleHint & ~(eRestyle_Force | eRestyle_ForceDescendants))) {
     
     
     
@@ -1559,9 +1561,9 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
     if (root) {
       
       
-      aRestyleTracker.AddPendingRestyle(root, aRestyleHint, nsChangeHint(0));
+      aRestyleTracker.AddPendingRestyle(root, restyleHint, nsChangeHint(0));
     }
-    aRestyleHint = nsRestyleHint(0);
+    restyleHint = nsRestyleHint(0);
   }
 
   
@@ -1572,7 +1574,7 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   ComputeAndProcessStyleChange(mPresContext->PresShell()->GetRootFrame(),
-                               aExtraHint, aRestyleTracker, aRestyleHint);
+                               changeHint, aRestyleTracker, restyleHint);
   FlushOverflowChangedTracker();
 
   

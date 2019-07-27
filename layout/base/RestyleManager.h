@@ -329,9 +329,7 @@ public:
 
   
   
-  void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
-                             nsChangeHint aExtraHint,
-                             nsRestyleHint aRestyleHint);
+  void DoRebuildAllStyleData(RestyleTracker& aRestyleTracker);
 
   
   void PostRestyleEvent(Element* aElement,
