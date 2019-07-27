@@ -109,6 +109,10 @@ UnboxedLayout::makeConstructorCode(JSContext* cx, HandleObjectGroup group)
     for (GeneralRegisterForwardIterator iter(savedNonVolatileRegisters); iter.more(); ++iter)
         masm.Push(*iter);
 
+    
+    if (ScratchDoubleReg.volatile_())
+        masm.push(ScratchDoubleReg);
+
     Label failure, tenuredObject, allocated;
     masm.branch32(Assembler::NotEqual, newKindReg, Imm32(GenericObject), &tenuredObject);
     masm.branchTest32(Assembler::NonZero, AbsoluteAddress(group->addressOfFlags()),
@@ -206,6 +210,8 @@ UnboxedLayout::makeConstructorCode(JSContext* cx, HandleObjectGroup group)
         masm.movePtr(object, ReturnReg);
 
     
+    if (ScratchDoubleReg.volatile_())
+        masm.pop(ScratchDoubleReg);
     for (GeneralRegisterBackwardIterator iter(savedNonVolatileRegisters); iter.more(); ++iter)
         masm.Pop(*iter);
 
@@ -650,7 +656,10 @@ UnboxedPlainObject::createWithProperties(ExclusiveContext* cx, HandleObjectGroup
     }
 
 #ifndef JS_CODEGEN_NONE
-    if (cx->isJSContext() && !layout.constructorCode()) {
+    if (cx->isJSContext() &&
+        !layout.constructorCode() &&
+        cx->asJSContext()->runtime()->jitSupportsFloatingPoint)
+    {
         if (!UnboxedLayout::makeConstructorCode(cx->asJSContext(), group))
             return nullptr;
     }
