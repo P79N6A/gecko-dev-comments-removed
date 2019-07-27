@@ -61,6 +61,8 @@ public:
   
   
   static bool DecoderWaitsForOnConnected(const nsACString& aType);
+
+  static bool IsWebMType(const nsACString& aType);
 };
 
 }
