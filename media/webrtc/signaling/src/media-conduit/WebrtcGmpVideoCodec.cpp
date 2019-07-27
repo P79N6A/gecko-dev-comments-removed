@@ -44,7 +44,7 @@ GetGMPLog()
   return sLog;
 }
 #endif
-#define LOGD(msg) MOZ_LOG(GetGMPLog(), PR_LOG_DEBUG, msg)
+#define LOGD(msg) MOZ_LOG(GetGMPLog(), mozilla::LogLevel::Debug, msg)
 #define LOG(level, msg) MOZ_LOG(GetGMPLog(), (level), msg)
 
 
@@ -485,7 +485,7 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
         break;
       default:
         
-        LOG(PR_LOG_ERROR,
+        LOG(LogLevel::Error,
             ("GMP plugin returned incorrect type (%d)", aEncodedFrame->BufferType()));
         
         
@@ -530,7 +530,7 @@ WebrtcGmpVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
       }
       if (buffer+size > end) {
         
-        LOG(PR_LOG_ERROR,
+        LOG(LogLevel::Error,
             ("GMP plugin returned badly formatted encoded data: end is %td bytes past buffer end",
              buffer+size - end));
         return;

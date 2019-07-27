@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MFTDecoder.h"
 #include "nsThreadUtils.h"
@@ -10,7 +10,7 @@
 #include "mozilla/Logging.h"
 
 PRLogModuleInfo* GetDemuxerLog();
-#define LOG(...) MOZ_LOG(GetDemuxerLog(), PR_LOG_DEBUG, (__VA_ARGS__))
+#define LOG(...) MOZ_LOG(GetDemuxerLog(), mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 
@@ -29,7 +29,7 @@ MFTDecoder::~MFTDecoder()
 HRESULT
 MFTDecoder::Create(const GUID& aMFTClsID)
 {
-  
+  // Create the IMFTransform to do the decoding.
   HRESULT hr;
   hr = CoCreateInstance(aMFTClsID,
                         nullptr,
@@ -49,7 +49,7 @@ MFTDecoder::SetMediaTypes(IMFMediaType* aInputType,
 {
   mOutputType = aOutputType;
 
-  
+  // Set the input type to the one the caller gave us...
   HRESULT hr = mDecoder->SetInputType(0, aInputType, 0);
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
@@ -82,8 +82,8 @@ MFTDecoder::SetDecoderOutputType(ConfigureOutputCallback aCallback, void* aData)
 {
   NS_ENSURE_TRUE(mDecoder != nullptr, E_POINTER);
 
-  
-  
+  // Iterate the enumerate the output types, until we find one compatible
+  // with what we need.
   HRESULT hr;
   RefPtr<IMFMediaType> outputType;
   UINT32 typeIndex = 0;
@@ -144,7 +144,7 @@ MFTDecoder::CreateInputSample(const uint8_t* aData,
   hr = buffer->Lock(&dst, &maxLength, &currentLength);
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
-  
+  // Copy data into sample's buffer.
   memcpy(dst, aData, aDataSize);
 
   hr = buffer->Unlock();
@@ -215,29 +215,29 @@ MFTDecoder::Output(RefPtr<IMFSample>* aOutput)
   DWORD status = 0;
   hr = mDecoder->ProcessOutput(0, 1, &output, &status);
   if (output.pEvents) {
-    
-    
+    // We must release this, as per the IMFTransform::ProcessOutput()
+    // MSDN documentation.
     output.pEvents->Release();
     output.pEvents = nullptr;
   }
 
   if (hr == MF_E_TRANSFORM_STREAM_CHANGE) {
-    
-    
-    
-    
+    // Type change, probably geometric aperature change.
+    // Reconfigure decoder output type, so that GetOutputMediaType()
+    // returns the new type, and return the error code to caller.
+    // This is an expected failure, so don't warn on encountering it.
     hr = SetDecoderOutputType(nullptr, nullptr);
     NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-    
+    // Return the error, so that the caller knows to retry.
     return MF_E_TRANSFORM_STREAM_CHANGE;
   }
 
   if (hr == MF_E_TRANSFORM_NEED_MORE_INPUT) {
-    
-    
+    // Not enough input to produce output. This is an expected failure,
+    // so don't warn on encountering it.
     return hr;
   }
-  
+  // Treat other errors as unexpected, and warn.
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
 
   MOZ_ASSERT(output.pSample);
@@ -247,12 +247,12 @@ MFTDecoder::Output(RefPtr<IMFSample>* aOutput)
     mDiscontinuity = false;
   }
 
-  *aOutput = output.pSample; 
+  *aOutput = output.pSample; // AddRefs
   if (mMFTProvidesOutputSamples && !providedSample) {
-    
-    
-    
-    
+    // If the MFT is providing samples, we must release the sample here.
+    // Typically only the H.264 MFT provides samples when using DXVA,
+    // and it always re-uses the same sample, so if we don't release it
+    // MFT::ProcessOutput() deadlocks waiting for the sample to be released.
     output.pSample->Release();
     output.pSample = nullptr;
   }
@@ -279,7 +279,7 @@ MFTDecoder::Input(IMFSample* aSample)
 {
   HRESULT hr = mDecoder->ProcessInput(0, aSample, 0);
   if (hr == MF_E_NOTACCEPTING) {
-    
+    // MFT *already* has enough data to produce a sample. Retrieve it.
     return MF_E_NOTACCEPTING;
   }
   NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
@@ -305,4 +305,4 @@ MFTDecoder::GetOutputMediaType(RefPtr<IMFMediaType>& aMediaType)
   return mDecoder->GetOutputCurrentType(0, byRef(aMediaType));
 }
 
-} 
+} // namespace mozilla

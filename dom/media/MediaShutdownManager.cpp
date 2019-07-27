@@ -113,7 +113,7 @@ MediaShutdownManager::Shutdown()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(sInstance);
 
-  DECODER_LOG(PR_LOG_DEBUG, ("MediaShutdownManager::Shutdown() start..."));
+  DECODER_LOG(LogLevel::Debug, ("MediaShutdownManager::Shutdown() start..."));
 
   
   
@@ -139,7 +139,7 @@ MediaShutdownManager::Shutdown()
   
   sInstance = nullptr;
 
-  DECODER_LOG(PR_LOG_DEBUG, ("MediaShutdownManager::Shutdown() end."));
+  DECODER_LOG(LogLevel::Debug, ("MediaShutdownManager::Shutdown() end."));
 }
 
 } 

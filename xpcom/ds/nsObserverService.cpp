@@ -36,7 +36,7 @@ GetObserverServiceLog()
   }
   return sLog;
 }
-#define LOG(x)  MOZ_LOG(GetObserverServiceLog(), PR_LOG_DEBUG, x)
+#define LOG(x)  MOZ_LOG(GetObserverServiceLog(), mozilla::LogLevel::Debug, x)
 
 namespace mozilla {
 
