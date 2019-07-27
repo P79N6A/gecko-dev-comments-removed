@@ -40,8 +40,11 @@ public:
 
   nsIGlobalObject* GetParentObject() const { return mWindow; }
 
+  typedef nsTArray<nsRefPtr<Animation>> AnimationSequence;
+
   
   virtual Nullable<TimeDuration> GetCurrentTime() const = 0;
+  void GetAnimations(AnimationSequence& aAnimations);
 
   
   
