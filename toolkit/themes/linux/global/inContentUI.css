@@ -19,6 +19,13 @@
   color: WindowText;
 }
 
+
+
+*|*#contentAreaDownloadsView {
+  background: #f1f1f1;
+  color: #424e5a;
+}
+
 html|html {
   font: message-box;
 }
