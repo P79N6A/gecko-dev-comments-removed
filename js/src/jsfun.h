@@ -49,7 +49,6 @@ class JSFunction : public js::NativeObject
         ASMJS            = 0x0800,  
         INTERPRETED_LAZY = 0x1000,  
         ARROW            = 0x2000,  
-        RESOLVED_LENGTH  = 0x4000,  
 
         
         NATIVE_FUN = 0,
@@ -130,13 +129,13 @@ class JSFunction : public js::NativeObject
     bool isSelfHostedBuiltin()      const { return flags() & SELF_HOSTED; }
     bool isSelfHostedConstructor()  const { return flags() & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags() & HAS_REST; }
-    bool isInterpretedLazy()        const { return flags() & INTERPRETED_LAZY; }
-    bool hasScript()                const { return flags() & INTERPRETED; }
 
-    
-    bool isArrow()                  const { return flags() & ARROW; }
-
-    bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
+    bool isInterpretedLazy()        const {
+        return flags() & INTERPRETED_LAZY;
+    }
+    bool hasScript()                const {
+        return flags() & INTERPRETED;
+    }
 
     bool hasJITCode() const {
         if (!hasScript())
@@ -144,6 +143,9 @@ class JSFunction : public js::NativeObject
 
         return nonLazyScript()->hasBaselineScript() || nonLazyScript()->hasIonScript();
     }
+
+    
+    bool isArrow()                  const { return flags() & ARROW; }
 
     
     bool isBuiltin() const {
@@ -208,16 +210,8 @@ class JSFunction : public js::NativeObject
         flags_ |= ARROW;
     }
 
-    void setResolvedLength() {
-        flags_ |= RESOLVED_LENGTH;
-    }
-
     JSAtom *atom() const { return hasGuessedAtom() ? nullptr : atom_.get(); }
-
-    js::PropertyName *name() const {
-        return hasGuessedAtom() || !atom_ ? nullptr : atom_->asPropertyName();
-    }
-
+    js::PropertyName *name() const { return hasGuessedAtom() || !atom_ ? nullptr : atom_->asPropertyName(); }
     void initAtom(JSAtom *atom) { atom_.init(atom); }
 
     JSAtom *displayAtom() const {
