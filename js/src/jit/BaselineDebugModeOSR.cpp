@@ -216,6 +216,7 @@ CollectJitStackScripts(JSContext *cx, const Debugger::ExecutionObservableSet &ob
                     
                     
                     
+                    
                     MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
                     jsbytecode *pc = script->baselineScript()->pcForNativeAddress(script, retAddr);
                     if (!entries.append(DebugModeOSREntry(script, script->pcToOffset(pc))))
@@ -400,24 +401,7 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
             BaselineScript *bl = script->baselineScript();
             ICEntry::Kind kind = entry.frameKind;
 
-            if (kind == ICEntry::Kind_Op || kind == ICEntry::Kind_NonOp) {
-                uint8_t *retAddr;
-                if (kind == ICEntry::Kind_Op) {
-                    
-                    retAddr = bl->returnAddressForIC(bl->icEntryFromPCOffset(pcOffset));
-                } else {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    MOZ_ASSERT(iter.baselineFrame()->isDebuggerHandlingException());
-                    retAddr = bl->returnAddressForIC(bl->anyKindICEntryFromPCOffset(pcOffset));
-                }
-
+            if (kind == ICEntry::Kind_Op) {
                 
                 
                 
@@ -425,6 +409,9 @@ PatchBaselineFramesForDebugMode(JSContext *cx, const Debugger::ExecutionObservab
                 
                 
                 
+                
+                
+                uint8_t *retAddr = bl->returnAddressForIC(bl->icEntryFromPCOffset(pcOffset));
                 SpewPatchBaselineFrame(prev->returnAddress(), retAddr, script, kind, pc);
                 DebugModeOSRVolatileJitFrameIterator::forwardLiveIterators(
                     cx, prev->returnAddress(), retAddr);

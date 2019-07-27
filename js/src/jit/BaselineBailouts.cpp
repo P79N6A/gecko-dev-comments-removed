@@ -1051,10 +1051,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 
                 
                 
-                ICEntry &icEntry = baselineScript->anyKindICEntryFromPCOffset(iter.pcOffset());
-                nativeCodeForPC = baselineScript->returnAddressForIC(icEntry);
-            } else {
-                MOZ_ASSERT(nativeCodeForPC);
+                jsbytecode *throwPC = script->offsetToPC(iter.pcOffset());
+                nativeCodeForPC = baselineScript->nativeCodeForPC(script, throwPC);
             }
 
             MOZ_ASSERT(nativeCodeForPC);
