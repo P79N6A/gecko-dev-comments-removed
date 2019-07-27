@@ -32,7 +32,7 @@ var threadManager = Cc["@mozilla.org/thread-manager;1"]
                       .getService(Ci.nsIThreadManager);
 
 const kPUSHWSDB_DB_NAME = "pushapi";
-const kPUSHWSDB_DB_VERSION = 3; 
+const kPUSHWSDB_DB_VERSION = 1; 
 const kPUSHWSDB_STORE_NAME = "pushapi";
 
 const kUDP_WAKEUP_WS_STATUS_CODE = 4774;  
@@ -132,20 +132,6 @@ this.PushServiceWebSocket = {
                           aDbInstance) {
     debug("upgradeSchemaWS()");
 
-    
-    
-    if (aNewVersion != aOldVersion) {
-      try {
-        aDb.deleteObjectStore(aDbInstance._dbStoreName);
-      } catch (e) {
-        if (e.name === "NotFoundError") {
-          debug("No existing object store found");
-        } else {
-          throw e;
-        }
-      }
-    }
-
     let objectStore = aDb.createObjectStore(aDbInstance._dbStoreName,
                                             { keyPath: "channelID" });
 
@@ -154,11 +140,7 @@ this.PushServiceWebSocket = {
 
     
     
-    
-    
-    
-    objectStore.createIndex("identifiers", ["scope", "originAttributes"], { unique: true });
-    objectStore.createIndex("originAttributes", "originAttributes", { unique: false });
+    objectStore.createIndex("scope", "scope", { unique: true });
   },
 
   getKeyFromRecord: function(aRecord) {
@@ -888,12 +870,10 @@ this.PushServiceWebSocket = {
         pushEndpoint: reply.pushEndpoint,
         pageURL: tmp.record.pageURL,
         scope: tmp.record.scope,
-        originAttributes: tmp.record.originAttributes,
         pushCount: 0,
         lastPush: 0,
         version: null
       };
-      dump("PushWebSocket " +  JSON.stringify(record));
       tmp.resolve(record);
     } else {
       tmp.reject(reply);

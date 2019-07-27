@@ -33,7 +33,7 @@ function debug(s) {
 }
 
 const kPUSHHTTP2DB_DB_NAME = "pushHttp2";
-const kPUSHHTTP2DB_DB_VERSION = 3; 
+const kPUSHHTTP2DB_DB_VERSION = 1; 
 const kPUSHHTTP2DB_STORE_NAME = "pushHttp2";
 
 
@@ -291,7 +291,6 @@ SubscriptionListener.prototype = {
       pushReceiptEndpoint: linkParserResult.pushReceiptEndpoint,
       pageURL: this._subInfo.record.pageURL,
       scope: this._subInfo.record.scope,
-      originAttributes: this._subInfo.record.originAttributes,
       pushCount: 0,
       lastPush: 0
     };
@@ -386,20 +385,6 @@ this.PushServiceHttp2 = {
                           aDbInstance) {
     debug("upgradeSchemaHttp2()");
 
-    
-    
-    if (aNewVersion != aOldVersion) {
-      try {
-        aDb.deleteObjectStore(aDbInstance._dbStoreName);
-      } catch (e) {
-        if (e.name === "NotFoundError") {
-          debug("No existing object store found");
-        } else {
-          throw e;
-        }
-      }
-    }
-
     let objectStore = aDb.createObjectStore(aDbInstance._dbStoreName,
                                             { keyPath: "subscriptionUri" });
 
@@ -408,11 +393,7 @@ this.PushServiceHttp2 = {
 
     
     
-    
-    
-    
-    objectStore.createIndex("identifiers", ["scope", "originAttributes"], { unique: true });
-    objectStore.createIndex("originAttributes", "originAttributes", { unique: false });
+    objectStore.createIndex("scope", "scope", { unique: true });
   },
 
   getKeyFromRecord: function(aRecord) {
