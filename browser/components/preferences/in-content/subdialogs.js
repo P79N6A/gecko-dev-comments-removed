@@ -92,6 +92,8 @@ let gSubDialog = {
     
     this._box.removeAttribute("width");
     this._box.removeAttribute("height");
+    this._box.style.removeProperty("min-height");
+    this._box.style.removeProperty("min-width");
 
     setTimeout(() => {
       
@@ -144,12 +146,26 @@ let gSubDialog = {
     
     let docEl = this._frame.contentDocument.documentElement;
 
-    
-    
-    let paddingBottom = parseFloat(this._frame.contentWindow.getComputedStyle(docEl).paddingBottom);
+    let groupBoxTitle = document.getAnonymousElementByAttribute(this._box, "class", "groupbox-title");
+    let groupBoxTitleHeight = groupBoxTitle.clientHeight +
+                              parseFloat(getComputedStyle(groupBoxTitle).borderBottomWidth);
 
-    this._frame.style.width = docEl.style.width || docEl.scrollWidth + "px";
-    this._frame.style.height = docEl.style.height || (docEl.scrollHeight + paddingBottom) + "px";
+    let groupBoxBody = document.getAnonymousElementByAttribute(this._box, "class", "groupbox-body");
+    let boxVerticalPadding = 2 * parseFloat(getComputedStyle(groupBoxBody).paddingTop);
+    let boxHorizontalPadding = 2 * parseFloat(getComputedStyle(groupBoxBody).paddingLeft);
+    let frameWidth = docEl.style.width || docEl.scrollWidth + "px";
+    let frameHeight = docEl.style.height || docEl.scrollHeight + "px";
+    let boxVerticalBorder = 2 * parseFloat(getComputedStyle(this._box).borderTopWidth);
+    let boxHorizontalBorder = 2 * parseFloat(getComputedStyle(this._box).borderLeftWidth);
+
+    this._frame.style.width = frameWidth;
+    this._frame.style.height = frameHeight;
+    this._box.style.minHeight = "calc(" +
+                                (boxVerticalBorder + groupBoxTitleHeight + boxVerticalPadding) +
+                                "px + " + frameHeight + ")";
+    this._box.style.minWidth = "calc(" +
+                               (boxHorizontalBorder + boxHorizontalPadding) +
+                               "px + " + frameWidth + ")";
 
     this._overlay.style.visibility = "visible";
     this._frame.focus();
