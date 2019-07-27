@@ -32,10 +32,11 @@ class MOZ_STACK_CLASS AutoTimelineMarker
 {
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER;
 
-  nsRefPtr<nsDocShell> mDocShell;
+  
   const char* mName;
 
-  bool DocShellIsRecording(nsDocShell& aDocShell);
+  
+  nsRefPtr<nsDocShell> mDocShell;
 
 public:
   explicit AutoTimelineMarker(nsIDocShell* aDocShell, const char* aName
