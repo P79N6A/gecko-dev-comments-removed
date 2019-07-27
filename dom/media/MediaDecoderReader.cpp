@@ -338,7 +338,9 @@ MediaDecoderReader::RequestAudioData()
 void
 MediaDecoderReader::BreakCycles()
 {
-  mTaskQueue = nullptr;
+  
+  
+  
 }
 
 nsRefPtr<ShutdownPromise>
