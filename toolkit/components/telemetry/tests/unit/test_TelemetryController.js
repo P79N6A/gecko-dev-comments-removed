@@ -335,6 +335,23 @@ add_task(function* test_midnightPingSendFuzzing() {
   fakePingSendTimer(() => {}, () => {});
 });
 
+add_task(function* test_changePingAfterSubmission() {
+  
+  let payload = { canary: "test" };
+  let pingPromise = TelemetryController.submitExternalPing(TEST_PING_TYPE, payload, options);
+
+  
+  payload.canary = "changed";
+
+  
+  const pingId = yield pingPromise;
+
+  
+  let archivedCopy = yield TelemetryArchive.promiseArchivedPingById(pingId);
+  Assert.equal(archivedCopy.payload.canary, "test",
+               "The payload must not be changed after being submitted.");
+});
+
 add_task(function* stopServer(){
   gHttpServer.stop(do_test_finished);
 });
