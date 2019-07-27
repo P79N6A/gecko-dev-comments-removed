@@ -55,6 +55,8 @@ public:
   virtual bool Selected() MOZ_OVERRIDE;
 
 protected:
+  virtual ~HTMLTableCellAccessible() {}
+
   
 
 
@@ -97,12 +99,14 @@ public:
     mType = eHTMLTableRowType;
     mGenericTypes |= eTableRow;
   }
-  virtual ~HTMLTableRowAccessible() { }
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
   virtual a11y::role NativeRole();
+
+protected:
+  virtual ~HTMLTableRowAccessible() { }
 };
 
 
@@ -173,6 +177,8 @@ public:
   virtual Relation RelationByType(RelationType aRelationType) MOZ_OVERRIDE;
 
 protected:
+  virtual ~HTMLTableAccessible() {}
+
   
   virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
   virtual void CacheChildren();

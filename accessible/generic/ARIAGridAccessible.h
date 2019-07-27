@@ -59,6 +59,7 @@ public:
   virtual Accessible* AsAccessible() { return this; }
 
 protected:
+  virtual ~ARIAGridAccessible() {}
 
   
 
@@ -117,6 +118,7 @@ public:
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
 
 protected:
+  virtual ~ARIAGridCellAccessible() {}
 
   
 

@@ -22,6 +22,10 @@
 
 using namespace mozilla::a11y;
 
+XULTreeGridAccessible::~XULTreeGridAccessible()
+{
+}
+
 
 
 
@@ -262,6 +266,10 @@ XULTreeGridRowAccessible::
   mGenericTypes |= eTableRow;
 }
 
+XULTreeGridRowAccessible::~XULTreeGridRowAccessible()
+{
+}
+
 
 
 
@@ -448,6 +456,10 @@ XULTreeGridCellAccessible::
     mTreeView->GetCellValue(mRow, mColumn, mCachedTextEquiv);
   else
     mTreeView->GetCellText(mRow, mColumn, mCachedTextEquiv);
+}
+
+XULTreeGridCellAccessible::~XULTreeGridCellAccessible()
+{
 }
 
 

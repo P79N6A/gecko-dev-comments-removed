@@ -20,7 +20,6 @@ class HTMLImageMapAccessible : public ImageAccessibleWrap
 {
 public:
   HTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~HTMLImageMapAccessible() { }
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -44,6 +43,7 @@ public:
   Accessible* GetChildAccessibleFor(const nsINode* aNode) const;
 
 protected:
+  virtual ~HTMLImageMapAccessible() { }
 
   
   virtual void CacheChildren();

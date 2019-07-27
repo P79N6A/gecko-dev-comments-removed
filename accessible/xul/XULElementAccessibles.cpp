@@ -184,6 +184,10 @@ XULLinkAccessible::
 {
 }
 
+XULLinkAccessible::~XULLinkAccessible()
+{
+}
+
 
 NS_IMPL_ISUPPORTS_INHERITED(XULLinkAccessible, XULLabelAccessible,
                             nsIAccessibleHyperLink)

@@ -62,6 +62,10 @@ XULTreeAccessible::
   }
 }
 
+XULTreeAccessible::~XULTreeAccessible()
+{
+}
+
 
 
 
@@ -703,6 +707,10 @@ XULTreeItemAccessibleBase::
   mStateFlags |= eSharedNode;
 }
 
+XULTreeItemAccessibleBase::~XULTreeItemAccessibleBase()
+{
+}
+
 
 
 
@@ -1101,6 +1109,10 @@ XULTreeItemAccessible::
 {
   mColumn = nsCoreUtils::GetFirstSensibleColumn(mTree);
   GetCellName(mColumn, mCachedName);
+}
+
+XULTreeItemAccessible::~XULTreeItemAccessible()
+{
 }
 
 
