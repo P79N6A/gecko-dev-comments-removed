@@ -3330,6 +3330,10 @@ public class BrowserApp extends GeckoApp
         }
 
         
+        final boolean toolsVisible = RestrictedProfiles.isAllowed(this, RestrictedProfiles.Restriction.DISALLOW_TOOLS_MENU);
+        MenuUtils.safeSetVisible(aMenu, R.id.tools, toolsVisible);
+
+        
         saveAsPDF.setEnabled(!(isAboutHome(tab) ||
                                tab.getContentType().equals("application/vnd.mozilla.xul+xml") ||
                                tab.getContentType().startsWith("video/")));
