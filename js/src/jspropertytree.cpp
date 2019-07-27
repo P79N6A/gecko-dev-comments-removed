@@ -281,7 +281,7 @@ Shape::fixupDictionaryShapeAfterMovingGC()
     
     
     if (IsInsideNursery(reinterpret_cast<Cell *>(listp))) {
-        JS_POISON(reinterpret_cast<void *>(this), JS_SWEPT_TENURED_PATTERN, sizeof(Shape));
+        listp = nullptr;
         return;
     }
 

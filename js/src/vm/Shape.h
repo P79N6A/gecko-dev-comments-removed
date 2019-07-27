@@ -703,7 +703,8 @@ class Shape : public gc::TenuredCell
         this->flags |= IN_DICTIONARY;
 
         this->listp = nullptr;
-        insertIntoDictionary(dictp);
+        if (dictp)
+            insertIntoDictionary(dictp);
     }
 
     

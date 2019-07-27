@@ -443,11 +443,6 @@ js::NativeObject::toDictionaryMode(ThreadSafeContext *cx)
 {
     MOZ_ASSERT(!inDictionaryMode());
 
-#ifdef JSGC_COMPACTING
-    
-    js::AutoDisableCompactingGC nogc(zone()->runtimeFromAnyThread());
-#endif
-
     
     MOZ_ASSERT(cx->isInsideCurrentCompartment(this));
 
@@ -463,11 +458,8 @@ js::NativeObject::toDictionaryMode(ThreadSafeContext *cx)
     Rooted<NativeObject*> self(cx, this);
 
     
-
-
-
-
-
+    
+    
     RootedShape root(cx);
     RootedShape dictionaryShape(cx);
 
@@ -481,12 +473,12 @@ js::NativeObject::toDictionaryMode(ThreadSafeContext *cx)
             return false;
         }
 
-        HeapPtrShape *listp = dictionaryShape
-                              ? &dictionaryShape->parent
-                              : (HeapPtrShape *) root.address();
-
+        HeapPtrShape *listp = dictionaryShape ? &dictionaryShape->parent : nullptr;
         StackShape child(shape);
         dprop->initDictionaryShape(child, self->numFixedSlots(), listp);
+
+        if (!dictionaryShape)
+            root = dprop;
 
         MOZ_ASSERT(!dprop->hasTable());
         dictionaryShape = dprop;
@@ -498,7 +490,7 @@ js::NativeObject::toDictionaryMode(ThreadSafeContext *cx)
         return false;
     }
 
-    MOZ_ASSERT((Shape **) root->listp == root.address());
+    MOZ_ASSERT(root->listp == nullptr);
     root->listp = &self->shape_;
     self->shape_ = root;
 
