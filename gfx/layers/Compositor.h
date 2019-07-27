@@ -224,7 +224,7 @@ public:
 
 
 
-  void SetTargetContext(gfx::DrawTarget* aTarget, const nsIntRect& aRect)
+  void SetTargetContext(gfx::DrawTarget* aTarget, const gfx::IntRect& aRect)
   {
     mTarget = aTarget;
     mTargetBounds = aRect;
@@ -500,7 +500,7 @@ protected:
   virtual gfx::IntSize GetWidgetSize() const = 0;
 
   RefPtr<gfx::DrawTarget> mTarget;
-  nsIntRect mTargetBounds;
+  gfx::IntRect mTargetBounds;
 
 private:
   static LayersBackend sBackend;

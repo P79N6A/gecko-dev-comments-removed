@@ -1228,9 +1228,9 @@ CompositorOGL::EndFrame()
 
 #ifdef MOZ_DUMP_PAINTING
   if (gfxUtils::sDumpPainting) {
-    nsIntRect rect;
+    IntRect rect;
     if (mUseExternalSurfaceSize) {
-      rect = nsIntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
+      rect = IntRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
     } else {
       mWidget->GetBounds(rect);
     }

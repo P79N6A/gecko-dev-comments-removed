@@ -97,7 +97,7 @@ AppendToString(std::stringstream& aStream, const nsIntPoint& p,
 }
 
 void
-AppendToString(std::stringstream& aStream, const nsIntRect& r,
+AppendToString(std::stringstream& aStream, const IntRect& r,
                const char* pfx, const char* sfx)
 {
   aStream << pfx;
@@ -132,7 +132,7 @@ AppendToString(std::stringstream& aStream, const nsIntRegion& r,
 
   nsIntRegionRectIterator it(r);
   aStream << "< ";
-  while (const nsIntRect* sr = it.Next()) {
+  while (const IntRect* sr = it.Next()) {
     AppendToString(aStream, *sr);
     aStream << "; ";
   }

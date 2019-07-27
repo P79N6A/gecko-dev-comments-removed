@@ -46,7 +46,7 @@ public:
 
 
 
-    nsIntRect      mUpdateRect;
+    gfx::IntRect      mUpdateRect;
     
 
 

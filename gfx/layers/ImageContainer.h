@@ -134,9 +134,9 @@ public:
   void* GetImplData() { return mImplData; }
 
   virtual gfx::IntSize GetSize() = 0;
-  virtual nsIntRect GetPictureRect()
+  virtual gfx::IntRect GetPictureRect()
   {
-    return nsIntRect(0, 0, GetSize().width, GetSize().height);
+    return gfx::IntRect(0, 0, GetSize().width, GetSize().height);
   }
 
   ImageBackendData* GetBackendData(LayersBackend aBackend)
@@ -639,8 +639,8 @@ struct PlanarYCbCrData {
   gfx::IntSize mPicSize;
   StereoMode mStereoMode;
 
-  nsIntRect GetPictureRect() const {
-    return nsIntRect(mPicX, mPicY,
+  gfx::IntRect GetPictureRect() const {
+    return gfx::IntRect(mPicX, mPicY,
                      mPicSize.width,
                      mPicSize.height);
   }
