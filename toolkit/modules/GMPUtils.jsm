@@ -47,11 +47,7 @@ this.GMPUtils = {
 
   _isPluginSupported: function(aPlugin) {
     if (aPlugin.id == EME_ADOBE_ID) {
-      if (Services.appinfo.OS == "WINNT") {
-        return Services.sysinfo.getPropertyAsInt32("version") >= 6;
-      } else {
-        return false;
-      }
+      return false;
     }
     return true;
   },
@@ -88,7 +84,6 @@ this.GMPPrefs = {
   KEY_BUILDID:                  "media.gmp-manager.buildID",
   KEY_CERTS_BRANCH:             "media.gmp-manager.certs.",
   KEY_PROVIDER_ENABLED:         "media.gmp-provider.enabled",
-  KEY_PROVIDER_LASTCHECK:       "media.gmp-manager.lastCheck",
   KEY_LOG_BASE:                 "media.gmp.log.",
   KEY_LOGGING_LEVEL:            this.KEY_LOG_BASE + "level",
   KEY_LOGGING_DUMP:             this.KEY_LOG_BASE + "dump",
