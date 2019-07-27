@@ -8,12 +8,14 @@ this.EXPORTED_SYMBOLS = [ "LoginManagerContent",
                           "UserAutoCompleteResult" ];
 
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
+const PASSWORD_INPUT_ADDED_COALESCING_THRESHOLD_MS = 1;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "DeferredTask", "resource://gre/modules/DeferredTask.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LoginRecipesContent",
                                   "resource://gre/modules/LoginRecipes.jsm");
 
@@ -92,6 +94,30 @@ var LoginManagerContent = {
 
   _messages: [ "RemoteLogins:loginsFound",
                "RemoteLogins:loginsAutoCompleted" ],
+
+  
+
+
+
+
+
+
+
+
+
+
+  _formLikeByRootElement: new WeakMap(),
+
+  
+
+
+
+
+
+
+
+
+  _deferredPasswordAddedTasksByRootElement: new WeakMap(),
 
   
   _requests: new Map(),
@@ -219,6 +245,11 @@ var LoginManagerContent = {
     let form = aElement.form;
     let win = doc.defaultView;
 
+    if (!form) {
+      return Promise.reject("Bug 1173583: _autoCompleteSearchAsync needs to be " +
+                            "updated to work outside of <form>");
+    }
+
     let formOrigin = LoginUtils._getPasswordOrigin(doc.documentURI);
     let actionOrigin = LoginUtils._getActionOrigin(form);
 
@@ -246,7 +277,69 @@ var LoginManagerContent = {
     }
 
     let form = event.target;
+    let formLike = FormLikeFactory.createFromForm(form);
+    log("onDOMFormHasPassword:", form, formLike);
+    this._fetchLoginsFromParentAndFillForm(formLike, window);
+  },
 
+  onDOMInputPasswordAdded(event, window) {
+    if (!event.isTrusted) {
+      return;
+    }
+
+    let pwField = event.target;
+    if (pwField.form) {
+      
+      return;
+    }
+
+    let formLike = FormLikeFactory.createFromPasswordField(pwField);
+    log("onDOMInputPasswordAdded:", pwField, formLike);
+
+    let deferredTask = this._deferredPasswordAddedTasksByRootElement.get(formLike.rootElement);
+    if (!deferredTask) {
+      log("Creating a DeferredTask to call _fetchLoginsFromParentAndFillForm soon");
+      this._formLikeByRootElement.set(formLike.rootElement, formLike);
+
+      deferredTask = new DeferredTask(function* deferredInputProcessing() {
+        
+        
+        let formLike2 = this._formLikeByRootElement.get(formLike.rootElement);
+        log("Running deferred processing of onDOMInputPasswordAdded", formLike2);
+        this._deferredPasswordAddedTasksByRootElement.delete(formLike2.rootElement);
+        this._fetchLoginsFromParentAndFillForm(formLike2, window);
+        this._formLikeByRootElement.delete(formLike.rootElement);
+      }.bind(this), PASSWORD_INPUT_ADDED_COALESCING_THRESHOLD_MS);
+
+      this._deferredPasswordAddedTasksByRootElement.set(formLike.rootElement, deferredTask);
+    }
+
+    if (deferredTask.isArmed) {
+      log("DeferredTask is already armed so just updating the FormLike");
+      
+      
+      this._formLikeByRootElement.set(formLike.rootElement, formLike);
+    } else {
+      if (window.document.readyState == "complete") {
+        log("Arming the DeferredTask we just created since document.readyState == 'complete'");
+        deferredTask.arm();
+      } else {
+        window.addEventListener("DOMContentLoaded", function armPasswordAddedTask() {
+          window.removeEventListener("DOMContentLoaded", armPasswordAddedTask);
+          log("Arming the onDOMInputPasswordAdded DeferredTask due to DOMContentLoaded");
+          deferredTask.arm();
+        });
+      }
+    }
+  },
+
+  
+
+
+
+
+
+  _fetchLoginsFromParentAndFillForm(form, window) {
     
     this.stateForDocument(form.ownerDocument).loginForm = form;
 
@@ -259,7 +352,6 @@ var LoginManagerContent = {
       return;
     }
 
-    log("onDOMFormHasPassword for", form.ownerDocument.documentURI);
     this._getLoginDataFromParent(form, { showMasterPassword: true })
         .then(this.loginsFound.bind(this))
         .then(null, Cu.reportError);
@@ -402,7 +494,7 @@ var LoginManagerContent = {
     if (!this._isUsernameFieldType(acInputField))
       return;
 
-    var acForm = acInputField.form;
+    var acForm = acInputField.form; 
     if (!acForm)
       return;
 
@@ -515,8 +607,10 @@ var LoginManagerContent = {
         fieldOverrideRecipe.passwordSelector
       );
       if (pwOverrideField) {
+        
+        let formLike = FormLikeFactory.createFromPasswordField(pwOverrideField);
         pwFields = [{
-          index   : [...pwOverrideField.form.elements].indexOf(pwOverrideField),
+          index   : [...formLike.elements].indexOf(pwOverrideField),
           element : pwOverrideField,
         }];
       }
@@ -914,7 +1008,7 @@ var LoginManagerContent = {
       let messageManager = messageManagerFromWindow(win);
       messageManager.sendAsyncMessage("LoginStats:LoginFillSuccessful");
     } finally {
-      Services.obs.notifyObservers(form, "passwordmgr-processed-form", null);
+      Services.obs.notifyObservers(form.rootElement, "passwordmgr-processed-form", null);
     }
   },
 
