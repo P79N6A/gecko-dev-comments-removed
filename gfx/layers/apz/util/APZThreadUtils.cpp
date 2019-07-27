@@ -67,7 +67,7 @@ APZThreadUtils::RunOnControllerThread(Task* aTask)
 #else
   if (!sControllerThread) {
     
-    NS_WARNING("Dropping task posted to controller thread\n");
+    NS_WARNING("Dropping task posted to controller thread");
     delete aTask;
     return;
   }
