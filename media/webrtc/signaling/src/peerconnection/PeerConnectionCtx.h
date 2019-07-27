@@ -31,13 +31,13 @@ class WebrtcGlobalInformation;
 
 
 
-class MediaConstraintsExternal {
+class SipccOfferOptions {
 public:
-  MediaConstraintsExternal();
-  MediaConstraintsExternal(const dom::MediaConstraintsInternal &aOther);
-  cc_media_constraints_t* build() const;
+  SipccOfferOptions();
+  SipccOfferOptions(const dom::RTCOfferOptions &aOther);
+  cc_media_options_t* build() const;
 protected:
-  cc_media_constraints_t mConstraints;
+  cc_media_options_t mOptions;
 };
 }
 
