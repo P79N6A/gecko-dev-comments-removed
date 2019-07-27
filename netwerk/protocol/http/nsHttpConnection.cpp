@@ -1120,9 +1120,9 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
     
     
     if (mTLSFilter) {
-        nsCOMPtr<nsISupports> ref1(mSocketIn);
-        nsCOMPtr<nsISupports> ref2(mSocketOut);
-        mTLSFilter->newIODriver(mSocketIn, mSocketOut,
+        nsCOMPtr<nsIAsyncInputStream>  ref1(mSocketIn);
+        nsCOMPtr<nsIAsyncOutputStream> ref2(mSocketOut);
+        mTLSFilter->newIODriver(ref1, ref2,
                                 getter_AddRefs(mSocketIn),
                                 getter_AddRefs(mSocketOut));
         mTLSFilter = nullptr;
