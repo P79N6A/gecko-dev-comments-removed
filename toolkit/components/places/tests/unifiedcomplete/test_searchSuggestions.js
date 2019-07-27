@@ -3,6 +3,7 @@ Cu.import("resource://gre/modules/FormHistory.jsm");
 const ENGINE_NAME = "engine-suggestions.xml";
 const SERVER_PORT = 9000;
 const SUGGEST_PREF = "browser.urlbar.suggest.searches";
+const SUGGEST_RESTRICT_TOKEN = "$";
 
 
 
@@ -143,5 +144,100 @@ add_task(function* suffixMatch() {
   });
 
   suggestionsFromSearchString = oldFn;
+  yield cleanup();
+});
+
+add_task(function* restrictToken() {
+  Services.prefs.setBoolPref(SUGGEST_PREF, true);
+
+  
+  
+  
+  yield PlacesTestUtils.addVisits([
+    {
+      uri: NetUtil.newURI("http://example.com/hello-visit"),
+      title: "hello visit",
+    },
+    {
+      uri: NetUtil.newURI("http://example.com/hello-bookmark"),
+      title: "hello bookmark",
+    },
+  ]);
+
+  yield addBookmark({
+    uri: NetUtil.newURI("http://example.com/hello-bookmark"),
+    title: "hello bookmark",
+  });
+
+  
+  
+  let searchStr = "hello";
+  yield check_autocomplete({
+    search: searchStr,
+    matches: [
+      {
+        uri: NetUtil.newURI("http://example.com/hello-visit"),
+        title: "hello visit",
+      },
+      {
+        uri: NetUtil.newURI("http://example.com/hello-bookmark"),
+        title: "hello bookmark",
+        style: ["bookmark"],
+      },
+      {
+        uri: makeActionURI(("searchengine"), {
+          engineName: ENGINE_NAME,
+          input: searchStr,
+          searchQuery: searchStr,
+          searchSuggestion: "hello foo",
+        }),
+        title: ENGINE_NAME,
+        style: ["action", "searchengine"],
+        icon: "",
+      },
+      {
+        uri: makeActionURI(("searchengine"), {
+          engineName: ENGINE_NAME,
+          input: searchStr,
+          searchQuery: searchStr,
+          searchSuggestion: "hello bar",
+        }),
+        title: ENGINE_NAME,
+        style: ["action", "searchengine"],
+        icon: "",
+      },
+    ],
+  });
+
+  
+  searchStr = SUGGEST_RESTRICT_TOKEN + " hello";
+  yield check_autocomplete({
+    search: searchStr,
+    matches: [
+      {
+        uri: makeActionURI(("searchengine"), {
+          engineName: ENGINE_NAME,
+          input: searchStr,
+          searchQuery: searchStr,
+          searchSuggestion: "hello foo",
+        }),
+        title: ENGINE_NAME,
+        style: ["action", "searchengine"],
+        icon: "",
+      },
+      {
+        uri: makeActionURI(("searchengine"), {
+          engineName: ENGINE_NAME,
+          input: searchStr,
+          searchQuery: searchStr,
+          searchSuggestion: "hello bar",
+        }),
+        title: ENGINE_NAME,
+        style: ["action", "searchengine"],
+        icon: "",
+      }
+    ],
+  });
+
   yield cleanup();
 });
