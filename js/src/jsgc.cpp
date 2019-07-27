@@ -5577,7 +5577,12 @@ GCRuntime::finishCollection(JS::gcreason::Reason reason)
 
     
     
-    if (reason == JS::gcreason::LAST_DITCH || reason == JS::gcreason::MEM_PRESSURE) {
+    
+    
+    if (reason == JS::gcreason::LAST_DITCH ||
+        reason == JS::gcreason::MEM_PRESSURE ||
+        reason == JS::gcreason::DEBUG_GC)
+    {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
         rt->gc.waitBackgroundSweepOrAllocEnd();
     }
