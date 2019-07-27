@@ -54,7 +54,10 @@ public:
   void Ended();
   bool IsExpectingMoreData() MOZ_OVERRIDE;
 
+  void SetDecodedDuration(int64_t aDuration);
   void SetMediaSourceDuration(double aDuration);
+  double GetMediaSourceDuration();
+  void DurationChanged(double aOldDuration, double aNewDuration);
 
   
   
@@ -74,6 +77,9 @@ private:
   
   dom::MediaSource* mMediaSource;
   nsRefPtr<MediaSourceReader> mReader;
+
+  
+  double mMediaSourceDuration;
 };
 
 } 
