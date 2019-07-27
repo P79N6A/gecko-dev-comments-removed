@@ -689,7 +689,10 @@ js::obj_create(JSContext *cx, unsigned argc, Value *vp)
     
     if (args.hasDefined(1)) {
         if (args[1].isPrimitive()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT);
+            char *bytes = DecompileValueGenerator(cx, JSDVG_SEARCH_STACK, args[1], NullPtr());
+            if (!bytes)
+                return false;
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_NOT_NONNULL_OBJECT, bytes);
             return false;
         }
 

@@ -16,7 +16,7 @@ function WeakSet_add(value) {
 
     
     if (!IsObject(value))
-        ThrowError(JSMSG_NOT_NONNULL_OBJECT);
+        ThrowError(JSMSG_NOT_NONNULL_OBJECT, DecompileArg(0, value));
 
     
     callFunction(std_WeakMap_set, entries, value, true);
