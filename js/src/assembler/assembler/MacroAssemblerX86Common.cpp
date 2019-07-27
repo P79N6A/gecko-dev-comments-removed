@@ -4,15 +4,12 @@
 
 
 
-#include "assembler/wtf/Platform.h"
-
-
-#if WTF_CPU_X86 || WTF_CPU_X86_64
-
 #include "assembler/assembler/MacroAssemblerX86Common.h"
 
-#if WTF_COMPILER_MSVC
-#if WTF_CPU_X86_64
+#include "assembler/wtf/Platform.h"
+
+#ifdef _MSC_VER
+#ifdef JS_CODEGEN_X64
 
 #include <intrin.h>
 #endif
@@ -33,8 +30,8 @@ void MacroAssemblerX86Common::setSSECheckState()
     
     int flags_edx = 0;
     int flags_ecx = 0;
-#if WTF_COMPILER_MSVC
-#if WTF_CPU_X86_64
+#ifdef _MSC_VER
+#ifdef JS_CODEGEN_X64
     int cpuinfo[4];
 
     __cpuid(cpuinfo, 1);
@@ -48,8 +45,8 @@ void MacroAssemblerX86Common::setSSECheckState()
         mov flags_edx, edx;
     }
 #endif
-#elif WTF_COMPILER_GCC
-#if WTF_CPU_X86_64
+#elif defined(__GNUC__)
+#ifdef JS_CODEGEN_X64
     asm (
          "movl $0x1, %%eax;"
          "cpuid;"
@@ -67,32 +64,6 @@ void MacroAssemblerX86Common::setSSECheckState()
          : "=c" (flags_ecx), "=d" (flags_edx)
          :
          : "%eax"
-         );
-#endif
-#elif WTF_COMPILER_SUNCC
-#if WTF_CPU_X86_64
-    asm (
-         "movl $0x1, %%eax;"
-         "pushq %%rbx;"
-         "cpuid;"
-         "popq %%rbx;"
-         "movl %%ecx, (%rsi);"
-         "movl %%edx, (%rdi);"
-         :
-         : "S" (&flags_ecx), "D" (&flags_edx)
-         : "%eax", "%ecx", "%edx"
-         );
-#else
-    asm (
-         "movl $0x1, %eax;"
-         "pushl %ebx;"
-         "cpuid;"
-         "popl %ebx;"
-         "movl %ecx, (%esi);"
-         "movl %edx, (%edi);"
-         :
-         : "S" (&flags_ecx), "D" (&flags_edx)
-         : "%eax", "%ecx", "%edx"
          );
 #endif
 #endif
@@ -133,6 +104,3 @@ void MacroAssemblerX86Common::setSSECheckState()
         s_sseCheckState = HasSSE2;
 #endif
 }
-
-#endif 
-
