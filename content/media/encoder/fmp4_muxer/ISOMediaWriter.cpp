@@ -140,11 +140,9 @@ ISOMediaWriter::WriteEncodedTrack(const EncodedFrameContainer& aData,
   if (ReadyToRunState(EOS)) {
     
     
-    
-    
-    
-    
-    rv = RunState();
+    do {
+      rv = RunState();
+    } while (EOS && mState != MUXING_DONE);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
