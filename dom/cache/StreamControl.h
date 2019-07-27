@@ -68,9 +68,6 @@ protected:
   void
   CloseAllReadStreamsWithoutReporting();
 
-  bool
-  HasEverBeenRead() const;
-
   
   virtual void
   NoteClosedAfterForget(const nsID& aId) = 0;

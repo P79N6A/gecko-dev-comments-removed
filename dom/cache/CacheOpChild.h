@@ -25,15 +25,12 @@ class CacheOpChild final : public PCacheOpChild
                          , public ActorChild
                          , public TypeUtils
 {
-  friend class CacheChild;
-  friend class CacheStorageChild;
-
-private:
-  
-  
-  CacheOpChild(Feature* aFeature, nsIGlobalObject* aGlobal, Promise* aPromise);
+public:
+  CacheOpChild(Feature* aFeature, nsIGlobalObject* aGlobal,
+               nsISupports* aParent, Promise* aPromise);
   ~CacheOpChild();
 
+private:
   
   virtual void
   ActorDestroy(ActorDestroyReason aReason) override;
@@ -68,6 +65,7 @@ private:
   HandleRequestList(const nsTArray<CacheRequest>& aRequestList);
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
+  nsCOMPtr<nsISupports> mParent;
   nsRefPtr<Promise> mPromise;
 
   NS_DECL_OWNINGTHREAD

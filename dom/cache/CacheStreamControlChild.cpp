@@ -41,7 +41,6 @@ DeallocPCacheStreamControlChild(PCacheStreamControlChild* aActor)
 
 CacheStreamControlChild::CacheStreamControlChild()
   : mDestroyStarted(false)
-  , mDestroyDelayed(false)
 {
   MOZ_COUNT_CTOR(cache::CacheStreamControlChild);
 }
@@ -63,21 +62,6 @@ CacheStreamControlChild::StartDestroy()
     return;
   }
   mDestroyStarted = true;
-
-  
-  
-  if (HasEverBeenRead()) {
-    
-    
-    mDestroyDelayed = true;
-    return;
-  }
-
-  
-  
-  
-  
-  
 
   
   
@@ -136,15 +120,6 @@ CacheStreamControlChild::NoteClosedAfterForget(const nsID& aId)
 {
   NS_ASSERT_OWNINGTHREAD(CacheStreamControlChild);
   unused << SendNoteClosed(aId);
-
-  
-  
-  
-  
-  if (mDestroyDelayed && !HasEverBeenRead()) {
-    mDestroyDelayed = false;
-    RecvCloseAll();
-  }
 }
 
 #ifdef DEBUG
