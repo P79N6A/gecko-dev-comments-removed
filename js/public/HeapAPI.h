@@ -383,6 +383,14 @@ IsIncrementalBarrierNeededOnTenuredGCThing(JS::shadow::Runtime *rt, const JS::GC
     return JS::shadow::Zone::asShadowZone(zone)->needsIncrementalBarrier();
 }
 
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+NewMemoryInfoObject(JSContext *cx);
+
 } 
 } 
 
