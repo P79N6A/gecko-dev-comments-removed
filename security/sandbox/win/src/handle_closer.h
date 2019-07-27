@@ -19,7 +19,7 @@ namespace sandbox {
 
 
 
-typedef std::map<const base::string16, std::set<const base::string16> >
+typedef std::map<const base::string16, std::set<base::string16> >
     HandleMap;
 
 
