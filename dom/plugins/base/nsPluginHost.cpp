@@ -245,6 +245,14 @@ nsPluginHost::nsPluginHost()
 {
   
   
+  
+  
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    IncrementChromeEpoch();
+  }
+
+  
+  
   mOverrideInternalTypes =
     Preferences::GetBool("plugin.override_internal_types", false);
 
