@@ -7,6 +7,9 @@
 #ifndef gc_GCInternals_h
 #define gc_GCInternals_h
 
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/PodOperations.h"
+
 #include "jscntxt.h"
 
 #include "gc/Zone.h"
@@ -190,6 +193,28 @@ struct AutoSetThreadIsSweeping
 #else
     AutoSetThreadIsSweeping() {}
 #endif
+};
+
+
+
+struct TenureCount
+{
+    ObjectGroup* group;
+    int count;
+};
+
+
+
+
+struct TenureCountCache
+{
+    TenureCount entries[16];
+
+    TenureCountCache() { mozilla::PodZero(this); }
+
+    TenureCount& findEntry(ObjectGroup* group) {
+        return entries[PointerHasher<ObjectGroup*, 3>::hash(group) % mozilla::ArrayLength(entries)];
+    }
 };
 
 } 

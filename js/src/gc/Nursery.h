@@ -39,6 +39,7 @@ namespace gc {
 struct Cell;
 class MinorCollectionTracer;
 class RelocationOverlay;
+struct TenureCountCache;
 } 
 
 namespace jit {
@@ -82,8 +83,8 @@ class TenuringTracer : public JSTracer
     size_t moveSlotsToTenured(NativeObject* dst, NativeObject* src, gc::AllocKind dstKind);
 
     void traceObject(JSObject* src);
-    void markSlots(Value* vp, uint32_t nslots) { markSlots(vp, vp + nslots); }
-    void markSlots(Value* vp, Value* end);
+    void markSlots(JS::Value* vp, uint32_t nslots) { markSlots(vp, vp + nslots); }
+    void markSlots(JS::Value* vp, JS::Value* end);
     void markTraceList(const int32_t* traceList, uint8_t* memory);
 };
 
@@ -138,7 +139,7 @@ class Nursery
     JSObject* allocateObject(JSContext* cx, size_t size, size_t numDynamic, const js::Class* clasp);
 
     
-    void* allocateBuffer(Zone* zone, uint32_t nbytes);
+    void* allocateBuffer(JS::Zone* zone, uint32_t nbytes);
 
     
 
@@ -327,8 +328,6 @@ class Nursery
     
     gc::TenuredCell* allocateFromTenured(JS::Zone* zone, gc::AllocKind thingKind);
 
-    struct TenureCountCache;
-
     
     void* allocate(size_t size);
 
@@ -336,7 +335,7 @@ class Nursery
 
 
 
-    void collectToFixedPoint(TenuringTracer& trc, TenureCountCache& tenureCounts);
+    void collectToFixedPoint(TenuringTracer& trc, gc::TenureCountCache& tenureCounts);
 
     
     void setForwardingPointer(void* oldData, void* newData, bool direct);
