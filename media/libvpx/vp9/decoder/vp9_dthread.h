@@ -12,49 +12,55 @@
 #define VP9_DECODER_VP9_DTHREAD_H_
 
 #include "./vpx_config.h"
-#include "vp9/common/vp9_loopfilter.h"
-#include "vp9/decoder/vp9_reader.h"
-#include "vp9/decoder/vp9_thread.h"
+#include "vp9/common/vp9_thread.h"
+#include "vpx/internal/vpx_codec_internal.h"
 
-struct macroblockd;
 struct VP9Common;
-struct VP9Decompressor;
+struct VP9Decoder;
 
-typedef struct TileWorkerData {
-  struct VP9Common *cm;
-  vp9_reader bit_reader;
-  DECLARE_ALIGNED(16, struct macroblockd, xd);
-  DECLARE_ALIGNED(16, int16_t, dqcoeff[MAX_MB_PLANE][64 * 64]);
+
+
+typedef struct FrameWorkerData {
+  struct VP9Decoder *pbi;
+  const uint8_t *data;
+  const uint8_t *data_end;
+  size_t data_size;
+  void *user_priv;
+  int result;
+  int worker_id;
+  int received_frame;
 
   
-  LFWorkerData lfdata;
-} TileWorkerData;
+  
+  uint8_t *scratch_buffer;
+  size_t scratch_buffer_size;
 
-
-typedef struct VP9LfSyncData {
 #if CONFIG_MULTITHREAD
-  pthread_mutex_t *mutex_;
-  pthread_cond_t *cond_;
+  pthread_mutex_t stats_mutex;
+  pthread_cond_t stats_cond;
 #endif
-  
-  int *cur_sb_col;
-  
-  
-  int sync_range;
-} VP9LfSync;
+
+  int frame_context_ready;  
+  int frame_decoded;        
+} FrameWorkerData;
+
+void vp9_frameworker_lock_stats(VP9Worker *const worker);
+void vp9_frameworker_unlock_stats(VP9Worker *const worker);
+void vp9_frameworker_signal_stats(VP9Worker *const worker);
 
 
-void vp9_loop_filter_alloc(struct VP9Common *cm, struct VP9LfSyncData *lf_sync,
-                           int rows, int width);
 
 
-void vp9_loop_filter_dealloc(struct VP9LfSyncData *lf_sync, int rows);
+
+void vp9_frameworker_wait(VP9Worker *const worker, RefCntBuffer *const ref_buf,
+                          int row);
 
 
-void vp9_loop_filter_frame_mt(struct VP9Decompressor *pbi,
-                              struct VP9Common *cm,
-                              struct macroblockd *xd,
-                              int frame_filter_level,
-                              int y_only, int partial_frame);
+
+void vp9_frameworker_broadcast(RefCntBuffer *const buf, int row);
+
+
+void vp9_frameworker_copy_context(VP9Worker *const dst_worker,
+                                  VP9Worker *const src_worker);
 
 #endif  

@@ -26,6 +26,20 @@ extern "C" {
 #define MI_MASK (MI_BLOCK_SIZE - 1)
 
 
+
+
+
+
+
+
+typedef enum BITSTREAM_PROFILE {
+  PROFILE_0,
+  PROFILE_1,
+  PROFILE_2,
+  PROFILE_3,
+  MAX_PROFILES
+} BITSTREAM_PROFILE;
+
 typedef enum BLOCK_SIZE {
   BLOCK_4X4,
   BLOCK_4X8,
@@ -53,6 +67,7 @@ typedef enum PARTITION_TYPE {
   PARTITION_INVALID = PARTITION_TYPES
 } PARTITION_TYPE;
 
+typedef char PARTITION_CONTEXT;
 #define PARTITION_PLOFFSET   4  // number of probability models per block size
 #define PARTITION_CONTEXTS (4 * PARTITION_PLOFFSET)
 
@@ -84,15 +99,10 @@ typedef enum {
 } TX_TYPE;
 
 typedef enum {
-  UNKNOWN    = 0,
-  BT_601     = 1,  
-  BT_709     = 2,  
-  SMPTE_170  = 3,  
-  SMPTE_240  = 4,  
-  RESERVED_1 = 5,
-  RESERVED_2 = 6,
-  SRGB       = 7   
-} COLOR_SPACE;
+  VP9_LAST_FLAG = 1 << 0,
+  VP9_GOLD_FLAG = 1 << 1,
+  VP9_ALT_FLAG = 1 << 2,
+} VP9_REFFRAME;
 
 #ifdef __cplusplus
 }  

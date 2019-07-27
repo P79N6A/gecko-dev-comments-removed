@@ -61,9 +61,6 @@ extern "C" {
 #define VP8_TEMPORAL_ALT_REF 1
 #endif
 
-#define MAX(x,y) (((x)>(y))?(x):(y))
-#define MIN(x,y) (((x)<(y))?(x):(y))
-
 typedef struct
 {
     int kf_indicated;
@@ -514,10 +511,20 @@ typedef struct VP8_COMP
     int cyclic_refresh_mode_index;
     int cyclic_refresh_q;
     signed char *cyclic_refresh_map;
+    
+    unsigned char *consec_zero_last;
+    
+    
+    unsigned char *consec_zero_last_mvbias;
 
     
     
     unsigned int temporal_pattern_counter;
+    
+    int temporal_layer_id;
+
+    
+    int mse_source_denoised;
 
 #if CONFIG_MULTITHREAD
     
@@ -658,6 +665,9 @@ typedef struct VP8_COMP
 
     int droppable;
 
+    int initial_width;
+    int initial_height;
+
 #if CONFIG_TEMPORAL_DENOISING
     VP8_DENOISER denoiser;
 #endif
@@ -685,9 +695,11 @@ typedef struct VP8_COMP
     int    mr_low_res_mb_cols;
     
     unsigned char  mr_low_res_mv_avail;
+#endif
     
     unsigned int current_ref_frames[MAX_REF_FRAMES];
-#endif
+    
+    MV_REFERENCE_FRAME closest_reference_frame;
 
     struct rd_costs_struct
     {

@@ -13,6 +13,8 @@
 
 #include "./vpx_config.h"
 #include "vpx/vpx_integer.h"
+#include "vpx_ports/mem.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +31,11 @@ typedef enum {
   EIGHTTAP = 0,
   EIGHTTAP_SMOOTH = 1,
   EIGHTTAP_SHARP = 2,
+  SWITCHABLE_FILTERS = 3, 
   BILINEAR = 3,
+  
+  
+  SWITCHABLE_FILTER_CONTEXTS = SWITCHABLE_FILTERS + 1,
   SWITCHABLE = 4  
 } INTERP_FILTER;
 
@@ -37,10 +43,8 @@ typedef int16_t InterpKernel[SUBPEL_TAPS];
 
 const InterpKernel *vp9_get_interp_kernel(INTERP_FILTER filter);
 
-extern const InterpKernel vp9_bilinear_filters[SUBPEL_SHIFTS];
-extern const InterpKernel vp9_sub_pel_filters_8[SUBPEL_SHIFTS];
-extern const InterpKernel vp9_sub_pel_filters_8s[SUBPEL_SHIFTS];
-extern const InterpKernel vp9_sub_pel_filters_8lp[SUBPEL_SHIFTS];
+DECLARE_ALIGNED(256, extern const InterpKernel,
+                vp9_bilinear_filters[SUBPEL_SHIFTS]);
 
 
 

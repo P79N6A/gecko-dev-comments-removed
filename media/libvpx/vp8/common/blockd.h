@@ -188,7 +188,11 @@ typedef struct
     FRAME_TYPE frame_type;
     int is_frame_dropped;
     
+    double low_res_framerate;
+    
     unsigned int low_res_ref_frames[MAX_REF_FRAMES];
+    
+    unsigned int key_frame_counter_value;
     LOWER_RES_MB_INFO *mb_info;
 } LOWER_RES_FRAME_INFO;
 #endif

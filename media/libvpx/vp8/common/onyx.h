@@ -105,12 +105,24 @@ extern "C"
         unsigned int target_bandwidth;    
 
         
+
+
+
+
+
+
+
+
+
+
+
         int noise_sensitivity;
 
         
         int Sharpness;
         int cpu_used;
         unsigned int rc_max_intra_bitrate_pct;
+        unsigned int screen_content_mode;
 
         
 
@@ -213,7 +225,7 @@ extern "C"
         int arnr_strength;
         int arnr_type;
 
-        struct vpx_fixed_buf        two_pass_stats_in;
+        vpx_fixed_buf_t        two_pass_stats_in;
         struct vpx_codec_pkt_list  *output_pkt_list;
 
         vp8e_tuning tuning;

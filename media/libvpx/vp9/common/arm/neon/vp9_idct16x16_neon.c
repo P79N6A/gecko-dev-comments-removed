@@ -30,18 +30,24 @@ void vp9_idct16x16_10_add_neon_pass2(const int16_t *src,
                                      uint8_t *dest,
                                      int dest_stride);
 
+#if HAVE_NEON_ASM
 
 extern void vp9_push_neon(int64_t *store);
 extern void vp9_pop_neon(int64_t *store);
+#endif  
 
 void vp9_idct16x16_256_add_neon(const int16_t *input,
                                 uint8_t *dest, int dest_stride) {
+#if HAVE_NEON_ASM
   int64_t store_reg[8];
+#endif
   int16_t pass1_output[16*16] = {0};
   int16_t row_idct_output[16*16] = {0};
 
+#if HAVE_NEON_ASM
   
   vp9_push_neon(store_reg);
+#endif
 
   
   
@@ -103,20 +109,26 @@ void vp9_idct16x16_256_add_neon(const int16_t *input,
                                      dest+8,
                                      dest_stride);
 
+#if HAVE_NEON_ASM
   
   vp9_pop_neon(store_reg);
+#endif
 
   return;
 }
 
 void vp9_idct16x16_10_add_neon(const int16_t *input,
                                uint8_t *dest, int dest_stride) {
+#if HAVE_NEON_ASM
   int64_t store_reg[8];
+#endif
   int16_t pass1_output[16*16] = {0};
   int16_t row_idct_output[16*16] = {0};
 
+#if HAVE_NEON_ASM
   
   vp9_push_neon(store_reg);
+#endif
 
   
   
@@ -165,8 +177,10 @@ void vp9_idct16x16_10_add_neon(const int16_t *input,
                                      dest+8,
                                      dest_stride);
 
+#if HAVE_NEON_ASM
   
   vp9_pop_neon(store_reg);
+#endif
 
   return;
 }
