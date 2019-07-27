@@ -130,16 +130,6 @@ mozilla::plugins::SetupBridge(uint32_t aPluginId,
         return true;
     }
     *rv = PPluginModule::Bridge(aContentParent, chromeParent);
-    if (NS_FAILED(*rv)) {
-#if defined(MOZ_CRASHREPORTER)
-        
-        
-        nsAutoCString error;
-        error.AppendPrintf("%X %d", *rv, chromeParent->GetIPCChannel()->GetChannelState__TotallyRacy());
-        CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("BridgePluginError"), error);
-#endif
-      return false;
-    }
     return true;
 }
 
