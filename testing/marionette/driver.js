@@ -27,6 +27,7 @@ Cu.import("chrome://marionette/content/elements.js");
 Cu.import("chrome://marionette/content/emulator.js");
 Cu.import("chrome://marionette/content/error.js");
 Cu.import("chrome://marionette/content/modal.js");
+Cu.import("chrome://marionette/content/proxy.js");
 Cu.import("chrome://marionette/content/simpletest.js");
 
 loader.loadSubScript("chrome://marionette/content/common.js");
@@ -81,152 +82,6 @@ this.Context.fromString = function(s) {
     return this[s];
   }
   return null;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let ListenerProxy = function(mmFn, sendAsyncFn, curBrowserFn) {
-  let sender = new ContentSender(mmFn, sendAsyncFn, curBrowserFn);
-  let handler = {
-    set: (obj, prop, val) => { obj[prop] = val; return true; },
-    get: (obj, prop) => (...args) => obj.send(prop, args),
-  };
-  return new Proxy(sender, handler);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let ContentSender = function(mmFn, sendAsyncFn, curBrowserFn) {
-  this.curCmdId = null;
-  this.sendAsync = sendAsyncFn;
-
-  this.mmFn_ = mmFn;
-  this.curBrowserFn_ = curBrowserFn;
-};
-
-Object.defineProperty(ContentSender.prototype, "mm", {
-  get: function() { return this.mmFn_(); }
-});
-
-Object.defineProperty(ContentSender.prototype, "curBrowser", {
-  get: function() { return this.curBrowserFn_(); }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ContentSender.prototype.send = function(name, args) {
-  const ok = "Marionette:ok";
-  const val = "Marionette:done";
-  const err = "Marionette:error";
-
-  let proxy = new Promise((resolve, reject) => {
-    let removeListeners = (name, fn) => {
-      let rmFn = msg => {
-        if (this.isOutOfSync(msg.json.command_id)) {
-          logger.warn("Skipping out-of-sync response from listener: " +
-              msg.name + msg.json.toSource());
-          return;
-        }
-
-        listeners.remove();
-        modal.removeHandler(handleDialog);
-
-        fn(msg);
-        this.curCmdId = null;
-      };
-
-      listeners.push([name, rmFn]);
-      return rmFn;
-    };
-
-    let listeners = [];
-    listeners.add = () => {
-      this.mm.addMessageListener(ok, removeListeners(ok, okListener));
-      this.mm.addMessageListener(val, removeListeners(val, valListener));
-      this.mm.addMessageListener(err, removeListeners(err, errListener));
-    };
-    listeners.remove = () =>
-        listeners.map(l => this.mm.removeMessageListener(l[0], l[1]));
-
-    let okListener = () => resolve();
-    let valListener = msg => resolve(msg.json.value);
-    let errListener = msg => reject(msg.objects.error);
-
-    let handleDialog = function(subject, topic) {
-      listeners.remove();
-      modal.removeHandler(handleDialog);
-      this.sendAsync("cancelRequest");
-      resolve();
-    }.bind(this);
-
-    
-    
-    listeners.add();
-    modal.addHandler(handleDialog);
-
-    
-    
-    let msg = args;
-    if (args.length == 1 && typeof args[0] == "object") {
-      msg = args[0];
-    }
-
-    this.sendAsync(name, msg, this.curCmdId);
-  });
-
-  return proxy;
-};
-
-ContentSender.prototype.isOutOfSync = function(id) {
-  return this.curCmdId !== id;
 };
 
 
@@ -310,10 +165,7 @@ this.GeckoDriver = function(appName, device, emulator) {
   };
 
   this.mm = globalMessageManager;
-  this.listener = ListenerProxy(
-      () => this.mm,
-      this.sendAsync.bind(this),
-      () => this.curBrowser);
+  this.listener = proxy.toListener(() => this.mm, this.sendAsync.bind(this));
 
   this.dialog = null;
   let handleDialog = (subject, topic) => {
