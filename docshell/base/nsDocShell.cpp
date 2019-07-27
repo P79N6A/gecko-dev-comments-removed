@@ -173,7 +173,6 @@
 #endif
 
 #include "nsContentUtils.h"
-#include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsSandboxFlags.h"
@@ -2867,18 +2866,16 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
         }
 
         bool isSameMarkerType = strcmp(startMarkerName, endMarkerName) == 0;
-        bool isPaint = strcmp(startMarkerName, "Paint") == 0;
+        bool isValidType = strcmp(endMarkerName, "Paint") != 0 ||
+                           hasSeenPaintedLayer;
 
-        
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_END && isSameMarkerType) {
-          
-          if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
-            mozilla::dom::ProfileTimelineMarker marker;
-            marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
-            marker.mStart = mProfileTimelineMarkers[i]->mTime;
-            marker.mEnd = mProfileTimelineMarkers[j]->mTime;
-            profileTimelineMarkers.AppendElement(marker);
-          }
+        if (endPayload->GetMetaData() == TRACING_INTERVAL_END &&
+            isSameMarkerType && isValidType) {
+          mozilla::dom::ProfileTimelineMarker marker;
+          marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
+          marker.mStart = mProfileTimelineMarkers[i]->mTime;
+          marker.mEnd = mProfileTimelineMarkers[j]->mTime;
+          profileTimelineMarkers.AppendElement(marker);
 
           break;
         }
@@ -10096,27 +10093,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         loadFlags |= nsIChannel::LOAD_BACKGROUND;
     }
 
-    
-    
-    nsCOMPtr<nsIChannelPolicy> channelPolicy;
     if (IsFrame()) {
-        
-        nsCOMPtr<nsIContentSecurityPolicy> csp;
-        nsCOMPtr<nsIDocShellTreeItem> parentItem;
-        GetSameTypeParent(getter_AddRefs(parentItem));
-        if (parentItem) {
-          nsCOMPtr<nsIDocument> doc = parentItem->GetDocument();
-          if (doc) {
-            rv = doc->NodePrincipal()->GetCsp(getter_AddRefs(csp));
-            NS_ENSURE_SUCCESS(rv, rv);
-            if (csp) {
-              channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-              channelPolicy->SetContentSecurityPolicy(csp);
-              channelPolicy->SetLoadType(nsIContentPolicy::TYPE_SUBDOCUMENT);
-            }
-          }
-        }
-
         
         
         
@@ -10185,7 +10162,6 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                                    requestingPrincipal,
                                    securityFlags,
                                    aContentPolicyType,
-                                   channelPolicy,
                                    nullptr,   
                                    static_cast<nsIInterfaceRequestor*>(this),
                                    loadFlags);

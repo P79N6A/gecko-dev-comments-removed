@@ -313,7 +313,6 @@ nsresult auxLoad(char *uriBuf)
                        nsILoadInfo::SEC_NORMAL,
                        nsIContentPolicy::TYPE_OTHER,
                        nullptr,   
-                       nullptr,   
                        callbacks);
 
     RETURN_IF_FAILED(rv, rv, "NS_NewChannel");
@@ -371,7 +370,6 @@ int main(int argc, char **argv)
                            systemPrincipal,
                            nsILoadInfo::SEC_NORMAL,
                            nsIContentPolicy::TYPE_OTHER,
-                           nullptr,   
                            nullptr,   
                            callbacks);
 

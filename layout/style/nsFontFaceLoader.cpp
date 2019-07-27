@@ -331,16 +331,6 @@ nsUserFontSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
 
   nsCOMPtr<nsIChannel> channel;
   
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = aUserFontEntry->mPrincipal->GetCsp(getter_AddRefs(csp));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (csp) {
-    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-    channelPolicy->SetContentSecurityPolicy(csp);
-    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_FONT);
-  }
-  
   
   
   
@@ -350,7 +340,6 @@ nsUserFontSet::StartLoad(gfxUserFontEntry* aUserFontEntry,
                              aUserFontEntry->mPrincipal,
                              nsILoadInfo::SEC_NORMAL,
                              nsIContentPolicy::TYPE_FONT,
-                             channelPolicy,
                              loadGroup);
 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -950,17 +939,6 @@ nsUserFontSet::SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
   nsresult rv;
 
   nsCOMPtr<nsIChannel> channel;
-  
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  rv = aFontToLoad->mPrincipal->GetCsp(getter_AddRefs(csp));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (csp) {
-    channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-    channelPolicy->SetContentSecurityPolicy(csp);
-    channelPolicy->SetLoadType(nsIContentPolicy::TYPE_FONT);
-  }
-
   nsIPresShell* ps = mPresContext->PresShell();
   if (!ps) {
     return NS_ERROR_FAILURE;
@@ -974,8 +952,7 @@ nsUserFontSet::SyncLoadFontData(gfxUserFontEntry* aFontToLoad,
                              ps->GetDocument(),
                              aFontToLoad->mPrincipal,
                              nsILoadInfo::SEC_NORMAL,
-                             nsIContentPolicy::TYPE_FONT,
-                             channelPolicy);
+                             nsIContentPolicy::TYPE_FONT);
 
   NS_ENSURE_SUCCESS(rv, rv);
 

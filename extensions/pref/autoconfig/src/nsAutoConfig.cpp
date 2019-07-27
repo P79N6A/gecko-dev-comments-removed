@@ -287,7 +287,6 @@ nsresult nsAutoConfig::downloadAutoConfig()
                        nsIContentPolicy::TYPE_OTHER,
                        nullptr,  
                        nullptr,  
-                       nullptr,  
                        nsIRequest::INHIBIT_PERSISTENT_CACHING |
                        nsIRequest::LOAD_BYPASS_CACHE);
 

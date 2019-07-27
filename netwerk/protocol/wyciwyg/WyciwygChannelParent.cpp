@@ -94,7 +94,6 @@ WyciwygChannelParent::RecvInit(const URIParams&          aURI,
                      aContentPolicyType,
                      nullptr,   
                      nullptr,   
-                     nullptr,   
                      nsIRequest::LOAD_NORMAL,
                      ios);
 
