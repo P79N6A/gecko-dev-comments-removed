@@ -6304,6 +6304,13 @@ DebuggerGenericEval(JSContext* cx, const char* fullMethodName, const Value& code
     MOZ_ASSERT_IF(iter, !scope);
     MOZ_ASSERT_IF(!iter, scope && scope->is<GlobalObject>());
 
+    if (iter && iter->script()->isDerivedClassConstructor()) {
+        MOZ_ASSERT(iter->isFunctionFrame() && iter->calleeTemplate()->isClassConstructor());
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_DISABLED_DERIVED_CLASS,
+                             "debugger eval");
+        return false;
+    }
+
     
     if (!code.isString()) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_NOT_EXPECTED_TYPE,
@@ -8056,8 +8063,8 @@ GarbageCollectionEvent::Create(JSRuntime* rt, ::js::gcstats::Statistics& stats, 
         if (!data->collections.growBy(1))
             return nullptr;
 
-        data->collections.back().startTimestamp = range.front().startTimestamp;
-        data->collections.back().endTimestamp = range.front().endTimestamp;
+        data->collections.back().startTimestamp = range.front().start;
+        data->collections.back().endTimestamp = range.front().end;
     }
 
 

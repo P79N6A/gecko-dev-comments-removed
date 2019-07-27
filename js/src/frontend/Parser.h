@@ -323,7 +323,13 @@ struct BindData;
 class CompExprTransplanter;
 
 enum VarContext { HoistVars, DontHoistVars };
-enum PropListType { ObjectLiteral, ClassBody };
+enum PropListType { ObjectLiteral, ClassBody, DerivedClassBody };
+
+inline bool
+IsClassBody(PropListType type)
+{
+    return type == ClassBody || type == DerivedClassBody;
+}
 
 
 
