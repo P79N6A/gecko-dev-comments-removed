@@ -96,13 +96,6 @@ AxisGrowsInPositiveDirection(AxisOrientationType aAxis)
 }
 
 
-static inline bool
-IsAxisHorizontal(AxisOrientationType aAxis)
-{
-  return eAxis_LR == aAxis || eAxis_RL == aAxis;
-}
-
-
 
 static inline AxisOrientationType
 GetReverseAxis(AxisOrientationType aAxis)
@@ -255,6 +248,14 @@ public:
   }
 
 private:
+  
+  
+  
+  
+  static inline bool IsAxisHorizontal(AxisOrientationType aAxis) {
+    return eAxis_LR == aAxis || eAxis_RL == aAxis;
+  }
+
   AxisOrientationType mMainAxis;
   AxisOrientationType mCrossAxis;
   bool mAreAxesInternallyReversed;
