@@ -46,6 +46,7 @@
 #include "MediaTrackConstraints.h"
 #include "VideoUtils.h"
 #include "Latency.h"
+#include "nsProxyRelease.h"
 
 
 #include "prprf.h"
@@ -330,6 +331,18 @@ public:
   {
     mOnSuccess.swap(aOnSuccess);
     mOnFailure.swap(aOnFailure);
+  }
+
+  ~DeviceSuccessCallbackRunnable()
+  {
+    if (!NS_IsMainThread()) {
+      
+      
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+
+      NS_ProxyRelease(mainThread, mOnSuccess);
+      NS_ProxyRelease(mainThread, mOnFailure);
+    }
   }
 
   nsresult
@@ -1498,10 +1511,7 @@ public:
         result->AppendElement(source);
       }
     }
-    
-    
-    
-    DeviceSuccessCallbackRunnable* runnable =
+    nsRefPtr<DeviceSuccessCallbackRunnable> runnable =
         new DeviceSuccessCallbackRunnable(mWindowId, mOnSuccess, mOnFailure,
                                           result.forget());
     if (mPrivileged) {
