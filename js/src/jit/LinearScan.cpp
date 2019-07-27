@@ -609,14 +609,18 @@ LinearScanAllocator::populateSafepoints()
                     
                     
                     
-                    if (!safepoint->addNunboxParts(*typeAlloc, *payloadAlloc))
+                    uint32_t typeVreg = type->def()->virtualRegister();
+                    if (!safepoint->addNunboxParts(typeVreg, *typeAlloc, *payloadAlloc))
                         return false;
 
                     
                     
                     if (payloadAlloc->isGeneralReg() && isSpilledAt(payloadInterval, inputOf(ins))) {
-                        if (!safepoint->addNunboxParts(*typeAlloc, *payload->canonicalSpill()))
+                        if (!safepoint->addNunboxParts(typeVreg, *typeAlloc,
+                                                       *payload->canonicalSpill()))
+                        {
                             return false;
+                        }
                     }
                 }
 #endif

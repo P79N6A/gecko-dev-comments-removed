@@ -299,17 +299,28 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
     
     
     
-    uint32_t partials = safepoint->partialNunboxes();
 
-    stream_.writeUnsigned(entries.length() - partials);
+    size_t pos = stream_.length();
+    stream_.writeUnsigned(entries.length());
 
+    size_t count = 0;
     for (size_t i = 0; i < entries.length(); i++) {
         SafepointNunboxEntry &entry = entries[i];
 
-        if (entry.type.isUse() || entry.payload.isUse()) {
-            partials--;
+        if (entry.payload.isUse()) {
+            
             continue;
         }
+
+        if (entry.type.isUse()) {
+            
+            
+            entry.type = safepoint->findTypeAllocation(entry.typeVreg);
+            if (entry.type.isUse())
+                continue;
+        }
+
+        count++;
 
         uint16_t header = 0;
 
@@ -337,7 +348,8 @@ SafepointWriter::writeNunboxParts(LSafepoint *safepoint)
             stream_.writeUnsigned(payloadVal);
     }
 
-    MOZ_ASSERT(partials == 0);
+    
+    stream_.writeUnsignedAt(pos, count, entries.length());
 }
 #endif
 
