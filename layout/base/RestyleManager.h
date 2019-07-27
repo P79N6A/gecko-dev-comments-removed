@@ -176,6 +176,19 @@ public:
     return mReframingStyleContexts;
   }
 
+  
+
+
+
+
+
+
+
+  static void
+  TryStartingTransition(nsPresContext* aPresContext, nsIContent* aContent,
+                        nsStyleContext* aOldStyleContext,
+                        nsRefPtr<nsStyleContext>* aNewStyleContext );
+
 private:
   void RestyleForEmptyChange(Element* aContainer);
 
