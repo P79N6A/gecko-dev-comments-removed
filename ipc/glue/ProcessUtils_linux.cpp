@@ -375,17 +375,16 @@ ProcLoaderLoadRunner::ShuffleFds()
 
   MOZ_ASSERT(mFdsRemap.Length() <= kReservedFileDescriptors);
 
-  InjectiveMultimap fd_shuffle1, fd_shuffle2;
-  fd_shuffle1.reserve(mFdsRemap.Length());
-  fd_shuffle2.reserve(mFdsRemap.Length());
+  InjectiveMultimap fd_shuffle;
+  fd_shuffle.reserve(mFdsRemap.Length());
 
   for (i = 0; i < mFdsRemap.Length(); i++) {
     const FDRemap *map = &mFdsRemap[i];
     int fd = map->fd().PlatformHandle();
     int tofd = map->mapto();
 
-    fd_shuffle1.push_back(InjectionArc(fd, tofd, false));
-    fd_shuffle2.push_back(InjectionArc(fd, tofd, false));
+    
+    fd_shuffle.push_back(InjectionArc(fd, tofd, true));
 
     
     for (int* toErase = sReservedFds->begin();
@@ -398,7 +397,7 @@ ProcLoaderLoadRunner::ShuffleFds()
     }
   }
 
-  DebugOnly<bool> ok = ShuffleFileDescriptors(&fd_shuffle1);
+  DebugOnly<bool> ok = ShuffleFileDescriptors(&fd_shuffle);
 
   
   
