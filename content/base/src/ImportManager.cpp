@@ -273,6 +273,15 @@ ImportLoader::OnStopRequest(nsIRequest* aRequest,
                             nsISupports* aContext,
                             nsresult aStatus)
 {
+  
+  
+  if (aStatus == NS_ERROR_DOM_ABORT_ERR) {
+    
+    
+    MOZ_ASSERT(!mChannel);
+    return NS_OK;
+  }
+
   MOZ_ASSERT(aRequest == mChannel,
              "Wrong channel something went horribly wrong");
 
@@ -303,7 +312,7 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   mChannel->GetContentType(type);
   if (!type.EqualsLiteral("text/html")) {
     NS_WARNING("ImportLoader wrong content type");
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_DOM_ABORT_ERR;
   }
 
   
@@ -316,7 +325,7 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
                                   emptyStr, emptyStr, nullptr, mURI,
                                   baseURI, principal, false, global,
                                   DocumentFlavorHTML);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
 
   
   mDocument = do_QueryInterface(importDoc);
@@ -330,12 +339,12 @@ ImportLoader::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   rv = mDocument->StartDocumentLoad("import", mChannel, loadGroup,
                                     nullptr, getter_AddRefs(listener),
                                     true);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
 
   
   mParserStreamListener = listener;
   rv = listener->OnStartRequest(aRequest, aContext);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_ABORT_ERR);
 
   ae.Pass();
   return NS_OK;
