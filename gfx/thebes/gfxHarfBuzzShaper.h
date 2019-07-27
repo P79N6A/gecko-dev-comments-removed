@@ -73,6 +73,9 @@ public:
     hb_position_t GetHKerning(uint16_t aFirstGlyph,
                               uint16_t aSecondGlyph) const;
 
+    hb_bool_t GetGlyphExtents(hb_codepoint_t aGlyph,
+                              hb_glyph_extents_t *aExtents) const;
+
     static hb_script_t
     GetHBScriptUsedForShaping(int32_t aScript) {
         
@@ -106,6 +109,17 @@ protected:
 
     bool InitializeVertical();
     bool LoadHmtxTable();
+
+    struct Glyf { 
+                  
+        AutoSwap_PRInt16 numberOfContours;
+        AutoSwap_PRInt16 xMin;
+        AutoSwap_PRInt16 yMin;
+        AutoSwap_PRInt16 xMax;
+        AutoSwap_PRInt16 yMax;
+    };
+
+    const Glyf *FindGlyf(hb_codepoint_t aGlyph, bool *aEmptyGlyf) const;
 
     
     
@@ -161,7 +175,10 @@ protected:
 
     bool mInitialized;
     bool mVerticalInitialized;
-    bool mLocaLongOffsets;
+
+    
+    mutable bool mLoadedLocaGlyf;
+    mutable bool mLocaLongOffsets;
 };
 
 #endif 
