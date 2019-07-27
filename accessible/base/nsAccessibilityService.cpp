@@ -972,10 +972,10 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
       
       
-      if (!roleMapEntry && newAcc) {
+      if (!roleMapEntry && newAcc && aContext->HasStrongARIARole()) {
         if (frame->AccessibleType() == eHTMLTableRowType) {
           nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
-          if (contextRoleMap && !(contextRoleMap->IsOfType(eTable)))
+          if (!contextRoleMap->IsOfType(eTable))
             roleMapEntry = &aria::gEmptyRoleMap;
 
         } else if (frame->AccessibleType() == eHTMLTableCellType &&
@@ -987,7 +987,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
                    content->Tag() == nsGkAtoms::dd ||
                    frame->AccessibleType() == eHTMLLiType) {
           nsRoleMapEntry* contextRoleMap = aContext->ARIARoleMap();
-          if (contextRoleMap && !(contextRoleMap->IsOfType(eList)))
+          if (!contextRoleMap->IsOfType(eList))
             roleMapEntry = &aria::gEmptyRoleMap;
         }
       }
