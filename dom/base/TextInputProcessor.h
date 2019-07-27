@@ -6,9 +6,11 @@
 #ifndef mozilla_dom_textinputprocessor_h_
 #define mozilla_dom_textinputprocessor_h_
 
+#include "mozilla/EventForwards.h"
 #include "mozilla/TextEventDispatcherListener.h"
 #include "nsITextInputProcessor.h"
 #include "nsITextInputProcessorCallback.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 
@@ -51,8 +53,59 @@ private:
   nsresult PrepareKeyboardEventToDispatch(WidgetKeyboardEvent& aKeyboardEvent,
                                           uint32_t aKeyFlags);
 
+  
+
+
+
+
+  struct ModifierKeyData
+  {
+    
+    KeyNameIndex mKeyNameIndex;
+    
+    CodeNameIndex mCodeNameIndex;
+    
+    Modifiers mModifier;
+
+    explicit ModifierKeyData(const WidgetKeyboardEvent& aKeyboardEvent);
+
+    bool operator==(const ModifierKeyData& aOther) const
+    {
+      return mKeyNameIndex == aOther.mKeyNameIndex &&
+             mCodeNameIndex == aOther.mCodeNameIndex;
+    }
+  };
+
+  class ModifierKeyDataArray : public nsTArray<ModifierKeyData>
+  {
+  public:
+    Modifiers GetActiveModifiers() const;
+    void ActivateModifierKey(const ModifierKeyData& aModifierKeyData);
+    void InactivateModifierKey(const ModifierKeyData& aModifierKeyData);
+    void ToggleModifierKey(const ModifierKeyData& aModifierKeyData);
+  };
+
+  Modifiers GetActiveModifiers() const
+  {
+    return mModifierKeyDataArray.GetActiveModifiers();
+  }
+  void ActivateModifierKey(const ModifierKeyData& aModifierKeyData)
+  {
+    mModifierKeyDataArray.ActivateModifierKey(aModifierKeyData);
+  }
+  void InactivateModifierKey(const ModifierKeyData& aModifierKeyData)
+  {
+    mModifierKeyDataArray.InactivateModifierKey(aModifierKeyData);
+  }
+  void ToggleModifierKey(const ModifierKeyData& aModifierKeyData)
+  {
+    mModifierKeyDataArray.ToggleModifierKey(aModifierKeyData);
+  }
+
   TextEventDispatcher* mDispatcher; 
   nsCOMPtr<nsITextInputProcessorCallback> mCallback;
+  ModifierKeyDataArray mModifierKeyDataArray;
+
   bool mForTests;
 };
 
