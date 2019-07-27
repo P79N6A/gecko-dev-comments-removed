@@ -22,6 +22,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
+                                  "resource:///modules/RecentWindow.jsm");
 
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
@@ -473,7 +475,7 @@ this.PlacesUIUtils = {
   },
 
   _getTopBrowserWin: function PUIU__getTopBrowserWin() {
-    return Services.wm.getMostRecentWindow("navigator:browser");
+    return RecentWindow.getMostRecentBrowserWindow();
   },
 
   
@@ -618,6 +620,10 @@ this.PlacesUIUtils = {
       
       return !PlacesUtils.nodeIsFolder(parentNode);
     }
+
+    
+    if (PlacesUtils.nodeIsQuery(parentNode))
+      return true;
 
     
     return !this.isContentsReadOnly(parentNode);

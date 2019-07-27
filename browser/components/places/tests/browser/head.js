@@ -43,7 +43,7 @@ function openLibrary(callback, aLeftPaneRoot) {
 function promiseLibrary(aLeftPaneRoot) {
   let deferred = Promise.defer();
   let library = Services.wm.getMostRecentWindow("Places:Organizer");
-  if (library) {
+  if (library && !library.closed) {
     if (aLeftPaneRoot)
       library.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
     deferred.resolve(library);
@@ -164,7 +164,7 @@ function addVisits(aPlaceInfo, aWindow, aCallback, aStack) {
       places[i].title = "test visit for " + places[i].uri.spec;
     }
     places[i].visits = [{
-      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
+      transitionType: places[i].transition === undefined ? PlacesUtils.history.TRANSITION_LINK
                                                          : places[i].transition,
       visitDate: places[i].visitDate || (now++) * 1000,
       referrerURI: places[i].referrer
@@ -202,4 +202,207 @@ function synthesizeClickOnSelectedTreeCell(aTree, aOptions) {
   
   EventUtils.synthesizeMouse(aTree.body, x, y, aOptions || {},
                              aTree.ownerDocument.defaultView);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseAddVisits(aPlaceInfo)
+{
+  let deferred = Promise.defer();
+  let places = [];
+  if (aPlaceInfo instanceof Ci.nsIURI) {
+    places.push({ uri: aPlaceInfo });
+  }
+  else if (Array.isArray(aPlaceInfo)) {
+    places = places.concat(aPlaceInfo);
+  } else {
+    places.push(aPlaceInfo)
+  }
+
+  
+  let now = Date.now();
+  for (let i = 0; i < places.length; i++) {
+    if (!places[i].title) {
+      places[i].title = "test visit for " + places[i].uri.spec;
+    }
+    places[i].visits = [{
+      transitionType: places[i].transition === undefined ? PlacesUtils.history.TRANSITION_LINK
+                                                         : places[i].transition,
+      visitDate: places[i].visitDate || (now++) * 1000,
+      referrerURI: places[i].referrer
+    }];
+  }
+
+  PlacesUtils.asyncHistory.updatePlaces(
+    places,
+    {
+      handleError: function AAV_handleError(aResultCode, aPlaceInfo) {
+        let ex = new Components.Exception("Unexpected error in adding visits.",
+                                          aResultCode);
+        deferred.reject(ex);
+      },
+      handleResult: function () {},
+      handleCompletion: function UP_handleCompletion() {
+        deferred.resolve();
+      }
+    }
+  );
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+function promiseIsURIVisited(aURI) {
+  let deferred = Promise.defer();
+
+  PlacesUtils.asyncHistory.isURIVisited(aURI, function(aURI, aIsVisited) {
+    deferred.resolve(aIsVisited);
+  });
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function promiseAsyncUpdates()
+{
+  let deferred = Promise.defer();
+
+  let db = DBConn();
+  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
+  begin.executeAsync();
+  begin.finalize();
+
+  let commit = db.createAsyncStatement("COMMIT");
+  commit.executeAsync({
+    handleResult: function () {},
+    handleError: function () {},
+    handleCompletion: function(aReason)
+    {
+      deferred.resolve();
+    }
+  });
+  commit.finalize();
+
+  return deferred.promise;
+}
+
+function promiseBookmarksNotification(notification, conditionFn) {
+  info(`Waiting for ${notification}`);
+  return new Promise((resolve, reject) => {
+    let proxifiedObserver = new Proxy({}, {
+      get: (target, name) => {
+        if (name == "QueryInterface")
+          return XPCOMUtils.generateQI([ Ci.nsINavBookmarkObserver ]);
+        if (name == notification)
+          return () => {
+            if (conditionFn.apply(this, arguments)) {
+              clearTimeout(timeout);
+              PlacesUtils.bookmarks.removeObserver(proxifiedObserver, false);
+              executeSoon(resolve);
+            }
+          }
+        return () => {};
+      }
+    });
+    PlacesUtils.bookmarks.addObserver(proxifiedObserver, false);
+    let timeout = setTimeout(() => {
+      PlacesUtils.bookmarks.removeObserver(proxifiedObserver, false);
+      reject(new Error("Timed out while waiting for bookmarks notification"));
+    }, 2000);
+  });
+}
+
+function promiseHistoryNotification(notification, conditionFn) {
+  info(`Waiting for ${notification}`);
+  return new Promise((resolve, reject) => {
+    let proxifiedObserver = new Proxy({}, {
+      get: (target, name) => {
+        if (name == "QueryInterface")
+          return XPCOMUtils.generateQI([ Ci.nsINavHistoryObserver ]);
+        if (name == notification)
+          return () => {
+            if (conditionFn.apply(this, arguments)) {
+              clearTimeout(timeout);
+              PlacesUtils.history.removeObserver(proxifiedObserver, false);
+              executeSoon(resolve);
+            }
+          }
+        return () => {};
+      }
+    });
+    PlacesUtils.history.addObserver(proxifiedObserver, false);
+    let timeout = setTimeout(() => {
+      PlacesUtils.history.removeObserver(proxifiedObserver, false);
+      reject(new Error("Timed out while waiting for history notification"));
+    }, 2000);
+  });
+}
+
+
+
+
+
+
+
+
+function promiseClearHistory() {
+  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
+  PlacesUtils.bhistory.removeAllPages();
+  return promise;
+}
+
+
+
+
+
+
+
+
+
+
+
+function promiseTopicObserved(topic)
+{
+  let deferred = Promise.defer();
+  info("Waiting for observer topic " + topic);
+  Services.obs.addObserver(function PTO_observe(subject, topic, data) {
+    Services.obs.removeObserver(PTO_observe, topic);
+    deferred.resolve([subject, data]);
+  }, topic, false);
+  return deferred.promise;
 }
