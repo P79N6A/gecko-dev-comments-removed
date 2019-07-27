@@ -443,6 +443,29 @@ public:
     return mMayHaveTouchEventListener;
   }
 
+  
+
+
+
+  void SetHasScrollWheelEventListeners()
+  {
+    mMayHaveScrollWheelEventListener = true;
+  }
+
+  bool HasScrollWheelEventListeners()
+  {
+    return mMayHaveScrollWheelEventListener;
+  }
+
+  
+
+
+
+  bool HasApzAwareEventListeners()
+  {
+    return HasTouchEventListeners() || HasScrollWheelEventListeners();
+  }
+
    
 
 
@@ -791,6 +814,7 @@ protected:
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
   bool                   mMayHaveTouchCaret;
+  bool                   mMayHaveScrollWheelEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
   bool                   mMayHavePointerEnterLeaveEventListener;
 
