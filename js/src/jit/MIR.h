@@ -2963,6 +2963,17 @@ class MSimdBox
         return initialHeap_;
     }
 
+    bool congruentTo(const MDefinition *ins) const MOZ_OVERRIDE {
+        if (congruentIfOperandsEqual(ins)) {
+            MOZ_ASSERT(ins->toSimdBox()->initialHeap() == initialHeap());
+            
+            
+            return true;
+        }
+
+        return false;
+    }
+
     AliasSet getAliasSet() const MOZ_OVERRIDE {
         return AliasSet::None();
     }
