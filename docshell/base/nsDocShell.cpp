@@ -2955,126 +2955,13 @@ nsDocShell::GetRecordProfileTimelineMarkers(bool* aValue)
 
 nsresult
 nsDocShell::PopProfileTimelineMarkers(
-    JSContext* aCx,
-    JS::MutableHandle<JS::Value> aProfileTimelineMarkers)
+  JSContext* aCx,
+  JS::MutableHandle<JS::Value> aStore)
 {
-  
-  
-  
-  
-  
-  
-  
-
-  nsTArray<mozilla::dom::ProfileTimelineMarker> profileTimelineMarkers;
-  SequenceRooter<mozilla::dom::ProfileTimelineMarker> rooter(
-    aCx, &profileTimelineMarkers);
-
-  nsTArray<UniquePtr<TimelineMarker>>& markersStore = mObserved.get()->mTimelineMarkers;
-
-  
-  
-  
-  nsTArray<UniquePtr<TimelineMarker>> keptMarkers;
-
-  for (uint32_t i = 0; i < markersStore.Length(); ++i) {
-    UniquePtr<TimelineMarker>& startPayload = markersStore[i];
-    const char* startMarkerName = startPayload->GetName();
-
-    bool hasSeenPaintedLayer = false;
-    bool isPaint = strcmp(startMarkerName, "Paint") == 0;
-
-    
-    
-    dom::Sequence<dom::ProfileTimelineLayerRect> layerRectangles;
-
-    
-    
-    
-    if (startPayload->GetMetaData() == TRACING_TIMESTAMP) {
-      mozilla::dom::ProfileTimelineMarker* marker =
-        profileTimelineMarkers.AppendElement();
-
-      marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
-      marker->mStart = startPayload->GetTime();
-      marker->mEnd = startPayload->GetTime();
-      marker->mStack = startPayload->GetStack();
-      startPayload->AddDetails(aCx, *marker);
-      continue;
-    }
-
-    if (startPayload->GetMetaData() == TRACING_INTERVAL_START) {
-      bool hasSeenEnd = false;
-
-      
-      
-      
-      uint32_t markerDepth = 0;
-
-      
-      
-      
-      for (uint32_t j = i + 1; j < markersStore.Length(); ++j) {
-        UniquePtr<TimelineMarker>& endPayload = markersStore[j];
-        const char* endMarkerName = endPayload->GetName();
-
-        
-        if (isPaint && strcmp(endMarkerName, "Layer") == 0) {
-          hasSeenPaintedLayer = true;
-          endPayload->AddLayerRectangles(layerRectangles);
-        }
-
-        if (!startPayload->Equals(*endPayload)) {
-          continue;
-        }
-
-        
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_START) {
-          ++markerDepth;
-        } else if (endPayload->GetMetaData() == TRACING_INTERVAL_END) {
-          if (markerDepth > 0) {
-            --markerDepth;
-          } else {
-            
-            if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
-              mozilla::dom::ProfileTimelineMarker* marker =
-                profileTimelineMarkers.AppendElement();
-
-              marker->mName = NS_ConvertUTF8toUTF16(startPayload->GetName());
-              marker->mStart = startPayload->GetTime();
-              marker->mEnd = endPayload->GetTime();
-              marker->mStack = startPayload->GetStack();
-              if (isPaint) {
-                marker->mRectangles.Construct(layerRectangles);
-              }
-              startPayload->AddDetails(aCx, *marker);
-              endPayload->AddDetails(aCx, *marker);
-            }
-
-            
-            hasSeenEnd = true;
-
-            break;
-          }
-        }
-      }
-
-      
-      if (!hasSeenEnd) {
-        keptMarkers.AppendElement(Move(markersStore[i]));
-        markersStore.RemoveElementAt(i);
-        --i;
-      }
-    }
-  }
-
-  markersStore.SwapElements(keptMarkers);
-
-  if (!ToJSValue(aCx, profileTimelineMarkers, aProfileTimelineMarkers)) {
+  if (!mObserved->PopMarkers(aCx, aStore)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_UNEXPECTED;
   }
-
   return NS_OK;
 }
 

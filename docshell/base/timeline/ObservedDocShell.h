@@ -24,18 +24,16 @@ class ObservedDocShell : public LinkedListElement<ObservedDocShell>
 {
 private:
   nsRefPtr<nsDocShell> mDocShell;
-
-public:
-  
-  
   nsTArray<UniquePtr<TimelineMarker>> mTimelineMarkers;
 
+public:
   explicit ObservedDocShell(nsDocShell* aDocShell);
   nsDocShell* operator*() const { return mDocShell.get(); }
 
   void AddMarker(const char* aName, TracingMetadata aMetaData);
   void AddMarker(UniquePtr<TimelineMarker>&& aMarker);
   void ClearMarkers();
+  bool PopMarkers(JSContext* aCx, JS::MutableHandle<JS::Value> aStore);
 };
 
 } 
