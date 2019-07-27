@@ -2124,6 +2124,8 @@ nsWindow::SetInputContext(const InputContext& aContext,
             aContext.mIMEState.mEnabled, aContext.mIMEState.mOpen,
             aAction.mCause, aAction.mFocusChange);
 
+    mInputContext = aContext;
+
     
     
     if (aContext.mIMEState.mEnabled != IMEState::DISABLED && 
@@ -2141,19 +2143,8 @@ nsWindow::SetInputContext(const InputContext& aContext,
     if (aContext.mIMEState.mEnabled == IMEState::PLUGIN &&
         aContext.mIMEState.mOpen != IMEState::OPEN) {
         enabled = IMEState::DISABLED;
-
-    } else if (aContext.mMayBeIMEUnaware) {
-        
-        
-        
-        
-        
-        
-        
-        enabled = IMEState::PLUGIN;
     }
 
-    mInputContext = aContext;
     mInputContext.mIMEState.mEnabled = enabled;
 
     if (enabled == IMEState::ENABLED && aAction.UserMightRequestOpenVKB()) {

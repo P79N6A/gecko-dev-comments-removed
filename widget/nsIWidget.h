@@ -410,7 +410,6 @@ struct IMEState {
 struct InputContext {
   InputContext()
     : mNativeIMEContext(nullptr)
-    , mMayBeIMEUnaware(false)
     , mOrigin(XRE_IsParentProcess() ? ORIGIN_MAIN : ORIGIN_CONTENT)
   {}
 
@@ -434,11 +433,6 @@ struct InputContext {
 
 
   void* mNativeIMEContext;
-
-  
-
-
-  bool mMayBeIMEUnaware;
 
   
 
