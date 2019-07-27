@@ -13,7 +13,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/MediaSourceBinding.h"
-#include "mozilla/Monitor.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionNoteChild.h"
 #include "nsCycleCollectionParticipant.h"
@@ -91,12 +90,6 @@ public:
   
   void NotifyEvicted(double aStart, double aEnd);
 
-  
-  void WaitForData();
-
-  
-  void NotifyGotData();
-
 private:
   ~MediaSource();
 
@@ -116,10 +109,6 @@ private:
   nsRefPtr<MediaSourceDecoder> mDecoder;
 
   MediaSourceReadyState mReadyState;
-
-  
-  
-  Monitor mWaitForDataMonitor;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(MediaSource, MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)

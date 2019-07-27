@@ -38,12 +38,22 @@ public:
   virtual nsresult Load(nsIStreamListener**, MediaDecoder*) MOZ_OVERRIDE;
   virtual nsresult GetSeekable(dom::TimeRanges* aSeekable) MOZ_OVERRIDE;
 
+  virtual void Shutdown() MOZ_OVERRIDE;
+
   static already_AddRefed<MediaResource> CreateResource();
 
   void AttachMediaSource(dom::MediaSource* aMediaSource);
   void DetachMediaSource();
 
   already_AddRefed<SourceBufferDecoder> CreateSubDecoder(const nsACString& aType);
+
+  void SetMediaSourceDuration(double aDuration);
+
+  
+  void WaitForData();
+
+  
+  void NotifyGotData();
 
 private:
   
