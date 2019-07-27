@@ -60,39 +60,28 @@ var DownloadNotifications = {
   _notificationKey: "downloads",
 
   init: function () {
-    if (!this._viewAdded) {
-      Downloads.getList(Downloads.ALL)
-               .then(list => list.addView(this))
-               .then(null, Cu.reportError);
+    Downloads.getList(Downloads.ALL)
+             .then(list => list.addView(this))
+             .then(() => this._viewAdded = true, Cu.reportError);
 
-      this._viewAdded = true;
-
-      
-      Notifications.registerHandler(this._notificationKey, this);
-    }
-  },
-
-  uninit: function () {
-    if (this._viewAdded) {
-      Downloads.getList(Downloads.ALL)
-               .then(list => list.removeView(this))
-               .then(null, Cu.reportError);
-
-      for (let notification of notifications.values()) {
-        notification.hide();
-      }
-
-      this._viewAdded = false;
-    }
+    
+    Notifications.registerHandler(this._notificationKey, this);
   },
 
   onDownloadAdded: function (download) {
+    
+    
+    
+    if (download.succeeded && !this._viewAdded) {
+      return;
+    }
+
     let notification = new DownloadNotification(download);
     notifications.set(download, notification);
     notification.showOrUpdate();
 
     
-    if (download.currentBytes == 0) {
+    if (this._viewAdded) {
       window.NativeWindow.toast.show(strings.GetStringFromName("alertDownloadsToast"), "long");
     }
   },
