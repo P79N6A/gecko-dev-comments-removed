@@ -14,7 +14,7 @@ add_task(function test_load_start() {
 
   
   browser.loadURI("about:mozilla");
-  yield promiseContentMessage(browser, "ss-test:onFrameTreeReset");
+  yield promiseContentMessage(browser, "ss-test:OnHistoryReplaceEntry");
   gBrowser.removeTab(tab);
 
   
