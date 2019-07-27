@@ -335,6 +335,11 @@ public:
   void SetGraphImpl(MediaStreamGraph* aGraph);
 
   
+
+
+  TrackRate GraphRate() { return mBuffer.GraphRate(); }
+
+  
   
   
   
