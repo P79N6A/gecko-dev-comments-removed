@@ -1547,7 +1547,7 @@ protected:
   }
 
   void CreateComplexMultiLayerTree() {
-    const char* layerTreeSyntax = "c(tc(t)tc(c(t)t))";
+    const char* layerTreeSyntax = "c(tc(t)tc(c(t)tt))";
     
     nsIntRegion layerVisibleRegion[] = {
       nsIntRegion(nsIntRect(0,0,300,400)),      
@@ -1558,7 +1558,8 @@ protected:
       nsIntRegion(nsIntRect(200,0,100,400)),    
       nsIntRegion(nsIntRect(200,0,100,200)),    
       nsIntRegion(nsIntRect(200,0,100,200)),    
-      nsIntRegion(nsIntRect(200,200,100,200)),  
+      nsIntRegion(nsIntRect(200,200,100,100)),  
+      nsIntRegion(nsIntRect(200,300,100,100)),  
     };
     root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm, layers);
     SetScrollableFrameMetrics(layers[1], FrameMetrics::START_SCROLL_ID);
@@ -1566,7 +1567,8 @@ protected:
     SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 1);
     SetScrollableFrameMetrics(layers[6], FrameMetrics::START_SCROLL_ID + 1);
     SetScrollableFrameMetrics(layers[7], FrameMetrics::START_SCROLL_ID + 2);
-    SetScrollableFrameMetrics(layers[8], FrameMetrics::START_SCROLL_ID + 3);
+    SetScrollableFrameMetrics(layers[8], FrameMetrics::START_SCROLL_ID + 1);
+    SetScrollableFrameMetrics(layers[9], FrameMetrics::START_SCROLL_ID + 3);
   }
 };
 
@@ -1796,21 +1798,37 @@ TEST_F(APZHitTestingTester, ComplexMultiLayerTree) {
   EXPECT_NE(nullAPZC, ApzcOf(layers[6]));
   EXPECT_NE(nullAPZC, ApzcOf(layers[7]));
   EXPECT_NE(nullAPZC, ApzcOf(layers[8]));
+  EXPECT_NE(nullAPZC, ApzcOf(layers[9]));
   
   EXPECT_EQ(ApzcOf(layers[1]), ApzcOf(layers[2]));
   EXPECT_EQ(ApzcOf(layers[4]), ApzcOf(layers[6]));
+  EXPECT_EQ(ApzcOf(layers[8]), ApzcOf(layers[6]));
   
   EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[4]));
   EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[7]));
-  EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[8]));
+  EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[9]));
   EXPECT_NE(ApzcOf(layers[4]), ApzcOf(layers[7]));
-  EXPECT_NE(ApzcOf(layers[4]), ApzcOf(layers[8]));
-  EXPECT_NE(ApzcOf(layers[7]), ApzcOf(layers[8]));
+  EXPECT_NE(ApzcOf(layers[4]), ApzcOf(layers[9]));
+  EXPECT_NE(ApzcOf(layers[7]), ApzcOf(layers[9]));
+
+  
+  AsyncPanZoomController* layers1_2 = ApzcOf(layers[1]);
+  AsyncPanZoomController* layers4_6_8 = ApzcOf(layers[4]);
+  AsyncPanZoomController* layer7 = ApzcOf(layers[7]);
+  AsyncPanZoomController* layer9 = ApzcOf(layers[9]);
+  EXPECT_EQ(nullptr, layers1_2->GetParent());
+  EXPECT_EQ(nullptr, layers4_6_8->GetParent());
+  EXPECT_EQ(layers4_6_8, layer7->GetParent());
+  EXPECT_EQ(nullptr, layer9->GetParent());
+  EXPECT_EQ(nullptr, layers1_2->GetPrevSibling());
+  EXPECT_EQ(layers1_2, layers4_6_8->GetPrevSibling());
+  EXPECT_EQ(nullptr, layer7->GetPrevSibling());
+  EXPECT_EQ(layers4_6_8, layer9->GetPrevSibling());
 
   nsRefPtr<AsyncPanZoomController> hit = GetTargetAPZC(ScreenPoint(25, 25));
   EXPECT_EQ(ApzcOf(layers[1]), hit.get());
   hit = GetTargetAPZC(ScreenPoint(275, 375));
-  EXPECT_EQ(ApzcOf(layers[8]), hit.get());
+  EXPECT_EQ(ApzcOf(layers[9]), hit.get());
   hit = GetTargetAPZC(ScreenPoint(250, 100));
   EXPECT_EQ(ApzcOf(layers[7]), hit.get());
 }
