@@ -75,6 +75,24 @@ let inputTests = [
     output: "/foobar/",
     inspectable: true,
   },
+
+  
+  {
+    input: "Symbol()",
+    output: "Symbol()"
+  },
+
+  
+  {
+    input: "Symbol('foo')",
+    output: "Symbol(foo)"
+  },
+
+  
+  {
+    input: "Symbol.iterator",
+    output: "Symbol(Symbol.iterator)"
+  },
 ];
 
 longString = initialString = null;

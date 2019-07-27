@@ -1743,6 +1743,9 @@ function JSTermHelpers(aOwner)
   aOwner.sandbox.print = function JSTH_print(aValue)
   {
     aOwner.helperResult = { rawOutput: true };
+    if (typeof aValue === "symbol") {
+      return Symbol.prototype.toString.call(aValue);
+    }
     
     
     
