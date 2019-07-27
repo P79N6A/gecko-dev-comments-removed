@@ -2,48 +2,31 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
-MARIONETTE_HEAD_JS = "icc_header.js";
-
-function setRadioEnabled(enabled) {
-  let connection = navigator.mozMobileConnections[0];
-  ok(connection);
-
-  let request  = connection.setRadioEnabled(enabled);
-
-  request.onsuccess = function onsuccess() {
-    log('setRadioEnabled: ' + enabled);
-  };
-
-  request.onerror = function onerror() {
-    ok(false, "setRadioEnabled should be ok");
-  };
-}
+MARIONETTE_HEAD_JS = "head.js";
 
 
-taskHelper.push(function basicTest() {
-  is(icc.cardState, "ready", "card state is " + icc.cardState);
-  taskHelper.runNext();
-});
+startTestCommon(function() {
+  let icc = getMozIcc();
 
-
-taskHelper.push(function testCardStateChange() {
   
-  setRadioEnabled(false);
-  icc.addEventListener("cardstatechange", function oncardstatechange() {
-    log("card state changes to " + icc.cardState);
+  is(icc.cardState, "ready", "card state is " + icc.cardState);
+
+  
+  return Promise.resolve()
     
-    if (icc.cardState === null) {
-      icc.removeEventListener("cardstatechange", oncardstatechange);
-      
-      setRadioEnabled(true);
-      iccManager.addEventListener("iccdetected", function oniccdetected(evt) {
-        log("icc iccdetected: " + evt.iccId);
-        iccManager.removeEventListener("iccdetected", oniccdetected);
-        taskHelper.runNext();
-      });
-    }
-  });
+    .then(() => {
+      let promises = [];
+      promises.push(setRadioEnabled(false));
+      promises.push(waitForTargetEvent(icc, "cardstatechange", function() {
+        return icc.cardState === null;
+      }));
+      return Promise.all(promises);
+    })
+    
+    .then(() => {
+      let promises = [];
+      promises.push(setRadioEnabled(true));
+      promises.push(waitForTargetEvent(iccManager, "iccdetected"));
+      return Promise.all(promises);
+    });
 });
-
-
-taskHelper.runNext();

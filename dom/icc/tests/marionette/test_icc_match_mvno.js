@@ -2,9 +2,9 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
-MARIONETTE_HEAD_JS = "icc_header.js";
+MARIONETTE_HEAD_JS = "head.js";
 
-let testCases = [
+const TEST_DATA = [
   
   
   ["imsi", "3102600",            true, true               ],
@@ -31,36 +31,27 @@ let testCases = [
   ["gid",  "5a4d6c",             true, false              ]
 ];
 
-function matchMvno(mvnoType, mvnoData, success, expectedResult) {
-  log("matchMvno: " + mvnoType + ", " + mvnoData);
-  let request = icc.matchMvno(mvnoType, mvnoData);
-  request.onsuccess = function onsuccess() {
-    log("onsuccess: " + request.result);
-    ok(success, "onsuccess while error expected");
-    is(request.result, expectedResult);
-    testMatchMvno();
-  }
-  request.onerror = function onerror() {
-    log("onerror: " + request.error.name);
-    ok(!success, "onerror while success expected");
-    is(request.error.name, expectedResult);
-    testMatchMvno();
-  }
+function testMatchMvno(aIcc, aMvnoType, aMvnoData, aSuccess, aExpectedResult) {
+  log("matchMvno: " + aMvnoType + ", " + aMvnoData);
+  return aIcc.matchMvno(aMvnoType, aMvnoData)
+    .then((aResult) => {
+      log("onsuccess: " + aResult);
+      ok(aSuccess, "onsuccess while error expected");
+      is(aResult, aExpectedResult);
+    }, (aError) => {
+      log("onerror: " + aError.name);
+      ok(!aSuccess, "onerror while success expected");
+      is(aError.name, aExpectedResult);
+    });
 }
 
-function testMatchMvno() {
-  let testCase = testCases.shift();
-  if (!testCase) {
-    taskHelper.runNext();
-    return;
+
+startTestCommon(function() {
+  let icc = getMozIcc();
+  let promise = Promise.resolve();
+  for (let i = 0; i < TEST_DATA.length; i++) {
+    let data = TEST_DATA[i];
+    promise = promise.then(() => testMatchMvno.apply(null, [icc].concat(data)));
   }
-  matchMvno(testCase[0], testCase[1], testCase[2], testCase[3]);
-}
-
-taskHelper.push(
-  testMatchMvno
-);
-
-
-taskHelper.runNext();
-
+  return promise;
+});

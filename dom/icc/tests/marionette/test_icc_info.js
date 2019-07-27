@@ -2,34 +2,11 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
-MARIONETTE_HEAD_JS = "icc_header.js";
-
-function setRadioEnabled(enabled) {
-  let connection = navigator.mozMobileConnections[0];
-  ok(connection);
-
-  let request  = connection.setRadioEnabled(enabled);
-
-  request.onsuccess = function onsuccess() {
-    log('setRadioEnabled: ' + enabled);
-  };
-
-  request.onerror = function onerror() {
-    ok(false, "setRadioEnabled should be ok");
-  };
-}
-
-function setEmulatorMccMnc(mcc, mnc) {
-  let cmd = "operator set 0 Android,Android," + mcc + mnc;
-  emulatorHelper.sendCommand(cmd, function(result) {
-    let re = new RegExp("" + mcc + mnc + "$");
-    ok(result[0].match(re), "MCC/MNC should be changed.");
-  });
-}
+MARIONETTE_HEAD_JS = "head.js";
 
 
-taskHelper.push(function basicTest() {
-  let iccInfo = icc.iccInfo;
+function basicTest(aIcc) {
+  let iccInfo = aIcc.iccInfo;
 
   
   
@@ -58,28 +35,30 @@ taskHelper.push(function basicTest() {
     
     is(iccInfo.prlVersion, 1);
   }
-
-  taskHelper.runNext();
-});
+}
 
 
-taskHelper.push(function testCardIsNotReady() {
-  
-  setRadioEnabled(false);
-  icc.addEventListener("iccinfochange", function oniccinfochange() {
+startTestCommon(function() {
+  let icc = getMozIcc();
+
+  return Promise.resolve()
     
-    if (icc.iccInfo === null) {
-      icc.removeEventListener("iccinfochange", oniccinfochange);
-      
-      setRadioEnabled(true);
-      iccManager.addEventListener("iccdetected", function oniccdetected(evt) {
-        log("icc detected: " + evt.iccId);
-        iccManager.removeEventListener("iccdetected", oniccdetected);
-        taskHelper.runNext();
-      });
-    }
-  });
+    .then(() => basicTest(icc))
+    
+    .then(() => {
+      let promises = [];
+      promises.push(setRadioEnabled(false));
+      promises.push(waitForTargetEvent(icc, "iccinfochange", function() {
+        
+        return icc.iccInfo === null;
+      }));
+      return Promise.all(promises);
+    })
+    
+    .then(() => {
+      let promises = [];
+      promises.push(setRadioEnabled(true));
+      promises.push(waitForTargetEvent(iccManager, "iccdetected"));
+      return Promise.all(promises);
+    });
 });
-
-
-taskHelper.runNext();

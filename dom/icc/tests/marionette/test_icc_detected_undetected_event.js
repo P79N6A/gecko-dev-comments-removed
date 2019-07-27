@@ -2,66 +2,50 @@
 
 
 MARIONETTE_TIMEOUT = 30000;
-MARIONETTE_HEAD_JS = "icc_header.js";
-
-let origNumICCs = iccManager.iccIds.length;
-
-function setRadioEnabled(enabled) {
-  let connection = navigator.mozMobileConnections[0];
-  ok(connection);
-
-  let request  = connection.setRadioEnabled(enabled);
-
-  request.onsuccess = function onsuccess() {
-    log('setRadioEnabled: ' + enabled);
-  };
-
-  request.onerror = function onerror() {
-    ok(false, "setRadioEnabled should be ok");
-  };
-}
+MARIONETTE_HEAD_JS = "head.js";
 
 
-taskHelper.push(function testIccUndetectedEvent() {
-  setRadioEnabled(false);
-  iccManager.addEventListener("iccundetected", function oniccundetected(evt) {
-    log("got icc undetected event");
-    iccManager.removeEventListener("iccundetected", oniccundetected);
+startTestCommon(function() {
+  let origNumIccs = iccManager.iccIds.length;
+  let icc = getMozIcc();
+  let iccId = icc.iccInfo.iccid;
+  let mobileConnection = getMozMobileConnectionByServiceId();
 
-    is(evt.iccId, iccId, "icc " + evt.iccId + " becomes undetected");
-    is(iccManager.iccIds.length, origNumICCs - 1,
-       "iccIds.length becomes to " + iccManager.iccIds.length);
-    is(iccManager.getIccById(evt.iccId), null,
-       "should not get a valid icc object here");
-
+  return Promise.resolve()
     
-    is(navigator.mozMobileConnections[0].iccId, null,
-       "check mozMobileConnection.iccId");
+    .then(() => {
+      let promises = [];
 
-    taskHelper.runNext();
-  });
-});
+      promises.push(setRadioEnabled(false));
+      promises.push(waitForTargetEvent(iccManager, "iccundetected").then((aEvt) => {
+        is(aEvt.iccId, iccId, "icc " + aEvt.iccId + " becomes undetected");
+        is(iccManager.iccIds.length, origNumIccs - 1,
+           "iccIds.length becomes to " + iccManager.iccIds.length);
+        is(iccManager.getIccById(aEvt.iccId), null,
+           "should not get a valid icc object here");
 
+        
+        is(mobileConnection.iccId, null, "check mozMobileConnection.iccId");
+      }));
 
-taskHelper.push(function testIccDetectedEvent() {
-  setRadioEnabled(true);
-  iccManager.addEventListener("iccdetected", function oniccdetected(evt) {
-    log("got icc detected event");
-    iccManager.removeEventListener("iccdetected", oniccdetected);
-
-    is(evt.iccId, iccId, "icc " + evt.iccId + " is detected");
-    is(iccManager.iccIds.length, origNumICCs,
-       "iccIds.length becomes to " + iccManager.iccIds.length);
-    ok(iccManager.getIccById(evt.iccId) instanceof MozIcc,
-       "should get a valid icc object here");
-
+      return Promise.all(promises);
+    })
     
-    is(navigator.mozMobileConnections[0].iccId, iccId,
-       "check mozMobileConnection.iccId");
+    .then(() => {
+      let promises = [];
 
-    taskHelper.runNext();
-  });
+      promises.push(setRadioEnabled(true));
+      promises.push(waitForTargetEvent(iccManager, "iccdetected").then((aEvt) => {
+        is(aEvt.iccId, iccId, "icc " + aEvt.iccId + " is detected");
+        is(iccManager.iccIds.length, origNumIccs,
+           "iccIds.length becomes to " + iccManager.iccIds.length);
+        ok(iccManager.getIccById(aEvt.iccId) instanceof MozIcc,
+           "should get a valid icc object here");
+
+        
+        is(mobileConnection.iccId, iccId, "check mozMobileConnection.iccId");
+      }));
+
+      return Promise.all(promises);
+    });
 });
-
-
-taskHelper.runNext();
