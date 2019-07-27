@@ -2394,8 +2394,9 @@ int NS_main(int argc, NS_tchar **argv)
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
   bool noServiceFallback = getenv("MOZ_NO_SERVICE_FALLBACK") != nullptr;
+  bool emulateElevation = getenv("MOZ_EMULATE_ELEVATION_PATH") != nullptr;
   putenv(const_cast<char*>("MOZ_NO_SERVICE_FALLBACK="));
-
+  putenv(const_cast<char*>("MOZ_EMULATE_ELEVATION_PATH="));
   
   
 #ifdef MOZ_MAINTENANCE_SERVICE
@@ -2483,12 +2484,6 @@ int NS_main(int argc, NS_tchar **argv)
   if (!WriteStatusFile("applying")) {
     LOG(("failed setting status to 'applying'"));
     return 1;
-  }
-
-  if (sStagedUpdate) {
-    LOG(("Performing a staged update"));
-  } else if (sReplaceRequest) {
-    LOG(("Performing a replace request"));
   }
 
 #ifdef MOZ_WIDGET_GONK
@@ -2619,13 +2614,15 @@ int NS_main(int argc, NS_tchar **argv)
       return 1;
     }
 
-    updateLockFileHandle = CreateFileW(updateLockFilePath,
-                                       GENERIC_READ | GENERIC_WRITE,
-                                       0,
-                                       nullptr,
-                                       OPEN_ALWAYS,
-                                       FILE_FLAG_DELETE_ON_CLOSE,
-                                       nullptr);
+    if (!emulateElevation) {
+      updateLockFileHandle = CreateFileW(updateLockFilePath,
+                                        GENERIC_READ | GENERIC_WRITE,
+                                        0,
+                                        nullptr,
+                                        OPEN_ALWAYS,
+                                        FILE_FLAG_DELETE_ON_CLOSE,
+                                        nullptr);
+    }
 
     NS_tsnprintf(elevatedLockFilePath,
                  sizeof(elevatedLockFilePath)/sizeof(elevatedLockFilePath[0]),
@@ -2776,7 +2773,8 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (!useService && sStagedUpdate) {
+      
+      if (!useService && sStagedUpdate && !emulateElevation) {
         if (updateLockFileHandle != INVALID_HANDLE_VALUE) {
           CloseHandle(updateLockFileHandle);
         }
@@ -2801,6 +2799,8 @@ int NS_main(int argc, NS_tchar **argv)
           }
         }
       }
+
+      DWORD returnCode = 0;
 
       
       
@@ -2905,7 +2905,7 @@ int NS_main(int argc, NS_tchar **argv)
           sinfo.hwnd         = nullptr;
           sinfo.lpFile       = secureUpdaterPath;
           sinfo.lpParameters = cmdLine;
-          sinfo.lpVerb       = L"runas";
+          sinfo.lpVerb       = emulateElevation ? L"open" : L"runas";
           sinfo.nShow        = SW_SHOWNORMAL;
 
           bool result = ShellExecuteEx(&sinfo);
@@ -2913,6 +2913,8 @@ int NS_main(int argc, NS_tchar **argv)
 
           if (result) {
             WaitForSingleObject(sinfo.hProcess, INFINITE);
+            
+            GetExitCodeProcess(sinfo.hProcess, &returnCode);
             CloseHandle(sinfo.hProcess);
           } else {
             WriteStatusFile(ELEVATION_CANCELED);
@@ -2951,7 +2953,7 @@ int NS_main(int argc, NS_tchar **argv)
         
         
         
-        return 0;
+        return returnCode;
       } else if(useService) {
         
         
@@ -2972,6 +2974,13 @@ int NS_main(int argc, NS_tchar **argv)
     }
   }
 #endif
+
+  if (sStagedUpdate) {
+    LOG(("Performing a staged update"));
+  }
+  else if (sReplaceRequest) {
+    LOG(("Performing a replace request"));
+  }
 
 #if defined(MOZ_WIDGET_GONK)
   
@@ -3277,7 +3286,7 @@ int NS_main(int argc, NS_tchar **argv)
         }
       }
     }
-    EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 0);
+    EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, gSucceeded ? 0 : 1);
 #endif 
 #ifdef XP_MACOSX
     if (gSucceeded) {
