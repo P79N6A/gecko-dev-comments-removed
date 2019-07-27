@@ -1650,8 +1650,8 @@ ContentChild::RecvActivateA11y()
 #ifdef ACCESSIBILITY
     
     
-    nsCOMPtr<nsIAccessibilityService> accService =
-        do_GetService("@mozilla.org/accessibilityService;1");
+	nsCOMPtr<nsIAccessibilityService> accService =
+        services::GetAccessibilityService();
 #endif
     return true;
 }
