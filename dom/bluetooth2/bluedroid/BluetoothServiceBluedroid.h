@@ -174,6 +174,24 @@ public:
   
   
 
+  virtual void
+  ConnectGattClientInternal(const nsAString& aAppUuid,
+                            const nsAString& aDeviceAddress,
+                            BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  DisconnectGattClientInternal(const nsAString& aAppUuid,
+                               const nsAString& aDeviceAddress,
+                               BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual void
+  UnregisterGattClientInternal(int aClientIf,
+                               BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  
+  
+  
+
   virtual void AdapterStateChangedNotification(bool aState) MOZ_OVERRIDE;
   virtual void AdapterPropertiesNotification(
     BluetoothStatus aStatus, int aNumProperties,

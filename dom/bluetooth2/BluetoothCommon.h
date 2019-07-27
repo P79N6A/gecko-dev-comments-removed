@@ -197,6 +197,12 @@ extern bool gBluetoothDebugFlag;
 #define REQUEST_MEDIA_PLAYSTATUS_ID          "requestmediaplaystatus"
 
 
+
+
+
+#define GATT_CONNECTION_STATE_CHANGED_ID     "connectionstatechanged"
+
+
 #define BLUETOOTH_ADDRESS_LENGTH 17
 #define BLUETOOTH_ADDRESS_NONE   "00:00:00:00:00:00"
 #define BLUETOOTH_ADDRESS_BYTES  6

@@ -19,6 +19,14 @@ class BluetoothReplyRunnable;
 void
 UuidToString(const BluetoothUuid& aUuid, nsAString& aString);
 
+
+
+
+
+
+void
+StringToUuid(const char* aString, BluetoothUuid& aUuid);
+
 bool
 SetJsObject(JSContext* aContext,
             const BluetoothValue& aValue,

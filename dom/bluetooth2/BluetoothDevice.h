@@ -10,7 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/BluetoothDevice2Binding.h"
-#include "BluetoothCommon.h"
+#include "mozilla/dom/bluetooth/BluetoothCommon.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 
@@ -23,6 +23,7 @@ namespace dom {
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothClassOfDevice;
+class BluetoothGatt;
 class BluetoothNamedValue;
 class BluetoothValue;
 class BluetoothSignal;
@@ -68,6 +69,8 @@ public:
   {
     return mType;
   }
+
+  BluetoothGatt* GetGatt();
 
   
 
@@ -173,6 +176,11 @@ private:
 
 
   BluetoothDeviceType mType;
+
+  
+
+
+  nsRefPtr<BluetoothGatt> mGatt;
 };
 
 END_BLUETOOTH_NAMESPACE

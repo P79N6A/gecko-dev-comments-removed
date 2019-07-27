@@ -5,15 +5,27 @@
 
 
 #include "BluetoothGattManager.h"
-#include "BluetoothCommon.h"
-#include "BluetoothUtils.h"
-#include "BluetoothInterface.h"
 
+#include "BluetoothCommon.h"
+#include "BluetoothInterface.h"
+#include "BluetoothReplyRunnable.h"
+#include "BluetoothService.h"
+#include "BluetoothUtils.h"
+#include "MainThreadUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
-#include "MainThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsThreadUtils.h"
+
+#define ENSURE_GATT_CLIENT_INTF_IS_READY_VOID(runnable)                       \
+  do {                                                                        \
+    if (!sBluetoothGattInterface) {                                           \
+      NS_NAMED_LITERAL_STRING(errorStr,                                       \
+                              "BluetoothGattClientInterface is not ready");   \
+      DispatchBluetoothReply(runnable, BluetoothValue(), errorStr);           \
+      return;                                                                 \
+    }                                                                         \
+  } while(0)
 
 using namespace mozilla;
 USING_BLUETOOTH_NAMESPACE
@@ -26,9 +38,58 @@ namespace {
 
 bool BluetoothGattManager::mInShutdown = false;
 
+class BluetoothGattClient;
+static StaticAutoPtr<nsTArray<nsRefPtr<BluetoothGattClient> > > sClients;
 
+class BluetoothGattClient MOZ_FINAL : public nsISupports
+{
+public:
+  NS_DECL_ISUPPORTS
 
+  BluetoothGattClient(const nsAString& aAppUuid, const nsAString& aDeviceAddr)
+  : mAppUuid(aAppUuid)
+  , mDeviceAddr(aDeviceAddr)
+  , mClientIf(0)
+  , mConnId(0)
+  { }
 
+  ~BluetoothGattClient()
+  {
+    mConnectRunnable = nullptr;
+    mDisconnectRunnable = nullptr;
+    mUnregisterClientRunnable = nullptr;
+  }
+
+  nsString mAppUuid;
+  nsString mDeviceAddr;
+  int mClientIf;
+  int mConnId;
+  nsRefPtr<BluetoothReplyRunnable> mConnectRunnable;
+  nsRefPtr<BluetoothReplyRunnable> mDisconnectRunnable;
+  nsRefPtr<BluetoothReplyRunnable> mUnregisterClientRunnable;
+};
+
+NS_IMPL_ISUPPORTS0(BluetoothGattClient)
+
+class UuidComparator
+{
+public:
+  bool Equals(const nsRefPtr<BluetoothGattClient>& aClient,
+              const nsAString& aAppUuid) const
+  {
+    return aClient->mAppUuid.Equals(aAppUuid);
+  }
+};
+
+class ClientIfComparator
+{
+public:
+  bool Equals(const nsRefPtr<BluetoothGattClient>& aClient,
+              int aClientIf) const
+  {
+    return aClient->mClientIf == aClientIf;
+  }
+};
 
 BluetoothGattManager*
 BluetoothGattManager::Get()
@@ -103,6 +164,10 @@ BluetoothGattManager::InitGattInterface(BluetoothProfileResultHandler* aRes)
     sBluetoothGattInterface->GetBluetoothGattClientInterface();
   NS_ENSURE_TRUE_VOID(sBluetoothGattClientInterface);
 
+  if (!sClients) {
+    sClients = new nsTArray<nsRefPtr<BluetoothGattClient> >;
+  }
+
   BluetoothGattManager* gattManager = BluetoothGattManager::Get();
   sBluetoothGattInterface->Init(gattManager,
                                 new InitGattResultHandler(aRes));
@@ -129,6 +194,8 @@ public:
   {
     sBluetoothGattClientInterface = nullptr;
     sBluetoothGattInterface = nullptr;
+    sClients = nullptr;
+
     if (mRes) {
       mRes->Deinit();
     }
@@ -176,6 +243,265 @@ BluetoothGattManager::DeinitGattInterface(BluetoothProfileResultHandler* aRes)
   }
 }
 
+class BluetoothGattManager::RegisterClientResultHandler MOZ_FINAL
+  : public BluetoothGattClientResultHandler
+{
+public:
+  RegisterClientResultHandler(BluetoothGattClient* aClient)
+  : mClient(aClient)
+  {
+    MOZ_ASSERT(mClient);
+  }
+
+  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  {
+    BT_WARNING("BluetoothGattClientInterface::RegisterClient failed: %d",
+               (int)aStatus);
+
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE_VOID(bs);
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      mClient->mAppUuid,
+      BluetoothValue(false)); 
+    bs->DistributeSignal(signal);
+
+    
+    if (mClient->mConnectRunnable) {
+      NS_NAMED_LITERAL_STRING(errorStr, "Register GATT client failed");
+      DispatchBluetoothReply(mClient->mConnectRunnable,
+                             BluetoothValue(),
+                             errorStr);
+      mClient->mConnectRunnable = nullptr;
+    }
+
+    sClients->RemoveElement(mClient);
+  }
+
+private:
+  nsRefPtr<BluetoothGattClient> mClient;
+};
+
+class BluetoothGattManager::UnregisterClientResultHandler MOZ_FINAL
+  : public BluetoothGattClientResultHandler
+{
+public:
+  UnregisterClientResultHandler(BluetoothGattClient* aClient)
+  : mClient(aClient)
+  {
+    MOZ_ASSERT(mClient);
+  }
+
+  void UnregisterClient() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(mClient->mUnregisterClientRunnable);
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE_VOID(bs);
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING("ClientUnregistered"),
+      mClient->mAppUuid,
+      BluetoothValue(true));
+    bs->DistributeSignal(signal);
+
+    
+    DispatchBluetoothReply(mClient->mUnregisterClientRunnable,
+                           BluetoothValue(true),
+                           EmptyString());
+    mClient->mUnregisterClientRunnable = nullptr;
+
+    sClients->RemoveElement(mClient);
+  }
+
+  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  {
+    BT_WARNING("BluetoothGattClientInterface::UnregisterClient failed: %d",
+               (int)aStatus);
+    MOZ_ASSERT(mClient->mUnregisterClientRunnable);
+
+    
+    NS_NAMED_LITERAL_STRING(errorStr, "Unregister GATT client failed");
+    DispatchBluetoothReply(mClient->mUnregisterClientRunnable,
+                           BluetoothValue(),
+                           errorStr);
+    mClient->mUnregisterClientRunnable = nullptr;
+  }
+
+private:
+  nsRefPtr<BluetoothGattClient> mClient;
+};
+
+void
+BluetoothGattManager::UnregisterClient(int aClientIf,
+                                       BluetoothReplyRunnable* aRunnable)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aRunnable);
+
+  ENSURE_GATT_CLIENT_INTF_IS_READY_VOID(aRunnable);
+
+  size_t index = sClients->IndexOf(aClientIf, 0 ,
+                                   ClientIfComparator());
+
+  
+  if (index == sClients->NoIndex) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Unregister GATT client failed");
+    DispatchBluetoothReply(aRunnable,
+                           BluetoothValue(),
+                           errorStr);
+    return;
+  }
+
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+  client->mUnregisterClientRunnable = aRunnable;
+
+  sBluetoothGattClientInterface->UnregisterClient(
+    aClientIf,
+    new UnregisterClientResultHandler(client));
+}
+
+class BluetoothGattManager::ConnectResultHandler MOZ_FINAL
+  : public BluetoothGattClientResultHandler
+{
+public:
+  ConnectResultHandler(BluetoothGattClient* aClient)
+  : mClient(aClient)
+  {
+    MOZ_ASSERT(mClient);
+  }
+
+  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  {
+    BT_WARNING("BluetoothGattClientInterface::Connect failed: %d",
+               (int)aStatus);
+    MOZ_ASSERT(mClient->mConnectRunnable);
+
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE_VOID(bs);
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      mClient->mAppUuid,
+      BluetoothValue(false)); 
+    bs->DistributeSignal(signal);
+
+    
+    NS_NAMED_LITERAL_STRING(errorStr, "Connect failed");
+    DispatchBluetoothReply(mClient->mConnectRunnable,
+                           BluetoothValue(),
+                           errorStr);
+    mClient->mConnectRunnable = nullptr;
+  }
+
+private:
+  nsRefPtr<BluetoothGattClient> mClient;
+};
+
+void
+BluetoothGattManager::Connect(const nsAString& aAppUuid,
+                              const nsAString& aDeviceAddr,
+                              BluetoothReplyRunnable* aRunnable)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aRunnable);
+
+  ENSURE_GATT_CLIENT_INTF_IS_READY_VOID(aRunnable);
+
+  size_t index = sClients->IndexOf(aAppUuid, 0 , UuidComparator());
+  if (index == sClients->NoIndex) {
+    index = sClients->Length();
+    sClients->AppendElement(new BluetoothGattClient(aAppUuid, aDeviceAddr));
+  }
+
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+  client->mConnectRunnable = aRunnable;
+
+  if (client->mClientIf > 0) {
+    sBluetoothGattClientInterface->Connect(client->mClientIf,
+                                           aDeviceAddr,
+                                           true, 
+                                           new ConnectResultHandler(client));
+  } else {
+    BluetoothUuid uuid;
+    StringToUuid(NS_ConvertUTF16toUTF8(aAppUuid).get(), uuid);
+
+    
+    sBluetoothGattClientInterface->RegisterClient(
+      uuid, new RegisterClientResultHandler(client));
+  }
+}
+
+class BluetoothGattManager::DisconnectResultHandler MOZ_FINAL
+  : public BluetoothGattClientResultHandler
+{
+public:
+  DisconnectResultHandler(BluetoothGattClient* aClient)
+  : mClient(aClient)
+  {
+    MOZ_ASSERT(mClient);
+  }
+
+  void OnError(BluetoothStatus aStatus) MOZ_OVERRIDE
+  {
+    BT_WARNING("BluetoothGattClientInterface::Disconnect failed: %d",
+               (int)aStatus);
+    MOZ_ASSERT(mClient->mDisconnectRunnable);
+
+    BluetoothService* bs = BluetoothService::Get();
+    NS_ENSURE_TRUE_VOID(bs);
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      mClient->mAppUuid,
+      BluetoothValue(true)); 
+    bs->DistributeSignal(signal);
+
+    
+    NS_NAMED_LITERAL_STRING(errorStr, "Disconnect failed");
+    DispatchBluetoothReply(mClient->mDisconnectRunnable,
+                           BluetoothValue(),
+                           errorStr);
+    mClient->mDisconnectRunnable = nullptr;
+  }
+
+private:
+  nsRefPtr<BluetoothGattClient> mClient;
+};
+
+void
+BluetoothGattManager::Disconnect(const nsAString& aAppUuid,
+                                 const nsAString& aDeviceAddr,
+                                 BluetoothReplyRunnable* aRunnable)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aRunnable);
+
+  ENSURE_GATT_CLIENT_INTF_IS_READY_VOID(aRunnable);
+
+  size_t index = sClients->IndexOf(aAppUuid, 0 , UuidComparator());
+
+  
+  if (index == sClients->NoIndex) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Disconnect failed");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), errorStr);
+    return;
+  }
+
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+  client->mDisconnectRunnable = aRunnable;
+
+  sBluetoothGattClientInterface->Disconnect(
+    client->mClientIf,
+    aDeviceAddr,
+    client->mConnId,
+    new DisconnectResultHandler(client));
+}
+
 
 
 
@@ -183,7 +509,60 @@ void
 BluetoothGattManager::RegisterClientNotification(int aStatus,
                                                  int aClientIf,
                                                  const BluetoothUuid& aAppUuid)
-{ }
+{
+  BT_API2_LOGR("Client Registered, clientIf = %d", aClientIf);
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsString uuid;
+  UuidToString(aAppUuid, uuid);
+
+  size_t index = sClients->IndexOf(uuid, 0 , UuidComparator());
+  NS_ENSURE_TRUE_VOID(index != sClients->NoIndex);
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+
+  if (aStatus) { 
+    BT_API2_LOGR(
+      "RegisterClient failed, clientIf = %d, status = %d, appUuid = %s",
+      aClientIf, aStatus, NS_ConvertUTF16toUTF8(uuid).get());
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      uuid, BluetoothValue(false)); 
+    bs->DistributeSignal(signal);
+
+    
+    if (client->mConnectRunnable) {
+      NS_NAMED_LITERAL_STRING(errorStr,
+                              "Connect failed due to registration failed");
+      DispatchBluetoothReply(client->mConnectRunnable,
+                             BluetoothValue(),
+                             errorStr);
+      client->mConnectRunnable = nullptr;
+    }
+
+    sClients->RemoveElement(client);
+    return;
+  }
+
+  client->mClientIf = aClientIf;
+
+  
+  BluetoothSignal signal(
+    NS_LITERAL_STRING("ClientRegistered"),
+    uuid, BluetoothValue(uint32_t(aClientIf)));
+  bs->DistributeSignal(signal);
+
+  
+  if (client->mConnectRunnable) {
+    sBluetoothGattClientInterface->Connect(
+      aClientIf, client->mDeviceAddr, true ,
+      new ConnectResultHandler(client));
+  }
+}
 
 void
 BluetoothGattManager::ScanResultNotification(
@@ -195,15 +574,114 @@ void
 BluetoothGattManager::ConnectNotification(int aConnId,
                                           int aStatus,
                                           int aClientIf,
-                                          const nsAString& aBdAddr)
-{ }
+                                          const nsAString& aDeviceAddr)
+{
+  BT_API2_LOGR();
+  MOZ_ASSERT(NS_IsMainThread());
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+
+  size_t index = sClients->IndexOf(aClientIf, 0 ,
+                                   ClientIfComparator());
+  NS_ENSURE_TRUE_VOID(index != sClients->NoIndex);
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+
+  if (aStatus) { 
+    BT_API2_LOGR("Connect failed, clientIf = %d, connId = %d, status = %d",
+                 aClientIf, aConnId, aStatus);
+
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      client->mAppUuid,
+      BluetoothValue(false)); 
+    bs->DistributeSignal(signal);
+
+    
+    if (client->mConnectRunnable) {
+      NS_NAMED_LITERAL_STRING(errorStr, "Connect failed");
+      DispatchBluetoothReply(client->mConnectRunnable,
+                             BluetoothValue(),
+                             errorStr);
+      client->mConnectRunnable = nullptr;
+    }
+
+    return;
+  }
+
+  client->mConnId = aConnId;
+
+  
+  BluetoothSignal signal(
+    NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+    client->mAppUuid,
+    BluetoothValue(true)); 
+  bs->DistributeSignal(signal);
+
+  
+  if (client->mConnectRunnable) {
+    DispatchBluetoothReply(client->mConnectRunnable,
+                           BluetoothValue(true),
+                           EmptyString());
+    client->mConnectRunnable = nullptr;
+  }
+}
 
 void
 BluetoothGattManager::DisconnectNotification(int aConnId,
                                              int aStatus,
                                              int aClientIf,
-                                             const nsAString& aBdAddr)
-{ }
+                                             const nsAString& aDeviceAddr)
+{
+  BT_API2_LOGR();
+  MOZ_ASSERT(NS_IsMainThread());
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+
+  size_t index = sClients->IndexOf(aClientIf, 0 ,
+                                   ClientIfComparator());
+  NS_ENSURE_TRUE_VOID(index != sClients->NoIndex);
+  nsRefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
+
+  if (aStatus) { 
+    
+    BluetoothSignal signal(
+      NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+      client->mAppUuid,
+      BluetoothValue(true)); 
+    bs->DistributeSignal(signal);
+
+    
+    if (client->mDisconnectRunnable) {
+      NS_NAMED_LITERAL_STRING(errorStr, "Disconnect failed");
+      DispatchBluetoothReply(client->mDisconnectRunnable,
+                             BluetoothValue(),
+                             errorStr);
+      client->mDisconnectRunnable = nullptr;
+    }
+
+    return;
+  }
+
+  client->mConnId = 0;
+
+  
+  BluetoothSignal signal(
+    NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
+    client->mAppUuid,
+    BluetoothValue(false)); 
+  bs->DistributeSignal(signal);
+
+  
+  if (client->mDisconnectRunnable) {
+    DispatchBluetoothReply(client->mDisconnectRunnable,
+                           BluetoothValue(true),
+                           EmptyString());
+    client->mDisconnectRunnable = nullptr;
+  }
+}
 
 void
 BluetoothGattManager::SearchCompleteNotification(int aConnId, int aStatus)
