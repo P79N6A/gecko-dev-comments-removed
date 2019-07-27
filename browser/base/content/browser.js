@@ -3543,9 +3543,40 @@ var XULBrowserWindow = {
 
   
   onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
-    let target = BrowserUtils.onBeforeLinkTraversal(originalTarget, linkURI, linkNode, isAppTab);
+    let target = this._onBeforeLinkTraversal(originalTarget, linkURI, linkNode, isAppTab);
     SocialUI.closeSocialPanelForLinkTraversal(target, linkNode);
     return target;
+  },
+
+  _onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
+    
+    
+    if (originalTarget != "" || !isAppTab)
+      return originalTarget;
+
+    
+    
+    let linkHost;
+    let docHost;
+    try {
+      linkHost = linkURI.host;
+      docHost = linkNode.ownerDocument.documentURIObject.host;
+    } catch(e) {
+      
+      
+      return originalTarget;
+    }
+
+    if (docHost == linkHost)
+      return originalTarget;
+
+    
+    let [longHost, shortHost] =
+      linkHost.length > docHost.length ? [linkHost, docHost] : [docHost, linkHost];
+    if (longHost == "www." + shortHost)
+      return originalTarget;
+
+    return "_blank";
   },
 
   onProgressChange: function (aWebProgress, aRequest,
