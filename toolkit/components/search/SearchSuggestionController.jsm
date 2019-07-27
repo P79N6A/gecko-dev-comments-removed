@@ -17,6 +17,16 @@ const SEARCH_RESPONSE_SUGGESTION_JSON = "application/x-suggestions+json";
 const DEFAULT_FORM_HISTORY_PARAM      = "searchbar-history";
 const HTTP_OK            = 200;
 const REMOTE_TIMEOUT     = 500; 
+const BROWSER_SUGGEST_PREF = "browser.search.suggest.enabled";
+
+
+
+
+
+let gRemoteSuggestionsEnabled = Services.prefs.getBoolPref(BROWSER_SUGGEST_PREF);
+Services.prefs.addObserver(BROWSER_SUGGEST_PREF, function(aSubject, aTopic, aData) {
+  gRemoteSuggestionsEnabled = Services.prefs.getBoolPref(BROWSER_SUGGEST_PREF);
+}, false);
 
 
 
@@ -124,7 +134,7 @@ this.SearchSuggestionController.prototype = {
     this._searchString = searchTerm;
 
     
-    if (searchTerm && this.maxRemoteResults &&
+    if (searchTerm && gRemoteSuggestionsEnabled && this.maxRemoteResults &&
         engine.supportsResponseType(SEARCH_RESPONSE_SUGGESTION_JSON)) {
       this._deferredRemoteResult = this._fetchRemote(searchTerm, engine, privateMode);
       promises.push(this._deferredRemoteResult.promise);
