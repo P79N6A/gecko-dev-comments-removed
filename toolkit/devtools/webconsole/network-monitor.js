@@ -796,7 +796,7 @@ NetworkMonitor.prototype = {
 
     this.openRequests[httpActivity.id] = httpActivity;
 
-    httpActivity.owner.addRequestHeaders(headers);
+    httpActivity.owner.addRequestHeaders(headers, aExtraStringData);
     httpActivity.owner.addRequestCookies(cookies);
   },
 
@@ -955,7 +955,7 @@ NetworkMonitor.prototype = {
 
     response.discardResponseBody = aHttpActivity.discardResponseBody;
 
-    aHttpActivity.owner.addResponseStart(response);
+    aHttpActivity.owner.addResponseStart(response, aExtraStringData);
   },
 
   
