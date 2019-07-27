@@ -310,7 +310,9 @@ MP4Reader::ReadMetadata(MediaInfo* aInfo,
       mIndexReady = true;
     }
 
-    mInfo.mVideo.mHasVideo = mVideo.mActive = mDemuxer->HasValidVideo();
+    
+    mInfo.mVideo.mHasVideo = mVideo.mActive = mDemuxer->HasValidVideo() &&
+                                              mDecoder->GetImageContainer();
     const VideoDecoderConfig& video = mDemuxer->VideoConfig();
     
     if (mInfo.mVideo.mHasVideo && strcmp(video.mime_type, "video/avc")) {
