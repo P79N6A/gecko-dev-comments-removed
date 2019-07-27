@@ -52,7 +52,7 @@ ToUintWidth(double d)
     if (exp < 0)
         return 0;
 
-    uint_fast16_t exponent = mozilla::SafeCast<uint_fast16_t>(exp);
+    uint_fast16_t exponent = mozilla::AssertedCast<uint_fast16_t>(exp);
 
     
     

@@ -1689,14 +1689,15 @@ nsEditor::MoveNode(nsIContent* aNode, nsINode* aParent, int32_t aOffset)
   MOZ_ASSERT(aNode);
   MOZ_ASSERT(aParent);
   MOZ_ASSERT(aOffset == -1 ||
-             (0 <= aOffset && SafeCast<uint32_t>(aOffset) <= aParent->Length()));
+             (0 <= aOffset &&
+              AssertedCast<uint32_t>(aOffset) <= aParent->Length()));
 
   nsCOMPtr<nsINode> oldParent = aNode->GetParentNode();
   int32_t oldOffset = oldParent ? oldParent->IndexOf(aNode) : -1;
 
   if (aOffset == -1) {
     
-    aOffset = SafeCast<int32_t>(aParent->Length());
+    aOffset = AssertedCast<int32_t>(aParent->Length());
   }
 
   
@@ -2870,7 +2871,7 @@ nsEditor::JoinNodesImpl(nsINode* aNodeToKeep,
 
   if (GetShouldTxnSetSelection()) {
     
-    selection->Collapse(aNodeToKeep, SafeCast<int32_t>(firstNodeLength));
+    selection->Collapse(aNodeToKeep, AssertedCast<int32_t>(firstNodeLength));
   } else if (selStartNode) {
     
     
