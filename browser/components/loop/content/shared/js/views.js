@@ -651,133 +651,55 @@ loop.shared.views = (function(_, OT, l10n) {
   
 
 
-  var NotificationView = BaseView.extend({
-    template: _.template([
-      '<div class="alert alert-<%- level %>">',
-      '  <button class="close"></button>',
-      '  <p class="message"><%- message %></p>',
-      '</div>'
-    ].join("")),
+  var NotificationView = React.createClass({
+    displayName: 'NotificationView',
+    mixins: [Backbone.Events],
 
-    events: {
-      "click .close": "dismiss"
-    },
-
-    dismiss: function(event) {
-      event.preventDefault();
-      this.$el.addClass("fade-out");
-      setTimeout(function() {
-        this.collection.remove(this.model);
-        this.remove();
-      }.bind(this), 500); 
+    propTypes: {
+      notification: React.PropTypes.object.isRequired,
+      key: React.PropTypes.number.isRequired
     },
 
     render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
+      var notification = this.props.notification;
+      return (
+        React.DOM.div({key: this.props.key, 
+             className: "alert alert-" + notification.get("level")}, 
+          React.DOM.span({className: "message"}, notification.get("message"))
+        )
+      );
     }
   });
 
   
 
 
-  var NotificationListView = Backbone.View.extend({
-    
+  var NotificationListView = React.createClass({displayName: 'NotificationListView',
+    mixins: [Backbone.Events],
 
-
-
-
-
-
-
-
-    initialize: function(options) {
-      options = options || {};
-      if (!options.collection) {
-        this.collection = new sharedModels.NotificationCollection();
-      }
-      this.listenTo(this.collection, "reset add remove", this.render);
+    propTypes: {
+      notifications: React.PropTypes.object.isRequired
     },
 
-    
-
-
-    clear: function() {
-      this.collection.reset();
+    componentDidMount: function() {
+      this.listenTo(this.props.notifications, "reset add remove", function() {
+        this.forceUpdate();
+      }.bind(this));
     },
 
-    
-
-
-
-
-    notify: function(notification) {
-      this.collection.add(notification);
+    componentWillUnmount: function() {
+      this.stopListening(this.props.notifications);
     },
-
-    
-
-
-
-
-
-
-    notifyL10n: function(messageId, level) {
-      this.notify({
-        message: l10n.get(messageId),
-        level: level
-      });
-    },
-
-    
-
-
-
-
-    warn: function(message) {
-      this.notify({level: "warning", message: message});
-    },
-
-    
-
-
-
-
-    warnL10n: function(messageId) {
-      this.warn(l10n.get(messageId));
-    },
-
-    
-
-
-
-
-    error: function(message) {
-      this.notify({level: "error", message: message});
-    },
-
-    
-
-
-
-
-    errorL10n: function(messageId) {
-      this.error(l10n.get(messageId));
-    },
-
-    
-
-
-
 
     render: function() {
-      this.$el.html(this.collection.map(function(notification) {
-        return new NotificationView({
-          model: notification,
-          collection: this.collection
-        }).render().$el;
-      }.bind(this)));
-      return this;
+      return (
+        React.DOM.div({id: "messages"}, 
+          this.props.notifications.map(function(notification, key) {
+            return NotificationView({key: key, notification: notification});
+          })
+        
+        )
+      );
     }
   });
 
@@ -817,7 +739,6 @@ loop.shared.views = (function(_, OT, l10n) {
     FeedbackView: FeedbackView,
     MediaControlButton: MediaControlButton,
     NotificationListView: NotificationListView,
-    NotificationView: NotificationView,
     UnsupportedBrowserView: UnsupportedBrowserView,
     UnsupportedDeviceView: UnsupportedDeviceView
   };
