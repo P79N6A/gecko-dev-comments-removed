@@ -2097,7 +2097,7 @@ def methodLength(method):
 def isMaybeExposedIn(member, descriptor):
     
     
-    return not descriptor.workers or member.exposureSet != set(["Window"])
+    return not descriptor.workers or member.isExposedInAnyWorker()
 
 def clearableCachedAttrs(descriptor):
     return (m for m in descriptor.interface.members if
