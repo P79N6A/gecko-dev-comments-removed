@@ -22,7 +22,6 @@
 #include <speex/speex_resampler.h>
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "DOMMediaStream.h"
-#include "AudioContext.h"
 
 class nsIRunnable;
 
@@ -319,7 +318,6 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
   explicit MediaStream(DOMMediaStream* aWrapper);
-  virtual dom::AudioContext::AudioContextId AudioContextId() const { return 0; }
 
 protected:
   
@@ -366,8 +364,6 @@ public:
   
   
   virtual void ChangeExplicitBlockerCount(int32_t aDelta);
-  void BlockStreamIfNeeded();
-  void UnblockStreamIfNeeded();
   
   virtual void AddListener(MediaStreamListener* aListener);
   virtual void RemoveListener(MediaStreamListener* aListener);
@@ -468,22 +464,6 @@ public:
   void ChangeExplicitBlockerCountImpl(GraphTime aTime, int32_t aDelta)
   {
     mExplicitBlockerCount.SetAtAndAfter(aTime, mExplicitBlockerCount.GetAt(aTime) + aDelta);
-  }
-  void BlockStreamIfNeededImpl(GraphTime aTime)
-  {
-    bool blocked = mExplicitBlockerCount.GetAt(aTime) > 0;
-    if (blocked) {
-      return;
-    }
-    ChangeExplicitBlockerCountImpl(aTime, 1);
-  }
-  void UnblockStreamIfNeededImpl(GraphTime aTime)
-  {
-    bool blocked = mExplicitBlockerCount.GetAt(aTime) > 0;
-    if (!blocked) {
-      return;
-    }
-    ChangeExplicitBlockerCountImpl(aTime, -1);
   }
   void AddListenerImpl(already_AddRefed<MediaStreamListener> aListener);
   void RemoveListenerImpl(MediaStreamListener* aListener);
@@ -1246,21 +1226,6 @@ public:
   AudioNodeExternalInputStream*
   CreateAudioNodeExternalInputStream(AudioNodeEngine* aEngine,
                                      TrackRate aSampleRate = 0);
-
-  
-
-  void NotifyWhenGraphStarted(AudioNodeStream* aNodeStream);
-  
-
-
-
-
-
-
-
-  void ApplyAudioContextOperation(AudioNodeStream* aNodeStream,
-                                  dom::AudioContextOperation aState,
-                                  void * aPromise);
 
   bool IsNonRealtime() const;
   
