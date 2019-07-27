@@ -554,16 +554,22 @@ var DebuggerServer = {
 
 
 
-  openListener: function(portOrPath) {
+
+
+  createListener: function() {
     if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
-      return;
+      throw new Error("Can't create listener, remote debugging disabled");
     }
     this._checkInit();
+    return DebuggerSocket.createListener();
+  },
 
-    let listener = DebuggerSocket.createListener();
-    listener.open(portOrPath);
+  
+
+
+
+  _addListener: function(listener) {
     this._listeners.push(listener);
-    return listener;
   },
 
   

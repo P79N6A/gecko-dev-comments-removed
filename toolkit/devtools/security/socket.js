@@ -108,12 +108,39 @@ SocketListener.prototype = {
 
   
 
+  
 
 
 
 
 
-  open: function(portOrPath) {
+  portOrPath: null,
+
+  
+
+
+
+
+
+
+  allowConnection: SocketListener.defaultAllowConnection,
+
+  
+
+
+  _validateOptions: function() {
+    if (this.portOrPath === null) {
+      throw new Error("Must set a port / path to listen on.");
+    }
+  },
+
+  
+
+
+  open: function() {
+    this._validateOptions();
+    DebuggerServer._addListener(this);
+
     let flags = Ci.nsIServerSocket.KeepWhenOffline;
     
     if (Services.prefs.getBoolPref("devtools.debugger.force-local")) {
@@ -122,11 +149,11 @@ SocketListener.prototype = {
 
     try {
       let backlog = 4;
-      let port = Number(portOrPath);
+      let port = Number(this.portOrPath);
       if (port) {
         this._socket = new ServerSocket(port, flags, backlog);
       } else {
-        let file = nsFile(portOrPath);
+        let file = nsFile(this.portOrPath);
         if (file.exists())
           file.remove(false);
         this._socket = new UnixDomainServerSocket(file, parseInt("666", 8),
@@ -134,7 +161,9 @@ SocketListener.prototype = {
       }
       this._socket.asyncListen(this);
     } catch (e) {
-      dumpn("Could not start debugging listener on '" + portOrPath + "': " + e);
+      dumpn("Could not start debugging listener on '" + this.portOrPath +
+            "': " + e);
+      this.close();
       throw Cr.NS_ERROR_NOT_AVAILABLE;
     }
   },
@@ -144,7 +173,10 @@ SocketListener.prototype = {
 
 
   close: function() {
-    this._socket.close();
+    if (this._socket) {
+      this._socket.close();
+      this._socket = null;
+    }
     DebuggerServer._removeListener(this);
   },
 
@@ -158,15 +190,6 @@ SocketListener.prototype = {
     }
     return this._socket.port;
   },
-
-  
-
-
-
-
-
-
-  allowConnection: SocketListener.defaultAllowConnection,
 
   
 
