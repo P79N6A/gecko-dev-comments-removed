@@ -449,6 +449,13 @@ var BrowserApp = {
     if (this._startupStatus)
       this.onAppUpdated();
 
+    if (this.isGuest) {
+      
+      Services.prefs.setIntPref("extensions.enabledScopes", 1);
+      Services.prefs.setIntPref("extensions.autoDisableScopes", 1);
+      Services.prefs.setBoolPref("xpinstall.enabled", false);
+    }
+
     
     sendMessageToJava({ type: "Gecko:Ready" });
   },
