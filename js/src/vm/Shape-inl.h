@@ -24,7 +24,7 @@
 namespace js {
 
 inline
-StackBaseShape::StackBaseShape(ThreadSafeContext *cx, const Class *clasp,
+StackBaseShape::StackBaseShape(ExclusiveContext *cx, const Class *clasp,
                                JSObject *parent, JSObject *metadata, uint32_t objectFlags)
   : flags(objectFlags),
     clasp(clasp),
@@ -53,33 +53,6 @@ Shape::search(ExclusiveContext *cx, jsid id)
 {
     Shape **_;
     return search(cx, this, id, &_);
-}
-
-inline Shape *
-Shape::searchThreadLocal(ThreadSafeContext *cx, Shape *start, jsid id,
-                         Shape ***pspp, bool adding)
-{
-    
-
-
-
-
-
-
-
-
-
-
-    MOZ_ASSERT_IF(adding, cx->isThreadLocal(start) && start->inDictionary());
-
-    if (start->inDictionary()) {
-        *pspp = start->table().search(id, adding);
-        return SHAPE_FETCH(*pspp);
-    }
-
-    *pspp = nullptr;
-
-    return searchNoHashify(start, id);
 }
 
 inline bool
@@ -206,7 +179,7 @@ EmptyShape::ensureInitialCustomShape(ExclusiveContext *cx, Handle<ObjectSubclass
 }
 
 inline
-AutoRooterGetterSetter::Inner::Inner(ThreadSafeContext *cx, uint8_t attrs,
+AutoRooterGetterSetter::Inner::Inner(ExclusiveContext *cx, uint8_t attrs,
                                      PropertyOp *pgetter_, StrictPropertyOp *psetter_)
   : CustomAutoRooter(cx), attrs(attrs),
     pgetter(pgetter_), psetter(psetter_)
@@ -216,7 +189,7 @@ AutoRooterGetterSetter::Inner::Inner(ThreadSafeContext *cx, uint8_t attrs,
 }
 
 inline
-AutoRooterGetterSetter::AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t attrs,
+AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
                                                PropertyOp *pgetter, StrictPropertyOp *psetter
                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 {
@@ -226,7 +199,7 @@ AutoRooterGetterSetter::AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t at
 }
 
 inline
-AutoRooterGetterSetter::AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t attrs,
+AutoRooterGetterSetter::AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
                                                JSNative *pgetter, JSNative *psetter
                                                MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
 {

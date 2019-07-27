@@ -318,7 +318,7 @@ PropDesc::trace(JSTracer *trc)
 }
 
  inline bool
-NativeObject::updateSlotsForSpan(ThreadSafeContext *cx,
+NativeObject::updateSlotsForSpan(ExclusiveContext *cx,
                                  HandleNativeObject obj, size_t oldSpan, size_t newSpan)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
@@ -348,7 +348,7 @@ NativeObject::updateSlotsForSpan(ThreadSafeContext *cx,
 }
 
  bool
-NativeObject::setLastProperty(ThreadSafeContext *cx, HandleNativeObject obj, HandleShape shape)
+NativeObject::setLastProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleShape shape)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT(!obj->inDictionaryMode());
@@ -391,7 +391,7 @@ NativeObject::setLastPropertyShrinkFixedSlots(Shape *shape)
 }
 
  bool
-NativeObject::setSlotSpan(ThreadSafeContext *cx, HandleNativeObject obj, uint32_t span)
+NativeObject::setSlotSpan(ExclusiveContext *cx, HandleNativeObject obj, uint32_t span)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT(obj->inDictionaryMode());
@@ -410,7 +410,7 @@ NativeObject::setSlotSpan(ThreadSafeContext *cx, HandleNativeObject obj, uint32_
 
 
 static HeapSlot *
-AllocateSlots(ThreadSafeContext *cx, JSObject *obj, uint32_t nslots)
+AllocateSlots(ExclusiveContext *cx, JSObject *obj, uint32_t nslots)
 {
     if (cx->isJSContext())
         return cx->asJSContext()->runtime()->gc.nursery.allocateSlots(obj, nslots);
@@ -422,7 +422,7 @@ AllocateSlots(ThreadSafeContext *cx, JSObject *obj, uint32_t nslots)
 
 
 static HeapSlot *
-ReallocateSlots(ThreadSafeContext *cx, JSObject *obj, HeapSlot *oldSlots,
+ReallocateSlots(ExclusiveContext *cx, JSObject *obj, HeapSlot *oldSlots,
                 uint32_t oldCount, uint32_t newCount)
 {
     if (cx->isJSContext()) {
@@ -433,7 +433,7 @@ ReallocateSlots(ThreadSafeContext *cx, JSObject *obj, HeapSlot *oldSlots,
 }
 
  bool
-NativeObject::growSlots(ThreadSafeContext *cx, HandleNativeObject obj, uint32_t oldCount, uint32_t newCount)
+NativeObject::growSlots(ExclusiveContext *cx, HandleNativeObject obj, uint32_t oldCount, uint32_t newCount)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
     MOZ_ASSERT(newCount > oldCount);
@@ -467,7 +467,7 @@ NativeObject::growSlots(ThreadSafeContext *cx, HandleNativeObject obj, uint32_t 
 }
 
 static void
-FreeSlots(ThreadSafeContext *cx, HeapSlot *slots)
+FreeSlots(ExclusiveContext *cx, HeapSlot *slots)
 {
     
     if (cx->isJSContext())
@@ -476,7 +476,7 @@ FreeSlots(ThreadSafeContext *cx, HeapSlot *slots)
 }
 
  void
-NativeObject::shrinkSlots(ThreadSafeContext *cx, HandleNativeObject obj,
+NativeObject::shrinkSlots(ExclusiveContext *cx, HandleNativeObject obj,
                           uint32_t oldCount, uint32_t newCount)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
@@ -700,7 +700,7 @@ NativeObject::maybeDensifySparseElements(js::ExclusiveContext *cx, HandleNativeO
 
 
 static ObjectElements *
-AllocateElements(ThreadSafeContext *cx, JSObject *obj, uint32_t nelems)
+AllocateElements(ExclusiveContext *cx, JSObject *obj, uint32_t nelems)
 {
     if (cx->isJSContext())
         return cx->asJSContext()->runtime()->gc.nursery.allocateElements(obj, nelems);
@@ -710,7 +710,7 @@ AllocateElements(ThreadSafeContext *cx, JSObject *obj, uint32_t nelems)
 
 
 static ObjectElements *
-ReallocateElements(ThreadSafeContext *cx, JSObject *obj, ObjectElements *oldHeader,
+ReallocateElements(ExclusiveContext *cx, JSObject *obj, ObjectElements *oldHeader,
                    uint32_t oldCount, uint32_t newCount)
 {
     if (cx->isJSContext()) {
@@ -808,7 +808,7 @@ NativeObject::goodAllocated(uint32_t reqAllocated, uint32_t length = 0)
 }
 
 bool
-NativeObject::growElements(ThreadSafeContext *cx, uint32_t reqCapacity)
+NativeObject::growElements(ExclusiveContext *cx, uint32_t reqCapacity)
 {
     MOZ_ASSERT(nonProxyIsExtensible());
     MOZ_ASSERT(canHaveNonEmptyElements());
@@ -872,7 +872,7 @@ NativeObject::growElements(ThreadSafeContext *cx, uint32_t reqCapacity)
 }
 
 void
-NativeObject::shrinkElements(ThreadSafeContext *cx, uint32_t reqCapacity)
+NativeObject::shrinkElements(ExclusiveContext *cx, uint32_t reqCapacity)
 {
     MOZ_ASSERT(cx->isThreadLocal(this));
     MOZ_ASSERT(canHaveNonEmptyElements());
@@ -906,7 +906,7 @@ NativeObject::shrinkElements(ThreadSafeContext *cx, uint32_t reqCapacity)
 }
 
  bool
-NativeObject::CopyElementsForWrite(ThreadSafeContext *cx, NativeObject *obj)
+NativeObject::CopyElementsForWrite(ExclusiveContext *cx, NativeObject *obj)
 {
     MOZ_ASSERT(obj->denseElementsAreCopyOnWrite());
 
@@ -940,7 +940,7 @@ NativeObject::CopyElementsForWrite(ThreadSafeContext *cx, NativeObject *obj)
 }
 
  bool
-NativeObject::allocSlot(ThreadSafeContext *cx, HandleNativeObject obj, uint32_t *slotp)
+NativeObject::allocSlot(ExclusiveContext *cx, HandleNativeObject obj, uint32_t *slotp)
 {
     MOZ_ASSERT(cx->isThreadLocal(obj));
 
@@ -1033,18 +1033,13 @@ NativeObject::addDataProperty(ExclusiveContext *cx, HandlePropertyName name,
 
 
 
-template <ExecutionMode mode>
 static inline bool
-CallAddPropertyHook(typename ExecutionModeTraits<mode>::ExclusiveContextType cxArg,
-                    HandleNativeObject obj, HandleShape shape, HandleValue nominal)
+CallAddPropertyHook(ExclusiveContext *cx, HandleNativeObject obj, HandleShape shape,
+                    HandleValue nominal)
 {
     if (JSPropertyOp addProperty = obj->getClass()->addProperty) {
         MOZ_ASSERT(addProperty != JS_PropertyStub);
 
-        if (mode == ParallelExecution)
-            return false;
-
-        ExclusiveContext *cx = cxArg->asExclusiveContext();
         if (!cx->shouldBeJSContext())
             return false;
 
@@ -1064,35 +1059,22 @@ CallAddPropertyHook(typename ExecutionModeTraits<mode>::ExclusiveContextType cxA
     return true;
 }
 
-template <ExecutionMode mode>
 static inline bool
-CallAddPropertyHookDense(typename ExecutionModeTraits<mode>::ExclusiveContextType cxArg,
-                         HandleNativeObject obj, uint32_t index, HandleValue nominal)
+CallAddPropertyHookDense(ExclusiveContext *cx, HandleNativeObject obj, uint32_t index,
+                         HandleValue nominal)
 {
     
     if (obj->is<ArrayObject>()) {
         ArrayObject *arr = &obj->as<ArrayObject>();
         uint32_t length = arr->length();
-        if (index >= length) {
-            if (mode == ParallelExecution) {
-                
-                if (length > INT32_MAX)
-                    return false;
-                arr->setLengthInt32(index + 1);
-            } else {
-                arr->setLength(cxArg->asExclusiveContext(), index + 1);
-            }
-        }
+        if (index >= length)
+            arr->setLength(cx, index + 1);
         return true;
     }
 
     if (JSPropertyOp addProperty = obj->getClass()->addProperty) {
         MOZ_ASSERT(addProperty != JS_PropertyStub);
 
-        if (mode == ParallelExecution)
-            return false;
-
-        ExclusiveContext *cx = cxArg->asExclusiveContext();
         if (!cx->shouldBeJSContext())
             return false;
 
@@ -1114,19 +1096,12 @@ CallAddPropertyHookDense(typename ExecutionModeTraits<mode>::ExclusiveContextTyp
     return true;
 }
 
-template <ExecutionMode mode>
 static bool
-UpdateShapeTypeAndValue(typename ExecutionModeTraits<mode>::ExclusiveContextType cx,
-                        NativeObject *obj, Shape *shape, const Value &value)
+UpdateShapeTypeAndValue(ExclusiveContext *cx, NativeObject *obj, Shape *shape, const Value &value)
 {
     jsid id = shape->propid();
     if (shape->hasSlot()) {
-        if (mode == ParallelExecution) {
-            if (!obj->setSlotIfHasType(shape, value,  false))
-                return false;
-        } else {
-            obj->setSlotWithType(cx->asExclusiveContext(), shape, value,  false);
-        }
+        obj->setSlotWithType(cx, shape, value,  false);
 
         
         
@@ -1136,35 +1111,19 @@ UpdateShapeTypeAndValue(typename ExecutionModeTraits<mode>::ExclusiveContextType
                 obj->setType(newScript->initializedType());
         }
     }
-    if (!shape->hasSlot() || !shape->hasDefaultGetter() || !shape->hasDefaultSetter()) {
-        if (mode == ParallelExecution) {
-            if (!types::IsTypePropertyIdMarkedNonData(obj, id))
-                return false;
-        } else {
-            types::MarkTypePropertyNonData(cx->asExclusiveContext(), obj, id);
-        }
-    }
-    if (!shape->writable()) {
-        if (mode == ParallelExecution) {
-            if (!types::IsTypePropertyIdMarkedNonWritable(obj, id))
-                return false;
-        } else {
-            types::MarkTypePropertyNonWritable(cx->asExclusiveContext(), obj, id);
-        }
-    }
+    if (!shape->hasSlot() || !shape->hasDefaultGetter() || !shape->hasDefaultSetter())
+        types::MarkTypePropertyNonData(cx, obj, id);
+    if (!shape->writable())
+        types::MarkTypePropertyNonWritable(cx, obj, id);
     return true;
 }
 
-template <ExecutionMode mode>
 static bool
-NativeSet(typename ExecutionModeTraits<mode>::ContextType cx,
-          HandleNativeObject obj, HandleObject receiver,
+NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
           HandleShape shape, bool strict, MutableHandleValue vp);
 
-template <ExecutionMode mode>
 static inline bool
-DefinePropertyOrElement(typename ExecutionModeTraits<mode>::ExclusiveContextType cx,
-                        HandleNativeObject obj, HandleId id,
+DefinePropertyOrElement(ExclusiveContext *cx, HandleNativeObject obj, HandleId id,
                         PropertyOp getter, StrictPropertyOp setter,
                         unsigned attrs, HandleValue value,
                         bool callSetterAfterwards, bool setterIsStrict)
@@ -1188,34 +1147,22 @@ DefinePropertyOrElement(typename ExecutionModeTraits<mode>::ExclusiveContextType
             return true;
 
         NativeObject::EnsureDenseResult result;
-        if (mode == ParallelExecution) {
-            if (obj->writeToIndexWouldMarkNotPacked(index))
-                return false;
-            result = obj->ensureDenseElementsPreservePackedFlag(cx, index, 1);
-        } else {
-            result = obj->ensureDenseElements(cx->asExclusiveContext(), index, 1);
-        }
+        result = obj->ensureDenseElements(cx, index, 1);
 
         if (result == NativeObject::ED_FAILED)
             return false;
         if (result == NativeObject::ED_OK) {
-            if (mode == ParallelExecution) {
-                if (!obj->setDenseElementIfHasType(index, value))
-                    return false;
-            } else {
-                obj->setDenseElementWithType(cx->asExclusiveContext(), index, value);
-            }
-            return CallAddPropertyHookDense<mode>(cx, obj, index, value);
+            obj->setDenseElementWithType(cx, index, value);
+            return CallAddPropertyHookDense(cx, obj, index, value);
         }
     }
 
     if (obj->is<ArrayObject>()) {
         Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
         if (id == NameToId(cx->names().length)) {
-            if (mode == SequentialExecution && !cx->shouldBeJSContext())
+            if (!cx->shouldBeJSContext())
                 return false;
-            return ArraySetLength<mode>(ExecutionModeTraits<mode>::toContextType(cx), arr, id,
-                                        attrs, value, setterIsStrict);
+            return ArraySetLength(cx->asJSContext(), arr, id, attrs, value, setterIsStrict);
         }
 
         uint32_t index;
@@ -1236,12 +1183,12 @@ DefinePropertyOrElement(typename ExecutionModeTraits<mode>::ExclusiveContextType
     }
 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
-    RootedShape shape(cx, NativeObject::putProperty<mode>(cx, obj, id, getter, setter,
-                                                          SHAPE_INVALID_SLOT, attrs, 0));
+    RootedShape shape(cx, NativeObject::putProperty(cx, obj, id, getter, setter,
+                                                    SHAPE_INVALID_SLOT, attrs, 0));
     if (!shape)
         return false;
 
-    if (!UpdateShapeTypeAndValue<mode>(cx, obj, shape, value))
+    if (!UpdateShapeTypeAndValue(cx, obj, shape, value))
         return false;
 
     
@@ -1249,33 +1196,28 @@ DefinePropertyOrElement(typename ExecutionModeTraits<mode>::ExclusiveContextType
 
 
     if (JSID_IS_INT(id)) {
-        if (mode == ParallelExecution)
-            return false;
-
         if (!obj->maybeCopyElementsForWrite(cx))
             return false;
 
-        ExclusiveContext *ncx = cx->asExclusiveContext();
         uint32_t index = JSID_TO_INT(id);
-        NativeObject::removeDenseElementForSparseIndex(ncx, obj, index);
-        NativeObject::EnsureDenseResult result = NativeObject::maybeDensifySparseElements(ncx, obj);
+        NativeObject::removeDenseElementForSparseIndex(cx, obj, index);
+        NativeObject::EnsureDenseResult result = NativeObject::maybeDensifySparseElements(cx, obj);
         if (result == NativeObject::ED_FAILED)
             return false;
         if (result == NativeObject::ED_OK) {
             MOZ_ASSERT(!setter);
-            return CallAddPropertyHookDense<mode>(cx, obj, index, value);
+            return CallAddPropertyHookDense(cx, obj, index, value);
         }
     }
 
-    if (!CallAddPropertyHook<mode>(cx, obj, shape, value))
+    if (!CallAddPropertyHook(cx, obj, shape, value))
         return false;
 
     if (callSetterAfterwards && setter) {
         if (!cx->shouldBeJSContext())
             return false;
         RootedValue nvalue(cx, value);
-        return NativeSet<mode>(ExecutionModeTraits<mode>::toContextType(cx),
-                               obj, obj, shape, setterIsStrict, &nvalue);
+        return NativeSet(cx->asJSContext(), obj, obj, shape, setterIsStrict, &nvalue);
     }
     return true;
 }
@@ -1432,14 +1374,14 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
                 if (!CheckAccessorRedefinition(cx, obj, shape, getter, setter, id, attrs))
                     return false;
                 attrs = ApplyOrDefaultAttributes(attrs, shape);
-                shape = NativeObject::changeProperty<SequentialExecution>(cx, obj, shape, attrs,
-                                                                          JSPROP_GETTER | JSPROP_SETTER,
-                                                                          (attrs & JSPROP_GETTER)
-                                                                          ? getter
-                                                                          : shape->getter(),
-                                                                          (attrs & JSPROP_SETTER)
-                                                                          ? setter
-                                                                          : shape->setter());
+                shape = NativeObject::changeProperty(cx, obj, shape, attrs,
+                                                     JSPROP_GETTER | JSPROP_SETTER,
+                                                     (attrs & JSPROP_GETTER)
+                                                     ? getter
+                                                     : shape->getter(),
+                                                     (attrs & JSPROP_SETTER)
+                                                     ? setter
+                                                     : shape->setter());
                 if (!shape)
                     return false;
                 shouldDefine = false;
@@ -1507,8 +1449,8 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
 
             
             unsigned attrMask = ~(JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT);
-            shape = NativeObject::changeProperty<SequentialExecution>(cx, obj, shape, attrs, attrMask,
-                                                                      shape->getter(), shape->setter());
+            shape = NativeObject::changeProperty(cx, obj, shape, attrs, attrMask,
+                                                 shape->getter(), shape->setter());
             if (!shape)
                 return false;
             if (shape->hasSlot())
@@ -1529,15 +1471,15 @@ js::DefineNativeProperty(ExclusiveContext *cx, HandleNativeObject obj, HandleId 
         
         
         attrs = ApplyOrDefaultAttributes(attrs) & ~JSPROP_IGNORE_VALUE;
-        return DefinePropertyOrElement<SequentialExecution>(cx, obj, id, getter, setter,
-                                                            attrs, value, false, false);
+        return DefinePropertyOrElement(cx, obj, id, getter, setter,
+                                       attrs, value, false, false);
     }
 
     MOZ_ASSERT(shape);
 
-    JS_ALWAYS_TRUE(UpdateShapeTypeAndValue<SequentialExecution>(cx, obj, shape, updateValue));
+    JS_ALWAYS_TRUE(UpdateShapeTypeAndValue(cx, obj, shape, updateValue));
 
-    return CallAddPropertyHook<SequentialExecution>(cx, obj, shape, updateValue);
+    return CallAddPropertyHook(cx, obj, shape, updateValue);
 }
 
 static bool
@@ -1904,11 +1846,9 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 
 
 
-template <ExecutionMode mode>
 static bool
-SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                      HandleNativeObject obj, HandleObject receiver, HandleId id,
-                      HandleValue v, bool strict, bool objHasOwn)
+SetPropertyByDefining(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
+                      HandleId id, HandleValue v, bool strict, bool objHasOwn)
 {
     
     
@@ -1922,23 +1862,13 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
         
         
         
-        if (mode == SequentialExecution) {
-            if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
-                return false;
-            MOZ_ASSERT(existing == objHasOwn);
-        }
+        if (!HasOwnProperty(cx, receiver, id, &existing))
+            return false;
+        MOZ_ASSERT(existing == objHasOwn);
 #endif
         existing = objHasOwn;
-    } else if (mode == ParallelExecution) {
-        
-        
-        NativeObject *npobj;
-        Shape *shape;
-        if (!LookupPropertyPure(cxArg, receiver, id, &npobj, &shape))
-            return false;
-        existing = (npobj == receiver);
     } else {
-        if (!HasOwnProperty(cxArg->asJSContext(), receiver, id, &existing))
+        if (!HasOwnProperty(cx, receiver, id, &existing))
             return false;
     }
 
@@ -1947,41 +1877,25 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
     
     if (!existing) {
         bool extensible;
-        if (mode == ParallelExecution) {
-            if (receiver->is<ProxyObject>())
-                return false;
-            extensible = receiver->nonProxyIsExtensible();
-        } else {
-            if (!JSObject::isExtensible(cxArg->asJSContext(), receiver, &extensible))
-                return false;
-        }
+        if (!JSObject::isExtensible(cx, receiver, &extensible))
+            return false;
         if (!extensible) {
             
             
             if (strict)
-                return receiver->reportNotExtensible(cxArg);
-            if (mode == SequentialExecution &&
-                cxArg->asJSContext()->compartment()->options().extraWarnings(cxArg->asJSContext()))
-            {
-                return receiver->reportNotExtensible(cxArg, JSREPORT_STRICT | JSREPORT_WARNING);
-            }
+                return receiver->reportNotExtensible(cx);
+            if (cx->compartment()->options().extraWarnings(cx))
+                return receiver->reportNotExtensible(cx, JSREPORT_STRICT | JSREPORT_WARNING);
             return true;
         }
     }
 
     
     const Class *clasp = receiver->getClass();
-    if (mode == ParallelExecution) {
-        if (receiver->isDelegate())
-            return false;
 
-        if (clasp->getProperty || !types::HasTypePropertyId(receiver, id, v))
-            return false;
-    } else {
-        
-        if (!PurgeScopeChain(cxArg->asJSContext(), receiver, id))
-            return false;
-    }
+    
+    if (!PurgeScopeChain(cx, receiver, id))
+        return false;
 
     
     unsigned attrs =
@@ -1992,15 +1906,11 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
     JSStrictPropertyOp setter = clasp->setProperty;
     MOZ_ASSERT(getter != JS_PropertyStub);
     MOZ_ASSERT(setter != JS_StrictPropertyStub);
-    if (!receiver->is<NativeObject>()) {
-        if (mode == ParallelExecution)
-            return false;
-        return JSObject::defineGeneric(cxArg->asJSContext(), receiver, id, v, getter, setter,
-                                       attrs);
-    }
-    Rooted<NativeObject*> nativeReceiver(cxArg, &receiver->as<NativeObject>());
-    return DefinePropertyOrElement<mode>(cxArg, nativeReceiver, id, getter, setter,
-                                         attrs, v, true, strict);
+    if (!receiver->is<NativeObject>())
+        return JSObject::defineGeneric(cx, receiver, id, v, getter, setter, attrs);
+
+    Rooted<NativeObject*> nativeReceiver(cx, &receiver->as<NativeObject>());
+    return DefinePropertyOrElement(cx, nativeReceiver, id, getter, setter, attrs, v, true, strict);
 }
 
 
@@ -2012,49 +1922,33 @@ SetPropertyByDefining(typename ExecutionModeTraits<mode>::ContextType cxArg,
 
 
 
-template <ExecutionMode mode>
 static bool
-SetNonexistentProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                       HandleNativeObject obj, HandleObject receiver, HandleId id,
+SetNonexistentProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver, HandleId id,
                        baseops::QualifiedBool qualified, HandleValue v, bool strict)
 {
     
     MOZ_ASSERT(!receiver->is<BlockObject>());
 
     if (receiver->isUnqualifiedVarObj() && !qualified) {
-        if (mode == ParallelExecution)
-            return false;
-
-        if (!MaybeReportUndeclaredVarAssignment(cxArg->asJSContext(), JSID_TO_STRING(id)))
+        if (!MaybeReportUndeclaredVarAssignment(cx, JSID_TO_STRING(id)))
             return false;
     }
 
-    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, v, strict, false);
+    return SetPropertyByDefining(cx, obj, receiver, id, v, strict, false);
 }
 
 
 
 
 
-template <ExecutionMode mode>
 static bool
-SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                            HandleNativeObject obj, uint32_t index, MutableHandleValue vp,
-                            bool strict)
+SetDenseOrTypedArrayElement(JSContext *cx, HandleNativeObject obj, uint32_t index,
+                            MutableHandleValue vp, bool strict)
 {
     if (IsAnyTypedArray(obj)) {
         double d;
-        if (mode == ParallelExecution) {
-            
-            
-            if (vp.isObject())
-                return false;
-            if (!NonObjectToNumber(cxArg, vp, &d))
-                return false;
-        } else {
-            if (!ToNumber(cxArg->asJSContext(), vp, &d))
-                return false;
-        }
+        if (!ToNumber(cx, vp, &d))
+            return false;
 
         
         
@@ -2070,22 +1964,15 @@ SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxAr
     }
 
     bool definesPast;
-    if (!WouldDefinePastNonwritableLength(cxArg, obj, index, strict, &definesPast))
+    if (!WouldDefinePastNonwritableLength(cx, obj, index, strict, &definesPast))
         return false;
-    if (definesPast) {
-        
-        if (mode == ParallelExecution)
-            return !strict;
+    if (definesPast)
         return true;
-    }
 
-    if (!obj->maybeCopyElementsForWrite(cxArg))
+    if (!obj->maybeCopyElementsForWrite(cx))
         return false;
 
-    if (mode == ParallelExecution)
-        return obj->setDenseElementIfHasType(index, vp);
-
-    obj->setDenseElementWithType(cxArg->asJSContext(), index, vp);
+    obj->setDenseElementWithType(cx, index, vp);
     return true;
 }
 
@@ -2093,35 +1980,23 @@ SetDenseOrTypedArrayElement(typename ExecutionModeTraits<mode>::ContextType cxAr
 
 
 
-template <ExecutionMode mode>
 static bool
-NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObject obj,
-          HandleObject receiver, HandleShape shape, bool strict, MutableHandleValue vp)
+NativeSet(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
+          HandleShape shape, bool strict, MutableHandleValue vp)
 {
-    MOZ_ASSERT(cxArg->isThreadLocal(obj));
     MOZ_ASSERT(obj->isNative());
 
     if (shape->hasSlot()) {
         
         if (shape->hasDefaultSetter()) {
-            if (mode == ParallelExecution) {
-                if (!obj->setSlotIfHasType(shape, vp))
-                    return false;
-            } else {
-                
-                
-                
-                bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
-                obj->setSlotWithType(cxArg->asExclusiveContext(), shape, vp, overwriting);
-            }
-
+            
+            
+            
+            bool overwriting = !obj->is<GlobalObject>() || !obj->getSlot(shape->slot()).isUndefined();
+            obj->setSlotWithType(cx, shape, vp, overwriting);
             return true;
         }
     }
-
-    if (mode == ParallelExecution)
-        return false;
-    JSContext *cx = cxArg->asJSContext();
 
     if (!shape->hasSlot()) {
         
@@ -2161,26 +2036,19 @@ NativeSet(typename ExecutionModeTraits<mode>::ContextType cxArg, HandleNativeObj
 
 
 
-template <ExecutionMode mode>
 static bool
-SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                    HandleNativeObject obj, HandleObject receiver, HandleId id,
+SetExistingProperty(JSContext *cx, HandleNativeObject obj, HandleObject receiver, HandleId id,
                     HandleNativeObject pobj, HandleShape shape, MutableHandleValue vp, bool strict)
 {
     if (IsImplicitDenseOrTypedArrayElement(shape)) {
         
         if (pobj == receiver)
-            return SetDenseOrTypedArrayElement<mode>(cxArg, pobj, JSID_TO_INT(id), vp, strict);
+            return SetDenseOrTypedArrayElement(cx, pobj, JSID_TO_INT(id), vp, strict);
     } else {
         
         if (shape->isAccessorDescriptor()) {
-            if (shape->hasDefaultSetter()) {
-                
-                if (mode == ParallelExecution)
-                    return !strict;
-
-                return js_ReportGetterOnlyAssignment(cxArg->asJSContext(), strict);
-            }
+            if (shape->hasDefaultSetter())
+                return js_ReportGetterOnlyAssignment(cx, strict);
         } else {
             MOZ_ASSERT(shape->isDataDescriptor());
 
@@ -2190,11 +2058,6 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
 
 
 
-
-                if (mode == ParallelExecution)
-                    return !strict;
-
-                JSContext *cx = cxArg->asJSContext();
                 if (strict)
                     return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
                 if (cx->compartment()->options().extraWarnings(cx))
@@ -2204,46 +2067,36 @@ SetExistingProperty(typename ExecutionModeTraits<mode>::ContextType cxArg,
         }
 
         if (pobj == receiver) {
-            if (pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)) {
-                Rooted<ArrayObject*> arr(cxArg, &pobj->as<ArrayObject>());
-                return ArraySetLength<mode>(cxArg, arr, id, shape->attributes(), vp, strict);
+            if (pobj->is<ArrayObject>() && id == NameToId(cx->names().length)) {
+                Rooted<ArrayObject*> arr(cx, &pobj->as<ArrayObject>());
+                return ArraySetLength(cx, arr, id, shape->attributes(), vp, strict);
             }
-            return NativeSet<mode>(cxArg, obj, receiver, shape, strict, vp);
+            return NativeSet(cx, obj, receiver, shape, strict, vp);
         }
 
         
         if (!shape->shadowable() &&
-            !(pobj->is<ArrayObject>() && id == NameToId(cxArg->names().length)))
+            !(pobj->is<ArrayObject>() && id == NameToId(cx->names().length)))
         {
             
             if (shape->hasDefaultSetter() && !shape->hasGetterValue())
                 return true;
 
-            
-            if (mode == ParallelExecution)
-                return false;
-            return shape->set(cxArg->asJSContext(), obj, receiver, strict, vp);
+            return shape->set(cx, obj, receiver, strict, vp);
         }
     }
 
     
-    return SetPropertyByDefining<mode>(cxArg, obj, receiver, id, vp, strict, obj == pobj);
+    return SetPropertyByDefining(cx, obj, receiver, id, vp, strict, obj == pobj);
 }
 
-template <ExecutionMode mode>
 bool
-baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                           HandleNativeObject obj, HandleObject receiver, HandleId id,
-                           QualifiedBool qualified, MutableHandleValue vp, bool strict)
+baseops::SetPropertyHelper(JSContext *cx, HandleNativeObject obj, HandleObject receiver,
+                           HandleId id, QualifiedBool qualified, MutableHandleValue vp,
+                           bool strict)
 {
-    MOZ_ASSERT(cxArg->isThreadLocal(obj));
-
     
     if (MOZ_UNLIKELY(obj->watched())) {
-        if (mode == ParallelExecution)
-            return false;
-
-        JSContext *cx = cxArg->asJSContext();
         WatchpointMap *wpmap = cx->compartment()->watchpointMap;
         if (wpmap && !wpmap->triggerWatchpoint(cx, obj, id, vp))
             return false;
@@ -2252,37 +2105,24 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
     
     
     
-    RootedShape shape(cxArg);
-    RootedNativeObject pobj(cxArg, obj);
+    RootedShape shape(cx);
+    RootedNativeObject pobj(cx, obj);
 
     
     
     for (;;) {
         
         bool done;
-        if (mode == ParallelExecution) {
-            
-            
-            NativeObject *ancestor;
-            if (!LookupPropertyPure(cxArg, pobj, id, &ancestor, shape.address()))
-                return false;
-            done = true;
-            if (shape)
-                pobj = ancestor;
-        } else {
-            RootedObject ancestor(cxArg);
-            if (!LookupOwnPropertyInline<CanGC>(cxArg->asJSContext(), pobj, id, &ancestor,
-                                                &shape, &done))
-            {
-                return false;
-            }
-            if (!done || ancestor != pobj)
-                shape = nullptr;
-        }
+        RootedObject ancestor(cx);
+        if (!LookupOwnPropertyInline<CanGC>(cx, pobj, id, &ancestor, &shape, &done))
+            return false;
+
+        if (!done || ancestor != pobj)
+            shape = nullptr;
 
         if (shape) {
             
-            return SetExistingProperty<mode>(cxArg, obj, receiver, id, pobj, shape, vp, strict);
+            return SetExistingProperty(cx, obj, receiver, id, pobj, shape, vp, strict);
         }
 
         
@@ -2295,10 +2135,10 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
         
         
         
-        RootedObject proto(cxArg, done ? nullptr : pobj->getProto());
+        RootedObject proto(cx, done ? nullptr : pobj->getProto());
         if (!proto) {
             
-            return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp, strict);
+            return SetNonexistentProperty(cx, obj, receiver, id, qualified, vp, strict);
         }
 
         
@@ -2307,39 +2147,22 @@ baseops::SetPropertyHelper(typename ExecutionModeTraits<mode>::ContextType cxArg
         
         
         if (!proto->isNative()) {
-            if (mode == ParallelExecution)
-                return false;
-
             
             
             
             if (!qualified) {
-                RootedObject pobj(cxArg);
-                if (!JSObject::lookupGeneric(cxArg->asJSContext(), proto, id, &pobj, &shape))
+                RootedObject pobj(cx);
+                if (!JSObject::lookupGeneric(cx, proto, id, &pobj, &shape))
                     return false;
-                if (!shape) {
-                    return SetNonexistentProperty<mode>(cxArg, obj, receiver, id, qualified, vp,
-                                                        strict);
-                }
+                if (!shape)
+                    return SetNonexistentProperty(cx, obj, receiver, id, qualified, vp, strict);
             }
 
-            return JSObject::setGeneric(cxArg->asJSContext(), proto, receiver, id, vp,
-                                        strict);
+            return JSObject::setGeneric(cx, proto, receiver, id, vp, strict);
         }
         pobj = &proto->as<NativeObject>();
     }
 }
-
-template bool
-baseops::SetPropertyHelper<SequentialExecution>(JSContext *cx, HandleNativeObject obj,
-                                                HandleObject receiver, HandleId id,
-                                                QualifiedBool qualified,
-                                                MutableHandleValue vp, bool strict);
-template bool
-baseops::SetPropertyHelper<ParallelExecution>(ForkJoinContext *cx, HandleNativeObject obj,
-                                              HandleObject receiver, HandleId id,
-                                              QualifiedBool qualified,
-                                              MutableHandleValue vp, bool strict);
 
 bool
 baseops::SetElementHelper(JSContext *cx, HandleNativeObject obj, HandleObject receiver, uint32_t index,
@@ -2348,8 +2171,7 @@ baseops::SetElementHelper(JSContext *cx, HandleNativeObject obj, HandleObject re
     RootedId id(cx);
     if (!IndexToId(cx, index, &id))
         return false;
-    return baseops::SetPropertyHelper<SequentialExecution>(cx, obj, receiver, id, Qualified, vp,
-                                                           strict);
+    return baseops::SetPropertyHelper(cx, obj, receiver, id, Qualified, vp, strict);
 }
 
 bool

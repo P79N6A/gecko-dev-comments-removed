@@ -475,7 +475,7 @@ array_length_setter(JSContext *cx, HandleObject obj, HandleId id, bool strict, M
     Rooted<ArrayObject*> arr(cx, &obj->as<ArrayObject>());
     MOZ_ASSERT(arr->lengthIsWritable(),
                "setter shouldn't be called if property is non-writable");
-    return ArraySetLength<SequentialExecution>(cx, arr, id, JSPROP_PERMANENT, vp, strict);
+    return ArraySetLength(cx, arr, id, JSPROP_PERMANENT, vp, strict);
 }
 
 struct ReverseIndexComparator
@@ -487,64 +487,39 @@ struct ReverseIndexComparator
     }
 };
 
-template <ExecutionMode mode>
 bool
-js::CanonicalizeArrayLengthValue(typename ExecutionModeTraits<mode>::ContextType cx,
-                                 HandleValue v, uint32_t *newLen)
+js::CanonicalizeArrayLengthValue(JSContext *cx, HandleValue v, uint32_t *newLen)
 {
     double d;
 
-    if (mode == ParallelExecution) {
-        if (v.isObject())
-            return false;
+    if (!ToUint32(cx, v, newLen))
+        return false;
 
-        if (!NonObjectToUint32(cx, v, newLen))
-            return false;
-
-        if (!NonObjectToNumber(cx, v, &d))
-            return false;
-    } else {
-        if (!ToUint32(cx->asJSContext(), v, newLen))
-            return false;
-
-        if (!ToNumber(cx->asJSContext(), v, &d))
-            return false;
-    }
+    if (!ToNumber(cx, v, &d))
+        return false;
 
     if (d == *newLen)
         return true;
 
-    if (cx->isJSContext())
-        JS_ReportErrorNumber(cx->asJSContext(), js_GetErrorMessage, nullptr,
-                             JSMSG_BAD_ARRAY_LENGTH);
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
     return false;
 }
 
-template bool
-js::CanonicalizeArrayLengthValue<SequentialExecution>(JSContext *cx,
-                                                      HandleValue v, uint32_t *newLen);
-template bool
-js::CanonicalizeArrayLengthValue<ParallelExecution>(ForkJoinContext *cx,
-                                                    HandleValue v, uint32_t *newLen);
 
-
-template <ExecutionMode mode>
 bool
-js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
-                   Handle<ArrayObject*> arr, HandleId id,
+js::ArraySetLength(JSContext *cx, Handle<ArrayObject*> arr, HandleId id,
                    unsigned attrs, HandleValue value, bool setterIsStrict)
 {
-    MOZ_ASSERT(cxArg->isThreadLocal(arr));
-    MOZ_ASSERT(id == NameToId(cxArg->names().length));
+    MOZ_ASSERT(id == NameToId(cx->names().length));
 
-    if (!arr->maybeCopyElementsForWrite(cxArg))
+    if (!arr->maybeCopyElementsForWrite(cx))
         return false;
 
     
 
     
     uint32_t newLen;
-    if (!CanonicalizeArrayLengthValue<mode>(cxArg, value, &newLen))
+    if (!CanonicalizeArrayLengthValue(cx, value, &newLen))
         return false;
 
     
@@ -559,18 +534,14 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
     if (!(attrs & JSPROP_PERMANENT) || (attrs & JSPROP_ENUMERATE)) {
         if (!setterIsStrict)
             return true;
-        
-        
-        if (mode == ParallelExecution)
-            return false;
-        return Throw(cxArg->asJSContext(), id, JSMSG_CANT_REDEFINE_PROP);
+        return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
     }
 
     
     bool lengthIsWritable = arr->lengthIsWritable();
 #ifdef DEBUG
     {
-        RootedShape lengthShape(cxArg, arr->lookupPure(id));
+        RootedShape lengthShape(cx, arr->lookupPure(id));
         MOZ_ASSERT(lengthShape);
         MOZ_ASSERT(lengthShape->writable() == lengthIsWritable);
     }
@@ -583,17 +554,12 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
         if (newLen == oldLen)
             return true;
 
-        if (!cxArg->isJSContext())
-            return false;
-
         if (setterIsStrict) {
-            return JS_ReportErrorFlagsAndNumber(cxArg->asJSContext(),
-                                                JSREPORT_ERROR, js_GetErrorMessage, nullptr,
+            return JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, nullptr,
                                                 JSMSG_CANT_REDEFINE_ARRAY_LENGTH);
         }
 
-        return JSObject::reportReadOnly(cxArg->asJSContext(), id,
-                                        JSREPORT_STRICT | JSREPORT_WARNING);
+        return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
     }
 
     
@@ -615,7 +581,7 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
         
         
         if (!arr->isIndexed()) {
-            if (!arr->maybeCopyElementsForWrite(cxArg))
+            if (!arr->maybeCopyElementsForWrite(cx))
                 return false;
 
             uint32_t oldCapacity = arr->getDenseCapacity();
@@ -624,20 +590,13 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
             if (oldInitializedLength > newLen)
                 arr->setDenseInitializedLength(newLen);
             if (oldCapacity > newLen)
-                arr->shrinkElements(cxArg, newLen);
+                arr->shrinkElements(cx, newLen);
 
             
             
             
             break;
         }
-
-        
-        
-        if (mode == ParallelExecution)
-            return false;
-
-        JSContext *cx = cxArg->asJSContext();
 
         
         
@@ -747,26 +706,15 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
     
     
     
-    RootedShape lengthShape(cxArg, mode == ParallelExecution
-                            ? arr->lookupPure(id)
-                            : arr->lookup(cxArg->asJSContext(), id));
-    if (!NativeObject::changeProperty<mode>(cxArg, arr, lengthShape, attrs,
-                                            JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED,
-                                            array_length_getter, array_length_setter))
+    RootedShape lengthShape(cx, arr->lookup(cx, id));
+    if (!NativeObject::changeProperty(cx, arr, lengthShape, attrs,
+                                      JSPROP_PERMANENT | JSPROP_READONLY | JSPROP_SHARED,
+                                      array_length_getter, array_length_setter))
     {
         return false;
     }
 
-    if (mode == ParallelExecution) {
-        
-        if (newLen > INT32_MAX)
-            return false;
-        arr->setLengthInt32(newLen);
-    } else {
-        JSContext *cx = cxArg->asJSContext();
-        arr->setLength(cx, newLen);
-    }
-
+    arr->setLength(cx, newLen);
 
     
     
@@ -787,15 +735,12 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
         
         
         if (arr->getDenseCapacity() > newLen) {
-            arr->shrinkElements(cxArg, newLen);
+            arr->shrinkElements(cx, newLen);
             arr->getElementsHeader()->capacity = newLen;
         }
     }
 
     if (setterIsStrict && !succeeded) {
-        
-        
-        JSContext *cx = cxArg->asJSContext();
         RootedId elementId(cx);
         if (!IndexToId(cx, newLen - 1, &elementId))
             return false;
@@ -805,17 +750,8 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
     return true;
 }
 
-template bool
-js::ArraySetLength<SequentialExecution>(JSContext *cx, Handle<ArrayObject*> arr,
-                                        HandleId id, unsigned attrs, HandleValue value,
-                                        bool setterIsStrict);
-template bool
-js::ArraySetLength<ParallelExecution>(ForkJoinContext *cx, Handle<ArrayObject*> arr,
-                                      HandleId id, unsigned attrs, HandleValue value,
-                                      bool setterIsStrict);
-
 bool
-js::WouldDefinePastNonwritableLength(ThreadSafeContext *cx,
+js::WouldDefinePastNonwritableLength(ExclusiveContext *cx,
                                      HandleObject obj, uint32_t index, bool strict,
                                      bool *definesPast)
 {
@@ -840,9 +776,6 @@ js::WouldDefinePastNonwritableLength(ThreadSafeContext *cx,
 
     
     unsigned flags = strict ? JSREPORT_ERROR : (JSREPORT_STRICT | JSREPORT_WARNING);
-    if (cx->isForkJoinContext())
-        return cx->asForkJoinContext()->reportError(flags);
-
     if (!cx->isJSContext())
         return true;
 
@@ -2064,8 +1997,6 @@ js::array_sort(JSContext *cx, unsigned argc, Value *vp)
                 }
             } else {
                 FastInvokeGuard fig(cx, fval);
-                MOZ_ASSERT(!InParallelSection(),
-                           "Array.sort() can't currently be used from parallel code");
                 JS_ALWAYS_TRUE(vec.resize(n * 2));
                 if (!MergeSort(vec.begin(), n, vec.begin() + n,
                                SortComparatorFunction(cx, fval, fig)))
@@ -3057,7 +2988,6 @@ array_filter(JSContext *cx, unsigned argc, Value *vp)
     uint32_t to = 0;
 
     
-    MOZ_ASSERT(!InParallelSection());
     FastInvokeGuard fig(cx, ObjectValue(*callable));
     InvokeArgs &args2 = fig.args();
     RootedValue kValue(cx);

@@ -180,15 +180,15 @@ struct ShapeTable {
 
 
 
-    bool grow(ThreadSafeContext *cx);
+    bool grow(ExclusiveContext *cx);
 
     
 
 
 
 
-    bool            init(ThreadSafeContext *cx, Shape *lastProp);
-    bool            change(int log2Delta, ThreadSafeContext *cx);
+    bool            init(ExclusiveContext *cx, Shape *lastProp);
+    bool            change(int log2Delta, ExclusiveContext *cx);
     Shape           **search(jsid id, bool adding);
 
 #ifdef JSGC_COMPACTING
@@ -432,12 +432,6 @@ class BaseShape : public gc::TenuredCell
     static UnownedBaseShape* getUnowned(ExclusiveContext *cx, StackBaseShape &base);
 
     
-
-
-
-    static UnownedBaseShape *lookupUnowned(ThreadSafeContext *cx, const StackBaseShape &base);
-
-    
     inline UnownedBaseShape* unowned();
 
     
@@ -533,7 +527,7 @@ struct StackBaseShape : public DefaultHasher<ReadBarrieredUnownedBaseShape>
         compartment(base->compartment())
     {}
 
-    inline StackBaseShape(ThreadSafeContext *cx, const Class *clasp,
+    inline StackBaseShape(ExclusiveContext *cx, const Class *clasp,
                           JSObject *parent, JSObject *metadata, uint32_t objectFlags);
     explicit inline StackBaseShape(Shape *shape);
 
@@ -621,8 +615,6 @@ class Shape : public gc::TenuredCell
 
     static inline Shape *search(ExclusiveContext *cx, Shape *start, jsid id,
                                 Shape ***pspp, bool adding = false);
-    static inline Shape *searchThreadLocal(ThreadSafeContext *cx, Shape *start, jsid id,
-                                           Shape ***pspp, bool adding = false);
     static inline Shape *searchNoHashify(Shape *start, jsid id);
 
     void removeFromDictionary(NativeObject *obj);
@@ -639,7 +631,7 @@ class Shape : public gc::TenuredCell
 
 
 
-    static bool hashify(ThreadSafeContext *cx, Shape *shape);
+    static bool hashify(ExclusiveContext *cx, Shape *shape);
     void handoffTableTo(Shape *newShape);
 
     void setParent(Shape *p) {
@@ -650,13 +642,13 @@ class Shape : public gc::TenuredCell
         parent = p;
     }
 
-    bool ensureOwnBaseShape(ThreadSafeContext *cx) {
+    bool ensureOwnBaseShape(ExclusiveContext *cx) {
         if (base()->isOwned())
             return true;
         return makeOwnBaseShape(cx);
     }
 
-    bool makeOwnBaseShape(ThreadSafeContext *cx);
+    bool makeOwnBaseShape(ExclusiveContext *cx);
 
   public:
     bool hasTable() const { return base()->hasTable(); }
@@ -1058,7 +1050,7 @@ class AutoRooterGetterSetter
     class Inner : private JS::CustomAutoRooter
     {
       public:
-        inline Inner(ThreadSafeContext *cx, uint8_t attrs,
+        inline Inner(ExclusiveContext *cx, uint8_t attrs,
                      PropertyOp *pgetter_, StrictPropertyOp *psetter_);
 
       private:
@@ -1070,10 +1062,10 @@ class AutoRooterGetterSetter
     };
 
   public:
-    inline AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t attrs,
+    inline AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
                                   PropertyOp *pgetter, StrictPropertyOp *psetter
                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    inline AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t attrs,
+    inline AutoRooterGetterSetter(ExclusiveContext *cx, uint8_t attrs,
                                   JSNative *pgetter, JSNative *psetter
                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
