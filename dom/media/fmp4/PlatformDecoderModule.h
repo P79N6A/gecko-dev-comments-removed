@@ -182,6 +182,8 @@ public:
   virtual void NotifyResourcesStatusChanged() {};
 
   virtual void ReleaseMediaResources() {};
+
+  virtual bool OnReaderTaskQueue() = 0;
 };
 
 
