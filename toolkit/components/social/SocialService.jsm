@@ -687,7 +687,11 @@ this.SocialService = {
     
     
     if (ActiveProviders.has(manifest.origin)) {
-      let provider = new SocialProvider(manifest);
+      
+      
+      let provider = SocialServiceInternal.providers[manifest.origin];
+      provider.enabled = false;
+      provider = new SocialProvider(manifest);
       SocialServiceInternal.providers[provider.origin] = provider;
       
       this.getOrderedProviderList(providers => {
@@ -756,8 +760,10 @@ function SocialProvider(input) {
 
 SocialProvider.prototype = {
   reload: function() {
-    this._terminate();
-    this._activate();
+    
+    
+    this.enabled = false;
+    this.enabled = true;
     Services.obs.notifyObservers(null, "social:provider-reload", this.origin);
   },
 
