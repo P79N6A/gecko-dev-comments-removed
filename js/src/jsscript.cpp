@@ -1495,7 +1495,6 @@ ScriptSource::chars(JSContext *cx, UncompressedSourceCache::AutoHoldEntry &holde
         return uncompressedChars();
 
       case DataCompressed: {
-#ifdef USE_ZLIB
         if (const jschar *decompressed = cx->runtime()->uncompressedSourceCache.lookup(this, holder))
             return decompressed;
 
@@ -1520,9 +1519,6 @@ ScriptSource::chars(JSContext *cx, UncompressedSourceCache::AutoHoldEntry &holde
         }
 
         return decompressed;
-#else
-        MOZ_CRASH();
-#endif
       }
 
       case DataParent:
@@ -1654,7 +1650,7 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, SourceBufferHolder &srcBuf,
     
     
     
-#if defined(JS_THREADSAFE) && defined(USE_ZLIB)
+#if defined(JS_THREADSAFE)
     bool canCompressOffThread =
         HelperThreadState().cpuCount > 1 &&
         HelperThreadState().threadCount >= 2;
@@ -1677,7 +1673,6 @@ ScriptSource::setSourceCopy(ExclusiveContext *cx, SourceBufferHolder &srcBuf,
 SourceCompressionTask::ResultType
 SourceCompressionTask::work()
 {
-#ifdef USE_ZLIB
     
     
     size_t inputBytes = ss->length() * sizeof(jschar);
@@ -1723,9 +1718,6 @@ SourceCompressionTask::work()
     }
     compressedBytes = comp.outWritten();
     compressedHash = CompressedSourceHasher::computeHash(compressed, compressedBytes);
-#else
-    MOZ_CRASH();
-#endif
 
     
     if (void *newCompressed = js_realloc(compressed, compressedBytes))
