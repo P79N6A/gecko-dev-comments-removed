@@ -2346,7 +2346,7 @@ struct JSJitInfo {
 #define JITINFO_OP_TYPE_BITS 4
 #define JITINFO_ALIAS_SET_BITS 4
 #define JITINFO_RETURN_TYPE_BITS 8
-#define JITINFO_SLOT_INDEX_BITS 11
+#define JITINFO_SLOT_INDEX_BITS 10
 
     
     uint32_t type_ : JITINFO_OP_TYPE_BITS;
@@ -2374,6 +2374,9 @@ struct JSJitInfo {
     uint32_t isInfallible : 1; 
     uint32_t isMovable : 1;    
 
+
+
+    uint32_t isEliminatable : 1; 
 
 
     

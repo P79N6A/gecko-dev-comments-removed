@@ -1287,6 +1287,12 @@ MCallDOMNative::getAliasSet() const
         
         
         
+        
+        
+        
+        
+        
+        
         if ((actualType == MIRType_Value || actualType == MIRType_Object) ||
             (*argType & JSJitInfo::Object))
          {

@@ -8195,8 +8195,8 @@ class CGMemberJITInfo(CGThing):
         return ""
 
     def defineJitInfo(self, infoName, opName, opType, infallible, movable,
-                      aliasSet, alwaysInSlot, lazilyInSlot, slotIndex,
-                      returnTypes, args):
+                      eliminatable, aliasSet, alwaysInSlot, lazilyInSlot,
+                      slotIndex, returnTypes, args):
         """
         aliasSet is a JSJitInfo::AliasSet value, without the "JSJitInfo::" bit.
 
@@ -8206,6 +8206,8 @@ class CGMemberJITInfo(CGThing):
         """
         assert(not movable or aliasSet != "AliasEverything")  
         assert(not alwaysInSlot or movable)  
+        assert(not eliminatable or aliasSet != "AliasEverything")  
+        assert(not alwaysInSlot or eliminatable) 
 
         def jitInfoInitializer(isTypedMethod):
             initializer = fill(
@@ -8219,6 +8221,7 @@ class CGMemberJITInfo(CGThing):
                   ${returnType},  /* returnType.  Not relevant for setters. */
                   ${isInfallible},  /* isInfallible. False in setters. */
                   ${isMovable},  /* isMovable.  Not relevant for setters. */
+                  ${isEliminatable}, /* isEliminatable.  Not relevant for setters. */
                   ${isAlwaysInSlot}, /* isAlwaysInSlot.  Only relevant for getters. */
                   ${isLazilyCachedInSlot}, /* isLazilyCachedInSlot.  Only relevant for getters. */
                   ${isTypedMethod},  /* isTypedMethod.  Only relevant for methods. */
@@ -8233,6 +8236,7 @@ class CGMemberJITInfo(CGThing):
                                   ""),
                 isInfallible=toStringBool(infallible),
                 isMovable=toStringBool(movable),
+                isEliminatable=toStringBool(eliminatable),
                 isAlwaysInSlot=toStringBool(alwaysInSlot),
                 isLazilyCachedInSlot=toStringBool(lazilyInSlot),
                 isTypedMethod=toStringBool(isTypedMethod),
@@ -8285,6 +8289,7 @@ class CGMemberJITInfo(CGThing):
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
 
             movable = self.mayBeMovable() and getterinfal
+            eliminatable = self.mayBeEliminatable() and getterinfal
             aliasSet = self.aliasSet()
 
             getterinfal = getterinfal and infallibleForMember(self.member, self.member.type, self.descriptor)
@@ -8301,9 +8306,9 @@ class CGMemberJITInfo(CGThing):
                 slotIndex = "0"
 
             result = self.defineJitInfo(getterinfo, getter, "Getter",
-                                        getterinfal, movable, aliasSet,
-                                        isAlwaysInSlot, isLazilyCachedInSlot,
-                                        slotIndex,
+                                        getterinfal, movable, eliminatable,
+                                        aliasSet, isAlwaysInSlot,
+                                        isLazilyCachedInSlot, slotIndex,
                                         [self.member.type], None)
             if (not self.member.readonly or
                 self.member.getExtendedAttribute("PutForwards") is not None or
@@ -8316,7 +8321,7 @@ class CGMemberJITInfo(CGThing):
                           IDLToCIdentifier(self.member.identifier.name))
                 
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
-                                             False, False, "AliasEverything",
+                                             False, False, False, "AliasEverything",
                                              False, False, "0",
                                              [BuiltinTypes[IDLBuiltinType.Types.void]],
                                              None)
@@ -8341,6 +8346,7 @@ class CGMemberJITInfo(CGThing):
                 methodInfal = False
                 args = None
                 movable = False
+                eliminatable = False
             else:
                 sig = sigs[0]
                 
@@ -8350,6 +8356,7 @@ class CGMemberJITInfo(CGThing):
                 
                 hasInfallibleImpl = "infallible" in self.descriptor.getExtendedAttributes(self.member)
                 movable = self.mayBeMovable() and hasInfallibleImpl
+                eliminatable = self.mayBeEliminatable() and hasInfallibleImpl
                 
                 
                 if (len(sig[1]) != 0 or
@@ -8366,8 +8373,8 @@ class CGMemberJITInfo(CGThing):
 
             aliasSet = self.aliasSet()
             result = self.defineJitInfo(methodinfo, method, "Method",
-                                        methodInfal, movable, aliasSet,
-                                        False, False, "0",
+                                        methodInfal, movable, eliminatable,
+                                        aliasSet, False, False, "0",
                                         [s[0] for s in sigs], args)
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
@@ -8388,12 +8395,33 @@ class CGMemberJITInfo(CGThing):
         return (affects == "Nothing" and
                 (dependsOn != "Everything" and dependsOn != "DeviceState"))
 
+    def mayBeEliminatable(self):
+        """
+        Returns whether this attribute or method may be eliminatable, just
+        based on Affects/DependsOn annotations.
+        """
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        affects = self.member.affects
+        dependsOn = self.member.dependsOn
+        assert affects in IDLInterfaceMember.AffectsValues
+        assert dependsOn in IDLInterfaceMember.DependsOnValues
+        return affects == "Nothing" and dependsOn != "Everything"
+
     def aliasSet(self):
-        """Returns the alias set to store in the jitinfo.  This may not be the
+        """
+        Returns the alias set to store in the jitinfo.  This may not be the
         effective alias set the JIT uses, depending on whether we have enough
         information about our args to allow the JIT to prove that effectful
         argument conversions won't happen.
-
         """
         dependsOn = self.member.dependsOn
         assert dependsOn in IDLInterfaceMember.DependsOnValues

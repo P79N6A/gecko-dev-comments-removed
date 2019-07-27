@@ -3747,7 +3747,7 @@ class MCallDOMNative : public MCall
         
         
         
-        if (!getJitInfo()->isMovable)
+        if (!getJitInfo()->isEliminatable)
             setGuard();
     }
 
