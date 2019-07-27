@@ -943,12 +943,12 @@ nsCSSBorderRenderer::DrawDashedSide(mozilla::css::Side aSide)
       dash[1] = dashWidth;
     }
   } else {
-    SF("DrawDashedSide: style: %d!!\n", style);
+    PrintAsFormatString("DrawDashedSide: style: %d!!\n", style);
     NS_ERROR("DrawDashedSide called with style other than DASHED or DOTTED; someone's not playing nice");
     return;
   }
 
-  SF("dash: %f %f\n", dash[0], dash[1]);
+  PrintAsFormatString("dash: %f %f\n", dash[0], dash[1]);
 
   mContext->SetDash(dash, 2, 0.0);
 
@@ -1093,7 +1093,7 @@ nsCSSBorderRenderer::CreateCornerGradient(mozilla::css::Corner aCorner,
                                        { -1, -1 },
                                        { +1, -1 },
                                        { +1, +1 } };
-  
+
   
   
   const int cornerWidth[4] = { 3, 1, 1, 3 };
@@ -1157,7 +1157,7 @@ nsCSSBorderRenderer::DrawSingleWidthSolidBorder()
                                        { -0.5,  0   },
                                        {    0, -0.5 } };
 
-    
+
   NS_FOR_CSS_SIDES(side) {
     gfxPoint firstCorner = rect.CCWCorner(side);
     firstCorner.x += cornerAdjusts[side].a;
@@ -1165,7 +1165,7 @@ nsCSSBorderRenderer::DrawSingleWidthSolidBorder()
     gfxPoint secondCorner = rect.CWCorner(side);
     secondCorner.x += cornerAdjusts[side].a;
     secondCorner.y += cornerAdjusts[side].b;
-        
+
     mContext->SetColor(gfxRGBA(mBorderColors[side]));
     mContext->NewPath();
     mContext->MoveTo(firstCorner);
@@ -1356,7 +1356,7 @@ nsCSSBorderRenderer::DrawRectangularCompositeColors()
       gfxPoint secondCorner = rect.CWCorner(side);
       secondCorner.x -= cornerAdjusts[side].a;
       secondCorner.y -= cornerAdjusts[side].b;
-        
+
       gfxRGBA currentColor =
         currentColors[side] ? gfxRGBA(currentColors[side]->mColor)
                             : gfxRGBA(mBorderColors[side]);
@@ -1491,7 +1491,7 @@ nsCSSBorderRenderer::DrawBorders()
     
     
     SetupStrokeStyle(NS_SIDE_TOP);
-    
+
     gfxFloat dash = mBorderWidths[0];
     mContext->SetDash(&dash, 1, 0.5);
     mContext->SetAntialiasMode(gfxContext::MODE_ALIASED);
@@ -1503,7 +1503,7 @@ nsCSSBorderRenderer::DrawBorders()
     return;
   }
 
-  
+
   if (allBordersSame &&
       mCompositeColors[0] == nullptr &&
       mBorderStyles[0] == NS_STYLE_BORDER_STYLE_SOLID &&
@@ -1574,9 +1574,9 @@ nsCSSBorderRenderer::DrawBorders()
   if (allBordersSame && mCompositeColors[0] != nullptr && !mNoBorderRadius)
     forceSeparateCorners = true;
 
-  S(" mOuterRect: "), S(mOuterRect), SN();
-  S(" mInnerRect: "), S(mInnerRect), SN();
-  SF(" mBorderColors: 0x%08x 0x%08x 0x%08x 0x%08x\n", mBorderColors[0], mBorderColors[1], mBorderColors[2], mBorderColors[3]);
+  PrintAsString(" mOuterRect: "), PrintAsString(mOuterRect), PrintAsStringNewline();
+  PrintAsString(" mInnerRect: "), PrintAsString(mInnerRect), PrintAsStringNewline();
+  PrintAsFormatString(" mBorderColors: 0x%08x 0x%08x 0x%08x 0x%08x\n", mBorderColors[0], mBorderColors[1], mBorderColors[2], mBorderColors[3]);
 
   
   
@@ -1599,12 +1599,12 @@ nsCSSBorderRenderer::DrawBorders()
     }
   }
 
-  SF(" allBordersSame: %d dashedSides: 0x%02x\n", allBordersSame, dashedSides);
+  PrintAsFormatString(" allBordersSame: %d dashedSides: 0x%02x\n", allBordersSame, dashedSides);
 
   if (allBordersSame && !forceSeparateCorners) {
     
     DrawBorderSides(SIDE_BITS_ALL);
-    SN("---------------- (1)");
+    PrintAsStringNewline("---------------- (1)");
   } else {
     PROFILER_LABEL("nsCSSBorderRenderer", "DrawBorders::multipass",
       js::ProfileEntry::Category::GRAPHICS);
@@ -1690,7 +1690,7 @@ nsCSSBorderRenderer::DrawBorders()
           mozilla::css::Side side = mozilla::css::Side(sides[cornerSide]);
           uint8_t style = mBorderStyles[side];
 
-          SF("corner: %d cornerSide: %d side: %d style: %d\n", corner, cornerSide, side, style);
+          PrintAsFormatString("corner: %d cornerSide: %d side: %d style: %d\n", corner, cornerSide, side, style);
 
           mContext->Save();
 
@@ -1706,7 +1706,7 @@ nsCSSBorderRenderer::DrawBorders()
 
       mContext->Restore();
 
-      SN();
+      PrintAsStringNewline();
     }
 
     
@@ -1750,7 +1750,7 @@ nsCSSBorderRenderer::DrawBorders()
         
         DrawDashedSide (side);
 
-        SN("---------------- (d)");
+        PrintAsStringNewline("---------------- (d)");
         continue;
       }
 
@@ -1771,7 +1771,7 @@ nsCSSBorderRenderer::DrawBorders()
 
       mContext->Restore();
 
-      SN("---------------- (*)");
+      PrintAsStringNewline("---------------- (*)");
     }
   }
 }
