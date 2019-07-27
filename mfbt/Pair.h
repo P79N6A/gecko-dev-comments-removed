@@ -164,6 +164,8 @@ public:
     : Base(Move(aOther.first()), Move(aOther.second()))
   { }
 
+  Pair(const Pair& aOther) = default;
+
   
   using Base::first;
   
@@ -171,9 +173,6 @@ public:
 
   
   void swap(Pair& aOther) { Base::swap(aOther); }
-
-private:
-  Pair(const Pair&) = delete;
 };
 
 template<typename A, class B>
