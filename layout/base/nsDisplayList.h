@@ -907,6 +907,7 @@ private:
   
   
   bool                           mHaveScrollableDisplayPort;
+  bool                           mWindowDraggingAllowed;
 };
 
 class nsDisplayItem;

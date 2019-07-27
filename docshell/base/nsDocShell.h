@@ -885,6 +885,7 @@ protected:
     bool                       mInPrivateBrowsing;
     bool                       mUseRemoteTabs;
     bool                       mDeviceSizeIsPageSize;
+    bool                       mWindowDraggingAllowed;
 
     
     
