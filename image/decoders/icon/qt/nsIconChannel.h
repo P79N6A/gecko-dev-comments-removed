@@ -25,8 +25,7 @@ class nsIconChannel MOZ_FINAL : public nsIChannel {
     NS_FORWARD_NSIREQUEST(mRealChannel->)
     NS_FORWARD_NSICHANNEL(mRealChannel->)
 
-    nsIconChannel() {}
-    ~nsIconChannel() {}
+    nsIconChannel() {};
 
     
 
@@ -35,6 +34,8 @@ class nsIconChannel MOZ_FINAL : public nsIChannel {
 
     nsresult Init(nsIURI* aURI);
   private:
+    ~nsIconChannel() {};
+
     
 
 
