@@ -5746,7 +5746,7 @@ struct SnappedImageDrawingParameters {
   
   
   
-  nsIntSize svgViewportSize;
+  CSSIntSize svgViewportSize;
   
   bool shouldDraw;
 
@@ -5758,7 +5758,7 @@ struct SnappedImageDrawingParameters {
   SnappedImageDrawingParameters(const gfxMatrix&   aImageSpaceToDeviceSpace,
                                 const nsIntSize&   aSize,
                                 const ImageRegion& aRegion,
-                                const nsIntSize&   aSVGViewportSize)
+                                const CSSIntSize&  aSVGViewportSize)
    : imageSpaceToDeviceSpace(aImageSpaceToDeviceSpace)
    , size(aSize)
    , region(aRegion)
@@ -5884,10 +5884,10 @@ ComputeSnappedImageDrawingParameters(gfxContext*     aCtx,
                                     aGraphicsFilter, aImageFlags);
   gfxSize imageSize(intImageSize.width, intImageSize.height);
 
-  nsIntSize svgViewportSize = currentMatrix.IsIdentity()
-      ? intImageSize
-      : nsIntSize(NSAppUnitsToIntPixels(dest.width, aAppUnitsPerDevPixel),
-                  NSAppUnitsToIntPixels(dest.height, aAppUnitsPerDevPixel));
+  CSSIntSize svgViewportSize = currentMatrix.IsIdentity()
+    ? CSSIntSize(intImageSize.width, intImageSize.height)
+    : CSSIntSize(NSAppUnitsToIntPixels(dest.width, aAppUnitsPerDevPixel), 
+                 NSAppUnitsToIntPixels(dest.height, aAppUnitsPerDevPixel)); 
 
   
   gfxPoint subimageTopLeft =
@@ -6194,7 +6194,7 @@ nsLayoutUtils::ComputeSizeForDrawingWithFallback(imgIContainer* aImage,
 nsLayoutUtils::DrawBackgroundImage(gfxContext&         aContext,
                                    nsPresContext*      aPresContext,
                                    imgIContainer*      aImage,
-                                   const nsIntSize&    aImageSize,
+                                   const CSSIntSize&   aImageSize,
                                    GraphicsFilter      aGraphicsFilter,
                                    const nsRect&       aDest,
                                    const nsRect&       aFill,

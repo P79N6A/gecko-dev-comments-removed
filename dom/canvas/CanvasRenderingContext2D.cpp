@@ -113,6 +113,7 @@
 #include "nsSVGLength2.h"
 #include "nsDeviceContext.h"
 #include "nsFontMetrics.h"
+#include "Units.h"
 
 #undef free // apparently defined by some windows header, clashing with a free()
             
@@ -4463,7 +4464,8 @@ CanvasRenderingContext2D::DrawDirectlyToCanvas(
   
   uint32_t modifiedFlags = image.mDrawingFlags | imgIContainer::FLAG_CLAMP;
 
-  SVGImageContext svgContext(scaledImageSize, Nothing(), CurrentState().globalAlpha);
+  CSSIntSize sz(scaledImageSize.width, scaledImageSize.height); 
+  SVGImageContext svgContext(sz, Nothing(), CurrentState().globalAlpha);
 
   auto result = image.mImgContainer->
     Draw(context, scaledImageSize,

@@ -366,7 +366,7 @@ nsSVGImageFrame::PaintSVG(gfxContext& aContext,
     if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
       
       
-      SVGImageContext context(nsIntSize(width, height),
+      SVGImageContext context(CSSIntSize(width, height),
                               Some(imgElem->mPreserveAspectRatio.GetAnimValue()));
 
       nsRect destRect(0, 0,

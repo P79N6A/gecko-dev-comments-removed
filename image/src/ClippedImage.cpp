@@ -345,7 +345,7 @@ UnclipViewport(const SVGImageContext& aOldContext,
 
   
   
-  nsIntSize vSize(aOldContext.GetViewportSize());
+  CSSIntSize vSize(aOldContext.GetViewportSize());
   vSize.width = ceil(vSize.width * double(innerSize.width) / clipSize.width);
   vSize.height = ceil(vSize.height * double(innerSize.height) / clipSize.height);
 
