@@ -34,12 +34,6 @@ public:
 
   explicit ServiceWorkerContainer(nsPIDOMWindow* aWindow);
 
-  nsPIDOMWindow*
-  GetParentObject() const
-  {
-    return mWindow;
-  }
-
   JSObject*
   WrapObject(JSContext* aCx);
 
@@ -58,7 +52,7 @@ public:
   already_AddRefed<Promise>
   GetRegistrations(ErrorResult& aRv);
 
-  already_AddRefed<Promise>
+  Promise*
   GetReady(ErrorResult& aRv);
 
   
@@ -74,15 +68,19 @@ public:
   GetControllingWorkerScriptURLForPath(const nsAString& aPath,
                                        nsString& aScriptURL,
                                        ErrorResult& aRv);
+
+  
+  void DisconnectFromOwner() MOZ_OVERRIDE;
+
 private:
   ~ServiceWorkerContainer();
-
-  nsCOMPtr<nsPIDOMWindow> mWindow;
 
   
   
   
   nsRefPtr<workers::ServiceWorker> mControllerWorker;
+
+  nsRefPtr<Promise> mReadyPromise;
 };
 
 } 
