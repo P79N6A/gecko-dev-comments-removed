@@ -2,6 +2,7 @@
 
 
 MARIONETTE_TIMEOUT = 60000;
+MARIONETTE_HEAD_JS = 'head.js';
 
 const LEN_7BIT = 160;
 const LEN_7BIT_WITH_8BIT_REF = 153;
@@ -10,179 +11,116 @@ const LEN_UCS2 = 70;
 const LEN_UCS2_WITH_8BIT_REF = 67;
 const LEN_UCS2_WITH_16BIT_REF = 66;
 
-SpecialPowers.setBoolPref("dom.sms.enabled", true);
-let currentStrict7BitEncoding = false;
-SpecialPowers.setBoolPref("dom.sms.strict7BitEncoding",
-                          currentStrict7BitEncoding);
-SpecialPowers.addPermission("sms", true, document);
-
-let manager = window.navigator.mozMobileMessage;
-ok(manager instanceof MozMobileMessageManager,
-   "manager is instance of " + manager.constructor);
-
 function times(str, n) {
   return (new Array(n + 1)).join(str);
 }
 
-let tasks = {
+function test(text, segments, charsPerSegment, charsAvailableInLastSegment) {
   
   
-  _tasks: [],
-  _nextTaskIndex: 0,
+  ok(true, "Testing '" + text + "' ...");
 
-  push: function(func) {
-    this._tasks.push(func);
-  },
+  let domRequest = manager.getSegmentInfoForText(text);
+  ok(domRequest, "DOMRequest object returned.");
 
-  next: function() {
-    let index = this._nextTaskIndex++;
-    let task = this._tasks[index];
-    try {
-      task();
-    } catch (ex) {
-      ok(false, "test task[" + index + "] throws: " + ex);
-      
-      if (index != this._tasks.length - 1) {
-        this.finish();
-      }
-    }
-  },
+  return wrapDomRequestAsPromise(domRequest)
+    .then(function(aEvent) {
+      let result = aEvent.target.result;
+      ok(result, "aEvent.target.result = " + JSON.stringify(result));
 
-  finish: function() {
-    this._tasks[this._tasks.length - 1]();
-  },
-
-  run: function() {
-    this.next();
-  }
-};
-
-function addTest(text, strict7BitEncoding, expected) {
-  tasks.push(function() {
-    if (strict7BitEncoding != currentStrict7BitEncoding) {
-      currentStrict7BitEncoding = strict7BitEncoding;
-      SpecialPowers.setBoolPref("dom.sms.strict7BitEncoding",
-                                currentStrict7BitEncoding);
-    }
-
-    let domRequest = manager.getSegmentInfoForText(text);
-    ok(domRequest, "DOMRequest object returned.");
-
-    domRequest.onsuccess = function(e) {
-      log("Received 'onsuccess' DOMRequest event.");
-
-      let result = e.target.result;
-      if (!result) {
-        ok(false, "getSegmentInfoForText() result is not valid.");
-        tasks.finish();
-        return;
-      }
-
-      is(result.segments, expected[0], "segments");
-      is(result.charsPerSegment, expected[1], "charsPerSegment");
-      is(result.charsAvailableInLastSegment, expected[2],
-         "charsAvailableInLastSegment");
-
-      tasks.next();
-    };
-
-    domRequest.onerror = function(e) {
-      ok(false, "Failed to call getSegmentInfoForText().");
-      tasks.finish();
-    };
-  });
+      is(result.segments, segments, "result.segments");
+      is(result.charsPerSegment, charsPerSegment, "result.charsPerSegment");
+      is(result.charsAvailableInLastSegment, charsAvailableInLastSegment,
+         "result.charsAvailableInLastSegment");
+    });
 }
 
+startTestCommon(function() {
+  
+  return pushPrefEnv({ set: [["dom.sms.strict7BitEncoding", false]] })
 
+    
+    
+    
+    .then(() => test("a",       1, LEN_7BIT, LEN_7BIT - 1))
+    
+    .then(() => test("\u20ac",  1, LEN_7BIT, LEN_7BIT - 2))
+    
+    .then(() => test(" ",       1, LEN_7BIT, LEN_7BIT - 1))
+    
+    .then(() => test("a\u20ac", 1, LEN_7BIT, LEN_7BIT - 3))
+    .then(() => test("a ",      1, LEN_7BIT, LEN_7BIT - 2))
+    .then(() => test("\u20aca", 1, LEN_7BIT, LEN_7BIT - 3))
+    .then(() => test("\u20ac ", 1, LEN_7BIT, LEN_7BIT - 3))
+    .then(() => test(" \u20ac", 1, LEN_7BIT, LEN_7BIT - 3))
+    .then(() => test(" a",      1, LEN_7BIT, LEN_7BIT - 2))
 
+    
+    
+    
+    .then(() => test(times("a", LEN_7BIT), 1, LEN_7BIT, 0))
+    
+    
+    .then(() => test(times("a", LEN_7BIT + 1),
+                     2, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 8))
+    
+    .then(() => test(times("a", LEN_7BIT_WITH_8BIT_REF * 2),
+                     2, LEN_7BIT_WITH_8BIT_REF, 0))
+    
+    .then(() => test(times("a", LEN_7BIT_WITH_8BIT_REF * 2 + 1),
+                     3, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 1))
+    
+    .then(() => test(times("\u20ac", LEN_7BIT / 2), 1, LEN_7BIT, 0))
+    
+    
+    .then(() => test(times("\u20ac", LEN_7BIT / 2 + 1),
+                     2, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 10))
+    
+    
+    
+    .then(() => test(times("\u20ac", 1 + 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)),
+                     3, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 2))
+    
+    .then(() => test("a" + times("\u20ac", 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)),
+                     2, LEN_7BIT_WITH_8BIT_REF, 1))
+    .then(() => test(times("\u20ac", 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)) + "a",
+                     2, LEN_7BIT_WITH_8BIT_REF, 0))
 
-addTest("a", false, [1, LEN_7BIT, LEN_7BIT - 1]);
+    
+    
+    
+    .then(() => test("\u6afb",       1, LEN_UCS2, LEN_UCS2 - 1))
+    
+    .then(() => test("\u6afba",      1, LEN_UCS2, LEN_UCS2 - 2))
+    .then(() => test("\u6afb\u20ac", 1, LEN_UCS2, LEN_UCS2 - 2))
+    .then(() => test("\u6afb ",      1, LEN_UCS2, LEN_UCS2 - 2))
 
-addTest("\u20ac", false, [1, LEN_7BIT, LEN_7BIT - 2]);
+    
+    
+    
+    .then(() => test(times("\u6afb", LEN_UCS2), 1, LEN_UCS2, 0))
+    
+    
+    .then(() => test(times("\u6afb", LEN_UCS2 + 1),
+                     2, LEN_UCS2_WITH_8BIT_REF, LEN_UCS2_WITH_8BIT_REF - 4))
+    
+    .then(() => test(times("\u6afb", LEN_UCS2_WITH_8BIT_REF * 2),
+                     2, LEN_UCS2_WITH_8BIT_REF, 0))
+    
+    .then(() => test(times("\u6afb", LEN_UCS2_WITH_8BIT_REF * 2 + 1),
+                     3, LEN_UCS2_WITH_8BIT_REF, LEN_UCS2_WITH_8BIT_REF - 1))
 
-addTest(" ", false, [1, LEN_7BIT, LEN_7BIT - 1]);
+    
+    
+    .then(() => pushPrefEnv({ set: [["dom.sms.strict7BitEncoding", true]] }))
 
-addTest("a\u20ac", false, [1, LEN_7BIT, LEN_7BIT - 3]);
-addTest("a ", false, [1, LEN_7BIT, LEN_7BIT - 2]);
-addTest("\u20aca", false, [1, LEN_7BIT, LEN_7BIT - 3]);
-addTest("\u20ac ", false, [1, LEN_7BIT, LEN_7BIT - 3]);
-addTest(" \u20ac", false, [1, LEN_7BIT, LEN_7BIT - 3]);
-addTest(" a", false, [1, LEN_7BIT, LEN_7BIT - 2]);
-
-
-
-
-addTest(times("a", LEN_7BIT), false, [1, LEN_7BIT, 0]);
-
-
-addTest(times("a", LEN_7BIT + 1), false,
-        [2, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 8]);
-
-addTest(times("a", LEN_7BIT_WITH_8BIT_REF * 2), false,
-        [2, LEN_7BIT_WITH_8BIT_REF, 0]);
-
-addTest(times("a", LEN_7BIT_WITH_8BIT_REF * 2 + 1), false,
-        [3, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 1]);
-
-addTest(times("\u20ac", LEN_7BIT / 2), false, [1, LEN_7BIT, 0]);
-
-
-addTest(times("\u20ac", LEN_7BIT / 2 + 1), false,
-        [2, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 10]);
-
-
-
-addTest(times("\u20ac", 1 + 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)), false,
-        [3, LEN_7BIT_WITH_8BIT_REF, LEN_7BIT_WITH_8BIT_REF - 2]);
-
-addTest("a" + times("\u20ac", 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)), false,
-        [2, LEN_7BIT_WITH_8BIT_REF, 1]);
-addTest(times("\u20ac", 2 * Math.floor(LEN_7BIT_WITH_8BIT_REF / 2)) + "a", false,
-        [2, LEN_7BIT_WITH_8BIT_REF, 0]);
-
-
-
-
-addTest("\u6afb", false, [1, LEN_UCS2, LEN_UCS2 - 1]);
-
-addTest("\u6afba", false, [1, LEN_UCS2, LEN_UCS2 - 2]);
-addTest("\u6afb\u20ac", false, [1, LEN_UCS2, LEN_UCS2 - 2]);
-addTest("\u6afb ", false, [1, LEN_UCS2, LEN_UCS2 - 2]);
-
-
-
-
-addTest(times("\u6afb", LEN_UCS2), false, [1, LEN_UCS2, 0]);
-
-
-addTest(times("\u6afb", LEN_UCS2 + 1), false,
-        [2, LEN_UCS2_WITH_8BIT_REF, LEN_UCS2_WITH_8BIT_REF - 4]);
-
-addTest(times("\u6afb", LEN_UCS2_WITH_8BIT_REF * 2), false,
-        [2, LEN_UCS2_WITH_8BIT_REF, 0]);
-
-addTest(times("\u6afb", LEN_UCS2_WITH_8BIT_REF * 2 + 1), false,
-        [3, LEN_UCS2_WITH_8BIT_REF, LEN_UCS2_WITH_8BIT_REF - 1]);
-
-
-
-
-addTest("\u0041", true, [1, LEN_7BIT, LEN_7BIT - 1]);
-
-addTest("\u00c0", true, [1, LEN_7BIT, LEN_7BIT - 1]);
-
-addTest("\u00c0\u0041", true, [1, LEN_7BIT, LEN_7BIT - 2]);
-addTest("\u0041\u00c0", true, [1, LEN_7BIT, LEN_7BIT - 2]);
-
-addTest("\u1234", true, [1, LEN_7BIT, LEN_7BIT - 1]);
-
-
-
-tasks.push(function cleanUp() {
-  SpecialPowers.removePermission("sms", document);
-  SpecialPowers.clearUserPref("dom.sms.enabled");
-  SpecialPowers.clearUserPref("dom.sms.strict7BitEncoding");
-  finish();
+    
+    .then(() => test("\u0041",       1, LEN_7BIT, LEN_7BIT - 1))
+    
+    .then(() => test("\u00c0",       1, LEN_7BIT, LEN_7BIT - 1))
+    
+    .then(() => test("\u00c0\u0041", 1, LEN_7BIT, LEN_7BIT - 2))
+    .then(() => test("\u0041\u00c0", 1, LEN_7BIT, LEN_7BIT - 2))
+    
+    .then(() => test("\u1234",       1, LEN_7BIT, LEN_7BIT - 1));
 });
-
-tasks.run();
