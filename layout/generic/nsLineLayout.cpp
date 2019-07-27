@@ -2910,7 +2910,7 @@ FindNearestRubyBaseAncestor(nsIFrame* aFrame)
   
   
   
-  NS_ASSERTION(aFrame, "No ruby base ancestor?");
+  NS_WARN_IF_FALSE(aFrame, "no ruby base ancestor?");
   return aFrame;
 }
 
