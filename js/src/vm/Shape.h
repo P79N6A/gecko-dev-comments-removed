@@ -588,7 +588,7 @@ class Shape : public gc::TenuredCell
     HeapPtrBaseShape    base_;
     PreBarrieredId      propid_;
 
-    JS_ENUM_HEADER(SlotInfo, uint32_t)
+    enum SlotInfo : uint32_t
     {
         
         
@@ -613,7 +613,7 @@ class Shape : public gc::TenuredCell
 
 
         SLOT_MASK              = JS_BIT(24) - 1
-    } JS_ENUM_FOOTER(SlotInfo);
+    };
 
     uint32_t            slotInfo;       
     uint8_t             attrs;          
