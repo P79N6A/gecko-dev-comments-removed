@@ -1506,16 +1506,21 @@ var gApplicationsPane = {
     }
 
     
+    let canOpenWithOtherApp = true;
 #ifdef XP_WIN
     
     
-    var executableType = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService)
+    let executableType = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService)
                                                   .getTypeFromExtension("exe");
-    if (handlerInfo.type != executableType)
+    canOpenWithOtherApp = handlerInfo.type != executableType;
 #endif
+    if (canOpenWithOtherApp)
     {
       let menuItem = document.createElement("menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
+      menuItem.className = "choose-app-item";
+      menuItem.addEventListener("command", function(e) {
+        gApplicationsPane.chooseApp(e);
+      });
       let label = this._prefsBundle.getString("useOtherApp");
       menuItem.setAttribute("label", label);
       menuItem.setAttribute("tooltiptext", label);
@@ -1527,7 +1532,10 @@ var gApplicationsPane = {
       let menuItem = document.createElement("menuseparator");
       menuPopup.appendChild(menuItem);
       menuItem = document.createElement("menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.manageApp(event)");
+      menuItem.className = "manage-app-item";
+      menuItem.addEventListener("command", function(e) {
+        gApplicationsPane.manageApp(e);
+      });
       menuItem.setAttribute("label", this._prefsBundle.getString("manageApp"));
       menuPopup.appendChild(menuItem);
     }
@@ -1700,20 +1708,23 @@ var gApplicationsPane = {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
+    let onComplete = () => {
+      
+      
+      this.rebuildActionsMenu();
+
+      
+      typeItem.setAttribute("actionDescription",
+                            this._describePreferredAction(handlerInfo));
+      if (!this._setIconClassForPreferredAction(handlerInfo, typeItem)) {
+        typeItem.setAttribute("actionIcon",
+                              this._getIconURLForPreferredAction(handlerInfo));
+      }
+    };
+
     gSubDialog.open("chrome://browser/content/preferences/applicationManager.xul",
-                    "resizable=no", handlerInfo);
+                    "resizable=no", handlerInfo, onComplete);
 
-    
-    
-    this.rebuildActionsMenu();
-
-    
-    typeItem.setAttribute("actionDescription",
-                          this._describePreferredAction(handlerInfo));
-    if (!this._setIconClassForPreferredAction(handlerInfo, typeItem)) {
-      typeItem.setAttribute("actionIcon",
-                            this._getIconURLForPreferredAction(handlerInfo));
-    }
   },
 
   chooseApp: function(aEvent) {
@@ -1762,17 +1773,20 @@ var gApplicationsPane = {
     params.filename      = null;
     params.handlerApp    = null;
 
+    let onAppSelected = () => {
+      if (this.isValidHandlerApp(params.handlerApp)) {
+        handlerApp = params.handlerApp;
+
+        
+        handlerInfo.addPossibleApplicationHandler(handlerApp);
+      }
+
+      chooseAppCallback(handlerApp);
+    };
+
     gSubDialog.open("chrome://global/content/appPicker.xul",
-                    null, params);
+                    null, params, onAppSelected);
 
-    if (this.isValidHandlerApp(params.handlerApp)) {
-      handlerApp = params.handlerApp;
-
-      
-      handlerInfo.addPossibleApplicationHandler(handlerApp);
-    }
-
-    chooseAppCallback(handlerApp);
 #else
     let winTitle = this._prefsBundle.getString("fpTitleChooseApp");
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
