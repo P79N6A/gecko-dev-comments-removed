@@ -11,10 +11,12 @@
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsTArray.h"
+#include "SVGTextFrame.h"
 
-static bool StyleContextContainsFont(nsStyleContext* aStyleContext,
-                                     const gfxUserFontSet* aUserFontSet,
-                                     const gfxUserFontEntry* aFont)
+static bool
+StyleContextContainsFont(nsStyleContext* aStyleContext,
+                         const gfxUserFontSet* aUserFontSet,
+                         const gfxUserFontEntry* aFont)
 {
   
   
@@ -66,6 +68,41 @@ FrameUsesFont(nsIFrame* aFrame, const gfxUserFontEntry* aFont)
   return false;
 }
 
+static void
+ScheduleReflow(nsIPresShell* aShell, nsIFrame* aFrame)
+{
+  nsIFrame* f = aFrame;
+  if (f->IsFrameOfType(nsIFrame::eSVG) || f->IsSVGText()) {
+    
+    
+    
+    
+    
+    
+    if (f->GetStateBits() & NS_FRAME_IS_NONDISPLAY) {
+      while (f) {
+        if (!(f->GetStateBits() & NS_FRAME_IS_NONDISPLAY)) {
+          if (NS_SUBTREE_DIRTY(f)) {
+            
+            
+            
+            return;
+          }
+          if (f->GetStateBits() & NS_STATE_IS_OUTER_SVG ||
+              !(f->IsFrameOfType(nsIFrame::eSVG) || f->IsSVGText())) {
+            break;
+          }
+          f->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+        }
+        f = f->GetParent();
+      }
+      MOZ_ASSERT(f, "should have found an ancestor frame to reflow");
+    }
+  }
+
+  aShell->FrameNeedsReflow(f, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+}
+
  void
 nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
                                         const gfxUserFontEntry* aFont)
@@ -92,7 +129,7 @@ nsFontFaceUtils::MarkDirtyForFontChange(nsIFrame* aSubtreeRoot,
       
       
       if (FrameUsesFont(f, aFont)) {
-        ps->FrameNeedsReflow(f, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+        ScheduleReflow(ps, f);
       } else {
         if (f->GetType() == nsGkAtoms::placeholderFrame) {
           nsIFrame* oof = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
