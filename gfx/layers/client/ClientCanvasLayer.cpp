@@ -94,7 +94,7 @@ ClientCanvasLayer::Initialize(const Data& aData)
             
             
 #ifdef XP_MACOSX
-            factory = new SurfaceFactory_IOSurface(mGLContext, caps);
+            factory = SurfaceFactory_IOSurface::Create(mGLContext, caps);
 #else
             factory = new SurfaceFactory_GLTexture(mGLContext, nullptr, caps);
 #endif

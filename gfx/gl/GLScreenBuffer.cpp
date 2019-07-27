@@ -51,7 +51,7 @@ GLScreenBuffer::Create(GLContext* gl,
 #ifdef XP_MACOSX
     
     if (!factory) {
-        factory = new SurfaceFactory_IOSurface(gl, caps);
+        factory = SurfaceFactory_IOSurface::Create(gl, caps);
     }
 #endif
 
