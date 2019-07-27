@@ -88,7 +88,7 @@ var gPermissionManager = {
       
       let uri;
       try {
-        let uri = Services.io.newURI(input_url, null, null);
+        uri = Services.io.newURI(input_url, null, null);
       } catch(ex) {
         uri = Services.io.newURI("http://" + input_url, null, null);
       }
