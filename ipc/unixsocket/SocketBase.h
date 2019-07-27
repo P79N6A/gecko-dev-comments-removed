@@ -10,6 +10,7 @@
 #define mozilla_ipc_SocketBase_h
 
 #include "nsAutoPtr.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace ipc {
@@ -127,6 +128,36 @@ private:
   SocketConnectionStatus mConnectionStatus;
   PRIntervalTime mConnectTimestamp;
   uint32_t mConnectDelayMs;
+};
+
+
+
+
+
+
+
+
+template <typename T>
+class SocketIORunnable : public nsRunnable
+{
+public:
+  virtual ~SocketIORunnable()
+  { }
+
+  T* GetIO() const
+  {
+    return mIO;
+  }
+
+protected:
+  SocketIORunnable(T* aIO)
+  : mIO(aIO)
+  {
+    MOZ_ASSERT(aIO);
+  }
+
+private:
+  T* mIO;
 };
 
 }
