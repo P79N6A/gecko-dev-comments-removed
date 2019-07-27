@@ -119,6 +119,7 @@ public:
     NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext) MOZ_OVERRIDE;
     
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey) MOZ_OVERRIDE;
+    NS_IMETHOD ContinueBeginConnect() MOZ_OVERRIDE;
     
     NS_IMETHOD SetPriority(int32_t value) MOZ_OVERRIDE;
     
@@ -465,6 +466,9 @@ private:
     nsRefPtr<nsDNSPrefetch>           mDNSPrefetch;
 
     Http2PushedStream                 *mPushedStream;
+    
+    
+    bool                              mLocalBlocklist;
 
     nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
