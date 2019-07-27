@@ -2186,6 +2186,12 @@ public:
 
 
 
+  static bool IsAllowedNonCorsContentType(const nsACString& aHeaderValue);
+
+  
+
+
+
   static bool IsForbiddenResponseHeader(const nsACString& aHeader);
 
 private:
