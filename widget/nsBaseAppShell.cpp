@@ -25,11 +25,7 @@ nsBaseAppShell::nsBaseAppShell()
   : mSuspendNativeCount(0)
   , mEventloopNestingLevel(0)
   , mBlockedWait(nullptr)
-  , mFavorPerf(0)
   , mNativeEventPending(false)
-  , mStarvationDelay(0)
-  , mSwitchTime(0)
-  , mLastNativeEventTime(0)
   , mEventloopNestingState(eEventloopNone)
   , mRunning(false)
   , mExiting(false)
@@ -180,20 +176,6 @@ nsBaseAppShell::Exit(void)
 }
 
 NS_IMETHODIMP
-nsBaseAppShell::FavorPerformanceHint(bool favorPerfOverStarvation,
-                                     uint32_t starvationDelay)
-{
-  mStarvationDelay = PR_MillisecondsToInterval(starvationDelay);
-  if (favorPerfOverStarvation) {
-    ++mFavorPerf;
-  } else {
-    --mFavorPerf;
-    mSwitchTime = PR_IntervalNow();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsBaseAppShell::SuspendNative()
 {
   ++mSuspendNativeCount;
@@ -253,9 +235,6 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
       OnDispatchedEvent(thr); 
   }
 
-  PRIntervalTime start = PR_IntervalNow();
-  PRIntervalTime limit = THREAD_EVENT_STARVATION_LIMIT;
-
   
   if (mBlockedWait)
     *mBlockedWait = false;
@@ -271,21 +250,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   
   mProcessedGeckoEvents = false;
 
-  if (mFavorPerf <= 0 && start > mSwitchTime + mStarvationDelay) {
-    
-    PRIntervalTime now = start;
-    bool keepGoing;
-    do {
-      mLastNativeEventTime = now;
-      keepGoing = DoProcessNextNativeEvent(false, recursionDepth);
-    } while (keepGoing && ((now = PR_IntervalNow()) - start) < limit);
-  } else {
-    
-    if (start - mLastNativeEventTime > limit) {
-      mLastNativeEventTime = start;
-      DoProcessNextNativeEvent(false, recursionDepth);
-    }
-  }
+  DoProcessNextNativeEvent(false, recursionDepth);
 
   while (!NS_HasPendingEvents(thr) && !mProcessedGeckoEvents) {
     
@@ -294,7 +259,6 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
     if (mExiting)
       mayWait = false;
 
-    mLastNativeEventTime = PR_IntervalNow();
     if (!DoProcessNextNativeEvent(mayWait, recursionDepth) || !mayWait)
       break;
   }
