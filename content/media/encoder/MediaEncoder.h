@@ -80,12 +80,13 @@ public :
                                         TrackRate aTrackRate,
                                         TrackTicks aTrackOffset,
                                         uint32_t aTrackEvents,
-                                        const MediaSegment& aQueuedMedia);
+                                        const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
 
   
 
 
-  virtual void NotifyRemoved(MediaStreamGraph* aGraph);
+  virtual void NotifyEvent(MediaStreamGraph* aGraph,
+                           MediaStreamListener::MediaStreamGraphEvent event) MOZ_OVERRIDE;
 
   
 

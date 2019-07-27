@@ -460,7 +460,7 @@ MediaStreamGraphImpl::UpdateCurrentTime()
       SetStreamOrderDirty();
       for (uint32_t j = 0; j < stream->mListeners.Length(); ++j) {
         MediaStreamListener* l = stream->mListeners[j];
-        l->NotifyFinished(this);
+        l->NotifyEvent(this, MediaStreamListener::EVENT_FINISHED);
       }
     }
   }
@@ -1933,7 +1933,7 @@ MediaStream::RemoveAllListenersImpl()
 {
   for (int32_t i = mListeners.Length() - 1; i >= 0; --i) {
     nsRefPtr<MediaStreamListener> listener = mListeners[i].forget();
-    listener->NotifyRemoved(GraphImpl());
+    listener->NotifyEvent(GraphImpl(), MediaStreamListener::EVENT_REMOVED);
   }
   mListeners.Clear();
 }
@@ -2111,7 +2111,7 @@ MediaStream::AddListenerImpl(already_AddRefed<MediaStreamListener> aListener)
   listener->NotifyBlockingChanged(GraphImpl(),
     mNotifiedBlocked ? MediaStreamListener::BLOCKED : MediaStreamListener::UNBLOCKED);
   if (mNotifiedFinished) {
-    listener->NotifyFinished(GraphImpl());
+    listener->NotifyEvent(GraphImpl(), MediaStreamListener::EVENT_FINISHED);
   }
   if (mNotifiedHasCurrentData) {
     listener->NotifyHasCurrentData(GraphImpl());
@@ -2140,7 +2140,7 @@ MediaStream::RemoveListenerImpl(MediaStreamListener* aListener)
   
   nsRefPtr<MediaStreamListener> listener(aListener);
   mListeners.RemoveElement(aListener);
-  listener->NotifyRemoved(GraphImpl());
+  listener->NotifyEvent(GraphImpl(), MediaStreamListener::EVENT_REMOVED);
 }
 
 void
@@ -2367,15 +2367,37 @@ SourceMediaStream::NotifyDirectConsumers(TrackData *aTrack,
 void
 SourceMediaStream::AddDirectListener(MediaStreamDirectListener* aListener)
 {
-  MutexAutoLock lock(mMutex);
-  mDirectListeners.AppendElement(aListener);
+  bool wasEmpty;
+  {
+    MutexAutoLock lock(mMutex);
+    wasEmpty = mDirectListeners.IsEmpty();
+    mDirectListeners.AppendElement(aListener);
+  }
+
+  if (wasEmpty) {
+    for (uint32_t j = 0; j < mListeners.Length(); ++j) {
+      MediaStreamListener* l = mListeners[j];
+      l->NotifyEvent(GraphImpl(), MediaStreamListener::EVENT_HAS_DIRECT_LISTENERS);
+    }
+  }
 }
 
 void
 SourceMediaStream::RemoveDirectListener(MediaStreamDirectListener* aListener)
 {
-  MutexAutoLock lock(mMutex);
-  mDirectListeners.RemoveElement(aListener);
+  bool isEmpty;
+  {
+    MutexAutoLock lock(mMutex);
+    mDirectListeners.RemoveElement(aListener);
+    isEmpty = mDirectListeners.IsEmpty();
+  }
+
+  if (isEmpty) {
+    for (uint32_t j = 0; j < mListeners.Length(); ++j) {
+      MediaStreamListener* l = mListeners[j];
+      l->NotifyEvent(GraphImpl(), MediaStreamListener::EVENT_HAS_NO_DIRECT_LISTENERS);
+    }
+  }
 }
 
 bool

@@ -13,10 +13,9 @@
 #include "StreamBuffer.h"
 #include "TrackMetadataBase.h"
 #include "VideoSegment.h"
+#include "MediaStreamGraph.h"
 
 namespace mozilla {
-
-class MediaStreamGraph;
 
 
 
@@ -49,7 +48,13 @@ public:
 
 
 
-  void NotifyRemoved(MediaStreamGraph* aGraph) { NotifyEndOfStream(); }
+  void NotifyEvent(MediaStreamGraph* aGraph,
+                   MediaStreamListener::MediaStreamGraphEvent event)
+  {
+    if (event == MediaStreamListener::MediaStreamGraphEvent::EVENT_REMOVED) {
+      NotifyEndOfStream();
+    }
+  }
 
   
 
