@@ -31,12 +31,199 @@
 
 
 
+
+
+
+
 #include "pkix/bind.h"
 #include "pkixutil.h"
 
 namespace mozilla { namespace pkix {
 
 namespace {
+
+uint8_t LocaleInsensitveToLower(uint8_t a);
+bool StartsWithIDNALabel(Input id);
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
+                                    Input referenceDNSID,
+                                    bool referenceDNSIDWasVerifiedAsValid)
+{
+  assert(referenceDNSIDWasVerifiedAsValid);
+  if (!referenceDNSIDWasVerifiedAsValid) {
+    return false;
+  }
+
+  Reader presented(presentedDNSID);
+  Reader reference(referenceDNSID);
+
+  size_t currentLabel = 0;
+  bool hasWildcardLabel = false;
+  bool lastPresentedByteWasDot = false;
+  bool firstPresentedByteIsWildcard = presented.Peek('*');
+
+  do {
+    uint8_t presentedByte;
+    if (presented.Read(presentedByte) != Success) {
+      return false; 
+    }
+    if (presentedByte == '*' && currentLabel == 0) {
+      hasWildcardLabel = true;
+
+      
+      
+      
+      if (!presented.Peek('.')) {
+        return false;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (!firstPresentedByteIsWildcard) {
+        if (StartsWithIDNALabel(presentedDNSID)) {
+          return false;
+        }
+        if (StartsWithIDNALabel(referenceDNSID)) {
+          return false;
+        }
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      uint8_t referenceByte;
+      if (reference.Read(referenceByte) != Success) {
+        return false;
+      }
+      if (referenceByte == '.') {
+        return false;
+      }
+      while (!reference.Peek('.')) {
+        if (reference.Read(referenceByte) != Success) {
+          return false;
+        }
+      }
+    } else {
+      if (presentedByte == '.') {
+        
+        
+        if (lastPresentedByteWasDot) {
+          return false;
+        }
+        lastPresentedByteWasDot = true;
+
+        if (!presented.AtEnd()) {
+          ++currentLabel;
+        }
+      } else {
+        lastPresentedByteWasDot = false;
+      }
+
+      
+      
+      
+      if (presentedByte != '.' || !presented.AtEnd() || !reference.AtEnd()) {
+        uint8_t referenceByte;
+        if (reference.Read(referenceByte) != Success) {
+          return false;
+        }
+        if (LocaleInsensitveToLower(presentedByte) !=
+            LocaleInsensitveToLower(referenceByte)) {
+          return false;
+        }
+      }
+    }
+  } while (!presented.AtEnd());
+
+  
+  
+  static const uint8_t DOT[1] = { '.' };
+  if (!reference.AtEnd() && !reference.MatchRest(DOT)) {
+    return false;
+  }
+
+  if (hasWildcardLabel) {
+    
+    if (currentLabel < 2) {
+      return false;
+    }
+
+    
+    
+    
+
+    
+    
+    
+  }
+
+  return true;
+}
+
+namespace {
+
+
+
+inline uint8_t
+LocaleInsensitveToLower(uint8_t a)
+{
+  if (a >= 'A' && a <= 'Z') { 
+    return static_cast<uint8_t>(
+             static_cast<uint8_t>(a - static_cast<uint8_t>('A')) +
+             static_cast<uint8_t>('a'));
+  }
+  return a;
+}
+
+bool
+StartsWithIDNALabel(Input id)
+{
+  static const uint8_t IDN_ALABEL_PREFIX[4] = { 'x', 'n', '-', '-' };
+  Reader input(id);
+  for (size_t i = 0; i < sizeof(IDN_ALABEL_PREFIX); ++i) {
+    uint8_t b;
+    if (input.Read(b) != Success) {
+      return false;
+    }
+    if (b != IDN_ALABEL_PREFIX[i]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 bool
 ReadIPv4AddressComponent(Reader& input, bool lastComponent,

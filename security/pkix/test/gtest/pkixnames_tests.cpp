@@ -30,6 +30,10 @@
 
 namespace mozilla { namespace pkix {
 
+bool PresentedDNSIDMatchesReferenceDNSID(Input presentedDNSID,
+                                         Input referenceDNSID,
+                                         bool referenceDNSIDWasVerifiedAsValid);
+
 bool IsValidDNSName(Input hostname);
 bool ParseIPv4Address(Input hostname,  uint8_t (&out)[4]);
 bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
@@ -38,6 +42,236 @@ bool ParseIPv6Address(Input hostname,  uint8_t (&out)[16]);
 
 using namespace mozilla::pkix;
 using namespace mozilla::pkix::test;
+
+struct PresentedMatchesReference
+{
+  ByteString presentedDNSID;
+  ByteString referenceDNSID;
+  bool matches;
+};
+
+#define DNS_ID_MATCH(a, b) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(a), sizeof(a) - 1), \
+    ByteString(reinterpret_cast<const uint8_t*>(b), sizeof(b) - 1), \
+    true \
+  }
+
+#define DNS_ID_MISMATCH(a, b) \
+  { \
+    ByteString(reinterpret_cast<const uint8_t*>(a), sizeof(a) - 1), \
+    ByteString(reinterpret_cast<const uint8_t*>(b), sizeof(b) - 1), \
+    false \
+  }
+
+static const PresentedMatchesReference DNSID_MATCH_PARAMS[] =
+{
+  DNS_ID_MISMATCH("", "a"),
+
+  DNS_ID_MATCH("a", "a"),
+  DNS_ID_MISMATCH("b", "a"),
+
+  DNS_ID_MATCH("*.b.a", "c.b.a"),
+  DNS_ID_MISMATCH("*.b.a", "b.a"),
+  DNS_ID_MISMATCH("*.b.a", "b.a."),
+
+  
+  DNS_ID_MATCH("d.c.b.a", "d.c.b.a"),
+  DNS_ID_MISMATCH("d.*.b.a", "d.c.b.a"),
+  DNS_ID_MISMATCH("d.c*.b.a", "d.c.b.a"),
+  DNS_ID_MISMATCH("d.c*.b.a", "d.cc.b.a"),
+
+  
+  DNS_ID_MATCH("abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+  DNS_ID_MATCH("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"),
+  DNS_ID_MATCH("aBc", "Abc"),
+
+  
+  DNS_ID_MATCH("a1", "a1"),
+
+  
+  
+  DNS_ID_MATCH("example", "example"),
+  DNS_ID_MATCH("example.", "example."),
+  DNS_ID_MATCH("example", "example."),
+  DNS_ID_MATCH("example.", "example"),
+  DNS_ID_MATCH("example.com", "example.com"),
+  DNS_ID_MATCH("example.com.", "example.com."),
+  DNS_ID_MATCH("example.com", "example.com."),
+  DNS_ID_MATCH("example.com.", "example.com"),
+  DNS_ID_MISMATCH("example.com..", "example.com."),
+  DNS_ID_MISMATCH("example.com..", "example.com"),
+  DNS_ID_MISMATCH("example.com...", "example.com."),
+
+  
+  DNS_ID_MATCH("x*.b.a", "xa.b.a"),
+  DNS_ID_MATCH("x*.b.a", "xna.b.a"),
+  DNS_ID_MATCH("x*.b.a", "xn-a.b.a"),
+  DNS_ID_MISMATCH("x*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn-*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn--*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn-*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn--*.b.a", "xn--a.b.a"),
+  DNS_ID_MISMATCH("xn---*.b.a", "xn--a.b.a"),
+
+  
+  DNS_ID_MISMATCH("c*.b.a", "c.b.a"),
+
+  
+  
+  
+  
+  
+  
+
+  DNS_ID_MATCH("foo.com", "foo.com"),
+  DNS_ID_MATCH("f", "f"),
+  DNS_ID_MISMATCH("i", "h"),
+  DNS_ID_MATCH("*.foo.com", "bar.foo.com"),
+  DNS_ID_MATCH("*.test.fr", "www.test.fr"),
+  DNS_ID_MATCH("*.test.FR", "wwW.tESt.fr"),
+  DNS_ID_MISMATCH(".uk", "f.uk"),
+  DNS_ID_MISMATCH("?.bar.foo.com", "w.bar.foo.com"),
+  DNS_ID_MISMATCH("(www|ftp).foo.com", "www.foo.com"), 
+  DNS_ID_MISMATCH("www.foo.com\0", "www.foo.com"),
+  DNS_ID_MISMATCH("www.foo.com\0*.foo.com", "www.foo.com"),
+  DNS_ID_MISMATCH("ww.house.example", "www.house.example"),
+  DNS_ID_MISMATCH("www.test.org", "test.org"),
+  DNS_ID_MISMATCH("*.test.org", "test.org"),
+  DNS_ID_MISMATCH("*.org", "test.org"),
+  DNS_ID_MISMATCH("w*.bar.foo.com", "w.bar.foo.com"),
+  DNS_ID_MISMATCH("ww*ww.bar.foo.com", "www.bar.foo.com"),
+  DNS_ID_MISMATCH("ww*ww.bar.foo.com", "wwww.bar.foo.com"),
+
+  
+  DNS_ID_MISMATCH("w*w.bar.foo.com", "wwww.bar.foo.com"),
+
+  DNS_ID_MISMATCH("w*w.bar.foo.c0m", "wwww.bar.foo.com"),
+
+  DNS_ID_MATCH("wa*.bar.foo.com", "WALLY.bar.foo.com"),
+
+  
+  
+  DNS_ID_MISMATCH("*Ly.bar.foo.com", "wally.bar.foo.com"),
+
+  
+  
+  
+  
+
+  DNS_ID_MISMATCH("*.test.de", "www.test.co.jp"),
+  DNS_ID_MISMATCH("*.jp", "www.test.co.jp"),
+  DNS_ID_MISMATCH("www.test.co.uk", "www.test.co.jp"),
+  DNS_ID_MISMATCH("www.*.co.jp", "www.test.co.jp"),
+  DNS_ID_MATCH("www.bar.foo.com", "www.bar.foo.com"),
+  DNS_ID_MISMATCH("*.foo.com", "www.bar.foo.com"),
+  DNS_ID_MISMATCH("*.*.foo.com", "www.bar.foo.com"),
+  DNS_ID_MISMATCH("*.*.foo.com", "www.bar.foo.com"),
+
+  
+  
+  
+
+  DNS_ID_MATCH("www.bath.org", "www.bath.org"),
+
+  
+  
+  
+  
+  
+
+  
+  DNS_ID_MATCH("xn--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_MATCH("*.xn--poema-9qae5a.com.br", "www.xn--poema-9qae5a.com.br"),
+  DNS_ID_MISMATCH("*.xn--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_MISMATCH("xn--poema-*.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_MISMATCH("xn--*-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+  DNS_ID_MISMATCH("*--poema-9qae5a.com.br", "xn--poema-9qae5a.com.br"),
+
+  
+  
+  
+  
+  DNS_ID_MATCH("*.example.com", "foo.example.com"),
+  DNS_ID_MISMATCH("*.example.com", "bar.foo.example.com"),
+  DNS_ID_MISMATCH("*.example.com", "example.com"),
+  
+  
+  
+  DNS_ID_MATCH("baz*.example.net", "baz1.example.net"),
+
+  
+  
+  DNS_ID_MISMATCH("*baz.example.net", "foobaz.example.net"),
+  DNS_ID_MISMATCH("b*z.example.net", "buzz.example.net"),
+
+  
+  
+  
+  
+  DNS_ID_MATCH("*.test.example", "www.test.example"),
+  DNS_ID_MATCH("*.example.co.uk", "test.example.co.uk"),
+  DNS_ID_MISMATCH("*.exmaple", "test.example"),
+
+  
+  
+  
+  DNS_ID_MATCH("*.co.uk", "example.co.uk"),
+
+  DNS_ID_MISMATCH("*.com", "foo.com"),
+  DNS_ID_MISMATCH("*.us", "foo.us"),
+  DNS_ID_MISMATCH("*", "foo"),
+
+  
+  DNS_ID_MATCH("*.xn--poema-9qae5a.com.br", "www.xn--poema-9qae5a.com.br"),
+  DNS_ID_MATCH("*.example.xn--mgbaam7a8h", "test.example.xn--mgbaam7a8h"),
+
+  
+  
+  DNS_ID_MATCH("*.com.br", "xn--poema-9qae5a.com.br"),
+
+  DNS_ID_MISMATCH("*.xn--mgbaam7a8h", "example.xn--mgbaam7a8h"),
+  
+  
+  
+  DNS_ID_MATCH("*.appspot.com", "www.appspot.com"),
+  DNS_ID_MATCH("*.s3.amazonaws.com", "foo.s3.amazonaws.com"),
+
+  
+  DNS_ID_MISMATCH("*.*.com", "foo.example.com"),
+  DNS_ID_MISMATCH("*.bar.*.com", "foo.bar.example.com"),
+
+  
+  
+  
+  
+  DNS_ID_MATCH("foo.com.", "foo.com"),
+  DNS_ID_MATCH("foo.com", "foo.com."),
+  DNS_ID_MATCH("foo.com.", "foo.com."),
+  DNS_ID_MATCH("f.", "f"),
+  DNS_ID_MATCH("f", "f."),
+  DNS_ID_MATCH("f.", "f."),
+  DNS_ID_MATCH("*.bar.foo.com.", "www-3.bar.foo.com"),
+  DNS_ID_MATCH("*.bar.foo.com", "www-3.bar.foo.com."),
+  DNS_ID_MATCH("*.bar.foo.com.", "www-3.bar.foo.com."),
+
+  
+  
+  
+
+  DNS_ID_MISMATCH("*.com.", "example.com"),
+  DNS_ID_MISMATCH("*.com", "example.com."),
+  DNS_ID_MISMATCH("*.com.", "example.com."),
+  DNS_ID_MISMATCH("*.", "foo."),
+  DNS_ID_MISMATCH("*.", "foo"),
+
+  
+  
+  DNS_ID_MATCH("*.co.uk.", "foo.co.uk"),
+  DNS_ID_MATCH("*.co.uk.", "foo.co.uk."),
+};
 
 struct InputValidity
 {
@@ -63,8 +297,8 @@ static const InputValidity DNSNAMES_VALIDITY[] =
   I("", false),
   I(".", false),
   I("a", true),
-  I(".a", false),
-  I(".a.b", false),
+  I(".a", false), 
+  I(".a.b", false), 
   I("..a", false),
   I("a..b", false),
   I("a...b", false),
@@ -238,6 +472,11 @@ static const InputValidity DNSNAMES_VALIDITY_TURKISH_I[] =
   I("xn--\0xC4\0xB0", false), 
   I("xn--\0xC4\0xB1", false), 
 };
+
+static const uint8_t LOWERCASE_I_VALUE[1] = { 'i' };
+static const uint8_t UPPERCASE_I_VALUE[1] = { 'I' };
+static const Input LOWERCASE_I(LOWERCASE_I_VALUE);
+static const Input UPPERCASE_I(UPPERCASE_I_VALUE);
 
 template <unsigned int L>
 struct IPAddressParams
@@ -572,6 +811,63 @@ static const IPAddressParams<16> IPV6_ADDRESSES[] =
   IPV6_INVALID("::1.2.3.4\0"),
   IPV6_INVALID("::1.2\02.3.4"),
 };
+
+class pkixnames_PresentedDNSIDMatchesReferenceDNSID
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<PresentedMatchesReference>
+{
+};
+
+TEST_P(pkixnames_PresentedDNSIDMatchesReferenceDNSID,
+       PresentedDNSIDMatchesReferenceDNSID)
+{
+  const PresentedMatchesReference& param(GetParam());
+  SCOPED_TRACE(param.presentedDNSID.c_str());
+  SCOPED_TRACE(param.referenceDNSID.c_str());
+  Input presented;
+  ASSERT_EQ(Success, presented.Init(param.presentedDNSID.data(),
+                                    param.presentedDNSID.length()));
+  Input reference;
+  ASSERT_EQ(Success, reference.Init(param.referenceDNSID.data(),
+                                    param.referenceDNSID.length()));
+  bool referenceIsValidDNSName = IsValidDNSName(reference);
+  ASSERT_TRUE(referenceIsValidDNSName); 
+  ASSERT_EQ(param.matches,
+            PresentedDNSIDMatchesReferenceDNSID(presented, reference,
+                                                referenceIsValidDNSName));
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_PresentedDNSIDMatchesReferenceDNSID,
+                        pkixnames_PresentedDNSIDMatchesReferenceDNSID,
+                        testing::ValuesIn(DNSID_MATCH_PARAMS));
+
+class pkixnames_Turkish_I_Comparison
+  : public ::testing::Test
+  , public ::testing::WithParamInterface<InputValidity>
+{
+};
+
+TEST_P(pkixnames_Turkish_I_Comparison, PresentedDNSIDMatchesReferenceDNSID)
+{
+  
+  
+
+  const InputValidity& inputValidity(GetParam());
+  SCOPED_TRACE(inputValidity.input.c_str());
+  Input input;
+  ASSERT_EQ(Success, input.Init(inputValidity.input.data(),
+                                inputValidity.input.length()));
+  bool isASCII = InputsAreEqual(LOWERCASE_I, input) ||
+                 InputsAreEqual(UPPERCASE_I, input);
+  ASSERT_EQ(isASCII, PresentedDNSIDMatchesReferenceDNSID(input, LOWERCASE_I,
+                                                         true));
+  ASSERT_EQ(isASCII, PresentedDNSIDMatchesReferenceDNSID(input, UPPERCASE_I,
+                                                         true));
+}
+
+INSTANTIATE_TEST_CASE_P(pkixnames_Turkish_I_Comparison,
+                        pkixnames_Turkish_I_Comparison,
+                        testing::ValuesIn(DNSNAMES_VALIDITY_TURKISH_I));
 
 class pkixnames_IsValidDNSName
   : public ::testing::Test
