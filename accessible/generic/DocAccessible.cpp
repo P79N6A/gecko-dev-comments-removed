@@ -1289,10 +1289,12 @@ DocAccessible::ContentInserted(nsIContent* aContainerNode,
     
     Accessible* container = aContainerNode ?
       GetAccessibleOrContainer(aContainerNode) : this;
-
-    mNotificationController->ScheduleContentInsertion(container,
-                                                      aStartChildNode,
-                                                      aEndChildNode);
+    if (container) {
+      
+      mNotificationController->ScheduleContentInsertion(container,
+                                                        aStartChildNode,
+                                                        aEndChildNode);
+    }
   }
 }
 
