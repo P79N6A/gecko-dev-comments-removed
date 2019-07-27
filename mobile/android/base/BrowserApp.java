@@ -85,7 +85,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -160,7 +159,8 @@ public class BrowserApp extends GeckoApp
 
     
     private static final int ACTIVITY_REQUEST_PREFERENCES = 1001;
-    public static final String ACTION_NEW_PROFILE = "org.mozilla.gecko.NEW_PROFILE";
+
+    public static final String PREF_STARTPANE_ENABLED = "startpane_enabled";
 
     private BrowserSearch mBrowserSearch;
     private View mBrowserSearchContainer;
@@ -621,8 +621,6 @@ public class BrowserApp extends GeckoApp
             "Updater:Launch",
             "BrowserToolbar:Visibility");
 
-        registerOnboardingReceiver(this);
-
         Distribution distribution = Distribution.init(this);
 
         
@@ -688,24 +686,31 @@ public class BrowserApp extends GeckoApp
         tintManager.setStatusBarTintEnabled(true);
     }
 
-    private void registerOnboardingReceiver(Context context) {
-        final LocalBroadcastManager lbm = LocalBroadcastManager.getInstance(this);
+    
 
-        
-        mOnboardingReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                launchStartPane(BrowserApp.this);
+
+
+
+
+
+    private void checkStartPane(Context context, String intentAction) {
+        final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskReads();
+
+        try {
+            final SharedPreferences prefs = GeckoSharedPrefs.forProfile(this);
+
+            if (prefs.getBoolean(PREF_STARTPANE_ENABLED, false)) {
+                if (!Intent.ACTION_VIEW.equals(intentAction)) {
+                    final Intent startIntent = new Intent(this, StartPane.class);
+                    context.startActivity(startIntent);
+                }
+                
+                prefs.edit().putBoolean(PREF_STARTPANE_ENABLED, false).apply();
             }
-        };
-
-        lbm.registerReceiver(mOnboardingReceiver, new IntentFilter(ACTION_NEW_PROFILE));
-    }
-
-    private void launchStartPane(Context context) {
-         final Intent startIntent = new Intent(context, StartPane.class);
-         context.startActivity(startIntent);
-     }
+        } finally {
+            StrictMode.setThreadPolicy(savedPolicy);
+        }
+      }
 
     private Class<?> getMediaPlayerManager() {
         if (AppConstants.MOZ_MEDIA_PLAYER) {
@@ -738,6 +743,12 @@ public class BrowserApp extends GeckoApp
         }
 
         super.onBackPressed();
+    }
+
+    @Override
+    public void onAttachedToWindow() {
+        
+        checkStartPane(this, getIntent().getAction());
     }
 
     @Override
@@ -2668,7 +2679,6 @@ public class BrowserApp extends GeckoApp
         
         
         
-        final SharedPreferences prefs = GeckoSharedPrefs.forProfile(this);
         final boolean visible = Versions.preICS ||
                                 HardwareUtils.isTelevision() ||
                                 !PrefUtils.getStringSet(GeckoSharedPrefs.forProfile(this),
