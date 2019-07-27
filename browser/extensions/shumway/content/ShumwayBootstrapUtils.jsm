@@ -98,6 +98,10 @@ var ShumwayBootstrapUtils = {
   isRegistered: false,
 
   register: function () {
+    if (this.isRegistered) {
+      return;
+    }
+
     this.isRegistered = true;
 
     
@@ -121,6 +125,10 @@ var ShumwayBootstrapUtils = {
   },
 
   unregister: function () {
+    if (!this.isRegistered) {
+      return;
+    }
+
     this.isRegistered = false;
 
     
