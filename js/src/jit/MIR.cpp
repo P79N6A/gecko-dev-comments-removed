@@ -1182,16 +1182,17 @@ MDefinition *
 MPhi::foldsTernary()
 {
     
-    
-    
-    
-    
 
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
 
     if (numOperands() != 2)
         return nullptr;
