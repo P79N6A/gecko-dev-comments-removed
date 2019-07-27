@@ -43,17 +43,31 @@ function openLibrary(callback, aLeftPaneRoot) {
 
 
 function promiseLibrary(aLeftPaneRoot) {
-  let deferred = Promise.defer();
-  let library = Services.wm.getMostRecentWindow("Places:Organizer");
-  if (library && !library.closed) {
-    if (aLeftPaneRoot)
-      library.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
-    deferred.resolve(library);
-  }
-  else {
-    openLibrary(aLibrary => deferred.resolve(aLibrary), aLeftPaneRoot);
-  }
-  return deferred.promise;
+  return new Promise(resolve => {
+    let library = Services.wm.getMostRecentWindow("Places:Organizer");
+    if (library && !library.closed) {
+      if (aLeftPaneRoot) {
+        library.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
+      }
+      resolve(library);
+    }
+    else {
+      openLibrary(resolve, aLeftPaneRoot);
+    }
+  });
+}
+
+function promiseLibraryClosed(organizer) {
+  return new Promise(resolve => {
+    
+    organizer.addEventListener("unload", function onUnload() {
+      organizer.removeEventListener("unload", onUnload);
+      resolve();
+    });
+
+    
+    organizer.close();
+  });
 }
 
 
@@ -67,12 +81,9 @@ function promiseLibrary(aLeftPaneRoot) {
 
 
 function promiseClipboard(aPopulateClipboardFn, aFlavor) {
-  let deferred = Promise.defer();
-  waitForClipboard(function (aData) !!aData,
-                   aPopulateClipboardFn,
-                   function () { deferred.resolve(); },
-                   aFlavor);
-  return deferred.promise;
+  return new Promise(resolve => {
+    waitForClipboard(data => !!data, aPopulateClipboardFn, resolve, aFlavor);
+  });
 }
 
 
