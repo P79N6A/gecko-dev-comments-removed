@@ -145,7 +145,7 @@ class GLBlitHelper MOZ_FINAL
 
 public:
 
-    GLBlitHelper(GLContext* gl);
+    explicit GLBlitHelper(GLContext* gl);
     ~GLBlitHelper();
 
     

@@ -29,7 +29,7 @@ public:
 
 
 
-    gfxMathTable(hb_blob_t* aMathTable);
+    explicit gfxMathTable(hb_blob_t* aMathTable);
 
     
 
