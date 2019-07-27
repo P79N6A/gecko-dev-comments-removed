@@ -336,9 +336,7 @@ public:
   
   bool IsShutdown();
 
-  void QueueMetadata(int64_t aPublishTime,
-                     nsAutoPtr<MediaInfo> aInfo,
-                     nsAutoPtr<MetadataTags> aTags);
+  void QueueMetadata(int64_t aPublishTime, MediaInfo* aInfo, MetadataTags* aTags);
 
   
   

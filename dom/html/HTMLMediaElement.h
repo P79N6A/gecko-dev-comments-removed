@@ -160,7 +160,7 @@ public:
   
   
   virtual void MetadataLoaded(const MediaInfo* aInfo,
-                              nsAutoPtr<const MetadataTags> aTags) MOZ_FINAL MOZ_OVERRIDE;
+                              const MetadataTags* aTags) MOZ_FINAL MOZ_OVERRIDE;
 
   
   

@@ -762,8 +762,8 @@ public:
   
   
   void QueueMetadata(int64_t aPublishTime,
-                     nsAutoPtr<MediaInfo> aInfo,
-                     nsAutoPtr<MetadataTags> aTags);
+                     MediaInfo* aInfo,
+                     MetadataTags* aTags);
 
   int64_t GetSeekTime() { return mRequestedSeekTarget.mTime; }
   void ResetSeekTime() { mRequestedSeekTarget.Reset(); }
@@ -788,12 +788,12 @@ public:
 
   
   
-  virtual void MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
-                              nsAutoPtr<MetadataTags> aTags);
+  virtual void MetadataLoaded(MediaInfo* aInfo,
+                              MetadataTags* aTags);
 
   
   
-  virtual void FirstFrameLoaded(nsAutoPtr<MediaInfo> aInfo);
+  virtual void FirstFrameLoaded(MediaInfo* aInfo);
 
   
   
