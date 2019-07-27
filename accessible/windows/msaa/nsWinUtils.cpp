@@ -149,7 +149,10 @@ WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   switch (msg) {
     case WM_GETOBJECT:
     {
-      if (lParam == OBJID_CLIENT) {
+      
+      
+      int32_t objId = static_cast<DWORD>(lParam);
+      if (objId == OBJID_CLIENT) {
         DocAccessible* document =
           nsWinUtils::sHWNDCache->GetWeak(static_cast<void*>(hWnd));
         if (document) {
