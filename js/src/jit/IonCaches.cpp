@@ -3079,8 +3079,7 @@ GenerateSetUnboxed(JSContext* cx, MacroAssembler& masm, IonCache::StubAttacher& 
     
     
     
-    
-    Label* storeFailure = obj->group()->unknownProperties() ? &failure : nullptr;
+    Label* storeFailure = obj->group()->unboxedLayout().nativeGroup() ? &failure : nullptr;
 
     masm.storeUnboxedProperty(address, unboxedType, value, storeFailure);
 
