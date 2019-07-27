@@ -307,7 +307,8 @@ this.PhoneNumber = (function (dataBase) {
     number = PhoneNumberNormalizer.Normalize(number);
 
     
-    if (!defaultRegion && number[0] !== '+')
+    
+    if ((!defaultRegion || defaultRegion === '001') && number[0] !== '+')
       return null;
 
     
@@ -316,6 +317,11 @@ this.PhoneNumber = (function (dataBase) {
 
     
     var md = FindMetaDataForRegion(defaultRegion.toUpperCase());
+
+    if (!md) {
+      dump("Couldn't find Meta Data for region: " + defaultRegion + "\n");
+      return null;
+    }
 
     
     
