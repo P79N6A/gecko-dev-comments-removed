@@ -44,3 +44,20 @@ function waitForFrame() {
 function waitForAllPlayers(players) {
   return Promise.all(players.map(function(player) { return player.ready; }));
 }
+
+
+
+
+
+
+function waitForTwoAnimationFrames()
+{
+   return new Promise(function(resolve, reject) {
+     window.requestAnimationFrame(function() {
+       window.requestAnimationFrame(function() {
+         resolve();
+       });
+     });
+   });
+}
+
