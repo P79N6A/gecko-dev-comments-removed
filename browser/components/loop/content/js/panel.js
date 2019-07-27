@@ -720,6 +720,12 @@ loop.panel = (function(_, mozL10n) {
       
 
       this.props.mozLoop.getSelectedTabMetadata(function callback(metadata) {
+        
+        
+        if (!this.isMounted()) {
+          return;
+        }
+
         var previewImage = metadata.favicon || "";
         var description = metadata.title || metadata.description;
         var url = metadata.url;
