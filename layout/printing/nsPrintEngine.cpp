@@ -1707,21 +1707,23 @@ nsPrintEngine::SetupToPrintContent()
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    float calcRatio = 0.0f;
-    if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
-      nsPrintObject* smallestPO = FindSmallestSTF();
-      NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
-      if (smallestPO) {
+    if (PR_LOG_TEST(GetPrintingLog(), PR_LOG_DEBUG)) {
+      float calcRatio = 0.0f;
+      if (mPrt->mPrintDocList.Length() > 1 && mPrt->mPrintObject->mFrameType == eFrameSet) {
+        nsPrintObject* smallestPO = FindSmallestSTF();
+        NS_ASSERTION(smallestPO, "There must always be an XMost PO!");
+        if (smallestPO) {
+          
+          calcRatio = smallestPO->mShrinkRatio;
+        }
+      } else {
         
-        calcRatio = smallestPO->mShrinkRatio;
+        calcRatio = mPrt->mPrintObject->mShrinkRatio;
       }
-    } else {
-      
-      calcRatio = mPrt->mPrintObject->mShrinkRatio;
+      PR_PL(("**************************************************************************\n"));
+      PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
+      PR_PL(("**************************************************************************\n"));
     }
-    PR_PL(("**************************************************************************\n"));
-    PR_PL(("STF Ratio is: %8.5f Effective Ratio: %8.5f Diff: %8.5f\n", mPrt->mShrinkRatio, calcRatio,  mPrt->mShrinkRatio-calcRatio));
-    PR_PL(("**************************************************************************\n"));
   }
   
   
