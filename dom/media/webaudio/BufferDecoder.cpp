@@ -57,7 +57,7 @@ BufferDecoder::IsShutdown() const
 }
 
 bool
-BufferDecoder::OnStateMachineThread() const
+BufferDecoder::OnStateMachineTaskQueue() const
 {
   
   return true;

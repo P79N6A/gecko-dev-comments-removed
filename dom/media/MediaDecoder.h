@@ -668,7 +668,7 @@ public:
   
   void DurationChanged();
 
-  bool OnStateMachineThread() const override;
+  bool OnStateMachineTaskQueue() const override;
 
   bool OnDecodeThread() const override;
 
