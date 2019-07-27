@@ -134,6 +134,8 @@ let AppManager = exports.AppManager = {
 
 
 
+
+
   update: function(what, details) {
     
     this.emit("app-manager-update", what, details);
@@ -186,7 +188,7 @@ let AppManager = exports.AppManager = {
           .then(() => {
             this.checkIfProjectIsRunning();
             this.update("runtime-targets", { type: "apps" });
-            front.fetchIcons();
+            front.fetchIcons().then(() => this.update("runtime-apps-icons"));
           });
         } else {
           this._listTabsResponse = response;
