@@ -36,15 +36,6 @@ class AutoLocalJNIFrame;
 
 void InitAndroidJavaWrappers(JNIEnv *jEnv);
 
-
-
-
-
-
-
-
-
-
 class RefCountedJavaObject {
 public:
     RefCountedJavaObject(JNIEnv* env, jobject obj) : mRefCnt(0), mObject(env->NewGlobalRef(obj)) {}
@@ -65,6 +56,14 @@ private:
     int32_t mRefCnt;
     jobject mObject;
 };
+
+
+
+
+
+
+
+
 
 class WrappedJavaObject {
 public:
