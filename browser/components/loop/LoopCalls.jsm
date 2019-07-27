@@ -294,7 +294,8 @@ let LoopCallsInternal = {
     var callData = {
       contact: contact,
       callType: callType,
-      callId: Math.floor((Math.random() * 10))
+      
+      callId: Math.floor((Math.random() * 100000000))
     };
 
     this._startCall(callData, "outgoing");
