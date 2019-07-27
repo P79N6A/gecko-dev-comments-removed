@@ -3,7 +3,7 @@
 
 
 #ifndef __ClearKeyDecryptor_h__
-#define __ClearKeyDecryptor_h_
+#define __ClearKeyDecryptor_h__
 
 #include <map>
 #include <string>
