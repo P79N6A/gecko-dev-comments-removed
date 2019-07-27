@@ -1529,6 +1529,19 @@ ConsoleAPIListener.prototype =
 
 let WebConsoleCommands = {
   _registeredCommands: new Map(),
+  _originalCommands: new Map(),
+
+  
+
+
+
+
+
+
+  _registerOriginal: function (name, command) {
+    this.register(name, command);
+    this._originalCommands.set(name, this.getCommand(name));
+  },
 
   
 
@@ -1566,8 +1579,14 @@ let WebConsoleCommands = {
 
 
 
+
+
+
   unregister: function(name) {
     this._registeredCommands.delete(name);
+    if (this._originalCommands.has(name)) {
+      this.register(name, this._originalCommands.get(name));
+    }
   },
 
   
@@ -1611,7 +1630,7 @@ exports.WebConsoleCommands = WebConsoleCommands;
 
 
 
-WebConsoleCommands.register("$", function JSTH_$(aOwner, aSelector)
+WebConsoleCommands._registerOriginal("$", function JSTH_$(aOwner, aSelector)
 {
   return aOwner.window.document.querySelector(aSelector);
 });
@@ -1624,7 +1643,7 @@ WebConsoleCommands.register("$", function JSTH_$(aOwner, aSelector)
 
 
 
-WebConsoleCommands.register("$$", function JSTH_$$(aOwner, aSelector)
+WebConsoleCommands._registerOriginal("$$", function JSTH_$$(aOwner, aSelector)
 {
   return aOwner.window.document.querySelectorAll(aSelector);
 });
@@ -1635,7 +1654,7 @@ WebConsoleCommands.register("$$", function JSTH_$$(aOwner, aSelector)
 
 
 
-WebConsoleCommands.register("$_", {
+WebConsoleCommands._registerOriginal("$_", {
   get: function(aOwner) {
     return aOwner.consoleActor.getLastConsoleInputEvaluation();
   }
@@ -1651,7 +1670,7 @@ WebConsoleCommands.register("$_", {
 
 
 
-WebConsoleCommands.register("$x", function JSTH_$x(aOwner, aXPath, aContext)
+WebConsoleCommands._registerOriginal("$x", function JSTH_$x(aOwner, aXPath, aContext)
 {
   let nodes = new aOwner.window.wrappedJSObject.Array();
   let doc = aOwner.window.document;
@@ -1673,7 +1692,7 @@ WebConsoleCommands.register("$x", function JSTH_$x(aOwner, aXPath, aContext)
 
 
 
-WebConsoleCommands.register("$0", {
+WebConsoleCommands._registerOriginal("$0", {
   get: function(aOwner) {
     return aOwner.makeDebuggeeValue(aOwner.selectedNode);
   }
@@ -1682,7 +1701,7 @@ WebConsoleCommands.register("$0", {
 
 
 
-WebConsoleCommands.register("clear", function JSTH_clear(aOwner)
+WebConsoleCommands._registerOriginal("clear", function JSTH_clear(aOwner)
 {
   aOwner.helperResult = {
     type: "clearOutput",
@@ -1692,7 +1711,7 @@ WebConsoleCommands.register("clear", function JSTH_clear(aOwner)
 
 
 
-WebConsoleCommands.register("clearHistory", function JSTH_clearHistory(aOwner)
+WebConsoleCommands._registerOriginal("clearHistory", function JSTH_clearHistory(aOwner)
 {
   aOwner.helperResult = {
     type: "clearHistory",
@@ -1706,7 +1725,7 @@ WebConsoleCommands.register("clearHistory", function JSTH_clearHistory(aOwner)
 
 
 
-WebConsoleCommands.register("keys", function JSTH_keys(aOwner, aObject)
+WebConsoleCommands._registerOriginal("keys", function JSTH_keys(aOwner, aObject)
 {
   return aOwner.window.wrappedJSObject.Object.keys(WebConsoleUtils.unwrap(aObject));
 });
@@ -1718,7 +1737,7 @@ WebConsoleCommands.register("keys", function JSTH_keys(aOwner, aObject)
 
 
 
-WebConsoleCommands.register("values", function JSTH_values(aOwner, aObject)
+WebConsoleCommands._registerOriginal("values", function JSTH_values(aOwner, aObject)
 {
   let arrValues = new aOwner.window.wrappedJSObject.Array();
   let obj = WebConsoleUtils.unwrap(aObject);
@@ -1733,7 +1752,7 @@ WebConsoleCommands.register("values", function JSTH_values(aOwner, aObject)
 
 
 
-WebConsoleCommands.register("help", function JSTH_help(aOwner)
+WebConsoleCommands._registerOriginal("help", function JSTH_help(aOwner)
 {
   aOwner.helperResult = { type: "help" };
 });
@@ -1749,7 +1768,7 @@ WebConsoleCommands.register("help", function JSTH_help(aOwner)
 
 
 
-WebConsoleCommands.register("cd", function JSTH_cd(aOwner, aWindow)
+WebConsoleCommands._registerOriginal("cd", function JSTH_cd(aOwner, aWindow)
 {
   if (!aWindow) {
     aOwner.consoleActor.evalWindow = null;
@@ -1778,7 +1797,7 @@ WebConsoleCommands.register("cd", function JSTH_cd(aOwner, aWindow)
 
 
 
-WebConsoleCommands.register("inspect", function JSTH_inspect(aOwner, aObject)
+WebConsoleCommands._registerOriginal("inspect", function JSTH_inspect(aOwner, aObject)
 {
   let dbgObj = aOwner.makeDebuggeeValue(aObject);
   let grip = aOwner.createValueGrip(dbgObj);
@@ -1796,7 +1815,7 @@ WebConsoleCommands.register("inspect", function JSTH_inspect(aOwner, aObject)
 
 
 
-WebConsoleCommands.register("pprint", function JSTH_pprint(aOwner, aObject)
+WebConsoleCommands._registerOriginal("pprint", function JSTH_pprint(aOwner, aObject)
 {
   if (aObject === null || aObject === undefined || aObject === true ||
       aObject === false) {
@@ -1843,7 +1862,7 @@ WebConsoleCommands.register("pprint", function JSTH_pprint(aOwner, aObject)
 
 
 
-WebConsoleCommands.register("print", function JSTH_print(aOwner, aValue)
+WebConsoleCommands._registerOriginal("print", function JSTH_print(aOwner, aValue)
 {
   aOwner.helperResult = { rawOutput: true };
   if (typeof aValue === "symbol") {
@@ -1863,7 +1882,7 @@ WebConsoleCommands.register("print", function JSTH_print(aOwner, aValue)
 
 
 
-WebConsoleCommands.register("copy", function JSTH_copy(aOwner, aValue)
+WebConsoleCommands._registerOriginal("copy", function JSTH_copy(aOwner, aValue)
 {
   let payload;
   try {
