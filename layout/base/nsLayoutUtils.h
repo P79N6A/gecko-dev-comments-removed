@@ -758,6 +758,13 @@ public:
 
 
 
+  static nsRect GetRectRelativeToFrame(mozilla::dom::Element* aElement,
+                                       nsIFrame* aFrame);
+
+  
+
+
+
 
 
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,
