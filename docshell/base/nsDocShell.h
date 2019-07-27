@@ -640,6 +640,12 @@ protected:
 
     
     already_AddRefed<nsDocShell> GetParentDocshell();
+
+    
+    
+    bool DoAppRedirectIfNeeded(nsIURI * aURI,
+                               nsIDocShellLoadInfo * aLoadInfo,
+                               bool aFirstParty);
 protected:
     nsresult GetCurScrollPos(int32_t scrollOrientation, int32_t * curPos);
     nsresult SetCurScrollPosEx(int32_t curHorizontalPos, int32_t curVerticalPos);
