@@ -94,18 +94,33 @@ class MemoryMonitor extends BroadcastReceiver {
             return;
         }
 
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
-            increaseMemoryPressure(MEMORY_PRESSURE_HIGH);
-        } else if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
-            increaseMemoryPressure(MEMORY_PRESSURE_MEDIUM);
-        } else if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            
-            increaseMemoryPressure(MEMORY_PRESSURE_CLEANUP);
-        } else {
+        if (level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
             
             
             
-            increaseMemoryPressure(MEMORY_PRESSURE_LOW);
+            
+            return;
+        }
+
+        switch (level) {
+            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
+            case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
+                
+                increaseMemoryPressure(MEMORY_PRESSURE_HIGH);
+                break;
+            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
+                increaseMemoryPressure(MEMORY_PRESSURE_MEDIUM);
+                break;
+            case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
+                increaseMemoryPressure(MEMORY_PRESSURE_LOW);
+                break;
+            case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
+            case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
+                increaseMemoryPressure(MEMORY_PRESSURE_CLEANUP);
+                break;
+            default:
+                Log.d(LOGTAG, "Unhandled onTrimMemory() level " + level);
+                break;
         }
     }
 
@@ -139,6 +154,8 @@ class MemoryMonitor extends BroadcastReceiver {
             oldLevel = mMemoryPressure;
             mMemoryPressure = level;
         }
+
+        Log.d(LOGTAG, "increasing memory pressure to " + level);
 
         
         
