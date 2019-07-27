@@ -28,7 +28,6 @@ Decoder::Decoder(RasterImage &aImage)
   , mChunkCount(0)
   , mDecodeFlags(0)
   , mBytesDecoded(0)
-  , mSendPartialInvalidations(false)
   , mDecodeDone(false)
   , mDataError(false)
   , mFrameCount(0)
@@ -366,12 +365,6 @@ Decoder::PostFrameStop(Opacity aFrameOpacity ,
   mCurrentFrame->Finish(aFrameOpacity, aDisposalMethod, aTimeout, aBlendMethod);
 
   mProgress |= FLAG_FRAME_COMPLETE | FLAG_ONLOAD_UNBLOCKED;
-
-  
-  
-  if (!mSendPartialInvalidations && !mIsAnimated) {
-    mInvalidRect.UnionRect(mInvalidRect, mCurrentFrame->GetRect());
-  }
 }
 
 void
@@ -382,11 +375,8 @@ Decoder::PostInvalidation(nsIntRect& aRect)
   NS_ABORT_IF_FALSE(mCurrentFrame, "Can't invalidate when not mid-frame!");
 
   
-  
-  if (mSendPartialInvalidations && !mIsAnimated) {
-    mInvalidRect.UnionRect(mInvalidRect, aRect);
-    mCurrentFrame->ImageUpdated(aRect);
-  }
+  mInvalidRect.UnionRect(mInvalidRect, aRect);
+  mCurrentFrame->ImageUpdated(aRect);
 }
 
 void
