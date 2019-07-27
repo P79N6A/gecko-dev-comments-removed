@@ -907,7 +907,7 @@ let Impl = {
     }
 
 #ifdef MOZILLA_OFFICIAL
-    if (!Telemetry.canSend && !aTesting) {
+    if (!Telemetry.canSend) {
       
       
       
