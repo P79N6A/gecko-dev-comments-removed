@@ -345,6 +345,7 @@ public:
 
 
 
+
   void GetScrollableLayers(nsTArray<Layer*>& aArray);
 
   
