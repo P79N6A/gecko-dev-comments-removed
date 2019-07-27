@@ -1229,8 +1229,8 @@ retryDueToTLSIntolerance(PRErrorCode err, nsNSSSocketInfo* socketInfo)
 
   
   if (err == PR_CONNECT_RESET_ERROR &&
-      !socketInfo->SharedState().IOLayerHelpers()
-        .isInsecureFallbackSite(socketInfo->GetHostName())) {
+      socketInfo->SharedState().IOLayerHelpers()
+        .fallbackLimitReached(socketInfo->GetHostName(), range.max)) {
     return false;
   }
 
