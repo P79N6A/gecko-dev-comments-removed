@@ -213,6 +213,7 @@ public:
 
 
   virtual bool IsWidgetLayerManager() { return true; }
+  virtual bool IsInactiveLayerManager() { return false; }
 
   
 
