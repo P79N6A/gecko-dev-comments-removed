@@ -219,6 +219,12 @@ DownloadNotification.prototype = {
     if (this._show) {
       if (!this.id) {
         this.id = Notifications.create(this.options);
+      } else if (!this.options.ongoing) {
+        
+        
+        
+        Notifications.cancel(this.id);
+        this.id = Notifications.create(this.options);
       } else {
         Notifications.update(this.id, this.options);
       }
