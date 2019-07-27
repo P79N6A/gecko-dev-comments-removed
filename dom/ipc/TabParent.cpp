@@ -13,7 +13,6 @@
 #include "mozilla/BrowserElementParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/DataTransfer.h"
-#include "mozilla/dom/ServiceWorkerRegistrar.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
 #include "mozilla/plugins/PluginWidgetParent.h"
 #include "mozilla/EventStateManager.h"
@@ -754,16 +753,10 @@ TabParent::SendLoadRemoteScript(const nsString& aURL,
 }
 
 bool
-TabParent::InitBrowserConfiguration(nsIURI* aURI,
+TabParent::InitBrowserConfiguration(const nsCString& aURI,
                                     BrowserConfiguration& aConfiguration)
 {
-  
-  nsRefPtr<ServiceWorkerRegistrar> swr = ServiceWorkerRegistrar::Get();
-  MOZ_ASSERT(swr);
-
-  swr->GetRegistrations(aConfiguration.serviceWorkerRegistrations());
-
-  return true;
+  return ContentParent::GetBrowserConfiguration(aURI, aConfiguration);
 }
 
 void
@@ -795,7 +788,7 @@ TabParent::LoadURL(nsIURI* aURI)
 
     
     BrowserConfiguration configuration;
-    if (NS_WARN_IF(!InitBrowserConfiguration(aURI, configuration))) {
+    if (NS_WARN_IF(!InitBrowserConfiguration(spec, configuration))) {
       return;
     }
 
