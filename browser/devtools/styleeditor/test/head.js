@@ -33,6 +33,26 @@ function asyncTest(generator) {
   return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
 }
 
+
+
+
+
+
+function addTab(url) {
+  info("Adding a new tab with URL: '" + url + "'");
+  let def = promise.defer();
+
+  let tab = gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedBrowser.addEventListener("load", function onload() {
+    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
+    info("URL '" + url + "' loading complete");
+    def.resolve(tab);
+  }, true);
+  content.location = url;
+
+  return def.promise;
+}
+
 function cleanup()
 {
   gPanelWindow = null;
