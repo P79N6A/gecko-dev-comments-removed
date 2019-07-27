@@ -17,6 +17,11 @@ class nsINode;
 
 namespace mozilla {
 
+namespace net {
+class HttpChannelParent;
+class FTPChannelParent;
+}
+
 
 
 
@@ -35,6 +40,18 @@ public:
            nsIURI* aBaseURI = nullptr);
 
 private:
+  
+  
+  
+  LoadInfo(nsIPrincipal* aLoadingPrincipal,
+           nsIPrincipal* aTriggeringPrincipal,
+           nsSecurityFlags aSecurityFlags,
+           nsContentPolicyType aContentPolicyType,
+           uint32_t aInnerWindowID);
+
+  friend class net::HttpChannelParent;
+  friend class net::FTPChannelParent;
+
   ~LoadInfo();
 
   nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
@@ -43,6 +60,7 @@ private:
   nsSecurityFlags        mSecurityFlags;
   nsContentPolicyType    mContentPolicyType;
   nsCOMPtr<nsIURI>       mBaseURI;
+  uint32_t               mInnerWindowID;
 };
 
 } 
