@@ -3,11 +3,14 @@
 
 
 "use strict";
-const Cu = Components.utils;
-
+const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 devtools.lazyImporter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
 devtools.lazyImporter(this, "Task", "resource://gre/modules/Task.jsm", "Task");
+const loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
+            .getService(Ci.mozIJSSubScriptLoader);
+let EventUtils = {};
+loader.loadSubScript("chrome://marionette/content/EventUtils.js", EventUtils);
 
 addMessageListener("devtools:test:history", function ({ data }) {
   content.history[data.direction]();
@@ -187,6 +190,55 @@ addMessageListener("devtools:test:setAttribute", function(msg) {
   node.setAttribute(attributeName, attributeValue);
 
   sendAsyncMessage("devtools:test:setAttribute");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+addMessageListener("Test:SynthesizeMouse", function(msg) {
+  let {x, y, center, options, selector} = msg.data;
+  let {node} = msg.objects;
+
+  if (!node && selector) {
+    node = superQuerySelector(selector);
+  }
+
+  if (center) {
+    EventUtils.synthesizeMouseAtCenter(node, options, node.ownerDocument.defaultView);
+  } else {
+    EventUtils.synthesizeMouse(node, x, y, options, node.ownerDocument.defaultView);
+  }
+
+  
+  
+  
+  sendAsyncMessage("Test:SynthesizeMouse");
+});
+
+
+
+
+
+
+
+
+
+addMessageListener("Test:SynthesizeKey", function(msg) {
+  let {key, options} = msg.data;
+
+  EventUtils.synthesizeKey(key, options, content);
 });
 
 

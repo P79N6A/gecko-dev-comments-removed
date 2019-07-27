@@ -175,6 +175,13 @@ function executeInContent(name, data={}, objects={}, expectResponse=true) {
 
 
 
+function reloadTab() {
+  return executeInContent("devtools:test:reload", {}, {}, false);
+}
+
+
+
+
 
 
 
@@ -646,4 +653,35 @@ function* waitForMultipleChildrenUpdates(inspector) {
     yield waitForChildrenUpdated(inspector);
     return yield waitForMultipleChildrenUpdates(inspector);
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createTestHTTPServer() {
+  const {HttpServer} = Cu.import("resource://testing-common/httpd.js", {});
+  let server = new HttpServer();
+
+  registerCleanupFunction(function* cleanup() {
+    let destroyed = promise.defer();
+    server.stop(() => {
+      destroyed.resolve();
+    });
+    yield destroyed.promise;
+  });
+
+  server.start(-1);
+  return server;
 }
