@@ -751,6 +751,14 @@ public:
 
   
   
+  template<typename Allocator>
+  explicit nsTArray_Impl(nsTArray_Impl<E, Allocator>&& aOther)
+  {
+    SwapElements(aOther);
+  }
+
+  
+  
   
   
   
@@ -794,6 +802,16 @@ public:
 
   
   
+  
+  self_type& operator=(self_type&& aOther)
+  {
+    Clear();
+    SwapElements(aOther);
+    return *this;
+  }
+
+  
+  
   template<typename Allocator>
   bool operator==(const nsTArray_Impl<E, Allocator>& aOther) const
   {
@@ -820,6 +838,14 @@ public:
   self_type& operator=(const nsTArray_Impl<E, Allocator>& aOther)
   {
     ReplaceElementsAt(0, Length(), aOther.Elements(), aOther.Length());
+    return *this;
+  }
+
+  template<typename Allocator>
+  self_type& operator=(nsTArray_Impl<E, Allocator>&& aOther)
+  {
+    Clear();
+    SwapElements(aOther);
     return *this;
   }
 
@@ -1723,11 +1749,40 @@ public:
   nsTArray() {}
   explicit nsTArray(size_type aCapacity) : base_type(aCapacity) {}
   explicit nsTArray(const nsTArray& aOther) : base_type(aOther) {}
+  explicit nsTArray(nsTArray&& aOther) : base_type(mozilla::Move(aOther)) {}
 
   template<class Allocator>
   explicit nsTArray(const nsTArray_Impl<E, Allocator>& aOther)
     : base_type(aOther)
   {
+  }
+  template<class Allocator>
+  explicit nsTArray(nsTArray_Impl<E, Allocator>&& aOther)
+    : base_type(mozilla::Move(aOther))
+  {
+  }
+
+  self_type& operator=(const self_type& aOther)
+  {
+    base_type::operator=(aOther);
+    return *this;
+  }
+  template<class Allocator>
+  self_type& operator=(const nsTArray_Impl<E, Allocator>& aOther)
+  {
+    base_type::operator=(aOther);
+    return *this;
+  }
+  self_type& operator=(self_type&& aOther)
+  {
+    base_type::operator=(mozilla::Move(aOther));
+    return *this;
+  }
+  template<class Allocator>
+  self_type& operator=(nsTArray_Impl<E, Allocator>&& aOther)
+  {
+    base_type::operator=(mozilla::Move(aOther));
+    return *this;
   }
 };
 
@@ -1745,11 +1800,43 @@ public:
   FallibleTArray() {}
   explicit FallibleTArray(size_type aCapacity) : base_type(aCapacity) {}
   explicit FallibleTArray(const FallibleTArray<E>& aOther) : base_type(aOther) {}
+  explicit FallibleTArray(FallibleTArray<E>&& aOther)
+    : base_type(mozilla::Move(aOther))
+  {
+  }
 
   template<class Allocator>
   explicit FallibleTArray(const nsTArray_Impl<E, Allocator>& aOther)
     : base_type(aOther)
   {
+  }
+  template<class Allocator>
+  explicit FallibleTArray(nsTArray_Impl<E, Allocator>&& aOther)
+    : base_type(mozilla::Move(aOther))
+  {
+  }
+
+  self_type& operator=(const self_type& aOther)
+  {
+    base_type::operator=(aOther);
+    return *this;
+  }
+  template<class Allocator>
+  self_type& operator=(const nsTArray_Impl<E, Allocator>& aOther)
+  {
+    base_type::operator=(aOther);
+    return *this;
+  }
+  self_type& operator=(self_type&& aOther)
+  {
+    base_type::operator=(mozilla::Move(aOther));
+    return *this;
+  }
+  template<class Allocator>
+  self_type& operator=(nsTArray_Impl<E, Allocator>&& aOther)
+  {
+    base_type::operator=(mozilla::Move(aOther));
+    return *this;
   }
 };
 
@@ -1785,6 +1872,24 @@ protected:
   {
     Init();
     this->AppendElements(aOther);
+  }
+
+  nsAutoArrayBase(const TArrayBase &aOther)
+  {
+    Init();
+    this->AppendElements(aOther);
+  }
+
+  nsAutoArrayBase(nsTArray<elem_type>&& aOther)
+  {
+    Init();
+    this->SwapElements(aOther);
+  }
+
+  nsAutoArrayBase(FallibleTArray<elem_type>&& aOther)
+  {
+    Init();
+    this->SwapElements(aOther);
   }
 
 private:
@@ -1864,6 +1969,14 @@ public:
   {
     Base::AppendElements(aOther);
   }
+  explicit nsAutoTArray(nsTArray<E>&& aOther)
+    : Base(mozilla::Move(aOther))
+  {
+  }
+  explicit nsAutoTArray(FallibleTArray<E>&& aOther)
+    : Base(mozilla::Move(aOther))
+  {
+  }
 
   operator const AutoFallibleTArray<E, N>&() const
   {
@@ -1888,6 +2001,16 @@ public:
   explicit AutoFallibleTArray(const nsTArray_Impl<E, Allocator>& aOther)
   {
     Base::AppendElements(aOther);
+  }
+
+  explicit AutoFallibleTArray(nsTArray<E>&& aOther)
+    : Base(mozilla::Move(aOther))
+  {
+  }
+
+  explicit AutoFallibleTArray(FallibleTArray<E>&& aOther)
+    : Base(mozilla::Move(aOther))
+  {
   }
 
   operator const nsAutoTArray<E, N>&() const
