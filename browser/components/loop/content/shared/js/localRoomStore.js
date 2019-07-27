@@ -36,7 +36,9 @@ loop.store.LocalRoomStore = (function() {
     }
     this.mozLoop = options.mozLoop;
 
-    this.dispatcher.register(this, ["setupEmptyRoom"]);
+    this.dispatcher.register(this, [
+      "setupWindowData"
+    ]);
   }
 
   LocalRoomStore.prototype = _.extend({
@@ -76,9 +78,10 @@ loop.store.LocalRoomStore = (function() {
 
 
 
-    _fetchRoomData: function(actionData, cb) {
-      if (this.mozLoop.rooms && this.mozLoop.rooms.getRoomData) {
-        this.mozLoop.rooms.getRoomData(actionData.localRoomId, cb);
+    _fetchRoomData: function(roomId, cb) {
+      
+      if (!this.mozLoop.getLoopBoolPref("test.alwaysUseRooms")) {
+        this.mozLoop.rooms.getRoomData(roomId, cb);
       } else {
         cb(null, {roomName: "Donkeys"});
       }
@@ -96,14 +99,20 @@ loop.store.LocalRoomStore = (function() {
 
 
 
-    setupEmptyRoom: function(actionData) {
-      this._fetchRoomData(actionData, function(error, roomData) {
-        this.setStoreState({
-          error: error,
-          localRoomId: actionData.localRoomId,
-          serverData: roomData
-        });
-      }.bind(this));
+    setupWindowData: function(actionData) {
+      if (actionData.windowData.type !== "room") {
+        
+        return;
+      }
+
+      this._fetchRoomData(actionData.windowData.localRoomId,
+        function(error, roomData) {
+          this.setStoreState({
+            error: error,
+            localRoomId: actionData.windowData.localRoomId,
+            serverData: roomData
+          });
+        }.bind(this));
     }
 
   }, Backbone.Events);

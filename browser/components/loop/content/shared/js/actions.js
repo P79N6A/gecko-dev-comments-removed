@@ -33,17 +33,23 @@ loop.shared.actions = (function() {
     
 
 
-
-    FetchEmailLink: Action.define("fetchEmailLink", {
+    GetWindowData: Action.define("getWindowData", {
+      windowId: String
     }),
 
     
 
 
-    GatherCallData: Action.define("gatherCallData", {
-      
-      windowId: [String, null],
-      outgoing: Boolean
+
+    SetupWindowData: Action.define("setupWindowData", {
+      windowData: Object
+    }),
+
+    
+
+
+
+    FetchEmailLink: Action.define("fetchEmailLink", {
     }),
 
     
@@ -167,16 +173,6 @@ loop.shared.actions = (function() {
 
     UpdateRoomList: Action.define("updateRoomList", {
       roomList: Array
-    }),
-
-    
-
-
-
-
-
-    SetupEmptyRoom: Action.define("setupEmptyRoom", {
-      localRoomId: String
     })
   };
 })();

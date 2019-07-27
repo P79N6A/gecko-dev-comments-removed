@@ -499,6 +499,10 @@ loop.conversationViews = (function(mozL10n) {
         case CALL_STATES.FINISHED: {
           return this._renderFeedbackView();
         }
+        case CALL_STATES.INIT: {
+          
+          return null;
+        }
         default: {
           return (PendingConversationView({
             dispatcher: this.props.dispatcher, 
