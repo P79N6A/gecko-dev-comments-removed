@@ -65,6 +65,8 @@ function AutocompletePopup(aDocument, aOptions = {})
     if (!aOptions.onKeypress) {
       this._panel.setAttribute("ignorekeys", "true");
     }
+    
+    this._panel.setAttribute("role", "presentation");
 
     let mainPopupSet = this._document.getElementById("mainPopupSet");
     if (mainPopupSet) {
@@ -106,6 +108,7 @@ function AutocompletePopup(aDocument, aOptions = {})
   if (this.onKeypress) {
     this._list.addEventListener("keypress", this.onKeypress, false);
   }
+  this._itemIdCounter = 0;
 }
 exports.AutocompletePopup = AutocompletePopup;
 
@@ -148,6 +151,8 @@ AutocompletePopup.prototype = {
 
   hidePopup: function AP_hidePopup()
   {
+    
+    this._document.activeElement.removeAttribute("aria-activedescendant");
     this._panel.hidePopup();
   },
 
@@ -298,6 +303,23 @@ AutocompletePopup.prototype = {
   
 
 
+
+
+  _updateAriaActiveDescendant: function AP__updateAriaActiveDescendant()
+  {
+    if (!this._list.selectedItem) {
+      
+      this._document.activeElement.removeAttribute("aria-activedescendant");
+      return;
+    }
+    
+    this._document.activeElement.setAttribute("aria-activedescendant",
+                                              this._list.selectedItem.id);
+  },
+
+  
+
+
   clearItems: function AP_clearItems()
   {
     
@@ -340,6 +362,7 @@ AutocompletePopup.prototype = {
     if (this.isOpen && this._list.ensureIndexIsVisible) {
       this._list.ensureIndexIsVisible(this._list.selectedIndex);
     }
+    this._updateAriaActiveDescendant();
   },
 
   
@@ -362,6 +385,7 @@ AutocompletePopup.prototype = {
     if (this.isOpen) {
       this._list.ensureIndexIsVisible(this._list.selectedIndex);
     }
+    this._updateAriaActiveDescendant();
   },
 
   
@@ -383,6 +407,8 @@ AutocompletePopup.prototype = {
   appendItem: function AP_appendItem(aItem)
   {
     let listItem = this._document.createElementNS(XUL_NS, "richlistitem");
+    
+    listItem.id = this._panel.id + "_item_" + this._itemIdCounter++;
     if (this.direction) {
       listItem.setAttribute("dir", this.direction);
     }
