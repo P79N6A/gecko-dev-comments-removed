@@ -110,8 +110,7 @@ public:
   virtual void NotifyPull(MediaStreamGraph* aGraph,
                           SourceMediaStream *aSource,
                           TrackID aId,
-                          StreamTime aDesiredTime,
-                          StreamTime &aLastEndTime) = 0;
+                          StreamTime aDesiredTime) = 0;
 
   
   virtual nsresult Stop(SourceMediaStream *aSource, TrackID aID) = 0;

@@ -124,8 +124,7 @@ void
 MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
                                          SourceMediaStream* aSource,
                                          TrackID aID,
-                                         StreamTime aDesiredTime,
-                                         StreamTime &aLastEndTime)
+                                         StreamTime aDesiredTime)
 {
   VideoSegment segment;
 
@@ -150,9 +149,7 @@ MediaEngineWebRTCVideoSource::NotifyPull(MediaStreamGraph* aGraph,
   
   if (delta > 0) {
     
-    if (AppendToTrack(aSource, mImage, aID, delta)) {
-      aLastEndTime = aDesiredTime;
-    }
+    AppendToTrack(aSource, mImage, aID, delta);
   }
 }
 

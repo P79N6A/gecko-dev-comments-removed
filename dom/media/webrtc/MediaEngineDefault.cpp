@@ -244,8 +244,7 @@ void
 MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
                                           SourceMediaStream *aSource,
                                           TrackID aID,
-                                          StreamTime aDesiredTime,
-                                          StreamTime &aLastEndTime)
+                                          StreamTime aDesiredTime)
 {
   
   VideoSegment segment;
@@ -264,9 +263,7 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
     segment.AppendFrame(image.forget(), delta, size);
     
     
-    if (aSource->AppendToTrack(aID, &segment)) {
-      aLastEndTime = aDesiredTime;
-    }
+    aSource->AppendToTrack(aID, &segment);
     
     if (mHasFakeTracks) {
       for (int i = 0; i < kFakeVideoTrackCount; ++i) {
