@@ -240,7 +240,6 @@ public final class GeckoProfile {
     
     
     public static GeckoProfile get(Context context, String profileName, File profileDir, BrowserDB.Factory dbFactory) {
-        Log.v(LOGTAG, "Fetching profile: '" + profileName + "', '" + profileDir + "'");
         if (context == null) {
             throw new IllegalArgumentException("context must be non-null");
         }
@@ -254,6 +253,8 @@ public final class GeckoProfile {
                 
                 throw new RuntimeException(e);
             }
+        } else {
+            Log.v(LOGTAG, "Fetching profile: '" + profileName + "', '" + profileDir + "'");
         }
 
         
