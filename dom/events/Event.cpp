@@ -787,7 +787,7 @@ Event::GetEventPopupControlState(WidgetEvent* aEvent)
       }
     }
     break;
-  case NS_FORM_EVENT :
+  case eFormEventClass:
     
     
     
