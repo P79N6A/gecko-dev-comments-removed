@@ -113,6 +113,10 @@ this.CrashManager = function (options) {
   this._store = null;
 
   
+  
+  this._getStoreTask = null;
+
+  
   this._storeTimer = null;
 
   
@@ -575,47 +579,57 @@ this.CrashManager.prototype = Object.freeze({
   },
 
   _getStore: function () {
-    return Task.spawn(function* () {
-      if (!this._store) {
-        yield OS.File.makeDir(this._storeDir, {
-          ignoreExisting: true,
-          unixMode: OS.Constants.libc.S_IRWXU,
-        });
+    if (this._getStoreTask) {
+      return this._getStoreTask;
+    }
 
-        let store = new CrashStore(this._storeDir, this._telemetryStoreSizeKey);
-        yield store.load();
+    return this._getStoreTask = Task.spawn(function* () {
+      try {
+        if (!this._store) {
+          yield OS.File.makeDir(this._storeDir, {
+            ignoreExisting: true,
+            unixMode: OS.Constants.libc.S_IRWXU,
+          });
 
-        this._store = store;
-        this._storeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      }
+          let store = new CrashStore(this._storeDir,
+                                     this._telemetryStoreSizeKey);
+          yield store.load();
 
-      
-      
-      
-      
-      
-      this._storeTimer.cancel();
-
-      
-      
-      let timerCB = function () {
-        if (this._storeProtectedCount) {
-          this._storeTimer.initWithCallback(timerCB, this.STORE_EXPIRATION_MS,
-                                            this._storeTimer.TYPE_ONE_SHOT);
-          return;
+          this._store = store;
+          this._storeTimer = Cc["@mozilla.org/timer;1"]
+                               .createInstance(Ci.nsITimer);
         }
 
         
         
         
-        this._store = null;
-        this._storeTimer = null;
-      }.bind(this);
+        
+        
+        this._storeTimer.cancel();
 
-      this._storeTimer.initWithCallback(timerCB, this.STORE_EXPIRATION_MS,
-                                        this._storeTimer.TYPE_ONE_SHOT);
+        
+        
+        let timerCB = function () {
+          if (this._storeProtectedCount) {
+            this._storeTimer.initWithCallback(timerCB, this.STORE_EXPIRATION_MS,
+                                              this._storeTimer.TYPE_ONE_SHOT);
+            return;
+          }
 
-      return this._store;
+          
+          
+          
+          this._store = null;
+          this._storeTimer = null;
+        }.bind(this);
+
+        this._storeTimer.initWithCallback(timerCB, this.STORE_EXPIRATION_MS,
+                                          this._storeTimer.TYPE_ONE_SHOT);
+
+        return this._store;
+      } finally {
+        this._getStoreTask = null;
+      }
     }.bind(this));
   },
 
