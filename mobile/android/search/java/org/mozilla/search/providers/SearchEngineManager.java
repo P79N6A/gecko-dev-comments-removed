@@ -18,12 +18,14 @@ import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.util.FileUtils;
 import org.mozilla.gecko.util.GeckoJarReader;
+import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.RawResource;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.distribution.Distribution;
 import org.mozilla.search.Constants;
 import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +33,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +49,17 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
     
     private static final String PREF_DEFAULT_ENGINE_KEY = "search.engines.defaultname";
+
+    
+    private static final String PREF_REGION_KEY = "search.region";
+
+    
+    private static final String GEOIP_LOCATION_URL = "https://location.services.mozilla.com/v1/country?key=" + AppConstants.MOZ_STUMBLER_API_KEY;
+
+    
+    
+    private static final String USER_AGENT = HardwareUtils.isTablet() ?
+        AppConstants.USER_AGENT_FENNEC_TABLET : AppConstants.USER_AGENT_FENNEC_MOBILE;
 
     private Context context;
     private Distribution distribution;
@@ -179,7 +195,11 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
                 
                 String name = GeckoSharedPrefs.forApp(context).getString(PREF_DEFAULT_ENGINE_KEY, null);
 
-                if (name != null) {
+                
+                
+                String region = GeckoSharedPrefs.forApp(context).getString(PREF_REGION_KEY, null);
+
+                if (name != null && region != null) {
                     Log.d(LOG_TAG, "Found default engine name in SharedPreferences: " + name);
                 } else {
                     
@@ -256,9 +276,112 @@ public class SearchEngineManager implements SharedPreferences.OnSharedPreference
 
 
 
+
+    private String getHttpResponse(HttpURLConnection conn) {
+        InputStream is = null;
+        try {
+            is = new BufferedInputStream(conn.getInputStream());
+            return new java.util.Scanner(is).useDelimiter("\\A").next();
+        } catch (Exception e) {
+            return "";
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, "Error closing InputStream", e);
+                }
+            }
+        }
+    }
+
+    
+
+
+
+
+
+
+    private String fetchCountryCode() {
+        
+        final String region = GeckoSharedPrefs.forApp(context).getString(PREF_REGION_KEY, null);
+        if (region != null) {
+            return region;
+        }
+
+        
+        try {
+            String responseText = null;
+
+            URL url = new URL(GEOIP_LOCATION_URL);
+            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+            try {
+                
+                final String message = "{}";
+
+                urlConnection.setDoOutput(true);
+                urlConnection.setConnectTimeout(10000);
+                urlConnection.setReadTimeout(10000);
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setRequestProperty("User-Agent", USER_AGENT);
+                urlConnection.setRequestProperty("Content-Type", "application/json");
+                urlConnection.setFixedLengthStreamingMode(message.getBytes().length);
+
+                final OutputStream out = urlConnection.getOutputStream();
+                out.write(message.getBytes());
+                out.close();
+
+                responseText = getHttpResponse(urlConnection);
+            } finally {
+                urlConnection.disconnect();
+            }
+
+            if (responseText == null) {
+                Log.e(LOG_TAG, "Country code fetch failed");
+                return null;
+            }
+
+            
+            final JSONObject response = new JSONObject(responseText);
+            return response.optString("country_code", null);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Country code fetch failed", e);
+        }
+
+        return null;
+    }
+
+    
+
+
+
+
     private String getDefaultEngineNameFromLocale() {
         try {
             final JSONObject browsersearch = new JSONObject(RawResource.getAsString(context, R.raw.browsersearch));
+
+            
+            String region = fetchCountryCode();
+
+            
+            
+            GeckoSharedPrefs.forApp(context)
+                            .edit()
+                            .putString(PREF_REGION_KEY, (region == null ? "" : region))
+                            .apply();
+
+            if (region != null) {
+                if (browsersearch.has("regions")) {
+                    final JSONObject regions = browsersearch.getJSONObject("regions");
+                    if (regions.has(region)) {
+                        final JSONObject regionData = regions.getJSONObject(region);
+                        Log.d(LOG_TAG, "Found region-specific default engine name in browsersearch.json.");
+                        return regionData.getString("default");
+                    }
+                }
+            }
+
+            
             if (browsersearch.has("default")) {
                 Log.d(LOG_TAG, "Found default engine name in browsersearch.json.");
                 return browsersearch.getString("default");
