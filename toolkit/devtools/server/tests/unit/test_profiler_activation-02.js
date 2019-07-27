@@ -11,26 +11,15 @@
 const Profiler = Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
 const WAIT_TIME = 1000; 
 
-function connect_client(callback)
-{
-  let client = new DebuggerClient(DebuggerServer.connectPipe());
-  client.connect(() => {
-    client.listTabs(response => {
-      callback(client, response.profilerActor);
-    });
-  });
-}
-
 function run_test()
 {
   
   Profiler.StartProfiler(1000000, 1, ["js"], 1);
 
   DevToolsUtils.waitForTime(WAIT_TIME).then(() => {
-    DebuggerServer.init();
-    DebuggerServer.addBrowserActors();
 
-    connect_client((client, actor) => {
+    get_chrome_actors((client, form) => {
+      let actor = form.profilerActor;
       test_start_time(client, actor, () => {
         client.close(do_test_finished);
       });
