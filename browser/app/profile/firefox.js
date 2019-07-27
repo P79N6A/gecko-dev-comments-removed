@@ -1166,7 +1166,7 @@ pref("toolbar.customization.usesheet", false);
 pref("dom.ipc.plugins.flash.disable-protected-mode", false);
 
 
-pref("browser.flash-protected-mode-flip.enable", true);
+pref("browser.flash-protected-mode-flip.enable", false);
 
 
 pref("browser.flash-protected-mode-flip.done", false);
