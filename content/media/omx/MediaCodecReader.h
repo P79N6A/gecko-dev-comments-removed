@@ -9,7 +9,11 @@
 
 #include <utils/threads.h>
 
+#include <base/message_loop.h>
+
 #include <mozilla/CheckedInt.h>
+#include <mozilla/Mutex.h>
+#include <mozilla/Monitor.h>
 
 #include "MediaData.h"
 
@@ -22,14 +26,15 @@ struct ALooper;
 struct AMessage;
 
 class MOZ_EXPORT MediaExtractor;
+class MOZ_EXPORT MetaData;
 class MOZ_EXPORT MediaBuffer;
 struct MOZ_EXPORT MediaSource;
-struct MediaCodec;
 } 
 
 namespace mozilla {
 
 class MediaTaskQueue;
+class MP3FrameParser;
 
 class MediaCodecReader : public MediaOmxCommonReader
 {
@@ -54,6 +59,11 @@ public:
   
   
   virtual void Shutdown();
+
+  
+  
+  
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
 
   
   virtual nsresult ResetDecode() MOZ_OVERRIDE;
@@ -109,6 +119,8 @@ protected:
     nsAutoPtr<TrackInputCopier> mInputCopier;
 
     
+    Mutex mDurationLock; 
+                         
     int64_t mDurationUs;
 
     
@@ -122,6 +134,11 @@ protected:
     bool mFlushed; 
     bool mDiscontinuity;
     nsRefPtr<MediaTaskQueue> mTaskQueue;
+
+  private:
+    
+    Track(const Track &rhs) MOZ_DELETE;
+    const Track &operator=(const Track&) MOZ_DELETE;
   };
 
   
@@ -188,6 +205,11 @@ private:
   struct AudioTrack : public Track
   {
     AudioTrack();
+
+  private:
+    
+    AudioTrack(const AudioTrack &rhs) MOZ_DELETE;
+    const AudioTrack &operator=(const AudioTrack &rhs) MOZ_DELETE;
   };
 
   struct VideoTrack : public Track
@@ -203,6 +225,11 @@ private:
     nsIntSize mFrameSize;
     nsIntRect mPictureRect;
     gfx::IntRect mRelativePictureRect;
+
+  private:
+    
+    VideoTrack(const VideoTrack &rhs) MOZ_DELETE;
+    const VideoTrack &operator=(const VideoTrack &rhs) MOZ_DELETE;
   };
 
   struct CodecBufferInfo
@@ -215,6 +242,101 @@ private:
     size_t mSize;
     int64_t mTimeUs;
     uint32_t mFlags;
+  };
+
+  class SignalObject
+  {
+  public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SignalObject)
+
+    SignalObject(const char* aName);
+    ~SignalObject();
+    void Wait();
+    void Signal();
+
+  private:
+    
+    SignalObject() MOZ_DELETE;
+    SignalObject(const SignalObject &rhs) MOZ_DELETE;
+    const SignalObject &operator=(const SignalObject &rhs) MOZ_DELETE;
+
+    Monitor mMonitor;
+    bool mSignaled;
+  };
+
+  class ParseCachedDataRunnable : public nsRunnable
+  {
+  public:
+    ParseCachedDataRunnable(nsRefPtr<MediaCodecReader> aReader,
+                            const char* aBuffer,
+                            uint32_t aLength,
+                            int64_t aOffset,
+                            nsRefPtr<SignalObject> aSignal);
+
+    NS_IMETHOD Run() MOZ_OVERRIDE;
+
+  private:
+    
+    ParseCachedDataRunnable() MOZ_DELETE;
+    ParseCachedDataRunnable(const ParseCachedDataRunnable &rhs) MOZ_DELETE;
+    const ParseCachedDataRunnable &operator=(const ParseCachedDataRunnable &rhs) MOZ_DELETE;
+
+    nsRefPtr<MediaCodecReader> mReader;
+    nsAutoArrayPtr<const char> mBuffer;
+    uint32_t mLength;
+    int64_t mOffset;
+    nsRefPtr<SignalObject> mSignal;
+  };
+  friend class ParseCachedDataRunnable;
+
+  class ProcessCachedDataTask : public Task
+  {
+  public:
+    ProcessCachedDataTask(nsRefPtr<MediaCodecReader> aReader,
+                          int64_t aOffset);
+
+    void Run() MOZ_OVERRIDE;
+
+  private:
+    
+    ProcessCachedDataTask() MOZ_DELETE;
+    ProcessCachedDataTask(const ProcessCachedDataTask &rhs) MOZ_DELETE;
+    const ProcessCachedDataTask &operator=(const ProcessCachedDataTask &rhs) MOZ_DELETE;
+
+    nsRefPtr<MediaCodecReader> mReader;
+    int64_t mOffset;
+  };
+  friend class ProcessCachedDataTask;
+
+  
+  
+  
+  
+  
+  
+  
+  template<class T>
+  class ReferenceKeeperRunnable : public nsRunnable
+  {
+  public:
+    ReferenceKeeperRunnable(nsRefPtr<T> aPointer)
+      : mPointer(aPointer)
+    {
+    }
+
+    NS_IMETHOD Run() MOZ_OVERRIDE
+    {
+      mPointer = nullptr;
+      return NS_OK;
+    }
+
+  private:
+    
+    ReferenceKeeperRunnable() MOZ_DELETE;
+    ReferenceKeeperRunnable(const ReferenceKeeperRunnable &rhs) MOZ_DELETE;
+    const ReferenceKeeperRunnable &operator=(const ReferenceKeeperRunnable &rhs) MOZ_DELETE;
+
+    nsRefPtr<T> mPointer;
   };
 
   
@@ -260,6 +382,8 @@ private:
             mAudioTrack.mTaskQueue);
   }
 
+  bool TriggerIncrementalParser();
+
   bool UpdateDuration();
   bool UpdateAudioInfo();
   bool UpdateVideoInfo();
@@ -275,10 +399,17 @@ private:
   uint8_t* GetColorConverterBuffer(int32_t aWidth, int32_t aHeight);
   void ClearColorConverterBuffer();
 
+  int64_t ProcessCachedData(int64_t aOffset,
+                            nsRefPtr<SignalObject> aSignal);
+  bool ParseDataSegment(const char* aBuffer,
+                        uint32_t aLength,
+                        int64_t aOffset);
+
   android::sp<MessageHandler> mHandler;
   android::sp<VideoResourceListener> mVideoListener;
 
   android::sp<android::ALooper> mLooper;
+  android::sp<android::MetaData> mMetaData;
 
   
   AudioTrack mAudioTrack;
@@ -289,6 +420,13 @@ private:
   android::I420ColorConverterHelper mColorConverter;
   nsAutoArrayPtr<uint8_t> mColorConverterBuffer;
   size_t mColorConverterBufferSize;
+
+  
+  Monitor mParserMonitor;
+  bool mParseDataFromCache;
+  int64_t mNextParserPosition;
+  int64_t mParsedDataLength;
+  nsAutoPtr<MP3FrameParser> mMP3FrameParser;
 };
 
 } 
