@@ -862,6 +862,15 @@ var WifiManager = (function() {
     return true;
   }
 
+  function setPowerSavingMode(enabled) {
+    let mode = enabled ? "AUTO" : "ACTIVE";
+    
+    
+    manager.setSuspendOptimizations(enabled, function(ok) {
+      manager.setPowerMode(mode, function() {});
+    });
+  }
+
   function didConnectSupplicant(callback) {
     waitForEvent(manager.ifname);
 
@@ -874,7 +883,8 @@ var WifiManager = (function() {
       notify("supplicantconnection");
       callback();
     });
-
+    
+    manager.setPowerSavingMode(true);
     if (p2pSupported) {
       manager.enableP2p(function(success) {});
     }
@@ -1366,6 +1376,7 @@ var WifiManager = (function() {
   manager.setPowerMode = (sdkVersion >= 16)
                          ? wifiCommand.setPowerModeJB
                          : wifiCommand.setPowerModeICS;
+  manager.setPowerSavingMode = setPowerSavingMode;
   manager.getHttpProxyNetwork = getHttpProxyNetwork;
   manager.setHttpProxy = setHttpProxy;
   manager.configureHttpProxy = configureHttpProxy;
@@ -2118,12 +2129,13 @@ function WifiWorker() {
         self._fireEvent("onconnecting", { network: netToDOM(self.currentNetwork) });
         break;
       case "ASSOCIATED":
+        
+        WifiManager.setPowerSavingMode(false);
         if (!self.currentNetwork) {
           self.currentNetwork =
             { bssid: WifiManager.connectionInfo.bssid,
               ssid: quote(WifiManager.connectionInfo.ssid) };
         }
-
         self.currentNetwork.netId = this.id;
         WifiManager.getNetworkConfiguration(self.currentNetwork, function (){
           
@@ -2170,6 +2182,8 @@ function WifiWorker() {
         break;
       case "CONNECTED":
         
+        WifiManager.setPowerSavingMode(true);
+        
         self.currentNetwork.bssid = WifiManager.connectionInfo.bssid;
         break;
       case "DISCONNECTED":
@@ -2182,6 +2196,8 @@ function WifiWorker() {
               this.prevState === "INTERFACE_DISABLED" ||
               this.prevState === "INACTIVE" ||
               this.prevState === "UNINITIALIZED")) {
+          
+          WifiManager.setPowerSavingMode(true);
           return;
         }
 
