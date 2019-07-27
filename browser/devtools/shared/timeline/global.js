@@ -150,6 +150,22 @@ function getJSLabel (marker={}) {
   return L10N.getStr("timeline.label.javascript2");
 }
 
+function getStylesFields (marker) {
+  if ("restyleHint" in marker) {
+    return { "Restyle Hint": marker.restyleHint.replace(/eRestyle_/g, "") };
+  }
+}
+
+
+
+
+
+
+
+function sublabelForProperty (mainLabel, prop) {
+  return (marker={}) => marker[prop] ? `${mainLabel} (${marker[prop]})` : mainLabel;
+}
+
 
 exports.L10N = L10N;
 exports.TIMELINE_BLUEPRINT = TIMELINE_BLUEPRINT;
