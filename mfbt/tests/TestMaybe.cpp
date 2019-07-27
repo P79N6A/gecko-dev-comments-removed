@@ -23,18 +23,13 @@ using mozilla::Swap;
 using mozilla::ToMaybe;
 using mozilla::UniquePtr;
 
-
-
-
-
 #if MOZ_IS_MSVC
-#  if MOZ_MSVC_VERSION_AT_LEAST(12)
-#    define DECLTYPE(EXPR) decltype(EXPR)
-#  else
-     template<typename T> struct Identity { typedef T type; };
-#    define DECLTYPE(EXPR) Identity<decltype(EXPR)>::type
-#  endif
+   template<typename T> struct Identity { typedef T type; };
+#  define DECLTYPE(EXPR) Identity<decltype(EXPR)>::type
 #elif MOZ_IS_GCC
+
+
+
 #  if MOZ_GCC_VERSION_AT_LEAST(4, 7, 0)
 #    define DECLTYPE(EXPR) decltype(EXPR)
 #  else

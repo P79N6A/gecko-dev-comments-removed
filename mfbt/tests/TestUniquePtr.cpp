@@ -330,24 +330,6 @@ TestReferenceDeleter()
   return true;
 }
 
-
-
-
-
-
-
-#if MOZ_IS_MSVC
-   
-   
-   
-   
-#  define SHOULD_TEST_FUNCTION_REFERENCE_DELETER 0
-#else
-#  define SHOULD_TEST_FUNCTION_REFERENCE_DELETER 1
-#endif
-
-#if SHOULD_TEST_FUNCTION_REFERENCE_DELETER
-
 typedef void (&FreeSignature)(void*);
 
 static size_t DeleteIntFunctionCallCount = 0;
@@ -399,8 +381,6 @@ TestFunctionReferenceDeleter()
 
   return true;
 }
-
-#endif 
 
 template<typename T, bool = IsNullPointer<decltype(nullptr)>::value>
 struct AppendNullptrTwice;
@@ -597,11 +577,9 @@ main()
   if (!TestReferenceDeleter()) {
     return 1;
   }
-#if SHOULD_TEST_FUNCTION_REFERENCE_DELETER
   if (!TestFunctionReferenceDeleter()) {
     return 1;
   }
-#endif
   if (!TestVector()) {
     return 1;
   }
