@@ -77,19 +77,27 @@ XPCOMUtils.defineLazyGetter(this, "log", () => {
   return new ConsoleAPI(consoleOptions);
 });
 
+function setJSONPref(aName, aValue) {
+  let value = !!aValue ? JSON.stringify(aValue) : "";
+  Services.prefs.setCharPref(aName, value);
+}
+
+function getJSONPref(aName) {
+  let value = Services.prefs.getCharPref(aName);
+  return !!value ? JSON.parse(value) : null;
+}
+
 
 
 
 let gRegisteredDeferred = null;
 let gPushHandler = null;
 let gHawkClient = null;
-let gLocalizedStrings =  null;
+let gLocalizedStrings = null;
 let gInitializeTimer = null;
 let gFxAEnabled = true;
 let gFxAOAuthClientPromise = null;
 let gFxAOAuthClient = null;
-let gFxAOAuthTokenData = null;
-let gFxAOAuthProfile = null;
 let gErrors = new Map();
 
  
@@ -311,6 +319,38 @@ let MozLoopServiceInternal = {
 
 
 
+  get fxAOAuthTokenData() {
+    return getJSONPref("loop.fxa_oauth.tokendata");
+  },
+
+  
+
+
+
+
+
+
+  set fxAOAuthTokenData(aTokenData) {
+    setJSONPref("loop.fxa_oauth.tokendata", aTokenData);
+    if (!aTokenData) {
+      this.fxAOAuthProfile = null;
+    }
+  },
+
+  
+
+
+
+
+  set fxAOAuthProfile(aProfileData) {
+    setJSONPref("loop.fxa_oauth.profile", aProfileData);
+  },
+
+  
+
+
+
+
   get doNotDisturb() {
     return Services.prefs.getBoolPref("loop.do_not_disturb");
   },
@@ -420,9 +460,8 @@ let MozLoopServiceInternal = {
     let result = gRegisteredDeferred.promise;
 
     gPushHandler = mockPushHandler || MozLoopPushHandler;
-
     gPushHandler.initialize(this.onPushRegistered.bind(this),
-      this.onHandleNotification.bind(this));
+                            this.onHandleNotification.bind(this));
 
     return result;
   },
@@ -575,12 +614,15 @@ let MozLoopServiceInternal = {
       if (!gRegisteredDeferred) {
         return;
       }
-      gRegisteredDeferred.resolve();
+      gRegisteredDeferred.resolve("registered to guest status");
       
       
-    }, (error) => {
+    }, error => {
       log.error("Failed to register with Loop server: ", error);
-      gRegisteredDeferred.reject(error.errno);
+      
+      if (gRegisteredDeferred) {
+        gRegisteredDeferred.reject(error);
+      }
       gRegisteredDeferred = null;
     });
   },
@@ -616,6 +658,8 @@ let MozLoopServiceInternal = {
 
         log.error("Failed to register with the loop server. Error: ", error);
         this.setError("registration", error);
+        gRegisteredDeferred.reject(error);
+        gRegisteredDeferred = null;
         throw error;
       }
     );
@@ -1069,15 +1113,36 @@ let MozLoopServiceInternal = {
 };
 Object.freeze(MozLoopServiceInternal);
 
-let gInitializeTimerFunc = () => {
+let gInitializeTimerFunc = (deferredInitialization, mockPushHandler, mockWebSocket) => {
   
   
   
   gInitializeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  gInitializeTimer.initWithCallback(() => {
-    MozLoopService.register();
+  gInitializeTimer.initWithCallback(Task.async(function* initializationCallback() {
+    yield MozLoopService.register(mockPushHandler, mockWebSocket).then(Task.async(function*() {
+      if (!MozLoopServiceInternal.fxAOAuthTokenData) {
+        log.debug("MozLoopService: Initialized without an already logged-in account");
+        deferredInitialization.resolve("initialized to guest status");
+        return;
+      }
+
+      log.debug("MozLoopService: Initializing with already logged-in account");
+      let registeredPromise =
+            MozLoopServiceInternal.registerWithLoopServer(LOOP_SESSION_TYPE.FXA,
+                                                          gPushHandler.pushUrl);
+      registeredPromise.then(() => {
+        deferredInitialization.resolve("initialized to logged-in status");
+      }, error => {
+        log.debug("MozLoopService: error logging in using cached auth token");
+        MozLoopServiceInternal.setError("login", error);
+        deferredInitialization.reject("error logging in using cached auth token");
+      });
+    }), error => {
+      log.debug("MozLoopService: Failure of initial registration", error);
+      deferredInitialization.reject(error);
+    });
     gInitializeTimer = null;
-  },
+  }),
   MozLoopServiceInternal.initialRegistrationDelayMilliseconds, Ci.nsITimer.TYPE_ONE_SHOT);
 };
 
@@ -1095,8 +1160,9 @@ this.MozLoopService = {
 
 
 
-  initialize: function() {
 
+
+  initialize: Task.async(function*(mockPushHandler, mockWebSocket) {
     
     
     Object.freeze(this);
@@ -1104,21 +1170,34 @@ this.MozLoopService = {
     
     if (!Services.prefs.getBoolPref("loop.enabled") ||
         Services.prefs.getBoolPref("loop.throttled")) {
-      return;
+      return Promise.reject("loop is not enabled");
     }
 
     if (Services.prefs.getPrefType("loop.fxa.enabled") == Services.prefs.PREF_BOOL) {
       gFxAEnabled = Services.prefs.getBoolPref("loop.fxa.enabled");
       if (!gFxAEnabled) {
-        this.logOutFromFxA();
+        yield this.logOutFromFxA();
       }
     }
 
     
-    if (MozLoopServiceInternal.urlExpiryTimeIsInFuture()) {
-      gInitializeTimerFunc();
+    
+    if (!MozLoopServiceInternal.urlExpiryTimeIsInFuture() &&
+        !MozLoopServiceInternal.fxAOAuthTokenData) {
+      return Promise.resolve("registration not needed");
     }
-  },
+
+    let deferredInitialization = Promise.defer();
+    gInitializeTimerFunc(deferredInitialization, mockPushHandler, mockWebSocket);
+
+    return deferredInitialization.promise.catch(error => {
+      if (typeof(error) == "object") {
+        
+        MozLoopServiceInternal.setError("initialization", error);
+      }
+      throw error;
+    });
+  }),
 
   
 
@@ -1305,8 +1384,16 @@ this.MozLoopService = {
     return gFxAEnabled;
   },
 
+  
+
+
+
+
+
+
   get userProfile() {
-    return gFxAOAuthProfile;
+    return getJSONPref("loop.fxa_oauth.tokendata") &&
+           getJSONPref("loop.fxa_oauth.profile");
   },
 
   get errors() {
@@ -1435,15 +1522,15 @@ this.MozLoopService = {
 
 
   logInToFxA: function() {
-    log.debug("logInToFxA with gFxAOAuthTokenData:", !!gFxAOAuthTokenData);
-    if (gFxAOAuthTokenData) {
-      return Promise.resolve(gFxAOAuthTokenData);
+    log.debug("logInToFxA with fxAOAuthTokenData:", !!MozLoopServiceInternal.fxAOAuthTokenData);
+    if (MozLoopServiceInternal.fxAOAuthTokenData) {
+      return Promise.resolve(MozLoopServiceInternal.fxAOAuthTokenData);
     }
 
     return MozLoopServiceInternal.promiseFxAOAuthAuthorization().then(response => {
       return MozLoopServiceInternal.promiseFxAOAuthToken(response.code, response.state);
     }).then(tokenData => {
-      gFxAOAuthTokenData = tokenData;
+      MozLoopServiceInternal.fxAOAuthTokenData = tokenData;
       return tokenData;
     }).then(tokenData => {
       return gRegisteredDeferred.promise.then(Task.async(function*() {
@@ -1454,7 +1541,7 @@ this.MozLoopService = {
         }
         MozLoopServiceInternal.clearError("login");
         MozLoopServiceInternal.clearError("profile");
-        return gFxAOAuthTokenData;
+        return MozLoopServiceInternal.fxAOAuthTokenData;
       }));
     }).then(tokenData => {
       let client = new FxAccountsProfileClient({
@@ -1462,18 +1549,18 @@ this.MozLoopService = {
         token: tokenData.access_token
       });
       client.fetchProfile().then(result => {
-        gFxAOAuthProfile = result;
+        MozLoopServiceInternal.fxAOAuthProfile = result;
         MozLoopServiceInternal.notifyStatusChanged("login");
       }, error => {
         log.error("Failed to retrieve profile", error);
         this.setError("profile", error);
-        gFxAOAuthProfile = null;
+        MozLoopServiceInternal.fxAOAuthProfile = null;
         MozLoopServiceInternal.notifyStatusChanged();
       });
       return tokenData;
     }).catch(error => {
-      gFxAOAuthTokenData = null;
-      gFxAOAuthProfile = null;
+      MozLoopServiceInternal.fxAOAuthTokenData = null;
+      MozLoopServiceInternal.fxAOAuthProfile = null;
       throw error;
     }).catch((error) => {
       MozLoopServiceInternal.setError("login", error);
@@ -1498,8 +1585,8 @@ this.MozLoopService = {
       MozLoopServiceInternal.clearSessionToken(LOOP_SESSION_TYPE.FXA);
     }
 
-    gFxAOAuthTokenData = null;
-    gFxAOAuthProfile = null;
+    MozLoopServiceInternal.fxAOAuthTokenData = null;
+    MozLoopServiceInternal.fxAOAuthProfile = null;
 
     
     

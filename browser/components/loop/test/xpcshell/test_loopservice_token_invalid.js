@@ -18,11 +18,8 @@ add_test(function test_registration_invalid_token() {
       response.write(JSON.stringify({
         code: 401,
         errno: 110,
-        error: {
-          error: "Unauthorized",
-          message: "Unknown credentials",
-          statusCode: 401
-        }
+        error: "Unauthorized",
+        message: "Unknown credentials",
       }));
     } else {
       
