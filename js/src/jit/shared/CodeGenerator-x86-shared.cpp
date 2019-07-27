@@ -1812,6 +1812,7 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
     
     masm.zeroDouble(scratch);
+    masm.loadConstantDouble(GetBiggestNumberLessThan(0.5), temp);
     masm.branchDouble(Assembler::DoubleLessThanOrEqual, input, scratch, &negativeOrZero);
 
     
@@ -1819,7 +1820,6 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
     
     
     
-    masm.loadConstantDouble(GetBiggestNumberLessThan(0.5), temp);
     masm.addDouble(input, temp);
     bailoutCvttsd2si(temp, output, lir->snapshot());
 
@@ -1840,7 +1840,14 @@ CodeGeneratorX86Shared::visitRound(LRound *lir)
 
     
     masm.bind(&negative);
+
+    
+    
+    Label loadJoin;
+    masm.loadConstantDouble(-0.5, scratch);
+    masm.branchDouble(Assembler::DoubleLessThan, input, scratch, &loadJoin);
     masm.loadConstantDouble(0.5, temp);
+    masm.bind(&loadJoin);
 
     if (AssemblerX86Shared::HasSSE41()) {
         
@@ -1894,6 +1901,7 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
 
     
     masm.zeroFloat32(scratch);
+    masm.loadConstantFloat32(GetBiggestNumberLessThan(0.5f), temp);
     masm.branchFloat(Assembler::DoubleLessThanOrEqual, input, scratch, &negativeOrZero);
 
     
@@ -1901,7 +1909,6 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
     
     
     
-    masm.loadConstantFloat32(GetBiggestNumberLessThan(0.5f), temp);
     masm.addFloat32(input, temp);
 
     bailoutCvttss2si(temp, output, lir->snapshot());
@@ -1923,7 +1930,14 @@ CodeGeneratorX86Shared::visitRoundF(LRoundF *lir)
 
     
     masm.bind(&negative);
+
+    
+    
+    Label loadJoin;
+    masm.loadConstantFloat32(-0.5f, scratch);
+    masm.branchFloat(Assembler::DoubleLessThan, input, scratch, &loadJoin);
     masm.loadConstantFloat32(0.5f, temp);
+    masm.bind(&loadJoin);
 
     if (AssemblerX86Shared::HasSSE41()) {
         
