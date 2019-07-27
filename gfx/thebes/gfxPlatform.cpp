@@ -2303,3 +2303,15 @@ gfxPlatform::CreateHardwareVsyncSource()
   nsRefPtr<mozilla::gfx::VsyncSource> softwareVsync = new SoftwareVsyncSource();
   return softwareVsync.forget();
 }
+
+ bool
+gfxPlatform::IsInLayoutAsapMode()
+{
+  
+  
+  
+  
+  
+  return Preferences::GetInt("layout.frame_rate", -1) == 0;
+}
+

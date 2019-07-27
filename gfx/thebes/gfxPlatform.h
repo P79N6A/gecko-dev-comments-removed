@@ -608,6 +608,13 @@ public:
       return mVsyncSource;
     }
 
+    
+
+
+
+
+    static bool IsInLayoutAsapMode();
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
