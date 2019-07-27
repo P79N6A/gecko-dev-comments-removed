@@ -234,18 +234,17 @@ Accessible::Description(nsString& aDescription)
           }
         }
       }
-
-      if (!aDescription.IsEmpty()) {
-        nsAutoString name;
-        ENameValueFlag nameFlag = Name(name);
-
-        
-        if (nameFlag == eNameFromTooltip)
-          aDescription.Truncate();
-      }
     }
   }
-  aDescription.CompressWhitespace();
+
+  if (!aDescription.IsEmpty()) {
+    aDescription.CompressWhitespace();
+    nsAutoString name;
+    ENameValueFlag nameFlag = Name(name);
+    
+    if (aDescription.Equals(name))
+      aDescription.Truncate();
+  }
 }
 
 KeyBinding
