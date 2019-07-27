@@ -616,18 +616,12 @@ BrowserElementChild.prototype = {
   },
 
   _selectionChangeHandler: function(e) {
-    let isMouseUp = e.reason & Ci.nsISelectionListener.MOUSEUP_REASON;
-    let isSelectAll = e.reason & Ci.nsISelectionListener.SELECTALL_REASON;
-    
-    
-    
-    
-    if (!(isMouseUp || (isSelectAll && e.selectedText.length > 0))) {
+    e.stopPropagation();
+    let boundingClientRect = e.boundingClientRect;
+    if (!boundingClientRect) {
       return;
     }
 
-    e.stopPropagation();
-    let boundingClientRect = e.boundingClientRect;
     let zoomFactor = content.screen.width / content.innerWidth;
 
     let detail = {
@@ -646,6 +640,8 @@ BrowserElementChild.prototype = {
         canPaste: this._isCommandEnabled("paste"),
       },
       zoomFactor: zoomFactor,
+      reasons: e.reasons,
+      isCollapsed: (e.selectedText.length == 0),
     };
 
     
