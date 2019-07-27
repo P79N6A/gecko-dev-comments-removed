@@ -261,13 +261,6 @@ nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
 typedef nsTArray<nsIFrame*> FrameTArray;
 
  void
-nsTableFrame::DestroyPositionedTablePartArray(void* aPropertyValue)
-{
-  auto positionedObjs = static_cast<FrameTArray*>(aPropertyValue);
-  delete positionedObjs;
-}
-
- void
 nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame)
 {
   
@@ -2549,14 +2542,7 @@ nsTableFrame::GetUsedMargin() const
   return nsMargin(0, 0, 0, 0);
 }
 
-
-static void
-DestroyBCProperty(void* aPropertyValue)
-{
-  delete static_cast<BCPropertyData*>(aPropertyValue);
-}
-
-NS_DECLARE_FRAME_PROPERTY(TableBCProperty, DestroyBCProperty)
+NS_DECLARE_FRAME_PROPERTY(TableBCProperty, DeleteValue<BCPropertyData>)
 
 BCPropertyData*
 nsTableFrame::GetBCProperty(bool aCreateIfNecessary) const

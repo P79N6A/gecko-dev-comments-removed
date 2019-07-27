@@ -64,12 +64,6 @@ NS_NewGridContainerFrame(nsIPresShell* aPresShell,
 
 
 
- void
-nsGridContainerFrame::DestroyImplicitNamedAreas(void* aPropertyValue)
-{
-  delete static_cast<ImplicitNamedAreas*>(aPropertyValue);
-}
-
 void
 nsGridContainerFrame::AddImplicitNamedAreas(
   const nsTArray<nsTArray<nsString>>& aLineNameLists)
