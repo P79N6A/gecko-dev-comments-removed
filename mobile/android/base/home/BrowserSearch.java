@@ -66,6 +66,26 @@ import android.widget.TextView;
 
 public class BrowserSearch extends HomeFragment
                            implements GeckoEventListener {
+
+    @RobocopTarget
+    public interface SuggestClientFactory {
+        public SuggestClient getSuggestClient(Context context, String template, int timeout, int max);
+    }
+
+    @RobocopTarget
+    public static class DefaultSuggestClientFactory implements SuggestClientFactory {
+        @Override
+        public SuggestClient getSuggestClient(Context context, String template, int timeout, int max) {
+            return new SuggestClient(context, template, timeout, max, true);
+        }
+    }
+
+    
+
+
+    @RobocopTarget
+    public static volatile SuggestClientFactory sSuggestClientFactory = new DefaultSuggestClientFactory();
+
     
     private static final String LOGTAG = "GeckoBrowserSearch";
 
@@ -105,7 +125,9 @@ public class BrowserSearch extends HomeFragment
     private HomeListView mList;
 
     
-    private volatile SuggestClient mSuggestClient;
+    
+    @RobocopTarget
+    public volatile SuggestClient mSuggestClient;
 
     
     
@@ -550,11 +572,7 @@ public class BrowserSearch extends HomeFragment
 
                     
                     
-                    
-                    if (mSuggestClient == null && !isPrivate) {
-                        setSuggestClient(new SuggestClient(getActivity(), suggestTemplate,
-                                    SUGGESTION_TIMEOUT, SUGGESTION_MAX));
-                    }
+                    maybeSetSuggestClient(suggestTemplate, isPrivate);
                 } else {
                     searchEngines.add(engine);
                 }
@@ -579,18 +597,12 @@ public class BrowserSearch extends HomeFragment
         filterSuggestions();
     }
 
-    
-
-
-
-
-    @RobocopTarget
-    public void setSuggestClient(final SuggestClient client) {
-        if (mSuggestClient != null) {
-            throw new IllegalStateException("Can only set the SuggestClient if it has not " +
-                    "yet been initialized!");
+    private void maybeSetSuggestClient(final String suggestTemplate, final boolean isPrivate) {
+        if (mSuggestClient != null || isPrivate) {
+            return;
         }
-        mSuggestClient = client;
+
+        mSuggestClient = sSuggestClientFactory.getSuggestClient(getActivity(), suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
     }
 
     private void showSuggestionsOptIn() {
