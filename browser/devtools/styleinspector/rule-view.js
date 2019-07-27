@@ -2796,7 +2796,7 @@ TextPropertyEditor.prototype = {
         done: this._onValueDone,
         destroy: this.update,
         validate: this._onValidate,
-        advanceChars: ';',
+        advanceChars: advanceValidate,
         contentType: InplaceEditor.CONTENT_TYPES.CSS_VALUE,
         property: this.prop,
         popup: this.popup
@@ -3524,6 +3524,48 @@ function getPropertyNameAndValue(node) {
     node = node.parentNode;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+function advanceValidate(aKeyCode, aValue, aInsertionPoint) {
+  
+  if (aKeyCode !== Ci.nsIDOMKeyEvent.DOM_VK_SEMICOLON) {
+    return false;
+  }
+
+  
+  
+  
+  
+  aValue = aValue.slice(0, aInsertionPoint) + ';' + aValue.slice(aInsertionPoint);
+  let lexer = domUtils.getCSSLexer(aValue);
+  while (true) {
+    let token = lexer.nextToken();
+    if (token.endOffset > aInsertionPoint) {
+      if (token.tokenType === "symbol" && token.text === ";") {
+        
+        return true;
+      } else {
+        
+        break;
+      }
+    }
+  }
+  return false;
+}
+
+
+exports._advanceValidate = advanceValidate;
 
 XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
   return Cc["@mozilla.org/widget/clipboardhelper;1"].

@@ -88,6 +88,12 @@ Cu.import("resource://gre/modules/devtools/event-emitter.js");
 
 
 
+
+
+
+
+
+
 function editableField(aOptions)
 {
   return editableItem(aOptions, function(aElement, aEvent) {
@@ -212,10 +218,15 @@ function InplaceEditor(aOptions, aEvent)
 
   
   
-  this._advanceCharCodes = {};
-  let advanceChars = aOptions.advanceChars || '';
-  for (let i = 0; i < advanceChars.length; i++) {
-    this._advanceCharCodes[advanceChars.charCodeAt(i)] = true;
+  if (typeof(aOptions.advanceChars) === "function") {
+    this._advanceChars = aOptions.advanceChars;
+  } else {
+    let advanceCharcodes = {};
+    let advanceChars = aOptions.advanceChars || '';
+    for (let i = 0; i < advanceChars.length; i++) {
+      advanceCharcodes[advanceChars.charCodeAt(i)] = true;
+    }
+    this._advanceChars = aCharCode => aCharCode in advanceCharcodes;
   }
 
   
@@ -931,7 +942,8 @@ InplaceEditor.prototype = {
         aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN &&
         aEvent.shiftKey) {
       prevent = false;
-    } else if (aEvent.charCode in this._advanceCharCodes
+    } else if (this._advanceChars(aEvent.charCode, this.input.value,
+                                 this.input.selectionStart)
        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_RETURN
        || aEvent.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_TAB) {
       prevent = true;
