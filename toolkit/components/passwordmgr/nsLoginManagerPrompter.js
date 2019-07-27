@@ -882,6 +882,23 @@ LoginManagerPrompter.prototype = {
       chromeDoc.getElementById("password-notification-password").type = "password";
     };
 
+    let onNotificationClick = (clickEvent) => {
+      
+      let focusedElement = Services.focus.focusedElement;
+      if (!focusedElement || focusedElement.nodeName != "html:input") {
+        
+        return;
+      }
+
+      let focusedBindingParent = chromeDoc.getBindingParent(focusedElement);
+      if (!focusedBindingParent || focusedBindingParent.nodeName != "textbox" ||
+          clickEvent.explicitOriginalTarget == focusedBindingParent) {
+        
+        return;
+      }
+      focusedBindingParent.blur();
+    };
+
     let persistData = () => {
       let foundLogins = Services.logins.findLogins({}, login.hostname,
                                                    login.formSubmitURL,
@@ -966,6 +983,8 @@ LoginManagerPrompter.prototype = {
                        .addEventListener("blur", onPasswordBlur);
               break;
             case "shown":
+              chromeDoc.getElementById("notification-popup")
+                         .addEventListener("click", onNotificationClick);
               writeDataToUI();
               break;
             case "dismissed":
@@ -973,6 +992,8 @@ LoginManagerPrompter.prototype = {
               
             case "removed":
               currentNotification = null;
+              chromeDoc.getElementById("notification-popup")
+                       .removeEventListener("click", onNotificationClick);
               chromeDoc.getElementById("password-notification-username")
                        .removeEventListener("input", onInput);
               chromeDoc.getElementById("password-notification-password")
