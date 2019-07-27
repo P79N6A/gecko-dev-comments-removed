@@ -171,6 +171,32 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   aStatus = NS_FRAME_COMPLETE;  
 
   
+  
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    SetDesiredSize(aDesiredSize, aReflowState, mSize.width, mSize.height);
+    aDesiredSize.SetOverflowAreasToDesiredBounds();
+    FinishAndStoreOverflow(&aDesiredSize);
+
+    if (GetRect().Width() != aDesiredSize.Width()) {
+      
+      for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+        nsIFrame* child = e.get();
+        nsMargin pageCSSMargin = child->GetUsedMargin();
+        nscoord centeringMargin =
+          ComputeCenteringMargin(aReflowState.ComputedWidth(),
+                                 child->GetRect().width,
+                                 pageCSSMargin);
+        nscoord newX = pageCSSMargin.left + centeringMargin;
+
+        
+        child->MovePositionBy(nsPoint(newX - child->GetNormalPosition().x, 0));
+      }
+    }
+    return;
+  }
+
+  
   if (!mPageData->mPrintSettings &&
       aPresContext->Medium() == nsGkAtoms::print) {
       mPageData->mPrintSettings = aPresContext->GetPrintSettings();
