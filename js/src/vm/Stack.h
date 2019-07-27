@@ -35,6 +35,8 @@ class StaticBlockObject;
 
 class ScopeCoordinate;
 
+class SavedFrame;
+
 
 
 
@@ -1064,6 +1066,17 @@ class Activation
     
     size_t hideScriptedCallerCount_;
 
+    
+    
+    
+    
+    
+    
+    Rooted<SavedFrame *> asyncStack_;
+
+    
+    RootedString asyncCause_;
+
     enum Kind { Interpreter, Jit, AsmJS };
     Kind kind_;
 
@@ -1134,6 +1147,14 @@ class Activation
 
     static size_t offsetOfPrevProfiling() {
         return offsetof(Activation, prevProfiling_);
+    }
+
+    SavedFrame *asyncStack() {
+        return asyncStack_;
+    }
+
+    JSString *asyncCause() {
+        return asyncCause_;
     }
 
   private:

@@ -660,6 +660,22 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::AsmJSActivation * volatile asmJSActivationStack_;
 
   public:
+    
+
+
+
+
+
+
+
+
+    js::SavedFrame *asyncStackForNewActivations;
+
+    
+
+
+    JSString *asyncCauseForNewActivations;
+
     js::Activation *const *addressOfActivation() const {
         return &activation_;
     }

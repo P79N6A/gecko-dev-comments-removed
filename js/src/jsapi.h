@@ -3811,6 +3811,40 @@ JS_SaveFrameChain(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_RestoreFrameChain(JSContext *cx);
 
+namespace JS {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MOZ_STACK_CLASS JS_PUBLIC_API(AutoSetAsyncStackForNewCalls)
+{
+    JSContext *cx;
+    RootedObject oldAsyncStack;
+    RootedString oldAsyncCause;
+
+  public:
+    
+    
+    
+    
+    AutoSetAsyncStackForNewCalls(JSContext *cx, HandleObject stack,
+                                 HandleString asyncCause);
+    ~AutoSetAsyncStackForNewCalls();
+};
+
+}
+
 
 
 

@@ -38,6 +38,11 @@ using mozilla::Maybe;
 
 namespace js {
 
+
+
+
+const unsigned ASYNC_STACK_MAX_FRAME_COUNT = 60;
+
 struct SavedFrame::Lookup {
     Lookup(JSAtom *source, uint32_t line, uint32_t column,
            JSAtom *functionDisplayName, JSAtom *asyncCause, SavedFrame *parent,
@@ -49,6 +54,18 @@ struct SavedFrame::Lookup {
         asyncCause(asyncCause),
         parent(parent),
         principals(principals)
+    {
+        MOZ_ASSERT(source);
+    }
+
+    explicit Lookup(SavedFrame &savedFrame)
+      : source(savedFrame.getSource()),
+        line(savedFrame.getLine()),
+        column(savedFrame.getColumn()),
+        functionDisplayName(savedFrame.getFunctionDisplayName()),
+        asyncCause(savedFrame.getAsyncCause()),
+        parent(savedFrame.getParent()),
+        principals(savedFrame.getPrincipals())
     {
         MOZ_ASSERT(source);
     }
@@ -797,13 +814,7 @@ SavedStacks::sweep(JSRuntime *rt)
                 }
 
                 if (obj != temp || parentMoved) {
-                    e.rekeyFront(SavedFrame::Lookup(frame->getSource(),
-                                                    frame->getLine(),
-                                                    frame->getColumn(),
-                                                    frame->getFunctionDisplayName(),
-                                                    frame->getAsyncCause(),
-                                                    frame->getParent(),
-                                                    frame->getPrincipals()),
+                    e.rekeyFront(SavedFrame::Lookup(*frame),
                                  ReadBarriered<SavedFrame *>(frame));
                 }
             }
@@ -864,9 +875,32 @@ SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFram
     
     
 
+    Activation *asyncActivation = nullptr;
+    RootedSavedFrame asyncStack(cx, nullptr);
+    RootedString asyncCause(cx, nullptr);
+
     
     SavedFrame::AutoLookupVector stackChain(cx);
     while (!iter.done()) {
+        Activation &activation = *iter.activation();
+
+        if (!asyncActivation) {
+            asyncStack = activation.asyncStack();
+            if (asyncStack) {
+                
+                
+                
+                
+                
+                asyncCause = activation.asyncCause();
+                asyncActivation = &activation;
+            }
+        } else if (asyncActivation != &activation) {
+            
+            
+            break;
+        }
+
         AutoLocationValueRooter location(cx);
 
         {
@@ -891,17 +925,73 @@ SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFram
 
         ++iter;
 
-        if (maxFrameCount == 0) {
-            
-            
+        
+        if (maxFrameCount == 0)
             continue;
-        } else if (maxFrameCount == 1) {
+
+        if (maxFrameCount == 1) {
             
             
+            asyncStack.set(nullptr);
             break;
-        } else {
-            maxFrameCount--;
         }
+
+        maxFrameCount--;
+    }
+
+    
+    
+    
+    RootedSavedFrame parentFrame(cx, nullptr);
+    if (asyncStack && !adoptAsyncStack(cx, asyncStack, asyncCause, &parentFrame, maxFrameCount))
+        return false;
+
+    
+    
+    for (size_t i = stackChain->length(); i != 0; i--) {
+        SavedFrame::HandleLookup lookup = stackChain[i-1];
+        lookup->parent = parentFrame;
+        parentFrame.set(getOrCreateSavedFrame(cx, lookup));
+        if (!parentFrame)
+            return false;
+    }
+
+    frame.set(parentFrame);
+    return true;
+}
+
+bool
+SavedStacks::adoptAsyncStack(JSContext *cx, HandleSavedFrame asyncStack,
+                             HandleString asyncCause,
+                             MutableHandleSavedFrame adoptedStack,
+                             unsigned maxFrameCount)
+{
+    RootedAtom asyncCauseAtom(cx, AtomizeString(cx, asyncCause));
+    if (!asyncCauseAtom)
+        return false;
+
+    
+    
+    
+    
+    if (maxFrameCount == 0)
+        maxFrameCount = ASYNC_STACK_MAX_FRAME_COUNT;
+
+    
+    SavedFrame::AutoLookupVector stackChain(cx);
+    SavedFrame *currentSavedFrame = asyncStack;
+    for (unsigned i = 0; i < maxFrameCount && currentSavedFrame; i++) {
+        
+        
+        if (!stackChain->growByUninitialized(1))
+            return false;
+        new (&stackChain->back()) SavedFrame::Lookup(*currentSavedFrame);
+
+        
+        if (i == 0)
+            stackChain->back().asyncCause = asyncCauseAtom;
+
+        currentSavedFrame = currentSavedFrame->getParent();
     }
 
     
@@ -915,7 +1005,7 @@ SavedStacks::insertFrames(JSContext *cx, FrameIter &iter, MutableHandleSavedFram
             return false;
     }
 
-    frame.set(parentFrame);
+    adoptedStack.set(parentFrame);
     return true;
 }
 
