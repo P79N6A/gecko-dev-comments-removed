@@ -47,6 +47,7 @@ function runTests() {
   expected.action = "unpin";
   expected.pinned = true;
   yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+  yield whenPagesUpdated();
 
   
   let blockedSite = getCell(0).node.querySelector(".newtab-site");

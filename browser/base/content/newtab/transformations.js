@@ -179,19 +179,18 @@ let gTransformation = {
       if (!aSite || aSite == gDrag.draggedSite)
         return;
 
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
-      let cb = deferred.resolve;
-
-      if (!cells[aIndex])
-        
-        this.hideSite(aSite, cb);
-      else if (this._getNodeOpacity(aSite.node) != 1)
-        
-        this.showSite(aSite, cb);
-      else
-        
-        this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: cb});
+      batch.push(new Promise(resolve => {
+        if (!cells[aIndex]) {
+          
+          this.hideSite(aSite, resolve);
+        } else if (this._getNodeOpacity(aSite.node) != 1) {
+          
+          this.showSite(aSite, resolve);
+        } else {
+          
+          this._moveSite(aSite, aIndex, {unfreeze: unfreeze, callback: resolve});
+        }
+      }));
     }, this);
 
     if (callback) {

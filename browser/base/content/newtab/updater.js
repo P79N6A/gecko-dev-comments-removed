@@ -134,17 +134,16 @@ let gUpdater = {
       if (!aSite || aSites.indexOf(aSite) != -1)
         return;
 
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
-
-      
-      gTransformation.hideSite(aSite, function () {
-        let node = aSite.node;
-
+      batch.push(new Promise(resolve => {
         
-        node.parentNode.removeChild(node);
-        deferred.resolve();
-      });
+        gTransformation.hideSite(aSite, function () {
+          let node = aSite.node;
+
+          
+          node.parentNode.removeChild(node);
+          resolve();
+        });
+      }));
     });
 
     Promise.all(batch).then(aCallback);
@@ -164,19 +163,18 @@ let gUpdater = {
       if (aSite || !aLinks[aIndex])
         return;
 
-      let deferred = Promise.defer();
-      batch.push(deferred.promise);
+      batch.push(new Promise(resolve => {
+        
+        let site = gGrid.createSite(aLinks[aIndex], cells[aIndex]);
 
-      
-      let site = gGrid.createSite(aLinks[aIndex], cells[aIndex]);
+        
+        site.node.style.opacity = 0;
 
-      
-      site.node.style.opacity = 0;
-
-      
-      
-      window.getComputedStyle(site.node).opacity;
-      gTransformation.showSite(site, function () deferred.resolve());
+        
+        
+        window.getComputedStyle(site.node).opacity;
+        gTransformation.showSite(site, resolve);
+      }));
     });
 
     Promise.all(batch).then(aCallback);
