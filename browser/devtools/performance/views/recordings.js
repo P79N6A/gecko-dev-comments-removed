@@ -114,8 +114,6 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
     if (!recording.getLabel()) {
       this.selectedItem = recordingItem;
     }
-
-    this.emit(EVENTS.RECORDING_SELECTED, recording);
   },
 
   
@@ -163,9 +161,6 @@ let RecordingsView = Heritage.extend(WidgetMethods, {
 
     
     this.finalizeRecording(recordingItem);
-
-    
-    this.emit(EVENTS.RECORDING_SELECTED, model);
   },
 
   
