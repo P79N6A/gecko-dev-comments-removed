@@ -430,7 +430,7 @@ Element::WrapObject(JSContext *aCx)
     doc = OwnerDoc();
   }
   else {
-    doc = GetCurrentDoc();
+    doc = GetComposedDoc();
   }
 
   if (!doc) {
@@ -593,7 +593,7 @@ Element::ScrollIntoView()
 void
 Element::ScrollIntoView(bool aTop, const ScrollOptions &aOptions)
 {
-  nsIDocument *document = GetCurrentDoc();
+  nsIDocument *document = GetComposedDoc();
   if (!document) {
     return;
   }
@@ -767,7 +767,7 @@ Element::AddToIdTable(nsIAtom* aId)
     ShadowRoot* containingShadow = GetContainingShadow();
     containingShadow->AddToIdTable(this, aId);
   } else {
-    nsIDocument* doc = GetCurrentDoc();
+    nsIDocument* doc = GetUncomposedDoc();
     if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
       doc->AddToIdTable(this, aId);
     }
@@ -790,7 +790,7 @@ Element::RemoveFromIdTable()
       containingShadow->RemoveFromIdTable(this, id);
     }
   } else {
-    nsIDocument* doc = GetCurrentDoc();
+    nsIDocument* doc = GetUncomposedDoc();
     if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
       doc->RemoveFromIdTable(this, id);
     }
@@ -1197,9 +1197,9 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_PRECONDITION(aParent || aDocument, "Must have document if no parent!");
   NS_PRECONDITION((NODE_FROM(aParent, aDocument)->OwnerDoc() == OwnerDoc()),
                   "Must have the same owner document");
-  NS_PRECONDITION(!aParent || aDocument == aParent->GetCurrentDoc(),
+  NS_PRECONDITION(!aParent || aDocument == aParent->GetUncomposedDoc(),
                   "aDocument must be current doc of aParent");
-  NS_PRECONDITION(!GetCurrentDoc(), "Already have a document.  Unbind first!");
+  NS_PRECONDITION(!GetUncomposedDoc(), "Already have a document.  Unbind first!");
   
   
   NS_PRECONDITION(!GetParent() || aParent == GetParent(),
@@ -1406,7 +1406,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   
   
-  NS_POSTCONDITION(aDocument == GetCurrentDoc(), "Bound to wrong document");
+  NS_POSTCONDITION(aDocument == GetUncomposedDoc(), "Bound to wrong document");
   NS_POSTCONDITION(aParent == GetParent(), "Bound to wrong parent");
   NS_POSTCONDITION(aBindingParent == GetBindingParent(),
                    "Bound to wrong binding parent");
@@ -1414,48 +1414,45 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
-class RemoveFromBindingManagerRunnable : public nsRunnable {
-public:
-  RemoveFromBindingManagerRunnable(nsBindingManager* aManager,
-                                   Element* aElement,
-                                   nsIDocument* aDoc):
-    mManager(aManager), mElement(aElement), mDoc(aDoc)
-  {}
+RemoveFromBindingManagerRunnable::RemoveFromBindingManagerRunnable(nsBindingManager* aManager,
+                                                                   nsIContent* aContent,
+                                                                   nsIDocument* aDoc):
+  mManager(aManager), mContent(aContent), mDoc(aDoc)
+{}
 
-  NS_IMETHOD Run()
-  {
-    
-    
-    
-    
-    
-    
-    
-    if (!mElement->IsInDoc()) {
-      mManager->RemovedFromDocumentInternal(mElement, mDoc);
-    }
+RemoveFromBindingManagerRunnable::~RemoveFromBindingManagerRunnable() {}
 
-    return NS_OK;
+NS_IMETHODIMP
+RemoveFromBindingManagerRunnable::Run()
+{
+  
+  
+  
+  
+  
+  
+  
+  if (!mContent->IsInComposedDoc()) {
+    mManager->RemovedFromDocumentInternal(mContent, mDoc);
   }
 
-private:
-  nsRefPtr<nsBindingManager> mManager;
-  nsRefPtr<Element> mElement;
-  nsCOMPtr<nsIDocument> mDoc;
-};
+  return NS_OK;
+}
+
 
 void
 Element::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  NS_PRECONDITION(aDeep || (!GetCurrentDoc() && !GetBindingParent()),
+  NS_PRECONDITION(aDeep || (!GetUncomposedDoc() && !GetBindingParent()),
                   "Shallow unbind won't clear document and binding parent on "
                   "kids!");
 
   RemoveFromIdTable();
 
   
-  nsIDocument *document =
-    HasFlag(NODE_FORCE_XBL_BINDINGS) ? OwnerDoc() : GetCurrentDoc();
+  nsIDocument* document =
+    HasFlag(NODE_FORCE_XBL_BINDINGS) || IsInShadowTree() ?
+      OwnerDoc() : GetUncomposedDoc();
 
   if (aNullParent) {
     if (IsFullScreenAncestor()) {
@@ -1602,7 +1599,7 @@ Element::SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
   slots->mSMILOverrideStyleRule = aStyleRule;
 
   if (aNotify) {
-    nsIDocument* doc = GetCurrentDoc();
+    nsIDocument* doc = GetComposedDoc();
     
     
     
@@ -2020,7 +2017,7 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
 {
   nsresult rv;
 
-  nsIDocument* document = GetCurrentDoc();
+  nsIDocument* document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
   nsMutationGuard::DidMutate();
@@ -2233,7 +2230,7 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   nsresult rv = BeforeSetAttr(aNameSpaceID, aName, nullptr, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIDocument *document = GetCurrentDoc();
+  nsIDocument *document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
   if (aNotify) {
@@ -2622,7 +2619,7 @@ Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor)
             WidgetMouseEvent::eLeftButton) {
         
         nsILinkHandler *handler = aVisitor.mPresContext->GetLinkHandler();
-        nsIDocument *document = GetCurrentDoc();
+        nsIDocument *document = GetComposedDoc();
         if (handler && document) {
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm) {

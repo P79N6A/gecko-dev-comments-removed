@@ -192,7 +192,7 @@ nsFrameLoader::Create(Element* aOwner, bool aNetworkCreated)
   NS_ENSURE_TRUE(aOwner, nullptr);
   nsIDocument* doc = aOwner->OwnerDoc();
   NS_ENSURE_TRUE(!doc->IsResourceDoc() &&
-                 ((!doc->IsLoadedAsData() && aOwner->GetCurrentDoc()) ||
+                 ((!doc->IsLoadedAsData() && aOwner->GetUncomposedDoc()) ||
                    doc->IsStaticDocument()),
                  nullptr);
 
@@ -873,12 +873,12 @@ nsFrameLoader::ShowRemoteFrame(const nsIntSize& size,
   
   if (!mRemoteBrowserShown) {
     if (!mOwnerContent ||
-        !mOwnerContent->GetCurrentDoc()) {
+        !mOwnerContent->GetUncomposedDoc()) {
       return false;
     }
 
     nsRefPtr<layers::LayerManager> layerManager =
-      nsContentUtils::LayerManagerForDocument(mOwnerContent->GetCurrentDoc());
+      nsContentUtils::LayerManagerForDocument(mOwnerContent->GetUncomposedDoc());
     if (!layerManager) {
       
       return false;
@@ -1073,8 +1073,8 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
     otherChildDocument->GetParentDocument();
 
   
-  nsIDocument* ourDoc = ourContent->GetCurrentDoc();
-  nsIDocument* otherDoc = otherContent->GetCurrentDoc();
+  nsIDocument* ourDoc = ourContent->GetUncomposedDoc();
+  nsIDocument* otherDoc = otherContent->GetUncomposedDoc();
   if (!ourDoc || !otherDoc) {
     
     return NS_ERROR_NOT_IMPLEMENTED;

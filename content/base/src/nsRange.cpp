@@ -1084,7 +1084,7 @@ nsRange::IsValidBoundary(nsINode* aNode)
 
   
   
-  nsINode* root = aNode->GetCurrentDoc();
+  nsINode* root = aNode->GetUncomposedDoc();
   if (root) {
     return root;
   }
@@ -1092,7 +1092,7 @@ nsRange::IsValidBoundary(nsINode* aNode)
   root = aNode->SubtreeRoot();
 
   NS_ASSERTION(!root->IsNodeOfType(nsINode::eDOCUMENT),
-               "GetCurrentDoc should have returned a doc");
+               "GetUncomposedDoc should have returned a doc");
 
   
   return root;

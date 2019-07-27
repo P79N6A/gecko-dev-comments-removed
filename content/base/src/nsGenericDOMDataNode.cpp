@@ -297,7 +297,7 @@ nsGenericDOMDataNode::SetTextInternal(uint32_t aOffset, uint32_t aCount,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsIDocument *document = GetCurrentDoc();
+  nsIDocument *document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
   bool haveMutationListeners = aNotify &&
@@ -465,9 +465,9 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_PRECONDITION(aParent || aDocument, "Must have document if no parent!");
   NS_PRECONDITION(NODE_FROM(aParent, aDocument)->OwnerDoc() == OwnerDoc(),
                   "Must have the same owner document");
-  NS_PRECONDITION(!aParent || aDocument == aParent->GetCurrentDoc(),
+  NS_PRECONDITION(!aParent || aDocument == aParent->GetUncomposedDoc(),
                   "aDocument must be current doc of aParent");
-  NS_PRECONDITION(!GetCurrentDoc() && !IsInDoc(),
+  NS_PRECONDITION(!GetUncomposedDoc() && !IsInDoc(),
                   "Already have a document.  Unbind first!");
   
   
@@ -550,7 +550,7 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   UpdateEditableState(false);
 
-  NS_POSTCONDITION(aDocument == GetCurrentDoc(), "Bound to wrong document");
+  NS_POSTCONDITION(aDocument == GetUncomposedDoc(), "Bound to wrong document");
   NS_POSTCONDITION(aParent == GetParent(), "Bound to wrong parent");
   NS_POSTCONDITION(aBindingParent == GetBindingParent(),
                    "Bound to wrong binding parent");
@@ -564,14 +564,10 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
   
   UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE |
              NS_REFRAME_IF_WHITESPACE);
-  
-  nsIDocument *document = GetCurrentDoc();
-  if (document) {
-    
-    
-    
-    document->BindingManager()->RemovedFromDocument(this, document);
-  }
+
+  nsIDocument* document =
+    HasFlag(NODE_FORCE_XBL_BINDINGS) || IsInShadowTree() ?
+      OwnerDoc() : GetUncomposedDoc();
 
   if (aNullParent) {
     if (GetParent()) {
@@ -588,6 +584,16 @@ nsGenericDOMDataNode::UnbindFromTree(bool aDeep, bool aNullParent)
 
     
     SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
+  }
+
+  if (document) {
+    
+    
+    if (HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
+      nsContentUtils::AddScriptRunner(
+        new RemoveFromBindingManagerRunnable(document->BindingManager(), this,
+                                             document));
+    }
   }
 
   nsDataSlots *slots = GetExistingDataSlots();
@@ -855,7 +861,7 @@ nsGenericDOMDataNode::SplitData(uint32_t aOffset, nsIContent** aReturn,
     return rv;
   }
 
-  nsIDocument* document = GetCurrentDoc();
+  nsIDocument* document = GetComposedDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, true);
 
   

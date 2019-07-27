@@ -434,7 +434,7 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   
   
-  nsIDocument* doc = mRootNode->GetCurrentDoc();
+  nsIDocument* doc = mRootNode->GetUncomposedDoc();
   mFlushesNeeded = doc && !doc->IsHTML();
 }
 
@@ -467,7 +467,7 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   
   
-  nsIDocument* doc = mRootNode->GetCurrentDoc();
+  nsIDocument* doc = mRootNode->GetUncomposedDoc();
   mFlushesNeeded = doc && !doc->IsHTML();
 }
 
@@ -507,7 +507,7 @@ nsContentList::Item(uint32_t aIndex, bool aDoFlush)
 {
   if (mRootNode && aDoFlush && mFlushesNeeded) {
     
-    nsIDocument* doc = mRootNode->GetCurrentDoc();
+    nsIDocument* doc = mRootNode->GetUncomposedDoc();
     if (doc) {
       
       doc->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -1004,7 +1004,7 @@ nsContentList::BringSelfUpToDate(bool aDoFlush)
 {
   if (mRootNode && aDoFlush && mFlushesNeeded) {
     
-    nsIDocument* doc = mRootNode->GetCurrentDoc();
+    nsIDocument* doc = mRootNode->GetUncomposedDoc();
     if (doc) {
       
       doc->FlushPendingNotifications(Flush_ContentAndNotify);

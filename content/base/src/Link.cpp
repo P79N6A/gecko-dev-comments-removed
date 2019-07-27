@@ -77,7 +77,7 @@ Link::LinkState() const
 
   
   
-  if (!mRegistered && mNeedsRegistration && element->IsInDoc()) {
+  if (!mRegistered && mNeedsRegistration && element->IsInComposedDoc()) {
     
     self->mNeedsRegistration = false;
 
@@ -94,7 +94,7 @@ Link::LinkState() const
         self->mRegistered = true;
 
         
-        element->GetCurrentDoc()->AddStyleRelevantLink(self);
+        element->GetComposedDoc()->AddStyleRelevantLink(self);
       }
     }
   }
@@ -469,7 +469,7 @@ Link::ResetLinkState(bool aNotify, bool aHasHref)
   
   
   if (!mNeedsRegistration && mLinkState != eLinkState_NotLink) {
-    nsIDocument *doc = mElement->GetCurrentDoc();
+    nsIDocument *doc = mElement->GetComposedDoc();
     if (doc && (mRegistered || mLinkState == eLinkState_Visited)) {
       
       
