@@ -146,7 +146,7 @@ const DEFAULT_SNIPPETS_URLS = [
 , "https://addons.mozilla.org/firefox/?utm_source=snippet&utm_medium=snippet&utm_campaign=addons"
 ];
 
-const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; 
+const SNIPPETS_UPDATE_INTERVAL_MS = 14400000; 
 
 
 const DATABASE_NAME = "abouthome";
