@@ -289,7 +289,7 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
   }
 
   nscoord segmentISize = baseMetrics.ISize(lineWM);
-  nsRect baseRect = aBaseContainer->GetRect();
+  LogicalRect baseRect = aBaseContainer->GetLogicalRect(lineWM, 0);
   
   
   
@@ -297,9 +297,9 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
   
   
   
-  (lineWM.IsVertical() ? baseRect.x : baseRect.y) = 0;
+  baseRect.BStart(lineWM) = 0;
   
-  nsRect offsetRect = baseRect;
+  LogicalRect offsetRect = baseRect;
   for (uint32_t i = 0; i < rtcCount; i++) {
     nsRubyTextContainerFrame* textContainer = textContainers[i];
     nsReflowStatus textReflowStatus;
@@ -328,44 +328,36 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
     uint8_t rubyPosition = textContainer->StyleText()->mRubyPosition;
     MOZ_ASSERT(rubyPosition == NS_STYLE_RUBY_POSITION_OVER ||
                rubyPosition == NS_STYLE_RUBY_POSITION_UNDER);
-    Maybe<Side> side;
+    Maybe<LogicalSide> side;
     if (rubyPosition == NS_STYLE_RUBY_POSITION_OVER) {
-      side.emplace(lineWM.PhysicalSide(
-        lineWM.LogicalSideForLineRelativeDir(eLineRelativeDirOver)));
+      side.emplace(lineWM.LogicalSideForLineRelativeDir(eLineRelativeDirOver));
     } else if (rubyPosition == NS_STYLE_RUBY_POSITION_UNDER) {
-      side.emplace(lineWM.PhysicalSide(
-        lineWM.LogicalSideForLineRelativeDir(eLineRelativeDirUnder)));
+      side.emplace(lineWM.LogicalSideForLineRelativeDir(eLineRelativeDirUnder));
     } else {
       
       MOZ_ASSERT_UNREACHABLE("Unsupported ruby-position");
     }
 
-    nsPoint position;
+    LogicalPoint position(lineWM);
     if (side.isSome()) {
-      switch (side.value()) {
-      case eSideLeft:
-        offsetRect.SetLeftEdge(offsetRect.X() - bsize);
-        position = offsetRect.TopLeft();
-        break;
-      case eSideRight:
-        position = offsetRect.TopRight();
-        offsetRect.SetRightEdge(offsetRect.XMost() + bsize);
-        break;
-      case eSideTop:
-        offsetRect.SetTopEdge(offsetRect.Y() - bsize);
-        position = offsetRect.TopLeft();
-        break;
-      case eSideBottom:
-        position = offsetRect.BottomLeft();
-        offsetRect.SetBottomEdge(offsetRect.YMost() + bsize);
-        break;
+      if (side.value() == eLogicalSideBStart) {
+        offsetRect.BStart(lineWM) -= bsize;
+        offsetRect.BSize(lineWM) += bsize;
+        position = offsetRect.Origin(lineWM);
+      } else if (side.value() == eLogicalSideBEnd) {
+        position = offsetRect.Origin(lineWM) +
+          LogicalPoint(lineWM, 0, offsetRect.BSize(lineWM));
+        offsetRect.BSize(lineWM) += bsize;
+      } else {
+        MOZ_ASSERT_UNREACHABLE("???");
       }
     }
+    
+    
     FinishReflowChild(textContainer, aPresContext, textMetrics,
-                      &textReflowState, position.x, position.y, 0);
+                      &textReflowState, lineWM, position, 0, 0);
   }
-  MOZ_ASSERT(LogicalSize(lineWM, baseRect.Size()).ISize(lineWM) ==
-             LogicalSize(lineWM, offsetRect.Size()).ISize(lineWM),
+  MOZ_ASSERT(baseRect.ISize(lineWM) == offsetRect.ISize(lineWM),
              "Annotations should only be placed on the block directions");
 
   nscoord deltaISize = segmentISize - baseMetrics.ISize(lineWM);
@@ -377,12 +369,13 @@ nsRubyFrame::ReflowSegment(nsPresContext* aPresContext,
   }
 
   
-  LogicalMargin leadings(lineWM, offsetRect - baseRect);
-  NS_ASSERTION(leadings.BStart(lineWM) >= 0 && leadings.BEnd(lineWM) >= 0,
+  nscoord startLeading = baseRect.BStart(lineWM) - offsetRect.BStart(lineWM);
+  nscoord endLeading = offsetRect.BEnd(lineWM) - baseRect.BEnd(lineWM);
+  NS_ASSERTION(startLeading >= 0 && endLeading >= 0,
                "Leadings should be non-negative (because adding "
                "ruby annotation can only increase the size)");
-  mBStartLeading = std::max(mBStartLeading, leadings.BStart(lineWM));
-  mBEndLeading = std::max(mBEndLeading, leadings.BEnd(lineWM));
+  mBStartLeading = std::max(mBStartLeading, startLeading);
+  mBEndLeading = std::max(mBEndLeading, endLeading);
 }
 
 nsRubyBaseContainerFrame*
