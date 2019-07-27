@@ -53,7 +53,9 @@
 #include "vm/ScopeObject-inl.h"
 #include "vm/Stack-inl.h"
 
-#if defined(XP_UNIX)
+#if defined(XP_MACOSX)
+#include <mach/mach.h>
+#elif defined(XP_UNIX)
 #include <sys/resource.h>
 #elif defined(XP_WIN)
 #include <processthreadsapi.h>
@@ -524,12 +526,35 @@ struct AutoStopwatch final
 
     
     
-    bool getTimes(uint64_t *userTime, uint64_t *systemTime) const {
+    
+    bool getTimes(uint64_t* userTime, uint64_t* systemTime) const {
         MOZ_ASSERT(userTime);
         MOZ_ASSERT(systemTime);
 
-#if defined(XP_UNIX)
+#if defined(XP_MACOSX)
+        
+        
 
+        mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
+        thread_basic_info_data_t info;
+        mach_port_t port = mach_thread_self();
+        kern_return_t err =
+            thread_info( port,
+                         THREAD_BASIC_INFO,
+                          (thread_info_t)&info,
+                           &count);
+
+        
+        
+        mach_port_deallocate(mach_task_self(), port);
+
+        if (err != KERN_SUCCESS)
+            return false;
+
+        *userTime = info.user_time.microseconds + info.user_time.seconds * 1000000;
+        *systemTime = info.system_time.microseconds + info.system_time.seconds * 1000000;
+
+#elif defined(XP_UNIX)
         struct rusage rusage;
 #if defined(RUSAGE_THREAD)
         
@@ -539,14 +564,12 @@ struct AutoStopwatch final
         
         int err = getrusage(RUSAGE_SELF, &rusage);
 #endif 
-        MOZ_ASSERT(!err);
+
         if (err)
             return false;
 
-        *userTime = rusage.ru_utime.tv_usec
-            + rusage.ru_utime.tv_sec * 1000000;
-        *systemTime = rusage.ru_stime.tv_usec
-            + rusage.ru_stime.tv_sec * 1000000;
+        *userTime = rusage.ru_utime.tv_usec + rusage.ru_utime.tv_sec * 1000000;
+        *systemTime = rusage.ru_stime.tv_usec + rusage.ru_stime.tv_sec * 1000000;
 
 #elif defined(XP_WIN)
         
@@ -559,7 +582,7 @@ struct AutoStopwatch final
         BOOL success = GetThreadTimes(GetCurrentThread(),
                                       &creationFileTime, &exitFileTime,
                                       &kernelFileTime, &userFileTime);
-        MOZ_ASSERT(success);
+
         if (!success)
             return false;
 
