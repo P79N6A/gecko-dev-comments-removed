@@ -19,6 +19,7 @@ namespace mozilla {
 struct CSSFontFaceDescriptors;
 namespace dom {
 struct FontFaceDescriptors;
+class FontFaceSet;
 class Promise;
 class StringOrArrayBufferOrArrayBufferView;
 }
@@ -78,12 +79,25 @@ public:
   gfxUserFontEntry* GetUserFontEntry() const { return mUserFontEntry; }
   void SetUserFontEntry(gfxUserFontEntry* aEntry);
 
+  bool IsInFontFaceSet() { return mInFontFaceSet; }
+
   
 
 
 
 
   bool GetFamilyName(nsString& aResult);
+
+  
+
+
+
+  bool IsConnected() const { return mRule; }
+
+  
+
+
+  void DisconnectFromRule();
 
   
   static already_AddRefed<FontFace>
@@ -162,6 +176,13 @@ private:
   
   
   nsAutoPtr<mozilla::CSSFontFaceDescriptors> mDescriptors;
+
+  
+  
+  nsRefPtr<FontFaceSet> mFontFaceSet;
+
+  
+  bool mInFontFaceSet;
 };
 
 } 

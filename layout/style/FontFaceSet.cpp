@@ -208,9 +208,14 @@ FontFaceSet::DestroyUserFontSet()
   mPresContext = nullptr;
   mLoaders.EnumerateEntries(DestroyIterator, nullptr);
   for (size_t i = 0; i < mConnectedFaces.Length(); i++) {
+    mConnectedFaces[i].mFontFace->DisconnectFromRule();
     mConnectedFaces[i].mFontFace->SetUserFontEntry(nullptr);
   }
+  for (size_t i = 0; i < mUnavailableFaces.Length(); i++) {
+    mUnavailableFaces[i]->SetUserFontEntry(nullptr);
+  }
   mConnectedFaces.Clear();
+  mUnavailableFaces.Clear();
   mReady = nullptr;
   mUserFontSet = nullptr;
 }
@@ -401,8 +406,8 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
     
     size_t count = oldRecords.Length();
     for (size_t i = 0; i < count; ++i) {
-      gfxUserFontEntry* userFontEntry =
-        oldRecords[i].mFontFace->GetUserFontEntry();
+      nsRefPtr<FontFace> f = oldRecords[i].mFontFace;
+      gfxUserFontEntry* userFontEntry = f->GetUserFontEntry();
       if (userFontEntry) {
         nsFontFaceLoader* loader = userFontEntry->GetLoader();
         if (loader) {
@@ -410,6 +415,13 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
           RemoveLoader(loader);
         }
       }
+
+      
+      MOZ_ASSERT(!mUnavailableFaces.Contains(f),
+                 "FontFace should not occur in mUnavailableFaces twice");
+
+      mUnavailableFaces.AppendElement(f);
+      f->DisconnectFromRule();
     }
   }
 
@@ -455,6 +467,9 @@ FontFaceSet::InsertConnectedFontFace(
     return;
   }
 
+  bool remove = false;
+  size_t removeIndex;
+
   
   
   
@@ -471,6 +486,10 @@ FontFaceSet::InsertConnectedFontFace(
         aFontFace->GetDesc(eCSSFontDesc_Src, val);
         nsCSSUnit unit = val.GetUnit();
         if (unit == eCSSUnit_Array && HasLocalSrc(val.GetArrayValue())) {
+          
+          
+          remove = true;
+          removeIndex = i;
           break;
         }
       }
@@ -500,6 +519,16 @@ FontFaceSet::InsertConnectedFontFace(
 
   if (!entry) {
     return;
+  }
+
+  if (remove) {
+    
+    
+    
+    
+    
+    
+    aOldRecords.RemoveElementAt(removeIndex);
   }
 
   FontFaceRecord rec;
@@ -1015,6 +1044,29 @@ FontFaceSet::FontFaceForRule(nsCSSFontFaceRule* aRule)
     FontFace::CreateForRule(GetParentObject(), mPresContext, aRule, entry);
   aRule->SetFontFace(newFontFace);
   return newFontFace;
+}
+
+void
+FontFaceSet::AddUnavailableFontFace(FontFace* aFontFace)
+{
+  MOZ_ASSERT(!aFontFace->IsInFontFaceSet());
+  MOZ_ASSERT(!mUnavailableFaces.Contains(aFontFace));
+
+  mUnavailableFaces.AppendElement(aFontFace);
+}
+
+void
+FontFaceSet::RemoveUnavailableFontFace(FontFace* aFontFace)
+{
+  MOZ_ASSERT(!aFontFace->IsConnected());
+  MOZ_ASSERT(!aFontFace->IsInFontFaceSet());
+
+  
+  
+  
+  mUnavailableFaces.RemoveElement(aFontFace);
+
+  MOZ_ASSERT(!mUnavailableFaces.Contains(aFontFace));
 }
 
 

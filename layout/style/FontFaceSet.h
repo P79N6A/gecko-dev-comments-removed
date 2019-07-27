@@ -114,6 +114,18 @@ public:
 
   
 
+
+
+  void AddUnavailableFontFace(FontFace* aFontFace);
+
+  
+
+
+
+  void RemoveUnavailableFontFace(FontFace* aFontFace);
+
+  
+
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
@@ -193,6 +205,10 @@ private:
 
   
   nsTArray<FontFaceRecord> mConnectedFaces;
+
+  
+  
+  nsTArray<FontFace*> mUnavailableFaces;
 };
 
 } 
