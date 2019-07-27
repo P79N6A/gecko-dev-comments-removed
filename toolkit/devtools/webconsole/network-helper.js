@@ -577,7 +577,16 @@ let NetworkHelper = {
     if (!NSSErrorsService.isNSSErrorCode(securityInfo.errorCode)) {
       const state = securityInfo.securityState;
 
-      if (state & wpl.STATE_IS_SECURE) {
+      let uri = null;
+      if (httpActivity.channel && httpActivity.channel.URI) {
+        uri = httpActivity.channel.URI;
+      }
+      if (uri && !uri.schemeIs("https") && !uri.schemeIs("wss")) {
+        
+        
+        
+        info.state = "insecure";
+      } else if (state & wpl.STATE_IS_SECURE) {
         
         info.state = "secure";
       } else if (state & wpl.STATE_IS_BROKEN) {
