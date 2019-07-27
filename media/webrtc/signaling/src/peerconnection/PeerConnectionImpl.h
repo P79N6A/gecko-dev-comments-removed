@@ -260,6 +260,9 @@ public:
   }
 
   
+  void SetAllowIceLoopback(bool val) { mAllowIceLoopback = val; }
+
+  
   virtual const std::string& GetHandle();
 
   
@@ -729,6 +732,7 @@ private:
   nsRefPtr<mozilla::DataChannelConnection> mDataConnection;
 #endif
 
+  bool mAllowIceLoopback;
   nsRefPtr<PeerConnectionMedia> mMedia;
 
 #ifdef MOZILLA_INTERNAL_API

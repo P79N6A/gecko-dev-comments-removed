@@ -296,6 +296,9 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   void SelfDestruct();
 
+  
+  void SetAllowIceLoopback(bool val) { mAllowIceLoopback = val; }
+
   mozilla::RefPtr<mozilla::NrIceCtx> ice_ctx() const { return mIceCtx; }
 
   mozilla::RefPtr<mozilla::NrIceMediaStream> ice_media_stream(size_t i) const {
@@ -442,6 +445,9 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   
   
   nsTArray<nsRefPtr<RemoteSourceStreamInfo> > mRemoteSourceStreams;
+
+  
+  bool mAllowIceLoopback;
 
   
   mozilla::RefPtr<mozilla::NrIceCtx> mIceCtx;
