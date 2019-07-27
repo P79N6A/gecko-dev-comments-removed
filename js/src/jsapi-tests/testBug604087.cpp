@@ -21,6 +21,7 @@ const js::Class OuterWrapperClass =
         PROXY_MAKE_EXT(
             nullptr, 
             js::proxy_innerObject,
+            nullptr, 
             false,   
             nullptr  
         ));

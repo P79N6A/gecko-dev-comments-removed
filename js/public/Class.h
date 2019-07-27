@@ -177,6 +177,11 @@ typedef bool
 typedef void
 (* JSTraceOp)(JSTracer *trc, JSObject *obj);
 
+
+
+typedef JSObject *
+(* JSIteratorOp)(JSContext *cx, JS::HandleObject obj, bool keysonly);
+
 typedef JSObject *
 (* JSWeakmapKeyDelegateOp)(JSObject *obj);
 
@@ -320,6 +325,7 @@ struct ClassExtension
 {
     ObjectOp            outerObject;
     InnerObjectOp       innerObject;
+    JSIteratorOp        iteratorObject;
 
     
 
@@ -355,7 +361,7 @@ struct ClassExtension
 };
 
 #define JS_NULL_CLASS_SPEC  {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr}
-#define JS_NULL_CLASS_EXT   {nullptr,nullptr,false,nullptr,nullptr}
+#define JS_NULL_CLASS_EXT   {nullptr,nullptr,nullptr,false,nullptr,nullptr}
 
 struct ObjectOps
 {
@@ -395,7 +401,7 @@ typedef void (*JSClassInternal)();
 struct JSClass {
     JS_CLASS_MEMBERS(JSFinalizeOp);
 
-    void                *reserved[32];
+    void                *reserved[33];
 };
 
 #define JSCLASS_HAS_PRIVATE             (1<<0)  // objects have private slot

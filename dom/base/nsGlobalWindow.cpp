@@ -705,6 +705,7 @@ const js::Class OuterWindowProxyClass =
         PROXY_MAKE_EXT(
             nullptr, 
             js::proxy_innerObject,
+            nullptr, 
             false,   
             nsOuterWindowProxy::ObjectMoved
         ));

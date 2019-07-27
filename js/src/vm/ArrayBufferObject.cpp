@@ -126,6 +126,7 @@ const Class ArrayBufferObject::class_ = {
     {
         nullptr,    
         nullptr,    
+        nullptr,    
         false,      
         nullptr,    
         ArrayBufferObject::objectMoved
