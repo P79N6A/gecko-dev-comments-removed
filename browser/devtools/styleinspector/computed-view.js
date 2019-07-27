@@ -151,18 +151,27 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._onClick = this._onClick.bind(this);
   this._onCopy = this._onCopy.bind(this);
   this._onCopyColor = this._onCopyColor.bind(this);
+  this._onFilterStyles = this._onFilterStyles.bind(this);
+  this._onClearSearch = this._onClearSearch.bind(this);
+  this._onIncludeBrowserStyles = this._onIncludeBrowserStyles.bind(this);
 
-  this.styleDocument.addEventListener("copy", this._onCopy);
+  let doc = this.styleDocument;
+  this.root = doc.getElementById("root");
+  this.element = doc.getElementById("propertyContainer");
+  this.searchField = doc.getElementById("computedview-searchbox");
+  this.searchClearButton = doc.getElementById("computedview-searchinput-clear");
+  this.includeBrowserStylesCheckbox = doc.getElementById("browser-style-checkbox");
+
   this.styleDocument.addEventListener("mousedown", this.focusWindow);
-  this.styleDocument.addEventListener("contextmenu", this._onContextMenu);
+  this.element.addEventListener("click", this._onClick);
+  this.element.addEventListener("copy", this._onCopy);
+  this.element.addEventListener("contextmenu", this._onContextMenu);
+  this.searchField.addEventListener("input", this._onFilterStyles);
+  this.searchClearButton.addEventListener("click", this._onClearSearch);
+  this.includeBrowserStylesCheckbox.addEventListener("command",
+    this._onIncludeBrowserStyles);
 
-  
-  this.root = this.styleDocument.getElementById("root");
-  this.templateRoot = this.styleDocument.getElementById("templateRoot");
-  this.element = this.styleDocument.getElementById("propertyContainer");
-
-  
-  this.element.addEventListener("click", this._onClick, false);
+  this.searchClearButton.hidden = true;
 
   
   this.noResults = this.styleDocument.getElementById("noResults");
@@ -175,8 +184,6 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
   this._updateSourceLinks = this._updateSourceLinks.bind(this);
   this._prefObserver = new PrefObserver("devtools.");
   this._prefObserver.on(PREF_ORIG_SOURCES, this._updateSourceLinks);
-
-  CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
   
   this.viewedElement = null;
@@ -251,12 +258,6 @@ CssHtmlTree.prototype = {
 
   
   _filterChangedTimeout: null,
-
-  
-  searchField: null,
-
-  
-  includeBrowserStylesCheckbox: null,
 
   
   _panelRefreshTimeout: null,
@@ -496,6 +497,13 @@ CssHtmlTree.prototype = {
         onDone: () => {
           this._refreshProcess = null;
           this.noResults.hidden = this.numVisibleProperties > 0;
+
+          if (this.searchField.value.length > 0 && !this.numVisibleProperties) {
+            this.searchField.classList.add("devtools-style-searchbox-no-match");
+          } else {
+            this.searchField.classList.remove("devtools-style-searchbox-no-match");
+          }
+
           this.inspector.emit("computed-view-refreshed");
           deferred.resolve(undefined);
         }
@@ -510,7 +518,7 @@ CssHtmlTree.prototype = {
 
 
 
-  filterChanged: function CssHtmlTree_filterChanged(aEvent)
+  _onFilterStyles: function(aEvent)
   {
     let win = this.styleWindow;
 
@@ -518,10 +526,20 @@ CssHtmlTree.prototype = {
       win.clearTimeout(this._filterChangedTimeout);
     }
 
+    let filterTimeout = (this.searchField.value.length > 0)
+      ? FILTER_CHANGED_TIMEOUT : 0;
+    this.searchClearButton.hidden = this.searchField.value.length === 0;
+
     this._filterChangedTimeout = win.setTimeout(() => {
+      if (this.searchField.value.length > 0) {
+        this.searchField.setAttribute("filled", true);
+      } else {
+        this.searchField.removeAttribute("filled");
+      }
+
       this.refreshPanel();
       this._filterChangeTimeout = null;
-    }, FILTER_CHANGED_TIMEOUT);
+    }, filterTimeout);
   },
 
   
@@ -529,8 +547,7 @@ CssHtmlTree.prototype = {
 
 
 
-  includeBrowserStylesChanged:
-  function CssHtmltree_includeBrowserStylesChanged(aEvent)
+  _onIncludeBrowserStyles: function(aEvent)
   {
     this.refreshSourceFilter();
     this.refreshPanel();
@@ -815,15 +832,21 @@ CssHtmlTree.prototype = {
   
 
 
+
+  _onClearSearch: function() {
+    this.searchField.value = "";
+    this.searchField.focus();
+    this._onFilterStyles();
+  },
+
+  
+
+
   destroy: function CssHtmlTree_destroy()
   {
     this.viewedElement = null;
     this._outputParser = null;
 
-    
-    this.includeBrowserStylesCheckbox.removeEventListener("command",
-      this.includeBrowserStylesChanged);
-    this.searchField.removeEventListener("command", this.filterChanged);
     gDevTools.off("pref-changed", this._handlePrefChange);
 
     this._prefObserver.off(PREF_ORIG_SOURCES, this._updateSourceLinks);
@@ -836,8 +859,6 @@ CssHtmlTree.prototype = {
     if (this._refreshProcess) {
       this._refreshProcess.cancel();
     }
-
-    this.element.removeEventListener("click", this._onClick, false);
 
     
     if (this._contextmenu) {
@@ -865,14 +886,22 @@ CssHtmlTree.prototype = {
     this.highlighters.destroy();
 
     
-    this.styleDocument.removeEventListener("contextmenu", this._onContextMenu);
-    this.styleDocument.removeEventListener("copy", this._onCopy);
     this.styleDocument.removeEventListener("mousedown", this.focusWindow);
+    this.element.removeEventListener("click", this._onClick);
+    this.element.removeEventListener("copy", this._onCopy);
+    this.element.removeEventListener("contextmenu", this._onContextMenu);
+    this.searchField.removeEventListener("input", this._onFilterStyles);
+    this.searchClearButton.removeEventListener("click", this._onClearSearch);
+    this.includeBrowserStylesCheckbox.removeEventListener("command",
+      this.includeBrowserStylesChanged);
 
     
     this.root = null;
     this.element = null;
     this.panel = null;
+    this.searchField = null;
+    this.searchClearButton = null;
+    this.includeBrowserStylesCheckbox = null;
 
     
     this.styleDocument = null;
@@ -1008,8 +1037,10 @@ PropertyView.prototype = {
     }
 
     let searchTerm = this.tree.searchField.value.toLowerCase();
-    if (searchTerm && this.name.toLowerCase().indexOf(searchTerm) == -1 &&
-      this.value.toLowerCase().indexOf(searchTerm) == -1) {
+    let isValidSearchTerm = searchTerm.trim().length > 0;
+    if (isValidSearchTerm &&
+        this.name.toLowerCase().indexOf(searchTerm) == -1 &&
+        this.value.toLowerCase().indexOf(searchTerm) == -1) {
       return false;
     }
 
