@@ -477,11 +477,7 @@ nsCSSProps::LookupFontDesc(const nsAString& aFontDesc)
   nsCSSFontDesc which = nsCSSFontDesc(gFontDescTable->Lookup(aFontDesc));
 
   
-  bool fontFeaturesEnabled =
-    nsCSSProps::IsEnabled(eCSSProperty_font_variant_alternates);
-
-  
-  if (which == eCSSFontDesc_UNKNOWN && fontFeaturesEnabled) {
+  if (which == eCSSFontDesc_UNKNOWN) {
     nsAutoString prefixedProp;
     prefixedProp.AppendLiteral("-moz-");
     prefixedProp.Append(aFontDesc);
