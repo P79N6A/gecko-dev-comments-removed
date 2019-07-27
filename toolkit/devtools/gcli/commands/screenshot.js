@@ -180,15 +180,18 @@ exports.items = [
         throw new Error(l10n.lookup("screenshotSelectorChromeConflict"));
       }
 
+      let capture;
       if (!args.chrome) {
         
         const command = context.typed.replace(/^screenshot/, "screenshot_server");
-        return context.updateExec(command).then(output => {
+        capture = context.updateExec(command).then(output => {
           return output.error ? Promise.reject(output.data) : output.data;
         });
+      } else {
+        capture = captureScreenshot(args, context.environment.chromeDocument);
       }
 
-      return processScreenshot(args, context.environment.chromeDocument);
+      return capture.then(saveScreenshot.bind(null, args, context));
     },
   },
   {
@@ -199,7 +202,7 @@ exports.items = [
     returnType: "imageSummary",
     params: [ filenameParam, standardParams ],
     exec: function(args, context) {
-      return processScreenshot(args, context.environment.document);
+      return captureScreenshot(args, context.environment.document);
     },
   }
 ];
@@ -208,16 +211,16 @@ exports.items = [
 
 
 
-function processScreenshot(args, document) {
+function captureScreenshot(args, document) {
   if (args.delay > 0) {
     return new Promise((resolve, reject) => {
       document.defaultView.setTimeout(() => {
-        processScreenshotNow(args, document).then(resolve, reject);
+        createScreenshotData(document, args).then(resolve, reject);
       }, args.delay * 1000);
     });
   }
   else {
-    return processScreenshotNow(args, document);
+    return createScreenshotData(document, args);
   }
 }
 
@@ -230,22 +233,14 @@ const SKIP = Promise.resolve();
 
 
 
-
-function processScreenshotNow(args, document) {
-  const reply = createScreenshotData(document, args);
-
-  const loadContext = document.defaultView
-                            .QueryInterface(Ci.nsIInterfaceRequestor)
-                            .getInterface(Ci.nsIWebNavigation)
-                            .QueryInterface(Ci.nsILoadContext);
-
+function saveScreenshot(args, context, reply) {
   const fileNeeded = args.filename != FILENAME_DEFAULT_VALUE ||
                       (!args.imgur && !args.clipboard);
 
   return Promise.all([
-    args.clipboard ? saveToClipboard(loadContext, reply) : SKIP,
-    args.imgur     ? uploadToImgur(reply)                : SKIP,
-    fileNeeded     ? saveToFile(loadContext, reply)      : SKIP,
+    args.clipboard ? saveToClipboard(context, reply) : SKIP,
+    args.imgur     ? uploadToImgur(reply)            : SKIP,
+    fileNeeded     ? saveToFile(context, reply)      : SKIP,
   ]).then(() => reply);
 }
 
@@ -300,13 +295,13 @@ function createScreenshotData(document, args) {
     window.scrollTo(currentX, currentY);
   }
 
-  return {
+  return Promise.resolve({
     destinations: [],
     data: data,
     height: height,
     width: width,
     filename: getFilename(args.filename),
-  };
+  });
 }
 
 
@@ -339,8 +334,12 @@ function getFilename(defaultName) {
 
 
 
-function saveToClipboard(loadContext, reply) {
+function saveToClipboard(context, reply) {
   try {
+    const loadContext = context.environment.chromeWindow
+                               .QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsILoadContext);
     const io = Cc["@mozilla.org/network/io-service;1"]
                   .getService(Ci.nsIIOService);
     const channel = io.newChannel2(reply.data, null, null,
@@ -422,37 +421,21 @@ function uploadToImgur(reply) {
 
 
 
-function saveToFile(loadContext, reply) {
+function saveToFile(context, reply) {
   return Task.spawn(function*() {
     try {
+      let document = context.environment.chromeDocument;
+      let window = context.environment.chromeWindow;
+
       let filename = reply.filename;
       
       if (!filename.match(/.png$/i)) {
         filename += ".png";
       }
 
-      
-      if (!filename.match(/[\\\/]/)) {
-        const preferredDir = yield Downloads.getPreferredDownloadsDirectory();
-        filename = OS.Path.join(preferredDir, filename);
-        reply.filename = filename;
-      }
-
-      const file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
-      file.initWithPath(filename);
-
-      const ioService = Cc["@mozilla.org/network/io-service;1"]
-                        .getService(Ci.nsIIOService);
-
-      const Persist = Ci.nsIWebBrowserPersist;
-      const persist = Cc["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-                      .createInstance(Persist);
-      persist.persistFlags = Persist.PERSIST_FLAGS_REPLACE_EXISTING_FILES |
-                             Persist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
-
-      
-      const source = ioService.newURI(reply.data, "UTF8", null);
-      persist.saveURI(source, null, null, 0, null, null, file, loadContext);
+      window.saveURL(reply.data, filename, null,
+                     true , true ,
+                     document.documentURIObject, document);
 
       reply.destinations.push(l10n.lookup("screenshotSavedToFile") + " \"" + filename + "\"");
     }
