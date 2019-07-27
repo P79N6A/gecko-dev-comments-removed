@@ -129,6 +129,8 @@ class JavaPanZoomController
     private boolean mNegateWheelScrollY;
     
     private boolean mDefaultPrevented;
+    
+    private boolean isLongpressEnabled;
 
     
     private Overscroll mOverscroll;
@@ -139,6 +141,7 @@ class JavaPanZoomController
         mX = new AxisX(mSubscroller);
         mY = new AxisY(mSubscroller);
         mTouchEventHandler = new TouchEventHandler(view.getContext(), view, this);
+        isLongpressEnabled = true;
 
         checkMainThread();
 
@@ -1348,8 +1351,20 @@ class JavaPanZoomController
         mWaitForDoubleTap = false;
     }
 
+    
+
+
+
+    public void setIsLongpressEnabled(boolean isLongpressEnabled) {
+        this.isLongpressEnabled = isLongpressEnabled;
+    }
+
     @Override
     public void onLongPress(MotionEvent motionEvent) {
+        if (!isLongpressEnabled) {
+            return;
+        }
+
         GeckoEvent e = GeckoEvent.createLongPressEvent(motionEvent);
         GeckoAppShell.sendEventToGecko(e);
     }
