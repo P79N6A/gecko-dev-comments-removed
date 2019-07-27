@@ -201,6 +201,8 @@ let MozLoopPushHandler = {
     if (this._mockPushHandler) {
       
       this._websocket = this._mockPushHandler;
+      
+      this.pushServerUri = Services.prefs.getCharPref("services.push.serverURL");
     } else if (!Services.io.offline) {
       this._websocket = Cc["@mozilla.org/network/protocol;1?name=wss"]
                         .createInstance(Ci.nsIWebSocketChannel);
@@ -231,7 +233,7 @@ let MozLoopPushHandler = {
       req.open("GET", pushUrlEndpoint);
       req.onload = () => {
         if (req.status >= 200 && req.status < 300) {
-          let pushServerConfig
+          let pushServerConfig;
           try {
             pushServerConfig = JSON.parse(req.responseText);
           } catch (e) {
