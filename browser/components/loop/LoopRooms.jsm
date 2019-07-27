@@ -176,18 +176,31 @@ let LoopRoomsInternal = {
       for (let room of roomsList) {
         
         let orig = this.rooms.get(room.roomToken);
-        if (orig) {
-          checkForParticipantsUpdate(orig, room);
-        }
-        
-        if ("currSize" in room) {
-          delete room.currSize;
-        }
-        this.rooms.set(room.roomToken, room);
 
-        let eventName = orig ? "update" : "add";
-        eventEmitter.emit(eventName, room);
-        eventEmitter.emit(eventName + ":" + room.roomToken, room);
+        if (room.deleted) {
+          
+          
+          if (orig) {
+            this.rooms.delete(room.roomToken);
+          }
+
+          eventEmitter.emit("delete", room);
+          eventEmitter.emit("delete:" + room.roomToken, room);
+        } else {
+          if (orig) {
+            checkForParticipantsUpdate(orig, room);
+          }
+          
+          if ("currSize" in room) {
+            delete room.currSize;
+          }
+
+          this.rooms.set(room.roomToken, room);
+
+          let eventName = orig ? "update" : "add";
+          eventEmitter.emit(eventName, room);
+          eventEmitter.emit(eventName + ":" + room.roomToken, room);
+        }
       }
 
       
@@ -230,13 +243,22 @@ let LoopRoomsInternal = {
         let data = JSON.parse(response.body);
 
         room.roomToken = roomToken;
-        checkForParticipantsUpdate(room, data);
-        extend(room, data);
-        this.rooms.set(roomToken, room);
 
-        let eventName = !needsUpdate ? "update" : "add";
-        eventEmitter.emit(eventName, room);
-        eventEmitter.emit(eventName + ":" + roomToken, room);
+        if (data.deleted) {
+          this.rooms.delete(room.roomToken);
+
+          extend(room, data);
+          eventEmitter.emit("delete", room);
+          eventEmitter.emit("delete:" + room.roomToken, room);
+        } else {
+          checkForParticipantsUpdate(room, data);
+          extend(room, data);
+          this.rooms.set(roomToken, room);
+
+          let eventName = !needsUpdate ? "update" : "add";
+          eventEmitter.emit(eventName, room);
+          eventEmitter.emit(eventName + ":" + roomToken, room);
+        }
         callback(null, room);
       }, err => callback(err)).catch(err => callback(err));
   },
@@ -323,8 +345,8 @@ let LoopRoomsInternal = {
     MozLoopService.hawkRequest(this.sessionType, url, "DELETE")
       .then(response => {
         this.rooms.delete(roomToken);
-        eventEmitter.emit("delete", room);
         callback(null, room);
+        
       }, error => callback(error)).catch(error => callback(error));
   },
 
