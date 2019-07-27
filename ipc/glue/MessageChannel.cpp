@@ -795,6 +795,14 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
         return false;
     }
 
+    if (DispatchingSyncMessagePriority() == IPC::Message::PRIORITY_NORMAL &&
+        aMsg->priority() > IPC::Message::PRIORITY_NORMAL)
+    {
+        
+        
+        return false;
+    }
+
     IPC_ASSERT(aMsg->is_sync(), "can only Send() sync messages here");
     IPC_ASSERT(aMsg->priority() >= DispatchingSyncMessagePriority(),
                "can't send sync message of a lesser priority than what's being dispatched");
