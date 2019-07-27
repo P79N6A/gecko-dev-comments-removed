@@ -15,10 +15,10 @@ const GECKO_SYMBOL = "(Gecko)";
 
 
 
-const TIMELINE_STRINGS_URI = "chrome://browser/locale/devtools/timeline.properties";
-const PROFILER_STRINGS_URI = "chrome://browser/locale/devtools/profiler.properties";
-
-const L10N = new ViewHelpers.L10N(STRINGS_URI);
+const L10N = new ViewHelpers.MultiL10N([
+  "chrome://browser/locale/devtools/timeline.properties",
+  "chrome://browser/locale/devtools/profiler.properties"
+]);
 
 
 
