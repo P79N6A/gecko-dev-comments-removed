@@ -1976,6 +1976,43 @@ BluetoothServiceBluedroid::UuidToServiceClassInt(const BluetoothUuid& mUuid)
   memcpy(&shortUuid, mUuid.mUuid + 2, sizeof(uint16_t));
   return ntohs(shortUuid);
 }
+
+bool
+BluetoothServiceBluedroid::IsConnected(const nsAString& aRemoteBdAddr)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  nsString connectedAddress;
+
+  
+  BluetoothProfileManagerBase* profile;
+  profile = BluetoothHfpManager::Get();
+  if (profile && profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  
+  profile = BluetoothOppManager::Get();
+  if (profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  
+  profile = BluetoothA2dpManager::Get();
+  if (profile->IsConnected()) {
+    profile->GetAddress(connectedAddress);
+    if (aRemoteBdAddr.Equals(connectedAddress)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 #endif
 
 
@@ -2484,6 +2521,10 @@ BluetoothServiceBluedroid::RemoteDevicePropertiesNotification(
       BT_LOGD("Other non-handled device properties. Type: %d", p.mType);
     }
   }
+
+  
+  
+  BT_APPEND_NAMED_VALUE(props, "Connected", IsConnected(aBdAddr));
 
   if (sRequestedDeviceCountArray.IsEmpty()) {
     
