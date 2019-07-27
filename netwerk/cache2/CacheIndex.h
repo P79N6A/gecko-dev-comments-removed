@@ -562,7 +562,13 @@ public:
   
   
   
+  
   static nsresult GetEntryForEviction(SHA1Sum::Hash *aHash, uint32_t *aCnt);
+
+  
+  
+  
+  static bool IsForcedValidEntry(const SHA1Sum::Hash *aHash);
 
   
   static nsresult GetCacheSize(uint32_t *_retval);
