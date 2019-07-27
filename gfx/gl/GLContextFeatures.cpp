@@ -545,9 +545,8 @@ static const FeatureInfo sFeatureInfoArr[] = {
         "transform_feedback2",
         400, 
         300, 
-        GLContext::Extension_None,
+        GLContext::ARB_transform_feedback2,
         {
-            GLContext::ARB_transform_feedback2,
             GLContext::NV_transform_feedback2,
             GLContext::Extensions_End
         }
