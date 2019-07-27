@@ -205,6 +205,9 @@ public:
   virtual void DownloadResumed(bool aForceNetworkLoading = false) MOZ_FINAL MOZ_OVERRIDE;
 
   
+  virtual void DownloadProgressed() MOZ_FINAL MOZ_OVERRIDE;
+
+  
   
   virtual void DownloadStalled() MOZ_FINAL MOZ_OVERRIDE;
 
@@ -642,6 +645,12 @@ protected:
 
 
   void ChangeReadyState(nsMediaReadyState aState);
+
+  
+
+
+
+  void ChangeNetworkState(nsMediaNetworkState aState);
 
   
 

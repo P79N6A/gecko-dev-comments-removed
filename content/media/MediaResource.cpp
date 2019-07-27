@@ -905,8 +905,11 @@ void ChannelMediaResource::Resume()
         
         
         CacheClientSeek(mOffset, false);
+        element->DownloadResumed();
+      } else {
+        
+        
       }
-      element->DownloadResumed();
     }
   }
 }
