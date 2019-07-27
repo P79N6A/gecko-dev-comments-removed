@@ -41,6 +41,8 @@ const CSS_TYPE_SHORTHAND_AND_LONGHAND = 2;
 
 
 
+
+
 function initial_font_family_is_sans_serif()
 {
   
