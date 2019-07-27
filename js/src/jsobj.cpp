@@ -1240,17 +1240,9 @@ js::NewObjectWithGivenTaggedProto(ExclusiveContext *cxArg, const Class *clasp,
         return nullptr;
 
     
-
-
-
-
     RootedObject parent(cxArg, parentArg);
-    if (!parent) {
-        if (proto.isObject())
-            parent = proto.toObject()->getParent();
-        else
-            parent = cxArg->global();
-    }
+    if (!parent)
+        parent = cxArg->global();
 
     RootedObject obj(cxArg, NewObject(cxArg, group, parent, allocKind, newKind));
     if (!obj)
