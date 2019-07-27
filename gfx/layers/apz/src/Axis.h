@@ -86,9 +86,34 @@ public:
   
 
 
+
+
+
+
+
+
+
+
   ScreenCoord GetOverscroll() const;
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -220,48 +245,8 @@ protected:
   float mVelocity;      
   bool mAxisLocked;     
   AsyncPanZoomController* mAsyncPanZoomController;
-  
-  
-  
-  
-  
-  
-  
-  
-  ScreenCoord mOverscroll;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool mInUnderscroll;
+  ScreenCoord mOverscroll;  
+  bool mInUnderscroll;      
   
   
   
