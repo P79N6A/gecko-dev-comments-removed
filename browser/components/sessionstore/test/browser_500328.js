@@ -42,9 +42,9 @@ function checkState(tab) {
       
       
       
-      runInContent(tab.linkedBrowser, function(win, event) {
-        return Cu.waiveXrays(event.state).obj3.toString();
-      }, aEvent).then(function(stateStr) {
+      runInContent(tab.linkedBrowser, function(win, state) {
+        return Cu.waiveXrays(state).obj3.toString();
+      }, aEvent.state).then(function(stateStr) {
         is(stateStr, '/^a$/', "second popstate object.");
 
         
