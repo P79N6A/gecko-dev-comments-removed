@@ -373,6 +373,7 @@ loop.panel = (function(_, mozL10n) {
     Backbone.history.start();
 
     document.body.classList.add(loop.shared.utils.getTargetPlatform());
+    document.body.setAttribute("dir", mozL10n.getDirection());
 
     
     var evtObject = document.createEvent('Event');
