@@ -20,6 +20,7 @@ Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
+Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 
 const myScope = this;
 
@@ -173,58 +174,6 @@ let Policy = {
   setSchedulerTickTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
   clearSchedulerTickTimeout: id => clearTimeout(id),
 };
-
-
-
-
-function truncateToDays(date) {
-  return new Date(date.getFullYear(),
-                  date.getMonth(),
-                  date.getDate(),
-                  0, 0, 0, 0);
-}
-
-
-
-
-
-
-
-
-
-function areTimesClose(t1, t2, tolerance) {
-  return Math.abs(t1 - t2) <= tolerance;
-}
-
-
-
-
-
-
-function getNextMidnight(date) {
-  let nextMidnight = new Date(truncateToDays(date));
-  nextMidnight.setDate(nextMidnight.getDate() + 1);
-  return nextMidnight;
-}
-
-
-
-
-
-
-
-function getNearestMidnight(date) {
-  let lastMidnight = truncateToDays(date);
-  if (areTimesClose(date.getTime(), lastMidnight.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
-    return lastMidnight;
-  }
-
-  const nextMidnightDate = getNextMidnight(date);
-  if (areTimesClose(date.getTime(), nextMidnightDate.getTime(), SCHEDULER_MIDNIGHT_TOLERANCE_MS)) {
-    return nextMidnightDate;
-  }
-  return null;
-}
 
 
 
@@ -473,7 +422,7 @@ let TelemetryScheduler = {
       timeout = SCHEDULER_TICK_IDLE_INTERVAL_MS;
       
       
-      const nextMidnight = getNextMidnight(now);
+      const nextMidnight = TelemetryUtils.getNextMidnight(now);
       timeout = Math.min(timeout, nextMidnight.getTime() - now.getTime());
     }
 
@@ -484,8 +433,8 @@ let TelemetryScheduler = {
 
   _sentDailyPingToday: function(nowDate) {
     
-    const todayDate = truncateToDays(nowDate);
-    const nearestMidnight = getNearestMidnight(nowDate);
+    const todayDate = TelemetryUtils.truncateToDays(nowDate);
+    const nearestMidnight = TelemetryUtils.getNearestMidnight(nowDate, SCHEDULER_MIDNIGHT_TOLERANCE_MS);
     
     const checkDate = nearestMidnight || todayDate;
     
@@ -506,7 +455,7 @@ let TelemetryScheduler = {
       return false;
     }
 
-    const nearestMidnight = getNearestMidnight(nowDate);
+    const nearestMidnight = TelemetryUtils.getNearestMidnight(nowDate, SCHEDULER_MIDNIGHT_TOLERANCE_MS);
     if (!sentPingToday && !nearestMidnight) {
       
       this._log.trace("_isDailyPingDue - daily ping is overdue... computer went to sleep?");
@@ -616,7 +565,8 @@ let TelemetryScheduler = {
     let nextSessionCheckpoint =
       this._lastSessionCheckpointTime + ABORTED_SESSION_UPDATE_INTERVAL_MS;
     let combineActions = (shouldSendDaily && isAbortedPingDue) || (shouldSendDaily &&
-                          areTimesClose(now, nextSessionCheckpoint, SCHEDULER_COALESCE_THRESHOLD_MS));
+                          TelemetryUtils.areTimesClose(now, nextSessionCheckpoint,
+                                                       SCHEDULER_COALESCE_THRESHOLD_MS));
 
     if (combineActions) {
       this._log.trace("_schedulerTickLogic - Combining pings.");
@@ -661,7 +611,7 @@ let TelemetryScheduler = {
       
       this._saveAbortedPing(now.getTime(), competingPayload);
       
-      let nearestMidnight = getNearestMidnight(now);
+      let nearestMidnight = TelemetryUtils.getNearestMidnight(now, SCHEDULER_MIDNIGHT_TOLERANCE_MS);
       if (nearestMidnight) {
         this._lastDailyPingTime = now.getTime();
       }
@@ -1152,8 +1102,8 @@ let Impl = {
   getMetadata: function getMetadata(reason) {
     this._log.trace("getMetadata - Reason " + reason);
 
-    let sessionStartDate = toLocalTimeISOString(truncateToDays(this._sessionStartDate));
-    let subsessionStartDate = toLocalTimeISOString(truncateToDays(this._subsessionStartDate));
+    let sessionStartDate = toLocalTimeISOString(TelemetryUtils.truncateToDays(this._sessionStartDate));
+    let subsessionStartDate = toLocalTimeISOString(TelemetryUtils.truncateToDays(this._subsessionStartDate));
     
     let subsessionLength =
       Math.floor((Policy.now() - this._subsessionStartDate.getTime()) / 1000);

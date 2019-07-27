@@ -1672,7 +1672,7 @@ add_task(function* test_sendDailyOnIdle() {
   Assert.equal(ping.payload.info.reason, REASON_DAILY);
 
   
-  now = new Date(2040, 1, 2, 23, 55, 0);
+  now = new Date(2040, 1, 2, 23, 54, 0);
   fakeNow(now);
   yield fakeIdleNotification("idle");
 

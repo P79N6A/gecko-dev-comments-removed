@@ -22,6 +22,7 @@ Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/DeferredTask.jsm", this);
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
+Cu.import("resource://gre/modules/TelemetryUtils.jsm", this);
 
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryController::";
@@ -55,6 +56,8 @@ const PING_SUBMIT_TIMEOUT_MS = 2 * 60 * 1000;
 
 
 const MIDNIGHT_TOLERANCE_MS = 15 * 60 * 1000;
+
+const MIDNIGHT_TOLERANCE_FUZZ_MS = 5 * 60 * 1000;
 
 const MIDNIGHT_FUZZING_INTERVAL_MS = 60 * 60 * 1000;
 const MIDNIGHT_FUZZING_DELAY_MS = Math.random() * MIDNIGHT_FUZZING_INTERVAL_MS;
@@ -124,16 +127,6 @@ function generateUUID() {
 function isNewPingFormat(aPing) {
   return ("id" in aPing) && ("application" in aPing) &&
          ("version" in aPing) && (aPing.version >= 2);
-}
-
-
-
-
-function truncateToDays(date) {
-  return new Date(date.getFullYear(),
-                  date.getMonth(),
-                  date.getDate(),
-                  0, 0, 0, 0);
 }
 
 function tomorrow(date) {
@@ -506,17 +499,20 @@ let Impl = {
 
 
   _getNextPingSendTime: function(now) {
-    const todayDate = truncateToDays(now);
-    const tomorrowDate = tomorrow(todayDate);
-    const nextMidnightRangeStart = tomorrowDate.getTime() - MIDNIGHT_TOLERANCE_MS;
-    const currentMidnightRangeEnd = todayDate.getTime() - MIDNIGHT_TOLERANCE_MS + Policy.midnightPingFuzzingDelay();
+    const midnight = TelemetryUtils.getNearestMidnight(now, MIDNIGHT_FUZZING_INTERVAL_MS);
 
-    if (now.getTime() < currentMidnightRangeEnd) {
-      return currentMidnightRangeEnd;
+    
+    if (!midnight) {
+      return now.getTime();
     }
 
-    if (now.getTime() >= nextMidnightRangeStart) {
-      return nextMidnightRangeStart + Policy.midnightPingFuzzingDelay();
+    
+    
+    
+    const midnightRangeStart = midnight.getTime() - MIDNIGHT_TOLERANCE_FUZZ_MS;
+    if (now.getTime() >= midnightRangeStart) {
+      
+      return midnight.getTime() + Policy.midnightPingFuzzingDelay();
     }
 
     return now.getTime();

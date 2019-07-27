@@ -287,14 +287,14 @@ add_task(function* test_midnightPingSendFuzzing() {
   yield sendPing(true, true);
 
   Assert.ok(!!pingSendTimerCallback);
-  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 0, 45, 0));
+  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 1, 0, 0));
 
   
   now = new Date(2030, 5, 2, 0, 40, 0);
   fakeNow(now);
   pingSendTimeout = null;
   yield sendPing(true, true);
-  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 0, 45, 0));
+  Assert.deepEqual(futureDate(now, pingSendTimeout), new Date(2030, 5, 2, 1, 0, 0));
 
   
   gRequestIterator = Iterator(new Request());
