@@ -2111,7 +2111,7 @@ class Mochitest(MochitestUtilsMixin):
                 continue
 
             print "dir: %s" % d
-            tests_in_dir = [t for t in testsToRun if t.startswith(d)]
+            tests_in_dir = [t for t in testsToRun if os.path.dirname(t) == d]
 
             
             
