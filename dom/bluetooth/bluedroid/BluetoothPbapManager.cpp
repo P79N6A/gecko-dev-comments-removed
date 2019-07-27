@@ -76,6 +76,7 @@ BluetoothPbapManager::HandleShutdown()
 BluetoothPbapManager::BluetoothPbapManager() : mConnected(false)
 {
   mDeviceAddress.AssignLiteral(BLUETOOTH_ADDRESS_NONE);
+  mCurrentPath.AssignLiteral("");
 }
 
 BluetoothPbapManager::~BluetoothPbapManager()
@@ -220,11 +221,27 @@ BluetoothPbapManager::ReceiveSocketData(BluetoothSocket* aSocket,
       ReplyToDisconnectOrAbort();
       AfterPbapDisconnected();
       break;
+    case ObexRequestCode::SetPath: {
+        
+        
+        if (!ParseHeaders(&data[5], receivedLength - 5, &pktHeaders)) {
+          ReplyError(ObexResponseCode::BadRequest);
+          return;
+        }
+
+        uint8_t response = SetPhoneBookPath(data[3], pktHeaders);
+        if (response != ObexResponseCode::Success) {
+          ReplyError(response);
+          return;
+        }
+
+        ReplyToSetPath();
+      }
+      break;
     case ObexRequestCode::Put:
     case ObexRequestCode::PutFinal:
     case ObexRequestCode::Get:
     case ObexRequestCode::GetFinal:
-    case ObexRequestCode::SetPath:
       ReplyError(ObexResponseCode::BadRequest);
       BT_LOGR("Unsupported ObexRequestCode %x", opCode);
       break;
@@ -263,9 +280,93 @@ BluetoothPbapManager::CompareHeaderTarget(const ObexHeaderSet& aHeader)
   return true;
 }
 
+uint8_t
+BluetoothPbapManager::SetPhoneBookPath(uint8_t flags,
+                                       const ObexHeaderSet& aHeader)
+{
+  
+  
+  if ((flags >> 1) != 1) {
+    BT_LOGR("Illegal flags [0x%x]: bits 1~7 must be 0x01", flags);
+    return ObexResponseCode::BadRequest;
+  }
+
+  nsString newPath = mCurrentPath;
+
+  
+
+
+
+
+
+
+  if (flags & 1) {
+    
+    if (!newPath.IsEmpty()) {
+      newPath = StringHead(newPath, newPath.RFindChar('/'));
+    }
+  } else {
+    MOZ_ASSERT(aHeader.Has(ObexHeaderId::Name));
+
+    nsString childFolderName;
+    aHeader.GetName(childFolderName);
+    if (childFolderName.IsEmpty()) {
+      
+      newPath.AssignLiteral("");
+    } else {
+      
+      newPath.AppendLiteral("/");
+      newPath.Append(childFolderName);
+    }
+  }
+
+  
+  if (!IsLegalPath(newPath)) {
+    BT_LOGR("Illegal phone book path [%s]",
+            NS_ConvertUTF16toUTF8(newPath).get());
+    return ObexResponseCode::NotFound;
+  }
+
+  mCurrentPath = newPath;
+  BT_LOGR("current path [%s]", NS_ConvertUTF16toUTF8(mCurrentPath).get());
+
+  return ObexResponseCode::Success;
+}
+
+bool
+BluetoothPbapManager::IsLegalPath(const nsAString& aPath)
+{
+  static const char* sLegalPaths[] = {
+    "", 
+    "/telecom",
+    "/telecom/pb",
+    "/telecom/ich",
+    "/telecom/och",
+    "/telecom/mch",
+    "/telecom/cch",
+    "/SIM1",
+    "/SIM1/telecom",
+    "/SIM1/telecom/pb",
+    "/SIM1/telecom/ich",
+    "/SIM1/telecom/och",
+    "/SIM1/telecom/mch",
+    "/SIM1/telecom/cch"
+  };
+
+  NS_ConvertUTF16toUTF8 path(aPath);
+  for (uint8_t i = 0; i < MOZ_ARRAY_LENGTH(sLegalPaths); i++) {
+    if (!strcmp(path.get(), sLegalPaths[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void
 BluetoothPbapManager::AfterPbapConnected()
 {
+  mCurrentPath.AssignLiteral("");
   mConnected = true;
 }
 
@@ -322,6 +423,21 @@ BluetoothPbapManager::ReplyToDisconnectOrAbort()
   }
 
   
+  
+  
+  uint8_t req[255];
+  int index = 3;
+
+  SendObexData(req, ObexResponseCode::Success, index);
+}
+
+void
+BluetoothPbapManager::ReplyToSetPath()
+{
+  if (!mConnected) {
+    return;
+  }
+
   
   
   uint8_t req[255];
