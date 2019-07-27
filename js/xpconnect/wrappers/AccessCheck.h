@@ -58,25 +58,6 @@ struct OpaqueWithCall : public Policy {
 
 
 
-struct GentlyOpaque : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
-        return false;
-    }
-    static bool deny(js::Wrapper::Action act, JS::HandleId id) {
-        return true;
-    }
-    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl) {
-        
-        
-        
-        
-        
-        return true;
-    }
-};
-
-
-
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act) {
         return AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act);

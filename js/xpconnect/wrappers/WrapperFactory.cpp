@@ -335,10 +335,6 @@ DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper *handler,
     if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         
         MOZ_ASSERT(!handler->hasSecurityPolicy());
-    } else if (handler == &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton) {
-        
-        
-        
     } else {
         
         MOZ_ASSERT(handler->hasSecurityPolicy() == !AccessCheck::subsumesConsideringDomain(target, origin));
@@ -459,7 +455,7 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
              !waiveXrayFlag && xrayType == NotXray &&
              IsContentXBLScope(target))
     {
-        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>::singleton;
+        wrapper = &PermissiveXrayOpaque::singleton;
     }
 
     
