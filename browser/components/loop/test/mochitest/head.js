@@ -58,17 +58,19 @@ function promiseGetMozLoopAPI() {
 
 
 
-function loadLoopPanel() {
+function loadLoopPanel(aOverrideOptions = {}) {
   
-  Services.prefs.setCharPref("services.push.serverURL", "ws://localhost/");
-  Services.prefs.setCharPref("loop.server", "http://localhost/");
+  Services.prefs.setCharPref("services.push.serverURL", aOverrideOptions.pushURL || "ws://localhost/");
+  Services.prefs.setCharPref("loop.server", aOverrideOptions.loopURL || "http://localhost/");
 
   
   
   
   
   let wasOffline = Services.io.offline;
-  Services.io.offline = true;
+  if (!aOverrideOptions.stayOnline) {
+    Services.io.offline = true;
+  }
 
   registerCleanupFunction(function() {
     Services.prefs.clearUserPref("services.push.serverURL");
@@ -103,6 +105,7 @@ function resetFxA() {
   global.gFxAOAuthClientPromise = null;
   global.gFxAOAuthClient = null;
   global.gFxAOAuthTokenData = null;
+  global.gFxAOAuthProfile = null;
   const fxASessionPref = MozLoopServiceInternal.getSessionTokenPrefName(LOOP_SESSION_TYPE.FXA);
   Services.prefs.clearUserPref(fxASessionPref);
 }
@@ -116,6 +119,15 @@ function promiseDeletedOAuthParams(baseURL) {
   xhr.addEventListener("error", deferred.reject);
   xhr.send();
 
+  return deferred.promise;
+}
+
+function promiseObserverNotified(aTopic) {
+  let deferred = Promise.defer();
+  Services.obs.addObserver(function onNotification(aSubject, aTopic, aData) {
+    Services.obs.removeObserver(onNotification, aTopic);
+      deferred.resolve({subject: aSubject, data: aData});
+    }, aTopic, false);
   return deferred.promise;
 }
 

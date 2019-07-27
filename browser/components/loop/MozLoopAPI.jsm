@@ -111,6 +111,23 @@ function injectLoopAPI(targetWindow) {
     
 
 
+
+    userProfile: {
+      enumerable: true,
+      get: function() {
+        if (!MozLoopService.userProfile)
+          return null;
+        let userProfile = Cu.cloneInto({
+          email: MozLoopService.userProfile.email,
+          uid: MozLoopService.userProfile.uid
+        }, targetWindow);
+        return userProfile;
+      }
+    },
+
+    
+
+
     doNotDisturb: {
       enumerable: true,
       get: function() {
@@ -440,10 +457,24 @@ function injectLoopAPI(targetWindow) {
     },
   };
 
+  function onStatusChanged(aSubject, aTopic, aData) {
+    let event = new targetWindow.CustomEvent("LoopStatusChanged");
+    targetWindow.dispatchEvent(event)
+  };
+
+  function onDOMWindowDestroyed(aSubject, aTopic, aData) {
+    if (targetWindow && aSubject != targetWindow)
+      return;
+    Services.obs.removeObserver(onDOMWindowDestroyed, "dom-window-destroyed");
+    Services.obs.removeObserver(onStatusChanged, "loop-status-changed");
+  };
+
   let contentObj = Cu.createObjectIn(targetWindow);
   Object.defineProperties(contentObj, api);
   Object.seal(contentObj);
   Cu.makeObjectPropsNormal(contentObj);
+  Services.obs.addObserver(onStatusChanged, "loop-status-changed", false);
+  Services.obs.addObserver(onDOMWindowDestroyed, "dom-window-destroyed", false);
 
   targetWindow.navigator.wrappedJSObject.__defineGetter__("mozLoop", function() {
     

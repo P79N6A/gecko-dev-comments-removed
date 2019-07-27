@@ -229,8 +229,7 @@ loop.panel = (function(_, mozL10n) {
     },
 
     _isSignedIn: function() {
-      
-      return !!navigator.mozLoop.loggedInToFxA;
+      return !!navigator.mozLoop.userProfile;
     },
 
     render: function() {
@@ -451,17 +450,50 @@ loop.panel = (function(_, mozL10n) {
   
 
 
+  var UserIdentity = React.createClass({displayName: 'UserIdentity',
+    render: function() {
+      return (
+        React.DOM.p({className: "user-identity"},
+          this.props.displayName
+        )
+      );
+    }
+  });
+
+  
+
+
   var PanelView = React.createClass({displayName: 'PanelView',
     propTypes: {
       notifications: React.PropTypes.object.isRequired,
       client: React.PropTypes.object.isRequired,
       
-      callUrl: React.PropTypes.string
+      callUrl: React.PropTypes.string,
+      userProfile: React.PropTypes.object,
+    },
+
+    getInitialState: function() {
+      return {
+        userProfile: this.props.userProfile || navigator.mozLoop.userProfile,
+      };
+    },
+
+    _onAuthStatusChange: function() {
+      this.setState({userProfile: navigator.mozLoop.userProfile});
+    },
+
+    componentDidMount: function() {
+      window.addEventListener("LoopStatusChanged", this._onAuthStatusChange);
+    },
+
+    componentWillUnmount: function() {
+      window.removeEventListener("LoopStatusChanged", this._onAuthStatusChange);
     },
 
     render: function() {
       var NotificationListView = sharedViews.NotificationListView;
-
+      var displayName = this.state.userProfile && this.state.userProfile.email ||
+                        __("display_name_guest");
       return (
         React.DOM.div(null, 
           NotificationListView({notifications: this.props.notifications, 
@@ -478,7 +510,10 @@ loop.panel = (function(_, mozL10n) {
             )
           ), 
           React.DOM.div({className: "footer"}, 
-            AvailabilityDropdown(null), 
+            React.DOM.div({className: "user-details"},
+              UserIdentity({displayName: displayName}),
+              AvailabilityDropdown(null)
+            ),
             AuthLink(null), 
             SettingsDropdown(null)
           )
@@ -543,6 +578,7 @@ loop.panel = (function(_, mozL10n) {
 
   return {
     init: init,
+    UserIdentity: UserIdentity,
     AvailabilityDropdown: AvailabilityDropdown,
     CallUrlResult: CallUrlResult,
     PanelView: PanelView,
