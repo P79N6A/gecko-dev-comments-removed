@@ -55,9 +55,7 @@ TapGestureInput CreateTapEvent(const MultiTouchInput& aTouch, TapGestureInput::T
   return TapGestureInput(aType,
                          aTouch.mTime,
                          aTouch.mTimeStamp,
-                         
-                         
-                         aTouch.mTouches[0].mLocalScreenPoint,
+                         aTouch.mTouches[0].mScreenPoint,
                          aTouch.modifiers);
 }
 
