@@ -554,15 +554,14 @@ AnimationPlayer::DoPlay(LimitBehavior aLimitBehavior)
 void
 AnimationPlayer::DoPause()
 {
+  if (mPendingState == PendingState::PausePending) {
+    return;
+  }
+
+  bool reuseReadyPromise = false;
   if (mPendingState == PendingState::PlayPending) {
     CancelPendingTasks();
-    
-    
-    
-    
-    if (mReady) {
-      mReady->MaybeResolve(this);
-    }
+    reuseReadyPromise = true;
   }
 
   
@@ -570,9 +569,21 @@ AnimationPlayer::DoPause()
   
   mIsRunningOnCompositor = false;
 
-  
-  mHoldTime = GetCurrentTime();
-  mStartTime.SetNull();
+  if (!reuseReadyPromise) {
+    
+    mReady = nullptr;
+  }
+
+  mPendingState = PendingState::PausePending;
+
+  nsIDocument* doc = GetRenderedDocument();
+  if (!doc) {
+    TriggerOnNextTick(Nullable<TimeDuration>());
+    return;
+  }
+
+  PendingPlayerTracker* tracker = doc->GetOrCreatePendingPlayerTracker();
+  tracker->AddPausePending(*this);
 
   UpdateFinishedState();
 }
