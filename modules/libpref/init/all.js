@@ -3819,7 +3819,7 @@ pref("image.cache.size", 5242880);
 pref("image.cache.timeweight", 500);
 
 
-pref("image.downscale-during-decode.enabled", true);
+pref("image.downscale-during-decode.enabled", false);
 
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
@@ -4585,6 +4585,9 @@ pref("media.gmp-manager.certs.1.issuerName", "CN=DigiCert Secure Server CA,O=Dig
 pref("media.gmp-manager.certs.1.commonName", "aus4.mozilla.org");
 pref("media.gmp-manager.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
 pref("media.gmp-manager.certs.2.commonName", "aus4.mozilla.org");
+
+
+pref("media.gmp-eme-adobe.hidden", true);
 #endif
 
 

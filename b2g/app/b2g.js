@@ -322,7 +322,6 @@ pref("media.fragmented-mp4.gonk.enabled", true);
 pref("media.video-queue.default-size", 3);
 
 
-pref("image.downscale-during-decode.enabled", true);
 pref("image.mem.decodeondraw", true);
 pref("image.mem.allow_locking_in_content_processes", false); 
 
@@ -1125,10 +1124,8 @@ pref("dom.requestSync.enabled", true);
 pref("gfx.vsync.hw-vsync.enabled", true);
 pref("gfx.vsync.compositor", true);
 pref("gfx.touch.resample", true);
-pref("gfx.vsync.refreshdriver", true);
 #else
 pref("gfx.vsync.hw-vsync.enabled", false);
 pref("gfx.vsync.compositor", false);
 pref("gfx.touch.resample", false);
-pref("gfx.vsync.refreshdriver", false);
 #endif
