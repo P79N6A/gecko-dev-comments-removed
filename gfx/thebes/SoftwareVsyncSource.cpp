@@ -80,7 +80,21 @@ void
 SoftwareDisplay::NotifyVsync(mozilla::TimeStamp aVsyncTimestamp)
 {
   MOZ_ASSERT(IsInSoftwareVsyncThread());
-  Display::NotifyVsync(aVsyncTimestamp);
+
+  mozilla::TimeStamp displayVsyncTime = aVsyncTimestamp;
+  mozilla::TimeStamp now = mozilla::TimeStamp::Now();
+  
+  
+  
+  
+  if (aVsyncTimestamp > now) {
+    displayVsyncTime = now;
+  }
+
+  Display::NotifyVsync(displayVsyncTime);
+
+  
+  
   ScheduleNextVsync(aVsyncTimestamp);
 }
 
