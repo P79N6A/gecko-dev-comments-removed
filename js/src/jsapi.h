@@ -4019,6 +4019,9 @@ namespace JS {
 
 
 
+
+
+
 class MOZ_STACK_CLASS JS_PUBLIC_API(AutoSetAsyncStackForNewCalls)
 {
     JSContext* cx;
@@ -5278,6 +5281,8 @@ SetOutOfMemoryCallback(JSRuntime* rt, OutOfMemoryCallback cb, void* data);
 
 extern JS_PUBLIC_API(bool)
 CaptureCurrentStack(JSContext* cx, MutableHandleObject stackp, unsigned maxFrameCount = 0);
+
+
 
 
 
