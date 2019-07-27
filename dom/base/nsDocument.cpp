@@ -85,6 +85,9 @@
 #include "nsStyleSheetService.h"
 
 #include "nsNetUtil.h"     
+#include "nsIInputStreamChannel.h"
+#include "nsIAuthPrompt.h"
+#include "nsIAuthPrompt2.h"
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"

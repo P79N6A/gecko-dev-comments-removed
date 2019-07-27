@@ -10,7 +10,10 @@
 #include "nsIFileStreams.h"       
 #include <algorithm>
 
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsIPrivateBrowsingChannel.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIComponentRegistrar.h"
 #include "nsIStorageStream.h"

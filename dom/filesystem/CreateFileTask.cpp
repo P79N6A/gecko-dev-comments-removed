@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "CreateFileTask.h"
 
@@ -18,6 +18,7 @@
 #include "mozilla/dom/ipc/BlobParent.h"
 #include "nsIFile.h"
 #include "nsNetUtil.h"
+#include "nsIOutputStream.h"
 #include "nsStringGlue.h"
 
 namespace mozilla {
@@ -206,7 +207,7 @@ CreateFileTask::Work()
       return NS_ERROR_DOM_FILESYSTEM_PATH_EXISTS_ERR;
     }
 
-    // Remove the old file before creating.
+    
     rv = file->Remove(false);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
@@ -237,7 +238,7 @@ CreateFileTask::Work()
   AutoClose acBufferedOutputStream(bufferedOutputStream);
 
   if (mBlobStream) {
-    // Write the file content from blob data.
+    
 
     uint64_t bufSize = 0;
     rv = mBlobStream->Available(&bufSize);
@@ -266,7 +267,7 @@ CreateFileTask::Work()
     return NS_OK;
   }
 
-  // Write file content from array data.
+  
 
   uint32_t written;
   rv = bufferedOutputStream->Write(
@@ -331,5 +332,5 @@ CreateFileTask::GetOutputBufferSize() const
     mozilla::Preferences::GetUint("dom.filesystem.outputBufferSize", 4096 * 4);
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 

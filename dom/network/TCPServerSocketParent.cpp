@@ -4,6 +4,7 @@
 
 
 
+#include "nsIScriptSecurityManager.h"
 #include "TCPServerSocketParent.h"
 #include "nsJSUtils.h"
 #include "TCPSocketParent.h"

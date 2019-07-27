@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/net/CookieServiceParent.h"
 #include "mozilla/dom/PContentParent.h"
@@ -10,6 +10,7 @@
 #include "mozilla/ipc/URIUtils.h"
 #include "nsCookieService.h"
 #include "nsNetUtil.h"
+#include "nsNetCID.h"
 #include "nsPrintfCString.h"
 #include "SerializedLoadContext.h"
 
@@ -50,11 +51,11 @@ CookieServiceParent::GetAppInfoFromParams(const IPC::SerializedLoadContext &aLoa
 
 CookieServiceParent::CookieServiceParent()
 {
-  // Instantiate the cookieservice via the service manager, so it sticks around
-  // until shutdown.
+  
+  
   nsCOMPtr<nsICookieService> cs = do_GetService(NS_COOKIESERVICE_CONTRACTID);
 
-  // Get the nsCookieService instance directly, so we can call internal methods.
+  
   mCookieService =
     already_AddRefed<nsCookieService>(nsCookieService::GetSingleton());
   NS_ASSERTION(mCookieService, "couldn't get nsICookieService");
@@ -67,7 +68,7 @@ CookieServiceParent::~CookieServiceParent()
 void
 CookieServiceParent::ActorDestroy(ActorDestroyReason aWhy)
 {
-  // Implement me! Bug 1005181
+  
 }
 
 bool
@@ -81,8 +82,8 @@ CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
   if (!mCookieService)
     return true;
 
-  // Deserialize URI. Having a host URI is mandatory and should always be
-  // provided by the child; thus we consider failure fatal.
+  
+  
   nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
     return false;
@@ -112,8 +113,8 @@ CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
   if (!mCookieService)
     return true;
 
-  // Deserialize URI. Having a host URI is mandatory and should always be
-  // provided by the child; thus we consider failure fatal.
+  
+  
   nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
     return false;
@@ -127,7 +128,7 @@ CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
   }
 
   nsDependentCString cookieString(aCookieString, 0);
-  //TODO: bug 812475, pass a real channel object
+  
   mCookieService->SetCookieStringInternal(hostURI, aIsForeign, cookieString,
                                           aServerTime, aFromHttp, appId,
                                           isInBrowserElement, isPrivate, nullptr);

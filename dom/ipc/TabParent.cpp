@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "base/basictypes.h"
 
@@ -89,6 +89,7 @@
 #include "gfxPrefs.h"
 #include "nsILoginManagerPrompter.h"
 #include "nsPIWindowRoot.h"
+#include "nsIAuthPrompt2.h"
 #include "gfxDrawable.h"
 #include "ImageOps.h"
 #include "UnitTransforms.h"
@@ -102,8 +103,8 @@ using namespace mozilla::services;
 using namespace mozilla::widget;
 using namespace mozilla::jsipc;
 
-// The flags passed by the webProgress notifications are 16 bits shifted
-// from the ones registered by webProgressListeners.
+
+
 #define NOTIFY_FLAG_SHIFT 16
 
 class OpenFileAndSendFDRunnable : public nsRunnable
@@ -139,8 +140,8 @@ private:
         MOZ_ASSERT(!mFD);
     }
 
-    // This shouldn't be called directly except by the event loop. Use Dispatch
-    // to start the sequence.
+    
+    
     NS_IMETHOD Run()
     {
         if (NS_IsMainThread()) {
@@ -172,8 +173,8 @@ private:
             fd = FileDescriptor(handle);
         }
 
-        // Our TabParent may have been destroyed already.  If so, don't send any
-        // fds over, just go back to the IO thread and close them.
+        
+        
         if (!tabParent->IsDestroyed()) {
             mozilla::unused << tabParent->SendCacheFileDescriptor(mPath, fd);
         }
@@ -188,13 +189,13 @@ private:
         if (NS_FAILED(eventTarget->Dispatch(this, NS_DISPATCH_NORMAL))) {
             NS_WARNING("Failed to dispatch to stream transport service!");
 
-            // It's probably safer to take the main thread IO hit here rather
-            // than leak a file descriptor.
+            
+            
             CloseFile();
         }
     }
 
-    // Helper method to avoid gnarly control flow for failures.
+    
     void OpenBlobImpl()
     {
         MOZ_ASSERT(!NS_IsMainThread());
@@ -220,9 +221,9 @@ private:
         if (NS_FAILED(NS_DispatchToMainThread(this))) {
             NS_WARNING("Failed to dispatch to main thread!");
 
-            // Intentionally leak the runnable (but not the fd) rather
-            // than crash when trying to release a main thread object
-            // off the main thread.
+            
+            
+            
             mTabParent.forget();
             CloseFile();
         }
@@ -230,9 +231,9 @@ private:
 
     void CloseFile()
     {
-        // It's possible for this to happen on the main thread if the dispatch
-        // to the stream service fails after we've already opened the file so
-        // we can't assert the thread we're running on.
+        
+        
+        
 
         MOZ_ASSERT(mFD);
 
@@ -331,11 +332,11 @@ TabParent::CacheFrameLoader(nsFrameLoader* aFrameLoader)
 void
 TabParent::SetOwnerElement(Element* aElement)
 {
-  // If we held previous content then unregister for its events.
+  
   RemoveWindowListeners();
 
-  // If we change top-level documents then we need to change our
-  // registration with them.
+  
+  
   nsRefPtr<nsPIWindowRoot> curTopLevelWin, newTopLevelWin;
   if (mFrameElement) {
     curTopLevelWin = nsContentUtils::GetWindowRoot(mFrameElement->OwnerDoc());
@@ -348,7 +349,7 @@ TabParent::SetOwnerElement(Element* aElement)
     curTopLevelWin->RemoveBrowser(this);
   }
 
-  // Update to the new content, and register to listen for events from it.
+  
   mFrameElement = aElement;
 
   if (newTopLevelWin && !isSameTopLevelWin) {
@@ -436,9 +437,9 @@ TabParent::Destroy()
 
   RemoveWindowListeners();
 
-  // If this fails, it's most likely due to a content-process crash,
-  // and auto-cleanup will kick in.  Otherwise, the child side will
-  // destroy itself and send back __delete__().
+  
+  
+  
   unused << SendDestroy();
 
   if (RenderFrameParent* frame = GetRenderFrame()) {
@@ -451,9 +452,9 @@ TabParent::Destroy()
     Manager()->AsContentParent()->NotifyTabDestroying(this);
   }
 
-  // Let all PluginWidgets know we are tearing down. Prevents
-  // these objects from sending async events after the child side
-  // is shut down.
+  
+  
+  
   const nsTArray<PPluginWidgetParent*>& kids = ManagedPPluginWidgetParent();
   for (uint32_t idx = 0; idx < kids.Length(); ++idx) {
       static_cast<mozilla::plugins::PluginWidgetParent*>(kids[idx])->ParentDestroy();
@@ -613,7 +614,7 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
                             InfallibleTArray<FrameScriptInfo>* aFrameScripts,
                             nsCString* aURLToLoad)
 {
-  // We always expect to open a new window here. If we don't, it's an error.
+  
   *aWindowIsNew = true;
 
   if (NS_WARN_IF(IsBrowserOrApp()))
@@ -628,8 +629,8 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
   TabParent* newTab = TabParent::GetFrom(aNewTab);
   MOZ_ASSERT(newTab);
 
-  // Content has requested that we open this new content window, so
-  // we must have an opener.
+  
+  
   newTab->SetHasContentOpener(true);
 
   nsCOMPtr<nsIContent> frame(do_QueryInterface(mFrameElement));
@@ -638,8 +639,8 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
   if (frame) {
     parent = do_QueryInterface(frame->OwnerDoc()->GetWindow());
 
-    // If our chrome window is in the process of closing, don't try to open a
-    // new tab in it.
+    
+    
     if (parent) {
       bool isClosed;
       if (NS_SUCCEEDED(parent->GetClosed(&isClosed)) && isClosed) {
@@ -650,8 +651,8 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
 
   nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin = mBrowserDOMWindow;
 
-  // If we haven't found a chrome window to open in, just use the most recently
-  // opened one.
+  
+  
   if (!parent) {
     parent = FindMostRecentOpenWindow();
     if (NS_WARN_IF(!parent)) {
@@ -672,7 +673,7 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
   MOZ_ASSERT(openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB ||
              openLocation == nsIBrowserDOMWindow::OPEN_NEWWINDOW);
 
-  // Opening new tabs is the easy case...
+  
   if (openLocation == nsIBrowserDOMWindow::OPEN_NEWTAB) {
     if (NS_WARN_IF(!browserDOMWin)) {
       *aResult = NS_ERROR_FAILURE;
@@ -702,12 +703,12 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
     return true;
   }
 
-  // WindowWatcher is going to expect a valid URI to open a window
-  // to. If it can't find one, it's going to attempt to figure one
-  // out on its own, which is problematic because it can't access
-  // the document for the remote browser we're opening. Luckily,
-  // TabChild has sent us a baseURI with which we can ensure that
-  // the URI we pass to WindowWatcher is valid.
+  
+  
+  
+  
+  
+  
   nsCOMPtr<nsIURI> baseURI;
   *aResult = NS_NewURI(getter_AddRefs(baseURI), aBaseURI);
 
@@ -777,7 +778,7 @@ TabParent::RecvCreateWindow(PBrowserParent* aNewTab,
 
 TabParent* TabParent::sNextTabParent;
 
-/* static */ TabParent*
+ TabParent*
 TabParent::GetNextTabParent()
 {
   TabParent* result = sNextTabParent;
@@ -818,7 +819,7 @@ TabParent::LoadURL(nsIURI* aURI)
     aURI->GetSpec(spec);
 
     if (mCreatingWindow) {
-        // Don't send the message if the child wants to load its own URL.
+        
         MOZ_ASSERT(mDelayedURL.IsEmpty());
         mDelayedURL = spec;
         return;
@@ -826,13 +827,13 @@ TabParent::LoadURL(nsIURI* aURI)
 
     uint32_t appId = OwnOrContainingAppId();
     if (mSendOfflineStatus && NS_IsAppOffline(appId)) {
-      // If the app is offline in the parent process
-      // pass that state to the child process as well
+      
+      
       unused << SendAppOfflineStatus(appId, true);
     }
     mSendOfflineStatus = false;
 
-    // This object contains the configuration for this new app.
+    
     BrowserConfiguration configuration;
     if (NS_WARN_IF(!InitBrowserConfiguration(spec, configuration))) {
       return;
@@ -840,9 +841,9 @@ TabParent::LoadURL(nsIURI* aURI)
 
     unused << SendLoadURL(spec, configuration);
 
-    // If this app is a packaged app then we can speed startup by sending over
-    // the file descriptor for the "application.zip" file that it will
-    // invariably request. Only do this once.
+    
+    
+    
     if (!mAppPackageFileDescriptorSent) {
         mAppPackageFileDescriptorSent = true;
 
@@ -896,9 +897,9 @@ TabParent::Show(const ScreenIntSize& size, bool aParentIsActive)
     uint64_t layersId = 0;
     bool success = false;
     RenderFrameParent* renderFrame = nullptr;
-    // If TabParent is initialized by parent side then the RenderFrame must also
-    // be created here. If TabParent is initialized by child side,
-    // child side will create RenderFrame.
+    
+    
+    
     MOZ_ASSERT(!GetRenderFrame());
     if (IsInitedByParent()) {
         nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
@@ -1038,8 +1039,8 @@ void
 TabParent::UIResolutionChanged()
 {
   if (!mIsDestroyed) {
-    // TryCacheDPIAndScale()'s cache is keyed off of
-    // mDPI being greater than 0, so this invalidates it.
+    
+    
     mDPI = -1;
     TryCacheDPIAndScale();
     unused << SendUIResolutionChanged();
@@ -1050,11 +1051,11 @@ void
 TabParent::ThemeChanged()
 {
   if (!mIsDestroyed) {
-    // The theme has changed, and any cached values we had sent down
-    // to the child have been invalidated. When this method is called,
-    // LookAndFeel should have the up-to-date values, which we now
-    // send down to the child. We do this for every remote tab for now,
-    // but bug 1156934 has been filed to do it once per content process.
+    
+    
+    
+    
+    
     unused << SendThemeChanged(LookAndFeel::GetIntCache());
   }
 }
@@ -1326,8 +1327,8 @@ bool TabParent::SendRealMouseEvent(WidgetMouseEvent& event)
 
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (widget) {
-    // When we mouseenter the tab, the tab's cursor should
-    // become the current cursor.  When we mouseexit, we stop.
+    
+    
     if (NS_MOUSE_ENTER_WIDGET == event.message) {
       mTabSetsCursor = true;
       if (mCustomCursor) {
@@ -1519,14 +1520,14 @@ public:
                         const char16_t* aData) override
   {
     if (!mTabParent) {
-      // We already sent the notification
+      
       return NS_OK;
     }
 
     if (!mTabParent->SendNativeSynthesisResponse(mObserverId, nsCString(aTopic))) {
       NS_WARNING("Unable to send native event synthesization response!");
     }
-    // Null out tabparent to indicate we already sent the response
+    
     mTabParent = nullptr;
     return NS_OK;
   }
@@ -1552,7 +1553,7 @@ public:
 
   ~AutoSynthesizedEventResponder()
   {
-    // This may be a no-op if the observer already sent a response.
+    
     mObserver->Observe(nullptr, mTopic, nullptr);
   }
 
@@ -1710,10 +1711,10 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
     return false;
   }
 
-  // PresShell::HandleEventInternal adds touches on touch end/cancel.  This
-  // confuses remote content and the panning and zooming logic into thinking
-  // that the added touches are part of the touchend/cancel, when actually
-  // they're not.
+  
+  
+  
+  
   if (event.message == NS_TOUCH_END || event.message == NS_TOUCH_CANCEL) {
     for (int i = event.touches.Length() - 1; i >= 0; i--) {
       if (!event.touches[i]->mChanged) {
@@ -1748,7 +1749,7 @@ TabParent::RecvSyncMessage(const nsString& aMessage,
                            const IPC::Principal& aPrincipal,
                            nsTArray<OwningSerializedStructuredCloneBuffer>* aRetVal)
 {
-  // FIXME Permission check for TabParent in Content process
+  
   nsIPrincipal* principal = aPrincipal;
   if (Manager()->IsContentParent()) {
     ContentParent* parent = Manager()->AsContentParent();
@@ -1770,7 +1771,7 @@ TabParent::RecvRpcMessage(const nsString& aMessage,
                           const IPC::Principal& aPrincipal,
                           nsTArray<OwningSerializedStructuredCloneBuffer>* aRetVal)
 {
-  // FIXME Permission check for TabParent in Content process
+  
   nsIPrincipal* principal = aPrincipal;
   if (Manager()->IsContentParent()) {
     ContentParent* parent = Manager()->AsContentParent();
@@ -1791,7 +1792,7 @@ TabParent::RecvAsyncMessage(const nsString& aMessage,
                             InfallibleTArray<CpowEntry>&& aCpows,
                             const IPC::Principal& aPrincipal)
 {
-  // FIXME Permission check for TabParent in Content process
+  
   nsIPrincipal* principal = aPrincipal;
   if (Manager()->IsContentParent()) {
     ContentParent* parent = Manager()->AsContentParent();
@@ -2160,8 +2161,8 @@ TabParent::GetChildProcessOffset(int32_t* aOutCssX, int32_t* aOutCssY)
 LayoutDeviceIntPoint
 TabParent::GetChildProcessOffset()
 {
-  // The "toplevel widget" in child processes is always at position
-  // 0,0.  Map the event coordinates to match that.
+  
+  
 
   LayoutDeviceIntPoint offset(0, 0);
   nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
@@ -2173,7 +2174,7 @@ TabParent::GetChildProcessOffset()
     return offset;
   }
 
-  // Find out how far we're offset from the nearest widget.
+  
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return offset;
@@ -2192,12 +2193,12 @@ TabParent::RecvReplyKeyEvent(const WidgetKeyboardEvent& event)
   NS_ENSURE_TRUE(mFrameElement, true);
 
   WidgetKeyboardEvent localEvent(event);
-  // Set mNoCrossProcessBoundaryForwarding to avoid this event from
-  // being infinitely redispatched and forwarded to the child again.
+  
+  
   localEvent.mFlags.mNoCrossProcessBoundaryForwarding = true;
 
-  // Here we convert the WidgetEvent that we received to an nsIDOMEvent
-  // to be able to dispatch it to the <browser> element as the target element.
+  
+  
   nsIDocument* doc = mFrameElement->OwnerDoc();
   nsIPresShell* presShell = doc->GetShell();
   NS_ENSURE_TRUE(presShell, true);
@@ -2279,7 +2280,7 @@ TabParent::SendSelectionEvent(WidgetSelectionEvent& event)
   return PBrowserParent::SendSelectionEvent(event);
 }
 
-/*static*/ TabParent*
+ TabParent*
 TabParent::GetFrom(nsFrameLoader* aFrameLoader)
 {
   if (!aFrameLoader) {
@@ -2289,7 +2290,7 @@ TabParent::GetFrom(nsFrameLoader* aFrameLoader)
   return static_cast<TabParent*>(remoteBrowser);
 }
 
-/*static*/ TabParent*
+ TabParent*
 TabParent::GetFrom(nsIFrameLoader* aFrameLoader)
 {
   if (!aFrameLoader)
@@ -2297,19 +2298,19 @@ TabParent::GetFrom(nsIFrameLoader* aFrameLoader)
   return GetFrom(static_cast<nsFrameLoader*>(aFrameLoader));
 }
 
-/*static*/ TabParent*
+ TabParent*
 TabParent::GetFrom(nsITabParent* aTabParent)
 {
   return static_cast<TabParent*>(aTabParent);
 }
 
-/*static*/ TabParent*
+ TabParent*
 TabParent::GetFrom(PBrowserParent* aTabParent)
 {
   return static_cast<TabParent*>(aTabParent);
 }
 
-/*static*/ TabParent*
+ TabParent*
 TabParent::GetFrom(nsIContent* aContent)
 {
   nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(aContent);
@@ -2320,7 +2321,7 @@ TabParent::GetFrom(nsIContent* aContent)
   return GetFrom(frameLoader);
 }
 
-/*static*/ TabId
+ TabId
 TabParent::GetTabIdFrom(nsIDocShell *docShell)
 {
   nsCOMPtr<nsITabChild> tabChild(TabChild::GetFrom(docShell));
@@ -2517,14 +2518,14 @@ TabParent::ReceiveMessage(const nsString& aMessage,
   return true;
 }
 
-// nsIAuthPromptProvider
 
-// This method is largely copied from nsDocShell::GetAuthPrompt
+
+
 NS_IMETHODIMP
 TabParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
                           void** aResult)
 {
-  // we're either allowing auth, or it's a proxy request
+  
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> wwatch =
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
@@ -2535,8 +2536,8 @@ TabParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
   if (frame)
     window = do_QueryInterface(frame->OwnerDoc()->GetWindow());
 
-  // Get an auth prompter for our window so that the parenting
-  // of the dialogs works as it should when using tabs.
+  
+  
   nsCOMPtr<nsISupports> prompt;
   rv = wwatch->GetPrompt(window, iid, getter_AddRefs(prompt));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2660,11 +2661,11 @@ TabParent::ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
     if (aOutTargetGuid) {
       *aOutTargetGuid = InputAPZContext::GetTargetLayerGuid();
 
-      // There may be cases where the APZ hit-testing code came to a different
-      // conclusion than the main-thread hit-testing code as to where the event
-      // is destined. In such cases the layersId of the APZ result may not match
-      // the layersId of this renderframe. In such cases the main-thread hit-
-      // testing code "wins" so we need to update the guid to reflect this.
+      
+      
+      
+      
+      
       if (RenderFrameParent* rfp = GetRenderFrame()) {
         if (aOutTargetGuid->mLayersId != rfp->GetLayersId()) {
           *aOutTargetGuid = ScrollableLayerGuid(rfp->GetLayersId(), 0, FrameMetrics::NULL_SCROLL_ID);
@@ -2678,8 +2679,8 @@ TabParent::ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
       *aOutApzResponse = InputAPZContext::GetApzResponse();
     }
 
-    // Let the widget know that the event will be sent to the child process,
-    // which will (hopefully) send a confirmation notice back to APZ.
+    
+    
     InputAPZContext::SetRoutedToChildProcess();
   } else {
     if (aOutInputBlockId) {
@@ -2767,7 +2768,7 @@ TabParent::GetLoadContext()
   } else {
     loadContext = new LoadContext(GetOwnerElement(),
                                   OwnOrContainingAppId(),
-                                  true /* aIsContent */,
+                                  true ,
                                   mChromeFlags & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW,
                                   mChromeFlags & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW,
                                   IsBrowserElement());
@@ -2828,9 +2829,9 @@ TabParent::InjectTouchEvent(const nsAString& aType,
                                   aRotationAngles[i],
                                   aForces[i]);
 
-    // Consider all injected touch events as changedTouches. For more details
-    // about the meaning of changedTouches for each event, see
-    // https://developer.mozilla.org/docs/Web/API/TouchEvent.changedTouches
+    
+    
+    
     t->mChanged = true;
     event.touches.AppendElement(t);
   }
@@ -2894,8 +2895,8 @@ private:
   }
 };
 
-// This observer runs on the compositor thread, so we dispatch a runnable to the
-// main thread to actually dispatch the event.
+
+
 class LayerTreeUpdateObserver : public CompositorUpdateObserver
 {
   virtual void ObserveUpdate(uint64_t aLayersId, bool aActive) {
@@ -3009,8 +3010,8 @@ TabParent::HandleEvent(nsIDOMEvent* aEvent)
   aEvent->GetType(eventType);
 
   if (eventType.EqualsLiteral("MozUpdateWindowPos") && !mIsDestroyed) {
-    // This event is sent when the widget moved.  Therefore we only update
-    // the position.
+    
+    
     return UpdatePosition();
   }
   return NS_OK;
@@ -3219,8 +3220,8 @@ TabParent::AddInitialDnDDataTo(DataTransfer* aDataTransfer)
       if (!variant) {
         break;
       }
-      // Special case kFilePromiseMime so that we get the right
-      // nsIFlavorDataProvider for it.
+      
+      
       if (item.mFlavor.EqualsLiteral(kFilePromiseMime)) {
         nsRefPtr<nsISupports> flavorDataProvider =
           new nsContentAreaDragDropDataProvider();
@@ -3230,8 +3231,8 @@ TabParent::AddInitialDnDDataTo(DataTransfer* aDataTransfer)
       } else if (item.mType == DataTransferItem::DataType::eBlob) {
         variant->SetAsISupports(item.mBlobData);
       }
-      // Using system principal here, since once the data is on parent process
-      // side, it can be handled as being from browser chrome or OS.
+      
+      
       aDataTransfer->SetDataWithPrincipal(NS_ConvertUTF8toUTF16(item.mFlavor),
                                           variant, i,
                                           nsContentUtils::GetSystemPrincipal());
@@ -3281,5 +3282,5 @@ FakeChannel::OnAuthCancelled(nsISupports *aContext, bool userCancel)
 }
 
 
-} // namespace tabs
-} // namespace mozilla
+} 
+} 

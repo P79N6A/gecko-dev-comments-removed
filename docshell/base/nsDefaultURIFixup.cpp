@@ -4,7 +4,9 @@
 
 
 
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "nsIProtocolHandler.h"
 #include "nsCRT.h"
 
 #include "nsIFile.h"

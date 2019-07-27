@@ -1,12 +1,13 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=8 sts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "mozilla/dom/FileSystemTaskBase.h"
 
-#include "nsNetUtil.h" // Stream transport service.
+#include "nsNetUtil.h" 
+#include "nsNetCID.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FileSystemBase.h"
@@ -62,8 +63,8 @@ FileSystemTaskBase::Start()
   }
 
   if (XRE_IsParentProcess()) {
-    // Run in parent process.
-    // Start worker thread.
+    
+    
     nsCOMPtr<nsIEventTarget> target
       = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
     NS_ASSERTION(target, "Must have stream transport service.");
@@ -71,14 +72,14 @@ FileSystemTaskBase::Start()
     return;
   }
 
-  // Run in child process.
+  
   if (mFileSystem->IsShutdown()) {
     return;
   }
 
-  // Retain a reference so the task object isn't deleted without IPDL's
-  // knowledge. The reference will be released by
-  // mozilla::dom::ContentChild::DeallocPFileSystemRequestChild.
+  
+  
+  
   NS_ADDREF_THIS();
   ContentChild::GetSingleton()->SendPFileSystemRequestConstructor(this,
     GetRequestParams(mFileSystem->ToString()));
@@ -88,17 +89,17 @@ NS_IMETHODIMP
 FileSystemTaskBase::Run()
 {
   if (!NS_IsMainThread()) {
-    // Run worker thread tasks
+    
     nsresult rv = Work();
     if (NS_FAILED(rv)) {
       SetError(rv);
     }
-    // Dispatch itself to main thread
+    
     NS_DispatchToMainThread(this);
     return NS_OK;
   }
 
-  // Run main thread tasks
+  
   HandleResult();
   return NS_OK;
 }
@@ -161,12 +162,12 @@ FileSystemTaskBase::GetBlobParent(BlobImpl* aFile) const
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
   MOZ_ASSERT(aFile);
 
-  // Load the lazy dom file data from the parent before sending to the child.
+  
   nsString mimeType;
   aFile->GetType(mimeType);
 
-  // We call GetSize and GetLastModified to prepopulate the value in the
-  // BlobImpl.
+  
+  
   {
     ErrorResult rv;
     aFile->GetSize(rv);
@@ -233,5 +234,5 @@ FileSystemTaskBase::SetError(const nsresult& aErrorValue)
   }
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
