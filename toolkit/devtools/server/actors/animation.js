@@ -29,7 +29,7 @@ const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
 const {setInterval, clearInterval} = require("sdk/timers");
 const protocol = require("devtools/server/protocol");
-const {ActorClass, Actor, FrontClass, Front, Arg, method, RetVal} = protocol;
+const {ActorClass, Actor, FrontClass, Front, Arg, method, RetVal, types} = protocol;
 const {NodeActor} = require("devtools/server/actors/inspector");
 const events = require("sdk/event/core");
 
@@ -55,14 +55,13 @@ let AnimationPlayerActor = ActorClass({
 
 
 
-
-  initialize: function(animationsActor, player, node, playerIndex) {
+  initialize: function(animationsActor, player, playerIndex) {
     Actor.prototype.initialize.call(this, animationsActor.conn);
 
     this.player = player;
-    this.node = node;
+    this.node = player.source.target;
     this.playerIndex = playerIndex;
-    this.styles = node.ownerDocument.defaultView.getComputedStyle(node);
+    this.styles = this.node.ownerDocument.defaultView.getComputedStyle(this.node);
   },
 
   destroy: function() {
@@ -440,22 +439,47 @@ let AnimationPlayerFront = FrontClass(AnimationPlayerActor, {
 
 
 
+
+types.addDictType("animationMutationChange", {
+  
+  type: "string",
+  
+  player: "animationplayer"
+});
+
+
+
+
 let AnimationsActor = exports.AnimationsActor = ActorClass({
   typeName: "animations",
+
+  events: {
+    "mutations" : {
+      type: "mutations",
+      changes: Arg(0, "array:animationMutationChange")
+    }
+  },
 
   initialize: function(conn, tabActor) {
     Actor.prototype.initialize.call(this, conn);
     this.tabActor = tabActor;
 
-    this.allAnimationsPaused = false;
+    this.onWillNavigate = this.onWillNavigate.bind(this);
     this.onNavigate = this.onNavigate.bind(this);
+    this.onAnimationMutation = this.onAnimationMutation.bind(this);
+
+    this.allAnimationsPaused = false;
+    events.on(this.tabActor, "will-navigate", this.onWillNavigate);
     events.on(this.tabActor, "navigate", this.onNavigate);
   },
 
   destroy: function() {
     Actor.prototype.destroy.call(this);
+    events.off(this.tabActor, "will-navigate", this.onWillNavigate);
     events.off(this.tabActor, "navigate", this.onNavigate);
-    this.tabActor = null;
+
+    this.stopAnimationPlayerUpdates();
+    this.tabActor = this.observer = this.actors = null;
   },
 
   
@@ -475,14 +499,26 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
   getAnimationPlayersForNode: method(function(nodeActor) {
     let animations = nodeActor.rawNode.getAnimations();
 
-    let actors = [];
+    
+    
+    this.actors = [];
     for (let i = 0; i < animations.length; i ++) {
       
       
-      actors.push(AnimationPlayerActor(this, animations[i], nodeActor.rawNode, i));
+      let actor = AnimationPlayerActor(this, animations[i], i);
+      this.actors.push(actor);
     }
 
-    return actors;
+    
+    
+    
+    
+    this.stopAnimationPlayerUpdates();
+    let win = nodeActor.rawNode.ownerDocument.defaultView;
+    this.observer = new win.MutationObserver(this.onAnimationMutation);
+    this.observer.observe(nodeActor.rawNode, {animations: true});
+
+    return this.actors;
   }, {
     request: {
       actorID: Arg(0, "domnode")
@@ -490,6 +526,63 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
     response: {
       players: RetVal("array:animationplayer")
     }
+  }),
+
+  onAnimationMutation: function(mutations) {
+    let eventData = [];
+
+    for (let {addedAnimations, changedAnimations, removedAnimations} of mutations) {
+      for (let player of removedAnimations) {
+        
+        
+        
+        
+        
+        
+        if (player.playState !== "idle") {
+          continue;
+        }
+        let index = this.actors.findIndex(a => a.player === player);
+        eventData.push({
+          type: "removed",
+          player: this.actors[index]
+        });
+        this.actors.splice(index, 1);
+      }
+
+      for (let player of addedAnimations) {
+        
+        
+        if (this.actors.find(a => a.player === player)) {
+          continue;
+        }
+        let actor = AnimationPlayerActor(
+          this, player, player.source.target.getAnimations().indexOf(player));
+        this.actors.push(actor);
+        eventData.push({
+          type: "added",
+          player: actor
+        });
+      }
+    }
+
+    if (eventData.length) {
+      events.emit(this, "mutations", eventData);
+    }
+  },
+
+  
+
+
+
+
+  stopAnimationPlayerUpdates: method(function() {
+    if (this.observer && !Cu.isDeadWrapper(this.observer)) {
+      this.observer.disconnect();
+    }
+  }, {
+    request: {},
+    response: {}
   }),
 
   
@@ -514,6 +607,12 @@ let AnimationsActor = exports.AnimationsActor = ActorClass({
     }
 
     return animations;
+  },
+
+  onWillNavigate: function({isTopLevel}) {
+    if (isTopLevel) {
+      this.stopAnimationPlayerUpdates();
+    }
   },
 
   onNavigate: function({isTopLevel}) {
