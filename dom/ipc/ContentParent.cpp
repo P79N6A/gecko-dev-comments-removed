@@ -2288,6 +2288,10 @@ ContentParent::InitInternal(ProcessPriority aInitialPriority,
 {
     
     
+    mMessageManager->InitWithCallback(this);
+
+    
+    
     
     
     
