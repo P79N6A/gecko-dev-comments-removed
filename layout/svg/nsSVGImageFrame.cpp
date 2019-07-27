@@ -11,7 +11,6 @@
 #include "nsContainerFrame.h"
 #include "nsIImageLoadingContent.h"
 #include "nsLayoutUtils.h"
-#include "nsRenderingContext.h"
 #include "imgINotificationObserver.h"
 #include "nsSVGEffects.h"
 #include "nsSVGPathGeometryFrame.h"
@@ -362,8 +361,6 @@ nsSVGImageFrame::PaintSVG(gfxContext& aContext,
     
     uint32_t drawFlags = imgIContainer::FLAG_SYNC_DECODE;
 
-    nsRenderingContext rendCtx(&aContext);
-
     if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
       
       
@@ -378,7 +375,7 @@ nsSVGImageFrame::PaintSVG(gfxContext& aContext,
       
       
       nsLayoutUtils::DrawSingleImage(
-        &rendCtx,
+        aContext,
         PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),
@@ -388,7 +385,7 @@ nsSVGImageFrame::PaintSVG(gfxContext& aContext,
         drawFlags);
     } else { 
       nsLayoutUtils::DrawSingleUnscaledImage(
-        &rendCtx,
+        aContext,
         PresContext(),
         mImageContainer,
         nsLayoutUtils::GetGraphicsFilterForFrame(this),

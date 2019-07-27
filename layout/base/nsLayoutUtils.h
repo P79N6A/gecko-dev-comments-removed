@@ -1491,7 +1491,7 @@ public:
 
 
 
-  static nsresult DrawBackgroundImage(nsRenderingContext* aRenderingContext,
+  static nsresult DrawBackgroundImage(gfxContext&         aContext,
                                       nsPresContext*      aPresContext,
                                       imgIContainer*      aImage,
                                       const nsIntSize&    aImageSize,
@@ -1517,7 +1517,7 @@ public:
 
 
 
-  static nsresult DrawImage(nsRenderingContext* aRenderingContext,
+  static nsresult DrawImage(gfxContext&         aContext,
                             nsPresContext*      aPresContext,
                             imgIContainer*      aImage,
                             GraphicsFilter      aGraphicsFilter,
@@ -1571,7 +1571,7 @@ public:
 
 
 
-  static nsresult DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
+  static nsresult DrawSingleUnscaledImage(gfxContext&          aContext,
                                           nsPresContext*       aPresContext,
                                           imgIContainer*       aImage,
                                           GraphicsFilter       aGraphicsFilter,
@@ -1600,7 +1600,7 @@ public:
 
 
 
-  static nsresult DrawSingleImage(nsRenderingContext* aRenderingContext,
+  static nsresult DrawSingleImage(gfxContext&         aContext,
                                   nsPresContext*      aPresContext,
                                   imgIContainer*      aImage,
                                   GraphicsFilter      aGraphicsFilter,
