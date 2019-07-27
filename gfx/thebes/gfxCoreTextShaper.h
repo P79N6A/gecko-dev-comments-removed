@@ -39,22 +39,27 @@ protected:
                               CTRunRef       aCTRun,
                               int32_t        aStringOffset);
 
-    CTFontRef CreateCTFontWithDisabledLigatures(CGFloat aSize);
+    CTFontRef CreateCTFontWithFeatures(CGFloat aSize,
+                                       CTFontDescriptorRef aDescriptor);
 
-    static void CreateDefaultFeaturesDescriptor();
+    static CTFontDescriptorRef
+    CreateFontFeaturesDescriptor(const std::pair<SInt16,SInt16> aFeatures[],
+                                 size_t aCount);
 
-    static CTFontDescriptorRef GetDefaultFeaturesDescriptor() {
-        if (sDefaultFeaturesDescriptor == nullptr) {
-            CreateDefaultFeaturesDescriptor();
-        }
-        return sDefaultFeaturesDescriptor;
-    }
+    static CTFontDescriptorRef GetDefaultFeaturesDescriptor();
+    static CTFontDescriptorRef GetDisableLigaturesDescriptor();
+    static CTFontDescriptorRef GetIndicFeaturesDescriptor();
+    static CTFontDescriptorRef GetIndicDisableLigaturesDescriptor();
 
     
     static CTFontDescriptorRef    sDefaultFeaturesDescriptor;
 
     
     static CTFontDescriptorRef    sDisableLigaturesDescriptor;
+
+    
+    static CTFontDescriptorRef    sIndicFeaturesDescriptor;
+    static CTFontDescriptorRef    sIndicDisableLigaturesDescriptor;
 };
 
 #endif 
