@@ -74,10 +74,14 @@ public:
   virtual CSSTransition* AsCSSTransition() { return nullptr; }
 
   
-  
-  enum LimitBehavior {
-    AutoRewind = 0,
-    Continue = 1
+
+
+
+
+
+  enum class LimitBehavior {
+    AutoRewind,
+    Continue
   };
 
   
