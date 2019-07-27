@@ -551,6 +551,30 @@ IntegralBytes(Reader& input, uint8_t tag,
   return Success;
 }
 
+
+
+Result
+IntegralValue(Reader& input, uint8_t tag,  uint8_t& value)
+{
+  
+  
+  
+  Input valueBytes;
+  Result rv = IntegralBytes(input, tag, IntegralValueRestriction::MustBe0To127,
+                            valueBytes, nullptr);
+  if (rv != Success) {
+    return rv;
+  }
+  Reader valueReader(valueBytes);
+  rv = valueReader.Read(value);
+  if (rv != Success) {
+    return NotReached("IntegralBytes already validated the value.", rv);
+  }
+  rv = End(valueReader);
+  assert(rv == Success); 
+  return rv;
+}
+
 } 
 
 } } } 
