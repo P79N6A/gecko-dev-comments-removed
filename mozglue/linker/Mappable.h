@@ -180,7 +180,7 @@ private:
   mozilla::UniquePtr<_MappableBuffer> buffer;
 
   
-  z_stream zStream;
+  zxx_stream zStream;
 };
 
 

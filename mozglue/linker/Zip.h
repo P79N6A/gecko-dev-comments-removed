@@ -10,7 +10,98 @@
 #include <vector>
 #include <zlib.h>
 #include "Utils.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class zxx_stream: public z_stream
+{
+public:
+  zxx_stream() {
+    memset(this, 0, sizeof(z_stream));
+    zalloc = Alloc;
+    zfree = Free;
+    opaque = this;
+  }
+
+private:
+  static void *Alloc(void *data, uInt items, uInt size)
+  {
+    size_t buf_size = items * size;
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+
+    if (items == 1 && buf_size <= zStream->stateBuf.size) {
+      return zStream->stateBuf.get();
+    } else if (buf_size == zStream->windowBuf.size) {
+      return zStream->windowBuf.get();
+    } else {
+      MOZ_CRASH("No ZStreamBuf for allocation");
+    }
+  }
+
+  static void Free(void *data, void *ptr)
+  {
+    zxx_stream *zStream = reinterpret_cast<zxx_stream *>(data);
+
+    if (zStream->stateBuf.Equals(ptr)) {
+      zStream->stateBuf.Release();
+    } else if (zStream->windowBuf.Equals(ptr)) {
+      zStream->windowBuf.Release();
+    } else {
+      MOZ_CRASH("Pointer doesn't match a ZStreamBuf");
+    }
+  }
+
+  
+
+
+  template <size_t Size>
+  class ZStreamBuf
+  {
+  public:
+    ZStreamBuf() : buf(new char[Size]), inUse(false) { }
+
+    char *get()
+    {
+      if (!inUse) {
+        inUse = true;
+        return buf.get();
+      } else {
+        MOZ_CRASH("ZStreamBuf already in use");
+      }
+    }
+
+    void Release()
+    {
+      memset(buf.get(), 0, Size);
+      inUse = false;
+    }
+
+    bool Equals(const void *other) { return other == buf.get(); }
+
+    static const size_t size = Size;
+
+  private:
+    mozilla::UniquePtr<char[]> buf;
+    bool inUse;
+  };
+
+  ZStreamBuf<0x3000> stateBuf; 
+  ZStreamBuf<1 << MAX_WBITS> windowBuf;
+};
 
 
 
@@ -91,10 +182,9 @@ public:
 
 
 
-    z_stream GetZStream(void *buf)
+    zxx_stream GetZStream(void *buf)
     {
-      z_stream zStream;
-      memset(&zStream, 0, sizeof(zStream));
+      zxx_stream zStream;
       zStream.avail_in = compressedSize;
       zStream.next_in = reinterpret_cast<Bytef *>(
                         const_cast<void *>(compressedBuf));
