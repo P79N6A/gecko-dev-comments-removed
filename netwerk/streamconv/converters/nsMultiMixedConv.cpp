@@ -1144,8 +1144,6 @@ nsMultiMixedConv::FindToken(char *aCursor, uint32_t aLen) {
                 if ((*(aCursor-1) == '-') && (*(aCursor-2) == '-')) {
                     aCursor -= 2;
                     aLen += 2;
-                    aLen;
-                    
 
                     
                     mToken.Assign(aCursor, mTokenLen + 2);
