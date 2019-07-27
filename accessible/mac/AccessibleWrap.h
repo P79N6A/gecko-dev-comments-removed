@@ -102,7 +102,7 @@ private:
 
 
 
-  bool mNativeInited;  
+  bool mNativeInited;
 };
 
 #if defined(__OBJC__)

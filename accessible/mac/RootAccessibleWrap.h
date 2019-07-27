@@ -23,7 +23,7 @@ public:
   virtual ~RootAccessibleWrap();
 
     Class GetNativeType ();
-    
+
     
     
     void GetNativeWidget (void **aOutView);

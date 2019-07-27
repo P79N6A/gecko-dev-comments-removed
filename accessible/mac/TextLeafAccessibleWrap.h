@@ -10,7 +10,7 @@
 
 namespace mozilla {
 namespace a11y {
- 
+
 typedef class TextLeafAccessible TextLeafAccessibleWrap;
 
 } 

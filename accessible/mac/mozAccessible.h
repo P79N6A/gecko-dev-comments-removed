@@ -47,12 +47,12 @@ static const uintptr_t IS_PROXY = 1;
 
 
   uintptr_t mGeckoAccessible;
-  
+
   
 
 
   NSMutableArray* mChildren;
-  
+
   
 
 
