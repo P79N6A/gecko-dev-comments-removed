@@ -338,7 +338,9 @@ public:
         struct Key {
             nsCOMPtr<nsIURI>        mURI;
             nsCOMPtr<nsIPrincipal>  mPrincipal; 
-            gfxFontEntry*           mFontEntry;
+            
+            
+            gfxFontEntry* MOZ_NON_OWNING_REF mFontEntry;
             uint32_t                mCRC32;
             uint32_t                mLength;
             bool                    mPrivate;
@@ -451,7 +453,7 @@ public:
             
             
             
-            gfxFontEntry*          mFontEntry;
+            gfxFontEntry* MOZ_NON_OWNING_REF mFontEntry;
 
             
             bool                   mPrivate;
