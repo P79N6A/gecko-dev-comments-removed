@@ -22,7 +22,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "MediaManagerService",
 
 this.webrtcUI = {
   init: function () {
-    Services.obs.addObserver(handleRequest, "getUserMedia:request", false);
     Services.obs.addObserver(maybeAddMenuIndicator, "browser-delayed-startup-finished", false);
 
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
@@ -31,11 +30,11 @@ this.webrtcUI = {
 
     let mm = Cc["@mozilla.org/globalmessagemanager;1"]
                .getService(Ci.nsIMessageListenerManager);
+    mm.addMessageListener("webrtc:Request", this);
     mm.addMessageListener("webrtc:UpdateBrowserIndicators", this);
   },
 
   uninit: function () {
-    Services.obs.removeObserver(handleRequest, "getUserMedia:request");
     Services.obs.removeObserver(maybeAddMenuIndicator, "browser-delayed-startup-finished");
 
     let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
@@ -44,6 +43,7 @@ this.webrtcUI = {
 
     let mm = Cc["@mozilla.org/globalmessagemanager;1"]
                .getService(Ci.nsIMessageListenerManager);
+    mm.removeMessageListener("webrtc:Request", this);
     mm.removeMessageListener("webrtc:UpdateBrowserIndicators", this);
   },
 
@@ -135,6 +135,9 @@ this.webrtcUI = {
 
   receiveMessage: function(aMessage) {
     switch (aMessage.name) {
+      case "webrtc:Request":
+        prompt(aMessage.target, aMessage.data);
+        break;
       case "webrtc:UpdateGlobalIndicators":
         updateIndicators(aMessage.data)
         break;
@@ -152,71 +155,17 @@ function getBrowserForWindow(aContentWindow) {
                        .chromeEventHandler;
 }
 
-function handleRequest(aSubject, aTopic, aData) {
-  let constraints = aSubject.getConstraints();
-  let secure = aSubject.isSecure;
-  let contentWindow = Services.wm.getOuterWindowWithId(aSubject.windowID);
-
-  contentWindow.navigator.mozGetUserMediaDevices(
-    constraints,
-    function (devices) {
-      prompt(contentWindow, aSubject.callID, constraints.audio,
-             constraints.video || constraints.picture, devices, secure);
-    },
-    function (error) {
-      
-      
-      denyRequest(aSubject.callID, error);
-    },
-    aSubject.innerWindowID);
+function denyRequest(aBrowser, aRequest) {
+  aBrowser.messageManager.sendAsyncMessage("webrtc:Deny",
+                                           {callID: aRequest.callID,
+                                            windowID: aRequest.windowID});
 }
 
-function denyRequest(aCallID, aError) {
-  let msg = null;
-  if (aError) {
-    msg = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-    msg.data = aError;
-  }
-  Services.obs.notifyObservers(msg, "getUserMedia:response:deny", aCallID);
-}
-
-function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
-  let audioDevices = [];
-  let videoDevices = [];
-
-  
-  let sharingScreen = aVideo && typeof(aVideo) != "boolean" &&
-                      aVideo.mediaSource != "camera";
-  for (let device of aDevices) {
-    device = device.QueryInterface(Ci.nsIMediaDevice);
-    switch (device.type) {
-      case "audio":
-        if (aAudio)
-          audioDevices.push(device);
-        break;
-      case "video":
-        
-        
-        if (aVideo && (device.mediaSource == "camera") != sharingScreen)
-          videoDevices.push(device);
-        break;
-    }
-  }
-
-  let requestTypes = [];
-  if (videoDevices.length)
-    requestTypes.push(sharingScreen ? "Screen" : "Camera");
-  if (audioDevices.length)
-    requestTypes.push("Microphone");
-
-  if (!requestTypes.length) {
-    denyRequest(aCallID, "NO_DEVICES_FOUND");
-    return;
-  }
-
-  let uri = aContentWindow.document.documentURIObject;
-  let browser = getBrowserForWindow(aContentWindow);
-  let chromeDoc = browser.ownerDocument;
+function prompt(aBrowser, aRequest) {
+  let {audioDevices: audioDevices, videoDevices: videoDevices,
+       sharingScreen: sharingScreen, requestTypes: requestTypes} = aRequest;
+  let uri = Services.io.newURI(aRequest.documentURI, null, null);
+  let chromeDoc = aBrowser.ownerDocument;
   let chromeWin = chromeDoc.defaultView;
   let stringBundle = chromeWin.gNavigatorBundle;
   let stringId = "getUserMedia.share" + requestTypes.join("And") + ".message";
@@ -244,7 +193,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
       label: stringBundle.getString("getUserMedia.denyRequest.label"),
       accessKey: stringBundle.getString("getUserMedia.denyRequest.accesskey"),
       callback: function () {
-        denyRequest(aCallID);
+        denyRequest(aBrowser, aRequest);
       }
     }
   ];
@@ -254,7 +203,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
       label: stringBundle.getString("getUserMedia.never.label"),
       accessKey: stringBundle.getString("getUserMedia.never.accesskey"),
       callback: function () {
-        denyRequest(aCallID);
+        denyRequest(aBrowser, aRequest);
         
         
         let perms = Services.perms;
@@ -266,7 +215,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
     });
   }
 
-  if (aSecure && !sharingScreen) {
+  if (aRequest.secure && !sharingScreen) {
     
     
     
@@ -302,7 +251,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
       
       
       
-      if (aSecure) {
+      if (aRequest.secure) {
         let perms = Services.perms;
 
         let micPerm = perms.testExactPermission(uri, "microphone");
@@ -323,13 +272,15 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
         
         if ((!audioDevices.length || micPerm) && (!videoDevices.length || camPerm)) {
           
-          let allowedDevices = Cc["@mozilla.org/supports-array;1"]
-                                 .createInstance(Ci.nsISupportsArray);
+          let allowedDevices = [];
           if (videoDevices.length && camPerm == perms.ALLOW_ACTION)
-            allowedDevices.AppendElement(videoDevices[0]);
+            allowedDevices.push(videoDevices[0].deviceIndex);
           if (audioDevices.length && micPerm == perms.ALLOW_ACTION)
-            allowedDevices.AppendElement(audioDevices[0]);
-          Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", aCallID);
+            allowedDevices.push(audioDevices[0].deviceIndex);
+          aBrowser.messageManager.sendAsyncMessage("webrtc:Allow",
+                                                   {callID: aRequest.callID,
+                                                    windowID: aRequest.windowID,
+                                                    devices: allowedDevices});
           this.remove();
           return true;
         }
@@ -339,11 +290,8 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
         while (menupopup.lastChild)
           menupopup.removeChild(menupopup.lastChild);
 
-        let deviceIndex = 0;
-        for (let device of devices) {
-          addDeviceToList(menupopup, device.name, deviceIndex);
-          deviceIndex++;
-        }
+        for (let device of devices)
+          addDeviceToList(menupopup, device.name, device.deviceIndex);
       }
 
       function listScreenShareDevices(menupopup, devices) {
@@ -426,15 +374,14 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
       }
 
       this.mainAction.callback = function(aRemember) {
-        let allowedDevices = Cc["@mozilla.org/supports-array;1"]
-                               .createInstance(Ci.nsISupportsArray);
+        let allowedDevices = [];
         let perms = Services.perms;
         if (videoDevices.length) {
           let listId = "webRTC-select" + (sharingScreen ? "Window" : "Camera") + "-menulist";
           let videoDeviceIndex = chromeDoc.getElementById(listId).value;
           let allowCamera = videoDeviceIndex != "-1";
           if (allowCamera)
-            allowedDevices.AppendElement(videoDevices[videoDeviceIndex]);
+            allowedDevices.push(videoDeviceIndex);
           if (aRemember) {
             perms.add(uri, "camera",
                       allowCamera ? perms.ALLOW_ACTION : perms.DENY_ACTION);
@@ -444,19 +391,22 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
           let audioDeviceIndex = chromeDoc.getElementById("webRTC-selectMicrophone-menulist").value;
           let allowMic = audioDeviceIndex != "-1";
           if (allowMic)
-            allowedDevices.AppendElement(audioDevices[audioDeviceIndex]);
+            allowedDevices.push(audioDeviceIndex);
           if (aRemember) {
             perms.add(uri, "microphone",
                       allowMic ? perms.ALLOW_ACTION : perms.DENY_ACTION);
           }
         }
 
-        if (allowedDevices.Count() == 0) {
-          denyRequest(aCallID);
+        if (!allowedDevices.length) {
+          denyRequest(aBrowser, aRequest);
           return;
         }
 
-        Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", aCallID);
+        aBrowser.messageManager.sendAsyncMessage("webrtc:Allow",
+                                                 {callID: aRequest.callID,
+                                                  windowID: aRequest.windowID,
+                                                  devices: allowedDevices});
       };
       return false;
     }
@@ -467,7 +417,7 @@ function prompt(aContentWindow, aCallID, aAudio, aVideo, aDevices, aSecure) {
     anchorId = "webRTC-shareMicrophone-notification-icon";
   if (requestTypes.indexOf("Screen") != -1)
     anchorId = "webRTC-shareScreen-notification-icon";
-  chromeWin.PopupNotifications.show(browser, "webRTC-shareDevices", message,
+  chromeWin.PopupNotifications.show(aBrowser, "webRTC-shareDevices", message,
                                     anchorId, mainAction, secondaryActions, options);
 }
 
