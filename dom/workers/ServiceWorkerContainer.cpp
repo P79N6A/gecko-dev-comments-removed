@@ -164,8 +164,13 @@ ServiceWorkerContainer::GetController()
       return nullptr;
     }
 
+    
+    
+    
     nsCOMPtr<nsISupports> serviceWorker;
-    rv = swm->GetDocumentController(GetOwner(), getter_AddRefs(serviceWorker));
+    rv = swm->GetDocumentController(GetOwner(),
+                                    nullptr, 
+                                    getter_AddRefs(serviceWorker));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;
     }
