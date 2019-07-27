@@ -38,12 +38,25 @@ public:
   virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
+  
+
+
+
+
+  static const nsRect& GridItemCB(nsIFrame* aChild);
+
   struct TrackSize {
     nscoord mBase;
     nscoord mLimit;
   };
 
+  
+  static const nscoord VERY_LIKELY_A_GRID_CONTAINER = -123456789;
+
+  NS_DECLARE_FRAME_PROPERTY(GridItemContainingBlockRect, DeleteValue<nsRect>)
+
 protected:
+  typedef mozilla::LogicalPoint LogicalPoint;
   typedef mozilla::LogicalRect LogicalRect;
   typedef mozilla::WritingMode WritingMode;
   typedef mozilla::css::GridNamedArea GridNamedArea;
@@ -52,6 +65,11 @@ protected:
   explicit nsGridContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
 
   
+
+
+
+
+
 
 
 
@@ -88,6 +106,15 @@ protected:
 
     void ToPositionAndLength(const nsTArray<TrackSize>& aTrackSizes,
                              nscoord* aPos, nscoord* aLength) const;
+    
+
+
+
+
+
+    void ToPositionAndLengthForAbsPos(const nsTArray<TrackSize>& aTrackSizes,
+                                      nscoord aGridOrigin,
+                                      nscoord* aPos, nscoord* aLength) const;
 
     uint32_t mStart;  
     uint32_t mEnd;    
@@ -186,6 +213,21 @@ protected:
 
 
 
+  LineRange
+  ResolveAbsPosLineRange(const nsStyleGridLine& aStart,
+                         const nsStyleGridLine& aEnd,
+                         const nsTArray<nsTArray<nsString>>& aLineNameList,
+                         uint32_t GridNamedArea::* aAreaStart,
+                         uint32_t GridNamedArea::* aAreaEnd,
+                         uint32_t aExplicitGridEnd,
+                         uint32_t aGridEnd,
+                         const nsStylePosition* aStyle);
+
+  
+
+
+
+
 
 
   GridArea PlaceDefinite(nsIFrame* aChild, const nsStylePosition* aStyle);
@@ -243,6 +285,15 @@ protected:
 
   void PlaceAutoAutoInColOrder(uint32_t aStartCol, uint32_t aStartRow,
                                GridArea* aArea) const;
+
+  
+
+
+
+
+
+
+  GridArea PlaceAbsPos(nsIFrame* aChild, const nsStylePosition* aStyle);
 
   
 
@@ -330,6 +381,22 @@ protected:
                                  const GridArea& aArea,
                                  const nsTArray<TrackSize>& aColSizes,
                                  const nsTArray<TrackSize>& aRowSizes) const;
+
+  
+
+
+
+
+
+
+
+
+  LogicalRect ContainingBlockForAbsPos(const WritingMode& aWM,
+                                       const GridArea& aArea,
+                                       const nsTArray<TrackSize>& aColSizes,
+                                       const nsTArray<TrackSize>& aRowSizes,
+                                       const LogicalPoint& aGridOrigin,
+                                       const LogicalRect& aGridCB) const;
 
   
 
