@@ -519,6 +519,7 @@ let AboutReaderListener = {
           
           sendAsyncMessage("Reader:UpdateReaderButton");
           new AboutReader(global, content, this._articlePromise);
+          this._articlePromise = null;
         }
         break;
 
