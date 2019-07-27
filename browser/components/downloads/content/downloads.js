@@ -121,8 +121,7 @@ const DownloadsPanel = {
 
 
 
-  initialize: function DP_initialize(aCallback)
-  {
+  initialize(aCallback) {
     DownloadsCommon.log("Attempting to initialize DownloadsPanel for a window.");
     if (this._state != this.kStateUninitialized) {
       DownloadsCommon.log("DownloadsPanel is already initialized.");
@@ -141,8 +140,7 @@ const DownloadsPanel = {
     
     
     DownloadsCommon.log("Ensuring DownloadsPanel overlay loaded.");
-    DownloadsOverlayLoader.ensureOverlayLoaded(this.kDownloadsOverlay,
-                                               function DP_I_callback() {
+    DownloadsOverlayLoader.ensureOverlayLoaded(this.kDownloadsOverlay, () => {
       DownloadsViewController.initialize();
       DownloadsCommon.log("Attaching DownloadsView...");
       DownloadsCommon.getData(window).addView(DownloadsView);
@@ -161,8 +159,7 @@ const DownloadsPanel = {
 
 
 
-  terminate: function DP_terminate()
-  {
+  terminate() {
     DownloadsCommon.log("Attempting to terminate DownloadsPanel for a window.");
     if (this._state == this.kStateUninitialized) {
       DownloadsCommon.log("DownloadsPanel was never initialized. Nothing to do.");
@@ -193,8 +190,7 @@ const DownloadsPanel = {
 
 
 
-  get panel()
-  {
+  get panel() {
     
     
     let downloadsPanel = document.getElementById("downloadsPanel");
@@ -211,8 +207,7 @@ const DownloadsPanel = {
 
 
 
-  showPanel: function DP_showPanel()
-  {
+  showPanel() {
     DownloadsCommon.log("Opening the downloads panel.");
 
     if (this.isPanelShowing) {
@@ -221,13 +216,13 @@ const DownloadsPanel = {
       return;
     }
 
-    this.initialize(function DP_SP_callback() {
+    this.initialize(() => {
       
       
       
       
-      setTimeout(function () DownloadsPanel._openPopupIfDataReady(), 0);
-    }.bind(this));
+      setTimeout(() => this._openPopupIfDataReady(), 0);
+    });
 
     DownloadsCommon.log("Waiting for the downloads panel to appear.");
     this._state = this.kStateWaitingData;
@@ -237,8 +232,7 @@ const DownloadsPanel = {
 
 
 
-  hidePanel: function DP_hidePanel()
-  {
+  hidePanel() {
     DownloadsCommon.log("Closing the downloads panel.");
 
     if (!this.isPanelShowing) {
@@ -258,8 +252,7 @@ const DownloadsPanel = {
   
 
 
-  get isPanelShowing()
-  {
+  get isPanelShowing() {
     return this._state == this.kStateWaitingData ||
            this._state == this.kStateWaitingAnchor ||
            this._state == this.kStateShown;
@@ -268,8 +261,7 @@ const DownloadsPanel = {
   
 
 
-  get keyFocusing()
-  {
+  get keyFocusing() {
     return this.panel.hasAttribute("keyfocus");
   },
 
@@ -278,8 +270,7 @@ const DownloadsPanel = {
 
 
 
-  set keyFocusing(aValue)
-  {
+  set keyFocusing(aValue) {
     if (aValue) {
       this.panel.setAttribute("keyfocus", "true");
       this.panel.addEventListener("mousemove", this);
@@ -294,8 +285,7 @@ const DownloadsPanel = {
 
 
 
-  handleEvent: function DP_handleEvent(aEvent)
-  {
+  handleEvent(aEvent) {
     if (aEvent.type == "mousemove") {
       this.keyFocusing = false;
     }
@@ -307,22 +297,19 @@ const DownloadsPanel = {
   
 
 
-  onViewLoadCompleted: function DP_onViewLoadCompleted()
-  {
+  onViewLoadCompleted() {
     this._openPopupIfDataReady();
   },
 
   
   
 
-  onWindowUnload: function DP_onWindowUnload()
-  {
+  onWindowUnload() {
     
     DownloadsPanel.terminate();
   },
 
-  onPopupShown: function DP_onPopupShown(aEvent)
-  {
+  onPopupShown(aEvent) {
     
     if (aEvent.target != aEvent.currentTarget) {
       return;
@@ -343,8 +330,7 @@ const DownloadsPanel = {
     this._focusPanel();
   },
 
-  onPopupHidden: function DP_onPopupHidden(aEvent)
-  {
+  onPopupHidden(aEvent) {
     
     if (aEvent.target != aEvent.currentTarget) {
       return;
@@ -372,8 +358,7 @@ const DownloadsPanel = {
   
 
 
-  showDownloadsHistory: function DP_showDownloadsHistory()
-  {
+  showDownloadsHistory() {
     DownloadsCommon.log("Showing download history.");
     
     
@@ -390,8 +375,7 @@ const DownloadsPanel = {
 
 
 
-  _attachEventListeners: function DP__attachEventListeners()
-  {
+  _attachEventListeners() {
     
     this.panel.addEventListener("keydown", this._onKeyDown.bind(this), false);
     
@@ -403,16 +387,14 @@ const DownloadsPanel = {
 
 
 
-  _unattachEventListeners: function DP__unattachEventListeners()
-  {
+  _unattachEventListeners() {
     this.panel.removeEventListener("keydown", this._onKeyDown.bind(this),
                                    false);
     this.panel.removeEventListener("keypress", this._onKeyPress.bind(this),
                                    false);
   },
 
-  _onKeyPress: function DP__onKeyPress(aEvent)
-  {
+  _onKeyPress(aEvent) {
     
     if (aEvent.altKey || aEvent.ctrlKey || aEvent.shiftKey || aEvent.metaKey) {
       return;
@@ -431,8 +413,9 @@ const DownloadsPanel = {
       this.keyFocusing = true;
       
       
-      if (DownloadsView.richListBox.selectedIndex == -1)
+      if (DownloadsView.richListBox.selectedIndex == -1) {
         DownloadsView.richListBox.selectedIndex = 0;
+      }
       aEvent.preventDefault();
       return;
     }
@@ -459,8 +442,7 @@ const DownloadsPanel = {
 
 
 
-  _onKeyDown: function DP__onKeyDown(aEvent)
-  {
+  _onKeyDown(aEvent) {
     
     
     if (aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_UP &&
@@ -513,8 +495,7 @@ const DownloadsPanel = {
 
 
 
-  _focusPanel: function DP_focusPanel()
-  {
+  _focusPanel() {
     
     if (this._state != this.kStateShown) {
       return;
@@ -536,8 +517,7 @@ const DownloadsPanel = {
   
 
 
-  _openPopupIfDataReady: function DP_openPopupIfDataReady()
-  {
+  _openPopupIfDataReady() {
     
     
     if (this._state != this.kStateWaitingData || DownloadsView.loading) {
@@ -548,11 +528,12 @@ const DownloadsPanel = {
 
     
     
-    DownloadsButton.getAnchor(function DP_OPIDR_callback(aAnchor) {
+    DownloadsButton.getAnchor(anchor => {
       
       
-      if (this._state != this.kStateWaitingAnchor)
+      if (this._state != this.kStateWaitingAnchor) {
         return;
+      }
 
       
       
@@ -564,6 +545,11 @@ const DownloadsPanel = {
         return;
       }
 
+      if (!anchor) {
+        DownloadsCommon.error("Downloads button cannot be found.");
+        return;
+      }
+
       
       
       
@@ -572,19 +558,10 @@ const DownloadsPanel = {
         viewItem.verifyTargetExists();
       }
 
-      if (aAnchor) {
-        DownloadsCommon.log("Opening downloads panel popup.");
-        this.panel.openPopup(aAnchor, "bottomcenter topright", 0, 0, false,
-                             null);
-      } else {
-        DownloadsCommon.error("We can't find the anchor! Failure case - opening",
-                              "downloads panel on TabsToolbar. We should never",
-                              "get here!");
-        Components.utils.reportError(
-          "Downloads button cannot be found");
-      }
-    }.bind(this));
-  }
+      DownloadsCommon.log("Opening downloads panel popup.");
+      this.panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, null);
+    });
+  },
 };
 
 
@@ -622,8 +599,7 @@ const DownloadsOverlayLoader = {
 
 
 
-  ensureOverlayLoaded: function DOL_ensureOverlayLoaded(aOverlay, aCallback)
-  {
+  ensureOverlayLoaded(aOverlay, aCallback) {
     
     if (aOverlay in this._loadedOverlays) {
       aCallback();
@@ -636,16 +612,14 @@ const DownloadsOverlayLoader = {
       return;
     }
 
-    function DOL_EOL_loadCallback() {
+    this._overlayLoading = true;
+    DownloadsCommon.log("Loading overlay ", aOverlay);
+    document.loadOverlay(aOverlay, () => {
       this._overlayLoading = false;
       this._loadedOverlays[aOverlay] = true;
 
       this.processPendingRequests();
-    }
-
-    this._overlayLoading = true;
-    DownloadsCommon.log("Loading overlay ", aOverlay);
-    document.loadOverlay(aOverlay, DOL_EOL_loadCallback.bind(this));
+    });
   },
 
   
@@ -653,8 +627,7 @@ const DownloadsOverlayLoader = {
 
 
 
-  processPendingRequests: function DOL_processPendingRequests()
-  {
+  processPendingRequests() {
     
     
     let currentLength = this._loadRequests.length;
@@ -666,7 +639,7 @@ const DownloadsOverlayLoader = {
       
       this.ensureOverlayLoaded(request.overlay, request.callback);
     }
-  }
+  },
 };
 
 
@@ -709,8 +682,7 @@ const DownloadsView = {
   
 
 
-  _itemCountChanged: function DV_itemCountChanged()
-  {
+  _itemCountChanged() {
     DownloadsCommon.log("The downloads item count has changed - we are tracking",
                         this._dataItems.length, "downloads in total.");
     let count = this._dataItems.length;
@@ -733,8 +705,7 @@ const DownloadsView = {
   
 
 
-  get richListBox()
-  {
+  get richListBox() {
     delete this.richListBox;
     return this.richListBox = document.getElementById("downloadsListBox");
   },
@@ -742,8 +713,7 @@ const DownloadsView = {
   
 
 
-  get downloadsHistory()
-  {
+  get downloadsHistory() {
     delete this.downloadsHistory;
     return this.downloadsHistory = document.getElementById("downloadsHistory");
   },
@@ -754,8 +724,7 @@ const DownloadsView = {
   
 
 
-  onDataLoadStarting: function DV_onDataLoadStarting()
-  {
+  onDataLoadStarting() {
     DownloadsCommon.log("onDataLoadStarting called for DownloadsView.");
     this.loading = true;
   },
@@ -763,8 +732,7 @@ const DownloadsView = {
   
 
 
-  onDataLoadCompleted: function DV_onDataLoadCompleted()
-  {
+  onDataLoadCompleted() {
     DownloadsCommon.log("onDataLoadCompleted called for DownloadsView.");
 
     this.loading = false;
@@ -791,8 +759,7 @@ const DownloadsView = {
 
 
 
-  onDataItemAdded: function DV_onDataItemAdded(aDataItem, aNewest)
-  {
+  onDataItemAdded(aDataItem, aNewest) {
     DownloadsCommon.log("A new download data item was added - aNewest =",
                         aNewest);
 
@@ -829,8 +796,7 @@ const DownloadsView = {
 
 
 
-  onDataItemRemoved: function DV_onDataItemRemoved(aDataItem)
-  {
+  onDataItemRemoved(aDataItem) {
     DownloadsCommon.log("A download data item was removed.");
 
     let itemIndex = this._dataItems.indexOf(aDataItem);
@@ -856,8 +822,7 @@ const DownloadsView = {
 
 
 
-  getViewItem: function DV_getViewItem(aDataItem)
-  {
+  getViewItem(aDataItem) {
     
     
     if (aDataItem.downloadGuid in this._viewItems) {
@@ -870,15 +835,15 @@ const DownloadsView = {
 
 
   _invisibleViewItem: Object.freeze({
-    onStateChange: function () { },
-    onProgressChange: function () { }
+    onStateChange() {},
+    onProgressChange() {},
   }),
 
   
 
 
 
-  _addViewItem: function DV_addViewItem(aDataItem, aNewest)
+  _addViewItem(aDataItem, aNewest)
   {
     DownloadsCommon.log("Adding a new DownloadsViewItem to the downloads list.",
                         "aNewest =", aNewest);
@@ -896,8 +861,7 @@ const DownloadsView = {
   
 
 
-  _removeViewItem: function DV_removeViewItem(aDataItem)
-  {
+  _removeViewItem(aDataItem) {
     DownloadsCommon.log("Removing a DownloadsViewItem from the downloads list.");
     let element = this.getViewItem(aDataItem)._element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
@@ -922,8 +886,7 @@ const DownloadsView = {
 
 
 
-  onDownloadCommand: function DV_onDownloadCommand(aEvent, aCommand)
-  {
+  onDownloadCommand(aEvent, aCommand) {
     let target = aEvent.target;
     while (target.nodeName != "richlistitem") {
       target = target.parentNode;
@@ -931,8 +894,7 @@ const DownloadsView = {
     new DownloadsViewItemController(target).doCommand(aCommand);
   },
 
-  onDownloadClick: function DV_onDownloadClick(aEvent)
-  {
+  onDownloadClick(aEvent) {
     
     if (aEvent.button == 0 &&
         !aEvent.originalTarget.hasAttribute("oncommand")) {
@@ -943,8 +905,7 @@ const DownloadsView = {
   
 
 
-  onDownloadKeyPress: function DV_onDownloadKeyPress(aEvent)
-  {
+  onDownloadKeyPress(aEvent) {
     
     
     if (aEvent.originalTarget.hasAttribute("command") ||
@@ -962,17 +923,16 @@ const DownloadsView = {
     }
   },
 
-
   
 
 
-  onDownloadMouseOver: function DV_onDownloadMouseOver(aEvent)
-  {
-    if (aEvent.originalTarget.parentNode == this.richListBox)
+  onDownloadMouseOver(aEvent) {
+    if (aEvent.originalTarget.parentNode == this.richListBox) {
       this.richListBox.selectedItem = aEvent.originalTarget;
+    }
   },
-  onDownloadMouseOut: function DV_onDownloadMouseOut(aEvent)
-  {
+
+  onDownloadMouseOut(aEvent) {
     if (aEvent.originalTarget.parentNode == this.richListBox) {
       
       
@@ -980,13 +940,13 @@ const DownloadsView = {
       while (element && element != aEvent.originalTarget) {
         element = element.parentNode;
       }
-      if (!element)
+      if (!element) {
         this.richListBox.selectedIndex = -1;
+      }
     }
   },
 
-  onDownloadContextMenu: function DV_onDownloadContextMenu(aEvent)
-  {
+  onDownloadContextMenu(aEvent) {
     let element = this.richListBox.selectedItem;
     if (!element) {
       return;
@@ -999,8 +959,7 @@ const DownloadsView = {
     contextMenu.setAttribute("state", element.getAttribute("state"));
   },
 
-  onDownloadDragStart: function DV_onDownloadDragStart(aEvent)
-  {
+  onDownloadDragStart(aEvent) {
     let element = this.richListBox.selectedItem;
     if (!element) {
       return;
@@ -1021,7 +980,7 @@ const DownloadsView = {
     dataTransfer.addElement(element);
 
     aEvent.stopPropagation();
-  }
+  },
 }
 
 
@@ -1036,8 +995,7 @@ const DownloadsView = {
 
 
 
-function DownloadsViewItem(aDataItem, aElement)
-{
+function DownloadsViewItem(aDataItem, aElement) {
   this._element = aElement;
   this.dataItem = aDataItem;
 
@@ -1094,8 +1052,7 @@ DownloadsViewItem.prototype = {
 
 
 
-  onStateChange: function DVI_onStateChange(aOldState)
-  {
+  onStateChange(aOldState) {
     
     
     
@@ -1122,7 +1079,7 @@ DownloadsViewItem.prototype = {
   
 
 
-  onProgressChange: function DVI_onProgressChange() {
+  onProgressChange() {
     this._updateProgress();
     this._updateStatusLine();
   },
@@ -1133,7 +1090,7 @@ DownloadsViewItem.prototype = {
   
 
 
-  _updateProgress: function DVI_updateProgress() {
+  _updateProgress() {
     if (this.dataItem.starting) {
       
       this._element.setAttribute("progressmode", "normal");
@@ -1168,7 +1125,7 @@ DownloadsViewItem.prototype = {
 
 
 
-  _updateStatusLine: function DVI_updateStatusLine() {
+  _updateStatusLine() {
     const nsIDM = Ci.nsIDownloadManager;
 
     let status = "";
@@ -1243,8 +1200,7 @@ DownloadsViewItem.prototype = {
 
 
 
-  get _fileSizeText()
-  {
+  get _fileSizeText() {
     
     let fileSize = this.dataItem.maxBytes;
     if (fileSize < 0) {
@@ -1264,20 +1220,19 @@ DownloadsViewItem.prototype = {
 
 
 
-  verifyTargetExists: function DVI_verifyTargetExists() {
+  verifyTargetExists() {
     
     if (!this.dataItem.openable) {
       return;
     }
 
-    OS.File.exists(this.dataItem.localFile.path).then(
-      function DVI_RTE_onSuccess(aExists) {
-        if (aExists) {
-          this._element.setAttribute("exists", "true");
-        } else {
-          this._element.removeAttribute("exists");
-        }
-      }.bind(this), Cu.reportError);
+    OS.File.exists(this.dataItem.localFile.path).then(aExists => {
+      if (aExists) {
+        this._element.setAttribute("exists", "true");
+      } else {
+        this._element.removeAttribute("exists");
+      }
+    }).catch(Cu.reportError);
   },
 };
 
@@ -1293,21 +1248,18 @@ const DownloadsViewController = {
   
   
 
-  initialize: function DVC_initialize()
-  {
+  initialize() {
     window.controllers.insertControllerAt(0, this);
   },
 
-  terminate: function DVC_terminate()
-  {
+  terminate() {
     window.controllers.removeController(this);
   },
 
   
   
 
-  supportsCommand: function DVC_supportsCommand(aCommand)
-  {
+  supportsCommand(aCommand) {
     
     if (!(aCommand in this.commands) &&
         !(aCommand in DownloadsViewItemController.prototype.commands)) {
@@ -1323,8 +1275,7 @@ const DownloadsViewController = {
     return !!element;
   },
 
-  isCommandEnabled: function DVC_isCommandEnabled(aCommand)
-  {
+  isCommandEnabled(aCommand) {
     
     if (aCommand == "downloadsCmd_clearList") {
       return DownloadsCommon.getData(window).canRemoveFinished;
@@ -1336,8 +1287,7 @@ const DownloadsViewController = {
            new DownloadsViewItemController(element).isCommandEnabled(aCommand);
   },
 
-  doCommand: function DVC_doCommand(aCommand)
-  {
+  doCommand(aCommand) {
     
     if (aCommand in this.commands) {
       this.commands[aCommand].apply(this);
@@ -1352,13 +1302,12 @@ const DownloadsViewController = {
     }
   },
 
-  onEvent: function () { },
+  onEvent() {},
 
   
   
 
-  updateCommands: function DVC_updateCommands()
-  {
+  updateCommands() {
     Object.keys(this.commands).forEach(goUpdateCommand);
     Object.keys(DownloadsViewItemController.prototype.commands)
           .forEach(goUpdateCommand);
@@ -1372,8 +1321,7 @@ const DownloadsViewController = {
 
 
   commands: {
-    downloadsCmd_clearList: function DVC_downloadsCmd_clearList()
-    {
+    downloadsCmd_clearList() {
       DownloadsCommon.getData(window).removeFinished();
     }
   }
@@ -1400,8 +1348,7 @@ DownloadsViewItemController.prototype = {
 
   dataItem: null,
 
-  isCommandEnabled: function DVIC_isCommandEnabled(aCommand)
-  {
+  isCommandEnabled(aCommand) {
     switch (aCommand) {
       case "downloadsCmd_open": {
         return this.dataItem.openable && this.dataItem.localFile.exists();
@@ -1425,8 +1372,7 @@ DownloadsViewItemController.prototype = {
     return false;
   },
 
-  doCommand: function DVIC_doCommand(aCommand)
-  {
+  doCommand(aCommand) {
     if (this.isCommandEnabled(aCommand)) {
       this.commands[aCommand].apply(this);
     }
@@ -1441,19 +1387,16 @@ DownloadsViewItemController.prototype = {
 
 
   commands: {
-    cmd_delete: function DVIC_cmd_delete()
-    {
+    cmd_delete() {
       this.dataItem.remove();
       PlacesUtils.bhistory.removePage(NetUtil.newURI(this.dataItem.uri));
     },
 
-    downloadsCmd_cancel: function DVIC_downloadsCmd_cancel()
-    {
+    downloadsCmd_cancel() {
       this.dataItem.cancel();
     },
 
-    downloadsCmd_open: function DVIC_downloadsCmd_open()
-    {
+    downloadsCmd_open() {
       this.dataItem.openLocalFile();
 
       
@@ -1464,8 +1407,7 @@ DownloadsViewItemController.prototype = {
       DownloadsPanel.hidePanel();
     },
 
-    downloadsCmd_show: function DVIC_downloadsCmd_show()
-    {
+    downloadsCmd_show() {
       this.dataItem.showLocalFile();
 
       
@@ -1476,30 +1418,25 @@ DownloadsViewItemController.prototype = {
       DownloadsPanel.hidePanel();
     },
 
-    downloadsCmd_pauseResume: function DVIC_downloadsCmd_pauseResume()
-    {
+    downloadsCmd_pauseResume() {
       this.dataItem.togglePauseResume();
     },
 
-    downloadsCmd_retry: function DVIC_downloadsCmd_retry()
-    {
+    downloadsCmd_retry() {
       this.dataItem.retry();
     },
 
-    downloadsCmd_openReferrer: function DVIC_downloadsCmd_openReferrer()
-    {
+    downloadsCmd_openReferrer() {
       openURL(this.dataItem.referrer);
     },
 
-    downloadsCmd_copyLocation: function DVIC_downloadsCmd_copyLocation()
-    {
+    downloadsCmd_copyLocation() {
       let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"]
                       .getService(Ci.nsIClipboardHelper);
       clipboard.copyString(this.dataItem.uri, document);
     },
 
-    downloadsCmd_doDefault: function DVIC_downloadsCmd_doDefault()
-    {
+    downloadsCmd_doDefault() {
       const nsIDM = Ci.nsIDownloadManager;
 
       
@@ -1518,10 +1455,11 @@ DownloadsViewItemController.prototype = {
         }
         return "";
       }.apply(this);
-      if (defaultCommand && this.isCommandEnabled(defaultCommand))
+      if (defaultCommand && this.isCommandEnabled(defaultCommand)) {
         this.doCommand(defaultCommand);
-    }
-  }
+      }
+    },
+  },
 };
 
 
@@ -1541,8 +1479,7 @@ const DownloadsSummary = {
 
 
 
-  set active(aActive)
-  {
+  set active(aActive) {
     if (aActive == this._active || !this._summaryNode) {
       return this._active;
     }
@@ -1569,8 +1506,7 @@ const DownloadsSummary = {
 
 
 
-  set showingProgress(aShowingProgress)
-  {
+  set showingProgress(aShowingProgress) {
     if (aShowingProgress) {
       this._summaryNode.setAttribute("inprogress", "true");
     } else {
@@ -1587,8 +1523,7 @@ const DownloadsSummary = {
 
 
 
-  set percentComplete(aValue)
-  {
+  set percentComplete(aValue) {
     if (this._progressNode) {
       this._progressNode.setAttribute("value", aValue);
     }
@@ -1602,8 +1537,7 @@ const DownloadsSummary = {
 
 
 
-  set description(aValue)
-  {
+  set description(aValue) {
     if (this._descriptionNode) {
       this._descriptionNode.setAttribute("value", aValue);
       this._descriptionNode.setAttribute("tooltiptext", aValue);
@@ -1619,8 +1553,7 @@ const DownloadsSummary = {
 
 
 
-  set details(aValue)
-  {
+  set details(aValue) {
     if (this._detailsNode) {
       this._detailsNode.setAttribute("value", aValue);
       this._detailsNode.setAttribute("tooltiptext", aValue);
@@ -1631,8 +1564,7 @@ const DownloadsSummary = {
   
 
 
-  focus: function()
-  {
+  focus() {
     if (this._summaryNode) {
       this._summaryNode.focus();
     }
@@ -1644,8 +1576,7 @@ const DownloadsSummary = {
 
 
 
-  onKeyDown: function DS_onKeyDown(aEvent)
-  {
+  onKeyDown(aEvent) {
     if (aEvent.charCode == " ".charCodeAt(0) ||
         aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
       DownloadsPanel.showDownloadsHistory();
@@ -1658,16 +1589,14 @@ const DownloadsSummary = {
 
 
 
-  onClick: function DS_onClick(aEvent)
-  {
+  onClick(aEvent) {
     DownloadsPanel.showDownloadsHistory();
   },
 
   
 
 
-  get _summaryNode()
-  {
+  get _summaryNode() {
     let node = document.getElementById("downloadsSummary");
     if (!node) {
       return null;
@@ -1679,8 +1608,7 @@ const DownloadsSummary = {
   
 
 
-  get _progressNode()
-  {
+  get _progressNode() {
     let node = document.getElementById("downloadsSummaryProgress");
     if (!node) {
       return null;
@@ -1693,8 +1621,7 @@ const DownloadsSummary = {
 
 
 
-  get _descriptionNode()
-  {
+  get _descriptionNode() {
     let node = document.getElementById("downloadsSummaryDescription");
     if (!node) {
       return null;
@@ -1707,8 +1634,7 @@ const DownloadsSummary = {
 
 
 
-  get _detailsNode()
-  {
+  get _detailsNode() {
     let node = document.getElementById("downloadsSummaryDetails");
     if (!node) {
       return null;
@@ -1732,8 +1658,7 @@ const DownloadsFooter = {
 
 
 
-  focus: function DF_focus()
-  {
+  focus() {
     if (this._showingSummary) {
       DownloadsSummary.focus();
     } else {
@@ -1747,8 +1672,7 @@ const DownloadsFooter = {
 
 
 
-  set showingSummary(aValue)
-  {
+  set showingSummary(aValue) {
     if (this._footerNode) {
       if (aValue) {
         this._footerNode.setAttribute("showingsummary", "true");
@@ -1763,8 +1687,7 @@ const DownloadsFooter = {
   
 
 
-  get _footerNode()
-  {
+  get _footerNode() {
     let node = document.getElementById("downloadsFooter");
     if (!node) {
       return null;

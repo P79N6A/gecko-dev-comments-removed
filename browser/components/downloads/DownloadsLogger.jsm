@@ -24,7 +24,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
 this.DownloadsLogger = {
-  _generateLogMessage: function _generateLogMessage(args) {
+  _generateLogMessage(args) {
     
     let strings = [];
 
@@ -51,7 +51,7 @@ this.DownloadsLogger = {
 
 
 
-  log: function DL_log(...args) {
+  log(...args) {
     let output = this._generateLogMessage(args);
     dump(output + "\n");
 
@@ -63,7 +63,7 @@ this.DownloadsLogger = {
 
 
 
-  reportError: function DL_reportError(...aArgs) {
+  reportError(...aArgs) {
     
     let output = this._generateLogMessage(aArgs);
     Cu.reportError(output);
@@ -71,6 +71,5 @@ this.DownloadsLogger = {
     for (let frame = Components.stack.caller; frame; frame = frame.caller) {
       dump("\t" + frame + "\n");
     }
-  }
-
+  },
 };

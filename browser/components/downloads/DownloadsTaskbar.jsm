@@ -82,8 +82,7 @@ this.DownloadsTaskbar = {
 
 
 
-  registerIndicator: function (aBrowserWindow)
-  {
+  registerIndicator(aBrowserWindow) {
     if (!this._taskbarProgress) {
       if (gMacTaskbarProgress) {
         
@@ -120,8 +119,7 @@ this.DownloadsTaskbar = {
   
 
 
-  _attachIndicator: function (aWindow)
-  {
+  _attachIndicator(aWindow) {
     
     let docShell = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                           .getInterface(Ci.nsIWebNavigation)
@@ -155,8 +153,7 @@ this.DownloadsTaskbar = {
   
   
 
-  onSummaryChanged: function ()
-  {
+  onSummaryChanged() {
     
     if (!this._taskbarProgress) {
       return;

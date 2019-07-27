@@ -47,8 +47,7 @@ const DownloadsButton = {
 
 
 
-  get _placeholder()
-  {
+  get _placeholder() {
     return document.getElementById("downloads-button");
   },
 
@@ -58,8 +57,7 @@ const DownloadsButton = {
 
 
 
-  initializeIndicator: function DB_initializeIndicator()
-  {
+  initializeIndicator() {
     DownloadsIndicatorView.ensureInitialized();
   },
 
@@ -76,8 +74,7 @@ const DownloadsButton = {
 
 
 
-  customizeStart: function DB_customizeStart()
-  {
+  customizeStart() {
     
     
     this._customizing = true;
@@ -87,8 +84,7 @@ const DownloadsButton = {
   
 
 
-  customizeDone: function DB_customizeDone()
-  {
+  customizeDone() {
     this._customizing = false;
     DownloadsIndicatorView.afterCustomize();
   },
@@ -99,8 +95,7 @@ const DownloadsButton = {
 
 
 
-  _getAnchorInternal: function DB_getAnchorInternal()
-  {
+  _getAnchorInternal() {
     let indicator = DownloadsIndicatorView.indicator;
     if (!indicator) {
       
@@ -128,18 +123,15 @@ const DownloadsButton = {
 
 
 
-  checkIsVisible: function DB_checkIsVisible(aCallback)
-  {
-    function DB_CEV_callback() {
+  checkIsVisible(aCallback) {
+    DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay, () => {
       if (!this._placeholder) {
         aCallback(false);
       } else {
         let element = DownloadsIndicatorView.indicator || this._placeholder;
         aCallback(isElementVisible(element.parentNode));
       }
-    }
-    DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay,
-                                               DB_CEV_callback.bind(this));
+    });
   },
 
   
@@ -156,40 +148,33 @@ const DownloadsButton = {
 
 
 
-  getAnchor: function DB_getAnchor(aCallback)
-  {
+  getAnchor(aCallback) {
     
     if (this._customizing) {
       aCallback(null);
       return;
     }
 
-    function DB_GA_callback() {
+    DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay, () => {
       this._anchorRequested = true;
       aCallback(this._getAnchorInternal());
-    }
-
-    DownloadsOverlayLoader.ensureOverlayLoaded(this.kIndicatorOverlay,
-                                               DB_GA_callback.bind(this));
+    });
   },
 
   
 
 
-  releaseAnchor: function DB_releaseAnchor()
-  {
+  releaseAnchor() {
     this._anchorRequested = false;
     this._getAnchorInternal();
   },
 
-  get _tabsToolbar()
-  {
+  get _tabsToolbar() {
     delete this._tabsToolbar;
     return this._tabsToolbar = document.getElementById("TabsToolbar");
   },
 
-  get _navBar()
-  {
+  get _navBar() {
     delete this._navBar;
     return this._navBar = document.getElementById("nav-bar");
   }
@@ -219,8 +204,7 @@ const DownloadsIndicatorView = {
   
 
 
-  ensureInitialized: function DIV_ensureInitialized()
-  {
+  ensureInitialized() {
     if (this._initialized) {
       return;
     }
@@ -233,8 +217,7 @@ const DownloadsIndicatorView = {
   
 
 
-  ensureTerminated: function DIV_ensureTerminated()
-  {
+  ensureTerminated() {
     if (!this._initialized) {
       return;
     }
@@ -255,8 +238,7 @@ const DownloadsIndicatorView = {
 
 
 
-  _ensureOperational: function DIV_ensureOperational(aCallback)
-  {
+  _ensureOperational(aCallback) {
     if (this._operational) {
       if (aCallback) {
         aCallback();
@@ -270,23 +252,21 @@ const DownloadsIndicatorView = {
       return;
     }
 
-    function DIV_EO_callback() {
-      this._operational = true;
-
-      
-      
-      if (this._initialized) {
-        DownloadsCommon.getIndicatorData(window).refreshView(this);
-      }
-
-      if (aCallback) {
-        aCallback();
-      }
-    }
-
     DownloadsOverlayLoader.ensureOverlayLoaded(
-                                 DownloadsButton.kIndicatorOverlay,
-                                 DIV_EO_callback.bind(this));
+      DownloadsButton.kIndicatorOverlay,
+      () => {
+        this._operational = true;
+
+        
+        
+        if (this._initialized) {
+          DownloadsCommon.getIndicatorData(window).refreshView(this);
+        }
+
+        if (aCallback) {
+          aCallback();
+        }
+      });
   },
 
   
@@ -302,8 +282,7 @@ const DownloadsIndicatorView = {
 
 
 
-  _isAncestorPanelOpen: function DIV_isAncestorPanelOpen(aNode)
-  {
+  _isAncestorPanelOpen(aNode) {
     while (aNode && aNode.localName != "panel") {
       aNode = aNode.parentNode;
     }
@@ -317,8 +296,7 @@ const DownloadsIndicatorView = {
 
 
 
-  showEventNotification: function DIV_showEventNotification(aType)
-  {
+  showEventNotification(aType) {
     if (!this._initialized) {
       return;
     }
@@ -373,7 +351,7 @@ const DownloadsIndicatorView = {
       notifier.style.transform = "translate(" +  translateX + ", " + translateY + ")";
     }
     notifier.setAttribute("notification", aType);
-    this._notificationTimeout = setTimeout(function () {
+    this._notificationTimeout = setTimeout(() => {
       notifier.removeAttribute("notification");
       notifier.style.transform = '';
     }, 1000);
@@ -386,8 +364,7 @@ const DownloadsIndicatorView = {
 
 
 
-  set hasDownloads(aValue)
-  {
+  set hasDownloads(aValue) {
     if (this._hasDownloads != aValue || (!this._operational && aValue)) {
       this._hasDownloads = aValue;
 
@@ -398,8 +375,7 @@ const DownloadsIndicatorView = {
     }
     return aValue;
   },
-  get hasDownloads()
-  {
+  get hasDownloads() {
     return this._hasDownloads;
   },
   _hasDownloads: false,
@@ -408,8 +384,7 @@ const DownloadsIndicatorView = {
 
 
 
-  set counter(aValue)
-  {
+  set counter(aValue) {
     if (!this._operational) {
       return this._counter;
     }
@@ -433,8 +408,7 @@ const DownloadsIndicatorView = {
 
 
 
-  set percentComplete(aValue)
-  {
+  set percentComplete(aValue) {
     if (!this._operational) {
       return this._percentComplete;
     }
@@ -458,8 +432,7 @@ const DownloadsIndicatorView = {
 
 
 
-  set paused(aValue)
-  {
+  set paused(aValue) {
     if (!this._operational) {
       return this._paused;
     }
@@ -479,8 +452,7 @@ const DownloadsIndicatorView = {
   
 
 
-  set attention(aValue)
-  {
+  set attention(aValue) {
     if (!this._operational) {
       return this._attention;
     }
@@ -500,14 +472,12 @@ const DownloadsIndicatorView = {
   
   
 
-  onWindowUnload: function DIV_onWindowUnload()
-  {
+  onWindowUnload() {
     
     DownloadsIndicatorView.ensureTerminated();
   },
 
-  onCommand: function DIV_onCommand(aEvent)
-  {
+  onCommand(aEvent) {
     
     let widgetGroup = CustomizableUI.getWidget("downloads-button");
     if (widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
@@ -519,13 +489,11 @@ const DownloadsIndicatorView = {
     aEvent.stopPropagation();
   },
 
-  onDragOver: function DIV_onDragOver(aEvent)
-  {
+  onDragOver(aEvent) {
     browserDragAndDrop.dragOver(aEvent);
   },
 
-  onDrop: function DIV_onDrop(aEvent)
-  {
+  onDrop(aEvent) {
     let dt = aEvent.dataTransfer;
     
     
@@ -553,8 +521,7 @@ const DownloadsIndicatorView = {
 
 
 
-  get indicator()
-  {
+  get indicator() {
     if (this._indicator) {
       return this._indicator;
     }
@@ -567,8 +534,7 @@ const DownloadsIndicatorView = {
     return this._indicator = indicator;
   },
 
-  get indicatorAnchor()
-  {
+  get indicatorAnchor() {
     let widget = CustomizableUI.getWidget("downloads-button")
                                .forWindow(window);
     if (widget.overflowed) {
@@ -577,31 +543,28 @@ const DownloadsIndicatorView = {
     return document.getElementById("downloads-indicator-anchor");
   },
 
-  get _indicatorCounter()
-  {
+  get _indicatorCounter() {
     return this.__indicatorCounter ||
       (this.__indicatorCounter = document.getElementById("downloads-indicator-counter"));
   },
 
-  get _indicatorProgress()
-  {
+  get _indicatorProgress() {
     return this.__indicatorProgress ||
       (this.__indicatorProgress = document.getElementById("downloads-indicator-progress"));
   },
 
-  get notifier()
-  {
+  get notifier() {
     return this._notifier ||
       (this._notifier = document.getElementById("downloads-notification-anchor"));
   },
 
-  _onCustomizedAway: function() {
+  _onCustomizedAway() {
     this._indicator = null;
     this.__indicatorCounter = null;
     this.__indicatorProgress = null;
   },
 
-  afterCustomize: function() {
+  afterCustomize() {
     
     
     if (this._indicator != document.getElementById("downloads-button")) {
@@ -610,6 +573,6 @@ const DownloadsIndicatorView = {
       this.ensureTerminated();
       this.ensureInitialized();
     }
-  }
+  },
 };
 

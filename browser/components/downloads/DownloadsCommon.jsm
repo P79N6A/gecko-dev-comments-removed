@@ -104,7 +104,7 @@ const kPrefBranch = Services.prefs.getBranch("browser.download.");
 let PrefObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
-  getPref: function PO_getPref(name) {
+  getPref(name) {
     try {
       switch (typeof this.prefs[name]) {
         case "boolean":
@@ -113,12 +113,13 @@ let PrefObserver = {
     } catch (ex) { }
     return this.prefs[name];
   },
-  observe: function PO_observe(aSubject, aTopic, aData) {
+  observe(aSubject, aTopic, aData) {
     if (this.prefs.hasOwnProperty(aData)) {
+      delete this[aData];
       return this[aData] = this.getPref(aData);
     }
   },
-  register: function PO_register(prefs) {
+  register(prefs) {
     this.prefs = prefs;
     kPrefBranch.addObserver("", this, true);
     for (let key in prefs) {
@@ -152,34 +153,26 @@ this.DownloadsCommon = {
   BLOCK_VERDICT_POTENTIALLY_UNWANTED: "PotentiallyUnwanted",
   BLOCK_VERDICT_UNCOMMON: "Uncommon",
 
-  log: function DC_log(...aMessageArgs) {
-    delete this.log;
-    this.log = function DC_log(...aMessageArgs) {
-      if (!PrefObserver.debug) {
-        return;
-      }
-      DownloadsLogger.log.apply(DownloadsLogger, aMessageArgs);
+  log(...aMessageArgs) {
+    if (!PrefObserver.debug) {
+      return;
     }
-    this.log.apply(this, aMessageArgs);
+    DownloadsLogger.log(...aMessageArgs);
   },
 
-  error: function DC_error(...aMessageArgs) {
-    delete this.error;
-    this.error = function DC_error(...aMessageArgs) {
-      if (!PrefObserver.debug) {
-        return;
-      }
-      DownloadsLogger.reportError.apply(DownloadsLogger, aMessageArgs);
+  error(...aMessageArgs) {
+    if (!PrefObserver.debug) {
+      return;
     }
-    this.error.apply(this, aMessageArgs);
+    DownloadsLogger.reportError(...aMessageArgs);
   },
+
   
 
 
 
 
-  get strings()
-  {
+  get strings() {
     let strings = {};
     let sb = Services.strings.createBundle(kDownloadsStringBundleUrl);
     let enumerator = sb.getSimpleEnumeration();
@@ -219,8 +212,7 @@ this.DownloadsCommon = {
 
 
 
-  formatTimeLeft: function DC_formatTimeLeft(aSeconds)
-  {
+  formatTimeLeft(aSeconds) {
     
     let seconds = Math.round(aSeconds);
     if (!seconds) {
@@ -244,8 +236,7 @@ this.DownloadsCommon = {
 
 
 
-  get animateNotifications()
-  {
+  get animateNotifications() {
     return PrefObserver.animateNotifications;
   },
 
@@ -256,7 +247,7 @@ this.DownloadsCommon = {
 
 
 
-  getData: function DC_getData(aWindow) {
+  getData(aWindow) {
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return PrivateDownloadsData;
     } else {
@@ -268,7 +259,7 @@ this.DownloadsCommon = {
 
 
 
-  initializeAllDataLinks: function () {
+  initializeAllDataLinks() {
     DownloadsData.initializeDataLink();
     PrivateDownloadsData.initializeDataLink();
   },
@@ -278,7 +269,7 @@ this.DownloadsCommon = {
 
 
 
-  getIndicatorData: function DC_getIndicatorData(aWindow) {
+  getIndicatorData(aWindow) {
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return PrivateDownloadsIndicatorData;
     } else {
@@ -296,8 +287,7 @@ this.DownloadsCommon = {
 
 
 
-  getSummary: function DC_getSummary(aWindow, aNumToExclude)
-  {
+  getSummary(aWindow, aNumToExclude) {
     if (PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       if (this._privateSummary) {
         return this._privateSummary;
@@ -334,8 +324,7 @@ this.DownloadsCommon = {
 
 
 
-  summarizeDownloads: function DC_summarizeDownloads(aDataItems)
-  {
+  summarizeDownloads(aDataItems) {
     let summary = {
       numActive: 0,
       numPaused: 0,
@@ -403,8 +392,7 @@ this.DownloadsCommon = {
 
 
 
-  smoothSeconds: function DC_smoothSeconds(aSeconds, aLastSeconds)
-  {
+  smoothSeconds(aSeconds, aLastSeconds) {
     
     
     
@@ -441,13 +429,16 @@ this.DownloadsCommon = {
 
 
 
-  openDownloadedFile: function DC_openDownloadedFile(aFile, aMimeInfo, aOwnerWindow) {
-    if (!(aFile instanceof Ci.nsIFile))
+  openDownloadedFile(aFile, aMimeInfo, aOwnerWindow) {
+    if (!(aFile instanceof Ci.nsIFile)) {
       throw new Error("aFile must be a nsIFile object");
-    if (aMimeInfo && !(aMimeInfo instanceof Ci.nsIMIMEInfo))
+    }
+    if (aMimeInfo && !(aMimeInfo instanceof Ci.nsIMIMEInfo)) {
       throw new Error("Invalid value passed for aMimeInfo");
-    if (!(aOwnerWindow instanceof Ci.nsIDOMWindow))
+    }
+    if (!(aOwnerWindow instanceof Ci.nsIDOMWindow)) {
       throw new Error("aOwnerWindow must be a dom-window object");
+    }
 
     let promiseShouldLaunch;
     if (aFile.isExecutable()) {
@@ -471,15 +462,13 @@ this.DownloadsCommon = {
           aMimeInfo.launchWithFile(aFile);
           return;
         }
-      }
-      catch(ex) { }
+      } catch (ex) { }
   
       
       
       try {
         aFile.launch();
-      }
-      catch(ex) {
+      } catch (ex) {
         
         
         Cc["@mozilla.org/uriloader/external-protocol-service;1"]
@@ -496,9 +485,10 @@ this.DownloadsCommon = {
 
 
 
-  showDownloadedFile: function DC_showDownloadedFile(aFile) {
-    if (!(aFile instanceof Ci.nsIFile))
+  showDownloadedFile(aFile) {
+    if (!(aFile instanceof Ci.nsIFile)) {
       throw new Error("aFile must be a nsIFile object");
+    }
     try {
       
       aFile.reveal();
@@ -533,7 +523,7 @@ this.DownloadsCommon = {
 
 
 
-  confirmUnblockDownload: Task.async(function* DP_confirmUnblockDownload(aType, aOwnerWindow) {
+  confirmUnblockDownload: Task.async(function* (aType, aOwnerWindow) {
     let s = DownloadsCommon.strings;
     let title = s.unblockHeader;
     let buttonFlags = (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
@@ -640,8 +630,7 @@ DownloadsDataCtor.prototype = {
   
 
 
-  initializeDataLink: function ()
-  {
+  initializeDataLink() {
     if (!this._dataLinkInitialized) {
       let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
                                                           : Downloads.PUBLIC);
@@ -654,8 +643,7 @@ DownloadsDataCtor.prototype = {
   
 
 
-  get canRemoveFinished()
-  {
+  get canRemoveFinished() {
     for (let [, dataItem] of Iterator(this.dataItems)) {
       if (dataItem && !dataItem.inProgress) {
         return true;
@@ -667,8 +655,7 @@ DownloadsDataCtor.prototype = {
   
 
 
-  removeFinished: function DD_removeFinished()
-  {
+  removeFinished() {
     let promiseList = Downloads.getList(this._isPrivate ? Downloads.PRIVATE
                                                         : Downloads.PUBLIC);
     promiseList.then(list => list.removeFinished())
@@ -678,8 +665,7 @@ DownloadsDataCtor.prototype = {
   
   
 
-  onDownloadAdded: function (aDownload)
-  {
+  onDownloadAdded(aDownload) {
     let dataItem = new DownloadsDataItem(aDownload);
     this._downloadToDataItemMap.set(aDownload, dataItem);
     this.dataItems[dataItem.downloadGuid] = dataItem;
@@ -691,8 +677,7 @@ DownloadsDataCtor.prototype = {
     this._updateDataItemState(dataItem);
   },
 
-  onDownloadChanged: function (aDownload)
-  {
+  onDownloadChanged(aDownload) {
     let dataItem = this._downloadToDataItemMap.get(aDownload);
     if (!dataItem) {
       Cu.reportError("Download doesn't exist.");
@@ -702,8 +687,7 @@ DownloadsDataCtor.prototype = {
     this._updateDataItemState(dataItem);
   },
 
-  onDownloadRemoved: function (aDownload)
-  {
+  onDownloadRemoved(aDownload) {
     let dataItem = this._downloadToDataItemMap.get(aDownload);
     if (!dataItem) {
       Cu.reportError("Download doesn't exist.");
@@ -720,8 +704,7 @@ DownloadsDataCtor.prototype = {
   
 
 
-  _updateDataItemState: function (aDataItem)
-  {
+  _updateDataItemState(aDataItem) {
     let oldState = aDataItem.state;
     let wasInProgress = aDataItem.inProgress;
     let wasDone = aDataItem.done;
@@ -788,8 +771,7 @@ DownloadsDataCtor.prototype = {
 
 
 
-  addView: function DD_addView(aView)
-  {
+  addView(aView) {
     this._views.push(aView);
     this._updateView(aView);
   },
@@ -800,8 +782,7 @@ DownloadsDataCtor.prototype = {
 
 
 
-  removeView: function DD_removeView(aView)
-  {
+  removeView(aView) {
     let index = this._views.indexOf(aView);
     if (index != -1) {
       this._views.splice(index, 1);
@@ -814,8 +795,7 @@ DownloadsDataCtor.prototype = {
 
 
 
-  _updateView: function DD_updateView(aView)
-  {
+  _updateView(aView) {
     
     aView.onDataLoadStarting();
 
@@ -824,10 +804,8 @@ DownloadsDataCtor.prototype = {
     let loadedItemsArray = [dataItem
                             for each (dataItem in this.dataItems)
                             if (dataItem)];
-    loadedItemsArray.sort(function(a, b) b.startTime - a.startTime);
-    loadedItemsArray.forEach(
-      function (dataItem) aView.onDataItemAdded(dataItem, false)
-    );
+    loadedItemsArray.sort((a, b) => b.startTime - a.startTime);
+    loadedItemsArray.forEach(dataItem => aView.onDataItemAdded(dataItem, false));
 
     
     aView.onDataLoadCompleted();
@@ -859,8 +837,7 @@ DownloadsDataCtor.prototype = {
 
 
 
-  _notifyDownloadEvent: function DD_notifyDownloadEvent(aType)
-  {
+  _notifyDownloadEvent(aType) {
     DownloadsCommon.log("Attempting to notify that a new download has started or finished.");
 
     
@@ -901,8 +878,7 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsData", function() {
 
 
 
-function DownloadsDataItem(aDownload)
-{
+function DownloadsDataItem(aDownload) {
   this._download = aDownload;
 
   this.downloadGuid = "id:" + this._autoIncrementId;
@@ -925,8 +901,7 @@ DownloadsDataItem.prototype = {
   
 
 
-  updateFromDownload: function ()
-  {
+  updateFromDownload() {
     
     if (this._download.succeeded) {
       this.state = nsIDM.DOWNLOAD_FINISHED;
@@ -978,8 +953,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get inProgress()
-  {
+  get inProgress() {
     return [
       nsIDM.DOWNLOAD_NOTSTARTED,
       nsIDM.DOWNLOAD_QUEUED,
@@ -993,8 +967,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get starting()
-  {
+  get starting() {
     return this.state == nsIDM.DOWNLOAD_NOTSTARTED ||
            this.state == nsIDM.DOWNLOAD_QUEUED;
   },
@@ -1002,8 +975,7 @@ DownloadsDataItem.prototype = {
   
 
 
-  get paused()
-  {
+  get paused() {
     return this.state == nsIDM.DOWNLOAD_PAUSED;
   },
 
@@ -1011,8 +983,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get done()
-  {
+  get done() {
     return [
       nsIDM.DOWNLOAD_FINISHED,
       nsIDM.DOWNLOAD_BLOCKED_PARENTAL,
@@ -1024,8 +995,7 @@ DownloadsDataItem.prototype = {
   
 
 
-  get openable()
-  {
+  get openable() {
     return this.state == nsIDM.DOWNLOAD_FINISHED;
   },
 
@@ -1033,8 +1003,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get canRetry()
-  {
+  get canRetry() {
     return this.state == nsIDM.DOWNLOAD_CANCELED ||
            this.state == nsIDM.DOWNLOAD_FAILED;
   },
@@ -1046,8 +1015,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get localFile()
-  {
+  get localFile() {
     return this._getFile(this.file);
   },
 
@@ -1058,8 +1026,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  get partFile()
-  {
+  get partFile() {
     return this._getFile(this.file + kPartialDownloadSuffix);
   },
 
@@ -1075,8 +1042,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  _getFile: function DDI__getFile(aFilename)
-  {
+  _getFile(aFilename) {
     
     
     
@@ -1095,14 +1061,14 @@ DownloadsDataItem.prototype = {
   
 
 
-  openLocalFile: function () {
+  openLocalFile() {
     this._download.launch().then(null, Cu.reportError);
   },
 
   
 
 
-  showLocalFile: function DDI_showLocalFile() {
+  showLocalFile() {
     DownloadsCommon.showDownloadedFile(this.localFile);
   },
 
@@ -1110,7 +1076,7 @@ DownloadsDataItem.prototype = {
 
 
 
-  togglePauseResume: function DDI_togglePauseResume() {
+  togglePauseResume() {
     if (this._download.stopped) {
       this._download.start();
     } else {
@@ -1122,14 +1088,14 @@ DownloadsDataItem.prototype = {
 
 
 
-  retry: function DDI_retry() {
+  retry() {
     this._download.start();
   },
 
   
 
 
-  cancel: function() {
+  cancel() {
     this._download.cancel();
     this._download.removePartialData().then(null, Cu.reportError);
   },
@@ -1137,12 +1103,12 @@ DownloadsDataItem.prototype = {
   
 
 
-  remove: function DDI_remove() {
+  remove() {
     Downloads.getList(Downloads.ALL)
              .then(list => list.remove(this._download))
              .then(() => this._download.finalize(true))
              .then(null, Cu.reportError);
-  }
+  },
 };
 
 
@@ -1180,8 +1146,7 @@ const DownloadsViewPrototype = {
 
 
 
-  addView: function DVP_addView(aView)
-  {
+  addView(aView) {
     
     if (this._views.length == 0) {
       if (this._isPrivate) {
@@ -1201,8 +1166,7 @@ const DownloadsViewPrototype = {
 
 
 
-  refreshView: function DVP_refreshView(aView)
-  {
+  refreshView(aView) {
     
     
     this._refreshProperties();
@@ -1215,8 +1179,7 @@ const DownloadsViewPrototype = {
 
 
 
-  removeView: function DVP_removeView(aView)
-  {
+  removeView(aView) {
     let index = this._views.indexOf(aView);
     if (index != -1) {
       this._views.splice(index, 1);
@@ -1243,16 +1206,14 @@ const DownloadsViewPrototype = {
   
 
 
-  onDataLoadStarting: function DVP_onDataLoadStarting()
-  {
+  onDataLoadStarting() {
     this._loading = true;
   },
 
   
 
 
-  onDataLoadCompleted: function DVP_onDataLoadCompleted()
-  {
+  onDataLoadCompleted() {
     this._loading = false;
   },
 
@@ -1271,8 +1232,7 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataItemAdded: function DVP_onDataItemAdded(aDataItem, aNewest)
-  {
+  onDataItemAdded(aDataItem, aNewest) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1285,8 +1245,7 @@ const DownloadsViewPrototype = {
 
 
 
-  onDataItemRemoved: function DVP_onDataItemRemoved(aDataItem)
-  {
+  onDataItemRemoved(aDataItem) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1300,8 +1259,7 @@ const DownloadsViewPrototype = {
 
 
 
-  getViewItem: function DID_getViewItem(aDataItem)
-  {
+  getViewItem(aDataItem) {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1311,8 +1269,7 @@ const DownloadsViewPrototype = {
 
 
 
-  _refreshProperties: function DID_refreshProperties()
-  {
+  _refreshProperties() {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -1321,10 +1278,9 @@ const DownloadsViewPrototype = {
 
 
 
-  _updateView: function DID_updateView()
-  {
+  _updateView() {
     throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-  }
+  },
 };
 
 
@@ -1353,8 +1309,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  removeView: function DID_removeView(aView)
-  {
+  removeView(aView) {
     DownloadsViewPrototype.removeView.call(this, aView);
 
     if (this._views.length == 0) {
@@ -1368,8 +1323,7 @@ DownloadsIndicatorDataCtor.prototype = {
   
 
 
-  onDataLoadCompleted: function DID_onDataLoadCompleted()
-  {
+  onDataLoadCompleted() {
     DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
   },
@@ -1387,8 +1341,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  onDataItemAdded: function DID_onDataItemAdded(aDataItem, aNewest)
-  {
+  onDataItemAdded(aDataItem, aNewest) {
     this._itemCount++;
     this._updateViews();
   },
@@ -1400,8 +1353,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  onDataItemRemoved: function DID_onDataItemRemoved(aDataItem)
-  {
+  onDataItemRemoved(aDataItem) {
     this._itemCount--;
     this._updateViews();
   },
@@ -1414,13 +1366,11 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  getViewItem: function DID_getViewItem(aDataItem)
-  {
+  getViewItem(aDataItem) {
     let data = this._isPrivate ? PrivateDownloadsIndicatorData
                                : DownloadsIndicatorData;
     return Object.freeze({
-      onStateChange: function DIVI_onStateChange(aOldState)
-      {
+      onStateChange(aOldState) {
         if (aDataItem.state == nsIDM.DOWNLOAD_FINISHED ||
             aDataItem.state == nsIDM.DOWNLOAD_FAILED) {
           data.attention = true;
@@ -1432,8 +1382,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
         data._updateViews();
       },
-      onProgressChange: function DIVI_onProgressChange()
-      {
+      onProgressChange() {
         data._updateViews();
       }
     });
@@ -1452,8 +1401,7 @@ DownloadsIndicatorDataCtor.prototype = {
   
 
 
-  set attention(aValue)
-  {
+  set attention(aValue) {
     this._attention = aValue;
     this._updateViews();
     return aValue;
@@ -1464,8 +1412,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  set attentionSuppressed(aValue)
-  {
+  set attentionSuppressed(aValue) {
     this._attentionSuppressed = aValue;
     this._attention = false;
     this._updateViews();
@@ -1476,8 +1423,7 @@ DownloadsIndicatorDataCtor.prototype = {
   
 
 
-  _updateViews: function DID_updateViews()
-  {
+  _updateViews() {
     
     if (this._loading) {
       return;
@@ -1493,8 +1439,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  _updateView: function DID_updateView(aView)
-  {
+  _updateView(aView) {
     aView.hasDownloads = this._hasDownloads;
     aView.counter = this._counter;
     aView.percentComplete = this._percentComplete;
@@ -1532,8 +1477,7 @@ DownloadsIndicatorDataCtor.prototype = {
 
 
 
-  _activeDataItems: function DID_activeDataItems()
-  {
+  _activeDataItems() {
     let dataItems = this._isPrivate ? PrivateDownloadsData.dataItems
                                     : DownloadsData.dataItems;
     for each (let dataItem in dataItems) {
@@ -1546,8 +1490,7 @@ DownloadsIndicatorDataCtor.prototype = {
   
 
 
-  _refreshProperties: function DID_refreshProperties()
-  {
+  _refreshProperties() {
     let summary =
       DownloadsCommon.summarizeDownloads(this._activeDataItems());
 
@@ -1645,8 +1588,7 @@ DownloadsSummaryData.prototype = {
 
 
 
-  removeView: function DSD_removeView(aView)
-  {
+  removeView(aView) {
     DownloadsViewPrototype.removeView.call(this, aView);
 
     if (this._views.length == 0) {
@@ -1661,14 +1603,12 @@ DownloadsSummaryData.prototype = {
   
   
 
-  onDataLoadCompleted: function DSD_onDataLoadCompleted()
-  {
+  onDataLoadCompleted() {
     DownloadsViewPrototype.onDataLoadCompleted.call(this);
     this._updateViews();
   },
 
-  onDataItemAdded: function DSD_onDataItemAdded(aDataItem, aNewest)
-  {
+  onDataItemAdded(aDataItem, aNewest) {
     if (aNewest) {
       this._dataItems.unshift(aDataItem);
     } else {
@@ -1678,26 +1618,22 @@ DownloadsSummaryData.prototype = {
     this._updateViews();
   },
 
-  onDataItemRemoved: function DSD_onDataItemRemoved(aDataItem)
-  {
+  onDataItemRemoved(aDataItem) {
     let itemIndex = this._dataItems.indexOf(aDataItem);
     this._dataItems.splice(itemIndex, 1);
     this._updateViews();
   },
 
-  getViewItem: function DSD_getViewItem(aDataItem)
-  {
+  getViewItem(aDataItem) {
     let self = this;
     return Object.freeze({
-      onStateChange: function DIVI_onStateChange(aOldState)
-      {
+      onStateChange(aOldState) {
         
         self._lastRawTimeLeft = -1;
         self._lastTimeLeft = -1;
         self._updateViews();
       },
-      onProgressChange: function DIVI_onProgressChange()
-      {
+      onProgressChange() {
         self._updateViews();
       }
     });
@@ -1709,8 +1645,7 @@ DownloadsSummaryData.prototype = {
   
 
 
-  _updateViews: function DSD_updateViews()
-  {
+  _updateViews() {
     
     if (this._loading) {
       return;
@@ -1726,8 +1661,7 @@ DownloadsSummaryData.prototype = {
 
 
 
-  _updateView: function DSD_updateView(aView)
-  {
+  _updateView(aView) {
     aView.showingProgress = this._showingProgress;
     aView.percentComplete = this._percentComplete;
     aView.description = this._description;
@@ -1744,8 +1678,7 @@ DownloadsSummaryData.prototype = {
 
 
 
-  _dataItemsForSummary: function DSD_dataItemsForSummary()
-  {
+  _dataItemsForSummary() {
     if (this._dataItems.length > 0) {
       for (let i = this._numToExclude; i < this._dataItems.length; ++i) {
         yield this._dataItems[i];
@@ -1756,8 +1689,7 @@ DownloadsSummaryData.prototype = {
   
 
 
-  _refreshProperties: function DSD_refreshProperties()
-  {
+  _refreshProperties() {
     
     let summary =
       DownloadsCommon.summarizeDownloads(this._dataItemsForSummary());
@@ -1787,5 +1719,5 @@ DownloadsSummaryData.prototype = {
         summary.totalTransferred, summary.totalSize, summary.slowestSpeed,
         this._lastTimeLeft);
     }
-  }
+  },
 }
