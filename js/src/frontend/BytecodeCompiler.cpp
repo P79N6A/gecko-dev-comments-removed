@@ -342,7 +342,7 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
         TokenStream::Position pos(parser.keepAtoms);
         parser.tokenStream.tell(&pos);
 
-        ParseNode* pn = parser.statement(canHaveDirectives);
+        ParseNode* pn = parser.statement(YieldIsName, canHaveDirectives);
         if (!pn) {
             if (parser.hadAbortedSyntaxParse()) {
                 
@@ -366,7 +366,7 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
                     return nullptr;
                 MOZ_ASSERT(parser.pc == pc.ptr());
 
-                pn = parser.statement();
+                pn = parser.statement(YieldIsName);
             }
             if (!pn) {
                 MOZ_ASSERT(!parser.hadAbortedSyntaxParse());
