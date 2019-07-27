@@ -18,6 +18,37 @@ function is(lhs, rhs, text) {
   do_report_result(lhs === rhs, text, Components.stack.caller, false);
 }
 
+function promiseBrowserEvent(browser, eventType) {
+  return new Promise((resolve) => {
+    function handle(event) {
+      
+      if (event.target != browser.contentDocument || event.target.location.href == "about:blank") {
+        do_print("Skipping spurious '" + eventType + "' event" + " for " + event.target.location.href);
+        return;
+      }
+      do_print("Received event " + eventType + " from browser");
+      browser.removeEventListener(eventType, handle, true);
+      resolve(event);
+    }
+
+    browser.addEventListener(eventType, handle, true);
+    do_print("Now waiting for " + eventType + " event from browser");
+  });
+}
+
+
+function promiseOffline(isOffline) {
+  return new Promise((resolve, reject) => {
+    function observe(subject, topic, data) {
+      do_print("Received topic: " + topic);
+      Services.obs.removeObserver(observe, "network:offline-status-changed");
+      resolve();
+    }
+    Services.obs.addObserver(observe, "network:offline-status-changed", false);
+    Services.io.offline = isOffline;
+  });
+}
+
 
 let chromeWin;
 
@@ -29,7 +60,7 @@ let proxyPrefValue;
 
 const kUniqueURI = Services.io.newURI("http://mochi.test:8888/tests/robocop/video_controls.html", null, null);
 
-add_test(function setup_browser() {
+add_task(function* test_offline() {
   
   
   proxyPrefValue = Services.prefs.getIntPref("network.proxy.type");
@@ -47,29 +78,15 @@ add_test(function setup_browser() {
     Services.io.offline = false;
   });
 
-  do_test_pending();
-
   
   browser = BrowserApp.addTab("about:blank", { selected: true, parentId: BrowserApp.selectedTab.id }).browser;
 
   
-  Services.io.offline = true;
+  yield promiseOffline(true);
 
   
-  browser.addEventListener("DOMContentLoaded", errorListener, true);
   browser.loadURI(kUniqueURI.spec, null, null)
-});
-
-
-
-function errorListener() {
-  if (browser.contentWindow.location == "about:blank") {
-    do_print("got about:blank, which is expected once, so return");
-    return;
-  }
-
-  browser.removeEventListener("DOMContentLoaded", errorListener, true);
-  ok(Services.io.offline, "Services.io.offline is true.");
+  yield promiseBrowserEvent(browser, "DOMContentLoaded");
 
   
   is(browser.contentDocument.documentURI.substring(0, 27), "about:neterror?e=netOffline", "Document URI is the error page.");
@@ -80,28 +97,16 @@ function errorListener() {
   Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
 
   
-  Services.io.offline = false;
-
-  browser.addEventListener("DOMContentLoaded", reloadListener, true);
+  yield promiseOffline(false);
 
   ok(browser.contentDocument.getElementById("errorTryAgain"), "The error page has got a #errorTryAgain element");
+
+  
   browser.contentDocument.getElementById("errorTryAgain").click();
-}
-
-
-
-
-function reloadListener() {
-  browser.removeEventListener("DOMContentLoaded", reloadListener, true);
-
-  ok(!Services.io.offline, "Services.io.offline is false.");
+  yield promiseBrowserEvent(browser, "DOMContentLoaded");
 
   
   is(browser.contentDocument.documentURI, kUniqueURI.spec, "Document URI is not the offline-error page, but the original URI.");
-
-  do_test_finished();
-
-  run_next_test();
-}
+});
 
 run_next_test();
