@@ -4,6 +4,7 @@
 
 
 #include "mozilla/embedding/PPrinting.h"
+#include "nsPrintingProxy.h"
 #include "nsPrintOptionsImpl.h"
 #include "nsReadableUtils.h"
 #include "nsPrintSettingsImpl.h"
@@ -1297,6 +1298,15 @@ nsPrintOptions::SavePrintSettingsToPrefs(nsIPrintSettings *aPS,
                                          uint32_t aFlags)
 {
   NS_ENSURE_ARG_POINTER(aPS);
+
+  if (GeckoProcessType_Content == XRE_GetProcessType()) {
+    
+    
+    
+    nsRefPtr<nsPrintingProxy> proxy = nsPrintingProxy::GetInstance();
+    return proxy->SavePrintSettings(aPS, aUsePrinterNamePrefix, aFlags);
+  }
+
   nsAutoString prtName;
 
   
