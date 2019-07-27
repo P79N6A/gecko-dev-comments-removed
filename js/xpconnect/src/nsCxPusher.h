@@ -9,38 +9,12 @@
 
 #include "jsapi.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/dom/ScriptSettings.h"
 #include "nsCOMPtr.h"
 
 class nsIScriptContext;
 
 namespace mozilla {
-
-
-
-
-
-class MOZ_STACK_CLASS AutoCxPusher
-{
-public:
-  explicit AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
-  ~AutoCxPusher();
-
-  nsIScriptContext* GetScriptContext() { return mScx; }
-
-  
-  
-  bool IsStackTop() const;
-
-private:
-  mozilla::Maybe<JSAutoRequest> mAutoRequest;
-  mozilla::Maybe<JSAutoCompartment> mAutoCompartment;
-  nsCOMPtr<nsIScriptContext> mScx;
-  uint32_t mStackDepthAfterPush;
-#ifdef DEBUG
-  JSContext* mPushedContext;
-  unsigned mCompartmentDepthOnEntry;
-#endif
-};
 
 
 
@@ -61,7 +35,7 @@ protected:
   void Init(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
   JSContext* mCx;
-  Maybe<AutoCxPusher> mPusher;
+  Maybe<mozilla::dom::danger::AutoCxPusher> mPusher;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
