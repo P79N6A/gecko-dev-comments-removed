@@ -9,7 +9,6 @@
 
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsThreadUtils.h"
-#include "nsTObserverArray.h"
 
 namespace mozilla {
 
@@ -39,11 +38,9 @@ public:
   CreateAndDispatch(Listener* aListener, mozilla::ipc::PBackgroundParent* aActor,
                     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
-  void AddListener(Listener* aListener);
-
   
   
-  void RemoveListener(Listener* aListener);
+  void ClearListener();
 
 private:
   PrincipalVerifier(Listener* aListener, mozilla::ipc::PBackgroundParent* aActor,
@@ -56,8 +53,7 @@ private:
   void DispatchToInitiatingThread(nsresult aRv);
 
   
-  typedef nsTObserverArray<Listener*> ListenerList;
-  ListenerList mListenerList;
+  Listener* mListener;
 
   
   
