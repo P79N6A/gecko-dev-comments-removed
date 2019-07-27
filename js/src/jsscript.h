@@ -1200,6 +1200,10 @@ class JSScript : public js::gc::TenuredCell
         MOZ_ASSERT(isActiveEval() && !isCachedEval());
         isActiveEval_ = false;
         isCachedEval_ = true;
+        
+        
+        
+        hasRunOnce_ = false;
     }
 
     void uncacheForEval() {
