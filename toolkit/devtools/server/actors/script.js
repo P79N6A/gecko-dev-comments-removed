@@ -487,6 +487,10 @@ function ThreadActor(aParent, aGlobal)
     autoBlackBox: false
   };
 
+  this.breakpointStore = new BreakpointStore();
+  this.blackBoxedSources = new Set(["self-hosted"]);
+  this.prettyPrintedSources = new Map();
+
   
   
   this._hiddenBreakpoints = new Map();
@@ -500,12 +504,6 @@ function ThreadActor(aParent, aGlobal)
   this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
   this.onNewScript = this.onNewScript.bind(this);
 }
-
-
-
-
-
-ThreadActor.breakpointStore = new BreakpointStore();
 
 ThreadActor.prototype = {
   
@@ -534,8 +532,6 @@ ThreadActor.prototype = {
   get attached() this.state == "attached" ||
                  this.state == "running" ||
                  this.state == "paused",
-
-  get breakpointStore() { return ThreadActor.breakpointStore; },
 
   get threadLifetimePool() {
     if (!this._threadLifetimePool) {
@@ -4910,14 +4906,6 @@ function ThreadSources(aThreadActor, aOptions, aAllowPredicate,
 
 
 
-ThreadSources._blackBoxedSources = new Set(["self-hosted"]);
-ThreadSources._prettyPrintedSources = new Map();
-
-
-
-
-
-
 
 const MINIFIED_SOURCE_REGEXP = /\bmin\.js$/;
 
@@ -5210,7 +5198,7 @@ ThreadSources.prototype = {
 
 
   isBlackBoxed: function (aURL) {
-    return ThreadSources._blackBoxedSources.has(aURL);
+    return this._thread.blackBoxedSources.has(aURL);
   },
 
   
@@ -5220,7 +5208,7 @@ ThreadSources.prototype = {
 
 
   blackBox: function (aURL) {
-    ThreadSources._blackBoxedSources.add(aURL);
+    this._thread.blackBoxedSources.add(aURL);
   },
 
   
@@ -5230,7 +5218,7 @@ ThreadSources.prototype = {
 
 
   unblackBox: function (aURL) {
-    ThreadSources._blackBoxedSources.delete(aURL);
+    this._thread.blackBoxedSources.delete(aURL);
   },
 
   
@@ -5240,7 +5228,7 @@ ThreadSources.prototype = {
 
 
   isPrettyPrinted: function (aURL) {
-    return ThreadSources._prettyPrintedSources.has(aURL);
+    return this._thread.prettyPrintedSources.has(aURL);
   },
 
   
@@ -5250,14 +5238,14 @@ ThreadSources.prototype = {
 
 
   prettyPrint: function (aURL, aIndent) {
-    ThreadSources._prettyPrintedSources.set(aURL, aIndent);
+    this._thread.prettyPrintedSources.set(aURL, aIndent);
   },
 
   
 
 
   prettyPrintIndent: function (aURL) {
-    return ThreadSources._prettyPrintedSources.get(aURL);
+    return this._thread.prettyPrintedSources.get(aURL);
   },
 
   
@@ -5267,7 +5255,7 @@ ThreadSources.prototype = {
 
 
   disablePrettyPrint: function (aURL) {
-    ThreadSources._prettyPrintedSources.delete(aURL);
+    this._thread.prettyPrintedSources.delete(aURL);
   },
 
   
@@ -5495,21 +5483,9 @@ function getInnerId(window) {
                 getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
 };
 
-function getInnerId(window) {
-  return window.QueryInterface(Ci.nsIInterfaceRequestor).
-                getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-};
-
 const symbolProtoToString = typeof Symbol === "function" ? Symbol.prototype.toString : null;
 
 function getSymbolName(symbol) {
   const name = symbolProtoToString.call(symbol).slice("Symbol(".length, -1);
   return name || undefined;
-}
-
-exports.cleanup = function() {
-  
-  ThreadActor.breakpointStore = new BreakpointStore();
-  ThreadSources._blackBoxedSources.clear();
-  ThreadSources._prettyPrintedSources.clear();
 }

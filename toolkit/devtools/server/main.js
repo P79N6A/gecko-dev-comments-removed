@@ -275,13 +275,6 @@ var DebuggerServer = {
     }
     gRegisteredModules = {};
 
-    
-    
-    
-    
-    
-    require("devtools/server/actors/script").cleanup();
-
     this.closeAllListeners();
     this.globalActorFactories = {};
     this.tabActorFactories = {};
