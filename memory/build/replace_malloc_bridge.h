@@ -48,14 +48,58 @@
 
 struct ReplaceMallocBridge;
 
-#ifdef __cplusplus
-
 #include "mozilla/Types.h"
+
+MOZ_BEGIN_EXTERN_C
 
 #ifndef REPLACE_MALLOC_IMPL
 
-extern "C" MFBT_API ReplaceMallocBridge* get_bridge();
+MFBT_API ReplaceMallocBridge* get_bridge();
 #endif
+
+
+
+
+#define MALLOC_DECL(name, return_type, ...) \
+  typedef return_type(name ## _impl_t)(__VA_ARGS__);
+
+#include "malloc_decls.h"
+
+#define MALLOC_DECL(name, return_type, ...) \
+  name ## _impl_t * name;
+
+typedef struct {
+#include "malloc_decls.h"
+} malloc_table_t;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MALLOC_DECL(name, return_type, ...) \
+  return_type (*name ## _hook)(return_type, __VA_ARGS__);
+#define MALLOC_DECL_VOID(name, ...) \
+  void (*name ## _hook)(__VA_ARGS__);
+
+typedef struct {
+#include "malloc_decls.h"
+  
+
+  void (*realloc_hook_before)(void* aPtr);
+} malloc_hook_table_t;
+
+MOZ_END_EXTERN_C
+
+#ifdef __cplusplus
 
 namespace mozilla {
 namespace dmd {
@@ -75,7 +119,7 @@ struct DebugFdRegistry
 
 struct ReplaceMallocBridge
 {
-  ReplaceMallocBridge() : mVersion(2) {}
+  ReplaceMallocBridge() : mVersion(3) {}
 
   
   virtual mozilla::dmd::DMDFuncs* GetDMDFuncs() { return nullptr; }
@@ -85,6 +129,23 @@ struct ReplaceMallocBridge
 
 
   virtual void InitDebugFd(mozilla::DebugFdRegistry&) {}
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual const malloc_table_t*
+  RegisterHook(const char* aName, const malloc_table_t* aTable,
+               const malloc_hook_table_t* aHookTable) { return nullptr; }
 
 #ifndef REPLACE_MALLOC_IMPL
   
@@ -123,6 +184,15 @@ struct ReplaceMalloc
     if (singleton) {
       singleton->InitDebugFd(aRegistry);
     }
+  }
+
+  static const malloc_table_t*
+  RegisterHook(const char* aName, const malloc_table_t* aTable,
+               const malloc_hook_table_t* aHookTable)
+  {
+    auto singleton = ReplaceMallocBridge::Get( 3);
+    return singleton ? singleton->RegisterHook(aName, aTable, aHookTable)
+                     : nullptr;
   }
 };
 #endif
