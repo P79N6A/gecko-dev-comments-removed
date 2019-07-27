@@ -17,7 +17,7 @@ using namespace mozilla::dom;
 
 
 
-class CellBroadcast::Listener : public nsICellBroadcastListener
+class CellBroadcast::Listener MOZ_FINAL : public nsICellBroadcastListener
 {
 private:
   CellBroadcast* mCellBroadcast;
