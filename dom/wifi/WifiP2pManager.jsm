@@ -609,17 +609,27 @@ function P2pStateMachine(aP2pCommand, aNetUtil) {
       _sm.pause();
 
       
-      aP2pCommand.connectToSupplicant(function (status) {
-        let detail;
-
-        if (0 !== status) {
-          debug('Failed to connect to p2p0');
-          onFailure();
+      function connectToSupplicantIfNeeded(callback) {
+        if (aP2pCommand.getSdkVersion() >= 19) {
+          
+          callback();
           return;
         }
+        aP2pCommand.connectToSupplicant(function (status) {
+          if (0 !== status) {
+            debug('Failed to connect to p2p0');
+            onFailure();
+            return;
+          }
+          debug('wpa_supplicant p2p0 connected!');
+          _onSupplicantConnected();
+          callback();
+        });
+      }
 
-        debug('wpa_supplicant p2p0 connected!');
-        _onSupplicantConnected();
+      
+      connectToSupplicantIfNeeded(function callback () {
+        let detail;
 
         
         if (!_localDevice.address) {

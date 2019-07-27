@@ -28,6 +28,13 @@ this.WifiCommand = function(aControlMessage, aInterface, aSdkVersion) {
   
   
   
+  command.getSdkVersion = function() {
+    return aSdkVersion;
+  };
+
+  
+  
+  
 
   command.loadDriver = function (callback) {
     voidControlMessage("load_driver", function(status) {

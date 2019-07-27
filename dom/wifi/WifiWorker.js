@@ -134,7 +134,11 @@ var WifiManager = (function() {
       if (manager.ifname === iface && handleEvent(event)) {
         waitForEvent(iface);
       } else if (p2pSupported) {
-        if (WifiP2pManager.INTERFACE_NAME === iface) {
+        
+        
+        
+        
+        if (WifiP2pManager.INTERFACE_NAME === iface || -1 !== iface.indexOf('p2p-')) {
           
           
           

@@ -174,6 +174,14 @@ WifiProxyService::Start(nsIWifiEventListener* aListener,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aListener);
 
+#if ANDROID_VERSION >= 19
+  
+  
+  
+  
+  aNumOfInterfaces = 1;
+#endif
+
   nsresult rv;
 
   
@@ -250,6 +258,14 @@ WifiProxyService::WaitForEvent(const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+#if ANDROID_VERSION >= 19
+  
+  if (!mEventThreadList.IsEmpty()) {
+    nsCOMPtr<nsIRunnable> runnable = new EventRunnable(aInterface);
+    mEventThreadList[0].mThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
+    return NS_OK;
+  }
+#else
   
   for (size_t i = 0; i < mEventThreadList.Length(); i++) {
     if (mEventThreadList[i].mInterface.Equals(aInterface)) {
@@ -258,6 +274,7 @@ WifiProxyService::WaitForEvent(const nsACString& aInterface)
       return NS_OK;
     }
   }
+#endif
 
   return NS_ERROR_FAILURE;
 }
@@ -282,16 +299,27 @@ void
 WifiProxyService::DispatchWifiEvent(const nsAString& aEvent, const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+#if ANDROID_VERSION < 19
+  mListener->OnWaitEvent(aEvent, aInterface);
+#else
+  
+  
+  
+  
   nsAutoString event;
+  nsAutoString embeddedInterface(NS_LITERAL_STRING("p2p0"));
   if (StringBeginsWith(aEvent, NS_LITERAL_STRING("IFNAME"))) {
-    
+    int32_t ifnameFrom = aEvent.FindChar('=') + 1;
+    int32_t ifnameTo = aEvent.FindChar(' ') - 1;
+    embeddedInterface = Substring(aEvent, ifnameFrom, ifnameTo - ifnameFrom + 1);
     event = Substring(aEvent, aEvent.FindChar(' ') + 1);
   }
   else {
     event = aEvent;
   }
-  
-  mListener->OnWaitEvent(event, aInterface);
+  mListener->OnWaitEvent(event, NS_ConvertUTF16toUTF8(embeddedInterface));
+#endif
 }
 
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(WifiProxyService,
