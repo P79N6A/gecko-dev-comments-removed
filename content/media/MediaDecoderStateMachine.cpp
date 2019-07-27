@@ -3144,6 +3144,12 @@ void MediaDecoderStateMachine::OnAudioSinkError()
   mAudioCompleted = true;
 
   
+  if (HasVideo()) {
+    return;
+  }
+
+  
+  
   RefPtr<nsIRunnable> task(
     NS_NewRunnableMethod(this, &MediaDecoderStateMachine::OnDecodeError));
   nsresult rv = mDecodeTaskQueue->Dispatch(task);
