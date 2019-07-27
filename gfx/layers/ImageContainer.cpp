@@ -496,11 +496,33 @@ CairoImage::GetTextureClient(CompositableClient *aClient)
     return nullptr;
   }
 
-  
-  textureClient = aClient->CreateTextureClientForDrawing(surface->GetFormat(),
-                                                         surface->GetSize(),
-                                                         gfx::BackendType::NONE,
-                                                         TextureFlags::DEFAULT);
+
+
+
+#ifndef XP_WIN
+
+
+
+#ifdef MOZ_WIDGET_GONK
+  RefPtr<TextureClientRecycleAllocator> recycler =
+    aClient->GetTextureClientRecycler();
+  if (recycler) {
+    textureClient =
+      recycler->CreateOrRecycleForDrawing(surface->GetFormat(),
+                                          surface->GetSize(),
+                                          gfx::BackendType::NONE,
+                                          aClient->GetTextureFlags());
+  }
+#endif
+
+#endif
+  if (!textureClient) {
+    
+    textureClient = aClient->CreateTextureClientForDrawing(surface->GetFormat(),
+                                                           surface->GetSize(),
+                                                           gfx::BackendType::NONE,
+                                                           TextureFlags::DEFAULT);
+  }
   if (!textureClient) {
     return nullptr;
   }
