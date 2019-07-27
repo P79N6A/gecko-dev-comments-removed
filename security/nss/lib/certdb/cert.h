@@ -1564,6 +1564,12 @@ CERT_NewGeneralName(PLArenaPool *arena, CERTGeneralNameType type);
 
 
 
+extern CERTGeneralNameType
+CERT_GetGeneralNameTypeFromString(const char *string);
+
+
+
+
 extern SECStatus
 CERT_EncodePolicyConstraintsExtension(PLArenaPool *arena,
                                       CERTCertificatePolicyConstraints *constr,
