@@ -252,8 +252,14 @@ this.BasePromiseWorker.prototype = {
 
 
 
+
   post: function(fun, args, closure) {
     return Task.spawn(function* postMessage() {
+      
+      if (args) {
+        args = yield Promise.resolve(Promise.all(args));
+      }
+
       let id = ++this._id;
       let message = {fun: fun, args: args, id: id};
       this.log("Posting message", message);
