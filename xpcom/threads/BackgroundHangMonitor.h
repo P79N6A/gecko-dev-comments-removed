@@ -7,9 +7,10 @@
 #ifndef mozilla_BackgroundHangMonitor_h
 #define mozilla_BackgroundHangMonitor_h
 
-#include "mozilla/HangAnnotations.h"
-#include "mozilla/Monitor.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Monitor.h"
+
+#include "nsString.h"
 
 #include <stdint.h>
 
@@ -19,14 +20,8 @@ namespace Telemetry {
 class ThreadHangStats;
 };
 
-
-
-#if !defined(RELEASE_BUILD) && !defined(DEBUG)
-
-#define MOZ_ENABLE_BACKGROUND_HANG_MONITOR
-#endif
-
 class BackgroundHangThread;
+class BackgroundHangManager;
 
 
 
@@ -114,7 +109,12 @@ class BackgroundHangThread;
 class BackgroundHangMonitor
 {
 private:
+  friend BackgroundHangManager;
+
   RefPtr<BackgroundHangThread> mThread;
+
+  static bool ShouldDisableOnBeta(const nsCString &);
+  static bool DisableOnBeta();
 
 public:
   static const uint32_t kNoTimeout = 0;
@@ -168,6 +168,11 @@ public:
 
 
   static void Shutdown();
+
+  
+
+
+  static bool IsDisabled();
 
   
 
@@ -228,21 +233,6 @@ public:
 
 
   static void Allow();
-
-  
-
-
-
-
-  static bool RegisterAnnotator(HangMonitor::Annotator& aAnnotator);
-
-  
-
-
-
-
-
-  static bool UnregisterAnnotator(HangMonitor::Annotator& aAnnotator);
 };
 
 } 
