@@ -1,0 +1,40 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en" class="reftest-wait">
+<meta charset="utf-8">
+<title>Make sure that large gradient backgrounds are painted even at extreme scroll positions</title>
+
+
+<style>
+
+html {
+  background: white;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  height: 51000px; /* = 255 * 200 */
+  background-image: linear-gradient(rgb(0,0,0) 0px, rgb(255,255,255) 51000px);
+}
+
+div {
+  height: 1000px;
+  background-color: red;
+}
+
+</style>
+
+<div></div>
+
+<script>
+
+window.addEventListener("MozReftestInvalidate", function () {
+  document.documentElement.scrollTop = 210 * 200; // 42000 > 32768
+  document.documentElement.removeAttribute("class");
+});
+
+</script>
