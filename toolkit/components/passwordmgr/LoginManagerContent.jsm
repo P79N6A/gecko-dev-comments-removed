@@ -1156,7 +1156,7 @@ let FormLikeFactory = {
       autocomplete: "on",
       
       
-      elements: [for (el of doc.querySelectorAll("input")) if (!el.form) el],
+      elements: [for (el of doc.documentElement.querySelectorAll("input")) if (!el.form) el],
       ownerDocument: doc,
       rootElement: doc.documentElement,
     };

@@ -122,7 +122,9 @@ const RecipeHelpers = {
   initNewParent() {
     return (new LoginRecipesParent({ defaults: false })).initializationPromise;
   },
+};
 
+const MockDocument = {
   
 
 
@@ -132,27 +134,32 @@ const RecipeHelpers = {
     parser.init();
     let parsedDoc = parser.parseFromString(aHTML, "text/html");
 
+    for (let element of parsedDoc.forms) {
+      this.mockOwnerDocumentProperty(element, parsedDoc, aDocumentURL);
+    }
+    return parsedDoc;
+  },
+
+  mockOwnerDocumentProperty(aElement, aDoc, aURL) {
     
     
-    let document = new Proxy(parsedDoc, {
+    let document = new Proxy(aDoc, {
       get(target, property, receiver) {
         
         
         if (property == "location") {
-          return new URL(aDocumentURL);
+          return new URL(aURL);
         }
         return target[property];
       },
     });
 
-    for (let form of parsedDoc.forms) {
-      
-      Object.defineProperty(form, "ownerDocument", {
-        value: document,
-      });
-    }
-    return parsedDoc;
-  }
+    
+    Object.defineProperty(aElement, "ownerDocument", {
+      value: document,
+    });
+  },
+
 };
 
 
