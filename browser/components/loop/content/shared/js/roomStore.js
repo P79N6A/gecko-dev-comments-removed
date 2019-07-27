@@ -55,7 +55,9 @@ loop.store = loop.store || {};
 
 
 
-  function RoomListStore(options) {
+
+
+  function RoomStore(options) {
     options = options || {};
 
     if (!options.dispatcher) {
@@ -68,9 +70,16 @@ loop.store = loop.store || {};
     }
     this._mozLoop = options.mozLoop;
 
+    if (options.activeRoomStore) {
+      this.activeRoomStore = options.activeRoomStore;
+      this.activeRoomStore.on("change",
+                              this._onActiveRoomStoreChange.bind(this));
+    }
+
     this._dispatcher.register(this, [
       "createRoom",
       "createRoomError",
+      "copyRoomUrl",
       "deleteRoom",
       "deleteRoomError",
       "getAllRooms",
@@ -80,7 +89,7 @@ loop.store = loop.store || {};
     ]);
   }
 
-  RoomListStore.prototype = _.extend({
+  RoomStore.prototype = _.extend({
     
 
 
@@ -101,6 +110,7 @@ loop.store = loop.store || {};
 
 
     _storeState: {
+      activeRoom: {},
       error: null,
       pendingCreation: false,
       pendingInitialRetrieval: false,
@@ -118,7 +128,14 @@ loop.store = loop.store || {};
 
 
 
-    getStoreState: function() {
+
+
+
+
+    getStoreState: function(key) {
+      if (key) {
+        return this._storeState[key];
+      }
       return this._storeState;
     },
 
@@ -127,9 +144,17 @@ loop.store = loop.store || {};
 
 
 
+
+
+
+
+
+
+
     setStoreState: function(newState) {
       for (var key in newState) {
         this._storeState[key] = newState[key];
+        this.trigger("change:" + key);
       }
       this.trigger("change");
     },
@@ -142,6 +167,13 @@ loop.store = loop.store || {};
       this._mozLoop.rooms.on("add", this._onRoomAdded.bind(this));
       this._mozLoop.rooms.on("update", this._onRoomUpdated.bind(this));
       this._mozLoop.rooms.on("delete", this._onRoomRemoved.bind(this));
+    },
+
+    
+
+
+    _onActiveRoomStoreChange: function() {
+      this.setStoreState({activeRoom: this.activeRoomStore.getStoreState()});
     },
 
     
@@ -290,6 +322,15 @@ loop.store = loop.store || {};
 
 
 
+    copyRoomUrl: function(actionData) {
+      this._mozLoop.copyString(actionData.roomUrl);
+    },
+
+    
+
+
+
+
     deleteRoom: function(actionData) {
       this._mozLoop.rooms.delete(actionData.roomToken, function(err) {
         if (err) {
@@ -362,5 +403,5 @@ loop.store = loop.store || {};
     }
   }, Backbone.Events);
 
-  loop.store.RoomListStore = RoomListStore;
+  loop.store.RoomStore = RoomStore;
 })();

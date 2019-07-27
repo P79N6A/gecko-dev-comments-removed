@@ -6,7 +6,7 @@
 
 var loop = loop || {};
 loop.store = loop.store || {};
-loop.store.LocalRoomStore = (function() {
+loop.store.ActiveRoomStore = (function() {
   "use strict";
 
   var sharedActions = loop.shared.actions;
@@ -23,7 +23,7 @@ loop.store.LocalRoomStore = (function() {
 
 
 
-  function LocalRoomStore(options) {
+  function ActiveRoomStore(options) {
     options = options || {};
 
     if (!options.dispatcher) {
@@ -41,12 +41,9 @@ loop.store.LocalRoomStore = (function() {
     ]);
   }
 
-  LocalRoomStore.prototype = _.extend({
+  ActiveRoomStore.prototype = _.extend({
 
     
-
-
-
 
 
 
@@ -100,6 +97,6 @@ loop.store.LocalRoomStore = (function() {
 
   }, Backbone.Events);
 
-  return LocalRoomStore;
+  return ActiveRoomStore;
 
 })();

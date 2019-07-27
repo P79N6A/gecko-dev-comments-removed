@@ -203,6 +203,14 @@ loop.shared.actions = (function() {
 
     OpenRoom: Action.define("openRoom", {
       roomToken: String
+    }),
+
+    
+
+
+
+    CopyRoomUrl: Action.define("copyRoomUrl", {
+      roomUrl: String
     })
   };
 })();
