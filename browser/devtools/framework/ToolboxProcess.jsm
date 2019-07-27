@@ -218,7 +218,16 @@ BrowserToolboxProcess.prototype = {
       args.push("-purgecaches");
     }
 
+    
+    
+    let nsIEnvironment = Components.classes["@mozilla.org/process/environment;1"].getService(Components.interfaces.nsIEnvironment);
+    let originalValue = nsIEnvironment.get("MOZ_DISABLE_SAFE_MODE_KEY");
+    nsIEnvironment.set("MOZ_DISABLE_SAFE_MODE_KEY", "1");
+
     process.runwAsync(args, args.length, { observe: () => this.close() });
+
+    
+    nsIEnvironment.set("MOZ_DISABLE_SAFE_MODE_KEY", originalValue);
 
     this._telemetry.toolOpened("jsbrowserdebugger");
 
