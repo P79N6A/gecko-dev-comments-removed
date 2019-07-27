@@ -70,53 +70,16 @@ let SessionHistoryInternal = {
     let history = webNavigation.sessionHistory.QueryInterface(Ci.nsISHistoryInternal);
 
     if (history && history.count > 0) {
-      let oldest;
-      let maxSerializeBack =
-        Services.prefs.getIntPref("browser.sessionstore.max_serialize_back");
-      if (maxSerializeBack >= 0) {
-        oldest = Math.max(0, history.index - maxSerializeBack);
-      } else { 
-        oldest = 0;
-      }
-
-      let newest;
-      let maxSerializeFwd =
-        Services.prefs.getIntPref("browser.sessionstore.max_serialize_forward");
-      if (maxSerializeFwd >= 0) {
-        newest = Math.min(history.count - 1, history.index + maxSerializeFwd);
-      } else { 
-        newest = history.count - 1;
-      }
-
       
       
-      let txn = history.rootTransaction;
-      let i = 0;
-      while (txn && i < oldest) {
-        txn = txn.next;
-        i++;
-      }
-
-      while (txn && i <= newest) {
-        let shEntry = txn.sHEntry;
-        let entry = this.serializeEntry(shEntry, isPinned);
+      for (let txn = history.rootTransaction; txn; txn = txn.next) {
+        let entry = this.serializeEntry(txn.sHEntry, isPinned);
         entry.persist = txn.persist;
         data.entries.push(entry);
-        txn = txn.next;
-        i++;
-      }
-
-      if (i <= newest) {
-        
-        
-        
-        debug("SessionStore failed gathering complete history " +
-              "for the focused window/tab. See bug 669196.");
       }
 
       
-      
-      data.index = Math.min(history.index - oldest + 1, data.entries.length);
+      data.index = Math.min(history.index + 1, data.entries.length);
     }
 
     
