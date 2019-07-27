@@ -14,23 +14,86 @@ const GECKO_SYMBOL = "(Gecko)";
 
 
 
-const STRINGS_URI = "chrome://browser/locale/devtools/timeline.properties";
+
+const TIMELINE_STRINGS_URI = "chrome://browser/locale/devtools/timeline.properties";
+const PROFILER_STRINGS_URI = "chrome://browser/locale/devtools/profiler.properties";
+
 const L10N = new ViewHelpers.L10N(STRINGS_URI);
 
 
 
 
-const prefs = new ViewHelpers.Prefs("devtools.performance.ui", {
+
+const Prefs = new ViewHelpers.Prefs("devtools.performance.ui", {
   showPlatformData: ["Bool", "show-platform-data"]
+}, {
+  monitorChanges: true
 });
 
-let SHOW_PLATFORM_DATA = Services.prefs.getBoolPref("devtools.performance.ui.show-platform-data");
-prefs.registerObserver();
-prefs.on("pref-changed", (_,  prefName, prefValue) => {
-  if (prefName === "showPlatformData") {
-    SHOW_PLATFORM_DATA = prefValue;
-  }
-});
+
+
+
+
+const CATEGORIES = [{
+  ordinal: 7,
+  color: "#5e88b0",
+  abbrev: "other",
+  label: L10N.getStr("category.other")
+}, {
+  ordinal: 4,
+  color: "#46afe3",
+  abbrev: "css",
+  label: L10N.getStr("category.css")
+}, {
+  ordinal: 1,
+  color: "#d96629",
+  abbrev: "js",
+  label: L10N.getStr("category.js")
+}, {
+  ordinal: 2,
+  color: "#eb5368",
+  abbrev: "gc",
+  label: L10N.getStr("category.gc")
+}, {
+  ordinal: 0,
+  color: "#df80ff",
+  abbrev: "network",
+  label: L10N.getStr("category.network")
+}, {
+  ordinal: 5,
+  color: "#70bf53",
+  abbrev: "graphics",
+  label: L10N.getStr("category.graphics")
+}, {
+  ordinal: 6,
+  color: "#8fa1b2",
+  abbrev: "storage",
+  label: L10N.getStr("category.storage")
+}, {
+  ordinal: 3,
+  color: "#d99b28",
+  abbrev: "events",
+  label: L10N.getStr("category.events")
+}];
+
+
+
+
+
+const CATEGORY_MAPPINGS = {
+  "16": CATEGORIES[0],    
+  "32": CATEGORIES[1],    
+  "64": CATEGORIES[2],    
+  "128": CATEGORIES[3],   
+  "256": CATEGORIES[3],   
+  "512": CATEGORIES[4],   
+  "1024": CATEGORIES[5],  
+  "2048": CATEGORIES[6],  
+  "4096": CATEGORIES[7],  
+};
+
+
+
 
 
 
@@ -186,7 +249,7 @@ function getJSLabel (marker={}) {
 
 function getJSFields (marker) {
   if ("causeName" in marker && !JS_MARKER_MAP[marker.causeName]) {
-    return { Reason: (SHOW_PLATFORM_DATA ? marker.causeName : GECKO_SYMBOL) };
+    return { Reason: Prefs.showPlatformData ? marker.causeName : GECKO_SYMBOL };
   }
 }
 
@@ -226,5 +289,69 @@ function sublabelForProperty (mainLabel, prop) {
 }
 
 
+
+
+
+
+
+
+
+
+const [CATEGORY_MASK, CATEGORY_MASK_LIST] = (function () {
+  let bitmasksForCategory = {};
+  let all = Object.keys(CATEGORY_MAPPINGS);
+
+  for (let category of CATEGORIES) {
+    bitmasksForCategory[category.abbrev] = all
+      .filter(mask => CATEGORY_MAPPINGS[mask] == category)
+      .map(mask => +mask)
+      .sort();
+  }
+
+  return [
+    function (name, index) {
+      if (!(name in bitmasksForCategory)) {
+        throw new Error(`Category abbreviation '${name}' does not exist.`);
+      }
+      if (arguments.length == 1) {
+        if (bitmasksForCategory[name].length != 1) {
+          throw new Error(`Expected exactly one category number for '${name}'.`);
+        } else {
+          return bitmasksForCategory[name][0];
+        }
+      } else {
+        if (index > bitmasksForCategory[name].length) {
+          throw new Error(`Index '${index}' too high for category '${name}'.`);
+        } else {
+          return bitmasksForCategory[name][index - 1];
+        }
+      }
+    },
+
+    function (name) {
+      if (!(name in bitmasksForCategory)) {
+        throw new Error(`Category abbreviation '${name}' does not exist.`);
+      }
+      return bitmasksForCategory[name];
+    }
+  ];
+})();
+
+
+
+
+const CATEGORY_OTHER = CATEGORY_MASK('other');
+
+
+
+const CATEGORY_JIT = CATEGORY_MASK('js');
+
+
 exports.L10N = L10N;
 exports.TIMELINE_BLUEPRINT = TIMELINE_BLUEPRINT;
+exports.CATEGORIES = CATEGORIES;
+exports.CATEGORY_MAPPINGS = CATEGORY_MAPPINGS;
+exports.CATEGORY_MASK = CATEGORY_MASK;
+exports.CATEGORY_MASK_LIST = CATEGORY_MASK_LIST;
+exports.CATEGORY_OTHER = CATEGORY_OTHER;
+exports.CATEGORY_JIT = CATEGORY_JIT;
