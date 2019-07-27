@@ -1182,12 +1182,16 @@ gfxPlatform::CreateDrawTargetForData(unsigned char* aData, const IntSize& aSize,
 {
   NS_ASSERTION(mContentBackend != BackendType::NONE, "No backend.");
 
-  BackendType backendType = Factory::DoesBackendSupportDataDrawtarget(mContentBackend) ? mContentBackend : BackendType::CAIRO;
-
-  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(backendType,
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(mContentBackend,
                                                            aData, aSize,
                                                            aStride, aFormat);
-
+  if (!dt) {
+    
+    
+    dt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                          aData, aSize,
+                                          aStride, aFormat);
+  }
   return dt.forget();
 }
 
