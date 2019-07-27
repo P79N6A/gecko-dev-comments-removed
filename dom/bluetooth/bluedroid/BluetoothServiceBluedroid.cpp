@@ -1749,6 +1749,27 @@ BluetoothServiceBluedroid::IsConnected(const nsAString& aRemoteBdAddr)
 
 
 
+class BluetoothServiceBluedroid::CleanupResultHandler final
+  : public BluetoothResultHandler
+{
+public:
+  void Cleanup() override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BluetoothService::AcknowledgeToggleBt(false);
+  }
+
+  void OnError(BluetoothStatus aStatus) override
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    BT_LOGR("BluetoothInterface::Cleanup failed: %d", aStatus);
+
+    BluetoothService::AcknowledgeToggleBt(false);
+  }
+};
+
 
 
 
@@ -1781,7 +1802,7 @@ private:
   void Proceed() const
   {
     if (!sIsRestart) {
-      sBtInterface->Cleanup(nullptr);
+      sBtInterface->Cleanup(new CleanupResultHandler());
     } else {
       BT_LOGR("ProfileDeinitResultHandler::Proceed cancel cleanup() ");
     }
@@ -1850,6 +1871,7 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
                          BluetoothValue(props));
 
     
+    
     nsRefPtr<ProfileDeinitResultHandler> res =
       new ProfileDeinitResultHandler(MOZ_ARRAY_LENGTH(sDeinitManager));
 
@@ -1858,9 +1880,14 @@ BluetoothServiceBluedroid::AdapterStateChangedNotification(bool aState)
     }
   }
 
-  BluetoothService::AcknowledgeToggleBt(sAdapterEnabled);
-
   if (sAdapterEnabled) {
+
+    
+    
+    
+    
+    BluetoothService::AcknowledgeToggleBt(true);
+
     
     sControllerArray.Clear();
     sChangeDiscoveryRunnableArray.Clear();
