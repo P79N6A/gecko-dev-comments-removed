@@ -125,7 +125,6 @@ gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
     CFAttributedStringRef attrStringObj =
         ::CFAttributedStringCreate(kCFAllocatorDefault, stringObj, attrObj);
     ::CFRelease(stringObj);
-    ::CFRelease(attrObj);
 
     
     CTLineRef line = ::CTLineCreateWithAttributedString(attrStringObj);
@@ -142,12 +141,34 @@ gfxCoreTextShaper::ShapeText(gfxContext      *aContext,
     for (uint32_t runIndex = 0; runIndex < numRuns; runIndex++) {
         CTRunRef aCTRun =
             (CTRunRef)::CFArrayGetValueAtIndex(glyphRuns, runIndex);
+        CFDictionaryRef runAttr = ::CTRunGetAttributes(aCTRun);
+        if (runAttr != attrObj) {
+            
+            
+            
+            const void* font1 = ::CFDictionaryGetValue(attrObj, kCTFontAttributeName);
+            const void* font2 = ::CFDictionaryGetValue(runAttr, kCTFontAttributeName);
+            if (font1 != font2) {
+                
+                
+                CFRange range = ::CTRunGetStringRange(aCTRun);
+                if (range.length == 1 &&
+                    gfxFontUtils::IsVarSelector(aText[range.location -
+                                                      startOffset])) {
+                    continue;
+                }
+                NS_WARNING("unexpected font fallback in Core Text");
+                success = false;
+                break;
+            }
+        }
         if (SetGlyphsFromRun(aShapedText, aOffset, aLength, aCTRun, startOffset) != NS_OK) {
             success = false;
             break;
         }
     }
 
+    ::CFRelease(attrObj);
     ::CFRelease(line);
 
     return success;
