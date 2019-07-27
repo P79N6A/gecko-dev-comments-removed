@@ -23,7 +23,7 @@ public:
   
   
   
-  RangeFinder(const nsTArray<mozilla::MediaByteRange>& ranges)
+  explicit RangeFinder(const nsTArray<mozilla::MediaByteRange>& ranges)
     : mRanges(ranges), mIndex(0)
   {
     
