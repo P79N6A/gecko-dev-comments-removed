@@ -2171,19 +2171,6 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     nsNPAPIPluginInstance *inst =
       (nsNPAPIPluginInstance *) (npp ? npp->ndata : nullptr);
     double scaleFactor = inst ? inst->GetContentsScaleFactor() : 1.0;
-    
-    
-    
-    
-    
-    if (inst) {
-      const char *mimeType;
-      inst->GetMIMEType(&mimeType);
-      NS_NAMED_LITERAL_CSTRING(flash, "application/x-shockwave-flash");
-      if (!PL_strncasecmp(mimeType, flash.get(), flash.Length())) {
-        scaleFactor = 1.0;
-      }
-    }
     *(double*)result = scaleFactor;
     return NPERR_NO_ERROR;
   }

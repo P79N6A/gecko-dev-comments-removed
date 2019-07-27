@@ -283,11 +283,6 @@ public:
         
         
         QUIRK_FLASH_AVOID_CGMODE_CRASHES                = 1 << 10,
-        
-        
-        
-        
-        QUIRK_FLASH_HIDE_HIDPI_SUPPORT                  = 1 << 11,
     };
 
     int GetQuirks() { return mQuirks; }
