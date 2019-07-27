@@ -20,7 +20,6 @@
 
 #include <intrin.h>
 
-#if defined(PR_LOGGING)
 
 
 
@@ -39,10 +38,7 @@ GetTimeStampLog()
   }
   return sLog;
 }
-  #define LOG(x)  PR_LOG(GetTimeStampLog(), PR_LOG_DEBUG, x)
-#else
-  #define LOG(x)
-#endif 
+#define LOG(x)  PR_LOG(GetTimeStampLog(), PR_LOG_DEBUG, x)
 
 
 static volatile ULONGLONG sResolution;

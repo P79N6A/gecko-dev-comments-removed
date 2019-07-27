@@ -18,7 +18,6 @@
 
 #define NOTIFY_GLOBAL_OBSERVERS
 
-#if defined(PR_LOGGING)
 
 
 
@@ -37,10 +36,7 @@ GetObserverServiceLog()
   }
   return sLog;
 }
-  #define LOG(x)  PR_LOG(GetObserverServiceLog(), PR_LOG_DEBUG, x)
-#else
-  #define LOG(x)
-#endif 
+#define LOG(x)  PR_LOG(GetObserverServiceLog(), PR_LOG_DEBUG, x)
 
 namespace mozilla {
 
