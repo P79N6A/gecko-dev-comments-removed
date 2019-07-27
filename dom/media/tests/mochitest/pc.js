@@ -547,6 +547,8 @@ function PeerConnectionTest(options) {
   else
     this.pcRemote = null;
 
+  this.steeplechase = this.pcLocal === null || this.pcRemote === null;
+
   
   this.chain = new CommandChain(this, options.commands);
   if (!options.is_local) {
@@ -863,9 +865,108 @@ PCT_iceCandidateHandler(caller, candidate) {
     target.storeOrAddIceCandidate(candidate);
   } else {
     info("sending ice candidate to signaling server");
-    send_message({"ice_candidate": candidate});
+    send_message({"type": "ice_candidate", "ice_candidate": candidate});
   }
 };
+
+
+
+
+
+PeerConnectionTest.prototype.setupSignalingClient = function
+PCT_setupSignalingClient() {
+  var self = this;
+
+  self.signalingMessageQueue = [];
+  self.signalingCallbacks = {};
+  self.signalingLoopRun = true;
+
+  function queueMessage(message) {
+    info("Received signaling message: " + JSON.stringify(message));
+    var fired = false;
+    Object.keys(self.signalingCallbacks).forEach(function(name) {
+      if (name === message.type) {
+        info("Invoking callback for message type: " + name);
+        self.signalingCallbacks[name](message);
+        fired = true;
+      }
+    });
+    if (!fired) {
+      self.signalingMessageQueue.push(message);
+      info("signalingMessageQueue.length: " + self.signalingMessageQueue.length);
+    }
+    if (self.signalingLoopRun) {
+      wait_for_message().then(queueMessage);
+    } else {
+      info("Exiting signaling message event loop");
+    }
+  }
+
+  wait_for_message().then(queueMessage);
+}
+
+
+
+
+PeerConnectionTest.prototype.signalingMessagesFinished = function
+PCT_signalingMessagesFinished() {
+  this.signalingLoopRun = false;
+}
+
+
+
+
+
+
+
+
+PeerConnectionTest.prototype.signalEndOfTrickleIce = function
+PCT_signalEndOfTrickleIce(caller) {
+  if (this.steeplechase) {
+    send_message({"type": "end_of_trickle_ice"});
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+PeerConnectionTest.prototype.registerSignalingCallback = function
+PCT_registerSignalingCallback(messageType, onMessage) {
+  this.signalingCallbacks[messageType] = onMessage;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+PeerConnectionTest.prototype.getSignalingMessage = function
+PCT_getSignalingMessage(messageType, onMessage) {
+  for(var i=0; i < this.signalingMessageQueue.length; i++) {
+    if (messageType === this.signalingMessageQueue[i].type) {
+      
+      info("invoking callback on message " + i + " from message queue, for message type:" + messageType);
+      onMessage(this.signalingMessageQueue.splice(i, 1)[0]);
+      return;
+    }
+  }
+  this.registerSignalingCallback(messageType, onMessage);
+}
 
 
 
@@ -1991,6 +2092,7 @@ PeerConnectionWrapper.prototype = {
       if (!anEvent.candidate) {
         info(self.label + ": received end of trickle ICE event");
         self.endOfTrickleIce = true;
+        test.signalEndOfTrickleIce(self.label);
       } else {
         if (self.endOfTrickleIce) {
           ok(false, "received ICE candidate after end of trickle");
@@ -2005,8 +2107,6 @@ PeerConnectionWrapper.prototype = {
       }
     }
 
-    
-    
     self._pc.onicecandidate = iceCandidateCallback;
   },
 
