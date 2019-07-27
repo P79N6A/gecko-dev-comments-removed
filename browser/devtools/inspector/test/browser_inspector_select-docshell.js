@@ -15,11 +15,10 @@ const URL = "data:text/html;charset=UTF-8," +
 add_task(function*() {
   Services.prefs.setBoolPref("devtools.command-button-frames.enabled", true);
 
-  let {toolbox, inspector} = yield openInspectorForURL(URL);
+  let {inspector, toolbox, testActor} = yield openInspectorForURL(URL);
 
   
-  let testNode = content.document.querySelector("#top");
-  ok(testNode, "We have the test node on the top level document");
+  ok((yield testActor.hasNode("#top")), "We have the test node on the top level document");
 
   assertMarkupViewIsLoaded(inspector);
 
@@ -40,28 +39,26 @@ add_task(function*() {
     assertMarkupViewIsEmpty(inspector);
   });
 
-  let newRoot = inspector.once("new-root").then(() => {
-    info("Navigation to the iframe is done, the inspector should be back up");
-
-    
-    
-    let testNode = getNode("#frame", { document: content.frames[0].document});
-    ok(testNode, "We have the test node on the iframe");
-
-    
-    assertMarkupViewIsLoaded(inspector);
-
-    return selectNode("#frame", inspector);
-  });
-
   
   
+  let newRoot = inspector.once("new-root");
   yield selectNode("#top", inspector);
   info("Select the iframe");
   frameBtns[0].click();
 
   yield willNavigate;
   yield newRoot;
+
+  info("Navigation to the iframe is done, the inspector should be back up");
+
+  
+  ok(!(yield testActor.hasNode("iframe")), "We not longer have access to the top frame elements");
+  ok((yield testActor.hasNode("#frame")), "But now have direct access to the iframe elements");
+
+  
+  assertMarkupViewIsLoaded(inspector);
+
+  yield selectNode("#frame", inspector);
 
   Services.prefs.clearUserPref("devtools.command-button-frames.enabled");
 });
