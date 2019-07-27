@@ -93,7 +93,6 @@ loop.StandaloneMozLoop = (function(mozL10n) {
         try {
           
           callback(null, validate(responseData, {
-            roomName: String,
             roomOwner: String,
             roomUrl: String
           }));

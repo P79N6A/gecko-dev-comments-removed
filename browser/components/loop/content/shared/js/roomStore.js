@@ -37,7 +37,7 @@ loop.store = loop.store || {};
   var roomSchema = {
     roomToken:    String,
     roomUrl:      String,
-    roomName:     String,
+    
     maxSize:      Number,
     participants: Array,
     ctime:        Number

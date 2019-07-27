@@ -373,7 +373,7 @@ loop.shared.actions = (function() {
 
 
     SetupRoomInfo: Action.define("setupRoomInfo", {
-      roomName: String,
+      
       roomOwner: String,
       roomToken: String,
       roomUrl: String
@@ -386,7 +386,7 @@ loop.shared.actions = (function() {
 
 
     UpdateRoomInfo: Action.define("updateRoomInfo", {
-      roomName: String,
+      
       roomOwner: String,
       roomUrl: String
     }),
