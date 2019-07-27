@@ -1440,7 +1440,7 @@ ForkJoinShared::execute()
     
     
     
-    if (cx_->runtime()->hasPendingInterruptPar())
+    if (cx_->runtime()->interruptPar)
         return TP_RETRY_SEQUENTIALLY;
 
     AutoLockMonitor lock(*this);
@@ -1518,7 +1518,7 @@ ForkJoinShared::executeFromWorker(ThreadPoolWorker *worker, uintptr_t stackLimit
 
     
     
-    thisThread.initJitStackLimitPar(stackLimit);
+    thisThread.jitStackLimit = stackLimit;
     executePortion(&thisThread, worker);
     TlsPerThreadData.set(nullptr);
 
@@ -1551,7 +1551,7 @@ ForkJoinShared::executeFromMainThread(ThreadPoolWorker *worker)
     
     
     
-    thisThread.initJitStackLimitPar(GetNativeStackLimit(cx_));
+    thisThread.jitStackLimit = GetNativeStackLimit(cx_);
     executePortion(&thisThread, worker);
     TlsPerThreadData.set(oldData);
 
@@ -1647,7 +1647,7 @@ ForkJoinShared::executePortion(PerThreadData *perThread, ThreadPoolWorker *worke
 void
 ForkJoinShared::setAbortFlagDueToInterrupt(ForkJoinContext &cx)
 {
-    MOZ_ASSERT(cx_->runtime()->hasPendingInterruptPar());
+    MOZ_ASSERT(cx_->runtime()->interruptPar);
     
     
     
@@ -1826,7 +1826,7 @@ ForkJoinContext::hasAcquiredJSContext() const
 bool
 ForkJoinContext::check()
 {
-    if (runtime()->hasPendingInterruptPar()) {
+    if (runtime()->interruptPar) {
         shared_->setAbortFlagDueToInterrupt(*this);
         return false;
     }
@@ -2271,6 +2271,13 @@ js::ParallelTestsShouldPass(JSContext *cx)
            !js_JitOptions.eagerCompilation &&
            js_JitOptions.baselineWarmUpThreshold != 0 &&
            cx->runtime()->gcZeal() == 0;
+}
+
+void
+js::RequestInterruptForForkJoin(JSRuntime *rt, JSRuntime::InterruptMode mode)
+{
+    if (mode != JSRuntime::RequestInterruptAnyThreadDontStopIon)
+        rt->interruptPar = true;
 }
 
 bool

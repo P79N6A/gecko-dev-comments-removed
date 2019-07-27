@@ -526,7 +526,7 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
             rt->gc.runDebugGC();
 #endif
 
-        if (rt->hasPendingInterrupt()) {
+        if (rt->interrupt) {
             
             
             ncx->gcIfNeeded();
