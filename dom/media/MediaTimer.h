@@ -23,7 +23,7 @@ extern PRLogModuleInfo* gMediaTimerLog;
 
 #define TIMER_LOG(x, ...) \
   MOZ_ASSERT(gMediaTimerLog); \
-  MOZ_LOG(gMediaTimerLog, PR_LOG_DEBUG, ("[MediaTimer=%p relative_t=%lld]" x, this, \
+  MOZ_LOG(gMediaTimerLog, LogLevel::Debug, ("[MediaTimer=%p relative_t=%lld]" x, this, \
                                         RelativeMicroseconds(TimeStamp::Now()), ##__VA_ARGS__))
 
 

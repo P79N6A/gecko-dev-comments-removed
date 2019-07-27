@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "I420ColorConverterHelper.h"
 
@@ -11,7 +11,7 @@
 #include "mozilla/Logging.h"
 
 PRLogModuleInfo *gI420ColorConverterHelperLog;
-#define LOG(msg...) MOZ_LOG(gI420ColorConverterHelperLog, PR_LOG_WARNING, (msg))
+#define LOG(msg...) MOZ_LOG(gI420ColorConverterHelperLog, mozilla::LogLevel::Warning, (msg))
 
 namespace android {
 
@@ -30,7 +30,7 @@ I420ColorConverterHelper::~I420ColorConverterHelper()
   unloadLocked();
 }
 
-
+// Prerequisite: a writer-lock should be held
 bool
 I420ColorConverterHelper::loadLocked()
 {
@@ -39,16 +39,16 @@ I420ColorConverterHelper::loadLocked()
   }
   unloadLocked();
 
-  
+  // Open the shared library
   mHandle = dlopen("libI420colorconvert.so", RTLD_NOW);
   if (mHandle == nullptr) {
     LOG("libI420colorconvert.so not found");
     return false;
   }
 
-  
-  
-  
+  // Find the entry point
+  // Pointer to function with signature
+  // void getI420ColorConverter(II420ColorConverter *converter)
   typedef int (* getConverterFn)(II420ColorConverter *converter);
   getConverterFn getI420ColorConverter =
       (getConverterFn) dlsym(mHandle, "getI420ColorConverter");
@@ -58,7 +58,7 @@ I420ColorConverterHelper::loadLocked()
     return false;
   }
 
-  
+  // Fill the function pointers.
   getI420ColorConverter(&mConverter);
   if (mConverter.getDecoderOutputFormat == nullptr ||
       mConverter.convertDecoderOutputToI420 == nullptr ||
@@ -73,7 +73,7 @@ I420ColorConverterHelper::loadLocked()
   return true;
 }
 
-
+// Prerequisite: a reader-lock or a writer-lock should be held
 bool
 I420ColorConverterHelper::loadedLocked() const
 {
@@ -88,7 +88,7 @@ I420ColorConverterHelper::loadedLocked() const
   return true;
 }
 
-
+// Prerequisite: a writer-lock should be held
 void
 I420ColorConverterHelper::unloadLocked()
 {
@@ -108,7 +108,7 @@ I420ColorConverterHelper::ensureLoaded()
 {
   {
     RWLock::AutoRLock arl(mLock);
-    
+    // Check whether the library has been loaded or not.
     if (loadedLocked()) {
       return true;
     }
@@ -116,18 +116,18 @@ I420ColorConverterHelper::ensureLoaded()
 
   {
     RWLock::AutoWLock awl(mLock);
-    
+    // Check whether the library has been loaded or not on other threads.
     if (loadedLocked()) {
       return true;
     }
 
-    
+    // Reload the library
     unloadLocked();
     if (loadLocked()) {
       return true;
     }
 
-    
+    // Reset the library
     unloadLocked();
   }
 
@@ -220,4 +220,4 @@ I420ColorConverterHelper::getEncoderInputBufferInfo(int aSrcWidth,
   return -1;
 }
 
-} 
+} // namespace android

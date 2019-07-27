@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaOmxCommonReader.h"
 
@@ -51,25 +51,25 @@ void MediaOmxCommonReader::CheckAudioOffload()
   sp<MetaData> meta = audioOffloadTrack.get()
       ? audioOffloadTrack->getFormat() : nullptr;
 
-  
+  // Supporting audio offload only when there is no video, no streaming
   bool hasNoVideo = !HasVideo();
   bool isNotStreaming
       = mDecoder->GetResource()->IsDataCachedToEndOfResource(0);
 
-  
-  
+  // Not much benefit in trying to offload other channel types. Most of them
+  // aren't supported and also duration would be less than a minute
   bool isTypeMusic = mAudioChannel == dom::AudioChannel::Content;
 
-  DECODER_LOG(PR_LOG_DEBUG, ("%s meta %p, no video %d, no streaming %d,"
+  DECODER_LOG(LogLevel::Debug, ("%s meta %p, no video %d, no streaming %d,"
       " channel type %d", __FUNCTION__, meta.get(), hasNoVideo,
       isNotStreaming, mAudioChannel));
 
   if ((meta.get()) && hasNoVideo && isNotStreaming && isTypeMusic &&
       canOffloadStream(meta, false, false, AUDIO_STREAM_MUSIC)) {
-    DECODER_LOG(PR_LOG_DEBUG, ("Can offload this audio stream"));
+    DECODER_LOG(LogLevel::Debug, ("Can offload this audio stream"));
     mDecoder->SetPlatformCanOffloadAudio(true);
   }
 }
 #endif
 
-} 
+} // namespace mozilla

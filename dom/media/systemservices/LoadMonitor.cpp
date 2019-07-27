@@ -56,9 +56,9 @@
 
 #undef LOG
 #undef LOG_ENABLED
-#define LOG(args) MOZ_LOG(gLoadManagerLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, PR_LOG_DEBUG)
-#define LOG_MANY_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, PR_LOG_VERBOSE)
+#define LOG(args) MOZ_LOG(gLoadManagerLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, mozilla::LogLevel::Debug)
+#define LOG_MANY_ENABLED() MOZ_LOG_TEST(gLoadManagerLog, mozilla::LogLevel::Verbose)
 
 namespace mozilla {
 

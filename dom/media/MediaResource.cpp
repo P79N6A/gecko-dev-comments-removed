@@ -34,7 +34,7 @@
 #include "nsIContentPolicy.h"
 
 PRLogModuleInfo* gMediaResourceLog;
-#define RESOURCE_LOG(msg, ...) MOZ_LOG(gMediaResourceLog, PR_LOG_DEBUG, \
+#define RESOURCE_LOG(msg, ...) MOZ_LOG(gMediaResourceLog, mozilla::LogLevel::Debug, \
                                       (msg, ##__VA_ARGS__))
 
 #define CMLOG(msg, ...) \
