@@ -8,8 +8,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_SHUTDOWNTRACKER_H_
-#define MOZILLA_IMAGELIB_SHUTDOWNTRACKER_H_
+#ifndef mozilla_image_src_ShutdownTracker_h
+#define mozilla_image_src_ShutdownTracker_h
 
 namespace mozilla {
 namespace image {
