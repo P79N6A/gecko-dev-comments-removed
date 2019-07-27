@@ -553,7 +553,9 @@ nsOpenTypeTable::MakeTextRun(gfxContext*        aThebesContext,
   };
   gfxTextRun* textRun = gfxTextRun::Create(&params, 1, aFontGroup, 0);
   textRun->AddGlyphRun(aFontGroup->GetFontAt(0), gfxTextRange::kFontGroup, 0,
-                       false);
+                       false, gfxTextRunFactory::TEXT_ORIENT_HORIZONTAL);
+                              
+                              
   gfxTextRun::DetailedGlyph detailedGlyph;
   detailedGlyph.mGlyphID = aGlyph.glyphID;
   detailedGlyph.mAdvance =

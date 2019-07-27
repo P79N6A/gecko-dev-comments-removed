@@ -5632,6 +5632,41 @@ nsLayoutUtils::GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
   default:
     break;
   }
+  WritingMode wm(aStyleContext->StyleVisibility());
+  if (wm.IsVertical()) {
+    switch (aStyleText->mTextOrientation) {
+    case NS_STYLE_TEXT_ORIENTATION_MIXED:
+      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED;
+      break;
+    case NS_STYLE_TEXT_ORIENTATION_UPRIGHT:
+      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_UPRIGHT;
+      break;
+    case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS:
+      
+      
+      
+      
+
+
+
+
+
+
+
+    case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_RIGHT:
+      result |= gfxTextRunFactory::TEXT_ORIENT_VERTICAL_SIDEWAYS_RIGHT;
+      break;
+    case NS_STYLE_TEXT_ORIENTATION_SIDEWAYS_LEFT:
+      
+      
+
+
+
+    default:
+      NS_NOTREACHED("unknown text-orientation");
+      break;
+    }
+  }
   return result;
 }
 

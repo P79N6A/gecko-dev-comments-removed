@@ -411,6 +411,7 @@ public:
         nsRefPtr<gfxFont> mFont;   
         uint32_t          mCharacterOffset; 
         uint8_t           mMatchType;
+        uint16_t          mOrientation; 
     };
 
     class GlyphRunIterator {
@@ -467,7 +468,8 @@ public:
 
 
     nsresult AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
-                         uint32_t aStartCharIndex, bool aForceNewRun);
+                         uint32_t aStartCharIndex, bool aForceNewRun,
+                         uint16_t aOrientation);
     void ResetGlyphRuns() { mGlyphRuns.Clear(); }
     void SortGlyphRuns();
     void SanitizeGlyphRuns();
@@ -480,7 +482,8 @@ public:
     
     void ClearGlyphsAndCharacters();
 
-    void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, uint32_t aCharIndex);
+    void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, uint32_t aCharIndex,
+                       uint16_t aOrientation);
 
     
     
@@ -496,7 +499,8 @@ public:
     
     
     bool SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
-                               uint32_t aCharIndex, char16_t aSpaceChar);
+                               uint32_t aCharIndex, char16_t aSpaceChar,
+                               uint16_t aOrientation);
 
     
     
@@ -865,7 +869,7 @@ public:
     template<typename T>
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges,
                        const T *aString, uint32_t aLength,
-                       int32_t aRunScript);
+                       int32_t aRunScript, uint16_t aOrientation);
 
     gfxUserFontSet* GetUserFontSet();
 

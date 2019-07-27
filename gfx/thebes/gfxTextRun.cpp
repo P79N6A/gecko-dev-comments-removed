@@ -980,9 +980,12 @@ gfxTextRun::FindFirstGlyphRunContaining(uint32_t aOffset)
 
 nsresult
 gfxTextRun::AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
-                        uint32_t aUTF16Offset, bool aForceNewRun)
+                        uint32_t aUTF16Offset, bool aForceNewRun,
+                        uint16_t aOrientation)
 {
     NS_ASSERTION(aFont, "adding glyph run for null font!");
+    NS_ASSERTION(aOrientation != gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED,
+                 "mixed orientation should have been resolved");
     if (!aFont) {
         return NS_OK;
     }    
@@ -995,7 +998,8 @@ gfxTextRun::AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
 
         
         if (lastGlyphRun->mFont == aFont &&
-            lastGlyphRun->mMatchType == aMatchType)
+            lastGlyphRun->mMatchType == aMatchType &&
+            lastGlyphRun->mOrientation == aOrientation)
         {
             return NS_OK;
         }
@@ -1009,7 +1013,8 @@ gfxTextRun::AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
             
             if (numGlyphRuns > 1 &&
                 mGlyphRuns[numGlyphRuns - 2].mFont == aFont &&
-                mGlyphRuns[numGlyphRuns - 2].mMatchType == aMatchType)
+                mGlyphRuns[numGlyphRuns - 2].mMatchType == aMatchType &&
+                mGlyphRuns[numGlyphRuns - 2].mOrientation == aOrientation)
             {
                 mGlyphRuns.TruncateLength(numGlyphRuns - 1);
                 return NS_OK;
@@ -1017,6 +1022,7 @@ gfxTextRun::AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
 
             lastGlyphRun->mFont = aFont;
             lastGlyphRun->mMatchType = aMatchType;
+            lastGlyphRun->mOrientation = aOrientation;
             return NS_OK;
         }
     }
@@ -1030,6 +1036,7 @@ gfxTextRun::AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
     glyphRun->mFont = aFont;
     glyphRun->mCharacterOffset = aUTF16Offset;
     glyphRun->mMatchType = aMatchType;
+    glyphRun->mOrientation = aOrientation;
     return NS_OK;
 }
 
@@ -1049,7 +1056,8 @@ gfxTextRun::SortGlyphRuns()
     for (i = 0; i < count; ++i) {
         
         
-        if (i == 0 || runs[i].mFont != runs[i - 1].mFont) {
+        if (i == 0 || runs[i].mFont != runs[i - 1].mFont ||
+            runs[i].mOrientation != runs[i - 1].mOrientation) {
             mGlyphRuns.AppendElement(runs[i]);
             
             
@@ -1201,7 +1209,8 @@ gfxTextRun::CopyGlyphDataFrom(gfxTextRun *aSource, uint32_t aStart,
                          "Ended font run in the middle of a cluster");
 
         nsresult rv = AddGlyphRun(font, iter.GetGlyphRun()->mMatchType,
-                                  start - aStart + aDest, false);
+                                  start - aStart + aDest, false,
+                                  iter.GetGlyphRun()->mOrientation);
         if (NS_FAILED(rv))
             return;
     }
@@ -1218,32 +1227,37 @@ gfxTextRun::ClearGlyphsAndCharacters()
 
 void
 gfxTextRun::SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext,
-                          uint32_t aCharIndex)
+                          uint32_t aCharIndex, uint16_t aOrientation)
 {
-    if (SetSpaceGlyphIfSimple(aFont, aContext, aCharIndex, ' ')) {
+    if (SetSpaceGlyphIfSimple(aFont, aContext, aCharIndex, ' ',
+                              aOrientation)) {
         return;
     }
 
     aFont->InitWordCache();
     static const uint8_t space = ' ';
+    uint32_t flags = gfxTextRunFactory::TEXT_IS_8BIT |
+                     gfxTextRunFactory::TEXT_IS_ASCII |
+                     gfxTextRunFactory::TEXT_IS_PERSISTENT |
+                     aOrientation;
     gfxShapedWord *sw = aFont->GetShapedWord(aContext,
                                              &space, 1,
                                              gfxShapedWord::HashMix(0, ' '), 
                                              MOZ_SCRIPT_LATIN,
                                              mAppUnitsPerDevUnit,
-                                             gfxTextRunFactory::TEXT_IS_8BIT |
-                                             gfxTextRunFactory::TEXT_IS_ASCII |
-                                             gfxTextRunFactory::TEXT_IS_PERSISTENT,
+                                             flags,
                                              nullptr);
     if (sw) {
-        AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false);
+        AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false,
+                    aOrientation);
         CopyGlyphDataFrom(sw, aCharIndex);
     }
 }
 
 bool
 gfxTextRun::SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
-                                  uint32_t aCharIndex, char16_t aSpaceChar)
+                                  uint32_t aCharIndex, char16_t aSpaceChar,
+                                  uint16_t aOrientation)
 {
     uint32_t spaceGlyph = aFont->GetSpaceGlyph();
     if (!spaceGlyph || !CompressedGlyph::IsSimpleGlyphID(spaceGlyph)) {
@@ -1256,7 +1270,8 @@ gfxTextRun::SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
         return false;
     }
 
-    AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false);
+    AddGlyphRun(aFont, gfxTextRange::kFontGroup, aCharIndex, false,
+                aOrientation);
     CompressedGlyph g;
     g.SetSimpleGlyph(spaceWidthAppUnits, spaceGlyph);
     if (aSpaceChar == ' ') {
@@ -1798,18 +1813,24 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags)
         return nullptr;
     }
 
+    uint16_t orientation = aFlags & TEXT_ORIENT_MASK;
+    if (orientation == TEXT_ORIENT_VERTICAL_MIXED) {
+        orientation = TEXT_ORIENT_VERTICAL_UPRIGHT;
+    }
+
     gfxFont *font = GetFontAt(0);
     if (MOZ_UNLIKELY(GetStyle()->size == 0)) {
         
         
         
-        textRun->AddGlyphRun(font, gfxTextRange::kFontGroup, 0, false);
+        textRun->AddGlyphRun(font, gfxTextRange::kFontGroup, 0, false,
+                             orientation);
     }
     else {
         if (font->GetSpaceGlyph()) {
             
             
-            textRun->SetSpaceGlyph(font, aParams->mContext, 0);
+            textRun->SetSpaceGlyph(font, aParams->mContext, 0, orientation);
         } else {
             
             
@@ -1817,7 +1838,8 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags)
             nsRefPtr<gfxFont> spaceFont =
                 FindFontForChar(' ', 0, MOZ_SCRIPT_LATIN, nullptr, &matchType);
             if (spaceFont) {
-                textRun->SetSpaceGlyph(spaceFont, aParams->mContext, 0);
+                textRun->SetSpaceGlyph(spaceFont, aParams->mContext, 0,
+                                       orientation);
             }
         }
     }
@@ -1838,7 +1860,12 @@ gfxFontGroup::MakeBlankTextRun(uint32_t aLength,
         return nullptr;
     }
 
-    textRun->AddGlyphRun(GetFontAt(0), gfxTextRange::kFontGroup, 0, false);
+    uint16_t orientation = aFlags & TEXT_ORIENT_MASK;
+    if (orientation == TEXT_ORIENT_VERTICAL_MIXED) {
+        orientation = TEXT_ORIENT_VERTICAL_UPRIGHT;
+    }
+    textRun->AddGlyphRun(GetFontAt(0), gfxTextRange::kFontGroup, 0, false,
+                         orientation);
     return textRun;
 }
 
@@ -2124,7 +2151,8 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
 
     uint32_t runStart = 0;
     nsAutoTArray<gfxTextRange,3> fontRanges;
-    ComputeRanges(fontRanges, aString, aLength, aRunScript);
+    ComputeRanges(fontRanges, aString, aLength, aRunScript,
+                  aTextRun->GetFlags() & gfxTextRunFactory::TEXT_ORIENT_MASK);
     uint32_t numRanges = fontRanges.Length();
 
     for (uint32_t r = 0; r < numRanges; r++) {
@@ -2137,7 +2165,8 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
             
             
             aTextRun->AddGlyphRun(matchedFont, range.matchType,
-                                  aOffset + runStart, (matchedLength > 0));
+                                  aOffset + runStart, (matchedLength > 0),
+                                  range.orientation);
             if (!matchedFont->SplitAndInitTextRun(aContext, aTextRun,
                                                   aString + runStart,
                                                   aOffset + runStart,
@@ -2175,7 +2204,8 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                 nsRefPtr<gfxFont> subSuperFont =
                     matchedFont->GetSubSuperscriptFont(aTextRun->GetAppUnitsPerDevUnit());
                 aTextRun->AddGlyphRun(subSuperFont, range.matchType,
-                                      aOffset + runStart, (matchedLength > 0));
+                                      aOffset + runStart, (matchedLength > 0),
+                                      range.orientation);
                 if (!subSuperFont->SplitAndInitTextRun(aContext, aTextRun,
                                                        aString + runStart,
                                                        aOffset + runStart,
@@ -2197,6 +2227,7 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                                                        aOffset + runStart,
                                                        matchedLength,
                                                        range.matchType,
+                                                       range.orientation,
                                                        aRunScript,
                                                        syntheticLower,
                                                        syntheticUpper)) {
@@ -2217,7 +2248,8 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
 
                 
                 aTextRun->AddGlyphRun(matchedFont, range.matchType,
-                                      aOffset + runStart, (matchedLength > 0));
+                                      aOffset + runStart, (matchedLength > 0),
+                                      range.orientation);
                 if (!matchedFont->SplitAndInitTextRun(aContext, aTextRun,
                                                       aString + runStart,
                                                       aOffset + runStart,
@@ -2229,7 +2261,8 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
             }
         } else {
             aTextRun->AddGlyphRun(mainFont, gfxTextRange::kFontGroup,
-                                  aOffset + runStart, (matchedLength > 0));
+                                  aOffset + runStart, (matchedLength > 0),
+                                  range.orientation);
         }
 
         if (!matchedFont) {
@@ -2483,7 +2516,7 @@ gfxFontGroup::FindFontForChar(uint32_t aCh, uint32_t aPrevCh,
 template<typename T>
 void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
                                  const T *aString, uint32_t aLength,
-                                 int32_t aRunScript)
+                                 int32_t aRunScript, uint16_t aOrientation)
 {
     NS_ASSERTION(aRanges.Length() == 0, "aRanges must be initially empty");
     NS_ASSERTION(aLength > 0, "don't call ComputeRanges for zero-length text");
@@ -2536,19 +2569,36 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
 
         prevCh = ch;
 
+        uint16_t orient = aOrientation;
+        if (aOrientation == gfxTextRunFactory::TEXT_ORIENT_VERTICAL_MIXED) {
+            
+            
+            switch (GetVerticalOrientation(ch)) {
+            case VERTICAL_ORIENTATION_U:
+            case VERTICAL_ORIENTATION_Tr:
+            case VERTICAL_ORIENTATION_Tu:
+                orient = TEXT_ORIENT_VERTICAL_UPRIGHT;
+                break;
+            case VERTICAL_ORIENTATION_R:
+                orient = TEXT_ORIENT_VERTICAL_SIDEWAYS_RIGHT;
+                break;
+            }
+        }
+
         if (lastRangeIndex == -1) {
             
-            aRanges.AppendElement(gfxTextRange(0, 1, font, matchType));
+            aRanges.AppendElement(gfxTextRange(0, 1, font, matchType, orient));
             lastRangeIndex++;
             prevFont = font;
         } else {
             
             gfxTextRange& prevRange = aRanges[lastRangeIndex];
-            if (prevRange.font != font || prevRange.matchType != matchType) {
+            if (prevRange.font != font || prevRange.matchType != matchType ||
+                prevRange.orientation != orient) {
                 
                 prevRange.end = origI;
                 aRanges.AppendElement(gfxTextRange(origI, i + 1,
-                                                   font, matchType));
+                                                   font, matchType, orient));
                 lastRangeIndex++;
 
                 
