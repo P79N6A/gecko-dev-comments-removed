@@ -335,14 +335,3 @@
     -moz-appearance: -moz-win-browsertabbar-toolbox;
   }
 }
-
-
-@media not all and (-moz-os-version: windows-vista) {
-  @media not all and (-moz-os-version: windows-win7) {
-    
-    #nav-bar .toolbarbutton-1[buttonover] > .toolbarbutton-menubutton-button:hover > .toolbarbutton-icon {
-      background-color: hsla(210,4%,10%,.08);
-      border-color: hsla(210,4%,10%,.1);
-    }
-  }
-}
