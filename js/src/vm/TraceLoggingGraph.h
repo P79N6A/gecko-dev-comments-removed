@@ -202,6 +202,11 @@ class TraceLoggerGraph
     
     void log(ContinuousSpace<EventEntry> &events);
 
+    static size_t treeSizeFlushLimit() {
+        
+        return 100 * 1024 * 1024 / sizeof(TreeEntry);
+    }
+
   private:
     bool failed;
     bool enabled;
