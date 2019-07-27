@@ -902,17 +902,13 @@ TransformDisplacement(APZCTreeManager* aTreeManager,
                       AsyncPanZoomController* aTarget,
                       ScreenPoint& aStartPoint,
                       ScreenPoint& aEndPoint) {
-  Matrix4x4 transformToApzc;
-
   
-  transformToApzc = aTreeManager->GetScreenToApzcTransform(aSource);
-  Matrix4x4 untransformToApzc = transformToApzc;
-  untransformToApzc.Invert();
+  Matrix4x4 untransformToApzc = aTreeManager->GetScreenToApzcTransform(aSource).Inverse();
   ApplyTransform(&aStartPoint, untransformToApzc);
   ApplyTransform(&aEndPoint, untransformToApzc);
 
   
-  transformToApzc = aTreeManager->GetScreenToApzcTransform(aTarget);
+  Matrix4x4 transformToApzc = aTreeManager->GetScreenToApzcTransform(aTarget);
   ApplyTransform(&aStartPoint, transformToApzc);
   ApplyTransform(&aEndPoint, transformToApzc);
 }
@@ -1192,8 +1188,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   
   
   
-  Matrix4x4 ancestorUntransform = aApzc->GetAncestorTransform();
-  ancestorUntransform.Invert();
+  Matrix4x4 ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
 
   
   
@@ -1207,9 +1202,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc,
   
   
   
-  Matrix4x4 asyncUntransform = aApzc->GetCurrentAsyncTransform();
-  asyncUntransform.Invert();
-  Matrix4x4 childUntransform = ancestorUntransform * asyncUntransform;
+  Matrix4x4 childUntransform = ancestorUntransform * Matrix4x4(aApzc->GetCurrentAsyncTransform()).Inverse();
   Point4D hitTestPointForChildLayers = childUntransform.ProjectPoint(aHitTestPoint);
   APZCTM_LOG("Untransformed %f %f to layer coordinates %f %f for APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
@@ -1356,19 +1349,16 @@ APZCTreeManager::GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) c
   
 
   
-  Matrix4x4 ancestorUntransform = aApzc->GetAncestorTransform();
-  ancestorUntransform.Invert();
+  Matrix4x4 ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
 
   
   result = ancestorUntransform;
 
   for (AsyncPanZoomController* parent = aApzc->GetParent(); parent; parent = parent->GetParent()) {
     
-    ancestorUntransform = parent->GetAncestorTransform();
-    ancestorUntransform.Invert();
+    ancestorUntransform = parent->GetAncestorTransform().Inverse();
     
-    Matrix4x4 asyncUntransform = parent->GetCurrentAsyncTransform();
-    asyncUntransform.Invert();
+    Matrix4x4 asyncUntransform = Matrix4x4(parent->GetCurrentAsyncTransform()).Inverse();
     
     Matrix4x4 untransformSinceLastApzc = ancestorUntransform * asyncUntransform;
 
@@ -1400,8 +1390,7 @@ APZCTreeManager::GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) co
   
 
   
-  Matrix4x4 asyncUntransform = aApzc->GetCurrentAsyncTransform();
-  asyncUntransform.Invert();
+  Matrix4x4 asyncUntransform = Matrix4x4(aApzc->GetCurrentAsyncTransform()).Inverse();
 
   
   result = asyncUntransform * aApzc->GetTransformToLastDispatchedPaint() * aApzc->GetAncestorTransform();

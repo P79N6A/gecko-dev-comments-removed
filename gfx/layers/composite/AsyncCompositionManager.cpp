@@ -308,8 +308,7 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   if (newCumulativeTransform.IsSingular()) {
     return;
   }
-  Matrix newCumulativeTransformInverse = newCumulativeTransform;
-  newCumulativeTransformInverse.Invert();
+  Matrix newCumulativeTransformInverse = newCumulativeTransform.Inverse();
 
   
   
@@ -699,9 +698,7 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
 
   Matrix4x4 asyncTransform = apzc->GetCurrentAsyncTransform();
   Matrix4x4 nontransientTransform = apzc->GetNontransientAsyncTransform();
-  Matrix4x4 nontransientUntransform = nontransientTransform;
-  nontransientUntransform.Invert();
-  Matrix4x4 transientTransform = asyncTransform * nontransientUntransform;
+  Matrix4x4 transientTransform = asyncTransform * nontransientTransform.Inverse();
 
   
   
@@ -736,15 +733,15 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
     
     
     
-    transientTransform.Invert();
-    transform = transform * transientTransform;
+    Matrix4x4 transientUntransform = transientTransform.Inverse();
+    transform = transform * transientUntransform;
 
     
     
     
     
     for (Layer* ancestor = aScrollbar; ancestor != aContent.GetLayer(); ancestor = ancestor->GetParent()) {
-      TransformClipRect(ancestor, transientTransform);
+      TransformClipRect(ancestor, transientUntransform);
     }
   }
 
