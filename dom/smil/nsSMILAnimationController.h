@@ -44,7 +44,7 @@ class nsSMILAnimationController : public nsSMILTimeContainer,
                                   public nsARefreshObserver
 {
 public:
-  nsSMILAnimationController(nsIDocument* aDoc);
+  explicit nsSMILAnimationController(nsIDocument* aDoc);
 
   
   void Disconnect();

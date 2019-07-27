@@ -19,7 +19,7 @@ class Date
 public:
   
   Date();
-  Date(double aMilliseconds)
+  explicit Date(double aMilliseconds)
     : mMsecSinceEpoch(aMilliseconds)
   {}
 

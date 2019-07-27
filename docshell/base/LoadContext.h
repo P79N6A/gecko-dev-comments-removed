@@ -92,7 +92,7 @@ public:
   {}
 
   
-  LoadContext(uint32_t aAppId)
+  explicit LoadContext(uint32_t aAppId)
     : mTopFrameElement(nullptr)
     , mNestedFrameId(0)
     , mAppId(aAppId)
