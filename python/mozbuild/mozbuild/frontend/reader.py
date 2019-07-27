@@ -800,7 +800,7 @@ class BuildReader(object):
             self._sandbox_post_eval_cb(sandbox)
 
         
-        dir_vars = ['DIRS', 'PARALLEL_DIRS']
+        dir_vars = ['DIRS']
 
         if sandbox.config.substs.get('ENABLE_TESTS', False) == '1':
             dir_vars.append('TEST_DIRS')
@@ -839,12 +839,6 @@ class BuildReader(object):
                 gyp_sandbox.update(gyp_dir.sandbox_vars)
                 gyp_sandboxes.append(gyp_sandbox)
 
-        
-        
-        
-        
-        
-        
         for gyp_sandbox in gyp_sandboxes:
             if self._sandbox_post_eval_cb:
                 self._sandbox_post_eval_cb(gyp_sandbox)
