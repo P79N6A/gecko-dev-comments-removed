@@ -224,16 +224,21 @@ jit::ExceptionHandlerBailout(JSContext* cx, const InlineFrameIterator& frame,
         
         
         
-        
         MOZ_ASSERT(!bailoutInfo);
 
-        if (!excInfo.propagatingIonExceptionForDebugMode())
-            cx->clearPendingException();
-
-        if (retval == BAILOUT_RETURN_OVERRECURSED)
+        if (retval == BAILOUT_RETURN_OVERRECURSED) {
             *overrecursed = true;
-        else
+            if (!excInfo.propagatingIonExceptionForDebugMode())
+                cx->clearPendingException();
+        } else {
             MOZ_ASSERT(retval == BAILOUT_RETURN_FATAL_ERROR);
+
+            
+            
+            if (cx->isThrowingOutOfMemory())
+                CrashAtUnhandlableOOM("ExceptionHandlerBailout");
+            MOZ_CRASH();
+        }
     }
 
     
