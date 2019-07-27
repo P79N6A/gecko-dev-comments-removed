@@ -1065,13 +1065,13 @@ public:
       return rv;
     }
     
-    size_t length;
+    uint16_t length;
     rv = UnpackPDU(pdu, length);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
-    rv = UnpackPDU(pdu, aArg3);
+    rv = UnpackPDU(pdu, UnpackArray<uint8_t>(aArg3.mAdvData, length));
     if (NS_FAILED(rv)) {
       return rv;
     }
