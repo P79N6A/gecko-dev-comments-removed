@@ -2,6 +2,8 @@
 
 
 
+
+
 #include "nsChannelClassifier.h"
 
 #include "mozIThirdPartyUtil.h"
@@ -16,6 +18,7 @@
 #include "nsIDOMWindow.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIIOService.h"
+#include "nsIParentChannel.h"
 #include "nsIPermissionManager.h"
 #include "nsIProtocolHandler.h"
 #include "nsIScriptError.h"
@@ -24,6 +27,7 @@
 #include "nsISecurityEventSink.h"
 #include "nsIWebProgressListener.h"
 #include "nsPIDOMWindow.h"
+#include "nsXULAppAPI.h"
 
 #include "mozilla/Preferences.h"
 
@@ -57,6 +61,9 @@ nsresult
 nsChannelClassifier::ShouldEnableTrackingProtection(nsIChannel *aChannel,
                                                     bool *result)
 {
+    
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
     NS_ENSURE_ARG(result);
     *result = false;
 
@@ -149,6 +156,28 @@ nsChannelClassifier::ShouldEnableTrackingProtection(nsIChannel *aChannel,
     
     
     
+    return NotifyTrackingProtectionDisabled(aChannel);
+}
+
+
+nsresult
+nsChannelClassifier::NotifyTrackingProtectionDisabled(nsIChannel *aChannel)
+{
+    
+    nsCOMPtr<nsIParentChannel> parentChannel;
+    NS_QueryNotificationCallbacks(aChannel, parentChannel);
+    if (parentChannel) {
+      
+      
+      parentChannel->NotifyTrackingProtectionDisabled();
+      return NS_OK;
+    }
+
+    nsresult rv;
+    nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
+        do_GetService(THIRDPARTYUTIL_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     nsCOMPtr<nsIDOMWindow> win;
     rv = thirdPartyUtil->GetTopWindowForChannel(aChannel, getter_AddRefs(win));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -183,6 +212,9 @@ nsChannelClassifier::ShouldEnableTrackingProtection(nsIChannel *aChannel,
 nsresult
 nsChannelClassifier::Start(nsIChannel *aChannel)
 {
+    
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
     
     
     nsresult status;
@@ -279,6 +311,9 @@ void
 nsChannelClassifier::MarkEntryClassified(nsresult status)
 {
     
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
+    
     if (status == NS_ERROR_TRACKING_URI || mIsAllowListed) {
         return;
     }
@@ -308,6 +343,9 @@ nsChannelClassifier::MarkEntryClassified(nsresult status)
 bool
 nsChannelClassifier::HasBeenClassified(nsIChannel *aChannel)
 {
+    
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
     nsCOMPtr<nsICachingChannel> cachingChannel =
         do_QueryInterface(aChannel);
     if (!cachingChannel) {
@@ -338,16 +376,26 @@ nsChannelClassifier::HasBeenClassified(nsIChannel *aChannel)
     return tag.EqualsLiteral("1");
 }
 
+
 nsresult
 nsChannelClassifier::SetBlockedTrackingContent(nsIChannel *channel)
 {
+  
+  nsCOMPtr<nsIParentChannel> parentChannel;
+  NS_QueryNotificationCallbacks(channel, parentChannel);
+  if (parentChannel) {
+    
+    
+    
+    return NS_OK;
+  }
+
   nsresult rv;
   nsCOMPtr<nsIDOMWindow> win;
   nsCOMPtr<mozIThirdPartyUtil> thirdPartyUtil =
     do_GetService(THIRDPARTYUTIL_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, NS_OK);
-  rv = thirdPartyUtil->GetTopWindowForChannel(
-    mSuspendedChannel, getter_AddRefs(win));
+  rv = thirdPartyUtil->GetTopWindowForChannel(channel, getter_AddRefs(win));
   NS_ENSURE_SUCCESS(rv, NS_OK);
   nsCOMPtr<nsPIDOMWindow> pwin = do_QueryInterface(win, &rv);
   NS_ENSURE_SUCCESS(rv, NS_OK);
@@ -393,6 +441,9 @@ nsChannelClassifier::SetBlockedTrackingContent(nsIChannel *channel)
 NS_IMETHODIMP
 nsChannelClassifier::OnClassifyComplete(nsresult aErrorCode)
 {
+    
+    MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+
     if (mSuspendedChannel) {
         MarkEntryClassified(aErrorCode);
 

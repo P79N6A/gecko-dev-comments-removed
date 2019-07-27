@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsBaseChannel.h"
 #include "nsURLHelper.h"
 #include "nsNetUtil.h"
@@ -14,6 +15,7 @@
 #include "nsChannelClassifier.h"
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "nsProxyRelease.h"
+#include "nsXULAppAPI.h"
 
 static PLDHashOperator
 CopyProperties(const nsAString &key, nsIVariant *data, void *closure)
@@ -281,6 +283,12 @@ nsBaseChannel::ContinueHandleAsyncRedirect(nsresult result)
 void
 nsBaseChannel::ClassifyURI()
 {
+  
+  
+  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    return;
+  }
+
   nsresult rv;
 
   if (mLoadFlags & LOAD_CLASSIFY_URI) {

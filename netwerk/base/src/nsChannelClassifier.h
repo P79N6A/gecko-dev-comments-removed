@@ -32,9 +32,12 @@ private:
     bool HasBeenClassified(nsIChannel *aChannel);
     
     nsresult ShouldEnableTrackingProtection(nsIChannel *aChannel, bool *result);
+
+public:
     
     
-    nsresult SetBlockedTrackingContent(nsIChannel *channel);
+    static nsresult SetBlockedTrackingContent(nsIChannel *channel);
+    static nsresult NotifyTrackingProtectionDisabled(nsIChannel *aChannel);
 };
 
 #endif
