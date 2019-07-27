@@ -38,6 +38,7 @@
 #include "EventTokenBucket.h"
 #include "Tickler.h"
 #include "nsIXULAppInfo.h"
+#include "nsICacheSession.h"
 #include "nsICookieService.h"
 #include "nsIObserverService.h"
 #include "nsISiteSecurityService.h"
@@ -193,6 +194,7 @@ nsHttpHandler::nsHttpHandler()
     , mSpdyPingThreshold(PR_SecondsToInterval(58))
     , mSpdyPingTimeout(PR_SecondsToInterval(8))
     , mConnectTimeout(90000)
+    , mBypassCacheLockThreshold(250.0)
     , mParallelSpeculativeConnectLimit(6)
     , mRequestTokenBucketEnabled(true)
     , mRequestTokenBucketMinParallelism(6)
@@ -1242,6 +1244,16 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
 
     
     
+    if (PREF_CHANGED(HTTP_PREF("bypass-cachelock-threshold"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("bypass-cachelock-threshold"), &val);
+        if (NS_SUCCEEDED(rv))
+            
+            mBypassCacheLockThreshold =
+                static_cast<double>(clamped(val, 0, 0x7ffffff));
+    }
+
+    
+    
     if (PREF_CHANGED(HTTP_PREF("speculative-parallel-limit"))) {
         rv = prefs->GetIntPref(HTTP_PREF("speculative-parallel-limit"), &val);
         if (NS_SUCCEEDED(rv))
@@ -1760,6 +1772,35 @@ nsHttpHandler::GetMisc(nsACString &value)
 {
     value = mMisc;
     return NS_OK;
+}
+
+ void
+nsHttpHandler::GetCacheSessionNameForStoragePolicy(
+        nsCacheStoragePolicy storagePolicy,
+        bool isPrivate,
+        uint32_t appId,
+        bool inBrowser,
+        nsACString& sessionName)
+{
+    MOZ_ASSERT(!isPrivate || storagePolicy == nsICache::STORE_IN_MEMORY);
+
+    switch (storagePolicy) {
+        case nsICache::STORE_IN_MEMORY:
+            sessionName.AssignASCII(isPrivate ? "HTTP-memory-only-PB" : "HTTP-memory-only");
+            break;
+        case nsICache::STORE_OFFLINE:
+            sessionName.AssignLiteral("HTTP-offline");
+            break;
+        default:
+            sessionName.AssignLiteral("HTTP");
+            break;
+    }
+    if (appId != NECKO_NO_APP_ID || inBrowser) {
+        sessionName.Append('~');
+        sessionName.AppendInt(appId);
+        sessionName.Append('~');
+        sessionName.AppendInt(inBrowser);
+    }
 }
 
 
