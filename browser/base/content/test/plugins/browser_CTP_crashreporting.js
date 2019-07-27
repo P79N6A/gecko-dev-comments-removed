@@ -11,72 +11,6 @@ var gTestBrowser = null;
 
 
 
-
-
-
-
-
-
-function frameScript() {
-  function fail(reason) {
-    sendAsyncMessage("test:crash-plugin:fail", {
-      reason: `Failure from frameScript: ${reason}`,
-    });
-  }
-
-  addMessageListener("test:crash-plugin", () => {
-    let doc = content.document;
-
-    addEventListener("PluginCrashed", (event) => {
-      let plugin = doc.getElementById("test");
-      if (!plugin) {
-        fail("Could not find plugin element");
-        return;
-      }
-
-      let getUI = (anonid) => {
-        return doc.getAnonymousElementByAttribute(plugin, "anonid", anonid);
-      };
-
-      let style = content.getComputedStyle(getUI("pleaseSubmit"));
-      if (style.display != "block") {
-        fail("Submission UI visibility is not correct. Expected block, "
-             + " got " + style.display);
-        return;
-      }
-
-      getUI("submitComment").value = "a test comment";
-      if (!getUI("submitURLOptIn").checked) {
-        fail("URL opt-in should default to true.");
-        return;
-      }
-
-      getUI("submitURLOptIn").click();
-      getUI("submitButton").click();
-    });
-
-    let plugin = doc.getElementById("test");
-    try {
-      plugin.crash()
-    } catch(e) {
-    }
-  });
-
-  addMessageListener("test:plugin-submit-status", () => {
-    let doc = content.document;
-    let plugin = doc.getElementById("test");
-    let submitStatusEl =
-      doc.getAnonymousElementByAttribute(plugin, "anonid", "submitStatus");
-    let submitStatus = submitStatusEl.getAttribute("status");
-    sendAsyncMessage("test:plugin-submit-status:result", {
-      submitStatus: submitStatus,
-    });
-  });
-}
-
-
-
-
 function test() {
   
   requestLongerTimeout(2);
@@ -97,18 +31,14 @@ function test() {
 
   let tab = gBrowser.loadOneTab("about:blank", { inBackground: false });
   gTestBrowser = gBrowser.getBrowserForTab(tab);
-  let mm = gTestBrowser.messageManager;
-  mm.loadFrameScript("data:,(" + frameScript.toString() + ")();", false);
-  mm.addMessageListener("test:crash-plugin:fail", (message) => {
-    ok(false, message.data.reason);
-  });
-
+  gTestBrowser.addEventListener("PluginCrashed", onCrash, false);
   gTestBrowser.addEventListener("load", onPageLoad, true);
   Services.obs.addObserver(onSubmitStatus, "crash-report-status", false);
 
   registerCleanupFunction(function cleanUp() {
     env.set("MOZ_CRASHREPORTER_NO_REPORT", noReport);
     env.set("MOZ_CRASHREPORTER_URL", serverURL);
+    gTestBrowser.removeEventListener("PluginCrashed", onCrash, false);
     gTestBrowser.removeEventListener("load", onPageLoad, true);
     Services.obs.removeObserver(onSubmitStatus, "crash-report-status");
     gBrowser.removeCurrentTab();
@@ -140,8 +70,31 @@ function afterBindingAttached() {
 }
 
 function pluginActivated() {
-  let mm = gTestBrowser.messageManager;
-  mm.sendAsyncMessage("test:crash-plugin");
+  let plugin = gTestBrowser.contentDocument.getElementById("test");
+  try {
+    plugin.crash();
+  } catch (e) {
+    
+  }
+}
+
+function onCrash() {
+  try {
+    let plugin = gBrowser.contentDocument.getElementById("test");
+    let elt = gPluginHandler.getPluginUI.bind(gPluginHandler, plugin);
+    let style =
+      gBrowser.contentWindow.getComputedStyle(elt("pleaseSubmit"));
+    is(style.display, "block", "Submission UI visibility should be correct");
+
+    elt("submitComment").value = "a test comment";
+    is(elt("submitURLOptIn").checked, true, "URL opt-in should default to true");
+    EventUtils.synthesizeMouseAtCenter(elt("submitURLOptIn"), {}, gTestBrowser.contentWindow);
+    EventUtils.synthesizeMouseAtCenter(elt("submitButton"), {}, gTestBrowser.contentWindow);
+    
+  }
+  catch (err) {
+    failWithException(err);
+  }
 }
 
 function onSubmitStatus(subj, topic, data) {
@@ -175,23 +128,19 @@ function onSubmitStatus(subj, topic, data) {
     ok(val === undefined,
        "URL should be absent from extra data when opt-in not checked");
 
-    let submitStatus = null;
-    let mm = gTestBrowser.messageManager;
-    mm.addMessageListener("test:plugin-submit-status:result", (message) => {
-      submitStatus = message.data.submitStatus;
+    
+    
+    executeSoon(function () {
+      let plugin = gBrowser.contentDocument.getElementById("test");
+      let elt = gPluginHandler.getPluginUI.bind(gPluginHandler, plugin);
+      is(elt("submitStatus").getAttribute("status"), data,
+         "submitStatus data should match");
     });
-
-    mm.sendAsyncMessage("test:plugin-submit-status");
-
-    let condition = () => submitStatus;
-    waitForCondition(condition, () => {
-      is(submitStatus, data, "submitStatus data should match");
-      finish();
-    }, "Waiting for submitStatus to be reported from frame script");
   }
   catch (err) {
     failWithException(err);
   }
+  finish();
 }
 
 function getPropertyBagValue(bag, key) {
