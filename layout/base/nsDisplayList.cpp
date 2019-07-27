@@ -4619,11 +4619,30 @@ nsDisplayScrollInfoLayer::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
   return nsDisplayWrapList::GetBounds(aBuilder, aSnap);
 }
 
+already_AddRefed<Layer>
+nsDisplayScrollInfoLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
+                                     LayerManager* aManager,
+                                     const ContainerLayerParameters& aContainerParameters)
+{
+  
+  
+  
+  
+  if (gfxPrefs::LayoutEventRegionsEnabled()) {
+    return nullptr;
+  }
+  return nsDisplayScrollLayer::BuildLayer(aBuilder, aManager, aContainerParameters);
+}
+
 LayerState
 nsDisplayScrollInfoLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
                                         LayerManager* aManager,
                                         const ContainerLayerParameters& aParameters)
 {
+  
+  if (gfxPrefs::LayoutEventRegionsEnabled()) {
+    return LAYER_NONE;
+  }
   return LAYER_ACTIVE_EMPTY;
 }
 
