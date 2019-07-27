@@ -1432,7 +1432,9 @@ pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 
 pref("devtools.profiler.enabled", true);
-#ifdef MOZ_DEV_EDITION
+
+
+#ifdef NIGHTLY_BUILD
 pref("devtools.timeline.enabled", true);
 #else
 pref("devtools.timeline.enabled", false);
