@@ -367,6 +367,11 @@ class MochitestServer(object):
         
         env["ASAN_OPTIONS"] = "quarantine_size=1:redzone=32:malloc_context_size=5"
 
+        
+        
+        
+        env["TSAN_OPTIONS"] = "report_bugs=0"
+
         if mozinfo.isWin:
             env["PATH"] = env["PATH"] + ";" + str(self._xrePath)
 
@@ -1281,6 +1286,9 @@ class Mochitest(MochitestUtilsMixin):
         if mozinfo.info["asan"]:
             
             toolsEnv["ASAN_OPTIONS"] = "detect_leaks=0"
+        if mozinfo.info["tsan"]:
+            
+            toolsEnv["TSAN_OPTIONS"] = "report_bugs=0"
 
         if self.certdbNew:
             
