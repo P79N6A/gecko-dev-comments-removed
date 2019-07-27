@@ -3345,6 +3345,9 @@ GCRuntime::expireChunksAndArenas(bool shouldShrink, AutoLockGC &lock)
 void
 GCRuntime::sweepBackgroundThings(ZoneList &zones, ThreadType threadType)
 {
+    if (zones.isEmpty())
+        return;
+
     
     ArenaHeader *emptyArenas = nullptr;
     FreeOp fop(rt, threadType);
@@ -5096,12 +5099,13 @@ GCRuntime::endSweepingZoneGroup()
     }
 
     
-    if (sweepOnBackgroundThread) {
-        ZoneList zones;
-        for (GCZoneGroupIter zone(rt); !zone.done(); zone.next())
-            zones.append(zone);
+    ZoneList zones;
+    for (GCZoneGroupIter zone(rt); !zone.done(); zone.next())
+        zones.append(zone);
+    if (sweepOnBackgroundThread)
         queueZonesForBackgroundSweep(zones);
-    }
+    else
+        sweepBackgroundThings(zones, MainThread);
 
     
     while (ArenaHeader *arena = arenasAllocatedDuringSweep) {
@@ -5405,12 +5409,6 @@ GCRuntime::endSweepPhase(bool lastGC)
     
     if (!sweepOnBackgroundThread) {
         gcstats::AutoPhase ap(stats, gcstats::PHASE_DESTROY);
-
-        ZoneList zones;
-        for (GCZonesIter zone(rt); !zone.done(); zone.next())
-            zones.append(zone);
-        if (!zones.isEmpty())
-            sweepBackgroundThings(zones, MainThread);
 
         
 
