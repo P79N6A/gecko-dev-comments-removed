@@ -73,6 +73,10 @@ RILSystemMessengerHelper.prototype = {
                                    aDuration, aOutgoing, aHangUpLocal);
   },
 
+  notifyUssdReceived: function(aServiceId, aMessage, aSessionEnded) {
+    this.messenger.notifyUssdReceived(aServiceId, aMessage, aSessionEnded);
+  },
+
   
 
 
@@ -99,10 +103,6 @@ RILSystemMessengerHelper.prototype = {
 
   
 
-
-  notifyUssdReceived: function(aServiceId, aMessage, aSessionEnded) {
-    this.messenger.notifyUssdReceived(aServiceId, aMessage, aSessionEnded);
-  },
 
   notifyCdmaInfoRecDisplay: function(aServiceId, aDisplay) {
     this.messenger.notifyCdmaInfoRecDisplay(aServiceId, aDisplay);
