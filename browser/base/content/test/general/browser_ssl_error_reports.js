@@ -20,11 +20,12 @@ add_task(function* test_send_report_manual_nocert() {
 
 
 function createNetworkErrorMessagePromise(aBrowser) {
-  return new Promise(function(resolve, reject) {
+  let progressListener;
+  let promise = new Promise(function(resolve, reject) {
     
     let originalDocumentURI = aBrowser.contentDocument.documentURI;
 
-    let progressListener = {
+    progressListener = {
       onLocationChange: function(aWebProgress, aRequest, aLocation, aFlags) {
         
         if (!(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE)) {
@@ -65,7 +66,16 @@ function createNetworkErrorMessagePromise(aBrowser) {
             Ci.nsIWebProgress.NOTIFY_LOCATION |
             Ci.nsIWebProgress.NOTIFY_STATE_REQUEST);
   });
+
+  
+  createNetworkErrorMessagePromise.listeners.set(promise, progressListener);
+
+  return promise;
 }
+
+
+
+createNetworkErrorMessagePromise.listeners = new WeakMap();
 
 
 add_task(function* test_set_automatic() {
