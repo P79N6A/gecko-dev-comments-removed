@@ -3278,15 +3278,6 @@ JS_DefineProperties(JSContext *cx, HandleObject obj, const JSPropertySpec *ps)
             
             JS_ASSERT(!ps->getter.propertyOp.op && !ps->setter.propertyOp.op);
             JS_ASSERT(ps->flags & JSPROP_GETTER);
-            
-
-
-
-
-
-
-            if (cx->runtime()->isSelfHostingGlobal(cx->global()))
-                continue;
 
             ok = DefineSelfHostedProperty(cx, obj, ps->name,
                                           ps->getter.selfHosted.funname,
@@ -4129,15 +4120,6 @@ JS_DefineFunctions(JSContext *cx, HandleObject obj, const JSFunctionSpec *fs)
         if (fs->selfHostedName) {
             JS_ASSERT(!fs->call.op);
             JS_ASSERT(!fs->call.info);
-            
-
-
-
-
-
-
-            if (cx->runtime()->isSelfHostingGlobal(cx->global()))
-                continue;
 
             RootedAtom shName(cx, Atomize(cx, fs->selfHostedName, strlen(fs->selfHostedName)));
             if (!shName)

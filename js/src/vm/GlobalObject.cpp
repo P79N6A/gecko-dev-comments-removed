@@ -284,6 +284,57 @@ GlobalObject::initStandardClasses(JSContext *cx, Handle<GlobalObject*> global)
     return true;
 }
 
+
+
+
+
+
+
+
+static bool
+InitBareBuiltinCtor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey protoKey)
+{
+    MOZ_ASSERT(cx->runtime()->isSelfHostingGlobal(global));
+    const Class *clasp = ProtoKeyToClass(protoKey);
+    RootedObject proto(cx);
+    proto = clasp->spec.createPrototype(cx, protoKey);
+    if (!proto)
+        return false;
+
+    RootedObject ctor(cx, clasp->spec.createConstructor(cx, protoKey));
+    if (!ctor)
+        return false;
+
+    return GlobalObject::initBuiltinConstructor(cx, global, protoKey, ctor, proto);
+}
+
+
+
+
+
+
+ bool
+GlobalObject::initSelfHostingBuiltins(JSContext *cx, Handle<GlobalObject*> global,
+                                      const JSFunctionSpec *builtins)
+{
+    
+    if (!JSObject::defineProperty(cx, global, cx->names().undefined, UndefinedHandleValue,
+                                  JS_PropertyStub, JS_StrictPropertyStub,
+                                  JSPROP_PERMANENT | JSPROP_READONLY))
+    {
+        return false;
+    }
+
+    return InitBareBuiltinCtor(cx, global, JSProto_Array) &&
+           InitBareBuiltinCtor(cx, global, JSProto_TypedArray) &&
+           InitBareBuiltinCtor(cx, global, JSProto_Uint8Array) &&
+           InitBareBuiltinCtor(cx, global, JSProto_Uint32Array) &&
+           InitBareWeakMapCtor(cx, global) &&
+           initStopIterationClass(cx, global) &&
+           InitSelfHostingCollectionIteratorFunctions(cx, global) &&
+           JS_DefineFunctions(cx, global, builtins);
+}
+
  bool
 GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx, Handle<GlobalObject*> global)
 {

@@ -1582,8 +1582,8 @@ fun_isGenerator(JSContext *cx, unsigned argc, Value *vp)
 }
 
 
-static bool
-fun_bind(JSContext *cx, unsigned argc, Value *vp)
+bool
+js::fun_bind(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 

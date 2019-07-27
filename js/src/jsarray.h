@@ -179,6 +179,12 @@ ArrayShiftMoveElements(JSObject *obj);
 extern bool
 array_shift(JSContext *cx, unsigned argc, js::Value *vp);
 
+extern bool
+array_unshift(JSContext *cx, unsigned argc, js::Value *vp);
+
+extern bool
+array_slice(JSContext *cx, unsigned argc, js::Value *vp);
+
 
 
 
