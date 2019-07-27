@@ -1,41 +1,84 @@
 package org.mozilla.gecko;
 
-public class Assert
-{
+
+
+
+
+
+
+
+
+
+
+
+
+public class Assert {
+    
     private Assert() {}
 
-    public static void equals(Object a, Object b)
-    {
-        equals(a, b, null);
+    
+
+
+    public static void equal(Object a, Object b) {
+        equal(a, b, "Assertion failure: !" + a + ".equals(" + b + ')');
+    }
+    public static void equal(Object a, Object b, String message) {
+        isTrue(a.equals(b), message);
     }
 
-    public static void equals(Object a, Object b, String message)
-    {
-        Assert.isTrue(a.equals(b), message);
-    }
+    
 
-    public static void isTrue(boolean a)
-    {
+
+    public static void isTrue(boolean a) {
         isTrue(a, null);
     }
-
-    public static void isTrue(boolean a, String message)
-    {
-        if (!AppConstants.DEBUG_BUILD) {
-            return;
-        }
-
+    public static void isTrue(boolean a, String message)  {
         if (!a) {
-            throw new AssertException(message);
+            throw new AssertionError(message);
         }
     }
 
-    public static class AssertException extends RuntimeException
-    {
-        private static final long serialVersionUID = 0L;
+    
 
-        public AssertException(String message) {
-            super(message);
+
+    public static void isFalse(boolean a) {
+        isTrue(a, null);
+    }
+    public static void isFalse(boolean a, String message)  {
+        if (a) {
+            throw new AssertionError(message);
         }
+    }
+
+    
+
+
+    public static void isNull(Object o) {
+        isNull(o, "Assertion failure: " + o + " must be null!");
+    }
+    public static void isNull(Object o, String message) {
+        isTrue(o == null, message);
+    }
+
+    
+
+
+    public static void isNotNull(Object o) {
+        isNotNull(o, "Assertion failure: " + o + " cannot be null!");
+    }
+    public static void isNotNull(Object o, String message) {
+        isTrue(o != null, message);
+    }
+
+    
+
+
+
+
+    public static void fail() {
+        isTrue(false);
+    }
+    public static void fail(String message) {
+        isTrue(false, message);
     }
 }
