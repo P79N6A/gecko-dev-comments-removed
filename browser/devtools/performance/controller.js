@@ -23,6 +23,10 @@ devtools.lazyRequireGetter(this, "L10N",
   "devtools/profiler/global", true);
 devtools.lazyImporter(this, "LineGraphWidget",
   "resource:///modules/devtools/Graphs.jsm");
+devtools.lazyRequireGetter(this, "Waterfall",
+  "devtools/timeline/waterfall", true);
+devtools.lazyRequireGetter(this, "MarkerDetails",
+  "devtools/timeline/marker-details", true);
 devtools.lazyRequireGetter(this, "CallView",
   "devtools/profiler/tree-view", true);
 devtools.lazyRequireGetter(this, "ThreadNode",
@@ -48,7 +52,13 @@ const EVENTS = {
   OVERVIEW_RANGE_CLEARED: "Performance:UI:OverviewRangeCleared",
 
   
-  CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered"
+  DETAILS_VIEW_SELECTED: "Performance:UI:DetailsViewSelected",
+
+  
+  CALL_TREE_RENDERED: "Performance:UI:CallTreeRendered",
+
+  
+  WATERFALL_RENDERED: "Performance:UI:WaterfallRendered"
 };
 
 
@@ -112,6 +122,7 @@ let PerformanceController = {
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
     gFront.on("ticks", this._onTimelineData);
+    gFront.on("markers", this._onTimelineData);
   },
 
   
@@ -120,6 +131,8 @@ let PerformanceController = {
   destroy: function() {
     PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
+    gFront.off("ticks", this._onTimelineData);
+    gFront.off("markers", this._onTimelineData);
   },
 
   
@@ -127,8 +140,12 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    yield gFront.startRecording();
-    this.emit(EVENTS.RECORDING_STARTED);
+    
+    
+    this._localStartTime = performance.now();
+
+    let startTime = this._startTime = yield gFront.startRecording();
+    this.emit(EVENTS.RECORDING_STARTED, startTime);
   }),
 
   
@@ -137,6 +154,12 @@ let PerformanceController = {
 
   stopRecording: Task.async(function *() {
     let results = yield gFront.stopRecording();
+    
+    
+    if (!results.endTime) {
+      this._endTime = results.endTime = this._startTime + (performance.now() - this._localStartTime);
+    }
+
     this.emit(EVENTS.RECORDING_STOPPED, results);
   }),
 

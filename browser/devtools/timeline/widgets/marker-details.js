@@ -23,11 +23,13 @@ loader.lazyRequireGetter(this, "EventEmitter",
 
 
 
-function MarkerDetails(parent) {
+
+
+function MarkerDetails(parent, splitter) {
   EventEmitter.decorate(this);
   this._document = parent.ownerDocument;
   this._parent = parent;
-  this._splitter = this._document.querySelector("#timeline-waterfall-container > splitter");
+  this._splitter = splitter;
   this._splitter.addEventListener("mouseup", () => this.emit("resize"));
 }
 
@@ -35,6 +37,7 @@ MarkerDetails.prototype = {
   destroy: function() {
     this.empty();
     this._parent = null;
+    this._splitter = null;
   },
 
   

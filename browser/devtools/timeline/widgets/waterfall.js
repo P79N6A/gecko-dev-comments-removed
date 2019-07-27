@@ -49,10 +49,13 @@ const WATERFALL_ROWCOUNT_ONPAGEUPDOWN = 10;
 
 
 
-function Waterfall(parent) {
+
+
+function Waterfall(parent, container) {
   EventEmitter.decorate(this);
   this._parent = parent;
   this._document = parent.ownerDocument;
+  this._container = container;
   this._fragment = this._document.createDocumentFragment();
   this._outstandingMarkers = [];
 
@@ -78,9 +81,15 @@ function Waterfall(parent) {
   
   
   this._selectedRowIdx = 0;
+
+  
+  this.rowCount = WATERFALL_ROWCOUNT_ONPAGEUPDOWN;
 }
 
 Waterfall.prototype = {
+  destroy: function() {
+    this._parent = this._document = this._container = null;
+  },
   
 
 
@@ -110,7 +119,7 @@ Waterfall.prototype = {
 
 
   setupKeys: function() {
-    let pane = this._document.querySelector("#timeline-pane");
+    let pane = this._container;
     pane.parentNode.parentNode.addEventListener("keydown", e => {
       if (e.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_UP) {
         e.preventDefault();
@@ -130,11 +139,11 @@ Waterfall.prototype = {
       }
       if (e.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP) {
         e.preventDefault();
-        this.selectNearestRow(this._selectedRowIdx - WATERFALL_ROWCOUNT_ONPAGEUPDOWN);
+        this.selectNearestRow(this._selectedRowIdx - this.rowCount);
       }
       if (e.keyCode === Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN) {
         e.preventDefault();
-        this.selectNearestRow(this._selectedRowIdx + WATERFALL_ROWCOUNT_ONPAGEUPDOWN);
+        this.selectNearestRow(this._selectedRowIdx + this.rowCount);
       }
     }, true);
   },

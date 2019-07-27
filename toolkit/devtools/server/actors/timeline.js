@@ -241,7 +241,14 @@ let TimelineActor = exports.TimelineActor = protocol.ActorClass({
     }
 
     clearTimeout(this._dataPullTimeout);
-  }, {}),
+    return this.docShells[0].now();
+  }, {
+    response: {
+      
+      
+      value: RetVal("nullable:number")
+    }
+  }),
 
   
 
