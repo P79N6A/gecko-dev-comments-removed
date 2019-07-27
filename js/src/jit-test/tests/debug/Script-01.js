@@ -1,6 +1,5 @@
 
 
-
 var global = newGlobal();
 global.eval('function f() { debugger; }');
 global.eval('function g() { debugger; }');

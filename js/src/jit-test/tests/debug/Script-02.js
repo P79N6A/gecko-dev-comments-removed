@@ -1,6 +1,5 @@
 
 
-
 load(libdir + 'asserts.js');
 
 assertThrowsInstanceOf(function() { Debugger.Script(); }, TypeError);

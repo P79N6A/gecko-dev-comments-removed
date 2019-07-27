@@ -1,3 +1,5 @@
+var g = newGlobal();
+var dbg = new g.Debugger(this);
 
 try {
     function f() {}

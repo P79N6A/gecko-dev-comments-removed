@@ -4,6 +4,9 @@
 
 
 
+var g = newGlobal();
+var dbg = new g.Debugger(this);
+
 var obj1 = {}, obj2 = {};
 obj2['b'+i] = 0;
 for (var k in obj2) {

@@ -1,5 +1,6 @@
+var global = newGlobal();
+var dbg = new global.Debugger(this);
 
-setDebug(true);
 var a = new Array();
 
 function i(save) {

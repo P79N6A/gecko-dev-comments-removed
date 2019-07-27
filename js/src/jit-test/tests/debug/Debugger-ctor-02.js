@@ -1,9 +1,5 @@
 
 
-
-
-
-
 load(libdir + 'asserts.js');
 
 var g = newGlobal();

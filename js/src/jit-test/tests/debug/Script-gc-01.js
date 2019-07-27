@@ -1,6 +1,5 @@
 
 
-
 var N = 4;
 var g = newGlobal();
 var dbg = new Debugger(g);

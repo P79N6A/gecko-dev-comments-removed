@@ -1,6 +1,5 @@
 
 
-
 var g = newGlobal();
 g.parent = this;
 g.eval("function f(frame, exc) { f2 = function () { return exc; }; exc = 123; }");

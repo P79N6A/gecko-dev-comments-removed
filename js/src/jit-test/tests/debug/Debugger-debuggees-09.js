@@ -1,6 +1,5 @@
 
 
-
 var dbg = new Debugger;
 
 function check(obj) {

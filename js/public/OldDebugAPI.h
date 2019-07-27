@@ -60,48 +60,6 @@ JS_DecompileScript(JSContext *cx, JS::HandleScript script, const char *name, uns
 
 
 
-extern JS_PUBLIC_API(void)
-JS_SetRuntimeDebugMode(JSRuntime *rt, bool debug);
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_GetDebugMode(JSContext *cx);
-
-
-
-
-
-JS_FRIEND_API(bool)
-JS_SetDebugModeForAllCompartments(JSContext *cx, bool debug);
-
-
-
-
-
-
-JS_FRIEND_API(bool)
-JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, bool debug);
-
-
-
-
-JS_FRIEND_API(bool)
-JS_SetDebugMode(JSContext *cx, bool debug);
-
-
-
-
-
 extern JS_PUBLIC_API(unsigned)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc);
 
