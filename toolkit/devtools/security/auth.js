@@ -73,13 +73,27 @@ Prompt.Server.prototype = {
 
 
 
-  authenticate() {
-    return !Services.prefs.getBoolPref("devtools.debugger.prompt-connection") ||
-           this.allowConnection();
+
+
+
+
+
+
+
+
+
+
+
+
+  authenticate(session) {
+    if (!Services.prefs.getBoolPref("devtools.debugger.prompt-connection")) {
+      return true;
+    }
+    session.authentication = this.mode;
+    return this.allowConnection(session);
   },
 
   
-
 
 
 
@@ -177,12 +191,30 @@ OOBCert.Server.prototype = {
 
 
 
-  authenticate() {
-    return this.allowConnection();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  authenticate(session) {
+    session.authentication = this.mode;
+    return this.allowConnection(session);
   },
 
   
-
 
 
 
