@@ -1091,9 +1091,11 @@ ClientTiledLayerBuffer::UnlockTile(TileClient aTile)
   
   if (aTile.mFrontBuffer && aTile.mFrontBuffer->IsLocked()) {
     aTile.mFrontBuffer->Unlock();
+    aTile.mFrontBuffer->SyncWithObject(mCompositableClient->GetForwarder()->GetSyncObject());
   }
   if (aTile.mFrontBufferOnWhite && aTile.mFrontBufferOnWhite->IsLocked()) {
     aTile.mFrontBufferOnWhite->Unlock();
+    aTile.mFrontBufferOnWhite->SyncWithObject(mCompositableClient->GetForwarder()->GetSyncObject());
   }
   if (aTile.mBackBuffer && aTile.mBackBuffer->IsLocked()) {
     aTile.mBackBuffer->Unlock();
@@ -1293,8 +1295,6 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   tileRegion.SubOut(aDirtyRegion); 
 
   backBuffer->SetWaste(tileRegion.Area() * mResolution * mResolution);
-  backBuffer->Unlock();
-  backBuffer->SyncWithObject(mCompositableClient->GetForwarder()->GetSyncObject());
 
   if (createdTextureClient) {
     if (!mCompositableClient->AddTextureClient(backBuffer)) {
