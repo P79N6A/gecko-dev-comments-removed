@@ -1171,17 +1171,6 @@ public:
     }
   }
 
-  void SetContentDescription(const std::string& aContentDescription)
-  {
-    if (mContentDescription == aContentDescription) {
-      return;
-    }
-
-    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) ContentDescription", this));
-    mContentDescription = aContentDescription;
-    Mutated();
-  }
-
   
   float GetOpacity() { return mOpacity; }
   gfx::CompositionOp GetMixBlendMode() const { return mMixBlendMode; }
@@ -1215,7 +1204,6 @@ public:
   FrameMetrics::ViewID GetScrollbarTargetContainerId() { return mScrollbarTargetId; }
   ScrollDirection GetScrollbarDirection() { return mScrollbarDirection; }
   Layer* GetMaskLayer() const { return mMaskLayer; }
-  const std::string& GetContentDescription() const { return mContentDescription; }
 
 
   
@@ -1643,10 +1631,6 @@ protected:
   
   
   uint64_t mAnimationGeneration;
-  
-  
-  
-  std::string mContentDescription;
 #ifdef MOZ_DUMP_PAINTING
   nsTArray<nsCString> mExtraDumpInfo;
 #endif
