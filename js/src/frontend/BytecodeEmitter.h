@@ -116,6 +116,13 @@ struct BytecodeEmitter
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
 
+    
+
+
+
+
+    Vector<uint32_t, 16> localsToFrameSlots_;
+
     int32_t         stackDepth;     
     uint32_t        maxStackDepth;  
 
@@ -178,6 +185,7 @@ struct BytecodeEmitter
                     bool insideEval, HandleScript evalCaller, bool hasGlobalScope,
                     uint32_t lineNum, EmitterMode emitterMode = Normal);
     bool init();
+    bool updateLocalsToFrameSlots();
 
     bool isAliasedName(ParseNode *pn);
 

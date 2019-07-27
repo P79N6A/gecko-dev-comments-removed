@@ -368,7 +368,7 @@ InterpreterFrame::markValues(JSTracer *trc, Value *sp, jsbytecode *pc)
 
         
         while (nfixed > nlivefixed)
-            unaliasedLocal(--nfixed, DONT_CHECK_ALIASING).setMagic(JS_UNINITIALIZED_LEXICAL);
+            unaliasedLocal(--nfixed).setMagic(JS_UNINITIALIZED_LEXICAL);
 
         
         markValues(trc, 0, nlivefixed);
@@ -1347,23 +1347,6 @@ AbstractFramePtr::hasPushedSPSFrame() const
         return asInterpreterFrame()->hasPushedSPSFrame();
     return asBaselineFrame()->hasPushedSPSFrame();
 }
-
-#ifdef DEBUG
-void
-js::CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script, uint32_t i)
-{
-    if (!checkAliasing)
-        return;
-
-    MOZ_ASSERT(i < script->nfixed());
-    if (i < script->bindings.numVars()) {
-        MOZ_ASSERT(!script->varIsAliased(i));
-    } else {
-        
-        
-    }
-}
-#endif
 
 jit::JitActivation::JitActivation(JSContext *cx, bool active)
   : Activation(cx, Jit),
