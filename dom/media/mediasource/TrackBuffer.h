@@ -16,6 +16,7 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nscore.h"
+#include "TimeUnits.h"
 
 namespace mozilla {
 
@@ -96,7 +97,8 @@ public:
   
   
   
-  bool RangeRemoval(int64_t aStart, int64_t aEnd);
+  bool RangeRemoval(mozilla::media::Microseconds aStart,
+                    mozilla::media::Microseconds aEnd);
 
   
   void AbortAppendData();
