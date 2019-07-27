@@ -27,7 +27,8 @@ public:
   NS_DECL_NSILOADINFO
 
   
-  LoadInfo(nsIPrincipal* aPrincipal,
+  LoadInfo(nsIPrincipal* aLoadingPrincipal,
+           nsIPrincipal* aTriggeringPrincipal,
            nsINode* aLoadingContext,
            nsSecurityFlags aSecurityFlags,
            nsContentPolicyType aContentPolicyType,
@@ -36,7 +37,8 @@ public:
 private:
   ~LoadInfo();
 
-  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
+  nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   nsWeakPtr              mLoadingContext;
   nsSecurityFlags        mSecurityFlags;
   nsContentPolicyType    mContentPolicyType;
