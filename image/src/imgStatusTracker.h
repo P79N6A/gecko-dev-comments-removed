@@ -182,35 +182,12 @@ public:
 
   
   
-  void SendStartDecode(imgRequestProxy* aProxy);
-  void SendStartContainer(imgRequestProxy* aProxy);
-  void SendStopFrame(imgRequestProxy* aProxy);
-  void SendStopDecode(imgRequestProxy* aProxy, nsresult aStatus);
-  void SendDiscard(imgRequestProxy* aProxy);
-  void SendUnlockedDraw(imgRequestProxy* aProxy);
-  void SendImageIsAnimated(imgRequestProxy *aProxy);
-
-  
-  
-  
-  void SendStartRequest(imgRequestProxy* aProxy);
-  void SendStopRequest(imgRequestProxy* aProxy, bool aLastPart, nsresult aStatus);
-
-  
-  
   void OnStartRequest();
   
   
   void OnDataAvailable();
   void OnDiscard();
   void OnUnlockedDraw();
-
-  
-  
-  
-  
-  void SendBlockOnload(imgRequestProxy* aProxy);
-  void SendUnblockOnload(imgRequestProxy* aProxy);
 
   
   void MaybeUnblockOnload();
