@@ -78,6 +78,8 @@ public:
 
 
 
+
+
   nsSVGFilterInstance(const nsStyleFilter& aFilter,
                       nsIFrame *aTargetFrame,
                       const gfxRect& aTargetBBox,
@@ -203,7 +205,7 @@ private:
   
 
 
-  const nsStyleFilter mFilter;
+  const nsStyleFilter& mFilter;
 
   
 
