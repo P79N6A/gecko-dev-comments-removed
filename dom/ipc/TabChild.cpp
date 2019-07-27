@@ -337,11 +337,26 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   FrameMetrics metrics(mLastRootMetrics);
   metrics.SetViewport(CSSRect(CSSPoint(), viewport));
+
+  
+  
+  ScreenSize compositionSize(mInnerSize);
+  nsCOMPtr<nsIPresShell> shell = GetPresShell();
+  if (shell) {
+    nsMargin scrollbarsAppUnits =
+        nsLayoutUtils::ScrollbarAreaToExcludeFromCompositionBoundsFor(shell->GetRootScrollFrame());
+    
+    ScreenMargin scrollbars = CSSMargin::FromAppUnits(scrollbarsAppUnits)
+                            * CSSToScreenScale(1.0f);
+    compositionSize.width -= scrollbars.LeftRight();
+    compositionSize.height -= scrollbars.TopBottom();
+  }
+
   metrics.SetCompositionBounds(ParentLayerRect(
       ParentLayerPoint(),
-      ParentLayerSize(ViewAs<ParentLayerPixel>(mInnerSize, PixelCastJustification::ScreenIsParentLayerForRoot))));
+      ParentLayerSize(ViewAs<ParentLayerPixel>(compositionSize, PixelCastJustification::ScreenIsParentLayerForRoot))));
   metrics.SetRootCompositionSize(
-      ScreenSize(mInnerSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.GetDevPixelsPerCSSPixel());
+      ScreenSize(compositionSize) * ScreenToLayoutDeviceScale(1.0f) / metrics.GetDevPixelsPerCSSPixel());
 
   
   
@@ -362,7 +377,6 @@ TabChildBase::HandlePossibleViewportChange(const ScreenIntSize& aOldScreenSize)
 
   
   
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
   bool isFirstPaint = true;
   if (shell) {
     isFirstPaint = shell->GetIsFirstPaint();
