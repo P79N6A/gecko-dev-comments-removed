@@ -70,6 +70,9 @@ public:
 #endif
 
   
+  nsPresContext* PresContext() const { return mPresContext; }
+
+  
 
 
   void Disconnect();

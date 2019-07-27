@@ -391,6 +391,8 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     newPlayers[newPlayerIdx]->Cancel();
   }
 
+  UpdateCascadeResults(aStyleContext, collection);
+
   TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
   UpdateStyleAndEvents(collection, refreshTime,
                        EnsureStyleRule_IsNotThrottled);
@@ -704,6 +706,115 @@ nsAnimationManager::BuildSegment(InfallibleTArray<AnimationPropertySegment>&
   segment.mTimingFunction.Init(*tf);
 
   return true;
+}
+
+ void
+nsAnimationManager::UpdateCascadeResults(
+                      nsStyleContext* aStyleContext,
+                      AnimationPlayerCollection* aElementAnimations)
+{
+  
+
+
+
+  
+  
+  nsAutoTArray<nsCSSProperty, 2> propertiesToTrack;
+
+  {
+    nsCSSPropertySet propertiesToTrackAsSet;
+
+    for (size_t playerIdx = aElementAnimations->mPlayers.Length();
+         playerIdx-- != 0; ) {
+      const AnimationPlayer* player = aElementAnimations->mPlayers[playerIdx];
+      const Animation* anim = player->GetSource();
+      if (!anim) {
+        continue;
+      }
+
+      for (size_t propIdx = 0, propEnd = anim->Properties().Length();
+           propIdx != propEnd; ++propIdx) {
+        const AnimationProperty& prop = anim->Properties()[propIdx];
+        
+        
+        if (nsCSSProps::PropHasFlags(prop.mProperty,
+                                     CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR)) {
+          if (!propertiesToTrackAsSet.HasProperty(prop.mProperty)) {
+            propertiesToTrack.AppendElement(prop.mProperty);
+            propertiesToTrackAsSet.AddProperty(prop.mProperty);
+          }
+        }
+      }
+    }
+  }
+
+  
+
+
+
+
+  nsCSSPropertySet propertiesOverridden;
+  nsRuleNode::ComputePropertiesOverridingAnimation(propertiesToTrack,
+                                                   aStyleContext,
+                                                   propertiesOverridden);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  bool changed = false;
+  for (size_t playerIdx = aElementAnimations->mPlayers.Length();
+       playerIdx-- != 0; ) {
+    AnimationPlayer* player = aElementAnimations->mPlayers[playerIdx];
+    Animation* anim = player->GetSource();
+    if (!anim) {
+      continue;
+    }
+
+    for (size_t propIdx = 0, propEnd = anim->Properties().Length();
+         propIdx != propEnd; ++propIdx) {
+      AnimationProperty& prop = anim->Properties()[propIdx];
+      
+      
+      if (nsCSSProps::PropHasFlags(prop.mProperty,
+                                   CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR)) {
+        bool newWinsInCascade =
+          !propertiesOverridden.HasProperty(prop.mProperty);
+        if (newWinsInCascade != prop.mWinsInCascade) {
+          changed = true;
+        }
+        prop.mWinsInCascade = newWinsInCascade;
+
+        if (prop.mWinsInCascade && anim->IsInEffect()) {
+          
+          
+          
+          
+          propertiesOverridden.AddProperty(prop.mProperty);
+        }
+      }
+    }
+  }
+
+  if (changed) {
+    nsPresContext* presContext = aElementAnimations->mManager->PresContext();
+    presContext->RestyleManager()->IncrementAnimationGeneration();
+    aElementAnimations->UpdateAnimationGeneration(presContext);
+    aElementAnimations->PostUpdateLayerAnimations();
+
+    
+    aElementAnimations->mNeedsRefreshes = true;
+    aElementAnimations->mStyleRuleRefreshTime = TimeStamp();
+  }
 }
 
  void

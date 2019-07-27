@@ -685,7 +685,9 @@ nsTransitionManager::UpdateCascadeResults(
   }
 
   if (changed) {
+    mPresContext->RestyleManager()->IncrementAnimationGeneration();
     aTransitions->UpdateAnimationGeneration(mPresContext);
+    aTransitions->PostUpdateLayerAnimations();
 
     
     aTransitions->mStyleRuleRefreshTime = TimeStamp();
