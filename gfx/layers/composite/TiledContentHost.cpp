@@ -9,7 +9,6 @@
 #include "mozilla/gfx/Matrix.h"         
 #include "mozilla/layers/Compositor.h"  
 #include "mozilla/layers/Effects.h"     
-#include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/layers/TextureHostOGL.h"  
 #include "nsAString.h"
 #include "nsDebug.h"                    
@@ -368,7 +367,7 @@ TiledContentHost::Composite(EffectChain& aEffectChain,
     
     
     for (Layer* ancestor = GetLayer(); ancestor; ancestor = ancestor->GetParent()) {
-      if (ancestor->HasScrollableFrameMetrics()) {
+      if (ancestor->GetFrameMetrics().IsScrollable()) {
         backgroundColor = ancestor->GetBackgroundColor();
         break;
       }
@@ -435,8 +434,8 @@ TiledContentHost::RenderTile(const TileHost& aTile,
   Rect layerQuad(screenBounds.x, screenBounds.y, screenBounds.width, screenBounds.height);
   RenderTargetRect quad = RenderTargetRect::FromUnknown(aTransform.TransformBounds(layerQuad));
 
-  if (!quad.Intersects(mCompositor->ClipRectInLayersCoordinates(
-        RenderTargetIntRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height)))) {
+  if (!quad.Intersects(mCompositor->ClipRectInLayersCoordinates(mLayer,
+      RenderTargetIntRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height)))) {
     return;
   }
 

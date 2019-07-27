@@ -23,7 +23,6 @@
 #include "mozilla/layers/TextureHost.h"  
 #include "mozilla/layers/AsyncPanZoomController.h"  
 #include "mozilla/layers/AsyncCompositionManager.h" 
-#include "mozilla/layers/LayerMetricsWrapper.h" 
 #include "mozilla/mozalloc.h"           
 #include "nsAutoPtr.h"                  
 #include "nsDebug.h"                    
@@ -121,13 +120,21 @@ static void PrintUniformityInfo(Layer* aLayer)
     return;
   }
 
-  Matrix4x4 transform = aLayer->AsLayerComposite()->GetShadowTransform();
-  if (!transform.Is2D()) {
+  FrameMetrics frameMetrics = aLayer->GetFrameMetrics();
+  if (!frameMetrics.IsScrollable()) {
     return;
   }
-  Point translation = transform.As2D().GetTranslation();
-  printf_stderr("UniformityInfo Layer_Move %llu %p %f, %f\n",
-            TimeStamp::Now(), aLayer, translation.x.value, translation.y.value);
+
+  AsyncPanZoomController* apzc = aLayer->GetAsyncPanZoomController();
+  if (apzc) {
+    ViewTransform asyncTransform, overscrollTransform;
+    ScreenPoint scrollOffset;
+    apzc->SampleContentTransformForFrame(&asyncTransform,
+                                         scrollOffset,
+                                         &overscrollTransform);
+    printf_stderr("UniformityInfo Layer_Move %llu %p %f, %f\n",
+          TimeStamp::Now(), aLayer, scrollOffset.x.value, scrollOffset.y.value);
+  }
 }
 
 
@@ -173,6 +180,16 @@ ContainerPrepare(ContainerT* aContainer,
     RenderTargetIntRect clipRect = layerToRender->GetLayer()->
         CalculateScissorRect(aClipRect, &aManager->GetWorldTransform());
     if (clipRect.IsEmpty()) {
+      continue;
+    }
+
+    RenderTargetRect quad = layerToRender->GetLayer()->
+      TransformRectToRenderTarget(LayerPixel::FromUntyped(
+        layerToRender->GetLayer()->GetEffectiveVisibleRegion().GetBounds()));
+
+    Compositor* compositor = aManager->GetCompositor();
+    if (!layerToRender->GetLayer()->AsContainerLayer() &&
+        !quad.Intersects(compositor->ClipRectInLayersCoordinates(layerToRender->GetLayer(), clipRect))) {
       continue;
     }
 
@@ -247,18 +264,10 @@ RenderLayers(ContainerT* aContainer,
   
   
   
-  
-  
-  if (aContainer->HasScrollableFrameMetrics() && !aContainer->IsScrollInfoLayer()) {
-    bool overscrolled = false;
-    for (uint32_t i = 0; i < aContainer->GetFrameMetricsCount(); i++) {
-      AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController(i);
-      if (apzc && apzc->IsOverscrolled()) {
-        overscrolled = true;
-        break;
-      }
-    }
-    if (overscrolled) {
+  if (AsyncPanZoomController* apzc = aContainer->GetAsyncPanZoomController()) {
+    
+    
+    if (apzc->IsOverscrolled() && !aContainer->GetVisibleRegion().IsEmpty()) {
       gfxRGBA color = aContainer->GetBackgroundColor();
       
       
@@ -269,7 +278,7 @@ RenderLayers(ContainerT* aContainer,
         gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
         compositor->DrawQuad(
           RenderTargetPixel::ToUnknown(
-            compositor->ClipRectInLayersCoordinates(aClipRect)),
+            compositor->ClipRectInLayersCoordinates(aContainer, aClipRect)),
           clipRect, effectChain, opacity, Matrix4x4());
       }
     }
@@ -363,7 +372,6 @@ RenderIntermediate(ContainerT* aContainer,
   if (!surface) {
     return;
   }
-
   compositor->SetRenderTarget(surface);
   
   RenderLayers(aContainer, aManager, RenderTargetPixel::FromUntyped(aClipRect));
@@ -422,11 +430,8 @@ ContainerRender(ContainerT* aContainer,
   }
   aContainer->mPrepared = nullptr;
 
-  for (uint32_t i = 0; i < aContainer->GetFrameMetricsCount(); i++) {
-    if (!aContainer->GetFrameMetrics(i).IsScrollable()) {
-      continue;
-    }
-    const FrameMetrics& frame = aContainer->GetFrameMetrics(i);
+  if (aContainer->GetFrameMetrics().IsScrollable()) {
+    const FrameMetrics& frame = aContainer->GetFrameMetrics();
     LayerRect layerBounds = frame.mCompositionBounds * ParentLayerToLayerScale(1.0);
     gfx::Rect rect(layerBounds.x, layerBounds.y, layerBounds.width, layerBounds.height);
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);

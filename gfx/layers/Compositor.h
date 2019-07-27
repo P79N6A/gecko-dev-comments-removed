@@ -498,7 +498,7 @@ public:
   
   
   
-  RenderTargetRect ClipRectInLayersCoordinates(RenderTargetIntRect aClip) const;
+  RenderTargetRect ClipRectInLayersCoordinates(Layer* aLayer, RenderTargetIntRect aClip) const;
 
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
