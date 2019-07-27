@@ -1628,6 +1628,26 @@ MarionetteServerConnection.prototype = {
 
 
 
+
+  findChildElement: function MDA_findChildElement(aRequest) {
+    let command_id = this.command_id = this.getCommandId();
+    this.sendAsync("findElementContent",
+                    {
+                       value: aRequest.parameters.value,
+                       using: aRequest.parameters.using,
+                       element: aRequest.parameters.id,
+                       searchTimeout: this.searchTimeout
+                     },
+                     command_id);
+  },
+
+  
+
+
+
+
+
+
   findElements: function MDA_findElements(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context == "chrome") {
@@ -1658,6 +1678,26 @@ MarionetteServerConnection.prototype = {
                      },
                      command_id);
     }
+  },
+
+  
+
+
+
+
+
+
+
+  findChildElements: function MDA_findChildElement(aRequest) {
+    let command_id = this.command_id = this.getCommandId();
+    this.sendAsync("findElementsContent",
+                    {
+                       value: aRequest.parameters.value,
+                       using: aRequest.parameters.using,
+                       element: aRequest.parameters.id,
+                       searchTimeout: this.searchTimeout
+                     },
+                     command_id);
   },
 
   
@@ -2615,7 +2655,9 @@ MarionetteServerConnection.prototype.requestTypes = {
   "executeJSScript": MarionetteServerConnection.prototype.executeJSScript,
   "setSearchTimeout": MarionetteServerConnection.prototype.setSearchTimeout,
   "findElement": MarionetteServerConnection.prototype.findElement,
+  "findChildElement": MarionetteServerConnection.prototype.findChildElements, 
   "findElements": MarionetteServerConnection.prototype.findElements,
+  "findChildElements":MarionetteServerConnection.prototype.findChildElements, 
   "clickElement": MarionetteServerConnection.prototype.clickElement,
   "getElementAttribute": MarionetteServerConnection.prototype.getElementAttribute,
   "getElementText": MarionetteServerConnection.prototype.getElementText,
