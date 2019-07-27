@@ -41,7 +41,7 @@
 #include "nsWildCard.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/ScriptSettings.h"
-
+#include "nsIXULRuntime.h"
 #include "nsIXPConnect.h"
 
 #include "nsIObserverService.h"
@@ -322,11 +322,21 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     prefGroupKey.AssignLiteral("dom.ipc.plugins.enabled.a11y.");
 #endif
 
-  
-  
-  if (aPluginTag->mIsJavaPlugin &&
-      !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
-    return false;
+  if (BrowserTabsRemoteAutostart()) {
+    
+    
+    
+    if (aPluginTag->mIsJavaPlugin &&
+        Preferences::GetBool("dom.ipc.plugins.java.force-disable", false)) {
+      return false;
+    }
+  } else {
+    
+    
+    if (aPluginTag->mIsJavaPlugin &&
+        !Preferences::GetBool("dom.ipc.plugins.java.enabled", true)) {
+      return false;
+    }
   }
 
   uint32_t prefCount;
