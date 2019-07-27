@@ -68,7 +68,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse
         NS_IMPL_CYCLE_COLLECTION_DESCRIBE(XPCWrappedNative, tmp->mRefCnt.get())
     }
 
-    if (tmp->mRefCnt.get() > 1) {
+    if (tmp->HasExternalReference()) {
 
         
         
