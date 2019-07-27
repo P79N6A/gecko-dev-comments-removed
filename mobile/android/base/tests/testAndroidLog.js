@@ -3,6 +3,24 @@
 
 
 
+const TAG = "AndroidLogTest";
+
+const VERBOSE_MESSAGE = "This is a verbose message.";
+const DEBUG_MESSAGE = "This is a debug message.";
+const INFO_MESSAGE = "This is an info message.";
+const WARNING_MESSAGE = "This is a warning message.";
+const ERROR_MESSAGE = "This is an error message.";
+
+
+
+
+
+const VERBOSE_BYTES = "Gecko".length + TAG.length + VERBOSE_MESSAGE.length + 3;
+const DEBUG_BYTES = "Gecko".length + TAG.length + DEBUG_MESSAGE.length + 3;
+const INFO_BYTES = "Gecko".length + TAG.length + INFO_MESSAGE.length + 3;
+const WARNING_BYTES = "Gecko".length + TAG.length + WARNING_MESSAGE.length + 3;
+const ERROR_BYTES = "Gecko".length + TAG.length + ERROR_MESSAGE.length + 3;
+
 add_task(function test_AndroidLog() {
   Components.utils.import("resource://gre/modules/AndroidLog.jsm");
 
@@ -18,18 +36,26 @@ add_task(function test_AndroidLog() {
   
   
   
-  do_check_eq(48, AndroidLog.v("AndroidLogTest", "This is a verbose message."));
-  do_check_eq(46, AndroidLog.d("AndroidLogTest", "This is a debug message."));
-  do_check_eq(46, AndroidLog.i("AndroidLogTest", "This is an info message."));
-  do_check_eq(48, AndroidLog.w("AndroidLogTest", "This is a warning message."));
-  do_check_eq(47, AndroidLog.e("AndroidLogTest", "This is an error message."));
+  do_check_eq(VERBOSE_BYTES, AndroidLog.v(TAG, VERBOSE_MESSAGE));
+  do_check_eq(DEBUG_BYTES, AndroidLog.d(TAG, DEBUG_MESSAGE));
+  do_check_eq(INFO_BYTES, AndroidLog.i(TAG, INFO_MESSAGE));
+  do_check_eq(WARNING_BYTES, AndroidLog.w(TAG, WARNING_MESSAGE));
+  do_check_eq(ERROR_BYTES, AndroidLog.e(TAG, ERROR_MESSAGE));
 
   
-  do_check_eq(48, AndroidLog.v.bind(null, "AndroidLogTest")("This is a verbose message."));
-  do_check_eq(46, AndroidLog.d.bind(null, "AndroidLogTest")("This is a debug message."));
-  do_check_eq(46, AndroidLog.i.bind(null, "AndroidLogTest")("This is an info message."));
-  do_check_eq(48, AndroidLog.w.bind(null, "AndroidLogTest")("This is a warning message."));
-  do_check_eq(47, AndroidLog.e.bind(null, "AndroidLogTest")("This is an error message."));
+  do_check_eq(VERBOSE_BYTES, AndroidLog.v.bind(null, TAG)(VERBOSE_MESSAGE));
+  do_check_eq(DEBUG_BYTES, AndroidLog.d.bind(null, TAG)(DEBUG_MESSAGE));
+  do_check_eq(INFO_BYTES, AndroidLog.i.bind(null, TAG)(INFO_MESSAGE));
+  do_check_eq(WARNING_BYTES, AndroidLog.w.bind(null, TAG)(WARNING_MESSAGE));
+  do_check_eq(ERROR_BYTES, AndroidLog.e.bind(null, TAG)(ERROR_MESSAGE));
+
+  
+  let Log = AndroidLog.bind(TAG);
+  do_check_eq(VERBOSE_BYTES, Log.v(VERBOSE_MESSAGE));
+  do_check_eq(DEBUG_BYTES, Log.d(DEBUG_MESSAGE));
+  do_check_eq(INFO_BYTES, Log.i(INFO_MESSAGE));
+  do_check_eq(WARNING_BYTES, Log.w(WARNING_MESSAGE));
+  do_check_eq(ERROR_BYTES, Log.e(ERROR_MESSAGE));
 
   
   

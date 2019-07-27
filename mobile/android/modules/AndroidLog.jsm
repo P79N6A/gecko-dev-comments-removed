@@ -33,6 +33,12 @@
 
 
 
+
+
+
+
+
+
 if (typeof Components != "undefined") {
   
   this.EXPORTED_SYMBOLS = ["AndroidLog"];
@@ -67,6 +73,17 @@ let AndroidLog = {
   i: (tag, msg) => __android_log_write(ANDROID_LOG_INFO, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
   w: (tag, msg) => __android_log_write(ANDROID_LOG_WARN, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
   e: (tag, msg) => __android_log_write(ANDROID_LOG_ERROR, "Gecko" + tag.substring(0, MAX_TAG_LENGTH), msg),
+
+  bind: function(tag) {
+    return {
+      MAX_TAG_LENGTH: MAX_TAG_LENGTH,
+      v: AndroidLog.v.bind(null, tag),
+      d: AndroidLog.d.bind(null, tag),
+      i: AndroidLog.i.bind(null, tag),
+      w: AndroidLog.w.bind(null, tag),
+      e: AndroidLog.e.bind(null, tag),
+    };
+  },
 };
 
 if (typeof Components == "undefined") {
