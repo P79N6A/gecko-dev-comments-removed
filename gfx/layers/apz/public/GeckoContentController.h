@@ -79,18 +79,6 @@ public:
 
 
 
-
-
-
-  virtual void HandleLongTapUp(const CSSPoint& aPoint,
-                               Modifiers aModifiers,
-                               const ScrollableLayerGuid& aGuid) = 0;
-
-  
-
-
-
-
   virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
                                        const CSSRect &aContentRect,
                                        const CSSSize &aScrollableSize) = 0;
