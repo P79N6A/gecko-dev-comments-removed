@@ -41,8 +41,6 @@ using namespace mozilla;
 
 
 
-
-
 static PLDHashTable gAtomTable;
 
 class StaticAtomEntry : public PLDHashEntryHdr
@@ -342,7 +340,7 @@ NS_PurgeAtomTable()
 {
   delete gStaticAtomTable;
 
-  if (gAtomTable.ops) {
+  if (gAtomTable.IsInitialized()) {
 #ifdef DEBUG
     const char* dumpAtomLeaks = PR_GetEnv("MOZ_DUMP_ATOM_LEAKS");
     if (dumpAtomLeaks && *dumpAtomLeaks) {
@@ -402,14 +400,14 @@ AtomImpl::AtomImpl(nsStringBuffer* aStringBuffer, uint32_t aLength,
 
 AtomImpl::~AtomImpl()
 {
-  NS_PRECONDITION(gAtomTable.ops, "uninitialized atom hashtable");
+  NS_PRECONDITION(gAtomTable.IsInitialized(), "uninitialized atom hashtable");
   
   
   
   if (!IsPermanentInDestructor()) {
     AtomTableKey key(mString, mLength, mHash);
     PL_DHashTableRemove(&gAtomTable, &key);
-    if (gAtomTable.ops && gAtomTable.EntryCount() == 0) {
+    if (gAtomTable.IsInitialized() && gAtomTable.EntryCount() == 0) {
       PL_DHashTableFinish(&gAtomTable);
       NS_ASSERTION(gAtomTable.EntryCount() == 0,
                    "PL_DHashTableFinish changed the entry count");
@@ -528,7 +526,7 @@ void
 NS_SizeOfAtomTablesIncludingThis(MallocSizeOf aMallocSizeOf,
                                  size_t* aMain, size_t* aStatic)
 {
-  *aMain = gAtomTable.ops
+  *aMain = gAtomTable.IsInitialized()
          ? PL_DHashTableSizeOfExcludingThis(&gAtomTable,
                                             SizeOfAtomTableEntryExcludingThis,
                                             aMallocSizeOf)
@@ -546,7 +544,7 @@ NS_SizeOfAtomTablesIncludingThis(MallocSizeOf aMallocSizeOf,
 static inline void
 EnsureTableExists()
 {
-  if (!gAtomTable.ops) {
+  if (!gAtomTable.IsInitialized()) {
     PL_DHashTableInit(&gAtomTable, &AtomTableOps,
                       sizeof(AtomTableEntry), ATOM_HASHTABLE_INITIAL_LENGTH);
   }

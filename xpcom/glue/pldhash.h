@@ -224,6 +224,7 @@ private:
 public:
   
   
+  
   MOZ_CONSTEXPR PLDHashTable()
     : ops(nullptr)
     , mHashShift(0)
@@ -237,6 +238,8 @@ public:
     , mStats()
 #endif
   {}
+
+  bool IsInitialized() const { return !!ops; }
 
   
 

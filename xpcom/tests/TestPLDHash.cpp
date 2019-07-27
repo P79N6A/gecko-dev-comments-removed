@@ -19,7 +19,7 @@ static bool test_pldhash_Init_capacity_ok()
   PLDHashTable t;
 
   
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -32,13 +32,13 @@ static bool test_pldhash_Init_capacity_ok()
   }
 
   
-  if (!t.ops) {
+  if (!t.IsInitialized()) {
     return false;
   }
 
   
   PL_DHashTableFinish(&t);
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -50,7 +50,7 @@ static bool test_pldhash_Init_capacity_too_large()
   PLDHashTable t;
 
   
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -64,7 +64,7 @@ static bool test_pldhash_Init_capacity_too_large()
   
 
   
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -76,7 +76,7 @@ static bool test_pldhash_Init_overflow()
   PLDHashTable t;
 
   
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -99,7 +99,7 @@ static bool test_pldhash_Init_overflow()
   
 
   
-  if (t.ops) {
+  if (t.IsInitialized()) {
     return false;
   }
 
@@ -131,7 +131,7 @@ static bool test_pldhash_grow_to_max_capacity()
   PLDHashTable* t = PL_NewDHashTable(&ops, sizeof(PLDHashEntryStub), 128);
 
   
-  if (!t->ops) {
+  if (!t->IsInitialized()) {
     return false;
   }
 

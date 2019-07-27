@@ -235,7 +235,7 @@ Preferences::SizeOfIncludingThisAndOtherStuff(mozilla::MallocSizeOf aMallocSizeO
   NS_ENSURE_TRUE(InitStaticMembers(), 0);
 
   size_t n = aMallocSizeOf(sPreferences);
-  if (gHashTable.ops) {
+  if (gHashTable.IsInitialized()) {
     
     
     n += PL_DHashTableSizeOfExcludingThis(&gHashTable, nullptr, aMallocSizeOf);
@@ -955,7 +955,7 @@ Preferences::WritePrefFile(nsIFile* aFile)
   uint32_t                  writeAmount;
   nsresult                  rv;
 
-  if (!gHashTable.ops)
+  if (!gHashTable.IsInitialized())
     return NS_ERROR_NOT_INITIALIZED;
 
   

@@ -215,14 +215,14 @@ NS_GetContentList(nsINode* aRootNode,
   };
 
   
-  if (!gContentListHashTable.ops) {
+  if (!gContentListHashTable.IsInitialized()) {
     PL_DHashTableInit(&gContentListHashTable, &hash_table_ops,
                       sizeof(ContentListHashEntry));
   }
 
   ContentListHashEntry *entry = nullptr;
   
-  if (gContentListHashTable.ops) {
+  if (gContentListHashTable.IsInitialized()) {
 
     
     
@@ -325,14 +325,14 @@ GetFuncStringContentList(nsINode* aRootNode,
   };
 
   
-  if (!gFuncStringContentListHashTable.ops) {
+  if (!gFuncStringContentListHashTable.IsInitialized()) {
     PL_DHashTableInit(&gFuncStringContentListHashTable, &hash_table_ops,
                       sizeof(FuncStringContentListHashEntry));
   }
 
   FuncStringContentListHashEntry *entry = nullptr;
   
-  if (gFuncStringContentListHashTable.ops) {
+  if (gFuncStringContentListHashTable.IsInitialized()) {
     nsFuncStringCacheKey hashKey(aRootNode, aFunc, aString);
 
     
@@ -977,7 +977,7 @@ nsContentList::RemoveFromHashtable()
     sRecentlyUsedContentLists[recentlyUsedCacheIndex] = nullptr;
   }
 
-  if (!gContentListHashTable.ops)
+  if (!gContentListHashTable.IsInitialized())
     return;
 
   PL_DHashTableRemove(&gContentListHashTable, &key);
@@ -1015,7 +1015,7 @@ nsCacheableFuncStringContentList::~nsCacheableFuncStringContentList()
 void
 nsCacheableFuncStringContentList::RemoveFromFuncStringHashtable()
 {
-  if (!gFuncStringContentListHashTable.ops) {
+  if (!gFuncStringContentListHashTable.IsInitialized()) {
     return;
   }
 

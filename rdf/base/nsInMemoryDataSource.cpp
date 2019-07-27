@@ -807,7 +807,7 @@ InMemoryDataSource::~InMemoryDataSource()
     fprintf(stdout, "%d - RDF: InMemoryDataSource\n", gInstanceCount);
 #endif
 
-    if (mForwardArcs.ops) {
+    if (mForwardArcs.IsInitialized()) {
         
         
         
@@ -815,7 +815,7 @@ InMemoryDataSource::~InMemoryDataSource()
         PL_DHashTableEnumerate(&mForwardArcs, DeleteForwardArcsEntry, nullptr);
         PL_DHashTableFinish(&mForwardArcs);
     }
-    if (mReverseArcs.ops)
+    if (mReverseArcs.IsInitialized())
         PL_DHashTableFinish(&mReverseArcs);
 
     PR_LOG(gLog, PR_LOG_NOTICE,
