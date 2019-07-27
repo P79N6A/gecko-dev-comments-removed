@@ -263,7 +263,7 @@ loop.conversation = (function(OT, mozL10n) {
 
     declineAndBlock: function() {
       navigator.mozLoop.stopAlerting();
-      var token = navigator.mozLoop.getLoopCharPref("loopToken");
+      var token = this._conversation.get("callToken");
       this._client.deleteCallUrl(token, function(error) {
         
         

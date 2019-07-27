@@ -32,7 +32,9 @@ loop.shared.models = (function() {
                                    
       callType:     undefined,     
                                    
-      selectedCallType: undefined  
+      selectedCallType: undefined, 
+                                   
+      callToken:    undefined      
                                    
     },
 
@@ -168,7 +170,8 @@ loop.shared.models = (function() {
         callId:         sessionData.callId,
         progressURL:    sessionData.progressURL,
         websocketToken: sessionData.websocketToken.toString(16),
-        callType:       sessionData.callType || "audio-video"
+        callType:       sessionData.callType || "audio-video",
+        callToken:      sessionData.callToken
       });
     },
 

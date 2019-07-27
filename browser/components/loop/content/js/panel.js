@@ -171,10 +171,6 @@ loop.panel = (function(_, mozL10n) {
 
 
 
-
-
-
-
     conversationIdentifier: function() {
       return Math.random().toString(36).substring(5);
     },
@@ -199,7 +195,6 @@ loop.panel = (function(_, mozL10n) {
           var token = callUrlData.callToken ||
                       callUrl.pathname.split('/').pop();
 
-          navigator.mozLoop.setLoopCharPref('loopToken', token);
           this.setState({pending: false, copied: false, callUrl: callUrl.href});
         } catch(e) {
           console.log(e);
