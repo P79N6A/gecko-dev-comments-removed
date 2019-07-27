@@ -2,8 +2,6 @@
 
 
 
-#include "base/linked_ptr.h"
-
 #include "mozilla/ModuleUtils.h"
 #include "nsIClassInfoImpl.h"
 
