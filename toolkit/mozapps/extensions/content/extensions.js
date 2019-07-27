@@ -51,7 +51,7 @@ const UPDATES_RELEASENOTES_TRANSFORMFILE = "chrome://mozapps/content/extensions/
 
 const XMLURI_PARSE_ERROR = "http://www.mozilla.org/newlayout/xml/parsererror.xml"
 
-const VIEW_DEFAULT = "addons://discover/";
+var gViewDefault = "addons://discover/";
 
 var gStrings = {};
 XPCOMUtils.defineLazyServiceGetter(gStrings, "bundleSvc",
@@ -123,6 +123,10 @@ function initialize(event) {
   addonPage.addEventListener("keypress", function(event) {
     gHeader.onKeyPress(event);
   });
+
+  if (!isDiscoverEnabled()) {
+    gViewDefault = "addons://list/extension";
+  }
 
   gViewController.initialize();
   gCategories.initialize();
@@ -641,12 +645,12 @@ var gViewController = {
         if (gHistory.canGoBack)
           gHistory.back();
         else
-          gViewController.replaceView(VIEW_DEFAULT);
+          gViewController.replaceView(gViewDefault);
       } else {
         if (gHistory.canGoForward)
           gHistory.forward();
         else
-          gViewController.replaceView(VIEW_DEFAULT);
+          gViewController.replaceView(gViewDefault);
       }
     }
   },
@@ -1673,7 +1677,7 @@ var gCategories = {
     
     
     if (!this.node.selectedItem || this.node.selectedItem == this._search)
-      this.node.value = VIEW_DEFAULT;
+      this.node.value = gViewDefault;
 
     var self = this;
     this.node.addEventListener("select", function node_onSelected() {
@@ -1741,7 +1745,7 @@ var gCategories = {
 
     
     if (this.node.selectedItem == category)
-      gViewController.replaceView(VIEW_DEFAULT);
+      gViewController.replaceView(gViewDefault);
 
     this.node.removeChild(category);
   },
@@ -1772,7 +1776,7 @@ var gCategories = {
 
         
         if (hidden && aViewId == gViewController.currentViewId)
-          gViewController.loadView(VIEW_DEFAULT);
+          gViewController.loadView(gViewDefault);
 
         item.hidden = hidden;
         Services.prefs.setBoolPref(prefName, hidden);
@@ -3011,7 +3015,7 @@ var gDetailView = {
         
         
         
-        gViewController.replaceView(VIEW_DEFAULT);
+        gViewController.replaceView(gViewDefault);
       });
     });
   },
