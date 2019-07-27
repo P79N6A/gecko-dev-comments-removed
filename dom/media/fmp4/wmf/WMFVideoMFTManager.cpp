@@ -100,9 +100,7 @@ WMFVideoMFTManager::~WMFVideoMFTManager()
 {
   MOZ_COUNT_DTOR(WMFVideoMFTManager);
   
-  if (mDXVA2Manager) {
-    DeleteOnMainThread(mDXVA2Manager);
-  }
+  DeleteOnMainThread(mDXVA2Manager);
 }
 
 const GUID&
@@ -142,8 +140,6 @@ public:
 bool
 WMFVideoMFTManager::InitializeDXVA()
 {
-  MOZ_ASSERT(!mDXVA2Manager);
-
   
   
   
@@ -491,7 +487,6 @@ void
 WMFVideoMFTManager::Shutdown()
 {
   mDecoder = nullptr;
-  DeleteOnMainThread(mDXVA2Manager);
 }
 
 } 
