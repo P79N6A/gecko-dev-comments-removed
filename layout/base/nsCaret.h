@@ -208,6 +208,12 @@ protected:
     
 
 
+
+
+    int32_t               mBlinkCount;
+    
+
+
     bool                  mVisible;
     
 

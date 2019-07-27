@@ -48,6 +48,9 @@ pref("browser.viewport.defaultZoom", -1);
 pref("ui.scrollbarsCanOverlapContent", 1);
 
 
+pref("ui.caretBlinkCount", 10);
+
+
 pref("browser.cache.disk.enable", true);
 pref("browser.cache.disk.capacity", 20480); 
 pref("browser.cache.disk.max_entry_size", 4096); 
