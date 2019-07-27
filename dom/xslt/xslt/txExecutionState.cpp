@@ -125,6 +125,10 @@ txExecutionState::init(const txXPathNode& aNode,
     NS_ENSURE_SUCCESS(rv, rv);
     
     mRecycler = new txResultRecycler;
+    NS_ENSURE_TRUE(mRecycler, NS_ERROR_OUT_OF_MEMORY);
+    
+    rv = mRecycler->init();
+    NS_ENSURE_SUCCESS(rv, rv);
     
     
     

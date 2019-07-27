@@ -46,6 +46,7 @@ DOMCI_CLASS(CSSSupportsRule)
 DOMCI_CLASS(XSLTProcessor)
 
 
+DOMCI_CLASS(XPathExpression)
 DOMCI_CLASS(XPathNSResolver)
 
 
