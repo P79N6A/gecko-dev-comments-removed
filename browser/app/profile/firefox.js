@@ -105,7 +105,7 @@ pref("app.update.backgroundMaxErrors", 10);
 
 
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(XP_MACOSX)
 pref("app.update.cert.requireBuiltIn", false);
 pref("app.update.cert.checkAttributes", false);
 #else
