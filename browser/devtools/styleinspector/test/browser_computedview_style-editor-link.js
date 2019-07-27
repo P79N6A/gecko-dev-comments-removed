@@ -70,16 +70,16 @@ function* testInlineStyle(view, inspector) {
 
   yield expandComputedViewPropertyByIndex(view, 0);
 
-  let onWindow = waitForWindow();
+  let onTab = waitForTab();
   info("Clicking on the first rule-link in the computed-view");
   clickLinkByIndex(view, 0);
 
-  let win = yield onWindow;
+  let tab = yield onTab;
 
-  let windowType = win.document.documentElement.getAttribute("windowtype");
-  is(windowType, "navigator:view-source", "View source window is open");
-  info("Closing window");
-  win.close();
+  let tabURI = tab.linkedBrowser.documentURI.spec;
+  ok(tabURI.startsWith("view-source:"), "View source tab is open");
+  info("Closing tab");
+  gBrowser.removeTab(tab);
 }
 
 function* testFirstInlineStyleSheet(view, toolbox) {
