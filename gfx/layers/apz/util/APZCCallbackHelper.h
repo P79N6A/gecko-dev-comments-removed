@@ -21,6 +21,17 @@ namespace layers {
 
 
 
+struct SetTargetAPZCCallback {
+public:
+  NS_INLINE_DECL_REFCOUNTING(SetTargetAPZCCallback)
+  virtual void Run(uint64_t aInputBlockId, const nsTArray<ScrollableLayerGuid>& aTargets) const = 0;
+protected:
+  virtual ~SetTargetAPZCCallback() {}
+};
+
+
+
+
 
 
 
@@ -118,6 +129,19 @@ public:
 
     static void FireSingleTapEvent(const LayoutDevicePoint& aPoint,
                                    nsIWidget* aWidget);
+
+    
+
+
+
+
+
+    static void SendSetTargetAPZCNotification(nsIWidget* aWidget,
+                                              nsIDocument* aDocument,
+                                              const WidgetGUIEvent& aEvent,
+                                              const ScrollableLayerGuid& aGuid,
+                                              uint64_t aInputBlockId,
+                                              const nsRefPtr<SetTargetAPZCCallback>& aCallback);
 };
 
 }

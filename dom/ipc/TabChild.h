@@ -46,6 +46,7 @@ class RenderFrameChild;
 
 namespace layers {
 class ActiveElementManager;
+struct SetTargetAPZCCallback;
 }
 
 namespace widget {
@@ -252,6 +253,7 @@ class TabChild MOZ_FINAL : public TabChildBase,
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
     typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
     typedef mozilla::layers::ActiveElementManager ActiveElementManager;
+    typedef mozilla::layers::SetTargetAPZCCallback SetTargetAPZCCallback;
 
 public:
     
@@ -598,26 +600,6 @@ private:
                                            const ScrollableLayerGuid& aGuid);
 
     
-    
-    
-    bool PrepareForSetTargetAPZCNotification(const ScrollableLayerGuid& aGuid,
-                                             const uint64_t& aInputBlockId,
-                                             nsIFrame* aRootFrame,
-                                             const LayoutDeviceIntPoint& aRefPoint,
-                                             nsTArray<ScrollableLayerGuid>* aTargets);
-
-    
-    
-    void SendSetTargetAPZCNotification(nsIPresShell* aShell,
-                                       const uint64_t& aInputBlockId,
-                                       const nsTArray<ScrollableLayerGuid>& aTargets,
-                                       bool aWaitForRefresh);
-
-    void SendSetTargetAPZCNotification(const WidgetTouchEvent& aEvent,
-                                       const mozilla::layers::ScrollableLayerGuid& aGuid,
-                                       const uint64_t& aInputBlockId);
-
-    
     float GetPresShellResolution() const;
 
     void SetTabId(const TabId& aTabId);
@@ -664,6 +646,7 @@ private:
 
     bool mIgnoreKeyPressEvent;
     nsRefPtr<ActiveElementManager> mActiveElementManager;
+    nsRefPtr<SetTargetAPZCCallback> mSetTargetAPZCCallback;
     bool mHasValidInnerSize;
     bool mDestroyed;
     
