@@ -19,6 +19,7 @@
 
 #include "frontend/SourceNotes.h"
 #include "vm/Opcodes.h"
+#include "vm/Printer.h"
 
 
 
@@ -382,7 +383,6 @@ struct JSCodeSpec {
 extern const JSCodeSpec js_CodeSpec[];
 extern const unsigned   js_NumCodeSpecs;
 extern const char       * const js_CodeName[];
-extern const char       js_EscapeMap[];
 
 
 
@@ -399,14 +399,6 @@ JOF_OPTYPE(JSOp op)
 #endif
 
 namespace js {
-
-
-
-
-
-
-extern JSString*
-QuoteString(ExclusiveContext* cx, JSString* str, char16_t quote);
 
 static inline bool
 IsJumpOpcode(JSOp op)
@@ -576,89 +568,6 @@ DecompileValueGenerator(JSContext* cx, int spindex, HandleValue v,
 
 char*
 DecompileArgument(JSContext* cx, int formalIndex, HandleValue v);
-
-
-
-
-class Sprinter
-{
-  public:
-    struct InvariantChecker
-    {
-        const Sprinter* parent;
-
-        explicit InvariantChecker(const Sprinter* p) : parent(p) {
-            parent->checkInvariants();
-        }
-
-        ~InvariantChecker() {
-            parent->checkInvariants();
-        }
-    };
-
-    ExclusiveContext*       context;       
-
-  private:
-    static const size_t     DefaultSize;
-#ifdef DEBUG
-    bool                    initialized;    
-#endif
-    char*                   base;          
-    size_t                  size;           
-    ptrdiff_t               offset;         
-    bool                    reportedOOM;    
-
-    bool realloc_(size_t newSize);
-
-  public:
-    explicit Sprinter(ExclusiveContext* cx);
-    ~Sprinter();
-
-    
-    bool init();
-
-    void checkInvariants() const;
-
-    const char* string() const;
-    const char* stringEnd() const;
-    
-    char* stringAt(ptrdiff_t off) const;
-    
-    char& operator[](size_t off);
-
-    
-
-
-
-
-    char* reserve(size_t len);
-
-    
-
-
-
-    ptrdiff_t put(const char* s, size_t len);
-    ptrdiff_t put(const char* s);
-    ptrdiff_t putString(JSString* str);
-
-    
-    int printf(const char* fmt, ...);
-
-    ptrdiff_t getOffset() const;
-
-    
-
-
-
-
-    void reportOutOfMemory();
-
-    
-    bool hadOutOfMemory() const;
-};
-
-extern ptrdiff_t
-Sprint(Sprinter* sp, const char* format, ...);
 
 extern bool
 CallResultEscapes(jsbytecode* pc);
