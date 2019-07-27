@@ -171,7 +171,6 @@ public:
     SOLIDCOLORLAYER
   };
 
-  void SetShaderMode(ShaderMode aMode, Layer* aMask, bool aIs2D);
   
   uint32_t SetShaderMode(ShaderMode aMode, MaskType aMaskType);
 
@@ -186,12 +185,6 @@ public:
   bool DeviceWasRemoved() { return mDeviceWasRemoved; }
 
   uint32_t GetDeviceResetCount() { return mDeviceResetCount; }
-
-  
-
-
-
-  nsTArray<LayerD3D9*> mLayersWithResources;
 
   int32_t GetMaxTextureSize() { return mMaxTextureSize; }
 
