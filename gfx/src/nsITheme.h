@@ -30,8 +30,8 @@ class nsIWidget;
 
 
  #define NS_ITHEME_IID     \
-{ 0xcc3a6c72, 0x50c2, 0x414d, \
-  { 0xb9, 0xf2, 0xb7, 0x78, 0xa5, 0xe0, 0xf1, 0x36 } }
+{ 0xa21dd936, 0x5960, 0x46da, \
+  { 0xa7, 0x24, 0x7c, 0x11, 0x4e, 0x42, 0x1b, 0x41 } }
 
 #define NS_THEMERENDERER_CID \
 { 0x0ae05515, 0xcf7a, 0x45a8, \
@@ -146,6 +146,33 @@ public:
   virtual bool WidgetProvidesFontSmoothingBackgroundColor(nsIFrame* aFrame,
                                       uint8_t aWidgetType, nscolor* aColor)
   { return false; }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  typedef uint8_t ThemeGeometryType;
+  enum {
+    eThemeGeometryTypeUnknown = 0
+  };
+
+  
+
+
+
+
+
+  virtual ThemeGeometryType ThemeGeometryTypeForWidget(nsIFrame* aFrame,
+                                                       uint8_t aWidgetType)
+  { return eThemeGeometryTypeUnknown; }
 
   
 
