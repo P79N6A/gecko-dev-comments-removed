@@ -9,6 +9,7 @@ const ADDONS = {
     unsigned: "unsigned_bootstrap_2.xpi",
     badid: "signed_bootstrap_badid_2.xpi",
     signed: "signed_bootstrap_2.xpi",
+    preliminary: "preliminary_bootstrap_2.xpi",
   },
   nonbootstrap: {
     unsigned: "unsigned_nonbootstrap_2.xpi",
@@ -320,6 +321,48 @@ add_task(function*() {
 
   let file = manuallyInstall(do_get_file(DATA + ADDONS.bootstrap.signed), stage, ID);
   breakAddon(file);
+
+  startupManager();
+
+  
+  let addon = yield promiseAddonByID(ID);
+  do_check_eq(addon, null);
+  do_check_eq(getActiveVersion(), -1);
+
+  do_check_false(file.exists());
+  clearCache(file);
+
+  yield promiseShutdownManager();
+  resetPrefs();
+});
+
+
+add_task(function*() {
+  let file = manuallyInstall(do_get_file(DATA + ADDONS.bootstrap.preliminary), profileDir, ID);
+
+  startupManager();
+
+  
+  let addon = yield promiseAddonByID(ID);
+  do_check_neq(addon, null);
+  do_check_true(addon.appDisabled);
+  do_check_false(addon.isActive);
+  do_check_eq(addon.signedState, AddonManager.SIGNEDSTATE_PRELIMINARY);
+  do_check_eq(getActiveVersion(), -1);
+
+  addon.uninstall();
+  yield promiseShutdownManager();
+  resetPrefs();
+
+  do_check_false(file.exists());
+  clearCache(file);
+});
+
+add_task(function*() {
+  let stage = profileDir.clone();
+  stage.append("staged");
+
+  let file = manuallyInstall(do_get_file(DATA + ADDONS.bootstrap.preliminary), stage, ID);
 
   startupManager();
 
