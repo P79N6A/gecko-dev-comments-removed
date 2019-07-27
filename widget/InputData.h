@@ -188,7 +188,7 @@ public:
     mTouches.AppendElements(aOther.mTouches);
   }
 
-  MultiTouchInput(const WidgetTouchEvent& aTouchEvent);
+  explicit MultiTouchInput(const WidgetTouchEvent& aTouchEvent);
   WidgetTouchEvent ToWidgetTouchEvent(nsIWidget* aWidget) const;
 
   
@@ -197,7 +197,7 @@ public:
   
   
   
-  MultiTouchInput(const WidgetMouseEvent& aMouseEvent);
+  explicit MultiTouchInput(const WidgetMouseEvent& aMouseEvent);
 
   MultiTouchType mType;
   nsTArray<SingleTouchData> mTouches;
