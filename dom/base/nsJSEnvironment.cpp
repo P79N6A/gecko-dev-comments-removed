@@ -146,8 +146,6 @@ static const uint32_t kMaxICCDuration = 2000;
 
 #define NS_CC_PURPLE_LIMIT          200
 
-#define JAVASCRIPT nsIProgrammingLanguage::JAVASCRIPT
-
 
 #define NS_UNLIMITED_SCRIPT_RUNTIME (0x40000000LL << 32)
 
