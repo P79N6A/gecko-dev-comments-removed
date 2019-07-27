@@ -1,0 +1,47 @@
+
+
+
+
+package org.mozilla.gecko.distribution;
+
+import android.net.Uri;
+
+
+
+
+
+
+
+
+
+
+public class ReferrerDescriptor {
+    public final String source;
+    public final String medium;
+    public final String term;
+    public final String content;
+    public final String campaign;
+
+    public ReferrerDescriptor(final String referrer) {
+        if (referrer == null) {
+            source = null;
+            medium = null;
+            term = null;
+            content = null;
+            campaign = null;
+            return;
+        }
+
+        final Uri u = new Uri.Builder()
+                             .scheme("http")
+                             .authority("local")
+                             .path("/")
+                             .encodedQuery(referrer).build();
+
+        source = u.getQueryParameter("utm_source");
+        medium = u.getQueryParameter("utm_medium");
+        term = u.getQueryParameter("utm_term");
+        content = u.getQueryParameter("utm_content");
+        campaign = u.getQueryParameter("utm_campaign");
+    }
+}
