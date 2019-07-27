@@ -11,10 +11,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.gfx.DisplayPortMetrics;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
-import org.mozilla.gecko.mozglue.JNITarget;
-import org.mozilla.gecko.mozglue.RobocopTarget;
-import org.mozilla.gecko.mozglue.generatorannotations.GeneratorOptions;
-import org.mozilla.gecko.mozglue.generatorannotations.WrapEntireClassForJNI;
 
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -29,6 +25,8 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import org.mozilla.gecko.mozglue.JNITarget;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 
 
 
@@ -122,8 +120,7 @@ public class GeckoEvent {
 
 
 
-    @GeneratorOptions(generatedClassName = "JavaDomKeyLocation")
-    @WrapEntireClassForJNI
+    @JNITarget
     public enum DomKeyLocation {
         DOM_KEY_LOCATION_STANDARD(0),
         DOM_KEY_LOCATION_LEFT(1),
