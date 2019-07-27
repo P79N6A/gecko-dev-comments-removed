@@ -140,10 +140,6 @@ struct BaselineScript
     uint32_t epilogueOffset_;
 
     
-#ifdef DEBUG
-    mozilla::DebugOnly<bool> spsOn_;
-#endif
-    uint32_t spsPushToggleOffset_;
     uint32_t profilerEnterToggleOffset_;
     uint32_t profilerExitToggleOffset_;
 
@@ -219,7 +215,6 @@ struct BaselineScript
   public:
     
     BaselineScript(uint32_t prologueOffset, uint32_t epilogueOffset,
-                   uint32_t spsPushToggleOffset,
                    uint32_t profilerEnterToggleOffset,
                    uint32_t profilerExitToggleOffset,
                    uint32_t traceLoggerEnterToggleOffset,
@@ -228,7 +223,6 @@ struct BaselineScript
 
     static BaselineScript *New(JSScript *jsscript, uint32_t prologueOffset,
                                uint32_t epilogueOffset, uint32_t postDebugPrologueOffset,
-                               uint32_t spsPushToggleOffset,
                                uint32_t profilerEnterToggleOffset,
                                uint32_t profilerExitToggleOffset,
                                uint32_t traceLoggerEnterToggleOffset,
@@ -398,7 +392,6 @@ struct BaselineScript
     
     void toggleDebugTraps(JSScript *script, jsbytecode *pc);
 
-    void toggleSPS(bool enable);
     void toggleProfilerInstrumentation(bool enable);
     bool isProfilerInstrumentationOn() const {
         return flags_ & PROFILER_INSTRUMENTATION_ON;
@@ -464,7 +457,7 @@ AddSizeOfBaselineData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf, size
                       size_t *fallbackStubs);
 
 void
-ToggleBaselineSPS(JSRuntime *runtime, bool enable);
+ToggleBaselineProfiling(JSRuntime *runtime, bool enable);
 
 void
 ToggleBaselineTraceLoggerScripts(JSRuntime *runtime, bool enable);
@@ -516,8 +509,7 @@ struct BaselineBailoutInfo
 uint32_t
 BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIterator &iter,
                      bool invalidate, BaselineBailoutInfo **bailoutInfo,
-                     const ExceptionBailoutInfo *exceptionInfo,
-                     bool *poppedLastSPSFrame);
+                     const ExceptionBailoutInfo *exceptionInfo);
 
 
 

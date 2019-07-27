@@ -551,16 +551,13 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 HandleFunction fun, HandleScript script, IonScript *ionScript,
                 SnapshotIterator &iter, bool invalidate, BaselineStackBuilder &builder,
                 AutoValueVector &startFrameFormals, MutableHandleFunction nextCallee,
-                jsbytecode **callPC, const ExceptionBailoutInfo *excInfo,
-                bool *poppedLastSPSFrameOut)
+                jsbytecode **callPC, const ExceptionBailoutInfo *excInfo)
 {
     
     
     MOZ_ASSERT(cx->mainThread().suppressGC);
 
     MOZ_ASSERT(script->hasBaselineScript());
-    MOZ_ASSERT(poppedLastSPSFrameOut);
-    MOZ_ASSERT(!*poppedLastSPSFrameOut);
 
     
     bool catchingException = excInfo && excInfo->catchingException();
@@ -625,16 +622,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     blFrame->setFrameSize(frameSize);
 
     uint32_t flags = 0;
-
-    
-    
-    
-    if (ionScript->hasSPSInstrumentation()) {
-        if (callerPC == nullptr) {
-            JitSpew(JitSpew_BaselineBailouts, "      Setting SPS flag on top frame!");
-            flags |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
-        }
-    }
 
     
     
@@ -1098,35 +1085,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 opReturnAddr = baselineScript->prologueEntryAddr();
                 JitSpew(JitSpew_BaselineBailouts, "      Resuming into prologue.");
 
-                
-                blFrame->unsetPushedSPSFrame();
-
-                if (cx->runtime()->spsProfiler.enabled()) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    if (!caller && bailoutKind != Bailout_ArgumentCheck) {
-                        JitSpew(JitSpew_BaselineBailouts,
-                                "      Popping SPS entry for outermost frame");
-                        cx->runtime()->spsProfiler.exit(script, fun);
-
-                        
-                        
-                        if (poppedLastSPSFrameOut)
-                            *poppedLastSPSFrameOut = true;
-                    }
-                }
             } else {
                 opReturnAddr = nativeCodeForPC;
             }
@@ -1135,16 +1093,6 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
         }
 
         if (cx->runtime()->spsProfiler.enabled()) {
-            if (blFrame->hasPushedSPSFrame()) {
-                
-                
-                
-                
-                
-                JitSpew(JitSpew_BaselineBailouts, "      Setting PCidx for last frame to 0");
-                cx->runtime()->spsProfiler.updatePC(script, script->code());
-            }
-
             
             const char *filename = script->filename();
             if (filename == nullptr)
@@ -1381,13 +1329,10 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 uint32_t
 jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIterator &iter,
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
-                          const ExceptionBailoutInfo *excInfo, bool *poppedLastSPSFrameOut)
+                          const ExceptionBailoutInfo *excInfo)
 {
     MOZ_ASSERT(bailoutInfo != nullptr);
     MOZ_ASSERT(*bailoutInfo == nullptr);
-
-    MOZ_ASSERT(poppedLastSPSFrameOut);
-    MOZ_ASSERT(!*poppedLastSPSFrameOut);
 
     TraceLoggerThread *logger = TraceLoggerForMainThread(cx->runtime());
     TraceLogStopEvent(logger, TraceLogger_IonMonkey);
@@ -1492,9 +1437,6 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
     RootedFunction fun(cx, callee);
     AutoValueVector startFrameFormals(cx);
 
-    RootedScript topCaller(cx);
-    jsbytecode *topCallerPC = nullptr;
-
     gc::AutoSuppressGC suppress(cx);
 
     while (true) {
@@ -1524,8 +1466,7 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
         RootedFunction nextCallee(cx, nullptr);
         if (!InitFromBailout(cx, caller, callerPC, fun, scr, iter.ionScript(),
                              snapIter, invalidate, builder, startFrameFormals,
-                             &nextCallee, &callPC, passExcInfo ? excInfo : nullptr,
-                             poppedLastSPSFrameOut))
+                             &nextCallee, &callPC, passExcInfo ? excInfo : nullptr))
         {
             return BAILOUT_RETURN_FATAL_ERROR;
         }
@@ -1545,23 +1486,11 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, JitFrameIter
         fun = nextCallee;
         scr = fun->existingScriptForInlinedFunction();
 
-        
-        if (!topCaller) {
-            MOZ_ASSERT(frameNo == 0);
-            topCaller = caller;
-            topCallerPC = callerPC;
-        }
-
         frameNo++;
 
         snapIter.nextInstruction();
     }
     JitSpew(JitSpew_BaselineBailouts, "  Done restoring frames");
-
-    
-    
-    if (frameNo > 0)
-        cx->runtime()->spsProfiler.updatePC(topCaller, topCallerPC);
 
     BailoutKind bailoutKind = snapIter.bailoutKind();
 

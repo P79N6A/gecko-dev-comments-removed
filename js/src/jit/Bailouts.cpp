@@ -50,31 +50,17 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     MOZ_ASSERT(IsBaselineEnabled(cx));
 
     *bailoutInfo = nullptr;
-    bool poppedLastSPSFrame = false;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, false, bailoutInfo,
-                                            nullptr, &poppedLastSPSFrame);
+                                            nullptr);
     MOZ_ASSERT(retval == BAILOUT_RETURN_OK ||
                retval == BAILOUT_RETURN_FATAL_ERROR ||
                retval == BAILOUT_RETURN_OVERRECURSED);
     MOZ_ASSERT_IF(retval == BAILOUT_RETURN_OK, *bailoutInfo != nullptr);
 
     if (retval != BAILOUT_RETURN_OK) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        bool popSPSFrame = iter.ionScript()->hasSPSInstrumentation() &&
-                           (SnapshotIterator(iter).bailoutKind() != Bailout_ArgumentCheck) &&
-                           !poppedLastSPSFrame;
         JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
+        probes::ExitScript(cx, script, script->functionNonDelazifying(),
+                            false);
 
         EnsureExitFrame(iter.jsFrame());
     }
@@ -140,9 +126,8 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     MOZ_ASSERT(IsBaselineEnabled(cx));
 
     *bailoutInfo = nullptr;
-    bool poppedLastSPSFrame = false;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, true, bailoutInfo,
-                                            nullptr, &poppedLastSPSFrame);
+                                            nullptr);
     MOZ_ASSERT(retval == BAILOUT_RETURN_OK ||
                retval == BAILOUT_RETURN_FATAL_ERROR ||
                retval == BAILOUT_RETURN_OVERRECURSED);
@@ -160,11 +145,9 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
         
         
         
-        bool popSPSFrame = iter.ionScript()->hasSPSInstrumentation() &&
-                           (SnapshotIterator(iter).bailoutKind() != Bailout_ArgumentCheck) &&
-                           !poppedLastSPSFrame;
         JSScript *script = iter.script();
-        probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
+        probes::ExitScript(cx, script, script->functionNonDelazifying(),
+                            false);
 
         JitFrameLayout *frame = iter.jsFrame();
         JitSpew(JitSpew_IonInvalidate, "Bailout failed (%s): converting to exit frame",
@@ -207,7 +190,7 @@ uint32_t
 jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
                              ResumeFromException *rfe,
                              const ExceptionBailoutInfo &excInfo,
-                             bool *overrecursed, bool *poppedLastSPSFrameOut)
+                             bool *overrecursed)
 {
     
     
@@ -224,7 +207,7 @@ jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
 
     BaselineBailoutInfo *bailoutInfo = nullptr;
     uint32_t retval = BailoutIonToBaseline(cx, bailoutData.activation(), iter, true,
-                                           &bailoutInfo, &excInfo, poppedLastSPSFrameOut);
+                                           &bailoutInfo, &excInfo);
 
     if (retval == BAILOUT_RETURN_OK) {
         MOZ_ASSERT(bailoutInfo);

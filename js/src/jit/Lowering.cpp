@@ -3493,18 +3493,6 @@ LIRGenerator::visitCallInstanceOf(MCallInstanceOf *ins)
 }
 
 void
-LIRGenerator::visitProfilerStackOp(MProfilerStackOp *ins)
-{
-    LProfilerStackOp *lir = new(alloc()) LProfilerStackOp(temp());
-    add(lir, ins);
-
-    
-    
-    if (gen->options.spsSlowAssertionsEnabled())
-        assignSafepoint(lir, ins);
-}
-
-void
 LIRGenerator::visitIsCallable(MIsCallable *ins)
 {
     MOZ_ASSERT(ins->object()->type() == MIRType_Object);

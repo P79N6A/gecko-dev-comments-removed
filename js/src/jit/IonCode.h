@@ -194,7 +194,7 @@ struct IonScript
     uint32_t numBailouts_;
 
     
-    bool hasSPSInstrumentation_;
+    bool hasProfilingInstrumentation_;
 
     
     uint32_t recompiling_;
@@ -412,14 +412,14 @@ struct IonScript
     bool bailoutExpected() const {
         return numBailouts_ > 0;
     }
-    void setHasSPSInstrumentation() {
-        hasSPSInstrumentation_ = true;
+    void setHasProfilingInstrumentation() {
+        hasProfilingInstrumentation_ = true;
     }
-    void clearHasSPSInstrumentation() {
-        hasSPSInstrumentation_ = false;
+    void clearHasProfilingInstrumentation() {
+        hasProfilingInstrumentation_ = false;
     }
-    bool hasSPSInstrumentation() const {
-        return hasSPSInstrumentation_;
+    bool hasProfilingInstrumentation() const {
+        return hasProfilingInstrumentation_;
     }
     void setTraceLoggerEvent(TraceLoggerEvent &event) {
         traceLoggerScriptEvent_ = event;

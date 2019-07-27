@@ -82,9 +82,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 #endif
 
     
-    masm.spsMarkJit(&cx->runtime()->spsProfiler, rbp, rbx);
-
-    
     masm.push(result);
 
     
@@ -280,9 +277,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     masm.pop(r12); 
     masm.storeValue(JSReturnOperand, Operand(r12, 0));
-
-    
-    masm.spsUnmarkJit(&cx->runtime()->spsProfiler, rbx);
 
     
 #if defined(_WIN64)

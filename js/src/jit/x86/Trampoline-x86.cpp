@@ -61,9 +61,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.push(edi);
 
     
-    masm.spsMarkJit(&cx->runtime()->spsProfiler, ebp, ebx);
-
-    
     
     masm.movl(esp, esi);
 
@@ -278,15 +275,12 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     
-    
-    masm.loadPtr(Address(esp, ARG_RESULT + 4 * sizeof(void *)), eax);
+    masm.loadPtr(Address(esp, ARG_RESULT + 3 * sizeof(void *)), eax);
     masm.storeValue(JSReturnOperand, Operand(eax, 0));
 
     
 
 
-    
-    masm.spsUnmarkJit(&cx->runtime()->spsProfiler, ebx);
 
     
     masm.pop(edi);

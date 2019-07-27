@@ -379,7 +379,7 @@ CloseLiveIterator(JSContext *cx, const InlineFrameIterator &frame, uint32_t loca
 
 static void
 HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromException *rfe,
-                   bool *overrecursed, bool *poppedLastSPSFrameOut)
+                   bool *overrecursed)
 {
     RootedScript script(cx, frame.script());
     jsbytecode *pc = frame.pc();
@@ -411,8 +411,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
             
             
             ExceptionBailoutInfo propagateInfo;
-            uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed,
-                                                      poppedLastSPSFrameOut);
+            uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, propagateInfo, overrecursed);
             if (retval == BAILOUT_RETURN_OK)
                 return;
         }
@@ -454,8 +453,7 @@ HandleExceptionIon(JSContext *cx, const InlineFrameIterator &frame, ResumeFromEx
                 
                 jsbytecode *catchPC = script->main() + tn->start + tn->length;
                 ExceptionBailoutInfo excInfo(frame.frameNo(), catchPC, tn->stackDepth);
-                uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, excInfo, overrecursed,
-                                                          poppedLastSPSFrameOut);
+                uint32_t retval = ExceptionHandlerBailout(cx, frame, rfe, excInfo, overrecursed);
                 if (retval == BAILOUT_RETURN_OK)
                     return;
 
@@ -763,8 +761,7 @@ HandleException(ResumeFromException *rfe)
             bool invalidated = iter.checkInvalidation(&ionScript);
 
             for (;;) {
-                bool poppedLastSPSFrame = false;
-                HandleExceptionIon(cx, frames, rfe, &overrecursed, &poppedLastSPSFrame);
+                HandleExceptionIon(cx, frames, rfe, &overrecursed);
 
                 if (rfe->kind == ResumeFromException::RESUME_BAILOUT) {
                     if (invalidated)
@@ -777,26 +774,10 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 
-                
-                bool popSPSFrame = cx->runtime()->spsProfiler.enabled();
-                if (invalidated)
-                    popSPSFrame = ionScript->hasSPSInstrumentation();
-
-                
-                if (frames.more())
-                    popSPSFrame = false;
-
-                
-                
-                if (poppedLastSPSFrame)
-                    popSPSFrame = false;
-
-                
-                
-                
 
                 JSScript *script = frames.script();
-                probes::ExitScript(cx, script, script->functionNonDelazifying(), popSPSFrame);
+                probes::ExitScript(cx, script, script->functionNonDelazifying(),
+                                    false);
                 if (!frames.more()) {
                     TraceLogStopEvent(logger, TraceLogger_IonMonkey);
                     TraceLogStopEvent(logger, TraceLogger_Scripts);
@@ -847,11 +828,7 @@ HandleException(ResumeFromException *rfe)
             
             JSScript *script = iter.script();
             probes::ExitScript(cx, script, script->functionNonDelazifying(),
-                               iter.baselineFrame()->hasPushedSPSFrame());
-            
-            
-            
-            iter.baselineFrame()->unsetPushedSPSFrame();
+                                false);
 
             if (iter.baselineFrame()->isDebuggee() && !calledDebugEpilogue) {
                 
