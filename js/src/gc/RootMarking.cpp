@@ -552,6 +552,28 @@ js::gc::GCRuntime::markRuntime(JSTracer* trc,
     }
 }
 
+
+
+class BufferGrayRootsTracer : public JS::CallbackTracer
+{
+    
+    bool bufferingGrayRootsFailed;
+
+    void appendGrayRoot(gc::TenuredCell* thing, JSGCTraceKind kind);
+
+  public:
+    explicit BufferGrayRootsTracer(JSRuntime* rt)
+      : JS::CallbackTracer(rt, grayTraceCallback), bufferingGrayRootsFailed(false)
+    {}
+
+    static void grayTraceCallback(JS::CallbackTracer* trc, void** thingp, JSGCTraceKind kind) {
+        auto tracer = static_cast<BufferGrayRootsTracer*>(trc);
+        tracer->appendGrayRoot(gc::TenuredCell::fromPointer(*thingp), kind);
+    }
+
+    bool failed() const { return bufferingGrayRootsFailed; }
+};
+
 void
 js::gc::GCRuntime::bufferGrayRoots()
 {
@@ -621,3 +643,13 @@ GCRuntime::resetBufferedGrayRoots() const
     for (GCZonesIter zone(rt); !zone.done(); zone.next())
         zone->gcGrayRoots.clearAndFree();
 }
+
+
+
+bool
+js::IsBufferingGrayRoots(JSTracer* trc)
+{
+    return trc->isCallbackTracer() &&
+           trc->asCallbackTracer()->hasCallback(BufferGrayRootsTracer::grayTraceCallback);
+}
+

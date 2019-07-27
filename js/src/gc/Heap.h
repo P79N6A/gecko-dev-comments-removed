@@ -53,6 +53,9 @@ CurrentThreadIsIonCompiling();
 extern bool
 UnmarkGrayCellRecursively(gc::Cell* cell, JSGCTraceKind kind);
 
+extern void
+TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, gc::Cell** thingp, const char* name);
+
 namespace gc {
 
 struct Arena;
@@ -60,9 +63,6 @@ class ArenaList;
 class SortedArenaList;
 struct ArenaHeader;
 struct Chunk;
-
-extern void
-TraceManuallyBarrieredGenericPointerEdge(JSTracer* trc, Cell** thingp, const char* name);
 
 
 

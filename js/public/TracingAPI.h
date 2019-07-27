@@ -102,17 +102,19 @@ class JS_PUBLIC_API(JSTracer)
         MarkingTracer,
         CallbackTracer
     };
-    bool isMarkingTracer() const { return tag == MarkingTracer; }
-    bool isCallbackTracer() const { return tag == CallbackTracer; }
+    bool isMarkingTracer() const { return tag_ == MarkingTracer; }
+    bool isCallbackTracer() const { return tag_ == CallbackTracer; }
     inline JS::CallbackTracer* asCallbackTracer();
 
   protected:
     JSTracer(JSRuntime* rt, TracerKindTag tag,
-             WeakMapTraceKind weakTraceKind = TraceWeakMapValues);
+             WeakMapTraceKind weakTraceKind = TraceWeakMapValues)
+      : runtime_(rt), tag_(tag), eagerlyTraceWeakMaps_(weakTraceKind)
+    {}
 
   private:
     JSRuntime*          runtime_;
-    TracerKindTag       tag;
+    TracerKindTag       tag_;
     WeakMapTraceKind    eagerlyTraceWeakMaps_;
 };
 
@@ -134,7 +136,9 @@ class JS_PUBLIC_API(CallbackTracer) : public JSTracer
     {}
 
     
-    void setTraceCallback(JSTraceCallback traceCallback);
+    void setTraceCallback(JSTraceCallback traceCallback) {
+        callback = traceCallback;
+    }
 
     
     bool hasCallback(JSTraceCallback maybeCallback) const {
