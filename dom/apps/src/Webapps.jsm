@@ -179,6 +179,7 @@ this.DOMApplicationRegistry = {
     }).bind(this));
 
     cpmm.addMessageListener("Activities:Register:OK", this);
+    cpmm.addMessageListener("Activities:Register:KO", this);
 
     Services.obs.addObserver(this, "xpcom-shutdown", false);
     Services.obs.addObserver(this, "memory-pressure", false);
@@ -276,8 +277,14 @@ this.DOMApplicationRegistry = {
   },
 
   
+  _safeToClone: Promise.defer(),
+
+  
   _registryReady: Promise.defer(),
   notifyAppsRegistryReady: function notifyAppsRegistryReady() {
+    
+    
+    this._safeToClone.resolve();
     this._registryReady.resolve();
     Services.obs.notifyObservers(this, "webapps-registry-ready", null);
     this._saveApps();
@@ -285,6 +292,10 @@ this.DOMApplicationRegistry = {
 
   get registryReady() {
     return this._registryReady.promise;
+  },
+
+  get safeToClone() {
+    return this._safeToClone.promise;
   },
 
   
@@ -962,6 +973,7 @@ this.DOMApplicationRegistry = {
         this._registerInterAppConnections(manifest, app);
         appsToRegister.push({ manifest: manifest, app: app });
       });
+      this._safeToClone.resolve();
       this._registerActivitiesForApps(appsToRegister, aRunUpdate);
     });
   },
@@ -1089,88 +1101,114 @@ this.DOMApplicationRegistry = {
     let mm = aMessage.target;
     msg.mm = mm;
 
+    let processedImmediately = true;
+
+    
+    
+    
     switch (aMessage.name) {
-      case "Webapps:Install": {
-#ifdef MOZ_WIDGET_ANDROID
-        Services.obs.notifyObservers(mm, "webapps-runtime-install", JSON.stringify(msg));
-#else
-        this.doInstall(msg, mm);
-#endif
+      case "Activities:Register:KO":
+        dump("Activities didn't register correctly!");
+      case "Activities:Register:OK":
+        
+        
+        
+        
+        this.notifyAppsRegistryReady();
         break;
-      }
-      case "Webapps:GetSelf":
-        this.getSelf(msg, mm);
+      case "Webapps:GetList":
+        
+        
+        
+        return this.doGetList();
+      case "child-process-shutdown":
+        this.removeMessageListener(["Webapps:Internal:AllMessages"], mm);
         break;
-      case "Webapps:Uninstall":
-#ifdef MOZ_WIDGET_ANDROID
-        Services.obs.notifyObservers(mm, "webapps-runtime-uninstall", JSON.stringify(msg));
-#else
-        this.doUninstall(msg, mm);
-#endif
-        break;
-      case "Webapps:Launch":
-        this.doLaunch(msg, mm);
-        break;
-      case "Webapps:CheckInstalled":
-        this.checkInstalled(msg, mm);
-        break;
-      case "Webapps:GetInstalled":
-        this.getInstalled(msg, mm);
-        break;
-      case "Webapps:GetNotInstalled":
-        this.getNotInstalled(msg, mm);
-        break;
-      case "Webapps:GetAll":
-        this.doGetAll(msg, mm);
-        break;
-      case "Webapps:InstallPackage": {
-#ifdef MOZ_WIDGET_ANDROID
-        Services.obs.notifyObservers(mm, "webapps-runtime-install-package", JSON.stringify(msg));
-#else
-        this.doInstallPackage(msg, mm);
-#endif
-        break;
-      }
       case "Webapps:RegisterForMessages":
         this.addMessageListener(msg.messages, msg.app, mm);
         break;
       case "Webapps:UnregisterForMessages":
         this.removeMessageListener(msg, mm);
         break;
-      case "child-process-shutdown":
-        this.removeMessageListener(["Webapps:Internal:AllMessages"], mm);
-        break;
-      case "Webapps:GetList":
-        return this.doGetList();
-        break;
-      case "Webapps:Download":
-        this.startDownload(msg.manifestURL);
-        break;
-      case "Webapps:CancelDownload":
-        this.cancelDownload(msg.manifestURL);
-        break;
-      case "Webapps:CheckForUpdate":
-        this.checkForUpdate(msg, mm);
-        break;
-      case "Webapps:ApplyDownload":
-        this.applyDownload(msg.manifestURL);
-        break;
-      case "Activities:Register:OK":
-        this.notifyAppsRegistryReady();
-        break;
-      case "Webapps:Install:Return:Ack":
-        this.onInstallSuccessAck(msg.manifestURL);
-        break;
-      case "Webapps:AddReceipt":
-        this.addReceipt(msg, mm);
-        break;
-      case "Webapps:RemoveReceipt":
-        this.removeReceipt(msg, mm);
-        break;
-      case "Webapps:ReplaceReceipt":
-        this.replaceReceipt(msg, mm);
-        break;
+      default:
+        processedImmediately = false;
     }
+
+    if (processedImmediately) {
+      return;
+    }
+
+    
+    
+    this.registryReady.then( () => {
+      switch (aMessage.name) {
+        case "Webapps:Install": {
+#ifdef MOZ_WIDGET_ANDROID
+          Services.obs.notifyObservers(mm, "webapps-runtime-install", JSON.stringify(msg));
+#else
+          this.doInstall(msg, mm);
+#endif
+          break;
+        }
+        case "Webapps:GetSelf":
+          this.getSelf(msg, mm);
+          break;
+        case "Webapps:Uninstall":
+#ifdef MOZ_WIDGET_ANDROID
+          Services.obs.notifyObservers(mm, "webapps-runtime-uninstall", JSON.stringify(msg));
+#else
+          this.doUninstall(msg, mm);
+#endif
+          break;
+        case "Webapps:Launch":
+          this.doLaunch(msg, mm);
+          break;
+        case "Webapps:CheckInstalled":
+          this.checkInstalled(msg, mm);
+          break;
+        case "Webapps:GetInstalled":
+          this.getInstalled(msg, mm);
+          break;
+        case "Webapps:GetNotInstalled":
+          this.getNotInstalled(msg, mm);
+          break;
+        case "Webapps:GetAll":
+          this.doGetAll(msg, mm);
+          break;
+        case "Webapps:InstallPackage": {
+#ifdef MOZ_WIDGET_ANDROID
+          Services.obs.notifyObservers(mm, "webapps-runtime-install-package", JSON.stringify(msg));
+#else
+          this.doInstallPackage(msg, mm);
+#endif
+          break;
+        }
+        case "Webapps:Download":
+          this.startDownload(msg.manifestURL);
+          break;
+        case "Webapps:CancelDownload":
+          this.cancelDownload(msg.manifestURL);
+          break;
+        case "Webapps:CheckForUpdate":
+          this.checkForUpdate(msg, mm);
+          break;
+        case "Webapps:ApplyDownload":
+          this.applyDownload(msg.manifestURL);
+          break;
+        case "Webapps:Install:Return:Ack":
+          this.onInstallSuccessAck(msg.manifestURL);
+          break;
+        case "Webapps:AddReceipt":
+          this.addReceipt(msg, mm);
+          break;
+        case "Webapps:RemoveReceipt":
+          this.removeReceipt(msg, mm);
+          break;
+        case "Webapps:ReplaceReceipt":
+          this.replaceReceipt(msg, mm);
+          break;
+      }
+    });
   },
 
   getAppInfo: function getAppInfo(aAppId) {
@@ -1251,27 +1289,27 @@ this.DOMApplicationRegistry = {
   doGetList: function() {
     let tmp = [];
 
-    for (let id in this.webapps) {
-      tmp.push({ id: id });
-    }
-
     let res = {};
     let done = false;
 
-    this._readManifests(tmp).then(
-      function(manifests) {
-        manifests.forEach((item) => {
-          res[item.id] = item.manifest;
-        });
-        done = true;
+    
+    this.safeToClone.then( () => {
+      for (let id in this.webapps) {
+        tmp.push({ id: id });
       }
-    );
+      this._readManifests(tmp).then(
+        function(manifests) {
+          manifests.forEach((item) => {
+            res[item.id] = item.manifest;
+          });
+          done = true;
+        }
+      );
+    });
 
     let thread = Services.tm.currentThread;
     while (!done) {
-      
       thread.processNextEvent( true);
-      
     }
     return { webapps: this.webapps, manifests: res };
   },
@@ -3748,9 +3786,13 @@ this.DOMApplicationRegistry = {
   },
 
   doGetAll: function(aData, aMm) {
-    this.getAll(function (apps) {
-      aData.apps = apps;
-      aMm.sendAsyncMessage("Webapps:GetAll:Return:OK", aData);
+    
+    debug("doGetAll");
+    this.registryReady.then(() => {
+      this.getAll(function (apps) {
+        aData.apps = apps;
+        aMm.sendAsyncMessage("Webapps:GetAll:Return:OK", aData);
+      });
     });
   },
 
