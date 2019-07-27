@@ -214,6 +214,9 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id)
     case Nvidia310M:
       APPEND_DEVICE(0x0A70);
       break;
+    case AMDRadeonHD5800:
+      APPEND_DEVICE(0x6899);
+      break;
     
     case DeviceFamilyMax:
       NS_WARNING("Invalid DeviceFamily id");
