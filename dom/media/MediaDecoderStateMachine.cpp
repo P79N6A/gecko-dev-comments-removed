@@ -1437,21 +1437,6 @@ int64_t MediaDecoderStateMachine::GetEndTime()
   return mEndTime;
 }
 
-
-
-class SeekRunnable : public nsRunnable {
-public:
-  SeekRunnable(MediaDecoder* aDecoder, double aSeekTarget)
-    : mDecoder(aDecoder), mSeekTarget(aSeekTarget) {}
-  NS_IMETHOD Run() {
-    mDecoder->Seek(mSeekTarget, SeekTarget::Accurate);
-    return NS_OK;
-  }
-private:
-  nsRefPtr<MediaDecoder> mDecoder;
-  double mSeekTarget;
-};
-
 void MediaDecoderStateMachine::RecomputeDuration()
 {
   MOZ_ASSERT(OnTaskQueue());
@@ -1518,21 +1503,6 @@ void MediaDecoderStateMachine::SetDuration(TimeUnit aDuration)
   }
 
   mEndTime = mStartTime + aDuration.ToMicroseconds();
-
-  if (mDecoder && mEndTime >= 0 && mEndTime < mCurrentPosition) {
-    
-    
-    
-    if (NS_IsMainThread()) {
-      
-      mDecoder->Seek(double(mEndTime) / USECS_PER_S, SeekTarget::Accurate);
-    } else {
-      
-      nsCOMPtr<nsIRunnable> task =
-        new SeekRunnable(mDecoder, double(mEndTime) / USECS_PER_S);
-      AbstractThread::MainThread()->Dispatch(task.forget());
-    }
-  }
 }
 
 void MediaDecoderStateMachine::SetFragmentEndTime(int64_t aEndTime)
