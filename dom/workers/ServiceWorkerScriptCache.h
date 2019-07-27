@@ -24,7 +24,16 @@ GenerateCacheName(nsAString& aName);
 class CompareCallback
 {
 public:
-  virtual void ComparisonResult(nsresult aStatus, bool aInCacheAndEqual) = 0;
+  
+
+
+
+
+
+  virtual void
+  ComparisonResult(nsresult aStatus,
+                   bool aInCacheAndEqual,
+                   const nsAString& aNewCacheName) = 0;
 
   NS_IMETHOD_(MozExternalRefCountType) AddRef() = 0;
   NS_IMETHOD_(MozExternalRefCountType) Release() = 0;
