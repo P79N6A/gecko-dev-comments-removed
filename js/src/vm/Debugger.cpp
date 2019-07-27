@@ -1652,7 +1652,7 @@ Debugger::slowPathOnNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global)
 
  bool
 Debugger::slowPathOnLogAllocationSite(JSContext* cx, HandleObject obj, HandleSavedFrame frame,
-                                      double when, GlobalObject::DebuggerVector& dbgs)
+                                      int64_t when, GlobalObject::DebuggerVector& dbgs)
 {
     MOZ_ASSERT(!dbgs.empty());
     mozilla::DebugOnly<Debugger**> begin = dbgs.begin();
@@ -1700,7 +1700,7 @@ Debugger::isDebuggee(const JSCompartment* compartment) const
 }
 
  Debugger::AllocationSite*
-Debugger::AllocationSite::create(JSContext* cx, HandleObject frame, double when, HandleObject obj)
+Debugger::AllocationSite::create(JSContext* cx, HandleObject frame, int64_t when, HandleObject obj)
 {
     assertSameCompartment(cx, frame);
 
@@ -1723,7 +1723,7 @@ Debugger::AllocationSite::create(JSContext* cx, HandleObject frame, double when,
 
 bool
 Debugger::appendAllocationSite(JSContext* cx, HandleObject obj, HandleSavedFrame frame,
-                               double when)
+                               int64_t when)
 {
     MOZ_ASSERT(trackingAllocationSites);
 
@@ -6301,6 +6301,13 @@ DebuggerGenericEval(JSContext* cx, const char* fullMethodName, const Value& code
     
     MOZ_ASSERT_IF(iter, !scope);
     MOZ_ASSERT_IF(!iter, scope && scope->is<GlobalObject>());
+
+    if (iter && iter->script()->isDerivedClassConstructor()) {
+        MOZ_ASSERT(iter->isFunctionFrame() && iter->calleeTemplate()->isClassConstructor());
+        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_DISABLED_DERIVED_CLASS,
+                             "debugger eval");
+        return false;
+    }
 
     
     if (!code.isString()) {
