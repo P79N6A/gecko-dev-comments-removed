@@ -47,7 +47,7 @@ public:
 
 
 
-    static void UpdateRootFrame(nsIPresShell* aPresShell,
+    static void UpdateRootFrame(nsIContent* aPresShell,
                                 FrameMetrics& aMetrics);
 
     
