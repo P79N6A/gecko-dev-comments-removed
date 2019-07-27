@@ -49,11 +49,7 @@ public:
 
   
   NS_FORWARD_SAFE_NSITHREADPOOL(mPool);
-  NS_FORWARD_SAFE_NSIEVENTTARGET(GetEventTarget());
-
-  nsIEventTarget* GetEventTarget() {
-    return mEventTarget;
-  }
+  NS_FORWARD_SAFE_NSIEVENTTARGET(mEventTarget);
 
 private:
 
