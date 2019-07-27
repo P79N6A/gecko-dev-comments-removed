@@ -333,13 +333,12 @@ MediaDecodeTask::FinishDecode()
   
   
   
-  static const fallible_t fallible = fallible_t();
   bool memoryAllocationSuccess = true;
   if (!mDecodeJob.mChannelBuffers.SetLength(channelCount)) {
     memoryAllocationSuccess = false;
   } else {
     for (uint32_t i = 0; i < channelCount; ++i) {
-      mDecodeJob.mChannelBuffers[i] = new(fallible) float[resampledFrames];
+      mDecodeJob.mChannelBuffers[i] = new (fallible) float[resampledFrames];
       if (!mDecodeJob.mChannelBuffers[i]) {
         memoryAllocationSuccess = false;
         break;

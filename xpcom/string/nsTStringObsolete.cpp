@@ -464,18 +464,18 @@ nsTString_CharT::ReplaceSubstring(const char_type* aTarget,
 bool
 nsTString_CharT::ReplaceSubstring(const char_type* aTarget,
                                   const char_type* aNewValue,
-                                  const fallible_t& fallible)
+                                  const fallible_t& aFallible)
 {
   return ReplaceSubstring(nsTDependentString_CharT(aTarget),
                           nsTDependentString_CharT(aNewValue),
-                          fallible);
+                          aFallible);
 }
 
 void
 nsTString_CharT::ReplaceSubstring(const self_type& aTarget,
                                   const self_type& aNewValue)
 {
-  if (!ReplaceSubstring(aTarget, aNewValue, fallible_t())) {
+  if (!ReplaceSubstring(aTarget, aNewValue, mozilla::fallible)) {
     
     
     AllocFailed(mLength + (aNewValue.Length() - aTarget.Length()));

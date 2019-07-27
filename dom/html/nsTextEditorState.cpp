@@ -1873,8 +1873,6 @@ bool
 nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
                             bool aSetValueChanged)
 {
-  mozilla::fallible_t fallible;
-
   if (mEditor && mBoundFrame) {
     
     

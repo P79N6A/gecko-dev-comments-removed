@@ -330,7 +330,7 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
       
       
       nsAutoString wdata;
-      if (!AppendUTF8toUTF16(utf8String, wdata, mozilla::fallible_t())) {
+      if (!AppendUTF8toUTF16(utf8String, wdata, mozilla::fallible)) {
 #ifdef MOZ_CRASHREPORTER
         nsCOMPtr<nsICrashReporter> cr =
           do_GetService("@mozilla.org/toolkit/crash-reporter;1");

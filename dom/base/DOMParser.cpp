@@ -109,7 +109,7 @@ DOMParser::ParseFromString(const nsAString& str,
 
   nsAutoCString utf8str;
   
-  if (!AppendUTF16toUTF8(str, utf8str, mozilla::fallible_t())) {
+  if (!AppendUTF16toUTF8(str, utf8str, mozilla::fallible)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 

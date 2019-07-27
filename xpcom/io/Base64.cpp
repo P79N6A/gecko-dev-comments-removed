@@ -267,7 +267,7 @@ Base64Encode(const nsACString& aBinaryData, nsACString& aString)
   char* buffer;
 
   
-  if (aString.SetCapacity(stringLen + 1, fallible_t()) &&
+  if (aString.SetCapacity(stringLen + 1, fallible) &&
       (buffer = aString.BeginWriting()) &&
       PL_Base64Encode(aBinaryData.BeginReading(), aBinaryData.Length(), buffer)) {
     
@@ -317,7 +317,7 @@ Base64Decode(const nsACString& aString, nsACString& aBinaryData)
   char* buffer;
 
   
-  if (aBinaryData.SetCapacity(binaryDataLen + 1, fallible_t()) &&
+  if (aBinaryData.SetCapacity(binaryDataLen + 1, fallible) &&
       (buffer = aBinaryData.BeginWriting()) &&
       PL_Base64Decode(aString.BeginReading(), aString.Length(), buffer)) {
     

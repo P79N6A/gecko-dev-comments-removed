@@ -1009,7 +1009,6 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
     
     nsAutoArrayPtr<uint8_t> pixelData;
-    static const fallible_t fallible = fallible_t();
     pixelData = new (fallible) uint8_t[length];
     if (pixelData) {
       

@@ -63,7 +63,6 @@ TextDecoder::Decode(const char* aInput, const int32_t aLength,
   }
   
   
-  static const fallible_t fallible = fallible_t();
   nsAutoArrayPtr<char16_t> buf(new (fallible) char16_t[outLen + 1]);
   if (!buf) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);

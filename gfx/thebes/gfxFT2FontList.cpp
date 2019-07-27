@@ -1096,7 +1096,6 @@ gfxFT2FontList::AppendFacesFromOmnijarEntry(nsZipArchive* aArchive,
     uint32_t bufSize = item->RealSize();
     
     
-    static const fallible_t fallible = fallible_t();
     nsAutoArrayPtr<uint8_t> buf(new (fallible) uint8_t[bufSize]);
     if (!buf) {
         return;
