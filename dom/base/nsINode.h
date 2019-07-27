@@ -1050,7 +1050,8 @@ public:
     
 
 
-    nsNodeWeakReference* mWeakReference;
+
+    nsNodeWeakReference* MOZ_NON_OWNING_REF mWeakReference;
   };
 
   
