@@ -223,9 +223,6 @@ NS_GetContentList(nsINode* aRootNode,
   ContentListHashEntry *entry = nullptr;
   
   if (gContentListHashTable.IsInitialized()) {
-
-    
-    
     entry = static_cast<ContentListHashEntry *>
                        (PL_DHashTableAdd(&gContentListHashTable, &hashKey));
     if (entry)
@@ -244,8 +241,7 @@ NS_GetContentList(nsINode* aRootNode,
     } else {
       htmlAtom = xmlAtom;
     }
-    list = new nsContentList(aRootNode, aMatchNameSpaceId,
-                             htmlAtom, xmlAtom);
+    list = new nsContentList(aRootNode, aMatchNameSpaceId, htmlAtom, xmlAtom);
     if (entry) {
       entry->mContentList = list;
     }
@@ -335,8 +331,6 @@ GetFuncStringContentList(nsINode* aRootNode,
   if (gFuncStringContentListHashTable.IsInitialized()) {
     nsFuncStringCacheKey hashKey(aRootNode, aFunc, aString);
 
-    
-    
     entry = static_cast<FuncStringContentListHashEntry *>
                        (PL_DHashTableAdd(&gFuncStringContentListHashTable,
                                          &hashKey));
