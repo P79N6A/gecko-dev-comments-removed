@@ -86,7 +86,11 @@ public:
       return rv;
     }
 
-    
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
+    if (httpChannel) {
+      
+      httpChannel->SetRedirectionLimit(0);
+    }
 
     
     nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(mChannel);
