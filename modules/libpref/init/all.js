@@ -1590,9 +1590,6 @@ pref("network.dnsCacheExpirationGracePeriod", 60);
 pref("network.dns.disablePrefetch", false);
 
 
-pref("network.dns.offline-localhost", true);
-
-
 
 pref("network.standard-url.escape-utf8", true);
 
