@@ -1677,8 +1677,15 @@ nsContextMenu.prototype = {
     
     menuItem.searchTerms = selectedText;
 
-    if (selectedText.length > 15)
-      selectedText = selectedText.substr(0,15) + this.ellipsis;
+    
+    
+    if (selectedText.length > 15) {
+      let truncLength = 15;
+      let truncChar = selectedText[15].charCodeAt(0);
+      if (truncChar >= 0xDC00 && truncChar <= 0xDFFF)
+        truncLength++;
+      selectedText = selectedText.substr(0,truncLength) + this.ellipsis;
+    }
 
     
     
