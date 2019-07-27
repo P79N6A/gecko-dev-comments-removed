@@ -242,7 +242,6 @@ user_pref("browser.newtabpage.directory.ping", "");
 
 
 user_pref("loop.enabled", true);
-user_pref("loop.throttled", false);
 
 
 user_pref("browser.uitour.pinnedTabUrl", "http://%(server)s/uitour-dummy/pinnedTab");
