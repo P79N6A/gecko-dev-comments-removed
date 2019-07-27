@@ -65,7 +65,8 @@ public:
   void GetKeySystem(nsString& retval) const;
 
   
-  already_AddRefed<MediaKeySession> CreateSession(SessionType aSessionType,
+  already_AddRefed<MediaKeySession> CreateSession(JSContext* aCx,
+                                                  SessionType aSessionType,
                                                   ErrorResult& aRv);
 
   
