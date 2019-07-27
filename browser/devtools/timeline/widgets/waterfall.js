@@ -85,7 +85,8 @@ Waterfall.prototype = {
 
     let dataScale = this._waterfallWidth / (timeEnd - timeStart);
     this._drawWaterfallBackground(dataScale);
-    this._buildHeader(this._headerContents, timeStart, dataScale);
+    
+    this._buildHeader(this._headerContents, timeStart - markers.startTime, dataScale);
     this._buildMarkers(this._listContents, markers, timeStart, timeEnd, dataScale);
   },
 

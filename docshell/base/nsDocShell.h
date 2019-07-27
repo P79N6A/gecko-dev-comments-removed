@@ -952,14 +952,14 @@ private:
     nsWeakPtr mOpenedRemote;
 
     
-    mozilla::TimeStamp mProfileTimelineStartTime;
+    bool mProfileTimelineRecording;
 
 #ifdef MOZ_ENABLE_PROFILER_SPS
     struct InternalProfileTimelineMarker
     {
       InternalProfileTimelineMarker(const char* aName,
                                     ProfilerMarkerTracing* aPayload,
-                                    float aTime)
+                                    DOMHighResTimeStamp aTime)
         : mName(aName)
         , mPayload(aPayload)
         , mTime(aTime)
@@ -972,14 +972,10 @@ private:
 
       const char* mName;
       ProfilerMarkerTracing* mPayload;
-      float mTime;
+      DOMHighResTimeStamp mTime;
     };
     nsTArray<InternalProfileTimelineMarker*> mProfileTimelineMarkers;
 #endif
-
-    
-    
-    float GetProfileTimelineDelta();
 
     
     void ClearProfileTimelineMarkers();
