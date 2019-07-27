@@ -43,8 +43,6 @@ namespace net {
 
 
 
-
-
 class RemoteOpenFileChild MOZ_FINAL
   : public PRemoteOpenFileChild
   , public nsIFile
