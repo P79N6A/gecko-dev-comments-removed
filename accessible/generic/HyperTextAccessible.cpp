@@ -1755,6 +1755,42 @@ HyperTextAccessible::RemoveChild(Accessible* aAccessible)
   return Accessible::RemoveChild(aAccessible);
 }
 
+Relation
+HyperTextAccessible::RelationByType(RelationType aType)
+{
+  Relation rel = Accessible::RelationByType(aType);
+
+  switch (aType) {
+    case RelationType::NODE_CHILD_OF:
+      if (mContent->IsMathMLElement()) {
+        Accessible* parent = Parent();
+        if (parent) {
+          nsIContent* parentContent = parent->GetContent();
+          if (parentContent->IsMathMLElement(nsGkAtoms::mroot_)) {
+            
+            rel.AppendTarget(parent);
+          }
+        }
+      }
+      break;
+    case RelationType::NODE_PARENT_OF:
+      if (mContent->IsMathMLElement(nsGkAtoms::mroot_)) {
+        Accessible* base = GetChildAt(0);
+        Accessible* index = GetChildAt(1);
+        if (base && index) {
+          
+          rel.AppendTarget(index);
+          rel.AppendTarget(base);
+        }
+      }
+      break;
+    default:
+      break;
+  }
+
+  return rel;
+}
+
 void
 HyperTextAccessible::CacheChildren()
 {
