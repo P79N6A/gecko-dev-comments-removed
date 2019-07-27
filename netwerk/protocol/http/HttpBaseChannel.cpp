@@ -1915,6 +1915,9 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
   }
 
+  
+  newChannel->SetLoadInfo(mLoadInfo);
+
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (!httpChannel)
     return NS_OK; 
