@@ -356,6 +356,9 @@ class IonBuilder
     
     bool improveTypesAtTest(MDefinition *ins, bool trueBranch, MTest *test);
     bool improveTypesAtCompare(MCompare *ins, bool trueBranch, MTest *test);
+    bool improveTypesAtNullOrUndefinedCompare(MCompare *ins, bool trueBranch, MTest *test);
+    bool improveTypesAtTypeOfCompare(MCompare *ins, bool trueBranch, MTest *test);
+
     
     bool detectAndOrStructure(MPhi *ins, bool *branchIsTrue);
     bool replaceTypeSet(MDefinition *subject, TemporaryTypeSet *type, MTest *test);
