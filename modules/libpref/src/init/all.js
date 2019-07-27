@@ -3995,8 +3995,6 @@ pref("dom.sms.defaultServiceId", 0);
 
 
 pref("dom.mozContacts.enabled", false);
-pref("dom.navigator-property.disable.mozContacts", true);
-pref("dom.global-constructor.disable.mozContact", true);
 
 
 pref("dom.mozAlarms.enabled", false);

@@ -427,8 +427,6 @@ pref("network.gonk.ms-release-mms-connection", 30000);
 
 
 pref("dom.mozContacts.enabled", true);
-pref("dom.navigator-property.disable.mozContacts", false);
-pref("dom.global-constructor.disable.mozContact", false);
 
 
 
@@ -493,7 +491,6 @@ pref("dom.mozApps.single_variant_sourcedir", "/persist/svoperapps");
 
 
 pref("dom.mozSettings.enabled", true);
-pref("dom.navigator-property.disable.mozSettings", false);
 pref("dom.mozPermissionSettings.enabled", true);
 
 
