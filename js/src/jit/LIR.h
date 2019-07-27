@@ -416,6 +416,7 @@ class LDefinition
         MUST_REUSE_INPUT
     };
 
+    
     enum Type {
         GENERAL,    
         INT32,      
