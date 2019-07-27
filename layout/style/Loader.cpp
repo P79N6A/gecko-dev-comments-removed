@@ -1464,24 +1464,19 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
     }
 
     
-    nsCOMPtr<nsIInputStream> stream;
     nsCOMPtr<nsIChannel> channel;
     
     
     
     
+    
     if (aLoadData->mRequestingNode) {
-      rv = NS_OpenURIWithTriggeringPrincipal(getter_AddRefs(stream),
-                                             aLoadData->mURI,
-                                             aLoadData->mRequestingNode,
-                                             triggeringPrincipal,
-                                             nsILoadInfo::SEC_NORMAL,
-                                             nsIContentPolicy::TYPE_OTHER,
-                                             nullptr,   
-                                             nullptr,   
-                                             nsIRequest::LOAD_NORMAL,
-                                             nullptr,   
-                                             getter_AddRefs(channel));
+      rv = NS_NewChannelWithTriggeringPrincipal(getter_AddRefs(channel),
+                                                aLoadData->mURI,
+                                                aLoadData->mRequestingNode,
+                                                triggeringPrincipal,
+                                                nsILoadInfo::SEC_NORMAL,
+                                                nsIContentPolicy::TYPE_OTHER);
     }
     else {
       
@@ -1489,25 +1484,22 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
       
       
       MOZ_ASSERT(nsContentUtils::IsSystemPrincipal(triggeringPrincipal));
-      rv = NS_OpenURI(getter_AddRefs(stream),
-                      aLoadData->mURI,
-                      triggeringPrincipal,
-                      nsILoadInfo::SEC_NORMAL,
-                      nsIContentPolicy::TYPE_OTHER,
-                      nullptr,   
-                      nullptr,   
-                      nsIRequest::LOAD_NORMAL,
-                      nullptr,   
-                      getter_AddRefs(channel));
+      rv = NS_NewChannel(getter_AddRefs(channel),
+                         aLoadData->mURI,
+                         triggeringPrincipal,
+                         nsILoadInfo::SEC_NORMAL,
+                         nsIContentPolicy::TYPE_OTHER);
     }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIInputStream> stream;
+    rv = channel->Open(getter_AddRefs(stream));
 
     if (NS_FAILED(rv)) {
       LOG_ERROR(("  Failed to open URI synchronously"));
       SheetComplete(aLoadData, rv);
       return rv;
     }
-
-    NS_ASSERTION(channel, "NS_OpenURI lied?");
 
     
     

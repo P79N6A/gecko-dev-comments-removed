@@ -2712,10 +2712,8 @@ XULDocument::LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic,
             parser->Terminate();
 
             
-            
-            
             ReportMissingOverlay(aURI);
-            
+
             
             *aFailureFromContent = true;
             return rv;

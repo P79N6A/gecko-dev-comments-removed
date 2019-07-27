@@ -862,6 +862,8 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
     mListenerContext = ctx;
     mIsPending = true;
 
+    nsCOMPtr<nsIChannel> channel;
+
     if (!mJarFile) {
         
         
@@ -869,26 +871,32 @@ nsJARChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctx)
         if (NS_SUCCEEDED(rv)) {
             
             
+            uint32_t loadFlags =
+              mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS);
             if (mLoadInfo) {
-              rv = NS_OpenURIInternal(mDownloader,
-                                      nullptr,   
-                                      mJarBaseURI,
-                                      mLoadInfo,
-                                      mLoadGroup,
-                                      mCallbacks,
-                                      mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
+              rv = NS_NewChannelInternal(getter_AddRefs(channel),
+                                         mJarBaseURI,
+                                         mLoadInfo,
+                                         mLoadGroup,
+                                         mCallbacks,
+                                         loadFlags);
+            } else {
+              rv = NS_NewChannel(getter_AddRefs(channel),
+                                 mJarBaseURI,
+                                 nsContentUtils::GetSystemPrincipal(),
+                                 nsILoadInfo::SEC_NORMAL,
+                                 nsIContentPolicy::TYPE_OTHER,
+                                 mLoadGroup,
+                                 mCallbacks,
+                                 loadFlags);
             }
-            else {
-              rv = NS_OpenURI(mDownloader,
-                              nullptr,   
-                              mJarBaseURI,
-                              nsContentUtils::GetSystemPrincipal(),
-                              nsILoadInfo::SEC_NORMAL,
-                              nsIContentPolicy::TYPE_OTHER,
-                              mLoadGroup,
-                              mCallbacks,
-                              mLoadFlags & ~(LOAD_DOCUMENT_URI | LOAD_CALL_CONTENT_SNIFFERS));
+            if (NS_FAILED(rv)) {
+              mIsPending = false;
+              mListenerContext = nullptr;
+              mListener = nullptr;
+              return rv;
             }
+            channel->AsyncOpen(mDownloader, nullptr);
         }
     } else if (mOpeningRemote) {
         

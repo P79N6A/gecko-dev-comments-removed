@@ -955,16 +955,17 @@ RDFXMLDataSourceImpl::Refresh(bool aBlocking)
     }
     else {
         
-        rv = NS_OpenURI(this,
-                        nullptr,   
-                        mURL,
-                        nsContentUtils::GetSystemPrincipal(),
-                        nsILoadInfo::SEC_NORMAL,
-                        nsIContentPolicy::TYPE_OTHER,
-                        nullptr, 
-                        this);   
-
-        if (NS_FAILED(rv)) return rv;
+        nsCOMPtr<nsIChannel> channel;
+        rv = NS_NewChannel(getter_AddRefs(channel),
+                           mURL,
+                           nsContentUtils::GetSystemPrincipal(),
+                           nsILoadInfo::SEC_NORMAL,
+                           nsIContentPolicy::TYPE_OTHER,
+                           nullptr, 
+                           this);   
+        NS_ENSURE_SUCCESS(rv, rv);
+        rv = channel->AsyncOpen(this, nullptr);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         
         mLoadState = eLoadState_Pending;

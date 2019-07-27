@@ -581,7 +581,6 @@ nsresult nsPluginHost::PostURL(nsISupports* pluginInst,
   }
 
   
-  
   if (streamListener)
     rv = NewPluginURLStream(NS_ConvertUTF8toUTF16(url), instance,
                             streamListener,
