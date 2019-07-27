@@ -313,6 +313,7 @@ protected:
 public:
   ElementAnimation()
     : mIsRunningOnCompositor(false)
+    , mIsFinishedTransition(false)
     , mLastNotification(LAST_NOTIFICATION_NONE)
   {
   }
@@ -333,12 +334,12 @@ public:
   
   
   bool IsFinishedTransition() const {
-    return mStartTime.IsNull();
+    return mIsFinishedTransition;
   }
   void SetFinishedTransition() {
     MOZ_ASSERT(AsTransition(),
                "Calling SetFinishedTransition but it's not a transition");
-    mStartTime = mozilla::TimeStamp();
+    mIsFinishedTransition = true;
   }
 
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
@@ -378,12 +379,13 @@ public:
   nsString mName;
   AnimationTiming mTiming;
   
-  
-  
   mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
   uint8_t mPlayState;
   bool mIsRunningOnCompositor;
+  
+  
+  bool mIsFinishedTransition;
 
   enum {
     LAST_NOTIFICATION_NONE = uint64_t(-1),
