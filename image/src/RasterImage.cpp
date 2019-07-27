@@ -1420,23 +1420,18 @@ RasterImage::WantDecodedFrames(const nsIntSize& aSize, uint32_t aFlags,
     SurfaceCache::UnlockSurfaces(ImageKey(this));
   }
 
+  DecodeStrategy strategy = DecodeStrategy::ASYNC;
+
   if (aShouldSyncNotify) {
     
     if (aFlags & FLAG_SYNC_DECODE) {
-      Decode(DecodeStrategy::SYNC_IF_POSSIBLE, Some(aSize), aFlags);
-      return;
+      strategy = DecodeStrategy::SYNC_IF_POSSIBLE;
+    } else if (aFlags & FLAG_SYNC_DECODE_IF_FAST) {
+      strategy = DecodeStrategy::SYNC_FOR_SMALL_IMAGES;
     }
-
-    
-    
-    Decode(mHasBeenDecoded ? DecodeStrategy::ASYNC
-                           : DecodeStrategy::SYNC_FOR_SMALL_IMAGES,
-           Some(aSize), aFlags);
-    return;
   }
 
-  
-  Decode(DecodeStrategy::ASYNC, Some(aSize), aFlags);
+  Decode(strategy, Some(aSize), aFlags);
 }
 
 
@@ -1466,7 +1461,7 @@ RasterImage::StartDecoding()
     return NS_OK;
   }
 
-  return RequestDecodeForSize(mSize, FLAG_SYNC_DECODE);
+  return RequestDecodeForSize(mSize, FLAG_SYNC_DECODE_IF_FAST);
 }
 
 NS_IMETHODIMP
@@ -1488,7 +1483,14 @@ RasterImage::RequestDecodeForSize(const nsIntSize& aSize, uint32_t aFlags)
   nsIntSize targetSize = mDownscaleDuringDecode ? aSize : mSize;
 
   
-  bool shouldSyncDecodeSmallImages = aFlags & FLAG_SYNC_DECODE;
+  
+  
+  bool shouldSyncDecodeIfFast =
+    !mHasBeenDecoded && (aFlags & FLAG_SYNC_DECODE_IF_FAST);
+
+  uint32_t flags = shouldSyncDecodeIfFast
+                 ? aFlags
+                 : aFlags & ~FLAG_SYNC_DECODE_IF_FAST;
 
   
   
@@ -1496,8 +1498,8 @@ RasterImage::RequestDecodeForSize(const nsIntSize& aSize, uint32_t aFlags)
   
   
   
-  LookupFrame(0, targetSize, DecodeFlags(aFlags),
-               shouldSyncDecodeSmallImages);
+  LookupFrame(0, targetSize, flags,
+               shouldSyncDecodeIfFast);
 
   return NS_OK;
 }
