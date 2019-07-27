@@ -387,6 +387,42 @@ class AutoMaybeStartBackgroundAllocation;
 
 
 
+struct SortedArenaListSegment
+{
+    ArenaHeader *head;
+    ArenaHeader **tailp;
+
+    void clear() {
+        head = nullptr;
+        tailp = &head;
+    }
+
+    bool isEmpty() const {
+        return tailp == &head;
+    }
+
+    
+    void append(ArenaHeader *aheader) {
+        JS_ASSERT(aheader);
+        JS_ASSERT_IF(head, head->getAllocKind() == aheader->getAllocKind());
+        *tailp = aheader;
+        tailp = &aheader->next;
+    }
+
+    
+    
+    
+    
+    
+    void linkTo(ArenaHeader *aheader) {
+        *tailp = aheader;
+    }
+};
+
+
+
+
+
 
 
 
@@ -425,9 +461,31 @@ class ArenaList {
     ArenaHeader     *head_;
     ArenaHeader     **cursorp_;
 
+    void copy(const ArenaList &other) {
+        other.check();
+        head_ = other.head_;
+        cursorp_ = other.isCursorAtHead() ? &head_ : other.cursorp_;
+        check();
+    }
+
   public:
     ArenaList() {
         clear();
+    }
+
+    ArenaList(const ArenaList &other) {
+        copy(other);
+    }
+
+    ArenaList &operator=(const ArenaList &other) {
+        copy(other);
+        return *this;
+    }
+
+    ArenaList(const SortedArenaListSegment &segment) {
+        head_ = segment.head;
+        cursorp_ = segment.isEmpty() ? &head_ : segment.tailp;
+        check();
     }
 
     
@@ -439,28 +497,6 @@ class ArenaList {
         
         ArenaHeader *cursor = *cursorp_;
         JS_ASSERT_IF(cursor, cursor->hasFreeThings());
-#endif
-    }
-
-    
-    void deepCheck() const {
-#ifdef DEBUG
-        check();
-        
-        
-        
-        
-        
-        
-        
-
-
-
-
-
-
-
-
 #endif
     }
 
@@ -479,6 +515,11 @@ class ArenaList {
     ArenaHeader *head() const {
         check();
         return head_;
+    }
+
+    bool isCursorAtHead() const {
+        check();
+        return cursorp_ == &head_;
     }
 
     bool isCursorAtEnd() const {
@@ -516,32 +557,95 @@ class ArenaList {
     }
 
     
+    ArenaList &insertListWithCursorAtEnd(const ArenaList &other) {
+        check();
+        other.check();
+        JS_ASSERT(other.isCursorAtEnd());
+        if (other.isCursorAtHead())
+            return *this;
+        
+        *other.cursorp_ = *cursorp_;
+        *cursorp_ = other.head_;
+        cursorp_ = other.cursorp_;
+        check();
+        return *this;
+    }
+};
+
+
+
+
+
+
+class SortedArenaList
+{
+  public:
     
-    void insertAtStart(ArenaHeader *a) {
-        check();
-        a->next = head_;
-        if (isEmpty())
-            cursorp_ = &a->next;        
-        head_ = a;
-        check();
+    static const size_t MinThingSize = 16;
+
+    static_assert(ArenaSize <= 4096, "When increasing the Arena size, please consider how"\
+                                     " this will affect the size of a SortedArenaList.");
+
+    static_assert(MinThingSize >= 16, "When decreasing the minimum thing size, please consider"\
+                                      " how this will affect the size of a SortedArenaList.");
+
+  private:
+    
+    static const size_t MaxThingsPerArena = (ArenaSize - sizeof(ArenaHeader)) / MinThingSize;
+
+    size_t thingsPerArena_;
+    SortedArenaListSegment segments[MaxThingsPerArena + 1];
+
+    
+    ArenaHeader *headAt(size_t n) { return segments[n].head; }
+    ArenaHeader **tailAt(size_t n) { return segments[n].tailp; }
+
+  public:
+    explicit SortedArenaList(size_t thingsPerArena = MaxThingsPerArena) {
+        reset(thingsPerArena);
+    }
+
+    void setThingsPerArena(size_t thingsPerArena) {
+        JS_ASSERT(thingsPerArena && thingsPerArena <= MaxThingsPerArena);
+        thingsPerArena_ = thingsPerArena;
     }
 
     
-    void appendToListWithCursorAtEnd(ArenaList &other) {
-        JS_ASSERT(isCursorAtEnd());
-        deepCheck();
-        other.deepCheck();
-        if (!other.isEmpty()) {
-            
-            
-            *cursorp_ = other.head_;
+    void reset(size_t thingsPerArena = MaxThingsPerArena) {
+        setThingsPerArena(thingsPerArena);
+        
+        for (size_t i = 0; i <= thingsPerArena; ++i)
+            segments[i].clear();
+    }
 
-            
-            
-            if (other.cursorp_ != &other.head_)
-                cursorp_ = other.cursorp_;
+    
+    void insertAt(ArenaHeader *aheader, size_t nfree) {
+        JS_ASSERT(nfree <= thingsPerArena_);
+        segments[nfree].append(aheader);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    ArenaList toArenaList() {
+        
+        size_t tailIndex = 0;
+        for (size_t headIndex = 1; headIndex <= thingsPerArena_; ++headIndex) {
+            if (headAt(headIndex)) {
+                segments[tailIndex].linkTo(headAt(headIndex));
+                tailIndex = headIndex;
+            }
         }
-        deepCheck();
+        
+        
+        segments[tailIndex].linkTo(nullptr);
+        
+        
+        return ArenaList(segments[0]);
     }
 };
 
@@ -800,7 +904,8 @@ class ArenaLists
     void queueScriptsForSweep(FreeOp *fop);
     void queueJitCodeForSweep(FreeOp *fop);
 
-    bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
+    bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget,
+                            SortedArenaList &sweepList);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
 
     void wipeDuringParallelExecution(JSRuntime *rt);
