@@ -450,6 +450,8 @@ class B2GRemoteReftest(RefTest):
         
         prefs["browser.newtabpage.directory.source"] = ""
         prefs["browser.newtabpage.directory.ping"] = ""
+        
+        prefs["dom.serviceWorkers.periodic-updates.enabled"] = False
 
         if options.oop:
             prefs['browser.tabs.remote.autostart'] = True

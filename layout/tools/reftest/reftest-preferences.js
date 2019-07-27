@@ -62,3 +62,6 @@
 
     
     branch.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
+
+    
+    branch.setBoolPref("dom.serviceWorkers.periodic-updates.enabled", false);
