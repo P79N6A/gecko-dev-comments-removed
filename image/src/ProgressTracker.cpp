@@ -41,6 +41,56 @@ ProgressTrackerInit::~ProgressTrackerInit()
   mTracker->ResetImage();
 }
 
+static void
+CheckProgressConsistency(Progress aProgress)
+{
+  
+
+  if (aProgress & FLAG_REQUEST_STARTED) {
+    
+  }
+  if (aProgress & FLAG_HAS_SIZE) {
+    MOZ_ASSERT(aProgress & FLAG_REQUEST_STARTED);
+  }
+  if (aProgress & FLAG_DECODE_STARTED) {
+    MOZ_ASSERT(aProgress & FLAG_REQUEST_STARTED);
+  }
+  if (aProgress & FLAG_DECODE_STOPPED) {
+    MOZ_ASSERT(aProgress & FLAG_DECODE_STARTED);
+  }
+  if (aProgress & FLAG_FRAME_STOPPED) {
+    MOZ_ASSERT(aProgress & FLAG_DECODE_STARTED);
+  }
+  if (aProgress & FLAG_REQUEST_STOPPED) {
+    MOZ_ASSERT(aProgress & FLAG_REQUEST_STARTED);
+  }
+  if (aProgress & FLAG_ONLOAD_BLOCKED) {
+    if (aProgress & FLAG_IS_MULTIPART) {
+      MOZ_ASSERT(aProgress & FLAG_ONLOAD_UNBLOCKED);
+    } else {
+      MOZ_ASSERT(aProgress & FLAG_DECODE_STARTED);
+    }
+  }
+  if (aProgress & FLAG_ONLOAD_UNBLOCKED) {
+    MOZ_ASSERT(aProgress & FLAG_ONLOAD_BLOCKED);
+    MOZ_ASSERT(aProgress & (FLAG_FRAME_STOPPED |
+                            FLAG_IS_MULTIPART |
+                            FLAG_HAS_ERROR));
+  }
+  if (aProgress & FLAG_IS_ANIMATED) {
+    MOZ_ASSERT(aProgress & FLAG_DECODE_STARTED);
+  }
+  if (aProgress & FLAG_IS_MULTIPART) {
+    
+  }
+  if (aProgress & FLAG_MULTIPART_STOPPED) {
+    MOZ_ASSERT(aProgress & FLAG_REQUEST_STOPPED);
+  }
+  if (aProgress & FLAG_HAS_ERROR) {
+    
+  }
+}
+
 void
 ProgressTracker::SetImage(Image* aImage)
 {
@@ -67,6 +117,8 @@ void ProgressTracker::SetIsMultipart()
 
   
   mProgress |= FLAG_IS_MULTIPART | FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
+
+  CheckProgressConsistency(mProgress);
 }
 
 bool
@@ -316,6 +368,8 @@ ProgressTracker::SyncNotifyProgress(Progress aProgress,
   
   mProgress |= progress;
 
+  CheckProgressConsistency(mProgress);
+
   
   SyncNotifyInternal(mConsumers, !!mImage, progress, aInvalidRect);
 
@@ -435,6 +489,8 @@ ProgressTracker::ResetForNewRequest()
   
   mProgress &= FLAG_IS_MULTIPART | FLAG_HAS_ERROR |
                FLAG_ONLOAD_BLOCKED | FLAG_ONLOAD_UNBLOCKED;
+
+  CheckProgressConsistency(mProgress);
 }
 
 void
