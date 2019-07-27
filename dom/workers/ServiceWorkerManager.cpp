@@ -500,33 +500,64 @@ public:
 };
 
 namespace {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum ScopeStringPrefixMode {
+  eUseDirectory,
+  eUsePath
+};
+
 nsresult
-GetRequiredScopeStringPrefix(const nsACString& aScriptSpec, nsACString& aPrefix)
+GetRequiredScopeStringPrefix(nsIURI* aScriptURI, nsACString& aPrefix,
+                             ScopeStringPrefixMode aPrefixMode)
 {
-  nsCOMPtr<nsIURI> scriptURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(scriptURI), aScriptSpec,
-                 nullptr, nullptr);
+  nsresult rv = aScriptURI->GetPrePath(aPrefix);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
-  rv = scriptURI->GetPrePath(aPrefix);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  if (aPrefixMode == eUseDirectory) {
+    nsCOMPtr<nsIURL> scriptURL(do_QueryInterface(aScriptURI));
+    if (NS_WARN_IF(!scriptURL)) {
+      return NS_ERROR_FAILURE;
+    }
 
-  nsCOMPtr<nsIURL> scriptURL(do_QueryInterface(scriptURI));
-  if (NS_WARN_IF(!scriptURL)) {
-    return rv;
-  }
+    nsAutoCString dir;
+    rv = scriptURL->GetDirectory(dir);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
 
-  nsAutoCString dir;
-  rv = scriptURL->GetDirectory(dir);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+    aPrefix.Append(dir);
+  } else if (aPrefixMode == eUsePath) {
+    nsAutoCString path;
+    rv = aScriptURI->GetPath(path);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
 
-  aPrefix.Append(dir);
+    aPrefix.Append(path);
+  } else {
+    MOZ_ASSERT_UNREACHABLE("Invalid value for aPrefixMode");
+  }
   return NS_OK;
 }
 } 
@@ -637,7 +668,9 @@ public:
   }
 
   void
-  ComparisonResult(nsresult aStatus, bool aInCacheAndEqual, const nsAString& aNewCacheName) override
+  ComparisonResult(nsresult aStatus, bool aInCacheAndEqual,
+                   const nsAString& aNewCacheName,
+                   const nsACString& aMaxScope) override
   {
     nsRefPtr<ServiceWorkerRegisterJob> kungFuDeathGrip = this;
     if (mCanceled) {
@@ -658,15 +691,39 @@ public:
 
     nsRefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
 
-    
-    nsAutoCString allowedPrefix;
-    nsresult rv = GetRequiredScopeStringPrefix(mRegistration->mScriptSpec, allowedPrefix);
+    nsCOMPtr<nsIURI> scriptURI;
+    nsresult rv = NS_NewURI(getter_AddRefs(scriptURI), mRegistration->mScriptSpec);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       Fail(NS_ERROR_DOM_SECURITY_ERR);
       return;
     }
+    nsCOMPtr<nsIURI> maxScopeURI;
+    if (!aMaxScope.IsEmpty()) {
+      rv = NS_NewURI(getter_AddRefs(maxScopeURI), aMaxScope,
+                     nullptr, scriptURI);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        Fail(NS_ERROR_DOM_SECURITY_ERR);
+        return;
+      }
+    }
 
-    if (!StringBeginsWith(mRegistration->mScope, allowedPrefix)) {
+    nsAutoCString defaultAllowedPrefix;
+    rv = GetRequiredScopeStringPrefix(scriptURI, defaultAllowedPrefix,
+                                      eUseDirectory);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      Fail(NS_ERROR_DOM_SECURITY_ERR);
+      return;
+    }
+    nsAutoCString maxPrefix(defaultAllowedPrefix);
+    if (maxScopeURI) {
+      rv = GetRequiredScopeStringPrefix(maxScopeURI, maxPrefix, eUsePath);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        Fail(NS_ERROR_DOM_SECURITY_ERR);
+        return;
+      }
+    }
+
+    if (!StringBeginsWith(mRegistration->mScope, maxPrefix)) {
       NS_WARNING("By default a service worker's scope is restricted to at or below it's script's location.");
       Fail(NS_ERROR_DOM_SECURITY_ERR);
       return;

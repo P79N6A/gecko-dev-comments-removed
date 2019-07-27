@@ -420,7 +420,8 @@ public:
     }
 
     MOZ_ASSERT(mState == WaitingForPut);
-    mCallback->ComparisonResult(NS_OK, false , mNewCacheName);
+    mCallback->ComparisonResult(NS_OK, false ,
+                                mNewCacheName, mMaxScope);
     Cleanup();
   }
 
@@ -462,7 +463,8 @@ private:
   Fail(nsresult aStatus)
   {
     AssertIsOnMainThread();
-    mCallback->ComparisonResult(aStatus, false , EmptyString());
+    mCallback->ComparisonResult(aStatus, false ,
+                                EmptyString(), EmptyCString());
     Cleanup();
   }
 
@@ -488,7 +490,7 @@ private:
     }
 
     if (aIsEqual) {
-      mCallback->ComparisonResult(aStatus, aIsEqual, EmptyString());
+      mCallback->ComparisonResult(aStatus, aIsEqual, EmptyString(), mMaxScope);
       Cleanup();
       return;
     }
