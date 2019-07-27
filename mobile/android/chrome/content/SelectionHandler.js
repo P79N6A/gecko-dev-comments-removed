@@ -919,7 +919,7 @@ var SelectionHandler = {
   _moveCaret: function sh_moveCaret(aX, aY) {
     
     let range = document.createRange();
-    range.selectNodeContents(this._targetElement.QueryInterface(Ci.nsIDOMNSEditableElement).editor.rootElement);
+    range.selectNodeContents(this._getEditor().rootElement);
     let textBounds = range.getBoundingClientRect();
 
     
