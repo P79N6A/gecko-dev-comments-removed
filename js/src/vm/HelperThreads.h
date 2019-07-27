@@ -458,14 +458,6 @@ struct ParseTask
     PersistentRootedObject exclusiveContextGlobal;
 
     
-    
-    
-    
-    
-    PersistentRootedObject optionsElement;
-    PersistentRootedScript optionsIntroductionScript;
-
-    
     JS::OffThreadCompileCallback callback;
     void *callbackData;
 
