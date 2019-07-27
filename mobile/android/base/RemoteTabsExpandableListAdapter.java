@@ -120,6 +120,17 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
             }
         }
 
+        final ImageView deviceExpandedView = (ImageView) view.findViewById(R.id.device_expanded);
+        if (deviceExpandedView != null) {
+            
+            if (client.tabs.isEmpty()) {
+                deviceExpandedView.setBackgroundResource(0);
+            } else {
+                final int resourceId = isExpanded ? R.drawable.home_group_expanded : R.drawable.home_group_collapsed;
+                deviceExpandedView.setBackgroundResource(resourceId);
+            }
+        }
+
         return view;
     }
 
