@@ -960,7 +960,7 @@ public:
 
   virtual TemporaryRef<FilterNode> CreateFilter(FilterType aType) = 0;
 
-  const Matrix &GetTransform() const { return mTransform; }
+  Matrix GetTransform() const { return mTransform; }
 
   
 
