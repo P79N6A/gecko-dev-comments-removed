@@ -2631,8 +2631,10 @@ MediaManager::StopMediaStreams()
 }
 
 bool
-MediaManager::IsWindowActivelyCapturing(uint64_t aWindowId)
+MediaManager::IsActivelyCapturingOrHasAPermission(uint64_t aWindowId)
 {
+  
+
   nsCOMPtr<nsISupportsArray> array;
   GetActiveMediaCaptureWindows(getter_AddRefs(array));
   uint32_t len;
@@ -2645,7 +2647,37 @@ MediaManager::IsWindowActivelyCapturing(uint64_t aWindowId)
       return true;
     }
   }
-  return false;
+
+  
+
+  nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
+      (nsGlobalWindow::GetInnerWindowWithId(aWindowId));
+  if (NS_WARN_IF(!window)) {
+    return false;
+  }
+  
+  nsresult rv;
+  nsCOMPtr<nsIPermissionManager> mgr =
+    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false; 
+  }
+
+  uint32_t audio = nsIPermissionManager::UNKNOWN_ACTION;
+  uint32_t video = nsIPermissionManager::UNKNOWN_ACTION;
+  {
+    auto* principal = window->GetExtantDoc()->NodePrincipal();
+    rv = mgr->TestExactPermissionFromPrincipal(principal, "microphone", &audio);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
+    rv = mgr->TestExactPermissionFromPrincipal(principal, "camera", &video);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return false;
+    }
+  }
+  return audio == nsIPermissionManager::ALLOW_ACTION ||
+         video == nsIPermissionManager::ALLOW_ACTION;
 }
 
 void
