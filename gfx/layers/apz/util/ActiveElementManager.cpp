@@ -88,7 +88,10 @@ ActiveElementManager::TriggerElementActivation()
   if (!mCanBePan) {
     SetActive(mTarget);
   } else {
+    CancelTask();   
+                    
     MOZ_ASSERT(mSetActiveTask == nullptr);
+
     mSetActiveTask = NewRunnableMethod(
         this, &ActiveElementManager::SetActiveTask, mTarget);
     MessageLoop::current()->PostDelayedTask(
