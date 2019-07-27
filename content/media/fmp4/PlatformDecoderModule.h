@@ -131,8 +131,6 @@ protected:
   static bool sUseBlankDecoder;
   static bool sFFmpegDecoderEnabled;
   static bool sGonkDecoderEnabled;
-  static bool sAndroidMCDecoderPreferred;
-  static bool sAndroidMCDecoderEnabled;
 };
 
 

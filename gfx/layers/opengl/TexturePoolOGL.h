@@ -25,8 +25,6 @@ public:
   
   static void Fill(GLContext* aContext);
 
-  static GLContext* GetGLContext();
-
   
   static void Init();
 

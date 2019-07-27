@@ -23,9 +23,6 @@
 #ifdef MOZ_APPLEMEDIA
 #include "apple/AppleDecoderModule.h"
 #endif
-#ifdef MOZ_WIDGET_ANDROID
-#include "AndroidBridge.h"
-#endif
 
 namespace mozilla {
 
@@ -170,10 +167,6 @@ HavePlatformMPEGDecoders()
 #ifdef XP_WIN
          
          IsVistaOrLater() ||
-#endif
-#ifdef MOZ_WIDGET_ANDROID
-         
-         (AndroidBridge::Bridge()->GetAPIVersion() >= 16) ||
 #endif
          IsFFmpegAvailable() ||
          IsAppleAvailable() ||

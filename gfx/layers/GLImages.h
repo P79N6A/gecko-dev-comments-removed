@@ -12,10 +12,9 @@
 #include "nsCOMPtr.h"                   
 #include "mozilla/gfx/Point.h"          
 
+class nsSurfaceTexture;
+
 namespace mozilla {
-namespace gl {
-class AndroidSurfaceTexture;
-}
 namespace layers {
 
 class EGLImageImage : public Image {
@@ -47,7 +46,7 @@ private:
 class SurfaceTextureImage : public Image {
 public:
   struct Data {
-    mozilla::gl::AndroidSurfaceTexture* mSurfTex;
+    nsSurfaceTexture* mSurfTex;
     gfx::IntSize mSize;
     bool mInverted;
   };
@@ -57,7 +56,10 @@ public:
 
   gfx::IntSize GetSize() { return mData.mSize; }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE
+  {
+    return nullptr;
+  }
 
   SurfaceTextureImage() : Image(nullptr, ImageFormat::SURFACE_TEXTURE) {}
 
