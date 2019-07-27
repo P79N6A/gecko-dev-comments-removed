@@ -112,6 +112,9 @@ nsElementFrameLoaderOwner::EnsureFrameLoader()
   
   
   mFrameLoader = nsFrameLoader::Create(thisElement, mNetworkCreated);
+  if (mIsPrerendered) {
+    mFrameLoader->SetIsPrerendered();
+  }
 }
 
 NS_IMETHODIMP
@@ -133,6 +136,14 @@ nsElementFrameLoaderOwner::SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner)
 {
   
   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsElementFrameLoaderOwner::SetIsPrerendered()
+{
+  MOZ_ASSERT(!mFrameLoader, "Please call SetIsPrerendered before frameLoader is created");
+  mIsPrerendered = true;
+  return NS_OK;
 }
 
 nsresult

@@ -331,6 +331,7 @@ private:
   
   nsCOMPtr<nsIDocument> mContainerDocWhileDetached;
 
+  bool mIsPrerendered : 1;
   bool mDepthTooGreat : 1;
   bool mIsTopLevelContent : 1;
   bool mDestroyCalled : 1;
