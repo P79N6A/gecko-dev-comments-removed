@@ -1,0 +1,121 @@
+
+
+
+
+
+
+#ifndef mozilla_dom_bluetooth_bluedroid_bluetoothdaemonsocketinterface_h__
+#define mozilla_dom_bluetooth_bluedroid_bluetoothdaemonsocketinterface_h__
+
+#include "BluetoothDaemonHelpers.h"
+#include "BluetoothInterface.h"
+
+BEGIN_BLUETOOTH_NAMESPACE
+
+using namespace mozilla::ipc;
+
+class BlutoothDaemonInterface;
+
+class BluetoothDaemonSocketModule
+{
+public:
+  virtual nsresult Send(BluetoothDaemonPDU* aPDU, void* aUserData) = 0;
+
+  
+  
+
+  nsresult ListenCmd(BluetoothSocketType aType,
+                     const nsAString& aServiceName,
+                     const uint8_t aServiceUuid[16],
+                     int aChannel, bool aEncrypt, bool aAuth,
+                     BluetoothSocketResultHandler* aRes);
+
+  nsresult ConnectCmd(const nsAString& aBdAddr,
+                      BluetoothSocketType aType,
+                      const uint8_t aUuid[16],
+                      int aChannel, bool aEncrypt, bool aAuth,
+                      BluetoothSocketResultHandler* aRes);
+
+  nsresult AcceptCmd(int aFd, BluetoothSocketResultHandler* aRes);
+
+  nsresult CloseCmd(BluetoothSocketResultHandler* aRes);
+
+protected:
+
+  void HandleSvc(const BluetoothDaemonPDUHeader& aHeader,
+                 BluetoothDaemonPDU& aPDU, void* aUserData);
+
+  nsresult Send(BluetoothDaemonPDU* aPDU, BluetoothSocketResultHandler* aRes);
+
+private:
+  class AcceptWatcher;
+  class ConnectWatcher;
+
+  uint8_t SocketFlags(bool aEncrypt, bool aAuth);
+
+  
+  
+
+  typedef
+    BluetoothDaemonInterfaceRunnable0<BluetoothSocketResultHandler, void>
+    ResultRunnable;
+
+  typedef
+    BluetoothDaemonInterfaceRunnable1<BluetoothSocketResultHandler, void,
+                                      int, int>
+    IntResultRunnable;
+
+  typedef
+    BluetoothDaemonInterfaceRunnable1<BluetoothSocketResultHandler, void,
+                                      BluetoothStatus, BluetoothStatus>
+    ErrorRunnable;
+
+  typedef
+    BluetoothDaemonInterfaceRunnable3<BluetoothSocketResultHandler, void,
+                                      int, const nsString, int,
+                                      int, const nsAString_internal&, int>
+    IntStringIntResultRunnable;
+
+  void ErrorRsp(const BluetoothDaemonPDUHeader& aHeader,
+                BluetoothDaemonPDU& aPDU,
+                BluetoothSocketResultHandler* aRes);
+
+  void ListenRsp(const BluetoothDaemonPDUHeader& aHeader,
+                 BluetoothDaemonPDU& aPDU,
+                 BluetoothSocketResultHandler* aRes);
+
+  void ConnectRsp(const BluetoothDaemonPDUHeader& aHeader,
+                  BluetoothDaemonPDU& aPDU,
+                  BluetoothSocketResultHandler* aRes);
+};
+
+class BluetoothDaemonSocketInterface MOZ_FINAL
+  : public BluetoothSocketInterface
+{
+public:
+  BluetoothDaemonSocketInterface(BluetoothDaemonSocketModule* aModule);
+  ~BluetoothDaemonSocketInterface();
+
+  void Listen(BluetoothSocketType aType,
+              const nsAString& aServiceName,
+              const uint8_t aServiceUuid[16],
+              int aChannel, bool aEncrypt, bool aAuth,
+              BluetoothSocketResultHandler* aRes);
+
+  void Connect(const nsAString& aBdAddr,
+               BluetoothSocketType aType,
+               const uint8_t aUuid[16],
+               int aChannel, bool aEncrypt, bool aAuth,
+               BluetoothSocketResultHandler* aRes);
+
+  void Accept(int aFd, BluetoothSocketResultHandler* aRes);
+
+  void Close(BluetoothSocketResultHandler* aRes);
+
+private:
+  BluetoothDaemonSocketModule* mModule;
+};
+
+END_BLUETOOTH_NAMESPACE
+
+#endif
