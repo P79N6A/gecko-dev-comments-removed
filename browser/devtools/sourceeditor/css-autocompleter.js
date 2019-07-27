@@ -705,6 +705,10 @@ CSSCompleter.prototype = {
     
     switch(this.selectorState) {
       case SELECTOR_STATES.null:
+        if (this.completing === ",") {
+          return Promise.resolve([]);
+        }
+
         query += "*";
         break;
 
