@@ -190,6 +190,53 @@ add_test(function test_GsmPDUHelper_writeStringAsSeptets() {
 
 
 
+
+
+
+
+add_test(function test_GsmPDUHelper_writeStringAsSeptets_spanish_fallback() {
+  let worker = newWorker({
+    postRILMessage: function(data) {
+      
+    },
+    postMessage: function(message) {
+      
+    }
+  });
+
+  let context = worker.ContextPool._contexts[0];
+  let helper = context.GsmPDUHelper;
+  let buf = [];
+  helper.writeHexOctet = function(octet) {
+    buf.push(octet);
+  }
+
+  
+  let msg = "The quick brown fox jumps over the lazy dog";
+
+  
+  helper.writeStringAsSeptets(msg, 0 ,
+    PDU_NL_IDENTIFIER_DEFAULT, PDU_NL_IDENTIFIER_DEFAULT);
+  let octetsWithDefaultTable = buf;
+  buf = [];
+
+  
+  helper.writeStringAsSeptets(msg, 0 ,
+    PDU_NL_IDENTIFIER_SPANISH, PDU_NL_IDENTIFIER_SPANISH);
+
+  
+  
+  equal(octetsWithDefaultTable.length, buf.length);
+  for (let i = 0; i < buf.length; i++) {
+    equal(octetsWithDefaultTable[i], buf[i]);
+  }
+
+  run_next_test();
+});
+
+
+
+
 add_test(function test_GsmPDUHelper_readAddress() {
   let worker = newWorker({
     postRILMessage: function(data) {
