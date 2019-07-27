@@ -643,14 +643,12 @@ VCMFrameBufferEnum VCMJitterBuffer::GetFrame(const VCMPacket& packet,
   
   
   
-  if (packet.completeNALU != kNaluComplete) {
-    *frame = incomplete_frames_.FindFrame(packet.seqNum, packet.timestamp);
-    if (*frame)
-      return kNoError;
-    *frame = decodable_frames_.FindFrame(packet.seqNum, packet.timestamp);
-    if (*frame && (*frame)->GetState() != kStateComplete)
-      return kNoError;
-  }
+  *frame = incomplete_frames_.FindFrame(packet.seqNum, packet.timestamp);
+  if (*frame)
+    return kNoError;
+  *frame = decodable_frames_.FindFrame(packet.seqNum, packet.timestamp);
+  if (*frame && (*frame)->GetState() != kStateComplete)
+    return kNoError;
 
   
   *frame = GetEmptyFrame();
