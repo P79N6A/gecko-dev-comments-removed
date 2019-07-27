@@ -258,17 +258,15 @@ ClientTiledPaintedLayer::UseProgressiveDraw() {
     return false;
   }
 
-  
-  
-#if 0 
-  LayerMetricsWrapper scrollAncestor;
-  GetAncestorLayers(&scrollAncestor, nullptr, nullptr);
-  MOZ_ASSERT(scrollAncestor); 
-  const FrameMetrics& parentMetrics = scrollAncestor.Metrics();
-  if (!IsScrollingOnCompositor(parentMetrics)) {
-    return false;
+  if (gfxPrefs::AsyncPanZoomEnabled()) {
+    LayerMetricsWrapper scrollAncestor;
+    GetAncestorLayers(&scrollAncestor, nullptr, nullptr);
+    MOZ_ASSERT(scrollAncestor); 
+    const FrameMetrics& parentMetrics = scrollAncestor.Metrics();
+    if (!IsScrollingOnCompositor(parentMetrics)) {
+      return false;
+    }
   }
-#endif
 
   return true;
 }
