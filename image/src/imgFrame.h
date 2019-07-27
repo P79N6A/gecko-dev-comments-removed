@@ -36,7 +36,44 @@ public:
 
   imgFrame();
 
-  nsresult Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight, SurfaceFormat aFormat, uint8_t aPaletteDepth = 0);
+  
+
+
+
+
+
+
+
+  nsresult InitForDecoder(const nsIntRect& aRect,
+                          SurfaceFormat aFormat,
+                          uint8_t aPaletteDepth = 0);
+
+  nsresult InitForDecoder(const nsIntSize& aSize,
+                          SurfaceFormat aFormat,
+                          uint8_t aPaletteDepth = 0)
+  {
+    return InitForDecoder(nsIntRect(0, 0, aSize.width, aSize.height),
+                          aFormat, aPaletteDepth);
+  }
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult InitWithDrawable(gfxDrawable* aDrawable,
+                            const nsIntSize& aSize,
+                            const SurfaceFormat aFormat,
+                            GraphicsFilter aFilter,
+                            uint32_t aImageFlags);
+
   nsresult Optimize();
 
   DrawableFrameRef DrawableRef();
