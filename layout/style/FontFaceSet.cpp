@@ -82,6 +82,7 @@ FontFaceSet::FontFaceSet(nsPIDOMWindow* aWindow, nsPresContext* aPresContext)
   , mNonRuleFacesDirty(false)
   , mHasLoadingFontFaces(false)
   , mHasLoadingFontFacesIsDirty(false)
+  , mDelayedLoadCheck(false)
 {
   MOZ_COUNT_CTOR(FontFaceSet);
 
@@ -1345,13 +1346,32 @@ FontFaceSet::OnFontFaceStatusChanged(FontFace* aFontFace)
   } else {
     MOZ_ASSERT(aFontFace->Status() == FontFaceLoadStatus::Loaded ||
                aFontFace->Status() == FontFaceLoadStatus::Error);
-    CheckLoadingFinished();
+    
+    
+    
+    
+    
+    
+    
+    if (!mDelayedLoadCheck) {
+      mDelayedLoadCheck = true;
+      nsCOMPtr<nsIRunnable> checkTask =
+        NS_NewRunnableMethod(this, &FontFaceSet::CheckLoadingFinishedAfterDelay);
+      NS_DispatchToMainThread(checkTask);
+    }
   }
 }
 
 void
 FontFaceSet::DidRefresh()
 {
+  CheckLoadingFinished();
+}
+
+void
+FontFaceSet::CheckLoadingFinishedAfterDelay()
+{
+  mDelayedLoadCheck = false;
   CheckLoadingFinished();
 }
 
@@ -1447,6 +1467,11 @@ FontFaceSet::MightHavePendingFontLoads()
 void
 FontFaceSet::CheckLoadingFinished()
 {
+  if (mDelayedLoadCheck) {
+    
+    return;
+  }
+
   if (mStatus == FontFaceSetLoadStatus::Loaded) {
     
     

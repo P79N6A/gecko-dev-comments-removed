@@ -222,6 +222,12 @@ private:
   
 
 
+
+  void CheckLoadingFinishedAfterDelay();
+
+  
+
+
   void DispatchLoadingFinishedEvent(
                                 const nsAString& aType,
                                 const nsTArray<FontFace*>& aFontFaces);
@@ -323,6 +329,10 @@ private:
 
   
   bool mHasLoadingFontFacesIsDirty;
+
+  
+  
+  bool mDelayedLoadCheck;
 };
 
 } 
