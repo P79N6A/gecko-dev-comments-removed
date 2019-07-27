@@ -1948,7 +1948,7 @@ typedef struct JSCTypesCallbacks JSCTypesCallbacks;
 
 
 extern JS_PUBLIC_API(void)
-JS_SetCTypesCallbacks(JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
+JS_SetCTypesCallbacks(JSObject *ctypesObj, const JSCTypesCallbacks *callbacks);
 #endif
 
 typedef bool
@@ -4699,13 +4699,13 @@ struct JSLocaleCallbacks {
 
 
 extern JS_PUBLIC_API(void)
-JS_SetLocaleCallbacks(JSRuntime *rt, JSLocaleCallbacks *callbacks);
+JS_SetLocaleCallbacks(JSRuntime *rt, const JSLocaleCallbacks *callbacks);
 
 
 
 
 
-extern JS_PUBLIC_API(JSLocaleCallbacks *)
+extern JS_PUBLIC_API(const JSLocaleCallbacks *)
 JS_GetLocaleCallbacks(JSRuntime *rt);
 
 
