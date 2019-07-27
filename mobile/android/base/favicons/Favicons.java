@@ -409,7 +409,7 @@ public class Favicons {
 
         
         final int defaultFaviconSizeDimenID =
-                isNewTabletEnabled ? R.dimen.tab_strip_favicon_size : R.dimen.favicon_bg;
+                isNewTabletEnabled ? R.dimen.new_tablet_tab_strip_favicon_size : R.dimen.favicon_bg;
         defaultFaviconSize = res.getDimensionPixelSize(defaultFaviconSizeDimenID);
 
         
