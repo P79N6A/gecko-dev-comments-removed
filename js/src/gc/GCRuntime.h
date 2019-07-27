@@ -53,22 +53,36 @@ class ChunkPool
     size_t count() const { return count_; }
 
     
-    inline Chunk *get(JSRuntime *rt);
+    Chunk *pop();
 
     
-    inline void put(Chunk *chunk);
+    void push(Chunk *chunk);
+
+    
+    Chunk *remove(Chunk *chunk);
+
+#ifdef DEBUG
+    bool contains(Chunk *chunk) const;
+    bool verify() const;
+#endif
 
     class Enum {
       public:
         explicit Enum(ChunkPool &pool) : pool(pool), chunkp(&pool.head_) {}
         bool empty() { return !*chunkp; }
         Chunk *front();
-        inline void popFront();
-        inline void removeAndPopFront();
+        void popFront();
+        void removeAndPopFront();
       private:
         ChunkPool &pool;
         Chunk **chunkp;
     };
+
+  private:
+    
+    
+    ChunkPool(const ChunkPool &) MOZ_DELETE;
+    ChunkPool operator=(const ChunkPool &) MOZ_DELETE;
 };
 
 
