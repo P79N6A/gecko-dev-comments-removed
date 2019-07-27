@@ -315,12 +315,6 @@ public:
 
 
 
-  static const FramePropertyDescriptor* GetDescriptorForManager(LayerManager* aManager);
-
-  
-
-
-
 
   Layer* GetOldLayerFor(nsDisplayItem* aItem, 
                         nsDisplayItemGeometry** aOldGeometry = nullptr, 
@@ -652,10 +646,6 @@ public:
   void ComputeGeometryChangeForItem(DisplayItemData* aData);
 
 protected:
-  void RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
-                                                    bool aRemoveThebesItems,
-                                                    bool aRemoveOwnerData);
-
   static PLDHashOperator ProcessRemovedDisplayItems(nsRefPtrHashKey<DisplayItemData>* aEntry,
                                                     void* aUserArg);
   static PLDHashOperator RestoreDisplayItemData(nsRefPtrHashKey<DisplayItemData>* aEntry,
