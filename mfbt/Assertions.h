@@ -123,6 +123,26 @@ __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
 extern "C" {
 #endif
 
+static MOZ_COLD MOZ_NEVER_INLINE void
+MOZ_ReportAssertionFailureHelper(const char* aStr1, const char* aStr2,
+                                 const char* aStr3, const char* aFilename,
+                                 int aLine)
+  MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
+{
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert",
+                      "Assertion failure: %s%s%s, at %s:%d\n",
+                      aStr1, aStr2, aStr3, aFilename, aLine);
+#else
+  fprintf(stderr, "Assertion failure: %s%s%s, at %s:%d\n", aStr1, aStr2, aStr3,
+          aFilename, aLine);
+#ifdef MOZ_DUMP_ASSERTION_STACK
+  nsTraceRefcnt::WalkTheStack(stderr);
+#endif
+  fflush(stderr);
+#endif
+}
+
 
 
 
@@ -135,17 +155,7 @@ static MOZ_COLD MOZ_ALWAYS_INLINE void
 MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename, int aLine)
   MOZ_PRETEND_NORETURN_FOR_STATIC_ANALYSIS
 {
-#ifdef ANDROID
-  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert",
-                      "Assertion failure: %s, at %s:%d\n",
-                      aStr, aFilename, aLine);
-#else
-  fprintf(stderr, "Assertion failure: %s, at %s:%d\n", aStr, aFilename, aLine);
-#ifdef MOZ_DUMP_ASSERTION_STACK
-  nsTraceRefcnt::WalkTheStack(stderr);
-#endif
-  fflush(stderr);
-#endif
+  MOZ_ReportAssertionFailureHelper(aStr, "", "", aFilename, aLine);
 }
 
 static MOZ_COLD MOZ_ALWAYS_INLINE void
@@ -368,7 +378,8 @@ struct AssertionConditionType
   do { \
     MOZ_VALIDATE_ASSERT_CONDITION_TYPE(expr); \
     if (MOZ_UNLIKELY(!(expr))) { \
-      MOZ_ReportAssertionFailure(#expr " (" explain ")", __FILE__, __LINE__); \
+      MOZ_ReportAssertionFailureHelper(#expr " (", explain, ")", \
+                                       __FILE__, __LINE__); \
       MOZ_REALLY_CRASH(); \
     } \
   } while (0)
