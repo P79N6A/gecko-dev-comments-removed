@@ -217,7 +217,7 @@ let DirectoryLinksProvider = {
   },
 
   _cacheSuggestedLinks: function(link) {
-    if (!link.frecent_sites) {
+    if (!link.frecent_sites || "sponsored" == link.type) {
       
       return;
     }
