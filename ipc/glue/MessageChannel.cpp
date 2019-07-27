@@ -606,19 +606,6 @@ MessageChannel::ShouldDeferMessage(const Message& aMsg)
     return mSide == ParentSide && aMsg.transaction_id() != mCurrentTransaction;
 }
 
-
-class MatchingKinds {
-    typedef IPC::Message Message;
-    Message::msgid_t mType;
-    int32_t mRoutingId;
-public:
-    MatchingKinds(Message::msgid_t aType, int32_t aRoutingId) :
-        mType(aType), mRoutingId(aRoutingId) {}
-    bool operator()(const Message &msg) {
-        return msg.type() == mType && msg.routing_id() == mRoutingId;
-    }
-};
-
 void
 MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
 {
@@ -662,22 +649,15 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
     
     MOZ_ASSERT(!aMsg.compress() || aMsg.priority() == IPC::Message::PRIORITY_NORMAL);
 
-    bool compress = (aMsg.compress() && !mPending.empty());
+    bool compress = (aMsg.compress() && !mPending.empty() &&
+                     mPending.back().type() == aMsg.type() &&
+                     mPending.back().routing_id() == aMsg.routing_id());
     if (compress) {
         
-        auto it = std::find_if(mPending.rbegin(), mPending.rend(),
-                               MatchingKinds(aMsg.type(), aMsg.routing_id()));
-        if (it != mPending.rend()) {
-            
-            
-            
-            
-            MOZ_ASSERT((*it).compress());
-            mPending.erase((++it).base());
-        } else {
-            
-            compress = false;
-        }
+        
+        
+        MOZ_ASSERT(mPending.back().compress());
+        mPending.pop_back();
     }
 
     bool shouldWakeUp = AwaitingInterruptReply() ||
