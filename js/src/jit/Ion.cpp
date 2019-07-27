@@ -2136,7 +2136,7 @@ IonCompile(JSContext *cx, JSScript *script,
 static bool
 CheckFrame(BaselineFrame *frame)
 {
-    MOZ_ASSERT(!frame->isGeneratorFrame());
+    MOZ_ASSERT(!frame->script()->isGenerator());
     MOZ_ASSERT(!frame->isDebuggerFrame());
 
     
@@ -2163,6 +2163,11 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
         
         
         JitSpew(JitSpew_IonAbort, "eval script");
+        return false;
+    }
+
+    if (script->isGenerator()) {
+        JitSpew(JitSpew_IonAbort, "generator script");
         return false;
     }
 

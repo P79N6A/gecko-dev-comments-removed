@@ -181,7 +181,6 @@ class AbstractFramePtr
     inline JSCompartment *compartment() const;
 
     inline bool hasCallObj() const;
-    inline bool isGeneratorFrame() const;
     inline bool isFunctionFrame() const;
     inline bool isGlobalFrame() const;
     inline bool isEvalFrame() const;
@@ -243,7 +242,7 @@ class NullFramePtr : public AbstractFramePtr
 
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
-    INITIAL_CONSTRUCT      =       0x20, 
+    INITIAL_CONSTRUCT      =       0x10, 
 };
 
 enum ExecuteType {
@@ -282,8 +281,7 @@ class InterpreterFrame
 
         DEBUGGER           =        0x8,
 
-        GENERATOR          =       0x10,  
-        CONSTRUCTING       =       0x20,  
+        CONSTRUCTING       =       0x10,  
 
         
 
@@ -758,34 +756,10 @@ class InterpreterFrame
         markReturnValue();
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-    bool isGeneratorFrame() const {
-        bool ret = flags_ & GENERATOR;
-        MOZ_ASSERT_IF(ret, isNonEvalFunctionFrame());
-        return ret;
-    }
-
-    void initGeneratorFrame() const {
-        MOZ_ASSERT(!isGeneratorFrame());
+    void resumeGeneratorFrame(JSObject *scopeChain) {
+        MOZ_ASSERT(script()->isGenerator());
         MOZ_ASSERT(isNonEvalFunctionFrame());
-        flags_ |= GENERATOR;
-    }
-
-    void resumeGeneratorFrame(HandleObject scopeChain) {
-        MOZ_ASSERT(!isGeneratorFrame());
-        MOZ_ASSERT(isNonEvalFunctionFrame());
-        flags_ |= GENERATOR | HAS_CALL_OBJ | HAS_SCOPECHAIN;
+        flags_ |= HAS_CALL_OBJ | HAS_SCOPECHAIN;
         scopeChain_ = scopeChain;
     }
 
@@ -1584,7 +1558,6 @@ class FrameIter
     bool isGlobalFrame() const;
     bool isEvalFrame() const;
     bool isNonEvalFunctionFrame() const;
-    bool isGeneratorFrame() const;
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
 
     ScriptSource *scriptSource() const;
