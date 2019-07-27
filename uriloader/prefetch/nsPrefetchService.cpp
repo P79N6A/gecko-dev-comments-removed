@@ -2,6 +2,7 @@
 
 
 
+
 #include "nsPrefetchService.h"
 #include "nsICacheEntry.h"
 #include "nsIServiceManager.h"
@@ -185,15 +186,17 @@ nsPrefetchNode::OpenChannel()
         return NS_ERROR_FAILURE;
     }
     nsCOMPtr<nsILoadGroup> loadGroup = source->OwnerDoc()->GetDocumentLoadGroup();
-    nsresult rv = NS_NewChannel(getter_AddRefs(mChannel),
-                                mURI,
-                                nsContentUtils::GetSystemPrincipal(),
-                                nsILoadInfo::SEC_NORMAL,
-                                nsIContentPolicy::TYPE_OTHER,
-                                loadGroup, 
-                                this,      
-                                nsIRequest::LOAD_BACKGROUND |
-                                nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
+    nsresult rv = NS_NewChannelInternal(getter_AddRefs(mChannel),
+                                        mURI,
+                                        source,
+                                        source->NodePrincipal(),
+                                        nullptr,   
+                                        nsILoadInfo::SEC_NORMAL,
+                                        nsIContentPolicy::TYPE_OTHER,
+                                        loadGroup, 
+                                        this,      
+                                        nsIRequest::LOAD_BACKGROUND |
+                                        nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
 
     NS_ENSURE_SUCCESS(rv, rv);
 
