@@ -344,7 +344,7 @@ bool PluginModuleMapping::sIsLoadModuleOnStack = false;
 } 
 
 void
-mozilla::plugins::TerminatePlugin(uint32_t aPluginId)
+mozilla::plugins::TerminatePlugin(uint32_t aPluginId, const nsString& aBrowserDumpId)
 {
     MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
 
@@ -353,10 +353,10 @@ mozilla::plugins::TerminatePlugin(uint32_t aPluginId)
     if (!pluginTag || !pluginTag->mPlugin) {
         return;
     }
-
+    nsAutoString dumpId(aBrowserDumpId);
     nsRefPtr<nsNPAPIPlugin> plugin = pluginTag->mPlugin;
     PluginModuleChromeParent* chromeParent = static_cast<PluginModuleChromeParent*>(plugin->GetLibrary());
-    chromeParent->TerminateChildProcess(MessageLoop::current());
+    chromeParent->TerminateChildProcess(MessageLoop::current(), &dumpId);
 }
 
  PluginLibrary*
@@ -1148,7 +1148,8 @@ PluginModuleChromeParent::ShouldContinueFromReplyTimeout()
     
     FinishHangUI();
 #endif 
-    TerminateChildProcess(MessageLoop::current());
+    nsString dummy;
+    TerminateChildProcess(MessageLoop::current(), &dummy);
     GetIPCChannel()->CloseWithTimeout();
     return false;
 }
@@ -1171,7 +1172,8 @@ PluginModuleContentParent::OnExitedSyncSend()
 }
 
 void
-PluginModuleChromeParent::TerminateChildProcess(MessageLoop* aMsgLoop)
+PluginModuleChromeParent::TerminateChildProcess(MessageLoop* aMsgLoop,
+                                                nsAString* aBrowserDumpId)
 {
 #ifdef MOZ_CRASHREPORTER
 #ifdef XP_WIN
@@ -1198,8 +1200,39 @@ PluginModuleChromeParent::TerminateChildProcess(MessageLoop* aMsgLoop)
         }
     }
 #endif 
+
+    bool reportsReady = false;
+
     
-    if (crashReporter->GeneratePairedMinidump(this)) {
+    
+    
+    
+    bool exists;
+    nsCOMPtr<nsIFile> browserDumpFile;
+    if (aBrowserDumpId && !aBrowserDumpId->IsEmpty() &&
+        CrashReporter::GetMinidumpForID(*aBrowserDumpId, getter_AddRefs(browserDumpFile)) &&
+        browserDumpFile &&
+        NS_SUCCEEDED(browserDumpFile->Exists(&exists)) && exists)
+    {
+        
+        
+        reportsReady = crashReporter->GenerateMinidumpAndPair(this, browserDumpFile,
+                                                              NS_LITERAL_CSTRING("browser"));
+        if (!reportsReady) {
+          browserDumpFile = nullptr;
+          CrashReporter::DeleteMinidumpFilesForID(*aBrowserDumpId);
+        }
+    }
+
+    
+    
+    
+    
+    if (!reportsReady) {
+        reportsReady = crashReporter->GeneratePairedMinidump(this);
+    }
+
+    if (reportsReady) {
         mPluginDumpID = crashReporter->ChildDumpID();
         PLUGIN_LOG_DEBUG(
                 ("generated paired browser/plugin minidumps: %s)",
