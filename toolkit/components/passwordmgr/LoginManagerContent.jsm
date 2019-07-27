@@ -713,18 +713,20 @@ var LoginManagerContent = {
                 
                 let disabledOrReadOnly = usernameField.disabled || usernameField.readOnly;
 
+                let userNameDiffers = selectedLogin.username != usernameField.value;
                 
                 
                 
-                let userEnteredDifferentCase = userTriggered &&
-                      (usernameField.value != selectedLogin.username &&
-                       usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase());
+                let userEnteredDifferentCase = userTriggered && userNameDiffers &&
+                       usernameField.value.toLowerCase() == selectedLogin.username.toLowerCase();
 
-                if (!disabledOrReadOnly && !userEnteredDifferentCase) {
+                if (!disabledOrReadOnly && !userEnteredDifferentCase && userNameDiffers) {
                     usernameField.setUserInput(selectedLogin.username);
                 }
             }
-            passwordField.setUserInput(selectedLogin.password);
+            if (passwordField.value != selectedLogin.password) {
+                passwordField.setUserInput(selectedLogin.password);
+            }
             didFillForm = true;
         } else if (selectedLogin && !autofillForm) {
             
