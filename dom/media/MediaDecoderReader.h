@@ -288,8 +288,7 @@ public:
     return mDecoder;
   }
 
-  
-  VideoData* DecodeToFirstVideoData();
+  nsRefPtr<VideoDataPromise> DecodeToFirstVideoData();
 
   MediaInfo GetMediaInfo() { return mInfo; }
 
