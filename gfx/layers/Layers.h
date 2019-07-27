@@ -164,7 +164,6 @@ static void LayerManagerUserDataDestroy(void *data)
 
 
 
-
 class LayerManager {
   NS_INLINE_DECL_REFCOUNTING(LayerManager)
 
