@@ -4788,6 +4788,9 @@ pref("camera.control.low_memory_thresholdMB", 404);
 pref("dom.udpsocket.enabled", false);
 
 
+pref("dom.messageChannel.enabled", true);
+
+
 pref("dom.beforeAfterKeyboardEvent.enabled", false);
 
 
