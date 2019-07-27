@@ -763,7 +763,7 @@ class MOZ_STACK_CLASS TokenStream
 
     bool getTokenInternal(TokenKind *ttp, Modifier modifier);
 
-    bool getStringOrTemplateToken(int qc, Token **tp);
+    bool getStringOrTemplateToken(int untilChar, Token **tp);
 
     int32_t getChar();
     int32_t getCharIgnoreEOL();
@@ -824,7 +824,6 @@ class MOZ_STACK_CLASS TokenStream
     mozilla::UniquePtr<char16_t[], JS::FreePolicy> displayURL_; 
     mozilla::UniquePtr<char16_t[], JS::FreePolicy> sourceMapURL_; 
     CharBuffer          tokenbuf;           
-    bool                maybeStrSpecial[256];   
     uint8_t             isExprEnding[TOK_LIMIT];
     ExclusiveContext    *const cx;
     bool                mutedErrors;
