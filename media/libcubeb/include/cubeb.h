@@ -148,8 +148,10 @@ enum {
   CUBEB_OK = 0,                       
   CUBEB_ERROR = -1,                   
   CUBEB_ERROR_INVALID_FORMAT = -2,    
-  CUBEB_ERROR_INVALID_PARAMETER = -3  
+  CUBEB_ERROR_INVALID_PARAMETER = -3, 
+  CUBEB_ERROR_NOT_SUPPORTED = -4      
 };
+
 
 
 
@@ -196,6 +198,7 @@ char const * cubeb_get_backend_id(cubeb * context);
 
 
 
+
 int cubeb_get_max_channel_count(cubeb * context, uint32_t * max_channels);
 
 
@@ -207,7 +210,11 @@ int cubeb_get_max_channel_count(cubeb * context, uint32_t * max_channels);
 
 
 
-int cubeb_get_min_latency(cubeb * context, cubeb_stream_params params, uint32_t * latency_ms);
+
+int cubeb_get_min_latency(cubeb * context,
+                          cubeb_stream_params params,
+                          uint32_t * latency_ms);
+
 
 
 
@@ -234,8 +241,12 @@ void cubeb_destroy(cubeb * context);
 
 
 
-int cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_name,
-                      cubeb_stream_params stream_params, unsigned int latency,
+
+int cubeb_stream_init(cubeb * context,
+                      cubeb_stream ** stream,
+                      char const * stream_name,
+                      cubeb_stream_params stream_params,
+                      unsigned int latency,
                       cubeb_data_callback data_callback,
                       cubeb_state_callback state_callback,
                       void * user_ptr);
@@ -270,8 +281,8 @@ int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
 
 
 
-int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);
 
+int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);
 
 
 
@@ -303,7 +314,6 @@ int cubeb_stream_set_panning(cubeb_stream * stream, float panning);
 
 
 
-
 int cubeb_stream_get_current_device(cubeb_stream * stm,
                                     cubeb_device ** const device);
 
@@ -313,10 +323,8 @@ int cubeb_stream_get_current_device(cubeb_stream * stm,
 
 
 
-
 int cubeb_stream_device_destroy(cubeb_stream * stream,
                                 cubeb_device * devices);
-
 
 
 
