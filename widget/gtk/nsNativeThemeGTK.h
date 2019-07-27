@@ -3,6 +3,9 @@
 
 
 
+#ifndef _GTK_NSNATIVETHEMEGTK_H_
+#define _GTK_NSNATIVETHEMEGTK_H_
+
 #include "nsITheme.h"
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
@@ -80,3 +83,5 @@ private:
   uint8_t mSafeWidgetStates[1024];    
   static const char* sDisabledEngines[];
 };
+
+#endif
