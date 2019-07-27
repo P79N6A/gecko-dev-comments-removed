@@ -2,53 +2,51 @@
 
 
 
-function test() {
-    waitForExplicitFinish();
-
+add_task(function* () {
     var pagetitle = "Page Title for Bug 503832";
     var pageurl = "http://mochi.test:8888/browser/docshell/test/browser/file_bug503832.html";
     var fragmenturl = "http://mochi.test:8888/browser/docshell/test/browser/file_bug503832.html#firefox";
 
-    
-    var historyObserver = {
-        onBeginUpdateBatch: function() {},
-        onEndUpdateBatch: function() {},
-        onVisit: function(aURI, aVisitID, aTime, aSessionId, aReferringId,
-                          aTransitionType, _added) {},
-        onTitleChanged: function(aURI, aPageTitle) {
-            aURI = aURI.spec;
-            switch (aURI) {
-            case pageurl:
-                is(aPageTitle, pagetitle, "Correct page title for " + aURI);
-                return;
-            case fragmenturl:
-                is(aPageTitle, pagetitle, "Correct page title for " + aURI);
-                
-                
-                
-                historyService.removeObserver(historyObserver, false);
-
-                gBrowser.removeCurrentTab();
-
-                finish();
-            }
-        },
-        onDeleteURI: function(aURI) {},
-        onClearHistory: function() {},
-        onPageChanged: function(aURI, aWhat, aValue) {},
-        onDeleteVisits: function () {},
-        QueryInterface: function(iid) {
-            if (iid.equals(Ci.nsINavHistoryObserver) ||
-                iid.equals(Ci.nsISupports)) {
-                return this;
-            }
-            throw Cr.NS_ERROR_NO_INTERFACE;
-        }
-    };
-
     var historyService = Cc["@mozilla.org/browser/nav-history-service;1"]
                          .getService(Ci.nsINavHistoryService);
-    historyService.addObserver(historyObserver, false);
+
+    let fragmentPromise = new Promise(resolve => {
+        
+        var historyObserver = {
+            onBeginUpdateBatch: function() {},
+            onEndUpdateBatch: function() {},
+            onVisit: function(aURI, aVisitID, aTime, aSessionId, aReferringId,
+                              aTransitionType, _added) {},
+            onTitleChanged: function(aURI, aPageTitle) {
+                aURI = aURI.spec;
+                switch (aURI) {
+                case pageurl:
+                    is(aPageTitle, pagetitle, "Correct page title for " + aURI);
+                    return;
+                case fragmenturl:
+                    is(aPageTitle, pagetitle, "Correct page title for " + aURI);
+                    
+                    
+                    
+                    historyService.removeObserver(historyObserver, false);
+                    resolve();
+                }
+            },
+            onDeleteURI: function(aURI) {},
+            onClearHistory: function() {},
+            onPageChanged: function(aURI, aWhat, aValue) {},
+            onDeleteVisits: function () {},
+            QueryInterface: function(iid) {
+                if (iid.equals(Ci.nsINavHistoryObserver) ||
+                    iid.equals(Ci.nsISupports)) {
+                    return this;
+                }
+                throw Cr.NS_ERROR_NO_INTERFACE;
+            }
+        };
+
+        historyService.addObserver(historyObserver, false);
+    });
 
     
 
@@ -71,18 +69,6 @@ function test() {
         return node;
     }
 
-
-    function onPageLoad() {
-        gBrowser.selectedBrowser.removeEventListener(
-            "DOMContentLoaded", onPageLoad, true);
-
-        
-        EventUtils.sendMouseEvent({type:'click'}, 'firefox-link',
-                                  gBrowser.selectedBrowser.contentWindow);
-
-        
-    }
-
     
     var info = getNavHistoryEntry(makeURI(pageurl));
     ok(!info, "The test page must not have been visited already.");
@@ -90,8 +76,12 @@ function test() {
     ok(!info, "The fragment test page must not have been visited already.");
 
     
-    gBrowser.selectedTab = gBrowser.addTab();
-    gBrowser.selectedBrowser.addEventListener(
-        "DOMContentLoaded", onPageLoad, true);
-    content.location = pageurl;
-}
+    yield BrowserTestUtils.openNewForegroundTab(gBrowser, pageurl);
+
+    
+    yield BrowserTestUtils.synthesizeMouseAtCenter("#firefox-link", {},
+                                                   gBrowser.selectedBrowser);
+    yield fragmentPromise;
+
+    gBrowser.removeCurrentTab();
+});
