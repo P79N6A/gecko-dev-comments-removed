@@ -597,29 +597,6 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
           !aChild->TextIsOnlyWhitespace());
 }
 
- bool
-nsStyleUtil::IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
-                                 bool aIsMainAxisHorizontal)
-{
-  
-  
-  if (aFlexBasis.GetUnit() != eStyleUnit_Enumerated) {
-    return false;
-  }
-
-  if (!aIsMainAxisHorizontal) {
-    
-    
-    
-    
-    
-    
-    return true;
-  }
-
-  return aFlexBasis.GetIntValue() == NS_STYLE_FLEX_BASIS_MAIN_SIZE;
-}
-
 
 
 

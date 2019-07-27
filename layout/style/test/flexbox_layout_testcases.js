@@ -480,7 +480,6 @@ var gFlexboxTestcases =
  },
 
  
- 
  {
    items:
      [
@@ -711,7 +710,7 @@ var gFlexboxTestcases =
          "_main-size": [ null,  "20px" ]
        },
        {
-         "flex": "9 main-size",
+         "flex": "9 auto",
          "_min-main-size": "150px",
          "_main-size": [ "50px",  "180px" ]
        },

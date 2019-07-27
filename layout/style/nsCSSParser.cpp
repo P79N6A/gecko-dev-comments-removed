@@ -7505,8 +7505,7 @@ CSSParserImpl::ParseFlex()
   if (ParseVariant(tmpVal, VARIANT_NONE, nullptr)) {
     AppendValue(eCSSProperty_flex_grow, nsCSSValue(0.0f, eCSSUnit_Number));
     AppendValue(eCSSProperty_flex_shrink, nsCSSValue(0.0f, eCSSUnit_Number));
-    AppendValue(eCSSProperty_flex_basis,
-                nsCSSValue(NS_STYLE_FLEX_BASIS_MAIN_SIZE, eCSSUnit_Enumerated));
+    AppendValue(eCSSProperty_flex_basis, nsCSSValue(eCSSUnit_Auto));
     return true;
   }
 
@@ -7564,15 +7563,6 @@ CSSParserImpl::ParseFlex()
       
       
       doneParsing = true;
-      if (flexBasis.GetUnit() == eCSSUnit_Auto) {
-        
-        
-        
-        
-        
-        flexBasis.SetIntValue(NS_STYLE_FLEX_BASIS_MAIN_SIZE,
-                              eCSSUnit_Enumerated);
-      }
     }
   }
 
