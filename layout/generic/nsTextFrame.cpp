@@ -4958,6 +4958,12 @@ nsTextFrame::GetTextDecorations(
     if (f->IsFloating() || f->IsAbsolutelyPositioned()) {
       break;
     }
+
+    
+    
+    if (f->GetType() == nsGkAtoms::svgOuterSVGFrame) {
+      break;
+    }
   }
 }
 
