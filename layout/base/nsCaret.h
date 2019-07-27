@@ -191,9 +191,7 @@ protected:
     
     
     
-    
-    
-    bool          MustDrawCaret(bool aIgnoreDrawnState);
+    bool          MustDrawCaret();
 
     void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
