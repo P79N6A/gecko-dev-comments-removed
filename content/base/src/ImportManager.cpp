@@ -133,8 +133,8 @@ public:
                                                 mNode,
                                                 mSuccess ? NS_LITERAL_STRING("load")
                                                          : NS_LITERAL_STRING("error"),
-                                                 true,
-                                                 true);
+                                                 false,
+                                                 false);
   }
 
 private:
