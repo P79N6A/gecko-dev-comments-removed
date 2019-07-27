@@ -2228,13 +2228,6 @@ WebSocketChannel::StopSession(nsresult reason)
 
   
   
-  if (NS_IsMainThread()) {
-    MOZ_DIAGNOSTIC_ASSERT(!mDataStarted);
-  } else {
-    MOZ_DIAGNOSTIC_ASSERT(PR_GetCurrentThread() == gSocketThread,
-                          "Called on unexpected thread!");
-    MOZ_DIAGNOSTIC_ASSERT(mDataStarted);
-  }
 
   mStopped = 1;
 
@@ -2341,13 +2334,6 @@ WebSocketChannel::AbortSession(nsresult reason)
 
   
   
-  if (NS_IsMainThread()) {
-    MOZ_DIAGNOSTIC_ASSERT(!mDataStarted);
-  } else {
-    MOZ_DIAGNOSTIC_ASSERT(PR_GetCurrentThread() == gSocketThread,
-                          "Called on unexpected thread!");
-    MOZ_DIAGNOSTIC_ASSERT(mDataStarted);
-  }
 
   
   
