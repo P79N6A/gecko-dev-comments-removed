@@ -2195,6 +2195,7 @@ let CustomizableUIInternal = {
       conditionalDestroyPromise.then(shouldDestroy => {
         if (shouldDestroy) {
           this.destroyWidget(widget.id);
+          this.removeWidgetFromArea(widget.id);
         }
       }, err => {
         Cu.reportError(err);
