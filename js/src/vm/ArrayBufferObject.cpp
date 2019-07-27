@@ -1205,7 +1205,7 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *objArg)
 
             void *srcData = obj->getPrivate();
             void *dstData = view->as<InlineTypedObject>().inlineTypedMem() + offset;
-            obj->setPrivate(dstData);
+            obj->setPrivateUnbarriered(dstData);
 
             
             
