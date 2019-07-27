@@ -85,12 +85,17 @@ let CallTreeView = {
 
 
 
-  _prepareCallTree: function (profilerData, beginAt, endAt, options) {
+  _prepareCallTree: function (profilerData, startTime, endTime, options) {
     let threadSamples = profilerData.profile.threads[0].samples;
     let contentOnly = !Prefs.showPlatformData;
     let invertTree = PerformanceController.getPref("invert-call-tree");
 
-    let threadNode = new ThreadNode(threadSamples, contentOnly, beginAt, endAt, invertTree);
+    let threadNode = new ThreadNode(threadSamples,
+      { startTime, endTime, contentOnly, invertTree });
+
+    
+    
+    
     options.inverted = invertTree && threadNode.samples > 0;
 
     return threadNode;

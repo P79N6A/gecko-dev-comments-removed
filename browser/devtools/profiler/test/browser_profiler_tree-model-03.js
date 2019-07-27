@@ -11,7 +11,7 @@ function test() {
 
   
 
-  let root = new ThreadNode(gSamples, false, 11, 18);
+  let root = new ThreadNode(gSamples, { startTime: 11, endTime: 18 });
 
   
 

@@ -51,16 +51,14 @@ exports.FrameNode.isContent = isContent;
 
 
 
-
-
-function ThreadNode(threadSamples, contentOnly, beginAt, endAt, invert) {
+function ThreadNode(threadSamples, options = {}) {
   this.samples = 0;
   this.duration = 0;
   this.calls = {};
   this._previousSampleTime = 0;
 
   for (let sample of threadSamples) {
-    this.insert(sample, contentOnly, beginAt, endAt, invert);
+    this.insert(sample, options);
   }
 }
 
@@ -79,12 +77,11 @@ ThreadNode.prototype = {
 
 
 
-
-
-
-  insert: function(sample, contentOnly = false, beginAt = 0, endAt = Infinity, inverted = false) {
+  insert: function(sample, options = {}) {
+    let startTime = options.startTime || 0;
+    let endTime = options.endTime || Infinity;
     let sampleTime = sample.time;
-    if (!sampleTime || sampleTime < beginAt || sampleTime > endAt) {
+    if (!sampleTime || sampleTime < startTime || sampleTime > endTime) {
       return;
     }
 
@@ -92,17 +89,20 @@ ThreadNode.prototype = {
 
     
     
-    if (contentOnly) {
+    if (options.contentOnly) {
       
       sampleFrames = sampleFrames.filter(isContent);
     } else {
       
       sampleFrames = sampleFrames.slice(1);
     }
+    
+    
     if (!sampleFrames.length) {
       return;
     }
-    if (inverted) {
+    
+    if (options.invertTree) {
       sampleFrames.reverse();
     }
 

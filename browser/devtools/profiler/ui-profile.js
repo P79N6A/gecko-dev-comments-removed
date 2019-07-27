@@ -460,12 +460,13 @@ let ProfileView = {
 
 
 
-  _populateCallTree: function(panel, profilerData, beginAt, endAt, options = {}) {
+  _populateCallTree: function(panel, profilerData, startTime, endTime, options = {}) {
     let threadSamples = profilerData.profile.threads[0].samples;
     let contentOnly = !Prefs.showPlatformData;
     let invertChecked = this._invertTree.hasAttribute("checked");
-    let threadNode = new ThreadNode(threadSamples, contentOnly, beginAt, endAt,
-                                    invertChecked);
+    let threadNode = new ThreadNode(threadSamples,
+      { startTime, endTime, contentOnly, invertChecked });
+
     
     
     
