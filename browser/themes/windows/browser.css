@@ -2566,6 +2566,10 @@ notification[value="loop-sharing-notification"] .messageImage {
 
 
 
+#social-undoactivation-button {
+  -moz-margin-start: 0; 
+}
+
 #socialActivatedNotification .popup-notification-button-container {
   margin-left: 6px;
 }
