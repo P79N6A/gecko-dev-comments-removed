@@ -559,9 +559,6 @@ nsThread::DispatchInternal(nsIRunnable* aEvent, uint32_t aFlags,
 
     nsRefPtr<nsThreadSyncDispatch> wrapper =
       new nsThreadSyncDispatch(thread, aEvent);
-    if (!wrapper) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
     nsresult rv = PutEvent(wrapper, aTarget);
     
     if (NS_FAILED(rv)) {
@@ -639,9 +636,6 @@ nsThread::Shutdown()
   
   
   nsCOMPtr<nsIRunnable> event = new nsThreadShutdownEvent(this, &context);
-  if (!event) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
   
   PutEvent(event, nullptr);
 
