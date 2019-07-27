@@ -103,10 +103,11 @@ MediaQueryList::AddListener(MediaQueryListListener& aListener)
     }
   }
 
-  mCallbacks.AppendElement(&aListener, fallible);
-  if (!HasListeners()) {
-    
-    NS_RELEASE_THIS();
+  if (!mCallbacks.AppendElement(&aListener, fallible)) {
+    if (!HasListeners()) {
+      
+      NS_RELEASE_THIS();
+    }
   }
 }
 
