@@ -1053,6 +1053,25 @@ typedef void (*JS_ICUFreeFn)(const void*, void* p);
 extern JS_PUBLIC_API(bool)
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_ICUFreeFn freeFn);
 
+typedef double (*JS_CurrentEmbedderTimeFunction)();
+
+
+
+
+
+
+
+
+JS_PUBLIC_API(void)
+JS_SetCurrentEmbedderTimeFunction(JS_CurrentEmbedderTimeFunction timeFn);
+
+
+
+
+
+JS_PUBLIC_API(double)
+JS_GetCurrentEmbedderTime();
+
 JS_PUBLIC_API(void*)
 JS_GetRuntimePrivate(JSRuntime* rt);
 
