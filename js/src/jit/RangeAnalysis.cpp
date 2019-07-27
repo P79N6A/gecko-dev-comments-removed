@@ -576,9 +576,16 @@ Range::Range(const MDefinition *def)
         *this = *other;
 
         
+        
+        
+        
         switch (def->type()) {
           case MIRType_Int32:
-            wrapAroundToInt32();
+            
+            if (def->isToInt32())
+                clampToInt32();
+            else
+                wrapAroundToInt32();
             break;
           case MIRType_Boolean:
             wrapAroundToBoolean();
@@ -1630,9 +1637,8 @@ MTruncateToInt32::computeRange(TempAllocator &alloc)
 void
 MToInt32::computeRange(TempAllocator &alloc)
 {
-    Range *output = new(alloc) Range(getOperand(0));
-    output->clampToInt32();
-    setRange(output);
+    
+    setRange(new(alloc) Range(getOperand(0)));
 }
 
 void
