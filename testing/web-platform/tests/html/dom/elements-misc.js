@@ -35,7 +35,7 @@ var miscElements = {
 	menu: {
 		
 		
-		
+		type: {type: "enum", keywords:["popup", "toolbar"], defaultVal: "toolbar"},
 		label: "string",
 
 		
