@@ -113,30 +113,6 @@ catch (e) { }
 
 
 
-try {
-  let levelNames = {}
-  for (let level of ["debug", "info", "warn", "error"]) {
-    levelNames[Components.interfaces.nsIConsoleMessage[level]] = level;
-  }
-
-  let listener = {
-    QueryInterface : function(iid) {
-      if (!iid.equals(Components.interfaces.nsISupports) &&
-          !iid.equals(Components.interfaces.nsIConsoleListener)) {
-        throw Components.results.NS_NOINTERFACE;
-      }
-      return this;
-    },
-    observe : function (msg) {
-      do_print("CONSOLE_MESSAGE: (" + levelNames[msg.logLevel] + ") " + msg.toString());
-    }
-  };
-  Components.classes["@mozilla.org/consoleservice;1"]
-            .getService(Components.interfaces.nsIConsoleService)
-            .registerListener(listener);
-} catch (e) {}
-
-
 
 
 
