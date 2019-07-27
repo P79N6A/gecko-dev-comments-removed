@@ -11,7 +11,7 @@
 #include <gfxPointH3D.h>
 #include <gfxQuad.h>
 
-struct gfxMatrix;
+class gfxMatrix;
 
 
 
