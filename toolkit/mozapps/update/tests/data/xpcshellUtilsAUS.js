@@ -1000,7 +1000,14 @@ function doTestFinish() {
   if (gPassed === undefined) {
     gPassed = true;
   }
-  do_test_finished();
+  if (DEBUG_AUS_TEST) {
+    
+    
+    
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_LOG, false);
+    gAUS.observe(null, "nsPref:changed", PREF_APP_UPDATE_LOG);
+  }
+  do_execute_soon(do_test_finished);
 }
 
 
@@ -1601,8 +1608,9 @@ function runUpdate(aExpectedExitValue, aExpectedStatus, aCallback) {
     let updateLog = getUpdatesPatchDir();
     updateLog.append(FILE_UPDATE_LOG);
     
-    let contents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
-    let aryLogContents = contents.split("\n");
+    let updateLogContents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
+    updateLogContents = replaceLogPaths(updateLogContents);
+    let aryLogContents = updateLogContents.split("\n");
     logTestInfo("contents of " + updateLog.path + ":");
     aryLogContents.forEach(function RU_LC_FE(aLine) {
       logTestInfo(aLine);
@@ -2181,8 +2189,9 @@ function runUpdateUsingService(aInitialStatus, aExpectedStatus, aCheckSvcLog) {
       let updateLog = getUpdatesPatchDir();
       updateLog.append(FILE_UPDATE_LOG);
       
-      let contents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
-      let aryLogContents = contents.split("\n");
+      let updateLogContents = readFileBytes(updateLog).replace(/\r\n/g, "\n");
+      updateLogContents = replaceLogPaths(updateLogContents);
+      let aryLogContents = updateLogContents.split("\n");
       logTestInfo("contents of " + updateLog.path + ":");
       aryLogContents.forEach(function RUUS_TC_LC_FE(aLine) {
         logTestInfo(aLine);
@@ -2459,11 +2468,47 @@ function createUpdaterINI(aIsExeAsync) {
 
 
 
+function replaceLogPaths(aLogContents) {
+  let logContents = aLogContents;
+  
+  
+  let testDirPath = do_get_file(gTestID, false).path;
+  if (IS_WIN) {
+    
+    testDirPath = testDirPath.replace(/\\/g, "\\\\");
+  }
+  logContents = logContents.replace(new RegExp(testDirPath, "g"),
+                                    "<test_dir_path>/" + gTestID);
+  let updatesDirPath = getMockUpdRootD().path;
+  if (IS_WIN) {
+    
+    updatesDirPath = updatesDirPath.replace(/\\/g, "\\\\");
+  }
+  logContents = logContents.replace(new RegExp(updatesDirPath, "g"),
+                                    "<update_dir_path>/" + gTestID);
+  if (IS_WIN) {
+    
+    logContents = logContents.replace(/\\/g, "/");
+  }
+  return logContents;
+}
+
+
+
+
+
+
+
+
+
+
+
 function checkUpdateLogContents(aCompareLogFile, aExcludeDistributionDir) {
   if (IS_UNIX && !IS_MACOSX) {
     
     return;
   }
+
   let updateLog = getUpdatesPatchDir();
   updateLog.append(FILE_UPDATE_LOG);
   let updateLogContents = readFileBytes(updateLog);
@@ -2515,9 +2560,7 @@ function checkUpdateLogContents(aCompareLogFile, aExcludeDistributionDir) {
   updateLogContents = updateLogContents.replace(/\n+/g, "\n");
   
   updateLogContents = updateLogContents.replace(/^\n|\n$/g, "");
-  
-  
-  updateLogContents = updateLogContents.replace(/^calling QuitProgressUI\n[^\n]*\nUPDATE TYPE/g, "UPDATE TYPE");
+  updateLogContents = replaceLogPaths(updateLogContents);
 
   let compareLogContents = "";
   if (aCompareLogFile) {
@@ -2583,8 +2626,9 @@ function checkUpdateLogContains(aCheckString) {
   let updateLog = getUpdatesPatchDir();
   updateLog.append(FILE_UPDATE_LOG);
   let updateLogContents = readFileBytes(updateLog);
+  updateLogContents = replaceLogPaths(updateLogContents);
   Assert.notEqual(updateLogContents.indexOf(aCheckString), -1,
-                  "the update log contents" + MSG_SHOULD_EQUAL + ", value: " +
+                  "the update log contents should contain value: " +
                   aCheckString);
 }
 
@@ -2848,6 +2892,8 @@ function checkCallbackAppLog() {
     gTimeoutRuns++;
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS) {
       logTestInfo("callback log contents are not correct");
+      
+      
       let aryLog = logContents.split("\n");
       let aryCompare = expectedLogContents.split("\n");
       
