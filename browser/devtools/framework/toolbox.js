@@ -717,9 +717,12 @@ Toolbox.prototype = {
       this._buildPickerButton();
     }
 
-    
-    
     this.setToolboxButtonsVisibility();
+
+    
+    if (!this.target.hasActor("gcli")) {
+      return promise.resolve();
+    }
 
     const options = {
       environment: CommandUtils.createEnvironment(this, '_target')

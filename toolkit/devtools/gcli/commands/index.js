@@ -79,9 +79,14 @@ exports.devtoolsModules = [
 
 
 
-const defaultTools = require("definitions").defaultTools;
-exports.devtoolsToolModules = defaultTools.map(def => def.commands || [])
-                                 .reduce((prev, curr) => prev.concat(curr), []);
+try {
+  const defaultTools = require("definitions").defaultTools;
+  exports.devtoolsToolModules = defaultTools.map(def => def.commands || [])
+                                   .reduce((prev, curr) => prev.concat(curr), []);
+} catch(e) {
+  
+  exports.devtoolsToolModules = [];
+}
 
 
 
