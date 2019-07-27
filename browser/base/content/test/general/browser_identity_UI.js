@@ -1,6 +1,7 @@
 
 function test() {
   waitForExplicitFinish();
+  requestLongerTimeout(2);
 
   ok(gIdentityHandler, "gIdentityHandler should exist");
 
