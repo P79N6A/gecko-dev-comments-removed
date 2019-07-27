@@ -1,4 +1,4 @@
 
 
 
-new Date().setFullYear(Math.cos(1))
+Date.prototype.setFullYear(Math.cos(1))
