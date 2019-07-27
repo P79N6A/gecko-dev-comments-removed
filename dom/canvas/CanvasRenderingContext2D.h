@@ -21,7 +21,6 @@
 #include "mozilla/dom/CanvasPattern.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/TimeStamp.h"
 #include "gfx2DGlue.h"
 #include "imgIEncoder.h"
 #include "nsLayoutUtils.h"
@@ -116,7 +115,6 @@ private:
 
 struct CanvasBidiProcessor;
 class CanvasRenderingContext2DUserData;
-class CanvasDrawObserver;
 
 
 
@@ -770,11 +768,6 @@ protected:
   RefPtr<gl::SurfaceStream> mStream;
 
   
-  
-  
-  CanvasDrawObserver *mDrawObserver;
-
-  
 
 
 
@@ -1088,73 +1081,6 @@ protected:
   }
 
   friend struct CanvasBidiProcessor;
-  friend class CanvasDrawObserver;
-};
-
-class CanvasDrawObserver
-{
-public:
-  CanvasDrawObserver(CanvasRenderingContext2D* aCanvasContext)
-    : mCanvasContext(aCanvasContext)
-    , mDisabled(false)
-    , mSoftwarePreferredCalls(0)
-    , mGPUPreferredCalls(0)
-    , mFramesRendered(0)
-    , mCreationTime(TimeStamp::NowLoRes())
-  {}
-
-  
-  enum DrawCallType {
-    PutImageData,
-    GetImageData,
-    DrawImage
-  };
-
-  void DidDrawCall(DrawCallType aType) {
-    if (mDisabled) {
-      return;
-    }
-
-    switch (aType) {
-      case PutImageData:
-      case GetImageData:
-        mSoftwarePreferredCalls++;
-        break;
-      case DrawImage:
-        mGPUPreferredCalls++;
-        break;
-    }
-  }
-
-  void FrameEnd() {
-    if (mDisabled) {
-      return;
-    }
-
-    mFramesRendered++;
-
-    TimeDuration timeElapsed = TimeStamp::NowLoRes() - mCreationTime;
-
-    
-    
-    if (mFramesRendered >= 30 || timeElapsed.ToSeconds() >= 5.0) {
-      if (mGPUPreferredCalls >= mSoftwarePreferredCalls) {
-        mCanvasContext->SwitchRenderingMode(CanvasRenderingContext2D::RenderingMode::OpenGLBackendMode);
-      } else {
-        mCanvasContext->SwitchRenderingMode(CanvasRenderingContext2D::RenderingMode::SoftwareBackendMode);
-      }
-
-      mDisabled = true;
-    }
-  }
-
-private:
-  CanvasRenderingContext2D* mCanvasContext;
-  bool mDisabled;
-  unsigned int mSoftwarePreferredCalls;
-  unsigned int mGPUPreferredCalls;
-  unsigned int mFramesRendered;
-  TimeStamp mCreationTime;
 };
 
 MOZ_FINISH_NESTED_ENUM_CLASS(CanvasRenderingContext2D::CanvasMultiGetterType)
