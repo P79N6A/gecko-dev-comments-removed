@@ -33,12 +33,14 @@ ConvertTextAttributeToAtkAttribute(const nsACString& aName,
   if (aName.EqualsLiteral("color")) {
     
     
-    atkValue = Substring(aValue, 5, aValue.Length() - 1);
+    atkValue = Substring(aValue, 4, aValue.Length() - 5);
+    atkValue.StripWhitespace();
     atkName = sAtkTextAttrNames[ATK_TEXT_ATTR_FG_COLOR];
   } else if (aName.EqualsLiteral("background-color")) {
     
     
-    atkValue = Substring(aValue, 5, aValue.Length() - 1);
+    atkValue = Substring(aValue, 4, aValue.Length() - 5);
+    atkValue.StripWhitespace();
     atkName = sAtkTextAttrNames[ATK_TEXT_ATTR_BG_COLOR];
   } else if (aName.EqualsLiteral("font-family")) {
     atkValue = aValue;
