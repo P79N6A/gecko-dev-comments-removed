@@ -294,13 +294,7 @@ AudioSink::PlayFromAudioQueue()
   AssertOnAudioThread();
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
   nsAutoPtr<AudioData> audio(AudioQueue().PopFront());
-  {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    NS_WARN_IF_FALSE(mPlaying, "Should be playing");
-    
-    
-    GetReentrantMonitor().NotifyAll();
-  }
+
   SINK_LOG_V("playing %u frames of audio at time %lld",
              audio->mFrames, audio->mTime);
   mAudioStream->Write(audio->mAudioData, audio->mFrames);
