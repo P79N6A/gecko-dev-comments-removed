@@ -152,7 +152,7 @@ var interfaceNamesInGlobalScope =
 
     "URLSearchParams",
 
-    "WebSocket",
+   { name: "WebSocket", pref: "dom.workers.websocket.enabled" },
 
     "Worker",
 
