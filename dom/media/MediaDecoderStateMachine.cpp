@@ -2975,8 +2975,8 @@ void MediaDecoderStateMachine::StartBuffering()
   
   
   
-  UpdateReadyState();
   SetState(DECODER_STATE_BUFFERING);
+  UpdateReadyState();
   DECODER_LOG("Changed state from DECODING to BUFFERING, decoded for %.3lfs",
               decodeDuration.ToSeconds());
 #ifdef PR_LOGGING
