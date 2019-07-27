@@ -155,6 +155,11 @@ void CacheStorageService::ShutdownBackground()
 {
   MOZ_ASSERT(IsOnManagementThread());
 
+  
+  if (mPurgeTimer) {
+    mPurgeTimer->Cancel();
+  }
+
   Pool(false).mFrecencyArray.Clear();
   Pool(false).mExpirationArray.Clear();
   Pool(true).mFrecencyArray.Clear();
