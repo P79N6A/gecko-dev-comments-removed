@@ -1346,18 +1346,8 @@ nsWindowWatcher::URIfromURL(const char *aURL,
                             nsIDOMWindow *aParent,
                             nsIURI **aURI)
 {
-  nsCOMPtr<nsIDOMWindow> baseWindow;
-
   
-
-
-  JSContext *cx = nsContentUtils::GetCurrentJSContext();
-  if (cx) {
-    nsIScriptContext *scriptcx = nsJSUtils::GetDynamicScriptContext(cx);
-    if (scriptcx) {
-      baseWindow = do_QueryInterface(scriptcx->GetGlobalObject());
-    }
-  }
+  nsCOMPtr<nsIDOMWindow> baseWindow = do_QueryInterface(GetEntryGlobal());
 
   
   if (!baseWindow)
