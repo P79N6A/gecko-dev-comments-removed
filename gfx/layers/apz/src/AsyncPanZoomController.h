@@ -379,7 +379,13 @@ public:
 
 protected:
   
-  ~AsyncPanZoomController();
+
+  
+  virtual TimeStamp GetFrameTime() const;
+
+protected:
+  
+  virtual ~AsyncPanZoomController();
 
   
 
@@ -846,9 +852,6 @@ private:
   friend class WheelScrollAnimation;
 
   
-  static TimeStamp GetFrameTime();
-
-  
   ParentLayerPoint mLastFlingVelocity;
   
   TimeStamp mLastFlingTime;
@@ -1054,12 +1057,6 @@ private:
 
 
 public:
-  
-
-
-
-
-  static void SetFrameTime(const TimeStamp& aMilliseconds);
   
 
 
