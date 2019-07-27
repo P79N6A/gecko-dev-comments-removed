@@ -362,10 +362,7 @@ nsRubyBaseContainerFrame::Reflow(nsPresContext* aPresContext,
       NS_FRAME_IS_COMPLETE(aStatus) && !mSpanContainers.IsEmpty()) {
     
     nscoord spanISize = ReflowSpans(aPresContext, aReflowState,
-                                    spanReflowStates, aStatus);
-    
-    
-    MOZ_ASSERT(aStatus == NS_FRAME_COMPLETE);
+                                    spanReflowStates);
     if (isize < spanISize) {
       nscoord delta = spanISize - isize;
       if (ShouldBreakBefore(aReflowState, delta)) {
@@ -650,8 +647,7 @@ nsRubyBaseContainerFrame::PullOnePair(nsLineLayout* aLineLayout,
 nscoord
 nsRubyBaseContainerFrame::ReflowSpans(nsPresContext* aPresContext,
                                       const nsHTMLReflowState& aReflowState,
-                                      nsTArray<nsHTMLReflowState*>& aReflowStates,
-                                      nsReflowStatus& aStatus)
+                                      nsTArray<nsHTMLReflowState*>& aReflowStates)
 {
   WritingMode lineWM = aReflowState.mLineLayout->GetWritingMode();
   const uint32_t spanCount = mSpanContainers.Length();
