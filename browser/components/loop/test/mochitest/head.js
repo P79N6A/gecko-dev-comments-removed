@@ -78,10 +78,6 @@ function promiseGetMozLoopAPI() {
 
 function loadLoopPanel(aOverrideOptions = {}) {
   
-  Services.prefs.setCharPref("services.push.serverURL", aOverrideOptions.pushURL || "ws://localhost/");
-  Services.prefs.setCharPref("loop.server", aOverrideOptions.loopURL || "http://localhost/");
-
-  
   
   
   
@@ -90,8 +86,6 @@ function loadLoopPanel(aOverrideOptions = {}) {
   }
 
   registerCleanupFunction(function() {
-    Services.prefs.clearUserPref("services.push.serverURL");
-    Services.prefs.clearUserPref("loop.server");
     Services.io.offline = WAS_OFFLINE;
   });
 
