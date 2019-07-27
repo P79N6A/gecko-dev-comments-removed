@@ -819,6 +819,20 @@ public:
 
 
 
+  void SetFrameMetrics(const FrameMetrics& aFrameMetrics)
+  {
+    if (mFrameMetrics != aFrameMetrics) {
+      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FrameMetrics", this));
+      mFrameMetrics = aFrameMetrics;
+      Mutated();
+    }
+  }
+
+  
+
+
+
+
 
 
 
@@ -1120,6 +1134,7 @@ public:
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
+  const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
   const EventRegions& GetEventRegions() const { return mEventRegions; }
   ContainerLayer* GetParent() { return mParent; }
   Layer* GetNextSibling() { return mNextSibling; }
@@ -1495,6 +1510,7 @@ protected:
   nsRefPtr<Layer> mMaskLayer;
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
+  FrameMetrics mFrameMetrics;
   EventRegions mEventRegions;
   gfx::Matrix4x4 mTransform;
   
@@ -1682,20 +1698,6 @@ public:
   virtual bool RepositionChild(Layer* aChild, Layer* aAfter);
 
   
-
-
-
-
-  void SetFrameMetrics(const FrameMetrics& aFrameMetrics)
-  {
-    if (mFrameMetrics != aFrameMetrics) {
-      MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) FrameMetrics", this));
-      mFrameMetrics = aFrameMetrics;
-      Mutated();
-    }
-  }
-
-  
   
   
   void SetAsyncPanZoomController(AsyncPanZoomController *controller);
@@ -1774,7 +1776,6 @@ public:
 
   virtual Layer* GetFirstChild() const { return mFirstChild; }
   virtual Layer* GetLastChild() const { return mLastChild; }
-  const FrameMetrics& GetFrameMetrics() const { return mFrameMetrics; }
   FrameMetrics::ViewID GetScrollHandoffParentId() const { return mScrollHandoffParentId; }
   float GetPreXScale() const { return mPreXScale; }
   float GetPreYScale() const { return mPreYScale; }
@@ -1862,7 +1863,6 @@ protected:
 
   Layer* mFirstChild;
   Layer* mLastChild;
-  FrameMetrics mFrameMetrics;
   nsRefPtr<AsyncPanZoomController> mAPZC;
   FrameMetrics::ViewID mScrollHandoffParentId;
   float mPreXScale;
@@ -2156,7 +2156,7 @@ private:
   virtual bool RepositionChild(Layer* aChild, Layer* aAfter)
   { MOZ_CRASH(); return false; }
 
-  using ContainerLayer::SetFrameMetrics;
+  using Layer::SetFrameMetrics;
 
 public:
   

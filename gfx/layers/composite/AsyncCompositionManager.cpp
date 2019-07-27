@@ -249,9 +249,8 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   bool isRootFixed = aLayer->GetIsFixedPosition() &&
     !aLayer->GetParent()->GetIsFixedPosition();
   bool isStickyForSubtree = aLayer->GetIsStickyPosition() &&
-    aTransformedSubtreeRoot->AsContainerLayer() &&
     aLayer->GetStickyScrollContainerId() ==
-      aTransformedSubtreeRoot->AsContainerLayer()->GetFrameMetrics().GetScrollId();
+      aTransformedSubtreeRoot->GetFrameMetrics().GetScrollId();
   if (aLayer != aTransformedSubtreeRoot && (isRootFixed || isStickyForSubtree)) {
     
     
@@ -343,8 +342,7 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
   
   
   
-  if (aLayer->AsContainerLayer() &&
-      aLayer->AsContainerLayer()->GetFrameMetrics().IsScrollable() &&
+  if (aLayer->GetFrameMetrics().IsScrollable() &&
       aLayer != aTransformedSubtreeRoot) {
     return;
   }
@@ -637,7 +635,7 @@ LayerIsContainerForScrollbarTarget(Layer* aTarget, ContainerLayer* aScrollbar)
   if (!apzc) {
     return false;
   }
-  const FrameMetrics& metrics = aTarget->AsContainerLayer()->GetFrameMetrics();
+  const FrameMetrics& metrics = aTarget->GetFrameMetrics();
   if (metrics.GetScrollId() != aScrollbar->GetScrollbarTargetContainerId()) {
     return false;
   }
@@ -777,9 +775,8 @@ void
 AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
 {
   LayerComposite* layerComposite = aLayer->AsLayerComposite();
-  ContainerLayer* container = aLayer->AsContainerLayer();
 
-  const FrameMetrics& metrics = container->GetFrameMetrics();
+  const FrameMetrics& metrics = aLayer->GetFrameMetrics();
   
   
   Matrix4x4 oldTransform = aLayer->GetTransform();
@@ -850,11 +847,13 @@ AsyncCompositionManager::TransformScrollableLayer(Layer* aLayer)
   
   
   Matrix4x4 computedTransform = treeTransform * oldTransform;
-  computedTransform.Scale(1.0f/container->GetPreXScale(),
-                          1.0f/container->GetPreYScale(),
-                          1);
-  computedTransform.ScalePost(1.0f/container->GetPostXScale(),
-                              1.0f/container->GetPostYScale(),
+  if (ContainerLayer* container = aLayer->AsContainerLayer()) {
+    computedTransform.Scale(1.0f/container->GetPreXScale(),
+                            1.0f/container->GetPreYScale(),
+                            1);
+  }
+  computedTransform.ScalePost(1.0f/aLayer->GetPostXScale(),
+                              1.0f/aLayer->GetPostYScale(),
                               1);
   layerComposite->SetShadowTransform(computedTransform);
   NS_ASSERTION(!layerComposite->GetShadowTransformSetByAnimation(),

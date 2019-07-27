@@ -346,7 +346,7 @@ public:
 
 
 
-  bool UpdateFromCompositorFrameMetrics(ContainerLayer* aLayer,
+  bool UpdateFromCompositorFrameMetrics(Layer* aLayer,
                                         bool aHasPendingNewThebesContent,
                                         bool aLowPrecision,
                                         ViewTransform& aViewTransform);
