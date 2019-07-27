@@ -44,10 +44,13 @@ class ScriptedDirectProxyHandler : public DirectProxyHandler {
         return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
     }
 
+
     
     
-    virtual bool keys(JSContext *cx, HandleObject proxy, AutoIdVector &props) const MOZ_OVERRIDE {
-        return BaseProxyHandler::keys(cx, proxy, props);
+    
+    virtual bool getOwnEnumerablePropertyKeys(JSContext *cx, HandleObject proxy,
+                                              AutoIdVector &props) const MOZ_OVERRIDE {
+        return BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, proxy, props);
     }
     virtual bool iterate(JSContext *cx, HandleObject proxy, unsigned flags,
                          MutableHandleValue vp) const MOZ_OVERRIDE;

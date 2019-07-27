@@ -59,6 +59,7 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase
     
     
     
+    
 
     static const ChromeObjectWrapper singleton;
 };
