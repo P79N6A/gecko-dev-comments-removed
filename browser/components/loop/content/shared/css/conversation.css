@@ -969,3 +969,29 @@ html, .fx-embedded, #main,
     display: none;
   }
 }
+
+.self-view-hidden-message {
+  
+
+
+  display: none;
+}
+
+
+
+
+
+@media screen and (max-height:160px) {
+
+  
+  .standalone .OT_publisher {
+    display: none;
+  }
+
+  
+  .standalone .self-view-hidden-message {
+    display: inline;
+    position: relative;
+    top: 90px;
+  }
+}
