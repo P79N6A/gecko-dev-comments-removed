@@ -622,6 +622,21 @@ nsBrowserContentHandler.prototype = {
       var urlParam = cmdLine.getArgument(urlFlagIdx + 1);
       if (cmdLine.length != urlFlagIdx + 2 || /firefoxurl:/.test(urlParam))
         throw NS_ERROR_ABORT;
+      var isDefault = false;
+      try {
+        var url = Services.urlFormatter.formatURLPref("app.support.baseURL") +
+                  "win10-default-browser";
+        if (urlParam == url) {
+          var shellSvc = Components.classes["@mozilla.org/browser/shell-service;1"]
+                                   .getService(Components.interfaces.nsIShellService);
+          isDefault = shellSvc.isDefaultBrowser(false, false);
+        }
+      } catch (ex) {}
+      if (isDefault) {
+        
+        
+        throw NS_ERROR_ABORT;
+      }
       cmdLine.handleFlag("osint", false)
     }
   },
