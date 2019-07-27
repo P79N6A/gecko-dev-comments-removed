@@ -305,7 +305,7 @@ PicoCallbackRunnable::Run()
     } else {
       
       
-      DispatchSynthDataRunnable(already_AddRefed<SharedBuffer>(nullptr), 0);
+      DispatchSynthDataRunnable(already_AddRefed<SharedBuffer>(), 0);
       break;
     }
 

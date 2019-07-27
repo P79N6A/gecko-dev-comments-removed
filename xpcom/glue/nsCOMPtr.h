@@ -20,11 +20,11 @@
 
 
 
-#include "mozilla/Attributes.h"
-#include "mozilla/TypeTraits.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Move.h"
+#include "mozilla/NullPtr.h"
+#include "mozilla/TypeTraits.h"
 
 #include "nsDebug.h" 
 #include "nsISupportsUtils.h" 
@@ -137,21 +137,35 @@ struct already_AddRefed
 
 
 
-  template<typename N>
-  already_AddRefed(N,
-                   typename mozilla::EnableIf<mozilla::IsNullPointer<N>::value,
-                                              int>::Type aDummy = 0)
-    : mRawPtr(nullptr)
-  {
-  }
 
-#ifdef MOZ_HAVE_CXX11_NULLPTR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  already_AddRefed() : mRawPtr(nullptr) {}
+
   
   
-  
-  explicit
-#endif
-  already_AddRefed(T* aRawPtr) : mRawPtr(aRawPtr) {}
+  typedef void (already_AddRefed::* MatchNullptr)(double, float);
+  MOZ_IMPLICIT already_AddRefed(MatchNullptr aRawPtr) : mRawPtr(nullptr) {}
+
+  explicit already_AddRefed(T* aRawPtr) : mRawPtr(aRawPtr) {}
 
   
   already_AddRefed(const already_AddRefed<T>& aOther) MOZ_DELETE;
