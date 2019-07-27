@@ -3113,8 +3113,12 @@ nsDisplaySVGText::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
   SVGTextFrame *frame = static_cast<SVGTextFrame*>(mFrame);
   nsPoint pointRelativeToReferenceFrame = aRect.Center();
   
-  nsPoint userSpacePt = pointRelativeToReferenceFrame -
-                          (ToReferenceFrame() - frame->GetPosition());
+  nsPoint userSpacePtInAppUnits = pointRelativeToReferenceFrame -
+                                    (ToReferenceFrame() - frame->GetPosition());
+
+  gfxPoint userSpacePt =
+    gfxPoint(userSpacePtInAppUnits.x, userSpacePtInAppUnits.y) /
+      frame->PresContext()->AppUnitsPerCSSPixel();
 
   nsIFrame* target = frame->GetFrameForPoint(userSpacePt);
   if (target) {
@@ -3690,7 +3694,7 @@ SVGTextFrame::PaintSVG(nsRenderingContext* aContext,
 }
 
 nsIFrame*
-SVGTextFrame::GetFrameForPoint(const nsPoint& aPoint)
+SVGTextFrame::GetFrameForPoint(const gfxPoint& aPoint)
 {
   NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
 
@@ -3713,9 +3717,6 @@ SVGTextFrame::GetFrameForPoint(const nsPoint& aPoint)
 
   nsPresContext* presContext = PresContext();
 
-  gfxPoint pointInOuterSVGUserUnits =
-    gfxPoint(aPoint.x, aPoint.y) / PresContext()->AppUnitsPerCSSPixel();
-
   
   
   
@@ -3729,13 +3730,12 @@ SVGTextFrame::GetFrameForPoint(const nsPoint& aPoint)
       continue;
     }
 
-    gfxMatrix m = run.GetTransformFromRunUserSpaceToUserSpace(presContext) *
-                    GetCanvasTM(FOR_HIT_TESTING);
+    gfxMatrix m = run.GetTransformFromRunUserSpaceToUserSpace(presContext);
     if (!m.Invert()) {
       return nullptr;
     }
 
-    gfxPoint pointInRunUserSpace = m.Transform(pointInOuterSVGUserUnits);
+    gfxPoint pointInRunUserSpace = m.Transform(aPoint);
     gfxRect frameRect =
       run.GetRunUserSpaceRect(presContext, TextRenderedRun::eIncludeFill |
                                            TextRenderedRun::eIncludeStroke).ToThebesRect();

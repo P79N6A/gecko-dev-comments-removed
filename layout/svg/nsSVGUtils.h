@@ -304,12 +304,15 @@ public:
   
 
   static bool
-  HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint);
+  HitTestClip(nsIFrame *aFrame, const gfxPoint &aPoint);
   
   
 
+
+
+
   static nsIFrame *
-  HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint);
+  HitTestChildren(nsSVGDisplayContainerFrame *aFrame, const gfxPoint &aPoint);
 
   
 

@@ -157,9 +157,8 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
 }
 
 bool
-nsSVGClipPathFrame::ClipHitTest(nsIFrame* aParent,
-                                const gfxMatrix &aMatrix,
-                                const nsPoint &aPoint)
+nsSVGClipPathFrame::PointIsInsideClipPath(nsIFrame* aClippedFrame,
+                                          const gfxPoint &aPoint)
 {
   
   
@@ -170,29 +169,40 @@ nsSVGClipPathFrame::ClipHitTest(nsIFrame* aParent,
   }
   AutoClipPathReferencer clipRef(this);
 
-  mClipParent = aParent;
-  if (mClipParentMatrix) {
-    *mClipParentMatrix = aMatrix;
-  } else {
-    mClipParentMatrix = new gfxMatrix(aMatrix);
+  gfxMatrix matrix = GetClipPathTransform(aClippedFrame);
+  if (!matrix.Invert()) {
+    return false;
   }
+  gfxPoint point = matrix.Transform(aPoint);
 
+  
+  
+  
+  
+  
   nsSVGClipPathFrame *clipPathFrame =
     nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nullptr);
-  if (clipPathFrame && !clipPathFrame->ClipHitTest(aParent, aMatrix, aPoint))
+  if (clipPathFrame &&
+      !clipPathFrame->PointIsInsideClipPath(aClippedFrame, aPoint)) {
     return false;
+  }
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
-      
-      
-      
-      SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
-
-      if (SVGFrame->GetFrameForPoint(aPoint))
+      gfxPoint pointForChild = point;
+      gfxMatrix m = static_cast<nsSVGElement*>(kid->GetContent())->
+        PrependLocalTransformsTo(gfxMatrix(), nsSVGElement::eUserSpaceToParent);
+      if (!m.IsIdentity()) {
+        if (!m.Invert()) {
+          return false;
+        }
+        pointForChild = m.Transform(point);
+      }
+      if (SVGFrame->GetFrameForPoint(pointForChild)) {
         return true;
+      }
     }
   }
   return false;
@@ -324,6 +334,19 @@ nsSVGClipPathFrame::GetCanvasTM(uint32_t aFor, nsIFrame* aTransformRoot)
   return nsSVGUtils::AdjustMatrixForUnits(tm,
                                           &content->mEnumAttributes[SVGClipPathElement::CLIPPATHUNITS],
                                           mClipParent);
+}
+
+gfxMatrix
+nsSVGClipPathFrame::GetClipPathTransform(nsIFrame* aClippedFrame)
+{
+  SVGClipPathElement *content = static_cast<SVGClipPathElement*>(mContent);
+
+  gfxMatrix tm = content->PrependLocalTransformsTo(gfxMatrix());
+
+  nsSVGEnum* clipPathUnits =
+    &content->mEnumAttributes[SVGClipPathElement::CLIPPATHUNITS];
+
+  return nsSVGUtils::AdjustMatrixForUnits(tm, clipPathUnits, aClippedFrame);
 }
 
 SVGBBox

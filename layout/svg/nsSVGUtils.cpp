@@ -694,7 +694,7 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
 }
 
 bool
-nsSVGUtils::HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint)
+nsSVGUtils::HitTestClip(nsIFrame *aFrame, const gfxPoint &aPoint)
 {
   nsSVGEffects::EffectProperties props =
     nsSVGEffects::GetEffectProperties(aFrame);
@@ -713,13 +713,28 @@ nsSVGUtils::HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint)
     return true;
   }
 
-  return clipPathFrame->ClipHitTest(aFrame, GetCanvasTM(aFrame,
-                                    nsISVGChildFrame::FOR_HIT_TESTING), aPoint);
+  return clipPathFrame->PointIsInsideClipPath(aFrame, aPoint);
 }
 
 nsIFrame *
-nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
+nsSVGUtils::HitTestChildren(nsSVGDisplayContainerFrame* aFrame,
+                            const gfxPoint& aPoint)
 {
+  
+  
+  gfxPoint point = aPoint;
+  if (aFrame->GetContent()->IsSVG()) { 
+    gfxMatrix m = static_cast<const nsSVGElement*>(aFrame->GetContent())->
+                    PrependLocalTransformsTo(gfxMatrix(),
+                                             nsSVGElement::eChildToUserSpace);
+    if (!m.IsIdentity()) {
+      if (!m.Invert()) {
+        return nullptr;
+      }
+      point = m.Transform(point);
+    }
+  }
+
   
   
   nsIFrame* result = nullptr;
@@ -733,7 +748,21 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
           !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
         continue;
       }
-      result = SVGFrame->GetFrameForPoint(aPoint);
+      
+      
+      gfxPoint p = point;
+      if (content->IsSVG()) { 
+        gfxMatrix m = static_cast<const nsSVGElement*>(content)->
+                        PrependLocalTransformsTo(gfxMatrix(),
+                                                 nsSVGElement::eUserSpaceToParent);
+        if (!m.IsIdentity()) {
+          if (!m.Invert()) {
+            continue;
+          }
+          p = m.Transform(p);
+        }
+      }
+      result = SVGFrame->GetFrameForPoint(p);
       if (result)
         break;
     }

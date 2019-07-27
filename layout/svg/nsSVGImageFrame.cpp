@@ -65,7 +65,7 @@ public:
   virtual nsresult PaintSVG(nsRenderingContext *aContext,
                             const nsIntRect *aDirtyRect,
                             nsIFrame* aTransformRoot) MOZ_OVERRIDE;
-  virtual nsIFrame* GetFrameForPoint(const nsPoint &aPoint) MOZ_OVERRIDE;
+  virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) MOZ_OVERRIDE;
   virtual void ReflowSVG() MOZ_OVERRIDE;
 
   
@@ -418,8 +418,20 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
 }
 
 nsIFrame*
-nsSVGImageFrame::GetFrameForPoint(const nsPoint &aPoint)
+nsSVGImageFrame::GetFrameForPoint(const gfxPoint& aPoint)
 {
+  Rect rect;
+  SVGImageElement *element = static_cast<SVGImageElement*>(mContent);
+  element->GetAnimatedLengthValues(&rect.x, &rect.y,
+                                   &rect.width, &rect.height, nullptr);
+
+  if (!rect.Contains(ToPoint(aPoint))) {
+    return nullptr;
+  }
+
+  
+  
+  
   
   
   
@@ -433,23 +445,19 @@ nsSVGImageFrame::GetFrameForPoint(const nsPoint &aPoint)
           nativeWidth == 0 || nativeHeight == 0) {
         return nullptr;
       }
-
-      if (!nsSVGUtils::HitTestRect(
-               GetRasterImageTransform(nativeWidth, nativeHeight,
-                                       FOR_HIT_TESTING),
-               0, 0, nativeWidth, nativeHeight,
-               PresContext()->AppUnitsToFloatCSSPixels(aPoint.x),
-               PresContext()->AppUnitsToFloatCSSPixels(aPoint.y))) {
+      Matrix viewBoxTM =
+        SVGContentUtils::GetViewBoxTransform(rect.width, rect.height,
+                                             0, 0, nativeWidth, nativeHeight,
+                                             element->mPreserveAspectRatio);
+      if (!nsSVGUtils::HitTestRect(viewBoxTM,
+                                   0, 0, nativeWidth, nativeHeight,
+                                   aPoint.x - rect.x, aPoint.y - rect.y)) {
         return nullptr;
       }
     }
-    
-    
-    
-    
   }
 
-  return nsSVGImageFrameBase::GetFrameForPoint(aPoint);
+  return this;
 }
 
 nsIAtom *

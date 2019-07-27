@@ -41,9 +41,10 @@ public:
                      nsIFrame* aParent,
                      const gfxMatrix &aMatrix);
 
-  bool ClipHitTest(nsIFrame* aParent,
-                     const gfxMatrix &aMatrix,
-                     const nsPoint &aPoint);
+  
+
+
+  bool PointIsInsideClipPath(nsIFrame* aClippedFrame, const gfxPoint &aPoint);
 
   
   
@@ -77,6 +78,14 @@ public:
 
   SVGBBox 
   GetBBoxForClipPathFrame(const SVGBBox &aBBox, const gfxMatrix &aMatrix);
+
+  
+
+
+
+
+
+  gfxMatrix GetClipPathTransform(nsIFrame* aClippedFrame);
 
  private:
   

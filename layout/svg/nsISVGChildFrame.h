@@ -63,10 +63,12 @@ public:
                             nsIFrame* aTransformRoot = nullptr) = 0;
 
   
-  
-  
-  
-  virtual nsIFrame* GetFrameForPoint(const nsPoint &aPoint)=0;
+
+
+
+
+
+  virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) = 0;
 
   
   virtual nsRect GetCoveredRegion()=0;
