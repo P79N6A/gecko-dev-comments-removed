@@ -450,7 +450,7 @@ CheckAllocatorState(ExclusiveContext *cx, AllocKind kind)
         if (rt->hasPendingInterrupt()) {
             
             
-            ncx->gcIfNeeded();
+            rt->gc.gcIfRequested();
         }
     }
 
