@@ -137,8 +137,15 @@ function getTempFile(aLeafName)
   do_check_false(file.exists());
 
   do_register_cleanup(function () {
-    if (file.exists()) {
+    try {
       file.remove(false);
+    } catch (ex if (ex instanceof Components.Exception &&
+                    (ex.result == Cr.NS_ERROR_FILE_ACCESS_DENIED ||
+                     ex.result == Cr.NS_ERROR_FILE_TARGET_DOES_NOT_EXIST))) {
+        
+        
+        
+        
     }
   });
 
