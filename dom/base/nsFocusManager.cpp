@@ -2295,9 +2295,8 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
           if (newCaretFrame && newCaretContent) {
             
             
-            nsRefPtr<nsCaret> caret = aPresShell->GetCaret();
             nsRect caretRect;
-            nsIFrame *frame = caret->GetGeometry(domSelection, &caretRect);
+            nsIFrame *frame = nsCaret::GetGeometry(domSelection, &caretRect);
             if (frame) {
               nsPoint caretWidgetOffset;
               nsIWidget *widget = frame->GetNearestWidget(caretWidgetOffset);

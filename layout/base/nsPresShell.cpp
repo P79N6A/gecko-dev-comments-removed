@@ -8135,7 +8135,7 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
 
   
   nsRect caretCoords;
-  nsIFrame* caretFrame = caret->GetGeometry(domSelection, &caretCoords);
+  nsIFrame* caretFrame = caret->GetGeometry(&caretCoords);
   if (!caretFrame)
     return false;
   nsPoint viewOffset;

@@ -95,15 +95,6 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame* GetGeometry(nsISelection* aSelection,
-                          nsRect* aRect);
-    
-
-
-
-
-
-
     nsIFrame* GetCaretFrame(int32_t *aOffset = nullptr);
     
 
@@ -114,6 +105,10 @@ class nsCaret : public nsISelectionListener
       nsRect r;
       r.UnionRect(mCaretRect, GetHookRect());
       return r;
+    }
+    nsIFrame* GetGeometry(nsRect* aRect)
+    {
+      return GetGeometry(GetCaretDOMSelection(), aRect);
     }
 
     
@@ -127,6 +122,17 @@ class nsCaret : public nsISelectionListener
     
     NS_DECL_NSISELECTIONLISTENER
 
+    
+
+
+
+
+
+
+
+
+    static nsIFrame* GetGeometry(nsISelection* aSelection,
+                                 nsRect* aRect);
     static nsresult GetCaretFrameForNodeOffset(nsFrameSelection* aFrameSelection,
                                                nsIContent* aContentNode,
                                                int32_t aOffset,
@@ -156,11 +162,12 @@ protected:
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
     };
-    Metrics ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight);
-    nsresult GetGeometryForFrame(nsIFrame* aFrame,
-                                 int32_t   aFrameOffset,
-                                 nsRect*   aRect,
-                                 nscoord*  aBidiIndicatorSize);
+    static Metrics ComputeMetrics(nsIFrame* aFrame, int32_t aOffset,
+                                  nscoord aCaretHeight);
+    static nsresult GetGeometryForFrame(nsIFrame* aFrame,
+                                        int32_t   aFrameOffset,
+                                        nsRect*   aRect,
+                                        nscoord*  aBidiIndicatorSize);
 
     
     
