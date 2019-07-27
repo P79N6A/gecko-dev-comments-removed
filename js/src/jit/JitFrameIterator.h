@@ -316,7 +316,7 @@ class JitProfilingFrameIterator
 class RInstructionResults
 {
     
-    typedef mozilla::Vector<RelocatableValue, 1, SystemAllocPolicy> Values;
+    typedef mozilla::Vector<HeapValue, 1, SystemAllocPolicy> Values;
     mozilla::UniquePtr<Values, JS::DeletePolicy<Values> > results_;
 
     
@@ -341,7 +341,7 @@ class RInstructionResults
 
     JitFrameLayout* frame() const;
 
-    RelocatableValue& operator[](size_t index);
+    HeapValue& operator[](size_t index);
 
     void trace(JSTracer* trc);
 };
