@@ -2675,8 +2675,6 @@ nsDOMWindowUtils::AdvanceTimeAndRefresh(int64_t aMilliseconds)
 {
   MOZ_RELEASE_ASSERT(nsContentUtils::IsCallerChrome());
 
-  nsRefreshDriver* driver = GetPresContext()->RefreshDriver();
-
   
   
   
@@ -2689,10 +2687,11 @@ nsDOMWindowUtils::AdvanceTimeAndRefresh(int64_t aMilliseconds)
   if (doc) {
     PendingPlayerTracker* tracker = doc->GetPendingPlayerTracker();
     if (tracker) {
-      tracker->StartPendingPlayers(driver->MostRecentRefresh());
+      tracker->StartPendingPlayersNow();
     }
   }
 
+  nsRefreshDriver* driver = GetPresContext()->RefreshDriver();
   driver->AdvanceTimeAndRefresh(aMilliseconds);
 
   RefPtr<LayerTransactionChild> transaction = GetLayerTransaction();

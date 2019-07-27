@@ -46,30 +46,42 @@ StartPlayerAtTime(nsRefPtrHashKey<dom::AnimationPlayer>* aKey,
                   void* aReadyTime)
 {
   dom::AnimationPlayer* player = aKey->GetKey();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   dom::AnimationTimeline* timeline = player->Timeline();
-  timeline->FastForward(*static_cast<const TimeStamp*>(aReadyTime));
 
-  player->StartNow();
+  
+  
+  
+  
+  
+  if (timeline->IsUnderTestControl()) {
+    return PL_DHASH_NEXT;
+  }
 
+  Nullable<TimeDuration> readyTime =
+    timeline->ToTimelineTime(*static_cast<const TimeStamp*>(aReadyTime));
+  player->StartOnNextTick(readyTime);
+
+  return PL_DHASH_REMOVE;
+}
+
+void
+PendingPlayerTracker::StartPendingPlayersOnNextTick(const TimeStamp& aReadyTime)
+{
+  mPlayPendingSet.EnumerateEntries(StartPlayerAtTime,
+                                   const_cast<TimeStamp*>(&aReadyTime));
+}
+
+PLDHashOperator
+StartPlayerNow(nsRefPtrHashKey<dom::AnimationPlayer>* aKey, void*)
+{
+  aKey->GetKey()->StartNow();
   return PL_DHASH_NEXT;
 }
 
 void
-PendingPlayerTracker::StartPendingPlayers(const TimeStamp& aReadyTime)
+PendingPlayerTracker::StartPendingPlayersNow()
 {
-  mPlayPendingSet.EnumerateEntries(StartPlayerAtTime,
-                                   const_cast<TimeStamp*>(&aReadyTime));
+  mPlayPendingSet.EnumerateEntries(StartPlayerNow, nullptr);
   mPlayPendingSet.Clear();
 }
 

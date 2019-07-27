@@ -1465,7 +1465,8 @@ StartPendingAnimationsOnSubDocuments(nsIDocument* aDocument, void* aReadyTime)
     
     
     if (!shell || !shell->IsPaintingSuppressed()) {
-      tracker->StartPendingPlayers(*static_cast<TimeStamp*>(aReadyTime));
+      const TimeStamp& readyTime = *static_cast<TimeStamp*>(aReadyTime);
+      tracker->StartPendingPlayersOnNextTick(readyTime);
     }
   }
   aDocument->EnumerateSubDocuments(StartPendingAnimationsOnSubDocuments,

@@ -270,14 +270,7 @@ AnimationPlayer::DoPlay()
 
   nsIDocument* doc = GetRenderedDocument();
   if (!doc) {
-    
-    
-    
-    
-    
-    
-    
-    StartNow();
+    StartOnNextTick(Nullable<TimeDuration>());
     return;
   }
 
