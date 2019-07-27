@@ -323,7 +323,7 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
             
             
             
-            if (resource) {
+            if (resource && PR_LOG_TEST(gLog, PR_LOG_NOTICE)) {
                 nsXPIDLCString uri;
                 resource->GetValue(getter_Copies(uri));
                 PR_LOG(gLog, PR_LOG_NOTICE,
