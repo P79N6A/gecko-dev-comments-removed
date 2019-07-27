@@ -144,8 +144,8 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
-    addEventListener("MozDOMFullscreen:Request",
-                     this._mozRequestedDOMFullscreen.bind(this),
+    addEventListener("MozDOMFullscreen:Entered",
+                     this._mozEnteredDomFullscreen.bind(this),
                       true,
                       false);
 
@@ -224,7 +224,6 @@ BrowserElementChild.prototype = {
       "unblock-modal-prompt": this._recvStopWaiting,
       "fire-ctx-callback": this._recvFireCtxCallback,
       "owner-visibility-change": this._recvOwnerVisibilityChange,
-      "entered-fullscreen": this._recvEnteredFullscreen,
       "exit-fullscreen": this._recvExitFullscreen.bind(this),
       "activate-next-paint-listener": this._activateNextPaintListener.bind(this),
       "set-input-method-active": this._recvSetInputMethodActive.bind(this),
@@ -290,12 +289,6 @@ BrowserElementChild.prototype = {
     OBSERVED_EVENTS.forEach((aTopic) => {
       Services.obs.removeObserver(this, aTopic);
     });
-  },
-
-  get _windowUtils() {
-    return content.document.defaultView
-                  .QueryInterface(Ci.nsIInterfaceRequestor)
-                  .getInterface(Ci.nsIDOMWindowUtils);
   },
 
   _tryGetInnerWindowID: function(win) {
@@ -441,18 +434,11 @@ BrowserElementChild.prototype = {
     win.modalDepth--;
   },
 
-  _recvEnteredFullscreen: function() {
-    if (!this._windowUtils.handleFullscreenRequests() &&
-        !content.document.mozFullScreen) {
-      
-      
-      
-      sendAsyncMsg("exited-dom-fullscreen");
-    }
-  },
-
   _recvExitFullscreen: function() {
-    this._windowUtils.exitFullscreen();
+    var utils = content.document.defaultView
+                       .QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+    utils.exitFullscreen();
   },
 
   _titleChangedHandler: function(e) {
@@ -984,8 +970,8 @@ BrowserElementChild.prototype = {
     });
   },
 
-  _mozRequestedDOMFullscreen: function(e) {
-    sendAsyncMsg("requested-dom-fullscreen");
+  _mozEnteredDomFullscreen: function(e) {
+    sendAsyncMsg("entered-dom-fullscreen");
   },
 
   _mozFullscreenOriginChange: function(e) {
@@ -1437,6 +1423,12 @@ BrowserElementChild.prototype = {
       }
       else if (state & Ci.nsIWebProgressListener.STATE_IS_INSECURE) {
         stateDesc = 'insecure';
+      }
+      else if (state & Ci.nsIWebProgressListener.STATE_LOADED_TRACKING_CONTENT) {
+        stateDesc = 'loaded_tracking_content';
+      }
+      else if (state & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT) {
+        stateDesc = 'blocked_tracking_content';
       }
       else {
         debug("Unexpected securitychange state!");
