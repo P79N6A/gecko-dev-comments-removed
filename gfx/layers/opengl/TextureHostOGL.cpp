@@ -310,6 +310,16 @@ TextureImageTextureSourceOGL::Update(gfx::DataSourceSurface* aSurface,
                                      SurfaceFormatToImageFormat(aSurface->GetFormat()));
     }
     ClearCachedFilter();
+
+    if (aDestRegion &&
+        !aSrcOffset &&
+        !aDestRegion->IsEqual(nsIntRect(0, 0, size.width, size.height))) {
+      
+      
+      
+      
+      mTexImage->Resize(size);
+    }
   }
 
   mTexImage->UpdateFromDataSource(aSurface, aDestRegion, aSrcOffset);
