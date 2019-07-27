@@ -26,20 +26,6 @@ template class mozilla::a11y::ProgressMeterAccessible<100>;
 
 
 template<int Max>
-NS_IMPL_ADDREF_INHERITED(ProgressMeterAccessible<Max>, LeafAccessible)
-
-template<int Max>
-NS_IMPL_RELEASE_INHERITED(ProgressMeterAccessible<Max>, LeafAccessible)
-
-template<int Max>
-NS_IMPL_QUERY_INTERFACE_INHERITED(ProgressMeterAccessible<Max>,
-                                  LeafAccessible,
-                                  nsIAccessibleValue)
-
-
-
-
-template<int Max>
 role
 ProgressMeterAccessible<Max>::NativeRole()
 {

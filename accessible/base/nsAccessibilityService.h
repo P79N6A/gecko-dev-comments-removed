@@ -22,6 +22,7 @@ namespace mozilla {
 namespace a11y {
 
 class ApplicationAccessible;
+class xpcAccessibleApplication;
 
 
 
@@ -37,6 +38,7 @@ SelectionManager* SelectionMgr();
 
 
 ApplicationAccessible* ApplicationAcc();
+xpcAccessibleApplication* XPCApplicationAcc();
 
 } 
 } 
@@ -73,6 +75,9 @@ public:
   virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible);
   virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible);
 
+  virtual bool HasAccessible(nsIDOMNode* aDOMNode) MOZ_OVERRIDE;
+
+  
   
 
 
@@ -215,6 +220,7 @@ private:
 
 
   static mozilla::a11y::ApplicationAccessible* gApplicationAccessible;
+  static mozilla::a11y::xpcAccessibleApplication* gXPCApplicationAccessible;
 
   
 
@@ -225,6 +231,7 @@ private:
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
   friend mozilla::a11y::SelectionManager* mozilla::a11y::SelectionMgr();
   friend mozilla::a11y::ApplicationAccessible* mozilla::a11y::ApplicationAcc();
+  friend mozilla::a11y::xpcAccessibleApplication* mozilla::a11y::XPCApplicationAcc();
 
   friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };

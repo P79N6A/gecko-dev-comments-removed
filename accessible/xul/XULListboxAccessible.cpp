@@ -99,7 +99,7 @@ XULColumnItemAccessible::DoAction(uint8_t aIndex)
 
 XULListboxAccessible::
   XULListboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  XULSelectControlAccessible(aContent, aDoc), xpcAccessibleTable(this)
+  XULSelectControlAccessible(aContent, aDoc)
 {
   nsIContent* parentContent = mContent->GetFlattenedTreeParent();
   if (parentContent) {
@@ -108,46 +108,9 @@ XULListboxAccessible::
     if (autoCompletePopupElm)
       mGenericTypes |= eAutoCompletePopup;
   }
-}
 
-NS_IMPL_ADDREF_INHERITED(XULListboxAccessible, XULSelectControlAccessible)
-NS_IMPL_RELEASE_INHERITED(XULListboxAccessible, XULSelectControlAccessible)
-
-nsresult
-XULListboxAccessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
-{
-  nsresult rv = XULSelectControlAccessible::QueryInterface(aIID, aInstancePtr);
-  if (*aInstancePtr)
-    return rv;
-
-  if (aIID.Equals(NS_GET_IID(nsIAccessibleTable)) && IsMulticolumn()) {
-    *aInstancePtr = static_cast<nsIAccessibleTable*>(this);
-    NS_ADDREF_THIS();
-    return NS_OK;
-  }
-
-  return NS_ERROR_NO_INTERFACE;
-}
-
-
-
-
-void
-XULListboxAccessible::Shutdown()
-{
-  mTable = nullptr;
-  XULSelectControlAccessible::Shutdown();
-}
-
-bool
-XULListboxAccessible::IsMulticolumn()
-{
-  int32_t numColumns = 0;
-  nsresult rv = GetColumnCount(&numColumns);
-  if (NS_FAILED(rv))
-    return false;
-
-  return numColumns > 1;
+  if (IsMulticolumn())
+    mGenericTypes |= eTable;
 }
 
 
@@ -728,7 +691,7 @@ XULListitemAccessible::ContainerWidget() const
 
 XULListCellAccessible::
   XULListCellAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  HyperTextAccessibleWrap(aContent, aDoc), xpcAccessibleTableCell(this)
+  HyperTextAccessibleWrap(aContent, aDoc)
 {
   mGenericTypes |= eTableCell;
 }
@@ -736,9 +699,8 @@ XULListCellAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED(XULListCellAccessible,
-                            HyperTextAccessible,
-                            nsIAccessibleTableCell)
+NS_IMPL_ISUPPORTS_INHERITED0(XULListCellAccessible,
+                             HyperTextAccessible)
 
 
 
@@ -843,13 +805,6 @@ XULListCellAccessible::Selected()
 
 
 
-
-void
-XULListCellAccessible::Shutdown()
-{
-  mTableCell = nullptr;
-  HyperTextAccessibleWrap::Shutdown();
-}
 
 role
 XULListCellAccessible::NativeRole()

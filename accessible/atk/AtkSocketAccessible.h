@@ -47,8 +47,7 @@ public:
 
   virtual void Shutdown();
 
-  
-  NS_IMETHODIMP GetNativeInterface(void** aOutAccessible);
+  virtual void GetNativeInterface(void** aOutAccessible) MOZ_OVERRIDE;
 };
 
 } 

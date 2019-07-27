@@ -6,13 +6,9 @@
 #ifndef MOZILLA_A11Y_ARIAGridAccessible_h_
 #define MOZILLA_A11Y_ARIAGridAccessible_h_
 
-#include "nsIAccessibleTable.h"
-
 #include "HyperTextAccessibleWrap.h"
 #include "TableAccessible.h"
 #include "TableCellAccessible.h"
-#include "xpcAccessibleTable.h"
-#include "xpcAccessibleTableCell.h"
 
 namespace mozilla {
 namespace a11y {
@@ -21,22 +17,15 @@ namespace a11y {
 
 
 class ARIAGridAccessible : public AccessibleWrap,
-                           public xpcAccessibleTable,
-                           public nsIAccessibleTable,
                            public TableAccessible
 {
 public:
   ARIAGridAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
-  
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLE(xpcAccessibleTable::)
-
-  
   virtual TableAccessible* AsTable() { return this; }
-  virtual void Shutdown();
 
   
   virtual uint32_t ColCount();
@@ -60,16 +49,6 @@ public:
 
 protected:
   virtual ~ARIAGridAccessible() {}
-
-  
-
-
-  bool IsValidRow(int32_t aRow);
-
-  
-
-
-  bool IsValidColumn(int32_t aColumn);
 
   
 
@@ -98,22 +77,15 @@ protected:
 
 
 class ARIAGridCellAccessible : public HyperTextAccessibleWrap,
-                               public nsIAccessibleTableCell,
-                               public TableCellAccessible,
-                               public xpcAccessibleTableCell
+                               public TableCellAccessible
 {
 public:
   ARIAGridCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
-  
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
-
-  
   virtual TableCellAccessible* AsTableCell() { return this; }
-  virtual void Shutdown();
   virtual void ApplyARIAState(uint64_t* aState) const;
   virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
 

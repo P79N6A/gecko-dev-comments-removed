@@ -11,7 +11,6 @@
   
   
   mozilla::a11y::HyperTextAccessible* mGeckoTextAccessible; 
-  nsIAccessibleEditableText *mGeckoEditableTextAccessible; 
 }
 @end
 

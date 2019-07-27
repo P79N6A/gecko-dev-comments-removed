@@ -17,6 +17,7 @@ namespace a11y {
 
 class Accessible;
 class DocAccessible;
+class xpcAccessibleDocument;
 class DocAccessibleParent;
 
 
@@ -60,11 +61,15 @@ public:
   
 
 
-  inline void NotifyOfDocumentShutdown(nsIDocument* aDocument)
-  {
-    mDocAccessibleCache.Remove(aDocument);
-    RemoveListeners(aDocument);
-  }
+  void NotifyOfDocumentShutdown(DocAccessible* aDocument,
+                                nsIDocument* aDOMDocument);
+
+  
+
+
+  xpcAccessibleDocument* GetXPCDocument(DocAccessible* aDocument);
+  xpcAccessibleDocument* GetCachedXPCDocument(DocAccessible* aDocument) const
+    { return mXPCDocumentCache.GetWeak(aDocument); }
 
   
 
@@ -130,9 +135,6 @@ private:
 
   DocAccessible* CreateDocOrRootAccessible(nsIDocument* aDocument);
 
-  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, DocAccessible>
-    DocAccessibleHashtable;
-
   
 
 
@@ -163,7 +165,13 @@ private:
                             DocAccessible* aDocAccessible, void* aUserArg);
 #endif
 
+  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, DocAccessible>
+    DocAccessibleHashtable;
   DocAccessibleHashtable mDocAccessibleCache;
+
+  typedef nsRefPtrHashtable<nsPtrHashKey<const DocAccessible>, xpcAccessibleDocument>
+    XPCDocumentHashtable;
+  XPCDocumentHashtable mXPCDocumentCache;
 
   
 

@@ -11,12 +11,6 @@
 #include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/States.h"
 
-#include "xpcAccessible.h"
-#include "xpcAccessibleHyperLink.h"
-#include "nsIAccessibleStates.h"
-#include "xpcAccessibleSelectable.h"
-#include "xpcAccessibleValue.h"
-
 #include "nsIContent.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -28,6 +22,7 @@ struct nsRect;
 class nsIFrame;
 class nsIAtom;
 struct nsIntRect;
+class nsIPersistentProperties;
 class nsView;
 
 namespace mozilla {
@@ -36,6 +31,7 @@ namespace a11y {
 class Accessible;
 class AccEvent;
 class AccGroupInfo;
+class ApplicationAccessible;
 class DocAccessible;
 class EmbeddedObjCollector;
 class HTMLImageMapAccessible;
@@ -123,21 +119,15 @@ typedef nsRefPtrHashtable<nsPtrHashKey<const void>, Accessible>
   { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
 }
 
-class Accessible : public xpcAccessible,
-                   public xpcAccessibleHyperLink,
-                   public xpcAccessibleSelectable,
-                   public xpcAccessibleValue
+class Accessible : public nsISupports
 {
 public:
   Accessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(Accessible, nsIAccessible)
+  NS_DECL_CYCLE_COLLECTION_CLASS(Accessible)
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_IID)
-
-  
-  NS_IMETHOD GetNativeInterface(void** aOutAccessible);
 
   
   
@@ -193,6 +183,11 @@ public:
 
 
   virtual void Value(nsString& aValue);
+
+  
+
+
+  void Help(nsString& aHelp) const { aHelp.Truncate(); }
 
   
 
@@ -536,6 +531,11 @@ public:
   
 
 
+  void ExtendSelection() { };
+
+  
+
+
   void TakeSelection();
 
   
@@ -554,6 +554,12 @@ public:
   void ScrollToPoint(uint32_t aCoordinateType, int32_t aX, int32_t aY);
 
   
+
+
+
+  virtual void GetNativeInterface(void** aNativeAccessible);
+
+  
   
 
   inline bool IsAbbreviation() const
@@ -563,6 +569,7 @@ public:
   }
 
   bool IsApplication() const { return mType == eApplicationType; }
+  ApplicationAccessible* AsApplication();
 
   bool IsAutoComplete() const { return HasGenericType(eAutoComplete); }
 
@@ -734,7 +741,7 @@ public:
   
 
 
-  virtual already_AddRefed<nsIArray> SelectedItems();
+  virtual void SelectedItems(nsTArray<Accessible*>* aItems);
 
   
 

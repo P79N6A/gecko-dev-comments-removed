@@ -11,7 +11,6 @@
 #include "States.h"
 
 
-#include "nsIAccessibleRelation.h"
 #include "nsIDocument.h"
 #include "nsIDOMXULSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
@@ -37,7 +36,6 @@ XULTabAccessible::ActionCount()
 {
   return 1;
 }
-
 
 void
 XULTabAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName)
@@ -98,7 +96,6 @@ XULTabAccessible::NativeInteractiveState() const
   uint64_t state = Accessible::NativeInteractiveState();
   return (state & states::UNAVAILABLE) ? state : state | states::SELECTABLE;
 }
-
 
 Relation
 XULTabAccessible::RelationByType(RelationType aType)

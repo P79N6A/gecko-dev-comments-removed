@@ -26,7 +26,7 @@ XULMenuitemAccessibleWrap::Name(nsString& aName)
   XULMenuitemAccessible::Name(aName);
   if (aName.IsEmpty())
     return eNameOK;
-  
+
   nsAutoString accel;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::acceltext, accel);
   if (!accel.IsEmpty())

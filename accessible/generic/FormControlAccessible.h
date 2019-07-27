@@ -27,8 +27,6 @@ public:
     mType = eProgressType;
   }
 
-  NS_DECL_ISUPPORTS_INHERITED
-
   
   virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;

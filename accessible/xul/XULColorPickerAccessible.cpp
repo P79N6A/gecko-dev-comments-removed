@@ -38,9 +38,6 @@ XULColorPickerTileAccessible::Value(nsString& aValue)
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::color, aValue);
 }
 
-
-
-
 role
 XULColorPickerTileAccessible::NativeRole()
 {

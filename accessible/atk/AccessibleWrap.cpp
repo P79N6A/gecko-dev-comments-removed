@@ -10,11 +10,8 @@
 #include "ApplicationAccessibleWrap.h"
 #include "InterfaceInitFuncs.h"
 #include "nsAccUtils.h"
-#include "nsIAccessibleRelation.h"
-#include "nsIAccessibleTable.h"
 #include "ProxyAccessible.h"
 #include "RootAccessible.h"
-#include "nsIAccessibleValue.h"
 #include "nsMai.h"
 #include "nsMaiHyperlink.h"
 #include "nsString.h"
@@ -305,32 +302,32 @@ AccessibleWrap::SetMaiHyperlink(MaiHyperlink* aMaiHyperlink)
     }
 }
 
-NS_IMETHODIMP
+void
 AccessibleWrap::GetNativeInterface(void** aOutAccessible)
 {
-    *aOutAccessible = nullptr;
+  *aOutAccessible = nullptr;
 
-    if (!mAtkObject) {
-        if (IsDefunct() || !nsAccUtils::IsEmbeddedObject(this)) {
-            
-            
-            return NS_ERROR_FAILURE;
-        }
-
-        GType type = GetMaiAtkType(CreateMaiInterfaces());
-        NS_ENSURE_TRUE(type, NS_ERROR_FAILURE);
-        mAtkObject =
-            reinterpret_cast<AtkObject *>
-                            (g_object_new(type, nullptr));
-        NS_ENSURE_TRUE(mAtkObject, NS_ERROR_OUT_OF_MEMORY);
-
-        atk_object_initialize(mAtkObject, this);
-        mAtkObject->role = ATK_ROLE_INVALID;
-        mAtkObject->layer = ATK_LAYER_INVALID;
+  if (!mAtkObject) {
+    if (IsDefunct() || !nsAccUtils::IsEmbeddedObject(this)) {
+      
+      
+      return;
     }
 
-    *aOutAccessible = mAtkObject;
-    return NS_OK;
+    GType type = GetMaiAtkType(CreateMaiInterfaces());
+    if (!type)
+      return;
+
+    mAtkObject = reinterpret_cast<AtkObject*>(g_object_new(type, nullptr));
+    if (!mAtkObject)
+      return;
+
+    atk_object_initialize(mAtkObject, this);
+    mAtkObject->role = ATK_ROLE_INVALID;
+    mAtkObject->layer = ATK_LAYER_INVALID;
+  }
+
+  *aOutAccessible = mAtkObject;
 }
 
 AtkObject *
@@ -344,7 +341,7 @@ AccessibleWrap::GetAtkObject(void)
 
 
 AtkObject *
-AccessibleWrap::GetAtkObject(nsIAccessible* acc)
+AccessibleWrap::GetAtkObject(Accessible* acc)
 {
     void *atkObjPtr = nullptr;
     acc->GetNativeInterface(&atkObjPtr);
@@ -356,7 +353,7 @@ uint16_t
 AccessibleWrap::CreateMaiInterfaces(void)
 {
   uint16_t interfacesBits = 0;
-    
+
   
   interfacesBits |= 1 << MAI_INTERFACE_COMPONENT;
 
@@ -374,12 +371,8 @@ AccessibleWrap::CreateMaiInterfaces(void)
   }
 
   
-  nsCOMPtr<nsIAccessibleValue> accessInterfaceValue;
-  QueryInterface(NS_GET_IID(nsIAccessibleValue),
-                 getter_AddRefs(accessInterfaceValue));
-  if (accessInterfaceValue) {
-    interfacesBits |= 1 << MAI_INTERFACE_VALUE; 
-  }
+  if (HasNumericValue())
+    interfacesBits |= 1 << MAI_INTERFACE_VALUE;
 
   
   if (IsDoc())
@@ -682,7 +675,7 @@ getRoleCB(AtkObject *aAtkObj)
   } else {
 #ifdef DEBUG
     NS_ASSERTION(nsAccUtils::IsTextInterfaceSupportCorrect(accWrap),
-                 "Does not support nsIAccessibleText when it should");
+                 "Does not support Text interface when it should");
 #endif
 
     role = accWrap->Role();
@@ -847,10 +840,10 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
 }
 
 gint
-getIndexInParentCB(AtkObject *aAtkObj)
+getIndexInParentCB(AtkObject* aAtkObj)
 {
-    
-    
+  
+  
     AccessibleWrap* accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap) {
         return -1;
@@ -1041,8 +1034,8 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
 
     AtkObject* atkObj = AccessibleWrap::GetAtkObject(accessible);
 
-    
-    
+  
+  
     if (!atkObj) {
         NS_ASSERTION(type == nsIAccessibleEvent::EVENT_SHOW ||
                      type == nsIAccessibleEvent::EVENT_HIDE,
@@ -1083,15 +1076,14 @@ AccessibleWrap::HandleAccEvent(AccEvent* aEvent)
 
         break;
       }
-    case nsIAccessibleEvent::EVENT_VALUE_CHANGE:
-      {
-        nsCOMPtr<nsIAccessibleValue> value(do_QueryObject(accessible));
-        if (value) {    
-            
-            
-            g_object_notify( (GObject*)atkObj, "accessible-value" );
-        }
-      } break;
+
+  case nsIAccessibleEvent::EVENT_VALUE_CHANGE:
+    if (accessible->HasNumericValue()) {
+      
+      
+      g_object_notify((GObject*)atkObj, "accessible-value");
+    }
+    break;
 
     case nsIAccessibleEvent::EVENT_SELECTION:
     case nsIAccessibleEvent::EVENT_SELECTION_ADD:

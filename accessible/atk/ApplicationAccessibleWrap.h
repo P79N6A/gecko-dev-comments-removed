@@ -26,7 +26,7 @@ public:
   
 
 
-  NS_IMETHOD GetNativeInterface(void** aOutAccessible);
+  virtual void GetNativeInterface(void** aOutAccessible) MOZ_OVERRIDE;
 };
 
 } 

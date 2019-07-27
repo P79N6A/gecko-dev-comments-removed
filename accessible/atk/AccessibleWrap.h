@@ -55,14 +55,14 @@ public:
   virtual void Shutdown();
 
   
-  NS_IMETHOD GetNativeInterface(void **aOutAccessible);
+  virtual void GetNativeInterface(void** aOutAccessible) MOZ_OVERRIDE;
   virtual nsresult HandleAccEvent(AccEvent* aEvent);
 
   AtkObject * GetAtkObject(void);
-  static AtkObject * GetAtkObject(nsIAccessible * acc);
+  static AtkObject* GetAtkObject(Accessible* aAccessible);
 
   bool IsValidObject();
-    
+
   
   MaiHyperlink* GetMaiHyperlink(bool aCreate = true);
   void SetMaiHyperlink(MaiHyperlink* aMaiHyperlink);

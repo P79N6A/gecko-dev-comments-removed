@@ -24,7 +24,7 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 }
 
 inline mozAccessible*
-GetNativeFromGeckoAccessible(nsIAccessible* aAccessible)
+GetNativeFromGeckoAccessible(mozilla::a11y::Accessible* aAccessible)
 {
   mozAccessible* native = nil;
   aAccessible->GetNativeInterface((void**)&native);

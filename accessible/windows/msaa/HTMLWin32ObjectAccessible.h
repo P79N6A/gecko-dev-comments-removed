@@ -23,7 +23,7 @@ public:
   
   
   HTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc, void* aHwnd);
+                                 DocAccessible* aDoc, void* aHwnd);
   virtual ~HTMLWin32ObjectOwnerAccessible() {}
 
   
@@ -52,10 +52,10 @@ protected:
 class HTMLWin32ObjectAccessible : public DummyAccessible
 {
 public:
-  HTMLWin32ObjectAccessible(void* aHwnd);
+  HTMLWin32ObjectAccessible(void* aHwnd, DocAccessible* aDoc);
   virtual ~HTMLWin32ObjectAccessible() {}
 
-  NS_IMETHOD GetNativeInterface(void** aNativeAccessible) MOZ_OVERRIDE;
+  virtual void GetNativeInterface(void** aNativeAccessible) MOZ_OVERRIDE;
 
 protected:
   void* mHwnd;

@@ -39,9 +39,6 @@ ImageAccessible::~ImageAccessible()
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(ImageAccessible, Accessible,
-                            nsIAccessibleImage)
-
 
 
 

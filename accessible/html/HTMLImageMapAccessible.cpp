@@ -185,7 +185,7 @@ HTMLAreaAccessible::NativeName(nsString& aName)
     return nameFlag;
 
   if (!mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::alt, aName))
-    GetValue(aName);
+    Value(aName);
 
   return eNameOK;
 }

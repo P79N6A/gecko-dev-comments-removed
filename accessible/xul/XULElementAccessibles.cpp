@@ -20,7 +20,6 @@
 #include "Logging.h"
 #endif
 
-#include "nsIAccessibleRelation.h"
 #include "nsIDOMXULDescriptionElement.h"
 #include "nsNameSpaceManager.h"
 #include "nsNetUtil.h"
@@ -187,10 +186,6 @@ XULLinkAccessible::
 XULLinkAccessible::~XULLinkAccessible()
 {
 }
-
-
-NS_IMPL_ISUPPORTS_INHERITED(XULLinkAccessible, XULLabelAccessible,
-                            nsIAccessibleHyperLink)
 
 
 

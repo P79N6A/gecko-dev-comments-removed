@@ -32,12 +32,12 @@ class AccessibleWrap : public Accessible
 public: 
   AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~AccessibleWrap();
-    
+
   
 
 
-  NS_IMETHOD GetNativeInterface (void** aOutAccessible);
-  
+  virtual void GetNativeInterface(void** aOutAccessible) MOZ_OVERRIDE;
+
   
 
 

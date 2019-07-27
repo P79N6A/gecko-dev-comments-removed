@@ -7,8 +7,8 @@
 #define mozilla_a11y_HyperTextAccessible_h__
 
 #include "AccessibleWrap.h"
+#include "nsIAccessibleText.h"
 #include "nsIAccessibleTypes.h"
-#include "xpcAccessibleHyperText.h"
 #include "nsDirection.h"
 #include "WordMovementType.h"
 #include "nsIFrame.h"
@@ -46,8 +46,7 @@ const char16_t kForcedNewLineChar = '\n';
 
 
 
-class HyperTextAccessible : public AccessibleWrap,
-                            public xpcAccessibleHyperText
+class HyperTextAccessible : public AccessibleWrap
 {
 public:
   HyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);

@@ -152,10 +152,10 @@ struct nsRoleMapEntry
 
   
   mozilla::a11y::role role;
-  
+
   
   bool roleRule;
-  
+
   
   EValueRule valueRule;
 
@@ -170,7 +170,7 @@ struct nsRoleMapEntry
   uint32_t accTypes;
 
   
-  uint64_t state;   
+  uint64_t state; 
 
   
   

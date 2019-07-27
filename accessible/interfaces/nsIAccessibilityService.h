@@ -28,8 +28,8 @@ class nsPluginFrame;
 
 
 #define NS_IACCESSIBILITYSERVICE_IID \
-{ 0x84dd9182, 0x6639, 0x4377, \
- { 0xa4, 0x13, 0xad, 0xe1, 0xae, 0x4e, 0x52, 0xdd } }
+{ 0x0e7e6879, 0x854b, 0x4260, \
+ { 0xbc, 0x6e, 0x52, 0x5b, 0x5f, 0xb5, 0xcf, 0x34 } }
 
 class nsIAccessibilityService : public nsIAccessibleRetrieval
 {
@@ -64,6 +64,11 @@ public:
 
   virtual void FireAccessibleEvent(uint32_t aEvent,
                                    mozilla::a11y::Accessible* aTarget) = 0;
+
+  
+
+
+  virtual bool HasAccessible(nsIDOMNode* aDOMNode) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAccessibilityService,
