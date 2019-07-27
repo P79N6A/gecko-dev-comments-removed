@@ -1324,12 +1324,23 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     
 
     
+    
+    
+    
+    Rooted<PropertyDescriptor> desc(cx, desc_);
+
+    
     if (!shape) {
         if (!obj->nonProxyIsExtensible())
             return result.fail(JSMSG_OBJECT_NOT_EXTENSIBLE);
-    }
 
-    Rooted<PropertyDescriptor> desc(cx, desc_);
+        
+        CompletePropertyDescriptor(&desc);
+
+        if (!AddOrChangeProperty(cx, obj, id, desc))
+            return false;
+        return result.succeed();
+    }
 
     
     
