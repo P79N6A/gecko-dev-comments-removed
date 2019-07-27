@@ -20,11 +20,7 @@ function getFrameDepth(frame) {
     if (!frame.older) {
       frame.depth = 0;
     } else {
-      
-      const increment = frame.script && frame.script.url == "self-hosted"
-        ? 0
-        : 1;
-      frame.depth = increment + getFrameDepth(frame.older);
+      frame.depth = getFrameDepth(frame.older) + 1;
     }
   }
 
@@ -265,10 +261,6 @@ TracerActor.prototype = {
 
 
   onEnterFrame: function(aFrame) {
-    if (aFrame.script && aFrame.script.url == "self-hosted") {
-      return;
-    }
-
     Task.spawn(function*() {
       
       

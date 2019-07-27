@@ -97,7 +97,7 @@ const CONSOLE_API_LEVELS_TO_SEVERITIES = {
 };
 
 
-const IGNORED_SOURCE_URLS = ["debugger eval code", "self-hosted"];
+const IGNORED_SOURCE_URLS = ["debugger eval code"];
 
 
 const MAX_LONG_STRING_LENGTH = 200000;
