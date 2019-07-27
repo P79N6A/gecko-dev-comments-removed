@@ -369,7 +369,7 @@ addMessageListener("UpdateCharacterSet", function (aMessage) {
 
 
 let AddonsChild;
-if (Services.prefs.getBoolPref("browser.tabs.remote.autostart")) {
+if (Services.appinfo.browserTabsRemoteAutostart) {
   
   
   AddonsChild = RemoteAddonsChild.init(this);

@@ -12,6 +12,7 @@
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "nsIXPConnect.h"
+#include "nsIXULRuntime.h"
 
 #include "nsIWindowMediator.h"
 #include "nsIWindowWatcher.h"
@@ -607,8 +608,7 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   
   bool isPrivateBrowsingWindow =
     Preferences::GetBool("browser.privatebrowsing.autostart");
-  bool isUsingRemoteTabs =
-    Preferences::GetBool("browser.tabs.remote.autostart");
+  bool isUsingRemoteTabs = mozilla::BrowserTabsRemoteAutostart();
 
   if (aChromeMask & nsIWebBrowserChrome::CHROME_PRIVATE_WINDOW) {
     

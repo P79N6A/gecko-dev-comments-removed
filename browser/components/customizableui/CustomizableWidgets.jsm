@@ -964,7 +964,7 @@ if (Services.prefs.getBoolPref("browser.tabs.remote")) {
     };
   }
 
-  let openRemote = !Services.prefs.getBoolPref("browser.tabs.remote.autostart");
+  let openRemote = !Services.appinfo.browserTabsRemoteAutostart;
   
   
   let buttonLabel = openRemote ? "New e10s Window"

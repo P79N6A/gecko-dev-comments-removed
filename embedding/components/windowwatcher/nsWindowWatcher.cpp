@@ -1448,7 +1448,7 @@ uint32_t nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
   
   if (isCallerChrome || aOpenedFromRemoteTab) {
     bool remote;
-    if (Preferences::GetBool("browser.tabs.remote.autostart")) {
+    if (BrowserTabsRemoteAutostart()) {
       remote = !WinHasOption(aFeatures, "non-remote", 0, &presenceFlag);
     } else {
       remote = WinHasOption(aFeatures, "remote", 0, &presenceFlag);
