@@ -2640,6 +2640,14 @@ Debugger::getMemory(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
+
+
+
+
+
+
+
 GlobalObject *
 Debugger::unwrapDebuggeeArgument(JSContext *cx, const Value &v)
 {
@@ -3780,6 +3788,16 @@ Debugger::makeGlobalObjectReference(JSContext *cx, unsigned argc, Value *vp)
     Rooted<GlobalObject *> global(cx, dbg->unwrapDebuggeeArgument(cx, args[0]));
     if (!global)
         return false;
+
+    
+    
+    
+    JSCompartment *globalCompartment = global->compartment();
+    if (globalCompartment->options().invisibleToDebugger()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
+                             JSMSG_DEBUG_INVISIBLE_COMPARTMENT);
+        return false;
+    }
 
     args.rval().setObject(*global);
     return dbg->wrapDebuggeeValue(cx, args.rval());
@@ -6991,6 +7009,16 @@ DebuggerObject_unwrap(JSContext *cx, unsigned argc, Value *vp)
     if (!unwrapped) {
         args.rval().setNull();
         return true;
+    }
+
+    
+    
+    
+    JSCompartment *unwrappedCompartment = unwrapped->compartment();
+    if (unwrappedCompartment->options().invisibleToDebugger()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
+                             JSMSG_DEBUG_INVISIBLE_COMPARTMENT);
+        return false;
     }
 
     args.rval().setObject(*unwrapped);
