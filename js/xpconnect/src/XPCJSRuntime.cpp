@@ -280,6 +280,16 @@ TryParseLocationURICandidate(const nsACString& uristr,
             StringBeginsWith(uristr, kToolkit) ||
             StringBeginsWith(uristr, kBrowser))
             return false;
+
+        
+        
+        
+        
+        
+        
+        
+        if (StringBeginsWith(uristr, NS_LITERAL_CSTRING("xb")))
+            return false;
     }
 
     nsCOMPtr<nsIURI> uri;
