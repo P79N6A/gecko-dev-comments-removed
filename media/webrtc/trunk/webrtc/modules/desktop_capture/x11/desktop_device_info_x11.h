@@ -2,10 +2,6 @@
 
 
 
-
-
-
-
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_X11_DEVICE_INFO_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_X11_DEVICE_INFO_H_
 
@@ -19,14 +15,13 @@ public:
   DesktopDeviceInfoX11();
   ~DesktopDeviceInfoX11();
 
-protected:
   
-  virtual void InitializeApplicationList() OVERRIDE;
-  virtual void InitializeScreenList() OVERRIDE;
+  virtual int32_t Init();
+  virtual int32_t Refresh();
 
 private:
 #if !defined(MULTI_MONITOR_SCREENSHARE)
-  void MultiMonitorScreenshare();
+  int32_t MultiMonitorScreenshare();
 #endif
 };
 
