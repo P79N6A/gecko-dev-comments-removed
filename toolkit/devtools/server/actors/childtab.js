@@ -27,6 +27,8 @@ function ContentActor(connection, chromeGlobal)
   this._chromeGlobal = chromeGlobal;
   TabActor.call(this, connection, chromeGlobal);
   this.traits.reconfigure = false;
+  this._sendForm = this._sendForm.bind(this);
+  this._chromeGlobal.addMessageListener("debug:form", this._sendForm);
 }
 
 ContentActor.prototype = Object.create(TabActor.prototype);
@@ -41,7 +43,17 @@ Object.defineProperty(ContentActor.prototype, "docShell", {
   configurable: true
 });
 
+Object.defineProperty(ContentActor.prototype, "title", {
+  get: function() {
+    return this.window.document.title;
+  },
+  enumerable: true,
+  configurable: true
+});
+
 ContentActor.prototype.exit = function() {
+  this._chromeGlobal.removeMessageListener("debug:form", this._sendForm);
+  this._sendForm = null;
   TabActor.prototype.exit.call(this);
 };
 
@@ -49,11 +61,11 @@ ContentActor.prototype.exit = function() {
 
 
 
-ContentActor.prototype.grip = function () {
+ContentActor.prototype.form = function () {
   let response = {
-    'actor': this.actorID,
-    'title': this.title,
-    'url': this.url
+    "actor": this.actorID,
+    "title": this.title,
+    "url": this.url
   };
 
   
@@ -68,3 +80,10 @@ ContentActor.prototype.grip = function () {
   return response;
 };
 
+
+
+
+
+ContentActor.prototype._sendForm = function() {
+  this._chromeGlobal.sendAsyncMessage("debug:form", this.form());
+};

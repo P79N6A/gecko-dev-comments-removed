@@ -267,12 +267,37 @@ BrowserTabList.prototype._getSelectedBrowser = function(aWindow) {
   return aWindow.gBrowser ? aWindow.gBrowser.selectedBrowser : null;
 };
 
+
+
+
+
+BrowserTabList.prototype._getBrowsers = function*() {
+  
+  for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
+    
+    
+    
+    
+    for (let browser of this._getChildren(win)) {
+      yield browser;
+    }
+  }
+};
+
 BrowserTabList.prototype._getChildren = function(aWindow) {
   return aWindow.gBrowser.browsers;
 };
 
+BrowserTabList.prototype._isRemoteBrowser = function(browser) {
+  return browser.getAttribute("remote");
+};
+
 BrowserTabList.prototype.getList = function() {
   let topXULWindow = Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType);
+  let selectedBrowser = null;
+  if (topXULWindow) {
+    selectedBrowser = this._getSelectedBrowser(topXULWindow);
+  }
 
   
   
@@ -286,40 +311,25 @@ BrowserTabList.prototype.getList = function() {
 
   let actorPromises = [];
 
-  
-  for (let win of allAppShellDOMWindows(DebuggerServer.chromeWindowType)) {
-    let selectedBrowser = this._getSelectedBrowser(win);
-    if (!selectedBrowser) {
-      continue;
+  for (let browser of this._getBrowsers()) {
+    
+    let actor = this._actorByBrowser.get(browser);
+    if (actor) {
+      actorPromises.push(actor.update());
+      foundCount++;
+    } else if (this._isRemoteBrowser(browser)) {
+      actor = new RemoteBrowserTabActor(this._connection, browser);
+      this._actorByBrowser.set(browser, actor);
+      actorPromises.push(actor.connect());
+    } else {
+      actor = new BrowserTabActor(this._connection, browser,
+                                  browser.getTabBrowser());
+      this._actorByBrowser.set(browser, actor);
+      actorPromises.push(promise.resolve(actor));
     }
 
     
-    
-    
-    
-    for (let browser of this._getChildren(win)) {
-      
-      let actor = this._actorByBrowser.get(browser);
-      if (actor) {
-        actorPromises.push(promise.resolve(actor));
-        foundCount++;
-      } else if (browser.isRemoteBrowser) {
-        actor = new RemoteBrowserTabActor(this._connection, browser);
-        this._actorByBrowser.set(browser, actor);
-        let promise = actor.connect().then((form) => {
-          actor._form = form;
-          return actor;
-        });
-        actorPromises.push(promise);
-      } else {
-        actor = new BrowserTabActor(this._connection, browser, win.gBrowser);
-        this._actorByBrowser.set(browser, actor);
-        actorPromises.push(promise.resolve(actor));
-      }
-
-      
-      actor.selected = (win === topXULWindow && browser === selectedBrowser);
-    }
+    actor.selected = browser === selectedBrowser;
   }
 
   if (this._testing && initialMapSize !== foundCount)
@@ -738,9 +748,18 @@ TabActor.prototype = {
     return null;
   },
 
+  
+
+
+
+
+  update: function() {
+    return promise.resolve(this);
+  },
+
   form: function BTA_form() {
     dbg_assert(!this.exited,
-               "grip() shouldn't be called on exited browser actor.");
+               "form() shouldn't be called on exited browser actor.");
     dbg_assert(this.actorID,
                "tab should have an actorID.");
 
@@ -961,7 +980,7 @@ TabActor.prototype = {
       return {
         id: id,
         url: window.location.href,
-        title: window.title,
+        title: window.document.title,
         parentID: parentID
       };
     });
@@ -1617,7 +1636,28 @@ function RemoteBrowserTabActor(aConnection, aBrowser)
 
 RemoteBrowserTabActor.prototype = {
   connect: function() {
-    return DebuggerServer.connectToChild(this._conn, this._browser);
+    let connect = DebuggerServer.connectToChild(this._conn, this._browser);
+    return connect.then(form => {
+      this._form = form;
+      return this;
+    });
+  },
+
+  get _mm() {
+    return this._browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader
+           .messageManager;
+  },
+
+  update: function() {
+    let deferred = promise.defer();
+    let onFormUpdate = msg => {
+      this._mm.removeMessageListener("debug:form", onFormUpdate);
+      this._form = msg.json;
+      deferred.resolve(this);
+    };
+    this._mm.addMessageListener("debug:form", onFormUpdate);
+    this._mm.sendAsyncMessage("debug:form");
+    return deferred.promise;
   },
 
   form: function() {
@@ -1628,6 +1668,8 @@ RemoteBrowserTabActor.prototype = {
     this._browser = null;
   },
 };
+
+exports.RemoteBrowserTabActor = RemoteBrowserTabActor;
 
 function BrowserAddonList(aConnection)
 {
