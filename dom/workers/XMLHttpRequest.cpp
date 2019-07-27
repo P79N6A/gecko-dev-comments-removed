@@ -1882,6 +1882,11 @@ XMLHttpRequest::SendInternal(const nsAString& aStringBody,
     new SendRunnable(mWorkerPrivate, mProxy, aStringBody, Move(aBody),
                      aClonedObjects, syncLoopTarget, hasUploadListeners);
   if (!runnable->Dispatch(cx)) {
+    
+    
+    if (!mRooted) {
+      autoUnpin.Clear();
+    }
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
