@@ -122,6 +122,7 @@ class nsLayoutUtils
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Rect Rect;
+  typedef mozilla::gfx::Matrix4x4 Matrix4x4;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
@@ -718,7 +719,7 @@ public:
 
 
 
-  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, const nsIFrame *aAncestor);
+  static Matrix4x4 GetTransformToAncestor(nsIFrame *aFrame, const nsIFrame *aAncestor);
 
   
 
@@ -760,7 +761,7 @@ public:
 
 
   static bool GetLayerTransformForFrame(nsIFrame* aFrame,
-                                        gfx3DMatrix* aTransform);
+                                        Matrix4x4* aTransform);
 
   
 

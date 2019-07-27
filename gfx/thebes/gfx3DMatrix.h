@@ -264,7 +264,6 @@ public:
 
 
   gfxPointH3D ProjectPoint(const gfxPoint& aPoint) const;
-  gfxRect ProjectRectBounds(const gfxRect& aRect) const;
 
   
 

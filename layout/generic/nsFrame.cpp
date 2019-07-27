@@ -96,6 +96,7 @@
 using namespace mozilla;
 using namespace mozilla::css;
 using namespace mozilla::dom;
+using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
 
@@ -4731,7 +4732,7 @@ nsIFrame::IsLeaf() const
   return true;
 }
 
-gfx3DMatrix
+Matrix4x4
 nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
                              nsIFrame** aOutAncestor)
 {
@@ -4749,12 +4750,12 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
                  "Cannot transform the viewport frame!");
     int32_t scaleFactor = PresContext()->AppUnitsPerDevPixel();
 
-    gfx3DMatrix result =
-      nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0), scaleFactor, nullptr, aOutAncestor);
+    Matrix4x4 result = ToMatrix4x4(
+      nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0), scaleFactor, nullptr, aOutAncestor));
     
     nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     
-    result *= gfx3DMatrix::Translation
+    result = result * Matrix4x4().Translate
       (NSAppUnitsToFloatPixels(delta.x, scaleFactor),
        NSAppUnitsToFloatPixels(delta.y, scaleFactor),
        0.0f);
@@ -4784,18 +4785,18 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
         toplevel->GetClientBounds(toplevelScreenBounds);
         nsIntPoint translation = screenBounds.TopLeft() - toplevelScreenBounds.TopLeft();
 
-        gfx3DMatrix transformToTop;
+        Matrix4x4 transformToTop;
         transformToTop._41 = translation.x;
         transformToTop._42 = translation.y;
 
         *aOutAncestor = docRootFrame;
-        gfx3DMatrix docRootTransformToTop =
+        Matrix4x4 docRootTransformToTop =
           nsLayoutUtils::GetTransformToAncestor(docRootFrame, nullptr);
         if (docRootTransformToTop.IsSingular()) {
           NS_WARNING("Containing document is invisible, we can't compute a valid transform");
         } else {
-          gfx3DMatrix topToDocRootTransform = docRootTransformToTop.Inverse();
-          return transformToTop*topToDocRootTransform;
+          docRootTransformToTop.Invert();
+          return transformToTop * docRootTransformToTop;
         }
       }
     }
@@ -4812,8 +4813,8 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
 
 
   if (!*aOutAncestor)
-    return gfx3DMatrix();
-  
+    return Matrix4x4();
+
   
   while (!(*aOutAncestor)->IsTransformed() &&
          !nsLayoutUtils::IsPopup(*aOutAncestor) &&
@@ -4833,7 +4834,7 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
 
   nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
   int32_t scaleFactor = PresContext()->AppUnitsPerDevPixel();
-  return gfx3DMatrix().Translation
+  return Matrix4x4().Translate
     (NSAppUnitsToFloatPixels(delta.x, scaleFactor),
      NSAppUnitsToFloatPixels(delta.y, scaleFactor),
      0.0f);
@@ -4978,14 +4979,14 @@ nsIFrame::TryUpdateTransformOnly(Layer** aLayerResult)
     return false;
   }
 
-  gfx3DMatrix transform3d;
+  gfx::Matrix4x4 transform3d;
   if (!nsLayoutUtils::GetLayerTransformForFrame(this, &transform3d)) {
     
     
     
     return false;
   }
-  gfxMatrix transform;
+  gfx::Matrix transform;
   gfx::Matrix previousTransform;
   
   
@@ -5003,7 +5004,7 @@ nsIFrame::TryUpdateTransformOnly(Layer** aLayerResult)
       !gfx::FuzzyEqual(transform._12, previousTransform._12, kError)) {
     return false;
   }
-  layer->SetBaseTransformForNextTransaction(gfx::ToMatrix4x4(transform3d));
+  layer->SetBaseTransformForNextTransaction(transform3d);
   *aLayerResult = layer;
   return true;
 }

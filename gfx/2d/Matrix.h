@@ -375,6 +375,19 @@ public:
     return *this;
   }
 
+  Point4D ProjectPoint(const Point& aPoint) const {
+    
+
+    
+    
+
+    
+    float z = -(aPoint.x * _13 + aPoint.y * _23 + _43) / _33;
+
+    
+    return *this * Point4D(aPoint.x, aPoint.y, z, 1);
+  }
+
   static Matrix4x4 From2D(const Matrix &aMatrix) {
     Matrix4x4 matrix;
     matrix._11 = aMatrix._11;
@@ -451,6 +464,8 @@ public:
 
     return *this;
   }
+
+  Rect ProjectRectBounds(const Rect& aRect) const;
 
   Matrix4x4 &PostTranslate(Float aX, Float aY, Float aZ)
   {

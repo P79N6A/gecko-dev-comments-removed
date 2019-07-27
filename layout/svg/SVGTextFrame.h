@@ -253,6 +253,7 @@ class SVGTextFrame MOZ_FINAL : public SVGTextFrameBase
   friend class nsDisplaySVGText;
 
   typedef mozilla::gfx::Path Path;
+  typedef mozilla::gfx::Point Point;
   typedef mozilla::SVGTextContextPaint SVGTextContextPaint;
 
 protected:
@@ -403,8 +404,8 @@ public:
 
 
 
-  gfxPoint TransformFramePointToTextChild(const gfxPoint& aPoint,
-                                          nsIFrame* aChildFrame);
+  Point TransformFramePointToTextChild(const Point& aPoint,
+                                       nsIFrame* aChildFrame);
 
   
 
