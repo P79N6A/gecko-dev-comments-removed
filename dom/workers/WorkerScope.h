@@ -14,6 +14,7 @@ namespace dom {
 
 class Console;
 class Function;
+class Promise;
 
 } 
 } 
@@ -189,11 +190,8 @@ public:
     
   }
 
-  void
-  Unregister()
-  {
-    
-  }
+  already_AddRefed<Promise>
+  Unregister(ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(activate)
   IMPL_EVENT_HANDLER(beforeevicted)
