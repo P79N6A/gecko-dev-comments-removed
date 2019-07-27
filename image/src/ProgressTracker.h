@@ -4,8 +4,8 @@
 
 
 
-#ifndef ProgressTracker_h__
-#define ProgressTracker_h__
+#ifndef mozilla_image_src_ProgressTracker_h
+#define mozilla_image_src_ProgressTracker_h
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/WeakPtr.h"
@@ -214,4 +214,4 @@ private:
 } 
 } 
 
-#endif
+#endif 
