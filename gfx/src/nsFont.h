@@ -53,10 +53,6 @@ struct NS_GFX nsFont {
   bool systemFont;
 
   
-  uint8_t variant;
-
-  
-  
   uint8_t variantCaps;
   uint8_t variantNumeric;
   uint8_t variantPosition;
@@ -116,11 +112,11 @@ struct NS_GFX nsFont {
 
   
   nsFont(const mozilla::FontFamilyList& aFontlist, uint8_t aStyle,
-         uint8_t aVariant, uint16_t aWeight, int16_t aStretch,
+         uint16_t aWeight, int16_t aStretch,
          uint8_t aDecoration, nscoord aSize);
 
   
-  nsFont(mozilla::FontFamilyType aGenericType, uint8_t aStyle, uint8_t aVariant,
+  nsFont(mozilla::FontFamilyType aGenericType, uint8_t aStyle,
          uint16_t aWeight, int16_t aStretch, uint8_t aDecoration,
          nscoord aSize);
 
