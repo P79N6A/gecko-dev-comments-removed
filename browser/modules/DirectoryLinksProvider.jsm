@@ -1069,7 +1069,7 @@ let DirectoryLinksProvider = {
     let capObject = this._frequencyCaps[url] || this._frequencyCaps[noTrailingSlashUrl];
     
     if (!capObject) {
-      return Promise.resolve();;
+      return Promise.resolve();
     }
     
     delete capObject.clicked;
