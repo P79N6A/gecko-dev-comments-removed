@@ -109,6 +109,16 @@ FrameManager.prototype = {
     let mm = oopFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager; 
 
     
+    let appName = null;
+    try {
+      appName = oopFrame.getAttribute("mozapp");
+    }
+    catch(e) {
+      appName = "mozapp name unavailable";
+      logger.info("Error getting mozapp: " + e.result)
+    }
+
+    
     
     for (let i = 0; i < remoteFrames.length; i++) {
       let frame = remoteFrames[i];
@@ -133,7 +143,7 @@ FrameManager.prototype = {
         }
 
         mm.sendAsyncMessage("Marionette:restart", {});
-        return oopFrame.id;
+        return [oopFrame.id, appName];
       }
     }
 
@@ -150,7 +160,7 @@ FrameManager.prototype = {
 
     aFrame.specialPowersObserver = new specialpowers.SpecialPowersObserver();
     aFrame.specialPowersObserver.init(mm);
-    return oopFrame.id;
+    return [oopFrame.id, appName];
   },
 
   
@@ -164,6 +174,22 @@ FrameManager.prototype = {
       this.addMessageManagerListeners(this.currentRemoteFrame.messageManager.get());
     }
     this.handledModal = false;
+  },
+
+  
+
+
+  removeRemoteFrame: function FM_removeRemoteFrame(frameId) {
+    logger.info("Deleting frame from remote frames list: " + frameId);
+    startLen = remoteFrames.length;
+    for (let i = 0; i < remoteFrames.length; i++) {
+      if (remoteFrames[i].frameId == frameId) {
+       remoteFrames.splice(i, 1);
+      }
+    }
+    if (remoteFrames.length == startLen) {
+     logger.info("Frame not found in remote frames list");
+    }
   },
 
   
@@ -205,9 +231,11 @@ FrameManager.prototype = {
     messageManager.addWeakMessageListener("Marionette:addCookie", this.server);
     messageManager.addWeakMessageListener("Marionette:getVisibleCookies", this.server);
     messageManager.addWeakMessageListener("Marionette:deleteCookie", this.server);
+    messageManager.addWeakMessageListener("Marionette:pong", this.server);
     messageManager.addWeakMessageListener("MarionetteFrame:handleModal", this);
     messageManager.addWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
     messageManager.addWeakMessageListener("MarionetteFrame:getInterruptedState", this);
+    messageManager.addWeakMessageListener("Marionette:startHeartbeat", this.server);
   },
 
   
@@ -236,8 +264,10 @@ FrameManager.prototype = {
     messageManager.removeWeakMessageListener("Marionette:addCookie", this.server);
     messageManager.removeWeakMessageListener("Marionette:getVisibleCookies", this.server);
     messageManager.removeWeakMessageListener("Marionette:deleteCookie", this.server);
+    messageManager.removeWeakMessageListener("Marionette:pong", this.server);
     messageManager.removeWeakMessageListener("MarionetteFrame:handleModal", this);
     messageManager.removeWeakMessageListener("MarionetteFrame:getCurrentFrameId", this);
+    messageManager.removeWeakMessageListener("Marionette:startHeartbeat", this.server);
   },
 
 };
