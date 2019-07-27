@@ -117,18 +117,19 @@ function getUserMedia(constraints) {
 
 
 
+var setTestOptions;
+var testConfigured = new Promise(r => setTestOptions = r);
 
+function setupEnvironment() {
+  if (!window.SimpleTest) {
+    return Promise.resolve();
+  }
 
-
-
-
-
-function realRunTest(aCallback) {
-  if (window.SimpleTest) {
-    
-    SimpleTest.waitForExplicitFinish();
-    SimpleTest.requestFlakyTimeout("WebRTC inherently depends on timeouts");
-    SpecialPowers.pushPrefEnv({'set': [
+  
+  SimpleTest.requestFlakyTimeout("WebRTC inherently depends on timeouts");
+  window.finish = () => SimpleTest.finish();
+  SpecialPowers.pushPrefEnv({
+    'set': [
       ['dom.messageChannel.enabled', true],
       ['media.peerconnection.enabled', true],
       ['media.peerconnection.identity.enabled', true],
@@ -136,28 +137,38 @@ function realRunTest(aCallback) {
       ['media.peerconnection.default_iceservers', '[]'],
       ['media.navigator.permission.disabled', true],
       ['media.getusermedia.screensharing.enabled', true],
-      ['media.getusermedia.screensharing.allowed_domains', "mochi.test"]]
-    }, function () {
-      try {
-        aCallback();
-      }
-      catch (err) {
-        generateErrorCallback()(err);
-      }
-    });
-  } else {
-    
-    window.run_test = function(is_initiator) {
-      var options = {is_local: is_initiator,
-                     is_remote: !is_initiator};
-      aCallback(options);
-    };
-    
-    var s = document.createElement("script");
-    s.src = "/test.js";
-    document.head.appendChild(s);
-  }
+      ['media.getusermedia.screensharing.allowed_domains', "mochi.test"]
+    ]
+  }, setTestOptions);
 }
+
+
+
+
+function run_test(is_initiator) {
+  var options = { is_local: is_initiator,
+                  is_remote: !is_initiator };
+
+  
+  var s = document.createElement("script");
+  s.src = "/test.js";
+  s.onload = () => setTestOptions(options);
+  document.head.appendChild(s);
+}
+
+function runTestWhenReady(testFunc) {
+  setupEnvironment();
+  return Promise.all([scriptsReady, testConfigured]).then(() => {
+    try {
+      return testConfigured.then(options => testFunc(options));
+    } catch (e) {
+      ok(false, 'Error executing test: ' + e +
+         ((typeof e.stack === 'string') ?
+          (' ' + e.stack.split('\n').join(' ... ')) : ''));
+    }
+  });
+}
+
 
 
 
@@ -254,7 +265,7 @@ function generateErrorCallback(message) {
 }
 
 var unexpectedEventArrived;
-var unexpectedEventArrivedPromise = new Promise((x, reject) => {
+var rejectOnUnexpectedEvent = new Promise((x, reject) => {
   unexpectedEventArrived = reject;
 });
 
@@ -292,19 +303,14 @@ function unexpectedEvent(message, eventName) {
 
 
 
-
-
-
-
-
-function guardEvent(wrapper, obj, event, redirect) {
-  redirect = redirect || (e => wrapper);
+function createOneShotEventWrapper(wrapper, obj, event) {
   var onx = 'on' + event;
   var unexpected = unexpectedEvent(wrapper, event);
   wrapper[onx] = unexpected;
   obj[onx] = e => {
     info(wrapper + ': "on' + event + '" event fired');
-    wrapper[onx](redirect(e));
+    e.wrapper = wrapper;
+    wrapper[onx](e);
     wrapper[onx] = unexpected;
   };
 }
@@ -339,10 +345,7 @@ CommandChain.prototype = {
 
       return prev.then(() => {
         info('Run step ' + (i + 1) + ': ' + next.name);
-        return Promise.race([
-          next(this._framework),
-          unexpectedEventArrivedPromise
-        ]);
+        return Promise.race([ next(this._framework), rejectOnUnexpectedEvent ]);
       });
     }, Promise.resolve())
       .catch(e =>
@@ -354,9 +357,6 @@ CommandChain.prototype = {
   
 
 
-
-
-
   append: function(commands) {
     this.commands = this.commands.concat(commands);
   },
@@ -364,44 +364,29 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-  indexOf: function (id) {
-    if (typeof id === 'string') {
-      return this.commands.findIndex(f => f.name === id);
+  indexOf: function(functionOrName) {
+    if (typeof functionOrName === 'string') {
+      return this.commands.findIndex(f => f.name === functionOrName);
     }
-    return this.commands.indexOf(id);
+    return this.commands.indexOf(functionOrName);
   },
 
   
 
 
-
-
-
-
-
-  insertAfter: function (id, commands) {
-    this._insertHelper(id, commands, 1);
+  insertAfter: function(functionOrName, commands) {
+    this._insertHelper(functionOrName, commands, 1);
   },
 
   
 
 
-
-
-
-
-
-  insertBefore: function (id, commands) {
-    this._insertHelper(id, commands);
+  insertBefore: function(functionOrName, commands) {
+    this._insertHelper(functionOrName, commands, 0);
   },
 
-  _insertHelper: function(id, commands, delta) {
-    delta = delta || 0;
-    var index = this.indexOf(id);
+  _insertHelper: function(functionOrName, commands, delta) {
+    var index = this.indexOf(functionOrName);
 
     if (index >= 0) {
       this.commands = [].concat(
@@ -414,12 +399,8 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-  remove: function (id) {
-    var index = this.indexOf(id);
+  remove: function(functionOrName) {
+    var index = this.indexOf(functionOrName);
     if (index >= 0) {
       return this.commands.splice(index, 1);
     }
@@ -429,12 +410,8 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-  removeAfter: function (id) {
-    var index = this.indexOf(id);
+  removeAfter: function(functionOrName) {
+    var index = this.indexOf(functionOrName);
     if (index >= 0) {
       return this.commands.splice(index + 1);
     }
@@ -444,12 +421,8 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-  removeBefore: function (id) {
-    var index = this.indexOf(id);
+  removeBefore: function(functionOrName) {
+    var index = this.indexOf(functionOrName);
     if (index >= 0) {
       return this.commands.splice(0, index);
     }
@@ -459,26 +432,16 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-
-
-  replace: function (id, commands) {
-    this.insertBefore(id, commands);
-    return this.remove(id);
+  replace: function(functionOrName, commands) {
+    this.insertBefore(functionOrName, commands);
+    return this.remove(functionOrName);
   },
 
   
 
 
-
-
-
-
-  replaceAfter: function (id, commands) {
-    var oldCommands = this.removeAfter(id);
+  replaceAfter: function(functionOrName, commands) {
+    var oldCommands = this.removeAfter(functionOrName);
     this.append(commands);
     return oldCommands;
   },
@@ -486,20 +449,13 @@ CommandChain.prototype = {
   
 
 
-
-
-
-
-  replaceBefore: function (id, commands) {
-    var oldCommands = this.removeBefore(id);
-    this.insertBefore(id, commands);
+  replaceBefore: function(functionOrName, commands) {
+    var oldCommands = this.removeBefore(functionOrName);
+    this.insertBefore(functionOrName, commands);
     return oldCommands;
   },
 
   
-
-
-
 
 
   filterOut: function (id_match) {
@@ -509,18 +465,17 @@ CommandChain.prototype = {
 
 
 function IsMacOSX10_6orOlder() {
-    var is106orOlder = false;
+  if (navigator.platform.indexOf("Mac") !== 0) {
+    return false;
+  }
 
-    if (navigator.platform.indexOf("Mac") == 0) {
-        var version = Cc["@mozilla.org/system-info;1"]
-                        .getService(Ci.nsIPropertyBag2)
-                        .getProperty("version");
-        
-        
-        
-        is106orOlder = (parseFloat(version) < 11.0);
-    }
-    return is106orOlder;
+  var version = Cc["@mozilla.org/system-info;1"]
+      .getService(Ci.nsIPropertyBag2)
+      .getProperty("version");
+  
+  
+  
+  return (parseFloat(version) < 11.0);
 }
 
 (function(){
