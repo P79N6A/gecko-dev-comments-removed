@@ -2205,10 +2205,12 @@ DefinePropertyById(JSContext *cx, HandleObject obj, HandleId id, HandleValue val
     
     
     
-    if (!getter)
-        getter = obj->getClass()->getProperty;
-    if (!setter)
-        setter = obj->getClass()->setProperty;
+    if (!(attrs & (JSPROP_GETTER | JSPROP_SETTER))) {
+        if (!getter)
+            getter = obj->getClass()->getProperty;
+        if (!setter)
+            setter = obj->getClass()->setProperty;
+    }
     if (getter == JS_PropertyStub)
         getter = nullptr;
     if (setter == JS_StrictPropertyStub)
