@@ -613,7 +613,7 @@ var LoginManagerContent = {
     if (foundLogins.length == 0) {
       
       recordAutofillResult(AUTOFILL_RESULT.NO_SAVED_LOGINS);
-      return [false, foundLogins];
+      return;
     }
 
     
@@ -627,14 +627,14 @@ var LoginManagerContent = {
     if (passwordField == null) {
       log("not filling form, no password field found");
       recordAutofillResult(AUTOFILL_RESULT.NO_PASSWORD_FIELD);
-      return [false, foundLogins];
+      return;
     }
 
     
     if (passwordField.disabled || passwordField.readOnly) {
       log("not filling form, password field disabled or read-only");
       recordAutofillResult(AUTOFILL_RESULT.PASSWORD_DISABLED_READONLY);
-      return [false, foundLogins];
+      return;
     }
 
     
@@ -662,7 +662,7 @@ var LoginManagerContent = {
     if (logins.length == 0) {
       log("form not filled, none of the logins fit in the field");
       recordAutofillResult(AUTOFILL_RESULT.NO_LOGINS_FIT);
-      return [false, foundLogins];
+      return;
     }
 
     
@@ -683,7 +683,7 @@ var LoginManagerContent = {
                               passwordField, foundLogins, null);
       log("form not filled, the password field was already filled");
       recordAutofillResult(AUTOFILL_RESULT.EXISTING_PASSWORD);
-      return [false, foundLogins];
+      return;
     }
 
     
@@ -770,16 +770,10 @@ var LoginManagerContent = {
       }
       didFillForm = true;
     } else if (selectedLogin && !autofillForm) {
-      
-      
       didntFillReason = "noAutofillForms";
-      Services.obs.notifyObservers(form, "passwordmgr-found-form", didntFillReason);
       log("autofillForms=false but form can be filled; notified observers");
     } else if (selectedLogin && isFormDisabled) {
-      
-      
       didntFillReason = "autocompleteOff";
-      Services.obs.notifyObservers(form, "passwordmgr-found-form", didntFillReason);
       log("autocomplete=off but form can be filled; notified observers");
     }
 
@@ -807,8 +801,6 @@ var LoginManagerContent = {
       }
       recordAutofillResult(autofillResult);
     }
-
-    return [didFillForm, foundLogins];
   },
 
 
