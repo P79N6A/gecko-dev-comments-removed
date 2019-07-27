@@ -386,17 +386,17 @@ class RepatchIonCache : public IonCache
     {
     }
 
-    virtual void reset() MOZ_OVERRIDE;
+    virtual void reset();
 
     
     
     
     
-    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) MOZ_OVERRIDE;
-    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) MOZ_OVERRIDE;
+    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
 
     
-    void updateBaseAddress(JitCode *code, MacroAssembler &masm) MOZ_OVERRIDE;
+    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
 
     virtual void *rejoinAddress() MOZ_OVERRIDE {
         return rejoinLabel().raw();
@@ -492,14 +492,14 @@ class DispatchIonCache : public IonCache
     {
     }
 
-    virtual void reset() MOZ_OVERRIDE;
-    virtual void initializeAddCacheState(LInstruction *ins, AddCacheState *addState) MOZ_OVERRIDE;
+    virtual void reset();
+    virtual void initializeAddCacheState(LInstruction *ins, AddCacheState *addState);
 
-    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) MOZ_OVERRIDE;
-    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) MOZ_OVERRIDE;
+    void emitInitialJump(MacroAssembler &masm, AddCacheState &addState);
+    void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
 
     
-    void updateBaseAddress(JitCode *code, MacroAssembler &masm) MOZ_OVERRIDE;
+    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
 
     virtual void *rejoinAddress() MOZ_OVERRIDE {
         return rejoinLabel_.raw();
