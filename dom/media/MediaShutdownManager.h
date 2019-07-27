@@ -19,7 +19,6 @@
 namespace mozilla {
 
 class MediaDecoder;
-class StateMachineThread;
 
 
 

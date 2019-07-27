@@ -15,8 +15,6 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/CORSMode.h"
 
-class nsXPCClassInfo;
-
 
 
 

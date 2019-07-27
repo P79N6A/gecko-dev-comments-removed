@@ -11,8 +11,6 @@
 #include "mozilla/dom/SVGPointBinding.h"
 #include "DOMSVGPointList.h"
 
-class nsSVGElement;
-
 
 #define MOZILLA_NSISVGPOINT_IID \
   { 0xd6b6c440, 0xaf8d, 0x40ee, \

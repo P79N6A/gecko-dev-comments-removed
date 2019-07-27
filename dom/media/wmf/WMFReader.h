@@ -18,10 +18,6 @@ class WMFByteStream;
 class WMFSourceReaderCallback;
 class DXVA2Manager;
 
-namespace dom {
-class TimeRanges;
-}
-
 
 
 class WMFReader : public MediaDecoderReader

@@ -15,16 +15,11 @@
 struct IGraphBuilder;
 struct IMediaControl;
 struct IMediaSeeking;
-struct IMediaEventEx;
 
 namespace mozilla {
 
 class AudioSinkFilter;
 class SourceFilter;
-
-namespace dom {
-class TimeRanges;
-}
 
 
 

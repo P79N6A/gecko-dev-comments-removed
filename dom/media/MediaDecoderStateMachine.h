@@ -92,16 +92,11 @@
 #include "mozilla/RollingMean.h"
 #include "MediaTimer.h"
 
-class nsITimer;
-
 namespace mozilla {
 
 class AudioSegment;
-class VideoSegment;
 class MediaTaskQueue;
-class SharedThreadPool;
 class AudioSink;
-class MediaDecoderStateMachineScheduler;
 
 
 
