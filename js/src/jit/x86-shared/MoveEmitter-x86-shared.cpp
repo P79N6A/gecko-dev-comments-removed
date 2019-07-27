@@ -11,6 +11,8 @@
 using namespace js;
 using namespace js::jit;
 
+using mozilla::Maybe;
+
 MoveEmitterX86::MoveEmitterX86(MacroAssembler& masm)
   : inCycle_(false),
     masm(masm),
@@ -101,11 +103,19 @@ MoveEmitterX86::emit(const MoveResolver& moves)
 {
 #if defined(JS_CODEGEN_X86) && defined(DEBUG)
     
-    if (hasScratchRegister())
-        masm.mov(ImmWord(0xdeadbeef), scratchRegister());
+    if (scratchRegister_.isSome())
+        masm.mov(ImmWord(0xdeadbeef), scratchRegister_.value());
 #endif
 
     for (size_t i = 0; i < moves.numMoves(); i++) {
+#if defined(JS_CODEGEN_X86) && defined(DEBUG)
+        if (!scratchRegister_.isSome()) {
+            Maybe<Register> reg = findScratchRegister(moves, i);
+            if (reg.isSome())
+                masm.mov(ImmWord(0xdeadbeef), reg.value());
+        }
+#endif
+
         const MoveOp& move = moves.getMove(i);
         const MoveOperand& from = move.from();
         const MoveOperand& to = move.to();
@@ -144,10 +154,10 @@ MoveEmitterX86::emit(const MoveResolver& moves)
             emitDoubleMove(from, to);
             break;
           case MoveOp::INT32:
-            emitInt32Move(from, to);
+            emitInt32Move(from, to, moves, i);
             break;
           case MoveOp::GENERAL:
-            emitGeneralMove(from, to);
+            emitGeneralMove(from, to, moves, i);
             break;
           case MoveOp::INT32X4:
             emitInt32X4Move(from, to);
@@ -363,7 +373,8 @@ MoveEmitterX86::completeCycle(const MoveOperand& to, MoveOp::Type type)
 }
 
 void
-MoveEmitterX86::emitInt32Move(const MoveOperand& from, const MoveOperand& to)
+MoveEmitterX86::emitInt32Move(const MoveOperand& from, const MoveOperand& to,
+                              const MoveResolver& moves, size_t i)
 {
     if (from.isGeneralReg()) {
         masm.move32(from.reg(), toOperand(to));
@@ -373,10 +384,10 @@ MoveEmitterX86::emitInt32Move(const MoveOperand& from, const MoveOperand& to)
     } else {
         
         MOZ_ASSERT(from.isMemory());
-        if (hasScratchRegister()) {
-            Register reg = scratchRegister();
-            masm.load32(toAddress(from), reg);
-            masm.move32(reg, toOperand(to));
+        Maybe<Register> reg = findScratchRegister(moves, i);
+        if (reg.isSome()) {
+            masm.load32(toAddress(from), reg.value());
+            masm.move32(reg.value(), toOperand(to));
         } else {
             
             masm.Push(toOperand(from));
@@ -386,7 +397,8 @@ MoveEmitterX86::emitInt32Move(const MoveOperand& from, const MoveOperand& to)
 }
 
 void
-MoveEmitterX86::emitGeneralMove(const MoveOperand& from, const MoveOperand& to)
+MoveEmitterX86::emitGeneralMove(const MoveOperand& from, const MoveOperand& to,
+                                const MoveResolver& moves, size_t i)
 {
     if (from.isGeneralReg()) {
         masm.mov(from.reg(), toOperand(to));
@@ -398,10 +410,10 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand& from, const MoveOperand& to)
             masm.lea(toOperand(from), to.reg());
     } else if (from.isMemory()) {
         
-        if (hasScratchRegister()) {
-            Register reg = scratchRegister();
-            masm.loadPtr(toAddress(from), reg);
-            masm.mov(reg, toOperand(to));
+        Maybe<Register> reg = findScratchRegister(moves, i);
+        if (reg.isSome()) {
+            masm.loadPtr(toAddress(from), reg.value());
+            masm.mov(reg.value(), toOperand(to));
         } else {
             
             masm.Push(toOperand(from));
@@ -410,10 +422,10 @@ MoveEmitterX86::emitGeneralMove(const MoveOperand& from, const MoveOperand& to)
     } else {
         
         MOZ_ASSERT(from.isEffectiveAddress());
-        if (hasScratchRegister()) {
-            Register reg = scratchRegister();
-            masm.lea(toOperand(from), reg);
-            masm.mov(reg, toOperand(to));
+        Maybe<Register> reg = findScratchRegister(moves, i);
+        if (reg.isSome()) {
+            masm.lea(toOperand(from), reg.value());
+            masm.mov(reg.value(), toOperand(to));
         } else {
             
             
@@ -523,3 +535,36 @@ MoveEmitterX86::finish()
     masm.freeStack(masm.framePushed() - pushedAtStart_);
 }
 
+Maybe<Register>
+MoveEmitterX86::findScratchRegister(const MoveResolver& moves, size_t initial)
+{
+#ifdef JS_CODEGEN_X86
+    if (scratchRegister_.isSome())
+        return scratchRegister_;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return mozilla::Nothing();
+#else
+    return mozilla::Some(ScratchReg);
+#endif
+}

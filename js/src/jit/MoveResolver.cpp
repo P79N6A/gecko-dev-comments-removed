@@ -201,14 +201,90 @@ MoveResolver::addOrderedMove(const MoveOp& move)
             }
         }
 
-        if (existing.to().aliases(move.from()) ||
-            existing.to().aliases(move.to()) ||
-            existing.from().aliases(move.to()) ||
-            existing.from().aliases(move.from()))
-        {
+        if (existing.aliases(move))
             break;
-        }
     }
 
     return orderedMoves_.append(move);
+}
+
+void
+MoveResolver::reorderMove(size_t from, size_t to)
+{
+    MOZ_ASSERT(from != to);
+
+    MoveOp op = orderedMoves_[from];
+    if (from < to) {
+        for (size_t i = from; i < to; i++)
+            orderedMoves_[i] = orderedMoves_[i + 1];
+    } else {
+        for (size_t i = from; i > to; i--)
+            orderedMoves_[i] = orderedMoves_[i - 1];
+    }
+    orderedMoves_[to] = op;
+}
+
+void
+MoveResolver::sortMemoryToMemoryMoves()
+{
+    
+    
+    
+    
+    for (size_t i = 0; i < orderedMoves_.length(); i++) {
+        const MoveOp& base = orderedMoves_[i];
+        if (!base.from().isMemory() || !base.to().isMemory())
+            continue;
+        if (base.type() != MoveOp::GENERAL && base.type() != MoveOp::INT32)
+            continue;
+
+        
+        bool found = false;
+        for (int j = i - 1; j >= 0; j--) {
+            const MoveOp& previous = orderedMoves_[j];
+            if (previous.aliases(base) || previous.isCycleBegin() || previous.isCycleEnd())
+                break;
+
+            if (previous.to().isGeneralReg()) {
+                reorderMove(i, j);
+                found = true;
+                break;
+            }
+        }
+        if (found)
+            continue;
+
+        
+        if (i + 1 < orderedMoves_.length()) {
+            bool found = false, skippedRegisterUse = false;
+            for (size_t j = i + 1; j < orderedMoves_.length(); j++) {
+                const MoveOp& later = orderedMoves_[j];
+                if (later.aliases(base) || later.isCycleBegin() || later.isCycleEnd())
+                    break;
+
+                if (later.to().isGeneralReg()) {
+                    if (skippedRegisterUse) {
+                        reorderMove(i, j);
+                        found = true;
+                    } else {
+                        
+                        
+                        
+                        
+                        
+                    }
+                    break;
+                }
+
+                if (later.from().isGeneralReg())
+                    skippedRegisterUse = true;
+            }
+
+            if (found) {
+                
+                
+                i--;
+            }
+        }
+    }
 }

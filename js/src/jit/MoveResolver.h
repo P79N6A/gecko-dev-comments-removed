@@ -197,6 +197,12 @@ class MoveOp
         MOZ_ASSERT(isCycleBegin());
         return endCycleType_;
     }
+    bool aliases(const MoveOperand& op) const {
+        return from().aliases(op) || to().aliases(op);
+    }
+    bool aliases(const MoveOp& other) const {
+        return aliases(other.from()) || aliases(other.to());
+    }
 };
 
 class MoveResolver
@@ -229,8 +235,6 @@ class MoveResolver
     typedef InlineList<MoveResolver::PendingMove>::iterator PendingMoveIterator;
 
   private:
-    
-    
     js::Vector<MoveOp, 16, SystemAllocPolicy> orderedMoves_;
     int numCycles_;
     int curCycles_;
@@ -241,6 +245,7 @@ class MoveResolver
     PendingMove* findBlockingMove(const PendingMove* last);
     PendingMove* findCycledMove(PendingMoveIterator* stack, PendingMoveIterator end, const PendingMove* first);
     bool addOrderedMove(const MoveOp& move);
+    void reorderMove(size_t from, size_t to);
 
     
     void resetState();
@@ -257,6 +262,7 @@ class MoveResolver
     
     bool addMove(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type);
     bool resolve();
+    void sortMemoryToMemoryMoves();
 
     size_t numMoves() const {
         return orderedMoves_.length();
