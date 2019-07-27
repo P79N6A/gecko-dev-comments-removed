@@ -83,7 +83,7 @@ public:
 
 
 
-  nsExpirationTracker(uint32_t aTimerPeriod)
+  explicit nsExpirationTracker(uint32_t aTimerPeriod)
     : mTimerPeriod(aTimerPeriod)
     , mNewestGeneration(0)
     , mInAgeOneGeneration(false)
@@ -238,7 +238,7 @@ public:
     uint32_t mGeneration;
     uint32_t mIndex;
   public:
-    Iterator(nsExpirationTracker<T, K>* aTracker)
+    explicit Iterator(nsExpirationTracker<T, K>* aTracker)
       : mTracker(aTracker)
       , mGeneration(0)
       , mIndex(0)
