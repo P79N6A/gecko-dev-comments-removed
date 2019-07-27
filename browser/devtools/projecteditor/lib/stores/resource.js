@@ -131,6 +131,21 @@ var Resource = Class({
 
 
 
+
+  hasChild: function(resource, name) {
+    for (let child of resource.children) {
+      if (child.basename === name) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  
+
+
+
+
   removeChild: function(resource) {
     resource.parent = null;
     this.children.remove(resource);
@@ -293,6 +308,27 @@ var FileResource = Class({
     return OS.File.writeAtomic(newPath, buffer, {
       noOverwrite: true
     }).then(() => {
+      return this.store.refresh();
+    }).then(() => {
+      let resource = this.store.resources.get(newPath);
+      if (!resource) {
+        throw new Error("Error creating " + newPath);
+      }
+      return resource;
+    });
+  },
+
+  
+
+
+
+
+
+  rename: function(oldName, newName) {
+    let oldPath = OS.Path.join(this.path, oldName);
+    let newPath = OS.Path.join(this.path, newName);
+
+    return OS.File.move(oldPath, newPath).then(() => {
       return this.store.refresh();
     }).then(() => {
       let resource = this.store.resources.get(newPath);

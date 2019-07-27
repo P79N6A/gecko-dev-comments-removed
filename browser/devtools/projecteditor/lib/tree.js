@@ -281,6 +281,39 @@ var TreeView = Class({
 
 
 
+
+
+
+
+
+
+  promptEdit: function(initial, resource) {
+    let deferred = promise.defer();
+    let placeholder = this._containers.get(resource).elt;
+
+    new InplaceEditor({
+      element: placeholder,
+      initial: initial,
+      start: editor => {
+        editor.input.select();
+      },
+      done: function(val, commit) {
+        if (commit) {
+          deferred.resolve(val);
+        } else {
+          deferred.reject(val);
+        }
+      },
+    });
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
   addModel: function(model) {
     if (this.models.has(model)) {
       
