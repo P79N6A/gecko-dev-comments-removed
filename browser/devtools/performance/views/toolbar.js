@@ -21,24 +21,6 @@ let ToolbarView = {
       menupopup: $("#performance-options-menupopup")
     });
 
-    
-    
-    
-    if (PerformanceController.getOption("retro-mode")) {
-      let RETRO_ELEMENTS = [
-        "#option-flatten-tree-recursion",
-        "#option-invert-flame-graph",
-        "#filter-button",
-        
-        
-        
-        
-      ];
-      for (let selector of RETRO_ELEMENTS) {
-        $(selector).hidden = true;
-      }
-    }
-
     yield this.optionsView.initialize();
     this.optionsView.on("pref-changed", this._onPrefChanged);
 

@@ -285,16 +285,11 @@ let PerformanceController = {
 
 
   startRecording: Task.async(function *() {
-    
-    
-    
-    let superMode = !this.getOption("retro-mode");
-
     let options = {
-      withMarkers: superMode ? true : false,
-      withMemory: superMode ? this.getOption("enable-memory") : false,
+      withMarkers: true,
+      withMemory: this.getOption("enable-memory"),
       withTicks: this.getOption("enable-framerate"),
-      withAllocations: superMode ? this.getOption("enable-memory") : false,
+      withAllocations: this.getOption("enable-memory"),
       allocationsSampleProbability: this.getPref("memory-sample-probability"),
       allocationsMaxLogLength: this.getPref("memory-max-log-length"),
       bufferSize: this.getPref("profiler-buffer-size"),

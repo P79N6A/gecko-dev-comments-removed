@@ -27,9 +27,6 @@ loader.lazyRequireGetter(this, "EventEmitter",
   "devtools/toolkit/event-emitter");
 
 
-loader.lazyRequireGetter(this, "Services");
-
-
 
 
 const HEIGHT = 35; 
@@ -169,24 +166,6 @@ const GRAPH_DEFINITIONS = {
 };
 
 
-const GRAPH_DEFINITIONS_RETRO = {
-  memory: {
-    constructor: MemoryGraph,
-    selector: "#memory-overview",
-  },
-  framerate: {
-    constructor: FramerateGraph,
-    selector: "#time-framerate",
-    needsBlueprints: true,
-    primaryLink: true
-  },
-  timeline: {
-    constructor: TimelineGraph,
-    selector: "#markers-overview",
-  }
-};
-
-
 
 
 
@@ -198,9 +177,7 @@ const GRAPH_DEFINITIONS_RETRO = {
 function GraphsController ({ definition, root, getBlueprint, getTheme }) {
   this._graphs = {};
   this._enabled = new Set();
-  
-  let RETRO_MODE = Services.prefs.getBoolPref("devtools.performance.ui.retro-mode");
-  this._definition = definition || (RETRO_MODE ? GRAPH_DEFINITIONS_RETRO : GRAPH_DEFINITIONS);
+  this._definition = definition || GRAPH_DEFINITIONS;
   this._root = root;
   this._getBlueprint = getBlueprint;
   this._getTheme = getTheme;
