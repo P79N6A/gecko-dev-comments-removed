@@ -488,6 +488,8 @@ nsHTMLEditRules::AfterEditInner(EditAction action,
       
       
       NS_ENSURE_STATE(mHTMLEditor);
+      NS_ENSURE_STATE(mRangeItem->startNode);
+      NS_ENSURE_STATE(mRangeItem->endNode);
       nsWSRunObject(mHTMLEditor, mRangeItem->startNode,
                     mRangeItem->startOffset).AdjustWhitespace();
       
