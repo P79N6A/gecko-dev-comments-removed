@@ -53,12 +53,10 @@
 #define PL_DHASH_BITS           32
 #define PL_DHASH_GOLDEN_RATIO   0x9E3779B9U
 
+typedef uint32_t PLDHashNumber;
 
-typedef uint32_t                PLDHashNumber;
-typedef struct PLDHashEntryHdr  PLDHashEntryHdr;
-typedef struct PLDHashEntryStub PLDHashEntryStub;
-typedef struct PLDHashTable     PLDHashTable;
-typedef struct PLDHashTableOps  PLDHashTableOps;
+class PLDHashTable;
+struct PLDHashTableOps;
 
 
 
@@ -176,8 +174,9 @@ typedef size_t (*PLDHashSizeOfEntryExcludingThisFun)(
 
 
 
-struct PLDHashTable
+class PLDHashTable
 {
+public:
   
 
 
