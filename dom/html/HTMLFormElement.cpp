@@ -20,6 +20,7 @@
 #include "nsPresContext.h"
 #include "nsIDocument.h"
 #include "nsIFormControlFrame.h"
+#include "nsISecureBrowserUI.h"
 #include "nsError.h"
 #include "nsContentUtils.h"
 #include "nsInterfaceHashtable.h"
@@ -32,7 +33,6 @@
 #include "mozilla/BinarySearch.h"
 
 
-#include "mozilla/Telemetry.h"
 #include "nsIFormSubmitObserver.h"
 #include "nsIObserverService.h"
 #include "nsICategoryManager.h"
@@ -45,9 +45,6 @@
 #include "nsIDocShell.h"
 #include "nsFormData.h"
 #include "nsFormSubmissionConstants.h"
-#include "nsIPromptService.h"
-#include "nsISecurityUITelemetry.h"
-#include "nsIStringBundle.h"
 
 
 #include "mozilla/dom/HTMLInputElement.h"
@@ -880,79 +877,24 @@ HTMLFormElement::NotifySubmitObservers(nsIURI* aActionURL,
   
   nsCOMPtr<nsPIDOMWindow> window = OwnerDoc()->GetWindow();
 
-  nsCOMPtr<nsIURI> principalURI;
-  nsresult rv = NodePrincipal()->GetURI(getter_AddRefs(principalURI));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  bool formIsHTTPS;
-  rv = principalURI->SchemeIs("https", &formIsHTTPS);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  bool actionIsHTTPS;
-  rv = aActionURL->SchemeIs("https", &actionIsHTTPS);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  bool actionIsJS;
-  rv = aActionURL->SchemeIs("javascript", &actionIsJS);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  if (formIsHTTPS && !actionIsHTTPS && !actionIsJS && !aEarlyNotify) {
-    nsCOMPtr<nsIPromptService> promptSvc =
-      do_GetService("@mozilla.org/embedcomp/prompt-service;1");
-    if (!promptSvc) {
-      return NS_ERROR_FAILURE;
+  
+  nsCOMPtr<nsIDocShell> docshell = OwnerDoc()->GetDocShell();
+  if (docshell && !aEarlyNotify) {
+    nsCOMPtr<nsISecureBrowserUI> secureUI;
+    docshell->GetSecurityUI(getter_AddRefs(secureUI));
+    nsCOMPtr<nsIFormSubmitObserver> formSubmitObserver =
+      do_QueryInterface(secureUI);
+    if (formSubmitObserver) {
+      nsresult rv = formSubmitObserver->Notify(this,
+                                               window,
+                                               aActionURL,
+                                               aCancelSubmit);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (*aCancelSubmit) {
+        return NS_OK;
+      }
     }
-    nsCOMPtr<nsIStringBundle> stringBundle;
-    nsCOMPtr<nsIStringBundleService> stringBundleService =
-      mozilla::services::GetStringBundleService();
-    if (!stringBundleService) {
-      return NS_ERROR_FAILURE;
-    }
-    rv = stringBundleService->CreateBundle(
-      "chrome://global/locale/browser.properties",
-      getter_AddRefs(stringBundle));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    nsAutoString title;
-    nsAutoString message;
-    nsAutoString cont;
-    stringBundle->GetStringFromName(
-      MOZ_UTF16("formPostSecureToInsecureWarning.title"), getter_Copies(title));
-    stringBundle->GetStringFromName(
-      MOZ_UTF16("formPostSecureToInsecureWarning.message"),
-      getter_Copies(message));
-    stringBundle->GetStringFromName(
-      MOZ_UTF16("formPostSecureToInsecureWarning.continue"),
-      getter_Copies(cont));
-    int32_t buttonPressed;
-    bool checkState; 
-    rv = promptSvc->ConfirmEx(window, title.get(), message.get(),
-                              (nsIPromptService::BUTTON_TITLE_IS_STRING *
-                               nsIPromptService::BUTTON_POS_0) +
-                              (nsIPromptService::BUTTON_TITLE_CANCEL *
-                               nsIPromptService::BUTTON_POS_1),
-                              cont.get(), nullptr, nullptr, nullptr,
-                              &checkState, &buttonPressed);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    *aCancelSubmit = (buttonPressed == 1);
-    uint32_t telemetryBucket =
-      nsISecurityUITelemetry::WARNING_CONFIRM_POST_TO_INSECURE_FROM_SECURE;
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SECURITY_UI,
-                                   telemetryBucket);
-    
-    if (*aCancelSubmit) {
-      return NS_OK;
-    }
-    
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::SECURITY_UI,
-                                   telemetryBucket + 1);
   }
 
   
@@ -962,10 +904,10 @@ HTMLFormElement::NotifySubmitObservers(nsIURI* aActionURL,
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsISimpleEnumerator> theEnum;
-  rv = service->EnumerateObservers(aEarlyNotify ?
-                                   NS_EARLYFORMSUBMIT_SUBJECT :
-                                   NS_FORMSUBMIT_SUBJECT,
-                                   getter_AddRefs(theEnum));
+  nsresult rv = service->EnumerateObservers(aEarlyNotify ?
+                                            NS_EARLYFORMSUBMIT_SUBJECT :
+                                            NS_FORMSUBMIT_SUBJECT,
+                                            getter_AddRefs(theEnum));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (theEnum) {
