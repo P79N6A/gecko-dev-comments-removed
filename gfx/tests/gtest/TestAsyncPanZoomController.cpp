@@ -257,22 +257,28 @@ ApzcUp(AsyncPanZoomController* apzc, int aX, int aY, int& aTime)
   return apzc->ReceiveInputEvent(mti);
 }
 
-static nsEventStatus
-ApzcTap(AsyncPanZoomController* apzc, int aX, int aY, int& aTime,
-        int aTapLength, MockContentControllerDelayed* mcc = nullptr)
+static void
+ApzcTap(AsyncPanZoomController* aApzc, int aX, int aY, int& aTime, int aTapLength,
+        nsEventStatus (*aOutEventStatuses)[2] = nullptr)
 {
-  nsEventStatus status = ApzcDown(apzc, aX, aY, aTime);
-  if (mcc != nullptr) {
-    
-    
-    mcc->CheckHasDelayedTask();
-    mcc->ClearDelayedTask();
-    mcc->CheckHasDelayedTask();
-    mcc->ClearDelayedTask();
+  nsEventStatus status = ApzcDown(aApzc, aX, aY, aTime);
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[0] = status;
   }
-  EXPECT_EQ(nsEventStatus_eConsumeNoDefault, status);
   aTime += aTapLength;
-  return ApzcUp(apzc, aX, aY, aTime);
+  status = ApzcUp(aApzc, aX, aY, aTime);
+  if (aOutEventStatuses) {
+    (*aOutEventStatuses)[1] = status;
+  }
+}
+
+static void
+ApzcTapAndCheckStatus(AsyncPanZoomController* aApzc, int aX, int aY, int& aTime, int aTapLength)
+{
+  nsEventStatus statuses[2];
+  ApzcTap(aApzc, aX, aY, aTime, aTapLength, &statuses);
+  EXPECT_EQ(nsEventStatus_eConsumeNoDefault, statuses[0]);
+  EXPECT_EQ(nsEventStatus_eIgnore, statuses[1]);
 }
 
 static void
@@ -916,14 +922,13 @@ protected:
     
     ApzcPan(apzc, time, touchStart, touchEnd);
     
-    EXPECT_EQ(2, mcc->RunThroughDelayedTasks());
+    while (mcc->RunThroughDelayedTasks());
 
     
     
     
     int timeDelta = aSlow ? 2000 : 10;
     int tapCallsExpected = aSlow ? 1 : 0;
-    int delayedTasksExpected = aSlow ? 3 : 2;
 
     
     ScreenPoint pointOut;
@@ -933,8 +938,8 @@ protected:
     
     
     EXPECT_CALL(*mcc, HandleSingleTap(_, 0, apzc->GetGuid())).Times(tapCallsExpected);
-    ApzcTap(apzc, 10, 10, time, 0, nullptr);
-    EXPECT_EQ(delayedTasksExpected, mcc->RunThroughDelayedTasks());
+    ApzcTap(apzc, 10, 10, time, 0);
+    while (mcc->RunThroughDelayedTasks());
 
     
     ScreenPoint finalPointOut;
@@ -1096,8 +1101,11 @@ TEST_F(APZCGestureDetectorTester, ShortPress) {
   MakeApzcUnzoomable();
 
   int time = 0;
-  nsEventStatus status = ApzcTap(apzc, 10, 10, time, 100, mcc.get());
-  EXPECT_EQ(nsEventStatus_eIgnore, status);
+  ApzcTapAndCheckStatus(apzc, 10, 10, time, 100);
+  
+  
+  mcc->ClearDelayedTask();
+  mcc->ClearDelayedTask();
 
   
   
@@ -1113,8 +1121,11 @@ TEST_F(APZCGestureDetectorTester, MediumPress) {
   MakeApzcUnzoomable();
 
   int time = 0;
-  nsEventStatus status = ApzcTap(apzc, 10, 10, time, 400, mcc.get());
-  EXPECT_EQ(nsEventStatus_eIgnore, status);
+  ApzcTapAndCheckStatus(apzc, 10, 10, time, 400);
+  
+  
+  mcc->ClearDelayedTask();
+  mcc->ClearDelayedTask();
 
   
   
