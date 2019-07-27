@@ -46,6 +46,7 @@ class APZPaintLogHelper;
 class OverscrollHandoffChain;
 struct OverscrollHandoffState;
 class LayerMetricsWrapper;
+class InputQueue;
 
 
 
@@ -207,8 +208,7 @@ public:
 
 
 
-  void ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
-                            uint64_t aInputBlockId,
+  void ContentReceivedTouch(uint64_t aInputBlockId,
                             bool aPreventDefault);
 
   
@@ -275,8 +275,7 @@ public:
 
 
 
-  void SetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
-                               uint64_t aInputBlockId,
+  void SetAllowedTouchBehavior(uint64_t aInputBlockId,
                                const nsTArray<TouchBehaviorFlags>& aValues);
 
   
@@ -360,6 +359,7 @@ public:
 
 
   nsRefPtr<const OverscrollHandoffChain> BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomController>& aInitialTarget);
+
 protected:
   
   virtual ~APZCTreeManager();
@@ -425,6 +425,13 @@ private:
 
   void PrintAPZCInfo(const LayerMetricsWrapper& aLayer,
                      const AsyncPanZoomController* apzc);
+
+protected:
+  
+
+
+  nsRefPtr<InputQueue> mInputQueue;
+
 private:
   
 

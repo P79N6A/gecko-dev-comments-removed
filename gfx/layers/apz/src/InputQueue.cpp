@@ -39,7 +39,7 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, c
   TouchBlockState* block = nullptr;
   if (aEvent.AsMultiTouchInput().mType == MultiTouchInput::MULTITOUCH_START) {
     block = StartNewTouchBlock(aTarget, false);
-    INPQ_LOG("%p started new touch block %p for target %p\n", this, block, aTarget.get());
+    INPQ_LOG("started new touch block %p for target %p\n", block, aTarget.get());
 
     
     
@@ -64,7 +64,7 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, c
       
       
       
-      INPQ_LOG("%p not waiting for content response on block %p\n", this, block);
+      INPQ_LOG("not waiting for content response on block %p\n", block);
       block->TimeoutContentResponse();
     }
   } else if (mTouchBlockQueue.IsEmpty()) {
@@ -72,7 +72,7 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, c
   } else {
     
     block = mTouchBlockQueue.LastElement().get();
-    INPQ_LOG("%p received new event in block %p\n", this, block);
+    INPQ_LOG("received new event in block %p\n", block);
   }
 
   if (!block) {
@@ -87,8 +87,8 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, c
       : nsEventStatus_eIgnore;
 
   if (block == CurrentTouchBlock() && block->IsReadyForHandling()) {
-    INPQ_LOG("%p's current touch block is ready with preventdefault %d\n",
-        this, block->IsDefaultPrevented());
+    INPQ_LOG("current touch block is ready with preventdefault %d\n",
+        block->IsDefaultPrevented());
     if (block->IsDefaultPrevented()) {
       return result;
     }
@@ -123,7 +123,7 @@ InputQueue::StartNewTouchBlock(const nsRefPtr<AsyncPanZoomController>& aTarget, 
   
   while (!mTouchBlockQueue.IsEmpty()) {
     if (mTouchBlockQueue[0]->IsReadyForHandling() && !mTouchBlockQueue[0]->HasEvents()) {
-      INPQ_LOG("%p discarding depleted touch block %p\n", this, mTouchBlockQueue[0].get());
+      INPQ_LOG("discarding depleted touch block %p\n", mTouchBlockQueue[0].get());
       mTouchBlockQueue.RemoveElementAt(0);
     } else {
       break;
@@ -152,7 +152,7 @@ InputQueue::HasReadyTouchBlock() const
 
 void
 InputQueue::ScheduleContentResponseTimeout(const nsRefPtr<AsyncPanZoomController>& aTarget, uint64_t aInputBlockId) {
-  INPQ_LOG("%p scheduling content response timeout for target %p\n", this, aTarget.get());
+  INPQ_LOG("scheduling content response timeout for target %p\n", aTarget.get());
   aTarget->PostDelayedTask(
     NewRunnableMethod(this, &InputQueue::ContentResponseTimeout, aInputBlockId),
     gfxPrefs::APZContentResponseTimeout());
@@ -162,7 +162,7 @@ void
 InputQueue::ContentResponseTimeout(const uint64_t& aInputBlockId) {
   AsyncPanZoomController::AssertOnControllerThread();
 
-  INPQ_LOG("%p got a content response timeout; block=%llu\n", this, aInputBlockId);
+  INPQ_LOG("got a content response timeout; block=%llu\n", aInputBlockId);
   bool success = false;
   for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
     if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
@@ -179,7 +179,7 @@ void
 InputQueue::ContentReceivedTouch(uint64_t aInputBlockId, bool aPreventDefault) {
   AsyncPanZoomController::AssertOnControllerThread();
 
-  INPQ_LOG("%p got a content response; block=%llu\n", this, aInputBlockId);
+  INPQ_LOG("got a content response; block=%llu\n", aInputBlockId);
   bool success = false;
   for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
     if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
@@ -196,7 +196,7 @@ void
 InputQueue::SetAllowedTouchBehavior(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aBehaviors) {
   AsyncPanZoomController::AssertOnControllerThread();
 
-  INPQ_LOG("%p got allowed touch behaviours; block=%llu\n", this, aInputBlockId);
+  INPQ_LOG("got allowed touch behaviours; block=%llu\n", aInputBlockId);
   bool success = false;
   for (size_t i = 0; i < mTouchBlockQueue.Length(); i++) {
     if (mTouchBlockQueue[i]->GetBlockId() == aInputBlockId) {
@@ -221,8 +221,8 @@ InputQueue::ProcessPendingInputBlocks() {
       break;
     }
 
-    INPQ_LOG("%p processing input block %p; preventDefault %d target %p\n",
-        this, curBlock, curBlock->IsDefaultPrevented(),
+    INPQ_LOG("processing input block %p; preventDefault %d target %p\n",
+        curBlock, curBlock->IsDefaultPrevented(),
         curBlock->GetTargetApzc().get());
     nsRefPtr<AsyncPanZoomController> target = curBlock->GetTargetApzc();
     if (curBlock->IsDefaultPrevented()) {
@@ -245,7 +245,7 @@ InputQueue::ProcessPendingInputBlocks() {
 
     
     
-    INPQ_LOG("%p discarding depleted touch block %p\n", this, curBlock);
+    INPQ_LOG("discarding depleted touch block %p\n", curBlock);
     mTouchBlockQueue.RemoveElementAt(0);
   }
 }

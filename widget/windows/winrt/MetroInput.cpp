@@ -1236,7 +1236,7 @@ MetroInput::HandleTouchStartEvent(WidgetTouchEvent* aEvent)
     
     
     DUMP_ALLOWED_TOUCH_BEHAVIOR(touchBehaviors);
-    mWidget->ApzcSetAllowedTouchBehavior(mTargetAPZCGuid, mInputBlockId, touchBehaviors);
+    mWidget->ApzcSetAllowedTouchBehavior(mInputBlockId, touchBehaviors);
   }
 
   
@@ -1246,7 +1246,7 @@ MetroInput::HandleTouchStartEvent(WidgetTouchEvent* aEvent)
   if (nsEventStatus_eConsumeNoDefault == contentStatus) {
     
     
-    mWidget->ApzContentConsumingTouch(mTargetAPZCGuid, mInputBlockId);
+    mWidget->ApzContentConsumingTouch(mInputBlockId);
     mCancelable = false;
 
     
@@ -1290,9 +1290,9 @@ MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
   
   if (mCancelable) {
     if (nsEventStatus_eConsumeNoDefault == contentStatus) {
-      mWidget->ApzContentConsumingTouch(mTargetAPZCGuid, mInputBlockId);
+      mWidget->ApzContentConsumingTouch(mInputBlockId);
     } else {
-      mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid, mInputBlockId);
+      mWidget->ApzContentIgnoringTouch(mInputBlockId);
       if (apzcStatus == nsEventStatus_eConsumeDoDefault) {
         SendPointerCancelToContent(transformedEvent);
       }
@@ -1328,7 +1328,7 @@ MetroInput::SendPendingResponseToApz()
   
   
   if (mCancelable) {
-    mWidget->ApzContentIgnoringTouch(mTargetAPZCGuid, mInputBlockId);
+    mWidget->ApzContentIgnoringTouch(mInputBlockId);
     mCancelable = false;
     return true;
   }

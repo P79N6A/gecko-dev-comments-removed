@@ -209,7 +209,7 @@ public:
 
   
   void ApzcGetAllowedTouchBehavior(mozilla::WidgetInputEvent* aTransformedEvent, nsTArray<TouchBehaviorFlags>& aOutBehaviors);
-  void ApzcSetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid, uint64_t aInputBlockId, nsTArray<TouchBehaviorFlags>& aBehaviors);
+  void ApzcSetAllowedTouchBehavior(uint64_t aInputBlockId, nsTArray<TouchBehaviorFlags>& aBehaviors);
 
   
   bool ApzHitTest(mozilla::ScreenIntPoint& pt);
@@ -218,8 +218,8 @@ public:
   void ApzTransformGeckoCoordinate(const mozilla::ScreenIntPoint& pt,
                                    mozilla::LayoutDeviceIntPoint* aRefPointOut);
   
-  void ApzContentConsumingTouch(const ScrollableLayerGuid& aGuid, uint64_t aInputBlockId);
-  void ApzContentIgnoringTouch(const ScrollableLayerGuid& aGuid, uint64_t aInputBlockId);
+  void ApzContentConsumingTouch(uint64_t aInputBlockId);
+  void ApzContentIgnoringTouch(uint64_t aInputBlockId);
   
   nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent,
                                      ScrollableLayerGuid* aOutTargetGuid,

@@ -96,6 +96,7 @@ public:
 
   AsyncPanZoomController(uint64_t aLayersId,
                          APZCTreeManager* aTreeManager,
+                         const nsRefPtr<InputQueue>& aInputQueue,
                          GeckoContentController* aController,
                          GestureBehavior aGestures = DEFAULT_GESTURES);
 
@@ -630,7 +631,7 @@ protected:
   
   already_AddRefed<GeckoContentController> GetGeckoContentController() const;
   already_AddRefed<GestureEventListener> GetGestureEventListener() const;
-  nsRefPtr<InputQueue> GetInputQueue() const;
+  const nsRefPtr<InputQueue>& GetInputQueue() const;
 
   
   bool mSharingFrameMetricsAcrossProcesses;
