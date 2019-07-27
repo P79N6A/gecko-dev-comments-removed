@@ -124,7 +124,7 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
 
     
     
-    root.toggleCategories(options.contentOnly);
+    root.toggleCategories(!options.contentOnly);
 
     
     return root;
