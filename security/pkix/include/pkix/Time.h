@@ -137,6 +137,10 @@ public:
   {
   }
 
+  bool operator>(const Duration& other) const
+  {
+    return durationInSeconds > other.durationInSeconds;
+  }
   bool operator<(const Duration& other) const
   {
     return durationInSeconds < other.durationInSeconds;

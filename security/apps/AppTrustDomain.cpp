@@ -302,4 +302,12 @@ AppTrustDomain::VerifyECDSASignedDigest(const SignedDigest& signedDigest,
                                     mPinArg);
 }
 
+Result
+AppTrustDomain::CheckValidityIsAcceptable(Time , Time ,
+                                          EndEntityOrCA ,
+                                          KeyPurposeId )
+{
+  return Success;
+}
+
 } } 

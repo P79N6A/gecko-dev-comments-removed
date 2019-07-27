@@ -200,6 +200,8 @@ RegisterErrorTable()
     { "MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING",
       "The OCSP response does not include a status for the certificate being "
       "verified." },
+    { "MOZILLA_PKIX_ERROR_VALIDITY_TOO_LONG",
+      "The server presented a certificate that is valid for too long." },
   };
   
   

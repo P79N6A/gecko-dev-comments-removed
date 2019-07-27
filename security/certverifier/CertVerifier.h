@@ -13,8 +13,6 @@
 
 namespace mozilla { namespace psm {
 
-struct ChainValidationCallbackState;
-
 
 enum class KeySizeStatus {
   NeverChecked = 0,

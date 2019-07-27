@@ -948,7 +948,15 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
 
   
   
-  rv = CheckValidity(cert.GetValidity(), time);
+  Time notBefore(Time::uninitialized);
+  Time notAfter(Time::uninitialized);
+  rv = CheckValidity(cert.GetValidity(), time, &notBefore, &notAfter);
+  if (rv != Success) {
+    return rv;
+  }
+
+  rv = trustDomain.CheckValidityIsAcceptable(notBefore, notAfter, endEntityOrCA,
+                                             requiredEKUIfPresent);
   if (rv != Success) {
     return rv;
   }

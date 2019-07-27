@@ -322,6 +322,15 @@ public:
   
   
   
+  virtual Result CheckValidityIsAcceptable(Time notBefore, Time notAfter,
+                                           EndEntityOrCA endEntityOrCA,
+                                           KeyPurposeId keyPurpose) = 0;
+
+  
+  
+  
+  
+  
   
   
   
