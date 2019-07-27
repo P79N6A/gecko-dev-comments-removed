@@ -252,16 +252,16 @@ Animation::IsInEffect() const
   return computedTiming.mTimeFraction != ComputedTiming::kNullTimeFraction;
 }
 
-const AnimationProperty*
-Animation::GetAnimationOfProperty(nsCSSProperty aProperty) const
+bool
+Animation::HasAnimationOfProperty(nsCSSProperty aProperty) const
 {
   for (size_t propIdx = 0, propEnd = mProperties.Length();
        propIdx != propEnd; ++propIdx) {
     if (aProperty == mProperties[propIdx].mProperty) {
-      return &mProperties[propIdx];
+      return true;
     }
   }
-  return nullptr;
+  return false;
 }
 
 void
@@ -290,16 +290,6 @@ Animation::ComposeStyle(nsRefPtr<css::AnimValuesStyleRule>& aStyleRule,
                "incorrect last to key");
 
     if (aSetProperties.HasProperty(prop.mProperty)) {
-      
-      
-      
-      
-      continue;
-    }
-
-    if (!prop.mWinsInCascade) {
-      
-      
       
       
       

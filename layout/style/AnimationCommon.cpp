@@ -741,14 +741,6 @@ AnimationPlayerCollection::EnsureStyleRuleFor(TimeStamp aRefreshTime,
   }
 
   mManager->CheckNeedsRefresh();
-
-  
-  
-  
-  if (mManager->IsAnimationManager()) {
-    mManager->mPresContext->TransitionManager()->
-      UpdateCascadeResultsWithAnimations(this);
-  }
 }
 
 bool

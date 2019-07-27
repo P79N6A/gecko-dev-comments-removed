@@ -150,25 +150,10 @@ struct AnimationPropertySegment
 struct AnimationProperty
 {
   nsCSSProperty mProperty;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool mWinsInCascade;
-
   InfallibleTArray<AnimationPropertySegment> mSegments;
 
   bool operator==(const AnimationProperty& aOther) const {
     return mProperty == aOther.mProperty &&
-           mWinsInCascade == aOther.mWinsInCascade &&
            mSegments == aOther.mSegments;
   }
   bool operator!=(const AnimationProperty& aOther) const {
@@ -305,11 +290,7 @@ public:
   bool IsCurrent() const;
   bool IsInEffect() const;
 
-  const AnimationProperty*
-  GetAnimationOfProperty(nsCSSProperty aProperty) const;
-  bool HasAnimationOfProperty(nsCSSProperty aProperty) const {
-    return GetAnimationOfProperty(aProperty) != nullptr;
-  }
+  bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   const InfallibleTArray<AnimationProperty>& Properties() const {
     return mProperties;
   }
