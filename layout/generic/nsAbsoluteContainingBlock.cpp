@@ -470,10 +470,6 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   nsRect r =
     rect.GetPhysicalRect(outerWM, logicalCBSize.GetPhysicalSize(wm) +
                          border.Size(outerWM).GetPhysicalSize(outerWM));
-  
-  if (outerWM.IsVertical() && !outerWM.IsBidiLTR()) {
-    r.y = logicalCBSize.Height(wm) + border.TopBottom(outerWM) - r.YMost();
-  }
 
   
   

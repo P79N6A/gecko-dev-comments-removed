@@ -1623,25 +1623,20 @@ nsBidiPresUtils::RepositionFrame(nsIFrame* aFrame,
   
   
   
-  nsRect rect = aFrame->GetRect();
-
-  LogicalMargin margin = frameMargin.ConvertTo(aContainerWM, frameWM);
   
   
-  
-  
-  
-  nscoord marginStartOrEnd = aContainerReverseDir ?
-    margin.IEnd(aContainerWM) : margin.IStart(aContainerWM);
+  const LogicalMargin margin = frameMargin.ConvertTo(aContainerWM, frameWM);
+  nscoord marginStartOrEnd =
+    aContainerReverseDir ? margin.IEnd(aContainerWM)
+                         : margin.IStart(aContainerWM);
   nscoord frameStartOrEnd = aStartOrEnd + marginStartOrEnd;
-  
-  
-  
-  bool orderingRTL = aContainerReverseDir == aContainerWM.IsBidiLTR();
-  (aContainerWM.IsVertical() ? rect.y : rect.x) = orderingRTL ?
-    lineSize - (frameStartOrEnd + icoord) : frameStartOrEnd;
-  (aContainerWM.IsVertical() ? rect.height : rect.width) = icoord;
-  aFrame->SetRect(rect);
+
+  LogicalRect rect = aFrame->GetLogicalRect(aContainerWM, aContainerSize);
+  rect.ISize(aContainerWM) = icoord;
+  rect.IStart(aContainerWM) =
+    aContainerReverseDir ? lineSize - frameStartOrEnd - icoord
+                         : frameStartOrEnd;
+  aFrame->SetRect(aContainerWM, rect, aContainerSize);
 
   return icoord + margin.IStartEnd(aContainerWM);
 }
