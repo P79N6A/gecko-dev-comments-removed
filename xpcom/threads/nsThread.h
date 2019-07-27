@@ -182,7 +182,7 @@ protected:
 
   int32_t   mPriority;
   PRThread* mThread;
-  uint32_t  mRunningEvent;  
+  uint32_t  mNestedEventLoopDepth;
   uint32_t  mStackSize;
 
   struct nsThreadShutdownContext* mShutdownContext;
