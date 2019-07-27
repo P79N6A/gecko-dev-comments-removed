@@ -700,18 +700,49 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
   Matrix4x4 scrollbarTransform;
   if (aScrollbar->GetScrollbarDirection() == Layer::VERTICAL) {
-    float scale = metrics.CalculateCompositedSizeInCssPixels().height / metrics.GetScrollableRect().height;
+    const ParentLayerCoord asyncScrollY = asyncTransform._42;
+    const float asyncZoomY = asyncTransform._22;
+
+    
+    
+    
+    const float yScale = 1.f / asyncZoomY;
+
+    
+    
+    
+    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().scale * asyncZoomY);
+    const CSSCoord compositedHeight = (metrics.mCompositionBounds / effectiveZoom).height;
+    const CSSCoord scrollableHeight = metrics.GetScrollableRect().height;
+
+    
+    
+    
+    
+    
+    
+    const float ratio = compositedHeight / scrollableHeight;
+    ParentLayerCoord yTranslation = -asyncScrollY * ratio;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const CSSCoord thumbOrigin = (metrics.GetScrollOffset().y / scrollableHeight) * compositedHeight;
+    const CSSCoord thumbOriginScaled = thumbOrigin * yScale;
+    const CSSCoord thumbOriginDelta = thumbOriginScaled - thumbOrigin;
+    const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
+    yTranslation -= thumbOriginDeltaPL;
+
     if (aScrollbarIsDescendant) {
       
       
@@ -720,18 +751,39 @@ ApplyAsyncTransformToScrollbarForContent(Layer* aScrollbar,
       
       
       
-      scale *= metrics.mPresShellResolution;
+      yTranslation *= metrics.mPresShellResolution;
     }
-    scrollbarTransform.PostScale(1.f, 1.f / asyncTransform._22, 1.f);
-    scrollbarTransform.PostTranslate(0, -asyncTransform._42 * scale, 0);
+
+    scrollbarTransform.PostScale(1.f, yScale, 1.f);
+    scrollbarTransform.PostTranslate(0, yTranslation, 0);
   }
   if (aScrollbar->GetScrollbarDirection() == Layer::HORIZONTAL) {
-    float scale = metrics.CalculateCompositedSizeInCssPixels().width / metrics.GetScrollableRect().width;
+    
+
+    const ParentLayerCoord asyncScrollX = asyncTransform._41;
+    const float asyncZoomX = asyncTransform._11;
+
+    const float xScale = 1.f / asyncZoomX;
+
+    const CSSToParentLayerScale effectiveZoom(metrics.GetZoom().scale * asyncZoomX);
+    const CSSCoord compositedWidth = (metrics.mCompositionBounds / effectiveZoom).width;
+    const CSSCoord scrollableWidth = metrics.GetScrollableRect().width;
+
+    const float ratio = compositedWidth / scrollableWidth;
+    ParentLayerCoord xTranslation = -asyncScrollX * ratio;
+
+    const CSSCoord thumbOrigin = (metrics.GetScrollOffset().x / scrollableWidth) * compositedWidth;
+    const CSSCoord thumbOriginScaled = thumbOrigin * xScale;
+    const CSSCoord thumbOriginDelta = thumbOriginScaled - thumbOrigin;
+    const ParentLayerCoord thumbOriginDeltaPL = thumbOriginDelta * effectiveZoom;
+    xTranslation -= thumbOriginDeltaPL;
+
     if (aScrollbarIsDescendant) {
-      scale *= metrics.mPresShellResolution;
+      xTranslation *= metrics.mPresShellResolution;
     }
-    scrollbarTransform.PostScale(1.f / asyncTransform._11, 1.f, 1.f);
-    scrollbarTransform.PostTranslate(-asyncTransform._41 * scale, 0, 0);
+
+    scrollbarTransform.PostScale(xScale, 1.f, 1.f);
+    scrollbarTransform.PostTranslate(xTranslation, 0, 0);
   }
 
   Matrix4x4 transform = scrollbarTransform * aScrollbar->GetTransform();
