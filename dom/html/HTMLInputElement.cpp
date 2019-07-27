@@ -7269,6 +7269,8 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   nsTArray<nsFilePickerFilter> filters;
   nsString allExtensionsList;
 
+  bool allFiltersAreValid = true;
+
   
   while (tokenizer.hasMoreTokens()) {
     const nsDependentSubstring& token = tokenizer.nextToken();
@@ -7302,6 +7304,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
                       EmptyCString(), 
                       getter_AddRefs(mimeInfo))) ||
           !mimeInfo) {
+        allFiltersAreValid =  false;
         continue;
       }
 
@@ -7334,6 +7337,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
 
     if (!filterMask && (extensionListStr.IsEmpty() || filterName.IsEmpty())) {
       
+      allFiltersAreValid = false;
       continue;
     }
 
@@ -7364,7 +7368,6 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   }
 
   
-  bool allFilterAreTrusted = true;
   for (uint32_t i = 0; i < filters.Length(); ++i) {
     const nsFilePickerFilter& filter = filters[i];
     if (filter.mFilterMask) {
@@ -7372,12 +7375,11 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
     } else {
       filePicker->AppendFilter(filter.mTitle, filter.mFilter);
     }
-    allFilterAreTrusted &= filter.mIsTrusted;
   }
 
   
   
-  if (filters.Length() >= 1 && allFilterAreTrusted) {
+  if (filters.Length() >= 1 && allFiltersAreValid) {
     
     
     filePicker->SetFilterIndex(1);
