@@ -1267,7 +1267,7 @@ private:
                                                             mClonedObjects);
       }
 
-      if (aWorkerPrivate->IsSuspended()) {
+      if (aWorkerPrivate->IsFrozen()) {
         aWorkerPrivate->QueueRunnable(this);
         return true;
       }
@@ -1400,10 +1400,10 @@ private:
   }
 };
 
-class SuspendRunnable final : public WorkerControlRunnable
+class FreezeRunnable final : public WorkerControlRunnable
 {
 public:
-  explicit SuspendRunnable(WorkerPrivate* aWorkerPrivate)
+  explicit FreezeRunnable(WorkerPrivate* aWorkerPrivate)
   : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
   { }
 
@@ -1411,14 +1411,14 @@ private:
   virtual bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
-    return aWorkerPrivate->SuspendInternal(aCx);
+    return aWorkerPrivate->FreezeInternal(aCx);
   }
 };
 
-class ResumeRunnable final : public WorkerControlRunnable
+class ThawRunnable final : public WorkerControlRunnable
 {
 public:
-  explicit ResumeRunnable(WorkerPrivate* aWorkerPrivate)
+  explicit ThawRunnable(WorkerPrivate* aWorkerPrivate)
   : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount)
   { }
 
@@ -1426,7 +1426,7 @@ private:
   virtual bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
   {
-    return aWorkerPrivate->ResumeInternal(aCx);
+    return aWorkerPrivate->ThawInternal(aCx);
   }
 };
 
@@ -1603,7 +1603,7 @@ private:
     else {
       AssertIsOnMainThread();
 
-      if (aWorkerPrivate->IsSuspended()) {
+      if (aWorkerPrivate->IsFrozen()) {
         aWorkerPrivate->QueueRunnable(this);
         return true;
       }
@@ -2361,62 +2361,6 @@ private:
   { }
 };
 
-template <class Derived>
-class WorkerPrivateParent<Derived>::SynchronizeAndResumeRunnable final
-  : public nsRunnable
-{
-  friend class nsRevocableEventPtr<SynchronizeAndResumeRunnable>;
-
-  WorkerPrivate* mWorkerPrivate;
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-
-public:
-  SynchronizeAndResumeRunnable(WorkerPrivate* aWorkerPrivate,
-                               nsPIDOMWindow* aWindow)
-  : mWorkerPrivate(aWorkerPrivate), mWindow(aWindow)
-  {
-    AssertIsOnMainThread();
-    MOZ_ASSERT(aWorkerPrivate);
-    MOZ_ASSERT(aWindow);
-    MOZ_ASSERT(!aWorkerPrivate->GetParent());
-  }
-
-private:
-  ~SynchronizeAndResumeRunnable()
-  { }
-
-  NS_IMETHOD
-  Run() override
-  {
-    AssertIsOnMainThread();
-
-    if (mWorkerPrivate) {
-      AutoJSAPI jsapi;
-      if (NS_WARN_IF(!jsapi.InitWithLegacyErrorReporting(mWindow))) {
-        return NS_OK;
-      }
-      JSContext* cx = jsapi.cx();
-
-      if (!mWorkerPrivate->Resume(cx, mWindow)) {
-        JS_ReportPendingException(cx);
-      }
-    }
-
-    return NS_OK;
-  }
-
-  void
-  Revoke()
-  {
-    AssertIsOnMainThread();
-    MOZ_ASSERT(mWorkerPrivate);
-    MOZ_ASSERT(mWindow);
-
-    mWorkerPrivate = nullptr;
-    mWindow = nullptr;
-  }
-};
-
 WorkerLoadInfo::
 InterfaceRequestor::InterfaceRequestor(nsIPrincipal* aPrincipal,
                                        nsILoadGroup* aLoadGroup)
@@ -2738,7 +2682,7 @@ WorkerPrivateParent<Derived>::WorkerPrivateParent(
   mMemoryReportCondVar(mMutex, "WorkerPrivateParent Memory Report CondVar"),
   mParent(aParent), mScriptURL(aScriptURL),
   mSharedWorkerName(aSharedWorkerName), mBusyCount(0), mMessagePortSerial(0),
-  mParentStatus(Pending), mParentSuspended(false),
+  mParentStatus(Pending), mParentFrozen(false),
   mIsChromeWorker(aIsChromeWorker), mMainThreadObjectsForgotten(false),
   mWorkerType(aWorkerType),
   mCreationTimeStamp(TimeStamp::Now())
@@ -3076,10 +3020,6 @@ WorkerPrivateParent<Derived>::NotifyPrivate(JSContext* aCx, Status aStatus)
     return true;
   }
 
-  
-  MOZ_ASSERT_IF(mSynchronizeRunnable.get(), !GetParent());
-  mSynchronizeRunnable.Revoke();
-
   NS_ASSERTION(aStatus != Terminating || mQueuedRunnables.IsEmpty(),
                "Shouldn't have anything queued!");
 
@@ -3093,7 +3033,7 @@ WorkerPrivateParent<Derived>::NotifyPrivate(JSContext* aCx, Status aStatus)
 
 template <class Derived>
 bool
-WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
+WorkerPrivateParent<Derived>::Freeze(JSContext* aCx, nsPIDOMWindow* aWindow)
 {
   AssertIsOnParentThread();
   MOZ_ASSERT(aCx);
@@ -3107,17 +3047,17 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
     struct Closure
     {
       nsPIDOMWindow* mWindow;
-      bool mAllSuspended;
+      bool mAllFrozen;
 
       explicit Closure(nsPIDOMWindow* aWindow)
-      : mWindow(aWindow), mAllSuspended(true)
+      : mWindow(aWindow), mAllFrozen(true)
       {
         AssertIsOnMainThread();
         
       }
 
       static PLDHashOperator
-      Suspend(const uint64_t& aKey,
+      Freeze(const uint64_t& aKey,
               SharedWorker* aSharedWorker,
               void* aClosure)
       {
@@ -3132,13 +3072,13 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
           
           nsRefPtr<SharedWorker> kungFuDeathGrip = aSharedWorker;
 
-          aSharedWorker->Suspend();
+          aSharedWorker->Freeze();
         } else {
           MOZ_ASSERT_IF(aSharedWorker->GetOwner() && closure->mWindow,
                         !SameCOMIdentity(aSharedWorker->GetOwner(),
                                          closure->mWindow));
-          if (!aSharedWorker->IsSuspended()) {
-            closure->mAllSuspended = false;
+          if (!aSharedWorker->IsFrozen()) {
+            closure->mAllFrozen = false;
           }
         }
         return PL_DHASH_NEXT;
@@ -3147,14 +3087,14 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
 
     Closure closure(aWindow);
 
-    mSharedWorkers.EnumerateRead(Closure::Suspend, &closure);
+    mSharedWorkers.EnumerateRead(Closure::Freeze, &closure);
 
-    if (!closure.mAllSuspended || mParentSuspended) {
+    if (!closure.mAllFrozen || mParentFrozen) {
       return true;
     }
   }
 
-  mParentSuspended = true;
+  mParentFrozen = true;
 
   {
     MutexAutoLock lock(mMutex);
@@ -3164,8 +3104,8 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
     }
   }
 
-  nsRefPtr<SuspendRunnable> runnable =
-    new SuspendRunnable(ParentAsWorkerPrivate());
+  nsRefPtr<FreezeRunnable> runnable =
+    new FreezeRunnable(ParentAsWorkerPrivate());
   if (!runnable->Dispatch(aCx)) {
     return false;
   }
@@ -3175,11 +3115,17 @@ WorkerPrivateParent<Derived>::Suspend(JSContext* aCx, nsPIDOMWindow* aWindow)
 
 template <class Derived>
 bool
-WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
+WorkerPrivateParent<Derived>::Thaw(JSContext* aCx, nsPIDOMWindow* aWindow)
 {
   AssertIsOnParentThread();
   MOZ_ASSERT(aCx);
-  MOZ_ASSERT_IF(IsDedicatedWorker(), mParentSuspended);
+
+  if (IsDedicatedWorker() && !mParentFrozen) {
+    
+    
+    
+    return true;
+  }
 
   
   
@@ -3200,7 +3146,7 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
       }
 
       static PLDHashOperator
-      Resume(const uint64_t& aKey,
+      Thaw(const uint64_t& aKey,
               SharedWorker* aSharedWorker,
               void* aClosure)
       {
@@ -3215,13 +3161,13 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
           
           nsRefPtr<SharedWorker> kungFuDeathGrip = aSharedWorker;
 
-          aSharedWorker->Resume();
+          aSharedWorker->Thaw();
           closure->mAnyRunning = true;
         } else {
           MOZ_ASSERT_IF(aSharedWorker->GetOwner() && closure->mWindow,
                         !SameCOMIdentity(aSharedWorker->GetOwner(),
                                          closure->mWindow));
-          if (!aSharedWorker->IsSuspended()) {
+          if (!aSharedWorker->IsFrozen()) {
             closure->mAnyRunning = true;
           }
         }
@@ -3231,16 +3177,16 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
 
     Closure closure(aWindow);
 
-    mSharedWorkers.EnumerateRead(Closure::Resume, &closure);
+    mSharedWorkers.EnumerateRead(Closure::Thaw, &closure);
 
-    if (!closure.mAnyRunning || !mParentSuspended) {
+    if (!closure.mAnyRunning || !mParentFrozen) {
       return true;
     }
   }
 
-  MOZ_ASSERT(mParentSuspended);
+  MOZ_ASSERT(mParentFrozen);
 
-  mParentSuspended = false;
+  mParentFrozen = false;
 
   {
     MutexAutoLock lock(mMutex);
@@ -3249,10 +3195,6 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
       return true;
     }
   }
-
-  
-  MOZ_ASSERT_IF(mSynchronizeRunnable.get(), !GetParent());
-  mSynchronizeRunnable.Revoke();
 
   
   
@@ -3268,45 +3210,12 @@ WorkerPrivateParent<Derived>::Resume(JSContext* aCx, nsPIDOMWindow* aWindow)
     }
   }
 
-  nsRefPtr<ResumeRunnable> runnable =
-    new ResumeRunnable(ParentAsWorkerPrivate());
+  nsRefPtr<ThawRunnable> runnable =
+    new ThawRunnable(ParentAsWorkerPrivate());
   if (!runnable->Dispatch(aCx)) {
     return false;
   }
 
-  return true;
-}
-
-template <class Derived>
-bool
-WorkerPrivateParent<Derived>::SynchronizeAndResume(
-                                               JSContext* aCx,
-                                               nsPIDOMWindow* aWindow)
-{
-  AssertIsOnMainThread();
-  MOZ_ASSERT(!GetParent());
-
-  if (IsDedicatedWorker() && !mParentSuspended) {
-    
-    
-    
-    return true;
-  }
-
-  
-  
-  
-  
-  
-
-  nsRefPtr<SynchronizeAndResumeRunnable> runnable =
-    new SynchronizeAndResumeRunnable(ParentAsWorkerPrivate(), aWindow);
-  if (NS_FAILED(NS_DispatchToCurrentThread(runnable))) {
-    JS_ReportError(aCx, "Failed to dispatch to current thread!");
-    return false;
-  }
-
-  mSynchronizeRunnable = runnable;
   return true;
 }
 
@@ -3786,7 +3695,7 @@ WorkerPrivateParent<Derived>::RegisterSharedWorker(JSContext* aCx,
 
   
   
-  if (mSharedWorkers.Count() > 1 && !Resume(aCx, nullptr)) {
+  if (mSharedWorkers.Count() > 1 && !Thaw(aCx, nullptr)) {
     return false;
   }
 
@@ -3817,7 +3726,7 @@ WorkerPrivateParent<Derived>::UnregisterSharedWorker(
   
   
   if (mSharedWorkers.Count()) {
-    if (!Suspend(aCx, nullptr)) {
+    if (!Freeze(aCx, nullptr)) {
       JS_ReportPendingException(aCx);
     }
   } else if (!Cancel(aCx)) {
@@ -4644,7 +4553,7 @@ WorkerPrivate::WorkerPrivate(JSContext* aCx,
   , mErrorHandlerRecursionCount(0)
   , mNextTimeoutId(1)
   , mStatus(Pending)
-  , mSuspended(false)
+  , mFrozen(false)
   , mTimerRunning(false)
   , mRunningExpiredTimeouts(false)
   , mCloseHandlerStarted(false)
@@ -5447,13 +5356,13 @@ WorkerPrivate::InterruptCallback(JSContext* aCx)
     
     mayContinue = ProcessAllControlRunnables();
 
-    bool maySuspend = mSuspended;
-    if (maySuspend) {
+    bool mayFreeze = mFrozen;
+    if (mayFreeze) {
       MutexAutoLock lock(mMutex);
-      maySuspend = mStatus <= Running;
+      mayFreeze = mStatus <= Running;
     }
 
-    if (!mayContinue || !maySuspend) {
+    if (!mayContinue || !mayFreeze) {
       break;
     }
 
@@ -5777,24 +5686,24 @@ WorkerPrivate::RemainingRunTimeMS() const
 }
 
 bool
-WorkerPrivate::SuspendInternal(JSContext* aCx)
+WorkerPrivate::FreezeInternal(JSContext* aCx)
 {
   AssertIsOnWorkerThread();
 
-  NS_ASSERTION(!mSuspended, "Already suspended!");
+  NS_ASSERTION(!mFrozen, "Already frozen!");
 
-  mSuspended = true;
+  mFrozen = true;
   return true;
 }
 
 bool
-WorkerPrivate::ResumeInternal(JSContext* aCx)
+WorkerPrivate::ThawInternal(JSContext* aCx)
 {
   AssertIsOnWorkerThread();
 
-  NS_ASSERTION(mSuspended, "Not yet suspended!");
+  NS_ASSERTION(mFrozen, "Not yet frozen!");
 
-  mSuspended = false;
+  mFrozen = false;
   return true;
 }
 

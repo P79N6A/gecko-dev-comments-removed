@@ -12943,7 +12943,7 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
     DisableGamepadUpdates();
 
     
-    mozilla::dom::workers::SuspendWorkersForWindow(this);
+    mozilla::dom::workers::FreezeWorkersForWindow(this);
 
     TimeStamp now = TimeStamp::Now();
     for (nsTimeout *t = mTimeouts.getFirst(); t; t = t->getNext()) {
@@ -13032,7 +13032,7 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
     }
 
     
-    mozilla::dom::workers::ResumeWorkersForWindow(this);
+    mozilla::dom::workers::ThawWorkersForWindow(this);
 
     
     

@@ -124,8 +124,6 @@ public:
 template <class Derived>
 class WorkerPrivateParent : public DOMEventTargetHelper
 {
-  class SynchronizeAndResumeRunnable;
-
 protected:
   class EventTarget;
   friend class EventTarget;
@@ -168,7 +166,6 @@ private:
 
   
   nsTArray<nsCOMPtr<nsIRunnable>> mQueuedRunnables;
-  nsRevocableEventPtr<SynchronizeAndResumeRunnable> mSynchronizeRunnable;
 
   
   nsTArray<nsCString> mHostObjectURIs;
@@ -183,7 +180,7 @@ private:
   uint64_t mBusyCount;
   uint64_t mMessagePortSerial;
   Status mParentStatus;
-  bool mParentSuspended;
+  bool mParentFrozen;
   bool mIsChromeWorker;
   bool mMainThreadObjectsForgotten;
   WorkerType mWorkerType;
@@ -297,15 +294,11 @@ public:
 
   
   
-  
   bool
-  Suspend(JSContext* aCx, nsPIDOMWindow* aWindow);
+  Freeze(JSContext* aCx, nsPIDOMWindow* aWindow);
 
   bool
-  Resume(JSContext* aCx, nsPIDOMWindow* aWindow);
-
-  bool
-  SynchronizeAndResume(JSContext* aCx, nsPIDOMWindow* aWindow);
+  Thaw(JSContext* aCx, nsPIDOMWindow* aWindow);
 
   bool
   Terminate(JSContext* aCx)
@@ -414,10 +407,10 @@ public:
   }
 
   bool
-  IsSuspended() const
+  IsFrozen() const
   {
     AssertIsOnParentThread();
-    return mParentSuspended;
+    return mParentFrozen;
   }
 
   bool
@@ -851,7 +844,7 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
   uint32_t mErrorHandlerRecursionCount;
   uint32_t mNextTimeoutId;
   Status mStatus;
-  bool mSuspended;
+  bool mFrozen;
   bool mTimerRunning;
   bool mRunningExpiredTimeouts;
   bool mCloseHandlerStarted;
@@ -926,10 +919,10 @@ public:
   }
 
   bool
-  SuspendInternal(JSContext* aCx);
+  FreezeInternal(JSContext* aCx);
 
   bool
-  ResumeInternal(JSContext* aCx);
+  ThawInternal(JSContext* aCx);
 
   void
   TraceTimeouts(const TraceCallbacks& aCallbacks, void* aClosure) const;
