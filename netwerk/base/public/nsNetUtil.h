@@ -200,17 +200,13 @@ NS_NewFileURI(nsIURI* *result,
 inline nsresult
 NS_NewChannelInternal(nsIChannel**           outChannel,
                       nsIURI*                aUri,
-                      nsINode*               aRequestingNode,
-                      nsIPrincipal*          aRequestingPrincipal,
-                      nsIPrincipal*          aTriggeringPrincipal,
-                      nsSecurityFlags        aSecurityFlags,
-                      nsContentPolicyType    aContentPolicyType,
-                      nsIURI*                aBaseURI = nullptr,
+                      nsILoadInfo*           aLoadInfo,
                       nsILoadGroup*          aLoadGroup = nullptr,
                       nsIInterfaceRequestor* aCallbacks = nullptr,
                       nsLoadFlags            aLoadFlags = nsIRequest::LOAD_NORMAL,
                       nsIIOService*          aIoService = nullptr)
 {
+  NS_ASSERTION(aLoadInfo, "Can not create channel without aLoadInfo!");
   NS_ENSURE_ARG_POINTER(outChannel);
 
   nsCOMPtr<nsIIOService> grip;
@@ -238,31 +234,11 @@ NS_NewChannelInternal(nsIChannel**           outChannel,
     rv = channel->SetLoadFlags(aLoadFlags | (normalLoadFlags & nsIChannel::LOAD_REPLACE));
     NS_ENSURE_SUCCESS(rv, rv);
   }
+  channel->SetLoadInfo(aLoadInfo);
 
   
   
-  
-  
-  
-  nsCOMPtr<nsILoadInfo> loadInfo;
-  channel->GetLoadInfo(getter_AddRefs(loadInfo));
-  if (loadInfo) {
-    aSecurityFlags |= loadInfo->GetSecurityFlags();
-  }
-
-  
-  loadInfo =
-    new mozilla::LoadInfo(aRequestingPrincipal, aTriggeringPrincipal,
-                          aRequestingNode, aSecurityFlags,
-                          aContentPolicyType, aBaseURI);
-  if (!loadInfo) {
-    return NS_ERROR_UNEXPECTED;
-  }
-  channel->SetLoadInfo(loadInfo);
-
-  
-  
-  if (loadInfo->GetLoadingSandboxed()) {
+  if (aLoadInfo->GetLoadingSandboxed()) {
     channel->SetOwner(nullptr);
   }
 
@@ -273,27 +249,31 @@ NS_NewChannelInternal(nsIChannel**           outChannel,
 inline nsresult
 NS_NewChannelInternal(nsIChannel**           outChannel,
                       nsIURI*                aUri,
-                      nsILoadInfo*           aLoadInfo,
+                      nsINode*               aRequestingNode,
+                      nsIPrincipal*          aRequestingPrincipal,
+                      nsIPrincipal*          aTriggeringPrincipal,
+                      nsSecurityFlags        aSecurityFlags,
+                      nsContentPolicyType    aContentPolicyType,
                       nsILoadGroup*          aLoadGroup = nullptr,
                       nsIInterfaceRequestor* aCallbacks = nullptr,
                       nsLoadFlags            aLoadFlags = nsIRequest::LOAD_NORMAL,
                       nsIIOService*          aIoService = nullptr)
 {
-  MOZ_ASSERT(aLoadInfo, "Can not create a channel without a loadInfo");
-  nsresult rv = NS_NewChannelInternal(outChannel,
-                                      aUri,
-                                      aLoadInfo->LoadingNode(),
-                                      aLoadInfo->LoadingPrincipal(),
-                                      aLoadInfo->TriggeringPrincipal(),
-                                      aLoadInfo->GetSecurityFlags(),
-                                      aLoadInfo->GetContentPolicyType(),
-                                      aLoadInfo->BaseURI(),
-                                      aLoadGroup,
-                                      aCallbacks,
-                                      aLoadFlags,
-                                      aIoService);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
+  NS_ASSERTION(aRequestingPrincipal, "Can not create channel without a requesting Principal!");
+
+  nsCOMPtr<nsILoadInfo> loadInfo =
+    new mozilla::LoadInfo(aRequestingPrincipal, aTriggeringPrincipal,
+                          aRequestingNode, aSecurityFlags, aContentPolicyType);
+  if (!loadInfo) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  return NS_NewChannelInternal(outChannel,
+                               aUri,
+                               loadInfo,
+                               aLoadGroup,
+                               aCallbacks,
+                               aLoadFlags,
+                               aIoService);
 }
 
 inline nsresult 
@@ -317,7 +297,6 @@ NS_NewChannelWithTriggeringPrincipal(nsIChannel**           outChannel,
                                aTriggeringPrincipal,
                                aSecurityFlags,
                                aContentPolicyType,
-                               nullptr, 
                                aLoadGroup,
                                aCallbacks,
                                aLoadFlags,
@@ -344,7 +323,6 @@ NS_NewChannelWithTriggeringPrincipal(nsIChannel**           outChannel,
                                aTriggeringPrincipal,
                                aSecurityFlags,
                                aContentPolicyType,
-                               nullptr, 
                                aLoadGroup,
                                aCallbacks,
                                aLoadFlags,
@@ -370,7 +348,6 @@ NS_NewChannel(nsIChannel**           outChannel,
                                nullptr, 
                                aSecurityFlags,
                                aContentPolicyType,
-                               nullptr, 
                                aLoadGroup,
                                aCallbacks,
                                aLoadFlags,
@@ -395,7 +372,6 @@ NS_NewChannel(nsIChannel**           outChannel,
                                nullptr, 
                                aSecurityFlags,
                                aContentPolicyType,
-                               nullptr, 
                                aLoadGroup,
                                aCallbacks,
                                aLoadFlags,
@@ -430,7 +406,6 @@ NS_OpenURIInternal(nsIInputStream**       outStream,
                                       aTriggeringPrincipal,
                                       aSecurityFlags,
                                       aContentPolicyType,
-                                      nullptr, 
                                       aLoadGroup,
                                       aCallbacks,
                                       aLoadFlags,
@@ -987,7 +962,6 @@ NS_NewStreamLoaderInternal(nsIStreamLoader**        outStream,
                                        nullptr, 
                                        aSecurityFlags,
                                        aContentPolicyType,
-                                       nullptr, 
                                        aLoadGroup,
                                        aCallbacks,
                                        aLoadFlags);
