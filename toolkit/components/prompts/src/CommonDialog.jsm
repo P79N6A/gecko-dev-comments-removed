@@ -198,10 +198,10 @@ CommonDialog.prototype = {
         
         
         var accessKey = null;
-        if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
+        if (/ *\(\&([^&])\)(:?)$/.test(aLabel)) {
             aLabel = RegExp.leftContext + RegExp.$2;
             accessKey = RegExp.$1;
-        } else if (/^(.*[^&])?\&(([^&]).*$)/.test(aLabel)) {
+        } else if (/^([^&]*)\&(([^&]).*$)/.test(aLabel)) {
             aLabel = RegExp.$1 + RegExp.$2;
             accessKey = RegExp.$3;
         }
