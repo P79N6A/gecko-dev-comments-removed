@@ -126,7 +126,7 @@ def install(src, dest):
 
     except Exception, ex:
         cls, exc, trbk = sys.exc_info()
-        error = InstallError('Failed to install "%s (%s)"' % src, str(ex))
+        error = InstallError('Failed to install "%s (%s)"' % (src, str(ex)))
         raise InstallError, error, trbk
 
     finally:
@@ -200,7 +200,7 @@ def uninstall(install_folder):
             try:
                 cmdArgs = ['%s\uninstall\helper.exe' % install_folder, '/S']
                 result = subprocess.call(cmdArgs)
-                if not result is 0:
+                if result is not 0:
                     raise Exception('Execution of uninstaller failed.')
 
                 
@@ -215,7 +215,7 @@ def uninstall(install_folder):
 
             except Exception, ex:
                 cls, exc, trbk = sys.exc_info()
-                error = UninstallError('Failed to uninstall %s (%s)' % install_folder, str(ex))
+                error = UninstallError('Failed to uninstall %s (%s)' % (install_folder, str(ex)))
                 raise UninstallError, error, trbk
 
             finally:
@@ -288,7 +288,7 @@ def _install_exe(src, dest):
 
     
     result = subprocess.call(cmd)
-    if not result is 0:
+    if result is not 0:
         raise Exception('Execution of installer failed.')
 
     return dest
