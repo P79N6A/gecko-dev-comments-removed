@@ -60,11 +60,7 @@ startTest(function() {
     
     .then(() => gRemoteDial(inNumber))
     .then(call => { inCall = call; })
-    
-    
-    
-    
-    .then(() => check(PHONE_STATE_RINGTONE, PHONE_STATE_NORMAL, PHONE_STATE_NORMAL))
+    .then(() => check(PHONE_STATE_RINGTONE, PHONE_STATE_RINGTONE, PHONE_STATE_RINGTONE))
     .then(() => gAnswer(inCall))
     .then(() => check(PHONE_STATE_IN_CALL, PHONE_STATE_IN_CALL))
     
