@@ -129,6 +129,8 @@ const PREFIX_NS_EM                    = "http://www.mozilla.org/2004/em-rdf#";
 
 const TOOLKIT_ID                      = "toolkit@mozilla.org";
 
+const XPI_SIGNATURE_CHECK_PERIOD      = 24 * 60 * 60;
+
 
 #expand const DB_SCHEMA                       = __MOZ_EXTENSIONS_DB_SCHEMA__;
 const NOTIFICATION_TOOLBOXPROCESS_LOADED      = "ToolboxProcessLoaded";
@@ -1369,6 +1371,22 @@ function verifyDirSignedState(aDir, aExpectedID) {
 
 
 
+function verifyBundleSignedState(aBundle, aExpectedID) {
+  if (aBundle.isFile())
+    return verifyZipSignedState(aBundle, aExpectedID);
+  return verifyDirSignedState(aBundle, aExpectedID);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2344,6 +2362,12 @@ this.XPIProvider = {
 
       this.extensionsActive = true;
       this.runPhase = XPI_BEFORE_UI_STARTUP;
+
+      let timerManager = Cc["@mozilla.org/updates/timer-manager;1"].
+                         getService(Ci.nsIUpdateTimerManager);
+      timerManager.registerTimer("xpi-signature-verification", () => {
+        this.verifySignatures();
+      }, XPI_SIGNATURE_CHECK_PERIOD);
     }
     catch (e) {
       logger.error("startup failed", e);
@@ -2492,6 +2516,45 @@ this.XPIProvider = {
     
     Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS,
                                !XPIDatabase.writeAddonsList());
+  },
+
+  
+
+
+  verifySignatures: function XPI_verifySignatures() {
+    XPIDatabase.getAddonList(addon => SIGNED_TYPES.has(addon.type), (addons) => {
+      Task.spawn(function*() {
+        let changes = {
+          enabled: [],
+          disabled: []
+        };
+
+        for (let addon of addons) {
+          
+          if (!addon._sourceBundle.exists())
+            continue;
+
+          let signedState = yield verifyBundleSignedState(addon._sourceBundle, addon.id);
+          if (signedState == addon.signedState)
+            continue;
+
+          addon.signedState = signedState;
+          AddonManagerPrivate.callAddonListeners("onPropertyChanged",
+                                                 createWrapper(addon),
+                                                 ["signedState"]);
+
+          let disabled = XPIProvider.updateAddonDisabledState(addon);
+          if (disabled !== undefined)
+            changes[disabled ? "disabled" : "enabled"].push(addon.id);
+        }
+
+        XPIDatabase.saveChanges();
+
+        Services.obs.notifyObservers(null, "xpi-signature-changed", JSON.stringify(changes));
+      }).then(null, err => {
+        logger.error("XPI_verifySignature: " + err);
+      })
+    });
   },
 
   
@@ -4559,6 +4622,10 @@ this.XPIProvider = {
 
 
 
+
+
+
+
   updateAddonDisabledState: function XPI_updateAddonDisabledState(aAddon,
                                                                   aUserDisabled,
                                                                   aSoftDisabled) {
@@ -4587,7 +4654,7 @@ this.XPIProvider = {
     if (aAddon.userDisabled == aUserDisabled &&
         aAddon.appDisabled == appDisabled &&
         aAddon.softDisabled == aSoftDisabled)
-      return;
+      return undefined;
 
     let wasDisabled = aAddon.disabled;
     let isDisabled = aUserDisabled || aSoftDisabled || appDisabled;
@@ -4607,21 +4674,22 @@ this.XPIProvider = {
       });
     }
 
+    let wrapper = createWrapper(aAddon);
+
     if (appDisabledChanged) {
       AddonManagerPrivate.callAddonListeners("onPropertyChanged",
-                                            aAddon,
-                                            ["appDisabled"]);
+                                             wrapper,
+                                             ["appDisabled"]);
     }
 
     
     
     if (!aAddon.visible || (wasDisabled == isDisabled))
-      return;
+      return undefined;
 
     
     Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
 
-    let wrapper = createWrapper(aAddon);
     
     if (isDisabled != aAddon.active) {
       AddonManagerPrivate.callAddonListeners("onOperationCancelled", wrapper);
@@ -4673,6 +4741,8 @@ this.XPIProvider = {
     
     if (aAddon.type == "theme" && !isDisabled)
       AddonManagerPrivate.notifyAddonChanged(aAddon.id, aAddon.type, needsRestart);
+
+    return isDisabled;
   },
 
   
