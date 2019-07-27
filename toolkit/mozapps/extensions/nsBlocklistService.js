@@ -757,6 +757,9 @@ Blocklist.prototype = {
 
 
 
+
+
+
   _loadBlocklistFromFile: function Blocklist_loadBlocklistFromFile(file) {
     if (!gBlocklistEnabled) {
       LOG("Blocklist::_loadBlocklistFromFile: blocklist is disabled");
@@ -926,13 +929,27 @@ Blocklist.prototype = {
   _handleCertItemNode: function Blocklist_handleCertItemNode(blocklistElement,
                                                              result) {
     let issuer = blocklistElement.getAttribute("issuerName");
-    for (let snElement of blocklistElement.children) {
+    if (issuer) {
+      for (let snElement of blocklistElement.children) {
+        try {
+          gCertBlocklistService.revokeCertByIssuerAndSerial(issuer, snElement.textContent);
+        } catch (e) {
+          
+          
+          LOG("Blocklist::_handleCertItemNode: Error adding revoked cert by Issuer and Serial" + e);
+        }
+      }
+      return;
+    }
+
+    let pubKeyHash = blocklistElement.getAttribute("pubKeyHash");
+    let subject = blocklistElement.getAttribute("subject");
+
+    if (pubKeyHash && subject) {
       try {
-        gCertBlocklistService.addRevokedCert(issuer, snElement.textContent);
+        gCertBlocklistService.revokeCertBySubjectAndPubKey(subject, pubKeyHash);
       } catch (e) {
-        
-        
-        LOG("Blocklist::_handleCertItemNode: Error adding revoked cert " + e);
+        LOG("Blocklist::_handleCertItemNode: Error adding revoked cert by Subject and PubKey" + e);
       }
     }
   },
