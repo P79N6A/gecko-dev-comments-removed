@@ -8,6 +8,7 @@
 
 #include "FrameMetrics.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/layers/APZUtils.h"
 #include "nsIDOMWindowUtils.h"
 
 class nsIContent;
@@ -27,6 +28,16 @@ public:
   virtual void Run(uint64_t aInputBlockId, const nsTArray<ScrollableLayerGuid>& aTargets) const = 0;
 protected:
   virtual ~SetTargetAPZCCallback() {}
+};
+
+
+
+struct SetAllowedTouchBehaviorCallback {
+public:
+  NS_INLINE_DECL_REFCOUNTING(SetAllowedTouchBehaviorCallback)
+  virtual void Run(uint64_t aInputBlockId, const nsTArray<TouchBehaviorFlags>& aFlags) const = 0;
+protected:
+  virtual ~SetAllowedTouchBehaviorCallback() {}
 };
 
 
@@ -163,9 +174,16 @@ public:
                                               const ScrollableLayerGuid& aGuid,
                                               uint64_t aInputBlockId,
                                               const nsRefPtr<SetTargetAPZCCallback>& aCallback);
+
+    
+
+    static void SendSetAllowedTouchBehaviorNotification(nsIWidget* aWidget,
+                                                         const WidgetTouchEvent& aEvent,
+                                                         uint64_t aInputBlockId,
+                                                         const nsRefPtr<SetAllowedTouchBehaviorCallback>& aCallback);
 };
 
 }
 }
 
-#endif 
+#endif
