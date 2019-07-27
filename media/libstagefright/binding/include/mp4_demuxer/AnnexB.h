@@ -22,13 +22,13 @@ public:
   static void ConvertSample(MP4Sample* aSample);
 
   
-  static already_AddRefed<nsRcTArray<uint8_t>> ConvertExtraDataToAnnexB(
-    mozilla::Vector<uint8_t>& aExtraData);
+  static already_AddRefed<ByteBuffer> ConvertExtraDataToAnnexB(
+    const ByteBuffer* aExtraData);
 
 private:
   
   static void ConvertSPSOrPPS(ByteReader& aReader, uint8_t aCount,
-                              nsTArray<uint8_t>* aAnnexB);
+                              ByteBuffer* aAnnexB);
 };
 
 } 

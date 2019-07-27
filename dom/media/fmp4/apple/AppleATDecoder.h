@@ -36,7 +36,7 @@ public:
   const mp4_demuxer::AudioDecoderConfig& mConfig;
 
   
-  mozilla::Vector<uint8_t> mMagicCookie;
+  nsTArray<uint8_t> mMagicCookie;
   
   
   bool mFileStreamError;
@@ -53,7 +53,7 @@ private:
   void SubmitSample(nsAutoPtr<mp4_demuxer::MP4Sample> aSample);
   nsresult DecodeSample(mp4_demuxer::MP4Sample* aSample);
   nsresult GetInputAudioDescription(AudioStreamBasicDescription& aDesc,
-                                    const mozilla::Vector<uint8_t>& aExtraData);
+                                    const nsTArray<uint8_t>& aExtraData);
   
   
   nsresult SetupDecoder(mp4_demuxer::MP4Sample* aSample);
