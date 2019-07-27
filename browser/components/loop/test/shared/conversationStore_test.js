@@ -658,8 +658,17 @@ describe("loop.store.ConversationStore", function () {
         expect(store.get("emailLink")).eql("http://fake.invalid/");
       });
 
-    
-    it.skip("should trigger an error in case of failure");
+    it("should trigger an error:emailLink event in case of failure",
+      function() {
+        var trigger = sandbox.stub(store, "trigger");
+        client.requestCallUrl = function(callId, cb) {
+          cb("error");
+        };
+        dispatcher.dispatch(new sharedActions.FetchEmailLink());
+
+        sinon.assert.calledOnce(trigger);
+        sinon.assert.calledWithExactly(trigger, "error:emailLink");
+      });
   });
 
   describe("Events", function() {

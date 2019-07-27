@@ -313,8 +313,7 @@ loop.store.ConversationStore = (function() {
       
       this.client.requestCallUrl("", function(err, callUrlData) {
         if (err) {
-          
-          console.error(err);
+          this.trigger("error:emailLink");
           return;
         }
         this.set("emailLink", callUrlData.callUrl);
