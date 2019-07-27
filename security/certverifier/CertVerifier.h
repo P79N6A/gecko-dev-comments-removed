@@ -25,6 +25,15 @@ public:
   static const Flags FLAG_MUST_BE_EV;
 
   
+  enum OCSPStaplingStatus {
+    OCSP_STAPLING_NEVER_CHECKED = 0,
+    OCSP_STAPLING_GOOD = 1,
+    OCSP_STAPLING_NONE = 2,
+    OCSP_STAPLING_EXPIRED = 3,
+    OCSP_STAPLING_INVALID = 4,
+  };
+
+  
   
   SECStatus VerifyCert(CERTCertificate* cert,
                        SECCertificateUsage usage,
@@ -34,7 +43,8 @@ public:
                        Flags flags = 0,
         const SECItem* stapledOCSPResponse = nullptr,
        ScopedCERTCertList* builtChain = nullptr,
-       SECOidTag* evOidPolicy = nullptr);
+       SECOidTag* evOidPolicy = nullptr,
+       OCSPStaplingStatus* ocspStaplingStatus = nullptr);
 
   SECStatus VerifySSLServerCert(
                     CERTCertificate* peerCert,
@@ -45,7 +55,8 @@ public:
                     bool saveIntermediatesInPermanentDatabase = false,
                     Flags flags = 0,
     ScopedCERTCertList* builtChain = nullptr,
-    SECOidTag* evOidPolicy = nullptr);
+    SECOidTag* evOidPolicy = nullptr,
+    OCSPStaplingStatus* ocspStaplingStatus = nullptr);
 
   enum PinningMode {
     pinningDisabled = 0,

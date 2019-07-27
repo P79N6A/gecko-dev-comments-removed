@@ -1085,11 +1085,22 @@ AuthCertificate(CertVerifier& certVerifier,
 
   SECOidTag evOidPolicy;
   ScopedCERTCertList certList;
+  CertVerifier::OCSPStaplingStatus ocspStaplingStatus =
+    CertVerifier::OCSP_STAPLING_NEVER_CHECKED;
+
   rv = certVerifier.VerifySSLServerCert(cert, stapledOCSPResponse,
                                         time, infoObject,
                                         infoObject->GetHostNameRaw(),
                                         saveIntermediates, 0, &certList,
-                                        &evOidPolicy);
+                                        &evOidPolicy, &ocspStaplingStatus);
+  PRErrorCode savedErrorCode;
+  if (rv != SECSuccess) {
+    savedErrorCode = PR_GetError();
+  }
+
+  if (ocspStaplingStatus != CertVerifier::OCSP_STAPLING_NEVER_CHECKED) {
+    Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, ocspStaplingStatus);
+  }
 
   
   
@@ -1142,6 +1153,7 @@ AuthCertificate(CertVerifier& certVerifier,
     
     
     infoObject->SetFailedCertChain(peerCertChain);
+    PR_SetError(savedErrorCode, 0);
   }
 
   return rv;
