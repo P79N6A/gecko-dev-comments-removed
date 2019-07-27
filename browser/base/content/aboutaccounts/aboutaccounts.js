@@ -99,16 +99,6 @@ let wrapper = {
   iframe: null,
 
   init: function (url, urlParams) {
-    let weave = Cc["@mozilla.org/weave/service;1"]
-                  .getService(Ci.nsISupports)
-                  .wrappedJSObject;
-
-    
-    if (!weave.fxAccountsEnabled) {
-      document.body.remove();
-      return;
-    }
-
     
     
     
