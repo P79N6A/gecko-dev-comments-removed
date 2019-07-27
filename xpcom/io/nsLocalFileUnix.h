@@ -64,7 +64,7 @@
 
 
 
-#if defined(HAVE_STAT64) && defined(HAVE_LSTAT64) && !defined(XP_MACOSX)
+#if defined(HAVE_STAT64) && defined(HAVE_LSTAT64) && !defined(XP_DARWIN)
   #if defined (AIX)
     #if defined STAT
       #undef STAT
