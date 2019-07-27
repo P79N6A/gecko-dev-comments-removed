@@ -165,43 +165,6 @@ var gPrivacyPane = {
   
 
 
-  setTrackingPrefs: function PPP_setTrackingPrefs()
-  {
-    let dntRadioGroup = document.getElementById("doNotTrackSelection"),
-        dntValuePref = document.getElementById("privacy.donottrackheader.value"),
-        dntEnabledPref = document.getElementById("privacy.donottrackheader.enabled");
-
-    
-    
-    if (dntRadioGroup.selectedItem.value == -1) {
-      dntEnabledPref.value = false;
-      return dntValuePref.value;
-    }
-
-    dntEnabledPref.value = true;
-    return dntRadioGroup.selectedItem.value;
-  },
-
-  
-
-
-  getTrackingPrefs: function PPP_getTrackingPrefs()
-  {
-    
-    let dntValue = Services.prefs.getIntPref("privacy.donottrackheader.value"),
-        dntEnabled = Services.prefs.getBoolPref("privacy.donottrackheader.enabled");
-
-    
-    
-    if (dntEnabled)
-      return dntValue;
-
-    return document.getElementById("dntnopref").value;
-  },
-
-  
-
-
 
   updateHistoryModePrefs: function PPP_updateHistoryModePrefs()
   {
