@@ -31,6 +31,7 @@
 #include "nss.h"
 #include "pk11pub.h"
 #include "pkix/pkixnss.h"
+#include "pkixder.h"
 #include "secerr.h"
 #include "secitem.h"
 
@@ -76,10 +77,28 @@ public:
                           const ByteString& signatureAlgorithm,
                            ByteString& signature) const
   {
-    SECOidTag signatureAlgorithmOidTag;
-    if (signatureAlgorithm == sha256WithRSAEncryption) {
-      signatureAlgorithmOidTag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION;
-    } else {
+    
+    
+    
+    
+    
+    
+    
+    if (signatureAlgorithm.length() > 127 ||
+        signatureAlgorithm.length() < 4 ||
+        signatureAlgorithm.data()[0] != der::SEQUENCE ||
+        signatureAlgorithm.data()[2] != der::OIDTag) {
+      return Result::FATAL_ERROR_INVALID_ARGS;
+    }
+    SECAlgorithmID signatureAlgorithmID;
+    signatureAlgorithmID.algorithm.data =
+      const_cast<unsigned char*>(signatureAlgorithm.data() + 4);
+    signatureAlgorithmID.algorithm.len = signatureAlgorithm.length() - 4;
+    signatureAlgorithmID.parameters.data = nullptr;
+    signatureAlgorithmID.parameters.len = 0;
+    SECOidTag signatureAlgorithmOidTag =
+      SECOID_GetAlgorithmTag(&signatureAlgorithmID);
+    if (signatureAlgorithmOidTag == SEC_OID_UNKNOWN) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
 
