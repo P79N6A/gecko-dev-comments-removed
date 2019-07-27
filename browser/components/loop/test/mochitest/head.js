@@ -57,9 +57,17 @@ function loadLoopPanel() {
   Services.prefs.setCharPref("services.push.serverURL", "ws://localhost/");
   Services.prefs.setCharPref("loop.server", "http://localhost/");
 
+  
+  
+  
+  
+  let wasOffline = Services.io.offline;
+  Services.io.offline = true;
+
   registerCleanupFunction(function() {
     Services.prefs.clearUserPref("services.push.serverURL");
     Services.prefs.clearUserPref("loop.server");
+    Services.io.offline = wasOffline;
   });
 
   
