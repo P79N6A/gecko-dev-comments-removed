@@ -1398,59 +1398,6 @@ DOMCI_DATA(CSSNameSpaceRule, css::NameSpaceRule)
 
 
 
-
-
-
-
-static void
-AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult)
-{
-  NS_PRECONDITION(src.GetUnit() == eCSSUnit_Array,
-                  "improper value unit for src:");
-
-  const nsCSSValue::Array& sources = *src.GetArrayValue();
-  size_t i = 0;
-
-  while (i < sources.Count()) {
-    nsAutoString formats;
-
-    if (sources[i].GetUnit() == eCSSUnit_URL) {
-      aResult.AppendLiteral("url(");
-      nsDependentString url(sources[i].GetOriginalURLValue());
-      nsStyleUtil::AppendEscapedCSSString(url, aResult);
-      aResult.Append(')');
-    } else if (sources[i].GetUnit() == eCSSUnit_Local_Font) {
-      aResult.AppendLiteral("local(");
-      nsDependentString local(sources[i].GetStringBufferValue());
-      nsStyleUtil::AppendEscapedCSSString(local, aResult);
-      aResult.Append(')');
-    } else {
-      NS_NOTREACHED("entry in src: descriptor with improper unit");
-      i++;
-      continue;
-    }
-
-    i++;
-    formats.Truncate();
-    while (i < sources.Count() &&
-           sources[i].GetUnit() == eCSSUnit_Font_Format) {
-      formats.Append('"');
-      formats.Append(sources[i].GetStringBufferValue());
-      formats.AppendLiteral("\", ");
-      i++;
-    }
-    if (formats.Length() > 0) {
-      formats.Truncate(formats.Length() - 2); 
-      aResult.AppendLiteral(" format(");
-      aResult.Append(formats);
-      aResult.Append(')');
-    }
-    aResult.AppendLiteral(", ");
-  }
-  aResult.Truncate(aResult.Length() - 2); 
-}
-
-
 nsCSSValue nsCSSFontFaceStyleDecl::* const
 nsCSSFontFaceStyleDecl::Fields[] = {
 #define CSS_FONT_DESC(name_, method_) &nsCSSFontFaceStyleDecl::m##method_,
@@ -1531,7 +1478,7 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
     return NS_OK;
 
   case eCSSFontDesc_Src:
-    AppendSerializedFontSrc(val, aResult);
+    nsStyleUtil::AppendSerializedFontSrc(val, aResult);
     return NS_OK;
 
   case eCSSFontDesc_UnicodeRange:
