@@ -256,6 +256,13 @@ WMFAudioMFTManager::Output(int64_t aStreamOffset,
       mAudioFrameOffset = 0;
     }
     mMustRecaptureAudioPosition = false;
+
+    
+    
+    
+    
+    hr = UpdateOutputType();
+    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
   }
   MOZ_ASSERT(numFramesToStrip >= 0);
   int32_t offset = std::min<int32_t>(numFramesToStrip, numFrames);
