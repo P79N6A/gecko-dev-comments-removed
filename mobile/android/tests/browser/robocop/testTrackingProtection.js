@@ -83,11 +83,11 @@ function doUpdate() {
   });
 }
 
+let BrowserApp = Services.wm.getMostRecentWindow("navigator:browser").BrowserApp;
+
 
 
 add_task(function* test_tracking_pb() {
-  let BrowserApp = Services.wm.getMostRecentWindow("navigator:browser").BrowserApp;
-
   
   let browser = BrowserApp.addTab("about:blank", { selected: true, parentId: BrowserApp.selectedTab.id, isPrivate: true }).browser;
   yield new Promise((resolve, reject) => {
@@ -132,6 +132,35 @@ add_task(function* test_tracking_pb() {
   
   yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_good.html");
   Messaging.sendRequest({ type: "Test:Expected", expected: "unknown" });
+
+  
+  Services.prefs.clearUserPref("privacy.trackingprotection.pbmode.enabled");
+});
+
+add_task(function* test_tracking_not_pb() {
+  
+  let browser = BrowserApp.addTab("about:blank", { selected: true }).browser;
+  yield new Promise((resolve, reject) => {
+    browser.addEventListener("load", function startTests(event) {
+      browser.removeEventListener("load", startTests, true);
+      Services.tm.mainThread.dispatch(resolve, Ci.nsIThread.DISPATCH_NORMAL);
+    }, true);
+  });
+
+  
+  yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_good.html");
+  Messaging.sendRequest({ type: "Test:Expected", expected: "unknown" });
+
+  
+  yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_bad.html");
+  Messaging.sendRequest({ type: "Test:Expected", expected: "unknown" });
+
+  
+  Services.prefs.setBoolPref("privacy.trackingprotection.enabled", true);
+
+  
+  yield promiseLoadEvent(browser, "http://tracking.example.org/tests/robocop/tracking_bad.html");
+  Messaging.sendRequest({ type: "Test:Expected", expected: "tracking_content_blocked" });
 });
 
 run_next_test();
