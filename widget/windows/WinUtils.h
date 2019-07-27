@@ -73,6 +73,13 @@ namespace mozilla {
 namespace widget {
 
 
+typedef struct {
+  const char * mStr;
+  UINT         mId;
+} EventMsgInfo;
+extern EventMsgInfo gAllEvents[];
+
+
 
 
 #ifndef QS_RAWINPUT
