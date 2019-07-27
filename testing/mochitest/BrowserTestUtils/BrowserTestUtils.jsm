@@ -27,15 +27,6 @@ Cc["@mozilla.org/globalmessagemanager;1"]
   .loadFrameScript(
     "chrome://mochikit/content/tests/BrowserTestUtils/content-utils.js", true);
 
-
-
-
-
-
-
-const DEFAULT_WAIT = 2000;
-
-
 this.BrowserTestUtils = {
   
 
@@ -128,7 +119,6 @@ this.BrowserTestUtils = {
     });
   },
 
-
   
 
 
@@ -151,28 +141,29 @@ this.BrowserTestUtils = {
 
 
 
-  waitForEvent(subject, eventName, timeoutMs, target) {
+
+
+
+
+
+  waitForEvent(subject, eventName, checkFn) {
     return new Promise((resolve, reject) => {
-      function listener(event) {
-        if (target && target !== event.target) {
-          return;
+      subject.addEventListener(eventName, function listener(event) {
+        try {
+          if (checkFn && !checkFn(event)) {
+            return;
+          }
+          subject.removeEventListener(eventName, listener);
+          resolve(event);
+        } catch (ex) {
+          try {
+            subject.removeEventListener(eventName, listener);
+          } catch (ex2) {
+            
+          }
+          reject(ex);
         }
-
-        subject.removeEventListener(eventName, listener);
-        clearTimeout(timerID);
-        resolve(event);
-      }
-
-      timeoutMs = timeoutMs || DEFAULT_WAIT;
-      let stack = new Error().stack;
-
-      let timerID = setTimeout(() => {
-        subject.removeEventListener(eventName, listener);
-        reject(new Error(`${eventName} event timeout at ${stack}`));
-      }, timeoutMs);
-
-
-      subject.addEventListener(eventName, listener);
+      });
     });
   },
 };
