@@ -11,15 +11,6 @@ var gThreadClient;
 
 Components.utils.import('resource:///modules/devtools/SourceMap.jsm');
 
-
-
-
-
-
-
-
-ignoreReportedErrors(true);
-
 function run_test()
 {
   initTestDebuggerServer();
