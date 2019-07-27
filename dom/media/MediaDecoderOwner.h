@@ -25,6 +25,9 @@ public:
   virtual nsresult DispatchAsyncEvent(const nsAString& aName) = 0;
 
   
+  virtual void UpdateReadyState() = 0;
+
+  
 
 
 

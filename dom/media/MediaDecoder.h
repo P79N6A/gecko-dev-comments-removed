@@ -1028,7 +1028,12 @@ public:
     GetFrameStatistics().NotifyDecodedFrames(aParsed, aDecoded, aDropped);
   }
 
-  WatchTarget& ReadyStateWatchTarget() { return *mReadyStateWatchTarget; }
+  void UpdateReadyState()
+  {
+    if (mOwner) {
+      mOwner->UpdateReadyState();
+    }
+  }
 
   virtual MediaDecoderOwner::NextFrameStatus NextFrameStatus() { return mNextFrameStatus; }
 
@@ -1047,7 +1052,8 @@ protected:
   
   bool IsEnded() const;
 
-  WatcherHolder mReadyStateWatchTarget;
+  
+  WatchManager<MediaDecoder> mWatchManager;
 
   
   Mirror<MediaDecoderOwner::NextFrameStatus>::Holder mNextFrameStatus;
