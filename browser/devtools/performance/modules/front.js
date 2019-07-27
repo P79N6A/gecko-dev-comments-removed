@@ -27,9 +27,8 @@ const DEFAULT_ALLOCATION_SITES_PULL_TIMEOUT = 200;
 
 
 const CONNECTION_PIPE_EVENTS = [
-  "console-profile-start", "console-profile-ending", "console-profile-end",
   "timeline-data", "profiler-already-active", "profiler-activated",
-  "recording-started", "recording-stopped"
+  "recording-starting", "recording-started", "recording-stopping", "recording-stopped"
 ];
 
 
@@ -227,8 +226,6 @@ PerformanceActorsConnection.prototype = {
       console: true,
       label: profileLabel
     }));
-
-    this.emit("console-profile-start", model);
   }),
 
   
@@ -271,9 +268,7 @@ PerformanceActorsConnection.prototype = {
       return;
     }
 
-    this.emit("console-profile-ending", model);
     yield this.stopRecording(model);
-    this.emit("console-profile-end", model);
   }),
 
  
@@ -309,6 +304,8 @@ PerformanceActorsConnection.prototype = {
 
   startRecording: Task.async(function*(options = {}) {
     let model = new RecordingModel(options);
+    this.emit("recording-starting", model);
+
     
     
     
@@ -342,6 +339,13 @@ PerformanceActorsConnection.prototype = {
     if (this._recordings.indexOf(model) === -1) {
       return;
     }
+
+    
+    
+    
+    let endTime = Date.now();
+    model._onStoppingRecording(endTime);
+    this.emit("recording-stopping", model);
 
     
     
@@ -485,7 +489,9 @@ PerformanceFront.prototype = {
     }
     let actor = this._connection[`_${actorName}`];
     return actor[method].apply(actor, args);
-  }
+  },
+
+  toString: () => "[object PerformanceFront]"
 };
 
 

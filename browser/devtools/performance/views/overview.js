@@ -66,9 +66,6 @@ let OverviewView = {
     PerformanceController.on(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
-    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
-    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
-    PerformanceController.on(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
     this.graphs.on("selecting", this._onGraphSelecting);
     this.graphs.on("rendered", this._onGraphRendered);
   },
@@ -84,9 +81,6 @@ let OverviewView = {
     PerformanceController.off(EVENTS.RECORDING_WILL_STOP, this._onRecordingWillStop);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStopped);
     PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingSelected);
-    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STARTED, this._onRecordingStarted);
-    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStopped);
-    PerformanceController.off(EVENTS.CONSOLE_RECORDING_WILL_STOP, this._onRecordingWillStop);
     this.graphs.off("selecting", this._onGraphSelecting);
     this.graphs.off("rendered", this._onGraphRendered);
     yield this.graphs.destroy();
@@ -207,31 +201,25 @@ let OverviewView = {
 
 
 
-  _onRecordingWillStart: Task.async(function* () {
-    this._onRecordingStateChange();
+  _onRecordingWillStart: OverviewViewOnStateChange(Task.async(function* () {
     yield this._checkSelection();
     this.graphs.dropSelection();
-  }),
+  })),
 
   
 
 
-  _onRecordingStarted: function (_, recording) {
-    this._onRecordingStateChange();
-  },
+  _onRecordingStarted: OverviewViewOnStateChange(),
 
   
 
 
-  _onRecordingWillStop: function(_, recording) {
-    this._onRecordingStateChange();
-  },
+  _onRecordingWillStop: OverviewViewOnStateChange(),
 
   
 
 
-  _onRecordingStopped: Task.async(function* (_, recording) {
-    this._onRecordingStateChange();
+  _onRecordingStopped: OverviewViewOnStateChange(Task.async(function* (_, recording) {
     
     
     
@@ -242,39 +230,21 @@ let OverviewView = {
     }
     this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     yield this._checkSelection(recording);
-  }),
+  })),
 
   
 
 
-  _onRecordingSelected: Task.async(function* (_, recording) {
-    if (!recording) {
-      return;
-    }
-    this._onRecordingStateChange();
+  _onRecordingSelected: OverviewViewOnStateChange(Task.async(function* (_, recording) {
     this._setGraphVisibilityFromRecordingFeatures(recording);
 
     
-    if (!recording.isRecording()) {
+    if (recording.isCompleted()) {
       yield this.render(FRAMERATE_GRAPH_HIGH_RES_INTERVAL);
     }
     yield this._checkSelection(recording);
     this.graphs.dropSelection();
-  }),
-
-  
-
-
-
-
-  _onRecordingStateChange: function () {
-    let currentRecording = PerformanceController.getCurrentRecording();
-    if (!currentRecording || (this.isRendering() && !currentRecording.isRecording())) {
-      this._stopPolling();
-    } else if (currentRecording.isRecording() && !this.isRendering()) {
-      this._startPolling();
-    }
-  },
+  })),
 
   
 
@@ -303,7 +273,7 @@ let OverviewView = {
 
 
   _checkSelection: Task.async(function* (recording) {
-    let isEnabled = recording ? !recording.isRecording() : false;
+    let isEnabled = recording ? recording.isCompleted() : false;
     yield this.graphs.selectionEnabled(isEnabled);
   }),
 
@@ -374,6 +344,36 @@ let OverviewView = {
 
   toString: () => "[object OverviewView]"
 };
+
+
+
+
+
+
+
+
+
+
+
+function OverviewViewOnStateChange (fn) {
+  return function _onRecordingStateChange () {
+    let currentRecording = PerformanceController.getCurrentRecording();
+
+    
+    if (!currentRecording) {
+      return;
+    }
+
+    if (this.isRendering() && !currentRecording.isRecording()) {
+      this._stopPolling();
+    } else if (currentRecording.isRecording() && !this.isRendering()) {
+      this._startPolling();
+    }
+    if (fn) {
+      fn.apply(this, arguments);
+    }
+  }
+}
 
 
 EventEmitter.decorate(OverviewView);

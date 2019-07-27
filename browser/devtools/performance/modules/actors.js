@@ -223,10 +223,17 @@ MemoryFrontFacade.prototype = {
 
     yield this.attach();
 
-    let startTime = yield this.startRecordingAllocations({
-      probability: options.allocationsSampleProbability,
-      maxLogLength: options.allocationsMaxLogLength
-    });
+    
+    
+    let allocationOptions = {};
+    if (options.allocationsSampleProbability !== void 0) {
+      allocationOptions.probability = options.allocationsSampleProbability;
+    }
+    if (options.allocationsMaxLogLength !== void 0) {
+      allocationOptions.maxLogLength = options.allocationsMaxLogLength;
+    }
+
+    let startTime = yield this.startRecordingAllocations(allocationOptions);
 
     yield this._pullAllocationSites();
 

@@ -38,6 +38,7 @@ RecordingModel.prototype = {
   _console: false,
   _imported: false,
   _recording: false,
+  _completed: false,
   _profilerStartTime: 0,
   _timelineStartTime: 0,
   _memoryStartTime: 0,
@@ -94,7 +95,7 @@ RecordingModel.prototype = {
     
     
     
-    this._localStartTime = Date.now()
+    this._localStartTime = Date.now();
 
     this._profilerStartTime = info.profilerStartTime;
     this._timelineStartTime = info.timelineStartTime;
@@ -112,11 +113,22 @@ RecordingModel.prototype = {
 
 
 
+
+
+  _onStoppingRecording: function (endTime) {
+    this._duration = endTime - this._localStartTime;
+    this._recording = false;
+  },
+
+  
+
+
+
   _onStopRecording: Task.async(function *(info) {
     this._profile = info.profile;
-    this._duration = info.profilerEndTime - this._profilerStartTime;
-    this._recording = false;
+    this._completed = true;
 
+    
     
     
     
@@ -252,6 +264,18 @@ RecordingModel.prototype = {
 
 
 
+
+
+  isCompleted: function () {
+    return this._completed || this.isImported();
+  },
+
+  
+
+
+
+
+
   isRecording: function () {
     return this._recording;
   },
@@ -262,7 +286,7 @@ RecordingModel.prototype = {
   addTimelineData: function (eventName, ...data) {
     
     
-    if (!this._recording) {
+    if (!this.isRecording()) {
       return;
     }
 

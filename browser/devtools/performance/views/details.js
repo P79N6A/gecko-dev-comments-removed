@@ -59,7 +59,6 @@ let DetailsView = {
 
     yield this.setAvailableViews();
 
-    PerformanceController.on(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
     PerformanceController.on(EVENTS.RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
     PerformanceController.on(EVENTS.RECORDING_SELECTED, this._onRecordingStoppedOrSelected);
     PerformanceController.on(EVENTS.PREF_CHANGED, this.setAvailableViews);
@@ -77,7 +76,6 @@ let DetailsView = {
       component.initialized && (yield component.view.destroy());
     }
 
-    PerformanceController.off(EVENTS.CONSOLE_RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
     PerformanceController.off(EVENTS.RECORDING_STOPPED, this._onRecordingStoppedOrSelected);
     PerformanceController.off(EVENTS.RECORDING_SELECTED, this._onRecordingStoppedOrSelected);
     PerformanceController.off(EVENTS.PREF_CHANGED, this.setAvailableViews);
@@ -90,13 +88,13 @@ let DetailsView = {
 
   setAvailableViews: Task.async(function* () {
     let recording = PerformanceController.getCurrentRecording();
-    let isRecording = recording && recording.isRecording();
+    let isCompleted = recording && recording.isCompleted();
     let invalidCurrentView = false;
 
     for (let [name, { view }] of Iterator(this.components)) {
       
       let isRetro = PerformanceController.getOption("retro-mode");
-      let isSupported = isRetro ? name === "js-calltree" : this._isViewSupported(name, false);
+      let isSupported = isRetro ? name === "js-calltree" : this._isViewSupported(name, true);
 
       
       $(`toolbarbutton[data-view=${name}]`).hidden = isRetro ? true : !isSupported;
@@ -116,8 +114,8 @@ let DetailsView = {
     
     
     
-    if ((this._initialized  && !isRecording && invalidCurrentView) ||
-        (!this._initialized && !isRecording && recording)) {
+    if ((this._initialized  && isCompleted && invalidCurrentView) ||
+        (!this._initialized && isCompleted && recording)) {
       yield this.selectDefaultView();
     }
   }),
@@ -129,9 +127,9 @@ let DetailsView = {
 
 
 
-  _isViewSupported: function (viewName, isRecording) {
+  _isViewSupported: function (viewName, mustBeCompleted) {
     let { features, actors } = this.components[viewName];
-    return PerformanceController.isFeatureSupported({ features, actors, isRecording });
+    return PerformanceController.isFeatureSupported({ features, actors, mustBeCompleted });
   },
 
   
@@ -238,7 +236,7 @@ let DetailsView = {
     
     
     let recording = PerformanceController.getCurrentRecording();
-    if (recording && !recording.isRecording()) {
+    if (recording && recording.isCompleted()) {
       component.view.shouldUpdateWhenShown = true;
     }
   }),

@@ -66,13 +66,6 @@ const EVENTS = {
   
   
   
-  CONSOLE_RECORDING_STARTED: "Performance:ConsoleRecordingStarted",
-  CONSOLE_RECORDING_WILL_STOP: "Performance:ConsoleRecordingWillStop",
-  CONSOLE_RECORDING_STOPPED: "Performance:ConsoleRecordingStopped",
-
-  
-  
-  
   UI_STATE_CHANGED: "Performance:UI:StateChanged",
 
   
@@ -190,9 +183,7 @@ let PerformanceController = {
     this._onRecordingSelectFromView = this._onRecordingSelectFromView.bind(this);
     this._onPrefChanged = this._onPrefChanged.bind(this);
     this._onThemeChanged = this._onThemeChanged.bind(this);
-    this._onConsoleProfileStart = this._onConsoleProfileStart.bind(this);
-    this._onConsoleProfileEnd = this._onConsoleProfileEnd.bind(this);
-    this._onConsoleProfileEnding = this._onConsoleProfileEnding.bind(this);
+    this._onRecordingStateChange = this._onRecordingStateChange.bind(this);
 
     
     
@@ -208,9 +199,10 @@ let PerformanceController = {
     this._nonBooleanPrefs.registerObserver();
     this._nonBooleanPrefs.on("pref-changed", this._onPrefChanged);
 
-    gFront.on("console-profile-start", this._onConsoleProfileStart);
-    gFront.on("console-profile-ending", this._onConsoleProfileEnding);
-    gFront.on("console-profile-end", this._onConsoleProfileEnd);
+    gFront.on("recording-starting", this._onRecordingStateChange);
+    gFront.on("recording-started", this._onRecordingStateChange);
+    gFront.on("recording-stopping", this._onRecordingStateChange);
+    gFront.on("recording-stopped", this._onRecordingStateChange);
     ToolbarView.on(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.on(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.on(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -229,9 +221,10 @@ let PerformanceController = {
     this._nonBooleanPrefs.unregisterObserver();
     this._nonBooleanPrefs.off("pref-changed", this._onPrefChanged);
 
-    gFront.off("console-profile-start", this._onConsoleProfileStart);
-    gFront.off("console-profile-ending", this._onConsoleProfileEnding);
-    gFront.off("console-profile-end", this._onConsoleProfileEnd);
+    gFront.off("recording-starting", this._onRecordingStateChange);
+    gFront.off("recording-started", this._onRecordingStateChange);
+    gFront.off("recording-stopping", this._onRecordingStateChange);
+    gFront.off("recording-stopped", this._onRecordingStateChange);
     ToolbarView.off(EVENTS.PREF_CHANGED, this._onPrefChanged);
     PerformanceView.off(EVENTS.UI_START_RECORDING, this.startRecording);
     PerformanceView.off(EVENTS.UI_STOP_RECORDING, this.stopRecording);
@@ -300,12 +293,7 @@ let PerformanceController = {
       sampleFrequency: this.getPref("profiler-sample-frequency")
     };
 
-    this.emit(EVENTS.RECORDING_WILL_START);
-
-    let recording = yield gFront.startRecording(options);
-    this._recordings.push(recording);
-
-    this.emit(EVENTS.RECORDING_STARTED, recording);
+    yield gFront.startRecording(options);
   }),
 
   
@@ -315,9 +303,7 @@ let PerformanceController = {
   stopRecording: Task.async(function *() {
     let recording = this.getLatestManualRecording();
 
-    this.emit(EVENTS.RECORDING_WILL_STOP, recording);
     yield gFront.stopRecording(recording);
-    this.emit(EVENTS.RECORDING_STOPPED, recording);
   }),
 
   
@@ -343,6 +329,11 @@ let PerformanceController = {
 
     if (latest && latest.isRecording()) {
       yield this.stopRecording();
+    }
+    
+    
+    if (latest && !latest.isCompleted()) {
+      yield this.once(EVENTS.RECORDING_STOPPED);
     }
 
     this._recordings.length = 0;
@@ -442,25 +433,31 @@ let PerformanceController = {
   
 
 
-  _onConsoleProfileStart: function (_, recording) {
-    this._recordings.push(recording);
-    this.emit(EVENTS.CONSOLE_RECORDING_STARTED, recording);
-  },
-
-  
 
 
 
-  _onConsoleProfileEnding: function (_, recording) {
-    this.emit(EVENTS.CONSOLE_RECORDING_WILL_STOP, recording);
-  },
-
-  
-
-
-
-  _onConsoleProfileEnd: function (_, recording) {
-    this.emit(EVENTS.CONSOLE_RECORDING_STOPPED, recording);
+  _onRecordingStateChange: function (state, model) {
+    switch (state) {
+      
+      case "recording-starting":
+        
+        this._recordings.push(model);
+        this.emit(EVENTS.RECORDING_WILL_START, model);
+        break;
+      
+      case "recording-started":
+        this.emit(EVENTS.RECORDING_STARTED, model);
+        break;
+      
+      
+      case "recording-stopping":
+        this.emit(EVENTS.RECORDING_WILL_STOP, model);
+        break;
+      
+      case "recording-stopped":
+        this.emit(EVENTS.RECORDING_STOPPED, model);
+        break;
+    }
   },
 
   
@@ -488,13 +485,13 @@ let PerformanceController = {
 
 
 
-  isFeatureSupported: function ({ features, actors, isRecording: shouldBeRecording }, recording) {
+  isFeatureSupported: function ({ features, actors, mustBeCompleted }, recording) {
     recording = recording || this.getCurrentRecording();
     let recordingConfig = recording ? recording.getConfiguration() : {};
-    let currentRecordingState = recording ? recording.isRecording() : void 0;
+    let currentCompletedState = recording ? recording.isCompleted() : void 0;
     let actorsSupported = gFront.getActorSupport();
 
-    if (shouldBeRecording != null && shouldBeRecording !== currentRecordingState) {
+    if (mustBeCompleted != null && mustBeCompleted !== currentCompletedState) {
       return false;
     }
     if (actors && !actors.every(a => actorsSupported[a])) {
