@@ -1395,7 +1395,7 @@ Scope.prototype = {
 
     
     if (aOptions.sorted && aKeysType != "just-numbers") {
-      names.sort();
+      names.sort(this._naturalSort);
     }
 
     
@@ -1600,6 +1600,22 @@ Scope.prototype = {
     this._target.setAttribute("untitled", "");
     this._isHeaderVisible = false;
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _naturalSort: function(a,b) {
+    if (isNaN(parseFloat(a)) && isNaN(parseFloat(b))) {
+      return a < b ? -1 : 1;
+    }
+   },
 
   
 
@@ -2232,8 +2248,9 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     
     if (aOptions.sorted) {
-      propertyNames.sort();
+      propertyNames.sort(this._naturalSort);
     }
+
     
     for (let name of propertyNames) {
       let descriptor = Object.getOwnPropertyDescriptor(aObject, name);

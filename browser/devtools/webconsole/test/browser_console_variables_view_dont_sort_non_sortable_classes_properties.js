@@ -63,6 +63,8 @@ function test() {
     yield testNotSorted("Array(0,1,2,3,4,5,6,7,8,9,10)");
     
     yield testNotSorted("document.querySelectorAll('div')");
+    
+    yield testSorted("Object({'hello':1,1:5,10:2,4:2,'abc':1})");
 
     
     for (let type of typedArrayTypes) {
@@ -95,6 +97,35 @@ function test() {
 
     
     is(keyIterator.next().value, "2", "Third key is 2, not 10");
+  }
+  
+
+
+
+
+
+
+
+  function testSorted(aObject) {
+    info("Testing " + aObject);
+    let deferred = promise.defer();
+    jsterm.once("variablesview-fetched", (_, aVar) => deferred.resolve(aVar));
+    jsterm.execute("inspect(" + aObject + ")");
+
+    let variableScope = yield deferred.promise;
+    ok(variableScope, "Variables view opened");
+
+    
+    
+    let keyIterator = variableScope._store.keys();
+    is(keyIterator.next().value, "1", "First key should be 1");
+    is(keyIterator.next().value, "4", "Second key should be 4");
+
+    
+    is(keyIterator.next().value, "10", "Third key is 10");
+    
+    is(keyIterator.next().value, "abc", "Fourth key is abc");
+    is(keyIterator.next().value, "hello", "Fifth key is hello");
   }
 
   Task.spawn(runner).then(finishTest);
