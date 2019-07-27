@@ -78,25 +78,27 @@ public:
   ~AudioOffloadPlayer();
 
   
-  void SetSource(const android::sp<MediaSource> &aSource);
+  virtual void SetSource(const android::sp<MediaSource> &aSource) override;
 
   
   
-  status_t Start(bool aSourceAlreadyStarted = false);
+  virtual status_t Start(bool aSourceAlreadyStarted = false) override;
 
-  double GetMediaTimeSecs();
+  virtual status_t ChangeState(MediaDecoder::PlayState aState) override;
 
-  
-  void SetElementVisibility(bool aIsVisible);
+  virtual void SetVolume(double aVolume) override;
 
-  status_t ChangeState(MediaDecoder::PlayState aState);
-
-  void SetVolume(double aVolume);
+  virtual double GetMediaTimeSecs() override;
 
   
+  virtual void SetElementVisibility(bool aIsVisible) override;;
+
   
   
-  MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
+  
+  virtual MediaDecoderOwner::NextFrameStatus GetNextFrameStatus() override;
+
+  virtual nsRefPtr<MediaDecoder::SeekPromise> Seek(SeekTarget aTarget) override;
 
   void TimeUpdate();
 
@@ -115,24 +117,8 @@ private:
   
   
   
-  bool mSeeking;
-
-  
-  
-  
   
   bool mReachedEOS;
-
-  
-  
-  
-  bool mSeekDuringPause;
-
-  
-  
-  
-  
-  bool mDispatchSeekEvents;
 
   
   
@@ -158,7 +144,12 @@ private:
   
   
   
-  int64_t mSeekTimeUs;
+  SeekTarget mSeekTarget;
+
+  
+  
+  
+  MediaPromiseHolder<MediaDecoder::SeekPromise> mSeekPromise;
 
   
   
@@ -229,7 +220,7 @@ private:
   
   
   
-  status_t SeekTo(int64_t aTimeUs, bool aDispatchSeekEvents = false);
+  status_t DoSeek();
 
   
   
