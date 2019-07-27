@@ -82,12 +82,15 @@ public:
 #endif
 
 private:
+  friend class DecodersToInitialize;
   ~TrackBuffer();
 
   
   
   
-  bool NewDecoder();
+  
+  
+  already_AddRefed<SourceBufferDecoder> NewDecoder();
 
   
   
