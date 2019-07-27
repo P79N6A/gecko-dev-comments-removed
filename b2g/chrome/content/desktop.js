@@ -138,21 +138,21 @@ function initResponsiveDesign() {
 
     
     responsive.enableTouch();
+
+    
+    let width = 320, height = 480;
+    
+    
+    width += 15*2; 
+    width += 1*2; 
+    height += 60; 
+    height += 1; 
+    responsive.setSize(width, height);
   });
 
-  
-  let width = 320, height = 480;
-  
-  
-  width += 15*2; 
-  width += 1*2; 
-  height += 60; 
-  height += 1; 
-  let args = {'width': width, 'height': height};
+
   let mgr = browserWindow.ResponsiveUI.ResponsiveUIManager;
   mgr.toggle(browserWindow, browserWindow.gBrowser.selectedTab);
-  let responsive = browserWindow.gBrowser.selectedTab.__responsiveUI;
-  responsive.setSize(width, height);
 
 }
 
