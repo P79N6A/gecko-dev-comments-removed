@@ -28,6 +28,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "nsCycleCollector.h"
+#include "nsIGlobalObject.h"
 #include "nsIXPConnect.h"
 #include "nsJSUtils.h"
 #include "nsISupportsImpl.h"
@@ -1575,6 +1576,15 @@ static inline JSObject*
 WrapNativeParent(JSContext* cx, const T& p)
 {
   return WrapNativeParent(cx, GetParentPointer(p), GetWrapperCache(p), GetUseXBLScope(p));
+}
+
+
+
+template<>
+inline JSObject*
+WrapNativeParent(JSContext* cx, nsIGlobalObject* const& p)
+{
+  return p ? p->GetGlobalJSObject() : JS::CurrentGlobalOrNull(cx);
 }
 
 template<typename T, bool WrapperCached=NativeHasMember<T>::GetParentObject>
