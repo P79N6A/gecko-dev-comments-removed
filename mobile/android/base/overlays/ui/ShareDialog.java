@@ -170,7 +170,6 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setWindowAnimations(0);
         setContentView(R.layout.overlay_share_dialog);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(uiEventListener,
@@ -255,6 +254,11 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
         startService(serviceStartupIntent);
 
         
+        getWindow().setWindowAnimations(0);
+        final Animation anim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_up);
+        findViewById(R.id.sharedialog).startAnimation(anim);
+
+        
         
 
         
@@ -306,10 +310,6 @@ public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabT
 
         final LocalBrowserDB browserDB = new LocalBrowserDB(getCurrentProfile());
         setButtonState(url, browserDB);
-
-        
-        final Animation anim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_up);
-        findViewById(R.id.sharedialog).startAnimation(anim);
     }
 
     @Override
