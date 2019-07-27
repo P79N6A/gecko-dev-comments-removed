@@ -1511,11 +1511,16 @@ pref("shumway.disabled", true);
 
 pref("image.mem.max_decoded_image_kb", 256000);
 
-#ifdef MOZ_LOOP
+
+#ifndef RELEASE_BUILD
+pref("loop.enabled", true);
+#else
+pref("loop.enabled", false);
+#endif
+
 pref("loop.server", "https://loop.services.mozilla.com");
 pref("loop.do_not_disturb", false);
 pref("loop.ringtone", "chrome://browser/content/loop/shared/sounds/Firefox-Long.ogg");
-#endif
 
 
 pref("services.push.serverURL", "wss://push.services.mozilla.com/");
