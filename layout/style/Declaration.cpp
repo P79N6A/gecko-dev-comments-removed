@@ -423,6 +423,13 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
         data->ValueFor(eCSSProperty_background_size)->
         GetPairListValue();
       for (;;) {
+        
+        if (!image->mNext) {
+          AppendValueToString(eCSSProperty_background_color, aValue,
+                              aSerialization);
+          aValue.Append(char16_t(' '));
+        }
+
         image->mValue.AppendToString(eCSSProperty_background_image, aValue,
                                      aSerialization);
         aValue.Append(char16_t(' '));
@@ -505,10 +512,6 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
         aValue.Append(char16_t(','));
         aValue.Append(char16_t(' '));
       }
-
-      aValue.Append(char16_t(' '));
-      AppendValueToString(eCSSProperty_background_color, aValue,
-                          aSerialization);
       break;
     }
     case eCSSProperty_font: {
