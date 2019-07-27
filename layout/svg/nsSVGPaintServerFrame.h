@@ -50,15 +50,6 @@ public:
                           const gfxRect *aOverrideBounds = nullptr) = 0;
 
   
-
-
-
-  virtual bool SetupPaintServer(gfxContext *aContext,
-                                nsIFrame *aSource,
-                                nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
-                                float aOpacity);
-
-  
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
