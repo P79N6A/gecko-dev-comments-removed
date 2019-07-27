@@ -1262,6 +1262,7 @@ gfxPangoFontGroup::gfxPangoFontGroup(const FontFamilyList& aFontFamilyList,
 
     
     mFonts.AppendElement(FamilyFace());
+    mSkipUpdateUserFonts = true;
 }
 
 gfxPangoFontGroup::~gfxPangoFontGroup()
