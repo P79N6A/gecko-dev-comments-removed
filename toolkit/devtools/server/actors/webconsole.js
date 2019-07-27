@@ -1761,20 +1761,6 @@ NetworkEventActor.prototype =
 
 
 
-  onGetSecurityInfo: function NEA_onGetSecurityInfo()
-  {
-    return {
-      from: this.actorID,
-      securityInfo: this._securityInfo,
-    };
-  },
-
-  
-
-
-
-
-
   onGetResponseHeaders: function NEA_onGetResponseHeaders()
   {
     return {
@@ -1930,26 +1916,6 @@ NetworkEventActor.prototype =
 
 
 
-  addSecurityInfo: function NEA_addSecurityInfo(info)
-  {
-    this._securityInfo = info;
-
-    let packet = {
-      from: this.actorID,
-      type: "networkEventUpdate",
-      updateType: "securityInfo",
-      state: info.state,
-    };
-
-    this.conn.send(packet);
-  },
-
-  
-
-
-
-
-
   addResponseHeaders: function NEA_addResponseHeaders(aHeaders)
   {
     this._response.headers = aHeaders;
@@ -2068,5 +2034,4 @@ NetworkEventActor.prototype.requestTypes =
   "getResponseCookies": NetworkEventActor.prototype.onGetResponseCookies,
   "getResponseContent": NetworkEventActor.prototype.onGetResponseContent,
   "getEventTimings": NetworkEventActor.prototype.onGetEventTimings,
-  "getSecurityInfo": NetworkEventActor.prototype.onGetSecurityInfo,
 };
