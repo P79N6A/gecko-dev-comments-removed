@@ -21,7 +21,7 @@ EnsureLongPath(nsAString& aDosPath)
   auto inputPath = PromiseFlatString(aDosPath);
   
   DWORD longPathLen = GetLongPathNameW(inputPath.get(),
-                                       aDosPath.BeginWriting(),
+                                       reinterpret_cast<wchar_t*>(aDosPath.BeginWriting()),
                                        aDosPathOriginalLen);
   if (longPathLen == 0) {
     return false;
@@ -33,7 +33,7 @@ EnsureLongPath(nsAString& aDosPath)
   }
   
   longPathLen = GetLongPathNameW(inputPath.get(),
-                                 aDosPath.BeginWriting(), aDosPath.Length());
+                                 reinterpret_cast<wchar_t*>(aDosPath.BeginWriting()), aDosPath.Length());
   if (longPathLen == 0) {
     return false;
   }
