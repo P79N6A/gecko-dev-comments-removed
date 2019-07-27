@@ -279,7 +279,7 @@ nsAnnoProtocolHandler::NewChannel2(nsIURI* aURI,
   if (!annoName.EqualsLiteral(FAVICON_ANNOTATION_NAME))
     return NS_ERROR_INVALID_ARG;
 
-  return NewFaviconChannel(aURI, annoURI, _retval);
+  return NewFaviconChannel(aURI, annoURI, aLoadInfo, _retval);
 }
 
 NS_IMETHODIMP
@@ -328,7 +328,7 @@ nsAnnoProtocolHandler::ParseAnnoURI(nsIURI* aURI,
 
 nsresult
 nsAnnoProtocolHandler::NewFaviconChannel(nsIURI *aURI, nsIURI *aAnnotationURI,
-                                         nsIChannel **_channel)
+                                         nsILoadInfo* aLoadInfo, nsIChannel **_channel)
 {
   
   
@@ -343,12 +343,26 @@ nsAnnoProtocolHandler::NewFaviconChannel(nsIURI *aURI, nsIURI *aAnnotationURI,
   
   
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
-                                aURI,
-                                inputStream,
-                                nsContentUtils::GetSystemPrincipal(),
-                                nsILoadInfo::SEC_NORMAL,
-                                nsIContentPolicy::TYPE_OTHER);
+  
+  
+  
+  
+  if (aLoadInfo) {
+    rv = NS_NewInputStreamChannelInternal(getter_AddRefs(channel),
+                                          aURI,
+                                          inputStream,
+                                          EmptyCString(), 
+                                          EmptyCString(), 
+                                          aLoadInfo);
+  }
+  else {
+    rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
+                                  aURI,
+                                  inputStream,
+                                  nsContentUtils::GetSystemPrincipal(),
+                                  nsILoadInfo::SEC_NORMAL,
+                                  nsIContentPolicy::TYPE_OTHER);
+  }
   NS_ENSURE_SUCCESS(rv, GetDefaultIcon(_channel));
 
   
