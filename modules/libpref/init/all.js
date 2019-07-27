@@ -4588,6 +4588,22 @@ pref("selectioncaret.inflatesize.threshold", 40);
 pref("selectioncaret.detects.longtap", true);
 
 
+pref("selectioncaret.visibility.affectscaret", false);
+
+
+
+pref("selectioncaret.observes.compositions", false);
+
+
+
+
+pref("touchcaret.extendedvisibility", false);
+
+
+
+pref("caret.manages-android-actionbar", false);
+
+
 pref("layout.accessiblecaret.enabled", false);
 
 
