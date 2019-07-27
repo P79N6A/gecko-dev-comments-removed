@@ -596,7 +596,23 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     mathVar = styleContext->StyleFont()->mMathVariant;
 
     if (singleCharMI && mathVar == NS_MATHML_MATHVARIANT_NONE) {
-      mathVar = NS_MATHML_MATHVARIANT_ITALIC;
+      
+      
+      
+      
+      if (mFlags & MATH_FONT_WEIGHT_BOLD) {
+        fontStyle.weight = NS_FONT_WEIGHT_BOLD;
+        if (mFlags & MATH_FONT_STYLING_NORMAL) {
+          fontStyle.style = NS_FONT_STYLE_NORMAL;
+        } else {
+          fontStyle.style = NS_FONT_STYLE_ITALIC;
+        }
+      } else if (mFlags & MATH_FONT_STYLING_NORMAL) {
+        fontStyle.style = NS_FONT_STYLE_NORMAL;
+        fontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+      } else {
+        mathVar = NS_MATHML_MATHVARIANT_ITALIC;
+      }
     }
 
     uint32_t ch = str[i];
