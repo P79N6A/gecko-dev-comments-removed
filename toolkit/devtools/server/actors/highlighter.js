@@ -421,7 +421,6 @@ let CustomHighlighterFront = protocol.FrontClass(CustomHighlighterActor, {});
 function CanvasFrameAnonymousContentHelper(tabActor, nodeBuilder) {
   this.tabActor = tabActor;
   this.nodeBuilder = nodeBuilder;
-  this.anonymousContentDocument = this.tabActor.window.document;
 
   this._insert();
 
@@ -434,12 +433,11 @@ CanvasFrameAnonymousContentHelper.prototype = {
     
     
     try {
-      let doc = this.anonymousContentDocument;
+      let doc = this.tabActor.window.document;
       doc.removeAnonymousContent(this._content);
-    } catch (e) {console.log(e)}
+    } catch (e) {}
     events.off(this.tabActor, "navigate", this._onNavigate);
     this.tabActor = this.nodeBuilder = this._content = null;
-    this.anonymousContentDocument = null;
   },
 
   _insert: function() {

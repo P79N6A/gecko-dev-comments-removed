@@ -107,18 +107,6 @@ public:
   
 
 
-
-  void ShowCustomContentContainer();
-
-  
-
-
-
-  void HideCustomContentContainer();
-
-  
-
-
   NS_IMETHOD SetHasFocus(bool aHasFocus);
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
