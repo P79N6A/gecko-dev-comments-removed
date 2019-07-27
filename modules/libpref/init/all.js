@@ -370,6 +370,8 @@ pref("media.navigator.enabled", true);
 pref("media.getusermedia.screensharing.enabled", true);
 pref("media.getusermedia.screensharing.allowed_domains", "");
 
+pref("media.getusermedia.screensharing.allow_on_old_platforms", false);
+
 
 pref("media.webvtt.enabled", true);
 pref("media.webvtt.regions.enabled", false);
