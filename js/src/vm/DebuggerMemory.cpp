@@ -13,7 +13,8 @@
 
 #include "vm/Debugger-inl.h"
 
-namespace js {
+using namespace js;
+using namespace JS;
 
  DebuggerMemory *
 DebuggerMemory::create(JSContext *cx, Debugger *dbg)
