@@ -14,31 +14,31 @@ const NEW_RULE = "\n@media (max-width: 600px) { div { color: blue; } }";
 waitForExplicitFinish();
 
 add_task(function*() {
-  let {UI} = yield addTabAndOpenStyleEditors(2, null, TESTCASE_URI);
+  let { ui } = yield openStyleEditorForURL(TESTCASE_URI);
 
-  is(UI.editors.length, 2, "correct number of editors");
+  is(ui.editors.length, 2, "correct number of editors");
 
   
-  let plainEditor = UI.editors[0];
+  let plainEditor = ui.editors[0];
   yield openEditor(plainEditor);
   testPlainEditor(plainEditor);
 
   
-  let mediaEditor = UI.editors[1];
+  let mediaEditor = ui.editors[1];
   yield openEditor(mediaEditor);
   testMediaEditor(mediaEditor);
 
   
-  yield testShowHide(UI, mediaEditor);
+  yield testShowHide(ui, mediaEditor);
 
   
-  yield testMediaRuleAdded(UI, mediaEditor);
+  yield testMediaRuleAdded(ui, mediaEditor);
 
   
   let originalWidth = window.outerWidth;
   let originalHeight = window.outerHeight;
 
-  let onMatchesChange = listenForMediaChange(UI);
+  let onMatchesChange = listenForMediaChange(ui);
   window.resizeTo(RESIZE, RESIZE);
   yield onMatchesChange;
 
