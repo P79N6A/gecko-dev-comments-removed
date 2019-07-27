@@ -662,7 +662,20 @@ GCMarker::appendGrayRoot(void *thing, JSGCTraceKind kind)
 
     Zone *zone = static_cast<Cell *>(thing)->tenuredZone();
     if (zone->isCollecting()) {
-        zone->maybeAlive = true;
+        
+        
+        
+        
+        switch (kind) {
+          case JSTRACE_OBJECT:
+            static_cast<JSObject *>(thing)->compartment()->maybeAlive = true;
+            break;
+          case JSTRACE_SCRIPT:
+            static_cast<JSScript *>(thing)->compartment()->maybeAlive = true;
+            break;
+          default:
+            break;
+        }
         if (!zone->gcGrayRoots.append(root)) {
             resetBufferedGrayRoots();
             grayBufferState = GRAY_BUFFER_FAILED;

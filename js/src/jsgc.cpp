@@ -3149,14 +3149,14 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
             isFull = false;
         }
 
-        zone->scheduledForDestruction = false;
-        zone->maybeAlive = false;
         zone->setPreservingCode(false);
     }
 
     for (CompartmentsIter c(rt, WithAtoms); !c.done(); c.next()) {
         JS_ASSERT(c->gcLiveArrayBuffers.empty());
         c->marked = false;
+        c->scheduledForDestruction = false;
+        c->maybeAlive = false;
         if (shouldPreserveJITCode(c, currentTime, reason))
             c->zone()->setPreservingCode(true);
     }
@@ -3278,17 +3278,27 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
 
 
 
-
-
-
-
-
-
     
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
         for (JSCompartment::WrapperEnum e(c); !e.empty(); e.popFront()) {
-            Cell *dst = e.front().key().wrapped;
-            dst->tenuredZone()->maybeAlive = true;
+            const CrossCompartmentKey &key = e.front().key();
+            JSCompartment *dest;
+            switch (key.kind) {
+              case CrossCompartmentKey::ObjectWrapper:
+              case CrossCompartmentKey::DebuggerObject:
+              case CrossCompartmentKey::DebuggerSource:
+              case CrossCompartmentKey::DebuggerEnvironment:
+                dest = static_cast<JSObject *>(key.wrapped)->compartment();
+                break;
+              case CrossCompartmentKey::DebuggerScript:
+                dest = static_cast<JSScript *>(key.wrapped)->compartment();
+                break;
+              default:
+                dest = nullptr;
+                break;
+            }
+            if (dest)
+                dest->maybeAlive = true;
         }
     }
 
@@ -3297,9 +3307,9 @@ GCRuntime::beginMarkPhase(JS::gcreason::Reason reason)
 
 
 
-    for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-        if (!zone->maybeAlive && !rt->isAtomsZone(zone))
-            zone->scheduledForDestruction = true;
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        if (!c->maybeAlive && !rt->isAtomsCompartment(c))
+            c->scheduledForDestruction = true;
     }
     foundBlackGrayEdges = false;
 
@@ -4631,8 +4641,8 @@ GCRuntime::resetIncrementalGC(const char *reason)
       case SWEEP:
         marker.reset();
 
-        for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next())
-            zone->scheduledForDestruction = false;
+        for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
+            c->scheduledForDestruction = false;
 
         
         abortSweepAfterCurrentGroup = true;
@@ -5156,8 +5166,25 @@ GCRuntime::collect(bool incremental, int64_t budget, JSGCInvocationKind gckind,
 
 
 
+        bool repeatForDeadZone = false;
+        if (incremental && incrementalState == NO_INCREMENTAL) {
+            for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
+                if (c->scheduledForDestruction) {
+                    incremental = false;
+                    repeatForDeadZone = true;
+                    reason = JS::gcreason::COMPARTMENT_REVIVED;
+                    c->zone()->scheduleGC();
+                }
+            }
+        }
 
-        repeat = (poked && cleanUpEverything) || wasReset;
+        
+
+
+
+
+
+        repeat = (poked && cleanUpEverything) || wasReset || repeatForDeadZone;
     } while (repeat);
 
     if (incrementalState == NO_INCREMENTAL)
@@ -5716,34 +5743,6 @@ ArenaLists::containsArena(JSRuntime *rt, ArenaHeader *needle)
     return false;
 }
 
-
-AutoMaybeTouchDeadZones::AutoMaybeTouchDeadZones(JSContext *cx)
-  : runtime(cx->runtime()),
-    markCount(runtime->gc.objectsMarkedInDeadZonesCount()),
-    inIncremental(JS::IsIncrementalGCInProgress(runtime)),
-    manipulatingDeadZones(runtime->gc.isManipulatingDeadZones())
-{
-    runtime->gc.setManipulatingDeadZones(true);
-}
-
-AutoMaybeTouchDeadZones::AutoMaybeTouchDeadZones(JSObject *obj)
-  : runtime(obj->compartment()->runtimeFromMainThread()),
-    markCount(runtime->gc.objectsMarkedInDeadZonesCount()),
-    inIncremental(JS::IsIncrementalGCInProgress(runtime)),
-    manipulatingDeadZones(runtime->gc.isManipulatingDeadZones())
-{
-    runtime->gc.setManipulatingDeadZones(true);
-}
-
-AutoMaybeTouchDeadZones::~AutoMaybeTouchDeadZones()
-{
-    runtime->gc.setManipulatingDeadZones(manipulatingDeadZones);
-
-    if (inIncremental && runtime->gc.objectsMarkedInDeadZonesCount() != markCount) {
-        JS::PrepareForFullGC(runtime);
-        js::GC(runtime, GC_NORMAL, JS::gcreason::TRANSPLANT);
-    }
-}
 
 AutoSuppressGC::AutoSuppressGC(ExclusiveContext *cx)
   : suppressGC_(cx->perThreadData->suppressGC)

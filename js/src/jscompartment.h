@@ -451,6 +451,11 @@ struct JSCompartment
     
     void               *compartmentStats;
 
+    
+    
+    bool scheduledForDestruction;
+    bool maybeAlive;
+
   private:
     js::jit::JitCompartment *jitCompartment_;
 

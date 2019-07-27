@@ -17,33 +17,6 @@ namespace js {
 
 class Shape;
 
-
-
-
-
-
-struct AutoMarkInDeadZone
-{
-    explicit AutoMarkInDeadZone(JS::Zone *zone)
-      : zone(zone),
-        scheduled(zone->scheduledForDestruction)
-    {
-        gc::GCRuntime &gc = zone->runtimeFromMainThread()->gc;
-        if (gc.isManipulatingDeadZones() && zone->scheduledForDestruction) {
-            gc.incObjectsMarkedInDeadZone();
-            zone->scheduledForDestruction = false;
-        }
-    }
-
-    ~AutoMarkInDeadZone() {
-        zone->scheduledForDestruction = scheduled;
-    }
-
-  private:
-    JS::Zone *zone;
-    bool scheduled;
-};
-
 inline Allocator *
 ThreadSafeContext::allocator() const
 {
