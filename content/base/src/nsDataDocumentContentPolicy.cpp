@@ -96,7 +96,8 @@ nsDataDocumentContentPolicy::ShouldLoad(uint32_t aContentType,
             aContentLocation);
         }
       }
-    } else if (aContentType == nsIContentPolicy::TYPE_IMAGE &&
+    } else if ((aContentType == nsIContentPolicy::TYPE_IMAGE ||
+                aContentType == nsIContentPolicy::TYPE_IMAGESET) &&
                doc->GetDocumentURI()) {
       
       bool isRecursiveLoad;
