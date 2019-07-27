@@ -30,10 +30,9 @@ InputQueue::ReceiveInputEvent(const nsRefPtr<AsyncPanZoomController>& aTarget, c
   AsyncPanZoomController::AssertOnControllerThread();
 
   if (aEvent.mInputType != MULTITOUCH_INPUT) {
-    aTarget->HandleInputEvent(aEvent);
     
     
-    return nsEventStatus_eConsumeDoDefault;
+    return aTarget->HandleInputEvent(aEvent);
   }
 
   TouchBlockState* block = nullptr;
