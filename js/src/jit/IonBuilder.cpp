@@ -4730,6 +4730,10 @@ IonBuilder::selectInliningTargets(const ObjectVector &targets, CallInfo &callInf
 
     for (size_t i = 0; i < targets.length(); i++) {
         JSObject *target = targets[i];
+
+        trackOptimizationAttempt(TrackedStrategy::Call_Inline);
+        trackTypeInfo(TrackedTypeSite::Call_Target, target);
+
         bool inlineable;
         InliningDecision decision = makeInliningDecision(target, callInfo);
         switch (decision) {
@@ -4761,6 +4765,18 @@ IonBuilder::selectInliningTargets(const ObjectVector &targets, CallInfo &callInf
         choiceSet.append(inlineable);
         if (inlineable)
             *numInlineable += 1;
+    }
+
+    
+    
+    
+    if (isOptimizationTrackingEnabled()) {
+        for (size_t i = 0; i < targets.length(); i++) {
+            if (choiceSet[i] && targets[i]->as<JSFunction>().isNative()) {
+                trackTypeInfo(callInfo);
+                break;
+            }
+        }
     }
 
     MOZ_ASSERT(choiceSet.length() == targets.length());
@@ -4885,13 +4901,22 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
 IonBuilder::InliningStatus
 IonBuilder::inlineSingleCall(CallInfo &callInfo, JSObject *targetArg)
 {
-    if (!targetArg->is<JSFunction>())
-        return inlineNonFunctionCall(callInfo, targetArg);
+    if (!targetArg->is<JSFunction>()) {
+        InliningStatus status = inlineNonFunctionCall(callInfo, targetArg);
+        trackInlineSuccess(status);
+        return status;
+    }
 
     JSFunction *target = &targetArg->as<JSFunction>();
-    if (target->isNative())
-        return inlineNativeCall(callInfo, target);
+    if (target->isNative()) {
+        InliningStatus status = inlineNativeCall(callInfo, target);
+        trackInlineSuccess(status);
+        return status;
+    }
 
+    
+    
+    trackInlineSuccess();
     if (!inlineScriptedCall(callInfo, target))
         return InliningStatus_Error;
     return InliningStatus_Inlined;
@@ -4901,8 +4926,11 @@ IonBuilder::InliningStatus
 IonBuilder::inlineCallsite(const ObjectVector &targets, ObjectVector &originals,
                            CallInfo &callInfo)
 {
-    if (targets.empty())
+    if (targets.empty()) {
+        trackOptimizationAttempt(TrackedStrategy::Call_Inline);
+        trackOptimizationOutcome(TrackedOutcome::CantInlineNoTarget);
         return InliningStatus_NotInlined;
+    }
 
     
     
@@ -4914,6 +4942,10 @@ IonBuilder::inlineCallsite(const ObjectVector &targets, ObjectVector &originals,
     
     if (!propCache.get() && targets.length() == 1) {
         JSObject *target = targets[0];
+
+        trackOptimizationAttempt(TrackedStrategy::Call_Inline);
+        trackTypeInfo(TrackedTypeSite::Call_Target, target);
+
         InliningDecision decision = makeInliningDecision(target, callInfo);
         switch (decision) {
           case InliningDecision_Error:
@@ -5162,6 +5194,10 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets,
 
         
         
+        amendOptimizationAttempt(i);
+
+        
+        
         
         JSFunction *original = &originals[i]->as<JSFunction>();
         JSFunction *target = &targets[i]->as<JSFunction>();
@@ -5169,6 +5205,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, const ObjectVector &targets,
         
         if (maybeCache && !maybeCache->propTable()->hasFunction(original)) {
             choiceSet[i] = false;
+            trackOptimizationOutcome(TrackedOutcome::CantInlineNotInDispatch);
             continue;
         }
 
@@ -5704,6 +5741,8 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 bool
 IonBuilder::jsop_call(uint32_t argc, bool constructing)
 {
+    startTrackingOptimizations();
+
     
     
     types::TemporaryTypeSet *observed = bytecodeTypes(pc);
@@ -9941,7 +9980,6 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, MDefinition *obj, PropertyName
           case InliningDecision_Inline:
             if (!inlineScriptedCall(callInfo, commonGetter))
                 return false;
-            trackOptimizationOutcome(TrackedOutcome::Inlined);
             *emitted = true;
             return true;
         }
@@ -10382,7 +10420,6 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
             if (!inlineScriptedCall(callInfo, commonSetter))
                 return false;
             *emitted = true;
-            trackOptimizationOutcome(TrackedOutcome::Inlined);
             return true;
         }
     }
