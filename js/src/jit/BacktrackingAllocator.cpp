@@ -141,7 +141,8 @@ LifetimesOverlap(BacktrackingVirtualRegister* reg0, BacktrackingVirtualRegister*
     
     MOZ_ASSERT(reg0->numIntervals() <= 2 && reg1->numIntervals() <= 2);
 
-    LiveInterval* interval0 = reg0->getInterval(0), *interval1 = reg1->getInterval(0);
+    LiveInterval* interval0 = reg0->getInterval(0);
+    LiveInterval* interval1 = reg1->getInterval(0);
 
     
     
@@ -190,7 +191,8 @@ BacktrackingAllocator::tryGroupRegisters(uint32_t vreg0, uint32_t vreg1)
     
     
     
-    BacktrackingVirtualRegister* reg0 = &vregs[vreg0], *reg1 = &vregs[vreg1];
+    BacktrackingVirtualRegister* reg0 = &vregs[vreg0];
+    BacktrackingVirtualRegister* reg1 = &vregs[vreg1];
 
     if (!reg0->isCompatibleVReg(*reg1))
         return true;
@@ -215,7 +217,8 @@ BacktrackingAllocator::tryGroupRegisters(uint32_t vreg0, uint32_t vreg1)
         }
     }
 
-    VirtualRegisterGroup* group0 = reg0->group(), *group1 = reg1->group();
+    VirtualRegisterGroup* group0 = reg0->group();
+    VirtualRegisterGroup* group1 = reg1->group();
 
     if (!group0 && group1)
         return tryGroupRegisters(vreg1, vreg0);
@@ -262,7 +265,8 @@ BacktrackingAllocator::tryGroupRegisters(uint32_t vreg0, uint32_t vreg1)
 bool
 BacktrackingAllocator::tryGroupReusedRegister(uint32_t def, uint32_t use)
 {
-    BacktrackingVirtualRegister& reg = vregs[def], &usedReg = vregs[use];
+    BacktrackingVirtualRegister& reg = vregs[def];
+    BacktrackingVirtualRegister& usedReg = vregs[use];
 
     
     
@@ -1914,7 +1918,8 @@ BacktrackingAllocator::trySplitAcrossHotcode(LiveInterval* interval, bool* succe
     }
 
     LiveInterval* hotInterval = LiveInterval::New(alloc(), interval->vreg(), 0);
-    LiveInterval* preInterval = nullptr, *postInterval = nullptr;
+    LiveInterval* preInterval = nullptr;
+    LiveInterval* postInterval = nullptr;
 
     
     

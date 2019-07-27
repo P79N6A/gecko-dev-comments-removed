@@ -28,15 +28,18 @@ struct LoopUnroller
     TempAllocator& alloc;
 
     
-    MBasicBlock* header, *backedge;
+    MBasicBlock* header;
+    MBasicBlock* backedge;
 
     
-    MBasicBlock* unrolledHeader, *unrolledBackedge;
+    MBasicBlock* unrolledHeader;
+    MBasicBlock* unrolledBackedge;
 
     
     
     
-    MBasicBlock* oldPreheader, *newPreheader;
+    MBasicBlock* oldPreheader;
+    MBasicBlock* newPreheader;
 
     
     DefinitionMap unrolledDefinitions;

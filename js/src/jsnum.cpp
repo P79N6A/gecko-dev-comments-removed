@@ -1058,7 +1058,9 @@ js::InitRuntimeNumberState(JSRuntime* rt)
     
 #if !EXPOSE_INTL_API
     
-    const char* thousandsSeparator, *decimalPoint, *grouping;
+    const char* thousandsSeparator;
+    const char* decimalPoint;
+    const char* grouping;
 #ifdef HAVE_LOCALECONV
     struct lconv* locale = localeconv();
     thousandsSeparator = locale->thousands_sep;

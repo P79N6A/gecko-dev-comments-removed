@@ -4745,7 +4745,8 @@ Parser<FullParseHandler>::forStatement()
 
 
     StmtInfoPC letStmt(context); 
-    ParseNode* pn2, *pn3;      
+    ParseNode* pn2;      
+    ParseNode* pn3;      
     ParseNodeKind headKind = PNK_FORHEAD;
     if (pn1) {
         bool isForIn, isForOf;
@@ -6903,7 +6904,9 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode* bodyExpr, unsigned 
     }
 
     unsigned adjust;
-    ParseNode* pn, *pn3, **pnp;
+    ParseNode* pn;
+    ParseNode* pn3;
+    ParseNode** pnp;
     StmtInfoPC stmtInfo(context);
     BindData<FullParseHandler> data(context);
     TokenKind tt;

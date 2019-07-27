@@ -791,6 +791,9 @@ NativeObject::putProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId
             return nullptr;
 
         
+
+
+
         if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
             if (!allocSlot(cx, obj, &slot))
                 return nullptr;

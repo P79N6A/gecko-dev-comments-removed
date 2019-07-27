@@ -109,7 +109,8 @@ SandboxDump(JSContext* cx, unsigned argc, jsval* vp)
 
 #if defined(XP_MACOSX)
     
-    char* c = cstr, *cEnd = cstr + strlen(cstr);
+    char* c = cstr;
+    char* cEnd = cstr + strlen(cstr);
     while (c < cEnd) {
         if (*c == '\r')
             *c = '\n';

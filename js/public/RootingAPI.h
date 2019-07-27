@@ -795,7 +795,8 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
 
 
 
-    Rooted<void*>** stack, *prev;
+    Rooted<void*>** stack;
+    Rooted<void*>* prev;
 
     
 
