@@ -1216,9 +1216,10 @@ static void send_message_helper(
         (msg_id == CC_MSG_CREATEANSWER ||
          msg_id == CC_MSG_SETLOCALDESC ||
          msg_id == CC_MSG_SETREMOTEDESC)) {
-        size_t sdp_size = strlen(sdp) + 1;
-        pmsg->sdp = cpr_malloc(sdp_size);
-        sstrncpy(pmsg->sdp, sdp, sdp_size);
+        
+
+
+        pmsg->sdp = sdp;
     } else {
         pmsg->sdp = NULL;
     }

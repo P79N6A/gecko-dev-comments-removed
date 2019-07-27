@@ -404,6 +404,10 @@ send_task_unload_msg(cc_srcs_t dest_id)
             }
             CSFLogError("common", "%s:  send UNLOAD msg to CCapp thread good",
               fname);
+            
+
+            cpr_free(msg);
+            msg = NULL;
         }
         break;
 
