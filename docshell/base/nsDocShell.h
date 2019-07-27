@@ -984,7 +984,7 @@ private:
   
   bool mProfileTimelineRecording;
 
-  nsTArray<TimelineMarker*> mProfileTimelineMarkers;
+  nsTArray<mozilla::UniquePtr<TimelineMarker>> mProfileTimelineMarkers;
 
   
   void ClearProfileTimelineMarkers();

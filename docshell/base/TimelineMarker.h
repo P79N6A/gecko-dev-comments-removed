@@ -33,9 +33,9 @@ public:
   
   
   
-  virtual bool Equals(const TimelineMarker* aOther)
+  virtual bool Equals(const TimelineMarker& aOther)
   {
-    return strcmp(mName, aOther->mName) == 0;
+    return strcmp(mName, aOther.mName) == 0;
   }
 
   
