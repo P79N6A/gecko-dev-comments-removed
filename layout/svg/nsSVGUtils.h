@@ -58,6 +58,7 @@ class SVGAnimatedPreserveAspectRatio;
 class SVGPreserveAspectRatio;
 namespace dom {
 class Element;
+class UserSpaceMetrics;
 } 
 namespace gfx {
 class SourceSurface;
@@ -274,12 +275,8 @@ public:
 
 
   static float UserSpace(nsSVGElement *aSVGElement, const nsSVGLength2 *aLength);
-
-  
-
-
-
   static float UserSpace(nsIFrame *aFrame, const nsSVGLength2 *aLength);
+  static float UserSpace(const mozilla::dom::UserSpaceMetrics& aMetrics, const nsSVGLength2 *aLength);
 
   
   static nsSVGOuterSVGFrame *
@@ -454,7 +451,12 @@ public:
 
   static gfxRect
   GetRelativeRect(uint16_t aUnits, const nsSVGLength2 *aXYWH,
-                  const gfxRect &aBBox, nsIFrame *aFrame);
+                  const gfxRect& aBBox, nsIFrame *aFrame);
+
+  static gfxRect
+  GetRelativeRect(uint16_t aUnits, const nsSVGLength2 *aXYWH,
+                  const gfxRect& aBBox,
+                  const mozilla::dom::UserSpaceMetrics& aMetrics);
 
   
 
