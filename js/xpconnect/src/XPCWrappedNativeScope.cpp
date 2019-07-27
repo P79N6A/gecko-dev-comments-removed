@@ -27,6 +27,26 @@ XPCWrappedNativeScope* XPCWrappedNativeScope::gScopes = nullptr;
 XPCWrappedNativeScope* XPCWrappedNativeScope::gDyingScopes = nullptr;
 XPCWrappedNativeScope::InterpositionMap* XPCWrappedNativeScope::gInterpositionMap = nullptr;
 
+NS_IMPL_ISUPPORTS(XPCWrappedNativeScope::ClearInterpositionsObserver, nsIObserver)
+
+NS_IMETHODIMP
+XPCWrappedNativeScope::ClearInterpositionsObserver::Observe(nsISupports *subject,
+                                                            const char *topic,
+                                                            const char16_t *data)
+{
+    MOZ_ASSERT(strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
+
+    
+    
+    
+    
+    if (gInterpositionMap)
+        delete gInterpositionMap;
+
+    nsContentUtils::UnregisterShutdownObserver(this);
+    return NS_OK;
+}
+
 static bool
 RemoteXULForbidsXBLScope(nsIPrincipal *aPrincipal, HandleObject aGlobal)
 {
@@ -671,9 +691,6 @@ XPCWrappedNativeScope::SystemIsBeingShutDown()
 
     
     KillDyingScopes();
-
-    if (gInterpositionMap)
-        delete gInterpositionMap;
 }
 
 
@@ -707,6 +724,9 @@ XPCWrappedNativeScope::SetAddonInterposition(JSAddonId *addonId,
     if (!gInterpositionMap) {
         gInterpositionMap = new InterpositionMap();
         gInterpositionMap->init();
+
+        
+        nsContentUtils::RegisterShutdownObserver(new ClearInterpositionsObserver());
     }
     if (interp) {
         return gInterpositionMap->put(addonId, interp);
