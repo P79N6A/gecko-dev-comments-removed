@@ -15,14 +15,88 @@ const { promiseInvoke } = devtools.require("devtools/async-utils");
 
 const Services = devtools.require("Services");
 
-
-Services.prefs.setBoolPref("devtools.debugger.log", true);
-
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 
 const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
 const { DebuggerServer } = devtools.require("devtools/server/main");
 const { DebuggerServer: WorkerDebuggerServer } = worker.require("devtools/server/main");
+
+let loadSubScript = Cc[
+  '@mozilla.org/moz/jssubscript-loader;1'
+].getService(Ci.mozIJSSubScriptLoader).loadSubScript;
+
+function createTestGlobal(name) {
+  let sandbox = Cu.Sandbox(
+    Cc["@mozilla.org/systemprincipal;1"].createInstance(Ci.nsIPrincipal)
+  );
+  sandbox.__name = name;
+  return sandbox;
+}
+
+function connect(client) {
+  dump("Connecting client.\n");
+  return new Promise(function (resolve) {
+    client.connect(function () {
+      resolve();
+    });
+  });
+}
+
+function close(client) {
+  dump("Closing client.\n");
+  return new Promise(function (resolve) {
+    client.close(function () {
+      resolve();
+    });
+  });
+}
+
+function listTabs(client) {
+  dump("Listing tabs.\n");
+  return rdpRequest(client, client.listTabs);
+}
+
+function findTab(tabs, title) {
+  dump("Finding tab with title '" + title + "'.\n");
+  for (let tab of tabs) {
+    if (tab.title === title) {
+      return tab;
+    }
+  }
+  return null;
+}
+
+function attachTab(client, tab) {
+  dump("Attaching to tab with title '" + tab.title + "'.\n");
+  return rdpRequest(client, client.attachTab, tab.actor);
+}
+
+function waitForNewSource(client, url) {
+  dump("Waiting for new source with url '" + url + "'.\n");
+  return waitForEvent(client, "newSource", function (packet) {
+    return packet.source.url === url;
+  });
+}
+
+function attachThread(tabClient, options = {}) {
+  dump("Attaching to thread.\n");
+  return rdpRequest(tabClient, tabClient.attachThread, options);
+}
+
+function resume(threadClient) {
+  dump("Resuming thread.\n");
+  return rdpRequest(threadClient, threadClient.resume);
+}
+
+function waitForPause(threadClient) {
+  dump("Waiting for pause.\n");
+  return waitForEvent(threadClient, "paused");
+}
+
+function setBreakpoint(sourceClient, location) {
+  dump("Setting breakpoint.\n");
+  return rdpRequest(sourceClient, sourceClient.setBreakpoint, location);
+}
 
 function dumpn(msg) {
   dump("DBG-TEST: " + msg + "\n");
@@ -445,21 +519,25 @@ const assert = do_check_true;
 
 
 
-function waitForEvent(client, event) {
-  dumpn("Waiting for event: " + event);
-  return new Promise((resolve, reject) => {
-    client.addOneTimeListener(event, (_, packet) => resolve(packet));
+
+function waitForEvent(client, type, predicate) {
+  return new Promise(function (resolve) {
+    function listener(type, packet) {
+      if (!predicate(packet)) {
+        return;
+      }
+      client.removeListener(listener);
+      resolve(packet);
+    }
+
+    if (predicate) {
+      client.addListener(type, listener);
+    } else {
+      client.addOneTimeListener(type, function (type, packet) {
+        resolve(packet);
+      });
+    }
   });
-}
-
-
-
-
-
-
-
-function waitForPause(client) {
-  return waitForEvent(client, "paused");
 }
 
 
@@ -506,29 +584,6 @@ function rdpRequest(client, method, ...args) {
       }
       return response;
     });
-}
-
-
-
-
-
-
-
-
-function setBreakpoint(sourceClient, breakpointOptions) {
-  dumpn("Setting a breakpoint: " + JSON.stringify(breakpointOptions, null, 2));
-  return rdpRequest(sourceClient, sourceClient.setBreakpoint, breakpointOptions);
-}
-
-
-
-
-
-
-
-function resume(threadClient) {
-  dumpn("Resuming.");
-  return rdpRequest(threadClient, threadClient.resume);
 }
 
 
