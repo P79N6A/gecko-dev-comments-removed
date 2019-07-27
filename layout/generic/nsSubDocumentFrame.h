@@ -134,7 +134,7 @@ protected:
   friend class AsyncFrameInit;
 
   
-  nsIntSize GetMarginAttributes();
+  mozilla::CSSIntSize GetMarginAttributes();
 
   nsFrameLoader* FrameLoader();
 
