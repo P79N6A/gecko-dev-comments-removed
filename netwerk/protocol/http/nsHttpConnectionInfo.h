@@ -63,6 +63,9 @@ public:
     const nsCString &GetAuthenticationHost() const { return mAuthenticationHost; }
     int32_t GetAuthenticationPort() const { return mAuthenticationPort; }
 
+    const nsCString &GetOrigin() const { return mAuthenticationHost.IsEmpty() ? mHost : mAuthenticationHost; }
+    int32_t OriginPort() const { return mAuthenticationHost.IsEmpty() ? mPort : mAuthenticationPort; }
+
     
     
     
