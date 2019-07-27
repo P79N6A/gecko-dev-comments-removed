@@ -6,6 +6,7 @@
 
 #include "nsHTMLDocument.h"
 
+#include "nsIContentPolicy.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/dom/HTMLAllCollection.h"
 #include "nsCOMPtr.h"
@@ -1510,8 +1511,13 @@ nsHTMLDocument::Open(JSContext* cx,
   
   nsCOMPtr<nsIChannel> channel;
   nsCOMPtr<nsILoadGroup> group = do_QueryReferent(mDocumentLoadGroup);
-
-  rv = NS_NewChannel(getter_AddRefs(channel), uri, nullptr, group);
+  rv = NS_NewChannel(getter_AddRefs(channel),
+                     uri,
+                     callerDoc,
+                     nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                     nsIContentPolicy::TYPE_OTHER,
+                     nullptr,   
+                     group);
 
   if (rv.Failed()) {
     return nullptr;
@@ -1520,12 +1526,6 @@ nsHTMLDocument::Open(JSContext* cx,
   
   
 
-  
-  
-  nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(callerPrincipal, LoadInfo::eInheritPrincipal,
-                 LoadInfo::eNotSandboxed);
-  rv = channel->SetLoadInfo(loadInfo);
   if (rv.Failed()) {
     return nullptr;
   }
@@ -2373,7 +2373,12 @@ nsHTMLDocument::CreateAndAddWyciwygChannel(void)
   
   nsCOMPtr<nsIChannel> channel;
   
-  rv = NS_NewChannel(getter_AddRefs(channel), wcwgURI);
+  rv = NS_NewChannel(getter_AddRefs(channel),
+                     wcwgURI,
+                     NodePrincipal(),
+                     nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                     nsIContentPolicy::TYPE_OTHER);
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   mWyciwygChannel = do_QueryInterface(channel);
@@ -2385,12 +2390,6 @@ nsHTMLDocument::CreateAndAddWyciwygChannel(void)
   SetDocumentCharacterSetSource(kCharsetFromHintPrevDoc);
   mWyciwygChannel->SetCharsetAndSource(kCharsetFromHintPrevDoc,
                                        GetDocumentCharacterSet());
-
-  
-  nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(NodePrincipal(), LoadInfo::eInheritPrincipal,
-                 LoadInfo::eNotSandboxed);
-  channel->SetLoadInfo(loadInfo);
 
   
   channel->SetLoadFlags(mLoadFlags);

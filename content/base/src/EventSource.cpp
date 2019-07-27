@@ -370,18 +370,6 @@ EventSource::OnStartRequest(nsIRequest *aRequest,
     return NS_ERROR_ABORT;
   }
 
-  nsCOMPtr<nsIPrincipal> principal = mPrincipal;
-  if (nsContentUtils::IsSystemPrincipal(principal)) {
-    
-    principal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  nsCOMPtr<nsILoadInfo> loadInfo =
-    new LoadInfo(principal, LoadInfo::eInheritPrincipal,
-                 LoadInfo::eNotSandboxed);
-  rv = httpChannel->SetLoadInfo(loadInfo);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIRunnable> event =
     NS_NewRunnableMethod(this, &EventSource::AnnounceConnection);
   NS_ENSURE_STATE(event);
@@ -761,9 +749,42 @@ EventSource::InitChannelAndRequestEventSource()
     channelPolicy->SetLoadType(nsIContentPolicy::TYPE_DATAREQUEST);
   }
 
+  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
+  nsCOMPtr<nsIDocument> doc =
+    nsContentUtils::GetDocumentFromScriptContext(sc);
+
+  nsCOMPtr<nsIPrincipal> principal = mPrincipal;
+  if (nsContentUtils::IsSystemPrincipal(principal)) {
+    
+    principal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannel(getter_AddRefs(channel), mSrc, nullptr, mLoadGroup,
-                     nullptr, loadFlags, channelPolicy);
+  
+  if (doc) {
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       mSrc,
+                       doc,
+                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       nsIContentPolicy::TYPE_DATAREQUEST,
+                       channelPolicy,    
+                       mLoadGroup,       
+                       nullptr,          
+                       loadFlags);       
+  } else {
+    
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       mSrc,
+                       principal,
+                       nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
+                       nsIContentPolicy::TYPE_DATAREQUEST,
+                       channelPolicy,    
+                       mLoadGroup,       
+                       nullptr,          
+                       loadFlags);       
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   mHttpChannel = do_QueryInterface(channel);
