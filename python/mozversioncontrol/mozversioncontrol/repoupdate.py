@@ -9,7 +9,6 @@ import subprocess
 
 
 
-
 def update_mercurial_repo(hg, repo, path, revision='default',
     hostfingerprints=None):
     """Ensure a HG repository exists at a path and is up to date."""
