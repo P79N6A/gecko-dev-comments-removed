@@ -698,10 +698,7 @@ Parser<ParseHandler>::parse(JSObject *chain)
 
     Node pn = statements();
     if (pn) {
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_EOF))
-            return null();
-        if (!matched) {
+        if (!tokenStream.matchToken(TOK_EOF)) {
             TokenKind tt;
             if (!tokenStream.peekToken(&tt))
                 return null();
@@ -823,10 +820,7 @@ Parser<FullParseHandler>::standaloneFunctionBody(HandleFunction fun, const AutoN
     if (!pn)
         return null();
 
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_EOF))
-        return null();
-    if (!matched) {
+    if (!tokenStream.matchToken(TOK_EOF)) {
         TokenKind tt;
         if (!tokenStream.peekToken(&tt))
             return null();
@@ -1237,8 +1231,8 @@ MatchOrInsertSemicolon(TokenStream &ts)
         ts.reportError(JSMSG_SEMI_BEFORE_STMNT);
         return false;
     }
-    bool ignored;
-    return ts.matchToken(&ignored, TOK_SEMI);
+    (void) ts.matchToken(TOK_SEMI);
+    return true;
 }
 
 template <typename ParseHandler>
@@ -1563,22 +1557,12 @@ Parser<ParseHandler>::functionArguments(FunctionSyntaxKind kind, Node *listp, No
         return false;
     handler.setFunctionBody(funcpn, argsbody);
 
-    bool hasArguments = false;
-    if (parenFreeArrow) {
-        hasArguments = true;
-    } else {
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_RP))
-            return false;
-        if (!matched)
-            hasArguments = true;
-    }
-    if (hasArguments) {
+    if (parenFreeArrow || !tokenStream.matchToken(TOK_RP)) {
         bool hasDefaults = false;
         Node duplicatedArg = null();
         Node list = null();
 
-        while (true) {
+        do {
             if (*hasRest) {
                 report(ParseError, false, null(), JSMSG_PARAMETER_AFTER_REST);
                 return false;
@@ -1674,10 +1658,7 @@ Parser<ParseHandler>::functionArguments(FunctionSyntaxKind kind, Node *listp, No
                 if (!defineArg(funcpn, name, disallowDuplicateArgs, &duplicatedArg))
                     return false;
 
-                bool matched;
-                if (!tokenStream.matchToken(&matched, TOK_ASSIGN))
-                    return false;
-                if (matched) {
+                if (tokenStream.matchToken(TOK_ASSIGN)) {
                     
                     
                     
@@ -1712,16 +1693,7 @@ Parser<ParseHandler>::functionArguments(FunctionSyntaxKind kind, Node *listp, No
                 report(ParseError, false, null(), JSMSG_MISSING_FORMAL);
                 return false;
             }
-
-            if (parenFreeArrow)
-                break;
-
-            bool matched;
-            if (!tokenStream.matchToken(&matched, TOK_COMMA))
-                return false;
-            if (!matched)
-                break;
-        }
+        } while (!parenFreeArrow && tokenStream.matchToken(TOK_COMMA));
 
         if (!parenFreeArrow) {
             TokenKind tt;
@@ -2466,14 +2438,9 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
         return false;
     }
 
-    if (kind == Arrow) {
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_ARROW))
-            return false;
-        if (!matched) {
-            report(ParseError, false, null(), JSMSG_BAD_ARROW_ARGS);
-            return false;
-        }
+    if (kind == Arrow && !tokenStream.matchToken(TOK_ARROW)) {
+        report(ParseError, false, null(), JSMSG_BAD_ARROW_ARGS);
+        return false;
     }
 
     
@@ -2505,10 +2472,7 @@ Parser<ParseHandler>::functionArgsAndBodyGeneric(Node pn, HandleFunction fun, Fu
 #if JS_HAS_EXPR_CLOSURES
     if (bodyType == StatementListBody) {
 #endif
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_RC))
-            return false;
-        if (!matched) {
+        if (!tokenStream.matchToken(TOK_RC)) {
             report(ParseError, false, null(), JSMSG_CURLY_AFTER_BODY);
             return false;
         }
@@ -3556,41 +3520,28 @@ Parser<ParseHandler>::letBlock(LetContext letContext)
     handler.setBeginPosition(pnlet, begin);
 
     bool needExprStmt = false;
-    if (letContext == LetStatement) {
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_LC, TokenStream::Operand))
+    if (letContext == LetStatement && !tokenStream.matchToken(TOK_LC, TokenStream::Operand)) {
+        
+
+
+
+
+
+
+
+        if (!report(ParseStrictError, pc->sc->strict, pnlet,
+                    JSMSG_STRICT_CODE_LET_EXPR_STMT))
+        {
             return null();
-        if (!matched) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (!report(ParseStrictError, pc->sc->strict, pnlet,
-                        JSMSG_STRICT_CODE_LET_EXPR_STMT))
-            {
-                return null();
-            }
-
-            
-
-
-
-
-            needExprStmt = true;
-            letContext = LetExpresion;
         }
+
+        
+
+
+
+
+        needExprStmt = true;
+        letContext = LetExpresion;
     }
 
     Node expr;
@@ -3720,121 +3671,107 @@ Parser<ParseHandler>::variables(ParseNodeKind kind, bool *psimple,
 
     bool first = true;
     Node pn2;
-    while (true) {
-        do {
-            if (psimple && !first)
+    do {
+        if (psimple && !first)
+            *psimple = false;
+        first = false;
+
+        TokenKind tt;
+        if (!tokenStream.getToken(&tt))
+            return null();
+        if (tt == TOK_LB || tt == TOK_LC) {
+            if (psimple)
                 *psimple = false;
-            first = false;
 
-            TokenKind tt;
-            if (!tokenStream.getToken(&tt))
-                return null();
-            if (tt == TOK_LB || tt == TOK_LC) {
-                if (psimple)
-                    *psimple = false;
-
-                pc->inDeclDestructuring = true;
-                pn2 = primaryExpr(tt);
-                pc->inDeclDestructuring = false;
-                if (!pn2)
-                    return null();
-
-                bool parsingForInOrOfInit = false;
-                if (pc->parsingForInit) {
-                    bool isForIn, isForOf;
-                    if (!matchInOrOf(&isForIn, &isForOf))
-                        return null();
-                    parsingForInOrOfInit = isForIn || isForOf;
-                }
-
-                
-                
-                bool bindBeforeInitializer = kind != PNK_LET || parsingForInOrOfInit;
-                if (bindBeforeInitializer && !checkDestructuring(&data, pn2))
-                    return null();
-
-                if (parsingForInOrOfInit) {
-                    tokenStream.ungetToken();
-                    handler.addList(pn, pn2);
-                    break;
-                }
-
-                MUST_MATCH_TOKEN(TOK_ASSIGN, JSMSG_BAD_DESTRUCT_DECL);
-
-                Node init = assignExpr();
-                if (!init)
-                    return null();
-
-                if (!bindBeforeInitializer && !checkDestructuring(&data, pn2))
-                    return null();
-
-                pn2 = handler.newBinaryOrAppend(PNK_ASSIGN, pn2, init, pc);
-                if (!pn2)
-                    return null();
-                handler.addList(pn, pn2);
-                break;
-            }
-
-            if (tt != TOK_NAME) {
-                if (tt == TOK_YIELD) {
-                    if (!checkYieldNameValidity())
-                        return null();
-                } else {
-                    report(ParseError, false, null(), JSMSG_NO_VARIABLE_NAME);
-                    return null();
-                }
-            }
-
-            RootedPropertyName name(context, tokenStream.currentName());
-            pn2 = newBindingNode(name, kind == PNK_VAR || kind == PNK_CONST, varContext);
+            pc->inDeclDestructuring = true;
+            pn2 = primaryExpr(tt);
+            pc->inDeclDestructuring = false;
             if (!pn2)
                 return null();
-            if (data.op == JSOP_DEFCONST)
-                handler.setFlag(pn2, PND_CONST);
-            data.pn = pn2;
 
-            handler.addList(pn, pn2);
+            bool ignored;
+            bool parsingForInOrOfInit = pc->parsingForInit && matchInOrOf(&ignored);
 
-            bool matched;
-            if (!tokenStream.matchToken(&matched, TOK_ASSIGN))
+            
+            
+            bool bindBeforeInitializer = kind != PNK_LET || parsingForInOrOfInit;
+            if (bindBeforeInitializer && !checkDestructuring(&data, pn2))
                 return null();
-            if (matched) {
-                if (psimple)
-                    *psimple = false;
 
-                
-                
-                
-                
-                
-                
-                
-                
-                bool bindBeforeInitializer = kind != PNK_LET;
-                if (bindBeforeInitializer && !data.binder(&data, name, this))
-                    return null();
+            if (parsingForInOrOfInit) {
+                tokenStream.ungetToken();
+                handler.addList(pn, pn2);
+                continue;
+            }
 
-                Node init = assignExpr();
-                if (!init)
-                    return null();
+            MUST_MATCH_TOKEN(TOK_ASSIGN, JSMSG_BAD_DESTRUCT_DECL);
 
-                if (!bindBeforeInitializer && !data.binder(&data, name, this))
-                    return null();
+            Node init = assignExpr();
+            if (!init)
+                return null();
 
-                if (!handler.finishInitializerAssignment(pn2, init, data.op))
+            if (!bindBeforeInitializer && !checkDestructuring(&data, pn2))
+                return null();
+
+            pn2 = handler.newBinaryOrAppend(PNK_ASSIGN, pn2, init, pc);
+            if (!pn2)
+                return null();
+            handler.addList(pn, pn2);
+            continue;
+        }
+
+        if (tt != TOK_NAME) {
+            if (tt == TOK_YIELD) {
+                if (!checkYieldNameValidity())
                     return null();
             } else {
-                if (!data.binder(&data, name, this))
-                    return null();
+                report(ParseError, false, null(), JSMSG_NO_VARIABLE_NAME);
+                return null();
             }
-        } while (false);
+        }
 
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_COMMA))
+        RootedPropertyName name(context, tokenStream.currentName());
+        pn2 = newBindingNode(name, kind == PNK_VAR || kind == PNK_CONST, varContext);
+        if (!pn2)
             return null();
-        if (!matched)
-            break;
-    }
+        if (data.op == JSOP_DEFCONST)
+            handler.setFlag(pn2, PND_CONST);
+        data.pn = pn2;
+
+        handler.addList(pn, pn2);
+
+        if (tokenStream.matchToken(TOK_ASSIGN)) {
+            if (psimple)
+                *psimple = false;
+
+            
+            
+            
+            
+            
+            
+            
+            
+            bool bindBeforeInitializer = kind != PNK_LET;
+            if (bindBeforeInitializer && !data.binder(&data, name, this))
+                return null();
+
+            Node init = assignExpr();
+            if (!init)
+                return null();
+
+            if (!bindBeforeInitializer && !data.binder(&data, name, this))
+                return null();
+
+            if (!handler.finishInitializerAssignment(pn2, init, data.op))
+                return null();
+        } else {
+            if (!data.binder(&data, name, this))
+                return null();
+        }
+
+
+    } while (tokenStream.matchToken(TOK_COMMA));
 
     return pn;
 }
@@ -4045,7 +3982,7 @@ Parser<ParseHandler>::importDeclaration()
 
             handler.addList(importSpecSet, importSpec);
         } else {
-            while (true) {
+            do {
                 
                 
                 
@@ -4093,13 +4030,7 @@ Parser<ParseHandler>::importDeclaration()
                     return null();
 
                 handler.addList(importSpecSet, importSpec);
-
-                bool matched;
-                if (!tokenStream.matchToken(&matched, TOK_COMMA))
-                    return null();
-                if (!matched)
-                    break;
-            }
+            } while (tokenStream.matchToken(TOK_COMMA));
 
             MUST_MATCH_TOKEN(TOK_RC, JSMSG_RC_AFTER_IMPORT_SPEC_LIST);
         }
@@ -4167,7 +4098,7 @@ Parser<ParseHandler>::exportDeclaration()
             return null();
 
         if (tt == TOK_LC) {
-            while (true) {
+            do {
                 
                 
                 
@@ -4202,13 +4133,7 @@ Parser<ParseHandler>::exportDeclaration()
                     return null();
 
                 handler.addList(kid, exportSpec);
-
-                bool matched;
-                if (!tokenStream.matchToken(&matched, TOK_COMMA))
-                    return null();
-                if (!matched)
-                    break;
-            }
+            } while (tokenStream.matchToken(TOK_COMMA));
 
             MUST_MATCH_TOKEN(TOK_RC, JSMSG_RC_AFTER_EXPORT_SPEC_LIST);
         } else {
@@ -4327,10 +4252,7 @@ Parser<ParseHandler>::ifStatement()
         return null();
 
     Node elseBranch;
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_ELSE, TokenStream::Operand))
-        return null();
-    if (matched) {
+    if (tokenStream.matchToken(TOK_ELSE, TokenStream::Operand)) {
         stmtInfo.type = STMT_ELSE;
         elseBranch = statement();
         if (!elseBranch)
@@ -4364,9 +4286,7 @@ Parser<ParseHandler>::doWhileStatement()
     
     
     
-    bool ignored;
-    if (!tokenStream.matchToken(&ignored, TOK_SEMI))
-        return null();
+    tokenStream.matchToken(TOK_SEMI);
     return handler.newDoWhileStatement(body, cond, TokenPos(begin, pos().end));
 }
 
@@ -4389,16 +4309,17 @@ Parser<ParseHandler>::whileStatement()
 
 template <typename ParseHandler>
 bool
-Parser<ParseHandler>::matchInOrOf(bool *isForInp, bool *isForOfp)
+Parser<ParseHandler>::matchInOrOf(bool *isForOfp)
 {
-    TokenKind tt;
-    if (!tokenStream.getToken(&tt))
-        return false;
-    *isForInp = tt == TOK_IN;
-    *isForOfp = tt == TOK_NAME && tokenStream.currentToken().name() == context->names().of;
-    if (!*isForInp && !*isForOfp)
-        tokenStream.ungetToken();
-    return true;
+    if (tokenStream.matchToken(TOK_IN)) {
+        *isForOfp = false;
+        return true;
+    }
+    if (tokenStream.matchContextualKeyword(context->names().of)) {
+        *isForOfp = true;
+        return true;
+    }
+    return false;
 }
 
 template <>
@@ -4555,13 +4476,9 @@ Parser<FullParseHandler>::forStatement()
     ParseNode *pn2, *pn3;      
     ParseNodeKind headKind = PNK_FORHEAD;
     if (pn1) {
-        bool isForIn, isForOf;
-        if (!matchInOrOf(&isForIn, &isForOf))
-            return null();
-        if (isForIn)
-            headKind = PNK_FORIN;
-        else if (isForOf)
-            headKind = PNK_FOROF;
+        bool isForOf;
+        if (matchInOrOf(&isForOf))
+            headKind = isForOf ? PNK_FOROF : PNK_FORIN;
     }
 
     if (headKind == PNK_FOROF || headKind == PNK_FORIN) {
@@ -4857,12 +4774,8 @@ Parser<SyntaxParseHandler>::forStatement()
 
 
 
-    bool isForIn = false, isForOf = false;
-    if (lhsNode) {
-        if (!matchInOrOf(&isForIn, &isForOf))
-            return null();
-    }
-    if (isForIn || isForOf) {
+    bool isForOf;
+    if (lhsNode && matchInOrOf(&isForOf)) {
         
         forStmt.type = isForOf ? STMT_FOR_OF_LOOP : STMT_FOR_IN_LOOP;
 
@@ -5548,10 +5461,7 @@ Parser<ParseHandler>::tryStatement()
 
 
 
-            bool matched;
-            if (!tokenStream.matchToken(&matched, TOK_IF))
-                return null();
-            if (matched) {
+            if (tokenStream.matchToken(TOK_IF)) {
                 catchGuard = expr();
                 if (!catchGuard)
                     return null();
@@ -5731,17 +5641,11 @@ typename ParseHandler::Node
 Parser<ParseHandler>::expr()
 {
     Node pn = assignExpr();
-    if (!pn)
-        return null();
-
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_COMMA))
-        return null();
-    if (matched) {
+    if (pn && tokenStream.matchToken(TOK_COMMA)) {
         Node seq = handler.newList(PNK_COMMA, pn);
         if (!seq)
             return null();
-        while (true) {
+        do {
             if (handler.isUnparenthesizedYield(pn)) {
                 report(ParseError, false, pn, JSMSG_BAD_GENERATOR_SYNTAX, js_yield_str);
                 return null();
@@ -5751,12 +5655,7 @@ Parser<ParseHandler>::expr()
             if (!pn)
                 return null();
             handler.addList(seq, pn);
-
-            if (!tokenStream.matchToken(&matched, TOK_COMMA))
-                return null();
-            if (!matched)
-                break;
-        }
+        } while (tokenStream.matchToken(TOK_COMMA));
         return seq;
     }
     return pn;
@@ -6600,7 +6499,7 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode *bodyExpr, unsigned 
     MOZ_ASSERT(pc->staticScope && pc->staticScope == pn->pn_objbox->object);
     data.initLet(HoistVars, &pc->staticScope->as<StaticBlockObject>(), JSMSG_ARRAY_INIT_TOO_BIG);
 
-    while (true) {
+    do {
         
 
 
@@ -6651,10 +6550,8 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode *bodyExpr, unsigned 
             return null();
         }
 
-        bool isForIn, isForOf;
-        if (!matchInOrOf(&isForIn, &isForOf))
-            return null();
-        if (!isForIn && !isForOf) {
+        bool isForOf;
+        if (!matchInOrOf(&isForOf)) {
             report(ParseError, false, null(), JSMSG_IN_AFTER_FOR_NAME);
             return null();
         }
@@ -6738,18 +6635,9 @@ Parser<FullParseHandler>::legacyComprehensionTail(ParseNode *bodyExpr, unsigned 
             return null();
         *pnp = pn2;
         pnp = &pn2->pn_right;
+    } while (tokenStream.matchToken(TOK_FOR));
 
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_FOR))
-            return null();
-        if (!matched)
-            break;
-    }
-
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_IF))
-        return null();
-    if (matched) {
+    if (tokenStream.matchToken(TOK_IF)) {
         pn2 = TernaryNode::create(PNK_IF, &handler);
         if (!pn2)
             return null();
@@ -7102,15 +6990,10 @@ Parser<ParseHandler>::comprehensionTail(GeneratorKind comprehensionKind)
 {
     JS_CHECK_RECURSION(context, return null());
 
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_FOR, TokenStream::Operand))
-        return null();
-    if (matched)
+    if (tokenStream.matchToken(TOK_FOR, TokenStream::Operand))
         return comprehensionFor(comprehensionKind);
 
-    if (!tokenStream.matchToken(&matched, TOK_IF, TokenStream::Operand))
-        return null();
-    if (matched)
+    if (tokenStream.matchToken(TOK_IF, TokenStream::Operand))
         return comprehensionIf(comprehensionKind);
 
     uint32_t begin = pos().begin;
@@ -7218,10 +7101,7 @@ template <typename ParseHandler>
 bool
 Parser<ParseHandler>::argumentList(Node listNode, bool *isSpread)
 {
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_RP, TokenStream::Operand))
-        return false;
-    if (matched) {
+    if (tokenStream.matchToken(TOK_RP, TokenStream::Operand)) {
         handler.setEndPosition(listNode, pos().end);
         return true;
     }
@@ -7229,12 +7109,10 @@ Parser<ParseHandler>::argumentList(Node listNode, bool *isSpread)
     uint32_t startYieldOffset = pc->lastYieldOffset;
     bool arg0 = true;
 
-    while (true) {
+    do {
         bool spread = false;
         uint32_t begin = 0;
-        if (!tokenStream.matchToken(&matched, TOK_TRIPLEDOT, TokenStream::Operand))
-            return false;
-        if (matched) {
+        if (tokenStream.matchToken(TOK_TRIPLEDOT, TokenStream::Operand)) {
             spread = true;
             begin = pos().begin;
             *isSpread = true;
@@ -7259,42 +7137,32 @@ Parser<ParseHandler>::argumentList(Node listNode, bool *isSpread)
             }
         }
 #if JS_HAS_GENERATOR_EXPRS
-        if (!spread) {
-            if (!tokenStream.matchToken(&matched, TOK_FOR))
+        if (!spread && tokenStream.matchToken(TOK_FOR)) {
+            if (pc->lastYieldOffset != startYieldOffset) {
+                reportWithOffset(ParseError, false, pc->lastYieldOffset,
+                                 JSMSG_BAD_GENEXP_BODY, js_yield_str);
                 return false;
-            if (matched) {
-                if (pc->lastYieldOffset != startYieldOffset) {
-                    reportWithOffset(ParseError, false, pc->lastYieldOffset,
-                                     JSMSG_BAD_GENEXP_BODY, js_yield_str);
-                    return false;
-                }
-                argNode = legacyGeneratorExpr(argNode);
-                if (!argNode)
-                    return false;
-                if (!arg0) {
-                    report(ParseError, false, argNode, JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
-                    return false;
-                }
-                TokenKind tt;
-                if (!tokenStream.peekToken(&tt))
-                    return false;
-                if (tt == TOK_COMMA) {
-                    report(ParseError, false, argNode, JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
-                    return false;
-                }
+            }
+            argNode = legacyGeneratorExpr(argNode);
+            if (!argNode)
+                return false;
+            if (!arg0) {
+                report(ParseError, false, argNode, JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
+                return false;
+            }
+            TokenKind tt;
+            if (!tokenStream.peekToken(&tt))
+                return false;
+            if (tt == TOK_COMMA) {
+                report(ParseError, false, argNode, JSMSG_BAD_GENERATOR_SYNTAX, js_generator_str);
+                return false;
             }
         }
 #endif
         arg0 = false;
 
         handler.addList(listNode, argNode);
-
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_COMMA))
-            return false;
-        if (!matched)
-            break;
-    }
+    } while (tokenStream.matchToken(TOK_COMMA));
 
     TokenKind tt;
     if (!tokenStream.getToken(&tt))
@@ -7331,10 +7199,7 @@ Parser<ParseHandler>::memberExpr(TokenKind tt, bool allowCallSyntax)
 
         handler.addList(lhs, ctorExpr);
 
-        bool matched;
-        if (!tokenStream.matchToken(&matched, TOK_LP))
-            return null();
-        if (matched) {
+        if (tokenStream.matchToken(TOK_LP)) {
             bool isSpread = false;
             if (!argumentList(lhs, &isSpread))
                 return null();
@@ -7518,21 +7383,16 @@ Parser<ParseHandler>::arrayInitializer()
     if (!literal)
         return null();
 
-    TokenKind tt;
-    if (!tokenStream.getToken(&tt, TokenStream::Operand))
-        return null();
-    if (tt == TOK_RB) {
+    if (tokenStream.matchToken(TOK_RB, TokenStream::Operand)) {
         
 
 
 
         handler.setListFlag(literal, PNX_NONCONST);
-    } else if (tt == TOK_FOR) {
+    } else if (tokenStream.matchToken(TOK_FOR, TokenStream::Operand)) {
         
         return arrayComprehension(begin);
     } else {
-        tokenStream.ungetToken();
-
         bool spread = false, missingTrailingComma = false;
         uint32_t index = 0;
         for (; ; index++) {
@@ -7572,10 +7432,7 @@ Parser<ParseHandler>::arrayInitializer()
 
             if (tt != TOK_COMMA) {
                 
-                bool matched;
-                if (!tokenStream.matchToken(&matched, TOK_COMMA))
-                    return null();
-                if (!matched) {
+                if (!tokenStream.matchToken(TOK_COMMA)) {
                     missingTrailingComma = true;
                     break;
                 }
@@ -7628,13 +7485,8 @@ Parser<ParseHandler>::arrayInitializer()
 
 
 
-        if (index == 0 && !spread) {
-            bool matched;
-            if (!tokenStream.matchToken(&matched, TOK_FOR))
-                return null();
-            if (matched && missingTrailingComma)
-                return legacyArrayComprehension(literal);
-        }
+        if (index == 0 && !spread && tokenStream.matchToken(TOK_FOR) && missingTrailingComma)
+            return legacyArrayComprehension(literal);
 
         MUST_MATCH_TOKEN(TOK_RB, JSMSG_BRACKET_AFTER_LIST);
     }
@@ -8051,10 +7903,7 @@ Parser<ParseHandler>::parenExprOrGeneratorComprehension()
     uint32_t begin = pos().begin;
     uint32_t startYieldOffset = pc->lastYieldOffset;
 
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_FOR, TokenStream::Operand))
-        return null();
-    if (matched)
+    if (tokenStream.matchToken(TOK_FOR, TokenStream::Operand))
         return generatorComprehension(begin);
 
     
@@ -8071,9 +7920,7 @@ Parser<ParseHandler>::parenExprOrGeneratorComprehension()
         return null();
 
 #if JS_HAS_GENERATOR_EXPRS
-    if (!tokenStream.matchToken(&matched, TOK_FOR))
-        return null();
-    if (matched) {
+    if (tokenStream.matchToken(TOK_FOR)) {
         if (pc->lastYieldOffset != startYieldOffset) {
             reportWithOffset(ParseError, false, pc->lastYieldOffset,
                              JSMSG_BAD_GENEXP_BODY, js_yield_str);
@@ -8149,10 +7996,7 @@ Parser<ParseHandler>::exprInParens()
         return null();
 
 #if JS_HAS_GENERATOR_EXPRS
-    bool matched;
-    if (!tokenStream.matchToken(&matched, TOK_FOR))
-        return null();
-    if (matched) {
+    if (tokenStream.matchToken(TOK_FOR)) {
         if (pc->lastYieldOffset != startYieldOffset) {
             reportWithOffset(ParseError, false, pc->lastYieldOffset,
                              JSMSG_BAD_GENEXP_BODY, js_yield_str);
