@@ -451,6 +451,23 @@ this.MozLoopService = {
 
 
 
+  setLoopCharPref: function(prefName, value) {
+    try {
+      Services.prefs.setCharPref("loop." + prefName, value);
+    } catch (ex) {
+      console.log("setLoopCharPref had trouble setting " + prefName +
+        "; exception: " + ex);
+    }
+  },
+
+  
+
+
+
+
+
+
+
 
 
 

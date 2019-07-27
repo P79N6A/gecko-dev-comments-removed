@@ -141,6 +141,24 @@ function injectLoopAPI(targetWindow) {
 
 
 
+    setLoopCharPref: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: function(prefName, value) {
+        MozLoopService.setLoopCharPref(prefName, value);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
 
 
 
