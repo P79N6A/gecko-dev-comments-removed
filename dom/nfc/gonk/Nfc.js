@@ -498,17 +498,6 @@ let SessionHelper = {
 };
 
 function Nfc() {
-  debug("Starting Nfc Service");
-
-  let nfcService = Cc["@mozilla.org/nfc/service;1"].getService(Ci.nsINfcService);
-  if (!nfcService) {
-    debug("No nfc service component available!");
-    return;
-  }
-
-  nfcService.start(this);
-  this.nfcService = nfcService;
-
   gMessageManager.init(this);
 
   this.targetsByRequestId = {};
@@ -528,6 +517,39 @@ Nfc.prototype = {
   nfcService: null,
 
   targetsByRequestId: null,
+
+  
+  pendingNfcService: null,
+  pendingMessageQueue: [],
+
+  
+
+
+  startNfcService: function startNfcService() {
+    debug("Starting Nfc Service");
+
+    let nfcService =
+      Cc["@mozilla.org/nfc/service;1"].getService(Ci.nsINfcService);
+    if (!nfcService) {
+      debug("No nfc service component available!");
+      return false;
+    }
+
+    nfcService.start(this);
+    this.pendingNfcService = nfcService;
+
+    return true;
+  },
+
+  
+
+
+  shutdownNfcService : function shutdownNfcService() {
+    debug("Shutting down Nfc Service");
+
+    this.nfcService.shutdown();
+    this.nfcService = null;
+  },
 
   
 
@@ -580,18 +602,14 @@ Nfc.prototype = {
 
 
 
-  sendNfcErrorResponse: function sendNfcErrorResponse(message, errorCode) {
+  sendNfcErrorResponse: function sendNfcErrorResponse(message, errorMsg) {
     if (!message.target) {
       return;
     }
 
     let nfcMsgType = message.name + "Response";
-    message.data.errorMsg = this.getErrorMessage(errorCode);
+    message.data.errorMsg = errorMsg;
     message.target.sendAsyncMessage(nfcMsgType, message.data);
-  },
-
-  getErrorMessage: function getErrorMessage(errorCode) {
-    return NFC.NFC_ERROR_MSG[errorCode];
   },
 
   
@@ -604,7 +622,14 @@ Nfc.prototype = {
     message.type = message.rspType || message.ntfType;
     switch (message.type) {
       case NfcNotificationType.INITIALIZED:
+        this.nfcService = this.pendingNfcService;
         
+        
+        
+        while (this.pendingMessageQueue.length) {
+          this.receiveMessage(this.pendingMessageQueue.shift());
+        }
+        this.pendingNfcService = null;
         break;
       case NfcNotificationType.TECH_DISCOVERED:
         
@@ -648,6 +673,9 @@ Nfc.prototype = {
           this.rfState = message.rfState;
           gMessageManager.onRFStateChanged(this.rfState);
         }
+        if (this.rfState == NFC.NFC_RF_STATE_IDLE) {
+          this.shutdownNfcService();
+        }
         break;
       case NfcResponseType.READ_NDEF_RSP: 
       case NfcResponseType.WRITE_NDEF_RSP:
@@ -686,6 +714,7 @@ Nfc.prototype = {
 
   receiveMessage: function receiveMessage(message) {
     
+    
     switch (message.name) {
       case "NFC:QueryInfo":
         return {rfState: this.rfState};
@@ -693,6 +722,24 @@ Nfc.prototype = {
         break;
     }
 
+    
+    
+    if (!this.nfcService) {
+      if ((message.name == "NFC:ChangeRFState") &&
+          (message.data.rfState != "idle") &&
+          !this.pendingNfcService) {
+        this.startNfcService(); 
+      }
+      if (this.pendingNfcService) {
+        this.pendingMessageQueue.push(message);
+      } else {
+        this.sendNfcErrorResponse(message, "NotInitialize");
+      }
+      return;
+    }
+
+    
+    
     if (message.name != "NFC:ChangeRFState") {
       
       message.data.sessionId = SessionHelper.getId(message.data.sessionToken);
@@ -738,8 +785,14 @@ Nfc.prototype = {
   },
 
   shutdown: function shutdown() {
-    this.nfcService.shutdown();
-    this.nfcService = null;
+    
+    
+    while (this.pendingMessageQueue.length) {
+      this.sendNfcErrorResponse(this.pendingMessageQueue.shift(), "NotInitialize");
+    }
+    if (this.nfcService) {
+      this.shutdownNfcService();
+    }
   }
 };
 
