@@ -90,6 +90,11 @@ private:
   
 
 
+  nsIFrame* GetRootFrame();
+
+  
+
+
 
 
 
