@@ -6,16 +6,11 @@
 #include "nsPrintProgress.h"
 
 #include "nsIBaseWindow.h"
-#include "nsIDocShell.h"
-#include "nsIDocShellTreeOwner.h"
-#include "nsIInterfaceRequestorUtils.h"
 #include "nsISupportsArray.h"
-#include "nsIXULWindow.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
-#include "nsPIDOMWindow.h"
 
 #if 0
 NS_IMPL_ADDREF(nsPrintProgress)
@@ -106,27 +101,11 @@ NS_IMETHODIMP nsPrintProgress::OpenProgressDialog(nsIDOMWindow *parent,
     array->AppendElement(parameters);
 
     
-    
-    
-    nsCOMPtr<nsPIDOMWindow> pParentWindow = do_QueryInterface(parent);
-    NS_ENSURE_STATE(pParentWindow);
-
-    nsCOMPtr<nsIDocShell> docShell = pParentWindow->GetDocShell();
-    NS_ENSURE_STATE(docShell);
-
-    nsCOMPtr<nsIDocShellTreeOwner> owner;
-    docShell->GetTreeOwner(getter_AddRefs(owner));
-
-    nsCOMPtr<nsIXULWindow> ownerXULWindow = do_GetInterface(owner);
-    nsCOMPtr<nsIDOMWindow> ownerWindow = do_GetInterface(ownerXULWindow);
-    NS_ENSURE_STATE(ownerWindow);
-
-    
     nsCOMPtr<nsIDOMWindow> newWindow;
-    rv = ownerWindow->OpenDialog(NS_ConvertASCIItoUTF16(dialogURL),
-                                 NS_LITERAL_STRING("_blank"),
-                                 NS_LITERAL_STRING("chrome,titlebar,dependent,centerscreen"),
-                                 array, getter_AddRefs(newWindow));
+    rv = parent->OpenDialog(NS_ConvertASCIItoUTF16(dialogURL),
+                            NS_LITERAL_STRING("_blank"),
+                            NS_LITERAL_STRING("chrome,titlebar,dependent,centerscreen"),
+                            array, getter_AddRefs(newWindow));
   }
 
   return rv;
