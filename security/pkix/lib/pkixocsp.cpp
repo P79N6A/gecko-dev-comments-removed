@@ -781,6 +781,9 @@ KeyHash(TrustDomain& trustDomain, const Input subjectPublicKeyInfo,
   Reader spki;
   Result rv = der::ExpectTagAndGetValueAtEnd(subjectPublicKeyInfo,
                                              der::SEQUENCE, spki);
+  if (rv != Success) {
+    return rv;
+  }
 
   
   rv = der::ExpectTagAndSkipValue(spki, der::SEQUENCE);
