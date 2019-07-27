@@ -122,6 +122,15 @@ const cloneValueInto = function(value, targetWindow) {
 
 
 
+const toHexString = function(charCode) {
+  return ("0" + charCode.toString(16)).slice(-2);
+};
+
+
+
+
+
+
 
 
 const injectObjectAPI = function(api, targetWindow) {
@@ -737,6 +746,43 @@ function injectLoopAPI(targetWindow) {
         };
 
         request.send();
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+    getUserAvatar: {
+      enumerable: true,
+      writable: true,
+      value: function(emailAddress, size = 40) {
+        const kEmptyGif = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+        if (!emailAddress || !MozLoopService.getLoopPref("contacts.gravatars.show")) {
+          return kEmptyGif;
+        }
+
+        
+        let hasher = Cc["@mozilla.org/security/hash;1"]
+                       .createInstance(Ci.nsICryptoHash);
+        hasher.init(Ci.nsICryptoHash.MD5);
+        let stringStream = Cc["@mozilla.org/io/string-input-stream;1"]
+                             .createInstance(Ci.nsIStringInputStream);
+        stringStream.data = emailAddress.trim().toLowerCase();
+        hasher.updateFromStream(stringStream, -1);
+        let hash = hasher.finish(false);
+        
+        let md5Email = [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+
+        
+        return "https://www.gravatar.com/avatar/" + md5Email + ".jpg?default=blank&s=" + size;
       }
     },
 
