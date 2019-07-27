@@ -267,6 +267,11 @@ let gFxAccounts = {
 
     let updateWithUserData = (userData) => {
       
+      if (window.closed) {
+        return;
+      }
+
+      
       this.panelUILabel.setAttribute("label", defaultLabel);
       this.panelUIStatus.removeAttribute("tooltiptext");
       this.panelUIFooter.removeAttribute("fxastatus");
