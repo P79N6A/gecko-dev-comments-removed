@@ -65,6 +65,12 @@ public:
                                              const InputContext& aInputContext,
                                              const InputContextAction& aAction);
 
+  
+
+
+
+  static void StopIMEStateManagement();
+
   static nsresult OnDestroyPresContext(nsPresContext* aPresContext);
   static nsresult OnRemoveContent(nsPresContext* aPresContext,
                                   nsIContent* aContent);
