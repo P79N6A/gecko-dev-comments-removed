@@ -6,8 +6,8 @@
 
 
 
-#ifndef js_DebugAPI_h
-#define js_DebugAPI_h
+#ifndef js_Debug_h
+#define js_Debug_h
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
