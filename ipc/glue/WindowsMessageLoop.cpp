@@ -104,6 +104,7 @@ HHOOK gDeferredGetMsgHook = nullptr;
 HHOOK gDeferredCallWndProcHook = nullptr;
 
 DWORD gUIThreadId = 0;
+HWND gCOMWindow = 0;
 
 
 #define MOZOBJID_UIAROOT -25
@@ -340,13 +341,15 @@ ProcessOrDeferMessage(HWND hwnd,
    case WM_GETOBJECT: {
       if (!::GetPropW(hwnd, k3rdPartyWindowProp)) {
         DWORD objId = static_cast<DWORD>(lParam);
-        WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, kOldWndProcProp);
-        if ((objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT) && oldWndProc) {
-          return CallWindowProcW(oldWndProc, hwnd, uMsg, wParam, lParam);
+        if ((objId == OBJID_CLIENT || objId == MOZOBJID_UIAROOT)) {
+          WNDPROC oldWndProc = (WNDPROC)GetProp(hwnd, kOldWndProcProp);
+          if (oldWndProc) {
+            return CallWindowProcW(oldWndProc, hwnd, uMsg, wParam, lParam);
+          }
         }
       }
-      break;
-    }
+      return DefWindowProc(hwnd, uMsg, wParam, lParam);
+   }
 #endif 
 
     default: {
@@ -647,7 +650,10 @@ InitUIThread()
   
   if (!gUIThreadId) {
     gUIThreadId = GetCurrentThreadId();
+
+    CoInitialize(nullptr);
   }
+
   MOZ_ASSERT(gUIThreadId);
   MOZ_ASSERT(gUIThreadId == GetCurrentThreadId(),
              "Called InitUIThread multiple times on different threads!");
@@ -804,6 +810,21 @@ IsTimeoutExpired(PRIntervalTime aStart, PRIntervalTime aTimeout)
     (aTimeout <= (PR_IntervalNow() - aStart));
 }
 
+HWND
+FindCOMWindow()
+{
+  MOZ_ASSERT(gUIThreadId);
+
+  HWND last = 0;
+  while ((last = FindWindowExW(HWND_MESSAGE, last, L"OleMainThreadWndClass", NULL))) {
+    if (GetWindowThreadProcessId(last, NULL) == gUIThreadId) {
+      return last;
+    }
+  }
+
+  return (HWND)0;
+}
+
 bool
 MessageChannel::WaitForSyncNotify()
 {
@@ -843,6 +864,12 @@ MessageChannel::WaitForSyncNotify()
                "Top frame is not a sync frame!");
 
   MonitorAutoUnlock unlock(*mMonitor);
+
+  MOZ_ASSERT_IF(gCOMWindow, FindCOMWindow() == gCOMWindow);
+
+  if (!gCOMWindow) {
+    gCOMWindow = FindCOMWindow();
+  }
 
   bool timedout = false;
 
@@ -920,6 +947,15 @@ MessageChannel::WaitForSyncNotify()
 
       
       
+      if (gCOMWindow) {
+        if (PeekMessageW(&msg, gCOMWindow, 0, 0, PM_REMOVE)) {
+          TranslateMessage(&msg);
+          ::DispatchMessageW(&msg);
+        }
+      }
+
+      
+      
       
       
       
@@ -977,6 +1013,12 @@ MessageChannel::WaitForInterruptNotify()
                "Top frame is not a sync frame!");
 
   MonitorAutoUnlock unlock(*mMonitor);
+
+  MOZ_ASSERT_IF(gCOMWindow, FindCOMWindow() == gCOMWindow);
+
+  if (!gCOMWindow) {
+    gCOMWindow = FindCOMWindow();
+  }
 
   bool timedout = false;
 
@@ -1066,6 +1108,14 @@ MessageChannel::WaitForInterruptNotify()
     
     bool haveSentMessagesPending =
       (HIWORD(GetQueueStatus(QS_SENDMESSAGE)) & QS_SENDMESSAGE) != 0;
+
+    
+    if (gCOMWindow) {
+        if (PeekMessageW(&msg, gCOMWindow, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            ::DispatchMessageW(&msg);
+        }
+    }
 
     
     

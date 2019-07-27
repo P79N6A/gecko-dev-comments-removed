@@ -42,7 +42,6 @@
 #include "nsNPAPIPlugin.h"
 
 #ifdef XP_WIN
-#include "COMMessageFilter.h"
 #include "nsWindowsDllInterceptor.h"
 #include "mozilla/widget/AudioSession.h"
 #endif
@@ -264,10 +263,6 @@ PluginModuleChild::InitForChrome(const std::string& aPluginFilename,
                                  MessageLoop* aIOLoop,
                                  IPC::Channel* aChannel)
 {
-#ifdef XP_WIN
-    COMMessageFilter::Initialize(this);
-#endif
-
     NS_ASSERTION(aChannel, "need a channel");
 
     if (!InitGraphics())
@@ -1820,7 +1815,7 @@ _popupcontextmenu(NPP instance, NPMenu* menu)
     if (success) {
         return mozilla::plugins::PluginUtilsOSX::ShowCocoaContextMenu(menu,
                                     screenX, screenY,
-                                    InstCast(instance)->Manager(),
+                                    PluginModuleChild::GetChrome(),
                                     ProcessBrowserEvents);
     } else {
         NS_WARNING("Convertpoint failed, could not created contextmenu.");
