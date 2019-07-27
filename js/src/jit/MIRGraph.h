@@ -258,6 +258,11 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void clearLoopHeader();
 
     
+    
+    
+    void setLoopHeader(MBasicBlock *newBackedge);
+
+    
     void inheritPhis(MBasicBlock *header);
 
     
@@ -674,6 +679,7 @@ class MIRGraph
 
     void addBlock(MBasicBlock *block);
     void insertBlockAfter(MBasicBlock *at, MBasicBlock *block);
+    void insertBlockBefore(MBasicBlock *at, MBasicBlock *block);
 
     void renumberBlocksAfter(MBasicBlock *at);
 

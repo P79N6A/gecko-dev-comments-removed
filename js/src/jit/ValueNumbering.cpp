@@ -140,10 +140,11 @@ DeadIfUnused(const MDefinition *def)
 }
 
 
+
 static bool
-IsDead(const MDefinition *def)
+IsDiscardable(const MDefinition *def)
 {
-    return !def->hasUses() && DeadIfUnused(def);
+    return !def->hasUses() && (DeadIfUnused(def) || def->block()->isMarked());
 }
 
 
@@ -196,6 +197,44 @@ ComputeNewDominator(MBasicBlock *block, MBasicBlock *old)
 }
 
 
+static bool
+BlockHasInterestingDefs(MBasicBlock *block)
+{
+    return !block->phisEmpty() || *block->begin() != block->lastIns();
+}
+
+
+
+static bool
+ScanDominatorsForDefs(MBasicBlock *block)
+{
+    for (MBasicBlock *i = block;;) {
+        if (BlockHasInterestingDefs(block))
+            return true;
+
+        MBasicBlock *immediateDominator = i->immediateDominator();
+        if (immediateDominator == i)
+            break;
+        i = immediateDominator;
+    }
+    return false;
+}
+
+
+
+static bool
+ScanDominatorsForDefs(MBasicBlock *now, MBasicBlock *old)
+{
+    MOZ_ASSERT(old->dominates(now), "Refined dominator not dominated by old dominator");
+
+    for (MBasicBlock *i = now; i != old; i = i->immediateDominator()) {
+        if (BlockHasInterestingDefs(i))
+            return true;
+    }
+    return false;
+}
+
+
 
 
 static bool
@@ -216,13 +255,26 @@ IsDominatorRefined(MBasicBlock *block)
 
     
     
-    MOZ_ASSERT(old->dominates(now), "Refined dominator not dominated by old dominator");
-    for (MBasicBlock *i = now; i != old; i = i->immediateDominator()) {
-        if (!i->phisEmpty() || *i->begin() != i->lastIns())
-            return true;
-    }
+    if (block == old)
+        return block != now && ScanDominatorsForDefs(now);
+    MOZ_ASSERT(block != now, "Non-self-dominating block became self-dominating");
+    return ScanDominatorsForDefs(now, old);
+}
 
-    return false;
+
+
+bool
+ValueNumberer::handleUseReleased(MDefinition *def, UseRemovedOption useRemovedOption)
+{
+    if (IsDiscardable(def)) {
+        values_.forget(def);
+        if (!deadDefs_.append(def))
+            return false;
+    } else {
+        if (useRemovedOption == SetUseRemoved)
+            def->setUseRemovedUnchecked();
+    }
+    return true;
 }
 
 
@@ -236,21 +288,41 @@ ValueNumberer::discardDefsRecursively(MDefinition *def)
 
 
 
+
+
 bool
-ValueNumberer::releasePhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
-                                  UseRemovedOption useRemovedOption)
+ValueNumberer::releaseResumePointOperands(MResumePoint *resume)
+{
+    for (size_t i = 0, e = resume->numOperands(); i < e; ++i) {
+        if (!resume->hasOperand(i))
+            continue;
+        MDefinition *op = resume->getOperand(i);
+        
+        
+        if (op->isDiscarded())
+            continue;
+        resume->releaseOperand(i);
+
+        
+        
+        
+        if (!handleUseReleased(op, SetUseRemoved))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool
+ValueNumberer::releaseAndRemovePhiOperands(MPhi *phi)
 {
     
     for (int o = phi->numOperands() - 1; o >= 0; --o) {
         MDefinition *op = phi->getOperand(o);
         phi->removeOperand(o);
-        if (IsDead(op) && !phiBlock->dominates(op->block())) {
-            if (!deadDefs_.append(op))
-                return false;
-        } else {
-            if (useRemovedOption == SetUseRemoved)
-                op->setUseRemovedUnchecked();
-        }
+        if (!handleUseReleased(op, DontSetUseRemoved))
+            return false;
     }
     return true;
 }
@@ -258,57 +330,12 @@ ValueNumberer::releasePhiOperands(MPhi *phi, const MBasicBlock *phiBlock,
 
 
 bool
-ValueNumberer::releaseInsOperands(MInstruction *ins,
-                                  UseRemovedOption useRemovedOption)
+ValueNumberer::releaseOperands(MDefinition *def)
 {
-    for (size_t o = 0, e = ins->numOperands(); o < e; ++o) {
-        MDefinition *op = ins->getOperand(o);
-        ins->releaseOperand(o);
-        if (IsDead(op)) {
-            if (!deadDefs_.append(op))
-                return false;
-        } else {
-            if (useRemovedOption == SetUseRemoved)
-                op->setUseRemovedUnchecked();
-        }
-    }
-    return true;
-}
-
-
-bool
-ValueNumberer::discardDef(MDefinition *def,
-                         UseRemovedOption useRemovedOption)
-{
-    JitSpew(JitSpew_GVN, "      Discarding %s%u", def->opName(), def->id());
-    MOZ_ASSERT(IsDead(def), "Discarding non-dead definition");
-    MOZ_ASSERT(!values_.has(def), "Discarding an instruction still in the set");
-
-    if (def->isPhi()) {
-        MPhi *phi = def->toPhi();
-        MBasicBlock *phiBlock = phi->block();
-        if (!releasePhiOperands(phi, phiBlock, useRemovedOption))
-             return false;
-        MPhiIterator at(phiBlock->phisBegin(phi));
-        phiBlock->discardPhiAt(at);
-    } else {
-        MInstruction *ins = def->toInstruction();
-        if (!releaseInsOperands(ins, useRemovedOption))
-             return false;
-        ins->block()->discardIgnoreOperands(ins);
-    }
-    return true;
-}
-
-
-bool
-ValueNumberer::processDeadDefs()
-{
-    while (!deadDefs_.empty()) {
-        MDefinition *def = deadDefs_.popCopy();
-
-        values_.forget(def);
-        if (!discardDef(def))
+    for (size_t o = 0, e = def->numOperands(); o < e; ++o) {
+        MDefinition *op = def->getOperand(o);
+        def->releaseOperand(o);
+        if (!handleUseReleased(op, DontSetUseRemoved))
             return false;
     }
     return true;
@@ -316,15 +343,205 @@ ValueNumberer::processDeadDefs()
 
 
 bool
-ValueNumberer::removePredecessor(MBasicBlock *block, MBasicBlock *pred)
+ValueNumberer::discardDef(MDefinition *def)
 {
+    JitSpew(JitSpew_GVN, "      Discarding %s %s%u",
+            def->block()->isMarked() ? "unreachable" : "dead",
+            def->opName(), def->id());
+
+#ifdef DEBUG
+    MOZ_ASSERT(def != nextDef_, "Invalidating the MDefinition iterator");
+    if (def->block()->isMarked()) {
+        MOZ_ASSERT(!def->hasUses(), "Discarding def that still has uses");
+    } else {
+        MOZ_ASSERT(IsDiscardable(def), "Discarding non-discardable definition");
+        MOZ_ASSERT(!values_.has(def), "Discarding a definition still in the set");
+    }
+#endif
+
+    MBasicBlock *block = def->block();
+    if (def->isPhi()) {
+        MPhi *phi = def->toPhi();
+        if (!releaseAndRemovePhiOperands(phi))
+             return false;
+        MPhiIterator at(block->phisBegin(phi));
+        block->discardPhiAt(at);
+    } else {
+        MInstruction *ins = def->toInstruction();
+        if (MResumePoint *resume = ins->resumePoint()) {
+            if (!releaseResumePointOperands(resume))
+                return false;
+        }
+        if (!releaseOperands(ins))
+             return false;
+        block->discardIgnoreOperands(ins);
+    }
+
+    
+    
+    if (block->phisEmpty() && block->begin() == block->end()) {
+        MOZ_ASSERT(block->isMarked(), "Reachable block lacks at least a control instruction");
+
+        
+        
+        
+        if (block->immediateDominator() != block) {
+            JitSpew(JitSpew_GVN, "      Block block%u is now empty; discarding", block->id());
+            graph_.removeBlock(block);
+            blocksRemoved_ = true;
+        } else {
+            JitSpew(JitSpew_GVN, "      Dominator root block%u is now empty; will discard later",
+                    block->id());
+        }
+    }
+
+    return true;
+}
+
+
+bool
+ValueNumberer::processDeadDefs()
+{
+    MDefinition *nextDef = nextDef_;
+    while (!deadDefs_.empty()) {
+        MDefinition *def = deadDefs_.popCopy();
+
+        
+        
+        if (def == nextDef)
+            continue;
+
+        if (!discardDef(def))
+            return false;
+    }
+    return true;
+}
+
+
+
+static bool
+hasNonDominatingPredecessor(MBasicBlock *block, MBasicBlock *loopPred)
+{
+    MOZ_ASSERT(block->isLoopHeader());
+    MOZ_ASSERT(block->loopPredecessor() == loopPred);
+
+    for (uint32_t i = 0, e = block->numPredecessors(); i < e; ++i) {
+        MBasicBlock *pred = block->getPredecessor(i);
+        if (pred != loopPred && !block->dominates(pred))
+            return true;
+    }
+    return false;
+}
+
+
+
+bool
+ValueNumberer::fixupOSROnlyLoop(MBasicBlock *block, MBasicBlock *backedge)
+{
+    
+    
+    
+    
+    
+    
+    MBasicBlock *fake = MBasicBlock::NewAsmJS(graph_, block->info(),
+                                              nullptr, MBasicBlock::NORMAL);
+    if (fake == nullptr)
+        return false;
+
+    graph_.insertBlockBefore(block, fake);
+    fake->setImmediateDominator(fake);
+    fake->addNumDominated(1);
+
+    
+    
+    
+    for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ++iter) {
+        MPhi *phi = *iter;
+        MPhi *fakePhi = MPhi::New(graph_.alloc(), phi->type());
+        fake->addPhi(fakePhi);
+        if (!phi->addInputSlow(fakePhi))
+            return false;
+    }
+
+    fake->end(MGoto::New(graph_.alloc(), block));
+
+    if (!block->addPredecessorWithoutPhis(fake))
+        return false;
+
+    
+    block->clearLoopHeader();
+    block->setLoopHeader(backedge);
+
+    JitSpew(JitSpew_GVN, "        Created fake block%u", fake->id());
+    return true;
+}
+
+
+
+bool
+ValueNumberer::removePredecessorAndDoDCE(MBasicBlock *block, MBasicBlock *pred)
+{
+    MOZ_ASSERT(!block->isMarked(),
+               "Block marked unreachable should have predecessors removed already");
+
+    
+    
+    if (!block->phisEmpty()) {
+        uint32_t index = pred->positionInPhiSuccessor();
+        for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ++iter) {
+            MPhi *phi = *iter;
+            MOZ_ASSERT(!values_.has(phi), "Visited phi in block having predecessor removed");
+
+            MDefinition *op = phi->getOperand(index);
+            if (op == phi)
+                continue;
+
+            
+            
+            phi->replaceOperand(index, phi);
+
+            if (!handleUseReleased(op, DontSetUseRemoved) || !processDeadDefs())
+                return false;
+        }
+    }
+
+    block->removePredecessor(pred);
+    return true;
+}
+
+
+
+
+
+bool
+ValueNumberer::removePredecessorAndCleanUp(MBasicBlock *block, MBasicBlock *pred)
+{
+    MOZ_ASSERT(!block->isMarked(), "Removing predecessor on block already marked unreachable");
+
+    
+    
+    for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd()); iter != end; ++iter)
+        values_.forget(*iter);
+
+    
+    
     bool isUnreachableLoop = false;
+    MBasicBlock *origBackedgeForOSRFixup = nullptr;
     if (block->isLoopHeader()) {
         if (block->loopPredecessor() == pred) {
-            
-            isUnreachableLoop = true;
-            JitSpew(JitSpew_GVN, "      Loop with header block%u is no longer reachable",
-                    block->id());
+            if (MOZ_UNLIKELY(hasNonDominatingPredecessor(block, pred))) {
+                JitSpew(JitSpew_GVN, "      "
+                        "Loop with header block%u is now only reachable through an "
+                        "OSR entry into the middle of the loop!!", block->id());
+                origBackedgeForOSRFixup = block->backedge();
+            } else {
+                
+                isUnreachableLoop = true;
+                JitSpew(JitSpew_GVN, "      "
+                        "Loop with header block%u is no longer reachable",
+                        block->id());
+            }
 #ifdef DEBUG
         } else if (block->hasUniqueBackedge() && block->backedge() == pred) {
             JitSpew(JitSpew_GVN, "      Loop with header block%u is no longer a loop",
@@ -334,72 +551,72 @@ ValueNumberer::removePredecessor(MBasicBlock *block, MBasicBlock *pred)
     }
 
     
-    
-    
-    
-    block->removePredecessor(pred);
-    return block->numPredecessors() == 0 || isUnreachableLoop;
-}
-
-
-bool
-ValueNumberer::removeBlocksRecursively(MBasicBlock *start, const MBasicBlock *dominatorRoot)
-{
-    MOZ_ASSERT(start != graph_.entryBlock(), "Removing normal entry block");
-    MOZ_ASSERT(start != graph_.osrBlock(), "Removing OSR entry block");
-
-    
-    
-    
-    MBasicBlock *parent = start->immediateDominator();
-    if (parent != start)
-        parent->removeImmediatelyDominatedBlock(start);
-
-    if (!unreachableBlocks_.append(start))
+    if (!removePredecessorAndDoDCE(block, pred))
         return false;
-    do {
-        MBasicBlock *block = unreachableBlocks_.popCopy();
-        if (block->isDead())
-            continue;
+
+    
+    if (block->numPredecessors() == 0 || isUnreachableLoop) {
+        JitSpew(JitSpew_GVN, "      Disconnecting block%u", block->id());
 
         
-        for (size_t i = 0, e = block->numSuccessors(); i < e; ++i) {
-            MBasicBlock *succ = block->getSuccessor(i);
-            if (succ->isDead())
-                continue;
-            if (removePredecessor(succ, block)) {
-                if (!unreachableBlocks_.append(succ))
-                    return false;
-            } else if (!rerun_) {
-                if (!remainingBlocks_.append(succ))
+        
+        
+        MBasicBlock *parent = block->immediateDominator();
+        if (parent != block)
+            parent->removeImmediatelyDominatedBlock(block);
+
+        
+        
+        
+        
+        
+        if (block->isLoopHeader())
+            block->clearLoopHeader();
+        for (size_t i = 0, e = block->numPredecessors(); i < e; ++i) {
+            if (!removePredecessorAndDoDCE(block, block->getPredecessor(i)))
+                return false;
+        }
+
+        
+        
+        if (MResumePoint *resume = block->entryResumePoint()) {
+            if (!releaseResumePointOperands(resume) || !processDeadDefs())
+                return false;
+            if (MResumePoint *outer = block->outerResumePoint()) {
+                if (!releaseResumePointOperands(outer) || !processDeadDefs())
                     return false;
             }
-        }
-
+            for (MInstructionIterator iter(block->begin()), end(block->end()); iter != end; ) {
+                MInstruction *ins = *iter++;
+                nextDef_ = *iter;
+                if (MResumePoint *resume = ins->resumePoint()) {
+                    if (!releaseResumePointOperands(resume) || !processDeadDefs())
+                        return false;
+                }
+            }
+        } else {
 #ifdef DEBUG
-        JitSpew(JitSpew_GVN, "    Discarding block%u%s%s%s", block->id(),
-                block->isLoopHeader() ? " (loop header)" : "",
-                block->isSplitEdge() ? " (split edge)" : "",
-                block->immediateDominator() == block ? " (dominator root)" : "");
-        for (MDefinitionIterator iter(block); iter; ++iter) {
-            MDefinition *def = *iter;
-            JitSpew(JitSpew_GVN, "      Discarding %s%u", def->opName(), def->id());
-        }
-        MControlInstruction *control = block->lastIns();
-        JitSpew(JitSpew_GVN, "      Discarding %s%u", control->opName(), control->id());
+            MOZ_ASSERT(block->outerResumePoint() == nullptr,
+                       "Outer resume point in block without an entry resume point");
+            for (MInstructionIterator iter(block->begin()), end(block->end());
+                 iter != end;
+                 ++iter)
+            {
+                MOZ_ASSERT(iter->resumePoint() == nullptr,
+                           "Instruction with resume point in block without entry resume point");
+            }
 #endif
-
-        
-        if (dominatorRoot->dominates(block))
-            ++numBlocksDiscarded_;
+        }
 
         
         
+        block->mark();
+    } else if (MOZ_UNLIKELY(origBackedgeForOSRFixup != nullptr)) {
         
         
-        graph_.removeBlockIncludingPhis(block);
-        blocksRemoved_ = true;
-    } while (!unreachableBlocks_.empty());
+        if (!fixupOSROnlyLoop(block, origBackedgeForOSRFixup))
+            return false;
+    }
 
     return true;
 }
@@ -459,11 +676,14 @@ ValueNumberer::hasLeader(const MPhi *phi, const MBasicBlock *phiBlock) const
 
 
 bool
-ValueNumberer::loopHasOptimizablePhi(MBasicBlock *backedge) const
+ValueNumberer::loopHasOptimizablePhi(MBasicBlock *header) const
 {
     
+    if (header->isMarked())
+        return false;
+
     
-    MBasicBlock *header = backedge->loopHeaderOfBackedge();
+    
     for (MPhiIterator iter(header->phisBegin()), end(header->phisEnd()); iter != end; ++iter) {
         MPhi *phi = *iter;
         MOZ_ASSERT(phi->hasUses(), "Missed an unused phi");
@@ -481,7 +701,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
     
     
     const MDefinition *dep = def->dependency();
-    if (dep != nullptr && dep->block()->isDead()) {
+    if (dep != nullptr && (dep->isDiscarded() || dep->block()->isDead())) {
         JitSpew(JitSpew_GVN, "      AliasAnalysis invalidated");
         if (updateAliasAnalysis_ && !dependenciesBroken_) {
             
@@ -538,7 +758,7 @@ ValueNumberer::visitDefinition(MDefinition *def)
             if (DeadIfUnused(def)) {
                 
                 
-                mozilla::DebugOnly<bool> r = discardDef(def, DontSetUseRemoved);
+                mozilla::DebugOnly<bool> r = discardDef(def);
                 MOZ_ASSERT(r, "discardDef shouldn't have tried to add anything to the worklist, "
                               "so it shouldn't have failed");
                 MOZ_ASSERT(deadDefs_.empty(),
@@ -580,17 +800,20 @@ ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *do
             MBasicBlock *succ = control->getSuccessor(i);
             if (HasSuccessor(newControl, succ))
                 continue;
-            if (removePredecessor(succ, block)) {
-                if (!removeBlocksRecursively(succ, dominatorRoot))
-                    return false;
-            } else if (!rerun_) {
+            if (succ->isMarked())
+                continue;
+            if (!removePredecessorAndCleanUp(succ, block))
+                return false;
+            if (succ->isMarked())
+                continue;
+            if (!rerun_) {
                 if (!remainingBlocks_.append(succ))
                     return false;
             }
         }
     }
 
-    if (!releaseInsOperands(control))
+    if (!releaseOperands(control))
         return false;
     block->discardIgnoreOperands(control);
     block->end(newControl);
@@ -598,10 +821,59 @@ ValueNumberer::visitControlInstruction(MBasicBlock *block, const MBasicBlock *do
 }
 
 
+
+bool
+ValueNumberer::visitUnreachableBlock(MBasicBlock *block)
+{
+    JitSpew(JitSpew_GVN, "    Visiting unreachable block%u%s%s%s", block->id(),
+            block->isLoopHeader() ? " (loop header)" : "",
+            block->isSplitEdge() ? " (split edge)" : "",
+            block->immediateDominator() == block ? " (dominator root)" : "");
+
+    MOZ_ASSERT(block->isMarked(), "Visiting unmarked (and therefore reachable?) block");
+    MOZ_ASSERT(block->numPredecessors() == 0, "Block marked unreachable still has predecessors");
+    MOZ_ASSERT(block != graph_.entryBlock(), "Removing normal entry block");
+    MOZ_ASSERT(block != graph_.osrBlock(), "Removing OSR entry block");
+    MOZ_ASSERT(deadDefs_.empty(), "deadDefs_ not cleared");
+
+    
+    for (size_t i = 0, e = block->numSuccessors(); i < e; ++i) {
+        MBasicBlock *succ = block->getSuccessor(i);
+        if (succ->isDead() || succ->isMarked())
+            continue;
+        if (!removePredecessorAndCleanUp(succ, block))
+            return false;
+        if (succ->isMarked())
+            continue;
+        
+        
+        if (!rerun_) {
+            if (!remainingBlocks_.append(succ))
+                return false;
+        }
+    }
+
+    
+    
+    for (MDefinitionIterator iter(block); iter; ) {
+        MDefinition *def = *iter++;
+        if (def->hasUses())
+            continue;
+        nextDef_ = *iter;
+        if (!discardDefsRecursively(def))
+            return false;
+    }
+
+    nextDef_ = nullptr;
+    MControlInstruction *control = block->lastIns();
+    return discardDefsRecursively(control);
+}
+
+
 bool
 ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
 {
-    MOZ_ASSERT(!block->unreachable(), "Blocks marked unreachable during GVN");
+    MOZ_ASSERT(!block->isMarked(), "Blocks marked unreachable during GVN");
     MOZ_ASSERT(!block->isDead(), "Block to visit is already dead");
 
     JitSpew(JitSpew_GVN, "    Visiting block%u", block->id());
@@ -611,7 +883,10 @@ ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
         MDefinition *def = *iter++;
 
         
-        if (IsDead(def)) {
+        nextDef_ = *iter;
+
+        
+        if (IsDiscardable(def)) {
             if (!discardDefsRecursively(def))
                 return false;
             continue;
@@ -620,20 +895,21 @@ ValueNumberer::visitBlock(MBasicBlock *block, const MBasicBlock *dominatorRoot)
         if (!visitDefinition(def))
             return false;
     }
+    nextDef_ = nullptr;
 
     return visitControlInstruction(block, dominatorRoot);
 }
 
 
 bool
-ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVisited)
+ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot)
 {
     JitSpew(JitSpew_GVN, "  Visiting dominator tree (with %llu blocks) rooted at block%u%s",
             uint64_t(dominatorRoot->numDominated()), dominatorRoot->id(),
             dominatorRoot == graph_.entryBlock() ? " (normal entry block)" :
             dominatorRoot == graph_.osrBlock() ? " (OSR entry block)" :
-            " (normal entry and OSR entry merge point)");
-    MOZ_ASSERT(numBlocksDiscarded_ == 0, "numBlocksDiscarded_ wasn't reset");
+            dominatorRoot->numPredecessors() == 0 ? " (odd unreachable block)" :
+            " (merge point from normal entry and OSR entry)");
     MOZ_ASSERT(dominatorRoot->immediateDominator() == dominatorRoot,
             "root is not a dominator tree root");
 
@@ -642,32 +918,47 @@ ValueNumberer::visitDominatorTree(MBasicBlock *dominatorRoot, size_t *totalNumVi
     
     
     size_t numVisited = 0;
-    for (ReversePostorderIterator iter(graph_.rpoBegin(dominatorRoot)); ; ++iter) {
+    size_t numDiscarded = 0;
+    for (ReversePostorderIterator iter(graph_.rpoBegin(dominatorRoot)); ; ) {
         MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
-        MBasicBlock *block = *iter;
+        MBasicBlock *block = *iter++;
         
         if (!dominatorRoot->dominates(block))
             continue;
+
         
-        if (!visitBlock(block, dominatorRoot))
-            return false;
         
-        if (!rerun_ && block->isLoopBackedge() && loopHasOptimizablePhi(block)) {
+        MBasicBlock *header = block->isLoopBackedge() ? block->loopHeaderOfBackedge() : nullptr;
+
+        if (block->isMarked()) {
+            
+            if (!visitUnreachableBlock(block))
+                return false;
+            ++numDiscarded;
+        } else {
+            
+            if (!visitBlock(block, dominatorRoot))
+                return false;
+            ++numVisited;
+        }
+
+        
+        
+        if (!rerun_ && header && loopHasOptimizablePhi(header)) {
             JitSpew(JitSpew_GVN, "    Loop phi in block%u can now be optimized; will re-run GVN!",
-                    block->loopHeaderOfBackedge()->id());
+                    header->id());
             rerun_ = true;
             remainingBlocks_.clear();
         }
-        ++numVisited;
-        MOZ_ASSERT(numVisited <= dominatorRoot->numDominated() - numBlocksDiscarded_,
+
+        MOZ_ASSERT(numVisited <= dominatorRoot->numDominated() - numDiscarded,
                    "Visited blocks too many times");
-        if (numVisited >= dominatorRoot->numDominated() - numBlocksDiscarded_)
+        if (numVisited >= dominatorRoot->numDominated() - numDiscarded)
             break;
     }
 
-    *totalNumVisited += numVisited;
+    totalNumVisited_ += numVisited;
     values_.clear();
-    numBlocksDiscarded_ = 0;
     return true;
 }
 
@@ -680,18 +971,39 @@ ValueNumberer::visitGraph()
     
     
     
-    size_t totalNumVisited = 0;
-    for (ReversePostorderIterator iter(graph_.rpoBegin()); ; ++iter) {
-         MBasicBlock *block = *iter;
-         if (block->immediateDominator() == block) {
-             if (!visitDominatorTree(block, &totalNumVisited))
-                 return false;
-             MOZ_ASSERT(totalNumVisited <= graph_.numBlocks(), "Visited blocks too many times");
-             if (totalNumVisited >= graph_.numBlocks())
-                 break;
-         }
-         MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
+    for (ReversePostorderIterator iter(graph_.rpoBegin()); ; ) {
+        MOZ_ASSERT(iter != graph_.rpoEnd(), "Inconsistent dominator information");
+        MBasicBlock *block = *iter;
+        if (block->immediateDominator() == block) {
+            if (!visitDominatorTree(block))
+                return false;
+
+            
+            
+            
+            
+            
+            ++iter;
+            if (block->isMarked()) {
+                JitSpew(JitSpew_GVN, "      Discarding dominator root block%u",
+                        block->id());
+                MOZ_ASSERT(block->begin() == block->end(),
+                           "Unreachable dominator tree root has instructions after tree walk");
+                MOZ_ASSERT(block->phisEmpty(),
+                           "Unreachable dominator tree root has phis after tree walk");
+                graph_.removeBlock(block);
+                blocksRemoved_ = true;
+            }
+
+            MOZ_ASSERT(totalNumVisited_ <= graph_.numBlocks(), "Visited blocks too many times");
+            if (totalNumVisited_ >= graph_.numBlocks())
+                break;
+        } else {
+            
+            ++iter;
+        }
     }
+    totalNumVisited_ = 0;
     return true;
 }
 
@@ -699,9 +1011,9 @@ ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph)
   : mir_(mir), graph_(graph),
     values_(graph.alloc()),
     deadDefs_(graph.alloc()),
-    unreachableBlocks_(graph.alloc()),
     remainingBlocks_(graph.alloc()),
-    numBlocksDiscarded_(0),
+    nextDef_(nullptr),
+    totalNumVisited_(0),
     rerun_(false),
     blocksRemoved_(false),
     updateAliasAnalysis_(false),
@@ -709,18 +1021,21 @@ ValueNumberer::ValueNumberer(MIRGenerator *mir, MIRGraph &graph)
 {}
 
 bool
+ValueNumberer::init()
+{
+    
+    
+    
+    
+    
+    
+    return values_.init();
+}
+
+bool
 ValueNumberer::run(UpdateAliasAnalysisFlag updateAliasAnalysis)
 {
     updateAliasAnalysis_ = updateAliasAnalysis == UpdateAliasAnalysis;
-
-    
-    
-    
-    
-    
-    
-    if (!values_.init())
-        return false;
 
     JitSpew(JitSpew_GVN, "Running GVN on graph (with %llu blocks)",
             uint64_t(graph_.numBlocks()));
@@ -762,8 +1077,6 @@ ValueNumberer::run(UpdateAliasAnalysisFlag updateAliasAnalysis)
         if (!rerun_)
             break;
 
-        JitSpew(JitSpew_GVN, "Re-running GVN on graph (run %d, now with %llu blocks)",
-                runs, uint64_t(graph_.numBlocks()));
         rerun_ = false;
 
         
@@ -773,9 +1086,12 @@ ValueNumberer::run(UpdateAliasAnalysisFlag updateAliasAnalysis)
         
         ++runs;
         if (runs == 6) {
-            JitSpew(JitSpew_GVN, "Re-run cutoff reached. Terminating GVN!");
+            JitSpew(JitSpew_GVN, "Re-run cutoff of %d reached. Terminating GVN!", runs);
             break;
         }
+
+        JitSpew(JitSpew_GVN, "Re-running GVN on graph (run %d, now with %llu blocks)",
+                runs, uint64_t(graph_.numBlocks()));
     }
 
     return true;

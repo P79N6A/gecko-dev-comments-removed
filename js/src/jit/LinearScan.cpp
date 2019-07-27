@@ -1365,10 +1365,12 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
             
             
             
-            LUse *use = reg->ins()->getOperand(0)->toUse();
-            LBlock *predecessor = reg->block()->mir()->getPredecessor(0)->lir();
-            CodePosition predEnd = exitOf(predecessor);
-            interval->setHint(Requirement(use->virtualRegister(), predEnd));
+            if (reg->ins()->toPhi()->numOperands() != 0) {
+                LUse *use = reg->ins()->toPhi()->getOperand(0)->toUse();
+                LBlock *predecessor = reg->block()->mir()->getPredecessor(0)->lir();
+                CodePosition predEnd = exitOf(predecessor);
+                interval->setHint(Requirement(use->virtualRegister(), predEnd));
+            }
         } else {
             
             interval->setRequirement(Requirement(Requirement::REGISTER));

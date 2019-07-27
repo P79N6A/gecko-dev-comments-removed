@@ -68,9 +68,6 @@ class OptimizationInfo
     bool licm_;
 
     
-    bool uce_;
-
-    
     bool rangeAnalysis_;
 
     
@@ -137,10 +134,6 @@ class OptimizationInfo
 
     bool licmEnabled() const {
         return licm_ && !js_JitOptions.disableLicm;
-    }
-
-    bool uceEnabled() const {
-        return uce_ && !js_JitOptions.disableUce;
     }
 
     bool rangeAnalysisEnabled() const {

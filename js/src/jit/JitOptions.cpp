@@ -58,9 +58,6 @@ JitOptions::JitOptions()
     disableLoopUnrolling = true;
 
     
-    disableUce = false;
-
-    
     disableEaa = false;
 
     

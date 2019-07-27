@@ -1578,6 +1578,13 @@ ComputeImmediateDominators(MIRGraph &graph)
             if (block->immediateDominator() == *block)
                 continue;
 
+            
+            
+            if (MOZ_UNLIKELY(block->numPredecessors() == 0)) {
+                block->setImmediateDominator(*block);
+                continue;
+            }
+
             MBasicBlock *newIdom = block->getPredecessor(0);
 
             
@@ -3182,7 +3189,9 @@ jit::MarkLoopBlocks(MIRGraph &graph, MBasicBlock *header, bool *canOsr)
 
             
             
-            if (osrBlock && pred != header && osrBlock->dominates(pred)) {
+            if (osrBlock && pred != header &&
+                osrBlock->dominates(pred) && !osrBlock->dominates(header))
+            {
                 *canOsr = true;
                 continue;
             }
