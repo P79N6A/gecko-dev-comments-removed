@@ -75,13 +75,6 @@ SuggestAutoComplete.prototype = {
     }
 
     
-    if (!finalResults.length &&
-        Services.prefs.getBoolPref("browser.search.showOneOffButtons")) {
-      finalResults.push(results.term);
-      finalComments.push("");
-    }
-
-    
     this.onResultsReady(results.term, finalResults, finalComments, results.formHistoryResult);
   },
 
