@@ -53,6 +53,7 @@
 #include "nsRange.h"
 #include "nsServiceManagerUtils.h"      
 #include "nsString.h"                   
+#include "nsQueryObject.h"              
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
 #include "nsContentUtils.h"             
 #include "nsIBidiKeyboard.h"            

@@ -13,6 +13,7 @@
 #include "nsError.h"                    
 #include "nsIPresShell.h"               
 #include "nsRange.h"                    
+#include "nsQueryObject.h"              
 
 using namespace mozilla;
 using namespace mozilla::dom;
