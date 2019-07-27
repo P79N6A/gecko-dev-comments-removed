@@ -1142,14 +1142,14 @@ protected:
   
   
   
-  Canonical<PlayState>::Holder mPlayState;
+  Canonical<PlayState> mPlayState;
 
   
   
   
   
   
-  Canonical<PlayState>::Holder mNextState;
+  Canonical<PlayState> mNextState;
 public:
   AbstractCanonical<PlayState>* CanonicalPlayState() { return &mPlayState; }
   AbstractCanonical<PlayState>* CanonicalNextPlayState() { return &mNextState; }
