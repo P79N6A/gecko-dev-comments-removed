@@ -6763,7 +6763,7 @@ nsLayoutUtils::CalculateScrollableRectForFrame(nsIScrollableFrame* aScrollableFr
     
     
     
-#ifndef MOZ_WIDGET_ANDROID
+#if !defined(MOZ_WIDGET_ANDROID) || defined(MOZ_ANDROID_APZ)
     nsPoint scrollPosition = aScrollableFrame->GetScrollPosition();
     if (aScrollableFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
       contentBounds.y = scrollPosition.y;

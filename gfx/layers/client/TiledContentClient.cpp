@@ -1392,7 +1392,7 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   
   
   ViewTransform viewTransform;
-#if defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_ANDROID_APZ)
   FrameMetrics compositorMetrics = scrollAncestor->GetFrameMetrics();
   bool abortPaint = false;
   
