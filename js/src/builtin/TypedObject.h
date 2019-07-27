@@ -795,8 +795,7 @@ bool NewDerivedTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-bool AttachTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo AttachTypedObjectJitInfo;
+bool AttachTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -804,49 +803,41 @@ extern const JSJitInfo AttachTypedObjectJitInfo;
 
 
 
-bool intrinsic_SetTypedObjectOffset(JSContext *cx, unsigned argc, Value *vp);
-bool SetTypedObjectOffset(ThreadSafeContext *, unsigned argc, Value *vp);
-extern const JSJitInfo intrinsic_SetTypedObjectOffsetJitInfo;
+bool SetTypedObjectOffset(JSContext *, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool ObjectIsTypeDescr(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTypeDescrJitInfo;
+bool ObjectIsTypeDescr(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool ObjectIsTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTypedObjectJitInfo;
+bool ObjectIsTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool ObjectIsOpaqueTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
+bool ObjectIsOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool ObjectIsTransparentTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ObjectIsTransparentTypedObjectJitInfo;
+bool ObjectIsTransparentTypedObject(JSContext *cx, unsigned argc, Value *vp);
 
 
 
-bool TypeDescrIsSimpleType(ThreadSafeContext *, unsigned argc, Value *vp);
-extern const JSJitInfo TypeDescrIsSimpleTypeJitInfo;
+bool TypeDescrIsSimpleType(JSContext *, unsigned argc, Value *vp);
 
-bool TypeDescrIsArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
-extern const JSJitInfo TypeDescrIsArrayTypeJitInfo;
+bool TypeDescrIsArrayType(JSContext *, unsigned argc, Value *vp);
 
 
 
@@ -854,24 +845,21 @@ extern const JSJitInfo TypeDescrIsArrayTypeJitInfo;
 
 
 
-bool TypedObjectIsAttached(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo TypedObjectIsAttachedJitInfo;
+bool TypedObjectIsAttached(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool TypedObjectTypeDescr(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo TypedObjectTypeDescrJitInfo;
+bool TypedObjectTypeDescr(JSContext *cx, unsigned argc, Value *vp);
 
 
 
 
 
 
-bool ClampToUint8(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo ClampToUint8JitInfo;
+bool ClampToUint8(JSContext *cx, unsigned argc, Value *vp);
 
 
 
@@ -919,7 +907,7 @@ bool GetInt32x4TypeDescr(JSContext *cx, unsigned argc, Value *vp);
 #define JS_STORE_SCALAR_CLASS_DEFN(_constant, T, _name)                       \
 class StoreScalar##T {                                                        \
   public:                                                                     \
-    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static bool Func(JSContext *cx, unsigned argc, Value *vp);        \
     static const JSJitInfo JitInfo;                                           \
 };
 
@@ -939,11 +927,11 @@ class StoreScalar##T {                                                        \
 #define JS_STORE_REFERENCE_CLASS_DEFN(_constant, T, _name)                    \
 class StoreReference##T {                                                     \
   private:                                                                    \
-    static bool store(ThreadSafeContext *cx, T* heap, const Value &v,         \
+    static bool store(JSContext *cx, T* heap, const Value &v,         \
                       TypedObject *obj, jsid id);                             \
                                                                               \
   public:                                                                     \
-    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static bool Func(JSContext *cx, unsigned argc, Value *vp);        \
     static const JSJitInfo JitInfo;                                           \
 };
 
@@ -958,7 +946,7 @@ class StoreReference##T {                                                     \
 #define JS_LOAD_SCALAR_CLASS_DEFN(_constant, T, _name)                        \
 class LoadScalar##T {                                                         \
   public:                                                                     \
-    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static bool Func(JSContext *cx, unsigned argc, Value *vp);        \
     static const JSJitInfo JitInfo;                                           \
 };
 
@@ -976,7 +964,7 @@ class LoadReference##T {                                                      \
     static void load(T* heap, MutableHandleValue v);                          \
                                                                               \
   public:                                                                     \
-    static bool Func(ThreadSafeContext *cx, unsigned argc, Value *vp);        \
+    static bool Func(JSContext *cx, unsigned argc, Value *vp);        \
     static const JSJitInfo JitInfo;                                           \
 };
 
