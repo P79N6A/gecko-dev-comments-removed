@@ -112,6 +112,10 @@
 
 #include "mozilla/dom/FeatureList.h"
 
+#ifdef MOZ_EME
+#include "mozilla/EMEUtils.h"
+#endif
+
 namespace mozilla {
 namespace dom {
 
@@ -2637,13 +2641,26 @@ Navigator::RequestMediaKeySystemAccess(const nsAString& aKeySystem,
     return p.forget();
   }
 
-  MediaKeySystemStatus status = MediaKeySystemAccess::GetKeySystemStatus(aKeySystem);
+  
+  nsAutoString keySystem;
+  int32_t minCdmVersion = NO_CDM_VERSION;
+  if (!ParseKeySystem(aKeySystem,
+                      keySystem,
+                      minCdmVersion)) {
+    
+    
+    MediaKeySystemAccess::NotifyObservers(mWindow, aKeySystem, MediaKeySystemStatus::Cdm_not_supported);
+    p->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return p.forget();
+  }
+
+  MediaKeySystemStatus status = MediaKeySystemAccess::GetKeySystemStatus(keySystem, minCdmVersion);
   if (status != MediaKeySystemStatus::Available) {
     if (status != MediaKeySystemStatus::Error) {
       
       
       
-      MediaKeySystemAccess::NotifyObservers(mWindow, aKeySystem, status);
+      MediaKeySystemAccess::NotifyObservers(mWindow, keySystem, status);
     }
     p->MaybeReject(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return p.forget();
@@ -2652,8 +2669,8 @@ Navigator::RequestMediaKeySystemAccess(const nsAString& aKeySystem,
   
 
   if (!aOptions.WasPassed() ||
-      MediaKeySystemAccess::IsSupported(aKeySystem, aOptions.Value())) {
-    nsRefPtr<MediaKeySystemAccess> access(new MediaKeySystemAccess(mWindow, aKeySystem));
+      MediaKeySystemAccess::IsSupported(keySystem, aOptions.Value())) {
+    nsRefPtr<MediaKeySystemAccess> access(new MediaKeySystemAccess(mWindow, keySystem));
     p->MaybeResolve(access);
     return p.forget();
   }
