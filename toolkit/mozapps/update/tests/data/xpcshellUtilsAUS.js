@@ -1574,13 +1574,7 @@ function stageUpdate() {
 
 
 
-
-
-
-
-
-
-function shouldRunServiceTest(aFirstTest, aSkipTest) {
+function shouldRunServiceTest(aFirstTest) {
   let binDir = getGREBinDir();
   let updaterBin = binDir.clone();
   updaterBin.append(FILE_UPDATER_BIN);
@@ -1646,7 +1640,7 @@ function shouldRunServiceTest(aFirstTest, aSkipTest) {
   
   
   
-  return attemptServiceInstall(aSkipTest);
+  return attemptServiceInstall();
 }
 
 
@@ -1855,14 +1849,7 @@ function copyFileToTestAppDir(aFileRelPath, aInGreDir) {
 
 
 
-
-
-
-
-
-
-
-function attemptServiceInstall(aSkipTest) {
+function attemptServiceInstall() {
   const CSIDL_PROGRAM_FILES = 0x26;
   const CSIDL_PROGRAM_FILESX86 = 0x2A;
   
@@ -1905,7 +1892,6 @@ function attemptServiceInstall(aSkipTest) {
     oldMaintSvcBin.moveTo(maintSvcDir, FILE_MAINTENANCE_SERVICE_BIN + ".backup");
     buildMaintSvcBin.copyTo(maintSvcDir, FILE_MAINTENANCE_SERVICE_BIN);
     backupMaintSvcBin.remove(false);
-    return true;
   } catch (e) {
     
     if (backupMaintSvcBin.exists()) {
@@ -1918,21 +1904,11 @@ function attemptServiceInstall(aSkipTest) {
     logTestInfo("unable to copy new maintenance service into the " +
                 "maintenance service directory: " + maintSvcDir.path + ", " +
                 "Exception: " + e);
+    do_throw("The account running the tests on the build systems should have " +
+             "write access to the maintenance service directory!");
   }
 
-  let version = Cc["@mozilla.org/system-info;1"].
-                getService(Ci.nsIPropertyBag2).
-                getProperty("version");
-  
-  
-  
-  
-  if ((parseFloat(version) <= 6.1)) {
-    do_throw("The account running the tests on Win 7 and below build systems " +
-             "should have write access to the maintenance service directory!");
-  }
-
-  return aSkipTest ? false : true;
+  return true;
 }
 
 

@@ -6,7 +6,7 @@
 
 
 function run_test() {
-  if (!shouldRunServiceTest(false, true)) {
+  if (!shouldRunServiceTest()) {
     return;
   }
 

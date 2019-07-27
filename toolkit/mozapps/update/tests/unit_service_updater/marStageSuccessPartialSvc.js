@@ -9,7 +9,7 @@ function run_test() {
   
   DEBUG_AUS_TEST = true;
 
-  if (!shouldRunServiceTest(false, true)) {
+  if (!shouldRunServiceTest()) {
     return;
   }
 
