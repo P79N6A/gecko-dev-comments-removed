@@ -57,8 +57,7 @@ var iterProto = Object.getPrototypeOf(iter);
 assertEq(Object.getPrototypeOf(iterProto), Object.prototype);
 
 
-arraysEqual(Object.getOwnPropertyNames(iterProto).sort(),
-            JS_HAS_SYMBOLS ? ["next"] : ["@@iterator", "next"]);
+arraysEqual(Object.getOwnPropertyNames(iterProto).sort(), ["next"]);
 assertEq(iterProto.hasOwnProperty(std_iterator), true);
 
 

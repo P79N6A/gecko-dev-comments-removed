@@ -877,5 +877,4 @@ function OptLevel( i ) {
 }
 
 
-var JS_HAS_SYMBOLS = typeof Symbol === "function";
-var std_iterator = JS_HAS_SYMBOLS ? Symbol.iterator : "@@iterator";
+var std_iterator = Symbol.iterator;
