@@ -2326,6 +2326,12 @@ CodeGeneratorX86Shared::visitSimdInsertElementF(LSimdInsertElementF *ins)
         return true;
     }
 
+    if (AssemblerX86Shared::HasSSE41()) {
+        
+        masm.insertps(value, output, masm.insertpsMask(SimdLane::LaneX, ins->lane()));
+        return true;
+    }
+
     unsigned component = unsigned(ins->lane());
     masm.reserveStack(Simd128DataSize);
     masm.storeAlignedFloat32x4(vector, Address(StackPointer, 0));
