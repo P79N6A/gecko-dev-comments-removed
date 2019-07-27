@@ -784,12 +784,7 @@ nsBaseWidget::ComputeShouldAccelerate(bool aDefault)
   
   
   
-  SInt32 major = nsCocoaFeatures::OSXVersionMajor();
-  SInt32 minor = nsCocoaFeatures::OSXVersionMinor();
-  SInt32 bugfix = nsCocoaFeatures::OSXVersionBugFix();
-  if (major == 10 && minor == 6 && bugfix <= 2) {
-    accelerateByDefault = false;
-  }
+  accelerateByDefault = nsCocoaFeatures::AccelerateByDefault();
 #endif
 
   
