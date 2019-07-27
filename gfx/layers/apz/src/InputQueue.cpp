@@ -80,7 +80,23 @@ InputQueue::ReceiveTouchInput(const nsRefPtr<AsyncPanZoomController>& aTarget,
     block = StartNewTouchBlock(aTarget, aTargetConfirmed, false);
     INPQ_LOG("started new touch block %p for target %p\n", block, aTarget.get());
 
+    
+    
+    
+    if (block == CurrentBlock() &&
+        aEvent.mTouches.Length() == 1 &&
+        block->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
+      
+      
+      
+      
+      
+      block->SetDuringFastMotion();
+      INPQ_LOG("block %p tagged as fast-motion\n", block);
+    }
+
     CancelAnimationsForNewBlock(block);
+
     MaybeRequestContentResponse(aTarget, block);
   } else {
     if (!mInputBlockQueue.IsEmpty()) {
@@ -176,17 +192,6 @@ InputQueue::CancelAnimationsForNewBlock(CancelableBlockState* aBlock)
   
   
   if (aBlock == CurrentBlock()) {
-    
-    
-    
-    if (aBlock->GetOverscrollHandoffChain()->HasFastMovingApzc()) {
-      
-      
-      if (TouchBlockState* touch = aBlock->AsTouchBlock()) {
-        touch->SetDuringFastMotion();
-        INPQ_LOG("block %p tagged as fast-motion\n", touch);
-      }
-    }
     aBlock->GetOverscrollHandoffChain()->CancelAnimations(ExcludeOverscroll);
   }
 }
