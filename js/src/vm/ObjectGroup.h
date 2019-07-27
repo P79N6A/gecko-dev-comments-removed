@@ -678,6 +678,9 @@ class ObjectGroupCompartment
     ObjectGroupCompartment();
     ~ObjectGroupCompartment();
 
+    void replaceAllocationSiteGroup(JSScript* script, jsbytecode* pc,
+                                    JSProtoKey kind, ObjectGroup* group);
+
     void removeDefaultNewGroup(const Class* clasp, TaggedProto proto, JSObject* associated);
     void replaceDefaultNewGroup(const Class* clasp, TaggedProto proto, JSObject* associated,
                                 ObjectGroup* group);

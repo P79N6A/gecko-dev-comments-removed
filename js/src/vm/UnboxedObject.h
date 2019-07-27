@@ -65,6 +65,17 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     HeapPtrShape nativeShape_;
 
     
+    HeapPtrScript allocationScript_;
+    jsbytecode* allocationPc_;
+
+    
+    
+    
+    
+    
+    HeapPtrObjectGroup replacementGroup_;
+
+    
 
     
     PropertyVector properties_;
@@ -82,14 +93,6 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     
     
     
-    
-    
-    
-    HeapPtrObjectGroup replacementNewGroup_;
-
-    
-    
-    
     HeapPtrJitCode constructorCode_;
 
     
@@ -99,8 +102,9 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
 
   public:
     UnboxedLayout()
-      : nativeGroup_(nullptr), nativeShape_(nullptr), size_(0), newScript_(nullptr),
-        traceList_(nullptr), replacementNewGroup_(nullptr), constructorCode_(nullptr),
+      : nativeGroup_(nullptr), nativeShape_(nullptr),
+        allocationScript_(nullptr), allocationPc_(nullptr), replacementGroup_(nullptr),
+        size_(0), newScript_(nullptr), traceList_(nullptr), constructorCode_(nullptr),
         elementType_(JSVAL_TYPE_MAGIC)
     {}
 
@@ -121,7 +125,7 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
 
         nativeGroup_.init(nullptr);
         nativeShape_.init(nullptr);
-        replacementNewGroup_.init(nullptr);
+        replacementGroup_.init(nullptr);
         constructorCode_.init(nullptr);
     }
 
@@ -140,6 +144,19 @@ class UnboxedLayout : public mozilla::LinkedListElement<UnboxedLayout>
     }
 
     void setNewScript(TypeNewScript* newScript, bool writeBarrier = true);
+
+    JSScript* allocationScript() const {
+        return allocationScript_;
+    }
+
+    jsbytecode* allocationPc() const {
+        return allocationPc_;
+    }
+
+    void setAllocationSite(JSScript* script, jsbytecode* pc) {
+        allocationScript_ = script;
+        allocationPc_ = pc;
+    }
 
     const int32_t* traceList() const {
         return traceList_;
