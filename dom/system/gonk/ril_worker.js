@@ -1022,6 +1022,14 @@ RilObject.prototype = {
   
 
 
+  getGID1: function(options) {
+    options.gid1 = this.iccInfoPrivate.gid1;
+    this.sendChromeMessage(options);
+  },
+
+  
+
+
 
 
 
