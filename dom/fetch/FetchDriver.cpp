@@ -665,6 +665,12 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
 
   mResponse = BeginAndGetFilteredResponse(response);
 
+  nsCOMPtr<nsISupports> securityInfo;
+  rv = channel->GetSecurityInfo(getter_AddRefs(securityInfo));
+  if (securityInfo) {
+    mResponse->SetSecurityInfo(securityInfo);
+  }
+
   
   
   
