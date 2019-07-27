@@ -270,22 +270,6 @@ public:
   }
 
   
-
-
-
-
-
-
-
-
-  nsSize PhysicalSizeFromFlexRelativeSizes(nscoord aMainSize,
-                                           nscoord aCrossSize) const {
-    return IsMainAxisHorizontal() ?
-      nsSize(aMainSize, aCrossSize) :
-      nsSize(aCrossSize, aMainSize);
-  }
-
-  
   
   
   bool AreAxesInternallyReversed() const
@@ -3774,6 +3758,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   
   
+  const nscoord blockEndContainerBP = containerBP.BEnd(flexWM);
   const LogicalSides skipSides =
     GetLogicalSkipSides(&aReflowState) | LogicalSides(eLogicalSideBitsBEnd);
   containerBP.ApplySkipSides(skipSides);
@@ -3848,18 +3833,12 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
   
   
-  nsMargin containerBorderPadding(aReflowState.ComputedPhysicalBorderPadding());
-  containerBorderPadding.ApplySkipSides(GetSkipSides(&aReflowState));
-
-  nsSize desiredContentBoxSize =
-    aAxisTracker.PhysicalSizeFromFlexRelativeSizes(aContentBoxMainSize,
-                                                   contentBoxCrossSize);
-
-  aDesiredSize.Width() = desiredContentBoxSize.width +
-    containerBorderPadding.LeftRight();
+  LogicalSize desiredSizeInFlexWM =
+    aAxisTracker.LogicalSizeFromFlexRelativeSizes(aContentBoxMainSize,
+                                                  contentBoxCrossSize);
   
-  aDesiredSize.Height() = desiredContentBoxSize.height +
-    containerBorderPadding.top;
+  desiredSizeInFlexWM.ISize(flexWM) += containerBP.IStartEnd(flexWM);
+  desiredSizeInFlexWM.BSize(flexWM) += containerBP.BStartEnd(flexWM);
 
   if (flexContainerAscent == nscoord_MIN) {
     
@@ -3870,8 +3849,15 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                      "Have flex items but didn't get an ascent - that's odd "
                      "(or there are just gigantic sizes involved)");
     
-    flexContainerAscent = aDesiredSize.Height();
+    
+    
+    
+    
+    flexContainerAscent = desiredSizeInFlexWM.BSize(flexWM);
   }
+
+  
+  
   aDesiredSize.SetBlockStartAscent(flexContainerAscent);
 
   
@@ -3882,24 +3868,23 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   
   
   if (NS_FRAME_IS_COMPLETE(aStatus)) {
-    
-    
-    
-    
-    nscoord desiredHeightWithBottomBP =
-      aDesiredSize.Height() + aReflowState.ComputedPhysicalBorderPadding().bottom;
+    nscoord desiredBSizeWithBEndBP =
+      desiredSizeInFlexWM.BSize(flexWM) + blockEndContainerBP;
 
-    if (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE ||
-        aDesiredSize.Height() == 0 ||
-        desiredHeightWithBottomBP <= aReflowState.AvailableHeight() ||
-        aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
+    if (aReflowState.AvailableBSize() == NS_UNCONSTRAINEDSIZE ||
+        desiredSizeInFlexWM.BSize(flexWM) == 0 ||
+        desiredBSizeWithBEndBP <= aReflowState.AvailableBSize() ||
+        aReflowState.ComputedBSize() == NS_INTRINSICSIZE) {
       
-      aDesiredSize.Height() = desiredHeightWithBottomBP;
+      desiredSizeInFlexWM.BSize(flexWM) = desiredBSizeWithBEndBP;
     } else {
       
       NS_FRAME_SET_INCOMPLETE(aStatus);
     }
   }
+
+  
+  aDesiredSize.SetSize(flexWM, desiredSizeInFlexWM);
 
   
   aDesiredSize.SetOverflowAreasToDesiredBounds();
