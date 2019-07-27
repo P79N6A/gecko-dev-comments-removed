@@ -8,6 +8,7 @@
 
 #include "nsRect.h"
 #include "nsStyleContext.h"
+#include "nsBidiUtils.h"
 
 
 
@@ -309,7 +310,7 @@ public:
   
   void SetDirectionFromBidiLevel(uint8_t level)
   {
-    if (level & 1) {
+    if (IS_LEVEL_RTL(level)) {
       
       mWritingMode |= eBidiMask;
     } else {

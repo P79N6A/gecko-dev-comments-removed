@@ -49,6 +49,25 @@ typedef enum nsCharType nsCharType;
 
 
 
+
+#define IS_LEVEL_RTL(level) (((level) & 1) == 1)
+
+
+
+
+
+#define IS_SAME_DIRECTION(level1, level2) (((level1 ^ level2) & 1) == 0)
+
+
+
+
+#define DIRECTION_FROM_LEVEL(level) ((IS_LEVEL_RTL(level)) \
+   ? NSBIDI_RTL : NSBIDI_LTR)
+
+
+
+
+
 #define CHARTYPE_IS_RTL(val) ( ( (val) == eCharType_RightToLeft) || ( (val) == eCharType_RightToLeftArabic) )
 
 #define CHARTYPE_IS_WEAK(val) ( ( (val) == eCharType_EuropeanNumberSeparator)    \

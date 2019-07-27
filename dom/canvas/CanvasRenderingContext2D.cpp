@@ -3253,7 +3253,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
     mFontgrp->UpdateUserFonts(); 
     
     uint32_t flags = mTextRunFlags;
-    if (direction & 1) {
+    if (direction == NSBIDI_RTL) {
       flags |= gfxTextRunFactory::TEXT_IS_RTL;
     } else {
       flags &= ~gfxTextRunFactory::TEXT_IS_RTL;

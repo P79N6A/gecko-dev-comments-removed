@@ -876,11 +876,11 @@ nsFrameSelection::MoveCaret(uint32_t          aKeycode,
   switch (aKeycode){
     case nsIDOMKeyEvent::DOM_VK_RIGHT : 
         InvalidateDesiredX();
-        pos.mDirection = (baseLevel & 1) ? eDirPrevious : eDirNext;
+        pos.mDirection = IS_LEVEL_RTL(baseLevel) ? eDirPrevious : eDirNext;
       break;
     case nsIDOMKeyEvent::DOM_VK_LEFT :
         InvalidateDesiredX();
-        pos.mDirection = (baseLevel & 1) ? eDirNext : eDirPrevious;
+        pos.mDirection = IS_LEVEL_RTL(baseLevel) ? eDirNext : eDirPrevious;
       break;
     case nsIDOMKeyEvent::DOM_VK_DELETE :
         InvalidateDesiredX();
@@ -5833,7 +5833,7 @@ Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
   if (NS_SUCCEEDED(rv) && frame) {
     nsBidiLevel baseLevel = nsBidiPresUtils::GetFrameBaseLevel(frame);
 
-    if (baseLevel & 1) {
+    if (IS_LEVEL_RTL(baseLevel)) {
       if (!visual && keycode == nsIDOMKeyEvent::DOM_VK_RIGHT) {
         keycode = nsIDOMKeyEvent::DOM_VK_LEFT;
       }
@@ -5908,14 +5908,14 @@ Selection::SelectionLanguageChange(bool aLangRTL)
     levelAfter = levels.mLevelAfter;
   }
 
-  if ((levelBefore & 1) == (levelAfter & 1)) {
+  if (IS_SAME_DIRECTION(levelBefore, levelAfter)) {
     
     
     
     
     if ((level != levelBefore) && (level != levelAfter))
       level = std::min(levelBefore, levelAfter);
-    if ((level & 1) == aLangRTL)
+    if (IS_LEVEL_RTL(level) == aLangRTL)
       mFrameSelection->SetCaretBidiLevel(level);
     else
       mFrameSelection->SetCaretBidiLevel(level + 1);
@@ -5923,7 +5923,7 @@ Selection::SelectionLanguageChange(bool aLangRTL)
   else {
     
     
-    if ((levelBefore & 1) == aLangRTL)
+    if (IS_LEVEL_RTL(levelBefore) == aLangRTL)
       mFrameSelection->SetCaretBidiLevel(levelBefore);
     else
       mFrameSelection->SetCaretBidiLevel(levelAfter);

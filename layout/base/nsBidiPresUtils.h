@@ -114,8 +114,8 @@ public:
 
 
     virtual void SetText(const char16_t*   aText,
-                         int32_t            aLength,
-                         nsBidiDirection    aDirection) = 0;
+                         int32_t           aLength,
+                         nsBidiDirection   aDirection) = 0;
 
     
 
@@ -171,11 +171,11 @@ public:
 
 
 
-  static nsresult FormatUnicodeText(nsPresContext* aPresContext,
-                                    char16_t*      aText,
+  static nsresult FormatUnicodeText(nsPresContext*  aPresContext,
+                                    char16_t*       aText,
                                     int32_t&        aTextLength,
                                     nsCharType      aCharType,
-                                    bool            aIsOddLevel);
+                                    nsBidiDirection aDir);
 
   
 

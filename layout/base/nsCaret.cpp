@@ -678,8 +678,10 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
           aBidiLevel = std::max(aBidiLevel, std::min(levelBefore, levelAfter));                                  
           aBidiLevel = std::min(aBidiLevel, std::max(levelBefore, levelAfter));                                  
           if (aBidiLevel == levelBefore                                                                      
-              || (aBidiLevel > levelBefore && aBidiLevel < levelAfter && !((aBidiLevel ^ levelBefore) & 1))    
-              || (aBidiLevel < levelBefore && aBidiLevel > levelAfter && !((aBidiLevel ^ levelBefore) & 1)))  
+              || (aBidiLevel > levelBefore && aBidiLevel < levelAfter &&
+                  IS_SAME_DIRECTION(aBidiLevel, levelBefore))   
+              || (aBidiLevel < levelBefore && aBidiLevel > levelAfter &&
+                  IS_SAME_DIRECTION(aBidiLevel, levelBefore)))  
           {
             if (theFrame != frameBefore)
             {
@@ -708,8 +710,10 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
             }
           }
           else if (aBidiLevel == levelAfter                                                                     
-                   || (aBidiLevel > levelBefore && aBidiLevel < levelAfter && !((aBidiLevel ^ levelAfter) & 1))   
-                   || (aBidiLevel < levelBefore && aBidiLevel > levelAfter && !((aBidiLevel ^ levelAfter) & 1)))  
+                   || (aBidiLevel > levelBefore && aBidiLevel < levelAfter &&
+                       IS_SAME_DIRECTION(aBidiLevel, levelAfter))   
+                   || (aBidiLevel < levelBefore && aBidiLevel > levelAfter &&
+                       IS_SAME_DIRECTION(aBidiLevel, levelAfter)))  
           {
             if (theFrame != frameAfter)
             {
@@ -739,33 +743,33 @@ nsCaret::GetCaretFrameForNodeOffset(nsFrameSelection*    aFrameSelection,
             }
           }
           else if (aBidiLevel > levelBefore && aBidiLevel < levelAfter  
-                   && !((levelBefore ^ levelAfter) & 1)                 
-                   && ((aBidiLevel ^ levelAfter) & 1))                  
+                   && IS_SAME_DIRECTION(levelBefore, levelAfter)        
+                   && !IS_SAME_DIRECTION(aBidiLevel, levelAfter))       
           {
             if (NS_SUCCEEDED(aFrameSelection->GetFrameFromLevel(frameAfter, eDirNext, aBidiLevel, &theFrame)))
             {
               theFrame->GetOffsets(start, end);
               levelAfter = NS_GET_EMBEDDING_LEVEL(theFrame);
-              if (aBidiLevel & 1) 
-                theFrameOffset = (levelAfter & 1) ? start : end;
+              if (IS_LEVEL_RTL(aBidiLevel)) 
+                theFrameOffset = IS_LEVEL_RTL(levelAfter) ? start : end;
               else               
-                theFrameOffset = (levelAfter & 1) ? end : start;
+                theFrameOffset = IS_LEVEL_RTL(levelAfter) ? end : start;
             }
           }
           else if (aBidiLevel < levelBefore && aBidiLevel > levelAfter  
-                   && !((levelBefore ^ levelAfter) & 1)                 
-                   && ((aBidiLevel ^ levelAfter) & 1))                  
+                   && IS_SAME_DIRECTION(levelBefore, levelAfter)        
+                   && !IS_SAME_DIRECTION(aBidiLevel, levelAfter))       
           {
             if (NS_SUCCEEDED(aFrameSelection->GetFrameFromLevel(frameBefore, eDirPrevious, aBidiLevel, &theFrame)))
             {
               theFrame->GetOffsets(start, end);
               levelBefore = NS_GET_EMBEDDING_LEVEL(theFrame);
-              if (aBidiLevel & 1) 
-                theFrameOffset = (levelBefore & 1) ? end : start;
+              if (IS_LEVEL_RTL(aBidiLevel)) 
+                theFrameOffset = IS_LEVEL_RTL(levelBefore) ? end : start;
               else               
-                theFrameOffset = (levelBefore & 1) ? start : end;
+                theFrameOffset = IS_LEVEL_RTL(levelBefore) ? start : end;
             }
-          }   
+          }
         }
       }
     }
