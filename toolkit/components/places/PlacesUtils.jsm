@@ -44,6 +44,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Bookmarks",
                                   "resource://gre/modules/Bookmarks.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "History",
+                                  "resource://gre/modules/History.jsm");
 
 
 
@@ -1831,10 +1833,26 @@ this.PlacesUtils = {
 };
 
 XPCOMUtils.defineLazyGetter(PlacesUtils, "history", function() {
-  return Cc["@mozilla.org/browser/nav-history-service;1"]
-           .getService(Ci.nsINavHistoryService)
-           .QueryInterface(Ci.nsIBrowserHistory)
-           .QueryInterface(Ci.nsPIPlacesDatabase);
+  let hs = Cc["@mozilla.org/browser/nav-history-service;1"]
+             .getService(Ci.nsINavHistoryService)
+             .QueryInterface(Ci.nsIBrowserHistory)
+             .QueryInterface(Ci.nsPIPlacesDatabase);
+  return Object.freeze(new Proxy(hs, {
+    get: function(target, name) {
+      let property, object;
+      if (name in target) {
+        property = target[name];
+        object = target;
+      } else {
+        property = History[name];
+        object = History;
+      }
+      if (typeof property == "function") {
+        return property.bind(object);
+      }
+      return property;
+    }
+  }));
 });
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "asyncHistory",
