@@ -216,6 +216,16 @@ protected:
   static nsPresContext* sPresContext;
   static StaticRefPtr<nsIWidget> sFocusedIMEWidget;
   static StaticRefPtr<TabParent> sActiveTabParent;
+  
+  
+  static StaticRefPtr<IMEContentObserver> sActiveIMEContentObserver;
+
+  
+  
+  
+  
+  static TextCompositionArray* sTextCompositions;
+
   static bool           sInstalledMenuKeyboardListener;
   static bool           sIsGettingNewIMEState;
   static bool           sCheckForIMEUnawareWebApps;
@@ -236,14 +246,6 @@ protected:
   private:
     bool mOldValue;
   };
-
-  static IMEContentObserver* sActiveIMEContentObserver;
-
-  
-  
-  
-  
-  static TextCompositionArray* sTextCompositions;
 };
 
 } 
