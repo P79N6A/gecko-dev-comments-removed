@@ -532,7 +532,9 @@ public:
       return DrawableFrameRef();
     }
 
-    if (!surface->IsLocked()) {
+    if (cache->IsLocked()) {
+      LockSurface(surface);
+    } else {
       mExpirationTracker.MarkUsed(surface);
     }
 
@@ -571,7 +573,9 @@ public:
       Remove(surface);
     }
 
-    if (!surface->IsLocked()) {
+    if (cache->IsLocked()) {
+      LockSurface(surface);
+    } else {
       mExpirationTracker.MarkUsed(surface);
     }
 
@@ -608,16 +612,31 @@ public:
     cache->SetLocked(true);
 
     
-    cache->ForEach(DoLockSurface, this);
+    
   }
 
   void UnlockImage(const ImageKey aImageKey)
   {
     nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
-    if (!cache)
+    if (!cache || !cache->IsLocked()) {
       return;  
+    }
 
     cache->SetLocked(false);
+
+    
+    cache->ForEach(DoUnlockSurface, this);
+  }
+
+  void UnlockSurfaces(const ImageKey aImageKey)
+  {
+    nsRefPtr<ImageSurfaceCache> cache = GetImageCache(aImageKey);
+    if (!cache || !cache->IsLocked()) {
+      return;  
+    }
+
+    
+    
 
     
     cache->ForEach(DoUnlockSurface, this);
@@ -678,30 +697,25 @@ public:
     }
   }
 
+  void LockSurface(CachedSurface* aSurface)
+  {
+    if (aSurface->GetLifetime() == Lifetime::Transient ||
+        aSurface->IsLocked()) {
+      return;
+    }
+
+    StopTracking(aSurface);
+
+    
+    aSurface->SetLocked(true);
+    StartTracking(aSurface);
+  }
+
   static PLDHashOperator DoStopTracking(const SurfaceKey&,
                                         CachedSurface*    aSurface,
                                         void*             aCache)
   {
     static_cast<SurfaceCacheImpl*>(aCache)->StopTracking(aSurface);
-    return PL_DHASH_NEXT;
-  }
-
-  static PLDHashOperator DoLockSurface(const SurfaceKey&,
-                                       CachedSurface*    aSurface,
-                                       void*             aCache)
-  {
-    if (aSurface->GetLifetime() == Lifetime::Transient ||
-        aSurface->IsLocked()) {
-      return PL_DHASH_NEXT;
-    }
-
-    auto cache = static_cast<SurfaceCacheImpl*>(aCache);
-    cache->StopTracking(aSurface);
-
-    
-    aSurface->SetLocked(true);
-    cache->StartTracking(aSurface);
-
     return PL_DHASH_NEXT;
   }
 
@@ -996,6 +1010,15 @@ SurfaceCache::UnlockImage(Image* aImageKey)
   if (sInstance) {
     MutexAutoLock lock(sInstance->GetMutex());
     return sInstance->UnlockImage(aImageKey);
+  }
+}
+
+ void
+SurfaceCache::UnlockSurfaces(const ImageKey aImageKey)
+{
+  if (sInstance) {
+    MutexAutoLock lock(sInstance->GetMutex());
+    return sInstance->UnlockSurfaces(aImageKey);
   }
 }
 

@@ -150,9 +150,6 @@ MOZ_END_ENUM_CLASS(InsertOutcome)
 
 
 
-
-
-
 struct SurfaceCache
 {
   typedef gfx::IntSize IntSize;
@@ -168,6 +165,9 @@ struct SurfaceCache
   static void Shutdown();
 
   
+
+
+
 
 
 
@@ -210,12 +210,23 @@ struct SurfaceCache
 
 
 
+
+
+
   static DrawableFrameRef LookupBestMatch(const ImageKey    aImageKey,
                                           const SurfaceKey& aSurfaceKey,
                                           const Maybe<uint32_t>& aAlternateFlags
                                             = Nothing());
 
   
+
+
+
+
+
+
+
+
 
 
 
@@ -294,6 +305,15 @@ struct SurfaceCache
 
 
 
+
+
+
+
+
+
+
+
+
   static void LockImage(const ImageKey aImageKey);
 
   
@@ -305,6 +325,27 @@ struct SurfaceCache
 
 
   static void UnlockImage(const ImageKey aImageKey);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void UnlockSurfaces(const ImageKey aImageKey);
 
   
 

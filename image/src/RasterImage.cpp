@@ -1415,6 +1415,17 @@ void
 RasterImage::WantDecodedFrames(const nsIntSize& aSize, uint32_t aFlags,
                                bool aShouldSyncNotify)
 {
+  if (mDownscaleDuringDecode) {
+    
+    
+    
+    
+    
+    
+    
+    SurfaceCache::UnlockSurfaces(ImageKey(this));
+  }
+
   if (aShouldSyncNotify) {
     
     if (aFlags & FLAG_SYNC_DECODE) {
