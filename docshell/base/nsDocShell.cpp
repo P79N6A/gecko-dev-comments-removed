@@ -2888,6 +2888,11 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
       
       
       
+      uint32_t markerDepth = 0;
+
+      
+      
+      
       for (uint32_t j = i + 1; j < mProfileTimelineMarkers.Length(); ++j) {
         ProfilerMarkerTracing* endPayload = static_cast<ProfilerMarkerTracing*>(
           mProfileTimelineMarkers[j]->mPayload);
@@ -2898,24 +2903,32 @@ nsDocShell::PopProfileTimelineMarkers(JSContext* aCx,
           hasSeenPaintedLayer = true;
         }
 
-        bool isSameMarkerType = strcmp(startMarkerName, endMarkerName) == 0;
+        if (strcmp(startMarkerName, endMarkerName) != 0) {
+          continue;
+        }
         bool isPaint = strcmp(startMarkerName, "Paint") == 0;
 
         
-        if (endPayload->GetMetaData() == TRACING_INTERVAL_END && isSameMarkerType) {
-          
-          if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
-            mozilla::dom::ProfileTimelineMarker marker;
-            marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
-            marker.mStart = mProfileTimelineMarkers[i]->mTime;
-            marker.mEnd = mProfileTimelineMarkers[j]->mTime;
-            profileTimelineMarkers.AppendElement(marker);
+        if (endPayload->GetMetaData() == TRACING_INTERVAL_START) {
+          ++markerDepth;
+        } else if (endPayload->GetMetaData() == TRACING_INTERVAL_END) {
+          if (markerDepth > 0) {
+            --markerDepth;
+          } else {
+            
+            if (!isPaint || (isPaint && hasSeenPaintedLayer)) {
+              mozilla::dom::ProfileTimelineMarker marker;
+              marker.mName = NS_ConvertUTF8toUTF16(startMarkerName);
+              marker.mStart = mProfileTimelineMarkers[i]->mTime;
+              marker.mEnd = mProfileTimelineMarkers[j]->mTime;
+              profileTimelineMarkers.AppendElement(marker);
+            }
+
+            
+            hasSeenEnd = true;
+
+            break;
           }
-
-          
-          hasSeenEnd = true;
-
-          break;
         }
       }
 
