@@ -784,7 +784,7 @@ Layer::GetEffectiveOpacity()
   }
   return opacity;
 }
-
+  
 CompositionOp
 Layer::GetEffectiveMixBlendMode()
 {
@@ -1978,12 +1978,6 @@ ToOutsideIntRect(const gfxRect &aRect)
 }
 
 PRLogModuleInfo* LayerManager::sLog;
-
-bool
-CanvasLayer::MustLayerUpdateBeSynchronous() const
-{
-  return !mIsElemFullscreen;
-}
 
 } 
 } 
