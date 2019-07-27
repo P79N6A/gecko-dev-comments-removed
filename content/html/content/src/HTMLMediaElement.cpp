@@ -1430,13 +1430,13 @@ HTMLMediaElement::Seek(double aTime,
   }
 
   
-  dom::TimeRanges seekable;
-  if (NS_FAILED(mDecoder->GetSeekable(&seekable))) {
+  nsRefPtr<dom::TimeRanges> seekable = new dom::TimeRanges();
+  if (NS_FAILED(mDecoder->GetSeekable(seekable))) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
   uint32_t length = 0;
-  seekable.GetLength(&length);
+  seekable->GetLength(&length);
   if (!length) {
     return;
   }
@@ -1448,7 +1448,7 @@ HTMLMediaElement::Seek(double aTime,
   
   int32_t range = 0;
   bool isInRange = false;
-  if (NS_FAILED(IsInRanges(seekable, aTime, isInRange, range))) {
+  if (NS_FAILED(IsInRanges(*seekable, aTime, isInRange, range))) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
@@ -1458,11 +1458,11 @@ HTMLMediaElement::Seek(double aTime,
       
       if (uint32_t(range + 1) < length) {
         double leftBound, rightBound;
-        if (NS_FAILED(seekable.End(range, &leftBound))) {
+        if (NS_FAILED(seekable->End(range, &leftBound))) {
           aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
           return;
         }
-        if (NS_FAILED(seekable.Start(range + 1, &rightBound))) {
+        if (NS_FAILED(seekable->Start(range + 1, &rightBound))) {
           aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
           return;
         }
@@ -1477,7 +1477,7 @@ HTMLMediaElement::Seek(double aTime,
       } else {
         
         
-        if (NS_FAILED(seekable.End(length - 1, &aTime))) {
+        if (NS_FAILED(seekable->End(length - 1, &aTime))) {
           aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
           return;
         }
@@ -1485,7 +1485,7 @@ HTMLMediaElement::Seek(double aTime,
     } else {
       
       
-      seekable.Start(0, &aTime);
+      seekable->Start(0, &aTime);
     }
   }
 
