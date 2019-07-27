@@ -26,94 +26,55 @@ using namespace android;
 namespace mozilla {
 
 GonkDecoderManager::GonkDecoderManager(MediaTaskQueue* aTaskQueue)
-  : mTaskQueue(aTaskQueue)
+  : mMonitor("GonkDecoderManager")
+  , mTaskQueue(aTaskQueue)
 {
 }
 
 nsresult
 GonkDecoderManager::Input(MediaRawData* aSample)
 {
-  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-
-  
-  
-  
-  
-  uint32_t len = mQueueSample.Length();
-  status_t rv = OK;
-
-  for (uint32_t i = 0; i < len; i++) {
-    rv = SendSampleToOMX(mQueueSample.ElementAt(0));
-    if (rv != OK) {
-      break;
-    }
-    mQueueSample.RemoveElementAt(0);
-  }
-
-  
-  
+  ReentrantMonitorAutoEnter mon(mMonitor);
   nsRefPtr<MediaRawData> sample;
+
   if (!aSample) {
+    
     sample = new MediaRawData();
-  }
-
-  
-  
-  if (rv == OK) {
-    MOZ_ASSERT(!mQueueSample.Length());
-    MediaRawData* tmp;
-    if (aSample) {
-      tmp = aSample;
-      if (!PerformFormatSpecificProcess(aSample)) {
-        return NS_ERROR_FAILURE;
-      }
-    } else {
-      tmp = sample;
-    }
-    rv = SendSampleToOMX(tmp);
-    if (rv == OK) {
-      return NS_OK;
+  } else {
+    sample = aSample;
+    if (!PerformFormatSpecificProcess(sample)) {
+      return NS_ERROR_FAILURE;
     }
   }
 
-  
-  
-  if (!sample) {
-      sample = aSample->Clone();
-      if (!sample) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-  }
   mQueueSample.AppendElement(sample);
 
-  
-  
-  if (rv == -EAGAIN || rv == -ETIMEDOUT) {
-    return NS_OK;
+  status_t rv;
+  while (mQueueSample.Length()) {
+    nsRefPtr<MediaRawData> data = mQueueSample.ElementAt(0);
+    {
+      ReentrantMonitorAutoExit mon_exit(mMonitor);
+      rv = SendSampleToOMX(data);
+    }
+    if (rv == OK) {
+      mQueueSample.RemoveElementAt(0);
+    } else if (rv == -EAGAIN || rv == -ETIMEDOUT) {
+      
+      
+      return NS_OK;
+    } else {
+      return NS_ERROR_UNEXPECTED;
+    }
   }
 
-  return NS_ERROR_UNEXPECTED;
+  return NS_OK;
 }
 
 nsresult
 GonkDecoderManager::Flush()
 {
-  class ClearQueueRunnable : public nsRunnable
-  {
-  public:
-    explicit ClearQueueRunnable(GonkDecoderManager* aManager)
-      : mManager(aManager) {}
-
-    NS_IMETHOD Run()
-    {
-      mManager->ClearQueuedSample();
-      return NS_OK;
-    }
-
-    GonkDecoderManager* mManager;
-  };
-
-  mTaskQueue->SyncDispatch(new ClearQueueRunnable(this));
+  ReentrantMonitorAutoEnter mon(mMonitor);
+  mQueueSample.Clear();
   return NS_OK;
 }
 

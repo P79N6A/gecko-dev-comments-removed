@@ -46,13 +46,8 @@ public:
 
   
   bool HasQueuedSample() {
-    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
+    ReentrantMonitorAutoEnter mon(mMonitor);
     return mQueueSample.Length();
-  }
-
-  void ClearQueuedSample() {
-    MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
-    mQueueSample.Clear();
   }
 
 protected:
@@ -62,6 +57,9 @@ protected:
 
   
   virtual android::status_t SendSampleToOMX(MediaRawData* aSample) = 0;
+
+  
+  ReentrantMonitor mMonitor;
 
   
   

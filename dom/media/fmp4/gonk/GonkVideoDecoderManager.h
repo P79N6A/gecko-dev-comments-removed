@@ -108,15 +108,6 @@ private:
   };
   friend class VideoResourceListener;
 
-  
-  
-  
-  
-  struct FrameTimeInfo {
-    int64_t pts;       
-    int64_t duration;  
-  };
-
   bool SetVideoFormat();
 
   nsresult CreateVideoData(int64_t aStreamOffset, VideoData** aOutData);
@@ -130,10 +121,6 @@ private:
 
   void ReleaseAllPendingVideoBuffers();
   void PostReleaseVideoBuffer(android::MediaBuffer *aBuffer);
-
-  void QueueFrameTimeIn(int64_t aPTS, int64_t aDuration);
-  nsresult QueueFrameTimeOut(int64_t aPTS, int64_t& aDuration);
-  void ClearQueueFrameTime();
 
   uint32_t mVideoWidth;
   uint32_t mVideoHeight;
@@ -155,11 +142,7 @@ private:
   android::sp<ALooper> mManagerLooper;
   FrameInfo mFrameInfo;
 
-  
-  
-  
-  
-  nsTArray<FrameTimeInfo> mFrameTimeInfo;
+  int64_t mLastDecodedTime;  
 
   
   android::I420ColorConverterHelper mColorConverter;
