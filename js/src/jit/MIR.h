@@ -1576,33 +1576,50 @@ class MSimdSignMask : public MUnaryInstruction
 };
 
 
-
-
-class MSimdSwizzle : public MUnaryInstruction
+class MSimdShuffleBase
 {
   protected:
     
-    SimdLane laneX_;
-    SimdLane laneY_;
-    SimdLane laneZ_;
-    SimdLane laneW_;
+    
+    
+    uint32_t laneMask_;
+    uint32_t arity_;
 
-    MSimdSwizzle(MDefinition *obj, MIRType type,
-                 SimdLane laneX, SimdLane laneY, SimdLane laneZ, SimdLane laneW)
-      : MUnaryInstruction(obj),
-        laneX_(laneX), laneY_(laneY), laneZ_(laneZ), laneW_(laneW)
+    MSimdShuffleBase(int32_t laneX, int32_t laneY, int32_t laneZ, int32_t laneW, MIRType type)
     {
-        MOZ_ASSERT(IsSimdType(obj->type()));
-        
+        MOZ_ASSERT(SimdTypeToLength(type) == 4);
         MOZ_ASSERT(IsSimdType(type));
-        MOZ_ASSERT(SimdTypeToScalarType(obj->type()) == type);
+        laneMask_ = (laneX << 0) | (laneY << 3) | (laneZ << 6) | (laneW << 9);
+        arity_ = 4;
+    }
 
-        mozilla::DebugOnly<uint32_t> expectedLength = SimdTypeToLength(obj->type());
-        MOZ_ASSERT(uint32_t(laneX_) < expectedLength);
-        MOZ_ASSERT(uint32_t(laneY_) < expectedLength);
-        MOZ_ASSERT(uint32_t(laneZ_) < expectedLength);
-        MOZ_ASSERT(uint32_t(laneW_) < expectedLength);
+    bool sameLanes(const MSimdShuffleBase *other) const {
+        return laneMask_ == other->laneMask_;
+    }
 
+  public:
+    
+    
+    int32_t laneX() const { MOZ_ASSERT(arity_ == 4); return laneMask_ & 7; }
+    int32_t laneY() const { MOZ_ASSERT(arity_ == 4); return (laneMask_ >> 3) & 7; }
+    int32_t laneZ() const { MOZ_ASSERT(arity_ == 4); return (laneMask_ >> 6) & 7; }
+    int32_t laneW() const { MOZ_ASSERT(arity_ == 4); return (laneMask_ >> 9) & 7; }
+};
+
+
+
+
+class MSimdSwizzle : public MUnaryInstruction, public MSimdShuffleBase
+{
+  protected:
+    MSimdSwizzle(MDefinition *obj, MIRType type,
+                 int32_t laneX, int32_t laneY, int32_t laneZ, int32_t laneW)
+      : MUnaryInstruction(obj), MSimdShuffleBase(laneX, laneY, laneZ, laneW, type)
+    {
+        MOZ_ASSERT(laneX < 4 && laneY < 4 && laneZ < 4 && laneW < 4);
+        MOZ_ASSERT(IsSimdType(obj->type()));
+        MOZ_ASSERT(IsSimdType(type));
+        MOZ_ASSERT(obj->type() == type);
         setResultType(type);
         setMovable();
     }
@@ -1611,34 +1628,66 @@ class MSimdSwizzle : public MUnaryInstruction
     INSTRUCTION_HEADER(SimdSwizzle);
 
     static MSimdSwizzle *NewAsmJS(TempAllocator &alloc, MDefinition *obj, MIRType type,
-                                  SimdLane laneX, SimdLane laneY, SimdLane laneZ, SimdLane laneW)
+                                  int32_t laneX, int32_t laneY, int32_t laneZ, int32_t laneW)
     {
         return new(alloc) MSimdSwizzle(obj, type, laneX, laneY, laneZ, laneW);
     }
 
-    SimdLane laneX() const { return laneX_; }
-    SimdLane laneY() const { return laneY_; }
-    SimdLane laneZ() const { return laneZ_; }
-    SimdLane laneW() const { return laneW_; }
-
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
     bool congruentTo(const MDefinition *ins) const {
         if (!ins->isSimdSwizzle())
             return false;
         const MSimdSwizzle *other = ins->toSimdSwizzle();
-        if (other->laneX_ != laneX_ ||
-            other->laneY_ != laneY_ ||
-            other->laneZ_ != laneZ_ ||
-            other->laneW_ != laneW_)
-        {
-            return false;
-        }
-        return congruentIfOperandsEqual(other);
+        return sameLanes(other) && congruentIfOperandsEqual(other);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
     }
 
     ALLOW_CLONE(MSimdSwizzle)
+};
+
+
+
+
+class MSimdShuffle : public MBinaryInstruction, public MSimdShuffleBase
+{
+    MSimdShuffle(MDefinition *lhs, MDefinition *rhs, MIRType type,
+                 int32_t laneX, int32_t laneY, int32_t laneZ, int32_t laneW)
+      : MBinaryInstruction(lhs, rhs), MSimdShuffleBase(laneX, laneY, laneZ, laneW, lhs->type())
+    {
+        MOZ_ASSERT(laneX < 8 && laneY < 8 && laneZ < 8 && laneW < 8);
+        MOZ_ASSERT(IsSimdType(lhs->type()));
+        MOZ_ASSERT(IsSimdType(rhs->type()));
+        MOZ_ASSERT(lhs->type() == rhs->type());
+        MOZ_ASSERT(IsSimdType(type));
+        MOZ_ASSERT(lhs->type() == type);
+        setResultType(type);
+        setMovable();
+    }
+
+  public:
+    INSTRUCTION_HEADER(SimdShuffle);
+
+    static MSimdShuffle *NewAsmJS(TempAllocator &alloc, MDefinition *lhs, MDefinition *rhs,
+                                  MIRType type, int32_t laneX, int32_t laneY, int32_t laneZ,
+                                  int32_t laneW)
+    {
+        return new(alloc) MSimdShuffle(lhs, rhs, type, laneX, laneY, laneZ, laneW);
+    }
+
+    bool congruentTo(const MDefinition *ins) const {
+        if (!ins->isSimdShuffle())
+            return false;
+        const MSimdShuffle *other = ins->toSimdShuffle();
+        return sameLanes(other) && binaryCongruentTo(other);
+    }
+
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+
+    ALLOW_CLONE(MSimdShuffle)
 };
 
 class MSimdUnaryArith : public MUnaryInstruction
