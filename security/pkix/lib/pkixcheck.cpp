@@ -371,7 +371,7 @@ CheckBasicConstraints(EndEntityOrCA endEntityOrCA,
     return Success;
   }
 
-  PORT_Assert(endEntityOrCA == EndEntityOrCA::MustBeCA);
+  assert(endEntityOrCA == EndEntityOrCA::MustBeCA);
 
   
   if (!isCA) {
