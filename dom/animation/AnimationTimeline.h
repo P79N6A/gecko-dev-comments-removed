@@ -12,9 +12,9 @@
 #include "mozilla/TimeStamp.h"
 #include "js/TypeDecls.h"
 #include "nsIDocument.h"
+#include "nsRefreshDriver.h"
 
 struct JSContext;
-class nsRefreshDriver;
 
 namespace mozilla {
 namespace dom {
@@ -47,6 +47,11 @@ public:
   
   Nullable<double> GetCurrentTimeAsDouble() const;
 
+  
+  
+  
+  
+  
   Nullable<TimeDuration> ToTimelineTime(const TimeStamp& aTimeStamp) const;
   TimeStamp ToTimeStamp(const TimeDuration& aTimelineTime) const;
 
@@ -66,6 +71,16 @@ public:
   void FastForward(const TimeStamp& aTimeStamp);
 
   nsRefreshDriver* GetRefreshDriver() const;
+  
+  
+  
+  
+  
+  bool IsUnderTestControl() const
+  {
+    nsRefreshDriver* refreshDriver = GetRefreshDriver();
+    return refreshDriver && refreshDriver->IsTestControllingRefreshesEnabled();
+  }
 
 protected:
   TimeStamp GetCurrentTimeStamp() const;
