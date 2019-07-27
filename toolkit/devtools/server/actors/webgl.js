@@ -492,9 +492,7 @@ let WebGLInstrumenter = {
         if (glBreak) return undefined;
       }
 
-      
-      
-      let glResult = Cu.waiveXrays(Cu.unwaiveXrays(originalFunc).apply(this, glArgs));
+      let glResult = originalFunc.apply(this, glArgs);
 
       if (timing >= 0 && !observer.suppressHandlers) {
         let glBreak = observer[afterFuncName](glArgs, glResult, cache, proxy);
