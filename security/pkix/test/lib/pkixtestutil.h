@@ -92,8 +92,10 @@ const SECItem* ASCIIToDERName(PLArenaPool* arena, const char* cn);
 
 
 
-SECStatus TamperOnce(SECItem& item, const uint8_t* from, size_t fromLen,
-                     const uint8_t* to, size_t toLen);
+
+
+Result TamperOnce(SECItem& item, const uint8_t* from, size_t fromLen,
+                  const uint8_t* to, size_t toLen);
 
 Result InitInputFromSECItem(const SECItem* secItem,  Input& input);
 
