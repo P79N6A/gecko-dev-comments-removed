@@ -124,7 +124,7 @@ class JavaPanZoomController
     
     private AxisLockMode mMode;
     
-    private boolean mMediumPress;
+    private boolean mWaitForDoubleTap;
     
     private boolean mNegateWheelScrollY;
     
@@ -1333,7 +1333,7 @@ class JavaPanZoomController
 
     @Override
     public boolean onDown(MotionEvent motionEvent) {
-        mMediumPress = false;
+        mWaitForDoubleTap = mTarget.getZoomConstraints().getAllowDoubleTapZoom();
         return false;
     }
 
@@ -1345,7 +1345,7 @@ class JavaPanZoomController
         
         
         
-        mMediumPress = true;
+        mWaitForDoubleTap = false;
     }
 
     @Override
@@ -1354,17 +1354,11 @@ class JavaPanZoomController
         GeckoAppShell.sendEventToGecko(e);
     }
 
-    private boolean waitForDoubleTap() {
-        return !mMediumPress && mTarget.getZoomConstraints().getAllowDoubleTapZoom();
-    }
-
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
         
         
-        
-        
-        if (!waitForDoubleTap()) {
+        if (!mWaitForDoubleTap) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         
@@ -1374,7 +1368,7 @@ class JavaPanZoomController
     @Override
     public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
         
-        if (waitForDoubleTap()) {
+        if (mWaitForDoubleTap) {
             sendPointToGecko("Gesture:SingleTap", motionEvent);
         }
         return true;
