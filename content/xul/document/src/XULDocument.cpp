@@ -23,7 +23,6 @@
 
 #include "mozilla/ArrayUtils.h"
 
-
 #include "XULDocument.h"
 
 #include "nsError.h"
@@ -122,9 +121,6 @@ const nsForwardReference::Phase nsForwardReference::kPasses[] = {
     nsForwardReference::eHookup,
     nsForwardReference::eDone
 };
-
-const uint32_t kMaxAttrNameLength = 512;
-const uint32_t kMaxAttributeLength = 4096;
 
 
 
