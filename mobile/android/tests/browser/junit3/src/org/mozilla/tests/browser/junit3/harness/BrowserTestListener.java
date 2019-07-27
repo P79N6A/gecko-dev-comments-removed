@@ -1,7 +1,7 @@
 
 
 
-package org.mozilla.gecko.harness;
+package org.mozilla.tests.browser.junit3.harness;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.Test;

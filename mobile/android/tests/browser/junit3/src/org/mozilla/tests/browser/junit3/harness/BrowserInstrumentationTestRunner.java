@@ -1,7 +1,7 @@
 
 
 
-package org.mozilla.gecko.harness;
+package org.mozilla.tests.browser.junit3.harness;
 
 import android.os.Bundle;
 import android.test.AndroidTestRunner;

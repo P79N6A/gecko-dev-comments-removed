@@ -1,7 +1,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.tests.browser.junit3;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;

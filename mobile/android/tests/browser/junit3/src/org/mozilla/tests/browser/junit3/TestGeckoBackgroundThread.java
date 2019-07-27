@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.tests.browser.junit3;
 
 import org.mozilla.gecko.util.ThreadUtils;
 
