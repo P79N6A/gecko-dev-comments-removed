@@ -116,8 +116,7 @@ tooltip[titletip="true"] {
 
 
 
-menulist > menupopup,
-.menulist-menupopup {
+menulist > menupopup {
   min-width: 0px;
 }
 
