@@ -91,6 +91,13 @@
 #endif
 #endif 
 
+#ifdef XP_MACOSX
+
+
+
+#include "mozilla/dom/HTMLObjectElement.h"
+#endif
+
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 static const char *kPrefJavaMIME = "plugin.java.mime";
@@ -866,6 +873,10 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
                             doc,
                             NS_LITERAL_STRING("PluginInstantiated"));
   NS_DispatchToCurrentThread(ev);
+
+#ifdef XP_MACOSX
+  HTMLObjectElement::HandlePluginInstantiated(thisContent->AsElement());
+#endif
 
   return NS_OK;
 }
@@ -2723,14 +2734,19 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   LOG(("OBJLC [%p]: Plugin Crashed, queuing crash event", this));
   NS_ASSERTION(mType == eType_Plugin, "PluginCrashed at non-plugin type");
 
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+
+#ifdef XP_MACOSX
+  HTMLObjectElement::HandlePluginCrashed(thisContent->AsElement());
+#endif
+
   PluginDestroyed();
 
   
   LoadFallback(eFallbackCrashed, true);
 
   
-  nsCOMPtr<nsIContent> thisContent =
-    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
 
   
   

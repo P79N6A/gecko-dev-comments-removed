@@ -36,6 +36,8 @@ public:
   
   static void OnFocusBlurPlugin(Element* aElement, bool aFocus);
   static void HandleFocusBlurPlugin(Element* aElement, WidgetEvent* aEvent);
+  static void HandlePluginCrashed(Element* aElement);
+  static void HandlePluginInstantiated(Element* aElement);
   
   static Element* sLastFocused;
 #endif
