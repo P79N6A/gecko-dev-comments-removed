@@ -1206,7 +1206,7 @@ public class GeckoAppShell
             
             
             
-            intent.putExtra(Browser.EXTRA_APPLICATION_ID, GeckoApp.class.getPackage().getName());
+            intent.putExtra(Browser.EXTRA_APPLICATION_ID, AppConstants.ANDROID_PACKAGE_NAME);
         }
 
         return intent;
