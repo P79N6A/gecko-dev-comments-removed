@@ -631,6 +631,8 @@ Search.prototype = {
   
 
 
+
+
   cancel: function () {
     if (this._sleepTimer)
       this._sleepTimer.cancel();
@@ -980,6 +982,10 @@ Search.prototype = {
         break;
     }
     this._addMatch(match);
+    
+    
+    if (!this.pending)
+      throw StopIteration;
   },
 
   _maybeRestyleSearchMatch: function (match) {
@@ -1048,15 +1054,12 @@ Search.prototype = {
     if (this._result.matchCount == 6)
       TelemetryStopwatch.finish(TELEMETRY_6_FIRST_RESULTS);
 
-    if (this._result.matchCount == Prefs.maxRichResults || !this.pending) {
+    if (this._result.matchCount == Prefs.maxRichResults) {
+      
+      
       
       this.cancel();
-      
-      
-      throw StopIteration;
-    }
-
-    if (notifyResults) {
+    } else if (notifyResults) {
       
       this.notifyResults(true);
     }
