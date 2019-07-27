@@ -197,6 +197,7 @@ extern bool gBluetoothDebugFlag;
 
 #define DEVICE_PAIRED_ID                     "devicepaired"
 #define DEVICE_UNPAIRED_ID                   "deviceunpaired"
+#define PAIRING_ABORTED_ID                   "pairingaborted"
 
 
 

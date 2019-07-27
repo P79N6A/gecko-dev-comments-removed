@@ -83,6 +83,7 @@ public:
   IMPL_EVENT_HANDLER(attributechanged);
   IMPL_EVENT_HANDLER(devicepaired);
   IMPL_EVENT_HANDLER(deviceunpaired);
+  IMPL_EVENT_HANDLER(pairingaborted);
   IMPL_EVENT_HANDLER(a2dpstatuschanged);
   IMPL_EVENT_HANDLER(hfpstatuschanged);
   IMPL_EVENT_HANDLER(requestmediaplaystatus);
@@ -226,6 +227,13 @@ private:
 
 
 
+  void HandleDeviceFound(const BluetoothValue& aValue);
+
+  
+
+
+
+
 
 
 
@@ -244,13 +252,6 @@ private:
   
 
 
-
-
-  void HandleDeviceFound(const BluetoothValue& aValue);
-
-  
-
-
   void DispatchAttributeEvent(const nsTArray<nsString>& aTypes);
 
   
@@ -262,6 +263,13 @@ private:
 
   void DispatchDeviceEvent(const nsAString& aType,
                            const BluetoothDeviceEventInit& aInit);
+
+  
+
+
+
+
+  void DispatchEmptyEvent(const nsAString& aType);
 
   
 

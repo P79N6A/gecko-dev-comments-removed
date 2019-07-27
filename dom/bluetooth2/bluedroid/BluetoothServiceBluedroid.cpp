@@ -1593,74 +1593,76 @@ BluetoothServiceBluedroid::BondStateChangedNotification(
     return;
   }
 
-  bool bonded = (aState == BOND_STATE_BONDED);
+  BT_LOGR("Bond state: %d status: %d", aState, aStatus);
 
-  
-  nsString remoteBdAddr = nsString(aRemoteBdAddr);
-  if (bonded) {
-    if (!sAdapterBondedAddressArray.Contains(remoteBdAddr)) {
-      sAdapterBondedAddressArray.AppendElement(remoteBdAddr);
+  bool bonded = (aState == BOND_STATE_BONDED);
+  if (aStatus != STATUS_SUCCESS) {
+    if (!bonded) { 
+      BT_LOGR("Pair failed! Abort pairing.");
+
+      
+      DistributeSignal(NS_LITERAL_STRING(PAIRING_ABORTED_ID),
+                       NS_LITERAL_STRING(KEY_ADAPTER));
+
+      
+      if (!sBondingRunnableArray.IsEmpty()) {
+        DispatchReplyError(sBondingRunnableArray[0], aStatus);
+        sBondingRunnableArray.RemoveElementAt(0);
+      }
+    } else if (!sUnbondingRunnableArray.IsEmpty()) { 
+      
+      DispatchReplyError(sUnbondingRunnableArray[0], aStatus);
+      sUnbondingRunnableArray.RemoveElementAt(0);
     }
-  } else {
-    sAdapterBondedAddressArray.RemoveElement(remoteBdAddr);
+
+    return;
   }
 
   
-  InfallibleTArray<BluetoothNamedValue> propertiesArray;
-  BT_APPEND_NAMED_VALUE(propertiesArray, "Paired", bonded);
-
-  
-  nsString deviceName = EmptyString();
+  nsString deviceName;
   bool nameExists = sPairingNameTable.Get(aRemoteBdAddr, &deviceName);
   if (nameExists) {
     sPairingNameTable.Remove(aRemoteBdAddr);
   }
 
   
-  if (bonded && aStatus == STATUS_SUCCESS) {
-    MOZ_ASSERT(nameExists);
+  InfallibleTArray<BluetoothNamedValue> propertiesArray;
+  nsString remoteBdAddr = nsString(aRemoteBdAddr);
+  if (!bonded) {
+    sAdapterBondedAddressArray.RemoveElement(remoteBdAddr);
+  } else {
+    if (!sAdapterBondedAddressArray.Contains(remoteBdAddr)) {
+      sAdapterBondedAddressArray.AppendElement(remoteBdAddr);
+    }
 
     
     
     
     
+    MOZ_ASSERT(nameExists);
     BT_APPEND_NAMED_VALUE(propertiesArray, "Name", deviceName);
   }
 
+  
+  BT_APPEND_NAMED_VALUE(propertiesArray, "Paired", bonded);
   DistributeSignal(NS_LITERAL_STRING("PropertyChanged"),
                    aRemoteBdAddr,
                    BluetoothValue(propertiesArray));
 
   
-  BT_INSERT_NAMED_VALUE(propertiesArray, 0, "Address", nsString(aRemoteBdAddr));
-
-  nsString signalName = bonded ? NS_LITERAL_STRING(DEVICE_PAIRED_ID)
-                               : NS_LITERAL_STRING(DEVICE_UNPAIRED_ID);
-
-  DistributeSignal(signalName,
+  BT_INSERT_NAMED_VALUE(propertiesArray, 0, "Address", remoteBdAddr);
+  DistributeSignal(bonded ? NS_LITERAL_STRING(DEVICE_PAIRED_ID)
+                          : NS_LITERAL_STRING(DEVICE_UNPAIRED_ID),
                    NS_LITERAL_STRING(KEY_ADAPTER),
                    BluetoothValue(propertiesArray));
 
-  if (aStatus == STATUS_SUCCESS) {
-    
-    if (bonded && !sBondingRunnableArray.IsEmpty()) {
-      DispatchReplySuccess(sBondingRunnableArray[0]);
-      sBondingRunnableArray.RemoveElementAt(0);
-    } else if (!bonded && !sUnbondingRunnableArray.IsEmpty()) {
-      DispatchReplySuccess(sUnbondingRunnableArray[0]);
-      sUnbondingRunnableArray.RemoveElementAt(0);
-    }
-  } else {
-    
-    if (!bonded && !sBondingRunnableArray.IsEmpty()) {
-      DispatchReplyError(sBondingRunnableArray[0],
-                         NS_LITERAL_STRING("Pair failed"));
-      sBondingRunnableArray.RemoveElementAt(0);
-    } else if (bonded && !sUnbondingRunnableArray.IsEmpty()) {
-      DispatchReplyError(sUnbondingRunnableArray[0],
-                         NS_LITERAL_STRING("Unpair failed"));
-      sUnbondingRunnableArray.RemoveElementAt(0);
-    }
+  
+  if (bonded && !sBondingRunnableArray.IsEmpty()) {
+    DispatchReplySuccess(sBondingRunnableArray[0]);
+    sBondingRunnableArray.RemoveElementAt(0);
+  } else if (!bonded && !sUnbondingRunnableArray.IsEmpty()) {
+    DispatchReplySuccess(sUnbondingRunnableArray[0]);
+    sUnbondingRunnableArray.RemoveElementAt(0);
   }
 }
 
