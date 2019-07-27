@@ -175,6 +175,7 @@ ThreadNode.prototype = {
       let prevCalls = this.calls;
       let prevFrameKey;
       let isLeaf = mutableFrameKeyOptions.isLeaf = true;
+      let skipRoot = options.invertTree;
 
       
       
@@ -212,6 +213,13 @@ ThreadNode.prototype = {
 
         
         stackIndex = stackEntry[STACK_PREFIX_SLOT];
+
+        
+        
+        
+        if (stackIndex === null && skipRoot) {
+          break;
+        }
 
         
         let inflatedFrame = getOrAddInflatedFrame(inflatedFrameCache, frameIndex, frameTable,
@@ -496,7 +504,7 @@ FrameNode.prototype = {
       return null;
     }
     return new JITOptimizations(this._optimizations, this._stringTable);
-  }
+  },
 };
 
 exports.ThreadNode = ThreadNode;

@@ -21,9 +21,14 @@ const CALL_TREE_INDENTATION = 16;
 const DEFAULT_SORTING_PREDICATE = (frameA, frameB) => {
   let dataA = frameA.getDisplayedData();
   let dataB = frameB.getDisplayedData();
-  return this.inverted
-    ? (dataA.selfPercentage < dataB.selfPercentage ? 1 : -1)
-    : (dataA.samples < dataB.samples ? 1 : -1);
+  if (this.inverted) {
+    
+    if (dataA.selfPercentage === dataB.selfPercentage) {
+      return dataA.totalPercentage < dataB.totalPercentage ? 1 : -1;
+    }
+    return dataA.selfPercentage < dataB.selfPercentage ? 1 : - 1;
+  }
+  return dataA.samples < dataB.samples ? 1 : -1;
 };
 
 const DEFAULT_AUTO_EXPAND_DEPTH = 3; 
@@ -241,7 +246,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     cell.className = "plain call-tree-cell";
     cell.setAttribute("type", "samples");
     cell.setAttribute("crop", "end");
-    cell.setAttribute("value", count || "");
+    cell.setAttribute("value", count || 0);
     return cell;
   },
   _createFunctionCell: function(doc, arrowNode, frameName, frameInfo, frameLevel) {
@@ -336,19 +341,71 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     let frameInfo = this.frame.getInfo();
 
     
-    if (this.visibleCells.duration) {
-      data.totalDuration = this.frame.duration;
-    }
-    if (this.visibleCells.selfDuration) {
-      data.selfDuration = this.root.frame.selfDuration[this.frame.key];
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
-    if (this.visibleCells.percentage) {
-      data.totalPercentage = this.frame.samples / this.root.frame.samples * 100;
-    }
-    if (this.visibleCells.selfPercentage) {
-      data.selfPercentage = this.root.frame.selfCount[this.frame.key] / this.root.frame.samples * 100;
+    let isLeaf = this._level === 0;
+
+    if (this.inverted && !isLeaf && this.parent != null) {
+      let calleeData = this.parent.getDisplayedData();
+      
+      
+      let callerPercentage = this.frame.samples / calleeData.samples;
+
+      
+      if (this.visibleCells.duration) {
+        data.totalDuration = calleeData.totalDuration * callerPercentage;
+      }
+      if (this.visibleCells.selfDuration) {
+        data.selfDuration = 0;
+      }
+
+      
+      if (this.visibleCells.percentage) {
+        data.totalPercentage = calleeData.totalPercentage * callerPercentage;
+      }
+      if (this.visibleCells.selfPercentage) {
+        data.selfPercentage = 0;
+      }
+
+      
+      if (this.visibleCells.samples) {
+        data.samples = this.frame.samples;
+      }
+    } else {
+      
+      if (this.visibleCells.duration) {
+        data.totalDuration = this.frame.duration;
+      }
+      if (this.visibleCells.selfDuration) {
+        data.selfDuration = this.root.frame.selfDuration[this.frame.key];
+      }
+
+      
+      if (this.visibleCells.percentage) {
+        data.totalPercentage = this.frame.samples / this.root.frame.samples * 100;
+      }
+      if (this.visibleCells.selfPercentage) {
+        data.selfPercentage = this.root.frame.selfCount[this.frame.key] / this.root.frame.samples * 100;
+      }
+
+      
+      if (this.visibleCells.samples) {
+        data.samples = this.frame.samples;
+      }
     }
 
     
@@ -358,11 +415,6 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
     if (this.visibleCells.selfAllocations) {
       data.selfAllocations = this.frame.allocations;
-    }
-
-    
-    if (this.visibleCells.samples) {
-      data.samples = this.frame.samples;
     }
 
     
@@ -396,7 +448,7 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     e.preventDefault();
     e.stopPropagation();
     this.root.emit("link", this);
-  }
+  },
 });
 
 exports.CallView = CallView;
