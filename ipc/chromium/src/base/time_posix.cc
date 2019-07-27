@@ -44,7 +44,7 @@ Time Time::Now() {
   }
   
   
-  return tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec;
+  return Time(tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec);
 }
 
 
