@@ -1838,6 +1838,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void pushReturnAddress() {
         push(lr);
     }
+
+    
+    void profilerEnterFrame(Register framePtr, Register scratch);
+    void profilerExitFrame();
 };
 
 typedef MacroAssemblerARMCompat MacroAssemblerSpecific;
