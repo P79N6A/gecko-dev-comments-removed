@@ -360,7 +360,14 @@ BufferTextureHost::BufferTextureHost(gfx::SurfaceFormat aFormat,
 , mUpdateSerial(1)
 , mLocked(false)
 , mNeedsFullUpdate(false)
-{}
+{
+  if (aFlags & TextureFlags::COMPONENT_ALPHA) {
+    
+    
+    
+    mNeedsFullUpdate = true;
+  }
+}
 
 void
 BufferTextureHost::InitSize()
