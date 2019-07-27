@@ -354,6 +354,10 @@ addEventListener("TextZoomChange", function (aEvent) {
   }
 }, false);
 
+addEventListener("ZoomChangeUsingMouseWheel", function () {
+  sendAsyncMessage("ZoomChangeUsingMouseWheel", {});
+}, false);
+
 addMessageListener("UpdateCharacterSet", function (aMessage) {
   docShell.charset = aMessage.data.value;
   docShell.gatherCharsetMenuTelemetry();
@@ -374,48 +378,6 @@ addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
                         .loadGroup.QueryInterface(Ci.nsISupportsPriority);
   loadGroup.adjustPriority(msg.data.adjustment);
 });
-
-let DOMFullscreenManager = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference]),
-
-  init: function() {
-    Services.obs.addObserver(this, "ask-parent-to-exit-fullscreen", false);
-    Services.obs.addObserver(this, "ask-parent-to-rollback-fullscreen", false);
-    addMessageListener("DOMFullscreen:ChildrenMustExit", () => {
-      let utils = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIDOMWindowUtils);
-      utils.exitFullscreen();
-    });
-    addEventListener("unload", () => {
-      Services.obs.removeObserver(this, "ask-parent-to-exit-fullscreen");
-      Services.obs.removeObserver(this, "ask-parent-to-rollback-fullscreen");
-    });
-  },
-
-  observe: function(aSubject, aTopic, aData) {
-    
-    
-    
-    
-    if (aSubject.defaultView.top !== content) {
-      return;
-    }
-
-    switch (aTopic) {
-      case "ask-parent-to-exit-fullscreen": {
-        sendAsyncMessage("DOMFullscreen:RequestExit");
-        break;
-      }
-      case "ask-parent-to-rollback-fullscreen": {
-        sendAsyncMessage("DOMFullscreen:RequestRollback");
-        break;
-      }
-    }
-  },
-};
-
-DOMFullscreenManager.init();
 
 let AutoCompletePopup = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompletePopup]),

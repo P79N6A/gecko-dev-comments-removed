@@ -21,10 +21,6 @@ var FullZoom = {
 
   
   
-  ACTION_ZOOM: 3,
-
-  
-  
   
   _browserTokenMap: new WeakMap(),
 
@@ -49,8 +45,7 @@ var FullZoom = {
   
 
   init: function FullZoom_init() {
-    
-    window.addEventListener("DOMMouseScroll", this, false);
+    gBrowser.addEventListener("ZoomChangeUsingMouseWheel", this);
 
     
     this._cps2 = Cc["@mozilla.org/content-pref/service;1"].
@@ -81,7 +76,7 @@ var FullZoom = {
   destroy: function FullZoom_destroy() {
     gPrefService.removeObserver("browser.zoom.", this);
     this._cps2.removeObserverForName(this.name, this);
-    window.removeEventListener("DOMMouseScroll", this, false);
+    gBrowser.removeEventListener("ZoomChangeUsingMouseWheel", this);
   },
 
 
@@ -92,56 +87,12 @@ var FullZoom = {
 
   handleEvent: function FullZoom_handleEvent(event) {
     switch (event.type) {
-      case "DOMMouseScroll":
-        this._handleMouseScrolled(event);
+      case "ZoomChangeUsingMouseWheel":
+        let browser = this._getTargetedBrowser(event);
+        this._ignorePendingZoomAccesses(browser);
+        this._applyZoomToPref(browser);
         break;
     }
-  },
-
-  _handleMouseScrolled: function FullZoom__handleMouseScrolled(event) {
-    
-    
-    var pref = "mousewheel.";
-
-    var pressedModifierCount = event.shiftKey + event.ctrlKey + event.altKey +
-                                 event.metaKey + event.getModifierState("OS");
-    if (pressedModifierCount != 1) {
-      pref += "default.";
-    } else if (event.shiftKey) {
-      pref += "with_shift.";
-    } else if (event.ctrlKey) {
-      pref += "with_control.";
-    } else if (event.altKey) {
-      pref += "with_alt.";
-    } else if (event.metaKey) {
-      pref += "with_meta.";
-    } else {
-      pref += "with_win.";
-    }
-
-    pref += "action";
-
-    
-    var isZoomEvent = false;
-    try {
-      isZoomEvent = (gPrefService.getIntPref(pref) == this.ACTION_ZOOM);
-    } catch (e) {}
-    if (!isZoomEvent)
-      return;
-
-    
-    
-    
-
-    
-    
-    
-    let browser = gBrowser.selectedBrowser;
-    let token = this._getBrowserToken(browser);
-    window.setTimeout(function () {
-      if (token.isCurrent)
-        this._applyZoomToPref(browser);
-    }.bind(this), 0);
   },
 
   
@@ -467,6 +418,30 @@ var FullZoom = {
         return map.get(browser) === this.token && browser.parentNode;
       },
     };
+  },
+
+  
+
+
+
+
+  _getTargetedBrowser: function FullZoom__getTargetedBrowser(event) {
+    let target = event.originalTarget;
+
+    
+    
+    const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    if (target instanceof window.XULElement &&
+        target.localName == "browser" &&
+        target.namespaceURI == XUL_NS)
+      return target;
+
+    
+    
+    if (target.nodeType == Node.DOCUMENT_NODE)
+      return gBrowser.getBrowserForDocument(target);
+
+    throw new Error("Unexpected ZoomChangeUsingMouseWheel event source");
   },
 
   
