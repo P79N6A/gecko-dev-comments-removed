@@ -35,8 +35,7 @@ public class ToolbarComponent extends BaseComponent {
 
     
     
-    
-    private static final int READER_MODE_WAIT_MS = 60000;
+    private static final int READER_MODE_WAIT_MS = 30000;
 
     public ToolbarComponent(final UITestContext testContext) {
         super(testContext);
