@@ -3772,7 +3772,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
     return result;
   }
 
-  if (WinUtils::GetIsMouseFromTouch(aEventType) && mTouchWindow) {
+  if (mTouchWindow && WinUtils::GetIsMouseFromTouch(aEventType)) {
     
     
     
@@ -3781,16 +3781,12 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
   }
 
   
-  if (NS_MOUSE_MOVE != aEventType
-      
-      
-      && nsIDOMMouseEvent::MOZ_SOURCE_PEN == aInputSource
+  
+  if (nsIDOMMouseEvent::MOZ_SOURCE_PEN == aInputSource
       
       && nsWindowType::eWindowType_toplevel == mWindowType
       
-      && gfxPrefs::PointerEventsEnabled()
-      
-      && NS_MOUSE_EXIT_WIDGET != aEventType) {
+      && gfxPrefs::PointerEventsEnabled()) {
     InkCollector::sInkCollector->SetTarget(mWnd);
   }
 
