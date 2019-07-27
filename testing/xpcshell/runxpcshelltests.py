@@ -838,9 +838,6 @@ class XPCShellTests(object):
         self.env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
         
         
-        self.env["NS_TRACE_MALLOC_DISABLE_STACKS"] = "1"
-        
-        
         
         
         self.env.setdefault('MOZ_DISABLE_NONLOCAL_CONNECTIONS', '1')
