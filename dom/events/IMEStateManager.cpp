@@ -943,7 +943,7 @@ IMEStateManager::DispatchCompositionEvent(
   
   if ((!aIsSynthesized ||
        composition->WasNativeCompositionEndEventDiscarded()) &&
-      aCompositionEvent->message == NS_COMPOSITION_END) {
+      aCompositionEvent->CausesDOMCompositionEndEvent()) {
     TextCompositionArray::index_type i =
       sTextCompositions->IndexOf(aCompositionEvent->widget);
     if (i != TextCompositionArray::NoIndex) {
