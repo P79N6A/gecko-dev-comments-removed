@@ -3560,7 +3560,7 @@ js::PrimitiveToObject(JSContext *cx, const Value &v)
 
 
 JSObject *
-js::ToObjectSlow(JSContext *cx, HandleValue val, bool reportScanStack)
+js::ToObjectSlow(JSContext *cx, JS::HandleValue val, bool reportScanStack)
 {
     MOZ_ASSERT(!val.isMagic());
     MOZ_ASSERT(!val.isObject());

@@ -21,6 +21,8 @@
 
 #include "jsfriendapi.h"
 
+#include "js/Conversions.h"
+
 using namespace JS;
 
 static bool

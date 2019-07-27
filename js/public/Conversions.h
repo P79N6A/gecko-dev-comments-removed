@@ -15,7 +15,225 @@
 
 #include <math.h>
 
+#include "jspubtd.h"
+
+#include "js/RootingAPI.h"
+#include "js/Value.h"
+
+struct JSContext;
+
+namespace js {
+
+
+extern JS_PUBLIC_API(bool)
+ToBooleanSlow(JS::HandleValue v);
+
+
+extern JS_PUBLIC_API(bool)
+ToNumberSlow(JSContext *cx, JS::Value v, double *dp);
+
+
+extern JS_PUBLIC_API(bool)
+ToInt32Slow(JSContext *cx, JS::HandleValue v, int32_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToUint32Slow(JSContext *cx, JS::HandleValue v, uint32_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToUint16Slow(JSContext *cx, JS::HandleValue v, uint16_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToInt64Slow(JSContext *cx, JS::HandleValue v, int64_t *out);
+
+
+extern JS_PUBLIC_API(bool)
+ToUint64Slow(JSContext *cx, JS::HandleValue v, uint64_t *out);
+
+
+extern JS_PUBLIC_API(JSString*)
+ToStringSlow(JSContext *cx, JS::HandleValue v);
+
+
+extern JS_PUBLIC_API(JSObject*)
+ToObjectSlow(JSContext *cx, JS::HandleValue v, bool reportScanStack);
+
+} 
+
 namespace JS {
+
+namespace detail {
+
+#ifdef JS_DEBUG
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+AssertArgumentsAreSane(JSContext *cx, HandleValue v);
+#else
+inline void AssertArgumentsAreSane(JSContext *cx, HandleValue v)
+{}
+#endif 
+
+} 
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+OrdinaryToPrimitive(JSContext *cx, HandleObject obj, JSType type, MutableHandleValue vp);
+
+
+MOZ_ALWAYS_INLINE bool
+ToBoolean(HandleValue v)
+{
+    if (v.isBoolean())
+        return v.toBoolean();
+    if (v.isInt32())
+        return v.toInt32() != 0;
+    if (v.isNullOrUndefined())
+        return false;
+    if (v.isDouble()) {
+        double d = v.toDouble();
+        return !mozilla::IsNaN(d) && d != 0;
+    }
+    if (v.isSymbol())
+        return true;
+
+    
+    return js::ToBooleanSlow(v);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+ToNumber(JSContext *cx, HandleValue v, double *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isNumber()) {
+        *out = v.toNumber();
+        return true;
+    }
+    return js::ToNumberSlow(cx, v, out);
+}
+
+
+inline double
+ToInteger(double d)
+{
+    if (d == 0)
+        return d;
+
+    if (!mozilla::IsFinite(d)) {
+        if (mozilla::IsNaN(d))
+            return 0;
+        return d;
+    }
+
+    return d < 0 ? ceil(d) : floor(d);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+ToInt32(JSContext *cx, JS::HandleValue v, int32_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = v.toInt32();
+        return true;
+    }
+    return js::ToInt32Slow(cx, v, out);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+ToUint32(JSContext *cx, HandleValue v, uint32_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = uint32_t(v.toInt32());
+        return true;
+    }
+    return js::ToUint32Slow(cx, v, out);
+}
+
+
+MOZ_ALWAYS_INLINE bool
+ToUint16(JSContext *cx, HandleValue v, uint16_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = uint16_t(v.toInt32());
+        return true;
+    }
+    return js::ToUint16Slow(cx, v, out);
+}
+
+
+
+
+
+MOZ_ALWAYS_INLINE bool
+ToInt64(JSContext *cx, HandleValue v, int64_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = int64_t(v.toInt32());
+        return true;
+    }
+    return js::ToInt64Slow(cx, v, out);
+}
+
+
+
+
+
+MOZ_ALWAYS_INLINE bool
+ToUint64(JSContext *cx, HandleValue v, uint64_t *out)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isInt32()) {
+        *out = uint64_t(v.toInt32());
+        return true;
+    }
+    return js::ToUint64Slow(cx, v, out);
+}
+
+
+MOZ_ALWAYS_INLINE JSString*
+ToString(JSContext *cx, HandleValue v)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isString())
+        return v.toString();
+    return js::ToStringSlow(cx, v);
+}
+
+
+inline JSObject *
+ToObject(JSContext *cx, HandleValue v)
+{
+    detail::AssertArgumentsAreSane(cx, v);
+
+    if (v.isObject())
+        return &v.toObject();
+    return js::ToObjectSlow(cx, v, false);
+}
 
 namespace detail {
 
@@ -276,22 +494,6 @@ inline uint64_t
 ToUint64(double d)
 {
     return detail::ToUintWidth<uint64_t>(d);
-}
-
-
-inline double
-ToInteger(double d)
-{
-    if (d == 0)
-        return d;
-
-    if (!mozilla::IsFinite(d)) {
-        if (mozilla::IsNaN(d))
-            return 0;
-        return d;
-    }
-
-    return d < 0 ? ceil(d) : floor(d);
 }
 
 } 
