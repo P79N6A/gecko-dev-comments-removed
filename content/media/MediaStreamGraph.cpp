@@ -2863,8 +2863,11 @@ MediaStreamGraphImpl::CollectReports(nsIHandleReportCallback* aHandleReport,
 
     {
       
+      
       MonitorAutoLock monitorLock(mMonitor);
-      CurrentDriver()->WakeUp();
+      if (!CurrentDriver()->AsOfflineClockDriver()) {
+        CurrentDriver()->WakeUp();
+      }
     }
 
     if (mLifecycleState >= LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN) {
