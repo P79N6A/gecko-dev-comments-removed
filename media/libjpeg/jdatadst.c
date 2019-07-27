@@ -22,9 +22,9 @@
 #include "jpeglib.h"
 #include "jerror.h"
 
-#ifndef HAVE_STDLIB_H		
-extern void * malloc JPP((size_t size));
-extern void free JPP((void *ptr));
+#ifndef HAVE_STDLIB_H           
+extern void * malloc (size_t size);
+extern void free (void *ptr);
 #endif
 
 
@@ -33,13 +33,13 @@ extern void free JPP((void *ptr));
 typedef struct {
   struct jpeg_destination_mgr pub; 
 
-  FILE * outfile;		
-  JOCTET * buffer;		
+  FILE * outfile;               
+  JOCTET * buffer;              
 } my_destination_mgr;
 
 typedef my_destination_mgr * my_dest_ptr;
 
-#define OUTPUT_BUF_SIZE  4096	/* choose an efficiently fwrite'able size */
+#define OUTPUT_BUF_SIZE  4096   /* choose an efficiently fwrite'able size */
 
 
 #if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
@@ -48,10 +48,10 @@ typedef my_destination_mgr * my_dest_ptr;
 typedef struct {
   struct jpeg_destination_mgr pub; 
 
-  unsigned char ** outbuffer;	
+  unsigned char ** outbuffer;   
   unsigned long * outsize;
-  unsigned char * newbuffer;	
-  JOCTET * buffer;		
+  unsigned char * newbuffer;    
+  JOCTET * buffer;              
   size_t bufsize;
 } my_mem_destination_mgr;
 
@@ -72,7 +72,7 @@ init_destination (j_compress_ptr cinfo)
   
   dest->buffer = (JOCTET *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  OUTPUT_BUF_SIZE * SIZEOF(JOCTET));
+                                  OUTPUT_BUF_SIZE * sizeof(JOCTET));
 
   dest->pub.next_output_byte = dest->buffer;
   dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
@@ -213,10 +213,10 @@ jpeg_stdio_dest (j_compress_ptr cinfo, FILE * outfile)
 
 
 
-  if (cinfo->dest == NULL) {	
+  if (cinfo->dest == NULL) {    
     cinfo->dest = (struct jpeg_destination_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(my_destination_mgr));
+                                  sizeof(my_destination_mgr));
   }
 
   dest = (my_dest_ptr) cinfo->dest;
@@ -241,20 +241,20 @@ jpeg_stdio_dest (j_compress_ptr cinfo, FILE * outfile)
 
 GLOBAL(void)
 jpeg_mem_dest (j_compress_ptr cinfo,
-	       unsigned char ** outbuffer, unsigned long * outsize)
+               unsigned char ** outbuffer, unsigned long * outsize)
 {
   my_mem_dest_ptr dest;
 
-  if (outbuffer == NULL || outsize == NULL)	
+  if (outbuffer == NULL || outsize == NULL)     
     ERREXIT(cinfo, JERR_BUFFER_SIZE);
 
   
 
 
-  if (cinfo->dest == NULL) {	
+  if (cinfo->dest == NULL) {    
     cinfo->dest = (struct jpeg_destination_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(my_mem_destination_mgr));
+                                  sizeof(my_mem_destination_mgr));
   }
 
   dest = (my_mem_dest_ptr) cinfo->dest;

@@ -5,13 +5,26 @@
 #define JPEG_LIB_VERSION 62
 
 
-#define LIBJPEG_TURBO_VERSION 1.3.1
+#define LIBJPEG_TURBO_VERSION 1.4.0
 
 
 
 
 
-#define HAVE_PROTOTYPES 1
+
+
+
+
+
+
+
+
+
+
+#define BITS_IN_JSAMPLE  8      /* use 8 or 12 */
+
+
+
 
 
 #define HAVE_STDDEF_H 1
@@ -39,9 +52,6 @@
 
 
 
-
-
-#undef SIZEOF_LONG
 
 
 #define WITH_SIMD 1

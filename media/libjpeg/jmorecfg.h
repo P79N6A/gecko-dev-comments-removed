@@ -23,19 +23,7 @@
 
 
 
-#define BITS_IN_JSAMPLE  8	/* use 8 or 12 */
-
-
-
-
-
-
-
-
-
-
-
-#define MAX_COMPONENTS  10	/* maximum number of image components */
+#define MAX_COMPONENTS  10      /* maximum number of image components */
 
 
 
@@ -73,8 +61,8 @@ typedef char JSAMPLE;
 
 #endif 
 
-#define MAXJSAMPLE	255
-#define CENTERJSAMPLE	128
+#define MAXJSAMPLE      255
+#define CENTERJSAMPLE   128
 
 #endif 
 
@@ -87,8 +75,8 @@ typedef char JSAMPLE;
 typedef short JSAMPLE;
 #define GETJSAMPLE(value)  ((int) (value))
 
-#define MAXJSAMPLE	4095
-#define CENTERJSAMPLE	2048
+#define MAXJSAMPLE      4095
+#define CENTERJSAMPLE   2048
 
 #endif 
 
@@ -168,42 +156,31 @@ typedef unsigned int JDIMENSION;
 
 
 
-#define METHODDEF(type)		static type
+#define METHODDEF(type)         static type
 
-#define LOCAL(type)		static type
+#define LOCAL(type)             static type
 
-#define GLOBAL(type)		type
+#define GLOBAL(type)            type
 
-#define EXTERN(type)		extern type
-
-
+#define EXTERN(type)            extern type
 
 
 
 
 
 
-#ifdef HAVE_PROTOTYPES
+
+
+
 #define JMETHOD(type,methodname,arglist)  type (*methodname) arglist
-#else
-#define JMETHOD(type,methodname,arglist)  type (*methodname) ()
-#endif
 
 
 
 
 
 
-
-
-#ifdef NEED_FAR_POINTERS
-#ifndef FAR
-#define FAR  far
-#endif
-#else
 #undef FAR
 #define FAR
-#endif
 
 
 
@@ -216,11 +193,11 @@ typedef unsigned int JDIMENSION;
 #ifndef HAVE_BOOLEAN
 typedef int boolean;
 #endif
-#ifndef FALSE			
-#define FALSE	0		/* values of boolean */
+#ifndef FALSE                   
+#define FALSE   0               /* values of boolean */
 #endif
 #ifndef TRUE
-#define TRUE	1
+#define TRUE    1
 #endif
 
 
@@ -297,12 +274,18 @@ typedef int boolean;
 
 
 
-#define RGB_RED		0	/* Offset of Red in an RGB scanline element */
-#define RGB_GREEN	1	/* Offset of Green */
-#define RGB_BLUE	2	/* Offset of Blue */
-#define RGB_PIXELSIZE	3	/* JSAMPLEs per RGB scanline element */
 
-#define JPEG_NUMCS 16
+
+
+
+
+
+#define RGB_RED         0       /* Offset of Red in an RGB scanline element */
+#define RGB_GREEN       1       /* Offset of Green */
+#define RGB_BLUE        2       /* Offset of Blue */
+#define RGB_PIXELSIZE   3       /* JSAMPLEs per RGB scanline element */
+
+#define JPEG_NUMCS 17
 
 #define EXT_RGB_RED        0
 #define EXT_RGB_GREEN      1
@@ -337,25 +320,29 @@ typedef int boolean;
 static const int rgb_red[JPEG_NUMCS] = {
   -1, -1, RGB_RED, -1, -1, -1, EXT_RGB_RED, EXT_RGBX_RED,
   EXT_BGR_RED, EXT_BGRX_RED, EXT_XBGR_RED, EXT_XRGB_RED,
-  EXT_RGBX_RED, EXT_BGRX_RED, EXT_XBGR_RED, EXT_XRGB_RED
+  EXT_RGBX_RED, EXT_BGRX_RED, EXT_XBGR_RED, EXT_XRGB_RED,
+  -1
 };
 
 static const int rgb_green[JPEG_NUMCS] = {
   -1, -1, RGB_GREEN, -1, -1, -1, EXT_RGB_GREEN, EXT_RGBX_GREEN,
   EXT_BGR_GREEN, EXT_BGRX_GREEN, EXT_XBGR_GREEN, EXT_XRGB_GREEN,
-  EXT_RGBX_GREEN, EXT_BGRX_GREEN, EXT_XBGR_GREEN, EXT_XRGB_GREEN
+  EXT_RGBX_GREEN, EXT_BGRX_GREEN, EXT_XBGR_GREEN, EXT_XRGB_GREEN,
+  -1
 };
 
 static const int rgb_blue[JPEG_NUMCS] = {
   -1, -1, RGB_BLUE, -1, -1, -1, EXT_RGB_BLUE, EXT_RGBX_BLUE,
   EXT_BGR_BLUE, EXT_BGRX_BLUE, EXT_XBGR_BLUE, EXT_XRGB_BLUE,
-  EXT_RGBX_BLUE, EXT_BGRX_BLUE, EXT_XBGR_BLUE, EXT_XRGB_BLUE
+  EXT_RGBX_BLUE, EXT_BGRX_BLUE, EXT_XBGR_BLUE, EXT_XRGB_BLUE,
+  -1
 };
 
 static const int rgb_pixelsize[JPEG_NUMCS] = {
   -1, -1, RGB_PIXELSIZE, -1, -1, -1, EXT_RGB_PIXELSIZE, EXT_RGBX_PIXELSIZE,
   EXT_BGR_PIXELSIZE, EXT_BGRX_PIXELSIZE, EXT_XBGR_PIXELSIZE, EXT_XRGB_PIXELSIZE,
-  EXT_RGBX_PIXELSIZE, EXT_BGRX_PIXELSIZE, EXT_XBGR_PIXELSIZE, EXT_XRGB_PIXELSIZE
+  EXT_RGBX_PIXELSIZE, EXT_BGRX_PIXELSIZE, EXT_XBGR_PIXELSIZE, EXT_XRGB_PIXELSIZE,
+  -1
 };
 
 
@@ -367,7 +354,7 @@ static const int rgb_pixelsize[JPEG_NUMCS] = {
 
 #ifndef MULTIPLIER
 #ifndef WITH_SIMD
-#define MULTIPLIER  int		/* type for fastest integer multiply */
+#define MULTIPLIER  int         /* type for fastest integer multiply */
 #else
 #define MULTIPLIER short  /* prefer 16-bit with SIMD for parellelism */
 #endif
@@ -379,15 +366,8 @@ static const int rgb_pixelsize[JPEG_NUMCS] = {
 
 
 
-
-
-
 #ifndef FAST_FLOAT
-#ifdef HAVE_PROTOTYPES
 #define FAST_FLOAT  float
-#else
-#define FAST_FLOAT  double
-#endif
 #endif
 
 #endif 

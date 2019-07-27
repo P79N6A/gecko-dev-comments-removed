@@ -21,6 +21,7 @@
 
 
 
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -29,14 +30,15 @@
 
 
 
-typedef JMETHOD(void, upsample1_ptr,
-		(j_decompress_ptr cinfo, jpeg_component_info * compptr,
-		 JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr));
+typedef void (*upsample1_ptr) (j_decompress_ptr cinfo,
+                               jpeg_component_info * compptr,
+                               JSAMPARRAY input_data,
+                               JSAMPARRAY * output_data_ptr);
 
 
 
 typedef struct {
-  struct jpeg_upsampler pub;	
+  struct jpeg_upsampler pub;    
 
   
 
@@ -50,8 +52,8 @@ typedef struct {
   
   upsample1_ptr methods[MAX_COMPONENTS];
 
-  int next_row_out;		
-  JDIMENSION rows_to_go;	
+  int next_row_out;             
+  JDIMENSION rows_to_go;        
 
   
   int rowgroup_height[MAX_COMPONENTS];
@@ -92,10 +94,10 @@ start_pass_upsample (j_decompress_ptr cinfo)
 
 METHODDEF(void)
 sep_upsample (j_decompress_ptr cinfo,
-	      JSAMPIMAGE input_buf, JDIMENSION *in_row_group_ctr,
-	      JDIMENSION in_row_groups_avail,
-	      JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
-	      JDIMENSION out_rows_avail)
+              JSAMPIMAGE input_buf, JDIMENSION *in_row_group_ctr,
+              JDIMENSION in_row_groups_avail,
+              JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+              JDIMENSION out_rows_avail)
 {
   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
   int ci;
@@ -105,13 +107,13 @@ sep_upsample (j_decompress_ptr cinfo,
   
   if (upsample->next_row_out >= cinfo->max_v_samp_factor) {
     for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
-	 ci++, compptr++) {
+         ci++, compptr++) {
       
 
 
       (*upsample->methods[ci]) (cinfo, compptr,
-	input_buf[ci] + (*in_row_group_ctr * upsample->rowgroup_height[ci]),
-	upsample->color_buf + ci);
+        input_buf[ci] + (*in_row_group_ctr * upsample->rowgroup_height[ci]),
+        upsample->color_buf + ci);
     }
     upsample->next_row_out = 0;
   }
@@ -123,7 +125,7 @@ sep_upsample (j_decompress_ptr cinfo,
   
 
 
-  if (num_rows > upsample->rows_to_go) 
+  if (num_rows > upsample->rows_to_go)
     num_rows = upsample->rows_to_go;
   
   out_rows_avail -= *out_row_ctr;
@@ -131,9 +133,9 @@ sep_upsample (j_decompress_ptr cinfo,
     num_rows = out_rows_avail;
 
   (*cinfo->cconvert->color_convert) (cinfo, upsample->color_buf,
-				     (JDIMENSION) upsample->next_row_out,
-				     output_buf + *out_row_ctr,
-				     (int) num_rows);
+                                     (JDIMENSION) upsample->next_row_out,
+                                     output_buf + *out_row_ctr,
+                                     (int) num_rows);
 
   
   *out_row_ctr += num_rows;
@@ -160,7 +162,7 @@ sep_upsample (j_decompress_ptr cinfo,
 
 METHODDEF(void)
 fullsize_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-		   JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+                   JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   *output_data_ptr = input_data;
 }
@@ -173,9 +175,9 @@ fullsize_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 noop_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-	       JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+               JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
-  *output_data_ptr = NULL;	
+  *output_data_ptr = NULL;      
 }
 
 
@@ -192,7 +194,7 @@ noop_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 int_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-	      JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+              JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
   JSAMPARRAY output_data = *output_data_ptr;
@@ -213,15 +215,15 @@ int_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
     outptr = output_data[outrow];
     outend = outptr + cinfo->output_width;
     while (outptr < outend) {
-      invalue = *inptr++;	
+      invalue = *inptr++;       
       for (h = h_expand; h > 0; h--) {
-	*outptr++ = invalue;
+        *outptr++ = invalue;
       }
     }
     
     if (v_expand > 1) {
       jcopy_sample_rows(output_data, outrow, output_data, outrow+1,
-			v_expand-1, cinfo->output_width);
+                        v_expand-1, cinfo->output_width);
     }
     inrow++;
     outrow += v_expand;
@@ -236,7 +238,7 @@ int_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-	       JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+               JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   register JSAMPROW inptr, outptr;
@@ -249,7 +251,7 @@ h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
     outptr = output_data[inrow];
     outend = outptr + cinfo->output_width;
     while (outptr < outend) {
-      invalue = *inptr++;	
+      invalue = *inptr++;       
       *outptr++ = invalue;
       *outptr++ = invalue;
     }
@@ -264,7 +266,7 @@ h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-	       JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+               JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   register JSAMPROW inptr, outptr;
@@ -278,12 +280,12 @@ h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
     outptr = output_data[outrow];
     outend = outptr + cinfo->output_width;
     while (outptr < outend) {
-      invalue = *inptr++;	
+      invalue = *inptr++;       
       *outptr++ = invalue;
       *outptr++ = invalue;
     }
     jcopy_sample_rows(output_data, outrow, output_data, outrow+1,
-		      1, cinfo->output_width);
+                      1, cinfo->output_width);
     inrow++;
     outrow += 2;
   }
@@ -307,7 +309,7 @@ h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 h2v1_fancy_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-		     JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+                     JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   register JSAMPROW inptr, outptr;
@@ -348,7 +350,7 @@ h2v1_fancy_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
 
 METHODDEF(void)
 h2v2_fancy_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
-		     JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+                     JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
 {
   JSAMPARRAY output_data = *output_data_ptr;
   register JSAMPROW inptr0, inptr1, outptr;
@@ -365,10 +367,10 @@ h2v2_fancy_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
     for (v = 0; v < 2; v++) {
       
       inptr0 = input_data[inrow];
-      if (v == 0)		
-	inptr1 = input_data[inrow-1];
-      else			
-	inptr1 = input_data[inrow+1];
+      if (v == 0)               
+        inptr1 = input_data[inrow-1];
+      else                      
+        inptr1 = input_data[inrow+1];
       outptr = output_data[outrow++];
 
       
@@ -379,12 +381,12 @@ h2v2_fancy_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
       lastcolsum = thiscolsum; thiscolsum = nextcolsum;
 
       for (colctr = compptr->downsampled_width - 2; colctr > 0; colctr--) {
-	
-	
-	nextcolsum = GETJSAMPLE(*inptr0++) * 3 + GETJSAMPLE(*inptr1++);
-	*outptr++ = (JSAMPLE) ((thiscolsum * 3 + lastcolsum + 8) >> 4);
-	*outptr++ = (JSAMPLE) ((thiscolsum * 3 + nextcolsum + 7) >> 4);
-	lastcolsum = thiscolsum; thiscolsum = nextcolsum;
+        
+        
+        nextcolsum = GETJSAMPLE(*inptr0++) * 3 + GETJSAMPLE(*inptr1++);
+        *outptr++ = (JSAMPLE) ((thiscolsum * 3 + lastcolsum + 8) >> 4);
+        *outptr++ = (JSAMPLE) ((thiscolsum * 3 + nextcolsum + 7) >> 4);
+        lastcolsum = thiscolsum; thiscolsum = nextcolsum;
       }
 
       
@@ -411,13 +413,13 @@ jinit_upsampler (j_decompress_ptr cinfo)
 
   upsample = (my_upsample_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(my_upsampler));
+                                sizeof(my_upsampler));
   cinfo->upsample = (struct jpeg_upsampler *) upsample;
   upsample->pub.start_pass = start_pass_upsample;
   upsample->pub.upsample = sep_upsample;
   upsample->pub.need_context_rows = FALSE; 
 
-  if (cinfo->CCIR601_sampling)	
+  if (cinfo->CCIR601_sampling)  
     ERREXIT(cinfo, JERR_CCIR601_NOTIMPL);
 
   
@@ -434,9 +436,9 @@ jinit_upsampler (j_decompress_ptr cinfo)
 
 
     h_in_group = (compptr->h_samp_factor * compptr->_DCT_scaled_size) /
-		 cinfo->_min_DCT_scaled_size;
+                 cinfo->_min_DCT_scaled_size;
     v_in_group = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
-		 cinfo->_min_DCT_scaled_size;
+                 cinfo->_min_DCT_scaled_size;
     h_out_group = cinfo->max_h_samp_factor;
     v_out_group = cinfo->max_v_samp_factor;
     upsample->rowgroup_height[ci] = v_in_group; 
@@ -450,48 +452,53 @@ jinit_upsampler (j_decompress_ptr cinfo)
       upsample->methods[ci] = fullsize_upsample;
       need_buffer = FALSE;
     } else if (h_in_group * 2 == h_out_group &&
-	       v_in_group == v_out_group) {
+               v_in_group == v_out_group) {
       
       if (do_fancy && compptr->downsampled_width > 2) {
-	if (jsimd_can_h2v1_fancy_upsample())
-	  upsample->methods[ci] = jsimd_h2v1_fancy_upsample;
-	else
-	  upsample->methods[ci] = h2v1_fancy_upsample;
+        if (jsimd_can_h2v1_fancy_upsample())
+          upsample->methods[ci] = jsimd_h2v1_fancy_upsample;
+        else
+          upsample->methods[ci] = h2v1_fancy_upsample;
       } else {
-	if (jsimd_can_h2v1_upsample())
-	  upsample->methods[ci] = jsimd_h2v1_upsample;
-	else
-	  upsample->methods[ci] = h2v1_upsample;
+        if (jsimd_can_h2v1_upsample())
+          upsample->methods[ci] = jsimd_h2v1_upsample;
+        else
+          upsample->methods[ci] = h2v1_upsample;
       }
     } else if (h_in_group * 2 == h_out_group &&
-	       v_in_group * 2 == v_out_group) {
+               v_in_group * 2 == v_out_group) {
       
       if (do_fancy && compptr->downsampled_width > 2) {
-	if (jsimd_can_h2v2_fancy_upsample())
-	  upsample->methods[ci] = jsimd_h2v2_fancy_upsample;
-	else
-	  upsample->methods[ci] = h2v2_fancy_upsample;
-	upsample->pub.need_context_rows = TRUE;
+        if (jsimd_can_h2v2_fancy_upsample())
+          upsample->methods[ci] = jsimd_h2v2_fancy_upsample;
+        else
+          upsample->methods[ci] = h2v2_fancy_upsample;
+        upsample->pub.need_context_rows = TRUE;
       } else {
-	if (jsimd_can_h2v2_upsample())
-	  upsample->methods[ci] = jsimd_h2v2_upsample;
-	else
-	  upsample->methods[ci] = h2v2_upsample;
+        if (jsimd_can_h2v2_upsample())
+          upsample->methods[ci] = jsimd_h2v2_upsample;
+        else
+          upsample->methods[ci] = h2v2_upsample;
       }
     } else if ((h_out_group % h_in_group) == 0 &&
-	       (v_out_group % v_in_group) == 0) {
+               (v_out_group % v_in_group) == 0) {
       
-      upsample->methods[ci] = int_upsample;
+#if defined(__mips__)
+      if (jsimd_can_int_upsample())
+        upsample->methods[ci] = jsimd_int_upsample;
+      else
+#endif
+        upsample->methods[ci] = int_upsample;
       upsample->h_expand[ci] = (UINT8) (h_out_group / h_in_group);
       upsample->v_expand[ci] = (UINT8) (v_out_group / v_in_group);
     } else
       ERREXIT(cinfo, JERR_FRACT_SAMPLE_NOTIMPL);
     if (need_buffer) {
       upsample->color_buf[ci] = (*cinfo->mem->alloc_sarray)
-	((j_common_ptr) cinfo, JPOOL_IMAGE,
-	 (JDIMENSION) jround_up((long) cinfo->output_width,
-				(long) cinfo->max_h_samp_factor),
-	 (JDIMENSION) cinfo->max_v_samp_factor);
+        ((j_common_ptr) cinfo, JPOOL_IMAGE,
+         (JDIMENSION) jround_up((long) cinfo->output_width,
+                                (long) cinfo->max_h_samp_factor),
+         (JDIMENSION) cinfo->max_v_samp_factor);
     }
   }
 }

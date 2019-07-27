@@ -58,16 +58,16 @@ rgb_ycc_convert_internal (j_compress_ptr cinfo,
 
       
       outptr0[col] = (JSAMPLE)
-		((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
-		 >> SCALEBITS);
+                ((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
+                 >> SCALEBITS);
       
       outptr1[col] = (JSAMPLE)
-		((ctab[r+R_CB_OFF] + ctab[g+G_CB_OFF] + ctab[b+B_CB_OFF])
-		 >> SCALEBITS);
+                ((ctab[r+R_CB_OFF] + ctab[g+G_CB_OFF] + ctab[b+B_CB_OFF])
+                 >> SCALEBITS);
       
       outptr2[col] = (JSAMPLE)
-		((ctab[r+R_CR_OFF] + ctab[g+G_CR_OFF] + ctab[b+B_CR_OFF])
-		 >> SCALEBITS);
+                ((ctab[r+R_CR_OFF] + ctab[g+G_CR_OFF] + ctab[b+B_CR_OFF])
+                 >> SCALEBITS);
     }
   }
 }
@@ -108,8 +108,8 @@ rgb_gray_convert_internal (j_compress_ptr cinfo,
       inptr += RGB_PIXELSIZE;
       
       outptr[col] = (JSAMPLE)
-		((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
-		 >> SCALEBITS);
+                ((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF])
+                 >> SCALEBITS);
     }
   }
 }

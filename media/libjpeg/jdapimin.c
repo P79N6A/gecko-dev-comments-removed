@@ -16,6 +16,8 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -32,12 +34,12 @@ jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize)
   int i;
 
   
-  cinfo->mem = NULL;		
+  cinfo->mem = NULL;            
   if (version != JPEG_LIB_VERSION)
     ERREXIT2(cinfo, JERR_BAD_LIB_VERSION, JPEG_LIB_VERSION, version);
-  if (structsize != SIZEOF(struct jpeg_decompress_struct))
-    ERREXIT2(cinfo, JERR_BAD_STRUCT_SIZE, 
-	     (int) SIZEOF(struct jpeg_decompress_struct), (int) structsize);
+  if (structsize != sizeof(struct jpeg_decompress_struct))
+    ERREXIT2(cinfo, JERR_BAD_STRUCT_SIZE,
+             (int) sizeof(struct jpeg_decompress_struct), (int) structsize);
 
   
 
@@ -48,7 +50,7 @@ jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize)
   {
     struct jpeg_error_mgr * err = cinfo->err;
     void * client_data = cinfo->client_data; 
-    MEMZERO(cinfo, SIZEOF(struct jpeg_decompress_struct));
+    MEMZERO(cinfo, sizeof(struct jpeg_decompress_struct));
     cinfo->err = err;
     cinfo->client_data = client_data;
   }
@@ -121,22 +123,22 @@ default_decompress_parms (j_decompress_ptr cinfo)
     cinfo->jpeg_color_space = JCS_GRAYSCALE;
     cinfo->out_color_space = JCS_GRAYSCALE;
     break;
-    
+
   case 3:
     if (cinfo->saw_JFIF_marker) {
       cinfo->jpeg_color_space = JCS_YCbCr; 
     } else if (cinfo->saw_Adobe_marker) {
       switch (cinfo->Adobe_transform) {
       case 0:
-	cinfo->jpeg_color_space = JCS_RGB;
-	break;
+        cinfo->jpeg_color_space = JCS_RGB;
+        break;
       case 1:
-	cinfo->jpeg_color_space = JCS_YCbCr;
-	break;
+        cinfo->jpeg_color_space = JCS_YCbCr;
+        break;
       default:
-	WARNMS1(cinfo, JWRN_ADOBE_XFORM, cinfo->Adobe_transform);
-	cinfo->jpeg_color_space = JCS_YCbCr; 
-	break;
+        WARNMS1(cinfo, JWRN_ADOBE_XFORM, cinfo->Adobe_transform);
+        cinfo->jpeg_color_space = JCS_YCbCr; 
+        break;
       }
     } else {
       
@@ -145,31 +147,31 @@ default_decompress_parms (j_decompress_ptr cinfo)
       int cid2 = cinfo->comp_info[2].component_id;
 
       if (cid0 == 1 && cid1 == 2 && cid2 == 3)
-	cinfo->jpeg_color_space = JCS_YCbCr; 
+        cinfo->jpeg_color_space = JCS_YCbCr; 
       else if (cid0 == 82 && cid1 == 71 && cid2 == 66)
-	cinfo->jpeg_color_space = JCS_RGB; 
+        cinfo->jpeg_color_space = JCS_RGB; 
       else {
-	TRACEMS3(cinfo, 1, JTRC_UNKNOWN_IDS, cid0, cid1, cid2);
-	cinfo->jpeg_color_space = JCS_YCbCr; 
+        TRACEMS3(cinfo, 1, JTRC_UNKNOWN_IDS, cid0, cid1, cid2);
+        cinfo->jpeg_color_space = JCS_YCbCr; 
       }
     }
     
     cinfo->out_color_space = JCS_RGB;
     break;
-    
+
   case 4:
     if (cinfo->saw_Adobe_marker) {
       switch (cinfo->Adobe_transform) {
       case 0:
-	cinfo->jpeg_color_space = JCS_CMYK;
-	break;
+        cinfo->jpeg_color_space = JCS_CMYK;
+        break;
       case 2:
-	cinfo->jpeg_color_space = JCS_YCCK;
-	break;
+        cinfo->jpeg_color_space = JCS_YCCK;
+        break;
       default:
-	WARNMS1(cinfo, JWRN_ADOBE_XFORM, cinfo->Adobe_transform);
-	cinfo->jpeg_color_space = JCS_YCCK; 
-	break;
+        WARNMS1(cinfo, JWRN_ADOBE_XFORM, cinfo->Adobe_transform);
+        cinfo->jpeg_color_space = JCS_YCCK; 
+        break;
       }
     } else {
       
@@ -177,7 +179,7 @@ default_decompress_parms (j_decompress_ptr cinfo)
     }
     cinfo->out_color_space = JCS_CMYK;
     break;
-    
+
   default:
     cinfo->jpeg_color_space = JCS_UNKNOWN;
     cinfo->out_color_space = JCS_UNKNOWN;
@@ -185,7 +187,7 @@ default_decompress_parms (j_decompress_ptr cinfo)
   }
 
   
-  cinfo->scale_num = 1;		
+  cinfo->scale_num = 1;         
   cinfo->scale_denom = 1;
   cinfo->output_gamma = 1.0;
   cinfo->buffered_image = FALSE;
@@ -253,7 +255,7 @@ jpeg_read_header (j_decompress_ptr cinfo, boolean require_image)
     retcode = JPEG_HEADER_OK;
     break;
   case JPEG_REACHED_EOI:
-    if (require_image)		
+    if (require_image)          
       ERREXIT(cinfo, JERR_NO_IMAGE);
     
 
@@ -385,7 +387,7 @@ jpeg_finish_decompress (j_decompress_ptr cinfo)
   
   while (! cinfo->inputctl->eoi_reached) {
     if ((*cinfo->inputctl->consume_input) (cinfo) == JPEG_SUSPENDED)
-      return FALSE;		
+      return FALSE;             
   }
   
   (*cinfo->src->term_source) (cinfo);

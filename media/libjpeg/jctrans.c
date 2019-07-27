@@ -11,6 +11,8 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -18,9 +20,9 @@
 
 
 LOCAL(void) transencode_master_selection
-	JPP((j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays));
+        (j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays);
 LOCAL(void) transencode_coef_controller
-	JPP((j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays));
+        (j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays);
 
 
 
@@ -48,7 +50,7 @@ jpeg_write_coefficients (j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays)
   
   transencode_master_selection(cinfo, coef_arrays);
   
-  cinfo->next_scanline = 0;	
+  cinfo->next_scanline = 0;     
   cinfo->global_state = CSTATE_WRCOEFS;
 }
 
@@ -62,7 +64,7 @@ jpeg_write_coefficients (j_compress_ptr cinfo, jvirt_barray_ptr * coef_arrays)
 
 GLOBAL(void)
 jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
-			       j_compress_ptr dstinfo)
+                               j_compress_ptr dstinfo)
 {
   JQUANT_TBL ** qtblptr;
   jpeg_component_info *incomp, *outcomp;
@@ -96,10 +98,10 @@ jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
     if (srcinfo->quant_tbl_ptrs[tblno] != NULL) {
       qtblptr = & dstinfo->quant_tbl_ptrs[tblno];
       if (*qtblptr == NULL)
-	*qtblptr = jpeg_alloc_quant_table((j_common_ptr) dstinfo);
+        *qtblptr = jpeg_alloc_quant_table((j_common_ptr) dstinfo);
       MEMCOPY((*qtblptr)->quantval,
-	      srcinfo->quant_tbl_ptrs[tblno]->quantval,
-	      SIZEOF((*qtblptr)->quantval));
+              srcinfo->quant_tbl_ptrs[tblno]->quantval,
+              sizeof((*qtblptr)->quantval));
       (*qtblptr)->sent_table = FALSE;
     }
   }
@@ -109,7 +111,7 @@ jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
   dstinfo->num_components = srcinfo->num_components;
   if (dstinfo->num_components < 1 || dstinfo->num_components > MAX_COMPONENTS)
     ERREXIT2(dstinfo, JERR_COMPONENT_COUNT, dstinfo->num_components,
-	     MAX_COMPONENTS);
+             MAX_COMPONENTS);
   for (ci = 0, incomp = srcinfo->comp_info, outcomp = dstinfo->comp_info;
        ci < dstinfo->num_components; ci++, incomp++, outcomp++) {
     outcomp->component_id = incomp->component_id;
@@ -122,14 +124,14 @@ jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
 
     tblno = outcomp->quant_tbl_no;
     if (tblno < 0 || tblno >= NUM_QUANT_TBLS ||
-	srcinfo->quant_tbl_ptrs[tblno] == NULL)
+        srcinfo->quant_tbl_ptrs[tblno] == NULL)
       ERREXIT1(dstinfo, JERR_NO_QUANT_TABLE, tblno);
     slot_quant = srcinfo->quant_tbl_ptrs[tblno];
     c_quant = incomp->quant_table;
     if (c_quant != NULL) {
       for (coefi = 0; coefi < DCTSIZE2; coefi++) {
-	if (c_quant->quantval[coefi] != slot_quant->quantval[coefi])
-	  ERREXIT1(dstinfo, JERR_MISMATCHED_QUANT_TABLE, tblno);
+        if (c_quant->quantval[coefi] != slot_quant->quantval[coefi])
+          ERREXIT1(dstinfo, JERR_MISMATCHED_QUANT_TABLE, tblno);
       }
     }
     
@@ -163,7 +165,7 @@ jpeg_copy_critical_parameters (j_decompress_ptr srcinfo,
 
 LOCAL(void)
 transencode_master_selection (j_compress_ptr cinfo,
-			      jvirt_barray_ptr * coef_arrays)
+                              jvirt_barray_ptr * coef_arrays)
 {
   
 
@@ -219,10 +221,10 @@ transencode_master_selection (j_compress_ptr cinfo,
 typedef struct {
   struct jpeg_c_coef_controller pub; 
 
-  JDIMENSION iMCU_row_num;	
-  JDIMENSION mcu_ctr;		
-  int MCU_vert_offset;		
-  int MCU_rows_per_iMCU_row;	
+  JDIMENSION iMCU_row_num;      
+  JDIMENSION mcu_ctr;           
+  int MCU_vert_offset;          
+  int MCU_rows_per_iMCU_row;    
 
   
   jvirt_barray_ptr * whole_image;
@@ -289,7 +291,7 @@ METHODDEF(boolean)
 compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
 {
   my_coef_ptr coef = (my_coef_ptr) cinfo->coef;
-  JDIMENSION MCU_col_num;	
+  JDIMENSION MCU_col_num;       
   JDIMENSION last_MCU_col = cinfo->MCUs_per_row - 1;
   JDIMENSION last_iMCU_row = cinfo->total_iMCU_rows - 1;
   int blkn, ci, xindex, yindex, yoffset, blockcnt;
@@ -312,44 +314,44 @@ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
   for (yoffset = coef->MCU_vert_offset; yoffset < coef->MCU_rows_per_iMCU_row;
        yoffset++) {
     for (MCU_col_num = coef->mcu_ctr; MCU_col_num < cinfo->MCUs_per_row;
-	 MCU_col_num++) {
+         MCU_col_num++) {
       
-      blkn = 0;			
+      blkn = 0;                 
       for (ci = 0; ci < cinfo->comps_in_scan; ci++) {
-	compptr = cinfo->cur_comp_info[ci];
-	start_col = MCU_col_num * compptr->MCU_width;
-	blockcnt = (MCU_col_num < last_MCU_col) ? compptr->MCU_width
-						: compptr->last_col_width;
-	for (yindex = 0; yindex < compptr->MCU_height; yindex++) {
-	  if (coef->iMCU_row_num < last_iMCU_row ||
-	      yindex+yoffset < compptr->last_row_height) {
-	    
-	    buffer_ptr = buffer[ci][yindex+yoffset] + start_col;
-	    for (xindex = 0; xindex < blockcnt; xindex++)
-	      MCU_buffer[blkn++] = buffer_ptr++;
-	  } else {
-	    
-	    xindex = 0;
-	  }
-	  
+        compptr = cinfo->cur_comp_info[ci];
+        start_col = MCU_col_num * compptr->MCU_width;
+        blockcnt = (MCU_col_num < last_MCU_col) ? compptr->MCU_width
+                                                : compptr->last_col_width;
+        for (yindex = 0; yindex < compptr->MCU_height; yindex++) {
+          if (coef->iMCU_row_num < last_iMCU_row ||
+              yindex+yoffset < compptr->last_row_height) {
+            
+            buffer_ptr = buffer[ci][yindex+yoffset] + start_col;
+            for (xindex = 0; xindex < blockcnt; xindex++)
+              MCU_buffer[blkn++] = buffer_ptr++;
+          } else {
+            
+            xindex = 0;
+          }
+          
 
 
 
 
 
-	  for (; xindex < compptr->MCU_width; xindex++) {
-	    MCU_buffer[blkn] = coef->dummy_buffer[blkn];
-	    MCU_buffer[blkn][0][0] = MCU_buffer[blkn-1][0][0];
-	    blkn++;
-	  }
-	}
+          for (; xindex < compptr->MCU_width; xindex++) {
+            MCU_buffer[blkn] = coef->dummy_buffer[blkn];
+            MCU_buffer[blkn][0][0] = MCU_buffer[blkn-1][0][0];
+            blkn++;
+          }
+        }
       }
       
       if (! (*cinfo->entropy->encode_mcu) (cinfo, MCU_buffer)) {
-	
-	coef->MCU_vert_offset = yoffset;
-	coef->mcu_ctr = MCU_col_num;
-	return FALSE;
+        
+        coef->MCU_vert_offset = yoffset;
+        coef->mcu_ctr = MCU_col_num;
+        return FALSE;
       }
     }
     
@@ -372,7 +374,7 @@ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
 
 LOCAL(void)
 transencode_coef_controller (j_compress_ptr cinfo,
-			     jvirt_barray_ptr * coef_arrays)
+                             jvirt_barray_ptr * coef_arrays)
 {
   my_coef_ptr coef;
   JBLOCKROW buffer;
@@ -380,7 +382,7 @@ transencode_coef_controller (j_compress_ptr cinfo,
 
   coef = (my_coef_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(my_coef_controller));
+                                sizeof(my_coef_controller));
   cinfo->coef = (struct jpeg_c_coef_controller *) coef;
   coef->pub.start_pass = start_pass_coef;
   coef->pub.compress_data = compress_output;
@@ -391,8 +393,8 @@ transencode_coef_controller (j_compress_ptr cinfo,
   
   buffer = (JBLOCKROW)
     (*cinfo->mem->alloc_large) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				C_MAX_BLOCKS_IN_MCU * SIZEOF(JBLOCK));
-  jzero_far((void FAR *) buffer, C_MAX_BLOCKS_IN_MCU * SIZEOF(JBLOCK));
+                                C_MAX_BLOCKS_IN_MCU * sizeof(JBLOCK));
+  jzero_far((void *) buffer, C_MAX_BLOCKS_IN_MCU * sizeof(JBLOCK));
   for (i = 0; i < C_MAX_BLOCKS_IN_MCU; i++) {
     coef->dummy_buffer[i] = buffer + i;
   }

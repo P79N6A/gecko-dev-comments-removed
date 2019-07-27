@@ -14,10 +14,12 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
-#include "jdhuff.h"		
+#include "jdhuff.h"             
 
 
 #ifdef D_PROGRESSIVE_SUPPORTED
@@ -30,8 +32,8 @@
 
 
 typedef struct {
-  unsigned int EOBRUN;			
-  int last_dc_val[MAX_COMPS_IN_SCAN];	
+  unsigned int EOBRUN;                  
+  int last_dc_val[MAX_COMPS_IN_SCAN];   
 } savable_state;
 
 
@@ -44,11 +46,11 @@ typedef struct {
 #else
 #if MAX_COMPS_IN_SCAN == 4
 #define ASSIGN_STATE(dest,src)  \
-	((dest).EOBRUN = (src).EOBRUN, \
-	 (dest).last_dc_val[0] = (src).last_dc_val[0], \
-	 (dest).last_dc_val[1] = (src).last_dc_val[1], \
-	 (dest).last_dc_val[2] = (src).last_dc_val[2], \
-	 (dest).last_dc_val[3] = (src).last_dc_val[3])
+        ((dest).EOBRUN = (src).EOBRUN, \
+         (dest).last_dc_val[0] = (src).last_dc_val[0], \
+         (dest).last_dc_val[1] = (src).last_dc_val[1], \
+         (dest).last_dc_val[2] = (src).last_dc_val[2], \
+         (dest).last_dc_val[3] = (src).last_dc_val[3])
 #endif
 #endif
 
@@ -59,11 +61,11 @@ typedef struct {
   
 
 
-  bitread_perm_state bitstate;	
-  savable_state saved;		
+  bitread_perm_state bitstate;  
+  savable_state saved;          
 
   
-  unsigned int restarts_to_go;	
+  unsigned int restarts_to_go;  
 
   
   d_derived_tbl * derived_tbls[NUM_HUFF_TBLS];
@@ -74,14 +76,14 @@ typedef struct {
 typedef phuff_entropy_decoder * phuff_entropy_ptr;
 
 
-METHODDEF(boolean) decode_mcu_DC_first JPP((j_decompress_ptr cinfo,
-					    JBLOCKROW *MCU_data));
-METHODDEF(boolean) decode_mcu_AC_first JPP((j_decompress_ptr cinfo,
-					    JBLOCKROW *MCU_data));
-METHODDEF(boolean) decode_mcu_DC_refine JPP((j_decompress_ptr cinfo,
-					     JBLOCKROW *MCU_data));
-METHODDEF(boolean) decode_mcu_AC_refine JPP((j_decompress_ptr cinfo,
-					     JBLOCKROW *MCU_data));
+METHODDEF(boolean) decode_mcu_DC_first (j_decompress_ptr cinfo,
+                                        JBLOCKROW *MCU_data);
+METHODDEF(boolean) decode_mcu_AC_first (j_decompress_ptr cinfo,
+                                        JBLOCKROW *MCU_data);
+METHODDEF(boolean) decode_mcu_DC_refine (j_decompress_ptr cinfo,
+                                         JBLOCKROW *MCU_data);
+METHODDEF(boolean) decode_mcu_AC_refine (j_decompress_ptr cinfo,
+                                         JBLOCKROW *MCU_data);
 
 
 
@@ -117,7 +119,7 @@ start_pass_phuff_decoder (j_decompress_ptr cinfo)
     if (cinfo->Al != cinfo->Ah-1)
       bad = TRUE;
   }
-  if (cinfo->Al > 13)		
+  if (cinfo->Al > 13)           
     bad = TRUE;
   
 
@@ -127,7 +129,7 @@ start_pass_phuff_decoder (j_decompress_ptr cinfo)
 
   if (bad)
     ERREXIT4(cinfo, JERR_BAD_PROGRESSION,
-	     cinfo->Ss, cinfo->Se, cinfo->Ah, cinfo->Al);
+             cinfo->Ss, cinfo->Se, cinfo->Ah, cinfo->Al);
   
 
 
@@ -140,7 +142,7 @@ start_pass_phuff_decoder (j_decompress_ptr cinfo)
     for (coefi = cinfo->Ss; coefi <= cinfo->Se; coefi++) {
       int expected = (coef_bit_ptr[coefi] < 0) ? 0 : coef_bit_ptr[coefi];
       if (cinfo->Ah != expected)
-	WARNMS2(cinfo, JWRN_BOGUS_PROGRESSION, cindex, coefi);
+        WARNMS2(cinfo, JWRN_BOGUS_PROGRESSION, cindex, coefi);
       coef_bit_ptr[coefi] = cinfo->Al;
     }
   }
@@ -164,15 +166,15 @@ start_pass_phuff_decoder (j_decompress_ptr cinfo)
 
 
     if (is_DC_band) {
-      if (cinfo->Ah == 0) {	
-	tbl = compptr->dc_tbl_no;
-	jpeg_make_d_derived_tbl(cinfo, TRUE, tbl,
-				& entropy->derived_tbls[tbl]);
+      if (cinfo->Ah == 0) {     
+        tbl = compptr->dc_tbl_no;
+        jpeg_make_d_derived_tbl(cinfo, TRUE, tbl,
+                                & entropy->derived_tbls[tbl]);
       }
     } else {
       tbl = compptr->ac_tbl_no;
       jpeg_make_d_derived_tbl(cinfo, FALSE, tbl,
-			      & entropy->derived_tbls[tbl]);
+                              & entropy->derived_tbls[tbl]);
       
       entropy->ac_derived_tbl = entropy->derived_tbls[tbl];
     }
@@ -285,7 +287,7 @@ process_restart (j_decompress_ptr cinfo)
 
 METHODDEF(boolean)
 decode_mcu_DC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
-{   
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   int Al = cinfo->Al;
   register int s, r;
@@ -300,7 +302,7 @@ decode_mcu_DC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   if (cinfo->restart_interval) {
     if (entropy->restarts_to_go == 0)
       if (! process_restart(cinfo))
-	return FALSE;
+        return FALSE;
   }
 
   
@@ -325,9 +327,9 @@ decode_mcu_DC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
       
       HUFF_DECODE(s, br_state, tbl, return FALSE, label1);
       if (s) {
-	CHECK_BIT_BUFFER(br_state, s, return FALSE);
-	r = GET_BITS(s);
-	s = HUFF_EXTEND(r, s);
+        CHECK_BIT_BUFFER(br_state, s, return FALSE);
+        r = GET_BITS(s);
+        s = HUFF_EXTEND(r, s);
       }
 
       
@@ -356,7 +358,7 @@ decode_mcu_DC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
 METHODDEF(boolean)
 decode_mcu_AC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
-{   
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   int Se = cinfo->Se;
   int Al = cinfo->Al;
@@ -370,7 +372,7 @@ decode_mcu_AC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   if (cinfo->restart_interval) {
     if (entropy->restarts_to_go == 0)
       if (! process_restart(cinfo))
-	return FALSE;
+        return FALSE;
   }
 
   
@@ -381,49 +383,49 @@ decode_mcu_AC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
     
 
 
-    EOBRUN = entropy->saved.EOBRUN;	
+    EOBRUN = entropy->saved.EOBRUN;     
 
     
 
-    if (EOBRUN > 0)		
-      EOBRUN--;			
+    if (EOBRUN > 0)             
+      EOBRUN--;                 
     else {
       BITREAD_LOAD_STATE(cinfo,entropy->bitstate);
       block = MCU_data[0];
       tbl = entropy->ac_derived_tbl;
 
       for (k = cinfo->Ss; k <= Se; k++) {
-	HUFF_DECODE(s, br_state, tbl, return FALSE, label2);
-	r = s >> 4;
-	s &= 15;
-	if (s) {
-	  k += r;
-	  CHECK_BIT_BUFFER(br_state, s, return FALSE);
-	  r = GET_BITS(s);
-	  s = HUFF_EXTEND(r, s);
-	  
-	  (*block)[jpeg_natural_order[k]] = (JCOEF) (s << Al);
-	} else {
-	  if (r == 15) {	
-	    k += 15;		
-	  } else {		
-	    EOBRUN = 1 << r;
-	    if (r) {		
-	      CHECK_BIT_BUFFER(br_state, r, return FALSE);
-	      r = GET_BITS(r);
-	      EOBRUN += r;
-	    }
-	    EOBRUN--;		
-	    break;		
-	  }
-	}
+        HUFF_DECODE(s, br_state, tbl, return FALSE, label2);
+        r = s >> 4;
+        s &= 15;
+        if (s) {
+          k += r;
+          CHECK_BIT_BUFFER(br_state, s, return FALSE);
+          r = GET_BITS(s);
+          s = HUFF_EXTEND(r, s);
+          
+          (*block)[jpeg_natural_order[k]] = (JCOEF) (s << Al);
+        } else {
+          if (r == 15) {        
+            k += 15;            
+          } else {              
+            EOBRUN = 1 << r;
+            if (r) {            
+              CHECK_BIT_BUFFER(br_state, r, return FALSE);
+              r = GET_BITS(r);
+              EOBRUN += r;
+            }
+            EOBRUN--;           
+            break;              
+          }
+        }
       }
 
       BITREAD_SAVE_STATE(cinfo,entropy->bitstate);
     }
 
     
-    entropy->saved.EOBRUN = EOBRUN;	
+    entropy->saved.EOBRUN = EOBRUN;     
   }
 
   
@@ -441,9 +443,9 @@ decode_mcu_AC_first (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
 METHODDEF(boolean)
 decode_mcu_DC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
-{   
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
-  int p1 = 1 << cinfo->Al;	
+  int p1 = 1 << cinfo->Al;      
   int blkn;
   JBLOCKROW block;
   BITREAD_STATE_VARS;
@@ -452,7 +454,7 @@ decode_mcu_DC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   if (cinfo->restart_interval) {
     if (entropy->restarts_to_go == 0)
       if (! process_restart(cinfo))
-	return FALSE;
+        return FALSE;
   }
 
   
@@ -490,11 +492,11 @@ decode_mcu_DC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
 METHODDEF(boolean)
 decode_mcu_AC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
-{   
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   int Se = cinfo->Se;
-  int p1 = 1 << cinfo->Al;	
-  int m1 = (-1) << cinfo->Al;	
+  int p1 = 1 << cinfo->Al;      
+  int m1 = (-1) << cinfo->Al;   
   register int s, k, r;
   unsigned int EOBRUN;
   JBLOCKROW block;
@@ -508,7 +510,7 @@ decode_mcu_AC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   if (cinfo->restart_interval) {
     if (entropy->restarts_to_go == 0)
       if (! process_restart(cinfo))
-	return FALSE;
+        return FALSE;
   }
 
   
@@ -536,58 +538,58 @@ decode_mcu_AC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
     if (EOBRUN == 0) {
       for (; k <= Se; k++) {
-	HUFF_DECODE(s, br_state, tbl, goto undoit, label3);
-	r = s >> 4;
-	s &= 15;
-	if (s) {
-	  if (s != 1)		
-	    WARNMS(cinfo, JWRN_HUFF_BAD_CODE);
-	  CHECK_BIT_BUFFER(br_state, 1, goto undoit);
-	  if (GET_BITS(1))
-	    s = p1;		
-	  else
-	    s = m1;		
-	} else {
-	  if (r != 15) {
-	    EOBRUN = 1 << r;	
-	    if (r) {
-	      CHECK_BIT_BUFFER(br_state, r, goto undoit);
-	      r = GET_BITS(r);
-	      EOBRUN += r;
-	    }
-	    break;		
-	  }
-	  
-	}
-	
+        HUFF_DECODE(s, br_state, tbl, goto undoit, label3);
+        r = s >> 4;
+        s &= 15;
+        if (s) {
+          if (s != 1)           
+            WARNMS(cinfo, JWRN_HUFF_BAD_CODE);
+          CHECK_BIT_BUFFER(br_state, 1, goto undoit);
+          if (GET_BITS(1))
+            s = p1;             
+          else
+            s = m1;             
+        } else {
+          if (r != 15) {
+            EOBRUN = 1 << r;    
+            if (r) {
+              CHECK_BIT_BUFFER(br_state, r, goto undoit);
+              r = GET_BITS(r);
+              EOBRUN += r;
+            }
+            break;              
+          }
+          
+        }
+        
 
 
 
-	do {
-	  thiscoef = *block + jpeg_natural_order[k];
-	  if (*thiscoef != 0) {
-	    CHECK_BIT_BUFFER(br_state, 1, goto undoit);
-	    if (GET_BITS(1)) {
-	      if ((*thiscoef & p1) == 0) { 
-		if (*thiscoef >= 0)
-		  *thiscoef += p1;
-		else
-		  *thiscoef += m1;
-	      }
-	    }
-	  } else {
-	    if (--r < 0)
-	      break;		
-	  }
-	  k++;
-	} while (k <= Se);
-	if (s) {
-	  int pos = jpeg_natural_order[k];
-	  
-	  (*block)[pos] = (JCOEF) s;
-	  
-	  newnz_pos[num_newnz++] = pos;
-	}
+        do {
+          thiscoef = *block + jpeg_natural_order[k];
+          if (*thiscoef != 0) {
+            CHECK_BIT_BUFFER(br_state, 1, goto undoit);
+            if (GET_BITS(1)) {
+              if ((*thiscoef & p1) == 0) { 
+                if (*thiscoef >= 0)
+                  *thiscoef += p1;
+                else
+                  *thiscoef += m1;
+              }
+            }
+          } else {
+            if (--r < 0)
+              break;            
+          }
+          k++;
+        } while (k <= Se);
+        if (s) {
+          int pos = jpeg_natural_order[k];
+          
+          (*block)[pos] = (JCOEF) s;
+          
+          newnz_pos[num_newnz++] = pos;
+        }
       }
     }
 
@@ -598,18 +600,18 @@ decode_mcu_AC_refine (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
 
       for (; k <= Se; k++) {
-	thiscoef = *block + jpeg_natural_order[k];
-	if (*thiscoef != 0) {
-	  CHECK_BIT_BUFFER(br_state, 1, goto undoit);
-	  if (GET_BITS(1)) {
-	    if ((*thiscoef & p1) == 0) { 
-	      if (*thiscoef >= 0)
-		*thiscoef += p1;
-	      else
-		*thiscoef += m1;
-	    }
-	  }
-	}
+        thiscoef = *block + jpeg_natural_order[k];
+        if (*thiscoef != 0) {
+          CHECK_BIT_BUFFER(br_state, 1, goto undoit);
+          if (GET_BITS(1)) {
+            if ((*thiscoef & p1) == 0) { 
+              if (*thiscoef >= 0)
+                *thiscoef += p1;
+              else
+                *thiscoef += m1;
+            }
+          }
+        }
       }
       
       EOBRUN--;
@@ -647,7 +649,7 @@ jinit_phuff_decoder (j_decompress_ptr cinfo)
 
   entropy = (phuff_entropy_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(phuff_entropy_decoder));
+                                sizeof(phuff_entropy_decoder));
   cinfo->entropy = (struct jpeg_entropy_decoder *) entropy;
   entropy->pub.start_pass = start_pass_phuff_decoder;
 
@@ -659,9 +661,9 @@ jinit_phuff_decoder (j_decompress_ptr cinfo)
   
   cinfo->coef_bits = (int (*)[DCTSIZE2])
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				cinfo->num_components*DCTSIZE2*SIZEOF(int));
+                                cinfo->num_components*DCTSIZE2*sizeof(int));
   coef_bit_ptr = & cinfo->coef_bits[0][0];
-  for (ci = 0; ci < cinfo->num_components; ci++) 
+  for (ci = 0; ci < cinfo->num_components; ci++)
     for (i = 0; i < DCTSIZE2; i++)
       *coef_bit_ptr++ = -1;
 }

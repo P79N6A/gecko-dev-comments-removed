@@ -14,6 +14,7 @@
 
 
 
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -25,7 +26,7 @@
 typedef struct {
   struct jpeg_decomp_master pub; 
 
-  int pass_number;		
+  int pass_number;              
 
   boolean using_merged_upsample; 
 
@@ -54,6 +55,7 @@ use_merged_upsample (j_decompress_ptr cinfo)
   
   if (cinfo->jpeg_color_space != JCS_YCbCr || cinfo->num_components != 3 ||
       (cinfo->out_color_space != JCS_RGB &&
+      cinfo->out_color_space != JCS_RGB565 &&
       cinfo->out_color_space != JCS_EXT_RGB &&
       cinfo->out_color_space != JCS_EXT_RGBX &&
       cinfo->out_color_space != JCS_EXT_BGR &&
@@ -63,8 +65,12 @@ use_merged_upsample (j_decompress_ptr cinfo)
       cinfo->out_color_space != JCS_EXT_RGBA &&
       cinfo->out_color_space != JCS_EXT_BGRA &&
       cinfo->out_color_space != JCS_EXT_ABGR &&
-      cinfo->out_color_space != JCS_EXT_ARGB) ||
-      cinfo->out_color_components != rgb_pixelsize[cinfo->out_color_space])
+      cinfo->out_color_space != JCS_EXT_ARGB))
+    return FALSE;
+  if ((cinfo->out_color_space == JCS_RGB565 &&
+      cinfo->out_color_components != 3) ||
+      (cinfo->out_color_space != JCS_RGB565 &&
+      cinfo->out_color_components != rgb_pixelsize[cinfo->out_color_space]))
     return FALSE;
   
   if (cinfo->comp_info[0].h_samp_factor != 2 ||
@@ -80,7 +86,7 @@ use_merged_upsample (j_decompress_ptr cinfo)
       cinfo->comp_info[2]._DCT_scaled_size != cinfo->_min_DCT_scaled_size)
     return FALSE;
   
-  return TRUE;			
+  return TRUE;                  
 #else
   return FALSE;
 #endif
@@ -292,10 +298,10 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
        ci++, compptr++) {
     int ssize = cinfo->_min_DCT_scaled_size;
     while (ssize < DCTSIZE &&
-	   ((cinfo->max_h_samp_factor * cinfo->_min_DCT_scaled_size) %
-	    (compptr->h_samp_factor * ssize * 2) == 0) &&
-	   ((cinfo->max_v_samp_factor * cinfo->_min_DCT_scaled_size) %
-	    (compptr->v_samp_factor * ssize * 2) == 0)) {
+           ((cinfo->max_h_samp_factor * cinfo->_min_DCT_scaled_size) %
+            (compptr->h_samp_factor * ssize * 2) == 0) &&
+           ((cinfo->max_v_samp_factor * cinfo->_min_DCT_scaled_size) %
+            (compptr->v_samp_factor * ssize * 2) == 0)) {
       ssize = ssize * 2;
     }
 #if JPEG_LIB_VERSION >= 70
@@ -313,12 +319,12 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
     
     compptr->downsampled_width = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_width *
-		    (long) (compptr->h_samp_factor * compptr->_DCT_scaled_size),
-		    (long) (cinfo->max_h_samp_factor * DCTSIZE));
+                    (long) (compptr->h_samp_factor * compptr->_DCT_scaled_size),
+                    (long) (cinfo->max_h_samp_factor * DCTSIZE));
     compptr->downsampled_height = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_height *
-		    (long) (compptr->v_samp_factor * compptr->_DCT_scaled_size),
-		    (long) (cinfo->max_v_samp_factor * DCTSIZE));
+                    (long) (compptr->v_samp_factor * compptr->_DCT_scaled_size),
+                    (long) (cinfo->max_v_samp_factor * DCTSIZE));
   }
 
 #else 
@@ -352,18 +358,19 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
     cinfo->out_color_components = rgb_pixelsize[cinfo->out_color_space];
     break;
   case JCS_YCbCr:
+  case JCS_RGB565:
     cinfo->out_color_components = 3;
     break;
   case JCS_CMYK:
   case JCS_YCCK:
     cinfo->out_color_components = 4;
     break;
-  default:			
+  default:                      
     cinfo->out_color_components = cinfo->num_components;
     break;
   }
   cinfo->output_components = (cinfo->quantize_colors ? 1 :
-			      cinfo->out_color_components);
+                              cinfo->out_color_components);
 
   
   if (use_merged_upsample(cinfo))
@@ -371,9 +378,6 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
   else
     cinfo->rec_outbuf_height = 1;
 }
-
-
-
 
 
 
@@ -425,23 +429,23 @@ prepare_range_limit_table (j_decompress_ptr cinfo)
 
   table = (JSAMPLE *)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-		(5 * (MAXJSAMPLE+1) + CENTERJSAMPLE) * SIZEOF(JSAMPLE));
-  table += (MAXJSAMPLE+1);	
+                (5 * (MAXJSAMPLE+1) + CENTERJSAMPLE) * sizeof(JSAMPLE));
+  table += (MAXJSAMPLE+1);      
   cinfo->sample_range_limit = table;
   
-  MEMZERO(table - (MAXJSAMPLE+1), (MAXJSAMPLE+1) * SIZEOF(JSAMPLE));
+  MEMZERO(table - (MAXJSAMPLE+1), (MAXJSAMPLE+1) * sizeof(JSAMPLE));
   
   for (i = 0; i <= MAXJSAMPLE; i++)
     table[i] = (JSAMPLE) i;
-  table += CENTERJSAMPLE;	
+  table += CENTERJSAMPLE;       
   
   for (i = CENTERJSAMPLE; i < 2*(MAXJSAMPLE+1); i++)
     table[i] = MAXJSAMPLE;
   
   MEMZERO(table + (2 * (MAXJSAMPLE+1)),
-	  (2 * (MAXJSAMPLE+1) - CENTERJSAMPLE) * SIZEOF(JSAMPLE));
+          (2 * (MAXJSAMPLE+1) - CENTERJSAMPLE) * sizeof(JSAMPLE));
   MEMCOPY(table + (4 * (MAXJSAMPLE+1) - CENTERJSAMPLE),
-	  cinfo->sample_range_limit, CENTERJSAMPLE * SIZEOF(JSAMPLE));
+          cinfo->sample_range_limit, CENTERJSAMPLE * sizeof(JSAMPLE));
 }
 
 
@@ -629,24 +633,24 @@ prepare_for_output_pass (j_decompress_ptr cinfo)
     if (cinfo->quantize_colors && cinfo->colormap == NULL) {
       
       if (cinfo->two_pass_quantize && cinfo->enable_2pass_quant) {
-	cinfo->cquantize = master->quantizer_2pass;
-	master->pub.is_dummy_pass = TRUE;
+        cinfo->cquantize = master->quantizer_2pass;
+        master->pub.is_dummy_pass = TRUE;
       } else if (cinfo->enable_1pass_quant) {
-	cinfo->cquantize = master->quantizer_1pass;
+        cinfo->cquantize = master->quantizer_1pass;
       } else {
-	ERREXIT(cinfo, JERR_MODE_CHANGE);
+        ERREXIT(cinfo, JERR_MODE_CHANGE);
       }
     }
     (*cinfo->idct->start_pass) (cinfo);
     (*cinfo->coef->start_output_pass) (cinfo);
     if (! cinfo->raw_data_out) {
       if (! master->using_merged_upsample)
-	(*cinfo->cconvert->start_pass) (cinfo);
+        (*cinfo->cconvert->start_pass) (cinfo);
       (*cinfo->upsample->start_pass) (cinfo);
       if (cinfo->quantize_colors)
-	(*cinfo->cquantize->start_pass) (cinfo, master->pub.is_dummy_pass);
+        (*cinfo->cquantize->start_pass) (cinfo, master->pub.is_dummy_pass);
       (*cinfo->post->start_pass) (cinfo,
-	    (master->pub.is_dummy_pass ? JBUF_SAVE_AND_PASS : JBUF_PASS_THRU));
+            (master->pub.is_dummy_pass ? JBUF_SAVE_AND_PASS : JBUF_PASS_THRU));
       (*cinfo->main->start_pass) (cinfo, JBUF_PASS_THRU);
     }
   }
@@ -655,7 +659,7 @@ prepare_for_output_pass (j_decompress_ptr cinfo)
   if (cinfo->progress != NULL) {
     cinfo->progress->completed_passes = master->pass_number;
     cinfo->progress->total_passes = master->pass_number +
-				    (master->pub.is_dummy_pass ? 2 : 1);
+                                    (master->pub.is_dummy_pass ? 2 : 1);
     
 
 
@@ -722,7 +726,7 @@ jinit_master_decompress (j_decompress_ptr cinfo)
 
   master = (my_master_ptr)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  SIZEOF(my_decomp_master));
+                                  sizeof(my_decomp_master));
   cinfo->master = (struct jpeg_decomp_master *) master;
   master->pub.prepare_for_output_pass = prepare_for_output_pass;
   master->pub.finish_output_pass = finish_output_pass;

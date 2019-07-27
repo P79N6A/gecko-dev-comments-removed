@@ -17,6 +17,8 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -33,12 +35,12 @@ jpeg_CreateCompress (j_compress_ptr cinfo, int version, size_t structsize)
   int i;
 
   
-  cinfo->mem = NULL;		
+  cinfo->mem = NULL;            
   if (version != JPEG_LIB_VERSION)
     ERREXIT2(cinfo, JERR_BAD_LIB_VERSION, JPEG_LIB_VERSION, version);
-  if (structsize != SIZEOF(struct jpeg_compress_struct))
-    ERREXIT2(cinfo, JERR_BAD_STRUCT_SIZE, 
-	     (int) SIZEOF(struct jpeg_compress_struct), (int) structsize);
+  if (structsize != sizeof(struct jpeg_compress_struct))
+    ERREXIT2(cinfo, JERR_BAD_STRUCT_SIZE,
+             (int) sizeof(struct jpeg_compress_struct), (int) structsize);
 
   
 
@@ -49,7 +51,7 @@ jpeg_CreateCompress (j_compress_ptr cinfo, int version, size_t structsize)
   {
     struct jpeg_error_mgr * err = cinfo->err;
     void * client_data = cinfo->client_data; 
-    MEMZERO(cinfo, SIZEOF(struct jpeg_compress_struct));
+    MEMZERO(cinfo, sizeof(struct jpeg_compress_struct));
     cinfo->err = err;
     cinfo->client_data = client_data;
   }
@@ -85,7 +87,7 @@ jpeg_CreateCompress (j_compress_ptr cinfo, int version, size_t structsize)
 
   cinfo->script_space = NULL;
 
-  cinfo->input_gamma = 1.0;	
+  cinfo->input_gamma = 1.0;     
 
   
   cinfo->global_state = CSTATE_START;
@@ -173,15 +175,15 @@ jpeg_finish_compress (j_compress_ptr cinfo)
     (*cinfo->master->prepare_for_pass) (cinfo);
     for (iMCU_row = 0; iMCU_row < cinfo->total_iMCU_rows; iMCU_row++) {
       if (cinfo->progress != NULL) {
-	cinfo->progress->pass_counter = (long) iMCU_row;
-	cinfo->progress->pass_limit = (long) cinfo->total_iMCU_rows;
-	(*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
+        cinfo->progress->pass_counter = (long) iMCU_row;
+        cinfo->progress->pass_limit = (long) cinfo->total_iMCU_rows;
+        (*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
       }
       
 
 
       if (! (*cinfo->coef->compress_data) (cinfo, (JSAMPIMAGE) NULL))
-	ERREXIT(cinfo, JERR_CANT_SUSPEND);
+        ERREXIT(cinfo, JERR_CANT_SUSPEND);
     }
     (*cinfo->master->finish_pass) (cinfo);
   }
@@ -202,9 +204,9 @@ jpeg_finish_compress (j_compress_ptr cinfo)
 
 GLOBAL(void)
 jpeg_write_marker (j_compress_ptr cinfo, int marker,
-		   const JOCTET *dataptr, unsigned int datalen)
+                   const JOCTET *dataptr, unsigned int datalen)
 {
-  JMETHOD(void, write_marker_byte, (j_compress_ptr info, int val));
+  void (*write_marker_byte) (j_compress_ptr info, int val);
 
   if (cinfo->next_scanline != 0 ||
       (cinfo->global_state != CSTATE_SCANNING &&
@@ -213,7 +215,7 @@ jpeg_write_marker (j_compress_ptr cinfo, int marker,
     ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
 
   (*cinfo->marker->write_marker_header) (cinfo, marker, datalen);
-  write_marker_byte = cinfo->marker->write_marker_byte;	
+  write_marker_byte = cinfo->marker->write_marker_byte; 
   while (datalen--) {
     (*write_marker_byte) (cinfo, *dataptr);
     dataptr++;

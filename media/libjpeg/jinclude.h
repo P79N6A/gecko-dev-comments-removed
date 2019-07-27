@@ -17,7 +17,9 @@
 
 
 
-#include "jconfig.h"		
+
+
+#include "jconfig.h"            
 #define JCONFIG_INCLUDED
 
 
@@ -58,26 +60,16 @@
 #ifdef NEED_BSD_STRINGS
 
 #include <strings.h>
-#define MEMZERO(target,size)	bzero((void *)(target), (size_t)(size))
-#define MEMCOPY(dest,src,size)	bcopy((const void *)(src), (void *)(dest), (size_t)(size))
+#define MEMZERO(target,size)    bzero((void *)(target), (size_t)(size))
+#define MEMCOPY(dest,src,size)  bcopy((const void *)(src), (void *)(dest), (size_t)(size))
 
 #else 
 
 #include <string.h>
-#define MEMZERO(target,size)	memset((void *)(target), 0, (size_t)(size))
-#define MEMCOPY(dest,src,size)	memcpy((void *)(dest), (const void *)(src), (size_t)(size))
+#define MEMZERO(target,size)    memset((void *)(target), 0, (size_t)(size))
+#define MEMCOPY(dest,src,size)  memcpy((void *)(dest), (const void *)(src), (size_t)(size))
 
 #endif
-
-
-
-
-
-
-
-
-
-#define SIZEOF(object)	((size_t) sizeof(object))
 
 
 

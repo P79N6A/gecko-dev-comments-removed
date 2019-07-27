@@ -58,8 +58,8 @@ ycc_rgb_convert_internal (j_decompress_ptr cinfo,
       
       outptr[RGB_RED] =   range_limit[y + Crrtab[cr]];
       outptr[RGB_GREEN] = range_limit[y +
-			      ((int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr],
-						 SCALEBITS))];
+                              ((int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr],
+                                                 SCALEBITS))];
       outptr[RGB_BLUE] =  range_limit[y + Cbbtab[cb]];
       
       

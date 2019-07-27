@@ -19,7 +19,7 @@
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
-#include "jdhuff.h"		
+#include "jdhuff.h"             
 #include "jpegcomp.h"
 #include "jstdhuff.c"
 
@@ -45,10 +45,10 @@ typedef struct {
 #else
 #if MAX_COMPS_IN_SCAN == 4
 #define ASSIGN_STATE(dest,src)  \
-	((dest).last_dc_val[0] = (src).last_dc_val[0], \
-	 (dest).last_dc_val[1] = (src).last_dc_val[1], \
-	 (dest).last_dc_val[2] = (src).last_dc_val[2], \
-	 (dest).last_dc_val[3] = (src).last_dc_val[3])
+        ((dest).last_dc_val[0] = (src).last_dc_val[0], \
+         (dest).last_dc_val[1] = (src).last_dc_val[1], \
+         (dest).last_dc_val[2] = (src).last_dc_val[2], \
+         (dest).last_dc_val[3] = (src).last_dc_val[3])
 #endif
 #endif
 
@@ -59,11 +59,11 @@ typedef struct {
   
 
 
-  bitread_perm_state bitstate;	
-  savable_state saved;		
+  bitread_perm_state bitstate;  
+  savable_state saved;          
 
   
-  unsigned int restarts_to_go;	
+  unsigned int restarts_to_go;  
 
   
   d_derived_tbl * dc_derived_tbls[NUM_HUFF_TBLS];
@@ -108,9 +108,9 @@ start_pass_huff_decoder (j_decompress_ptr cinfo)
     
     
     jpeg_make_d_derived_tbl(cinfo, TRUE, dctbl,
-			    & entropy->dc_derived_tbls[dctbl]);
+                            & entropy->dc_derived_tbls[dctbl]);
     jpeg_make_d_derived_tbl(cinfo, FALSE, actbl,
-			    & entropy->ac_derived_tbls[actbl]);
+                            & entropy->ac_derived_tbls[actbl]);
     
     entropy->saved.last_dc_val[ci] = 0;
   }
@@ -151,7 +151,7 @@ start_pass_huff_decoder (j_decompress_ptr cinfo)
 
 GLOBAL(void)
 jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
-			 d_derived_tbl ** pdtbl)
+                         d_derived_tbl ** pdtbl)
 {
   JHUFF_TBL *htbl;
   d_derived_tbl *dtbl;
@@ -177,26 +177,26 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
   if (*pdtbl == NULL)
     *pdtbl = (d_derived_tbl *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  SIZEOF(d_derived_tbl));
+                                  sizeof(d_derived_tbl));
   dtbl = *pdtbl;
-  dtbl->pub = htbl;		
-  
+  dtbl->pub = htbl;             
+
   
 
   p = 0;
   for (l = 1; l <= 16; l++) {
     i = (int) htbl->bits[l];
-    if (i < 0 || p + i > 256)	
+    if (i < 0 || p + i > 256)   
       ERREXIT(cinfo, JERR_BAD_HUFF_TABLE);
     while (i--)
       huffsize[p++] = (char) l;
   }
   huffsize[p] = 0;
   numsymbols = p;
+
   
   
-  
-  
+
   code = 0;
   si = huffsize[0];
   p = 0;
@@ -226,7 +226,7 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
       p += htbl->bits[l];
       dtbl->maxcode[l] = huffcode[p-1]; 
     } else {
-      dtbl->maxcode[l] = -1;	
+      dtbl->maxcode[l] = -1;    
     }
   }
   dtbl->valoffset[17] = 0;
@@ -249,8 +249,8 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
       
       lookbits = huffcode[p] << (HUFF_LOOKAHEAD-l);
       for (ctr = 1 << (HUFF_LOOKAHEAD-l); ctr > 0; ctr--) {
-	dtbl->lookup[lookbits] = (l << HUFF_LOOKAHEAD) | htbl->huffval[p];
-	lookbits++;
+        dtbl->lookup[lookbits] = (l << HUFF_LOOKAHEAD) | htbl->huffval[p];
+        lookbits++;
       }
     }
   }
@@ -265,7 +265,7 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
     for (i = 0; i < numsymbols; i++) {
       int sym = htbl->huffval[i];
       if (sym < 0 || sym > 15)
-	ERREXIT(cinfo, JERR_BAD_HUFF_TABLE);
+        ERREXIT(cinfo, JERR_BAD_HUFF_TABLE);
     }
   }
 }
@@ -287,7 +287,7 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
 
 
 #ifdef SLOW_SHIFT_32
-#define MIN_GET_BITS  15	/* minimum allowable value */
+#define MIN_GET_BITS  15        /* minimum allowable value */
 #else
 #define MIN_GET_BITS  (BIT_BUF_SIZE-7)
 #endif
@@ -295,8 +295,8 @@ jpeg_make_d_derived_tbl (j_decompress_ptr cinfo, boolean isDC, int tblno,
 
 GLOBAL(boolean)
 jpeg_fill_bit_buffer (bitread_working_state * state,
-		      register bit_buf_type get_buffer, register int bits_left,
-		      int nbits)
+                      register bit_buf_type get_buffer, register int bits_left,
+                      int nbits)
 
 {
   
@@ -308,54 +308,54 @@ jpeg_fill_bit_buffer (bitread_working_state * state,
   
   
 
-  if (cinfo->unread_marker == 0) {	
+  if (cinfo->unread_marker == 0) {      
     while (bits_left < MIN_GET_BITS) {
       register int c;
 
       
       if (bytes_in_buffer == 0) {
-	if (! (*cinfo->src->fill_input_buffer) (cinfo))
-	  return FALSE;
-	next_input_byte = cinfo->src->next_input_byte;
-	bytes_in_buffer = cinfo->src->bytes_in_buffer;
+        if (! (*cinfo->src->fill_input_buffer) (cinfo))
+          return FALSE;
+        next_input_byte = cinfo->src->next_input_byte;
+        bytes_in_buffer = cinfo->src->bytes_in_buffer;
       }
       bytes_in_buffer--;
       c = GETJOCTET(*next_input_byte++);
 
       
       if (c == 0xFF) {
-	
+        
 
 
 
 
-	do {
-	  if (bytes_in_buffer == 0) {
-	    if (! (*cinfo->src->fill_input_buffer) (cinfo))
-	      return FALSE;
-	    next_input_byte = cinfo->src->next_input_byte;
-	    bytes_in_buffer = cinfo->src->bytes_in_buffer;
-	  }
-	  bytes_in_buffer--;
-	  c = GETJOCTET(*next_input_byte++);
-	} while (c == 0xFF);
+        do {
+          if (bytes_in_buffer == 0) {
+            if (! (*cinfo->src->fill_input_buffer) (cinfo))
+              return FALSE;
+            next_input_byte = cinfo->src->next_input_byte;
+            bytes_in_buffer = cinfo->src->bytes_in_buffer;
+          }
+          bytes_in_buffer--;
+          c = GETJOCTET(*next_input_byte++);
+        } while (c == 0xFF);
 
-	if (c == 0) {
-	  
-	  c = 0xFF;
-	} else {
-	  
-
-
+        if (c == 0) {
+          
+          c = 0xFF;
+        } else {
+          
 
 
 
 
 
-	  cinfo->unread_marker = c;
-	  
-	  goto no_more_bytes;
-	}
+
+
+          cinfo->unread_marker = c;
+          
+          goto no_more_bytes;
+        }
       }
 
       
@@ -375,8 +375,8 @@ jpeg_fill_bit_buffer (bitread_working_state * state,
 
 
       if (! cinfo->entropy->insufficient_data) {
-	WARNMS(cinfo, JWRN_HIT_MARKER);
-	cinfo->entropy->insufficient_data = TRUE;
+        WARNMS(cinfo, JWRN_HIT_MARKER);
+        cinfo->entropy->insufficient_data = TRUE;
       }
       
       get_buffer <<= MIN_GET_BITS - bits_left;
@@ -445,8 +445,8 @@ jpeg_fill_bit_buffer (bitread_working_state * state,
 
 GLOBAL(int)
 jpeg_huff_decode (bitread_working_state * state,
-		  register bit_buf_type get_buffer, register int bits_left,
-		  d_derived_tbl * htbl, int min_bits)
+                  register bit_buf_type get_buffer, register int bits_left,
+                  d_derived_tbl * htbl, int min_bits)
 {
   register int l = min_bits;
   register INT32 code;
@@ -475,7 +475,7 @@ jpeg_huff_decode (bitread_working_state * state,
 
   if (l > 16) {
     WARNMS(state->cinfo, JWRN_HUFF_BAD_CODE);
-    return 0;			
+    return 0;                   
   }
 
   return htbl->pub->huffval[ (int) (code + htbl->valoffset[l]) ];
@@ -595,7 +595,7 @@ decode_mcu_slow (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
 
         r = s >> 4;
         s &= 15;
-      
+
         if (s) {
           k += r;
           CHECK_BIT_BUFFER(br_state, s, return FALSE);
@@ -684,7 +684,7 @@ decode_mcu_fast (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
         HUFF_DECODE_FAST(s, l, actbl);
         r = s >> 4;
         s &= 15;
-      
+
         if (s) {
           k += r;
           FILL_BIT_BUFFER_FAST
@@ -756,7 +756,7 @@ decode_mcu (j_decompress_ptr cinfo, JBLOCKROW *MCU_data)
   if (cinfo->restart_interval) {
     if (entropy->restarts_to_go == 0)
       if (! process_restart(cinfo))
-	return FALSE;
+        return FALSE;
     usefast = 0;
   }
 
@@ -804,7 +804,7 @@ jinit_huff_decoder (j_decompress_ptr cinfo)
 
   entropy = (huff_entropy_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(huff_entropy_decoder));
+                                sizeof(huff_entropy_decoder));
   cinfo->entropy = (struct jpeg_entropy_decoder *) entropy;
   entropy->pub.start_pass = start_pass_huff_decoder;
   entropy->pub.decode_mcu = decode_mcu;

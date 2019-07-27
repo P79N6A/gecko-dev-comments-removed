@@ -24,14 +24,14 @@
 typedef struct {
   struct jpeg_input_controller pub; 
 
-  boolean inheaders;		
+  boolean inheaders;            
 } my_input_controller;
 
 typedef my_input_controller * my_inputctl_ptr;
 
 
 
-METHODDEF(int) consume_markers JPP((j_decompress_ptr cinfo));
+METHODDEF(int) consume_markers (j_decompress_ptr cinfo);
 
 
 
@@ -57,7 +57,7 @@ initial_setup (j_decompress_ptr cinfo)
   
   if (cinfo->num_components > MAX_COMPONENTS)
     ERREXIT2(cinfo, JERR_COMPONENT_COUNT, cinfo->num_components,
-	     MAX_COMPONENTS);
+             MAX_COMPONENTS);
 
   
   cinfo->max_h_samp_factor = 1;
@@ -65,12 +65,12 @@ initial_setup (j_decompress_ptr cinfo)
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
     if (compptr->h_samp_factor<=0 || compptr->h_samp_factor>MAX_SAMP_FACTOR ||
-	compptr->v_samp_factor<=0 || compptr->v_samp_factor>MAX_SAMP_FACTOR)
+        compptr->v_samp_factor<=0 || compptr->v_samp_factor>MAX_SAMP_FACTOR)
       ERREXIT(cinfo, JERR_BAD_SAMPLING);
     cinfo->max_h_samp_factor = MAX(cinfo->max_h_samp_factor,
-				   compptr->h_samp_factor);
+                                   compptr->h_samp_factor);
     cinfo->max_v_samp_factor = MAX(cinfo->max_v_samp_factor,
-				   compptr->v_samp_factor);
+                                   compptr->v_samp_factor);
   }
 
 #if JPEG_LIB_VERSION >=80
@@ -100,10 +100,10 @@ initial_setup (j_decompress_ptr cinfo)
     
     compptr->width_in_blocks = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_width * (long) compptr->h_samp_factor,
-		    (long) (cinfo->max_h_samp_factor * DCTSIZE));
+                    (long) (cinfo->max_h_samp_factor * DCTSIZE));
     compptr->height_in_blocks = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_height * (long) compptr->v_samp_factor,
-		    (long) (cinfo->max_v_samp_factor * DCTSIZE));
+                    (long) (cinfo->max_v_samp_factor * DCTSIZE));
     
 
 
@@ -111,10 +111,10 @@ initial_setup (j_decompress_ptr cinfo)
     
     compptr->downsampled_width = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_width * (long) compptr->h_samp_factor,
-		    (long) cinfo->max_h_samp_factor);
+                    (long) cinfo->max_h_samp_factor);
     compptr->downsampled_height = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_height * (long) compptr->v_samp_factor,
-		    (long) cinfo->max_v_samp_factor);
+                    (long) cinfo->max_v_samp_factor);
     
     compptr->component_needed = TRUE;
     
@@ -124,7 +124,7 @@ initial_setup (j_decompress_ptr cinfo)
   
   cinfo->total_iMCU_rows = (JDIMENSION)
     jdiv_round_up((long) cinfo->image_height,
-		  (long) (cinfo->max_v_samp_factor*DCTSIZE));
+                  (long) (cinfo->max_v_samp_factor*DCTSIZE));
 
   
   if (cinfo->comps_in_scan < cinfo->num_components || cinfo->progressive_mode)
@@ -141,16 +141,16 @@ per_scan_setup (j_decompress_ptr cinfo)
 {
   int ci, mcublks, tmp;
   jpeg_component_info *compptr;
-  
+
   if (cinfo->comps_in_scan == 1) {
-    
+
     
     compptr = cinfo->cur_comp_info[0];
-    
+
     
     cinfo->MCUs_per_row = compptr->width_in_blocks;
     cinfo->MCU_rows_in_scan = compptr->height_in_blocks;
-    
+
     
     compptr->MCU_width = 1;
     compptr->MCU_height = 1;
@@ -163,28 +163,28 @@ per_scan_setup (j_decompress_ptr cinfo)
     tmp = (int) (compptr->height_in_blocks % compptr->v_samp_factor);
     if (tmp == 0) tmp = compptr->v_samp_factor;
     compptr->last_row_height = tmp;
-    
+
     
     cinfo->blocks_in_MCU = 1;
     cinfo->MCU_membership[0] = 0;
-    
+
   } else {
-    
+
     
     if (cinfo->comps_in_scan <= 0 || cinfo->comps_in_scan > MAX_COMPS_IN_SCAN)
       ERREXIT2(cinfo, JERR_COMPONENT_COUNT, cinfo->comps_in_scan,
-	       MAX_COMPS_IN_SCAN);
-    
+               MAX_COMPS_IN_SCAN);
+
     
     cinfo->MCUs_per_row = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_width,
-		    (long) (cinfo->max_h_samp_factor*DCTSIZE));
+                    (long) (cinfo->max_h_samp_factor*DCTSIZE));
     cinfo->MCU_rows_in_scan = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_height,
-		    (long) (cinfo->max_v_samp_factor*DCTSIZE));
-    
+                    (long) (cinfo->max_v_samp_factor*DCTSIZE));
+
     cinfo->blocks_in_MCU = 0;
-    
+
     for (ci = 0; ci < cinfo->comps_in_scan; ci++) {
       compptr = cinfo->cur_comp_info[ci];
       
@@ -202,12 +202,12 @@ per_scan_setup (j_decompress_ptr cinfo)
       
       mcublks = compptr->MCU_blocks;
       if (cinfo->blocks_in_MCU + mcublks > D_MAX_BLOCKS_IN_MCU)
-	ERREXIT(cinfo, JERR_BAD_MCU_SIZE);
+        ERREXIT(cinfo, JERR_BAD_MCU_SIZE);
       while (mcublks-- > 0) {
-	cinfo->MCU_membership[cinfo->blocks_in_MCU++] = ci;
+        cinfo->MCU_membership[cinfo->blocks_in_MCU++] = ci;
       }
     }
-    
+
   }
 }
 
@@ -248,13 +248,13 @@ latch_quant_tables (j_decompress_ptr cinfo)
     
     qtblno = compptr->quant_tbl_no;
     if (qtblno < 0 || qtblno >= NUM_QUANT_TBLS ||
-	cinfo->quant_tbl_ptrs[qtblno] == NULL)
+        cinfo->quant_tbl_ptrs[qtblno] == NULL)
       ERREXIT1(cinfo, JERR_NO_QUANT_TABLE, qtblno);
     
     qtbl = (JQUANT_TBL *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  SIZEOF(JQUANT_TBL));
-    MEMCOPY(qtbl, cinfo->quant_tbl_ptrs[qtblno], SIZEOF(JQUANT_TBL));
+                                  sizeof(JQUANT_TBL));
+    MEMCOPY(qtbl, cinfo->quant_tbl_ptrs[qtblno], sizeof(JQUANT_TBL));
     compptr->quant_table = qtbl;
   }
 }
@@ -313,31 +313,31 @@ consume_markers (j_decompress_ptr cinfo)
   val = (*cinfo->marker->read_markers) (cinfo);
 
   switch (val) {
-  case JPEG_REACHED_SOS:	
-    if (inputctl->inheaders) {	
+  case JPEG_REACHED_SOS:        
+    if (inputctl->inheaders) {  
       initial_setup(cinfo);
       inputctl->inheaders = FALSE;
       
 
 
 
-    } else {			
+    } else {                    
       if (! inputctl->pub.has_multiple_scans)
-	ERREXIT(cinfo, JERR_EOI_EXPECTED); 
+        ERREXIT(cinfo, JERR_EOI_EXPECTED); 
       start_input_pass(cinfo);
     }
     break;
-  case JPEG_REACHED_EOI:	
+  case JPEG_REACHED_EOI:        
     inputctl->pub.eoi_reached = TRUE;
-    if (inputctl->inheaders) {	
+    if (inputctl->inheaders) {  
       if (cinfo->marker->saw_SOF)
-	ERREXIT(cinfo, JERR_SOF_NO_SOS);
+        ERREXIT(cinfo, JERR_SOF_NO_SOS);
     } else {
       
 
 
       if (cinfo->output_scan_number > cinfo->input_scan_number)
-	cinfo->output_scan_number = cinfo->input_scan_number;
+        cinfo->output_scan_number = cinfo->input_scan_number;
     }
     break;
   case JPEG_SUSPENDED:
@@ -382,7 +382,7 @@ jinit_input_controller (j_decompress_ptr cinfo)
   
   inputctl = (my_inputctl_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				SIZEOF(my_input_controller));
+                                sizeof(my_input_controller));
   cinfo->inputctl = (struct jpeg_input_controller *) inputctl;
   
   inputctl->pub.consume_input = consume_markers;

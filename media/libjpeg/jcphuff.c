@@ -12,10 +12,12 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
-#include "jchuff.h"		
+#include "jchuff.h"             
 
 #ifdef C_PROGRESSIVE_SUPPORTED
 
@@ -30,24 +32,24 @@ typedef struct {
   
 
 
-  JOCTET * next_output_byte;	
-  size_t free_in_buffer;	
-  INT32 put_buffer;		
-  int put_bits;			
-  j_compress_ptr cinfo;		
+  JOCTET * next_output_byte;    
+  size_t free_in_buffer;        
+  INT32 put_buffer;             
+  int put_bits;                 
+  j_compress_ptr cinfo;         
 
   
   int last_dc_val[MAX_COMPS_IN_SCAN]; 
 
   
-  int ac_tbl_no;		
-  unsigned int EOBRUN;		
-  unsigned int BE;		
-  char * bit_buffer;		
+  int ac_tbl_no;                
+  unsigned int EOBRUN;          
+  unsigned int BE;              
+  char * bit_buffer;            
   
 
-  unsigned int restarts_to_go;	
-  int next_restart_num;		
+  unsigned int restarts_to_go;  
+  int next_restart_num;         
 
   
 
@@ -67,7 +69,7 @@ typedef phuff_entropy_encoder * phuff_entropy_ptr;
 
 
 
-#define MAX_CORR_BITS  1000	/* Max # of correction bits I can buffer */
+#define MAX_CORR_BITS  1000     /* Max # of correction bits I can buffer */
 
 
 
@@ -75,27 +77,27 @@ typedef phuff_entropy_encoder * phuff_entropy_ptr;
 
 
 #ifdef RIGHT_SHIFT_IS_UNSIGNED
-#define ISHIFT_TEMPS	int ishift_temp;
+#define ISHIFT_TEMPS    int ishift_temp;
 #define IRIGHT_SHIFT(x,shft)  \
-	((ishift_temp = (x)) < 0 ? \
-	 (ishift_temp >> (shft)) | ((~0) << (16-(shft))) : \
-	 (ishift_temp >> (shft)))
+        ((ishift_temp = (x)) < 0 ? \
+         (ishift_temp >> (shft)) | ((~0) << (16-(shft))) : \
+         (ishift_temp >> (shft)))
 #else
 #define ISHIFT_TEMPS
-#define IRIGHT_SHIFT(x,shft)	((x) >> (shft))
+#define IRIGHT_SHIFT(x,shft)    ((x) >> (shft))
 #endif
 
 
-METHODDEF(boolean) encode_mcu_DC_first JPP((j_compress_ptr cinfo,
-					    JBLOCKROW *MCU_data));
-METHODDEF(boolean) encode_mcu_AC_first JPP((j_compress_ptr cinfo,
-					    JBLOCKROW *MCU_data));
-METHODDEF(boolean) encode_mcu_DC_refine JPP((j_compress_ptr cinfo,
-					     JBLOCKROW *MCU_data));
-METHODDEF(boolean) encode_mcu_AC_refine JPP((j_compress_ptr cinfo,
-					     JBLOCKROW *MCU_data));
-METHODDEF(void) finish_pass_phuff JPP((j_compress_ptr cinfo));
-METHODDEF(void) finish_pass_gather_phuff JPP((j_compress_ptr cinfo));
+METHODDEF(boolean) encode_mcu_DC_first (j_compress_ptr cinfo,
+                                        JBLOCKROW *MCU_data);
+METHODDEF(boolean) encode_mcu_AC_first (j_compress_ptr cinfo,
+                                        JBLOCKROW *MCU_data);
+METHODDEF(boolean) encode_mcu_DC_refine (j_compress_ptr cinfo,
+                                         JBLOCKROW *MCU_data);
+METHODDEF(boolean) encode_mcu_AC_refine (j_compress_ptr cinfo,
+                                         JBLOCKROW *MCU_data);
+METHODDEF(void) finish_pass_phuff (j_compress_ptr cinfo);
+METHODDEF(void) finish_pass_gather_phuff (j_compress_ptr cinfo);
 
 
 
@@ -104,7 +106,7 @@ METHODDEF(void) finish_pass_gather_phuff JPP((j_compress_ptr cinfo));
 
 METHODDEF(void)
 start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
-{  
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   boolean is_DC_band;
   int ci, tbl;
@@ -130,9 +132,9 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
       entropy->pub.encode_mcu = encode_mcu_AC_refine;
       
       if (entropy->bit_buffer == NULL)
-	entropy->bit_buffer = (char *)
-	  (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				      MAX_CORR_BITS * SIZEOF(char));
+        entropy->bit_buffer = (char *)
+          (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
+                                      MAX_CORR_BITS * sizeof(char));
     }
   }
   if (gather_statistics)
@@ -149,8 +151,8 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
     entropy->last_dc_val[ci] = 0;
     
     if (is_DC_band) {
-      if (cinfo->Ah != 0)	
-	continue;
+      if (cinfo->Ah != 0)       
+        continue;
       tbl = compptr->dc_tbl_no;
     } else {
       entropy->ac_tbl_no = tbl = compptr->ac_tbl_no;
@@ -163,15 +165,15 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
       
       
       if (entropy->count_ptrs[tbl] == NULL)
-	entropy->count_ptrs[tbl] = (long *)
-	  (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				      257 * SIZEOF(long));
-      MEMZERO(entropy->count_ptrs[tbl], 257 * SIZEOF(long));
+        entropy->count_ptrs[tbl] = (long *)
+          (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
+                                      257 * sizeof(long));
+      MEMZERO(entropy->count_ptrs[tbl], 257 * sizeof(long));
     } else {
       
       
       jpeg_make_c_derived_tbl(cinfo, is_DC_band, tbl,
-			      & entropy->derived_tbls[tbl]);
+                              & entropy->derived_tbls[tbl]);
     }
   }
 
@@ -196,9 +198,9 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
 
 
 #define emit_byte(entropy,val)  \
-	{ *(entropy)->next_output_byte++ = (JOCTET) (val);  \
-	  if (--(entropy)->free_in_buffer == 0)  \
-	    dump_buffer(entropy); }
+        { *(entropy)->next_output_byte++ = (JOCTET) (val);  \
+          if (--(entropy)->free_in_buffer == 0)  \
+            dump_buffer(entropy); }
 
 
 LOCAL(void)
@@ -236,21 +238,21 @@ emit_bits (phuff_entropy_ptr entropy, unsigned int code, int size)
     ERREXIT(entropy->cinfo, JERR_HUFF_MISSING_CODE);
 
   if (entropy->gather_statistics)
-    return;			
+    return;                     
 
   put_buffer &= (((INT32) 1)<<size) - 1; 
-  
-  put_bits += size;		
-  
+
+  put_bits += size;             
+
   put_buffer <<= 24 - put_bits; 
 
   put_buffer |= entropy->put_buffer; 
 
   while (put_bits >= 8) {
     int c = (int) ((put_buffer >> 16) & 0xFF);
-    
+
     emit_byte(entropy, c);
-    if (c == 0xFF) {		
+    if (c == 0xFF) {            
       emit_byte(entropy, 0);
     }
     put_buffer <<= 8;
@@ -293,10 +295,10 @@ emit_symbol (phuff_entropy_ptr entropy, int tbl_no, int symbol)
 
 LOCAL(void)
 emit_buffered_bits (phuff_entropy_ptr entropy, char * bufstart,
-		    unsigned int nbits)
+                    unsigned int nbits)
 {
   if (entropy->gather_statistics)
-    return;			
+    return;                     
 
   while (nbits > 0) {
     emit_bits(entropy, (unsigned int) (*bufstart), 1);
@@ -315,7 +317,7 @@ emit_eobrun (phuff_entropy_ptr entropy)
 {
   register int temp, nbits;
 
-  if (entropy->EOBRUN > 0) {	
+  if (entropy->EOBRUN > 0) {    
     temp = entropy->EOBRUN;
     nbits = 0;
     while ((temp >>= 1))
@@ -409,12 +411,12 @@ encode_mcu_DC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
     
     temp2 = temp;
     if (temp < 0) {
-      temp = -temp;		
+      temp = -temp;             
       
       
       temp2--;
     }
-    
+
     
     nbits = 0;
     while (temp) {
@@ -426,13 +428,13 @@ encode_mcu_DC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
 
     if (nbits > MAX_COEF_BITS+1)
       ERREXIT(cinfo, JERR_BAD_DCT_COEF);
-    
+
     
     emit_symbol(entropy, compptr->dc_tbl_no, nbits);
+
     
     
-    
-    if (nbits)			
+    if (nbits)                  
       emit_bits(entropy, (unsigned int) temp2, nbits);
   }
 
@@ -481,9 +483,9 @@ encode_mcu_AC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
   block = MCU_data[0];
 
   
-  
-  r = 0;			
-   
+
+  r = 0;                        
+
   for (k = cinfo->Ss; k <= Se; k++) {
     if ((temp = (*block)[jpeg_natural_order[k]]) == 0) {
       r++;
@@ -495,12 +497,12 @@ encode_mcu_AC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
 
 
     if (temp < 0) {
-      temp = -temp;		
-      temp >>= Al;		
+      temp = -temp;             
+      temp >>= Al;              
       
       temp2 = ~temp;
     } else {
-      temp >>= Al;		
+      temp >>= Al;              
       temp2 = temp;
     }
     
@@ -519,7 +521,7 @@ encode_mcu_AC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
     }
 
     
-    nbits = 1;			
+    nbits = 1;                  
     while ((temp >>= 1))
       nbits++;
     
@@ -533,13 +535,13 @@ encode_mcu_AC_first (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
     
     emit_bits(entropy, (unsigned int) temp2, nbits);
 
-    r = 0;			
+    r = 0;                      
   }
 
-  if (r > 0) {			
-    entropy->EOBRUN++;		
+  if (r > 0) {                  
+    entropy->EOBRUN++;          
     if (entropy->EOBRUN == 0x7FFF)
-      emit_eobrun(entropy);	
+      emit_eobrun(entropy);     
   }
 
   cinfo->dest->next_output_byte = entropy->next_output_byte;
@@ -648,17 +650,17 @@ encode_mcu_AC_refine (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
 
 
     if (temp < 0)
-      temp = -temp;		
-    temp >>= Al;		
-    absvalues[k] = temp;	
+      temp = -temp;             
+    temp >>= Al;                
+    absvalues[k] = temp;        
     if (temp == 1)
-      EOB = k;			
+      EOB = k;                  
   }
 
   
-  
-  r = 0;			
-  BR = 0;			
+
+  r = 0;                        
+  BR = 0;                       
   BR_buffer = entropy->bit_buffer + entropy->BE; 
 
   for (k = cinfo->Ss; k <= Se; k++) {
@@ -705,12 +707,12 @@ encode_mcu_AC_refine (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
     emit_buffered_bits(entropy, BR_buffer, BR);
     BR_buffer = entropy->bit_buffer; 
     BR = 0;
-    r = 0;			
+    r = 0;                      
   }
 
-  if (r > 0 || BR > 0) {	
-    entropy->EOBRUN++;		
-    entropy->BE += BR;		
+  if (r > 0 || BR > 0) {        
+    entropy->EOBRUN++;          
+    entropy->BE += BR;          
     
 
 
@@ -742,7 +744,7 @@ encode_mcu_AC_refine (j_compress_ptr cinfo, JBLOCKROW *MCU_data)
 
 METHODDEF(void)
 finish_pass_phuff (j_compress_ptr cinfo)
-{   
+{
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
 
   entropy->next_output_byte = cinfo->dest->next_output_byte;
@@ -779,13 +781,13 @@ finish_pass_gather_phuff (j_compress_ptr cinfo)
   
 
 
-  MEMZERO(did, SIZEOF(did));
+  MEMZERO(did, sizeof(did));
 
   for (ci = 0; ci < cinfo->comps_in_scan; ci++) {
     compptr = cinfo->cur_comp_info[ci];
     if (is_DC_band) {
-      if (cinfo->Ah != 0)	
-	continue;
+      if (cinfo->Ah != 0)       
+        continue;
       tbl = compptr->dc_tbl_no;
     } else {
       tbl = compptr->ac_tbl_no;
@@ -816,7 +818,7 @@ jinit_phuff_encoder (j_compress_ptr cinfo)
 
   entropy = (phuff_entropy_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(phuff_entropy_encoder));
+                                sizeof(phuff_entropy_encoder));
   cinfo->entropy = (struct jpeg_entropy_encoder *) entropy;
   entropy->pub.start_pass = start_pass_phuff;
 
@@ -825,7 +827,7 @@ jinit_phuff_encoder (j_compress_ptr cinfo)
     entropy->derived_tbls[i] = NULL;
     entropy->count_ptrs[i] = NULL;
   }
-  entropy->bit_buffer = NULL;	
+  entropy->bit_buffer = NULL;   
 }
 
 #endif 

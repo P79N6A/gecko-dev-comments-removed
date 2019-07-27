@@ -26,16 +26,16 @@
 
 
 typedef struct {
-  struct jpeg_source_mgr pub;	
+  struct jpeg_source_mgr pub;   
 
-  FILE * infile;		
-  JOCTET * buffer;		
-  boolean start_of_file;	
+  FILE * infile;                
+  JOCTET * buffer;              
+  boolean start_of_file;        
 } my_source_mgr;
 
 typedef my_source_mgr * my_src_ptr;
 
-#define INPUT_BUF_SIZE  4096	/* choose an efficiently fread'able size */
+#define INPUT_BUF_SIZE  4096    /* choose an efficiently fread'able size */
 
 
 
@@ -106,7 +106,7 @@ fill_input_buffer (j_decompress_ptr cinfo)
   nbytes = JFREAD(src->infile, src->buffer, INPUT_BUF_SIZE);
 
   if (nbytes <= 0) {
-    if (src->start_of_file)	
+    if (src->start_of_file)     
       ERREXIT(cinfo, JERR_INPUT_EMPTY);
     WARNMS(cinfo, JWRN_JPEG_EOF);
     
@@ -224,14 +224,14 @@ jpeg_stdio_src (j_decompress_ptr cinfo, FILE * infile)
 
 
 
-  if (cinfo->src == NULL) {	
+  if (cinfo->src == NULL) {     
     cinfo->src = (struct jpeg_source_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(my_source_mgr));
+                                  sizeof(my_source_mgr));
     src = (my_src_ptr) cinfo->src;
     src->buffer = (JOCTET *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  INPUT_BUF_SIZE * SIZEOF(JOCTET));
+                                  INPUT_BUF_SIZE * sizeof(JOCTET));
   }
 
   src = (my_src_ptr) cinfo->src;
@@ -254,21 +254,21 @@ jpeg_stdio_src (j_decompress_ptr cinfo, FILE * infile)
 
 GLOBAL(void)
 jpeg_mem_src (j_decompress_ptr cinfo,
-	      unsigned char * inbuffer, unsigned long insize)
+              unsigned char * inbuffer, unsigned long insize)
 {
   struct jpeg_source_mgr * src;
 
-  if (inbuffer == NULL || insize == 0)	
+  if (inbuffer == NULL || insize == 0)  
     ERREXIT(cinfo, JERR_INPUT_EMPTY);
 
   
 
 
 
-  if (cinfo->src == NULL) {	
+  if (cinfo->src == NULL) {     
     cinfo->src = (struct jpeg_source_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(struct jpeg_source_mgr));
+                                  sizeof(struct jpeg_source_mgr));
   }
 
   src = cinfo->src;

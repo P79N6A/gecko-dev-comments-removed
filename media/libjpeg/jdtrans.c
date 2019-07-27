@@ -10,13 +10,15 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
 
 
 
-LOCAL(void) transdecode_master_selection JPP((j_decompress_ptr cinfo));
+LOCAL(void) transdecode_master_selection (j_decompress_ptr cinfo);
 
 
 
@@ -55,20 +57,20 @@ jpeg_read_coefficients (j_decompress_ptr cinfo)
       int retcode;
       
       if (cinfo->progress != NULL)
-	(*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
+        (*cinfo->progress->progress_monitor) ((j_common_ptr) cinfo);
       
       retcode = (*cinfo->inputctl->consume_input) (cinfo);
       if (retcode == JPEG_SUSPENDED)
-	return NULL;
+        return NULL;
       if (retcode == JPEG_REACHED_EOI)
-	break;
+        break;
       
       if (cinfo->progress != NULL &&
-	  (retcode == JPEG_ROW_COMPLETED || retcode == JPEG_REACHED_SOS)) {
-	if (++cinfo->progress->pass_counter >= cinfo->progress->pass_limit) {
-	  
-	  cinfo->progress->pass_limit += (long) cinfo->total_iMCU_rows;
-	}
+          (retcode == JPEG_ROW_COMPLETED || retcode == JPEG_REACHED_SOS)) {
+        if (++cinfo->progress->pass_counter >= cinfo->progress->pass_limit) {
+          
+          cinfo->progress->pass_limit += (long) cinfo->total_iMCU_rows;
+        }
       }
     }
     
@@ -84,7 +86,7 @@ jpeg_read_coefficients (j_decompress_ptr cinfo)
   }
   
   ERREXIT1(cinfo, JERR_BAD_STATE, cinfo->global_state);
-  return NULL;			
+  return NULL;                  
 }
 
 

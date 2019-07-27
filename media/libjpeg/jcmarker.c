@@ -17,7 +17,7 @@
 #include "jpegcomp.h"
 
 
-typedef enum {			
+typedef enum {                  
   M_SOF0  = 0xc0,
   M_SOF1  = 0xc1,
   M_SOF2  = 0xc2,
@@ -173,7 +173,7 @@ emit_dqt (j_compress_ptr cinfo, int index)
       
       unsigned int qval = qtbl->quantval[jpeg_natural_order[i]];
       if (prec)
-	emit_byte(cinfo, (int) (qval >> 8));
+        emit_byte(cinfo, (int) (qval >> 8));
       emit_byte(cinfo, (int) (qval & 0xFF));
     }
 
@@ -190,33 +190,33 @@ emit_dht (j_compress_ptr cinfo, int index, boolean is_ac)
 {
   JHUFF_TBL * htbl;
   int length, i;
-  
+
   if (is_ac) {
     htbl = cinfo->ac_huff_tbl_ptrs[index];
-    index += 0x10;		
+    index += 0x10;              
   } else {
     htbl = cinfo->dc_huff_tbl_ptrs[index];
   }
 
   if (htbl == NULL)
     ERREXIT1(cinfo, JERR_NO_HUFF_TABLE, index);
-  
+
   if (! htbl->sent_table) {
     emit_marker(cinfo, M_DHT);
-    
+
     length = 0;
     for (i = 1; i <= 16; i++)
       length += htbl->bits[i];
-    
+
     emit_2bytes(cinfo, length + 2 + 1 + 16);
     emit_byte(cinfo, index);
-    
+
     for (i = 1; i <= 16; i++)
       emit_byte(cinfo, htbl->bits[i]);
-    
+
     for (i = 0; i < length; i++)
       emit_byte(cinfo, htbl->huffval[i]);
-    
+
     htbl->sent_table = TRUE;
   }
 }
@@ -258,12 +258,12 @@ emit_dac (j_compress_ptr cinfo)
 
     for (i = 0; i < NUM_ARITH_TBLS; i++) {
       if (dc_in_use[i]) {
-	emit_byte(cinfo, i);
-	emit_byte(cinfo, cinfo->arith_dc_L[i] + (cinfo->arith_dc_U[i]<<4));
+        emit_byte(cinfo, i);
+        emit_byte(cinfo, cinfo->arith_dc_L[i] + (cinfo->arith_dc_U[i]<<4));
       }
       if (ac_in_use[i]) {
-	emit_byte(cinfo, i + 0x10);
-	emit_byte(cinfo, cinfo->arith_ac_K[i]);
+        emit_byte(cinfo, i + 0x10);
+        emit_byte(cinfo, cinfo->arith_ac_K[i]);
       }
     }
   }
@@ -276,8 +276,8 @@ emit_dri (j_compress_ptr cinfo)
 
 {
   emit_marker(cinfo, M_DRI);
-  
-  emit_2bytes(cinfo, 4);	
+
+  emit_2bytes(cinfo, 4);        
 
   emit_2bytes(cinfo, (int) cinfo->restart_interval);
 }
@@ -289,9 +289,9 @@ emit_sof (j_compress_ptr cinfo, JPEG_MARKER code)
 {
   int ci;
   jpeg_component_info *compptr;
-  
+
   emit_marker(cinfo, code);
-  
+
   emit_2bytes(cinfo, 3 * cinfo->num_components + 2 + 5 + 1); 
 
   
@@ -320,13 +320,13 @@ emit_sos (j_compress_ptr cinfo)
 {
   int i, td, ta;
   jpeg_component_info *compptr;
-  
+
   emit_marker(cinfo, M_SOS);
-  
+
   emit_2bytes(cinfo, 2 * cinfo->comps_in_scan + 2 + 1 + 3); 
-  
+
   emit_byte(cinfo, cinfo->comps_in_scan);
-  
+
   for (i = 0; i < cinfo->comps_in_scan; i++) {
     compptr = cinfo->cur_comp_info[i];
     emit_byte(cinfo, compptr->component_id);
@@ -364,12 +364,12 @@ emit_jfif_app0 (j_compress_ptr cinfo)
 
 
 
-  
+
   emit_marker(cinfo, M_APP0);
-  
+
   emit_2bytes(cinfo, 2 + 4 + 1 + 2 + 1 + 2 + 2 + 1 + 1); 
 
-  emit_byte(cinfo, 0x4A);	
+  emit_byte(cinfo, 0x4A);       
   emit_byte(cinfo, 0x46);
   emit_byte(cinfo, 0x49);
   emit_byte(cinfo, 0x46);
@@ -379,7 +379,7 @@ emit_jfif_app0 (j_compress_ptr cinfo)
   emit_byte(cinfo, cinfo->density_unit); 
   emit_2bytes(cinfo, (int) cinfo->X_density);
   emit_2bytes(cinfo, (int) cinfo->Y_density);
-  emit_byte(cinfo, 0);		
+  emit_byte(cinfo, 0);          
   emit_byte(cinfo, 0);
 }
 
@@ -403,28 +403,28 @@ emit_adobe_app14 (j_compress_ptr cinfo)
 
 
 
-  
+
   emit_marker(cinfo, M_APP14);
-  
+
   emit_2bytes(cinfo, 2 + 5 + 2 + 2 + 2 + 1); 
 
-  emit_byte(cinfo, 0x41);	
+  emit_byte(cinfo, 0x41);       
   emit_byte(cinfo, 0x64);
   emit_byte(cinfo, 0x6F);
   emit_byte(cinfo, 0x62);
   emit_byte(cinfo, 0x65);
-  emit_2bytes(cinfo, 100);	
-  emit_2bytes(cinfo, 0);	
-  emit_2bytes(cinfo, 0);	
+  emit_2bytes(cinfo, 100);      
+  emit_2bytes(cinfo, 0);        
+  emit_2bytes(cinfo, 0);        
   switch (cinfo->jpeg_color_space) {
   case JCS_YCbCr:
-    emit_byte(cinfo, 1);	
+    emit_byte(cinfo, 1);        
     break;
   case JCS_YCCK:
-    emit_byte(cinfo, 2);	
+    emit_byte(cinfo, 2);        
     break;
   default:
-    emit_byte(cinfo, 0);	
+    emit_byte(cinfo, 0);        
     break;
   }
 }
@@ -442,12 +442,12 @@ METHODDEF(void)
 write_marker_header (j_compress_ptr cinfo, int marker, unsigned int datalen)
 
 {
-  if (datalen > (unsigned int) 65533)		
+  if (datalen > (unsigned int) 65533)           
     ERREXIT(cinfo, JERR_BAD_LENGTH);
 
   emit_marker(cinfo, (JPEG_MARKER) marker);
 
-  emit_2bytes(cinfo, (int) (datalen + 2));	
+  emit_2bytes(cinfo, (int) (datalen + 2));      
 }
 
 METHODDEF(void)
@@ -474,12 +474,12 @@ write_file_header (j_compress_ptr cinfo)
 {
   my_marker_ptr marker = (my_marker_ptr) cinfo->marker;
 
-  emit_marker(cinfo, M_SOI);	
+  emit_marker(cinfo, M_SOI);    
 
   
   marker->last_restart_interval = 0;
 
-  if (cinfo->write_JFIF_header)	
+  if (cinfo->write_JFIF_header) 
     emit_jfif_app0(cinfo);
   if (cinfo->write_Adobe_marker) 
     emit_adobe_app14(cinfo);
@@ -500,7 +500,7 @@ write_frame_header (j_compress_ptr cinfo)
   int ci, prec;
   boolean is_baseline;
   jpeg_component_info *compptr;
-  
+
   
 
 
@@ -520,9 +520,9 @@ write_frame_header (j_compress_ptr cinfo)
   } else {
     is_baseline = TRUE;
     for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
-	 ci++, compptr++) {
+         ci++, compptr++) {
       if (compptr->dc_tbl_no > 1 || compptr->ac_tbl_no > 1)
-	is_baseline = FALSE;
+        is_baseline = FALSE;
     }
     if (prec && is_baseline) {
       is_baseline = FALSE;
@@ -539,11 +539,11 @@ write_frame_header (j_compress_ptr cinfo)
       emit_sof(cinfo, M_SOF9);  
   } else {
     if (cinfo->progressive_mode)
-      emit_sof(cinfo, M_SOF2);	
+      emit_sof(cinfo, M_SOF2);  
     else if (is_baseline)
-      emit_sof(cinfo, M_SOF0);	
+      emit_sof(cinfo, M_SOF0);  
     else
-      emit_sof(cinfo, M_SOF1);	
+      emit_sof(cinfo, M_SOF1);  
   }
 }
 
@@ -575,10 +575,10 @@ write_scan_header (j_compress_ptr cinfo)
       compptr = cinfo->cur_comp_info[i];
       
       if (cinfo->Ss == 0 && cinfo->Ah == 0)
-	emit_dht(cinfo, compptr->dc_tbl_no, FALSE);
+        emit_dht(cinfo, compptr->dc_tbl_no, FALSE);
       
       if (cinfo->Se)
-	emit_dht(cinfo, compptr->ac_tbl_no, TRUE);
+        emit_dht(cinfo, compptr->ac_tbl_no, TRUE);
     }
   }
 
@@ -627,9 +627,9 @@ write_tables_only (j_compress_ptr cinfo)
   if (! cinfo->arith_code) {
     for (i = 0; i < NUM_HUFF_TBLS; i++) {
       if (cinfo->dc_huff_tbl_ptrs[i] != NULL)
-	emit_dht(cinfo, i, FALSE);
+        emit_dht(cinfo, i, FALSE);
       if (cinfo->ac_huff_tbl_ptrs[i] != NULL)
-	emit_dht(cinfo, i, TRUE);
+        emit_dht(cinfo, i, TRUE);
     }
   }
 
@@ -649,7 +649,7 @@ jinit_marker_writer (j_compress_ptr cinfo)
   
   marker = (my_marker_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				SIZEOF(my_marker_writer));
+                                sizeof(my_marker_writer));
   cinfo->marker = (struct jpeg_marker_writer *) marker;
   
   marker->pub.write_file_header = write_file_header;
