@@ -774,6 +774,8 @@ pref("toolkit.telemetry.infoURL", "https://www.mozilla.org/legal/privacy/firefox
 
 pref("toolkit.telemetry.debugSlowSql", false);
 
+pref("toolkit.telemetry.archive.enabled", true);
+
 
 pref("toolkit.identity.enabled", false);
 pref("toolkit.identity.debug", false);
@@ -4173,8 +4175,11 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozAlarms.enabled", false);
 
 
+#ifdef RELEASE_BUILD
 pref("dom.push.enabled", false);
-
+#else
+pref("dom.push.enabled", true);
+#endif
 pref("dom.push.debug", false);
 pref("dom.push.serverURL", "wss://push.services.mozilla.com/");
 pref("dom.push.userAgentID", "");
