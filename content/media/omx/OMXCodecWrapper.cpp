@@ -302,6 +302,7 @@ ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
 
 
 
+
 static void
 ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
 {
@@ -309,9 +310,6 @@ ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
   sp<GraphicBuffer> graphicBuffer = aSource->GetGraphicBuffer();
 
   int pixelFormat = graphicBuffer->getPixelFormat();
-  
-  NS_ENSURE_TRUE_VOID(pixelFormat == HAL_PIXEL_FORMAT_YCrCb_420_SP ||
-                      pixelFormat == HAL_PIXEL_FORMAT_YV12);
 
   void* imgPtr = nullptr;
   graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &imgPtr);
@@ -353,6 +351,26 @@ ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
       yuv.mCbSkip = 0;
       ConvertPlanarYCbCrToNV12(&yuv, aDestination);
       break;
+    
+    case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
+      
+      yuv.mYChannel = static_cast<uint8_t*>(imgPtr);
+      yuv.mYSkip = 0;
+      yuv.mYSize.width = graphicBuffer->getWidth();
+      yuv.mYSize.height = graphicBuffer->getHeight();
+      
+      yuv.mYStride = (yuv.mYSize.width + 127) & ~127;
+      yuv.mCbCrSize.width = yuv.mYSize.width / 2;
+      yuv.mCbCrSize.height = yuv.mYSize.height / 2;
+      
+      yuv.mCbChannel = yuv.mYChannel + (yuv.mYStride * ((yuv.mYSize.height + 31) & ~31));
+      
+      yuv.mCbSkip = 1;
+      yuv.mCrChannel = yuv.mCbChannel + 1;
+      yuv.mCrSkip = 1;
+      yuv.mCbCrStride = yuv.mYStride;
+      ConvertPlanarYCbCrToNV12(&yuv, aDestination);
+      break;
     default:
       NS_ERROR("Unsupported input gralloc image type. Should never be here.");
   }
@@ -368,6 +386,31 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
 
   NS_ENSURE_TRUE(aWidth == mWidth && aHeight == mHeight && aTimestamp >= 0,
                  NS_ERROR_INVALID_ARG);
+
+  Image* img = const_cast<Image*>(aImage);
+  ImageFormat format = ImageFormat::PLANAR_YCBCR;
+  if (img) {
+    format = img->GetFormat();
+    gfx::IntSize size = img->GetSize();
+    
+    NS_ENSURE_TRUE(aWidth == size.width, NS_ERROR_INVALID_ARG);
+    NS_ENSURE_TRUE(aHeight == size.height, NS_ERROR_INVALID_ARG);
+    if (format == ImageFormat::PLANAR_YCBCR) {
+      NS_ENSURE_TRUE(static_cast<PlanarYCbCrImage*>(img)->IsValid(),
+                     NS_ERROR_INVALID_ARG);
+    } else if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
+      
+      int halFormat = static_cast<GrallocImage*>(img)->GetGraphicBuffer()->getPixelFormat();
+      NS_ENSURE_TRUE(halFormat == HAL_PIXEL_FORMAT_YCrCb_420_SP ||
+                     halFormat == HAL_PIXEL_FORMAT_YV12 ||
+                     halFormat == GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS,
+                     NS_ERROR_INVALID_ARG);
+    } else {
+      
+      NS_ERROR("Unsupported input image type.");
+      return NS_ERROR_INVALID_ARG;
+    }
+  }
 
   status_t result;
 
@@ -385,30 +428,20 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
   
   MOZ_ASSERT(dstSize >= yLen + uvLen);
 
-  inBuf->setRange(0, yLen + uvLen);
-
-  if (!aImage) {
+  dstSize = yLen + uvLen;
+  inBuf->setRange(0, dstSize);
+  if (!img) {
     
-    dstSize = yLen + uvLen;
     
     memset(dst, 0x10, yLen);
     
     memset(dst + yLen, 0x80, uvLen);
   } else {
-    Image* img = const_cast<Image*>(aImage);
-    ImageFormat format = img->GetFormat();
-
-    MOZ_ASSERT(aWidth == img->GetSize().width &&
-               aHeight == img->GetSize().height);
-
     if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
       ConvertGrallocImageToNV12(static_cast<GrallocImage*>(img), dst);
     } else if (format == ImageFormat::PLANAR_YCBCR) {
       ConvertPlanarYCbCrToNV12(static_cast<PlanarYCbCrImage*>(img)->GetData(),
-                             dst);
-    } else {
-      
-      NS_ERROR("Unsupported input image type.");
+                               dst);
     }
   }
 
