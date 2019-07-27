@@ -269,8 +269,6 @@ RasterImage::RasterImage(ProgressTracker* aProgressTracker,
 #endif
   mSourceBuffer(new SourceBuffer()),
   mFrameCount(0),
-  mNotifyProgress(NoProgress),
-  mNotifying(false),
   mHasSize(false),
   mDecodeOnDraw(false),
   mTransient(false),
@@ -1857,43 +1855,14 @@ RasterImage::NotifyProgress(Progress aProgress,
   nsRefPtr<RasterImage> image(this);
 
   bool wasDefaultFlags = aFlags == DECODE_FLAGS_DEFAULT;
-  Progress progress = aProgress;
-  nsIntRect invalidRect = aInvalidRect;
 
-  if (!invalidRect.IsEmpty() && wasDefaultFlags) {
+  if (!aInvalidRect.IsEmpty() && wasDefaultFlags) {
     
     UpdateImageContainer();
   }
 
-  if (mNotifying) {
-    
-    
-    
-    
-    mNotifyProgress |= progress;
-    mNotifyInvalidRect.Union(invalidRect);
-  } else {
-    MOZ_ASSERT(mNotifyProgress == NoProgress && mNotifyInvalidRect.IsEmpty(),
-               "Shouldn't have an accumulated change at this point");
-
-    progress = image->mProgressTracker->Difference(progress);
-
-    while (progress != NoProgress || !invalidRect.IsEmpty()) {
-      
-      mNotifying = true;
-      image->mProgressTracker->SyncNotifyProgress(progress, invalidRect);
-      mNotifying = false;
-
-      
-      
-      
-      progress = image->mProgressTracker->Difference(mNotifyProgress);
-      mNotifyProgress = NoProgress;
-
-      invalidRect = mNotifyInvalidRect;
-      mNotifyInvalidRect = nsIntRect();
-    }
-  }
+  
+  image->mProgressTracker->SyncNotifyProgress(aProgress, aInvalidRect);
 }
 
 void
