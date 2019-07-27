@@ -1580,6 +1580,27 @@ public:
 
 
 
+  enum class DispatchFailureHandling { AssertSuccess, IgnoreFailure };
+
+  
+
+
+
+
+
+
+
+
+
+
+  static void RunInStableState(already_AddRefed<nsIRunnable> aRunnable,
+                               DispatchFailureHandling aHandling =
+                                 DispatchFailureHandling::AssertSuccess);
+
+  
+
+
+
 
 
 
