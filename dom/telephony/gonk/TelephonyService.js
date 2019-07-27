@@ -892,6 +892,11 @@ TelephonyService.prototype = {
         break;
 
       
+      case RIL.MMI_KS_SC_CHANGE_PASSWORD:
+        this._callBarringPasswordMMI(aClientId, aMmi, aCallback);
+        break;
+
+      
       default:
         this._sendMMI(aClientId, aMmi, aCallback);
         break;
@@ -1254,6 +1259,57 @@ TelephonyService.prototype = {
         aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_NOT_SUPPORTED);
         break;
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _callBarringPasswordMMI: function(aClientId, aMmi, aCallback) {
+    if (!this._isRadioOn(aClientId)) {
+      aCallback.notifyDialMMIError(RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE);
+      return;
+    }
+
+    if (aMmi.procedure !== RIL.MMI_PROCEDURE_REGISTRATION &&
+        aMmi.procedure !== RIL.MMI_PROCEDURE_ACTIVATION) {
+      aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_INVALID_ACTION);
+      return;
+    }
+
+    if (aMmi.sia !== "" && aMmi.sia !== RIL.MMI_ZZ_BARRING_SERVICE) {
+      aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_NOT_SUPPORTED);
+      return;
+    }
+
+    let validPassword = aSi => /^[0-9]{4}$/.test(aSi);
+    if (!validPassword(aMmi.sib) || !validPassword(aMmi.sic) ||
+        !validPassword(aMmi.pwd)) {
+      aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_INVALID_PASSWORD);
+      return;
+    }
+
+    if (aMmi.sic !== aMmi.pwd) {
+      aCallback.notifyDialMMIError(RIL.MMI_ERROR_KS_MISMATCH_PASSWORD);
+      return;
+    }
+
+    let connection = gGonkMobileConnectionService.getItemByServiceId(aClientId);
+    connection.changeCallBarringPassword(aMmi.sib, aMmi.sic, {
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback]),
+      notifySuccess: function() {
+        aCallback.notifyDialMMISuccess(RIL.MMI_SM_KS_PASSWORD_CHANGED);
+      },
+      notifyError: function(aErrorMsg) {
+        aCallback.notifyDialMMIError(aErrorMsg);
+      },
+    });
   },
 
   _serviceCodeToKeyString: function(aServiceCode) {
