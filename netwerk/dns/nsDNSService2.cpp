@@ -489,8 +489,8 @@ nsDNSService::Init()
 
     
     uint32_t maxCacheEntries  = 400;
-    uint32_t maxCacheLifetime = 120; 
-    uint32_t lifetimeGracePeriod = 60; 
+    uint32_t defaultCacheLifetime = 120; 
+    uint32_t defaultGracePeriod = 60; 
     bool     disableIPv6      = false;
     bool     disablePrefetch  = false;
     int      proxyType        = nsIProtocolProxyService::PROXYCONFIG_DIRECT;
@@ -506,9 +506,9 @@ nsDNSService::Init()
         if (NS_SUCCEEDED(prefs->GetIntPref(kPrefDnsCacheEntries, &val)))
             maxCacheEntries = (uint32_t) val;
         if (NS_SUCCEEDED(prefs->GetIntPref(kPrefDnsCacheExpiration, &val)))
-            maxCacheLifetime = val;
+            defaultCacheLifetime = val;
         if (NS_SUCCEEDED(prefs->GetIntPref(kPrefDnsCacheGrace, &val)))
-            lifetimeGracePeriod = val;
+            defaultGracePeriod = val;
 
         
         prefs->GetBoolPref(kPrefDisableIPv6, &disableIPv6);
@@ -562,8 +562,8 @@ nsDNSService::Init()
 
     nsRefPtr<nsHostResolver> res;
     nsresult rv = nsHostResolver::Create(maxCacheEntries,
-                                         maxCacheLifetime,
-                                         lifetimeGracePeriod,
+                                         defaultCacheLifetime,
+                                         defaultGracePeriod,
                                          getter_AddRefs(res));
     if (NS_SUCCEEDED(rv)) {
         

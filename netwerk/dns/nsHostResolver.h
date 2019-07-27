@@ -16,6 +16,7 @@
 #include "nsIDNSListener.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "GetAddrInfo.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/DashboardTypes.h"
 #include "mozilla/TimeStamp.h"
@@ -77,9 +78,32 @@ public:
 
 
 
-    mozilla::TimeStamp expiration;
+    enum ExpirationStatus {
+        EXP_VALID,
+        EXP_GRACE,
+        EXP_EXPIRED,
+    };
 
-    bool HasUsableResult(uint16_t queryFlags) const;
+    ExpirationStatus CheckExpiration(const mozilla::TimeStamp& now) const;
+
+    
+    mozilla::TimeStamp mValidStart;
+
+    
+    mozilla::TimeStamp mValidEnd;
+
+    
+    
+    
+    mozilla::TimeStamp mGraceStart;
+
+    
+    
+    void SetExpiration(const mozilla::TimeStamp& now, unsigned int valid,
+                       unsigned int grace);
+
+    
+    bool HasUsableResult(const mozilla::TimeStamp& now, uint16_t queryFlags = 0) const;
 
     
     bool   Blacklisted(mozilla::net::NetAddr *query);
@@ -88,8 +112,16 @@ public:
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
+    enum DnsPriority {
+        DNS_PRIORITY_LOW,
+        DNS_PRIORITY_MEDIUM,
+        DNS_PRIORITY_HIGH,
+    };
+    static DnsPriority GetPriority(uint16_t aFlags);
+
 private:
     friend class nsHostResolver;
+
 
     PRCList callbacks; 
 
@@ -100,6 +132,14 @@ private:
     bool    onQueue;  
     bool    usingAnyThread; 
     bool    mDoomed; 
+
+#if TTL_AVAILABLE
+    bool    mGetTtl;
+#endif
+
+    
+    
+    uint32_t mBlacklistedCount;
 
     
     
@@ -172,9 +212,9 @@ public:
     
 
 
-    static nsresult Create(uint32_t         maxCacheEntries,  
-                           uint32_t         maxCacheLifetime, 
-                           uint32_t         lifetimeGracePeriod, 
+    static nsresult Create(uint32_t maxCacheEntries, 
+                           uint32_t defaultCacheEntryLifetime, 
+                           uint32_t defaultGracePeriod, 
                            nsHostResolver **resolver);
     
     
@@ -239,8 +279,9 @@ public:
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
 private:
-   explicit nsHostResolver(uint32_t maxCacheEntries = 50, uint32_t maxCacheLifetime = 60,
-                            uint32_t lifetimeGracePeriod = 0);
+   explicit nsHostResolver(uint32_t maxCacheEntries,
+                           uint32_t defaultCacheEntryLifetime,
+                           uint32_t defaultGracePeriod);
    ~nsHostResolver();
 
     nsresult Init();
@@ -272,8 +313,8 @@ private:
     };
 
     uint32_t      mMaxCacheEntries;
-    mozilla::TimeDuration mMaxCacheLifetime; 
-    mozilla::TimeDuration mGracePeriod; 
+    uint32_t      mDefaultCacheLifetime; 
+    uint32_t      mDefaultGracePeriod; 
     mutable Mutex mLock;    
     CondVar       mIdleThreadCV;
     uint32_t      mNumIdleThreads;
@@ -290,6 +331,9 @@ private:
     bool          mShutdown;
     PRIntervalTime mLongIdleTimeout;
     PRIntervalTime mShortIdleTimeout;
+
+    
+    void PrepareRecordExpiration(nsHostRecord* rec) const;
 
 public:
     
