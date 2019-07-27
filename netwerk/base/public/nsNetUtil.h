@@ -996,8 +996,11 @@ NS_NewLoadGroup(nsILoadGroup      **result,
 }
 
 
+
+
 nsresult
-NS_NewLoadGroup(nsILoadGroup** aResult, nsIPrincipal* aPrincipal);
+NS_NewLoadGroup(nsILoadGroup** aResult, nsIPrincipal* aPrincipal,
+                nsILoadGroup* aOptionalBase = nullptr);
 
 
 
