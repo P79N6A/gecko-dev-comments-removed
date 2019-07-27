@@ -4,7 +4,7 @@
 
 
 
-#include "jsonparser.h"
+#include "vm/JSONParser.h"
 
 #include "mozilla/Range.h"
 #include "mozilla/RangedPtr.h"

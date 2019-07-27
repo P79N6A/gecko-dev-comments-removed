@@ -4,8 +4,8 @@
 
 
 
-#ifndef jsonparser_h
-#define jsonparser_h
+#ifndef vm_JSONParser_h
+#define vm_JSONParser_h
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Range.h"
