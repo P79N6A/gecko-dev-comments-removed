@@ -18,9 +18,6 @@ let DEFAULT_PROFILER_THREADFILTERS = ["GeckoMain"];
 
 
 let gProfilerConsumers = 0;
-let gProfilingStartTime = -1;
-Services.obs.addObserver(() => gProfilingStartTime = Date.now(), "profiler-started", false);
-Services.obs.addObserver(() => gProfilingStartTime = -1, "profiler-stopped", false);
 
 loader.lazyGetter(this, "nsIProfilerModule", () => {
   return Cc["@mozilla.org/tools/profiler;1"].getService(Ci.nsIProfiler);
@@ -97,7 +94,7 @@ ProfilerActor.prototype = {
 
   onIsActive: function() {
     let isActive = nsIProfilerModule.IsActive();
-    let elapsedTime = isActive ? getElapsedTime() : undefined;
+    let elapsedTime = isActive ? nsIProfilerModule.getElapsedTime() : undefined;
     return { isActive: isActive, currentTime: elapsedTime };
   },
 
@@ -134,9 +131,17 @@ ProfilerActor.prototype = {
 
 
 
-  onGetProfile: function() {
-    let profile = nsIProfilerModule.getProfileData();
-    return { profile: profile, currentTime: getElapsedTime() };
+
+
+
+
+
+
+
+  onGetProfile: function(request) {
+    let startTime = request.startTime || 0;
+    let profile = nsIProfilerModule.getProfileData(startTime);
+    return { profile: profile, currentTime: nsIProfilerModule.getElapsedTime() };
   },
 
   
@@ -229,35 +234,38 @@ ProfilerActor.prototype = {
   _handleConsoleEvent: function(subject, data) {
     
     
-    let args = subject.arguments;
+    let { action, arguments: args } = subject;
     let profileLabel = args.length > 0 ? args[0] + "" : undefined;
 
     
     
     
 
-    if (subject.action == "profile") {
+    if (action === "profile" || action === "profileEnd") {
       let { isActive, currentTime } = this.onIsActive();
 
       
       
-      if (!isActive) {
+      if (!isActive && action === "profile") {
         this.onStartProfiler();
         return {
           profileLabel: profileLabel,
           currentTime: 0
         };
       }
+      
+      
+      else if (!isActive) {
+        return {};
+      }
+
+      
+      
+      
       return {
         profileLabel: profileLabel,
         currentTime: currentTime
       };
-    }
-
-    if (subject.action == "profileEnd") {
-      let details = this.onGetProfile();
-      details.profileLabel = profileLabel;
-      return details;
     }
   }
 };
@@ -272,39 +280,6 @@ function cycleBreaker(key, value) {
     return undefined;
   }
   return value;
-}
-
-
-
-
-
-function getElapsedTime() {
-  
-  
-  
-  
-  
-  if (gProfilingStartTime == -1) {
-    let profile = nsIProfilerModule.getProfileData();
-    let lastSampleTime = findOldestSampleTime(profile);
-    gProfilingStartTime = Date.now() - lastSampleTime;
-  }
-  return Date.now() - gProfilingStartTime;
-}
-
-
-
-
-
-
-function findOldestSampleTime(profile) {
-  let firstThreadSamples = profile.threads[0].samples;
-
-  for (let i = firstThreadSamples.length - 1; i >= 0; i--) {
-    if ("time" in firstThreadSamples[i]) {
-      return firstThreadSamples[i].time;
-    }
-  }
 }
 
 
