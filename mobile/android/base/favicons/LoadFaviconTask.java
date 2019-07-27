@@ -219,6 +219,8 @@ public class LoadFaviconTask {
             result = downloadAndDecodeImage(targetFaviconURI);
         } catch (Exception e) {
             Log.e(LOGTAG, "Error reading favicon", e);
+        } catch (OutOfMemoryError e) {
+            Log.e(LOGTAG, "Insufficient memory to process favicon");
         }
 
         return result;
@@ -247,6 +249,26 @@ public class LoadFaviconTask {
             return null;
         }
 
+        
+        try {
+            return decodeImageFromResponse(entity);
+        } finally {
+            
+            entity.consumeContent();
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    private LoadFaviconResult decodeImageFromResponse(HttpEntity entity) throws IOException {
         
         final long entityReportedLength = entity.getContentLength();
         int bufferSize;
