@@ -142,11 +142,12 @@
   #define APPCOMMAND_BROWSER_FAVORITES      6
   #define APPCOMMAND_BROWSER_HOME           7
 
+  #define APPCOMMAND_MEDIA_NEXTTRACK        11
+  #define APPCOMMAND_MEDIA_PREVIOUSTRACK    12
+  #define APPCOMMAND_MEDIA_STOP             13
+  #define APPCOMMAND_MEDIA_PLAY_PAUSE       14
+
   
-
-
-
-
 
 
 
