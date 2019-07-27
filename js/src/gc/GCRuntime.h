@@ -732,7 +732,7 @@ class GCRuntime
 
     void setMaxMallocBytes(size_t value);
     void resetMallocBytes();
-    bool isTooMuchMalloc() const { return mallocBytes <= 0; }
+    bool isTooMuchMalloc() const { return mallocBytesUntilGC <= 0; }
     void updateMallocCounter(JS::Zone *zone, size_t nbytes);
     void onTooMuchMalloc();
 
@@ -1178,7 +1178,7 @@ class GCRuntime
 
 
 
-    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> mallocBytes;
+    mozilla::Atomic<ptrdiff_t, mozilla::ReleaseAcquire> mallocBytesUntilGC;
 
     
 
