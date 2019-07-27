@@ -145,18 +145,24 @@ function saveDocument(aDocument, aSkipPrompt)
     
   }
 
-  var cacheKey = null;
+  let cacheKey = null;
   try {
-    cacheKey =
+    let shEntry =
       ifreq.getInterface(Components.interfaces.nsIWebNavigation)
-           .QueryInterface(Components.interfaces.nsIWebPageDescriptor);
+           .QueryInterface(Components.interfaces.nsIWebPageDescriptor)
+           .currentDescriptor
+           .QueryInterface(Components.interfaces.nsISHEntry);
+
+    shEntry.cacheKey.QueryInterface(Components.interfaces.nsISupportsPRUint32);
+
+    
+    
+    
+    cacheKey = Cc["@mozilla.org/supports-PRUint32;1"]
+                 .createInstance(Ci.nsISupportsPRUint32);
+    cacheKey.data = shEntry.cacheKey.data;
   } catch (ex) {
     
-  }
-
-  if (cacheKey && Components.utils.isCrossProcessWrapper(cacheKey)) {
-    
-    cacheKey = null;
   }
 
   internalSave(aDocument.location.href, aDocument, null, contentDisposition,
@@ -339,6 +345,9 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     
     
     
+    let nonCPOWDocument =
+      aDocument && !Components.utils.isCrossProcessWrapper(aDocument);
+
     var persistArgs = {
       sourceURI         : sourceURI,
       sourceReferrer    : aReferrer,
@@ -346,7 +355,7 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
       targetContentType : (saveAsType == kSaveAsType_Text) ? "text/plain" : null,
       targetFile        : file,
       sourceCacheKey    : aCacheKey,
-      sourcePostData    : aDocument ? getPostData(aDocument) : null,
+      sourcePostData    : nonCPOWDocument ? getPostData(aDocument) : null,
       bypassCache       : aShouldBypassCache,
       initiatingWindow  : aInitiatingDocument.defaultView
     };
