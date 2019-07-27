@@ -31,7 +31,7 @@ static inline float sk_float_pow(float base, float exp) {
 
 static inline float sk_float_copysign(float x, float y) {
 
-#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#if (!defined(_MSC_VER) && __cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1800)
     return copysign(x, y);
 
 
