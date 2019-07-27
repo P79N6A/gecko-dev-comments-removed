@@ -398,6 +398,20 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         case "NFC:CallDefaultLostHandler":
           this.callDefaultLostHandler(message.data);
           return null;
+        case "NFC:SendFile":
+          
+          
+          
+          
+          
+
+          
+          let sysMsg = new NfcSendFileSysMsg(message.data.requestId,
+                                             message.data.sessionToken,
+                                             message.data.blob);
+          gSystemMessenger.broadcastMessage("nfc-manager-send-file",
+                                            sysMsg);
+          return null;
         default:
           return this.nfc.receiveMessage(message);
       }
@@ -671,8 +685,7 @@ Nfc.prototype = {
         break;
     }
 
-    if (["NFC:ChangeRFState",
-         "NFC:SendFile"].indexOf(message.name) == -1) {
+    if (message.name != "NFC:ChangeRFState") {
       
       message.data.sessionId = SessionHelper.getId(message.data.sessionToken);
     }
@@ -696,20 +709,6 @@ Nfc.prototype = {
         break;
       case "NFC:Transceive":
         this.sendToNfcService(NfcRequestType.TRANSCEIVE, message.data);
-        break;
-      case "NFC:SendFile":
-        
-        
-        
-        
-        
-
-        
-        let sysMsg = new NfcSendFileSysMsg(message.data.requestId,
-                                           message.data.sessionToken,
-                                           message.data.blob);
-        gSystemMessenger.broadcastMessage("nfc-manager-send-file",
-                                          sysMsg);
         break;
       default:
         debug("UnSupported : Message Name " + message.name);
