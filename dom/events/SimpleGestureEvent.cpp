@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/SimpleGestureEvent.h"
 #include "mozilla/TouchEvents.h"
@@ -17,7 +17,8 @@ SimpleGestureEvent::SimpleGestureEvent(EventTarget* aOwner,
                aEvent ? aEvent :
                         new WidgetSimpleGestureEvent(false, 0, nullptr))
 {
-  NS_ASSERTION(mEvent->eventStructType == NS_SIMPLE_GESTURE_EVENT, "event type mismatch");
+  NS_ASSERTION(mEvent->mClass == NS_SIMPLE_GESTURE_EVENT,
+               "event type mismatch");
 
   if (aEvent) {
     mEventIsInternal = false;
@@ -37,7 +38,7 @@ NS_INTERFACE_MAP_BEGIN(SimpleGestureEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMSimpleGestureEvent)
 NS_INTERFACE_MAP_END_INHERITING(MouseEvent)
 
-
+/* attribute unsigned long allowedDirections; */
 uint32_t
 SimpleGestureEvent::AllowedDirections()
 {
@@ -59,7 +60,7 @@ SimpleGestureEvent::SetAllowedDirections(uint32_t aAllowedDirections)
   return NS_OK;
 }
 
-
+/* readonly attribute unsigned long direction; */
 uint32_t
 SimpleGestureEvent::Direction()
 {
@@ -74,7 +75,7 @@ SimpleGestureEvent::GetDirection(uint32_t* aDirection)
   return NS_OK;
 }
 
-
+/* readonly attribute float delta; */
 double
 SimpleGestureEvent::Delta()
 {
@@ -89,7 +90,7 @@ SimpleGestureEvent::GetDelta(double* aDelta)
   return NS_OK;
 }
 
-
+/* readonly attribute unsigned long clickCount; */
 uint32_t
 SimpleGestureEvent::ClickCount()
 {
@@ -142,8 +143,8 @@ SimpleGestureEvent::InitSimpleGestureEvent(const nsAString& aTypeArg,
   return NS_OK;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 using namespace mozilla;
 using namespace mozilla::dom;

@@ -50,7 +50,7 @@ public:
     
     
     
-    MOZ_ASSERT(eventStructType == NS_GESTURENOTIFY_EVENT,
+    MOZ_ASSERT(mClass == NS_GESTURENOTIFY_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetGestureNotifyEvent* result =
@@ -116,7 +116,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_SIMPLE_GESTURE_EVENT,
+    MOZ_ASSERT(mClass == NS_SIMPLE_GESTURE_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetSimpleGestureEvent* result =
@@ -190,7 +190,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_TOUCH_EVENT,
+    MOZ_ASSERT(mClass == NS_TOUCH_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetTouchEvent* result = new WidgetTouchEvent(false, message, nullptr);

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef mozilla_dom_UIEvent_h_
 #define mozilla_dom_UIEvent_h_
@@ -30,10 +30,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(UIEvent, Event)
 
-  
+  // nsIDOMUIEvent Interface
   NS_DECL_NSIDOMUIEVENT
 
-  
+  // Forward to Event
   NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION
   NS_IMETHOD DuplicatePrivateData() MOZ_OVERRIDE;
   NS_IMETHOD_(void) Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) MOZ_OVERRIDE;
@@ -43,12 +43,12 @@ public:
                                          WidgetEvent* aEvent)
   {
     if (!aEvent ||
-        (aEvent->eventStructType != NS_MOUSE_EVENT &&
-         aEvent->eventStructType != NS_MOUSE_SCROLL_EVENT &&
-         aEvent->eventStructType != NS_WHEEL_EVENT &&
-         aEvent->eventStructType != NS_DRAG_EVENT &&
-         aEvent->eventStructType != NS_POINTER_EVENT &&
-         aEvent->eventStructType != NS_SIMPLE_GESTURE_EVENT)) {
+        (aEvent->mClass != NS_MOUSE_EVENT &&
+         aEvent->mClass != NS_MOUSE_SCROLL_EVENT &&
+         aEvent->mClass != NS_WHEEL_EVENT &&
+         aEvent->mClass != NS_DRAG_EVENT &&
+         aEvent->mClass != NS_POINTER_EVENT &&
+         aEvent->mClass != NS_SIMPLE_GESTURE_EVENT)) {
       return nsIntPoint(0, 0);
     }
 
@@ -70,12 +70,12 @@ public:
                                           CSSIntPoint* aDefaultClientPoint)
   {
     if (!aEvent ||
-        (aEvent->eventStructType != NS_MOUSE_EVENT &&
-         aEvent->eventStructType != NS_MOUSE_SCROLL_EVENT &&
-         aEvent->eventStructType != NS_WHEEL_EVENT &&
-         aEvent->eventStructType != NS_DRAG_EVENT &&
-         aEvent->eventStructType != NS_POINTER_EVENT &&
-         aEvent->eventStructType != NS_SIMPLE_GESTURE_EVENT) ||
+        (aEvent->mClass != NS_MOUSE_EVENT &&
+         aEvent->mClass != NS_MOUSE_SCROLL_EVENT &&
+         aEvent->mClass != NS_WHEEL_EVENT &&
+         aEvent->mClass != NS_DRAG_EVENT &&
+         aEvent->mClass != NS_POINTER_EVENT &&
+         aEvent->mClass != NS_SIMPLE_GESTURE_EVENT) ||
         !aPresContext ||
         !aEvent->AsGUIEvent()->widget) {
       return aDefaultClientPoint
@@ -132,9 +132,9 @@ public:
 
   virtual uint32_t Which()
   {
-    MOZ_ASSERT(mEvent->eventStructType != NS_KEY_EVENT,
+    MOZ_ASSERT(mEvent->mClass != NS_KEY_EVENT,
                "Key events should override Which()");
-    MOZ_ASSERT(mEvent->eventStructType != NS_MOUSE_EVENT,
+    MOZ_ASSERT(mEvent->mClass != NS_MOUSE_EVENT,
                "Mouse events should override Which()");
     return 0;
   }
@@ -153,14 +153,14 @@ public:
 protected:
   ~UIEvent() {}
 
-  
+  // Internal helper functions
   nsIntPoint GetMovementPoint();
   nsIntPoint GetLayerPoint() const;
 
   nsCOMPtr<nsIDOMWindow> mView;
   int32_t mDetail;
   CSSIntPoint mClientPoint;
-  
+  // Screenpoint is mEvent->refPoint.
   nsIntPoint mLayerPoint;
   CSSIntPoint mPagePoint;
   nsIntPoint mMovementPoint;
@@ -171,8 +171,8 @@ protected:
   bool GetModifierStateInternal(const nsAString& aKey);
 };
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 #define NS_FORWARD_TO_UIEVENT                               \
   NS_FORWARD_NSIDOMUIEVENT(UIEvent::)                       \
@@ -192,4 +192,4 @@ protected:
     return UIEvent::Deserialize(aMsg, aIter);               \
   }
 
-#endif 
+#endif // mozilla_dom_UIEvent_h_

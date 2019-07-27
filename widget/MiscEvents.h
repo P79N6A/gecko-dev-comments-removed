@@ -110,7 +110,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_COMMAND_EVENT,
+    MOZ_ASSERT(mClass == NS_COMMAND_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetCommandEvent* result =
@@ -153,7 +153,7 @@ public:
   {
     
     
-    MOZ_ASSERT(eventStructType == NS_PLUGIN_EVENT,
+    MOZ_ASSERT(mClass == NS_PLUGIN_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetPluginEvent* result = new WidgetPluginEvent(false, message, nullptr);

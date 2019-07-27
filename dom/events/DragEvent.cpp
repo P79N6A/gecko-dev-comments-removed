@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/DragEvent.h"
 #include "mozilla/MouseEvents.h"
@@ -112,17 +112,17 @@ DragEvent::GetDataTransfer(nsIDOMDataTransfer** aDataTransfer)
 DataTransfer*
 DragEvent::GetDataTransfer()
 {
-  
-  
-  
-  
-  if (!mEvent || mEvent->eventStructType != NS_DRAG_EVENT) {
+  // the dataTransfer field of the event caches the DataTransfer associated
+  // with the drag. It is initialized when an attempt is made to retrieve it
+  // rather that when the event is created to avoid duplicating the data when
+  // no listener ever uses it.
+  if (!mEvent || mEvent->mClass != NS_DRAG_EVENT) {
     NS_WARNING("Tried to get dataTransfer from non-drag event!");
     return nullptr;
   }
 
   WidgetDragEvent* dragEvent = mEvent->AsDragEvent();
-  
+  // for synthetic events, just use the supplied data transfer object even if null
   if (!mEventIsInternal) {
     nsresult rv = nsContentUtils::SetDataTransferInEvent(dragEvent);
     NS_ENSURE_SUCCESS(rv, nullptr);
@@ -131,8 +131,8 @@ DragEvent::GetDataTransfer()
   return dragEvent->dataTransfer;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla
 
 using namespace mozilla;
 using namespace mozilla::dom;

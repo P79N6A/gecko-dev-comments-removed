@@ -17,12 +17,13 @@
 #include "nsString.h"
 #include "Units.h"
 
+namespace mozilla {
 
 
 
 
-
-enum nsEventStructType
+typedef uint8_t EventClassIDType;
+enum EventClassID MOZ_ENUM_TYPE(EventClassIDType)
 {
   
   NS_EVENT,                          
@@ -69,6 +70,8 @@ enum nsEventStructType
   
   NS_MUTATION_EVENT                  
 };
+
+} 
 
 
 
@@ -621,10 +624,14 @@ struct EventFlags : public BaseEventFlags
 class WidgetEvent
 {
 protected:
-  WidgetEvent(bool aIsTrusted, uint32_t aMessage,
-              nsEventStructType aStructType) :
-    eventStructType(aStructType), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
+  WidgetEvent(bool aIsTrusted, uint32_t aMessage, EventClassID aEventClassID)
+    : mClass(aEventClassID)
+    , message(aMessage)
+    , refPoint(0, 0)
+    , lastRefPoint(0, 0)
+    , time(0)
+    , timeStamp(TimeStamp::Now())
+    , userType(nullptr)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -639,9 +646,14 @@ protected:
   }
 
 public:
-  WidgetEvent(bool aIsTrusted, uint32_t aMessage) :
-    eventStructType(NS_EVENT), message(aMessage), refPoint(0, 0),
-    lastRefPoint(0, 0), time(0), timeStamp(TimeStamp::Now()), userType(0)
+  WidgetEvent(bool aIsTrusted, uint32_t aMessage)
+    : mClass(NS_EVENT)
+    , message(aMessage)
+    , refPoint(0, 0)
+    , lastRefPoint(0, 0)
+    , time(0)
+    , timeStamp(TimeStamp::Now())
+    , userType(nullptr)
   {
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
@@ -663,7 +675,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const
   {
-    MOZ_ASSERT(eventStructType == NS_EVENT,
+    MOZ_ASSERT(mClass == NS_EVENT,
                "Duplicate() must be overridden by sub class");
     WidgetEvent* result = new WidgetEvent(false, message);
     result->AssignEventData(*this, true);
@@ -671,8 +683,7 @@ public:
     return result;
   }
 
-  
-  nsEventStructType eventStructType;
+  EventClassID mClass;
   
   uint32_t message;
   
@@ -702,9 +713,6 @@ public:
   void AssignEventData(const WidgetEvent& aEvent, bool aCopyTargets)
   {
     
-    
-    
-    eventStructType = aEvent.eventStructType;
     
     refPoint = aEvent.refPoint;
     
@@ -837,9 +845,9 @@ class WidgetGUIEvent : public WidgetEvent
 {
 protected:
   WidgetGUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                 nsEventStructType aStructType) :
-    WidgetEvent(aIsTrusted, aMessage, aStructType),
-    widget(aWidget)
+                 EventClassID aEventClassID)
+    : WidgetEvent(aIsTrusted, aMessage, aEventClassID)
+    , widget(aWidget)
   {
   }
 
@@ -858,7 +866,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_GUI_EVENT,
+    MOZ_ASSERT(mClass == NS_GUI_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetGUIEvent* result = new WidgetGUIEvent(false, message, nullptr);
@@ -997,9 +1005,9 @@ class WidgetInputEvent : public WidgetGUIEvent
 {
 protected:
   WidgetInputEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                   nsEventStructType aStructType) :
-    WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aStructType),
-    modifiers(0)
+                   EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
+    , modifiers(0)
   {
   }
 
@@ -1018,7 +1026,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_INPUT_EVENT,
+    MOZ_ASSERT(mClass == NS_INPUT_EVENT,
                "Duplicate() must be overridden by sub class");
     
     WidgetInputEvent* result = new WidgetInputEvent(false, message, nullptr);
@@ -1146,15 +1154,15 @@ protected:
   }
 
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget,
-                  nsEventStructType aStructType)
-    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aStructType)
+                  EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
     , detail(0)
   {
   }
 
   InternalUIEvent(bool aIsTrusted, uint32_t aMessage,
-                  nsEventStructType aStructType)
-    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, aStructType)
+                  EventClassID aEventClassID)
+    : WidgetGUIEvent(aIsTrusted, aMessage, nullptr, aEventClassID)
     , detail(0)
   {
   }
@@ -1170,7 +1178,7 @@ public:
 
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
-    MOZ_ASSERT(eventStructType == NS_UI_EVENT,
+    MOZ_ASSERT(mClass == NS_UI_EVENT,
                "Duplicate() must be overridden by sub class");
     InternalUIEvent* result = new InternalUIEvent(false, message);
     result->AssignUIEventData(*this, true);
