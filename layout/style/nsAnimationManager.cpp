@@ -269,7 +269,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
       if (!collection->mAnimations.IsEmpty()) {
         for (uint32_t newIdx = 0, newEnd = newAnimations.Length();
              newIdx != newEnd; ++newIdx) {
-          nsRefPtr<ElementAnimation> newAnim = newAnimations[newIdx];
+          ElementAnimation* newAnim = newAnimations[newIdx];
 
           
           
@@ -279,10 +279,14 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
           
           
           
-          const ElementAnimation* oldAnim = nullptr;
-          for (uint32_t oldIdx = collection->mAnimations.Length();
-               oldIdx-- != 0; ) {
-            const ElementAnimation* a = collection->mAnimations[oldIdx];
+          
+          
+          
+          
+          nsRefPtr<ElementAnimation> oldAnim;
+          size_t oldIdx = collection->mAnimations.Length();
+          while (oldIdx-- != 0) {
+            ElementAnimation* a = collection->mAnimations[oldIdx];
             if (a->mName == newAnim->mName) {
               oldAnim = a;
               break;
@@ -292,25 +296,41 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
             continue;
           }
 
-          newAnim->mStartTime = oldAnim->mStartTime;
-          newAnim->mLastNotification = oldAnim->mLastNotification;
+          
+          
+          oldAnim->mTiming = newAnim->mTiming;
+          oldAnim->mProperties = newAnim->mProperties;
 
-          if (oldAnim->IsPaused()) {
-            if (newAnim->IsPaused()) {
+          
+          oldAnim->mIsRunningOnCompositor = false;
+
+          
+          if (!oldAnim->IsPaused() && newAnim->IsPaused()) {
+            
+            oldAnim->mPauseStart = timeline->GetCurrentTimeStamp();
+          } else if (oldAnim->IsPaused() && !newAnim->IsPaused()) {
+            const TimeStamp& now = timeline->GetCurrentTimeStamp();
+            if (!now.IsNull()) {
               
-              newAnim->mPauseStart = oldAnim->mPauseStart;
-            } else {
               
               
-              const TimeStamp& now = timeline->GetCurrentTimeStamp();
-              if (!now.IsNull()) {
-                
-                
-                
-                newAnim->mStartTime += now - oldAnim->mPauseStart;
-              }
+              
+              
+              oldAnim->mStartTime += now - oldAnim->mPauseStart;
             }
+            oldAnim->mPauseStart = TimeStamp();
           }
+          oldAnim->mPlayState = newAnim->mPlayState;
+
+          
+          
+          
+          
+          
+          
+          newAnim = nullptr;
+          newAnimations.ReplaceElementAt(newIdx, oldAnim);
+          collection->mAnimations.RemoveElementAt(oldIdx);
         }
       }
     } else {
