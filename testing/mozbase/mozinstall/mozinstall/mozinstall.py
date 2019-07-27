@@ -83,9 +83,6 @@ def get_binary(path, app_name):
 
     if not binary:
         
-        
-        mozfile.remove(path)
-
         raise InvalidBinary('"%s" does not contain a valid binary.' % path)
 
     return binary
