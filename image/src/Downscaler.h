@@ -28,6 +28,16 @@ namespace image {
 
 
 
+struct DownscalerInvalidRect
+{
+  nsIntRect mOriginalSizeRect;
+  nsIntRect mTargetSizeRect;
+};
+
+
+
+
+
 
 
 
@@ -47,6 +57,7 @@ public:
 
   const nsIntSize& OriginalSize() const { return mOriginalSize; }
   const nsIntSize& TargetSize() const { return mTargetSize; }
+  const gfxSize& Scale() const { return mScale; }
 
   
 
@@ -73,7 +84,7 @@ public:
   bool HasInvalidation() const;
 
   
-  nsIntRect TakeInvalidRect();
+  DownscalerInvalidRect TakeInvalidRect();
 
   
 
@@ -88,6 +99,7 @@ private:
 
   nsIntSize mOriginalSize;
   nsIntSize mTargetSize;
+  gfxSize mScale;
 
   uint8_t* mOutputBuffer;
 
