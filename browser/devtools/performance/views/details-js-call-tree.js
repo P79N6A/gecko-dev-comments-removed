@@ -106,7 +106,7 @@ let JsCallTreeView = Heritage.extend(DetailsSubview, {
       
       
       autoExpandDepth: inverted ? 0 : undefined,
-      enableOptimizations: options.enableOptimizations
+      showOptimizationHint: options.showOptimizationHint
     });
 
     
