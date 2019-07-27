@@ -26,6 +26,7 @@
 #include "nsITimer.h"
 #include "nsIPropertyBag2.h"
 #include "nsComponentManagerUtils.h"
+#include "nsCRT.h"
 
 #ifdef XP_WIN
 #include <process.h>
@@ -100,7 +101,7 @@ public:
   
 
 
-  ProcessLRUPool(ProcessPriority aPriority, uint32_t aBias);
+  explicit ProcessLRUPool(ProcessPriority aPriority);
 
   
 
@@ -118,7 +119,6 @@ private:
   ProcessPriority mPriority;
   uint32_t mLRUPoolLevels;
   uint32_t mLRUPoolSize;
-  uint32_t mBias;
   nsTArray<ParticularProcessPriorityManager*> mLRUPool;
 
   uint32_t CalculateLRULevel(uint32_t aLRUPoolIndex);
@@ -236,7 +236,7 @@ private:
   ProcessLRUPool mBackgroundLRUPool;
 
   
-  ProcessLRUPool mForegroundLRUPool;
+  ProcessLRUPool mBackgroundPerceivableLRUPool;
 };
 
 
@@ -312,6 +312,8 @@ public:
   void OnRemoteBrowserFrameShown(nsISupports* aSubject);
   void OnTabParentDestroyed(nsISupports* aSubject);
   void OnFrameloaderVisibleChanged(nsISupports* aSubject);
+  void OnActivityOpened(const char16_t* aData);
+  void OnActivityClosed(const char16_t* aData);
 
   ProcessPriority CurrentPriority();
   ProcessPriority ComputePriority();
@@ -340,6 +342,7 @@ private:
   uint32_t mLRU;
   bool mHoldsCPUWakeLock;
   bool mHoldsHighPriorityWakeLock;
+  bool mIsActivityOpener;
   bool mFrozen;
 
   
@@ -421,8 +424,8 @@ ProcessPriorityManagerImpl::GetSingleton()
 
 ProcessPriorityManagerImpl::ProcessPriorityManagerImpl()
     : mHighPriority(false)
-    , mBackgroundLRUPool(PROCESS_PRIORITY_BACKGROUND, 1)
-    , mForegroundLRUPool(PROCESS_PRIORITY_FOREGROUND, 0)
+    , mBackgroundLRUPool(PROCESS_PRIORITY_BACKGROUND)
+    , mBackgroundPerceivableLRUPool(PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE)
 {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   RegisterWakeLockObserver(this);
@@ -536,7 +539,7 @@ ProcessPriorityManagerImpl::ObserveContentParentDestroyed(nsISupports* aSubject)
   if (pppm) {
     
     mBackgroundLRUPool.Remove(pppm);
-    mForegroundLRUPool.Remove(pppm);
+    mBackgroundPerceivableLRUPool.Remove(pppm);
 
     pppm->ShutDown();
 
@@ -606,12 +609,12 @@ ProcessPriorityManagerImpl::NotifyProcessPriorityChanged(
     mBackgroundLRUPool.Remove(aParticularManager);
   }
 
-  if (newPriority == PROCESS_PRIORITY_FOREGROUND &&
-      aOldPriority != PROCESS_PRIORITY_FOREGROUND) {
-    mForegroundLRUPool.Add(aParticularManager);
-  } else if (newPriority != PROCESS_PRIORITY_FOREGROUND &&
-      aOldPriority == PROCESS_PRIORITY_FOREGROUND) {
-    mForegroundLRUPool.Remove(aParticularManager);
+  if (newPriority == PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE &&
+      aOldPriority != PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE) {
+    mBackgroundPerceivableLRUPool.Add(aParticularManager);
+  } else if (newPriority != PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE &&
+      aOldPriority == PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE) {
+    mBackgroundPerceivableLRUPool.Remove(aParticularManager);
   }
 
   if (newPriority >= PROCESS_PRIORITY_FOREGROUND_HIGH &&
@@ -654,6 +657,7 @@ ParticularProcessPriorityManager::ParticularProcessPriorityManager(
   , mLRU(0)
   , mHoldsCPUWakeLock(false)
   , mHoldsHighPriorityWakeLock(false)
+  , mIsActivityOpener(false)
   , mFrozen(aFrozen)
 {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
@@ -671,6 +675,8 @@ ParticularProcessPriorityManager::Init()
     os->AddObserver(this, "remote-browser-shown",  true);
     os->AddObserver(this, "ipc:browser-destroyed",  true);
     os->AddObserver(this, "frameloader-visible-changed",  true);
+    os->AddObserver(this, "activity-opened",  true);
+    os->AddObserver(this, "activity-closed",  true);
   }
 
   
@@ -746,6 +752,10 @@ ParticularProcessPriorityManager::Observe(nsISupports* aSubject,
     OnTabParentDestroyed(aSubject);
   } else if (topic.EqualsLiteral("frameloader-visible-changed")) {
     OnFrameloaderVisibleChanged(aSubject);
+  } else if (topic.EqualsLiteral("activity-opened")) {
+    OnActivityOpened(aData);
+  } else if (topic.EqualsLiteral("activity-closed")) {
+    OnActivityClosed(aData);
   } else {
     MOZ_ASSERT(false);
   }
@@ -885,6 +895,30 @@ ParticularProcessPriorityManager::OnFrameloaderVisibleChanged(nsISupports* aSubj
 }
 
 void
+ParticularProcessPriorityManager::OnActivityOpened(const char16_t* aData)
+{
+  uint64_t childID = nsCRT::atoll(NS_ConvertUTF16toUTF8(aData).get());
+
+  if (ChildID() == childID) {
+    LOGP("Marking as activity opener");
+    mIsActivityOpener = true;
+    ResetPriority();
+  }
+}
+
+void
+ParticularProcessPriorityManager::OnActivityClosed(const char16_t* aData)
+{
+  uint64_t childID = nsCRT::atoll(NS_ConvertUTF16toUTF8(aData).get());
+
+  if (ChildID() == childID) {
+    LOGP("Unmarking as activity opener");
+    mIsActivityOpener = false;
+    ResetPriority();
+  }
+}
+
+void
 ParticularProcessPriorityManager::ResetPriority()
 {
   ProcessPriority processPriority = ComputePriority();
@@ -1012,7 +1046,8 @@ ParticularProcessPriorityManager::ComputePriority()
     return PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE;
   }
 
-  return PROCESS_PRIORITY_BACKGROUND;
+  return mIsActivityOpener ? PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE
+                           : PROCESS_PRIORITY_BACKGROUND;
 }
 
 void
@@ -1231,10 +1266,9 @@ ProcessPriorityManagerChild::CurrentProcessIsHighPriority()
          mCachedPriority >= PROCESS_PRIORITY_FOREGROUND_HIGH;
 }
 
-ProcessLRUPool::ProcessLRUPool(ProcessPriority aPriority, uint32_t aBias)
+ProcessLRUPool::ProcessLRUPool(ProcessPriority aPriority)
   : mPriority(aPriority)
   , mLRUPoolLevels(1)
-  , mBias(aBias)
 {
   
   
@@ -1250,7 +1284,8 @@ ProcessLRUPool::ProcessLRUPool(ProcessPriority aPriority, uint32_t aBias)
   
   
   MOZ_ASSERT(aPriority != PROCESS_PRIORITY_BACKGROUND || mLRUPoolLevels <= 6);
-  MOZ_ASSERT(aPriority != PROCESS_PRIORITY_FOREGROUND || mLRUPoolLevels <= 4);
+  MOZ_ASSERT(aPriority != PROCESS_PRIORITY_BACKGROUND_PERCEIVABLE ||
+             mLRUPoolLevels <= 4);
 
   
   mLRUPoolSize = (1 << mLRUPoolLevels) - 1;
@@ -1271,8 +1306,6 @@ ProcessLRUPool::CalculateLRULevel(uint32_t aLRU)
   
   
   
-  
-
   
 
   int exp;
@@ -1311,7 +1344,7 @@ ProcessLRUPool::AdjustLRUValues(
   nsTArray<ParticularProcessPriorityManager*>::index_type aStart,
   bool removed)
 {
-  uint32_t adj = (removed ? 1 : 0) + mBias;
+  uint32_t adj = (removed ? 2 : 1);
 
   for (nsTArray<ParticularProcessPriorityManager*>::index_type i = aStart;
        i < mLRUPool.Length();
@@ -1321,7 +1354,7 @@ ProcessLRUPool::AdjustLRUValues(
 
 
     if (((i + adj) & (i + adj - 1)) == 0) {
-      mLRUPool[i]->SetPriorityNow(mPriority, CalculateLRULevel(i + mBias));
+      mLRUPool[i]->SetPriorityNow(mPriority, CalculateLRULevel(i + 1));
     }
   }
 }

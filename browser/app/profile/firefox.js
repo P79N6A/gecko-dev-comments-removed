@@ -1411,7 +1411,7 @@ pref("devtools.inspector.activeSidebar", "ruleview");
 pref("devtools.inspector.markupPreview", false);
 pref("devtools.inspector.remote", false);
 
-pref("devtools.inspector.show_pseudo_elements", true);
+pref("devtools.inspector.show_pseudo_elements", false);
 
 pref("devtools.inspector.imagePreviewTooltipSize", 300);
 
@@ -1836,6 +1836,9 @@ pref("identity.fxaccounts.remote.profile.uri", "https://profile.accounts.firefox
 
 
 pref("identity.fxaccounts.remote.oauth.uri", "https://oauth.accounts.firefox.com/v1");
+
+
+pref("identity.fxaccounts.profile_image.enabled", true);
 
 
 
