@@ -636,6 +636,46 @@ void RemoteSourceStreamInfo::UpdatePrincipal_m(nsIPrincipal* aPrincipal)
 }
 #endif 
 
+bool
+PeerConnectionMedia::AnyCodecHasPluginID(uint64_t aPluginID)
+{
+  for (uint32_t i=0; i < mLocalSourceStreams.Length(); ++i) {
+    if (mLocalSourceStreams[i]->AnyCodecHasPluginID(aPluginID)) {
+      return true;
+    }
+  }
+  for (uint32_t i=0; i < mRemoteSourceStreams.Length(); ++i) {
+    if (mRemoteSourceStreams[i]->AnyCodecHasPluginID(aPluginID)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
+LocalSourceStreamInfo::AnyCodecHasPluginID(uint64_t aPluginID)
+{
+  
+  for (auto it = mPipelines.begin(); it != mPipelines.end(); ++it) {
+    if (it->second->Conduit()->CodecPluginID() == aPluginID) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
+RemoteSourceStreamInfo::AnyCodecHasPluginID(uint64_t aPluginID)
+{
+  
+  for (auto it = mPipelines.begin(); it != mPipelines.end(); ++it) {
+    if (it->second->Conduit()->CodecPluginID() == aPluginID) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void
 LocalSourceStreamInfo::StorePipeline(
   int aTrack, mozilla::RefPtr<mozilla::MediaPipelineTransmit> aPipeline)
