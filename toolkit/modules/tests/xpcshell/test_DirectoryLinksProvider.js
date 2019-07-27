@@ -268,7 +268,7 @@ add_task(function test_reportSitesAction() {
   
   sites[2].enhancedId = "id from enhanced";
   expectedPost.tiles[1].id = "id from enhanced";
-  expectedPost.tiles[1].url = sites[2].link.url;
+  expectedPost.tiles[1].url = "";
   yield sendPingAndTest("view", "view", 2);
 
   
