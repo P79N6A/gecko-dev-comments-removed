@@ -2183,7 +2183,6 @@ SaveSharedScriptData(ExclusiveContext *cx, Handle<JSScript *> script, SharedScri
         }
     }
 
-#ifdef JSGC_INCREMENTAL
     
 
 
@@ -2195,7 +2194,6 @@ SaveSharedScriptData(ExclusiveContext *cx, Handle<JSScript *> script, SharedScri
         if (JS::IsIncrementalGCInProgress(rt) && rt->gc.isFullGc())
             ssd->marked = true;
     }
-#endif
 
     script->setCode(ssd->data);
     script->atoms = ssd->atoms();

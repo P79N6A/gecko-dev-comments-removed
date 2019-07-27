@@ -156,9 +156,7 @@ void
 ICStub::updateCode(JitCode *code)
 {
     
-#ifdef JSGC_INCREMENTAL
     JitCode::writeBarrierPre(jitCode());
-#endif
     stubCode_ = code->raw();
 }
 

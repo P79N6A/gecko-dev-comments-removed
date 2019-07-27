@@ -2382,7 +2382,6 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
     MarkTypeObjectUnknownProperties(cx, a->type(), !a->hasSingletonType());
     MarkTypeObjectUnknownProperties(cx, b->type(), !b->hasSingletonType());
 
-#ifdef JSGC_INCREMENTAL
     
 
 
@@ -2396,7 +2395,6 @@ JSObject::swap(JSContext *cx, HandleObject a, HandleObject b)
         MarkChildren(zone->barrierTracer(), a);
         MarkChildren(zone->barrierTracer(), b);
     }
-#endif
 
     NotifyGCPostSwap(a, b, r);
     return true;
