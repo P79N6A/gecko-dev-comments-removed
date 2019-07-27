@@ -994,8 +994,8 @@ KEY_MAP_QT      (Subtitle, Qt::Key_Subtitle)
 KEY_MAP_ANDROID (Subtitle, AKEYCODE_CAPTIONS)
 
 
-KEY_MAP_WIN     (Zoom, VK_ZOOM)
-KEY_MAP_QT      (Zoom, Qt::Key_Zoom)
+KEY_MAP_WIN     (ZoomToggle, VK_ZOOM)
+KEY_MAP_QT      (ZoomToggle, Qt::Key_Zoom)
 
 
 
