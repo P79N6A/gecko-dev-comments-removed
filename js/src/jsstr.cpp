@@ -1519,7 +1519,7 @@ RopeMatch(JSContext* cx, JSRope* text, JSLinearString* pat, int* match)
 
 
 static bool
-str_contains(JSContext* cx, unsigned argc, Value* vp)
+str_includes(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -1572,6 +1572,19 @@ str_contains(JSContext* cx, unsigned argc, Value* vp)
 
     args.rval().setBoolean(StringMatch(text, searchStr, start) != -1);
     return true;
+}
+
+
+static bool
+str_contains(JSContext *cx, unsigned argc, Value *vp)
+{
+#ifndef RELEASE_BUILD
+    CallArgs args = CallArgsFromVp(argc, vp);
+    RootedObject callee(cx, &args.callee());
+    if (!GlobalObject::warnOnceAboutStringContains(cx, callee))
+        return false;
+#endif
+    return str_includes(cx, argc, vp);
 }
 
 
@@ -3985,6 +3998,7 @@ static const JSFunctionSpec string_methods[] = {
     JS_FN("charCodeAt",        str_charCodeAt,        1,JSFUN_GENERIC_NATIVE),
     JS_SELF_HOSTED_FN("substring", "String_substring", 2,0),
     JS_SELF_HOSTED_FN("codePointAt", "String_codePointAt", 1,0),
+    JS_FN("includes",          str_includes,          1,JSFUN_GENERIC_NATIVE),
     JS_FN("contains",          str_contains,          1,JSFUN_GENERIC_NATIVE),
     JS_FN("indexOf",           str_indexOf,           1,JSFUN_GENERIC_NATIVE),
     JS_FN("lastIndexOf",       str_lastIndexOf,       1,JSFUN_GENERIC_NATIVE),
