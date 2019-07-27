@@ -289,7 +289,8 @@ onNewPromise(JSContext *cx, HandleObject promise);
 
 
 
-void onPromiseSettled(JSContext *cx, HandleObject promise);
+JS_PUBLIC_API(void)
+onPromiseSettled(JSContext *cx, HandleObject promise);
 
 } 
 } 
