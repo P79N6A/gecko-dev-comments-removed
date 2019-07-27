@@ -165,4 +165,18 @@ public class MenuItemActionView extends LinearLayout
             listener.onClick(view);
         }
     }
+
+    
+
+
+
+
+
+
+    public void initContextMenuStyles() {
+        final int defaultContextMenuPadding = getContext().getResources().getDimensionPixelOffset(
+                R.dimen.context_menu_item_horizontal_padding);
+        mMenuItem.setPadding(defaultContextMenuPadding, getPaddingTop(),
+                defaultContextMenuPadding, getPaddingBottom());
+    }
 }
