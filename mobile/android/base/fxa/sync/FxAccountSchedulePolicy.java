@@ -105,6 +105,7 @@ public class FxAccountSchedulePolicy implements SchedulePolicy {
 
   @Override
   public void onSuccessfulSync(int otherClientsCount) {
+    this.account.setLastSyncedTimestamp(System.currentTimeMillis());
     
     
     
