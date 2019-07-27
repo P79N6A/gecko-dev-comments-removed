@@ -162,6 +162,14 @@ public:
   
 
 
+  void ClearPendingComposition()
+  {
+    mPendingComposition.Clear();
+  }
+
+  
+
+
   nsresult NotifyIME(const IMENotification& aIMENotification);
 
   
