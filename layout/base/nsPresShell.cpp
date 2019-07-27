@@ -7734,7 +7734,7 @@ PresShell::HandlePositionedEvent(nsIFrame* aTargetFrame,
       
       
       while (targetElement && !targetElement->IsElement()) {
-        targetElement = targetElement->GetParent();
+        targetElement = targetElement->GetFlattenedTreeParent();
       }
 
       
