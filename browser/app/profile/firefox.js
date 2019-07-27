@@ -1386,6 +1386,8 @@ pref("devtools.timeline.enabled", false);
   pref("devtools.performance_dev.enabled", false);
 #endif
 
+pref("devtools.performance.ui.show-timeline-memory", false);
+
 
 pref("devtools.profiler.ui.show-platform-data", false);
 
