@@ -2,13 +2,7 @@
 
 
 
-
-
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 const DB_VERSION = 5; 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -154,22 +148,7 @@ LoginManagerStorage_mozStorage.prototype = {
   _dbConnection : null,  
   _dbStmts      : null,  
 
-  _prefBranch   : null,  
   _signonsFile  : null,  
-  _debug        : false, 
-
-
-  
-
-
-
-
-  log : function (message) {
-    if (!this._debug)
-      return;
-    dump("PwMgr mozStorage: " + message + "\n");
-    Services.console.logStringMessage("PwMgr mozStorage: " + message);
-  },
 
 
   
@@ -190,10 +169,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
   initialize : function () {
     this._dbStmts = {};
-
-    
-    this._prefBranch = Services.prefs.getBranch("signon.");
-    this._debug = this._prefBranch.getBoolPref("debug");
 
     let isFirstRun;
     try {
@@ -1387,6 +1362,11 @@ LoginManagerStorage_mozStorage.prototype = {
   }
 
 }; 
+
+XPCOMUtils.defineLazyGetter(this.LoginManagerStorage_mozStorage.prototype, "log", () => {
+  let logger = LoginHelper.createLogger("Login storage");
+  return logger.log.bind(logger);
+});
 
 let component = [LoginManagerStorage_mozStorage];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);

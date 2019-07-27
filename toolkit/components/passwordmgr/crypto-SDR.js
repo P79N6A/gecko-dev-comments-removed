@@ -2,13 +2,13 @@
 
 
 
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
+                                  "resource://gre/modules/LoginHelper.jsm");
 
 function LoginManagerCrypto_SDR() {
   this.init();
@@ -51,29 +51,10 @@ LoginManagerCrypto_SDR.prototype = {
     this.__utfConverter = null;
   },
 
-  _debug  : false, 
   _uiBusy : false,
 
 
-  
-
-
-
-
-  log : function (message) {
-    if (!this._debug)
-      return;
-    dump("PwMgr cryptoSDR: " + message + "\n");
-    Services.console.logStringMessage("PwMgr cryptoSDR: " + message);
-  },
-
-
   init : function () {
-    
-    this._prefBranch = Services.prefs.getBranch("signon.");
-
-    this._debug = this._prefBranch.getBoolPref("debug");
-
     
     
     let tokenDB = Cc["@mozilla.org/security/pk11tokendb;1"].
@@ -216,6 +197,11 @@ LoginManagerCrypto_SDR.prototype = {
     Services.obs.notifyObservers(null, topic, null);
   },
 }; 
+
+XPCOMUtils.defineLazyGetter(this.LoginManagerCrypto_SDR.prototype, "log", () => {
+  let logger = LoginHelper.createLogger("Login crypto");
+  return logger.log.bind(logger);
+});
 
 let component = [LoginManagerCrypto_SDR];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);

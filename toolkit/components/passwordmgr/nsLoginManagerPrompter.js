@@ -2,7 +2,6 @@
 
 
 
-
 const { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -10,9 +9,13 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/SharedPromptUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
+                                  "resource://gre/modules/LoginHelper.jsm");
+
 const LoginInfo =
       Components.Constructor("@mozilla.org/login-manager/loginInfo;1",
                              "nsILoginInfo", "init");
+
 
 
 
@@ -40,7 +43,6 @@ LoginManagerPromptFactory.prototype = {
   classID : Components.ID("{749e62f4-60ae-4569-a8a2-de78b649660e}"),
   QueryInterface : XPCOMUtils.generateQI([Ci.nsIPromptFactory, Ci.nsIObserver, Ci.nsISupportsWeakReference]),
 
-  _debug : false,
   _asyncPrompts : {},
   _asyncPromptInProgress : false,
 
@@ -59,9 +61,6 @@ LoginManagerPromptFactory.prototype = {
   },
 
   getPrompt : function (aWindow, aIID) {
-    var prefBranch = Services.prefs.getBranch("signon.");
-    this._debug = prefBranch.getBoolPref("debug");
-
     var prompt = new LoginManagerPrompter().QueryInterface(aIID);
     prompt.init(aWindow, this);
     return prompt;
@@ -167,16 +166,12 @@ LoginManagerPromptFactory.prototype = {
       }
     }
   },
-
-
-  log : function (message) {
-    if (!this._debug)
-      return;
-
-    dump("Pwmgr PromptFactory: " + message + "\n");
-    Services.console.logStringMessage("Pwmgr PrompFactory: " + message);
-  }
 }; 
+
+XPCOMUtils.defineLazyGetter(this.LoginManagerPromptFactory.prototype, "log", () => {
+  let logger = LoginHelper.createLogger("Login PromptFactory");
+  return logger.log.bind(logger);
+});
 
 
 
@@ -212,7 +207,6 @@ LoginManagerPrompter.prototype = {
   _window        : null,
   _browser       : null,
   _opener        : null,
-  _debug         : false, 
 
   __pwmgr : null, 
   get _pwmgr() {
@@ -272,20 +266,6 @@ LoginManagerPrompter.prototype = {
       
       return true;
     }
-  },
-
-
-  
-
-
-
-
-  log : function (message) {
-    if (!this._debug)
-      return;
-
-    dump("Pwmgr Prompter: " + message + "\n");
-    Services.console.logStringMessage("Pwmgr Prompter: " + message);
   },
 
 
@@ -725,8 +705,6 @@ LoginManagerPrompter.prototype = {
     this._browser = null;
     this._opener = null;
 
-    var prefBranch = Services.prefs.getBranch("signon.");
-    this._debug = prefBranch.getBoolPref("debug");
     this.log("===== initialized =====");
   },
 
@@ -1651,6 +1629,10 @@ LoginManagerPrompter.prototype = {
 
 }; 
 
+XPCOMUtils.defineLazyGetter(this.LoginManagerPrompter.prototype, "log", () => {
+  let logger = LoginHelper.createLogger("LoginManagerPrompter");
+  return logger.log.bind(logger);
+});
 
 var component = [LoginManagerPromptFactory, LoginManagerPrompter];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);

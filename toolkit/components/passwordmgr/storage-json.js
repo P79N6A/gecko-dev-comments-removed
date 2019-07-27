@@ -9,8 +9,6 @@
 
 
 
-
-
 "use strict";
 
 const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
@@ -35,7 +33,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gUUIDGenerator",
 
 
 
-this.LoginManagerStorage_json = function () {}
+this.LoginManagerStorage_json = function () {};
 
 this.LoginManagerStorage_json.prototype = {
   classID : Components.ID("{c00c432d-a0c9-46d7-bef6-9c45b4d07341}"),
@@ -49,27 +47,7 @@ this.LoginManagerStorage_json.prototype = {
     return this.__crypto;
   },
 
-  
-
-
-
-
-  log : function (message) {
-    if (!this._debug)
-      return;
-    dump("PwMgr json: " + message + "\n");
-    Services.console.logStringMessage("PwMgr json: " + message);
-  },
-  _debug : false,
-
-
-  
-
-
-
   initialize : function () {
-    this._debug = Services.prefs.getBoolPref("signon.debug");
-
     try {
       
       
@@ -650,5 +628,10 @@ this.LoginManagerStorage_json.prototype = {
     return result;
   },
 };
+
+XPCOMUtils.defineLazyGetter(this.LoginManagerStorage_json.prototype, "log", () => {
+  let logger = LoginHelper.createLogger("Login storage");
+  return logger.log.bind(logger);
+});
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([LoginManagerStorage_json]);
