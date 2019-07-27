@@ -80,6 +80,8 @@
     sdkDriver: {}
   });
 
+  loop.store.StoreMixin.register({feedbackStore: feedbackStore});
+
   
 
   var mockMozLoopRooms = _.extend({}, navigator.mozLoop);
