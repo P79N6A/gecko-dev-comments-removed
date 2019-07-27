@@ -4,6 +4,7 @@
 
 from __future__ import unicode_literals
 
+import errno
 import itertools
 import json
 import logging
@@ -15,11 +16,11 @@ from collections import (
     defaultdict,
     namedtuple,
 )
+from StringIO import StringIO
 
 import mozwebidlcodegen
 from reftest import ReftestManifest
 
-import mozbuild.makeutil as mozmakeutil
 from mozpack.copier import FilePurger
 from mozpack.manifests import (
     InstallManifest,
@@ -751,7 +752,7 @@ class RecursiveMakeBackend(CommonBackend):
 
         
         ipdl_dir = mozpath.join(self.environment.topobjdir, 'ipc', 'ipdl')
-        mk = mozmakeutil.Makefile()
+        mk = Makefile()
 
         sorted_ipdl_sources = list(sorted(self._ipdl_sources))
         mk.add_statement('ALL_IPDLSRCS := %s' % ' '.join(sorted_ipdl_sources))
@@ -983,8 +984,7 @@ INSTALL_TARGETS += %(prefix)s
     def _handle_idl_manager(self, manager):
         build_files = self._install_manifests['xpidl']
 
-        for p in ('Makefile', 'backend.mk', '.deps/.mkdir.done',
-            'xpt/.mkdir.done'):
+        for p in ('Makefile', 'backend.mk', '.deps/.mkdir.done'):
             build_files.add_optional_exists(p)
 
         for idl in manager.idls.values():
@@ -994,34 +994,44 @@ INSTALL_TARGETS += %(prefix)s
                 % idl['root'])
 
         for module in manager.modules:
-            build_files.add_optional_exists(mozpath.join('xpt',
-                '%s.xpt' % module))
             build_files.add_optional_exists(mozpath.join('.deps',
                 '%s.pp' % module))
 
         modules = manager.modules
         xpt_modules = sorted(modules.keys())
-        rules = []
+        xpt_files = set()
+
+        mk = Makefile()
 
         for module in xpt_modules:
-            deps = sorted(modules[module])
-            idl_deps = ['$(dist_idl_dir)/%s.idl' % dep for dep in deps]
-            rules.extend([
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                '$(idl_xpt_dir)/%s.xpt: %s' % (module, ' '.join(idl_deps)),
-                '\t@echo "$(notdir $@)"',
-                '\t$(idlprocess) $(basename $(notdir $@)) %s' % ' '.join(deps),
-                '',
-            ])
+            install_target, sources = modules[module]
+            deps = sorted(sources)
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            xpt_path = '$(DEPTH)/%s/components/%s.xpt' % (install_target, module)
+            xpt_files.add(xpt_path)
+            rule = mk.create_rule([xpt_path])
+            rule.add_dependencies(['$(call mkdir_deps,%s)' % mozpath.dirname(xpt_path)])
+            rule.add_dependencies(manager.idls['%s.idl' % dep]['source'] for dep in deps)
+
+            if install_target.startswith('dist/'):
+                path = mozpath.relpath(xpt_path, '$(DEPTH)/dist')
+                prefix, subpath = path.split('/', 1)
+                key = 'dist_%s' % prefix
+
+                self._install_manifests[key].add_optional_exists(subpath)
+
+        rules = StringIO()
+        mk.dump(rules, removal_guard=False)
 
         
         
@@ -1037,8 +1047,9 @@ INSTALL_TARGETS += %(prefix)s
         obj.topobjdir = self.environment.topobjdir
         obj.config = self.environment
         self._create_makefile(obj, extra=dict(
-            xpidl_rules='\n'.join(rules),
+            xpidl_rules=rules.getvalue(),
             xpidl_modules=' '.join(xpt_modules),
+            xpt_files=' '.join(sorted(xpt_files)),
         ))
 
     def _process_program(self, program, backend_file):
