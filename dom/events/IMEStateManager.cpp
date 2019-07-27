@@ -791,10 +791,9 @@ IMEStateManager::SetIMEState(const IMEState& aState,
   InputContext context;
   context.mIMEState = aState;
 
-  if (aContent && aContent->GetNameSpaceID() == kNameSpaceID_XHTML &&
-      (aContent->Tag() == nsGkAtoms::input ||
-       aContent->Tag() == nsGkAtoms::textarea)) {
-    if (aContent->Tag() != nsGkAtoms::textarea) {
+  if (aContent &&
+      aContent->IsAnyOfHTMLElements(nsGkAtoms::input, nsGkAtoms::textarea)) {
+    if (!aContent->IsHTMLElement(nsGkAtoms::textarea)) {
       
       
       
@@ -830,7 +829,7 @@ IMEStateManager::SetIMEState(const IMEState& aState,
     
     
     if (context.mActionHint.IsEmpty() &&
-        inputContent->Tag() == nsGkAtoms::input) {
+        inputContent->IsHTMLElement(nsGkAtoms::input)) {
       bool willSubmit = false;
       nsCOMPtr<nsIFormControl> control(do_QueryInterface(inputContent));
       mozilla::dom::Element* formElement = control->GetFormElement();
@@ -841,8 +840,7 @@ IMEStateManager::SetIMEState(const IMEState& aState,
             form->GetDefaultSubmitElement()) {
           willSubmit = true;
         
-        } else if (formElement && formElement->Tag() == nsGkAtoms::form &&
-                   formElement->IsHTMLElement() &&
+        } else if (formElement && formElement->IsHTMLElement(nsGkAtoms::form) &&
                    !static_cast<dom::HTMLFormElement*>(formElement)->
                      ImplicitSubmissionIsDisabled()) {
           willSubmit = true;

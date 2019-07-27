@@ -778,7 +778,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   if (IsTransformAttribute(attributeNamespaceID, attributeName) !=
-      (aAnimElem->Tag() == nsGkAtoms::animateTransform))
+      (aAnimElem->IsSVGElement(nsGkAtoms::animateTransform)))
     return false;
 
   

@@ -890,21 +890,18 @@ IsAccessKeyTarget(nsIContent* aContent, nsIFrame* aFrame, nsAString& aKey)
   if (control)
     return true;
 
-  if (aContent->IsHTMLElement()) {
-    nsIAtom* tag = aContent->Tag();
+  
+  
+  if (aContent->IsAnyOfHTMLElements(nsGkAtoms::area,
+                                    nsGkAtoms::label,
+                                    nsGkAtoms::legend)) {
+    return true;
+  }
 
-    
-    
-    if (tag == nsGkAtoms::area ||
-        tag == nsGkAtoms::label ||
-        tag == nsGkAtoms::legend)
-      return true;
-
-  } else if (aContent->IsXULElement()) {
-    
-    
-    if (aContent->Tag() == nsGkAtoms::label)
-      return true;
+  
+  
+  if (aContent->IsXULElement(nsGkAtoms::label)) {
+    return true;
   }
 
   return false;
@@ -1124,9 +1121,7 @@ EventStateManager::IsRemoteTarget(nsIContent* target) {
   }
 
   
-  if ((target->Tag() == nsGkAtoms::browser ||
-       target->Tag() == nsGkAtoms::iframe) &&
-      target->IsXULElement() &&
+  if (target->IsAnyOfXULElements(nsGkAtoms::browser, nsGkAtoms::iframe) &&
       target->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
                           nsGkAtoms::_true, eIgnoreCase)) {
     return true;
@@ -1290,7 +1285,7 @@ EventStateManager::CreateClickHoldTimer(nsPresContext* inPresContext,
       return;
     
     
-    if (mGestureDownContent->Tag() == nsGkAtoms::menubutton)
+    if (mGestureDownContent->IsXULElement(nsGkAtoms::menubutton))
       return;
   }
 
@@ -1384,27 +1379,24 @@ EventStateManager::FireContextClick()
 
     
     
-    nsIAtom *tag = mGestureDownContent->Tag();
     bool allowedToDispatch = true;
 
-    if (mGestureDownContent->IsXULElement()) {
-      if (tag == nsGkAtoms::scrollbar ||
-          tag == nsGkAtoms::scrollbarbutton ||
-          tag == nsGkAtoms::button)
+    if (mGestureDownContent->IsAnyOfXULElements(nsGkAtoms::scrollbar,
+                                                nsGkAtoms::scrollbarbutton,
+                                                nsGkAtoms::button)) {
+      allowedToDispatch = false;
+    } else if (mGestureDownContent->IsXULElement(nsGkAtoms::toolbarbutton)) {
+      
+      
+      if (nsContentUtils::HasNonEmptyAttr(mGestureDownContent,
+              kNameSpaceID_None, nsGkAtoms::container)) {
         allowedToDispatch = false;
-      else if (tag == nsGkAtoms::toolbarbutton) {
+      } else {
         
-        
-        if (nsContentUtils::HasNonEmptyAttr(mGestureDownContent,
-                kNameSpaceID_None, nsGkAtoms::container)) {
-          allowedToDispatch = false;
-        } else {
           
-            
-          if (mGestureDownContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
-                                               nsGkAtoms::_true, eCaseMatters)) {
-            allowedToDispatch = false;
-          }
+        if (mGestureDownContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
+                                             nsGkAtoms::_true, eCaseMatters)) {
+          allowedToDispatch = false;
         }
       }
     }
@@ -1415,9 +1407,9 @@ EventStateManager::FireContextClick()
         allowedToDispatch = formCtrl->IsTextControl(false) ||
                             formCtrl->GetType() == NS_FORM_INPUT_FILE;
       }
-      else if (tag == nsGkAtoms::applet ||
-               tag == nsGkAtoms::embed  ||
-               tag == nsGkAtoms::object) {
+      else if (mGestureDownContent->IsAnyOfHTMLElements(nsGkAtoms::applet,
+                                                        nsGkAtoms::embed,
+                                                        nsGkAtoms::object)) {
         allowedToDispatch = false;
       }
     }
@@ -4807,8 +4799,7 @@ EventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 
 
 
-  if (aContent->IsHTMLElement() &&
-      (aContent->Tag() == nsGkAtoms::a || aContent->Tag() == nsGkAtoms::area) &&
+  if (aContent->IsAnyOfHTMLElements(nsGkAtoms::a, nsGkAtoms::area) &&
       (aContent->AsElement()->State().HasAtLeastOneOfStates(NS_EVENT_STATE_FOCUS |
                                                             NS_EVENT_STATE_HOVER))) {
     nsGenericHTMLElement* element = static_cast<nsGenericHTMLElement*>(aContent);
