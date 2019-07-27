@@ -499,6 +499,21 @@ ExposeGCThingToActiveJS(JS::GCCellPtr thing)
         JS::UnmarkGrayGCThingRecursively(thing, thing.kind());
 }
 
+static MOZ_ALWAYS_INLINE void
+MarkGCThingAsLive(JSRuntime *aRt, JS::GCCellPtr thing)
+{
+    JS::shadow::Runtime *rt = JS::shadow::Runtime::asShadowRuntime(aRt);
+#ifdef JSGC_GENERATIONAL
+    
+
+
+    if (IsInsideNursery(thing))
+        return;
+#endif
+    if (IsIncrementalBarrierNeededOnTenuredGCThing(rt, thing))
+        JS::IncrementalReferenceBarrier(thing, thing.kind());
+}
+
 } 
 } 
 
@@ -526,25 +541,10 @@ ExposeScriptToActiveJS(JSScript *script)
 
 
 static MOZ_ALWAYS_INLINE void
-MarkGCThingAsLive(JSRuntime *rt_, void *thing, JSGCTraceKind kind)
-{
-    shadow::Runtime *rt = shadow::Runtime::asShadowRuntime(rt_);
-#ifdef JSGC_GENERATIONAL
-    
-
-
-    if (js::gc::IsInsideNursery((js::gc::Cell *)thing))
-        return;
-#endif
-    if (js::gc::IsIncrementalBarrierNeededOnTenuredGCThing(rt, GCCellPtr(thing, kind)))
-        IncrementalReferenceBarrier(thing, kind);
-}
-
-static MOZ_ALWAYS_INLINE void
 MarkStringAsLive(Zone *zone, JSString *string)
 {
     JSRuntime *rt = JS::shadow::Zone::asShadowZone(zone)->runtimeFromMainThread();
-    MarkGCThingAsLive(rt, string, JSTRACE_STRING);
+    js::gc::MarkGCThingAsLive(rt, GCCellPtr(string));
 }
 
 
