@@ -831,14 +831,6 @@ protected:
 
   
   
-  bool mIsAudioDecoding;
-
-  
-  
-  bool mIsVideoDecoding;
-
-  
-  
   
   bool mAudioRequestPending;
   bool mVideoRequestPending;

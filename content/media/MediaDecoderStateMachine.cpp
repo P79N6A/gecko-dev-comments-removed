@@ -586,8 +586,8 @@ MediaDecoderStateMachine::DecodeVideo()
     
     
     if (mState == DECODER_STATE_DECODING &&
-        mIsVideoDecoding &&
-        ((!mIsAudioPrerolling && mIsAudioDecoding &&
+        IsVideoDecoding() &&
+        ((!mIsAudioPrerolling && IsAudioDecoding() &&
           GetDecodedAudioDuration() < mLowAudioThresholdUsecs * mPlaybackRate) ||
           (!mIsVideoPrerolling && IsVideoDecoding() &&
            
