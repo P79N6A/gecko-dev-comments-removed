@@ -199,10 +199,7 @@ add_task(function *testMigration() {
     Assert.ok(!haveStartedSentinel, "haven't written a sentinel yet");
 
     
-
-
-
-
+    Assert.ok(Service.scheduler.isBlocked, "sync is blocked.")
 
     wasWaiting = true;
     throw ex;
@@ -227,10 +224,7 @@ add_task(function *testMigration() {
 
   
   
-
-
-
-
+  Assert.ok(Service.scheduler.isBlocked, "sync is blocked.");
 
   
 

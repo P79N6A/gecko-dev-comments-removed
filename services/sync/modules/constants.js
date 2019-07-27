@@ -55,6 +55,9 @@ HMAC_EVENT_INTERVAL:                   600000,
 MASTER_PASSWORD_LOCKED_RETRY_INTERVAL: 15 * 60 * 1000,   
 
 
+DEFAULT_BLOCK_PERIOD:                  2 * 24 * 60 * 60 * 1000, 
+
+
 MOBILE_BATCH_SIZE:                     50,
 
 

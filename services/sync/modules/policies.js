@@ -497,6 +497,46 @@ SyncScheduler.prototype = {
     if (this.syncTimer)
       this.syncTimer.clear();
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  blockSync: function(until = null) {
+    if (!until) {
+      until = Date.now() + DEFAULT_BLOCK_PERIOD;
+    }
+    
+    Svc.Prefs.set("scheduler.blocked-until", Math.floor(until / 1000));
+  },
+
+  unblockSync: function() {
+    Svc.Prefs.reset("scheduler.blocked-until");
+    
+    this.checkSyncStatus();
+  },
+
+  get isBlocked() {
+    let until = Svc.Prefs.get("scheduler.blocked-until");
+    if (until === undefined) {
+      return false;
+    }
+    if (until <= Math.floor(Date.now() / 1000)) {
+      
+      Svc.Prefs.reset("scheduler.blocked-until");
+      return false;
+    }
+    
+    return true;
+  },
 };
 
 const LOG_PREFIX_SUCCESS = "success-";
