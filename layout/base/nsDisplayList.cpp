@@ -426,17 +426,17 @@ AddAnimationsForProperty(nsIFrame* aFrame, nsCSSProperty aProperty,
       continue;
     }
 
-    if (!property->mWinsInCascade) {
-      
-      
-      
-      
-      
-      
-      
-      
-      continue;
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    MOZ_ASSERT(property->mWinsInCascade,
+               "GetAnimationOfProperty already tested mWinsInCascade");
 
     
     
