@@ -740,6 +740,31 @@ var DebuggerServer = {
 
 
 
+  setupInChild: function({ module, setupChild, args }) {
+    if (this.isInChildProcess) {
+      return;
+    }
+
+    const gMessageManager = Cc["@mozilla.org/globalmessagemanager;1"].
+      getService(Ci.nsIMessageListenerManager);
+
+    gMessageManager.broadcastAsyncMessage("debug:setup-in-child", {
+      module: module,
+      setupChild: setupChild,
+      args: args,
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
 
 
   setupInParent: function({ module, setupParent }) {
@@ -828,6 +853,8 @@ var DebuggerServer = {
 
       let { NetworkMonitorManager } = require("devtools/toolkit/webconsole/network-monitor");
       netMonitor = new NetworkMonitorManager(aFrame, actor.actor);
+
+      events.emit(DebuggerServer, "new-child-process", { mm: mm });
 
       deferred.resolve(actor);
     }).bind(this);
