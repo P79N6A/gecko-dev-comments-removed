@@ -2,8 +2,9 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+
+Cu.import("resource://gre/modules/Services.jsm");
 
 var gStateObject;
 var gTreeData;
@@ -11,6 +12,14 @@ var gTreeData;
 
 
 window.onload = function() {
+  
+  
+  let anchor = document.getElementById("linkMoreTroubleshooting");
+  if (anchor) {
+    let baseURL = Services.urlFormatter.formatURLPref("app.support.baseURL");
+    anchor.setAttribute("href", baseURL + "troubleshooting");
+  }
+
   
   
   var sessionData = document.getElementById("sessionData");
@@ -69,6 +78,14 @@ function initTreeView() {
 
 function restoreSession() {
   document.getElementById("errorTryAgain").disabled = true;
+
+  if (!gTreeData.some(aItem => aItem.checked)) {
+    
+    
+    
+    startNewSession();
+    return;
+  }
 
   
   var ix = gStateObject.windows.length - 1;
@@ -191,7 +208,10 @@ function toggleRowChecked(aIx) {
     treeView.treeBox.invalidateRow(gTreeData.indexOf(item.parent));
   }
 
-  document.getElementById("errorTryAgain").disabled = !gTreeData.some(isChecked);
+  
+  if (document.getElementById("errorCancel")) {
+    document.getElementById("errorTryAgain").disabled = !gTreeData.some(isChecked);
+  }
 }
 
 function restoreSingleTab(aIx, aShifted) {
