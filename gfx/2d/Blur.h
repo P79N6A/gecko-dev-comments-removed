@@ -99,7 +99,7 @@ public:
 
 
 
-  int32_t GetSurfaceAllocationSize() const;
+  size_t GetSurfaceAllocationSize() const;
 
   
 
@@ -162,7 +162,7 @@ private:
   
 
 
-  int32_t mSurfaceAllocationSize;
+  size_t mSurfaceAllocationSize;
 
   
 
