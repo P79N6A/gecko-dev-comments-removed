@@ -11,6 +11,11 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import('resource://gre/modules/Services.jsm');
 
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
+                                  "resource://gre/modules/BrowserUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
+
 
 
 function setDefault(dict, key, default_)
@@ -170,6 +175,99 @@ CategoryManagerInterposition.methods.deleteCategoryEntry =
     }
 
     target.deleteCategoryEntry(category, entry, persist);
+  };
+
+
+
+
+let AboutProtocolParent = {
+  init: function() {
+    let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
+               .getService(Ci.nsIMessageBroadcaster);
+    ppmm.addMessageListener("Addons:AboutProtocol:GetURIFlags", this);
+    ppmm.addMessageListener("Addons:AboutProtocol:NewChannel", this);
+    this._protocols = [];
+  },
+
+  registerFactory: function(class_, className, contractID, factory) {
+    this._protocols.push({contractID: contractID, factory: factory});
+    NotificationTracker.add(["about-protocol", contractID]);
+  },
+
+  unregisterFactory: function(class_, factory) {
+    for (let i = 0; i < this._protocols.length; i++) {
+      if (this._protocols[i].factory == factory) {
+        NotificationTracker.remove(["about-protocol", this._protocols[i].contractID]);
+        this._protocols.splice(i, 1);
+        break;
+      }
+    }
+  },
+
+  receiveMessage: function (msg) {
+    switch (msg.name) {
+      case "Addons:AboutProtocol:GetURIFlags":
+        return this.getURIFlags(msg);
+      case "Addons:AboutProtocol:NewChannel":
+        return this.newChannel(msg);
+        break;
+    }
+  },
+
+  getURIFlags: function(msg) {
+    let uri = BrowserUtils.makeURI(msg.data.uri);
+    let contractID = msg.data.contractID;
+    let module = Cc[contractID].getService(Ci.nsIAboutModule);
+    try {
+      return module.getURIFlags(uri);
+    } catch (e) {
+      Cu.reportError(e);
+    }
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  newChannel: function(msg) {
+    let uri = BrowserUtils.makeURI(msg.data.uri);
+    let contractID = msg.data.contractID;
+    let module = Cc[contractID].getService(Ci.nsIAboutModule);
+    try {
+      let channel = module.newChannel(uri);
+      let stream = channel.open();
+      let data = NetUtil.readInputStreamToString(stream, stream.available(), {});
+      return {
+        data: data,
+        uri: channel.URI.spec,
+        originalURI: channel.originalURI.spec,
+        contentType: channel.contentType
+      };
+    } catch (e) {
+      Cu.reportError(e);
+    }
+  },
+};
+AboutProtocolParent.init();
+
+let ComponentRegistrarInterposition = new Interposition();
+
+ComponentRegistrarInterposition.methods.registerFactory =
+  function(addon, target, class_, className, contractID, factory) {
+    if (contractID.startsWith("@mozilla.org/network/protocol/about;1?")) {
+      AboutProtocolParent.registerFactory(class_, className, contractID, factory);
+    }
+
+    target.registerFactory(class_, className, contractID, factory);
+  };
+
+ComponentRegistrarInterposition.methods.unregisterFactory =
+  function(addon, target, class_, factory) {
+    AboutProtocolParent.tryUnregisterFactory(class_, factory);
+    target.unregisterFactory(class_, factory);
   };
 
 
@@ -549,6 +647,7 @@ let RemoteAddonsParent = {
     }
 
     register(Ci.nsICategoryManager, CategoryManagerInterposition);
+    register(Ci.nsIComponentRegistrar, ComponentRegistrarInterposition);
     register(Ci.nsIObserverService, ObserverInterposition);
     register(Ci.nsIXPCComponents_Utils, ComponentsUtilsInterposition);
 
