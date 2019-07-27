@@ -183,7 +183,7 @@ pref("app.update.metro.enabled", true);
 pref("app.update.silent", false);
 
 
-#ifdef MOZ_DEV_EDITION
+#ifndef RELEASE_BUILD
 pref("app.update.badge", true);
 #else
 pref("app.update.badge", false);
