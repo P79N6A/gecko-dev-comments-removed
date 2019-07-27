@@ -22,6 +22,10 @@ const Windows8WindowFrameColor = {
     const dwmKey = "Software\\Microsoft\\Windows\\DWM";
     let customizationColor = Registry.readRegKey(HKCU, dwmKey,
                                                  "ColorizationColor");
+    if (!customizationColor) {
+      
+      return [158, 158, 158];
+    }
     
     let customizationColorHex = customizationColor.toString(16);
     
@@ -29,7 +33,7 @@ const Windows8WindowFrameColor = {
     let customizationColorArray = customizationColorHex.match(/../g);
     let [unused, fgR, fgG, fgB] = customizationColorArray.map(function(val) parseInt(val, 16));
     let colorizationColorBalance = Registry.readRegKey(HKCU, dwmKey,
-                                                       "ColorizationColorBalance");
+                                                       "ColorizationColorBalance") || 78;
      
     let frameBaseColor = 217;
     let alpha = colorizationColorBalance / 100;
