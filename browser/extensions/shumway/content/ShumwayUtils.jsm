@@ -17,6 +17,7 @@ var EXPORTED_SYMBOLS = ["ShumwayUtils"];
 
 const PREF_PREFIX = 'shumway.';
 const PREF_DISABLED = PREF_PREFIX + 'disabled';
+const PREF_WHITELIST = PREF_PREFIX + 'swf.whitelist';
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;
@@ -43,6 +44,7 @@ let ShumwayUtils = {
   _registered: false,
 
   init: function init() {
+    this.migratePreferences();
     if (this.enabled)
       this._ensureRegistered();
     else
@@ -54,6 +56,19 @@ let ShumwayUtils = {
 
     
     Services.prefs.addObserver(PREF_DISABLED, this, false);
+  },
+
+  migratePreferences: function migratePreferences() {
+    
+    
+    
+    
+    if (Services.prefs.prefHasUserValue(PREF_DISABLED) &&
+        !Services.prefs.prefHasUserValue(PREF_WHITELIST) &&
+        !getBoolPref(PREF_DISABLED, false)) {
+      
+      Services.prefs.setCharPref(PREF_WHITELIST, '*');
+    }
   },
 
   
