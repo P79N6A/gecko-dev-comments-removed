@@ -257,7 +257,7 @@ MaybeInvalidTabContext::MaybeInvalidTabContext(const IPCTabContext& aParams)
 
       TabContext *context;
       if (ipcContext.opener().type() == PBrowserOrId::TPBrowserParent) {
-        context = static_cast<TabParent*>(ipcContext.opener().get_PBrowserParent());
+        context = TabParent::GetFrom(ipcContext.opener().get_PBrowserParent());
         if (context->IsBrowserElement() && !ipcContext.isBrowserElement()) {
           
           
