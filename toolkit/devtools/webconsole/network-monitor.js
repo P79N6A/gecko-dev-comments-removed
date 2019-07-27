@@ -63,9 +63,7 @@ exports.NetworkResponseListener = NetworkResponseListener;
 NetworkResponseListener.prototype = {
   QueryInterface:
     XPCOMUtils.generateQI([Ci.nsIStreamListener, Ci.nsIInputStreamCallback,
-                           Ci.nsIRequestObserver, Ci.nsIInterfaceRequestor,
-                           Ci.nsISupports]),
-  getInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink]),
+                           Ci.nsIRequestObserver, Ci.nsISupports]),
 
   
 
@@ -99,11 +97,6 @@ NetworkResponseListener.prototype = {
 
 
   bodySize: null,
-
-  
-
-
-  transferredSize: null,
 
   
 
@@ -183,18 +176,6 @@ NetworkResponseListener.prototype = {
     this._findOpenResponse();
     this.sink.outputStream.close();
   },
-
-  
-
-  
-
-
-
-  onProgress: function(request, context, progress, progressMax) {
-    this.transferredSize = progress;
-  },
-
-  onStatus: function () {},
 
   
 
@@ -278,7 +259,6 @@ NetworkResponseListener.prototype = {
     };
 
     response.size = response.text.length;
-    response.transferredSize = this.transferredSize;
 
     try {
       response.mimeType = this.request.contentType;
@@ -299,7 +279,6 @@ NetworkResponseListener.prototype = {
     this.httpActivity.owner.
       addResponseContent(response, this.httpActivity.discardResponseBody);
 
-    this.httpActivity.channel.notificationCallbacks = null;
     this.httpActivity.channel = null;
     this.httpActivity.owner = null;
     this.httpActivity = null;
@@ -801,8 +780,6 @@ NetworkMonitor.prototype = {
     let originalListener = channel.setNewListener(tee);
 
     tee.init(originalListener, sink.outputStream, newListener);
-
-    channel.notificationCallbacks = newListener;
   },
 
   

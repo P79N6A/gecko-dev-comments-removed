@@ -12,12 +12,6 @@ function test() {
     let { document, L10N, NetMonitorView } = aMonitor.panelWin;
     let { RequestsMenu } = NetMonitorView;
 
-    
-    
-    
-    document.querySelector("#requests-menu-transferred-header-box").hidden = true;
-    document.querySelector("#requests-menu-item-template .requests-menu-transferred").hidden = true;
-
     RequestsMenu.lazyUpdate = false;
 
     ok(document.querySelector("#requests-menu-waterfall-label"),
