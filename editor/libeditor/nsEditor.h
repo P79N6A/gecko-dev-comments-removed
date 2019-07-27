@@ -7,9 +7,9 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         
-#include "mozilla/dom/OwningNonNull.h"  
 #include "mozilla/dom/Text.h"
 #include "nsAutoPtr.h"                  
+#include "nsCOMArray.h"                 
 #include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
@@ -830,12 +830,9 @@ protected:
   nsRefPtr<mozilla::TextComposition> mComposition;
 
   
-  
-  nsTArray<mozilla::dom::OwningNonNull<nsIEditActionListener>> mActionListeners;
-  
-  nsTArray<mozilla::dom::OwningNonNull<nsIEditorObserver>> mEditorObservers;
-  
-  nsTArray<mozilla::dom::OwningNonNull<nsIDocumentStateListener>> mDocStateListeners;
+  nsCOMArray<nsIEditActionListener> mActionListeners;  
+  nsCOMArray<nsIEditorObserver> mEditorObservers;  
+  nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
 
   nsSelectionState  mSavedSel;           
   nsRangeUpdater    mRangeUpdater;       
