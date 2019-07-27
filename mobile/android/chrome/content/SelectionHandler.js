@@ -40,7 +40,11 @@ var SelectionHandler = {
   
   _cache: null,
   _activeType: 0, 
+
   _draggingHandles: false, 
+  _dragStartAnchorOffset: null, 
+  _dragStartFocusOffset: null, 
+
   _ignoreCompositionChanges: false, 
   _prevHandlePositions: [], 
   _deferCloseTimer: null, 
@@ -152,11 +156,12 @@ var SelectionHandler = {
         }
         break;
       }
+
       case "TextSelection:Move": {
         let data = JSON.parse(aData);
         if (this._activeType == this.TYPE_SELECTION) {
           this._startDraggingHandles();
-          this._moveSelection(data.handleType == this.HANDLE_TYPE_ANCHOR, data.x, data.y);
+          this._moveSelection(data.handleType, new Point(data.x, data.y));
 
         } else if (this._activeType == this.TYPE_CURSOR) {
           this._startDraggingHandles();
@@ -170,30 +175,16 @@ var SelectionHandler = {
         }
         break;
       }
+
       case "TextSelection:Position": {
         if (this._activeType == this.TYPE_SELECTION) {
           this._startDraggingHandles();
-
-          
-          let isStartHandle = JSON.parse(aData).handleType == this.HANDLE_TYPE_ANCHOR;
-          try {
-            let selectionReversed = this._updateCacheForSelection(isStartHandle);
-            if (selectionReversed) {
-              
-              let selection = this._getSelection();
-              let anchorNode = selection.anchorNode;
-              let anchorOffset = selection.anchorOffset;
-              selection.collapse(selection.focusNode, selection.focusOffset);
-              selection.extend(anchorNode, anchorOffset);
-            }
-          } catch (e) {
-            
-            this._closeSelection();
-            break;
-          }
-
+          this._ensureSelectionDirection();
           this._stopDraggingHandles();
+
+          this._updateCacheForSelection();
           this._positionHandles();
+
           
           this._updateMenu();
 
@@ -225,6 +216,9 @@ var SelectionHandler = {
   _startDraggingHandles: function sh_startDraggingHandles() {
     if (!this._draggingHandles) {
       this._draggingHandles = true;
+      let selection = this._getSelection();
+      this._dragStartAnchorOffset = selection.anchorOffset;
+      this._dragStartFocusOffset = selection.focusOffset;
       Messaging.sendRequest({ type: "TextSelection:DraggingHandle", dragging: true });
     }
   },
@@ -234,6 +228,8 @@ var SelectionHandler = {
   _stopDraggingHandles: function sh_stopDraggingHandles() {
     if (this._draggingHandles) {
       this._draggingHandles = false;
+      this._dragStartAnchorOffset = null;
+      this._dragStartFocusOffset = null;
       Messaging.sendRequest({ type: "TextSelection:DraggingHandle", dragging: false });
     }
   },
@@ -866,31 +862,17 @@ var SelectionHandler = {
 
 
 
+  _moveSelection: function sh_moveSelection(handleType, handlePt) {
+    let isAnchorHandle = (handleType == this.HANDLE_TYPE_ANCHOR);
 
-
-  _moveSelectionInEditable: function sh_moveSelectionInEditable(aAnchorX, aX, aCaretPos) {
-    let anchorOffset = aX < aAnchorX ? this._targetElement.selectionEnd
-                                     : this._targetElement.selectionStart;
-    let newOffset = aCaretPos.offset;
-    let [start, end] = anchorOffset <= newOffset ?
-                       [anchorOffset, newOffset] :
-                       [newOffset, anchorOffset];
-    this._targetElement.setSelectionRange(start, end);
-  },
-
-  
-
-
-
-
-
-  _moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
     
     
     let viewOffset = this._getViewOffset();
-    let caretPos = this._contentWindow.document.caretPositionFromPoint(aX - viewOffset.x, aY - viewOffset.y);
+    let ptX = handlePt.x - viewOffset.x;
+    let ptY = handlePt.y - viewOffset.y;
+    let cwd = this._contentWindow.document;
+    let caretPos = cwd.caretPositionFromPoint(ptX, ptY);
     if (!caretPos) {
-      
       return;
     }
 
@@ -901,35 +883,35 @@ var SelectionHandler = {
     }
 
     
-    if (aIsStartHandle) {
-      this._cache.anchorPt.x = aX;
-      this._cache.anchorPt.y = aY;
-    } else {
-      this._cache.focusPt.x = aX;
-      this._cache.focusPt.y = aY;
+    
+    
+    if (targetIsEditable) {
+      let start = this._dragStartAnchorOffset;
+      let end = this._dragStartFocusOffset;
+      if (isAnchorHandle) {
+        start = caretPos.offset;
+      } else {
+        end = caretPos.offset;
+      }
+      if (start > end) {
+        [start, end] = [end, start];
+      }
+      this._targetElement.setSelectionRange(start, end);
+      return;
     }
 
+    
+    
+    
+    
     let selection = this._getSelection();
-
-    
-    
-    if ((aIsStartHandle && !this._isRTL) || (!aIsStartHandle && this._isRTL)) {
-      if (targetIsEditable) {
-        let anchorX = this._isRTL ? this._cache.anchorPt.x : this._cache.focusPt.x;
-        this._moveSelectionInEditable(anchorX, aX, caretPos);
-      } else {
-        let focusNode = selection.focusNode;
-        let focusOffset = selection.focusOffset;
-        selection.collapse(caretPos.offsetNode, caretPos.offset);
-        selection.extend(focusNode, focusOffset);
-      }
+    if (isAnchorHandle) {
+      let focusNode = selection.focusNode;
+      let focusOffset = selection.focusOffset;
+      selection.collapse(caretPos.offsetNode, caretPos.offset);
+      selection.extend(focusNode, focusOffset);
     } else {
-      if (targetIsEditable) {
-        let anchorX = this._isRTL ? this._cache.focusPt.x : this._cache.anchorPt.x;
-        this._moveSelectionInEditable(anchorX, aX, caretPos);
-      } else {
-        selection.extend(caretPos.offsetNode, caretPos.offset);
-      }
+      selection.extend(caretPos.offsetNode, caretPos.offset);
     }
   },
 
@@ -1150,28 +1132,55 @@ var SelectionHandler = {
   },
 
   
+
+
+
+
+
+  _ensureSelectionDirection: function() {
+    
+    if (this._targetElement instanceof Ci.nsIDOMNSEditableElement) {
+      return;
+    }
+
+    
+    let qcEventResult = this._domWinUtils.sendQueryContentEvent(
+      this._domWinUtils.QUERY_SELECTED_TEXT, 0, 0, 0, 0);
+    if (!qcEventResult.reversed) {
+      return;
+    }
+
+    
+    let selection = this._getSelection();
+    let newFocusNode = selection.anchorNode;
+    let newFocusOffset = selection.anchorOffset;
+
+    selection.collapse(selection.focusNode, selection.focusOffset);
+    selection.extend(newFocusNode, newFocusOffset);
+  },
+
   
-  _updateCacheForSelection: function sh_updateCacheForSelection(aIsStartHandle) {
+
+
+
+  _updateCacheForSelection: function() {
     let rects = this._getSelection().getRangeAt(0).getClientRects();
-    if (!rects[0]) {
+    if (rects.length == 0) {
       
       throw "Failed to update cache for invalid selection";
     }
 
-    let start = { x: this._isRTL ? rects[0].right : rects[0].left, y: rects[0].bottom };
-    let end = { x: this._isRTL ? rects[rects.length - 1].left : rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
-
-    let selectionReversed = false;
-    if (this._cache.anchorPt) {
+    let anchorIdx = 0;
+    let focusIdx = rects.length - 1;
+    if (this._isRTL) {
       
-      selectionReversed = (aIsStartHandle && (end.y > this._cache.focusPt.y || (end.y == this._cache.focusPt.y && end.x > this._cache.focusPt.x))) ||
-                          (!aIsStartHandle && (start.y < this._cache.anchorPt.y || (start.y == this._cache.anchorPt.y && start.x < this._cache.anchorPt.x)));
+      this._cache.anchorPt = new Point(rects[anchorIdx].right, rects[anchorIdx].bottom);
+      this._cache.focusPt = new Point(rects[focusIdx].left, rects[focusIdx].bottom);
+    } else {
+      
+      this._cache.anchorPt = new Point(rects[anchorIdx].left, rects[anchorIdx].bottom);
+      this._cache.focusPt = new Point(rects[focusIdx].right, rects[focusIdx].bottom);
     }
-
-    this._cache.anchorPt = start;
-    this._cache.focusPt = end;
-
-    return selectionReversed;
   },
 
   _getHandlePositions: function sh_getHandlePositions(scroll) {
