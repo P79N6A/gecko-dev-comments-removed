@@ -525,11 +525,8 @@ Accessible::ChildAtPoint(int32_t aX, int32_t aY,
 {
   
   
-  nsIntRect rect = Bounds();
-  if (rect.IsEmpty())
-   return nullptr;
-
   Accessible* fallbackAnswer = nullptr;
+  nsIntRect rect = Bounds();
   if (aX >= rect.x && aX < rect.x + rect.width &&
       aY >= rect.y && aY < rect.y + rect.height)
     fallbackAnswer = this;
