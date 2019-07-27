@@ -448,13 +448,12 @@ frontend::CompileScript(ExclusiveContext* cx, LifoAlloc* alloc, HandleObject sco
     
     
     
-    Rooted<Bindings> bindings(cx, script->bindings);
-    if (!Bindings::initWithTemporaryStorage(cx, &bindings, 0, 0, 0,
+    InternalHandle<Bindings*> bindings(script, &script->bindings);
+    if (!Bindings::initWithTemporaryStorage(cx, bindings, 0, 0, 0,
                                             pc->blockScopeDepth, 0, 0, nullptr))
     {
         return nullptr;
     }
-    script->bindings = bindings;
 
     if (!JSScript::fullyInitFromEmitter(cx, script, &bce))
         return nullptr;
