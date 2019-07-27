@@ -654,10 +654,7 @@ var LoginManagerContent = {
     return false;
   },
 
-
   
-
-
 
 
 
@@ -692,11 +689,17 @@ var LoginManagerContent = {
       return;
     }
 
-    var formSubmitURL = LoginUtils._getActionOrigin(form)
+    let formSubmitURL = LoginUtils._getActionOrigin(form);
+    let messageManager = messageManagerFromWindow(win);
+
+    let recipesArray = messageManager.sendSyncMessage("RemoteLogins:findRecipes", {
+      formOrigin: hostname,
+    })[0];
+    let recipes = new Set(recipesArray);
 
     
     var [usernameField, newPasswordField, oldPasswordField] =
-        this._getFormFields(form, true);
+          this._getFormFields(form, true, recipes);
 
     
     if (newPasswordField == null)
@@ -730,7 +733,6 @@ var LoginManagerContent = {
     
     let opener = win.opener ? win.opener.top : null;
 
-    let messageManager = messageManagerFromWindow(win);
     messageManager.sendAsyncMessage("RemoteLogins:onFormSubmit",
                                     { hostname: hostname,
                                       formSubmitURL: formSubmitURL,
