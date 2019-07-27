@@ -25,10 +25,14 @@ public:
 private:
   MobileConnectionIPCService();
 
-  
   ~MobileConnectionIPCService();
 
-  nsTArray<nsRefPtr<MobileConnectionChild>> mItems;
+  
+  nsresult
+  SendRequest(uint32_t aClientId, MobileConnectionRequest aRequest,
+              nsIMobileConnectionCallback* aRequestCallback);
+
+  nsTArray<nsRefPtr<MobileConnectionChild>> mClients;
 };
 
 } 
