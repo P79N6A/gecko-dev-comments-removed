@@ -6838,6 +6838,9 @@ class CGMethodCall(CGThing):
                 
                 
                 
+                
+                
+                
                 assert all(typeExposedInWorkers(sig[0]) for sig in signatures)
                 signatures = filter(
                     lambda sig: all(typeExposedInWorkers(arg.type)
@@ -11008,6 +11011,21 @@ class CGDescriptor(CGThing):
         assert not descriptor.concrete or descriptor.interface.hasInterfacePrototypeObject()
 
         self._deps = descriptor.interface.getDeps()
+        
+        
+        
+        
+        
+        if descriptor.workers:
+            methods = (m for m in descriptor.interface.members if
+                       m.isMethod() and isMaybeExposedIn(m, descriptor) and
+                       len(m.signatures()) != 1)
+            for m in methods:
+                for sig in m.signatures():
+                    for arg in sig[1]:
+                        if (arg.type.isGeckoInterface() and
+                            not arg.type.inner.isExternal()):
+                            self._deps.add(arg.type.inner.filename())
 
         cgThings = []
         cgThings.append(CGGeneric(declare="typedef %s NativeType;\n" %
