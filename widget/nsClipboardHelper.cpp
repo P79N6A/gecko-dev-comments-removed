@@ -40,8 +40,7 @@ nsClipboardHelper::~nsClipboardHelper()
 
 NS_IMETHODIMP
 nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
-                                         int32_t aClipboardID,
-                                         nsIDOMDocument* aDocument)
+                                         int32_t aClipboardID)
 {
   nsresult rv;
 
@@ -76,9 +75,7 @@ nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(trans, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
-  nsILoadContext* loadContext = doc ? doc->GetLoadContext() : nullptr;
-  trans->Init(loadContext);
+  trans->Init(nullptr);
 
   
   rv = trans->AddDataFlavor(kUnicodeMime);
@@ -113,12 +110,12 @@ nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
 }
 
 NS_IMETHODIMP
-nsClipboardHelper::CopyString(const nsAString& aString, nsIDOMDocument* aDocument)
+nsClipboardHelper::CopyString(const nsAString& aString)
 {
   nsresult rv;
 
   
-  rv = CopyStringToClipboard(aString, nsIClipboard::kGlobalClipboard, aDocument);
+  rv = CopyStringToClipboard(aString, nsIClipboard::kGlobalClipboard);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -130,7 +127,7 @@ nsClipboardHelper::CopyString(const nsAString& aString, nsIDOMDocument* aDocumen
   
   
   
-  CopyStringToClipboard(aString, nsIClipboard::kSelectionClipboard, aDocument);
+  CopyStringToClipboard(aString, nsIClipboard::kSelectionClipboard);
 
   return NS_OK;
 }
