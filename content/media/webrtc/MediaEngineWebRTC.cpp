@@ -112,7 +112,7 @@ MediaEngineWebRTC::EnumerateVideoDevices(dom::MediaSourceEnum aMediaSource,
       
       aVSources->AppendElement(vSource.get());
     } else {
-      vSource = new MediaEngineWebRTCVideoSource(i, mediaSourceType);
+      vSource = new MediaEngineWebRTCVideoSource(i, aMediaSource);
       mVideoSources.Put(uuid, vSource); 
       aVSources->AppendElement(vSource);
     }
