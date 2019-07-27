@@ -34,16 +34,7 @@ function handleTechnologyDiscoveredRE0(msg) {
   nfc.onpeerready = peerReadyCb;
   nfc.onpeerlost = peerLostCb;
 
-  let request = nfc.checkP2PRegistration(MANIFEST_URL);
-  request.onsuccess = function (evt) {
-    is(request.result, true, "check for P2P registration result");
-    nfc.notifyUserAcceptedP2P(MANIFEST_URL);
-  }
-
-  request.onerror = function () {
-    ok(false, "checkP2PRegistration failed.");
-    toggleNFC(false).then(runNextTest);
-  }
+  nfc.notifyUserAcceptedP2P(MANIFEST_URL);
 }
 
 function handleTechnologyDiscoveredRE0ForP2PRegFailure(msg) {
@@ -93,6 +84,34 @@ function testCheckP2PRegFailure() {
 
   toggleNFC(true).then(() => NCI.activateRE(emulator.P2P_RE_INDEX_0));
 }
+
+
+
+
+function testPeerLostShouldBeCalled() {
+  nfc.onpeerready = function() {
+    NCI.deactivate();
+    nfc.onpeerready = null;
+  };
+
+  nfc.onpeerlost = function() {
+    ok(true, "peerlost should be called even peerready is reset");
+    toggleNFC(false).then(runNextTest);
+  };
+
+  sysMsgHelper.waitForTechDiscovered(function() {
+    log("testPeerLostShouldBeCalled techDiscoverd");
+    nfc.notifyUserAcceptedP2P(MANIFEST_URL);
+  });
+
+  toggleNFC(true)
+    .then(() => NCI.activateRE(emulator.P2P_RE_INDEX_0));
+}
+
+
+
+
+
 
 function testPeerLostShouldNotBeCalled() {
   log("testPeerLostShouldNotBeCalled");
@@ -158,15 +177,7 @@ function testPeerShouldThrow() {
 
   sysMsgHelper.waitForTechDiscovered(function() {
     log("testPeerShouldThrow techDiscovered");
-    let request = nfc.checkP2PRegistration(MANIFEST_URL);
-    request.onsuccess = function (evt) {
-      nfc.notifyUserAcceptedP2P(MANIFEST_URL);
-    }
-
-    request.onerror = function () {
-      ok(false, "checkP2PRegistration failed.");
-      toggleNFC(false).then(runNextTest);
-    }
+    nfc.notifyUserAcceptedP2P(MANIFEST_URL);
   });
 
   toggleNFC(true)
@@ -197,6 +208,7 @@ let tests = [
   testPeerReady,
   testGetNFCPeer,
   testCheckP2PRegFailure,
+  testPeerLostShouldBeCalled,
   testPeerLostShouldNotBeCalled,
   testPeerShouldThrow,
   testPeerInvalidToken,
