@@ -179,8 +179,18 @@ add_task(function test_setup()
   
   
   Services.prefs.setBoolPref("browser.safebrowsing.malware.enabled", true);
+  Services.prefs.setBoolPref("browser.safebrowsing.downloads.enabled", true);
+  
+  
+  Services.prefs.setCharPref("urlclassifier.downloadBlockTable",
+                             "goog-badbinurl-shavar");
+  Services.prefs.setCharPref("urlclassifier.downloadAllowTable",
+                             "goog-downloadwhite-digest256");
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
+    Services.prefs.clearUserPref("browser.safebrowsing.downloads.enabled");
+    Services.prefs.clearUserPref("urlclassifier.downloadBlockTable");
+    Services.prefs.clearUserPref("urlclassifier.downloadAllowTable");
   });
 
   gHttpServer = new HttpServer();
