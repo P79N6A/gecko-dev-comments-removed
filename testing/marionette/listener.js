@@ -437,7 +437,7 @@ function checkForInterrupted() {
     if (wasInterrupted()) {
       if (previousFrame) {
         
-        cuFrame = actions.frame = previousFrame;
+        curFrame = actions.frame = previousFrame;
         previousFrame = null;
         sandbox = null;
       }
