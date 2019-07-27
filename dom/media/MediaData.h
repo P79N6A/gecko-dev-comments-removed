@@ -269,18 +269,6 @@ public:
                                   const IntRect& aPicture,
                                   bool aCopyData);
 
-  
-  
-  
-  static already_AddRefed<VideoData> CreateDuplicate(int64_t aOffset,
-                                                     int64_t aTime,
-                                                     int64_t aDuration,
-                                                     int64_t aTimecode)
-  {
-    nsRefPtr<VideoData> rv = new VideoData(aOffset, aTime, aDuration, aTimecode);
-    return rv.forget();
-  }
-
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
   
@@ -291,14 +279,6 @@ public:
   
   nsRefPtr<Image> mImage;
 
-  
-  
-  const bool mDuplicate;
-
-  VideoData(int64_t aOffset,
-            int64_t aTime,
-            int64_t aDuration,
-            int64_t aTimecode);
 
   VideoData(int64_t aOffset,
             int64_t aTime,

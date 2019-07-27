@@ -2487,10 +2487,6 @@ void MediaDecoderStateMachine::RenderVideoFrame(VideoData* aData,
   MOZ_ASSERT(OnTaskQueue());
   mDecoder->GetReentrantMonitor().AssertNotCurrentThreadIn();
 
-  if (aData->mDuplicate) {
-    return;
-  }
-
   VERBOSE_LOG("playing video frame %lld (queued=%i, state-machine=%i, decoder-queued=%i)",
               aData->mTime, VideoQueue().GetSize() + mReader->SizeOfVideoQueueInFrames(),
               VideoQueue().GetSize(), mReader->SizeOfVideoQueueInFrames());
@@ -2732,26 +2728,10 @@ MediaDecoderStateMachine::DropVideoUpToSeekTarget(VideoData* aSample)
   MOZ_ASSERT(OnTaskQueue());
   nsRefPtr<VideoData> video(aSample);
   MOZ_ASSERT(video);
-  DECODER_LOG("DropVideoUpToSeekTarget() frame [%lld, %lld] dup=%d",
-              video->mTime, video->GetEndTime(), video->mDuplicate);
+  DECODER_LOG("DropVideoUpToSeekTarget() frame [%lld, %lld]",
+              video->mTime, video->GetEndTime());
   MOZ_ASSERT(mCurrentSeek.Exists());
   const int64_t target = mCurrentSeek.mTarget.mTime;
-
-  
-  
-  
-  
-  
-  
-  if (video->mDuplicate &&
-      mFirstVideoFrameAfterSeek &&
-      !mFirstVideoFrameAfterSeek->mDuplicate) {
-    nsRefPtr<VideoData> temp =
-      VideoData::ShallowCopyUpdateTimestampAndDuration(mFirstVideoFrameAfterSeek,
-                                                       video->mTime,
-                                                       video->mDuration);
-    video = temp;
-  }
 
   
   
