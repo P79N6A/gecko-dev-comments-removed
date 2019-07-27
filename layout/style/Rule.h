@@ -134,7 +134,9 @@ protected:
   
   
   uintptr_t         mSheet;
-  GroupRule*        mParentRule;
+  
+  
+  GroupRule* MOZ_NON_OWNING_REF mParentRule;
 
   
   uint32_t          mLineNumber;
