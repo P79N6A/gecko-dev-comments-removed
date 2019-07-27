@@ -112,7 +112,7 @@ public:
   
   static already_AddRefed<Context>
   Create(Manager* aManager, nsIThread* aTarget,
-         Action* aQuotaIOThreadAction, Context* aOldContext);
+         Action* aInitAction, Context* aOldContext);
 
   
   
