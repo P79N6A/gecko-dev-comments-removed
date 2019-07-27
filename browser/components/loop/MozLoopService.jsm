@@ -1101,6 +1101,33 @@ this.MozLoopService = {
 
     
     
+    LoopRooms.on("joined", (e, room, participant) => {
+      let isOwnerInRoom = false;
+      let isOtherInRoom = false;
+
+      if (!room.participants) {
+        return;
+      }
+
+      
+      
+      for (let participant of room.participants.concat(participant)) {
+        if (participant.owner) {
+          isOwnerInRoom = true;
+        } else {
+          isOtherInRoom = true;
+        }
+      }
+
+      if (!isOwnerInRoom || !isOtherInRoom) {
+        return;
+      }
+
+      this.resumeTour("open");
+    });
+
+    
+    
     if (!MozLoopServiceInternal.urlExpiryTimeIsInFuture() &&
         !LoopRooms.getGuestCreatedRoom() &&
         !MozLoopServiceInternal.fxAOAuthTokenData) {
@@ -1482,17 +1509,58 @@ this.MozLoopService = {
 
 
 
+  getTourURL: function(aSrc = null, aAdditionalParams = {}) {
+    let urlStr = this.getLoopPref("gettingStarted.url");
+    let url = new URL(Services.urlFormatter.formatURL(urlStr));
+    for (let paramName in aAdditionalParams) {
+      url.searchParams.append(paramName, aAdditionalParams[paramName]);
+    }
+    if (aSrc) {
+      url.searchParams.set("utm_source", "firefox-browser");
+      url.searchParams.set("utm_medium", "firefox-browser");
+      url.searchParams.set("utm_campaign", aSrc);
+    }
+    return url;
+  },
+
+  resumeTour: function(aIncomingConversationState) {
+    let url = this.getTourURL("resume-with-conversation", {
+      incomingConversation: aIncomingConversationState,
+    });
+
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+
+    this.setLoopPref("gettingStarted.resumeOnFirstJoin", false);
+
+    
+    
+    let hadExistingTab = win.switchToTabHavingURI(url, true, {
+      ignoreFragment: true,
+      ignoreQueryString: true,
+    });
+
+    
+    
+    if (hadExistingTab) {
+      UITour.notify("Loop:IncomingConversation", {
+        conversationOpen: aIncomingConversationState === "open",
+      });
+    }
+  },
+
+  
+
+
+
+
   openGettingStartedTour: Task.async(function(aSrc = null) {
     try {
-      let urlStr = Services.prefs.getCharPref("loop.gettingStarted.url");
-      let url = new URL(Services.urlFormatter.formatURL(urlStr));
-      if (aSrc) {
-        url.searchParams.set("utm_source", "firefox-browser");
-        url.searchParams.set("utm_medium", "firefox-browser");
-        url.searchParams.set("utm_campaign", aSrc);
-      }
+      let url = this.getTourURL(aSrc);
       let win = Services.wm.getMostRecentWindow("navigator:browser");
-      win.switchToTabHavingURI(url, true, {replaceQueryString: true});
+      win.switchToTabHavingURI(url, true, {
+        ignoreFragment: true,
+        replaceQueryString: true,
+      });
     } catch (ex) {
       log.error("Error opening Getting Started tour", ex);
     }

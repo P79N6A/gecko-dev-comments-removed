@@ -6,6 +6,7 @@
 let LoopUI;
 
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI", "resource:///modules/loop/MozLoopAPI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "LoopRooms", "resource:///modules/loop/LoopRooms.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/loop/MozLoopService.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/PanelFrame.jsm");
 
@@ -84,8 +85,70 @@ XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/Panel
         
         Services.obs.notifyObservers(null, "loop-status-changed", null);
 
-        PanelFrame.showPopup(window, event ? event.target : this.toolbarButton.node,
-                             "loop", null, "about:looppanel", null, callback);
+        this.shouldResumeTour().then((resume) => {
+          if (resume) {
+            
+            
+            
+            MozLoopService.resumeTour("waiting");
+            resolve();
+            return;
+          }
+
+          PanelFrame.showPopup(window, event ? event.target : this.toolbarButton.node,
+                               "loop", null, "about:looppanel", null, callback);
+        });
+      });
+    },
+
+    
+
+
+
+
+
+
+
+    shouldResumeTour: Task.async(function* () {
+      
+      
+      if (!Services.prefs.getBoolPref("loop.gettingStarted.resumeOnFirstJoin")) {
+        return false;
+      }
+
+      if (!LoopRooms.participantsCount) {
+        
+        return false;
+      }
+
+      let roomsWithNonOwners = yield this.roomsWithNonOwners();
+      if (!roomsWithNonOwners.length) {
+        
+        return false;
+      }
+
+      return true;
+    }),
+
+    
+
+
+    roomsWithNonOwners: function() {
+      return new Promise(resolve => {
+        LoopRooms.getAll((error, rooms) => {
+          let roomsWithNonOwners = [];
+          for (let room of rooms) {
+            if (!("participants" in room)) {
+              continue;
+            }
+            let numNonOwners = room.participants.filter(participant => !participant.owner).length;
+            if (!numNonOwners) {
+              continue;
+            }
+            roomsWithNonOwners.push(room);
+          }
+          resolve(roomsWithNonOwners);
+        });
       });
     },
 

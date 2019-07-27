@@ -543,6 +543,16 @@ this.UITour = {
         break;
       }
 
+      case "setConfiguration": {
+        if (typeof data.configuration != "string") {
+          log.warn("setConfiguration: No configuration option specified");
+          return false;
+        }
+
+        this.setConfiguration(data.configuration, data.value);
+        break;
+      }
+
       case "showFirefoxAccounts": {
         
         
@@ -1321,7 +1331,7 @@ this.UITour = {
 
       
       
-      aWindow.LoopUI.openCallPanel({ target: toolbarButton.node, }).then(() => {
+      aWindow.LoopUI.openCallPanel({ target: toolbarButton.node, }, "rooms").then(() => {
         if (aOpenCallback) {
           aOpenCallback();
         }
@@ -1475,6 +1485,18 @@ this.UITour = {
         break;
       default:
         log.error("getConfiguration: Unknown configuration requested: " + aConfiguration);
+        break;
+    }
+  },
+
+  setConfiguration: function(aConfiguration, aValue) {
+    switch (aConfiguration) {
+      case "Loop:ResumeTourOnFirstJoin":
+        
+        Services.prefs.setBoolPref("loop.gettingStarted.resumeOnFirstJoin", true);
+        break;
+      default:
+        log.error("setConfiguration: Unknown configuration requested: " + aConfiguration);
         break;
     }
   },

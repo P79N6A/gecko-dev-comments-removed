@@ -155,7 +155,7 @@ let LoopRoomsInternal = {
 
 
 
-  getAll: function(version = null, callback) {
+  getAll: function(version = null, callback = null) {
     if (!callback) {
       callback = version;
       version = null;
