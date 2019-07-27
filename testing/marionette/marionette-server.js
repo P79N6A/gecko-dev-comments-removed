@@ -682,18 +682,20 @@ MarionetteServerConnection.prototype = {
 
 
 
-  setSessionCapabilities: function MDA_setSessionCapabilities (capabilities) {
-    this.command_id = this.getCommandId();
-    var tempCapabilities = {};
-    for (var caps in this.sessionCapabilities) {
-      tempCapabilities[caps] = this.sessionCapabilities[caps];
-    }
 
-    for (var caps in capabilities) {
-      tempCapabilities[caps] = capabilities[caps];
-    }
 
-    this.sessionCapabilities = tempCapabilities;
+  setSessionCapabilities: function(newCaps) {
+    const copy = (from, to={}) => {
+      for (let key in from) {
+        to[key] = from[key];
+      }
+      return to;
+    };
+
+    
+    let caps = copy(this.sessionCapabilities);
+    caps = copy(newCaps, caps);
+    this.sessionCapabilities = caps;
   },
 
   
