@@ -3,10 +3,11 @@
 
 
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let {TargetFactory, require} = devtools;
 let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
-let TargetFactory = devtools.TargetFactory;
+let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 const {DOMHelpers} = Cu.import("resource:///modules/devtools/DOMHelpers.jsm", {});
-const {Hosts} = devtools.require("devtools/framework/toolbox-hosts");
+const {Hosts} = require("devtools/framework/toolbox-hosts");
 
 gDevTools.testing = true;
 SimpleTest.registerCleanupFunction(() => {
@@ -147,4 +148,94 @@ function* createHost(type = "bottom", src = "data:text/html;charset=utf-8,") {
   });
 
   return [host, iframe.contentWindow, iframe.contentDocument];
+}
+
+
+
+
+
+
+
+function loadTelemetryAndRecordLogs() {
+  info("Mock the Telemetry log function to record logged information");
+
+  let Telemetry = require("devtools/shared/telemetry");
+  Telemetry.prototype.telemetryInfo = {};
+  Telemetry.prototype._oldlog = Telemetry.prototype.log;
+  Telemetry.prototype.log = function(histogramId, value) {
+    if (!this.telemetryInfo) {
+      
+      return;
+    }
+    if (histogramId) {
+      if (!this.telemetryInfo[histogramId]) {
+        this.telemetryInfo[histogramId] = [];
+      }
+
+      this.telemetryInfo[histogramId].push(value);
+    }
+  };
+
+  return Telemetry;
+}
+
+
+
+
+function stopRecordingTelemetryLogs(Telemetry) {
+  Telemetry.prototype.log = Telemetry.prototype._oldlog;
+  delete Telemetry.prototype._oldlog;
+  delete Telemetry.prototype.telemetryInfo;
+}
+
+
+
+
+
+function checkTelemetryResults(Telemetry) {
+  let result = Telemetry.prototype.telemetryInfo;
+
+  for (let [histId, value] of Iterator(result)) {
+    if (histId.endsWith("OPENED_PER_USER_FLAG")) {
+      ok(value.length === 1 && value[0] === true,
+         "Per user value " + histId + " has a single value of true");
+    } else if (histId.endsWith("OPENED_BOOLEAN")) {
+      ok(value.length > 1, histId + " has more than one entry");
+
+      let okay = value.every(function(element) {
+        return element === true;
+      });
+
+      ok(okay, "All " + histId + " entries are === true");
+    } else if (histId.endsWith("TIME_ACTIVE_SECONDS")) {
+      ok(value.length > 1, histId + " has more than one entry");
+
+      let okay = value.every(function(element) {
+        return element > 0;
+      });
+
+      ok(okay, "All " + histId + " entries have time > 0");
+    }
+  }
+}
+
+
+
+
+
+
+
+
+function* openAndCloseToolbox(nbOfTimes, usageTime, toolId) {
+  for (let i = 0; i < nbOfTimes; i ++) {
+    info("Opening toolbox " + (i + 1));
+    let target = TargetFactory.forTab(gBrowser.selectedTab);
+    yield gDevTools.showToolbox(target, toolId)
+
+    
+    yield new Promise(resolve => setTimeout(resolve, usageTime));
+
+    info("Closing toolbox " + (i + 1));
+    yield gDevTools.closeToolbox(target);
+  }
 }
