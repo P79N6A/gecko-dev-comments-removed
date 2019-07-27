@@ -471,6 +471,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
   
   
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
+    GatherAndStoreOverflow(&aDesiredSize);
     DidReflowChildren(GetFirstPrincipalChild());
     return rv;
   }
