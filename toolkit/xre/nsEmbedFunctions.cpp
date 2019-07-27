@@ -604,6 +604,13 @@ XRE_InitChildProcess(int aArgc,
         return NS_ERROR_FAILURE;
       }
 
+#if defined(XP_WIN)
+      
+      
+      
+      ::SetProcessShutdownParameters(0x280 - 1, SHUTDOWN_NORETRY);
+#endif
+
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
       
       
