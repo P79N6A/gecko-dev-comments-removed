@@ -45,11 +45,34 @@ exports.CallView = CallView;
 
 
 
-function CallView({ caller, frame, level }) {
-  AbstractTreeItem.call(this, { parent: caller, level: level });
 
-  this.autoExpandDepth = caller ? caller.autoExpandDepth : CALL_TREE_AUTO_EXPAND;
+
+
+
+
+
+
+
+
+
+function CallView({ autoExpandDepth, caller, frame, level, hidden, inverted }) {
+  level = level || 0;
+  if (hidden) {
+    level--;
+  }
+
+  AbstractTreeItem.call(this, {
+    parent: caller,
+    level
+  });
+
+  this.caller = caller;
+  this.autoExpandDepth = autoExpandDepth != null
+    ? autoExpandDepth
+    : caller ? caller.autoExpandDepth : CALL_TREE_AUTO_EXPAND;
   this.frame = frame;
+  this.hidden = hidden;
+  this.inverted = inverted;
 
   this._onUrlClick = this._onUrlClick.bind(this);
   this._onZoomClick = this._onZoomClick.bind(this);
@@ -67,11 +90,26 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
 
     let frameInfo = this.frame.getInfo();
     let framePercentage = this._getPercentage(this.frame.samples);
-    let childrenPercentage = sum([this._getPercentage(c.samples)
+
+    let selfPercentage;
+    let selfDuration;
+    if (!this._getChildCalls().length) {
+      selfPercentage = framePercentage;
+      selfDuration = this.frame.duration;
+    } else {
+      let childrenPercentage = sum([this._getPercentage(c.samples)
+                                    for (c of this._getChildCalls())]);
+      selfPercentage = clamp(framePercentage - childrenPercentage, 0, 100);
+
+      let childrenDuration = sum([c.duration
                                   for (c of this._getChildCalls())]);
-    let selfPercentage = clamp(framePercentage - childrenPercentage, 0, 100);
-    let selfDuration = this.frame.duration - sum([c.duration
-                                                  for (c of this._getChildCalls())]);
+      selfDuration = this.frame.duration - childrenDuration;
+
+      if (this.inverted) {
+        selfPercentage = framePercentage - selfPercentage;
+        selfDuration = this.frame.duration - selfDuration;
+      }
+    }
 
     let durationCell = this._createTimeCell(this.frame.duration);
     let selfDurationCell = this._createTimeCell(selfDuration, true);
@@ -85,6 +123,9 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     targetNode.setAttribute("origin", frameInfo.isContent ? "content" : "chrome");
     targetNode.setAttribute("category", frameInfo.categoryData.abbrev || "");
     targetNode.setAttribute("tooltiptext", this.frame.location || "");
+    if (this.hidden) {
+      targetNode.style.display = "none";
+    }
 
     let isRoot = frameInfo.nodeType == "Thread";
     if (isRoot) {
@@ -93,8 +134,8 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
     }
 
     targetNode.appendChild(durationCell);
-    targetNode.appendChild(selfDurationCell);
     targetNode.appendChild(percentageCell);
+    targetNode.appendChild(selfDurationCell);
     targetNode.appendChild(selfPercentageCell);
     targetNode.appendChild(samplesCell);
     targetNode.appendChild(functionCell);
@@ -105,14 +146,14 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
   
 
 
-  _getPercentage: function (samples) {
+  _getPercentage: function(samples) {
     return samples / this.root.frame.samples * 100;
   },
 
   
 
 
-  _getChildCalls: function () {
+  _getChildCalls: function() {
     return Object.keys(this.frame.calls).map(k => this.frame.calls[k]);
   },
 
@@ -128,7 +169,8 @@ CallView.prototype = Heritage.extend(AbstractTreeItem.prototype, {
       children.push(new CallView({
         caller: this,
         frame: newFrame,
-        level: newLevel
+        level: newLevel,
+        inverted: this.inverted
       }));
     }
 

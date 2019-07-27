@@ -51,14 +51,16 @@ exports._isContent = isContent;
 
 
 
-function ThreadNode(threadSamples, contentOnly, beginAt, endAt) {
+
+
+function ThreadNode(threadSamples, contentOnly, beginAt, endAt, invert) {
   this.samples = 0;
   this.duration = 0;
   this.calls = {};
   this._previousSampleTime = 0;
 
   for (let sample of threadSamples) {
-    this.insert(sample, contentOnly, beginAt, endAt);
+    this.insert(sample, contentOnly, beginAt, endAt, invert);
   }
 }
 
@@ -77,24 +79,38 @@ ThreadNode.prototype = {
 
 
 
-  insert: function(sample, contentOnly = false, beginAt = 0, endAt = Infinity) {
+
+
+
+  insert: function(sample, contentOnly = false, beginAt = 0, endAt = Infinity,
+                   inverted = false) {
     let sampleTime = sample.time;
     if (!sampleTime || sampleTime < beginAt || sampleTime > endAt) {
       return;
     }
 
     let sampleFrames = sample.frames;
-    let rootIndex = 1;
 
     
     
     if (contentOnly) {
-      sampleFrames = sampleFrames.filter(frame => isContent(frame));
-      rootIndex = 0;
+      sampleFrames = sampleFrames.filter(isContent);
     }
+
     if (!sampleFrames.length) {
       return;
     }
+
+    if (inverted) {
+      sampleFrames.reverse();
+      if (!contentOnly) {
+        
+        
+        sampleFrames.pop();
+      }
+    }
+
+    let startIndex = (inverted || contentOnly) ? 0 : 1;
 
     let sampleDuration = sampleTime - this._previousSampleTime;
     this._previousSampleTime = sampleTime;
@@ -102,7 +118,7 @@ ThreadNode.prototype = {
     this.duration += sampleDuration;
 
     FrameNode.prototype.insert(
-      sampleFrames, rootIndex, sampleTime, sampleDuration, this.calls);
+      sampleFrames, startIndex, sampleTime, sampleDuration, this.calls);
   },
 
   
