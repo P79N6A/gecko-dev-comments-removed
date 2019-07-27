@@ -173,6 +173,13 @@ CompositorOGL::CleanupResources()
     mQuadVBO = 0;
   }
 
+  
+  
+  
+  
+  
+  mGLContext->MarkDestroyed();
+
   mGLContext = nullptr;
 }
 

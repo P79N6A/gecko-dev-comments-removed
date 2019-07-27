@@ -2641,6 +2641,9 @@ protected:
 public:
     virtual ~GLContext();
 
+    
+    
+    void MarkDestroyed();
 
 
 
@@ -2682,10 +2685,6 @@ public:
     virtual bool SetupLookupFunction() = 0;
 
     virtual void ReleaseSurface() {}
-
-    
-    
-    void MarkDestroyed();
 
     bool IsDestroyed() {
         
