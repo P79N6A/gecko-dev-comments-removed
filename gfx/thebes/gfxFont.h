@@ -114,6 +114,9 @@ struct gfxFontStyle {
     float sizeAdjust;
 
     
+    float baselineOffset;
+
+    
     
     
     
@@ -151,7 +154,14 @@ struct gfxFontStyle {
     bool allowSyntheticStyle : 1;
 
     
+    
+    bool noFallbackVariantFeatures : 1;
+
+    
     uint8_t variantCaps;
+
+    
+    uint8_t variantSubSuper;
 
     
     
@@ -175,6 +185,7 @@ struct gfxFontStyle {
              *reinterpret_cast<const uint64_t*>(&other.size)) &&
             (style == other.style) &&
             (variantCaps == other.variantCaps) &&
+            (variantSubSuper == other.variantSubSuper) &&
             (allowSyntheticWeight == other.allowSyntheticWeight) &&
             (allowSyntheticStyle == other.allowSyntheticStyle) &&
             (systemFont == other.systemFont) &&
@@ -183,6 +194,7 @@ struct gfxFontStyle {
             (weight == other.weight) &&
             (stretch == other.stretch) &&
             (language == other.language) &&
+            (baselineOffset == other.baselineOffset) &&
             (*reinterpret_cast<const uint32_t*>(&sizeAdjust) ==
              *reinterpret_cast<const uint32_t*>(&other.sizeAdjust)) &&
             (featureSettings == other.featureSettings) &&
@@ -1640,6 +1652,9 @@ public:
                              bool& aSyntheticUpperToSmallCaps);
 
     
+    bool SupportsSubSuperscript(int32_t aScript, uint32_t aSubSuperscript);
+
+    
     
     
     virtual bool ProvidesGetGlyph() const {
@@ -1982,7 +1997,18 @@ public:
         return mFontEntry->GetMathConstant(aConstant);
     }
 
+    
+    virtual already_AddRefed<gfxFont>
+    GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel);
+
 protected:
+
+    
+    
+    void CalculateSubSuperSizeAndOffset(int32_t aAppUnitsPerDevPixel,
+                                        gfxFloat& aSubSuperSizeRatio,
+                                        float& aBaselineOffset);
+
     
     
     
@@ -3305,6 +3331,9 @@ public:
         return mCharacterGlyphs;
     }
 
+    
+    void ClearGlyphsAndCharacters();
+
     void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, uint32_t aCharIndex);
 
     
@@ -3426,6 +3455,23 @@ public:
         mFlags &= ~gfxTextRunFactory::TEXT_RUN_SIZE_ACCOUNTED;
     }
 
+    
+    
+    
+
+    enum ShapingState {
+        eShapingState_Normal,                 
+        eShapingState_ShapingWithFeature,     
+        eShapingState_ShapingWithFallback,    
+        eShapingState_Aborted,                
+        eShapingState_ForceFallbackFeature    
+    };
+
+    ShapingState GetShapingState() const { return mShapingState; }
+    void SetShapingState(ShapingState aShapingState) {
+        mShapingState = aShapingState;
+    }
+
 #ifdef DEBUG
     void Dump(FILE* aOutput);
 #endif
@@ -3522,6 +3568,10 @@ private:
                                     
     bool              mReleasedFontGroup; 
                                           
+
+    
+    
+    ShapingState      mShapingState;
 };
 
 class gfxFontGroup : public gfxTextRunFactory {
