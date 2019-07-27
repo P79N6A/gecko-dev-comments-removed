@@ -37,7 +37,6 @@ add_task(function*() {
   }
 });
 
-
 function* testLivePreviewData(data, ruleView, selector) {
   let testElement = getNode(selector);
   let idRuleEditor = getRuleViewRuleEditor(ruleView, 1);
@@ -59,8 +58,11 @@ function* testLivePreviewData(data, ruleView, selector) {
 
   
   
-  
-  yield wait(1);
+  for (let rule of ruleView._elementStyle.rules) {
+    if (rule._applyingModifications) {
+      yield rule._applyingModifications;
+    }
+  }
 
   
   is((yield getComputedStyleProperty(selector, null, "display")),
