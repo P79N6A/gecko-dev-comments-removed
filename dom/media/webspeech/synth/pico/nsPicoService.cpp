@@ -521,7 +521,10 @@ nsPicoService::Init()
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(!mInitialized);
 
-  sPicoApi.Init();
+  if (!sPicoApi.Init()) {
+    NS_WARNING("Failed to initialize pico library");
+    return;
+  }
 
   
   nsAutoCString langPath(PR_GetEnv("PICO_LANG_PATH"));
