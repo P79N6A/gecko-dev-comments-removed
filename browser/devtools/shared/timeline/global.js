@@ -28,7 +28,23 @@ const L10N = new ViewHelpers.L10N(STRINGS_URI);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const TIMELINE_BLUEPRINT = {
+  
   "Styles": {
     group: 0,
     colorName: "highlight-pink",
@@ -44,15 +60,25 @@ const TIMELINE_BLUEPRINT = {
     colorName: "highlight-green",
     label: L10N.getStr("timeline.label.paint")
   },
+
+  
   "DOMEvent": {
     group: 1,
     colorName: "highlight-lightorange",
-    label: L10N.getStr("timeline.label.domevent")
+    label: L10N.getStr("timeline.label.domevent"),
+    fields: [{
+      property: "type",
+      label: L10N.getStr("timeline.markerDetail.DOMEventType")
+    }, {
+      property: "eventPhase",
+      label: L10N.getStr("timeline.markerDetail.DOMEventPhase"),
+      formatter: getEventPhaseName
+    }]
   },
   "Javascript": {
     group: 1,
     colorName: "highlight-lightorange",
-    label: L10N.getStr("timeline.label.javascript2")
+    label: (marker) => marker.causeName,
   },
   "Parse HTML": {
     group: 1,
@@ -67,12 +93,22 @@ const TIMELINE_BLUEPRINT = {
   "GarbageCollection": {
     group: 1,
     colorName: "highlight-red",
-    label: L10N.getStr("timeline.label.garbageCollection")
+    label: getGCLabel,
+    fields: [
+      { property: "causeName", label: "Reason:" },
+      { property: "nonincrementalReason", label: "Non-incremental Reason:" }
+    ]
   },
+
+  
   "ConsoleTime": {
     group: 2,
     colorName: "highlight-bluegrey",
-    label: L10N.getStr("timeline.label.consoleTime")
+    label: L10N.getStr("timeline.label.consoleTime"),
+    fields: [{
+      property: "causeName",
+      label: L10N.getStr("timeline.markerDetail.consoleTimerName")
+    }]
   },
   "TimeStamp": {
     group: 2,
@@ -80,6 +116,30 @@ const TIMELINE_BLUEPRINT = {
     label: L10N.getStr("timeline.label.timestamp")
   },
 };
+
+
+
+
+
+function getEventPhaseName (marker) {
+  if (marker.eventPhase === Ci.nsIDOMEvent.AT_TARGET) {
+    return L10N.getStr("timeline.markerDetail.DOMEventTargetPhase");
+  } else if (marker.eventPhase === Ci.nsIDOMEvent.CAPTURING_PHASE) {
+    return L10N.getStr("timeline.markerDetail.DOMEventCapturingPhase");
+  } else if (marker.eventPhase === Ci.nsIDOMEvent.BUBBLING_PHASE) {
+    return L10N.getStr("timeline.markerDetail.DOMEventBubblingPhase");
+  }
+}
+
+function getGCLabel (marker) {
+  let label = L10N.getStr("timeline.label.garbageCollection");
+  
+  
+  if ("nonincrementalReason" in marker) {
+    label = `${label} (Non-incremental)`;
+  }
+  return label;
+}
 
 
 exports.L10N = L10N;

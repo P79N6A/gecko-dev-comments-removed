@@ -209,7 +209,9 @@ exports.RecordingUtils.getProfileThreadFromAllocations = function(allocations) {
 
 
 exports.RecordingUtils.getFilteredBlueprint = function({ blueprint, hiddenMarkers }) {
-  let filteredBlueprint = Cu.cloneInto(blueprint, {});
+  
+  
+  let filteredBlueprint = Cu.cloneInto(blueprint, {}, { cloneFunctions: true });
   let maybeRemovedGroups = new Set();
   let removedGroups = new Set();
 
