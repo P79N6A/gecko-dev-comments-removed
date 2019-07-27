@@ -10,8 +10,8 @@
 #include "mozilla/dom/StructuredCloneUtils.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/jsipc/CrossProcessObjectWrappers.h"
 #include "mozilla/ipc/InputStreamUtils.h"
-#include "JavaScriptChild.h"
 
 using namespace base;
 using namespace mozilla::ipc;
@@ -100,14 +100,13 @@ ContentBridgeChild::SendPBrowserConstructor(PBrowserChild* aActor,
 
 
 
-jsipc::JavaScriptShared*
+jsipc::CPOWManager*
 ContentBridgeChild::GetCPOWManager()
 {
   if (ManagedPJavaScriptChild().Length()) {
-    return static_cast<JavaScriptChild*>(ManagedPJavaScriptChild()[0]);
+    return CPOWManagerFor(ManagedPJavaScriptChild()[0]);
   }
-  JavaScriptChild* actor = static_cast<JavaScriptChild*>(SendPJavaScriptConstructor());
-  return actor;
+  return CPOWManagerFor(SendPJavaScriptConstructor());
 }
 
 mozilla::jsipc::PJavaScriptChild *
