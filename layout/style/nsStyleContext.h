@@ -200,6 +200,11 @@ public:
     { return !!(mBits & NS_STYLE_USES_GRANDANCESTOR_STYLE); }
 
   
+  
+  bool IsShared() const
+    { return !!(mBits & NS_STYLE_IS_SHARED); }
+
+  
   void SetStyle(nsStyleStructID aSID, void* aStruct);
 
   

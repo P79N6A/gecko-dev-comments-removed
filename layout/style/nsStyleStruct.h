@@ -52,8 +52,10 @@ class imgIContainer;
 
 #define NS_STYLE_USES_GRANDANCESTOR_STYLE  0x010000000
 
-#define NS_STYLE_CONTEXT_TYPE_MASK         0x3e0000000
-#define NS_STYLE_CONTEXT_TYPE_SHIFT        29
+#define NS_STYLE_IS_SHARED                 0x020000000
+
+#define NS_STYLE_CONTEXT_TYPE_MASK         0x7c0000000
+#define NS_STYLE_CONTEXT_TYPE_SHIFT        30
 
 
 #define NS_RULE_NODE_GC_MARK                0x02000000
