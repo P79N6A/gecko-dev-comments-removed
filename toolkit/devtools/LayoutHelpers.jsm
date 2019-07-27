@@ -35,59 +35,63 @@ LayoutHelpers.prototype = {
 
 
 
-
   getAdjustedQuads: function(node, region) {
     if (!node || !node.getBoxQuads) {
-      return null;
+      return [];
     }
 
-    let [quads] = node.getBoxQuads({
+    let quads = node.getBoxQuads({
       box: region
     });
 
-    if (!quads) {
-      return null;
+    if (!quads.length) {
+      return [];
     }
 
     let [xOffset, yOffset] = this.getFrameOffsets(node);
     let scale = LayoutHelpers.getCurrentZoom(node);
 
-    return {
-      p1: {
-        w: quads.p1.w * scale,
-        x: quads.p1.x * scale + xOffset,
-        y: quads.p1.y * scale + yOffset,
-        z: quads.p1.z * scale
-      },
-      p2: {
-        w: quads.p2.w * scale,
-        x: quads.p2.x * scale + xOffset,
-        y: quads.p2.y * scale + yOffset,
-        z: quads.p2.z * scale
-      },
-      p3: {
-        w: quads.p3.w * scale,
-        x: quads.p3.x * scale + xOffset,
-        y: quads.p3.y * scale + yOffset,
-        z: quads.p3.z * scale
-      },
-      p4: {
-        w: quads.p4.w * scale,
-        x: quads.p4.x * scale + xOffset,
-        y: quads.p4.y * scale + yOffset,
-        z: quads.p4.z * scale
-      },
-      bounds: {
-        bottom: quads.bounds.bottom * scale + yOffset,
-        height: quads.bounds.height * scale,
-        left: quads.bounds.left * scale + xOffset,
-        right: quads.bounds.right * scale + xOffset,
-        top: quads.bounds.top * scale + yOffset,
-        width: quads.bounds.width * scale,
-        x: quads.bounds.x * scale + xOffset,
-        y: quads.bounds.y * scale + yOffset
-      }
-    };
+    let adjustedQuads = [];
+    for (let quad of quads) {
+      adjustedQuads.push({
+        p1: {
+          w: quad.p1.w * scale,
+          x: quad.p1.x * scale + xOffset,
+          y: quad.p1.y * scale + yOffset,
+          z: quad.p1.z * scale
+        },
+        p2: {
+          w: quad.p2.w * scale,
+          x: quad.p2.x * scale + xOffset,
+          y: quad.p2.y * scale + yOffset,
+          z: quad.p2.z * scale
+        },
+        p3: {
+          w: quad.p3.w * scale,
+          x: quad.p3.x * scale + xOffset,
+          y: quad.p3.y * scale + yOffset,
+          z: quad.p3.z * scale
+        },
+        p4: {
+          w: quad.p4.w * scale,
+          x: quad.p4.x * scale + xOffset,
+          y: quad.p4.y * scale + yOffset,
+          z: quad.p4.z * scale
+        },
+        bounds: {
+          bottom: quad.bounds.bottom * scale + yOffset,
+          height: quad.bounds.height * scale,
+          left: quad.bounds.left * scale + xOffset,
+          right: quad.bounds.right * scale + xOffset,
+          top: quad.bounds.top * scale + yOffset,
+          width: quad.bounds.width * scale,
+          x: quad.bounds.x * scale + xOffset,
+          y: quad.bounds.y * scale + yOffset
+        }
+      });
+    }
+
+    return adjustedQuads;
   },
 
   

@@ -306,14 +306,22 @@ let getBoxModelStatus = Task.async(function*(toolbox) {
   return ret;
 });
 
-let getGuideStatus = Task.async(function*(location, toolbox) {
+
+
+
+
+
+
+
+
+let getGuideStatus = Task.async(function*(location, {highlighter}) {
   let id = "box-model-guide-" + location;
 
-  let hidden = yield getHighlighterNodeAttribute(toolbox.highlighter, id, "hidden");
-  let x1 = yield getHighlighterNodeAttribute(toolbox.highlighter, id, "x1");
-  let y1 = yield getHighlighterNodeAttribute(toolbox.highlighter, id, "y1");
-  let x2 = yield getHighlighterNodeAttribute(toolbox.highlighter, id, "x2");
-  let y2 = yield getHighlighterNodeAttribute(toolbox.highlighter, id, "y2");
+  let hidden = yield getHighlighterNodeAttribute(highlighter, id, "hidden");
+  let x1 = yield getHighlighterNodeAttribute(highlighter, id, "x1");
+  let y1 = yield getHighlighterNodeAttribute(highlighter, id, "y1");
+  let x2 = yield getHighlighterNodeAttribute(highlighter, id, "x2");
+  let y2 = yield getHighlighterNodeAttribute(highlighter, id, "y2");
 
   return {
     visible: !hidden,
@@ -328,27 +336,59 @@ let getGuideStatus = Task.async(function*(location, toolbox) {
 
 
 
+
+
+
+let getGuidesRectangle = Task.async(function*(toolbox) {
+  let tGuide = yield getGuideStatus("top", toolbox);
+  let rGuide = yield getGuideStatus("right", toolbox);
+  let bGuide = yield getGuideStatus("bottom", toolbox);
+  let lGuide = yield getGuideStatus("left", toolbox);
+
+  if (!tGuide.visible || !rGuide.visible || !bGuide.visible || !lGuide.visible) {
+    return null;
+  }
+
+  return {
+    p1: {x: lGuide.x1, y: tGuide.y1},
+    p2: {x: rGuide.x1, y: tGuide. y1},
+    p3: {x: rGuide.x1, y: bGuide.y1},
+    p4: {x: lGuide.x1, y: bGuide.y1}
+  };
+});
+
+
+
+
+
 let getPointsForRegion = Task.async(function*(region, toolbox) {
-  let points = yield getHighlighterNodeAttribute(toolbox.highlighter,
-                                                 "box-model-" + region, "points");
-  points = points.split(/[, ]/);
+  let d = yield getHighlighterNodeAttribute(toolbox.highlighter,
+                                            "box-model-" + region, "d");
+  let polygons = d.match(/M[^M]+/g);
+  if (!polygons) {
+    return null;
+  }
+
+  let points = polygons[0].trim().split(" ").map(i => {
+    return i.replace(/M|L/, "").split(",")
+  });
 
   return {
     p1: {
-      x: parseFloat(points[0]),
-      y: parseFloat(points[1])
+      x: parseFloat(points[0][0]),
+      y: parseFloat(points[0][1])
     },
     p2: {
-      x: parseFloat(points[2]),
-      y: parseFloat(points[3])
+      x: parseFloat(points[1][0]),
+      y: parseFloat(points[1][1])
     },
     p3: {
-      x: parseFloat(points[4]),
-      y: parseFloat(points[5])
+      x: parseFloat(points[2][0]),
+      y: parseFloat(points[2][1])
     },
     p4: {
-      x: parseFloat(points[6]),
-      y: parseFloat(points[7])
+      x: parseFloat(points[3][0]),
+      y: parseFloat(points[3][1])
     }
   };
 });
@@ -391,23 +431,20 @@ let getHighlitNode = Task.async(function*(toolbox) {
 
 
 
-let isNodeCorrectlyHighlighted = Task.async(function*(node, toolbox, prefix="") {
-  prefix += (prefix ? " " : "") + node.nodeName;
-  prefix += (node.id ? "#" + node.id : "");
-  prefix += (node.classList.length ? "." + [...node.classList].join(".") : "");
-  prefix += " ";
-
+let isNodeCorrectlyHighlighted = Task.async(function*(selector, toolbox, prefix="") {
   let boxModel = yield getBoxModelStatus(toolbox);
-  let {data: regions} = yield executeInContent("Test:GetAllAdjustedQuads", null,
-                                               {node});
+  let {data: regions} = yield executeInContent("Test:GetAllAdjustedQuads",
+                                               {selector});
 
   for (let boxType of ["content", "padding", "border", "margin"]) {
-    let quads = regions[boxType];
+    let [quad] = regions[boxType];
     for (let point in boxModel[boxType].points) {
-      is(boxModel[boxType].points[point].x, quads[point].x,
-        prefix + boxType + " point " + point + " x coordinate is correct");
-      is(boxModel[boxType].points[point].y, quads[point].y,
-        prefix + boxType + " point " + point + " y coordinate is correct");
+      is(boxModel[boxType].points[point].x, quad[point].x,
+        "Node " + selector + " " + boxType + " point " + point +
+        " x coordinate is correct");
+      is(boxModel[boxType].points[point].y, quad[point].y,
+        "Node " + selector + " " + boxType + " point " + point +
+        " y coordinate is correct");
     }
   }
 });
@@ -550,6 +587,37 @@ let getHighlighterNodeAttribute = Task.async(function*(highlighter, nodeID, name
   let {data: value} = yield executeInContent("Test:GetHighlighterAttribute",
                                              {nodeID, name, actorID, connPrefix});
   return value;
+});
+
+
+
+
+
+
+
+
+
+
+
+let getHighlighterRegionPath = Task.async(function*(region, highlighter) {
+  let d = yield getHighlighterNodeAttribute(highlighter, "box-model-" + region, "d");
+  if (!d) {
+    return {d: null};
+  }
+
+  let polygons = d.match(/M[^M]+/g);
+  if (!polygons) {
+    return {d};
+  }
+
+  let points = [];
+  for (let polygon of polygons) {
+    points.push(polygon.trim().split(" ").map(i => {
+      return i.replace(/M|L/, "").split(",")
+    }));
+  }
+
+  return {d, points};
 });
 
 

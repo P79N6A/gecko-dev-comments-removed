@@ -219,7 +219,9 @@ addMessageListener("Test:ElementFromPoint", function(msg) {
 
 
 addMessageListener("Test:GetAllAdjustedQuads", function(msg) {
-  let {node} = msg.objects;
+  let {selector} = msg.data;
+  let node = superQuerySelector(selector);
+
   let regions = {};
 
   let helper = new LayoutHelpers(content);
@@ -250,7 +252,7 @@ addMessageListener("Test:SynthesizeMouse", function(msg) {
   let {node} = msg.objects;
 
   if (!node && selector) {
-    node = content.document.querySelector(selector);
+    node = superQuerySelector(selector);
   }
 
   if (center) {
@@ -292,5 +294,31 @@ addMessageListener("Test:HasPseudoClassLock", function(msg) {
   let {pseudo} = msg.data
   sendAsyncMessage("Test:HasPseudoClassLock", DOMUtils.hasPseudoClassLock(node, pseudo));
 });
+
+
+
+
+
+
+
+
+
+
+
+function superQuerySelector(superSelector, root=content.document) {
+  let frameIndex = superSelector.indexOf("||");
+  if (frameIndex === -1) {
+    return root.querySelector(superSelector);
+  } else {
+    let rootSelector = superSelector.substring(0, frameIndex).trim();
+    let childSelector = superSelector.substring(frameIndex+2).trim();
+    root = root.querySelector(rootSelector);
+    if (!root || !root.contentWindow) {
+      return null;
+    }
+
+    return superQuerySelector(childSelector, root.contentWindow.document);
+  }
+}
 
 let dumpn = msg => dump(msg + "\n");
