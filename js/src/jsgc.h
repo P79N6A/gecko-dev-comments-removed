@@ -1189,6 +1189,7 @@ MergeCompartments(JSCompartment* source, JSCompartment* target);
 class RelocationOverlay
 {
     friend class MinorCollectionTracer;
+    friend class js::TenuringTracer;
 
     
     static const uintptr_t Relocated = uintptr_t(0xbad0bad1);
