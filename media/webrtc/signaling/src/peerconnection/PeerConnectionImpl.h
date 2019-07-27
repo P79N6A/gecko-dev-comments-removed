@@ -572,10 +572,11 @@ public:
   const std::vector<std::string> &GetSdpParseErrors();
 
   
-  void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState);
+  void SetSignalingState_m(mozilla::dom::PCImplSignalingState aSignalingState,
+                           bool rollback = false);
 
   
-  void UpdateSignalingState();
+  void UpdateSignalingState(bool rollback = false);
 
   bool IsClosed() const;
   

@@ -246,7 +246,11 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   }
 
   
-  void UpdateTransports(const JsepSession& session, bool restartGathering);
+  void EnsureTransports(const JsepSession& aSession);
+
+  
+  
+  void ActivateOrRemoveTransports(const JsepSession& aSession);
 
   
   void StartIceChecks(const JsepSession& session);
@@ -421,19 +425,22 @@ class PeerConnectionMedia : public sigslot::has_slots<> {
   void SelfDestruct_m();
 
   
-  void UpdateIceMediaStream_s(size_t aMLine, size_t aComponentCount,
-                              bool aHasAttrs,
-                              const std::string& aUfrag,
-                              const std::string& aPassword,
-                              const std::vector<std::string>& aCandidateList);
+  void EnsureTransport_s(size_t aLevel, size_t aComponentCount);
+  void ActivateOrRemoveTransport_s(
+      size_t aMLine,
+      size_t aComponentCount,
+      const std::string& aUfrag,
+      const std::string& aPassword,
+      const std::vector<std::string>& aCandidateList);
+  void RemoveTransportsAtOrAfter_s(size_t aMLine);
+
   void GatherIfReady();
   void FlushIceCtxOperationQueueIfReady();
   void PerformOrEnqueueIceCtxOperation(nsIRunnable* runnable);
   void EnsureIceGathering_s();
   void StartIceChecks_s(bool aIsControlling,
                         bool aIsIceLite,
-                        const std::vector<std::string>& aIceOptionsList,
-                        const std::vector<size_t>& aComponentCountByLevel);
+                        const std::vector<std::string>& aIceOptionsList);
 
   
   void AddIceCandidate_s(const std::string& aCandidate, const std::string& aMid,

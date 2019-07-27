@@ -82,22 +82,21 @@ private:
 class JsepTransport
 {
 public:
-  JsepTransport(const std::string& id, size_t components)
-      : mTransportId(id), mState(kJsepTransportOffered), mComponents(components)
+  JsepTransport()
+      : mComponents(0)
   {
   }
 
-  enum State {
-    kJsepTransportOffered,
-    kJsepTransportAccepted,
-    kJsepTransportClosed
-  };
+  void Close()
+  {
+    mComponents = 0;
+    mTransportId.clear();
+    mIce.reset();
+    mDtls.reset();
+  }
 
   
   std::string mTransportId;
-
-  
-  State mState;
 
   
   UniquePtr<JsepIceTransport> mIce;
