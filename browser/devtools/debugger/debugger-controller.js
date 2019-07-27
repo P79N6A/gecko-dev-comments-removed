@@ -1911,16 +1911,6 @@ Breakpoints.prototype = {
     let breakpointClient = yield this.addBreakpoint(location, { noEditorUpdate: true });
 
     
-    
-    
-    if (breakpointClient.requestedLocation) {
-      DebuggerView.editor.moveBreakpoint(
-        breakpointClient.requestedLocation.line - 1,
-        breakpointClient.location.line - 1
-      );
-    }
-
-    
     window.emit(EVENTS.BREAKPOINT_SHOWN_IN_EDITOR);
   }),
 
@@ -2030,11 +2020,40 @@ Breakpoints.prototype = {
     source.setBreakpoint(aLocation, Task.async(function*(aResponse, aBreakpointClient) {
       
       
-      if (aResponse.actualLocation) {
+      let actualLocation = aResponse.actualLocation;
+      if (actualLocation) {
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        DebuggerView.editor.moveBreakpoint(
+          aBreakpointClient.location.line - 1,
+          actualLocation.line - 1
+        );
+
+        aBreakpointClient.location = actualLocation;
+        aBreakpointClient.location.actor = actualLocation.source
+                                         ? actualLocation.source.actor
+                                         : null;
+
         let oldIdentifier = identifier;
-        let newIdentifier = identifier = this.getIdentifier(aResponse.actualLocation);
         this._added.delete(oldIdentifier);
+
+        if ((addedPromise = this._getAdded(actualLocation))) {
+          deferred.resolve(addedPromise);
+          return;
+        }
+
+        
+        let newIdentifier = identifier = this.getIdentifier(actualLocation);
         this._added.set(newIdentifier, deferred.promise);
       }
 
@@ -2055,15 +2074,6 @@ Breakpoints.prototype = {
         }
       }
 
-      if (aResponse.actualLocation) {
-        
-        
-        let actualLoc = aResponse.actualLocation;
-        aBreakpointClient.requestedLocation = aLocation;
-        aBreakpointClient.location = actualLoc;
-        aBreakpointClient.location.actor = actualLoc.source ? actualLoc.source.actor : null;
-      }
-
       
       
       
@@ -2071,7 +2081,6 @@ Breakpoints.prototype = {
       let line = aBreakpointClient.location.line - 1;
       aBreakpointClient.text = DebuggerView.editor.getText(line).trim();
 
-      
       
       yield this._showBreakpoint(aBreakpointClient, aOptions);
 
