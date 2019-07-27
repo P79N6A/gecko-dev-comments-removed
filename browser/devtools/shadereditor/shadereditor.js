@@ -123,7 +123,7 @@ let EventsHandler = {
   _onTabNavigated: function(event, {isFrameSwitching}) {
     switch (event) {
       case "will-navigate": {
-        Task.spawn(function*() {
+        Task.spawn(function() {
           
           if (!isFrameSwitching) {
             gFront.setup({ reload: false });
@@ -394,7 +394,7 @@ let ShadersEditorsView = {
       editor.clearHistory();
     }
 
-    return Task.spawn(function*() {
+    return Task.spawn(function() {
       yield view._toggleListeners("off");
       yield promise.all([
         view._getEditor("vs").then(e => setTextAndClearHistory(e, sources.vs)),
@@ -490,7 +490,7 @@ let ShadersEditorsView = {
 
 
   _doCompile: function(type) {
-    Task.spawn(function*() {
+    Task.spawn(function() {
       let editor = yield this._getEditor(type);
       let shaderActor = yield ShadersListView.selectedAttachment[type];
 
