@@ -4410,3 +4410,6 @@ pref("dom.beforeAfterKeyboardEvent.enabled", false);
 #ifdef XP_MACOSX
 pref("intl.collation.mac.use_icu", true);
 #endif
+
+
+pref("dom.meta-viewport.enabled", false);
