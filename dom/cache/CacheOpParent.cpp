@@ -193,18 +193,19 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
 
   
   
+  if (aRv.Failed()) {
+    unused << Send__delete__(this, aRv, void_t());
+    aRv.ClearMessage(); 
+    return;
+  }
+
+  
+  
   
   
   
   
   AutoParentOpResult result(mIpcManager, aResult);
-
-  if (aRv.Failed()) {
-    
-    unused << Send__delete__(this, aRv, result.SendAsOpResult());
-    aRv.ClearMessage(); 
-    return;
-  }
 
   if (aOpenedCacheId != INVALID_CACHE_ID) {
     result.Add(aOpenedCacheId, mManager);
@@ -218,7 +219,6 @@ CacheOpParent::OnOpComplete(ErrorResult&& aRv, const CacheOpResult& aResult,
     result.Add(aSavedRequestList[i], aStreamList);
   }
 
-  
   unused << Send__delete__(this, aRv, result.SendAsOpResult());
 }
 
