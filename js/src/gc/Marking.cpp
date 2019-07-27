@@ -610,6 +610,7 @@ js::GCMarker::markAndTraceChildren(T* thing)
 namespace js {
 template <> void GCMarker::traverse(LazyScript* thing) { markAndTraceChildren(thing); }
 template <> void GCMarker::traverse(JSScript* thing) { markAndTraceChildren(thing); }
+template <> void GCMarker::traverse(BaseShape* thing) { markAndTraceChildren(thing); }
 } 
 
 
@@ -626,7 +627,6 @@ js::GCMarker::markAndScan(T* thing)
 }
 namespace js {
 template <> void GCMarker::traverse(Shape* thing) { markAndScan(thing); }
-template <> void GCMarker::traverse(BaseShape* thing) { markAndScan(thing); }
 template <> void GCMarker::traverse(JSString* thing) { markAndScan(thing); }
 template <> void GCMarker::traverse(JS::Symbol* thing) { markAndScan(thing); }
 } 
@@ -1019,38 +1019,6 @@ gc::MarkIdForBarrier(JSTracer* trc, jsid* idp, const char* name)
 }
 
 
-
-void
-BaseShape::traceChildren(JSTracer* trc)
-{
-    if (isOwned())
-        TraceEdge(trc, &unowned_, "base");
-
-    JSObject* global = compartment()->unsafeUnbarrieredMaybeGlobal();
-    if (global)
-        TraceManuallyBarrieredEdge(trc, &global, "global");
-}
-inline void
-GCMarker::eagerlyMarkChildren(BaseShape* base)
-{
-    base->assertConsistency();
-
-    base->compartment()->mark();
-
-    if (GlobalObject* global = base->compartment()->unsafeUnbarrieredMaybeGlobal())
-        traverse(static_cast<JSObject*>(global));
-
-    
-
-
-
-
-    if (base->isOwned()) {
-        UnownedBaseShape* unowned = base->baseUnowned();
-        MOZ_ASSERT(base->compartment() == unowned->compartment());
-        unowned->markIfUnmarked(markColor());
-    }
-}
 
 static inline void
 ScanLinearString(GCMarker* gcmarker, JSLinearString* str)
