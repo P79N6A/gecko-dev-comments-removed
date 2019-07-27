@@ -161,9 +161,11 @@ void UtilityTest::RunResampleTest(int src_channels,
   
   
   
-  static const int kInputKernelDelaySamples = 16;
-  const int max_delay = static_cast<double>(dst_sample_rate_hz)
-      / src_sample_rate_hz * kInputKernelDelaySamples * dst_channels * 2;
+  
+  
+  static const int kInputKernelDelaySamples = 16*3;
+  const int max_delay = std::min(1.0f, 1/kResamplingFactor) *
+                        kInputKernelDelaySamples * dst_channels * 2;
   printf("(%d, %d Hz) -> (%d, %d Hz) ",  
       src_channels, src_sample_rate_hz, dst_channels, dst_sample_rate_hz);
   if (function == TestRemixAndResample) {
@@ -189,6 +191,9 @@ void UtilityTest::RunResampleTest(int src_channels,
     EXPECT_GT(ComputeSNR(golden_frame_, dst_frame_, max_delay), 46.0f);
   }
 }
+
+
+
 
 TEST_F(UtilityTest, RemixAndResampleCopyFrameSucceeds) {
   

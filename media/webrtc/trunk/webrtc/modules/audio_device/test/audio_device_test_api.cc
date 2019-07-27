@@ -222,7 +222,7 @@ class AudioDeviceAPITest: public testing::Test {
     
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
                 kId, AudioDeviceModule::kPlatformDefaultAudio)) != NULL);
-#elif defined(WEBRTC_LINUX)
+#elif defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
                 kId, AudioDeviceModule::kWindowsWaveAudio)) == NULL);
     EXPECT_TRUE((audio_device_ = AudioDeviceModuleImpl::Create(
@@ -1647,7 +1647,7 @@ TEST_F(AudioDeviceAPITest, CPULoad) {
 
 
 
-#if !defined(_WIN32) && !defined(WEBRTC_LINUX)
+#if !defined(_WIN32) && !defined(WEBRTC_LINUX) && !defined(WEBRTC_BSD)
 TEST_F(AudioDeviceAPITest, StartAndStopRawOutputFileRecording) {
   
   CheckInitialPlayoutStates();
@@ -1727,10 +1727,10 @@ TEST_F(AudioDeviceAPITest, RecordingSampleRate) {
   EXPECT_EQ(48000, sampleRate);
 #elif defined(ANDROID)
   TEST_LOG("Recording sample rate is %u\n\n", sampleRate);
-  EXPECT_TRUE((sampleRate == 44000) || (sampleRate == 16000));
+  EXPECT_TRUE((sampleRate == 44100) || (sampleRate == 16000));
 #elif defined(WEBRTC_IOS)
   TEST_LOG("Recording sample rate is %u\n\n", sampleRate);
-  EXPECT_TRUE((sampleRate == 44000) || (sampleRate == 16000) ||
+  EXPECT_TRUE((sampleRate == 44100) || (sampleRate == 16000) ||
               (sampleRate == 8000));
 #endif
 
@@ -1746,10 +1746,10 @@ TEST_F(AudioDeviceAPITest, PlayoutSampleRate) {
   EXPECT_EQ(48000, sampleRate);
 #elif defined(ANDROID)
   TEST_LOG("Playout sample rate is %u\n\n", sampleRate);
-  EXPECT_TRUE((sampleRate == 44000) || (sampleRate == 16000));
+  EXPECT_TRUE((sampleRate == 44100) || (sampleRate == 16000));
 #elif defined(WEBRTC_IOS)
   TEST_LOG("Playout sample rate is %u\n\n", sampleRate);
-  EXPECT_TRUE((sampleRate == 44000) || (sampleRate == 16000) ||
+  EXPECT_TRUE((sampleRate == 44100) || (sampleRate == 16000) ||
               (sampleRate == 8000));
 #endif
 }

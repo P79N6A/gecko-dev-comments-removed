@@ -430,7 +430,7 @@ enum NsModes
     kNsLowSuppression,  
     kNsModerateSuppression,
     kNsHighSuppression,
-    kNsVeryHighSuppression,     
+    kNsVeryHighSuppression     
 };
 
 enum AgcModes                  
@@ -455,7 +455,7 @@ enum EcModes
     kEcDefault,                
     kEcConference,             
     kEcAec,                    
-    kEcAecm,                   
+    kEcAecm                    
 };
 
 
@@ -508,7 +508,7 @@ enum NetEqModes
     kNetEqFax = 2,
     
     
-    kNetEqOff = 3,
+    kNetEqOff = 3
 };
 
 
@@ -524,7 +524,7 @@ enum AmrMode
 {
     kRfc3267BwEfficient = 0,
     kRfc3267OctetAligned = 1,
-    kRfc3267FileStorage = 2,
+    kRfc3267FileStorage = 2
 };
 
 
@@ -549,6 +549,16 @@ enum RawVideoType
     kVideoNV21     = 12,
     kVideoBGRA     = 13,
     kVideoUnknown  = 99
+};
+
+enum VideoReceiveState
+{
+  kReceiveStateInitial,            
+  kReceiveStateNormal,
+  kReceiveStatePreemptiveNACK,     
+  kReceiveStateWaitingKey,         
+  kReceiveStateDecodingWithErrors, 
+  kReceiveStateNoIncoming,         
 };
 
 
@@ -627,6 +637,10 @@ struct VideoCodecVP9 {
 
 struct VideoCodecH264 {
   VideoCodecProfile profile;
+  uint8_t        profile;
+  uint8_t        constraints;
+  uint8_t        level;
+  uint8_t        packetizationMode; 
   bool           frameDroppingOn;
   int            keyFrameInterval;
   
@@ -694,6 +708,8 @@ struct VideoCodec {
 
   unsigned short      width;
   unsigned short      height;
+  
+  unsigned char       resolution_divisor;
 
   unsigned int        startBitrate;  
   unsigned int        maxBitrate;  
@@ -768,6 +784,25 @@ struct OverUseDetectorOptions {
   double initial_avg_noise;
   double initial_var_noise;
   double initial_threshold;
+};
+
+enum CPULoadState {
+  kLoadRelaxed,
+  kLoadNormal,
+  kLoadStressed
+};
+
+class CPULoadStateObserver {
+public:
+  virtual void onLoadStateChanged(CPULoadState aNewState) = 0;
+  virtual ~CPULoadStateObserver() {};
+};
+
+class CPULoadStateCallbackInvoker {
+public:
+    virtual void AddObserver(CPULoadStateObserver* aObserver) = 0;
+    virtual void RemoveObserver(CPULoadStateObserver* aObserver) = 0;
+    virtual ~CPULoadStateCallbackInvoker() {};
 };
 
 

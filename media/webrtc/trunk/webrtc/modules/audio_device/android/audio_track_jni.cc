@@ -27,6 +27,8 @@
 #include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
+#include "AndroidJNIWrapper.h"
+
 namespace webrtc {
 
 JavaVM* AudioTrackJni::globalJvm = NULL;
@@ -39,35 +41,26 @@ int32_t AudioTrackJni::SetAndroidAudioDeviceObjects(void* javaVM, void* env,
   assert(env);
   globalJvm = reinterpret_cast<JavaVM*>(javaVM);
   globalJNIEnv = reinterpret_cast<JNIEnv*>(env);
-  
-  jclass javaScClassLocal = globalJNIEnv->FindClass(
-      "org/webrtc/voiceengine/WebRtcAudioTrack");
-  if (!javaScClassLocal) {
-    WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
-                 "%s: could not find java class", __FUNCTION__);
-    return -1; 
-  }
 
   
-  
-  globalScClass = reinterpret_cast<jclass> (
-      globalJNIEnv->NewGlobalRef(javaScClassLocal));
   if (!globalScClass) {
-    WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
-                 "%s: could not create reference", __FUNCTION__);
-    return -1;
+    
+    globalScClass = jsjni_GetGlobalClassRef("org/webrtc/voiceengine/WebRtcAudioTrack");
+    if (!globalScClass) {
+      WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
+                   "%s: could not find java class", __FUNCTION__);
+      return -1; 
+    }
   }
-
-  globalContext = globalJNIEnv->NewGlobalRef(
-      reinterpret_cast<jobject>(context));
   if (!globalContext) {
-    WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
-                 "%s: could not create context reference", __FUNCTION__);
-    return -1;
+    globalContext = jsjni_GetGlobalContextRef();
+    if (!globalContext) {
+      WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
+                   "%s: could not create context reference", __FUNCTION__);
+      return -1;
+    }
   }
 
-  
-  globalJNIEnv->DeleteLocalRef(javaScClassLocal);
   return 0;
 }
 
@@ -82,7 +75,8 @@ void AudioTrackJni::ClearAndroidAudioDeviceObjects() {
     return;
   }
 
-  globalJNIEnv->DeleteGlobalRef(globalContext);
+  
+  
   globalContext = reinterpret_cast<jobject>(NULL);
 
   globalJNIEnv->DeleteGlobalRef(globalScClass);
@@ -117,7 +111,7 @@ AudioTrackJni::AudioTrackJni(const int32_t id)
       _playWarning(0),
       _playError(0),
       _delayPlayout(0),
-      _samplingFreqOut((N_PLAY_SAMPLES_PER_SEC/1000)),
+      _samplingFreqOut((N_PLAY_SAMPLES_PER_SEC)),
       _maxSpeakerVolume(0) {
 }
 
@@ -421,16 +415,10 @@ int32_t AudioTrackJni::InitPlayout() {
     jmethodID initPlaybackID = env->GetMethodID(_javaScClass, "InitPlayback",
                                                 "(I)I");
 
-    int samplingFreq = 44100;
-    if (_samplingFreqOut != 44)
-    {
-      samplingFreq = _samplingFreqOut * 1000;
-    }
-
     int retVal = -1;
 
     
-    jint res = env->CallIntMethod(_javaScObj, initPlaybackID, samplingFreq);
+    jint res = env->CallIntMethod(_javaScObj, initPlaybackID, _samplingFreqOut);
     if (res < 0)
     {
       WEBRTC_TRACE(kTraceError, kTraceAudioDevice, _id,
@@ -439,7 +427,7 @@ int32_t AudioTrackJni::InitPlayout() {
     else
     {
       
-      _ptrAudioBuffer->SetPlayoutSampleRate(_samplingFreqOut * 1000);
+      _ptrAudioBuffer->SetPlayoutSampleRate(_samplingFreqOut);
       _playIsInitialized = true;
       retVal = 0;
     }
@@ -863,14 +851,7 @@ int32_t AudioTrackJni::SetPlayoutSampleRate(const uint32_t samplesPerSec) {
     }
 
   
-  if (samplesPerSec == 44100)
-  {
-    _samplingFreqOut = 44;
-  }
-  else
-  {
-    _samplingFreqOut = samplesPerSec / 1000;
-  }
+  _samplingFreqOut = samplesPerSec;
 
   
   _ptrAudioBuffer->SetPlayoutSampleRate(samplesPerSec);
@@ -1156,11 +1137,7 @@ int32_t AudioTrackJni::InitSampleRate() {
   if (_samplingFreqOut > 0)
   {
     
-    samplingFreq = 44100;
-    if (_samplingFreqOut != 44)
-    {
-      samplingFreq = _samplingFreqOut * 1000;
-    }
+    samplingFreq = _samplingFreqOut;
     WEBRTC_TRACE(kTraceStateInfo, kTraceAudioDevice, _id,
                  "  Trying configured playback sampling rate %d",
                  samplingFreq);
@@ -1214,14 +1191,7 @@ int32_t AudioTrackJni::InitSampleRate() {
   }
 
   
-  if (samplingFreq == 44100)
-  {
-    _samplingFreqOut = 44;
-  }
-  else
-  {
-    _samplingFreqOut = samplingFreq / 1000;
-  }
+  _samplingFreqOut = samplingFreq;
 
   WEBRTC_TRACE(kTraceStateInfo, kTraceAudioDevice, _id,
                "Playback sample rate set to (%d)", _samplingFreqOut);
@@ -1360,7 +1330,7 @@ bool AudioTrackJni::PlayThreadProcess()
         else if (res > 0)
         {
           
-          _delayPlayout = res / _samplingFreqOut;
+          _delayPlayout = (res * 1000) / _samplingFreqOut;
         }
         Lock();
 

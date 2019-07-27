@@ -30,6 +30,7 @@ namespace {
 
 
 Window GetTopLevelWindow(Display* display, Window window) {
+  webrtc::XErrorTrap error_trap(display);
   while (true) {
     
     ::Window root, parent;
@@ -118,6 +119,7 @@ void MouseCursorMonitorX11::Init(Callback* callback, Mode mode) {
 
   if (have_xfixes_) {
     
+    XErrorTrap error_trap(display());
     XFixesSelectCursorInput(display(), window_, XFixesDisplayCursorNotifyMask);
     x_display_->AddEventHandler(xfixes_event_base_ + XFixesCursorNotify, this);
 

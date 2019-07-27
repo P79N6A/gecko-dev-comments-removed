@@ -110,6 +110,19 @@
 #include "webrtc/system_wrappers/source/move.h"
 #include "webrtc/typedefs.h"
 
+
+
+
+
+
+
+#if defined(__GNUC__)
+#if !defined(__clang__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif 
+#endif 
+
 namespace webrtc {
 
 
@@ -591,5 +604,12 @@ template <typename T>
 webrtc::scoped_ptr<T> rtc_make_scoped_ptr(T* ptr) {
   return webrtc::scoped_ptr<T>(ptr);
 }
+
+
+#if defined(__GNUC__)
+#if !defined(__clang__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+#pragma GCC diagnostic pop
+#endif 
+#endif 
 
 #endif  

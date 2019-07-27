@@ -47,8 +47,45 @@ void FrameList::InsertFrame(VCMFrameBuffer* frame) {
   insert(rbegin().base(), FrameListPair(frame->TimeStamp(), frame));
 }
 
-VCMFrameBuffer* FrameList::FindFrame(uint32_t timestamp) const {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+VCMFrameBuffer* FrameList::FindFrame(uint16_t seq_num, uint32_t timestamp) const {
   FrameList::const_iterator it = find(timestamp);
+  
+  
+  
+
+  
+  
+  
+  while (it != end() && it->second->GetState() == kStateComplete) {
+    it++;
+  }
   if (it == end())
     return NULL;
   return it->second;
@@ -554,6 +591,11 @@ VCMEncodedFrame* VCMJitterBuffer::ExtractAndSetDecode(uint32_t timestamp) {
   if ((*frame).IsSessionComplete())
     UpdateAveragePacketsPerFrame(frame->NumPackets());
 
+  if (frame->Length() == 0) {
+    
+    ReleaseFrame(frame);
+    return NULL;
+  }
   return frame;
 }
 
@@ -594,12 +636,21 @@ VCMFrameBufferEnum VCMJitterBuffer::GetFrame(const VCMPacket& packet,
   }
   num_consecutive_old_packets_ = 0;
 
-  *frame = incomplete_frames_.FindFrame(packet.timestamp);
-  if (*frame)
-    return kNoError;
-  *frame = decodable_frames_.FindFrame(packet.timestamp);
-  if (*frame)
-    return kNoError;
+  
+  
+
+  
+  
+  
+  
+  if (packet.completeNALU != kNaluComplete) {
+    *frame = incomplete_frames_.FindFrame(packet.seqNum, packet.timestamp);
+    if (*frame)
+      return kNoError;
+    *frame = decodable_frames_.FindFrame(packet.seqNum, packet.timestamp);
+    if (*frame && (*frame)->GetState() != kStateComplete)
+      return kNoError;
+  }
 
   
   *frame = GetEmptyFrame();

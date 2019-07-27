@@ -55,7 +55,12 @@ class ThreadWrapper {
   static ThreadWrapper* CreateThread(ThreadRunFunction func,
                                      ThreadObj obj,
                                      ThreadPriority prio = kNormalPriority,
-                                     const char* thread_name = 0);
+                                     const char* thread_name = NULL);
+
+  static ThreadWrapper* CreateUIThread(ThreadRunFunction func,
+                                       ThreadObj obj,
+                                       ThreadPriority prio = kNormalPriority,
+                                       const char* thread_name = NULL);
 
   
   static uint32_t GetThreadId();
@@ -85,6 +90,10 @@ class ThreadWrapper {
   
   
   virtual bool Stop() = 0;
+
+  
+  
+  virtual bool RequestCallbackTimer(unsigned int milliseconds);
 };
 
 }  

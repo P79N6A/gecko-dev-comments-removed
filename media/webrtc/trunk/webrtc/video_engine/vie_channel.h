@@ -50,12 +50,15 @@ class VideoDecoder;
 class VideoRenderCallback;
 class VoEVideoSync;
 
+struct SenderInfo;
+
 class ViEChannel
     : public VCMFrameTypeCallback,
       public VCMReceiveCallback,
       public VCMReceiveStatisticsCallback,
       public VCMDecoderTimingCallback,
       public VCMPacketRequestCallback,
+      public VCMReceiveStateCallback,
       public RtcpFeedback,
       public RtpFeedback,
       public ViEFrameProviderBase {
@@ -170,6 +173,16 @@ class ViEChannel
       uint16_t data_length_in_bytes);
 
   
+  
+  int32_t GetRemoteRTCPReceiverInfo(uint32_t& NTPHigh, uint32_t& NTPLow,
+                                    uint32_t& receivedPacketCount,
+                                    uint64_t& receivedOctetCount,
+                                    uint32_t* jitterSamples,
+                                    uint16_t* fractionLost,
+                                    uint32_t* cumulativeLost,
+                                    int32_t* rttMs);
+
+  
   int32_t GetSendRtcpStatistics(uint16_t* fraction_lost,
                                 uint32_t* cumulative_lost,
                                 uint32_t* extended_max,
@@ -207,6 +220,9 @@ class ViEChannel
 
   void GetRtcpPacketTypeCounters(RtcpPacketTypeCounter* packets_sent,
                                  RtcpPacketTypeCounter* packets_received) const;
+
+
+  int32_t GetRemoteRTCPSenderInfo(SenderInfo* sender_info) const;
 
   void GetBandwidthUsage(uint32_t* total_bitrate_sent,
                          uint32_t* video_bitrate_sent,
@@ -339,6 +355,9 @@ class ViEChannel
   
   virtual int32_t ResendPackets(const uint16_t* sequence_numbers,
                                 uint16_t length);
+
+  
+  virtual void ReceiveStateChange(VideoReceiveState state);
 
   int32_t SetVoiceChannel(int32_t ve_channel_id,
                           VoEVideoSync* ve_sync_interface);

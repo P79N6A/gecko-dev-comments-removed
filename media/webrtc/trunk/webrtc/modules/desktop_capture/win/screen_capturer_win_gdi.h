@@ -40,6 +40,7 @@ class ScreenCapturerWinGdi : public ScreenCapturer {
 
  private:
   typedef HRESULT (WINAPI * DwmEnableCompositionFunc)(UINT);
+  typedef HRESULT (WINAPI * DwmIsCompositionEnabledFunc)(BOOL*);
 
   
   void PrepareCaptureResources();
@@ -77,6 +78,9 @@ class ScreenCapturerWinGdi : public ScreenCapturer {
 
   HMODULE dwmapi_library_;
   DwmEnableCompositionFunc composition_func_;
+  DwmIsCompositionEnabledFunc composition_enabled_func_;
+
+  bool disable_composition_;
 
   
   bool set_thread_execution_state_failed_;

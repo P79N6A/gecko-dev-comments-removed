@@ -417,6 +417,19 @@ public:
     
     
     
+    
+    
+    
+    
+    virtual int32_t RegisterReceiveStateCallback(
+                                  VCMReceiveStateCallback* callback) = 0;
+
+    
+    
+    
+    
+    
+    
     virtual int32_t Decode(uint16_t maxWaitTimeMs = 200) = 0;
 
     
@@ -584,6 +597,9 @@ public:
     
     
     virtual int SetMinReceiverDelay(int desired_delay_ms) = 0;
+
+    
+    virtual void SetCPULoadState(CPULoadState state) = 0;
 
     
     virtual int StartDebugRecording(const char* file_name_utf8) = 0;

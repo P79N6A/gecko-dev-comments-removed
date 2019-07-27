@@ -213,6 +213,10 @@ class WEBRTC_DLLEXPORT ViEBase {
 
   
   
+  virtual void SetLoadManager(CPULoadStateCallbackInvoker* load_manager) = 0;
+
+  
+  
   virtual int ConnectAudioChannel(const int video_channel,
                                   const int audio_channel) = 0;
 

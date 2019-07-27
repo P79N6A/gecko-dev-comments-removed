@@ -43,7 +43,7 @@ int VCMContentMetricsProcessing::Reset() {
   return VCM_OK;
 }
 
-void VCMContentMetricsProcessing::UpdateFrameRate(uint32_t frameRate) {
+void VCMContentMetricsProcessing::UpdateFrameRate(float frameRate) {
   
   recursive_avg_factor_ = static_cast<float> (1000.0f) /
       static_cast<float>(frameRate *  kQmMinIntervalMs);
