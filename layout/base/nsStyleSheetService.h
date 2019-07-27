@@ -63,7 +63,7 @@ class nsStyleSheetService MOZ_FINAL
   
   
   nsresult LoadAndRegisterSheetInternal(nsIURI *aSheetURI,
-                                                    uint32_t aSheetType);
+                                        uint32_t aSheetType);
 
   nsCOMArray<nsIStyleSheet> mSheets[3];
 };
