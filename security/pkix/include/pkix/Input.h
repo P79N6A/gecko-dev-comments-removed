@@ -53,6 +53,8 @@ class Reader;
 class Input
 {
 public:
+  typedef uint16_t size_type;
+
   
   
   
@@ -64,7 +66,7 @@ public:
   
   
   
-  template <uint16_t N>
+  template <size_type N>
   explicit Input(const uint8_t (&data)[N])
     : data(data)
     , len(N)
@@ -112,7 +114,7 @@ public:
   
   
   
-  uint16_t GetLength() const { return static_cast<uint16_t>(len); }
+  size_type GetLength() const { return static_cast<size_type>(len); }
 
   
   
@@ -192,7 +194,7 @@ public:
     return Success;
   }
 
-  template <uint16_t N>
+  template <Input::size_type N>
   bool MatchRest(const uint8_t (&toMatch)[N])
   {
     
@@ -224,7 +226,7 @@ public:
     return true;
   }
 
-  Result Skip(uint16_t len)
+  Result Skip(Input::size_type len)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
@@ -234,7 +236,7 @@ public:
     return Success;
   }
 
-  Result Skip(uint16_t len, Reader& skipped)
+  Result Skip(Input::size_type len, Reader& skipped)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
@@ -248,7 +250,7 @@ public:
     return Success;
   }
 
-  Result Skip(uint16_t len, Input& skipped)
+  Result Skip(Input::size_type len, Input& skipped)
   {
     Result rv = EnsureLength(len);
     if (rv != Success) {
@@ -267,7 +269,7 @@ public:
     input = end;
   }
 
-  Result EnsureLength(uint16_t len)
+  Result EnsureLength(Input::size_type len)
   {
     if (static_cast<size_t>(end - input) < len) {
       return Result::ERROR_BAD_DER;
@@ -294,11 +296,12 @@ public:
     if (&mark.input != this || mark.mark > input) {
       return NotReached("invalid mark", Result::FATAL_ERROR_INVALID_ARGS);
     }
-    return item.Init(mark.mark, static_cast<uint16_t>(input - mark.mark));
+    return item.Init(mark.mark,
+                     static_cast<Input::size_type>(input - mark.mark));
   }
 
 private:
-  Result Init(const uint8_t* data, uint16_t len)
+  Result Init(const uint8_t* data, Input::size_type len)
   {
     if (input) {
       
