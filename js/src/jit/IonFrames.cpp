@@ -1485,7 +1485,7 @@ bool
 RInstructionResults::isInitialized() const
 {
     MOZ_ASSERT_IF(results_, fp_);
-    return results_;
+    return fp_;
 }
 
 IonJSFrameLayout *
@@ -1780,7 +1780,6 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
 
     
     
-    MOZ_ASSERT(recover_.numInstructionsRead() == 1);
     if (recover_.numInstructions() == 1)
         return true;
 
@@ -1798,17 +1797,25 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
         
         
         
-        SnapshotIterator s(*fallback.frame);
-        RInstructionResults tmp;
-        if (!s.initInstructionResults(cx, &tmp))
-            return false;
-
         
+        RInstructionResults tmp;
         if (!fallback.activation->registerIonFrameRecovery(fallback.frame->jsFrame(),
                                                            mozilla::Move(tmp)))
             return false;
 
         results = fallback.activation->maybeIonFrameRecovery(fp);
+
+        
+        
+        
+        SnapshotIterator s(*fallback.frame);
+        if (!s.computeInstructionResults(cx, results)) {
+
+            
+            
+            fallback.activation->maybeTakeIonFrameRecovery(fp, &tmp);
+            return false;
+        }
     }
 
     MOZ_ASSERT(results->isInitialized());
@@ -1817,24 +1824,26 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback &fallback)
 }
 
 bool
-SnapshotIterator::initInstructionResults(JSContext *cx, RInstructionResults *results)
+SnapshotIterator::computeInstructionResults(JSContext *cx, RInstructionResults *results) const
 {
+    MOZ_ASSERT(!results->isInitialized());
     MOZ_ASSERT(recover_.numInstructionsRead() == 1);
 
     
-    
-    if (recover_.numInstructions() == 1)
-        return true;
-
-    MOZ_ASSERT(recover_.numInstructions() > 1);
     size_t numResults = recover_.numInstructions() - 1;
-    instructionResults_ = results;
-    if (!instructionResults_->isInitialized()) {
-        if (!instructionResults_->init(cx, numResults, fp_))
+    if (!results->isInitialized()) {
+        if (!results->init(cx, numResults, fp_))
             return false;
 
         
+        if (!numResults) {
+            MOZ_ASSERT(results->isInitialized());
+            return true;
+        }
+
+        
         SnapshotIterator s(*this);
+        s.instructionResults_ = results;
         while (s.moreInstructions()) {
             
             if (s.instruction()->isResumePoint()) {
@@ -1848,6 +1857,7 @@ SnapshotIterator::initInstructionResults(JSContext *cx, RInstructionResults *res
         }
     }
 
+    MOZ_ASSERT(results->isInitialized());
     return true;
 }
 

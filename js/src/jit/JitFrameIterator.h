@@ -296,16 +296,21 @@ class RInstructionResults
 
 struct MaybeReadFallback
 {
+    enum NoGCValue {
+        NoGC_UndefinedValue,
+        NoGC_MagicOptimizedOut
+    };
+
     JSContext *maybeCx;
     JitActivation *activation;
     JitFrameIterator *frame;
-    const Value unreadablePlaceholder;
+    const NoGCValue unreadablePlaceholder_;
 
     MaybeReadFallback(const Value &placeholder = UndefinedValue())
       : maybeCx(nullptr),
         activation(nullptr),
         frame(nullptr),
-        unreadablePlaceholder(placeholder)
+        unreadablePlaceholder_(noGCPlaceholder(placeholder))
     {
     }
 
@@ -313,11 +318,23 @@ struct MaybeReadFallback
       : maybeCx(cx),
         activation(activation),
         frame(frame),
-        unreadablePlaceholder(UndefinedValue())
+        unreadablePlaceholder_(NoGC_UndefinedValue)
     {
     }
 
     bool canRecoverResults() { return maybeCx; }
+
+    Value unreadablePlaceholder() const {
+        if (unreadablePlaceholder_ == NoGC_MagicOptimizedOut)
+            return MagicValue(JS_OPTIMIZED_OUT);
+        return UndefinedValue();
+    }
+
+    NoGCValue noGCPlaceholder(Value v) const {
+        if (v.isMagic(JS_OPTIMIZED_OUT))
+            return NoGC_MagicOptimizedOut;
+        return NoGC_UndefinedValue;
+    }
 };
 
 
@@ -327,6 +344,7 @@ class RResumePoint;
 
 class SnapshotIterator
 {
+  protected:
     SnapshotReader snapshot_;
     RecoverReader recover_;
     IonJSFrameLayout *fp_;
@@ -388,6 +406,10 @@ class SnapshotIterator
 
     int32_t readOuterNumActualArgs() const;
 
+    
+    
+    void storeInstructionResult(Value v);
+
   public:
     
     uint32_t pcOffset() const;
@@ -420,14 +442,16 @@ class SnapshotIterator
         return recover_.moreInstructions();
     }
 
+  protected:
     
     
     
     
     bool initInstructionResults(MaybeReadFallback &fallback);
-    bool initInstructionResults(JSContext *cx, RInstructionResults *results);
 
-    void storeInstructionResult(Value v);
+    
+    
+    bool computeInstructionResults(JSContext *cx, RInstructionResults *results) const;
 
   public:
     
@@ -461,7 +485,7 @@ class SnapshotIterator
 
         if (fallback.canRecoverResults()) {
             if (!initInstructionResults(fallback))
-                return fallback.unreadablePlaceholder;
+                return fallback.unreadablePlaceholder();
 
             if (allocationReadable(a))
                 return allocationValue(a);
@@ -469,7 +493,7 @@ class SnapshotIterator
             MOZ_ASSERT_UNREACHABLE("All allocations should be readable.");
         }
 
-        return fallback.unreadablePlaceholder;
+        return fallback.unreadablePlaceholder();
     }
 
     void readCommonFrameSlots(Value *scopeChain, Value *rval) {
