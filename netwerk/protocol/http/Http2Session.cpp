@@ -98,7 +98,6 @@ Http2Session::Http2Session(nsISocketTransport *aSocketTransport)
   , mOutputQueueSent(0)
   , mLastReadEpoch(PR_IntervalNow())
   , mPingSentEpoch(0)
-  , mPreviousUsed(false)
   , mWaitingForSettingsAck(false)
   , mGoAwayOnPush(false)
 {
@@ -294,14 +293,8 @@ Http2Session::ReadTimeoutTick(PRIntervalTime now)
 
   if ((now - mLastReadEpoch) < mPingThreshold) {
     
-    if (mPingSentEpoch) {
+    if (mPingSentEpoch)
       mPingSentEpoch = 0;
-      if (mPreviousUsed) {
-        
-        mPingThreshold = mPreviousPingThreshold;
-        mPreviousUsed = false;
-      }
-    }
 
     return PR_IntervalToSeconds(mPingThreshold) -
       PR_IntervalToSeconds(now - mLastReadEpoch);
@@ -321,9 +314,8 @@ Http2Session::ReadTimeoutTick(PRIntervalTime now)
   LOG3(("Http2Session::ReadTimeoutTick %p generating ping\n", this));
 
   mPingSentEpoch = PR_IntervalNow();
-  if (!mPingSentEpoch) {
+  if (!mPingSentEpoch)
     mPingSentEpoch = 1; 
-  }
   GeneratePing(false);
   ResumeRecv(); 
 
@@ -3299,30 +3291,6 @@ nsresult
 Http2Session::PushBack(const char *buf, uint32_t len)
 {
   return mConnection->PushBack(buf, len);
-}
-
-void
-Http2Session::SendPing()
-{
-  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
-
-  if (mPreviousUsed) {
-    
-    return;
-  }
-
-  mPingSentEpoch = PR_IntervalNow();
-  if (!mPingSentEpoch) {
-    mPingSentEpoch = 1; 
-  }
-  if (!mPingThreshold ||
-      (mPingThreshold > gHttpHandler->NetworkChangedTimeout())) {
-    mPreviousPingThreshold = mPingThreshold;
-    mPreviousUsed = true;
-    mPingThreshold = gHttpHandler->NetworkChangedTimeout();
-  }
-  GeneratePing(false);
-  ResumeRecv();
 }
 
 } 
