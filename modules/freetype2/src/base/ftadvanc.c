@@ -80,6 +80,9 @@
     if ( !face )
       return FT_THROW( Invalid_Face_Handle );
 
+    if ( !padvance )
+      return FT_THROW( Invalid_Argument );
+
     if ( gindex >= (FT_UInt)face->num_glyphs )
       return FT_THROW( Invalid_Glyph_Index );
 
@@ -117,6 +120,9 @@
 
     if ( !face )
       return FT_THROW( Invalid_Face_Handle );
+
+    if ( !padvances )
+      return FT_THROW( Invalid_Argument );
 
     num = (FT_UInt)face->num_glyphs;
     end = start + count;

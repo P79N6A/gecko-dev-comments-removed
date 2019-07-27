@@ -593,8 +593,11 @@
 
         
         if ( cf2_hintmask_isValid( &hintMask ) )
+        {
           FT_TRACE4(( "cf2_interpT2CharString:"
                       " invalid horizontal hint mask\n" ));
+          break;
+        }
 
         cf2_doStems( font,
                      opStack,
@@ -614,8 +617,11 @@
 
         
         if ( cf2_hintmask_isValid( &hintMask ) )
+        {
           FT_TRACE4(( "cf2_interpT2CharString:"
                       " invalid vertical hint mask\n" ));
+          break;
+        }
 
         cf2_doStems( font,
                      opStack,
@@ -1142,14 +1148,15 @@
         FT_TRACE4(( op1 == cf2_cmdCNTRMASK ? " cntrmask" : " hintmask" ));
 
         
-        
-        if ( cf2_stack_count( opStack ) != 0 )
+        if ( cf2_stack_count( opStack ) > 1    &&
+             cf2_hintmask_isValid( &hintMask ) )
         {
-          
-          if ( cf2_hintmask_isValid( &hintMask ) )
-            FT_TRACE4(( "cf2_interpT2CharString: invalid hint mask\n" ));
+          FT_TRACE4(( "cf2_interpT2CharString: invalid hint mask\n" ));
+          break;
         }
 
+        
+        
         cf2_doStems( font,
                      opStack,
                      &vStemHintArray,

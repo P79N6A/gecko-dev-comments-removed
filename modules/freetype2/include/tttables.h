@@ -49,6 +49,25 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -559,21 +578,44 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef enum  FT_Sfnt_Tag_
   {
-    ft_sfnt_head = 0,    
-    ft_sfnt_maxp = 1,    
-    ft_sfnt_os2  = 2,    
-    ft_sfnt_hhea = 3,    
-    ft_sfnt_vhea = 4,    
-    ft_sfnt_post = 5,    
-    ft_sfnt_pclt = 6,    
+    FT_SFNT_HEAD,
+    FT_SFNT_MAXP,
+    FT_SFNT_OS2,
+    FT_SFNT_HHEA,
+    FT_SFNT_VHEA,
+    FT_SFNT_POST,
+    FT_SFNT_PCLT,
 
-    sfnt_max   
+    FT_SFNT_MAX
 
   } FT_Sfnt_Tag;
 
   
+  
+#define ft_sfnt_head  FT_SFNT_HEAD
+#define ft_sfnt_maxp  FT_SFNT_MAXP
+#define ft_sfnt_os2   FT_SFNT_OS2
+#define ft_sfnt_hhea  FT_SFNT_HHEA
+#define ft_sfnt_vhea  FT_SFNT_VHEA
+#define ft_sfnt_post  FT_SFNT_POST
+#define ft_sfnt_pclt  FT_SFNT_PCLT
 
 
   

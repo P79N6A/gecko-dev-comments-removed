@@ -167,7 +167,7 @@ FT_BEGIN_HEADER
                             FT_Int         org_width );
 #endif
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   psh_globals_set_scale( PSH_Globals  globals,
                          FT_Fixed     x_scale,
                          FT_Fixed     y_scale,

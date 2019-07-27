@@ -50,7 +50,7 @@
       goto Exit;
     }
 
-    if ( tables == NULL )
+    if ( !tables )
     {
       error = FT_THROW( Invalid_Argument );
       goto Exit;
@@ -102,7 +102,7 @@
       goto Exit;
     }
 
-    if ( ckern_table == NULL )
+    if ( !ckern_table )
     {
       error = FT_THROW( Invalid_Argument );
       goto Exit;

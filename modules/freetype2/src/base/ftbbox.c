@@ -42,6 +42,25 @@
   } TBBox_Rec;
 
 
+#define FT_UPDATE_BBOX( p, bbox ) \
+  FT_BEGIN_STMNT                  \
+    if ( p->x < bbox.xMin )       \
+      bbox.xMin = p->x;           \
+    if ( p->x > bbox.xMax )       \
+      bbox.xMax = p->x;           \
+    if ( p->y < bbox.yMin )       \
+      bbox.yMin = p->y;           \
+    if ( p->y > bbox.yMax )       \
+      bbox.yMax = p->y;           \
+  FT_END_STMNT
+
+#define CHECK_X( p, bbox )                         \
+          ( p->x < bbox.xMin || p->x > bbox.xMax )
+
+#define CHECK_Y( p, bbox )                         \
+          ( p->y < bbox.yMin || p->y > bbox.yMax )
+
+
   
   
   
@@ -66,17 +85,42 @@
   BBox_Move_To( FT_Vector*  to,
                 TBBox_Rec*  user )
   {
+    FT_UPDATE_BBOX( to, user->bbox );
+
     user->last = *to;
 
     return 0;
   }
 
 
-#define CHECK_X( p, bbox )  \
-          ( p->x < bbox.xMin || p->x > bbox.xMax )
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static int
+  BBox_Line_To( FT_Vector*  to,
+                TBBox_Rec*  user )
+  {
+    user->last = *to;
 
-#define CHECK_Y( p, bbox )  \
-          ( p->y < bbox.yMin || p->y > bbox.yMax )
+    return 0;
+  }
 
 
   
@@ -156,7 +200,7 @@
                  TBBox_Rec*  user )
   {
     
-    
+    FT_UPDATE_BBOX( to, user->bbox );
 
     if ( CHECK_X( control, user->bbox ) )
       BBox_Conic_Check( user->last.x,
@@ -203,15 +247,48 @@
   
   
   static FT_Pos
-  update_cubic_max( FT_Pos  q1,
-                    FT_Pos  q2,
-                    FT_Pos  q3,
-                    FT_Pos  q4,
-                    FT_Pos  max )
+  cubic_peak( FT_Pos  q1,
+              FT_Pos  q2,
+              FT_Pos  q3,
+              FT_Pos  q4 )
   {
+    FT_Pos  peak = 0;
+    FT_Int  shift;
+
     
     
-    while ( q2 > max || q3 > max )
+    
+    
+    
+    
+    
+    
+
+    shift = 27 -
+      FT_MSB( FT_ABS( q1 ) | FT_ABS( q2 ) | FT_ABS( q3 ) | FT_ABS( q4 ) );
+
+    if ( shift > 0 )
+    {
+      
+      if ( shift > 2 )
+        shift = 2;
+
+      q1 <<=  shift;
+      q2 <<=  shift;
+      q3 <<=  shift;
+      q4 <<=  shift;
+    }
+    else
+    {
+      q1 >>= -shift;
+      q2 >>= -shift;
+      q3 >>= -shift;
+      q4 >>= -shift;
+    }
+
+    
+    
+    while ( q2 > 0 || q3 > 0 )
     {
       
       if ( q1 + q2 > q3 + q4 ) 
@@ -240,17 +317,22 @@
       
       if ( q1 == q2 && q1 >= q3 )
       {
-        max = q1;
+        peak = q1;
         break;
       }
       if ( q3 == q4 && q2 <= q4 )
       {
-        max = q4;
+        peak = q4;
         break;
       }
     }
 
-    return max;
+    if ( shift > 0 )
+      peak >>=  shift;
+    else
+      peak <<= -shift;
+
+    return peak;
   }
 
 
@@ -262,65 +344,17 @@
                     FT_Pos*  min,
                     FT_Pos*  max )
   {
-    FT_Pos  nmin, nmax;
-    FT_Int  shift;
-
-
-    
-    
-    
-    
-    
     
     
     
     
 
-    shift = 27 - FT_MSB( FT_ABS( p2 ) | FT_ABS( p3 ) );
-
-    if ( shift > 0 )
-    {
-      
-      if ( shift > 2 )
-        shift = 2;
-
-      p1 <<=  shift;
-      p2 <<=  shift;
-      p3 <<=  shift;
-      p4 <<=  shift;
-      nmin = *min << shift;
-      nmax = *max << shift;
-    }
-    else
-    {
-      p1 >>= -shift;
-      p2 >>= -shift;
-      p3 >>= -shift;
-      p4 >>= -shift;
-      nmin = *min >> -shift;
-      nmax = *max >> -shift;
-    }
-
-    nmax =  update_cubic_max(  p1,  p2,  p3,  p4,  nmax );
+    if ( p2 > *max || p3 > *max )
+      *max += cubic_peak( p1 - *max, p2 - *max, p3 - *max, p4 - *max );
 
     
-    nmin = -update_cubic_max( -p1, -p2, -p3, -p4, -nmin );
-
-    if ( shift > 0 )
-    {
-      nmin >>=  shift;
-      nmax >>=  shift;
-    }
-    else
-    {
-      nmin <<= -shift;
-      nmax <<= -shift;
-    }
-
-    if ( nmin < *min )
-      *min = nmin;
-    if ( nmax > *max )
-      *max = nmax;
+    if ( p2 < *min || p3 < *min )
+      *min -= cubic_peak( *min - p1, *min - p2, *min - p3, *min - p4 );
   }
 
 
@@ -385,13 +419,15 @@
     return 0;
   }
 
-FT_DEFINE_OUTLINE_FUNCS(bbox_interface,
+
+  FT_DEFINE_OUTLINE_FUNCS(bbox_interface,
     (FT_Outline_MoveTo_Func) BBox_Move_To,
-    (FT_Outline_LineTo_Func) BBox_Move_To,
+    (FT_Outline_LineTo_Func) BBox_Line_To,
     (FT_Outline_ConicTo_Func)BBox_Conic_To,
     (FT_Outline_CubicTo_Func)BBox_Cubic_To,
     0, 0
   )
+
 
   
 
@@ -399,8 +435,10 @@ FT_DEFINE_OUTLINE_FUNCS(bbox_interface,
   FT_Outline_Get_BBox( FT_Outline*  outline,
                        FT_BBox     *abbox )
   {
-    FT_BBox     cbox;
-    FT_BBox     bbox;
+    FT_BBox     cbox = {  0x7FFFFFFFL,  0x7FFFFFFFL,
+                         -0x7FFFFFFFL, -0x7FFFFFFFL };
+    FT_BBox     bbox = {  0x7FFFFFFFL,  0x7FFFFFFFL,
+                         -0x7FFFFFFFL, -0x7FFFFFFFL };
     FT_Vector*  vec;
     FT_UShort   n;
 
@@ -424,32 +462,13 @@ FT_DEFINE_OUTLINE_FUNCS(bbox_interface,
     
 
     vec = outline->points;
-    bbox.xMin = bbox.xMax = cbox.xMin = cbox.xMax = vec->x;
-    bbox.yMin = bbox.yMax = cbox.yMin = cbox.yMax = vec->y;
-    vec++;
 
-    for ( n = 1; n < outline->n_points; n++ )
+    for ( n = 0; n < outline->n_points; n++ )
     {
-      FT_Pos  x = vec->x;
-      FT_Pos  y = vec->y;
-
-
-      
-      if ( x < cbox.xMin ) cbox.xMin = x;
-      if ( x > cbox.xMax ) cbox.xMax = x;
-
-      if ( y < cbox.yMin ) cbox.yMin = y;
-      if ( y > cbox.yMax ) cbox.yMax = y;
+      FT_UPDATE_BBOX( vec, cbox);
 
       if ( FT_CURVE_TAG( outline->tags[n] ) == FT_CURVE_TAG_ON )
-      {
-        
-        if ( x < bbox.xMin ) bbox.xMin = x;
-        if ( x > bbox.xMax ) bbox.xMax = x;
-
-        if ( y < bbox.yMin ) bbox.yMin = y;
-        if ( y > bbox.yMax ) bbox.yMax = y;
-      }
+        FT_UPDATE_BBOX( vec, bbox);
 
       vec++;
     }

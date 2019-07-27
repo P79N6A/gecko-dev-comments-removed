@@ -141,7 +141,7 @@ FT_BEGIN_HEADER
   
 
   
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   ps_hints_init( PS_Hints   hints,
                  FT_Memory  memory );
 

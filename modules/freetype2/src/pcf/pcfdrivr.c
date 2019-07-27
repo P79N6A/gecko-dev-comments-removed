@@ -189,7 +189,7 @@
   }
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FT_CMap_ClassRec  pcf_cmap_class =
   {
     sizeof ( PCF_CMapRec ),
@@ -494,7 +494,13 @@
 
     FT_TRACE1(( "PCF_Glyph_Load: glyph index %d\n", glyph_index ));
 
-    if ( !face || glyph_index >= (FT_UInt)face->root.num_glyphs )
+    if ( !face )
+    {
+      error = FT_THROW( Invalid_Face_Handle );
+      goto Exit;
+    }
+
+    if ( glyph_index >= (FT_UInt)face->root.num_glyphs )
     {
       error = FT_THROW( Invalid_Argument );
       goto Exit;

@@ -47,6 +47,12 @@
     if ( FT_ALLOC( face->ttf_data, 12 ) )
       goto Exit;
 
+    
+    
+    
+    
+    face->ttf_size = 12;
+
     error = t42_parser_init( parser,
                              face->root.stream,
                              memory,
@@ -286,7 +292,9 @@
       FT_Open_Args  args;
 
 
-      args.flags       = FT_OPEN_MEMORY;
+      args.flags       = FT_OPEN_MEMORY | FT_OPEN_DRIVER;
+      args.driver      = FT_Get_Module( FT_FACE_LIBRARY( face ),
+                                        "truetype" );
       args.memory_base = face->ttf_data;
       args.memory_size = face->ttf_size;
 

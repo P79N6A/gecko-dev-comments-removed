@@ -750,7 +750,7 @@
   }
 
 
-  FT_LOCAL_DEF( FT_Error )
+  FT_LOCAL_DEF( void )
   psh_globals_set_scale( PSH_Globals  globals,
                          FT_Fixed     x_scale,
                          FT_Fixed     y_scale,
@@ -780,8 +780,6 @@
       psh_globals_scale_widths( globals, 1 );
       psh_blues_scale_zones( &globals->blues, y_scale, y_delta );
     }
-
-    return 0;
   }
 
 

@@ -72,6 +72,16 @@ FT_BEGIN_HEADER
 
 #define FT_ABS( a )     ( (a) < 0 ? -(a) : (a) )
 
+  
+
+
+
+
+#define FT_HYPOT( x, y )                 \
+          ( x = FT_ABS( x ),             \
+            y = FT_ABS( y ),             \
+            x > y ? x + ( 3 * y >> 3 )   \
+                  : y + ( 3 * x >> 3 ) )
 
 #define FT_PAD_FLOOR( x, n )  ( (x) & ~((n)-1) )
 #define FT_PAD_ROUND( x, n )  FT_PAD_FLOOR( (x) + ((n)/2), n )
@@ -80,14 +90,6 @@ FT_BEGIN_HEADER
 #define FT_PIX_FLOOR( x )     ( (x) & ~63 )
 #define FT_PIX_ROUND( x )     FT_PIX_FLOOR( (x) + 32 )
 #define FT_PIX_CEIL( x )      FT_PIX_FLOOR( (x) + 63 )
-
-
-  
-
-
-
-  FT_BASE( FT_UInt32 )
-  ft_highpow2( FT_UInt32  value );
 
 
   

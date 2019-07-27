@@ -110,10 +110,9 @@
       return result;
 
     if ( (FT_ULong)face->num_glyphs > FT_UINT_MAX || 0 > face->num_glyphs )
-    {
-      FT_TRACE1(( "ftc_basic_family_get_count: too large number of glyphs " ));
-      FT_TRACE1(( "in this face, truncated\n", face->num_glyphs ));
-    }
+      FT_TRACE1(( "ftc_basic_family_get_count:"
+                  " too large number of glyphs in this face, truncated\n",
+                  face->num_glyphs ));
 
     if ( !error )
       result = (FT_UInt)face->num_glyphs;
@@ -229,7 +228,7 @@
 
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FTC_IFamilyClassRec  ftc_basic_image_family_class =
   {
     {
@@ -243,7 +242,7 @@
   };
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FTC_GCacheClassRec  ftc_basic_image_cache_class =
   {
     {
@@ -298,18 +297,15 @@
     if ( anode )
       *anode  = NULL;
 
-    {
-      if ( (FT_ULong)(type->flags - FT_INT_MIN) > FT_UINT_MAX )
-      {
-        FT_TRACE1(( "FTC_ImageCache_Lookup: higher bits in load_flags" ));
-        FT_TRACE1(( "0x%x are dropped\n", (type->flags & ~((FT_ULong)FT_UINT_MAX)) ));
-      }
+    if ( (FT_ULong)( type->flags - FT_INT_MIN ) > FT_UINT_MAX )
+      FT_TRACE1(( "FTC_ImageCache_Lookup:"
+                  " higher bits in load_flags 0x%x are dropped\n",
+                  type->flags & ~((FT_ULong)FT_UINT_MAX) ));
 
-      query.attrs.scaler.face_id = type->face_id;
-      query.attrs.scaler.width   = type->width;
-      query.attrs.scaler.height  = type->height;
-      query.attrs.load_flags     = (FT_UInt)type->flags;
-    }
+    query.attrs.scaler.face_id = type->face_id;
+    query.attrs.scaler.width   = type->width;
+    query.attrs.scaler.height  = type->height;
+    query.attrs.load_flags     = (FT_UInt)type->flags;
 
     query.attrs.scaler.pixel = 1;
     query.attrs.scaler.x_res = 0;  
@@ -376,10 +372,9 @@
 
     
     if ( load_flags > FT_UINT_MAX )
-    {
-      FT_TRACE1(( "FTC_ImageCache_LookupScaler: higher bits in load_flags" ));
-      FT_TRACE1(( "0x%x are dropped\n", (load_flags & ~((FT_ULong)FT_UINT_MAX)) ));
-    }
+      FT_TRACE1(( "FTC_ImageCache_LookupScaler:"
+                  " higher bits in load_flags 0x%x are dropped\n",
+                  load_flags & ~((FT_ULong)FT_UINT_MAX) ));
 
     query.attrs.scaler     = scaler[0];
     query.attrs.load_flags = (FT_UInt)load_flags;
@@ -415,7 +410,7 @@
 
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FTC_SFamilyClassRec  ftc_basic_sbit_family_class =
   {
     {
@@ -430,7 +425,7 @@
   };
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FTC_GCacheClassRec  ftc_basic_sbit_cache_class =
   {
     {
@@ -483,18 +478,15 @@
 
     *ansbit = NULL;
 
-    {
-      if ( (FT_ULong)(type->flags - FT_INT_MIN) > FT_UINT_MAX )
-      {
-        FT_TRACE1(( "FTC_ImageCache_Lookup: higher bits in load_flags" ));
-        FT_TRACE1(( "0x%x are dropped\n", (type->flags & ~((FT_ULong)FT_UINT_MAX)) ));
-      }
+    if ( (FT_ULong)( type->flags - FT_INT_MIN ) > FT_UINT_MAX )
+      FT_TRACE1(( "FTC_ImageCache_Lookup:"
+                  " higher bits in load_flags 0x%x are dropped\n",
+                  type->flags & ~((FT_ULong)FT_UINT_MAX) ));
 
-      query.attrs.scaler.face_id = type->face_id;
-      query.attrs.scaler.width   = type->width;
-      query.attrs.scaler.height  = type->height;
-      query.attrs.load_flags     = (FT_UInt)type->flags;
-    }
+    query.attrs.scaler.face_id = type->face_id;
+    query.attrs.scaler.width   = type->width;
+    query.attrs.scaler.height  = type->height;
+    query.attrs.load_flags     = (FT_UInt)type->flags;
 
     query.attrs.scaler.pixel = 1;
     query.attrs.scaler.x_res = 0;  
@@ -563,10 +555,9 @@
 
     
     if ( load_flags > FT_UINT_MAX )
-    {
-      FT_TRACE1(( "FTC_ImageCache_LookupScaler: higher bits in load_flags" ));
-      FT_TRACE1(( "0x%x are dropped\n", (load_flags & ~((FT_ULong)FT_UINT_MAX)) ));
-    }
+      FT_TRACE1(( "FTC_ImageCache_LookupScaler:"
+                  " higher bits in load_flags 0x%x are dropped\n",
+                  load_flags & ~((FT_ULong)FT_UINT_MAX) ));
 
     query.attrs.scaler     = scaler[0];
     query.attrs.load_flags = (FT_UInt)load_flags;

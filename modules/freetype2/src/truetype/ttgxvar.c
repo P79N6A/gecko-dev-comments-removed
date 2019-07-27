@@ -938,13 +938,13 @@
         FT_FREE( face->cvt );
         face->cvt = NULL;
 
-        tt_face_load_cvt( face, face->root.stream );
+        error = tt_face_load_cvt( face, face->root.stream );
         break;
 
       case mcvt_modify:
         
         
-        tt_face_vary_cvt( face, face->root.stream );
+        error = tt_face_vary_cvt( face, face->root.stream );
         break;
 
       case mcvt_retain:

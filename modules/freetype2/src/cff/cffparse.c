@@ -188,7 +188,7 @@
     }
 
     
-    if ( nib == 0xa )
+    if ( nib == 0xA )
       for (;;)
       {
         

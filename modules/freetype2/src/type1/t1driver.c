@@ -557,9 +557,6 @@
       if ( value && value_len >= retval )
         *((FT_Long *)value) = type1->font_info.italic_angle;
       break;
-
-    default:
-      break;
     }
 
     return retval;

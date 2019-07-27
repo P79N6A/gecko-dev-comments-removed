@@ -45,7 +45,7 @@ FT_BEGIN_HEADER
                           T1_Private*   private_dict,
                           PSH_Globals*  aglobals );
 
-  typedef FT_Error
+  typedef void
   (*PSH_Globals_SetScaleFunc)( PSH_Globals  globals,
                                FT_Fixed     x_scale,
                                FT_Fixed     y_scale,

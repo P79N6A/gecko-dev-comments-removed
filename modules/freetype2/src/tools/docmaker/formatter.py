@@ -1,13 +1,31 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from sources import *
 from content import *
 from utils   import *
-
-
-
-
 
 
 
@@ -36,15 +54,17 @@ class  Formatter:
                             self.add_identifier( field.name, block )
 
         self.block_index = self.identifiers.keys()
-        self.block_index.sort( index_sort )
+        self.block_index.sort( key = index_key )
 
     def  add_identifier( self, name, block ):
-        if self.identifiers.has_key( name ):
+        if name in self.identifiers:
             
-            sys.stderr.write(                                           \
-               "WARNING: duplicate definition for '" + name + "' in " + \
-               block.location() + ", previous definition in " +         \
-               self.identifiers[name].location() + "\n" )
+            sys.stderr.write( "WARNING: duplicate definition for"
+                              + " '" + name + "' "
+                              + "in " + block.location() + ", "
+                              + "previous definition in "
+                              + self.identifiers[name].location()
+                              + "\n" )
         else:
             self.identifiers[name] = block
 
@@ -162,7 +182,22 @@ class  Formatter:
         self.section_enter( section )
 
         for name in section.block_names:
-            block = self.identifiers[name]
+            skip_entry = 0
+            try:
+                block = self.identifiers[name]
+                
+                
+                for markup in block.markups:
+                    if markup.tag == 'values':
+                        for field in markup.fields:
+                            if field.name == name:
+                                skip_entry = 1
+            except:
+                skip_entry = 1   
+
+            if skip_entry:
+              continue
+
             self.block_enter( block )
 
             for markup in block.markups[1:]:   

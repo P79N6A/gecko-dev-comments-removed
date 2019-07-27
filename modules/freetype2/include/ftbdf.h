@@ -200,7 +200,7 @@ FT_BEGIN_HEADER
                        const char*       prop_name,
                        BDF_PropertyRec  *aproperty );
 
- 
+  
 
 FT_END_HEADER
 

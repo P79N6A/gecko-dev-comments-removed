@@ -45,7 +45,7 @@
   
 #define FT_TRIG_MAX_ITERS  23
 
-  static const FT_Fixed
+  static const FT_Angle
   ft_trig_arctan_table[] =
   {
     1740967L, 919879L, 466945L, 234379L, 117304L, 58666L, 29335L,
@@ -60,17 +60,20 @@
   static FT_Fixed
   ft_trig_downscale( FT_Fixed  val )
   {
-    FT_Fixed  s;
-    FT_Int64  v;
+    FT_Int  s = 1;
 
 
-    s   = val;
-    val = FT_ABS( val );
+    if ( val < 0 )
+    {
+       val = -val;
+       s = -1;
+    }
 
-    v   = ( val * (FT_Int64)FT_TRIG_SCALE ) + 0x100000000UL;
-    val = (FT_Fixed)( v >> 32 );
+    
+    
+    val = (FT_Fixed)( ( (FT_Int64)val * FT_TRIG_SCALE + 0x40000000UL ) >> 32 );
 
-    return ( s >= 0 ) ? val : -val;
+    return s < 0 ? -val : val;
   }
 
 #else 
@@ -79,38 +82,53 @@
   static FT_Fixed
   ft_trig_downscale( FT_Fixed  val )
   {
-    FT_Fixed   s;
-    FT_UInt32  v1, v2, k1, k2, hi, lo1, lo2, lo3;
+    FT_Int     s = 1;
+    FT_UInt32  lo1, hi1, lo2, hi2, lo, hi, i1, i2;
 
 
-    s   = val;
-    val = FT_ABS( val );
+    if ( val < 0 )
+    {
+       val = -val;
+       s = -1;
+    }
 
-    v1 = (FT_UInt32)val >> 16;
-    v2 = (FT_UInt32)( val & 0xFFFFL );
+    lo1 = val & 0x0000FFFFU;
+    hi1 = val >> 16;
+    lo2 = FT_TRIG_SCALE & 0x0000FFFFU;
+    hi2 = FT_TRIG_SCALE >> 16;
 
-    k1 = (FT_UInt32)FT_TRIG_SCALE >> 16;           
-    k2 = (FT_UInt32)( FT_TRIG_SCALE & 0xFFFFL );   
+    lo = lo1 * lo2;
+    i1 = lo1 * hi2;
+    i2 = lo2 * hi1;
+    hi = hi1 * hi2;
 
-    hi   = k1 * v1;
-    lo1  = k1 * v2 + k2 * v1;       
+    
+    i1 += i2;
+    hi += (FT_UInt32)( i1 < i2 ) << 16;
 
-    lo2  = ( k2 * v2 ) >> 16;
-    lo3  = FT_MAX( lo1, lo2 );
-    lo1 += lo2;
+    hi += i1 >> 16;
+    i1  = i1 << 16;
 
-    hi  += lo1 >> 16;
-    if ( lo1 < lo3 )
-      hi += (FT_UInt32)0x10000UL;
+    
+    lo += i1;
+    hi += ( lo < i1 );
+
+    
+    
+
+    
+    lo += 0x40000000UL;
+    hi += ( lo < 0x40000000UL );
 
     val  = (FT_Fixed)hi;
 
-    return ( s >= 0 ) ? val : -val;
+    return s < 0 ? -val : val;
   }
 
 #endif 
 
 
+  
   static FT_Int
   ft_trig_prenorm( FT_Vector*  vec )
   {
@@ -147,7 +165,7 @@
   {
     FT_Int           i;
     FT_Fixed         x, y, xtemp, b;
-    const FT_Fixed  *arctanptr;
+    const FT_Angle  *arctanptr;
 
 
     x = vec->x;
@@ -202,7 +220,7 @@
     FT_Angle         theta;
     FT_Int           i;
     FT_Fixed         x, y, xtemp, b;
-    const FT_Fixed  *arctanptr;
+    const FT_Angle  *arctanptr;
 
 
     x = vec->x;
@@ -262,10 +280,11 @@
     }
 
     
+    
     if ( theta >= 0 )
-      theta = FT_PAD_ROUND( theta, 32 );
+      theta = FT_PAD_ROUND( theta, 16 );
     else
-      theta = -FT_PAD_ROUND( -theta, 32 );
+      theta = -FT_PAD_ROUND( -theta, 16 );
 
     vec->x = x;
     vec->y = theta;
@@ -340,6 +359,9 @@
   FT_Vector_Unit( FT_Vector*  vec,
                   FT_Angle    angle )
   {
+    if ( !vec )
+      return;
+
     vec->x = FT_TRIG_SCALE >> 8;
     vec->y = 0;
     ft_trig_pseudo_rotate( vec, angle );
@@ -365,6 +387,9 @@
     FT_Int     shift;
     FT_Vector  v;
 
+
+    if ( !vec )
+      return;
 
     v.x   = vec->x;
     v.y   = vec->y;
@@ -403,6 +428,9 @@
     FT_Vector  v;
 
 
+    if ( !vec )
+      return 0;
+
     v = *vec;
 
     
@@ -439,6 +467,9 @@
     FT_Vector  v;
 
 
+    if ( !vec || !length || !angle )
+      return;
+
     v = *vec;
 
     if ( v.x == 0 && v.y == 0 )
@@ -449,8 +480,8 @@
 
     v.x = ft_trig_downscale( v.x );
 
-    *length = ( shift >= 0 ) ?                      ( v.x >>  shift )
-                             : (FT_Fixed)( (FT_UInt32)v.x << -shift );
+    *length = shift >= 0 ?                      ( v.x >>  shift )
+                         : (FT_Fixed)( (FT_UInt32)v.x << -shift );
     *angle  = v.y;
   }
 
@@ -462,6 +493,9 @@
                         FT_Fixed    length,
                         FT_Angle    angle )
   {
+    if ( !vec )
+      return;
+
     vec->x = length;
     vec->y = 0;
 

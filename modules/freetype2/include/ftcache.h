@@ -209,10 +209,10 @@ FT_BEGIN_HEADER
   typedef FT_Error
   (*FTC_Face_Requester)( FTC_FaceID  face_id,
                          FT_Library  library,
-                         FT_Pointer  request_data,
+                         FT_Pointer  req_data,
                          FT_Face*    aface );
 
- 
+  
 
 
   
@@ -1046,8 +1046,8 @@ FT_BEGIN_HEADER
                               FTC_SBit      *sbit,
                               FTC_Node      *anode );
 
+  
 
- 
 
 FT_END_HEADER
 

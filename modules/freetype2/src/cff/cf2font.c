@@ -36,6 +36,9 @@
 
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_CALC_H
+
 #include "cf2ft.h"
 
 #include "cf2glue.h"
@@ -105,6 +108,7 @@
     
     
     CF2_Fixed  stemWidthPer1000, scaledStem;
+    FT_Int     logBase2;
 
 
     *darkenAmount = 0;
@@ -132,24 +136,31 @@
       
 
       
-      
 
       stemWidthPer1000 = FT_MulFix( stemWidth + boldenAmount, emRatio );
 
-      if ( emRatio > CF2_FIXED_ONE                          &&
-           stemWidthPer1000 <= ( stemWidth + boldenAmount ) )
-      {
-        stemWidthPer1000 = 0;                      
-        scaledStem       = cf2_intToFixed( x4 );
-      }
-      else
-      {
-        scaledStem = FT_MulFix( stemWidthPer1000, ppem );
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-        if ( ppem > CF2_FIXED_ONE           &&
-             scaledStem <= stemWidthPer1000 )
-          scaledStem = cf2_intToFixed( x4 );
-      }
+      logBase2 = FT_MSB( (FT_UInt32)stemWidthPer1000 ) +
+                   FT_MSB( (FT_UInt32)ppem );
+
+      if ( logBase2 >= 46 )
+        
+        scaledStem = cf2_intToFixed( x4 );
+      else
+        scaledStem = FT_MulFix( stemWidthPer1000, ppem );
 
       
 

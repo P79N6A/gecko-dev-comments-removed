@@ -171,7 +171,15 @@
         if ( error )
           goto Exit;
 
+        
+
+
+
+
+
         af_latin_hints_link_segments( hints,
+                                      0,
+                                      NULL,
                                       (AF_Dimension)dim );
 
         seg   = axhints->segments;
@@ -295,6 +303,14 @@
           if ( AF_LATIN_IS_TOP_BLUE( bs ) )
           {
             FT_TRACE5(( "top" ));
+            have_flag = 1;
+          }
+
+          if ( AF_LATIN_IS_NEUTRAL_BLUE( bs ) )
+          {
+            if ( have_flag )
+              FT_TRACE5(( ", " ));
+            FT_TRACE5(( "neutral" ));
             have_flag = 1;
           }
 
@@ -520,6 +536,13 @@
               FT_Int   last;
               FT_Bool  hit;
 
+              
+              
+              
+              
+              FT_Int  p_first = 0;            
+              FT_Int  p_last  = 0;
+
               FT_Bool  left2right;
 
 
@@ -552,7 +575,6 @@
               {
                 FT_Bool  l2r;
                 FT_Pos   d;
-                FT_Int   p_first, p_last;
 
 
                 if ( !hit )
@@ -688,6 +710,13 @@
                       FT_CURVE_TAG( outline.tags[best_segment_last]  ) !=
                         FT_CURVE_TAG_ON                                   );
 
+          if ( round && AF_LATIN_IS_NEUTRAL_BLUE( bs ) )
+          {
+            
+            FT_TRACE5(( " (round, skipped)\n" ));
+            continue;
+          }
+
           FT_TRACE5(( " (%s)\n", round ? "round" : "flat" ));
         }
 
@@ -758,6 +787,8 @@
       blue->flags = 0;
       if ( AF_LATIN_IS_TOP_BLUE( bs ) )
         blue->flags |= AF_LATIN_BLUE_TOP;
+      if ( AF_LATIN_IS_NEUTRAL_BLUE( bs ) )
+        blue->flags |= AF_LATIN_BLUE_NEUTRAL;
 
       
 
@@ -1262,17 +1293,19 @@
           
           segment_dir = (AF_Direction)point->out_dir;
 
-          
           error = af_axis_hints_new_segment( axis, memory, &segment );
           if ( error )
             goto Exit;
 
-          segment[0]        = seg0;
+          
+          segment[0] = seg0;
+
           segment->dir      = (FT_Char)segment_dir;
           min_pos = max_pos = point->u;
           segment->first    = point;
           segment->last     = point;
-          on_edge           = 1;
+
+          on_edge = 1;
         }
 
         point = point->next;
@@ -1295,9 +1328,6 @@
         FT_Pos    first_v = first->v;
         FT_Pos    last_v  = last->v;
 
-
-        if ( first == last )
-          continue;
 
         if ( first_v < last_v )
         {
@@ -1338,30 +1368,43 @@
 
 
   
+  
 
   FT_LOCAL_DEF( void )
   af_latin_hints_link_segments( AF_GlyphHints  hints,
+                                FT_UInt        width_count,
+                                AF_WidthRec*   widths,
                                 AF_Dimension   dim )
   {
     AF_AxisHints  axis          = &hints->axis[dim];
     AF_Segment    segments      = axis->segments;
     AF_Segment    segment_limit = segments + axis->num_segments;
-    FT_Pos        len_threshold, len_score;
+    FT_Pos        len_threshold, len_score, dist_score, max_width;
     AF_Segment    seg1, seg2;
 
 
+    if ( width_count )
+      max_width = widths[width_count - 1].org;
+    else
+      max_width = 0;
+
+    
     len_threshold = AF_LATIN_CONSTANT( hints->metrics, 8 );
     if ( len_threshold == 0 )
       len_threshold = 1;
 
+    
     len_score = AF_LATIN_CONSTANT( hints->metrics, 6000 );
+
+    
+    
+    
+    dist_score = 3000;
 
     
     for ( seg1 = segments; seg1 < segment_limit; seg1++ )
     {
-      
-      
-      if ( seg1->dir != axis->major_dir || seg1->first == seg1->last )
+      if ( seg1->dir != axis->major_dir )
         continue;
 
       
@@ -1375,10 +1418,9 @@
         if ( seg1->dir + seg2->dir == 0 && pos2 > pos1 )
         {
           
-          FT_Pos  dist = pos2 - pos1;
-          FT_Pos  min  = seg1->min_coord;
-          FT_Pos  max  = seg1->max_coord;
-          FT_Pos  len, score;
+          FT_Pos  min = seg1->min_coord;
+          FT_Pos  max = seg1->max_coord;
+          FT_Pos  len;
 
 
           if ( min < seg2->min_coord )
@@ -1388,14 +1430,48 @@
             max = seg2->max_coord;
 
           
+          
           len = max - min;
           if ( len >= len_threshold )
           {
             
-            
-            score = dist + len_score / len;
 
-            
+
+
+
+
+
+
+
+
+
+
+
+
+            FT_Pos  dist = pos2 - pos1;
+
+            FT_Pos  dist_demerit, score;
+
+
+            if ( max_width )
+            {
+              
+              
+              FT_Pos  delta = ( dist << 10 ) / max_width - ( 1 << 10 );
+
+
+              if ( delta > 10000 )
+                dist_demerit = 32000;
+              else if ( delta > 0 )
+                dist_demerit = delta * delta / dist_score;
+              else
+                dist_demerit = 0;
+            }
+            else
+              dist_demerit = dist; 
+
+            score = dist_demerit + len_score / len;
+
             
             if ( score < seg1->score )
             {
@@ -1728,6 +1804,8 @@
 
   FT_LOCAL_DEF( FT_Error )
   af_latin_hints_detect_features( AF_GlyphHints  hints,
+                                  FT_UInt        width_count,
+                                  AF_WidthRec*   widths,
                                   AF_Dimension   dim )
   {
     FT_Error  error;
@@ -1736,7 +1814,7 @@
     error = af_latin_hints_compute_segments( hints, dim );
     if ( !error )
     {
-      af_latin_hints_link_segments( hints, dim );
+      af_latin_hints_link_segments( hints, width_count, widths, dim );
 
       error = af_latin_hints_compute_edges( hints, dim );
     }
@@ -1765,8 +1843,9 @@
     for ( ; edge < edge_limit; edge++ )
     {
       FT_UInt   bb;
-      AF_Width  best_blue = NULL;
-      FT_Pos    best_dist;  
+      AF_Width  best_blue            = NULL;
+      FT_Bool   best_blue_is_neutral = 0;
+      FT_Pos    best_dist;                 
 
 
       
@@ -1780,7 +1859,7 @@
       for ( bb = 0; bb < latin->blue_count; bb++ )
       {
         AF_LatinBlue  blue = latin->blues + bb;
-        FT_Bool       is_top_blue, is_major_dir;
+        FT_Bool       is_top_blue, is_neutral_blue, is_major_dir;
 
 
         
@@ -1791,13 +1870,15 @@
         
         
         
-        is_top_blue  = (FT_Byte)( ( blue->flags & AF_LATIN_BLUE_TOP ) != 0 );
-        is_major_dir = FT_BOOL( edge->dir == axis->major_dir );
+        is_top_blue =
+          (FT_Byte)( ( blue->flags & AF_LATIN_BLUE_TOP ) != 0 );
+        is_neutral_blue =
+          (FT_Byte)( ( blue->flags & AF_LATIN_BLUE_NEUTRAL ) != 0);
+        is_major_dir =
+          FT_BOOL( edge->dir == axis->major_dir );
 
         
-        
-        
-        if ( is_top_blue ^ is_major_dir )
+        if ( is_top_blue ^ is_major_dir || is_neutral_blue )
         {
           FT_Pos  dist;
 
@@ -1810,15 +1891,19 @@
           dist = FT_MulFix( dist, scale );
           if ( dist < best_dist )
           {
-            best_dist = dist;
-            best_blue = &blue->ref;
+            best_dist            = dist;
+            best_blue            = &blue->ref;
+            best_blue_is_neutral = is_neutral_blue;
           }
 
           
           
           
           
-          if ( edge->flags & AF_EDGE_ROUND && dist != 0 )
+          
+          if ( edge->flags & AF_EDGE_ROUND &&
+               dist != 0                   &&
+               !is_neutral_blue            )
           {
             FT_Bool  is_under_ref = FT_BOOL( edge->fpos < blue->ref.org );
 
@@ -1832,8 +1917,9 @@
               dist = FT_MulFix( dist, scale );
               if ( dist < best_dist )
               {
-                best_dist = dist;
-                best_blue = &blue->shoot;
+                best_dist            = dist;
+                best_blue            = &blue->shoot;
+                best_blue_is_neutral = is_neutral_blue;
               }
             }
           }
@@ -1841,7 +1927,11 @@
       }
 
       if ( best_blue )
+      {
         edge->blue_edge = best_blue;
+        if ( best_blue_is_neutral )
+          edge->flags |= AF_EDGE_NEUTRAL;
+      }
     }
   }
 
@@ -2159,7 +2249,7 @@
 
     FT_TRACE5(( "  LINK: edge %d (opos=%.2f) linked to %.2f,"
                 " dist was %.2f, now %.2f\n",
-                stem_edge-hints->axis[dim].edges, stem_edge->opos / 64.0,
+                stem_edge - hints->axis[dim].edges, stem_edge->opos / 64.0,
                 stem_edge->pos / 64.0, dist / 64.0, fitted_width / 64.0 ));
   }
 
@@ -2226,10 +2316,37 @@
         if ( edge->flags & AF_EDGE_DONE )
           continue;
 
-        blue  = edge->blue_edge;
         edge1 = NULL;
         edge2 = edge->link;
 
+        
+
+
+
+
+
+
+
+
+        if ( edge->blue_edge && edge2 && edge2->blue_edge )
+        {
+          FT_Byte  neutral  = edge->flags  & AF_EDGE_NEUTRAL;
+          FT_Byte  neutral2 = edge2->flags & AF_EDGE_NEUTRAL;
+
+
+          if ( ( neutral && neutral2 ) || neutral2 )
+          {
+            edge2->blue_edge = NULL;
+            edge2->flags    &= ~AF_EDGE_NEUTRAL;
+          }
+          else if ( neutral )
+          {
+            edge->blue_edge = NULL;
+            edge->flags    &= ~AF_EDGE_NEUTRAL;
+          }
+        }
+
+        blue = edge->blue_edge;
         if ( blue )
           edge1 = edge;
 
@@ -2300,7 +2417,7 @@
       
       if ( edge2->blue_edge )
       {
-        FT_TRACE5(( "  ASSERTION FAILED for edge %d\n", edge2-edges ));
+        FT_TRACE5(( "  ASSERTION FAILED for edge %d\n", edge2 - edges ));
 
         af_latin_align_linked_edge( hints, dim, edge2, edge );
         edge->flags |= AF_EDGE_DONE;
@@ -2689,6 +2806,8 @@
     FT_Error  error;
     int       dim;
 
+    AF_LatinAxis  axis;
+
 
     error = af_glyph_hints_reload( hints, outline );
     if ( error )
@@ -2702,14 +2821,22 @@
     if ( AF_HINTS_DO_HORIZONTAL( hints ) )
 #endif
     {
-      error = af_latin_hints_detect_features( hints, AF_DIMENSION_HORZ );
+      axis  = &metrics->axis[AF_DIMENSION_HORZ];
+      error = af_latin_hints_detect_features( hints,
+                                              axis->width_count,
+                                              axis->widths,
+                                              AF_DIMENSION_HORZ );
       if ( error )
         goto Exit;
     }
 
     if ( AF_HINTS_DO_VERTICAL( hints ) )
     {
-      error = af_latin_hints_detect_features( hints, AF_DIMENSION_VERT );
+      axis  = &metrics->axis[AF_DIMENSION_VERT];
+      error = af_latin_hints_detect_features( hints,
+                                              axis->width_count,
+                                              axis->widths,
+                                              AF_DIMENSION_VERT );
       if ( error )
         goto Exit;
 

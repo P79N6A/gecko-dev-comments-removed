@@ -236,6 +236,8 @@
 
 
     
+
+    
     
 
     memory = FT_New_Memory();
@@ -263,17 +265,19 @@
   FT_EXPORT_DEF( FT_Error )
   FT_Done_FreeType( FT_Library  library )
   {
-    if ( library )
-    {
-      FT_Memory  memory = library->memory;
+    FT_Memory  memory;
 
 
-      
-      FT_Done_Library( library );
+    if ( !library )
+      return FT_THROW( Invalid_Library_Handle );
 
-      
-      FT_Done_Memory( memory );
-    }
+    memory = library->memory;
+
+    
+    FT_Done_Library( library );
+
+    
+    FT_Done_Memory( memory );
 
     return FT_Err_Ok;
   }

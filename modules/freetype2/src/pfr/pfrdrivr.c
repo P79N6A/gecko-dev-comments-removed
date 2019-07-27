@@ -37,7 +37,7 @@
     PFR_PhyFont  phys = &face->phy_font;
 
 
-    pfr_face_get_kerning( pfrface, left, right, avector );
+    (void)pfr_face_get_kerning( pfrface, left, right, avector );
 
     
     if ( phys->outline_resolution != phys->metrics_resolution )
@@ -134,7 +134,7 @@
   }
 
 
-  FT_CALLBACK_TABLE_DEF
+  static
   const FT_Service_PfrMetricsRec  pfr_metrics_service_rec =
   {
     pfr_get_metrics,

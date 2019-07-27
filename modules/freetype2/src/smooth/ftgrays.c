@@ -98,6 +98,9 @@
 #define FT_ERR_XCAT( x, y )  x ## y
 #define FT_ERR_CAT( x, y )   FT_ERR_XCAT( x, y )
 
+#define FT_BEGIN_STMNT  do {
+#define FT_END_STMNT    } while ( 0 )
+
 
   
 
@@ -402,6 +405,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
   typedef struct  gray_TWorker_
   {
+    ft_jmp_buf  jump_buffer;
+
     TCoord  ex, ey;
     TPos    min_ex, max_ex;
     TPos    min_ey, max_ey;
@@ -436,8 +441,6 @@ typedef ptrdiff_t  FT_PtrDist;
 
     int  band_size;
     int  band_shoot;
-
-    ft_jmp_buf  jump_buffer;
 
     void*       buffer;
     long        buffer_size;
@@ -1088,37 +1091,10 @@ typedef ptrdiff_t  FT_PtrDist;
 
 
         
-        dx = arc[3].x - arc[0].x;
-        dy = arc[3].y - arc[0].y;
+        dx = dx_ = arc[3].x - arc[0].x;
+        dy = dy_ = arc[3].y - arc[0].y;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        dx_ = FT_ABS( dx );
-        dy_ = FT_ABS( dy );
-
-        
-        
-        
-        
-        L = ( dx_ > dy_ ? 236 * dx_ +  97 * dy_
-                        :  97 * dx_ + 236 * dy_ ) >> 8;
+        L = FT_HYPOT( dx_, dy_ );
 
         
         if ( L > 32767 )
@@ -1539,7 +1515,10 @@ typedef ptrdiff_t  FT_PtrDist;
     TPos  delta;
 
 
-    if ( !outline || !func_interface )
+    if ( !outline )
+      return FT_THROW( Invalid_Outline );
+
+    if ( !func_interface )
       return FT_THROW( Invalid_Argument );
 
     shift = func_interface->shift;
@@ -2121,12 +2100,26 @@ typedef ptrdiff_t  FT_PtrDist;
   }
 
 
+  static int
+  gray_raster_set_mode( FT_Raster      raster,
+                        unsigned long  mode,
+                        void*          args )
+  {
+    FT_UNUSED( raster );
+    FT_UNUSED( mode );
+    FT_UNUSED( args );
+
+
+    return 0; 
+  }
+
+
   FT_DEFINE_RASTER_FUNCS(ft_grays_raster,
     FT_GLYPH_FORMAT_OUTLINE,
 
     (FT_Raster_New_Func)     gray_raster_new,
     (FT_Raster_Reset_Func)   gray_raster_reset,
-    (FT_Raster_Set_Mode_Func)0,
+    (FT_Raster_Set_Mode_Func)gray_raster_set_mode,
     (FT_Raster_Render_Func)  gray_raster_render,
     (FT_Raster_Done_Func)    gray_raster_done
   )

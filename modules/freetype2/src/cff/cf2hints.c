@@ -304,9 +304,6 @@
   cf2_hintmap_map( CF2_HintMap  hintmap,
                    CF2_Fixed    csCoord )
   {
-    FT_ASSERT( hintmap->isValid );  
-    FT_ASSERT( hintmap->lastIndex < CF2_MAX_HINT_EDGES );
-
     if ( hintmap->count == 0 || ! hintmap->hinted )
     {
       
@@ -317,6 +314,7 @@
       
       CF2_UInt  i = hintmap->lastIndex;
 
+      FT_ASSERT( hintmap->lastIndex < CF2_MAX_HINT_EDGES );
 
       
       while ( i < hintmap->count - 1                  &&
@@ -794,8 +792,11 @@
     maskPtr      = cf2_hintmask_getMaskPtr( &tempHintMask );
 
     
-    
     bitCount = cf2_arrstack_size( hStemHintArray );
+
+    
+    if ( bitCount > hintMask->bitCount )
+        return;
 
     
     if ( font->blues.doEmBoxHints )
@@ -1560,7 +1561,7 @@
         {
           
           *x = -glyphpath->xOffset;
-          *y = glyphpath->xOffset;
+          *y = glyphpath->yOffset;
         }
         else
         {
@@ -1691,7 +1692,8 @@
 
     if ( glyphpath->elemIsQueued )
     {
-      FT_ASSERT( cf2_hintmap_isValid( &glyphpath->hintMap ) );
+      FT_ASSERT( cf2_hintmap_isValid( &glyphpath->hintMap ) ||
+                 glyphpath->hintMap.count == 0              );
 
       cf2_glyphpath_pushPrevElem( glyphpath,
                                   &glyphpath->hintMap,
@@ -1777,7 +1779,8 @@
 
     if ( glyphpath->elemIsQueued )
     {
-      FT_ASSERT( cf2_hintmap_isValid( &glyphpath->hintMap ) );
+      FT_ASSERT( cf2_hintmap_isValid( &glyphpath->hintMap ) ||
+                 glyphpath->hintMap.count == 0              );
 
       cf2_glyphpath_pushPrevElem( glyphpath,
                                   &glyphpath->hintMap,

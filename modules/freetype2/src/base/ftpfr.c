@@ -50,7 +50,7 @@
 
 
     if ( !face )
-      return FT_THROW( Invalid_Argument );
+      return FT_THROW( Invalid_Face_Handle );
 
     service = ft_pfr_check( face );
     if ( service )
@@ -106,6 +106,9 @@
 
 
     if ( !face )
+      return FT_THROW( Invalid_Face_Handle );
+
+    if ( !avector )
       return FT_THROW( Invalid_Argument );
 
     service = ft_pfr_check( face );
@@ -130,11 +133,15 @@
     FT_Service_PfrMetrics  service;
 
 
+    if ( !face )
+      return FT_THROW( Invalid_Face_Handle );
+
+    if ( !aadvance )
+      return FT_THROW( Invalid_Argument );
+
     service = ft_pfr_check( face );
     if ( service )
-    {
       error = service->get_advance( face, gindex, aadvance );
-    }
     else
       
       error = FT_THROW( Invalid_Argument );

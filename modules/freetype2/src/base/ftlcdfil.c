@@ -46,9 +46,16 @@
       FT_Byte*  line = bitmap->buffer;
 
 
+      
+      if ( bitmap->pitch < 0 )
+        line -= bitmap->pitch * ( bitmap->rows - 1 );
+
+      
+      
+
       for ( ; height > 0; height--, line += bitmap->pitch )
       {
-        FT_UInt  fir[5];
+        FT_UInt  fir[4];        
         FT_UInt  val1, xx;
 
 
@@ -57,7 +64,6 @@
         fir[1] = weights[3] * val1;
         fir[2] = weights[4] * val1;
         fir[3] = 0;
-        fir[4] = 0;
 
         val1    = line[1];
         fir[0] += weights[1] * val1;
@@ -78,7 +84,7 @@
           fir[3] =          weights[4] * val;
 
           pix        >>= 8;
-          pix         |= -( pix >> 8 );
+          pix         |= (FT_UInt)-(FT_Int)( pix >> 8 );
           line[xx - 2] = (FT_Byte)pix;
         }
 
@@ -87,11 +93,11 @@
 
 
           pix          = fir[0] >> 8;
-          pix         |= -( pix >> 8 );
+          pix         |= (FT_UInt)-(FT_Int)( pix >> 8 );
           line[xx - 2] = (FT_Byte)pix;
 
           pix          = fir[1] >> 8;
-          pix         |= -( pix >> 8 );
+          pix         |= (FT_UInt)-(FT_Int)( pix >> 8 );
           line[xx - 1] = (FT_Byte)pix;
         }
       }
@@ -104,10 +110,14 @@
       FT_Int    pitch  = bitmap->pitch;
 
 
+      
+      if ( bitmap->pitch < 0 )
+        column -= bitmap->pitch * ( bitmap->rows - 1 );
+
       for ( ; width > 0; width--, column++ )
       {
         FT_Byte*  col = column;
-        FT_UInt   fir[5];
+        FT_UInt   fir[4];       
         FT_UInt   val1, yy;
 
 
@@ -116,7 +126,6 @@
         fir[1] = weights[3] * val1;
         fir[2] = weights[4] * val1;
         fir[3] = 0;
-        fir[4] = 0;
         col   += pitch;
 
         val1    = col[0];
@@ -139,7 +148,7 @@
           fir[3] =          weights[4] * val;
 
           pix           >>= 8;
-          pix            |= -( pix >> 8 );
+          pix            |= (FT_UInt)-(FT_Int)( pix >> 8 );
           col[-2 * pitch] = (FT_Byte)pix;
           col            += pitch;
         }
@@ -149,11 +158,11 @@
 
 
           pix             = fir[0] >> 8;
-          pix            |= -( pix >> 8 );
+          pix            |= (FT_UInt)-(FT_Int)( pix >> 8 );
           col[-2 * pitch] = (FT_Byte)pix;
 
           pix         = fir[1] >> 8;
-          pix        |= -( pix >> 8 );
+          pix        |= (FT_UInt)-(FT_Int)( pix >> 8 );
           col[-pitch] = (FT_Byte)pix;
         }
       }
@@ -188,6 +197,10 @@
     {
       FT_Byte*  line = bitmap->buffer;
 
+
+      
+      if ( bitmap->pitch < 0 )
+        line -= bitmap->pitch * ( bitmap->rows - 1 );
 
       for ( ; height > 0; height--, line += pitch )
       {
@@ -227,6 +240,10 @@
     {
       FT_Byte*  column = bitmap->buffer;
 
+
+      
+      if ( bitmap->pitch < 0 )
+        column -= bitmap->pitch * ( bitmap->rows - 1 );
 
       for ( ; width > 0; width--, column++ )
       {
@@ -272,7 +289,10 @@
   FT_Library_SetLcdFilterWeights( FT_Library      library,
                                   unsigned char  *weights )
   {
-    if ( !library || !weights )
+    if ( !library )
+      return FT_THROW( Invalid_Library_Handle );
+
+    if ( !weights )
       return FT_THROW( Invalid_Argument );
 
     ft_memcpy( library->lcd_weights, weights, 5 );
@@ -294,7 +314,7 @@
 
 
     if ( !library )
-      return FT_THROW( Invalid_Argument );
+      return FT_THROW( Invalid_Library_Handle );
 
     switch ( filter )
     {

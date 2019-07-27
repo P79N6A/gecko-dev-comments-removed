@@ -131,7 +131,7 @@
     
     
     if ( head[0] != 0x42  ||
-         head[1] != 0x5a  ||
+         head[1] != 0x5A  ||
          head[2] != 0x68  )  
     {
       error = FT_THROW( Invalid_File_Format );
@@ -456,9 +456,17 @@
                        FT_Stream  source )
   {
     FT_Error      error;
-    FT_Memory     memory = source->memory;
+    FT_Memory     memory;
     FT_BZip2File  zip = NULL;
 
+
+    if ( !stream || !source )
+    {
+      error = FT_THROW( Invalid_Stream_Handle );
+      goto Exit;
+    }
+
+    memory = source->memory;
 
     
 

@@ -50,6 +50,26 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -190,6 +210,22 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef enum  T1_Blend_Flags_
   {
     
@@ -210,14 +246,12 @@ FT_BEGIN_HEADER
     T1_BLEND_FAMILY_OTHER_BLUES,
     T1_BLEND_FORCE_BOLD,
 
-    
-    T1_BLEND_MAX
+    T1_BLEND_MAX    
 
   } T1_Blend_Flags;
 
+
   
-
-
   
 #define t1_blend_underline_position   T1_BLEND_UNDERLINE_POSITION
 #define t1_blend_underline_thickness  T1_BLEND_UNDERLINE_THICKNESS
@@ -234,6 +268,8 @@ FT_BEGIN_HEADER
 #define t1_blend_family_other_blues   T1_BLEND_FAMILY_OTHER_BLUES
 #define t1_blend_force_bold           T1_BLEND_FORCE_BOLD
 #define t1_blend_max                  T1_BLEND_MAX
+
+  
 
 
   
@@ -333,9 +369,16 @@ FT_BEGIN_HEADER
   
   typedef struct CID_FaceDictRec_*  CID_FaceDict;
 
+
   
-
-
+  
+  
+  
+  
+  
+  
+  
+  
   
   typedef CID_FaceDictRec  CID_FontDict;
 
@@ -503,6 +546,13 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
   typedef enum  T1_EncodingType_
   {
     T1_ENCODING_TYPE_NONE = 0,
@@ -514,6 +564,54 @@ FT_BEGIN_HEADER
   } T1_EncodingType;
 
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   

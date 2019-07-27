@@ -78,7 +78,7 @@
     FT_FRAME_START( 16  ),
       FT_FRAME_ULONG_LE( type ),
       FT_FRAME_ULONG_LE( format ),
-      FT_FRAME_ULONG_LE( size ),
+      FT_FRAME_ULONG_LE( size ),   
       FT_FRAME_ULONG_LE( offset ),
     FT_FRAME_END
   };
@@ -95,9 +95,11 @@
     FT_Memory  memory = FT_FACE( face )->memory;
     FT_UInt    n;
 
+    FT_ULong   size;
 
-    if ( FT_STREAM_SEEK ( 0 )                          ||
-         FT_STREAM_READ_FIELDS ( pcf_toc_header, toc ) )
+
+    if ( FT_STREAM_SEEK( 0 )                          ||
+         FT_STREAM_READ_FIELDS( pcf_toc_header, toc ) )
       return FT_THROW( Cannot_Open_Resource );
 
     if ( toc->version != PCF_FILE_VERSION                 ||
@@ -144,12 +146,61 @@
 
         if ( ( tables[i].size   > tables[i + 1].offset )                  ||
              ( tables[i].offset > tables[i + 1].offset - tables[i].size ) )
-          return FT_THROW( Invalid_Offset );
+        {
+          error = FT_THROW( Invalid_Offset );
+          goto Exit;
+        }
       }
 
       if ( !have_change )
         break;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    tables = face->toc.tables;
+    size   = stream->size;
+
+    for ( n = 0; n < toc->count - 1; n++ )
+    {
+      
+      if ( ( tables->size   > size                ) ||
+           ( tables->offset > size - tables->size ) )
+      {
+        error = FT_THROW( Invalid_Table );
+        goto Exit;
+      }
+      tables++;
+    }
+
+    
+    if ( ( tables->offset > size ) )
+    {
+      error = FT_THROW( Invalid_Table );
+      goto Exit;
+    }
+    
+    if ( tables->size > size - tables->offset )
+      tables->size = size - tables->offset;
 
 #ifdef FT_DEBUG_LEVEL_TRACE
 
@@ -631,24 +682,40 @@
       return FT_THROW( Out_Of_Memory );
 
     metrics = face->metrics;
-    for ( i = 0; i < nmetrics; i++ )
+    for ( i = 0; i < nmetrics; i++, metrics++ )
     {
-      error = pcf_get_metric( stream, format, metrics + i );
+      error = pcf_get_metric( stream, format, metrics );
 
-      metrics[i].bits = 0;
+      metrics->bits = 0;
 
       FT_TRACE5(( "  idx %d: width=%d, "
                   "lsb=%d, rsb=%d, ascent=%d, descent=%d, swidth=%d\n",
                   i,
-                  ( metrics + i )->characterWidth,
-                  ( metrics + i )->leftSideBearing,
-                  ( metrics + i )->rightSideBearing,
-                  ( metrics + i )->ascent,
-                  ( metrics + i )->descent,
-                  ( metrics + i )->attributes ));
+                  metrics->characterWidth,
+                  metrics->leftSideBearing,
+                  metrics->rightSideBearing,
+                  metrics->ascent,
+                  metrics->descent,
+                  metrics->attributes ));
 
       if ( error )
         break;
+
+      
+      
+      
+      if ( metrics->rightSideBearing < metrics->leftSideBearing ||
+           metrics->ascent + metrics->descent < 0               )
+      {
+        metrics->characterWidth   = 0;
+        metrics->leftSideBearing  = 0;
+        metrics->rightSideBearing = 0;
+        metrics->ascent           = 0;
+        metrics->descent          = 0;
+
+        FT_TRACE0(( "pcf_get_metrics:"
+                    " invalid metrics for glyph %d\n", i ));
+      }
     }
 
     if ( error )
@@ -700,7 +767,7 @@
     FT_TRACE4(( "  number of bitmaps: %d\n", nbitmaps ));
 
     
-    if ( face->nmetrics < 0 || nbitmaps != ( FT_ULong )face->nmetrics )
+    if ( face->nmetrics < 0 || nbitmaps != (FT_ULong)face->nmetrics )
       return FT_THROW( Invalid_File_Format );
 
     if ( FT_NEW_ARRAY( offsets, nbitmaps ) )
@@ -811,6 +878,15 @@
 
     if ( !PCF_FORMAT_MATCH( format, PCF_DEFAULT_FORMAT ) )
       return FT_THROW( Invalid_File_Format );
+
+    
+    if ( firstCol < 0       ||
+         firstCol > lastCol ||
+         lastCol  > 0xFF    ||
+         firstRow < 0       ||
+         firstRow > lastRow ||
+         lastRow  > 0xFF    )
+      return FT_THROW( Invalid_Table );
 
     FT_TRACE4(( "pdf_get_encodings:\n" ));
 

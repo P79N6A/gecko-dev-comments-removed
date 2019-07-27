@@ -797,13 +797,12 @@
   }
 
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   ps_hints_init( PS_Hints   hints,
                  FT_Memory  memory )
   {
     FT_MEM_ZERO( hints, sizeof ( *hints ) );
     hints->memory = memory;
-    return FT_Err_Ok;
   }
 
 

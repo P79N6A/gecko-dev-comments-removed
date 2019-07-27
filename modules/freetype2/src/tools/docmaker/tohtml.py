@@ -1,6 +1,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 from sources import *
 from content import *
 from formatter import *
@@ -21,62 +35,125 @@ html_header_1 = """\
 html_header_2 = """\
  API Reference</title>
 <style type="text/css">
-  body { font-family: Verdana, Geneva, Arial, Helvetica, serif;
-         color: #000000;
-         background: #FFFFFF; }
-
-  p { text-align: justify; }
-  h1 { text-align: center; }
-  li { text-align: justify; }
-  td { padding: 0 0.5em 0 0.5em; }
-  td.left { padding: 0 0.5em 0 0.5em;
-            text-align: left; }
-
   a:link { color: #0000EF; }
   a:visited { color: #51188E; }
   a:hover { color: #FF0000; }
+
+  body { font-family: Verdana, Geneva, Arial, Helvetica, serif;
+         color: #000000;
+         background: #FFFFFF;
+         width: 87%;
+         margin: auto; }
+
+  div.section { width: 75%;
+                margin: auto; }
+  div.section hr { margin: 4ex 0 1ex 0; }
+  div.section h4 { background-color: #EEEEFF;
+                   font-size: medium;
+                   font-style: oblique;
+                   font-weight: bold;
+                   margin: 3ex 0 1.5ex 9%;
+                   padding: 0.3ex 0 0.3ex 1%; }
+  div.section p { margin: 1.5ex 0 1.5ex 10%; }
+  div.section pre { margin: 3ex 0 3ex 9%;
+                    background-color: #D6E8FF;
+                    padding: 2ex 0 2ex 1%; }
+  div.section table.fields { width: 90%;
+                             margin: 1.5ex 0 1.5ex 10%; }
+  div.section table.toc { width: 95%;
+                          margin: 1.5ex 0 1.5ex 5%; }
+  div.timestamp { text-align: center;
+                  font-size: 69%;
+                  margin: 1.5ex 0 1.5ex 0; }
+
+  h1 { text-align: center; }
+  h3 { font-size: medium;
+       margin: 4ex 0 1.5ex 0; }
+
+  p { text-align: justify; }
+
+  pre.colored { color: blue; }
 
   span.keyword { font-family: monospace;
                  text-align: left;
                  white-space: pre;
                  color: darkblue; }
 
-  pre.colored { color: blue; }
+  table.fields td.val { font-weight: bold;
+                        text-align: right;
+                        width: 30%;
+                        vertical-align: baseline;
+                        padding: 1ex 1em 1ex 0; }
+  table.fields td.desc { vertical-align: baseline;
+                         padding: 1ex 0 1ex 1em; }
+  table.fields td.desc p:first-child { margin: 0; }
+  table.fields td.desc p { margin: 1.5ex 0 0 0; }
+  table.index { margin: 6ex auto 6ex auto;
+                border: 0;
+                border-collapse: separate;
+                border-spacing: 1em 0.3ex; }
+  table.index tr { padding: 0; }
+  table.index td { padding: 0; }
+  table.index-toc-link { width: 100%;
+                         border: 0;
+                         border-spacing: 0;
+                         margin: 1ex 0 1ex 0; }
+  table.index-toc-link td.left { padding: 0 0.5em 0 0.5em;
+                                 font-size: 83%;
+                                 text-align: left; }
+  table.index-toc-link td.middle { padding: 0 0.5em 0 0.5em;
+                                   font-size: 83%;
+                                   text-align: center; }
+  table.index-toc-link td.right { padding: 0 0.5em 0 0.5em;
+                                  font-size: 83%;
+                                  text-align: right; }
+  table.synopsis { margin: 6ex auto 6ex auto;
+                   border: 0;
+                   border-collapse: separate;
+                   border-spacing: 2em 0.6ex; }
+  table.synopsis tr { padding: 0; }
+  table.synopsis td { padding: 0; }
+  table.toc td.link { width: 30%;
+                      text-align: right;
+                      vertical-align: baseline;
+                      padding: 1ex 1em 1ex 0; }
+  table.toc td.desc { vertical-align: baseline;
+                      padding: 1ex 0 1ex 1em;
+                      text-align: left; }
+  table.toc td.desc p:first-child { margin: 0;
+                                    text-align: left; }
+  table.toc td.desc p { margin: 1.5ex 0 0 0;
+                        text-align: left; }
 
-  ul.empty { list-style-type: none; }
 </style>
 </head>
 <body>
 """
 
-html_header_3 = """
-<table align=center><tr><td><font size=-1>[<a href="\
+html_header_3l = """
+<table class="index-toc-link"><tr><td class="left">[<a href="\
 """
 
-html_header_3i = """
-<table align=center><tr><td width="100%"></td>
-<td><font size=-1>[<a href="\
+html_header_3r = """
+<table class="index-toc-link"><tr><td class="right">[<a href="\
 """
 
 html_header_4 = """\
-">Index</a>]</font></td>
-<td width="100%"></td>
-<td><font size=-1>[<a href="\
-"""
-
-html_header_5 = """\
-">TOC</a>]</font></td></tr></table>
-<center><h1>\
+">Index</a>]</td><td class="right">[<a href="\
 """
 
 html_header_5t = """\
-">Index</a>]</font></td>
-<td width="100%"></td></tr></table>
-<center><h1>\
+">TOC</a>]</td></tr></table>
+<h1>\
+"""
+
+html_header_5i = """\
+">Index</a>]</td></tr></table>
+<h1>\
 """
 
 html_header_6 = """\
- API Reference</h1></center>
+ API Reference</h1>
 """
 
 
@@ -87,8 +164,8 @@ html_footer = """\
 """
 
 
-section_title_header = "<center><h1>"
-section_title_footer = "</h1></center>"
+section_title_header = "<h1>"
+section_title_footer = "</h1>"
 
 
 code_header = '<pre class="colored">'
@@ -99,62 +176,61 @@ para_header = "<p>"
 para_footer = "</p>"
 
 
-block_header        = '<table align=center width="75%"><tr><td>'
+block_header        = '<div class="section">'
 block_footer_start  = """\
-</td></tr></table>
-<hr width="75%">
-<table align=center width="75%"><tr><td><font size=-2>[<a href="\
+<hr>
+<table class="index-toc-link"><tr><td class="left">[<a href="\
 """
 block_footer_middle = """\
-">Index</a>]</font></td>
-<td width="100%"></td>
-<td><font size=-2>[<a href="\
+">Index</a>]</td>\
+<td class="middle">[<a href="#">Top</a>]</td>\
+<td class="right">[<a href="\
 """
 block_footer_end    = """\
-">TOC</a>]</font></td></tr></table>
+">TOC</a>]</td></tr></table></div>
 """
 
 
-description_header = '<table align=center width="87%"><tr><td>'
-description_footer = "</td></tr></table><br>"
+description_header = ""
+description_footer = ""
 
 
-marker_header = '<table align=center width="87%" cellpadding=5><tr bgcolor="#EEEEFF"><td><em><b>'
-marker_inter  = "</b></em></td></tr><tr><td>"
-marker_footer = "</td></tr></table>"
+marker_header = "<h4>"
+marker_inter  = "</h4>"
+marker_footer = ""
 
 
-header_location_header = '<table align=center width="87%"><tr><td>'
-header_location_footer = "</td></tr></table><br>"
+header_location_header = "<p>"
+header_location_footer = "</p>"
 
 
-source_header = '<table align=center width="87%"><tr bgcolor="#D6E8FF"><td><pre>\n'
-source_footer = "\n</pre></table><br>"
+source_header = "<pre>"
+source_footer = "</pre>"
 
 
-chapter_header = '<br><table align=center width="75%"><tr><td><h2>'
-chapter_inter  = '</h2><ul class="empty"><li>'
-chapter_footer = '</li></ul></td></tr></table>'
+chapter_header = """\
+<div class="section">
+<h2>\
+"""
+chapter_inter  = '</h2>'
+chapter_footer = '</div>'
 
 
 index_footer_start = """\
 <hr>
-<table><tr><td width="100%"></td>
-<td><font size=-2>[<a href="\
+<table class="index-toc-link"><tr><td class="right">[<a href="\
 """
 index_footer_end = """\
-">TOC</a>]</font></td></tr></table>
+">TOC</a>]</td></tr></table>
 """
 
 
 toc_footer_start = """\
 <hr>
-<table><tr><td><font size=-2>[<a href="\
+<table class="index-toc-link"><tr><td class="left">[<a href="\
 """
 toc_footer_end = """\
-">Index</a>]</font></td>
-<td width="100%"></td>
-</tr></table>
+">Index</a>]</td></tr></table>
 """
 
 
@@ -168,11 +244,15 @@ section_synopsis_footer = ''
 
 
 
+
 def  html_quote( line ):
-    result = string.replace( line, "&", "&amp;" )
-    result = string.replace( result, "<", "&lt;" )
-    result = string.replace( result, ">", "&gt;" )
+    result = string.replace( line,   "&", "&amp;" )
+    result = string.replace( result, "<", "&lt;"  )
+    result = string.replace( result, ">", "&gt;"  )
     return result
+
+
+
 
 
 
@@ -181,50 +261,58 @@ class  HtmlFormatter( Formatter ):
     def  __init__( self, processor, project_title, file_prefix ):
         Formatter.__init__( self, processor )
 
-        global html_header_1, html_header_2, html_header_3
-        global html_header_4, html_header_5, html_footer
+        global html_header_1
+        global html_header_2
+        global html_header_3l, html_header_3r
+        global html_header_4
+        global html_header_5t, html_header_5i
+        global html_header_6
+        global html_footer
 
         if file_prefix:
             file_prefix = file_prefix + "-"
         else:
             file_prefix = ""
 
-        self.headers           = processor.headers
-        self.project_title     = project_title
-        self.file_prefix       = file_prefix
-        self.html_header       = html_header_1 + project_title +              \
-                                 html_header_2 +                              \
-                                 html_header_3 + file_prefix + "index.html" + \
-                                 html_header_4 + file_prefix + "toc.html" +   \
-                                 html_header_5 + project_title +              \
-                                 html_header_6
-
-        self.html_index_header = html_header_1 + project_title +             \
-                                 html_header_2 +                             \
-                                 html_header_3i + file_prefix + "toc.html" + \
-                                 html_header_5 + project_title +             \
-                                 html_header_6
-
-        self.html_toc_header   = html_header_1 + project_title +              \
-                                 html_header_2 +                              \
-                                 html_header_3 + file_prefix + "index.html" + \
-                                 html_header_5t + project_title +             \
-                                 html_header_6
-
-        self.html_footer       = "<center><font size=""-2"">generated on " +     \
-                                 time.asctime( time.localtime( time.time() ) ) + \
-                                 "</font></center>" + html_footer
+        self.headers       = processor.headers
+        self.project_title = project_title
+        self.file_prefix   = file_prefix
+        self.html_header   = (
+          html_header_1 + project_title
+          + html_header_2
+          + html_header_3l + file_prefix + "index.html"
+          + html_header_4 + file_prefix + "toc.html"
+          + html_header_5t + project_title
+          + html_header_6 )
+        self.html_index_header = (
+          html_header_1 + project_title
+          + html_header_2
+          + html_header_3r + file_prefix + "toc.html"
+          + html_header_5t + project_title
+          + html_header_6 )
+        self.html_toc_header = (
+          html_header_1 + project_title
+          + html_header_2
+          + html_header_3l + file_prefix + "index.html"
+          + html_header_5i + project_title
+          + html_header_6 )
+        self.html_footer = (
+          '<div class="timestamp">generated on '
+          + time.asctime( time.localtime( time.time() ) )
+          + "</div>" + html_footer )
 
         self.columns = 3
 
     def  make_section_url( self, section ):
         return self.file_prefix + section.name + ".html"
 
-    def  make_block_url( self, block ):
-        return self.make_section_url( block.section ) + "#" + block.name
+    def  make_block_url( self, block, name = None ):
+        if name == None:
+            name = block.name
+        return self.make_section_url( block.section ) + "#" + name
 
     def  make_html_word( self, word ):
-        """analyze a simple word to detect cross-references and styling"""
+        """Analyze a simple word to detect cross-references and markup."""
         
         m = re_crossref.match( word )
         if m:
@@ -236,27 +324,28 @@ class  HtmlFormatter( Formatter ):
                 return '<a href="' + url + '">' + name + '</a>' + rest
             except:
                 
-                sys.stderr.write( \
-                   "WARNING: undefined cross reference '" + name + "'.\n" )
+                sys.stderr.write( "WARNING: undefined cross reference"
+                                  + " '" + name + "'.\n" )
                 return '?' + name + '?' + rest
 
         
         m = re_italic.match( word )
         if m:
             name = m.group( 1 )
-            rest = m.group( 3 )
+            rest = m.group( 2 )
             return '<i>' + name + '</i>' + rest
 
         m = re_bold.match( word )
         if m:
             name = m.group( 1 )
-            rest = m.group( 3 )
+            rest = m.group( 2 )
             return '<b>' + name + '</b>' + rest
 
         return html_quote( word )
 
     def  make_html_para( self, words ):
-        """ convert words of a paragraph into tagged HTML text, handle xrefs """
+        """Convert words of a paragraph into tagged HTML text.  Also handle
+           cross references."""
         line = ""
         if words:
             line = self.make_html_word( words[0] )
@@ -265,8 +354,8 @@ class  HtmlFormatter( Formatter ):
             
             line = re_url.sub( r'<a href="\1">\1</a>', line )
             
-            line = re.sub( r"(^|\W)`(.*?)'(\W|$)",  \
-                           r'\1&lsquo;\2&rsquo;\3', \
+            line = re.sub( r"(^|\W)`(.*?)'(\W|$)",
+                           r'\1&lsquo;\2&rsquo;\3',
                            line )
             
             line = string.replace( line, "~", "&nbsp;" )
@@ -274,7 +363,7 @@ class  HtmlFormatter( Formatter ):
         return para_header + line + para_footer
 
     def  make_html_code( self, lines ):
-        """ convert a code sequence to HTML """
+        """Convert a code sequence to HTML."""
         line = code_header + '\n'
         for l in lines:
             line = line + html_quote( l ) + '\n'
@@ -282,7 +371,7 @@ class  HtmlFormatter( Formatter ):
         return line + code_footer
 
     def  make_html_items( self, items ):
-        """ convert a field's content into some valid HTML """
+        """Convert a field's content into HTML."""
         lines = []
         for item in items:
             if item.lines:
@@ -297,7 +386,9 @@ class  HtmlFormatter( Formatter ):
 
     def  print_html_field( self, field ):
         if field.name:
-            print "<table><tr valign=top><td><b>" + field.name + "</b></td><td>"
+            print( '<table><tr valign="top"><td><b>'
+                   + field.name
+                   + "</b></td><td>" )
 
         print self.make_html_items( field.items )
 
@@ -318,12 +409,24 @@ class  HtmlFormatter( Formatter ):
                     result = result + prefix + '<b>' + name + '</b>'
                 elif re_source_keywords.match( name ):
                     
-                    result = result + prefix + keyword_prefix + name + keyword_suffix
-                elif self.identifiers.has_key( name ):
+                    result = ( result + prefix
+                               + keyword_prefix + name + keyword_suffix )
+                elif name in self.identifiers:
                     
                     block = self.identifiers[name]
-                    result = result + prefix + '<a href="' + \
-                             self.make_block_url( block ) + '">' + name + '</a>'
+                    id = block.name
+
+                    
+                    for markup in block.markups:
+                        if markup.tag == 'values':
+                            for field in markup.fields:
+                                if field.name:
+                                    id = name
+
+                    result = ( result + prefix
+                               + '<a href="'
+                               + self.make_block_url( block, id )
+                               + '">' + name + '</a>' )
                 else:
                     result = result + html_quote( line[:length] )
 
@@ -335,15 +438,11 @@ class  HtmlFormatter( Formatter ):
         return result
 
     def  print_html_field_list( self, fields ):
-        print "<p></p>"
-        print "<table cellpadding=3 border=0>"
+        print '<table class="fields">'
         for field in fields:
-            if len( field.name ) > 22:
-              print "<tr valign=top><td colspan=0><b>" + field.name + "</b></td></tr>"
-              print "<tr valign=top><td></td><td>"
-            else:
-              print "<tr valign=top><td><b>" + field.name + "</b></td><td>"
-
+            print ( '<tr><td class="val" id="' + field.name + '">'
+                    + field.name
+                    + '</td><td class="desc">' )
             self.print_html_items( field.items )
             print "</td></tr>"
         print "</table>"
@@ -352,7 +451,6 @@ class  HtmlFormatter( Formatter ):
         table_fields = []
         for field in markup.fields:
             if field.name:
-                
                 
                 
                 
@@ -382,9 +480,9 @@ class  HtmlFormatter( Formatter ):
     def  index_exit( self ):
         
         count = len( self.block_index )
-        rows  = ( count + self.columns - 1 ) / self.columns
+        rows  = ( count + self.columns - 1 ) // self.columns
 
-        print "<table align=center border=0 cellpadding=0 cellspacing=0>"
+        print '<table class="index">'
         for r in range( rows ):
             line = "<tr>"
             for c in range( self.columns ):
@@ -392,7 +490,8 @@ class  HtmlFormatter( Formatter ):
                 if i < count:
                     bname = self.block_index[r + c * rows]
                     url   = self.index_items[bname]
-                    line = line + '<td><a href="' + url + '">' + bname + '</a></td>'
+                    line  = ( line + '<td><a href="' + url + '">'
+                              + bname + '</a></td>' )
                 else:
                     line = line + '<td></td>'
             line = line + "</tr>"
@@ -400,9 +499,9 @@ class  HtmlFormatter( Formatter ):
 
         print "</table>"
 
-        print index_footer_start +            \
-              self.file_prefix + "toc.html" + \
-              index_footer_end
+        print( index_footer_start
+               + self.file_prefix + "toc.html"
+               + index_footer_end )
 
         print self.html_footer
 
@@ -419,17 +518,16 @@ class  HtmlFormatter( Formatter ):
     
     def  toc_enter( self ):
         print self.html_toc_header
-        print "<center><h1>Table of Contents</h1></center>"
+        print "<h1>Table of Contents</h1>"
 
     def  toc_chapter_enter( self, chapter ):
-        print  chapter_header + string.join( chapter.title ) + chapter_inter
-        print "<table cellpadding=5>"
+        print chapter_header + string.join( chapter.title ) + chapter_inter
+        print '<table class="toc">'
 
     def  toc_section_enter( self, section ):
-        print '<tr valign=top><td class="left">'
-        print '<a href="' + self.make_section_url( section ) + '">' + \
-               section.title + '</a></td><td>'
-
+        print ( '<tr><td class="link">'
+                + '<a href="' + self.make_section_url( section ) + '">'
+                + section.title + '</a></td><td class="desc">' )
         print self.make_html_para( section.abstract )
 
     def  toc_section_exit( self, section ):
@@ -440,14 +538,14 @@ class  HtmlFormatter( Formatter ):
         print chapter_footer
 
     def  toc_index( self, index_filename ):
-        print chapter_header +                                      \
-              '<a href="' + index_filename + '">Global Index</a>' + \
-              chapter_inter + chapter_footer
+        print( chapter_header
+               + '<a href="' + index_filename + '">Global Index</a>'
+               + chapter_inter + chapter_footer )
 
     def  toc_exit( self ):
-        print toc_footer_start +                \
-              self.file_prefix + "index.html" + \
-              toc_footer_end
+        print( toc_footer_start
+               + self.file_prefix + "index.html"
+               + toc_footer_end )
 
         print self.html_footer
 
@@ -466,9 +564,7 @@ class  HtmlFormatter( Formatter ):
     def  section_enter( self, section ):
         print self.html_header
 
-        print section_title_header
-        print section.title
-        print section_title_footer
+        print section_title_header + section.title + section_title_footer
 
         maxwidth = 0
         for b in section.blocks.values():
@@ -476,32 +572,43 @@ class  HtmlFormatter( Formatter ):
                 maxwidth = len( b.name )
 
         width = 70  
-        if maxwidth <> 0:
+        if maxwidth > 0:
             
             print section_synopsis_header
-            print "<table align=center cellspacing=5 cellpadding=0 border=0>"
+            print '<table class="synopsis">'
 
-            columns = width / maxwidth
+            columns = width // maxwidth
             if columns < 1:
                 columns = 1
 
             count = len( section.block_names )
-            rows  = ( count + columns - 1 ) / columns
+            
+            if section.block_names[-1] == "/empty/":
+                count -= 1
+            rows  = ( count + columns - 1 ) // columns
 
             for r in range( rows ):
                 line = "<tr>"
                 for c in range( columns ):
                     i = r + c * rows
-                    line = line + '<td></td><td>'
+                    line = line + '<td>'
                     if i < count:
                         name = section.block_names[i]
-                        line = line + '<a href="#' + name + '">' + name + '</a>'
+                        if name == "/empty/":
+                            
+                            
+                            
+                            
+                            line = line + "&nbsp;"
+                        else:
+                            line = ( line + '<a href="#' + name + '">'
+                                     + name + '</a>' )
 
                     line = line + '</td>'
                 line = line + "</tr>"
                 print line
 
-            print "</table><br><br>"
+            print "</table>"
             print section_synopsis_footer
 
         print description_header
@@ -513,7 +620,7 @@ class  HtmlFormatter( Formatter ):
 
         
         if block.name:
-            print '<h4><a name="' + block.name + '">' + block.name + '</a></h4>'
+            print( '<h3 id="' + block.name + '">' + block.name + '</h3>' )
 
         
         if block.code:
@@ -521,16 +628,17 @@ class  HtmlFormatter( Formatter ):
             for f in self.headers.keys():
                 if block.source.filename.find( f ) >= 0:
                     header = self.headers[f] + ' (' + f + ')'
-                    break;
+                    break
+
 
 
 
 
 
             if header:
-                print header_location_header
-                print 'Defined in ' + header + '.'
-                print header_location_footer
+                print ( header_location_header
+                        + 'Defined in ' + header + '.'
+                        + header_location_footer )
 
             print source_header
             for l in block.code:
@@ -552,15 +660,16 @@ class  HtmlFormatter( Formatter ):
             print marker_footer
 
     def  block_exit( self, block ):
-        print block_footer_start + self.file_prefix + "index.html" + \
-              block_footer_middle + self.file_prefix + "toc.html" +  \
-              block_footer_end
+        print( block_footer_start + self.file_prefix + "index.html"
+               + block_footer_middle + self.file_prefix + "toc.html"
+               + block_footer_end )
 
     def  section_exit( self, section ):
         print html_footer
 
     def  section_dump_all( self ):
         for section in self.sections:
-            self.section_dump( section, self.file_prefix + section.name + '.html' )
+            self.section_dump( section,
+                               self.file_prefix + section.name + '.html' )
 
 

@@ -267,7 +267,7 @@
       
       FT_Select_Metrics( size->face, strike_index );
 
-      tt_size_reset( ttsize );
+      tt_size_reset( ttsize ); 
     }
     else
     {
@@ -370,7 +370,7 @@
       return FT_THROW( Invalid_Size_Handle );
 
     if ( !face )
-      return FT_THROW( Invalid_Argument );
+      return FT_THROW( Invalid_Face_Handle );
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
     if ( glyph_index >= (FT_UInt)face->num_glyphs &&

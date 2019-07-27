@@ -890,9 +890,6 @@
         FT_Pos    last_v  = last->v;
 
 
-        if ( first == last )
-          continue;
-
         if ( first_v < last_v )
         {
           p = first->prev;
@@ -984,7 +981,7 @@
 #ifdef AF_SORT_SEGMENTS
     for ( seg1 = segments; seg1 < segment_mid; seg1++ )
     {
-      if ( seg1->dir != axis->major_dir || seg1->first == seg1->last )
+      if ( seg1->dir != axis->major_dir )
         continue;
 
       for ( seg2 = segment_mid; seg2 < segment_limit; seg2++ )
@@ -992,9 +989,7 @@
 
     for ( seg1 = segments; seg1 < segment_limit; seg1++ )
     {
-      
-      
-      if ( seg1->dir != axis->major_dir || seg1->first == seg1->last )
+      if ( seg1->dir != axis->major_dir )
         continue;
 
       for ( seg2 = segments; seg2 < segment_limit; seg2++ )
@@ -1194,9 +1189,10 @@
 
         edge->first    = seg;
         edge->last     = seg;
-        edge->fpos     = seg->pos;
         edge->dir      = seg->dir;
-        edge->opos     = edge->pos = FT_MulFix( seg->pos, scale );
+        edge->fpos     = seg->pos;
+        edge->opos     = FT_MulFix( seg->pos, scale );
+        edge->pos      = edge->opos;
         seg->edge_next = seg;
       }
       else

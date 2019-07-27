@@ -178,6 +178,8 @@
           goto Exit;
 
         af_latin_hints_link_segments( hints,
+                                      0,
+                                      NULL,
                                       (AF_Dimension)dim );
 
         seg   = axhints->segments;
@@ -261,6 +263,8 @@
     FT_Int      num_fills;
     FT_Int      num_flats;
 
+    FT_Bool     fill;
+
     AF_CJKBlue  blue;
     FT_Error    error;
     AF_CJKAxis  axis;
@@ -270,22 +274,6 @@
 
     AF_Blue_Stringset         bss = sc->blue_stringset;
     const AF_Blue_StringRec*  bs  = &af_blue_stringsets[bss];
-
-#ifdef FT_DEBUG_LEVEL_TRACE
-    FT_String*  cjk_blue_name[4] =
-    {
-      (FT_String*)"bottom",    
-      (FT_String*)"top",       
-      (FT_String*)"left",      
-      (FT_String*)"right"      
-    };
-
-    FT_String*  cjk_blue_type_name[2] =
-    {
-      (FT_String*)"unfilled",  
-      (FT_String*)"filled"     
-    };
-#endif
 
 
     
@@ -308,15 +296,29 @@
       else
         axis = &metrics->axis[AF_DIMENSION_VERT];
 
-      FT_TRACE5(( "blue zone %d:\n", axis->blue_count ));
+#ifdef FT_DEBUG_LEVEL_TRACE
+      {
+        FT_String*  cjk_blue_name[4] =
+        {
+          (FT_String*)"bottom",    
+          (FT_String*)"top",       
+          (FT_String*)"left",      
+          (FT_String*)"right"      
+        };
+
+
+        FT_TRACE5(( "blue zone %d (%s):\n",
+                    axis->blue_count,
+                    cjk_blue_name[AF_CJK_IS_HORIZ_BLUE( bs ) |
+                                  AF_CJK_IS_TOP_BLUE( bs )   ] ));
+      }
+#endif 
 
       num_fills = 0;
       num_flats = 0;
 
-      FT_TRACE5(( "  cjk blue %s/%s\n",
-                  cjk_blue_name[AF_CJK_IS_HORIZ_BLUE( bs ) |
-                                AF_CJK_IS_TOP_BLUE( bs )   ],
-                  cjk_blue_type_name[!!AF_CJK_IS_FILLED_BLUE( bs )] ));
+      fill = 1;  
+      FT_TRACE5(( "  [overshoot values]\n" ));
 
       while ( *p )
       {
@@ -329,6 +331,14 @@
 
 
         GET_UTF8_CHAR( ch, p );
+
+        
+        if ( ch == '|' )
+        {
+          fill = 0;
+          FT_TRACE5(( "  [reference values]\n" ));
+          continue;
+        }
 
         
         af_get_char_index( &metrics->root, ch, &glyph_index, &y_offset );
@@ -417,7 +427,7 @@
           FT_TRACE5(( "  U+%04lX: best_pos = %5ld\n", ch, best_pos ));
         }
 
-        if ( AF_CJK_IS_FILLED_BLUE( bs ) )
+        if ( fill )
           fills[num_fills++] = best_pos;
         else
           flats[num_flats++] = best_pos;
@@ -429,15 +439,15 @@
 
 
 
-        FT_TRACE5(( "    empty\n" ));
+        FT_TRACE5(( "  empty\n" ));
         continue;
       }
 
       
       
       
-      af_sort_pos( num_flats, flats );
       af_sort_pos( num_fills, fills );
+      af_sort_pos( num_flats, flats );
 
       blue       = &axis->blues[axis->blue_count];
       blue_ref   = &blue->ref.org;
@@ -476,7 +486,7 @@
           *blue_ref   =
           *blue_shoot = ( shoot + ref ) / 2;
 
-          FT_TRACE5(( "  [overshoot smaller than reference,"
+          FT_TRACE5(( "  [reference smaller than overshoot,"
                       " taking mean value]\n" ));
         }
       }
@@ -755,10 +765,6 @@
     
     for ( seg1 = segments; seg1 < segment_limit; seg1++ )
     {
-      
-      if ( seg1->first == seg1->last )
-        continue;
-
       if ( seg1->dir != major_dir )
         continue;
 
@@ -1018,10 +1024,11 @@
 
         edge->first    = seg;
         edge->last     = seg;
-        edge->fpos     = seg->pos;
-        edge->opos     = edge->pos = FT_MulFix( seg->pos, scale );
-        seg->edge_next = seg;
         edge->dir      = seg->dir;
+        edge->fpos     = seg->pos;
+        edge->opos     = FT_MulFix( seg->pos, scale );
+        edge->pos      = edge->opos;
+        seg->edge_next = seg;
       }
       else
       {
@@ -1230,8 +1237,10 @@
         
         
         
-        is_top_right_blue = FT_BOOL( blue->flags & AF_CJK_BLUE_TOP );
-        is_major_dir      = FT_BOOL( edge->dir == axis->major_dir );
+        is_top_right_blue =
+          (FT_Byte)( ( blue->flags & AF_CJK_BLUE_TOP ) != 0 );
+        is_major_dir =
+          FT_BOOL( edge->dir == axis->major_dir );
 
         
         
@@ -1528,6 +1537,12 @@
 
 
     stem_edge->pos = base_edge->pos + fitted_width;
+
+    FT_TRACE5(( "  CJKLINK: edge %d @%d (opos=%.2f) linked to %.2f,"
+                " dist was %.2f, now %.2f\n",
+                stem_edge - hints->axis[dim].edges, stem_edge->fpos,
+                stem_edge->opos / 64.0, stem_edge->pos / 64.0,
+                dist / 64.0, fitted_width / 64.0 ));
   }
 
 

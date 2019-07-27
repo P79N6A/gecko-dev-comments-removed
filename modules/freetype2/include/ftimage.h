@@ -195,64 +195,11 @@ FT_BEGIN_HEADER
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_pixel_mode_none   FT_PIXEL_MODE_NONE
 #define ft_pixel_mode_mono   FT_PIXEL_MODE_MONO
 #define ft_pixel_mode_grays  FT_PIXEL_MODE_GRAY
 #define ft_pixel_mode_pal2   FT_PIXEL_MODE_GRAY2
 #define ft_pixel_mode_pal4   FT_PIXEL_MODE_GRAY4
-
- 
-
-#if 0
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  typedef enum  FT_Palette_Mode_
-  {
-    ft_palette_mode_rgb = 0,
-    ft_palette_mode_rgba,
-
-    ft_palette_mode_max   
-
-  } FT_Palette_Mode;
-
-  
-
-#endif
 
 
   
@@ -318,13 +265,13 @@ FT_BEGIN_HEADER
   
   typedef struct  FT_Bitmap_
   {
-    int             rows;
-    int             width;
+    unsigned int    rows;
+    unsigned int    width;
     int             pitch;
     unsigned char*  buffer;
-    short           num_grays;
-    char            pixel_mode;
-    char            palette_mode;
+    unsigned short  num_grays;
+    unsigned char   pixel_mode;
+    unsigned char   palette_mode;
     void*           palette;
 
   } FT_Bitmap;
@@ -401,6 +348,8 @@ FT_BEGIN_HEADER
     int         flags;           
 
   } FT_Outline;
+
+  
 
   
   
@@ -492,24 +441,8 @@ FT_BEGIN_HEADER
 #define FT_OUTLINE_SINGLE_PASS      0x200
 
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  
+  
 #define ft_outline_none             FT_OUTLINE_NONE
 #define ft_outline_owner            FT_OUTLINE_OWNER
 #define ft_outline_even_odd_fill    FT_OUTLINE_EVEN_ODD_FILL
@@ -798,20 +731,6 @@ FT_BEGIN_HEADER
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_glyph_format_none       FT_GLYPH_FORMAT_NONE
 #define ft_glyph_format_composite  FT_GLYPH_FORMAT_COMPOSITE
 #define ft_glyph_format_bitmap     FT_GLYPH_FORMAT_BITMAP
@@ -857,6 +776,21 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -871,7 +805,6 @@ FT_BEGIN_HEADER
   typedef struct FT_RasterRec_*  FT_Raster;
 
 
-  
   
   
   
@@ -959,41 +892,12 @@ FT_BEGIN_HEADER
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   typedef int
   (*FT_Raster_BitTest_Func)( int    y,
                              int    x,
                              void*  user );
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
@@ -1054,18 +958,13 @@ FT_BEGIN_HEADER
 #define FT_RASTER_FLAG_CLIP     0x4
 
   
+  
 #define ft_raster_flag_default  FT_RASTER_FLAG_DEFAULT
 #define ft_raster_flag_aa       FT_RASTER_FLAG_AA
 #define ft_raster_flag_direct   FT_RASTER_FLAG_DIRECT
 #define ft_raster_flag_clip     FT_RASTER_FLAG_CLIP
 
 
-  
-  
-  
-  
-  
-  
   
   
   
@@ -1304,7 +1203,6 @@ FT_BEGIN_HEADER
     FT_Raster_DoneFunc     raster_done;
 
   } FT_Raster_Funcs;
-
 
   
 

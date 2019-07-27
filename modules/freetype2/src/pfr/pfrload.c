@@ -179,7 +179,7 @@
     if ( header->signature  != 0x50465230L ||   
          header->version     > 4           ||
          header->header_size < 58          ||
-         header->signature2 != 0x0d0a      )    
+         header->signature2 != 0x0D0A      )    
     {
       result = 0;
     }

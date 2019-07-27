@@ -13,6 +13,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 from sources   import *
 from content   import *
 from utils     import *
@@ -39,13 +49,13 @@ def  usage():
 
 
 def  main( argv ):
-    """main program loop"""
+    """Main program loop."""
 
     global output_dir
 
     try:
-        opts, args = getopt.getopt( sys.argv[1:], \
-                                    "ht:o:p:",    \
+        opts, args = getopt.getopt( sys.argv[1:],
+                                    "ht:o:p:",
                                     ["help", "title=", "output=", "prefix="] )
     except getopt.GetoptError:
         usage()
@@ -55,7 +65,6 @@ def  main( argv ):
         usage()
         sys.exit( 1 )
 
-    
     
     project_title  = "Project"
     project_prefix = None
@@ -90,7 +99,9 @@ def  main( argv ):
     
     content_processor.finish()
 
-    formatter = HtmlFormatter( content_processor, project_title, project_prefix )
+    formatter = HtmlFormatter( content_processor,
+                               project_title,
+                               project_prefix )
 
     formatter.toc_dump()
     formatter.index_dump()
@@ -98,9 +109,7 @@ def  main( argv ):
 
 
 
-
 if __name__ == '__main__':
     main( sys.argv )
-
 
 

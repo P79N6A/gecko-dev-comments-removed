@@ -77,6 +77,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
 
 
   
@@ -554,7 +557,6 @@ FT_BEGIN_HEADER
 
   FT_EXPORT( FT_Orientation )
   FT_Outline_Get_Orientation( FT_Outline*  outline );
-
 
   
 

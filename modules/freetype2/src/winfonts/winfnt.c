@@ -412,9 +412,9 @@
                     pe32_header.rsrc_size ));
 
         if ( pe32_header.magic != WINFNT_PE_MAGIC  ||
-             pe32_header.machine != 0x014c                         ||
-             pe32_header.size_of_optional_header != 0xe0          ||
-             pe32_header.magic32 != 0x10b                                    )
+             pe32_header.machine != 0x014C                         ||
+             pe32_header.size_of_optional_header != 0xE0          ||
+             pe32_header.magic32 != 0x10B                                    )
         {
           FT_TRACE2(( "this file has an invalid PE header\n" ));
           error = FT_THROW( Invalid_File_Format );
@@ -591,10 +591,13 @@
 
 
   static FT_Error
-  fnt_cmap_init( FNT_CMap  cmap )
+  fnt_cmap_init( FNT_CMap    cmap,
+                 FT_Pointer  pointer )
   {
     FNT_Face  face = (FNT_Face)FT_CMAP_FACE( cmap );
     FNT_Font  font = face->font;
+
+    FT_UNUSED( pointer );
 
 
     cmap->first = (FT_UInt32)  font->header.first_char;
@@ -971,7 +974,7 @@
 
     if ( !face )
     {
-      error = FT_THROW( Invalid_Argument );
+      error = FT_THROW( Invalid_Face_Handle );
       goto Exit;
     }
 

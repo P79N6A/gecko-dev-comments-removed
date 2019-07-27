@@ -82,6 +82,10 @@ FT_BEGIN_HEADER
                                FT_Pos   dy );
 
   
+  typedef FT_Long
+  (*TT_Cur_Ppem_Func)( EXEC_OP );
+
+  
   typedef FT_F26Dot6
   (*TT_Get_CVT_Func)( EXEC_OP_ FT_ULong  idx );
 
@@ -228,11 +232,6 @@ FT_BEGIN_HEADER
     FT_F26Dot6         phase;      
     FT_F26Dot6         threshold;
 
-#if 0
-    
-    FT_Int             cur_ppem;   
-#endif
-
     FT_Bool            instruction_trap; 
                                          
 
@@ -253,6 +252,8 @@ FT_BEGIN_HEADER
 
     TT_Move_Func       func_move;      
     TT_Move_Func       func_move_orig; 
+
+    TT_Cur_Ppem_Func   func_cur_ppem;  
 
     TT_Get_CVT_Func    func_read_cvt;  
     TT_Set_CVT_Func    func_write_cvt; 
@@ -295,18 +296,18 @@ FT_BEGIN_HEADER
 
 
 #ifdef TT_USE_BYTECODE_INTERPRETER
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   TT_Goto_CodeRange( TT_ExecContext  exec,
                      FT_Int          range,
                      FT_Long         IP );
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   TT_Set_CodeRange( TT_ExecContext  exec,
                     FT_Int          range,
                     void*           base,
                     FT_Long         length );
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   TT_Clear_CodeRange( TT_ExecContext  exec,
                       FT_Int          range );
 
@@ -344,7 +345,7 @@ FT_BEGIN_HEADER
 
 
 #ifdef TT_USE_BYTECODE_INTERPRETER
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   TT_Done_Context( TT_ExecContext  exec );
 
   FT_LOCAL( FT_Error )
@@ -352,7 +353,7 @@ FT_BEGIN_HEADER
                    TT_Face         face,
                    TT_Size         size );
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   TT_Save_Context( TT_ExecContext  exec,
                    TT_Size         ins );
 

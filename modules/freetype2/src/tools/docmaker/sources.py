@@ -19,7 +19,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 import fileinput, re, sys, os, string
+
 
 
 
@@ -37,15 +48,12 @@ import fileinput, re, sys, os, string
 class  SourceBlockFormat:
 
     def  __init__( self, id, start, column, end ):
-        """create a block pattern, used to recognize special documentation blocks"""
+        """Create a block pattern, used to recognize special documentation
+           blocks."""
         self.id     = id
         self.start  = re.compile( start, re.VERBOSE )
         self.column = re.compile( column, re.VERBOSE )
         self.end    = re.compile( end, re.VERBOSE )
-
-
-
-
 
 
 
@@ -83,9 +91,6 @@ re_source_block_format1 = SourceBlockFormat( 1, start, column, start )
 
 
 
-
-
-
 start = r'''
   \s*     # any number of whitespace
   /\*{2,} # followed by '/' and at least two asterisks
@@ -93,9 +98,9 @@ start = r'''
 '''
 
 column = r'''
-  \s*        # any number of whitespace
-  \*{1}(?!/) # followed by precisely one asterisk not followed by `/'
-  (.*)       # then anything (group1)
+  \s*           # any number of whitespace
+  \*{1}(?![*/]) # followed by precisely one asterisk not followed by `/'
+  (.*)          # then anything (group1)
 '''
 
 end = r'''
@@ -120,9 +125,10 @@ re_source_block_formats = [re_source_block_format1, re_source_block_format2]
 
 
 
+
+
 re_markup_tag1 = re.compile( r'''\s*<((?:\w|-)*)>''' )  
 re_markup_tag2 = re.compile( r'''\s*@((?:\w|-)*):''' )  
-
 
 
 
@@ -132,14 +138,22 @@ re_markup_tags = [re_markup_tag1, re_markup_tag2]
 
 
 
+
+
+
+
+
 re_crossref = re.compile( r'@((?:\w|-)*)(.*)' )    
 
 
 
 
-re_italic = re.compile( r"_(\w(\w|')*)_(.*)" )     
-re_bold   = re.compile( r"\*(\w(\w|')*)\*(.*)" )   
 
+
+
+
+re_italic = re.compile( r"_(\w(?:\w|')*)_(.*)" )     
+re_bold   = re.compile( r"\*(\w(?:\w|')*)\*(.*)" )   
 
 
 
@@ -179,7 +193,12 @@ re_url = re.compile( url, re.VERBOSE | re.MULTILINE )
 
 
 
-re_source_sep = re.compile( r'\s*/\*\s*\*/' )
+
+re_source_sep = re.compile( r'\s*/\*\s*\*/' )   
+
+
+
+
 
 
 
@@ -209,14 +228,6 @@ re_source_keywords = re.compile( '''\\b ( typedef   |
                                           \#ifndef  |
                                           \#else    |
                                           \#endif   ) \\b''', re.VERBOSE )
-
-
-
-
-
-
-
-
 
 
 
@@ -301,24 +312,23 @@ class  SourceBlock:
 
 
 
-
-
 class  SourceProcessor:
 
     def  __init__( self ):
-        """initialize a source processor"""
+        """Initialize a source processor."""
         self.blocks   = []
         self.filename = None
         self.format   = None
         self.lines    = []
 
     def  reset( self ):
-        """reset a block processor, clean all its blocks"""
+        """Reset a block processor and clean up all its blocks."""
         self.blocks = []
         self.format = None
 
     def  parse_file( self, filename ):
-        """parse a C source file, and add its blocks to the processor's list"""
+        """Parse a C source file and add its blocks to the processor's
+           list."""
         self.reset()
 
         self.filename = filename
@@ -356,7 +366,8 @@ class  SourceProcessor:
         self.add_block_lines()
 
     def  process_normal_line( self, line ):
-        """process a normal line and check whether it is the start of a new block"""
+        """Process a normal line and check whether it is the start of a new
+           block."""
         for f in re_source_block_formats:
             if f.start.match( line ):
                 self.add_block_lines()
@@ -366,9 +377,12 @@ class  SourceProcessor:
         self.lines.append( line )
 
     def  add_block_lines( self ):
-        """add the current accumulated lines and create a new block"""
+        """Add the current accumulated lines and create a new block."""
         if self.lines != []:
-            block = SourceBlock( self, self.filename, self.lineno, self.lines )
+            block = SourceBlock( self,
+                                 self.filename,
+                                 self.lineno,
+                                 self.lines )
 
             self.blocks.append( block )
             self.format = None
@@ -376,7 +390,7 @@ class  SourceProcessor:
 
     
     def  dump( self ):
-        """print all blocks in a processor"""
+        """Print all blocks in a processor."""
         for b in self.blocks:
             b.dump()
 

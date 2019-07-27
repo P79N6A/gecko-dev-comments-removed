@@ -193,6 +193,10 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
   typedef struct FT_StreamRec_*  FT_Stream;
 
 
@@ -318,6 +322,11 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
   typedef struct  FT_StreamRec_
   {
     unsigned char*       base;
@@ -334,7 +343,6 @@ FT_BEGIN_HEADER
     unsigned char*       limit;
 
   } FT_StreamRec;
-
 
   
 

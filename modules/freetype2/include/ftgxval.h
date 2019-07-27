@@ -58,7 +58,17 @@ FT_BEGIN_HEADER
   
   
   
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   
   
@@ -171,8 +181,6 @@ FT_BEGIN_HEADER
                           FT_VALIDATE_lcar )
 
 
-  
-
  
 
 
@@ -221,8 +229,6 @@ FT_BEGIN_HEADER
                           FT_UInt   table_length );
 
 
-  
-
  
 
 
@@ -247,8 +253,6 @@ FT_BEGIN_HEADER
   FT_TrueTypeGX_Free( FT_Face   face,
                       FT_Bytes  table );
 
-
-  
 
  
 
@@ -276,8 +280,6 @@ FT_BEGIN_HEADER
 
 #define FT_VALIDATE_CKERN  ( FT_VALIDATE_MS | FT_VALIDATE_APPLE )
 
-
-  
 
  
 
@@ -320,8 +322,6 @@ FT_BEGIN_HEADER
                            FT_Bytes  *ckern_table );
 
 
-  
-
  
 
 
@@ -346,8 +346,7 @@ FT_BEGIN_HEADER
   FT_ClassicKern_Free( FT_Face   face,
                        FT_Bytes  table );
 
-
- 
+  
 
 
 FT_END_HEADER

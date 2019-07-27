@@ -51,6 +51,11 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
+
   
   
   
@@ -171,7 +176,7 @@ FT_BEGIN_HEADER
                    FT_Int32   load_flags,
                    FT_Fixed  *padvances );
 
-
+  
 
 
 FT_END_HEADER

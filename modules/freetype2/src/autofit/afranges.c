@@ -28,6 +28,23 @@
     AF_UNIRANGE_REC(       0UL,       0UL )
   };
 
+  
+  
+  
+
+  const AF_Script_UniRangeRec  af_deva_uniranges[] =
+  {
+    AF_UNIRANGE_REC(  0x0900UL,  0x093BUL ),  
+    
+    AF_UNIRANGE_REC(  0x093DUL,  0x0950UL ),
+    
+    AF_UNIRANGE_REC(  0x0953UL,  0x0963UL ),
+    
+    AF_UNIRANGE_REC(  0x0966UL,  0x097FUL ),
+    AF_UNIRANGE_REC(  0x20B9UL,  0x20B9UL ),  
+    AF_UNIRANGE_REC(       0UL,       0UL )
+  };
+
   const AF_Script_UniRangeRec  af_grek_uniranges[] =
   {
     AF_UNIRANGE_REC(  0x0370UL,  0x03FFUL ),  
@@ -57,7 +74,8 @@
     AF_UNIRANGE_REC(  0x1E00UL,  0x1EFFUL ),  
     AF_UNIRANGE_REC(  0x2000UL,  0x206FUL ),  
     AF_UNIRANGE_REC(  0x2070UL,  0x209FUL ),  
-    AF_UNIRANGE_REC(  0x20A0UL,  0x20CFUL ),  
+    AF_UNIRANGE_REC(  0x20A0UL,  0x20B8UL ),  
+    AF_UNIRANGE_REC(  0x20BAUL,  0x20CFUL ),  
     AF_UNIRANGE_REC(  0x2150UL,  0x218FUL ),  
     AF_UNIRANGE_REC(  0x2460UL,  0x24FFUL ),  
     AF_UNIRANGE_REC(  0x2C60UL,  0x2C7FUL ),  
@@ -74,17 +92,17 @@
     AF_UNIRANGE_REC( 0UL, 0UL )
   };
 
+  const AF_Script_UniRangeRec  af_telu_uniranges[] =
+  {
+    AF_UNIRANGE_REC(  0x0C00UL,  0x0C7FUL ),  
+    AF_UNIRANGE_REC(       0UL,       0UL )
+  };
+
 #ifdef AF_CONFIG_OPTION_INDIC
 
   const AF_Script_UniRangeRec  af_beng_uniranges[] =
   {
     AF_UNIRANGE_REC(  0x0980UL,  0x09FFUL ),  
-    AF_UNIRANGE_REC(       0UL,       0UL )
-  };
-
-  const AF_Script_UniRangeRec  af_deva_uniranges[] =
-  {
-    AF_UNIRANGE_REC(  0x0900UL,  0x097FUL ),  
     AF_UNIRANGE_REC(       0UL,       0UL )
   };
 
@@ -145,12 +163,6 @@
   const AF_Script_UniRangeRec  af_taml_uniranges[] =
   {
     AF_UNIRANGE_REC(  0x0B80UL,  0x0BFFUL ),  
-    AF_UNIRANGE_REC(       0UL,       0UL )
-  };
-
-  const AF_Script_UniRangeRec  af_telu_uniranges[] =
-  {
-    AF_UNIRANGE_REC(  0x0C00UL,  0x0C7FUL ),  
     AF_UNIRANGE_REC(       0UL,       0UL )
   };
 

@@ -76,6 +76,33 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -491,7 +518,7 @@ FT_BEGIN_HEADER
   FT_EXPORT( FT_Error )
   FT_Done_Library( FT_Library  library );
 
-
+  
 
   typedef void
   (*FT_DebugHook_Func)( void*  arg );
@@ -628,7 +655,6 @@ FT_BEGIN_HEADER
 
   FT_EXPORT( FT_TrueTypeEngineType )
   FT_Get_TrueType_Engine_Type( FT_Library  library );
-
 
   
 

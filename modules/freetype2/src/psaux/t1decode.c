@@ -1098,10 +1098,12 @@
               goto Syntax_Error;
 
             
-            hinter->apply( hinter->hints,
-                           builder->current,
-                           (PSH_Globals)builder->hints_globals,
-                           decoder->hint_mode );
+            error = hinter->apply( hinter->hints,
+                                   builder->current,
+                                   (PSH_Globals)builder->hints_globals,
+                                   decoder->hint_mode );
+            if ( error )
+              goto Fail;
           }
 
           

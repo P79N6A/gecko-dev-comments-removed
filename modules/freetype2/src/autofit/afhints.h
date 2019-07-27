@@ -206,10 +206,6 @@ FT_BEGIN_HEADER
 
 
 
-
-
-
-
   
   typedef enum  AF_Flags_
   {
@@ -221,25 +217,11 @@ FT_BEGIN_HEADER
     AF_FLAG_CONTROL = AF_FLAG_CONIC | AF_FLAG_CUBIC,
 
     
-    AF_FLAG_EXTREMA_X = 1 << 2,
-    AF_FLAG_EXTREMA_Y = 1 << 3,
+    AF_FLAG_TOUCH_X = 1 << 2,
+    AF_FLAG_TOUCH_Y = 1 << 3,
 
     
-    AF_FLAG_ROUND_X = 1 << 4,
-    AF_FLAG_ROUND_Y = 1 << 5,
-
-    
-    AF_FLAG_TOUCH_X = 1 << 6,
-    AF_FLAG_TOUCH_Y = 1 << 7,
-
-    
-    AF_FLAG_WEAK_INTERPOLATION = 1 << 8,
-
-    
-    AF_FLAG_INFLECTION = 1 << 9,
-
-    
-    AF_FLAG_NEAR = 1 << 10
+    AF_FLAG_WEAK_INTERPOLATION = 1 << 4
 
   } AF_Flags;
 
@@ -247,10 +229,11 @@ FT_BEGIN_HEADER
   
   typedef enum  AF_Edge_Flags_
   {
-    AF_EDGE_NORMAL = 0,
-    AF_EDGE_ROUND  = 1 << 0,
-    AF_EDGE_SERIF  = 1 << 1,
-    AF_EDGE_DONE   = 1 << 2
+    AF_EDGE_NORMAL  = 0,
+    AF_EDGE_ROUND   = 1 << 0,
+    AF_EDGE_SERIF   = 1 << 1,
+    AF_EDGE_DONE    = 1 << 2,
+    AF_EDGE_NEUTRAL = 1 << 3  
 
   } AF_Edge_Flags;
 

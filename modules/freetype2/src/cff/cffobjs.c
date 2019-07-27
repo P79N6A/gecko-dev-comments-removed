@@ -943,16 +943,6 @@
         if ( pure_cff && cff->top_font.font_dict.cid_registry != 0xFFFFU )
           goto Exit;
 
-#ifdef FT_MAX_CHARMAP_CACHEABLE
-        if ( nn + 1 > FT_MAX_CHARMAP_CACHEABLE )
-        {
-          FT_ERROR(( "cff_face_init: no Unicode cmap is found, "
-                     "and too many subtables (%d) to add synthesized cmap\n",
-                     nn ));
-          goto Exit;
-        }
-#endif
-
         
         cmaprec.face        = cffface;
         cmaprec.platform_id = TT_PLATFORM_MICROSOFT;
@@ -973,15 +963,6 @@
           cffface->charmap = cffface->charmaps[nn];
 
       Skip_Unicode:
-#ifdef FT_MAX_CHARMAP_CACHEABLE
-        if ( nn > FT_MAX_CHARMAP_CACHEABLE )
-        {
-          FT_ERROR(( "cff_face_init: Unicode cmap is found, "
-                     "but too many preceding subtables (%d) to access\n",
-                     nn - 1 ));
-          goto Exit;
-        }
-#endif
         if ( encoding->count > 0 )
         {
           FT_CMap_Class  clazz;
@@ -1057,20 +1038,21 @@
 
     
 #ifdef CFF_CONFIG_OPTION_OLD_ENGINE
-    driver->hinting_engine    = FT_CFF_HINTING_FREETYPE;
+    driver->hinting_engine = FT_CFF_HINTING_FREETYPE;
 #else
-    driver->hinting_engine    = FT_CFF_HINTING_ADOBE;
+    driver->hinting_engine = FT_CFF_HINTING_ADOBE;
 #endif
+
     driver->no_stem_darkening = FALSE;
 
-    driver->darken_params[0] =  500;
-    driver->darken_params[1] =  400;
-    driver->darken_params[2] = 1000;
-    driver->darken_params[3] =  275;
-    driver->darken_params[4] = 1667;
-    driver->darken_params[5] =  275;
-    driver->darken_params[6] = 2333;
-    driver->darken_params[7] =    0;
+    driver->darken_params[0] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_X1;
+    driver->darken_params[1] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_Y1;
+    driver->darken_params[2] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_X2;
+    driver->darken_params[3] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_Y2;
+    driver->darken_params[4] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_X3;
+    driver->darken_params[5] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_Y3;
+    driver->darken_params[6] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_X4;
+    driver->darken_params[7] = CFF_CONFIG_OPTION_DARKENING_PARAMETER_Y4;
 
     return FT_Err_Ok;
   }

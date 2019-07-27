@@ -228,6 +228,36 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -382,6 +412,13 @@ FT_BEGIN_HEADER
   
   
   
+
+  
+  
+  
+  
+  
+  
   
   
   
@@ -414,6 +451,13 @@ FT_BEGIN_HEADER
   
   typedef struct FT_RendererRec_*  FT_Renderer;
 
+
+  
+  
+  
+  
+  
+  
 
   
   
@@ -727,13 +771,6 @@ FT_BEGIN_HEADER
   } FT_Encoding;
 
 
-  
-  
-  
-  
-  
-  
-  
   
   
 #define ft_encoding_none            FT_ENCODING_NONE
@@ -1666,7 +1703,6 @@ FT_BEGIN_HEADER
   
   
   
-  
   typedef struct  FT_GlyphSlotRec_
   {
     FT_Library        library;
@@ -1787,27 +1823,20 @@ FT_BEGIN_HEADER
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define FT_OPEN_MEMORY    0x1
 #define FT_OPEN_STREAM    0x2
 #define FT_OPEN_PATHNAME  0x4
 #define FT_OPEN_DRIVER    0x8
 #define FT_OPEN_PARAMS    0x10
 
-#define ft_open_memory    FT_OPEN_MEMORY     /* deprecated */
-#define ft_open_stream    FT_OPEN_STREAM     /* deprecated */
-#define ft_open_pathname  FT_OPEN_PATHNAME   /* deprecated */
-#define ft_open_driver    FT_OPEN_DRIVER     /* deprecated */
-#define ft_open_params    FT_OPEN_PARAMS     /* deprecated */
+
+  
+  
+#define ft_open_memory    FT_OPEN_MEMORY
+#define ft_open_stream    FT_OPEN_STREAM
+#define ft_open_pathname  FT_OPEN_PATHNAME
+#define ft_open_driver    FT_OPEN_DRIVER
+#define ft_open_params    FT_OPEN_PARAMS
 
 
   
@@ -2617,11 +2646,6 @@ FT_BEGIN_HEADER
 
 
 
-
-
-
-
-
 #define FT_LOAD_DEFAULT                      0x0
 #define FT_LOAD_NO_SCALE                     ( 1L << 0 )
 #define FT_LOAD_NO_HINTING                   ( 1L << 1 )
@@ -2838,17 +2862,6 @@ FT_BEGIN_HEADER
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_render_mode_normal  FT_RENDER_MODE_NORMAL
 #define ft_render_mode_mono    FT_RENDER_MODE_MONO
 
@@ -2914,37 +2927,8 @@ FT_BEGIN_HEADER
 
   
   
-  
-  
-  
-  
-  
-  
-  
 #define ft_kerning_default   FT_KERNING_DEFAULT
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_kerning_unfitted  FT_KERNING_UNFITTED
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_kerning_unscaled  FT_KERNING_UNSCALED
 
 
@@ -3029,7 +3013,6 @@ FT_BEGIN_HEADER
                         FT_Fixed*  akerning );
 
 
-  
   
   
   
@@ -3768,12 +3751,6 @@ FT_BEGIN_HEADER
 
 
   
-
-  
-  
-
-#if 0
-  
   
   
   
@@ -3806,24 +3783,7 @@ FT_BEGIN_HEADER
   FT_MulFix( FT_Long  a,
              FT_Long  b );
 
-  
-#endif
 
-#ifdef FT_MULFIX_INLINED
-#define FT_MulFix( a, b )  FT_MULFIX_INLINED( a, b )
-#else
-  FT_EXPORT( FT_Long )
-  FT_MulFix( FT_Long  a,
-             FT_Long  b );
-#endif
-
-
-  
-  
-  
-  
-  
-  
   
   
   
@@ -3941,6 +3901,18 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
   
@@ -3965,7 +3937,7 @@ FT_BEGIN_HEADER
 
 #define FREETYPE_MAJOR  2
 #define FREETYPE_MINOR  5
-#define FREETYPE_PATCH  3
+#define FREETYPE_PATCH  5
 
 
   

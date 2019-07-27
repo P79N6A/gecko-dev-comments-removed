@@ -314,13 +314,13 @@
 
 
     
-    if ( !target )
+    if ( !target || !source || !source->clazz )
     {
       error = FT_THROW( Invalid_Argument );
       goto Exit;
     }
 
-    *target = 0;
+    *target = NULL;
 
     if ( !source || !source->clazz )
     {
@@ -359,7 +359,7 @@
     FT_Error    error;
     FT_Glyph    glyph;
 
-    const FT_Glyph_Class*  clazz = 0;
+    const FT_Glyph_Class*  clazz = NULL;
 
 
     if ( !slot )

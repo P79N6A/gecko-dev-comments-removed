@@ -69,7 +69,7 @@
   static const FT_String* const  tt_post_default_names[258] =
   {
     
-    ".notdef", ".null", "CR", "space", "exclam",
+    ".notdef", ".null", "nonmarkingreturn", "space", "exclam",
     "quotedbl", "numbersign", "dollar", "percent", "ampersand",
     
     "quotesingle", "parenleft", "parenright", "asterisk", "plus",
@@ -120,7 +120,7 @@
     "ae", "oslash", "questiondown", "exclamdown", "logicalnot",
     "radical", "florin", "approxequal", "Delta", "guillemotleft",
     
-    "guillemotright", "ellipsis", "nbspace", "Agrave", "Atilde",
+    "guillemotright", "ellipsis", "nonbreakingspace", "Agrave", "Atilde",
     "Otilde", "OE", "oe", "endash", "emdash",
     
     "quotedblleft", "quotedblright", "quoteleft", "quoteright", "divide",
@@ -144,8 +144,8 @@
     "multiply", "onesuperior", "twosuperior", "threesuperior", "onehalf",
     "onequarter", "threequarters", "franc", "Gbreve", "gbreve",
     
-    "Idot", "Scedilla", "scedilla", "Cacute", "cacute",
-    "Ccaron", "ccaron", "dmacron",
+    "Idotaccent", "Scedilla", "scedilla", "Cacute", "cacute",
+    "Ccaron", "ccaron", "dcroat",
   };
 
 

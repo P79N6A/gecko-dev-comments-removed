@@ -412,7 +412,11 @@ FT_BEGIN_HEADER
   
   
   
-  typedef FT_Error
+  
+  
+  
+  
+  typedef void
   (*TT_Get_Metrics_Func)( TT_Face     face,
                           FT_Bool     vertical,
                           FT_UInt     gindex,

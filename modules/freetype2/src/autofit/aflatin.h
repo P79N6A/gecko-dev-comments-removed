@@ -53,6 +53,8 @@ FT_BEGIN_HEADER
 
 #define AF_LATIN_IS_TOP_BLUE( b ) \
           ( (b)->properties & AF_BLUE_PROPERTY_LATIN_TOP )
+#define AF_LATIN_IS_NEUTRAL_BLUE( b ) \
+          ( (b)->properties & AF_BLUE_PROPERTY_LATIN_NEUTRAL )
 #define AF_LATIN_IS_X_HEIGHT_BLUE( b ) \
           ( (b)->properties & AF_BLUE_PROPERTY_LATIN_X_HEIGHT )
 #define AF_LATIN_IS_LONG_BLUE( b ) \
@@ -63,10 +65,11 @@ FT_BEGIN_HEADER
 
   enum
   {
-    AF_LATIN_BLUE_ACTIVE     = 1 << 0,  
-    AF_LATIN_BLUE_TOP        = 1 << 1,  
-    AF_LATIN_BLUE_ADJUSTMENT = 1 << 2,  
-                                        
+    AF_LATIN_BLUE_ACTIVE     = 1 << 0, 
+    AF_LATIN_BLUE_TOP        = 1 << 1, 
+    AF_LATIN_BLUE_NEUTRAL    = 1 << 2, 
+    AF_LATIN_BLUE_ADJUSTMENT = 1 << 3, 
+                                       
     AF_LATIN_BLUE_FLAG_MAX
   };
 
@@ -169,6 +172,8 @@ FT_BEGIN_HEADER
 
   FT_LOCAL( void )
   af_latin_hints_link_segments( AF_GlyphHints  hints,
+                                FT_UInt        width_count,
+                                AF_WidthRec*   widths,
                                 AF_Dimension   dim );
 
   FT_LOCAL( FT_Error )
@@ -177,6 +182,8 @@ FT_BEGIN_HEADER
 
   FT_LOCAL( FT_Error )
   af_latin_hints_detect_features( AF_GlyphHints  hints,
+                                  FT_UInt        width_count,
+                                  AF_WidthRec*   widths,
                                   AF_Dimension   dim );
 
 

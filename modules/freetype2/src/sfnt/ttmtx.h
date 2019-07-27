@@ -40,7 +40,7 @@ FT_BEGIN_HEADER
                      FT_Bool    vertical );
 
 
-  FT_LOCAL( FT_Error )
+  FT_LOCAL( void )
   tt_face_get_metrics( TT_Face     face,
                        FT_Bool     vertical,
                        FT_UInt     gindex,

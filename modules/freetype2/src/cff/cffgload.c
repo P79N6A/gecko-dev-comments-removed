@@ -703,7 +703,7 @@
     
     if ( face->root.internal->incremental_interface )
     {
-      FT_Data data;
+      FT_Data  data;
 
 
       data.pointer = *pointer;
@@ -1989,9 +1989,6 @@
           }
           else
           {
-            if ( !error )
-              error = FT_Err_Ok;
-
             cff_builder_close_contour( builder );
 
             
@@ -2002,10 +1999,12 @@
                 goto Syntax_Error;
 
               
-              hinter->apply( hinter->hints,
-                             builder->current,
-                             (PSH_Globals)builder->hints_globals,
-                             decoder->hint_mode );
+              error = hinter->apply( hinter->hints,
+                                     builder->current,
+                                     (PSH_Globals)builder->hints_globals,
+                                     decoder->hint_mode );
+              if ( error )
+                goto Fail;
             }
 
             
@@ -2711,10 +2710,10 @@
 
           
 
-          ( (SFNT_Service)face->sfnt )->get_metrics( face, 0,
-                                                     glyph_index,
-                                                     &dummy,
-                                                     &advance );
+          (void)( (SFNT_Service)face->sfnt )->get_metrics( face, 0,
+                                                           glyph_index,
+                                                           &dummy,
+                                                           &advance );
           glyph->root.linearHoriAdvance = advance;
 
           has_vertical_info = FT_BOOL(
@@ -2724,10 +2723,10 @@
           
           if ( has_vertical_info )
           {
-            ( (SFNT_Service)face->sfnt )->get_metrics( face, 1,
-                                                       glyph_index,
-                                                       &dummy,
-                                                       &advance );
+            (void)( (SFNT_Service)face->sfnt )->get_metrics( face, 1,
+                                                             glyph_index,
+                                                             &dummy,
+                                                             &advance );
             glyph->root.linearVertAdvance = advance;
           }
           else
@@ -2964,10 +2963,10 @@
           FT_UShort  vertAdvance  = 0;
 
 
-          ( (SFNT_Service)face->sfnt )->get_metrics( face, 1,
-                                                     glyph_index,
-                                                     &vertBearingY,
-                                                     &vertAdvance );
+          (void)( (SFNT_Service)face->sfnt )->get_metrics( face, 1,
+                                                           glyph_index,
+                                                           &vertBearingY,
+                                                           &vertAdvance );
           metrics->vertBearingY = vertBearingY;
           metrics->vertAdvance  = vertAdvance;
         }

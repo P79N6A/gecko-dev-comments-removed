@@ -96,8 +96,8 @@
       goto Exit;
 
     
-    if ( head[0] != 0x1f ||
-         head[1] != 0x9d )
+    if ( head[0] != 0x1F ||
+         head[1] != 0x9D )
       error = FT_THROW( Invalid_File_Format );
 
   Exit:
@@ -349,9 +349,17 @@
                      FT_Stream  source )
   {
     FT_Error    error;
-    FT_Memory   memory = source->memory;
+    FT_Memory   memory;
     FT_LZWFile  zip = NULL;
 
+
+    if ( !stream || !source )
+    {
+      error = FT_THROW( Invalid_Stream_Handle );
+      goto Exit;
+    }
+
+    memory = source->memory;
 
     
 

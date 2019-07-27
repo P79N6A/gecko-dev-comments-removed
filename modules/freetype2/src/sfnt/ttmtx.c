@@ -201,7 +201,7 @@
   
   
   
-  FT_LOCAL_DEF( FT_Error )
+  FT_LOCAL_DEF( void )
   tt_face_get_metrics( TT_Face     face,
                        FT_Bool     vertical,
                        FT_UInt     gindex,
@@ -274,8 +274,6 @@
       *abearing = 0;
       *aadvance = 0;
     }
-
-    return FT_Err_Ok;
   }
 
 

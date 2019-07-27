@@ -72,6 +72,11 @@
     FT_Service_MultiMasters  service;
 
 
+    
+
+    if ( !amaster )
+      return FT_THROW( Invalid_Argument );
+
     error = ft_face_get_mm_service( face, &service );
     if ( !error )
     {
@@ -93,6 +98,11 @@
     FT_Error                 error;
     FT_Service_MultiMasters  service;
 
+
+    
+
+    if ( !amaster )
+      return FT_THROW( Invalid_Argument );
 
     error = ft_face_get_mm_service( face, &service );
     if ( !error )
@@ -117,6 +127,11 @@
     FT_Service_MultiMasters  service;
 
 
+    
+
+    if ( !coords )
+      return FT_THROW( Invalid_Argument );
+
     error = ft_face_get_mm_service( face, &service );
     if ( !error )
     {
@@ -140,6 +155,11 @@
     FT_Service_MultiMasters  service;
 
 
+    
+
+    if ( !coords )
+      return FT_THROW( Invalid_Argument );
+
     error = ft_face_get_mm_service( face, &service );
     if ( !error )
     {
@@ -162,6 +182,11 @@
     FT_Error                 error;
     FT_Service_MultiMasters  service;
 
+
+    
+
+    if ( !coords )
+      return FT_THROW( Invalid_Argument );
 
     error = ft_face_get_mm_service( face, &service );
     if ( !error )
@@ -188,6 +213,11 @@
     FT_Error                 error;
     FT_Service_MultiMasters  service;
 
+
+    
+
+    if ( !coords )
+      return FT_THROW( Invalid_Argument );
 
     error = ft_face_get_mm_service( face, &service );
     if ( !error )

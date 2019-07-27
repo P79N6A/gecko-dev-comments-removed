@@ -327,20 +327,6 @@ FT_BEGIN_HEADER
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 #define ft_glyph_bbox_unscaled   FT_GLYPH_BBOX_UNSCALED
 #define ft_glyph_bbox_subpixels  FT_GLYPH_BBOX_SUBPIXELS
 #define ft_glyph_bbox_gridfit    FT_GLYPH_BBOX_GRIDFIT
@@ -602,7 +588,6 @@ FT_BEGIN_HEADER
   
   FT_EXPORT( FT_Error )
   FT_Matrix_Invert( FT_Matrix*  matrix );
-
 
   
 
