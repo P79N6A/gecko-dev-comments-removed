@@ -805,7 +805,11 @@ getParentCB(AtkObject *aAtkObj)
       atkParent = GetWrapperFor(parent);
     } else {
       
-      atkParent = AccessibleWrap::GetAtkObject(proxy->OuterDocOfRemoteBrowser());
+      Accessible* outerDocParent = proxy->OuterDocOfRemoteBrowser();
+      NS_ASSERTION(outerDocParent, "this document should have an outerDoc as a parent");
+      if (outerDocParent) {
+        atkParent = AccessibleWrap::GetAtkObject(outerDocParent);
+      }
     }
   }
 
