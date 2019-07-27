@@ -59,6 +59,7 @@
 #include "nsContentPolicyUtils.h" 
 #include "nsISeekableStream.h"
 #include "nsAutoPtr.h"
+#include "nsQueryObject.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsIAppShell.h"
 #include "nsWidgetsCID.h"

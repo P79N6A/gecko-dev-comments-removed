@@ -50,6 +50,7 @@
 #include "nsThreadUtils.h"
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
+#include "nsQueryObject.h"
 
 
 #include "ActorsChild.h"

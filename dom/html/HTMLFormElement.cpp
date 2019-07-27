@@ -30,6 +30,7 @@
 #include "nsIMutableArray.h"
 #include "nsIFormAutofillContentService.h"
 #include "mozilla/BinarySearch.h"
+#include "nsQueryObject.h"
 
 
 #include "mozilla/Telemetry.h"
