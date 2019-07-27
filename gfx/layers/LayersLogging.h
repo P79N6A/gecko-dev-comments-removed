@@ -94,6 +94,10 @@ AppendToString(std::stringstream& aStream, const mozilla::gfx::IntRectTyped<T>& 
 }
 
 void
+AppendToString(std::stringstream& aStream, const nsRegion& r,
+               const char* pfx="", const char* sfx="");
+
+void
 AppendToString(std::stringstream& aStream, const nsIntRegion& r,
                const char* pfx="", const char* sfx="");
 

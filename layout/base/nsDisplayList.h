@@ -2629,6 +2629,10 @@ public:
   const nsRegion& MaybeHitRegion() { return mMaybeHitRegion; }
   const nsRegion& DispatchToContentHitRegion() { return mDispatchToContentHitRegion; }
 
+#ifdef MOZ_DUMP_PAINTING
+  virtual void WriteDebugInfo(std::stringstream& aStream) MOZ_OVERRIDE;
+#endif
+
 private:
   
   
