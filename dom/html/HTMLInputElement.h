@@ -39,8 +39,17 @@ class Date;
 class File;
 class FileList;
 
-class UploadLastDir final : public nsIObserver, public nsSupportsWeakReference {
 
+
+
+
+
+
+
+
+
+class UploadLastDir final : public nsIObserver, public nsSupportsWeakReference
+{
   ~UploadLastDir() {}
 
 public:

@@ -805,6 +805,9 @@ UploadLastDir::StoreLastUsedDirectory(nsIDocument* aDoc, nsIFile* aDir)
     return NS_ERROR_OUT_OF_MEMORY;
   prefValue->SetAsAString(unicodePath);
 
+  
+  
+  
   nsCOMPtr<nsILoadContext> loadContext = aDoc->GetLoadContext();
   return contentPrefService->Set(spec, CPS_PREF_NAME, prefValue, loadContext, nullptr);
 }
