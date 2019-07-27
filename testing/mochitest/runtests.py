@@ -1480,13 +1480,8 @@ class Mochitest(MochitestUtilsMixin):
       printstatus(status, "Main app process")
       runner.process_handler = None
 
-      if timeout is None:
-        didTimeout = False
-      else:
-        didTimeout = proc.didTimeout
-
       
-      outputHandler.finish(didTimeout)
+      outputHandler.finish()
 
       
       if status:
@@ -1854,15 +1849,11 @@ class Mochitest(MochitestUtilsMixin):
       self.bisectChunk = bisectChunk
 
       
-      self.perl = which('perl')
-
-      
       
       
       self.browserProcessId = None
 
-      
-      self.stackFixerFunction, self.stackFixerProcess = self.stackFixer()
+      self.stackFixerFunction = self.stackFixer()
 
     def processOutputLine(self, line):
       """per line handler of output for mozprocess"""
@@ -1897,14 +1888,13 @@ class Mochitest(MochitestUtilsMixin):
 
     def stackFixer(self):
       """
-      return 2-tuple, (stackFixerFunction, StackFixerProcess),
-      if any, to use on the output lines
+      return stackFixerFunction, if any, to use on the output lines
       """
 
       if not mozinfo.info.get('debug'):
-        return None, None
+        return None
 
-      stackFixerFunction = stackFixerProcess = None
+      stackFixerFunction = None
 
       def import_stackFixerModule(module_name):
         sys.path.insert(0, self.utilityPath)
@@ -1918,30 +1908,15 @@ class Mochitest(MochitestUtilsMixin):
         stackFixerModule = import_stackFixerModule('fix_stack_using_bpsyms')
         stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line, self.symbolsPath)
 
-      elif mozinfo.isLinux and self.perl:
+      elif mozinfo.isLinux:
         
         
-        stackFixerCommand = [self.perl, os.path.join(self.utilityPath, "fix-linux-stack.pl")]
-        stackFixerProcess = subprocess.Popen(stackFixerCommand, stdin=subprocess.PIPE,
-                                             stdout=subprocess.PIPE)
-        def fixFunc(lines):
-          out = []
-          for line in lines.split('\n'):
-            stackFixerProcess.stdin.write(line + '\n')
-            out.append(stackFixerProcess.stdout.readline().rstrip())
-          return '\n'.join(out)
+        stackFixerModule = import_stackFixerModule('fix_linux_stack')
+        stackFixerFunction = lambda line: stackFixerModule.fixSymbols(line)
 
-        stackFixerFunction = fixFunc
+      return stackFixerFunction
 
-      return (stackFixerFunction, stackFixerProcess)
-
-    def finish(self, didTimeout):
-      if self.stackFixerProcess:
-        self.stackFixerProcess.communicate()
-        status = self.stackFixerProcess.returncode
-        if status and not didTimeout:
-          self.harness.log.info("TEST-UNEXPECTED-FAIL | runtests.py | Stack fixer process exited with code %d during test run" % status)
-
+    def finish(self):
       if self.shutdownLeaks:
         self.shutdownLeaks.process()
 
