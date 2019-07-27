@@ -211,13 +211,6 @@ public:
   virtual void UseTiledLayerBuffer(CompositableClient* aCompositable,
                                    const SurfaceDescriptorTiles& aTileLayerDescriptor) override;
 
-  
-
-
-
-
-  void AttachAsyncCompositable(PLayerTransactionChild* aLayer, uint64_t aID);
-
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) override;
 
