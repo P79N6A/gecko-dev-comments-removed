@@ -519,6 +519,27 @@ struct JSCompartment
     js::jit::JitCompartment *jitCompartment() {
         return jitCompartment_;
     }
+
+    enum DeprecatedLanguageExtension {
+        DeprecatedForEach = 0,              
+        DeprecatedDestructuringForIn = 1,   
+        DeprecatedLegacyGenerator = 2,      
+        DeprecatedExpressionClosure = 3,    
+        DeprecatedLetBlock = 4,             
+        DeprecatedLetExpression = 5,        
+        DeprecatedLanguageExtensionCount
+    };
+
+  private:
+    
+    bool sawDeprecatedLanguageExtension[DeprecatedLanguageExtensionCount];
+
+    void reportTelemetry();
+
+  public:
+    void addTelemetry(DeprecatedLanguageExtension e) {
+        sawDeprecatedLanguageExtension[e] = true;
+    }
 };
 
 inline bool

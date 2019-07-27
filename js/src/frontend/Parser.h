@@ -372,14 +372,6 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
     
     bool isUnexpectedEOF_:1;
 
-    
-    bool sawDeprecatedForEach:1;
-    bool sawDeprecatedDestructuringForIn:1;
-    bool sawDeprecatedLegacyGenerator:1;
-    bool sawDeprecatedExpressionClosure:1;
-    bool sawDeprecatedLetBlock:1;
-    bool sawDeprecatedLetExpression:1;
-
     typedef typename ParseHandler::Node Node;
     typedef typename ParseHandler::DefinitionNode DefinitionNode;
 
@@ -704,7 +696,7 @@ class Parser : private JS::AutoGCRooter, public StrictModeGetter
 
     bool asmJS(Node list);
 
-    void accumulateTelemetry();
+    void addTelemetry(JSCompartment::DeprecatedLanguageExtension e);
 
     friend class LegacyCompExprTransplanter;
     friend struct BindData<ParseHandler>;
