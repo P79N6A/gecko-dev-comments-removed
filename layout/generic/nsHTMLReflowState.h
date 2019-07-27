@@ -21,10 +21,6 @@ class nsLineLayout;
 class nsIPercentHeightObserver;
 struct nsHypotheticalBox;
 
-namespace mozilla {
-class RubyReflowState;
-}
-
 
 
 
@@ -261,9 +257,6 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
 
   
   nsLineLayout*    mLineLayout;
-
-  
-  mozilla::RubyReflowState* mRubyReflowState;
 
   
   
