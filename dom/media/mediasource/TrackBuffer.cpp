@@ -323,7 +323,7 @@ TrackBuffer::EvictData(double aPlaybackTime,
     nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
     decoders[i]->GetBuffered(buffered);
 
-    MSE_DEBUG("decoder=%u/%u threshold=%u toEvict=%lld",
+    MSE_DEBUG("Step1. decoder=%u/%u threshold=%u toEvict=%lld",
               i, decoders.Length(), aThreshold, toEvict);
 
     
@@ -331,20 +331,34 @@ TrackBuffer::EvictData(double aPlaybackTime,
     
     if (aPlaybackTime > MSE_EVICT_THRESHOLD_TIME) {
       double time = aPlaybackTime - MSE_EVICT_THRESHOLD_TIME;
-      int64_t playbackOffset = decoders[i]->ConvertToByteOffset(time);
-      MSE_DEBUG("evicting some bufferedEnd=%f"
-                "aPlaybackTime=%f time=%f, playbackOffset=%lld size=%lld",
-                buffered->GetEndTime(), aPlaybackTime, time,
-                playbackOffset, decoders[i]->GetResource()->GetSize());
-      if (playbackOffset > 0) {
-        toEvict -= decoders[i]->GetResource()->EvictData(playbackOffset,
-                                                         playbackOffset);
+      bool isActive = decoders[i] == mCurrentDecoder ||
+        mParentDecoder->IsActiveReader(decoders[i]->GetReader());
+      if (!isActive && buffered->GetEndTime() < time) {
+        
+        
+        MSE_DEBUG("evicting all bufferedEnd=%f "
+                  "aPlaybackTime=%f time=%f, size=%lld",
+                  buffered->GetEndTime(), aPlaybackTime, time,
+                  decoders[i]->GetResource()->GetSize());
+        toEvict -= decoders[i]->GetResource()->EvictAll();
+      } else {
+        int64_t playbackOffset = decoders[i]->ConvertToByteOffset(time);
+        MSE_DEBUG("evicting some bufferedEnd=%f "
+                  "aPlaybackTime=%f time=%f, playbackOffset=%lld size=%lld",
+                  buffered->GetEndTime(), aPlaybackTime, time,
+                  playbackOffset, decoders[i]->GetResource()->GetSize());
+        if (playbackOffset > 0) {
+          toEvict -= decoders[i]->GetResource()->EvictData(playbackOffset,
+                                                           playbackOffset);
+        }
       }
     }
   }
 
   
   for (uint32_t i = 0; i < decoders.Length() && toEvict > 0; ++i) {
+    MSE_DEBUG("Step2. decoder=%u/%u threshold=%u toEvict=%lld",
+              i, decoders.Length(), aThreshold, toEvict);
     if (mParentDecoder->IsActiveReader(decoders[i]->GetReader())) {
       break;
     }
@@ -393,6 +407,8 @@ TrackBuffer::EvictData(double aPlaybackTime,
   decoders.Sort(DecoderSorter());
 
   for (int32_t i = int32_t(decoders.Length()) - 1; i >= 0 && toEvict > 0; --i) {
+    MSE_DEBUG("Step3. decoder=%u/%u threshold=%u toEvict=%lld",
+              i, decoders.Length(), aThreshold, toEvict);
     if (decoders[i] == playingDecoder || decoders[i] == nextPlayingDecoder ||
         decoders[i] == mCurrentDecoder) {
       continue;
@@ -464,6 +480,9 @@ TrackBuffer::HasOnlyIncompleteMedia()
   }
   nsRefPtr<dom::TimeRanges> buffered = new dom::TimeRanges();
   mCurrentDecoder->GetBuffered(buffered);
+  MSE_DEBUG("mCurrentDecoder.size=%lld, start=%f end=%f",
+            mCurrentDecoder->GetResource()->GetSize(),
+            buffered->GetStartTime(), buffered->GetEndTime());
   return mCurrentDecoder->GetResource()->GetSize() && !buffered->Length();
 }
 
