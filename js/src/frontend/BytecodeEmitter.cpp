@@ -105,7 +105,6 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
                                  Parser<FullParseHandler>* parser, SharedContext* sc,
                                  HandleScript script, Handle<LazyScript*> lazyScript,
                                  bool insideEval, HandleScript evalCaller,
-                                 Handle<StaticEvalObject*> staticEvalScope,
                                  bool insideNonGlobalEval, uint32_t lineNum,
                                  EmitterMode emitterMode)
   : sc(sc),
@@ -118,7 +117,6 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
     current(&main),
     parser(parser),
     evalCaller(evalCaller),
-    evalStaticScope(staticEvalScope),
     topStmt(nullptr),
     topScopeStmt(nullptr),
     staticScope(cx),
@@ -143,8 +141,6 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
 {
     MOZ_ASSERT_IF(evalCaller, insideEval);
     MOZ_ASSERT_IF(emitterMode == LazyFunction, lazyScript);
-    
-    MOZ_ASSERT_IF(evalStaticScope, !sc->isFunctionBox());
 }
 
 bool
@@ -770,7 +766,7 @@ BytecodeEmitter::enclosingStaticScope()
 
         
         
-        return evalStaticScope;
+        return sc->asGlobalSharedContext()->evalStaticScope();
     }
 
     return sc->asFunctionBox()->function();
@@ -5528,7 +5524,6 @@ BytecodeEmitter::emitFunction(ParseNode* pn, bool needsProto)
             uint32_t lineNum = parser->tokenStream.srcCoords.lineNum(pn->pn_pos.begin);
             BytecodeEmitter bce2(this, parser, funbox, script,  nullptr,
                                  insideEval, evalCaller,
-                                  nullptr,
                                  insideNonGlobalEval, lineNum, emitterMode);
             if (!bce2.init())
                 return false;
