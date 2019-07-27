@@ -1110,8 +1110,13 @@ nsAutoCompleteController::StartSearch(uint16_t aSearchType)
   NS_ENSURE_STATE(mInput);
   nsCOMPtr<nsIAutoCompleteInput> input = mInput;
 
-  for (uint32_t i = 0; i < mSearches.Length(); ++i) {
-    nsCOMPtr<nsIAutoCompleteSearch> search = mSearches[i];
+  
+  
+  
+  
+  nsCOMArray<nsIAutoCompleteSearch> searchesCopy(mSearches);
+  for (uint32_t i = 0; i < searchesCopy.Length(); ++i) {
+    nsCOMPtr<nsIAutoCompleteSearch> search = searchesCopy[i];
 
     
     
