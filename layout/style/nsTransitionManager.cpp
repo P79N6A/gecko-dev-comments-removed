@@ -158,26 +158,11 @@ CSSTransition::HasLowerCompositeOrderThan(const Animation& aOther) const
   }
 
   
-  Element* ourElement;
-  nsCSSPseudoElements::Type ourPseudoType;
-  GetOwningElement(ourElement, ourPseudoType);
-
-  Element* otherElement;
-  nsCSSPseudoElements::Type otherPseudoType;
-  otherTransition->GetOwningElement(otherElement, otherPseudoType);
-  MOZ_ASSERT(ourElement && otherElement,
-             "Transitions using custom composite order should have an "
-             "owning element");
-
-  if (ourElement != otherElement) {
-    return nsContentUtils::PositionIsBefore(ourElement, otherElement);
-  }
-
-  
-  if (ourPseudoType != otherPseudoType) {
-    return ourPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
-           (ourPseudoType == nsCSSPseudoElements::ePseudo_before &&
-            otherPseudoType == nsCSSPseudoElements::ePseudo_after);
+  MOZ_ASSERT(mOwningElement.IsSet() && otherTransition->OwningElement().IsSet(),
+             "Transitions using custom composite order should have an owning "
+             "element");
+  if (!mOwningElement.Equals(otherTransition->OwningElement())) {
+    return mOwningElement.LessThan(otherTransition->OwningElement());
   }
 
   
@@ -647,7 +632,8 @@ nsTransitionManager::ConsiderStartingTransition(
   segment.mTimingFunction.Init(tf);
 
   nsRefPtr<CSSTransition> animation = new CSSTransition(timeline);
-  animation->SetOwningElement(*aElement, aNewStyleContext->GetPseudoType());
+  animation->SetOwningElement(
+    OwningElementRef(*aElement, aNewStyleContext->GetPseudoType()));
   animation->SetCreationSequence(
     mPresContext->RestyleManager()->GetAnimationGeneration());
   

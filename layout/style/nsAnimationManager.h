@@ -60,8 +60,6 @@ public:
                        const nsSubstring& aAnimationName)
     : dom::Animation(aTimeline)
     , mAnimationName(aAnimationName)
-    , mOwningElement(nullptr)
-    , mOwningPseudoType(nsCSSPseudoElements::ePseudo_NotPseudoElement)
     , mIsStylePaused(false)
     , mPauseShouldStick(false)
     , mPreviousPhaseOrIteration(PREVIOUS_PHASE_BEFORE)
@@ -97,9 +95,7 @@ public:
   void PauseFromStyle();
   void CancelFromStyle() override
   {
-    mOwningElement = nullptr;
-    mOwningPseudoType = nsCSSPseudoElements::ePseudo_NotPseudoElement;
-
+    mOwningElement = OwningElementRef();
     Animation::CancelFromStyle();
     MOZ_ASSERT(mSequenceNum == kUnsequenced);
   }
@@ -107,7 +103,10 @@ public:
   bool IsStylePaused() const { return mIsStylePaused; }
 
   bool HasLowerCompositeOrderThan(const Animation& aOther) const override;
-  bool IsUsingCustomCompositeOrder() const override { return !!mOwningElement; }
+  bool IsUsingCustomCompositeOrder() const override
+  {
+    return mOwningElement.IsSet();
+  }
 
   void SetAnimationIndex(uint64_t aIndex)
   {
@@ -139,27 +138,15 @@ public:
   
   
   
-  
-  void GetOwningElement(dom::Element*& aElement,
-                        nsCSSPseudoElements::Type& aPseudoType) const {
-    MOZ_ASSERT(mOwningElement != nullptr ||
-               mOwningPseudoType ==
-                 nsCSSPseudoElements::ePseudo_NotPseudoElement,
-               "When there is no owning element there should be no "
-               "pseudo-type");
-    aElement = mOwningElement;
-    aPseudoType = mOwningPseudoType;
-  }
+  const OwningElementRef& OwningElement() const { return mOwningElement; }
 
   
   
   
   
-  void SetOwningElement(dom::Element& aElement,
-                        nsCSSPseudoElements::Type aPseudoType)
+  void SetOwningElement(const OwningElementRef& aElement)
   {
-    mOwningElement = &aElement;
-    mOwningPseudoType = aPseudoType;
+    mOwningElement = aElement;
   }
 
   
@@ -172,8 +159,8 @@ public:
 protected:
   virtual ~CSSAnimation()
   {
-    MOZ_ASSERT(!mOwningElement, "Owning element should be cleared before a "
-                                "CSS animation is destroyed");
+    MOZ_ASSERT(!mOwningElement.IsSet(), "Owning element should be cleared "
+                                        "before a CSS animation is destroyed");
   }
   virtual css::CommonAnimationManager* GetAnimationManager() const override;
 
@@ -183,11 +170,7 @@ protected:
 
   
   
-  
-  
-  
-  dom::Element* MOZ_NON_OWNING_REF mOwningElement;
-  nsCSSPseudoElements::Type        mOwningPseudoType;
+  OwningElementRef mOwningElement;
 
   
   

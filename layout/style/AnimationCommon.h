@@ -22,6 +22,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
+#include "nsContentUtils.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsCSSPropertySet.h"
@@ -455,6 +456,61 @@ public:
 #endif
 };
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class OwningElementRef final
+{
+public:
+  OwningElementRef()
+    : mElement(nullptr)
+    , mPseudoType(nsCSSPseudoElements::ePseudo_NotPseudoElement)
+  { }
+
+  OwningElementRef(dom::Element& aElement,
+                   nsCSSPseudoElements::Type aPseudoType)
+    : mElement(&aElement)
+    , mPseudoType(aPseudoType)
+  { }
+
+  bool Equals(const OwningElementRef& aOther) const
+  {
+    return mElement == aOther.mElement &&
+           mPseudoType == aOther.mPseudoType;
+  }
+
+  bool LessThan(const OwningElementRef& aOther) const
+  {
+    MOZ_ASSERT(mElement && aOther.mElement,
+               "Elements to compare should not be null");
+
+    if (mElement != aOther.mElement) {
+      return nsContentUtils::PositionIsBefore(mElement, aOther.mElement);
+    }
+
+    return mPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+          (mPseudoType == nsCSSPseudoElements::ePseudo_before &&
+           aOther.mPseudoType == nsCSSPseudoElements::ePseudo_after);
+  }
+
+  bool IsSet() const { return !!mElement; }
+
+private:
+  dom::Element* MOZ_NON_OWNING_REF mElement;
+  nsCSSPseudoElements::Type        mPseudoType;
+};
+
+} 
 
 #endif 
