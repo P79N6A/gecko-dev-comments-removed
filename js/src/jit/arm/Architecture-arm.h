@@ -521,7 +521,31 @@ bool HasVFPv3();
 bool HasVFP();
 bool Has32DP();
 bool HasIDIV();
-bool HasAlignmentFault();
+
+extern volatile uint32_t armHwCapFlags;
+
+
+
+
+
+#define HWCAP_UNINITIALIZED (1 << 25)
+
+
+#define HWCAP_ALIGNMENT_FAULT (1 << 26)
+
+
+#define HWCAP_USE_HARDFP_ABI (1 << 27)
+
+
+#define HWCAP_ARMv7 (1 << 28)
+
+
+
+inline bool HasAlignmentFault()
+{
+    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
+    return armHwCapFlags & HWCAP_ALIGNMENT_FAULT;
+}
 
 
 

@@ -38,20 +38,6 @@
 # endif
 #endif
 
-
-
-
-#define HWCAP_ARMv7 (1 << 28)
-
-
-#define HWCAP_USE_HARDFP_ABI (1 << 27)
-
-
-#define HWCAP_ALIGNMENT_FAULT (1 << 26)
-
-
-#define HWCAP_UNINITIALIZED (1 << 25)
-
 namespace js {
 namespace jit {
 
@@ -142,7 +128,7 @@ CanonicalizeARMHwCapFlags(uint32_t flags)
 
 
 
-volatile static uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
+volatile uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
 
 bool
 ParseARMHwCapFlags(const char *armHwCap)
@@ -315,14 +301,6 @@ bool HasIDIV()
 {
     MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
     return armHwCapFlags & HWCAP_IDIVA;
-}
-
-
-
-bool HasAlignmentFault()
-{
-    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
-    return armHwCapFlags & HWCAP_ALIGNMENT_FAULT;
 }
 
 
