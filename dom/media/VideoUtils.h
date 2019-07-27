@@ -149,7 +149,10 @@ static const int64_t USECS_PER_S = 1000000;
 static const int64_t USECS_PER_MS = 1000;
 
 
-#define MS_TO_SECONDS(s) ((double)(s) / (PR_MSEC_PER_SEC))
+#define MS_TO_SECONDS(ms) ((double)(ms) / (PR_MSEC_PER_SEC))
+
+
+#define SECONDS_TO_MS(s) ((int)((s) * (PR_MSEC_PER_SEC)))
 
 
 

@@ -1354,6 +1354,51 @@ protected:
 
   ElementInTreeState mElementInTreeState;
 
+public:
+  
+  class TimeDurationAccumulator {
+  public:
+    TimeDurationAccumulator()
+      : mCount(0)
+    {
+    }
+    void Start() {
+      if (IsStarted()) {
+        return;
+      }
+      mStartTime = TimeStamp::Now();
+    }
+    void Pause() {
+      if (!IsStarted()) {
+        return;
+      }
+      mSum += (TimeStamp::Now() - mStartTime);
+      mCount++;
+      mStartTime = TimeStamp();
+    }
+    bool IsStarted() const {
+      return !mStartTime.IsNull();
+    }
+    double Total() const {
+      return mSum.ToSeconds();
+    }
+    uint32_t Count() const {
+      return mCount;
+    }
+  private:
+    TimeStamp mStartTime;
+    TimeDuration mSum;
+    uint32_t mCount;
+  };
+private:
+  
+  TimeDurationAccumulator mPlayTime;
+
+  
+  TimeDurationAccumulator mRebufferTime;
+
+  
+  TimeDurationAccumulator mJoinLatency;
 };
 
 } 
