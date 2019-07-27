@@ -125,12 +125,9 @@ SandboxFilterImpl::Build() {
   Allow(SYSCALL(mmap));
 #endif
 
-  
-#ifdef MOZ_WIDGET_GONK
   Allow(SYSCALL(clock_gettime));
   Allow(SYSCALL(epoll_wait));
   Allow(SYSCALL(gettimeofday));
-#endif
   Allow(SYSCALL(read));
   Allow(SYSCALL(write));
   
@@ -221,8 +218,6 @@ SandboxFilterImpl::Build() {
   
   Allow(SYSCALL_WITH_ARG(tgkill, 0, uint32_t(getpid())));
 
-  
-#ifdef MOZ_WIDGET_GONK
   Allow(SOCKETCALL(sendto, SENDTO));
   Allow(SOCKETCALL(recvfrom, RECVFROM));
   Allow(SYSCALL_LARGEFILE(getdents, getdents64));
@@ -231,7 +226,6 @@ SandboxFilterImpl::Build() {
   Allow(SYSCALL(sched_getscheduler));
   Allow(SYSCALL(sched_setscheduler));
   Allow(SYSCALL(sigaltstack));
-#endif
 
   
   
@@ -252,7 +246,7 @@ SandboxFilterImpl::Build() {
 
   
   
-#ifndef MOZ_WIDGET_GONK
+#ifndef ANDROID
   Allow(SYSCALL(stat));
   Allow(SYSCALL(getdents));
   Allow(SYSCALL(lstat));
