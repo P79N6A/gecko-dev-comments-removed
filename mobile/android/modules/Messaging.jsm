@@ -77,8 +77,6 @@ let RequestService = {
 
 
 
-
-
   addListener: function (aListener, aMessage) {
     requestHandler.addListener(aListener, aMessage);
   },
