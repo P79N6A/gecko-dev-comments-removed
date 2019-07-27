@@ -163,6 +163,10 @@ Spectrum.draggable = function(element, onmove, onstart, onstop) {
 
   function move(e) {
     if (dragging) {
+      if (e.buttons === 0) {
+        
+        return stop();
+      }
       let pageX = e.pageX;
       let pageY = e.pageY;
 
