@@ -18,6 +18,10 @@
 #include "ipc/Nuwa.h"
 #endif
 
+#ifdef MOZ_B2G_LOADER
+#include "ProcessUtils.h"
+#endif
+
 
 
 
@@ -133,7 +137,14 @@ PreallocatedProcessManagerImpl::Init()
     os->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
                      false);
   }
-  RereadPrefs();
+#ifdef MOZ_B2G_LOADER
+  if (!mozilla::ipc::ProcLoaderIsInitialized()) {
+    Disable();
+  } else
+#endif
+  {
+    RereadPrefs();
+  }
 }
 
 NS_IMETHODIMP
