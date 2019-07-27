@@ -152,9 +152,10 @@ let selectNode = Task.async(function*(selector, inspector, reason="test") {
 
 
 
-let openInspectorForURL = Task.async(function* (url) {
+
+let openInspectorForURL = Task.async(function*(url, hostType) {
   let tab = yield addTab(url);
-  let { inspector, toolbox } = yield openInspector();
+  let { inspector, toolbox } = yield openInspector(null, hostType);
   return { tab, inspector, toolbox };
 });
 
@@ -164,7 +165,8 @@ let openInspectorForURL = Task.async(function* (url) {
 
 
 
-let openInspector = Task.async(function*(cb) {
+
+let openInspector = Task.async(function*(cb, hostType) {
   info("Opening the inspector");
   let target = TargetFactory.forTab(gBrowser.selectedTab);
 
@@ -190,7 +192,7 @@ let openInspector = Task.async(function*(cb) {
   }
 
   info("Opening the toolbox");
-  toolbox = yield gDevTools.showToolbox(target, "inspector");
+  toolbox = yield gDevTools.showToolbox(target, "inspector", hostType);
   yield waitForToolboxFrameFocus(toolbox);
   inspector = toolbox.getPanel("inspector");
 
