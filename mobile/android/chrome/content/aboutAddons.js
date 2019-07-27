@@ -348,15 +348,11 @@ var Addons = {
             let event = document.createEvent("Events");
             event.initEvent("AddonOptionsLoad", true, false);
             window.dispatchEvent(event);
-  
-            
-            let id = aListItem.getAttribute("addonID");
-            Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
-          } else {
-            
-            detailItem.setAttribute("optionsURL", "");
-            aListItem.setAttribute("optionsURL", "");
           }
+
+          
+          let id = aListItem.getAttribute("addonID");
+          Services.obs.notifyObservers(document, AddonManager.OPTIONS_NOTIFICATION_DISPLAYED, id);
         }
       }
       xhr.send(null);
