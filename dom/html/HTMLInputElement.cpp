@@ -7287,7 +7287,8 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
   nsTArray<nsFilePickerFilter> filters;
   nsString allExtensionsList;
 
-  bool allFiltersAreValid = true;
+  bool allMimeTypeFiltersAreValid = true;
+  bool atLeastOneFileExtensionFilter = false;
 
   
   while (tokenizer.hasMoreTokens()) {
@@ -7314,6 +7315,10 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
       filterMask = nsIFilePicker::filterVideo;
       filterBundle->GetStringFromName(MOZ_UTF16("videoFilter"),
                                       getter_Copies(extensionListStr));
+    } else if (token.First() == '.') {
+      extensionListStr = NS_LITERAL_STRING("*") + token;
+      filterName = extensionListStr + NS_LITERAL_STRING("; ");
+      atLeastOneFileExtensionFilter = true;
     } else {
       
       nsCOMPtr<nsIMIMEInfo> mimeInfo;
@@ -7322,7 +7327,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
                       EmptyCString(), 
                       getter_AddRefs(mimeInfo))) ||
           !mimeInfo) {
-        allFiltersAreValid =  false;
+        allMimeTypeFiltersAreValid =  false;
         continue;
       }
 
@@ -7355,7 +7360,7 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
 
     if (!filterMask && (extensionListStr.IsEmpty() || filterName.IsEmpty())) {
       
-      allFiltersAreValid = false;
+      allMimeTypeFiltersAreValid = false;
       continue;
     }
 
@@ -7395,9 +7400,8 @@ HTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
     }
   }
 
-  
-  
-  if (filters.Length() >= 1 && allFiltersAreValid) {
+  if (filters.Length() >= 1 &&
+      (allMimeTypeFiltersAreValid || atLeastOneFileExtensionFilter)) {
     
     
     filePicker->SetFilterIndex(1);
