@@ -78,23 +78,6 @@ class NormalArgumentsObject;
 class SetObject;
 class StrictArgumentsObject;
 
-
-
-
-
-
-
-inline void
-DenseRangeWriteBarrierPost(JSRuntime *rt, JSObject *obj, uint32_t start, uint32_t count)
-{
-#ifdef JSGC_GENERATIONAL
-    if (count > 0) {
-        JS::shadow::Runtime *shadowRuntime = JS::shadow::Runtime::asShadowRuntime(rt);
-        shadowRuntime->gcStoreBufferPtr()->putSlotFromAnyThread(obj, HeapSlot::Element, start, count);
-    }
-#endif
-}
-
 namespace gc {
 class ForkJoinNursery;
 }
@@ -128,49 +111,6 @@ class JSObject : public js::gc::Cell
 
 
     js::HeapPtrTypeObject type_;
-
-    
-    
-    js::HeapSlot *slots;     
-    js::HeapSlot *elements;  
-
-  public:
-    
-    
-    inline void *fakeNativeGetPrivate() const;
-    inline void *fakeNativeGetPrivate(uint32_t nfixed) const;
-    inline void fakeNativeSetPrivate(void *data);
-    inline bool fakeNativeHasPrivate() const;
-    inline void fakeNativeInitPrivate(void *data);
-    inline void *&fakeNativePrivateRef(uint32_t nfixed) const;
-    inline uint32_t fakeNativeSlotSpan();
-    inline const js::Value &fakeNativeGetSlot(uint32_t slot);
-    inline void fakeNativeSetSlot(uint32_t slot, const js::Value &value);
-    inline js::HeapSlot &fakeNativeGetSlotRef(uint32_t slot);
-    inline const js::Value &fakeNativeGetReservedSlot(uint32_t slot) const;
-    inline js::HeapSlot &fakeNativeGetReservedSlotRef(uint32_t slot);
-    inline void fakeNativeSetReservedSlot(uint32_t slot, const js::Value &value);
-    inline void fakeNativeInitReservedSlot(uint32_t slot, const js::Value &value);
-    inline void fakeNativeSetCrossCompartmentSlot(uint32_t slot, const js::Value &value);
-    inline void fakeNativeInitCrossCompartmentSlot(uint32_t slot, const js::Value &value);
-    inline void fakeNativeSetInitialSlots(js::HeapSlot *newSlots);
-    inline bool fakeNativeHasDynamicSlots() const;
-    inline uint32_t fakeNativeNumFixedSlots() const;
-    inline uint32_t fakeNativeNumDynamicSlots() const;
-    inline js::HeapSlot *&fakeNativeSlots();
-    inline void fakeNativeInitSlot(uint32_t slot, const js::Value &value);
-    inline void fakeNativeInitSlotRange(uint32_t start, const js::Value *vector, uint32_t length);
-    inline void fakeNativeInitializeSlotRange(uint32_t start, uint32_t count);
-    inline bool fakeNativeHasDynamicElements() const;
-    inline bool fakeNativeHasEmptyElements() const;
-    inline js::HeapSlotArray fakeNativeGetDenseElements();
-    inline bool fakeNativeDenseElementsAreCopyOnWrite();
-    inline js::ObjectElements *fakeNativeGetElementsHeader() const;
-    inline js::HeapSlot *&fakeNativeElements();
-    inline uint8_t *fakeNativeFixedData(size_t nslots) const;
-    inline const js::Value &fakeNativeGetDenseElement(uint32_t idx);
-    inline uint32_t fakeNativeGetDenseInitializedLength();
-    inline const js::HeapSlot *fakeNativeGetSlotAddressUnchecked(uint32_t slot) const;
 
   private:
     friend class js::Shape;
@@ -245,6 +185,13 @@ class JSObject : public js::gc::Cell
                                    js::gc::InitialHeap heap,
                                    js::HandleShape shape,
                                    js::HandleTypeObject type);
+
+    
+    
+    
+    
+    inline void setInitialSlotsMaybeNonNative(js::HeapSlot *slots);
+    inline void setInitialElementsMaybeNonNative(js::HeapSlot *elements);
 
   protected:
     enum GenerateShape {
@@ -578,7 +525,6 @@ class JSObject : public js::gc::Cell
     JSNative callHook() const;
     JSNative constructHook() const;
 
-    inline void finish(js::FreeOp *fop);
     MOZ_ALWAYS_INLINE void finalize(js::FreeOp *fop);
 
     static inline bool hasProperty(JSContext *cx, js::HandleObject obj,
@@ -598,15 +544,6 @@ class JSObject : public js::gc::Cell
     bool callMethod(JSContext *cx, js::HandleId id, unsigned argc, js::Value *argv,
                     js::MutableHandleValue vp);
 
-  private:
-    struct TradeGutsReserved;
-    static bool ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
-                                    TradeGutsReserved &reserved);
-
-    static void TradeGuts(JSContext *cx, JSObject *a, JSObject *b,
-                          TradeGutsReserved &reserved);
-
-  public:
     static bool lookupGeneric(JSContext *cx, js::HandleObject obj, js::HandleId id,
                               js::MutableHandleObject objp, js::MutableHandleShape propp);
 
@@ -820,11 +757,13 @@ operator!=(const JSObject &lhs, const JSObject &rhs)
     return &lhs != &rhs;
 }
 
-struct JSObject_Slots2 : JSObject { js::Value fslots[2]; };
-struct JSObject_Slots4 : JSObject { js::Value fslots[4]; };
-struct JSObject_Slots8 : JSObject { js::Value fslots[8]; };
-struct JSObject_Slots12 : JSObject { js::Value fslots[12]; };
-struct JSObject_Slots16 : JSObject { js::Value fslots[16]; };
+
+struct JSObject_Slots0 : JSObject { void *data[2]; };
+struct JSObject_Slots2 : JSObject { void *data[2]; js::Value fslots[2]; };
+struct JSObject_Slots4 : JSObject { void *data[2]; js::Value fslots[4]; };
+struct JSObject_Slots8 : JSObject { void *data[2]; js::Value fslots[8]; };
+struct JSObject_Slots12 : JSObject { void *data[2]; js::Value fslots[12]; };
+struct JSObject_Slots16 : JSObject { void *data[2]; js::Value fslots[16]; };
 
  MOZ_ALWAYS_INLINE void
 JSObject::readBarrier(JSObject *obj)
@@ -958,7 +897,7 @@ GetBuiltinPrototypePure(GlobalObject *global, JSProtoKey protoKey);
 
 extern bool
 SetClassAndProto(JSContext *cx, HandleObject obj,
-                 const Class *clasp, Handle<TaggedProto> proto, bool crashOnFailure);
+                 const Class *clasp, Handle<TaggedProto> proto);
 
 
 

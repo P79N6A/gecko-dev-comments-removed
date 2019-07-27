@@ -512,7 +512,7 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 
 
 
-            MarkSlot(trc, wrapper->slotOfPrivate(), "cross-compartment wrapper");
+            MarkValue(trc, wrapper->slotOfPrivate(), "cross-compartment wrapper");
         }
     }
 }

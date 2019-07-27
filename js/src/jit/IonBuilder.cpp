@@ -7250,13 +7250,8 @@ IonBuilder::checkTypedObjectIndexInBounds(int32_t elemSize,
         
         *canBeNeutered = true;
     } else if (objPrediction.kind() == type::UnsizedArray) {
-        MInstruction *lengthValue = MLoadFixedSlot::New(alloc(), obj, OutlineTypedObject::LENGTH_SLOT);
-        current->add(lengthValue);
-
-        MInstruction *length32 = MTruncateToInt32::New(alloc(), lengthValue);
-        current->add(length32);
-
-        length = length32;
+        length = MTypedObjectUnsizedLength::New(alloc(), obj);
+        current->add(length->toInstruction());
 
         
         

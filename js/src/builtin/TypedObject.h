@@ -683,41 +683,59 @@ typedef Handle<TypedObject*> HandleTypedObject;
 
 class OutlineTypedObject : public TypedObject
 {
+    
+    
+    
+    JSObject *owner_;
+
+    
+    uint8_t *data_;
+
+    
+    
+    uint32_t unsizedLength_;
+
+    void setOwnerAndData(JSObject *owner, uint8_t *data);
+
+    void setUnsizedLength(uint32_t length) {
+        MOZ_ASSERT(typeDescr().is<UnsizedArrayTypeDescr>());
+        unsizedLength_ = length;
+    }
+
   public:
-    
-    static const size_t OWNER_SLOT = 0;
+    static gc::AllocKind allocKindForTypeDescriptor(TypeDescr *descr) {
+        
+        
+        if (descr->is<UnsizedArrayTypeDescr>())
+            return gc::FINALIZE_OBJECT2;
+        return gc::FINALIZE_OBJECT0;
+    }
 
     
-    static const size_t LENGTH_SLOT = 1;
-
-    
-    static const size_t DATA_SLOT = 3;
-
-    static size_t offsetOfOwnerSlot();
-
-    
-    
-    
-    
-    
-    
-    static size_t offsetOfDataSlot();
+    static size_t offsetOfData() { return offsetof(OutlineTypedObject, data_); }
+    static size_t offsetOfOwner() { return offsetof(OutlineTypedObject, owner_); }
+    static size_t offsetOfUnsizedLength() { return offsetof(OutlineTypedObject, unsizedLength_); }
 
     JSObject &owner() const {
-        return fakeNativeGetReservedSlot(OWNER_SLOT).toObject();
+        MOZ_ASSERT(owner_);
+        return *owner_;
     }
 
     JSObject *maybeOwner() const {
-        return fakeNativeGetReservedSlot(OWNER_SLOT).toObjectOrNull();
+        return owner_;
     }
 
     uint8_t *outOfLineTypedMem() const {
-        return static_cast<uint8_t *>(fakeNativeGetPrivate(DATA_SLOT));
+        return data_;
     }
 
     int32_t unsizedLength() const {
         MOZ_ASSERT(typeDescr().is<UnsizedArrayTypeDescr>());
-        return fakeNativeGetReservedSlot(LENGTH_SLOT).toInt32();
+        return unsizedLength_;
+    }
+
+    void setData(uint8_t *data) {
+        data_ = data;
     }
 
     
@@ -775,6 +793,9 @@ class OutlineOpaqueTypedObject : public OutlineTypedObject
 
 class InlineOpaqueTypedObject : public TypedObject
 {
+    
+    uint8_t data_[1];
+
   public:
     static const Class class_;
 
@@ -789,7 +810,11 @@ class InlineOpaqueTypedObject : public TypedObject
         return gc::GetGCObjectKind(dataSlots);
     }
 
-    uint8_t *inlineTypedMem() const;
+    uint8_t *inlineTypedMem() const {
+        static_assert(offsetof(InlineOpaqueTypedObject, data_) == sizeof(JSObject),
+                      "The data for an inline typed object must follow the shape and type.");
+        return (uint8_t *) &data_;
+    }
 
     static void obj_trace(JSTracer *trace, JSObject *object);
 

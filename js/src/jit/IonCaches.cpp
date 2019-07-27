@@ -471,6 +471,7 @@ GeneratePrototypeGuards(JSContext *cx, IonScript *ion, MacroAssembler &masm, JSO
 
 
 
+
     MOZ_ASSERT(obj != holder);
 
     if (obj->hasUncacheableProto()) {
@@ -681,11 +682,10 @@ GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
     
     
     Address handlerAddr(object, ProxyObject::offsetOfHandler());
-    Address expandoSlotAddr(object, NativeObject::getFixedSlotOffset(GetDOMProxyExpandoSlot()));
 
     
-    masm.branchPrivatePtr(Assembler::NotEqual, handlerAddr,
-                          ImmPtr(obj->as<ProxyObject>().handler()), stubFailure);
+    masm.branchPtr(Assembler::NotEqual, handlerAddr,
+                   ImmPtr(obj->as<ProxyObject>().handler()), stubFailure);
 
     if (skipExpandoCheck)
         return;
@@ -700,8 +700,12 @@ GenerateDOMProxyChecks(JSContext *cx, MacroAssembler &masm, JSObject *obj,
     Label failDOMProxyCheck;
     Label domProxyOk;
 
-    Value expandoVal = obj->fakeNativeGetSlot(GetDOMProxyExpandoSlot());
-    masm.loadValue(expandoSlotAddr, tempVal);
+    Value expandoVal = GetProxyExtra(obj, GetDOMProxyExpandoSlot());
+
+    masm.loadPtr(Address(object, ProxyObject::offsetOfValues()), tempVal.scratchReg());
+    masm.loadValue(Address(tempVal.scratchReg(),
+                           ProxyObject::offsetOfExtraSlotInValues(GetDOMProxyExpandoSlot())),
+                   tempVal);
 
     if (!expandoVal.isObject() && !expandoVal.isUndefined()) {
         masm.branchTestValue(Assembler::NotEqual, tempVal, expandoVal, &failDOMProxyCheck);
@@ -2874,7 +2878,7 @@ SetPropertyIC::update(JSContext *cx, size_t cacheIndex, HandleObject obj,
         }
     }
 
-    uint32_t oldSlots = obj->fakeNativeNumDynamicSlots();
+    uint32_t oldSlots = obj->is<NativeObject>() ? obj->as<NativeObject>().numDynamicSlots() : 0;
     RootedShape oldShape(cx, obj->lastProperty());
 
     

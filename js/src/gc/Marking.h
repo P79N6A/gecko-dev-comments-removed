@@ -235,7 +235,7 @@ void
 MarkArraySlots(JSTracer *trc, size_t len, HeapSlot *vec, const char *name);
 
 void
-MarkObjectSlots(JSTracer *trc, JSObject *obj, uint32_t start, uint32_t nslots);
+MarkObjectSlots(JSTracer *trc, NativeObject *obj, uint32_t start, uint32_t nslots);
 
 void
 MarkCrossCompartmentObjectUnbarriered(JSTracer *trc, JSObject *src, JSObject **dst_obj,
@@ -250,7 +250,7 @@ MarkCrossCompartmentScriptUnbarriered(JSTracer *trc, JSObject *src, JSScript **d
 
 
 void
-MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapSlot *dst_slot, const char *name);
+MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapValue *dst_slot, const char *name);
 
 
 

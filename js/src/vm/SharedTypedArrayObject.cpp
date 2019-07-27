@@ -71,7 +71,6 @@ InitSharedArrayBufferViewDataPointer(SharedTypedArrayObject *obj, SharedArrayBuf
 
     MOZ_ASSERT(buffer->dataPointer() != nullptr);
     obj->initPrivate(buffer->dataPointer() + byteOffset);
-    PostBarrierTypedArrayObject(obj);
 }
 
 
