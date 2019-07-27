@@ -22,7 +22,13 @@ import android.widget.ImageView;
 
 
 
+
+
+
+
+
 public class FaviconView extends ImageView {
+    
     private static String DEFAULT_FAVICON_KEY = "DefaultFavicon";
     private static int DEFAULT_FAVICON_RES_ID = R.drawable.favicon_globe;
 
