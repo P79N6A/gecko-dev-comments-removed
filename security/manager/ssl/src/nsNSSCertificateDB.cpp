@@ -1629,8 +1629,10 @@ NS_IMETHODIMP nsNSSCertificateDB::AddCertFromBase64(const char* aBase64,
     return MapSECStatus(SECFailure);
   }
 
+   
+   
   if (tmpCert->isperm) {
-    return NS_OK;
+    return SetCertTrustFromString(newCert, aTrust);
   }
 
   nsXPIDLCString nickname;
