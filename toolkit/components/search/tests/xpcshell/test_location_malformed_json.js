@@ -37,14 +37,14 @@ function run_test() {
           isUSTimezone(),
           "should have set isUS based on current timezone.");
     
-    let histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS");
-    let snapshot = histogram.snapshot();
-    equal(snapshot.sum, 0);
-
+    checkCountryResultTelemetry(TELEMETRY_RESULT_ENUM.SUCCESS_WITHOUT_DATA);
     
-    histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS_WITHOUT_DATA");
-    snapshot = histogram.snapshot();
-    equal(snapshot.sum, 1);
+    for (let hid of ["SEARCH_SERVICE_COUNTRY_TIMEOUT",
+                     "SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT"]) {
+      let histogram = Services.telemetry.getHistogramById(hid);
+      let snapshot = histogram.snapshot();
+      deepEqual(snapshot.counts, [1,0,0]); 
+    }
 
     do_test_finished();
     run_next_test();

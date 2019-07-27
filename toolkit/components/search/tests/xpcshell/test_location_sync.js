@@ -64,15 +64,32 @@ add_task(function* test_simple() {
   deepEqual(getCountryCodePref(), undefined, "didn't do the geoip xhr");
   
   for (let hid of [
-    "SEARCH_SERVICE_COUNTRY_FETCH_MS",
-    "SEARCH_SERVICE_COUNTRY_SUCCESS",
-    "SEARCH_SERVICE_COUNTRY_SUCCESS_WITHOUT_DATA",
-    "SEARCH_SERVICE_COUNTRY_FETCH_TIMEOUT",
+    "SEARCH_SERVICE_COUNTRY_FETCH_RESULT",
+    "SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS",
+    "SEARCH_SERVICE_COUNTRY_TIMEOUT",
     "SEARCH_SERVICE_US_COUNTRY_MISMATCHED_TIMEZONE",
     "SEARCH_SERVICE_US_TIMEZONE_MISMATCHED_COUNTRY",
+    "SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT",
     ]) {
       let histogram = Services.telemetry.getHistogramById(hid);
       let snapshot = histogram.snapshot();
-      equal(snapshot.sum, 0);
+      equal(snapshot.sum, 0, hid);
+      switch (snapshot.histogram_type) {
+        case Ci.nsITelemetry.HISTOGRAM_FLAG:
+          
+          
+          deepEqual(snapshot.counts, [1,0,0], hid);
+          break;
+        case Ci.nsITelemetry.HISTOGRAM_BOOLEAN:
+          
+          deepEqual(snapshot.counts, [0,0,0], hid);
+          break;
+        case Ci.nsITelemetry.HISTOGRAM_EXPONENTIAL:
+        case Ci.nsITelemetry.HISTOGRAM_LINEAR:
+          equal(snapshot.counts.reduce((a, b) => a+b), 0, hid);
+          break;
+        default:
+          ok(false, "unknown histogram type " + snapshot.histogram_type + " for " + hid);
+      }
     }
 });

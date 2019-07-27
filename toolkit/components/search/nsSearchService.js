@@ -25,6 +25,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
   "resource://gre/modules/Deprecated.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SearchStaticData",
   "resource://gre/modules/SearchStaticData.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "setTimeout",
+  "resource://gre/modules/Timer.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "clearTimeout",
+  "resource://gre/modules/Timer.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gTextToSubURI",
                                    "@mozilla.org/intl/texttosuburi;1",
@@ -464,60 +468,112 @@ let ensureKnownCountryCode = Task.async(function* () {
     return; 
   } catch(e) {}
   
-  let cc = yield fetchCountryCode();
-  if (cc) {
-    
-    Services.prefs.setCharPref("browser.search.countryCode", cc);
-    
-    
-    
-    if (getLocale() == "en-US") {
-      Services.prefs.setBoolPref("browser.search.isUS", (cc == "US"));
-    }
-    
-    let isTimezoneUS = isUSTimezone();
-    if (cc == "US" && !isTimezoneUS) {
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_US_COUNTRY_MISMATCHED_TIMEZONE").add(1);
-    }
-    if (cc != "US" && isTimezoneUS) {
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_US_TIMEZONE_MISMATCHED_COUNTRY").add(1);
-    }
-  }
+  
+  
+  yield fetchCountryCode();
+  
+  
+  Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT").add(gInitialized);
 });
 
 
+
+function storeCountryCode(cc) {
+  
+  Services.prefs.setCharPref("browser.search.countryCode", cc);
+  
+  
+  
+  if (getLocale() == "en-US") {
+    Services.prefs.setBoolPref("browser.search.isUS", (cc == "US"));
+  }
+  
+  let isTimezoneUS = isUSTimezone();
+  if (cc == "US" && !isTimezoneUS) {
+    Services.telemetry.getHistogramById("SEARCH_SERVICE_US_COUNTRY_MISMATCHED_TIMEZONE").add(1);
+  }
+  if (cc != "US" && isTimezoneUS) {
+    Services.telemetry.getHistogramById("SEARCH_SERVICE_US_TIMEZONE_MISMATCHED_COUNTRY").add(1);
+  }
+}
+
+
 function fetchCountryCode() {
+  
+  const TELEMETRY_RESULT_ENUM = {
+    SUCCESS: 0,
+    SUCCESS_WITHOUT_DATA: 1,
+    XHRTIMEOUT: 2,
+    ERROR: 3,
+    
+    
+    
+  };
   let endpoint = Services.urlFormatter.formatURLPref("browser.search.geoip.url");
   
   if (!endpoint) {
-    return Promise.resolve(null);
+    return Promise.resolve();
   }
   let startTime = Date.now();
   return new Promise(resolve => {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let timeoutMS = Services.prefs.getIntPref("browser.search.geoip.timeout");
+    let timerId = setTimeout(() => {
+      LOG("_fetchCountryCode: timeout fetching country information");
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(1);
+      timerId = null;
+      resolve();
+    }, timeoutMS);
+
+    let resolveAndReportSuccess = (result, reason) => {
+      
+      
+      if (result) {
+        storeCountryCode(result);
+      }
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_RESULT").add(reason);
+
+      
+      Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "geoip-lookup-xhr-complete");
+
+      
+      
+      if (timerId == null) {
+        return;
+      }
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT").add(0);
+      clearTimeout(timerId);
+      resolve();
+    };
+
     let request = new XMLHttpRequest();
-    request.timeout = Services.prefs.getIntPref("browser.search.geoip.timeout");
+    
+    Services.obs.notifyObservers(request, SEARCH_SERVICE_TOPIC, "geoip-lookup-xhr-starting");
+    request.timeout = 100000; 
     request.onload = function(event) {
       let took = Date.now() - startTime;
       let cc = event.target.response && event.target.response.country_code;
       LOG("_fetchCountryCode got success response in " + took + "ms: " + cc);
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_MS").add(took);
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS").add(cc ? 1 : 0);
-      if (!cc) {
-        Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS_WITHOUT_DATA").add(1);
-      }
-      resolve(cc);
+      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS").add(took);
+      let reason = cc ? TELEMETRY_RESULT_ENUM.SUCCESS : TELEMETRY_RESULT_ENUM.SUCCESS_WITHOUT_DATA;
+      resolveAndReportSuccess(cc, reason);
+    };
+    request.ontimeout = function(event) {
+      LOG("_fetchCountryCode: XHR finally timed-out fetching country information");
+      resolveAndReportSuccess(null, TELEMETRY_RESULT_ENUM.XHRTIMEOUT);
     };
     request.onerror = function(event) {
       LOG("_fetchCountryCode: failed to retrieve country information");
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS").add(0);
-      resolve(null);
+      resolveAndReportSuccess(null, TELEMETRY_RESULT_ENUM.ERROR);
     };
-    request.ontimeout = function(event) {
-      LOG("_fetchCountryCode: timeout fetching country information");
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIMEOUT").add(1);
-      Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS").add(0);
-      resolve(null);
-    }
     request.open("POST", endpoint, true);
     request.setRequestHeader("Content-Type", "application/json");
     request.responseType = "json";

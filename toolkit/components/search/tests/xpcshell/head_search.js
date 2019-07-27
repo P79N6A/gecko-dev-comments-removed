@@ -302,3 +302,51 @@ let addTestEngines = Task.async(function* (aItems) {
 
   return engines;
 });
+
+
+
+
+
+
+
+
+
+function waitForSearchNotification(aExpectedData) {
+  return new Promise(resolve => {
+    const SEARCH_SERVICE_TOPIC = "browser-search-service";
+    Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
+      if (aData != aExpectedData)
+        return;
+
+      Services.obs.removeObserver(observer, SEARCH_SERVICE_TOPIC);
+      resolve(aSubject);
+    }, SEARCH_SERVICE_TOPIC, false);
+  });
+}
+
+
+const TELEMETRY_RESULT_ENUM = {
+  SUCCESS: 0,
+  SUCCESS_WITHOUT_DATA: 1,
+  XHRTIMEOUT: 2,
+  ERROR: 3,
+};
+
+
+
+
+
+
+
+
+
+function checkCountryResultTelemetry(aExpectedValue) {
+  let histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_RESULT");
+  let snapshot = histogram.snapshot();
+  
+  let expectedCounts = [0,0,0,0,0,0,0,0,0];
+  if (aExpectedValue != null) {
+    expectedCounts[aExpectedValue] = 1;
+  }
+  deepEqual(snapshot.counts, expectedCounts);
+}

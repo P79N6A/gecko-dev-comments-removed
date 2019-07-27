@@ -3,6 +3,7 @@
 
 
 
+
 function startServer(continuePromise) {
   let srv = new HttpServer();
   function lookupCountry(metadata, response) {
@@ -22,9 +23,10 @@ function startServer(continuePromise) {
   return srv;
 }
 
-function getProbeSum(probe, sum) {
+function verifyProbeSum(probe, sum) {
   let histogram = Services.telemetry.getHistogramById(probe);
-  return histogram.snapshot().sum;
+  let snapshot = histogram.snapshot();
+  equal(snapshot.sum, sum, probe);
 }
 
 function run_test() {
@@ -54,7 +56,9 @@ function run_test() {
   let server = startServer(continuePromise);
   let url = "http://localhost:" + server.identity.primaryPort + "/lookup_country";
   Services.prefs.setCharPref("browser.search.geoip.url", url);
-  Services.prefs.setIntPref("browser.search.geoip.timeout", 50);
+  
+  Services.prefs.setIntPref("browser.search.geoip.timeout", 10);
+  let promiseXHRStarted = waitForSearchNotification("geoip-lookup-xhr-starting");
   Services.search.init(() => {
     try {
       Services.prefs.getCharPref("browser.search.countryCode");
@@ -67,29 +71,35 @@ function run_test() {
     let histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_TIMEOUT");
     let snapshot = histogram.snapshot();
     deepEqual(snapshot.counts, [0,1,0]);
+
     
     
-    equal(getProbeSum("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS"), 0);
+    verifyProbeSum("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS", 0);
 
-    waitForSearchNotification("geoip-lookup-xhr-complete").then(() => {
+    promiseXHRStarted.then(xhr => {
       
       
+      xhr.timeout = 10;
       
-      ok(getProbeSum("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS") != 0);
-      
-      checkCountryResultTelemetry(TELEMETRY_RESULT_ENUM.SUCCESS);
+      waitForSearchNotification("geoip-lookup-xhr-complete").then(() => {
+        
+        checkCountryResultTelemetry(TELEMETRY_RESULT_ENUM.XHRTIMEOUT);
+        
+        
+        verifyProbeSum("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS", 0);
+        
+        try {
+          Services.prefs.getCharPref("browser.search.countryCode");
+          ok(false, "not expecting countryCode to be set");
+        } catch (ex) {}
 
-      
-      
-      equal(Services.prefs.getCharPref("browser.search.countryCode"), "AU");
-      equal(Services.prefs.getBoolPref("browser.search.isUS"), false);
+        
+        resolveContinuePromise();
 
-      do_test_finished();
-      server.stop(run_next_test);
+        do_test_finished();
+        server.stop(run_next_test);
+      });
     });
-    
-    
-    resolveContinuePromise();
   });
   do_test_pending();
 }

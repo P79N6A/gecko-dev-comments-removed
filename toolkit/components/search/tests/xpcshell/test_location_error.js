@@ -21,6 +21,8 @@ function run_test() {
   });
 
   
+  
+  
   let url = "https://nocert.example.com:443";
   Services.prefs.setCharPref("browser.search.geoip.url", url);
   Services.search.init(() => {
@@ -29,14 +31,14 @@ function run_test() {
       ok(false, "not expecting countryCode to be set");
     } catch (ex) {}
     
-    let histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_SUCCESS");
-    let snapshot = histogram.snapshot();
-    equal(snapshot.sum, 0);
-
+    checkCountryResultTelemetry(TELEMETRY_RESULT_ENUM.ERROR);
     
-    histogram = Services.telemetry.getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIMEOUT");
-    snapshot = histogram.snapshot();
-    equal(snapshot.sum, 0);
+    for (let hid of ["SEARCH_SERVICE_COUNTRY_TIMEOUT",
+                     "SEARCH_SERVICE_COUNTRY_FETCH_CAUSED_SYNC_INIT"]) {
+      let histogram = Services.telemetry.getHistogramById(hid);
+      let snapshot = histogram.snapshot();
+      deepEqual(snapshot.counts, [1,0,0]); 
+    }
 
     do_test_finished();
     run_next_test();
