@@ -94,7 +94,10 @@ public:
 
 
 
-  explicit MediaStreamGraphImpl(bool aRealtime, TrackRate aSampleRate, DOMMediaStream::TrackTypeHints aHint);
+  explicit MediaStreamGraphImpl(bool aRealtime,
+                                TrackRate aSampleRate,
+                                DOMMediaStream::TrackTypeHints aHint,
+                                dom::AudioChannel aChannel = dom::AudioChannel::Normal);
 
   
 
