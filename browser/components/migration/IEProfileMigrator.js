@@ -444,6 +444,7 @@ Cookies.prototype = {
 
       let hostLen = hostpath.indexOf("/");
       let host = hostpath.substr(0, hostLen);
+      let path = hostpath.substr(hostLen);
 
       
       
@@ -455,7 +456,6 @@ Cookies.prototype = {
           host = "." + host;
       }
 
-      let path = hostpath.substr(hostLen);
       let expireTime = CtypesHelpers.fileTimeToDate(Number(expireTimeHi),
                                                     Number(expireTimeLo));
       Services.cookies.add(host,
