@@ -152,6 +152,15 @@ extern bool gBluetoothDebugFlag;
 
 
 
+#define PAIRING_REQ_TYPE_DISPLAYPASSKEY       "displaypasskeyreq"
+#define PAIRING_REQ_TYPE_ENTERPINCODE         "enterpincodereq"
+#define PAIRING_REQ_TYPE_CONFIRMATION         "pairingconfirmationreq"
+#define PAIRING_REQ_TYPE_CONSENT              "pairingconsentreq"
+
+
+
+
+
 #define PAIRED_STATUS_CHANGED_ID             "pairedstatuschanged"
 
 
