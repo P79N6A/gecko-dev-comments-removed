@@ -1399,6 +1399,9 @@ protected:
 
   unsigned mHasWarnedAboutPositionedTableParts : 1;
 
+  
+  unsigned              mQuirkSheetAdded : 1;
+
 #ifdef RESTYLE_LOGGING
   
   bool                  mRestyleLoggingEnabled;

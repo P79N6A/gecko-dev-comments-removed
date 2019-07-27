@@ -2298,22 +2298,6 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument,
       styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
     }
 
-    
-    
-    nsRefPtr<CSSStyleSheet> quirkClone;
-    CSSStyleSheet* quirkSheet;
-    if (!nsLayoutStylesheetCache::UASheet() ||
-        !(quirkSheet = nsLayoutStylesheetCache::QuirkSheet()) ||
-        !(quirkClone = quirkSheet->Clone(nullptr, nullptr, nullptr, nullptr)) ||
-        !sheet) {
-      delete styleSet;
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    
-    
-    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, quirkClone);
-    styleSet->SetQuirkStyleSheet(quirkClone);
-
     if (aDocument->LoadsFullXULStyleSheetUpFront()) {
       
       
@@ -2348,6 +2332,9 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument,
         styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
       }
     }
+
+    
+    
 
     sheet = nsLayoutStylesheetCache::HTMLSheet();
     if (sheet) {

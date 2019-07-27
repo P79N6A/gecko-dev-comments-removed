@@ -95,9 +95,6 @@ class nsStyleSet
   nsRuleNode* GetRuleTree() { return mRuleTree; }
 
   
-  void EnableQuirkStyleSheet(bool aEnable);
-
-  
   already_AddRefed<nsStyleContext>
   ResolveStyleFor(mozilla::dom::Element* aElement,
                   nsStyleContext* aParentContext);
@@ -366,11 +363,6 @@ class nsStyleSet
   
   
   
-  void SetQuirkStyleSheet(nsIStyleSheet* aQuirkStyleSheet);
-
-  
-  
-  
   
   
   
@@ -477,9 +469,6 @@ class nsStyleSet
 
   
   nsTArray<nsCOMPtr<nsIStyleRuleProcessor> > mScopedDocSheetRuleProcessors;
-
-  
-  nsCOMPtr<nsIStyleSheet> mQuirkStyleSheet;
 
   nsRefPtr<nsBindingManager> mBindingManager;
 
