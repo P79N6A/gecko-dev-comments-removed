@@ -10,7 +10,7 @@ import android.util.DisplayMetrics;
 
 
 abstract class ContentContextMenuTest extends PixelTest {
-    private static final int MAX_TEST_TIMEOUT = 10000;
+    private static final int MAX_TEST_TIMEOUT = 30000; 
 
     
     protected void openWebContentContextMenu(String waitText) {
