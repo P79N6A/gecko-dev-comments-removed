@@ -126,7 +126,6 @@ this.SmsSegmentHelper = {
 
 
 
-
   enabledGsmTableTuples: [
     [RIL.PDU_NL_IDENTIFIER_DEFAULT, RIL.PDU_NL_IDENTIFIER_DEFAULT],
   ],
@@ -162,8 +161,8 @@ this.SmsSegmentHelper = {
       if ((bodySeptets + headerSeptets) > segmentSeptets) {
         headerLen += this.segmentRef16Bit ? 6 : 5;
         headerSeptets = Math.ceil((headerLen + 1) * 8 / 7);
-        segmentSeptets -= headerSeptets;
       }
+      segmentSeptets -= headerSeptets;
 
       let segments = Math.ceil(bodySeptets / segmentSeptets);
       let userDataSeptets = bodySeptets + headerSeptets * segments;
