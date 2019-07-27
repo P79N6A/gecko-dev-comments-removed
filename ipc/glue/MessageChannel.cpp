@@ -807,15 +807,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
         }
 
         if (mRecvd) {
-            MOZ_ASSERT(mRecvd->is_reply(), "expected reply");
-            MOZ_ASSERT(!mRecvd->is_reply_error());
-            MOZ_ASSERT(mRecvd->type() == replyType, "wrong reply type");
-            MOZ_ASSERT(mRecvd->seqno() == seqno);
-            MOZ_ASSERT(mRecvd->is_sync());
-
-            *aReply = Move(*mRecvd);
-            mRecvd = nullptr;
-            return true;
+            break;
         }
 
         MOZ_ASSERT(!mTimedOutMessageSeqno);
@@ -831,11 +823,32 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
         
         bool canTimeOut = transaction == seqno;
         if (maybeTimedOut && canTimeOut && !ShouldContinueFromTimeout()) {
+            
+            
+            
+            
+            if (mRecvdErrors) {
+                mRecvdErrors--;
+                return false;
+            }
+            if (mRecvd) {
+                break;
+            }
+
             mTimedOutMessageSeqno = seqno;
             return false;
         }
     }
 
+    MOZ_ASSERT(mRecvd);
+    MOZ_ASSERT(mRecvd->is_reply(), "expected reply");
+    MOZ_ASSERT(!mRecvd->is_reply_error());
+    MOZ_ASSERT(mRecvd->type() == replyType, "wrong reply type");
+    MOZ_ASSERT(mRecvd->seqno() == seqno);
+    MOZ_ASSERT(mRecvd->is_sync());
+
+    *aReply = Move(*mRecvd);
+    mRecvd = nullptr;
     return true;
 }
 
