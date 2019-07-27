@@ -153,8 +153,16 @@ public:
   void AssertOnGraphThreadOrNotRunning() {
     
     
-    MOZ_ASSERT(mDriver->OnThread() ||
-               (mLifecycleState > LIFECYCLE_RUNNING && NS_IsMainThread()));
+#ifdef DEBUG
+    
+    if (!mDriver->OnThread()) {
+      if (!(mDetectedNotRunning &&
+            mLifecycleState > LIFECYCLE_RUNNING &&
+            NS_IsMainThread())) {
+        mMonitor.AssertCurrentThreadOwns();
+      }
+    }
+#endif
   }
   
 
@@ -424,12 +432,7 @@ public:
 
 
   GraphDriver* CurrentDriver() {
-#ifdef DEBUG
-    
-    if (!mDriver->OnThread()) {
-      mMonitor.AssertCurrentThreadOwns();
-    }
-#endif
+    AssertOnGraphThreadOrNotRunning();
     return mDriver;
   }
 
@@ -442,12 +445,7 @@ public:
 
 
   void SetCurrentDriver(GraphDriver* aDriver) {
-#ifdef DEBUG
-    
-    if (!mDriver->OnThread()) {
-      mMonitor.AssertCurrentThreadOwns();
-    }
-#endif
+    AssertOnGraphThreadOrNotRunning();
     mDriver = aDriver;
   }
 
