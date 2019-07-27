@@ -79,6 +79,12 @@ ScriptStore.prototype = {
     return this._scripts.items;
   },
 
+  getScriptsBySourceActorAndLine(sourceActor, line) {
+    return sourceActor.source ?
+           this.getScriptsBySourceAndLine(sourceActor.source, line) :
+           this.getScriptsByURLAndLine(sourceActor._originalUrl, line);
+  },
+
   
 
 

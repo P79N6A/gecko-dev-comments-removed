@@ -12,7 +12,8 @@
 
 let { Ci, Cc, CC, Cu, Cr } = require("chrome");
 let Services = require("Services");
-let { ActorPool, RegisteredActorFactory, ObservedActorFactory } = require("devtools/server/actors/common");
+let { ActorPool, OriginalLocation, RegisteredActorFactory,
+      ObservedActorFactory } = require("devtools/server/actors/common");
 let { LocalDebuggerTransport, ChildDebuggerTransport } =
   require("devtools/toolkit/transport/transport");
 let DevToolsUtils = require("devtools/toolkit/DevToolsUtils");
@@ -1135,9 +1136,14 @@ EventEmitter.decorate(DebuggerServer);
 
 if (this.exports) {
   exports.DebuggerServer = DebuggerServer;
+  exports.ActorPool = ActorPool;
+  exports.OriginalLocation = OriginalLocation;
 }
 
+
 this.DebuggerServer = DebuggerServer;
+this.ActorPool = ActorPool;
+this.OriginalLocation = OriginalLocation;
 
 
 
@@ -1147,11 +1153,6 @@ let includes = ["Components", "Ci", "Cu", "require", "Services", "DebuggerServer
 includes.forEach(name => {
   DebuggerServer[name] = this[name];
 });
-
-
-if (this.exports) {
-  exports.ActorPool = ActorPool;
-}
 
 
 
