@@ -570,7 +570,7 @@ class PerThreadData : public PerThreadDataFriendFields
     js::jit::AutoFlushICache* autoFlushICache() const;
     void setAutoFlushICache(js::jit::AutoFlushICache* afc);
 
-#ifdef JS_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     js::jit::Simulator* simulator() const;
 #endif
 };
@@ -1023,12 +1023,12 @@ struct JSRuntime : public JS::shadow::Runtime,
         gc.unlockGC();
     }
 
-#ifdef JS_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     js::jit::Simulator* simulator_;
 #endif
 
   public:
-#ifdef JS_SIMULATOR
+#if defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
     js::jit::Simulator* simulator() const;
     uintptr_t* addressOfSimulatorStackLimit();
 #endif
@@ -1517,6 +1517,7 @@ struct JSRuntime : public JS::shadow::Runtime,
           , currentPerfGroupCallback(nullptr)
           , isMonitoringJank_(false)
           , isMonitoringCPOW_(false)
+          , idCounter_(0)
         { }
 
         
@@ -1571,6 +1572,13 @@ struct JSRuntime : public JS::shadow::Runtime,
         }
 
         
+
+
+        uint64_t uniqueId() {
+            return idCounter_++;
+        }
+
+        
         
         
         
@@ -1620,6 +1628,11 @@ struct JSRuntime : public JS::shadow::Runtime,
 
         bool isMonitoringJank_;
         bool isMonitoringCPOW_;
+
+        
+
+
+        uint64_t idCounter_;
     };
     Stopwatch stopwatch;
 };
