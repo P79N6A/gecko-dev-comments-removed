@@ -234,9 +234,9 @@ uint8_t AttrCharacteristicsFor(nsIAtom* aAtom);
 class AttrIterator
 {
 public:
-  explicit AttrIterator(nsIContent* aContent) : 
-    mContent(aContent), mAttrIdx(0) 
-  { 
+  explicit AttrIterator(nsIContent* aContent) :
+    mContent(aContent), mAttrIdx(0)
+  {
     mAttrCount = mContent->GetAttrCount();
   }
 

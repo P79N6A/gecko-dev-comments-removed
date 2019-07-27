@@ -681,6 +681,7 @@ static const EStateRule sWAIUnivStateMap[] = {
   eARIAExpanded,  
   eARIAHasPopup,  
   eARIAInvalid,
+  eARIAModal,
   eARIARequired,  
   eARIANone
 };
@@ -716,6 +717,7 @@ static const AttrCharacteristics gWAIUnivAttrMap[] = {
   {&nsGkAtoms::aria_labelledby,        ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
   {&nsGkAtoms::aria_level,             ATTR_BYPASSOBJ                               }, 
   {&nsGkAtoms::aria_live,                               ATTR_VALTOKEN | ATTR_GLOBAL },
+  {&nsGkAtoms::aria_modal,             ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {&nsGkAtoms::aria_multiline,         ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
   {&nsGkAtoms::aria_multiselectable,   ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
   {&nsGkAtoms::aria_owns,              ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
