@@ -4,8 +4,8 @@
 
 
 
-#ifndef _nsICODecoder_h
-#define _nsICODecoder_h
+#ifndef nsICODecoder_h
+#define nsICODecoder_h
 
 #include "nsAutoPtr.h"
 #include "Decoder.h"
@@ -22,22 +22,23 @@ class nsICODecoder : public Decoder
 {
 public:
 
-  explicit nsICODecoder(RasterImage &aImage);
+  explicit nsICODecoder(RasterImage& aImage);
   virtual ~nsICODecoder();
 
   
   uint32_t GetRealWidth() const
   {
-    return mDirEntry.mWidth == 0 ? 256 : mDirEntry.mWidth; 
+    return mDirEntry.mWidth == 0 ? 256 : mDirEntry.mWidth;
   }
 
   
   uint32_t GetRealHeight() const
   {
-    return mDirEntry.mHeight == 0 ? 256 : mDirEntry.mHeight; 
+    return mDirEntry.mHeight == 0 ? 256 : mDirEntry.mHeight;
   }
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
+                             DecodeStrategy aStrategy) MOZ_OVERRIDE;
   virtual void FinishInternal();
   virtual bool NeedsNewFrame() const;
   virtual nsresult AllocateFrame();
@@ -45,7 +46,8 @@ public:
 private:
   
   
-  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
+  bool WriteToContainedDecoder(const char* aBuffer, uint32_t aCount,
+                               DecodeStrategy aStrategy);
 
   
   void ProcessDirEntry(IconDirEntry& aTarget);
@@ -75,7 +77,7 @@ private:
   uint16_t mNumIcons; 
   uint16_t mCurrIcon; 
   uint32_t mImageOffset; 
-  uint8_t *mRow;      
+  uint8_t* mRow;      
   int32_t mCurLine;   
   uint32_t mRowBytes; 
   int32_t mOldLine;   
@@ -84,7 +86,7 @@ private:
   char mDirEntryArray[ICODIRENTRYSIZE]; 
   IconDirEntry mDirEntry; 
   
-  char mSignature[PNGSIGNATURESIZE]; 
+  char mSignature[PNGSIGNATURESIZE];
   
   char mBIHraw[40];
   
@@ -96,4 +98,4 @@ private:
 } 
 } 
 
-#endif
+#endif 

@@ -149,7 +149,7 @@ private:
   void SetHasNoProxies(bool hasNoProxies);
 
   
-  imgCacheEntry(const imgCacheEntry &);
+  imgCacheEntry(const imgCacheEntry&);
 
 private: 
   nsAutoRefCnt mRefCnt;

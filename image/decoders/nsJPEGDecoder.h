@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsJPEGDecoder_h__
-#define nsJPEGDecoder_h__
+#ifndef nsJPEGDecoder_h
+#define nsJPEGDecoder_h
 
 #include "RasterImage.h"
 
@@ -43,7 +43,7 @@ typedef enum {
     JPEG_DONE,
     JPEG_SINK_NON_JPEG_TRAILER,          
                                          
-    JPEG_ERROR    
+    JPEG_ERROR
 } jstate;
 
 class RasterImage;
@@ -52,11 +52,12 @@ struct Orientation;
 class nsJPEGDecoder : public Decoder
 {
 public:
-  nsJPEGDecoder(RasterImage &aImage, Decoder::DecodeStyle aDecodeStyle);
+  nsJPEGDecoder(RasterImage& aImage, Decoder::DecodeStyle aDecodeStyle);
   virtual ~nsJPEGDecoder();
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
+                             DecodeStrategy aStrategy) MOZ_OVERRIDE;
   virtual void FinishInternal();
 
   virtual Telemetry::ID SpeedHistogram();
@@ -74,19 +75,19 @@ public:
 
   uint32_t mBytesToSkip;
 
-  const JOCTET *mSegment;   
+  const JOCTET* mSegment;   
   uint32_t mSegmentLen;     
 
-  JOCTET *mBackBuffer;
+  JOCTET* mBackBuffer;
   uint32_t mBackBufferLen; 
   uint32_t mBackBufferSize; 
   uint32_t mBackBufferUnreadLen; 
 
-  JOCTET  *mProfile;
+  JOCTET * mProfile;
   uint32_t mProfileLength;
 
-  qcms_profile *mInProfile;
-  qcms_transform *mTransform;
+  qcms_profile* mInProfile;
+  qcms_transform* mTransform;
 
   bool mReading;
 

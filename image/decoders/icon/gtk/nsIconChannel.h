@@ -16,37 +16,30 @@
 
 
 
-
-
-class nsIconChannel MOZ_FINAL : public nsIChannel {
+class nsIconChannel MOZ_FINAL : public nsIChannel
+{
   public:
     NS_DECL_ISUPPORTS
     NS_FORWARD_NSIREQUEST(mRealChannel->)
     NS_FORWARD_NSICHANNEL(mRealChannel->)
 
-    nsIconChannel() {}
+    nsIconChannel() { }
 
     static void Shutdown();
 
     
-
-
-
-
+    
+    
     nsresult Init(nsIURI* aURI);
   private:
-    ~nsIconChannel() {}
+    ~nsIconChannel() { }
     
-
-
-
+    
     nsCOMPtr<nsIChannel> mRealChannel;
 
     
-
-
-    nsresult InitWithGnome(nsIMozIconURI *aURI);
-    nsresult InitWithGIO(nsIMozIconURI *aIconURI);
+    nsresult InitWithGnome(nsIMozIconURI* aURI);
+    nsresult InitWithGIO(nsIMozIconURI* aIconURI);
 };
 
 #endif

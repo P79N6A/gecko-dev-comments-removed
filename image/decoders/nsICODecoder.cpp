@@ -26,7 +26,7 @@ namespace image {
 
 
 uint32_t
-nsICODecoder::CalcAlphaRowSize() 
+nsICODecoder::CalcAlphaRowSize()
 {
   
   uint32_t rowSize = (GetRealWidth() + 31) / 32; 
@@ -35,7 +35,7 @@ nsICODecoder::CalcAlphaRowSize()
 
 
 uint16_t
-nsICODecoder::GetNumColors() 
+nsICODecoder::GetNumColors()
 {
   uint16_t numColors = 0;
   if (mBPP <= 8) {
@@ -57,7 +57,7 @@ nsICODecoder::GetNumColors()
 }
 
 
-nsICODecoder::nsICODecoder(RasterImage &aImage)
+nsICODecoder::nsICODecoder(RasterImage& aImage)
  : Decoder(aImage)
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
@@ -92,7 +92,8 @@ nsICODecoder::FinishInternal()
 
 
 
-bool nsICODecoder::FillBitmapFileHeaderBuffer(int8_t *bfh) 
+bool
+nsICODecoder::FillBitmapFileHeaderBuffer(int8_t* bfh)
 {
   memset(bfh, 0, 14);
   bfh[0] = 'B';
@@ -110,7 +111,7 @@ bool nsICODecoder::FillBitmapFileHeaderBuffer(int8_t *bfh)
     dataOffset += 4 * numColors;
     fileSize = dataOffset + GetRealWidth() * GetRealHeight();
   } else {
-    fileSize = dataOffset + (mDirEntry.mBitCount * GetRealWidth() * 
+    fileSize = dataOffset + (mDirEntry.mBitCount * GetRealWidth() *
                              GetRealHeight()) / 8;
   }
 
@@ -125,7 +126,7 @@ bool nsICODecoder::FillBitmapFileHeaderBuffer(int8_t *bfh)
 
 
 bool
-nsICODecoder::FixBitmapHeight(int8_t *bih) 
+nsICODecoder::FixBitmapHeight(int8_t* bih)
 {
   
   int32_t height;
@@ -159,7 +160,7 @@ nsICODecoder::FixBitmapHeight(int8_t *bih)
 
 
 bool
-nsICODecoder::FixBitmapWidth(int8_t *bih) 
+nsICODecoder::FixBitmapWidth(int8_t* bih)
 {
   
   int32_t width;
@@ -181,8 +182,8 @@ nsICODecoder::FixBitmapWidth(int8_t *bih)
 
 
 
-int32_t 
-nsICODecoder::ExtractBPPFromBitmap(int8_t *bih)
+int32_t
+nsICODecoder::ExtractBPPFromBitmap(int8_t* bih)
 {
   int32_t bitsPerPixel;
   memcpy(&bitsPerPixel, bih + 14, sizeof(bitsPerPixel));
@@ -190,8 +191,8 @@ nsICODecoder::ExtractBPPFromBitmap(int8_t *bih)
   return bitsPerPixel;
 }
 
-int32_t 
-nsICODecoder::ExtractBIHSizeFromBitmap(int8_t *bih)
+int32_t
+nsICODecoder::ExtractBIHSizeFromBitmap(int8_t* bih)
 {
   int32_t headerSize;
   memcpy(&headerSize, bih, sizeof(headerSize));
@@ -200,7 +201,8 @@ nsICODecoder::ExtractBIHSizeFromBitmap(int8_t *bih)
 }
 
 void
-nsICODecoder::SetHotSpotIfCursor() {
+nsICODecoder::SetHotSpotIfCursor()
+{
   if (!mIsCursor) {
     return;
   }
@@ -209,7 +211,8 @@ nsICODecoder::SetHotSpotIfCursor() {
 }
 
 void
-nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
+nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount,
+                            DecodeStrategy aStrategy)
 {
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
 
@@ -232,14 +235,16 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
   }
 
   if (mPos == ICONCOUNTOFFSET && aCount >= 2) {
-    mNumIcons = LittleEndian::readUint16(reinterpret_cast<const uint16_t*>(aBuffer));
+    mNumIcons =
+      LittleEndian::readUint16(reinterpret_cast<const uint16_t*>(aBuffer));
     aBuffer += 2;
     mPos += 2;
     aCount -= 2;
   }
 
-  if (mNumIcons == 0)
+  if (mNumIcons == 0) {
     return; 
+  }
 
   uint16_t colorDepth = 0;
   nsIntSize prefSize = mImage.GetRequestedResolution();
@@ -254,11 +259,12 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
   int32_t diff = INT_MIN;
 
   
-  while (mCurrIcon < mNumIcons) { 
-    if (mPos >= DIRENTRYOFFSET + (mCurrIcon * sizeof(mDirEntryArray)) && 
+  while (mCurrIcon < mNumIcons) {
+    if (mPos >= DIRENTRYOFFSET + (mCurrIcon * sizeof(mDirEntryArray)) &&
         mPos < DIRENTRYOFFSET + ((mCurrIcon + 1) * sizeof(mDirEntryArray))) {
-      uint32_t toCopy = sizeof(mDirEntryArray) - 
-                        (mPos - DIRENTRYOFFSET - mCurrIcon * sizeof(mDirEntryArray));
+      uint32_t toCopy = sizeof(mDirEntryArray) -
+                        (mPos - DIRENTRYOFFSET - mCurrIcon *
+                         sizeof(mDirEntryArray));
       if (toCopy > aCount) {
         toCopy = aCount;
       }
@@ -267,11 +273,12 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
       aCount -= toCopy;
       aBuffer += toCopy;
     }
-    if (aCount == 0)
+    if (aCount == 0) {
       return; 
+    }
 
     IconDirEntry e;
-    if (mPos == (DIRENTRYOFFSET + ICODIRENTRYSIZE) + 
+    if (mPos == (DIRENTRYOFFSET + ICODIRENTRYSIZE) +
                 (mCurrIcon * sizeof(mDirEntryArray))) {
       mCurrIcon++;
       ProcessDirEntry(e);
@@ -288,7 +295,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
         mImageOffset = e.mImageOffset;
 
         
-        uint32_t minImageOffset = DIRENTRYOFFSET + 
+        uint32_t minImageOffset = DIRENTRYOFFSET +
                                   mNumIcons * sizeof(mDirEntryArray);
         if (mImageOffset < minImageOffset) {
           PostDataError();
@@ -304,8 +311,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
   if (mPos < mImageOffset) {
     
     uint32_t toSkip = mImageOffset - mPos;
-    if (toSkip > aCount)
+    if (toSkip > aCount) {
       toSkip = aCount;
+    }
 
     mPos    += toSkip;
     aBuffer += toSkip;
@@ -315,9 +323,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
   
   
   
-  if (mCurrIcon == mNumIcons && mPos >= mImageOffset && 
-      mPos < mImageOffset + PNGSIGNATURESIZE)
-  {
+  if (mCurrIcon == mNumIcons && mPos >= mImageOffset &&
+      mPos < mImageOffset + PNGSIGNATURESIZE) {
     uint32_t toCopy = PNGSIGNATURESIZE - (mPos - mImageOffset);
     if (toCopy > aCount) {
       toCopy = aCount;
@@ -328,7 +335,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
     aCount -= toCopy;
     aBuffer += toCopy;
 
-    mIsPNG = !memcmp(mSignature, nsPNGDecoder::pngSignatureBytes, 
+    mIsPNG = !memcmp(mSignature, nsPNGDecoder::pngSignatureBytes,
                      PNGSIGNATURESIZE);
     if (mIsPNG) {
       mContainedDecoder = new nsPNGDecoder(mImage);
@@ -369,8 +376,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
 
   
   
-  if (!mIsPNG && mCurrIcon == mNumIcons && mPos >= mImageOffset && 
-      mPos >= mImageOffset + PNGSIGNATURESIZE && 
+  if (!mIsPNG && mCurrIcon == mNumIcons && mPos >= mImageOffset &&
+      mPos >= mImageOffset + PNGSIGNATURESIZE &&
       mPos < mImageOffset + BITMAPINFOSIZE) {
 
     
@@ -381,8 +388,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
 
     
     uint32_t toCopy = sizeof(mBIHraw) - (mPos - mImageOffset);
-    if (toCopy > aCount)
+    if (toCopy > aCount) {
       toCopy = aCount;
+    }
 
     memcpy(mBIHraw + (mPos - mImageOffset), aBuffer, toCopy);
     mPos += toCopy;
@@ -394,7 +402,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
   if (!mIsPNG && mPos == mImageOffset + BITMAPINFOSIZE) {
 
     
-    int32_t bihSize = ExtractBIHSizeFromBitmap(reinterpret_cast<int8_t*>(mBIHraw));
+    int32_t bihSize = ExtractBIHSizeFromBitmap(reinterpret_cast<int8_t*>
+                                               (mBIHraw));
     if (bihSize != BITMAPINFOSIZE) {
       PostDataError();
       return;
@@ -402,11 +411,11 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
     
     
     mBPP = ExtractBPPFromBitmap(reinterpret_cast<int8_t*>(mBIHraw));
+
     
     
     
-    
-    nsBMPDecoder *bmpDecoder = new nsBMPDecoder(mImage);
+    nsBMPDecoder* bmpDecoder = new nsBMPDecoder(mImage);
     mContainedDecoder = bmpDecoder;
     bmpDecoder->SetUseAlphaData(true);
     mContainedDecoder->SetObserver(mObserver);
@@ -423,7 +432,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
       PostDataError();
       return;
     }
-    if (!WriteToContainedDecoder((const char*)bfhBuffer, sizeof(bfhBuffer), aStrategy)) {
+    if (!WriteToContainedDecoder((const char*)bfhBuffer, sizeof(bfhBuffer),
+                                  aStrategy)) {
       return;
     }
 
@@ -453,8 +463,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
 
     
     
-    if (IsSizeDecode())
+    if (IsSizeDecode()) {
       return;
+    }
 
     
     
@@ -478,8 +489,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
     }
     
     uint32_t bmpDataOffset = mDirEntry.mImageOffset + BITMAPINFOSIZE;
-    uint32_t bmpDataEnd = mDirEntry.mImageOffset + BITMAPINFOSIZE + 
-                          static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetCompressedImageSize() +
+    uint32_t bmpDataEnd = mDirEntry.mImageOffset + BITMAPINFOSIZE +
+                          static_cast<nsBMPDecoder*>(mContainedDecoder.get())->
+                            GetCompressedImageSize() +
                           4 * numColors;
 
     
@@ -500,7 +512,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
       aCount -= toFeed;
       aBuffer += toFeed;
     }
-  
+
     
     
     if (!mIsPNG && mPos >= bmpDataEnd) {
@@ -508,8 +520,10 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
       
       
       
-      if (static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetBitsPerPixel() != 32 || 
-          !static_cast<nsBMPDecoder*>(mContainedDecoder.get())->HasAlphaData()) {
+      if (static_cast<nsBMPDecoder*>(mContainedDecoder.get())->
+            GetBitsPerPixel() != 32 ||
+          !static_cast<nsBMPDecoder*>(mContainedDecoder.get())->
+            HasAlphaData()) {
         uint32_t rowSize = ((GetRealWidth() + 31) / 32) * 4; 
         if (mPos == bmpDataEnd) {
           mPos++;
@@ -541,8 +555,9 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
             mCurLine--;
             mRowBytes = 0;
 
-            uint32_t* imageData = 
-              static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetImageData();
+            uint32_t* imageData =
+              static_cast<nsBMPDecoder*>(mContainedDecoder.get())->
+                                           GetImageData();
             if (!imageData) {
               PostDataError();
               return;
@@ -569,7 +584,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy
 }
 
 bool
-nsICODecoder::WriteToContainedDecoder(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy)
+nsICODecoder::WriteToContainedDecoder(const char* aBuffer, uint32_t aCount,
+                                      DecodeStrategy aStrategy)
 {
   mContainedDecoder->Write(aBuffer, aCount, aStrategy);
   if (mContainedDecoder->HasDataError()) {
@@ -595,7 +611,7 @@ nsICODecoder::ProcessDirEntry(IconDirEntry& aTarget)
   aTarget.mBitCount = LittleEndian::readUint16(&aTarget.mBitCount);
   memcpy(&aTarget.mBytesInRes, mDirEntryArray + 8, sizeof(aTarget.mBytesInRes));
   aTarget.mBytesInRes = LittleEndian::readUint32(&aTarget.mBytesInRes);
-  memcpy(&aTarget.mImageOffset, mDirEntryArray + 12, 
+  memcpy(&aTarget.mImageOffset, mDirEntryArray + 12,
          sizeof(aTarget.mImageOffset));
   aTarget.mImageOffset = LittleEndian::readUint32(&aTarget.mImageOffset);
 }

@@ -3,8 +3,8 @@
 
 
 
-#ifndef MOZILLA_IMAGELIB_EXIF_H_
-#define MOZILLA_IMAGELIB_EXIF_H_
+#ifndef MOZILLA_IMAGELIB_EXIF_H
+#define MOZILLA_IMAGELIB_EXIF_H
 
 #include <stdint.h>
 #include "mozilla/TypedEnum.h"
@@ -70,7 +70,7 @@ private:
   ByteOrder      mByteOrder;
 };
 
-}
-}
+} 
+} 
 
-#endif
+#endif 

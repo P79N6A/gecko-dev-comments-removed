@@ -22,7 +22,7 @@
 
 
 #include "iccjpeg.h"
-#include <stdlib.h>			
+#include <stdlib.h>  
 
 
 
@@ -38,9 +38,9 @@
 
 
 
-#define ICC_MARKER  (JPEG_APP0 + 2)	/* JPEG marker code for ICC */
-#define ICC_OVERHEAD_LEN  14		/* size of non-profile data in APP2 */
-#define MAX_BYTES_IN_MARKER  65533	/* maximum data len of a JPEG marker */
+#define ICC_MARKER  (JPEG_APP0 + 2)      /* JPEG marker code for ICC */
+#define ICC_OVERHEAD_LEN  14             /* size of non-profile data in APP2 */
+#define MAX_BYTES_IN_MARKER  65533       /* maximum data len of a JPEG marker */
 #define MAX_DATA_BYTES_IN_MARKER  (MAX_BYTES_IN_MARKER - ICC_OVERHEAD_LEN)
 
 
@@ -102,20 +102,20 @@ marker_is_icc (jpeg_saved_marker_ptr marker)
 
 boolean
 read_icc_profile (j_decompress_ptr cinfo,
-		  JOCTET **icc_data_ptr,
-		  unsigned int *icc_data_len)
+  JOCTET** icc_data_ptr,
+  unsigned int* icc_data_len)
 {
   jpeg_saved_marker_ptr marker;
   int num_markers = 0;
   int seq_no;
-  JOCTET *icc_data;
+  JOCTET* icc_data;
   unsigned int total_length;
-#define MAX_SEQ_NO  255		/* sufficient since marker numbers are bytes */
-  char marker_present[MAX_SEQ_NO+1];	  
+#define MAX_SEQ_NO  255        /* sufficient since marker numbers are bytes */
+  char marker_present[MAX_SEQ_NO+1];      
   unsigned int data_length[MAX_SEQ_NO+1]; 
   unsigned int data_offset[MAX_SEQ_NO+1]; 
 
-  *icc_data_ptr = NULL;		
+  *icc_data_ptr = NULL;                   
   *icc_data_len = 0;
 
   
@@ -127,22 +127,26 @@ read_icc_profile (j_decompress_ptr cinfo,
 
   for (marker = cinfo->marker_list; marker != NULL; marker = marker->next) {
     if (marker_is_icc(marker)) {
-      if (num_markers == 0)
-	num_markers = GETJOCTET(marker->data[13]);
-      else if (num_markers != GETJOCTET(marker->data[13]))
-	return FALSE;		
+      if (num_markers == 0) {
+        num_markers = GETJOCTET(marker->data[13]);
+      } else if (num_markers != GETJOCTET(marker->data[13])) {
+        return FALSE;  
+      }
       seq_no = GETJOCTET(marker->data[12]);
-      if (seq_no <= 0 || seq_no > num_markers)
-	return FALSE;		
-      if (marker_present[seq_no])
-	return FALSE;		
+      if (seq_no <= 0 || seq_no > num_markers) {
+        return FALSE;   
+      }
+      if (marker_present[seq_no]) {
+        return FALSE;   
+      }
       marker_present[seq_no] = 1;
       data_length[seq_no] = marker->data_length - ICC_OVERHEAD_LEN;
     }
   }
 
-  if (num_markers == 0)
+  if (num_markers == 0) {
     return FALSE;
+  }
 
   
 
@@ -150,32 +154,35 @@ read_icc_profile (j_decompress_ptr cinfo,
 
   total_length = 0;
   for (seq_no = 1; seq_no <= num_markers; seq_no++) {
-    if (marker_present[seq_no] == 0)
-      return FALSE;		
+    if (marker_present[seq_no] == 0) {
+      return FALSE;  
+    }
     data_offset[seq_no] = total_length;
     total_length += data_length[seq_no];
   }
 
-  if (total_length <= 0)
-    return FALSE;		
+  if (total_length <= 0) {
+    return FALSE;  
+  }
 
   
-  icc_data = (JOCTET *) malloc(total_length * sizeof(JOCTET));
-  if (icc_data == NULL)
-    return FALSE;		
+  icc_data = (JOCTET*) malloc(total_length * sizeof(JOCTET));
+  if (icc_data == NULL) {
+    return FALSE;   
+  }
 
   
   for (marker = cinfo->marker_list; marker != NULL; marker = marker->next) {
     if (marker_is_icc(marker)) {
-      JOCTET FAR *src_ptr;
-      JOCTET *dst_ptr;
+      JOCTET FAR* src_ptr;
+      JOCTET* dst_ptr;
       unsigned int length;
       seq_no = GETJOCTET(marker->data[12]);
       dst_ptr = icc_data + data_offset[seq_no];
       src_ptr = marker->data + ICC_OVERHEAD_LEN;
       length = data_length[seq_no];
       while (length--) {
-	*dst_ptr++ = *src_ptr++;
+        *dst_ptr++ = *src_ptr++;
       }
     }
   }

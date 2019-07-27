@@ -35,21 +35,23 @@ namespace mozilla {
 namespace image {
 
 #if defined(PR_LOGGING)
-static PRLogModuleInfo *
+static PRLogModuleInfo*
 GetJPEGLog()
 {
-  static PRLogModuleInfo *sJPEGLog;
-  if (!sJPEGLog)
+  static PRLogModuleInfo* sJPEGLog;
+  if (!sJPEGLog) {
     sJPEGLog = PR_NewLogModule("JPEGDecoder");
+  }
   return sJPEGLog;
 }
 
-static PRLogModuleInfo *
+static PRLogModuleInfo*
 GetJPEGDecoderAccountingLog()
 {
-  static PRLogModuleInfo *sJPEGDecoderAccountingLog;
-  if (!sJPEGDecoderAccountingLog)
+  static PRLogModuleInfo* sJPEGDecoderAccountingLog;
+  if (!sJPEGDecoderAccountingLog) {
     sJPEGDecoderAccountingLog = PR_NewLogModule("JPEGDecoderAccounting");
+  }
   return sJPEGDecoderAccountingLog;
 }
 #else
@@ -58,7 +60,7 @@ GetJPEGDecoderAccountingLog()
 #endif
 
 static qcms_profile*
-GetICCProfile(struct jpeg_decompress_struct &info)
+GetICCProfile(struct jpeg_decompress_struct& info)
 {
   JOCTET* profilebuf;
   uint32_t profileLength;
@@ -82,7 +84,8 @@ METHODDEF(void) my_error_exit (j_common_ptr cinfo);
 #define MAX_JPEG_MARKER_LENGTH  (((uint32_t)1 << 16) - 1)
 
 
-nsJPEGDecoder::nsJPEGDecoder(RasterImage& aImage, Decoder::DecodeStyle aDecodeStyle)
+nsJPEGDecoder::nsJPEGDecoder(RasterImage& aImage,
+                             Decoder::DecodeStyle aDecodeStyle)
  : Decoder(aImage)
  , mDecodeStyle(aDecodeStyle)
 {
@@ -118,10 +121,12 @@ nsJPEGDecoder::~nsJPEGDecoder()
   jpeg_destroy_decompress(&mInfo);
 
   PR_FREEIF(mBackBuffer);
-  if (mTransform)
+  if (mTransform) {
     qcms_transform_release(mTransform);
-  if (mInProfile)
+  }
+  if (mInProfile) {
     qcms_profile_release(mInProfile);
+  }
 
   PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
          ("nsJPEGDecoder::~nsJPEGDecoder: Destroying JPEG decoder %p",
@@ -138,8 +143,9 @@ void
 nsJPEGDecoder::InitInternal()
 {
   mCMSMode = gfxPlatform::GetCMSMode();
-  if ((mDecodeFlags & DECODER_NO_COLORSPACE_CONVERSION) != 0)
+  if ((mDecodeFlags & DECODER_NO_COLORSPACE_CONVERSION) != 0) {
     mCMSMode = eCMSMode_Off;
+  }
 
   
   mInfo.err = jpeg_std_error(&mErr.pub);
@@ -148,8 +154,7 @@ nsJPEGDecoder::InitInternal()
   
   if (setjmp(mErr.setjmp_buffer)) {
     
-
-
+    
     PostDecoderError(NS_ERROR_FAILURE);
     return;
   }
@@ -177,26 +182,27 @@ void
 nsJPEGDecoder::FinishInternal()
 {
   
-
-
-
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
       (mState != JPEG_ERROR) &&
-      !IsSizeDecode())
+      !IsSizeDecode()) {
     this->Write(nullptr, 0, DECODE_SYNC);
+  }
 }
 
 void
-nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrategy)
+nsJPEGDecoder::WriteInternal(const char* aBuffer, uint32_t aCount,
+                             DecodeStrategy)
 {
-  mSegment = (const JOCTET *)aBuffer;
+  mSegment = (const JOCTET*)aBuffer;
   mSegmentLen = aCount;
 
   NS_ABORT_IF_FALSE(!HasError(), "Shouldn't call WriteInternal after error!");
@@ -209,15 +215,15 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
     if (error_code == NS_ERROR_FAILURE) {
       PostDataError();
       
-
+      
       mState = JPEG_SINK_NON_JPEG_TRAILER;
       PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
              ("} (setjmp returned NS_ERROR_FAILURE)"));
       return;
     } else {
       
-
-
+      
+      
       PostDecoderError(error_code);
       mState = JPEG_ERROR;
       PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
@@ -230,110 +236,117 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
          ("[this=%p] nsJPEGDecoder::Write -- processing JPEG data\n", this));
 
   switch (mState) {
-  case JPEG_HEADER:
-  {
-    LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- entering JPEG_HEADER case");
+    case JPEG_HEADER: {
+      LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- entering JPEG_HEADER"
+                " case");
 
-    
-    if (jpeg_read_header(&mInfo, TRUE) == JPEG_SUSPENDED) {
-      PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-             ("} (JPEG_SUSPENDED)"));
-      return; 
-    }
-
-    int sampleSize = mImage.GetRequestedSampleSize();
-    if (sampleSize > 0) {
-      mInfo.scale_num = 1;
-      mInfo.scale_denom = sampleSize;
-    }
-
-    
-    jpeg_calc_output_dimensions(&mInfo);
-
-    
-    PostSize(mInfo.output_width, mInfo.output_height, ReadOrientationFromEXIF());
-    if (HasError()) {
       
-      mState = JPEG_ERROR;
-      return;
-    }
+      if (jpeg_read_header(&mInfo, TRUE) == JPEG_SUSPENDED) {
+        PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
+               ("} (JPEG_SUSPENDED)"));
+        return; 
+      }
 
-    
-    if (IsSizeDecode())
-      return;
+      int sampleSize = mImage.GetRequestedSampleSize();
+      if (sampleSize > 0) {
+        mInfo.scale_num = 1;
+        mInfo.scale_denom = sampleSize;
+      }
 
-    
-    if (mCMSMode != eCMSMode_Off &&
-        (mInProfile = GetICCProfile(mInfo)) != nullptr) {
-      uint32_t profileSpace = qcms_profile_get_color_space(mInProfile);
-      bool mismatch = false;
+      
+      jpeg_calc_output_dimensions(&mInfo);
+
+      
+      PostSize(mInfo.output_width, mInfo.output_height,
+               ReadOrientationFromEXIF());
+      if (HasError()) {
+        
+        mState = JPEG_ERROR;
+        return;
+      }
+
+      
+      if (IsSizeDecode()) {
+        return;
+      }
+
+      
+      if (mCMSMode != eCMSMode_Off &&
+          (mInProfile = GetICCProfile(mInfo)) != nullptr) {
+        uint32_t profileSpace = qcms_profile_get_color_space(mInProfile);
+        bool mismatch = false;
 
 #ifdef DEBUG_tor
       fprintf(stderr, "JPEG profileSpace: 0x%08X\n", profileSpace);
 #endif
       switch (mInfo.jpeg_color_space) {
-      case JCS_GRAYSCALE:
-        if (profileSpace == icSigRgbData)
-          mInfo.out_color_space = JCS_RGB;
-        else if (profileSpace != icSigGrayData)
-          mismatch = true;
-        break;
-      case JCS_RGB:
-        if (profileSpace != icSigRgbData)
-          mismatch =  true;
-        break;
-      case JCS_YCbCr:
-        if (profileSpace == icSigRgbData)
-          mInfo.out_color_space = JCS_RGB;
-        else
-	  
-          mismatch = true;
-        break;
-      case JCS_CMYK:
-      case JCS_YCCK:
-	  
-          mismatch = true;
-        break;
-      default:
-        mState = JPEG_ERROR;
-        PostDataError();
-        PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-               ("} (unknown colorpsace (1))"));
-        return;
-      }
-
-      if (!mismatch) {
-        qcms_data_type type;
-        switch (mInfo.out_color_space) {
         case JCS_GRAYSCALE:
-          type = QCMS_DATA_GRAY_8;
+          if (profileSpace == icSigRgbData) {
+            mInfo.out_color_space = JCS_RGB;
+          } else if (profileSpace != icSigGrayData) {
+            mismatch = true;
+          }
           break;
         case JCS_RGB:
-          type = QCMS_DATA_RGB_8;
+          if (profileSpace != icSigRgbData) {
+            mismatch =  true;
+          }
+          break;
+        case JCS_YCbCr:
+          if (profileSpace == icSigRgbData) {
+            mInfo.out_color_space = JCS_RGB;
+          } else {
+            
+            mismatch = true;
+          }
+          break;
+        case JCS_CMYK:
+        case JCS_YCCK:
+            
+            mismatch = true;
           break;
         default:
           mState = JPEG_ERROR;
           PostDataError();
           PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-                 ("} (unknown colorpsace (2))"));
+                 ("} (unknown colorpsace (1))"));
           return;
+      }
+
+      if (!mismatch) {
+        qcms_data_type type;
+        switch (mInfo.out_color_space) {
+          case JCS_GRAYSCALE:
+            type = QCMS_DATA_GRAY_8;
+            break;
+          case JCS_RGB:
+            type = QCMS_DATA_RGB_8;
+            break;
+          default:
+            mState = JPEG_ERROR;
+            PostDataError();
+            PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
+                   ("} (unknown colorpsace (2))"));
+            return;
         }
 #if 0
         
-
-
+        
+        
 
         
-        if (mInfo.out_color_space == JCS_CMYK)
+        if (mInfo.out_color_space == JCS_CMYK) {
           type |= FLAVOR_SH(mInfo.saw_Adobe_marker ? 1 : 0);
+        }
 #endif
 
         if (gfxPlatform::GetCMSOutputProfile()) {
 
           
           int intent = gfxPlatform::GetRenderingIntent();
-          if (intent == -1)
-              intent = qcms_profile_get_rendering_intent(mInProfile);
+          if (intent == -1) {
+            intent = qcms_profile_get_rendering_intent(mInProfile);
+          }
 
           
           mTransform = qcms_transform_create(mInProfile,
@@ -351,38 +364,37 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
     if (!mTransform) {
       switch (mInfo.jpeg_color_space) {
-      case JCS_GRAYSCALE:
-      case JCS_RGB:
-      case JCS_YCbCr:
-        
-        
-        if (mCMSMode != eCMSMode_All) {
-            mInfo.out_color_space = MOZ_JCS_EXT_NATIVE_ENDIAN_XRGB;
-            mInfo.out_color_components = 4;
-        } else {
-            mInfo.out_color_space = JCS_RGB;
-        }
-        break;
-      case JCS_CMYK:
-      case JCS_YCCK:
-        
-        mInfo.out_color_space = JCS_CMYK;
-        break;
-      default:
-        mState = JPEG_ERROR;
-        PostDataError();
-        PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-               ("} (unknown colorpsace (3))"));
-        return;
-        break;
+        case JCS_GRAYSCALE:
+        case JCS_RGB:
+        case JCS_YCbCr:
+          
+          
+          if (mCMSMode != eCMSMode_All) {
+              mInfo.out_color_space = MOZ_JCS_EXT_NATIVE_ENDIAN_XRGB;
+              mInfo.out_color_components = 4;
+          } else {
+              mInfo.out_color_space = JCS_RGB;
+          }
+          break;
+        case JCS_CMYK:
+        case JCS_YCCK:
+          
+          mInfo.out_color_space = JCS_CMYK;
+          break;
+        default:
+          mState = JPEG_ERROR;
+          PostDataError();
+          PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
+                 ("} (unknown colorpsace (3))"));
+          return;
+          break;
       }
     }
 
     
-
-
-
-    mInfo.buffered_image = mDecodeStyle == PROGRESSIVE && jpeg_has_multiple_scans(&mInfo);
+    
+    mInfo.buffered_image = mDecodeStyle == PROGRESSIVE &&
+                           jpeg_has_multiple_scans(&mInfo);
 
     if (!mImageData) {
       mState = JPEG_ERROR;
@@ -393,19 +405,20 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
     }
 
     PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-           ("        JPEGDecoderAccounting: nsJPEGDecoder::Write -- created image frame with %ux%u pixels",
+           ("        JPEGDecoderAccounting: nsJPEGDecoder::"
+            "Write -- created image frame with %ux%u pixels",
             mInfo.output_width, mInfo.output_height));
 
     mState = JPEG_START_DECOMPRESS;
   }
 
-  case JPEG_START_DECOMPRESS:
-  {
-    LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- entering JPEG_START_DECOMPRESS case");
+  case JPEG_START_DECOMPRESS: {
+    LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- entering"
+                            " JPEG_START_DECOMPRESS case");
     
 
     
-
+    
 
     mInfo.dct_method =  JDCT_ISLOW;
     mInfo.dither_mode = JDITHER_FS;
@@ -422,35 +435,35 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
 
     
-    mState = mInfo.buffered_image ? JPEG_DECOMPRESS_PROGRESSIVE : JPEG_DECOMPRESS_SEQUENTIAL;
+    mState = mInfo.buffered_image ?
+             JPEG_DECOMPRESS_PROGRESSIVE : JPEG_DECOMPRESS_SEQUENTIAL;
   }
 
-  case JPEG_DECOMPRESS_SEQUENTIAL:
-  {
-    if (mState == JPEG_DECOMPRESS_SEQUENTIAL)
-    {
-      LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- JPEG_DECOMPRESS_SEQUENTIAL case");
-      
+  case JPEG_DECOMPRESS_SEQUENTIAL: {
+    if (mState == JPEG_DECOMPRESS_SEQUENTIAL) {
+      LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- "
+                              "JPEG_DECOMPRESS_SEQUENTIAL case");
+
       bool suspend;
       OutputScanlines(&suspend);
-      
+
       if (suspend) {
         PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
                ("} (I/O suspension after OutputScanlines() - SEQUENTIAL)"));
         return; 
       }
+
       
-      
-      NS_ASSERTION(mInfo.output_scanline == mInfo.output_height, "We didn't process all of the data!");
+      NS_ASSERTION(mInfo.output_scanline == mInfo.output_height,
+                   "We didn't process all of the data!");
       mState = JPEG_DONE;
     }
   }
 
-  case JPEG_DECOMPRESS_PROGRESSIVE:
-  {
-    if (mState == JPEG_DECOMPRESS_PROGRESSIVE)
-    {
-      LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::Write -- JPEG_DECOMPRESS_PROGRESSIVE case");
+  case JPEG_DECOMPRESS_PROGRESSIVE: {
+    if (mState == JPEG_DECOMPRESS_PROGRESSIVE) {
+      LOG_SCOPE(GetJPEGLog(),
+                "nsJPEGDecoder::Write -- JPEG_DECOMPRESS_PROGRESSIVE case");
 
       int status;
       do {
@@ -463,8 +476,8 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
           int scan = mInfo.input_scan_number;
 
           
-
-
+          
+          
           if ((mInfo.output_scan_number == 0) &&
               (scan > 1) &&
               (status != JPEG_REACHED_EOI))
@@ -472,13 +485,15 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
 
           if (!jpeg_start_output(&mInfo, scan)) {
             PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-                   ("} (I/O suspension after jpeg_start_output() - PROGRESSIVE)"));
+                   ("} (I/O suspension after jpeg_start_output() -"
+                    " PROGRESSIVE)"));
             return; 
           }
         }
 
-        if (mInfo.output_scanline == 0xffffff)
+        if (mInfo.output_scanline == 0xffffff) {
           mInfo.output_scanline = 0;
+        }
 
         bool suspend;
         OutputScanlines(&suspend);
@@ -486,7 +501,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
         if (suspend) {
           if (mInfo.output_scanline == 0) {
             
-
+            
             mInfo.output_scanline = 0xffffff;
           }
           PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
@@ -494,11 +509,11 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
           return; 
         }
 
-        if (mInfo.output_scanline == mInfo.output_height)
-        {
+        if (mInfo.output_scanline == mInfo.output_height) {
           if (!jpeg_finish_output(&mInfo)) {
             PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
-                   ("} (I/O suspension after jpeg_finish_output() - PROGRESSIVE)"));
+                   ("} (I/O suspension after jpeg_finish_output() -"
+                    " PROGRESSIVE)"));
             return; 
           }
 
@@ -514,9 +529,9 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
     }
   }
 
-  case JPEG_DONE:
-  {
-    LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::ProcessData -- entering JPEG_DONE case");
+  case JPEG_DONE: {
+    LOG_SCOPE(GetJPEGLog(), "nsJPEGDecoder::ProcessData -- entering"
+                            " JPEG_DONE case");
 
     
 
@@ -533,12 +548,14 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, uint32_t aCount, DecodeStrateg
   }
   case JPEG_SINK_NON_JPEG_TRAILER:
     PR_LOG(GetJPEGLog(), PR_LOG_DEBUG,
-           ("[this=%p] nsJPEGDecoder::ProcessData -- entering JPEG_SINK_NON_JPEG_TRAILER case\n", this));
+           ("[this=%p] nsJPEGDecoder::ProcessData -- entering"
+            " JPEG_SINK_NON_JPEG_TRAILER case\n", this));
 
     break;
 
   case JPEG_ERROR:
-    NS_ABORT_IF_FALSE(0, "Should always return immediately after error and not re-enter decoder");
+    NS_ABORT_IF_FALSE(0, "Should always return immediately after error and"
+                         " not re-enter decoder");
   }
 
   PR_LOG(GetJPEGDecoderAccountingLog(), PR_LOG_DEBUG,
@@ -553,13 +570,15 @@ nsJPEGDecoder::ReadOrientationFromEXIF()
 
   
   for (marker = mInfo.marker_list ; marker != nullptr ; marker = marker->next) {
-    if (marker->marker == JPEG_APP0 + 1) 
+    if (marker->marker == JPEG_APP0 + 1) {
       break;
+    }
   }
 
   
-  if (!marker)
+  if (!marker) {
     return Orientation();
+  }
 
   
   EXIFData exif = EXIFParser::Parse(marker->data,
@@ -583,7 +602,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
 
   while ((mInfo.output_scanline < mInfo.output_height)) {
       
-      uint32_t *imageRow = ((uint32_t*)mImageData) +
+      uint32_t* imageRow = ((uint32_t*)mImageData) +
                            (mInfo.output_scanline * mInfo.output_width);
 
       if (mInfo.out_color_space == MOZ_JCS_EXT_NATIVE_ENDIAN_XRGB) {
@@ -601,7 +620,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
         sampleRow += mInfo.output_width;
       }
 
-          
+      
       if (jpeg_read_scanlines(&mInfo, &sampleRow, 1) != 1) {
         *suspend = true; 
         break;
@@ -611,7 +630,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
         JSAMPROW source = sampleRow;
         if (mInfo.out_color_space == JCS_GRAYSCALE) {
           
-
+          
           sampleRow += mInfo.output_width;
         }
         qcms_transform_data(mTransform, source, sampleRow, mInfo.output_width);
@@ -627,14 +646,17 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
           
           
           
+          
+          
           cmyk_convert_rgb((JSAMPROW)imageRow, mInfo.output_width);
           sampleRow += mInfo.output_width;
         }
         if (mCMSMode == eCMSMode_All) {
           
-          qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+          qcms_transform* transform = gfxPlatform::GetCMSRGBTransform();
           if (transform) {
-            qcms_transform_data(transform, sampleRow, sampleRow, mInfo.output_width);
+            qcms_transform_data(transform, sampleRow, sampleRow,
+                                mInfo.output_width);
           }
         }
       }
@@ -644,7 +666,8 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
 
       
       for (; (NS_PTR_TO_UINT32(sampleRow) & 0x3) && idx; --idx) {
-        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
+        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1],
+                                     sampleRow[2]);
         sampleRow += 3;
       }
 
@@ -659,7 +682,8 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
       
       while (idx--) {
         
-        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
+        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1],
+                                     sampleRow[2]);
         sampleRow += 3;
       }
   }
@@ -676,7 +700,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
 METHODDEF(void)
 my_error_exit (j_common_ptr cinfo)
 {
-  decoder_error_mgr *err = (decoder_error_mgr *) cinfo->err;
+  decoder_error_mgr* err = (decoder_error_mgr*) cinfo->err;
 
   
   nsresult error_code = err->pub.msg_code == JERR_OUT_OF_MEMORY
@@ -693,11 +717,9 @@ my_error_exit (j_common_ptr cinfo)
 #endif
 
   
-
+  
   longjmp(err->setjmp_buffer, static_cast<int>(error_code));
 }
-
-
 
 
 
@@ -758,15 +780,13 @@ init_source (j_decompress_ptr jd)
 METHODDEF(void)
 skip_input_data (j_decompress_ptr jd, long num_bytes)
 {
-  struct jpeg_source_mgr *src = jd->src;
-  nsJPEGDecoder *decoder = (nsJPEGDecoder *)(jd->client_data);
+  struct jpeg_source_mgr* src = jd->src;
+  nsJPEGDecoder* decoder = (nsJPEGDecoder*)(jd->client_data);
 
   if (num_bytes > (long)src->bytes_in_buffer) {
     
-
-
-
-
+    
+    
     decoder->mBytesToSkip = (size_t)num_bytes - src->bytes_in_buffer;
     src->next_input_byte += src->bytes_in_buffer;
     src->bytes_in_buffer = 0;
@@ -795,15 +815,16 @@ skip_input_data (j_decompress_ptr jd, long num_bytes)
 METHODDEF(boolean)
 fill_input_buffer (j_decompress_ptr jd)
 {
-  struct jpeg_source_mgr *src = jd->src;
-  nsJPEGDecoder *decoder = (nsJPEGDecoder *)(jd->client_data);
+  struct jpeg_source_mgr* src = jd->src;
+  nsJPEGDecoder* decoder = (nsJPEGDecoder*)(jd->client_data);
 
   if (decoder->mReading) {
-    const JOCTET *new_buffer = decoder->mSegment;
+    const JOCTET* new_buffer = decoder->mSegment;
     uint32_t new_buflen = decoder->mSegmentLen;
-  
-    if (!new_buffer || new_buflen == 0)
+
+    if (!new_buffer || new_buflen == 0) {
       return false; 
+    }
 
     decoder->mSegmentLen = 0;
 
@@ -820,7 +841,7 @@ fill_input_buffer (j_decompress_ptr jd)
       }
     }
 
-      decoder->mBackBufferUnreadLen = src->bytes_in_buffer;
+    decoder->mBackBufferUnreadLen = src->bytes_in_buffer;
 
     src->next_input_byte = new_buffer;
     src->bytes_in_buffer = (size_t)new_buflen;
@@ -836,10 +857,12 @@ fill_input_buffer (j_decompress_ptr jd)
   }
 
   
-  const uint32_t new_backtrack_buflen = src->bytes_in_buffer + decoder->mBackBufferLen;
- 
+  const uint32_t new_backtrack_buflen = src->bytes_in_buffer +
+                                        decoder->mBackBufferLen;
+
   
   if (decoder->mBackBufferSize < new_backtrack_buflen) {
+    
     
     if (new_backtrack_buflen > MAX_JPEG_MARKER_LENGTH) {
       my_error_exit((j_common_ptr)(&decoder->mInfo));
@@ -847,7 +870,7 @@ fill_input_buffer (j_decompress_ptr jd)
 
     
     const size_t roundup_buflen = ((new_backtrack_buflen + 255) >> 8) << 8;
-    JOCTET *buf = (JOCTET *)PR_REALLOC(decoder->mBackBuffer, roundup_buflen);
+    JOCTET* buf = (JOCTET*)PR_REALLOC(decoder->mBackBuffer, roundup_buflen);
     
     if (!buf) {
       decoder->mInfo.err->msg_code = JERR_OUT_OF_MEMORY;
@@ -863,7 +886,8 @@ fill_input_buffer (j_decompress_ptr jd)
           src->bytes_in_buffer);
 
   
-  src->next_input_byte = decoder->mBackBuffer + decoder->mBackBufferLen - decoder->mBackBufferUnreadLen;
+  src->next_input_byte = decoder->mBackBuffer + decoder->mBackBufferLen -
+                         decoder->mBackBufferUnreadLen;
   src->bytes_in_buffer += decoder->mBackBufferUnreadLen;
   decoder->mBackBufferLen = (size_t)new_backtrack_buflen;
   decoder->mReading = true;
@@ -881,7 +905,7 @@ fill_input_buffer (j_decompress_ptr jd)
 METHODDEF(void)
 term_source (j_decompress_ptr jd)
 {
-  nsJPEGDecoder *decoder = (nsJPEGDecoder *)(jd->client_data);
+  nsJPEGDecoder* decoder = (nsJPEGDecoder*)(jd->client_data);
 
   
   
@@ -894,7 +918,6 @@ term_source (j_decompress_ptr jd)
 
 } 
 } 
-
 
 
 
@@ -930,7 +953,7 @@ static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width)
     
     
     
-  
+
     
     const uint32_t iC = in[0];
     const uint32_t iM = in[1];

@@ -35,7 +35,8 @@ public:
 protected:
   ~nsBMPEncoder();
 
-  enum Version {
+  enum Version
+  {
       VERSION_3 = 3,
       VERSION_5 = 5
   };

@@ -35,24 +35,24 @@ public:
   NS_DECL_NSIASYNCINPUTSTREAM
 
   nsICOEncoder();
-  
+
   
   uint32_t GetRealWidth() const
   {
-    return mICODirEntry.mWidth == 0 ? 256 : mICODirEntry.mWidth; 
+    return mICODirEntry.mWidth == 0 ? 256 : mICODirEntry.mWidth;
   }
 
   
   uint32_t GetRealHeight() const
   {
-    return mICODirEntry.mHeight == 0 ? 256 : mICODirEntry.mHeight; 
+    return mICODirEntry.mHeight == 0 ? 256 : mICODirEntry.mHeight;
   }
 
 protected:
   ~nsICOEncoder();
 
-  nsresult ParseOptions(const nsAString& aOptions, uint32_t* bpp, 
-                        bool *usePNG);
+  nsresult ParseOptions(const nsAString& aOptions, uint32_t* bpp,
+                        bool* usePNG);
   void NotifyListener();
 
   

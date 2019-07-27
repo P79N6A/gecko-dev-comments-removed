@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsIconDecoder_h__
-#define nsIconDecoder_h__
+#ifndef nsIconDecoder_h
+#define nsIconDecoder_h
 
 #include "Decoder.h"
 
@@ -38,10 +38,11 @@ class nsIconDecoder : public Decoder
 {
 public:
 
-  explicit nsIconDecoder(RasterImage &aImage);
+  explicit nsIconDecoder(RasterImage& aImage);
   virtual ~nsIconDecoder();
 
-  virtual void WriteInternal(const char* aBuffer, uint32_t aCount, DecodeStrategy aStrategy);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount,
+                             DecodeStrategy aStrategy) MOZ_OVERRIDE;
 
   uint8_t mWidth;
   uint8_t mHeight;

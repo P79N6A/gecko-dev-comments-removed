@@ -21,7 +21,7 @@
 
 class nsMozIconURI MOZ_FINAL : public nsIMozIconURI
 {
-public:    
+public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIURI
   NS_DECL_NSIMOZICONURI
@@ -33,11 +33,16 @@ protected:
   virtual ~nsMozIconURI();
   nsCOMPtr<nsIURL> mIconURL; 
   uint32_t mSize; 
+                  
   nsCString mContentType; 
+                          
   nsCString mFileName; 
+                       
   nsCString mStockIcon;
-  int32_t mIconSize;     
-  int32_t mIconState;    
+  int32_t mIconSize;   
+                       
+  int32_t mIconState;  
+                       
 };
 
 #endif 

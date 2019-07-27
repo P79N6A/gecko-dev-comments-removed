@@ -17,29 +17,23 @@
 
 
 
-
-
 class nsIconChannel MOZ_FINAL : public nsIChannel {
   public:
     NS_DECL_ISUPPORTS
     NS_FORWARD_NSIREQUEST(mRealChannel->)
     NS_FORWARD_NSICHANNEL(mRealChannel->)
 
-    nsIconChannel() {};
+    nsIconChannel() { };
 
     
-
-
-
-
+    
+    
     nsresult Init(nsIURI* aURI);
   private:
-    ~nsIconChannel() {};
+    ~nsIconChannel() { };
 
     
-
-
-
+    
     nsCOMPtr<nsIChannel> mRealChannel;
 };
 

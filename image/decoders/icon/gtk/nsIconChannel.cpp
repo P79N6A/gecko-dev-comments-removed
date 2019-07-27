@@ -46,15 +46,24 @@ NS_IMPL_ISUPPORTS(nsIconChannel,
 #ifdef MOZ_ENABLE_GNOMEUI
 
 
-typedef char* (*_GnomeIconLookup_fn)(GtkIconTheme *icon_theme, GnomeThumbnailFactory *thumbnail_factory,
-                                     const char *file_uri, const char *custom_icon, GnomeVFSFileInfo *file_info,
-                                     const char *mime_type, GnomeIconLookupFlags flags, GnomeIconLookupResultFlags *result);
+typedef char* (*_GnomeIconLookup_fn)(GtkIconTheme* icon_theme,
+                                     GnomeThumbnailFactory* thumbnail_factory,
+                                     const char* file_uri,
+                                     const char* custom_icon,
+                                     GnomeVFSFileInfo* file_info,
+                                     const char* mime_type,
+                                     GnomeIconLookupFlags flags,
+                                     GnomeIconLookupResultFlags* result);
 typedef GnomeIconTheme* (*_GnomeIconThemeNew_fn)(void);
-typedef int (*_GnomeInit_fn)(const char *app_id, const char *app_version, int argc, char **argv, const struct poptOption *options,
-                             int flags, poptContext *return_ctx);
+typedef int (*_GnomeInit_fn)(const char* app_id, const char* app_version,
+                             int argc, char** argv,
+                             const struct poptOption* options,
+                             int flags, poptContext* return_ctx);
 typedef GnomeProgram* (*_GnomeProgramGet_fn)(void);
-typedef GnomeVFSResult (*_GnomeVFSGetFileInfo_fn)(const gchar *text_uri, GnomeVFSFileInfo *info, GnomeVFSFileInfoOptions options);
-typedef void (*_GnomeVFSFileInfoClear_fn)(GnomeVFSFileInfo *info);
+typedef GnomeVFSResult (*_GnomeVFSGetFileInfo_fn)(const gchar* text_uri,
+                        GnomeVFSFileInfo* info,
+                        GnomeVFSFileInfoOptions options);
+typedef void (*_GnomeVFSFileInfoClear_fn)(GnomeVFSFileInfo* info);
 
 static PRLibrary* gLibGnomeUI = nullptr;
 static PRLibrary* gLibGnome = nullptr;
@@ -70,8 +79,8 @@ static _GnomeVFSFileInfoClear_fn _gnome_vfs_file_info_clear = nullptr;
 #endif 
 
 static nsresult
-moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI *aURI,
-                          nsIChannel **aChannel)
+moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI* aURI,
+                          nsIChannel** aChannel)
 {
   int width = gdk_pixbuf_get_width(aPixbuf);
   int height = gdk_pixbuf_get_height(aPixbuf);
@@ -84,18 +93,18 @@ moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI *aURI,
 
   const int n_channels = 4;
   gsize buf_size = 2 + n_channels * height * width;
-  uint8_t * const buf = (uint8_t*)NS_Alloc(buf_size);
+  uint8_t* const buf = (uint8_t*)NS_Alloc(buf_size);
   NS_ENSURE_TRUE(buf, NS_ERROR_OUT_OF_MEMORY);
-  uint8_t *out = buf;
+  uint8_t* out = buf;
 
   *(out++) = width;
   *(out++) = height;
 
-  const guchar * const pixels = gdk_pixbuf_get_pixels(aPixbuf);
+  const guchar* const pixels = gdk_pixbuf_get_pixels(aPixbuf);
   int rowextra = gdk_pixbuf_get_rowstride(aPixbuf) - width * n_channels;
 
   
-  const guchar * in = pixels;
+  const guchar* in = pixels;
   for (int y = 0; y < height; ++y, in += rowextra) {
     for (int x = 0; x < width; ++x) {
       uint8_t r = *(in++);
@@ -151,10 +160,10 @@ moz_gdk_pixbuf_to_channel(GdkPixbuf* aPixbuf, nsIURI *aURI,
                                   NS_LITERAL_CSTRING(IMAGE_ICON_MS));
 }
 
-static GtkWidget *gProtoWindow = nullptr;
-static GtkWidget *gStockImageWidget = nullptr;
+static GtkWidget* gProtoWindow = nullptr;
+static GtkWidget* gStockImageWidget = nullptr;
 #ifdef MOZ_ENABLE_GNOMEUI
-static GnomeIconTheme *gIconTheme = nullptr;
+static GnomeIconTheme* gIconTheme = nullptr;
 #endif 
 
 static void
@@ -180,14 +189,22 @@ ensure_libgnomeui()
 {
   
   
+  
   if (!gTriedToLoadGnomeLibs) {
     gLibGnomeUI = PR_LoadLibrary("libgnomeui-2.so.0");
-    if (!gLibGnomeUI)
+    if (!gLibGnomeUI) {
       return NS_ERROR_NOT_AVAILABLE;
+    }
 
-    _gnome_init = (_GnomeInit_fn)PR_FindFunctionSymbol(gLibGnomeUI, "gnome_init_with_popt_table");
-    _gnome_icon_theme_new = (_GnomeIconThemeNew_fn)PR_FindFunctionSymbol(gLibGnomeUI, "gnome_icon_theme_new");
-    _gnome_icon_lookup = (_GnomeIconLookup_fn)PR_FindFunctionSymbol(gLibGnomeUI, "gnome_icon_lookup");
+    _gnome_init =
+      (_GnomeInit_fn)PR_FindFunctionSymbol(gLibGnomeUI,
+                                           "gnome_init_with_popt_table");
+    _gnome_icon_theme_new =
+      (_GnomeIconThemeNew_fn)PR_FindFunctionSymbol(gLibGnomeUI,
+                                                   "gnome_icon_theme_new");
+    _gnome_icon_lookup =
+      (_GnomeIconLookup_fn)PR_FindFunctionSymbol(gLibGnomeUI,
+                                                 "gnome_icon_lookup");
 
     if (!_gnome_init || !_gnome_icon_theme_new || !_gnome_icon_lookup) {
       PR_UnloadLibrary(gLibGnomeUI);
@@ -196,8 +213,9 @@ ensure_libgnomeui()
     }
   }
 
-  if (!gLibGnomeUI)
+  if (!gLibGnomeUI) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
 
   return NS_OK;
 }
@@ -207,10 +225,13 @@ ensure_libgnome()
 {
   if (!gTriedToLoadGnomeLibs) {
     gLibGnome = PR_LoadLibrary("libgnome-2.so.0");
-    if (!gLibGnome)
+    if (!gLibGnome) {
       return NS_ERROR_NOT_AVAILABLE;
+    }
 
-    _gnome_program_get = (_GnomeProgramGet_fn)PR_FindFunctionSymbol(gLibGnome, "gnome_program_get");
+    _gnome_program_get =
+      (_GnomeProgramGet_fn)PR_FindFunctionSymbol(gLibGnome,
+                                                 "gnome_program_get");
     if (!_gnome_program_get) {
       PR_UnloadLibrary(gLibGnome);
       gLibGnome = nullptr;
@@ -218,8 +239,9 @@ ensure_libgnome()
     }
   }
 
-  if (!gLibGnome)
+  if (!gLibGnome) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
 
   return NS_OK;
 }
@@ -229,11 +251,17 @@ ensure_libgnomevfs()
 {
   if (!gTriedToLoadGnomeLibs) {
     gLibGnomeVFS = PR_LoadLibrary("libgnomevfs-2.so.0");
-    if (!gLibGnomeVFS)
+    if (!gLibGnomeVFS) {
       return NS_ERROR_NOT_AVAILABLE;
+    }
 
-    _gnome_vfs_get_file_info = (_GnomeVFSGetFileInfo_fn)PR_FindFunctionSymbol(gLibGnomeVFS, "gnome_vfs_get_file_info");
-    _gnome_vfs_file_info_clear = (_GnomeVFSFileInfoClear_fn)PR_FindFunctionSymbol(gLibGnomeVFS, "gnome_vfs_file_info_clear");
+    _gnome_vfs_get_file_info =
+      (_GnomeVFSGetFileInfo_fn)PR_FindFunctionSymbol(gLibGnomeVFS,
+                                                     "gnome_vfs_get_file_info");
+    _gnome_vfs_file_info_clear =
+        (_GnomeVFSFileInfoClear_fn)PR_FindFunctionSymbol(gLibGnomeVFS,
+                                                         "gnome_vfs_file_"
+                                                         "info_clear");
     if (!_gnome_vfs_get_file_info || !_gnome_vfs_file_info_clear) {
       PR_UnloadLibrary(gLibGnomeVFS);
       gLibGnomeVFS = nullptr;
@@ -241,40 +269,47 @@ ensure_libgnomevfs()
     }
   }
 
-  if (!gLibGnomeVFS)
+  if (!gLibGnomeVFS) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
 
   return NS_OK;
 }
 #endif 
 
 static GtkIconSize
-moz_gtk_icon_size(const char *name)
+moz_gtk_icon_size(const char* name)
 {
-  if (strcmp(name, "button") == 0)
+  if (strcmp(name, "button") == 0) {
     return GTK_ICON_SIZE_BUTTON;
+  }
 
-  if (strcmp(name, "menu") == 0)
+  if (strcmp(name, "menu") == 0) {
     return GTK_ICON_SIZE_MENU;
+  }
 
-  if (strcmp(name, "toolbar") == 0)
+  if (strcmp(name, "toolbar") == 0) {
     return GTK_ICON_SIZE_LARGE_TOOLBAR;
+  }
 
-  if (strcmp(name, "toolbarsmall") == 0)
+  if (strcmp(name, "toolbarsmall") == 0) {
     return GTK_ICON_SIZE_SMALL_TOOLBAR;
+  }
 
-  if (strcmp(name, "dnd") == 0)
+  if (strcmp(name, "dnd") == 0) {
     return GTK_ICON_SIZE_DND;
+  }
 
-  if (strcmp(name, "dialog") == 0)
+  if (strcmp(name, "dialog") == 0) {
     return GTK_ICON_SIZE_DIALOG;
+  }
 
   return GTK_ICON_SIZE_MENU;
 }
 
 #if defined(MOZ_ENABLE_GNOMEUI) || defined(MOZ_ENABLE_GIO)
 static int32_t
-GetIconSize(nsIMozIconURI *aIconURI)
+GetIconSize(nsIMozIconURI* aIconURI)
 {
   nsAutoCString iconSizeString;
 
@@ -283,7 +318,7 @@ GetIconSize(nsIMozIconURI *aIconURI)
     uint32_t size;
     mozilla::DebugOnly<nsresult> rv = aIconURI->GetImageSize(&size);
     NS_ASSERTION(NS_SUCCEEDED(rv), "GetImageSize failed");
-    return size; 
+    return size;
   } else {
     int size;
 
@@ -295,18 +330,19 @@ GetIconSize(nsIMozIconURI *aIconURI)
 
 
 static nsresult
-ScaleIconBuf(GdkPixbuf **aBuf, int32_t iconSize)
+ScaleIconBuf(GdkPixbuf** aBuf, int32_t iconSize)
 {
   
   if (gdk_pixbuf_get_width(*aBuf)  != iconSize &&
       gdk_pixbuf_get_height(*aBuf) != iconSize) {
-    GdkPixbuf *scaled = gdk_pixbuf_scale_simple(*aBuf, iconSize, iconSize,
+    GdkPixbuf* scaled = gdk_pixbuf_scale_simple(*aBuf, iconSize, iconSize,
                                                 GDK_INTERP_BILINEAR);
     
     g_object_unref(*aBuf);
     *aBuf = scaled;
-    if (!scaled)
+    if (!scaled) {
       return NS_ERROR_OUT_OF_MEMORY;
+    }
   }
   return NS_OK;
 }
@@ -314,11 +350,12 @@ ScaleIconBuf(GdkPixbuf **aBuf, int32_t iconSize)
 
 #ifdef MOZ_ENABLE_GNOMEUI
 nsresult
-nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
+nsIconChannel::InitWithGnome(nsIMozIconURI* aIconURI)
 {
   nsresult rv;
 
-  if (NS_FAILED(ensure_libgnomeui()) || NS_FAILED(ensure_libgnome()) || NS_FAILED(ensure_libgnomevfs())) {
+  if (NS_FAILED(ensure_libgnomeui()) || NS_FAILED(ensure_libgnome()) ||
+      NS_FAILED(ensure_libgnomevfs())) {
     gTriedToLoadGnomeLibs = true;
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -329,7 +366,7 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
     
     
     
-    nsCOMPtr<nsIStringBundleService> bundleService = 
+    nsCOMPtr<nsIStringBundleService> bundleService =
       do_GetService(NS_STRINGBUNDLE_CONTRACTID);
 
     NS_ASSERTION(bundleService, "String bundle service must be present!");
@@ -343,7 +380,8 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
       bundle->GetStringFromName(MOZ_UTF16("brandShortName"),
                                 getter_Copies(appName));
     } else {
-      NS_WARNING("brand.properties not present, using default application name");
+      NS_WARNING(
+         "brand.properties not present, using default application name");
       appName.AssignLiteral(MOZ_UTF16("Gecko"));
     }
 
@@ -358,6 +396,7 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
 
   GnomeVFSFileInfo fileInfo = {0};
   fileInfo.refcount = 1; 
+                         
 
   nsAutoCString spec;
   nsCOMPtr<nsIURL> url;
@@ -368,9 +407,12 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
     
     bool isFile;
     if (NS_SUCCEEDED(url->SchemeIs("file", &isFile)) && isFile) {
-      _gnome_vfs_get_file_info(spec.get(), &fileInfo, GNOME_VFS_FILE_INFO_DEFAULT);
+      _gnome_vfs_get_file_info(spec.get(), &fileInfo,
+                               GNOME_VFS_FILE_INFO_DEFAULT);
     }
     else {
+      
+      
       
       
       
@@ -412,24 +454,27 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
                                   GNOME_ICON_LOOKUP_FLAGS_NONE, nullptr);
 
   _gnome_vfs_file_info_clear(&fileInfo);
-  if (!name)
+  if (!name) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   
-  
-  GtkIconTheme *theme = gtk_icon_theme_get_default();
+  GtkIconTheme* theme = gtk_icon_theme_get_default();
   if (!theme) {
     g_free(name);
     return NS_ERROR_UNEXPECTED;
   }
 
-  GError *err = nullptr;
-  GdkPixbuf* buf = gtk_icon_theme_load_icon(theme, name, iconSize, (GtkIconLookupFlags)0, &err);
+  GError* err = nullptr;
+  GdkPixbuf* buf = gtk_icon_theme_load_icon(theme, name, iconSize,
+                                            (GtkIconLookupFlags)0, &err);
   g_free(name);
 
   if (!buf) {
-    if (err)
+    if (err) {
       g_error_free(err);
+    }
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -445,7 +490,7 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
 
 #ifdef MOZ_ENABLE_GIO
 nsresult
-nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
+nsIconChannel::InitWithGIO(nsIMozIconURI* aIconURI)
 {
   GIcon *icon = nullptr;
   nsCOMPtr<nsIURL> fileURI;
@@ -459,8 +504,8 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
     nsAutoCString spec;
     fileURI->GetAsciiSpec(spec);
     if (NS_SUCCEEDED(fileURI->SchemeIs("file", &isFile)) && isFile) {
-      GFile *file = g_file_new_for_uri(spec.get());
-      GFileInfo *fileInfo = g_file_query_info(file,
+      GFile* file = g_file_new_for_uri(spec.get());
+      GFileInfo* fileInfo = g_file_query_info(file,
                                               G_FILE_ATTRIBUTE_STANDARD_ICON,
                                               G_FILE_QUERY_INFO_NONE,
                                               nullptr, nullptr);
@@ -468,13 +513,14 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
       if (fileInfo) {
         
         icon = g_file_info_get_icon(fileInfo);
-        if (icon)
+        if (icon) {
           g_object_ref(icon);
+        }
         g_object_unref(fileInfo);
       }
     }
   }
-  
+
   
   if (!icon) {
     nsAutoCString type;
@@ -488,7 +534,7 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
         ms->GetTypeFromExtension(fileExt, type);
       }
     }
-    char *ctype = nullptr; 
+    char* ctype = nullptr; 
     if (!type.IsEmpty()) {
       ctype = g_content_type_from_mime_type(type.get());
     }
@@ -499,8 +545,8 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
   }
 
   
-  GtkIconTheme *iconTheme = gtk_icon_theme_get_default();  
-  GtkIconInfo *iconInfo = nullptr;
+  GtkIconTheme* iconTheme = gtk_icon_theme_get_default();
+  GtkIconInfo* iconInfo = nullptr;
   
   int32_t iconSize = GetIconSize(aIconURI);
 
@@ -511,7 +557,7 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
                                               (GtkIconLookupFlags)0);
     g_object_unref(icon);
   }
-  
+
   if (!iconInfo) {
     
     iconInfo = gtk_icon_theme_lookup_icon(iconTheme,
@@ -521,14 +567,14 @@ nsIconChannel::InitWithGIO(nsIMozIconURI *aIconURI)
       return NS_ERROR_NOT_AVAILABLE;
     }
   }
-  
+
   
   GdkPixbuf* buf = gtk_icon_info_load_icon(iconInfo, nullptr);
   gtk_icon_info_free(iconInfo);
   if (!buf) {
     return NS_ERROR_UNEXPECTED;
   }
-  
+
   nsresult rv = ScaleIconBuf(&buf, iconSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -550,7 +596,7 @@ nsIconChannel::Init(nsIURI* aURI)
   if (stockIcon.IsEmpty()) {
 #ifdef MOZ_ENABLE_GNOMEUI
     return InitWithGnome(iconURI);
-#else 
+#else
 #ifdef MOZ_ENABLE_GIO
     return InitWithGIO(iconURI);
 #else
@@ -592,7 +638,7 @@ nsIconChannel::Init(nsIURI* aURI)
     
     
     
-    GtkIconTheme *icon_theme = gtk_icon_theme_get_default();
+    GtkIconTheme* icon_theme = gtk_icon_theme_get_default();
     
     
     
@@ -603,7 +649,7 @@ nsIconChannel::Init(nsIURI* aURI)
       
       
       
-      GtkIconInfo *icon =
+      GtkIconInfo* icon =
         gtk_icon_theme_lookup_icon(icon_theme, stockIcon.get(),
                                    size, (GtkIconLookupFlags)0);
       if (icon) {
@@ -614,8 +660,8 @@ nsIconChannel::Init(nsIURI* aURI)
   }
 
   ensure_stock_image_widget();
-  GtkStyle *style = gtk_widget_get_style(gStockImageWidget);
-  GtkIconSet *icon_set = nullptr;
+  GtkStyle* style = gtk_widget_get_style(gStockImageWidget);
+  GtkIconSet* icon_set = nullptr;
   if (!useIconName) {
     icon_set = gtk_style_lookup_icon_set(style, stockID.get());
   }
@@ -628,14 +674,14 @@ nsIconChannel::Init(nsIURI* aURI)
     
     
     icon_set = gtk_icon_set_new();
-    GtkIconSource *icon_source = gtk_icon_source_new();
-    
+    GtkIconSource* icon_source = gtk_icon_source_new();
+
     gtk_icon_source_set_icon_name(icon_source, stockIcon.get());
     gtk_icon_set_add_source(icon_set, icon_source);
     gtk_icon_source_free(icon_source);
   }
 
-  GdkPixbuf *icon =
+  GdkPixbuf* icon =
     gtk_icon_set_render_icon(icon_set, style, direction, state,
                              icon_size, gStockImageWidget, nullptr);
   if (useIconName) {
@@ -645,9 +691,10 @@ nsIconChannel::Init(nsIURI* aURI)
   
   
   
-  if (!icon)
+  if (!icon) {
     return NS_ERROR_NOT_AVAILABLE;
-  
+  }
+
   nsresult rv = moz_gdk_pixbuf_to_channel(icon, iconURI,
                                           getter_AddRefs(mRealChannel));
 
