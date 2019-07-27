@@ -26,6 +26,7 @@ class UnixSocketConnector;
 class ConnectionOrientedSocketIO : public DataSocketIO
 {
 public:
+  ConnectionOrientedSocketIO(nsIThread* aConsumerThread);
   virtual ~ConnectionOrientedSocketIO();
 
   virtual nsresult Accept(int aFd,
@@ -46,7 +47,9 @@ public:
 
 
 
+
   virtual nsresult PrepareAccept(UnixSocketConnector* aConnector,
+                                 nsIThread* aConsumerThread,
                                  MessageLoop* aIOLoop,
                                  ConnectionOrientedSocketIO*& aIO) = 0;
 

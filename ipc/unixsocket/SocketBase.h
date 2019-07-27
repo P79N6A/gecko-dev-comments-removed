@@ -353,8 +353,24 @@ public:
 
   virtual void ShutdownOnMainThread() = 0;
 
+  
+
+
+
+
+  nsIThread* GetConsumerThread() const;
+
+  
+
+
+
+  bool IsConsumerThread() const;
+
 protected:
-  SocketIOBase();
+  SocketIOBase(nsIThread* nsConsumerThread);
+
+private:
+  nsCOMPtr<nsIThread> mConsumerThread;
 };
 
 

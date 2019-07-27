@@ -69,8 +69,9 @@ public:
 
 
 
-  nsresult Connect(BluetoothUnixSocketConnector* aConnector,
-                   int aDelayMs, MessageLoop* aIOLoop);
+
+  nsresult Connect(BluetoothUnixSocketConnector* aConnector, int aDelayMs,
+                   nsIThread* aConsumerThread, MessageLoop* aIOLoop);
 
   
 
@@ -91,8 +92,9 @@ public:
 
 
 
+
   nsresult Listen(BluetoothUnixSocketConnector* aConnector,
-                  MessageLoop* aIOLoop);
+                  nsIThread* aConsumerThread, MessageLoop* aIOLoop);
 
   
 
