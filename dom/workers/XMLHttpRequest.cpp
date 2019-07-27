@@ -1770,10 +1770,6 @@ XMLHttpRequest::MaybeDispatchPrematureAbortEvents(ErrorResult& aRv)
 
     mProxy->mSeenLoadStart = false;
   }
-
-  if (mRooted) {
-    Unpin();
-  }
 }
 
 void
@@ -2318,7 +2314,9 @@ XMLHttpRequest::OverrideMimeType(const nsAString& aMimeType, ErrorResult& aRv)
   
   
   
-  if (!mProxy || SendInProgress()) {
+  if (!mProxy || (SendInProgress() &&
+                  (mProxy->mSeenLoadStart ||
+                   mStateData.mReadyState > nsIXMLHttpRequest::OPENED))) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
@@ -2342,7 +2340,9 @@ XMLHttpRequest::SetResponseType(XMLHttpRequestResponseType aResponseType,
     return;
   }
 
-  if (!mProxy || SendInProgress()) {
+  if (!mProxy || (SendInProgress() &&
+                  (mProxy->mSeenLoadStart ||
+                   mStateData.mReadyState > nsIXMLHttpRequest::OPENED))) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
