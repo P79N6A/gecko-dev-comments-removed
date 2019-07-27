@@ -190,12 +190,14 @@ public:
   RenderNode(nsIDOMNode* aNode,
              nsIntRegion* aRegion,
              nsIntPoint& aPoint,
-             nsIntRect* aScreenRect) override;
+             nsIntRect* aScreenRect,
+             uint32_t aFlags) override;
 
   virtual already_AddRefed<SourceSurface>
   RenderSelection(nsISelection* aSelection,
                   nsIntPoint& aPoint,
-                  nsIntRect* aScreenRect) override;
+                  nsIntRect* aScreenRect,
+                  uint32_t aFlags) override;
 
   virtual already_AddRefed<nsPIDOMWindow> GetRootWindow() override;
 
@@ -543,13 +545,16 @@ protected:
 
 
 
+
+
   already_AddRefed<SourceSurface>
   PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
                       nsISelection* aSelection,
                       nsIntRegion* aRegion,
                       nsRect aArea,
                       nsIntPoint& aPoint,
-                      nsIntRect* aScreenRect);
+                      nsIntRect* aScreenRect,
+                      uint32_t aFlags);
 
   
 

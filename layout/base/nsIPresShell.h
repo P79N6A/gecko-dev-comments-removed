@@ -1105,6 +1105,10 @@ public:
                                   nscolor aBackgroundColor,
                                   gfxContext* aRenderedContext) = 0;
 
+  enum {
+    RENDER_AUTO_SCALE = 0x80
+  };
+
   
 
 
@@ -1115,9 +1119,11 @@ public:
   RenderNode(nsIDOMNode* aNode,
              nsIntRegion* aRegion,
              nsIntPoint& aPoint,
-             nsIntRect* aScreenRect) = 0;
+             nsIntRect* aScreenRect,
+             uint32_t aFlags) = 0;
 
   
+
 
 
 
@@ -1135,7 +1141,8 @@ public:
   virtual already_AddRefed<SourceSurface>
   RenderSelection(nsISelection* aSelection,
                   nsIntPoint& aPoint,
-                  nsIntRect* aScreenRect) = 0;
+                  nsIntRect* aScreenRect,
+                  uint32_t aFlags) = 0;
 
   void AddWeakFrameInternal(nsWeakFrame* aWeakFrame);
   virtual void AddWeakFrameExternal(nsWeakFrame* aWeakFrame);
