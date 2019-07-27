@@ -69,7 +69,6 @@ WebrtcAudioConduit::~WebrtcAudioConduit()
   {
     delete mRecvCodecList[i];
   }
-  delete mCurSendCodecConfig;
 
   
   if(mPtrVoEXmedia)
@@ -360,10 +359,12 @@ WebrtcAudioConduit::ConfigureSendMediaCodec(const AudioCodecConfig* codecConfig)
   int error = 0;
   webrtc::CodecInst cinst;
 
-  
-  if((condError = ValidateCodecConfig(codecConfig, true)) != kMediaConduitNoError)
   {
-    return condError;
+    
+    if((condError = ValidateCodecConfig(codecConfig, true)) != kMediaConduitNoError)
+    {
+      return condError;
+    }
   }
 
   condError = StopTransmitting();
@@ -411,16 +412,17 @@ WebrtcAudioConduit::ConfigureSendMediaCodec(const AudioCodecConfig* codecConfig)
     return condError;
   }
 
-  
-  delete mCurSendCodecConfig;
+  {
+    MutexAutoLock lock(mCodecMutex);
 
-  mCurSendCodecConfig = new AudioCodecConfig(codecConfig->mType,
-                                              codecConfig->mName,
-                                              codecConfig->mFreq,
-                                              codecConfig->mPacSize,
-                                              codecConfig->mChannels,
-                                              codecConfig->mRate);
-
+    
+    mCurSendCodecConfig = new AudioCodecConfig(codecConfig->mType,
+                                               codecConfig->mName,
+                                               codecConfig->mFreq,
+                                               codecConfig->mPacSize,
+                                               codecConfig->mChannels,
+                                               codecConfig->mRate);
+  }
   return kMediaConduitNoError;
 }
 
@@ -1018,7 +1020,7 @@ WebrtcAudioConduit::CheckCodecForMatch(const AudioCodecConfig* codecInfo) const
 
 MediaConduitErrorCode
 WebrtcAudioConduit::ValidateCodecConfig(const AudioCodecConfig* codecInfo,
-                                        bool send) const
+                                        bool send)
 {
   bool codecAppliedAlready = false;
 
@@ -1045,6 +1047,8 @@ WebrtcAudioConduit::ValidateCodecConfig(const AudioCodecConfig* codecInfo,
   
   if(send)
   {
+    MutexAutoLock lock(mCodecMutex);
+
     codecAppliedAlready = CheckCodecsForMatch(mCurSendCodecConfig,codecInfo);
   } else {
     codecAppliedAlready = CheckCodecForMatch(codecInfo);
