@@ -17,44 +17,34 @@ XPCOMUtils.defineLazyModuleGetter(this, "CrashSubmit",
 
 const buildID = Services.appinfo.appBuildID;
 
-function submitSuccess(dumpid, ret) {
-  let link = document.getElementById(dumpid);
-  if (link) {
-    link.className = "";
-    
-    
-    let CrashID = ret.CrashID;
-    link.firstChild.textContent = CrashID;
-    link.setAttribute("id", CrashID);
-    link.removeEventListener("click", submitPendingReport, true);
-
-    if (reportURL) {
-      link.setAttribute("href", reportURL + CrashID);
-      
-      window.location.href = reportURL + CrashID;
-    }
-  }
-}
-
-function submitError(dumpid) {
-  
-  let link = document.getElementById(dumpid);
-  if (link)
-    link.className = "";
-  
-  let event = document.createEvent("Events");
-  event.initEvent("CrashSubmitFailed", true, false);
-  document.dispatchEvent(event);
-}
-
 function submitPendingReport(event) {
-  var link = event.target;
-  var id = link.firstChild.textContent;
-  if (CrashSubmit.submit(id, { submitSuccess: submitSuccess,
-                               submitError: submitError,
-                               noThrottle: true })) {
-    link.className = "submitting";
-  }
+  let link = event.target;
+  let id = link.firstChild.textContent;
+  link.className = "submitting";
+  CrashSubmit.submit(id, { noThrottle: true }).then(
+    (remoteCrashID) => {
+      link.className = "";
+      
+      
+      link.firstChild.textContent = remoteCrashID;
+      link.setAttribute("id", remoteCrashID);
+      link.removeEventListener("click", submitPendingReport, true);
+
+      if (reportURL) {
+        link.setAttribute("href", reportURL + remoteCrashID);
+        
+        window.location.href = reportURL + remoteCrashID;
+      }
+    },
+    () => {
+      
+      link.className = "";
+
+      
+      let event = document.createEvent("Events");
+      event.initEvent("CrashSubmitFailed", true, false);
+      document.dispatchEvent(event);
+    });
   event.preventDefault();
   return false;
 }

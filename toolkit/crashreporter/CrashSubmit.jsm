@@ -2,16 +2,20 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/KeyValueParser.jsm");
-Components.utils.importGlobalProperties(['File']);
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/KeyValueParser.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.importGlobalProperties(['File']);
+
+XPCOMUtils.defineLazyModuleGetter(this, "PromiseUtils",
+                                  "resource://gre/modules/PromiseUtils.jsm");
 
 this.EXPORTED_SYMBOLS = [
   "CrashSubmit"
 ];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 const STATE_START = Ci.nsIWebProgressListener.STATE_START;
 const STATE_STOP = Ci.nsIWebProgressListener.STATE_STOP;
 
@@ -197,15 +201,13 @@ function writeSubmittedReport(crashID, viewURL) {
 }
 
 
-function Submitter(id, recordSubmission, submitSuccess, submitError,
-                   noThrottle, extraExtraKeyVals) {
+function Submitter(id, recordSubmission, noThrottle, extraExtraKeyVals) {
   this.id = id;
   this.recordSubmission = recordSubmission;
-  this.successCallback = submitSuccess;
-  this.errorCallback = submitError;
   this.noThrottle = noThrottle;
   this.additionalDumps = [];
   this.extraKeyVals = extraExtraKeyVals || {};
+  this.deferredSubmit = PromiseUtils.defer();
 }
 
 Submitter.prototype = {
@@ -237,8 +239,6 @@ Submitter.prototype = {
 
   cleanup: function Submitter_cleanup() {
     
-    this.successCallback = null;
-    this.errorCallback = null;
     this.iframe = null;
     this.dump = null;
     this.extra = null;
@@ -352,12 +352,10 @@ Submitter.prototype = {
 
     switch (status) {
       case SUCCESS:
-        if (this.successCallback)
-          this.successCallback(this.id, ret);
+        this.deferredSubmit.resolve(ret.CrashID);
         break;
       case FAILED:
-        if (this.errorCallback)
-          this.errorCallback(this.id);
+        this.deferredSubmit.reject();
         break;
       default:
         
@@ -371,7 +369,7 @@ Submitter.prototype = {
     if (!dump.exists() || !extra.exists()) {
       this.notifyStatus(FAILED);
       this.cleanup();
-      return false;
+      return this.deferredSubmit.promise;
     }
     this.dump = dump;
     this.extra = extra;
@@ -396,7 +394,7 @@ Submitter.prototype = {
         if (!dump.exists()) {
           this.notifyStatus(FAILED);
           this.cleanup();
-          return false;
+          return this.deferredSubmit.promise;
         }
         additionalDumps.push({'name': name, 'dump': dump});
       }
@@ -409,9 +407,8 @@ Submitter.prototype = {
     if (!this.submitForm()) {
        this.notifyStatus(FAILED);
        this.cleanup();
-       return false;
     }
-    return true;
+    return this.deferredSubmit.promise;
   }
 };
 
@@ -419,16 +416,6 @@ Submitter.prototype = {
 
 this.CrashSubmit = {
   
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -463,17 +450,12 @@ this.CrashSubmit = {
 
     if ('recordSubmission' in params)
       recordSubmission = params.recordSubmission;
-    if ('submitSuccess' in params)
-      submitSuccess = params.submitSuccess;
-    if ('submitError' in params)
-      submitError = params.submitError;
     if ('noThrottle' in params)
       noThrottle = params.noThrottle;
     if ('extraExtraKeyVals' in params)
       extraExtraKeyVals = params.extraExtraKeyVals;
 
     let submitter = new Submitter(id, recordSubmission,
-                                  submitSuccess, submitError,
                                   noThrottle, extraExtraKeyVals);
     CrashSubmit._activeSubmissions.push(submitter);
     return submitter.submit();
