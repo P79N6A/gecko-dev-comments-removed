@@ -20,6 +20,7 @@
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
+#include "nsIObserver.h"                
 #include "nsISupportsImpl.h"            
 #include "nsRect.h"                     
 #include "nsTArray.h"                   
@@ -122,6 +123,8 @@ public:
   
   
   virtual void ClearCachedResources(Layer* aSubtree = nullptr) MOZ_OVERRIDE;
+
+  void HandleMemoryPressure();
 
   void SetRepeatTransaction() { mRepeatTransaction = true; }
   bool GetRepeatTransaction() { return mRepeatTransaction; }
@@ -236,6 +239,29 @@ protected:
 
 private:
   
+  class MemoryPressureObserver MOZ_FINAL : public nsIObserver
+  {
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+
+    MemoryPressureObserver(ClientLayerManager* aClientLayerManager)
+      : mClientLayerManager(aClientLayerManager)
+    {
+      RegisterMemoryPressureEvent();
+    }
+
+    void Destroy();
+
+  private:
+    virtual ~MemoryPressureObserver() {}
+    void RegisterMemoryPressureEvent();
+    void UnregisterMemoryPressureEvent();
+
+    ClientLayerManager* mClientLayerManager;
+  };
+
+  
 
 
   void ForwardTransaction(bool aScheduleComposite);
@@ -304,6 +330,8 @@ private:
 
   
   nsTArray<RefPtr<SimpleTextureClientPool> > mSimpleTilePools;
+
+  nsRefPtr<MemoryPressureObserver> mMemoryPressureObserver;
 };
 
 class ClientLayer : public ShadowableLayer
