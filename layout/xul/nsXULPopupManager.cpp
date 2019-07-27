@@ -202,10 +202,13 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aFlush,
       *aLastRolledUp = first->Content();
     }
 
-    consume = item->Frame()->ConsumeOutsideClicks();
+    ConsumeOutsideClicksResult consumeResult = item->Frame()->ConsumeOutsideClicks();
+    consume = (consumeResult == ConsumeOutsideClicks_True);
+
     
     
-    if (!consume && pos) {
+    
+    if (consumeResult == ConsumeOutsideClicks_ParentOnly && pos) {
       nsCOMPtr<nsIContent> anchor = item->Frame()->GetAnchor();
 
       

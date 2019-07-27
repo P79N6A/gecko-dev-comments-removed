@@ -63,6 +63,12 @@ enum nsPopupState {
   ePopupInvisible
 };
 
+enum ConsumeOutsideClicksResult {
+  ConsumeOutsideClicks_ParentOnly = 0, 
+  ConsumeOutsideClicks_True = 1, 
+  ConsumeOutsideClicks_Never = 2 
+};
+
 
 
 
@@ -188,7 +194,7 @@ public:
 
 
 
-  bool ConsumeOutsideClicks();
+  ConsumeOutsideClicksResult ConsumeOutsideClicks();
 
   virtual bool IsContextMenu() MOZ_OVERRIDE { return mIsContextMenu; }
 
