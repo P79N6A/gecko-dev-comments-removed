@@ -14,6 +14,7 @@
 #include "nsSMILTimedElement.h"
 #include <algorithm>
 #include "mozilla/AutoRestore.h"
+#include "RestyleTracker.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -812,6 +813,36 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   aResult.mIsCSS = isCSS;
 
   return true;
+}
+
+ PLDHashOperator
+nsSMILAnimationController::AddStyleUpdate(AnimationElementPtrKey* aKey,
+                                          void* aData)
+{
+  SVGAnimationElement* animElement = aKey->GetKey();
+  RestyleTracker* restyleTracker = static_cast<RestyleTracker*>(aData);
+
+  nsSMILTargetIdentifier key;
+  if (!GetTargetIdentifierForAnimation(animElement, key)) {
+    
+    return PL_DHASH_NEXT;
+  }
+
+  
+  
+  
+  
+  nsRestyleHint rshint = key.mIsCSS ? eRestyle_StyleAttribute
+                                    : eRestyle_SVGAttrAnimations;
+  restyleTracker->AddPendingRestyle(key.mElement, rshint, nsChangeHint(0));
+
+  return PL_DHASH_NEXT;
+}
+
+void
+nsSMILAnimationController::AddStyleUpdatesTo(RestyleTracker& aTracker)
+{
+  mAnimationElementTable.EnumerateEntries(AddStyleUpdate, &aTracker);
 }
 
 

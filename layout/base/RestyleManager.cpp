@@ -40,6 +40,7 @@
 #include "ActiveLayerTracker.h"
 #include "nsDisplayList.h"
 #include "RestyleTrackerInlines.h"
+#include "nsSMILAnimationController.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -1744,10 +1745,25 @@ void
 RestyleManager::UpdateOnlyAnimationStyles()
 {
   TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
-  if (mLastUpdateForThrottledAnimations == now) {
+  bool doCSS = mLastUpdateForThrottledAnimations != now;
+  mLastUpdateForThrottledAnimations = now;
+
+  bool doSMIL = false;
+  nsIDocument* document = mPresContext->Document();
+  nsSMILAnimationController* animationController = nullptr;
+  if (document->HasAnimationController()) {
+    animationController = document->GetAnimationController();
+    
+    
+    
+    
+    
+    doSMIL = true;
+  }
+
+  if (!doCSS && !doSMIL) {
     return;
   }
-  mLastUpdateForThrottledAnimations = now;
 
   nsTransitionManager* transitionManager = mPresContext->TransitionManager();
   nsAnimationManager* animationManager = mPresContext->AnimationManager();
@@ -1758,12 +1774,18 @@ RestyleManager::UpdateOnlyAnimationStyles()
                          ELEMENT_IS_POTENTIAL_ANIMATION_ONLY_RESTYLE_ROOT);
   tracker.Init(this);
 
-  
-  
-  
-  
-  transitionManager->AddStyleUpdatesTo(tracker);
-  animationManager->AddStyleUpdatesTo(tracker);
+  if (doCSS) {
+    
+    
+    
+    
+    transitionManager->AddStyleUpdatesTo(tracker);
+    animationManager->AddStyleUpdatesTo(tracker);
+  }
+
+  if (doSMIL) {
+    animationController->AddStyleUpdatesTo(tracker);
+  }
 
   ProcessRestyles(tracker);
 
