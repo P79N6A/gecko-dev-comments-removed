@@ -556,6 +556,7 @@ GlobalHelperThreadState::canStartAsmJSCompile()
 static bool
 IonBuilderHasHigherPriority(jit::IonBuilder *first, jit::IonBuilder *second)
 {
+#ifdef JS_ION
     
     
 
@@ -569,6 +570,9 @@ IonBuilderHasHigherPriority(jit::IonBuilder *first, jit::IonBuilder *second)
 
     
     return first->script()->getUseCount() > second->script()->getUseCount();
+#else
+    MOZ_ASSUME_UNREACHABLE("Cannot infer priority without Ion");
+#endif
 }
 
 bool
